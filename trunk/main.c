@@ -48,7 +48,7 @@ main (int argc, char *argv[])
   int (*factor) _PROTO((mpz_t, mpz_t, double, double, unsigned int, 
                         unsigned int, int)) 
     = ecm;
-  int k = 3;
+  int k = 7; /* default number of blocks in stage 2 */
   unsigned int S = 0;
 
   /* first look for options */
@@ -138,13 +138,27 @@ main (int argc, char *argv[])
   /* set second stage bound B2 */
   B2 = (argc >= 4) ? atof (argv[3]) : 100.0 * (double) B1;
 
+  /* set default Brent-Suyama's exponent */
+  if (S == 0)
+#ifdef INVS
+    S = 1;
+#else
+    S = (factor == pm1) ? 2 : 1;
+
+  if ((factor == pm1) && (S % 2))
+    {
+      fprintf (stderr, "Pollard P-1 with x^e requires even e\n");
+      exit (1);
+    }
+#endif
+
   if (verbose >= 1)
     {
       if (factor == pm1)
         printf ("Pollard P-1");
       else
         printf ("Elliptic Curve");
-      printf (" method with B1=%1.0f, B2=%1.0f\n", B1, B2);
+      printf (" method with B1=%1.0f, B2=%1.0f, x^%u\n", B1, B2, S);
     }
 
   mpz_init (n); /* number(s) to factor */
