@@ -3,11 +3,11 @@ Jim Fougeron <jfoug@kdsi.net>
 Laurent Fousse <laurent@komite.net>
 	contributed the middle product code, the autoconf/automake tools,
 	and author of the Debian package
-Alexander Kruppa <firstname.lastname@mytum.de> (substitute approriately)
+Alexander Kruppa <firstname.lastname@mytum.de> (substitute appropriately)
 	joined Paul Zimmermann at release 5, contributed the Toom-Cook
 	multiplication code, the special code for Fermat numbers, and
 	many other nice things
 Dave Newman <david.newman@jesus.ox.ac.uk>
 	contributed the Kronecker-Scho"nhage multiplication code
-Paul Zimmermann <zimmerma@loria.fr>
+Paul Zimmermann <zimmerma at loria dot fr> (at = @, dot = .)
 	author of the first version of gmp-ecm
