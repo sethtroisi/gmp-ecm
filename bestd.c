@@ -21,6 +21,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <math.h>
+#include <values.h> /* for DBL_MAX */
 #include "gmp.h"
 #include "ecm.h"
 
@@ -77,7 +78,7 @@ bestD (double B2, unsigned int k0, unsigned int *k, double S, int method)
 
   unsigned int i;
   unsigned long d, dmin, dF;
-  double j, cost, mincost = 10.0 * B2, a, b;
+  double j, cost, mincost = DBL_MAX, a, b;
 
   if (S < 0)
     S = -S;
@@ -91,7 +92,7 @@ bestD (double B2, unsigned int k0, unsigned int *k, double S, int method)
     {
       d = (unsigned long) l[i][0];
       dF = phi (d) / 2.0;
-      j = ceil (B2 / (double) d / (double) dF);
+      j = ceil ((B2 / (double) d + 2.0) / (double) dF);
       a = l[i][1] + (double) (d / 6)  * (double) S;
       b = l[i][2] + (double) dF * (double) S;
       cost = a + j * b;
@@ -103,12 +104,11 @@ bestD (double B2, unsigned int k0, unsigned int *k, double S, int method)
         }
     }
 
-  if (mincost == 10.0 * B2)
+  if (mincost == DBL_MAX)
     {
       fprintf (stderr, "Error, too large step2 range, please increase k\n");
       exit (1);
     }
 
   return dmin;
-
 }

@@ -40,7 +40,7 @@ VERSION=5.1-beta
 OBJS= auxi.o b1_ainc.o bestd.o candi.o ecm.o ecm2.o eval.o getprime.o listz.o lucas.o main.o pm1.o pp1.o stage2.o toomcook.o trial.o memory.o mpmod.o mul_lo.o polyeval.o resume.o
 
 CFLAGS= -g -W -Wall -Wmissing-prototypes -pedantic $(TUNEFLAGS)
-LDFLAGS= -lgmp -lm
+LDFLAGS= -lm
 CXX=g++
 CC=gcc
 LD=$(CXX)

@@ -184,14 +184,8 @@ stage2 (mpz_t f, void *X, mpmod_t modulus, double B2min, double B2,
      and [(i-1)*d,i*d]. Thus to cover [B2min, B2] with all intervals 
      [i*d,(i+1)*d] for i0 <= i < i1 , we should  have i0*d <= B2min and 
      B2 <= (i1-1)*d */
-  d = bestD (B2, k0, &k, (double) S, method);
+  d = bestD (B2 - B2min, k0, &k, (double) S, method);
   i0 = floor (B2min / (double) d);
-  if (i0 < ((method == EC_METHOD) ? 2.0 : 1.0))
-    {
-      fprintf (stderr, "Error, too small B1 or B2min, increase k or use B1>=%u at least\n",
-	       ((method == EC_METHOD) ? 2 : 1) * d);
-      exit (EXIT_FAILURE);
-    }
   /* check that i0 * d does not overflow */
   if (i0 * (double) d > 9007199254740992.0) /* 2^53 */
     {
