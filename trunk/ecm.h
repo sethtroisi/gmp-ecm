@@ -18,7 +18,7 @@
   02111-1307, USA.
 */
 
-#define ECM_VERSION "5.0c"
+#define ECM_VERSION "5.0e"
 
 #ifndef POLYGCD
 #define POLYEVAL
