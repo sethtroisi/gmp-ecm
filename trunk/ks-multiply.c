@@ -1,8 +1,7 @@
 /* Polynomial multiplication using GMP's integer multiplication code
 
-  Original code: Copyright 2004 Dave Newman
-  david (dot) newman [at] jesus {dot} ox <dot> ac $dot$ uk
-  Modified by Paul Zimmermann.
+  Original code: Copyright 2004 Dave Newman <david.newman@jesus.ox.ac.uk>
+  Modified by Paul Zimmermann, 2004, 2005.
 
   This program is free software; you can redistribute it and/or modify it
   under the terms of the GNU General Public License as published by the
@@ -33,7 +32,10 @@
 
 #include "ecm.h"
 
-/* Notes:
+/* Puts in R[0..2l-2] the product of A[0..l-1] and B[0..l-1].
+   T must have as much space as for toomcook4 (it is only used when that
+   function is called).
+   Notes:
     - this code aligns the coeffs at limb boundaries - if instead we aligned
       at byte boundaries then we could save up to 3*l bytes in T0 and T1,
       but tests have shown this doesn't give any significant speed increase,
@@ -221,10 +223,36 @@ TMulKS (listz_t b, unsigned int n, listz_t a, unsigned int m,
   return 0;
 }
 
+#ifdef DEBUG
+void
+mpn_print (mp_ptr np, mp_size_t nn)
+{
+  mp_size_t i;
+  for (i = 0; i < nn; i++)
+    printf ("+%lu*B^%u", np[i], i);
+  printf ("\n");
+}
+#endif
+
+#ifndef mpn_com_n
+#define mpn_com_n(d,s,n)                                \
+  do {                                                  \
+    mp_ptr     __d = (d);                               \
+    mp_srcptr  __s = (s);                               \
+    mp_size_t  __n = (n);                               \
+    ASSERT (__n >= 1);                                  \
+    ASSERT (MPN_SAME_OR_SEPARATE_P (__d, __s, __n));    \
+    do                                                  \
+      *__d++ = (~ *__s++) & GMP_NUMB_MASK;              \
+    while (--__n);                                      \
+  } while (0)
+#endif
+
 /* multiply in R[] A[0]+A[1]*x+...+A[k-1]*x^(k-1)
                 by B[0]+B[1]*x+...+B[l-1]*x^(l-1) modulo n,
    wrapping around coefficients of the product up from degree m >= m0.
    Return m.
+   Assumes k >= l.
 */
 unsigned int
 ks_wrapmul (listz_t R, unsigned int m0,
@@ -233,7 +261,12 @@ ks_wrapmul (listz_t R, unsigned int m0,
 {
   unsigned long i, fft_k, m;
   mp_size_t s, t = 0, size_t0, size_t1, size_tmp;
-  mp_ptr t0_ptr, t1_ptr, t2_ptr, r_ptr;
+  mp_ptr t0_ptr, t1_ptr, t2_ptr, r_ptr, tp;
+  int negative;
+
+#ifdef DEBUG
+  if (k < l) abort();
+#endif
 
   for (i = 0; i < k; i++)
     if ((s = mpz_sizeinbase (A[i], 2)) > t)
@@ -242,8 +275,8 @@ ks_wrapmul (listz_t R, unsigned int m0,
     if ((s = mpz_sizeinbase (B[i], 2)) > t)
       t = s;
   
-  s = t * 2;
-  for (i = ((k > l) ? k : l) - 1; i; s++, i >>= 1);
+  s = t * 2 + 1; /* one extra sign bit */
+  for (i = k - 1; i; s++, i >>= 1);
   
   s = 1 + (s - 1) / GMP_NUMB_BITS;
 
@@ -264,6 +297,8 @@ ks_wrapmul (listz_t R, unsigned int m0,
 
   fft_k = mpn_fft_best_k (m0 * s, 0);
   i = mpn_fft_next_size (m0 * s, fft_k);
+  /* the following loop ensures we don't cut in the middle of a
+     coefficient */
   while (i % s)
     i = mpn_fft_next_size (i + 1, fft_k);
   m = i / s;
@@ -272,19 +307,30 @@ ks_wrapmul (listz_t R, unsigned int m0,
 
   mpn_mul_fft (t2_ptr, i, t0_ptr, size_t0, t1_ptr, size_t1, fft_k);
   
-  for (i = 0; i < m; i++)
+  for (i = 0, tp = t2_ptr, negative = 0; i < m; i++)
     {
       size_tmp = s;
-      MPN_NORMALIZE(t2_ptr + i * s, size_tmp);
+      if (negative) /* previous was negative, add 1 */
+	if (mpn_add_1 (tp, tp, s, (mp_limb_t) 1))
+	  abort ();
+      MPN_NORMALIZE(tp, size_tmp);
+      if ((size_tmp == s) && (tp[s - 1] >> (mp_bits_per_limb - 1)))
+	{
+	  negative = 1;
+	  mpn_com_n (tp, tp, s);
+	  mpn_add_1 (tp, tp, s, (mp_limb_t) 1);
+	}
+      else
+	negative = 0;
       r_ptr = MPZ_REALLOC (R[i], size_tmp);
-      MPN_COPY (r_ptr, t2_ptr + i * s, size_tmp);
-      SIZ(R[i]) = size_tmp;
+      MPN_COPY (r_ptr, tp, size_tmp);
+      SIZ(R[i]) = (negative) ? -size_tmp : size_tmp;
+      tp += s;
     }
 
   free (t0_ptr);
   free (t1_ptr);
   free (t2_ptr);
   
-  /* we don't have a measure of how many multiplies we've done */
-  return 0;
+  return m;
 }
