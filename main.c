@@ -722,7 +722,6 @@ main (int argc, char *argv[])
           if (endptr[c] != '\0')
             {
               gmp_sscanf (endptr, "%lf%n", &d, &c);
-              printf ("%f\n", d);
               mpz_set_d (B2, d);
             }
           if (endptr[c] != '\0')

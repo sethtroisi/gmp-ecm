@@ -40,7 +40,8 @@ nb_digits (const mpz_t n)
  
    str = mpz_get_str (NULL, 10, n);
    size = strlen (str);
-   FREE (str, size + 1);
+   FREE (str, size + 1); /* FIXME: use gmp's own free function
+			    if/when available, alloc size is size+1 */
    return size;
 }
 
