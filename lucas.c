@@ -1,6 +1,6 @@
 /* Auxiliary functions to evaluate Lucas sequences.
 
-  Copyright (C) 2002 Alexander Kruppa and Paul Zimmermann.
+  Copyright 2002, 2003 Alexander Kruppa and Paul Zimmermann.
 
   This program is free software; you can redistribute it and/or modify it
   under the terms of the GNU General Public License as published by the

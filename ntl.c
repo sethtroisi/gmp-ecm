@@ -1,8 +1,6 @@
 /* Interface with NTL.
 
-  Copyright (C) 2002 Paul Zimmermann,
-  LORIA/INRIA Lorraine, zimmerma@loria.fr
-  See http://www.loria.fr/~zimmerma/records/ecmnet.html
+  Copyright 2002, 2003 Alexander Kruppa and Paul Zimmermann.
 
   This program is free software; you can redistribute it and/or modify it
   under the terms of the GNU General Public License as published by the
