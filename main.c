@@ -747,7 +747,8 @@ BreadthFirstDoAgain:;
             {
 	      double NewB1;
 	      NewB1 = calc_B1_AutoIncrement (B1, autoincrementB1, autoincrementB1_calc);
-	      if (B2min == B1)
+	      if (B2min <= B1) /* floating-point equality is unreliable,
+                                  a comparison might be better */
 		  B2min = NewB1;
 	      B1 = NewB1;
 	    }
@@ -1142,7 +1143,7 @@ OutputFactorStuff:;
 	{
 	  double NewB1;
 	  NewB1 = calc_B1_AutoIncrement (B1, autoincrementB1, autoincrementB1_calc);
-	  if (B2min == B1)
+	  if (B2min <= B1) /* comparison might be better than equality */
 	      B2min = NewB1;
 	  B1 = NewB1;
 	}
