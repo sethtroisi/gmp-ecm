@@ -14,8 +14,8 @@ CFLAGS=-O2 -g -Wall -Wmissing-prototypes -ansi -pedantic
 CXX=g++
 CC=gcc
 
-FILES= auxi.o bestd.o ecm.o ecm2.o getprime.o listz.o lucas.o main.o ntl.o pm1.o polyz.o pp1.o stage2.o toomcook.o memory.o
-DIST=  auxi.c bestd.c ecm.c ecm2.c getprime.c listz.c lucas.c main.c ntl.c pm1.c polyz.c pp1.c stage2.c toomcook.c memory.c
+FILES= auxi.o bestd.o ecm.o ecm2.o getprime.o listz.o lucas.o main.o ntl.o pm1.o polyz.o pp1.o stage2.o toomcook.o memory.o mpmod.o
+DIST=  auxi.c bestd.c ecm.c ecm2.c getprime.c listz.c lucas.c main.c ntl.c pm1.c polyz.c pp1.c stage2.c toomcook.c memory.c mpmod.c
 EXTRADIST= COPYING INSTALL Makefile README cputime.h ecm.h test.pm1 test.pp1
 
 .SUFFIXES: .c .o
