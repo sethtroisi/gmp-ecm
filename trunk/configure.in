@@ -16,7 +16,7 @@ AC_PROG_RANLIB
 AC_CANONICAL_HOST
 
 dnl Don't use -ansi, since it forbids inline
-CPPFLAGS="-W -Wall -Wmissing-prototypes -pedantic"
+CPPFLAGS="$CPPFLAGS -W -Wall -Wmissing-prototypes -pedantic"
 dnl Tests concerning the include directories.
 if test -d "$with_gmp_include"; then
   CPPFLAGS="$CPPFLAGS -I$with_gmp_include"
@@ -44,15 +44,6 @@ AC_COMPILE_IFELSE([AC_LANG_PROGRAM([[
 ]], [[]])],[AC_MSG_RESULT(yes)],[AC_MSG_RESULT(no)
      AC_MSG_ERROR([GMP 4.1.0 min required])
 ])
-
-dnl Put that before LIBS=... below, otherwise will add -lgmp
-AC_CHECK_LIB(gmp, __gmpz_init)
-AC_CHECK_LIB(gmp, __gmpn_mul_fft,
-  AC_DEFINE(HAVE_FFT),
-  [AC_MSG_ERROR(
-     [Please install GMP (http://swox.com/gmp) with FFT enabled])])
-
-dnl Check for libm
 
 dnl AC_CHECK_LIB doesn't do what we want
 AC_MSG_CHECKING(for GMP library)
@@ -91,6 +82,9 @@ int main()
     AC_MSG_ERROR(['gmp.h' and 'libgmp' have different versions! you have to properly reinstall GMP.])],
     AC_MSG_RESULT([can't test])
 )
+
+dnl Check if gmp has mpn_mul_fft
+AC_CHECK_LIB(gmp, __gmpn_mul_fft, AC_DEFINE(HAVE_FFT))
 
 AC_CONFIG_FILES(Makefile)
 
