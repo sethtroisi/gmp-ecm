@@ -28,7 +28,6 @@
 #include <gmp.h>
 
 #ifndef WANT_GMP_IMPL
-/* stolen from gmp-impl.h */
 #ifndef MUL_KARATSUBA_THRESHOLD
 #define MUL_KARATSUBA_THRESHOLD 32
 #endif

@@ -43,11 +43,11 @@ ALLFILES= $(FILES) $(EXTRAFILES)
 POLYGCD=0
 
 DIST=  auxi.c bestd.c ecm.c ecm2.c getprime.c listz.c lucas.c main.c ntl.c pm1.c polyz.c pp1.c stage2.c toomcook.c memory.c mpmod.c mul_lo.c polyeval.c resume.c
-EXTRADIST= COPYING INSTALL Makefile README ecm.h test.pm1 test.pp1 test.ecm tune.c c155
+EXTRADIST= COPYING INSTALL Makefile README ecm.h test.pm1 test.pp1 test.ecm tune.c c155 ecm-gmp.h
 
 .SUFFIXES: .c .o
 
-ecm: $(ALLFILES) ecm.h
+ecm: $(ALLFILES) ecm.h ecm-gmp.h
 	$(LD) $(CFLAGS) -L$(GMP)/lib -L$(NTL)/lib $(ALLFILES) -o $@ $(LDFLAGS)
 
 ecm4c: ecm4c.c
@@ -56,13 +56,13 @@ ecm4c: ecm4c.c
 ecm_with_ntl:
 	make ecm GMP=$(GMP) NTL=$(NTL) CXX=g++ EXTRAFILES="ntl.o polyz.o" LDFLAGS="-lntl $(LDFLAGS) CFLAGS="$(CFLAGS) -DPOLYGCD""
 
-tune: mpmod.o ecm.h tune.o auxi.o mul_lo.o
+tune: mpmod.o ecm.h tune.o auxi.o mul_lo.o ecm-gmp.h
 	$(CC) $(CFLAGS) -L$(GMP)/lib tune.o mpmod.o auxi.o mul_lo.o -o $@ -lgmp
 
 ntl.o: ntl.c
 	$(CXX) $(CFLAGS) -c -I$(GMP)/include -I$(NTL)/include $<
 
-.c.o: ecm.h
+.c.o: ecm.h ecm-gmp.h
 	$(CC) $(CFLAGS) -I$(GMP)/include -c $<
 
 clean:
