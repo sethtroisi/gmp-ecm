@@ -22,12 +22,7 @@
 #include <assert.h>
 
 #include "gmp.h"
-
-#ifdef WANT_GMP_IMPL
-#include "gmp-impl.h"
-#else
 #include "ecm-gmp.h" /* for MPZ_REALLOC and MPN_COPY */
-#endif /* WANT_GMP_IMPL */
 
 #ifdef HAVE_FFT
 #define FFT_WRAP
@@ -239,20 +234,6 @@ mpn_print (mp_ptr np, mp_size_t nn)
     printf ("+%lu*B^%u", np[i], i);
   printf ("\n");
 }
-#endif
-
-#ifndef mpn_com_n
-#define mpn_com_n(d,s,n)                                \
-  do {                                                  \
-    mp_ptr     __d = (d);                               \
-    mp_srcptr  __s = (s);                               \
-    mp_size_t  __n = (n);                               \
-    ASSERT (__n >= 1);                                  \
-    ASSERT (MPN_SAME_OR_SEPARATE_P (__d, __s, __n));    \
-    do                                                  \
-      *__d++ = (~ *__s++) & GMP_NUMB_MASK;              \
-    while (--__n);                                      \
-  } while (0)
 #endif
 
 unsigned int
