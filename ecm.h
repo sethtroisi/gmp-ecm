@@ -40,8 +40,6 @@ void         list_add   (listz_t, listz_t, listz_t, unsigned int);
 void         list_sub   (listz_t, listz_t, listz_t, unsigned int);
 int          list_zerop (listz_t, unsigned int);
 void         karatsuba  (listz_t, listz_t, listz_t, unsigned int, listz_t);
-int          toomcook3  (listz_t, listz_t, listz_t, unsigned int, listz_t);
-int          toomcook4  (listz_t, listz_t, listz_t, unsigned int, listz_t);
 void         list_mul   (listz_t, listz_t, unsigned int, listz_t, unsigned int,
 			 listz_t);
 void        list_mulmod (listz_t, listz_t, listz_t, unsigned int, listz_t,
@@ -59,6 +57,11 @@ int          hgcd       (mpz_t, listz_t, listz_t, listz_t, listz_t,
                          listz_t, listz_t, unsigned int, mpz_t, listz_t, int);
 int          list_gcd   (mpz_t, listz_t, listz_t, unsigned int, mpz_t, listz_t);
 int          list_invert(listz_t, listz_t, unsigned int, mpz_t, mpz_t);
+
+/* toomcook.c */
+void     mpz_divby3_1op (mpz_t RS);
+int           toomcook3 (listz_t, listz_t, listz_t, unsigned int, listz_t);
+int           toomcook4 (listz_t, listz_t, listz_t, unsigned int, listz_t);
 
 /* polyz.c */
 void init_poly      (polyz_t, int);
