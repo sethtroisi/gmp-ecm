@@ -127,9 +127,6 @@ main (int argc, char *argv[])
   if (verbose >= 1)
     {
       printf ("GMP-ECM %s [powered by GMP %s", ECM_VERSION, gmp_version);
-#ifdef MPM
-      printf (", MPM");
-#endif      
       printf (" and NTL %u.%u]\n", NTL_major_version (), NTL_minor_version ());
     }
 
