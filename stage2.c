@@ -105,17 +105,14 @@ dickson (mpz_t r, mpz_t x, unsigned int n, int a)
    Ternary return value.
 */
 
-static int
-fin_diff_coeff (listz_t coeffs, double s, double D,
-                unsigned int E, int dickson_a)
+static void
+fin_diff_coeff (listz_t coeffs, mpz_t s, mpz_t D, unsigned int E, 
+                int dickson_a)
 {
   unsigned int i, k;
-  mpz_t t, v;
+  mpz_t t;
   
-  mpz_init (t);
-  mpz_init (v);
-  mpz_set_d (t, s);
-  mpz_set_d (v, D);
+  mpz_init_set (t, s);
   
   for (i = 0; i <= E; i++)
     {
@@ -123,17 +120,14 @@ fin_diff_coeff (listz_t coeffs, double s, double D,
         dickson (coeffs[i], t, E, dickson_a); 
       else                        /* fd[i] = (s+i*D)^E */
         mpz_pow_ui (coeffs[i], t, E);
-      mpz_add (t, t, v);          /* t = s + i * D */
+      mpz_add (t, t, D);          /* t = s + i * D */
     }
   
   for (k = 1; k <= E; k++)
     for (i = E; i >= k; i--)
       mpz_sub (coeffs[i], coeffs[i], coeffs[i-1]);
   
-  mpz_clear (v);
   mpz_clear (t);
-  
-  return ECM_NO_FACTOR_FOUND;
 }
 
 
@@ -142,7 +136,7 @@ fin_diff_coeff (listz_t coeffs, double s, double D,
    Dickson_{E,a} (s + e * (i + d * n * k)), 0 <= i < k * d, gcd(s+e*i, d) == 1,
                                             i == 1 (mod m)
    
-   for successive n. m must divide d.
+   for successive n. m must divide d, e must divide s (d need not).
    
    This means there will be k sets of progressions, where each set contains
    eulerphi(d) progressions that generate the values coprime to d and with
@@ -152,43 +146,57 @@ fin_diff_coeff (listz_t coeffs, double s, double D,
 */
 
 listz_t
-init_progression_coeffs (double s, unsigned int d, unsigned int e, 
+init_progression_coeffs (mpz_t s, unsigned int d, unsigned int e, 
                          unsigned int k, unsigned int m, unsigned int E, 
                          int dickson_a)
 {
-  unsigned int i, j, size_fd, smd;
+  unsigned int i, j, size_fd;
+  mpz_t t, dke;
   listz_t fd;
-  const double de = (double) e;
 
   ASSERT (d % m == 0);
+  ASSERT (mpz_fdiv_ui (s, e) == 0);
 
   size_fd = k * phi(d) / phi(m) * (E + 1);
+  outputf (OUTPUT_TRACE, "init_progression_coeffs: s = %Zd, d = %u, e = %u, "
+           "k = %u, m = %u, E = %u, a = %d, size_fd = %u\n", 
+           s, d, e, k, m, E, dickson_a, size_fd);
+
   fd = (listz_t) malloc (size_fd * sizeof (mpz_t));
   if (fd == NULL)
     return NULL;
   for (i = 0; i < size_fd; i++)
     mpz_init (fd[i]);
-
-  /* smd := s % d */
-  smd = (unsigned int) (s - floor (s / (double) d) * (double) d);
-
-  j = 0;
-  for (i = 1 % m; i < k * d; i += m)
+  mpz_init (t);
+  mpz_set_ui (t, e * (1 % m));
+  mpz_add (t, t, s);
+  
+  /* dke = d * k * e */
+  mpz_init (dke);
+  mpz_set_ui (dke, d);
+  mpz_mul_ui (dke, dke, k);
+  mpz_mul_ui (dke, dke, e);
+  
+  for (i = 1 % m, j = 0; i < k * d; i += m)
     {
-      if (gcd (smd + e * (i % d), d) == 1)
+      if (mpz_gcd_ui (NULL, t, d) == 1)
         {
-          if (fin_diff_coeff (fd + j, s + de * i, de * k * d, E, dickson_a)
-	      == ECM_ERROR)
-	    {
-	      for (i = 0; i < size_fd; i++)
-		mpz_clear (fd[i]);
-	      free (fd);
-	      return NULL;
-	    }
+          outputf (OUTPUT_TRACE, "init_progression_coeffs: initing a "
+                   "progression for Dickson_{%d,%d}(%Zd + n * %Zd)\n", 
+                   E, dickson_a, t, dke);
+          fin_diff_coeff (fd + j, t, dke, E, dickson_a);
           j += E + 1;
-        }
+        } else
+          if (test_verbose (OUTPUT_TRACE))
+            outputf (OUTPUT_TRACE, "init_progression_coeffs: NOT initing a "
+                     "progression for Dickson_{%d,%d}(%Zd + n * %Zd), "
+                     "gcd (%Zd, %u) == %u)\n", E, dickson_a, t, dke, t, d,
+                     mpz_gcd_ui (NULL, t, d));
+      mpz_add_ui (t, t, e * m); /* t = s + i * e */
     }
 
+  mpz_clear (dke);
+  mpz_clear (t);
   return fd;
 }
 
@@ -265,10 +273,10 @@ stage2 (mpz_t f, void *X, mpmod_t modulus, double B2min, double B2,
         unsigned int k0, int S, int method, int stage1time, 
         char *TreeFilename)
 {
-  double b2, i0;
+  double b2;
   unsigned int k;
   unsigned int i, d, d2, dF, sizeT;
-  mpz_t n;
+  mpz_t n, i0, s; /* s = i0 * d */
   listz_t F, G, H, T;
   int youpi = 0, st, st0;
   void *rootsG_state = NULL;
@@ -284,13 +292,6 @@ stage2 (mpz_t f, void *X, mpmod_t modulus, double B2min, double B2,
 
   st0 = cputime ();
 
-  if (k0 == 0)
-    {
-      outputf (OUTPUT_ERROR, 
-               "Error: number of blocks in step 2 should be positive\n");
-      return ECM_ERROR;
-    }
-
   /* since we consider only residues = 1 mod 6 in intervals of length d
      (d multiple of 6), each interval [i*d,(i+1)*d] covers partially itself
      and [(i-1)*d,i*d]. Thus to cover [B2min, B2] with all intervals 
@@ -299,6 +300,8 @@ stage2 (mpz_t f, void *X, mpmod_t modulus, double B2min, double B2,
   d = d2 = dF = 0;
   Fermat = 0;
   k = k0;
+  mpz_init (i0);
+  mpz_init (s);
   if (modulus->repr == 1 && modulus->bits > 0)
     {
       for (i = modulus->bits; (i & 1) == 0; i >>= 1);
@@ -307,33 +310,33 @@ stage2 (mpz_t f, void *X, mpmod_t modulus, double B2min, double B2,
           Fermat = modulus->bits;
           outputf (OUTPUT_DEVVERBOSE, "Choosing power of 2 poly length "
                    "for 2^%d+1 (%d blocks)\n", Fermat, k0);
-          if (bestD_po2 (B2min, B2, &d, &d2, &k, &i0) == ECM_ERROR)
-            return ECM_ERROR;
-          dF = 1 << ceil_log2 (phi (d) / 2);
+          if (bestD (B2min, B2, 1, &d, &d2, &k, &dF, i0) == ECM_ERROR)
+            {
+              youpi = ECM_ERROR;
+              goto clear_s_i0;
+            }
         }
     }
   if (d == 0)
     {
-      if (bestD (B2min, B2, &d, &d2, &k, &i0) == ECM_ERROR)
-        return ECM_ERROR;
-      dF = phi (d) / 2;
+      if (bestD (B2min, B2, 0, &d, &d2, &k, &dF, i0) == ECM_ERROR)
+        {
+          youpi = ECM_ERROR;
+          goto clear_s_i0;
+        }
     }
   
-  /* check that i0 * d does not overflow */
-  if (i0 * (double) d > TWO53) /* 2^53 */
-    {
-      outputf (OUTPUT_ERROR, "Error, overflow in stage 2\n"
-               "Please use a smaller B1 or B2min\n");
-      return ECM_ERROR;
-    }
-
+  mpz_mul_ui (s, i0, d); /* s = i0 * d */
   b2 = (double) dF * (double) d * (double) d2 / (double) phi (d2);
 
   /* compute real B2 */
-  B2 = i0 * (double) d + floor ((double) k * b2 / d / d2) * d * d2;
+  B2 = mpz_get_d (s) + floor ((double) k * b2 / d / d2) * d * d2;
 
   outputf (OUTPUT_VERBOSE, "B2'=%1.0f k=%u b2=%1.0f d=%u d2=%u dF=%u, "
-           "i0=%.0f\n", B2, k, b2, d, d2, dF, i0);
+           "i0=%Zd\n", B2, k, b2, d, d2, dF, i0);
+
+  /* compute real B2 */
+  B2 = mpz_get_d (s) + floor ((double) k * b2 / d / d2) * d * d2;
 
   if (method == ECM_ECM && test_verbose (OUTPUT_VERBOSE))
     {
@@ -358,7 +361,7 @@ stage2 (mpz_t f, void *X, mpmod_t modulus, double B2min, double B2,
   if (F == NULL)
     {
       youpi = ECM_ERROR;
-      goto exit_stage2;
+      goto clear_s_i0;
     }
 
   sizeT = 3 * dF + list_mul_mem (dF);
@@ -508,14 +511,12 @@ stage2 (mpz_t f, void *X, mpmod_t modulus, double B2min, double B2,
 
   st = cputime ();
   if (method == ECM_PM1)
-    rootsG_state = pm1_rootsG_init ((mpres_t *) X, i0 * (double) d, d, d2, S,
-				    modulus);
+    rootsG_state = pm1_rootsG_init ((mpres_t *) X, s, d, d2, S, modulus);
   else if (method == ECM_PP1)
-    rootsG_state = pp1_rootsG_init ((mpres_t *) X, i0 * (double) d, d, d2, S,
-				    modulus);
+    rootsG_state = pp1_rootsG_init ((mpres_t *) X, s, d, d2, S, modulus);
   else /* ECM_ECM */
-    rootsG_state = ecm_rootsG_init (f, (curve *) X, i0 * (double) d, d, d2,
-				    dF, k, S, modulus);
+    rootsG_state = ecm_rootsG_init (f, (curve *) X, s, d, d2, dF, k, S, 
+                                    modulus);
 
   /* rootsG_state=NULL if an error occurred or (ecm only) a factor was found */
   if (rootsG_state == NULL)
@@ -669,7 +670,9 @@ clear_T:
 clear_F:
   clear_list (F, dF + 1);
 
-exit_stage2:
+clear_s_i0:
+  mpz_clear (i0);
+  mpz_clear (s);
 
   st0 = cputime () - st0;
 
