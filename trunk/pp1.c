@@ -29,9 +29,8 @@
 #include <math.h>
 #include <stdio.h>
 #include "gmp.h"
-#include "gmp-impl.h"
-#if 0
-#include "longlong.h"
+#ifndef PRAC
+#include "longlong.h" /* needed for count_leading_zeros */
 #endif
 #include "ecm.h"
 
@@ -41,15 +40,19 @@
 *                                                                             *
 ******************************************************************************/
 
+#define PRAC
+
 /* prime powers are accumulated up to about n^L1 */
 #define L1 1
 
 /* P1 <- V_e(P0), using P, Q as auxiliary variables,
    where V_{2k}(P0) = V_k(P0)^2 - 2
-         V_{2k-1}(P0) = V_k(P0)*V_{k-1}(P0) - P0
+         V_{2k-1}(P0) = V_k(P0)*V_{k-1}(P0) - P0.
+   (More generally V_{m+n} = V_m * V_n - V_{m-n}.)
+   Warning: P1 and P0 may be equal.
 */
 void
-pp1_mul (mpz_t P1, mpz_t P0, mpz_t P, mpz_t Q, mpz_t e, mpz_t n)
+pp1_mul (mpz_t P1, mpz_t P0, mpz_t e, mpz_t n, mpz_t P, mpz_t Q)
 {
   unsigned long i;
 
@@ -59,11 +62,20 @@ pp1_mul (mpz_t P1, mpz_t P0, mpz_t P, mpz_t Q, mpz_t e, mpz_t n)
       return;
     }
 
+  if (mpz_cmp_ui (e, 1) == 0)
+    {
+      mpz_set (P1, P0);
+      return;
+    }
+
+  /* now e >= 2 */
   mpz_sub_ui (e, e, 1);
-  mpz_set (P, P0);
-  mpz_set_ui (Q, 2);
-  /* invariant: (P, Q) = (V_{k+1}(P0), V_k(P0)), start with k=0 */
-  for (i = mpz_sizeinbase (e, 2); i > 0;)
+  mpz_mul (P, P0, P0);
+  mpz_sub_ui (P, P, 2);
+  mpz_mod (P, P, n); /* P = V_2(P0) = P0^2-2 */
+  mpz_set (Q, P0);   /* Q = V_1(P0) = P0 */
+  /* invariant: (P, Q) = (V_{k+1}(P0), V_k(P0)), start with k=1 */
+  for (i = mpz_sizeinbase (e, 2) - 1; i > 0;)
     {
       if (mpz_tstbit (e, --i)) /* k -> 2k+1 */
         {
@@ -94,10 +106,10 @@ pp1_mul (mpz_t P1, mpz_t P0, mpz_t P, mpz_t Q, mpz_t e, mpz_t n)
   mpz_mod (P1, P, n);
 }
 
-#if 0
+#ifndef PRAC
 /* P1 <- V_e(P0), using P, Q as auxiliary variables */
 void
-pp1_mul_ui (mpz_t P1, mpz_t P0, mpz_t P, mpz_t Q, mp_limb_t e, mpz_t n)
+pp1_mul_ui (mpz_t P1, mpz_t P0, unsigned long e, mpz_t n, mpz_t P, mpz_t Q)
 {
   unsigned long i;
   mp_limb_t mask;
@@ -112,7 +124,7 @@ pp1_mul_ui (mpz_t P1, mpz_t P0, mpz_t P, mpz_t Q, mp_limb_t e, mpz_t n)
     }
 
   count_leading_zeros (i, e);
-  i = BITS_PER_MP_LIMB - i;
+  i = mp_bits_per_limb - i;
   mask = (mp_limb_t) 1 << (i - 1);
   mpz_set (P, P0);
   mpz_set_ui (Q, 2);
@@ -160,11 +172,19 @@ pp1_stage1 (mpz_t P0, mpz_t n, double B1)
 {
   double B0, p, q, r;
   mpz_t P, Q, g;
+#ifdef PRAC
+  mpz_t R, S, T;
+#endif
   int youpi;
   unsigned int max_size;
 
   mpz_init (P);
   mpz_init (Q);
+#ifdef PRAC
+  mpz_init (R);
+  mpz_init (S);
+  mpz_init (T);
+#endif
   mpz_init (g);
 
   B0 = sqrt (B1);
@@ -179,7 +199,7 @@ pp1_stage1 (mpz_t P0, mpz_t n, double B1)
   if (mpz_probab_prime_p (n, 1) == 0)
     {
       mpz_sub_ui (g, n, 1);
-      pp1_mul (P0, P0, P, Q, g, n);
+      pp1_mul (P0, P0, g, n, P, Q);
     }
   else
     mpz_set_ui (g, 1);
@@ -191,7 +211,7 @@ pp1_stage1 (mpz_t P0, mpz_t n, double B1)
       mpz_mul_d (g, g, q, Q);
       if (mpz_sizeinbase (g, 2) >= max_size)
 	{
-	  pp1_mul (P0, P0, P, Q, g, n);
+	  pp1_mul (P0, P0, g, n, P, Q);
 	  mpz_set_ui (g, 1);
 	}
     }
@@ -199,20 +219,24 @@ pp1_stage1 (mpz_t P0, mpz_t n, double B1)
   /* then all primes > sqrt(B1) and taken with exponent 1 */
   for (; p <= B1; p = getprime(p))
     {
-      mpz_mul_d (g, g, p, Q);
-      if (mpz_sizeinbase (g, 2) >= max_size)
-	{
-	  pp1_mul (P0, P0, P, Q, g, n);
-	  mpz_set_ui (g, 1);
-	}
+#ifdef PRAC
+      pp1_mul_prac (P0, (unsigned long) p, n, P, Q, R, S, T);
+#else
+      pp1_mul_ui (P0, P0, (unsigned long) p, n, P, Q);
+#endif
     }
 
   getprime (0.0); /* free the prime tables, and reinitialize */
 
-  pp1_mul (P0, P0, P, Q, g, n);
+  pp1_mul (P0, P0, g, n, P, Q);
 
   mpz_clear (P);
   mpz_clear (Q);
+#ifdef PRAC
+  mpz_clear (R);
+  mpz_clear (S);
+  mpz_clear (T);
+#endif
 
   mpz_sub_ui (g, P0, 2);
   mpz_gcd (g, g, n);
