@@ -111,19 +111,19 @@ new_line:
   return 1;
 }
 
-
 /* the 1:nn and 2:nn have been placed into the 2 following functions.  This is done to provide 
    better control over them, and also to allow them to be TOTALLY turned off, in such cases as 
    where ECM should not update to the stderr at all (i.e. client server)
 */
-static int screenticks_lastupd=0;
-static int SCREEN_UPDATE_DELAY=3000;
+static int screenticks_lastupd = 0;
+static int SCREEN_UPDATE_DELAY = -1; /* default is no tick output */
+
 void
-showscreenticks(int stage, int percentage)
+showscreenticks (int stage, int percentage)
 {
   if (SCREEN_UPDATE_DELAY >= 0 && cputime() - screenticks_lastupd > SCREEN_UPDATE_DELAY)
     {
-      screenticks_lastupd = cputime();
+      screenticks_lastupd = cputime ();
       if (percentage > 99)
         percentage = 99;
       if (percentage < 0)
@@ -132,11 +132,11 @@ showscreenticks(int stage, int percentage)
     }
 }
 
-void showscreenticks_change_stage(int stage)
+void showscreenticks_change_stage (int stage)
 {
   if (SCREEN_UPDATE_DELAY >= 0)
     {
-      screenticks_lastupd = cputime();
+      screenticks_lastupd = cputime ();
       fprintf (stderr, "%d:00 \r", stage);
     }
 }
@@ -963,16 +963,19 @@ BreadthFirstDoAgain:;
         }
       if (verbose > 0)
 	{
-          if (count == cnt)
-            fprintf (stderr, "\r      Line=%u B1=%.0f factors=%u           \r",
-                     linenum, B1, factsfound);
-          if (count != cnt)
-            fprintf (stderr, "\r      Line=%u Curves=%u/%u B1=%.0f factors=%u"
-                     "   \r", linenum, count-cnt+1, count, B1, factsfound);
-          if (breadthfirst && nCandidates > 1)
-            fprintf (stderr, "\r      Line=%u/%u Curves=%u/%u B1=%.0f"
-                     " factors=%u   \r", linenum, nCandidates,
-                     breadthfirst_cnt, breadthfirst_maxcnt, B1, factsfound);
+          if (SCREEN_UPDATE_DELAY >= 0)
+            {
+              if (count == cnt)
+                fprintf (stderr, "\r      Line=%u B1=%.0f factors=%u           \r",
+                         linenum, B1, factsfound);
+              if (count != cnt)
+                fprintf (stderr, "\r      Line=%u Curves=%u/%u B1=%.0f factors=%u"
+                         "   \r", linenum, count-cnt+1, count, B1, factsfound);
+              if (breadthfirst && nCandidates > 1)
+                fprintf (stderr, "\r      Line=%u/%u Curves=%u/%u B1=%.0f"
+                         " factors=%u   \r", linenum, nCandidates,
+                         breadthfirst_cnt, breadthfirst_maxcnt, B1, factsfound);
+            }
 	  if ((!breadthfirst && cnt == count) || (breadthfirst && 1 == breadthfirst_cnt))
 	    {
 	      /* first time this candidate has been run (if looping more than once */
@@ -1030,7 +1033,8 @@ BreadthFirstDoAgain:;
 	{
 	  int SomeFactor;
 	  /*  Note, if a factors are found, then n will be adjusted "down" */
-	  fprintf (stderr, "T:000 \r");
+          if (SCREEN_UPDATE_DELAY >= 0)
+            fprintf (stderr, "T:000 \r");
 	  SomeFactor = trial_factor (&n, maxtrialdiv, deep);
 	  if (SomeFactor)
 	    {
@@ -1220,7 +1224,7 @@ OutputFactorStuff:;
   /* NOTE finding a factor may have caused the loop to exit, but what is left on screen is the 
      wrong count of factors (missing the just found factor.  Update the screen to at least specify the 
      current count */
-  if (verbose > 0)
+  if (verbose > 0 && SCREEN_UPDATE_DELAY >= 0)
     {
     if (breadthfirst_maxcnt)
       fprintf (stderr, "\rLine=%u Curves=%u/%u B1=%.0f factors=%u      \n",

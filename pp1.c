@@ -225,12 +225,6 @@ pp1_stage1 (mpz_t f, mpres_t P0, mpmod_t n, double B1, double B1done,
 	      /******** THIS NEEDS TO BE MADE TO SAVE *****************/
 	      /* write_temp_resumefile (PM1_METHOD, p+1, sigma, A, x, orig_n, verbose); */
 	    }
-	    /*  This "testing" code is here to see just how often this ++Counter loop is entered.
-	    {
-	      static int x;
-  	      fprintf (stderr, "1:%02d  p=%.0f\r", ++x, p);
-	    }
-	    */
 	}
     }
 
