@@ -153,13 +153,13 @@ fin_diff_coeff (listz_t coeffs, double s, unsigned int D,
 */
 int
 stage2 (mpz_t f, void *X, mpmod_t modulus, double B2min, double B2,
-        unsigned int k0, unsigned int S, int verbose, int method)
+        unsigned int k0, int S, int verbose, int method)
 {
   double b2;
   unsigned int k;
   unsigned int i, d, dF, sizeT;
   double i0;
-  unsigned long muls, tot_muls = 0;
+  unsigned long muls, tot_muls = 0, est_muls;
   mpz_t n;
   listz_t F, G, H, T;
   int youpi = 0, st, st0;
@@ -184,7 +184,7 @@ stage2 (mpz_t f, void *X, mpmod_t modulus, double B2min, double B2,
      and [(i-1)*d,i*d]. Thus to cover [B2min, B2] with all intervals 
      [i*d,(i+1)*d] for i0 <= i < i1 , we should  have i0*d <= B2min and 
      B2 <= (i1-1)*d */
-  d = bestD (B2 - B2min, k0, &k, (double) S, method);
+  d = bestD (B2 - B2min, k0, &k, (S < 0) ? -S : S, &est_muls);
   i0 = floor (B2min / (double) d);
   /* check that i0 * d does not overflow */
   if (i0 * (double) d > 9007199254740992.0) /* 2^53 */
@@ -223,6 +223,9 @@ stage2 (mpz_t f, void *X, mpmod_t modulus, double B2min, double B2,
   else 
     youpi = ecm_rootsF (f, F, d, (curve *) X, S, modulus, verbose, &tot_muls);
 
+  fprintf (stderr, "2:%02d\r",
+           (int) (100.0 * (double) tot_muls / (double) est_muls));
+
   if (youpi)
     {
       youpi = 2;
@@ -250,6 +253,9 @@ stage2 (mpz_t f, void *X, mpmod_t modulus, double B2min, double B2,
 
   tot_muls += PolyFromRoots (F, F, dF, T, verbose | 1, n, 'F', Tree, 0);
 
+  fprintf (stderr, "2:%02d\r",
+           (int) (100.0 * (double) tot_muls / (double) est_muls));
+
   /* needs dF+list_mul_mem(dF/2) cells in T */
 
   mpz_set_ui (F[dF], 1); /* the leading monic coefficient needs to be stored
@@ -269,6 +275,10 @@ stage2 (mpz_t f, void *X, mpmod_t modulus, double B2min, double B2,
       st = cputime ();
       muls = PolyInvert (invF, F + 2, dF - 1, T, n);
       tot_muls += muls;
+
+      fprintf (stderr, "2:%02d\r",
+               (int) (100.0 * (double) tot_muls / (double) est_muls));
+
       /* now invF[0..K-2] = Quo(x^(2dF-3), F) */
       if (verbose >= 2)
         printf ("Computing 1/F took %ums and %lu muls\n", cputime() - st, muls);
@@ -318,6 +328,9 @@ stage2 (mpz_t f, void *X, mpmod_t modulus, double B2min, double B2,
         youpi = ecm_rootsG (f, G, dF, (point *) rootsG_state, S, modulus,
 			    verbose, &tot_muls);
 
+      fprintf (stderr, "2:%02d\r",
+               (int) (100.0 * (double) tot_muls / (double) est_muls));
+
       if (youpi)
 	youpi = 2;
       
@@ -336,6 +349,9 @@ stage2 (mpz_t f, void *X, mpmod_t modulus, double B2min, double B2,
 
       tot_muls += PolyFromRoots (G, G, dF, T + dF, verbose, n, 'G', NULL, 0);
       /* needs 2*dF+list_mul_mem(dF/2) cells in T */
+
+      fprintf (stderr, "2:%02d\r",
+               (int) (100.0 * (double) tot_muls / (double) est_muls));
 
   /* -----------------------------------------------
      |   F    |  invF  |   G    |         T        |
@@ -369,6 +385,10 @@ stage2 (mpz_t f, void *X, mpmod_t modulus, double B2min, double B2,
 	     requires 3dF-1+list_mul_mem(dF) cells in T */
 	  muls = list_mulmod2 (H, T + dF, G, H, dF, T + 3 * dF - 1, n);
           tot_muls += muls;
+
+          fprintf (stderr, "2:%02d\r",
+                   (int) (100.0 * (double) tot_muls / (double) est_muls));
+
           if (verbose >= 2)
             printf ("Computing G * H took %ums and %lu muls\n", cputime() - st,
                     muls);
@@ -380,8 +400,12 @@ stage2 (mpz_t f, void *X, mpmod_t modulus, double B2min, double B2,
              ------------------------------------------------ */
 
 	  st = cputime ();
-          muls = PrerevertDivision (H, F, invF, dF, T + 2 * dF - 1, n);
+          muls = PrerevertDivision (H, F, invF, dF, T + 2 * dF, n);
           tot_muls += muls;
+
+          fprintf (stderr, "2:%02d\r",
+                   (int) (100.0 * (double) tot_muls / (double) est_muls));
+
           if (verbose >= 2)
             printf ("Reducing G * H mod F took %ums and %lu muls\n",
                     cputime() - st, muls);
@@ -392,6 +416,10 @@ stage2 (mpz_t f, void *X, mpmod_t modulus, double B2min, double B2,
   st = cputime ();
   muls = polyeval (T, dF, Tree, T + dF + 1, n, verbose, 0);
   tot_muls += muls;
+
+  fprintf (stderr, "2:%02d\r",
+           (int) (100.0 * (double) tot_muls / (double) est_muls));
+
   if (verbose >= 2)
     printf ("Computing polyeval(F,G) took %ums and %lu muls\n",
             cputime() - st, muls);
