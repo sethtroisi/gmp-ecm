@@ -22,10 +22,8 @@ unsigned int Fermat;
 #define CACHESIZE 512U
 
 #ifdef __GNUC__
-#define UNUSED __attribute__ ((unused))
 #define INLINE inline
 #else
-#define UNUSED
 #define INLINE
 #endif
 
@@ -137,14 +135,14 @@ F_mulmod (mpz_t R, mpz_t S1, mpz_t S2, unsigned int n)
   F_mod_1 (S2, n);
   while (mpz_size (S1) > (unsigned) n2)
     {
-      fprintf (stderr, "Warning: S1 >= 2^%d after reduction, has %d bits. Trying again\n", 
-               n, mpz_sizeinbase (S1, 2));
+      fprintf (stderr, "Warning: S1 >= 2^%d after reduction, has %lu bits. Trying again\n", 
+               n, (unsigned long) mpz_sizeinbase (S1, 2));
       F_mod_1 (S1, n);
     }
   while (mpz_size (S2) > (unsigned) n2)
     {
-      fprintf (stderr, "Warning: S2 >= 2^%d after reduction, has %d bits. Trying again\n", 
-               n, mpz_sizeinbase (S2, 2));
+      fprintf (stderr, "Warning: S2 >= 2^%d after reduction, has %lu bits. Trying again\n", 
+               n, (unsigned long) mpz_sizeinbase (S2, 2));
       F_mod_1 (S2, n);
     }
 #if defined(HAVE_GWNUM)

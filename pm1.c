@@ -620,7 +620,7 @@ pm1_rootsG_init (mpres_t *x, double s, unsigned int d1, unsigned int d2,
 /* Frees all the dynamic variables allocated by pm1_rootsG_init() */
 
 void 
-pm1_rootsG_clear (pm1_roots_state *state, mpmod_t modulus)
+pm1_rootsG_clear (pm1_roots_state *state, UNUSED mpmod_t modulus)
 {
   unsigned int k;
   
