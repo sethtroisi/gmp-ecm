@@ -200,7 +200,7 @@ stage2 (mpz_t f, void *X, mpmod_t modulus, double B2min, double B2,
           if (verbose >= 3)
             printf ("Choosing power of 2 poly length for 2^%d+1 (%d blocks)\n", 
                     Fermat, k0);
-          d = bestD_po2 (B2 - B2min, k0, &k, &est_muls);
+          d = bestD_po2 (B2min, B2, k0, &k, &est_muls);
           dF = 1 << ceil_log2 (phi (d) / 2);
         }
     }
@@ -228,7 +228,7 @@ stage2 (mpz_t f, void *X, mpmod_t modulus, double B2min, double B2,
       exit (1);
     }
 
-  b2 = block_size (d);
+  b2 = (double) d * (double) dF;
 
   /* compute real B2 */
   B2 = (i0 - 1.0) * (double) d + (double) k * b2;
@@ -241,9 +241,9 @@ stage2 (mpz_t f, void *X, mpmod_t modulus, double B2min, double B2,
 
   F = init_list (dF + 1);
 
-  sizeT = 3 * dF - 1 + list_mul_mem (dF);
+  sizeT = 3 * dF + list_mul_mem (dF);
   if (dF > 3)
-    sizeT += dF + 1 /* "+ 1" was "- 3", Alex */ ;
+    sizeT += dF;  /* "- 3" removed, Alex */
   T = init_list (sizeT);
   H = T;
 
