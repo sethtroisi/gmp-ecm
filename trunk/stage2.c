@@ -31,8 +31,8 @@
 /* Init table to allow successive computation of x^((s + n*D)^E) mod N */
 /* See Knuth, TAOCP vol.2, 4.6.4 and exercise 7 in 4.6.4 */
 mpz_t *
-fin_diff_init(mpz_t x, unsigned int s, unsigned int D, unsigned int E,
-              mpz_t N) 
+fin_diff_init (mpz_t x, unsigned int s, unsigned int D, unsigned int E,
+               mpz_t N) 
 {
   mpz_t *fd;
   unsigned int i, k;
@@ -42,7 +42,7 @@ fin_diff_init(mpz_t x, unsigned int s, unsigned int D, unsigned int E,
     mpz_init (fd[i]);
   
   for (i = 0; i <= E; i++)
-    mpz_ui_pow_ui (fd[i], s+i*D, E);
+    mpz_ui_pow_ui (fd[i], s + i * D, E); /* fd[i] = (s+i*D)^E */
   
   for (k = 1; k <= E; k++)
     for (i = E; i >= k; i--)
@@ -88,7 +88,7 @@ rootsF (listz_t F, unsigned int d, mpz_t s, mpz_t invs, listz_t t,
         unsigned int S, mpz_t n, int verbose)
 {
   unsigned int i, j;
-  int st;
+  int st, st2;
   mpz_t *fd;
   
   st = cputime ();
@@ -98,7 +98,10 @@ rootsF (listz_t F, unsigned int d, mpz_t s, mpz_t invs, listz_t t,
   
   if (d > 7)
     {
+      st2 = cputime ();
       fd = fin_diff_init (s, 7, 6, S, n);
+      if (verbose >= 2)
+        printf ("Initializing table of differences for F took %dms\n", cputime () - st2);
       j = 7;
       while (j < d) 
         {
@@ -109,7 +112,8 @@ rootsF (listz_t F, unsigned int d, mpz_t s, mpz_t invs, listz_t t,
         }
       fin_diff_clear (fd, S);
     }
-  
+
+#ifdef INVS  
   if ((d/6)*S > 3*(i-1)) /* Batch inversion is cheaper */
     {
       if (list_invert (t, F, i, t[i], n)) 
@@ -159,6 +163,7 @@ rootsF (listz_t F, unsigned int d, mpz_t s, mpz_t invs, listz_t t,
           fin_diff_clear (fd, S);
         }
     }
+#endif
   
   if (verbose >= 2)
     printf ("Computing roots of F took %dms\n", cputime () - st);
@@ -179,6 +184,7 @@ rootsG (listz_t G, unsigned int d, listz_t fd_x, listz_t fd_invx,
 
   st = cputime ();
 
+#ifdef INVS
   if (S > 3 && d > 0)
     {
       mpz_set (G[0], fd_x[0]);
@@ -203,16 +209,26 @@ rootsG (listz_t G, unsigned int d, listz_t fd_x, listz_t fd_invx,
           mpz_mod (G[i], t[d], n);
         }
 
-    } else {
-
+    }
+  else /* S <= 2 */
+    {
+#endif
       for (i = 0; i < d; i++)
         {
+#ifdef INVS
           mpz_add (G[i], fd_x[0], fd_invx[0]);
           mpz_mod (G[i], G[i], n);
+#else
+          mpz_set (G[i], fd_x[0]);
+#endif
           fin_diff_next (fd_x, S, n);
+#ifdef INVS
           fin_diff_next (fd_invx, S, n);
+#endif
         }
+#ifdef INVS
     }
+#endif
 
   if (verbose >= 2)
     printf ("Computing roots of G took %dms\n", cputime () - st);
@@ -222,6 +238,7 @@ rootsG (listz_t G, unsigned int d, listz_t fd_x, listz_t fd_invx,
            n is the number to factor
            B2 is the stage 2 bound
            k is the number of blocks
+           S is the exponent for Brent-Suyama's extension
    Output: x is the factor found
    Return value: non-zero iff a factor was found.
 */
@@ -256,11 +273,8 @@ stage2 (mpz_t x, mpz_t n, double B2, unsigned int k, unsigned int S,
   dF = phi (d) / 2;
   dG = dF - 1;
 
-  if (S == 0)
-    S = 1;
-
   if (verbose >= 2)
-    printf ("B2=%1.0f b2=%1.0f d=%u dF=%u dG=%u S=%u\n", B2, b2, d, dF, dG, S);
+    printf ("B2=%1.0f k=%u b2=%1.0f d=%u dF=%u dG=%u S=%u\n", B2, k, b2, d, dF, dG, S);
 
   F = init_list (dF + 1); 
 
@@ -279,14 +293,20 @@ stage2 (mpz_t x, mpz_t n, double B2, unsigned int k, unsigned int S,
   buildG (F, dF, T, verbose, n, 'F'); /* needs dF+list_mul_mem(dF/2) cells in T */
 
   G = init_list (dG + 1);
+  st = cputime ();
   fd_x = fin_diff_init (x, 0, d, S, n);
+  if (verbose >= 2)
+    printf ("Initializing table of differences for G took %dms\n", cputime () - st);
+    
+#ifdef INVS
   fd_invx = fin_diff_init (invx, 0, d, S, n);
+#endif
 
   for (i=0; i<k; i++)
     {
       rootsG (G, dG, fd_x, fd_invx, T + dF, S, n, verbose);
 
-      buildG (G, dG, T + dF, 1, n, 'G'); /* needs 2*dF+list_mul_mem(dF/2) cells in T */
+      buildG (G, dG, T + dF, verbose, n, 'G'); /* needs 2*dF+list_mul_mem(dF/2) cells in T */
       mpz_set_ui (G[dG], 1);
 
       if (i == 0)
@@ -320,7 +340,9 @@ stage2 (mpz_t x, mpz_t n, double B2, unsigned int k, unsigned int S,
     printf ("Computing gcd of F and G took %dms\n", cputime() - st);
 
   clear_list (G, dG + 1);
+#ifdef INVS
   fin_diff_clear (fd_invx, S);
+#endif
   fin_diff_clear (fd_x, S);
   clear_list (T, sizeT);
 
