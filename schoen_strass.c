@@ -1256,19 +1256,19 @@ F_mul (mpz_t *R, mpz_t *A, mpz_t *B, unsigned int len, int parameter,
     }
       
 #ifdef DEBUG
-  F_mod_1 (R[2 * len - 1], n);
-  if (parameter != MONIC && parameter != NOPAD && mpz_sgn (R[2 * len - 1]) != 0)
+  if (parameter != MONIC && parameter != NOPAD)
     {
-      fprintf (stderr, "F_mul, len %d: R[%d] == ", len, 2 * len - 1);
-      mpz_out_str (stderr, 10, R[2 * len - 1]);
-      fprintf (stderr, " != 0\n");
+      F_mod_1 (R[transformlen - 1], n);
+      if (mpz_sgn (R[transformlen - 1]) != 0)
+        gmp_printf ("F_mul, len %d: R[%d] == %Zd != 0\n", 
+                    len, transformlen - 1, R[transformlen - 1]);
     }
 #endif
 
 #ifdef CHECKSUM
   /* Compute R(1) = (A*B)(1) and subtract from chksum1 */
 
-  for (i = 0; i < 2*len; i++) 
+  for (i = 0; i < transformlen; i++) 
     mpz_sub (chksum1, chksum1, R[i]);
   
   if (parameter == MONIC)
@@ -1278,13 +1278,12 @@ F_mul (mpz_t *R, mpz_t *A, mpz_t *B, unsigned int len, int parameter,
     F_mod_1 (chksum1, n);
 
   if (mpz_sgn (chksum1) != 0) 
-    {
-      printf("F_mul, len %d: A(1)*B(1) != R(1), difference ", len);
-      mpz_out_str(stdout, 10, chksum1);
-      printf("\n");
-    }
+    gmp_printf("F_mul, len %d: A(1)*B(1) != R(1), difference %Zd\n", 
+                 len, chksum1);
 
-  for (i = 0; i < 2 * len; i++) 
+  /* Compute R(-1) = (A*B)(-1) and subtract from chksum_1 */
+
+  for (i = 0; i < transformlen; i++) 
     if (i % 2 == 0)
       mpz_sub (chksum_1, chksum_1, R[i]);
     else
@@ -1297,32 +1296,26 @@ F_mul (mpz_t *R, mpz_t *A, mpz_t *B, unsigned int len, int parameter,
     F_mod_1 (chksum_1, n);
 
   if (mpz_sgn (chksum_1) != 0) 
+    gmp_printf("F_mul, len %d: A(-1)*B(-1) != R(-1), difference %Zd\n", 
+               len, chksum_1);
+
+  if (parameter != NOPAD)
     {
-      printf("F_mul, len %d: A(-1)*B(-1) != R(-1), difference ", len);
-      mpz_out_str(stdout, 10, chksum_1);
-      printf("\n");
-    }
+      mpz_sub (chksum0, chksum0, R[0]);
+      while (mpz_sizeinbase (chksum0, 2) > n) 
+        F_mod_1 (chksum0, n);
 
-  mpz_sub (chksum0, chksum0, R[0]);
-  while (mpz_sizeinbase (chksum0, 2) > n) 
-    F_mod_1 (chksum0, n);
+      if (mpz_sgn (chksum0) != 0) 
+        gmp_printf("F_mul, len %d: A(0)*B(0) != R(0), difference %Zd\n", 
+                   len, chksum0);
 
-  if (mpz_sgn (chksum0) != 0) 
-    {
-      printf("F_mul, len %d: A(0)*B(0) != R(0), difference ", len);
-      mpz_out_str(stdout, 10, chksum0);
-      printf("\n");
-    }
+      mpz_sub (chksuminf, chksuminf, R[transformlen - 2]);
+      while (mpz_sizeinbase (chksuminf, 2) > n) 
+        F_mod_1 (chksuminf, n);
 
-  mpz_sub (chksuminf, chksuminf, R[2 * len - 2]);
-  while (mpz_sizeinbase (chksuminf, 2) > n) 
-    F_mod_1 (chksuminf, n);
-
-  if (mpz_sgn (chksuminf) != 0) 
-    {
-      printf ("F_mul, len %d: A(inf)*B(inf) != R(inf), difference ", len);
-      mpz_out_str (stdout, 10, chksuminf);
-      printf ("\n");
+      if (mpz_sgn (chksuminf) != 0) 
+        gmp_printf ("F_mul, len %d: A(inf)*B(inf) != R(inf), difference %Zd\n", 
+                    len, chksuminf);
     }
 
   mpz_clear (chksum1);
