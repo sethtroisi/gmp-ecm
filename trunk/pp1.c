@@ -138,16 +138,16 @@ int
 pp1_stage1 (mpz_t f, mpres_t P0, mpmod_t n, double B1, double B1done,
             unsigned long *muls, mpz_t orig_n)
 {
-  double B0, p, q, r, percentage;
+  double B0, p, q, r;
   mpz_t g;
   mpres_t P, Q;
   mpres_t R, S, T;
   int youpi;
   unsigned int max_size, size_n;
-  int Counter = 0, st, st_save;
+  int Counter = 0, st_save;
 
   /* Prep for stage one counter */
-  fprintf (stderr, "1:00 \r");
+  showscreenticks_change_stage(1);
 
   mpz_init (g);
   mpres_init (P, n);
@@ -197,39 +197,27 @@ pp1_stage1 (mpz_t f, mpres_t P0, mpmod_t n, double B1, double B1done,
   *muls += pp1_mul (P0, P0, g, n, P, Q);
 
   /* update the screen mode after the cascade work is done */
-  percentage = p;
-  st_save = st = cputime ();
-  percentage /= B1;
-  percentage *= 100;
-  fprintf (stderr, "1:%02d\r", (int) percentage);
+  st_save = cputime ();
+  showscreenticks(1,(int) (100.0 * (double) p / (double) B1));
 
   /* then all primes > sqrt(B1) and taken with exponent 1 */
   for (; p <= B1; p = getprime(p))
     {
       if (p > B1done)
         *muls += pp1_mul_prac (P0, (unsigned long) p, n, P, Q, R, S, T);
-      if (++Counter == 3000)
+      if (++Counter == 250)
 	{
-	  int st_now = cputime();
-	  if (st_now - st > SCREEN_UPDATE_DELAY)
-	    {
-	      /* Check to see if we should update our screen "percentage counter" */
-	      percentage = p;
-	      st = st_now;
-	      percentage /= B1;
-	      percentage *= 100;
-	      fprintf (stderr, "1:%02d\r", (int) percentage);
-  	    }
+          showscreenticks(1,(int) (100.0 * (double) p / (double) B1));
 	  Counter=0;
 	    /* should we save the current "ecm_wip.sav" file??? It is saved every 15 minutes */
 	    /* NOTE this saving DOES NOT save the expression.  It is just a "fail-safe" measure */
   #if defined (DEBUG_AUTO_SAVE)
-	  if (st_now - st_save > 2000)
+	  if (cputime() - st_save > 2000)
   #else
-	  if (st_now - st_save > 15 * 60 * 1000)
+	  if (cputime() - st_save > 15 * 60 * 1000)
   #endif
 	    {
-	      st_save = st_now;
+	      st_save = cputime();
 	      /* Figure out how to save here */
 	      /* sigma is not needed */
 	      /* A is not needed */
@@ -240,7 +228,7 @@ pp1_stage1 (mpz_t f, mpres_t P0, mpmod_t n, double B1, double B1done,
 	    /*  This "testing" code is here to see just how often this ++Counter loop is entered.
 	    {
 	      static int x;
-  	      fprintf (stderr, "1:%03d  p=%.0f\r", ++x, p);
+  	      fprintf (stderr, "1:%02d  p=%.0f\r", ++x, p);
 	    }
 	    */
 	}
