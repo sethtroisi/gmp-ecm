@@ -321,8 +321,45 @@ error:
 }
 
 void 
+write_temp_resumefile (int method, double B1, mpz_t sigma, mpz_t A, mpz_t x, mpz_t n, int verbose)
+{
+  FILE *fd;
+  mpcandi_t data;
+  mpz_t x0;
+  char *comment = "ECM_WIP_AutoSave";
+
+  /* Use a 2 file save method.  It saves to a second file name, and when that is "correctly"
+     done, it deletes the final file, then renames from the very temp name, to the real
+     incremental name */
+  fd = fopen ("gmpecm1.wip", "w");
+  if (!fd)
+    {
+      /* failure to create a temp file is not critical.  GMP-ECM ALWAYS failed to 
+         create this before this code was added ;) and it still ran just fine */
+      if (verbose >= 2)
+	fprintf (stderr, "error, can't open incremental save file gmpecm1.wip\n");
+      return;
+    }
+  
+  mpcandi_t_init (&data);
+  mpz_init_set_ui (x0,0);
+  mpcandi_t_add_candidate (&data, n, NULL, 0);
+  write_resumefile_line (fd, method, B1, sigma, A, x, &data, x0, comment);
+  mpcandi_t_free (&data);
+  fclose (fd);
+  mpz_clear (x0);
+  remove ("gmp_ecm.wip");
+  rename ("gmp_ecm.wip", "gmpecm1.wip");
+}
+
+void kill_temp_resume_file (void)
+{
+  remove ("gmp_ecm.wip");
+}
+
+void 
 write_resumefile_line (FILE *fd, int method, double B1, mpz_t sigma, mpz_t A, 
-	mpz_t x, mpcandi_t *n, mpz_t x0, char *comment)
+	mpz_t x, mpcandi_t *n, mpz_t x0, const char *comment)
 {
   mpz_t checksum;
   time_t t;
@@ -353,7 +390,7 @@ write_resumefile_line (FILE *fd, int method, double B1, mpz_t sigma, mpz_t A,
           mpz_out_str (fd, 10, sigma);
           mpz_mul_ui (checksum, checksum, mpz_fdiv_ui (sigma, CHKSUMMOD));
         }
-      if (mpz_sgn (A) != 0)
+      else if (mpz_sgn (A) != 0)
         {
           fprintf (fd, "A=");
           mpz_out_str (fd, 10, A);
