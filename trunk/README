@@ -171,22 +171,24 @@ stage 1 with gmp-ecm, and stage 2 with another software (or vice-versa).
 
 Here is an example how to reuse some P-1 computation:
 
-$ ./ecm5 -save toto -pm1 5000000
+$ cat c71
+lepuid% cat c71
+13155161912808540373988986448257115022677318870175067553764004308210487
+$ ./ecm5 -save toto -pm1 5000000 < c71
 GMP-ECM 5.0 [powered by GMP 4.1]
 Pollard P-1 Method with B1=5000000, B2=272993793, x^1
-13155161912808540373988986448257115022677318870175067553764004308210487
 Input number is 13155161912808540373988986448257115022677318870175067553764004308210487 (71 digits)
 Using seed=843178705
 Using MODMULN
 Stage 1 took 51440ms
-Stage 2 took 22900ms
+Stage 2 took 22900ms and 2081753muls
 
 The file "toto" now contains some information about the method use, the stage
 1 bound, the number to factor, the value X at the end of stage 1 (in hexa-
 decimal), and a checksum to verify that no data was corrupted:
 
 $ cat toto
-METHOD=PM1; B1=5000000; N=13155161912808540373988986448257115022677318870175067553764004308210487; X=0x11d1b4ca92a38f1eccdfe9b759b090a2aae79cf54f58661ac23704cd694; CHECKSUM=2552882662; PROGRAM=GMP-ECM ver. 5 alpha;
+METHOD=PM1; B1=5000000; N=13155161912808540373988986448257115022677318870175067553764004308210487; X=0x11d1b4ca92a38f1eccdfe9b759b090a2aae79cf54f58661ac23704cd694; CHECKSUM=2552882662; PROGRAM=GMP-ECM 5.0-beta;
 
 The format used is the following:
   - each line corresponds to a composite
