@@ -24,6 +24,10 @@
 #include "NTL/ZZ_pX.h"
 #include "NTL/version.h"
 
+#ifdef NTL_CLIENT
+NTL_CLIENT
+#endif
+
 static int ntl_found = 0;
 static mpz_t factor_found;
 
