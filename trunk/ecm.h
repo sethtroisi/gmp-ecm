@@ -444,6 +444,9 @@ void list_add_safe (listz_t ret, listz_t a, listz_t b,
 
 /* schoen_strass.c */
 
+#define DEFAULT 0
+#define MONIC 1
+#define NOPAD 2
 unsigned int F_mul (mpz_t *, mpz_t *, mpz_t *, unsigned int, int, unsigned int, mpz_t *);
 unsigned int F_mul_trans (mpz_t *, mpz_t *, mpz_t *, unsigned int, unsigned int, mpz_t *);
 
