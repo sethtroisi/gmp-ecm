@@ -176,6 +176,12 @@ main (int argc, char *argv[])
 	  argv++;
 	  argc--;
         }
+      else if (strcmp (argv[1], "-nobase2") == 0)
+        {
+          repr = -1;
+	  argv++;
+	  argc--;
+        }
       else if ((argc > 2) && (strcmp (argv[1], "-x0")) == 0)
         {
           if (mpq_set_str (rat_x0, argv[2], 0))

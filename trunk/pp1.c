@@ -441,7 +441,7 @@ pp1 (mpz_t f, mpz_t p, mpz_t n, double B1done, double B1, double B2min,
   else if (repr > 16)
     mpmod_init_BASE2 (modulus, repr, n);
   else
-    mpmod_init (modulus, n);
+    mpmod_init (modulus, n, repr);
 
   mpres_init (a, modulus);
   mpres_set_z (a, p, modulus);
