@@ -1,7 +1,8 @@
 ToDo's:
 - fix problem found by SleepHound <sleephound@yahoo.com> for
   ./ecm -sigma 1404040793 -power 2 5e4 11757135 < c3456
-  where c3456 is the remaining composite from 2^22176+1.
+  where c3456 is the remaining composite from 2^22176+1
+	[non-algebraic factors: 177409, 27320833]
 - with -resume, print %time for THIS RUN instead of total run?
 	[suggested by SleepHound <sleephound@yahoo.com>]
 - use mpres in step 2
@@ -45,6 +46,8 @@ ToDo's:
 - add a modular trial factoring mode (this was done in OpenPFGW). This is highly useful
   for certain types of searches where factors can only be of a certain modular form
   (Mersenne and Fermats are idea for this type of trial factoring).
+- try McLaughlin's algorithm for Montgomery's modular multiplication
+  (http://www.ams.org/mcom/0000-000-00/S0025-5718-03-01543-6/home.html)
 
 Partially Done's:
 * print progress (80 dots in step 1/2) [Jay Berg]
