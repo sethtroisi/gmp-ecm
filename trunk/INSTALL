@@ -1,0 +1,33 @@
+Instructions to install ecm-5.0:
+
+0) you first need to install the GNU MP (GMP) and NTL libraries.
+   GNU MP is available from <http://www.swox.com/gmp/>.
+   NTL is available from <http://www.shoup.net/ntl/>.
+
+   Remark: GNU MP is already installed in most Linux distributions.
+   However it is often an old version (3.1.1 for example), moreover
+   without processor-specific optimizations. If you care about efficiency,
+   be sure to install the latest version of GNU MP (4.1 currently), and to
+   compile it on your particular processor.
+
+1) to create the binary file "ecm5", type:
+
+      $ make GMP=<gmpdir> NTL=<ntldir>
+
+   where <gmpdir> and <ntldir> are the directories where GMP and NTL are
+   installed respectively (default are /usr/local/gmp and /usr/local/ntl).
+
+2) (optional) to check that "ecm5" works correctly, type:
+
+      $ ./test.pm1 ./ecm5 # this checks Pollard's P-1
+      $ ./test.pp1 ./ecm5 # this checks Williams' P+1
+
+   The P+1 test takes about 30 seconds on a PIII-500 with GMP 4.1 and NTL 5.3.
+   The P-1 test takes much longer.
+
+Note: if you care about efficiency, you might try to compile ecm5 with the
+same CFLAGS as GMP (grep CFLAGS <gmp_source_dir>/Makefile).
+
+In case of problem, report it to us:
+Alexander Kruppa <alexander.kruppa@stud.tu-muenchen.de>
+Paul Zimmermann <zimmerma@loria.fr>

@@ -2,6 +2,7 @@ This is a brand new version of gmp-ecm, under development. The current
 files are:
 
 COPYING - GNU GENERAL PUBLIC LICENSE
+INSTALL - instructions to install gmp-ecm
 Makefile - to build the binary file 'ecm5'
 README - this file
 aux.c - auxiliary functions (nb_digits, gcd of two unsigned int's)

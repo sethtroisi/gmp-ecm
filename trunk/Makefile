@@ -15,7 +15,7 @@ CC=g++
 
 FILES= aux.o bestd.o ecm.o getprime.o listz.o main.o ntl.o pm1.o polyz.o pp1.o stage2.o toomcook.o
 DIST=  aux.c bestd.c ecm.c getprime.c listz.c main.c ntl.c pm1.c polyz.c pp1.c stage2.c toomcook.c
-EXTRADIST= COPYING Makefile README cputime.h ecm.h test.pm1 test.pp1
+EXTRADIST= COPYING INSTALL Makefile README cputime.h ecm.h test.pm1 test.pp1
 
 .SUFFIXES: .c .o
 
