@@ -37,11 +37,11 @@ ToDo's:
 	abstract interface for the parameters, to be able to modify it
 	in the future, for example:
    int
-   ecm(mpz_t,               /* n:number to factor */
-       struct ecm_params *, /* all technical parameters */
-       struct ecm_debug *); /* all verbosity/debugging parameters */
+   ecm(mpz_t,               /* factor found if any */
+       mpz_t,               /* n:number to factor */
+       struct ecm_params*); /* all technical/verbosity/debugging  parameters */
 
-   where ecm (N, NULL, NULL) would give the default behaviour.
+   where ecm (f, N, NULL) would give the default behaviour.
 
 3) new features
 - implement Brent-Suyama's extension for p+1 (how to do it efficiently?

@@ -58,15 +58,13 @@ void
 mpz_divby3_1op (mpz_t RS)
 {
   mp_size_t abssize = mpz_size (RS);
+  mp_limb_t r;
   
   if (abssize == 0)
     return;
   
-  if (mpn_divexact_by3 (RS->_mp_d, RS->_mp_d, abssize) != 0)
-    {
-      fprintf (stderr, "mpz_divby3_1op: division by 3 left remainder");
-      exit (EXIT_FAILURE);
-    }
+  r = mpn_divexact_by3 (RS->_mp_d, RS->_mp_d, abssize);
+  ASSERT(r == 0);
 
   if (RS->_mp_d[abssize - 1] == 0)
     RS->_mp_size -= mpz_sgn (RS);
@@ -92,7 +90,8 @@ xmalloc (size_t size)
   p = malloc (size);
   if (p == NULL)
     {
-      fprintf (stderr, "Could not allocate %lu bytes\n", (unsigned long) size);
+      fprintf (ECM_STDERR, "Could not allocate %lu bytes\n",
+	       (unsigned long) size);
       exit (EXIT_FAILURE);
     }
   

@@ -199,14 +199,14 @@ pp1_stage1 (mpz_t f, mpres_t P0, mpmod_t n, double B1, double B1done, mpz_t go)
    a is the initial seed.
 */
 static void
-pp1_check_factor (mpz_t a, mpz_t p, FILE *os)
+pp1_check_factor (mpz_t a, mpz_t p, FILE *ECM_STDOUT)
 {
   if (mpz_probab_prime_p (p, PROBAB_PRIME_TESTS))
     {
       mpz_mul (a, a, a);
       mpz_sub_ui (a, a, 4);
       if (mpz_jacobi (a, p) == 1)
-        fprintf (os, "[factor found by P-1]\n");
+        fprintf (ECM_STDOUT, "[factor found by P-1]\n");
     }
 }
 
@@ -224,7 +224,7 @@ pp1_check_factor (mpz_t a, mpz_t p, FILE *os)
 */
 int
 pp1_rootsF (listz_t F, unsigned int d1, unsigned int d2, unsigned int dF, 
-            mpres_t *x, listz_t t, mpmod_t modulus, int verbose, FILE *os)
+            mpres_t *x, listz_t t, mpmod_t modulus, int verbose)
 {
   unsigned int i, j, muls = 0;
   int st, st2;
@@ -236,7 +236,7 @@ pp1_rootsF (listz_t F, unsigned int d1, unsigned int d2, unsigned int dF,
   st2 = st = cputime ();
 
   if (verbose >= 3)
-    fprintf (os, "pp1_rootsF: d1 = %d, d2 = %d, dF = %d\n", d1, d2, dF);
+    fprintf (ECM_STDOUT, "pp1_rootsF: d1 = %d, d2 = %d, dF = %d\n", d1, d2, dF);
 
   mpres_init (fd[0], modulus);
   mpres_init (fd[1], modulus);
@@ -256,7 +256,7 @@ pp1_rootsF (listz_t F, unsigned int d1, unsigned int d2, unsigned int dF,
   /* for P+1, fd[0] = V_{7*d2}(P), fd[1] = V_{6*d2}(P), fd[2] = V_{d2}(P) */
 
   if (verbose >= 2)
-    fprintf (os, "Initializing table of differences for F took %dms\n",
+    fprintf (ECM_STDOUT, "Initializing table of differences for F took %dms\n",
 	     cputime () - st2);
   i = 1;
   j = 7;
@@ -282,10 +282,10 @@ pp1_rootsF (listz_t F, unsigned int d1, unsigned int d2, unsigned int dF,
 
   if (verbose >= 2)
     {
-      fprintf (os, "Computing roots of F took %dms", cputime () - st);
+      fprintf (ECM_STDOUT, "Computing roots of F took %dms", cputime () - st);
       if (verbose > 2)
-        fprintf (os, " and %d muls", muls);
-      fprintf (os, "\n");
+        fprintf (ECM_STDOUT, " and %d muls", muls);
+      fprintf (ECM_STDOUT, "\n");
     }
   
   return ECM_NO_FACTOR_FOUND;
@@ -343,7 +343,7 @@ pp1_rootsG_clear (pp1_roots_state *state, ATTRIBUTE_UNUSED mpmod_t modulus)
 
 int
 pp1_rootsG (listz_t G, unsigned int d, pp1_roots_state *state, 
-            mpmod_t modulus, int verbose, FILE *os)
+            mpmod_t modulus, int verbose)
 {
   unsigned int i;
   int st;
@@ -363,10 +363,10 @@ pp1_rootsG (listz_t G, unsigned int d, pp1_roots_state *state,
 
   if (verbose >= 2)
     {
-      fprintf (os, "Computing roots of G took %dms", cputime () - st);
+      fprintf (ECM_STDOUT, "Computing roots of G took %dms", cputime () - st);
       if (verbose > 2)
-        fprintf (os, ", %u muls", d);
-      fprintf (os, "\n");
+        fprintf (ECM_STDOUT, ", %u muls", d);
+      fprintf (ECM_STDOUT, "\n");
     }
   
   return ECM_NO_FACTOR_FOUND;
@@ -396,6 +396,9 @@ pp1 (mpz_t f, mpz_t p, mpz_t n, mpz_t go, double B1done, double B1,
   int youpi = 0, st;
   mpres_t a;
   mpmod_t modulus;
+
+  ECM_STDOUT = (os == NULL) ? stdout : os;
+  ECM_STDERR = (es == NULL) ? stdout : es;
 
   /* if n is even, return 2 */
   if (mpz_divisible_2exp_p (n, 1))
@@ -428,30 +431,30 @@ pp1 (mpz_t f, mpz_t p, mpz_t n, mpz_t go, double B1done, double B1,
 
   if (S != 1)
     {
-      fprintf (os, "Warning: no Brent-Suyama's extension available with P+1, using x^1\n");
+      fprintf (ECM_STDOUT, "Warning: no Brent-Suyama's extension available with P+1, using x^1\n");
       S = 1;
     }
   
   if (verbose >= 1)
     {
-      fprintf (os, "Using ");
+      fprintf (ECM_STDOUT, "Using ");
       if (IS_DEFAULT_B1_DONE(B1done))
-        fprintf (os, "B1=%1.0f", B1);
+        fprintf (ECM_STDOUT, "B1=%1.0f", B1);
       else
-        fprintf (os, "B1=%1.0f-%1.0f", B1done, B1);
+        fprintf (ECM_STDOUT, "B1=%1.0f-%1.0f", B1done, B1);
       if (B2min <= B1)
-        fprintf (os, ", B2=%1.0f", B2);
+        fprintf (ECM_STDOUT, ", B2=%1.0f", B2);
       else
-        fprintf (os, ", B2=%1.0f-%1.0f", B2min, B2);
+        fprintf (ECM_STDOUT, ", B2=%1.0f-%1.0f", B2min, B2);
 
-      fprintf (os, ", polynomial x^1");
+      fprintf (ECM_STDOUT, ", polynomial x^1");
       if (IS_DEFAULT_B1_DONE(B1done) || verbose > 1) /* don't print x0 in resume case */
 	{
-	  fprintf (os, ", x0=");
-	  mpz_out_str (os, 10, p);
+	  fprintf (ECM_STDOUT, ", x0=");
+	  mpz_out_str (ECM_STDOUT, 10, p);
 	}
-      fprintf (os, "\n");
-      fflush (os);
+      fprintf (ECM_STDOUT, "\n");
+      fflush (ECM_STDOUT);
     }
 
   if (repr == 1)
@@ -463,7 +466,7 @@ pp1 (mpz_t f, mpz_t p, mpz_t n, mpz_t go, double B1done, double B1,
   else if (repr > 16)
     mpmod_init_BASE2 (modulus, repr, n);
   else
-    mpmod_init (modulus, n, repr, verbose, os);
+    mpmod_init (modulus, n, repr, verbose);
 
   mpres_init (a, modulus);
   mpres_set_z (a, p, modulus);
@@ -472,7 +475,7 @@ pp1 (mpz_t f, mpz_t p, mpz_t n, mpz_t go, double B1done, double B1,
      that B1 <= MAX_ULONG */
   if (B1 > (double) ULONG_MAX)
     {
-      fprintf (es, "Error, maximal step1 bound for P+1 is %lu\n", ULONG_MAX);
+      fprintf (ECM_STDERR, "Error, maximal step1 bound for P+1 is %lu\n", ULONG_MAX);
       youpi = ECM_ERROR;
       goto clear_pp1;
     }
@@ -484,23 +487,22 @@ pp1 (mpz_t f, mpz_t p, mpz_t n, mpz_t go, double B1done, double B1,
 
   if (verbose >= 1)
     {
-      fprintf (os, "Step 1 took %dms\n", st);
-      fflush (os);
+      fprintf (ECM_STDOUT, "Step 1 took %dms\n", st);
+      fflush (ECM_STDOUT);
       if (verbose >= 2)
 	{
-	  fprintf (os, "x=");
-	  mpres_out_str (os, 10, a, modulus);
-	  fprintf (os, "\n");
-	  fflush (os);
+	  fprintf (ECM_STDOUT, "x=");
+	  mpres_out_str (ECM_STDOUT, 10, a, modulus);
+	  fprintf (ECM_STDOUT, "\n");
+	  fflush (ECM_STDOUT);
 	}
     }
 
   if (youpi == ECM_NO_FACTOR_FOUND) /* no factor found, no error */
-    youpi = stage2 (f, &a, modulus, B2min, B2, k, S, verbose, PP1_METHOD, st,
-		    os, es);
+    youpi = stage2 (f, &a, modulus, B2min, B2, k, S, verbose, PP1_METHOD, st);
 
   if (youpi == ECM_FACTOR_FOUND && verbose > 0)
-    pp1_check_factor (p, f, os); /* tell user if factor was found by P-1 */
+    pp1_check_factor (p, f, ECM_STDOUT); /* tell user if factor was found by P-1 */
 
   mpres_get_z (p, a, modulus);
 
