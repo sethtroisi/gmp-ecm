@@ -30,11 +30,6 @@ The main changes wrt gmp-ecm 4c are the following:
 
 What remains to do:
 
-- finish the hgcd and polygcd code in poly.c. The current code is quite 
-	difficult to understand. To simplify the implementation, I think
-	one should define a true polynomial struct, containing the degree,
-	the allocated size (which may be larger than the degree), and a
-	pointer to the list of coefficients.
 - implement ECM stage 1 in ecm.c, and call stage2 from stage2.c.
 - add Toom-Cook 3-way and 4-way in poly.c (for any length, not just
 	powers of 3 and 4)
