@@ -20,10 +20,10 @@
 
 #include <stdlib.h>
 #include <stdio.h>
-#include <gmp.h>
+#include "gmp.h"
 #include "ecm.h"
 #ifdef WANT_GMP_IMPL
-#include <gmp-impl.h>
+#include "gmp-impl.h"
 #else
 /* stolen from gmp-impl.h */
 #define ABSIZ(x) ABS (SIZ (x))
@@ -78,7 +78,7 @@ __GMP_DECLSPEC mp_limb_t mpn_add_nc __GMP_PROTO ((mp_ptr, mp_srcptr, mp_srcptr, 
 #define DIV_DC_THRESHOLD    (3 * MUL_KARATSUBA_THRESHOLD)
 #endif
 
-#endif /* HAVE_GMP_IMPL */
+#endif /* WANT_GMP_IMPL */
 
 #ifndef MOD_PLAIN_TO_REDC_THRESHOLD
 #define MOD_PLAIN_TO_REDC_THRESHOLD 20000

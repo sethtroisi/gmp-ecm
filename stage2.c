@@ -237,7 +237,7 @@ stage2 (mpz_t f, void *X, mpmod_t modulus, double B2min, double B2,
       tot_muls += muls;
       /* now invF[0..K-2] = Quo(x^(2dF-3), F) */
       if (verbose >= 2)
-        printf ("Computing 1/F took %ums and %lumuls\n", cputime() - st, muls);
+        printf ("Computing 1/F took %ums and %lu muls\n", cputime() - st, muls);
       
       /* ----------------------------------------------
          |   F    |  invF  |   G   |         T        |
@@ -328,7 +328,7 @@ stage2 (mpz_t f, void *X, mpmod_t modulus, double B2min, double B2,
 	  muls = list_mulmod2 (H, T + dF, G, H, dF, T + 3 * dF - 1, n);
           tot_muls += muls;
           if (verbose >= 2)
-            printf ("Computing G * H took %ums and %lumuls\n", cputime() - st,
+            printf ("Computing G * H took %ums and %lu muls\n", cputime() - st,
                     muls);
 
           /* ------------------------------------------------
@@ -341,7 +341,7 @@ stage2 (mpz_t f, void *X, mpmod_t modulus, double B2min, double B2,
           muls = PrerevertDivision (H, F, invF, dF, T + 2 * dF - 1, n);
           tot_muls += muls;
           if (verbose >= 2)
-            printf ("Reducing G * H mod F took %ums and %lumuls\n",
+            printf ("Reducing G * H mod F took %ums and %lu muls\n",
                     cputime() - st, muls);
 	}
     }
@@ -351,7 +351,7 @@ stage2 (mpz_t f, void *X, mpmod_t modulus, double B2min, double B2,
   muls = polyeval (T, dF, Tree, T + dF + 1, n, verbose, 0);
   tot_muls += muls;
   if (verbose >= 2)
-    printf ("Computing polyeval(F,G) took %ums and %lumuls\n",
+    printf ("Computing polyeval(F,G) took %ums and %lu muls\n",
             cputime() - st, muls);
   youpi = list_gcd (f, T, dF, n) ? 2 : 0;
 #else
@@ -392,7 +392,7 @@ clear_G:
     {
       printf ("Stage 2 took %dms", cputime() - st0);
       if (verbose >= 2)
-	printf ("and %lumuls", tot_muls);
+	printf (" for %lu muls", tot_muls);
       printf ("\n");
       fflush (stdout);
     }

@@ -451,7 +451,10 @@ pp1 (mpz_t f, mpz_t p, mpz_t n, double B1done, double B1, double B2min,
 
   if (verbose >= 1)
     {
-      printf ("Stage 1 took %dms for %lu muls\n", cputime() - st, muls);
+      printf ("Stage 1 took %dms", cputime () - st);
+      if (verbose >= 2)
+	printf (" for %lu muls", muls);
+      printf ("\n");
       fflush (stdout);
     }
 
