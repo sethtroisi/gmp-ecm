@@ -514,6 +514,11 @@ unsigned int muls_tgen (unsigned int n);
 unsigned int F_mul (mpz_t *, mpz_t *, mpz_t *, unsigned int, int, unsigned int, mpz_t *);
 unsigned int F_mul_trans (mpz_t *, mpz_t *, mpz_t *, unsigned int, unsigned int, mpz_t *);
 
+/* rho.c */
+
+void   rhoinit (int, int);
+double ecmprob (double, double, double, double, int);
+
 /* memory.c */
 #ifdef MEMORY_DEBUG
 void __gmp_default_free (void *, size_t);
