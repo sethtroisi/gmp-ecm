@@ -38,6 +38,7 @@
 
 static mpz_t gt;
 static int gt_inited = 0;
+static int radix2 = 0;
 unsigned int Fermat;
 
 #define min(a,b) ((a)<(b)?(a):(b))
@@ -71,8 +72,6 @@ __gmpn_mod_34lsub1 (mp_limb_t *src, mp_size_t size)
   return r;
 }
 #endif
-
-static int radix2 = 0;
 
 /* RS -> RS (mod 2^n+1). If input |RS| < 2^(2*n), result |RS| < 2^(n+1) */
 
@@ -150,14 +149,16 @@ F_mulmod (mpz_t R, mpz_t S1, mpz_t S2, unsigned int n)
   F_mod_1 (S2, n);
   while (mpz_size (S1) > (unsigned) n2)
     {
-      fprintf (ECM_STDERR, "Warning: S1 >= 2^%d after reduction, has %lu bits. Trying again\n", 
-               n, (unsigned long) mpz_sizeinbase (S1, 2));
+      outputf (OUTPUT_ERROR, 
+               "Warning: S1 >= 2^%d after reduction, has %lu bits. "
+               "Trying again\n", n, (unsigned long) mpz_sizeinbase (S1, 2));
       F_mod_1 (S1, n);
     }
   while (mpz_size (S2) > (unsigned) n2)
     {
-      fprintf (ECM_STDERR, "Warning: S2 >= 2^%d after reduction, has %lu bits. Trying again\n", 
-               n, (unsigned long) mpz_sizeinbase (S2, 2));
+      outputf (OUTPUT_ERROR, 
+               "Warning: S2 >= 2^%d after reduction, has %lu bits. "
+               "Trying again\n", n, (unsigned long) mpz_sizeinbase (S2, 2));
       F_mod_1 (S2, n);
     }
 #if defined(HAVE_GWNUM)
@@ -181,15 +182,15 @@ F_mulmod (mpz_t R, mpz_t S1, mpz_t S2, unsigned int n)
           F_mod_1 (t2, n);
           if (mpz_sgn (t2) != 0)
             {
-              gmp_fprintf (ECM_STDOUT, "F_mulmod: results of mpz_mul and Fgwmul differ:\n%Zd\n%Zd\n",
-                          t, R);
+              outputf (OUTPUT_ERROR, "F_mulmod: results of mpz_mul and "
+                       "Fgwmul differ:\n%Zd\n%Zd\n", t, R);
               return;
             }
           mpz_clear (t2);
         }
       mpz_clear (t);
 #endif
-      return 0;
+      return;
     }
 #elif defined(HAVE_FFT)
   if (n >= 32768)
@@ -374,18 +375,9 @@ F_mul_sqrt2exp (mpz_t R, mpz_t S, int e, unsigned int n)
 {
   int chgsgn = 0, odd;
 
-#ifdef DEBUG
-  if (S == gt || R == gt) 
-    {
-      fprintf (ECM_STDERR, "F_mul_sqrt2exp: %c == gt\n", S==gt?'S':'R');
-      exit (EXIT_FAILURE);
-    }
-  if ((unsigned) abs (e) >= 4 * n)
-    {
-      fprintf (ECM_STDERR, "F_mul_sqrt2exp: e = %d, abs(e) >= 4*n\n", e);
-      exit (EXIT_FAILURE);
-    }
-#endif
+  ASSERT(S != gt);
+  ASSERT(R != gt);
+  ASSERT((unsigned) abs (e) < 4 * n);
 
   if (e < 0)
     e += 4 * n;
@@ -398,7 +390,8 @@ F_mul_sqrt2exp (mpz_t R, mpz_t S, int e, unsigned int n)
 
 #ifdef DEBUG_PERF
   if (e == 0)
-    fprintf (ECM_STDOUT, "F_mul_sqrt2exp: called for trivial case %s1\n", chgsgn ? "-" : "");
+    outputf (OUTPUT_ALWAYS, "F_mul_sqrt2exp: called for trivial case %s1\n", 
+             chgsgn ? "-" : "");
 #endif
 
   odd = e & 1;
@@ -446,17 +439,9 @@ F_mul_sqrt2exp_2 (mpz_t R, mpz_t S, int e, unsigned int n)
 {
   int chgsgn = 0, odd;
 
-#ifdef DEBUG
-  if (S == R || R == gt)
-    {
-      fprintf (ECM_STDERR, "F_mul_sqrt2exp_2: R == %s\n", R == S ? "S" : "gt");
-      exit (EXIT_FAILURE);
-    }
-  if ((unsigned) abs (e) >= 4 * n)
-    {
-      fprintf (ECM_STDOUT, "F_mul_sqrt2exp_2: e = %d > 4*n = %d\n", e, 4 * n);
-    }
-#endif
+  ASSERT (S != R);
+  ASSERT (R != gt);
+  ASSERT ((unsigned) abs (e) < 4 * n);
 
   if (e < 0)
     e += 4 * n;
@@ -468,7 +453,7 @@ F_mul_sqrt2exp_2 (mpz_t R, mpz_t S, int e, unsigned int n)
 
 #ifdef DEBUG_PERF
   if (e == 0)
-    fprintf (ECM_STDOUT, "F_mul_sqrt2exp_2: called for trivial case %s1\n",
+    outputf (OUTPUT_ALWAYS, "F_mul_sqrt2exp_2: called for trivial case %s1\n",
 	     chgsgn ? "-" : "");
 #endif
 
@@ -1160,7 +1145,7 @@ F_mul (mpz_t *R, mpz_t *A, mpz_t *B, unsigned int len, int parameter,
       
       if (i != 1) 
         {
-          fprintf (ECM_STDERR, "F_mul: polynomial length must be power of 2, "
+          outputf (OUTPUT_ERROR, "F_mul: polynomial length must be power of 2, "
                            "but is %d\n", len);
           return UINT_MAX;
         }
@@ -1213,7 +1198,8 @@ F_mul (mpz_t *R, mpz_t *A, mpz_t *B, unsigned int len, int parameter,
       
       if (parameter == NOPAD)
         {
-          fprintf (ECM_STDERR, "F_mul: cyclic/short products not supported by Karatsuba/Toom-Cook\n");
+          outputf (OUTPUT_ERROR, "F_mul: cyclic/short products not supported "
+                   "by Karatsuba/Toom-Cook\n");
           return UINT_MAX;
         }
       
@@ -1227,7 +1213,7 @@ F_mul (mpz_t *R, mpz_t *A, mpz_t *B, unsigned int len, int parameter,
           /* This only works if A, B and R do not overlap */
           if (A == R || B == R + len)
             {
-              fprintf (ECM_STDERR, "F_mul: monic polynomials with Karatsuba/"
+              outputf (OUTPUT_ERROR, "F_mul: monic polynomials with Karatsuba/"
                        "Toom-Cook and overlapping input/output not supported\n");
               return UINT_MAX;
             }
@@ -1245,7 +1231,7 @@ F_mul (mpz_t *R, mpz_t *A, mpz_t *B, unsigned int len, int parameter,
     {
       F_mod_1 (R[transformlen - 1], n);
       if (mpz_sgn (R[transformlen - 1]) != 0)
-        gmp_fprintf (ECM_STDOUT, "F_mul, len %d: R[%d] == %Zd != 0\n", 
+        outputf (OUTPUT_ALWAYS, "F_mul, len %d: R[%d] == %Zd != 0\n", 
 		     len, transformlen - 1, R[transformlen - 1]);
     }
 #endif
@@ -1263,7 +1249,7 @@ F_mul (mpz_t *R, mpz_t *A, mpz_t *B, unsigned int len, int parameter,
     F_mod_1 (chksum1, n);
 
   if (mpz_sgn (chksum1) != 0) 
-    gmp_fprintf (ECM_STDOUT, "F_mul, len %d: A(1)*B(1) != R(1), difference %Zd\n", 
+    outputf (OUTPUT_ALWAYS, "F_mul, len %d: A(1)*B(1) != R(1), difference %Zd\n", 
                  len, chksum1);
 
   /* Compute R(-1) = (A*B)(-1) and subtract from chksum_1 */
@@ -1281,7 +1267,7 @@ F_mul (mpz_t *R, mpz_t *A, mpz_t *B, unsigned int len, int parameter,
     F_mod_1 (chksum_1, n);
 
   if (mpz_sgn (chksum_1) != 0) 
-    gmp_fprintf (ECM_STDOUT, "F_mul, len %d: A(-1)*B(-1) != R(-1), difference %Zd\n", 
+    outputf (OUTPUT_ALWAYS, "F_mul, len %d: A(-1)*B(-1) != R(-1), difference %Zd\n", 
 		 len, chksum_1);
 
   if (parameter != NOPAD)
@@ -1291,7 +1277,7 @@ F_mul (mpz_t *R, mpz_t *A, mpz_t *B, unsigned int len, int parameter,
         F_mod_1 (chksum0, n);
 
       if (mpz_sgn (chksum0) != 0) 
-        gmp_fprintf (ECM_STDOUT, "F_mul, len %d: A(0)*B(0) != R(0), difference %Zd\n", 
+        outputf (OUTPUT_ALWAYS, "F_mul, len %d: A(0)*B(0) != R(0), difference %Zd\n", 
                    len, chksum0);
 
       mpz_sub (chksuminf, chksuminf, R[transformlen - 2]);
@@ -1299,7 +1285,7 @@ F_mul (mpz_t *R, mpz_t *A, mpz_t *B, unsigned int len, int parameter,
         F_mod_1 (chksuminf, n);
 
       if (mpz_sgn (chksuminf) != 0) 
-        gmp_fprintf (ECM_STDOUT, "F_mul, len %d: A(inf)*B(inf) != R(inf), difference %Zd\n", 
+        outputf (OUTPUT_ALWAYS, "F_mul, len %d: A(inf)*B(inf) != R(inf), difference %Zd\n", 
                     len, chksuminf);
     }
 
@@ -1351,7 +1337,7 @@ F_mul_trans (mpz_t *R, mpz_t *A, mpz_t *B, unsigned int len, unsigned int n,
       
       if (i != 1) 
         {
-          fprintf (ECM_STDERR, "F_mul_trans: polynomial length must be power of 2, "
+          outputf (OUTPUT_ERROR, "F_mul_trans: polynomial length must be power of 2, "
                            "but is %d\n", len);
           return UINT_MAX;
         }
