@@ -775,65 +775,11 @@ pm1 (mpz_t f, mpz_t p, mpz_t N, mpz_t go, double B1done, double B1,
   if (mpz_sgn (B2min) < 0)
     mpz_set_ui (B2min, B1);
 
-  /* Set default degree for Brent-Suyama extension */
-  if (S == ECM_DEFAULT_S)
-    {
-      mpz_t t;
-      mpz_init (t);
-      mpz_sub (t, B2, B2min);
-      if (mpz_cmp_d (t, 3.5e5) < 0) /* B1 < 50000 */
-        S = -4; /* Dickson polys give a slightly better chance of success */
-      else if (mpz_cmp_d (t, 1.1e7) < 0) /* B1 < 500000 */
-        S = -6;
-      else if (mpz_cmp_d (t, 1.25e8) < 0) /* B1 < 3000000 */
-        S = 12; /* but for S>6, S-th powers are faster thanks to invtrick */
-      else if (mpz_cmp_d (t, 7.e9) < 0) /* B1 < 50000000 */
-        S = 24;
-      else if (mpz_cmp_d (t, 1.9e10) < 0) /* B1 < 100000000 */
-        S = 48;
-      else if (mpz_cmp_d (t, 5.e11) < 0) /* B1 < 1000000000 */
-        S = 60;
-      else
-        S = 120;
-      mpz_clear (t);
-    }
-
-  /* We need Suyama's power even and at least 2 for P-1 stage 2 to work 
-     correctly */
-  if (abs(S) < 2)
-    S = 2;
-
-  if (S & 1)
-    S *= 2; /* FIXME: Is this what the user would expect? */
-  
-  if (test_verbose (OUTPUT_NORMAL))
-    {
-      outputf (OUTPUT_NORMAL, "Using ");
-      if (ECM_IS_DEFAULT_B1_DONE(B1done))
-        outputf (OUTPUT_NORMAL, "B1=%1.0f", B1);
-      else
-        outputf (OUTPUT_NORMAL, "B1=%1.0f-%1.0f", B1done, B1);
-      if (mpz_cmp_d (B2min, B1) == 0)
-        outputf (OUTPUT_NORMAL, ", B2=%Zd, ", B2);
-      else
-        outputf (OUTPUT_NORMAL, ", B2=%Zd-%Zd, ", B2min, B2);
-      if (S > 0)
-        outputf (OUTPUT_NORMAL, "polynomial x^%u", S);
-      else
-        outputf (OUTPUT_NORMAL, "polynomial Dickson(%u)", -S);
-
-      if (ECM_IS_DEFAULT_B1_DONE(B1done))
-	/* don't print in resume case, since x0 is saved in resume file */
-         outputf (OUTPUT_NORMAL, ", x0=%Zd", p);
-
-      outputf (OUTPUT_NORMAL, "\n");
-    }
-
   if (repr > 0) /* repr = 0 is the default, -1 means nobase2 */
     {
-      if (repr == 2)
+      if (repr == MOD_MODMULN)
         mpmod_init_MODMULN (modulus, N);
-      else if (repr == 3)
+      else if (repr == MOD_REDC)
         mpmod_init_REDC (modulus, N);
       else if (abs (repr) > 16)
         {
@@ -880,6 +826,68 @@ pm1 (mpz_t f, mpz_t p, mpz_t N, mpz_t go, double B1done, double B1,
         }
     }
   
+  /* Set default degree for Brent-Suyama extension */
+  if (S == ECM_DEFAULT_S)
+    {
+      if (modulus->repr == MOD_BASE2 && modulus->Fermat > 0)
+        {
+          /* For Fermat numbers, default is 2 (no Brent-Suyama) */
+          S = 2;
+        }
+      else
+        {
+          mpz_t t;
+          mpz_init (t);
+          mpz_sub (t, B2, B2min);
+          if (mpz_cmp_d (t, 3.5e5) < 0) /* B1 < 50000 */
+            S = -4; /* Dickson polys give a slightly better chance of success */
+          else if (mpz_cmp_d (t, 1.1e7) < 0) /* B1 < 500000 */
+            S = -6;
+          else if (mpz_cmp_d (t, 1.25e8) < 0) /* B1 < 3000000 */
+            S = 12; /* but for S>6, S-th powers are faster thanks to invtrick */
+          else if (mpz_cmp_d (t, 7.e9) < 0) /* B1 < 50000000 */
+            S = 24;
+          else if (mpz_cmp_d (t, 1.9e10) < 0) /* B1 < 100000000 */
+            S = 48;
+          else if (mpz_cmp_d (t, 5.e11) < 0) /* B1 < 1000000000 */
+            S = 60;
+          else
+            S = 120;
+          mpz_clear (t);
+        }
+    }
+
+  /* We need Suyama's power even and at least 2 for P-1 stage 2 to work 
+     correctly */
+  if (abs(S) < 2)
+    S = 2;
+
+  if (S & 1)
+    S *= 2; /* FIXME: Is this what the user would expect? */
+  
+  if (test_verbose (OUTPUT_NORMAL))
+    {
+      outputf (OUTPUT_NORMAL, "Using ");
+      if (ECM_IS_DEFAULT_B1_DONE(B1done))
+        outputf (OUTPUT_NORMAL, "B1=%1.0f", B1);
+      else
+        outputf (OUTPUT_NORMAL, "B1=%1.0f-%1.0f", B1done, B1);
+      if (mpz_cmp_d (B2min, B1) == 0)
+        outputf (OUTPUT_NORMAL, ", B2=%Zd, ", B2);
+      else
+        outputf (OUTPUT_NORMAL, ", B2=%Zd-%Zd, ", B2min, B2);
+      if (S > 0)
+        outputf (OUTPUT_NORMAL, "polynomial x^%u", S);
+      else
+        outputf (OUTPUT_NORMAL, "polynomial Dickson(%u)", -S);
+
+      if (ECM_IS_DEFAULT_B1_DONE(B1done))
+	/* don't print in resume case, since x0 is saved in resume file */
+         outputf (OUTPUT_NORMAL, ", x0=%Zd", p);
+
+      outputf (OUTPUT_NORMAL, "\n");
+    }
+
   mpres_init (x, modulus);
   mpres_set_z (x, p, modulus);
 
