@@ -483,7 +483,7 @@ main (int argc, char *argv[])
 	  autoincrementB1 = strtod (argv[2], NULL);
 	  if (autoincrementB1 < 1)
 	    {
-	      fprintf (stderr, "Error, the -i command requires a whole number argument to follow it\n");
+	      fprintf (stderr, "Error, the -i n option requires n >= 1\n");
 	      exit (EXIT_FAILURE);
   	    }
 	  argv += 2;
@@ -495,7 +495,7 @@ main (int argc, char *argv[])
 	  autoincrementB1_calc = 1;
 	  if (autoincrementB1 <= 0)
 	    {
-	      fprintf (stderr, "Error, the -I command requires a number argument to follow it > 0\n");
+	      fprintf (stderr, "Error, the -I f option requires f > 0\n");
 	      exit (EXIT_FAILURE);
   	    }
 	  argv += 2;
@@ -540,14 +540,9 @@ main (int argc, char *argv[])
         }
       else if ((argc > 2) && (strcmp (argv[1], "-B2scale") == 0))
 	{
-	  B2scale = atof(argv[2]);
+	  B2scale = atof (argv[2]);
 	  if (verbose > 1)
 	    printf ("Scaling B2 values by a factor of %.4f\n", B2scale);
-	  if (B2scale <= 0.02)
-	    {
-	      fprintf (stderr, "Error, the -B2scale command requires a float number argument to follow it > 0.02\n");
-	      exit (EXIT_FAILURE);
-  	    }
 	  argv += 2;
 	  argc -= 2;
 	}
@@ -795,7 +790,7 @@ BreadthFirstDoAgain:;
 	  if (breadthfirst_cnt++)
             {
 	      double NewB1;
-	      NewB1 = calc_B1_AutoIncrement(B1, autoincrementB1, autoincrementB1_calc);
+	      NewB1 = calc_B1_AutoIncrement (B1, autoincrementB1, autoincrementB1_calc);
 	      if (B2min == B1)
 		  B2min = NewB1;
 	      B1 = NewB1;
@@ -1213,7 +1208,7 @@ OutputFactorStuff:;
       if (!breadthfirst && autoincrementB1)
 	{
 	  double NewB1;
-	  NewB1 = calc_B1_AutoIncrement(B1, autoincrementB1, autoincrementB1_calc);
+	  NewB1 = calc_B1_AutoIncrement (B1, autoincrementB1, autoincrementB1_calc);
 	  if (B2min == B1)
 	      B2min = NewB1;
 	  B1 = NewB1;

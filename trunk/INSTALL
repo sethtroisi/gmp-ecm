@@ -4,10 +4,10 @@ Instructions to install gmp-ecm:
    GNU MP is available from <http://www.swox.com/gmp/>.
 
    Remark: GNU MP is already installed in most Linux distributions.
-   However it is often an old version (3.1.1 for example), moreover
-   without processor-specific optimizations. If you care about efficiency,
-   be sure to install the latest version of GNU MP (4.1.2 on February 2003),
-   and to compile it on your particular processor.
+   However it is often an old version, moreover without processor-specific
+   optimizations. If you care about efficiency, be sure to install the
+   latest version of GNU MP (4.1.4 on January 2005), and to compile it
+   on your particular processor.
 
 1) to create the binary file "ecm", type:
 
@@ -19,10 +19,6 @@ Instructions to install gmp-ecm:
    By default, a static binary is made. If this fails, try adding
    LDFLAGS="-lgmp -lm" to the make command. This is the case for
    example under Darwin.
-
-   On systems without alloca.h (for example 32-bit AIX, NetBSD,
-   FreeBSD), you need to add -D__freebsd to the C flags, for example
-   using make CC="gcc -D__freebsd".
 
    Warning: to compile gmp-ecm, it is better to use the same compiler and
    options than used to compile GMP, otherwise the compilation may
@@ -79,5 +75,6 @@ In case of problem, report it to us, with:
 
 Then send your report to us:
 Jim Fougeron <jfoug@kdsi.net>
+Laurent Fousse <fousse@loria.fr>
 Alexander Kruppa <alexander.kruppa@stud.tu-muenchen.de>
 Paul Zimmermann <zimmerma@loria.fr>
