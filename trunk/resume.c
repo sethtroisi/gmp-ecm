@@ -310,6 +310,7 @@ read_resumefile_line (int *method, mpz_t x, mpcandi_t *n, mpz_t sigma, mpz_t A,
           mpz_clear (checksum);
         }
 
+      mpz_mod (x, x, n->n);
       return 1;
       
 error:
