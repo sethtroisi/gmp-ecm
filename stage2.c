@@ -514,9 +514,11 @@ stage2 (mpz_t f, void *X, mpmod_t modulus, double B2min, double B2,
 
   st = cputime ();
   if (method == ECM_PM1)
-    rootsG_state = pm1_rootsG_init ((mpres_t *) X, i0 * (double) d, d, d2, S, modulus);
+    rootsG_state = pm1_rootsG_init ((mpres_t *) X, i0 * (double) d, d, d2, S,
+				    modulus);
   else if (method == ECM_PP1)
-    rootsG_state = pp1_rootsG_init ((mpres_t *) X, i0 * (double) d, d, d2, modulus);
+    rootsG_state = pp1_rootsG_init ((mpres_t *) X, i0 * (double) d, d, d2, S,
+				    modulus);
   else /* ECM_ECM */
     rootsG_state = ecm_rootsG_init (f, (curve *) X, i0 * (double) d, d, d2,
 				    dF, k, S, modulus);

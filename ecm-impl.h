@@ -204,10 +204,14 @@ typedef __pm1_roots_state pm1_roots_state;
 
 typedef struct
 {
-  mpres_t fd[4];
-  unsigned int d;      /* Step size for computing roots of G */
+  unsigned int size_fd; /* How many entries .fd has, always nr * (S+1) */
+  unsigned int nr;     /* How many separate progressions there are */
+  unsigned int next;   /* From which progression to take the next root */
+  unsigned int S;      /* Degree of the polynomials */
   unsigned int dsieve; /* Values not coprime to dsieve are skipped */
   unsigned int rsieve; /* Which residue mod dsieve current .next belongs to */
+  mpres_t *fd;
+  unsigned int d;      /* Step size for computing roots of G */
 } __pp1_roots_state;
 typedef __pp1_roots_state pp1_roots_state;
 
@@ -303,7 +307,7 @@ int   pp1_rootsF       (listz_t, unsigned int, unsigned int, unsigned int,
 int   pp1_rootsG     (listz_t, unsigned int, pp1_roots_state *, mpmod_t);
 #define pp1_rootsG_init __ECM(pp1_rootsG_init)
 pp1_roots_state* pp1_rootsG_init (mpres_t*, double, unsigned int,
-                                  unsigned int, mpmod_t);
+                                  unsigned int, int, mpmod_t);
 #define pp1_rootsG_clear __ECM(pp1_rootsG_clear)
 void  pp1_rootsG_clear (pp1_roots_state *, mpmod_t);
 
