@@ -40,7 +40,7 @@ static double h = 0.;
 static int tablemax = 0.;
 
 #ifdef TESTDRIVE
-unsigned int
+static unsigned int
 gcd (unsigned int a, unsigned int b)
 {
   unsigned int t;
@@ -55,7 +55,7 @@ gcd (unsigned int a, unsigned int b)
   return a;
 }
 
-unsigned long
+static unsigned long
 phi (unsigned long n)
 {
   unsigned long phi = 1, p;
@@ -143,6 +143,7 @@ L2 (double x)
 static double
 rhoexact (double x)
 {
+  ASSERT(x <= 3.);
   if (x <= 0.)
     return 0.;
   if (x <= 1.)
@@ -151,9 +152,8 @@ rhoexact (double x)
     return 1. - log (x);
   if (x <= 3.) /* 2 < x <= 3 thus -2 <= 1-x < -1 */
     return 1. - log (x) * (1. - log (x - 1.)) + dilog (1. - x) + 0.5 * M_PI_SQR_6;
-
-  fprintf (ECM_STDERR, "rhoexact: not implemented for argument %f > 3.0", x);
-  exit (EXIT_FAILURE);
+  
+  return 0.; /* x > 3. and asserting not enabled: bail out with 0. */
 }
 
 void 
@@ -189,14 +189,13 @@ rhoinit (int parm_invh, int parm_tablemax)
         + 7. * rhotable[i - invh]  / (double)i );
       if (rhotable[i] < 0.)
         {
-          if (1)
-            rhotable[i] = 0.;
-          else
-            {
-              fprintf (ECM_STDERR, "rhoinit: rhotable[%d] = %.16f\n", i, 
-                       rhotable[i]);
-              exit (EXIT_FAILURE);
-            }
+#ifndef DEBUG_NUMINTEGRATE
+          rhotable[i] = 0.;
+#else
+          printf (stderr, "rhoinit: rhotable[%d] = %.16f\n", i, 
+                   rhotable[i]);
+          exit (EXIT_FAILURE);
+#endif
         }
     }
 }
@@ -227,7 +226,7 @@ dickmanrhosigma (double alpha, double x)
   if (alpha < tablemax)
     return dickmanrho (alpha) + M_EULER_1 * dickmanrho (alpha - 1.) / log (x);
   
-  return 0;
+  return 0.;
 }
 
 #if 0
@@ -254,8 +253,8 @@ dickmanlocal (double alpha, double x)
     return 1.;
   if (alpha < tablemax)
     return dickmanrhosigma (alpha, x) 
-           - dickmanrhosigma (alpha - 1, x) / log (x);
-  return (0);
+           - dickmanrhosigma (alpha - 1., x) / log (x);
+  return 0.;
 }
 
 static double
@@ -357,13 +356,16 @@ ecmprob (double B1, double B2, double N, double nr, int S)
 {
   double alpha, beta, stage1, stage2, brsu;
   
+  ASSERT(rhotable != NULL);
+  
+  /* What to do if rhotable is not initialised and asserting is not enabled?
+     For now, bail out with 0. result. Not really pretty, either */
   if (rhotable == NULL)
-    {
-      fprintf (ECM_STDERR, "ecmprob: rho table has not been initialised\n");
-      exit (EXIT_FAILURE);
-    }
+    return 0.;
 
-  /* printf ("B1 = %f, B2 = %f, N = %.0f, nr = %f, S = %d\n", B1, B2, N, nr, S); */
+#ifdef TESTDRIVE
+  printf ("B1 = %f, B2 = %f, N = %.0f, nr = %f, S = %d\n", B1, B2, N, nr, S);
+#endif
   
   alpha = log (N/12.) / log (B1);
   beta = log (B2) / log (B1);
@@ -376,8 +378,10 @@ ecmprob (double B1, double B2, double N, double nr, int S)
     brsu = brsudickson (B1, B2, N / 12., nr, -S * 2);
   if (S > 1)
     brsu = brsupower (B1, B2, N / 12., nr, S * 2);
-  
-  /* printf ("stage 1 : %f, stage 2 : %f, Brent-Suyama : %f\n", stage1, stage2, brsu); */
+
+#ifdef TESTDRIVE
+  printf ("stage 1 : %f, stage 2 : %f, Brent-Suyama : %f\n", stage1, stage2, brsu);
+#endif
 
   return (stage1 + stage2 + brsu) > 0. ? (stage1 + stage2 + brsu) : 0.;
 }
