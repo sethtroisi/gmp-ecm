@@ -342,20 +342,14 @@ Number of step 2 blocks. The step 2 range [B1,B2] is divided into k
 "big blocks". The default value of k is chosen to be near to optimal.
 However, it may be that for a given (B1,B2) pair, another value of k
 may be better. Try for this to give the option -k <value> to ecm,
-where <value> is 1, 2, 3, ... Below we give the experimental best
-value for a 155-digit number, for some values of B1 and the
-corresponding default value of B2.
-
-      B1      optimal k
-     1e6         4
-     3e6         5
-    11e6         5
+where <value> is 1, 2, 3, ... This will force ecm to divide step 2
+in at least <value> blocks.
 
 Changing the value of the number of blocks will not modify the chance
 of finding a factor (except for extra factors, but some will be lost,
 and some will be won, so the balance should be even). However it will
 increase the time spent in Step 2 (when less or greater than the
-optimal value) and the memory used by Step 2 (see the paragraph 
+optimal value), and modify the memory used by Step 2 (see the paragraph 
 "Memory usage").
 
 Optimal gmp thresholds. The default configuration of gmp-ecm requires
@@ -388,7 +382,7 @@ Parameters:
   P+1 will be larger than that for P-1, and that for ECM will be still
   larger. Like B1, it can be given either in integer or in floating-point 
   format. The largest possible value of B2 depends on the number of blocks
-  in step 2 (see option -k); it is about 9846466279650*k.
+  in step 2 (see option -k); it is about 10^13*k.
   All primes B1 <= p <= B2 are processed in step 2. If B2 < B1, no step 2
   is performed.
 - alternatively one may use the B2min-B2max form, which means that all
@@ -415,7 +409,7 @@ Options to control the group and initial point used:
    for different runs.
 
 Options to control step 2 parameters:
--k n  [P-1,P+1,ECM]. Perform n blocks in step 2 (default is 5). See
+-k n  [P-1,P+1,ECM]. Perform >= n blocks in step 2 (default is 0). See
    paragraph "Memory usage" above.
 -power n  Use x^n for Brent-Suyama's extension (see paragraph "4. Extra 
    factors and Brent-Suyama's extension). Default is chosen depending on
