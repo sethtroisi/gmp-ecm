@@ -157,27 +157,29 @@ typedef __curve_struct curve;
 
 typedef struct
 {
-  point *fd;
-  mpres_t *T;          /* For temp values. FIXME: should go! */
-  curve *X;            /* The curve the points are on */
-  unsigned int size_fd; /* How many entries .fd has */
+  unsigned int size_fd; /* How many entries .fd has, always nr * (S+1) */
   unsigned int nr;     /* How many separate progressions there are */
   unsigned int next;   /* From which progression to take the next root */
   unsigned int S;      /* Degree of the polynomials */
   unsigned int dsieve; /* Values not coprime to dsieve are skipped */
   unsigned int rsieve; /* Which residue mod dsieve current .next belongs to */
+  int dickson_a;       /* Parameter for Dickson polynomials */
+  point *fd;
+  mpres_t *T;          /* For temp values. FIXME: should go! */
+  curve *X;            /* The curve the points are on */
 } __ecm_roots_state;
 typedef __ecm_roots_state ecm_roots_state;
 
 typedef struct
 {
-  mpres_t *fd;
-  unsigned int size_fd; /* How many entries .fd has */
+  unsigned int size_fd; /* How many entries .fd has, always nr * (S+1) */
   unsigned int nr;     /* How many separate progressions there are */
   unsigned int next;   /* From which progression to take the next root */
   unsigned int S;      /* Degree of the polynomials */
   unsigned int dsieve; /* Values not coprime to dsieve are skipped */
   unsigned int rsieve; /* Which residue mod dsieve current .next belongs to */
+  int dickson_a;       /* Parameter for Dickson polynomials */
+  mpres_t *fd;
   int invtrick;
 } __pm1_roots_state;
 typedef __pm1_roots_state pm1_roots_state;
@@ -337,6 +339,9 @@ listz_t init_progression_coeffs
 			 unsigned int, unsigned int, int);
 void clear_progression_coeffs 
 			(listz_t, unsigned int, unsigned int, unsigned int, unsigned int);
+void init_roots_state   (ecm_roots_state *, int, unsigned int, unsigned int, 
+                         double);
+                  
 
 /* listz.c */
 int          list_mul_mem (unsigned int);
