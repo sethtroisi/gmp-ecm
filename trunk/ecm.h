@@ -113,6 +113,7 @@ unsigned int gcd        (unsigned int, unsigned int);
 void         mpz_sub_si (mpz_t, mpz_t, int);
 unsigned int ceil_log2  (unsigned int);
 int          cputime    ();
+unsigned int get_random_ui (void);
 
 /* pm1.c */
 void    pm1_random_seed  (mpz_t, mpz_t, gmp_randstate_t);

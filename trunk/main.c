@@ -23,10 +23,10 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <time.h>
-#include <unistd.h>
 #include "gmp.h"
 #include "ecm.h"
+
+/* #define DEBUG */
 
 /* people keeping track of champions and corresponding url's */
 unsigned int champion_digits[3] = { 51, 37, 34 };
@@ -86,6 +86,7 @@ new_line:
 
   return 1;
 }
+
 
 /******************************************************************************
 *                                                                             *
@@ -410,9 +411,8 @@ main (int argc, char *argv[])
   mpz_init (orig_x0); /* starting point, for save file */
 
   /* We may need random numbers for sigma/starting point */
-  /* todo: seed needs higher resolution */
   gmp_randinit_default (randstate);
-  gmp_randseed_ui (randstate, time (NULL) + getpid ());
+  gmp_randseed_ui (randstate, get_random_ui ());
 
   /* loop for number in standard input or file */
   while (feof (stdin) == 0)

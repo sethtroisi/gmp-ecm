@@ -21,6 +21,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <unistd.h>
+#include <time.h>
 #include "gmp.h"
 #include "ecm.h"
 
@@ -80,7 +82,6 @@ ceil_log2 (unsigned int n)
 
 /* Return user CPU time measured in milliseconds. Thanks to Torbjorn. */
 #if defined (ANSIONLY) || defined (USG) || defined (__SVR4) || defined (_UNICOS) || defined(__hpux)
-#include <time.h>
 
 int
 cputime ()
@@ -101,3 +102,49 @@ cputime ()
   return rus.ru_utime.tv_sec * 1000 + rus.ru_utime.tv_usec / 1000;
 }
 #endif
+
+/* Produces a random unsigned int value */
+unsigned int 
+get_random_ui ()
+{
+  unsigned int rnd = 0;
+  FILE *rndfd;
+  struct timeval tv;
+
+  /* Try /dev/random */
+  rndfd = fopen ("/dev/urandom", "r");
+  if (rndfd != NULL)
+    {
+      if (fread (&rnd, 4, 1, rndfd) != 1)
+        rnd = 0;
+#ifdef DEBUG
+      else
+        printf ("Got seed for RNG from /dev/urandom\n");
+#endif
+      fclose (rndfd);
+    }
+
+#if !(defined (ANSIONLY) || defined (USG) || defined (__SVR4) || defined (_UNICOS) || defined(__hpux))
+  if (rnd == 0)
+    {
+      if (gettimeofday (&tv, NULL) == 0)
+        {
+          rnd = tv.tv_sec + tv.tv_usec;
+#ifdef DEBUG
+          printf ("Got seed for RNG from gettimeofday()\n");
+#endif
+        }
+    }
+#endif
+  
+  if (rnd == 0)
+    {
+      rnd = time (NULL) + getpid ();
+#ifdef DEBUG
+          printf ("Got seed for RNG from time()+getpid()\n");
+#endif
+    }
+  
+  return rnd;
+}
+
