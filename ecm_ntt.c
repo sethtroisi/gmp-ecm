@@ -41,8 +41,8 @@ ntt_mul (mpzp_t r, mpzp_t x, mpzp_t y, spv_size_t len, mpzp_t t,
   mpzspp_t X, Y;
   int i;
     
-  mpzspp_init (X, mpzspm);
-  mpzspp_init (Y, mpzspm);
+  X = mpzspp_init (mpzspm);
+  Y = mpzspp_init (mpzspm);
   
   mpzspp_set_mpzp (X, x, len, 0);
   mpzspp_set_mpzp (Y, y, len, 0);
@@ -65,8 +65,8 @@ ntt_mul_partial (mpzp_t r, mpzp_t x, spv_size_t x_len, mpzp_t y,
   mpzspp_t X, Y;
   int i;
     
-  mpzspp_init (X, mpzspm);
-  mpzspp_init (Y, mpzspm);
+  X = mpzspp_init (mpzspm);
+  Y = mpzspp_init (mpzspm);
   
   mpzspp_set_mpzp (X, x, x_len, 0);
   mpzspp_set_mpzp (Y, y, y_len, 0);
@@ -100,7 +100,7 @@ ntt_PolyFromRoots (mpzp_t r, mpzp_t a, spv_size_t len, mpzp_t t, mpz_t n)
   unsigned int j;
    
   mpzspm = mpzspm_init (n, len);
-  mpzspp_init (mpzspp, mpzspm);
+  mpzspp = mpzspp_init (mpzspm);
   mpzspp_realloc (mpzspp, 2 * len);
 
   /* FIXME: Are we doing too much memory thrashing in this function? */
@@ -187,7 +187,7 @@ ntt_PolyFromRoots_Tree (mpzp_t r, mpzp_t a, spv_size_t len, mpzp_t t, mpz_t n,
   mpzp_t src;
   mpzp_t *dst = Tree + log_2_len - 1;
   mpzspm = mpzspm_init (n, len);
-  mpzspp_init (mpzspp, mpzspm);
+  mpzspp = mpzspp_init (mpzspm);
   mpzspp_realloc (mpzspp, 2 * len);
 
   /* FIXME: Are we doing too much memory thrashing in this function? */
@@ -302,8 +302,8 @@ ntt_PrerevertDivision (mpzp_t a, mpzp_t b, mpzp_t invb, spv_size_t len,
   mpzspp_t x, y;
   unsigned int i;
     
-  mpzspp_init (x, mpzspm);
-  mpzspp_init (y, mpzspm);
+  x = mpzspp_init (mpzspm);
+  y = mpzspp_init (mpzspm);
   
   /* Do the X^(2*len) term of b now by wrapping
    * it round explicitly (saves a list_add) */

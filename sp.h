@@ -238,7 +238,7 @@ typedef struct
     mpzspm_t mpzspm;
   } __mpzspp_struct;
 
-typedef __mpzspp_struct mpzspp_t[1];
+typedef __mpzspp_struct * mpzspp_t;
 
 
 /*************
@@ -494,7 +494,7 @@ void mpzspm_clear (mpzspm_t);
 
 #define MPZSPP_REALLOC(x,n) do{if((x)->alloc_len<n)mpzspp_realloc(x,n);}while(0)
 
-void mpzspp_init (mpzspp_t, mpzspm_t);
+mpzspp_t mpzspp_init (mpzspm_t);
 void mpzspp_clear (mpzspp_t);
 void mpzspp_realloc (mpzspp_t, spv_size_t);
 void mpzspp_set_mpzp (mpzspp_t, mpzp_t, spv_size_t, spv_size_t);
