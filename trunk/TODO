@@ -2,6 +2,7 @@ What remains to do:
 
 - print messages for record factors
 - implement Brent-Suyama's extension for p+1
+- change -e n, -power, -dickson to -power n, -dickson n
 - tune stage 2 values of 'd' to optimize toomcook4(d)/(d*phi(d/2))
 - get rid of NTL
 - implement polyeval (possibly by recomputing F from its roots level by
