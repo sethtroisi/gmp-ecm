@@ -33,15 +33,13 @@ VERSION=5.0-beta2
 
 FILES= auxi.o bestd.o ecm.o ecm2.o getprime.o listz.o lucas.o main.o pm1.o pp1.o stage2.o toomcook.o memory.o mpmod.o mul_lo.o polyeval.o resume.o
 
-CFLAG= -O2 -g -Wall -Wmissing-prototypes
-LDFLAG= -lgmp -lm
+CFLAGS= -O2 -g -Wall -Wmissing-prototypes
+LDFLAGS= -lgmp -lm
 CXX=gcc
 CC=gcc
-LD=gcc
+LD=$(CC)
 EXTRAFILES=
 ALLFILES= $(FILES) $(EXTRAFILES)
-CFLAGS= $(CFLAG)
-LDFLAGS= $(LDFLAG)
 POLYGCD=0
 
 DIST=  auxi.c bestd.c ecm.c ecm2.c getprime.c listz.c lucas.c main.c ntl.c pm1.c polyz.c pp1.c stage2.c toomcook.c memory.c mpmod.c mul_lo.c polyeval.c resume.c
@@ -49,18 +47,11 @@ EXTRADIST= COPYING INSTALL Makefile README ecm.h test.pm1 test.pp1 test.ecm tune
 
 .SUFFIXES: .c .o
 
-all:
-	@if test $(POLYGCD) -ne 0; then \
-           CXX=g++;                    \
-           EXTRAFILES=ntl.o;           \
-           LDFLAGS="-lntl $(LDFLAG)";  \
-           make ecm GMP=$(GMP) NTL=$(NTL) CXX=g++ EXTRAFILES="ntl.o polyz.o" LDFLAGS="-lntl $(LDFLAG) CFLAGS="$(CFLAG) -DPOLYGCD""; \
-        else \
-           make ecm GMP=$(GMP) LD="$(LD)"; \
-        fi
-
 ecm: $(ALLFILES) ecm.h
 	$(LD) $(CFLAGS) -L$(GMP)/lib -L$(NTL)/lib $(ALLFILES) -o $@ $(LDFLAGS)
+
+ecm_with_ntl:
+           make ecm GMP=$(GMP) NTL=$(NTL) CXX=g++ EXTRAFILES="ntl.o polyz.o" LDFLAGS="-lntl $(LDFLAGS) CFLAGS="$(CFLAGS) -DPOLYGCD""
 
 tune: mpmod.o ecm.h tune.o auxi.o mul_lo.o
 	$(CC) $(CFLAGS) -L$(GMP)/lib tune.o mpmod.o auxi.o mul_lo.o -o $@ -lgmp
