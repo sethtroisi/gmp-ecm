@@ -246,7 +246,7 @@ main (int argc, char *argv[])
   mpcandi_t *pCandidates = NULL;
   unsigned int nCandidates=0, nMaxCandidates=0;
   int deep=1, trial_factor_found;
-  unsigned int displayexpr=0;
+  unsigned int displayexpr = 0;
   unsigned int decimal_cofactor = 0;
   double maxtrialdiv=0;
   double B2scale=1.0;
@@ -993,12 +993,15 @@ BreadthFirstDoAgain:;
 	      if (n.isPrp)
 		printf ("****** Warning: input is probably prime ******\n");
 	    }
-	  else
+	  else /* 2nd or more try for same composite */
 	    {
-	      if (breadthfirst)
-		printf ("Line=%u/%u Curves=%u/%u B1=%.0f factors=%u      \n", linenum, nCandidates, breadthfirst_cnt, breadthfirst_maxcnt, B1, factsfound);
-	      else
-	        printf ("Line=%u Curves=%u/%u B1=%.0f factors=%u      \n", linenum, count-cnt+1, count, B1, factsfound);
+              if (SCREEN_UPDATE_DELAY >= 0)
+                {
+                  if (breadthfirst)
+                    printf ("Line=%u/%u Curves=%u/%u B1=%.0f factors=%u      \n", linenum, nCandidates, breadthfirst_cnt, breadthfirst_maxcnt, B1, factsfound);
+                  else
+                    printf ("Line=%u Curves=%u/%u B1=%.0f factors=%u      \n", linenum, count-cnt+1, count, B1, factsfound);
+                }
 	      /* Since the expression is usally "so" short, why not just drop it out for ALL loops? */
 	      if (displayexpr)
 		{
@@ -1011,10 +1014,10 @@ BreadthFirstDoAgain:;
 		      printf ("Input number is %s (%u digits)\n", s, n.ndigits);
                       FREE (s, n.ndigits + 1);
 		    }
-		  else
+		  else if (SCREEN_UPDATE_DELAY >= 0)
 		    printf ("C%d ", n.ndigits);  /* This will show up at the head of the "Using B1=2250, B2=...." line */
 		}
-	      else
+	      else if (SCREEN_UPDATE_DELAY >= 0)
 		printf ("C%d ", n.ndigits);  /* This will show up at the head of the "Using B1=2250, B2=...." line */
 	    }
 	  fflush (stdout);
