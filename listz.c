@@ -813,7 +813,11 @@ PrerevertDivision (listz_t a, listz_t b, listz_t invb,
       muls = F_mul (t, a + K, invb, K, 0, Fermat, t + 2 * K);
     }
   else
+#ifdef KS_MULTIPLY /* ks is faster */
+    muls = LIST_MULT_N (t, a + K, invb, K - 1, t + 2 * K - 3);
+#else
     muls = list_mul_high (t, a + K, invb, K - 1, t + 2 * K - 3, n);
+#endif
 
   list_mod (a + K, t + K - 2, K - 1, n);
 
@@ -824,7 +828,11 @@ PrerevertDivision (listz_t a, listz_t b, listz_t invb,
   if (Fermat && po2)
       muls += F_mul (t, a + K, b, K, 0, Fermat, t + 2 * K);
   else
+#ifdef KS_MULTIPLY /* ks is faster */
+      muls += LIST_MULT_N (t, a + K, b, K, t + 2 * K - 1);
+#else
       muls += list_mul_low (t, a + K, b, K, t + 2 * K - 1, n);
+#endif
 
   /* now {t, K} contains the low K terms from Q*B */
   list_sub (a, a, t, K);
