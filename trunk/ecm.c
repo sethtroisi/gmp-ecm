@@ -25,7 +25,6 @@
 #include "ecm.h"
 
 int get_curve_from_sigma (mpz_t, mpres_t, mpres_t, mpres_t, mpmod_t);
-int montgomery_to_weierstrass (mpz_t, mpres_t, mpres_t, mpres_t, mpmod_t);
 void add3 (mpres_t, mpres_t, mpres_t, mpres_t, mpres_t, mpres_t, mpres_t,
            mpres_t, mpmod_t, mpres_t, mpres_t, mpres_t);
 void duplicate (mpres_t, mpres_t, mpres_t, mpres_t, mpmod_t, mpres_t,
@@ -113,7 +112,7 @@ get_curve_from_sigma (mpz_t f, mpres_t A, mpres_t x, mpz_t sigma, mpmod_t n)
    by change of variables x -> g*X-a/3, y -> g*Y.
    We have A = (3-a^2)/(3g^2), X = (3x+a)/(3g), Y = y/g.
 */
-int 
+static int 
 montgomery_to_weierstrass (mpz_t f, mpres_t x, mpres_t y, mpres_t A, mpmod_t n)
 {
   mpres_t g;
@@ -750,7 +749,7 @@ ecm (mpz_t f, mpz_t x, mpz_t sigma, mpz_t n, double B1done, double B1,
   mpres_init (P.y, modulus);
 
   youpi = montgomery_to_weierstrass (f, P.x, P.y, P.A, modulus);
-  
+
   if (youpi == 0)
     youpi = stage2 (f, &P, modulus, B2min, B2, k, S, verbose, EC_METHOD);
   
