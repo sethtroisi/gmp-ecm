@@ -311,6 +311,8 @@ mpmod_init_MPZ (mpmod_t modulus, mpz_t N)
   return;
 }
 
+extern unsigned int Fermat;
+
 void 
 mpmod_init_BASE2 (mpmod_t modulus, int base2, mpz_t N)
 {
@@ -319,6 +321,17 @@ mpmod_init_BASE2 (mpmod_t modulus, int base2, mpz_t N)
   mpz_init_set (modulus->orig_modulus, N);
   modulus->repr = MOD_BASE2;
   modulus->bits = base2;
+
+#ifdef HAVE_FFT /* use directly mpn_mul_fft() */
+  Fermat = 0;
+  if (base2 > 0)
+    {
+      unsigned long i;
+      for (i = base2; (i & 1) == 0; i >>= 1);
+      if (i == 1)
+        Fermat = base2;
+    }
+#endif
   
   Nbits = mpz_size (N) * __GMP_BITS_PER_MP_LIMB; /* Number of bits, rounded
                                                     up to full limb */
@@ -659,6 +672,21 @@ mpres_mul (mpres_t R, mpres_t S1, mpres_t S2, mpmod_t modulus)
 {
   ASSERT_NORMALIZED (S1);
   ASSERT_NORMALIZED (S2);
+
+#ifdef HAVE_FFT
+  if (Fermat)
+    {
+      mp_size_t n = Fermat / __GMP_BITS_PER_MP_LIMB;
+      unsigned long k;
+
+      _mpz_realloc (R, n + 1);
+      k = mpn_fft_best_k (n, S1 == S2);
+      mpn_mul_fft (PTR(R), n, PTR(S1), ABSIZ(S1), PTR(S2), ABSIZ(S2), k);
+      MPN_NORMALIZE(PTR(R), n);
+      SIZ(R) = ((SIZ(S1) ^ SIZ(S2)) > 0) ? n : -n;
+      return;
+    }
+#endif
 
   mpz_mul (modulus->temp1, S1, S2);
 
