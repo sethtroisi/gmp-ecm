@@ -322,6 +322,14 @@ force the use of a certain arithmetic by trying options -modmulm, -mpzmod,
 -redc. (The best choice should depend on B1 and B2 only very little, so long 
 as B1 is not too small, say >= 1000.)
 
+The "tune" program helps you to determine the optimal threshold for
+your computer. After compiling it with "make tune", type "./tune"
+and it will display timings for each method (mpzmod, modmuln, redc)
+for numbers of limbs equal to 1, 2, 3, ... When the best thresholds
+can be determined, the program stops and displays their values. Then
+simply (re)compile ecm, adding -DMPZMOD_THRESHOLD=xxx -DREDC_THRESHOLD=yyy
+in CFLAGS.
+
 Number of step 2 blocks. The step 2 range [B1,B2] is divided into k 
 "big blocks". The default value of k is chosen to be near to optimal.
 However, it may be that for a given (B1,B2) pair, another value of k
@@ -433,7 +441,7 @@ Options for saving and resuming to/from files (see paragraph "6. Options
 -save file    Save residues at end of step 1 to file.
 -resume file  Resume residues from file, reads from stdin if file is "-".
 
-Miscallenaous options:
+Miscellaneous options:
 -primetest  Perform a primality test on input number, and prints a
    message if it is probably prime. This is not done by default since
    the primality test may be quite expensive (especially for large
