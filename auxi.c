@@ -83,12 +83,54 @@ ceil_log2 (unsigned int n)
 /* Return user CPU time measured in milliseconds. Thanks to Torbjorn. */
 #if defined (ANSIONLY) || defined (USG) || defined (__SVR4) || defined (_UNICOS) || defined(__hpux)
 
+#if defined (__MINGW32__) || defined (_MSC_VER)
+
+int cputime_x(void);
+
+int
+cputime_x(void)
+{
+  return (int) ((double) clock () * 1000 / CLOCKS_PER_SEC);
+}
+
+#include <windows.h>
+
+int
+cputime ()
+{
+  static int First=1;
+  static LARGE_INTEGER PF;
+  LARGE_INTEGER i;
+  double d;
+
+  if (First==1)
+  {
+    if (!QueryPerformanceFrequency(&PF))
+      First = -1;
+  }
+  if (First == -1)
+    return cputime_x();
+
+  QueryPerformanceCounter(&i);
+  d = *(long long*)&i;
+  d /= *(long long*)&PF;
+  d *= 1000;
+
+  return (int) d;
+}
+
+#else
+
 int
 cputime ()
 {
   return (int) ((double) clock () * 1000 / CLOCKS_PER_SEC);
 }
-#else
+
+#endif  /* __MINGW32___ or VC */
+
+#else	/* ANSIONLY and others */
+
 #include <sys/types.h>
 #include <sys/time.h>
 #include <sys/resource.h>
