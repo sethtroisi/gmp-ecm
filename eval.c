@@ -346,7 +346,7 @@ int eval_Phi (mpz_t b, mpz_t n, int ParamCnt)
 {
   int factors[200];
   unsigned dwFactors=0, dw;
-  int _N, _B;
+  int N, B;
   double p;
   mpz_t D, T, org_n;
 
@@ -388,28 +388,28 @@ int eval_Phi (mpz_t b, mpz_t n, int ParamCnt)
 
   /* Ok, do the real h_primative work, since we are not one of the trivial case */
 
-  _N = mpz_get_si(n);
-  _B = mpz_get_si(b);
+  N = mpz_get_si(n);
+  B = mpz_get_si(b);
 
-  if (mpz_cmp_ui(b, _B))
+  if (mpz_cmp_ui(b, B))
     {
       fprintf (stderr, "\nParsing Error - Invalid parameter passed to the Phi function (first param B too high)\n");
       return 0;
     }
 
-  /* Obtain the factors of _B */
+  /* Obtain the factors of B */
   getprime(0.0);  /* free the prime tables, and reinitialize */
-  for (p = 2.0; p <= _B; p = getprime(p))
+  for (p = 2.0; p <= B; p = getprime(p))
     {
-      if (_B % (int) p == 0)
+      if (B % (int) p == 0)
 	{
 	  /* Add the factor one time */
 	  factors[dwFactors++] = (int) p;
 	  /* but be sure to totally remove it */
-	  do { _B /= (int) p; } while (_B % (int) p == 0);
+	  do { B /= (int) p; } while (B % (int) p == 0);
         }
      }
-  _B = mpz_get_si(b);
+  B = mpz_get_si(b);
 
   mpz_init_set(org_n, n);
   mpz_set_ui(n, 1);
@@ -420,7 +420,7 @@ int eval_Phi (mpz_t b, mpz_t n, int ParamCnt)
   for(dw=0;(dw<(1U<<dwFactors)); dw++)
     {
       /* for all Mobius terms */
-      int iPower=_B;
+      int iPower=B;
       int iMobius=0;
       unsigned dwIndex=0;
       unsigned dwMask=1;
