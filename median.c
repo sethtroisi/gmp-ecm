@@ -804,13 +804,22 @@ TMulGen (listz_t b, unsigned int n, listz_t a, unsigned int m,
 
     for (i = l + 1; i > 1 && (i&1) == 0; i >>= 1);
     
-    if (l > 4 && Fermat && i == 1)
-      muls = F_mul_trans (b, a, c, l + 1, Fermat, tmp);
-    else if ((double) n * (double) mpz_sizeinbase (modulus, 2) <
+    if (Fermat)
+      {
+        if (i == 1)
+          return F_mul_trans (b, a, c, l + 1, Fermat, tmp);
+        else
+          printf ("TMulGen: Fermat = %d, but l+1 = %d not a power of 2\n", 
+                  Fermat, l+1);
+      }
+
+#ifdef KS_MULTIPLY
+    if ((double) n * (double) mpz_sizeinbase (modulus, 2) >=
              KS_TMUL_THRESHOLD)
-      muls = TToomCookMul (b, n, a, m, c, l, tmp);
-    else
       muls = TMulKS (b, n, a, m, c, l, modulus, 1);
+    else
+#endif
+      muls = TToomCookMul (b, n, a, m, c, l, tmp);
 
   return muls;
 }
