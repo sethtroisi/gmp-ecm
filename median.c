@@ -22,8 +22,8 @@ References:
 Proc. of ISSAC'03, Philadelphia, 2003.
 */
 
-#include <sys/time.h>
 #if !defined (_MSC_VER)
+#include <sys/time.h>
 #include <unistd.h>
 #if !defined (__MINGW32__)
 #include <sys/resource.h>
