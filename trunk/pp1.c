@@ -27,14 +27,16 @@
 */
 
 #include <math.h>
+#include <stdlib.h>
 #include <stdio.h>
 #include "gmp.h"
 #include "ecm.h"
 
-void             pp1_mul_ui (mpz_t, mpz_t, unsigned long, mpz_t, mpz_t, mpz_t);
+void             pp1_mul_ui (mpres_t, mpres_t, unsigned long, mpmod_t, 
+                             mpres_t, mpres_t);
 int  count_significant_bits (mp_limb_t);
 void pp1_check_factor       (mpz_t, mpz_t);
-int          pp1_stage1     (mpz_t, mpz_t, mpz_t, double, double,
+int          pp1_stage1     (mpz_t, mpres_t, mpmod_t, double, double,
                              unsigned long *);
 
 /******************************************************************************
@@ -54,30 +56,29 @@ int          pp1_stage1     (mpz_t, mpz_t, mpz_t, double, double,
    Return the number of multiplies mod n.
 */
 int
-pp1_mul (mpz_t P1, mpz_t P0, mpz_t e, mpz_t n, mpz_t P, mpz_t Q)
+pp1_mul (mpres_t P1, mpres_t P0, mpz_t e, mpmod_t n, mpres_t P, mpres_t Q)
 {
   unsigned long i, muls;
   mp_size_t size_e;
 
   if (mpz_cmp_ui (e, 0) == 0)
     {
-      mpz_set_ui (P1, 2);
+      mpres_set_ui (P1, 2, n);
       return 0;
     }
 
   if (mpz_cmp_ui (e, 1) == 0)
     {
-      mpz_set (P1, P0);
+      mpres_set (P1, P0, n);
       return 0;
     }
-
+  
   /* now e >= 2 */
   mpz_sub_ui (e, e, 1);
-  mpz_mul (P, P0, P0);
+  mpres_mul (P, P0, P0, n);
   muls = 1;
-  mpz_sub_ui (P, P, 2);
-  mpz_mod (P, P, n); /* P = V_2(P0) = P0^2-2 */
-  mpz_set (Q, P0);   /* Q = V_1(P0) = P0 */
+  mpres_sub_ui (P, P, 2, n); /* P = V_2(P0) = P0^2-2 */
+  mpres_set (Q, P0, n);      /* Q = V_1(P0) = P0 */
 
   /* invariant: (P, Q) = (V_{k+1}(P0), V_k(P0)), start with k=1 */
   size_e = mpz_sizeinbase (e, 2);
@@ -87,34 +88,30 @@ pp1_mul (mpz_t P1, mpz_t P0, mpz_t e, mpz_t n, mpz_t P, mpz_t Q)
         {
           if (i) /* Q is not needed for last iteration */
             {
-              mpz_mul (Q, P, Q);
+              mpres_mul (Q, P, Q, n);
               muls ++;
-              mpz_sub (Q, Q, P0);
-              mpz_mod (Q, Q, n);
+              mpres_sub (Q, Q, P0, n);
             }
-          mpz_mul (P, P, P);
+          mpres_mul (P, P, P, n);
           muls ++;
-          mpz_sub_ui (P, P, 2);
+          mpres_sub_ui (P, P, 2, n);
         }
       else /* k -> 2k */
         {
-          mpz_mul (P, P, Q);
+          mpres_mul (P, P, Q, n);
           muls ++;
-          mpz_sub (P, P, P0);
+          mpres_sub (P, P, P0, n);
           if (i) /* Q is not needed for last iteration */
             {
-              mpz_mul (Q, Q, Q);
+              mpres_mul (Q, Q, Q, n);
               muls ++;
-              mpz_sub_ui (Q, Q, 2);
-              mpz_mod (Q, Q, n);
+              mpres_sub_ui (Q, Q, 2, n);
             }
         }
-      if (i)
-        mpz_mod (P, P, n);
     }
 
-  mpz_mod (P1, P, n);
-
+  mpres_set (P1, P, n);
+  
   /* the number of multiplies is 1 + 2*#loops - 1 (last loop) */
   return 2 * (size_e - 1);
 }
@@ -138,7 +135,7 @@ count_significant_bits (mp_limb_t e)
    Return value: non-zero iff a factor was found.
 */
 int
-pp1_stage1 (mpz_t f, mpz_t P0, mpz_t n, double B1, double B1done,
+pp1_stage1 (mpz_t f, mpres_t P0, mpmod_t n, double B1, double B1done,
             unsigned long *muls)
 {
   double B0, p, q, r;
@@ -149,24 +146,24 @@ pp1_stage1 (mpz_t f, mpz_t P0, mpz_t n, double B1, double B1done,
   unsigned int max_size;
 
   mpz_init (g);
-  mpres_init (P, nn);
-  mpres_init (Q, nn);
-  mpres_init (R, nn);
-  mpres_init (S, nn);
-  mpres_init (T, nn);
+  mpres_init (P, n);
+  mpres_init (Q, n);
+  mpres_init (R, n);
+  mpres_init (S, n);
+  mpres_init (T, n);
 
-  B0 = sqrt (B1);
+  B0 = ceil (sqrt (B1));
 
-  max_size = L1 * mpz_sizeinbase (n, 2);
+  max_size = L1 * mpz_sizeinbase (n->orig_modulus, 2);
 
   /* suggestion from Peter Montgomery: start with exponent n-1,
      since any prime divisor of b^m-1 which does not divide any
      algebraic factor of b^m-1 must be of the form km+1 [Williams82].
      Do this only when n is composite, otherwise all tests with prime
      n factor of a Cunningham number will succeed in stage 1. */
-  if (mpz_probab_prime_p (n, 1) == 0)
+  if (0 && mpz_probab_prime_p (n->orig_modulus, 1) == 0)
     {
-      mpz_sub_ui (g, n, 1);
+      mpz_sub_ui (g, n->orig_modulus, 1);
       *muls += pp1_mul (P0, P0, g, n, P, Q);
     }
   else
@@ -194,24 +191,24 @@ pp1_stage1 (mpz_t f, mpz_t P0, mpz_t n, double B1, double B1done,
 
   getprime (0.0); /* free the prime tables, and reinitialize */
 
-  mpres_clear (P, nn);
-  mpres_clear (Q, nn);
-  mpres_clear (R, nn);
-  mpres_clear (S, nn);
-  mpres_clear (T, nn);
+  mpres_clear (Q, n);
+  mpres_clear (R, n);
+  mpres_clear (S, n);
+  mpres_clear (T, n);
+  mpz_clear (g);
 
-  mpz_sub_ui (g, P0, 2);
-  mpz_gcd (f, g, n);
+  mpres_sub_ui (P, P0, 2, n);
+  mpres_gcd (f, P, n);
   youpi = mpz_cmp_ui (f, 1);
 
-  mpz_clear (g);
+  mpres_clear (P, n);
   
   return youpi;
 }
 
 /* put in seed a valid random seed for P+1 */
 void
-pp1_random_seed (mpz_t seed, mpz_t n, gmp_randstate_t randstate)
+pp1_random_seed (mpres_t seed, mpmod_t n, gmp_randstate_t randstate)
 {
   mpz_t q;
 
@@ -219,11 +216,12 @@ pp1_random_seed (mpz_t seed, mpz_t n, gmp_randstate_t randstate)
   mpz_init (q);
   do
     {
-      mpz_urandomb (seed, randstate, 32);
-      mpz_add_ui (seed, seed, 1);
-      mpz_mul (q, seed, seed);
+      mpz_urandomb (q, randstate, 32);
+      mpz_add_ui (q, q, 1);
+      mpres_set_z (seed, q, n);
+      mpz_mul (q, q, q);
       mpz_sub_ui (q, q, 4);
-      mpz_gcd (q, q, n);
+      mpz_gcd (q, q, n->orig_modulus);
     }
   while (mpz_cmp_ui (q, 1) != 0);
   mpz_clear (q);
@@ -246,6 +244,136 @@ pp1_check_factor (mpz_t a, mpz_t p)
 
 /******************************************************************************
 *                                                                             *
+*                                  Stage 2                                    *
+*                                                                             *
+******************************************************************************/
+
+/* puts in F[0..dF-1] the successive values of 
+
+   V_j(P) for Williams P+1
+
+   For P+1, we have V_{j+6} = V_j * V_6 - V_{j-6}.
+
+   for 0 < j = 1 mod 7 < d, j and d coprime.
+*/
+
+int
+pp1_rootsF (listz_t F, unsigned int d, mpres_t x, listz_t t,
+            mpmod_t modulus, int verbose)
+{
+  unsigned int i, j;
+  int st, st2;
+  mpres_t fd[4];
+  
+  st = cputime ();
+
+  mpres_get_z (F[0], x, modulus); /* V_1(P)=P for P+1 */
+  i = 1;
+
+  if (d > 7)
+    {
+      st2 = cputime ();
+      mpres_init (fd[0], modulus);
+      mpres_init (fd[1], modulus);
+      mpres_init (fd[2], modulus);
+      mpres_init (fd[3], modulus);
+      mpz_set_ui (*t, 7);
+      pp1_mul (fd[0], x, *t, modulus, fd[2], fd[3]);
+      mpz_set_ui (*t, 6);
+      pp1_mul (fd[1], x, *t, modulus, fd[2], fd[3]);
+      mpres_set (fd[2], x, modulus); 
+      /* for P+1, fd[0] = V_7(P), fd[1] = V_6(P), fd[2] = V_{7-6}(P) */
+      if (verbose >= 2)
+        printf ("Initializing table of differences for F took %dms\n", cputime () - st2);
+      j = 7;
+      while (j < d)
+        {
+          if (gcd (j, d) == 1)
+            mpres_get_z (F[i++], fd[0], modulus);
+
+          mpres_swap (fd[0], fd[2], modulus);
+          mpres_mul (fd[3], fd[2], fd[1], modulus);
+          mpres_sub (fd[0], fd[3], fd[0], modulus);
+          j += 6;
+        }
+      mpres_clear (fd[0], modulus);
+      mpres_clear (fd[1], modulus);
+      mpres_clear (fd[2], modulus);
+      mpres_clear (fd[3], modulus);
+    }
+
+  if (verbose >= 2)
+    printf ("Computing roots of F took %dms\n", cputime () - st);
+
+  return 0;
+}
+
+mpres_t *
+pp1_rootsG_init (mpres_t x, unsigned int s, unsigned int d, mpmod_t modulus)
+{
+  int st;
+  mpres_t *fd, P;
+  mpz_t t;
+  
+  st = cputime ();
+  
+  mpz_init (t);
+
+  fd = (mpres_t *) malloc (4 * sizeof (mpres_t));
+
+  mpres_init (fd[0], modulus);
+  mpres_init (fd[1], modulus);
+  mpres_init (fd[2], modulus);
+  mpres_init (fd[3], modulus);
+  mpres_init (P, modulus);
+
+  mpz_set_ui (t, s);
+  pp1_mul (fd[0], x, t, modulus, fd[3], P);
+  mpz_set_ui (t, d);
+  pp1_mul (fd[1], x, t, modulus, fd[3], P);
+  mpz_set_ui (t, (s > d) ? s - d : d - s);
+  pp1_mul (fd[2], x, t, modulus, fd[3], P);
+  /* for P+1, fd[0] = V_s(P), fd[1] = V_d(P), fd[2] = V_{|s-d|}(P) */
+
+  mpres_clear (P, modulus);
+  mpz_clear (t);
+
+  return fd;
+}
+
+void 
+pp1_rootsG_clear (mpres_t *fd, mpmod_t modulus)
+{
+  mpres_clear (fd[0], modulus);
+  mpres_clear (fd[1], modulus);
+  mpres_clear (fd[2], modulus);
+  mpres_clear (fd[3], modulus);
+}
+
+int
+pp1_rootsG (listz_t G, unsigned int d, mpres_t *fd, mpmod_t modulus, 
+            int verbose)
+{
+  unsigned int i;
+  int st;
+  
+  st = cputime ();
+
+  for (i = 0; i < d; i++)
+    {
+      mpres_get_z (G[i], fd[0], modulus);
+
+      mpres_swap (fd[0], fd[2], modulus);
+      mpres_mul (fd[3], fd[2], fd[1], modulus);
+      mpres_sub (fd[0], fd[3], fd[0], modulus);
+    }
+  
+  return 0;
+}
+
+
+/******************************************************************************
+*                                                                             *
 *                               Williams P+1                                  *
 *                                                                             *
 ******************************************************************************/
@@ -260,23 +388,23 @@ pp1_check_factor (mpz_t a, mpz_t p)
    Return value: non-zero iff a factor is found (1 for stage 1, 2 for stage 2)
 */
 int
-pp1 (mpz_t f, mpz_t p, mpz_t n, double B1, double B2, double B1done, 
+pp1 (mpz_t f, mpres_t p, mpmod_t n, double B1, double B2, double B1done, 
      unsigned int k, unsigned int S, int verbose)
 {
   int youpi = 0, st;
-  mpz_t a;
+  mpres_t a;
   curve P;
   unsigned long muls = 0;
 
   st = cputime ();
 
-  mpz_init (a);
-  mpz_set (a, p);
+  mpres_init (a, n);
+  mpres_set (a, p, n);
 
   if (verbose >= 1)
     {
       printf ("Using seed=");
-      mpz_out_str (stdout, 10, a);
+      mpres_out_str (stdout, 10, a, n);
       printf ("\n");
       fflush (stdout);
     }
@@ -290,17 +418,32 @@ pp1 (mpz_t f, mpz_t p, mpz_t n, double B1, double B2, double B1done,
       fflush (stdout);
     }
 
+  if (verbose >= 2)
+    {
+      printf ("x=");
+      mpres_out_str (stdout, 10, p, n);
+      printf ("\n");
+      fflush (stdout);
+    }
+
   if (youpi != 0) /* a factor was found */
     goto end;
 
-  mpz_init_set (P.x, p);
+  mpres_init (P.x, n);
+  mpres_set (P.x, p, n);
   youpi = stage2 (f, &P, n, B2, k, S, verbose, PP1_METHOD, B1);
-  mpz_clear (P.x);
+  mpres_clear (P.x, n);
 
  end:
-  if (youpi != 0)
-    pp1_check_factor (a, f);
-  mpz_clear (a);
+  if (youpi != 0) 
+    {
+      mpz_t t;
+      mpz_init (t);
+      mpres_get_z (t, a, n);
+      pp1_check_factor (t, f);
+      mpz_clear (t);
+    }
+  mpres_clear (a, n);
 
   return youpi;
 }
