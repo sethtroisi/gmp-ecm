@@ -21,8 +21,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <strings.h> /* for strncasecmp */
 #if !defined (_MSC_VER)
+#include <strings.h> /* for strncasecmp */
 #include <unistd.h>
 #endif
 #include <ctype.h>

@@ -100,7 +100,11 @@ kronecker_schonhage (listz_t R, listz_t A, listz_t B, unsigned int l,
       free (t0_ptr);
       return 1;
     }
-
+  
+  /* mpn_mul_fft (a, b, c, n) allocates auxiliary memory of about 8n limbs,
+     thus the total memory allocated by this function is about 12*size_t0.
+     Since size_t0 is about 2*dF*limbs(modulus), this is about
+     24*dF*limbs(modulus). */
   mpn_mul_n (t2_ptr, t0_ptr, t1_ptr, size_t0);
   
   for (i = 0; i < 2 * l - 1; i++)
