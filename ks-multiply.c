@@ -29,6 +29,10 @@
 #include "ecm-gmp.h" /* for MPZ_REALLOC and MPN_COPY */
 #endif /* WANT_GMP_IMPL */
 
+#ifdef HAVE_FFT
+#define FFT_WRAP
+#endif
+
 #include "ecm.h"
 
 /* Puts in R[0..2l-2] the product of A[0..l-1] and B[0..l-1].
@@ -153,7 +157,6 @@ TMulKS (listz_t b, unsigned int n, listz_t a, unsigned int m,
         s = t;
     }
 
-#define FFT_WRAP
 #ifdef FFT_WRAP
   s ++; /* need one extra bit to determine sign of low(b) - high(b) */
 #endif
