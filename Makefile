@@ -27,6 +27,8 @@ GMP=/usr/local/gmp-4.1.1
 # libntl.a should be in $(NTL)/lib
 NTL=/usr/local/ntl-5.3
 
+VERSION=5.0-beta
+
 ###################### do not edit below this line ############################
 
 FILES= auxi.o bestd.o ecm.o ecm2.o getprime.o listz.o lucas.o main.o pm1.o pp1.o stage2.o toomcook.o memory.o mpmod.o polyeval.o
@@ -69,8 +71,8 @@ clean:
 	rm ecm5 *.o *~
 
 dist: $(DIST)
-	mkdir ecm-5.0
-	cp $(DIST) $(EXTRADIST) ecm-5.0
-	tar cf ecm-5.0.tar ecm-5.0
-	/bin/rm -fr ecm-5.0
-	gzip --best ecm-5.0.tar
+	mkdir ecm-$(VERSION)
+	cp $(DIST) $(EXTRADIST) ecm-$(VERSION)
+	tar cf ecm-$(VERSION).tar ecm-$(VERSION)
+	/bin/rm -fr ecm-$(VERSION)
+	gzip --best ecm-$(VERSION).tar
