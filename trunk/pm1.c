@@ -382,10 +382,11 @@ pm1_stage1 (mpz_t f, mpres_t a, mpmod_t n, double B1, double B1done,
 ******************************************************************************/
 
 static void
-update_fd (mpres_t *fd, unsigned int nr, unsigned int S, mpmod_t modulus)
+update_fd (mpres_t *fd, unsigned int nr, unsigned int S, mpmod_t modulus, 
+           unsigned int *muls)
 {
   unsigned int j, k;
-
+  
   for (j = 0; j < nr * (S + 1); j += S + 1)
     for (k = 0; k < S; k++)
       mpres_mul (fd[j + k], fd[j + k], fd[j + k + 1], modulus);
@@ -409,6 +410,7 @@ pm1_rootsF (mpz_t f, listz_t F, unsigned int d1, unsigned int d2,
         unsigned int dF, mpres_t *x, listz_t t, int S, mpmod_t modulus, 
         int verbose)
 {
+  unsigned int i, muls = 0, gcds = 0;
   unsigned int i;
   int st, st2;
   pm1_roots_state state;
@@ -524,6 +526,9 @@ pm1_rootsF (mpz_t f, listz_t F, unsigned int d1, unsigned int d2,
           return 1;
         }
       
+      muls += 3 * (dF - 1);
+      gcds++;
+      
       for (i = 0; i < dF; i++) 
         {
           mpz_add (F[i], F[i], t[i]);
@@ -532,7 +537,12 @@ pm1_rootsF (mpz_t f, listz_t F, unsigned int d1, unsigned int d2,
     }
   
   if (verbose >= 2)
-    printf ("Computing roots of F took %dms\n", cputime () - st);
+    {
+      printf ("Computing roots of F took %dms", cputime () - st);
+      if (verbose > 2)
+        printf (", %d muls and %d extgcds", muls, gcds);
+      printf ("\n");
+    }
   
   return 0;
 }
@@ -626,11 +636,14 @@ int
 pm1_rootsG (mpz_t f, listz_t G, unsigned int dF, pm1_roots_state *state, 
             listz_t t, mpmod_t modulus, int verbose)
 {
-  unsigned int i, j, k;
+  unsigned int i, j, k, muls = 0, gcds = 0;
+  int st;
   
   if (verbose >= 4)
     printf ("pm1_rootsG: dF = %d, state: size_fd = %d, nr = %d, S = %d\n",
             dF, state->size_fd, state->nr, state->S);
+  
+  st = cputime ();
   
   for (i = 0; i < dF;)
     {
@@ -672,12 +685,23 @@ pm1_rootsG (mpz_t f, listz_t G, unsigned int dF, pm1_roots_state *state,
           mpz_set (f, t[dF]);
           return 1;
         }
-    
+
+      muls += 3 * (dF - 1);
+      gcds++;
+      
       for (i = 0; i < dF; i++) 
         {
           mpz_add (G[i], G[i], t[i]);
           mpz_mod (G[i], G[i], modulus->orig_modulus);
         }
+    }
+  
+  if (verbose >= 2)
+    {
+      printf ("Computing roots of G took %dms", cputime () - st);
+      if (verbose > 2)
+        printf (", %lu muls and %lu extgcds", muls, gcds);
+      printf ("\n");
     }
   
   return 0;
