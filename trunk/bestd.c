@@ -51,17 +51,18 @@ phi (unsigned long n)
 	p--;
     }
 
-  /* now n is prime */
+  /* now n is prime or 1 */
 
   return (n == 1) ? phi : phi * (n - 1);
 }
 
 /*
-  Return (d,k) such that:
+  Return (d, d2, k) such that:
   (0) k >= k0
   (1) d is a multiple of 6
-  (2) k * d * (phi(d)/2) >= B2
-  (3) the cost of step 2 is minimal
+  (2) k * d * (phi(d)/2) * d2 / phi(d2) >= B2 - B2min
+  (3) gcd(d, d2) == 1
+  (4) k is minimal, subject to previous conditions
  */
 void
 bestD (double B2min, double B2, unsigned int k0, unsigned int *finald, 
@@ -102,7 +103,13 @@ od:
       if (d2 >= 25 || d2 - 1 > dF)
         d2 = 1;
       dd2 = (double) d * (double) d2;
-      jf = ceil (B2 / dd2) - floor (B2min / dd2);
+      
+      /* How many lines will we need ? */
+      jf = ceil (B2 / dd2 + .5) - floor (B2min / dd2);
+      /* Plus .5, because the points for the roots of F cover values 
+         symmetric around the points for roots of G */
+      
+      /* How many blocks will we need ? */
       j = (unsigned int) ceil (jf / (double) dF * (double) phi (d2));
       /* warning: if B2min=B2, we may always have j=1 here */
       if (j >= k0 || found == 0)
@@ -137,7 +144,7 @@ od:
   (0) k == k0 if k0 > 0, 2 <= k <= 9 otherwise
   (1) d is a multiple of 6
   (2) dF = 2^ceil(log_2(phi(d)/2)), a power of 2
-  (3) k * d * d2 / phi(d2) * dF + floor(B2min / d / d2) * d * d2 >= B2
+  (3) k * d * d2 / phi(d2) * dF + floor(B2min / d / d2) * d * d2 >= B2 - B2min
   (4) d*d2/phi(d2) maximal
 */
 void
@@ -157,7 +164,7 @@ bestD_po2 (double B2min, double B2, unsigned int *finald,
                                  13, 23, 23};
 
   unsigned int i, j, d, d2, dF;
-  double dd2;
+  double dd2, jf;
 
   /* Find the smallest d so that the required number of blocks to cover
      a stage 2 interval of length B2-B2min is no greater than the given k, 
@@ -169,9 +176,8 @@ bestD_po2 (double B2min, double B2, unsigned int *finald,
       j = phi (d) / 2;
       for (dF = 1; dF < j; dF <<= 1); /* dF = 2^ceil(log_2(phi(d))) */
       dd2 = (double) d * (double) d2;
-      /* How many blocks will we need */
-      j = ceil ( (ceil (B2 / dd2) - floor (B2min / dd2)) * 
-                 (double) phi (d2) / (double) dF ); 
+      jf = ceil ((B2 + dd2 / 2) / dd2) - floor (B2min / dd2);
+      j = ceil (jf * (double) phi (d2) / (double) dF); 
       if (j <= *k || (*k == 0 && j <= 9))
         break;
     }
