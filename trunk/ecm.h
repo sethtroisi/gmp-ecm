@@ -22,14 +22,21 @@
 
 /* To use new polyeval_tellegen */
 #define POLYEVALTELLEGEN
+#define KS_MULTIPLY
 
 /* define top-level multiplication */
 #define KARA 2
 #define TOOM3 3
 #define TOOM4 4
+#define KS 5
+
 /* compile with -DMULT=2 to override default */
 #ifndef MULT
+#ifdef KS_MULTIPLY
+#define MULT KS
+#else
 #define MULT TOOM4
+#endif
 #endif
 
 #ifdef POLYEVALTELLEGEN
@@ -257,7 +264,7 @@ listz_t      init_list  (unsigned int);
 void         clear_list (listz_t, unsigned int);
 void         print_list (listz_t, unsigned int);
 void         list_set   (listz_t, listz_t, unsigned int);
-void         list_neg   (listz_t, listz_t, unsigned int);
+void         list_neg   (listz_t, listz_t, unsigned int, mpz_t);
 void         list_mod   (listz_t, listz_t, unsigned int, mpz_t);
 void         list_add   (listz_t, listz_t, listz_t, unsigned int);
 void         list_sub   (listz_t, listz_t, listz_t, unsigned int);
@@ -265,12 +272,13 @@ void         list_mul_z (listz_t, listz_t, mpz_t, unsigned int, mpz_t);
 int          list_gcd   (mpz_t, listz_t, unsigned int, mpz_t);
 void         list_zero  (listz_t, unsigned int);
 int          list_zerop (listz_t, unsigned int);
-int       list_mul_high (listz_t, listz_t, listz_t, unsigned int, listz_t);
+int          list_check (listz_t, unsigned int, mpz_t);
+int       list_mul_high (listz_t, listz_t, listz_t, unsigned int, listz_t, mpz_t);
 int       toomcook4_low (listz_t, listz_t, listz_t, unsigned int, listz_t);
 int      toomcook4_high (listz_t, listz_t, listz_t, unsigned int, listz_t);
 int          karatsuba  (listz_t, listz_t, listz_t, unsigned int, listz_t);
 int          list_mul   (listz_t, listz_t, unsigned int, int, listz_t,
-                         unsigned int, int, listz_t);
+                         unsigned int, int, listz_t, mpz_t);
 int         list_mulmod (listz_t, listz_t, listz_t, listz_t, unsigned int,
                          listz_t, mpz_t);
 int       PolyFromRoots (listz_t, listz_t, unsigned int, listz_t, int, mpz_t,
@@ -300,6 +308,9 @@ unsigned int muls_polyeval_tellegen (unsigned int k);
 void     mpz_divby3_1op (mpz_t);
 int           toomcook3 (listz_t, listz_t, listz_t, unsigned int, listz_t);
 int           toomcook4 (listz_t, listz_t, listz_t, unsigned int, listz_t);
+
+/* ks-multiply.c */
+int kronecker_schonhage (listz_t, listz_t, listz_t, unsigned int, listz_t);
 
 /* polyz.c */
 void init_poly      (polyz_t, int);
