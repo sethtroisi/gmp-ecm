@@ -26,6 +26,8 @@
 #include "gmp.h"
 #include "ecm.h"
 
+/* #define SAVE_TREE */
+
 void mpz_d_pow_ui (mpz_t, double, unsigned long int);
 void dickson_ui (mpz_t, double, unsigned int, int);
 
@@ -288,6 +290,24 @@ stage2 (mpz_t f, void *X, mpmod_t modulus, double B2min, double B2,
 #endif
   tot_muls += PolyFromRoots (F, F, dF, T, verbose | 1, n, 'F', Tree, 0);
 
+#ifdef SAVE_TREE
+ {
+   FILE *fp;
+   unsigned long j;
+   fprintf (stderr, "Saving product tree...");
+   fflush (stderr);
+   fp = fopen ("Tree.save", "w");
+   for (i = 0; i < lgk; i++)
+     for (j = 0; j < dF; j++)
+       {
+         mpz_out_raw (fp, Tree[i][j]);
+         mpz_clear (Tree[i][j]);
+       }
+   fclose (fp);
+   fprintf (stderr, "done\n");
+ }
+#endif
+
   showscreenticks(2, (int) (100.0 * (double) tot_muls / (double) est_muls));
 
   /* needs dF+list_mul_mem(dF/2) cells in T */
@@ -453,6 +473,24 @@ stage2 (mpz_t f, void *X, mpmod_t modulus, double B2min, double B2,
                     cputime() - st, muls);
 	}
     }
+
+#ifdef SAVE_TREE
+ {
+   FILE *fp;
+   unsigned long j;
+   fprintf (stderr, "Restoring product tree...");
+   fflush (stderr);
+   fp = fopen ("Tree.save", "r");
+   for (i = 0; i < lgk; i++)
+     for (j = 0; j < dF; j++)
+       {
+         mpz_init (Tree[i][j]);
+         mpz_inp_raw (Tree[i][j], fp);
+       }
+   fclose (fp);
+   fprintf (stderr, "done\n");
+ }
+#endif
 
 #ifdef POLYEVAL
   st = cputime ();
