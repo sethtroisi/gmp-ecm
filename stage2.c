@@ -22,17 +22,26 @@
 #include <math.h>
 #include <stdlib.h>
 #include <stdio.h>
-#include <limits.h> /* for ULONG_MAX */
+#include <limits.h>
 #include "gmp.h"
 #include "ecm.h"
 
-void dickson_ui        (mpz_t r, unsigned int x, unsigned int n, int a);
+void mpz_d_pow_ui (mpz_t, double, unsigned long int);
+void dickson_ui (mpz_t, double, unsigned int, int);
+
+/* r <- x^n */
+void
+mpz_d_pow_ui (mpz_t r, double x, unsigned long int n)
+{
+  mpz_set_d (r, x);
+  mpz_pow_ui (r, r, n);
+}
 
 void 
-dickson_ui (mpz_t r, unsigned int x, unsigned int n, int a)
+dickson_ui (mpz_t r, double x, unsigned int n, int a)
 {
   unsigned int i, b = 0;
-  mpz_t t, u;
+  mpz_t t, u, v;
 
   if (n == 0)
     {
@@ -46,25 +55,28 @@ dickson_ui (mpz_t r, unsigned int x, unsigned int n, int a)
       n >>= 1;
     }
   
-  mpz_set_ui (r, x);
+  mpz_set_d (r, x);
   
-  mpz_init(t);
-  mpz_init(u);
+  mpz_init (t);
+  mpz_init (u);
+  mpz_init (v);
+
+  mpz_set_d (v, x);
 
   if (n > 1)
     {
-      mpz_set_ui (r, x);
-      mpz_mul_ui (r, r, x);
+      mpz_set (r, v);
+      mpz_mul (r, r, r);
       mpz_sub_si (r, r, a);
       mpz_sub_si (r, r, a); /* r = dickson(x, 2, a) */
       
-      mpz_set_ui (t, x);    /* t = dickson(x, 1, a) */
+      mpz_set (t, v);    /* t = dickson(x, 1, a) */
       
       for (i = 2; i < n; i++)
         {
           mpz_mul_si (u, t, a);
           mpz_set (t, r);     /* t = dickson(x, i, a) */
-          mpz_mul_ui (r, r, x);
+          mpz_mul (r, r, v);
           mpz_sub (r, r, u);  /* r = dickson(x, i+1, a) */
         }
     }
@@ -80,8 +92,9 @@ dickson_ui (mpz_t r, unsigned int x, unsigned int n, int a)
       n <<= 1;
     }
   
-  mpz_clear(t);
-  mpz_clear(u);
+  mpz_clear (t);
+  mpz_clear (u);
+  mpz_clear (v);
 }
 
 
@@ -98,13 +111,13 @@ dickson_ui (mpz_t r, unsigned int x, unsigned int n, int a)
 */
 
 void 
-fin_diff_coeff (listz_t coeffs, unsigned long s, unsigned int D,
+fin_diff_coeff (listz_t coeffs, double s, unsigned int D,
                 unsigned int E, int dickson_a)
 {
   unsigned int i, k;
 
   /* check maximal value of s + i * D does not overflow */
-  if ((double) s + (double) E * (double) D > (double) ULONG_MAX)
+  if (s + (double) E * (double) D > 9007199254740992.0) /* 2^53 */
     {
       fprintf (stderr, "Error, overflow in fin_diff_coeff\n");
       fprintf (stderr, "Please use a smaller B1 or B2min\n");
@@ -112,9 +125,9 @@ fin_diff_coeff (listz_t coeffs, unsigned long s, unsigned int D,
     }
   for (i = 0; i <= E; i++)
     if (dickson_a != 0)         /* fd[i] = dickson_{E,a} (s+i*D) */
-      dickson_ui (coeffs[i], s + i * D, E, dickson_a); 
+      dickson_ui (coeffs[i], s + (double) i * (double) D, E, dickson_a); 
     else                        /* fd[i] = (s+i*D)^E */
-      mpz_ui_pow_ui (coeffs[i], s + i * D, E);
+      mpz_d_pow_ui (coeffs[i], s + (double) i * (double) D, E);
   
   for (k = 1; k <= E; k++)
     for (i = E; i >= k; i--)
@@ -125,7 +138,7 @@ fin_diff_coeff (listz_t coeffs, unsigned long s, unsigned int D,
 /* Input:  X is the point at end of stage 1
            n is the number to factor
            B2min-B2 is the stage 2 range (we consider B2min is done)
-           k0 is the (minimal) number of blocks
+           k is the number of blocks
            S is the exponent for Brent-Suyama's extension
            verbose is the verbose level
            invtrick is non-zero iff one uses x+1/x instead of x.
@@ -140,11 +153,12 @@ fin_diff_coeff (listz_t coeffs, unsigned long s, unsigned int D,
 */
 int
 stage2 (mpz_t f, void *X, mpmod_t modulus, double B2min, double B2,
-        unsigned int k0, int S, int verbose, int method)
+        unsigned int k0, unsigned int S, int verbose, int method)
 {
   double b2;
   unsigned int k;
-  unsigned int i0, i, d, dF, sizeT;
+  unsigned int i, d, dF, sizeT;
+  double i0;
   unsigned long muls, tot_muls = 0;
   mpz_t n;
   listz_t F, G, H, T;
@@ -171,8 +185,8 @@ stage2 (mpz_t f, void *X, mpmod_t modulus, double B2min, double B2,
      [i*d,(i+1)*d] for i0 <= i < i1 , we should  have i0*d <= B2min and 
      B2 <= (i1-1)*d */
   d = bestD (B2, k0, &k, (double) S, method);
-  i0 = (unsigned int) (B2min / (double) d);
-  if (i0 < ((method == EC_METHOD) ? 2U : 1U))
+  i0 = floor (B2min / (double) d);
+  if (i0 < ((method == EC_METHOD) ? 2.0 : 1.0))
     {
       fprintf (stderr, "Error, too small B1 or B2min, increase k or use B1>=%u at least\n",
 	       ((method == EC_METHOD) ? 2 : 1) * d);
@@ -182,7 +196,7 @@ stage2 (mpz_t f, void *X, mpmod_t modulus, double B2min, double B2,
   b2 = block_size (d);
 
   /* compute real B2 */
-  B2 = (double) (i0 - 1) * (double) d + (double) k * b2;
+  B2 = (i0 - 1.0) * (double) d + (double) k * b2;
 
   dF = phi (d) / 2;
 
@@ -264,7 +278,7 @@ stage2 (mpz_t f, void *X, mpmod_t modulus, double B2min, double B2,
      where i0*d <= B2min < (i0+1)*d */
   G = init_list (dF);
   /* check that i0 * d does not overflow */
-  if ((double) i0 * (double) d > (double) ULONG_MAX)
+  if (i0 * (double) d > 9007199254740992.0) /* 2^53 */
     {
       fprintf (stderr, "Error, overflow in stage 2\n");
       fprintf (stderr, "Please use a smaller B1 or B2min\n");
@@ -272,12 +286,12 @@ stage2 (mpz_t f, void *X, mpmod_t modulus, double B2min, double B2,
     }
   st = cputime ();
   if (method == PM1_METHOD)
-    rootsG_state = pm1_rootsG_init (X, i0 * d, d, S, modulus);
+    rootsG_state = pm1_rootsG_init (X, i0 * (double) d, d, S, modulus);
   else if (method == PP1_METHOD)
-    rootsG_state = pp1_rootsG_init (X, i0 * d, d, modulus);
+    rootsG_state = pp1_rootsG_init (X, i0 * (double) d, d, modulus);
   else /* EC_METHOD */
     {
-      rootsG_state = ecm_rootsG_init (f, X, i0 * d, d, S, modulus, verbose);
+      rootsG_state = ecm_rootsG_init (f, X, i0 * (double) d, d, S, modulus, verbose);
       if (rootsG_state == NULL)
         {
           youpi = 2;

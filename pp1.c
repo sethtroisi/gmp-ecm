@@ -370,7 +370,7 @@ pp1_rootsF (listz_t F, unsigned int d, mpres_t *x, listz_t t,
 }
 
 mpres_t *
-pp1_rootsG_init (mpres_t *x, unsigned long s, unsigned int d, mpmod_t modulus)
+pp1_rootsG_init (mpres_t *x, double s, unsigned int d, mpmod_t modulus)
 {
   int st;
   mpres_t *fd, P;
@@ -381,6 +381,11 @@ pp1_rootsG_init (mpres_t *x, unsigned long s, unsigned int d, mpmod_t modulus)
   mpz_init (t);
 
   fd = (mpres_t *) malloc (4 * sizeof (mpres_t));
+  if (fd == NULL)
+    {
+      fprintf (stderr, "pp1_rootsG_init: could not allocate memory for fd\n");
+      exit (EXIT_FAILURE);
+    }
 
   mpres_init (fd[0], modulus);
   mpres_init (fd[1], modulus);
@@ -388,11 +393,11 @@ pp1_rootsG_init (mpres_t *x, unsigned long s, unsigned int d, mpmod_t modulus)
   mpres_init (fd[3], modulus);
   mpres_init (P, modulus);
 
-  mpz_set_ui (t, s);
+  mpz_set_d (t, s);
   pp1_mul (fd[0], *x, t, modulus, fd[3], P);
   mpz_set_ui (t, d);
   pp1_mul (fd[1], *x, t, modulus, fd[3], P);
-  mpz_set_ui (t, (s > d) ? s - d : d - s);
+  mpz_set_d (t, (s > (double)d) ? s - (double)d : (double)d - s);
   pp1_mul (fd[2], *x, t, modulus, fd[3], P);
   /* for P+1, fd[0] = V_s(P), fd[1] = V_d(P), fd[2] = V_{|s-d|}(P) */
 
@@ -453,7 +458,7 @@ pp1_rootsG (listz_t G, unsigned int d, mpres_t *fd, mpmod_t modulus,
    Return value: non-zero iff a factor is found (1 for stage 1, 2 for stage 2)
 */
 int
-pp1 (mpz_t f, mpz_t p, mpz_t n, double B1done, double B1, double B2min, double B2,
+pp1 (mpz_t f, mpz_t p, mpz_t n, double B1done, double B1, double B2min, double B2, 
      double B2scale, unsigned int k, unsigned int S, int verbose, int repr)
 {
   int youpi = 0, st;
