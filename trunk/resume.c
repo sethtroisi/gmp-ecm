@@ -254,20 +254,20 @@ read_resumefile_line (int *method, mpz_t x, mpz_t n, mpz_t sigma, mpz_t A,
 #ifdef DEBUG
       if (*method != EC_METHOD && (have_sigma || have_a))
         {
-          fprintf (stderr, "Save file line has ");
+          printf ("Save file line has ");
           if (have_sigma)
             {
-              fprintf (stderr, "SIGMA");
+              printf ("SIGMA");
               mpz_set_ui (sigma, 0);
             }
           if (have_sigma && have_a)
-            fprintf (stderr, " and ");
+            printf (" and ");
           if (have_a)
             {
-              fprintf (stderr, "A");
+              printf ("A");
               mpz_set_ui (A, 0);
             }
-          fprintf (stderr, " value for method other than ECM.\n");
+          printf (" value for method other than ECM.\n");
         }
 #endif
       

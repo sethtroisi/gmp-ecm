@@ -206,7 +206,7 @@ main (int argc, char *argv[])
           if (mpz_set_str (sigma, argv[2], 0))
 	    {
 	      fprintf (stderr, "Error, invalid sigma value: %s\n", argv[2]);
-	      exit (1);
+	      exit (EXIT_FAILURE);
 	    }
           specific_sigma = 1;
 	  argv += 2;
@@ -217,7 +217,7 @@ main (int argc, char *argv[])
           if (mpz_set_str (A, argv[2], 0))
 	    {
 	      fprintf (stderr, "Error, invalid A value: %s\n", argv[2]);
-              exit (1);
+              exit (EXIT_FAILURE);
 	    }
 	  argv += 2;
 	  argc -= 2;
@@ -255,7 +255,7 @@ main (int argc, char *argv[])
       else
 	{
 	  fprintf (stderr, "Unknown option: %s\n", argv[1]);
-	  exit (1);
+	  exit (EXIT_FAILURE);
 	}
     }
 
@@ -263,7 +263,7 @@ main (int argc, char *argv[])
   if ((method == PM1_METHOD) && (S % 2 != 0))
     {
       fprintf (stderr, "Error, S should be even for P-1\n");
-      exit (1);
+      exit (EXIT_FAILURE);
     }
 
   if (argc < 2)
@@ -290,7 +290,7 @@ main (int argc, char *argv[])
       fprintf (stderr, "  -save file   save residues at end of stage 1 to file\n");
       fprintf (stderr, "  -resume file resume residues from file, reads from stdin if file is \"-\"\n");
       fprintf (stderr, "  -primetest   perform a primality test on input\n");
-      exit (1);
+      exit (EXIT_FAILURE);
     }
 
   if (verbose >= 1)
@@ -327,15 +327,15 @@ main (int argc, char *argv[])
 
   if (B1 < 0 || B1done < 0)
     {
-      fprintf(stderr, "Bound values must be positive\n");
-      exit(EXIT_FAILURE);
+      fprintf (stderr, "Bound values must be positive\n");
+      exit (EXIT_FAILURE);
     }
 
   /* check B1 is not too large */
   if (B1 > MAX_B1)
     {
       fprintf (stderr, "Too large stage 1 bound, limit is %1.0f\n", MAX_B1);
-      exit (1);
+      exit (EXIT_FAILURE);
     }
 
 #ifdef POLYGCD
@@ -350,7 +350,7 @@ main (int argc, char *argv[])
       if (*endptr == argv[2])
         {
           fprintf (stderr, "Error: B2 or B2min-B2max expected: %s\n", argv[2]);
-          exit (1);
+          exit (EXIT_FAILURE);
         }
       if (**endptr == '-')
         {
@@ -389,7 +389,7 @@ main (int argc, char *argv[])
 
   if (resumefile && (specific_sigma || mpz_sgn (A) || specific_x0))
     {
-      fprintf (stderr, "Warning: -sigma, -A and -x0 parameters are ignored when resuming from\nsave files.\n");
+      printf ("Warning: -sigma, -A and -x0 parameters are ignored when resuming from\nsave files.\n");
       mpz_set_ui (sigma, 0);
       mpz_set_ui (A, 0);
       specific_x0 = 0;
@@ -511,40 +511,40 @@ main (int argc, char *argv[])
 
       if (result != 0)
 	{
-          fprintf (stderr, "********** Factor found in step %u: ", result);
-          mpz_out_str (stderr, 10, f);
-          fprintf (stderr, "\n");
+          printf ("********** Factor found in step %u: ", result);
+          mpz_out_str (stdout, 10, f);
+          printf ("\n");
 	  if (mpz_cmp (f, n))
 	    {
 	      /* prints factor found and cofactor on standard error. */
 	      factor_is_prime = mpz_probab_prime_p (f, 25);
-	      fprintf (stderr, "Found %s factor of %u digits: ", 
-		       factor_is_prime ? "probable prime" : "composite",
-		       nb_digits (f));
-	      mpz_out_str (stderr, 10, f);
-	      fprintf (stderr, "\n");
+	      printf ("Found %s factor of %u digits: ", 
+		      factor_is_prime ? "probable prime" : "composite",
+		      nb_digits (f));
+	      mpz_out_str (stdout, 10, f);
+	      printf ("\n");
 
 	      mpz_divexact (n, n, f);
 	      cofactor_is_prime = mpz_probab_prime_p (n, 25);
 	      if (verbose)
 		{
-		  fprintf (stderr, "%s cofactor ",
-		       cofactor_is_prime ? "Probable prime" : "Composite");
-		  mpz_out_str (stderr, 10, n);
-		  fprintf (stderr, " has %u digits\n", nb_digits (n));
+		  printf ("%s cofactor ",
+			  cofactor_is_prime ? "Probable prime" : "Composite");
+		  mpz_out_str (stdout, 10, n);
+		  printf (" has %u digits\n", nb_digits (n));
 		}
 	      
               /* check for champions (top ten for each method) */
 	      if (factor_is_prime && nb_digits (f) >= champion_digits[method])
                     {
-                      fprintf (stderr, "Report your potential champion to %s\n",
+                      printf ("Report your potential champion to %s\n",
                               champion_keeper[method]);
-                      fprintf (stderr, "(see %s)\n", champion_url[method]);
+                      printf ("(see %s)\n", champion_url[method]);
                     }
             }
 	  else
-	    fprintf (stderr, "Found input number N\n");
-	  fflush (stderr);
+	    printf ("Found input number N\n");
+	  fflush (stdout);
 	}
       
       /* if quiet, prints composite cofactors on standard output. */

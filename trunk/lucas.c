@@ -135,7 +135,7 @@ lucas_cost_pp1 (unsigned n, double v)
       else
         {
           fprintf (stderr, "lucas_cost: no condition qualifies for d=%u e=%u\n", d, e);
-          exit (1);
+          exit (EXIT_FAILURE);
         }
     }
   
@@ -267,7 +267,7 @@ pp1_mul_prac (mpres_t A, unsigned long k, mpmod_t n, mpres_t t, mpres_t B,
       else
         {
           fprintf (stderr, "no condition qualifies for d=%u e=%u\n", d, e);
-          exit (1);
+          exit (EXIT_FAILURE);
         }
     }
   
