@@ -96,7 +96,7 @@ int smart_probab_prime_p(mpz_t const n, int c)
                 {
 
                    chVal *= 16;
-                   chVal += read[1] >= '0' && read[1] <= '9' ? read[1]-'0' : tolower(read[1])-'a';
+                   chVal += (read[1]>='0' && read[1]<='9') ? read[1]-'0' : tolower(read[1])-'a'+10;
                    ++read;
                    ++chCnt;
                 }
