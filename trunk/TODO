@@ -1,7 +1,7 @@
 - implement semi-normalized residues in mpmod.c: instead of ensuring
   0 <= r < n, just require limbs(r) <= limbs(n)
 - use mpres in step 2
-- print progress (80 dots in step 1/2) [Jay Berg]  (NOTE this may be
+* print progress (80 dots in step 1/2) [Jay Berg]  (NOTE this may be
   difficult to do with the new 1 line output mode already using stderr,
   however I do have some ideas on how to do this, JimF).
   Here are my "ideas" on this:
@@ -49,7 +49,7 @@
   (Jay Berg)  (There is still more functions to add, but the parser is done)
 - compute probability that a factor of a certain size will be found with
   given paramters (Dickman's function, how to do it for P+/-1 ?)
-- partial saves during step 1 (Jay)?
+* partial saves during step 1 (Jay)?  (Added but not yet working, Jim)
 - need sigma >= 5 for ECM?
 - when resuming, print the *initial* x0 for P-1/P+1?
 - option -base2 to force base2 when res/lo > threshold?
