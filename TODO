@@ -4,6 +4,7 @@ Long term:
 
 - implement semi-normalized residues in mpmod.c: instead of ensuring
   0 <= r < n, just require limbs(r) <= limbs(n)
+- use mpres in step 2
 - print progress (80 dots in step 1/2) [Jay Berg]
 - write a real documentation (which format? texi can generate dvi and
   html,	or LaTeX can also generate dvi, pdf and html)
