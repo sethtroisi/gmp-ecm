@@ -289,12 +289,12 @@ corresponding to the above step 1 computation.
 </variablelist>
 </refsect1>
 
-<refsect1 id='loop mode'><title>LOOP MODE</title>
-<variablelist remap='TP'>
+<refsect1 id='loop_mode'><title>LOOP MODE</title>
 <para>The <quote>loop mode</quote> (option <option>-c 
 <replaceable>n</replaceable></option>) enables one to run several curves
 on each input number. The following options control its behavior.
 </para>
+<variablelist remap='TP'>
 
   <varlistentry>
   <term><option>-c <replaceable>n</replaceable></option></term>
@@ -375,9 +375,9 @@ trying to factor the same number simultaneously on <replaceable>10</replaceable>
 </refsect1>
 
 <refsect1 id='prp'><title>PRIMALITY TESTTING</title>
-<variablelist remap='TP'>
 <para>The following options are useful for primality testing using
 external programs (e.g. OpenPFGW).</para>
+<variablelist remap='TP'>
 
   <varlistentry>
   <term><option>-primetest</option></term>
