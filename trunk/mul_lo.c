@@ -38,7 +38,9 @@ mpn_mul_lo_basecase (mp_ptr rp, mp_srcptr np, mp_srcptr mp, mp_size_t n)
     mpn_addmul_1 (++rp, np, n, (++mp)[0]);
 }
 
+#ifndef MPN_MUL_LO_THRESHOLD
 #define MPN_MUL_LO_THRESHOLD (2 * MUL_KARATSUBA_THRESHOLD)
+#endif
 
 INLINE void
 mpn_mul_lo_n (mp_ptr rp, mp_srcptr np, mp_srcptr mp, mp_size_t n)

@@ -24,9 +24,7 @@
 #include "ecm-gmp.h"
 #include "ecm.h"
 
-#define MINTIME 1000
-
-int test (mpz_t, mpz_t, mpz_t, int, int);
+#define MINTIME 1000 /* one second */
 
 /* performs k computations of p*q mod N using representation 'repr'
    and return the total time.
@@ -111,7 +109,7 @@ main (int argc, char *argv[])
       mpz_mod (q, q, N);
 
       /* first calibrate */
-      for (k=1; (st[0] = test (N, p, q, 1, k)) < MINTIME; k*=2);
+      for (k = 1; (st[0] = test (N, p, q, 1, k)) < MINTIME; k *= 2);
 
       k = (int) (((double) k * (double) MINTIME) / (double) st[0]);
 
