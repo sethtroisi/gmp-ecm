@@ -95,16 +95,16 @@ nomial used by default: D(n) means Dickson's polynomial of degree n):
        digits D  optimal B1   default B2           expected curves
                                                        N(B1,B2,D)
                                               -power 1         default poly
-          20       11e3         1.7e6             80               80 [x^1]
-          25        5e4         1.2e7            224              216 [x^2]
-          30       25e4         1.2e8            460              435 [D(3)]
-          35        1e6         8.4e8           1024              969 [D(3)]
-          40        3e6         4.0e9           2701             2502 [D(6)]
-          45       11e6        2.6e10           5227             4712 [D(12)]
-          50       43e6        1.8e11           8672             7792 [D(12)]
-          55       11e7        6.8e11          20534            17831 [D(30)]
-          60       26e7        2.3e12          49508            43787 [D(30)]
-          65       85e7        1.5e13          80336            71003 [D(30)]
+          20       11e3         1.6e6             77               77 [x^1]
+          25        5e4         1.4e7            214              206 [x^2]
+          30       25e4         1.7e8            422              401 [D(3)]
+          35        1e6         9.8e8            993              948 [D(3)]
+          40        3e6         4.6e9           2639             2440 [D(6)]
+          45       11e6        3.0e10           5070             4590 [D(12)]
+          50       43e6        2.0e11           8510             7771 [D(12)]
+          55       11e7        7.3e11          20291            17899 [D(30)]
+          60       26e7        2.4e12          49107            43670 [D(30)]
+          65       85e7        1.6e13          77516            69351 [D(30)]
 
           Table 1: optimal B1 and expected number of curves to find a
           factor of D digits with gmp-ecm.
@@ -114,13 +114,13 @@ probability that a factor of D digits was missed is exp(-1), i.e.
 about 37%. After twice the expected number of curves, it is exp(-2),
 i.e. about 14%, and so on.
 
-Example: after performing 9507 curves with B1=43e6 and B2=1.9e11
-(or 8370 curves with -dickson 30), the probability to miss a 50-digit
+Example: after performing 8510 curves with B1=43e6 and B2=2.0e11
+(or 7771 curves with -dickson 12), the probability to miss a 50-digit
 factor is about 37%.
 
 As of version 6, gmp-ecm prints the expected number of curves and expected
-time to find factors of different size in verbose mode (option -v). This
-makes is easy to further optimize parameters for a certain factor size if 
+time to find factors of different sizes in verbose mode (option -v). This
+makes it easy to further optimize parameters for a certain factor size if 
 desired, simply try to minimize the expected time.
 
 (lengthy NOTE: The order of an elliptic curve with Montgomery parameteriza-

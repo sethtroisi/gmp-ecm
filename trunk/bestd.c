@@ -145,7 +145,7 @@ od:
       mpz_cdiv_q_ui (j, j, dF);
       
       if (mpz_cmp_ui (j, *k) <= 0 || 
-          (*k == ECM_DEFAULT_K && mpz_cmp_ui (j, (po2) ? 9 : 3) <= 0))
+          (*k == ECM_DEFAULT_K && mpz_cmp_ui (j, (po2) ? 9 : 2) <= 0))
         break;
     }
 
@@ -177,6 +177,28 @@ od:
      Since j may be smaller than k, this may increase the B2 limit */
   if (*k == ECM_DEFAULT_K)
     *k = mpz_get_ui (j);
+
+  /* Now that we have the number of blocks, compute real i1. There will be
+     k * dF roots of G computed, starting at i0, skipping all that are not
+     coprime to d2. While d2 is prime, that means: are not multiples of d2.
+     Hence we want i1 so that 
+       i1 - floor(i1 / d2) - i0 + ceil((i0 / d2) == k * dF
+       i1 - floor(i1 / d2) == k * dF + i0 - ceil((i0 / d2)
+  */
+  
+  mpz_set_ui (j, *k);
+  mpz_mul_ui (j, j, dF);
+  if (d2 == 1)
+    mpz_add (i1, i0, j);
+  else
+    {
+      mpz_add (j, j, i0);
+      mpz_cdiv_q_ui (t, i0, d2);
+      mpz_sub (j, j, t); /* j = k * dF + i0 - ceil((i0 / d2) */
+      mpz_fdiv_qr_ui (j, t, j, d2 - 1);
+      mpz_mul_ui (j, j, d2);
+      mpz_add (i1, j, t);
+    }
 
   *finald = d;
   *finald2 = d2;
