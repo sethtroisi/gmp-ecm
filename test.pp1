@@ -22,130 +22,130 @@ set ECM="$1 -pp1"
 
 # P+1 requires that sigma^2-4 is a quadratic non-residue mod p
 
-echo 328006342451 | $ECM 107 5 7043
+echo 328006342451 | $ECM -x0 5 107 7043
 if ($status != 0) then
    echo "############### ERROR ###############";
    exit 1;
 endif
 
 # check rational seed
-echo 328006342451 | $ECM 107 1/5 7043
+echo 328006342451 | $ECM -x0 1/5 107 7043
 if ($status != 0) then
    echo "############### ERROR ###############";
    exit 1;
 endif
 
-echo 6215074747201 | $ECM 409 5 199729
+echo 6215074747201 | $ECM -x0 5 409 199729
 if ($status != 0) then
    echo "############### ERROR ###############";
    exit 1;
 endif
 
-echo 8857714771093 | $ECM 23251 3 49207
+echo 8857714771093 | $ECM -x0 3 23251 49207
 if ($status != 0) then
    echo "############### ERROR ###############";
    exit 1;
 endif
 
-echo 236344687097 | $ECM 619 3 55001
+echo 236344687097 | $ECM -x0 3 619 55001
 if ($status != 0) then
    echo "############### ERROR ###############";
    exit 1;
 endif
 
-echo 87251820842149 | $ECM 3691 5 170249
+echo 87251820842149 | $ECM -x0 5 3691 170249
 if ($status != 0) then
    echo "############### ERROR ###############";
    exit 1;
 endif
 
-echo 719571227339189 | $ECM 41039 4 57679
+echo 719571227339189 | $ECM -x0 4 41039 57679
 if ($status != 0) then
    echo "############### ERROR ###############";
    exit 1;
 endif
 
-echo 5468575720021 | $ECM 1439 6 175759
+echo 5468575720021 | $ECM -x0 6 1439 175759
 if ($status != 0) then
    echo "############### ERROR ###############";
    exit 1;
 endif
 
-echo 49804972211 | $ECM 15443 5 268757
+echo 49804972211 | $ECM -x0 5 15443 268757
 if ($status != 0) then
    echo "############### ERROR ###############";
    exit 1;
 endif
 
-echo 329573417220613 | $ECM 5279 3 101573
+echo 329573417220613 | $ECM -x0 3 5279 101573
 if ($status != 0) then
    echo "############### ERROR ###############";
    exit 1;
 endif
 
-echo 4866979762781 | $ECM 7309 4 97609
+echo 4866979762781 | $ECM -x0 4 7309 97609
 if ($status != 0) then
    echo "############### ERROR ###############";
    exit 1;
 endif
 
-echo 187333846633 | $ECM 2063 3 9851
+echo 187333846633 | $ECM -x0 3 2063 9851
 if ($status != 0) then
    echo "############### ERROR ###############";
    exit 1;
 endif
 
-echo 332526664667473 | $ECM 65993 3 111919
+echo 332526664667473 | $ECM -x0 3 65993 111919
 if ($status != 0) then
    echo "############### ERROR ###############";
    exit 1;
 endif
 
-echo 265043186297 | $ECM 8761 3 152791
+echo 265043186297 | $ECM -x0 3 8761 152791
 if ($status != 0) then
    echo "############### ERROR ###############";
    exit 1;
 endif
 
-echo 207734163253 | $ECM 1877 3 4211
+echo 207734163253 | $ECM -x0 3 1877 4211
 if ($status != 0) then
    echo "############### ERROR ###############";
    exit 1;
 endif
 
-echo 225974065503889 | $ECM 7867 5 8243
+echo 225974065503889 | $ECM -x0 5 7867 8243
 if ($status != 0) then
    echo "############### ERROR ###############";
    exit 1;
 endif
 
-echo 660198074631409 | $ECM 22541 5 115679
+echo 660198074631409 | $ECM -x0 5 22541 115679
 if ($status != 0) then
    echo "############### ERROR ###############";
    exit 1;
 endif
 
-echo 563215815517 | $ECM 3469 3 109849
+echo 563215815517 | $ECM -x0 3 3469 109849
 if ($status != 0) then
    echo "############### ERROR ###############";
    exit 1;
 endif
 
 # test B2min-B2
-echo 563215815517 | $ECM 3469 3 109849-109849
+echo 563215815517 | $ECM -x0 3 3469 109849-109849
 if ($status != 0) then
    echo "############### ERROR ###############";
    exit 1;
 endif
 
-echo 409100738617 | $ECM 19 3 19
+echo 409100738617 | $ECM -x0 3 19 19
 if ($status != 0) then
    echo "############### ERROR ###############";
    exit 1;
 endif
 
 # p37 from 45^123+1 found by Peter Montgomery with B1=30M
-echo 4190453151940208656715582382315221647 | $ECM 2337233 3 132554351
+echo 4190453151940208656715582382315221647 | $ECM -x0 3 2337233 132554351
 if ($status != 0) then
    echo "############### ERROR ###############";
    exit 1;
