@@ -27,11 +27,19 @@
 #include <stdio.h>
 #include <gmp.h>
 
+/* thresholds */
 #ifndef WANT_GMP_IMPL
 #ifndef MUL_KARATSUBA_THRESHOLD
 #define MUL_KARATSUBA_THRESHOLD 32
 #endif
 #endif
+
+#ifndef DIV_DC_THRESHOLD
+#define DIV_DC_THRESHOLD    (3 * MUL_KARATSUBA_THRESHOLD)
+#endif
+
+#define MPZMOD_THRESHOLD_DEFAULT (3 * DIV_DC_THRESHOLD / 2)
+#define REDC_THRESHOLD_DEFAULT   (2 * DIV_DC_THRESHOLD)
 
 #define mpz_mulmod(a,b,c,n) \
         { mpz_mul (a, b, c); \

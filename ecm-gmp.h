@@ -69,7 +69,4 @@ MA 02111-1307, USA. */
   } while (0)
 #endif
 
-#ifndef DIV_DC_THRESHOLD
-#define DIV_DC_THRESHOLD    (3 * MUL_KARATSUBA_THRESHOLD)
-#endif
 
