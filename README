@@ -2,33 +2,35 @@ This is a brand new version of gmp-ecm, under development. The current
 files are:
 
 COPYING - GNU GENERAL PUBLIC LICENSE
-Makefile - to build the binary file 'ecm'
+Makefile - to build the binary file 'ecm5'
 README - this file
 aux.c - auxiliary functions (nb_digits, gcd of two unsigned int's)
 bestd.c - routines to determine the best stage 2 parameters
-check.mpl - Maple routines to check stage 2
 cputime.h - auxiliary function to measure cpu time
-ecm.c - factorization routine using the Elliptic Curve Method (currently empty)
+ecm.c - factorization routine using the Elliptic Curve Method
 ecm.h - header file for gmp-ecm
 getprime.c - dynamic Eratosthenes sieve
-main.c - main file for gmp-ecm and Pollard 'P-1'
-pm1.c - Pollard 'P-1' factorization routine
-poly.c - routines for polynomial arithmetic
-stage2.c - common stage 2 implementation for ecm and Pollard 'P-1'
+listz.c - arithmetic on lists of integers mod n
+main.c - main file for gmp-ecm, P-1 and P+1
+ntl.c - interface with NTL
+pm1.c - Pollard P-1 factorization routine
+pp1.c - Williams P+1 factorization routines
+polyz.c - routines for polynomial arithmetic
+stage2.c - common stage 2 implementation for ecm, P-1 and P+1
+test.pm1 - test file for P-1
+test.pp1 - test file for P+1
+toomcook.c - Toom-Cook 3 and Toom-Cook 4 multiplication
 
 The main changes wrt gmp-ecm 4c are the following:
 
-- the code is split in several files to make the code easier to maintain
-	and compile
-- the program now implements also Pollard 'P-1', and the stage 2 is common
-	to both ecm and p-1 (use option -pm1 to call P-1).
+- the code is split into several files to make the code easier to maintain
+	and compile.
+- the program now implements also Pollard P-1 and Williams P+1, with a
+	common stage 2 (use option -pm1 to call P-1, -pp1 for P+1).
 - stage 1 is much more efficient, thanks to a dynamic implementation of
 	 Eratosthenes sieve (see file getprime.c).
 - stage 2 now uses algorithm POLYGCD instead of POLYEVAL (see Montgomery's
 	dissertation). POLYGCD is more expensive, but uses O(n) memory instead
 	of O(n log n) for POLYEVAL.
-
-What remains to do:
-
-- implement ECM stage 1 in ecm.c, and call stage2 from stage2.c.
-- add option -save file to save result of stage 1 in a file (Paul Leyland)
+- stage 2 uses Toom-Cook 3 and Toom-Cook 4, instead of only Karatsuba
+	in gmp-ecm 4c.
