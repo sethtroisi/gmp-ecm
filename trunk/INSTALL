@@ -20,6 +20,9 @@ Instructions to install gmp-ecm:
    where <gmpdir> is the directory where GMP is installed
    (default is /usr/local/gmp).
 
+   If the default setting does not work, edit the Makefile to change 
+   CC and CFLAG to the values used by GMP (grep CC <gmpbuilddir>/Makefile).
+
 2) (optional) to check that "ecm5" works correctly, type:
 
       $ ./test.pm1 ./ecm5 # this checks P-1
