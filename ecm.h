@@ -18,7 +18,7 @@
   02111-1307, USA.
 */
 
-#define ECM_VERSION "5.0-beta-pl3"
+#define ECM_VERSION "5.0"
 
 #ifndef POLYGCD
 #define POLYEVAL
@@ -268,12 +268,14 @@ void write_resumefile_line (FILE *, int, double, mpz_t, mpz_t, mpz_t, mpz_t,
 
 /* memory.c */
 #ifdef MEMORY_DEBUG
+void __gmp_default_free (void *, size_t);
 void *__gmp_default_allocate (size_t);
 void *__gmp_default_reallocate (void *, size_t, size_t);
 void tests_memory_start (void);
 void tests_memory_end   (void);
 void tests_memory_reset (void);
 void tests_free (void *, size_t);
+void tests_memory_status (void);
 #define FREE(ptr,size) tests_free(ptr,size)
 #else
 #define FREE(ptr,size) free(ptr)
