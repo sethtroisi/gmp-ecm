@@ -56,6 +56,9 @@ ecm_with_ntl:
 tune: mpmod.o ecm.h tune.o auxi.o mul_lo.o ecm-gmp.h
 	$(CC) $(CFLAGS) -L$(GMP)/lib tune.o mpmod.o auxi.o mul_lo.o -o $@ $(LDFLAGS)
 
+bestdaux: bestdaux.c
+	$(CC) $(CFLAGS) $< -o $@
+
 ntl.o: ntl.c
 	$(CXX) $(CFLAGS) -c -I$(GMP)/include -I$(NTL)/include $<
 
