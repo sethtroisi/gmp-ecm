@@ -30,6 +30,8 @@
 #include "ecm-gmp.h"
 #include "ecm-impl.h"
 
+FILE *ECM_STDOUT, *ECM_STDERR; /* define them here since needed in tune.c */
+
 /* define WANT_ASSERT to check normalization of residues */
 /* #define WANT_ASSERT 1 */
 /* #define DEBUG */
