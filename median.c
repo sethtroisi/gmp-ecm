@@ -97,7 +97,7 @@ TKarMul (listz_t b, unsigned int n,
       printf ("Sortie de TKarMul.\n");
       show_result(a, m, c, l, b, n);
 #endif
-      return MIN (m, l);
+      return MIN (m, l) + 1;
     }
 
   if (m == 0)
@@ -293,52 +293,101 @@ TKarMul_space (unsigned int n, unsigned int m, unsigned int l)
  */
 
 unsigned int
-muls_tkara (unsigned int n, unsigned int m, unsigned int l)
+muls_tkara (unsigned int n)
 {
   unsigned int mu, nu, h;
-  unsigned int s1;
+  unsigned int m = n;
   unsigned tot_muls = 0;
+  unsigned int l = n + m - 1;
 
   
   if (n == 0)
-      return MIN (m, l);
+      return MIN(m, l)  + 1;
 
   if (m == 0)
-      return MIN (n, l) + 1;
+      return MIN(n, l) + 1;
 
   mu = (m / 2) + 1;
   nu = (n / 2) + 1;
   h = MAX (mu, nu);
 
-
-  if (mu > n)
-    {
-
-      tot_muls += muls_tkara (n, mu - 1, l);
-      if (l >= mu)
-	  tot_muls += muls_tkara (n, m - mu, l - mu);
-      return tot_muls;
-    }
-
-  if (nu > m)
-    {
-
-      tot_muls += muls_tkara (nu - 1, m, MIN (l, m + nu - 1));
-
-      if (l >= nu)
-	  tot_muls += muls_tkara (n - nu, m, l - nu);
-      return tot_muls;
-    }
-
   mu = nu = h;
   
-  
-  s1 = MIN (l + 1, n + mu);
-  tot_muls += muls_tkara (nu - 1, mu - 1, s1 - 1);
-  if (s1 >= nu + 1)
-      tot_muls += muls_tkara (n - nu, m - mu, s1 - nu - 1);
-  if (l >= nu)
-      tot_muls += muls_tkara (nu - 1, mu - 1, l - nu);
+  if (n + 1 == 2 * nu)
+      tot_muls += 3 * muls_tkara (nu - 1);
+  else
+  {
+      tot_muls += 2 * muls_tkara (nu - 1);
+      tot_muls += muls_tkara (n - nu);
+  }
   return tot_muls;
 }
 
+#if 0
+
+unsigned int
+TToomCookMul (listz_t b, unsigned int n,
+	      listz_t a, unsigned int m, listz_t c, unsigned int l, listz_t t)
+{
+    unsigned int nu, mu;
+
+    nu = n / 3 + 1;
+    mu = m / 3 + 1;
+
+    /* First stip unnecessary trailing coefficients of c:
+     */
+
+    l = MIN(l, n + m - 1);
+
+    /*  We should not be called with so small arguments, but
+     *  treat this cases anyway.
+     */
+
+    if (n == 0)
+    {
+        mpz_mul (b[0], a[0], c[0]);
+        for (k = 1; (k <= m) && (k <= l); k++)
+            mpz_addmul (b[0], a[k], c[k]);
+        return MIN(m, l);
+    }
+
+    if (m == 0)
+    {
+        for (k = 0; (k <= l) && (k <= n); k++)
+            mpz_mul (b[k], a[0], c[k]);
+        for (k = l + 1; k <= n; k++)
+            mpz_set_ui (b[k], 0);
+        return MIN(n, l) + 1;
+    }
+
+    /* Now the degenerate cases. We want 2 * nu < m.
+     * 
+     */
+
+    if (m <= 2 * nu)
+    {
+       tot_muls += TToomCookMul (b, nu - 1, a, m, c, l, t);
+       tot_muls += TToomCookMul (b + nu, nu - 1, a, m, c, l, t);
+       tot_muls += TToomCookMul (b + 2 * nu, n - 2 * nu, a, m, c, l, t);
+       return tot_muls;
+    }
+                  
+    /* Second degenerate case. We want 2 * mu < m.
+     */
+
+    if (n <= 2 * mu)
+    {
+        tot_muls += TToomCookMul (b, n, a, mu - 1, c, l, t);
+        tot_muls += TToomCookMul (t, n, a + mu, mu - 1, c, l, t + n + 1);
+        list_add (b, b, t, n + 1);
+        tot_muls += TToomCookMul (t, n, a + 2 * mu, m - 2 * mu, c, l, 
+                                  t + n + 1);
+        list_add (b, b, t, n + 1);
+        return tot_muls;
+    }
+
+    h = MAX(nu, mu);
+    nu = mu = h;
+
+
+#endif
