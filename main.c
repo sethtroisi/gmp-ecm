@@ -27,6 +27,11 @@
 #include "gmp.h"
 #include "ecm.h"
 
+#if defined (__MINGW32__) || defined (_MSC_VER) /* || defined (__CYGWIN__) */
+/* needed for priority setting */               /* not sure about CyGwin and windows.h and Win32 API functions */
+#include <windows.h>
+#endif
+
 /* #define DEBUG */
 
 /* people keeping track of champions and corresponding url's */
@@ -40,16 +45,17 @@ char *champion_url[3] =
  "http://www.loria.fr/~zimmerma/records/Pminus1.html",
  "http://www.loria.fr/~zimmerma/records/Pplus1.html"};
 
-int read_number (mpz_t, FILE *);
-
 /* Tries to read a number from a line from fd and stores it in r.
    Keeps reading lines until a number is found. Lines beginning with "#"
      are skipped.
    Returns 1 if a number was successfully read, 0 if no number can be read 
      (i.e. at EOF)
+   Function is now simpler.  Much of the logic (other than skipping # lines
+     is now contained within eval() function.
 */
+
 int 
-read_number (mpz_t r, FILE *fd)
+read_number (mpcandi_t *n, FILE *fd, int primetest)
 {
   int c;
   
@@ -65,25 +71,31 @@ new_line:
       if (c == '\n')
         goto new_line;
     }
-  else
-    { /* Look for a digit character */
-      while (c != EOF && c != '\n' && ! isdigit (c))
-        c = fgetc (fd);
-      if (c == '\n')
-        goto new_line;
-    }  
-  
+
   if (c == EOF)
     return 0;
-  
-  ungetc (c, fd);
 
-  mpz_inp_str (r, fd, 0);
-  
-  /* Consume remainder of the line */
-  do
-    c = fgetc (fd);
-  while (c != EOF && c != '\n');
+  ungetc (c, fd);
+  if (!eval(n, fd, primetest))
+    goto new_line;
+
+  /*  Code to test out eval_str function, which "appears" to work correctly.
+  {
+    char Line[500], *cp;
+    fgets(Line, sizeof(Line), fd);
+
+    if (!eval_str(n, Line, primetest, &cp))
+      goto new_line;
+    fprintf (stderr, "\nLine is at %X cp is at %X\n", Line, cp);
+  }
+  */
+
+#if defined (DEBUG_EVALUATOR)
+  if (n->cpExpr)
+    fprintf (stderr, "%s\n", n->cpExpr);
+  mpz_out_str(stderr, 10, n->n);
+  fprintf (stderr, "\n");
+#endif
 
   return 1;
 }
@@ -98,7 +110,8 @@ new_line:
 int
 main (int argc, char *argv[])
 {
-  mpz_t x, sigma, A, n, f, orig_x0;
+  mpz_t x, sigma, A, f, orig_x0;
+  mpcandi_t n;
   mpq_t rat_x0;
   double B1, B1done, B2, B2min;
   int result = 0;
@@ -107,7 +120,7 @@ main (int argc, char *argv[])
   int specific_x0 = 0, /* 1=starting point supplied by user, 0=random or */
                        /* compute from sigma */
       specific_sigma = 0;  /* 1=sigma from command line, 0=make random */
-  int factor_is_prime, cofactor_is_prime;
+  int factor_is_prime;
         /* If a factor was found, indicate whether factor, cofactor are */
         /* prime. If no factor was found, both are zero. */
   int repr = 0;
@@ -120,13 +133,21 @@ main (int argc, char *argv[])
              /* Positive value: use S-th power, */
              /* negative: use degree |S| Dickson poly */
   gmp_randstate_t randstate;
-  char *savefilename = NULL, *resumefilename = NULL;
+  char *savefilename = NULL, *resumefilename = NULL, *infilename = NULL;
   char *endptr[1]; /* to parse B2 or B2min-B2max */
   char rtime[256] = "", who[256] = "", comment[256] = "", program[256] = "";
-  FILE *savefile = NULL, *resumefile = NULL;
+  FILE *savefile = NULL, *resumefile = NULL, *infile = NULL;
   int primetest = 0;
+  double autoincrementB1 = 0, startingB1;
+  unsigned int breadthfirst = 0, breadthfirst_maxcnt=0, breadthfirst_cnt=0;
   unsigned int count = 1; /* number of curves for each number */
   unsigned int cnt = 0;   /* number of remaining curves for current number */
+  unsigned int linenum = 0, factsfound = 0;
+  mpcandi_t *pCandidates=NULL;
+  unsigned int nCandidates=0, nMaxCandidates=0;
+  int deep=0, trial_factor_found;
+  unsigned int displayexpr=0;
+  double maxtrialdiv=0;
 
   /* check ecm is linked with a compatible librayr */
   if (mp_bits_per_limb != GMP_NUMB_BITS)
@@ -202,6 +223,65 @@ main (int argc, char *argv[])
 	  argv++;
 	  argc--;
         }
+      else if (strcmp (argv[1], "-deep") == 0)
+        {
+          deep = 1;
+	  argv++;
+	  argc--;
+        }
+      else if (strcmp (argv[1], "-b") == 0)
+        {
+	  breadthfirst = 1;
+	  argv++;
+	  argc--;
+        }
+#if defined (__MINGW32__) || (_MSC_VER)
+      else if (strcmp (argv[1], "-n") == 0)
+        {
+	  fprintf (stderr, "Executing at lower priority\n");
+	  SetPriorityClass(GetCurrentProcess(), IDLE_PRIORITY_CLASS);
+	  SetThreadPriority(GetCurrentThread(), THREAD_PRIORITY_BELOW_NORMAL);
+	  argv++;
+	  argc--;
+        }
+      else if (strcmp (argv[1], "-nn") == 0)
+        {
+	  fprintf (stderr, "Executing at idle priority\n");
+	  SetPriorityClass(GetCurrentProcess(), IDLE_PRIORITY_CLASS);
+	  SetThreadPriority(GetCurrentThread(), THREAD_PRIORITY_IDLE);
+	  argv++;
+	  argc--;
+        }
+#elif __CYGWIN__
+      else if (strcmp (argv[1], "-n") == 0)
+        {
+	  /* Not sure what is correct here */
+	  nice(20);
+	  argv++;
+	  argc--;
+        }
+      else if (strcmp (argv[1], "-nn") == 0)
+        {
+	  /* Not sure what is correct here */
+	  nice(20);
+	  argv++;
+	  argc--;
+        }
+#else
+      /* The nix boys need to do this (if they want -n or -nn) */
+      else if (strcmp (argv[1], "-n") == 0)
+        {
+	  nice(20);
+	  argv++;
+	  argc--;
+        }
+      else if (strcmp (argv[1], "-nn") == 0)
+        {
+	  nice(20);
+	  argv++;
+	  argc--;
+        }
+#endif
       else if ((argc > 2) && (strcmp (argv[1], "-x0")) == 0)
         {
           if (mpq_set_str (rat_x0, argv[2], 0))
@@ -237,24 +317,28 @@ main (int argc, char *argv[])
       else if ((argc > 2) && (strcmp (argv[1], "-power")) == 0)
         {
           S = abs (atoi (argv[2]));
+	  /* should this be validated? and a error/abort issued if 0 ??? */
 	  argv += 2;
 	  argc -= 2;
         }
       else if ((argc > 2) && (strcmp (argv[1], "-dickson") == 0))
         {
           S = - abs( atoi (argv[2]));
+	  /* should this be validated? and a error/abort issued if 0 ??? */
 	  argv += 2;
 	  argc -= 2;
         }
       else if ((argc > 2) && (strcmp (argv[1], "-k") == 0))
 	{
 	  k = atoi (argv[2]);
+	  /* should this be validated? and a error/abort issued if 0 ??? */
 	  argv += 2;
 	  argc -= 2;
 	}
       else if ((argc > 2) && (strcmp (argv[1], "-c") == 0))
 	{
 	  count = atoi (argv[2]);
+	  /* should this be validated? and a error/abort issued if 0 ??? */
 	  argv += 2;
 	  argc -= 2;
 	}
@@ -270,6 +354,65 @@ main (int argc, char *argv[])
 	  argv += 2;
 	  argc -= 2;
 	}
+      else if ((argc > 2) && (strcmp (argv[1], "-a") == 0))
+	{
+	  autoincrementB1 = strtod (argv[2], NULL);
+	  if (autoincrementB1 < 1)
+	    {
+	      fprintf (stderr, "Error, the -a command requires a number argument to follow it\n");
+	      exit(EXIT_FAILURE);
+  	    }
+	  argv += 2;
+	  argc -= 2;
+	}
+      else if ((argc > 2) && (strcmp (argv[1], "-i") == 0))
+	{
+	  infilename = argv[2];
+	  infile = fopen(infilename, "r");
+	  if (!infile)
+	  {
+	      fprintf (stderr, "Can't find input file %s\n", infilename);
+	      exit (EXIT_FAILURE);
+	  }
+	  argv += 2;
+	  argc -= 2;
+	}
+      else if ((argc > 2) && (strcmp (argv[1], "-ib") == 0))
+	{
+	  infilename = argv[2];
+	  infile = fopen(infilename, "r");
+	  breadthfirst = 1;
+	  if (!infile)
+	    {
+	      fprintf (stderr, "Can't find input file %s\n", infilename);
+	      exit (EXIT_FAILURE);
+	    }
+	  argv += 2;
+	  argc -= 2;
+	}
+      else if ((argc > 2) && (strcmp (argv[1], "-t") == 0))
+	{
+	  maxtrialdiv = strtod (argv[2], NULL);
+	  if (maxtrialdiv == 0.)
+	    {
+	      fprintf (stderr, "Error, the -t command requires a number argument to follow it\n");
+	      exit(EXIT_FAILURE);
+  	    }
+	  argv += 2;
+	  argc -= 2;
+	}
+      else if ((argc > 2) && (strcmp (argv[1], "-ve") == 0))
+        {
+	  displayexpr=atoi (argv[2]);
+	  if (displayexpr == 0)
+	    {
+	      fprintf (stderr, "Error, the -ve command requires a number argument to follow it\n");
+	      exit(EXIT_FAILURE);
+  	    }
+	  argv += 2;
+	  argc -= 2;
+        }
+
       else
 	{
 	  fprintf (stderr, "Unknown option: %s\n", argv[1]);
@@ -286,7 +429,7 @@ main (int argc, char *argv[])
 
   if (argc < 2)
     {
-      fprintf (stderr, "Usage: ecm B1 [[B2min-]B2] < file\n");
+      fprintf (stderr, "Usage: ecm [options] B1 [[B2min-]B2] < file\n");
       fprintf (stderr, "\nParameters:\n");
       fprintf (stderr, "  B1           stage 1 bound\n");
       fprintf (stderr, "  B2           stage 2 bound (or interval B2min-B2max)\n");
@@ -309,6 +452,20 @@ main (int argc, char *argv[])
       fprintf (stderr, "  -save file   save residues at end of stage 1 to file\n");
       fprintf (stderr, "  -resume file resume residues from file, reads from stdin if file is \"-\"\n");
       fprintf (stderr, "  -primetest   perform a primality test on input\n");
+      //rintf (stderr, "  -extra functions added by JimF\n");
+      fprintf (stderr, "\n");
+      fprintf (stderr, "  Options beyond ECM 5.0  (i.e. specific to ECM 5.0c\n");
+      fprintf (stderr, "  -a n         increment B1 by this constant on each run\n");
+      fprintf (stderr, "  -i file      Use file as input (instead of redirecting stdin)\n");
+      fprintf (stderr, "  -ib file     Use file as input in a breadth-first mode\n");
+      fprintf (stderr, "  -b           Use breadth-first mode from stdin\n");
+      fprintf (stderr, "  -deep        Continue to find factors after finding a factor (looping mode)\n");
+//#if defined (__MINGW32__) || defined (__CYGWIN__) || defined (_MSC_VER)
+      fprintf (stderr, "  -n           run ecm in \"nice\" mode (below normal priority)\n");
+      fprintf (stderr, "  -nn          run ecm in \"very nice\" mode (idle priority)\n");
+//#endif
+      fprintf (stderr, "  -t n         Trial divide candidates before P-1, P+1 or ECM up to n\n");
+      fprintf (stderr, "  -ve n        Verbosely show short (< n character) expressions on each loop\n");
       exit (EXIT_FAILURE);
     }
 
@@ -360,6 +517,8 @@ main (int argc, char *argv[])
 #ifdef POLYGCD
   NTL_init ();
 #endif
+
+  init_expr();
 
   B2 = 0.0;
   /* parse B2 or B2min-B2max */
@@ -421,7 +580,7 @@ main (int argc, char *argv[])
       specific_x0 = 0;
     }
 
-  mpz_init (n); /* number(s) to factor */
+  mpcandi_t_init (&n); /* number(s) to factor */
   mpz_init (f); /* factor found */
   mpz_init (x); /* stage 1 residue */
   mpz_init (orig_x0); /* starting point, for save file */
@@ -431,8 +590,69 @@ main (int argc, char *argv[])
   gmp_randseed_ui (randstate, get_random_ui ());
 
   /* loop for number in standard input or file */
-  while (feof (stdin) == 0)
+
+  startingB1 = B1;
+  if (!infilename)
+    infile = stdin;
+
+  if (breadthfirst == 1)
     {
+      breadthfirst_maxcnt=count;
+      count=1;
+      breadthfirst_cnt=0;
+    }
+
+BreadthFirstDoAgain:;
+  if (breadthfirst == 1)
+    {
+      if (breadthfirst_maxcnt > breadthfirst_cnt)
+        {
+	  linenum = 0;
+	  if (breadthfirst_cnt++)
+            {
+  	      B1 += autoincrementB1;
+	      B2min = B1;
+	    }
+	  else
+            {
+	      /* This is ONLY entered upon the first time through.  We load the entire file here so that we can loop deep, 
+		  or remove a candidate if factor found, or if in deep mode and cofactor is prp (or if original candidate
+		  is prp and we are prp testing) */
+	      nMaxCandidates = 100;
+	      pCandidates = malloc(nMaxCandidates*sizeof(mpcandi_t));
+
+	      while (!feof(infile))
+		{
+		  if (read_number (&n, infile, primetest))
+		    {
+		      mpcandi_t_init(&pCandidates[nCandidates]);
+		      mpcandi_t_copy(&pCandidates[nCandidates++], &n);
+		      if (nCandidates == nMaxCandidates)
+			{
+			    mpcandi_t *tmp = pCandidates;
+			    pCandidates = malloc((nMaxCandidates+100)*sizeof(mpcandi_t));
+			    /*	perform a "shallow" copy, in which we do NOT need to free any of the 
+				individual elements, but just the array memory */
+			    if (pCandidates)
+			      memcpy(pCandidates, tmp, nMaxCandidates*sizeof(mpcandi_t));
+			    nMaxCandidates += 100;
+			    /* Free the original "array" memory */
+			    free(tmp);
+			}
+		    }
+		}
+	      /*  Now infile is at EOF, but we are in breadthfirst mode, so the main while loop will work with linenum<nCandidates */
+	    }
+	}
+      else
+	{
+	  breadthfirst = 0;
+	}
+    }
+
+  while ((breadthfirst && linenum < nCandidates) || feof (infile) == 0)
+    {
+      trial_factor_found = 0;
       if (resumefile != NULL)
         {
 	  if (count != 1)
@@ -441,7 +661,7 @@ main (int argc, char *argv[])
 	      exit (EXIT_FAILURE);
 	    }
 
-          if (!read_resumefile_line (&method, x, n, sigma, A, orig_x0, 
+          if (!read_resumefile_line (&method, x, &n, sigma, A, orig_x0, 
                 &B1done, program, who, rtime, comment, resumefile))
             break;
 
@@ -477,10 +697,28 @@ main (int argc, char *argv[])
 	    }
 	  else /* new number */
 	    {
-	      if (!read_number (n, stdin))
+	      if (!breadthfirst && !read_number (&n, infile, primetest))
 		break;
+	      else if (breadthfirst)
+		mpcandi_t_copy(&n,&pCandidates[linenum]);
+	      linenum++;
 	      cnt = count;
+	      /* reset B1 value, as it could have been advanced on the prior candidate */
+	      if (!breadthfirst)  /* IS THIS A BUG I INTRODUCED!!!!   Can B2min now ever be set??? */
+		{
+	          B1 = startingB1;
+		  B2min = B1;
+		}
 	    }
+
+	  /* in breadthfirst deep mode, a value of 1 is left after FULLY factoring the number, so we then skip it */
+	  /* Also "blank" lines, or lines that could not be parsed correctly will leave a 1 in this value */
+	  if (n.isPrp)
+	  {
+	    /* n is 0 or 1 (or -1 I guess) so do NOT proceed with it */
+            cnt = 0;
+	    continue;
+	  }
 
           /* Set effective seed for factoring attempt on this number */
 
@@ -495,9 +733,9 @@ main (int argc, char *argv[])
 		}
 
               mpz_init (inv);
-              mpz_invert (inv, mpq_denref (rat_x0), n);
+              mpz_invert (inv, mpq_denref (rat_x0), n.n);
               mpz_mul (inv, mpq_numref (rat_x0), inv);
-              mpz_mod (x, inv, n);
+              mpz_mod (x, inv, n.n);
               mpz_clear (inv);
             }
           else /* Make a random starting point for P-1 and P+1. ECM will */
@@ -506,9 +744,9 @@ main (int argc, char *argv[])
               if (method == EC_METHOD)
                 mpz_set_ui (x, 0);
               if (method == PP1_METHOD)
-                pp1_random_seed (x, n, randstate);
+                pp1_random_seed (x, n.n, randstate);
               if (method == PM1_METHOD)
-                pm1_random_seed (x, n, randstate);
+                pm1_random_seed (x, n.n, randstate);
             }
          
           if (B1done <= 1.0)
@@ -524,117 +762,247 @@ main (int argc, char *argv[])
               mpz_add_ui (sigma, sigma, 1); /* FIXME: need sigma>=5? */
             }
         }
-
+      if (count == cnt)
+	fprintf (stderr, "\rLine=%u B1=%.0f Factors=%u                 \r", linenum, B1, factsfound);
+      if (count != cnt)
+	fprintf (stderr, "\rLine=%u Curves=%u/%u B1=%.0f Factors=%u    \r", linenum, count-cnt+1, count, B1, factsfound);
+      if (breadthfirst && breadthfirst_cnt > 1)
+	fprintf (stderr, "\rLine=%u Curves=%u/%u B1=%.0f Factors=%u    \r", linenum, breadthfirst_cnt, breadthfirst_maxcnt, B1, factsfound);
       if (verbose > 0)
 	{
-	  if (cnt == count)
+	  if ((!breadthfirst && cnt == count) || (breadthfirst && 1 == breadthfirst_cnt))
 	    {
-	      if (mpz_sizeinbase (n, 10) < 1000)
+	      /* first time this candidate has been run (if looping more than once */
+	      if (n.cpExpr && n.nexprlen < 1000)
+		printf ("Input number is %s (%u digits)\n", n.cpExpr, n.ndigits);
+	      else if (n.ndigits < 1000)
 		{
                   char *s;
-                  s = mpz_get_str (NULL, 10, n);
-		  printf ("Input number is %s (%u digits)\n", s, strlen (s));
-                  FREE (s, strlen (s) + 1);
+                  s = mpz_get_str (NULL, 10, n.n);
+		  printf ("Input number is %s (%u digits)\n", s, n.ndigits);
+                  FREE (s, n.ndigits + 1);
 		}
 	      else
-		printf ("Input number has %u digits\n", nb_digits (n));
-	      if (primetest && mpz_probab_prime_p (n, 1))
+		printf ("Input number has %u digits\n", n.ndigits);
+	      if (n.isPrp)
 		printf ("****** Warning: input is probably prime ******\n");
 	    }
 	  else
 	    {
-	      printf ("Run %u out of %u:\n", count - cnt + 1, count);
+	      if (breadthfirst)
+		printf ("Line=%u Curves=%u/%u B1=%.0f Factors=%u\n", linenum, breadthfirst_cnt, breadthfirst_maxcnt, B1, factsfound);
+	      else
+	        printf ("Line=%u Curves=%u/%u B1=%.0f Factors=%u\n", linenum, count-cnt+1, count, B1, factsfound);
+	      /* Since the expression is usally "so" short, why not just drop it out for ALL loops? */
+	      if (displayexpr)
+		{
+		  if (n.nexprlen && n.nexprlen <= displayexpr)
+		    printf ("Input number is %s (%u digits)\n", n.cpExpr, n.ndigits);
+		  else if (n.ndigits <= displayexpr)
+		    {
+		      char *s;
+		      s = mpz_get_str (NULL, 10, n.n);
+		      printf ("Input number is %s (%u digits)\n", s, n.ndigits);
+                      FREE (s, n.ndigits + 1);
+		    }
+		}
 	    }
 	  fflush (stdout);
 	}
+      /* Even in verbose==0 we should primality check if told to do so, however, we will print to stderr to keep stdout "clean"
+         for verbose==0 like behavior */
+      else if (((!breadthfirst && cnt == count) || (breadthfirst && breadthfirst_cnt==1)) && n.isPrp)
+	{
+	  char *s;
+	  s = mpz_get_str (NULL, 10, n.n);
+	  fprintf (stderr, "Input number is %s (%u digits)\n****** Warning: input is probably prime ******\n", s, n.ndigits);
+	  FREE(s, n.ndigits + 1);
+	}
 
-      factor_is_prime = cofactor_is_prime = 0;
+      if ((!breadthfirst && cnt == count) || (breadthfirst && 1 == breadthfirst_cnt))
+	{
+	  /*  Note, if a factors are found, then n will be adjusted "down" */
+	  int SomeFactor = trial_factor (&n, maxtrialdiv);
+	  if (SomeFactor)
+	    {
+	      /* should we increase factors found for trivials ??? */
+	      trial_factor_found = 1;
+	      factsfound += SomeFactor;
+	      if (n.isPrp)
+	        {
+		  printf ("Probable prime cofactor ");
+		  if (n.cpExpr)
+		    printf ("%s", n.cpExpr);
+		  else
+		    mpz_out_str (stdout, 10, n.n);
+		  printf (" has %u digits\n", n.ndigits);
+		  /* Nothing left to do with this number, so simply continue. */
+		  cnt = 0; /* no more curve to perform */
+		  fflush(stdout);
+		  continue;
+		}
+	      fflush(stdout);
+	    }
+        }
+
+      factor_is_prime = 0;
 
       cnt --; /* one more curve performed */
 
       if (method == PM1_METHOD)
-        result = pm1 (f, x, n, B1done, B1, B2min, B2, k, S, verbose, repr);
+        result = pm1 (f, x, n.n, B1done, B1, B2min, B2, k, S, verbose, repr);
       else if (method == PP1_METHOD)
-        result = pp1 (f, x, n, B1done, B1, B2min, B2, k, S, verbose, repr);
+        result = pp1 (f, x, n.n, B1done, B1, B2min, B2, k, S, verbose, repr);
       else /* ECM */
         if (mpz_sgn (sigma) == 0) /* If sigma is zero, then we use the A value instead */
-          result = ecm (f, x, A, n, B1done, B1, B2min, B2, k, S, verbose, repr, 1);
+          result = ecm (f, x, A, n.n, B1done, B1, B2min, B2, k, S, verbose, repr, 1);
         else
-          result = ecm (f, x, sigma, n, B1done, B1, B2min, B2, k, S, verbose, repr, 0);
+          result = ecm (f, x, sigma, n.n, B1done, B1, B2min, B2, k, S, verbose, repr, 0);
+
+      if (result == 0 && trial_factor_found)
+	{
+	  factor_is_prime = 1;
+	  mpz_set_ui(f,1);
+	  goto OutputFactorStuff;
+	}
 
       if (result != 0)
 	{
-	  cnt = 0; /* no more curve to perform */
+	  factsfound++;
           printf ("********** Factor found in step %u: ", result);
           mpz_out_str (stdout, 10, f);
           printf ("\n");
-	  if (mpz_cmp (f, n))
+	  if (mpz_cmp (f, n.n))
 	    {
               if (mpz_cmp_ui (f, 1) == 0)
                 {
                   fprintf (stderr, "Error: factor found is 1\n");
+                  /* THIS SHOULD NOT BE HERE!!! */
                   exit (1);
                 }
 	      /* prints factor found and cofactor on standard error. */
 	      factor_is_prime = mpz_probab_prime_p (f, 25);
-	      printf ("Found %s factor of %u digits: ", 
-		      factor_is_prime ? "probable prime" : "composite",
+	      printf ("Found %s factor of %2u digits: ", 
+		      factor_is_prime ? "probable prime" : "COMPOSITE     ",
 		      nb_digits (f));
 	      mpz_out_str (stdout, 10, f);
 	      printf ("\n");
 
-	      mpz_divexact (n, n, f);
-	      cofactor_is_prime = mpz_probab_prime_p (n, 25);
+	      mpcandi_t_addfoundfactor(&n, f, 1); /* 1 for display warning if factor does not divide the current candidate */
+
+OutputFactorStuff:;
 	      if (verbose)
 		{
 		  printf ("%s cofactor ",
-			  cofactor_is_prime ? "Probable prime" : "Composite");
-		  mpz_out_str (stdout, 10, n);
-		  printf (" has %u digits\n", nb_digits (n));
+			  n.isPrp ? "Probable prime" : "Composite");
+		  if (n.cpExpr)
+		    printf ("%s", n.cpExpr);
+		  else
+		    mpz_out_str (stdout, 10, n.n);
+		  printf (" has %u digits\n", n.ndigits);
 		}
 	      
               /* check for champions (top ten for each method) */
 	      if (factor_is_prime && nb_digits (f) >= champion_digits[method])
-                    {
-                      printf ("Report your potential champion to %s\n",
-                              champion_keeper[method]);
-                      printf ("(see %s)\n", champion_url[method]);
-                    }
+                {
+                  printf ("Report your potential champion to %s\n",
+                          champion_keeper[method]);
+                  printf ("(see %s)\n", champion_url[method]);
+                }
+	      /* Take care of fully factoring this number, in case we are in deep mode */
+	      if (n.isPrp)
+		  cnt = 0; /* no more curve to perform */
+
+	      if (!deep)
+	        {
+		  if (breadthfirst)
+		    /* I know it may not be prp, but setting this will cause all future loops to NOT 
+		       check this candidate again */
+		    pCandidates[linenum-1].isPrp = 1;
+		  cnt = 0;
+	        }
+	      else if (breadthfirst)
+		mpcandi_t_copy(&pCandidates[linenum-1], &n);
             }
 	  else
-	    printf ("Found input number N\n");
+	    {
+	      if (breadthfirst)
+		/* I know it may not be prp, but setting this will cause all future loops to NOT 
+		   check this candidate again */
+		pCandidates[linenum-1].isPrp = 1;
+	      cnt = 0; /* no more curve to perform */
+	      printf ("Found input number N\n");
+	    }
 	  fflush (stdout);
 	}
       
       /* if quiet, prints composite cofactors on standard output. */
-      if ((verbose == 0) && !cofactor_is_prime)
+      if (!count && (verbose == 0) && !n.isPrp)
 	{
-	  mpz_out_str (stdout, 10, n);
+	  if (n.cpExpr)
+	    printf ("%s", n.cpExpr);
+	  else
+	    mpz_out_str (stdout, 10, n.n);
 	  putchar ('\n');
 	  fflush (stdout);
 	}
 
       /* Write composite cofactors to savefile if requested */
       /* If no factor was found, we consider cofactor composite and write it */
-      if (savefile != NULL && !cofactor_is_prime)
+      if (savefile != NULL && !n.isPrp)
         {
-          mpz_mod (x, x, n); /* Reduce stage 1 residue wrt new cofactor, in
+          mpz_mod (x, x, n.n); /* Reduce stage 1 residue wrt new cofactor, in
                                case a factor was found */
-          write_resumefile_line (savefile, method, B1, sigma, A, x, n, 
+          write_resumefile_line (savefile, method, B1, sigma, A, x, &n, 
                                  orig_x0, comment);
         }
+      /* advance B1, if autoincrement value had been set during command line parsing */
+      if (!breadthfirst && autoincrementB1)
+	{
+          B1 += autoincrementB1;
+	  B2min = B1;
+	}
     }
 
+  /* Allow our "breadthfirst" search to re-run the file again if enough curves have not yet been run */
+  if (breadthfirst == 1)
+    goto BreadthFirstDoAgain;
+
+  /* NOTE finding a factor may have caused the loop to exit, but what is left on screen is the 
+     wrong count of factors (missing the just found factor.  Update the screen to at least specify the 
+     current count */
+  if (breadthfirst_maxcnt)
+    fprintf (stderr, "\rLine=%u Curves=%u/%u B1=%.0f Factors=%u\n", linenum, breadthfirst_cnt, breadthfirst_maxcnt, B1, factsfound);
+  else if (count != 1)
+    fprintf (stderr, "Line=%u Curves=%u/%u B1=%.0f Factors=%u\n", linenum, count-cnt+1, count, B1, factsfound);
+  
+
+
+  if (infilename)	// note infile "might" be stdin, and don't fclose that!
+    fclose(infile);
+  if (savefile)
+    fclose(savefile);
+  if (resumefile)
+    fclose(resumefile);
+  if (nCandidates)
+    {
+      while (nCandidates--)
+	mpcandi_t_free(&pCandidates[nCandidates]);
+      free(pCandidates);
+    }
+	  
 #ifdef POLYGCD
   NTL_clear ();
 #endif
+
+  free_expr();
 
   gmp_randclear (randstate);
 
   mpz_clear (orig_x0);
   mpz_clear (x);
   mpz_clear (f);
-  mpz_clear (n);
+  mpcandi_t_free (&n);
   mpz_clear (sigma);
   mpz_clear (A);
   mpq_clear (rat_x0);
