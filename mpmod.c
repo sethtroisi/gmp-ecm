@@ -26,6 +26,7 @@
 #include "gmp-impl.h"
 #else
 /* stolen from gmp-impl.h */
+#include <alloca.h>
 #define ABSIZ(x) ABS (SIZ (x))
 #define ALLOC(x) ((x)->_mp_alloc)
 #define PTR(x) ((x)->_mp_d)
@@ -37,8 +38,6 @@
 #define TMP_FREE(m)
 #define TMP_ALLOC_TYPE(n,type) ((type *) TMP_ALLOC ((n) * sizeof (type)))
 #define TMP_ALLOC_LIMBS(n)     TMP_ALLOC_TYPE(n,mp_limb_t)
-#define mpn_add_nc __MPN(add_nc)
-__GMP_DECLSPEC mp_limb_t mpn_add_nc __GMP_PROTO ((mp_ptr, mp_srcptr, mp_srcptr, mp_size_t, mp_limb_t));
 
 #if WANT_ASSERT
 #include <assert.h>
@@ -197,7 +196,12 @@ mpn_REDC (mp_ptr rp, mp_srcptr xp, mp_srcptr orig, mp_srcptr aux, mp_size_t n)
   mpn_mul_n (tp, up, orig, n);
   /* add {x, 2n} and {tp, 2n}. We know that {tp, n} + {xp, n} will give
      either 0, or a carry out. If xp[n-1] <> 0, then there is a carry. */
+#ifdef HAVE_NATIVE_mpn_add_nc
   cy = mpn_add_nc (rp, tp + n, xp + n, n, (mp_limb_t) ((xp[n - 1]) ? 1 : 0));
+#else
+  cy = mpn_add_n (rp, tp + n, xp + n, n);
+  cy += mpn_add_1 (rp, rp, n, (mp_limb_t) ((xp[n - 1]) ? 1 : 0));
+#endif
   if (cy || mpn_cmp (rp, orig, n) > 0)
     cy -= mpn_sub_n (rp, rp, orig, n);
   /* ASSERT ((cy == 0) && (mpn_cmp (rp, orig, n) < 0)); */
