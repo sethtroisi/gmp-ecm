@@ -56,15 +56,15 @@ void mpz_divby3_1op(mpz_t RS) {
    Assumes len >= 1.
 
    The auxiliary memory M(len) necessary in t satisfies:
-   M(0) = 0, M(1) = 0, M(2) = 1, M(4) = 5,
-   otherwise M(len) = 4*l + max(M(l), 1)
+   M(0) = 0, M(1) = 0, M(2) = 1, M(3) = 3,
+   otherwise M(len) = 2*(2*l-1) + max(M(l), 1)
    with l = ceil(len/3).
 
-   We prove M(len) <= 2*len + 4 * k with k = ceil(log[3](len)) by induction:
-        4*l + max(M(l), 1) <= 4*l + max(2*l + 4 * (k-1), 1)
-                           <= 6*l + 4 * (k-1) 
-                           <= 2*(len+2) + 4 * (k-1)
-                           <= 2*len + 4 * k
+   We prove M(len) <= 2*len + 2 * k with k = ceil(log[3](len)) by induction:
+        4*l-2 + max(M(l), 1) <= 4*l-2 + max(2*l + 2 * (k-1), 1)
+                             <= 6*l - 2 + 2 * (k-1)
+                             <= 2*(len+2) - 2 + 2 * (k-1)
+                             <= 2*len + 2 * k
 */
 
 int
