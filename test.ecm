@@ -1,6 +1,26 @@
 #!/bin/csh
+
+# test file for ECM
+#
+# Copyright 2002, 2003 Alexander Kruppa and Paul Zimmermann.
+#
+# This program is free software; you can redistribute it and/or modify it
+# under the terms of the GNU General Public License as published by the
+# Free Software Foundation; either version 2 of the License, or (at your
+# option) any later version.
+#
+# This program is distributed in the hope that it will be useful, but WITHOUT
+# ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+# FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License for
+# more details.
+#
+# You should have received a copy of the GNU General Public License along
+# with this program; see the file COPYING.  If not, write to the Free
+# Software Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA
+# 02111-1307, USA.
+
 set ECM="$1"
-echo 291310394389387 | $ECM -e 3 2000 40
+echo 291310394389387 | $ECM -power 3 2000 40
 echo 3533000986701102061387017352606588294716061 | $ECM 167 3547 211
 if ($status != 0) then
    echo "############### ERROR ###############";
@@ -44,7 +64,7 @@ if ($status != 0) then
 endif
 # for ecm3, g1=4043946241 divides 484984500^120-17923^120
 # doesn't work with Dickson(60)
-echo 5735013127104523546495917836490637235369 | $ECM -power -e 60 330000 3848610099745584498259560038340842096471 500000000 2527419713481530878734189429997880136878
+echo 5735013127104523546495917836490637235369 | $ECM -power 60 330000 3848610099745584498259560038340842096471 500000000 2527419713481530878734189429997880136878
 if ($status != 0) then
    echo "############### ERROR ###############";
    exit 1;
@@ -52,13 +72,13 @@ endif
 # g1=1805746381 divides 1577240280^12-349^12, doesn't work with Dickson
 # warning: depends on the value of d chosen in stage 2
 # works with -k 2 (d=92820), -k 3 (d=78540)
-echo 17833653493084084667826559287841287911473 | $ECM -power -k 2 -e 6 389797 7423036368129288563912180723909655170075 16e8 9011819881065862648414808987718432766274
+echo 17833653493084084667826559287841287911473 | $ECM -power 6 -k 2 389797 7423036368129288563912180723909655170075 16e8 9011819881065862648414808987718432766274
 if ($status != 0) then
    echo "############### ERROR ###############";
    exit 1;
 endif
 # g1=1822795201 divides 185550750^30-25009^30, doesn't work with Dickson
-echo 212252637915375215854013140804296246361 | $ECM -power -e 15 3000000 781683988
+echo 212252637915375215854013140804296246361 | $ECM -power 15 3000000 781683988
 if ($status != 0) then
    echo "############### ERROR ###############";
    exit 1;
