@@ -62,7 +62,7 @@ polyeval (listz_t G, unsigned int k, listz_t *Tree, listz_t T, mpz_t n,
          to RecursiveDivision */
       list_set (T, G, k);
       /* the following needs k+m+list_mul_mem(m) in T */
-      muls = RecursiveDivision (T + k, T, T, T0 + l, m, T + k + m, n);
+      muls = RecursiveDivision (T + k, T, T0 + l, m, T + k + m, n, 1);
     }
   else /* k = 2m+1: subtract G[k-1]*x^(l-1) * T0 from G */
     {
@@ -72,7 +72,7 @@ polyeval (listz_t G, unsigned int k, listz_t *Tree, listz_t T, mpz_t n,
       muls = m;
       list_sub (T + m, G + m, T + m, m);
       /* the following needs 3m+list_mul_mem(m) in T */
-      muls += RecursiveDivision (T + 2 * m, T, T, T0 + l, m, T + 3 * m, n);
+      muls += RecursiveDivision (T + 2 * m, T, T0 + l, m, T + 3 * m, n, 1);
     }
   /* in both cases we need 3*(k/2)+list_mul_mem(k/2) */
 
@@ -87,7 +87,7 @@ polyeval (listz_t G, unsigned int k, listz_t *Tree, listz_t T, mpz_t n,
   if (k < 2 * l)
     mpz_set_ui (G[k], 0);
   /* the following needs k+list_mul_mem(l) in T */
-  muls += RecursiveDivision (T + m, G, G, T0, l, T + k, n);
+  muls += RecursiveDivision (T + m, G, T0, l, T + k, n, 1);
 
   /* left remainder is in {G,l} */
   
