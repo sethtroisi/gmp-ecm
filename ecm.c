@@ -315,7 +315,7 @@ prac (mpres_t xA, mpres_t zA, unsigned int k, mpmod_t n, mpres_t b,
 {
   unsigned int d, e, r, i = 0;
   __mpz_struct *tmp;
-  double val[NV] =
+  static double val[NV] =
     { 1.61803398875, 1.72360679775, 1.618347119656, 1.617914406529,
       1.612429949509, 1.632839806089, 1.620181980807, 1.580178728295,
       1.617214616534, 1.38196601125 };
