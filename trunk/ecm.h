@@ -24,6 +24,10 @@
  * #define POLYEVALTELLEGEN
  */
 
+#ifdef POLYEVALTELLEGEN
+#define POLYEVAL
+#endif
+
 #ifndef POLYGCD
 #define POLYEVAL
 #endif
@@ -354,7 +358,7 @@ void list_sub_wrapper (listz_t, listz_t, listz_t, unsigned int,
 unsigned int
 TKarMul_space (unsigned int n, unsigned int m, unsigned int l);
 
-unsigned int muls_tkara (unsigned int n, unsigned int m, unsigned int l);
+unsigned int muls_tkara (unsigned int n);
 
 /* memory.c */
 #ifdef MEMORY_DEBUG
