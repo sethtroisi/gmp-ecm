@@ -2,6 +2,8 @@ What remains to do for the 1st release:
 
 Long term:
 
+- implement semi-normalized residues in mpmod.c: instead of ensuring
+  0 <= r < n, just require limbs(r) <= limbs(n)
 - print progress (80 dots in step 1/2) [Jay Berg]
 - write a real documentation (which format? texi can generate dvi and
   html,	or LaTeX can also generate dvi, pdf and html)
@@ -23,5 +25,4 @@ Long term:
 - compute probability that a factor of a certain size will be found with
   given paramters (Dickman's function, how to do it for P+/-1 ?)
 - partial saves during step 1 (Jay)?
-- option -c <count> to generate <count> curves for each number?  (Joe)
-- document pb with runs < 1s on Win*
+- need sigma >= 5 for ECM?

@@ -123,6 +123,8 @@ main (int argc, char *argv[])
   char rtime[256], who[256], comment[256], program[256];
   FILE *savefile = NULL, *resumefile = NULL;
   int primetest = 0;
+  unsigned int count = 1; /* number of curves for each number */
+  unsigned int cnt = 0;   /* number of remaining curves for current number */
 
 #ifdef MEMORY_DEBUG
   tests_memory_start ();
@@ -240,6 +242,12 @@ main (int argc, char *argv[])
 	  argv += 2;
 	  argc -= 2;
 	}
+      else if ((argc > 2) && (strcmp (argv[1], "-c") == 0))
+	{
+	  count = atoi (argv[2]);
+	  argv += 2;
+	  argc -= 2;
+	}
       else if ((argc > 2) && (strcmp (argv[1], "-save") == 0))
 	{
 	  savefilename = argv[2];
@@ -279,6 +287,7 @@ main (int argc, char *argv[])
       fprintf (stderr, "  -k n         perform n steps in stage 2\n");
       fprintf (stderr, "  -power n     use x^n for Brent-Suyama's extension\n");
       fprintf (stderr, "  -dickson n   use n-th Dickson's polynomial for Brent-Suyama's extension\n");
+      fprintf (stderr, "  -c n         perform n runs for each input\n");
       fprintf (stderr, "  -pm1         perform P-1 instead of ECM\n");
       fprintf (stderr, "  -pp1         perform P+1 instead of ECM\n");
       fprintf (stderr, "  -q           quiet mode\n");
@@ -410,10 +419,18 @@ main (int argc, char *argv[])
     {
       if (resumefile != NULL)
         {
+	  if (count != 1)
+	    {
+	      fprintf (stderr, "Error, option -c and -resume are incompatible\n");
+	      exit (EXIT_FAILURE);
+	    }
+
           if (!read_resumefile_line (&method, x, n, sigma, A, orig_x0, 
                 &B1done, program, who, rtime, comment, resumefile))
             break;
-          
+
+	  cnt = count;
+
           if (verbose > 0)
             {
               printf ("Resuming ");
@@ -439,14 +456,27 @@ main (int argc, char *argv[])
         }
       else
         {
-          if (!read_number (n, stdin))
-            break;
+	  if (cnt) /* nothing to read: reuse old number */
+	    {
+	    }
+	  else /* new number */
+	    {
+	      if (!read_number (n, stdin))
+		break;
+	      cnt = count;
+	    }
 
           /* Set effective seed for factoring attempt on this number */
 
           if (specific_x0) /* convert rational value to integer */
             {
               mpz_t inv;
+
+	      if (count != 1)
+		{
+		  fprintf (stderr, "Error, option -c is incompatible with -x0\n");
+		  exit (EXIT_FAILURE);
+		}
 
               mpz_init (inv);
               mpz_invert (inv, mpq_denref (rat_x0), n);
@@ -475,29 +505,38 @@ main (int argc, char *argv[])
             {
               /* Make random sigma, 0 < sigma <= 2^32 */
               mpz_urandomb (sigma, randstate, 32);
-              mpz_add_ui (sigma, sigma, 1);
+              mpz_add_ui (sigma, sigma, 1); /* FIXME: need sigma>=5? */
             }
         }
 
       if (verbose > 0)
 	{
-	  if (mpz_sizeinbase (n, 10) < 1000)
+	  if (cnt == count)
 	    {
-	      char *str;
-	      str = mpz_get_str (NULL, 10, n);
-	      printf ("Input number is %s (%u digits)\n", str,
-		      (unsigned) strlen (str));
-	      __gmp_free_func (str, strlen (str) + 1);
+	      if (mpz_sizeinbase (n, 10) < 1000)
+		{
+		  char *str;
+		  str = mpz_get_str (NULL, 10, n);
+		  printf ("Input number is %s (%u digits)\n", str,
+			  (unsigned) strlen (str));
+		  __gmp_free_func (str, strlen (str) + 1);
+		}
+	      else
+		printf ("Input number has around %u digits\n", (unsigned) 
+			mpz_sizeinbase (n, 10));
+	      if (primetest && mpz_probab_prime_p (n, 1))
+		printf ("****** Warning: input is probably prime ******\n");
 	    }
 	  else
-	    printf ("Input number has around %u digits\n", (unsigned) 
-		    mpz_sizeinbase (n, 10));
-	  if (primetest && mpz_probab_prime_p (n, 1))
-	    printf ("****** Warning: input is probably prime ******\n"); 
+	    {
+	      printf ("Run %u out of %u:\n", count - cnt + 1, count);
+	    }
 	  fflush (stdout);
 	}
 
       factor_is_prime = cofactor_is_prime = 0;
+
+      cnt --; /* one more curve performed */
 
       if (method == PM1_METHOD)
         result = pm1 (f, x, n, B1done, B1, B2min, B2, k, S, verbose, repr);
@@ -511,6 +550,7 @@ main (int argc, char *argv[])
 
       if (result != 0)
 	{
+	  cnt = 0; /* no more curve to perform */
           printf ("********** Factor found in step %u: ", result);
           mpz_out_str (stdout, 10, f);
           printf ("\n");
