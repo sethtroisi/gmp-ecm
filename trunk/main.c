@@ -238,12 +238,14 @@ main (int argc, char *argv[])
 
   if (argc < 2)
     {
-      fprintf (stderr, "Usage: ecm B1 [sigma] [[B2min-]B2] < file\n");
+      fprintf (stderr, "Usage: ecm B1 [[B2min-]B2] < file\n");
       fprintf (stderr, "\nParameters:\n");
       fprintf (stderr, "  B1          stage 1 bound\n");
-      fprintf (stderr, "  sigma       elliptic curve seed or generator for P-1 (0 = random)\n");
       fprintf (stderr, "  B2          stage 2 bound (or interval B2min-B2max)\n");
       fprintf (stderr, "\nOptions:\n");
+      fprintf (stderr, "  -x0 x0      use x0 as initial point\n"); 
+      fprintf (stderr, "  -sigma s    use sigma as curve generator [ecm]\n");
+      fprintf (stderr, "  -A A        use A as curve parameter [ecm]\n");
       fprintf (stderr, "  -k n        perform n steps in stage 2\n");
       fprintf (stderr, "  -power n    use x^n for Brent-Suyama's extension\n");
       fprintf (stderr, "  -dickson n  use n-th Dickson's polynomial for Brent-Suyama's extension\n");
@@ -255,6 +257,7 @@ main (int argc, char *argv[])
       fprintf (stderr, "  -modmuln    use Montgomery's MODMULN for mod reduction\n");
       fprintf (stderr, "  -redc       use Montgomery's REDC for mod reduction\n");
       fprintf (stderr, "  -save file  save residues at end of stage 1 to file\n");
+      fprintf (stderr, "  -resume foo resume from file foo\n");
       exit (1);
     }
 
@@ -342,7 +345,7 @@ main (int argc, char *argv[])
 
   if (resumefile && (mpz_sgn (sigma) != 0 || mpz_sgn (A) || specific_x0))
     {
-      printf ("Waning: -sigma, -A and -x0 parameters are ignored when resuming from\nsave files.\n");
+      fprintf (stderr, "Warning: -sigma, -A and -x0 parameters are ignored when resuming from\nsave files.\n");
       mpz_set_ui (sigma, 0);
       mpz_set_ui (A, 0);
       specific_x0 = 0;
