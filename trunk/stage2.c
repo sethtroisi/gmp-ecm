@@ -192,6 +192,13 @@ stage2 (mpz_t f, void *X, mpmod_t modulus, double B2min, double B2,
 	       ((method == EC_METHOD) ? 2 : 1) * d);
       exit (EXIT_FAILURE);
     }
+  /* check that i0 * d does not overflow */
+  if (i0 * (double) d > 9007199254740992.0) /* 2^53 */
+    {
+      fprintf (stderr, "Error, overflow in stage 2\n");
+      fprintf (stderr, "Please use a smaller B1 or B2min\n");
+      exit (1);
+    }
 
   b2 = block_size (d);
 
@@ -277,13 +284,6 @@ stage2 (mpz_t f, void *X, mpmod_t modulus, double B2min, double B2,
   /* start computing G with roots at i0*d, (i0+1)*d, (i0+2)*d, ... 
      where i0*d <= B2min < (i0+1)*d */
   G = init_list (dF);
-  /* check that i0 * d does not overflow */
-  if (i0 * (double) d > 9007199254740992.0) /* 2^53 */
-    {
-      fprintf (stderr, "Error, overflow in stage 2\n");
-      fprintf (stderr, "Please use a smaller B1 or B2min\n");
-      exit (1);
-    }
   st = cputime ();
   if (method == PM1_METHOD)
     rootsG_state = pm1_rootsG_init ((mpres_t *) X, i0 * (double) d, d, S, modulus);
