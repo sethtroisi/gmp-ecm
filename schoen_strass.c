@@ -52,7 +52,25 @@ unsigned int Fermat;
   F_mod_gt (b, n);    \
   F_mod_1 (a, n);
 
-mp_limb_t __gmpn_mod_34lsub1 (mp_limb_t *src, mp_size_t size);
+mp_limb_t __gmpn_mod_34lsub1 (mp_limb_t*, mp_size_t);
+
+/* compute remainder modulo 2^(mp_bits_per_limb*3/4)-1 */
+#ifndef HAVE_NATIVE_mpn_mod_34lsub1
+mp_limb_t
+__gmpn_mod_34lsub1 (mp_limb_t *src, mp_size_t size)
+{
+  mp_ptr tp;
+  mp_limb_t r, d;
+
+  ASSERT(BITS_PER_MP_LIMB % 4 == 0);
+  tp = malloc (size * sizeof(mp_limb_t));
+  MPN_COPY (tp, src, size);
+  d = (mp_limb_t) 1 << (3 * (mp_bits_per_limb / 4)) - (mp_limb_t) 1;
+  mpn_divmod_1 (&r, tp, size, d);
+  free (tp);
+  return r;
+}
+#endif
 
 static int radix2 = 0;
 
