@@ -43,7 +43,7 @@ typedef struct {
 int      pm1_stage1     (mpz_t, mpres_t, mpmod_t, double, double);
 mul_casc *mulcascade_init (void);
 void     mulcascade_free (mul_casc *);
-mul_casc *mulcascade_mul_ui (mul_casc *, unsigned long);
+mul_casc *mulcascade_mul_d (mul_casc *c, const double n, mpz_t t);
 void     mulcascade_get_z (mpz_t, mul_casc *);
 
 /******************************************************************************
@@ -105,19 +105,18 @@ mulcascade_free (mul_casc *c)
   free (c);
 }
 
-/* TODO mulcascade_mul_d */
 mul_casc * 
-mulcascade_mul_ui (mul_casc *c, unsigned long n)
+mulcascade_mul_d (mul_casc *c, const double n, mpz_t t)
 {
   unsigned int i;
 
   if (mpz_sgn (c->val[0]) == 0)
     {
-      mpz_set_ui (c->val[0], n);
+      mpz_set_d (c->val[0], n);
       return c;
     }
 
-  mpz_mul_ui (c->val[0], c->val[0], n);
+  mpz_mul_d (c->val[0], c->val[0], n, t);
   if (mpz_size (c->val[0]) <= CASCADE_THRES)
     return c;
   
@@ -145,7 +144,8 @@ mulcascade_mul_ui (mul_casc *c, unsigned long n)
 }
 
 void 
-mulcascade_get_z (mpz_t r, mul_casc *c) {
+mulcascade_get_z (mpz_t r, mul_casc *c) 
+{
   unsigned int i;
   
   if (c->size == 0)
@@ -196,7 +196,7 @@ pm1_stage1 (mpz_t f, mpres_t a, mpmod_t n, double B1, double B1done)
      algebraic factor of b^m-1 must be of the form km+1 [Williams82].
      Do this only when n is composite, otherwise all tests with prime
      n factor of a Cunningham number will succeed in stage 1. */
-  if (mpz_probab_prime_p (n->orig_modulus, 1) == 0)
+  if (0 && mpz_probab_prime_p (n->orig_modulus, 1) == 0)
     {
       mpz_sub_ui (g, n->orig_modulus, 1);
       mpres_pow (a, a, g, n);
@@ -225,14 +225,14 @@ pm1_stage1 (mpz_t f, mpres_t a, mpmod_t n, double B1, double B1done)
         {
           for (q = 1, r = p; r <= B1; r *= p)
             if (r > B1done) q *= p;
-          cascade = mulcascade_mul_ui (cascade, (unsigned long) q);
+          cascade = mulcascade_mul_d (cascade, q, d);
         }
 
       /* then all sqrt(B1) < primes < cascade_limit and taken with 
          exponent 1 */
       for ( ; p <= cascade_limit; p = getprime (p))
         if (p > B1done)
-          cascade = mulcascade_mul_ui (cascade, (unsigned long) p);
+          cascade = mulcascade_mul_d (cascade, p, d);
       
       mulcascade_get_z (g, cascade);
       mulcascade_free (cascade);
@@ -257,7 +257,7 @@ pm1_stage1 (mpz_t f, mpres_t a, mpmod_t n, double B1, double B1done)
         {
           for (q = 1.0, r = p; r <= B1; r *= p)
             if (r > B1done) q *= p;
-          cascade = mulcascade_mul_ui (cascade, (unsigned long) q);
+          cascade = mulcascade_mul_d (cascade, q, d);
         }
       
       mulcascade_get_z (g, cascade);
