@@ -1275,7 +1275,7 @@ F_mul (mpz_t *R, mpz_t *A, mpz_t *B, unsigned int len, int parameter,
    the length of polynomial A is len / 2. 
    n=2^m
    t must have space for 2*len coefficients 
-   Only the product coefficients [len / 2 ... len - 1] will go into 
+   Only the product coefficients [len / 2 - 1 ... len - 2] will go into 
    R[0 ... len / 2 - 1] 
    Return value: number of multiplies performed */
 
