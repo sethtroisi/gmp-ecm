@@ -117,7 +117,7 @@ int
 stage2 (mpz_t x, mpz_t n, double B2, unsigned int k, int verbose)
 {
   double b2;
-  unsigned int i, d, dF, dG;
+  unsigned int i, d, dF, dG, sizeT;
   listz_t F, G, T;
   polyz_t polyF, polyT;
   mpz_t invx, t, u;
@@ -158,9 +158,10 @@ stage2 (mpz_t x, mpz_t n, double B2, unsigned int k, int verbose)
     }
 
   assert (i == dF);
-  
-  T = init_list (5 * dF - 1);
-  buildG (F, dF, T, verbose, n, 'F');
+
+  sizeT = 3 * dF + list_mul_mem (dF);
+  T = init_list (sizeT);
+  buildG (F, dF, T, verbose, n, 'F'); /* needs dF+list_mul_mem(dF/2) cells in T */
 
   mpz_powm_ui (x, x, d / 6, n);
   mpz_powm_ui (invx, invx, d / 6, n);
@@ -176,7 +177,7 @@ stage2 (mpz_t x, mpz_t n, double B2, unsigned int k, int verbose)
     {
       rootsG (G, dG, x, invx, t, u, n, verbose);
 
-      buildG (G, dG, T + dF, 1, n, 'G');
+      buildG (G, dG, T + dF, 1, n, 'G'); /* needs 2*dF+list_mul_mem(dF/2) cells in T */
       mpz_set_ui (G[dG], 1);
 
       if (i == 0)
@@ -185,7 +186,7 @@ stage2 (mpz_t x, mpz_t n, double B2, unsigned int k, int verbose)
 	{
 	  st = cputime ();
 	  /* previous G is in T, with degree < dF, i.e. dF coefficients
-	     and dG = dF - 1 */
+	     and dG = dF - 1, requires 3dF+list_mul_mem(dF) cells in T */
 	  list_mulmod (T + dF, G, T, dF, T + 3 * dF, n);
           if (verbose >= 2)
             printf ("Computing G * H took %dms\n", cputime() - st);
@@ -210,7 +211,7 @@ stage2 (mpz_t x, mpz_t n, double B2, unsigned int k, int verbose)
     printf ("Computing gcd of F and G took %dms\n", cputime() - st);
 
   clear_list (G, dG + 1);
-  clear_list (T, 5 * dF - 1);
+  clear_list (T, sizeT);
 
  clear_F:
   mpz_clear (invx);
