@@ -1,4 +1,24 @@
 #!/bin/csh
+
+# test file for P-1 method
+#
+# Copyright 2002, 2003 Alexander Kruppa and Paul Zimmermann.
+#
+# This program is free software; you can redistribute it and/or modify it
+# under the terms of the GNU General Public License as published by the
+# Free Software Foundation; either version 2 of the License, or (at your
+# option) any later version.
+#
+# This program is distributed in the hope that it will be useful, but WITHOUT
+# ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+# FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License for
+# more details.
+#
+# You should have received a copy of the GNU General Public License along
+# with this program; see the file COPYING.  If not, write to the Free
+# Software Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA
+# 02111-1307, USA.
+
 set ECM="$1"
 ### stage 2 less than 10^9 ###
 echo 335203548019575991076297 | $ECM -pm1 23 2 31
@@ -124,7 +144,7 @@ if ($status != 0) then
 endif
 
 ### Try a factor found by Suyama's powers
-echo 1207946164033269799036708918081 | $ECM -e 12 -k 2 -pm1 286493 0 2500000
+echo 1207946164033269799036708918081 | $ECM -power 12 -k 2 -pm1 286493 0 2500000
 if ($status != 0) then
    echo "############### ERROR ###############";
    exit 1;
