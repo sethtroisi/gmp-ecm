@@ -935,7 +935,7 @@ BreadthFirstDoAgain:;
 	    }
 	  else /* 2nd or more try for same composite */
 	    {
-	      /* Since the expression is usally "so" short, why not just drop it out for ALL loops? */
+	      /* Since the expression is usually "so" short, why not just drop it out for ALL loops? */
 	      if (displayexpr)
 		{
 		  if (n.nexprlen && n.nexprlen <= displayexpr)

@@ -7,6 +7,7 @@ Changes between ecm-5.0.3 and ecm-5.2.0:
 	numbers get large, GMP becomes very non-optimal in PRP testing.
 	An external program, such as OpenPFGW, can be much faster than
 	the GMP.  (New code from Phil Carmody)
+- new parser for symbolic input
 - added hex number input into the expression parser.  This was needed 
     due to save files from Prime95 being output in hex.  ecm was not
     resuming these.
@@ -41,6 +42,10 @@ Changes between ecm-5.0.3 and ecm-5.2.0:
   Step 1 took 61824ms
   Step 2 took 32989ms
 - trial division is available (option -t n)
+- new options -n (low priority) and -nn (idle priority)
+- the looping mode (-c n) now continues to try to factor the composite when
+  a factor is found (use -one to stop)
+- new option -ve n to display only inputs of <= n characters (looping mode)
 
 Changes between ecm-5.0 and ecm-5.0.1:
 

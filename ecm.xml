@@ -20,7 +20,7 @@
 <refsynopsisdiv id='synopsis'>
 <cmdsynopsis>
   <command>ecm</command>    
-    <arg choice='opt'><replaceable>options</replaceable></arg>
+    <arg choice='opt'><option>options</option></arg>
     <arg choice='plain'><replaceable>B1</replaceable></arg>
     <group choice='opt'><arg choice='plain'><replaceable>B2min-B2max</replaceable></arg><arg choice='plain'><replaceable>B2</replaceable></arg></group>
     <sbr/>
@@ -76,25 +76,25 @@ corresponds to B1-B2.</para>
 <refsect1 id='factoring_method'><title>FACTORING METHOD</title>
 <variablelist remap='TP'>
   <varlistentry>
-  <term><option><replaceable>-pm1</replaceable></option></term>
+  <term><option>-pm1</option></term>
   <listitem>
 <para>Perform P-1 instead of the default method (ECM).</para>
   </listitem>
   </varlistentry>
 
   <varlistentry>
-  <term><option><replaceable>-pp1</replaceable></option></term>
+  <term><option>-pp1</option></term>
   <listitem>
 <para>Perform P+1 instead of the default method (ECM).</para>
   </listitem>
   </varlistentry>
 
   <varlistentry>
-  <term><option><replaceable>-t n</replaceable></option></term>
+  <term><option>-t <replaceable>n</replaceable></option></term>
   <listitem>
 <para>Perform trial division up to <replaceable>n</replaceable>,
 before P-1, P+1 or ECM.  In looping mode (option
-<replaceable>-c</replaceable>), trial division is only performed
+<option>-c</option>), trial division is only performed
 in the first run.
 </para>
   </listitem>
@@ -106,7 +106,7 @@ in the first run.
 <refsect1 id='group_and_initial_point_parameters'><title>GROUP AND INITIAL POINT PARAMETERS</title>
 <variablelist remap='TP'>
   <varlistentry>
-  <term><option><replaceable>-x0 x</replaceable></option></term>
+  <term><option>-x0 <replaceable>x</replaceable></option></term>
   <listitem>
 <para>[ECM, P-1, P+1] Use <replaceable>x</replaceable> 
 (arbitrary-precision integer or rational)
@@ -117,7 +117,7 @@ value for ECM, or at random for P-1 and P+1.</para>
   </listitem>
   </varlistentry>
   <varlistentry>
-  <term><option><replaceable>-sigma s</replaceable></option></term>
+  <term><option>-sigma <replaceable>s</replaceable></option></term>
   <listitem>
 <para>[ECM] Use <replaceable>s</replaceable> (arbitrary-precision integer) as
 curve generator. If omitted, <replaceable>s</replaceable> is generated at
@@ -126,7 +126,7 @@ random.</para>
   </varlistentry>
 
   <varlistentry>
-  <term><option><replaceable>-A a</replaceable></option></term>
+  <term><option>-A <replaceable>a</replaceable></option></term>
   <listitem>
 <para>[ECM] Use <replaceable>a</replaceable> (arbitrary-precision integer) as
 curve parameter. If omitted, is it generated from the sigma value.
@@ -135,7 +135,7 @@ curve parameter. If omitted, is it generated from the sigma value.
   </varlistentry>
 
   <varlistentry>
-  <term><option><replaceable>-go val</replaceable></option></term>
+  <term><option>-go <replaceable>val</replaceable></option></term>
   <listitem>
 <para>[ECM, P-1, P+1] Exponentiate the initial point x0 to order
 <replaceable>val</replaceable>, which can any valid expression,
@@ -151,7 +151,7 @@ input number.
 <refsect1 id='step_2_parameters'><title>STEP 2 PARAMETERS</title>
 <variablelist remap='TP'>
   <varlistentry>
-  <term><option><replaceable>-k n</replaceable></option></term>
+  <term><option>-k <replaceable>n</replaceable></option></term>
   <listitem>
 <para>[ECM, P-1, P+1] Perform <replaceable>n</replaceable> blocks in step 2.
 Increasing <replaceable>n</replaceable> decreases the memory usage of
@@ -160,22 +160,23 @@ step 2, at the expense of some cpu time.</para>
   </listitem>
   </varlistentry>
   <varlistentry>
-  <term><option><replaceable>-power n</replaceable></option></term>
+  <term><option>-power <replaceable>n</replaceable></option></term>
   <listitem>
 <para>[ECM, P-1]
 Use <replaceable>x^n</replaceable> for Brent-Suyama's extension
-(<replaceable>-power 1</replaceable> disables Brent-Suyama's extension).
+(<option>-power</option> <replaceable>1</replaceable> disables Brent-Suyama's
+extension).
 The default polynomial is chosen depending on the method and B2.
 For P-1, <replaceable>n</replaceable> should be even.</para>
 
   </listitem>
   </varlistentry>
   <varlistentry>
-  <term><option><replaceable>-dickson n</replaceable></option></term>
+  <term><option>-dickson <replaceable>n</replaceable></option></term>
   <listitem>
 <para>[ECM, P-1]
 Use degree-n Dickson's polynomial for Brent-Suyama's extension.
-Like for <replaceable>-power n</replaceable>, <replaceable>n</replaceable>
+Like for <option>-power</option> <replaceable>n</replaceable>, <replaceable>n</replaceable>
 should be even for P-1.</para>
 
   </listitem>
@@ -186,7 +187,7 @@ should be even for P-1.</para>
 <refsect1 id='output'><title>OUTPUT</title>
 <variablelist remap='TP'>
   <varlistentry>
-  <term><option><replaceable>-q</replaceable></option></term>
+  <term><option>-q</option></term>
   <listitem>
 <para>Quiet mode. Found factorizations are printed on standard output,
 with factors separated by white spaces, one line per input number
@@ -196,7 +197,7 @@ with factors separated by white spaces, one line per input number
   </listitem>
   </varlistentry>
   <varlistentry>
-  <term><option><replaceable>-v</replaceable></option></term>
+  <term><option>-v</option></term>
   <listitem>
 <para>Verbose mode. Several informations are printed (kind of modular
 multiplication used, initial A and x0 values, value of x at the end of step 1,
@@ -214,7 +215,7 @@ The program tries to find the best one for each input;
 one can force a given method with the following options.</para>
 <variablelist remap='TP'>
   <varlistentry>
-  <term><option><replaceable>-mpzmod</replaceable></option></term>
+  <term><option>-mpzmod</option></term>
   <listitem>
 <para>Use GMP's mpz_mod function (subquadratic for large inputs, but induces
 some overhead for small ones).</para>
@@ -222,7 +223,7 @@ some overhead for small ones).</para>
   </listitem>
   </varlistentry>
   <varlistentry>
-  <term><option><replaceable>-modmuln</replaceable></option></term>
+  <term><option>-modmuln</option></term>
   <listitem>
 <para>Use Montgomery's multiplication (quadratic version). Usually
 best method for small input.</para>
@@ -230,17 +231,17 @@ best method for small input.</para>
   </listitem>
   </varlistentry>
   <varlistentry>
-  <term><option><replaceable>-redc</replaceable></option></term>
+  <term><option>-redc</option></term>
   <listitem>
 <para>Use Montgomery's multiplication (subquadratic version).
 Theoretically optimal for large input.</para>
   </listitem>
   </varlistentry>
   <varlistentry>
-  <term><option><replaceable>-nobase2</replaceable></option></term>
+  <term><option>-nobase2</option></term>
   <listitem>
 <para>Disable special base-2 code (which is used when the input number is a
-large factor of 2^n+1 or 2^n-1, see <replaceable>-v</replaceable>).</para>
+large factor of 2^n+1 or 2^n-1, see <option>-v</option>).</para>
 
   </listitem>
   </varlistentry>
@@ -255,21 +256,31 @@ same convention for save files).
 It can also be useful to split step 2 into several runs,
 using the <replaceable>B2min-B2max</replaceable> option.</para>
 <variablelist remap='TP'>
+
   <varlistentry>
-  <term><option><replaceable>-save file</replaceable></option></term>
+  <term><option>-inp <replaceable>file</replaceable></option></term>
+  <listitem>
+<para>Take input from file <replaceable>file</replaceable> instead of from
+standard input.
+</para>
+  </listitem>
+  </varlistentry>
+
+  <varlistentry>
+  <term><option>-save <replaceable>file</replaceable></option></term>
   <listitem>
 <para>Save result of step 1 in <replaceable>file</replaceable>.
 Example: <replaceable>ecm -save foo 1e6 1 &lt; c155</replaceable> performs
 only step 1, and saves its result in file <replaceable>foo</replaceable>.
 </para>
-
   </listitem>
   </varlistentry>
+
   <varlistentry>
-  <term><option><replaceable>-resume file</replaceable></option></term>
+  <term><option>-resume <replaceable>file</replaceable></option></term>
   <listitem>
 <para>Resume residues from <replaceable>file</replaceable>, reads from stdin
-if <replaceable>-resume -</replaceable>.
+if <option>-resume</option> <replaceable>-</replaceable>.
 Example: <replaceable>ecm -resume foo 1e6</replaceable> performs step 2
 corresponding to the above step 1 computation.
 </para>
@@ -281,8 +292,9 @@ corresponding to the above step 1 computation.
 
 <refsect1 id='miscellaneous'><title>MISCELLANEOUS</title>
 <variablelist remap='TP'>
+
   <varlistentry>
-  <term><option><replaceable>-primetest</replaceable></option></term>
+  <term><option>-primetest</option></term>
   <listitem>
 <para>Perform a primality test on the input number.
 This is not done by default since the primality
@@ -291,7 +303,7 @@ test may be expensive, especially for large input.</para>
   </varlistentry>
 
   <varlistentry>
-  <term><option><replaceable>-c n</replaceable></option></term>
+  <term><option>-c <replaceable>n</replaceable></option></term>
   <listitem>
 <para>Perform <replaceable>n</replaceable> runs on each input number
 instead of just one (default).
@@ -299,14 +311,66 @@ The runs are stopped before <replaceable>n</replaceable> if a factor is found.
 This option is mainly useful for P+1 (for example with c=3) or for ECM,
 where <replaceable>n</replaceable> is the expected number of curves
 to find a d-digit factor with a given step 1 bound.
-This option is incompatible with <replaceable>-resume, -sigma, 
--x0</replaceable>. Giving <replaceable>-c 0</replaceable>
+This option is incompatible with <option>-resume, -sigma, 
+-x0</option>. Giving <option>-c</option> <replaceable>0</replaceable>
 emulates an infinite loop until a factor is found.</para>
   </listitem>
   </varlistentry>
 
   <varlistentry>
-  <term><option><replaceable>-n</replaceable></option></term>
+  <term><option>-b</option></term>
+  <listitem>
+<para>Breadth-first processing: in loop mode, run one curve for each input
+number, then a second curve for each one, and so on.
+This is the default mode with <option>-inp</option>.
+</para>
+  </listitem>
+  </varlistentry>
+
+  <varlistentry>
+  <term><option>-d</option></term>
+  <listitem>
+<para>Depth-first processing: in loop mode, run <replaceable>n</replaceable>
+curves for the first number, then <replaceable>n</replaceable> curves for the
+second one and so on.
+This is the default mode with standard input.
+</para>
+  </listitem>
+  </varlistentry>
+
+  <varlistentry>
+  <term><option>-ve <replaceable>n</replaceable></option></term>
+  <listitem>
+<para>In loop mode (<option>-c</option>), in the second and following runs,
+output only expressions that have at most <replaceable>n</replaceable>
+characters. Default is <option>-ve</option> <replaceable>0</replaceable>.
+</para>
+  </listitem>
+  </varlistentry>
+
+  <varlistentry>
+  <term><option>-i <replaceable>n</replaceable></option></term>
+  <listitem>
+<para>In loop mode (<option>-c</option>), increment <replaceable>B1</replaceable>
+by <replaceable>n</replaceable> after each curve.
+</para>
+  </listitem>
+  </varlistentry>
+
+  <varlistentry>
+  <term><option>-I <replaceable>n</replaceable></option></term>
+  <listitem>
+<para>In loop mode (<option>-c</option>), multiply <replaceable>B1</replaceable>
+by a factor depending on <replaceable>n</replaceable> after each curve.
+Using <option>-I <replaceable>1</replaceable></option> should be optimal
+on one machine, and <option>-I <replaceable>10</replaceable></option> when
+trying to factor the same number simultaneously on <replaceable>10</replaceable> machines.
+</para>
+  </listitem>
+  </varlistentry>
+
+  <varlistentry>
+  <term><option>-n</option></term>
   <listitem>
   <para>Run the program in <quote>nice</quote>mode (below normal priority).
   </para>
@@ -314,14 +378,14 @@ emulates an infinite loop until a factor is found.</para>
   </varlistentry>
 
   <varlistentry>
-  <term><option><replaceable>-nn</replaceable></option></term>
+  <term><option>-nn</option></term>
   <listitem>
   <para>Run the program in <quote>very nice</quote>mode (idle priority).</para>
   </listitem>
   </varlistentry>
 
   <varlistentry>
-  <term><option><replaceable>--help</replaceable></option></term>
+  <term><option>--help</option></term>
   <listitem>
   <para>Display a short description of ecm usage, parameters and command line
   options.</para>
