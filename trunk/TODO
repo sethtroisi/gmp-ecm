@@ -12,10 +12,6 @@ ToDo's:
 - consider Colin Percival's generalized DWT for multiplication modulo
   k*a^n+b, where k*a*b is highly composite. May belong into GMP rather than
   gmp-ecm.
-- perform PolyFromRoots/Polyeval level by level (add one parameter i which
-	says which level has to be performed, and save/restore the
-	corresponding data to/from file)
-        Mostly done.
 - implement assembly code (redc.asm) for other architectures
   (rename it to redc.s, add AM_PROG_AS in configure.in, add an option
 	--want_asm or similar)
