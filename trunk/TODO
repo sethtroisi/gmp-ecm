@@ -9,7 +9,7 @@ Long term:
   html,	or LaTeX can also generate dvi, pdf and html)
 - document how to use the ecm(), pm1(), pp1() functions from a C program
   (may need changes to give parameters or options)
-- add a configure file
+- add a configure file (check if alloca.h is needed, cf FreeBSD)
 - tune stage 2 values of 'd' to optimize toomcook4(d)/(d*phi(d/2))
 - implement Brent-Suyama's extension for p+1 (how to do it efficiently?
   Could "Powers of 2^(k/2) and 3^k", Montgomery dissertation, 5.5, work?)
@@ -26,3 +26,5 @@ Long term:
   given paramters (Dickman's function, how to do it for P+/-1 ?)
 - partial saves during step 1 (Jay)?
 - need sigma >= 5 for ECM?
+- when resuming, print the *initial* x0 for P-1/P+1?
+- check files for -save and -resume are different
