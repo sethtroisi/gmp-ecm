@@ -117,7 +117,7 @@ fin_diff_coeff (listz_t coeffs, unsigned int s, unsigned int D,
 /* Input:  X is the point at end of stage 1
            n is the number to factor
            B2min-B2 is the stage 2 range (we consider B2min is done)
-           k is the number of blocks
+           k0 is the (minimal) number of blocks
            S is the exponent for Brent-Suyama's extension
            verbose is the verbose level
            invtrick is non-zero iff one uses x+1/x instead of x.
@@ -132,9 +132,10 @@ fin_diff_coeff (listz_t coeffs, unsigned int s, unsigned int D,
 */
 int
 stage2 (mpz_t f, void *X, mpmod_t modulus, double B2min, double B2,
-        unsigned int k, unsigned int S, int verbose, int method)
+        unsigned int k0, int S, int verbose, int method)
 {
   double b2;
+  unsigned int k;
   unsigned int i0, i, d, dF, sizeT;
   unsigned long muls, tot_muls = 0;
   mpz_t n;
@@ -161,9 +162,7 @@ stage2 (mpz_t f, void *X, mpmod_t modulus, double B2min, double B2,
      and [(i-1)*d,i*d]. Thus to cover [B2min, B2] with all intervals 
      [i*d,(i+1)*d] for i0 <= i < i1 , we should  have i0*d <= B2min and 
      B2 <= (i1-1)*d */
-  b2 = ceil ((B2 - B2min) / k); /* b2 = ceil((B2-B2min)/k): small block size */
-
-  d = bestD (b2);
+  d = bestD (B2, k0, &k, (double) S, method);
   i0 = (unsigned int) (B2min / (double) d);
   if (i0 < ((method == EC_METHOD) ? 2U : 1U))
     {
