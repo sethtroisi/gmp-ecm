@@ -220,3 +220,71 @@ TMulKS (listz_t b, unsigned int n, listz_t a, unsigned int m,
   
   return 0;
 }
+
+/* multiply in R[] A[0]+A[1]*x+...+A[k-1]*x^(k-1)
+                by B[0]+B[1]*x+...+B[l-1]*x^(l-1) modulo n,
+   wrapping around coefficients of the product up from degree m >= m0.
+   Return m.
+*/
+unsigned int
+ks_wrapmul (listz_t R, unsigned int m0,
+            listz_t A, unsigned int k,
+            listz_t B, unsigned int l)
+{
+  unsigned long i, fft_k, m;
+  mp_size_t s, t = 0, size_t0, size_t1, size_tmp;
+  mp_ptr t0_ptr, t1_ptr, t2_ptr, r_ptr;
+
+  for (i = 0; i < k; i++)
+    if ((s = mpz_sizeinbase (A[i], 2)) > t)
+      t = s;
+  for (i = 0; i < l; i++)
+    if ((s = mpz_sizeinbase (B[i], 2)) > t)
+      t = s;
+  
+  s = t * 2;
+  for (i = ((k > l) ? k : l) - 1; i; s++, i >>= 1);
+  
+  s = 1 + (s - 1) / GMP_NUMB_BITS;
+
+  size_t0 = s * k;
+  size_t1 = s * l;
+
+  /* allocate one double-buffer to save malloc/MPN_ZERO/free calls */
+  t0_ptr = (mp_ptr) xmalloc (size_t0 * sizeof (mp_limb_t));
+  t1_ptr = (mp_ptr) xmalloc (size_t1 * sizeof (mp_limb_t));
+    
+  MPN_ZERO (t0_ptr, size_t0);
+  MPN_ZERO (t1_ptr, size_t1);
+
+  for (i = 0; i < k; i++)
+    MPN_COPY (t0_ptr + i * s, PTR(A[i]), SIZ(A[i]));
+  for (i = 0; i < l; i++)
+    MPN_COPY (t1_ptr + i * s, PTR(B[i]), SIZ(B[i]));
+
+  fft_k = mpn_fft_best_k (m0 * s, 0);
+  i = mpn_fft_next_size (m0 * s, fft_k);
+  while (i % s)
+    i = mpn_fft_next_size (i + 1, fft_k);
+  m = i / s;
+
+  t2_ptr = (mp_ptr) xmalloc ((i + 1) * sizeof (mp_limb_t));
+
+  mpn_mul_fft (t2_ptr, i, t0_ptr, size_t0, t1_ptr, size_t1, fft_k);
+  
+  for (i = 0; i < m; i++)
+    {
+      size_tmp = s;
+      MPN_NORMALIZE(t2_ptr + i * s, size_tmp);
+      r_ptr = MPZ_REALLOC (R[i], size_tmp);
+      MPN_COPY (r_ptr, t2_ptr + i * s, size_tmp);
+      SIZ(R[i]) = size_tmp;
+    }
+
+  free (t0_ptr);
+  free (t1_ptr);
+  free (t2_ptr);
+  
+  /* we don't have a measure of how many multiplies we've done */
+  return 0;
+}

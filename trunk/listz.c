@@ -1,6 +1,6 @@
 /* Arithmetic on lists of integers.
 
-  Copyright 2001, 2002, 2003 Paul Zimmermann and Alexander Kruppa.
+  Copyright 2001, 2002, 2003, 2004 Paul Zimmermann and Alexander Kruppa.
 
   This program is free software; you can redistribute it and/or modify it
   under the terms of the GNU General Public License as published by the
@@ -875,9 +875,7 @@ PrerevertDivision (listz_t a, listz_t b, listz_t invb,
           list_sub(t, t, a + K, K);
         }
       else
-        {
-          muls += F_mul (t, a + K, b, K, DEFAULT, Fermat, t + 2 * K);
-        }
+        muls += F_mul (t, a + K, b, K, DEFAULT, Fermat, t + 2 * K);
     }
   else
 #ifdef KS_MULTIPLY /* ks is faster */
