@@ -1,16 +1,11 @@
 To use the autotools:
 
-# to create Makefile.in
-$ automake (add -c -a if some files are missing)
-
-# to create configure
+$ aclocal
+$ automake -c -a
 $ autoconf
-
-# to configure
 $ configure --with-gmp=<directory_where_gmp_is_installed>
+$ make
+$ make check
 
 Warning: only configure.in and Makefile.am should be in cvs
 	(the other files are automatically generated)
-
-$ make
-
