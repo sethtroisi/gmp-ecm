@@ -9,9 +9,8 @@ Table of contents of this file:
 6. Options -save and -resume.
 7. working with very large numbers (the -prp* options)
 8. How to get the best of gmp-ecm?
-9. Command line options.
-10. Known problems.
-11. Record factors.
+9. Known problems.
+10. Record factors.
 
 ##############################################################################
 
@@ -87,21 +86,24 @@ as a generalization of the P-1 and P+1 method, where we only require that
 P+t is smooth, with t random of order P^(1/2). The optimal B1 and B2 bounds
 have to be chosen according to the (usually unknown) size of P. The following
 table gives a set of near-to-optimal B1 and B2 pairs, with the corresponding
-expected number of curves to find a factor of given size (this table does not
-take into account the "extra factors" found by Brent-Suyama's extension, see
-below).
+expected number of curves to find a factor of given size (column "-power 1"
+does not take into account the extra factors found by Brent-Suyama's extension,
+whereas column "default poly" takes them into account, with the polynomial used
+by default: D(n) means Dickson's polynomial of degree n):
 
-       digits D  optimal B1      B2        expected curves N(B1,B2,D)
-          20       11e3         1.7e6             89
-          25        5e4         1.5e7            244
-          30       25e4         1.2e8            526
-          35        1e6         9.7e8           1132
-          40        3e6         4.5e9           2992
-          45       11e6        3.0e10           5706
-          50       43e6        1.9e11           9507
-          55       11e7        7.2e11          22605
-          60       26e7        2.4e12          54580
-          65       85e7        1.3e13          83000
+       digits D  optimal B1      B2                expected curves
+                                                       N(B1,B2,D)
+                                              -power 1         default poly
+          20       11e3         1.7e6             89               89 [x^1]
+          25        5e4         1.5e7            244              237 [x^2]
+          30       25e4         1.2e8            526              499 [D(3)]
+          35        1e6         9.7e8           1132             1044 [D(6)]
+          40        3e6         4.5e9           2992             2691 [D(12)]
+          45       11e6        3.0e10           5706             5166 [D(12)]
+          50       43e6        1.9e11           9507             8370 [D(30)]
+          55       11e7        7.2e11          22605            19977 [D(30)]
+          60       26e7        2.4e12          54580            48478 [D(30)]
+          65       85e7        1.5e13          85729
 
           Table 1: optimal B1 and expected number of curves to find a
           factor of D digits with gmp-ecm.
@@ -111,8 +113,9 @@ probability that a factor of D digits was missed is exp(-1), i.e.
 about 37%. After twice the expected number of curves, it is exp(-2),
 i.e. about 14%, and so on.
 
-Example: after performing 9507 curves with B1=43e6 and B2=1.9e11,
-the probability to miss a 50-digit factor is about 37%.
+Example: after performing 9507 curves with B1=43e6 and B2=1.9e11
+(or 8370 curves with -dickson 30), the probability to miss a 50-digit
+factor is about 37%.
 
 In summary, we advise the following method:
 
@@ -179,7 +182,7 @@ the number of "blocks" performed in step 2. Multiplying the default value of
 k by 4 will decrease the memory usage by 2. For example with B2=1e10 and
 a 155-digit number, step 2 requires about 96MB with the default k=2,
 but only 42MB with k=8. Increasing k does, however, slightly increase the
-time required for step 2 (see section "8. How to get the best of gmp-ecm?")
+time required for step 2 (see section "How to get the best of gmp-ecm?")
 
 NOTE that in -b "breadth-first" mode, gmp-ecm reads all candidate numbers in 
 the input stream and keeps them in memory, so if there are many large numbers
@@ -220,7 +223,7 @@ as input numbers. Here is the syntax that is handled:
     available function is Phi(x,n), however other functions should be easy
     to add in the future.
 
-Note: Expressions are "maintained" as much as possible (even if the expression
+Note: Expressions are maintained as much as possible (even if the expression
 becomes longer than the decimal expansion). Expressions are output as cofactors
 (if the input was an expression), and are stored into save/resume files
 (again if and only if the original input was an expression, and not a expanded
@@ -333,8 +336,6 @@ minutes for GMP, and about 20s for PFGW (and the difference only gets more
 severe).  A limitation of OpenPFGW, is it will only be a viable solution for
 Intel 32 bit CPU's, as the FFT code is only built for those systems.
 
-Chapter 10 lists more information about the -prp* options, and using them.
-
 ##############################################################################
 
 8. How to get the best of gmp-ecm?
@@ -383,7 +384,7 @@ of finding a factor (except for extra factors, but some will be lost,
 and some will be won, so the balance should be even). However it will
 increase the time spent in Step 2 (when less or greater than the
 optimal value), and modify the memory used by Step 2 (see the section 
-"5 Memory usage").
+"Memory usage").
 
 Optimal gmp thresholds. The default configuration of gmp-ecm requires
 only the default gmp installation, in particular it only needs the
@@ -442,63 +443,7 @@ parameters "-power 1 -k 1 <B1> 48e9", "-power 1 -k 3 <B1> 35e9" or
 
 ##############################################################################
 
-9. Command line parameters and options.
-
-See the man page (ecm.1).
-
--B2scale f   Multiplies the step 2 bound B2 by the given floating-point
-   value f. Example: -B2scale 0.5 divides the default B2 by 2.
-
--cofdec   Force cofactor output in decimal (even if expressions are used)
-
-Options for prp testing using external programs (e.g. using OpenPFGW).
-See section "8. Working with very large numbers".
--prp cmd     use shell command cmd to do large primality tests.  Withing the
-             cmd part, there are these escape sequences:  %n will be replaced
-             with the decimal number needing checked for prp,  %l will be 
-             replaced by the "file" part of -prplog, and %t will be replaced
-             with the "file" part of -prptmp.  Also any character possible
-             can be output using the escape %x[0-9a-f][0-9a-f], thus special
-             chars that some broken shells do not like to allow, can be used.
-             All other characters within the cmd will be replaced verbetim,
-             and the system call will be made to exectute the cmd.  NOTE in
-             PFGW, only a Fermat test is dome (with a default of Fermat-3).
-             If testing numbers of the form 3^??? +-1 (or factors thereof),
-             or any other number form where Fermat-3 failes, be SURE to add
-             a -bn (replace n with a number from 2 to 255), and a Fermat-n
-             test will be performed.  
-             Example"  -prp "pfgw -q%n >/dev/nul 2>/dev/nul -b139"
--prplen n    The external prp tester (PFGW) will be called only when 
-             candidate numbers are longer (decimal length) than this number 
-             of digits.  The "default" is 800 decimal digits.
--prpval n    Return code which indicates the prp command found the number 
-             to be PRP.  The "latest" version of PFGW returns a 0 for 
-             Prp or Prime.  IF this switch is NOT set, then ecm will 
-             use the prplog and prpyes/prpno values.  Only the latest
-             versions of PFGW correctly return errorcode listing PRP or 
-             composite.
--prplog file If not using prpval, then get PRP results from this file.
-             This file will be deleted after the test is run (and the 
-             results are pulled from it.
--prptmp file This will cause the n value to be written to this temp file
-             prior to the command being run.  If working with REALLY big
-             numbers (i.e. numbers larger than what the command line can
-             support), then this will write them to a file, and the program
-             doing the PRP testing must be able to read the number from 
-             a file.  The number will be written as one very long string,
-             with only a single end of line marker at the very end of the
-             number.
--prpyes str  literal string found in prplog file when number is PRP.  The
-             default string to scan for is "-PRP!"
--prpno str   literal string found in prplog file when number is composite.
-             The default string to scan for is "is composite"
-
-
-
-
-##############################################################################
-        
-10. Known problems.
+9. Known problems.
 
 (a) Under some operating systems (in particular Windows), ecm may use the
 same random seed for several curves started during the same second. 
@@ -545,7 +490,7 @@ known problem, or remove it if it is not a problem).
         
 ##############################################################################
 
-11. Record factors.
+10. Record factors.
 
 If you find a very large factor, the program will print a message like:
 
