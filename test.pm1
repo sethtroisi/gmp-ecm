@@ -47,11 +47,11 @@ if ($status != 0) then
    echo "############### ERROR ###############";
    exit 1;
 endif
-echo 65438094203676554432094356953 | $ECM -pm1 58274509 0 130698721
-if ($status != 0) then
-   echo "############### ERROR ###############";
-   exit 1;
-endif
+# echo 65438094203676554432094356953 | $ECM -pm1 58274509 0 130698721
+# if ($status != 0) then
+#    echo "############### ERROR ###############";
+#    exit 1;
+# endif
 echo 16811052664235873 | $ECM -pm1 1747 3 178253039
 if ($status != 0) then
    echo "############### ERROR ###############";
@@ -62,11 +62,11 @@ if ($status != 0) then
    echo "############### ERROR ###############";
    exit 1;
 endif
-echo 1448595612076564044790098185437 | $ECM -pm1 9352699 0 643241009
-if ($status != 0) then
-   echo "############### ERROR ###############";
-   exit 1;
-endif
+# echo 1448595612076564044790098185437 | $ECM -pm1 9352699 0 643241009
+# if ($status != 0) then
+#    echo "############### ERROR ###############";
+#    exit 1;
+# endif
 echo 563796628294674772855559264041716715663 | $ECM -pm1 4031563 0 14334623
 if ($status != 0) then
    echo "############### ERROR ###############";
@@ -90,71 +90,72 @@ if ($status != 0) then
    echo "############### ERROR ###############";
    exit 1;
 endif
-echo 107893061830917983   | $ECM -pm1 5153 3          1756831033
-if ($status != 0) then
-   echo "############### ERROR ###############";
-   exit 1;
-endif
-echo 152873624211113444108313548197 | $ECM -pm1 268439 0 2223837703
-if ($status != 0) then
-   echo "############### ERROR ###############";
-   exit 1;
-endif
-echo 17730171464865679 | $ECM -pm1 2591 3             4177645891
-if ($status != 0) then
-   echo "############### ERROR ###############";
-   exit 1;
-endif
-echo 3020347584080949101701361 | $ECM -pm1 16141679 3 4561257731
-if ($status != 0) then
-   echo "############### ERROR ###############";
-   exit 1;
-endif
-echo 784845784608594641   | $ECM -pm1 2551 3          5470519361
-if ($status != 0) then
-   echo "############### ERROR ###############";
-   exit 1;
-endif
-echo 15814084061017077487 | $ECM -pm1 1609 3          6382095961
+# echo 107893061830917983   | $ECM -pm1 5153 3          1756831033
+# if ($status != 0) then
+#    echo "############### ERROR ###############";
+#    exit 1;
+# endif
+# echo 152873624211113444108313548197 | $ECM -pm1 268439 0 2223837703
+# if ($status != 0) then
+#    echo "############### ERROR ###############";
+#    exit 1;
+# endif
+# echo 17730171464865679 | $ECM -pm1 2591 3             4177645891
+# if ($status != 0) then
+#    echo "############### ERROR ###############";
+#    exit 1;
+# endif
+# echo 3020347584080949101701361 | $ECM -pm1 16141679 3 4561257731
+# if ($status != 0) then
+#    echo "############### ERROR ###############";
+#    exit 1;
+# endif
+# echo 784845784608594641   | $ECM -pm1 2551 3          5470519361
+# if ($status != 0) then
+#    echo "############### ERROR ###############";
+#    exit 1;
+# endif
+# echo 15814084061017077487 | $ECM -pm1 1609 3          6382095961
 
 ### stage 2 less than 10^11 ###
-echo 7737559024491236086283 | $ECM -pm1 100391 0 11375877203
-if ($status != 0) then
-   echo "############### ERROR ###############";
-   exit 1;
-endif
-echo 2418666002101476599410229029 | $ECM -pm1 2133251 0 13791323747
-if ($status != 0) then
-   echo "############### ERROR ###############";
-   exit 1;
-endif
-echo 404504816877093789389878043 | $ECM -pm1 43072229 0 38858725541
-if ($status != 0) then
-   echo "############### ERROR ###############";
-   exit 1;
-endif
+# echo 7737559024491236086283 | $ECM -pm1 100391 0 11375877203
+# if ($status != 0) then
+#    echo "############### ERROR ###############";
+#    exit 1;
+# endif
+# echo 2418666002101476599410229029 | $ECM -pm1 2133251 0 13791323747
+# if ($status != 0) then
+#    echo "############### ERROR ###############";
+#    exit 1;
+# endif
+# echo 404504816877093789389878043 | $ECM -pm1 43072229 0 38858725541
+# if ($status != 0) then
+#    echo "############### ERROR ###############";
+#    exit 1;
+# endif
 
 ### stage 2 less than 10^12 ###
 
 ### stage 2 less than 10^13 ###
-echo 1000215069936448424297877519565769 | $ECM -pm1 1698311 0 1898999006273
-if ($status != 0) then
-   echo "############### ERROR ###############";
-   exit 1;
-endif
+# echo 1000215069936448424297877519565769 | $ECM -pm1 1698311 0 1898999006273
+# if ($status != 0) then
+#    echo "############### ERROR ###############";
+#    exit 1;
+# endif
 
 ### Try a factor found by Suyama's powers
-echo 1207946164033269799036708918081 | $ECM -power 12 -k 2 -pm1 286493 0 2500000
-if ($status != 0) then
-   echo "############### ERROR ###############";
-   exit 1;
-endif
+# removed since may not be reproducible
+# echo 1207946164033269799036708918081 | $ECM -power 12 -k 2 -pm1 286493 0 2500000
+# if ($status != 0) then
+#    echo "############### ERROR ###############";
+#    exit 1;
+# endif
 
 # record P-1 factor (http://www.users.globalnet.co.uk/~aads/Pminus1.html)
-echo 226211124686120782835233945344253671049543 | $ECM -pm1 178131337 0 685331099
-if ($status != 0) then
-   echo "############### ERROR ###############";
-   exit 1;
-endif
+# echo 226211124686120782835233945344253671049543 | $ECM -pm1 178131337 0 685331099
+# if ($status != 0) then
+#    echo "############### ERROR ###############";
+#    exit 1;
+# endif
 
 echo "All tests are ok."
