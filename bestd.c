@@ -333,7 +333,7 @@ od:
 */
 void
 bestD_po2 (double B2min, double B2, unsigned int *finald, 
-           unsigned int *finald2, unsigned int *k, unsigned long *est_muls)
+           unsigned int *finald2, unsigned int *k)
 {
 /* List of d values where phi(d)/2 is just below or equal a power of 2 */
 #define Npo2 23
@@ -380,13 +380,5 @@ bestD_po2 (double B2min, double B2, unsigned int *finald,
   *finald = d;
   *finald2 = d2;
 
-  /* Q&D cost estimation. Doesn't account for Karatsuba and Toom-Cook in F_mul
-     and gets the Polyeval cost rather wrong */
-  *est_muls = 6 * (1 + *k) * dF +   /* Roots of F and G (for ECM) */
-              (*k + 1) * dF * (unsigned long)(log(dF) / log(2) + 0.5) + /* Building from roots */
-              6 * dF - 16 +         /* Inverting F */
-              (*k - 1) * 5 * dF +   /* G = G*H (mod F) */
-              2 * dF * (unsigned long)(log(dF) / log(2.) + 0.5) + dF; /* Polyeval */
-  
   return;
 }

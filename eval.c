@@ -266,7 +266,7 @@ void eval_power (mpz_t prior_n, mpz_t n,char op)
       /*printf ("Multi-factorial  %ld!%ld\n", nCur, nDecr);*/
       while (nCur > 1)
 	{
-	  /* This could be done much more efficently (bunching mults using smaller "built-ins"), but I am not going to bother for now */
+	  /* This could be done much more efficiently (bunching mults using smaller "built-ins"), but I am not going to bother for now */
 	  mpz_mul_ui(n,n,nCur);
 	  nCur -= nDecr;
 	}
@@ -279,7 +279,7 @@ void eval_power (mpz_t prior_n, mpz_t n,char op)
       mpz_set_ui(n,1);
       getprime(0.0);  /* free the prime tables, and reinitialize */
       for (p = 2.0; p <= nMax; p = getprime(p))
-	/* This could be done much more efficently (bunching mults using smaller "built-ins"), but I am not going to bother for now */
+	/* This could be done much more efficiently (bunching mults using smaller "built-ins"), but I am not going to bother for now */
 	mpz_mul_ui(n,n,(unsigned)p);
     }
   else if ('$'==op)  /* reduced primorial (syntax  n#prior_n   example:  13#5 == (5*7*11*13) */
@@ -297,7 +297,7 @@ void eval_power (mpz_t prior_n, mpz_t n,char op)
 	{
 	  /* Unfortunately, the SoE within gmp-ecm does not always start correctly, so we have to skip the low end stuff by hand */
 	  if (p >= nStart)
-	    /* This could be done much more efficently (bunching mults using smaller "built-ins"), but I am not going to bother for now */
+	    /* This could be done much more efficiently (bunching mults using smaller "built-ins"), but I am not going to bother for now */
 	    mpz_mul_ui(n,n,(unsigned)p);
 	}
     }

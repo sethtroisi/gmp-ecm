@@ -1,27 +1,8 @@
 ToDo's:
 
-0) problems
-- fix problem found by SleepHound <sleephound@yahoo.com> for
-  ./ecm -sigma 1404040793 -power 2 5e4 11757135 < c3456
-  where c3456 is the remaining composite from 2^22176+1
-	[non-algebraic factors: 177409, 27320833]
-- need sigma >= 5 for ECM?
-- extend maximal B1 in P+1 and ECM
-- check number of multiplies in step 2, compute it for step 1
-- get rid of __gmp_free_func (no longer declared in gmp.h)
-
 1) efficiency/memory
 - use mpres in step 2
 - optimize memory usage in step 2 (use an unique array for multiplies)
-- fix efficiency problem with P-1 (default is slower than -mpzmod for B1=1e7)
-- for some values of len, toomcook3 should use toomcook4 for the
-  recursive calls (for example len=26, where for len'=8, tc4 uses only
-  21 multiplies instead of 23)
-  -> PZ: tried but it slows things for "small" numbers (e.g. c155),
-  where karatsuba is faster than toomcook4 for n=4, despite 9 muls
-  instead of 7.
-  It would be better to determine dynamically the best method to use
-  depending on the input number size.  
 - write a mpn version of add3 and duplicate  
 - use/implement a mpn_mul_hi_n routine for use in mpn_REDC
 - use mpn_addmul_2, mpn_addmul_4 in the basecase REDC [for machines
@@ -55,9 +36,6 @@ ToDo's:
   Chapter 10 of README needs a better description.  I started one, but it's not done.
 - with -resume, print %time for THIS RUN instead of total run?
 	[suggested by SleepHound <sleephound@yahoo.com>]
-- Add a -qq switch that is "really" screen IO quiet (no stderr printing, etc).
-  This would be for the ECM C/S project.   (part of this is now done.  A
-  "-ticdelay -1" will disable the stage1/2 percentage counters)
 - option -kill when user on console?
 - when resuming, print the *initial* x0 for P-1/P+1?
 - option -base2 to force base2 when res/lo > threshold?
@@ -67,6 +45,7 @@ ToDo's:
   html,	or LaTeX can also generate dvi, pdf and html)
 - document how to use the ecm(), pm1(), pp1() functions from a C program
   (may need changes to give parameters or options)
+  -> best way is to have a separate library libecm.a
 
 4) installation
 - add a configure file (check if alloca.h is needed, cf FreeBSD)
@@ -74,20 +53,10 @@ ToDo's:
 5) new features
 - implement Brent-Suyama's extension for p+1 (how to do it efficiently?
   Could "Powers of 2^(k/2) and 3^k", Montgomery dissertation, 5.5, work?)
-- get rid of NTL for polygcd, and allow runtime choice between polyeval/polygcd
-- add a modular trial factoring mode (this was done in OpenPFGW). This is highly useful
-  for certain types of searches where factors can only be of a certain modular form
-  (Mersenne and Fermats are idea for this type of trial factoring).
-
-6) auxiliary
-- compute probability that a factor of a certain size will be found with
-  given paramters (Dickman's function, how to do it for P+/-1 ?)
-
-##############################################################################
-
-Partially Done's:
-* option -nice ? -kill when user on console?
-* partial saves during step 1 (Jay)?  (Added but not yet working, Jim)
+- add a modular trial factoring mode (this was done in OpenPFGW). This
+  is useful for certain types of searches where factors can only be of
+  a certain modular form (Mersenne and Fermats are ideal for this type
+  of trial factoring).
 
 ##############################################################################
 

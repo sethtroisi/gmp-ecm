@@ -40,15 +40,6 @@ typedef struct {
   mpz_t *val;
 } mul_casc;
 
-static int pm1_stage1 (mpz_t, mpres_t, mpmod_t, double, double, int, mpz_t);
-mul_casc *mulcascade_init (void);
-void     mulcascade_free (mul_casc *);
-mul_casc *mulcascade_mul_d (mul_casc *c, const double n, mpz_t t);
-mul_casc *mulcascade_mul   (mul_casc *c, mpz_t n);
-void     mulcascade_get_z (mpz_t, mul_casc *);
-void     update_fd (mpres_t *, unsigned int, unsigned int, mpmod_t,
-                    unsigned int *);
-
 /******************************************************************************
 *                                                                             *
 *                                  Stage 1                                    *
@@ -77,7 +68,7 @@ pm1_random_seed (mpres_t a, mpz_t n, gmp_randstate_t randstate)
 
 /*** Cascaded multiply ***/
 
-mul_casc *
+static mul_casc *
 mulcascade_init (void)
 {
   mul_casc *t;
@@ -98,7 +89,7 @@ mulcascade_init (void)
   return t;
 }
 
-void 
+static void 
 mulcascade_free (mul_casc *c)
 {
   unsigned int i;
@@ -108,7 +99,7 @@ mulcascade_free (mul_casc *c)
   free (c);
 }
 
-mul_casc * 
+static mul_casc * 
 mulcascade_mul_d (mul_casc *c, const double n, mpz_t t)
 {
   unsigned int i;
@@ -146,7 +137,7 @@ mulcascade_mul_d (mul_casc *c, const double n, mpz_t t)
   return c;
 }
 
-mul_casc * 
+static mul_casc * 
 mulcascade_mul (mul_casc *c, mpz_t n)
 {
   unsigned int i;
@@ -184,7 +175,7 @@ mulcascade_mul (mul_casc *c, mpz_t n)
   return c;
 }
 
-void 
+static void 
 mulcascade_get_z (mpz_t r, mul_casc *c) 
 {
   unsigned int i;
@@ -386,6 +377,7 @@ pm1_stage1 (mpz_t f, mpres_t a, mpmod_t n, double B1, double B1done,
   mpres_gcd (f, a, n);
   youpi = mpz_cmp_ui (f, 1);
   mpres_add_ui (a, a, 1, n);
+
   return youpi;
 }
 
@@ -395,17 +387,14 @@ pm1_stage1 (mpz_t f, mpres_t a, mpmod_t n, double B1, double B1done,
 *                                                                             *
 ******************************************************************************/
 
-void
-update_fd (mpres_t *fd, unsigned int nr, unsigned int S, mpmod_t modulus, 
-           unsigned int *muls)
+static void
+update_fd (mpres_t *fd, unsigned int nr, unsigned int S, mpmod_t modulus)
 {
   unsigned int j, k;
+
   for (j = 0; j < nr * (S + 1); j += S + 1)
     for (k = 0; k < S; k++)
       mpres_mul (fd[j + k], fd[j + k], fd[j + k + 1], modulus);
-  
-  if (muls != NULL)
-    *muls += nr * S;
 }
 
 /* Puts in F[0..dF-1] the successive values of 
@@ -424,9 +413,9 @@ update_fd (mpres_t *fd, unsigned int nr, unsigned int S, mpmod_t modulus,
 int
 pm1_rootsF (mpz_t f, listz_t F, unsigned int d1, unsigned int d2, 
         unsigned int dF, mpres_t *x, listz_t t, int S, mpmod_t modulus, 
-        int verbose, unsigned long *tot_muls)
+        int verbose)
 {
-  unsigned int i, muls = 0;
+  unsigned int i;
   int st, st2;
   pm1_roots_state state;
   listz_t coeffs;
@@ -506,7 +495,7 @@ pm1_rootsF (mpz_t f, listz_t F, unsigned int d1, unsigned int d2,
               if (verbose >= 4)
                 printf ("pm1_rootsF: Updating table at rsieve = %d\n", state.rsieve);
               
-              update_fd (state.fd, state.nr, state.S, modulus, &muls);
+              update_fd (state.fd, state.nr, state.S, modulus);
               
               state.next = 0;
             }
@@ -541,8 +530,6 @@ pm1_rootsF (mpz_t f, listz_t F, unsigned int d1, unsigned int d2,
           return 1;
         }
       
-      muls += 3 * dF;
-      
       for (i = 0; i < dF; i++) 
         {
           mpz_add (F[i], F[i], t[i]);
@@ -551,12 +538,8 @@ pm1_rootsF (mpz_t f, listz_t F, unsigned int d1, unsigned int d2,
     }
   
   if (verbose >= 2)
-    printf ("Computing roots of F took %dms and %d muls\n", cputime () - st, 
-            muls);
+    printf ("Computing roots of F took %dms\n", cputime () - st);
   
-  if (tot_muls != NULL)
-    *tot_muls += muls;
-
   return 0;
 }
 
@@ -647,9 +630,9 @@ pm1_rootsG_clear (pm1_roots_state *state, UNUSED mpmod_t modulus)
 
 int
 pm1_rootsG (mpz_t f, listz_t G, unsigned int dF, pm1_roots_state *state, 
-            listz_t t, mpmod_t modulus, int verbose, unsigned long *tot_muls)
+            listz_t t, mpmod_t modulus, int verbose)
 {
-  unsigned int i, j, k, muls = 0;
+  unsigned int i, j, k;
   
   if (verbose >= 4)
     printf ("pm1_rootsG: dF = %d, state: size_fd = %d, nr = %d, S = %d\n",
@@ -667,7 +650,6 @@ pm1_rootsG (mpz_t f, listz_t G, unsigned int dF, pm1_roots_state *state,
             for (k = 0; k < state->S; k++)
               mpres_mul (state->fd[j + k], state->fd[j + k], 
                          state->fd[j + k + 1], modulus);
-          muls += state->nr * state->S;
           state->next = 0;
         }
       
@@ -696,7 +678,6 @@ pm1_rootsG (mpz_t f, listz_t G, unsigned int dF, pm1_roots_state *state,
           mpz_set (f, t[dF]);
           return 1;
         }
-      muls += 3 * (dF - 1);
     
       for (i = 0; i < dF; i++) 
         {
@@ -704,9 +685,6 @@ pm1_rootsG (mpz_t f, listz_t G, unsigned int dF, pm1_roots_state *state,
           mpz_mod (G[i], G[i], modulus->orig_modulus);
         }
     }
-  
-  if (tot_muls != NULL)
-    *tot_muls += muls;
   
   return 0;
 }

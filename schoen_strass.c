@@ -21,12 +21,6 @@ unsigned int Fermat;
 
 #define CACHESIZE 512U
 
-#ifdef __GNUC__
-#define INLINE inline
-#else
-#define INLINE
-#endif
-
 /* a' <- a+b, b' <- a-b. */
 
 #define ADDSUB_MOD(a, b) \

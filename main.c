@@ -166,9 +166,8 @@ void usage (void)
     printf ("  -save file   save residues at end of stage 1 to file\n");
     printf ("  -resume file resume residues from file, reads from stdin if file is \"-\"\n");
     printf ("  -primetest   perform a primality test on input\n");
+
     /*printf ("  -extra functions added by JimF\n"); */
-    printf ("\n");
-    printf ("  Options new to ECM 5.1\n");
     printf ("  -i n         increment B1 by this constant on each run\n");
     printf ("  -I f         auto-calculated increment for B1 multiplied by 'f' scale factor\n");
     printf ("  -inp file    Use file as input (instead of redirecting stdin)\n");
@@ -181,9 +180,9 @@ void usage (void)
     printf ("  -ve n        Verbosely show short (< n character) expressions on each loop\n");
     printf ("  -cofdec      Force cofactor output in decimal (even if expressions are used)\n");
     printf ("  -B2scale f   Multiplies the 'computed' B2 value by the specified multiplier\n");
-    printf ("  -ticdelay n  Delay in ms between %% completed (-1 eliminates completion countdown)\n");
-    printf ("  -go VAL      Preload with Group Order VAL. VAL can be a simple expression, or it\n");
-    printf ("               can use N in it to signify the candidate number being factored.\n");
+    printf ("  -ticdelay n  Delay in ms between %% completed (-1 to disable)\n");
+    printf ("  -go val      Preload with group order val, which can be a simple expression,\n");
+    printf ("               or can use N as a placeholder for the number being factored.\n");
 
     /*printf ("  -extra functions added by PhilC\n"); */
     printf ("  -prp cmd     use shell command cmd to do large primality tests\n");
@@ -419,7 +418,7 @@ main (int argc, char *argv[])
         }
       else if ((argc > 2) && (strcmp (argv[1], "-sigma")) == 0)
         {
-          if (mpz_set_str (sigma, argv[2], 0))
+          if (mpz_set_str (sigma, argv[2], 0) || mpz_cmp_ui (sigma, 6) < 0)
 	    {
 	      fprintf (stderr, "Error, invalid sigma value: %s\n", argv[2]);
 	      exit (EXIT_FAILURE);
@@ -649,8 +648,8 @@ main (int argc, char *argv[])
   if (verbose >= 1)
     {
       printf ("GMP-ECM %s [powered by GMP %s", ECM_VERSION, gmp_version);
-#ifdef POLYGCD
-      printf (" and NTL %u.%u", NTL_major_version (), NTL_minor_version ());
+#ifdef HAVE_FFT
+      printf (", fft");
 #endif
       printf ("] [");
       switch (method)
@@ -690,10 +689,6 @@ main (int argc, char *argv[])
       fprintf (stderr, "Too large stage 1 bound, limit is %1.0f\n", MAX_B1);
       exit (EXIT_FAILURE);
     }
-
-#ifdef POLYGCD
-  NTL_init ();
-#endif
 
   init_expr ();
 
@@ -1113,8 +1108,8 @@ BreadthFirstDoAgain:;
               if (verbose > 0)
                 {
                   printf ("Found %s factor of %2u digits: ", 
-                          factor_is_prime ? "probable prime" :
-                          "COMPOSITE     ", nb_digits (f));
+                          factor_is_prime ? "probable prime" : "composite",
+                          nb_digits (f));
                   mpz_out_str (stdout, 10, f);
                   printf ("\n");
                 }
@@ -1245,10 +1240,6 @@ OutputFactorStuff:;
       free (pCandidates);
     }
 	  
-#ifdef POLYGCD
-  NTL_clear ();
-#endif
-
   free_expr ();
 
   gmp_randclear (randstate);
