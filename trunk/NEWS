@@ -1,3 +1,22 @@
+Changes between ecm-6.0 and ecm-6.0.1
+
+* now checks for availability of snprintf() during configure
+* fixed linking problems with tune and tune2 on PowerPC G5
+* fixed segfault in rho.c
+* fixed main()'s B2 value being overwritten by callees
+* allow both \r and \n for newline (for Apple computers)
+* made files compile under Visual C
+* fixed bug in listz.c that could leave undefined data
+* fixed the -B2scale option
+* fixed small error in printed B2' value (with -v)
+* added Windows section to INSTALL
+* small corrections to ecm.xml and ecm.1
+* added curve counter in loop mode again
+* fixed segfault when a non-number was in place of B2 on command line
+* worked around problem with MinGW/Wine scanf() (value 1 too high for %n)
+* free rhotable memory at end of stage 2
+* replaced GSL's dilog_series() in rho.c due to licensing (GPL vs. LGPL)
+
 Changes between ecm-5.0.3 and ecm-6.0:
 
 * use of the autotools (configure/make)	
