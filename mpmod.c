@@ -45,7 +45,7 @@ void mpz_mod_n (mpz_t, mpmod_t);
          recognized 
 */
 int 
-isbase2(mpz_t n, double threshold)
+isbase2 (mpz_t n, double threshold)
 {
   unsigned int k, lo; 
   int res = 0; 
@@ -77,8 +77,8 @@ isbase2(mpz_t n, double threshold)
   mpz_clear (u);
   mpz_clear (w);
   if (abs (res) > (int)(threshold * lo)) 
-    res=0;
-  return (res);
+    res = 0;
+  return res;
 }
 
 /* Do base-2 reduction. R must not equal S or t. */
@@ -98,16 +98,16 @@ base2mod (mpres_t R, mpres_t S, mpres_t t, mpmod_t modulus)
 void 
 REDC (mpres_t r, mpres_t x, mpz_t t, mpmod_t modulus)
 {
-  mpz_tdiv_r_2exp(t, x, modulus->bits);
-  mpz_mul(t, t, modulus->aux_modulus);
-  mpz_tdiv_r_2exp(t, t, modulus->bits);  /* t = (x % R) * 1/N (mod R) */
-  mpz_mul(t, t, modulus->orig_modulus);
-  mpz_add(t, t, x);
-  mpz_tdiv_q_2exp(t, t, modulus->bits);  /* t = (x + m*N) / R */
-  if (mpz_cmp(t, modulus->orig_modulus) > 0)
-    mpz_sub(r, t, modulus->orig_modulus);
+  mpz_tdiv_r_2exp (t, x, modulus->bits);
+  mpz_mul (t, t, modulus->aux_modulus);
+  mpz_tdiv_r_2exp (t, t, modulus->bits);  /* t = (x % R) * 1/N (mod R) */
+  mpz_mul (t, t, modulus->orig_modulus);
+  mpz_add (t, t, x);
+  mpz_tdiv_q_2exp (t, t, modulus->bits);  /* t = (x + m*N) / R */
+  if (mpz_cmp (t, modulus->orig_modulus) > 0)
+    mpz_sub (r, t, modulus->orig_modulus);
   else
-    mpz_set(r, t);
+    mpz_set (r, t);
 }
 
 /* multiplies c by R^k modulo n where R=2^mp_bits_per_limb 
@@ -255,7 +255,7 @@ void
 mpmod_init_MODMULN (mpmod_t modulus, mpz_t N)
 {
   int Nbits;
-  
+
   mpz_init_set (modulus->orig_modulus, N);
   
   modulus->repr = MOD_MODMULN;
@@ -278,7 +278,7 @@ mpmod_init_MODMULN (mpmod_t modulus, mpz_t N)
 
   mpz_init (modulus->R2);
   mpz_set_ui (modulus->temp1, 1);
-  mpz_mul_2exp (modulus->temp1, modulus->temp1, 2*Nbits);
+  mpz_mul_2exp (modulus->temp1, modulus->temp1, 2 * Nbits);
   mpz_mod (modulus->R2, modulus->temp1, modulus->orig_modulus);
   /* Now R2 = (2^bits)^2 (mod N) */
   
