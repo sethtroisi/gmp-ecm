@@ -388,5 +388,7 @@ clear_G:
   if (verbose >= 1)
     printf ("Stage 2 took %dms and %lumuls\n", cputime() - st0, tot_muls);
 
+  mpz_clear (n);
+
   return youpi;
 }
