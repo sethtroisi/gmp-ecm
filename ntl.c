@@ -39,6 +39,11 @@ void gmp_of_ntl (mpz_t a, ZZ& b)
 
   n = NumBytes (b); /* number of 256-digits to represent abs(b) */
   s = (unsigned char *) malloc (n * sizeof (char));
+  if (s == NULL)
+    {
+      fprintf (stderr, "Error: not enough memory\n");
+      exit (EXIT_FAILURE);
+    }
   BytesFromZZ (s, b, n);
   mpz_set_ui (a, 0);
   while (n)

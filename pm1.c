@@ -445,6 +445,11 @@ pm1_rootsF (mpz_t f, listz_t F, unsigned int d, mpres_t *x, listz_t t,
       fin_diff_coeff (coeffs, 7, 6, S, dickson_a);
       
       fd = (mpres_t *) malloc ((S + 1) * sizeof (mpres_t));
+      if (fd == NULL)
+        {
+          fprintf (stderr, "Error: not enough memory\n");
+          exit (EXIT_FAILURE);
+        }
       for (k = 0; k <= (unsigned) S; k++) 
         {
           mpres_init (fd[k], modulus);
@@ -537,6 +542,11 @@ pm1_rootsG_init (mpres_t *x, double s, unsigned int d, int S,
   fin_diff_coeff (coeffs, s, d, S, dickson_a);
   
   fd = (mpres_t *) malloc((S + 1) * sizeof(mpres_t));
+  if (fd == NULL)
+    {
+      fprintf (stderr, "Error: not enough memory\n");
+      exit (EXIT_FAILURE);
+    }
   for (k = 0; k <= (unsigned) S; k++) 
     {
       mpres_init (fd[k], modulus);

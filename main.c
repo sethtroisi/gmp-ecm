@@ -668,6 +668,11 @@ BreadthFirstDoAgain:;
 		  is prp and we are prp testing) */
 	      nMaxCandidates = 100;
 	      pCandidates = malloc (nMaxCandidates*sizeof(mpcandi_t));
+              if (pCandidates == NULL)
+                {
+                  fprintf (stderr, "Error: not enough memory\n");
+                  exit (EXIT_FAILURE);
+                }
 
 	      while (!feof (infile))
 		{
@@ -679,6 +684,11 @@ BreadthFirstDoAgain:;
 			{
 			    mpcandi_t *tmp = pCandidates;
 			    pCandidates = malloc ((nMaxCandidates+100)*sizeof(mpcandi_t));
+                            if (pCandidates == NULL)
+                              {
+                                fprintf (stderr, "Error: not enough memory\n");
+                                exit (EXIT_FAILURE);
+                              }
 			    /*	perform a "shallow" copy, in which we do NOT need to free any of the 
 				individual elements, but just the array memory */
 			    if (pCandidates)

@@ -61,6 +61,11 @@ init_list (unsigned int n)
   unsigned int i;
 
   p = (mpz_t*) malloc (n * sizeof(mpz_t));
+  if (p == NULL)
+    {
+      fprintf (stderr, "Error: not enough memory\n");
+      exit (EXIT_FAILURE);
+    }
   for (i = 0; i < n; i++)
     mpz_init (p[i]);
   return p;
