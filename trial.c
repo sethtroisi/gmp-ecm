@@ -65,12 +65,11 @@ int trial_factor(mpcandi_t *n, double maxfact)
 	      Percentage /= maxfact;
 	      Percentage *= 100;
 	      fprintf (stderr, "T:%03d\r", (int)Percentage);
-
-	      /*  This code is here to see just how often this ++Counter loop is entered.  It is entered quite a bit
-	      static int x;
-	      fprintf (stderr, "T:%03d\r", ++x);
-	      */
-  	    }
+ 	    }
+	  /*  This code is here to see just how often this ++Counter loop is entered.  It is entered quite a bit
+	  static int x;
+	  fprintf (stderr, "T:%03d\r", ++x);
+	  */
           Counter=0;
 	}
     }
