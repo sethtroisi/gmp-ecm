@@ -21,28 +21,20 @@ the Free Software Foundation, Inc., 59 Temple Place - Suite 330, Boston,
 MA 02111-1307, USA. */
 
 #ifndef alloca
-# ifdef __GNUC__
-#  define alloca __builtin_alloca
-# else
-#  ifdef __DECC
-#   define alloca(x) __ALLOCA(x)
-#  else
-#   ifdef _MSC_VER
-#    include <malloc.h>
-#    define alloca _alloca
-#   else
-#    if HAVE_ALLOCA_H || defined (sun)
-#     include <alloca.h>
-#    else
-#     if defined (_AIX) || defined (_IBMR2)
- #pragma alloca
-#     else
-       char *alloca ();
-#     endif
-#    endif
-#   endif
-#  endif
-# endif
+#ifdef __GNUC__
+# define alloca __builtin_alloca
+#elif defined (__DECC)
+# define alloca(x) __ALLOCA(x)
+#elif defined (_MSC_VER)
+# include <malloc.h>
+# define alloca _alloca
+#elif HAVE_ALLOCA_H || defined (sun)
+# include <alloca.h>
+#elif defined (_AIX) || defined (_IBMR2)
+#pragma alloca
+#else
+  char *alloca ();
+#endif
 #endif
 
 #define ABSIZ(x) ABS (SIZ (x))
