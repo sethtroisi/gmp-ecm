@@ -606,6 +606,7 @@ ecm (mpz_t f, mpz_t x, mpz_t sigma, mpz_t n, mpz_t go, double B1done,
   mpmod_t modulus;
   curve P;
 
+  set_verbose (verbose);
   ECM_STDOUT = (os == NULL) ? stdout : os;
   ECM_STDERR = (es == NULL) ? stdout : es;
 
@@ -670,7 +671,7 @@ ecm (mpz_t f, mpz_t x, mpz_t sigma, mpz_t n, mpz_t go, double B1done,
   else if (repr > 16)
     mpmod_init_BASE2 (modulus, repr, n);
   else /* automatic choice, avoiding base2 if repr=-1 */
-    mpmod_init (modulus, n, repr, verbose);
+    mpmod_init (modulus, n, repr);
 
   mpres_init (P.x, modulus);
   mpres_init (P.A, modulus);
@@ -777,7 +778,7 @@ ecm (mpz_t f, mpz_t x, mpz_t sigma, mpz_t n, mpz_t go, double B1done,
   youpi = montgomery_to_weierstrass (f, P.x, P.y, P.A, modulus);
 
   if (youpi == ECM_NO_FACTOR_FOUND)
-    youpi = stage2 (f, &P, modulus, B2min, B2, k, S, verbose, ECM_ECM, st);
+    youpi = stage2 (f, &P, modulus, B2min, B2, k, S, ECM_ECM, st);
   
   mpres_clear (P.y, modulus);
 

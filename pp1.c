@@ -224,7 +224,7 @@ pp1_check_factor (mpz_t a, mpz_t p, FILE *ECM_STDOUT)
 */
 int
 pp1_rootsF (listz_t F, unsigned int d1, unsigned int d2, unsigned int dF, 
-            mpres_t *x, listz_t t, mpmod_t modulus, int verbose)
+            mpres_t *x, listz_t t, mpmod_t modulus)
 {
   unsigned int i, j, muls = 0;
   int st, st2;
@@ -235,8 +235,8 @@ pp1_rootsF (listz_t F, unsigned int d1, unsigned int d2, unsigned int dF,
 
   st2 = st = cputime ();
 
-  if (verbose >= 3)
-    fprintf (ECM_STDOUT, "pp1_rootsF: d1 = %d, d2 = %d, dF = %d\n", d1, d2, dF);
+  outputf (OUTPUT_DEVVERBOSE, "pp1_rootsF: d1 = %d, d2 = %d, dF = %d\n",
+	   d1, d2, dF);
 
   mpres_init (fd[0], modulus);
   mpres_init (fd[1], modulus);
@@ -255,9 +255,9 @@ pp1_rootsF (listz_t F, unsigned int d1, unsigned int d2, unsigned int dF,
   pp1_mul (fd[1], fd[2], *t, modulus, fd[3], fd[4]);
   /* for P+1, fd[0] = V_{7*d2}(P), fd[1] = V_{6*d2}(P), fd[2] = V_{d2}(P) */
 
-  if (verbose >= 2)
-    fprintf (ECM_STDOUT, "Initializing table of differences for F took %dms\n",
-	     cputime () - st2);
+  outputf (OUTPUT_VERBOSE,
+	   "Initializing table of differences for F took %dms\n",
+	   cputime () - st2);
   i = 1;
   j = 7;
   while (i < dF)
@@ -280,13 +280,9 @@ pp1_rootsF (listz_t F, unsigned int d1, unsigned int d2, unsigned int dF,
   mpres_clear (fd[3], modulus);
   mpres_clear (fd[4], modulus);
 
-  if (verbose >= 2)
-    {
-      fprintf (ECM_STDOUT, "Computing roots of F took %dms", cputime () - st);
-      if (verbose > 2)
-        fprintf (ECM_STDOUT, " and %d muls", muls);
-      fprintf (ECM_STDOUT, "\n");
-    }
+  outputf (OUTPUT_VERBOSE, "Computing roots of F took %dms", cputime () - st);
+  outputf (OUTPUT_DEVVERBOSE, " and %d muls", muls);
+  outputf (OUTPUT_VERBOSE, "\n");
   
   return ECM_NO_FACTOR_FOUND;
 }
@@ -342,8 +338,7 @@ pp1_rootsG_clear (pp1_roots_state *state, ATTRIBUTE_UNUSED mpmod_t modulus)
 }
 
 int
-pp1_rootsG (listz_t G, unsigned int d, pp1_roots_state *state, 
-            mpmod_t modulus, int verbose)
+pp1_rootsG (listz_t G, unsigned int d, pp1_roots_state *state, mpmod_t modulus)
 {
   unsigned int i;
   int st;
@@ -361,13 +356,9 @@ pp1_rootsG (listz_t G, unsigned int d, pp1_roots_state *state,
       state->rsieve ++;
     }
 
-  if (verbose >= 2)
-    {
-      fprintf (ECM_STDOUT, "Computing roots of G took %dms", cputime () - st);
-      if (verbose > 2)
-        fprintf (ECM_STDOUT, ", %u muls", d);
-      fprintf (ECM_STDOUT, "\n");
-    }
+  outputf (OUTPUT_VERBOSE, "Computing roots of G took %dms", cputime () - st);
+  outputf (OUTPUT_DEVVERBOSE, ", %u muls", d);
+  outputf (OUTPUT_VERBOSE, "\n");
   
   return ECM_NO_FACTOR_FOUND;
 }
@@ -384,7 +375,7 @@ pp1_rootsG (listz_t G, unsigned int d, pp1_roots_state *state,
 	  B1 is the stage 1 bound
 	  B2 is the stage 2 bound
           k is the number of blocks for stage 2
-          verbose is the verbose level: 0=quiet, 1=normal, 2=verbose
+          verbose is the verbosity level
    Output: p is the factor found
    Return value: non-zero iff a factor is found (1 for stage 1, 2 for stage 2)
 */
@@ -397,6 +388,7 @@ pp1 (mpz_t f, mpz_t p, mpz_t n, mpz_t go, double B1done, double B1,
   mpres_t a;
   mpmod_t modulus;
 
+  set_verbose (verbose);
   ECM_STDOUT = (os == NULL) ? stdout : os;
   ECM_STDERR = (es == NULL) ? stdout : es;
 
@@ -435,7 +427,7 @@ pp1 (mpz_t f, mpz_t p, mpz_t n, mpz_t go, double B1done, double B1,
       S = 1;
     }
   
-  if (verbose >= 1)
+  if (test_verbose (OUTPUT_NORMAL))
     {
       fprintf (ECM_STDOUT, "Using ");
       if (ECM_IS_DEFAULT_B1_DONE(B1done))
@@ -448,7 +440,7 @@ pp1 (mpz_t f, mpz_t p, mpz_t n, mpz_t go, double B1done, double B1,
         fprintf (ECM_STDOUT, ", B2=%1.0f-%1.0f", B2min, B2);
 
       fprintf (ECM_STDOUT, ", polynomial x^1");
-      if (ECM_IS_DEFAULT_B1_DONE(B1done) || verbose > 1) /* don't print x0 in resume case */
+      if (ECM_IS_DEFAULT_B1_DONE(B1done) || test_verbose (OUTPUT_VERBOSE)) /* don't print x0 in resume case */
 	{
 	  fprintf (ECM_STDOUT, ", x0=");
 	  mpz_out_str (ECM_STDOUT, 10, p);
@@ -466,7 +458,7 @@ pp1 (mpz_t f, mpz_t p, mpz_t n, mpz_t go, double B1done, double B1,
   else if (repr > 16)
     mpmod_init_BASE2 (modulus, repr, n);
   else /* automatic choice */
-    mpmod_init (modulus, n, repr, verbose);
+    mpmod_init (modulus, n, repr);
 
   mpres_init (a, modulus);
   mpres_set_z (a, p, modulus);
@@ -485,23 +477,19 @@ pp1 (mpz_t f, mpz_t p, mpz_t n, mpz_t go, double B1done, double B1,
 
   st = cputime () - st;
 
-  if (verbose >= 1)
+  outputf (OUTPUT_NORMAL, "Step 1 took %dms\n", st);
+  if (test_verbose (OUTPUT_VERBOSE))
     {
-      fprintf (ECM_STDOUT, "Step 1 took %dms\n", st);
+      fprintf (ECM_STDOUT, "x=");
+      mpres_out_str (ECM_STDOUT, 10, a, modulus);
+      fprintf (ECM_STDOUT, "\n");
       fflush (ECM_STDOUT);
-      if (verbose >= 2)
-	{
-	  fprintf (ECM_STDOUT, "x=");
-	  mpres_out_str (ECM_STDOUT, 10, a, modulus);
-	  fprintf (ECM_STDOUT, "\n");
-	  fflush (ECM_STDOUT);
-	}
     }
 
   if (youpi == ECM_NO_FACTOR_FOUND) /* no factor found, no error */
-    youpi = stage2 (f, &a, modulus, B2min, B2, k, S, verbose, ECM_PP1, st);
+    youpi = stage2 (f, &a, modulus, B2min, B2, k, S, ECM_PP1, st);
 
-  if (youpi > 0 && verbose > 0)
+  if (youpi > 0 && test_verbose (OUTPUT_NORMAL))
     pp1_check_factor (p, f, ECM_STDOUT); /* tell user if factor was found by P-1 */
 
   mpres_get_z (p, a, modulus);
