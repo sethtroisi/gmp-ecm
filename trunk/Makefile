@@ -80,3 +80,6 @@ dist: $(DIST)
 	tar cf ecm-$(VERSION).tar ecm-$(VERSION)
 	/bin/rm -fr ecm-$(VERSION)
 	gzip --best ecm-$(VERSION).tar
+
+median: median-aux.o auxi.o listz.o toomcook.o median.o
+	gcc -lgmp -lm $^ -o median
