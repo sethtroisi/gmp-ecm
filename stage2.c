@@ -405,6 +405,7 @@ stage2 (mpz_t f, void *X, mpmod_t modulus, double B2min, double B2,
         {
           list_sub (H, G, F, dF); /* coefficients 1 of degree cancel,
                                      thus T is of degree < dF */
+          list_mod (H, H, dF, n);
           /* ------------------------------------------------
              |   F    |  invF  |    G    |         T        |
              ------------------------------------------------
@@ -415,6 +416,7 @@ stage2 (mpz_t f, void *X, mpmod_t modulus, double B2min, double B2,
 	{
           /* since F and G are monic of same degree, G mod F = G - F */
           list_sub (G, G, F, dF);
+          list_mod (G, G, dF, n);
 
           /* ------------------------------------------------
              |   F    |  invF  |    G    |         T        |

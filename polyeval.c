@@ -282,7 +282,7 @@ polyeval_tellegen (listz_t b, unsigned int k, listz_t *Tree, listz_t tmp,
 #endif
 #else
     /* need space 2k-1+list_mul_mem(k) in T */
-    muls = list_mul_high (T, invF, b, k, T + 2 * k - 1);
+    muls = list_mul_high (T, invF, b, k, T + 2 * k - 1, n);
     list_set (T, T + k - 1, k);
 #endif
     totmuls += muls;

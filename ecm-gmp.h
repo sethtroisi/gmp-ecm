@@ -56,6 +56,14 @@ MA 02111-1307, USA. */
 #define TMP_ALLOC_TYPE(n,type) ((type *) TMP_ALLOC ((n) * sizeof (type)))
 #define TMP_ALLOC_LIMBS(n)     TMP_ALLOC_TYPE(n,mp_limb_t)
 
+#ifndef MPZ_REALLOC
+#define MPZ_REALLOC(z,n) ((n) > ALLOC(z) ? _mpz_realloc(z,n) : PTR(z))
+#endif
+
+#ifndef MPN_COPY
+#define MPN_COPY(d,s,n) mpn_add_1(d,s,n,(mp_limb_t)0)
+#endif
+
 #if WANT_ASSERT
 #include <assert.h>
 #define ASSERT(expr)   assert (expr)

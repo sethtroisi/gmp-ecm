@@ -24,14 +24,22 @@
 #include "gmp.h"
 #include "ecm.h"
 
-#if (MULT == TOOM4)
+#ifdef DEBUG
+#define ASSERTD(x) assert(x)
+#else
+#define ASSERTD(x)
+#endif
+
+#if (MULT == KS)
+#define LIST_MULT_N kronecker_schonhage
+#elif (MULT == TOOM4)
 #define LIST_MULT_N toomcook4
 #elif (MULT == TOOM3)
 #define LIST_MULT_N toomcook3
 #elif (MULT == KARA)
 #define LIST_MULT_N karatsuba
 #else
-#error "MULT is neither TOOM4, nor TOOM3, nor KARA"
+#error "MULT is neither KS, TOOM4, nor TOOM3, nor KARA"
 #endif
 
 extern unsigned int Fermat;
@@ -145,14 +153,15 @@ list_revert (listz_t p, unsigned int n)
 }
 #endif
 
-/* p <- -q */
+/* p <- -q, keeps residues normalized */
 void
-list_neg (listz_t p, listz_t q, unsigned int n)
+list_neg (listz_t p, listz_t q, unsigned int l, mpz_t n)
 {
   unsigned int i;
 
-  for (i = 0; i < n; i++)
-    mpz_neg (p[i], q[i]);
+  for (i = 0; i < l; i++)
+    if (mpz_sgn (p[i]))
+      mpz_sub (p[i], n, q[i]);
 }
 
 /* p <- q modulo mod */
@@ -167,21 +176,21 @@ list_mod (listz_t p, listz_t q, unsigned int n, mpz_t mod)
 
 /* p <- q + r */
 void
-list_add (listz_t p, listz_t q, listz_t r, unsigned int n)
+list_add (listz_t p, listz_t q, listz_t r, unsigned int l)
 {
   unsigned int i;
 
-  for (i = 0; i < n; i++)
+  for (i = 0; i < l; i++)
     mpz_add (p[i], q[i], r[i]);
 }
 
 /* p <- q - r */
 void
-list_sub (listz_t p, listz_t q, listz_t r, unsigned int n)
+list_sub (listz_t p, listz_t q, listz_t r, unsigned int l)
 {
   unsigned int i;
 
-  for (i = 0; i < n; i++)
+  for (i = 0; i < l; i++)
     mpz_sub (p[i], q[i], r[i]);
 }
 
@@ -238,6 +247,21 @@ list_zerop (listz_t p, unsigned int n)
   return iszero;
 }
 
+int
+list_check (listz_t a, unsigned int l, mpz_t n)
+{
+  unsigned int i;
+
+  for (i = 0; i < l; i++)
+    if (mpz_cmp_ui (a[i], 0) < 0 || mpz_cmp (n, a[i]) <= 0)
+      {
+        printf ("l=%u i=%u\n", l, i);
+        mpz_out_str (stdout, 10, a[i]); printf ("\n");
+        return 0;
+      }
+  return 1;
+}
+
 /* puts in a[0]..a[K-1] the K low terms of the product 
    of b[0..K-1] and c[0..K-1].
    Returns the number of scalar multiplies.
@@ -245,7 +269,7 @@ list_zerop (listz_t p, unsigned int n)
    Needs space for list_mul_mem(K) in t.
 */
 static int
-list_mul_low (listz_t a, listz_t b, listz_t c, unsigned int K, listz_t t)
+list_mul_low (listz_t a, listz_t b, listz_t c, unsigned int K, listz_t t, mpz_t n)
 {
   unsigned int p, q, muls;
 
@@ -268,12 +292,13 @@ list_mul_low (listz_t a, listz_t b, listz_t c, unsigned int K, listz_t t)
       /* MULT is 2 for Karatsuba, 3 for Toom3, 4 for Toom4 */
       for (p = 1; MULT * p <= K; p *= MULT); /* p = greatest power of MULT <=K */
       p = (K / p) * p;
+      ASSERTD(list_check(b,p,n) && list_check(c,p,n));
       muls = LIST_MULT_N (a, b, c, p, t);
       if ((q = K - p))
         {
-          muls += list_mul_low (t, b + p, c, q, t + 2 * q - 1);
+          muls += list_mul_low (t, b + p, c, q, t + 2 * q - 1, n);
           list_add (a + p, a + p, t, q);
-          muls += list_mul_low (t, c + p, b, q, t + 2 * q - 1);
+          muls += list_mul_low (t, c + p, b, q, t + 2 * q - 1, n);
           list_add (a + p, a + p, t, q);
         }
       return muls;
@@ -287,7 +312,7 @@ list_mul_low (listz_t a, listz_t b, listz_t c, unsigned int K, listz_t t)
    Needs space for list_mul_mem(K) in t.
 */
 int
-list_mul_high (listz_t a, listz_t b, listz_t c, unsigned int K, listz_t t)
+list_mul_high (listz_t a, listz_t b, listz_t c, unsigned int K, listz_t t, mpz_t n)
 {
   unsigned int p, q, muls;
 
@@ -314,12 +339,13 @@ list_mul_high (listz_t a, listz_t b, listz_t c, unsigned int K, listz_t t)
       for (p = 1; MULT * p <= K; p *= MULT);
       p = (K / p) * p;
       q = K - p;
+      ASSERTD(list_check(b+q,p,n) && list_check(c+q,p,n));
       muls = LIST_MULT_N (a + 2 * q, b + q, c + q, p, t);
       if (q)
         {
-          muls += list_mul_high (t, b + p, c, q, t + 2 * q - 1);
+          muls += list_mul_high (t, b + p, c, q, t + 2 * q - 1, n);
           list_add (a + K - 1, a + K - 1, t + q - 1, q);
-          muls += list_mul_high (t, c + p, b, q, t + 2 * q - 1);
+          muls += list_mul_high (t, c + p, b, q, t + 2 * q - 1, n);
           list_add (a + K - 1, a + K - 1, t + q - 1, q);
         }
       return muls;
@@ -464,11 +490,11 @@ karatsuba (listz_t a, listz_t b, listz_t c, unsigned int K, listz_t t)
 int
 list_mul (listz_t a, listz_t b, unsigned int k, int monic_b,
           listz_t c, unsigned int l, int monic_c,
-          listz_t t)
+          listz_t t, mpz_t n)
 {
   unsigned int i, po2, muls;
 
-  assert (k >= l);
+  ASSERTD (k >= l);
   
   for (po2 = l; (po2 & 1) == 0; po2 >>= 1);
   po2 = (po2 == 1);
@@ -476,6 +502,8 @@ list_mul (listz_t a, listz_t b, unsigned int k, int monic_b,
   if (Fermat && !(po2 && l == k))
     printf ("list_mul: Fermat number, but poly lengths %d and %d\n", k, l);
 
+  ASSERTD(list_check(b,l,n));
+  ASSERTD(list_check(c,l,n));
   if (po2 && Fermat)
     muls = F_mul (a, b, c, l, Fermat, t); 
   else
@@ -530,6 +558,9 @@ list_mulmod (listz_t a2, listz_t a, listz_t b, listz_t c, unsigned int k,
   int i, muls;
 
   for (i = k; (i & 1) == 0; i >>= 1);
+  
+  ASSERTD(list_check(b,k,n));
+  ASSERTD(list_check(c,k,n));
   if (i == 1 && Fermat)
     muls = F_mul (a, b, c, k, Fermat, t); 
   else
@@ -564,6 +595,7 @@ PolyFromRoots (listz_t G, listz_t a, unsigned int k, listz_t T, int verbose,
        /* if Tree=NULL, then G=a and nothing to do */
        if (Tree != NULL)
          mpz_set (G[0], a[0]);
+       mpz_mod (G[0], G[0], n);
        return 0;
      }
 
@@ -605,7 +637,7 @@ PolyFromRoots (listz_t G, listz_t a, unsigned int k, listz_t T, int verbose,
 
    muls = PolyFromRoots (H1, a, l, T, 0, n, F, NextTree, sh);
    muls += PolyFromRoots (H1 + l, a + l, m, T, 0, n, F, NextTree, sh + l);
-   muls += list_mul (T, H1, l, 1, H1 + l, m, 1, T + k);
+   muls += list_mul (T, H1, l, 1, H1 + l, m, 1, T + k, n);
    list_mod (G, T, k, n);
    
    if (verbose >= 2)
@@ -639,11 +671,12 @@ PolyInvert (listz_t q, listz_t b, unsigned int K, listz_t t, mpz_t n)
 
       muls = PolyInvert (q + k, b + k, l, t, n); /* Q1 = {q+k, l} */
 
+      ASSERTD(list_check(q+k,l,n) && list_check(b,l,n));
       if (po2)
         muls += F_mul (t, q + k, b, l, Fermat, t + 2 * l);   /* t[0..2l-1] = Q1 * B0 */
       else
         muls += LIST_MULT_N (t, q + k, b, l, t + 2 * l - 1); /* t[0..2l-1] = Q1 * B0 */
-      list_neg (t, t + l - 1, k);
+      list_neg (t, t + l - 1, k, n);
       
       if (k > 1)
         {
@@ -652,10 +685,12 @@ PolyInvert (listz_t q, listz_t b, unsigned int K, listz_t t, mpz_t n)
             muls += F_mul (t + k, q + k, b + l, k, Fermat, t + k + K); /* t[k ... l+k-1] = Q1 * B1 */
           else
             muls += list_mul (t + k, q + k, l - 1, 1, b + l, k - 1, 1,
-                              t + k + K - 2); /* Q1 * B1 */
+                              t + k + K - 2, n); /* Q1 * B1 */
           list_sub (t + 1, t + 1, t + k, k - 1);
         }
       list_mod (t, t, k, n); /* high(1-B*Q1) */
+
+      ASSERTD(list_check(t,k,n) && list_check(q+l,k,n));
       if (po2)
         muls += F_mul (t + k, t, q + l, k, Fermat, t + 3 * k);
       else
@@ -703,6 +738,7 @@ RecursiveDivision (listz_t q, listz_t a, listz_t b, unsigned int K,
       /* first perform a (2l) / l division */
       muls = RecursiveDivision (q + k, a + 2 * k, b + k, l, t, n, 0);
       /* subtract q[k..k+l-1] * b[0..k-1] */
+      ASSERTD(list_check(q+l,k,n) && list_check(b,k,n));
       if (po2 && Fermat)
         muls += F_mul (t, q + l, b, k, Fermat, t + K); /* sets t[0..2*k-2] */
       else
@@ -722,6 +758,7 @@ RecursiveDivision (listz_t q, listz_t a, listz_t b, unsigned int K,
       /* then perform a (2k) / k division */
       muls += RecursiveDivision (q, a + l, b + l, k, t, n, 0);
       /* subtract q[0..k-1] * b[0..l-1] */
+      ASSERTD(list_check(q,k,n) && list_check(b,k,n));
       if (po2 && Fermat)
         muls += F_mul (t, q, b, k, Fermat, t + K);
       else
@@ -773,7 +810,7 @@ PrerevertDivision (listz_t a, listz_t b, listz_t invb,
       muls = F_mul (t, a + K, invb, K, Fermat, t + 2 * K);
     }
   else
-    muls = list_mul_high (t, a + K, invb, K - 1, t + 2 * K - 3);
+    muls = list_mul_high (t, a + K, invb, K - 1, t + 2 * K - 3, n);
 
   list_mod (a + K, t + K - 2, K - 1, n);
 
@@ -784,7 +821,7 @@ PrerevertDivision (listz_t a, listz_t b, listz_t invb,
   if (Fermat && po2)
       muls += F_mul (t, a + K, b, K, Fermat, t + 2 * K);
   else
-      muls += list_mul_low (t, a + K, b, K, t + 2 * K - 1);
+      muls += list_mul_low (t, a + K, b, K, t + 2 * K - 1, n);
 
   /* now {t, K} contains the low K terms from Q*B */
   list_sub (a, a, t, K);

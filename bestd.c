@@ -111,8 +111,10 @@ muls_gen (unsigned int n)
   return muls_toom3 (n);
 #elif (MULT == KARA)
   return muls_kara (n);
+#elif (MULT == KS)
+  return muls_toom4 (n); /* approximate */
 #else
-#error "MULT is neither TOOM4, nor TOOM3, nor KARA"
+#error "MULT is neither KS, nor TOOM4, nor TOOM3, nor KARA"
 #endif
 }
 

@@ -21,7 +21,6 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include "gmp.h"
-#include "ecm.h"
 
 /* define WANT_ASSERT to check normalization of residues */
 /* #define WANT_ASSERT 1 */
@@ -31,6 +30,8 @@
 #else
 #include "ecm-gmp.h"
 #endif /* WANT_GMP_IMPL */
+
+#include "ecm.h"
 
 #define ASSERT_NORMALIZED(x) ASSERT ((modulus->repr != MOD_MODMULN && \
 				      modulus->repr != MOD_REDC) || \
