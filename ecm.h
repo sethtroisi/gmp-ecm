@@ -18,7 +18,7 @@
   02111-1307, USA.
 */
 
-#define ECM_VERSION "5.1-beta"
+#define ECM_VERSION "5.1.1-beta"
 
 /* To use new polyeval_tellegen */
 #define POLYEVALTELLEGEN
