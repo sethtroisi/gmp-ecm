@@ -181,6 +181,9 @@ stage2 (mpz_t f, void *X, mpmod_t modulus, double B2min, double B2,
   if (verbose >= 2)
     printf ("B2'=%1.0f k=%u b2=%1.0f d=%u dF=%u\n", B2, k, b2, d, dF);
 
+  /* Prep the screen for stage 2 */
+  fprintf (stderr, "2:000\r");
+
   F = init_list (dF + 1);
 
   sizeT = 3 * dF - 1 + list_mul_mem (dF);
