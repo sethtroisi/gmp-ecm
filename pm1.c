@@ -74,6 +74,17 @@ stage1 (mpz_t a, mpz_t n, double B1)
 
   max_size = L1 * mpz_sizeinbase (n, 2);
 
+  /* suggestion from Peter Montgomery: start with exponent n-1,
+     since any prime divisor of b^m-1 which does not divide any
+     algebraic factor of b^m-1 must be of the form km+1 [Williams82].
+     Do this only when n is composite, otherwise all tests with prime
+     n factor of a Cunningham number will succeed in stage 1. */
+  if (mpz_probab_prime_p (n, 1) == 0)
+    {
+      mpz_sub_ui (g, n, 1);
+      mpz_powm (a, a, g, n);
+    }
+
   /* first loop through small primes <= sqrt(B1) */
   for (p = 2.0; p <= B0; p = getprime(p))
     {
