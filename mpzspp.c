@@ -24,10 +24,11 @@
 #include <time.h> /* FIXME */
 #include <stdio.h> /* FIXME */
 
-void
-mpzspp_init (mpzspp_t mpzspp, mpzspm_t mpzspm)
+mpzspp_t
+mpzspp_init (mpzspm_t mpzspm)
 {
   unsigned int i;
+  mpzspp_t mpzspp = (mpzspp_t) malloc (sizeof (__mpzspp_struct));
   mpzspp->alloc_len = 0;
   mpzspp->len = 0;
   mpzspp->spv = (spv_t *) malloc (mpzspm->sp_num * sizeof (spv_t *));
@@ -36,6 +37,8 @@ mpzspp_init (mpzspp_t mpzspp, mpzspm_t mpzspm)
   /* we could have used a calloc but let's allow for NULL != 0 */
   for (i = 0; i < mpzspm->sp_num; i++)
     mpzspp->spv[i] = NULL;
+
+  return mpzspp;
 }
 
 void
@@ -46,6 +49,7 @@ mpzspp_clear (mpzspp_t mpzspp)
     free (mpzspp->spv[i]);
   
   free (mpzspp->spv);
+  free (mpzspp);
 }
 
 void 
