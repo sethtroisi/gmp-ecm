@@ -522,13 +522,12 @@ pm1_rootsG_init (mpres_t *x, double s, unsigned int d, int S,
                  mpmod_t modulus)
 {
   unsigned int k;
-  int invtrick = 0, dickson_a = 0;
+  int dickson_a = 0;
   listz_t coeffs;
   mpres_t *fd;
 
   if (S > 6 && (S & 1) == 0)
     {
-      invtrick = 1;
       S /= 2;
     }
   else if (S < 0)
@@ -547,6 +546,7 @@ pm1_rootsG_init (mpres_t *x, double s, unsigned int d, int S,
       fprintf (stderr, "Error: not enough memory\n");
       exit (EXIT_FAILURE);
     }
+
   for (k = 0; k <= (unsigned) S; k++) 
     {
       mpres_init (fd[k], modulus);
