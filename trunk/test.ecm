@@ -99,4 +99,5 @@ ECM="$1"
 (echo 3213162276640339413566047915418064969550383692549981333701 | $ECM -sigma 2735675386 3897500) ||
    (echo "############### ERROR ###############"; exit 1) || exit
 
-echo "The tests passed."
+echo ""
+echo "All tests are ok."
