@@ -297,7 +297,9 @@ int  freadstrn (FILE *, char *, char, unsigned int);
 int  read_resumefile_line (int *, mpz_t, mpcandi_t *, mpz_t, mpz_t, mpz_t, double *,
                            char *, char *, char *, char *, FILE *);
 void write_resumefile_line (FILE *, int, double, mpz_t, mpz_t, mpz_t, mpcandi_t *, 
-                            mpz_t, char *);
+                            mpz_t, const char *);
+void write_temp_resumefile (int method, double B1, mpz_t sigma, mpz_t A, mpz_t x, mpz_t n, int);
+void kill_temp_resume_file (void);
 
 /* main.c */
 int read_number (mpcandi_t *n, FILE *, int primetest);
@@ -305,16 +307,16 @@ int read_number (mpcandi_t *n, FILE *, int primetest);
 /* eval.c */
 int eval (mpcandi_t *n, FILE *fd, int bPrp);
 int eval_str (mpcandi_t *n, char *cp, int primetest, char **EndChar); /* EndChar can be NULL */
-void init_expr(void);
-void free_expr(void);
+void init_expr (void);
+void free_expr (void);
 
 /* candi.c */
-void mpcandi_t_init(mpcandi_t *n);  /* damn, a C++ class sure would have been nice :(  */
-void mpcandi_t_free(mpcandi_t *n);
-int  mpcandi_t_copy(mpcandi_t *to, mpcandi_t *from);
-int  mpcandi_t_add_candidate(mpcandi_t *n, mpz_t c, const char *cpExpr, int bPrp);
-int  mpcandi_t_addfoundfactor(mpcandi_t *n, mpz_t f, int displaywarning);
-int  mpcandi_t_addfoundfactor_d(mpcandi_t *n, double f);
+void mpcandi_t_init (mpcandi_t *n);  /* damn, a C++ class sure would have been nice :(  */
+void mpcandi_t_free (mpcandi_t *n);
+int  mpcandi_t_copy (mpcandi_t *to, mpcandi_t *from);
+int  mpcandi_t_add_candidate (mpcandi_t *n, mpz_t c, const char *cpExpr, int bPrp);
+int  mpcandi_t_addfoundfactor (mpcandi_t *n, mpz_t f, int displaywarning);
+int  mpcandi_t_addfoundfactor_d (mpcandi_t *n, double f);
 
 /* memory.c */
 #ifdef MEMORY_DEBUG
