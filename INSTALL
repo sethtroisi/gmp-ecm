@@ -9,15 +9,6 @@ Instructions to install gmp-ecm:
    be sure to install the latest version of GNU MP (4.1.2 on February 2003),
    and to compile it on your particular processor.
 
-   Warning: to compile gmp-ecm, it is better to use the same compiler and
-   options than used to compile GMP, otherwise the compilation may
-   fail, or you may get poor performance. In the GMP build directory,
-   simply type:
-
-   $ egrep '(CC|CFLAGS)' Makefile
-
-   to see which compiler and options were used to build GMP.
-
 1) to create the binary file "ecm5", type:
 
       $ make GMP=<gmpdir>
@@ -25,8 +16,17 @@ Instructions to install gmp-ecm:
    where <gmpdir> is the directory where GMP is installed
    (default is /usr/local/gmp).
 
-   If the default setting does not work, edit the Makefile to change 
-   CC and CFLAG to the values used by GMP (grep CC <gmpbuilddir>/Makefile).
+   Warning: to compile gmp-ecm, it is better to use the same compiler and
+   options than used to compile GMP, otherwise the compilation may
+   fail, or you may get poor performance. In the GMP build directory,
+   simply type:
+
+   $ egrep '(CC|CFLAGS)' Makefile
+
+   to see which compiler and options were used to build GMP. For example
+   on a Sparc v9 you may want to type:
+   
+   $ make GMP=<gmpdir> CC=cc CFLAGS="-fast -fns=no -fsimple=1 -xarch=v9" 
 
 2) (optional) to check that "ecm5" works correctly, type:
 
