@@ -20,7 +20,7 @@ along with the GNU MP Library; see the file COPYING.LIB.  If not, write to
 the Free Software Foundation, Inc., 59 Temple Place - Suite 330, Boston,
 MA 02111-1307, USA. */
 
-#if defined(__sun)
+#if !defined(__freebsd)
 #include <alloca.h>
 #endif
 #define ABSIZ(x) ABS (SIZ (x))
