@@ -562,7 +562,7 @@ numbers, and many other nice things;
 Dave Newman &lt;david.newman@jesus.ox.ac.uk&gt;
 contributed the Kronecker-Schoenhage multiplication code;
 Paul Zimmermann &lt;zimmerma@loria.fr&gt; is the author of the first version
-of gmp-ecm.
+of the program.
 </para>
 </refsect1>
 </refentry>

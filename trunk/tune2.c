@@ -6,10 +6,10 @@
 #define N 32
 
 /* to avoid conflict with that of libecm */
-#define mpn_mul_lo_basecase tune_mpn_mul_lo_basecase
+#define ecm_mul_lo_basecase tune_ecm_mul_lo_basecase
 
 static INLINE void
-mpn_mul_lo_basecase (mp_ptr rp, mp_srcptr np, mp_srcptr mp, mp_size_t n)
+ecm_mul_lo_basecase (mp_ptr rp, mp_srcptr np, mp_srcptr mp, mp_size_t n)
 {
   mpn_mul_1 (rp, np, n, mp[0]);
   for (; --n;)
@@ -19,7 +19,7 @@ mpn_mul_lo_basecase (mp_ptr rp, mp_srcptr np, mp_srcptr mp, mp_size_t n)
 mp_size_t threshold[N];
 
 static void
-mpn_mul_lo_n_tune (mp_ptr rp, mp_srcptr np, mp_srcptr mp, mp_size_t n)
+ecm_mul_lo_n_tune (mp_ptr rp, mp_srcptr np, mp_srcptr mp, mp_size_t n)
 {
   mp_size_t k = threshold[n];
 
@@ -32,16 +32,16 @@ mpn_mul_lo_n_tune (mp_ptr rp, mp_srcptr np, mp_srcptr mp, mp_size_t n)
       }
     case 1:
       {
-        mpn_mul_lo_basecase (rp, np, mp, n);
+        ecm_mul_lo_basecase (rp, np, mp, n);
         return;
       }
     default:
       mpn_mul_n (rp, np, mp, k);
       rp += k;
       n -= k;
-      mpn_mul_lo_n_tune (rp + n, np + k, mp, n);
+      ecm_mul_lo_n_tune (rp + n, np + k, mp, n);
       mpn_add_n (rp, rp, rp + n, n);
-      mpn_mul_lo_n_tune (rp + n, np, mp + k, n);
+      ecm_mul_lo_n_tune (rp + n, np, mp + k, n);
       mpn_add_n (rp, rp, rp + n, n);
     }
 }
@@ -52,7 +52,7 @@ test (mp_ptr cp, mp_ptr ap, mp_ptr bp, mp_size_t n, int k)
   int st = cputime ();
 
   while (k--)
-    mpn_mul_lo_n_tune (cp, ap, bp, n);
+    ecm_mul_lo_n_tune (cp, ap, bp, n);
 
   return cputime () - st;
 }
@@ -85,8 +85,8 @@ main ()
       printf ("%u\t", st[0] = test (cp, ap, bp, n, k)); /* mpn_mul_n */
 
       threshold[n] = 1;
-      printf ("%u\t", st[1] = test (cp, ap, bp, n, k)); /* mpn_mul_lo_basecase */
-      /* find optimal threshold for mpn_mul_lo_n */
+      printf ("%u\t", st[1] = test (cp, ap, bp, n, k)); /* ecm_mul_lo_basecase */
+      /* find optimal threshold for ecm_mul_lo_n */
       st[2] = INT_MAX;
       for (t = (n + 1) / 2; t < n; t++)
         {
@@ -102,7 +102,7 @@ main ()
       printf ("%u(%u)\t", st[2], (unsigned int) topt);
       threshold[n] = topt;
 
-      if (st[1] <= st[2]) /* mpn_mul_lo_n slower than mpn_mul_lo_basecase */
+      if (st[1] <= st[2]) /* ecm_mul_lo_n slower than ecm_mul_lo_basecase */
 	{
 	  if (st[0] <= st[1])
 	    {
@@ -115,7 +115,7 @@ main ()
 	      printf ("low_bc");
 	    }
 	}
-      else /* mpn_mul_lo_n faster than mpn_mul_lo_basecase */
+      else /* ecm_mul_lo_n faster than ecm_mul_lo_basecase */
 	{
 	  if (st[0] <= st[2])
 	    {

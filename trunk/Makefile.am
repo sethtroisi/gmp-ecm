@@ -24,8 +24,6 @@ EXTRA_DIST = test.pm1 test.pp1 test.ecm ecm.1 README.lib ecm.xml
 
 man_MANS = ecm.1
 
-XSLDIR = /usr/share/xml/docbook/stylesheet/nwalsh
-
 check: ecm
 	$(srcdir)/test.pp1 ./ecm
 	$(srcdir)/test.pm1 ./ecm

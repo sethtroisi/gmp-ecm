@@ -186,7 +186,7 @@ ecm_redc_n (mp_ptr rp, mp_srcptr xp, mp_srcptr orig, mp_srcptr aux, mp_size_t n)
 
   TMP_MARK(marker);
   up = TMP_ALLOC_LIMBS(nn + nn);
-  mpn_mul_lo_n (up, xp, aux, n);
+  ecm_mul_lo_n (up, xp, aux, n);
   tp = up + nn;
   mpn_mul_n (tp, up, orig, n);
   /* add {x, 2n} and {tp, 2n}. We know that {tp, n} + {xp, n} will give
