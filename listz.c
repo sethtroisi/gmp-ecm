@@ -859,8 +859,8 @@ PrerevertDivision (listz_t a, listz_t b, listz_t invb,
                    unsigned int K, listz_t t, mpz_t n)
 {
   int po2, wrap;
-#ifdef WRAP
   listz_t t2 = NULL;
+#ifdef WRAP
   wrap = ks_wrapmul_m (K + 1, K + 1, n) <= 2 * K - 1 + list_mul_mem (K);
 #else
   wrap = 0;
