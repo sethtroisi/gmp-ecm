@@ -213,7 +213,7 @@ dickmanrho (double alpha)
     {
       int a = floor (alpha * invh);
       double rho1 = rhotable[a];
-      double rho2 = rhotable[a + 1];
+      double rho2 = (a + 1) < tablemax * invh ? rhotable[a + 1] : 0;
       return rho1 + (rho2 - rho1) * (alpha / h - (double)a);
     }
   
@@ -241,7 +241,7 @@ dickmanrhosigma_i (int ai, double x)
     return 0.;
   if (ai <= invh)
     return 1.;
-  if (ai <= tablemax * invh)
+  if (ai < tablemax * invh)
     return rhotable[ai] - M_EULER * rhotable[ai - invh] / log(x);
   
   return 0.;
@@ -268,9 +268,9 @@ dickmanlocal_i (int ai, double x)
     return 0.;
   if (ai <= invh)
     return 1.;
-  if (ai <= 2 * invh)
+  if (ai <= 2 * invh && ai < tablemax * invh)
     return rhotable[ai] - M_EULER / log (x);
-  if (ai <= tablemax * invh)
+  if (ai < tablemax * invh)
     {
       double logx = log (x);
       return rhotable[ai] - (M_EULER * rhotable[ai - invh]
