@@ -33,6 +33,21 @@ double getprime (double);
 
 #define mulmod(r,u,v,n) mpz_mul(r,u,v);mpz_mod(r,r,n);
 
+void          dicksonmod(mpz_t, mpz_t, unsigned int, mpz_t, mpz_t);
+int           is_P_minus_i (mpz_t, unsigned int);
+unsigned int  eulerphi (unsigned int);
+unsigned int  get_lenF (unsigned int);
+unsigned int  gcd (unsigned int, unsigned int);
+void          quicksort (mpz_t *, unsigned int);
+int           getparm_ui (int, char **, int, char *, unsigned int *);
+int           getparm_d (int, char **, int, char *, double *);
+int           getparm_mpz (int, char **, int, char *, mpz_t *);
+int           brent_suyama_match (mpz_t, unsigned int, unsigned int, 
+                 unsigned int, unsigned int, mpz_t, mpz_t *, mpz_t *); 
+double        brent_suyama_theo (mpz_t, unsigned int, unsigned int, 
+                  unsigned int, unsigned int, mpz_t);
+void          print_help (void);
+
 /* Computes Dickson_{n, a}(x), the degree n Dickson polynomial with
    parameter a, evaluated at point x, and returns value modulo p in r */
 void dicksonmod(mpz_t r, mpz_t x, unsigned int n, mpz_t a, 
@@ -91,8 +106,26 @@ void dicksonmod(mpz_t r, mpz_t x, unsigned int n, mpz_t a,
   mpz_clear (t);
 }
 
+
+/* Test if N+1 is a probable prime */
+
+int 
+is_P_minus_i (mpz_t N, unsigned int i)
+{
+  int r;
+  
+  mpz_add_ui (N, N, i);
+  r = mpz_probab_prime_p (N, 5);
+  mpz_sub_ui (N, N, i);
+  
+  return r;
+}
+
+
 /* Euler Phi(n) function, number of residues coprime to n */
-unsigned int eulerphi(unsigned int n) {
+unsigned int 
+eulerphi (unsigned int n) 
+{
   unsigned int i, r=1;
   
   for (i=2; i*i<=n; i++)
@@ -113,7 +146,14 @@ unsigned int eulerphi(unsigned int n) {
 }
 
 unsigned int 
-gcd (unsigned int a, unsigned int b) {
+get_lenF (unsigned int D)
+{
+  return (eulerphi (D) / 2);
+}
+
+unsigned int 
+gcd (unsigned int a, unsigned int b) 
+{
   unsigned int t;
   
   while (b != 0) {
@@ -124,6 +164,7 @@ gcd (unsigned int a, unsigned int b) {
   
   return a;
 }
+
 
 #ifdef WITH_INDEX
 
@@ -233,7 +274,16 @@ getparm_mpz (int argc, char **argv, int i, char *parm, mpz_t *res)
       exit(EXIT_FAILURE);
     }
     
-    mpz_set_str (*res, argv[i], 10);
+    if (index (argv[i], 'e'))
+      {                      /* Hmm, looks like scientific notation */
+        double t;
+        t = atof (argv[i]);
+        mpz_set_d (*res, t);
+        mpz_add_ui (*res, *res, 1); /* Avoid getting a value with lots of 2
+                                       factors because of mantissa truncation */
+      } else
+        mpz_set_str (*res, argv[i], 10);
+
     return 1;
   }
   
@@ -249,21 +299,22 @@ getparm_mpz (int argc, char **argv, int i, char *parm, mpz_t *res)
 int 
 brent_suyama_match (mpz_t modulus, unsigned int S, unsigned int D, 
         unsigned int startG, unsigned int endG, mpz_t a, mpz_t *F_param, 
-        mpz_t *G_param,	unsigned int *dparam)
+        mpz_t *G_param)
 {
   unsigned int lenF, lenG, i, j, nrfactors = 0;
   mpz_t *F, *G;
   mpz_t t;
   unsigned int *d;
   
-  if (endG < startG || D <= 1 || S == 0)
+  if (endG < startG || D <= 1 || D % 6 != 0 || S == 0 || S & 1)
     return 0;
   
-  lenF = eulerphi (D);
+  lenF = get_lenF (D);
   lenG = endG - startG + 1;
   mpz_init (t);
   
   /* Allocate memory for F, if not passed by caller */
+
   if (F_param == NULL)
     {
       F = (mpz_t *) malloc (lenF * sizeof (mpz_t));
@@ -272,7 +323,9 @@ brent_suyama_match (mpz_t modulus, unsigned int S, unsigned int D,
     } else
       F = F_param;
   
+
   /* Allocate memory for G, if not passed by caller */
+
   if (G_param == NULL)
     {
       G = (mpz_t *) malloc (lenG * sizeof (mpz_t));
@@ -281,17 +334,16 @@ brent_suyama_match (mpz_t modulus, unsigned int S, unsigned int D,
     } else
       G = G_param;
   
-  /* Build list of values coprime to D, if not passed by caller */
-  if (dparam == NULL)
-    {
-      d = (unsigned int *) malloc (lenF * sizeof (unsigned int));
-      j = 0;
-      for (i = 0; i < D; i++)
-        if (gcd (i, D) == 1)
-          d[j++] = i;
-    } else
-      d = dparam;
+
+  /* Build list of values coprime to D and == 1 (mod 6) */
+
+  d = (unsigned int *) malloc (lenF * sizeof (unsigned int));
+  j = 0;
+  for (i = 1; i < D; i += 6)
+    if (gcd (i, D) == 1)
+      d[j++] = i;
   
+
   /* Build lists F and G */
   for (i = 0; i < lenF; i++)
     {
@@ -320,13 +372,13 @@ brent_suyama_match (mpz_t modulus, unsigned int S, unsigned int D,
   /* Look for matches */
   for (i = 0, j = 0; i < lenF && j < lenG; i++) 
     {
-      while (mpz_cmp (F[i], G[j]) > 0 && j < lenG - 1) 
+      while (j < lenG && mpz_cmp (F[i], G[j]) > 0) 
         j++;
-      if (mpz_cmp (F[i], G[j]) == 0 && 
+      if (j < lenG && mpz_cmp (F[i], G[j]) == 0 && 
           i+j > 0) /* Eliminate spurious factors in Dickson */
         {
           unsigned int tj = j;
-          while (mpz_cmp (F[i], G[tj]) == 0) 
+          while (tj < lenG && mpz_cmp (F[i], G[tj]) == 0) 
             {
               nrfactors++;
               tj++;
@@ -348,10 +400,7 @@ brent_suyama_match (mpz_t modulus, unsigned int S, unsigned int D,
       free (G);
     }
         
-  if (dparam == NULL)
-    {
-      free (d);
-    }
+  free (d);
 
   return nrfactors;
 }
@@ -361,10 +410,10 @@ double
 brent_suyama_theo (mpz_t modulus, unsigned int S, unsigned int D, 
         unsigned int startG, unsigned int endG, mpz_t a)
 {
-  unsigned int mod_S, gcd_S, phi_D;
+  unsigned int mod_S, gcd_S, lenF;
   double nr_points, p;
   
-  if (endG < startG || D <= 1 || S == 0)
+  if (endG < startG || D <= 1 || S == 0 || S & 1)
     return 0.;
   
   /* See if the linear factors catch it */
@@ -378,19 +427,19 @@ brent_suyama_theo (mpz_t modulus, unsigned int S, unsigned int D,
   else
     gcd_S = (gcd (mod_S - 1, S) + gcd (mod_S + 1, S)) / 2 - 2;
   
-  phi_D = eulerphi (D);
-  nr_points = (double) phi_D * (double) (endG - startG + 1);
+  lenF = get_lenF (D);
+  nr_points = (double) lenF * (double) (endG - startG + 1);
   p = mpz_get_d (modulus);
   
   return 1.0 - pow(1.0 - (double)gcd_S / p, nr_points);
 }
 
 void 
-print_help()
+print_help ()
 {
-  printf ("countsmooth [-N <N>] [-tests <nrtests>] [-B1 <B1>] [-B2 <B2>] [-S <S>]\n"
-          " [-D <D>] [-startG <startG>] [-endG <endG>] [-a <a>] [-maxBS <maxBS>]\n"
-          " [-v] [-theo]\n\n\n");
+  printf ("countsmooth [-N <N>] [-tests <nrtests>] [-blocks <blocks>] [-B1 <B1>]\n"
+          " [-B2 <B2>] [-S <S>] [-D <D>] [-startG <startG>] [-endG <endG>] [-a <a>]\n"
+          " [-maxBS <maxBS>] [-v] [-theo] [-pm1] [-ecm]\n\n\n");
 
   printf (" Determines which values in [N, N+nrtests-1] are smooth according to given \n"
           " parameters.\n");
@@ -404,43 +453,53 @@ print_help()
 
   printf (" <N>         Start of range of numbers to invesigate.\n");
   printf (" <nrtests>   Length of range of numbers to investigate.\n");
+  printf (" <blocks>    Split range into this many blocks to conserve memory.\n"
+          "             By default <blocks> == 1\n");
   printf (" <B1>        B1-smoothness limit.\n");
   printf (" <B2>        B2-smoothness limit.\n");
-  printf (" <S>         Degree of Brent-Suyama polynoial in stage 2.\n");
+  printf (" <S>         Degree of Brent-Suyama polynomial in stage 2.\n");
   printf (" <D>         Stride for roots of G in stage 2.\n");
-  printf (" <startG>    Starting value for roots of G is D * startG.\n");
-  printf (" <endG>      Ending value for roots of G is D * endG.\n");
-  printf (" <a>         Paramter for Dickson polynomial. If a == 0, S-th powers are\n"
-          "             used. a = 0 is the default.\n");
-  printf (" <maxBS>     Brent-Suyama extension is only tried on cofactors <= maxBS\n");
+  printf (" <startG>    Starting value for roots of G is <D> * <startG>.\n"
+          "             Default is floor(<B1> / <D>)\n");
+  printf (" <endG>      Ending value for roots of G is <D> * <endG>.\n"
+          "             Default is floor(<B2> / <D>) + 1\n");
+  printf (" <a>         Parameter for Dickson polynomial. If <a> == 0, <S>-th powers\n"
+          "             are used. <a> = 0 is the default.\n");
+  printf (" <maxBS>     Brent-Suyama extension is only tried on cofactors <= <maxBS>\n"
+          "             Default is <B2> * 1000\n");
   printf (" -v          Verbose. Print info on each value found smooth.\n");
   printf (" -theo       Don't really compute and match Brent-Suyama values, just\n"
           "             calculate the probability of success and add up expected values.\n");
+  printf (" -pm1        Investigate only those values in [N, N+nrtest-1] that are\n"
+          "             a prime minus 1\n");
+  printf( " -ecm        Adjust for the ECM algorithm (divides N by 12, doubles S)\n");
 }
 
 int 
 main(int argc, char **argv)
 {
   mpz_t N, a, *cofac;
-  unsigned int p, B1=0, nrtests=0, i, D, S, startG, endG;
+  unsigned int len_cofac;
+  unsigned int p, B1=0, i, D, S, startG , endG, Nmod12, blocklen;
+  unsigned int nr_tests = 0, nr_blocks = 1, blockstart = 0, nr_primes = 0;
 #ifdef PRIMEGEN
   primegen pg[1];
 #endif
   double ppow, 
          B2=0., 
-         maxBS, /* Try Brent-Suyama only on cofactors <= maxBS */
+         maxBS = 0., /* Try Brent-Suyama only on cofactors <= maxBS */
          nrBSsmooth = 0.; /* Nr (or expected value) of Brent-Suyama successes */
   unsigned int nrB1smooth = 0, nrB2smooth = 0;
-  int verbose = 0, theo = 0;
+  int verbose = 0, theo = 0, ecm_style = 0, pminus1 = 0;
   mpz_t *F, *G;
   
   mpz_init (N);
   mpz_init (a);
-  D = 1;
-  startG = endG = S = 0;
+  D = endG = S = 0;
+  startG = 0xffffffff;
   B1 = 1000000;
   B2 = 100000000;
-  nrtests = 10000;
+  nr_tests = 10000;
   mpz_set_str (N, "8333333333333333333333333331", 10);
   
   /* Get parameters */
@@ -451,7 +510,13 @@ main(int argc, char **argv)
         verbose = 1;
       else if (strcmp (argv[i], "-theo") == 0)
         theo = 1;
-      else if (getparm_ui (argc, argv, i, "-tests", &nrtests))
+      else if (strcmp (argv[i], "-ecm") == 0)
+        ecm_style = 1;
+      else if (strcmp (argv[i], "-pm1") == 0)
+        pminus1 = 1;
+      else if (getparm_ui (argc, argv, i, "-tests", &nr_tests))
+        i++;
+      else if (getparm_ui (argc, argv, i, "-blocks", &nr_blocks))
         i++;
       else if (getparm_ui (argc, argv, i, "-B1", &B1))
         i++;
@@ -479,108 +544,180 @@ main(int argc, char **argv)
         }
     }
   
-  cofac = (mpz_t *) malloc (nrtests * sizeof (mpz_t));
-  for (i=0; i<nrtests; i++)
+  if (maxBS == 0.)
+    maxBS = B2 * 1000.;
+  
+  if (startG == 0xffffffff && D > 1)
+    startG = B1 / D;
+  
+  if (endG == 0 && D > 1)
     {
-      mpz_init_set (cofac[i], N);
-      mpz_add_ui (cofac[i], cofac[i], i);
+      if (B2 > (double)(~1U)*(double)D)
+        {
+          fprintf (stderr, 
+            "Overflow error computing default endG. Please set explicitly\n");
+          exit (EXIT_FAILURE);
+        }
+      endG = (unsigned int) (B2 / (double) D);
+    }
+  
+  if (ecm_style)
+    {
+      /* ECM is known to have a group order divisible by 12, which 
+         effectively makes the part that has yet to be smooth N/12.
+         Instead of generating multiples of 12 and sieving those,
+         we simply divide N by 12 here. This leads to rounding down if N
+         was not a multiple of 12, which we must correct when printing.
+         
+         ECM finds a factor if p|f_S(x)-f_S(y) or p|f_S(x)+f_S(y), (because
+         a point and it's negative have the same x-coordinate) where p is 
+         the missing group order factor, and f_S(x) and f_S(y) are the 
+         polynomial values examined by the Brent-Suyma extension in stage 2. 
+         If p is prime, this is equivalent to the condition 
+         p|(f_S(x)-f_S(y))(f_S(x)+f_S(y)), and for both f_S(x)=x^S and 
+         f_S(x) = S-th Dickson polynomials, 
+         (f_S(x)-f_S(y))(f_S(x)+f_S(y)) = f_{2S}(x)-f_{2S}(y).
+         So effectively, ECM behaves as if S were twice as large, which we
+         account for by simply doubling S here. */
+
+      Nmod12 = mpz_fdiv_q_ui (N, N, 12);
+      S = S * 2;
     }
 
-  F = (mpz_t *) malloc (eulerphi (D) * sizeof (mpz_t));
-  for (i = 0; i < eulerphi(D); i++)
+  if (verbose)
+    {
+      printf ("B1=%u, B2=%.0f, %s%u, D=%u, %u<=G<=%u\nN=",
+               B1, B2, mpz_sgn(a) ? "Dickson_" : "X^", S, D, startG, endG);
+      mpz_out_str (stdout, 10, N);
+      printf ("\n");
+      fflush (stdout);
+    }
+  
+  len_cofac = (nr_tests + nr_blocks - 1) / nr_blocks;
+  cofac = (mpz_t *) malloc (len_cofac * sizeof (mpz_t));
+  for (i = 0; i < len_cofac; i++)
+    mpz_init (cofac[i]);
+
+  F = (mpz_t *) malloc (get_lenF (D) * sizeof (mpz_t));
+  for (i = 0; i < get_lenF (D); i++)
     mpz_init (F[i]);
 
   G = (mpz_t *) malloc ((endG - startG + 1) * sizeof (mpz_t));
   for (i = 0; i < (endG - startG + 1); i++)
     mpz_init (G[i]);
 
-  /* Do the sieving */
+  while (nr_tests > 0)
+    {
+      if (nr_tests < len_cofac)
+        blocklen = nr_tests;
+      else
+        blocklen = len_cofac;
+      
+      /* Init cofac */
+      for (i = 0; i < blocklen; i++)
+        mpz_add_ui (cofac[i], N, i);
+
+      /* Do the sieving */
 #ifdef PRIMEGEN
-  primegen_init (pg);
-  for (p=primegen_next(pg); p <= B1; p=primegen_next(pg))
+      primegen_init (pg);
+      for (p=primegen_next(pg); p <= B1; p=primegen_next(pg))
 #else
-  for (p=2; p <= B1; p=getprime(p))
+      for (p=2; p <= B1; p=getprime(p))
 #endif
-    {
-      i = mpz_fdiv_ui (N, p);
-      if (i > 0)
-        i = p - i;
-
-      while (i < nrtests)
         {
-          if (mpz_fdiv_q_ui (cofac[i], cofac[i], p) != 0)
+          i = mpz_fdiv_ui (N, p);
+          if (i > 0)
+            i = p - i;
+
+          while (i < blocklen)
             {
-              fprintf (stderr, "%d does not divide cofac[%d]\n", p, i);
-              exit (EXIT_FAILURE);
-            }
-          /* Take out prime powers. Not very efficient. */
-          ppow = (double)p * (double)p;
-          while (ppow <= B1 && mpz_fdiv_ui (cofac[i], p) == 0)
-            {
-              mpz_fdiv_q_ui (cofac[i], cofac[i], p);
-              ppow *= (double) p;
-            }
-          i += p;
-        }
-    }
-
-  for (i=0; i < nrtests; i++)
-    {
-      if (mpz_cmp_ui (cofac[i], 1) == 0)
-        {
-          if (verbose)
-            printf ("%d: B1-smooth\n", i);
-
-          nrB1smooth++;
-          continue;
-        }
-
-      if (mpz_cmp_d (cofac[i], B2) <= 0)
-        {
-          if (verbose)
-            {
-              printf ("%d: ", i);
-              mpz_out_str (stdout, 10, cofac[i]);
-              printf ("\n");
-            }
-
-          nrB2smooth++;
-          continue;
-        }
-
-      if (mpz_cmp_d (cofac[i], maxBS) <= 0)
-        {
-          if (theo)
-            {
-              double pr;
-              pr = brent_suyama_theo (cofac[i], S, D, startG, endG, a);
-              nrBSsmooth += pr;
-              if (verbose && pr >= 0.3)
+              if (mpz_fdiv_q_ui (cofac[i], cofac[i], p) != 0)
                 {
-                  printf ("%d: ", i);
+                  fprintf (stderr, "%d does not divide cofac[%d]\n", p, i);
+                  exit (EXIT_FAILURE);
+                }
+              /* Take out prime powers. Not very efficient. */
+              ppow = (double)p * (double)p;
+              while (ppow <= B1 && mpz_fdiv_ui (cofac[i], p) == 0)
+                {
+                  mpz_fdiv_q_ui (cofac[i], cofac[i], p);
+                  ppow *= (double) p;
+                }
+              i += p;
+            }
+        }
+
+      /* Check which cofactors are small enough and report */
+      for (i = 0; i < blocklen; i++)
+        {
+          if (pminus1)
+            {
+              if (is_P_minus_i (N, i+1))
+                nr_primes++;
+              else
+                continue;
+            }
+          
+          if (mpz_cmp_ui (cofac[i], 1) == 0)
+            {
+              if (verbose)
+                printf ("N%s+%d: B1-smooth\n", ecm_style ? "/12" : "", i+blockstart);
+
+              nrB1smooth++;
+              continue;
+            }
+
+          if (mpz_cmp_d (cofac[i], B2) <= 0)
+            {
+              if (verbose)
+                {
+                  printf ("N%s+%d: ", ecm_style ? "/12" : "", i + blockstart);
                   mpz_out_str (stdout, 10, cofac[i]);
-                  printf (" (Brent-Suyama, pr=%f)\n", pr);
+                  printf ("\n");
                 }
-            } else {
-            
-              if (brent_suyama_match(cofac[i], S, D, startG, endG, a, F, G, 
-                    NULL) > 0)
-                {
-                  if (verbose)
-                    {
-                      printf ("%d: ", i);
-                      mpz_out_str (stdout, 10, cofac[i]);
-                      printf (" (Brent-Suyama)\n");
-                    }
 
-                  nrBSsmooth++;
-                  continue;
+              nrB2smooth++;
+              continue;
+            }
+
+          if (mpz_cmp_d (cofac[i], maxBS) <= 0)
+            {
+              if (theo)
+                {
+                  double pr;
+                  pr = brent_suyama_theo (cofac[i], S, D, startG, endG, a);
+                  nrBSsmooth += pr;
+                  if (verbose && pr >= 0.3)
+                    {
+                      printf ("N%s+%d: ", ecm_style ? "/12" : "", i + blockstart);
+                      mpz_out_str (stdout, 10, cofac[i]);
+                      printf (" (Brent-Suyama, pr=%f)\n", pr);
+                    }
+                } else {
+                
+                  if (brent_suyama_match (cofac[i], S, D, startG, endG, a, F, G))
+                    {
+                      if (verbose)
+                        {
+                          printf ("N%s+%d: ", ecm_style ? "/12" : "", i+blockstart);
+                          mpz_out_str (stdout, 10, cofac[i]);
+                          printf (" (Brent-Suyama)\n");
+                        }
+
+                      nrBSsmooth++;
+                      continue;
+                    }
                 }
             }
         }
+      
+      nr_tests -= blocklen;
+      blockstart += blocklen;
+      mpz_add_ui (N, N, blocklen);
+      p = getprime (0.);
     }
-     
-  for (i = 0; i < eulerphi(D); i++)
+  
+  for (i = 0; i < get_lenF (D); i++)
     mpz_clear (F[i]);
   free (F);
 
@@ -591,6 +728,9 @@ main(int argc, char **argv)
   printf ("B1-smooth: %d, B2-smooth: %d, found by Brent-Suyama: %f, Total: %d\n", 
     nrB1smooth, nrB2smooth, nrBSsmooth ,nrB1smooth + nrB2smooth + 
     (unsigned int) nrBSsmooth);
+
+  if (pminus1)
+    printf ("Number of N that are a prime - 1: %d\n", nr_primes);
 
   return 0;
 }
