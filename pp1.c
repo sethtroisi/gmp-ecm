@@ -404,7 +404,7 @@ pp1 (mpz_t f, mpz_t p, mpz_t n, mpz_t go, double B1done, double B1,
   if (mpz_divisible_2exp_p (n, 1))
     {
       mpz_set_ui (f, 2);
-      return ECM_FACTOR_FOUND;
+      return ECM_FACTOR_FOUND_STEP1;
     }
 
   st = cputime ();
@@ -418,7 +418,7 @@ pp1 (mpz_t f, mpz_t p, mpz_t n, mpz_t go, double B1done, double B1,
     }
 
   /* Set default B2. See ecm.c for comments */
-  if (IS_DEFAULT_B2(B2))
+  if (ECM_IS_DEFAULT_B2(B2))
     B2 = pow (2.0 * B1 / 6.0, 1.424828748);
 
   /* Scale B2 by what the user said (or by the default scaling of 1.0) */
@@ -426,7 +426,7 @@ pp1 (mpz_t f, mpz_t p, mpz_t n, mpz_t go, double B1done, double B1,
 
   /* Set default degree for Brent-Suyama extension */
 
-  if (S == 0)
+  if (S == ECM_DEFAULT_S)
     S = 1;
 
   if (S != 1)
@@ -438,7 +438,7 @@ pp1 (mpz_t f, mpz_t p, mpz_t n, mpz_t go, double B1done, double B1,
   if (verbose >= 1)
     {
       fprintf (ECM_STDOUT, "Using ");
-      if (IS_DEFAULT_B1_DONE(B1done))
+      if (ECM_IS_DEFAULT_B1_DONE(B1done))
         fprintf (ECM_STDOUT, "B1=%1.0f", B1);
       else
         fprintf (ECM_STDOUT, "B1=%1.0f-%1.0f", B1done, B1);
@@ -448,7 +448,7 @@ pp1 (mpz_t f, mpz_t p, mpz_t n, mpz_t go, double B1done, double B1,
         fprintf (ECM_STDOUT, ", B2=%1.0f-%1.0f", B2min, B2);
 
       fprintf (ECM_STDOUT, ", polynomial x^1");
-      if (IS_DEFAULT_B1_DONE(B1done) || verbose > 1) /* don't print x0 in resume case */
+      if (ECM_IS_DEFAULT_B1_DONE(B1done) || verbose > 1) /* don't print x0 in resume case */
 	{
 	  fprintf (ECM_STDOUT, ", x0=");
 	  mpz_out_str (ECM_STDOUT, 10, p);
@@ -465,7 +465,7 @@ pp1 (mpz_t f, mpz_t p, mpz_t n, mpz_t go, double B1done, double B1,
     mpmod_init_REDC (modulus, n);
   else if (repr > 16)
     mpmod_init_BASE2 (modulus, repr, n);
-  else
+  else /* automatic choice */
     mpmod_init (modulus, n, repr, verbose);
 
   mpres_init (a, modulus);
@@ -501,7 +501,7 @@ pp1 (mpz_t f, mpz_t p, mpz_t n, mpz_t go, double B1done, double B1,
   if (youpi == ECM_NO_FACTOR_FOUND) /* no factor found, no error */
     youpi = stage2 (f, &a, modulus, B2min, B2, k, S, verbose, ECM_PP1, st);
 
-  if (youpi == ECM_FACTOR_FOUND && verbose > 0)
+  if (youpi > 0 && verbose > 0)
     pp1_check_factor (p, f, ECM_STDOUT); /* tell user if factor was found by P-1 */
 
   mpres_get_z (p, a, modulus);

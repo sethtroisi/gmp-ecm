@@ -137,7 +137,6 @@ extern int externalprpval; /* exit value meaning it's prp, -1 is impossible */
 
 /* maximal stage 1 bound = 2^53 + 4, the next prime being 2^53 + 5 */
 #define MAX_B1 9007199254740996.0
-#define DEFAULT_B2 -1.0
 
 /* The checksum for savefile is the product of all mandatory fields, modulo
    the greatest prime below 2^32 */

@@ -127,9 +127,6 @@ extern FILE *ECM_STDOUT, *ECM_STDERR;
 
 #define ABS(x) ((x) >= 0 ? (x) : -(x))
 
-/* stage 2 bound */
-#define IS_DEFAULT_B2(x) (x < 0.0)
-
 /* getprime */
 #define WANT_FREE_PRIME_TABLE(p) (p < 0.0)
 #define FREE_PRIME_TABLE -1.0
@@ -496,6 +493,8 @@ int          outputf (int, char *, ...);
 void pp1_random_seed  (mpz_t, mpz_t, gmp_randstate_t);
 #define pm1_random_seed __ECM(pm1_random_seed)
 void pm1_random_seed  (mpz_t, mpz_t, gmp_randstate_t);
+#define get_random_ui   __ECM(get_random_ui)
+unsigned int get_random_ui (void);
 
 #if defined (__cplusplus)
 }

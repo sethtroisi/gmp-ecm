@@ -22,6 +22,12 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#if !defined (_MSC_VER)
+#include <unistd.h>
+#endif
+#include <time.h>
+#include <sys/time.h> /* gettimeofday */
+
 #include "gmp.h"
 #ifdef OUTSIDE_LIBECM
 #include "ecm-ecm.h"
@@ -66,4 +72,57 @@ pp1_random_seed (mpz_t seed, mpz_t n, gmp_randstate_t randstate)
   while (mpz_cmp_ui (q, 1) != 0);
   mpz_clear (q);
 }
+
+/* Produces a random unsigned int value */
+#if defined (_MSC_VER) || defined (__MINGW32__)
+#include <windows.h>
+unsigned int 
+get_random_ui (void)
+{
+  SYSTEMTIME tv;
+  GetSystemTime(&tv);
+  /* This gets us 27 bits of somewhat "random" data based on the time clock.
+     It would probably do the program justice if a better random mixing was done
+     in the non-MinGW get_random_ui if /dev/random does not exist */
+  return ((tv.wHour<<22)+(tv.wMinute<<16)+(tv.wSecond<<10)+tv.wMilliseconds) ^
+         ((tv.wMilliseconds<<17)+(tv.wMinute<<11)+(tv.wHour<<6)+tv.wSecond);
+}
+#else
+unsigned int 
+get_random_ui (void)
+{
+  FILE *rndfd;
+  struct timeval tv;
+  unsigned int t;
+
+  /* Try /dev/urandom */
+  rndfd = fopen ("/dev/urandom", "r");
+  if (rndfd != NULL)
+    {
+      if (fread (&t, sizeof(unsigned int), 1, rndfd) == 1)
+        {
+#ifdef DEBUG
+          printf ("Got seed for RNG from /dev/urandom\n");
+#endif
+          fclose (rndfd);
+          return t;
+        }
+      fclose (rndfd);
+    }
+
+  if (gettimeofday (&tv, NULL) == 0)
+    {
+#ifdef DEBUG
+      printf ("Got seed for RNG from gettimeofday()\n");
+#endif
+      return tv.tv_sec + tv.tv_usec;
+    }
+
+#ifdef DEBUG
+  printf ("Got seed for RNG from time()+getpid()\n");
+#endif
+  return time (NULL) + getpid ();
+}
+#endif
+
 
