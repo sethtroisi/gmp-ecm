@@ -168,7 +168,7 @@ double       block_size (unsigned long);
 int          cputime    (void);
 
 /* trial.c */
-int trial_factor(mpcandi_t *n, double maxfact);
+int trial_factor(mpcandi_t *n, double maxfact, int deep);
 
 /* ecm2.c */
 int     ecm_rootsF       (mpz_t, listz_t, unsigned int, curve *,
