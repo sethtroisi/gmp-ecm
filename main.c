@@ -986,7 +986,9 @@ BreadthFirstDoAgain:;
 	  t = time (NULL);
 	  if ((!breadthfirst && cnt == count) || (breadthfirst && 1 == breadthfirst_cnt))
 	    {
-	      printf ("[%.24s]\n", ctime (&t));
+              /* PZ: commented out since it produces a memory leak,
+                 and we need an option to enable and/or disable this. */
+	      /* printf ("[%.24s]\n", ctime (&t)); */
 	      /* first time this candidate has been run (if looping more than once */
 	      if (n.cpExpr && n.nexprlen < 1000)
 		printf ("Input number is %s (%u digits)\n", n.cpExpr, n.ndigits);
