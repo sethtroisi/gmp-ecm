@@ -4,14 +4,14 @@ lib_LIBRARIES = libecm.a
 libecm_a_SOURCES = ecm.c ecm2.c pm1.c pp1.c getprime.c listz.c lucas.c\
 		   stage2.c toomcook.c mpmod.c mul_lo.c polyeval.c median.c\
 		   schoen_strass.c ks-multiply.c rho.c bestd.c auxlib.c\
-		   random.c factor.c
+		   random.c factor.c Fgw.c
 
 bin_PROGRAMS = ecm
 noinst_PROGRAMS = tune tune2 ecmfactor
 
-ecm_SOURCES = auxi.c b1_ainc.c candi.c eval.c random2.c\
-	      main.c trial.c memory.c resume.c smartprp.c getprime2.c
-ecmfactor_SOURCES = ecmfactor.c
+ecm_SOURCES = auxi.c b1_ainc.c candi.c eval.c random2.c main.c trial.c \
+              memory.c resume.c smartprp.c getprime2.c
+ecmfactor_SOURCES = ecmfactor.c Fgw.c
 
 tune_SOURCES = mpmod.c tune.c mul_lo.c
 tune2_SOURCES = tune2.c
