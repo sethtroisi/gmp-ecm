@@ -533,7 +533,7 @@ stage2 (mpz_t f, void *X, mpmod_t modulus, mpz_t B2min, mpz_t B2,
 #ifdef HAVE_NTT
       ntt_PolyInvert (invF, F + 1, dF, T, mpzspm);
       sp_invF = mpzspp_init2 (mpzspm, 2 * dF);
-      mpzspp_set_mpzp (sp_invF, invF + 1, dF - 1, 0);
+      mpzspp_set_mpzp (sp_invF, invF, dF, 0);
       mpzspp_to_ntt (sp_invF, 2 * dF, 0);
 #else
       PolyInvert (invF, F + 1, dF, T, n);
@@ -685,8 +685,13 @@ stage2 (mpz_t f, void *X, mpmod_t modulus, mpz_t B2min, mpz_t B2,
   G = NULL;
   st = cputime ();
 #ifdef POLYEVALTELLEGEN
+#if defined HAVE_NTT
+  ntt_polyevalT (T, dF, Tree, T + dF + 1, sp_invF, mpzspm, TreeFilename);
+#else
   youpi = polyeval_tellegen (T, dF, Tree, T + dF + 1, sizeT - dF - 1, invF,
-			     n, TreeFilename);
+		  n, TreeFilename);
+#endif
+  
   if (youpi)
     {
       outputf (OUTPUT_ERROR, "Error, not enough memory\n");

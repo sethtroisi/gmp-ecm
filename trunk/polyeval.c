@@ -140,7 +140,7 @@ print_vect (listz_t t, unsigned int l)
  * of the tree.
  */
 
-static void
+void
 TUpTree (listz_t b, listz_t *Tree, unsigned int k, listz_t tmp, int dolvl,
          unsigned int sh, mpz_t n, FILE *TreeFile)
 {
