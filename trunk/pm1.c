@@ -65,7 +65,7 @@ stage1 (mpz_t a, mpz_t n, double B1)
   double B0, p, q, r;
   mpz_t g, d;
   int youpi;
-  mp_size_t max_size;
+  unsigned int max_size;
 
   mpz_init_set_ui (g, 1);
   mpz_init (d);
@@ -124,23 +124,25 @@ stage1 (mpz_t a, mpz_t n, double B1)
 	  B1 is the stage 1 bound
 	  B2 is the stage 2 bound
           k is the number of blocks for stage 2
+          verbose is the verbose level: 0=quiet, 1=normal, 2=verbose
    Output: p is the factor found
-   Return value: non-zero iff a factor is found
+   Return value: non-zero iff a factor is found (1 for stage 1, 2 for stage 2)
 */
 int
-pm1 (mpz_t p, mpz_t n, double B1, double B2, unsigned int k)
+pm1 (mpz_t p, mpz_t n, double B1, double B2, unsigned int k, int verbose)
 {
   int youpi, st;
 
   st = cputime ();
   youpi = stage1 (p, n, B1);
-  fprintf (stderr, "Stage 1 took %dms\n", cputime() - st);
+  if (verbose >= 1)
+    {
+      printf ("Stage 1 took %dms\n", cputime() - st);
+      fflush (stdout);
+    }
 
   if (youpi != 0) /* a factor was found */
-    return youpi;
+    return 1;
 
-  printf ("x="); mpz_out_str (stdout, 10, p); putchar ('\n');
-
-  return (B2 > B1) ? stage2 (p, n, B2, k) : 0;
-    
+  return (B2 > B1) ? stage2 (p, n, B2, k, verbose) : 0;
 }
