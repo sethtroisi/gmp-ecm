@@ -821,9 +821,10 @@ BreadthFirstDoAgain:;
 
       if ((!breadthfirst && cnt == count) || (breadthfirst && 1 == breadthfirst_cnt))
 	{
-	  int SomeFactor = trial_factor (&n, maxtrialdiv);
+	  int SomeFactor;
 	  /*  Note, if a factors are found, then n will be adjusted "down" */
 	  fprintf (stderr, "T:000 \r");
+	  SomeFactor = trial_factor (&n, maxtrialdiv);
 	  if (SomeFactor)
 	    {
 	      /* should we increase factors found for trivials ??? */
@@ -964,6 +965,15 @@ OutputFactorStuff:;
           write_resumefile_line (savefile, method, B1, sigma, A, x, &n, 
                                  orig_x0, comment);
         }
+
+      /* Clean up any temp file left over.  At this time, we "assume" that if the user wants
+         to resume the run, then they used -save file.  The temp save was ONLY to help in case
+         of a power outage (or similar) for a long run.  It would allow finishing the current
+         candidate, keeping the existing work done.   Now, we assume we "are" done. */
+#if !defined (DEBUG_AUTO_SAVE)
+      kill_temp_resume_file ();
+#endif
+
       /* advance B1, if autoincrement value had been set during command line parsing */
       if (!breadthfirst && autoincrementB1)
 	{
