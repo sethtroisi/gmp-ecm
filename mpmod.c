@@ -39,6 +39,10 @@
 #define FULL_REDUCTION
 /* #define DEBUG */
 
+#ifndef GMP_NUMB_BITS
+#define GMP_NUMB_BITS __GMP_BITS_PER_MP_LIMB
+#endif
+
 void base2mod (mpres_t, mpres_t, mpres_t, mpmod_t);
 void REDC (mpres_t, mpres_t, mpz_t, mpmod_t);
 void mpn_REDC (mp_ptr, mp_srcptr, mp_srcptr, mp_srcptr, mp_size_t);
