@@ -254,6 +254,10 @@ stage2 (mpz_t f, void *X, mpmod_t modulus, double B2min, double B2,
   list_set (Tree[lgk - 1], F, dF);
 #endif
 
+#ifdef TELLEGEN_DEBUG
+  printf ("Roots = ");
+  print_list (F, dF);
+#endif
   tot_muls += PolyFromRoots (F, F, dF, T, verbose | 1, n, 'F', Tree, 0);
 
   fprintf (stderr, "2:%02d\r",
@@ -285,6 +289,15 @@ stage2 (mpz_t f, void *X, mpmod_t modulus, double B2min, double B2,
                (int) (100.0 * (double) tot_muls / (double) est_muls));
 
       /* now invF[0..dF-1] = Quo(x^(2dF-1), F) */
+#ifdef TELLEGEN_DEBUG
+      printf ("dF = %d\n", dF);
+      printf ("nF = ");
+      mpz_out_str (NULL, 10, n);
+      printf ("\nF = ");
+      print_list (F, dF + 1);
+      printf ("\ninvF = ");
+      print_list (invF, dF); 
+#endif
       if (verbose >= 2)
         printf ("Computing 1/F took %ums and %lu muls\n", cputime() - st, muls);
       
@@ -418,6 +431,13 @@ stage2 (mpz_t f, void *X, mpmod_t modulus, double B2min, double B2,
     }
 
 #ifdef POLYEVAL
+#ifdef POLYEVALTELLEGEN
+
+  muls = polyeval_tellegen (T, dF, Tree, T + dF + 1, 
+                            sizeT - dF - 1, invF, n, 0);
+  tot_muls += muls;
+  youpi = list_gcd (f, T, dF, n) ? 2 : 0;
+#else
   st = cputime ();
   muls = polyeval (T, dF, Tree, T + dF + 1, n, verbose, 0);
   tot_muls += muls;
@@ -429,6 +449,7 @@ stage2 (mpz_t f, void *X, mpmod_t modulus, double B2min, double B2,
     printf ("Computing polyeval(F,G) took %ums and %lu muls\n",
             cputime() - st, muls);
   youpi = list_gcd (f, T, dF, n) ? 2 : 0;
+#endif
 #else
   st = cputime ();
   init_poly_list (polyF, dF, F);

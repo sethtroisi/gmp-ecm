@@ -191,7 +191,11 @@ muls_stage2 (unsigned int dF, unsigned int d, unsigned int S, unsigned int k)
   muls += (double) k * 6 * S * dF;
   muls += (k - 1) * (double) muls_toom4 (dF);
   muls += (k - 1) * (double) muls_prerevertdiv (dF);
+#ifdef POLYEVALTELLEGEN
+  muls += (double) muls_polyeval_tellegen (dF);
+#else
   muls += (double) muls_polyeval (dF);
+#endif
   return muls;
 }
 

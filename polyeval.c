@@ -21,6 +21,10 @@
 #include "gmp.h"
 #include "ecm.h"
 
+#ifndef MAX
+#define MAX(a,b) (((a) > (b)) ? (a) : (b))
+#endif
+
 /* algorithm POLYEVAL from section 3.7 of Peter Montgomery's dissertation.
 Input: 
    G - an array of k elements of R, G[i], 0 <= i < k
@@ -98,4 +102,216 @@ polyeval (listz_t G, unsigned int k, listz_t *Tree, listz_t T, mpz_t n,
   muls += polyeval (G + l, m, Tree + 1, T, n, verbose, sh + l);
 
   return muls;
+}
+
+#ifdef TUPTREE_DEBUG
+
+void print_vect (listz_t t, unsigned int l)
+{
+    unsigned int i;
+
+    printf ("[");
+    for (i = 0; i < l; i++)
+    {
+        mpz_out_str (NULL, 10, t[i]);
+        if (i != l - 1)
+            printf (", ");
+        else
+            printf ("]");
+    }
+}
+
+#endif
+
+/* Computes TUpTree as described in ref[1]. k is the degree of the
+ * polynomial at the root of the tree. sh is the shift we need to
+ * apply to find the actual coefficients of the polynomial at the root
+ * of the tree.
+ */
+
+unsigned int TUpTree (listz_t b, listz_t *Tree, unsigned int k,
+              listz_t tmp, unsigned int sh, mpz_t n)
+{
+
+    unsigned int m, l, i;
+    unsigned int tot_muls = 0;
+
+    m = k / 2;
+    l = k - m;
+    
+    if (k == 1) {
+        mpz_mod (b[0], b[0], n);
+        return 0;
+    }
+   
+#ifdef TUPTREE_DEBUG
+    printf ("Dans TupTree, k = %d.\n", k);
+
+    printf ("b = ");
+    print_vect (b, k);
+    printf ("\nLes poly de ce niveau sont : ");
+    print_vect (Tree[0] + sh, k);
+    printf ("\n");
+#endif
+
+    tot_muls += TKarMul (tmp, l - 1, Tree[0] + sh + l, m - 1, 
+                         b, k - 1, tmp + l);
+    tot_muls += TKarMul (tmp + l, m - 1, Tree[0] + sh, l - 1,
+                         b, k - 1, tmp + k);
+
+#ifdef TUPTREE_DEBUG
+    printf ("Et le résultat à ce niveau (avant correction) est : ");
+    print_vect (tmp, k);
+    printf ("\n");
+#endif
+
+    /* gmp-ecm specific: leading coefficients in the product tree
+     * are ones and are implied, so we need some extra work here.
+     */
+
+    for (i = 0; i < l; i++)
+    {
+        mpz_add (tmp[i], tmp[i], b[m + i]);
+    }
+
+    for (i = 0; i < m; i++)
+    {
+        mpz_add (tmp[l + i], tmp[l + i], b[l + i]);
+    }
+
+    for (i = 0; i < l; i++)
+    {
+        mpz_mod (b[i], tmp[i], n);
+    }
+
+    for (i = 0; i < m; i++)
+    {
+        mpz_mod (b[i + l], tmp[l + i], n);
+    }
+
+
+#ifdef TUPTREE_DEBUG
+    printf ("Et le résultat à ce niveau est : ");
+    print_vect (b, k);
+    printf ("\n");
+#endif
+    
+    tot_muls += TUpTree (b, Tree + 1, l, tmp, sh, n);
+    tot_muls += TUpTree (b + l, Tree + 1, m, tmp, sh + l, n);
+    return tot_muls;
+}
+
+unsigned int TUpTree_space (unsigned int k)
+{
+
+    unsigned int m, l;
+    unsigned int r1, r2;
+
+    m = k / 2;
+    l = k - m;
+    
+    if (k == 1) {
+        return 0;
+    }
+   
+    r1 = TKarMul_space (l - 1, m - 1, k - 1) + l;
+    r2 = TKarMul_space (m - 1, l - 1, k - 1) + k;
+
+    r1 = MAX (r1, r2);
+
+
+
+    r2 = TUpTree_space (l);
+    r1 = MAX (r1, r2);
+    r2 = TUpTree_space (m);
+    r1 = MAX (r1, r2);
+    return r1;
+}
+
+
+/* Same as polyeval. Needs invF as extra argument.
+ */
+
+unsigned int
+polyeval_tellegen (listz_t b, unsigned int k, listz_t *Tree, listz_t tmp,
+                   unsigned int sizeT, listz_t invF, mpz_t n, unsigned int sh)
+{
+    unsigned int i;
+    unsigned int tupspace;
+    unsigned int tkspace;
+    int allocated = 0;
+    listz_t T;
+    
+    for (i = 0; i < k / 2; i++)
+        mpz_swap (invF[i], invF[k - 1 - i]);
+
+    tupspace = TUpTree_space (k) + k;
+    tkspace = TKarMul_space (k - 1, k - 1, k - 1) + k;
+
+    tupspace = MAX (tupspace, tkspace);
+
+    if (sizeT >= tupspace)
+        T = tmp;
+    else
+    {
+        T = init_list (tupspace);
+        allocated = 1;
+    }
+    
+#ifdef TELLEGEN_DEBUG
+    printf ("Dans polyeval_tellegen, k = %d.\n", k);
+    printf ("Espace requis : %d.\n", 
+            TKarMul_space (k - 1, k - 1, k - 1));
+#endif
+    TKarMul (T, k - 1, invF, k - 1, b, k - 1, T + k);
+#ifdef TELLEGEN_DEBUG
+    printf ("\nalpha = ");
+    print_list (invF, k);
+    printf ("\nt = ");
+    print_list (T, k);
+#endif
+    for (i = 0; i < k / 2; i++)
+        mpz_swap (T[i], T[k - 1 - i]);
+#ifdef TELLEGEN_DEBUG
+    printf ("s = ");
+    print_list (T, k);
+#endif
+    TUpTree (T, Tree, k, T + k, sh, n);
+    for (i = 0; i < k; i++)
+    {
+        mpz_set (b[i], T[i]);
+    }
+
+    if (allocated)
+        clear_list (T, tupspace);
+    return 0;
+}
+
+unsigned int muls_tuptree (unsigned int k)
+{
+    unsigned int m, l;
+    unsigned int tot_muls = 0;
+
+    m = k / 2;
+    l = k - m;
+    
+    if (k == 1)
+        return 0;
+   
+
+    tot_muls += muls_tkara (l - 1, m - 1, k - 1);
+    tot_muls += muls_tkara (m - 1, l - 1, k - 1);
+    tot_muls += muls_tuptree (l);
+    tot_muls += muls_tuptree (m);
+    return tot_muls;
+}
+
+unsigned int
+muls_polyeval_tellegen (unsigned int k)
+{
+    unsigned int tot_muls = 0;
+    
+    tot_muls += muls_tkara (k - 1, k - 1, k - 1);
+    tot_muls += muls_tuptree (k);
+    return tot_muls;
 }
