@@ -154,9 +154,9 @@ unsigned int TUpTree (listz_t b, listz_t *Tree, unsigned int k,
     printf ("\n");
 #endif
 
-    tot_muls += TKarMul (tmp, l - 1, Tree[0] + sh + l, m - 1, 
+    tot_muls += TMulGen (tmp, l - 1, Tree[0] + sh + l, m - 1, 
                          b, k - 1, tmp + l);
-    tot_muls += TKarMul (tmp + l, m - 1, Tree[0] + sh, l - 1,
+    tot_muls += TMulGen (tmp + l, m - 1, Tree[0] + sh, l - 1,
                          b, k - 1, tmp + k);
 
 #ifdef TUPTREE_DEBUG
@@ -214,8 +214,8 @@ unsigned int TUpTree_space (unsigned int k)
         return 0;
     }
    
-    r1 = TKarMul_space (l - 1, m - 1, k - 1) + l;
-    r2 = TKarMul_space (m - 1, l - 1, k - 1) + k;
+    r1 = TMulGen_space (l - 1, m - 1, k - 1) + l;
+    r2 = TMulGen_space (m - 1, l - 1, k - 1) + k;
 
     r1 = MAX (r1, r2);
 
@@ -246,7 +246,7 @@ polyeval_tellegen (listz_t b, unsigned int k, listz_t *Tree, listz_t tmp,
         mpz_swap (invF[i], invF[k - 1 - i]);
 
     tupspace = TUpTree_space (k) + k;
-    tkspace = TKarMul_space (k - 1, k - 1, k - 1) + k;
+    tkspace = TMulGen_space (k - 1, k - 1, k - 1) + k;
 
     tupspace = MAX (tupspace, tkspace);
 
@@ -261,9 +261,9 @@ polyeval_tellegen (listz_t b, unsigned int k, listz_t *Tree, listz_t tmp,
 #ifdef TELLEGEN_DEBUG
     printf ("Dans polyeval_tellegen, k = %d.\n", k);
     printf ("Espace requis : %d.\n", 
-            TKarMul_space (k - 1, k - 1, k - 1));
+            TMulGen_space (k - 1, k - 1, k - 1));
 #endif
-    TKarMul (T, k - 1, invF, k - 1, b, k - 1, T + k);
+    TMulGen (T, k - 1, invF, k - 1, b, k - 1, T + k);
 #ifdef TELLEGEN_DEBUG
     printf ("\nalpha = ");
     print_list (invF, k);
@@ -302,7 +302,7 @@ unsigned int muls_tuptree (unsigned int k)
 
     if (l == m)
     {
-        tmp = muls_tkara (l - 1);
+        tmp = muls_tgen (l - 1);
         tot_muls += tmp;
         tot_muls += (muls_tuptree (l)) * 2;
     }
@@ -310,8 +310,8 @@ unsigned int muls_tuptree (unsigned int k)
     {
         tot_muls += muls_tuptree (m);
         tot_muls += muls_tuptree (l);
-        tot_muls += muls_tkara (l - 1);
-        tot_muls += muls_tkara (m - 1);
+        tot_muls += muls_tgen (l - 1);
+        tot_muls += muls_tgen (m - 1);
     }
     return tot_muls;
 }
@@ -321,7 +321,7 @@ muls_polyeval_tellegen (unsigned int k)
 {
     unsigned int tot_muls = 0;
     
-    tot_muls += muls_tkara (k - 1);
+    tot_muls += muls_tgen (k - 1);
     tot_muls += muls_tuptree (k);
     return tot_muls;
 }
