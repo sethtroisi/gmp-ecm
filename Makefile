@@ -18,8 +18,7 @@
 # 02111-1307, USA.
 
 # Standard installation prefix
-#prefix=/usr/local
-prefix=/u/halle/kruppa/home_sun/
+prefix=/usr/local
 
 # directory where GMP is installed
 # gmp.h should be in $(GMP)/include
@@ -32,24 +31,27 @@ GMP=$(prefix)
 NTL=$(prefix)
 # example of TUNEFLAGS for x86
 # TUNEFLAGS= -O3 -mcpu=i586 -fstrict-aliasing -I/usr/include/gmp -DWANT_GMP_IMPL -DMPZMOD_THRESHOLD=69 -DREDC_THRESHOLD=92
-#TUNEFLAGS= -O2
+TUNEFLAGS= -O2
 #GCOVFLAGS= -fprofile-arcs -ftest-coverage
-#For Sun cc
-TUNEFLAGS=
-GCOVFLAGS=
+# For Sun cc
+#TUNEFLAGS=
+#GCOVFLAGS=
 
 VERSION=5.1.2-beta
 
 ###################### do not edit below this line ############################
 
 OBJS= auxi.o b1_ainc.o bestd.o candi.o ecm.o ecm2.o eval.o getprime.o listz.o lucas.o main.o pm1.o pp1.o stage2.o toomcook.o trial.o memory.o mpmod.o mul_lo.o polyeval.o resume.o median.o smartprp.o schoen_strass.o
-#CFLAGS= -g -W -Wall -Wmissing-prototypes -pedantic $(TUNEFLAGS) $(GCOVFLAGS)
-#LDFLAGS= -lm -static
+CFLAGS= -g -W -Wall -Wmissing-prototypes -pedantic $(TUNEFLAGS) $(GCOVFLAGS)
+LDFLAGS= -lm
+CC=gcc
+
 # For Sun cc
-CFLAGS= -fast -xarch=v9
-LDFLAGS= -xarch=v9 -lm
+#CFLAGS= -fast -xarch=v9
+#LDFLAGS= -xarch=v9 -lm
+#CC=cc
+
 CXX=g++
-CC=cc
 LD=$(CC)
 EXTRAOBJS=
 ALLOBJS= $(OBJS) $(EXTRAOBJS)
