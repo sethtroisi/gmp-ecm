@@ -101,6 +101,7 @@ pp1_mul (mpres_t P1, mpres_t P0, mpz_t e, mpmod_t n, mpres_t P, mpres_t Q)
         }
     }
 
+  mpz_add_ui (e, e, 1); /* recover original value of e */
   mpres_set (P1, P, n);
 }
 
