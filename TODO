@@ -22,3 +22,6 @@ Long term:
   (Jay Berg)
 - compute probability that a factor of a certain size will be found with
   given paramters (Dickman's function, how to do it for P+/-1 ?)
+- partial saves during step 1 (Jay)?
+- option -c <count> to generate <count> curves for each number?  (Joe)
+- document pb with runs < 1s on Win*

@@ -130,6 +130,11 @@ below).
           65       85e7        1.3e13          83000
           70       29e8        7.2e13         120000
 
+Important note: the expected number of curves is significantly smaller
+than the "classical" one we get with B2=100*B1. This is due to the
+fact that this new version of gmp-ecm uses a default B2 which is much
+larger than 100*B1 (for large B1), thanks to the improvements in step 2.
+
 In summary, we advise the following method:
 
 0 - choose a target factor size of D digits
