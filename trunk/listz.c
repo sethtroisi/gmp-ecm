@@ -26,8 +26,8 @@
 #include "gmp.h"
 #include "ecm.h"
 
-#define TOOMCOOK3
-//#define TOOMCOOK4
+//#define TOOMCOOK3
+#define TOOMCOOK4
 
 #if defined(TOOMCOOK4)
 #define LIST_MULT_N toomcook4
@@ -308,7 +308,7 @@ buildG (listz_t G, unsigned int k, listz_t T, int verbose, mpz_t n, char F)
    list_mod (G, T, k, n);
    
    if (verbose >= 2)
-     fprintf (stderr, "Building %c from its roots took %dms\n", F,
+     printf ("Building %c from its roots took %dms\n", F,
 	      cputime() - st);
 }
 
