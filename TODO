@@ -7,7 +7,8 @@ ToDo's:
 	[suggested by SleepHound <sleephound@yahoo.com>]
 - use mpres in step 2
 - Add a -qq switch that is "really" screen IO quiet (no stderr printing, etc).
-  This would be for the ECM C/S project.
+  This would be for the ECM C/S project.   (part of this is now done.  A
+  "-ticdelay -1" will disable the stage1/2 percentage counters)
 - write a real documentation (which format? texi can generate dvi and
   html,	or LaTeX can also generate dvi, pdf and html)
 - document how to use the ecm(), pm1(), pp1() functions from a C program
@@ -50,12 +51,14 @@ ToDo's:
   gmp-ecm.
 
 Partially Done's:
-* print progress (80 dots in step 1/2) [Jay Berg]
-  All done except for stage 2.
 * option -nice ? -kill when user on console?
 * partial saves during step 1 (Jay)?  (Added but not yet working, Jim)
 
 Done's:
++ print progress (80 dots in step 1/2) [Jay Berg]
+  Now it is a pair of functions, and CAN be turned off (using -ticdelay -1).  
+  Also the time between updates is controlled by -ticdelay n where n is in ms.
+  Default is 3000.
 + option -nice when user on console?
 + parser for input number in symbolic form, i.e. (2^(2^12)/(7*2^14+1)...)
   (Jay Berg)  (There is still more functions to add, but the parser is done)
