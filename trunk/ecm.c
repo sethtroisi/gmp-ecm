@@ -639,6 +639,10 @@ ecm (mpz_t f, mpz_t x, mpz_t sigma, mpz_t n, mpz_t go, double B1done,
   /* Scale B2 by what the user said (or by the default scaling of 1.0) */
   B2 *= B2scale;
 
+  /* set B2min */
+  if (B2min < 0.0)
+    B2min = B1;
+
   /* Set default degree for Brent-Suyama extension */
   /* We try to keep the time used by the Brent-Suyama extension
      at about 10% of the stage 2 time */
@@ -668,7 +672,7 @@ ecm (mpz_t f, mpz_t x, mpz_t sigma, mpz_t n, mpz_t go, double B1done,
     mpmod_init_MODMULN (modulus, n);
   else if (repr == 3)
     mpmod_init_REDC (modulus, n);
-  else if (repr > 16)
+  else if (repr > 16) /* FIXME: can this happen (from main.c)? */
     mpmod_init_BASE2 (modulus, repr, n);
   else /* automatic choice, avoiding base2 if repr=-1 */
     mpmod_init (modulus, n, repr);
