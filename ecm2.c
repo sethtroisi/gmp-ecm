@@ -178,7 +178,7 @@ multiplyW2n (mpz_t p, point *R, curve *S, mpz_t *q, unsigned int n,
                 mpz_mod (p, p, modulus->orig_modulus);
                 if (mpz_cmp_ui (p, 1) != 0) 
                   outputf (OUTPUT_ERROR, "Error, (s.x - R[%d].x) * T[%d] == "
-                           "%Zd\n", i, l, T[l - 1]);
+                           "%Zd\n", i, l, p);
 #endif
                 
                 mpres_sub (u, s.y, R[i].y, modulus);   /* U    = y2 - y1 */
