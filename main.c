@@ -26,7 +26,7 @@
 #if !defined (_MSC_VER)
 #include <unistd.h>
 #else
-#include <io.h>		// for access()
+#include <io.h>		/* for access() */
 #define F_OK 0
 #endif
 #include "gmp.h"
