@@ -22,12 +22,12 @@ Documentation:
 	(see rox/ROX-Filer/src/Docs/Manual.xml).
 
 - to generate ecm.html:
-  $ xsltproc $XSLDIR/html/docbook.xsl ecm.xml > ecm.html
+  $ xsltproc -o ecm.html $XSLDIR/html/docbook.xsl ecm.xml
   where XSLDIR is the directory where docbook stylesheets are installed
   (e.g. /usr/share/sgml/docbook/xsl-stylesheets-1.65.1-1)
 
 - to generate man format:
-  $ xsltproc $XSLDIR/manpages/docbook.xsl ecm.xml > ecm.1
+  $ xsltproc -o ecm.1 $XSLDIR/manpages/docbook.xsl ecm.xml
   (or "xmlto man ecm.xml")
 
 - to generate pdf:

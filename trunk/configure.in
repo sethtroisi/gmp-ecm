@@ -16,7 +16,6 @@ AC_PROG_RANLIB
 AC_CANONICAL_HOST
 
 dnl Don't use -ansi, since it forbids inline
-CPPFLAGS="$CPPFLAGS -W -Wall -Wmissing-prototypes -pedantic"
 dnl Tests concerning the include directories.
 if test -d "$with_gmp_include"; then
   CPPFLAGS="$CPPFLAGS -I$with_gmp_include"

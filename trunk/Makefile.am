@@ -20,4 +20,4 @@ check: ecm
 	$(srcdir)/test.ecm ./ecm
 
 dist-hook:
-	xsltproc $(XSLDIR)/manpages/docbook.xsl ecm.xml > ecm.1
+	xsltproc -o ecm.1 $(XSLDIR)/manpages/docbook.xsl ecm.xml
