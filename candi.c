@@ -64,7 +64,7 @@ void mpcandi_t_init(mpcandi_t *n)
   n->isPrp = 0;
 #if defined (CANDI_DEBUG)
   n->magic = VALID_MAGIC;
-  Candi_Validate("mpcandi_t_free", n);
+  Candi_Validate("mpcandi_t_init", n);
 #endif
 }
 
