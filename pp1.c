@@ -406,7 +406,7 @@ pp1 (mpz_t f, mpz_t p, mpz_t n, double B1, double B2, double B1done,
       printf ("\n");
       fflush (stdout);
     }
-  
+
   if (repr == 1)
     mpmod_init_MPZ (modulus, n);
   else   if (repr == 2)
@@ -441,6 +441,17 @@ pp1 (mpz_t f, mpz_t p, mpz_t n, double B1, double B2, double B1done,
   if (youpi != 0) /* a factor was found */
     goto end;
 
+  /* Set default degree for Brent-Suyama extension */
+
+  if (S == 0)
+    S = 1;
+
+  if (S < 0 || S > 1)
+    {
+      printf ("Warning: Brent-Suyama's extension does not work with P+1, using x^1\n");
+      S = 1;
+    }
+  
   youpi = stage2 (f, &a, modulus, B2, k, S, verbose, PP1_METHOD, B1);
 
  end:

@@ -142,9 +142,6 @@ int
 stage2 (mpz_t f, void *X, mpmod_t modulus, double B2, unsigned int k, unsigned int S, 
         int verbose, int method, double B1)
 {
-/*  int invtrick = (method == PM1_METHOD); */
-  /*  int use_dickson = !invtrick; */
-  int use_dickson = 0;
   double b2;
   unsigned int i, d, dF, sizeT;
   unsigned long muls;
@@ -267,7 +264,11 @@ stage2 (mpz_t f, void *X, mpmod_t modulus, double B2, unsigned int k, unsigned i
   else if (method == PP1_METHOD)
     rootsG_state = pp1_rootsG_init (X, 2*d, d, modulus);
   else /* EC_METHOD */
-    rootsG_state = ecm_rootsG_init (f, X, 2*d, d, S, modulus);
+    if ((rootsG_state = ecm_rootsG_init (f, X, 2*d, d, S, modulus)) == NULL)
+      {
+        youpi = 2;
+        goto clear_G;
+      };
   
   if (verbose >= 2)
     printf ("Initializing table of differences for G took %dms\n", cputime () - st);
@@ -371,6 +372,8 @@ stage2 (mpz_t f, void *X, mpmod_t modulus, double B2, unsigned int k, unsigned i
     pp1_rootsG_clear ((mpres_t *) rootsG_state, modulus);
   else /* EC_METHOD */
     ecm_rootsG_clear ((point *) rootsG_state, S, modulus);
+
+clear_G:
   clear_list (G, dF);
 
 #ifdef INVF

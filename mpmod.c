@@ -27,7 +27,7 @@
 #include <gmp-impl.h>
 #include <longlong.h>
 
-/* #define DEBUG */
+#define DEBUG
 #ifndef MOD_PLAIN_TO_REDC_THRESHOLD
 #define MOD_PLAIN_TO_REDC_THRESHOLD 20000
 #endif
@@ -176,6 +176,10 @@ mpz_mod_n (mpz_t c, mpmod_t modulus)
   cp -= nn;
   if (cp[2*nn]) 
     {
+#ifdef DEBUG
+      if (cp[2*nn] > 1)
+        fprintf (stderr, "mpz_mod_n: cp[2*nn] = %lu\n", cp[2*nn]);
+#endif
       cy = cp[2*nn] - mpn_sub_n (cp, cp + nn, np, nn);
       while (cy) cy -= mpn_sub_n (cp, cp, np, nn);
     }
@@ -556,24 +560,24 @@ mpres_mul(mpres_t R, mpres_t S1, mpres_t S2, mpmod_t modulus)
 void 
 mpres_mul_ui (mpres_t R, mpres_t S, unsigned int n, mpmod_t modulus)
 {
-  mpz_mul_ui(modulus->temp1, S, n);
+  mpz_mul_ui (modulus->temp1, S, n);
   /* This is the same for all methods: just reduce with original modulus */
-  mpz_mod(R, modulus->temp1, modulus->orig_modulus);
+  mpz_mod (R, modulus->temp1, modulus->orig_modulus);
 }
 
 /* TODO: make faster */
 void 
-mpres_div_2exp(mpres_t R, mpres_t S, unsigned int n, mpmod_t modulus)
+mpres_div_2exp (mpres_t R, mpres_t S, unsigned int n, mpmod_t modulus)
 {
   if (n == 0)
     {
-      mpres_set(R, S, modulus);
+      mpres_set (R, S, modulus);
       return;
     }
 
     if (mpz_odd_p (S))
       {
-        mpz_add(R, S, modulus->orig_modulus);
+        mpz_add (R, S, modulus->orig_modulus);
         mpz_tdiv_q_2exp (R, R, 1);
       }
     else
@@ -658,13 +662,15 @@ mpres_set_z (mpres_t R, mpz_t S, mpmod_t modulus)
     }
   else if (modulus->repr == MOD_MODMULN)
     {
-      mpz_mul (modulus->temp1, S, modulus->R2);
+      mpz_mod (modulus->temp2, S, modulus->orig_modulus);
+      mpz_mul (modulus->temp1, modulus->temp2, modulus->R2);
       mpz_mod_n (modulus->temp1, modulus);
       mpz_set (R, modulus->temp1);
     }
   else if (modulus->repr == MOD_REDC)
     {
-      mpz_mul (modulus->temp1, S, modulus->R2);
+      mpz_mod (modulus->temp2, S, modulus->orig_modulus);
+      mpz_mul (modulus->temp1, modulus->temp2, modulus->R2);
       REDC (R, modulus->temp1, modulus->temp2, modulus);
     }
   else

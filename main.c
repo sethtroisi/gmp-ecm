@@ -48,7 +48,11 @@ main (int argc, char *argv[])
   int repr = 0;
   int k = 8; /* default number of blocks in stage 2 */
   int specific_sigma = 0; /* 1=sigma supplied by user, 0=random */
-  unsigned int S = 0;
+  int factor_is_prime, cofactor_is_prime;
+        /* If a factor is found, indicates whether factor, cofactor are prime. 
+           If no factor was found, both are zero. */
+  int S = 0, use_dickson = 0;
+        /* Degree for Brent-Suyama extension requested by user */
   gmp_randstate_t randstate;
   char *savefilename = NULL;
   FILE *savefile = NULL;
@@ -102,6 +106,12 @@ main (int argc, char *argv[])
 	  argv++;
 	  argc--;
         }
+      else if (strcmp (argv[1], "-dickson") == 0)
+        {
+          use_dickson = 1;
+	  argv++;
+	  argc--;
+        }
       else if ((argc > 2) && (strcmp (argv[1], "-k") == 0))
 	{
 	  k = atoi(argv[2]);
@@ -137,6 +147,7 @@ main (int argc, char *argv[])
       fprintf (stderr, "\nOptions:\n");
       fprintf (stderr, "  -k n        perform n steps in stage 2\n");
       fprintf (stderr, "  -e n        impose polynomial x^n for Brent-Suyama's extension\n");
+      fprintf (stderr, "  -dickson    use Dickson's n-th polynomial instead of x^n\n");
       fprintf (stderr, "  -pm1        runs Pollard P-1 instead of ECM\n");
       fprintf (stderr, "  -pp1        runs Williams P+1 instead of ECM\n");
       fprintf (stderr, "  -q          quiet mode\n");
@@ -232,12 +243,9 @@ main (int argc, char *argv[])
   /* set default Brent-Suyama's exponent */
   if (S == 0)
     S = 1;
-  if (method == PP1_METHOD && S > 1)
-    {
-      printf ("Warning: Brent-Suyama's extension does not work with P+1, using x^1\n");
-      S = 1;
-    }
-
+  if (use_dickson) /* Stage 2 interprets negative degree as Dickson poly */
+    S = - abs (S);
+  
   if (verbose >= 1)
     {
       if (method == PM1_METHOD)
@@ -251,7 +259,11 @@ main (int argc, char *argv[])
         printf("B1=%1.0f", B1);
       else
         printf("B1=%1.0f-%1.0f", B1done, B1);
-      printf(", B2=%1.0f, x^%u\n", B2, S);
+      printf(", B2=%1.0f, ", B2);
+      if (S > 0)
+        printf("x^%u\n", S);
+      else
+        printf("Dickson(%u)\n", -S);
     }
 
   /* Open save file for writing, if saving is requested */
@@ -300,6 +312,7 @@ main (int argc, char *argv[])
 	}
 
       mpz_init (p); /* seed/stage 1 residue */
+      factor_is_prime = cofactor_is_prime = 0;
 
       /* Set effective seed/sigma for factoring attempt on this number */
       mpz_set (p, seed);
@@ -308,7 +321,6 @@ main (int argc, char *argv[])
           if (method == EC_METHOD)
             {
               /* Make random sigma, 0 < sigma <= 2^32 */
-              /* Todo: f abused here */
               mpz_urandomb (sigma, randstate, 32);
               mpz_add_ui (sigma, sigma, 1);
             }
@@ -333,22 +345,26 @@ main (int argc, char *argv[])
 	  if (mpz_cmp (f, n))
 	    {
 	      /* prints factor found and cofactor on standard error. */
-	      if (mpz_probab_prime_p (f, 25))
-		printf ("Found probable prime factor");
-	      else printf ("Found composite factor");
-	      printf (" of %u digits: ", nb_digits (f));
+	      factor_is_prime = mpz_probab_prime_p (f, 25);
+	      printf ("Found %s factor of %u digits: ", 
+	              factor_is_prime ? "probable prime" : "composite",
+	              nb_digits (f));
 	      mpz_out_str (stdout, 10, f);
 	      printf ("\n");
 
 	      mpz_divexact (n, n, f);
-	      if (mpz_probab_prime_p (n, 25) == 0)
-		printf ("Composite");
-	      else
-		printf ("Probable prime");
-	      printf (" cofactor ");
+	      cofactor_is_prime = mpz_probab_prime_p (n, 25);
+	      printf ("%s cofactor ", 
+	              cofactor_is_prime ? "Probable prime" : "Composite");
 	      if (verbose > 0)
 		mpz_out_str (stdout, 10, n);
-	      printf (" has %u digits", nb_digits(n));
+	      printf (" has %u digits\n", nb_digits (n));
+	      
+	      if (factor_is_prime && nb_digits (f) >= 50)
+	        {
+	          printf("Report your potential champion to Richard Brent <rpb@comlab.ox.ac.uk>\n");
+	          printf("(see ftp://ftp.comlab.ox.ac.uk/pub/Documents/techpapers/Richard.Brent/champs.txt)\n");
+	        }
 	    }
 	  else
 	    printf ("Found input number N");
@@ -357,7 +373,7 @@ main (int argc, char *argv[])
 	}
       
       /* if quiet, prints composite cofactors on standard output. */
-      if ((verbose == 0) && (mpz_probab_prime_p (n, 25) == 0))
+      if ((verbose == 0) && !cofactor_is_prime)
 	{
 	  mpz_out_str (stdout, 10, n);
 	  putchar ('\n');
@@ -368,12 +384,13 @@ main (int argc, char *argv[])
 #ifdef SAVEFILE
       /* Write composite cofactors to savefile if requested */
       /* If no factor was found, we consider cofactor composite and write it */
-      if (savefile != NULL && (result == 0 || mpz_probab_prime_p (n, 25) == 0))
+      if (savefile != NULL && !cofactor_is_prime)
         {
-          mpz_t t;
-          mpz_init (t);
-          mpz_set (t, p);
-          mpz_mod (t, t, n); /* Reduce stage 1 residue wrt new cofactor */
+          mpz_t checksum;
+          mpz_init (checksum);
+          mpz_set_d (checksum, B1);
+          mpz_mod (p, p, n); /* Reduce stage 1 residue wrt new cofactor, in
+                                case a factor was found */
           fprintf (savefile, "METHOD=");
           if (method == PM1_METHOD)
             fprintf (savefile, "PM1");
@@ -383,14 +400,19 @@ main (int argc, char *argv[])
             {
               fprintf (savefile, "ECM; SIGMA=");
               mpz_out_str (savefile, 10, sigma);
+              mpz_mul_ui (checksum, checksum, mpz_fdiv_ui (sigma, CHKSUMMOD));
             }
           
           fprintf (savefile, "; B1=%.0f; N=", B1);
           mpz_out_str (savefile, 10, n);
-          fprintf (savefile, "; X=");
-          mpz_out_str (savefile, 10, t);
-          fprintf (savefile , "\n");
-          mpz_clear (t);
+          fprintf (savefile, "; X=0x");
+          mpz_out_str (savefile, 16, p);
+          mpz_mul_ui (checksum, checksum, mpz_fdiv_ui (n, CHKSUMMOD));
+          mpz_mul_ui (checksum, checksum, mpz_fdiv_ui (p, CHKSUMMOD));
+          fprintf (savefile, "; CHECKSUM=%lu; PROGRAM=GMP-ECM ver. 5 alpha;\n", 
+                   mpz_fdiv_ui (checksum, CHKSUMMOD));
+          mpz_clear (checksum);
+          
         }
 #endif /* SAVEFILE */
 
