@@ -1,8 +1,6 @@
 /* Common stage 2 for ECM, P-1 and P+1 (improved standard continuation).
 
-  Copyright (C) 2001 Paul Zimmermann,
-  LORIA/INRIA Lorraine, zimmerma@loria.fr
-  See http://www.loria.fr/~zimmerma/records/ecmnet.html
+  Copyright 2001, 2002, 2003 Alexander Kruppa and Paul Zimmermann.
 
   This program is free software; you can redistribute it and/or modify it
   under the terms of the GNU General Public License as published by the
@@ -26,14 +24,10 @@
 #include <stdio.h>
 #include "gmp.h"
 #include "ecm.h"
-#include "cputime.h"
 
 #define DEBUG
 
 void dickson_ui        (mpz_t r, unsigned int x, unsigned int n, int a);
-
-
-#define INVF /* precompute 1/F for divisions by F */
 
 void 
 dickson_ui (mpz_t r, unsigned int x, unsigned int n, int a)
@@ -124,7 +118,7 @@ fin_diff_coeff (listz_t coeffs, unsigned int s, unsigned int D,
 
 /* Input:  X is the point at end of stage 1
            n is the number to factor
-           B2 is the stage 2 bound
+           B2min-B2 is the stage 2 range
            k is the number of blocks
            S is the exponent for Brent-Suyama's extension
            verbose is the verbose level
@@ -139,12 +133,12 @@ fin_diff_coeff (listz_t coeffs, unsigned int s, unsigned int D,
    Return value: non-zero iff a factor was found.
 */
 int
-stage2 (mpz_t f, void *X, mpmod_t modulus, double B2, unsigned int k,
-        unsigned int S, int verbose, int method, double B1)
+stage2 (mpz_t f, void *X, mpmod_t modulus, double B2min, double B2,
+        unsigned int k, unsigned int S, int verbose, int method)
 {
   double b2;
-  unsigned int i, d, dF, sizeT;
-  unsigned long muls;
+  unsigned int i0, i, d, dF, sizeT;
+  unsigned long muls, tot_muls = 0;
   mpz_t n;
   listz_t F, G, H, T;
   int youpi = 0, st, st0;
@@ -155,54 +149,42 @@ stage2 (mpz_t f, void *X, mpmod_t modulus, double B2, unsigned int k,
 #else
   polyz_t polyF, polyT;
 #endif
-#ifdef INVF
   listz_t invF = NULL;
-#endif
 
-  if (B2 <= B1)
+  if (B2 < B2min)
     return 0;
 
   st0 = cputime ();
 
-  mpz_init_set(n, modulus->orig_modulus);
+  mpz_init_set (n, modulus->orig_modulus);
 
-/*
-  if (verbose >= 2)
-    {
-      printf ("starting stage 2 with x=");
-      mpres_out_str (stdout, 10, X->x, modulus);
-      putchar ('\n');
-    }
-*/
-
-  b2 = ceil(B2 / k); /* b2 = ceil(B2/k): small block size */
+  /* since we consider only residues = 1 mod 6 in intervals of length d
+     (d multiple of 6), each interval [i*d,(i+1)*d] covers partially itself
+     and [(i-1)*d,i*d]. Thus to cover [B2min, B2] with all intervals 
+     [i*d,(i+1)*d] for i0 <= i < i1 , we should  have i0*d <= B2min and 
+     B2 <= (i1-1)*d */
+  b2 = ceil ((B2 - B2min) / k); /* b2 = ceil((B2-B2min)/k): small block size */
 
   d = bestD (b2);
-
-#if 0
-  if (2.0 * (double) d > B1)
-    {
-      fprintf (stderr, "Error: 2*d > B1\n");
-      exit (1);
-    }
-#endif
+  i0 = (unsigned int) (B2min / (double) d);
+  if (i0 == 0)
+    i0 = 1; /* FIXME: we may skip some primes if B2min < d */
 
   b2 = block_size (d);
 
-  B2 = (double) k * b2;
+  /* compute real B2 */
+  B2 = (double) (i0 - 1) * (double) d + (double) k * b2;
 
   dF = phi (d) / 2;
 
   if (verbose >= 2)
-    printf ("B2=%1.0f k=%u b2=%1.0f d=%u dF=%u\n", B2, k, b2, d, dF);
+    printf ("B2'=%1.0f k=%u b2=%1.0f d=%u dF=%u\n", B2, k, b2, d, dF);
 
   F = init_list (dF + 1);
 
   sizeT = 3 * dF - 1 + list_mul_mem (dF);
-#ifdef INVF
   if (dF > 3)
     sizeT += dF - 3;
-#endif
   T = init_list (sizeT);
   H = T;
 
@@ -234,7 +216,7 @@ stage2 (mpz_t f, void *X, mpmod_t modulus, double B2, unsigned int k,
   list_set (Tree[lgk - 1], F, dF);
 #endif
 
-  PolyFromRoots (F, F, dF, T, verbose | 1, n, 'F', Tree, 0);
+  tot_muls += PolyFromRoots (F, F, dF, T, verbose | 1, n, 'F', Tree, 0);
 
   /* needs dF+list_mul_mem(dF/2) cells in T */
 
@@ -247,20 +229,14 @@ stage2 (mpz_t f, void *X, mpmod_t modulus, double B2, unsigned int k,
      |  F(x)  |  ???   |  ???  |      ???         |
      ---------------------------------------------- */
 
-#ifdef INVF
   /* G*H has degree 2*dF-2, hence we must cancel dF-1 coefficients
      to get degree dF-1 */
   if (dF > 1)
     {
       invF = init_list (dF - 1);
       st = cputime ();
-#if 0
-      list_zero (T, 2 * dF - 3);
-      mpz_set_ui (T[2 * dF - 3], 1); /* T[0..2dF-3] = x^(2dF-3) */
-      muls = RecursiveDivision (invF, T, T, F + 1, dF - 1, T + 2 * dF - 2, n);
-#else
       muls = PolyInvert (invF, F + 2, dF - 1, T, n);
-#endif
+      tot_muls += muls;
       /* now invF[0..K-2] = Quo(x^(2dF-3), F) */
       if (verbose >= 2)
         printf ("Computing 1/F took %ums and %lumuls\n", cputime() - st, muls);
@@ -271,23 +247,25 @@ stage2 (mpz_t f, void *X, mpmod_t modulus, double B2, unsigned int k,
          |  F(x)  | 1/F(x) |  ???  |      ???         |
          ---------------------------------------------- */
     }
-#endif
 
+  /* start computing G with roots at i0*d, (i0+1)*d, (i0+2)*d, ... 
+     where i0*d <= B2min < (i0+1)*d */
   G = init_list (dF);
   st = cputime ();
   if (method == PM1_METHOD)
-    rootsG_state = pm1_rootsG_init (X, 2*d, d, S, modulus);
+    rootsG_state = pm1_rootsG_init (X, i0 * d, d, S, modulus);
   else if (method == PP1_METHOD)
-    rootsG_state = pp1_rootsG_init (X, 2*d, d, modulus);
+    rootsG_state = pp1_rootsG_init (X, i0 * d, d, modulus);
   else /* EC_METHOD */
-    if ((rootsG_state = ecm_rootsG_init (f, X, 2*d, d, S, modulus)) == NULL)
+    if ((rootsG_state = ecm_rootsG_init (f, X, i0 * d, d, S, modulus)) == NULL)
       {
         youpi = 2;
         goto clear_G;
-      };
+      }
   
   if (verbose >= 2)
-    printf ("Initializing table of differences for G took %dms\n", cputime () - st);
+    printf ("Initializing table of differences for G took %dms\n",
+            cputime () - st);
 
   for (i=0; i<k; i++)
     {
@@ -316,7 +294,7 @@ stage2 (mpz_t f, void *X, mpmod_t modulus, double B2, unsigned int k,
      |  F(x)  | 1/F(x) | rootsG |      ???         |
      ----------------------------------------------- */
 
-      PolyFromRoots (G, G, dF, T + dF, verbose, n, 'G', NULL, 0);
+      tot_muls += PolyFromRoots (G, G, dF, T + dF, verbose, n, 'G', NULL, 0);
       /* needs 2*dF+list_mul_mem(dF/2) cells in T */
 
   /* -----------------------------------------------
@@ -350,6 +328,7 @@ stage2 (mpz_t f, void *X, mpmod_t modulus, double B2, unsigned int k,
 	  /* previous G mod F is in H, with degree < dF, i.e. dF coefficients:
 	     requires 3dF-1+list_mul_mem(dF) cells in T */
 	  muls = list_mulmod2 (H, T + dF, G, H, dF, T + 3 * dF - 1, n);
+          tot_muls += muls;
           if (verbose >= 2)
             printf ("Computing G * H took %ums and %lumuls\n", cputime() - st,
                     muls);
@@ -361,13 +340,8 @@ stage2 (mpz_t f, void *X, mpmod_t modulus, double B2, unsigned int k,
              ------------------------------------------------ */
 
 	  st = cputime ();
-#ifdef INVF
           muls = PrerevertDivision (H, F, invF, dF, T + 2 * dF - 1, n);
-#else
-          mpz_set_ui (T[2*dF-1], 0); /* since RecursiveDivision expects a
-                                        dividend of 2*dF coefficients */
-	  muls = RecursiveDivision (G, H, H, F, dF, T + 2 * dF, n);
-#endif
+          tot_muls += muls;
           if (verbose >= 2)
             printf ("Reducing G * H mod F took %ums and %lumuls\n",
                     cputime() - st, muls);
@@ -376,9 +350,11 @@ stage2 (mpz_t f, void *X, mpmod_t modulus, double B2, unsigned int k,
 
 #ifdef POLYEVAL
   st = cputime ();
-  polyeval (T, dF, Tree, T + dF + 1, n, verbose, 0);
+  muls = polyeval (T, dF, Tree, T + dF + 1, n, verbose, 0);
+  tot_muls += muls;
   if (verbose >= 2)
-    printf ("Computing polyeval(F,G) took %dms\n", cputime() - st);
+    printf ("Computing polyeval(F,G) took %ums and %lumuls\n",
+            cputime() - st, muls);
   youpi = list_gcd (f, T, dF, n) ? 2 : 0;
   for (i = 0; i < lgk; i++)
     clear_list (Tree[i], dF);
@@ -404,17 +380,15 @@ stage2 (mpz_t f, void *X, mpmod_t modulus, double B2, unsigned int k,
 clear_G:
   clear_list (G, dF);
 
-#ifdef INVF
   if (dF > 1)
     clear_list (invF, dF - 1);
-#endif
 
  clear_F:
   clear_list (T, sizeT);
   clear_list (F, dF + 1);
 
   if (verbose >= 1)
-    printf ("Stage 2 took %dms\n", cputime() - st0);
+    printf ("Stage 2 took %dms and %lumuls\n", cputime() - st0, tot_muls);
 
   return youpi;
 }
