@@ -130,8 +130,8 @@ tion, as used by GMP-ECM, is known to be divisible by 12. Therefore one can
 assume that the probability that the order is B1,B2 smooth should be about as 
 great as for a random integer 1/12th in value. However, Montgomery observed 
 that the order behaves even nicer than that: heuristically, it seems that the 
-order is as likely to be smooth as a random integer about 1/23.4 in value. In 
-GMP-ECM, we assume a factor of 1/24 and the computed probabilities match 
+order is as likely to be smooth as a random integer about 1/23.4 in value. 
+This is the value we use in GMP-ECM and the computed probabilities match 
 those observed in experiments very well. This however means that the so 
 computed values for the expected number of curves for given B1,B2 values and 
 factor sizes do not match those published in the literature where a factor of 
