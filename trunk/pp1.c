@@ -453,8 +453,8 @@ pp1_rootsG (listz_t G, unsigned int d, mpres_t *fd, mpmod_t modulus,
    Return value: non-zero iff a factor is found (1 for stage 1, 2 for stage 2)
 */
 int
-pp1 (mpz_t f, mpz_t p, mpz_t n, double B1done, double B1, double B2min,
-     double B2, unsigned int k, unsigned int S, int verbose, int repr)
+pp1 (mpz_t f, mpz_t p, mpz_t n, double B1done, double B1, double B2min, double B2,
+     double B2scale, unsigned int k, unsigned int S, int verbose, int repr)
 {
   int youpi = 0, st;
   mpres_t a;
@@ -466,6 +466,9 @@ pp1 (mpz_t f, mpz_t p, mpz_t n, double B1done, double B1, double B2min,
   /* Set default B2. See ecm.c for comments */
   if (B2 == 0.0)
     B2 = pow (2.0 * B1 / 6.0, 1.424828748);
+
+  /* Scale B2 by what the user said (or by the default scaling of 1.0) */
+  B2 *= B2scale;
 
   /* Set default degree for Brent-Suyama extension */
 

@@ -617,8 +617,8 @@ ecm_stage1 (mpz_t f, mpres_t x, mpres_t A, mpmod_t n, double B1,
 */
 int
 ecm (mpz_t f, mpz_t x, mpz_t sigma, mpz_t n, double B1done, double B1,
-     double B2min, double B2, unsigned int k, int S, int verbose, int repr,
-     int sigma_is_A)
+     double B2min, double B2, double B2scale, unsigned int k, int S, int verbose, 
+     int repr, int sigma_is_A)
 {
   int youpi = 0, st;
   mpmod_t modulus;
@@ -640,7 +640,10 @@ ecm (mpz_t f, mpz_t x, mpz_t sigma, mpz_t n, double B1done, double B1,
 
   if (B2 == 0.0)
     B2 = pow (11.0 / 6.0 * B1, 1.424828748);
-  
+
+  /* Scale B2 by what the user said (or by the default scaling of 1.0) */
+  B2 *= B2scale;
+
   /* Set default degree for Brent-Suyama extension */
   /* We try to keep the time used by the Brent-Suyama extension
      at about 10% of the stage 2 time */
