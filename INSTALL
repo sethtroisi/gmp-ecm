@@ -87,6 +87,58 @@ Instructions to install GMP-ECM:
    If you find any factor (grep found cunningham.out), please submit it
    using the report form on <http://www.loria.fr/~zimmerma/ecmnet/>.
 
+============================================================================
+
+For Windows users:
+
+Before you can compile GMP-ECM, you will need a compiler. Several suitable
+compilers are freely available, for example as part of MinGW, CygWin and 
+Microsoft's Services for Unix (SFU). We recommend MinGW as it is a smaller 
+download than the others and generates binaries that run on any Windows 
+system, even if they don't have MinGW installed themselves.
+
+Step-by-step instructions, courtesy of Jes Hansen:
+
+1) Download the current Mingw from
+   http://prdownloads.sf.net/mingw/MinGW-3.1.0-1.exe?download
+   and MSYS from http://prdownloads.sf.net/mingw/MSYS-1.0.10.exe?download
+
+2) Create a folder, for example C:\GNU, and install MinGW (execute the 
+   MinGW-3.1.0-1.exe file) into C:\GNU\MinGW
+
+3) Install MSYS (execute the MSYS-1.0.10.exe file) into C:\GNU\msys
+   Now you get an icon on the desktop where you can start the MinSys. Do
+   this, because is creates your home folder. Then exit it again.
+
+4) Download the latest version of GMP from http://www.swox.com/gmp/ and 
+   place it in your newly created home folder. (At the time of writing
+   the latest version of GMP is 4.1.4, this will be assume for the rest of 
+   this document.)
+
+5) Download GMP-ECM (if you do not have it already) from
+   http://www.loria.fr/~zimmerma/records/ecmnet.html (check the News section
+   for the latest release, at the time of writing 6.0.1) and place it in your 
+   home folder as well. You won't need an internet connection from now on, 
+   feel free to disconnect.
+
+6) Start the MinSys up again from the desktop and type 
+   tar -xvzf gmp-4.1.4.tar.gz
+   cd gmp-4.1.4/
+   ./configure
+   make install
+   cd ~
+
+7) You are back in your home directory. Now type
+  tar -xvzf ecm-6.0.1.tar.gz
+  cd ecm-6.0.1
+  ./configure --with-gmp=/usr/local
+  make
+
+8) Four executables should have appeard. The main application is ecm.exe,
+   which can be run from the Windows command line.
+
+============================================================================
+
 In case of a problem, report it to us, with:
 
 - the output of the config.log file
