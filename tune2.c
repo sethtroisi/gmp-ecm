@@ -23,6 +23,8 @@
 #include "gmp.h"
 #include "ecm-impl.h"
 
+FILE *ECM_STDOUT, *ECM_STDERR; /* define them since declared in ecm-impl.h */
+
 #define N 32
 
 /* to avoid conflict with that of libecm */
