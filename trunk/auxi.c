@@ -21,7 +21,9 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#if !defined (_MSC_VER)
 #include <unistd.h>
+#endif
 #include <time.h>
 #include "gmp.h"
 #include "ecm.h"
@@ -113,8 +115,8 @@ cputime ()
     return cputime_x();
 
   QueryPerformanceCounter(&i);
-  d = *(long long*)&i;
-  d /= *(long long*)&PF;
+  d = (double)*(__int64*)&i;
+  d /= *(__int64*)&PF;
   d *= 1000;
 
   /* NOTE a double converting to int is wrong!.  We need the number mod

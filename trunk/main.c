@@ -23,7 +23,12 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#if !defined (_MSC_VER)
 #include <unistd.h>
+#else
+#include <io.h>		// for access()
+#define F_OK 0
+#endif
 #include "gmp.h"
 #include "ecm.h"
 

@@ -21,9 +21,10 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <math.h>
-#include <values.h> /* for DBL_MAX */
 #if defined (__MINGW32__) || defined (_MSC_VER)
 #include <float.h> /* for DBL_MAX, in MinGW and VC */
+#else
+#include <values.h> /* for DBL_MAX */
 #endif
 #include "gmp.h"
 #include "ecm.h"
