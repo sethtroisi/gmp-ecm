@@ -38,7 +38,8 @@
 */
 
 /* This function returns successive odd primes, starting with 3.
-   To perform a loop over all primes <= B1, do the following:
+   To perform a loop over all primes <= B1, do the following
+   (compile this file with -DMAIN to count primes):
 
       for (p = 2.0; p <= B1; p = getprime (p))
          {
@@ -180,3 +181,25 @@ getprime (double pp)
   else
     abort ();
 }
+
+#ifdef MAIN
+int
+main (int argc, char *argv[])
+{
+  double p, B;
+  unsigned long pi = 0;
+
+  if (argc != 2)
+    {
+      fprintf (stderr, "Usage: getprime <bound>\n");
+      exit (EXIT_FAILURE);
+    }
+
+  B = atof (argv[1]);
+  
+  for (pi = 0, p = 2.0; p <= B; p = getprime (p), pi++);
+  printf ("pi(%1.0f)=%lu\n", B, pi);
+
+  return 0;
+}
+#endif
