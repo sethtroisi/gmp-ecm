@@ -11,6 +11,21 @@
 #define M_EULER_1   0.422784335098467139 /* 1 - Euler */
 #define GSL_DBL_EPSILON 2.2204460492503131e-16
 
+static double dilog_series (const double);
+double dilog (double);
+double L2 (double);
+double rhoexact (double);
+void rhoinit (int, int);
+double dickmanrho (double);
+double dickmanrhosigma (double, double);
+double dickmanrhosigma_i (int, double);
+double dickmanlocal (double, double);
+double dickmanlocal_i (int, double);
+double dickmanmu (double, double, double);
+double brentsuyama (double, double, double, double);
+double brsudickson (double, double, double, double, int);
+double brsupower (double, double, double, double, int);
+
 static double *rhotable = NULL;
 static int invh = 0;
 static double h = 0.;
