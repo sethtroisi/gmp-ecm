@@ -2,8 +2,7 @@ This is the README file for gmp-ecm.
 
 Table of contents of this file:
 1. Files included in this distribution.
-2. Main changes with respect to gmp-ecm 4c.
-3. How to efficiently use P-1, P+1 and ECM?
+2. How to efficiently use P-1, P+1 and ECM?
 4. Extra factors and Brent-Suyama's extension.
 5. Memory usage.
 6. Expression syntax reference for gmp-ecm's syntax parser.
@@ -18,21 +17,29 @@ Table of contents of this file:
 
 1. Files included in this distribution.
 
-COPYING - GNU GENERAL PUBLIC LICENSE
-ChangeLog - Changes with respect to previous versions
-INSTALL - instructions to install gmp-ecm
-Makefile - to build the binary file 'ecm'
-README - this file
-*.c    - C source files
-c155 - test file containing a 155-digit composite
-ecm.h - header file
-test.ecm - test file for ECM
-test.pm1 - test file for P-1
-test.pp1 - test file for P+1
+aclocal.m4   - configuration file
+AUTHORS      - program authors
+*.c          - C source files
+COPYING      - GNU General Public License
+COPYING.LIB  - GNU Lesser General Public License
+ChangeLog    - changes with respect to previous versions
+config*      - configuration files
+depcomp      - configuration file
+ecm.1        - man page
+*.h          - header files
+INSTALL      - instructions to compile and install gmp-ecm
+install-sh   - installation file
+Makefile*    - to build the binary file
+missing      - configuration file
+NEWS         - news file
+README       - this file
+c155         - test file containing a 155-digit composite
+test.*       - test files
+TODO         - to-do list
 
 ##############################################################################
 
-3. How to efficiently use P-1, P+1 and ECM?
+2. How to efficiently use P-1, P+1 and ECM?
 
 The P-1 method works well when the input number has a prime factor P such
 that P-1 is "smooth", i.e. has all its prime factor less or equal the 

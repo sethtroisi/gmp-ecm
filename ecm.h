@@ -258,7 +258,7 @@ void         mpz_sub_si (mpz_t, mpz_t, int);
 void         mpz_divby3_1op (mpz_t);
 unsigned int ceil_log2  (unsigned int);
 void *       xmalloc    (size_t);
-int          cputime    ();
+int          cputime    (void);
 unsigned int get_random_ui (void);
 
 /* pm1.c */
@@ -277,9 +277,8 @@ int     pm1_rootsG       (mpz_t, listz_t, unsigned int, pm1_roots_state *,
 
 
 /* ecm.c */
-int          ecm        (mpz_t, mpz_t, mpz_t, mpz_t, double, double, double, double,
-                         double, unsigned int, int, int, int, int);
-int          cputime    (void);
+int ecm (mpz_t, mpz_t, mpz_t, mpz_t, mpz_t, double, double,
+	 double, double, double, unsigned int, int, int, int, int);
 
 /* bestd.c */
 unsigned long phi (unsigned long);
@@ -307,7 +306,7 @@ void  pp1_mul_prac     (mpres_t, unsigned long, mpmod_t, mpres_t, mpres_t,
 
 /* pp1.c */
 void  pp1_random_seed  (mpz_t, mpz_t, gmp_randstate_t);
-int   pp1              (mpz_t, mpz_t, mpz_t, double, double, double, 
+int   pp1              (mpz_t, mpz_t, mpz_t, mpz_t, double, double, double, 
                         double, double, unsigned int, unsigned int, int, int);
 int   pp1_rootsF       (listz_t, unsigned int, unsigned int, unsigned int,
                         mpres_t *, listz_t, mpmod_t, int);

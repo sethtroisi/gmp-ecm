@@ -32,7 +32,8 @@
 #define DEAD_MAGIC  0xDEADBEEF
 
 #if defined (CANDI_DEBUG)
-static void Candi_Validate(const char *FunctionStr, const mpcandi_t *n)
+static void
+Candi_Validate (const char *FunctionStr, const mpcandi_t *n)
 {
   int abrt = 0;
   if (!FunctionStr)
@@ -56,38 +57,42 @@ static void Candi_Validate(const char *FunctionStr, const mpcandi_t *n)
 }
 #endif
 
-void mpcandi_t_init(mpcandi_t *n)
+void
+mpcandi_t_init (mpcandi_t *n)
 {
   n->cpExpr = NULL;
   n->nexprlen = 0;
   n->ndigits = 1;
-  mpz_init_set_ui(n->n, 1);
+  mpz_init_set_ui (n->n, 1);
   n->isPrp = 0;
 #if defined (CANDI_DEBUG)
   n->magic = VALID_MAGIC;
-  Candi_Validate("mpcandi_t_init", n);
+  Candi_Validate ("mpcandi_t_init", n);
 #endif
 }
 
-void mpcandi_t_free(mpcandi_t *n)
+void
+mpcandi_t_free (mpcandi_t *n)
 {
 #if defined (CANDI_DEBUG)
   Candi_Validate("mpcandi_t_free", n);
 #endif
   if (n->cpExpr)
-    free(n->cpExpr);
+    free (n->cpExpr);
   n->cpExpr = NULL;
   n->nexprlen = 0;
   n->ndigits = 0;
-  mpz_clear(n->n);
-  n->isPrp = 1;	  /* "default" to prp, so that if the candidate does not get filled in, it will NOT be tested */
+  mpz_clear (n->n);
+  n->isPrp = 1;	  /* "default" to prp, so that if the candidate does not get
+		     filled in, it will not be tested */
 #if defined (CANDI_DEBUG)
   n->magic = DEAD_MAGIC;
 #endif
 }
 
 /* performs a safe "deep" copy */
-int mpcandi_t_copy(mpcandi_t *to, mpcandi_t *from)
+int
+mpcandi_t_copy (mpcandi_t *to, mpcandi_t *from)
 {
 #if defined (CANDI_DEBUG)
   Candi_Validate("Pre mpcandi_t_copy", to);
@@ -121,7 +126,9 @@ int mpcandi_t_copy(mpcandi_t *to, mpcandi_t *from)
   return 1;
 }
 
-int mpcandi_t_add_candidate(mpcandi_t *n, mpz_t c, const char *cpExpr, int primetest)
+int
+mpcandi_t_add_candidate (mpcandi_t *n, mpz_t c, const char *cpExpr,
+			 int primetest)
 {
 #if defined (CANDI_DEBUG)
   Candi_Validate("Pre mpcandi_t_add_candidate", n);
@@ -145,7 +152,8 @@ int mpcandi_t_add_candidate(mpcandi_t *n, mpz_t c, const char *cpExpr, int prime
   if (primetest)
     n->isPrp = smart_probab_prime_p (c, PROBAB_PRIME_TESTS);
   else
-    n->isPrp = 0; /* there is a candate there now, and the user did not tell us to prp it, so assume it is composite */
+    n->isPrp = 0; /* there is a candidate there now, and the user did not
+		     tell us to prp it, so assume it is composite */
   n->ndigits = nb_digits(c);
 
 #if defined (CANDI_DEBUG)
@@ -155,7 +163,8 @@ int mpcandi_t_add_candidate(mpcandi_t *n, mpz_t c, const char *cpExpr, int prime
   return 1;
 }
 
-int mpcandi_t_addfoundfactor_d(mpcandi_t *n, double f)
+int
+mpcandi_t_addfoundfactor_d (mpcandi_t *n, double f)
 {
 #if defined (CANDI_DEBUG)
   Candi_Validate("Pre mpcandi_t_addfoundfactor_d", n);
@@ -163,14 +172,15 @@ int mpcandi_t_addfoundfactor_d(mpcandi_t *n, double f)
   int ret;
   mpz_t t;
   mpz_init_set_d(t,f);
-  /* do not display a warning if this factor does not divide the remaining cofactor
-     This function is called repeatedly (until it fails) to remove ALL traces of 
-     the prime factor.  It is highly likely that these smaller factors WILL be
+  /* do not display a warning if this factor does not divide the remaining
+     cofactor. This function is called repeatedly (until it fails) to remove
+     all traces of 
+     the prime factor.  It is highly likely that these smaller factors will be
      non square-free within the candidate when starting.  A return of zero is 
      exprected by the calling trial divider, as that tells it that all residue 
      of the factor has been eliminated */
-  ret = mpcandi_t_addfoundfactor(n, t, 0);
-  mpz_clear(t);
+  ret = mpcandi_t_addfoundfactor (n, t, 0);
+  mpz_clear (t);
 
 #if defined (CANDI_DEBUG)
   Candi_Validate("Post mpcandi_t_addfoundfactor_d", n);
@@ -179,7 +189,8 @@ int mpcandi_t_addfoundfactor_d(mpcandi_t *n, double f)
   return ret;
 }
 
-int mpcandi_t_addfoundfactor(mpcandi_t *n, mpz_t f, int displaywarning)
+int
+mpcandi_t_addfoundfactor (mpcandi_t *n, mpz_t f, int displaywarning)
 {
 #if defined (CANDI_DEBUG)
   Candi_Validate("Pre mpcandi_t_addfoundfactor_d", n);
@@ -233,23 +244,26 @@ int mpcandi_t_addfoundfactor(mpcandi_t *n, mpz_t f, int displaywarning)
   command line switch which allows the user to "insert" the proper
   group order.
 **********************************************************************/
-void mpgocandi_t_init(mpgocandi_t *go)
+void
+mpgocandi_t_init (mpgocandi_t *go)
 {
   go->cpOrigExpr = NULL;
-  mpcandi_t_init(&(go->Candi));
+  mpcandi_t_init (&(go->Candi));
   go->containsN = 0;
   go->Valid = 0;
 }
 
-void mpgocandi_t_free(mpgocandi_t *go)
+void
+mpgocandi_t_free (mpgocandi_t *go)
 {
   if (go->cpOrigExpr)
-    free(go->cpOrigExpr);
-  mpcandi_t_free(&(go->Candi));
+    free (go->cpOrigExpr);
+  mpcandi_t_free (&(go->Candi));
   go->Valid = 0;
 }
 
-int mpgocandi_fixup_with_N(mpgocandi_t *go, mpcandi_t *n)
+int
+mpgocandi_fixup_with_N (mpgocandi_t *go, mpcandi_t *n)
 {
   int NumNs, len;
   char *cp, *cpo, *numbuf;
@@ -259,17 +273,17 @@ int mpgocandi_fixup_with_N(mpgocandi_t *go, mpcandi_t *n)
   if (go->containsN == 0)
     return 1;  /* a valid "normal" expression does not need updating */
 
-  cp = strchr(go->cpOrigExpr, 'N');
+  cp = strchr (go->cpOrigExpr, 'N');
   NumNs = 0;
   while (cp)
     {
       ++NumNs;
-      cp = strchr(&cp[1], 'N');
+      cp = strchr (&cp[1], 'N');
     }
   /* compute size of string needed, and add some safety buffer to it */
   cp = go->cpOrigExpr;
-  len = NumNs * mpz_sizeinbase(n->n, 10) + strlen(cp) + 100;
-  numbuf = (char *)malloc(len);
+  len = NumNs * mpz_sizeinbase (n->n, 10) + strlen (cp) + 100;
+  numbuf = (char *) malloc(len);
   if (numbuf == NULL)
     {
       fprintf (stderr, "Error: not enough memory\n");
@@ -279,7 +293,7 @@ int mpgocandi_fixup_with_N(mpgocandi_t *go, mpcandi_t *n)
   while (*cp)
     {
       if (*cp == 'N')
-	  cpo += gmp_sprintf(cpo, "%Zi", n->n);
+	  cpo += gmp_sprintf (cpo, "%Zi", n->n);
       else
         *cpo++ = *cp;
       ++cp;
@@ -288,21 +302,18 @@ int mpgocandi_fixup_with_N(mpgocandi_t *go, mpcandi_t *n)
   *cpo = 0; /* Null terminate the string correctly. */
 
   if (eval_str (&(go->Candi), numbuf, 0, NULL))
-    {
-      /*gmp_printf ("preloading Group Order with factor knowledge of %s [%Zi]\n", argv[2], go.pCandi); */
-      go->Valid = 1;
-    }
+    go->Valid = 1;
   else
     {
       static int warned = 0;
       if (!warned)
 	{
 	  warned = 1;
-	  fprintf(stderr, "Warning, the expression %s for the -go switch was invalid for some reason\n", go->cpOrigExpr);
+	  fprintf(stderr, "Warning, invalid expression %s for the -go option\n", go->cpOrigExpr);
 	}
       go->Valid = 0;  /* it is not valid, so do not use it */
     }
 
-  free(numbuf);
+  free (numbuf);
   return go->Valid;
 }

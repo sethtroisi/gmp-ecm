@@ -104,11 +104,13 @@ pp1_mul (mpres_t P1, mpres_t P0, mpz_t e, mpmod_t n, mpres_t P, mpres_t Q)
 /* Input:  P0 is the initial point (sigma)
            n is the number to factor
            B1 is the stage 1 bound
+	   B1done: stage 1 was already done up to that limit
+	   go: if <> 1, group order to preload
    Output: a is the factor found, or the value at end of stage 1
    Return value: non-zero iff a factor was found.
 */
 static int
-pp1_stage1 (mpz_t f, mpres_t P0, mpmod_t n, double B1, double B1done)
+pp1_stage1 (mpz_t f, mpres_t P0, mpmod_t n, double B1, double B1done, mpz_t go)
 {
   double B0, p, q, r;
   mpz_t g;
@@ -128,6 +130,9 @@ pp1_stage1 (mpz_t f, mpres_t P0, mpmod_t n, double B1, double B1done)
 
   size_n = mpz_sizeinbase (n->orig_modulus, 2);
   max_size = L1 * size_n;
+
+  if (mpz_cmp_ui (go, 1) > 0)
+    pp1_mul (P0, P0, go, n, P, Q);
 
   /* suggestion from Peter Montgomery: start with exponent n^2-1,
      as factors of Lucas and Fibonacci number are either +/-1 (mod index),
@@ -391,8 +396,9 @@ pp1_rootsG (listz_t G, unsigned int d, pp1_roots_state *state, mpmod_t modulus)
    Return value: non-zero iff a factor is found (1 for stage 1, 2 for stage 2)
 */
 int
-pp1 (mpz_t f, mpz_t p, mpz_t n, double B1done, double B1, double B2min, double B2, 
-     double B2scale, unsigned int k, unsigned int S, int verbose, int repr)
+pp1 (mpz_t f, mpz_t p, mpz_t n, mpz_t go, double B1done, double B1,
+     double B2min, double B2, double B2scale, unsigned int k, unsigned int S,
+     int verbose, int repr)
 {
   int youpi = 0, st;
   mpres_t a;
@@ -455,7 +461,7 @@ pp1 (mpz_t f, mpz_t p, mpz_t n, double B1done, double B1, double B2min, double B
   mpres_set_z (a, p, modulus);
 
   if (B1 > B1done)
-    youpi = pp1_stage1 (f, a, modulus, B1, B1done);
+    youpi = pp1_stage1 (f, a, modulus, B1, B1done, go);
 
   st = cputime () - st;
 

@@ -222,7 +222,7 @@ main (int argc, char *argv[])
 
 
   /* initialize the group order candidate */
-  mpgocandi_t_init(&go);
+  mpgocandi_t_init (&go);
 
   /* check ecm is linked with a compatible librayr */
   if (mp_bits_per_limb != GMP_NUMB_BITS)
@@ -518,24 +518,22 @@ main (int argc, char *argv[])
       else if ((argc > 2) && (strcmp (argv[1], "-go") == 0))
 	{
 	  if (go.cpOrigExpr)
-	    free(go.cpOrigExpr);
-	  go.cpOrigExpr = malloc(strlen(argv[2])+1);
-	  strcpy(go.cpOrigExpr, argv[2]);
-	  if (strchr(go.cpOrigExpr, 'N'))
+	    free (go.cpOrigExpr);
+	  go.cpOrigExpr = malloc (strlen (argv[2]) + 1);
+	  strcpy (go.cpOrigExpr, argv[2]);
+	  if (strchr (go.cpOrigExpr, 'N'))
 	    {
-    	      /*gmp_printf ("preloading Group Order with factor knowledge of %s\n", argv[2]); */
 	      go.containsN = 1;
-	      go.Valid = 1;  /* we actually do not know if it is valid here, but we "assume" until the first time
-	                        it gets run through */
+	      go.Valid = 1;  /* we actually do not know if it is valid here,
+				but we "assume" until the first time it gets
+				run through */
 	    }
 	  else
 	    { 
-	      go.containsN = 0;  /* have "fully" parsed expr or number.  do not recompute for each N */
+	      go.containsN = 0;  /* have "fully" parsed expr or number.
+				    Do not recompute for each N */
 	      if (eval_str (&(go.Candi), go.cpOrigExpr, 0, NULL))
-	      {
-		/*gmp_printf ("preloading Group Order with factor knowledge of %s [%Zi]\n", argv[2], go->Candi.n); */
 		go.Valid = 1;
-	      }
 	    }
 	  argv += 2;
 	  argc -= 2;
@@ -1000,18 +998,21 @@ BreadthFirstDoAgain:;
 
       cnt --; /* one more curve performed */
 
-      mpgocandi_fixup_with_N(&go, &n);
+      mpgocandi_fixup_with_N (&go, &n);
 
       if (method == PM1_METHOD)
-        result = pm1 (f, x, n.n, go.Candi.n, B1done, B1, B2min, B2, B2scale, k, S, verbose, repr);
+        result = pm1 (f, x, n.n, go.Candi.n, B1done, B1, B2min, B2, B2scale,
+		      k, S, verbose, repr);
       else if (method == PP1_METHOD)
-        result = pp1 (f, x, n.n, B1done, B1, B2min, B2, B2scale, k, S, verbose, repr);
+        result = pp1 (f, x, n.n, go.Candi.n, B1done, B1, B2min, B2, B2scale,
+		      k, S, verbose, repr);
       else /* ECM */
 	{
-	  if (mpz_sgn (sigma) == 0) /* If sigma is zero, then we use the A value instead */
-	    result = ecm (f, x, A, n.n, B1done, B1, B2min, B2, B2scale, k, S, verbose, repr, 1);
-	  else
-	    result = ecm (f, x, sigma, n.n, B1done, B1, B2min, B2, B2scale, k, S, verbose, repr, 0);
+	  int sigma_is_A = mpz_sgn (sigma) == 0;
+	  /* if sigma is zero, then we use the A value instead */
+	  result = ecm (f, x, (sigma_is_A) ? A : sigma, n.n, go.Candi.n,
+			B1done, B1, B2min, B2, B2scale, k, S, verbose, repr,
+			sigma_is_A);
         }
 
       if (result == 0)
@@ -1019,7 +1020,7 @@ BreadthFirstDoAgain:;
 	  if (trial_factor_found)
 	  {
 	    factor_is_prime = 1;
-	    mpz_set_ui (f,1);
+	    mpz_set_ui (f, 1);
 	    goto OutputFactorStuff;
 	  }
 	}

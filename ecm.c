@@ -140,13 +140,12 @@ montgomery_to_weierstrass (mpz_t f, mpres_t x, mpres_t y, mpres_t A, mpmod_t n)
   return 0;
 }
 
-
 /* adds Q=(x2:z2) and R=(x1:z1) and puts the result in (x3:z3),
      using 6 muls (4 muls and 2 squares), and 6 add/sub.
    One assumes that Q-R=P or R-Q=P where P=(x:z).
      - n : number to factor
-     - t, u, v, w : auxiliary variables
-   Modifies: x3, z3, t, u, v, w.
+     - u, v, w : auxiliary variables
+   Modifies: x3, z3, u, v, w.
    (x3,z3) may be identical to (x2,z2) and to (x,z)
 */
 static void
@@ -204,6 +203,60 @@ duplicate (mpres_t x2, mpres_t z2, mpres_t x1, mpres_t z1, mpmod_t n,
   mpres_mul (u, w, b, n);   /* u = w*b = ((A+2)/4*(4*x1*z1)) mod n */
   mpres_add (u, u, v, n);   /* u = (x1-z1)^2+(A+2)/4*(4*x1*z1) */
   mpres_mul (z2, w, u, n);  /* z2 = ((4*x1*z1)*((x1-z1)^2+(A+2)/4*(4*x1*z1))) mod n */
+}
+
+/* multiply P=(x:z) by e and puts the result in (x:z).
+   Assumes e >= 1.
+*/
+static void
+ecm_mul (mpres_t x, mpres_t z, mpz_t e, mpmod_t n, mpres_t b)
+{
+  size_t l;
+  mpres_t x0, z0, x1, z1, u, v, w;
+
+  if (mpz_cmp_ui (e, 1) == 0)
+    return;
+
+  mpres_init (x0, n);
+  mpres_init (z0, n);
+  mpres_init (x1, n);
+  mpres_init (z1, n);
+  mpres_init (u, n);
+  mpres_init (v, n);
+  mpres_init (w, n);
+
+  l = mpz_sizeinbase (e, 2) - 1; /* l >= 1 */
+
+  mpres_set (x0, x, n);
+  mpres_set (z0, z, n);
+  duplicate (x1, z1, x0, z0, n, b, u, v, w);
+
+  /* invariant: (P1,P0) = ((k+1)P, kP) where k = floor(e/2^l) */
+
+  while (l-- > 0)
+    {
+      if (mpz_tstbit (e, l)) /* k, k+1 -> 2k+1, 2k+2 */
+        {
+          add3 (x0, z0, x0, z0, x1, z1, x, z, n, u, v, w); /* 2k+1 */
+          duplicate (x1, z1, x1, z1, n, b, u, v, w); /* 2k+2 */
+        }
+      else /* k, k+1 -> 2k, 2k+1 */
+        {
+          add3 (x1, z1, x1, z1, x0, z0, x, z, n, u, v, w); /* 2k+1 */
+          duplicate (x0, z0, x0, z0, n, b, u, v, w); /* 2k */
+        }
+    }
+
+  mpres_set (x, x0, n);
+  mpres_set (z, z0, n);
+
+  mpres_clear (x0, n);
+  mpres_clear (z0, n);
+  mpres_clear (x1, n);
+  mpres_clear (z1, n);
+  mpres_clear (u, n);
+  mpres_clear (v, n);
+  mpres_clear (w, n);
 }
 
 #define ADD 6.0 /* number of multiplications in an addition */
@@ -456,7 +509,8 @@ prac (mpres_t xA, mpres_t zA, unsigned long k, mpmod_t n, mpres_t b,
    Return value: non-zero iff a factor is found
 */
 static int
-ecm_stage1 (mpz_t f, mpres_t x, mpres_t A, mpmod_t n, double B1, double B1done)
+ecm_stage1 (mpz_t f, mpres_t x, mpres_t A, mpmod_t n, double B1, double B1done,
+	    mpz_t go)
 {
   mpres_t b, z, u, v, w, xB, zB, xC, zC, xT, zT, xT2, zT2;
   double q, r;
@@ -481,6 +535,9 @@ ecm_stage1 (mpz_t f, mpres_t x, mpres_t A, mpmod_t n, double B1, double B1done)
   mpres_add_ui (b, A, 2, n);
   mpres_div_2exp (b, b, 2, n); /* b == (A+2)/4 */
 
+  /* preload group order */
+  ecm_mul (x, z, go, n, b);
+
   /* prac() wants multiplicands > 2 */
   for (r = 2.0; r <= B1; r *= 2.0)
     if (r > B1done)
@@ -498,17 +555,18 @@ ecm_stage1 (mpz_t f, mpres_t x, mpres_t A, mpmod_t n, double B1, double B1done)
   /* check that B1 is not too large */
   if (B1 > (double) ULONG_MAX)
     {
-      fprintf (stderr, "Error, maximal step1 bound B1 for ECM is %lu\n", ULONG_MAX);
+      fprintf (stderr, "Error, maximal step1 bound (B1) for ECM is %lu\n",
+	       ULONG_MAX);
       exit (EXIT_FAILURE);
     }
   for (q = getprime (q); q <= B1; q = getprime (q))
     {
       for (r = q; r <= B1; r *= q)
 	if (r > B1done)
-	  prac (x, z, (unsigned long) q, n, b, u, v, w, xB, zB, xC, zC, xT, zT, xT2, zT2);
+	  prac (x, z, (unsigned long) q, n, b, u, v, w, xB, zB, xC, zC, xT,
+		zT, xT2, zT2);
     }
   getprime (0.0); /* free the prime tables, and reinitialize */
-
 
   /* Normalize z to 1 */
   if (!mpres_invert (u, z, n)) /* Factor found? */
@@ -549,9 +607,9 @@ ecm_stage1 (mpz_t f, mpres_t x, mpres_t A, mpmod_t n, double B1, double B1done)
    Return value: non-zero iff a factor was found.
 */
 int
-ecm (mpz_t f, mpz_t x, mpz_t sigma, mpz_t n, double B1done, double B1,
-     double B2min, double B2, double B2scale, unsigned int k, int S, int verbose,
-     int repr, int sigma_is_A)
+ecm (mpz_t f, mpz_t x, mpz_t sigma, mpz_t n, mpz_t go, double B1done,
+     double B1, double B2min, double B2, double B2scale, unsigned int k,
+     int S, int verbose, int repr, int sigma_is_A)
 {
   int youpi = 0, st;
   mpmod_t modulus;
@@ -661,10 +719,16 @@ ecm (mpz_t f, mpz_t x, mpz_t sigma, mpz_t n, double B1done, double B1,
       printf ("\nstarting point: x=");
       mpres_out_str (stdout, 10, P.x, modulus);
       printf ("\n");
+      if (mpz_cmp_ui (go, 1) > 0)
+        {
+          printf ("initial group order: ");
+          mpz_out_str (stdout, 10, go);
+          printf ("\n");
+        }
     }
 
   if (B1 > B1done)
-    youpi = ecm_stage1 (f, P.x, P.A, modulus, B1, B1done);
+    youpi = ecm_stage1 (f, P.x, P.A, modulus, B1, B1done, go);
   
   st = cputime () - st;
   

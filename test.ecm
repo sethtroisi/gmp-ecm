@@ -111,4 +111,8 @@ ECM="$1"
 (echo 216259730493575791390589173296092767511 | $ECM -sigma 214659179 2e6) ||
    (echo "############### ERROR ###############"; exit 1) || exit
 
+# test -go option
+(echo 9144205714687032445758003941 | $ECM -sigma 2076570331 -go 4346981 4663 1) ||
+   (echo "############### ERROR ###############"; exit 1) || exit
+
 echo "All ECM tests are ok."
