@@ -145,7 +145,7 @@ tests_free_nosize (void *ptr)
   __gmp_default_free (h, sizeof (*h));
 }
 
-static void
+void
 tests_free (void *ptr, size_t size)
 {
   struct header  **hp = tests_free_find (ptr);
