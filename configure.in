@@ -10,8 +10,6 @@ AC_ARG_WITH(gmp_lib, [  --with-gmp-lib=DIR      GMP lib directory ], with_gmp_li
 AC_ARG_WITH(gmp_build, [  --with-gmp-build=DIR    GMP source directory], with_gmp_include=$withval/ with_gmp_lib=$withval/.libs)
 AC_ARG_WITH(gmp, [  --with-gmp=DIR          GMP install directory ], with_gmp_include=$withval/include with_gmp_lib=$withval/lib)
 
-LDFLAGS="-L$with_gmp_lib $LDFLAGS"
-
 dnl Checks for programs.
 AC_PROG_CC
 AC_PROG_RANLIB
@@ -55,21 +53,20 @@ AC_CHECK_LIB(gmp, __gmpn_mul_fft,
      [Please install GMP (http://swox.com/gmp) with FFT enabled])])
 
 dnl Check for libm
-LIBS="-lm"
 
 dnl AC_CHECK_LIB doesn't do what we want
 AC_MSG_CHECKING(for GMP library)
 if test -r "$with_gmp_lib/libgmp.a"; then
-  LIBS="$with_gmp_lib/libgmp.a $LIBS"
+  LIBS="$with_gmp_lib/libgmp.a"
 elif test -r "$with_gmp_lib/libgmp.so"; then
-  LIBS="$with_gmp_lib/libgmp.so $LIBS"
+  LIBS="$with_gmp_lib/libgmp.so"
 elif test -r "$with_gmp_lib/libgmp.lib"; then
-  LIBS="$with_gmp_lib/libgmp.lib $LIBS"
+  LIBS="$with_gmp_lib/libgmp.lib"
 else
   if test -d "$with_gmp_lib"; then
     LDFLAGS="-L$with_gmp_lib $LDFLAGS"
   fi  
-  LIBS="-lgmp $LIBS"
+  LIBS="-lgmp"
 fi
 
 dnl Check for corresponding 'gmp.h' and libgmp.a

@@ -10,7 +10,7 @@ noinst_HEADERS = ecm.h ecm-gmp.h
 
 EXTRA_DIST = test.pm1 test.pp1 test.ecm
 
-AM_LDFLAGS = -lgmp -lm
+AM_LDFLAGS = -lm
 
 check: ecm
 	$(srcdir)/test.pp1 ./ecm

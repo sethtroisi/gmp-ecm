@@ -13,10 +13,13 @@ Warning: only configure.in and Makefile.am should be in cvs
 ##############################################################################
 
 Documentation:
+
 - ecm.xml was generated from ecm.1 using doclifter-2.1
   ./doclifter < ecm.1 > ecm.xml
   (http://en.tldp.org/HOWTO/DocBook-Demystification-HOWTO/x181.html
    http://www.catb.org/~esr//doclifter/)
+  See the documentation of ROX-Filer (http://rox.sf.net/) for example
+	(see rox/ROX-Filer/src/Docs/Manual.xml).
 
 - to generate ecm.html:
   $ xsltproc $XSLDIR/html/docbook.xsl ecm.xml > ecm.html
