@@ -105,8 +105,9 @@ cputime ()
 
   if (First==1)
   {
+    First = 0;
     if (!QueryPerformanceFrequency(&PF))
-      First = -1;
+        First = -1;
   }
   if (First == -1)
     return cputime_x();
@@ -116,7 +117,10 @@ cputime ()
   d /= *(long long*)&PF;
   d *= 1000;
 
-  return (int) d;
+  /* NOTE a double converting to int is wrong!.  We need the number mod
+     2^31-1 (which is correct auto type-conversion from a unsigned ) */
+  /* The "other" cputime() functions probably also have this "bug" */
+  return (unsigned)d;
 }
 
 #else
