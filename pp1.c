@@ -220,6 +220,26 @@ pp1_stage1 (mpz_t P0, mpz_t n, double B1)
   return youpi;
 }
 
+/* put in seed a valid random seed for P+1 */
+void
+pp1_random_seed (mpz_t seed, mpz_t n, gmp_randstate_t randstate)
+{
+  mpz_t q;
+
+  /* need gcd(p^2-4, n) = 1. */
+  mpz_init (q);
+  do
+    {
+      mpz_urandomb (seed, randstate, 32);
+      mpz_add_ui (seed, seed, 1);
+      mpz_mul (q, seed, seed);
+      mpz_sub_ui (q, q, 4);
+      mpz_gcd (q, q, n);
+    }
+  while (mpz_cmp_ui (q, 1) != 0);
+  mpz_clear (q);
+}
+
 /******************************************************************************
 *                                                                             *
 *                               Williams P+1                                  *
@@ -243,13 +263,6 @@ pp1 (mpz_t p, mpz_t n, double B1, double B2, unsigned int k, unsigned int S,
 
   st = cputime ();
 
-  if (mpz_sgn (p) == 0)
-    {
-      /* No specific seed given, use default.
-         What is a good default seed for P+1 ? */
-        mpz_set_ui(p, 17);
-    }
-  
   if (verbose >= 1)
     {
       printf ("Using seed=");

@@ -26,6 +26,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <time.h>
+#include <unistd.h>
 #include "gmp.h"
 #include "ecm.h"
 
@@ -140,20 +141,23 @@ main (int argc, char *argv[])
        /* For P-1, this is the initial seed. For ECM, it's the
           sigma or A parameter */
        if (method == PM1_METHOD || method == PP1_METHOD)
-         mpz_set_str (seed, argv[2], 10);
+         {
+           mpz_set_str (seed, argv[2], 10);
+           specific_sigma = mpz_sgn (seed) != 0;
+         }
        else
          {
            mpz_set_str (sigma, argv[2], 10);
-           specific_sigma = (mpz_sgn(sigma) != 0); /* zero sigma => make random */
+           specific_sigma = mpz_sgn (sigma) != 0; /* zero sigma => random */
          }
     }
 
-  /* We need random numbers for ECM without user-specified sigma */
-  if (method == EC_METHOD && !specific_sigma)
+  /* We need random numbers without user-specified sigma */
+  if (!specific_sigma)
     {
       gmp_randinit_default (randstate);
-      gmp_randseed_ui (randstate, time (NULL)); 
-      /* todo: need higer resolution */
+      gmp_randseed_ui (randstate, time (NULL) + getpid ());
+      /* todo: need higher resolution */
     }
 
   /* set second stage bound B2: when using polynomial multiplication of
@@ -227,11 +231,18 @@ main (int argc, char *argv[])
 
       /* Set effective seed/sigma for factoring attempt on this number */
       mpz_set (p, seed);
-      if (method == EC_METHOD && !specific_sigma)
+      if (!specific_sigma)
         {
-          /* Make random sigma, 0 < sigma <= 2^32 */
-          mpz_urandomb (sigma, randstate, 32);
-          mpz_add_ui(sigma, sigma, 1);
+          if (method == EC_METHOD)
+            {
+              /* Make random sigma, 0 < sigma <= 2^32 */
+              mpz_urandomb (sigma, randstate, 32);
+              mpz_add_ui (sigma, sigma, 1);
+            }
+          else if (method == PP1_METHOD)
+            pp1_random_seed (p, n, randstate);
+          else if (method == PM1_METHOD)
+            pm1_random_seed (p, n, randstate);
         }
 
       if (method == PM1_METHOD)

@@ -18,9 +18,14 @@ typedef __polyz_struct polyz_t[1];
 
 double   getprime       (double);
 unsigned int nb_digits  (mpz_t);
+
+/* pm1.c */
+void    pm1_random_seed (mpz_t, mpz_t, gmp_randstate_t);
 int      pm1_stage1     (mpz_t, mpz_t, double);
 int          pm1        (mpz_t, mpz_t, double, double, unsigned int, 
                          unsigned int, int);
+
+/* ecm.c */
 int          ecm        (mpz_t, mpz_t, mpz_t, double, double, unsigned int, 
                          unsigned int, int);
 unsigned int phi        (unsigned int);
@@ -33,6 +38,7 @@ int          cputime    (void);
 void         pp1_mul    (mpz_t, mpz_t, mpz_t, mpz_t, mpz_t, mpz_t);
 void         pp1_mul_ui (mpz_t, mpz_t, mpz_t, mpz_t, mp_limb_t, mpz_t);
 int          pp1_stage1 (mpz_t, mpz_t, double);
+void    pp1_random_seed (mpz_t, mpz_t, gmp_randstate_t);
 int          pp1        (mpz_t, mpz_t, double, double, unsigned int, 
                          unsigned int, int);
 
