@@ -79,7 +79,7 @@ isbase2 (mpz_t n, double threshold)
     }
   mpz_clear (u);
   mpz_clear (w);
-  if (abs (res) > (int)(threshold * lo)) 
+  if (abs (res) > (int) (threshold * (double) lo)) 
     res = 0;
   return res;
 }
@@ -231,13 +231,14 @@ mpz_mod_n (mpz_ptr r, mpz_ptr c, mpmod_t modulus)
   SIZ(r) = SIZ(c) < 0 ? -nn : nn;
 }
 
-/* don't use base2 if repr == -1 */
+/* don't use base2 if repr == -1, i.e. -nobase2 */
 void 
 mpmod_init (mpmod_t modulus, mpz_t N, int repr, int verbose)
 {
   int base2;
   
-  if ((repr != -1) && (base2 = isbase2 (N, 2.0)))
+  /* 1.4 is an experimental best threshold on Cunningham numbers */
+  if ((repr != -1) && (base2 = isbase2 (N, 1.4)))
     {
       if (verbose > 1)
 	printf ("Using special division for factor of 2^%d%c1\n",
