@@ -51,7 +51,7 @@ ecm: $(ALLFILES) ecm.h
 	$(LD) $(CFLAGS) -L$(GMP)/lib -L$(NTL)/lib $(ALLFILES) -o $@ $(LDFLAGS)
 
 ecm_with_ntl:
-           make ecm GMP=$(GMP) NTL=$(NTL) CXX=g++ EXTRAFILES="ntl.o polyz.o" LDFLAGS="-lntl $(LDFLAGS) CFLAGS="$(CFLAGS) -DPOLYGCD""
+	make ecm GMP=$(GMP) NTL=$(NTL) CXX=g++ EXTRAFILES="ntl.o polyz.o" LDFLAGS="-lntl $(LDFLAGS) CFLAGS="$(CFLAGS) -DPOLYGCD""
 
 tune: mpmod.o ecm.h tune.o auxi.o mul_lo.o
 	$(CC) $(CFLAGS) -L$(GMP)/lib tune.o mpmod.o auxi.o mul_lo.o -o $@ -lgmp
