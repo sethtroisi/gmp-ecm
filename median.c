@@ -414,12 +414,11 @@ TToomCookMul (listz_t b, unsigned int n,
     mpz_t comp_tmp;
     unsigned int tot_muls = 0;
 
-
     nu = n / 3 + 1;
     mu = m / 3 + 1;
 
     /* ensures n + 1 > 2 * nu */
-    if ((n < 2 * nu) || (m < 2 * mu) || (n == 6))
+    if ((n < 2 * nu) || (m < 2 * mu))
     {
 #ifdef TTCDEBUG
         printf ("Opérandes trop petites, on appelle TKara.\n");
@@ -453,11 +452,11 @@ TToomCookMul (listz_t b, unsigned int n,
         return MIN(n, l) + 1;
     }
 
-    /* Now the degenerate cases. We want 2 * nu < m.
+    /* Now the degenerate cases. We want 2 * nu <= m.
      * 
      */
 
-    if (m <= 2 * nu)
+    if (m < 2 * nu)
     {
 #ifdef TTCDEBUG
         printf ("Cas dégénéré 1.\n");
@@ -476,10 +475,10 @@ TToomCookMul (listz_t b, unsigned int n,
         return tot_muls;
     }
                   
-    /* Second degenerate case. We want 2 * mu < n.
+    /* Second degenerate case. We want 2 * mu <= n.
      */
 
-    if (n <= 2 * mu)
+    if (n < 2 * mu)
     {
 #ifdef TTCDEBUG
         printf ("Cas dégénéré 2.\n");

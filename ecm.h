@@ -20,9 +20,8 @@
 
 #define ECM_VERSION "5.1-beta"
 
-/* To use new polyeval_tellegen :
- * #define POLYEVALTELLEGEN
- */
+/* To use new polyeval_tellegen */
+#define POLYEVALTELLEGEN
 
 /* define top-level multiplication */
 #define KARA 2
@@ -35,6 +34,7 @@
 
 #ifdef POLYEVALTELLEGEN
 #define POLYEVAL
+#define USE_SHORT_PRODUCT
 #endif
 
 #ifndef POLYGCD
@@ -190,6 +190,7 @@ int          cputime    (void);
 /* bestd.c */
 unsigned long muls_toom3 (unsigned int);
 unsigned long muls_gen (unsigned int);
+unsigned long muls_gen_short (unsigned int);
 unsigned long   phi (unsigned long);
 double   block_size (unsigned long);
 unsigned long bestD (double, unsigned int, unsigned int *, unsigned int,
@@ -240,6 +241,7 @@ void         list_mul_z (listz_t, listz_t, mpz_t, unsigned int, mpz_t);
 int          list_gcd   (mpz_t, listz_t, unsigned int, mpz_t);
 void         list_zero  (listz_t, unsigned int);
 int          list_zerop (listz_t, unsigned int);
+int       list_mul_high (listz_t, listz_t, listz_t, unsigned int, listz_t);
 int       toomcook4_low (listz_t, listz_t, listz_t, unsigned int, listz_t);
 int      toomcook4_high (listz_t, listz_t, listz_t, unsigned int, listz_t);
 int          karatsuba  (listz_t, listz_t, listz_t, unsigned int, listz_t);

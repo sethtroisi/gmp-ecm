@@ -240,6 +240,7 @@ list_zerop (listz_t p, unsigned int n)
    of b[0..K-1] and c[0..K-1].
    Returns the number of scalar multiplies.
    Assumes K >= 1, and a[0..2K-2] exist.
+   Needs space for list_mul_mem(K) in t.
 */
 static int
 list_mul_low (listz_t a, listz_t b, listz_t c, unsigned int K, listz_t t)
@@ -281,8 +282,9 @@ list_mul_low (listz_t a, listz_t b, listz_t c, unsigned int K, listz_t t)
    of b[0..K-1] and c[0..K-1].
    Returns the number of scalar multiplies.
    Assumes K >= 1, and a[0..2K-2] exist.
+   Needs space for list_mul_mem(K) in t.
 */
-static int
+int
 list_mul_high (listz_t a, listz_t b, listz_t c, unsigned int K, listz_t t)
 {
   unsigned int p, q, muls;
