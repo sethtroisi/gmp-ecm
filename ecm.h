@@ -386,8 +386,9 @@ int           toomcook4 (listz_t, listz_t, listz_t, unsigned int, listz_t);
 int kronecker_schonhage (listz_t, listz_t, listz_t, unsigned int, listz_t);
 unsigned int TMulKS     (listz_t, unsigned int, listz_t, unsigned int, listz_t,
                          unsigned int, mpz_t, int);
+unsigned int ks_wrapmul_m (unsigned int, unsigned int, mpz_t);
 unsigned int ks_wrapmul (listz_t, unsigned int, listz_t, unsigned int,
-                         listz_t, unsigned int);
+                         listz_t, unsigned int, mpz_t);
 
 /* mpmod.c */
 int isbase2 (mpz_t, double);
