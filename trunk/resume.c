@@ -22,6 +22,7 @@
 #include <stdlib.h>
 #include <time.h>
 #include <string.h>
+#include <unistd.h>
 #include "gmp.h"
 #include "ecm.h"
 
@@ -49,11 +50,14 @@ facceptstr (FILE *fd, char *s)
   return i;
 }
 
-/* Reads a string from fd until the character "delim" is seen, or "len" 
-   characters have been written to s (including terminating null), or 
-   EOF is reached. If s is NULL, characters are read from fd but not written
-   anywhere.
-   Returns the number of characters read. */
+/* Reads a string from fd until the character "delim" or newline is seen, or 
+   "len" characters have been written to "s" (including terminating null), 
+   or EOF is reached. The "delim" and newline characters are left on the 
+   stream.
+   If s is NULL, characters are read from fd but not written anywhere.
+   Returns the number of characters read.
+*/
+
 int 
 freadstrn (FILE *fd, char *s, char delim, unsigned int len)
 {
@@ -61,7 +65,7 @@ freadstrn (FILE *fd, char *s, char delim, unsigned int len)
   int c;
   
   while (i + 1 < len && (c = fgetc (fd)) != EOF)
-    if (c == delim)
+    if (c == delim || c == '\n')
       {
         ungetc (c, fd);
         break;
@@ -76,20 +80,28 @@ freadstrn (FILE *fd, char *s, char delim, unsigned int len)
   return i;
 }
 
+/* Reads an assignment from a save file. Return 1 if an assignment was
+   successfully read, 0 if there are no more lines to read (at EOF) 
+*/
+
 int 
 read_resumefile_line (int *method, mpz_t x, mpz_t n, mpz_t sigma, mpz_t A, 
         mpz_t x0, double *b1, char *program, char *who, char *rtime, 
         char *comment, FILE *fd)
 {
   int a, c;
-  int have_method, have_x, have_n, have_sigma, have_a, have_b1, have_checksum;
+  int have_method, have_x, have_n, have_sigma, have_a, have_b1, have_checksum, 
+      have_qx;
   unsigned int saved_checksum;
+  char tag[16];
   
   while (!feof (fd))
     {
       /* Ignore empty lines */
       if (facceptstr (fd, "\n"))
-        continue;
+        {
+          continue;
+        }
       
       /* Ignore lines beginning with '#'*/
       if (facceptstr (fd, "#"))
@@ -101,7 +113,8 @@ read_resumefile_line (int *method, mpz_t x, mpz_t n, mpz_t sigma, mpz_t A,
       if (feof (fd))
         break;
       
-      have_method = have_x = have_n = have_sigma = have_a = have_b1 = 0;
+      have_method = have_x = have_n = have_sigma = have_a = have_b1 = 
+                    have_qx = 0;
       have_checksum = 0;
 
       /* Set optional fields to zero */
@@ -118,11 +131,16 @@ read_resumefile_line (int *method, mpz_t x, mpz_t n, mpz_t sigma, mpz_t A,
 
       while (!facceptstr (fd, "\n") && !feof (fd))
         {
-          if ((a = facceptstr (fd, "METHOD=")))
+          freadstrn (fd, tag, '=', 16);
+          
+          if (!facceptstr (fd, "="))
             {
-              if (a != 7)
-                goto error;
-
+              printf ("No semicolon after: %s\n", tag);
+              goto error;
+            }
+          
+          if (strcmp (tag, "METHOD") == 0)
+            {
               if (facceptstr (fd, "ECM") == 3)
                 {
                   *method = EC_METHOD;
@@ -145,113 +163,94 @@ read_resumefile_line (int *method, mpz_t x, mpz_t n, mpz_t sigma, mpz_t A,
 
               have_method = 1;
             }
-          
-          else if (facceptstr (fd, "X"))
+          else if (strcmp (tag, "X") == 0)
             {
-              if (facceptstr (fd, "="))
-                {
-                  mpz_inp_str (x, fd, 0);
-                  have_x = 1;
-                }
-              else if (facceptstr (fd, "0=") == 2)
-                {
-                  mpz_inp_str (x0, fd, 0);
-                }
-              else
-                goto error;
+              mpz_inp_str (x, fd, 0);
+              have_x = 1;
             }
-          
-          else if (facceptstr (fd, "C"))
+          else if (strcmp (tag, "QX") == 0)
             {
-              if ((a = facceptstr (fd, "HECKSUM=")))
-                {
-                  if (a != 8)
-                    goto error;
-
-                  fscanf (fd, "%u", &saved_checksum);
-                  have_checksum = 1;
-                }
-              else if ((a = facceptstr (fd, "OMMENT=")))
-                {
-                  if (a != 7)
-                    goto error;
-                  
-                  freadstrn (fd, comment, ';', 255);
-                }
-              else
-                goto error;
+              mpz_inp_str (x, fd, 0);
+              have_qx = 1;
             }
-
-          else if ((a = facceptstr (fd, "N=")))
+          else if (strcmp (tag, "X0") == 0)
             {
-              if (a != 2)
-                goto error;
-
+              mpz_inp_str (x0, fd, 0);
+            }
+          else if (strcmp (tag, "CHECKSUM") == 0)
+            {
+              fscanf (fd, "%u", &saved_checksum);
+              have_checksum = 1;
+            }
+          else if (strcmp (tag, "COMMENT") == 0)
+            {
+              freadstrn (fd, comment, ';', 255);
+            }
+          else if (strcmp (tag, "N") == 0)
+            {
               mpz_inp_str (n, fd, 0);
               have_n = 1;
             }
-          
-          else if ((a = facceptstr (fd, "SIGMA=")))
+          else if (strcmp (tag, "SIGMA") == 0)
             {
-              if (a != 6)
-                goto error;
-
               mpz_inp_str (sigma, fd, 0);
               have_sigma = 1;
             }
-          
-          else if ((a = facceptstr (fd, "A=")))
+          else if (strcmp (tag, "A") == 0)
             {
-              if (a != 2)
-                goto error;
-
               mpz_inp_str (A, fd, 0);
               have_a = 1;
             }
-          
-          else if ((a = facceptstr (fd, "B1=")))
+          else if (strcmp (tag, "B1") == 0)
             {
-              if (a != 3)
-                goto error;
-
               fscanf (fd, "%lf", b1);
               have_b1 = 1;
             }
-
-          else if ((a = facceptstr (fd, "PROGRAM=")))
+          else if (strcmp (tag, "PROGRAM") == 0)
             {
-              if (a != 8)
-                goto error;
-
               freadstrn (fd, program, ';', 255);
             }
-
-          else if ((a = facceptstr (fd, "WHO=")))
+          else if (strcmp (tag, "WHO") == 0)
             {
-              if (a != 4)
-                goto error;
-
               freadstrn (fd, who, ';', 255);
             }
-
-          else if ((a = facceptstr (fd, "TIME=")))
+          else if (strcmp (tag, "TIME") == 0)
             {
-              if (a != 5)
-                goto error;
-
               freadstrn (fd, rtime, ';', 255);
             }
           else /* Not a tag we know about */
-            goto error;
+            {
+              printf ("Save file line has unknown tag: %s\n", tag);
+              goto error;
+            }
          
-          if (!facceptstr (fd, ";"))
-            goto error;
+         /* Prime95 lines have no semicolon after SIGMA */
+          if (!facceptstr (fd, ";") && ! (have_qx && have_n && have_sigma))
+            {
+              printf ("%s field not followed by semicolon\n", tag);
+              goto error;
+            }
           
           while (facceptstr (fd, " "));
         }
       
       /* Finished reading tags */
       
+      /* Handle Prime95 v22 lines. These have no METHOD=ECM field and
+         QX= instead of X= */
+      
+      if (have_qx)
+        {
+          if (have_n && have_sigma)
+            {
+              *method = EC_METHOD;
+              *b1 = 1.0;
+              strcpy (program, "Prime95");
+              return 1;
+            }
+          goto error;
+        }
+
 #ifdef DEBUG
       if (*method != EC_METHOD && (have_sigma || have_a))
         {
@@ -272,37 +271,36 @@ read_resumefile_line (int *method, mpz_t x, mpz_t n, mpz_t sigma, mpz_t A,
         }
 #endif
       
-      if (have_method && have_x && have_n && have_b1 &&
-           (method != EC_METHOD || have_sigma || have_a))
+      if (!have_method || !have_x || !have_n || !have_b1 ||
+          (method == EC_METHOD && !have_sigma && !have_a))
         {
-          if (have_checksum)
-            {
-              mpz_t checksum;
-              
-              mpz_init (checksum);
-              mpz_set_d (checksum, *b1);
-              if (have_sigma)
-                mpz_mul_ui (checksum, checksum, mpz_fdiv_ui (sigma, CHKSUMMOD));
-              if (have_a)
-                mpz_mul_ui (checksum, checksum, mpz_fdiv_ui (A, CHKSUMMOD));
-              mpz_mul_ui (checksum, checksum, mpz_fdiv_ui (n, CHKSUMMOD));
-              mpz_mul_ui (checksum, checksum, mpz_fdiv_ui (x, CHKSUMMOD));
-              if (mpz_fdiv_ui (checksum, CHKSUMMOD) != saved_checksum)
-                {
-                  fprintf (stderr, "Resume file line has bad checksum %u, expected %lu\n", 
-                           saved_checksum, mpz_fdiv_ui (checksum, CHKSUMMOD));
-                  mpz_clear (checksum);
-                  continue;
-                }
-              mpz_clear (checksum);
-            }
-          return 1;
+          fprintf (stderr, "Save file line lacks fields\n");
+          continue;
         }
-      
-      fprintf (stderr, "Save file line lacks fields, have_method = %d, "
-                       "have_x = %d, have_n = %d\n",
-               have_method, have_x, have_n);
-      continue;
+
+      if (have_checksum)
+        {
+          mpz_t checksum;
+          
+          mpz_init (checksum);
+          mpz_set_d (checksum, *b1);
+          if (have_sigma)
+            mpz_mul_ui (checksum, checksum, mpz_fdiv_ui (sigma, CHKSUMMOD));
+          if (have_a)
+            mpz_mul_ui (checksum, checksum, mpz_fdiv_ui (A, CHKSUMMOD));
+          mpz_mul_ui (checksum, checksum, mpz_fdiv_ui (n, CHKSUMMOD));
+          mpz_mul_ui (checksum, checksum, mpz_fdiv_ui (x, CHKSUMMOD));
+          if (mpz_fdiv_ui (checksum, CHKSUMMOD) != saved_checksum)
+            {
+              fprintf (stderr, "Resume file line has bad checksum %u, expected %lu\n", 
+                       saved_checksum, mpz_fdiv_ui (checksum, CHKSUMMOD));
+              mpz_clear (checksum);
+              continue;
+            }
+          mpz_clear (checksum);
+        }
+
+      return 1;
       
 error:
       /* In case of error, read rest of line and try next line */
@@ -321,7 +319,8 @@ write_resumefile_line (FILE *fd, int method, double B1, mpz_t sigma, mpz_t A,
 {
   mpz_t checksum;
   time_t t;
-  char timestring[256];
+  char text[256];
+  char *uname, mname[32];
 
 #ifdef DEBUG
   if (fd == NULL)
@@ -371,14 +370,30 @@ write_resumefile_line (FILE *fd, int method, double B1, mpz_t sigma, mpz_t A,
       mpz_out_str (fd, 16, x0);
       fprintf (fd, ";");
     }
+  
+  /* Try to get the users and his machines name */
+  /* TODO: how to make portable? */
+  uname = getenv ("LOGNAME");
+  if (uname == NULL)
+    uname = getenv ("USERNAME");
+  if (uname == NULL)
+    uname = "";
+  
+  if (gethostname (mname, 32) != 0)
+    mname[0] = 0;
+  
+  if (uname[0] != 0 || mname[0] != 0)
+    {
+      fprintf (fd, "WHO=%.233s@%.32s;", uname, mname);
+    }
 
   if (comment[0] != 0)
     fprintf (fd, " COMMENT=%.255s;", comment);
   
   t = time (NULL);
-  strncpy (timestring, ctime (&t), 255);
-  timestring[255] = 0;
-  timestring[strlen (timestring) - 1] = 0; /* Remove newline */
-  fprintf (fd, " TIME=%s;", timestring);
+  strncpy (text, ctime (&t), 255);
+  text[255] = 0;
+  text[strlen (text) - 1] = 0; /* Remove newline */
+  fprintf (fd, " TIME=%s;", text);
   fprintf (fd, "\n");
 }
