@@ -33,7 +33,6 @@ MA 02111-1307, USA. */
 #define ALLOC(x) ((x)->_mp_alloc)
 #define PTR(x) ((x)->_mp_d)
 #define SIZ(x) ((x)->_mp_size)
-#define ABS(x) ((x) >= 0 ? (x) : -(x))
 #define TMP_DECL(m)
 #define TMP_ALLOC(x) alloca(x)
 #define TMP_MARK(m)
