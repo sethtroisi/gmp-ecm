@@ -23,6 +23,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <unistd.h>
 #include "gmp.h"
 #include "ecm.h"
 
@@ -369,26 +370,6 @@ main (int argc, char *argv[])
         }
     }
 
-  /* Open save file for writing, if saving is requested */
-  /* FIXME: append by default ? */
-  if (savefilename != NULL)
-    {
-      /* Does this file already exist ? */
-      savefile = fopen (savefilename, "r");
-      if (savefile != NULL)
-        {
-          printf ("Save file %s already exists, will not overwrite\n", 
-                  savefilename);
-          exit (EXIT_FAILURE);
-        }
-      savefile = fopen (savefilename, "w");
-      if (savefile == NULL)
-        {
-          fprintf (stderr, "Could not open file %s for writing\n", savefilename);
-          exit (EXIT_FAILURE);
-        }
-    }
-
   /* Open resume file for reading, if resuming is requested */
   if (resumefilename != NULL)
     {
@@ -401,6 +382,25 @@ main (int argc, char *argv[])
         {
           fprintf (stderr, "Could not open file %s for reading\n", 
                    resumefilename);
+          exit (EXIT_FAILURE);
+        }
+    }
+
+  /* Open save file for writing, if saving is requested */
+  /* FIXME: append by default ? */
+  if (savefilename != NULL)
+    {
+      /* Does this file already exist ? */
+      if (access (savefilename, F_OK) == 0)
+        {
+          printf ("Save file %s already exists, will not overwrite\n", 
+                  savefilename);
+          exit (EXIT_FAILURE);
+        }
+      savefile = fopen (savefilename, "w");
+      if (savefile == NULL)
+        {
+          fprintf (stderr, "Could not open file %s for writing\n", savefilename);
           exit (EXIT_FAILURE);
         }
     }
