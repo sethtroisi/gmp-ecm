@@ -266,7 +266,7 @@ int  read_resumefile_line (int *, mpz_t, mpz_t, mpz_t, mpz_t, mpz_t, double *,
 void write_resumefile_line (FILE *, int, double, mpz_t, mpz_t, mpz_t, mpz_t, 
                             mpz_t, char *);
 
-void __gmp_default_free (void *, size_t);
+/* memory.c */
 #ifdef MEMORY_DEBUG
 void *__gmp_default_allocate (size_t);
 void *__gmp_default_reallocate (void *, size_t, size_t);
@@ -301,4 +301,3 @@ void tests_free (void *, size_t);
    mpz_mul (a, b, t);
 #endif
 #endif
-
