@@ -267,12 +267,13 @@ mpz_mod_n (mpz_t c, mpmod_t modulus)
   SIZ(c) = SIZ(c) < 0 ? -nn : nn;
 }
 
+/* don't use base2 if repr == -1 */
 void 
-mpmod_init (mpmod_t modulus, mpz_t N)
+mpmod_init (mpmod_t modulus, mpz_t N, int repr)
 {
   int base2;
   
-  if ((base2 = isbase2 (N, 2.0)))
+  if ((repr != -1) && (base2 = isbase2 (N, 2.0)))
     {
       printf ("Using base-2: 2^%d %c 1\n", abs(base2), (base2<0)?'-':'+');
       mpmod_init_BASE2 (modulus, base2, N);
