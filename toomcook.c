@@ -1,9 +1,8 @@
 /* 
   Implementation of the Toom-Cook 3-way and 4-way algorithms for 
-  polynomial convolution products. This version works for all input 
-  sizes, but cannot handle input arrays overlapping with output.
+  polynomial convolution products. 
   
-  Copyright (C) 2002 A. Kruppa <alexander.kruppa@stud.tu-muenchen.de>
+  Copyright 2001, 2002, 2003 Alexander Kruppa and Paul Zimmermann.
   
   This program is free software; you can redistribute it and/or modify it
   under the terms of the GNU General Public License as published by the
@@ -54,7 +53,8 @@ void mpz_divby3_1op (mpz_t RS)
 }
 
 /* Puts in C[0..2len-2] the product of A[0..len-1] and B[0..len-1].
-   Returns the number of multiplies performed.
+   Returns the number of multiplies performed. This version works for 
+   all input sizes, but cannot handle input arrays overlapping with output.
    Assumes len >= 1.
 
    The auxiliary memory M(len) necessary in t satisfies:
