@@ -107,24 +107,21 @@ cputime ()
 unsigned int 
 get_random_ui ()
 {
-  unsigned char t[4];
   FILE *rndfd;
   struct timeval tv;
+  unsigned int t;
 
   /* Try /dev/urandom */
   rndfd = fopen ("/dev/urandom", "r");
   if (rndfd != NULL)
     {
-      if (fread (t, 4, 1, rndfd) == 1)
+      if (fread (&t, sizeof(unsigned int), 1, rndfd) == 1)
         {
 #ifdef DEBUG
           printf ("Got seed for RNG from /dev/urandom\n");
 #endif
           fclose (rndfd);
-          return t[0] + 
-                 ((unsigned int) t[1] << 8) + 
-                 ((unsigned int) t[2] << 16) + 
-                 ((unsigned int) t[3] << 24);
+          return t;
         }
       fclose (rndfd);
     }
