@@ -195,7 +195,7 @@ list_neg (listz_t p, listz_t q, unsigned int l, mpz_t n)
 
   for (i = 0; i < l; i++)
     {
-      if (mpz_sgn (p[i]))
+      if (mpz_sgn (q[i]))
         mpz_sub (p[i], n, q[i]);
       else
         mpz_set_ui (p[i], 0);
