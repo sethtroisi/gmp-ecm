@@ -53,7 +53,6 @@ AC_COMPILE_IFELSE([AC_LANG_PROGRAM([[
 ])
 
 dnl AC_CHECK_LIB doesn't do what we want
-AC_MSG_CHECKING(for GMP library)
 if test -r "$with_gmp_lib/libgmp.a"; then
   LIBS="$with_gmp_lib/libgmp.a"
 elif test -r "$with_gmp_lib/libgmp.so"; then
