@@ -17,7 +17,7 @@ tune2_SOURCES = tune2.c auxi.c
 
 LDADD = libecm.a
 
-noinst_HEADERS = ecm-impl.h ecm-gmp.h
+noinst_HEADERS = ecm-impl.h ecm-gmp.h ecm.h ecm-ecm.h
 
 EXTRA_DIST = test.pm1 test.pp1 test.ecm ecm.1
 
