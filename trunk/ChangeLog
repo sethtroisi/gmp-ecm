@@ -41,6 +41,7 @@ Changes between ecm-5.0.3 and ecm-5.2.0:
   Using B1=3000000, B2=4016636514, polynomial Dickson(12), sigma=3595368442
   Step 1 took 61824ms
   Step 2 took 32989ms
+- Brent-Suyama's extension now works for P+1 too	
 - trial division is available (option -t n)
 - new options -n (low priority) and -nn (idle priority)
 - the looping mode (-c n) now continues to try to factor the composite when
