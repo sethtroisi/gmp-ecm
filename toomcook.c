@@ -37,19 +37,17 @@
 #define C4 C[4*l+i]
 #define t0 t[i]
 #define t2 t[2*l+i-1]
-#define T t[4*l]
+#define T  t[4*l-2]
 
 #define ABS(x) (((x) >= 0) ? (x) : (-(x)))
 
-
-void mpz_divby3_1op(mpz_t R);
-
-void mpz_divby3_1op(mpz_t R) {
-  if (R->_mp_size != 0) {
-    mp_size_t abssize = ABS(R->_mp_size);
-    mpn_divexact_by3(R->_mp_d, R->_mp_d, abssize);
-    if (R->_mp_d[abssize-1] == 0)
-      R->_mp_size += (R->_mp_size < 0) ? 1 : -1;
+/* Divide RS by 3. RS must be multiple of 3 or result will be undefined */
+void mpz_divby3_1op(mpz_t RS) {
+  if (RS->_mp_size != 0) {
+    mp_size_t abssize = ABS(RS->_mp_size);
+    mpn_divexact_by3(RS->_mp_d, RS->_mp_d, abssize);
+    if (RS->_mp_d[abssize-1] == 0)
+      RS->_mp_size += (RS->_mp_size < 0) ? 1 : -1;
   }
 }
 
@@ -98,6 +96,8 @@ toomcook3 (listz_t C, listz_t A, listz_t B, unsigned int len, listz_t t)
 #ifdef LEN_4_SHORTCUT
   /* A 2,2,0 split (12 muls) is less efficient than Karatsuba (9 muls) 
      for len==4 */
+  /* Maybe we should call toomcook4() instead. Then agin, if toomcook4()
+     was called originally, we'll never get to this case */
   if (len == 4)
     {
       karatsuba (C, A, B, len, t);
@@ -160,6 +160,9 @@ toomcook3 (listz_t C, listz_t A, listz_t B, unsigned int len, listz_t t)
   /* C4 = A(inf)*B(inf) = C(inf), len(C4) = 2*k-1 */
   
   /* C0: C_0  C2: C(1)  C4: C_4  t0: C(-1)  t2: C(2) */
+
+  /* C_3 = A_1 * B_2 + A_2 * B_1, len(C_3) = l+k-1
+     We need not bother to compute C_3[2l-1] if k<l, as it will be zero */
   
   for (i=0; i<2*l-1; i++) /* uses t[0..4l] */
     {
@@ -168,22 +171,27 @@ toomcook3 (listz_t C, listz_t A, listz_t B, unsigned int len, listz_t t)
       mpz_set (t0, T);             /* t0 = C(1)-C(-1) = 2*(C_1 + C_3) */
       mpz_fdiv_q_2exp (C2, C2, 1); /* C2 = C_0 + C_2 + C_4 */
       mpz_sub (C2, C2, C0);        /* C2 = C_2 + C_4 */
-      if (i < 2*k-1)
-        mpz_sub (C2, C2, C4);      /* C2 = C_2 */
-    
-      mpz_sub (t2, t2, C0);        /* t2 = 2*C_1 + 4*C_2 + 8*C_3 + 16*C_4 */
-      mpz_sub (t2, t2, t0);        /* t2 = 4*C_2 + 6*C_3 + 16*C_4 */
-      mpz_fdiv_q_2exp (t2, t2, 1); /* t2 = 2*C_2 + 3*C_3 + 8*C_4 */
-      mpz_mul_2exp (T, C2, 1);
-      mpz_sub (t2, t2, T);         /* t2 = 3*C_3 + 8*C_4 */
-      if (i < 2*k-1)
+      if (i < l+k-1)
         {
-          mpz_mul_2exp (T, C4, 3);
-          mpz_sub (t2, t2, T);     /* t2 = 3*C_3 */
+          mpz_sub (t2, t2, C0);        /* t2 = 2*C_1 + 4*C_2 + 8*C_3 + 16*C_4 */
+          mpz_sub (t2, t2, t0);        /* t2 = 4*C_2 + 6*C_3 + 16*C_4 */
+          mpz_fdiv_q_2exp (t2, t2, 1); /* t2 = 2*C_2 + 3*C_3 + 8*C_4 */
+          if (i < 2*k-1)
+            {
+              mpz_mul_2exp (T, C4, 3); /* T = 8*C_4 */
+              mpz_sub (t2, t2, T);     /* t2 = 2*C_2 + 3*C_3 */
+              mpz_sub (C2, C2, C4);    /* C2 = C_2 */
+            }
+          mpz_mul_2exp (T, C2, 1);
+          mpz_sub (t2, t2, T);         /* t2 = 3*C_3 */
+          mpz_divby3_1op (t2);         /* t2 = C_3 */
+          mpz_fdiv_q_2exp (t0, t0, 1); /* t0 = C_1 + C_3 */
+          mpz_sub (t0, t0, t2);        /* t0 = C_1 */
         }
-      mpz_divby3_1op (t2);         /* t2 = C_3 */
-      mpz_fdiv_q_2exp (t0, t0, 1); /* t0 = C_1 + C_3 */
-      mpz_sub (t0, t0, t2);        /* t0 = C_1 */
+      else                         /* C_3 == 0, t0 == 2*C_1 */
+        {
+          mpz_fdiv_q_2exp(t0, t0, 1);
+        }
   }
   
   for (i = 0; i < l-1; i++)
@@ -207,7 +215,7 @@ toomcook3 (listz_t C, listz_t A, listz_t B, unsigned int len, listz_t t)
 #define C6 C[6*l+i]
 #define t4 t[4*l+i-2]
 #undef T
-#define T t[6*l]
+#define T t[6*l-3]
 
 int 
 toomcook4 (listz_t C, listz_t A, listz_t B, unsigned int len, listz_t t)
@@ -226,7 +234,6 @@ toomcook4 (listz_t C, listz_t A, listz_t B, unsigned int len, listz_t t)
   
   l = (len + 3) / 4; /* l = ceil(len/4) */
   k = len - 3*l;     /* k = smaller part. len = 3*l + k, k <= l */
-//  printf("l = %d, k = %d\n", l, k);
   
   for (i = 0; i < l; i++) {
     /*** Evaluate A(2), A(-2), 8*A(1/2) ***/
