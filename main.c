@@ -240,24 +240,24 @@ main (int argc, char *argv[])
     {
       fprintf (stderr, "Usage: ecm B1 [[B2min-]B2] < file\n");
       fprintf (stderr, "\nParameters:\n");
-      fprintf (stderr, "  B1          stage 1 bound\n");
-      fprintf (stderr, "  B2          stage 2 bound (or interval B2min-B2max)\n");
+      fprintf (stderr, "  B1           stage 1 bound\n");
+      fprintf (stderr, "  B2           stage 2 bound (or interval B2min-B2max)\n");
       fprintf (stderr, "\nOptions:\n");
-      fprintf (stderr, "  -x0 x0      use x0 as initial point\n"); 
-      fprintf (stderr, "  -sigma s    use sigma as curve generator [ecm]\n");
-      fprintf (stderr, "  -A A        use A as curve parameter [ecm]\n");
-      fprintf (stderr, "  -k n        perform n steps in stage 2\n");
-      fprintf (stderr, "  -power n    use x^n for Brent-Suyama's extension\n");
-      fprintf (stderr, "  -dickson n  use n-th Dickson's polynomial for Brent-Suyama's extension\n");
-      fprintf (stderr, "  -pm1        runs Pollard P-1 instead of ECM\n");
-      fprintf (stderr, "  -pp1        runs Williams P+1 instead of ECM\n");
-      fprintf (stderr, "  -q          quiet mode\n");
-      fprintf (stderr, "  -v          verbose mode\n");
-      fprintf (stderr, "  -mpzmod     use GMP's mpz_mod for mod reduction\n");
-      fprintf (stderr, "  -modmuln    use Montgomery's MODMULN for mod reduction\n");
-      fprintf (stderr, "  -redc       use Montgomery's REDC for mod reduction\n");
-      fprintf (stderr, "  -save file  save residues at end of stage 1 to file\n");
-      fprintf (stderr, "  -resume foo resume from file foo\n");
+      fprintf (stderr, "  -x0 x0       use x0 as initial point\n"); 
+      fprintf (stderr, "  -sigma s     use sigma as curve generator [ecm]\n");
+      fprintf (stderr, "  -A A         use A as curve parameter [ecm]\n");
+      fprintf (stderr, "  -k n         perform n steps in stage 2\n");
+      fprintf (stderr, "  -power n     use x^n for Brent-Suyama's extension\n");
+      fprintf (stderr, "  -dickson n   use n-th Dickson's polynomial for Brent-Suyama's extension\n");
+      fprintf (stderr, "  -pm1         runs Pollard P-1 instead of ECM\n");
+      fprintf (stderr, "  -pp1         runs Williams P+1 instead of ECM\n");
+      fprintf (stderr, "  -q           quiet mode\n");
+      fprintf (stderr, "  -v           verbose mode\n");
+      fprintf (stderr, "  -mpzmod      use GMP's mpz_mod for mod reduction\n");
+      fprintf (stderr, "  -modmuln     use Montgomery's MODMULN for mod reduction\n");
+      fprintf (stderr, "  -redc        use Montgomery's REDC for mod reduction\n");
+      fprintf (stderr, "  -save file   save residues at end of stage 1 to file\n");
+      fprintf (stderr, "  -resume file resume residues from file, reads from stdin if file is \"-\"\n");
       exit (1);
     }
 
