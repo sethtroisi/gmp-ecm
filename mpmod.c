@@ -211,22 +211,23 @@ mpn_REDC (mp_ptr rp, mp_srcptr xp, mp_srcptr orig, mp_srcptr aux, mp_size_t n)
 /* multiplies c by R^k modulo n where R=2^mp_bits_per_limb 
    n is supposed odd. Does not need to be efficient. */
 void 
-mod_mul2exp (mpz_t c, unsigned int k, mpmod_t n)
+mod_mul2exp (mpz_t c, unsigned int k, mpmod_t modulus)
 {
-  mpz_mul_2exp (n->temp1, c, k * __GMP_BITS_PER_MP_LIMB);
-  mpz_mod (c, n->temp1, n->orig_modulus);
+  mpz_mul_2exp (modulus->temp1, c, k * __GMP_BITS_PER_MP_LIMB);
+  mpz_mod (c, modulus->temp1, modulus->orig_modulus);
 }
 
 /* divides c by R^k modulo n where R=2^mp_bits_per_limb
    n is supposed odd. Does not need to be efficient. */
 void 
-mod_div2exp (mpz_t c, unsigned int k, mpmod_t n)
+mod_div2exp (mpz_t c, unsigned int k, mpmod_t modulus)
 {
-  mpz_set_ui (n->temp2, 1);
-  mpz_mul_2exp (n->temp1, n->temp2, k * __GMP_BITS_PER_MP_LIMB);
-  mpz_invert (n->temp2, n->temp1, n->orig_modulus); /* temp2 = 2^(-k) (mod n) */
-  mpz_mul (n->temp1, n->temp2, c);
-  mpz_mod (c, n->temp1, n->orig_modulus);
+  mpz_set_ui (modulus->temp2, 1);
+  mpz_mul_2exp (modulus->temp1, modulus->temp2, k * __GMP_BITS_PER_MP_LIMB);
+  mpz_invert (modulus->temp2, modulus->temp1, modulus->orig_modulus); 
+    /* temp2 = 2^(-k) (mod n) */
+  mpz_mul (modulus->temp1, modulus->temp2, c);
+  mpz_mod (c, modulus->temp1, modulus->orig_modulus);
 }
 
 /* r <- c/R^nn mod n, where n are nn limbs.
@@ -467,13 +468,13 @@ mpres_clear (mpres_t R, mpmod_t modulus)
 }
 
 void 
-mpres_set (mpres_t R, mpres_t S, mpmod_t n)
+mpres_set (mpres_t R, mpres_t S, mpmod_t modulus)
 {
   mpz_set (R, S);
 }
 
 void 
-mpres_swap (mpres_t R, mpres_t S, mpmod_t n)
+mpres_swap (mpres_t R, mpres_t S, mpmod_t modulus)
 {
   mpz_swap (R, S);
 }

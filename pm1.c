@@ -387,7 +387,7 @@ pm1_rootsF (mpz_t f, listz_t F, unsigned int d, mpres_t *x, listz_t t,
       fin_diff_coeff (coeffs, 7, 6, S, dickson_a);
       
       fd = (mpres_t *) malloc ((S + 1) * sizeof (mpres_t));
-      for (k = 0; k <= S; k++) 
+      for (k = 0; k <= (unsigned) S; k++) 
         {
           mpres_init (fd[k], modulus);
           mpres_pow (fd[k], *x, coeffs[k], modulus);
@@ -404,11 +404,11 @@ pm1_rootsF (mpz_t f, listz_t F, unsigned int d, mpres_t *x, listz_t t,
             mpres_get_z (F[i++], fd[0], modulus);
           
           /* Compute value of f_{S, a}(7+n*6) for the next n */
-          for (k = 0; k < S; k++)
+          for (k = 0; k < (unsigned) S; k++)
             mpres_mul (fd[k], fd[k], fd[k+1], modulus);
         }
       
-      for (k = 0; k <= S; k++)
+      for (k = 0; k <= (unsigned) S; k++)
         mpres_clear (fd[k], modulus);
       free (fd);
     }
@@ -417,6 +417,8 @@ pm1_rootsF (mpz_t f, listz_t F, unsigned int d, mpres_t *x, listz_t t,
     {
       if (list_invert (t, F, i, t[i], modulus->orig_modulus)) 
         {
+          if (verbose >= 2)
+            printf ("Found factor while inverting F[0]*..*F[d]\n");
           mpz_set (f, t[i]);
           return 1;
         }
@@ -469,7 +471,7 @@ pm1_rootsG_init (mpres_t *x, unsigned int s, unsigned int d, int S,
   fin_diff_coeff (coeffs, s, d, S, dickson_a);
   
   fd = (mpres_t *) malloc((S + 1) * sizeof(mpres_t));
-  for (k = 0; k <= S; k++) 
+  for (k = 0; k <= (unsigned) S; k++) 
     {
       mpres_init (fd[k], modulus);
       mpres_pow (fd[k], *x, coeffs[k], modulus);
@@ -493,7 +495,7 @@ pm1_rootsG_clear (mpres_t *fd, int S, mpmod_t modulus)
     }
   S = abs (S);
   
-  for (k = 0; k <= S; k++)
+  for (k = 0; k <= (unsigned) S; k++)
     mpres_clear (fd[k], modulus);
   
   free (fd);
@@ -535,7 +537,7 @@ pm1_rootsG (mpz_t f, listz_t G, unsigned int d, mpres_t *fd,
   for (i = 0; i < d; i++)
     {
       mpres_get_z (G[i], fd[0], modulus);
-      for (j = 0; j < S; j++)
+      for (j = 0; j < (unsigned) S; j++)
         mpres_mul(fd[j], fd[j], fd[j+1], modulus);
     }
   
@@ -543,6 +545,8 @@ pm1_rootsG (mpz_t f, listz_t G, unsigned int d, mpres_t *fd,
     {
       if (list_invert (t, G, d, t[d], modulus->orig_modulus)) 
         {
+          if (verbose >= 2)
+            printf ("Found factor while inverting G[0]*..*G[d]\n");
           mpz_set (f, t[d]);
           return 1;
         }

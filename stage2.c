@@ -165,7 +165,7 @@ stage2 (mpz_t f, void *X, mpmod_t modulus, double B2min, double B2,
 
   d = bestD (b2);
   i0 = (unsigned int) (B2min / (double) d);
-  if (i0 < ((method == EC_METHOD) ? 2 : 1))
+  if (i0 < ((method == EC_METHOD) ? 2U : 1U))
     {
       fprintf (stderr, "Error, too small B1 or B2min, increase k or use B1>=%u at least\n",
 	       ((method == EC_METHOD) ? 2 : 1) * d);
@@ -259,11 +259,14 @@ stage2 (mpz_t f, void *X, mpmod_t modulus, double B2min, double B2,
   else if (method == PP1_METHOD)
     rootsG_state = pp1_rootsG_init (X, i0 * d, d, modulus);
   else /* EC_METHOD */
-    if ((rootsG_state = ecm_rootsG_init (f, X, i0 * d, d, S, modulus)) == NULL)
-      {
-        youpi = 2;
-        goto clear_G;
-      }
+    {
+      rootsG_state = ecm_rootsG_init (f, X, i0 * d, d, S, modulus, verbose);
+      if (rootsG_state == NULL)
+        {
+          youpi = 2;
+          goto clear_G;
+        }
+    }
   
   if (verbose >= 2)
     printf ("Initializing table of differences for G took %dms\n",
