@@ -20,7 +20,9 @@ along with the GNU MP Library; see the file COPYING.LIB.  If not, write to
 the Free Software Foundation, Inc., 59 Temple Place - Suite 330, Boston,
 MA 02111-1307, USA. */
 
-/* #include <alloca.h> */
+#if defined(__sun)
+#include <alloca.h>
+#endif
 #define ABSIZ(x) ABS (SIZ (x))
 #define ALLOC(x) ((x)->_mp_alloc)
 #define PTR(x) ((x)->_mp_d)
