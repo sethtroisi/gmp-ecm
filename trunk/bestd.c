@@ -107,7 +107,8 @@ od:
       /* How many lines will we need ? */
       jf = ceil (B2 / dd2 + .5) - floor (B2min / dd2);
       /* Plus .5, because the points for the roots of F cover values 
-         symmetric around the points for roots of G */
+         symmetric around the points for roots of G.
+         FIXME: shouldn't it be ceil ((B2 + dd2 - 5) / dd2) instead? */
       
       /* How many blocks will we need ? */
       j = (unsigned int) ceil (jf / (double) dF * (double) phi (d2));
