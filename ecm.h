@@ -78,9 +78,10 @@ extern "C" {
 double   getprime       (double);
 
 /* auxi.c */
-unsigned int nb_digits (mpz_t);
-unsigned int gcd (unsigned int, unsigned int);
-void mpz_sub_si(mpz_t, mpz_t, int);
+unsigned int nb_digits  (mpz_t);
+unsigned int gcd        (unsigned int, unsigned int);
+void         mpz_sub_si (mpz_t, mpz_t, int);
+unsigned int ceil_log2  (unsigned int);
 
 /* pm1.c */
 void    pm1_random_seed  (mpz_t, mpz_t, gmp_randstate_t);
@@ -142,6 +143,8 @@ void         list_neg   (listz_t, listz_t, unsigned int);
 void         list_mod   (listz_t, listz_t, unsigned int, mpz_t);
 void         list_add   (listz_t, listz_t, listz_t, unsigned int);
 void         list_sub   (listz_t, listz_t, listz_t, unsigned int);
+void         list_mul_z (listz_t, listz_t, mpz_t, unsigned int);
+int          list_gcd   (mpz_t, listz_t, unsigned int, mpz_t);
 void         list_zero  (listz_t, unsigned int);
 int          list_zerop (listz_t, unsigned int);
 int          karatsuba  (listz_t, listz_t, listz_t, unsigned int, listz_t);
@@ -151,10 +154,11 @@ int         list_mulmod (listz_t, listz_t, listz_t, unsigned int, listz_t,
 			 mpz_t);
 int         list_mulmod2(listz_t, listz_t, listz_t, listz_t, unsigned int,
                          listz_t, mpz_t);
-int       PolyFromRoots (listz_t, unsigned int, listz_t, int, mpz_t, char);
+int       PolyFromRoots (listz_t, listz_t, unsigned int, listz_t, int, mpz_t,
+                         char, listz_t*, unsigned int);
 int          PolyInvert (listz_t, listz_t, unsigned int, listz_t, mpz_t);
-int   RecursiveDivision (listz_t, listz_t, listz_t, unsigned int, listz_t,
-			 mpz_t);
+int   RecursiveDivision (listz_t, listz_t, listz_t, listz_t, unsigned int,
+                         listz_t, mpz_t);
 int   PrerevertDivision (listz_t, listz_t, listz_t, unsigned int, listz_t,
                          mpz_t);
 void         Div3by2    (listz_t, listz_t, listz_t, unsigned int, listz_t,
@@ -162,6 +166,10 @@ void         Div3by2    (listz_t, listz_t, listz_t, unsigned int, listz_t,
 int          list_mod1  (mpz_t, listz_t, listz_t, unsigned int, mpz_t, mpz_t*);
 void      poly_submul2 (listz_t, listz_t, listz_t, unsigned int, mpz_t, mpz_t);
 int          list_invert (listz_t, listz_t, unsigned int, mpz_t, mpz_t);
+
+/* polyeval.c */
+void polyeval (listz_t, unsigned int, listz_t*, listz_t, mpz_t, int,
+               unsigned int);
 
 /* toomcook.c */
 void     mpz_divby3_1op (mpz_t RS);
