@@ -184,6 +184,9 @@ pm1_stage1 (mpz_t f, mpres_t a, mpmod_t n, double B1, double B1done,
   mpz_init (g);
   mpz_init (d);
 
+  /* Prep for stage one counter */
+  fprintf ("1:000 \r");
+
   B0 = sqrt (B1);
 
   size_n = mpz_sizeinbase (n->orig_modulus, 2);
