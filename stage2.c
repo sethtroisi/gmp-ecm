@@ -295,10 +295,6 @@ stage2 (mpz_t f, void *X, mpmod_t modulus, double B2min, double B2,
         }
     }
     
-
-  /* Prep the screen for stage 2 */
-  showscreenticks_change_stage(2);
-
   F = init_list (dF + 1);
 
   sizeT = 3 * dF + list_mul_mem (dF);

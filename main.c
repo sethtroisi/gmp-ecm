@@ -112,36 +112,6 @@ new_line:
   return 1;
 }
 
-/* the 1:nn and 2:nn have been placed into the 2 following functions.  This is done to provide 
-   better control over them, and also to allow them to be TOTALLY turned off, in such cases as 
-   where ECM should not update to the stderr at all (i.e. client server)
-*/
-static int screenticks_lastupd = 0;
-static int SCREEN_UPDATE_DELAY = -1; /* default is no tick output */
-
-void
-showscreenticks (int stage, int percentage)
-{
-  if (SCREEN_UPDATE_DELAY >= 0 && cputime() - screenticks_lastupd > SCREEN_UPDATE_DELAY)
-    {
-      screenticks_lastupd = cputime ();
-      if (percentage > 99)
-        percentage = 99;
-      if (percentage < 0)
-        percentage = 0;
-      fprintf (stderr, "%d:%02d \r", stage, percentage);
-    }
-}
-
-void showscreenticks_change_stage (int stage)
-{
-  if (SCREEN_UPDATE_DELAY >= 0)
-    {
-      screenticks_lastupd = cputime ();
-      fprintf (stderr, "%d:00 \r", stage);
-    }
-}
-
 void usage (void)
 {
     printf ("Usage: ecm [options] B1 [[B2min-]B2] < file\n");
@@ -181,7 +151,6 @@ void usage (void)
     printf ("  -ve n        Verbosely show short (< n character) expressions on each loop\n");
     printf ("  -cofdec      Force cofactor output in decimal (even if expressions are used)\n");
     printf ("  -B2scale f   Multiplies the 'computed' B2 value by the specified multiplier\n");
-    printf ("  -ticdelay n  Delay in ms between %% completed (-1 to disable)\n");
     printf ("  -go val      Preload with group order val, which can be a simple expression,\n");
     printf ("               or can use N as a placeholder for the number being factored.\n");
 
@@ -546,13 +515,6 @@ main (int argc, char *argv[])
 	  argv += 2;
 	  argc -= 2;
 	}
-      else if ((argc > 2) && (strcmp (argv[1], "-ticdelay") == 0))
-	{
-	  SCREEN_UPDATE_DELAY = atoi (argv[2]);
-	  argv += 2;
-	  argc -= 2;
-	}
-
       else if ((argc > 2) && (strcmp (argv[1], "-go") == 0))
 	{
 	  if (go.cpOrigExpr)
@@ -954,19 +916,6 @@ BreadthFirstDoAgain:;
         }
       if (verbose > 0)
 	{
-          if (SCREEN_UPDATE_DELAY >= 0)
-            {
-              if (count == cnt)
-                fprintf (stderr, "\r      Line=%u B1=%.0f factors=%u           \r",
-                         linenum, B1, factsfound);
-              if (count != cnt)
-                fprintf (stderr, "\r      Line=%u Curves=%u/%u B1=%.0f factors=%u"
-                         "   \r", linenum, count-cnt+1, count, B1, factsfound);
-              if (breadthfirst && nCandidates > 1)
-                fprintf (stderr, "\r      Line=%u/%u Curves=%u/%u B1=%.0f"
-                         " factors=%u   \r", linenum, nCandidates,
-                         breadthfirst_cnt, breadthfirst_maxcnt, B1, factsfound);
-            }
 	  if ((!breadthfirst && cnt == count) || (breadthfirst && 1 == breadthfirst_cnt))
 	    {
 	      /* first time this candidate has been run (if looping more than once */
@@ -986,13 +935,6 @@ BreadthFirstDoAgain:;
 	    }
 	  else /* 2nd or more try for same composite */
 	    {
-              if (SCREEN_UPDATE_DELAY >= 0)
-                {
-                  if (breadthfirst)
-                    printf ("Line=%u/%u Curves=%u/%u B1=%.0f factors=%u      \n", linenum, nCandidates, breadthfirst_cnt, breadthfirst_maxcnt, B1, factsfound);
-                  else
-                    printf ("Line=%u Curves=%u/%u B1=%.0f factors=%u      \n", linenum, count-cnt+1, count, B1, factsfound);
-                }
 	      /* Since the expression is usally "so" short, why not just drop it out for ALL loops? */
 	      if (displayexpr)
 		{
@@ -1005,11 +947,7 @@ BreadthFirstDoAgain:;
 		      printf ("Input number is %s (%u digits)\n", s, n.ndigits);
                       FREE (s, n.ndigits + 1);
 		    }
-		  else if (SCREEN_UPDATE_DELAY >= 0)
-		    printf ("C%d ", n.ndigits);  /* This will show up at the head of the "Using B1=2250, B2=...." line */
 		}
-	      else if (SCREEN_UPDATE_DELAY >= 0)
-		printf ("C%d ", n.ndigits);  /* This will show up at the head of the "Using B1=2250, B2=...." line */
 	    }
 	  fflush (stdout);
 	}
@@ -1027,8 +965,6 @@ BreadthFirstDoAgain:;
 	{
 	  int SomeFactor;
 	  /*  Note, if a factors are found, then n will be adjusted "down" */
-          if (SCREEN_UPDATE_DELAY >= 0)
-            fprintf (stderr, "T:000 \r");
 	  SomeFactor = trial_factor (&n, maxtrialdiv, deep);
 	  if (SomeFactor)
 	    {
@@ -1218,15 +1154,6 @@ OutputFactorStuff:;
   /* NOTE finding a factor may have caused the loop to exit, but what is left on screen is the 
      wrong count of factors (missing the just found factor.  Update the screen to at least specify the 
      current count */
-  if (verbose > 0 && SCREEN_UPDATE_DELAY >= 0)
-    {
-    if (breadthfirst_maxcnt)
-      fprintf (stderr, "\rLine=%u Curves=%u/%u B1=%.0f factors=%u      \n",
-               linenum, breadthfirst_cnt, breadthfirst_maxcnt, B1, factsfound);
-    else if (count != 1)
-      fprintf (stderr, "Line=%u Curves=%u/%u B1=%.0f factors=%u      \n",
-               linenum, count-cnt+1, count, B1, factsfound);
-    }
 
   if (infilename)	/* note infile "might" be stdin, and don't fclose that! */
     fclose (infile);
