@@ -38,7 +38,7 @@
    Return value: non-zero iff a factor is found
 */
 int
-ecm (mpz_t p, mpz_t n, double B1, double B2, unsigned int k)
+ecm (mpz_t p, mpz_t n, double B1, double B2, unsigned int k, int verbose)
 {
   return 0;
 }
