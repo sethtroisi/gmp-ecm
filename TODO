@@ -1,8 +1,5 @@
 What remains to do for the 1st release:
 
-- add option -nobase2
-- get rid of gmp-mparam.h and gmp-impl.h?
-
 Long term:
 
 - add a configure file
