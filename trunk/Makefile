@@ -1,19 +1,27 @@
+# directory where GMP is installed (include, lib)
 GMPDIR=/global/ecrouves/loria/linux/gmp-4.1
-I=$(GMPDIR)/include
-L=$(GMPDIR)/lib
-CFLAGS=-g -Wall -Wmissing-prototypes -ansi -pedantic
-CC=gcc
 
-FILES= aux.o bestd.o ecm.o getprime.o main.o pm1.o poly.o stage2.o
-DIST= COPYING Makefile README aux.c bestd.c check.mpl cputime.h ecm.c ecm.h getprime.c main.c pm1.c poly.c stage2.c
+# directory where NTL is installed (include, lib)
+NTL=/global/ecrouves/loria/linux/ntl-5.3
+
+###################### do not edit below this line ############################
+
+CFLAGS=-O2 -g -static -Wall -Wmissing-prototypes -ansi -pedantic
+CC=g++
+
+FILES= aux.o bestd.o ecm.o getprime.o main.o pm1.o listz.o stage2.o polyz.o ntl.o
+DIST= COPYING Makefile README aux.c bestd.c check.mpl cputime.h ecm.c ecm.h getprime.c main.c pm1.c listz.c stage2.c polyz.c ntl.c
 
 .SUFFIXES: .c .o
 
-ecm: $(FILES)
-	$(CC) $(CFLAGS) -L$(L) $(FILES) -o $@ -lgmp -lm
+ecm: $(FILES) ecm.h
+	$(CC) $(CFLAGS) -L$(GMPDIR)/lib -L$(NTL)/lib $(FILES) -o $@ -lntl -lgmp -lm
 
-.c.o:
-	$(CC) $(CFLAGS) -I$(I) -c $<
+ntl.o: ntl.c
+	$(CC) $(CFLAGS) -c -I$(GMPDIR)/include -I$(NTL)/include ntl.c
+
+.c.o: ecm.h
+	$(CC) $(CFLAGS) -I$(GMPDIR)/include -c $<
 
 clean:
 	rm ecm *.o *~
