@@ -192,8 +192,8 @@ tables to be stored on disk instead of in memory. Using the parameter
 "/var/tmp/ecmtree.2" etc. The files are deleted upon completion of stage 2. 
 Due to time consuming disk I/O, this will cause stage 2 to take somewhat 
 longer. How much memory is saved depends on stage 2 parameters, but a
-typical value is that memory use is reduced by a factor of about 3.
-Increasing the number of blocks with -k also reduces the amout of data that 
+typical value is that memory use is reduced by a factor of between 2 and 3.
+Increasing the number of blocks with -k also reduces the amount of data that 
 needs to get written to disk, thus reducing disk I/O time. Combining these 
 parameters is a very effective way of reducing memory use.
 
