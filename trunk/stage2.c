@@ -354,9 +354,6 @@ stage2 (mpz_t f, void *X, mpmod_t modulus, double B2min, double B2,
     printf ("Computing polyeval(F,G) took %ums and %lumuls\n",
             cputime() - st, muls);
   youpi = list_gcd (f, T, dF, n) ? 2 : 0;
-  for (i = 0; i < lgk; i++)
-    clear_list (Tree[i], dF);
-  free (Tree);
 #else
   st = cputime ();
   init_poly_list (polyF, dF, F);
@@ -380,6 +377,12 @@ clear_G:
 
   if (dF > 1)
     clear_list (invF, dF - 1);
+
+#ifdef POLYEVAL
+  for (i = 0; i < lgk; i++)
+    clear_list (Tree[i], dF);
+  free (Tree);
+#endif
 
  clear_F:
   clear_list (T, sizeT);
