@@ -59,7 +59,7 @@ all:
         fi
 
 ecm5: $(ALLFILES) ecm.h
-	$(CXX) -static $(CFLAGS) -L$(GMP)/lib -L$(NTL)/lib $(ALLFILES) -o $@ $(LDFLAGS)
+	$(CXX) $(CFLAGS) -L$(GMP)/lib -L$(NTL)/lib $(ALLFILES) -o $@ $(LDFLAGS)
 
 ntl.o: ntl.c
 	$(CXX) $(CFLAGS) -c -I$(GMP)/include -I$(NTL)/include $<
