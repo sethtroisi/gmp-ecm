@@ -26,6 +26,32 @@
 #include "gmp.h"
 #include "ecm.h"
 
+#define TOOMCOOK3
+
+#ifdef TOOMCOOK3
+#define LIST_MULT_N toomcook3
+#else
+#define LIST_MULT_N karatsuba
+#endif
+
+/* returns a bound on the auxiliary memory needed by LIST_MULT_N */
+int
+list_mul_mem (unsigned int len)
+{
+  unsigned int mem;
+
+  mem = 2 * len;
+#ifdef TOOMCOOK3
+  while (len > 3)
+    {
+      mem += 4;
+      len = (len + 2) / 3; /* ceil(len/3) */
+    }
+  mem += 4;
+#endif
+  return mem;
+}
+
 /* creates a list of n integers */
 listz_t
 init_list (unsigned int n)
@@ -199,63 +225,52 @@ karatsuba (listz_t a, listz_t b, listz_t c, unsigned int K, listz_t t)
 /* multiplies b[0]+...+b[k-1]*x^(k-1)+x^k by c[0]+...+c[l-1]*x^(l-1)+x^l
    and puts the results in a[0]+...+a[k+l-1]*x^(k+l-1)
    [the leading monomial x^(k+l) is implicit].
-   Assumes k >= l.
-   The auxiliary array t contains at least k+l entries.
-   If monic is zero, do not consider the monomials x^k from b and x^l from c.
+   Assumes k = l or k = l+1.
+   The auxiliary array t contains at least list_mul_mem(l) entries.
    a and t should not overlap.
 */
 void
 list_mul (listz_t a, listz_t b, unsigned int k, listz_t c, unsigned int l,
-          listz_t t, int monic)
+          listz_t t)
 {
   unsigned int i;
 
   assert (k >= l);
-  karatsuba (a, b, c, l, t); /* set a[0]...a[2l-2] */
+  LIST_MULT_N (a, b, c, l, t); /* set a[0]...a[2l-2] */
 
-  for (i = l; i + l <= k; i += l)
+  if (k > l) /* multiply b[l]*x^l by c[0]+...+c[l-1]*x^(l-1) */
     {
-      karatsuba (t, b + i, c, l, t + 2 * l - 1);
-      /* a[0..i+l-2] are already set */
-      list_add (a + i, a + i, t, l - 1);
-      list_set (a + i + l - 1, t + l - 1, l); 
+      for (i=0; i<l-1; i++)
+        {
+          mpz_mul (a[2*l-1], b[l], c[i]);
+          mpz_add (a[l+i], a[l+i], a[2*l-1]);
+        }
+      mpz_mul (a[2*l-1], b[l], c[l-1]);
     }
 
-  /* last block may be incomplete */
-  if (i < k)
-    {
-      unsigned int m = k - i; /* m < l */
-
-      list_mul (t, c, l, b + i, m, t + l + m - 1, 0); /* set t[0..m+l-2] */
-      /* a[0..i+l-2] are already set */
-      list_add (a + i, a + i, t, l - 1);
-      list_set (a + i + l - 1, t + l - 1, m);
-    }
-
-  if (monic != 0)
-    {
-      mpz_set_ui (a[k+l-1], 0);
-      /* add b * x^l */
-      list_add (a + l, a + l, b, k);
-      /* add x^k * c */
-      list_add (a + k, a + k, c, l);
-    }
+  /* deal with x^k and x^l */
+  mpz_set_ui (a[k+l-1], 0);
+  /* add b * x^l */
+  list_add (a + l, a + l, b, k);
+  /* add x^k * c */
+  list_add (a + k, a + k, c, l);
 }
 
 /*
   Multiplies b[0..k-1] by c[0..k-1], and stores the result in a[0..2k-2].
   (Here, there is no implicit monic leading monomial.)
+  Requires at least list_mul_mem(k) cells in t.
  */
 void
 list_mulmod (listz_t a, listz_t b, listz_t c, unsigned int k, listz_t t,
              mpz_t n)
 {
-  karatsuba (a, b, c, k, t);
+  LIST_MULT_N (a, b, c, k, t);
   list_mod (a, a, 2*k - 1, n);
 }
 
 /* puts in G the coefficients from (x-G[0])...(x-G[k-1])
-   using 2*k cells in T */
+   Needs at least k+list_mul_mem(k/2) >= 2k cells in T */
 void
 buildG (listz_t G, unsigned int k, listz_t T, int verbose, mpz_t n, char F)
 {
@@ -286,7 +301,7 @@ buildG (listz_t G, unsigned int k, listz_t T, int verbose, mpz_t n, char F)
 
    buildG (G, l, T, 0, n, F);
    buildG (G + l, m, T, 0, n, F);
-   list_mul (T, G, l, G + l, m, T + k, 1);
+   list_mul (T, G, l, G + l, m, T + k);
    list_mod (G, T, k, n);
    
    if (verbose >= 2)
@@ -303,7 +318,7 @@ buildG (listz_t G, unsigned int k, listz_t T, int verbose, mpz_t n, char F)
   by b[0]+b[1]*x+...+b[L-1]*x^(L-1)+x^L
   puts the quotient in q[0]+q[1]*x+...+q[K-1]*x^(K-1)
   and the remainder in a[0]+a[1]*x+...+a[K-1]*x^(K-1)
-  Needs space for 2K coefficients in t.
+  Needs space for list_mul_mem(K) coefficients in t.
 */
 void
 RecursiveDivision (listz_t q, listz_t a, listz_t b, unsigned int K, listz_t t,
@@ -325,7 +340,7 @@ RecursiveDivision (listz_t q, listz_t a, listz_t b, unsigned int K, listz_t t,
       /* first perform a (2l) / l division */
       RecursiveDivision (q + k, a + 2 * k, b + k, l, t, n);
       /* subtract q[k..k+l-1] * b[0..k-1] */
-      karatsuba (t, q + l, b, k, t + K - 1); /* sets t[0..2*k-2] */
+      LIST_MULT_N (t, q + l, b, k, t + K - 1); /* sets t[0..2*k-2] */
       list_sub (a + l, a + l, t, 2 * k - 1);
       if (k < l) /* don't forget to subtract q[k] * b[0..k-1] */
 	  for (i=0; i<k; i++)
@@ -338,7 +353,7 @@ RecursiveDivision (listz_t q, listz_t a, listz_t b, unsigned int K, listz_t t,
       /* then perform a (2k) / k division */
       RecursiveDivision (q, a + l, b + l, k, t, n);
       /* subtract q[0..k-1] * b[0..l-1] */
-      karatsuba (t, q, b, k, t + K - 1);
+      LIST_MULT_N (t, q, b, k, t + K - 1);
       list_sub (a, a, t, 2 * k - 1);
       if (k < l) /* don't forget to subtract q[0..k-1] * b[k] */
 	for (i=0; i<k; i++)
@@ -375,12 +390,12 @@ Div3by2 (listz_t q, listz_t a, listz_t b, unsigned int K,
     unsigned int i=0;
 
     RecursiveDivision (q, a+K, b+K, K, t, n);
-    karatsuba (t, q, b, K, t + 2 * K); /* needs 2K memory in t+2K */
+    LIST_MULT_N (t, q, b, K, t + 2 * K); /* needs 2K memory in t+2K */
     for (i=0;i<=2*K-2;i++) {
       mpz_sub (a[i], a[i], t[i]);
       mpz_mod (a[i], a[i], n);
     }
-    /* we could also have a special version of karatsuba that directly
+    /* we could also have a special version of karatsuba/toomcook that directly
        subtract the result to a */
   }
 }
