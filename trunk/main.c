@@ -117,7 +117,7 @@ main (int argc, char *argv[])
   mpz_t x, sigma, A, f, orig_x0;
   mpcandi_t n;
   mpq_t rat_x0;
-  double B1, B1done, B2, B2min;
+  double B1, B1done, B2, B2min, startingB2min;
   int result = 0;
   int verbose = 1; /* verbose level */
   int method = EC_METHOD, method1;
@@ -611,6 +611,8 @@ main (int argc, char *argv[])
   /* loop for number in standard input or file */
 
   startingB1 = B1;
+  startingB2min = B2min;
+
   if (!infilename)
     infile = stdin;
 
@@ -629,8 +631,11 @@ BreadthFirstDoAgain:;
 	  linenum = 0;
 	  if (breadthfirst_cnt++)
             {
-  	      B1 = calc_B1_AutoIncrement(B1, autoincrementB1, autoincrementB1_calc);
-	      B2min = B1;
+	      double NewB1;
+	      NewB1 = calc_B1_AutoIncrement(B1, autoincrementB1, autoincrementB1_calc);
+	      if (B2min == B1)
+		  B2min = NewB1;
+	      B1 = NewB1;
 	    }
 	  else
             {
@@ -722,11 +727,11 @@ BreadthFirstDoAgain:;
 		mpcandi_t_copy (&n,&pCandidates[linenum]);
 	      linenum++;
 	      cnt = count;
-	      /* reset B1 value, as it could have been advanced on the prior candidate */
-	      if (!breadthfirst)  /* IS THIS A BUG I INTRODUCED!!!!   Can B2min now ever be set??? */
+	      /* reset B1 (and B2min) values, as they could have been advanced on the prior candidate */
+	      if (!breadthfirst)
 		{
 	          B1 = startingB1;
-		  B2min = B1;
+		  B2min = startingB2min;
 		}
 	    }
 
@@ -1005,8 +1010,11 @@ OutputFactorStuff:;
       /* advance B1, if autoincrement value had been set during command line parsing */
       if (!breadthfirst && autoincrementB1)
 	{
-	  B1 = calc_B1_AutoIncrement(B1, autoincrementB1, autoincrementB1_calc);
-	  B2min = B1;
+	  double NewB1;
+	  NewB1 = calc_B1_AutoIncrement(B1, autoincrementB1, autoincrementB1_calc);
+	  if (B2min == B1)
+	      B2min = NewB1;
+	  B1 = NewB1;
 	}
     }
 
