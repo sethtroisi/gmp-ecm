@@ -480,6 +480,7 @@ int eval_2 (int bInFuncParams)
   mpz_t n_stack[4];
   mpz_t n;
   int i;
+  int num_base;
   char op_stack[4];
   char op;
   char negate;
@@ -554,9 +555,18 @@ int eval_2 (int bInFuncParams)
 		  return 0;
 		}
 	    }
+	  /* Now check for a hex number.  If so, handle it as such */
+	  num_base=10;  /* assume base 10 */
+	  if (i == 1 && !strncasecmp(expr_str, "0x", 2))
+	    {
+		num_base = 16;	/* Kick up to hex */
+		expr_str += 2;	/* skip the 0x string of the number */
+		for (i=0;isxdigit(expr_str[i]);i++)
+	          ;
+	    }
 	  op=expr_str[i];
 	  expr_str[i]=0;
-	  mpz_set_str(n,expr_str,10); 
+	  mpz_set_str(n,expr_str,num_base);
 	  expr_str+=i;
 	  *expr_str=op;
       }
