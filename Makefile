@@ -33,7 +33,7 @@ VERSION=5.0-beta
 
 FILES= auxi.o bestd.o ecm.o ecm2.o getprime.o listz.o lucas.o main.o pm1.o pp1.o stage2.o toomcook.o memory.o mpmod.o mul_lo.o polyeval.o resume.o
 
-CFLAG= -O2 -g -Wall -Wmissing-prototypes -pedantic
+CFLAG= -O2 -g -Wall -Wmissing-prototypes
 LDFLAG= -lgmp -lm
 CXX=gcc
 CC=gcc
@@ -54,9 +54,9 @@ all:
            CXX=g++;                    \
            EXTRAFILES=ntl.o;           \
            LDFLAGS="-lntl $(LDFLAG)";  \
-           make ecm GMP=$(GMP) NTL=$(NTL) CXX=g++ EXTRAFILES="ntl.o polyz.o" LDFLAGS="-lntl $(LDFLAG)"; \
+           make ecm GMP=$(GMP) NTL=$(NTL) CXX=g++ EXTRAFILES="ntl.o polyz.o" LDFLAGS="-lntl $(LDFLAG) CFLAGS="$(CFLAG) -DPOLYGCD""; \
         else \
-           make ecm GMP=$(GMP) CFLAGS="$(CFLAG) -DPOLYEVAL"; \
+           make ecm GMP=$(GMP); \
         fi
 
 ecm: $(ALLFILES) ecm.h
