@@ -562,6 +562,11 @@ main (int argc, char *argv[])
           printf ("\n");
 	  if (mpz_cmp (f, n))
 	    {
+              if (mpz_cmp_ui (f, 1) == 0)
+                {
+                  fprintf (stderr, "Error: factor found is 1\n");
+                  exit (1);
+                }
 	      /* prints factor found and cofactor on standard error. */
 	      factor_is_prime = mpz_probab_prime_p (f, 25);
 	      printf ("Found %s factor of %u digits: ", 
