@@ -36,6 +36,17 @@ Instructions to install GMP-ECM:
    on a Sparc v9 you may have to type:
    
    $ ./configure CC=cc CFLAGS="-fast -fns=no -fsimple=1 -xarch=v9" 
+   
+   Note 2: If you want to use George Woltman's GWNUM library for speeding up
+   factoring Fermat numbers, obtain the file "PENNE.ZIP" from
+   ftp://mersenne.org/gimps/ and follow the instructions therein to compile
+   the library. Possibly a readily compiled library "gwnum.a" or "gwnum.lib"
+   will be available from the same ftp site. Then use
+
+   $ ./configure --with-gwnum=<directory where gwnum is>
+
+   The directory must include the gwnum.a or gwnum.lib file as well as 
+   gwnum.h and related header files.
 
 2) compile the program with:
 

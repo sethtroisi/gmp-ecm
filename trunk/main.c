@@ -141,7 +141,7 @@ void usage (void)
     printf ("  -modmuln     use Montgomery's MODMULN for mod reduction\n");
     printf ("  -redc        use Montgomery's REDC for mod reduction\n");
     printf ("  -nobase2     disable special base-2 code\n");
-    printf ("  -base2 n     force base 2 mode with 2^n+1 (n>0) or 2^n-1 (n<0)\n");
+    printf ("  -base2 n     force base 2 mode with 2^n+1 (n>0) or 2^|n|-1 (n<0)\n");
     printf ("  -save file   save residues at end of stage 1 to file\n");
     printf ("  -savea file  like -save, appends to existing files\n");
     printf ("  -resume file resume residues from file, reads from stdin if file is \"-\"\n");
