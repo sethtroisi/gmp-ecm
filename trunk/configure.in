@@ -1,11 +1,15 @@
 
-AC_INIT(ecm, [5.1.2-beta], [ecm-dev@lists.fousse.info])
+m4_define([ECM_VERSION], [5.2.0])
 
-AM_INIT_AUTOMAKE(ecm, 5.1.2-beta)
+AC_INIT(ecm, ECM_VERSION, [ecm-dev@lists.fousse.info])
+
+AM_INIT_AUTOMAKE(ecm, ECM_VERSION)
 
 AC_PROG_CC
 
 AC_LANG_C
+
+AC_CHECK_LIB(gmp, __gmpz_init)
 
 AC_CONFIG_FILES(Makefile)
 

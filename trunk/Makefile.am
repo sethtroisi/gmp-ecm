@@ -7,5 +7,11 @@ ecm_SOURCES = auxi.c b1_ainc.c bestd.c candi.c ecm.c ecm2.c eval.c getprime.c\
 			  schoen_strass.c smartprp.c stage2.c toomcook.c trial.c
 
 noinst_HEADERS = ecm.h ecm-gmp.h
+EXTRA_DIST = test.pm1 test.pp1 test.ecm
 
 LDFLAGS = -lgmp -lm
+
+test: ecm
+	./test.pp1 ./ecm
+	./test.pm1 ./ecm
+	./test.ecm ./ecm
