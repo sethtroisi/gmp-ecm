@@ -35,7 +35,7 @@
 void             pp1_mul_ui (mpres_t, mpres_t, unsigned long, mpmod_t, 
                              mpres_t, mpres_t);
 int  count_significant_bits (mp_limb_t);
-int  pp1_check_factor       (mpz_t, mpz_t);
+void pp1_check_factor       (mpz_t, mpz_t);
 int          pp1_stage1     (mpz_t, mpres_t, mpmod_t, double, double,
                              unsigned long *, mpz_t);
 
@@ -145,6 +145,9 @@ pp1_stage1 (mpz_t f, mpres_t P0, mpmod_t n, double B1, double B1done,
   int youpi;
   unsigned int max_size, size_n;
   int Counter = 0, st, st_save;
+
+  /* Prep for stage one counter */
+  fprintf ("1:000 \r");
 
   mpz_init (g);
   mpres_init (P, n);
@@ -282,9 +285,8 @@ pp1_random_seed (mpz_t seed, mpz_t n, gmp_randstate_t randstate)
 
 /* checks if the factor p was found by P+1 or P-1 (when prime).
    a is the initial seed.
-   Return +1 if found by P+1, -1 if found by P-1.
 */
-int
+void
 pp1_check_factor (mpz_t a, mpz_t p)
 {
   if (mpz_probab_prime_p (p, 25))
@@ -292,12 +294,8 @@ pp1_check_factor (mpz_t a, mpz_t p)
       mpz_mul (a, a, a);
       mpz_sub_ui (a, a, 4);
       if (mpz_jacobi (a, p) == 1)
-	{
-	  printf ("[factor found by P-1]\n");
-	  return -1;
-	}
+        printf ("[factor found by P-1]\n");
     }
-  return 1;
 }
 
 /******************************************************************************
@@ -452,8 +450,7 @@ pp1_rootsG (listz_t G, unsigned int d, mpres_t *fd, mpmod_t modulus,
           k is the number of blocks for stage 2
           verbose is the verbose level: 0=quiet, 1=normal, 2=verbose
    Output: p is the factor found
-   Return value: non-zero iff a factor is found 
-   (1/-1 for stage 1, 2/-2 for stage 2, negative iff found by P-1)
+   Return value: non-zero iff a factor is found (1 for stage 1, 2 for stage 2)
 */
 int
 pp1 (mpz_t f, mpz_t p, mpz_t n, double B1done, double B1, double B2min,
@@ -545,8 +542,7 @@ pp1 (mpz_t f, mpz_t p, mpz_t n, double B1done, double B1, double B2min,
  end:
   if (youpi != 0) 
     {
-      if (pp1_check_factor (p, f) == -1) /* found by P-1 */
-	youpi = -youpi;
+      pp1_check_factor (p, f);
     }
   mpres_get_z (p, a, modulus);
   mpres_clear (a, modulus);
