@@ -29,12 +29,9 @@
 #include <math.h>
 #include <stdlib.h>
 #include <stdio.h>
+#include <limits.h> /* for ULONG_MAX */
 #include "gmp.h"
 #include "ecm.h"
-
-int  count_significant_bits (mp_limb_t);
-void pp1_check_factor       (mpz_t, mpz_t);
-static int pp1_stage1 (mpz_t, mpres_t, mpmod_t, double, double, unsigned long *);
 
 /******************************************************************************
 *                                                                             *
@@ -50,30 +47,28 @@ static int pp1_stage1 (mpz_t, mpres_t, mpmod_t, double, double, unsigned long *)
          V_{2k-1}(P0) = V_k(P0)*V_{k-1}(P0) - P0.
    (More generally V_{m+n} = V_m * V_n - V_{m-n}.)
    Warning: P1 and P0 may be equal.
-   Return the number of multiplies mod n.
 */
-int
+static void
 pp1_mul (mpres_t P1, mpres_t P0, mpz_t e, mpmod_t n, mpres_t P, mpres_t Q)
 {
-  unsigned long i, muls;
+  unsigned long i;
   mp_size_t size_e;
 
   if (mpz_cmp_ui (e, 0) == 0)
     {
       mpres_set_ui (P1, 2, n);
-      return 0;
+      return;
     }
 
   if (mpz_cmp_ui (e, 1) == 0)
     {
       mpres_set (P1, P0, n);
-      return 0;
+      return;
     }
   
   /* now e >= 2 */
   mpz_sub_ui (e, e, 1);
   mpres_mul (P, P0, P0, n);
-  muls = 1;
   mpres_sub_ui (P, P, 2, n); /* P = V_2(P0) = P0^2-2 */
   mpres_set (Q, P0, n);      /* Q = V_1(P0) = P0 */
 
@@ -86,43 +81,24 @@ pp1_mul (mpres_t P1, mpres_t P0, mpz_t e, mpmod_t n, mpres_t P, mpres_t Q)
           if (i) /* Q is not needed for last iteration */
             {
               mpres_mul (Q, P, Q, n);
-              muls ++;
               mpres_sub (Q, Q, P0, n);
             }
           mpres_mul (P, P, P, n);
-          muls ++;
           mpres_sub_ui (P, P, 2, n);
         }
       else /* k -> 2k */
         {
           mpres_mul (P, P, Q, n);
-          muls ++;
           mpres_sub (P, P, P0, n);
           if (i) /* Q is not needed for last iteration */
             {
               mpres_mul (Q, Q, Q, n);
-              muls ++;
               mpres_sub_ui (Q, Q, 2, n);
             }
         }
     }
 
   mpres_set (P1, P, n);
-  
-  /* the number of multiplies is 1 + 2*#loops - 1 (last loop) */
-  return 2 * (size_e - 1);
-}
-
-int
-count_significant_bits (mp_limb_t e)
-{
-  int i = 0;
-  while (e)
-    {
-      e >>= 1;
-      i ++;
-    }
-  return i;
 }
 
 /* Input:  P0 is the initial point (sigma)
@@ -132,8 +108,7 @@ count_significant_bits (mp_limb_t e)
    Return value: non-zero iff a factor was found.
 */
 static int
-pp1_stage1 (mpz_t f, mpres_t P0, mpmod_t n, double B1, double B1done,
-            unsigned long *muls)
+pp1_stage1 (mpz_t f, mpres_t P0, mpmod_t n, double B1, double B1done)
 {
   double B0, p, q, r;
   mpz_t g;
@@ -171,7 +146,7 @@ pp1_stage1 (mpz_t f, mpres_t P0, mpmod_t n, double B1, double B1done,
     {
       mpz_mul (g, n->orig_modulus, n->orig_modulus);
       mpz_sub_ui (g, g, 1);
-      *muls += pp1_mul (P0, P0, g, n, P, Q);
+      pp1_mul (P0, P0, g, n, P, Q);
     }
 
   mpz_set_ui (g, 1);
@@ -184,22 +159,29 @@ pp1_stage1 (mpz_t f, mpres_t P0, mpmod_t n, double B1, double B1done,
       mpz_mul_d (g, g, q, Q);
       if (mpz_sizeinbase (g, 2) >= max_size)
 	{
-	  *muls += pp1_mul (P0, P0, g, n, P, Q);
+	  pp1_mul (P0, P0, g, n, P, Q);
 	  mpz_set_ui (g, 1);
 	}
       /* No need to save incrementals here, or to show screen output, since this happens pretty quickly */
     }
 
-  *muls += pp1_mul (P0, P0, g, n, P, Q);
+  pp1_mul (P0, P0, g, n, P, Q);
 
   /* update the screen mode after the cascade work is done */
   showscreenticks(1,(int) (100.0 * (double) p / (double) B1));
 
   /* then all primes > sqrt(B1) and taken with exponent 1 */
+  /* since pp1_mul_prac takes an unsigned long, we have to check
+     that B1 <= MAX_ULONG */
+  if (B1 > (double) ULONG_MAX)
+    {
+      fprintf (stderr, "Error, maximal step1 bound B1 for P+1 is %lu\n", ULONG_MAX);
+      exit (EXIT_FAILURE);
+    }
   for (; p <= B1; p = getprime(p))
     {
       if (p > B1done)
-        *muls += pp1_mul_prac (P0, (unsigned long) p, n, P, Q, R, S, T);
+        pp1_mul_prac (P0, (unsigned long) p, n, P, Q, R, S, T);
     }
 
   getprime (0.0); /* free the prime tables, and reinitialize */
@@ -243,7 +225,7 @@ pp1_random_seed (mpz_t seed, mpz_t n, gmp_randstate_t randstate)
 /* checks if the factor p was found by P+1 or P-1 (when prime).
    a is the initial seed.
 */
-void
+static void
 pp1_check_factor (mpz_t a, mpz_t p)
 {
   if (mpz_probab_prime_p (p, PROBAB_PRIME_TESTS))
@@ -262,20 +244,16 @@ pp1_check_factor (mpz_t a, mpz_t p)
 ******************************************************************************/
 
 /* puts in F[0..dF-1] the successive values of 
-
    V_j(P) for Williams P+1
-
    For P+1, we have V_{j+6} = V_j * V_6 - V_{j-6}.
-
    for 0 < j = 1 mod 6 < d, j and d coprime.
+   Return non-zero iff a factor was found.
 */
-
 int
 pp1_rootsF (listz_t F, unsigned int d1, unsigned int d2, unsigned int dF, 
-            mpres_t *x, listz_t t, mpmod_t modulus, int verbose, 
-            unsigned long *tot_muls)
+            mpres_t *x, listz_t t, mpmod_t modulus, int verbose)
 {
-  unsigned int i, j, muls = 0;
+  unsigned int i, j;
   int st, st2;
   mpres_t fd[5]; /* fd[3..4] are temp vars */
   
@@ -320,7 +298,6 @@ pp1_rootsF (listz_t F, unsigned int d1, unsigned int d2, unsigned int dF,
       mpres_sub (fd[0], fd[3], fd[0], modulus);
       /* fd[0] = V_{m+n}, fd[1] = V_n, fd[2] = V_m */
       j += 6;
-      muls++;
     }
   mpres_clear (fd[0], modulus);
   mpres_clear (fd[1], modulus);
@@ -329,11 +306,7 @@ pp1_rootsF (listz_t F, unsigned int d1, unsigned int d2, unsigned int dF,
   mpres_clear (fd[4], modulus);
 
   if (verbose >= 2)
-    printf ("Computing roots of F took %dms and %d muls\n", cputime () - st, 
-            muls);
-  
-  if (tot_muls != NULL)
-    *tot_muls += muls;
+    printf ("Computing roots of F took %dms\n", cputime () - st);
   
   return 0;
 }
@@ -386,8 +359,7 @@ pp1_rootsG_clear (pp1_roots_state *state, UNUSED mpmod_t modulus)
 }
 
 int
-pp1_rootsG (listz_t G, unsigned int d, pp1_roots_state *state, 
-            mpmod_t modulus, unsigned long *tot_muls) 
+pp1_rootsG (listz_t G, unsigned int d, pp1_roots_state *state, mpmod_t modulus)
 {
   unsigned int i;
   int st;
@@ -404,9 +376,6 @@ pp1_rootsG (listz_t G, unsigned int d, pp1_roots_state *state,
       mpres_sub (state->fd[0], state->fd[3], state->fd[0], modulus);
       state->rsieve++;
     }
-  
-  if (tot_muls != NULL)
-    *tot_muls += d;
   
   return 0;
 }
@@ -434,7 +403,6 @@ pp1 (mpz_t f, mpz_t p, mpz_t n, double B1done, double B1, double B2min, double B
   int youpi = 0, st;
   mpres_t a;
   mpmod_t modulus;
-  unsigned long muls = 0;
 
   st = cputime ();
 
@@ -493,16 +461,13 @@ pp1 (mpz_t f, mpz_t p, mpz_t n, double B1done, double B1, double B2min, double B
   mpres_set_z (a, p, modulus);
 
   if (B1 > B1done)
-    youpi = pp1_stage1 (f, a, modulus, B1, B1done, &muls);
+    youpi = pp1_stage1 (f, a, modulus, B1, B1done);
 
   st = cputime () - st;
 
   if (verbose >= 1)
     {
-      printf ("Step 1 took %dms", st);
-      if (verbose >= 2)
-	printf (" for %lu muls", muls);
-      printf ("\n");
+      printf ("Step 1 took %dms\n", st);
       fflush (stdout);
     }
 

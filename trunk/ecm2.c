@@ -33,9 +33,6 @@
 
 #define min(a,b) (((a)<(b))?(a):(b))
 
-int multiplyW2n (mpz_t, point *, curve *, mpz_t *, unsigned int, mpmod_t, 
-                 mpres_t, mpres_t, mpres_t *, unsigned long *, unsigned long *);
-
 #if 0
 
 /* The original point addition and doubling functions in Weierstrass
@@ -108,17 +105,15 @@ addW (mpz_t p, mpres_t x, mpres_t y, mpres_t x1, mpres_t y1, mpres_t x2,
    inversions (one less if max(q_i) is a power of 2).
    Needs up to n+2 cells in T. */
 
-int
+static int
 multiplyW2n (mpz_t p, point *R, curve *S, mpz_t *q, unsigned int n, 
-              mpmod_t modulus, mpres_t u, mpres_t v, mpres_t *T,
-              unsigned long *tot_muls, unsigned long *tot_gcds)
+             mpmod_t modulus, mpres_t u, mpres_t v, mpres_t *T)
 {
-  unsigned int i, maxbit, k, /* k is the number of values to batch invert */
-               l, t, muls = 0, gcds = 0;
+  unsigned int i, maxbit, k; /* k is the number of values to batch invert */
+  unsigned int l, t;
 #ifdef WANT_EXPCOST
   unsigned int hamweight = 0;
 #endif
-
   int youpi = 0;
   mpz_t flag; /* Used as bit field, keeps track of which R[i] contain partial results */
   point s;    /* 2^t * S */
@@ -199,8 +194,6 @@ multiplyW2n (mpz_t p, point *R, curve *S, mpz_t *q, unsigned int n,
       /* Put inverse of the product of all scheduled values in T[k]*/
       if (k > 0)
         {
-          muls += 3 * (k - 1);
-          gcds++;
           if (!mpres_invert (T[k], T[k - 1], modulus))
             {
               /* If a factor was found, put factor in p, 
@@ -253,7 +246,6 @@ multiplyW2n (mpz_t p, point *R, curve *S, mpz_t *q, unsigned int n,
                 mpres_sub (u, s.x, R[i].x, modulus);   /* U    = x2 - x3 */
                 mpres_mul (u, u, T[l], modulus);       /* U    = lambda*(x2 - x3) */
                 mpres_sub (R[i].y, u, s.y, modulus);   /* y3   = lambda*(x2 - x3) - y2 */
-                muls += 3;
                 l--;
               }
             else /* R[i] does not contain a partial result. */
@@ -288,7 +280,6 @@ multiplyW2n (mpz_t p, point *R, curve *S, mpz_t *q, unsigned int n,
           mpres_mul (v, v, T[k], modulus);     /* V = lambda*(s.x - s.x') */
           mpres_sub (s.y, v, s.y, modulus);    /* s.y' = lambda*(s.x - s.x') - s.y */
           mpres_set (s.x, u, modulus);
-          muls += 4;
         }
     }
   
@@ -296,11 +287,6 @@ multiplyW2n (mpz_t p, point *R, curve *S, mpz_t *q, unsigned int n,
   mpres_clear (s.x, modulus);
   mpz_clear (flag);
 
-  if (tot_muls != NULL)
-    *tot_muls += muls;
-  if (tot_gcds != NULL)
-    *tot_gcds += gcds;
-  
   return youpi;
 }
 
@@ -320,8 +306,8 @@ multiplyW2n (mpz_t p, point *R, curve *S, mpz_t *q, unsigned int n,
 */
 
 static int
-addWnm (mpz_t p, point *X, curve *S, mpmod_t modulus, unsigned int m, unsigned int n, 
-        mpres_t *T, unsigned long *tot_muls, unsigned long *tot_gcds)
+addWnm (mpz_t p, point *X, curve *S, mpmod_t modulus, unsigned int m,
+        unsigned int n, mpres_t *T)
 {
   unsigned int k, l;
   int i, j;
@@ -369,8 +355,6 @@ addWnm (mpz_t p, point *X, curve *S, mpmod_t modulus, unsigned int m, unsigned i
   if (k > 0 && !mpres_invert (T[k], T[k - 1], modulus))
     {
       mpres_gcd (p, T[k - 1], modulus);
-      (*tot_muls) += m * n - 1;
-      (*tot_gcds) ++;
       return 1;
     }
 
@@ -463,11 +447,6 @@ addWnm (mpz_t p, point *X, curve *S, mpmod_t modulus, unsigned int m, unsigned i
         l--;
       }
 
-  if (tot_muls != NULL)
-    (*tot_muls) += 6 * m * n - 3;
-  if (tot_gcds != NULL)
-    (*tot_gcds) ++;
-
   return 0;
 }
 
@@ -481,11 +460,9 @@ addWnm (mpz_t p, point *X, curve *S, mpmod_t modulus, unsigned int m, unsigned i
 
 int
 ecm_rootsF (mpz_t f, listz_t F, unsigned int d1, unsigned int d2, 
-        unsigned int dF, curve *s, int S, mpmod_t modulus, int verbose, 
-        unsigned long *tot_muls)
+            unsigned int dF, curve *s, int S, mpmod_t modulus, int verbose)
 {
   unsigned int i;
-  unsigned long muls = 0, gcds = 0;
   int st, st1;
   int youpi = 0, dickson_a;
   listz_t coeffs;
@@ -563,7 +540,7 @@ ecm_rootsF (mpz_t f, listz_t F, unsigned int d1, unsigned int d2,
       gmp_printf ("ecm_rootsF: coeffs[%d] = %Zd\n", i, coeffs[i]);
   
   youpi = multiplyW2n (f, state.fd, s, coeffs, state.size_fd, modulus, 
-                       state.T[0], state.T[1], state.T + 2, &muls, &gcds);
+                       state.T[0], state.T[1], state.T + 2);
   if (youpi && verbose >= 2)
     printf ("Found factor while computing fd[] * X\n");
   
@@ -581,13 +558,8 @@ ecm_rootsF (mpz_t f, listz_t F, unsigned int d1, unsigned int d2,
   if (verbose >= 2)
     {
       st1 = cputime ();
-      printf ("Initializing tables of differences for F took %dms, %lu muls and %lu extgcds\n", 
-              st1 - st, muls, gcds);
+      printf ("Initializing tables of differences for F took %dms\n", st1-st);
       st = st1;
-      if (tot_muls != NULL)
-        *tot_muls += muls;
-      muls = 0;
-      gcds = 0;
     }
 
   /* Now for the actual calculation of the roots. k keeps track of which fd[] 
@@ -601,8 +573,7 @@ ecm_rootsF (mpz_t f, listz_t F, unsigned int d1, unsigned int d2,
         {
           if (state.next == state.nr) /* Is it time to update fd[] ? */
             {
-              youpi = addWnm (f, state.fd, s, modulus, state.nr, S, state.T, 
-                              &muls, &gcds);
+              youpi = addWnm (f, state.fd, s, modulus, state.nr, S, state.T);
               state.next = 0;
               if (youpi && verbose >= 2)
                 printf ("Found factor while computing roots of F\n");
@@ -632,11 +603,7 @@ ecm_rootsF (mpz_t f, listz_t F, unsigned int d1, unsigned int d2,
     return 1;
   
   if (verbose >= 2)
-    printf ("Computing roots of F took %dms, %ld muls and %ld extgcds\n", 
-            cputime () - st, muls, gcds);
-
-  if (tot_muls != NULL)
-    *tot_muls += muls;
+    printf ("Computing roots of F took %dms\n", cputime () - st);
 
   return 0;
 }
@@ -659,7 +626,6 @@ ecm_rootsG_init (mpz_t f, curve *X, double s, unsigned int d1, unsigned int d2,
                  int verbose)
 {
   unsigned int k, lenT, phid2;
-  unsigned long muls = 0, gcds = 0;
   listz_t coeffs;
   ecm_roots_state *state;
   int youpi = 0;
@@ -740,7 +706,7 @@ ecm_rootsG_init (mpz_t f, curve *X, double s, unsigned int d1, unsigned int d2,
       gmp_printf ("ecm_rootsG_init: coeffs[%d] == %Zd\n", k, coeffs[k]);
 
   youpi = multiplyW2n (f, state->fd, X, coeffs, state->size_fd, modulus, 
-                       state->T[0], state->T[1], state->T + 2, &muls, &gcds);
+                       state->T[0], state->T[1], state->T + 2);
 
   for (k = S + 1; k < state->size_fd; k += S + 1)
     {
@@ -764,8 +730,7 @@ ecm_rootsG_init (mpz_t f, curve *X, double s, unsigned int d1, unsigned int d2,
       if (verbose >= 2)
         {
           st = cputime () - st;
-          printf ("Initializing table of differences for G took %dms, %lu muls and %lu extgcds\n",
-            st, muls, gcds);
+          printf ("Initializing table of differences for G took %dms\n", st);
         }
     }
   
@@ -805,10 +770,9 @@ ecm_rootsG_clear (ecm_roots_state *state, UNUSED int S, UNUSED mpmod_t modulus)
 
 int 
 ecm_rootsG (mpz_t f, listz_t G, unsigned int dF, ecm_roots_state *state, 
-            mpmod_t modulus, int verbose, unsigned long *tot_muls)
+            mpmod_t modulus, int verbose)
 {
   unsigned int i;
-  unsigned long muls = 0, gcds = 0;
   int youpi = 0, st;
   
   st = cputime ();
@@ -820,7 +784,7 @@ ecm_rootsG (mpz_t f, listz_t G, unsigned int dF, ecm_roots_state *state,
         {
           /* Yes, time to update again */
           youpi = addWnm (f, state->fd, state->X, modulus, state->nr, 
-                          state->S, state->T, &muls, &gcds);
+                          state->S, state->T);
           state->next = 0;
           
           if (youpi)
@@ -832,7 +796,7 @@ ecm_rootsG (mpz_t f, listz_t G, unsigned int dF, ecm_roots_state *state,
         }
       
       /* Is this a root we should skip? (Take only if gcd == 1) */
-      if (gcd(state->rsieve, state->dsieve) == 1)
+      if (gcd (state->rsieve, state->dsieve) == 1)
         mpres_get_z (G[i++], (state->fd + state->next * (state->S + 1))->x, 
                        modulus);
 
@@ -841,11 +805,7 @@ ecm_rootsG (mpz_t f, listz_t G, unsigned int dF, ecm_roots_state *state,
     }
   
   if (verbose >= 2)
-    printf ("Computing roots of G took %dms, %lu muls and %lu extgcds\n",
-             cputime () - st, muls, gcds);
-  
-  if (tot_muls != NULL)
-    *tot_muls += muls;
+    printf ("Computing roots of G took %dms\n", cputime () - st);
   
   return youpi;
 }
