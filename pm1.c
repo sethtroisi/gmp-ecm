@@ -618,7 +618,7 @@ pm1 (mpz_t f, mpz_t p, mpz_t N, double B1done, double B1, double B2min,
       base2 = (repr == 0) ? isbase2 (N, 2.0) : 0;
       smallbase = mpz_fits_uint_p (p);
       
-      /* TODO: make dependant on Nbits and base2 */
+      /* TODO: make dependent on Nbits and base2 */
       if (base2)
         {
           printf ("Using base-2 representation: 2^%d%c1\n", 
