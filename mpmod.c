@@ -22,13 +22,69 @@
 #include <stdio.h>
 #include <gmp.h>
 #include "ecm.h"
+#ifdef WANT_GMP_IMPL
 #include <gmp-impl.h>
+#else
+/* stolen from gmp-impl.h */
+#define ABSIZ(x) ABS (SIZ (x))
+#define ALLOC(x) ((x)->_mp_alloc)
+#define PTR(x) ((x)->_mp_d)
+#define SIZ(x) ((x)->_mp_size)
+#define ABS(x) ((x) >= 0 ? (x) : -(x))
+#define TMP_DECL(m)
+#define TMP_ALLOC(x) alloca(x)
+#define TMP_MARK(m)
+#define TMP_FREE(m)
+#define TMP_ALLOC_TYPE(n,type) ((type *) TMP_ALLOC ((n) * sizeof (type)))
+#define TMP_ALLOC_LIMBS(n)     TMP_ALLOC_TYPE(n,mp_limb_t)
+#define mpn_add_nc __MPN(add_nc)
+__GMP_DECLSPEC mp_limb_t mpn_add_nc __GMP_PROTO ((mp_ptr, mp_srcptr, mp_srcptr, mp_size_t, mp_limb_t));
 
-/* #define DEBUG */
+#if WANT_ASSERT
+#include <assert.h>
+#define ASSERT(expr)   assert (expr)
+#else
+#define ASSERT(expr)   do {} while (0)
+#endif
+
+#ifndef MPN_NORMALIZE
+#define MPN_NORMALIZE(DST, NLIMBS) \
+  do {									\
+    while (NLIMBS > 0)							\
+      {									\
+	if ((DST)[(NLIMBS) - 1] != 0)					\
+	  break;							\
+	NLIMBS--;							\
+      }									\
+  } while (0)
+#endif
+
+#ifndef MPN_ZERO
+#define MPN_ZERO(dst, n)			\
+  do {						\
+    ASSERT ((n) >= 0);				\
+    if ((n) != 0)				\
+      {						\
+	mp_ptr __dst = (dst);			\
+	mp_size_t __n = (n);			\
+	do					\
+	  *__dst++ = 0;				\
+	while (--__n);				\
+      }						\
+  } while (0)
+#endif
+
+#ifndef DIV_DC_THRESHOLD
+#define DIV_DC_THRESHOLD    (3 * MUL_KARATSUBA_THRESHOLD)
+#endif
+
+#endif /* HAVE_GMP_IMPL */
 
 #ifndef MOD_PLAIN_TO_REDC_THRESHOLD
 #define MOD_PLAIN_TO_REDC_THRESHOLD 20000
 #endif
+
+/* #define DEBUG */
 
 void base2mod (mpres_t, mpres_t, mpres_t, mpmod_t);
 void REDC (mpres_t, mpres_t, mpz_t, mpmod_t);
