@@ -71,7 +71,7 @@ freadstrn (FILE *fd, char *s, char delim, unsigned int len)
   int c;
   
   while (i + 1 < len && (c = fgetc (fd)) != EOF)
-    if (c == delim || c == '\n')
+    if (c == delim || IS_NEWLINE(c))
       {
         ungetc (c, fd);
         break;
@@ -112,7 +112,7 @@ read_resumefile_line (int *method, mpz_t x, mpcandi_t *n, mpz_t sigma, mpz_t A,
       /* Ignore lines beginning with '#'*/
       if (facceptstr (fd, "#"))
         {
-          while ((c = fgetc (fd)) != EOF && c != '\n');
+          while ((c = fgetc (fd)) != EOF && !IS_NEWLINE(c));
           continue;
         }
       
@@ -314,7 +314,7 @@ read_resumefile_line (int *method, mpz_t x, mpcandi_t *n, mpz_t sigma, mpz_t A,
 error:
       /* In case of error, read rest of line and try next line */
       c = fgetc (fd);
-      while (c != EOF && c != '\n')
+      while (c != EOF && !IS_NEWLINE(c))
         c = fgetc (fd);
     }
     
