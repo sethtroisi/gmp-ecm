@@ -30,32 +30,32 @@
 int
 trial_factor (mpcandi_t *n, double maxfact, int deep)
 {
-  int factors=0, cnt_this_fact;
+  int factors = 0, cnt_this_fact;
   mpz_t t;
   unsigned long Remainder;
   double p;
   char numbuf[40];
 
-  mpz_init(t);
+  mpz_init (t);
 
   getprime (FREE_PRIME_TABLE);  /* free the prime tables, and reinitialize */
-  /* brain dead trial factor'r but it werks */
+  /* brain dead trial factor'r but it works */
   for (p = 2.0; p <= maxfact; p = getprime (p))
     {
-      Remainder=mpz_mod_ui(t,n->n,(unsigned long)p);
+      Remainder = mpz_mod_ui (t, n->n, (unsigned long) p);
       if (!Remainder)
 	{
 	  cnt_this_fact = 0;
 	  sprintf (numbuf, "%.0f", p);
-	  while (mpcandi_t_addfoundfactor_d(n, p))
-	      ++cnt_this_fact;
+	  while (mpcandi_t_addfoundfactor_d (n, p))
+	    ++cnt_this_fact;
 	  printf ("********** Factor found trial div: %s\n", numbuf);
 	  if (cnt_this_fact > 1)
-	    printf("Found Proven Prime   factor of %2u digits: %s^%d\n",
-                   (unsigned int) strlen(numbuf), numbuf, cnt_this_fact);
+	    printf ("Found Proven Prime   factor of %2u digits: %s^%d\n",
+		    (unsigned int) strlen (numbuf), numbuf, cnt_this_fact);
 	  else
-	    printf("Found Proven Prime   factor of %2u digits: %s\n",
-                   (unsigned int) strlen(numbuf), numbuf); 
+	    printf ("Found Proven Prime   factor of %2u digits: %s\n",
+		    (unsigned int) strlen (numbuf), numbuf); 
 	  factors += cnt_this_fact;
 	  if (!deep)
 	    /* We only want the first factor if not in "deep" mode */

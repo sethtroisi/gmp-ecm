@@ -106,9 +106,13 @@ od:
       dd2 = (double) d * (double) d2;
       
       /* How many lines will we need ? */
-      jf = ceil ((B2 + dd2 - 5) / dd2) - floor (B2min / dd2);
-      /* Plus dd2 - 5, because the points for the roots of F only cover 
-         values == 1 (mod 6) */
+      jf = ceil ((B2 + dd2 - 5.0) / dd2) - floor ((B2min - dd2) / dd2);
+      /* The upper bound is B2 + dd2 - 5, because the points for the roots of
+	 F only cover values == 1 (mod 6).
+	 For the lower bound, we want that i*d+j*d2 covers all primes >= B2min
+	 for i >= i0. It suffices that there are at least d2 multiples of d
+	 that are <= B2min, thus i0*d + (d2-1)*d <= B2min, or
+	 i0 <= floor(B2min/d) - (d2-1). */
       
       /* How many blocks will we need ? */
       j = (unsigned int) ceil (jf / (double) dF * (double) phi (d2));

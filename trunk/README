@@ -1,4 +1,4 @@
-This is the README file for gmp-ecm.
+This is the README file for gmp-ecm. (See README.lib for the ecm library.)
 
 Table of contents of this file:
 1. Files included in this distribution.
@@ -32,7 +32,6 @@ Makefile*    - to build the binary file
 missing      - configuration file
 NEWS         - news file
 README       - this file
-c155         - test file containing a 155-digit composite
 test.*       - test files
 TODO         - to-do list
 

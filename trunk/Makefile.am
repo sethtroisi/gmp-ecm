@@ -19,7 +19,7 @@ LDADD = libecm.a
 
 noinst_HEADERS = ecm-impl.h ecm-gmp.h ecm.h ecm-ecm.h
 
-EXTRA_DIST = test.pm1 test.pp1 test.ecm ecm.1
+EXTRA_DIST = test.pm1 test.pp1 test.ecm ecm.1 README.lib
 
 man_MANS = ecm.1
 

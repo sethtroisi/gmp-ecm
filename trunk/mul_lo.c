@@ -24,8 +24,6 @@
 #include "gmp.h"
 #include "ecm-impl.h"
 
-void mpn_mul_lo_basecase (mp_ptr, mp_srcptr, mp_srcptr, mp_size_t);
-
 /* puts in {rp, n} the low part of {np, n} times {mp, n}
    i.e. equivalent to:
    tp = TMP_ALLOC_LIMBS (2 * n);
@@ -33,7 +31,7 @@ void mpn_mul_lo_basecase (mp_ptr, mp_srcptr, mp_srcptr, mp_size_t);
    MPN_COPY (rp, tp, n);
    Remark: it is assumed at least 2*n limbs are allocated starting from rp.
  */
-INLINE void
+static INLINE void
 mpn_mul_lo_basecase (mp_ptr rp, mp_srcptr np, mp_srcptr mp, mp_size_t n)
 {
   mpn_mul_1 (rp, np, n, mp[0]);
