@@ -41,7 +41,7 @@ VERSION=5.1.2-beta
 
 ###################### do not edit below this line ############################
 
-OBJS= auxi.o b1_ainc.o bestd.o candi.o ecm.o ecm2.o eval.o getprime.o listz.o lucas.o main.o pm1.o pp1.o stage2.o toomcook.o trial.o memory.o mpmod.o mul_lo.o polyeval.o resume.o median.o smartprp.o schoen_strass.o
+OBJS= auxi.o b1_ainc.o bestd.o candi.o ecm.o ecm2.o eval.o getprime.o listz.o lucas.o main.o pm1.o pp1.o stage2.o toomcook.o trial.o memory.o mpmod.o mul_lo.o polyeval.o resume.o median.o smartprp.o schoen_strass.o ks-multiply.o
 CFLAGS= -g -W -Wall -Wmissing-prototypes -pedantic $(TUNEFLAGS) $(GCOVFLAGS)
 LDFLAGS= -lm
 CC=gcc
@@ -57,7 +57,7 @@ EXTRAOBJS=
 ALLOBJS= $(OBJS) $(EXTRAOBJS)
 POLYGCD=0
 
-DIST=  auxi.c b1_ainc.c bestd.c bestdaux.c candi.c countsmooth.c ecm.c ecm2.c eval.c getprime.c listz.c lucas.c main.c median.c median-aux.c memory.c mpmod.c mul_lo.c ntl.c pm1.c polyeval.c polyz.c pp1.c resume.c smartprp.c stage2.c trial.c toomcook.c tune.c schoen_strass.c
+DIST=  auxi.c b1_ainc.c bestd.c bestdaux.c candi.c countsmooth.c ecm.c ecm2.c eval.c getprime.c listz.c lucas.c main.c median.c median-aux.c memory.c mpmod.c mul_lo.c ntl.c pm1.c polyeval.c polyz.c pp1.c resume.c smartprp.c stage2.c trial.c toomcook.c tune.c schoen_strass.c ks-multiply.c
 EXTRADIST= COPYING COPYING.LIB INSTALL Makefile README ecm.h test.pm1 test.pp1 test.ecm tune.c c155 ecm-gmp.h ChangeLog
 
 .SUFFIXES: .c .o
