@@ -64,13 +64,6 @@ MA 02111-1307, USA. */
 #define MPN_COPY(d,s,n) mpn_add_1(d,s,n,(mp_limb_t)0)
 #endif
 
-#if WANT_ASSERT
-#include <assert.h>
-#define ASSERT(expr)   assert (expr)
-#else
-#define ASSERT(expr)   do {} while (0)
-#endif
-
 #ifndef MPN_NORMALIZE
 #define MPN_NORMALIZE(DST, NLIMBS) \
   do {									\
@@ -98,4 +91,19 @@ MA 02111-1307, USA. */
   } while (0)
 #endif
 
+/* fft stuff */
+#ifndef mpn_fft_best_k
+#define mpn_fft_best_k __MPN(fft_best_k)
+int     mpn_fft_best_k (mp_size_t, int);
+#endif
 
+#ifndef   mpn_fft_next_size
+#define   mpn_fft_next_size __MPN(fft_next_size)
+mp_size_t mpn_fft_next_size (mp_size_t, int);
+#endif
+
+#ifndef mpn_mul_fft
+#define mpn_mul_fft  __MPN(mul_fft)
+void    mpn_mul_fft (mp_ptr, mp_size_t, mp_srcptr, mp_size_t, mp_srcptr,
+                     mp_size_t, int);
+#endif
