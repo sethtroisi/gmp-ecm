@@ -22,7 +22,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include "gmp.h"
-#include "ecm.h"
+#include "ecm-impl.h"
 
 #ifdef DEBUG
 #define ASSERTD(x) assert(x)
@@ -158,7 +158,7 @@ list_swap (listz_t p, listz_t q, unsigned int n)
 }
 
 /* p <- -q, keeps residues normalized */
-void
+static void
 list_neg (listz_t p, listz_t q, unsigned int l, mpz_t n)
 {
   unsigned int i;
@@ -238,21 +238,8 @@ list_zero (listz_t p, unsigned int n)
     mpz_set_ui (p[i], 0);
 }
 
-/* returns non-zero iff p is 0 */
-int
-list_zerop (listz_t p, unsigned int n)
-{
-  unsigned int i;
-  int iszero = 1;
-
-  for (i = 0; iszero && (i < n); i++)
-    iszero = iszero && (mpz_cmp_ui (p[i], 0) == 0);
-
-  return iszero;
-}
-
 #ifdef DEBUG
-int
+static int
 list_check (listz_t a, unsigned int l, mpz_t n)
 {
   unsigned int i;
@@ -486,7 +473,7 @@ karatsuba (listz_t a, listz_t b, listz_t c, unsigned int K, listz_t t)
    The auxiliary array t contains at least list_mul_mem(l) entries.
    a and t should not overlap.
 */
-void
+static void
 list_mul (listz_t a, listz_t b, unsigned int k, int monic_b,
           listz_t c, unsigned int l, int monic_c, listz_t t)
 {

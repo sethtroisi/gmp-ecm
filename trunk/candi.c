@@ -27,6 +27,7 @@
 #endif
 #include "gmp.h"
 #include "ecm.h"
+#include "ecm-ecm.h"
 
 #define VALID_MAGIC 0x24837BF5
 #define DEAD_MAGIC  0xDEADBEEF

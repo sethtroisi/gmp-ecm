@@ -24,6 +24,7 @@
 #include <limits.h> /* for ULONG_MAX */
 #include "gmp.h"
 #include "ecm.h"
+#include "ecm-impl.h"
 
 /******************************************************************************
 *                                                                             *
@@ -537,7 +538,8 @@ ecm_stage1 (mpz_t f, mpres_t x, mpres_t A, mpmod_t n, double B1, double B1done,
   mpres_div_2exp (b, b, 2, n); /* b == (A+2)/4 */
 
   /* preload group order */
-  ecm_mul (x, z, go, n, b);
+  if (go != NULL)
+    ecm_mul (x, z, go, n, b);
 
   /* prac() wants multiplicands > 2 */
   for (r = 2.0; r <= B1; r *= 2.0)
@@ -598,7 +600,10 @@ ecm_stage1 (mpz_t f, mpres_t x, mpres_t A, mpmod_t n, double B1, double B1done,
           sigma is sigma value (if x is set to zero) or 
             A parameter (if x is non-zero) of curve
           n is the number to factor
+          go is the initial group order to preload  
           B1, B2 are the stage 1/stage 2 bounds, respectively
+          B2min the lower bound for stage 2
+          B2scale is the stage 2 scale factor
           k is the number of blocks to do in stage 2
           S is the degree of the Suyama-Brent extension for stage 2
           verbose is verbosity level: 0 no output, 1 normal output,
@@ -720,7 +725,7 @@ ecm (mpz_t f, mpz_t x, mpz_t sigma, mpz_t n, mpz_t go, double B1done,
       printf ("\nstarting point: x=");
       mpres_out_str (stdout, 10, P.x, modulus);
       printf ("\n");
-      if (mpz_cmp_ui (go, 1) > 0)
+      if (go != NULL && mpz_cmp_ui (go, 1) > 0)
         {
           printf ("initial group order: ");
           mpz_out_str (stdout, 10, go);

@@ -23,6 +23,7 @@
 #include <stdlib.h>
 #include "gmp.h"
 #include "ecm.h"
+#include "ecm-impl.h"
 
 /* #define DEBUG */
 
@@ -45,23 +46,6 @@ typedef struct {
 
 /* prime powers are accumulated up to about n^L1 */
 #define L1 16
-
-/* put in 'a' a valid random seed for P-1, i.e. gcd(a, n)=1 and a <> {-1,1} */
-void
-pm1_random_seed (mpres_t a, mpz_t n, gmp_randstate_t randstate)
-{
-  mpz_t q;
-
-  mpz_init (q);
-  do
-    {
-      mpz_urandomb (a, randstate, 32);
-      mpz_gcd (q, a, n);
-    }
-  while (mpz_cmp_ui (q, 1) != 0 || mpz_cmp_ui (a, 1) == 0 ||
-         mpz_cmp_si (a, -1) == 0);
-  mpz_clear (q);
-}
 
 /*** Cascaded multiply ***/
 
@@ -379,27 +363,21 @@ pm1_stage1 (mpz_t f, mpres_t a, mpmod_t n, double B1, double B1done,
 *                                                                             *
 ******************************************************************************/
 
-/* For each of the nr progressions each of S+1 entries in fd[], performs
-   the update fd[k] *= fd[k+1], 0 <= k < S+1. */
-
 static void
-update_fd (mpres_t *fd, unsigned int nr, unsigned int S, mpmod_t modulus, 
-           unsigned long *muls)
+update_fd (mpres_t *fd, unsigned int nr, unsigned int S, mpmod_t modulus)
 {
   unsigned int j, k;
   
   for (j = 0; j < nr * (S + 1); j += S + 1)
     for (k = 0; k < S; k++)
       mpres_mul (fd[j + k], fd[j + k], fd[j + k + 1], modulus);
-  
-  *muls += nr * S;
 }
 
 /* Puts in F[0..dF-1] the successive values of 
 
-   x^(Dickson_{S, a}(j * d2))
+   x^(Dickson_{S, a}(j))
    
-     for j == 1 mod 6 , j and d1 coprime, where Dickson_{S, a}
+     for 0 < j = 1 mod 6 < d, j and d coprime, where Dickson_{S, a}
      is the degree S Dickson polynomial with parameter a. For a == 0, 
      Dickson_{S, a} (x) = x^S.
    Returns non-zero iff a factor was found (then stored in f).
@@ -410,47 +388,56 @@ update_fd (mpres_t *fd, unsigned int nr, unsigned int S, mpmod_t modulus,
 
 int
 pm1_rootsF (mpz_t f, listz_t F, unsigned int d1, unsigned int d2, 
-            unsigned int dF, mpres_t *x, listz_t t, int S, mpmod_t modulus, 
-            int verbose)
+        unsigned int dF, mpres_t *x, listz_t t, int S, mpmod_t modulus, 
+        int verbose)
 {
-  unsigned int i;
-  unsigned long muls = 0, gcds = 0;
-  int st;
-  listz_t coeffs;
+  unsigned int i, muls = 0, gcds = 0;
+  int st, st2;
   pm1_roots_state state;
-  
-  if (dF == 0)
-    return 0;
+  listz_t coeffs;
+  int dickson_a = 0;
 
-  if (verbose >= 2)
-    st = cputime ();
+  st = cputime ();
 
-  /* Relative cost of point add during init and computing roots assumed =1 */
-  /* The typecast from hell: the relevant fields of ecm_roots_state and
-     pm1_roots_state match in position so init_roots_state() can init a
-     pm1_roots_state as well. UGLY. OOP would really help here */
-  init_roots_state ((ecm_roots_state *) &state, S, d1, d2, 1.0);
-
-  /* The invtrick is profitable for x^S, S even and > 6 */
-  if (S > 6 && (S & 1) == 0)
+  state.S = abs (S);
+  state.invtrick = 0;
+  if (S > 6 && (S & 1) == 0) /* If we use S-th power, S > 6 */
     {
-      state.invtrick = 1;
+      state.invtrick = 1; /* then the invtrick is profitable */
       state.S /= 2;
-      state.size_fd = state.nr * (state.S + 1);
-    } else
-    state.invtrick = 0;
+    }
+  else if (S < 0)
+    dickson_a = -1;
+
+  st2 = cputime ();
+  
+  /* We only compute progressions that are coprime to state.dsieve and 
+     == 1 (mod 6). There are state.nr such progressions. */
+  state.dsieve = 6;
+  state.nr = 1;
+
+  if (d1 % 5 == 0 && dF > 50)
+    {
+      state.dsieve *= 5;
+      state.nr *= 4;
+    }
+  
+  if (d1 % 7 == 0 && dF > 70 * state.dsieve)
+    {
+      state.dsieve *= 7;
+      state.nr *= 6;
+    }
+
+  state.size_fd = (state.S + 1) * state.nr;
+  state.next = 0;
+  state.rsieve = 1;
 
   if (verbose >= 3)
-    printf ("pm1_rootsF: state: nr = %d, dsieve = %d, size_fd = %d, S = %d, "
-            "dickson_a = %d, invtrick = %d\n", state.nr, state.dsieve, 
-            state.size_fd, state.S, state.dickson_a, state.invtrick);
-  
-  /* Init finite differences tables */
-  
+    printf ("pm1_rootsF: d1 = %d, d2 = %d, state: dsieve = %d, nr = %d, size_fd = %d, S = %d, invtrick = %d\n",
+             d1, d2, state.dsieve, state.nr, state.size_fd, state.S, state.invtrick);
+
   coeffs = init_progression_coeffs (0., state.dsieve, d2, 1, 6, state.S, 
-                                    state.dickson_a);
-  
-  /* Allocate memory for fd[] and compute x^coeff[]*/
+                                    dickson_a);
   
   state.fd = (mpres_t *) xmalloc (state.size_fd * sizeof (mpres_t));
   for (i = 0; i < state.size_fd; i++) 
@@ -469,34 +456,35 @@ pm1_rootsF (mpz_t f, listz_t F, unsigned int d1, unsigned int d2,
   coeffs = NULL;
   
   if (verbose >= 2)
-    {
-      int st1;
-      
-      st1 = cputime ();
-      printf ("Initializing tables of differences for F took %dms\n", 
-              st1 - st);
-      st = st1;
-    }
+    printf ("Initializing table of differences for F took %dms\n", cputime () - st2);
 
-  /* Now for the actual calculation of the roots. */
-  
   for (i = 0; i < dF;)
     {
-      /* Is this a rsieve value where we computed x^Dickson(j * d2) ? */
+      /* Is this a rsieve value where we compute the progression, 
+         i.e. coprime to state.dsieve ? */
       if (gcd (state.rsieve, state.dsieve) == 1)
         {
           /* Did we use every progression since the last update? */
           if (state.next == state.nr)
             {
               /* Yes, time to update again */
-              update_fd (state.fd, state.nr, state.S, modulus, &muls);
+              if (verbose >= 4)
+                printf ("pm1_rootsF: Updating table at rsieve = %d\n", state.rsieve);
+              
+              update_fd (state.fd, state.nr, state.S, modulus);
               
               state.next = 0;
             }
           
-          /* Is this a j value where we want x^Dickson(j * d2) as a root? */
+          /* Is this a root we should skip? (Take only if coprime to d1) */
           if (gcd (state.rsieve, d1) == 1)
-            mpres_get_z (F[i++], state.fd[state.next * (state.S + 1)], modulus);
+            {
+              if (verbose >= 4)
+                printf ("pm1_rootsF: Taking root F[%d] at rsieve = %d\n", i, state.rsieve);
+              mpres_get_z (F[i++], state.fd[state.next * (state.S + 1)], modulus);
+            }
+          else if (verbose >= 4)
+            printf ("pm1_rootsF: Skipping root at rsieve = %d\n", state.rsieve);
             
           state.next++;
         }
@@ -532,7 +520,7 @@ pm1_rootsF (mpz_t f, listz_t F, unsigned int d1, unsigned int d2,
     {
       printf ("Computing roots of F took %dms", cputime () - st);
       if (verbose > 2)
-        printf (", %lu muls and %lu extgcds", muls, gcds);
+        printf (", %d muls and %d extgcds", muls, gcds);
       printf ("\n");
     }
   
@@ -571,9 +559,8 @@ pm1_rootsG_init (mpres_t *x, double s, unsigned int d1, unsigned int d2,
   state->rsieve = 1;
   
   if (verbose >= 3)
-    printf ("pm1_rootsG_init: d1 = %d, d2 = %d, state: dsieve = %d, nr = %d, "
-            "size_fd = %d, S = %d, invtrick = %d\n", d1, d2, state->dsieve, 
-            state->nr, state->size_fd, state->S, state->invtrick);
+    printf ("pm1_rootsG_init: d1 = %d, d2 = %d, state: dsieve = %d, nr = %d, size_fd = %d, S = %d, invtrick = %d\n",
+             d1, d2, state->dsieve, state->nr, state->size_fd, state->S, state->invtrick);
   
   state->fd = (mpres_t *) xmalloc (state->size_fd * sizeof (mpres_t));
 
@@ -584,21 +571,11 @@ pm1_rootsG_init (mpres_t *x, double s, unsigned int d1, unsigned int d2,
     {
       /* gmp_printf ("pm1_rootsG_init: coeffs[%d] = %Zd\n", i, coeffs[i]); */
       mpres_init (state->fd[i], modulus);
-      /* The S-th coeff of all progressions is identical */
-      if (i > state->S + 1 && i % (state->S + 1) == state->S) 
-        {
-#ifdef DEBUG
-          if (mpz_cmp(coeffs[i], coeffs[state->S]) != 0)
-            {
-              fprintf (stderr, "pm1_rootsG_init: coeffs[%d] != coeffs[%d]\n", 
-                       i, state->S);
-              exit (EXIT_FAILURE);
-            }
-#endif
-          /* Simply copy from the first progression */
-          mpres_set (state->fd[i], state->fd[state->S], modulus); 
-        }
+#if 0
+      if (i > state->S + 1 && i % (state->S + 1) == state->S) /* The S-th coeff of all */
+        mpres_set (fd[i], fd[S], modulus); /* progressions is identical */
       else
+#endif
         mpres_pow (state->fd[i], *x, coeffs[i], modulus);
     }
 
@@ -639,8 +616,7 @@ int
 pm1_rootsG (mpz_t f, listz_t G, unsigned int dF, pm1_roots_state *state, 
             listz_t t, mpmod_t modulus, int verbose)
 {
-  unsigned int i;
-  unsigned long muls = 0, gcds = 0;
+  unsigned int i, j, k, muls = 0, gcds = 0;
   int st;
   
   if (verbose >= 4)
@@ -657,13 +633,15 @@ pm1_rootsG (mpz_t f, listz_t G, unsigned int dF, pm1_roots_state *state,
           /* Yes, time to update again */
           if (verbose >= 4)
             printf ("pm1_rootsG: Updating table at rsieve = %d\n", state->rsieve);
-          
-          update_fd (state->fd, state->nr, state->S, modulus, &muls);
+          for (j = 0; j < state->size_fd; j += state->S + 1)
+            for (k = 0; k < state->S; k++)
+              mpres_mul (state->fd[j + k], state->fd[j + k], 
+                         state->fd[j + k + 1], modulus);
           state->next = 0;
         }
       
       /* Is this a root we should skip? (Take only if gcd == 1) */
-      if (gcd(state->rsieve, state->dsieve) == 1)
+      if (gcd (state->rsieve, state->dsieve) == 1)
         {
           if (verbose >= 4)
             printf ("pm1_rootsG: Taking root G[%d] at rsieve = %d\n", i, state->rsieve);
@@ -702,7 +680,7 @@ pm1_rootsG (mpz_t f, listz_t G, unsigned int dF, pm1_roots_state *state,
     {
       printf ("Computing roots of G took %dms", cputime () - st);
       if (verbose > 2)
-        printf (", %lu muls and %lu extgcds", muls, gcds);
+        printf (", %u muls and %u extgcds", muls, gcds);
       printf ("\n");
     }
   
@@ -716,8 +694,8 @@ pm1_rootsG (mpz_t f, listz_t G, unsigned int dF, pm1_roots_state *state,
 *                                                                             *
 ******************************************************************************/
 
-/* Input: p is the initial generator (sigma)
-          n is the number to factor
+/* Input: p is the initial generator (sigma), if 0, generate it at random.
+          N is the number to factor
 	  B1 is the stage 1 bound
 	  B2 is the stage 2 bound
 	  B1done is the stage 1 limit to which supplied residue has 
@@ -737,6 +715,14 @@ pm1 (mpz_t f, mpz_t p, mpz_t N, mpz_t go, double B1done, double B1,
   int youpi = 0, st, base2, Nbits, smallbase;
 
   st = cputime ();
+
+  if (mpz_cmp_ui (p, 0) == 0)
+    {
+      gmp_randstate_t state;
+      gmp_randinit_default (state);
+      pm1_random_seed (p, N, state);
+      gmp_randclear (state);
+    }
   
   /* Set default B2. See ecm.c for comments */
   if (IS_DEFAULT_B2(B2))

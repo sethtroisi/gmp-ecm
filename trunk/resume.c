@@ -27,6 +27,7 @@
 #endif
 #include "gmp.h"
 #include "ecm.h"
+#include "ecm-ecm.h"
 
 #if defined (_MSC_VER) || defined (__MINGW32__)
 /* needed to declare GetComputerName() for write_resumefile_line() */

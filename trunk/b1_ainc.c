@@ -18,20 +18,24 @@
   02111-1307, USA.
 */
 
+#include <stdio.h>
+#include <stdlib.h>
+#include "gmp.h"
+#include "ecm.h"
+#include "ecm-ecm.h"
+
 /* 
  * Version #2 function is the one we are using with a const
  * adjustment of 1.33
  */
 
-#include "ecm.h"
-
 /* Version #1 and Version #3 are not being used, but they have been kept in 
    the source, so that they can be refered to if and when changes are made */
-double calc_B1_AutoIncrement_v3(double cur_B1, double incB1val, int calcInc);
-double calc_B1_AutoIncrement_v1(double cur_B1, double incB1val, int calcInc);
+double calc_B1_AutoIncrement_v3 (double cur_B1, double incB1val, int calcInc);
+double calc_B1_AutoIncrement_v1 (double cur_B1, double incB1val, int calcInc);
 
 /* Here is my "first" attempt at a B1 adjustment function.
- * Paramters:
+ * Parameters:
  *  cur_B1    the current B1 level
  *  incB1val  This is ether a constant or an "adjustment factor"
  *  calcInc   Tells whether incB1val is a constant, or whether we
@@ -53,7 +57,8 @@ double calc_B1_AutoIncrement_v1(double cur_B1, double incB1val, int calcInc);
  *            bound value, and how far the current B1 is from the low
  *            and the high B1 boundary.
  */
-double calc_B1_AutoIncrement_v1(double cur_B1, double incB1val, int calcInc)
+double
+calc_B1_AutoIncrement_v1 (double cur_B1, double incB1val, int calcInc)
 {
   double B1Mod;
   if (!calcInc)
@@ -96,7 +101,8 @@ double calc_B1_AutoIncrement_v1(double cur_B1, double incB1val, int calcInc)
  *
  * THIS is the version being used.
  */
-double calc_B1_AutoIncrement (double cur_B1, double incB1val, int calcInc)
+double
+calc_B1_AutoIncrement (double cur_B1, double incB1val, int calcInc)
 {
   const double const_adj = 1.33;
   double B1Mod;
@@ -193,7 +199,8 @@ double B1Inc[12] =
     {50000.0,    ,2900000000.0 ,9000000000.0 };
 */
 
-double calc_B1_AutoIncrement_v3(double cur_B1, double incB1val, int calcInc)
+double
+calc_B1_AutoIncrement_v3 (double cur_B1, double incB1val, int calcInc)
 {
   double B1Mod;
   if (!calcInc)

@@ -23,12 +23,11 @@
 
 #include "gmp.h"
 #include "ecm-gmp.h" /* for MPZ_REALLOC and MPN_COPY */
+#include "ecm-impl.h"
 
 #ifdef HAVE_FFT
 #define FFT_WRAP
 #endif
-
-#include "ecm.h"
 
 /* Puts in R[0..2l-2] the product of A[0..l-1] and B[0..l-1].
    T must have as much space as for toomcook4 (it is only used when that

@@ -25,7 +25,7 @@ Proc. of ISSAC'03, Philadelphia, 2003.
 #include <stdio.h>
 #include <stdlib.h>
 #include "gmp.h"
-#include "ecm.h"
+#include "ecm-impl.h"
 
 #if !defined (_MSC_VER)
 #include <sys/time.h>
@@ -256,7 +256,7 @@ TKarMul (listz_t b, unsigned int n,
  * a[0..m] and c[0..l]
  */
 
-unsigned int
+static unsigned int
 TKarMul_space (unsigned int n, unsigned int m, unsigned int l)
 {
   unsigned int mu, nu, h;
@@ -311,41 +311,6 @@ TKarMul_space (unsigned int n, unsigned int m, unsigned int l)
   }
   return r1;
 }
-
-/* Returns the number of multiplication made in TKarMul
- */
-
-unsigned int
-muls_tkara (unsigned int n)
-{
-  unsigned int mu, nu, h;
-  unsigned int m = n;
-  unsigned tot_muls = 0;
-  unsigned int l = n + m - 1;
-
-  
-  if (n == 0)
-      return MIN(m, l)  + 1;
-
-  if (m == 0)
-      return MIN(n, l) + 1;
-
-  mu = (m / 2) + 1;
-  nu = (n / 2) + 1;
-  h = MAX (mu, nu);
-
-  mu = nu = h;
-  
-  if (n + 1 == 2 * nu)
-      tot_muls += 3 * muls_tkara (nu - 1);
-  else
-    {
-      tot_muls += 2 * muls_tkara (nu - 1);
-      tot_muls += muls_tkara (n - nu);
-    }
-  return tot_muls;
-}
-
 
 /* list_sub with bound checking
  */
