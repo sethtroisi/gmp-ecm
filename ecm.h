@@ -329,7 +329,7 @@ int   pp1_rootsG       (listz_t, unsigned int, pp1_roots_state *, mpmod_t,
 
 /* stage2.c */
 int          stage2     (mpz_t, void *, mpmod_t, double, double, unsigned int,
-                         int, int, int);
+                         int, int, int, int);
 void  fin_diff_coeff    (listz_t, double, double, unsigned int, int);
 listz_t init_progression_coeffs 
 			(double, unsigned int, unsigned int, unsigned int, 
