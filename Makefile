@@ -18,7 +18,7 @@
 # 02111-1307, USA.
 
 # Standard installation prefix
-prefix=/usr
+prefix=/home/kruppa
 
 # directory where GMP is installed
 # gmp.h should be in $(GMP)/include
@@ -54,13 +54,16 @@ EXTRADIST= COPYING COPYING.LIB INSTALL Makefile README ecm.h test.pm1 test.pp1 t
 .SUFFIXES: .c .o
 
 ecm: $(ALLOBJS) ecm.h ecm-gmp.h
-	$(LD) $(ALLOBJS) $(GMP)/lib/libgmp.a -o $@ $(LDFLAGS)
+	$(LD) $(ALLOBJS) -lgmp -static -o $@ $(LDFLAGS)
 
 ecm_with_ntl:
 	make ecm GMP=$(GMP) NTL=$(NTL) LD='$(CXX)' EXTRAOBJS="ntl.o polyz.o" LDFLAGS='-L$(NTL)/lib -lntl $(LDFLAGS)' CFLAGS='$(CFLAGS) -DPOLYGCD'
 
 tune: mpmod.o ecm.h tune.o auxi.o mul_lo.o ecm-gmp.h
 	$(CC) $(CFLAGS) -L$(GMP)/lib tune.o mpmod.o auxi.o mul_lo.o -o $@ $(LDFLAGS)
+
+countsmooth: getprime.o countsmooth.o
+	$(CC) $(CFLAGS) $^ -o $@ -lm -lgmp -static
 
 bestdaux: bestdaux.c
 	$(CC) $(CFLAGS) $< -o $@
