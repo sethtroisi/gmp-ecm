@@ -58,9 +58,7 @@ athlon-pc-mingw32     gmp-4.1.2 gcc-3.2 (mingw) 195.2      112.9 Athlon 750
 powerpc630-ibm-aix5.1.0.0 4.1.2 xlc             337.5      155.0 Power3+ 375
 pentium3-pc-linux-gnu gmp-4.1.2 gcc-2.95.3      411.2      214.4 PIII-500
 mips64-sgi-irix6.5    gmp-4.1.2 gcc-3.0.1       401.3      251.0 R10K-250
-powerpc7400-apple-darwin6.8 4.1.2 gcc-3.3       677.8      340.5 G4-500 [*]
-
-[*] without -power 1
+powerpc7400-apple-darwin6.8 4.1.2 gcc-3.3       680.4      268.6 G4-500
 
 Options used:
 athlon-pc-linux-gnu:
@@ -71,6 +69,8 @@ athlon-pc-mingw32
    -O2 -DANSIONLY -fomit-frame-pointer -mcpu=athlon -march=athlon
 pentium4-pc-mingw32
    -O2 -DANSIONLY -fomit-frame-pointer -mcpu=pentium4 -march=pentium4
+powerpc7400-apple-darwin6.8
+   -O2 -g -W -Wall -Wmissing-prototypes -I/usr/local/include
 
 Warning: we experienced a problem with gcc 2.95.4 and optimization -O2;
 we recommend using -O1 with this version of gcc.
