@@ -129,7 +129,24 @@ pm1 (mpz_t p, mpz_t n, double B1, double B2, unsigned int k, unsigned int S,
   int youpi, st;
 
   st = cputime ();
+
+  if (mpz_sgn (p) == 0)
+    {
+      /* No specific seed given, use default. For Pollard P-1, avoid
+         small sigma (2, 3, ...) because it may hit the whole input 
+         number when it divides s^n-1 */
+        mpz_set_ui(p, 17);
+    }
+  
+  if (verbose >= 1)
+    {
+      printf ("Using seed=");
+      mpz_out_str (stdout, 10, p);
+      printf ("\n");
+    }
+
   youpi = pm1_stage1 (p, n, B1);
+
   if (verbose >= 1)
     {
       printf ("Stage 1 took %dms\n", cputime() - st);

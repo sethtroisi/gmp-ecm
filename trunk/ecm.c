@@ -436,9 +436,6 @@ ecm_stage1 (mpz_t x, mpz_t A, mpz_t n, double B1, int verbose)
   
   mpz_set_ui (z, 1);
   
-  if (verbose >= 2)
-    gmp_printf ("A=%Zd\nstarting point: x=%Zd\n", A, x);
-  
   mpz_add_ui (b, A, 2);
   if (mpz_odd_p (b))
     mpz_add (b, b, n); /* Assumes n is odd */
@@ -468,11 +465,10 @@ ecm_stage1 (mpz_t x, mpz_t A, mpz_t n, double B1, int verbose)
     {
       ret = 1;
       mpz_set (x, t);
-      goto clear_all;
     }
-  mpz_mulmod (x, x, u, n, t);
+  else
+    mpz_mulmod (x, x, u, n, t);
 
-clear_all:
   mpz_clear (zT2);
   mpz_clear (xT2);
   mpz_clear (zT);
@@ -515,15 +511,31 @@ ecm (mpz_t p, mpz_t sigma, mpz_t n, double B1, double B2, unsigned int k,
     {
       /* sigma contains sigma value, starting point and A value must be 
          computed */
+      if (verbose >= 1)
+        {
+          printf ("Using sigma=");
+          mpz_out_str (stdout, 10, sigma);
+          printf("\n");
+        }
       get_curve_from_sigma (A, p, sigma, n);
     }
   else
     {
-      /* sigma contains A value, p contains starting point */
+      /* sigma contains the A value, p contains starting point */
       mpz_set (A, sigma);
     }
   
+  if (verbose >= 2)
+    {
+      printf("A=");
+      mpz_out_str(stdout, 10, A);
+      printf("\nstarting point: x=");
+      mpz_out_str(stdout, 10, p);
+      printf("\n");
+    }
+  
   youpi = ecm_stage1 (p, A, n, B1, verbose);
+
   if (verbose >= 1)
     {
       printf ("Stage 1 took %dms\n", cputime () - st);
