@@ -5,7 +5,8 @@ ToDo's:
 
 1) efficiency/memory
 - use mpres in step 2
-- optimize memory usage in step 2 (use a unique array for multiplies)
+- [suggested by Torbjo"rn Granlund] add an option -maxmem nnn that
+  chooses the best k for stage 2, depending on the input number size.
 - write a mpn version of add3 and duplicate  
 - use/implement a mpn_mul_hi_n routine for use in mpn_REDC
 - use mpn_addmul_2, mpn_addmul_4 in the basecase REDC [for machines
