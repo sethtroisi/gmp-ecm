@@ -36,7 +36,7 @@ void dickson_ui        (mpz_t r, unsigned int x, unsigned int n, int a);
 #define INVF /* precompute 1/F for divisions by F */
 
 void 
-dickson_ui(mpz_t r, unsigned int x, unsigned int n, int a)
+dickson_ui (mpz_t r, unsigned int x, unsigned int n, int a)
 {
   unsigned int i, b = 0;
   mpz_t t, u;
@@ -139,17 +139,22 @@ fin_diff_coeff (listz_t coeffs, unsigned int s, unsigned int D,
    Return value: non-zero iff a factor was found.
 */
 int
-stage2 (mpz_t f, void *X, mpmod_t modulus, double B2, unsigned int k, unsigned int S, 
-        int verbose, int method, double B1)
+stage2 (mpz_t f, void *X, mpmod_t modulus, double B2, unsigned int k,
+        unsigned int S, int verbose, int method, double B1)
 {
   double b2;
   unsigned int i, d, dF, sizeT;
   unsigned long muls;
   mpz_t n;
   listz_t F, G, H, T;
-  polyz_t polyF, polyT;
   int youpi = 0, st, st0;
   void *rootsG_state = NULL;
+  listz_t *Tree = NULL; /* stores the product tree for F */
+#ifdef POLYEVAL
+  unsigned int lgk; /* ceil(log(k)/log(2)) */
+#else
+  polyz_t polyF, polyT;
+#endif
 #ifdef INVF
   listz_t invF = NULL;
 #endif
@@ -221,7 +226,18 @@ stage2 (mpz_t f, void *X, mpmod_t modulus, double B2, unsigned int k, unsigned i
      | rootsF |  ???   |  ???  |      ???         |
      ---------------------------------------------- */
 
-  PolyFromRoots (F, dF, T, verbose, n, 'F'); /* needs dF+list_mul_mem(dF/2) cells in T */
+#ifdef POLYEVAL
+  lgk = ceil_log2 (dF);
+  Tree = (listz_t*) malloc (lgk * sizeof(listz_t));
+  for (i = 0; i < lgk; i++)
+    Tree[i] = init_list (dF);
+  list_set (Tree[lgk - 1], F, dF);
+#endif
+
+  PolyFromRoots (F, F, dF, T, verbose | 1, n, 'F', Tree, 0);
+
+  /* needs dF+list_mul_mem(dF/2) cells in T */
+
   mpz_set_ui (F[dF], 1); /* the leading monic coefficient needs to be stored
                              explicitely for PrerevertDivision and polygcd */
 
@@ -241,7 +257,7 @@ stage2 (mpz_t f, void *X, mpmod_t modulus, double B2, unsigned int k, unsigned i
 #if 0
       list_zero (T, 2 * dF - 3);
       mpz_set_ui (T[2 * dF - 3], 1); /* T[0..2dF-3] = x^(2dF-3) */
-      muls = RecursiveDivision (invF, T, F + 1, dF - 1, T + 2 * dF - 2, n);
+      muls = RecursiveDivision (invF, T, T, F + 1, dF - 1, T + 2 * dF - 2, n);
 #else
       muls = PolyInvert (invF, F + 2, dF - 1, T, n);
 #endif
@@ -300,7 +316,8 @@ stage2 (mpz_t f, void *X, mpmod_t modulus, double B2, unsigned int k, unsigned i
      |  F(x)  | 1/F(x) | rootsG |      ???         |
      ----------------------------------------------- */
 
-      PolyFromRoots (G, dF, T + dF, verbose, n, 'G'); /* needs 2*dF+list_mul_mem(dF/2) cells in T */
+      PolyFromRoots (G, G, dF, T + dF, verbose, n, 'G', NULL, 0);
+      /* needs 2*dF+list_mul_mem(dF/2) cells in T */
 
   /* -----------------------------------------------
      |   F    |  invF  |   G    |         T        |
@@ -349,7 +366,7 @@ stage2 (mpz_t f, void *X, mpmod_t modulus, double B2, unsigned int k, unsigned i
 #else
           mpz_set_ui (T[2*dF-1], 0); /* since RecursiveDivision expects a
                                         dividend of 2*dF coefficients */
-	  muls = RecursiveDivision (G, H, F, dF, T + 2 * dF, n);
+	  muls = RecursiveDivision (G, H, H, F, dF, T + 2 * dF, n);
 #endif
           if (verbose >= 2)
             printf ("Reducing G * H mod F took %ums and %lumuls\n",
@@ -357,6 +374,16 @@ stage2 (mpz_t f, void *X, mpmod_t modulus, double B2, unsigned int k, unsigned i
 	}
     }
 
+#ifdef POLYEVAL
+  st = cputime ();
+  polyeval (T, dF, Tree, T + dF + 1, n, verbose, 0);
+  if (verbose >= 2)
+    printf ("Computing polyeval(F,G) took %dms\n", cputime() - st);
+  youpi = list_gcd (f, T, dF, n) ? 2 : 0;
+  for (i = 0; i < lgk; i++)
+    clear_list (Tree[i], dF);
+  free (Tree);
+#else
   st = cputime ();
   init_poly_list (polyF, dF, F);
   init_poly_list (polyT, dF - 1, T);
@@ -364,6 +391,7 @@ stage2 (mpz_t f, void *X, mpmod_t modulus, double B2, unsigned int k, unsigned i
     NTL_get_factor (f);
   if (verbose >= 2)
     printf ("Computing gcd of F and G took %dms\n", cputime() - st);
+#endif
 
  clear_fd:
   if (method == PM1_METHOD)
