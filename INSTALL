@@ -42,38 +42,17 @@ Instructions to install gmp-ecm:
       $ ./test.pp1 ./ecm # this checks P+1
       $ ./test.ecm ./ecm # this checks ECM
 
-   On an Athlon 2000+ with GMP 4.1.2, the P+1 test takes about 5 seconds,
-   the P-1 test about 37 seconds, and the ECM test about 2 minutes.
-
    We have succesfully tested this version on the following configurations.
    Here are some timings obtained with ECM (B1=3e6) on the c155 file, with
    the command "./ecm -power 1 3e6 < c155":
 
 configuration          version   compiler       step 1      step 2
                        of gmp                  (seconds)   (seconds)
-athlon-pc-linux-gnu   gmp-4.1.2 gcc-3.2.1        77.5       43.9 MP 2000+
-pentium4-pc-mingw32   gmp-4.1.2 gcc-3.2 (mingw) 103.2       67.8 P4 2000
-alphaev6-dec-osf4.0f  gmp-4.1.2 gcc-2.95.3      107.6       83.7 EV6-500
-athlon-pc-mingw32     gmp-4.1.2 gcc-3.2 (mingw) 195.2      112.9 Athlon 750
-powerpc630-ibm-aix5.1.0.0 4.1.2 xlc             337.5      155.0 Power3+ 375
-pentium3-pc-linux-gnu gmp-4.1.2 gcc-2.95.3      411.2      214.4 PIII-500
-mips64-sgi-irix6.5    gmp-4.1.2 gcc-3.0.1       401.3      251.0 R10K-250
-powerpc7400-apple-darwin6.8 4.1.2 gcc-3.3       630.9      242.6 G4-500
+pentium4-pc-linux-gnu gmp-4.1.4 gcc-3.3.3        62.2       24.3 P4-3Ghz
 
 Options used:
-athlon-pc-linux-gnu:
-   -O3 -fomit-frame-pointer -mcpu=pentiumpro -march=pentiumpro -DWANT_GMP_IMPL
-alphaev6-dec-osf4.0f:
-   -O2 -mcpu=ev6 -Wa,-arch,ev6 -DWANT_GMP_IMPL
-athlon-pc-mingw32
-   -O2 -DANSIONLY -fomit-frame-pointer -mcpu=athlon -march=athlon
-pentium4-pc-mingw32
-   -O2 -DANSIONLY -fomit-frame-pointer -mcpu=pentium4 -march=pentium4
-powerpc7400-apple-darwin6.8
-   -O2 -mpowerpc -no-cpp-precomp -mcpu=7400 -fno-common -DPIC
-
-Warning: we experienced a problem with gcc 2.95.4 and optimization -O2;
-we recommend using -O1 with this version of gcc.
+pentium4-pc-linux-gnu:
+-O2 -fomit-frame-pointer -mcpu=pentium4 -march=pentium4 -mno-sse2 -DWANT_GMP_IMPL
 
 3) If you like gmp-ecm, please help us factoring Cunningham numbers. First
    download "cunningham.in" on <http://www.loria.fr/~zimmerma/ecmnet/>, then
