@@ -7,26 +7,28 @@ Makefile - to build the binary file 'ecm5'
 README - this file
 auxi.c - auxiliary functions
 bestd.c - routines to determine the best stage 2 parameters
-cputime.h - auxiliary function to measure cpu time
 ecm.c - factorization routine using the Elliptic Curve Method
-ecm2.c - ECM stage 2 routines
 ecm.h - header file for gmp-ecm
+ecm2.c - ECM stage 2 routines
 getprime.c - dynamic Eratosthenes sieve
 listz.c - arithmetic on lists of integers mod n
 lucas.c - functions to evaluate Lucas sequences
 main.c - main file for gmp-ecm, P-1 and P+1
 memory.c - auxiliary routines to check memory allocation
 mpmod.c - modular arithmetic
+mul_lo.c - low-half short product
 ntl.c - interface with NTL
 pm1.c - Pollard P-1 factorization routine
 polyeval.c - algorithm POLYEVAL
-pp1.c - Williams P+1 factorization routines
 polyz.c - routines for polynomial arithmetic
+pp1.c - P+1 factorization routines
+resume.c - routines to resume a computation
 stage2.c - common stage 2 implementation for ecm, P-1 and P+1
 test.ecm - test file for ECM
 test.pm1 - test file for P-1
 test.pp1 - test file for P+1
 toomcook.c - Toom-Cook 3 and Toom-Cook 4 multiplication
+tune.c - auxiliary routines to compute optimal thresholds
 
 The main changes wrt gmp-ecm 4c are the following:
 
@@ -34,12 +36,12 @@ The main changes wrt gmp-ecm 4c are the following:
 	and compile.
 - the program now implements also P-1 and P+1, with a common stage 2
 	(use option -pm1 to call P-1, -pp1 for P+1).
-- stage 1 is much more efficient, thanks to a dynamic implementation of
-	 Eratosthenes sieve (see file getprime.c).
+- stage 1 is about 10% faster, thanks to a new modular multiplication
+  layer, and to a dynamic implementation of Eratosthenes sieve (getprime.c).
 - stage 2 uses Toom-Cook 3 and Toom-Cook 4, instead of only Karatsuba
 	in gmp-ecm 4c.
 - an option -save enables one to save the state at the end of stage 1,
-  to continue it afterwards, or on a different computer
+  to continue it afterwards, or on a different computer (with -resume).
 - it is now possible to specify a range B2min-B2max for stage 2. This
   enables one to perform a huge stage 2 (for a given stage 1) using several 
   computers: the first one checks B1-B2, the second one B2-B3, ...
@@ -55,13 +57,14 @@ bound B2. For P=67872792749091946529, we have P-1 = 2^5 * 11 * 17 * 19 *
 43 * 149 * 8467 * 11004397, so this factor will be found as long as B1 >= 8467
 and B2 >= 11004397:
 
-GMP-ECM 5.0 [powered by GMP 4.1]
-Pollard P-1 Method with B1=8467, B2=11004397, x^1
+$ echo 67872792749091946529 | ./ecm -pm1 -x0 2809890345 8467 11004397
+GMP-ECM 5.0-beta [powered by GMP 4.1.2]
 Input number is 67872792749091946529 (20 digits)
+Pollard P-1 Method with B1=8467, B2=11004397, x^2
 Using seed=2809890345
 Using MODMULN
-Stage 1 took 30ms
-Stage 2 took 1780ms
+Stage 1 took 10ms
+Stage 2 took 330ms
 ********** Factor found in step 2: 67872792749091946529
 Found input number N
 
@@ -73,14 +76,16 @@ that P+1 is "smooth". For P=4190453151940208656715582382315221647, we have
 P+1 = 2^4 * 283 * 2423 * 21881 * 39839 * 1414261 * 2337233 * 132554351, so
 this factor will be found as long as B1 >= 2337233 and B2 >= 132554351:
 
-GMP-ECM 5.0 [powered by GMP 4.1]
-Williams P+1 Method with B1=2337233, B2=132554351, x^1
+$ echo 4190453151940208656715582382315221647 | ./ecm -pp1 -x0 2284918860 2337233 132554351
+GMP-ECM 5.0-beta [powered by GMP 4.1.2]
 Input number is 4190453151940208656715582382315221647 (37 digits)
+Williams P+1 Method with B1=2337233, B2=132554351
 Using seed=2284918860
 Using MODMULN
-Stage 1 took 18140ms for 5223455 muls
-Stage 2 took 10370ms
-********** Factor found in step 2: 4190453151940208656715582382315221647
+Stage 1 took 3400ms
+Stage 2 took 2470ms
+********** Factor found in step 2:
+4190453151940208656715582382315221647
 Found input number N
 
 However not all seeds will succeed: a given seed 's' works iff the Jacobi
@@ -142,13 +147,14 @@ classical stage 2 corresponds to f(x)=x^1]. Then P will be found whenever
 all but one of the factors of P-1 are <= B1, and one factor divides one
 f(j*d) +/- f(i):
 
-GMP-ECM 5.0 [powered by GMP 4.1]
-Pollard P-1 Method with B1=286493, B2=25000000, x^12
+$ echo 1207946164033269799036708918081 | ./ecm -pm1 -k 4 -power 12 286493 25000000
+GMP-ECM 5.0-beta [powered by GMP 4.1.2]
 Input number is 1207946164033269799036708918081 (31 digits)
-Using seed=1925856808
+Pollard P-1 Method with B1=286493, B2=25000000, x^12
+Using seed=2760000764
 Using MODMULN
-Stage 1 took 1550ms
-Stage 2 took 3320ms
+Stage 1 took 290ms
+Stage 2 took 760ms
 ********** Factor found in step 2: 1207946164033269799036708918081
 Found input number N
 
@@ -177,23 +183,39 @@ stage 1 with gmp-ecm, and stage 2 with another software (or vice-versa).
 Here is an example how to reuse some P-1 computation:
 
 $ cat c71
-lepuid% cat c71
 13155161912808540373988986448257115022677318870175067553764004308210487
-$ ./ecm5 -save toto -pm1 5000000 < c71
-GMP-ECM 5.0 [powered by GMP 4.1]
-Pollard P-1 Method with B1=5000000, B2=272993793, x^1
+$ ./ecm -save toto -pm1 -mpzmod 5000000 < c71
+GMP-ECM 5.0-beta [powered by GMP 4.1.2]
 Input number is 13155161912808540373988986448257115022677318870175067553764004308210487 (71 digits)
-Using seed=843178705
-Using MODMULN
-Stage 1 took 51440ms
-Stage 2 took 22900ms and 2081753muls
+Pollard P-1 Method with B1=5000000, B2=272993793, x^2
+Using seed=3786455126
+Stage 1 took 5590ms
+Stage 2 took 5300ms
 
 The file "toto" now contains some information about the method use, the stage
 1 bound, the number to factor, the value X at the end of stage 1 (in hexa-
 decimal), and a checksum to verify that no data was corrupted:
 
 $ cat toto
-METHOD=PM1; B1=5000000; N=13155161912808540373988986448257115022677318870175067553764004308210487; X=0x11d1b4ca92a38f1eccdfe9b759b090a2aae79cf54f58661ac23704cd694; CHECKSUM=2552882662; PROGRAM=GMP-ECM 5.0-beta;
+METHOD=P-1; B1=5000000; N=13155161912808540373988986448257115022677318870175067553764004308210487; X=0x10758be718f6f2b073560c3b25719a1cc070541ea77c33a9e5639f987de; CHECKSUM=2852819094; PROGRAM=GMP-ECM 5.0-beta; X0=0xe1b0b856; TIME=Thu Feb 13 19:00:40 2003;
+
+Then one can resume the computation with larger B1 and/or B2 as follows:
+
+$ ./ecm -resume toto 1e7
+GMP-ECM 5.0-beta [powered by GMP 4.1.2]
+Resuming P-1 residue saved with GMP-ECM 5.0-beta on Thu Feb 13 19:00:40 2003 
+Input number is 13155161912808540373988986448257115022677318870175067553764004308210487 (71 digits)
+Pollard P-1 Method with B1=5000000-10000000, B2=732940912, x^2
+Using seed=7099811799078274438499407444687937142532482907012972881923709769189342
+Using mpz_powm
+Stage 1 took 5510ms
+Stage 2 took 10150ms
+********** Factor found in step 2: 1448595612076564044790098185437
+Found probable prime factor of 31 digits: 1448595612076564044790098185437
+Probable prime cofactor 9081321110693270343633073697474256143651 has 40 digits
+
+The second run only considered the primes in [5000000-10000000] in stage 1,
+which saved half the time of stage 1.
 
 The format used is the following:
   - each line corresponds to a composite
@@ -237,7 +259,6 @@ arithmetic for the given input number. You may choose the best
 arithmetic for a given number by trying options -modmulm, -mpzmod, -redc.
 (The best choice should not depend on B1 and B2.)
 
-
 Number of stage 2 blocks. The stage 2 range [B1,B2] is divided into k 
 "big blocks". The default value of k is chosen to be near to optimal.
 However, it may be that for a given (B1,B2) pair, another value of k
@@ -250,5 +271,15 @@ corresponding default value of B2.
      1e6         4
      3e6         5
     11e6         5
+
+Optimal gmp thresholds. The default configuration of gmp-ecm requires
+only the default gmp installation, in particular it only needs the
+gmp.h header file from GMP. This default configuration uses some
+default thresholds (in particular for subquadratic multiplication 
+and division) that may not be optimal on a given machine. To get
+the optimal thresholds on your machine, you need the headers
+files from the GMP build directory, and to add -DWANT_GMP_IMPL to
+the C flags in Makefile.
+
 
 
