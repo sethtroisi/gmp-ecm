@@ -20,6 +20,7 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <math.h>
 #include "gmp.h"
 #include "ecm.h"
 #include "ecm-ecm.h"
@@ -93,7 +94,7 @@ calc_B1_AutoIncrement_v1 (double cur_B1, double incB1val, int calcInc)
   else
     B1Mod = 35000.;
 
-  return cur_B1 + (B1Mod*incB1val);
+  return floor (cur_B1 + (B1Mod*incB1val) + 0.5);
 }
 
 /* Here is my "second" attempt at a B1 adjustment function.
@@ -171,7 +172,7 @@ calc_B1_AutoIncrement (double cur_B1, double incB1val, int calcInc)
   else
     B1Mod = 50000.;
 
-  return cur_B1 + const_adj*(B1Mod*incB1val);
+  return floor (cur_B1 + const_adj*(B1Mod*incB1val) + 0.5);
 }
 
 
@@ -225,5 +226,5 @@ calc_B1_AutoIncrement_v3 (double cur_B1, double incB1val, int calcInc)
 	  B1Mod +=  B1Inc[i] * (1. - ((B1Min[i] - cur_B1) / (B1Min[i] - OrigMin)));
 	}
     }
-  return cur_B1 + (B1Mod*incB1val);
+  return floor (cur_B1 + (B1Mod*incB1val) + 0.5);
 }
