@@ -189,7 +189,7 @@ k, but only 14MB with k=32.
 
 ##############################################################################
 
-Option -save. This option is useful to save the current stage in the P-1
+Option -save. This option is useful to save the current stage in the current
 method, or to exchange data with other software. It should allow to perform
 stage 1 with gmp-ecm, and stage 2 with another software (or vice-versa).
 
@@ -243,7 +243,25 @@ The format used is the following:
     - X0 (initial point for ECM, or initial residue for P-1/P+1) [optional]
     - PROGRAM (program used to perform stage 1, useful for factor credits)
   SIGMA and X0 would be optional, and would be mainly be used in case of a
-  factor is found, to be able to reproduce the factorization. 
+  factor is found, to be able to reproduce the factorization.
+
+Remark: you should not perform in parallel several -resume runs on the same
+input with the same B1/B2 values, since those runs will do the same 
+computations. Options -save/-resume is useful in the following cases:
+
+(a) somebody did a previous stage 1 computation with another software
+    which is faster than gmp-ecm, and wants to perform Stage 2 with
+    gmp-ecm which is faster for that task.
+(b) somebody did a previous stage 1 for P-1 or P+1 up to a given bound
+    B1, and you want to extend that computation with B1' > B1, without
+    restarting from scratch. Note: this does not apply to ECM, where 
+    the smoothness property depends on the (random) curve chosen, not
+    on the input number.
+(c) you did a huge stage 1 P-1 or P+1 computation on a given machine, and you
+    want to perform a huge stage 2 in parallel on several
+    machines. For example machine 1 tests the range B2_1-B2_2, machine
+    2 tests B2_2-B2_3, ... For the same reason as (b), this does not
+    apply to ECM.
 
 ##############################################################################
 
@@ -267,6 +285,10 @@ of modular arithmetic:
     Each division has only linear time, but the multiplication are
     most expensive since they are done on larger numbers.
 
+What a "small" or "large" number means depend on the configuration.
+The "tune" program helps to determine the thresholds between different
+methods. Simply type "make tune", then "./tune".
+
 The ecm program automatically selects what he thinks is the best
 arithmetic for the given input number. You may choose the best
 arithmetic for a given number by trying options -modmulm, -mpzmod, -redc.
@@ -284,6 +306,11 @@ corresponding default value of B2.
      1e6         4
      3e6         5
     11e6         5
+
+Changing the value of the number of blocks will not modify the chance
+of finding a factor (except for extra factors, but some will be lost,
+and some will be won, so the balance should be even). However it will
+change the time spent in Stage 2, and the memory used by Stage 2.
 
 Optimal gmp thresholds. The default configuration of gmp-ecm requires
 only the default gmp installation, in particular it only needs the
