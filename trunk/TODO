@@ -1,10 +1,8 @@
 What remains to do:
 
-- implement ECM stage 1 in ecm.c, and call stage2 from stage2.c.
 - print messages for record factors
 - implement Brent-Suyama's extension for p+1
 - tune stage 2 values of 'd' to optimize toomcook4(d)/(d*phi(d/2))
-- take into account the relative cost of multiplication vs square in lucas_cost
 - get rid of NTL
 - implement polyeval (possibly by recomputing F from its roots level by
 	level, reusing the already allocated temporary space)
