@@ -18,7 +18,7 @@
   02111-1307, USA.
 */
 
-#define ECM_VERSION "5.0"
+#define ECM_VERSION "5.0c"
 
 #ifndef POLYGCD
 #define POLYEVAL
@@ -109,6 +109,28 @@ typedef struct
 } __mpmod_struct;
 typedef __mpmod_struct mpmod_t[1];
 
+/* Structure for candidate usage.  This is much more powerful than using a
+   simple mpz_t to hold the candidate.  This structure also houses the 
+   expression (in raw form), and will modify the expression as factors 
+   are found (if in looping modes).  Also, since we are warehousing all
+   of the data associated with the candidate, we also store whether the
+   candidate is PRP here (so testing will cease), along with the length
+   of the candidate.  As each factor is found, the candidate will also
+   have the factor removed from it */
+typedef struct
+{
+#if defined (CANDI_DEBUG)
+  unsigned long magic;	/* used for debugging purposes while writing this code */
+#endif
+  char *cpExpr;		/* if non-NULL, then this is a "simpler" expression than the 
+			   decimal output of n */
+  mpz_t n;		/* the cofactor canidate currently being used to find factors from */
+  unsigned ndigits;	/* the number of digits (decimal) in n */
+  unsigned nexprlen;	/* strlen of expression, 0 if there is NO expression */
+  int isPrp;		/* usually 0, but turns 1 if factor found, and the cofactor is PRP, 
+			   OR if the original candidate was PRP and the user asked to prp check */
+} mpcandi_t;
+
 #if defined (__cplusplus)
 extern "C" {
 #endif  
@@ -116,7 +138,7 @@ extern "C" {
 double   getprime       (double);
 
 /* auxi.c */
-unsigned int nb_digits  (mpz_t);
+unsigned int nb_digits  (const mpz_t);
 unsigned int gcd        (unsigned int, unsigned int);
 void         mpz_sub_si (mpz_t, mpz_t, int);
 unsigned int ceil_log2  (unsigned int);
@@ -141,9 +163,12 @@ int     pm1_rootsG       (mpz_t, listz_t, unsigned int, mpres_t *, listz_t,
 int          ecm        (mpz_t, mpz_t, mpz_t, mpz_t, double, double, double,
                          double, unsigned int, int, int, int, int);
 unsigned long phi        (unsigned long);
-  unsigned long bestD      (double, unsigned int, unsigned int *, double, int);
+unsigned long bestD      (double, unsigned int, unsigned int *, double, int);
 double       block_size (unsigned long);
 int          cputime    (void);
+
+/* trial.c */
+int trial_factor(mpcandi_t *n, double maxfact);
 
 /* ecm2.c */
 int     ecm_rootsF       (mpz_t, listz_t, unsigned int, curve *,
@@ -269,10 +294,27 @@ void mpn_mul_lo_n (mp_ptr, mp_srcptr, mp_srcptr, mp_size_t);
 /* resume.c */
 int  facceptstr (FILE *, char *);
 int  freadstrn (FILE *, char *, char, unsigned int);
-int  read_resumefile_line (int *, mpz_t, mpz_t, mpz_t, mpz_t, mpz_t, double *,
+int  read_resumefile_line (int *, mpz_t, mpcandi_t *, mpz_t, mpz_t, mpz_t, double *,
                            char *, char *, char *, char *, FILE *);
-void write_resumefile_line (FILE *, int, double, mpz_t, mpz_t, mpz_t, mpz_t, 
+void write_resumefile_line (FILE *, int, double, mpz_t, mpz_t, mpz_t, mpcandi_t *, 
                             mpz_t, char *);
+
+/* main.c */
+int read_number (mpcandi_t *n, FILE *, int primetest);
+
+/* eval.c */
+int eval (mpcandi_t *n, FILE *fd, int bPrp);
+int eval_str (mpcandi_t *n, char *cp, int primetest, char **EndChar); /* EndChar can be NULL */
+void init_expr(void);
+void free_expr(void);
+
+/* candi.c */
+void mpcandi_t_init(mpcandi_t *n);  /* damn, a C++ class sure would have been nice :(  */
+void mpcandi_t_free(mpcandi_t *n);
+int  mpcandi_t_copy(mpcandi_t *to, mpcandi_t *from);
+int  mpcandi_t_add_candidate(mpcandi_t *n, mpz_t c, const char *cpExpr, int bPrp);
+int  mpcandi_t_addfoundfactor(mpcandi_t *n, mpz_t f, int displaywarning);
+int  mpcandi_t_addfoundfactor_d(mpcandi_t *n, double f);
 
 /* memory.c */
 #ifdef MEMORY_DEBUG
