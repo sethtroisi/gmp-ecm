@@ -112,7 +112,7 @@ main (int argc, char *argv[])
         /* prime. If no factor was found, both are zero. */
   int repr = 0;
 #ifdef POLYEVAL
-  int k = 5;
+  int k = 0;
 #else /* POLYGCD is more expensive -> perform more blocks */
   int k = 8; /* default number of blocks in stage 2 */
 #endif
