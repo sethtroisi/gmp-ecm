@@ -409,7 +409,7 @@ write_resumefile_line (FILE *fd, int method, double B1, mpz_t sigma, mpz_t A,
   mpz_mul_ui (checksum, checksum, mpz_fdiv_ui (n->n, CHKSUMMOD));
   mpz_mul_ui (checksum, checksum, mpz_fdiv_ui (x, CHKSUMMOD));
   fprintf (fd, "; CHECKSUM=%lu; PROGRAM=GMP-ECM %s;",
-           mpz_fdiv_ui (checksum, CHKSUMMOD), ECM_VERSION);
+           mpz_fdiv_ui (checksum, CHKSUMMOD), VERSION);
   mpz_clear (checksum);
   
   if (mpz_sgn (x0) != 0)
