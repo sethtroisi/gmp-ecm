@@ -45,9 +45,11 @@ main (int argc, char *argv[])
   double B1, B2;
   int result = 1;
   int verbose = 1; /* verbose level */
-  int (*factor) _PROTO((mpz_t, mpz_t, double, double, unsigned int, int)) 
+  int (*factor) _PROTO((mpz_t, mpz_t, double, double, unsigned int, 
+                        unsigned int, int)) 
     = ecm;
   int k = 3;
+  unsigned int S = 0;
 
   /* first look for options */
   while ((argc > 1) && (argv[1][0] == '-'))
@@ -76,6 +78,12 @@ main (int argc, char *argv[])
 	  argv += 2;
 	  argc -= 2;
 	}
+      else if ((argc > 2) && (strcmp (argv[1], "-e") == 0))
+	{
+	  S = atoi(argv[2]);
+	  argv += 2;
+	  argc -= 2;
+	}
       else
 	{
 	  fprintf (stderr, "Unknown option: %s\n", argv[1]);
@@ -92,6 +100,7 @@ main (int argc, char *argv[])
       fprintf (stderr, "  B2         stage 2 bound\n");
       fprintf (stderr, "\nOptions:\n");
       fprintf (stderr, "  -k n       perform n steps in stage 2\n");
+      fprintf (stderr, "  -e n       impose polynomial x^n for Brent-Suyama's extension\n");
       fprintf (stderr, "  -pm1       runs Pollard P-1 instead of ECM\n");
       fprintf (stderr, "  -q         quiet mode\n");
       fprintf (stderr, "  -v         verbose mode\n");
@@ -185,7 +194,7 @@ main (int argc, char *argv[])
         }
 
       mpz_set (p, sigma);
-      if ((result = factor (p, n, B1, B2, k, verbose)))
+      if ((result = factor (p, n, B1, B2, k, S, verbose)))
 	{
           printf ("********** Factor found in step %u: ", result);
           mpz_out_str (stdout, 10, p);

@@ -450,3 +450,37 @@ poly_submul2 (listz_t a, listz_t q, listz_t b, unsigned int d, mpz_t n, mpz_t t)
     }
 }
 
+/* Puts in inv[0..l-1] the inverses of a[0..l-1] (mod n), using 3*(l-1) 
+   multiplies and one gcdext.
+   Returns 1 if a factor was found (stored in t), 0 otherwise.
+*/
+int
+list_invert(listz_t inv, listz_t a, unsigned int l, mpz_t t, mpz_t n)
+{
+  unsigned int i;
+  
+  if (l == 0) return 0;
+  
+  mpz_set(inv[0], a[0]);
+  
+  for (i = 1; i < l; i++)
+    {
+      mpz_mul(t, inv[i-1], a[i]);
+      mpz_mod(inv[i], t, n); /* inv[i] = a[0]*...*a[i] */
+    }
+  
+  mpz_gcdext (t, inv[l-1], NULL, inv[l-1], n);
+  
+  if (mpz_cmp_ui(t, 1) != 0)
+    return 1;
+  
+  for (i = l-1; i > 0; i--)
+    {
+      mpz_mul(t, inv[i], inv[i-1]); /* t = (a[0]*...*a[i])^(-1) * (a[0]*...*a[i-1]) = a[i]^(-1) */
+      mpz_mul(inv[i-1], inv[i], a[i]); /* inv[i-1] = (a[0]*...*a[i])^(-1) * a[i] = (a[0]*...*a[i-1])^(-1) */
+      mpz_mod(inv[i-1], inv[i-1], n);
+      mpz_mod(inv[i], t, n);
+    }
+  
+  return 0;
+}
