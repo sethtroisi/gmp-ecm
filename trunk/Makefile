@@ -53,12 +53,12 @@ all:
            CXX=g++;                    \
            EXTRAFILES=ntl.o;           \
            LDFLAGS="-lntl $(LDFLAG)";  \
-           make ecm5 GMP=$(GMP) NTL=$(NTL) CXX=g++ EXTRAFILES="ntl.o polyz.o" LDFLAGS="-lntl $(LDFLAG)"; \
+           make ecm GMP=$(GMP) NTL=$(NTL) CXX=g++ EXTRAFILES="ntl.o polyz.o" LDFLAGS="-lntl $(LDFLAG)"; \
         else \
-           make ecm5 GMP=$(GMP) CFLAGS="$(CFLAG) -DPOLYEVAL"; \
+           make ecm GMP=$(GMP) CFLAGS="$(CFLAG) -DPOLYEVAL"; \
         fi
 
-ecm5: $(ALLFILES) ecm.h
+ecm: $(ALLFILES) ecm.h
 	$(CXX) $(CFLAGS) -L$(GMP)/lib -L$(NTL)/lib $(ALLFILES) -o $@ $(LDFLAGS)
 
 ntl.o: ntl.c
@@ -68,7 +68,7 @@ ntl.o: ntl.c
 	$(CC) $(CFLAGS) -I$(GMP)/include -c $<
 
 clean:
-	rm ecm5 *.o *~
+	rm ecm *.o *~
 
 dist: $(DIST)
 	mkdir ecm-$(VERSION)
