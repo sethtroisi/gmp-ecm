@@ -84,6 +84,7 @@ int main()
 
 dnl Check if gmp has mpn_mul_fft
 AC_CHECK_FUNC(__gmpn_mul_fft, AC_DEFINE(HAVE_FFT))
+AC_CHECK_FUNC(__gmpn_add_nc, AC_DEFINE(HAVE_NATIVE_mpn_add_nc))
 
 AC_CONFIG_FILES(Makefile)
 
