@@ -311,8 +311,9 @@ ks_wrapmul (listz_t R, unsigned int m0,
     {
       size_tmp = s;
       if (negative) /* previous was negative, add 1 */
-	if (mpn_add_1 (tp, tp, s, (mp_limb_t) 1))
-	  abort ();
+	mpn_add_1 (tp, tp, s, (mp_limb_t) 1);
+      /* no need to check return value of mpn_add_1: if 1, then {tp, s}
+         is now identically 0, and should remain so */
       MPN_NORMALIZE(tp, size_tmp);
       if ((size_tmp == s) && (tp[s - 1] >> (mp_bits_per_limb - 1)))
 	{

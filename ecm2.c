@@ -730,10 +730,7 @@ ecm_rootsG_init (mpz_t f, curve *X, double s, unsigned int d1, unsigned int d2,
   lenT = state->size_fd + 4;
   state->T = (mpres_t *) xmalloc (lenT * sizeof (mpres_t));
   for (k = 0; k < lenT; k++)
-    {
-      mpres_init (state->T[k], modulus);
-      mpres_init (state->T[k], modulus);
-    }  
+    mpres_init (state->T[k], modulus);
 
   for (k = S + 1; k < state->size_fd; k += S + 1)
      mpz_set_ui (coeffs[k + S], 1);
@@ -779,7 +776,7 @@ void
 ecm_rootsG_clear (ecm_roots_state *state, UNUSED int S, UNUSED mpmod_t modulus)
 {
   unsigned int k;
-  
+
   for (k = 0; k < state->size_fd; k++)
     {
       mpres_clear (state->fd[k].x, modulus);

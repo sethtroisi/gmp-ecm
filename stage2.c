@@ -547,7 +547,7 @@ stage2 (mpz_t f, void *X, mpmod_t modulus, double B2min, double B2,
 #endif
 
 #ifdef POLYEVAL
-  clear_list (F, dF);
+  clear_list (F, dF + 1);
   F = NULL;
   clear_list (G, dF);
   G = NULL;
@@ -556,11 +556,8 @@ stage2 (mpz_t f, void *X, mpmod_t modulus, double B2min, double B2,
   muls = polyeval_tellegen (T, dF, Tree, T + dF + 1, 
                             sizeT - dF - 1, invF, n, 0);
 #else
-  if (dF > 0)
-    {
-      clear_list (invF, dF);
-      invF = NULL;
-    }
+  clear_list (invF, dF + 1);
+  invF = NULL;
   muls = polyeval (T, dF, Tree, T + dF + 1, n, verbose, 0);
 #endif
   tot_muls += muls;
@@ -576,11 +573,8 @@ stage2 (mpz_t f, void *X, mpmod_t modulus, double B2min, double B2,
     gmp_printf ("Product of G(f_i) = %Zd\n", T[0]);
     /* list_gcd() puts product in T[0] */
 #else
-  if (dF > 0)
-    {
-      clear_list (invF, dF);
-      invF = NULL;
-    }
+  clear_list (invF, dF + 1);
+  invF = NULL;
   clear_list (G, dF);
   G = NULL;
   st = cputime ();
@@ -603,8 +597,7 @@ stage2 (mpz_t f, void *X, mpmod_t modulus, double B2min, double B2,
 clear_G:
   clear_list (G, dF);
 
-  if (dF > 0)
-    clear_list (invF, dF);
+  clear_list (invF, dF + 1);
 
 #ifdef POLYEVAL
   for (i = 0; i < lgk; i++)
