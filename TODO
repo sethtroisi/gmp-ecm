@@ -4,6 +4,29 @@
 - print progress (80 dots in step 1/2) [Jay Berg]  (NOTE this may be
   difficult to do with the new 1 line output mode already using stderr,
   however I do have some ideas on how to do this, JimF).
+  Here are my "ideas" on this:
+    1.  This should not be done for "smaller" numbers, and/or where B1/B2
+        is "small".  It should only be done based upon B1 stage and or B2
+        stage taking more than some amount of time (30 seconds??)
+    2.  There can be a "small" addition before the current stderr line.
+        This would allow for T:000 to T:100, 1:000 to 1:100 and 2:000
+        to 2:100.  The 000 to 100 being "percentage of done".  There
+        would also be a space between the 000 to 100 and the Line=%d ...
+        of the existing stderr printout.  The T:### would be trial factoring
+        (if there was any trial factoring, and if it takes too long), the
+        1:### is stage 1, and the 2:### is stage 2.
+    3.  Now, within "trial", Phase 1, and Phase 2, at certain "key" times,
+        the percentage would update.  I would suggest that we do up update
+        the screen any more frequently than 30 seconds.  With Trial div, and
+        stage 1, we should probably only check time every couple of thousand
+        loops.  Stage 2 has some good "looping" checks in it already, and
+        I think timing checks should be done there, and the percentages
+        only updated at those times.
+    4.  Currently, some code in main.c is done (adjusting of the current
+        stderr Line=%d ... code (shoved it over right 6 spaces), and some
+        "prelim" setting to T:000 and 1:000 and 2:100 are done to stderr.
+        Also, Trial division is done, and can be seen as a "model" of what
+        we can do with the other (stage 1 and stage 2) blocks of run-time.
 - write a real documentation (which format? texi can generate dvi and
   html,	or LaTeX can also generate dvi, pdf and html)
 - document how to use the ecm(), pm1(), pp1() functions from a C program
