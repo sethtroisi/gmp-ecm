@@ -293,7 +293,9 @@ TKarMul_space (unsigned int n, unsigned int m, unsigned int l)
 unsigned int
 muls_tgen (unsigned int n)
 {
-  return muls_gen (n + 1); /* n is number of terms in muls_gen */
+  return muls_toom3 (n + 1); /* put muls_toom3 in hard here, since currently
+                                TMulGen directly calls TToomCookMul; put n+1
+                                since n is number of terms in muls_toom3 */
 }
 
 /* Returns the number of multiplication made in TKarMul
