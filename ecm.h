@@ -141,7 +141,7 @@ int          cputime    (void);
 int     ecm_rootsF       (mpz_t, listz_t, unsigned int, curve *, listz_t, 
                           int, mpmod_t, int);
 point * ecm_rootsG_init  (mpz_t, curve *, unsigned int, unsigned int, 
-                          int, mpmod_t);
+                          int, mpmod_t, int);
 void    ecm_rootsG_clear (point *, int, mpmod_t);
 int     ecm_rootsG       (mpz_t, listz_t, unsigned int, point *, listz_t, 
                           int, mpmod_t, int);

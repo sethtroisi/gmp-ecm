@@ -158,4 +158,14 @@ endif
 #    exit 1;
 # endif
 
+### Try saving and resuming
+echo 25591172394760497166702530699464321 | $ECM -pm1 -save test.pm1.save 100000
+$ECM -pm1 -resume test.pm1.save 120557 2007301
+if ($status != 0) then
+   echo "############### ERROR ###############";
+   rm test.pm1.save
+   exit 1;
+endif
+rm test.pm1.save
+
 echo "All tests are ok."
