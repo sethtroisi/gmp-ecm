@@ -1,8 +1,6 @@
 /* Modular multiplication.
 
-  Copyright (C) 2001 Paul Zimmermann,
-  LORIA/INRIA Lorraine, zimmerma@loria.fr
-  See http://www.loria.fr/~zimmerma/records/ecmnet.html
+  Copyright 2002, 2003 Alexander Kruppa and Paul Zimmermann.
 
   This program is free software; you can redistribute it and/or modify it
   under the terms of the GNU General Public License as published by the
@@ -25,9 +23,9 @@
 #include <gmp.h>
 #include "ecm.h"
 #include <gmp-impl.h>
-#include <longlong.h>
 
-#define DEBUG
+/* #define DEBUG */
+
 #ifndef MOD_PLAIN_TO_REDC_THRESHOLD
 #define MOD_PLAIN_TO_REDC_THRESHOLD 20000
 #endif
@@ -174,14 +172,20 @@ mpz_mod_n (mpz_t c, mpmod_t modulus)
       cp++;
     }
   cp -= nn;
-  if (cp[2*nn]) 
+  if (cp[2 * nn])
     {
 #ifdef DEBUG
-      if (cp[2*nn] > 1)
-        fprintf (stderr, "mpz_mod_n: cp[2*nn] = %lu\n", cp[2*nn]);
+      if (cp[2 * nn] > 1)
+        {
+          fprintf (stderr, "mpz_mod_n: cp[2*nn] = %lu\n", cp[2*nn]);
+          fprintf (stderr, "np[nn-1]=%lu\n", np[nn-1]);
+        }
 #endif
-      cy = cp[2*nn] - mpn_sub_n (cp, cp + nn, np, nn);
-      while (cy) cy -= mpn_sub_n (cp, cp, np, nn);
+      cy = cp[2 * nn] - mpn_sub_n (cp, cp + nn, np, nn);
+      while (cy > 1) /* subtract cy * n */
+        cy -= mpn_submul_1 (cp, np, nn, cy);
+      while (cy) /* subtract n */
+        cy -= mpn_sub_n (cp, cp, np, nn);
     }
   else 
     MPN_COPY (cp, cp + nn, nn);
@@ -639,7 +643,7 @@ mpres_sub_ui (mpres_t R, mpres_t S, unsigned int n, mpmod_t modulus)
     }
   else
     {
-      fprintf (stderr, "mpres_sub_ui: Unhandeled  representation %d\n", 
+      fprintf (stderr, "mpres_sub_ui: Unexpected  representation %d\n", 
                modulus->repr);
       exit (EXIT_FAILURE);
     }
@@ -675,7 +679,7 @@ mpres_set_z (mpres_t R, mpz_t S, mpmod_t modulus)
     }
   else
     {
-      fprintf (stderr, "mpres_set_z: Unhandeled  representation %d\n", 
+      fprintf (stderr, "mpres_set_z: Unexpected  representation %d\n", 
                modulus->repr);
       exit (EXIT_FAILURE);
     }
@@ -701,7 +705,7 @@ mpres_get_z (mpz_t R, mpres_t S, mpmod_t modulus)
     }
   else
     {
-      fprintf (stderr, "mpres_get_z: Unhandeled representation %d\n", 
+      fprintf (stderr, "mpres_get_z: Unexpected representation %d\n", 
                modulus->repr);
       exit (EXIT_FAILURE);
     }
@@ -723,7 +727,7 @@ mpres_set_ui (mpres_t R, unsigned int n, mpmod_t modulus)
     }
   else
     {
-      fprintf (stderr, "mpres_set_ui: Unhandeled representation %d\n", 
+      fprintf (stderr, "mpres_set_ui: Unexpected representation %d\n", 
                modulus->repr);
       exit (EXIT_FAILURE);
     }
@@ -767,7 +771,7 @@ mpres_invert (mpres_t R, mpres_t S, mpmod_t modulus)
     }
   else
     {
-      fprintf (stderr, "mpres_invert: Unhandeled representation %d\n", 
+      fprintf (stderr, "mpres_invert: Unexpected representation %d\n", 
                modulus->repr);
       exit (EXIT_FAILURE);
     }
