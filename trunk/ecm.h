@@ -44,8 +44,10 @@
 #define USE_SHORT_PRODUCT
 #endif
 
-#ifndef POLYGCD
-#define POLYEVAL
+/* If POLYGCD was set, override POLYEVAL */
+#ifdef POLYGCD
+#undef POLYEVAL
+#undef POLYEVALTELLEGEN
 #endif
 
 #include <stdio.h>
