@@ -45,25 +45,24 @@ kronecker_schonhage (listz_t R, listz_t A, listz_t B, unsigned int l,
                      listz_t T)
 {
   unsigned long i;
-  mp_size_t s = 0, size_t0, size_tmp;
+  mp_size_t s, t = 0, size_t0, size_tmp;
   mp_ptr t0_ptr, t1_ptr, t2_ptr, r_ptr;
-  size_t t;
 
-  /* very rough, we need to take s into account too */
-  if (l < 1000)
+  s = mpz_sizeinbase (A[0], 2);
+  if ((double) l * (double) s < 1e6)
     return toomcook4 (R, A, B, l, T);
 
   for (i = 0; i < l; i++)
     {
-      if ((t = mpz_sizeinbase (A[i], 2)) > (unsigned) s)
-        s = t;
-      if ((t = mpz_sizeinbase (B[i], 2)) > (unsigned) s)
-        s = t;
+      if ((s = mpz_sizeinbase (A[i], 2)) > t)
+        t = s;
+      if ((s = mpz_sizeinbase (B[i], 2)) > t)
+        t = s;
     }
   
   /* max number of bits in a coeff of T[0] * T[1] will be
-     2 * s + ceil(log_2(l)) */
-  s *= 2;
+     2 * t + ceil(log_2(l)) */
+  s = t * 2;
   for (i = l - 1; i; s++, i >>= 1); /* ceil(log_2(l)) = 1+floor(log_2(l-1)) */
   
   /* work out the corresponding number of limbs */
