@@ -1,3 +1,4 @@
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -86,6 +87,20 @@ int smart_probab_prime_p(mpz_t const n, int c)
               build+=sprintf(build, "%s", externalinputprpfile);
               doneT=1;
               ++read;
+            }
+          else if(read[1]=='x')
+            {
+              int chVal=0,chCnt=0;
+              ++read;
+              while (isxdigit(read[1]) && chCnt < 2)
+                {
+
+                   chVal *= 16;
+                   chVal += read[1] >= '0' && read[1] <= '9' ? read[1]-'0' : tolower(read[1])-'a';
+                   ++read;
+                   ++chCnt;
+                }
+              build+=sprintf(build, "%c", chVal);
             }
           else 
             *build++='%';
