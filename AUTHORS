@@ -1,13 +1,16 @@
-Jim Fougeron <jfoug@kdsi.net>
+In the following email addresses, please replace "at" by "@" and "dot" by ".".
+For example, <xxx dot yyy at zzz dot to> should read <xxx.yyy@xxx.to>.
+
+Jim Fougeron <jfoug at cox dot net>
 	contributed the expression parser and several command-line options
-Laurent Fousse <laurent@komite.net>
+Laurent Fousse <laurent at komite dot net>
 	contributed the middle product code, the autoconf/automake tools,
 	and author of the Debian package
 Alexander Kruppa <firstname.lastname@mytum.de> (substitute appropriately)
 	joined Paul Zimmermann at release 5, contributed the Toom-Cook
 	multiplication code, the special code for Fermat numbers, and
 	many other nice things
-Dave Newman <david.newman@jesus.ox.ac.uk>
+Dave Newman <david dot newman at jesus dot ox dot ac dot uk>
 	contributed the Kronecker-Scho"nhage multiplication code
-Paul Zimmermann <zimmerma at loria dot fr> (at = @, dot = .)
+Paul Zimmermann <zimmerma at loria dot fr>
 	author of the first version of gmp-ecm
