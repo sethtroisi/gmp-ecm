@@ -417,7 +417,7 @@ increase the time spent in Step 2 (when less or greater than the
 optimal value), and modify the memory used by Step 2 (see the section 
 "Memory usage").
 
-Optimal gmp thresholds. One may improve the performance of GMP-ECM
+Optimal GMP thresholds. One may improve the performance of GMP-ECM
 by telling the thresholds used by GMP for Karatsuba's multiplication
 and divide-and-conquer division, which you can get by doing "make tune"
 in GMP's build 'tune' subdirectory.

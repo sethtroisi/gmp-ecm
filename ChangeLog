@@ -554,7 +554,7 @@
 2004-10-06  paul  <zimmerma>
 
 	* mul_fft.c:
-	this is the mul_fft.c code from gmp (gmp-cvs-20040917 patched)
+	this is the mul_fft.c code from GMP (gmp-cvs-20040917 patched)
 
 	* main.c: changed default k to 2
 
@@ -1165,7 +1165,7 @@
 
 	* test.ecm, test.pm1, test.pp1: converted from csh to sh
 
-	* Makefile: now only gmp is linked statically
+	* Makefile: now only GMP is linked statically
 
 2003-04-16  jim  <jfoug>
 
