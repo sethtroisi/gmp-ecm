@@ -70,7 +70,7 @@
 /* maximal stage 1 bound = 2^53 + 4, the next prime being 2^53 + 5 */
 #define MAX_B1 9007199254740996.0
 
-/* The checksum for savefile is the product of all mandatory files, modulo
+/* The checksum for savefile is the product of all mandatory fields, modulo
    the greatest prime below 2^32 */
 #define CHKSUMMOD 4294967291U
 
@@ -102,6 +102,16 @@ typedef struct
   mpres_t A;
 } __curve_struct;
 typedef __curve_struct curve;
+
+typedef struct
+{
+  point *fd;
+  mpres_t *T;        /* For temp values. FIXME: should go! */
+  unsigned int nr;   /* How many separate progressions there are */
+  unsigned int next; /* From which progression to take the next root */
+  unsigned int S;    /* Degree of the polynomials */
+} __ecm_rootsG_state;
+typedef __ecm_rootsG_state ecm_rootsG_state;
 
 typedef struct
 {
@@ -177,6 +187,7 @@ unsigned int nb_digits  (const mpz_t);
 unsigned int gcd        (unsigned int, unsigned int);
 void         mpz_sub_si (mpz_t, mpz_t, int);
 unsigned int ceil_log2  (unsigned int);
+void *       xmalloc    (size_t);
 int          cputime    ();
 unsigned int get_random_ui (void);
 
@@ -184,8 +195,8 @@ unsigned int get_random_ui (void);
 void    pm1_random_seed  (mpz_t, mpz_t, gmp_randstate_t);
 int          pm1         (mpz_t, mpz_t, mpz_t, mpz_t, double, double, double, double, double, 
                           unsigned int, int, int, int, mpz_t);
-int     pm1_rootsF       (mpz_t, listz_t, unsigned int, mpres_t *, listz_t,
-                          int, mpmod_t, int, unsigned long *);
+int     pm1_rootsF       (mpz_t, listz_t, unsigned int, unsigned int, mpres_t *,
+                          listz_t, int, mpmod_t, int, unsigned long *);
 mpres_t *pm1_rootsG_init (mpres_t *, double, unsigned int, int, mpmod_t);
 void    pm1_rootsG_clear (mpres_t *, int, mpmod_t);
 int     pm1_rootsG       (mpz_t, listz_t, unsigned int, mpres_t *, listz_t, 
@@ -206,18 +217,19 @@ unsigned long   phi (unsigned long);
 double   block_size (unsigned long);
 unsigned long bestD (double, unsigned int, unsigned int *, unsigned int,
                      unsigned long *);
+unsigned long bestD_po2 (double, unsigned int, unsigned int *, unsigned long *);
 
 /* trial.c */
 int trial_factor (mpcandi_t *n, double maxfact, int deep);
 
 /* ecm2.c */
-int     ecm_rootsF       (mpz_t, listz_t, unsigned int, curve *,
-                          int, mpmod_t, int, unsigned long *);
-point * ecm_rootsG_init  (mpz_t, curve *, double, unsigned int, 
-                          int, mpmod_t, int);
-void    ecm_rootsG_clear (point *, int, mpmod_t);
-int     ecm_rootsG       (mpz_t, listz_t, unsigned int, point *,
-                          int, mpmod_t, int, unsigned long *);
+int     ecm_rootsF       (mpz_t, listz_t, unsigned int, unsigned int, 
+                          curve *, int, mpmod_t, int, unsigned long *);
+ecm_rootsG_state * ecm_rootsG_init  (mpz_t, curve *, double, unsigned int, 
+                          unsigned int, int, mpmod_t, int);
+void    ecm_rootsG_clear (ecm_rootsG_state *, int, mpmod_t);
+int     ecm_rootsG       (mpz_t, listz_t, unsigned int, ecm_rootsG_state *, 
+                          curve *, int, mpmod_t, int, unsigned long *);
 
 /* pp1.c */
 int          pp1_mul     (mpres_t, mpres_t, mpz_t, mpmod_t, mpres_t, mpres_t);
@@ -226,8 +238,8 @@ int          pp1_mul_prac(mpres_t, unsigned long, mpmod_t, mpres_t, mpres_t,
 void    pp1_random_seed  (mpz_t, mpz_t, gmp_randstate_t);
 int          pp1         (mpz_t, mpz_t, mpz_t, mpz_t, double, double, double, double, double, 
                           unsigned int, unsigned int, int, int);
-int   pp1_rootsF         (listz_t, unsigned int, mpres_t *, listz_t,
-                          mpmod_t, int, unsigned long *);
+int   pp1_rootsF         (listz_t, unsigned int, unsigned int, mpres_t *,
+                          listz_t, mpmod_t, int, unsigned long *);
 mpres_t *pp1_rootsG_init (mpres_t *, double, unsigned int, mpmod_t);
 void  pp1_rootsG_clear   (mpres_t *, mpmod_t);
 int   pp1_rootsG         (listz_t, unsigned int, mpres_t *, mpmod_t,
@@ -258,9 +270,7 @@ int      toomcook4_high (listz_t, listz_t, listz_t, unsigned int, listz_t);
 int          karatsuba  (listz_t, listz_t, listz_t, unsigned int, listz_t);
 int          list_mul   (listz_t, listz_t, unsigned int, int, listz_t,
                          unsigned int, int, listz_t);
-int         list_mulmod (listz_t, listz_t, listz_t, unsigned int, listz_t,
-			 mpz_t);
-int         list_mulmod2(listz_t, listz_t, listz_t, listz_t, unsigned int,
+int         list_mulmod (listz_t, listz_t, listz_t, listz_t, unsigned int,
                          listz_t, mpz_t);
 int       PolyFromRoots (listz_t, listz_t, unsigned int, listz_t, int, mpz_t,
                          char, listz_t*, unsigned int);
@@ -271,7 +281,7 @@ int   PrerevertDivision (listz_t, listz_t, listz_t, unsigned int, listz_t,
                          mpz_t);
 int          list_mod1  (mpz_t, listz_t, listz_t, unsigned int, mpz_t, mpz_t*);
 void      poly_submul2 (listz_t, listz_t, listz_t, unsigned int, mpz_t, mpz_t);
-int          list_invert (listz_t, listz_t, unsigned int, mpz_t, mpz_t);
+int          list_invert (listz_t, listz_t, unsigned int, mpz_t, mpmod_t);
 
 /* polyeval.c */
 unsigned int polyeval (listz_t, unsigned int, listz_t*, listz_t, mpz_t, int,
@@ -419,6 +429,11 @@ void list_sub_safe (listz_t ret, listz_t a, listz_t b,
 void list_add_safe (listz_t ret, listz_t a, listz_t b,
                         unsigned int sizea, unsigned int sizeb,
                         unsigned int needed);
+
+/* schoen_strass.c */
+
+unsigned int F_mul (mpz_t *, mpz_t *, mpz_t *, unsigned int, unsigned int, mpz_t *);
+unsigned int F_mul_trans (mpz_t *, mpz_t *, mpz_t *, unsigned int, unsigned int, mpz_t *);
 
 /* memory.c */
 #ifdef MEMORY_DEBUG

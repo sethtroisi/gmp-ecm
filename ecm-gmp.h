@@ -31,7 +31,7 @@ MA 02111-1307, USA. */
 #    include <malloc.h>
 #    define alloca _alloca
 #   else
-#    if HAVE_ALLOCA_H
+#    if HAVE_ALLOCA_H || defined (sun)
 #     include <alloca.h>
 #    else
 #     if defined (_AIX) || defined (_IBMR2)

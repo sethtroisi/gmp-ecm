@@ -18,7 +18,8 @@
 # 02111-1307, USA.
 
 # Standard installation prefix
-prefix=/usr/local
+#prefix=/usr/local
+prefix=/u/halle/kruppa/home_sun/
 
 # directory where GMP is installed
 # gmp.h should be in $(GMP)/include
@@ -31,30 +32,36 @@ GMP=$(prefix)
 NTL=$(prefix)
 # example of TUNEFLAGS for x86
 # TUNEFLAGS= -O3 -mcpu=i586 -fstrict-aliasing -I/usr/include/gmp -DWANT_GMP_IMPL -DMPZMOD_THRESHOLD=69 -DREDC_THRESHOLD=92
-TUNEFLAGS= -O2
-GCOVFLAGS= -fprofile-arcs -ftest-coverage
+#TUNEFLAGS= -O2
+#GCOVFLAGS= -fprofile-arcs -ftest-coverage
+#For Sun cc
+TUNEFLAGS=
+GCOVFLAGS=
 
 VERSION=5.1.2-beta
 
 ###################### do not edit below this line ############################
 
-OBJS= auxi.o b1_ainc.o bestd.o candi.o ecm.o ecm2.o eval.o getprime.o listz.o lucas.o main.o pm1.o pp1.o stage2.o toomcook.o trial.o memory.o mpmod.o mul_lo.o polyeval.o resume.o median.o smartprp.o
-CFLAGS= -g -W -Wall -Wmissing-prototypes -pedantic $(TUNEFLAGS) $(GCOVFLAGS)
-LDFLAGS= -lm
+OBJS= auxi.o b1_ainc.o bestd.o candi.o ecm.o ecm2.o eval.o getprime.o listz.o lucas.o main.o pm1.o pp1.o stage2.o toomcook.o trial.o memory.o mpmod.o mul_lo.o polyeval.o resume.o median.o smartprp.o schoen_strass.o
+#CFLAGS= -g -W -Wall -Wmissing-prototypes -pedantic $(TUNEFLAGS) $(GCOVFLAGS)
+#LDFLAGS= -lm -static
+# For Sun cc
+CFLAGS= -fast -xarch=v9
+LDFLAGS= -xarch=v9 -lm
 CXX=g++
-CC=gcc
+CC=cc
 LD=$(CC)
 EXTRAOBJS=
 ALLOBJS= $(OBJS) $(EXTRAOBJS)
 POLYGCD=0
 
-DIST=  auxi.c b1_ainc.c bestd.c bestdaux.c candi.c countsmooth.c ecm.c ecm2.c eval.c getprime.c listz.c lucas.c main.c median.c median-aux.c memory.c mpmod.c mul_lo.c ntl.c pm1.c polyeval.c polyz.c pp1.c resume.c smartprp.c stage2.c trial.c toomcook.c tune.c
+DIST=  auxi.c b1_ainc.c bestd.c bestdaux.c candi.c countsmooth.c ecm.c ecm2.c eval.c getprime.c listz.c lucas.c main.c median.c median-aux.c memory.c mpmod.c mul_lo.c ntl.c pm1.c polyeval.c polyz.c pp1.c resume.c smartprp.c stage2.c trial.c toomcook.c tune.c schoen_strass.c
 EXTRADIST= COPYING COPYING.LIB INSTALL Makefile README ecm.h test.pm1 test.pp1 test.ecm tune.c c155 ecm-gmp.h ChangeLog
 
 .SUFFIXES: .c .o
 
 ecm: $(ALLOBJS) ecm.h ecm-gmp.h
-	$(LD) $(ALLOBJS) -lgmp -static -o $@ $(LDFLAGS)
+	$(LD) $(ALLOBJS) $(GMP)/lib/libgmp.a -o $@ $(LDFLAGS)
 
 ecm_with_ntl:
 	make ecm GMP=$(GMP) NTL=$(NTL) LD='$(CXX)' EXTRAOBJS="ntl.o polyz.o" LDFLAGS='-L$(NTL)/lib -lntl $(LDFLAGS)' CFLAGS='$(CFLAGS) -DPOLYGCD'

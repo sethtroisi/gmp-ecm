@@ -303,7 +303,7 @@ pp1_check_factor (mpz_t a, mpz_t p)
 */
 
 int
-pp1_rootsF (listz_t F, unsigned int d, mpres_t *x, listz_t t,
+pp1_rootsF (listz_t F, unsigned int d, unsigned int dF, mpres_t *x, listz_t t,
             mpmod_t modulus, int verbose, unsigned long *tot_muls)
 {
   unsigned int i, j, muls = 0;
@@ -313,7 +313,6 @@ pp1_rootsF (listz_t F, unsigned int d, mpres_t *x, listz_t t,
   st = cputime ();
 
   mpres_get_z (F[0], *x, modulus); /* V_1(P)=P for P+1 */
-  i = 1;
 
   if (d > 7)
     {
@@ -330,8 +329,9 @@ pp1_rootsF (listz_t F, unsigned int d, mpres_t *x, listz_t t,
       /* for P+1, fd[0] = V_7(P), fd[1] = V_6(P), fd[2] = V_{7-6}(P) */
       if (verbose >= 2)
         printf ("Initializing table of differences for F took %dms\n", cputime () - st2);
+      i = 1;
       j = 7;
-      while (j < d)
+      while (i < dF)
         {
           if (gcd (j, d) == 1)
             mpres_get_z (F[i++], fd[0], modulus);

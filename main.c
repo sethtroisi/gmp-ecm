@@ -295,7 +295,7 @@ main (int argc, char *argv[])
 	}
       else if (strcmp (argv[1], "-v") == 0)
 	{
-	  verbose = 2;
+	  verbose++;
 	  argv++;
 	  argc--;
 	}
@@ -1108,7 +1108,7 @@ BreadthFirstDoAgain:;
 	      /* prints factor found and cofactor on standard error. */
 	      factor_is_prime = smart_probab_prime_p (f, PROBAB_PRIME_TESTS);
 
-              if (verbose)
+              if (verbose > 0)
                 {
                   printf ("Found %s factor of %2u digits: ", 
                           factor_is_prime ? "probable prime" :
@@ -1120,7 +1120,7 @@ BreadthFirstDoAgain:;
 	      mpcandi_t_addfoundfactor (&n, f, 1); /* 1 for display warning if factor does not divide the current candidate */
 
 OutputFactorStuff:;
-	      if (verbose)
+	      if (verbose > 0)
 		{
 		  printf ("%s cofactor ",
 			  n.isPrp ? "Probable prime" : "Composite");
@@ -1166,7 +1166,7 @@ OutputFactorStuff:;
 		   check this candidate again */
 		pCandidates[linenum-1].isPrp = 1;
 	      cnt = 0; /* no more curve to perform */
-              if (verbose)
+              if (verbose > 0)
                 printf ("Found input number N");
               printf ("\n");
 	    }
@@ -1220,7 +1220,7 @@ OutputFactorStuff:;
   /* NOTE finding a factor may have caused the loop to exit, but what is left on screen is the 
      wrong count of factors (missing the just found factor.  Update the screen to at least specify the 
      current count */
-  if (verbose)
+  if (verbose > 0)
     {
     if (breadthfirst_maxcnt)
       fprintf (stderr, "\rLine=%u Curves=%u/%u B1=%.0f factors=%u      \n",
