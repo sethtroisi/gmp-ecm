@@ -1,4 +1,6 @@
 ToDo's:
+- implement Kronecker/Schonhage multiplication.
+  See http://www.mersenneforum.org/showthread.php?t=2923
 - Add -go <NUM> to the input syntax.  This will allow the user to input
   a known group order.  <NUM> can be a simple number, a simple expression,
   or an express which uses the special letter 'N'.  Each curve, if there
