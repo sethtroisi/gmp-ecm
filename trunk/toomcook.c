@@ -39,8 +39,8 @@
 #define T  t[4*l-2]
 
 /* Puts in C[0..2len-2] the product of A[0..len-1] and B[0..len-1].
-   Returns the number of multiplies performed. This version works for 
-   all input sizes, but cannot handle input arrays overlapping with output.
+   This version works for all input sizes, but cannot handle input arrays
+   overlapping with output.
    Assumes len >= 1.
 
    The auxiliary memory M(len) necessary in t satisfies:
@@ -55,13 +55,16 @@
                              <= 2*len + 2 * k
 */
 
-int
+void
 toomcook3 (listz_t C, listz_t A, listz_t B, unsigned int len, listz_t t)
 {
-  int i, l, k, r;
+  int i, l, k;
 
   if (len <= 2 || len == 4)
-    return karatsuba (C, A, B, len, t);
+    {
+      karatsuba (C, A, B, len, t);
+      return;
+    }
 
   l = (len + 2) / 3;            /* ceil(len/3) */
   k = len - 2 * l;              /* smaller part */
@@ -83,7 +86,7 @@ toomcook3 (listz_t C, listz_t A, listz_t B, unsigned int len, listz_t t)
       mpz_sub (C3, B0, B1);
     }
 
-  r = toomcook3 (t, C + 2 * l, C + 3 * l, l, &T);
+  toomcook3 (t, C + 2 * l, C + 3 * l, l, &T);
   /* t0 = C2*C3 = A(-1)*B(-1) = C(-1), len(t0) = 2*l-1 */
 
   for (i = 0; i < k; i++)
@@ -105,16 +108,16 @@ toomcook3 (listz_t C, listz_t A, listz_t B, unsigned int len, listz_t t)
       mpz_add (C3, C3, B0);
     }
 
-  r += toomcook3 (t + 2 * l - 1, C + 2 * l, C + 3 * l, l, &T);
+  toomcook3 (t + 2 * l - 1, C + 2 * l, C + 3 * l, l, &T);
   /* t2 = C2*C3 = A(2)*B(2) = C(2), len(t2) = 2*l-1 */
 
-  r += toomcook3 (C + 2 * l, C, C + l, l, &T);
+  toomcook3 (C + 2 * l, C, C + l, l, &T);
   /* C2 = C0*C1 = A(1)*B(1) = C(1), len(C1) = 2*l-1 */
 
-  r += toomcook3 (C, A, B, l, &T);
+  toomcook3 (C, A, B, l, &T);
   /* C0 = A(0)*B(0) = C(0), len(C0) = 2*l-1 */
 
-  r += toomcook3 (C + 4 * l, A + 2 * l, B + 2 * l, k, &T);
+  toomcook3 (C + 4 * l, A + 2 * l, B + 2 * l, k, &T);
   /* C4 = A(inf)*B(inf) = C(inf), len(C4) = 2*k-1 */
 
   /* C0: C_0  C2: C(1)  C4: C_4  t0: C(-1)  t2: C(2) */
@@ -163,8 +166,6 @@ toomcook3 (listz_t C, listz_t A, listz_t B, unsigned int len, listz_t t)
   mpz_set (C3, t2);
   for (i = l; i < l + k - 1; i++)
     mpz_add (C3, C3, t2);
-
-  return r;
 }
 
 #define A3 A[3*l+i]
@@ -179,11 +180,10 @@ toomcook3 (listz_t C, listz_t A, listz_t B, unsigned int len, listz_t t)
 
    T4(n) = 6 * T4(l) + T4(n-3*l) where l = ceil(n/4)
 */
-int
+void
 toomcook4 (listz_t C, listz_t A, listz_t B, unsigned int len, listz_t t)
 {
   unsigned int l, k, i;
-  int r;
 
   /* toomcook4 cannot handle len = 1, 2, 5
      since we need k := len - 3*ceil(len/4) >= 0.
@@ -194,11 +194,17 @@ toomcook4 (listz_t C, listz_t A, listz_t B, unsigned int len, listz_t t)
    */
 
   if (len <= 2)
-    return karatsuba (C, A, B, len, t);
+    {
+      karatsuba (C, A, B, len, t);
+      return;
+    }
 
   if (len == 3 || len == 5 || len == 6 || len == 9 || len == 17 || len == 18 ||
       (25 <= len && len <= 27) || (77 <= len && len <= 81))
-    return toomcook3 (C, A, B, len, t);
+    {
+      toomcook3 (C, A, B, len, t);
+      return;
+    }
 
   l = (len + 3) / 4;            /* l = ceil(len/4) */
   k = len - 3 * l;              /* k = smaller part. len = 3*l + k, k <= l */
@@ -258,9 +264,9 @@ toomcook4 (listz_t C, listz_t A, listz_t B, unsigned int len, listz_t t)
 #endif
     }
 
-  r = toomcook4 (t, C, C + l, l, &T);   /* t0 = 8*A(1/2) * 8*B(1/2) = 64*C(1/2) */
-  r += toomcook4 (t + 2 * l - 1, C + 2 * l, C + 3 * l, l, &T);  /* t2 = A(2) * B(2) = C(2) */
-  r += toomcook4 (t + 4 * l - 2, C + 4 * l, C + 5 * l, l, &T);  /* t4 = A(-2) * B(-2) = C(-2) */
+  toomcook4 (t, C, C + l, l, &T);   /* t0 = 8*A(1/2) * 8*B(1/2) = 64*C(1/2) */
+  toomcook4 (t + 2 * l - 1, C + 2 * l, C + 3 * l, l, &T);  /* t2 = A(2) * B(2) = C(2) */
+  toomcook4 (t + 4 * l - 2, C + 4 * l, C + 5 * l, l, &T);  /* t4 = A(-2) * B(-2) = C(-2) */
 
   for (i = 0; i < l; i++)
     {
@@ -291,16 +297,16 @@ toomcook4 (listz_t C, listz_t A, listz_t B, unsigned int len, listz_t t)
 #endif
     }
 
-  r += toomcook4 (C + 4 * l, C + 2 * l, C + 3 * l, l, &T);
+  toomcook4 (C + 4 * l, C + 2 * l, C + 3 * l, l, &T);
   /* C4 = A(-1) * B(-1) = C(-1) */
 
-  r += toomcook4 (C + 2 * l, C, C + l, l, &T);
+  toomcook4 (C + 2 * l, C, C + l, l, &T);
   /* C2 = A(1) * B(1) = C(1) */
 
-  r += toomcook4 (C, A, B, l, &T);
+  toomcook4 (C, A, B, l, &T);
   /* C0 = A_0 * B_0 = C_0 */
   
-  r += toomcook4 (C + 6 * l, A + 3 * l, B + 3 * l, k, &T);
+  toomcook4 (C + 6 * l, A + 3 * l, B + 3 * l, k, &T);
   /* C6 = A_3 * B_3 = C_6 */
 
   for (i = 0; i < 2 * l - 1; i++)
@@ -397,6 +403,4 @@ toomcook4 (listz_t C, listz_t A, listz_t B, unsigned int len, listz_t t)
   mpz_set (C5, t4);
   for (i = l; i < l + k - 1; i++)
     mpz_add (C5, C5, t4);
-
-  return r;
 }

@@ -33,9 +33,6 @@
 #include <windows.h>
 #endif
 
-
-#define DEBUG
-
 /* Reads a string of characters from fd while they match the string s.
    Returns the number of matching characters that were read. 
 */
