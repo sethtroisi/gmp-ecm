@@ -376,7 +376,7 @@ ecmprob (double B1, double B2, double N, double nr, int S)
   
   /* printf ("stage 1 : %f, stage 2 : %f, Brent-Suyama : %f\n", stage1, stage2, brsu); */
 
-  return stage1 + stage2 + brsu;
+  return (stage1 + stage2 + brsu) > 0. ? (stage1 + stage2 + brsu) : 0.;
 }
 
 #ifdef TESTDRIVE

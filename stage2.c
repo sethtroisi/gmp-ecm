@@ -22,18 +22,12 @@
 */
 
 #include <assert.h>
-#include <math.h> /* for finite() */
 #include <stdlib.h>
 #include <stdio.h>
 #include <limits.h>
 #include "gmp.h"
 #include "ecm.h"
 #include "ecm-impl.h"
-
-#if defined(__sun__) || defined(sun)
-/* for finite() */
-#include <ieeefp.h>
-#endif
 
 /* #define SAVE_TREE */
 
@@ -679,17 +673,17 @@ clear_G:
 
   if (method == EC_METHOD && verbose >= 2)
     {
-      double nrcurves, tottime, exptime;
+      double prob, tottime, exptime;
       rhoinit (256, 10);
       fprintf (os, "Expected time to find a factor of n digits:\n"
 	       "20\t25\t30\t35\t40\t45\t50\t55\t60\t65\n");
       tottime = (double) stage1time + (double) st0;
       for (i = 20; i <= 65; i+=5)
         {
-          nrcurves = 1. / ecmprob (B2min, B2, pow (10., i - .5), 
-                                 (double)dF * (double)dF * k, S);
-          exptime = tottime * nrcurves;
-          /* fprintf (os, "Total time: %.0f, expected number of curves: %.0f, expected time: %.0f\n", tottime, nrcurves, exptime); */ 
+          prob = ecmprob (B2min, B2, pow (10., i - .5), 
+                          (double)dF * (double)dF * k, S);
+          exptime = tottime / prob;
+          /* fprintf (os, "Total time: %.0f, probability: %f, expected time: %.0f\n", tottime, prob, exptime); */
           if (exptime < 1000.)
             fprintf (os, "%.0fms%c", exptime, i < 65 ? '\t' : '\n');
           else if (exptime < 60000.) /* One minute */
@@ -704,10 +698,10 @@ clear_G:
             fprintf (os, "%.2fy%c", exptime / 31536000000., i < 65 ? '\t' : '\n');
           else if (exptime < 31536000000000000.) /* One million years */
             fprintf (os, "%.0fy%c", exptime / 31536000000., i < 65 ? '\t' : '\n');
-          else if (finite (exptime))
+          else if (prob > 0.)
             fprintf (os, "%.1gy%c", exptime / 31536000000., i < 65 ? '\t' : '\n');
           else 
-            fprintf (os, "%.0f%c", exptime, i < 65 ? '\t' : '\n');
+            fprintf (os, "Inf%c", i < 65 ? '\t' : '\n');
         }
     }
 
