@@ -20,15 +20,31 @@ along with the GNU MP Library; see the file COPYING.LIB.  If not, write to
 the Free Software Foundation, Inc., 59 Temple Place - Suite 330, Boston,
 MA 02111-1307, USA. */
 
-#if !defined(__freebsd)
-#if defined (__GNUC__)
-#ifndef _ALLOCA_H
-#define alloca __builtin_alloca
+#ifndef alloca
+# ifdef __GNUC__
+#  define alloca __builtin_alloca
+# else
+#  ifdef __DECC
+#   define alloca(x) __ALLOCA(x)
+#  else
+#   ifdef _MSC_VER
+#    include <malloc.h>
+#    define alloca _alloca
+#   else
+#    if HAVE_ALLOCA_H
+#     include <alloca.h>
+#    else
+#     if defined (_AIX) || defined (_IBMR2)
+ #pragma alloca
+#     else
+       char *alloca ();
+#     endif
+#    endif
+#   endif
+#  endif
+# endif
 #endif
-#else
-#include <alloca.h>
-#endif
-#endif
+
 #define ABSIZ(x) ABS (SIZ (x))
 #define ALLOC(x) ((x)->_mp_alloc)
 #define PTR(x) ((x)->_mp_d)
