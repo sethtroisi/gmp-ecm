@@ -702,22 +702,23 @@ PolyInvert (listz_t q, listz_t b, unsigned int K, listz_t t, mpz_t n)
           TMulKS (t, k - 1, q + k, l - 1, b, K - 1, n, 0);
           list_neg (t, t, k, n);
         }
+      else if (po2)
+        {
+          list_revert (q + k, l - 1);
+          /* This expects the leading monomials explicitly in q[2k-1] and b[k+l-1] */
+          muls += F_mul_trans (t, q + k, b, K, Fermat, t + k);
+          list_revert (q + k, l - 1);
+          list_neg (t, t, k, n);
+        }
       else
         {
-          if (po2)
-            muls += F_mul (t, q + k, b, l, DEFAULT, Fermat, t + 2 * l); /* t[0..2l-1] = Q1 * B0 */
-          else
-            muls += LIST_MULT_N (t, q + k, b, l, t + 2 * l - 1); /* t[0..2l-1] = Q1 * B0 */
+          muls += LIST_MULT_N (t, q + k, b, l, t + 2 * l - 1); /* t[0..2l-1] = Q1 * B0 */
           list_neg (t, t + l - 1, k, n);
       
           if (k > 1)
             {
-              if (po2)
-                /* This expects the leading monomials explicitly in q[2k-1] and b[k+l-1] */
-                muls += F_mul (t + k, q + k, b + l, k, DEFAULT, Fermat, t + k + K); /* t[k ... l+k-1] = Q1 * B1 */
-              else
-                muls += list_mul (t + k, q + k, l - 1, 1, b + l, k - 1, 1,
-                                  t + k + K - 2); /* Q1 * B1 */
+              muls += list_mul (t + k, q + k, l - 1, 1, b + l, k - 1, 1,
+                                t + k + K - 2); /* Q1 * B1 */
               list_sub (t + 1, t + 1, t + k, k - 1);
             }
         }
