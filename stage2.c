@@ -123,18 +123,18 @@ dickson_ui (mpz_t r, double x, unsigned int n, int a)
    Peter Montgomery, Dissertation, 1992, Chapter 5.
 */
 
-static void 
+static int
 fin_diff_coeff (listz_t coeffs, double s, double D,
-                unsigned int E, int dickson_a)
+                unsigned int E, int dickson_a, FILE *es)
 {
   unsigned int i, k;
 
   /* check maximal value of s + i * D does not overflow */
   if (s + (double) E * D > 9007199254740992.0) /* 2^53 */
     {
-      fprintf (stderr, "Error, overflow in fin_diff_coeff\n");
-      fprintf (stderr, "Please use a smaller B1 or B2min\n");
-      exit (1);
+      fprintf (es, "Error, overflow in fin_diff_coeff\n");
+      fprintf (es, "Please use a smaller B1 or B2min\n");
+      return ECM_ERROR;
     }
   for (i = 0; i <= E; i++)
     if (dickson_a != 0)         /* fd[i] = dickson_{E,a} (s+i*D) */
@@ -154,17 +154,21 @@ fin_diff_coeff (listz_t coeffs, double s, double D,
                                             i == 1 (mod m)
    
    for successive n. m must divide d.
+
+   Return NULL if an error occurred.
 */
 
 listz_t
 init_progression_coeffs (double s, unsigned int d, unsigned int e, 
                          unsigned int k, unsigned int m, unsigned int E, 
-                         int dickson_a)
+                         int dickson_a, FILE *es)
 {
   unsigned int i, j, size_fd;
   listz_t fd;
   double de;
 
+  if (d % m)
+    printf ("d=%u e=%u m=%u\n", d, e, m);
   assert (d % m == 0);
 
   size_fd = k * phi(d) / phi(m) * (E + 1);
@@ -179,12 +183,71 @@ init_progression_coeffs (double s, unsigned int d, unsigned int e,
     {
       if (gcd (i, d) == 1)
         {
-          fin_diff_coeff (fd + j, s + de * i, de * k * d, E, dickson_a);
+          if (fin_diff_coeff (fd + j, s + de * i, de * k * d, E, dickson_a,
+			      es) == ECM_ERROR)
+	    {
+	      for (i = 0; i < size_fd; i++)
+		mpz_clear (fd[i]);
+	      free (fd);
+	      return NULL;
+	    }
           j += E + 1;
         }
     }
 
   return fd;
+}
+
+void 
+init_roots_state (ecm_roots_state *state, int S, unsigned int d1, 
+                  unsigned int d2, double cost)
+{
+  ASSERT (gcd (d1, d2) == 1);
+  /* If S < 0, use degree |S| Dickson poly, otherwise use x^S */
+  state->S = abs (S);
+  state->dickson_a = (S < 0) ? -1 : 0;
+
+  /* We only calculate Dickson_{S, a}(j * d2) * s where
+     gcd (j, dsieve) == 1 and j == 1 (mod 6)
+     by doing nr = eulerphi(dsieve / 6) separate progressions. */
+  /* Now choose a value for dsieve. */
+  state->dsieve = 6;
+  state->nr = 1;
+
+  /* Prospective saving by sieving out multiples of 5:
+     d1 / state->dsieve * state->nr / 5 roots, each one costs S point adds
+     Prospective cost increase:
+     4 times as many progressions to init (that is, 3 * state->nr more),
+     each costs ~ S * S * log_2(5 * dsieve * d2) / 2 point adds
+     The state->dsieve and one S cancel.
+  */
+  if (d1 % 5 == 0 &&
+      d1 / state->dsieve / 5 * cost > 
+      3. * state->S * log (5. * state->dsieve * d2) / 2.)
+    {
+      state->dsieve *= 5;
+      state->nr *= 4;
+    }
+
+  if (d1 % 7 == 0 &&
+      d1 / state->dsieve / 7 * cost > 
+      5. * state->S * log (7. * state->dsieve * d2) / 2.)
+    {
+      state->dsieve *= 7;
+      state->nr *= 6;
+    }
+
+  if (d1 % 11 == 0 &&
+      d1 / state->dsieve / 11 * cost > 
+      9. * state->S * log (11. * state->dsieve * d2) / 2.)
+    {
+      state->dsieve *= 11;
+      state->nr *= 10;
+    }
+
+  state->size_fd = state->nr * (state->S + 1);
+  state->next = 0;
+  state->rsieve = 1;
 }
 
 /* Input:  X is the point at end of stage 1
@@ -201,11 +264,13 @@ init_progression_coeffs (double s, unsigned int d, unsigned int e,
                reduces the cost of Brent-Suyama's extension from 2*e
                to e+3 multiplications per value of i.
    Output: f is the factor found
-   Return value: 2 (step number) iff a factor was found.
+   Return value: 2 (step number) iff a factor was found,
+                 or ECM_ERROR if an error occurred.
 */
 int
 stage2 (mpz_t f, void *X, mpmod_t modulus, double B2min, double B2,
-        unsigned int k0, int S, int verbose, int method, int stage1time)
+        unsigned int k0, int S, int verbose, int method, int stage1time,
+	FILE *os, FILE *es)
 {
   double b2, b2min;
   unsigned int k;
@@ -216,11 +281,7 @@ stage2 (mpz_t f, void *X, mpmod_t modulus, double B2min, double B2,
   int youpi = 0, st, st0;
   void *rootsG_state = NULL;
   listz_t *Tree = NULL; /* stores the product tree for F */
-#ifdef POLYEVAL
   unsigned int lgk; /* ceil(log(k)/log(2)) */
-#else
-  polyz_t polyF, polyT;
-#endif
   listz_t invF = NULL;
 
   /* check alloc. size of f */
@@ -233,11 +294,9 @@ stage2 (mpz_t f, void *X, mpmod_t modulus, double B2min, double B2,
 
   if (k0 == 0)
     {
-      fprintf (stderr, "Error: number of blocks in step 2 should be positive\n");
-      exit (EXIT_FAILURE);
+      fprintf (es, "Error: number of blocks in step 2 should be positive\n");
+      return ECM_ERROR;
     }
-
-  mpz_init_set (n, modulus->orig_modulus);
 
   /* since we consider only residues = 1 mod 6 in intervals of length d
      (d multiple of 6), each interval [i*d,(i+1)*d] covers partially itself
@@ -253,8 +312,8 @@ stage2 (mpz_t f, void *X, mpmod_t modulus, double B2min, double B2,
         {
           Fermat = modulus->bits;
           if (verbose >= 3)
-            printf ("Choosing power of 2 poly length for 2^%d+1 (%d blocks)\n", 
-                    Fermat, k0);
+            fprintf (os, "Choosing power of 2 poly length for 2^%d+1 (%d blocks)\n", 
+		     Fermat, k0);
           k = k0;
           bestD_po2 (B2min, B2, &d, &d2, &k);
           dF = 1 << ceil_log2 (phi (d) / 2);
@@ -271,9 +330,9 @@ stage2 (mpz_t f, void *X, mpmod_t modulus, double B2min, double B2,
   /* check that i0 * d does not overflow */
   if (i0 * (double) d > 9007199254740992.0) /* 2^53 */
     {
-      fprintf (stderr, "Error, overflow in stage 2\n");
-      fprintf (stderr, "Please use a smaller B1 or B2min\n");
-      exit (1);
+      fprintf (es, "Error, overflow in stage 2\n");
+      fprintf (es, "Please use a smaller B1 or B2min\n");
+      return ECM_ERROR;
     }
 
   b2 = (double) dF * (double) d * (double) d2 / (double) phi (d2);
@@ -285,46 +344,57 @@ stage2 (mpz_t f, void *X, mpmod_t modulus, double B2min, double B2,
   B2 = b2min + floor ((double) k * b2 / d / d2) * d * d2;
 
   if (verbose >= 2)
-    printf ("B2'=%1.0f k=%u b2=%1.0f d=%u d2=%u dF=%u, i0=%.0f\n", 
-              B2, k, b2, d, d2, dF, i0);
+    fprintf (os, "B2'=%1.0f k=%u b2=%1.0f d=%u d2=%u dF=%u, i0=%.0f\n", 
+	     B2, k, b2, d, d2, dF, i0);
 
   if (method == EC_METHOD && verbose >= 2)
     {
       double nrcurves;
       rhoinit (256, 10);
-      printf ("Expected number of curves to find a factor of n digits:\n"
-              "20\t25\t30\t35\t40\t45\t50\t55\t60\t65\n");
+      fprintf (os, "Expected number of curves to find a factor of n digits:\n"
+	       "20\t25\t30\t35\t40\t45\t50\t55\t60\t65\n");
       for (i = 20; i <= 65; i+=5)
         {
           nrcurves = 1. / ecmprob (B2min, B2, pow (10., i - .5), 
                                  (double)dF * (double)dF * k, S); 
           if (nrcurves < 10000000)
-            printf ("%.0f%c", floor (nrcurves + .5), i < 65 ? '\t' : '\n');
+            fprintf (os, "%.0f%c", floor (nrcurves + .5), i < 65 ? '\t' : '\n');
           else
-            printf ("%.2g%c", floor (nrcurves + .5), i < 65 ? '\t' : '\n');
+            fprintf (os, "%.2g%c", floor (nrcurves + .5), i < 65 ? '\t' : '\n');
         }
     }
     
   F = init_list (dF + 1);
+  if (F == NULL)
+    {
+      youpi = ECM_ERROR;
+      goto clear_n;
+    }
 
   sizeT = 3 * dF + list_mul_mem (dF);
   if (dF > 3)
     sizeT += dF;
   T = init_list (sizeT);
+  if (T == NULL)
+    {
+      youpi = ECM_ERROR;
+      goto clear_F;
+    }
   H = T;
 
   /* needs dF+1 cells in T */
   if (method == PM1_METHOD)
-    youpi = pm1_rootsF (f, F, d, d2, dF, (mpres_t*) X, T, S, modulus, verbose);
+    youpi = pm1_rootsF (f, F, d, d2, dF, (mpres_t*) X, T, S, modulus, verbose, os, es);
   else if (method == PP1_METHOD)
-    youpi = pp1_rootsF (F, d, d2, dF, (mpres_t*) X, T, modulus, verbose);
+    youpi = pp1_rootsF (F, d, d2, dF, (mpres_t*) X, T, modulus, verbose, os);
   else 
-    youpi = ecm_rootsF (f, F, d, d2, dF, (curve*) X, S, modulus, verbose);
+    youpi = ecm_rootsF (f, F, d, d2, dF, (curve*) X, S, modulus, verbose, os, es);
 
-  if (youpi)
+  if (youpi != ECM_NO_FACTOR_FOUND)
     {
-      youpi = 2;
-      goto clear_F;
+      if (youpi != ECM_ERROR)
+	youpi = 2;
+      goto clear_T;
     }
 
   /* ----------------------------------------------
@@ -333,31 +403,41 @@ stage2 (mpz_t f, void *X, mpmod_t modulus, double B2min, double B2,
      | rootsF |  ???   |  ???  |      ???         |
      ---------------------------------------------- */
 
-#ifdef POLYEVAL
   lgk = ceil_log2 (dF);
-  Tree = (listz_t*) malloc (lgk * sizeof(listz_t));
+  Tree = (listz_t*) malloc (lgk * sizeof (listz_t));
   if (Tree == NULL)
     {
-      fprintf (stderr, "Error: not enough memory\n");
-      exit (EXIT_FAILURE);
+      fprintf (es, "Error: not enough memory\n");
+      youpi = ECM_ERROR;
+      goto clear_T;
     }
   for (i = 0; i < lgk; i++)
-    Tree[i] = init_list (dF);
+    {
+      Tree[i] = init_list (dF);
+      if (Tree[i] == NULL)
+	{
+	  /* clear already allocated Tree[i] */
+	  while (i)
+	    clear_list (Tree[--i], dF);
+	  youpi = ECM_ERROR;
+	  goto free_Tree;
+	}
+    }
   list_set (Tree[lgk - 1], F, dF);
-#endif
 
 #ifdef TELLEGEN_DEBUG
-  printf ("Roots = ");
-  print_list (F, dF);
+  fprintf (os, "Roots = ");
+  print_list (os, F, dF);
 #endif
-  PolyFromRoots (F, F, dF, T, verbose | 1, n, 'F', Tree, 0);
+  mpz_init_set (n, modulus->orig_modulus);
+  PolyFromRoots (F, F, dF, T, verbose | 1, n, 'F', Tree, 0, os);
 
 #ifdef SAVE_TREE
  {
    FILE *fp;
    unsigned long j;
-   fprintf (stderr, "Saving product tree...");
-   fflush (stderr);
+   fprintf (es, "Saving product tree...");
+   fflush (es);
    fp = fopen ("Tree.save", "w");
    for (i = 0; i < lgk; i++)
      for (j = 0; j < dF; j++)
@@ -366,7 +446,7 @@ stage2 (mpz_t f, void *X, mpmod_t modulus, double B2min, double B2,
          mpz_clear (Tree[i][j]);
        }
    fclose (fp);
-   fprintf (stderr, "done\n");
+   fprintf (es, "done\n");
  }
 #endif
 
@@ -388,21 +468,17 @@ stage2 (mpz_t f, void *X, mpmod_t modulus, double B2min, double B2,
       /* only dF-1 coefficients of 1/F are needed to reduce G*H,
          but we need one more for TUpTree */
       invF = init_list (dF + 1);
+      if (invF == NULL)
+	{
+	  youpi = ECM_ERROR;
+	  goto free_Tree_i;
+	}
       st = cputime ();
       PolyInvert (invF, F + 1, dF, T, n);
 
       /* now invF[0..dF-1] = Quo(x^(2dF-1), F) */
-#ifdef TELLEGEN_DEBUG
-      printf ("dF = %d\n", dF);
-      printf ("nF = ");
-      mpz_out_str (NULL, 10, n);
-      printf ("\nF = ");
-      print_list (F, dF + 1);
-      printf ("\ninvF = ");
-      print_list (invF, dF); 
-#endif
       if (verbose >= 2)
-        printf ("Computing 1/F took %ums\n", cputime() - st);
+        fprintf (os, "Computing 1/F took %ums\n", cputime() - st);
       
       /* ----------------------------------------------
          |   F    |  invF  |   G   |         T        |
@@ -414,24 +490,33 @@ stage2 (mpz_t f, void *X, mpmod_t modulus, double B2min, double B2,
   /* start computing G with roots at i0*d, (i0+1)*d, (i0+2)*d, ... 
      where i0*d <= B2min < (i0+1)*d */
   G = init_list (dF);
+  if (G == NULL)
+    {
+      youpi = ECM_ERROR;
+      goto clear_invF;
+    }
+
   st = cputime ();
   if (method == PM1_METHOD)
-    rootsG_state = pm1_rootsG_init ((mpres_t *) X, i0 * (double) d, d, d2, S, verbose, modulus);
+    rootsG_state = pm1_rootsG_init ((mpres_t *) X, i0 * (double) d, d, d2, S, verbose, modulus, os, es);
   else if (method == PP1_METHOD)
     rootsG_state = pp1_rootsG_init ((mpres_t *) X, i0 * (double) d, d, d2, modulus);
   else /* EC_METHOD */
     {
-      rootsG_state = ecm_rootsG_init (f, (curve *) X, i0 * (double) d, d, d2, dF, k, S, modulus, verbose);
-      if (rootsG_state == NULL)
-        {
-          youpi = 2;
-          goto clear_G;
-        }
+      rootsG_state = ecm_rootsG_init (f, (curve *) X, i0 * (double) d, d, d2, dF, k, S, modulus, verbose, os, es);
+    }
+
+  /* rootsG_state=NULL if an error occurred or (ecm only) a factor was found */
+  if (rootsG_state == NULL)
+    {
+      /* ecm: f = -1 if an error occurred */
+      youpi = (method == EC_METHOD && mpz_cmp_si (f, -1)) ? 2 : ECM_ERROR;
+      goto clear_G;
     }
 
   if (verbose >= 2 && method != EC_METHOD) /* ecm_rootsG_init prints itself */
-    printf ("Initializing table of differences for G took %dms\n",
-            cputime () - st);
+    fprintf (os, "Initializing table of differences for G took %dms\n",
+	     cputime () - st);
 
   for (i = 0; i < k; i++)
     {
@@ -439,16 +524,17 @@ stage2 (mpz_t f, void *X, mpmod_t modulus, double B2min, double B2,
       
       /* needs dF+1 cells in T+dF */
       if (method == PM1_METHOD)
-        youpi = pm1_rootsG (f, G, dF, (pm1_roots_state *) rootsG_state, T + dF, 
-                            modulus, verbose);
+	youpi = pm1_rootsG (f, G, dF, (pm1_roots_state *) rootsG_state, T + dF,
+			    modulus, verbose, os);
       else if (method == PP1_METHOD)
         youpi = pp1_rootsG (G, dF, (pp1_roots_state *) rootsG_state, modulus,
-                            verbose);
+                            verbose, os);
       else
-        youpi = ecm_rootsG (f, G, dF, (ecm_roots_state *) rootsG_state, 
-			    modulus, verbose);
+	youpi = ecm_rootsG (f, G, dF, (ecm_roots_state *) rootsG_state, 
+			    modulus, verbose, os);
 
-      if (youpi)
+      ASSERT(youpi != ECM_ERROR); /* xxx_rootsG cannot fail */
+      if (youpi) /* factor found */
         {
           youpi = 2;
           goto clear_fd;
@@ -460,7 +546,7 @@ stage2 (mpz_t f, void *X, mpmod_t modulus, double B2min, double B2,
      |  F(x)  | 1/F(x) | rootsG |      ???         |
      ----------------------------------------------- */
 
-      PolyFromRoots (G, G, dF, T + dF, verbose, n, 'G', NULL, 0);
+      PolyFromRoots (G, G, dF, T + dF, verbose, n, 'G', NULL, 0, os);
       /* needs 2*dF+list_mul_mem(dF/2) cells in T */
 
   /* -----------------------------------------------
@@ -498,7 +584,7 @@ stage2 (mpz_t f, void *X, mpmod_t modulus, double B2min, double B2,
 	  list_mulmod (H, T + dF, G, H, dF, T + 3 * dF, n);
 
           if (verbose >= 2)
-            printf ("Computing G * H took %ums\n", cputime() - st);
+            fprintf (os, "Computing G * H took %ums\n", cputime() - st);
 
           /* ------------------------------------------------
              |   F    |  invF  |    G    |         T        |
@@ -507,10 +593,14 @@ stage2 (mpz_t f, void *X, mpmod_t modulus, double B2min, double B2,
              ------------------------------------------------ */
 
 	  st = cputime ();
-          PrerevertDivision (H, F, invF + 1, dF, T + 2 * dF, n);
+          if (PrerevertDivision (H, F, invF + 1, dF, T + 2 * dF, n, es))
+	    {
+	      youpi = ECM_ERROR;
+	      goto clear_fd;
+	    }
 
           if (verbose >= 2)
-            printf ("Reducing  G * H mod F took %ums\n", cputime() - st);
+            fprintf (os, "Reducing  G * H mod F took %ums\n", cputime() - st);
 	}
     }
 
@@ -518,8 +608,8 @@ stage2 (mpz_t f, void *X, mpmod_t modulus, double B2min, double B2,
  {
    FILE *fp;
    unsigned long j;
-   fprintf (stderr, "Restoring product tree...");
-   fflush (stderr);
+   fprintf (es, "Restoring product tree...");
+   fflush (es);
    fp = fopen ("Tree.save", "r");
    for (i = 0; i < lgk; i++)
      for (j = 0; j < dF; j++)
@@ -528,31 +618,35 @@ stage2 (mpz_t f, void *X, mpmod_t modulus, double B2min, double B2,
          mpz_inp_raw (Tree[i][j], fp);
        }
    fclose (fp);
-   fprintf (stderr, "done\n");
+   fprintf (es, "done\n");
  }
 #endif
 
-#ifdef POLYEVAL
   clear_list (F, dF + 1);
   F = NULL;
   clear_list (G, dF);
   G = NULL;
   st = cputime ();
 #ifdef POLYEVALTELLEGEN
-  polyeval_tellegen (T, dF, Tree, T + dF + 1, sizeT - dF - 1, invF, n, 0);
+  youpi = polyeval_tellegen (T, dF, Tree, T + dF + 1, sizeT - dF - 1, invF,
+			     n, 0);
+  if (youpi)
+    {
+      fprintf (es, "Error, not enough memory\n");
+      goto clear_fd;
+    }
 #else
   clear_list (invF, dF + 1);
   invF = NULL;
-  polyeval (T, dF, Tree, T + dF + 1, n, verbose, 0);
+  polyeval (T, dF, Tree, T + dF + 1, n, 0);
 #endif
 
   if (verbose >= 2)
-    printf ("Computing polyeval(F,G) took %ums\n", cputime() - st);
+    fprintf (os, "Computing polyeval(F,G) took %ums\n", cputime() - st);
 
   youpi = list_gcd (f, T, dF, n) ? 2 : 0;
   if (verbose >= 3)
-    gmp_printf ("Product of G(f_i) = %Zd\n", T[0]);
-#endif
+    gmp_fprintf (os, "Product of G(f_i) = %Zd\n", T[0]);
 
  clear_fd:
   if (method == PM1_METHOD)
@@ -564,61 +658,63 @@ stage2 (mpz_t f, void *X, mpmod_t modulus, double B2min, double B2,
 
 clear_G:
   clear_list (G, dF);
-
+ clear_invF:
   clear_list (invF, dF + 1);
 
-#ifdef POLYEVAL
+ free_Tree_i:
   for (i = 0; i < lgk; i++)
     clear_list (Tree[i], dF);
+ free_Tree:
   free (Tree);
-#endif
 
- clear_F:
+ clear_T:
   clear_list (T, sizeT);
+ clear_F:
   clear_list (F, dF + 1);
 
   st0 = cputime() - st0;
 
   if (verbose >= 1)
     {
-      printf ("Step 2 took %dms\n", st0);
-      fflush (stdout);
+      fprintf (os, "Step 2 took %dms\n", st0);
+      fflush (os);
     }
 
   if (method == EC_METHOD && verbose >= 2)
     {
       double nrcurves, tottime, exptime;
       rhoinit (256, 10);
-      printf ("Expected time to find a factor of n digits:\n"
-              "20\t25\t30\t35\t40\t45\t50\t55\t60\t65\n");
+      fprintf (os, "Expected time to find a factor of n digits:\n"
+	       "20\t25\t30\t35\t40\t45\t50\t55\t60\t65\n");
       tottime = (double) stage1time + (double) st0;
       for (i = 20; i <= 65; i+=5)
         {
           nrcurves = 1. / ecmprob (B2min, B2, pow (10., i - .5), 
                                  (double)dF * (double)dF * k, S);
           exptime = tottime * nrcurves;
-          /* printf ("Total time: %.0f, expected number of curves: %.0f, expected time: %.0f\n", tottime, nrcurves, exptime); */ 
+          /* fprintf (os, "Total time: %.0f, expected number of curves: %.0f, expected time: %.0f\n", tottime, nrcurves, exptime); */ 
           if (exptime < 1000.)
-            printf ("%.0fms%c", exptime, i < 65 ? '\t' : '\n');
+            fprintf (os, "%.0fms%c", exptime, i < 65 ? '\t' : '\n');
           else if (exptime < 60000.) /* One minute */
-            printf ("%.2fs%c", exptime / 1000., i < 65 ? '\t' : '\n');
+            fprintf (os, "%.2fs%c", exptime / 1000., i < 65 ? '\t' : '\n');
           else if (exptime < 3600000.) /* One hour */
-            printf ("%.2fm%c", exptime / 60000., i < 65 ? '\t' : '\n');
+            fprintf (os, "%.2fm%c", exptime / 60000., i < 65 ? '\t' : '\n');
           else if (exptime < 86400000.) /* One day */
-            printf ("%.2fh%c", exptime / 3600000., i < 65 ? '\t' : '\n');
+            fprintf (os, "%.2fh%c", exptime / 3600000., i < 65 ? '\t' : '\n');
           else if (exptime < 31536000000.) /* One year */
-            printf ("%.2fd%c", exptime / 86400000., i < 65 ? '\t' : '\n');
+            fprintf (os, "%.2fd%c", exptime / 86400000., i < 65 ? '\t' : '\n');
           else if (exptime < 31536000000000.) /* One thousand years */
-            printf ("%.2fy%c", exptime / 31536000000., i < 65 ? '\t' : '\n');
+            fprintf (os, "%.2fy%c", exptime / 31536000000., i < 65 ? '\t' : '\n');
           else if (exptime < 31536000000000000.) /* One million years */
-            printf ("%.0fy%c", exptime / 31536000000., i < 65 ? '\t' : '\n');
+            fprintf (os, "%.0fy%c", exptime / 31536000000., i < 65 ? '\t' : '\n');
           else if (finite (exptime))
-            printf ("%.1gy%c", exptime / 31536000000., i < 65 ? '\t' : '\n');
+            fprintf (os, "%.1gy%c", exptime / 31536000000., i < 65 ? '\t' : '\n');
           else 
-            printf ("%.0f%c", exptime, i < 65 ? '\t' : '\n');
+            fprintf (os, "%.0f%c", exptime, i < 65 ? '\t' : '\n');
         }
     }
-    
+
+ clear_n:
   mpz_clear (n);
 
   return youpi;

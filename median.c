@@ -99,26 +99,26 @@ TKarMul (listz_t b, unsigned int n,
   unsigned int k, mu, nu, h;
   unsigned int s1;
   unsigned tot_muls = 0;
-#ifdef TKARMULDEBUG
+#ifdef DEBUG
   printf ("Enter TKarMul.\nm = %d\nn = %d\nl = %d\ndepth = %d\n", m, n,
           l, depth);
   printf ("a = ");
-  print_list (a, m + 1);
+  print_list (stdout, a, m + 1);
   printf ("\nc = ");
-  print_list (c, l + 1);
+  print_list (stdout, c, l + 1);
   printf ("\n");
 #endif
 
   
   if (n == 0)
     {
-#ifdef TKARMULDEBUG
+#ifdef DEBUG
       printf ("Case n = 0.\n");
 #endif
       mpz_mul (b[0], a[0], c[0]);
       for (k = 1; (k <= m) && (k <= l); k++)
 	mpz_addmul (b[0], a[k], c[k]);
-#ifdef TKARMULDEBUG
+#ifdef DEBUG
       printf ("Exit TKarMul.\n");
       show_result (a, m, c, l, b, n);
 #endif
@@ -127,14 +127,14 @@ TKarMul (listz_t b, unsigned int n,
 
   if (m == 0)
     {
-#ifdef TKARMULDEBUG
+#ifdef DEBUG
       printf ("Case m = 0.\n");
 #endif
       for (k = 0; (k <= l) && (k <= n); k++)
 	mpz_mul (b[k], a[0], c[k]);
       for (k = l + 1; k <= n; k++)
 	mpz_set_ui (b[k], 0);
-#ifdef TKARMULDEBUG
+#ifdef DEBUG
       printf ("Exit TKarMul.\n");
       show_result (a, m, c, l, b, n);
 #endif
@@ -145,13 +145,13 @@ TKarMul (listz_t b, unsigned int n,
   nu = (n / 2) + 1;		/* 1 <= nu <= n */
   h = MAX (mu, nu);		/* h >= 1 */
 
-#ifdef TKARMULDEBUG
+#ifdef DEBUG
   printf ("mu = %d\nnu = %d\nh = %d\n", mu, nu, h);
 #endif
 
   if (mu > n)
     {
-#ifdef TKARMULDEBUG
+#ifdef DEBUG
       printf ("Case mu > n.\n");
 #endif
 
@@ -162,7 +162,7 @@ TKarMul (listz_t b, unsigned int n,
 	  tot_muls += TKarMul (t, n, a + mu, m - mu, c + mu, l - mu, t + n + 1);
 	  list_add (b, b, t, n + 1);
 	}
-#ifdef TKARMULDEBUG
+#ifdef DEBUG
       printf ("Exit TKarMul.\n");
       show_result (a, m, c, l, b, n);
 #endif
@@ -171,7 +171,7 @@ TKarMul (listz_t b, unsigned int n,
 
   if (nu > m)
     {
-#ifdef TKARMULDEBUG
+#ifdef DEBUG
       printf ("Case nu > m.\n");
 #endif
 
@@ -190,7 +190,7 @@ TKarMul (listz_t b, unsigned int n,
 	}
       else
         list_zero (b + nu, n - nu + 1);
-#ifdef TKARMULDEBUG
+#ifdef DEBUG
       printf ("Exit TKarMul.\n");
       show_result (a, m, c, l, b, n);
 #endif
@@ -201,7 +201,7 @@ TKarMul (listz_t b, unsigned int n,
 
   mu = nu = h;
   
-#ifdef TKARMULDEBUG
+#ifdef DEBUG
   printf ("Base Case.\n");
 #endif
   
@@ -210,15 +210,15 @@ TKarMul (listz_t b, unsigned int n,
     list_sub_wrapper (t, c, c + nu, s1, l - nu + 1);
   else
     list_set (t, c, s1);
-#ifdef TKARMULDEBUG
+#ifdef DEBUG
       printf ("DEBUG c - c[nu].\n");
-      print_list (t, s1);
+      print_list (stdout, t, s1);
       printf ("We compute (1) - (3)\n");
 #endif
       tot_muls += TKarMul (b, nu - 1, a, mu - 1, t, s1 - 1, t + s1);
       /* (1) - (3) */
-#ifdef TKARMULDEBUG
-      print_list (b, nu);
+#ifdef DEBUG
+      print_list (stdout, b, nu);
       printf ("We compute (2) - (4)\n");
 #endif
       if (s1 >= nu + 1) { /* nu - 1 */
@@ -229,11 +229,11 @@ TKarMul (listz_t b, unsigned int n,
       else {
           list_zero (b + nu, n - nu + 1);
       }
-#ifdef TKARMULDEBUG
-      print_list (b + nu, n - nu + 1);
+#ifdef DEBUG
+      print_list (stdout, b + nu, n - nu + 1);
 #endif
       list_add_wrapper (t, a, a + mu, mu, m + 1 - mu);
-#ifdef TKARMULDEBUG
+#ifdef DEBUG
       printf ("We compute (2) + (3)\n");
 #endif
       if (l >= nu) {
@@ -243,12 +243,12 @@ TKarMul (listz_t b, unsigned int n,
       else
           list_zero (t + mu, nu);
       /* (2) + (3) */
-#ifdef TKARMULDEBUG
-      print_list (t + mu, nu);
+#ifdef DEBUG
+      print_list (stdout, t + mu, nu);
 #endif
       list_add (b, b, t + mu, nu);
       list_sub (b + nu, t + mu, b + nu, n - nu + 1);
-#ifdef TKARMULDEBUG
+#ifdef DEBUG
       show_result (a, m, c, l, b, n);
 #endif
       return tot_muls;
@@ -402,7 +402,7 @@ TToomCookMul (listz_t b, unsigned int n,
     /* ensures n + 1 > 2 * nu */
     if ((n < 2 * nu) || (m < 2 * mu))
     {
-#ifdef TTCDEBUG
+#ifdef DEBUG
         printf ("Too small operands, calling TKara.\n");
 #endif
         return TKarMul (b, n, a, m, c, l, tmp);
@@ -419,7 +419,7 @@ TToomCookMul (listz_t b, unsigned int n,
 
     if (m < 2 * nu)
     {
-#ifdef TTCDEBUG
+#ifdef DEBUG
         printf ("Degenerate Case 1.\n");
 #endif
         tot_muls += TToomCookMul (b, nu - 1, a, m, c, l, tmp);
@@ -441,7 +441,7 @@ TToomCookMul (listz_t b, unsigned int n,
 
     if (n < 2 * mu)
     {
-#ifdef TTCDEBUG
+#ifdef DEBUG
         printf ("Degenerate Case 2.\n");
 #endif
         tot_muls += TToomCookMul (b, n, a, mu - 1, c, l, tmp);
@@ -460,13 +460,13 @@ TToomCookMul (listz_t b, unsigned int n,
         return tot_muls;
     }
 
-#ifdef TTCDEBUG
+#ifdef DEBUG
     printf ("Base Case.\n");
     printf ("a = ");
-    print_list (a, m + 1);
+    print_list (stdout, a, m + 1);
 
     printf ("\nc = ");
-    print_list (c, l + 1);
+    print_list (stdout, c, l + 1);
 #endif
     h = MAX(nu, mu);
     nu = mu = h;
@@ -482,8 +482,8 @@ TToomCookMul (listz_t b, unsigned int n,
     for (i = 0; i < 2 * h - 1; i++)
         mpz_mul_2exp (tmp[2 * h - 1 + i], tmp[2 * h - 1 + i], 1);
     
-#ifdef TTCDEBUG
-    print_list (tmp, 4 * h - 2);
+#ifdef DEBUG
+    print_list (stdout, tmp, 4 * h - 2);
 #endif
 
     /* --------------------------------
@@ -500,9 +500,9 @@ TToomCookMul (listz_t b, unsigned int n,
 
     /* b[0 .. h - 1] = 2 * m0 */
 
-#ifdef TTCDEBUG
+#ifdef DEBUG
     printf ("2 * m0 = ");
-    print_list (b, h);
+    print_list (stdout, b, h);
 #endif
 
     list_add (tmp + 2 * h - 1, a, a + h, h);
@@ -512,9 +512,9 @@ TToomCookMul (listz_t b, unsigned int n,
 
     /* tmp[2*h-1 .. 3*h-2] = a0 + a1 + a2 */
 
-#ifdef TTCDEBUG
+#ifdef DEBUG
     printf ("\na0 + a1 + a2 = ");
-    print_list (tmp + 2 * h - 1, h);
+    print_list (stdout, tmp + 2 * h - 1, h);
 #endif
 
     list_sub_safe (tmp + 3 * h - 1, c + 2 * h, c + 3 * h, 
@@ -547,9 +547,9 @@ TToomCookMul (listz_t b, unsigned int n,
                               tmp + 7 * h - 3);
 
     /* b[h .. 2 * h - 1] = 2 * m1 */
-#ifdef TTCDEBUG
+#ifdef DEBUG
     printf ("\n2 * m1 = ");
-    print_list (b + h, h);
+    print_list (stdout, b + h, h);
 #endif
 
     /* ------------------------------------------------------------------
@@ -572,9 +572,9 @@ TToomCookMul (listz_t b, unsigned int n,
 
     /* tmp[5*h-2 .. 6*h - 3] = 6 * m2  */ 
     
-#ifdef TTCDEBUG
+#ifdef DEBUG
     printf ("\n6 * m2 = ");
-    print_list (tmp + 5 * h - 2, h);
+    print_list (stdout, tmp + 5 * h - 2, h);
 #endif
     for (i = 0; i < h; i++)
     {
@@ -598,9 +598,9 @@ TToomCookMul (listz_t b, unsigned int n,
 
     /* tmp[6h-2 .. 7h - 3] = 6 * mm1 */
 
-#ifdef TTCDEBUG
+#ifdef DEBUG
     printf ("\n6 * mm1 = ");
-    print_list (tmp + 6 * h - 2, h);
+    print_list (stdout, tmp + 6 * h - 2, h);
 #endif
     list_add_safe (tmp, tmp, c + 2 * h,
                    2 * h,
@@ -616,9 +616,9 @@ TToomCookMul (listz_t b, unsigned int n,
 
     /* b[2 * h .. n] = minf */
 
-#ifdef TTCDEBUG
+#ifdef DEBUG
     printf ("\nminf = ");
-    print_list (b + 2 * h, n + 1 - 2 * h);
+    print_list (stdout, b + 2 * h, n + 1 - 2 * h);
 #endif
 
     /* Layout of b : 
