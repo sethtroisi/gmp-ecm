@@ -66,7 +66,7 @@ polyeval (listz_t G, unsigned int k, listz_t *Tree, listz_t T, mpz_t n,
     {
       /* G - G[k-1] * (x^m + {T0+l,m}) * x^m */
       list_set (T, G, m);
-      list_mul_z (T + m, T0 + l, G[k - 1], m);
+      list_mul_z (T + m, T0 + l, G[k - 1], m, n);
       muls = m;
       list_sub (T + m, G + m, T + m, m);
       /* the following needs 3m+list_mul_mem(m) in T */

@@ -175,7 +175,7 @@ void         list_neg   (listz_t, listz_t, unsigned int);
 void         list_mod   (listz_t, listz_t, unsigned int, mpz_t);
 void         list_add   (listz_t, listz_t, listz_t, unsigned int);
 void         list_sub   (listz_t, listz_t, listz_t, unsigned int);
-void         list_mul_z (listz_t, listz_t, mpz_t, unsigned int);
+void         list_mul_z (listz_t, listz_t, mpz_t, unsigned int, mpz_t);
 int          list_gcd   (mpz_t, listz_t, unsigned int, mpz_t);
 void         list_zero  (listz_t, unsigned int);
 int          list_zerop (listz_t, unsigned int);
