@@ -19,14 +19,16 @@ LDADD = libecm.a
 
 noinst_HEADERS = ecm-impl.h ecm-gmp.h ecm.h ecm-ecm.h
 
-EXTRA_DIST = test.pm1 test.pp1 test.ecm ecm.1 README.lib
+EXTRA_DIST = test.pm1 test.pp1 test.ecm ecm.1 README.lib ecm.xml
 
 man_MANS = ecm.1
+
+XSLDIR = /usr/share/xml/docbook/stylesheet/nwalsh
 
 check: ecm
 	$(srcdir)/test.pp1 ./ecm
 	$(srcdir)/test.pm1 ./ecm
 	$(srcdir)/test.ecm ./ecm
 
-dist-hook:
+ecm.1: ecm.xml
 	xsltproc -o ecm.1 $(XSLDIR)/manpages/docbook.xsl ecm.xml
