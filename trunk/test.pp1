@@ -1,0 +1,121 @@
+#!/bin/csh
+set ECM="$1 -pp1"
+
+# P+1 requires that sigma^2-4 is a quadratic non-residue mod p
+
+echo 328006342451 | $ECM 107 5 7043
+if ($status != 0) then
+   echo "############### ERROR ###############";
+   exit 1;
+endif
+
+echo 6215074747201 | $ECM 409 5 199729
+if ($status != 0) then
+   echo "############### ERROR ###############";
+   exit 1;
+endif
+
+echo 8857714771093 | $ECM 23251 3 49207
+if ($status != 0) then
+   echo "############### ERROR ###############";
+   exit 1;
+endif
+
+echo 236344687097 | $ECM 619 3 55001
+if ($status != 0) then
+   echo "############### ERROR ###############";
+   exit 1;
+endif
+
+echo 87251820842149 | $ECM 3691 5 170249
+if ($status != 0) then
+   echo "############### ERROR ###############";
+   exit 1;
+endif
+
+echo 719571227339189 | $ECM 41039 4 57679
+if ($status != 0) then
+   echo "############### ERROR ###############";
+   exit 1;
+endif
+
+echo 5468575720021 | $ECM 1439 6 175759
+if ($status != 0) then
+   echo "############### ERROR ###############";
+   exit 1;
+endif
+
+echo 49804972211 | $ECM 15443 5 268757
+if ($status != 0) then
+   echo "############### ERROR ###############";
+   exit 1;
+endif
+
+echo 329573417220613 | $ECM 5279 3 101573
+if ($status != 0) then
+   echo "############### ERROR ###############";
+   exit 1;
+endif
+
+echo 4866979762781 | $ECM 7309 4 97609
+if ($status != 0) then
+   echo "############### ERROR ###############";
+   exit 1;
+endif
+
+echo 187333846633 | $ECM 2063 3 9851
+if ($status != 0) then
+   echo "############### ERROR ###############";
+   exit 1;
+endif
+
+echo 332526664667473 | $ECM 65993 3 111919
+if ($status != 0) then
+   echo "############### ERROR ###############";
+   exit 1;
+endif
+
+echo 265043186297 | $ECM 8761 3 152791
+if ($status != 0) then
+   echo "############### ERROR ###############";
+   exit 1;
+endif
+
+echo 207734163253 | $ECM 1877 3 4211
+if ($status != 0) then
+   echo "############### ERROR ###############";
+   exit 1;
+endif
+
+echo 225974065503889 | $ECM 7867 5 8243
+if ($status != 0) then
+   echo "############### ERROR ###############";
+   exit 1;
+endif
+
+echo 660198074631409 | $ECM 22541 5 115679
+if ($status != 0) then
+   echo "############### ERROR ###############";
+   exit 1;
+endif
+
+echo 563215815517 | $ECM 3469 3 109849
+if ($status != 0) then
+   echo "############### ERROR ###############";
+   exit 1;
+endif
+
+echo 409100738617 | $ECM 19 3 19
+if ($status != 0) then
+   echo "############### ERROR ###############";
+   exit 1;
+endif
+
+# p37 from 45^123+1 found by Peter Montgomery with B1=30M
+echo 4190453151940208656715582382315221647 | $ECM 2337233 3 132554351
+if ($status != 0) then
+   echo "############### ERROR ###############";
+   exit 1;
+endif
+
+echo "All tests are ok."
