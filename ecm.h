@@ -1,3 +1,11 @@
+/* maximal stage 1 bound = 2^53 + 4, the next prime being 2^53 + 5 */
+#define MAX_B1 9007199254740996.0
+
+/* different methods implemented */
+#define EC_METHOD 0
+#define PM1_METHOD 1
+#define PP1_METHOD 2
+
 typedef mpz_t* listz_t;
 
 typedef struct
@@ -10,7 +18,7 @@ typedef __polyz_struct polyz_t[1];
 
 double   getprime       (double);
 unsigned int nb_digits  (mpz_t);
-int          stage1     (mpz_t, mpz_t, double);
+int      pm1_stage1     (mpz_t, mpz_t, double);
 int          pm1        (mpz_t, mpz_t, double, double, unsigned int, 
                          unsigned int, int);
 int          ecm        (mpz_t, mpz_t, mpz_t, double, double, unsigned int, 
@@ -21,13 +29,20 @@ double       block_size (unsigned int);
 unsigned int gcd        (unsigned int, unsigned int);
 int          cputime    (void);
 
+/* pp1.c */
+void         pp1_mul    (mpz_t, mpz_t, mpz_t, mpz_t, mpz_t, mpz_t);
+void         pp1_mul_ui (mpz_t, mpz_t, mpz_t, mpz_t, mp_limb_t, mpz_t);
+int          pp1_stage1 (mpz_t, mpz_t, double);
+int          pp1        (mpz_t, mpz_t, double, double, unsigned int, 
+                         unsigned int, int);
+
 /* stage2.c */
 int          rootsF     (listz_t, unsigned int, mpz_t, mpz_t, mpz_t *, 
-                         unsigned int , mpz_t, int);
+                         unsigned int , mpz_t, int, int);
 void         rootsG     (listz_t, unsigned int, listz_t, listz_t, 
                          listz_t, unsigned int, mpz_t, int);
 int          stage2     (mpz_t, mpz_t, double, unsigned int, unsigned int, int,
-                         int);
+                         int, int);
 
 /* listz.c */
 int          list_mul_mem (unsigned int);
@@ -81,3 +96,23 @@ int ntl_poly_gcd   (mpz_t, polyz_t, polyz_t, mpz_t);
 void NTL_init (void);
 void NTL_clear (void);
 void NTL_get_factor (mpz_t);
+
+/* a <- b * c where a and b are mpz, c is a double, and t an auxiliary mpz */
+#if (BITS_PER_MP_LIMB >= 53)
+#define mpz_mul_d(a, b, c, t) \
+   mpz_mul_ui (a, b, (unsigned long int) c);
+#else
+#if (BITS_PER_MP_LIMB >= 32)
+#define mpz_mul_d(a, b, c, t) \
+   if (c < 4294967296.0) \
+      mpz_mul_ui (a, b, (unsigned long int) c); \
+   else { \
+   mpz_set_d (t, c); \
+   mpz_mul (a, b, t); }
+#else
+#define mpz_mul_d(a, b, c, t) \
+   mpz_set_d (t, c); \
+   mpz_mul (a, b, t);
+#endif
+#endif
+
