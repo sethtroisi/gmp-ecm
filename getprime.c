@@ -1,21 +1,23 @@
 /* Dynamic Eratosthenes sieve.
 
-  Copyright 2001, 2002, 2003 Paul Zimmermann and Alexander Kruppa.
+  Copyright 2001, 2002, 2003, 2005 Paul Zimmermann and Alexander Kruppa.
 
-  This program is free software; you can redistribute it and/or modify it
-  under the terms of the GNU General Public License as published by the
-  Free Software Foundation; either version 2 of the License, or (at your
+  This file is part of the ECM Library.
+
+  The ECM Library is free software; you can redistribute it and/or modify
+  it under the terms of the GNU Lesser General Public License as published by
+  the Free Software Foundation; either version 2.1 of the License, or (at your
   option) any later version.
 
-  This program is distributed in the hope that it will be useful, but WITHOUT
-  ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
-  FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License for
-  more details.
+  The ECM Library is distributed in the hope that it will be useful, but
+  WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
+  or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU Lesser General Public
+  License for more details.
 
-  You should have received a copy of the GNU General Public License along
-  with this program; see the file COPYING.  If not, write to the Free
-  Software Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA
-  02111-1307, USA.
+  You should have received a copy of the GNU Lesser General Public License
+  along with the ECM Library; see the file COPYING.LIB.  If not, write to
+  the Free Software Foundation, Inc., 59 Temple Place - Suite 330, Boston,
+  MA 02111-1307, USA.
 */
 
 #include <math.h>
@@ -29,14 +31,6 @@
 #include "ecm-impl.h"
 #endif
 
-/*
-  B1          10^5    10^6     10^7     10^8        1e9        1e10
-  Pi(B1)      9592    78498    664579   5761455   50847534    455052511
-  prev(B1)    99991   999983   9999991  99999989  999999937   9999999967
-  ecm/step1   0.1     2.02     42.7     
-  getprime    0.0     0.04     0.38     3.87        43.64      536.8
-*/
-
 /* This function returns successive odd primes, starting with 3.
    To perform a loop over all primes <= B1, do the following
    (compile this file with -DMAIN to count primes):
@@ -45,7 +39,12 @@
          {
             ...
          }
+
+   It is slightly less efficient (1.5 to 2 times) than Dan Bernstein's
+   primegen library (http://cr.yp.to/primegen.html), however it is
+   fast enough for our usage here.
 */
+
 double
 getprime (double pp)
 {
