@@ -192,6 +192,26 @@ tests_memory_end (void)
     }
 }
 
+void
+tests_memory_status (void)
+{
+  unsigned count = 0, size = 0;
+
+  if (tests_memory_list != NULL)
+    {
+      struct header  *h;
+
+      for (h = tests_memory_list; h != NULL; h = h->next)
+        {
+          count++;
+          size += h->size;
+        }
+
+    }
+
+  printf ("    %u blocks remaining, total size %u\n", count, size);
+}
+
 #else
 
 /* Stop compiler complaining about empty file */
