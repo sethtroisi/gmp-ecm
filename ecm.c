@@ -493,7 +493,7 @@ ecm_stage1 (mpz_t f, mpres_t x, mpres_t A, mpmod_t n, double B1,
   mpres_init (zT2, n);
 
   /* Prep for stage one counter */
-  fprintf (stderr, "1:000 \r");
+  fprintf (stderr, "1:00 \r");
 
   mpres_set_ui (z, 1, n);
   
@@ -523,7 +523,7 @@ ecm_stage1 (mpz_t f, mpres_t x, mpres_t A, mpmod_t n, double B1,
 	{
 	  /* only output to screen at most once every 30 seconds */
 	  int st_now = cputime();
-	  if (st_now - st > 30000)
+	  if (st_now - st > SCREEN_UPDATE_DELAY)
 	    {
 	      /* Check to see if we should update our screen "percentage counter" */
 	      double Percentage = q;
@@ -531,7 +531,7 @@ ecm_stage1 (mpz_t f, mpres_t x, mpres_t A, mpmod_t n, double B1,
 	      st = st_now;
 	      Percentage /= B1;
 	      Percentage *= 100;
-	      fprintf (stderr, "1:%03d\r", (int)Percentage);
+	      fprintf (stderr, "1:%02d\r", (int) Percentage);
   	    }
 	  Counter=0;
 	  /* should we save the current "ecm_wip.sav" file??? It is saved every 15 minutes */
@@ -542,7 +542,8 @@ ecm_stage1 (mpz_t f, mpres_t x, mpres_t A, mpmod_t n, double B1,
 	  if (st_now - st_save > 15 * 60 * 1000)
 #endif
 	    {
-	      /* orig_X0 not needed for the save.  Simply create a "dummy" here to pass in */
+	      /* orig_X0 not needed for the save.  Simply create a "dummy" 
+                 here to pass in */
 /*	      mpz_t orig_X0, X, U, Z; 
 	      mpz_init_set_ui (orig_X0, 0);
 	      mpz_init (X);
@@ -559,16 +560,10 @@ ecm_stage1 (mpz_t f, mpres_t x, mpres_t A, mpmod_t n, double B1,
 
 /*	      mpz_clear (orig_X0);
 	      mpz_clear (X);
-/*
+*/
 	      /* Reset our "timeout" value, so we save again in 15 minutes */
 	      st_save = st_now;
 	    }
-	  /*  This "testing" code is here to see just how often this ++Counter loop is entered.
-	  {
-	    static int x;
-  	    fprintf (stderr, "1:%03d  q=%.0f r=%.0f\r", ++x, q, r);
-	  }
-	  */
 	}
     }
   getprime (0.0); /* free the prime tables, and reinitialize */
