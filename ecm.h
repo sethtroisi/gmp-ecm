@@ -287,6 +287,7 @@ void mpres_set_z (mpres_t, mpz_t, mpmod_t);
 void mpres_get_z (mpz_t, mpres_t, mpmod_t);
 void mpres_set_ui (mpres_t, unsigned int, mpmod_t);
 void mpres_init (mpres_t, mpmod_t);
+void mpres_realloc (mpres_t, mpmod_t);
 void mpres_mul_ui (mpres_t, mpres_t, unsigned int, mpmod_t);
 void mpres_neg (mpres_t, mpres_t, mpmod_t);
 int  mpres_invert (mpres_t, mpres_t, mpmod_t);
