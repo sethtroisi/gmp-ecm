@@ -206,8 +206,11 @@ toomcook4 (listz_t C, listz_t A, listz_t B, unsigned int len, listz_t t)
      Further values where toomcook3 is faster are 17,18,26,27,77,78,79,80,81.
    */
 
-  if ((len <= 6 && len != 4) || len == 9 || (17 <= len && len <= 18) ||
-      (26 <= len && len <= 27) || (77 <= len && len <= 81))
+  if (len <= 2)
+    return karatsuba (C, A, B, len, t);
+
+  if (len == 3 || len == 5 || len == 6 || len == 9 || len == 17 || len == 18 ||
+      (25 <= len && len <= 27) || (77 <= len && len <= 81))
     return toomcook3 (C, A, B, len, t);
 
   l = (len + 3) / 4;            /* l = ceil(len/4) */
