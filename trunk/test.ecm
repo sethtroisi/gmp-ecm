@@ -98,6 +98,26 @@ ECM="$1"
 # bug in ecm 5.0 and 5.0.1 (factor found for c110 input, not with p58)
 (echo 3213162276640339413566047915418064969550383692549981333701 | $ECM -sigma 2735675386 3897500) ||
    (echo "############### ERROR ###############"; exit 1) || exit
+echo 39614081257132168796771975177 | $ECM -sigma 480 1e6
+if ($status != 0) then
+   echo "############### ERROR ###############";
+   exit 1;
+endif
+echo 10000286586958753753 | $ECM -sigma 3956738175 1e6
+if ($status != 0) then
+   echo "############### ERROR ###############";
+   exit 1;
+endif
+echo 49672383630046506169472128421 | $ECM -sigma 2687434659 3e6
+if ($status != 0) then
+   echo "############### ERROR ###############";
+   exit 1;
+endif
+echo 216259730493575791390589173296092767511 | $ECM -sigma 214659179 2e6
+if ($status != 0) then
+   echo "############### ERROR ###############";
+   exit 1;
+endif
 
 echo ""
 echo "All tests are ok."
