@@ -105,10 +105,9 @@ od:
       dd2 = (double) d * (double) d2;
       
       /* How many lines will we need ? */
-      jf = ceil (B2 / dd2 + .5) - floor (B2min / dd2);
-      /* Plus .5, because the points for the roots of F cover values 
-         symmetric around the points for roots of G.
-         FIXME: shouldn't it be ceil ((B2 + dd2 - 5) / dd2) instead? */
+      jf = ceil ((B2 + dd2 - 5) / dd2) - floor (B2min / dd2);
+      /* Plus dd2 - 5, because the points for the roots of F only cover 
+         values == 1 (mod 6) */
       
       /* How many blocks will we need ? */
       j = (unsigned int) ceil (jf / (double) dF * (double) phi (d2));
@@ -177,7 +176,7 @@ bestD_po2 (double B2min, double B2, unsigned int *finald,
       j = phi (d) / 2;
       for (dF = 1; dF < j; dF <<= 1); /* dF = 2^ceil(log_2(phi(d))) */
       dd2 = (double) d * (double) d2;
-      jf = ceil ((B2 + dd2 / 2) / dd2) - floor (B2min / dd2);
+      jf = ceil ((B2 + dd2 - 5) / dd2) - floor (B2min / dd2);
       j = ceil (jf * (double) phi (d2) / (double) dF); 
       if (j <= *k || (*k == 0 && j <= 9))
         break;
