@@ -234,10 +234,6 @@ typedef struct
      * of each polynomial (constant term first) */
     spv_t *spv;
     
-    /* flags to tell whether or not the coeffs are normalised / transformed */
-    int normalised;
-    int ntt;
-    
     /* is there an implied monic monomial? if so then store its position,
      * otherwise monic_pos = 0 */
     spv_size_t monic_pos;
@@ -503,9 +499,12 @@ void mpzspm_clear (mpzspm_t);
 #define MPZSPP_REALLOC(x,n) do{if((x)->alloc_len<n)mpzspp_realloc(x,n);}while(0)
 
 mpzspp_t mpzspp_init (mpzspm_t);
+mpzspp_t mpzspp_init2 (mpzspm_t, spv_size_t);
 void mpzspp_clear (mpzspp_t);
 void mpzspp_realloc (mpzspp_t, spv_size_t);
+void mpzspp_set (mpzspp_t, mpzspp_t, spv_size_t, spv_size_t, spv_size_t);
 void mpzspp_set_mpzp (mpzspp_t, mpzp_t, spv_size_t, spv_size_t);
+void mpzspp_neg (mpzspp_t, mpzspp_t, spv_size_t, spv_size_t);
 void mpzspp_get_mpzp (mpzspp_t, mpzp_t, spv_size_t, spv_size_t);
 void mpzspp_mul (mpzspp_t, mpzspp_t, mpzspp_t, int);
 void mpzspp_mul_partial (mpzspp_t, mpzspp_t, mpzspp_t, spv_size_t, spv_size_t,

@@ -328,7 +328,7 @@ stage2 (mpz_t f, void *X, mpmod_t modulus, mpz_t B2min, mpz_t B2,
     }
   if (d == 0)
     {
-#if 1 || defined HAVE_NTT
+#if defined HAVE_NTT
       /* choose power-of-two dF */
       if (bestD (B2min, effB2, 1, &d, &d2, &k, &dF, i0) == ECM_ERROR)
 #else
@@ -339,6 +339,10 @@ stage2 (mpz_t f, void *X, mpmod_t modulus, mpz_t B2min, mpz_t B2,
           goto clear_s_i0;
         }
     }
+#if defined HAVE_NTT
+  mpzspm_t mpzspm = mpzspm_init (modulus->orig_modulus, 2 * dF);
+  mpzspp_t sp_invF;
+#endif
   
   mpz_mul_ui (s, i0, d); /* s = i0 * d */
   b2 = (double) dF * (double) d * (double) d2 / (double) phi (d2);
@@ -473,7 +477,12 @@ stage2 (mpz_t f, void *X, mpmod_t modulus, mpz_t B2min, mpz_t B2,
               youpi = ECM_ERROR;
               goto free_Tree_i;
             }
-          if (PolyFromRoots_Tree (F, F, dF, T, i - 1, n, NULL, TreeFile, 0)
+#if 0 && defined HAVE_NTT
+	  /* FIXME: Tree == NULL breaks ntt_PolyFromRoots_Tree */
+	  if (ntt_PolyFromRoots_Tree (F, F, dF, T, mpzspm, NULL, TreeFile)
+#else
+	  if (PolyFromRoots_Tree (F, F, dF, T, i - 1, n, NULL, TreeFile, 0)
+#endif
               == ECM_ERROR)
             {
               fclose (TreeFile);
@@ -489,7 +498,7 @@ stage2 (mpz_t f, void *X, mpmod_t modulus, mpz_t B2min, mpz_t B2,
     }
   else
 #ifdef HAVE_NTT
-    ntt_PolyFromRoots_Tree (F, F, dF, T, n, Tree, NULL);
+    ntt_PolyFromRoots_Tree (F, F, dF, T, mpzspm, Tree, NULL);
 #else
     PolyFromRoots_Tree (F, F, dF, T, -1, n, Tree, NULL, 0);
 #endif
@@ -522,7 +531,10 @@ stage2 (mpz_t f, void *X, mpmod_t modulus, mpz_t B2min, mpz_t B2,
 	}
       st = cputime ();
 #ifdef HAVE_NTT
-      ntt_PolyInvert (invF, F + 1, dF, T, n);
+      ntt_PolyInvert (invF, F + 1, dF, T, mpzspm);
+      sp_invF = mpzspp_init2 (mpzspm, 2 * dF);
+      mpzspp_set_mpzp (sp_invF, invF + 1, dF - 1, 0);
+      mpzspp_to_ntt (sp_invF, 2 * dF, 0);
 #else
       PolyInvert (invF, F + 1, dF, T, n);
 #endif
@@ -595,7 +607,7 @@ stage2 (mpz_t f, void *X, mpmod_t modulus, mpz_t B2min, mpz_t B2,
 
       st = cputime ();
 #ifdef HAVE_NTT
-      ntt_PolyFromRoots (G, G, dF, T + dF, n);
+      ntt_PolyFromRoots (G, G, dF, T + dF, mpzspm);
 #else
       PolyFromRoots (G, G, dF, T + dF, n);
 #endif
@@ -637,7 +649,7 @@ stage2 (mpz_t f, void *X, mpmod_t modulus, mpz_t B2min, mpz_t B2,
 	  /* previous G mod F is in H, with degree < dF, i.e. dF coefficients:
 	     requires 3dF-1+list_mul_mem(dF) cells in T */
 #ifdef HAVE_NTT
-	  ntt_mul (T + dF, G, H, dF, T + 3 * dF, 0, n);
+	  ntt_mul (T + dF, G, H, dF, T + 3 * dF, 0, mpzspm);
 	  list_mod (H, T + dF, 2 * dF, n);
 #else
 	  list_mulmod (H, T + dF, G, H, dF, T + 3 * dF, n);
@@ -654,7 +666,7 @@ stage2 (mpz_t f, void *X, mpmod_t modulus, mpz_t B2min, mpz_t B2,
 
 	  st = cputime ();
 #ifdef HAVE_NTT
-	  ntt_PrerevertDivision (H, F, invF + 1, dF, T + 2 * dF, n);
+	  ntt_PrerevertDivision (H, F, invF + 1, sp_invF, dF, T + 2 * dF, mpzspm);
 #else
 	  if (PrerevertDivision (H, F, invF + 1, dF, T + 2 * dF, n))
 	    {
@@ -724,6 +736,11 @@ clear_s_i0:
   mpz_clear (i0);
   mpz_clear (s);
 
+#ifdef HAVE_NTT
+  mpzspp_clear (sp_invF);
+  mpzspm_clear (mpzspm);
+#endif
+  
   st0 = elltime (st0, cputime ());
 
   outputf (OUTPUT_NORMAL, "Step 2 took %ums\n", st0);
