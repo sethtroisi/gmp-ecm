@@ -141,7 +141,7 @@ multiplyW2n (mpz_t p, point *R, curve *S, mpz_t *q, unsigned int n,
               /* If a factor was found, put factor in p, 
                  flag success and bail out of loop */
               mpres_gcd (p, T[k - 1], modulus);
-              youpi = ECM_FACTOR_FOUND;
+              youpi = ECM_FACTOR_FOUND_STEP2;
               break;
             }
         }
@@ -310,7 +310,7 @@ addWnm (mpz_t p, point *X, curve *S, mpmod_t modulus, unsigned int m,
       mpres_gcd (p, T[k - 1], modulus);
       (*tot_muls) += m * n - 1;
       (*tot_gcds) ++;
-      return ECM_FACTOR_FOUND;
+      return ECM_FACTOR_FOUND_STEP2;
     }
 
   /* T[k] = 1/(v_0 * ... * v_m), 0 <= m < k */
@@ -488,7 +488,7 @@ ecm_rootsF (mpz_t f, listz_t F, unsigned int d1, unsigned int d2,
 
   youpi = multiplyW2n (f, state.fd, s, coeffs, state.size_fd, modulus, 
                        state.T[0], state.T[1], state.T + 2, &muls, &gcds, ECM_STDERR);
-  if (youpi == ECM_FACTOR_FOUND && verbose >= 2)
+  if (youpi == ECM_FACTOR_FOUND_STEP2 && verbose >= 2)
     fprintf (ECM_STDOUT, "Found factor while computing coeff[] * X\n");  
 
   if (youpi == ECM_ERROR)
@@ -533,7 +533,7 @@ ecm_rootsF (mpz_t f, listz_t F, unsigned int d1, unsigned int d2,
                               state.T, &muls, &gcds);
 	      ASSERT(youpi != ECM_ERROR); /* no error can occur in addWnm */
               state.next = 0;
-              if (youpi == ECM_FACTOR_FOUND && verbose >= 2)
+              if (youpi == ECM_FACTOR_FOUND_STEP2 && verbose >= 2)
                 fprintf (ECM_STDOUT, "Found factor while computing roots of F\n");
             }
           
@@ -716,7 +716,7 @@ ecm_rootsG_init (mpz_t f, curve *X, double s, unsigned int d1, unsigned int d2,
   
   if (youpi != ECM_NO_FACTOR_FOUND) /* factor found or error */
     {
-      if (youpi == ECM_FACTOR_FOUND && verbose >= 2)
+      if (youpi == ECM_FACTOR_FOUND_STEP2 && verbose >= 2)
         fprintf (ECM_STDOUT, "Found factor while computing fd[]\n");
 
       ecm_rootsG_clear (state, S, modulus);
@@ -793,7 +793,7 @@ ecm_rootsG (mpz_t f, listz_t G, unsigned int dF, ecm_roots_state *state,
 	  ASSERT(youpi != ECM_ERROR); /* no error can occur in addWnm */
           state->next = 0;
           
-          if (youpi == ECM_FACTOR_FOUND)
+          if (youpi == ECM_FACTOR_FOUND_STEP2)
             {
               if (verbose >= 2)
                 fprintf (ECM_STDOUT, "Found factor while computing G[]\n");

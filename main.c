@@ -191,11 +191,13 @@ main (int argc, char *argv[])
   int factor_is_prime;
         /* If a factor was found, indicate whether factor, cofactor are */
         /* prime. If no factor was found, both are zero. */
-  int repr = 0;
+  int repr = ECM_DEFAULT_REPR; /* automatic choice */
   int k = ECM_DEFAULT_K; /* default number of blocks in stage 2 */
-  int S = 0; /* Degree for Brent-Suyama extension requested by user */
-             /* Positive value: use S-th power, */
-             /* negative: use degree |S| Dickson poly */
+  int S = ECM_DEFAULT_S;
+             /* Degree for Brent-Suyama extension requested by user.
+                Positive value: use S-th power,
+                negative: use degree |S| Dickson poly,
+                default (0): automatic choice. */
   gmp_randstate_t randstate;
   char *savefilename = NULL, *resumefilename = NULL, *infilename = NULL;
   char *endptr[1]; /* to parse B2 or B2min-B2max */
@@ -634,7 +636,7 @@ main (int argc, char *argv[])
       B1 = strtod (argv[1] + 1, NULL);
     }
   else
-    B1done = DEFAULT_B1_DONE;
+    B1done = ECM_DEFAULT_B1_DONE;
   B2min = B1;
 
   if (B1 < 0.0 || B1done < 0.0)
@@ -652,7 +654,7 @@ main (int argc, char *argv[])
 
   init_expr ();
 
-  B2 = DEFAULT_B2; /* compute it automatically from B1 */
+  B2 = ECM_DEFAULT_B2; /* compute it automatically from B1 */
   /* parse B2 or B2min-B2max */
   if (argc >= 3)
     {
@@ -899,7 +901,7 @@ BreadthFirstDoAgain:;
                 pm1_random_seed (x, n.n, randstate);
             }
          
-          if (IS_DEFAULT_B1_DONE(B1done))
+          if (ECM_IS_DEFAULT_B1_DONE(B1done))
             mpz_set (orig_x0, x);
           
           /* Make a random sigma if we have neither specific sigma nor A 
@@ -909,7 +911,7 @@ BreadthFirstDoAgain:;
             {
               /* Make random sigma, 0 < sigma <= 2^32 */
               mpz_urandomb (sigma, randstate, 32);
-              mpz_add_ui (sigma, sigma, 1); /* FIXME: need sigma>=5? */
+              mpz_add_ui (sigma, sigma, 6); /* we need sigma >= 6 */
             }
         }
       if (verbose > 0)

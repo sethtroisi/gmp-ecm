@@ -593,7 +593,7 @@ ecm_stage1 (mpz_t f, mpres_t x, mpres_t A, mpmod_t n, double B1, double B1done,
             2 diagnostic output.
           sigma_is_a: If true, the sigma parameter contains the curve's A value
    Output: f is the factor found.
-   Return value: ECM_FACTOR_FOUND if a factor was found,
+   Return value: ECM_FACTOR_FOUND_STEPn if a factor was found,
                  ECM_NO_FACTOR_FOUND if no factor was found,
 		 ECM_ERROR in case of error.
 */
@@ -602,7 +602,7 @@ ecm (mpz_t f, mpz_t x, mpz_t sigma, mpz_t n, mpz_t go, double B1done,
      double B1, double B2min, double B2, double B2scale, unsigned int k,
      int S, int verbose, int repr, int sigma_is_A, FILE *os, FILE* es)
 {
-  int youpi = 0, st;
+  int youpi = ECM_NO_FACTOR_FOUND, st;
   mpmod_t modulus;
   curve P;
 
@@ -613,7 +613,7 @@ ecm (mpz_t f, mpz_t x, mpz_t sigma, mpz_t n, mpz_t go, double B1done,
   if (mpz_divisible_2exp_p (n, 1))
     {
       mpz_set_ui (f, 2);
-      return ECM_FACTOR_FOUND;
+      return ECM_FACTOR_FOUND_STEP1;
     }
 
   /* now n is odd */
@@ -632,7 +632,7 @@ ecm (mpz_t f, mpz_t x, mpz_t sigma, mpz_t n, mpz_t go, double B1done,
      addition and duplicate, and both are optimized with PRAC, we can
      assume the ratio remains about 11/2. */
 
-  if (IS_DEFAULT_B2(B2))
+  if (ECM_IS_DEFAULT_B2(B2))
     B2 = pow (11.0 / 6.0 * B1, 1.424828748);
 
   /* Scale B2 by what the user said (or by the default scaling of 1.0) */
@@ -645,7 +645,7 @@ ecm (mpz_t f, mpz_t x, mpz_t sigma, mpz_t n, mpz_t go, double B1done,
      the better Dickson polys whenever possible. For S == 1, 2, they behave
      identically. */
 
-  if (S == 0)
+  if (S == ECM_DEFAULT_S)
     {
       if (B2 - B2min < 1.e7)
         S = 1;    /* x^1 */
@@ -669,7 +669,7 @@ ecm (mpz_t f, mpz_t x, mpz_t sigma, mpz_t n, mpz_t go, double B1done,
     mpmod_init_REDC (modulus, n);
   else if (repr > 16)
     mpmod_init_BASE2 (modulus, repr, n);
-  else
+  else /* automatic choice, avoiding base2 if repr=-1 */
     mpmod_init (modulus, n, repr, verbose);
 
   mpres_init (P.x, modulus);
@@ -677,6 +677,17 @@ ecm (mpz_t f, mpz_t x, mpz_t sigma, mpz_t n, mpz_t go, double B1done,
 
   if (sigma_is_A == 0)
     {
+      /* if sigma=0, generate it at random */
+      if (mpz_cmp_ui (sigma, 0) == 0)
+        {
+          gmp_randstate_t state;
+          gmp_randinit_default (state);
+          gmp_randseed_ui (state, get_random_ui ());
+          mpz_urandomb (sigma, state, 32);
+          mpz_add_ui (sigma, sigma, 6);
+          gmp_randclear (state);
+        }
+
       /* sigma contains sigma value, A value must be computed */
       outputf (OUTPUT_NORMAL, "Using B1=%1.0f, B2=", B1);
       if (B2min <= B1)
@@ -748,7 +759,7 @@ ecm (mpz_t f, mpz_t x, mpz_t sigma, mpz_t n, mpz_t go, double B1done,
   
   mpres_get_z (x, P.x, modulus);
 
-  if (youpi != 0) /* a factor was found */
+  if (youpi != ECM_NO_FACTOR_FOUND) /* a factor was found */
     goto end_of_ecm;
 
   if (test_verbose (OUTPUT_VERBOSE)) 
@@ -765,7 +776,7 @@ ecm (mpz_t f, mpz_t x, mpz_t sigma, mpz_t n, mpz_t go, double B1done,
 
   youpi = montgomery_to_weierstrass (f, P.x, P.y, P.A, modulus);
 
-  if (youpi == 0)
+  if (youpi == ECM_NO_FACTOR_FOUND)
     youpi = stage2 (f, &P, modulus, B2min, B2, k, S, verbose, ECM_ECM, st);
   
   mpres_clear (P.y, modulus);

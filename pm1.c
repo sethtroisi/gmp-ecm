@@ -360,7 +360,7 @@ pm1_stage1 (mpz_t f, mpres_t a, mpmod_t n, double B1, double B1done,
   
   mpres_sub_ui (a, a, 1, n);
   mpres_gcd (f, a, n);
-  youpi = mpz_cmp_ui (f, 1);
+  youpi = mpz_cmp_ui (f, 1) ? ECM_FACTOR_FOUND_STEP1 : ECM_NO_FACTOR_FOUND;
   mpres_add_ui (a, a, 1, n);
 
  clear_pm1_stage1:
@@ -517,7 +517,7 @@ pm1_rootsF (mpz_t f, listz_t F, unsigned int d1, unsigned int d2,
           if (verbose >= 2)
             fprintf (ECM_STDOUT, "Found factor while inverting F[0]*..*F[d]\n");
           mpz_set (f, t[dF]);
-          return ECM_FACTOR_FOUND;
+          return ECM_FACTOR_FOUND_STEP2;
         }
       
       muls += 3 * (dF - 1);
@@ -705,7 +705,7 @@ pm1_rootsG (mpz_t f, listz_t G, unsigned int dF, pm1_roots_state *state,
           if (verbose >= 2)
             fprintf (ECM_STDOUT, "Found factor while inverting G[0]*..*G[d]\n");
           mpz_set (f, t[dF]);
-          return ECM_FACTOR_FOUND;
+          return ECM_FACTOR_FOUND_STEP2;
         }
 
       muls += 3 * (dF - 1);
@@ -763,7 +763,7 @@ pm1 (mpz_t f, mpz_t p, mpz_t N, mpz_t go, double B1done, double B1,
   if (mpz_divisible_2exp_p (N, 1))
     {
       mpz_set_ui (f, 2);
-      return ECM_FACTOR_FOUND;
+      return ECM_FACTOR_FOUND_STEP1;
     }
 
   st = cputime ();
@@ -777,7 +777,7 @@ pm1 (mpz_t f, mpz_t p, mpz_t N, mpz_t go, double B1done, double B1,
     }
   
   /* Set default B2. See ecm.c for comments */
-  if (IS_DEFAULT_B2(B2))
+  if (ECM_IS_DEFAULT_B2(B2))
     B2 = pow (B1 / 6.0, 1.424828748);
 
   /* Scale B2 by what the user said (or by the default scaling of 1.0) */
@@ -785,7 +785,7 @@ pm1 (mpz_t f, mpz_t p, mpz_t N, mpz_t go, double B1done, double B1,
 
   /* Set default degree for Brent-Suyama extension */
   
-  if (S == 0)
+  if (S == ECM_DEFAULT_S)
     {
       if (B2 - B2min < 3.5e5) /* B1 < 50000 */
         S = -4; /* Dickson polys give a slightly better chance of success */
@@ -814,7 +814,7 @@ pm1 (mpz_t f, mpz_t p, mpz_t N, mpz_t go, double B1done, double B1,
   if (verbose >= 1)
     {
       fprintf (ECM_STDOUT, "Using ");
-      if (IS_DEFAULT_B1_DONE(B1done))
+      if (ECM_IS_DEFAULT_B1_DONE(B1done))
         fprintf (ECM_STDOUT, "B1=%1.0f", B1);
       else
         fprintf (ECM_STDOUT, "B1=%1.0f-%1.0f", B1done, B1);
@@ -827,7 +827,7 @@ pm1 (mpz_t f, mpz_t p, mpz_t N, mpz_t go, double B1done, double B1,
       else
         fprintf (ECM_STDOUT, "polynomial Dickson(%u)", -S);
 
-      if (IS_DEFAULT_B1_DONE(B1done) || verbose > 1) 
+      if (ECM_IS_DEFAULT_B1_DONE(B1done) || verbose > 1) 
 	/* don't print in resume case, since x0 is saved in resume file */
 	{
 	  fprintf (ECM_STDOUT, ", x0=");
@@ -848,7 +848,7 @@ pm1 (mpz_t f, mpz_t p, mpz_t N, mpz_t go, double B1done, double B1,
       else
         mpmod_init_MPZ (modulus, N);
     }
-  else
+  else /* automatic choice */
     {
       /* Find a good arithmetic for this number */
       Nbits = mpz_sizeinbase (N, 2);
