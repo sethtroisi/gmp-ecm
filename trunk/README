@@ -165,19 +165,16 @@ versions of gmp-ecm, since they depend on some internal parameters that
 may change.
 
 We have succesfully tested this version on the following configurations.
-Here are some timings obtained with ECM (B1=3e6) on the following
-155-digit number:
-
-$ cat c155
-95209938255048826235189575712705128366296557149606415206280987204268594538412191641776798249266895999715600261737863698825644292938050707507901970225804581
+Here are some timings obtained with ECM (B1=3e6) on the c155 file, with
+the command "./ecm 3e6 < c155":
 
 configuration          version   compiler      stage 1     stage 2
                        of gmp                  (seconds)   (seconds)
 athlon-pc-linux-gnu   gmp-4.1.2 gcc-2.95.3       79.7       47.3 MP 2000+
 alphaev6-dec-osf4.0f  gmp-4.1.2 gcc-2.95.3      106.0       84.4 EV6-500
+powerpc630-ibm-aix5.1.0.0 4.1.2 xlc             337.5      155.0 Power3+ 375
 pentium3-pc-linux-gnu gmp-4.1.2 gcc-2.95.3      411.2      214.4 PIII-500
 mips64-sgi-irix6.5    gmp-4.1.2 gcc-3.0.1       401.3      251.0 R10K-250
-powerpc630-ibm-aix5.1.0.0 4.1.2 xlc             337.5      155.0 Power3+ 375
 
 ##############################################################################
 
