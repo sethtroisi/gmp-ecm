@@ -1,6 +1,6 @@
 /* GMP-ECM -- Integer factorization with ECM and Pollard 'P-1' methods.
 
-  Copyright 2001, 2002, 2003 Paul Zimmermann and Alexander Kruppa.
+  Copyright 2001, 2002, 2003, 2004, 2005 Jim Fougeron, Laurent Fousse, Alexander Kruppa, Paul Zimmermann.
 
   This program is free software; you can redistribute it and/or modify it
   under the terms of the GNU General Public License as published by the
