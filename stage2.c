@@ -139,7 +139,7 @@ fin_diff_coeff (listz_t coeffs, unsigned int s, unsigned int D,
    Return value: non-zero iff a factor was found.
 */
 int
-stage2 (mpz_t f, curve *X, mpmod_t modulus, double B2, unsigned int k, unsigned int S, 
+stage2 (mpz_t f, void *X, mpmod_t modulus, double B2, unsigned int k, unsigned int S, 
         int verbose, int method, double B1)
 {
 /*  int invtrick = (method == PM1_METHOD); */
@@ -164,12 +164,14 @@ stage2 (mpz_t f, curve *X, mpmod_t modulus, double B2, unsigned int k, unsigned 
 
   mpz_init_set(n, modulus->orig_modulus);
 
+/*
   if (verbose >= 2)
     {
       printf ("starting stage 2 with x=");
       mpres_out_str (stdout, 10, X->x, modulus);
       putchar ('\n');
     }
+*/
 
   b2 = ceil(B2 / k); /* b2 = ceil(B2/k): small block size */
 
@@ -204,11 +206,11 @@ stage2 (mpz_t f, curve *X, mpmod_t modulus, double B2, unsigned int k, unsigned 
 
   /* needs dF+1 cells in T */
   if (method == PM1_METHOD)
-    youpi = pm1_rootsF (f, F, d, X->x, T, S, modulus, verbose);
+    youpi = pm1_rootsF (f, F, d, X, T, S, modulus, verbose);
   else if (method == PP1_METHOD)
-    youpi = pp1_rootsF (F, d, X->x, T, modulus, verbose);
+    youpi = pp1_rootsF (F, d, X, T, modulus, verbose);
   else 
-    youpi = ecm_rootsF (f, F, d, *X, T, S, modulus, verbose);
+    youpi = ecm_rootsF (f, F, d, X, T, S, modulus, verbose);
 
   if (youpi)
     {
@@ -261,9 +263,9 @@ stage2 (mpz_t f, curve *X, mpmod_t modulus, double B2, unsigned int k, unsigned 
   G = init_list (dF);
   st = cputime ();
   if (method == PM1_METHOD)
-    rootsG_state = pm1_rootsG_init (X->x, 2*d, d, S, modulus);
+    rootsG_state = pm1_rootsG_init (X, 2*d, d, S, modulus);
   else if (method == PP1_METHOD)
-    rootsG_state = pp1_rootsG_init (X->x, 2*d, d, modulus);
+    rootsG_state = pp1_rootsG_init (X, 2*d, d, modulus);
   else /* EC_METHOD */
     rootsG_state = ecm_rootsG_init (f, X, 2*d, d, S, modulus);
   

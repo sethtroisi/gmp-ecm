@@ -27,15 +27,11 @@
 #include <gmp-impl.h>
 #include <longlong.h>
 
-#define DEBUG
-#ifndef MOD_PLAIN_TO_MODMULN_THRESHOLD
-#define MOD_PLAIN_TO_MODMULN_THRESHOLD 50
-#endif
-#ifndef MOD_MODMULN_TO_REDC_THRESHOLD
-#define MOD_MODMULN_TO_REDC_THRESHOLD 50000
+/* #define DEBUG */
+#ifndef MOD_PLAIN_TO_REDC_THRESHOLD
+#define MOD_PLAIN_TO_REDC_THRESHOLD 20000
 #endif
 
-int isbase2 (mpz_t, double);
 void base2mod (mpres_t, mpres_t, mpres_t, mpmod_t);
 void REDC (mpres_t, mpres_t, mpz_t, mpmod_t);
 void mod_mul2exp (mpz_t c, unsigned int k, mpmod_t n);
@@ -190,87 +186,141 @@ mpz_mod_n (mpz_t c, mpmod_t modulus)
 }
 
 void 
-mpmod_init(mpmod_t modulus, mpz_t N)
+mpmod_init (mpmod_t modulus, mpz_t N)
 {
-  int base2, Nbits;
-  mpz_t R;
+  int base2;
+  
+  if ((base2 = isbase2 (N, 2.0)))
+    {
+      printf ("Using base-2: 2^%d %c 1\n", abs(base2), (base2<0)?'-':'+');
+      mpmod_init_BASE2 (modulus, base2, N);
+    }
+  else if (mpz_size (N) < 3 * DIV_DC_THRESHOLD / 2)
+    {
+      printf ("Using MODMULN\n");
+      mpmod_init_MODMULN (modulus, N);
+    }
+  else if (mpz_sizeinbase (N, 2) < MOD_PLAIN_TO_REDC_THRESHOLD)
+    {
+      printf ("Using plain mpz_mod\n");
+      mpmod_init_MPZ (modulus, N);
+    }
+  else
+    {
+      printf("Using REDC\n");
+      mpmod_init_REDC (modulus, N);
+    }
+  
+  return;
+}
+
+void 
+mpmod_init_MPZ (mpmod_t modulus, mpz_t N)
+{
+  int Nbits;
   
   mpz_init_set (modulus->orig_modulus, N);
+  modulus->repr = MOD_PLAIN;
   
   Nbits = mpz_size (N) * __GMP_BITS_PER_MP_LIMB; /* Number of bits, rounded
                                                     up to full limb */
   mpz_init2 (modulus->temp1, 2 * Nbits + __GMP_BITS_PER_MP_LIMB);
   mpz_init2 (modulus->temp2, Nbits);
   
-  if ((base2 = isbase2 (N, 2.0)))
+  return;
+}
+
+void 
+mpmod_init_BASE2 (mpmod_t modulus, int base2, mpz_t N)
+{
+  int Nbits;
+  
+  mpz_init_set (modulus->orig_modulus, N);
+  modulus->repr = MOD_BASE2;
+  modulus->bits = base2;
+  
+  Nbits = mpz_size (N) * __GMP_BITS_PER_MP_LIMB; /* Number of bits, rounded
+                                                    up to full limb */
+  mpz_init2 (modulus->temp1, 2 * Nbits + __GMP_BITS_PER_MP_LIMB);
+  mpz_init2 (modulus->temp2, Nbits);
+  
+  return;
+}
+
+void 
+mpmod_init_MODMULN (mpmod_t modulus, mpz_t N)
+{
+  int Nbits;
+  
+  mpz_init_set (modulus->orig_modulus, N);
+  
+  modulus->repr = MOD_MODMULN;
+  Nbits = mpz_size (N) * __GMP_BITS_PER_MP_LIMB; /* Number of bits, rounded
+                                                    up to full limb */
+  modulus->bits = Nbits;
+
+  mpz_init2 (modulus->temp1, 2 * Nbits + __GMP_BITS_PER_MP_LIMB);
+  mpz_init2 (modulus->temp2, Nbits);
+
+  mpz_set_ui (modulus->temp1, 1);
+  mpz_mul_2exp (modulus->temp1, modulus->temp1, __GMP_BITS_PER_MP_LIMB);
+  mpz_tdiv_r_2exp (modulus->temp2, modulus->orig_modulus, 
+                   __GMP_BITS_PER_MP_LIMB);
+  mpz_invert (modulus->temp2, modulus->temp2, modulus->temp1);
+    /* Now temp2 = 1/n (mod 2^bits_per_limb) */
+  mpz_sub (modulus->temp2, modulus->temp1, modulus->temp2);
+  modulus->Nprim = mpz_getlimbn (modulus->temp2, 0);
+    /* Now Nprim = -1/n (mod 2^bits_per_limb) */
+
+  mpz_init (modulus->R2);
+  mpz_set_ui (modulus->temp1, 1);
+  mpz_mul_2exp (modulus->temp1, modulus->temp1, 2*Nbits);
+  mpz_mod (modulus->R2, modulus->temp1, modulus->orig_modulus);
+  /* Now R2 = (2^bits)^2 (mod N) */
+  
+  mpz_init (modulus->R3);
+  mpz_mul_2exp (modulus->temp1, modulus->R2, Nbits);
+  mpz_mod (modulus->R3, modulus->temp1, modulus->orig_modulus);
+  /* Now R3 = (2^bits)^3 (mod N) */
+
+  return;
+}
+
+void 
+mpmod_init_REDC (mpmod_t modulus, mpz_t N)
+{
+  int Nbits;
+  
+  mpz_init_set (modulus->orig_modulus, N);
+  
+  modulus->repr = MOD_REDC;
+  Nbits = mpz_size (N) * __GMP_BITS_PER_MP_LIMB; /* Number of bits, rounded
+                                                    up to full limb */
+  modulus->bits = Nbits;
+  
+  mpz_init2 (modulus->temp1, 2 * Nbits + __GMP_BITS_PER_MP_LIMB);
+  mpz_init2 (modulus->temp2, Nbits);
+  mpz_init(modulus->aux_modulus);
+
+  mpz_set_ui (modulus->temp1, 1);
+  mpz_mul_2exp (modulus->temp1, modulus->temp1, Nbits);
+  if (!mpz_invert (modulus->aux_modulus, N, modulus->temp1))
     {
-      printf("Using base-2: 2^%d %c 1\n", abs(base2), (base2<0)?'-':'+');
-      modulus->repr = MOD_BASE2;
-      modulus->bits = base2;
+      fprintf (stderr, "mpmod_init: could not invert N\n");
+      exit (EXIT_FAILURE);
     }
-  else if (mpz_sizeinbase (N, 2) < MOD_PLAIN_TO_MODMULN_THRESHOLD)
-    {
-      printf("Using plain mpz_mod\n");
-      modulus->repr = MOD_PLAIN;
-    }
-  else if (mpz_sizeinbase (N, 2) < MOD_MODMULN_TO_REDC_THRESHOLD)
-    {
-      /* Init for MODMULN */
-      printf("Using MODMULN\n");
-      modulus->repr = MOD_MODMULN;
+  mpz_sub (modulus->aux_modulus, modulus->temp1, modulus->aux_modulus);
 
-      modulus->bits = Nbits;
-
-      mpz_set_ui (modulus->temp1, 1);
-      mpz_mul_2exp (modulus->temp1, modulus->temp1, __GMP_BITS_PER_MP_LIMB);
-      mpz_tdiv_r_2exp (modulus->temp2, modulus->orig_modulus, 
-                       __GMP_BITS_PER_MP_LIMB);
-      mpz_invert (modulus->temp2, modulus->temp2, modulus->temp1);
-        /* Now temp2 = 1/n (mod 2^bits_per_limb) */
-      mpz_sub (modulus->temp2, modulus->temp1, modulus->temp2);
-      modulus->Nprim = mpz_getlimbn (modulus->temp2, 0);
-        /* Now Nprim = -1/n (mod 2^bits_per_limb) */
-
-      mpz_init (modulus->R2);
-      mpz_set_ui (modulus->temp1, 1);
-      mpz_mul_2exp (modulus->temp1, modulus->temp1, 2*Nbits);
-      mpz_mod (modulus->R2, modulus->temp1, modulus->orig_modulus);
-      /* Now R2 = (2^bits)^2 (mod N) */
-      
-      mpz_init (modulus->R3);
-      mpz_mul_2exp (modulus->temp1, modulus->R2, Nbits);
-      mpz_mod (modulus->R3, modulus->temp1, modulus->orig_modulus);
-      /* Now R3 = (2^bits)^3 (mod N) */
-    }
-  else
-    {
-      /* Init for REDC */
-      printf("Using REDC\n");
-      
-      mpz_init(modulus->aux_modulus);
-      modulus->repr = MOD_REDC;
-
-      modulus->bits = Nbits;
-      
-      mpz_init_set_ui(R, 1);
-      mpz_mul_2exp(R, R, modulus->bits);
-      if (!mpz_invert(modulus->aux_modulus, N, R))
-        {
-          fprintf(stderr, "mpmod_init: could not invert N\n");
-          exit(EXIT_FAILURE);
-        }
-      mpz_sub(modulus->aux_modulus, R, modulus->aux_modulus);
-      mpz_clear(R);
-
-      mpz_set_ui (modulus->temp1, 1);
-      mpz_mul_2exp (modulus->temp1, modulus->temp1, 2*Nbits);
-      mpz_mod (modulus->R2, modulus->temp1, modulus->orig_modulus);
-      /* Now R2 = (2^bits)^2 (mod N) */
-      
-      mpz_mul_2exp (modulus->temp1, modulus->R2, Nbits);
-      mpz_mod (modulus->R3, modulus->temp1, modulus->orig_modulus);
-      /* Now R3 = (2^bits)^3 (mod N) */
-    }
+  mpz_init (modulus->R2);
+  mpz_set_ui (modulus->temp1, 1);
+  mpz_mul_2exp (modulus->temp1, modulus->temp1, 2*Nbits);
+  mpz_mod (modulus->R2, modulus->temp1, modulus->orig_modulus);
+  /* Now R2 = (2^bits)^2 (mod N) */
+  
+  mpz_init (modulus->R3);
+  mpz_mul_2exp (modulus->temp1, modulus->R2, Nbits);
+  mpz_mod (modulus->R3, modulus->temp1, modulus->orig_modulus);
+  /* Now R3 = (2^bits)^3 (mod N) */
   
   return;
 }
@@ -319,11 +369,11 @@ mpres_swap (mpres_t R, mpres_t S, mpmod_t n)
 }
 
 void 
-mpres_pow(mpres_t R, mpres_t BASE, mpres_t EXP, mpmod_t modulus)
+mpres_pow (mpres_t R, mpres_t BASE, mpres_t EXP, mpmod_t modulus)
 {
   if (modulus->repr == MOD_PLAIN)
     {
-      mpz_powm(R, BASE, EXP, modulus->orig_modulus);
+      mpz_powm (R, BASE, EXP, modulus->orig_modulus);
     }
   else if (modulus->repr == MOD_BASE2 || modulus->repr == MOD_MODMULN ||
            modulus->repr == MOD_REDC)
@@ -361,7 +411,7 @@ mpres_pow(mpres_t R, mpres_t BASE, mpres_t EXP, mpmod_t modulus)
         {
           for ( ; bitmask != 0; bitmask >>= 1) 
             {
-              mpz_mul(modulus->temp1, modulus->temp2, modulus->temp2); /* r = r^2 */
+              mpz_mul (modulus->temp1, modulus->temp2, modulus->temp2); /* r = r^2 */
 
               if (modulus->repr == MOD_BASE2)
                 base2mod (modulus->temp2 , modulus->temp1, modulus->temp1, modulus);
@@ -392,6 +442,92 @@ mpres_pow(mpres_t R, mpres_t BASE, mpres_t EXP, mpmod_t modulus)
           expidx--;
           expbits = mpz_getlimbn (EXP, expidx);
           bitmask = (mp_limb_t) 1 << (__GMP_BITS_PER_MP_LIMB - 1);
+        }
+      mpz_set (R, modulus->temp2);
+    } /* if (modulus->repr == MOD_BASE2) */
+}
+
+void 
+mpres_ui_pow (mpres_t R, unsigned int BASE, mpres_t EXP, mpmod_t modulus)
+{
+  if (modulus->repr == MOD_PLAIN)
+    {
+      mpz_set_ui (modulus->temp1, BASE);
+      mpz_powm (R, modulus->temp1, EXP, modulus->orig_modulus);
+    }
+  else if (modulus->repr == MOD_BASE2 || modulus->repr == MOD_MODMULN ||
+           modulus->repr == MOD_REDC)
+    {
+      unsigned int expidx;
+      mp_limb_t bitmask, expbits;
+
+      expidx = mpz_size (EXP) -1;           /* point at most significant limb */
+      expbits = mpz_getlimbn (EXP, expidx); /* get most significant limb */
+      bitmask = 1 << (__GMP_BITS_PER_MP_LIMB - 1);
+
+      while ((bitmask & expbits) == 0)
+        {
+          bitmask >>= 1;
+          if (bitmask == 0)                 /* no set bits in this limb */
+            {
+              if (expidx == 0)              /* no more limbs -> exp was 0 */
+                {
+                  mpres_set_ui (R, 1, modulus); /* set result to 1 */
+                  return;
+                }
+              expidx--;
+              expbits = mpz_getlimbn (EXP, expidx);
+              bitmask = 1 << (__GMP_BITS_PER_MP_LIMB - 1);
+            }
+        }
+
+    /* here the most significant limb with any set bits is in expbits, */
+    /* bitmask is set to mask in the msb of expbits */
+    
+      mpz_set_ui (modulus->temp2, BASE); /* temp2 = BASE */
+      if (modulus->repr == MOD_MODMULN || modulus->repr == MOD_REDC)
+        {
+          mpz_mul_2exp (modulus->temp1, modulus->temp2, modulus->bits);
+          mpz_mod (modulus->temp2, modulus->temp1, modulus->orig_modulus);
+        }
+      bitmask >>= 1;
+
+      while (1) 
+        {
+          for ( ; bitmask != 0; bitmask >>= 1) 
+            {
+              mpz_mul (modulus->temp1, modulus->temp2, modulus->temp2); /* r = r^2 */
+
+              if (modulus->repr == MOD_BASE2)
+                base2mod (modulus->temp2 , modulus->temp1, modulus->temp1, modulus);
+              else if (modulus->repr == MOD_MODMULN)
+                {
+                  mpz_mod_n (modulus->temp1, modulus);
+                  mpz_set (modulus->temp2, modulus->temp1); /* TODO: get rid of */
+                }
+              else
+                REDC (modulus->temp2, modulus->temp1, modulus->temp2, modulus);
+
+              if (expbits & bitmask)
+                {
+                  if (BASE == 2)
+                    {
+                      mpz_mul_2exp (modulus->temp2, modulus->temp2, 1);
+                      if (mpz_cmp (modulus->temp2, modulus->orig_modulus) >= 0)
+                        mpz_sub (modulus->temp2, modulus->temp2, modulus->orig_modulus);
+                    }
+                  else
+                    {
+                      mpz_mul_ui (modulus->temp1, modulus->temp2, BASE);
+                      mpz_mod (modulus->temp2, modulus->temp1, modulus->orig_modulus);
+                    }
+                }
+            }
+          if (expidx == 0)			/* if we just processed the least */
+            break;				/* significant limb, we are done */
+          expidx--;
+          expbits = mpz_getlimbn (EXP, expidx);
+          bitmask = 1 << (__GMP_BITS_PER_MP_LIMB - 1);
         }
       mpz_set (R, modulus->temp2);
     } /* if (modulus->repr == MOD_BASE2) */
