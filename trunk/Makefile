@@ -10,18 +10,35 @@ NTL=/usr/local/ntl-5.3
 
 ###################### do not edit below this line ############################
 
-CFLAGS=-O2 -g -Wall -Wmissing-prototypes -ansi -pedantic
-CXX=g++
-CC=gcc
+FILES= auxi.o bestd.o ecm.o ecm2.o getprime.o listz.o lucas.o main.o pm1.o polyz.o pp1.o stage2.o toomcook.o memory.o mpmod.o polyeval.o
 
-FILES= auxi.o bestd.o ecm.o ecm2.o getprime.o listz.o lucas.o main.o ntl.o pm1.o polyz.o pp1.o stage2.o toomcook.o memory.o mpmod.o
-DIST=  auxi.c bestd.c ecm.c ecm2.c getprime.c listz.c lucas.c main.c ntl.c pm1.c polyz.c pp1.c stage2.c toomcook.c memory.c mpmod.c
+CFLAG= -O2 -g -Wall -Wmissing-prototypes -ansi -pedantic
+LDFLAG= -lgmp -lm
+CXX=gcc
+CC=gcc
+EXTRAFILES=
+ALLFILES= $(FILES) $(EXTRAFILES)
+CFLAGS= $(CFLAG)
+LDFLAGS= $(LDFLAG)
+POLYGCD=0
+
+DIST=  auxi.c bestd.c ecm.c ecm2.c getprime.c listz.c lucas.c main.c ntl.c pm1.c polyz.c pp1.c stage2.c toomcook.c memory.c mpmod.c polyeval.c
 EXTRADIST= COPYING INSTALL Makefile README cputime.h ecm.h test.pm1 test.pp1
 
 .SUFFIXES: .c .o
 
-ecm5: $(FILES) ecm.h
-	$(CXX) -static $(CFLAGS) -L$(GMP)/lib -L$(NTL)/lib $(FILES) -o $@ -lntl -lgmp -lm
+all:
+	@if test $(POLYGCD) -ne 0; then \
+           CXX=g++;                    \
+           EXTRAFILES=ntl.o;           \
+           LDFLAGS="-lntl $(LDFLAG)";  \
+           make ecm5 CXX=g++ EXTRAFILES=ntl.o LDFLAGS="-lntl $(LDFLAG)"; \
+        else \
+           make ecm5 CFLAGS="$(CFLAG) -DPOLYEVAL"; \
+        fi
+
+ecm5: $(ALLFILES) ecm.h
+	$(CXX) -static $(CFLAGS) -L$(GMP)/lib -L$(NTL)/lib $(ALLFILES) -o $@ $(LDFLAGS)
 
 ntl.o: ntl.c
 	$(CXX) $(CFLAGS) -c -I$(GMP)/include -I$(NTL)/include $<
