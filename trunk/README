@@ -1,6 +1,4 @@
-This is the README file of gmp-ecm-5.1, a new version of gmp-ecm,
-replacing version 4c.  (Version 5.1 contains significant usability
-improvements over the excellent 5.0 release)
+This is the README file for gmp-ecm,
 
 Table of contents of this file:
 1. Files included in this distribution.
@@ -20,8 +18,9 @@ Table of contents of this file:
 1. Files included in this distribution.
 
 COPYING - GNU GENERAL PUBLIC LICENSE
+ChangeLog - Changes with respect to previous version
 INSTALL - instructions to install gmp-ecm
-Makefile - to build the binary file 'ecm5'
+Makefile - to build the binary file 'ecm'
 README - this file
 auxi.c - auxiliary functions
 b1_ainc.c - code to "compute" the amount of B1 to increment (based upon
