@@ -192,6 +192,9 @@ typedef struct
                          in case of MODMULN or REDC representation, nr. of 
                          bits b so that 2^b > orig_modulus and 
                          mp_bits_per_limb | b */
+  int Fermat;         /* If repr = 1 (base 2 number): If modulus is 2^(2^m)+1, 
+                         i.e. bits = 2^m, then Fermat = 2^m, 0 otherwise.
+                         If repr != 1, undefined */
   mp_limb_t Nprim;    /* For MODMULN */
   mpz_t orig_modulus; /* The original modulus */
   mpz_t aux_modulus;  /* The auxiliary modulus value (i.e. normalized 
