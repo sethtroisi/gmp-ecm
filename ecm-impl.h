@@ -47,8 +47,10 @@ extern FILE *ECM_STDOUT, *ECM_STDERR;
    for interface consistency reasons */
 #ifdef __GNUC__
 #define ATTRIBUTE_UNUSED __attribute__ ((unused))
+#define ATTRIBUTE_CONST __attribute__ ((const))
 #else
 #define ATTRIBUTE_UNUSED
+#define ATTRIBUTE_CONST
 #endif
 
 #ifdef __GNUC__
@@ -306,7 +308,7 @@ void  pp1_rootsG_clear (pp1_roots_state *, mpmod_t);
 /* stage2.c */
 #define stage2 __ECM(stage2)
 int          stage2     (mpz_t, void *, mpmod_t, double, double, unsigned int,
-                         int, int, int);
+                         int, int, int, char *);
 #define init_progression_coeffs __ECM(init_progression_coeffs)
 listz_t init_progression_coeffs (double, unsigned int, unsigned int,
                          unsigned int, unsigned int, unsigned int, int);
@@ -318,6 +320,10 @@ int          list_mul_mem (unsigned int);
 listz_t      init_list  (unsigned int);
 #define clear_list __ECM(clear_list)
 void         clear_list (listz_t, unsigned int);
+#define list_inp_raw __ECM(list_inp_raw)
+int          list_inp_raw (listz_t, FILE *, unsigned int);
+#define list_out_raw __ECM(list_out_raw)
+int          list_out_raw (FILE *, listz_t, unsigned int);
 #define print_list __ECM(print_list)
 void         print_list (listz_t, unsigned int);
 #define list_set __ECM(list_set)
@@ -348,8 +354,10 @@ void        list_mulmod (listz_t, listz_t, listz_t, listz_t, unsigned int,
 #define list_invert __ECM(list_invert)
 int         list_invert (listz_t, listz_t, unsigned int, mpz_t, mpmod_t);
 #define PolyFromRoots __ECM(PolyFromRoots)
-void      PolyFromRoots (listz_t, listz_t, unsigned int, listz_t, int, mpz_t,
-                         char, listz_t*, unsigned int);
+void      PolyFromRoots (listz_t, listz_t, unsigned int, listz_t, mpz_t);
+#define PolyFromRoots_Tree __ECM(PolyFromRoots_Tree)
+int       PolyFromRoots_Tree (listz_t, listz_t, unsigned int, listz_t, int, 
+                         mpz_t, listz_t*, FILE*, unsigned int);
 #define PrerevertDivision __ECM(PrerevertDivision)
 int   PrerevertDivision (listz_t, listz_t, listz_t, unsigned int, listz_t,
 			 mpz_t);
@@ -364,7 +372,7 @@ void  RecursiveDivision (listz_t, listz_t, listz_t, unsigned int,
 void polyeval (listz_t, unsigned int, listz_t*, listz_t, mpz_t, unsigned int);
 #define polyeval_tellegen __ECM(polyeval_tellegen)
 int polyeval_tellegen (listz_t, unsigned int, listz_t*, listz_t,
-		       unsigned int, listz_t, mpz_t, unsigned int);
+		       unsigned int, listz_t, mpz_t, char *);
 
 /* toomcook.c */
 #define toomcook3 __ECM(toomcook3)

@@ -600,7 +600,8 @@ ecm_stage1 (mpz_t f, mpres_t x, mpres_t A, mpmod_t n, double B1, double B1done,
 int
 ecm (mpz_t f, mpz_t x, mpz_t sigma, mpz_t n, mpz_t go, double B1done,
      double B1, double B2min, double B2, double B2scale, unsigned int k,
-     int S, int verbose, int repr, int sigma_is_A, FILE *os, FILE* es)
+     int S, int verbose, int repr, int sigma_is_A, FILE *os, FILE* es, 
+     char *TreeFilename)
 {
   int youpi = ECM_NO_FACTOR_FOUND, st;
   mpmod_t modulus;
@@ -782,7 +783,8 @@ ecm (mpz_t f, mpz_t x, mpz_t sigma, mpz_t n, mpz_t go, double B1done,
   youpi = montgomery_to_weierstrass (f, P.x, P.y, P.A, modulus);
 
   if (youpi == ECM_NO_FACTOR_FOUND)
-    youpi = stage2 (f, &P, modulus, B2min, B2, k, S, ECM_ECM, st);
+    youpi = stage2 (f, &P, modulus, B2min, B2, k, S, ECM_ECM, st, 
+                    TreeFilename);
   
   mpres_clear (P.y, modulus);
 

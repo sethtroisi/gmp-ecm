@@ -264,7 +264,8 @@ init_roots_state (ecm_roots_state *state, int S, unsigned int d1,
 */
 int
 stage2 (mpz_t f, void *X, mpmod_t modulus, double B2min, double B2,
-        unsigned int k0, int S, int method, int stage1time)
+        unsigned int k0, int S, int method, int stage1time, 
+        char *TreeFilename)
 {
   double b2, b2min, i0;
   unsigned int k;
@@ -400,33 +401,66 @@ stage2 (mpz_t f, void *X, mpmod_t modulus, double B2min, double B2,
      ---------------------------------------------- */
 
   lgk = ceil_log2 (dF);
-  Tree = (listz_t*) malloc (lgk * sizeof (listz_t));
-  if (Tree == NULL)
+  if (TreeFilename == NULL)
     {
-      outputf (OUTPUT_ERROR, "Error: not enough memory\n");
-      youpi = ECM_ERROR;
-      goto clear_T;
+      Tree = (listz_t*) malloc (lgk * sizeof (listz_t));
+      if (Tree == NULL)
+        {
+          outputf (OUTPUT_ERROR, "Error: not enough memory\n");
+          youpi = ECM_ERROR;
+          goto clear_T;
+        }
+      for (i = 0; i < lgk; i++)
+        {
+          Tree[i] = init_list (dF);
+          if (Tree[i] == NULL)
+            {
+              /* clear already allocated Tree[i] */
+              while (i)
+              clear_list (Tree[--i], dF);
+              youpi = ECM_ERROR;
+              goto free_Tree;
+            }
+        }
+      /* list_set (Tree[lgk - 1], F, dF); PolyFromRoots_Tree does it */
     }
-  for (i = 0; i < lgk; i++)
-    {
-      Tree[i] = init_list (dF);
-      if (Tree[i] == NULL)
-	{
-	  /* clear already allocated Tree[i] */
-	  while (i)
-	    clear_list (Tree[--i], dF);
-	  youpi = ECM_ERROR;
-	  goto free_Tree;
-	}
-    }
-  list_set (Tree[lgk - 1], F, dF);
-
+  else
+    Tree = NULL;
+  
 #ifdef TELLEGEN_DEBUG
   outputf (OUTPUT_ALWAYS, "Roots = ");
   print_list (os, F, dF);
 #endif
   mpz_init_set (n, modulus->orig_modulus);
-  PolyFromRoots (F, F, dF, T, 0, n, 'F', Tree, 0);
+  st = cputime ();
+  if (TreeFilename != NULL)
+    {
+      FILE *TreeFile;
+      char fullname[256];
+      for (i = lgk; i > 0; i--)
+        {
+          sprintf (fullname, "%.252s.%d", TreeFilename, i - 1);
+          TreeFile = fopen (fullname, "wb");
+          if (TreeFile == NULL)
+            {
+              outputf (OUTPUT_ERROR, "Error opening file for product tree of F\n");
+              youpi = ECM_ERROR;
+              goto clear_T;
+            }
+          if (PolyFromRoots_Tree (F, F, dF, T, i - 1, n, NULL, TreeFile, 0) ==
+              ECM_ERROR)
+            {
+              youpi = ECM_ERROR;
+              goto clear_T;
+            };
+          fclose (TreeFile);
+        }
+    }
+  else
+    PolyFromRoots_Tree (F, F, dF, T, -1, n, Tree, NULL, 0);
+  
+  outputf (OUTPUT_VERBOSE, "Building F from its roots took %ums\n", 
+           cputime() - st);
 
   /* needs dF+list_mul_mem(dF/2) cells in T */
 
@@ -496,8 +530,6 @@ stage2 (mpz_t f, void *X, mpmod_t modulus, double B2min, double B2,
 
   for (i = 0; i < k; i++)
     {
-      st = cputime ();
-      
       /* needs dF+1 cells in T+dF */
       if (method == ECM_PM1)
 	youpi = pm1_rootsG (f, G, dF, (pm1_roots_state *) rootsG_state, T + dF,
@@ -521,8 +553,11 @@ stage2 (mpz_t f, void *X, mpmod_t modulus, double B2min, double B2,
      |  F(x)  | 1/F(x) | rootsG |      ???         |
      ----------------------------------------------- */
 
-      PolyFromRoots (G, G, dF, T + dF, 0, n, 'G', NULL, 0);
+      st = cputime ();
+      PolyFromRoots (G, G, dF, T + dF, n);
       /* needs 2*dF+list_mul_mem(dF/2) cells in T */
+      outputf (OUTPUT_VERBOSE, "Building G from its roots took %ums\n", 
+               cputime() - st);
 
   /* -----------------------------------------------
      |   F    |  invF  |   G    |         T        |
@@ -586,7 +621,7 @@ stage2 (mpz_t f, void *X, mpmod_t modulus, double B2min, double B2,
   st = cputime ();
 #ifdef POLYEVALTELLEGEN
   youpi = polyeval_tellegen (T, dF, Tree, T + dF + 1, sizeT - dF - 1, invF,
-			     n, 0);
+			     n, TreeFilename);
   if (youpi)
     {
       outputf (OUTPUT_ERROR, "Error, not enough memory\n");
@@ -617,15 +652,17 @@ clear_G:
  clear_invF:
   clear_list (invF, dF + 1);
 
- free_Tree_i:
-  for (i = 0; i < lgk; i++)
-    clear_list (Tree[i], dF);
- free_Tree:
-  free (Tree);
+free_Tree_i:
+  if (TreeFilename == NULL)
+    for (i = 0; i < lgk; i++)
+      clear_list (Tree[i], dF);
+free_Tree:
+  if (TreeFilename == NULL)
+    free (Tree);
 
- clear_T:
+clear_T:
   clear_list (T, sizeT);
- clear_F:
+clear_F:
   clear_list (F, dF + 1);
 
   st0 = cputime () - st0;

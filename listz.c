@@ -130,6 +130,34 @@ list_check (listz_t a, unsigned int l, mpz_t n)
 }
 #endif /* DEBUG */
 
+/* Read all entries in list from stream. 
+   Return 0 on success, ECM_ERROR on error */
+int
+list_inp_raw (listz_t a, FILE *f, unsigned int n)
+{
+  unsigned int i;
+  
+  for (i = 0; i < n; i++)
+    if (mpz_inp_raw (a[i], f) == 0)
+      return ECM_ERROR;
+  
+  return 0;
+}
+
+/* Write all entries in list to stream. 
+   Return 0 on success, ECM_ERROR on error */
+int
+list_out_raw (FILE *f, listz_t a, unsigned int n)
+{
+  unsigned int i;
+  
+  for (i = 0; i < n; i++)
+    if (mpz_out_raw (f, a[i]) == 0)
+      return ECM_ERROR;
+  
+  return 0;
+}
+
 /* p <- q */
 void
 list_set (listz_t p, listz_t q, unsigned int n)
@@ -546,45 +574,16 @@ list_mulmod (listz_t a2, listz_t a, listz_t b, listz_t c, unsigned int k,
 /* puts in G[0]..G[k-1] the coefficients from (x-a[0])...(x-a[k-1])
    Warning: doesn't fill the coefficient 1 of G[k], which is implicit.
    Needs k + list_mul_mem(k/2) cells in T.
-   If Tree <> NULL, the product tree is stored in:
-   G[0..k-1]       (degree k)
-   Tree[0][0..k-1] (degree k/2)
-   Tree[1][0..k-1] (degree k/4), ...,
-   Tree[lgk-1][0..k-1] (degree 1)
-   (then we should have initially Tree[lgk-1] = a).
-
-   depth is the depth (0 at root).
 */
 void
-PolyFromRoots (listz_t G, listz_t a, unsigned int k, listz_t T, int depth,
-             mpz_t n, char F, listz_t *Tree, unsigned int sh)
+PolyFromRoots (listz_t G, listz_t a, unsigned int k, listz_t T, mpz_t n)
 {
-  unsigned int l, m, st;
-  listz_t H1, *NextTree;
+  unsigned int l, m;
 
    if (k <= 1)
      {
-       /* if Tree=NULL, then G=a and nothing to do */
-       if (Tree != NULL)
-         mpz_set (G[0], a[0]);
-       mpz_mod (G[0], G[0], n);
+       mpz_mod (G[0], a[0], n);
        return;
-     }
-
-   st = cputime ();
-
-   m = k / 2;
-   l = k - m;
-
-   if ((Tree == NULL) || (depth == 0)) /* top call */
-     {
-       H1 = (Tree == NULL) ? G : Tree[0]; /* target for rec. calls */
-       NextTree = Tree;
-     }
-   else
-     {
-       H1 = Tree[1] + sh;
-       NextTree = Tree + 1;
      }
 
     /* (x-a[0]) * (x-a[1]) = x^2 - (a[0]+a[1]) * x + a[0]*a[1]
@@ -595,11 +594,6 @@ PolyFromRoots (listz_t G, listz_t a, unsigned int k, listz_t T, int depth,
      */
    if (k == 2)
      {
-       if (Tree != NULL)
-         {
-           mpz_set (H1[0], a[0]);
-           mpz_set (H1[1], a[1]);
-         }
        mpz_mul (T[0], a[0], a[1]);
        mpz_add (G[1], a[1], a[0]);
        mpz_mod (G[1], G[1], n);
@@ -607,14 +601,99 @@ PolyFromRoots (listz_t G, listz_t a, unsigned int k, listz_t T, int depth,
        return;
      }
 
-   PolyFromRoots (H1, a, l, T, depth + 1, n, F, NextTree, sh);
-   PolyFromRoots (H1 + l, a + l, m, T, depth + 1, n, F, NextTree, sh + l);
-   list_mul (T, H1, l, 1, H1 + l, m, 1, T + k);
+   m = k / 2;
+   l = k - m;
+
+   PolyFromRoots (G, a, l, T, n);
+   PolyFromRoots (G + l, a + l, m, T, n);
+   list_mul (T, G, l, 1, G + l, m, 1, T + k);
    list_mod (G, T, k, n);
-   
-   if (depth == 0)
-     outputf (OUTPUT_VERBOSE, "Building %c from its roots took %ums\n", F,
-	      cputime() - st);
+}
+
+/* puts in G[0]..G[k-1] the coefficients from (x-a[0])...(x-a[k-1])
+   Warning: doesn't fill the coefficient 1 of G[k], which is implicit.
+   Needs k + list_mul_mem(k/2) cells in T.
+   The product tree is stored in:
+   G[0..k-1]       (degree k)
+   Tree[0][0..k-1] (degree k/2)
+   Tree[1][0..k-1] (degree k/4), ...,
+   Tree[lgk-1][0..k-1] (degree 1)
+   (then we should have initially Tree[lgk-1] = a).
+
+   depth is the depth (0 at root), dolvl signals that only this level of
+   the tree should be computed (-1: all levels)
+*/
+int
+PolyFromRoots_Tree (listz_t G, listz_t a, unsigned int k, listz_t T, 
+               int dolvl, mpz_t n, listz_t *Tree, FILE *TreeFile, 
+               unsigned int sh)
+{
+  unsigned int l, m;
+  listz_t H1, *NextTree;
+
+  if (k <= 1)
+    {
+      if (k == 1)
+        mpz_set (G[0], a[0]);
+      return 0;
+    }
+
+  if (Tree == NULL)
+    {
+      H1 = G;
+      NextTree = NULL;
+    }
+  else
+    {
+      H1 = Tree[0] + sh;
+      NextTree = Tree + 1;
+    }
+
+#if 0
+  /* (x-a[0]) * (x-a[1]) = x^2 - (a[0]+a[1]) * x + a[0]*a[1]
+     however we construct (x+a[0]) * (x+a[1]) instead, i.e. the
+     polynomial with the opposite roots. This has no consequence if
+     we do it for all polynomials: if F(x) and G(x) have a common root,
+     then so do F(-x) and G(-x). This saves one negation.
+  */
+  if (k == 2)
+    {
+      mpz_set (H1[0], a[0]);
+      mpz_set (H1[1], a[1]);
+      mpz_mul (T[0], a[0], a[1]);
+      mpz_add (G[1], a[1], a[0]);
+      mpz_mod (G[1], G[1], n);
+      mpz_mod (G[0], T[0], n);
+      return 0;
+    }
+#endif
+
+  m = k / 2;
+  l = k - m;
+  
+  if (dolvl < 0 || dolvl > 0)
+    {
+      PolyFromRoots_Tree (H1, a, l, T, dolvl - 1, n, NextTree, TreeFile, sh);
+      PolyFromRoots_Tree (H1 + l, a + l, m, T, dolvl - 1, n, NextTree, 
+                          TreeFile, sh + l);
+    }
+  if (dolvl < 0 || dolvl == 0)
+    {
+      /* Write this level to disk, if requested */
+      if (TreeFile != NULL)
+        {
+          if (list_out_raw (TreeFile, H1, l) == ECM_ERROR ||
+              list_out_raw (TreeFile, H1 + l, m) == ECM_ERROR)
+            {
+              outputf (OUTPUT_ERROR, "Error writing product tree of F\n");
+              return ECM_ERROR;
+            }
+        }
+      list_mul (T, H1, l, 1, H1 + l, m, 1, T + k);
+      list_mod (G, T, k, n);
+    }
+  
+  return 0; 
 }
 
 /* puts in q[0..K-1] the quotient of x^(2K-2) by B
