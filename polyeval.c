@@ -25,6 +25,8 @@
 #define MAX(a,b) (((a) > (b)) ? (a) : (b))
 #endif
 
+extern unsigned int Fermat;
+
 /* algorithm POLYEVAL from section 3.7 of Peter Montgomery's dissertation.
 Input: 
    G - an array of k elements of R, G[i], 0 <= i < k
@@ -256,18 +258,25 @@ polyeval_tellegen (listz_t b, unsigned int k, listz_t *Tree, listz_t tmp,
     printf ("Required memory: %d.\n", 
             TMulGen_space (k - 1, k - 1, k - 1));
 #endif
-#ifndef USE_SHORT_PRODUCT
-    /* revert invF for call to TMulGen below */
-    list_revert (invF, k - 1);
-    muls = TMulGen (T, k - 1, invF, k - 1, b, k - 1, T + k, n);
-#ifdef CHECK_MULS
-    if (muls != muls_tgen (k-1)) { printf ("%u %u %u\n", k, muls, muls_tgen (k-1)); abort();}
-#endif
+
+    if (Fermat)
+      {
+        /* Schoenhage-Strassen can't do a half product faster than a full */
+        muls = F_mul (T, invF, b, k, DEFAULT, Fermat, T + 2 * k);
+        list_mod (T, T + k - 1, k, n);
+      } else {
+#ifdef USE_SHORT_PRODUCT
+        /* need space 2k-1+list_mul_mem(k) in T */
+        muls = list_mul_high (T, invF, b, k, T + 2 * k - 1);
 #else
-    /* need space 2k-1+list_mul_mem(k) in T */
-    muls = list_mul_high (T, invF, b, k, T + 2 * k - 1);
-    list_mod (T, T + k - 1, k, n);
+        /* revert invF for call to TMulGen below */
+        list_revert (invF, k - 1);
+        muls = TMulGen (T, k - 1, invF, k - 1, b, k - 1, T + k, n);
+#ifdef CHECK_MULS
+        if (muls != muls_tgen (k-1)) { printf ("%u %u %u\n", k, muls, muls_tgen (k-1)); abort();}
 #endif
+#endif
+      }
     totmuls += muls;
 #ifdef TELLEGEN_DEBUG
     printf ("\nalpha = ");
