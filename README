@@ -429,6 +429,11 @@ $ make tune | egrep 'MUL_KARATSUBA_THRESHOLD|DIV_DC_THRESHOLD'
 You can override the default values (32 for MUL_KARATSUBA_THRESHOLD,
 and 96 for DIV_DC_THRESHOLD) by adding 
 -DMUL_KARATSUBA_THRESHOLD=... -DDIV_DC_THRESHOLD=... to the CFLAGS.
+These thresholds are only used to guess the optimal ecm thresholds
+(MPZMOD_THRESHOLD and REDC_THRESHOLD, see above). If you optimized
+them directly using the "tune" program in the GMP-ECM build directory,
+and add -DMPZMOD_THRESHOLD=xxx -DREDC_THRESHOLD=yyy to CFLAGS, you
+don't need MUL_KARATSUBA_THRESHOLD/DIV_DC_THRESHOLD anymore.
 
 Note on factoring Fermat numbers:
 GMP-ECM features Sch"onhage-Strassen multiplication for polynomials in 
