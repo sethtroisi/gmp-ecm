@@ -242,6 +242,11 @@ ecm_rootsF (mpz_t f, listz_t F, unsigned int d, curve *s,
       fin_diff_coeff (coeffs, 7, 6, S, dickson_a);
 
       fd = (point *) malloc (size_fd * sizeof (point));
+      if (fd == NULL)
+        {
+          fprintf (stderr, "Error: not enough memory\n");
+          exit (EXIT_FAILURE);
+        }
 
       for (j = 0; (j <= (unsigned) S) && (youpi == 0); j++)
         {
@@ -337,6 +342,11 @@ ecm_rootsG_init (mpz_t f, curve *X, double s, unsigned int d,
   fin_diff_coeff (coeffs, s, d, S, dickson_a);
   
   fd = (point *) malloc ((2 * S + 2) * sizeof (point));
+  if (fd == NULL)
+    {
+      fprintf (stderr, "Error: not enough memory\n");
+      exit (EXIT_FAILURE);
+    }
   
   mpres_init (u, modulus);
   mpres_init (v, modulus);

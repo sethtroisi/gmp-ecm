@@ -80,6 +80,11 @@ getprime (double pp)
       free (sieve);
       len *= 2;
       sieve = (unsigned char *) malloc (len * sizeof(unsigned char));
+      if (sieve == NULL)
+        {
+          fprintf (stderr, "Error: not enough memory\n");
+          exit (EXIT_FAILURE);
+        }
     }
 
   /* now enlarge small prime table if too small */
@@ -89,11 +94,26 @@ getprime (double pp)
 	  {
 	    nprimes = 1;
 	    primes = (unsigned *) malloc (nprimes * sizeof(unsigned long int));
+            if (primes == NULL)
+              {
+                fprintf (stderr, "Error: not enough memory\n");
+                exit (EXIT_FAILURE);
+              }
 	    moduli = (long unsigned int *) malloc (nprimes *
                                                    sizeof(unsigned long int));
+            if (moduli == NULL)
+              {
+                fprintf (stderr, "Error: not enough memory\n");
+                exit (EXIT_FAILURE);
+              }
 	    len = 1;
 	    sieve = (unsigned char *) malloc(len *
                                        sizeof(unsigned char)); /* len=1 here */
+            if (sieve == NULL)
+              {
+                fprintf (stderr, "Error: not enough memory\n");
+                exit (EXIT_FAILURE);
+              }
 	    offset = 5.0;
 	    sieve[0] = 1; /* corresponding to 5 */
 	    primes[0] = 3;
