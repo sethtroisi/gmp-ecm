@@ -712,10 +712,12 @@ ecm (mpz_t f, mpz_t x, mpz_t sigma, mpz_t n, mpz_t go, double B1done, double B1,
 
   if (B1 > B1done)
     youpi = ecm_stage1 (f, P.x, P.A, modulus, B1, B1done, sigma, n, verbose, go);
-
+  
+  st = cputime () - st;
+  
   if (verbose >= 1)
     {
-      printf ("Step 1 took %dms\n", cputime () - st);
+      printf ("Step 1 took %dms\n", st);
       fflush (stdout);
     }
 
@@ -740,7 +742,7 @@ ecm (mpz_t f, mpz_t x, mpz_t sigma, mpz_t n, mpz_t go, double B1done, double B1,
   youpi = montgomery_to_weierstrass (f, P.x, P.y, P.A, modulus);
 
   if (youpi == 0)
-    youpi = stage2 (f, &P, modulus, B2min, B2, k, S, verbose, EC_METHOD);
+    youpi = stage2 (f, &P, modulus, B2min, B2, k, S, verbose, EC_METHOD, st);
   
   mpres_clear (P.y, modulus);
 

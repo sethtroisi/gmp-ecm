@@ -196,7 +196,7 @@ init_progression_coeffs (double s, unsigned int d, unsigned int e,
 */
 int
 stage2 (mpz_t f, void *X, mpmod_t modulus, double B2min, double B2,
-        unsigned int k0, int S, int verbose, int method)
+        unsigned int k0, int S, int verbose, int method, int stage1time)
 {
   double b2, b2min;
   unsigned int k;
@@ -271,11 +271,12 @@ stage2 (mpz_t f, void *X, mpmod_t modulus, double B2min, double B2,
   B2 = b2min + floor ((double) k * b2 / d / d2) * d * d2;
 
   if (verbose >= 2)
-    {
-      double nrcurves;
-      printf ("B2'=%1.0f k=%u b2=%1.0f d=%u d2=%u dF=%u, i0=%.0f\n", 
+    printf ("B2'=%1.0f k=%u b2=%1.0f d=%u d2=%u dF=%u, i0=%.0f\n", 
               B2, k, b2, d, d2, dF, i0);
 
+  if (method == EC_METHOD && verbose >= 2)
+    {
+      double nrcurves;
       rhoinit (256, 10);
       printf ("Expected number of curves to find a factor of n digits:\n"
               "20\t25\t30\t35\t40\t45\t50\t55\t60\t65\n");
@@ -615,15 +616,51 @@ clear_G:
   clear_list (T, sizeT);
   clear_list (F, dF + 1);
 
+  st0 = cputime() - st0;
+
   if (verbose >= 1)
     {
-      printf ("Step 2 took %dms", cputime() - st0);
+      printf ("Step 2 took %dms", st0);
       if (verbose >= 2)
 	printf (" for %lu muls", tot_muls);
       printf ("\n");
       fflush (stdout);
     }
 
+  if (method == EC_METHOD && verbose >= 2)
+    {
+      double nrcurves, tottime, exptime;
+      rhoinit (256, 10);
+      printf ("Expected time to find a factor of n digits:\n"
+              "20\t25\t30\t35\t40\t45\t50\t55\t60\t65\n");
+      tottime = (double) stage1time + (double) st0;
+      for (i = 20; i <= 65; i+=5)
+        {
+          nrcurves = 1. / ecmprob (B2min, B2, pow (10., i - .5), 
+                                 (double)dF * (double)dF * k, S);
+          exptime = tottime * nrcurves;
+          /* printf ("Total time: %.0f, expected number of curves: %.0f, expected time: %.0f\n", tottime, nrcurves, exptime); */ 
+          if (exptime < 1000.)
+            printf ("%.0fms%c", exptime, i < 65 ? '\t' : '\n');
+          else if (exptime < 60000.) /* One minute */
+            printf ("%.2fs%c", exptime / 1000., i < 65 ? '\t' : '\n');
+          else if (exptime < 3600000.) /* One hour */
+            printf ("%.2fm%c", exptime / 60000., i < 65 ? '\t' : '\n');
+          else if (exptime < 86400000.) /* One day */
+            printf ("%.2fh%c", exptime / 3600000., i < 65 ? '\t' : '\n');
+          else if (exptime < 31536000000.) /* One year */
+            printf ("%.2fd%c", exptime / 86400000., i < 65 ? '\t' : '\n');
+          else if (exptime < 31536000000000.) /* One thousand years */
+            printf ("%.2fy%c", exptime / 31536000000., i < 65 ? '\t' : '\n');
+          else if (exptime < 31536000000000000.) /* One million years */
+            printf ("%.0fy%c", exptime / 31536000000., i < 65 ? '\t' : '\n');
+          else if (finite(exptime))
+            printf ("%.1gy%c", exptime / 31536000000., i < 65 ? '\t' : '\n');
+          else 
+            printf ("%.0f%c", exptime, i < 65 ? '\t' : '\n');
+        }
+    }
+    
   mpz_clear (n);
 
   return youpi;

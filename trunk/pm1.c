@@ -890,9 +890,11 @@ pm1 (mpz_t f, mpz_t p, mpz_t N, mpz_t go, double B1done, double B1, double B2min
   if (B1 > B1done)
     youpi = pm1_stage1 (f, x, modulus, B1, B1done, verbose, N, orig_X0, go);
 
+  st = cputime() - st;
+
   if (verbose >= 1)
     {
-      printf ("Step 1 took %dms\n", cputime() - st);
+      printf ("Step 1 took %dms\n", st);
       fflush (stdout);
     }
 
@@ -907,7 +909,7 @@ pm1 (mpz_t f, mpz_t p, mpz_t N, mpz_t go, double B1done, double B1, double B2min
   if (youpi != 0) /* a factor was found */
     goto clear_and_exit;
 
-  youpi = stage2 (f, &x, modulus, B2min, B2, k, S, verbose, PM1_METHOD);
+  youpi = stage2 (f, &x, modulus, B2min, B2, k, S, verbose, PM1_METHOD, st);
 
 clear_and_exit:
   mpres_get_z (p, x, modulus);

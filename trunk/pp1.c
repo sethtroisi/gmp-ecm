@@ -519,9 +519,11 @@ pp1 (mpz_t f, mpz_t p, mpz_t n, mpz_t go, double B1done, double B1, double B2min
   if (B1 > B1done)
     youpi = pp1_stage1 (f, a, modulus, B1, B1done, &muls, n, go);
 
+  st = cputime () - st;
+
   if (verbose >= 1)
     {
-      printf ("Step 1 took %dms", cputime () - st);
+      printf ("Step 1 took %dms", st);
       if (verbose >= 2)
 	printf (" for %lu muls", muls);
       printf ("\n");
@@ -539,7 +541,7 @@ pp1 (mpz_t f, mpz_t p, mpz_t n, mpz_t go, double B1done, double B1, double B2min
   if (youpi != 0) /* a factor was found */
     goto end;
 
-  youpi = stage2 (f, &a, modulus, B2min, B2, k, S, verbose, PP1_METHOD);
+  youpi = stage2 (f, &a, modulus, B2min, B2, k, S, verbose, PP1_METHOD, st);
 
  end:
   if (youpi != 0 && verbose != 0)
