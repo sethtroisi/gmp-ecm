@@ -336,7 +336,7 @@ pp1_rootsG_init (mpres_t *x, double s, unsigned int d, unsigned int d2,
 }
 
 void 
-pp1_rootsG_clear (pp1_roots_state *state, UNUSED mpmod_t modulus)
+pp1_rootsG_clear (pp1_roots_state *state, ATTRIBUTE_UNUSED mpmod_t modulus)
 {
   mpres_clear (state->fd[0], modulus);
   mpres_clear (state->fd[1], modulus);

@@ -959,7 +959,7 @@ mpres_set_ui (mpres_t R, unsigned int n, mpmod_t modulus)
 
 /* R <- -S mod modulus. Does not need to be efficient. */
 void
-mpres_neg (mpres_t R, mpres_t S, UNUSED mpmod_t modulus)
+mpres_neg (mpres_t R, mpres_t S, ATTRIBUTE_UNUSED mpmod_t modulus)
 {
   ASSERT_NORMALIZED (S);
   mpz_neg (R, S);

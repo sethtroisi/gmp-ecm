@@ -784,7 +784,8 @@ ecm_rootsG_init (mpz_t f, curve *X, double s, unsigned int d1, unsigned int d2,
 }
 
 void 
-ecm_rootsG_clear (ecm_roots_state *state, UNUSED int S, UNUSED mpmod_t modulus)
+ecm_rootsG_clear (ecm_roots_state *state, ATTRIBUTE_UNUSED int S, 
+                  ATTRIBUTE_UNUSED mpmod_t modulus)
 {
   unsigned int k;
   
