@@ -323,6 +323,10 @@ error:
 void 
 write_temp_resumefile (int method, double B1, mpz_t sigma, mpz_t A, mpz_t x, mpz_t n, int verbose)
 {
+  /* FOR NOW simply exit UNTIL the code within ecm/pm1/pp1 stage1 is correctly working */
+  return;
+
+#if 0
   FILE *fd;
   mpcandi_t data;
   mpz_t x0;
@@ -349,7 +353,8 @@ write_temp_resumefile (int method, double B1, mpz_t sigma, mpz_t A, mpz_t x, mpz
   fclose (fd);
   mpz_clear (x0);
   remove ("gmp_ecm.wip");
-  rename ("gmp_ecm.wip", "gmpecm1.wip");
+  rename ("gmpecm1.wip", "gmp_ecm.wip");
+#endif
 }
 
 void kill_temp_resume_file (void)
