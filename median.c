@@ -412,17 +412,19 @@ TToomCookMul (listz_t b, unsigned int n,
             n, m, l);
 #endif
 
-    if ((n < 4) || (m < 4)) /* ensures n + 1 > 2 * nu */
+    nu = n / 3 + 1;
+    mu = m / 3 + 1;
+
+    /* ensures n + 1 > 2 * nu */
+    if ((n < 2 * nu) || (m < 2 * mu))
     {
 #ifdef TTCDEBUG
         printf ("Opérandes trop petites, on appelle TKara.\n");
 #endif
         return TKarMul (b, n, a, m, c, l, tmp);
     }
-    nu = n / 3 + 1;
-    mu = m / 3 + 1;
 
-    /* First stip unnecessary trailing coefficients of c:
+    /* First strip unnecessary trailing coefficients of c:
      */
 
     l = MIN(l, n + m);
@@ -677,7 +679,7 @@ TToomCookMul (listz_t b, unsigned int n,
     
     list_add (tmp, tmp + 5 * h - 2, tmp + 6 * h - 2, h);
     for (i = 0; i < h; i++)
-        mpz_divexact_ui (tmp[i], tmp[i], 3);
+        mpz_divby3_1op (tmp[i]);
 
     /* t1 = 2 (m2 + mm1)
      * tmp[0 .. h - 1] = t1
@@ -686,7 +688,7 @@ TToomCookMul (listz_t b, unsigned int n,
     list_add (b, b, b + h, h);
     list_add (b, b, tmp, h);
     for (i = 0; i < h; i++)
-        mpz_divexact_ui (b[i], b[i], 2);
+        mpz_tdiv_q_2exp (b[i], b[i], 1);
 
     /* b_{low} should be correct */
 
@@ -699,13 +701,13 @@ TToomCookMul (listz_t b, unsigned int n,
     list_add (b + h, tmp, tmp + h, h);
     list_sub (b + h, b + h, tmp + 6 * h - 2, h);
     for (i = 0; i < h; i++)
-        mpz_divexact_ui (b[h + i], b[h + i], 2);
+        mpz_tdiv_q_2exp (b[h + i], b[h + i], 1);
 
     /* b_{mid} should be correct */
 
     list_add (tmp + h, tmp + h, tmp + 5 * h - 2, n + 1 - 2 * h);
     for (i = 0; i < n + 1 - 2 * h; i++)
-        mpz_divexact_ui (tmp[h + i], tmp[h + i], 2);
+        mpz_tdiv_q_2exp (tmp[h + i], tmp[h + i], 1);
 
     list_add (b + 2 * h, b + 2 * h, tmp + h, n + 1 - 2 * h);
     /* b_{high} should be correct */
