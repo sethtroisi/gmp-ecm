@@ -291,6 +291,7 @@ unsigned int muls_tuptree (unsigned int k)
 {
     unsigned int m, l;
     unsigned int tot_muls = 0;
+    unsigned int tmp;
 
     m = k / 2;
     l = k - m;
@@ -299,10 +300,19 @@ unsigned int muls_tuptree (unsigned int k)
         return 0;
    
 
-    tot_muls += muls_tkara (l - 1, m - 1, k - 1);
-    tot_muls += muls_tkara (m - 1, l - 1, k - 1);
-    tot_muls += muls_tuptree (l);
-    tot_muls += muls_tuptree (m);
+    if (l == m)
+    {
+        tmp = muls_tkara (l - 1);
+        tot_muls += tmp;
+        tot_muls += (muls_tuptree (l)) * 2;
+    }
+    else
+    {
+        tot_muls += muls_tuptree (m);
+        tot_muls += muls_tuptree (l);
+        tot_muls += muls_tkara (l - 1);
+        tot_muls += muls_tkara (m - 1);
+    }
     return tot_muls;
 }
 
@@ -311,7 +321,7 @@ muls_polyeval_tellegen (unsigned int k)
 {
     unsigned int tot_muls = 0;
     
-    tot_muls += muls_tkara (k - 1, k - 1, k - 1);
+    tot_muls += muls_tkara (k - 1);
     tot_muls += muls_tuptree (k);
     return tot_muls;
 }
