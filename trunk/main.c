@@ -1,8 +1,6 @@
 /* GMP-ECM -- Integer factorization with ECM and Pollard 'P-1' methods.
 
-  Copyright (C) 2001 Paul Zimmermann,
-  LORIA/INRIA Lorraine, zimmerma@loria.fr
-  See http://www.loria.fr/~zimmerma/records/ecmnet.html
+  Copyright 2001, 2002, 2003 Alexander Kruppa and Paul Zimmermann.
 
   This program is free software; you can redistribute it and/or modify it
   under the terms of the GNU General Public License as published by the
@@ -30,6 +28,17 @@
 #include "gmp.h"
 #include "ecm.h"
 
+/* people keeping track of champions and corresponding url's */
+unsigned int champion_digits[3] = { 51, 37, 34 };
+char *champion_keeper[3] =
+{ "Richard Brent <rpb@comlab.ox.ac.uk>",
+  "Paul Zimmermann <zimmerma@loria.fr>",
+  "Paul Zimmermann <zimmerma@loria.fr>"};
+char *champion_url[3] =
+{"ftp://ftp.comlab.ox.ac.uk/pub/Documents/techpapers/Richard.Brent/champs.txt",
+ "http://www.loria.fr/~zimmerma/records/Pminus1.html",
+ "http://www.loria.fr/~zimmerma/records/Pplus1.html"};
+
 /******************************************************************************
 *                                                                             *
 *                                Main program                                 *
@@ -40,8 +49,9 @@ int
 main (int argc, char *argv[])
 {
   mpz_t sigma, n, seed, f;
+  mpq_t rat_seed;
   mpres_t p;
-  double B1, B2, B1done, B1cost;
+  double B1, B1done, B1cost, B2, B2min;
   int result = 1;
   int verbose = 1; /* verbose level */
   int method = EC_METHOD;
@@ -55,6 +65,7 @@ main (int argc, char *argv[])
         /* Degree for Brent-Suyama extension requested by user */
   gmp_randstate_t randstate;
   char *savefilename = NULL;
+  char *endptr[1]; /* to parse B2 or B2min-B2max */
   FILE *savefile = NULL;
 
 #ifdef MEMORY_DEBUG
@@ -109,24 +120,20 @@ main (int argc, char *argv[])
       else if (strcmp (argv[1], "-power") == 0)
         {
           use_dickson = 0;
-	  argv++;
-	  argc--;
+          S = atoi(argv[2]);
+	  argv += 2;
+	  argc -= 2;
         }
       else if (strcmp (argv[1], "-dickson") == 0)
         {
           use_dickson = 1;
-	  argv++;
-	  argc--;
+          S = atoi(argv[2]);
+	  argv += 2;
+	  argc -= 2;
         }
       else if ((argc > 2) && (strcmp (argv[1], "-k") == 0))
 	{
 	  k = atoi(argv[2]);
-	  argv += 2;
-	  argc -= 2;
-	}
-      else if ((argc > 2) && (strcmp (argv[1], "-e") == 0))
-	{
-	  S = atoi(argv[2]);
 	  argv += 2;
 	  argc -= 2;
 	}
@@ -145,16 +152,15 @@ main (int argc, char *argv[])
 
   if (argc < 2)
     {
-      fprintf (stderr, "Usage: ecm B1 [sigma] [B2] < file\n");
+      fprintf (stderr, "Usage: ecm B1 [sigma] [[B2min-]B2] < file\n");
       fprintf (stderr, "\nParameters:\n");
       fprintf (stderr, "  B1          stage 1 bound\n");
       fprintf (stderr, "  sigma       elliptic curve seed or generator for P-1 (0 = random)\n");
-      fprintf (stderr, "  B2          stage 2 bound\n");
+      fprintf (stderr, "  B2          stage 2 bound (or interval B2min-B2max)\n");
       fprintf (stderr, "\nOptions:\n");
       fprintf (stderr, "  -k n        perform n steps in stage 2\n");
-      fprintf (stderr, "  -e n        use degree-n Brent-Suyama's extension\n");
-      fprintf (stderr, "  -power      use x^n for Brent-Suyama's extension\n");
-      fprintf (stderr, "  -dickson    use n-th Dickson's polynomial for Brent-Suyama's extension\n");
+      fprintf (stderr, "  -power n    use x^n for Brent-Suyama's extension\n");
+      fprintf (stderr, "  -dickson n  use n-th Dickson's polynomial for Brent-Suyama's extension\n");
       fprintf (stderr, "  -pm1        runs Pollard P-1 instead of ECM\n");
       fprintf (stderr, "  -pp1        runs Williams P+1 instead of ECM\n");
       fprintf (stderr, "  -q          quiet mode\n");
@@ -180,10 +186,11 @@ main (int argc, char *argv[])
   if (*argv[1] == '-')
     {
       B1done = B1;
-      B1 = strtod (argv[1]+1, NULL);
+      B1 = strtod (argv[1] + 1, NULL);
     }
   else
     B1done = 1.0;
+  B2min = B1;
 
   if (B1 < 0 || B1done < 0)
     {
@@ -203,6 +210,7 @@ main (int argc, char *argv[])
 #endif
 
   mpz_init (seed); /* starting point */
+  mpq_init (rat_seed);
   if (method == EC_METHOD)
     mpz_init (sigma);
 
@@ -214,12 +222,20 @@ main (int argc, char *argv[])
           sigma or A parameter */
        if (method == PM1_METHOD || method == PP1_METHOD)
          {
-           mpz_set_str (seed, argv[2], 10);
-           specific_sigma = mpz_sgn (seed) != 0;
+           if (mpq_set_str (rat_seed, argv[2], 10))
+             {
+               fprintf (stderr, "Error, invalid seed: %s\n", argv[2]);
+               exit (1);
+             }
+           specific_sigma = mpq_sgn (rat_seed) != 0;
          }
        else
          {
-           mpz_set_str (sigma, argv[2], 10);
+           if (mpz_set_str (sigma, argv[2], 10))
+             {
+               fprintf (stderr, "Error, invalid sigma: %s\n", argv[2]);
+               exit (1);
+             }
            specific_sigma = mpz_sgn (sigma) != 0; /* zero sigma => random */
          }
     }
@@ -246,7 +262,24 @@ main (int argc, char *argv[])
     B1cost *= 2.0;
   else if (method == EC_METHOD)
     B1cost *= 11.0;
-  B2 = (argc >= 4) ? atof (argv[3]) : pow (B1cost, 1.424828748);
+
+  /* parse B2 or B2min-B2max */
+  if (argc >= 4)
+    {
+      B2 = strtod (argv[3], endptr);
+      if (*endptr == argv[3])
+        {
+          fprintf (stderr, "Error: B2 or B2min-B2max expected: %s\n", argv[3]);
+          exit (1);
+        }
+      if (**endptr == '-')
+        {
+          B2min = B2;
+          B2 = atof (*endptr + 1);
+        }
+    }
+  else
+    B2 = pow (B1cost, 1.424828748);
 
   /* set initial starting point for ECM */
   if (argc >= 5 && method == EC_METHOD)
@@ -271,7 +304,10 @@ main (int argc, char *argv[])
         printf("B1=%1.0f", B1);
       else
         printf("B1=%1.0f-%1.0f", B1done, B1);
-      printf(", B2=%1.0f, ", B2);
+      if (B2min <= B1)
+        printf(", B2=%1.0f, ", B2);
+      else
+        printf(", B2=%1.0f-%1.0f, ", B2min, B2);
       if (S > 0)
         printf("x^%u\n", S);
       else
@@ -327,6 +363,16 @@ main (int argc, char *argv[])
       factor_is_prime = cofactor_is_prime = 0;
 
       /* Set effective seed/sigma for factoring attempt on this number */
+      if (method != EC_METHOD) /* convert rational seed to integer */
+        {
+          mpz_t inv;
+
+          mpz_init (inv);
+          mpz_invert (inv, mpq_denref (rat_seed), n);
+          mpz_mul (inv, mpq_numref (rat_seed), inv);
+          mpz_mod (seed, inv, n);
+          mpz_clear (inv);
+        }
       mpz_set (p, seed);
       if (!specific_sigma)
         {
@@ -343,11 +389,11 @@ main (int argc, char *argv[])
         }
 
       if (method == PM1_METHOD)
-        result = pm1 (f, p, n, B1, B2, B1done, k, S, verbose, repr);
+        result = pm1 (f, p, n, B1done, B1, B2min, B2, k, S, verbose, repr);
       else if (method == PP1_METHOD)
-        result = pp1 (f, p, n, B1, B2, B1done, k, S, verbose, repr);
+        result = pp1 (f, p, n, B1done, B1, B2min, B2, k, S, verbose, repr);
       else
-        result = ecm (f, p, sigma, n, B1, B2, B1done, k, S, verbose, repr);
+        result = ecm (f, p, sigma, n, B1done, B1, B2min, B2, k, S, verbose, repr);
 
       if (result != 0)
 	{
@@ -372,12 +418,14 @@ main (int argc, char *argv[])
 		mpz_out_str (stdout, 10, n);
 	      printf (" has %u digits\n", nb_digits (n));
 	      
-	      if (factor_is_prime && nb_digits (f) >= 50)
-	        {
-	          printf("Report your potential champion to Richard Brent <rpb@comlab.ox.ac.uk>\n");
-	          printf("(see ftp://ftp.comlab.ox.ac.uk/pub/Documents/techpapers/Richard.Brent/champs.txt)\n");
-	        }
-	    }
+              /* check for champions (top ten for each method) */
+	      if (factor_is_prime && nb_digits (f) >= champion_digits[method])
+                    {
+                      printf ("Report your potential champion to %s\n",
+                              champion_keeper[method]);
+                      printf("(see %s)\n", champion_url[method]);
+                    }
+            }
 	  else
 	    printf ("Found input number N\n");
 	  fflush (stdout);
@@ -449,6 +497,7 @@ main (int argc, char *argv[])
   if (method == EC_METHOD)
     mpz_clear (sigma);
   mpz_clear (seed);
+  mpq_clear (rat_seed);
 
   if (!specific_sigma)
     gmp_randclear (randstate);
