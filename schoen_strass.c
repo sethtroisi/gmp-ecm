@@ -2,14 +2,15 @@
 #include <stdio.h>
 #include <gmp.h>
 #include "ecm.h"
-#ifdef TESTDRIVE
-#include <asm/msr.h>
-#include <string.h>
-#endif
+#include "ecm-gmp.h"
 
 /*
 #define DEBUG 1
 #define CHECKSUM 1
+*/
+
+/*
+#define HAVE_FFT
 */
 
 static mpz_t gt;
@@ -39,6 +40,7 @@ unsigned int Fermat;
 mp_limb_t __gmpn_mod_34lsub1 (mp_limb_t *src, mp_size_t size);
 void F_mod_1 (mpz_t, unsigned int);
 void F_mod_gt (mpz_t, unsigned int);
+void F_mulmod (mpz_t, mpz_t, mpz_t, unsigned int);
 void mpz_absadd_2exp (mpz_t, unsigned int);
 void F_divby2 (mpz_t, mpz_t, unsigned int);
 void F_divby3_1 (mpz_t, unsigned int);
@@ -123,6 +125,48 @@ F_mod_gt (mpz_t R, unsigned int n)
     mpz_set (R, gt);
 }
 
+
+/* R = S1 * S2 (mod 2^n+1) where n is a power of 2 */
+/* S1 == S2, S1 == R, S2 == R ok, but none may == gt */
+
+void 
+F_mulmod (mpz_t R, mpz_t S1, mpz_t S2, unsigned int n)
+{
+  mp_size_t n2 = n / __GMP_BITS_PER_MP_LIMB;
+#if defined(HAVE_FFT)
+  unsigned long k;
+#endif
+
+  F_mod_1 (S1, n);
+  F_mod_1 (S2, n);
+  while (mpz_size (S1) > (unsigned) n2)
+    {
+      fprintf (stderr, "Warning: S1 >= 2^%d after reduction, has %d bits. Trying again\n", 
+               n, mpz_sizeinbase (S1, 2));
+      F_mod_1 (S1, n);
+    }
+  while (mpz_size (S2) > (unsigned) n2)
+    {
+      fprintf (stderr, "Warning: S2 >= 2^%d after reduction, has %d bits. Trying again\n", 
+               n, mpz_sizeinbase (S2, 2));
+      F_mod_1 (S2, n);
+    }
+
+#if defined(HAVE_FFT)
+  if (n >= 32768)
+    {
+      _mpz_realloc (gt, n2 + 1);
+      k = mpn_fft_best_k (n2, S1 == S2);
+      mpn_mul_fft (PTR(gt), n2, PTR(S1), ABSIZ(S1), PTR(S2), ABSIZ(S2), k);
+      MPN_NORMALIZE(PTR(gt), n2);
+      SIZ(gt) = ((SIZ(S1) ^ SIZ(S2)) > 0) ? n2 : -n2;
+      F_mod_gt (R, n);
+      return;
+    }
+#endif
+  mpz_mul (gt, S1, S2);
+  F_mod_gt (R, n);
+}
 
 /* R = S + sgn(S)*(2^e) */
 
@@ -1017,16 +1061,20 @@ F_mul (mpz_t *R, mpz_t *A, mpz_t *B, unsigned int len, int parameter,
   
   if (len == 1)
     {
-      mpz_mul (gt, A[0], B[0]);
       if (parameter == MONIC) 
         {
           /* (x + a0)(x + b0) = x^2 + (a0 + b0)x + a0*b0 */
-          mpz_add (R[1], A[0], B[0]); /* May overwrite B[0] */
-          /* We don't store the leading monomial in the result poly */
+          mpz_add (gt, A[0], B[0]);
+          F_mod_gt (t[0], n);
+          F_mulmod (R[0], A[0], B[0], n); /* May overwrite A[0] */
+          mpz_set (R[1], t[0]); /* May overwrite B[0] */
+          /* We don't store the leading 1 monomial in the result poly */
         }
       else
-        mpz_set_ui (R[1], 0);
-      F_mod_gt (R[0], n); /* May overwrite A[0] */
+        {
+          F_mulmod (R[0], A[0], B[0], n); /* May overwrite A[0] */
+          mpz_set_ui (R[1], 0); /* May overwrite B[0] */
+        }
       
       return 1;
     }
@@ -1121,11 +1169,6 @@ F_mul (mpz_t *R, mpz_t *A, mpz_t *B, unsigned int len, int parameter,
         } else
           t = R; /* Do squaring */
 
-#ifdef TESTDRIVE
-      if (do_timing) 
-        rdtscll(timer_start);
-#endif
-
       /* Put A into R */
       for (i = 0; i < len; i++) 
         mpz_set (R[i], A[i]);
@@ -1138,13 +1181,7 @@ F_mul (mpz_t *R, mpz_t *A, mpz_t *B, unsigned int len, int parameter,
 
       for (i = 0; i < transformlen; i++) 
         {
-/*          printf ("Before multiply: mpz_size (R[%d]) = %d\n", i, mpz_size (R[i])); */
-          F_mod_1 (R[i], n);
-/*          printf ("Before multiply, reduced: mpz_size (R[%d]) = %d\n", i, mpz_size (R[i])); */
-          mpz_mul (gt, R[i], t[i]);
-/*          printf ("After multiply: mpz_size (R[%d]) = %d\n", i, mpz_size (gt)); */
-          F_mod_gt (R[i], n);
-/*          printf ("After multiply, reduced: mpz_size (R[%d]) = %d\n", i, mpz_size (R[i])); */
+          F_mulmod (R[i], R[i], t[i], n);
           /* Do the div-by-length. Transform length was transformlen, 
              len2 = log_2 (transformlen), so divide by 
              2^(len2) = sqrt(2)^(2*len2) */
@@ -1297,8 +1334,7 @@ F_mul_trans (mpz_t *R, mpz_t *A, mpz_t *B, unsigned int len, unsigned int n,
   
   if (len == 2)
     {
-      mpz_mul (gt, A[0], B[0]);
-      F_mod_gt (R[0], n);
+      F_mulmod (R[0], A[0], B[0], n);
       return 1;
     }
 
@@ -1330,15 +1366,7 @@ F_mul_trans (mpz_t *R, mpz_t *A, mpz_t *B, unsigned int len, unsigned int n,
 
       for (i = 0; i < len; i++) 
         {
-/*          printf ("Before multiply: mpz_size (R[%d]) = %d\n", i, mpz_size (R[i])); */
-          F_mod_1 (t[i], n);
-          F_mod_1 (t[i + len], n);
-/*          printf ("Before multiply, reduced: mpz_size (R[%d]) = %d\n", i, mpz_size (R[i])); */
-          mpz_mul (gt, t[i], t[i + len]);
-/*          printf ("After multiply: mpz_size (R[%d]) = %d\n", i, mpz_size (gt)); */
-          F_mod_gt (t[i], n);
-/*          printf ("After multiply, reduced: mpz_size (R[%d]) = %d\n", i, mpz_size (R[i])); */
-
+          F_mulmod (t[i], t[i], t[i + len], n);
           /* Do the div-by-length. Transform length was len, so divide by
              2^len2 = sqrt(2)^(2*len2) */
           F_mul_sqrt2exp (t[i], t[i], - 2 * len2, n);
