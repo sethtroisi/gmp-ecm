@@ -34,6 +34,23 @@
 /* prime powers are accumulated up to about n^L1 */
 #define L1 16
 
+/* put in 'a' a valid random seed for P-1, i.e. gcd(a, n)=1 and a <> {-1,1} */
+void
+pm1_random_seed (mpz_t a, mpz_t n, gmp_randstate_t randstate)
+{
+  mpz_t q;
+
+  mpz_init (q);
+  do
+    {
+      mpz_urandomb (a, randstate, 32);
+      mpz_gcd (q, a, n);
+    }
+  while (mpz_cmp_ui (q, 1) != 0 || mpz_cmp_ui (a, 1) == 0 ||
+         mpz_cmp_si (a, -1) == 0);
+  mpz_clear (q);
+}
+
 /* Input:  a is the generator (sigma)
            n is the number to factor
            B1 is the stage 1 bound
@@ -130,14 +147,6 @@ pm1 (mpz_t p, mpz_t n, double B1, double B2, unsigned int k, unsigned int S,
 
   st = cputime ();
 
-  if (mpz_sgn (p) == 0)
-    {
-      /* No specific seed given, use default. For Pollard P-1, avoid
-         small sigma (2, 3, ...) because it may hit the whole input 
-         number when it divides s^n-1 */
-        mpz_set_ui(p, 17);
-    }
-  
   if (verbose >= 1)
     {
       printf ("Using seed=");
