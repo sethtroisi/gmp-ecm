@@ -49,21 +49,6 @@ nb_digits (const mpz_t n)
    return size;
 }
 
-unsigned int
-gcd (unsigned int a, unsigned int b)
-{
-  unsigned int t;
-
-  while (b != 0)
-    {
-      t = a % b;
-      a = b;
-      b = t;
-    }
-
-  return a;
-}
-
 /* Produces a random unsigned int value */
 #if defined (_MSC_VER) || defined (__MINGW32__)
 #include <windows.h>
