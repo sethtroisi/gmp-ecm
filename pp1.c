@@ -737,7 +737,7 @@ pp1 (mpz_t f, mpz_t p, mpz_t n, mpz_t go, double B1done, double B1,
         outputf (OUTPUT_NORMAL, ", polynomial Dickson(%u)", -S);
        /* don't print x0 in resume case */
       if (ECM_IS_DEFAULT_B1_DONE(B1done)) 
-        outputf (OUTPUT_VERBOSE, ", x0=%Zd", p);
+        outputf (OUTPUT_NORMAL, ", x0=%Zd", p);
       outputf (OUTPUT_NORMAL, "\n");
     }
 
