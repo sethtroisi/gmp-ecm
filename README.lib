@@ -63,7 +63,7 @@ Detailed description of parameters (ecm_params):
         If zero, choice is automatic (and should be close to optimal).
 	Default is ECM_DEFAULT_S.
 * p->repr defines the representation used for modular arithmetic: 1 means
-	the 'mpz' class from gmp, 2 means 'modmuln' (Montgomery's multiplication,
+	the 'mpz' class from GMP, 2 means 'modmuln' (Montgomery's multiplication,
 	quadratic implementation), 3 means 'redc' (Montgomery's multiplication,
 	subquadratic implementation), -1 indicates not to use a special base-2
 	representation (when the input number is a factor of 2^n +/- 1).

@@ -450,6 +450,7 @@ pp1_rootsF (listz_t F, unsigned int d1, unsigned int d2, unsigned int dF,
           mpres_clear (state.fd[i].x, modulus);
           mpres_clear (state.fd[i].y, modulus);
         }
+      free (state.fd);
     }
 
   mpres_clear (u, modulus);
