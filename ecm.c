@@ -27,13 +27,13 @@
 int get_curve_from_sigma (mpz_t, mpres_t, mpres_t, mpres_t, mpmod_t);
 int montgomery_to_weierstrass (mpz_t, mpres_t, mpres_t, mpres_t, mpmod_t);
 void add3 (mpres_t, mpres_t, mpres_t, mpres_t, mpres_t, mpres_t, mpres_t,
-           mpres_t, mpmod_t, mpres_t, mpres_t, mpres_t, mpres_t);
+           mpres_t, mpmod_t, mpres_t, mpres_t, mpres_t);
 void duplicate (mpres_t, mpres_t, mpres_t, mpres_t, mpmod_t, mpres_t,
-                mpres_t, mpres_t, mpres_t, mpres_t);
+                mpres_t, mpres_t, mpres_t);
 unsigned int lucas_cost (unsigned, double);
 void prac (mpres_t, mpres_t, unsigned int, mpmod_t, mpres_t, mpres_t, mpres_t, 
            mpres_t, mpres_t, mpres_t, mpres_t, mpres_t, mpres_t, mpres_t, 
-           mpres_t, mpres_t, mpres_t);
+           mpres_t, mpres_t);
 int ecm_stage1 (mpz_t, mpres_t, mpres_t, mpmod_t, double, double, int);
 
 /******************************************************************************
@@ -163,8 +163,7 @@ montgomery_to_weierstrass (mpz_t f, mpres_t x, mpres_t y, mpres_t A, mpmod_t n)
 */
 void
 add3 (mpres_t x3, mpres_t z3, mpres_t x2, mpres_t z2, mpres_t x1, mpres_t z1, 
-      mpres_t x, mpres_t z, mpmod_t n, mpres_t t, mpres_t u, mpres_t v, 
-      mpres_t w)
+      mpres_t x, mpres_t z, mpmod_t n, mpres_t u, mpres_t v, mpres_t w)
 {
   mpres_sub (u, x2, z2, n);
   mpres_add (v, x1, z1, n);      /* u = x2-z2, v = x1+z1 */
@@ -206,7 +205,7 @@ add3 (mpres_t x3, mpres_t z3, mpres_t x2, mpres_t z2, mpres_t x1, mpres_t z1,
 */
 void
 duplicate (mpres_t x2, mpres_t z2, mpres_t x1, mpres_t z1, mpmod_t n, 
-           mpres_t b, mpres_t t, mpres_t u, mpres_t v, mpres_t w)
+           mpres_t b, mpres_t u, mpres_t v, mpres_t w)
 {
   mpres_add (u, x1, z1, n);
   mpres_mul (u, u, u, n);   /* u = (x1+z1)^2 mod n */
@@ -310,7 +309,7 @@ lucas_cost (unsigned n, double v)
 
 /* computes kP from P=(xA:zA) and puts the result in (xA:zA). Assumes k>2. */
 void
-prac (mpres_t xA, mpres_t zA, unsigned int k, mpmod_t n, mpres_t b, mpres_t t, 
+prac (mpres_t xA, mpres_t zA, unsigned int k, mpmod_t n, mpres_t b, 
       mpres_t u, mpres_t v, mpres_t w, mpres_t xB, mpres_t zB, mpres_t xC, 
       mpres_t zC, mpres_t xT, mpres_t zT, mpres_t xT2, mpres_t zT2)
 {
@@ -341,7 +340,7 @@ prac (mpres_t xA, mpres_t zA, unsigned int k, mpmod_t n, mpres_t b, mpres_t t,
   mpres_set (zB, zA, n); /* B=A */
   mpres_set (xC, xA, n);
   mpres_set (zC, zA, n); /* C=A */
-  duplicate (xA, zA, xA, zA, n, b, t, u, v, w); /* A = 2*A */
+  duplicate (xA, zA, xA, zA, n, b, u, v, w); /* A = 2*A */
   while (d != e)
     {
       if (d < e)
@@ -357,22 +356,22 @@ prac (mpres_t xA, mpres_t zA, unsigned int k, mpmod_t n, mpres_t b, mpres_t t,
         { /* condition 1 */
           d = (2 * d - e) / 3;
           e = (e - d) / 2;
-          add3 (xT, zT, xA, zA, xB, zB, xC, zC, n, t, u, v, w); /* T = f(A,B,C) */
-          add3 (xT2, zT2, xT, zT, xA, zA, xB, zB, n, t, u, v, w); /* T2 = f(T,A,B) */
-          add3 (xB, zB, xB, zB, xT, zT, xA, zA, n, t, u, v, w); /* B = f(B,T,A) */
+          add3 (xT, zT, xA, zA, xB, zB, xC, zC, n, u, v, w); /* T = f(A,B,C) */
+          add3 (xT2, zT2, xT, zT, xA, zA, xB, zB, n, u, v, w); /* T2 = f(T,A,B) */
+          add3 (xB, zB, xB, zB, xT, zT, xA, zA, n, u, v, w); /* B = f(B,T,A) */
           mpres_swap (xA, xT2, n);
           mpres_swap (zA, zT2, n); /* swap A and T2 */
         }
       else if (4 * d <= 5 * e && (d - e) % 6 == 0)
         { /* condition 2 */
           d = (d - e) / 2;
-          add3 (xB, zB, xA, zA, xB, zB, xC, zC, n, t, u, v, w); /* B = f(A,B,C) */
-          duplicate (xA, zA, xA, zA, n, b, t, u, v, w); /* A = 2*A */
+          add3 (xB, zB, xA, zA, xB, zB, xC, zC, n, u, v, w); /* B = f(A,B,C) */
+          duplicate (xA, zA, xA, zA, n, b, u, v, w); /* A = 2*A */
         }
       else if (d <= (4 * e))
         { /* condition 3 */
           d -= e;
-          add3 (xT, zT, xB, zB, xA, zA, xC, zC, n, t, u, v, w); /* T = f(B,A,C) */
+          add3 (xT, zT, xB, zB, xA, zA, xC, zC, n, u, v, w); /* T = f(B,A,C) */
           /* circular permutation (B,T,C) */
           tmp = xB;
           xB = xT;
@@ -386,22 +385,22 @@ prac (mpres_t xA, mpres_t zA, unsigned int k, mpmod_t n, mpres_t b, mpres_t t,
       else if ((d + e) % 2 == 0)
         { /* condition 4 */
           d = (d - e) / 2;
-          add3 (xB, zB, xB, zB, xA, zA, xC, zC, n, t, u, v, w); /* B = f(B,A,C) */
-          duplicate (xA, zA, xA, zA, n, b, t, u, v, w); /* A = 2*A */
+          add3 (xB, zB, xB, zB, xA, zA, xC, zC, n, u, v, w); /* B = f(B,A,C) */
+          duplicate (xA, zA, xA, zA, n, b, u, v, w); /* A = 2*A */
         }
       else if (d % 2 == 0)
         { /* condition 5 */
           d /= 2;
-          add3 (xC, zC, xC, zC, xA, zA, xB, zB, n, t, u, v, w); /* C = f(C,A,B) */
-          duplicate (xA, zA, xA, zA, n, b, t, u, v, w); /* A = 2*A */
+          add3 (xC, zC, xC, zC, xA, zA, xB, zB, n, u, v, w); /* C = f(C,A,B) */
+          duplicate (xA, zA, xA, zA, n, b, u, v, w); /* A = 2*A */
         }
       else if (d % 3 == 0)
         { /* condition 6 */
           d = d / 3 - e;
-          duplicate (xT, zT, xA, zA, n, b, t, u, v, w); /* T1 = 2*A */
-          add3 (xT2, zT2, xA, zA, xB, zB, xC, zC, n, t, u, v, w); /* T2 = f(A,B,C) */
-          add3 (xA, zA, xT, zT, xA, zA, xA, zA, n, t, u, v, w); /* A = f(T1,A,A) */
-          add3 (xT, zT, xT, zT, xT2, zT2, xC, zC, n, t, u, v, w); /* T1 = f(T1,T2,C) */
+          duplicate (xT, zT, xA, zA, n, b, u, v, w); /* T1 = 2*A */
+          add3 (xT2, zT2, xA, zA, xB, zB, xC, zC, n, u, v, w); /* T2 = f(A,B,C) */
+          add3 (xA, zA, xT, zT, xA, zA, xA, zA, n, u, v, w); /* A = f(T1,A,A) */
+          add3 (xT, zT, xT, zT, xT2, zT2, xC, zC, n, u, v, w); /* T1 = f(T1,T2,C) */
           /* circular permutation (C,B,T) */
           tmp = xC;
           xC = xB;
@@ -415,26 +414,26 @@ prac (mpres_t xA, mpres_t zA, unsigned int k, mpmod_t n, mpres_t b, mpres_t t,
       else if ((d + e) % 3 == 0)
         { /* condition 7 */
           d = (d - 2 * e) / 3;
-          add3 (xT, zT, xA, zA, xB, zB, xC, zC, n, t, u, v, w); /* T1 = f(A,B,C) */
-          add3 (xB, zB, xT, zT, xA, zA, xB, zB, n, t, u, v, w); /* B = f(T1,A,B) */
-          duplicate (xT, zT, xA, zA, n, b, t, u, v, w);
-          add3 (xA, zA, xA, zA, xT, zT, xA, zA, n, t, u, v, w); /* A = 3*A */
+          add3 (xT, zT, xA, zA, xB, zB, xC, zC, n, u, v, w); /* T1 = f(A,B,C) */
+          add3 (xB, zB, xT, zT, xA, zA, xB, zB, n, u, v, w); /* B = f(T1,A,B) */
+          duplicate (xT, zT, xA, zA, n, b, u, v, w);
+          add3 (xA, zA, xA, zA, xT, zT, xA, zA, n, u, v, w); /* A = 3*A */
         }
       else if ((d - e) % 3 == 0)
         { /* condition 8 */
           d = (d - e) / 3;
-          add3 (xT, zT, xA, zA, xB, zB, xC, zC, n, t, u, v, w); /* T1 = f(A,B,C) */
-          add3 (xC, zC, xC, zC, xA, zA, xB, zB, n, t, u, v, w); /* C = f(A,C,B) */
+          add3 (xT, zT, xA, zA, xB, zB, xC, zC, n, u, v, w); /* T1 = f(A,B,C) */
+          add3 (xC, zC, xC, zC, xA, zA, xB, zB, n, u, v, w); /* C = f(A,C,B) */
           mpres_swap (xB, xT, n);
           mpres_swap (zB, zT, n); /* swap B and T */
-          duplicate (xT, zT, xA, zA, n, b, t, u, v, w);
-          add3 (xA, zA, xA, zA, xT, zT, xA, zA, n, t, u, v, w); /* A = 3*A */
+          duplicate (xT, zT, xA, zA, n, b, u, v, w);
+          add3 (xA, zA, xA, zA, xT, zT, xA, zA, n, u, v, w); /* A = 3*A */
         }
       else if (e % 2 == 0)
         { /* condition 9 */
           e /= 2;
-          add3 (xC, zC, xC, zC, xB, zB, xA, zA, n, t, u, v, w); /* C = f(C,B,A) */
-          duplicate (xB, zB, xB, zB, n, b, t, u, v, w); /* B = 2*B */
+          add3 (xC, zC, xC, zC, xB, zB, xA, zA, n, u, v, w); /* C = f(C,B,A) */
+          duplicate (xB, zB, xB, zB, n, b, u, v, w); /* B = 2*B */
         }
       else
         {
@@ -443,7 +442,7 @@ prac (mpres_t xA, mpres_t zA, unsigned int k, mpmod_t n, mpres_t b, mpres_t t,
         }
     }
   
-  add3 (xA, zA, xA, zA, xB, zB, xC, zC, n, t, u, v, w);
+  add3 (xA, zA, xA, zA, xB, zB, xC, zC, n, u, v, w);
   
 #ifdef DEBUG
   if (d != 1)
@@ -499,21 +498,21 @@ ecm_stage1 (mpz_t f, mpres_t x, mpres_t A, mpmod_t n, double B1,
   /* prac() wants multiplicands > 2 */
   for (r = 2.0; r <= B1; r *= 2.0)
     if (r > B1done)
-      duplicate (x, z, x, z, n, b, t, u, v, w);
+      duplicate (x, z, x, z, n, b, u, v, w);
   
   /* We'll do 3 manually, too (that's what ecm4 did..) */
   for (r = 3.0; r <= B1; r *= 3.0)
     if (r > B1done)
       {
-        duplicate (xB, zB, x, z, n, b, t, u, v, w);
-        add3 (x, z, x, z, xB, zB, x, z, n, t, u, v, w);
+        duplicate (xB, zB, x, z, n, b, u, v, w);
+        add3 (x, z, x, z, xB, zB, x, z, n, u, v, w);
       }
   
   q = getprime (2.0); /* Puts 3.0 into q. Next call gives 5.0 */
   for (q = getprime (q); q <= B1; q = getprime (q))
     for (r = q; r <= B1; r *= q)
       if (r > B1done)
-	  prac (x, z, (int) q, n, b, t, u, v, w, xB, zB, xC, zC, xT, zT, xT2, zT2);
+	  prac (x, z, (int) q, n, b, u, v, w, xB, zB, xC, zC, xT, zT, xT2, zT2);
   getprime (0.0); /* free the prime tables, and reinitialize */
 
 
