@@ -39,8 +39,8 @@
 int
 main (int argc, char *argv[])
 {
-  mpz_t sigma, n, p, seed;
-  double B1, B2, B1cost;
+  mpz_t sigma, n, p, f, seed;
+  double B1, B2, B1done, B1cost;
   int result = 1;
   int verbose = 1; /* verbose level */
   int method = EC_METHOD;
@@ -48,6 +48,8 @@ main (int argc, char *argv[])
   int specific_sigma = 0; /* 1=sigma supplied by user, 0=random */
   unsigned int S = 0;
   gmp_randstate_t randstate;
+  char *savefilename = NULL;
+  FILE *savefile = NULL;
 
   /* first look for options */
   while ((argc > 1) && (argv[1][0] == '-'))
@@ -88,6 +90,12 @@ main (int argc, char *argv[])
 	  argv += 2;
 	  argc -= 2;
 	}
+      else if ((argc > 2) && (strcmp (argv[1], "-save") == 0))
+	{
+	  savefilename = argv[2];
+	  argv += 2;
+	  argc -= 2;
+	}
       else
 	{
 	  fprintf (stderr, "Unknown option: %s\n", argv[1]);
@@ -119,7 +127,20 @@ main (int argc, char *argv[])
     }
 
   /* set first stage bound B1 */
-  B1 = atof (argv[1]);
+  B1 = strtod (argv[1], &argv[1]);
+  if (*argv[1] == '-')
+    {
+      B1done = B1;
+      B1 = strtod (argv[1]+1, NULL);
+    }
+  else
+    B1done = 1.0;
+
+  if (B1 < 0 || B1done < 0)
+    {
+      fprintf(stderr, "Bound values must be positive\n");
+      exit(EXIT_FAILURE);
+    }
 
   /* check B1 is not too large */
   if (B1 > MAX_B1)
@@ -197,11 +218,28 @@ main (int argc, char *argv[])
         printf ("Williams P+1");
       else
         printf ("Elliptic Curve");
-      printf (" method with B1=%1.0f, B2=%1.0f, x^%u\n", B1, B2, S);
+      printf (" method with ");
+      if (B1done == 1.0)
+        printf("B1=%1.0f", B1);
+      else
+        printf("B1=%1.0f-%1.0f", B1done, B1);
+      printf(", B2=%1.0f, x^%u\n", B2, S);
+    }
+
+  /* Open save file for writing, if saving is requested */
+  if (savefilename != NULL)
+    {
+      savefile = fopen(savefilename, "w");
+      if (savefile == NULL)
+        {
+          fprintf(stderr, "Could not open file %s for writing\n", savefilename);
+          exit(EXIT_FAILURE);
+        }
     }
 
   mpz_init (n); /* number(s) to factor */
-  mpz_init (p); /* seed/factor found */
+  mpz_init (p); /* seed/stage 1 residue */
+  mpz_init (f); /* factor found */
   /* loop for number in standard input or file */
   while (feof (stdin) == 0)
     {
@@ -251,28 +289,28 @@ main (int argc, char *argv[])
         }
 
       if (method == PM1_METHOD)
-        result = pm1 (p, n, B1, B2, k, S, verbose);
+        result = pm1 (f, p, n, B1, B2, B1done, k, S, verbose);
       else if (method == PP1_METHOD)
-        result = pp1 (p, n, B1, B2, k, S, verbose);
+        result = pp1 (f, p, n, B1, B2, B1done, k, S, verbose);
       else
-        result = ecm (p, sigma, n, B1, B2, k, S, verbose);
+        result = ecm (f, p, sigma, n, B1, B2, B1done, k, S, verbose);
 
       if (result != 0)
 	{
           printf ("********** Factor found in step %u: ", result);
-          mpz_out_str (stdout, 10, p);
+          mpz_out_str (stdout, 10, f);
           printf ("\n");
-	  if (mpz_cmp (p, n))
+	  if (mpz_cmp (f, n))
 	    {
 	      /* prints factor found and cofactor on standard error. */
-	      if (mpz_probab_prime_p (p, 25))
+	      if (mpz_probab_prime_p (f, 25))
 		printf ("Found probable prime factor");
 	      else printf ("Found composite factor");
-	      printf (" of %u digits: ", nb_digits (p));
-	      mpz_out_str (stdout, 10, p);
+	      printf (" of %u digits: ", nb_digits (f));
+	      mpz_out_str (stdout, 10, f);
 	      printf ("\n");
 
-	      mpz_divexact (n, n, p);
+	      mpz_divexact (n, n, f);
 	      if (mpz_probab_prime_p (n, 25) == 0)
 		printf ("Composite");
 	      else
@@ -281,6 +319,7 @@ main (int argc, char *argv[])
 	      if (verbose > 0)
 		mpz_out_str (stdout, 10, n);
 	      printf (" has %u digits", nb_digits(n));
+	      mpz_mod(p, p, n); /* Reduce stage 1 residue wrt new cofactor */
 	    }
 	  else
 	    printf ("Found input number N");
@@ -295,6 +334,28 @@ main (int argc, char *argv[])
 	  putchar ('\n');
 	  fflush (stdout);
 	}
+
+      /* Write composite cofactors to savefile if requested */
+      /* If no factor was found, we consider cofactor composite and write it */
+      if (savefile != NULL && (result == 0 || mpz_probab_prime_p (n, 25) == 0))
+        {
+          fprintf(savefile, "METHOD=");
+          if (method == PM1_METHOD)
+            fprintf(savefile, "PM1");
+          else if (method == PP1_METHOD)
+            fprintf(savefile, "PP1");
+          else 
+            {
+              fprintf(savefile, "ECM; SIGMA=");
+              mpz_out_str(savefile, 10, sigma);
+            }
+          
+          fprintf(savefile, "; B1=%.0f; N=", B1);
+          mpz_out_str(savefile, 10, n);
+          fprintf(savefile, "; X=");
+          mpz_out_str(savefile, 10, p);
+          fprintf(savefile , "\n");
+        }
 
       while ((feof (stdin) == 0) && (isdigit (c = getchar ()) == 0));
 

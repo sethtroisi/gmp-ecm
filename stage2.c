@@ -296,11 +296,11 @@ rootsG (listz_t G, unsigned int d, listz_t fd_x, listz_t fd_invx,
                page 257: using x^(i^e)+1/x^(i^e) instead of x^(i^(2e))
                reduces the cost of Brent-Suyama's extension from 2*e
                to e+3 multiplications per value of i.
-   Output: x is the factor found
+   Output: f is the factor found
    Return value: non-zero iff a factor was found.
 */
 int
-stage2 (mpz_t x, mpz_t n, double B2, unsigned int k, unsigned int S, 
+stage2 (mpz_t f, mpz_t x, mpz_t n, double B2, unsigned int k, unsigned int S, 
         int verbose, int invtrick, int method)
 {
   double b2;
@@ -480,8 +480,8 @@ stage2 (mpz_t x, mpz_t n, double B2, unsigned int k, unsigned int S,
   st = cputime ();
   init_poly_list (polyF, dF, F);
   init_poly_list (polyT, dF - 1, T);
-  if ((youpi = poly_gcd (x, polyF, polyT, n, T + dF)))
-    NTL_get_factor (x);
+  if ((youpi = poly_gcd (f, polyF, polyT, n, T + dF)))
+    NTL_get_factor (f);
   if (verbose >= 2)
     printf ("Computing gcd of F and G took %dms\n", cputime() - st);
 

@@ -175,7 +175,7 @@ pp1_mul_ui (mpz_t P1, mpz_t P0, unsigned long e, mpz_t n, mpz_t P, mpz_t Q)
    Return value: non-zero iff a factor was found.
 */
 int
-pp1_stage1 (mpz_t P0, mpz_t n, double B1)
+pp1_stage1 (mpz_t f, mpz_t P0, mpz_t n, double B1, double B1done)
 {
   double B0, p, q, r;
   mpz_t P, Q, g;
@@ -214,7 +214,8 @@ pp1_stage1 (mpz_t P0, mpz_t n, double B1)
   /* first loop through small primes <= sqrt(B1) */
   for (p = 2.0; p <= B0; p = getprime(p))
     {
-      for (q = 1, r = p; r <= B1; q = r, r *= p);
+      for (q = 1, r = p; r <= B1; r *= p)
+        if (r > B1done) q *= p;
       mpz_mul_d (g, g, q, Q);
       if (mpz_sizeinbase (g, 2) >= max_size)
 	{
@@ -225,13 +226,14 @@ pp1_stage1 (mpz_t P0, mpz_t n, double B1)
 
   /* then all primes > sqrt(B1) and taken with exponent 1 */
   for (; p <= B1; p = getprime(p))
-    {
+    if (p > B1done)
+      {
 #ifdef PRAC
-      pp1_mul_prac (P0, (unsigned long) p, n, P, Q, R, S, T);
+        pp1_mul_prac (P0, (unsigned long) p, n, P, Q, R, S, T);
 #else
-      pp1_mul_ui (P0, P0, (unsigned long) p, n, P, Q);
+        pp1_mul_ui (P0, P0, (unsigned long) p, n, P, Q);
 #endif
-    }
+      }
 
   getprime (0.0); /* free the prime tables, and reinitialize */
 
@@ -246,9 +248,8 @@ pp1_stage1 (mpz_t P0, mpz_t n, double B1)
 #endif
 
   mpz_sub_ui (g, P0, 2);
-  mpz_gcd (g, g, n);
-  if ((youpi = mpz_cmp_ui (g, 1)))
-    mpz_set (P0, g);
+  mpz_gcd (f, g, n);
+  youpi = mpz_cmp_ui (f, 1);
 
   mpz_clear (g);
   
@@ -291,10 +292,10 @@ pp1_random_seed (mpz_t seed, mpz_t n, gmp_randstate_t randstate)
    Return value: non-zero iff a factor is found (1 for stage 1, 2 for stage 2)
 */
 int
-pp1 (mpz_t p, mpz_t n, double B1, double B2, unsigned int k, unsigned int S, 
-     int verbose)
+pp1 (mpz_t f, mpz_t p, mpz_t n, double B1, double B2, double B1done, 
+     unsigned int k, unsigned int S, int verbose)
 {
-  int youpi, st;
+  int youpi = 0, st;
 
   st = cputime ();
 
@@ -305,7 +306,8 @@ pp1 (mpz_t p, mpz_t n, double B1, double B2, unsigned int k, unsigned int S,
       printf ("\n");
     }
 
-  youpi = pp1_stage1 (p, n, B1);
+  if (B1 > B1done)
+    youpi = pp1_stage1 (f, p, n, B1, B1done);
 
   if (verbose >= 1)
     {
@@ -316,5 +318,5 @@ pp1 (mpz_t p, mpz_t n, double B1, double B2, unsigned int k, unsigned int S,
   if (youpi != 0) /* a factor was found */
     return 1;
 
-  return (B2 > B1) ? stage2 (p, n, B2, k, S, verbose, 0, PP1_METHOD) : 0;
+  return (B2 > B1) ? stage2 (f, p, n, B2, k, S, verbose, 0, PP1_METHOD) : 0;
 }

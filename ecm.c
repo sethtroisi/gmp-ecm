@@ -417,7 +417,8 @@ prac (mpz_t xA, mpz_t zA, unsigned int k, mpz_t n, mpz_t b, mpz_t t, mpz_t u,
    Return value: non-zero iff a factor is found
 */
 int
-ecm_stage1 (mpz_t x, mpz_t A, mpz_t n, double B1, int verbose)
+ecm_stage1 (mpz_t f, mpz_t x, mpz_t A, mpz_t n, double B1, double B1done,
+            int verbose)
 {
   mpz_t b, z, t, u, v, w, xB, zB, xC, zC, xT, zT, xT2, zT2;
   double q, r;
@@ -450,28 +451,30 @@ ecm_stage1 (mpz_t x, mpz_t A, mpz_t n, double B1, int verbose)
 
   /* prac() wants multiplicands > 2 */
   for (r = 2.0; r <= B1; r *= 2.0)
-    duplicate (x, z, x, z, n, b, t, u, v, w);
+    if (r > B1done)
+      duplicate (x, z, x, z, n, b, t, u, v, w);
   
   /* We'll do 3 manually, too (that's what ecm4 did..) */
   for (r = 3.0; r <= B1; r *= 3.0)
-    {
-      duplicate (xB, zB, x, z, n, b, t, u, v, w);
-      add3 (x, z, x, z, xB, zB, x, z, n, t, u, v, w);
-    }
+    if (r > B1done)
+      {
+        duplicate (xB, zB, x, z, n, b, t, u, v, w);
+        add3 (x, z, x, z, xB, zB, x, z, n, t, u, v, w);
+      }
   
   q = getprime (2.0); /* Puts 3.0 into q. Next call gives 5.0 */
   for (q = getprime (q); q <= B1; q = getprime (q))
     for (r = q; r <= B1; r *= q)
-      prac (x, z, (int) q, n, b, t, u, v, w, xB, zB, xC, zC, xT, zT, xT2, zT2);
+      if (r > B1done)
+        prac (x, z, (int) q, n, b, t, u, v, w, xB, zB, xC, zC, xT, zT, xT2, zT2);
 
-  mpz_gcdext (t, u, (__mpz_struct *) NULL, z, n);
-  if (mpz_cmp_ui (t, 1) > 0) /* Factor found? */
+  /* Normalize z to 1 */
+  mpz_gcdext (f, u, (__mpz_struct *) NULL, z, n);
+  if (mpz_cmp_ui (f, 1) > 0) /* Factor found? */
     {
       ret = 1;
-      mpz_set (x, t);
     }
-  else
-    mpz_mulmod (x, x, u, n, t);
+  mpz_mulmod (x, x, u, n, t);
 
   mpz_clear (zT2);
   mpz_clear (xT2);
@@ -502,10 +505,10 @@ ecm_stage1 (mpz_t x, mpz_t A, mpz_t n, double B1, int verbose)
             2 diagnostic output
 */
 int
-ecm (mpz_t p, mpz_t sigma, mpz_t n, double B1, double B2, unsigned int k,
-     unsigned int S, int verbose)
+ecm (mpz_t f, mpz_t p, mpz_t sigma, mpz_t n, double B1, double B2, 
+     double B1done, unsigned int k, unsigned int S, int verbose)
 {
-  int youpi, st;
+  int youpi = 0, st;
   mpz_t A;
 
   st = cputime ();
@@ -538,7 +541,8 @@ ecm (mpz_t p, mpz_t sigma, mpz_t n, double B1, double B2, unsigned int k,
       printf("\n");
     }
   
-  youpi = ecm_stage1 (p, A, n, B1, verbose);
+  if (B1 > B1done)
+    youpi = ecm_stage1 (f, p, A, n, B1, B1done, verbose);
 
   if (verbose >= 1)
     {
@@ -552,6 +556,6 @@ ecm (mpz_t p, mpz_t sigma, mpz_t n, double B1, double B2, unsigned int k,
   if (verbose >= 2)
     gmp_printf ("x=%Zd\n", p);
 
-//  return (B2 > B1) ? stage2 (p, n, B2, k, S, verbose, 1, EC_METHOD) : 0;
+//  return (B2 > B1) ? stage2 (f, p, n, B2, k, S, verbose, 1, EC_METHOD) : 0;
   return 0;
 }
