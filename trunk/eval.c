@@ -359,7 +359,7 @@ int eval_Phi (mpz_t b, mpz_t n, int ParamCnt)
   if (mpz_cmp_ui(n, 1) == 0)
     {
       /* return value is 1 if b is composite, or b if b is prime */
-      int isPrime = mpz_probab_prime_p (b, 25);
+      int isPrime = mpz_probab_prime_p (b, PROBAB_PRIME_TESTS);
       if (isPrime)
 	mpz_set(n, b);
       else

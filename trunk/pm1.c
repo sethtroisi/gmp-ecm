@@ -208,7 +208,8 @@ pm1_stage1 (mpz_t f, mpres_t a, mpmod_t n, double B1, double B1done,
      multiplications, and P-1 perform about B1 modular multiplications,
      to ensure small overhead, use that trick only when lg(n) <= sqrt(B1).
   */
-  if ((double) size_n <= B0 && mpz_probab_prime_p (n->orig_modulus, 1) == 0)
+  if ((double) size_n <= B0 &&
+      mpz_probab_prime_p (n->orig_modulus, PROBAB_PRIME_TESTS) == 0)
     {
       mpz_sub_ui (g, n->orig_modulus, 1);
       mpres_pow (a, a, g, n);

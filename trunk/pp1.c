@@ -170,7 +170,8 @@ pp1_stage1 (mpz_t f, mpres_t P0, mpmod_t n, double B1, double B1done,
 
      As in P-1, for small overhead, use that trick only when lg(n) <= sqrt(B1).
   */
-  if ((double) size_n <= B0 && mpz_probab_prime_p (n->orig_modulus, 1) == 0)
+  if ((double) size_n <= B0 &&
+      mpz_probab_prime_p (n->orig_modulus, PROBAB_PRIME_TESTS) == 0)
     {
       mpz_mul (g, n->orig_modulus, n->orig_modulus);
       mpz_sub_ui (g, g, 1);
@@ -289,7 +290,7 @@ pp1_random_seed (mpz_t seed, mpz_t n, gmp_randstate_t randstate)
 void
 pp1_check_factor (mpz_t a, mpz_t p)
 {
-  if (mpz_probab_prime_p (p, 25))
+  if (mpz_probab_prime_p (p, PROBAB_PRIME_TESTS))
     {
       mpz_mul (a, a, a);
       mpz_sub_ui (a, a, 4);
