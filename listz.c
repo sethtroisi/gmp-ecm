@@ -26,9 +26,12 @@
 #include "gmp.h"
 #include "ecm.h"
 
-#define TOOMCOOK3
+//#define TOOMCOOK3
+#define TOOMCOOK4
 
-#ifdef TOOMCOOK3
+#if defined(TOOMCOOK4)
+#define LIST_MULT_N toomcook4
+#elif defined(TOOMCOOK3)
 #define LIST_MULT_N toomcook3
 #else
 #define LIST_MULT_N karatsuba
@@ -41,7 +44,7 @@ list_mul_mem (unsigned int len)
   unsigned int mem;
 
   mem = 2 * len;
-#ifdef TOOMCOOK3
+#if defined(TOOMCOOK3) || defined(TOOMCOOK4)
   while (len > 3)
     {
       mem += 4;
