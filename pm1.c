@@ -25,6 +25,8 @@
 #include "gmp.h"
 #include "ecm.h"
 
+int      pm1_stage1     (mpz_t, mpz_t, mpz_t, double, double);
+
 /******************************************************************************
 *                                                                             *
 *                                  Stage 1                                    *
@@ -89,7 +91,7 @@ pm1_stage1 (mpz_t f, mpz_t a, mpz_t n, double B1, double B1done)
   for (p = 2.0; p <= B0; p = getprime(p))
     {
       for (q = 1, r = p; r <= B1; r *= p)
-        if (r>B1done) q *= p;
+        if (r > B1done) q *= p;
       mpz_mul_d (g, g, q, d);
       if (mpz_sizeinbase (g, 2) >= max_size)
 	{
@@ -147,6 +149,7 @@ pm1 (mpz_t f, mpz_t p, mpz_t n, double B1, double B2, double B1done,
      unsigned int k, unsigned int S, int verbose)
 {
   int youpi = 0, st;
+  curve P;
 
   st = cputime ();
 
@@ -170,5 +173,14 @@ pm1 (mpz_t f, mpz_t p, mpz_t n, double B1, double B2, double B1done,
   if (youpi != 0) /* a factor was found */
     return 1;
 
-  return (B2 > B1) ? stage2 (f, p, n, B2, k, S, verbose, 1, PM1_METHOD) : 0;
+  mpz_init (P.x);
+  mpz_init (P.y);
+
+  mpz_set (P.x, p);
+  youpi = stage2 (f, &P, n, B2, k, S, verbose, PM1_METHOD, B1);
+
+  mpz_clear (P.x);
+  mpz_clear (P.y);
+
+  return youpi;
 }
