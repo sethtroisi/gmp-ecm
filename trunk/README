@@ -265,6 +265,9 @@ The format used is the following:
   SIGMA and X0 would be optional, and would be mainly be used in case of a
   factor is found, to be able to reproduce the factorization.
 
+Note: it is allowed to have both -save f1 and -resume f2 for the same run,
+however the files f1 and f2 should be different.
+
 Remark: you should not perform in parallel several -resume runs on the same
 input with the same B1/B2 values, since those runs will do the same 
 computations. Options -save/-resume is useful in the following cases:
@@ -441,7 +444,7 @@ Miscallenaous options:
 	
 9. Known problems.
 
-Under some operating systems (in particular Windows), ecm may use the
+(a) Under some operating systems (in particular Windows), ecm may use the
 same random seed for several curves started during the same second.
 This is due to the fact that the getpid() function returns a constant
 value under those systems. This will cause an efficiency loss, since
@@ -450,6 +453,11 @@ least one second between different curves on the same number, or to
 specify by hand a different seed using the -sigma or -x0 options.
 In all cases, when running several curves on the same number, it is
 safe to check that the sigma/x0 values are different for each run.
+
+(b) Under some operating systems (for example SunOS), you may have
+to enable the #include <alloca.h> line in ecm-gmp.h. If that still
+does not work, then you need the GMP build file gmp-impl.h, and add
+-DWANT_GMP_IMPL to CFLAGS.
 	
 ##############################################################################
 
