@@ -161,7 +161,9 @@ init_progression_coeffs (double s, unsigned int d, unsigned int e,
   ASSERT (d % m == 0);
 
   size_fd = k * phi(d) / phi(m) * (E + 1);
-  fd = (listz_t) xmalloc (size_fd * sizeof (mpz_t));
+  fd = (listz_t) malloc (size_fd * sizeof (mpz_t));
+  if (fd == NULL)
+    return NULL;
   for (i = 0; i < size_fd; i++)
     mpz_init (fd[i]);
 
@@ -302,13 +304,15 @@ stage2 (mpz_t f, void *X, mpmod_t modulus, double B2min, double B2,
           outputf (OUTPUT_DEVVERBOSE, "Choosing power of 2 poly length "
                    "for 2^%d+1 (%d blocks)\n", Fermat, k0);
           k = k0;
-          bestD_po2 (B2min, B2, &d, &d2, &k);
+          if (bestD_po2 (B2min, B2, &d, &d2, &k))
+            return ECM_ERROR;
           dF = 1 << ceil_log2 (phi (d) / 2);
         }
     }
   if (d == 0)
     {
-      bestD (B2min, B2, k0, &d, &d2, &k);
+      if (bestD (B2min, B2, k0, &d, &d2, &k))
+        return ECM_ERROR;
       dF = phi (d) / 2;
     }
   

@@ -735,10 +735,7 @@ mpres_mul (mpres_t R, mpres_t S1, mpres_t S2, mpmod_t modulus)
       
       _mpz_realloc (R, n + 1);
       k = mpn_fft_best_k (n, S1 == S2);
-#ifdef DEBUG
-      if (mpn_fft_next_size (n, k) != n)
-        abort();
-#endif
+      ASSERT(mpn_fft_next_size (n, k) == n);
       base2mod_2 (S1, n, modulus->orig_modulus);
       base2mod_2 (S2, n, modulus->orig_modulus);
       mpn_mul_fft (PTR(R), n, PTR(S1), ABSIZ(S1), PTR(S2), ABSIZ(S2), k);

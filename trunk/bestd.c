@@ -57,14 +57,15 @@ phi (unsigned long n)
 }
 
 /*
-  Return (d, d2, k) such that:
+  Compute (d, d2, k) such that:
   (0) k >= k0
   (1) d is a multiple of 6
   (2) k * d * (phi(d)/2) * d2 / phi(d2) >= B2 - B2min
   (3) gcd(d, d2) == 1
   (4) k is minimal, subject to previous conditions
+  Return non-zero iff an error occurred (too large step 2 bound).
  */
-void
+int
 bestD (double B2min, double B2, unsigned int k0, unsigned int *finald, 
        unsigned int *finald2, unsigned int *k)
 {
@@ -129,25 +130,26 @@ od:
   if (dmin == 0)
     {
       fprintf (ECM_STDERR, "Error, too large step 2 bound, increase -k\n");
-      exit (1);
+      return 1;
     }
 
   *k = jmin;
   *finald = dmin;
   *finald2 = d2min;
   
-  return;
+  return 0;
 }
 
 /*
-  Return (d,d2,k) such that:
+  Compute (d,d2,k) such that:
   (0) k == k0 if k0 > 0, 2 <= k <= 9 otherwise
   (1) d is a multiple of 6
   (2) dF = 2^ceil(log_2(phi(d)/2)), a power of 2
   (3) k * d * d2 / phi(d2) * dF + floor(B2min / d / d2) * d * d2 >= B2 - B2min
   (4) d*d2/phi(d2) maximal
+  Return non-zero iff an error occured (too large step 2 bound).
 */
-void
+int
 bestD_po2 (double B2min, double B2, unsigned int *finald, 
            unsigned int *finald2, unsigned int *k)
 {
@@ -185,7 +187,7 @@ bestD_po2 (double B2min, double B2, unsigned int *finald,
   if (i == Npo2)
     {
       fprintf (ECM_STDERR, "Error, too large step 2 bound, increase -k\n");
-      exit (1);
+      return 1;
     }
   
   /* If the user specified a number of blocks, we'll use that no matter what.
@@ -195,5 +197,5 @@ bestD_po2 (double B2min, double B2, unsigned int *finald,
   *finald = d;
   *finald2 = d2;
 
-  return;
+  return 0;
 }

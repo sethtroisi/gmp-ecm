@@ -310,9 +310,7 @@ ks_wrapmul (listz_t R, unsigned int m0,
   mp_ptr t0_ptr, t1_ptr, t2_ptr, r_ptr, tp;
   int negative;
 
-#ifdef DEBUG
-  if (k < l) abort();
-#endif
+  ASSERT(k >= l);
 
   t = mpz_sizeinbase (n, 2);
   for (i = 0; i < k; i++)

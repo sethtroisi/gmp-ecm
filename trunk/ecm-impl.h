@@ -274,11 +274,10 @@ void    pm1_rootsG_clear (pm1_roots_state *, mpmod_t);
 #define phi __ECM(phi)
 unsigned long phi (unsigned long);
 #define bestD __ECM(bestD)
-void     bestD (double, double, unsigned int, unsigned int *, unsigned int *, 
-                unsigned int *);
+int     bestD (double, double, unsigned int, unsigned int *, unsigned int *, 
+               unsigned int *);
 #define bestD_po2 __ECM(bestD_po2)
-void     bestD_po2 (double, double, unsigned int *, unsigned int *, 
-                         unsigned int *);
+int   bestD_po2 (double, double, unsigned int *, unsigned int *, unsigned int *);
 
 /* ecm2.c */
 #define ecm_rootsF __ECM(ecm_rootsF)
@@ -488,8 +487,6 @@ void         mpz_sub_si (mpz_t, mpz_t, int);
 void         mpz_divby3_1op (mpz_t);
 #define ceil_log2 __ECM(ceil_log2)
 unsigned int ceil_log2  (unsigned int);
-#define xmalloc __ECM(xmalloc)
-void *       xmalloc    (size_t);
 #define cputime __ECM(cputime)
 int          cputime    (void);
 int          test_verbose (int);

@@ -234,9 +234,9 @@ toomcook4 (listz_t C, listz_t A, listz_t B, unsigned int len, listz_t t)
       mpz_sub (C4, T, C2);      /* C[4l .. 5l-1] = A(-2) */
       mpz_add (C2, C2, T);      /* C[2l .. 3l-1] = A(2) */
 #ifdef DEBUG
-      gmp_printf ("8*A(1/2)[%d] = %Zd\n", i, C0);
-      gmp_printf ("A(2)[%d] = %Zd\n", i, C2);
-      gmp_printf ("A(-2)[%d] = %Zd\n", i, C4);
+      gmp_fprintf (ECM_STDOUT, "8*A(1/2)[%d] = %Zd\n", i, C0);
+      gmp_fprintf (ECM_STDOUT, "A(2)[%d] = %Zd\n", i, C2);
+      gmp_fprintf (ECM_STDOUT, "A(-2)[%d] = %Zd\n", i, C4);
 #endif
 
       /*** Evaluate B(2), B(-2), 8*B(1/2) ***/
@@ -260,9 +260,9 @@ toomcook4 (listz_t C, listz_t A, listz_t B, unsigned int len, listz_t t)
       mpz_sub (C5, T, C3);      /* C[5l .. 5l+k-1] = B(-2) */
       mpz_add (C3, C3, T);      /* C[3l .. 3l+k-1] = B(2) */
 #ifdef DEBUG
-      gmp_printf ("8*B(1/2)[%d] = %Zd\n", i, C1);
-      gmp_printf ("B(2)[%d] = %Zd\n", i, C3);
-      gmp_printf ("B(-2)[%d] = %Zd\n", i, C5);
+      gmp_fprintf (ECM_STDOUT, "8*B(1/2)[%d] = %Zd\n", i, C1);
+      gmp_fprintf (ECM_STDOUT, "B(2)[%d] = %Zd\n", i, C3);
+      gmp_fprintf (ECM_STDOUT, "B(-2)[%d] = %Zd\n", i, C5);
 #endif
     }
 
@@ -292,10 +292,10 @@ toomcook4 (listz_t C, listz_t A, listz_t B, unsigned int len, listz_t t)
         }
 
 #ifdef DEBUG
-      gmp_printf ("A(1)[%d] = %Zd\n", i, C0);
-      gmp_printf ("A(-1)[%d] = %Zd\n", i, C2);
-      gmp_printf ("B(1)[%d] = %Zd\n", i, C1);
-      gmp_printf ("B(-1)[%d] = %Zd\n", i, C3);
+      gmp_fprintf (ECM_STDOUT, "A(1)[%d] = %Zd\n", i, C0);
+      gmp_fprintf (ECM_STDOUT, "A(-1)[%d] = %Zd\n", i, C2);
+      gmp_fprintf (ECM_STDOUT, "B(1)[%d] = %Zd\n", i, C1);
+      gmp_fprintf (ECM_STDOUT, "B(-1)[%d] = %Zd\n", i, C3);
 #endif
     }
 
@@ -314,16 +314,16 @@ toomcook4 (listz_t C, listz_t A, listz_t B, unsigned int len, listz_t t)
   for (i = 0; i < 2 * l - 1; i++)
     {
 #ifdef DEBUG
-      gmp_printf ("C(0)[%d] = %Zd\n", i, C0);
-      gmp_printf ("C(1)[%d] = %Zd\n", i, C2);
-      gmp_printf ("C(-1)[%d] = %Zd\n", i, C4);
-      gmp_printf ("C(2)[%d] = %Zd\n", i, t2);
-      gmp_printf ("C(-2)[%d] = %Zd\n", i, t4);
-      gmp_printf ("64*C(1/2)[%d] = %Zd\n", i, t0);
+      gmp_fprintf (ECM_STDOUT, "C(0)[%d] = %Zd\n", i, C0);
+      gmp_fprintf (ECM_STDOUT, "C(1)[%d] = %Zd\n", i, C2);
+      gmp_fprintf (ECM_STDOUT, "C(-1)[%d] = %Zd\n", i, C4);
+      gmp_fprintf (ECM_STDOUT, "C(2)[%d] = %Zd\n", i, t2);
+      gmp_fprintf (ECM_STDOUT, "C(-2)[%d] = %Zd\n", i, t4);
+      gmp_fprintf (ECM_STDOUT, "64*C(1/2)[%d] = %Zd\n", i, t0);
       if (i < 2 * k - 1)
-        gmp_printf ("C(inf)[%d] = %Zd\n", i, C6);
+        gmp_fprintf (ECM_STDOUT, "C(inf)[%d] = %Zd\n", i, C6);
 
-      gmp_printf ("C_0[%d] = %Zd\n", i, C0);
+      gmp_fprintf (ECM_STDOUT, "C_0[%d] = %Zd\n", i, C0);
 #endif
 
       mpz_add (t0, t0, t2);             /* t0 = 65 34 20 16 20 34 65 */
@@ -378,13 +378,13 @@ toomcook4 (listz_t C, listz_t A, listz_t B, unsigned int len, listz_t t)
       mpz_divby3_1op (C4);              /* C4 = C_4 */
       mpz_sub (C2, C2, C4);             /* C2 = C_2 */
 #ifdef DEBUG
-      gmp_printf ("C_1[%d] = %Zd\n", i, t2);
-      gmp_printf ("C_2[%d] = %Zd\n", i, C2);
-      gmp_printf ("C_3[%d] = %Zd\n", i, t0);
-      gmp_printf ("C_4[%d] = %Zd\n", i, C4);
-      gmp_printf ("C_5[%d] = %Zd\n", i, t4);
+      gmp_fprintf (ECM_STDOUT, "C_1[%d] = %Zd\n", i, t2);
+      gmp_fprintf (ECM_STDOUT, "C_2[%d] = %Zd\n", i, C2);
+      gmp_fprintf (ECM_STDOUT, "C_3[%d] = %Zd\n", i, t0);
+      gmp_fprintf (ECM_STDOUT, "C_4[%d] = %Zd\n", i, C4);
+      gmp_fprintf (ECM_STDOUT, "C_5[%d] = %Zd\n", i, t4);
       if (i < 2 * k - 1)
-        gmp_printf ("C_6[%d] = %Zd\n", i, C6);
+        gmp_fprintf (ECM_STDOUT, "C_6[%d] = %Zd\n", i, C6);
 #endif
     }
 
