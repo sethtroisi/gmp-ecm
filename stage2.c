@@ -276,7 +276,7 @@ stage2 (mpz_t f, void *X, mpmod_t modulus, mpz_t B2min, mpz_t B2,
   double b2;
   unsigned int k;
   unsigned int i, d, d2, dF, sizeT;
-  mpz_t n, i0, s; /* s = i0 * d */
+  mpz_t n, i0, s, effB2; /* s = i0 * d */
   listz_t F, G, H, T;
   int youpi = 0, st, st0;
   void *rootsG_state = NULL;
@@ -300,6 +300,7 @@ stage2 (mpz_t f, void *X, mpmod_t modulus, mpz_t B2min, mpz_t B2,
   d = d2 = dF = 0;
   Fermat = 0;
   k = k0;
+  mpz_init_set (effB2, B2);
   mpz_init (i0);
   mpz_init (s);
   if (modulus->repr == 1 && modulus->bits > 0)
@@ -310,7 +311,7 @@ stage2 (mpz_t f, void *X, mpmod_t modulus, mpz_t B2min, mpz_t B2,
           Fermat = modulus->bits;
           outputf (OUTPUT_DEVVERBOSE, "Choosing power of 2 poly length "
                    "for 2^%d+1 (%d blocks)\n", Fermat, k0);
-          if (bestD (B2min, B2, 1, &d, &d2, &k, &dF, i0) == ECM_ERROR)
+          if (bestD (B2min, effB2, 1, &d, &d2, &k, &dF, i0) == ECM_ERROR)
             {
               youpi = ECM_ERROR;
               goto clear_s_i0;
@@ -319,7 +320,7 @@ stage2 (mpz_t f, void *X, mpmod_t modulus, mpz_t B2min, mpz_t B2,
     }
   if (d == 0)
     {
-      if (bestD (B2min, B2, 0, &d, &d2, &k, &dF, i0) == ECM_ERROR)
+      if (bestD (B2min, effB2, 0, &d, &d2, &k, &dF, i0) == ECM_ERROR)
         {
           youpi = ECM_ERROR;
           goto clear_s_i0;
@@ -333,7 +334,7 @@ stage2 (mpz_t f, void *X, mpmod_t modulus, mpz_t B2min, mpz_t B2,
   // B2 = mpz_get_d (s) + floor ((double) k * b2 / d) * d;
 
   outputf (OUTPUT_VERBOSE, "B2'=%Zd k=%u b2=%1.0f d=%u d2=%u dF=%u, "
-           "i0=%Zd\n", B2, k, b2, d, d2, dF, i0);
+           "i0=%Zd\n", effB2, k, b2, d, d2, dF, i0);
 
   if (method == ECM_ECM && test_verbose (OUTPUT_VERBOSE))
     {
@@ -343,7 +344,7 @@ stage2 (mpz_t f, void *X, mpmod_t modulus, mpz_t B2min, mpz_t B2,
                "of n digits:\n20\t25\t30\t35\t40\t45\t50\t55\t60\t65\n");
       for (i = 20; i <= 65; i += 5)
         {
-          nrcurves = 1. / ecmprob (mpz_get_d (B2min), mpz_get_d (B2), 
+          nrcurves = 1. / ecmprob (mpz_get_d (B2min), mpz_get_d (effB2), 
                                  pow (10., i - .5), (double) dF * dF * k, S); 
           if (nrcurves < 10000000)
             outputf (OUTPUT_VERBOSE, "%.0f%c", 
@@ -685,7 +686,7 @@ clear_s_i0:
       for (i = 20; i <= 65; i += 5)
         {
           const char sep = (i < 65) ? '\t' : '\n';
-          prob = ecmprob (mpz_get_d (B2min), mpz_get_d (B2), 
+          prob = ecmprob (mpz_get_d (B2min), mpz_get_d (effB2), 
                           pow (10., i - .5), (double) dF * dF * k, S);
           exptime = tottime / prob;
           /* outputf (OUTPUT_VERBOSE, "Total time: %.0f, probability: %f, expected time: %.0f\n", tottime, prob, exptime); */
@@ -709,6 +710,7 @@ clear_s_i0:
             outputf (OUTPUT_VERBOSE, "Inf%c", sep);
         }
     }
+  mpz_clear (effB2);
 
   return youpi;
 }
