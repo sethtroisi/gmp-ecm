@@ -35,7 +35,6 @@ void REDC (mpres_t, mpres_t, mpz_t, mpmod_t);
 void mpn_REDC (mp_ptr, mp_srcptr, mp_srcptr, mp_srcptr, mp_size_t);
 void mod_mul2exp (mpz_t, unsigned int, mpmod_t);
 void mod_div2exp (mpz_t, unsigned int, mpmod_t);
-static void mpn_incr (mp_ptr, mp_limb_t);
 void mpz_mod_n (mpz_t, mpmod_t);
 
 /* returns +/-k if n is a factor of N = 2^k +/- 1 with N < =n^threshold, 
@@ -170,19 +169,6 @@ mod_div2exp (mpz_t c, unsigned int k, mpmod_t n)
   mpz_mod (c, n->temp1, n->orig_modulus);
 }
 
-static void 
-mpn_incr (mp_ptr p, mp_limb_t incr)
-{
-  mp_limb_t x;
-
-  x = *p + incr;
-  *p++ = x;
-  if (x >= incr)
-    return;
-  while (++(*(p++)) == 0)
-    ;
-}
-
 /* Computes c/R^nn mod n, where n are nn limbs
    and c has space for size(c)+1 limbs.  n must be odd.
 */
@@ -191,45 +177,36 @@ mpz_mod_n (mpz_t c, mpmod_t modulus)
 {
   mp_ptr cp = PTR (c), np = PTR (modulus->orig_modulus);
   mp_limb_t cy;
+  mp_ptr cys; /* vector of carries */
   mp_limb_t q;
   size_t j, nn = modulus->bits / __GMP_BITS_PER_MP_LIMB;
+  TMP_DECL(marker);
 
-#ifdef DEBUG
-  if (c->_mp_alloc < 2 * nn + 1)
-    {
-      fprintf (stderr, "mpz_mod_n: c has space for only %d limbs, needs %d\n",
-               c->_mp_alloc, (int) (2 * nn + 1));
-      exit (EXIT_FAILURE);
-    }
-#endif
-
-  for (j = ABS (SIZ (c)); j <= 2 * nn; j++) 
+  ASSERT(ALLOC(c) >= 2 * nn + 1);
+  ASSERT(ABSIZ(c) <= 2 * nn + 1);
+  for (j = ABSIZ(c); j <= 2 * nn; j++) 
     cp[j] = 0;
+  TMP_MARK(marker);
+  cys = TMP_ALLOC_LIMBS(nn);
   for (j = 0; j < nn; j++)
     {
       q = cp[0] * modulus->Nprim;
-      cy = mpn_addmul_1 (cp, np, nn, q);
-      mpn_incr (cp + nn, cy);
+      cys[j] = mpn_addmul_1 (cp, np, nn, q);
       cp++;
     }
+  cy = cp[nn];
   cp -= nn;
-  if (cp[2 * nn])
+  /* add vector of carries and shift */
+  cy += mpn_add_n (cp, cp + nn, cys, nn);
+  TMP_FREE(marker);
+  if (cy)
     {
-#ifdef DEBUG
-      if (cp[2 * nn] > 1)
-        {
-          fprintf (stderr, "mpz_mod_n: cp[2*nn] = %lu\n", cp[2*nn]);
-          fprintf (stderr, "np[nn-1]=%lu\n", np[nn-1]);
-        }
-#endif
-      cy = cp[2 * nn] - mpn_sub_n (cp, cp + nn, np, nn);
-      while (cy > 1) /* subtract cy * n */
+      cy -= mpn_sub_n (cp, cp, np, nn);
+      while (cy > 1) /* subtract cy * {np, nn} */
         cy -= mpn_submul_1 (cp, np, nn, cy);
-      while (cy) /* subtract n */
+      while (cy) /* subtract {np, nn} */
         cy -= mpn_sub_n (cp, cp, np, nn);
     }
-  else 
-    MPN_COPY (cp, cp + nn, nn);
   MPN_NORMALIZE (cp, nn);
   SIZ(c) = SIZ(c) < 0 ? -nn : nn;
 }
