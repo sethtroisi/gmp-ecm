@@ -49,7 +49,7 @@ ALLOBJS= $(OBJS) $(EXTRAOBJS)
 POLYGCD=0
 
 DIST=  auxi.c b1_ainc.c bestd.c candi.c ecm.c ecm2.c eval.c getprime.c listz.c lucas.c main.c ntl.c pm1.c polyz.c pp1.c stage2.c trial.c toomcook.c memory.c mpmod.c mul_lo.c polyeval.c resume.c
-EXTRADIST= COPYING INSTALL Makefile README ecm.h test.pm1 test.pp1 test.ecm tune.c c155 ecm-gmp.h ChangeLog
+EXTRADIST= COPYING COPYING.LIB INSTALL Makefile README ecm.h test.pm1 test.pp1 test.ecm tune.c c155 ecm-gmp.h ChangeLog
 
 .SUFFIXES: .c .o
 
