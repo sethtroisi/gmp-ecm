@@ -209,9 +209,9 @@ expected curves and time to find factors of different sizes).</para>
 </refsect1>
 
 <refsect1 id='modular_arithmetic_options'><title>MODULAR ARITHMETIC OPTIONS</title>
-Several algorithms are available for modular multiplication.
+<para>Several algorithms are available for modular multiplication.
 The program tries to find the best one for each input;
-one can force a given method with the following options.
+one can force a given method with the following options.</para>
 <variablelist remap='TP'>
   <varlistentry>
   <term><option><replaceable>-mpzmod</replaceable></option></term>
@@ -248,12 +248,12 @@ large factor of 2^n+1 or 2^n-1, see <replaceable>-v</replaceable>).</para>
 </refsect1>
 
 <refsect1 id='file_io'><title>FILE I/O</title>
-The following options enable one to perform step 1 and step 2 separately,
+<para>The following options enable one to perform step 1 and step 2 separately,
 either on different machines, at different times, or using different
 software (in particular, George Woltman's Prime95/mprime program uses the
 same convention for save files).
 It can also be useful to split step 2 into several runs,
-using the <replaceable>B2min-B2max</replaceable> option.
+using the <replaceable>B2min-B2max</replaceable> option.</para>
 <variablelist remap='TP'>
   <varlistentry>
   <term><option><replaceable>-save file</replaceable></option></term>
@@ -328,7 +328,7 @@ emulates an infinite loop until a factor is found.</para>
 </refsect1>
 
 <refsect1 id='syntax'><title>INPUT SYNTAX</title>
-The input numbers can have several forms:
+<para>The input numbers can have several forms:</para>
 <para>Raw decimal numbers like 123456789.</para>
 <para>Comments can be placed in the file: everything after <quote>//</quote>
 is ignored, up to the end of line.</para>
