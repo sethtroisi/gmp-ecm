@@ -138,24 +138,14 @@ main (int argc, char *argv[])
   /* set second stage bound B2: when using polynomial multiplication of
      complexity n^alpha, stage 2 has complexity about B2^(alpha/2), and
      we want stage 2 to take about half of stage 1, thus we choose
-     B2 = (B1/2)^(2/alpha).
-     For Toom-Cook 3, this gives alpha=log(5)/log(3), and B2 ~ (B1/2)^1.365.
-     For Toom-Cook 4, this gives alpha=log(7)/log(4), and B2 ~ (B1/2)^1.424. */
-  B2 = (argc >= 4) ? atof (argv[3]) : pow((double) B1 / 2.0, 1.36521239);
+     B2 = (c*B1)^(2/alpha). Experimentally, c=1/4 seems to work well.
+     For Toom-Cook 3, this gives alpha=log(5)/log(3), and B2 ~ (c*B1)^1.365.
+     For Toom-Cook 4, this gives alpha=log(7)/log(4), and B2 ~ (c*B1)^1.424. */
+  B2 = (argc >= 4) ? atof (argv[3]) : pow((double) B1 / 4.0, 1.36521239);
 
   /* set default Brent-Suyama's exponent */
   if (S == 0)
-#ifdef INVS
     S = 1;
-#else
-    S = (factor == pm1) ? 2 : 1;
-
-  if ((factor == pm1) && (S % 2))
-    {
-      fprintf (stderr, "Pollard P-1 with x^e requires even e\n");
-      exit (1);
-    }
-#endif
 
   if (verbose >= 1)
     {

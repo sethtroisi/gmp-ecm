@@ -82,9 +82,10 @@ fin_diff_clear (mpz_t *fd, unsigned int E)
 /* puts in F the successive values of s^(j^S), for 0 < j < d, j=1 mod 7, 
    j and d coprime.
    Returns the degree of F, or 0 if a factor was found.
+   If invs=0, don't use the x+1/x trick.
 */
 int
-rootsF (listz_t F, unsigned int d, mpz_t s, mpz_t invs, listz_t t, 
+rootsF (listz_t F, unsigned int d, mpz_t s, mpz_t invs, listz_t t,
         unsigned int S, mpz_t n, int verbose)
 {
   unsigned int i, j;
@@ -113,8 +114,7 @@ rootsF (listz_t F, unsigned int d, mpz_t s, mpz_t invs, listz_t t,
       fin_diff_clear (fd, S);
     }
 
-#ifdef INVS  
-  if ((d/6)*S > 3*(i-1)) /* Batch inversion is cheaper */
+  if (mpz_cmp_ui (invs, 0) && (d/6)*S > 3*(i-1)) /* Batch inversion is cheaper */
     {
       if (list_invert (t, F, i, t[i], n)) 
         {
@@ -130,7 +130,9 @@ rootsF (listz_t F, unsigned int d, mpz_t s, mpz_t invs, listz_t t,
      
       mpz_set (invs, t[0]); /* Save s^(-1) in invs */
     
-    } else { /* fin_diff code is cheaper */
+    }
+  else
+    { /* fin_diff code is cheaper */
 
       mpz_gcdext (*t, invs, NULL, s, n);
 
@@ -163,7 +165,6 @@ rootsF (listz_t F, unsigned int d, mpz_t s, mpz_t invs, listz_t t,
           fin_diff_clear (fd, S);
         }
     }
-#endif
   
   if (verbose >= 2)
     printf ("Computing roots of F took %dms\n", cputime () - st);
@@ -173,7 +174,8 @@ rootsF (listz_t F, unsigned int d, mpz_t s, mpz_t invs, listz_t t,
 
 
 /* puts in G the successive values of t0*s^j, for 1 <= j <= d
-   returns in t the value of t0*s^d, in u the value of u0*invs^d
+   returns in t the value of t0*s^d, in u the value of u0*invs^d.
+   If listz_t=NULL, don't use the x+1/x trick.
 */
 void
 rootsG (listz_t G, unsigned int d, listz_t fd_x, listz_t fd_invx, 
@@ -184,8 +186,7 @@ rootsG (listz_t G, unsigned int d, listz_t fd_x, listz_t fd_invx,
 
   st = cputime ();
 
-#ifdef INVS
-  if (S > 3 && d > 0)
+  if (fd_invx != NULL && S > 3)
     {
       mpz_set (G[0], fd_x[0]);
       mpz_set (t[0], fd_x[0]);
@@ -210,25 +211,21 @@ rootsG (listz_t G, unsigned int d, listz_t fd_x, listz_t fd_invx,
         }
 
     }
-  else /* S <= 2 */
+  else /* fd_invx=NULL or S <= 2 */
     {
-#endif
       for (i = 0; i < d; i++)
         {
-#ifdef INVS
-          mpz_add (G[i], fd_x[0], fd_invx[0]);
-          mpz_mod (G[i], G[i], n);
-#else
-          mpz_set (G[i], fd_x[0]);
-#endif
+          if (fd_invx != NULL)
+            {
+              mpz_add (G[i], fd_x[0], fd_invx[0]);
+              mpz_mod (G[i], G[i], n);
+              fin_diff_next (fd_invx, S, n);
+            }
+          else
+            mpz_set (G[i], fd_x[0]);
           fin_diff_next (fd_x, S, n);
-#ifdef INVS
-          fin_diff_next (fd_invx, S, n);
-#endif
         }
-#ifdef INVS
     }
-#endif
 
   if (verbose >= 2)
     printf ("Computing roots of G took %dms\n", cputime () - st);
@@ -239,16 +236,23 @@ rootsG (listz_t G, unsigned int d, listz_t fd_x, listz_t fd_invx,
            B2 is the stage 2 bound
            k is the number of blocks
            S is the exponent for Brent-Suyama's extension
+           verbose is the verbose level
+           invtrick is non-zero iff one uses x+1/x instead of x.
+           Cf "Speeding the Pollard and Elliptic Curve Methods
+               of Factorization", Peter Montgomery, Math. of Comp., 1987,
+               page 257: using x^(i^e)+1/x^(i^e) instead of x^(i^(2e))
+               reduces the cost of Brent-Suyama's extension from 2*e
+               to e+3 multiplications per value of i.
    Output: x is the factor found
    Return value: non-zero iff a factor was found.
 */
 int
 stage2 (mpz_t x, mpz_t n, double B2, unsigned int k, unsigned int S, 
-        int verbose)
+        int verbose, int invtrick)
 {
   double b2;
   unsigned int i, d, dF, dG, sizeT;
-  listz_t F, G, T, fd_x, fd_invx;
+  listz_t F, G, T, fd_x, fd_invx = NULL;
   polyz_t polyF, polyT;
   mpz_t invx;
   int youpi = 0, st, st0;
@@ -274,11 +278,11 @@ stage2 (mpz_t x, mpz_t n, double B2, unsigned int k, unsigned int S,
   dG = dF - 1;
 
   if (verbose >= 2)
-    printf ("B2=%1.0f k=%u b2=%1.0f d=%u dF=%u dG=%u S=%u\n", B2, k, b2, d, dF, dG, S);
+    printf ("B2=%1.0f k=%u b2=%1.0f d=%u dF=%u dG=%u\n", B2, k, b2, d, dF, dG);
 
   F = init_list (dF + 1); 
 
-  mpz_init (invx);
+  mpz_init_set_ui (invx, invtrick);
   sizeT = 3 * dF + list_mul_mem (dF);
   T = init_list (sizeT);
 
@@ -298,9 +302,8 @@ stage2 (mpz_t x, mpz_t n, double B2, unsigned int k, unsigned int S,
   if (verbose >= 2)
     printf ("Initializing table of differences for G took %dms\n", cputime () - st);
     
-#ifdef INVS
-  fd_invx = fin_diff_init (invx, 0, d, S, n);
-#endif
+  if (invtrick)
+    fd_invx = fin_diff_init (invx, 0, d, S, n);
 
   for (i=0; i<k; i++)
     {
@@ -340,9 +343,8 @@ stage2 (mpz_t x, mpz_t n, double B2, unsigned int k, unsigned int S,
     printf ("Computing gcd of F and G took %dms\n", cputime() - st);
 
   clear_list (G, dG + 1);
-#ifdef INVS
-  fin_diff_clear (fd_invx, S);
-#endif
+  if (invtrick)
+    fin_diff_clear (fd_invx, S);
   fin_diff_clear (fd_x, S);
   clear_list (T, sizeT);
 
