@@ -36,9 +36,8 @@
 #define C3 C[3*l+i]
 #define C4 C[4*l+i]
 #define t0 t[i]
-#define t1 t[l+i]
-#define t2 t[2*l+i]
-#define t3 t[3*l+i]
+#define t2 t[2*l+i-1]
+#define T t[4*l]
 
 #define ABS(x) (((x) >= 0) ? (x) : (-(x)))
 
@@ -111,94 +110,81 @@ toomcook3 (listz_t C, listz_t A, listz_t B, unsigned int len, listz_t t)
   
   for (i=0; i<k; i++) /* uses t[0..3*l+k-1] */
     {
-      mpz_add (t0, A0, A2);
-      mpz_add (t1, B0, B2);
-      mpz_sub (t2, t0, A1); /* t2 = A0 - A1 + A2 = A(-1) */
-      mpz_sub (t3, t1, B1); /* t3 = B0 - B1 + B2 = B(-1) */
-      mpz_add (t0, t0, A1); /* t0 = A0 + A1 + A2 = A(1) */
-      mpz_add (t1, t1, B1); /* t1 = B0 + B1 + B2 = B(1) */
+      mpz_add (C0, A0, A2);
+      mpz_sub (C2, C0, A1); /* C2 = A0 - A1 + A2 = A(-1) */
+      mpz_add (C0, C0, A1); /* C0 = A0 + A1 + A2 = A(1) */
+      mpz_add (C1, B0, B2);
+      mpz_sub (C3, C1, B1); /* C3 = B0 - B1 + B2 = B(-1) */
+      mpz_add (C1, C1, B1); /* C1 = B0 + B1 + B2 = B(1) */
     }
   for (; i<l; i++) /* uses t[0..4*l-1] */
     { /* A2 and B2 are smaller than the rest */
-      mpz_add (t0, A0, A1);
-      mpz_sub (t2, A0, A1);
-      mpz_add (t1, B0, B1);
-      mpz_sub (t3, B0, B1);
+      mpz_add (C0, A0, A1);
+      mpz_sub (C2, A0, A1);
+      mpz_add (C1, B0, B1);
+      mpz_sub (C3, B0, B1);
     }
   
-  r = toomcook3 (C + 2 * l, t, t + l, l, t + 4 * l);
-  /* C2 = C(1), len(C1) = 2*l-1 */
-
-  r += toomcook3 (t, t + 2 * l, t + 3 * l, l, t + 4 * l);
-  /* t0 = C(-1), len(t0) = 2*l-1 */
+  r = toomcook3 (t, C + 2 * l, C + 3 * l, l, &T);
+  /* t0 = C2*C3 = A(-1)*B(-1) = C(-1), len(t0) = 2*l-1 */
   
   for (i=0; i<k; i++)
     {
-      mpz_mul_2exp (C0, A2, 1); /* C0 = A(2), C1 = B(2) */
-      mpz_add (C0, C0, A1);
-      mpz_mul_2exp (C0, C0, 1);
-      mpz_add (C0, C0, A0);
-      mpz_mul_2exp (C1, B2, 1);
-      mpz_add (C1, C1, B1);
-      mpz_mul_2exp (C1, C1, 1);
-      mpz_add (C1, C1, B0);
+      mpz_mul_2exp (C2, A2, 1); /* C2 = A(2), C3 = B(2) */
+      mpz_add (C2, C2, A1);
+      mpz_mul_2exp (C2, C2, 1);
+      mpz_add (C2, C2, A0);
+      mpz_mul_2exp (C3, B2, 1);
+      mpz_add (C3, C3, B1);
+      mpz_mul_2exp (C3, C3, 1);
+      mpz_add (C3, C3, B0);
     }
   for (; i<l; i++)
     {
-      mpz_mul_2exp (C0, A1, 1);
-      mpz_add (C0, C0, A0);
-      mpz_mul_2exp (C1, B1, 1);
-      mpz_add (C1, C1, B0);
+      mpz_mul_2exp (C2, A1, 1);
+      mpz_add (C2, C2, A0);
+      mpz_mul_2exp (C3, B1, 1);
+      mpz_add (C3, C3, B0);
     }  
   
-  r += toomcook3 (t + 2 * l, C, C + l, l, t + 4 * l);
-  /* t2 = C(2), len(t2) = 2*l-1 */
+  r += toomcook3 (t + 2 * l - 1, C + 2 * l, C + 3 * l, l, &T);
+  /* t2 = C2*C3 = A(2)*B(2) = C(2), len(t2) = 2*l-1 */
   
-  r += toomcook3 (C, A, B, l, t + 4 * l);
-  /* C0 = C(0), len(C0) = 2*l-1 */
+  r += toomcook3 (C + 2 * l, C, C + l, l, &T);
+  /* C2 = C0*C1 = A(1)*B(1) = C(1), len(C1) = 2*l-1 */
+
+  r += toomcook3 (C, A, B, l, &T);
+  /* C0 = A(0)*B(0) = C(0), len(C0) = 2*l-1 */
   
-  r += toomcook3 (C + 4 * l, A + 2 * l, B + 2 * l, k, t + 4 * l);
-  /* C4 = C(inf), len(C4) = 2*k-1 */
+  r += toomcook3 (C + 4 * l, A + 2 * l, B + 2 * l, k, &T);
+  /* C4 = A(inf)*B(inf) = C(inf), len(C4) = 2*k-1 */
   
   /* C0: C_0  C2: C(1)  C4: C_4  t0: C(-1)  t2: C(2) */
   
-  for (i=0; i<2*k-1; i++) /* uses t[0..4l] */
+  for (i=0; i<2*l-1; i++) /* uses t[0..4l] */
     {
-      mpz_sub (t[4*l], C2, t0);
+      mpz_sub (T, C2, t0);
       mpz_add (C2, C2, t0);        /* C2 = C(1)+C(-1) = 2*(C_0 + C_2 + C_4) */
-      mpz_set (t0, t[4*l]);        /* t0 = C(1)-C(-1) = 2*(C_1 + C_3) */
+      mpz_set (t0, T);             /* t0 = C(1)-C(-1) = 2*(C_1 + C_3) */
       mpz_fdiv_q_2exp (C2, C2, 1); /* C2 = C_0 + C_2 + C_4 */
       mpz_sub (C2, C2, C0);        /* C2 = C_2 + C_4 */
-      mpz_sub (C2, C2, C4);        /* C2 = C_2 */
+      if (i < 2*k-1)
+        mpz_sub (C2, C2, C4);      /* C2 = C_2 */
     
       mpz_sub (t2, t2, C0);        /* t2 = 2*C_1 + 4*C_2 + 8*C_3 + 16*C_4 */
       mpz_sub (t2, t2, t0);        /* t2 = 4*C_2 + 6*C_3 + 16*C_4 */
       mpz_fdiv_q_2exp (t2, t2, 1); /* t2 = 2*C_2 + 3*C_3 + 8*C_4 */
-      mpz_mul_2exp (t[4*l], C2, 1);
-      mpz_sub (t2, t2, t[4*l]);    /* t2 = 3*C_3 + 8*C_4 */
-      mpz_mul_2exp (t[4*l], C4, 3);
-      mpz_sub (t2, t2, t[4*l]);    /* t2 = 3*C_3 */
+      mpz_mul_2exp (T, C2, 1);
+      mpz_sub (t2, t2, T);         /* t2 = 3*C_3 + 8*C_4 */
+      if (i < 2*k-1)
+        {
+          mpz_mul_2exp (T, C4, 3);
+          mpz_sub (t2, t2, T);     /* t2 = 3*C_3 */
+        }
       mpz_divby3_1op (t2);         /* t2 = C_3 */
       mpz_fdiv_q_2exp (t0, t0, 1); /* t0 = C_1 + C_3 */
       mpz_sub (t0, t0, t2);        /* t0 = C_1 */
   }
-  for (; i<2*l-1; i++) /* uses t[0..4l] */
-    {
-      mpz_sub (t[4*l], C2, t0);
-      mpz_add (C2, C2, t0);
-      mpz_set (t0, t[4*l]);
-      mpz_fdiv_q_2exp (C2, C2, 1);
-      mpz_sub (C2, C2, C0);
-    
-      mpz_sub (t2, t2, C0);
-      mpz_sub (t2, t2, t0);        /* t2 = 4*C_2 + 6*C_3 + 16*C_4 */
-      mpz_fdiv_q_2exp (t2, t2, 1);
-      mpz_mul_2exp (t[4*l], C2, 1);
-      mpz_sub (t2, t2, t[4*l]);     /* t2 = 3*C_3 + 8*C_4 */
-      mpz_divby3_1op (t2);         /* t2 = C_3 */
-      mpz_fdiv_q_2exp (t0, t0, 1); /* t0 = C_1 + C_3 */
-      mpz_sub (t0, t0, t2);        /* t0 = C_1 */
-    }
   
   for (i = 0; i < l-1; i++)
     mpz_add (C1, C1, t0);
@@ -219,7 +205,8 @@ toomcook3 (listz_t C, listz_t A, listz_t B, unsigned int len, listz_t t)
 #define B3 B[3*l+i]
 #define C5 C[5*l+i]
 #define C6 C[6*l+i]
-#define t4 t[4*l+i]
+#define t4 t[4*l+i-2]
+#undef T
 #define T t[6*l]
 
 int 
@@ -248,24 +235,22 @@ toomcook4 (listz_t C, listz_t A, listz_t B, unsigned int len, listz_t t)
     mpz_mul_2exp(C0, C0, 1);
     mpz_add(C0, C0, A2);
     mpz_mul_2exp(C0, C0, 1);
-    if (i < k)
-      mpz_add(C0, C0, A3);      /* C[0 .. l-1] = 8*A(1/2) */
-#ifdef DEBUG
-    gmp_printf("8*A(1/2)[%d] = %Zd\n", i, C0);
-#endif
+    if (i < k) 
+      {
+        mpz_add(C0, C0, A3);      /* C[0 .. l-1] = 8*A(1/2) */
     
-    if (i < k) {
         mpz_mul_2exp(C2, A3, 2);
         mpz_add(C2, C2, A1);
         mpz_mul_2exp(C2, C2, 1);/* C[2l .. 3l-1] = 8*A_3 + 2*A_1 */
-      } else {
-        mpz_mul_2exp(C2, A1, 1);
-      }
+      } 
+    else
+      mpz_mul_2exp(C2, A1, 1);
     mpz_mul_2exp(T, A2, 2);
     mpz_add(T, T, A0);          /* T = 4*A_2 + A0 */
     mpz_sub(C4, T, C2);         /* C[4l .. 5l-1] = A(-2) */
     mpz_add(C2, C2, T);         /* C[2l .. 3l-1] = A(2) */
 #ifdef DEBUG
+    gmp_printf("8*A(1/2)[%d] = %Zd\n", i, C0);
     gmp_printf("A(2)[%d] = %Zd\n", i, C2);
     gmp_printf("A(-2)[%d] = %Zd\n", i, C4);
 #endif
@@ -277,67 +262,60 @@ toomcook4 (listz_t C, listz_t A, listz_t B, unsigned int len, listz_t t)
     mpz_add(C1, C1, B2);
     mpz_mul_2exp(C1, C1, 1);
     if (i < k)
-      mpz_add(C1, C1, B3);      /* C[l .. 2l-1] = 8*B(1/2) */
-#ifdef DEBUG
-    gmp_printf("8*B(1/2)[%d] = %Zd\n", i, C1);
-#endif
+      {
+        mpz_add(C1, C1, B3);      /* C[l .. 2l-1] = 8*B(1/2) */
     
-    if (i < k) {
-      mpz_mul_2exp(C3, B3, 2);
-      mpz_add(C3, C3, B1);
-      mpz_mul_2exp(C3, C3, 1);  /* C[3l .. 3l+k-1] = 8*B_3 + 2*B_1 */
-    } else {
+        mpz_mul_2exp(C3, B3, 2);
+        mpz_add(C3, C3, B1);
+        mpz_mul_2exp(C3, C3, 1);  /* C[3l .. 3l+k-1] = 8*B_3 + 2*B_1 */
+      } 
+    else 
       mpz_mul_2exp(C3, B1, 1);
-    }
     mpz_mul_2exp(T, B2, 2);
     mpz_add(T, T, B0);          /* T = 4*B_2 + B0 */
     mpz_sub(C5, T, C3);         /* C[5l .. 5l+k-1] = B(-2) */
     mpz_add(C3, C3, T);         /* C[3l .. 3l+k-1] = B(2) */
 #ifdef DEBUG
+    gmp_printf("8*B(1/2)[%d] = %Zd\n", i, C1);
     gmp_printf("B(2)[%d] = %Zd\n", i, C3);
     gmp_printf("B(-2)[%d] = %Zd\n", i, C5);
 #endif
   }
   
-  r = toomcook4(t, C, C+l, l, t+6*l); /* t0 = 8*A(1/2) * 8*B(1/2) = 64*C(1/2) */
-  r += toomcook4(t+2*l, C+2*l, C+3*l, l, t+6*l); /* t2 = A(2) * B(2) = C(2) */
-  r += toomcook4(t+4*l, C+4*l, C+5*l, l, t+6*l); /* t4 = A(-2) * B(-2) = C(-2) */
+  r = toomcook4(t, C, C+l, l, &T); /* t0 = 8*A(1/2) * 8*B(1/2) = 64*C(1/2) */
+  r += toomcook4(t+2*l-1, C+2*l, C+3*l, l, &T); /* t2 = A(2) * B(2) = C(2) */
+  r += toomcook4(t+4*l-2, C+4*l, C+5*l, l, &T); /* t4 = A(-2) * B(-2) = C(-2) */
   
   for (i = 0; i < l; i++)
     {
       mpz_add(C0, A0, A2);
+      mpz_add(C1, B0, B2);
       if (i < k) {
         mpz_add(T, A1, A3);
         mpz_sub(C2, C0, T);     /* C2 = A(-1) */
         mpz_add(C0, C0, T);     /* C0 = A(1) */
+        mpz_add(T, B1, B3);
+        mpz_sub(C3, C1, T);     /* C3 = B(-1) */
+        mpz_add(C1, C1, T);     /* C1 = B(1) */
       } else {
         mpz_sub(C2, C0, A1);
         mpz_add(C0, C0, A1);
-      }
-#ifdef DEBUG
-      gmp_printf("A(1)[%d] = %Zd\n", i, C0);
-      gmp_printf("A(-1)[%d] = %Zd\n", i, C2);
-#endif
-      
-      mpz_add(C1, B0, B2);
-      if (i < k) {
-        mpz_add(T, B1, B3);
-        mpz_sub(C3, C1, T);   /* C3 = B(-1) */
-        mpz_add(C1, C1, T);   /* C1 = B(1) */
-      } else {
         mpz_sub(C3, C1, B1);
         mpz_add(C1, C1, B1);
       }
+      
 #ifdef DEBUG
+      gmp_printf("A(1)[%d] = %Zd\n", i, C0);
+      gmp_printf("A(-1)[%d] = %Zd\n", i, C2);
       gmp_printf("B(1)[%d] = %Zd\n", i, C1);
       gmp_printf("B(-1)[%d] = %Zd\n", i, C3);
 #endif
     }
     
-  r += toomcook4(C+4*l, C+2*l, C+3*l, l, t+6*l); /* C4 = A(-1) * B(-1) = C(-1) */
-  r += toomcook4(C+2*l, C, C+l, l, t+6*l);       /* C2 = A(1) * B(1) = C(1) */
-  r += toomcook4(C, A, B, l, t+6*l);             /* C0 = A_0 * B_0 = C_0 */
-  r += toomcook4(C+6*l, A+3*l, B+3*l, k, t+6*l); /* C6 = A_3 * B_3 = C_6 */
+  r += toomcook4(C+4*l, C+2*l, C+3*l, l, &T); /* C4 = A(-1) * B(-1) = C(-1) */
+  r += toomcook4(C+2*l, C, C+l, l, &T);       /* C2 = A(1) * B(1) = C(1) */
+  r += toomcook4(C, A, B, l, &T);             /* C0 = A_0 * B_0 = C_0 */
+  r += toomcook4(C+6*l, A+3*l, B+3*l, k, &T); /* C6 = A_3 * B_3 = C_6 */
   
   
   for (i = 0; i < 2*l-1; i++) 

@@ -26,8 +26,8 @@
 #include "gmp.h"
 #include "ecm.h"
 
-//#define TOOMCOOK3
-#define TOOMCOOK4
+#define TOOMCOOK3
+//#define TOOMCOOK4
 
 #if defined(TOOMCOOK4)
 #define LIST_MULT_N toomcook4
@@ -47,7 +47,7 @@ list_mul_mem (unsigned int len)
 #if defined(TOOMCOOK3) || defined(TOOMCOOK4)
   while (len > 3)
     {
-      mem += 4;
+      mem += 2;
       len = (len + 2) / 3; /* ceil(len/3) */
     }
   mem += 4;
