@@ -141,7 +141,7 @@ ChompLine:;
     {
       if (expr[nCurSize-1] == '\\')
 	{
-	  // remove the '\\' char, and then process the next line
+	  /* remove the '\\' char, and then process the next line */
 	  expr[--nCurSize] = 0;
 	  goto JoinLinesLoop;
 	}
@@ -212,7 +212,7 @@ JoinLinesLoop:;
     {
       if (expr[nCurSize-1] == '\\')
 	{
-	  // remove the '\\' char, and then process the next line
+	  /* remove the '\\' char, and then process the next line */
 	  expr[--nCurSize] = 0;
 	  goto JoinLinesLoop;
 	}
@@ -419,7 +419,7 @@ int eval_Phi (mpz_t b, mpz_t n, int ParamCnt)
 	      
   for(dw=0;(dw<(1U<<dwFactors)); dw++)
     {
-      // for all Mobius terms
+      /* for all Mobius terms */
       int iPower=_B;
       int iMobius=0;
       unsigned dwIndex=0;
