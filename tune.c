@@ -80,6 +80,8 @@ main (int argc, char *argv[])
   int mpzmod_threshold = 0;
   int redc_threshold = 0;
 
+  printf ("MUL_KARATSUBA_THRESHOLD=%u\n", MUL_KARATSUBA_THRESHOLD);
+  printf ("DIV_DC_THRESHOLD=%u\n", DIV_DC_THRESHOLD);
   printf ("MPZMOD_THRESHOLD_DEFAULT=%u\n", MPZMOD_THRESHOLD_DEFAULT);
   printf ("REDC_THRESHOLD_DEFAULT=%u\n", REDC_THRESHOLD_DEFAULT);
 
