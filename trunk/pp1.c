@@ -32,8 +32,6 @@
 #include "gmp.h"
 #include "ecm.h"
 
-void             pp1_mul_ui (mpres_t, mpres_t, unsigned long, mpmod_t, 
-                             mpres_t, mpres_t);
 int  count_significant_bits (mp_limb_t);
 void pp1_check_factor       (mpz_t, mpz_t);
 int          pp1_stage1     (mpz_t, mpres_t, mpmod_t, double, double,
@@ -297,50 +295,62 @@ pp1_check_factor (mpz_t a, mpz_t p)
 */
 
 int
-pp1_rootsF (listz_t F, unsigned int d, unsigned int dF, mpres_t *x, listz_t t,
-            mpmod_t modulus, int verbose, unsigned long *tot_muls)
+pp1_rootsF (listz_t F, unsigned int d1, unsigned int d2, unsigned int dF, 
+            mpres_t *x, listz_t t, mpmod_t modulus, int verbose, 
+            unsigned long *tot_muls)
 {
   unsigned int i, j, muls = 0;
   int st, st2;
-  mpres_t fd[4];
+  mpres_t fd[5]; /* fd[3..4] are temp vars */
   
-  st = cputime ();
+  if (dF == 0)
+    return 0;
 
-  mpres_get_z (F[0], *x, modulus); /* V_1(P)=P for P+1 */
+  st2 = st = cputime ();
 
-  if (d > 7)
+  if (verbose >= 3)
+    printf ("pp1_rootsF: d1 = %d, d2 = %d, dF = %d\n", d1, d2, dF);
+
+  mpres_init (fd[0], modulus);
+  mpres_init (fd[1], modulus);
+  mpres_init (fd[2], modulus);
+  mpres_init (fd[3], modulus);
+  mpres_init (fd[4], modulus);
+
+  mpz_set_ui (*t, d2);
+  pp1_mul (fd[2], *x, *t, modulus, fd[3], fd[4]);
+  mpres_get_z (F[0], fd[2], modulus);
+  
+  mpz_set_ui (*t, 7);
+  pp1_mul (fd[0], fd[2], *t, modulus, fd[3], fd[4]);
+
+  mpz_set_ui (*t, 6); 
+  pp1_mul (fd[1], fd[2], *t, modulus, fd[3], fd[4]);
+  /* for P+1, fd[0] = V_{7*d2}(P), fd[1] = V_{6*d2}(P), fd[2] = V_{d2}(P) */
+
+  if (verbose >= 2)
+    printf ("Initializing table of differences for F took %dms\n", cputime () - st2);
+  i = 1;
+  j = 7;
+  while (i < dF)
     {
-      st2 = cputime ();
-      mpres_init (fd[0], modulus);
-      mpres_init (fd[1], modulus);
-      mpres_init (fd[2], modulus);
-      mpres_init (fd[3], modulus);
-      mpz_set_ui (*t, 7);
-      pp1_mul (fd[0], *x, *t, modulus, fd[2], fd[3]);
-      mpz_set_ui (*t, 6);
-      pp1_mul (fd[1], *x, *t, modulus, fd[2], fd[3]);
-      mpres_set (fd[2], *x, modulus); 
-      /* for P+1, fd[0] = V_7(P), fd[1] = V_6(P), fd[2] = V_{7-6}(P) */
-      if (verbose >= 2)
-        printf ("Initializing table of differences for F took %dms\n", cputime () - st2);
-      i = 1;
-      j = 7;
-      while (i < dF)
-        {
-          if (gcd (j, d) == 1)
-            mpres_get_z (F[i++], fd[0], modulus);
+      if (gcd (j, d1) == 1)
+        mpres_get_z (F[i++], fd[0], modulus);
 
-          mpres_swap (fd[0], fd[2], modulus);
-          mpres_mul (fd[3], fd[2], fd[1], modulus);
-          mpres_sub (fd[0], fd[3], fd[0], modulus);
-          j += 6;
-          muls++;
-        }
-      mpres_clear (fd[0], modulus);
-      mpres_clear (fd[1], modulus);
-      mpres_clear (fd[2], modulus);
-      mpres_clear (fd[3], modulus);
+      /* V_{m+n} = V_m * V_n - V_{m-n} */
+      /* fd[0] = V_m, fd[1] = V_n, fd[2] = V_{m-n} */
+      mpres_swap (fd[0], fd[2], modulus);
+      mpres_mul (fd[3], fd[2], fd[1], modulus);
+      mpres_sub (fd[0], fd[3], fd[0], modulus);
+      /* fd[0] = V_{m+n}, fd[1] = V_n, fd[2] = V_m */
+      j += 6;
+      muls++;
     }
+  mpres_clear (fd[0], modulus);
+  mpres_clear (fd[1], modulus);
+  mpres_clear (fd[2], modulus);
+  mpres_clear (fd[3], modulus);
+  mpres_clear (fd[4], modulus);
 
   if (verbose >= 2)
     printf ("Computing roots of F took %dms and %d muls\n", cputime () - st, 
@@ -352,70 +362,71 @@ pp1_rootsF (listz_t F, unsigned int d, unsigned int dF, mpres_t *x, listz_t t,
   return 0;
 }
 
-mpres_t *
-pp1_rootsG_init (mpres_t *x, double s, unsigned int d, mpmod_t modulus)
+pp1_roots_state *
+pp1_rootsG_init (mpres_t *x, double s, unsigned int d, unsigned int d2, 
+                 mpmod_t modulus)
 {
   int st;
-  mpres_t *fd, P;
+  mpres_t P;
   mpz_t t;
+  pp1_roots_state *state;
   
   st = cputime ();
   
+  state = (pp1_roots_state *) xmalloc (sizeof (pp1_roots_state));
   mpz_init (t);
 
-  fd = (mpres_t *) malloc (4 * sizeof (mpres_t));
-  if (fd == NULL)
-    {
-      fprintf (stderr, "pp1_rootsG_init: could not allocate memory for fd\n");
-      exit (EXIT_FAILURE);
-    }
-
-  mpres_init (fd[0], modulus);
-  mpres_init (fd[1], modulus);
-  mpres_init (fd[2], modulus);
-  mpres_init (fd[3], modulus);
+  mpres_init (state->fd[0], modulus);
+  mpres_init (state->fd[1], modulus);
+  mpres_init (state->fd[2], modulus);
+  mpres_init (state->fd[3], modulus);
   mpres_init (P, modulus);
 
+  state->dsieve = d2;
+  state->rsieve = 0; /* Assumes (d1*d2)|s */
+
   mpz_set_d (t, s);
-  pp1_mul (fd[0], *x, t, modulus, fd[3], P);
+  pp1_mul (state->fd[0], *x, t, modulus, state->fd[3], P);
   mpz_set_ui (t, d);
-  pp1_mul (fd[1], *x, t, modulus, fd[3], P);
-  mpz_set_d (t, (s > (double)d) ? s - (double)d : (double)d - s);
-  pp1_mul (fd[2], *x, t, modulus, fd[3], P);
+  pp1_mul (state->fd[1], *x, t, modulus, state->fd[3], P);
+  mpz_set_d (t, fabs (s - (double)d));
+  pp1_mul (state->fd[2], *x, t, modulus, state->fd[3], P);
   /* for P+1, fd[0] = V_s(P), fd[1] = V_d(P), fd[2] = V_{|s-d|}(P) */
 
   mpres_clear (P, modulus);
   mpz_clear (t);
 
-  return fd;
+  return state;
 }
 
 void 
-pp1_rootsG_clear (mpres_t *fd, mpmod_t modulus)
+pp1_rootsG_clear (pp1_roots_state *state, UNUSED mpmod_t modulus)
 {
-  mpres_clear (fd[0], modulus);
-  mpres_clear (fd[1], modulus);
-  mpres_clear (fd[2], modulus);
-  mpres_clear (fd[3], modulus);
-  free (fd);
+  mpres_clear (state->fd[0], modulus);
+  mpres_clear (state->fd[1], modulus);
+  mpres_clear (state->fd[2], modulus);
+  mpres_clear (state->fd[3], modulus);
+  free (state);
 }
 
 int
-pp1_rootsG (listz_t G, unsigned int d, mpres_t *fd, mpmod_t modulus, 
-            unsigned long *tot_muls) 
+pp1_rootsG (listz_t G, unsigned int d, pp1_roots_state *state, 
+            mpmod_t modulus, unsigned long *tot_muls) 
 {
   unsigned int i;
   int st;
   
   st = cputime ();
 
-  for (i = 0; i < d; i++)
+  for (i = 0; i < d;)
     {
-      mpres_get_z (G[i], fd[0], modulus);
+      if (gcd (state->rsieve, state->dsieve) == 1)
+         mpres_get_z (G[i++], state->fd[0], modulus);
 
-      mpres_swap (fd[0], fd[2], modulus);
-      mpres_mul (fd[3], fd[2], fd[1], modulus);
-      mpres_sub (fd[0], fd[3], fd[0], modulus);
+      mpres_swap (state->fd[0], state->fd[2], modulus);
+      mpres_mul (state->fd[3], state->fd[2], state->fd[1], modulus);
+      mpres_sub (state->fd[0], state->fd[3], state->fd[0], modulus);
+      state->rsieve++;
     }
   
   if (tot_muls != NULL)

@@ -244,27 +244,12 @@ stage2 (mpz_t f, void *X, mpmod_t modulus, double B2min, double B2,
           k = k0;
           bestD_po2 (B2min, B2, &d, &d2, &k, &est_muls);
           dF = 1 << ceil_log2 (phi (d) / 2);
-          /* FIXME: This will go as soon as P+1 can handle d2 */
-          if (method == PP1_METHOD)
-            d2 = 1;
         }
     }
   if (d == 0)
     {
-      d = bestD (B2 - B2min, k0, &k, (S < 0) ? -S : S, &est_muls);
+      bestD (B2min, B2, k0, &d, &d2, &k);
       dF = phi (d) / 2;
-      d2 = 1;
-      /* FIXME: This if() will go as soon as P+1 can handle d2 */
-      if (method == EC_METHOD || method == PM1_METHOD)
-        {
-          if (d % 23 != 0 && dF >= 22) d2 = 23;
-          if (d % 19 != 0 && dF >= 18) d2 = 19;
-          if (d % 17 != 0 && dF >= 16) d2 = 17;
-          if (d % 13 != 0 && dF >= 12) d2 = 13;
-          if (d % 11 != 0 && dF >= 11) d2 = 11;
-          if (d % 7 != 0 && dF >= 6) d2 = 7;
-          if (d % 5 != 0 && dF >= 4) d2 = 5;
-        }
     }
   
   i0 = floor (B2min / (double) d / (double) d2) * d2;
@@ -283,7 +268,7 @@ stage2 (mpz_t f, void *X, mpmod_t modulus, double B2min, double B2,
   B2min = (double) i0 * (double) d;
 
   /* compute real B2 */
-  B2 = B2min + floor ((double) k * b2);
+  B2 = B2min + floor ((double) k * b2 / d / d2) * d * d2;
 
   if (verbose >= 2)
     printf ("B2'=%1.0f k=%u b2=%1.0f d=%u d2=%u dF=%u, i0=%.0f\n", 
@@ -304,7 +289,7 @@ stage2 (mpz_t f, void *X, mpmod_t modulus, double B2min, double B2,
   if (method == PM1_METHOD)
     youpi = pm1_rootsF (f, F, d, d2, dF, (mpres_t *) X, T, S, modulus, verbose, &tot_muls);
   else if (method == PP1_METHOD)
-    youpi = pp1_rootsF (F, d, dF, (mpres_t *) X, T, modulus, verbose, &tot_muls);
+    youpi = pp1_rootsF (F, d, d2, dF, (mpres_t *) X, T, modulus, verbose, &tot_muls);
   else 
     youpi = ecm_rootsF (f, F, d, d2, dF, (curve *) X, S, modulus, verbose, &tot_muls);
 
@@ -412,7 +397,7 @@ stage2 (mpz_t f, void *X, mpmod_t modulus, double B2min, double B2,
   if (method == PM1_METHOD)
     rootsG_state = pm1_rootsG_init ((mpres_t *) X, i0 * (double) d, d, d2, S, verbose, modulus);
   else if (method == PP1_METHOD)
-    rootsG_state = pp1_rootsG_init ((mpres_t *) X, i0 * (double) d, d, modulus);
+    rootsG_state = pp1_rootsG_init ((mpres_t *) X, i0 * (double) d, d, d2, modulus);
   else /* EC_METHOD */
     {
       rootsG_state = ecm_rootsG_init (f, (curve *) X, i0 * (double) d, d, d2, dF, k, S, modulus, verbose);
@@ -437,7 +422,7 @@ stage2 (mpz_t f, void *X, mpmod_t modulus, double B2min, double B2,
         youpi = pm1_rootsG (f, G, dF, (pm1_roots_state *) rootsG_state, T + dF, 
                             modulus, verbose, &tot_muls);
       else if (method == PP1_METHOD)
-        youpi = pp1_rootsG (G, dF, (mpres_t *) rootsG_state, modulus, 
+        youpi = pp1_rootsG (G, dF, (pp1_roots_state *) rootsG_state, modulus, 
                             &tot_muls);
       else
         youpi = ecm_rootsG (f, G, dF, (ecm_roots_state *) rootsG_state, 
@@ -594,7 +579,7 @@ stage2 (mpz_t f, void *X, mpmod_t modulus, double B2min, double B2,
   if (method == PM1_METHOD)
     pm1_rootsG_clear ((pm1_roots_state *) rootsG_state, modulus);
   else if (method == PP1_METHOD)
-    pp1_rootsG_clear ((mpres_t *) rootsG_state, modulus);
+    pp1_rootsG_clear ((pp1_roots_state *) rootsG_state, modulus);
   else /* EC_METHOD */
     ecm_rootsG_clear ((ecm_roots_state *) rootsG_state, S, modulus);
 
