@@ -84,7 +84,7 @@ multiplyW2n (mpz_t p, point *R, curve *S, mpz_t *q, unsigned int n,
     {
       if (mpz_sgn (q[i]) < 0)
         {
-          fprintf (ECM_STDERR, "multiplyW2n: multiplicand q[%d] < 0, negatives not supported\n", i);
+          outputf (OUTPUT_ERROR, "multiplyW2n: multiplicand q[%d] < 0, negatives not supported\n", i);
 	  youpi = ECM_ERROR;
 	  goto clear_w2;
         }
@@ -103,7 +103,7 @@ multiplyW2n (mpz_t p, point *R, curve *S, mpz_t *q, unsigned int n,
     }
 
 #ifdef WANT_EXPCOST
-  fprintf (ECM_STDERR, "Expecting %d multiplications and %d extgcds\n", 
+  outputf (OUTPUT_ALWAYS, "Expecting %d multiplications and %d extgcds\n", 
           4 * (maxbit) + 6 * hamweight - 3, maxbit + 1);      /* maxbit is floor(log_2(max(q_i))) */
 #endif
 
@@ -177,7 +177,8 @@ multiplyW2n (mpz_t p, point *R, curve *S, mpz_t *q, unsigned int n,
                 mpres_get_z (p, u, modulus);
                 mpz_mod (p, p, modulus->orig_modulus);
                 if (mpz_cmp_ui (p, 1) != 0) 
-                  gmp_fprintf (ECM_STDERR, "Error, (s.x - R[%d].x) * T[%d] == %Zd\n", i, l, T[l - 1]);
+                  outputf (OUTPUT_ERROR, "Error, (s.x - R[%d].x) * T[%d] == "
+                           "%Zd\n", i, l, T[l - 1]);
 #endif
                 
                 mpres_sub (u, s.y, R[i].y, modulus);   /* U    = y2 - y1 */
@@ -208,7 +209,8 @@ multiplyW2n (mpz_t p, point *R, curve *S, mpz_t *q, unsigned int n,
           mpres_get_z (p, u, modulus);
           mpz_mod (p, p, modulus->orig_modulus);
           if (mpz_cmp_ui (p, 1) != 0)
-            gmp_fprintf (ECM_STDERR, "Error, at t==%d, 2*s.y / (2*s.y) == %Zd\n", t, p);
+            outputf (OUTPUT_ERROR, "Error, at t==%d, 2*s.y / (2*s.y) == %Zd\n", 
+                     t, p);
 #endif          
 
                                                /* 1/(2*s.y) is in T[k] */
@@ -690,7 +692,8 @@ ecm_rootsG_init (mpz_t f, curve *X, double s, unsigned int d1, unsigned int d2,
 
   if (test_verbose (OUTPUT_TRACE))
     for (k = 0; k < state->size_fd; k++)
-      gmp_fprintf (ECM_STDOUT, "ecm_rootsG_init: coeffs[%d] == %Zd\n", k, coeffs[k]);
+      outputf (OUTPUT_TRACE, "ecm_rootsG_init: coeffs[%d] == %Zd\n", 
+               k, coeffs[k]);
 
   youpi = multiplyW2n (f, state->fd, X, coeffs, state->size_fd, modulus, 
                      state->T[0], state->T[1], state->T + 2, &muls, &gcds);
