@@ -40,28 +40,40 @@ mpn_mul_lo_basecase (mp_ptr rp, mp_srcptr np, mp_srcptr mp, mp_size_t n)
     mpn_addmul_1 (++rp, np, n, (++mp)[0]);
 }
 
-#ifndef MPN_MUL_LO_THRESHOLD
-#define MPN_MUL_LO_THRESHOLD (2 * MUL_KARATSUBA_THRESHOLD)
-#endif
-
-#define N 32
-#define MUL_LOW_THRESHOLD_TABLE {0,0,0,0,0,1,1,0,0,1,1,1,1,1,1,1,11,12,1,1,15,15,16,18,15,19,17,18,19,20,21,21}
+#define MPN_MUL_LO_THRESHOLD 32
+static mp_size_t threshold[MPN_MUL_LO_THRESHOLD] =
+{0,0,1,1,1,1,1,1,1,0,1,1,1,1,1,11,11,11,13,13,13,13,15,15,17,17,15,16,17,17,17,1};
 
 INLINE void
 mpn_mul_lo_n (mp_ptr rp, mp_srcptr np, mp_srcptr mp, mp_size_t n)
 {
-  if (n < MPN_MUL_LO_THRESHOLD)
-    mpn_mul_lo_basecase (rp, np, mp, n);
-  else
-    {
-      mp_size_t k = (mp_size_t ) (0.75 * (double) n);
+  mp_size_t k;
 
-      mpn_mul_n (rp, np, mp, k);
-      rp += k;
-      n -= k;
-      mpn_mul_lo_n (rp + n, np + k, mp, n);
-      mpn_add_n (rp, rp, rp + n, n);
-      mpn_mul_lo_n (rp + n, np, mp + k, n);
-      mpn_add_n (rp, rp, rp + n, n);
+  if (n < MPN_MUL_LO_THRESHOLD)
+    {
+      switch (k = threshold[n])
+        {
+        case 0:
+          {
+            mpn_mul_n (rp, np, mp, n);
+            return;
+          }
+        case 1:
+          {
+            mpn_mul_lo_basecase (rp, np, mp, n);
+            return;
+          }
+          /* else go through */
+        }
     }
+  else
+    k = (mp_size_t) (0.75 * (double) n);
+
+  mpn_mul_n (rp, np, mp, k);
+  rp += k;
+  n -= k;
+  mpn_mul_lo_n (rp + n, np + k, mp, n);
+  mpn_add_n (rp, rp, rp + n, n);
+  mpn_mul_lo_n (rp + n, np, mp + k, n);
+  mpn_add_n (rp, rp, rp + n, n);
 }
