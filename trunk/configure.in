@@ -10,6 +10,8 @@ AC_ARG_WITH(gmp_lib, [  --with-gmp-lib=DIR      GMP lib directory ], with_gmp_li
 AC_ARG_WITH(gmp_build, [  --with-gmp-build=DIR    GMP source directory], with_gmp_include=$withval/ with_gmp_lib=$withval/.libs)
 AC_ARG_WITH(gmp, [  --with-gmp=DIR          GMP install directory ], with_gmp_include=$withval/include with_gmp_lib=$withval/lib)
 
+LDFLAGS="-L$with_gmp_lib $LDFLAGS"
+
 dnl Checks for programs.
 AC_PROG_CC
 AC_PROG_RANLIB
