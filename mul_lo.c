@@ -47,7 +47,7 @@ static mp_size_t threshold[MPN_MUL_LO_THRESHOLD] =
 {0,0,0,0,0,1,1,0,0,1,1,1,10,9,1,1,12,1,1,1,1,15,16,14,18,19,17,18,19,20,21,22};
 
 
-INLINE void
+void
 mpn_mul_lo_n (mp_ptr rp, mp_srcptr np, mp_srcptr mp, mp_size_t n)
 {
   mp_size_t k;

@@ -112,6 +112,8 @@ dickson_ui (mpz_t r, double x, unsigned int n, int a)
    See Knuth, TAOCP vol.2, 4.6.4 and exercise 7 in 4.6.4, and
    "An FFT Extension of the Elliptic Curve Method of Factorization",
    Peter Montgomery, Dissertation, 1992, Chapter 5.
+
+   Ternary return value.
 */
 
 static int
@@ -136,6 +138,8 @@ fin_diff_coeff (listz_t coeffs, double s, double D,
   for (k = 1; k <= E; k++)
     for (i = E; i >= k; i--)
       mpz_sub (coeffs[i], coeffs[i], coeffs[i-1]);
+
+  return ECM_NO_FACTOR_FOUND;
 }
 
 
