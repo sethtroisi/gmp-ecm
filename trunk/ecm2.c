@@ -248,11 +248,8 @@ multiplyW2n (mpz_t p, point *R, curve *S, mpz_t *q, unsigned int n,
 
    Performs the following loop with only one gcdext, using Montgomery's trick:
    for (i=0;i<m;i++)
-     for (j=0;j<n;j++) {
-         res=addW(p,x[j+n*i],y[j+n*i],x[j+n*i],y[j+n*i],x[j+1+n*i],y[j+1+n*i],
-                  n,u[0],v[0]);
-         if (res) return(1); }
-   return(0);
+     for (j=0;j<n;j++)
+         (x[j+(n+1)*i] : y[j+(n+1)*i]) += (x[j+1+(n+1)*i] : y[j+1+(n+1)*i])
 
    Uses one inversion and 6*n*m-3 multiplications for n*m > 0
 
@@ -456,7 +453,10 @@ ecm_rootsF (mpz_t f, listz_t F, unsigned int d1, unsigned int d2,
     }
 
   /* The highest coefficient is the same for all progressions, so set them
-     to one for all but the first progression, later we copy the point */
+     to one for all but the first progression, later we copy the point.
+     FIXME: can we avoid the multiplication of those points in multiplyW2n()
+     below?
+  */
   for (i = state.S + 1; i < state.size_fd; i += state.S + 1)
     mpz_set_ui (coeffs[i + state.S], 1);
 
@@ -615,7 +615,7 @@ ecm_rootsG_init (mpz_t f, curve *X, double s, unsigned int d1, unsigned int d2,
   /* Guesstimate a value for the number of disjoint progressions to use */
   bestnr = -(4. + T_inv) + sqrt(12. * (double) dF * (double) blocks * 
         (T_inv - 3.) * log (2. * d1) / log (2.) - (4. + T_inv) * (4. + T_inv));
-  bestnr /= 6. * (double) S * log (2. * d1) / log (2);
+  bestnr /= 6. * (double) S * log (2. * d1) / log (2.0);
   
   outputf (OUTPUT_TRACE, "ecm_rootsG_init: bestnr = %f\n", bestnr);
   
