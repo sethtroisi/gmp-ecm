@@ -583,9 +583,27 @@ ecm (mpz_t f, mpz_t x, mpz_t sigma, mpz_t n, double B1done, double B1,
     B2 = pow (11.0 / 6.0 * B1, 1.424828748);
   
   /* Set default degree for Brent-Suyama extension */
-  
+  /* We try to keep the time used by the Brent-Suyama extension
+     at about 10% of the stage 2 time */
+  /* Degree S Dickson polys and x^S are equally fast for ECM, so we go for
+     the better Dickson polys whenever possible. For S == 1, 2, they behave
+     identically. */
+
   if (S == 0)
-    S = 1;
+    {
+      if (B2 - B2min < 1.e7)
+        S = 1;    /* x^1 */
+      else if (B2 - B2min < 1.e8)
+        S = 2;   /* x^2 */
+      else if (B2 - B2min < 8.e8)
+        S = -3;   /* Dickson(3) */
+      else if (B2 - B2min < 4.e9)
+        S = -6;  /* Dickson(6) */
+      else if (B2 - B2min < 3.e10)
+        S = -12;  /* Dickson(12) */
+      else
+        S = -30;  /* Dickson(30) */
+    }
   
   if (repr == 1)
     mpmod_init_MPZ (modulus, n);
