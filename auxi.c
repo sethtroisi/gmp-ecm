@@ -71,6 +71,28 @@ mpz_sub_si (mpz_t r, mpz_t s, int i)
     mpz_add_ui (r, s, (unsigned int) (-i));
 }
 
+
+/* Divide RS by 3 */
+
+void
+mpz_divby3_1op (mpz_t RS)
+{
+  mp_size_t abssize = mpz_size (RS);
+  
+  if (abssize == 0)
+    return;
+  
+  if (mpn_divexact_by3 (RS->_mp_d, RS->_mp_d, abssize) != 0)
+    {
+      fprintf (stderr, "mpz_divby3_1op: division by 3 left remainder");
+      exit (EXIT_FAILURE);
+    }
+
+  if (RS->_mp_d[abssize - 1] == 0)
+    RS->_mp_size -= mpz_sgn (RS);
+}
+
+
 /* returns ceil(log(n)/log(2)) */
 unsigned int
 ceil_log2 (unsigned int n)
