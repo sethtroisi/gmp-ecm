@@ -56,7 +56,6 @@ void REDC (mpres_t, mpres_t, mpz_t, mpmod_t);
 void mpn_REDC (mp_ptr, mp_srcptr, mp_srcptr, mp_srcptr, mp_size_t);
 void mod_mul2exp (mpz_t, unsigned int, mpmod_t);
 void mod_div2exp (mpz_t, unsigned int, mpmod_t);
-void mpz_mod_n (mpz_t, mpz_t, mpmod_t);
 
 /* returns +/-l if n is a factor of N = 2^l +/- 1 with N <= n^threshold, 
    0 otherwise.
@@ -204,10 +203,11 @@ mod_div2exp (mpz_t c, unsigned int k, mpmod_t modulus)
 /* r <- c/R^nn mod n, where n has nn limbs, and R=2^GMP_NUMB_BITS.
    n must be odd.
    c must have space for at least 2*nn limbs.
+   r must have space for at least n limbs.
    c and r can be the same variable.
    The data in c is clobbered.
 */
-void 
+static void 
 mpz_mod_n (mpz_ptr r, mpz_ptr c, mpmod_t modulus)
 {
   mp_ptr rp;
@@ -220,8 +220,7 @@ mpz_mod_n (mpz_ptr r, mpz_ptr c, mpmod_t modulus)
   TMP_DECL(marker);
 
   ASSERT(ABSIZ(c) <= 2 * nn);
-  if (ALLOC(r) < nn)
-    _mpz_realloc (r, nn);
+  ASSERT(ALLOC(r) >= nn);
   cp = PTR(c);
   rp = PTR(r);
   np = PTR(modulus->orig_modulus);
@@ -229,11 +228,10 @@ mpz_mod_n (mpz_ptr r, mpz_ptr c, mpmod_t modulus)
     cp[j] = 0;
   TMP_MARK(marker);
   cys = TMP_ALLOC_LIMBS(nn);
-  for (j = 0; j < nn; j++)
+  for (j = 0; j < nn; j++, cp++)
     {
       q = cp[0] * modulus->Nprim;
       cys[j] = mpn_addmul_1 (cp, np, nn, q);
-      cp++;
     }
   /* add vector of carries and shift */
   cy = mpn_add_n (rp, cp, cys, nn);
@@ -438,11 +436,20 @@ mpmod_clear (mpmod_t modulus)
 void 
 mpres_init (mpres_t R, mpmod_t modulus)
 {
+  /* use mpz_sizeinbase since modulus->bits may not be initialized yet */
   mpz_init2 (R, mpz_sizeinbase (modulus->orig_modulus, 2));
 }
 
+/* realloc R so that it has at least the same number of limbs as modulus */
+void
+mpres_realloc (mpres_t R, mpmod_t modulus)
+{
+  if (modulus->repr == MOD_MODMULN)
+    _mpz_realloc (R, modulus->bits / GMP_NUMB_BITS);
+}
+
 /* R <- BASE^EXP mod modulus.
-   Assume EXP > 0.
+   Assume EXP >= 0.
  */
 void 
 mpres_pow (mpres_t R, mpres_t BASE, mpres_t EXP, mpmod_t modulus)
@@ -803,6 +810,7 @@ mpres_get_z (mpz_t R, mpres_t S, mpmod_t modulus)
   else if (modulus->repr == MOD_MODMULN)
     {
       mpz_set (modulus->temp1, S);
+      _mpz_realloc (R, modulus->bits / GMP_NUMB_BITS);
       mpz_mod_n (R, modulus->temp1, modulus);
     }
   else if (modulus->repr == MOD_REDC)
