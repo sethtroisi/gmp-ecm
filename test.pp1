@@ -151,4 +151,11 @@ if ($status != 0) then
    exit 1;
 endif
 
+# bug in ecm-5.0 (overflow in fin_diff_coeff)
+echo 630503947831861669 | $ECM -x0 5 7 9007199254740000-9007199254741000
+if ($status != 0) then
+   echo "############### ERROR ###############";
+   exit 1;
+endif
+
 echo "All tests are ok."
