@@ -208,7 +208,7 @@ pp1_stage1 (mpz_t f, mpres_t P0, mpmod_t n, double B1, double B1done,
 
 /* put in seed a valid random seed for P+1 */
 void
-pp1_random_seed (mpres_t seed, mpmod_t n, gmp_randstate_t randstate)
+pp1_random_seed (mpz_t seed, mpz_t n, gmp_randstate_t randstate)
 {
   mpz_t q;
 
@@ -218,10 +218,10 @@ pp1_random_seed (mpres_t seed, mpmod_t n, gmp_randstate_t randstate)
     {
       mpz_urandomb (q, randstate, 32);
       mpz_add_ui (q, q, 1);
-      mpres_set_z (seed, q, n);
+      mpz_set (seed, q);
       mpz_mul (q, q, q);
       mpz_sub_ui (q, q, 4);
-      mpz_gcd (q, q, n->orig_modulus);
+      mpz_gcd (q, q, n);
     }
   while (mpz_cmp_ui (q, 1) != 0);
   mpz_clear (q);
@@ -258,7 +258,7 @@ pp1_check_factor (mpz_t a, mpz_t p)
 */
 
 int
-pp1_rootsF (listz_t F, unsigned int d, mpres_t x, listz_t t,
+pp1_rootsF (listz_t F, unsigned int d, mpres_t *x, listz_t t,
             mpmod_t modulus, int verbose)
 {
   unsigned int i, j;
@@ -267,7 +267,7 @@ pp1_rootsF (listz_t F, unsigned int d, mpres_t x, listz_t t,
   
   st = cputime ();
 
-  mpres_get_z (F[0], x, modulus); /* V_1(P)=P for P+1 */
+  mpres_get_z (F[0], *x, modulus); /* V_1(P)=P for P+1 */
   i = 1;
 
   if (d > 7)
@@ -278,10 +278,10 @@ pp1_rootsF (listz_t F, unsigned int d, mpres_t x, listz_t t,
       mpres_init (fd[2], modulus);
       mpres_init (fd[3], modulus);
       mpz_set_ui (*t, 7);
-      pp1_mul (fd[0], x, *t, modulus, fd[2], fd[3]);
+      pp1_mul (fd[0], *x, *t, modulus, fd[2], fd[3]);
       mpz_set_ui (*t, 6);
-      pp1_mul (fd[1], x, *t, modulus, fd[2], fd[3]);
-      mpres_set (fd[2], x, modulus); 
+      pp1_mul (fd[1], *x, *t, modulus, fd[2], fd[3]);
+      mpres_set (fd[2], *x, modulus); 
       /* for P+1, fd[0] = V_7(P), fd[1] = V_6(P), fd[2] = V_{7-6}(P) */
       if (verbose >= 2)
         printf ("Initializing table of differences for F took %dms\n", cputime () - st2);
@@ -309,7 +309,7 @@ pp1_rootsF (listz_t F, unsigned int d, mpres_t x, listz_t t,
 }
 
 mpres_t *
-pp1_rootsG_init (mpres_t x, unsigned int s, unsigned int d, mpmod_t modulus)
+pp1_rootsG_init (mpres_t *x, unsigned int s, unsigned int d, mpmod_t modulus)
 {
   int st;
   mpres_t *fd, P;
@@ -328,11 +328,11 @@ pp1_rootsG_init (mpres_t x, unsigned int s, unsigned int d, mpmod_t modulus)
   mpres_init (P, modulus);
 
   mpz_set_ui (t, s);
-  pp1_mul (fd[0], x, t, modulus, fd[3], P);
+  pp1_mul (fd[0], *x, t, modulus, fd[3], P);
   mpz_set_ui (t, d);
-  pp1_mul (fd[1], x, t, modulus, fd[3], P);
+  pp1_mul (fd[1], *x, t, modulus, fd[3], P);
   mpz_set_ui (t, (s > d) ? s - d : d - s);
-  pp1_mul (fd[2], x, t, modulus, fd[3], P);
+  pp1_mul (fd[2], *x, t, modulus, fd[3], P);
   /* for P+1, fd[0] = V_s(P), fd[1] = V_d(P), fd[2] = V_{|s-d|}(P) */
 
   mpres_clear (P, modulus);
@@ -389,29 +389,40 @@ pp1_rootsG (listz_t G, unsigned int d, mpres_t *fd, mpmod_t modulus,
    Return value: non-zero iff a factor is found (1 for stage 1, 2 for stage 2)
 */
 int
-pp1 (mpz_t f, mpres_t p, mpmod_t n, double B1, double B2, double B1done, 
-     unsigned int k, unsigned int S, int verbose)
+pp1 (mpz_t f, mpz_t p, mpz_t n, double B1, double B2, double B1done, 
+     unsigned int k, unsigned int S, int verbose, int repr)
 {
   int youpi = 0, st;
   mpres_t a;
-  curve P;
+  mpmod_t modulus;
   unsigned long muls = 0;
 
   st = cputime ();
 
-  mpres_init (a, n);
-  mpres_set (a, p, n);
-
   if (verbose >= 1)
     {
       printf ("Using seed=");
-      mpres_out_str (stdout, 10, a, n);
+      mpz_out_str (stdout, 10, p);
       printf ("\n");
       fflush (stdout);
     }
+  
+  if (repr == 1)
+    mpmod_init_MPZ (modulus, n);
+  else   if (repr == 2)
+    mpmod_init_MODMULN (modulus, n);
+  else if (repr == 3)
+    mpmod_init_REDC (modulus, n);
+  else if (repr > 16)
+    mpmod_init_BASE2 (modulus, repr, n);
+  else
+    mpmod_init (modulus, n);
+
+  mpres_init (a, modulus);
+  mpres_set_z (a, p, modulus);
 
   if (B1 > B1done)
-    youpi = pp1_stage1 (f, p, n, B1, B1done, &muls);
+    youpi = pp1_stage1 (f, a, modulus, B1, B1done, &muls);
 
   if (verbose >= 1)
     {
@@ -422,7 +433,7 @@ pp1 (mpz_t f, mpres_t p, mpmod_t n, double B1, double B2, double B1done,
   if (verbose >= 2)
     {
       printf ("x=");
-      mpres_out_str (stdout, 10, p, n);
+      mpres_out_str (stdout, 10, a, modulus);
       printf ("\n");
       fflush (stdout);
     }
@@ -430,21 +441,16 @@ pp1 (mpz_t f, mpres_t p, mpmod_t n, double B1, double B2, double B1done,
   if (youpi != 0) /* a factor was found */
     goto end;
 
-  mpres_init (P.x, n);
-  mpres_set (P.x, p, n);
-  youpi = stage2 (f, &P, n, B2, k, S, verbose, PP1_METHOD, B1);
-  mpres_clear (P.x, n);
+  youpi = stage2 (f, &a, modulus, B2, k, S, verbose, PP1_METHOD, B1);
 
  end:
   if (youpi != 0) 
     {
-      mpz_t t;
-      mpz_init (t);
-      mpres_get_z (t, a, n);
-      pp1_check_factor (t, f);
-      mpz_clear (t);
+      pp1_check_factor (p, f);
     }
-  mpres_clear (a, n);
+  mpres_get_z (p, a, modulus);
+  mpres_clear (a, modulus);
+  mpmod_clear (modulus);
 
   return youpi;
 }
