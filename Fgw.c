@@ -22,10 +22,10 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <gmp.h>
-#include <gmp-impl.h>
-#include "rename.h"
+#include "ecm-gmp.h"
 #include "Fgw.h"
 #include "gwnum.h"
+#include "cpuid.h"
 
 typedef struct {
   char *bigword;
@@ -44,43 +44,12 @@ extern int ZERO_PADDED_FFT;
 static gwnum g1 = NULL, g2 = NULL;
 static gwconvplan_t *gwplan = NULL;
 
-void gwdump (gwnum);
-gwconvplan_t *make_conv_plan (void);
 void dwordstogw (unsigned long *, long, gwnum, gwconvplan_t *);
 void gwtodwords (gwnum, unsigned long *, int *, int, gwconvplan_t *);
 void Fdwordstogw (unsigned long *, long, gwnum, gwconvplan_t *);
 void Fgwtodwords (gwnum, unsigned long *, int *, int, gwconvplan_t *);
 
-
-int
-stopCheck ()
-{
-  return 0;
-}
-
-void 
-Fgwinit (int Fermat)
-{
-  /* Init GW routines with 16 bits per FFT element */
-  gwsetup (1., 2, Fermat, 1, Fermat / 16);
-  g1 = gwalloc();
-  g2 = gwalloc();
-  gwplan = make_conv_plan ();
-}
-
-void 
-Fgwclear ()
-{
-  free (gwplan);
-  gwplan = NULL;
-  gwfree (g2);
-  g2 = NULL;
-  gwfree (g1);
-  g1 = NULL;
-  gwdone ();
-}
-
-gwconvplan_t *
+static gwconvplan_t *
 make_conv_plan ()
 {
   gwconvplan_t *plan;
@@ -106,6 +75,42 @@ make_conv_plan ()
     }
 
   return plan;
+}
+
+static void 
+gwdump (gwnum g)
+{
+  unsigned long i, offset;
+  for (i = 0; i < FFTLEN; i++)
+    {
+      offset = addr_offset (FFTLEN, i);
+      printf ("%ld: [%ld] = %.1f  ", i, offset, *(double *)((unsigned long)g + offset));
+    }
+  printf ("\n");
+}
+
+void 
+Fgwinit (int Fermat)
+{
+  /* Init GW routines with 16 bits per FFT element */
+  guessCpuType ();
+  guessCpuSpeed ();
+  gwsetup (1., 2, Fermat, 1, Fermat / 16);
+  g1 = gwalloc();
+  g2 = gwalloc();
+  gwplan = make_conv_plan ();
+}
+
+void 
+Fgwclear ()
+{
+  free (gwplan);
+  gwplan = NULL;
+  gwfree (g2);
+  g2 = NULL;
+  gwfree (g1);
+  g1 = NULL;
+  gwdone ();
 }
 
 void
@@ -170,18 +175,6 @@ Fgwmul (mpz_t R, mpz_t S1, mpz_t S2)
   Fgwtodwords (g1, PTR(R), &SIZ(R), ALLOC(R), gwplan);
   if (sgnchg < 0)
     mpz_neg (R, R);
-}
-
-void 
-gwdump (gwnum g)
-{
-  unsigned long i, offset;
-  for (i = 0; i < FFTLEN; i++)
-    {
-      offset = addr_offset (FFTLEN, i);
-      printf ("%ld: [%ld] = %.1f  ", i, offset, *(double *)((unsigned int)g + offset));
-    }
-  printf ("\n");
 }
 
 /* Convert a number stored as an array of dwords to the gwnum FFT format. */
@@ -362,7 +355,7 @@ void gwtodwords (
 
 
 /* Convert a number stored as an array of dwords to the gwnum FFT format. */
-/* Assumes 16 bits per FFT element and all DWT weight == 1.0 */
+/* Assumes 16 bits per FFT element and all DWT weights == 1.0 */
 
 void Fdwordstogw (
 	unsigned long *e1,
