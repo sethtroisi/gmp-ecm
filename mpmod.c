@@ -282,28 +282,33 @@ mpz_mod_n (mpz_ptr r, mpz_ptr c, mpmod_t modulus)
 
 /* don't use base2 if repr == -1 */
 void 
-mpmod_init (mpmod_t modulus, mpz_t N, int repr)
+mpmod_init (mpmod_t modulus, mpz_t N, int repr, int verbose)
 {
   int base2;
   
   if ((repr != -1) && (base2 = isbase2 (N, 2.0)))
     {
-      printf ("Using base-2: 2^%d %c 1\n", abs(base2), (base2<0)?'-':'+');
+      if (verbose > 1)
+	printf ("Using special division for factor of 2^%d%c1\n",
+		abs (base2), (base2 < 0) ? '-' : '+');
       mpmod_init_BASE2 (modulus, base2, N);
     }
   else if (mpz_size (N) < 3 * DIV_DC_THRESHOLD / 2)
     {
-      printf ("Using MODMULN\n");
+      if (verbose > 1)
+	printf ("Using MODMULN\n");
       mpmod_init_MODMULN (modulus, N);
     }
   else if (mpz_sizeinbase (N, 2) < MOD_PLAIN_TO_REDC_THRESHOLD)
     {
-      printf ("Using plain mpz_mod\n");
+      if (verbose > 1)
+	printf ("Using mpz_mod\n");
       mpmod_init_MPZ (modulus, N);
     }
   else
     {
-      printf("Using REDC\n");
+      if (verbose > 1)
+	printf("Using REDC\n");
       mpmod_init_REDC (modulus, N);
     }
   

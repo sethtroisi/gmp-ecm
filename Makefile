@@ -27,7 +27,7 @@ GMP=/usr/local/gmp
 # libntl.a should be in $(NTL)/lib
 NTL=/usr/local/ntl
 
-VERSION=5.0-beta
+VERSION=5.0-beta-pl1
 
 ###################### do not edit below this line ############################
 
@@ -49,6 +49,9 @@ EXTRADIST= COPYING INSTALL Makefile README ecm.h test.pm1 test.pp1 test.ecm tune
 
 ecm: $(ALLFILES) ecm.h
 	$(LD) $(CFLAGS) -L$(GMP)/lib -L$(NTL)/lib $(ALLFILES) -o $@ $(LDFLAGS)
+
+ecm4c: ecm4c.c
+	$(CC) -O2 -g -I$(GMP)/include -L$(GMP)/lib ecm4c.c -o $@ $(LDFLAGS)
 
 ecm_with_ntl:
 	make ecm GMP=$(GMP) NTL=$(NTL) CXX=g++ EXTRAFILES="ntl.o polyz.o" LDFLAGS="-lntl $(LDFLAGS) CFLAGS="$(CFLAGS) -DPOLYGCD""

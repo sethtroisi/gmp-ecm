@@ -195,7 +195,7 @@ main (int argc, char *argv[])
           if (mpq_set_str (rat_x0, argv[2], 0))
             {
               fprintf (stderr, "Error, invalid starting point: %s\n", argv[2]);
-              exit (1);
+              exit (EXIT_FAILURE);
             }
           specific_x0 = 1;
 	  argv += 2;
@@ -203,14 +203,22 @@ main (int argc, char *argv[])
         }
       else if ((argc > 2) && (strcmp (argv[1], "-sigma")) == 0)
         {
-          mpz_set_str (sigma, argv[2], 0);
+          if (mpz_set_str (sigma, argv[2], 0))
+	    {
+	      fprintf (stderr, "Error, invalid sigma value: %s\n", argv[2]);
+	      exit (1);
+	    }
           specific_sigma = 1;
 	  argv += 2;
 	  argc -= 2;
         }
       else if ((argc > 2) && (strcmp (argv[1], "-A")) == 0)
         {
-          mpz_set_str (A, argv[2], 0);
+          if (mpz_set_str (A, argv[2], 0))
+	    {
+	      fprintf (stderr, "Error, invalid A value: %s\n", argv[2]);
+              exit (1);
+	    }
 	  argv += 2;
 	  argc -= 2;
         }
@@ -251,6 +259,13 @@ main (int argc, char *argv[])
 	}
     }
 
+  /* check that S is even for P-1 */
+  if ((method == PM1_METHOD) && (S % 2 != 0))
+    {
+      fprintf (stderr, "Error, S should be even for P-1\n");
+      exit (1);
+    }
+
   if (argc < 2)
     {
       fprintf (stderr, "Usage: ecm B1 [[B2min-]B2] < file\n");
@@ -284,6 +299,18 @@ main (int argc, char *argv[])
 #ifdef POLYGCD
       printf (" and NTL %u.%u", NTL_major_version (), NTL_minor_version ());
 #endif
+      printf ("] [");
+      switch (method)
+	{
+	case PM1_METHOD:
+	  printf ("P-1");
+	  break;
+	case PP1_METHOD:
+	  printf ("P+1");
+	  break;
+	default:
+	  printf ("ECM");
+	}
       printf ("]\n");
     }
 
@@ -307,7 +334,7 @@ main (int argc, char *argv[])
   /* check B1 is not too large */
   if (B1 > MAX_B1)
     {
-      fprintf (stderr, "Too large stage 1 bound, limit is %f\n", MAX_B1);
+      fprintf (stderr, "Too large stage 1 bound, limit is %1.0f\n", MAX_B1);
       exit (1);
     }
 
@@ -484,38 +511,40 @@ main (int argc, char *argv[])
 
       if (result != 0)
 	{
-          printf ("********** Factor found in step %u: ", result);
-          mpz_out_str (stdout, 10, f);
-          printf ("\n");
+          fprintf (stderr, "********** Factor found in step %u: ", result);
+          mpz_out_str (stderr, 10, f);
+          fprintf (stderr, "\n");
 	  if (mpz_cmp (f, n))
 	    {
 	      /* prints factor found and cofactor on standard error. */
 	      factor_is_prime = mpz_probab_prime_p (f, 25);
-	      printf ("Found %s factor of %u digits: ", 
-	              factor_is_prime ? "probable prime" : "composite",
-	              nb_digits (f));
-	      mpz_out_str (stdout, 10, f);
-	      printf ("\n");
+	      fprintf (stderr, "Found %s factor of %u digits: ", 
+		       factor_is_prime ? "probable prime" : "composite",
+		       nb_digits (f));
+	      mpz_out_str (stderr, 10, f);
+	      fprintf (stderr, "\n");
 
 	      mpz_divexact (n, n, f);
 	      cofactor_is_prime = mpz_probab_prime_p (n, 25);
-	      printf ("%s cofactor ", 
-	              cofactor_is_prime ? "Probable prime" : "Composite");
-	      if (verbose > 0)
-		mpz_out_str (stdout, 10, n);
-	      printf (" has %u digits\n", nb_digits (n));
+	      if (verbose)
+		{
+		  fprintf (stderr, "%s cofactor ",
+		       cofactor_is_prime ? "Probable prime" : "Composite");
+		  mpz_out_str (stderr, 10, n);
+		  fprintf (stderr, " has %u digits\n", nb_digits (n));
+		}
 	      
               /* check for champions (top ten for each method) */
 	      if (factor_is_prime && nb_digits (f) >= champion_digits[method])
                     {
-                      printf ("Report your potential champion to %s\n",
+                      fprintf (stderr, "Report your potential champion to %s\n",
                               champion_keeper[method]);
-                      printf("(see %s)\n", champion_url[method]);
+                      fprintf (stderr, "(see %s)\n", champion_url[method]);
                     }
             }
 	  else
-	    printf ("Found input number N\n");
-	  fflush (stdout);
+	    fprintf (stderr, "Found input number N\n");
+	  fflush (stderr);
 	}
       
       /* if quiet, prints composite cofactors on standard output. */

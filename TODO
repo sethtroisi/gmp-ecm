@@ -1,15 +1,19 @@
 What remains to do for the 1st release:
-- print modular arithmetic for all kinds (not only MODMULN)
 
 Long term:
 
+- print progress (80 dots in step 1/2) [Jay Berg]
+- write a real documentation (which format? texi can generate dvi and
+  html,	or LaTeX can also generate dvi, pdf and html)
+- document how to use the ecm(), pm1(), pp1() functions from a C program
+  (may need changes to give parameters or options)
 - add a configure file
 - tune stage 2 values of 'd' to optimize toomcook4(d)/(d*phi(d/2))
 - implement Brent-Suyama's extension for p+1 (how to do it efficiently?)
 - get rid of NTL for polygcd, and allow runtime choice between polyeval/polygcd
 - change [j*d, i] in stage2 with gcd(i,d)=1, i=1 mod 6
   to [j*d+1, i] with gcd(i+1,d)=1, i=0 mod 6 ?
-  (Avoids i0=1 i.e. d + d -> 2d, or i0=0, i.e. 0 + d -> d, d + d -> 2d.)
-- instead of putting B1, B2 as 1st, 2nd parameters, add options
-	for them: -B1 <value>, -B2 <value>
+  (Avoids i0=0 or 1 i.e. d + d -> 2d, or i0=0, i.e. 0 + d -> d, d + d -> 2d.)
 - add -fft option for 2^n+1 (in particular Fermat numbers)
+- option -nice ? -kill when user on console?
+- optimize memory usage in step 2 (use an unique array for multiplies)

@@ -116,7 +116,7 @@ fin_diff_coeff (listz_t coeffs, unsigned int s, unsigned int D,
 
 /* Input:  X is the point at end of stage 1
            n is the number to factor
-           B2min-B2 is the stage 2 range
+           B2min-B2 is the stage 2 range (we consider B2min is done)
            k is the number of blocks
            S is the exponent for Brent-Suyama's extension
            verbose is the verbose level
@@ -165,8 +165,12 @@ stage2 (mpz_t f, void *X, mpmod_t modulus, double B2min, double B2,
 
   d = bestD (b2);
   i0 = (unsigned int) (B2min / (double) d);
-  if (i0 == 0)
-    i0 = 1; /* FIXME: we may skip some primes if B2min < d */
+  if (i0 < ((method == EC_METHOD) ? 2 : 1))
+    {
+      fprintf (stderr, "Error, too small B1 or B2min, increase k or use B1>=%u at least\n",
+	       ((method == EC_METHOD) ? 2 : 1) * d);
+      exit (1);
+    }
 
   b2 = block_size (d);
 
@@ -390,7 +394,7 @@ clear_G:
 
   if (verbose >= 1)
     {
-      printf ("Stage 2 took %dms", cputime() - st0);
+      printf ("Step 2 took %dms", cputime() - st0);
       if (verbose >= 2)
 	printf (" for %lu muls", tot_muls);
       printf ("\n");
