@@ -31,6 +31,12 @@
 #include "ecm-gmp.h"
 #endif /* WANT_GMP_IMPL */
 
+#ifdef HAVE_NATIVE_mpn_add_nc
+#ifndef __gmpn_add_nc
+mp_limb_t __gmpn_add_nc (mp_ptr, mp_srcptr, mp_srcptr, mp_size_t, mp_limb_t);
+#endif
+#endif
+
 #include "ecm.h"
 
 #ifdef HAVE_GWNUM

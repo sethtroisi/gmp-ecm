@@ -205,7 +205,7 @@ main (int argc, char *argv[])
   char rtime[256] = "", who[256] = "", comment[256] = "", program[256] = "";
   FILE *savefile = NULL, *resumefile = NULL, *infile = NULL;
   int primetest = 0;
-  double autoincrementB1 = 0, startingB1;
+  double autoincrementB1 = 0.0, startingB1;
   unsigned int autoincrementB1_calc = 0;
   unsigned int breadthfirst_maxcnt=0, breadthfirst_cnt=0;
   int breadthfirst = 0;
@@ -217,8 +217,8 @@ main (int argc, char *argv[])
   int deep=1, trial_factor_found;
   unsigned int displayexpr = 0;
   unsigned int decimal_cofactor = 0;
-  double maxtrialdiv=0;
-  double B2scale=1.0;
+  double maxtrialdiv = 0.0;
+  double B2scale = 1.0;
 
 
   /* initialize the group order candidate */
@@ -450,7 +450,7 @@ main (int argc, char *argv[])
       else if ((argc > 2) && (strcmp (argv[1], "-i") == 0))
 	{
 	  autoincrementB1 = strtod (argv[2], NULL);
-	  if (autoincrementB1 < 1)
+	  if (autoincrementB1 < 1.0)
 	    {
 	      fprintf (stderr, "Error, the -i n option requires n >= 1\n");
 	      exit (EXIT_FAILURE);
@@ -462,7 +462,7 @@ main (int argc, char *argv[])
 	{
 	  autoincrementB1 = strtod (argv[2], NULL);
 	  autoincrementB1_calc = 1;
-	  if (autoincrementB1 <= 0)
+	  if (autoincrementB1 <= 0.0)
 	    {
 	      fprintf (stderr, "Error, the -I f option requires f > 0\n");
 	      exit (EXIT_FAILURE);
@@ -488,9 +488,9 @@ main (int argc, char *argv[])
       else if ((argc > 2) && (strcmp (argv[1], "-t") == 0))
 	{
 	  maxtrialdiv = strtod (argv[2], NULL);
-	  if (maxtrialdiv == 0.)
+	  if (maxtrialdiv <= 0.0)
 	    {
-	      fprintf (stderr, "Error, the -t command requires a number argument to follow it\n");
+	      fprintf (stderr, "Error, the -t option requires a positive argument\n");
 	      exit (EXIT_FAILURE);
   	    }
 	  argv += 2;
@@ -501,7 +501,7 @@ main (int argc, char *argv[])
 	  displayexpr = atoi (argv[2]);
 	  if (displayexpr == 0)
 	    {
-	      fprintf (stderr, "Error, the -ve command requires a number argument to follow it\n");
+	      fprintf (stderr, "Error, the -ve option requires a number argument\n");
 	      exit (EXIT_FAILURE);
   	    }
 	  argv += 2;
@@ -635,10 +635,10 @@ main (int argc, char *argv[])
       B1 = strtod (argv[1] + 1, NULL);
     }
   else
-    B1done = 1.0;
+    B1done = DEFAULT_B1_DONE;
   B2min = B1;
 
-  if (B1 < 0 || B1done < 0)
+  if (B1 < 0.0 || B1done < 0.0)
     {
       fprintf (stderr, "Bound values must be positive\n");
       exit (EXIT_FAILURE);
@@ -653,7 +653,7 @@ main (int argc, char *argv[])
 
   init_expr ();
 
-  B2 = 0.0;
+  B2 = DEFAULT_B2; /* compute it automatically from B1 */
   /* parse B2 or B2min-B2max */
   if (argc >= 3)
     {
@@ -899,7 +899,7 @@ BreadthFirstDoAgain:;
                 pm1_random_seed (x, n.n, randstate);
             }
          
-          if (B1done <= 1.0)
+          if (IS_DEFAULT_B1_DONE(B1done))
             mpz_set (orig_x0, x);
           
           /* Make a random sigma if we have neither specific sigma nor A 
@@ -1138,7 +1138,7 @@ OutputFactorStuff:;
 #endif
 
       /* advance B1, if autoincrement value had been set during command line parsing */
-      if (!breadthfirst && autoincrementB1)
+      if (!breadthfirst && autoincrementB1 > 0.0)
 	{
 	  double NewB1;
 	  NewB1 = calc_B1_AutoIncrement (B1, autoincrementB1, autoincrementB1_calc);
