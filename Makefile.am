@@ -8,7 +8,9 @@ ecm_SOURCES = auxi.c b1_ainc.c bestd.c candi.c ecm.c ecm2.c eval.c getprime.c\
 
 noinst_HEADERS = ecm.h ecm-gmp.h
 
-EXTRA_DIST = test.pm1 test.pp1 test.ecm
+EXTRA_DIST = test.pm1 test.pp1 test.ecm ecm.1
+
+man_MANS = ecm.1
 
 AM_LDFLAGS = -lm
 
@@ -16,3 +18,6 @@ check: ecm
 	$(srcdir)/test.pp1 ./ecm
 	$(srcdir)/test.pm1 ./ecm
 	$(srcdir)/test.ecm ./ecm
+
+dist-hook:
+	xsltproc $(XSLDIR)/manpages/docbook.xsl ecm.xml > ecm.1
