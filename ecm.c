@@ -536,6 +536,6 @@ ecm (mpz_t p, mpz_t sigma, mpz_t n, double B1, double B2, unsigned int k,
   if (verbose >= 2)
     gmp_printf ("x=%Zd\n", p);
 
-//  return (B2 > B1) ? stage2 (p, n, B2, k, S, verbose, 1) : 0;
+//  return (B2 > B1) ? stage2 (p, n, B2, k, S, verbose, 1, EC_METHOD) : 0;
   return 0;
 }
