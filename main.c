@@ -154,7 +154,7 @@ void usage (void)
     printf ("  -t n         Trial divide candidates before P-1, P+1 or ECM up to n\n");
     printf ("  -ve n        Verbosely show short (< n character) expressions on each loop\n");
     printf ("  -cofdec      Force cofactor output in decimal (even if expressions are used)\n");
-    printf ("  -B2scale f   Multiplies the 'computed' B2 value by the specified multiplier\n");
+    printf ("  -B2scale f   Multiplies the default B2 value by f \n");
     printf ("  -go val      Preload with group order val, which can be a simple expression,\n");
     printf ("               or can use N as a placeholder for the number being factored.\n");
 
@@ -180,11 +180,11 @@ void usage (void)
 int
 main (int argc, char *argv[])
 {
-  mpz_t x, sigma, A, f, orig_x0;
+  mpz_t x, sigma, A, f, orig_x0, B2, B2min, startingB2min;
   mpcandi_t n;
   mpgocandi_t go;
   mpq_t rat_x0;
-  double B1, B1done, B2, B2min, startingB2min;
+  double B1, B1done;
   int result = 0;
   int verbose = OUTPUT_NORMAL; /* verbose level */
   int method = ECM_ECM, method1;
@@ -204,7 +204,6 @@ main (int argc, char *argv[])
   gmp_randstate_t randstate;
   char *savefilename = NULL, *resumefilename = NULL, *infilename = NULL;
   char *TreeFilename = NULL;
-  char *endptr[1]; /* to parse B2 or B2min-B2max */
   char rtime[256] = "", who[256] = "", comment[256] = "", program[256] = "";
   FILE *savefile = NULL, *resumefile = NULL, *infile = NULL;
   int primetest = 0, saveappend = 0;
@@ -244,6 +243,9 @@ main (int argc, char *argv[])
   /* Init variables we might need to store options */
   mpz_init (sigma);
   mpz_init (A);
+  mpz_init (B2);
+  mpz_init (B2min);
+  mpz_init (startingB2min);
   mpq_init (rat_x0);
 
   /* first look for options */
@@ -660,7 +662,8 @@ main (int argc, char *argv[])
     }
   else
     B1done = ECM_DEFAULT_B1_DONE;
-  B2min = -1.0; /* default, means that B2min will be set to B1 */
+  mpz_set_si (B2min, -1); /* default, means that B2min will be set to B1 by
+                             ecm(), pm1() and pp1() */
 
   if (B1 < 0.0 || B1done < 0.0)
     {
@@ -677,27 +680,57 @@ main (int argc, char *argv[])
 
   init_expr ();
 
-  B2 = ECM_DEFAULT_B2; /* compute it automatically from B1 */
+  mpz_set_si (B2, ECM_DEFAULT_B2); /* compute it automatically from B1 */
   /* parse B2 or B2min-B2max */
   if (argc >= 3)
     {
-      B2 = strtod (argv[2], endptr);
-      if (*endptr == argv[2])
+      int c;
+      double d;
+      char *endptr;
+
+      /* This is like strtok, but SunOS does not seem to have it declared in
+         any header files, in spite of saying it does in the man pages... */
+      for (endptr = argv[2]; *endptr != '\0' && *endptr != '-'; endptr++);
+      if (*endptr == '-')
+        *(endptr++) = '\0';
+      else
+        endptr = NULL;
+      
+      gmp_sscanf (argv[2], "%Zd%n", B2, &c); /* Try parsing as integer */
+      if (argv[2][c] != '\0')
         {
-          fprintf (stderr, "Error: B2 or B2min-B2max expected: %s\n", argv[2]);
-          exit (EXIT_FAILURE);
+          gmp_sscanf (argv[2], "%lf%n", &d, &c); /* Try parsing scientific */
+          mpz_set_d (B2, d);
         }
-      if (**endptr == '-')
+      if (argv[2][c] != '\0' || argv[2][0] == '\0') 
+      /* If not the whole token could be parsed either way, or if there was
+         no token to begin with (i.e string starting with '-') signal error */
+        c = -1;
+      else if (endptr != NULL) /* Did we have a '-' in there? */
         {
-          B2min = B2;
-          B2 = atof (*endptr + 1);
+          mpz_set (B2min, B2);
+          gmp_sscanf (endptr, "%Zd%n", B2, &c);
+          if (endptr[c] != '\0')
+            {
+              gmp_sscanf (endptr, "%lf%n", &d, &c);
+              printf ("%f\n", d);
+              mpz_set_d (B2, d);
+            }
+          if (endptr[c] != '\0')
+            c = -1;
+        }
+      if (c == -1)
+        {
+          fprintf (stderr, "Error: expected positive integer(s) B2 or "
+                   "B2min-B2\n");
+          exit (EXIT_FAILURE);
         }
     }
 
   /* set static parameters (i.e. those that don't change during the program) */
   params->verbose = verbose;
   params->method = method;
-  params->B2 = B2;
+  mpz_set (params->B2, B2);
   params->k = k;
   params->S = S;
   params->repr = repr;
@@ -757,7 +790,7 @@ main (int argc, char *argv[])
   /* loop for number in standard input or file */
 
   startingB1 = B1;
-  startingB2min = B2min;
+  mpz_set (startingB2min, B2min);
 
   if (!infilename)
     infile = stdin;
@@ -779,9 +812,9 @@ BreadthFirstDoAgain:;
             {
 	      double NewB1;
 	      NewB1 = calc_B1_AutoIncrement (B1, autoincrementB1, autoincrementB1_calc);
-	      if (B2min <= B1) /* floating-point equality is unreliable,
-                                  a comparison might be better */
-		  B2min = NewB1;
+	      if (mpz_cmp_d (B2min, B1) <= 0) /* floating-point equality is 
+                                  unreliable, a comparison might be better */
+		  mpz_set_d (B2min, NewB1);
 	      B1 = NewB1;
 	    }
 	  else
@@ -890,7 +923,7 @@ BreadthFirstDoAgain:;
 	      if (!breadthfirst)
 		{
 	          B1 = startingB1;
-		  B2min = startingB2min;
+		  mpz_set (B2min, startingB2min);
 		}
 	    }
 
@@ -1046,7 +1079,7 @@ BreadthFirstDoAgain:;
       mpz_set (params->sigma, (params->sigma_is_A) ? A : sigma);
       mpz_set (params->go, go.Candi.n); /* may change if contains N */
       params->B1done = B1done; /* may change with resume */
-      params->B2min = B2min; /* may change with -c */
+      mpz_set (params->B2min, B2min); /* may change with -c */
 
       /* now call the ecm library */
       result = ecm_factor (f, n.n, B1, params);
@@ -1185,8 +1218,8 @@ OutputFactorStuff:;
 	{
 	  double NewB1;
 	  NewB1 = calc_B1_AutoIncrement (B1, autoincrementB1, autoincrementB1_calc);
-	  if (B2min <= B1) /* comparison might be better than equality */
-	      B2min = NewB1;
+	  if (mpz_cmp_d (B2min, B1) <= 0) /* <= might be better than == */
+	    mpz_set_d (B2min, NewB1);
 	  B1 = NewB1;
 	}
     }
@@ -1217,6 +1250,9 @@ OutputFactorStuff:;
   gmp_randclear (randstate);
 
   mpz_clear (orig_x0);
+  mpz_clear (startingB2min);
+  mpz_clear (B2min);
+  mpz_clear (B2);
   mpz_clear (x);
   mpz_clear (f);
   mpcandi_t_free (&n);

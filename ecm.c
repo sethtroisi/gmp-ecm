@@ -494,7 +494,6 @@ prac (mpres_t xA, mpres_t zA, unsigned long k, mpmod_t n, mpres_t b,
           g*y^2*z = x^3 + a*x^2*z + x*z^2
           n is the number to factor
 	  B1 is the stage 1 bound
-	  B2 is the stage 2 bound
    Output: If a factor is found, it is returned in x.
            Otherwise, x contains the x-coordinate of the point computed
            in stage 1 (with z coordinate normalized to 1).
@@ -581,17 +580,17 @@ ecm_stage1 (mpz_t f, mpres_t x, mpres_t A, mpmod_t n, double B1, double B1done,
 
 /* choose "optimal" S according to step 2 range B2 */
 int
-choose_S (double B2)
+choose_S (mpz_t B2len)
 {
-  if (B2 < 1e7)
+  if (mpz_cmp_d (B2len, 1e7) < 0)
     return 1;   /* x^1 */
-  else if (B2 < 1e8)
+  else if (mpz_cmp_d (B2len, 1e8) < 0)
     return 2;   /* x^2 */
-  else if (B2 < 1e9)
+  else if (mpz_cmp_d (B2len, 1e9) < 0)
     return -3;  /* Dickson(3) */
-  else if (B2 < 1e10)
+  else if (mpz_cmp_d (B2len, 1e10) < 0)
     return -6;  /* Dickson(6) */
-  else if (B2 < 3e11)
+  else if (mpz_cmp_d (B2len, 3e11) < 0)
     return -12; /* Dickson(12) */
   else
     return -30; /* Dickson(30) */
@@ -617,7 +616,7 @@ choose_S (double B2)
 */
 int
 ecm (mpz_t f, mpz_t x, mpz_t sigma, mpz_t n, mpz_t go, double B1done,
-     double B1, double B2min, double B2, double B2scale, unsigned int k,
+     double B1, mpz_t B2min, mpz_t B2, double B2scale, unsigned int k,
      int S, int verbose, int repr, int sigma_is_A, FILE *os, FILE* es, 
      char *TreeFilename)
 {
@@ -652,15 +651,14 @@ ecm (mpz_t f, mpz_t x, mpz_t sigma, mpz_t n, mpz_t go, double B1done,
      addition and duplicate, and both are optimized with PRAC, we can
      assume the ratio remains about 11/2. */
 
-  if (ECM_IS_DEFAULT_B2(B2))
-    B2 = pow (11.0 / 6.0 * B1, 1.424828748);
+  /* Also scale B2 by what the user said (or by the default scaling of 1.0) */
 
-  /* Scale B2 by what the user said (or by the default scaling of 1.0) */
-  B2 *= B2scale;
+  if (ECM_IS_DEFAULT_B2(B2))
+    mpz_set_d (B2, B2scale * pow (11.0 / 6.0 * B1, 1.424828748));
 
   /* set B2min */
-  if (B2min < 0.0)
-    B2min = B1;
+  if (mpz_sgn (B2min) < 0)
+    mpz_set_d (B2min, B1);
 
   /* Set default degree for Brent-Suyama extension */
   /* We try to keep the time used by the Brent-Suyama extension
@@ -670,7 +668,13 @@ ecm (mpz_t f, mpz_t x, mpz_t sigma, mpz_t n, mpz_t go, double B1done,
      identically. */
 
   if (S == ECM_DEFAULT_S)
-    S = choose_S (B2 - B2min);
+    {
+      mpz_t t;
+      mpz_init (t);
+      mpz_sub (t, B2, B2min);
+      S = choose_S (t);
+      mpz_clear (t);
+    }
   
   if (repr == 1)
     mpmod_init_MPZ (modulus, n);
@@ -704,10 +708,10 @@ ecm (mpz_t f, mpz_t x, mpz_t sigma, mpz_t n, mpz_t go, double B1done,
 
       /* sigma contains sigma value, A value must be computed */
       outputf (OUTPUT_NORMAL, "Using B1=%1.0f, B2=", B1);
-      if (B2min <= B1)
-        outputf (OUTPUT_NORMAL, "%1.0f", B2);
+      if (mpz_cmp_d (B2min, B1) == 0)
+        outputf (OUTPUT_NORMAL, "%Zd", B2);
       else
-        outputf (OUTPUT_NORMAL, "%1.0f-%1.0f", B2min, B2);
+        outputf (OUTPUT_NORMAL, "%Zd-%Zd", B2min, B2);
       outputf (OUTPUT_NORMAL, ", polynomial ");
       if (S > 0)
         outputf (OUTPUT_NORMAL, "x^%u", S);

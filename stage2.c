@@ -269,7 +269,7 @@ init_roots_state (ecm_roots_state *state, int S, unsigned int d1,
                  or ECM_ERROR if an error occurred.
 */
 int
-stage2 (mpz_t f, void *X, mpmod_t modulus, double B2min, double B2,
+stage2 (mpz_t f, void *X, mpmod_t modulus, mpz_t B2min, mpz_t B2,
         unsigned int k0, int S, int method, int stage1time, 
         char *TreeFilename)
 {
@@ -287,7 +287,7 @@ stage2 (mpz_t f, void *X, mpmod_t modulus, double B2min, double B2,
   /* check alloc. size of f */
   mpres_realloc (f, modulus);
 
-  if (B2 < B2min)
+  if (mpz_cmp(B2, B2min) < 0)
     return 0;
 
   st0 = cputime ();
@@ -330,13 +330,10 @@ stage2 (mpz_t f, void *X, mpmod_t modulus, double B2min, double B2,
   b2 = (double) dF * (double) d * (double) d2 / (double) phi (d2);
 
   /* compute real B2 */
-  B2 = mpz_get_d (s) + floor ((double) k * b2 / d / d2) * d * d2;
+  // B2 = mpz_get_d (s) + floor ((double) k * b2 / d / d2) * d * d2;
 
-  outputf (OUTPUT_VERBOSE, "B2'=%1.0f k=%u b2=%1.0f d=%u d2=%u dF=%u, "
+  outputf (OUTPUT_VERBOSE, "B2'=%Zd k=%u b2=%1.0f d=%u d2=%u dF=%u, "
            "i0=%Zd\n", B2, k, b2, d, d2, dF, i0);
-
-  /* compute real B2 */
-  B2 = mpz_get_d (s) + floor ((double) k * b2 / d / d2) * d * d2;
 
   if (method == ECM_ECM && test_verbose (OUTPUT_VERBOSE))
     {
@@ -346,8 +343,8 @@ stage2 (mpz_t f, void *X, mpmod_t modulus, double B2min, double B2,
                "of n digits:\n20\t25\t30\t35\t40\t45\t50\t55\t60\t65\n");
       for (i = 20; i <= 65; i += 5)
         {
-          nrcurves = 1. / ecmprob (B2min, B2, pow (10., i - .5), 
-                                 (double)dF * (double)dF * k, S); 
+          nrcurves = 1. / ecmprob (mpz_get_d (B2min), mpz_get_d (B2), 
+                                 pow (10., i - .5), (double) dF * dF * k, S); 
           if (nrcurves < 10000000)
             outputf (OUTPUT_VERBOSE, "%.0f%c", 
                      floor (nrcurves + .5), i < 65 ? '\t' : '\n');
@@ -688,8 +685,8 @@ clear_s_i0:
       for (i = 20; i <= 65; i += 5)
         {
           const char sep = (i < 65) ? '\t' : '\n';
-          prob = ecmprob (B2min, B2, pow (10., i - .5), 
-                          (double)dF * (double)dF * k, S);
+          prob = ecmprob (mpz_get_d (B2min), mpz_get_d (B2), 
+                          pow (10., i - .5), (double) dF * dF * k, S);
           exptime = tottime / prob;
           /* outputf (OUTPUT_VERBOSE, "Total time: %.0f, probability: %f, expected time: %.0f\n", tottime, prob, exptime); */
           if (exptime < 1000.)
