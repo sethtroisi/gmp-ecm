@@ -33,7 +33,7 @@ unsigned int lucas_cost (unsigned, double);
 void prac (mpres_t, mpres_t, unsigned int, mpmod_t, mpres_t, mpres_t, mpres_t, 
            mpres_t, mpres_t, mpres_t, mpres_t, mpres_t, mpres_t, mpres_t, 
            mpres_t, mpres_t);
-int ecm_stage1 (mpz_t, mpres_t, mpres_t, mpmod_t, double, double, mpz_t, mpz_t, int, mpz_t);
+static int ecm_stage1 (mpz_t, mpres_t, mpres_t, mpmod_t, double, double);
 
 /******************************************************************************
 *                                                                             *
@@ -466,16 +466,12 @@ prac (mpres_t xA, mpres_t zA, unsigned int k, mpmod_t n, mpres_t b,
            in stage 1 (with z coordinate normalized to 1).
    Return value: non-zero iff a factor is found
 */
-int
-ecm_stage1 (mpz_t f, mpres_t x, mpres_t A, mpmod_t n, double B1, 
-            double B1done, mpz_t sigma, mpz_t orig_n, int verbose, mpz_t go)
+static int
+ecm_stage1 (mpz_t f, mpres_t x, mpres_t A, mpmod_t n, double B1, double B1done)
 {
   mpres_t b, z, u, v, w, xB, zB, xC, zC, xT, zT, xT2, zT2;
   double q, r;
   int ret = 0;
-  int Counter = 0, st_save;
-
-  st_save = cputime ();
 
   mpres_init (b, n);
   mpres_init (z, n);
@@ -518,41 +514,6 @@ ecm_stage1 (mpz_t f, mpres_t x, mpres_t A, mpmod_t n, double B1,
       for (r = q; r <= B1; r *= q)
 	if (r > B1done)
 	  prac (x, z, (int) q, n, b, u, v, w, xB, zB, xC, zC, xT, zT, xT2, zT2);
-      if (++Counter == 25)
-	{
-          showscreenticks(1,(int) (100.0 * (double) q / (double) B1));
-	  Counter=0;
-	  /* should we save the current "ecm_wip.sav" file??? It is saved every 15 minutes */
-	  /* NOTE this saving DOES NOT save the expression.  It is just a "fail-safe" measure */
-#if defined (DEBUG_AUTO_SAVE)
-	  if (cputime() - st_save > 2000)
-#else
-	  if (cputime() - st_save > 15 * 60 * 1000)
-#endif
-	    {
-	      st_save = cputime();
-	      /* orig_X0 not needed for the save.  Simply create a "dummy" 
-                 here to pass in */
-/*	      mpz_t orig_X0, X, U, Z; 
-	      mpz_init_set_ui (orig_X0, 0);
-	      mpz_init (X);
-*/
-	      /* Suck the X value out of a */
-
-/*	      mpres_invert (u, z, n);
-	      mpres_mul (x, x, u, n);
-	      mpres_get_z (X, x, n);
-
-	      write_temp_resumefile (EC_METHOD, q, sigma, A, X, orig_n, orig_X0, verbose);
-*/
-	      /*exit(1);*/
-
-/*	      mpz_clear (orig_X0);
-	      mpz_clear (X);
-*/
-	      /* Reset our "timeout" value, so we save again in 15 minutes */
-	    }
-	}
     }
   getprime (0.0); /* free the prime tables, and reinitialize */
 
@@ -596,7 +557,7 @@ ecm_stage1 (mpz_t f, mpres_t x, mpres_t A, mpmod_t n, double B1,
    Return value: non-zero iff a factor was found.
 */
 int
-ecm (mpz_t f, mpz_t x, mpz_t sigma, mpz_t n, mpz_t go, double B1done, double B1,
+ecm (mpz_t f, mpz_t x, mpz_t sigma, mpz_t n, double B1done, double B1,
      double B2min, double B2, double B2scale, unsigned int k, int S, int verbose,
      int repr, int sigma_is_A)
 {
@@ -711,7 +672,7 @@ ecm (mpz_t f, mpz_t x, mpz_t sigma, mpz_t n, mpz_t go, double B1done, double B1,
     }
 
   if (B1 > B1done)
-    youpi = ecm_stage1 (f, P.x, P.A, modulus, B1, B1done, sigma, n, verbose, go);
+    youpi = ecm_stage1 (f, P.x, P.A, modulus, B1, B1done);
   
   st = cputime () - st;
   

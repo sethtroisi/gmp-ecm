@@ -34,8 +34,7 @@
 
 int  count_significant_bits (mp_limb_t);
 void pp1_check_factor       (mpz_t, mpz_t);
-int          pp1_stage1     (mpz_t, mpres_t, mpmod_t, double, double,
-                             unsigned long *, mpz_t, mpz_t);
+static int pp1_stage1 (mpz_t, mpres_t, mpmod_t, double, double, unsigned long *);
 
 /******************************************************************************
 *                                                                             *
@@ -132,9 +131,9 @@ count_significant_bits (mp_limb_t e)
    Output: a is the factor found, or the value at end of stage 1
    Return value: non-zero iff a factor was found.
 */
-int
+static int
 pp1_stage1 (mpz_t f, mpres_t P0, mpmod_t n, double B1, double B1done,
-            unsigned long *muls, mpz_t orig_n, mpz_t go)
+            unsigned long *muls)
 {
   double B0, p, q, r;
   mpz_t g;
@@ -142,7 +141,6 @@ pp1_stage1 (mpz_t f, mpres_t P0, mpmod_t n, double B1, double B1done,
   mpres_t R, S, T;
   int youpi;
   unsigned int max_size, size_n;
-  int Counter = 0, st_save;
 
   /* Prep for stage one counter */
   showscreenticks_change_stage(1);
@@ -195,7 +193,6 @@ pp1_stage1 (mpz_t f, mpres_t P0, mpmod_t n, double B1, double B1done,
   *muls += pp1_mul (P0, P0, g, n, P, Q);
 
   /* update the screen mode after the cascade work is done */
-  st_save = cputime ();
   showscreenticks(1,(int) (100.0 * (double) p / (double) B1));
 
   /* then all primes > sqrt(B1) and taken with exponent 1 */
@@ -203,27 +200,6 @@ pp1_stage1 (mpz_t f, mpres_t P0, mpmod_t n, double B1, double B1done,
     {
       if (p > B1done)
         *muls += pp1_mul_prac (P0, (unsigned long) p, n, P, Q, R, S, T);
-      if (++Counter == 250)
-	{
-          showscreenticks(1,(int) (100.0 * (double) p / (double) B1));
-	  Counter=0;
-	    /* should we save the current "ecm_wip.sav" file??? It is saved every 15 minutes */
-	    /* NOTE this saving DOES NOT save the expression.  It is just a "fail-safe" measure */
-  #if defined (DEBUG_AUTO_SAVE)
-	  if (cputime() - st_save > 2000)
-  #else
-	  if (cputime() - st_save > 15 * 60 * 1000)
-  #endif
-	    {
-	      st_save = cputime();
-	      /* Figure out how to save here */
-	      /* sigma is not needed */
-	      /* A is not needed */
-
-	      /******** THIS NEEDS TO BE MADE TO SAVE *****************/
-	      /* write_temp_resumefile (PM1_METHOD, p+1, sigma, A, x, orig_n, verbose); */
-	    }
-	}
     }
 
   getprime (0.0); /* free the prime tables, and reinitialize */
@@ -452,7 +428,7 @@ pp1_rootsG (listz_t G, unsigned int d, pp1_roots_state *state,
    Return value: non-zero iff a factor is found (1 for stage 1, 2 for stage 2)
 */
 int
-pp1 (mpz_t f, mpz_t p, mpz_t n, mpz_t go, double B1done, double B1, double B2min, double B2, 
+pp1 (mpz_t f, mpz_t p, mpz_t n, double B1done, double B1, double B2min, double B2, 
      double B2scale, unsigned int k, unsigned int S, int verbose, int repr)
 {
   int youpi = 0, st;
@@ -517,7 +493,7 @@ pp1 (mpz_t f, mpz_t p, mpz_t n, mpz_t go, double B1done, double B1, double B2min
   mpres_set_z (a, p, modulus);
 
   if (B1 > B1done)
-    youpi = pp1_stage1 (f, a, modulus, B1, B1done, &muls, n, go);
+    youpi = pp1_stage1 (f, a, modulus, B1, B1done, &muls);
 
   st = cputime () - st;
 
