@@ -22,10 +22,11 @@
 
 #include <math.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include "gmp.h"
 #include "ecm.h"
 
-int      pm1_stage1     (mpz_t, mpz_t, mpz_t, double, double);
+int      pm1_stage1     (mpz_t, mpres_t, mpmod_t, double, double);
 
 /******************************************************************************
 *                                                                             *
@@ -38,7 +39,7 @@ int      pm1_stage1     (mpz_t, mpz_t, mpz_t, double, double);
 
 /* put in 'a' a valid random seed for P-1, i.e. gcd(a, n)=1 and a <> {-1,1} */
 void
-pm1_random_seed (mpz_t a, mpz_t n, gmp_randstate_t randstate)
+pm1_random_seed (mpres_t a, mpz_t n, gmp_randstate_t randstate)
 {
   mpz_t q;
 
@@ -60,7 +61,7 @@ pm1_random_seed (mpz_t a, mpz_t n, gmp_randstate_t randstate)
    Return value: non-zero iff a factor was found.
 */
 int
-pm1_stage1 (mpz_t f, mpz_t a, mpz_t n, double B1, double B1done)
+pm1_stage1 (mpz_t f, mpres_t a, mpmod_t n, double B1, double B1done)
 {
   double B0, p, q, r;
   mpz_t g, d;
@@ -72,17 +73,17 @@ pm1_stage1 (mpz_t f, mpz_t a, mpz_t n, double B1, double B1done)
 
   B0 = sqrt (B1);
 
-  max_size = L1 * mpz_sizeinbase (n, 2);
+  max_size = L1 * mpz_sizeinbase (n->orig_modulus, 2);
 
   /* suggestion from Peter Montgomery: start with exponent n-1,
      since any prime divisor of b^m-1 which does not divide any
      algebraic factor of b^m-1 must be of the form km+1 [Williams82].
      Do this only when n is composite, otherwise all tests with prime
      n factor of a Cunningham number will succeed in stage 1. */
-  if (mpz_probab_prime_p (n, 1) == 0)
+  if (0 && mpz_probab_prime_p (n->orig_modulus, 1) == 0)
     {
-      mpz_sub_ui (g, n, 1);
-      mpz_powm (a, a, g, n);
+      mpz_sub_ui (g, n->orig_modulus, 1);
+      mpres_pow (a, a, g, n);
     }
   else
     mpz_set_ui (g, 1);
@@ -95,7 +96,7 @@ pm1_stage1 (mpz_t f, mpz_t a, mpz_t n, double B1, double B1done)
       mpz_mul_d (g, g, q, d);
       if (mpz_sizeinbase (g, 2) >= max_size)
 	{
-	  mpz_powm (a, a, g, n);
+	  mpres_pow (a, a, g, n);
 	  mpz_set_ui (g, 1);
 	}
     }
@@ -107,7 +108,7 @@ pm1_stage1 (mpz_t f, mpz_t a, mpz_t n, double B1, double B1done)
         mpz_mul_d (g, g, p, d);
         if (mpz_sizeinbase (g, 2) >= max_size)
 	  {
-	    mpz_powm (a, a, g, n);
+	    mpres_pow (a, a, g, n);
 	    mpz_set_ui (g, 1);
 	  }
       }
@@ -116,16 +117,227 @@ pm1_stage1 (mpz_t f, mpz_t a, mpz_t n, double B1, double B1done)
 
   mpz_clear (d);
 
-  mpz_powm (a, a, g, n);
+  mpres_pow (a, a, g, n);
 
-  mpz_sub_ui (g, a, 1);
-  mpz_gcd (f, g, n);
+  mpres_sub_ui (a, a, 1, n);
+  mpres_gcd (f, a, n);
   youpi = mpz_cmp_ui (f, 1);
+  mpres_add_ui (a, a, 1, n);
 
   mpz_clear (g);
   
   return youpi;
 }
+
+/******************************************************************************
+*                                                                             *
+*                                  Stage 2                                    *
+*                                                                             *
+******************************************************************************/
+
+/* Puts in F[0..dF-1] the successive values of 
+
+   x^(Dickson_{S, a}(j))
+   
+     for 0 < j = 1 mod 6 < d, j and d coprime, where Dickson_{S, a}
+     is the degree S Dickson polynomial with parameter a. For a == 0, 
+     Dickson_{S, a} (x) = x^S.
+   Returns non-zero iff a factor was found (then stored in f).
+   Uses the x+1/x trick whenever S > 6 and even, then the Dickson 
+     parameter a must be 0.
+   Requires (dF+1) cells in t for the x+1/x trick.
+*/
+
+int
+pm1_rootsF (mpz_t f, listz_t F, unsigned int d, mpres_t x, listz_t t,
+        unsigned int S, mpmod_t modulus, int verbose)
+{
+  unsigned int i, j, k;
+  int st, st2;
+  mpres_t *fd;
+  listz_t coeffs;
+  int invtrick = 0, dickson_a = -1;
+
+  st = cputime ();
+
+  mpres_get_z (F[0], x, modulus); /* s^1 for P-1 */
+  i = 1;
+
+  if (S > 6 && (S & 1) == 0)
+    { /* We can't use both invtrick and proper Dickson polys */
+      invtrick = 1;
+      dickson_a = 0;
+      S /= 2;
+    }
+
+  if (d > 7)
+    {
+      st2 = cputime ();
+      coeffs = init_list (S + 1);
+      
+      fin_diff_coeff (coeffs, 7, 6, S, dickson_a);
+      
+      fd = (mpres_t *) malloc ((S + 1) * sizeof (mpres_t));
+      for (k = 0; k <= S; k++) 
+        {
+          mpres_init (fd[k], modulus);
+          mpres_pow (fd[k], x, coeffs[k], modulus);
+        }
+
+      clear_list (coeffs, S + 1);
+      
+      if (verbose >= 2)
+        printf ("Initializing table of differences for F took %dms\n", cputime () - st2);
+
+      for (j = 7; j < d; j += 6)
+        {
+          if (gcd (j, d) == 1)
+            mpres_get_z (F[i++], fd[0], modulus);
+          
+          /* Compute value of f_{S, a}(7+n*6) for the next n */
+          for (k = 0; k < S; k++)
+            mpres_mul (fd[k], fd[k], fd[k+1], modulus);
+        }
+      
+      for (k = 0; k <= S; k++)
+        mpres_clear (fd[k], modulus);
+      free (fd);
+    }
+
+  if (invtrick)
+    {
+      if (list_invert (t, F, i, t[i], modulus->orig_modulus)) 
+        {
+          mpz_set (f, t[i]);
+          return 1;
+        }
+      
+      for (j = 0; j < i; j++) 
+        {
+          mpz_add (F[j], F[j], t[j]);
+          mpz_mod (F[j], F[j], modulus->orig_modulus);
+        }
+    }
+  
+  if (verbose >= 2)
+    printf ("Computing roots of F took %dms\n", cputime () - st);
+
+  return 0;
+}
+
+/* Perform the neccessary initialisation to allow computation of
+
+   x^(Dickson_{S, a}(s+n*d))
+   
+     for successive n, where Dickson_{S, a} is the degree S Dickson
+     polynomial with parameter a. For a == 0, Dickson_{S, a} (x) = x^S.
+   Uses the x+1/x trick whenever S > 6 and even, then the Dickson
+     parameter a must be 0.
+*/
+
+mpres_t *
+pm1_rootsG_init (mpres_t x, unsigned int s, unsigned int d, unsigned int S,
+                 mpmod_t modulus)
+{
+  unsigned int k;
+  int invtrick = 0, dickson_a = -1;
+  listz_t coeffs;
+  mpres_t *fd;
+  
+  if (S > 6 && (S & 1) == 0)
+    {
+      invtrick = 1;
+      dickson_a = 0;
+      S /= 2;
+    }
+  
+  coeffs = init_list (S + 1);
+
+  fin_diff_coeff(coeffs, s, d, S, dickson_a);
+  
+  fd = (mpres_t *) malloc((S + 1) * sizeof(mpres_t));
+  for (k = 0; k <= S; k++) 
+    {
+      mpres_init (fd[k], modulus);
+      mpres_pow (fd[k], x, coeffs[k], modulus);
+    }
+
+  clear_list (coeffs, S + 1);
+      
+  return fd;  
+}
+
+/* Frees all the dynamic variables allocated by pm1_rootsG_init() */
+
+void 
+pm1_rootsG_clear (mpres_t *fd, unsigned int S, mpmod_t modulus)
+{
+  unsigned int k;
+  
+  if (S > 6 && (S & 1) == 0)
+    {
+      S /= 2;
+    }
+  
+  for (k = 0; k <= S; k++)
+    mpres_clear (fd[k], modulus);
+  
+  free (fd);
+}
+
+/* Puts in G the successive values of 
+    
+    x^(Dickson_{S, a}(s+j*k))
+    
+    for 1 <= j <= d, where k is the 'd' value from pm1_rootsG_init()
+    and s is the 's' value of pm1_rootsG_init() or where a previous
+    call to pm1_rootsG has left off.
+   
+   Returns non-zero iff a factor was found (then stored in f).
+   Requires (d+1) cells in t for the x+1/x trick.
+*/
+
+int
+pm1_rootsG (mpz_t f, listz_t G, unsigned int d, mpres_t *fd, 
+        listz_t t, unsigned int S, mpmod_t modulus, int verbose)
+{
+  unsigned int i, j;
+  int st;
+  int invtrick = 0;
+  
+  st = cputime ();
+
+  if (S > 6 && (S & 1) == 0) 
+    {
+      invtrick = 1;
+      S /= 2;
+    }
+  
+  for (i = 0; i < d; i++)
+    {
+      mpres_get_z (G[i], fd[0], modulus);
+      for (j = 0; j < S; j++)
+        mpres_mul(fd[j], fd[j], fd[j+1], modulus);
+    }
+  
+  if (invtrick)
+    {
+      if (list_invert (t, G, i, t[i], modulus->orig_modulus)) 
+        {
+          mpz_set (f, t[i]);
+          return 1;
+        }
+    
+      for (j = 0; j < i; j++) 
+        {
+          mpz_add (G[j], G[j], t[j]);
+          mpz_mod (G[j], G[j], modulus->orig_modulus);
+        }
+    }
+  
+  return 0;
+}
+
 
 /******************************************************************************
 *                                                                             *
@@ -145,7 +357,7 @@ pm1_stage1 (mpz_t f, mpz_t a, mpz_t n, double B1, double B1done)
    Return value: non-zero iff a factor is found (1 for stage 1, 2 for stage 2)
 */
 int
-pm1 (mpz_t f, mpz_t p, mpz_t n, double B1, double B2, double B1done,
+pm1 (mpz_t f, mpres_t p, mpmod_t modulus, double B1, double B2, double B1done,
      unsigned int k, unsigned int S, int verbose)
 {
   int youpi = 0, st;
@@ -156,13 +368,21 @@ pm1 (mpz_t f, mpz_t p, mpz_t n, double B1, double B2, double B1done,
   if (verbose >= 1)
     {
       printf ("Using seed=");
-      mpz_out_str (stdout, 10, p);
+      mpres_out_str (stdout, 10, p, modulus);
       printf ("\n");
       fflush (stdout);
     }
 
   if (B1 > B1done)
-    youpi = pm1_stage1 (f, p, n, B1, B1done);
+    youpi = pm1_stage1 (f, p, modulus, B1, B1done);
+
+  if (verbose >= 2)
+    {
+      printf ("x=");
+      mpres_out_str (stdout, 10, p, modulus);
+      printf ("\n");
+      fflush (stdout);
+    }
 
   if (verbose >= 1)
     {
@@ -173,11 +393,16 @@ pm1 (mpz_t f, mpz_t p, mpz_t n, double B1, double B2, double B1done,
   if (youpi != 0) /* a factor was found */
     return 1;
 
+  /* We need Suyama's power even and at least 2 for stage 2 to work 
+     correctly */
+  if (S < 2)
+    S = 2;
+
   mpz_init (P.x);
   mpz_init (P.y);
 
   mpz_set (P.x, p);
-  youpi = stage2 (f, &P, n, B2, k, S, verbose, PM1_METHOD, B1);
+  youpi = stage2 (f, &P, modulus, B2, k, S, verbose, PM1_METHOD, B1);
 
   mpz_clear (P.x);
   mpz_clear (P.y);

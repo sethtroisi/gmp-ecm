@@ -23,11 +23,16 @@
 #include "gmp.h"
 #include "ecm.h"
 
-int duplicateW (mpz_t, mpz_t, mpz_t, mpz_t, mpz_t, mpz_t, mpz_t, mpz_t, mpz_t);
-int addW (mpz_t, mpz_t, mpz_t, mpz_t, mpz_t, mpz_t, mpz_t, mpz_t, mpz_t,
-          mpz_t);
+int duplicateW (mpz_t, mpres_t, mpres_t, mpres_t, mpres_t, mpmod_t, 
+                mpres_t, mpres_t, mpres_t);
+int addW (mpz_t, mpres_t, mpres_t, mpres_t, mpres_t, mpres_t, mpres_t, 
+          mpmod_t, mpres_t, mpres_t);
 int multiplyW (mpz_t, mpz_t, mpz_t, mpz_t, mpz_t, unsigned long, mpz_t, mpz_t,
                mpz_t, mpz_t);
+int multiplyW2 (mpz_t, mpres_t, mpres_t, mpres_t, mpres_t, mpz_t, mpmod_t, 
+                mpres_t, mpres_t, mpres_t);
+int addWn (mpz_t, point *, mpmod_t, long);
+
 
 #define PTR(x) ((x)->_mp_d)
 #define getbit(x,i) (PTR(x)[i/mp_bits_per_limb] & ((mp_limb_t)1<<(i%mp_bits_per_limb)))
@@ -37,27 +42,26 @@ int multiplyW (mpz_t, mpz_t, mpz_t, mpz_t, mpz_t, unsigned long, mpz_t, mpz_t,
   a is the Weierstrass parameter, u and v are auxiliary variables.
 */
 int
-duplicateW (mpz_t p, mpz_t x1, mpz_t y1, mpz_t x, mpz_t y, mpz_t n, mpz_t a,
-            mpz_t u, mpz_t v)
+duplicateW (mpz_t p, mpres_t x1, mpres_t y1, mpres_t x, mpres_t y, mpmod_t n, 
+            mpres_t a, mpres_t u, mpres_t v)
 {
-  mpz_mul_2exp (u, y, 1);
-  mpz_gcdext (p, v, NULL, u, n);
-  if (mpz_cmp_ui(p,1) != 0)
-    return 1;
-  mpz_mul (u, x, x);
-  mpz_mul_ui (u, u, 3);
-  mpz_add (u, u, a);
-  mpz_mod (u, u, n);
-  mpz_mulmod (p, u, v, n);
-  mpz_mul (u, p, p);
-  mpz_mul_2exp (v, x, 1);
-  mpz_sub (u, u, v);
-  mpz_mod (u, u, n);
-  mpz_sub (v, x, u);
-  mpz_mul (v, v, p);
-  mpz_sub (y1, v, y);
-  mpz_mod (y1, y1, n);
-  mpz_set (x1, u); /* can we avoid this mpz_set (using mpz_swap perhaps)? */
+  mpres_add (u, y, y, n);
+  if (!mpres_invert (v, u, n))
+    {
+      mpres_gcd (p, u, n);
+      return 1;
+    }
+  mpres_mul (u, x, x, n);
+  mpres_mul_ui (u, u, 3, n);
+  mpres_add (u, u, a, n);
+  mpres_mul (p, u, v, n);
+  mpres_mul (u, p, p, n);
+  mpres_add (v, x, x, n);
+  mpres_sub (u, u, v, n);
+  mpres_sub (v, x, u, n);
+  mpres_mul (v, v, p, n);
+  mpres_sub (y1, v, y, n);
+  mpres_set (x1, u, n); /* can we avoid this mpz_set (using mpz_swap perhaps)? */
 
   return 0;
 }
@@ -68,24 +72,24 @@ duplicateW (mpz_t p, mpz_t x1, mpz_t y1, mpz_t x, mpz_t y, mpz_t n, mpz_t a,
    u, v are auxiliary variables.
 */
 int
-addW (mpz_t p, mpz_t x, mpz_t y, mpz_t x1, mpz_t y1, mpz_t x2, mpz_t y2,
-      mpz_t n, mpz_t u, mpz_t v)
+addW (mpz_t p, mpres_t x, mpres_t y, mpres_t x1, mpres_t y1, mpres_t x2, 
+      mpres_t y2, mpmod_t n, mpres_t u, mpres_t v)
 {
-  mpz_sub (u, x2, x1);
-  mpz_gcdext (p, v, NULL, u, n);
-  if (mpz_cmp_ui (p, 1) != 0)
-    return 1;
-  mpz_sub (p, y2, y1);
-  mpz_mulmod (p, v, p, n);
-  mpz_mul (u, p, p);
-  mpz_sub (u, u, x1);
-  mpz_sub (v, u, x2);
-  mpz_mod (v, v, n);
-  mpz_sub (u, x1, v);
-  mpz_mul (u, u, p);
-  mpz_sub (y, u, y1);
-  mpz_mod (y, y, n);
-  mpz_set (x, v); /* can we avoid this copy? */
+  mpres_sub (u, x2, x1, n);
+  if (!mpres_invert (v, u, n))
+    {
+      mpres_gcd (p, u, n);
+      return 1;
+    }
+  mpres_sub (p, y2, y1, n);
+  mpres_mul (p, v, p, n);
+  mpres_mul (u, p, p, n);
+  mpres_sub (u, u, x1, n);
+  mpres_sub (v, u, x2, n);
+  mpres_sub (u, x1, v, n);
+  mpres_mul (u, u, p, n);
+  mpres_sub (y, u, y1, n);
+  mpres_set (x, v, n); /* can we avoid this copy? */
 
   return 0;
 }
@@ -145,13 +149,13 @@ multiplyW (mpz_t p, mpz_t x1, mpz_t y1, mpz_t x, mpz_t y, unsigned long q,
 
 /* (x1:y1) <- q*(x:y) where q is a large integer */
 int
-multiplyW2 (mpz_t p, mpz_t x1, mpz_t y1, mpz_t x, mpz_t y, mpz_t q, mpz_t n,
-            mpz_t a, mpz_t u, mpz_t v)
+multiplyW2 (mpz_t p, mpres_t x1, mpres_t y1, mpres_t x, mpres_t y, mpz_t q, 
+            mpmod_t n, mpres_t a, mpres_t u, mpres_t v)
 {
   long j;
   int sign_q;
 
-  sign_q = mpz_cmp_ui (q, 0);
+  sign_q = mpz_sgn (q);
 
   if (sign_q == 0)
     {
@@ -171,7 +175,7 @@ multiplyW2 (mpz_t p, mpz_t x1, mpz_t y1, mpz_t x, mpz_t y, mpz_t q, mpz_t n,
   j = mpz_sizeinbase (q, 2) - 2;
   if (duplicateW (p, x1, y1, x, y, n, a, u, v))
     return 1;
-  if (getbit(q,j) && addW (p, x1, y1, x1, y1, x, y, n, u, v))
+  if (getbit (q, j) && addW (p, x1, y1, x1, y1, x, y, n, u, v))
     return 1;
   while (--j >= 0)
     {
@@ -180,7 +184,7 @@ multiplyW2 (mpz_t p, mpz_t x1, mpz_t y1, mpz_t x, mpz_t y, mpz_t q, mpz_t n,
       if (getbit(q,j) && addW (p, x1, y1, x1, y1, x, y, n, u, v))
         return 1;
   }
-
+ 
  exit_multiplyW2:
   if (sign_q < 0)
     {
@@ -203,7 +207,7 @@ multiplyW2 (mpz_t p, mpz_t x1, mpz_t y1, mpz_t x, mpz_t y, mpz_t q, mpz_t n,
    Uses one inversion and 6*e multiplications for e>1 (3 muls for e=1)
 */
 int
-addWn (mpz_t p, point *X, mpz_t n, long e)
+addWn (mpz_t p, point *X, mpmod_t n, long e)
 {
   long j;
   point *u, *v;
@@ -215,38 +219,38 @@ addWn (mpz_t p, point *X, mpz_t n, long e)
   u = X + (e + 1);
   v = X + (e + 1);
 
-  mpz_sub (u[e-1].x, X[e].x, X[e-1].x);
-  mpz_set (v[e-1].y, u[e-1].x);
+  mpres_sub (u[e-1].x, X[e].x, X[e-1].x, n);
+  mpres_set (v[e-1].y, u[e-1].x, n);
   for (j = e - 2; j >= 0; j--)
     {
-      mpz_sub (u[j].x, X[j+1].x, X[j].x);
-      mpz_mulmod (v[j].y, u[j].x, v[j+1].y, n); /* v[j] = u[j]*u[j+1]*...*u[e-1] */
+      mpres_sub (u[j].x, X[j+1].x, X[j].x, n);
+      mpres_mul (v[j].y, u[j].x, v[j+1].y, n); /* v[j] = u[j]*u[j+1]*...*u[e-1] */
     }
 
-  mpz_gcdext (p, v[e].y, NULL, v[0].y, n);
-  if (mpz_cmp_ui (p, 1) != 0)
-    return 1;
+  if (!mpres_invert (v[e].y, v[0].y, n))
+    {
+      mpres_gcd (p, v[0].y, n);
+      return 1;
+    }
 
   for (j = 0; j < e; j++)
     {
       /* loop invariant: v[e] = 1/(u[j]*u[j+1]*...*u[e-1]) */
       if (j != e - 1)
         {
-          mpz_mulmod (v[j+1].y, v[j+1].y, v[e].y, n);
+          mpres_mul (v[j+1].y, v[j+1].y, v[e].y, n);
           /* restore v[e] for next loop and make u[j] free */
-          mpz_mulmod (v[e].y, v[e].y, u[j].x, n);
+          mpres_mul (v[e].y, v[e].y, u[j].x, n);
         }
       /* now v[j+1] = 1/(x[j+1]-x[j]) mod n */
-      mpz_sub (p, X[j+1].y, X[j].y);
-      mpz_mulmod (p, v[j+1].y, p, n);
-      mpz_mul (u[j].x, p, p);
-      mpz_sub (u[j].x, u[j].x, X[j].x);
-      mpz_sub (X[j].x, u[j].x, X[j+1].x);
-      mpz_mod (X[j].x, X[j].x, n);
-      mpz_sub (u[j].x, X[j+1].x, X[j].x);
-      mpz_mul (u[j].x, u[j].x, p);
-      mpz_sub (X[j].y, u[j].x, X[j+1].y);
-      mpz_mod (X[j].y, X[j].y, n);
+      mpres_sub (p, X[j+1].y, X[j].y, n);
+      mpres_mul (p, v[j+1].y, p, n);
+      mpres_mul (u[j].x, p, p, n);
+      mpres_sub (u[j].x, u[j].x, X[j].x, n);
+      mpres_sub (X[j].x, u[j].x, X[j+1].x, n);
+      mpres_sub (u[j].x, X[j+1].x, X[j].x, n);
+      mpres_mul (u[j].x, u[j].x, p, n);
+      mpres_sub (X[j].y, u[j].x, X[j+1].y, n);
     }
 
   return 0;
@@ -266,3 +270,195 @@ int subW(p,x,y,x1,y1,x2,y2,n,u,v) mpz_t p,x,y,x1,y1,x2,y2,n,u,v;
   return(0);
 }
 #endif
+
+
+/* puts in F[0..dF-1] the successive values of 
+
+   (j^S) * P where P=(s : : 1) is a point on the elliptic curve
+
+   for 0 < j = 1 mod 7 < d, j and d coprime.
+   Returns non-zero iff a factor was found (then stored in f).
+*/
+
+int
+ecm_rootsF (mpz_t f, listz_t F, unsigned int d, curve s, listz_t t,
+        unsigned int S, mpmod_t modulus, int verbose)
+{
+  unsigned int i, j;
+  int st, st2;
+  point *fd;
+  int youpi = 0, dickson_a = -1;
+  listz_t coeffs;
+  mpres_t u, v;
+  
+  st = cputime ();
+
+  mpres_get_z (F[0], s.x, modulus); /* (1*P)=P for ECM */
+  i = 1;
+
+  if (d > 7)
+    {
+      st2 = cputime ();
+
+      mpres_init (u, modulus);
+      mpres_init (v, modulus);
+
+      coeffs = init_list (S + 1);
+      fin_diff_coeff (coeffs, 7, 6, S, dickson_a);
+
+      fd = (point *) malloc ((2 * S + 2) * sizeof (point));
+
+      for (j = 0; j <= S && youpi == 0; j++)
+        {
+          mpres_init (fd[j].x, modulus);
+          mpres_init (fd[j].y, modulus);
+          youpi = multiplyW2 (f, fd[j].x, fd[j].y, s.x, s.y, coeffs[j], 
+                              modulus, s.A, u, v);
+#ifdef DEBUG
+          if (youpi)
+            printf("ecm_rootsF: found factor while computing fd[%d]\n", j);
+#endif
+        }
+      
+      clear_list (coeffs, S + 1);
+
+      /* Allocate workspace for addWn */
+      for ( ; j < 2 * S + 2; j++)
+        {
+          mpres_init (fd[j].x, modulus);
+          mpres_init (fd[j].y, modulus);
+        }
+
+      if (verbose >= 2)
+        printf ("Initializing table of differences for F took %dms\n", 
+                cputime () - st2);
+
+      j = 7;
+      while (j < d && youpi == 0)
+        {
+          if (gcd (j, d) == 1)
+            mpres_get_z (F[i++], fd[0].x, modulus);
+
+          youpi = addWn (f, fd, modulus, S);
+#ifdef DEBUG
+          if (youpi)
+            printf("ecm_rootsF: found factor while computing F[%d]\n", i);
+#endif
+          j += 6;
+        }
+
+      for (j = 0; j < 2 * S + 2; j++)
+        {
+          mpres_clear (fd[j].x, modulus);
+          mpres_clear (fd[j].y, modulus);
+        }
+      free (fd);
+
+      mpres_clear (u, modulus);
+      mpres_clear (v, modulus);
+    }
+
+  if (youpi)
+    return 1;
+  
+  if (verbose >= 2)
+    printf ("Computing roots of F took %dms\n", cputime () - st);
+
+  return 0;
+}
+
+point *
+ecm_rootsG_init (mpz_t f, curve *X, unsigned int s, unsigned int d, 
+                 unsigned int S, mpmod_t modulus)
+{
+  unsigned int k;
+  mpres_t u, v;
+  listz_t coeffs;
+  point *fd;
+  int youpi = 0;
+  int dickson_a = -1;
+  
+  coeffs = init_list (S + 1);
+  
+  fin_diff_coeff(coeffs, s, d, S, dickson_a);
+  
+  fd = (point *) malloc ((2 * S + 2) * sizeof (point));
+  
+  mpres_init (u, modulus);
+  mpres_init (v, modulus);
+  
+  for (k = 0; k <= S && youpi == 0; k++)
+    {
+      mpres_init (fd[k].x, modulus);
+      mpres_init (fd[k].y, modulus);
+      youpi = multiplyW2 (f, fd[k].x, fd[k].y, X->x, X->y, coeffs[k], modulus, 
+                          X->A, u, v);
+#ifdef DEBUG
+      if (youpi)
+        printf("ecm_rootsG_init: found factor while computing fd[%d]\n", k);
+#endif
+    }
+  
+  /* Allocate workspace for addWn */
+  for ( ; k < 2 * S + 2; k++)
+    {
+      mpres_init (fd[k].x, modulus);
+      mpres_init (fd[k].y, modulus);
+    }
+  
+  clear_list (coeffs, S + 1);
+  
+  mpres_clear (v, modulus);
+  mpres_clear (u, modulus);
+  
+  if (youpi) 
+    {
+      /* Todo: signal if factor was found */
+      return fd;
+    }
+  
+  return fd;
+}
+
+void 
+ecm_rootsG_clear (point *fd, unsigned int S, mpmod_t modulus)
+{
+  unsigned int k;
+  
+  for (k = 0; k < 2*S + 2; k++)
+    {
+      mpres_clear (fd[k].x, modulus);
+      mpres_clear (fd[k].y, modulus);
+    }
+  
+  free (fd);
+}
+
+/* Puts in G the successive values of
+
+     Dickson_{S, a}(s+j*k) P
+    
+     where P is a point on the elliptic curve,
+     1<= j <= d, k is the 'd' value from ecm_rootsG_init()
+     and s is the 's' value of ecm_rootsG_init() or where a previous
+     call to ecm_rootsG has left off.
+
+   Returns non-zero iff a factor was found (then stored in f).
+*/
+
+int 
+ecm_rootsG (mpz_t f, listz_t G, unsigned int d, point *fd, listz_t t, 
+            unsigned int S, mpmod_t modulus, int verbose)
+{
+  unsigned int i;
+  int youpi = 0;
+  
+  for (i = 0; i < d && youpi == 0; i++)
+    {
+      mpres_get_z (G[i], fd[0].x, modulus);
+      youpi = addWn (f, fd, modulus, S);
+    }
+  
+  return youpi;
+}
+
