@@ -198,17 +198,17 @@ outputf (int loglevel, char *format, ...)
   va_list ap;
   int n;
   
-  va_start(ap, format);
+  va_start (ap, format);
 
   if (loglevel != OUTPUT_ERROR && loglevel <= verbose)
     {
-      n = gmp_vfprintf (stdout, format, ap);
+      n = gmp_vfprintf (ECM_STDOUT, format, ap);
       fflush (stdout);
       return n;
     }
   
   if (loglevel == OUTPUT_ERROR)
-    return gmp_vfprintf (stderr, format, ap);
+    return gmp_vfprintf (ECM_STDERR, format, ap);
 
   return 0;
 }
