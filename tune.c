@@ -21,6 +21,11 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include "gmp.h"
+#ifdef WANT_GMP_IMPL
+#include "gmp-impl.h"
+#else
+#include "ecm-gmp.h"
+#endif /* WANT_GMP_IMPL */
 #include "ecm.h"
 
 #define MINTIME 1000
@@ -75,6 +80,9 @@ main (int argc, char *argv[])
   int mpzmod_threshold = 0;
   int redc_threshold = 0;
 
+  printf ("MPZMOD_THRESHOLD_DEFAULT=%u\n", MPZMOD_THRESHOLD_DEFAULT);
+  printf ("REDC_THRESHOLD_DEFAULT=%u\n", REDC_THRESHOLD_DEFAULT);
+
   n0 = (argc > 1) ? atoi (argv[1]) : 1;
 
   mpz_init (N);
@@ -96,7 +104,7 @@ main (int argc, char *argv[])
           while (mpz_gcd_ui (NULL, N, 6) != 1)
             mpz_add_ui (N, N, 1);
         }
-      while (mpz_size (N) != n);
+      while ((mp_size_t) mpz_size (N) != n);
 
       mpz_random (p, n);
       mpz_mod (p, p, N);
@@ -118,7 +126,7 @@ main (int argc, char *argv[])
          Also, mpzmod uses plain division which is asymptotically
          about k multiplications with k > 2 (k=2 in the Karatsuba range),
          whereas redc is equivalent to two multiplications, thus
-         asymptotically redc is faster than modmuln.
+         asymptotically redc is faster than mpzmod.
       */
 
       if (st[0] < st[1] && st[0] <= st[2])
