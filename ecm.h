@@ -33,7 +33,7 @@
 #define POLYEVALTELLEGEN /* use polyeval_tellegen() routine */
 
 /* use Kronecker-Scho"nhage's multiplication */
-#undef KS_MULTIPLY
+#define KS_MULTIPLY
 
 /* define top-level multiplication */
 #define KARA 2
