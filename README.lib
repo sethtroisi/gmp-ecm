@@ -1,0 +1,34 @@
+This is the README file for the ecm library.
+
+To use the library, you need to add the following line in your source file:
+
+#include "ecm.h"
+
+and to link with -lecm.
+
+The public interface is defined in the "ecm.h" file. There is a single
+public function:
+
+int ecm_factor (mpz_t f, mpz_t n, double B1, ecm_params p)
+
+where n is the number to factor, f is the factor found (if any),
+B1 is the stage 1 bound, and p contains auxiliary parameters (see below).
+When p is NULL, default values for those parameters are chosen.
+
+The ecm_factor() function returns :
+
+* a positive value if a factor was found (1 for step 1, 2 for step 2),
+* zero when no factor was found,
+* a negative value when an error occurred.
+
+Detailed description of parameters:
+
+* p->method is the factorization method (ECM_ECM for ECM, ECM_PM1 for P-1,
+	ECM_PP1 for P+1). Default is ECM_ECM.
+* p->x (if non zero) is the starting point (ECM, P-1, P+1).
+
+
+
+
+
+
