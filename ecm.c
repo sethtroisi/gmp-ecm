@@ -313,12 +313,14 @@ lucas_cost (unsigned long n, double v)
         { /* condition 4 */
           d = (d - e) / 2;
           c += ADD + DUP; /* one addition, one duplicate */
-        } 
+        }
+      /* now d+e is odd */
       else if (d % 2 == 0)
         { /* condition 5 */
           d /= 2;
           c += ADD + DUP; /* one addition, one duplicate */
         }
+      /* now d is odd and e is even */
       else if (d % 3 == 0)
         { /* condition 6 */
           d = d / 3 - e;
@@ -334,15 +336,10 @@ lucas_cost (unsigned long n, double v)
           d = (d - e) / 3;
           c += 3.0 * ADD + DUP; /* three additions, one duplicate */
         }
-      else if (e % 2 == 0)
+      else /* necessarily e is even: catches all cases */
         { /* condition 9 */
           e /= 2;
           c += ADD + DUP; /* one addition, one duplicate */
-        }
-      else
-        {
-          fprintf (stderr, "lucas_cost: no condition qualifies for d=%lu e=%lu\n", d, e);
-          exit (EXIT_FAILURE);
         }
     }
   
@@ -433,19 +430,21 @@ prac (mpres_t xA, mpres_t zA, unsigned long k, mpmod_t n, mpres_t b,
           add3 (xB, zB, xB, zB, xA, zA, xC, zC, n, u, v, w); /* B = f(B,A,C) */
           duplicate (xA, zA, xA, zA, n, b, u, v, w); /* A = 2*A */
         }
+      /* now d+e is odd */
       else if (d % 2 == 0)
         { /* condition 5 */
           d /= 2;
           add3 (xC, zC, xC, zC, xA, zA, xB, zB, n, u, v, w); /* C = f(C,A,B) */
           duplicate (xA, zA, xA, zA, n, b, u, v, w); /* A = 2*A */
         }
+      /* now d is odd, e is even */
       else if (d % 3 == 0)
         { /* condition 6 */
           d = d / 3 - e;
-          duplicate (xT, zT, xA, zA, n, b, u, v, w); /* T1 = 2*A */
+          duplicate (xT, zT, xA, zA, n, b, u, v, w); /* T = 2*A */
           add3 (xT2, zT2, xA, zA, xB, zB, xC, zC, n, u, v, w); /* T2 = f(A,B,C) */
-          add3 (xA, zA, xT, zT, xA, zA, xA, zA, n, u, v, w); /* A = f(T1,A,A) */
-          add3 (xT, zT, xT, zT, xT2, zT2, xC, zC, n, u, v, w); /* T1 = f(T1,T2,C) */
+          add3 (xA, zA, xT, zT, xA, zA, xA, zA, n, u, v, w); /* A = f(T,A,A) */
+          add3 (xT, zT, xT, zT, xT2, zT2, xC, zC, n, u, v, w); /* T = f(T,T2,C) */
           /* circular permutation (C,B,T) */
           tmp = xC;
           xC = xB;
@@ -459,31 +458,26 @@ prac (mpres_t xA, mpres_t zA, unsigned long k, mpmod_t n, mpres_t b,
       else if ((d + e) % 3 == 0)
         { /* condition 7 */
           d = (d - 2 * e) / 3;
-          add3 (xT, zT, xA, zA, xB, zB, xC, zC, n, u, v, w); /* T1 = f(A,B,C) */
-          add3 (xB, zB, xT, zT, xA, zA, xB, zB, n, u, v, w); /* B = f(T1,A,B) */
+          add3 (xT, zT, xA, zA, xB, zB, xC, zC, n, u, v, w); /* T = f(A,B,C) */
+          add3 (xB, zB, xT, zT, xA, zA, xB, zB, n, u, v, w); /* B = f(T,A,B) */
           duplicate (xT, zT, xA, zA, n, b, u, v, w);
           add3 (xA, zA, xA, zA, xT, zT, xA, zA, n, u, v, w); /* A = 3*A */
         }
       else if ((d - e) % 3 == 0)
         { /* condition 8 */
           d = (d - e) / 3;
-          add3 (xT, zT, xA, zA, xB, zB, xC, zC, n, u, v, w); /* T1 = f(A,B,C) */
+          add3 (xT, zT, xA, zA, xB, zB, xC, zC, n, u, v, w); /* T = f(A,B,C) */
           add3 (xC, zC, xC, zC, xA, zA, xB, zB, n, u, v, w); /* C = f(A,C,B) */
           mpres_swap (xB, xT, n);
           mpres_swap (zB, zT, n); /* swap B and T */
           duplicate (xT, zT, xA, zA, n, b, u, v, w);
           add3 (xA, zA, xA, zA, xT, zT, xA, zA, n, u, v, w); /* A = 3*A */
         }
-      else if (e % 2 == 0)
+      else /* necessarily e is even here */
         { /* condition 9 */
           e /= 2;
           add3 (xC, zC, xC, zC, xB, zB, xA, zA, n, u, v, w); /* C = f(C,B,A) */
           duplicate (xB, zB, xB, zB, n, b, u, v, w); /* B = 2*B */
-        }
-      else
-        {
-          fprintf (stderr, "no condition qualifies for d=%lu e=%lu\n", d, e);
-          exit (EXIT_FAILURE);
         }
     }
   
@@ -492,7 +486,7 @@ prac (mpres_t xA, mpres_t zA, unsigned long k, mpmod_t n, mpres_t b,
 #ifdef DEBUG
   if (d != 1)
     {
-      fprintf (stderr, "d!=1 at the end of PRAC\n");
+      fprintf (stderr, "d <> 1 at the end of prac\n");
       exit (EXIT_FAILURE);
     }
 #endif
@@ -557,13 +551,6 @@ ecm_stage1 (mpz_t f, mpres_t x, mpres_t A, mpmod_t n, double B1, double B1done,
       }
   
   q = getprime (2.0); /* Puts 3.0 into q. Next call gives 5.0 */
-  /* check that B1 is not too large */
-  if (B1 > (double) ULONG_MAX)
-    {
-      fprintf (stderr, "Error, maximal step1 bound (B1) for ECM is %lu\n",
-	       ULONG_MAX);
-      exit (EXIT_FAILURE);
-    }
   for (q = getprime (q); q <= B1; q = getprime (q))
     {
       for (r = q; r <= B1; r *= q)
@@ -612,16 +599,27 @@ ecm_stage1 (mpz_t f, mpres_t x, mpres_t A, mpmod_t n, double B1, double B1done,
             2 diagnostic output.
           sigma_is_a: If true, the sigma parameter contains the curve's A value
    Output: f is the factor found.
-   Return value: non-zero iff a factor was found.
+   Return value: ECM_FACTOR_FOUND if a factor was found,
+                 ECM_NO_FACTOR_FOUND if no factor was found,
+		 ECM_ERROR in case of error.
 */
 int
 ecm (mpz_t f, mpz_t x, mpz_t sigma, mpz_t n, mpz_t go, double B1done,
      double B1, double B2min, double B2, double B2scale, unsigned int k,
-     int S, int verbose, int repr, int sigma_is_A)
+     int S, int verbose, int repr, int sigma_is_A, FILE *os, FILE* es)
 {
   int youpi = 0, st;
   mpmod_t modulus;
   curve P;
+
+  /* if n is even, return 2 */
+  if (mpz_divisible_2exp_p (n, 1))
+    {
+      mpz_set_ui (f, 2);
+      return ECM_FACTOR_FOUND;
+    }
+
+  /* now n is odd */
 
   st = cputime ();
 
@@ -675,7 +673,7 @@ ecm (mpz_t f, mpz_t x, mpz_t sigma, mpz_t n, mpz_t go, double B1done,
   else if (repr > 16)
     mpmod_init_BASE2 (modulus, repr, n);
   else
-    mpmod_init (modulus, n, repr, verbose);
+    mpmod_init (modulus, n, repr, verbose, os);
 
   mpres_init (P.x, modulus);
   mpres_init (P.A, modulus);
@@ -685,20 +683,20 @@ ecm (mpz_t f, mpz_t x, mpz_t sigma, mpz_t n, mpz_t go, double B1done,
       /* sigma contains sigma value, A value must be computed */
       if (verbose >= 1)
         {
-          printf ("Using B1=%1.0f, B2=", B1);
+          fprintf (os, "Using B1=%1.0f, B2=", B1);
 	  if (B2min <= B1)
-	    printf ("%1.0f", B2);
+	    fprintf (os, "%1.0f", B2);
 	  else
-	    printf ("%1.0f-%1.0f", B2min, B2);
-	  printf (", polynomial ");
+	    fprintf (os, "%1.0f-%1.0f", B2min, B2);
+	  fprintf (os, ", polynomial ");
 	  if (S > 0)
-	    printf ("x^%u", S);
+	    fprintf (os, "x^%u", S);
 	  else
-	    printf ("Dickson(%u)", -S);
-	  printf (", sigma=");
-          mpz_out_str (stdout, 10, sigma);
-          printf ("\n");
-          fflush (stdout);
+	    fprintf (os, "Dickson(%u)", -S);
+	  fprintf (os, ", sigma=");
+          mpz_out_str (os, 10, sigma);
+          fprintf (os, "\n");
+          fflush (os);
         }
       if ((youpi = get_curve_from_sigma (f, P.A, P.x, sigma, modulus)))
         goto end_of_ecm;
@@ -711,8 +709,9 @@ ecm (mpz_t f, mpz_t x, mpz_t sigma, mpz_t n, mpz_t go, double B1done,
       /* For now, we'll just chicken out. */
       if (mpz_sgn (x) == 0)
         {
-          fprintf (stderr, "The -A option requires that a starting point is given as well by the -x0\noption\n");
-          exit (EXIT_FAILURE);
+          fprintf (es, "Error, -A requires a starting point (-x0 x).\n");
+	  youpi = ECM_ERROR;
+	  goto end_of_ecm;
         }
     }
 
@@ -722,17 +721,25 @@ ecm (mpz_t f, mpz_t x, mpz_t sigma, mpz_t n, mpz_t go, double B1done,
   
   if (verbose >= 2)
     {
-      printf ("a=");
-      mpres_out_str (stdout, 10, P.A, modulus);
-      printf ("\nstarting point: x=");
-      mpres_out_str (stdout, 10, P.x, modulus);
-      printf ("\n");
+      fprintf (os, "a=");
+      mpres_out_str (os, 10, P.A, modulus);
+      fprintf (os, "\nstarting point: x=");
+      mpres_out_str (os, 10, P.x, modulus);
+      fprintf (os, "\n");
       if (go != NULL && mpz_cmp_ui (go, 1) > 0)
         {
-          printf ("initial group order: ");
-          mpz_out_str (stdout, 10, go);
-          printf ("\n");
+          fprintf (os, "initial group order: ");
+          mpz_out_str (os, 10, go);
+          fprintf (os, "\n");
         }
+    }
+
+  /* check that B1 is not too large */
+  if (B1 > (double) ULONG_MAX)
+    {
+      fprintf (es, "Error, maximal step1 bound for ECM is %lu.\n", ULONG_MAX);
+      youpi = ECM_ERROR;
+      goto end_of_ecm;
     }
 
   if (B1 > B1done)
@@ -742,8 +749,8 @@ ecm (mpz_t f, mpz_t x, mpz_t sigma, mpz_t n, mpz_t go, double B1done,
   
   if (verbose >= 1)
     {
-      printf ("Step 1 took %dms\n", st);
-      fflush (stdout);
+      fprintf (os, "Step 1 took %dms\n", st);
+      fflush (os);
     }
 
   /* Store end-of-stage-1 residue in x in case we write it to a save file, 
@@ -756,10 +763,10 @@ ecm (mpz_t f, mpz_t x, mpz_t sigma, mpz_t n, mpz_t go, double B1done,
 
   if (verbose >= 2) 
     {
-      printf ("x=");
-      mpres_out_str (stdout, 10, P.x, modulus);
-      printf ("\n");
-      fflush (stdout);
+      fprintf (os, "x=");
+      mpres_out_str (os, 10, P.x, modulus);
+      fprintf (os, "\n");
+      fflush (os);
     }
 
   mpres_init (P.y, modulus);
@@ -767,7 +774,8 @@ ecm (mpz_t f, mpz_t x, mpz_t sigma, mpz_t n, mpz_t go, double B1done,
   youpi = montgomery_to_weierstrass (f, P.x, P.y, P.A, modulus);
 
   if (youpi == 0)
-    youpi = stage2 (f, &P, modulus, B2min, B2, k, S, verbose, EC_METHOD, st);
+    youpi = stage2 (f, &P, modulus, B2min, B2, k, S, verbose, EC_METHOD, st,
+		    os, es);
   
   mpres_clear (P.y, modulus);
 

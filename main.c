@@ -1000,18 +1000,21 @@ BreadthFirstDoAgain:;
 
       if (method == PM1_METHOD)
         result = pm1 (f, x, n.n, go.Candi.n, B1done, B1, B2min, B2, B2scale,
-		      k, S, verbose, repr);
+		      k, S, verbose, repr, stdout, stderr);
       else if (method == PP1_METHOD)
         result = pp1 (f, x, n.n, go.Candi.n, B1done, B1, B2min, B2, B2scale,
-		      k, S, verbose, repr);
+		      k, S, verbose, repr, stdout, stderr);
       else /* ECM */
 	{
 	  int sigma_is_A = mpz_sgn (sigma) == 0;
 	  /* if sigma is zero, then we use the A value instead */
 	  result = ecm (f, x, (sigma_is_A) ? A : sigma, n.n, go.Candi.n,
 			B1done, B1, B2min, B2, B2scale, k, S, verbose, repr,
-			sigma_is_A);
+			sigma_is_A, stdout, stderr);
         }
+
+      if (result == ECM_ERROR)
+	exit (1);
 
       if (result == 0)
 	{

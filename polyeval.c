@@ -1,4 +1,4 @@
-/* Implements algorithm POLYEVAL and remainder tree using middle product.
+/* Implements algorithm polyeval and remainder tree using middle product.
 
   Copyright 2003, 2004, 2005 Laurent Fousse, Alexander Kruppa, Paul Zimmermann.
 
@@ -20,7 +20,10 @@
   MA 02111-1307, USA.
 */
 
+#include <stdio.h>
+#include <stdlib.h>
 #include "gmp.h"
+#include "ecm.h"
 #include "ecm-impl.h"
 
 #ifndef MAX
@@ -29,7 +32,8 @@
 
 extern unsigned int Fermat;
 
-/* algorithm POLYEVAL from section 3.7 of Peter Montgomery's dissertation.
+#ifndef POLYEVALTELLEGEN
+/* algorithm polyeval from section 3.7 of Peter Montgomery's dissertation.
 Input: 
    G - an array of k elements of R, G[i], 0 <= i < k
        representing the coefficients of a polynomial G(x) of degree < k
@@ -46,7 +50,7 @@ Since list_mul_mem(k) >= 2*k, the maximum is the 1st.
 */
 void
 polyeval (listz_t G, unsigned int k, listz_t *Tree, listz_t T, mpz_t n,
-          int verbose, unsigned int sh)
+          unsigned int sh)
 {
   unsigned int l, m;
   listz_t T0;
@@ -97,14 +101,15 @@ polyeval (listz_t G, unsigned int k, listz_t *Tree, listz_t T, mpz_t n,
 
   /* left remainder is in {G,l} */
   
-  polyeval (G, l, Tree + 1, T + m, n, verbose, sh);
+  polyeval (G, l, Tree + 1, T + m, n, sh);
 
   /* copy right remainder in {G+l,m} */
   list_set (G + l, T, m);
-  polyeval (G + l, m, Tree + 1, T, n, verbose, sh + l);
+  polyeval (G + l, m, Tree + 1, T, n, sh + l);
 }
+#endif
 
-#ifdef TUPTREE_DEBUG
+#ifdef DEBUG
 void
 print_vect (listz_t t, unsigned int l)
 {
@@ -141,7 +146,7 @@ TUpTree (listz_t b, listz_t *Tree, unsigned int k,
     if (k == 1)
       return;
    
-#ifdef TUPTREE_DEBUG
+#ifdef DEBUG
     printf ("In TupTree, k = %d.\n", k);
 
     printf ("b = ");
@@ -154,7 +159,7 @@ TUpTree (listz_t b, listz_t *Tree, unsigned int k,
     TMulGen (tmp, l - 1, Tree[0] + sh + l, m - 1, b, k - 1, tmp + l, n);
     TMulGen (tmp + l, m - 1, Tree[0] + sh, l - 1, b, k - 1, tmp + k, n);
 
-#ifdef TUPTREE_DEBUG
+#ifdef DEBUG
     printf ("And the result at that level (before correction) is:");
     print_vect (tmp, k);
     printf ("\n");
@@ -169,7 +174,7 @@ TUpTree (listz_t b, listz_t *Tree, unsigned int k,
 
     list_mod (b, tmp, k, n); /* reduce both parts simultaneously */
 
-#ifdef TUPTREE_DEBUG
+#ifdef DEBUG
     printf ("And the result at this level is:");
     print_vect (b, k);
     printf ("\n");
@@ -211,9 +216,11 @@ TUpTree_space (unsigned int k)
     return r1;
 }
 
+#ifdef POLYEVALTELLEGEN
 /* Same as polyeval. Needs invF as extra argument.
- */
-void
+   Return non-zero iff an error occurred.
+*/
+int
 polyeval_tellegen (listz_t b, unsigned int k, listz_t *Tree, listz_t tmp,
                    unsigned int sizeT, listz_t invF, mpz_t n, unsigned int sh)
 {
@@ -236,6 +243,8 @@ polyeval_tellegen (listz_t b, unsigned int k, listz_t *Tree, listz_t tmp,
     else
       {
         T = init_list (tupspace);
+	if (T == NULL)
+	  return ECM_ERROR;
         allocated = 1;
       }
     
@@ -250,7 +259,9 @@ polyeval_tellegen (listz_t b, unsigned int k, listz_t *Tree, listz_t tmp,
         /* Schoenhage-Strassen can't do a half product faster than a full */
         F_mul (T, invF, b, k, DEFAULT, Fermat, T + 2 * k);
         list_mod (T, T + k - 1, k, n);
-      } else {
+      }
+    else
+      {
 #ifdef USE_SHORT_PRODUCT
         /* need space 2k-1+list_mul_mem(k) in T */
         list_mul_high (T, invF, b, k, T + 2 * k - 1);
@@ -268,4 +279,7 @@ polyeval_tellegen (listz_t b, unsigned int k, listz_t *Tree, listz_t tmp,
 
     if (allocated)
       clear_list (T, tupspace);
+
+    return 0; /* no error */
 }
+#endif

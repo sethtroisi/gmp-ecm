@@ -51,12 +51,19 @@ ecm (mpz_t, /* f: factor found if any */
                       3=redc (Montgomery's subquadratic multiplication),
                       > 16 : special base-2 representation
                       otherwise: automatic choice */
-     int);         /* sigma_is_A: if non-zero, 'sigma' contains A */
+     int,          /* sigma_is_A: if non-zero, 'sigma' contains A */
+     FILE*,        /* standard output (for verbose messages) */
+     FILE*);       /* standard error  (for error   messages) */
 
 int pp1 (mpz_t, mpz_t, mpz_t, mpz_t, double, double, double, 
-          double, double, unsigned int, unsigned int, int, int);
+          double, double, unsigned int, unsigned int, int, int, FILE*, FILE*);
 int pm1 (mpz_t, mpz_t, mpz_t, mpz_t, double, double, double, 
-          double, double, unsigned int, int, int, int);
+          double, double, unsigned int, int, int, int, FILE*, FILE*);
+
+/* return value of ecm, pm1, pp1 */
+#define ECM_FACTOR_FOUND 1 /* should be non-zero */
+#define ECM_NO_FACTOR_FOUND 0 /* should be zero */
+#define ECM_ERROR -1 /* should be non-zero */
 
 #define DEFAULT_B1_DONE 1.0
 #define IS_DEFAULT_B1_DONE(x) (x <= 1.0)

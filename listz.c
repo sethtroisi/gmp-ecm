@@ -24,6 +24,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include "gmp.h"
+#include "ecm.h"
 #include "ecm-impl.h"
 
 #ifdef DEBUG
@@ -67,7 +68,7 @@ list_mul_mem (unsigned int len)
   return mem;
 }
 
-/* creates a list of n integers */
+/* creates a list of n integers, return NULL if error */
 listz_t
 init_list (unsigned int n)
 {
@@ -76,10 +77,7 @@ init_list (unsigned int n)
 
   p = (mpz_t*) malloc (n * sizeof(mpz_t));
   if (p == NULL)
-    {
-      fprintf (stderr, "Error: not enough memory\n");
-      exit (EXIT_FAILURE);
-    }
+    return NULL;
   for (i = 0; i < n; i++)
     mpz_init (p[i]);
   return p;
@@ -101,36 +99,35 @@ clear_list (listz_t p, unsigned int n)
 #ifdef DEBUG
 /* prints a list of n coefficients as a polynomial */
 void
-print_list (listz_t p, unsigned int n)
+print_list (FILE *os, listz_t p, unsigned int n)
 {
   unsigned int i;
 
   for (i = 0; i < n; i++)
     {
       if (i > 0 && mpz_cmp_ui (p[i], 0) >= 0)
-        printf ("+");
-      mpz_out_str (stdout, 10, p[i]);
-      printf ("*x^%u", i);
+        fprintf (os, "+");
+      mpz_out_str (os, 10, p[i]);
+      fprintf (os, "*x^%u", i);
     }
-  putchar ('\n');
+  fprintf (os, "\n");
 }
 
-/* prints a list of n coefficients */
-void
-print_list2 (listz_t p, unsigned int n)
+static int
+list_check (listz_t a, unsigned int l, mpz_t n)
 {
   unsigned int i;
 
-  printf ("[");
-  for (i = 0; i < n; i++)
-    {
-      if (i > 0)
-        printf (",");
-      mpz_out_str (stdout, 10, p[i]);
-    }
-  printf ("]\n");
+  for (i = 0; i < l; i++)
+    if (mpz_cmp_ui (a[i], 0) < 0 || mpz_cmp (n, a[i]) <= 0)
+      {
+        printf ("l=%u i=%u\n", l, i);
+        mpz_out_str (stdout, 10, a[i]); printf ("\n");
+        return 0;
+      }
+  return 1;
 }
-#endif
+#endif /* DEBUG */
 
 /* p <- q */
 void
@@ -147,6 +144,7 @@ void
 list_revert (listz_t p, unsigned int n)
 {
   unsigned int i;
+
   for (i = 0; i < n - i; i++)
     mpz_swap (p[i], p[n - i]);
 }
@@ -155,6 +153,7 @@ void
 list_swap (listz_t p, listz_t q, unsigned int n)
 {
   unsigned int i;
+
   for (i = 0; i < n; i++)
     mpz_swap (p[i], q[i]);
 }
@@ -239,23 +238,6 @@ list_zero (listz_t p, unsigned int n)
   for (i = 0; i < n; i++)
     mpz_set_ui (p[i], 0);
 }
-
-#ifdef DEBUG
-static int
-list_check (listz_t a, unsigned int l, mpz_t n)
-{
-  unsigned int i;
-
-  for (i = 0; i < l; i++)
-    if (mpz_cmp_ui (a[i], 0) < 0 || mpz_cmp (n, a[i]) <= 0)
-      {
-        printf ("l=%u i=%u\n", l, i);
-        mpz_out_str (stdout, 10, a[i]); printf ("\n");
-        return 0;
-      }
-  return 1;
-}
-#endif
 
 /* puts in a[0]..a[K-1] the K low terms of the product 
    of b[0..K-1] and c[0..K-1].
@@ -486,8 +468,10 @@ list_mul (listz_t a, listz_t b, unsigned int k, int monic_b,
   for (po2 = l; (po2 & 1) == 0; po2 >>= 1);
   po2 = (po2 == 1);
 
+#ifdef DEBUG
   if (Fermat && !(po2 && l == k))
     printf ("list_mul: Fermat number, but poly lengths %d and %d\n", k, l);
+#endif
 
   if (po2 && Fermat)
     {
@@ -570,7 +554,7 @@ list_mulmod (listz_t a2, listz_t a, listz_t b, listz_t c, unsigned int k,
 */
 void
 PolyFromRoots (listz_t G, listz_t a, unsigned int k, listz_t T, int verbose,
-               mpz_t n, char F, listz_t *Tree, unsigned int sh)
+               mpz_t n, char F, listz_t *Tree, unsigned int sh, FILE *os)
 {
   unsigned int l, m, st;
   listz_t H1, *NextTree;
@@ -620,13 +604,13 @@ PolyFromRoots (listz_t G, listz_t a, unsigned int k, listz_t T, int verbose,
        return;
      }
 
-   PolyFromRoots (H1, a, l, T, 0, n, F, NextTree, sh);
-   PolyFromRoots (H1 + l, a + l, m, T, 0, n, F, NextTree, sh + l);
+   PolyFromRoots (H1, a, l, T, 0, n, F, NextTree, sh, os);
+   PolyFromRoots (H1 + l, a + l, m, T, 0, n, F, NextTree, sh + l, os);
    list_mul (T, H1, l, 1, H1 + l, m, 1, T + k);
    list_mod (G, T, k, n);
    
    if (verbose >= 2)
-     printf ("Building %c from its roots took %ums\n", F, cputime() - st);
+     fprintf (os, "Building %c from its roots took %ums\n", F, cputime() - st);
 }
 
 /* puts in q[0..K-1] the quotient of x^(2K-2) by B
@@ -785,10 +769,11 @@ RecursiveDivision (listz_t q, listz_t a, listz_t b, unsigned int K,
 
   Notations: R = r[0..K-1], A = a[0..2K-2], low(A) = a[0..K-1],
   high(A) = a[K..2K-2], Q = t[0..K-2]
+  Return non-zero iff an error occurred.
 */
-void
+int
 PrerevertDivision (listz_t a, listz_t b, listz_t invb,
-                   unsigned int K, listz_t t, mpz_t n)
+                   unsigned int K, listz_t t, mpz_t n, FILE *es)
 {
   int po2, wrap;
 #ifdef WRAP
@@ -816,15 +801,21 @@ PrerevertDivision (listz_t a, listz_t b, listz_t invb,
           list_mod (a + K, t + K - 2, K, n);
         }
     }
-  else
+  else /* non-Fermat case */
     {
       list_mul_high (t, a + K, invb, K - 1, t + 2 * K - 3);
+      /* the high part of A * INVB is now in {t+K-2, K-1} */
       if (wrap)
 	{
 	  t2 = init_list (K - 1);
+	  if (t2 == NULL)
+	    {
+	      fprintf (es, "Error, not enough memory\n");
+	      return ECM_ERROR;
+	    }
 	  list_mod (t2, t + K - 2, K - 1, n);
 	}
-      else
+      else /* we can store in high(A) which is no longer needed */
 	list_mod (a + K, t + K - 2, K - 1, n);
     }
 
@@ -846,7 +837,7 @@ PrerevertDivision (listz_t a, listz_t b, listz_t invb,
       else
         F_mul (t, a + K, b, K, DEFAULT, Fermat, t + 2 * K);
     }
-  else
+  else /* non-Fermat case */
     {
 #ifdef KS_MULTIPLY /* ks is faster */
       if (wrap)
@@ -872,6 +863,8 @@ PrerevertDivision (listz_t a, listz_t b, listz_t invb,
   /* now {t, K} contains the low K terms from Q*B */
   list_sub (a, a, t, K);
   list_mod (a, a, K, n);
+
+  return 0;
 }
 
 /* Puts in inv[0..l-1] the inverses of a[0..l-1] (mod n), using 3*(l-1) 

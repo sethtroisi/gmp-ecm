@@ -24,6 +24,7 @@
 #include <stdlib.h>
 #include <math.h>
 #include "gmp.h"
+#include "ecm.h"
 #include "ecm-impl.h"
 
 #if WANT_ASSERT
@@ -35,94 +36,29 @@
 
 #define min(a,b) (((a)<(b))?(a):(b))
 
-#if 0
-
-/* The original point addition and doubling functions in Weierstrass
-   coordinates. Not needed now as everything is done via
-   addWnm() and multiplyW2n() */
-
-/*
-  (x1:y1) <- 2*(x:y) where (x:y) can be identical to (x1:y1).
-  a is the Weierstrass curve parameter, u and v are auxiliary variables.
-  Uses 4 mul and 1 extgcd.
-*/
-static int
-duplicateW (mpz_t p, mpres_t x1, mpres_t y1, mpres_t x, mpres_t y, mpmod_t n, 
-            mpres_t a, mpres_t u, mpres_t v)
-{
-  mpres_add (u, y, y, n);
-  if (!mpres_invert (v, u, n))
-    {
-      mpres_gcd (p, u, n);
-      return 1;
-    }
-  mpres_mul (u, x, x, n);
-  mpres_mul_ui (u, u, 3, n);
-  mpres_add (u, u, a, n);
-  mpres_mul (p, u, v, n);
-  mpres_mul (u, p, p, n);
-  mpres_add (v, x, x, n);
-  mpres_sub (u, u, v, n);
-  mpres_sub (v, x, u, n);
-  mpres_mul (v, v, p, n);
-  mpres_sub (y1, v, y, n);
-  mpres_set (x1, u, n); /* can we avoid this mpz_set (using mpz_swap perhaps)? */
-
-  return 0;
-}
-
-/* Computes (x:y) <- (x1:y1) + (x2:y2).
-   Returns non-zero iff a factor is found (then it is stored in p).
-   n is the number to factor.
-   u, v are auxiliary variables.
-   Uses 3 mul and 1 extgcd.
-*/
-static int
-addW (mpz_t p, mpres_t x, mpres_t y, mpres_t x1, mpres_t y1, mpres_t x2, 
-      mpres_t y2, mpmod_t n, mpres_t u, mpres_t v)
-{
-  mpres_sub (u, x2, x1, n);
-  if (!mpres_invert (v, u, n))
-    {
-      mpres_gcd (p, u, n);
-      return 1;
-    }
-  mpres_sub (p, y2, y1, n);
-  mpres_mul (p, v, p, n);
-  mpres_mul (u, p, p, n);
-  mpres_sub (u, u, x1, n);
-  mpres_sub (v, u, x2, n);
-  mpres_sub (u, x1, v, n);
-  mpres_mul (u, u, p, n);
-  mpres_sub (y, u, y1, n);
-  mpres_set (x, v, n); /* Fixme: avoid this copy! (Use commutativity) */
-
-  return 0;
-}
-
-#endif
-
 /* R_i <- q_i * S, 0 <= i < n, where q_i are large positive integers, S 
    is a point on an elliptic curve. Uses max(bits in q_i) modular 
    inversions (one less if max(q_i) is a power of 2).
-   Needs up to n+2 cells in T. */
+   Needs up to n+2 cells in T.
+   Returns factor found, not found, error.
+*/
 
 static int
 multiplyW2n (mpz_t p, point *R, curve *S, mpz_t *q, unsigned int n, 
               mpmod_t modulus, mpres_t u, mpres_t v, mpres_t *T,
-              unsigned long *tot_muls, unsigned long *tot_gcds)
+              unsigned long *tot_muls, unsigned long *tot_gcds, FILE *es)
 {
   unsigned int i, maxbit, k; /* k is the number of values to batch invert */
   unsigned int l, t, muls = 0, gcds = 0;
 #ifdef WANT_EXPCOST
   unsigned int hamweight = 0;
 #endif
-  int youpi = 0;
+  int youpi = ECM_NO_FACTOR_FOUND;
   mpz_t flag; /* Used as bit field, keeps track of which R[i] contain partial results */
   point s;    /* 2^t * S */
 
   if (n == 0)
-    return 0;
+    return ECM_NO_FACTOR_FOUND;
   
   /* Is S the neutral element ? */
   if (mpres_is_zero (S->x, modulus) && mpres_is_zero (S->y, modulus))
@@ -132,7 +68,7 @@ multiplyW2n (mpz_t p, point *R, curve *S, mpz_t *q, unsigned int n,
           mpres_set (R[i].x, S->x, modulus);
           mpres_set (R[i].y, S->y, modulus);
         }
-      return 0;
+      return ECM_NO_FACTOR_FOUND;
     }
   
   mpz_init (flag);
@@ -148,8 +84,9 @@ multiplyW2n (mpz_t p, point *R, curve *S, mpz_t *q, unsigned int n,
     {
       if (mpz_sgn (q[i]) < 0)
         {
-          fprintf (stderr, "multiplyW2n: multiplicand q[%d] < 0, negatives not supported\n", i);
-          exit (EXIT_FAILURE);
+          fprintf (es, "multiplyW2n: multiplicand q[%d] < 0, negatives not supported\n", i);
+	  youpi = ECM_ERROR;
+	  goto clear_w2;
         }
       /* Multiplier == 0? Then set result to neutral element */
       if (mpz_sgn (q[i]) == 0)
@@ -166,7 +103,7 @@ multiplyW2n (mpz_t p, point *R, curve *S, mpz_t *q, unsigned int n,
     }
 
 #ifdef WANT_EXPCOST
-  printf ("Expecting %d multiplications and %d extgcds\n", 
+  fprintf (es, "Expecting %d multiplications and %d extgcds\n", 
           4 * (maxbit) + 6 * hamweight - 3, maxbit + 1);      /* maxbit is floor(log_2(max(q_i))) */
 #endif
 
@@ -204,7 +141,7 @@ multiplyW2n (mpz_t p, point *R, curve *S, mpz_t *q, unsigned int n,
               /* If a factor was found, put factor in p, 
                  flag success and bail out of loop */
               mpres_gcd (p, T[k - 1], modulus);
-              youpi = 1;
+              youpi = ECM_FACTOR_FOUND;
               break;
             }
         }
@@ -240,7 +177,7 @@ multiplyW2n (mpz_t p, point *R, curve *S, mpz_t *q, unsigned int n,
                 mpres_get_z (p, u, modulus);
                 mpz_mod (p, p, modulus->orig_modulus);
                 if (mpz_cmp_ui (p, 1) != 0) 
-                  gmp_printf ("ERROR: (s.x - R[%d].x) * T[%d] == %Zd\n", i, l, T[l - 1]);
+                  gmp_fprintf (es, "Error, (s.x - R[%d].x) * T[%d] == %Zd\n", i, l, T[l - 1]);
 #endif
                 
                 mpres_sub (u, s.y, R[i].y, modulus);   /* U    = y2 - y1 */
@@ -271,7 +208,7 @@ multiplyW2n (mpz_t p, point *R, curve *S, mpz_t *q, unsigned int n,
           mpres_get_z (p, u, modulus);
           mpz_mod (p, p, modulus->orig_modulus);
           if (mpz_cmp_ui (p, 1) != 0)
-            gmp_printf ("ERROR: At t==%d, 2*s.y / (2*s.y) == %Zd\n", t, p);
+            gmp_fprintf (es, "Error, at t==%d, 2*s.y / (2*s.y) == %Zd\n", t, p);
 #endif          
 
                                                /* 1/(2*s.y) is in T[k] */
@@ -289,7 +226,8 @@ multiplyW2n (mpz_t p, point *R, curve *S, mpz_t *q, unsigned int n,
           muls += 4;
         }
     }
-  
+
+ clear_w2:
   mpres_clear (s.y, modulus);
   mpres_clear (s.x, modulus);
   mpz_clear (flag);
@@ -315,6 +253,8 @@ multiplyW2n (mpz_t p, point *R, curve *S, mpz_t *q, unsigned int n,
    return(0);
 
    Uses one inversion and 6*n*m-3 multiplications for n*m > 0
+
+   Return factor found or not (no error can occur here).
 */
 
 static int
@@ -326,7 +266,7 @@ addWnm (mpz_t p, point *X, curve *S, mpmod_t modulus, unsigned int m,
   int i, j;
 
   if (n == 0 || m == 0)
-    return 0;
+    return ECM_NO_FACTOR_FOUND;
 
   k = 0;
   for (i = m - 1; i >= 0; i--)    /* Go through the m different lists */
@@ -370,7 +310,7 @@ addWnm (mpz_t p, point *X, curve *S, mpmod_t modulus, unsigned int m,
       mpres_gcd (p, T[k - 1], modulus);
       (*tot_muls) += m * n - 1;
       (*tot_gcds) ++;
-      return 1;
+      return ECM_FACTOR_FOUND;
     }
 
   /* T[k] = 1/(v_0 * ... * v_m), 0 <= m < k */
@@ -467,86 +407,66 @@ addWnm (mpz_t p, point *X, curve *S, mpmod_t modulus, unsigned int m,
   if (tot_gcds != NULL)
     (*tot_gcds) ++;
 
-  return 0;
+  return ECM_NO_FACTOR_FOUND;
 }
 
 /* puts in F[0..dF-1] the successive values of 
 
-   Dickson_{S, a} (d2*j) * s  where s is a point on the elliptic curve
+   Dickson_{S, a} (j * d2) * s  where s is a point on the elliptic curve
 
    for j == 1 mod 6, j and d1 coprime.
-   Returns non-zero iff a factor was found (then stored in f).
+   Returns non-zero iff a factor was found (then stored in f)
+   or an error occurred.
 */
 
 int
 ecm_rootsF (mpz_t f, listz_t F, unsigned int d1, unsigned int d2, 
-            unsigned int dF, curve *s, int S, mpmod_t modulus, int verbose)
+            unsigned int dF, curve *s, int S, mpmod_t modulus, int verbose,
+	    FILE *os, FILE *es)
 {
   unsigned int i;
   unsigned long muls = 0, gcds = 0;
-  int st, st1;
-  int youpi = 0, dickson_a;
+  int st;
+  int youpi = ECM_NO_FACTOR_FOUND;
   listz_t coeffs;
   ecm_roots_state state;
   
   if (dF == 0)
-    return 0;
+    return ECM_NO_FACTOR_FOUND;
 
-  ASSERT (gcd (d1, d2) == 1);
+  if (verbose >= 2)
+    st = cputime ();
 
-  st = cputime ();
-
-  /* If S < 0, use degree |S| Dickson poly, otherwise use x^S */
-  dickson_a = (S < 0) ? -1 : 0;
-  S = abs (S);
-
-  /* We only calculate j*P where gcd (j, dsieve) == 1 and j == 1 (mod 6)
-     by doing nr=eulerphi(dsieve/6) separate progressions. */
-  /* Now choose a value for dsieve. */
-  state.dsieve = 6;
-  state.nr = 1;
-
-  /* Prospective saving by sieving out multiples of 5:
-       d1 / state.dsieve * state.nr / 5 roots, each one costs S point adds
-     Prospective cost increase:
-       4 times as many progressions to init (that is, 3 * state.nr more), 
-       each costs ~ S * S * log_2(5 * dsieve * d2) / 2 point adds
-     The state.dsieve and one S cancel.
-  */
-  if (d1 % 5 == 0 && 
-      d1 / state.dsieve / 5 > 3. * S * log (5. * state.dsieve * d2) / 2.)
-    {
-      state.dsieve *= 5;
-      state.nr *= 4;
-    }
-
-  if (d1 % 7 == 0 && 
-      d1 / state.dsieve / 7 > 5. * S * log (7. * state.dsieve * d2) / 2.)
-    {
-      state.dsieve *= 7;
-      state.nr *= 6;
-    }
-  
-  if (d1 % 11 == 0 && 
-      d1 / state.dsieve / 11 > 9. * S * log (11. * state.dsieve * d2) / 2.)
-    {
-      state.dsieve *= 11;
-      state.nr *= 10;
-    }
-  
-  state.size_fd = (S + 1) * state.nr;
-  state.next = 0;
-  state.rsieve = 1;
+  /* Relative cost of point add during init and computing roots assumed =1 */
+  init_roots_state (&state, S, d1, d2, 1.0);
 
   if (verbose >= 3)
-    printf ("ecm_rootsF: state: nr = %d, dsieve = %d, size_fd = %d\n", 
-            state.nr, state.dsieve, state.size_fd);
+     fprintf (os, "ecm_rootsF: state: nr = %d, dsieve = %d, size_fd = %d, S = %d, "
+              "dickson_a = %d\n", state.nr, state.dsieve, state.size_fd, 
+              state.S, state.dickson_a);
+
+  /* Init finite differences tables */
+  coeffs = init_progression_coeffs (0.0, state.dsieve, d2, 1, 6, state.S, 
+                                    state.dickson_a, es);
+
+  if (coeffs == NULL) /* error */
+    {
+      youpi = ECM_ERROR;
+      goto clear;
+    }
+
+  /* The highest coefficient is the same for all progressions, so set them
+     to one for all but the first progression, later we copy the point */
+  for (i = state.S + 1; i < state.size_fd; i += state.S + 1)
+    mpz_set_ui (coeffs[i + state.S], 1);
 
   /* Allocate memory for fd[] and T[] */
 
   state.fd = (point *) xmalloc (state.size_fd * sizeof (point));
-  for (i = 0 ; i < state.size_fd; i++)
+  for (i = 0; i < state.size_fd; i++)
     {
+     if (verbose >= 4)
+       gmp_fprintf (os, "ecm_rootsF: coeffs[%d] = %Zd\n", i, coeffs[i]);
       mpres_init (state.fd[i].x, modulus);
       mpres_init (state.fd[i].y, modulus);
     }
@@ -555,76 +475,70 @@ ecm_rootsF (mpz_t f, listz_t F, unsigned int d1, unsigned int d2,
   for (i = 0 ; i < state.size_fd + 4; i++)
     mpres_init (state.T[i], modulus);
 
-  /* Init finite differences tables */
+  /* Multiply fd[] = s * coeffs[] */
 
-  st = cputime ();
-  
-  coeffs = init_progression_coeffs (0., state.dsieve, d2, 1, 6, S, dickson_a);
-
-  /* The highest coefficient is the same for all progressions, so set them
-     to one for all but the first progression, later we copy the point */
-  for (i = S + 1; i < state.size_fd; i += S + 1)
-    mpz_set_ui (coeffs[i + S], 1);
-  
-  if (verbose >= 4)
-    for (i = 0; i < state.size_fd; i++)
-      gmp_printf ("ecm_rootsF: coeffs[%d] = %Zd\n", i, coeffs[i]);
-  
   youpi = multiplyW2n (f, state.fd, s, coeffs, state.size_fd, modulus, 
-                       state.T[0], state.T[1], state.T + 2, &muls, &gcds);
-  if (youpi && verbose >= 2)
-    printf ("Found factor while computing fd[] * X\n");
-  
-  clear_list (coeffs, state.size_fd);
-  coeffs = NULL;
-  
+                       state.T[0], state.T[1], state.T + 2, &muls, &gcds, es);
+  if (youpi == ECM_FACTOR_FOUND && verbose >= 2)
+    fprintf (os, "Found factor while computing coeff[] * X\n");  
+
+  if (youpi == ECM_ERROR)
+    goto clear;
+
   /* Copy the point corresponding to the highest coefficient of the first 
      progression to the other progressions */
-  for (i = S + 1; i < state.size_fd; i += S + 1)
+  for (i = state.S + 1; i < state.size_fd; i += state.S + 1)
     {
-      mpres_set (state.fd[i + S].x, state.fd[S].x, modulus);
-      mpres_set (state.fd[i + S].y, state.fd[S].y, modulus);
+      mpres_set (state.fd[i + state.S].x, state.fd[state.S].x, modulus);
+      mpres_set (state.fd[i + state.S].y, state.fd[state.S].y, modulus);
     }
+
+  clear_list (coeffs, state.size_fd);
+  coeffs = NULL;
 
   if (verbose >= 2)
     {
-      st1 = cputime ();
-      printf ("Initializing tables of differences for F took %dms", st1 - st);
+      int st1 = cputime ();
+      fprintf (os, "Initializing tables of differences for F took %dms",
+	       st1 - st);
       if (verbose > 2)
-        printf (", %lu muls and %lu extgcds", muls, gcds);
-      printf ("\n");
+        fprintf (os, ", %lu muls and %lu extgcds", muls, gcds);
+      fprintf (os, "\n");
       st = st1;
       muls = 0;
       gcds = 0;
     }
 
-  /* Now for the actual calculation of the roots. k keeps track of which fd[] 
-     entry to get the next root from. */
+  /* Now for the actual calculation of the roots. */
 
-  i = 0;
-  while (i < dF && !youpi)
+  for (i = 0; i < dF && !youpi;)
     {
-      /* Is this a rsieve value where we computed Dickson(j)*X? */
+      /* Is this a rsieve value where we computed Dickson(j * d2) * X? */
       if (gcd (state.rsieve, state.dsieve) == 1) 
         {
-          if (state.next == state.nr) /* Is it time to update fd[] ? */
+          /* Did we use every progression since the last update? */
+          if (state.next == state.nr)
             {
-              youpi = addWnm (f, state.fd, s, modulus, state.nr, S, state.T, 
-                              &muls, &gcds);
+              /* Yes, time to update again */
+              youpi = addWnm (f, state.fd, s, modulus, state.nr, state.S, 
+                              state.T, &muls, &gcds);
+	      ASSERT(youpi != ECM_ERROR); /* no error can occur in addWnm */
               state.next = 0;
-              if (youpi && verbose >= 2)
-                printf ("Found factor while computing roots of F\n");
+              if (youpi == ECM_FACTOR_FOUND && verbose >= 2)
+                fprintf (os, "Found factor while computing roots of F\n");
             }
           
-          /* Is this a j value where we want Dickson(j)*X? as a root of F? */
+          /* Is this a j value where we want Dickson(j * d2) * X as a root? */
           if (gcd (state.rsieve, d1) == 1) 
-            mpres_get_z (F[i++], state.fd[state.next * (S + 1)].x, modulus);
+            mpres_get_z (F[i++], state.fd[state.next * (state.S + 1)].x, 
+                         modulus);
 
-          state.next++;
+          state.next ++;
         }
       state.rsieve += 6;
     }
 
+ clear:
   for (i = 0 ; i < state.size_fd + 4; i++)
     mpres_clear (state.T[i], modulus);
   free (state.T);
@@ -637,20 +551,20 @@ ecm_rootsF (mpz_t f, listz_t F, unsigned int d1, unsigned int d2,
   free (state.fd);
 
   if (youpi)
-    return 1;
+    return youpi; /* error or factor found */
   
   if (verbose >= 2)
     {
-      printf ("Computing roots of F took %dms", cputime () - st);
+      fprintf (os, "Computing roots of F took %dms", cputime () - st);
       if (verbose > 2)
-        printf (", %ld muls and %ld extgcds", muls, gcds);
-      printf ("\n");
+        fprintf (os, ", %ld muls and %ld extgcds", muls, gcds);
+      fprintf (os, "\n");
     }
 
-  return 0;
+  return ECM_NO_FACTOR_FOUND;
 }
 
-/* Perform the neccessary initialisation to allow computation of
+/* Perform the necessary initialization to allow computation of
    
      Dickson_{S, a}(s+n*d) * P , where P is a point on the elliptic curve
    
@@ -658,14 +572,12 @@ ecm_rootsF (mpz_t f, listz_t F, unsigned int d1, unsigned int d2,
    polynomial with parameter a. For a == 0, Dickson_{S, a} (x) = x^S.
    
    If a factor is found during the initialisation, NULL is returned and the
-     factor in f.
+   factor in f. If an error occurred, NULL is returned and f is -1.
 */
-
-
 ecm_roots_state *
-ecm_rootsG_init (mpz_t f, curve *X, double s, unsigned int d1, unsigned int d2, 
+ecm_rootsG_init (mpz_t f, curve *X, double s, unsigned int d1, unsigned int d2,
                  unsigned int dF, unsigned int blocks, int S, mpmod_t modulus, 
-                 int verbose)
+                 int verbose, FILE *os, FILE *es)
 {
   unsigned int k, lenT, phid2;
   unsigned long muls = 0, gcds = 0;
@@ -695,11 +607,11 @@ ecm_rootsG_init (mpz_t f, curve *X, double s, unsigned int d1, unsigned int d2,
   
   /* Guesstimate a value for the number of disjoint progressions to use */
   bestnr = -(4. + T_inv) + sqrt(12. * (double) dF * (double) blocks * 
-           (T_inv - 3.) * log (2. * d1) / log (2.) - (4. + T_inv) * (4. + T_inv));
+        (T_inv - 3.) * log (2. * d1) / log (2.) - (4. + T_inv) * (4. + T_inv));
   bestnr /= 6. * (double) S * log (2. * d1) / log (2);
   
   if (verbose >= 4)
-    printf ("ecm_rootsG_init: bestnr = %f\n", bestnr);
+    fprintf (os, "ecm_rootsG_init: bestnr = %f\n", bestnr);
   
   state = (ecm_roots_state *) xmalloc (sizeof (ecm_roots_state));
 
@@ -714,20 +626,27 @@ ecm_rootsG_init (mpz_t f, curve *X, double s, unsigned int d1, unsigned int d2,
   if (phid2 > 1)
     state->nr = ((state->nr + (phid2 - 1)) / phid2) * phid2;
 
-  state->size_fd = state->nr * (S + 1);
+  state->S = S;
+  state->size_fd = state->nr * (state->S + 1);
 
   if (verbose >= 3)
-    printf ("ecm_rootsG_init: s=%f, d1=%u, d2=%d, dF=%d, blocks=%d, S=%u, T_inv = %d, nr=%d\n", 
-            s, d1, d2, dF, blocks, S, T_inv, state->nr);
+    fprintf (os, "ecm_rootsG_init: s=%f, d1=%u, d2=%d, dF=%d, blocks=%d, S=%u, T_inv = %d, nr=%d\n", 
+	     s, d1, d2, dF, blocks, S, T_inv, state->nr);
   
   state->X = X;
-  state->S = S;
   state->next = 0;
   state->dsieve = 1; /* We only init progressions coprime to d2, so nothing to be skipped */
   state->rsieve = 1;
 
   coeffs = init_progression_coeffs (s, d2, d1, state->nr / phid2, 1, S, 
-                                    dickson_a);
+                                    dickson_a, es);
+
+  if (coeffs == NULL) /* error */
+    {
+      free (state);
+      mpz_set_si (f, -1);
+      return NULL;
+    }
 
   state->fd = (point *) xmalloc (state->size_fd * sizeof (point));
   for (k = 0; k < state->size_fd; k++)
@@ -746,10 +665,12 @@ ecm_rootsG_init (mpz_t f, curve *X, double s, unsigned int d1, unsigned int d2,
 
   if (verbose >= 4)
     for (k = 0; k < state->size_fd; k++)
-      gmp_printf ("ecm_rootsG_init: coeffs[%d] == %Zd\n", k, coeffs[k]);
+      gmp_fprintf (os, "ecm_rootsG_init: coeffs[%d] == %Zd\n", k, coeffs[k]);
 
   youpi = multiplyW2n (f, state->fd, X, coeffs, state->size_fd, modulus, 
-                       state->T[0], state->T[1], state->T + 2, &muls, &gcds);
+                     state->T[0], state->T[1], state->T + 2, &muls, &gcds, es);
+  if (youpi == ECM_ERROR)
+    mpz_set_si (f, -1); /* fall through */
 
   for (k = S + 1; k < state->size_fd; k += S + 1)
     {
@@ -760,23 +681,25 @@ ecm_rootsG_init (mpz_t f, curve *X, double s, unsigned int d1, unsigned int d2,
   clear_list (coeffs, state->size_fd);
   coeffs = NULL;
   
-  if (youpi) 
+  if (youpi != ECM_NO_FACTOR_FOUND) /* factor found or error */
     {
-      if (verbose >= 2)
-        printf ("Found factor while computing fd[]\n");
-      
+      if (youpi == ECM_FACTOR_FOUND && verbose >= 2)
+        fprintf (os, "Found factor while computing fd[]\n");
+
       ecm_rootsG_clear (state, S, modulus);
       
-      /* Signal that a factor was found */
+      /* Signal that a factor was found, or an error occurred (f=-1) */
       state = NULL;
-    } else {
+    }
+  else
+    {
       if (verbose >= 2)
         {
           st = cputime () - st;
-          printf ("Initializing table of differences for G took %dms", st);
+          fprintf (os, "Initializing table of differences for G took %dms", st);
           if (verbose > 2)
-            printf (", %lu muls and %lu extgcds", muls, gcds);
-          printf ("\n");
+            fprintf (os, ", %lu muls and %lu extgcds", muls, gcds);
+          fprintf (os, "\n");
         }
     }
   
@@ -813,15 +736,16 @@ ecm_rootsG_clear (ecm_roots_state *state, ATTRIBUTE_UNUSED int S,
      call to ecm_rootsG has left off.
 
    Returns non-zero iff a factor was found (then stored in f).
+   Cannot return an error.
 */
 
 int 
 ecm_rootsG (mpz_t f, listz_t G, unsigned int dF, ecm_roots_state *state, 
-            mpmod_t modulus, int verbose)
+            mpmod_t modulus, int verbose, FILE *os)
 {
   unsigned int i;
   unsigned long muls = 0, gcds = 0;
-  int youpi = 0, st;
+  int youpi = ECM_NO_FACTOR_FOUND, st;
   
   st = cputime ();
   
@@ -833,12 +757,13 @@ ecm_rootsG (mpz_t f, listz_t G, unsigned int dF, ecm_roots_state *state,
           /* Yes, time to update again */
           youpi = addWnm (f, state->fd, state->X, modulus, state->nr, 
                           state->S, state->T, &muls, &gcds);
+	  ASSERT(youpi != ECM_ERROR); /* no error can occur in addWnm */
           state->next = 0;
           
-          if (youpi)
+          if (youpi == ECM_FACTOR_FOUND)
             {
               if (verbose >= 2)
-                printf ("Found factor while computing G[]\n");
+                fprintf (os, "Found factor while computing G[]\n");
               break;
             }
         }
@@ -848,16 +773,16 @@ ecm_rootsG (mpz_t f, listz_t G, unsigned int dF, ecm_roots_state *state,
         mpres_get_z (G[i++], (state->fd + state->next * (state->S + 1))->x, 
                        modulus);
 
-      state->next++;
-      state->rsieve++;
+      state->next ++;
+      state->rsieve ++;
     }
   
   if (verbose >= 2)
     {
-      printf ("Computing roots of G took %dms", cputime () - st);
+      fprintf (os, "Computing roots of G took %dms", cputime () - st);
       if (verbose > 2)
-        printf (", %lu muls and %lu extgcds", muls, gcds);
-      printf ("\n");
+        fprintf (os, ", %lu muls and %lu extgcds", muls, gcds);
+      fprintf (os, "\n");
     }
   
   return youpi;

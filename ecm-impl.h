@@ -68,8 +68,9 @@
 #define INLINE
 #endif
 
-/* either one of POLYEVAL or POLYEVALTELLEGEN should be defined */
-#define POLYEVALTELLEGEN /* use polyeval_tellegen() routine */
+/* if POLYEVALTELLEGEN is defined, use polyeval_tellegen(),
+   otherwise use polyeval() */
+#define POLYEVALTELLEGEN
 
 /* use Kronecker-Scho"nhage's multiplication */
 #define KS_MULTIPLY
@@ -90,7 +91,6 @@
 #endif
 
 #ifdef POLYEVALTELLEGEN
-#define POLYEVAL
 #define USE_SHORT_PRODUCT
 #endif
 
@@ -176,27 +176,31 @@ typedef __curve_struct curve;
 
 typedef struct
 {
+  unsigned int size_fd; /* How many entries .fd has, always nr * (S+1) */
+  unsigned int nr;     /* How many separate progressions there are */
+  unsigned int next;   /* From which progression to take the next root */
+  unsigned int S;      /* Degree of the polynomials */
+  unsigned int dsieve; /* Values not coprime to dsieve are skipped */
+  unsigned int rsieve; /* Which residue mod dsieve current .next belongs to */
+  int dickson_a;       /* Parameter for Dickson polynomials */
   point *fd;
   mpres_t *T;          /* For temp values. FIXME: should go! */
   curve *X;            /* The curve the points are on */
-  unsigned int size_fd; /* How many entries .fd has */
-  unsigned int nr;     /* How many separate progressions there are */
-  unsigned int next;   /* From which progression to take the next root */
-  unsigned int S;      /* Degree of the polynomials */
-  unsigned int dsieve; /* Values not coprime to dsieve are skipped */
-  unsigned int rsieve; /* Which residue mod dsieve current .next belongs to */
 } __ecm_roots_state;
 typedef __ecm_roots_state ecm_roots_state;
 
+/* WARNING: it is important that the order of fields matches that
+   of ecm_roots_state. See comment in pm1.c:pm1_rootsF. */
 typedef struct
 {
-  mpres_t *fd;
-  unsigned int size_fd; /* How many entries .fd has */
+  unsigned int size_fd; /* How many entries .fd has, always nr * (S+1) */
   unsigned int nr;     /* How many separate progressions there are */
   unsigned int next;   /* From which progression to take the next root */
   unsigned int S;      /* Degree of the polynomials */
   unsigned int dsieve; /* Values not coprime to dsieve are skipped */
   unsigned int rsieve; /* Which residue mod dsieve current .next belongs to */
+  int dickson_a;       /* Parameter for Dickson polynomials */
+  mpres_t *fd;
   int invtrick;
 } __pm1_roots_state;
 typedef __pm1_roots_state pm1_roots_state;
@@ -251,17 +255,19 @@ extern "C" {
 double   getprime       (double);
 
 /* pm1.c */
+#ifdef _ECM_H_HAVE_FILE
 #define pm1_rootsF __ECM(pm1_rootsF)
 int     pm1_rootsF       (mpz_t, listz_t, unsigned int, unsigned int,
-                          unsigned int, mpres_t *, listz_t, int, mpmod_t, int);
+            unsigned int, mpres_t *, listz_t, int, mpmod_t, int, FILE*, FILE*);
 #define pm1_rootsG_init __ECM(pm1_rootsG_init)
 pm1_roots_state* pm1_rootsG_init  (mpres_t *, double, unsigned int,
-                                   unsigned int, int, int, mpmod_t);
-#define pm1_rootsG_clear __ECM(pm1_rootsG_clear)
-void    pm1_rootsG_clear (pm1_roots_state *, mpmod_t);
+                                unsigned int, int, int, mpmod_t, FILE*, FILE*);
 #define pm1_rootsG __ECM(pm1_rootsG)
 int     pm1_rootsG       (mpz_t, listz_t, unsigned int, pm1_roots_state *, 
-                          listz_t, mpmod_t, int);
+                          listz_t, mpmod_t, int, FILE*);
+#endif
+#define pm1_rootsG_clear __ECM(pm1_rootsG_clear)
+void    pm1_rootsG_clear (pm1_roots_state *, mpmod_t);
 
 /* bestd.c */
 #define phi __ECM(phi)
@@ -274,17 +280,21 @@ void     bestD_po2 (double, double, unsigned int *, unsigned int *,
                          unsigned int *);
 
 /* ecm2.c */
+#ifdef _ECM_H_HAVE_FILE
 #define ecm_rootsF __ECM(ecm_rootsF)
-int     ecm_rootsF       (mpz_t, listz_t, unsigned int, unsigned int, 
-                          unsigned int, curve *, int, mpmod_t, int);
+int     ecm_rootsF       (mpz_t, listz_t, unsigned int, unsigned int,
+                       unsigned int, curve *, int, mpmod_t, int, FILE*, FILE*);
 #define ecm_rootsG_init __ECM(ecm_rootsG_init)
 ecm_roots_state* ecm_rootsG_init (mpz_t, curve *, double, unsigned int,
-                  unsigned int, unsigned int, unsigned int, int, mpmod_t, int);
-#define ecm_rootsG_clear __ECM(ecm_rootsG_clear)
-void    ecm_rootsG_clear (ecm_roots_state *, int, mpmod_t);
+    unsigned int, unsigned int, unsigned int, int, mpmod_t, int, FILE*, FILE*);
 #define ecm_rootsG __ECM(ecm_rootsG)
 int     ecm_rootsG       (mpz_t, listz_t, unsigned int, ecm_roots_state *, 
-                          mpmod_t, int);
+                          mpmod_t, int, FILE*);
+#endif
+#define ecm_rootsG_clear __ECM(ecm_rootsG_clear)
+void    ecm_rootsG_clear (ecm_roots_state *, int, mpmod_t);
+void init_roots_state   (ecm_roots_state *, int, unsigned int, unsigned int, 
+                         double);
 
 /* lucas.c */
 #define pp1_mul_prac __ECM(pp1_mul_prac)
@@ -292,24 +302,29 @@ void  pp1_mul_prac     (mpres_t, unsigned long, mpmod_t, mpres_t, mpres_t,
                         mpres_t, mpres_t, mpres_t);
 
 /* pp1.c */
+#ifdef _ECM_H_HAVE_FILE
 #define pp1_rootsF __ECM(pp1_rootsF)
 int   pp1_rootsF       (listz_t, unsigned int, unsigned int, unsigned int,
-                        mpres_t *, listz_t, mpmod_t, int);
+                        mpres_t *, listz_t, mpmod_t, int, FILE*);
+#define pp1_rootsG __ECM(pp1_rootsG)
+int   pp1_rootsG     (listz_t, unsigned int, pp1_roots_state *, mpmod_t, int,
+                      FILE*);
+#endif
 #define pp1_rootsG_init __ECM(pp1_rootsG_init)
 pp1_roots_state* pp1_rootsG_init (mpres_t*, double, unsigned int,
                                   unsigned int, mpmod_t);
 #define pp1_rootsG_clear __ECM(pp1_rootsG_clear)
 void  pp1_rootsG_clear (pp1_roots_state *, mpmod_t);
-#define pp1_rootsG __ECM(pp1_rootsG)
-int   pp1_rootsG     (listz_t, unsigned int, pp1_roots_state *, mpmod_t, int);
 
 /* stage2.c */
+#ifdef _ECM_H_HAVE_FILE
 #define stage2 __ECM(stage2)
 int          stage2     (mpz_t, void *, mpmod_t, double, double, unsigned int,
-                         int, int, int, int);
+                         int, int, int, int, FILE*, FILE*);
 #define init_progression_coeffs __ECM(init_progression_coeffs)
 listz_t init_progression_coeffs (double, unsigned int, unsigned int,
-                                unsigned int, unsigned int, unsigned int, int);
+                         unsigned int, unsigned int, unsigned int, int, FILE*);
+#endif
 
 /* listz.c */
 #define list_mul_mem __ECM(list_mul_mem)
@@ -318,8 +333,10 @@ int          list_mul_mem (unsigned int);
 listz_t      init_list  (unsigned int);
 #define clear_list __ECM(clear_list)
 void         clear_list (listz_t, unsigned int);
+#ifdef _ECM_H_HAVE_FILE
 #define print_list __ECM(print_list)
-void         print_list (listz_t, unsigned int);
+void         print_list (FILE*, listz_t, unsigned int);
+#endif
 #define list_set __ECM(list_set)
 void         list_set   (listz_t, listz_t, unsigned int);
 #define list_revert __ECM(list_revert)
@@ -347,25 +364,26 @@ void        list_mulmod (listz_t, listz_t, listz_t, listz_t, unsigned int,
                          listz_t, mpz_t);
 #define list_invert __ECM(list_invert)
 int         list_invert (listz_t, listz_t, unsigned int, mpz_t, mpmod_t);
+#ifdef _ECM_H_HAVE_FILE
 #define PolyFromRoots __ECM(PolyFromRoots)
 void      PolyFromRoots (listz_t, listz_t, unsigned int, listz_t, int, mpz_t,
-                         char, listz_t*, unsigned int);
+                         char, listz_t*, unsigned int, FILE*);
+#define PrerevertDivision __ECM(PrerevertDivision)
+int   PrerevertDivision (listz_t, listz_t, listz_t, unsigned int, listz_t,
+                         mpz_t, FILE*);
+#endif
 #define PolyInvert __ECM(PolyInvert)
 void         PolyInvert (listz_t, listz_t, unsigned int, listz_t, mpz_t);
 #define RecursiveDivision __ECM(RecursiveDivision)
 void  RecursiveDivision (listz_t, listz_t, listz_t, unsigned int,
                          listz_t, mpz_t, int);
-#define PrerevertDivision __ECM(PrerevertDivision)
-void  PrerevertDivision (listz_t, listz_t, listz_t, unsigned int, listz_t,
-                         mpz_t);
 
 /* polyeval.c */
 #define polyeval __ECM(polyeval)
-void polyeval (listz_t, unsigned int, listz_t*, listz_t, mpz_t, int,
-               unsigned int);
+void polyeval (listz_t, unsigned int, listz_t*, listz_t, mpz_t, unsigned int);
 #define polyeval_tellegen __ECM(polyeval_tellegen)
-void polyeval_tellegen (listz_t b, unsigned int k, listz_t *Tree, listz_t T,
-                   unsigned int sizeT, listz_t invF, mpz_t n, unsigned int sh);
+int polyeval_tellegen (listz_t b, unsigned int k, listz_t *Tree, listz_t T,
+               unsigned int sizeT, listz_t invF, mpz_t n, unsigned int sh);
 
 /* toomcook.c */
 #define toomcook3 __ECM(toomcook3)
@@ -388,8 +406,10 @@ unsigned int ks_wrapmul (listz_t, unsigned int, listz_t, unsigned int,
 /* mpmod.c */
 #define isbase2 __ECM(isbase2)
 int isbase2 (mpz_t, double);
+#ifdef _ECM_H_HAVE_FILE
 #define mpmod_init __ECM(mpmod_init)
-void mpmod_init (mpmod_t, mpz_t, int, int);
+void mpmod_init (mpmod_t, mpz_t, int, int, FILE*);
+#endif
 #define mpmod_init_MPZ __ECM(mpmod_init_MPZ)
 void mpmod_init_MPZ (mpmod_t, mpz_t);
 #define mpmod_init_BASE2 __ECM(mpmod_init_BASE2)
