@@ -137,7 +137,7 @@ void usage (void)
     printf ("  -modmuln     use Montgomery's MODMULN for mod reduction\n");
     printf ("  -redc        use Montgomery's REDC for mod reduction\n");
     printf ("  -nobase2     disable special base-2 code\n");
-    printf ("  -base2 n     force base 2 mode with 2^n+1 (n>0) or 2^n-1 (n<0)");
+    printf ("  -base2 n     force base 2 mode with 2^n+1 (n>0) or 2^n-1 (n<0)\n");
     printf ("  -save file   save residues at end of stage 1 to file\n");
     printf ("  -savea file  like -save, appends to existing files\n");
     printf ("  -resume file resume residues from file, reads from stdin if file is \"-\"\n");
@@ -168,7 +168,7 @@ void usage (void)
     printf ("  -prplog file otherwise get PRP results from this file (NB. gets deleted)\n");
     printf ("  -prpyes str  literal string found in prplog file when number is PRP\n");
     printf ("  -prpno str   literal string found in prplog file when number is composite\n");
-    printf ("  --help       Prints this help and exit.\n");
+    printf ("  -h, --help   Prints this help and exit.\n");
 }
 
 
@@ -326,7 +326,7 @@ main (int argc, char *argv[])
 	  argv++;
 	  argc--;
         }
-      else if (strcmp (argv[1], "--help") == 0)
+      else if (strcmp (argv[1], "-h") == 0 || strcmp (argv[1], "--help") == 0)
         {
           usage ();
           exit (0);
