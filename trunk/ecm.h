@@ -348,6 +348,7 @@ int          list_mul_mem (unsigned int);
 listz_t      init_list  (unsigned int);
 void         clear_list (listz_t, unsigned int);
 void         print_list (listz_t, unsigned int);
+void         print_list2 (listz_t, unsigned int);
 void         list_set   (listz_t, listz_t, unsigned int);
 void         list_revert (listz_t, unsigned int);
 void         list_swap  (listz_t, listz_t, unsigned int);

@@ -470,7 +470,7 @@ stage2 (mpz_t f, void *X, mpmod_t modulus, double B2min, double B2,
           goto clear_G;
         }
     }
-  
+
   if (verbose >= 2 && method != EC_METHOD) /* ecm_rootsG_init prints itself */
     printf ("Initializing table of differences for G took %dms\n",
             cputime () - st);
