@@ -30,20 +30,20 @@
 /* #define DEBUG */
 
 #define CASCADE_THRES 3
-#define CASCADE_MAX 50000000
+#define CASCADE_MAX 50000000.0
 #ifndef POWM_THRESHOLD
 #define POWM_THRESHOLD 100
 #endif
 
 typedef struct {
   unsigned int size;
-  mpz_t val[1];
+  mpz_t *val;
 } mul_casc;
 
 int      pm1_stage1     (mpz_t, mpres_t, mpmod_t, double, double);
 mul_casc *mulcascade_init (void);
 void     mulcascade_free (mul_casc *);
-mul_casc *mulcascade_mul_ui (mul_casc *, unsigned int);
+mul_casc *mulcascade_mul_ui (mul_casc *, unsigned long);
 void     mulcascade_get_z (mpz_t, mul_casc *);
 
 /******************************************************************************
@@ -78,8 +78,14 @@ mul_casc *
 mulcascade_init (void)
 {
   mul_casc *t;
-  t = (mul_casc *) malloc (sizeof (unsigned int) + sizeof (mpz_t));
+  t = (mul_casc *) malloc (sizeof (mul_casc));
   if (t == NULL)
+    {
+      fprintf (stderr, "mulcascade_init: could not allocate memory\n");
+      exit (EXIT_FAILURE);
+    }
+  t->val = (mpz_t*) malloc (sizeof (mpz_t));
+  if (t->val == NULL)
     {
       fprintf (stderr, "mulcascade_init: could not allocate memory\n");
       exit (EXIT_FAILURE);
@@ -95,12 +101,13 @@ mulcascade_free (mul_casc *c)
   unsigned int i;
   for (i = 0; i < c->size; i++)
     mpz_clear (c->val[i]);
+  free (c->val);
   free (c);
 }
 
 /* TODO mulcascade_mul_d */
 mul_casc * 
-mulcascade_mul_ui (mul_casc *c, unsigned int n)
+mulcascade_mul_ui (mul_casc *c, unsigned long n)
 {
   unsigned int i;
 
@@ -130,9 +137,10 @@ mulcascade_mul_ui (mul_casc *c, unsigned int n)
   /* Allocate more space for cascade */
   
   i = c->size++;
-  c = realloc (c, sizeof (unsigned int) + c->size * sizeof (mpz_t));
+  c->val = (mpz_t*) realloc (c->val, c->size * sizeof (mpz_t));
   mpz_init (c->val[i]);
   mpz_swap (c->val[i], c->val[i-1]);
+
   return c;
 }
 
@@ -163,10 +171,10 @@ mulcascade_get_z (mpz_t r, mul_casc *c) {
 int
 pm1_stage1 (mpz_t f, mpres_t a, mpmod_t n, double B1, double B1done)
 {
-  double B0, p, q, r;
+  double B0, p, q, r, cascade_limit;
   mpz_t g, d;
   int youpi;
-  unsigned int max_size, cascade_limit;
+  unsigned int max_size;
   unsigned int smallbase = 0;
   mul_casc *cascade;
 
@@ -200,7 +208,7 @@ pm1_stage1 (mpz_t f, mpres_t a, mpmod_t n, double B1, double B1done)
      multiplied up in the exponent, i.e. 1M for a 100 digit number, 
      but limit to CASCADE_MAX to avoid problems with stack allocation */
   
-  cascade_limit = mpz_sizeinbase (n->orig_modulus, 2) * 3000;
+  cascade_limit = (double) mpz_sizeinbase (n->orig_modulus, 2) * 3000;
 
   if (cascade_limit > CASCADE_MAX)
     cascade_limit = CASCADE_MAX;
@@ -217,14 +225,14 @@ pm1_stage1 (mpz_t f, mpres_t a, mpmod_t n, double B1, double B1done)
         {
           for (q = 1, r = p; r <= B1; r *= p)
             if (r > B1done) q *= p;
-          cascade = mulcascade_mul_ui (cascade, q);
+          cascade = mulcascade_mul_ui (cascade, (unsigned long) q);
         }
 
       /* then all sqrt(B1) < primes < cascade_limit and taken with 
          exponent 1 */
-      for ( ; p <= cascade_limit; p = getprime(p))
+      for ( ; p <= cascade_limit; p = getprime (p))
         if (p > B1done)
-          cascade = mulcascade_mul_ui (cascade, p);
+          cascade = mulcascade_mul_ui (cascade, (unsigned long) p);
       
       mulcascade_get_z (g, cascade);
       mulcascade_free (cascade);
@@ -247,9 +255,9 @@ pm1_stage1 (mpz_t f, mpres_t a, mpmod_t n, double B1, double B1done)
     } else {
       for (p = 2.0; p <= cascade_limit; p = getprime(p))
         {
-          for (q = 1, r = p; r <= B1; r *= p)
+          for (q = 1.0, r = p; r <= B1; r *= p)
             if (r > B1done) q *= p;
-          cascade = mulcascade_mul_ui (cascade, q);
+          cascade = mulcascade_mul_ui (cascade, (unsigned long) q);
         }
       
       mulcascade_get_z (g, cascade);

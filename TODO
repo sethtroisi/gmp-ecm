@@ -12,4 +12,3 @@ Long term:
 - instead of putting B1, B2 as 1st, 2nd parameters, add options
 	for them: -B1 <value>, -B2 <value>
 - add -fft option for 2^n+1 (in particular Fermat numbers)
-
