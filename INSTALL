@@ -82,7 +82,7 @@ In case of a problem, report it to us, with:
 
 - the versions of GMP-ECM and GMP used (first output line), for example:
   
-  GMP-ECM 5.2.0 [powered by GMP 4.1.4, fft] [P+1]
+  GMP-ECM 6.0 [powered by GMP 4.1.4, fft] [P+1]
 
 - the detailed input enabling us to reproduce the problem, for example:
 
