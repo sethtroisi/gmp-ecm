@@ -48,10 +48,10 @@ EXTRADIST= COPYING INSTALL Makefile README ecm.h test.pm1 test.pp1 test.ecm tune
 .SUFFIXES: .c .o
 
 ecm: $(ALLOBJS) ecm.h ecm-gmp.h
-	$(LD) -L$(GMP)/lib -L$(NTL)/lib $(ALLOBJS) -o $@ $(LDFLAGS)
+	$(LD) -L$(GMP)/lib $(ALLOBJS) -o $@ $(LDFLAGS)
 
 ecm_with_ntl:
-	make ecm GMP=$(GMP) NTL=$(NTL) CXX=g++ EXTRAOBJS="ntl.o polyz.o" LDFLAGS="-lntl $(LDFLAGS) CFLAGS="$(CFLAGS) -DPOLYGCD""
+	make ecm GMP=$(GMP) NTL=$(NTL) CXX=g++ EXTRAOBJS="ntl.o polyz.o" LDFLAGS="-L$(NTL)/lib -lntl $(LDFLAGS) CFLAGS="$(CFLAGS) -DPOLYGCD""
 
 tune: mpmod.o ecm.h tune.o auxi.o mul_lo.o ecm-gmp.h
 	$(CC) $(CFLAGS) -L$(GMP)/lib tune.o mpmod.o auxi.o mul_lo.o -o $@ -lgmp
