@@ -116,7 +116,7 @@ main (int argc, char *argv[])
   double B1, B1done, B2, B2min;
   int result = 0;
   int verbose = 1; /* verbose level */
-  int method = EC_METHOD;
+  int method = EC_METHOD, method1;
   int specific_x0 = 0, /* 1=starting point supplied by user, 0=random or */
                        /* compute from sigma */
       specific_sigma = 0;  /* 1=sigma from command line, 0=make random */
@@ -886,7 +886,7 @@ BreadthFirstDoAgain:;
       if (result != 0)
 	{
 	  factsfound++;
-          printf ("********** Factor found in step %u: ", result);
+          printf ("********** Factor found in step %u: ", ABS(result));
           mpz_out_str (stdout, 10, f);
           printf ("\n");
 	  if (mpz_cmp (f, n.n))
@@ -920,11 +920,13 @@ OutputFactorStuff:;
 		}
 	      
               /* check for champions (top ten for each method) */
-	      if (factor_is_prime && nb_digits (f) >= champion_digits[method])
+	      method1 = ((method == PP1_METHOD) && (result < 0))
+		? PM1_METHOD : method;
+	      if (factor_is_prime && nb_digits (f) >= champion_digits[method1])
                 {
                   printf ("Report your potential champion to %s\n",
-                          champion_keeper[method]);
-                  printf ("(see %s)\n", champion_url[method]);
+                          champion_keeper[method1]);
+                  printf ("(see %s)\n", champion_url[method1]);
                 }
 	      /* Take care of fully factoring this number, in case we are in deep mode */
 	      if (n.isPrp)
