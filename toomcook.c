@@ -207,8 +207,9 @@ toomcook4 (listz_t C, listz_t A, listz_t B, unsigned int len, listz_t t)
      For len=9, toomcook4 would use 30 multiplies, toomcook3 only 25.
      Further values where toomcook3 is faster are 17,18,26,27,77,78,79,80,81.
    */
-  if ((len <= 6 && len != 4) || len == 9 || len == 17 || len == 18 ||
-      len == 26 || len == 27 || (77 <= len && len <= 81))
+
+  if ((len <= 6 && len != 4) || len == 9 || (17 <= len && len <= 18) ||
+      (26 <= len && len <= 27) || (77 <= len && len <= 81))
     return toomcook3 (C, A, B, len, t);
 
   l = (len + 3) / 4;            /* l = ceil(len/4) */
