@@ -318,7 +318,7 @@ ecm_rootsF (mpz_t f, listz_t F, unsigned int d, curve *s,
 
 
 point *
-ecm_rootsG_init (mpz_t f, curve *X, unsigned long s, unsigned int d, 
+ecm_rootsG_init (mpz_t f, curve *X, double s, unsigned int d, 
                  int S, mpmod_t modulus, int verbose)
 {
   unsigned int k;
