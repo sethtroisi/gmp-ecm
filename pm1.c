@@ -40,7 +40,7 @@ typedef struct {
   mpz_t *val;
 } mul_casc;
 
-int      pm1_stage1     (mpz_t, mpres_t, mpmod_t, double, double);
+int      pm1_stage1     (mpz_t, mpres_t, mpmod_t, double, double, int);
 mul_casc *mulcascade_init (void);
 void     mulcascade_free (mul_casc *);
 mul_casc *mulcascade_mul_d (mul_casc *c, const double n, mpz_t t);
@@ -169,12 +169,13 @@ mulcascade_get_z (mpz_t r, mul_casc *c)
    Return value: non-zero iff a factor was found.
 */
 int
-pm1_stage1 (mpz_t f, mpres_t a, mpmod_t n, double B1, double B1done)
+pm1_stage1 (mpz_t f, mpres_t a, mpmod_t n, double B1, double B1done,
+	    int verbose)
 {
   double B0, p, q, r, cascade_limit;
   mpz_t g, d;
   int youpi;
-  unsigned int max_size;
+  unsigned int size_n, max_size;
   unsigned int smallbase = 0;
   mul_casc *cascade;
 
@@ -183,7 +184,8 @@ pm1_stage1 (mpz_t f, mpres_t a, mpmod_t n, double B1, double B1done)
 
   B0 = sqrt (B1);
 
-  max_size = L1 * mpz_sizeinbase (n->orig_modulus, 2);
+  size_n = mpz_sizeinbase (n->orig_modulus, 2);
+  max_size = L1 * size_n;
 
   mpres_get_z (g, a, n);
   if (mpz_fits_uint_p (g))
@@ -195,8 +197,13 @@ pm1_stage1 (mpz_t f, mpres_t a, mpmod_t n, double B1, double B1done)
      since any prime divisor of b^m-1 which does not divide any
      algebraic factor of b^m-1 must be of the form km+1 [Williams82].
      Do this only when n is composite, otherwise all tests with prime
-     n factor of a Cunningham number will succeed in stage 1. */
-  if (0 && mpz_probab_prime_p (n->orig_modulus, 1) == 0)
+     n factor of a Cunningham number will succeed in stage 1.
+
+     Since mpz_probab_prime_p and a^(n-1) mod n require about lg(n) modular
+     multiplications, and P-1 perform about B1 modular multiplications,
+     to ensure small overhead, use that trick only when lg(n) <= sqrt(B1).
+  */
+  if ((double) size_n <= B0 && mpz_probab_prime_p (n->orig_modulus, 1) == 0)
     {
       mpz_sub_ui (g, n->orig_modulus, 1);
       mpres_pow (a, a, g, n);
@@ -208,7 +215,7 @@ pm1_stage1 (mpz_t f, mpres_t a, mpmod_t n, double B1, double B1done)
      multiplied up in the exponent, i.e. 1M for a 100 digit number, 
      but limit to CASCADE_MAX to avoid problems with stack allocation */
   
-  cascade_limit = (double) mpz_sizeinbase (n->orig_modulus, 2) * 3000;
+  cascade_limit = 3000.0 * (double) size_n;
 
   if (cascade_limit > CASCADE_MAX)
     cascade_limit = CASCADE_MAX;
@@ -218,6 +225,14 @@ pm1_stage1 (mpz_t f, mpres_t a, mpmod_t n, double B1, double B1done)
 
   cascade = mulcascade_init ();
 
+  /* since B0 = sqrt(B1), we can have B0 > cascade_limit only when
+     B1 > cascade_limit^2. This cannot happen when cascade_limit=B1,
+     thus we need B1 > min(CASCADE_MAX, 3000*sizeinbase(n,2))^2.
+     For sizeinbase(n,2) <= CASCADE_MAX/3000 (less than 5017 digits 
+     for CASCADE_MAX=5e7) this means B1 > 9e6*sizeinbase(n,2)^2.
+     For sizeinbase(n,2) > CASCADE_MAX/3000, this means B1 > CASCADE_MAX^2,
+     i.e. B1 > 25e14 for CASCADE_MAX=5e7.
+*/
   if (B0 <= cascade_limit)
     {
       /* first loop through small primes <= sqrt(B1) */
@@ -237,22 +252,22 @@ pm1_stage1 (mpz_t f, mpres_t a, mpmod_t n, double B1, double B1done)
       mulcascade_get_z (g, cascade);
       mulcascade_free (cascade);
 #ifdef DEBUG
-      printf ("Exponent has %d bits\n", mpz_sizeinbase (g, 2));
+      printf ("Exponent has %u bits\n", mpz_sizeinbase (g, 2));
 #endif
       if (smallbase)
         {
-#ifdef DEBUG
-          printf ("Using mpres_ui_pow, repr=%d, base %u\n", n->repr,
-                  smallbase);
-#endif
+	  if (verbose > 1)
+	    printf ("Using mpres_ui_pow, base %u\n", smallbase);
           mpres_ui_pow (a, smallbase, g, n);
         }
       else
-        {
-          mpres_pow (a, a, g, n);
-        }
+	{
+	  mpres_pow (a, a, g, n);
+	}
       mpz_set_ui (g, 1);
-    } else {
+    }
+  else
+    {
       for (p = 2.0; p <= cascade_limit; p = getprime(p))
         {
           for (q = 1.0, r = p; r <= B1; r *= p)
@@ -263,13 +278,12 @@ pm1_stage1 (mpz_t f, mpres_t a, mpmod_t n, double B1, double B1done)
       mulcascade_get_z (g, cascade);
       mulcascade_free (cascade);
 #ifdef DEBUG
-      printf("Exponent has %d bits\n", mpz_sizeinbase (g, 2));
+      printf("Exponent has %u bits\n", mpz_sizeinbase (g, 2));
 #endif
       if (smallbase)
         {
-#ifdef DEBUG
-          printf ("Using mpres_ui_pow, base %u\n", smallbase);
-#endif
+	  if (verbose > 1)
+	    printf ("Using mpres_ui_pow, base %u\n", smallbase);
           mpres_ui_pow (a, smallbase, g, n);
         }
       else
@@ -590,7 +604,7 @@ pm1 (mpz_t f, mpz_t p, mpz_t N, double B1done, double B1, double B2min,
   
   if (verbose >= 1)
     {
-      printf ("Pollard P-1 Method with ");
+      printf ("Using ");
       if (B1done == 1.0)
         printf("B1=%1.0f", B1);
       else
@@ -600,11 +614,11 @@ pm1 (mpz_t f, mpz_t p, mpz_t N, double B1done, double B1, double B2min,
       else
         printf(", B2=%1.0f-%1.0f, ", B2min, B2);
       if (S > 0)
-        printf("x^%u\n", S);
+        printf("polynomial x^%u", S);
       else
-        printf("Dickson(%u)\n", -S);
+        printf("polynomial Dickson(%u)", -S);
 
-      printf ("Using seed=");
+      printf (", x0=");
       mpz_out_str (stdout, 10, p);
       printf ("\n");
       fflush (stdout);
@@ -627,12 +641,13 @@ pm1 (mpz_t f, mpz_t p, mpz_t N, double B1done, double B1, double B2min,
       Nbits = mpz_sizeinbase (N, 2);
       base2 = (repr == 0) ? isbase2 (N, 2.0) : 0;
       smallbase = mpz_fits_uint_p (p);
-      
+
       /* TODO: make dependent on Nbits and base2 */
       if (base2)
         {
-          printf ("Using base-2 representation: 2^%d%c1\n", 
-                  abs (base2), (base2 > 0) ? '+' : '-');
+	  if (verbose > 1)
+	    printf ("Using special division for factor of 2^%d%c1\n", 
+		    abs (base2), (base2 > 0) ? '+' : '-');
           mpmod_init_BASE2 (modulus, base2, N);
         }
 
@@ -643,17 +658,20 @@ pm1 (mpz_t f, mpz_t p, mpz_t N, double B1done, double B1, double B2min,
          at about 2*POWM_THRESHOLD it catches up with our smallbase-MODMULN
          and then is faster until REDC takes over. */
         {
-          printf ("Using MODMULN\n");
+	  if (verbose > 1)
+	    printf ("Using MODMULN\n");
           mpmod_init_MODMULN (modulus, N);
         }
       else if (Nbits > 50000 ||  (Nbits > 3500 && smallbase))
         {
-          printf ("Using REDC\n");
+	  if (verbose > 1)
+	    printf ("Using REDC\n");
           mpmod_init_REDC (modulus, N);
         }
       else
         {
-          printf ("Using mpz_powm\n");
+	  if (verbose > 1)
+	    printf ("Using mpz_powm\n");
           mpmod_init_MPZ (modulus, N);
         }
     }
@@ -662,11 +680,11 @@ pm1 (mpz_t f, mpz_t p, mpz_t N, double B1done, double B1, double B2min,
   mpres_set_z (x, p, modulus);
 
   if (B1 > B1done)
-    youpi = pm1_stage1 (f, x, modulus, B1, B1done);
+    youpi = pm1_stage1 (f, x, modulus, B1, B1done, verbose);
 
   if (verbose >= 1)
     {
-      printf ("Stage 1 took %dms\n", cputime() - st);
+      printf ("Step 1 took %dms\n", cputime() - st);
       fflush (stdout);
     }
 

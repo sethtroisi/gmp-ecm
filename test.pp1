@@ -22,20 +22,20 @@ set ECM="$1 -pp1"
 
 # P+1 requires that sigma^2-4 is a quadratic non-residue mod p
 
-echo 328006342451 | $ECM -x0 5 107 7043
+echo 328006342451 | $ECM -x0 5 120 7043
 if ($status != 0) then
    echo "############### ERROR ###############";
    exit 1;
 endif
 
 # check rational seed
-echo 328006342451 | $ECM -x0 1/5 107 7043
+echo 328006342451 | $ECM -x0 1/5 120 7043
 if ($status != 0) then
    echo "############### ERROR ###############";
    exit 1;
 endif
 
-echo 6215074747201 | $ECM -x0 5 409 199729
+echo 6215074747201 | $ECM -x0 5 630 199729
 if ($status != 0) then
    echo "############### ERROR ###############";
    exit 1;
