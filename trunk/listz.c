@@ -389,7 +389,7 @@ list_mulmod2 (listz_t a2, listz_t a, listz_t b, listz_t c, unsigned int k,
   int muls;
 
   muls = LIST_MULT_N (a, b, c, k, t);
-  list_mod (a2, a, 2*k - 1, n);
+  list_mod (a2, a, 2 * k - 1, n);
 
   return muls;
 }
