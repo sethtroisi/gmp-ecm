@@ -611,11 +611,11 @@ pm1 (mpz_t f, mpz_t p, mpz_t N, double B1done, double B1, double B2min,
   if (S == 0)
     {
       if (B2 - B2min < 3.5e5) /* B1 < 50000 */
-        S = -4;
+        S = -4; /* Dickson polys give a slightly better chance of success */
       else if (B2 - B2min < 1.1e7) /* B1 < 500000 */
         S = -6;
       else if (B2 - B2min < 1.25e8) /* B1 < 3000000 */
-        S = 12;
+        S = 12; /* but for S>6, S-th powers are faster thanks to invtrick */
       else if (B2 - B2min < 7.e9) /* B1 < 50000000 */
         S = 24;
       else if (B2 - B2min < 1.9e10) /* B1 < 100000000 */
