@@ -761,6 +761,7 @@ clear_s_i0:
           else 
             outputf (OUTPUT_VERBOSE, "Inf%c", sep);
         }
+      rhoinit (1, 0); /* Free memory of rhotable */
     }
   mpz_clear (effB2);
 
