@@ -1,4 +1,4 @@
-This is the README file for gmp-ecm,
+This is the README file for gmp-ecm.
 
 Table of contents of this file:
 1. Files included in this distribution.
@@ -19,70 +19,16 @@ Table of contents of this file:
 1. Files included in this distribution.
 
 COPYING - GNU GENERAL PUBLIC LICENSE
-ChangeLog - Changes with respect to previous version
+ChangeLog - Changes with respect to previous versions
 INSTALL - instructions to install gmp-ecm
 Makefile - to build the binary file 'ecm'
 README - this file
-auxi.c - auxiliary functions
-b1_ainc.c - code to "compute" the amount of B1 to increment (based upon
-            table of expected curves, per size)
-bestd.c - routines to determine the best step 2 parameters
+*.c    - C source files
 c155 - test file containing a 155-digit composite
-candi.c - structure (and code) to handle the work in process candidates.
-ecm.c - factorization routine using the Elliptic Curve Method
-ecm.h - header file for gmp-ecm
-ecm2.c - ECM step 2 routines
-eval.c - expression evalutation and file input reading routines.
-getprime.c - dynamic Eratosthenes sieve
-listz.c - arithmetic on lists of integers mod n
-lucas.c - functions to evaluate Lucas sequences
-main.c - main file for gmp-ecm, P-1 and P+1
-memory.c - auxiliary routines to check memory allocation
-mpmod.c - modular arithmetic
-mul_lo.c - low-half short product
-ntl.c - interface with NTL
-pm1.c - Pollard P-1 factorization routine
-polyeval.c - algorithm POLYEVAL
-polyz.c - routines for polynomial arithmetic
-pp1.c - P+1 factorization routines
-resume.c - routines to resume a computation
-schoen_strass.c - Sch"onhage-Strassen multiplication for polynomials
-stage2.c - common step 2 implementation for ecm, P-1 and P+1
+ecm.h - header file
 test.ecm - test file for ECM
 test.pm1 - test file for P-1
 test.pp1 - test file for P+1
-test_sh.ecm test_sh.pm1 test_sh.pp1 - tests which use sh (not csh)
-toomcook.c - Toom-Cook 3 and Toom-Cook 4 multiplication
-trial.c - Trial division code
-tune.c - auxiliary routines to compute optimal thresholds
-
-##############################################################################
-
-2. Main changes with respect to gmp-ecm 4c.
-
-- the code is split into several files to make the code easier to maintain
-    and compile.
-- the program now implements also P-1 and P+1, with a common step 2
-    (use option -pm1 to call P-1, -pp1 for P+1).
-- the program can trial divide the candidate (before running the first
-    curve) and can also perform a PRP primality test prior to running
-    the first curve.
-- step 1 is slightly faster, thanks to a new modular multiplication layer
-- step 2 uses Toom-Cook 3 and Toom-Cook 4, instead of only Karatsuba
-    in gmp-ecm 4c.
-- an option -save enables one to save the state at the end of step 1,
-  to continue it afterwards, or on a different computer (with -resume).
-- it is now possible to specify a range B2min-B2max for step 2. This
-  enables one to perform a huge step 2 (for a given step 1) using several 
-  computers: the first one checks B1-B2, the second one B2-B3, ...
-- ECM now can handle expressions instead of "raw" decimal numbers (see 
-  section "6 Expression syntax reference for gmp-ecm's syntax parser" for 
-  full explanation of the syntax of the expression parser)
-- ECM can "loop" processing multiple curves in a single run.  ECM continues
-  to find factors when they are found, as long as the cofactor is composite
-  (there is an option to stop processing a candidate once any factor is found).
-  Also, the B1 (and B2) value can be "adjusted" with each curve being run.
-  This looping and incrementing mode is very powerful.
 
 ##############################################################################
 
@@ -96,11 +42,11 @@ bound B2. For P=67872792749091946529, we have P-1 = 2^5 * 11 * 17 * 19 *
 and B2 >= 11004397:
 
 $ echo 67872792749091946529 | ./ecm -pm1 -x0 2809890345 8467 11004397
-GMP-ECM 5.0 [powered by GMP 4.1.2] [P-1]
+GMP-ECM 5.2.0 [powered by GMP 4.1.4] [P-1]
 Input number is 67872792749091946529 (20 digits)
 Using B1=8467, B2=11004397, polynomial Dickson(6), x0=2809890345
-Step 1 took 10ms
-Step 2 took 320ms
+Step 1 took 5ms
+Step 2 took 278ms
 ********** Factor found in step 2: 67872792749091946529
 Found input number N
 
@@ -113,13 +59,12 @@ P+1 = 2^4 * 283 * 2423 * 21881 * 39839 * 1414261 * 2337233 * 132554351, so
 this factor will be found as long as B1 >= 2337233 and B2 >= 132554351:
 
 $ echo 4190453151940208656715582382315221647 | ./ecm -pp1 -x0 2284918860 2337233 132554351
-GMP-ECM 5.0 [powered by GMP 4.1.2] [P+1]
+GMP-ECM 5.2.0 [powered by GMP 4.1.4] [P+1]
 Input number is 4190453151940208656715582382315221647 (37 digits)
 Using B1=2337233, B2=132554351, polynomial x^1, x0=2284918860
-Step 1 took 3300ms
-Step 2 took 2460ms
-********** Factor found in step 2:
-4190453151940208656715582382315221647
+Step 1 took 2912ms
+Step 2 took 1776ms
+********** Factor found in step 2: 4190453151940208656715582382315221647
 Found input number N
 
 However not all seeds will succeed: only half of the seeds 's' work for P+1
@@ -140,81 +85,43 @@ take into account the "extra factors" found by Brent-Suyama's extension, see
 below).
 
        digits D  optimal B1      B2        expected curves N(B1,B2,D)
-          15        2e3         1.2e5             30
-          20       11e3         1.4e6             90
-          25        5e4         1.2e7            240
-          30       25e4         1.1e8            500
-          35        1e6         8.4e8           1100
-          40        3e6         4.0e9           2900
-          45       11e6        2.6e10           5500
-          50       43e6        1.8e11           9000
-          55       11e7        6.8e11          22000
+          20       11e3         1.7e6             89
+          25        5e4         1.5e7            244
+          30       25e4         1.2e8            526
+          35        1e6         9.7e8           1132
+          40        3e6         4.5e9           2992
+          45       11e6        3.0e10           5706
+          50       43e6        1.9e11           9507
+          55       11e7        7.2e11          22605
           60       26e7        2.3e12          52000
           65       85e7        1.3e13          83000
-          70       29e8        7.2e13         120000
 
           Table 1: optimal B1 and expected number of curves to find a
-          factor of D digits.
-
-Important note: the expected number of curves is significantly smaller
-than the "classical" one we get with B2=100*B1. This is due to the
-fact that this new version of gmp-ecm uses a default B2 which is much
-larger than 100*B1 (for large B1), thanks to the improvements in step 2.
-
-Another important note:  There is a new "-I f" switch that computes 
-an "auto-calculated" increment of B1.  This "auto-computed" calculation
-of B1 is based upon the table shown above (and an internal scaling
-factor), and the "f" user scaling factor to also adjust this value. 
-There is also a "-i n" switch which will increment B1 by a "fixed" value
-(the n value).  This code is still "new" and some testing/tuning may still
-be needed to obtain the optimal results, however, the -I f should currently
-be "pretty" close to optimal.  NOTE that -I 10 is a wonderful way
-to find factors of the same number across 10 machines at the
-same time.  This will cause each "next" auto-computation of B1 to be 
-scaled 10x larger than normal.  Thus the "correct" amount of work will
-be done in 10 parallel systems automatically.
-
-Even another important note:  There is a new "-B2scale f" switch which 
-will multiply the "auto-computed" B2 value by a user defined scaling
-factor.  This "can" speed up the finding of factors (and reduction 
-in the expected number of curves needed).  This is a brand new 
-experimental option, that has not yet been fully studied, however, it
-does (might) kick out factors more quickly.
+          factor of D digits with gmp-ecm.
 
 After performing the expected number of curves from Table 1, the
 probability that a factor of D digits was missed is exp(-1), i.e.
 about 37%. After twice the expected number of curves, it is exp(-2),
 i.e. about 14%, and so on.
 
-Example: after performing 9000 curves with B1=43e6 and B2=1.8e11,
+Example: after performing 9507 curves with B1=43e6 and B2=1.9e11,
 the probability to miss a 50-digit factor is about 37%.
 
 In summary, we advise the following method:
 
 0 - choose a target factor size of D digits
-1 - choose "optimal" B1 and B2 values to find factors of D digits
-2 - run once P-1 with those B1 and B2
-3 - run 3 times P+1 with those B1 and B2
+1 - choose optimal B1 and B2 values to find factors of D digits (cf Table 1)
+2 - run once P-1 with that B1, and the default B2 chosen by gmp-ecm
+3 - run 3 times P+1 with that B1, and the default B2 chosen by gmp-ecm
 4 - run N(B1,B2,D) times ECM with those B1 and B2, where N(B1,B2,D) is the
     expected number of ECM curves with step 1 bound B1, step 2 bound B2,
     to find a factor of D digits (cf above table). 
-    OR 
-    run ECM -c (about_2/3_times_listed_in_table) -I 1 B1 to allow ECM to
-    "auto" advance B1 after each curve.  B1 in this example would be the
-    "starting" B1, as gmp-ecm would auto advance it's value.
 5 - if no factor is found, either increase D and go to 0, or use another
     factorization method (MPQS, GNFS)
 
 Note: if a factor is found in steps 2, 3 or 4, simply continue the current
       step with the remaining cofactor (if composite). There is no need
-      to start again from 0, since the factorization effort on the cofactor
-      is not lost.
-Note2: Adjustments made using the "-B2scale f" will reduce the number of 
-       curves "needed" to find factors of a gived D digits.  At this time,
-       the authors of gmp-ecm can not tell you "exactly" how much a given
-       scaling factor will adjust the "average" curves needed (more study
-       is needed), however, rest assured, that it does increase the odds
-       that any "random" curve with a certain B1 value will find a factor.
+      to start again from 0, since the cofactor got the ecm effort too.
 
 ##############################################################################
 
@@ -231,19 +138,19 @@ s^f(j*d) and s^f(i) instead of s^(j*d) and s^i [thus the classical step 2
 corresponds to f(x)=x^1]. Then P will be found whenever all but one of the 
 factors of P-1 are <= B1, and one factor divides some f(j*d) - f(i):
 
-$ echo 1207946164033269799036708918081 | ./ecm -pm1 -k 4 -power 12 286493 25e6
-GMP-ECM 5.0 [powered by GMP 4.1.2] [P-1]
+$ echo 1207946164033269799036708918081 | ./ecm -pm1 -k 3 -power 12 286493 25e6
+GMP-ECM 5.2.0 [powered by GMP 4.1.4] [P-1]
 Input number is 1207946164033269799036708918081 (31 digits)
-Using B1=286493, B2=25000000, polynomial x^12, x0=349569250
-Step 1 took 260ms
-Step 2 took 750ms
+Using B1=286493, B2=25000000, polynomial x^12, x0=2645739889
+Step 1 took 238ms
+Step 2 took 461ms
 ********** Factor found in step 2: 1207946164033269799036708918081
 Found input number N
 
 Here the largest factor of P-1 is 83957197, which is 3.35 times larger than B2.
-Warning: these "extra" factorizations may not be reproducible in future
-versions of gmp-ecm, since they depend on some internal parameters that
-may change.
+Warning: these "extra" factorizations may not be reproducible from one
+version of gmp-ecm to another one, since they depend on some internal
+parameters that may change.
 
 For P-1, the degree of the Brent-Suyama polynomial should be even. Since
 i^2k - (j*d)^2k = (i^k - (j*d)^k)(i^k + (j*d)^k), this allows testing two
@@ -262,60 +169,62 @@ the input number). Step 2 may be quite memory expensive, especially for
 large B2, since its efficient algorithms use some large tables. To reduce
 the memory usage of step 2, you may increase the 'k' parameter, which controls
 the number of "blocks" performed in step 2. Multiplying the default value of
-k (which is 5) by 4 will decrease the memory usage by 2. For example with 
-B2=1e10 and a 155-digit number, step 2 requires about 28MB with the default
-k, but only 14MB with k=32. Increasing k does, however, also increase the
+k by 4 will decrease the memory usage by 2. For example with B2=1e10 and
+a 155-digit number, step 2 requires about 96MB with the default k=2,
+but only 42MB with k=8. Increasing k does, however, slightly increase the
 time required for step 2 (see section "8. How to get the best of gmp-ecm?")
 
 NOTE that in -b "breadth-first" mode, gmp-ecm reads all candidate numbers in 
-the input stream and keeps them in memory simultaneously, so if there are many 
-large numbers to be tested, the memory requirement will increase noticeably.
+the input stream and keeps them in memory, so if there are many large numbers
+to be tested, the memory requirement will increase noticeably.
 
 ##############################################################################
 
 6. Expression syntax reference for gmp-ecm's syntax parser.
 
-With release 5.1 of GMP-ECM, it now can handle expression form of input 
-numbers. Here is the syntax that is handled:
+Up from release 5.2.0, GMP-ECM can handle several kinds of expressions
+as input numbers. Here is the syntax that is handled:
 
-1.  Raw decimal numbers (as it has always done)
+1.  Raw decimal numbers (as in previous versions) like 123456789
 2.  Comments can be placed in the file.  The C++ "one line comment"  // 
-    is used.  Everythin after the // on a line (including the //) is ignored.
-3.  Line continuation.  If a line ends (the very last character) with a backslash
-    \ character, then it is "joined" with the next line (and of course the 
-    \ is removed).
-4.  All white space (space, tab, end of line) is ignored.  However, the "end of
-    line" is used to "end" the expression (unless of course there is a \ 
+    is used.  Everything after the // on a line (including the //) is ignored.
+    Warning: no input number should appear on such a comment line.
+3.  Line continuation. If a line ends with a backslash character '\',
+    it is considered it continues on the next line (ignoring the '\').
+4.  Any white space (space, tab, end of line) is ignored.  However, the "end of
+    line" is used to end the expression (unless of course there is a '\' 
     character before the end of line).  For example, processing this:
     1 2 3 4 5 6 7 8 9
     would be the same as processing
     123456789
 5.  "common" arithmetic expressions ( * / + - % )  period . can also be used in
-    place of * for multiply, and - can be unary minus (i.e.  -55555551)
+    place of * for multiply, and - can be unary minus (i.e.  -55555551).
+    Example: echo "3*5+2" | ./ecm 100
 6.  Grouping  ( [ { for start of group (which symbol is used does not matter)
     and ) ] } to end a group (again all 3 symbols mean the SAME thing).
-7.  Exponentiation with the ^ character  (i.e.  2^24 is the same as 16777216)
+7.  Exponentiation with the ^ character  (i.e.  2^24 is the same as 16777216).
+    Example: echo "2^24+1" | ./ecm 100
 8.  Simple factorial using the exclamation point !  character.  Example is
-    53! == 1*2*3*4...*52*53
-9.  Multi-factorial as in: n!m with an example:  15!3 == 15.12.9.6.3
+    53! == 1*2*3*4...*52*53. Example: echo '53!+1' | ./ecm 1e2
+9.  Multi-factorial as in: n!m with an example:  15!3 == 15.12.9.6.3.
 10. Simple Primorial using the # character  with example of 11# == 2*3*5*7*11
 11. Reduced Primorial   n#m  with example of 17#5 == 5.7.11.13.17
 12. Functions are possible with the expression parser. Currently, the only 
-    function added to the syntax is Phi(x,n), however other functions should 
-    be easy to add in the future.
+    available function is Phi(x,n), however other functions should be easy
+    to add in the future.
 
-Note Expressions are "maintained" as much as possible (even if the expression
-becomes longer than the decimal expansion).  Expressions are output as cofactors
-(if the input was an expression).  Expressions are stored into save/resume files
-(again if and ONLY if the original input was an expression, and not a expanded
-decimal number).  When a factor is found, the cofactor expression is this:
-(orig_expr)/factor_found   This is shown in:
+Note: Expressions are "maintained" as much as possible (even if the expression
+becomes longer than the decimal expansion). Expressions are output as cofactors
+(if the input was an expression), and are stored into save/resume files
+(again if and only if the original input was an expression, and not a expanded
+decimal number). When a factor is found, the cofactor expression is of the
+form (original_expression)/factor_found (see however option -cofdec):
 
-GMP-ECM 5.1-beta [powered by GMP 4.1] [ECM]
+GMP-ECM 5.2.0 [powered by GMP 4.1.4] [ECM]
 Input number is 3*2^210+1 (64 digits)
 Using B1=2500, B2=164648, polynomial x^1, sigma=4007218240
-Step 1 took 53ms
-Step 2 took 76ms
+Step 1 took 23ms
+Step 2 took 20ms
 ********** Factor found in step 2: 1358437
 Found probable prime factor of  7 digits: 1358437
 Probable prime cofactor (3*2^210+1)/1358437 has 58 digits
@@ -333,28 +242,28 @@ Here is an example how to reuse some P-1 computation:
 $ cat c71
 13155161912808540373988986448257115022677318870175067553764004308210487
 $ ./ecm -save toto -pm1 -mpzmod -x0 2 5000000 < c71
-GMP-ECM 5.0 [powered by GMP 4.1.2] [P-1]
+GMP-ECM 5.2.0 [powered by GMP 4.1.4] [P-1]
 Input number is 13155161912808540373988986448257115022677318870175067553764004308210487 (71 digits)
 Using B1=5000000, B2=272993793, polynomial x^24, x0=2
-Step 1 took 5590ms
-Step 2 took 5570ms
+Step 1 took 5149ms
+Step 2 took 3523ms
 
 The file "toto" now contains some information about the method use, the step
 1 bound, the number to factor, the value X at the end of step 1 (in hexa-
 decimal), and a checksum to verify that no data was corrupted:
 
 $ cat toto
-METHOD=P-1; B1=5000000; N=13155161912808540373988986448257115022677318870175067553764004308210487; X=0x12530157ae22ae14d54d6a5bc404ae9458e54032c1bb2ab269837d1519f; CHECKSUM=2287710189; PROGRAM=GMP-ECM 5.0; X0=0x2; WHO=zimmerma@norroy.loria.fr; TIME=Sun Feb 23 21:39:01 2003;
+METHOD=P-1; B1=5000000; N=13155161912808540373988986448257115022677318870175067553764004308210487; X=0x12530157ae22ae14d54d6a5bc404ae9458e54032c1bb2ab269837d1519f; CHECKSUM=2287710189; PROGRAM=GMP-ECM 5.2.0; X0=0x2; WHO=zimmerma@localhost.localdomain; TIME=Wed Jan 26 21:09:49 2005;
 
 Then one can resume the computation with larger B1 and/or B2 as follows:
 
 $ ./ecm -resume toto 1e7
-GMP-ECM 5.0 [powered by GMP 4.1.2] [ECM]
-Resuming P-1 residue saved by zimmerma@norroy.loria.fr with GMP-ECM 5.0 on Sun Feb 23 21:43:00 2003 
+GMP-ECM 5.2.0 [powered by GMP 4.1.4] [ECM]
+Resuming P-1 residue saved by zimmerma@localhost.localdomain with GMP-ECM 5.2.0 on Wed Jan 26 21:09:49 2005 
 Input number is 13155161912808540373988986448257115022677318870175067553764004308210487 (71 digits)
 Using B1=5000000-10000000, B2=732940912, polynomial x^24
-Step 1 took 5600ms
-Step 2 took 10500ms
+Step 1 took 5091ms
+Step 2 took 5805ms
 ********** Factor found in step 2: 1448595612076564044790098185437
 Found probable prime factor of 31 digits: 1448595612076564044790098185437
 Probable prime cofactor 9081321110693270343633073697474256143651 has 40 digits
@@ -408,12 +317,12 @@ computations. Options -save/-resume is useful in the following cases:
 
 8. Working with very large numbers (the -prp* options)
 
-When working with VERY large numbers, PRP testing can become very slow when
-using GMP.  A much faster program is available.  That program is OpenPFGW (pfgw).
+When working with very large numbers, probable-primality testing becomes
+very slow when using GMP.  A faster program is available: OpenPFGW (pfgw).
 pfgw only does a simple Fermat test, but is much faster, due to it's highly 
-optimal FFT multiplcation code.  The difference at 15k digits is about 10
+optimal FFT multiplication code.  The difference at 15k digits is about 10
 minutes for GMP, and about 20s for PFGW (and the difference only gets more
-severe).  A limitation of OpenPFGW, is it will ONLY be a viable solution for
+severe).  A limitation of OpenPFGW, is it will only be a viable solution for
 Intel 32 bit CPU's, as the FFT code is only built for those systems.
 
 Chapter 10 lists more information about the -prp* options, and using them.
@@ -439,10 +348,6 @@ of modular arithmetic:
 (4) base-2 arithmetic for numbers dividing 2^n+1 or 2^n-1.
     Each division has only linear time, but the multiplication are
     most expensive since they are done on larger numbers.
-
-What a "small" or "large" number means depend on the configuration.
-The "tune" program helps to determine the thresholds between different
-methods. Simply type "make tune", then "./tune".
 
 The ecm program automatically selects what he thinks is the best
 arithmetic for the given input number. If that choice is not optimal, you may 
@@ -536,7 +441,7 @@ The usage of the "ecm" command is the following:
 $ ecm [options] [-inp file ] B1 [[B2min-]B2] [ < file ] 
 
 Parameters:
-- B1 is the step 1 bound. It is the ONLY mandatory parameter. It can
+- B1 is the step 1 bound. It is the only mandatory parameter. It can
   be given either in integer format (for example 3000000) or in
   floating-point format (3000000.0 or 3e6). The largest possible
   B1 value is 9007199254740996 for P-1, 4294967295 for ECM and P+1.
@@ -548,28 +453,20 @@ Parameters:
   P+1 will be larger than that for P-1, and that for ECM will be still
   larger. Like B1, it can be given either in integer or in floating-point 
   format. The largest possible value of B2 depends on the number of blocks
-  in step 2 (see option -k); it is about 10^13*k.
+  in step 2 (see option -k); it is of the form b2_max*k.
   All primes B1 <= p <= B2 are processed in step 2. If B2 < B1, no step 2
   is performed.
 - alternatively one may use the B2min-B2max form, which means that all
   primes B2min <= p <= B2max should be processed. Thus specifying only B2 
   corresponds to B1-B2.
--inp file   Use file as input (instead of redirecting stdin).  This mode
-  also "defaults" to the -b bredthfirst mode (use -d to change this to depth
-  first search).  If both the -inp file and stdin is redirected (using < file),
-  then the stdin is IGNORED.  The inp file take precedence.
-  NOTE inp file MUST come before B1 (so it is more like an "option"), and can
-  actually occur anywhere before B1 (if there are more options entered), 
-  however it's "overriding of the [ < file] places it into the Parameters
-  section.
 
-Options: options must appear before the parameters, and can be in any order.
+Options: they must appear before the parameters, and can be in any order.
 
 Options to control the factorization method [ECM is the default]:
 -pm1  Perform P-1 instead of ECM.
 -pp1  Perform P+1 instead of ECM.
--t n  Trial divide candidates before P-1, P+1 or ECM up to n.  If ECM is in
-   looping mode, then -t n will ONLY affect finding factors before running
+-t n  Perform trial division up to n, before P-1, P+1 or ECM.  In looping
+   mode (-c), then -t n will only affect finding factors before running
    the first curve.
 
 Options to control the group and initial point used:
@@ -587,16 +484,14 @@ Options to control the group and initial point used:
 -go <VAL>   [P-1,P+1,ECM].  Preload with Group Order value of VAL.  VAL can
    be a simple number (such as 12345) or any valid expression (such as 2^40)
    or it can be an expression that contains the special character N, (such
-   as N^2-1).  If the expression contains the N character, then the expression
-   is recomputed before for each curve, and the value of the candidate is 
-   substituted into the expression.  For instance:
+   as N^2-1), where N stands for the current input number:
    echo 111112222334567 | ecm -go N^2-1 -pm1 5000   will convert the -go
    expression into 111112222334567^2-1 then evaluated, before processing
    the P-1.  
 
 Options to control step 2 parameters:
--k n  [P-1,P+1,ECM]. Perform >= n blocks in step 2 (default is 0). See
-   section "5. Memory usage" above.
+-k n  [P-1,P+1,ECM]. Perform >= n blocks in step 2.
+      See section "5. Memory usage" above.
 -power n  Use x^n for Brent-Suyama's extension (see section "4. Extra 
    factors and Brent-Suyama's extension"). Default is chosen depending on
    method and B2. For P-1, n should be even. Does not work with P+1.
@@ -604,11 +499,15 @@ Options to control step 2 parameters:
    extension, instead of x^n. As for x^n, 'n' should be even for P-1. 
    Dickson polynomials give a better chance of finding factors, but for
    P-1 and n>6, x^n is faster. Does not work with P+1.
--B2scale f   Multiplies the 'computed' B2 value by the specified 
-   multiplier.  The multipler must be above 0.02, and in many cases,
-   it must be "below" a certain threashold (See info about B2 and -k).
+-B2scale f   Multiplies the step 2 bound B2 by the given floating-point
+   value f. Example: -B2scale 0.5 divides the default B2 by 2.
 
-Options to control output:
+Options to control input/output:
+-inp file   Use 'file' as input (instead of redirecting the standard input).
+  This mode also "defaults" to the -b breadthfirst mode (use -d to change
+  this to depth first search).  If both the -inp option is used and the
+  standard input is redirected (using < file), then the standard input is
+  ignored.
 -q  Quiet mode. Found factors are printed on standard error, and
     cofactors (if not probable prime) are printed on standard output.
     This option is useful to deal with a file of cofactors: type
@@ -622,8 +521,7 @@ Options to control output:
 -ve n     Verbosely show short (< n character) expressions on each loop.
           This gives a "better" feel for what is being processed when
           expressions are used.
--ticdelay n This will cause the percentage ticks to only output every n
-            ms.  If n is -1, then the tic display will NOT happen at all.
+-ticdelay n This will cause percentage ticks to be output every n ms.
 
 Options to control modular arithmetic (see "How to get the best of gmp-ecm?"):
 -mpzmod   Use GMP's mpz_mod for modular reduction.
@@ -631,30 +529,23 @@ Options to control modular arithmetic (see "How to get the best of gmp-ecm?"):
 -redc     Use Montgomery's REDC for modular reduction.
 -nobase2  Disable special base-2 code. Base-2 division is used
           when the input number is a factor of 2^n+1 or 2^n-1,
-		  and the size of the input number is not too small compared to the
-		  size of 2^n+/-1. The threshold is optimized for Cunningham numbers.
+	  and the size of the input number is not too small compared to the
+	  size of 2^n+/-1. The threshold is optimized for Cunningham numbers.
 
 Options for saving and resuming to/from files (see section "7. Options
    -save and -resume"):
 -save file    Save residues at end of step 1 to file.
 -resume file  Resume residues from file, reads from stdin if file is "-".
-              NOTE that incremental saving of the save file during B1 
-              mode "IS" a work in progress.  It has been added, but is
-              not yet working.  Thus it has currently been "commented"
-              out in the source code, until one of the other ECM
-              developers (with more in-depth knowledge of the code), 
-              gets it working.
 
-Options for prp testing using extern proces 
-  (i.e. prp testing using OpenPFGW)  see section "8. Working with very large
-  numbers (the -prp* options)
+Options for prp testing using external programs (e.g. using OpenPFGW).
+See section "8. Working with very large numbers".
 -prp cmd     use shell command cmd to do large primality tests.  Withing the
              cmd part, there are these escape sequences:  %n will be replaced
              with the decimal number needing checked for prp,  %l will be 
              replaced by the "file" part of -prplog, and %t will be replaced
              with the "file" part of -prptmp.  Also any character possible
-			 can be output using the escape %x[0-9a-f][0-9a-f], thus special
-			 chars that some broken shells do not like to allow, can be used.
+             can be output using the escape %x[0-9a-f][0-9a-f], thus special
+             chars that some broken shells do not like to allow, can be used.
              All other characters within the cmd will be replaced verbetim,
              and the system call will be made to exectute the cmd.  NOTE in
              PFGW, only a Fermat test is dome (with a default of Fermat-3).
@@ -701,8 +592,12 @@ Miscellaneous options:
       given B1 in Table 1 (see "How to efficiently use P-1, P+1 and
       ECM?"). This option is incompatible with -resume, -sigma, -x0.
       Giving -c 0 will emulate an infinite loop until a factor is found.
--i n  increment B1 by this constant on each run
--I f  auto-calculated increment for B1 multiplied by 'f' scale factor
+-I f  when several curves are done on the same number (with -c n), the
+      2nd and following curves will use a larger step 1 bound B1, which
+      is controlled by the floating-point argument f. For example, -I 1
+      tries to mimic the optimal number of curves given by Table 1.
+      If 10 machines test the same number simultaneously, use -I 10.
+-i f  (together with -c n) increment the step 1 bound B1 by f at each run
 -b    Use breadth-first mode of file processing (recommended). In this
       mode, all (remaining) candidates are tested, before being tested
       with a 2nd (3rd, 4th, ...) curve.  In this mode, the file is "pre-
