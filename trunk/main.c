@@ -153,6 +153,7 @@ main (int argc, char *argv[])
   unsigned int nCandidates=0, nMaxCandidates=0;
   int deep=1, trial_factor_found;
   unsigned int displayexpr=0;
+  unsigned int decimal_cofactor=0;
   double maxtrialdiv=0;
 
   /* check ecm is linked with a compatible librayr */
@@ -263,6 +264,12 @@ main (int argc, char *argv[])
 /*	  fprintf (stderr, "Executing at idle priority\n"); */
 	  SetPriorityClass (GetCurrentProcess (), IDLE_PRIORITY_CLASS);
 	  SetThreadPriority (GetCurrentThread (), THREAD_PRIORITY_IDLE);
+	  argv++;
+	  argc--;
+        }
+      else if (strcmp (argv[1], "-cofdec") == 0)
+        {
+	  decimal_cofactor = 1;
 	  argv++;
 	  argc--;
         }
@@ -485,6 +492,7 @@ main (int argc, char *argv[])
       fprintf (stderr, "  -nn          run ecm in \"very nice\" mode (idle priority)\n");
       fprintf (stderr, "  -t n         Trial divide candidates before P-1, P+1 or ECM up to n\n");
       fprintf (stderr, "  -ve n        Verbosely show short (< n character) expressions on each loop\n");
+      fprintf (stderr, "  -cofdec      Force cofactor output in decimal (even if expressions are possible)\n");
       exit (EXIT_FAILURE);
     }
 
@@ -789,9 +797,9 @@ BreadthFirstDoAgain:;
       if (count == cnt)
 	fprintf (stderr, "\r      Line=%u B1=%.0f factors=%u           \r", linenum, B1, factsfound);
       if (count != cnt)
-	fprintf (stderr, "\r      Line=%u Curves=%u/%u B1=%.0f factors=%u\r", linenum, count-cnt+1, count, B1, factsfound);
+	fprintf (stderr, "\r      Line=%u Curves=%u/%u B1=%.0f factors=%u   \r", linenum, count-cnt+1, count, B1, factsfound);
       if (breadthfirst && nCandidates > 1)
-	fprintf (stderr, "\r      Line=%u/%u Curves=%u/%u B1=%.0f factors=%u\r", linenum, nCandidates, breadthfirst_cnt, breadthfirst_maxcnt, B1, factsfound);
+	fprintf (stderr, "\r      Line=%u/%u Curves=%u/%u B1=%.0f factors=%u   \r", linenum, nCandidates, breadthfirst_cnt, breadthfirst_maxcnt, B1, factsfound);
       if (verbose > 0)
 	{
 	  if ((!breadthfirst && cnt == count) || (breadthfirst && 1 == breadthfirst_cnt))
@@ -829,7 +837,11 @@ BreadthFirstDoAgain:;
 		      printf ("Input number is %s (%u digits)\n", s, n.ndigits);
                       FREE (s, n.ndigits + 1);
 		    }
+		  else
+		    printf ("C%d ", n.ndigits);  /* This will show up at the head of the "Using B1=2250, B2=...." line */
 		}
+	      else
+		printf ("C%d ", n.ndigits);  /* This will show up at the head of the "Using B1=2250, B2=...." line */
 	    }
 	  fflush (stdout);
 	}
@@ -857,7 +869,7 @@ BreadthFirstDoAgain:;
 	      if (n.isPrp)
 	        {
 		  printf ("Probable prime cofactor ");
-		  if (n.cpExpr)
+		  if (n.cpExpr && !decimal_cofactor)
 		    printf ("%s", n.cpExpr);
 		  else
 		    mpz_out_str (stdout, 10, n.n);
@@ -935,7 +947,7 @@ OutputFactorStuff:;
 		{
 		  printf ("%s cofactor ",
 			  n.isPrp ? "Probable prime" : "Composite");
-		  if (n.cpExpr)
+		  if (n.cpExpr && !decimal_cofactor)
 		    printf ("%s", n.cpExpr);
 		  else
 		    mpz_out_str (stdout, 10, n.n);
@@ -981,7 +993,7 @@ OutputFactorStuff:;
       /* if quiet, prints composite cofactors on standard output. */
       if (!count && (verbose == 0) && !n.isPrp)
 	{
-	  if (n.cpExpr)
+	  if (n.cpExpr && !decimal_cofactor)
 	    printf ("%s", n.cpExpr);
 	  else
 	    mpz_out_str (stdout, 10, n.n);
