@@ -3,15 +3,15 @@ This is the README file for gmp-ecm.
 Table of contents of this file:
 1. Files included in this distribution.
 2. How to efficiently use P-1, P+1 and ECM?
-4. Extra factors and Brent-Suyama's extension.
-5. Memory usage.
-6. Expression syntax reference for gmp-ecm's syntax parser.
-7. Options -save and -resume.
-8. working with very large numbers (the -prp* options)
-9. How to get the best of gmp-ecm?
-10. Command line options.
-11. Known problems.
-12. Record factors.
+3. Extra factors and Brent-Suyama's extension.
+4. Memory usage.
+5. Expression syntax reference for gmp-ecm's syntax parser.
+6. Options -save and -resume.
+7. working with very large numbers (the -prp* options)
+8. How to get the best of gmp-ecm?
+9. Command line options.
+10. Known problems.
+11. Record factors.
 
 ##############################################################################
 
@@ -132,7 +132,7 @@ Note: if a factor is found in steps 2, 3 or 4, simply continue the current
 
 ##############################################################################
 
-4. Extra factors and Brent-Suyama's extension.
+3. Extra factors and Brent-Suyama's extension.
 
 GMP-ECM may sometimes find some "extra" factors, such that one factor of P-1, 
 P+1 or P+t exceeds the step 2 bound B2, thanks to Brent-Suyama's extension. 
@@ -169,7 +169,7 @@ i.e. give only a marginal overhead in step 2, while enabling extra factors.
 
 ##############################################################################
 
-5. Memory usage.
+4. Memory usage.
 
 Step 1 does not require much memory (about the same size as
 the input number). Step 2 may be quite memory expensive, especially for
@@ -187,7 +187,7 @@ to be tested, the memory requirement will increase noticeably.
 
 ##############################################################################
 
-6. Expression syntax reference for gmp-ecm's syntax parser.
+5. Expression syntax reference for gmp-ecm's syntax parser.
 
 Up from release 5.2.0, GMP-ECM can handle several kinds of expressions
 as input numbers. Here is the syntax that is handled:
@@ -227,6 +227,7 @@ becomes longer than the decimal expansion). Expressions are output as cofactors
 decimal number). When a factor is found, the cofactor expression is of the
 form (original_expression)/factor_found (see however option -cofdec):
 
+$ echo "3*2^210+1" | ./ecm -sigma 4007218240 2500
 GMP-ECM 5.2.0 [powered by GMP 4.1.4] [ECM]
 Input number is 3*2^210+1 (64 digits)
 Using B1=2500, B2=164648, polynomial x^1, sigma=4007218240
@@ -238,7 +239,7 @@ Probable prime cofactor (3*2^210+1)/1358437 has 58 digits
 
 ##############################################################################
 
-7. Options -save and -resume.
+6. Options -save and -resume.
 
 These options are useful to save the current state of the computation after
 step 1, or to exchange data with other software. It allows to perform
@@ -322,7 +323,7 @@ computations. Options -save/-resume is useful in the following cases:
 
 ##############################################################################
 
-8. Working with very large numbers (the -prp* options)
+7. Working with very large numbers (the -prp* options)
 
 When working with very large numbers, probable-primality testing becomes
 very slow when using GMP.  A faster program is available: OpenPFGW (pfgw).
@@ -336,7 +337,7 @@ Chapter 10 lists more information about the -prp* options, and using them.
 
 ##############################################################################
 
-9. How to get the best of gmp-ecm?
+8. How to get the best of gmp-ecm?
 
 Choice of modular multiplication. The ecm program may choose between 4 kinds
 of modular arithmetic:
@@ -441,109 +442,14 @@ parameters "-power 1 -k 1 <B1> 48e9", "-power 1 -k 3 <B1> 35e9" or
 
 ##############################################################################
 
-10. Command line parameters and options.
+9. Command line parameters and options.
 
-The usage of the "ecm" command is the following:
+See the man page (ecm.1).
 
-$ ecm [options] [-inp file ] B1 [[B2min-]B2] [ < file ] 
-
-Parameters:
-- B1 is the step 1 bound. It is the only mandatory parameter. It can
-  be given either in integer format (for example 3000000) or in
-  floating-point format (3000000.0 or 3e6). The largest possible
-  B1 value is 9007199254740996 for P-1, ULONG_MAX for ECM and P+1
-  (2^32-1 on a 32-bit machine, 2^64-1 on a 64-bit machine).
-  All primes 2 <= p <= B1 are processed in step 1.
-- B2 is the step 2 bound. It is optional: if not given, it is computed
-  from B1 so that step 2 takes about half the time of step 1. Since the
-  relative cost of both steps differs with the different methods, the
-  default B2 value also differs; for the same B1, the default B2 for
-  P+1 will be larger than that for P-1, and that for ECM will be still
-  larger. Like B1, it can be given either in integer or in floating-point 
-  format. The largest possible value of B2 depends on the number of blocks
-  in step 2 (see option -k); it is of the form b2_max*k.
-  All primes B1 <= p <= B2 are processed in step 2. If B2 < B1, no step 2
-  is performed.
-- alternatively one may use the B2min-B2max form, which means that all
-  primes B2min <= p <= B2max should be processed. Thus specifying only B2 
-  corresponds to B1-B2.
-
-Options: they must appear before the parameters, and can be in any order.
-
-Options to control the factorization method [ECM is the default]:
--pm1  Perform P-1 instead of ECM.
--pp1  Perform P+1 instead of ECM.
--t n  Perform trial division up to n, before P-1, P+1 or ECM.  In looping
-   mode (-c), then -t n will only affect finding factors before running
-   the first curve.
-
-Options to control the group and initial point used:
--x0 x  [P-1,P+1,ECM]. Use x as initial point. x can be an arbitrary-precision
-   integer or rational. For example, -x0 1/3 is valid. If not given, x0 is
-   either generated from the sigma value for ECM, or at random.
--sigma s  [ECM]. Use s (arbitrary-precision integer) as curve generator,
-   where s must be >= 6. If not given, sigma is generated at random
-   (32-bit integer). Any value has the same probability to hit a
-   factor, the only important thing is to ensure different values for
-   different runs on the same number.
--A a  [ECM]. Use 'a' (arbitrary-precision integer) as curve parameter.
-   If not given, is generated from sigma. Like sigma, the value of A itself
-   is not important; what is important is to ensure different values
-   for different runs.
--go <VAL>   [P-1,P+1,ECM].  Preload with Group Order value of VAL.  VAL can
-   be a simple number (such as 12345) or any valid expression (such as 2^40)
-   or it can be an expression that contains the special character N, (such
-   as N^2-1), where N stands for the current input number:
-   echo 111112222334567 | ecm -go N^2-1 -pm1 5000   will convert the -go
-   expression into 111112222334567^2-1 then evaluated, before processing
-   the P-1.  
-
-Options to control step 2 parameters:
--k n  [P-1,P+1,ECM]. Perform >= n blocks in step 2.
-      See section "5. Memory usage" above.
--power n  Use x^n for Brent-Suyama's extension (see section "4. Extra 
-   factors and Brent-Suyama's extension"). Default is chosen depending on
-   method and B2. For P-1, n should be even. Does not work with P+1.
--dickson n  Use degree-n Dickson's polynomial for Brent-Suyama's
-   extension, instead of x^n. As for x^n, 'n' should be even for P-1. 
-   Dickson polynomials give a better chance of finding factors, but for
-   P-1 and n>6, x^n is faster. Does not work with P+1.
 -B2scale f   Multiplies the step 2 bound B2 by the given floating-point
    value f. Example: -B2scale 0.5 divides the default B2 by 2.
 
-Options to control input/output:
--inp file   Use 'file' as input (instead of redirecting the standard input).
-  This mode also "defaults" to the -b breadthfirst mode (use -d to change
-  this to depth first search).  If both the -inp option is used and the
-  standard input is redirected (using < file), then the standard input is
-  ignored.
--q  Quiet mode. Found factors are printed on standard error, and
-    cofactors (if not probable prime) are printed on standard output.
-    This option is useful to deal with a file of cofactors: type
-    ecm B1 < file > file2, so that non-factored numbers and composite
-    cofactors are written in file2, while factors found are printed on
-    standard error. Then one can do ecm B1 < file2 > file3, ...
--v  Verbose mode. Several informations are printed (modular
-    multiplication used, initial A and x0 values, value of x at the end
-    of step 1, parameters for step 2, and timing for sub-steps from step 2).
 -cofdec   Force cofactor output in decimal (even if expressions are used)
--ve n     Verbosely show short (< n character) expressions on each loop.
-          This gives a "better" feel for what is being processed when
-          expressions are used.
-
-Options to control modular arithmetic (see "How to get the best of gmp-ecm?"):
--mpzmod   Use GMP's mpz_mod for modular reduction.
--modmuln  Use Montgomery's MODMULN for modular reduction.
--redc     Use Montgomery's REDC for modular reduction.
--nobase2  Disable special base-2 code. Base-2 division is used
-          when the input number is a factor of 2^n+1 or 2^n-1,
-	  and the size of the input number is not too small compared to the
-	  size of 2^n+/-1. The threshold is optimized for Cunningham numbers.
-
-Options for saving and resuming to/from files (see section "7. Options
-   -save and -resume"):
--save file    Save residues at end of step 1 to file.
--resume file  Resume residues from file, reads from stdin if file is "-".
 
 Options for prp testing using external programs (e.g. using OpenPFGW).
 See section "8. Working with very large numbers".
@@ -588,49 +494,11 @@ See section "8. Working with very large numbers".
              The default string to scan for is "is composite"
 
 
-Miscellaneous options:
--primetest  Perform a primality test on input number, and prints a
-      message if it is probably prime. This is not done by default since
-      the primality test may be quite expensive (especially for large
-      input).
--c n  Perform n runs on each input number instead of just one by
-      default. The runs are stopped before n in case a factor is found.
-      This option is mainly useful for P+1 (for example with c=3) or for
-      ECM, where n is the expected number of curves corresponding to a
-      given B1 in Table 1 (see "How to efficiently use P-1, P+1 and
-      ECM?"). This option is incompatible with -resume, -sigma, -x0.
-      Giving -c 0 will emulate an infinite loop until a factor is found.
--I f  when several curves are done on the same number (with -c n), the
-      2nd and following curves will use a larger step 1 bound B1, which
-      is controlled by the floating-point argument f. For example, -I 1
-      tries to mimic the optimal number of curves given by Table 1.
-      If 10 machines test the same number simultaneously, use -I 10.
--i f  (together with -c n) increment the step 1 bound B1 by f at each run
--b    Use breadth-first mode of file processing (recommended). In this
-      mode, all (remaining) candidates are tested, before being tested
-      with a 2nd (3rd, 4th, ...) curve.  In this mode, the file is "pre-
-      read" and all expressions are processed to reside in-memory.  This
-      is NOT a good thing if the data is not limited (i.e. coming from a
-      pipe of unknown size, or from a "server").  If that is the case 
-      (i.e. the size of the input is unbounded), then DO NOT use the -b
-      mode.  The -b mode is not needed to be specified if the -inp filename
-      is used (it is the default for that mode). The -b "can" be used
-      for redirection (i.e.  ecm -c 50 -b 50000 < in-data) will process
-      this data in breadth-first mode.
--d    Use depth-first mode of file processing.  In this mode (the
-      default mode for input redirection), each candidate is tested the
-      required number of curves, before testing the next candidate.
--n    run ecm in "nice" mode (below normal priority)
--nn   run ecm in "very nice" mode (idle priority)
--one  Stop processing a candidate if a factor is found (looping mode).
-      By default, ECM will continue processing the cofactor (as long as
-      it is still composite) in looping mode.
-
 
 
 ##############################################################################
         
-11. Known problems.
+10. Known problems.
 
 (a) Under some operating systems (in particular Windows), ecm may use the
 same random seed for several curves started during the same second. 
@@ -677,7 +545,7 @@ known problem, or remove it if it is not a problem).
         
 ##############################################################################
 
-12. Record factors.
+11. Record factors.
 
 If you find a very large factor, the program will print a message like:
 

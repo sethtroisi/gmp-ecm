@@ -307,13 +307,21 @@ test may be expensive, especially for large input.</para>
   <listitem>
 <para>Perform <replaceable>n</replaceable> runs on each input number
 instead of just one (default).
-The runs are stopped before <replaceable>n</replaceable> if a factor is found.
 This option is mainly useful for P+1 (for example with c=3) or for ECM,
 where <replaceable>n</replaceable> is the expected number of curves
 to find a d-digit factor with a given step 1 bound.
 This option is incompatible with <option>-resume, -sigma, 
 -x0</option>. Giving <option>-c</option> <replaceable>0</replaceable>
 emulates an infinite loop until a factor is found.</para>
+  </listitem>
+  </varlistentry>
+
+  <varlistentry>
+  <term><option>-one</option></term>
+  <listitem>
+<para>In loop mode, stop when a factor is found; the default is to continue
+until the cofactor is prime or <replaceable>n</replaceable> runs are done.
+</para>
   </listitem>
   </varlistentry>
 

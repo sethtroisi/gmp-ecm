@@ -192,7 +192,7 @@ ecm_redc_n (mp_ptr rp, mp_srcptr xp, mp_srcptr orig, mp_srcptr aux, mp_size_t n)
   /* add {x, 2n} and {tp, 2n}. We know that {tp, n} + {xp, n} will give
      either 0, or a carry out. If xp[n-1] <> 0, then there is a carry. */
 #ifdef HAVE_NATIVE_mpn_add_nc
-  cy = mpn_add_nc (rp, tp + n, xp + n, n, (mp_limb_t) ((xp[n - 1]) ? 1 : 0));
+  cy = __gmpn_add_nc (rp, tp + n, xp + n, n, (mp_limb_t) ((xp[n - 1]) ? 1 : 0));
 #else
   cy = mpn_add_n (rp, tp + n, xp + n, n);
   cy += mpn_add_1 (rp, rp, n, (mp_limb_t) ((xp[n - 1]) ? 1 : 0));
