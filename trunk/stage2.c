@@ -52,7 +52,7 @@ rootsF (mpz_t *F, unsigned int d, mpz_t s, mpz_t invs, mpz_t t, mpz_t u,
   mpz_set (t, s); /* t = s0 */
   mpz_set (u, invs); /* u = 1/s0 */
 
-  mpz_add (F[0], t, u);
+  mpz_add (F[0], t, u); /* j=1 */
   mpz_mod (F[0], F[0], n);
 
   mpz_powm_ui (s, s, 6, n); /* s = s0^6 */
@@ -90,14 +90,14 @@ rootsG (mpz_t *G, unsigned int d, mpz_t s, mpz_t invs, mpz_t t, mpz_t u,
 
   st = cputime ();
 
-  for (i = 1; i <= d; i++)
+  for (i = 0; i < d; i++)
     {
       mpz_mul (t, t, s);
       mpz_mod (t, t, n);
       mpz_mul (u, u, invs);
       mpz_mod (u, u, n);
 
-      /* now t = t0*s^i, u = u0*s^(-i) */
+      /* now t = t0*s^(i+1), u = u0/s^(i+1) */
       mpz_add (G[i], t, u);
       mpz_mod (G[i], G[i], n);
     }
@@ -167,7 +167,7 @@ stage2 (mpz_t x, mpz_t n, double B2, unsigned int k, int verbose)
 
   /* now x = x0^d, and invx = x0^(-d) */
 
-  G = init_list (dF);
+  G = init_list (dG + 1);
 
   mpz_set_ui (t, 1);
   mpz_set_ui (u, 1);
@@ -209,7 +209,7 @@ stage2 (mpz_t x, mpz_t n, double B2, unsigned int k, int verbose)
   if (verbose >= 2)
     printf ("Computing gcd of F and G took %dms\n", cputime() - st);
 
-  clear_list (G, dF);
+  clear_list (G, dG + 1);
   clear_list (T, 5 * dF - 1);
 
  clear_F:
