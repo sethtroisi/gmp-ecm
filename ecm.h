@@ -273,6 +273,10 @@ void *__gmp_default_reallocate (void *, size_t, size_t);
 void tests_memory_start (void);
 void tests_memory_end   (void);
 void tests_memory_reset (void);
+void tests_free (void *, size_t);
+#define FREE(ptr,size) tests_free(ptr,size)
+#else
+#define FREE(ptr,size) free(ptr)
 #endif
 
 #if defined (__cplusplus)
