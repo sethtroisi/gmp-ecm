@@ -37,6 +37,9 @@ muls_kara (unsigned int K)
 
   if (K <= 1)
     return K;
+
+  if (K == 3)
+    return 6; /* Weimerskirch/Paar trick */
   
   k = K / 2;
   l = K - k;

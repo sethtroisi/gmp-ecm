@@ -349,11 +349,40 @@ karatsuba (listz_t a, listz_t b, listz_t c, unsigned int K, listz_t t)
       mpz_sub (a[1], a[1], a[2]); /* a1 = b_0*c_1 + b_1*c_0 */
       return 3;
     }
+  else if (K == 3)
+    {
+      /* implement Weimerskirch/Paar trick in 6 muls and 13 adds
+         http://www.crypto.ruhr-uni-bochum.de/Publikationen/texte/kaweb.pdf */
+      /* diagonal terms */
+      mpz_mul (a[0], b[0], c[0]);
+      mpz_mul (a[2], b[1], c[1]);
+      mpz_mul (a[4], b[2], c[2]);
+      /* (0,1) rectangular term */
+      mpz_add (t[0], b[0], b[1]);
+      mpz_add (t[1], c[0], c[1]);
+      mpz_mul (a[1], t[0], t[1]);
+      mpz_sub (a[1], a[1], a[0]);
+      mpz_sub (a[1], a[1], a[2]);
+      /* (1,2) rectangular term */
+      mpz_add (t[0], b[1], b[2]);
+      mpz_add (t[1], c[1], c[2]);
+      mpz_mul (a[3], t[0], t[1]);
+      mpz_sub (a[3], a[3], a[2]);
+      mpz_sub (a[3], a[3], a[4]);
+      /* (0,2) rectangular term */
+      mpz_add (t[0], b[0], b[2]);
+      mpz_add (t[1], c[0], c[2]);
+      mpz_mul (t[2], t[0], t[1]);
+      mpz_sub (t[2], t[2], a[0]);
+      mpz_sub (t[2], t[2], a[4]);
+      mpz_add (a[2], a[2], t[2]);
+      return 6;
+    }
   else
     { 
       unsigned int i, k, l, muls;
       listz_t z;
-       
+
       k = K / 2;
       l = K - k;
 
