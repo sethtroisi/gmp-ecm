@@ -1,8 +1,12 @@
-# directory where GMP is installed (include, lib)
-GMP=/global/ecrouves/loria/linux/gmp-4.1
+# directory where GMP is installed
+# gmp.h should be in $(GMP)/include
+# libgmp.a/libgmp.so should be in $(GMP)/lib
+GMP=/usr/local/gmp
 
-# directory where NTL is installed (include, lib)
-NTL=/global/ecrouves/loria/linux/ntl-5.3
+# directory where NTL is installed
+# ZZ_pX.h and version.h should be in $(NTL)/include/NTL
+# libntl.a should be in $(NTL)/lib
+NTL=/usr/local/ntl
 
 ###################### do not edit below this line ############################
 
