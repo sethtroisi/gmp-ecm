@@ -149,8 +149,9 @@ Use Montgomery's REDC for modular reduction.
 .TP
 .B -nobase2
 Disable special base-2 code. Base-2 division is used when the input
-number if a factor of 2^n+1 or 2^n-1, and the ratio of the number of
-bits is not too small.
+number is a factor of 2^n+1 or 2^n-1, and the size of the input number
+is not too small compared to the size of 2^n+/-1. The threshold is
+optimized for Cunningham numbers.
 
 .SH FILE I/O
 
