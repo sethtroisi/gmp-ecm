@@ -516,7 +516,9 @@ void pm1_random_seed  (mpz_t, mpz_t, gmp_randstate_t);
 
 #if defined (__cplusplus)
 }
-#endif  
+#endif
+
+#define TWO53 9007199254740992.0 /* 2^53 */
 
 /* a <- b * c where a and b are mpz, c is a double, and t an auxiliary mpz */
 #if (BITS_PER_MP_LIMB >= 53)
