@@ -200,14 +200,14 @@ pp1_stage1 (mpz_t f, mpres_t P0, mpmod_t n, double B1, double B1done, mpz_t go)
    a is the initial seed.
 */
 static void
-pp1_check_factor (mpz_t a, mpz_t p, FILE *ECM_STDOUT)
+pp1_check_factor (mpz_t a, mpz_t p)
 {
   if (mpz_probab_prime_p (p, PROBAB_PRIME_TESTS))
     {
       mpz_mul (a, a, a);
       mpz_sub_ui (a, a, 4);
       if (mpz_jacobi (a, p) == 1)
-        fprintf (ECM_STDOUT, "[factor found by P-1]\n");
+        outputf (OUTPUT_NORMAL, "[factor found by P-1]\n");
     }
 }
 
@@ -721,27 +721,24 @@ pp1 (mpz_t f, mpz_t p, mpz_t n, mpz_t go, double B1done, double B1,
 
   if (test_verbose (OUTPUT_NORMAL))
     {
-      fprintf (ECM_STDOUT, "Using ");
+      outputf (OUTPUT_NORMAL, "Using ");
       if (ECM_IS_DEFAULT_B1_DONE(B1done))
-        fprintf (ECM_STDOUT, "B1=%1.0f", B1);
+        outputf (OUTPUT_NORMAL, "B1=%1.0f", B1);
       else
-        fprintf (ECM_STDOUT, "B1=%1.0f-%1.0f", B1done, B1);
+        outputf (OUTPUT_NORMAL, "B1=%1.0f-%1.0f", B1done, B1);
       if (B2min <= B1)
-        fprintf (ECM_STDOUT, ", B2=%1.0f", B2);
+        outputf (OUTPUT_NORMAL, ", B2=%1.0f", B2);
       else
-        fprintf (ECM_STDOUT, ", B2=%1.0f-%1.0f", B2min, B2);
+        outputf (OUTPUT_NORMAL, ", B2=%1.0f-%1.0f", B2min, B2);
 
       if (S > 0)
-        fprintf (ECM_STDOUT, ", polynomial x^%u", S);
+        outputf (OUTPUT_NORMAL, ", polynomial x^%u", S);
       else
-        fprintf (ECM_STDOUT, ", polynomial Dickson(%u)", -S);
-      if (ECM_IS_DEFAULT_B1_DONE(B1done) || test_verbose (OUTPUT_VERBOSE)) /* don't print x0 in resume case */
-	{
-	  fprintf (ECM_STDOUT, ", x0=");
-	  mpz_out_str (ECM_STDOUT, 10, p);
-	}
-      fprintf (ECM_STDOUT, "\n");
-      fflush (ECM_STDOUT);
+        outputf (OUTPUT_NORMAL, ", polynomial Dickson(%u)", -S);
+       /* don't print x0 in resume case */
+      if (ECM_IS_DEFAULT_B1_DONE(B1done)) 
+        outputf (OUTPUT_VERBOSE, ", x0=%Zd", p);
+      outputf (OUTPUT_NORMAL, "\n");
     }
 
   if (repr == 1)
@@ -762,7 +759,8 @@ pp1 (mpz_t f, mpz_t p, mpz_t n, mpz_t go, double B1done, double B1,
      that B1 <= MAX_ULONG */
   if (B1 > (double) ULONG_MAX)
     {
-      fprintf (ECM_STDERR, "Error, maximal step1 bound for P+1 is %lu\n", ULONG_MAX);
+      outputf (OUTPUT_ERROR, "Error, maximal step1 bound for P+1 is %lu\n", 
+               ULONG_MAX);
       youpi = ECM_ERROR;
       goto clear_pp1;
     }
@@ -773,12 +771,14 @@ pp1 (mpz_t f, mpz_t p, mpz_t n, mpz_t go, double B1done, double B1,
   st = cputime () - st;
 
   outputf (OUTPUT_NORMAL, "Step 1 took %dms\n", st);
-  if (test_verbose (OUTPUT_VERBOSE))
+  if (test_verbose (OUTPUT_RESVERBOSE))
     {
-      fprintf (ECM_STDOUT, "x=");
-      mpres_out_str (ECM_STDOUT, 10, a, modulus);
-      fprintf (ECM_STDOUT, "\n");
-      fflush (ECM_STDOUT);
+      mpz_t t;
+      
+      mpz_init (t);
+      mpres_get_z (t, a, modulus);
+      outputf (OUTPUT_RESVERBOSE, "x=%Zd\n", t);
+      mpz_clear (t);
     }
 
   if (youpi == ECM_NO_FACTOR_FOUND) /* no factor found, no error */
@@ -786,7 +786,7 @@ pp1 (mpz_t f, mpz_t p, mpz_t n, mpz_t go, double B1done, double B1,
                     TreeFilename);
 
   if (youpi > 0 && test_verbose (OUTPUT_NORMAL))
-    pp1_check_factor (p, f, ECM_STDOUT); /* tell user if factor was found by P-1 */
+    pp1_check_factor (p, f); /* tell user if factor was found by P-1 */
 
   mpres_get_z (p, a, modulus);
 

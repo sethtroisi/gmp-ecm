@@ -734,20 +734,20 @@ ecm (mpz_t f, mpz_t x, mpz_t sigma, mpz_t n, mpz_t go, double B1done,
   if (mpz_sgn (x) != 0)
       mpres_set_z (P.x, x, modulus);
   
-  if (test_verbose (OUTPUT_VERBOSE))
+  if (test_verbose (OUTPUT_RESVERBOSE))
     {
       mpz_t t;
       
       mpz_init (t);
       mpres_get_z (t, P.A, modulus);
-      outputf (OUTPUT_VERBOSE, "a=%Zd\n", t);
+      outputf (OUTPUT_RESVERBOSE, "a=%Zd\n", t);
       mpres_get_z (t, P.x, modulus);
-      outputf (OUTPUT_VERBOSE, "starting point: x=%Zd\n", t);
+      outputf (OUTPUT_RESVERBOSE, "starting point: x=%Zd\n", t);
       mpz_clear (t);
-      
-      if (go != NULL && mpz_cmp_ui (go, 1) > 0)
-        outputf (OUTPUT_VERBOSE, "initial group order: %Zd\n", go);
     }
+
+  if (go != NULL && mpz_cmp_ui (go, 1) > 0)
+    outputf (OUTPUT_VERBOSE, "initial group order: %Zd\n", go);
 
   /* check that B1 is not too large */
   if (B1 > (double) ULONG_MAX)
@@ -773,13 +773,13 @@ ecm (mpz_t f, mpz_t x, mpz_t sigma, mpz_t n, mpz_t go, double B1done,
   if (youpi != ECM_NO_FACTOR_FOUND) /* a factor was found */
     goto end_of_ecm;
 
-  if (test_verbose (OUTPUT_VERBOSE)) 
+  if (test_verbose (OUTPUT_RESVERBOSE)) 
     {
       mpz_t t;
       
       mpz_init (t);
       mpres_get_z (t, P.x, modulus);
-      outputf (OUTPUT_VERBOSE, "x=%Zd\n", t);
+      outputf (OUTPUT_RESVERBOSE, "x=%Zd\n", t);
       mpz_clear (t);
     }
 

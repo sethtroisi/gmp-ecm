@@ -145,10 +145,12 @@ extern FILE *ECM_STDOUT, *ECM_STDERR;
 #define OUTPUT_NORMAL 1
 /* OUTPUT_VERBOSE means print if the user requested more verbosity */
 #define OUTPUT_VERBOSE 2
+/* OUTPUT_RESVERBOSE is for printing residues (after stage 1 etc) */
+#define OUTPUT_RESVERBOSE 3
 /* OUTPUT_DEVVERBOSE is for printing internal parameters (for developers) */
-#define OUTPUT_DEVVERBOSE 3
+#define OUTPUT_DEVVERBOSE 4
 /* OUTPUT_TRACE is for printing trace data, produces lots of output */
-#define OUTPUT_TRACE 4
+#define OUTPUT_TRACE 5
 /* OUTPUT_ERROR is for printing error messages */
 #define OUTPUT_ERROR -1
 
