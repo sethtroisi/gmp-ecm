@@ -41,6 +41,19 @@ if ($status != 0) then
    echo "############### ERROR ###############";
    exit 1;
 endif
+
+# bug found by Jim Fougeron
+echo 3533000986701102061387017352606588294716061 | $ECM -sigma 291310394389387 191 225
+if ($status != 0) then
+   echo "############### ERROR ###############";
+   exit 1;
+endif
+echo 121279606270805899614487548491773862357 | $ECM -sigma 1931630101 120
+if ($status != 0) then
+   echo "############### ERROR ###############";
+   exit 1;
+endif
+
 echo 291310394389387 | $ECM -power 3 -sigma 40 2000
 if ($status != 0) then
    echo "############### ERROR ###############";
