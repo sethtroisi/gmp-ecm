@@ -411,7 +411,6 @@ pm1_rootsF (mpz_t f, listz_t F, unsigned int d1, unsigned int d2,
         int verbose)
 {
   unsigned int i, muls = 0, gcds = 0;
-  unsigned int i;
   int st, st2;
   pm1_roots_state state;
   listz_t coeffs;
@@ -491,7 +490,7 @@ pm1_rootsF (mpz_t f, listz_t F, unsigned int d1, unsigned int d2,
               if (verbose >= 4)
                 printf ("pm1_rootsF: Updating table at rsieve = %d\n", state.rsieve);
               
-              update_fd (state.fd, state.nr, state.S, modulus);
+              update_fd (state.fd, state.nr, state.S, modulus, &muls);
               
               state.next = 0;
             }
