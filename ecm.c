@@ -28,8 +28,6 @@
 #include "ecm.h"
 #include "ecm-impl.h"
 
-FILE *ECM_STDOUT, *ECM_STDERR;
-
 /******************************************************************************
 *                                                                             *
 *                            Elliptic Curve Method                            *

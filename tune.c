@@ -1,6 +1,6 @@
 /* Tune program.
 
-  Copyright 2003 Paul Zimmermann and Alexander Kruppa.
+  Copyright 2003, 2005 Paul Zimmermann and Alexander Kruppa.
 
   This program is free software; you can redistribute it and/or modify it
   under the terms of the GNU General Public License as published by the
