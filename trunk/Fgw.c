@@ -2,6 +2,9 @@
   Interface code for George Woltman's gwnum library
   
   Copyright 2004 Paul Zimmermann and Alexander Kruppa.
+
+  Contains code based on the GWNUM library, 
+    copyright 2002-2005 George Woltman, Just For Fun Software, Inc.
   
   This program is free software; you can redistribute it and/or modify it
   under the terms of the GNU General Public License as published by the
