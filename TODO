@@ -9,7 +9,8 @@ Long term:
   (may need changes to give parameters or options)
 - add a configure file
 - tune stage 2 values of 'd' to optimize toomcook4(d)/(d*phi(d/2))
-- implement Brent-Suyama's extension for p+1 (how to do it efficiently?)
+- implement Brent-Suyama's extension for p+1 (how to do it efficiently?
+  Could "Powers of 2^(k/2) and 3^k", Montgomery dissertation, 5.5, work?)
 - get rid of NTL for polygcd, and allow runtime choice between polyeval/polygcd
 - change [j*d, i] in stage2 with gcd(i,d)=1, i=1 mod 6
   to [j*d+1, i] with gcd(i+1,d)=1, i=0 mod 6 ?
@@ -17,3 +18,7 @@ Long term:
 - add -fft option for 2^n+1 (in particular Fermat numbers)
 - option -nice ? -kill when user on console?
 - optimize memory usage in step 2 (use an unique array for multiplies)
+- parser for input number in symbolic form, i.e. (2^(2^12)/(7*2^14+1)...)
+  (Jay Berg)
+- compute probability that a factor of a certain size will be found with
+  given paramters (Dickman's function, how to do it for P+/-1 ?)
