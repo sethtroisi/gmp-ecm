@@ -552,7 +552,7 @@ or new versions.
 
 <refsect1 id='author'><title>AUTHORS</title>
 <para>
-Jim Fougeron &lt;jfoug@kdsi.net&gt; contributed the expression parser and
+Jim Fougeron &lt;jfoug@cox.net&gt; contributed the expression parser and
 several command-line options;
 Laurent Fousse &lt;laurent@komite.net&gt; contributed the middle product code,
 the autoconf/automake tools, and is the maintainer of the Debian package;
