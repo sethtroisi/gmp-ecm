@@ -1,23 +1,29 @@
-This is a brand new version of gmp-ecm, under development. The current
-files are:
+This is a new version of gmp-ecm, replacing version 4c.
+The contained files are:
 
 COPYING - GNU GENERAL PUBLIC LICENSE
 INSTALL - instructions to install gmp-ecm
 Makefile - to build the binary file 'ecm5'
 README - this file
-aux.c - auxiliary functions (nb_digits, gcd of two unsigned int's)
+auxi.c - auxiliary functions
 bestd.c - routines to determine the best stage 2 parameters
 cputime.h - auxiliary function to measure cpu time
 ecm.c - factorization routine using the Elliptic Curve Method
+ecm2.c - ECM stage 2 routines
 ecm.h - header file for gmp-ecm
 getprime.c - dynamic Eratosthenes sieve
 listz.c - arithmetic on lists of integers mod n
+lucas.c - functions to evaluate Lucas sequences
 main.c - main file for gmp-ecm, P-1 and P+1
+memory.c - auxiliary routines to check memory allocation
+mpmod.c - modular arithmetic
 ntl.c - interface with NTL
 pm1.c - Pollard P-1 factorization routine
+polyeval.c - algorithm POLYEVAL
 pp1.c - Williams P+1 factorization routines
 polyz.c - routines for polynomial arithmetic
 stage2.c - common stage 2 implementation for ecm, P-1 and P+1
+test.ecm - test file for ECM
 test.pm1 - test file for P-1
 test.pp1 - test file for P+1
 toomcook.c - Toom-Cook 3 and Toom-Cook 4 multiplication
@@ -26,12 +32,176 @@ The main changes wrt gmp-ecm 4c are the following:
 
 - the code is split into several files to make the code easier to maintain
 	and compile.
-- the program now implements also Pollard P-1 and Williams P+1, with a
-	common stage 2 (use option -pm1 to call P-1, -pp1 for P+1).
+- the program now implements also P-1 and P+1, with a common stage 2
+	(use option -pm1 to call P-1, -pp1 for P+1).
 - stage 1 is much more efficient, thanks to a dynamic implementation of
 	 Eratosthenes sieve (see file getprime.c).
-- stage 2 now uses algorithm POLYGCD instead of POLYEVAL (see Montgomery's
-	dissertation). POLYGCD is more expensive, but uses O(n) memory instead
-	of O(n log n) for POLYEVAL.
 - stage 2 uses Toom-Cook 3 and Toom-Cook 4, instead of only Karatsuba
 	in gmp-ecm 4c.
+
+##############################################################################
+
+How to efficiently use P-1, P+1 and ECM.
+
+The P-1 method works well when the input number has a prime factor P such
+that P-1 is "smooth", i.e. has all its prime factor less or equal the 
+stage 1 bound B1, except one which may be less or equal the second stage
+bound B2. For P=67872792749091946529, we have P-1 = 2^5 * 11 * 17 * 19 *
+43 * 149 * 8467 * 11004397, so this factor will be found as long as B1 >= 8467
+and B2 >= 11004397:
+
+GMP-ECM 5.0 [powered by GMP 4.1]
+Pollard P-1 Method with B1=8467, B2=11004397, x^1
+Input number is 67872792749091946529 (20 digits)
+Using seed=2809890345
+Using MODMULN
+Stage 1 took 30ms
+Stage 2 took 1780ms
+********** Factor found in step 2: 67872792749091946529
+Found input number N
+
+There is no need to run several times P-1 with the same B1 and B2, like
+for ECM, since a factor found with one seed will be found by another one.
+
+The P+1 method works well when the input number has a prime factor P such
+that P+1 is "smooth". For P=4190453151940208656715582382315221647, we have
+P+1 = 2^4 * 283 * 2423 * 21881 * 39839 * 1414261 * 2337233 * 132554351, so
+this factor will be found as long as B1 >= 2337233 and B2 >= 132554351:
+
+GMP-ECM 5.0 [powered by GMP 4.1]
+Williams P+1 Method with B1=2337233, B2=132554351, x^1
+Input number is 4190453151940208656715582382315221647 (37 digits)
+Using seed=2284918860
+Using MODMULN
+Stage 1 took 18140ms for 5223455 muls
+Stage 2 took 10370ms
+********** Factor found in step 2: 4190453151940208656715582382315221647
+Found input number N
+
+However not all seeds will succeed: a given seed 's' works iff the Jacobi
+symbol of s^2-4 and P is -1. Unfortunately, since P is usually not known
+in advance, there is no way to ensure that this holds. However, if the
+seed is chosen randomly, there is a probability of about 1/2 that it will
+give a Jacobi symbol of -1 (i.e. the factor P will be found if it is smooth
+enough). A rule of thumb is to run 3 times P+1 with different random seeds.
+
+The ECM method is a probabilistic method, and can be viewed in some sense
+as a generalization of the P-1 and P+1 method, where we only require that
+P+t is smooth, with t random of order P^(1/2). The optimal B1 and B2 bounds
+have to be chosen according to the (usually unknown) size of P. The following
+table gives a set of near-to-optimal B1 and B2 pairs, with the corresponding
+expected number of curves to find a factor of given size (this table does not
+take into account the "extra factors" found by Brent-Suyama's extension, see
+below).
+
+       digits D  optimal B1      B2        expected curves N(B1,B2,D)
+          15        2e3         1.2e5             30
+          20       11e3         1.4e6             90
+          25        5e4         1.2e7            240
+          30       25e4         1.1e8            500
+          35        1e6         8.4e8           1100
+          40        3e6         4.0e9           2900
+          45       11e6        2.6e10           5500
+          50       43e6        1.8e11           9000
+          55       11e7        6.8e11          22000
+          60       26e7        2.3e12          52000
+          65       85e7        1.3e13          83000
+          70       29e8        7.2e13         120000
+
+In summary, we advise the following method:
+
+0 - choose a target factor size of D digits
+1 - choose "optimal" B1 and B2 values to find factors of D digits
+2 - run once P-1 with those B1 and B2
+3 - run 3 times P+1 with those B1 and B2
+4 - run N(B1,B2,D) times ECM with those B1 and B2, where N(B1,B2,D) is the
+	expected number of ECM curves with stage 1 bound B1, stage 2 bound B2,
+	to find a factor of D digits (cf above table)
+5 - if no factor is found, either increase D and go to 0, or use another
+	factorization method (MPQS, GNFS)
+
+Note: if a factor is found in steps 2, 3 or 4, simply continue the current
+	step with the remaining cofactor (if composite). There is no need
+	to start again from 0, since the factorization effort on the cofactor
+	is not lost.
+
+Extra factors and Brent-Suyama's extension. GMP-ECM may sometimes find some
+"extra" factors, such that one factor of P-1, P+1 or P+t exceeds the stage 2
+bound B2, thanks to Brent-Suyama's extension. Let explain how it works for P-1,
+since it's simpler. The classical stage 2 (without Brent-Suyama's extension)
+considers s^(j*d) mod N and s^i mod N, where N is the number to factor, and
+s the initial seed. Here, d is fixed, and the integers i and j vary in two
+sets so that j*d+/-i covers all primes in [B1, B2]. Now consider a polynomial
+f(x), and compute s^f(j*d) and s^f(i) instead of s^(j*d) and s^i [thus the
+classical stage 2 corresponds to f(x)=x^1]. Then P will be found whenever
+all but one of the factors of P-1 are <= B1, and one factor divides one
+f(j*d) +/- f(i):
+
+GMP-ECM 5.0 [powered by GMP 4.1]
+Pollard P-1 Method with B1=286493, B2=25000000, x^12
+Input number is 1207946164033269799036708918081 (31 digits)
+Using seed=1925856808
+Using MODMULN
+Stage 1 took 1550ms
+Stage 2 took 3320ms
+********** Factor found in step 2: 1207946164033269799036708918081
+Found input number N
+
+Here the largest factor of P-1 is 83957197, which is 3.35 times larger than B2.
+Warning: these "extra" factorizations may not be reproducible in future
+versions of gmp-ecm, since they depend on some internal parameters that
+may change.
+
+##############################################################################
+
+Memory usage. Stage 1 does not require much memory (about the same size as
+the input number). Stage 2 may be quite memory expensive, especially for
+large B2, since its efficient algorithms use some large tables. To reduce
+the memory usage of stage 2, you may increase the 'k' parameter, which controls
+the number of "blocks" performed in stage 2. Multiplying the default value of
+k (which is 8) by 4 will decrease the memory usage by 2. For example with 
+B2=1e10 and a 155-digit number, stage 2 requires about 28MB with the default
+k, but only 14MB with k=32.
+
+##############################################################################
+
+Option -save. This option is useful to save the current stage in the P-1
+method, or to exchange data with other software. It should allow to perform
+stage 1 with gmp-ecm, and stage 2 with another software (or vice-versa).
+
+Here is an example how to reuse some P-1 computation:
+
+$ ./ecm5 -save toto -pm1 5000000
+GMP-ECM 5.0 [powered by GMP 4.1]
+Pollard P-1 Method with B1=5000000, B2=272993793, x^1
+13155161912808540373988986448257115022677318870175067553764004308210487
+Input number is 13155161912808540373988986448257115022677318870175067553764004308210487 (71 digits)
+Using seed=843178705
+Using MODMULN
+Stage 1 took 51440ms
+Stage 2 took 22900ms
+
+The file "toto" now contains some information about the method use, the stage
+1 bound, the number to factor, the value X at the end of stage 1 (in hexa-
+decimal), and a checksum to verify that no data was corrupted:
+
+$ cat toto
+METHOD=PM1; B1=5000000; N=13155161912808540373988986448257115022677318870175067553764004308210487; X=0x11d1b4ca92a38f1eccdfe9b759b090a2aae79cf54f58661ac23704cd694; CHECKSUM=2552882662; PROGRAM=GMP-ECM ver. 5 alpha;
+
+The format used is the following:
+  - each line corresponds to a composite
+  - a line contains assignments <id>=<value> separated by semi-colons ';'
+  - possible values for <id> are 
+    - METHOD (value = ECM or P-1 or P+1)
+    - SIGMA (value = ECM sigma parameter) [optional]
+    - B1 (first stage bound)
+    - N (composite to factor)
+    - X (value at the end of stage 1)
+    - A (A-parameter of the elliptic curve)
+    - X0 (initial point for ECM, or initial residue for P-1/P+1) [optional]
+    - PROGRAM (program used to perform stage 1, useful for factor credits)
+  SIGMA and X0 would be optional, and would be mainly be used in case of a
+  factor is found, to be able to reproduce the factorization. 
+
+
+
