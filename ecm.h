@@ -33,7 +33,7 @@
 #define POLYEVALTELLEGEN /* use polyeval_tellegen() routine */
 
 /* use Kronecker-Scho"nhage's multiplication */
-#define KS_MULTIPLY
+#undef KS_MULTIPLY
 
 /* define top-level multiplication */
 #define KARA 2
@@ -168,6 +168,14 @@ typedef __pm1_roots_state pm1_roots_state;
 
 typedef struct
 {
+  mpres_t fd[4];
+  unsigned int dsieve; /* Values not coprime to dsieve are skipped */
+  unsigned int rsieve; /* Which residue mod dsieve current .next belongs to */
+} __pp1_roots_state;
+typedef __pp1_roots_state pp1_roots_state;
+
+typedef struct
+{
   int alloc;
   int degree;
   listz_t coeff;
@@ -271,8 +279,8 @@ unsigned long muls_gen (unsigned int);
 unsigned long muls_gen_short (unsigned int);
 unsigned long phi (unsigned long);
 double   block_size (unsigned long);
-unsigned long bestD (double, unsigned int, unsigned int *, unsigned int,
-                     unsigned long *);
+void     bestD (double, double, unsigned int, unsigned int *, unsigned int *, 
+                unsigned int *);
 void          bestD_po2 (double, double, unsigned int *, unsigned int *, 
                          unsigned int *, unsigned long *);
 
@@ -291,18 +299,19 @@ int     ecm_rootsG       (mpz_t, listz_t, unsigned int, ecm_roots_state *,
                           mpmod_t, int, unsigned long *);
 
 /* pp1.c */
-int          pp1_mul     (mpres_t, mpres_t, mpz_t, mpmod_t, mpres_t, mpres_t);
-int          pp1_mul_prac(mpres_t, unsigned long, mpmod_t, mpres_t, mpres_t,
-                          mpres_t, mpres_t, mpres_t);
-void    pp1_random_seed  (mpz_t, mpz_t, gmp_randstate_t);
-int          pp1         (mpz_t, mpz_t, mpz_t, mpz_t, double, double, double, double, double, 
-                          unsigned int, unsigned int, int, int);
-int   pp1_rootsF         (listz_t, unsigned int, unsigned int, mpres_t *,
-                          listz_t, mpmod_t, int, unsigned long *);
-mpres_t *pp1_rootsG_init (mpres_t *, double, unsigned int, mpmod_t);
-void  pp1_rootsG_clear   (mpres_t *, mpmod_t);
-int   pp1_rootsG         (listz_t, unsigned int, mpres_t *, mpmod_t,
-                          unsigned long *);
+int   pp1_mul          (mpres_t, mpres_t, mpz_t, mpmod_t, mpres_t, mpres_t);
+int   pp1_mul_prac     (mpres_t, unsigned long, mpmod_t, mpres_t, mpres_t,
+                        mpres_t, mpres_t, mpres_t);
+void  pp1_random_seed  (mpz_t, mpz_t, gmp_randstate_t);
+int   pp1              (mpz_t, mpz_t, mpz_t, mpz_t, double, double, double, 
+                        double, double, unsigned int, unsigned int, int, int);
+int   pp1_rootsF       (listz_t, unsigned int, unsigned int, unsigned int, 
+                        mpres_t *, listz_t, mpmod_t, int, unsigned long *);
+pp1_roots_state *
+      pp1_rootsG_init  (mpres_t *, double, unsigned int, unsigned int, mpmod_t);
+void  pp1_rootsG_clear (pp1_roots_state *, mpmod_t);
+int   pp1_rootsG       (listz_t, unsigned int, pp1_roots_state *, mpmod_t,
+                        unsigned long *);
 
 /* stage2.c */
 int          stage2     (mpz_t, void *, mpmod_t, double, double, unsigned int,
