@@ -50,7 +50,7 @@ getprime (double pp)
   static unsigned *primes = NULL; /* table of small primes up to sqrt(p) */
   static unsigned long int nprimes = 0; /* length of primes[] */
   static unsigned char *sieve = NULL; /* sieving table */
-  static unsigned long int len = 0; /* length of sieving table */
+  static long int len = 0; /* length of sieving table */
   static unsigned long int *moduli = NULL; /* offset for small primes */
 
   if (pp == 0.0) /* free the tables, and reinitialize */
@@ -80,7 +80,7 @@ getprime (double pp)
     {
       free (sieve);
       len *= 2;
-      sieve = malloc (len * sizeof(unsigned char));
+      sieve = (unsigned char *) malloc (len * sizeof(unsigned char));
     }
 
   /* now enlarge small prime table if too small */
@@ -89,10 +89,12 @@ getprime (double pp)
 	if (nprimes == 0) /* initialization */
 	  {
 	    nprimes = 1;
-	    primes = malloc (nprimes * sizeof(unsigned long int));
-	    moduli = malloc (nprimes * sizeof(unsigned long int));
+	    primes = (unsigned *) malloc (nprimes * sizeof(unsigned long int));
+	    moduli = (long unsigned int *) malloc (nprimes *
+                                                   sizeof(unsigned long int));
 	    len = 1;
-	    sieve = malloc(len * sizeof(unsigned char)); /* len=1 here */
+	    sieve = (unsigned char *) malloc(len *
+                                       sizeof(unsigned char)); /* len=1 here */
 	    offset = 5.0;
 	    sieve[0] = 1; /* corresponding to 5 */
 	    primes[0] = 3;
@@ -106,8 +108,10 @@ getprime (double pp)
 
 	    i = nprimes;
 	    nprimes *= 2;
-	    primes = realloc(primes, nprimes * sizeof(unsigned long int));
-	    moduli = realloc(moduli, nprimes * sizeof(unsigned long int));
+	    primes = (unsigned *) realloc (primes, nprimes *
+                                           sizeof(unsigned long int));
+	    moduli = (unsigned long int *) realloc (moduli, nprimes *
+                                                    sizeof(unsigned long int));
 	    for (p = primes[i-1]; i < nprimes; i++)
 	      {
 		/* find next (odd) prime > p */
@@ -130,7 +134,8 @@ getprime (double pp)
 
   /* now sieve for new primes */
   {
-    unsigned long int i, j, p;
+    long int i;
+    unsigned long int j, p;
     
     for (i = 0; i < len; i++)
       sieve[i] = 1;
