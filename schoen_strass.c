@@ -49,8 +49,6 @@ unsigned int Fermat;
   F_mod_1 (a, n);
 
 mp_limb_t __gmpn_mod_34lsub1 (mp_limb_t *src, mp_size_t size);
-void F_mod_1 (mpz_t, unsigned int);
-void F_mod_gt (mpz_t, unsigned int);
 void F_mulmod (mpz_t, mpz_t, mpz_t, unsigned int);
 void mpz_absadd_2exp (mpz_t, unsigned int);
 void F_divby2 (mpz_t, mpz_t, unsigned int);
@@ -68,7 +66,7 @@ static int radix2 = 0;
 
 /* RS -> RS (mod 2^n+1). If input |RS| < 2^(2*n), result |RS| < 2^(n+1) */
 
-INLINE void 
+static INLINE void 
 F_mod_1 (mpz_t RS, unsigned int n)
 {
   mp_size_t size;
@@ -99,7 +97,7 @@ F_mod_1 (mpz_t RS, unsigned int n)
 
 /* R = gt (mod 2^n+1) */
 
-INLINE void 
+static INLINE void 
 F_mod_gt (mpz_t R, unsigned int n)
 {
   mp_size_t size;
