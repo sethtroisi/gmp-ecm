@@ -46,7 +46,3 @@ ToDo's:
 
    where ecm (f, N, NULL) would give the default behaviour.
 
-3) new features
-- implement Brent-Suyama's extension for p+1 (how to do it efficiently?
-  Could "Powers of 2^(k/2) and 3^k", Montgomery dissertation, 5.5, work?)
-

@@ -579,6 +579,24 @@ ecm_stage1 (mpz_t f, mpres_t x, mpres_t A, mpmod_t n, double B1, double B1done,
   return ret;
 }
 
+/* choose "optimal" S according to step 2 range B2 */
+int
+choose_S (double B2)
+{
+  if (B2 < 1e7)
+    return 1;   /* x^1 */
+  else if (B2 < 1e8)
+    return 2;   /* x^2 */
+  else if (B2 < 1e9)
+    return -3;  /* Dickson(3) */
+  else if (B2 < 1e10)
+    return -6;  /* Dickson(6) */
+  else if (B2 < 3e11)
+    return -12; /* Dickson(12) */
+  else
+    return -30; /* Dickson(30) */
+}
+
 /* Input: x is starting point or zero
           sigma is sigma value (if x is set to zero) or 
             A parameter (if x is non-zero) of curve
@@ -652,20 +670,7 @@ ecm (mpz_t f, mpz_t x, mpz_t sigma, mpz_t n, mpz_t go, double B1done,
      identically. */
 
   if (S == ECM_DEFAULT_S)
-    {
-      if (B2 - B2min < 1.e7)
-        S = 1;    /* x^1 */
-      else if (B2 - B2min < 1.e8)
-        S = 2;   /* x^2 */
-      else if (B2 - B2min < 1.e9)
-        S = -3;   /* Dickson(3) */
-      else if (B2 - B2min < 1.e10)
-        S = -6;  /* Dickson(6) */
-      else if (B2 - B2min < 3.e11)
-        S = -12;  /* Dickson(12) */
-      else
-        S = -30;  /* Dickson(30) */
-    }
+    S = choose_S (B2 - B2min);
   
   if (repr == 1)
     mpmod_init_MPZ (modulus, n);
