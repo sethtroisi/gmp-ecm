@@ -1,4 +1,4 @@
-/* Common stage 2 for ECM and 'P-1' (improved standard continuation).
+/* Common stage 2 for ECM, P-1 and P+1 (improved standard continuation).
 
   Copyright (C) 2001 Paul Zimmermann,
   LORIA/INRIA Lorraine, zimmerma@loria.fr
@@ -30,17 +30,30 @@
 
 #define INVF /* precompute 1/F for divisions by F */
 
-/* Init table to allow successive computation of x^((s + n*D)^E) mod N */
-/* See Knuth, TAOCP vol.2, 4.6.4 and exercise 7 in 4.6.4 */
+/* Init table to allow successive computation of x^((s + n*D)^E) mod N
+   See Knuth, TAOCP vol.2, 4.6.4 and exercise 7 in 4.6.4.
+   For s=7, D=6, E=1: fd[0] = x^7, fd[1] = x^6.
+   For s=0, D=d, E=1: fd[0] = x^0, fd[1] = x^d.
+*/
 mpz_t *
 fin_diff_init (mpz_t x, unsigned int s, unsigned int D, unsigned int E,
-               mpz_t N) 
+               mpz_t N, int method)
 {
   mpz_t *fd;
-  unsigned int i, k;
-  
-  fd = (mpz_t *) malloc ((E+1) * sizeof(mpz_t));
-  for (i = 0; i <= E; i++)
+  unsigned int i, k, allocated;
+  mpz_t P, Q;
+
+  allocated = E + 1;
+
+  if (method == PP1_METHOD)
+    {
+      mpz_init (P);
+      mpz_init (Q);
+      allocated += 2;
+    }
+
+  fd = (mpz_t *) malloc (allocated * sizeof(mpz_t));
+  for (i = 0; i < allocated; i++)
     mpz_init (fd[i]);
   
   for (i = 0; i <= E; i++)
@@ -51,17 +64,40 @@ fin_diff_init (mpz_t x, unsigned int s, unsigned int D, unsigned int E,
       mpz_sub (fd[i], fd[i], fd[i-1]);
   
   for (i = 0; i <= E; i++)
-    mpz_powm (fd[i], x, fd[i], N);
+    if (method == PM1_METHOD)
+      mpz_powm (fd[i], x, fd[i], N);
+    else if (method == PP1_METHOD)
+      pp1_mul (fd[i], x, P, Q, fd[i], N);
+    else abort ();
+
+  if (method == PP1_METHOD) /* necessarily E=1 */
+    {
+      /* fd[0] = V_s(x), fd[1] = V_D(x) */
+      pp1_mul_ui (fd[2], x, P, Q, (s > D) ? s - D : D - s, N); /* V_{s-D}(x) */
+      mpz_clear (P);
+      mpz_clear (Q);
+    }
 
   return fd;
 }
 
-/* Computes x^((s + (n+1)*D)^E and stores in fd[0] */
+/* P-1: Computes x^((s + (n+1)*D)^E and stores in fd[0]
+   P+1: Computes V_{j+D} from fd[0] = V_j, fd[1] = V_D, and fd[2] = V_{j-D}.
+*/
 void 
-fin_diff_next (mpz_t *fd, unsigned int E, mpz_t N) 
+fin_diff_next (mpz_t *fd, unsigned int E, mpz_t N, int method)
 {
   unsigned int i;
-  
+
+  if (method == PP1_METHOD)
+    {
+      mpz_swap (fd[0], fd[2]);
+      mpz_mul (fd[3], fd[2], fd[1]);
+      mpz_sub (fd[0], fd[3], fd[0]);
+      mpz_mod (fd[0], fd[0], N);
+      return;
+    }
+
   for (i = 0; i < E; i++)
     {
       mpz_mul (fd[i], fd[i], fd[i+1]);
@@ -71,25 +107,35 @@ fin_diff_next (mpz_t *fd, unsigned int E, mpz_t N)
 }
 
 void 
-fin_diff_clear (mpz_t *fd, unsigned int E)
+fin_diff_clear (mpz_t *fd, unsigned int E, int method)
 {
-  unsigned int i;
+  unsigned int i, allocated = E + 1;
+
+  if (method == PP1_METHOD)
+    allocated += 2;
   
-  for (i = 0; i <= E; i++)
+  for (i = 0; i < allocated; i++)
     mpz_clear (fd[i]);
   free (fd);
   return;
 }
 
-/* puts in F[0..dF-1] the successive values of s^(j^S), for 0 < j = 1 mod 7 < d
-   j and d coprime.
+/* puts in F[0..dF-1] the successive values of 
+
+   s^(j^S) for Pollard P-1
+   V_j(P) for Williams P+1 [here S=1]
+   (j^S) * P for ECM where P=(s : : 1) is a point on the elliptic curve
+
+   For P+1, we have V_{j+6} = V_j * V_6 - V_{j-6}.
+
+   for 0 < j = 1 mod 7 < d, j and d coprime.
    Returns df = degree of F, or 0 if a factor was found.
-   If invs=0, don't use the x+1/x trick.
+   P-1 only: If invs=0, don't use the x+1/x trick.
    Requires (dF+1) cells in t.
 */
 int
 rootsF (listz_t F, unsigned int d, mpz_t s, mpz_t invs, listz_t t,
-        unsigned int S, mpz_t n, int verbose)
+        unsigned int S, mpz_t n, int verbose, int method)
 {
   unsigned int i, j;
   int st, st2;
@@ -97,13 +143,13 @@ rootsF (listz_t F, unsigned int d, mpz_t s, mpz_t invs, listz_t t,
   
   st = cputime ();
 
-  mpz_set (F[0], s);
+  mpz_set (F[0], s); /* s^1 for P-1, V_1(P)=P for P+1 */
   i = 1;
-  
   if (d > 7)
     {
       st2 = cputime ();
-      fd = fin_diff_init (s, 7, 6, S, n);
+      fd = fin_diff_init (s, 7, 6, S, n, method);
+      /* for P+1, fd[0] = V_7(P), fd[1] = V_6(P) */
       if (verbose >= 2)
         printf ("Initializing table of differences for F took %dms\n", cputime () - st2);
       j = 7;
@@ -111,63 +157,64 @@ rootsF (listz_t F, unsigned int d, mpz_t s, mpz_t invs, listz_t t,
         {
           if (gcd (j, d) == 1)
             mpz_set (F[i++], fd[0]);
-          fin_diff_next (fd, S, n);
+          fin_diff_next (fd, S, n, method);
           j += 6;
         }
-      fin_diff_clear (fd, S);
+      fin_diff_clear (fd, S, method);
     }
 
-  if (mpz_cmp_ui (invs, 0) && (d/6)*S > 3*(i-1)) /* Batch inversion is cheaper */
-    {
-      if (list_invert (t, F, i, t[i], n)) 
-        {
-          mpz_set (s, t[i]);
-          return 0;
-        }
+  if (method == PM1_METHOD && mpz_cmp_ui (invs, 0) != 0)
+    if ((d/6)*S > 3*(i-1)) /* Batch inversion is cheaper */
+      {
+        if (list_invert (t, F, i, t[i], n)) 
+          {
+            mpz_set (s, t[i]);
+            return 0;
+          }
      
-      for (j = 0; j < i; j++) 
-        {
-          mpz_add (F[j], F[j], t[j]);
-          mpz_mod (F[j], F[j], n);
-        }
+        for (j = 0; j < i; j++) 
+          {
+            mpz_add (F[j], F[j], t[j]);
+            mpz_mod (F[j], F[j], n);
+          }
      
-      mpz_set (invs, t[0]); /* Save s^(-1) in invs */
+        mpz_set (invs, t[0]); /* Save s^(-1) in invs */
     
-    }
-  else
-    { /* fin_diff code is cheaper */
+      }
+    else
+      { /* fin_diff code is cheaper */
+        
+        mpz_gcdext (*t, invs, NULL, s, n);
 
-      mpz_gcdext (*t, invs, NULL, s, n);
+        if (mpz_cmp_ui (*t, 1) != 0)
+          {
+            mpz_set (s, *t);
+            return 0;
+          }
 
-      if (mpz_cmp_ui (*t, 1) != 0)
-        {
-          mpz_set (s, *t);
-          return 0;
-        }
+        mpz_add (F[0], F[0], invs);
+        mpz_mod (F[0], F[0], n);
 
-      mpz_add (F[0], F[0], invs);
-      mpz_mod (F[0], F[0], n);
-
-      i = 1;
+        i = 1;
        
-      if (d > 7) 
-        {
-          fd = fin_diff_init (invs, 7, 6, S, n);
-          j = 7;
-          while (j < d) 
-            {
-              if (gcd (j, d) == 1)
-                {
-                  mpz_add (F[i], F[i], fd[0]);
-                  mpz_mod (F[i], F[i], n);
-                  i++;
-                }
-              fin_diff_next (fd, S, n);
-              j += 6;
-            }
-          fin_diff_clear (fd, S);
-        }
-    }
+        if (d > 7) 
+          {
+            fd = fin_diff_init (invs, 7, 6, S, n, method);
+            j = 7;
+            while (j < d) 
+              {
+                if (gcd (j, d) == 1)
+                  {
+                    mpz_add (F[i], F[i], fd[0]);
+                    mpz_mod (F[i], F[i], n);
+                    i++;
+                  }
+                fin_diff_next (fd, S, n, method);
+                j += 6;
+              }
+            fin_diff_clear (fd, S, method);
+          }
+      }
   
   if (verbose >= 2)
     printf ("Computing roots of F took %dms\n", cputime () - st);
@@ -183,7 +230,7 @@ rootsF (listz_t F, unsigned int d, mpz_t s, mpz_t invs, listz_t t,
 */
 void
 rootsG (listz_t G, unsigned int d, listz_t fd_x, listz_t fd_invx, 
-        listz_t t, unsigned int S, mpz_t n, int verbose)
+        listz_t t, unsigned int S, mpz_t n, int verbose, int method)
 {
   unsigned int i;
   int st;
@@ -197,7 +244,7 @@ rootsG (listz_t G, unsigned int d, listz_t fd_x, listz_t fd_invx,
 
       for (i = 1; i < d; i++)
         {
-          fin_diff_next (fd_x, S, n);
+          fin_diff_next (fd_x, S, n, method);
           mpz_set (G[i], fd_x[0]);
           mpz_mul (t[i], t[i-1], fd_x[0]);
           mpz_mod (t[i], t[i], n);
@@ -223,11 +270,11 @@ rootsG (listz_t G, unsigned int d, listz_t fd_x, listz_t fd_invx,
             {
               mpz_add (G[i], fd_x[0], fd_invx[0]);
               mpz_mod (G[i], G[i], n);
-              fin_diff_next (fd_invx, S, n);
+              fin_diff_next (fd_invx, S, n, method);
             }
           else
             mpz_set (G[i], fd_x[0]);
-          fin_diff_next (fd_x, S, n);
+          fin_diff_next (fd_x, S, n, method);
         }
     }
 
@@ -242,6 +289,7 @@ rootsG (listz_t G, unsigned int d, listz_t fd_x, listz_t fd_invx,
            S is the exponent for Brent-Suyama's extension
            verbose is the verbose level
            invtrick is non-zero iff one uses x+1/x instead of x.
+           method: EC_METHOD, PM1_METHOD or PP1_METHOD
            Cf "Speeding the Pollard and Elliptic Curve Methods
                of Factorization", Peter Montgomery, Math. of Comp., 1987,
                page 257: using x^(i^e)+1/x^(i^e) instead of x^(i^(2e))
@@ -252,7 +300,7 @@ rootsG (listz_t G, unsigned int d, listz_t fd_x, listz_t fd_invx,
 */
 int
 stage2 (mpz_t x, mpz_t n, double B2, unsigned int k, unsigned int S, 
-        int verbose, int invtrick)
+        int verbose, int invtrick, int method)
 {
   double b2;
   unsigned int i, d, dF, sizeT;
@@ -262,7 +310,7 @@ stage2 (mpz_t x, mpz_t n, double B2, unsigned int k, unsigned int S,
   mpz_t invx;
   int youpi = 0, st, st0;
 #ifdef INVF
-  listz_t invF;
+  listz_t invF = NULL;
 #endif
 
   st0 = cputime ();
@@ -289,7 +337,9 @@ stage2 (mpz_t x, mpz_t n, double B2, unsigned int k, unsigned int S,
 
   F = init_list (dF + 1);
 
+  /* if method <> PM1_METHOD, invtrick thus invx is 0 */
   mpz_init_set_ui (invx, invtrick);
+
   sizeT = 3 * dF - 1 + list_mul_mem (dF);
 #ifdef INVF
   if (dF > 3)
@@ -299,7 +349,7 @@ stage2 (mpz_t x, mpz_t n, double B2, unsigned int k, unsigned int S,
   H = T;
 
   /* needs dF+1 cells in T */
-  if ((i = rootsF (F, d, x, invx, T, S, n, verbose)) == 0)
+  if ((i = rootsF (F, d, x, invx, T, S, n, verbose, method)) == 0)
     {
       youpi = 2;
       goto clear_F;
@@ -351,17 +401,17 @@ stage2 (mpz_t x, mpz_t n, double B2, unsigned int k, unsigned int S,
 
   G = init_list (dF);
   st = cputime ();
-  fd_x = fin_diff_init (x, 0, d, S, n);
+  fd_x = fin_diff_init (x, 0, d, S, n, method);
   if (verbose >= 2)
     printf ("Initializing table of differences for G took %dms\n", cputime () - st);
     
   if (invtrick)
-    fd_invx = fin_diff_init (invx, 0, d, S, n);
+    fd_invx = fin_diff_init (invx, 0, d, S, n, method);
 
   for (i=0; i<k; i++)
     {
       /* needs dF+1 cells in T+dF */
-      rootsG (G, dF, fd_x, fd_invx, T + dF, S, n, verbose);
+      rootsG (G, dF, fd_x, fd_invx, T + dF, S, n, verbose, method);
 
   /* -----------------------------------------------
      |   F    |  invF  |   G    |         T        |
@@ -436,8 +486,8 @@ stage2 (mpz_t x, mpz_t n, double B2, unsigned int k, unsigned int S,
 
   clear_list (G, dF);
   if (invtrick)
-    fin_diff_clear (fd_invx, S);
-  fin_diff_clear (fd_x, S);
+    fin_diff_clear (fd_invx, S, method);
+  fin_diff_clear (fd_x, S, method);
   clear_list (T, sizeT);
 
 #ifdef INVF
