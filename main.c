@@ -76,15 +76,15 @@ new_line:
     return 0;
 
   ungetc (c, fd);
-  if (!eval(n, fd, primetest))
+  if (!eval (n, fd, primetest))
     goto new_line;
 
   /*  Code to test out eval_str function, which "appears" to work correctly.
   {
     char Line[500], *cp;
-    fgets(Line, sizeof(Line), fd);
+    fgets (Line, sizeof(Line), fd);
 
-    if (!eval_str(n, Line, primetest, &cp))
+    if (!eval_str (n, Line, primetest, &cp))
       goto new_line;
     fprintf (stderr, "\nLine is at %X cp is at %X\n", Line, cp);
   }
@@ -93,7 +93,7 @@ new_line:
 #if defined (DEBUG_EVALUATOR)
   if (n->cpExpr)
     fprintf (stderr, "%s\n", n->cpExpr);
-  mpz_out_str(stderr, 10, n->n);
+  mpz_out_str (stderr, 10, n->n);
   fprintf (stderr, "\n");
 #endif
 
@@ -239,16 +239,16 @@ main (int argc, char *argv[])
       else if (strcmp (argv[1], "-n") == 0)
         {
 	  fprintf (stderr, "Executing at lower priority\n");
-	  SetPriorityClass(GetCurrentProcess(), IDLE_PRIORITY_CLASS);
-	  SetThreadPriority(GetCurrentThread(), THREAD_PRIORITY_BELOW_NORMAL);
+	  SetPriorityClass (GetCurrentProcess (), IDLE_PRIORITY_CLASS);
+	  SetThreadPriority (GetCurrentThread (), THREAD_PRIORITY_BELOW_NORMAL);
 	  argv++;
 	  argc--;
         }
       else if (strcmp (argv[1], "-nn") == 0)
         {
 	  fprintf (stderr, "Executing at idle priority\n");
-	  SetPriorityClass(GetCurrentProcess(), IDLE_PRIORITY_CLASS);
-	  SetThreadPriority(GetCurrentThread(), THREAD_PRIORITY_IDLE);
+	  SetPriorityClass (GetCurrentProcess (), IDLE_PRIORITY_CLASS);
+	  SetThreadPriority (GetCurrentThread (), THREAD_PRIORITY_IDLE);
 	  argv++;
 	  argc--;
         }
@@ -256,14 +256,14 @@ main (int argc, char *argv[])
       else if (strcmp (argv[1], "-n") == 0)
         {
 	  /* Not sure what is correct here */
-	  nice(20);
+	  nice (20);
 	  argv++;
 	  argc--;
         }
       else if (strcmp (argv[1], "-nn") == 0)
         {
 	  /* Not sure what is correct here */
-	  nice(20);
+	  nice (20);
 	  argv++;
 	  argc--;
         }
@@ -271,13 +271,13 @@ main (int argc, char *argv[])
       /* The nix boys need to do this (if they want -n or -nn) */
       else if (strcmp (argv[1], "-n") == 0)
         {
-	  nice(20);
+	  nice (20);
 	  argv++;
 	  argc--;
         }
       else if (strcmp (argv[1], "-nn") == 0)
         {
-	  nice(20);
+	  nice (20);
 	  argv++;
 	  argc--;
         }
@@ -323,7 +323,7 @@ main (int argc, char *argv[])
         }
       else if ((argc > 2) && (strcmp (argv[1], "-dickson") == 0))
         {
-          S = - abs( atoi (argv[2]));
+          S = - abs ( atoi (argv[2]));
 	  /* should this be validated? and a error/abort issued if 0 ??? */
 	  argv += 2;
 	  argc -= 2;
@@ -360,7 +360,7 @@ main (int argc, char *argv[])
 	  if (autoincrementB1 < 1)
 	    {
 	      fprintf (stderr, "Error, the -a command requires a number argument to follow it\n");
-	      exit(EXIT_FAILURE);
+	      exit (EXIT_FAILURE);
   	    }
 	  argv += 2;
 	  argc -= 2;
@@ -368,7 +368,7 @@ main (int argc, char *argv[])
       else if ((argc > 2) && (strcmp (argv[1], "-i") == 0))
 	{
 	  infilename = argv[2];
-	  infile = fopen(infilename, "r");
+	  infile = fopen (infilename, "r");
 	  if (!infile)
 	  {
 	      fprintf (stderr, "Can't find input file %s\n", infilename);
@@ -380,7 +380,7 @@ main (int argc, char *argv[])
       else if ((argc > 2) && (strcmp (argv[1], "-ib") == 0))
 	{
 	  infilename = argv[2];
-	  infile = fopen(infilename, "r");
+	  infile = fopen (infilename, "r");
 	  breadthfirst = 1;
 	  if (!infile)
 	    {
@@ -396,7 +396,7 @@ main (int argc, char *argv[])
 	  if (maxtrialdiv == 0.)
 	    {
 	      fprintf (stderr, "Error, the -t command requires a number argument to follow it\n");
-	      exit(EXIT_FAILURE);
+	      exit (EXIT_FAILURE);
   	    }
 	  argv += 2;
 	  argc -= 2;
@@ -407,7 +407,7 @@ main (int argc, char *argv[])
 	  if (displayexpr == 0)
 	    {
 	      fprintf (stderr, "Error, the -ve command requires a number argument to follow it\n");
-	      exit(EXIT_FAILURE);
+	      exit (EXIT_FAILURE);
   	    }
 	  argv += 2;
 	  argc -= 2;
@@ -518,7 +518,7 @@ main (int argc, char *argv[])
   NTL_init ();
 #endif
 
-  init_expr();
+  init_expr ();
 
   B2 = 0.0;
   /* parse B2 or B2min-B2max */
@@ -619,25 +619,25 @@ BreadthFirstDoAgain:;
 		  or remove a candidate if factor found, or if in deep mode and cofactor is prp (or if original candidate
 		  is prp and we are prp testing) */
 	      nMaxCandidates = 100;
-	      pCandidates = malloc(nMaxCandidates*sizeof(mpcandi_t));
+	      pCandidates = malloc (nMaxCandidates*sizeof(mpcandi_t));
 
-	      while (!feof(infile))
+	      while (!feof (infile))
 		{
 		  if (read_number (&n, infile, primetest))
 		    {
-		      mpcandi_t_init(&pCandidates[nCandidates]);
-		      mpcandi_t_copy(&pCandidates[nCandidates++], &n);
+		      mpcandi_t_init (&pCandidates[nCandidates]);
+		      mpcandi_t_copy (&pCandidates[nCandidates++], &n);
 		      if (nCandidates == nMaxCandidates)
 			{
 			    mpcandi_t *tmp = pCandidates;
-			    pCandidates = malloc((nMaxCandidates+100)*sizeof(mpcandi_t));
+			    pCandidates = malloc ((nMaxCandidates+100)*sizeof(mpcandi_t));
 			    /*	perform a "shallow" copy, in which we do NOT need to free any of the 
 				individual elements, but just the array memory */
 			    if (pCandidates)
-			      memcpy(pCandidates, tmp, nMaxCandidates*sizeof(mpcandi_t));
+			      memcpy (pCandidates, tmp, nMaxCandidates*sizeof(mpcandi_t));
 			    nMaxCandidates += 100;
 			    /* Free the original "array" memory */
-			    free(tmp);
+			    free (tmp);
 			}
 		    }
 		}
@@ -687,7 +687,7 @@ BreadthFirstDoAgain:;
                 printf ("on %s ", rtime);
               if (comment[0])
                 printf ("(%s)", comment);
-              printf("\n");
+              printf ("\n");
             }
         }
       else
@@ -700,7 +700,7 @@ BreadthFirstDoAgain:;
 	      if (!breadthfirst && !read_number (&n, infile, primetest))
 		break;
 	      else if (breadthfirst)
-		mpcandi_t_copy(&n,&pCandidates[linenum]);
+		mpcandi_t_copy (&n,&pCandidates[linenum]);
 	      linenum++;
 	      cnt = count;
 	      /* reset B1 value, as it could have been advanced on the prior candidate */
@@ -816,7 +816,7 @@ BreadthFirstDoAgain:;
 	  char *s;
 	  s = mpz_get_str (NULL, 10, n.n);
 	  fprintf (stderr, "Input number is %s (%u digits)\n****** Warning: input is probably prime ******\n", s, n.ndigits);
-	  FREE(s, n.ndigits + 1);
+	  FREE (s, n.ndigits + 1);
 	}
 
       if ((!breadthfirst && cnt == count) || (breadthfirst && 1 == breadthfirst_cnt))
@@ -824,7 +824,7 @@ BreadthFirstDoAgain:;
 	  int SomeFactor;
 	  /*  Note, if a factors are found, then n will be adjusted "down" */
 	  fprintf (stderr, "T:000 \r");
-	  SomeFactor = trial_factor (&n, maxtrialdiv);
+	  SomeFactor = trial_factor (&n, maxtrialdiv, deep);
 	  if (SomeFactor)
 	    {
 	      /* should we increase factors found for trivials ??? */
@@ -840,10 +840,18 @@ BreadthFirstDoAgain:;
 		  printf (" has %u digits\n", n.ndigits);
 		  /* Nothing left to do with this number, so simply continue. */
 		  cnt = 0; /* no more curve to perform */
-		  fflush(stdout);
+		  fflush (stdout);
 		  continue;
 		}
-	      fflush(stdout);
+	      fflush (stdout);
+	      if (!deep)
+		{
+		  /* Note, if we are not in deep mode, then there is no need to continue if a factor was found */
+  		  factor_is_prime = 1;
+  		  mpz_set_ui (f,1);
+		  goto OutputFactorStuff;
+		}
+
 	    }
         }
 
@@ -871,7 +879,7 @@ BreadthFirstDoAgain:;
 	  else
 	  {
 	    factor_is_prime = 1;
-	    mpz_set_ui(f,1);
+	    mpz_set_ui (f,1);
 	    goto OutputFactorStuff;
 	  }
 	}
@@ -897,7 +905,7 @@ BreadthFirstDoAgain:;
 	      mpz_out_str (stdout, 10, f);
 	      printf ("\n");
 
-	      mpcandi_t_addfoundfactor(&n, f, 1); /* 1 for display warning if factor does not divide the current candidate */
+	      mpcandi_t_addfoundfactor (&n, f, 1); /* 1 for display warning if factor does not divide the current candidate */
 
 OutputFactorStuff:;
 	      if (verbose)
@@ -931,7 +939,7 @@ OutputFactorStuff:;
 		  cnt = 0;
 	        }
 	      else if (breadthfirst)
-		mpcandi_t_copy(&pCandidates[linenum-1], &n);
+		mpcandi_t_copy (&pCandidates[linenum-1], &n);
             }
 	  else
 	    {
@@ -997,23 +1005,23 @@ OutputFactorStuff:;
 
 
   if (infilename)	// note infile "might" be stdin, and don't fclose that!
-    fclose(infile);
+    fclose (infile);
   if (savefile)
-    fclose(savefile);
+    fclose (savefile);
   if (resumefile)
-    fclose(resumefile);
+    fclose (resumefile);
   if (nCandidates)
     {
       while (nCandidates--)
-	mpcandi_t_free(&pCandidates[nCandidates]);
-      free(pCandidates);
+	mpcandi_t_free (&pCandidates[nCandidates]);
+      free (pCandidates);
     }
 	  
 #ifdef POLYGCD
   NTL_clear ();
 #endif
 
-  free_expr();
+  free_expr ();
 
   gmp_randclear (randstate);
 
