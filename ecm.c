@@ -296,7 +296,7 @@ lucas_cost (unsigned n, double v)
         }
       else
         {
-          printf ("lucas_cost: no condition qualifies for d=%u e=%u\n", d, e);
+          fprintf (stderr, "lucas_cost: no condition qualifies for d=%u e=%u\n", d, e);
           exit (EXIT_FAILURE);
         }
     }
