@@ -58,9 +58,6 @@
 #define MPZMOD_THRESHOLD_DEFAULT (3 * DIV_DC_THRESHOLD / 2)
 #define REDC_THRESHOLD_DEFAULT   (2 * DIV_DC_THRESHOLD)
 
-/* delay between percentage updates (in milliseconds) */
-#define SCREEN_UPDATE_DELAY 1000
-
 /* default number of probable prime tests */
 #define PROBAB_PRIME_TESTS 1
 
@@ -345,6 +342,8 @@ void kill_temp_resume_file (void);
 
 /* main.c */
 int read_number (mpcandi_t *n, FILE *, int primetest);
+void showscreenticks(int stage, int percentage);   /* for outputting (or not outputting) the 1:98  or stage:percentage_complete  -Q will turn this off */
+void showscreenticks_change_stage(int stage);      /* puts up 1:00 or 2:00 and resets the "timeout" clock.  */
 
 /* eval.c */
 int eval (mpcandi_t *n, FILE *fd, int bPrp);
