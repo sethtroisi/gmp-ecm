@@ -266,7 +266,6 @@ polyeval_tellegen (listz_t b, unsigned int k, listz_t *Tree, listz_t tmp,
     int allocated = 0, 
         r = 0; /* return value, 0 = no error */
     listz_t T;
-    FILE *TreeFile = NULL;
 
     ASSERT(Tree != NULL || TreeFilename != NULL);
     
