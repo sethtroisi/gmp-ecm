@@ -657,11 +657,11 @@ ecm (mpz_t f, mpz_t x, mpz_t sigma, mpz_t n, mpz_t go, double B1done,
         S = 1;    /* x^1 */
       else if (B2 - B2min < 1.e8)
         S = 2;   /* x^2 */
-      else if (B2 - B2min < 8.e8)
+      else if (B2 - B2min < 1.e9)
         S = -3;   /* Dickson(3) */
-      else if (B2 - B2min < 4.e9)
+      else if (B2 - B2min < 1.e10)
         S = -6;  /* Dickson(6) */
-      else if (B2 - B2min < 3.e10)
+      else if (B2 - B2min < 3.e11)
         S = -12;  /* Dickson(12) */
       else
         S = -30;  /* Dickson(30) */
