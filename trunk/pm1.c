@@ -27,8 +27,6 @@
 #include "ecm.h"
 #include "ecm-impl.h"
 
-/* #define DEBUG */
-
 #define CASCADE_THRES 3
 #define CASCADE_MAX 50000000.0
 #ifndef POWM_THRESHOLD
@@ -284,9 +282,10 @@ pm1_stage1 (mpz_t f, mpres_t a, mpmod_t n, double B1, double B1done, mpz_t go)
    
       mulcascade_get_z (g, cascade);
       mulcascade_free (cascade);
-#ifdef DEBUG
-      fprintf (ECM_STDOUT, "Exponent has %u bits\n", mpz_sizeinbase (g, 2));
-#endif
+
+      outputf (OUTPUT_DEVVERBOSE, "Exponent has %u bits\n", 
+               mpz_sizeinbase (g, 2));
+
       if (smallbase)
         {
 	  outputf (OUTPUT_VERBOSE, "Using mpres_ui_pow, base %u\n", smallbase);
@@ -309,9 +308,10 @@ pm1_stage1 (mpz_t f, mpres_t a, mpmod_t n, double B1, double B1done, mpz_t go)
       
       mulcascade_get_z (g, cascade);
       mulcascade_free (cascade);
-#ifdef DEBUG
-      fprintf(ECM_STDOUT, "Exponent has %u bits\n", mpz_sizeinbase (g, 2));
-#endif
+
+      outputf (OUTPUT_DEVVERBOSE, "Exponent has %u bits\n", 
+               mpz_sizeinbase (g, 2));
+
       if (smallbase)
         {
 	  outputf (OUTPUT_VERBOSE, "Using mpres_ui_pow, base %u\n", smallbase);
@@ -584,17 +584,22 @@ pm1_rootsG_init (mpres_t *x, double s, unsigned int d1, unsigned int d2,
 
   for (i = 0; i < state->size_fd; i++) 
     {
-      /* gmp_fprintf (ECM_STDOUT, "pm1_rootsG_init: coeffs[%d] = %Zd\n", i, coeffs[i]); */
+      outputf (OUTPUT_TRACE, "pm1_rootsG_init: coeffs[%d] = %Zd\n", 
+               i, coeffs[i]);
       mpres_init (state->fd[i], modulus);
       /* The S-th coeff of all progressions is identical */
       if (i > state->S && i % (state->S + 1) == state->S) 
         {
-#ifdef DEBUG
+#ifdef WANT_ASSERT
           if (mpz_cmp (coeffs[i], coeffs[state->S]) != 0)
             {
-              fprintf (ECM_STDERR, "pm1_rootsG_init: coeffs[%d] != coeffs[%d]\n",
-                       i, state->S);
-              exit (EXIT_FAILURE);
+              outputf (OUTPUT_ERROR, "pm1_rootsG_init: coeffs[%d] != "
+                       "coeffs[%d]\n", i, state->S);
+              do
+                mpres_clear (state->fd[i], modulus);
+              while (i-- > 0);
+              clear_list (coeffs, state->size_fd);
+              return NULL;
             }
 #endif
           /* Simply copy from the first progression */
@@ -795,28 +800,25 @@ pm1 (mpz_t f, mpz_t p, mpz_t N, mpz_t go, double B1done, double B1,
   
   if (test_verbose (OUTPUT_NORMAL))
     {
-      fprintf (ECM_STDOUT, "Using ");
+      outputf (OUTPUT_NORMAL, "Using ");
       if (ECM_IS_DEFAULT_B1_DONE(B1done))
-        fprintf (ECM_STDOUT, "B1=%1.0f", B1);
+        outputf (OUTPUT_NORMAL, "B1=%1.0f", B1);
       else
-        fprintf (ECM_STDOUT, "B1=%1.0f-%1.0f", B1done, B1);
+        outputf (OUTPUT_NORMAL, "B1=%1.0f-%1.0f", B1done, B1);
       if (B2min <= B1)
-        fprintf (ECM_STDOUT, ", B2=%1.0f, ", B2);
+        outputf (OUTPUT_NORMAL, ", B2=%1.0f, ", B2);
       else
-        fprintf (ECM_STDOUT, ", B2=%1.0f-%1.0f, ", B2min, B2);
+        outputf (OUTPUT_NORMAL, ", B2=%1.0f-%1.0f, ", B2min, B2);
       if (S > 0)
-        fprintf (ECM_STDOUT, "polynomial x^%u", S);
+        outputf (OUTPUT_NORMAL, "polynomial x^%u", S);
       else
-        fprintf (ECM_STDOUT, "polynomial Dickson(%u)", -S);
+        outputf (OUTPUT_NORMAL, "polynomial Dickson(%u)", -S);
 
-      if (ECM_IS_DEFAULT_B1_DONE(B1done) || test_verbose (OUTPUT_VERBOSE))
+      if (ECM_IS_DEFAULT_B1_DONE(B1done))
 	/* don't print in resume case, since x0 is saved in resume file */
-	{
-	  fprintf (ECM_STDOUT, ", x0=");
-	  mpz_out_str (ECM_STDOUT, 10, p);
-	}
-      fprintf (ECM_STDOUT, "\n");
-      fflush (ECM_STDOUT);
+         outputf (OUTPUT_VERBOSE, ", x0=%Zd", p);
+
+      outputf (OUTPUT_NORMAL, "\n");
     }
 
   if (repr > 0) /* repr = 0 is the default, -1 means nobase2 */
@@ -878,9 +880,11 @@ pm1 (mpz_t f, mpz_t p, mpz_t N, mpz_t go, double B1done, double B1,
   outputf (OUTPUT_NORMAL, "Step 1 took %dms\n", st);
   if (test_verbose (OUTPUT_VERBOSE))
     {
-      outputf (OUTPUT_VERBOSE, "x=");
-      mpres_out_str (ECM_STDOUT, 10, x, modulus);
-      outputf (OUTPUT_VERBOSE, "\n");
+      mpz_t tx;
+      mpz_init (tx);
+      mpres_get_z (tx, x, modulus);
+      outputf (OUTPUT_VERBOSE, "x=%Zd\n", tx);
+      mpz_clear (tx);
     }
 
   if (youpi != ECM_NO_FACTOR_FOUND) /* factor found, or an error occurred */
