@@ -21,7 +21,7 @@
   02111-1307, USA.
 */
 
-#include <gmp.h>
+#include "gmp.h"
 #include "ecm.h"
 
 #define A0 A[i]
