@@ -37,20 +37,17 @@
 
 /* #define SAVE_TREE */
 
-void mpz_d_pow_ui (mpz_t, double, unsigned long int);
-void dickson_ui (mpz_t, double, unsigned int, int);
-
 extern unsigned int Fermat;
 
 /* r <- x^n */
-void
+static void
 mpz_d_pow_ui (mpz_t r, double x, unsigned long int n)
 {
   mpz_set_d (r, x);
   mpz_pow_ui (r, r, n);
 }
 
-void 
+static void 
 dickson_ui (mpz_t r, double x, unsigned int n, int a)
 {
   unsigned int i, b = 0;
@@ -130,7 +127,7 @@ fin_diff_coeff (listz_t coeffs, double s, double D,
   unsigned int i, k;
 
   /* check maximal value of s + i * D does not overflow */
-  if (s + (double) E * D > 9007199254740992.0) /* 2^53 */
+  if (s + (double) E * D > TWO53) /* 2^53 */
     {
       fprintf (es, "Error, overflow in fin_diff_coeff\n");
       fprintf (es, "Please use a smaller B1 or B2min\n");
@@ -328,7 +325,7 @@ stage2 (mpz_t f, void *X, mpmod_t modulus, double B2min, double B2,
   i0 = floor (B2min / (double) d / (double) d2) * d2;
 
   /* check that i0 * d does not overflow */
-  if (i0 * (double) d > 9007199254740992.0) /* 2^53 */
+  if (i0 * (double) d > TWO53) /* 2^53 */
     {
       fprintf (es, "Error, overflow in stage 2\n");
       fprintf (es, "Please use a smaller B1 or B2min\n");
