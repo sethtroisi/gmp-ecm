@@ -440,16 +440,17 @@ stage2 (mpz_t f, void *X, mpmod_t modulus, double B2min, double B2,
 #endif
   tot_muls += muls;
 
-  if (tot_muls != est_muls)
-    fprintf (stderr, "Warning: estimated and real muls differ: %u <> %u\n",
-             est_muls, tot_muls);
-
   fprintf (stderr, "2:%02d\r",
            (int) (100.0 * (double) tot_muls / (double) est_muls));
 
   if (verbose >= 2)
     printf ("Computing polyeval(F,G) took %ums and %lu muls\n",
             cputime() - st, muls);
+
+  if ((verbose >= 2) && (tot_muls != est_muls))
+    fprintf (stderr, "Warning: estimated and real muls differ: %lu <> %lu\n",
+             est_muls, tot_muls);
+
   youpi = list_gcd (f, T, dF, n) ? 2 : 0;
 #else
   st = cputime ();

@@ -18,7 +18,7 @@
 # 02111-1307, USA.
 
 # Standard installation prefix
-prefix=/home/kruppa
+prefix=/usr/local
 
 # directory where GMP is installed
 # gmp.h should be in $(GMP)/include

@@ -109,7 +109,7 @@ muls_gen (unsigned int n)
 #endif
 }
 
-static unsigned long
+unsigned long
 muls_gen_short (unsigned int n)
 {
   unsigned int p, q, muls;
