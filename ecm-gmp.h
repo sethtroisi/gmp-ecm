@@ -21,7 +21,11 @@ the Free Software Foundation, Inc., 59 Temple Place - Suite 330, Boston,
 MA 02111-1307, USA. */
 
 #if !defined(__freebsd)
+#if defined (__GNUC__)
+#define alloca __builtin_alloca
+#else
 #include <alloca.h>
+#endif
 #endif
 #define ABSIZ(x) ABS (SIZ (x))
 #define ALLOC(x) ((x)->_mp_alloc)
