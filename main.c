@@ -455,6 +455,48 @@ main (int argc, char *argv[])
 	  argv += 2;
 	  argc -= 2;
 	}
+     else if ((argc > 2) && (strcmp (argv[1], "-prp") == 0))
+       {
+         externalprp = argv[2];
+         argv += 2;
+         argc -= 2;
+       }
+     else if ((argc > 2) && (strcmp (argv[1], "-prptmp") == 0))
+       {
+         externalinputprpfile = argv[2];
+         argv += 2;
+         argc -= 2;
+       }
+     else if ((argc > 2) && (strcmp (argv[1], "-prplog") == 0))
+       {
+         externallog = argv[2];
+         argv += 2;
+         argc -= 2;
+       }
+     else if ((argc > 2) && (strcmp (argv[1], "-prpyes") == 0))
+       {
+         externalisprp = argv[2];
+         argv += 2;
+         argc -= 2;
+       }
+     else if ((argc > 2) && (strcmp (argv[1], "-prpno") == 0))
+       {
+         externaliscomposite = argv[2];
+         argv += 2;
+         argc -= 2;
+       }
+     else if ((argc > 2) && (strcmp (argv[1], "-prplen") == 0))
+       {
+         externalprplen = atoi (argv[2]);
+         argv += 2;
+         argc -= 2;
+       }
+     else if ((argc > 2) && (strcmp (argv[1], "-prpval") == 0))
+       {
+         externalprpval = atoi (argv[2]);
+         argv += 2;
+         argc -= 2;
+       }
 
       else
 	{
@@ -514,6 +556,16 @@ main (int argc, char *argv[])
       fprintf (stderr, "  -ve n        Verbosely show short (< n character) expressions on each loop\n");
       fprintf (stderr, "  -cofdec      Force cofactor output in decimal (even if expressions are used)\n");
       fprintf (stderr, "  -B2scale f   Multiplies the 'computed' B2 value by the specified multiplier\n");
+
+      /*rintf (stderr, "  -extra functions added by PhilC\n"); */
+      fprintf (stderr, "  -prp cmd     use shell command cmd to do large primality tests\n");
+      fprintf (stderr, "  -prplen n    only candidates longer than this number of digits are 'large'\n");
+      fprintf (stderr, "  -prpval n    value>=0 which indicates the prp command foundnumber to be PRP.\n");
+      fprintf (stderr, "  -prptmp file outputs n value to temp file prior to running (NB. gets deleted)\n");
+      fprintf (stderr, "  -prplog file otherwise get PRP results from this file (NB. gets deleted)\n");
+      fprintf (stderr, "  -prpyes str  literal string found in prplog file when number is PRP\n");
+      fprintf (stderr, "  -prpno str   literal string found in prplog file when number is composite\n");
+
       exit (EXIT_FAILURE);
     }
 
@@ -972,7 +1024,8 @@ BreadthFirstDoAgain:;
                   exit (1);
                 }
 	      /* prints factor found and cofactor on standard error. */
-	      factor_is_prime = mpz_probab_prime_p (f, PROBAB_PRIME_TESTS);
+	      factor_is_prime = smart_probab_prime_p (f, PROBAB_PRIME_TESTS);
+
               if (verbose)
                 {
                   printf ("Found %s factor of %2u digits: ", 
