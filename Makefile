@@ -9,8 +9,8 @@ NTL=/global/ecrouves/loria/linux/ntl-5.3
 CFLAGS=-O2 -g -static -Wall -Wmissing-prototypes -ansi -pedantic
 CC=g++
 
-FILES= aux.o bestd.o ecm.o getprime.o main.o pm1.o listz.o stage2.o polyz.o ntl.o
-DIST= COPYING Makefile README aux.c bestd.c check.mpl cputime.h ecm.c ecm.h getprime.c main.c pm1.c listz.c stage2.c polyz.c ntl.c
+FILES= aux.o bestd.o ecm.o getprime.o main.o pm1.o listz.o stage2.o polyz.o ntl.o toomcook.o
+DIST= COPYING Makefile README aux.c bestd.c check.mpl cputime.h ecm.c ecm.h getprime.c main.c pm1.c listz.c stage2.c polyz.c ntl.c toomcook.c
 
 .SUFFIXES: .c .o
 
