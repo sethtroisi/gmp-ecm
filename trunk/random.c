@@ -101,7 +101,9 @@ get_random_ui (void)
     {
       if (fread (&t, sizeof(unsigned int), 1, rndfd) == 1)
         {
+#ifndef OUTSIDE_LIBECM /* warning: outputf is not exported from libecm */
           outputf (OUTPUT_DEVVERBOSE, "Got seed for RNG from /dev/urandom\n");
+#endif
           fclose (rndfd);
           return t;
         }
@@ -110,11 +112,15 @@ get_random_ui (void)
 
   if (gettimeofday (&tv, NULL) == 0)
     {
+#ifndef OUTSIDE_LIBECM
       outputf (OUTPUT_DEVVERBOSE, "Got seed for RNG from gettimeofday()\n");
+#endif
       return tv.tv_sec + tv.tv_usec;
     }
 
+#ifndef OUTSIDE_LIBECM
   outputf (OUTPUT_DEVVERBOSE, "Got seed for RNG from time()+getpid()\n");
+#endif
 
   return time (NULL) + getpid ();
 }
