@@ -58,7 +58,7 @@ int
 freadstrn (FILE *fd, char *s, char delim, unsigned int len)
 {
   unsigned int i = 0;
-  char c;
+  int c;
   
   while (i + 1 < len && (c = fgetc (fd)) != EOF)
     if (c == delim)
