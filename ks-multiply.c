@@ -73,7 +73,7 @@ kronecker_schonhage (listz_t R, listz_t A, listz_t B, unsigned int l,
   size_t0 = s * l;
 
   /* allocate one double-buffer to save malloc/MPN_ZERO/free calls */
-  t0_ptr = (mp_ptr) malloc (2 * size_t0 * sizeof (mp_limb_t));
+  t0_ptr = (mp_ptr) xmalloc (2 * size_t0 * sizeof (mp_limb_t));
   t1_ptr = t0_ptr + size_t0;
     
   MPN_ZERO (t0_ptr, size_t0 + size_t0);
@@ -84,7 +84,7 @@ kronecker_schonhage (listz_t R, listz_t A, listz_t B, unsigned int l,
       MPN_COPY (t1_ptr + i * s, PTR(B[i]), SIZ(B[i]));
     }
 
-  t2_ptr = (mp_ptr) malloc (2 * size_t0 * sizeof (mp_limb_t));
+  t2_ptr = (mp_ptr) xmalloc (2 * size_t0 * sizeof (mp_limb_t));
 
   mpn_mul_n (t2_ptr, t0_ptr, t1_ptr, size_t0);
   
@@ -164,8 +164,8 @@ TMulKS (listz_t b, unsigned int n,
   bn = an + cn;
 
   /* a[0..m] needs (m+1) * s limbs */
-  ap = (mp_ptr) malloc (an * sizeof (mp_limb_t));
-  cp = (mp_ptr) malloc (cn * sizeof (mp_limb_t));
+  ap = (mp_ptr) xmalloc (an * sizeof (mp_limb_t));
+  cp = (mp_ptr) xmalloc (cn * sizeof (mp_limb_t));
 
   MPN_ZERO (ap, an);
   MPN_ZERO (cp, cn);
@@ -182,12 +182,12 @@ TMulKS (listz_t b, unsigned int n,
      If we compute mod (m+n+1) * s limbs, we are ok */
   k = mpn_fft_best_k ((m + n + 1) * s, 0);
   bn = mpn_fft_next_size ((m + n + 1) * s, k);
-  bp = (mp_ptr) malloc ((bn + 1) * sizeof (mp_limb_t));
+  bp = (mp_ptr) xmalloc ((bn + 1) * sizeof (mp_limb_t));
   mpn_mul_fft (bp, bn, ap, an, cp, cn, k);
   if (bp[m * s - 1] >> (GMP_NUMB_BITS - 1)) /* lo(b)-hi(b) is negative */
     mpn_add_1 (bp + m * s, bp + m * s, (n + 1) * s, (mp_limb_t) 1);
 #else
-  bp = (mp_ptr) malloc (bn * sizeof (mp_limb_t));
+  bp = (mp_ptr) xmalloc (bn * sizeof (mp_limb_t));
   if (an >= cn)
     mpn_mul (bp, ap, an, cp, cn);
   else
