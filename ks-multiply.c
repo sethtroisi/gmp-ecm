@@ -45,7 +45,7 @@
       even for large degree polynomials.
     - this code requires that all coefficients A[] and B[] are nonnegative.
 */    
-int
+void
 kronecker_schonhage (listz_t R, listz_t A, listz_t B, unsigned int l,
                      listz_t T)
 {
@@ -55,7 +55,10 @@ kronecker_schonhage (listz_t R, listz_t A, listz_t B, unsigned int l,
 
   s = mpz_sizeinbase (A[0], 2);
   if ((double) l * (double) s < KS_MUL_THRESHOLD)
-    return toomcook4 (R, A, B, l, T);
+    {
+      toomcook4 (R, A, B, l, T);
+      return;
+    }
 
   for (i = 0; i < l; i++)
     {
@@ -107,9 +110,6 @@ kronecker_schonhage (listz_t R, listz_t A, listz_t B, unsigned int l,
 
   free (t0_ptr);
   free (t2_ptr);
-  
-  /* we don't have a measure of how many multiplies we've done */
-  return 0;
 }
 
 /* Given a[0..m] and c[0..l], puts in b[0..n] the coefficients

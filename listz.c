@@ -96,10 +96,8 @@ clear_list (listz_t p, unsigned int n)
   free (p);
 }
 
-#define POLYFORM
-
 #ifdef DEBUG
-/* prints a list of n coefficients */
+/* prints a list of n coefficients as a polynomial */
 void
 print_list (listz_t p, unsigned int n)
 {
@@ -107,33 +105,13 @@ print_list (listz_t p, unsigned int n)
 
   for (i = 0; i < n; i++)
     {
-#ifdef POLYFORM
       if (i > 0 && mpz_cmp_ui (p[i], 0) >= 0)
         printf ("+");
-#endif
       mpz_out_str (stdout, 10, p[i]);
-#ifdef POLYFORM
       printf ("*x^%u", i);
-#else
       printf (" ");
-#endif
     }
   putchar ('\n');
-}
-
-#define SIZ(x) ((x)->_mp_size)
-#define ABS(x) ((x) >= 0 ? (x) : -(x))
-#define ABSIZ(x) ABS (SIZ (x))
-
-unsigned int
-print_max_size (listz_t p, unsigned int n)
-{
-  unsigned int i, s = 0;
-
-  for (i = 0; i < n; i++)
-    if (ABSIZ(p[i]) > s)
-      s = ABSIZ(p[i]);
-  return s;
 }
 #endif
 
@@ -258,6 +236,7 @@ list_zerop (listz_t p, unsigned int n)
   return iszero;
 }
 
+#ifdef DEBUG
 int
 list_check (listz_t a, unsigned int l, mpz_t n)
 {
@@ -272,96 +251,94 @@ list_check (listz_t a, unsigned int l, mpz_t n)
       }
   return 1;
 }
+#endif
 
 /* puts in a[0]..a[K-1] the K low terms of the product 
    of b[0..K-1] and c[0..K-1].
-   Returns the number of scalar multiplies.
    Assumes K >= 1, and a[0..2K-2] exist.
    Needs space for list_mul_mem(K) in t.
 */
-static int
-list_mul_low (listz_t a, listz_t b, listz_t c, unsigned int K, listz_t t, mpz_t n)
+static void
+list_mul_low (listz_t a, listz_t b, listz_t c, unsigned int K, listz_t t,
+	      mpz_t n)
 {
-  unsigned int p, q, muls;
+  unsigned int p, q;
 
   switch (K)
     {
     case 1:
       mpz_mul (a[0], b[0], c[0]);
-      return 1;
+      return;
     case 2:
       mpz_mul (a[0], b[0], c[0]);
       mpz_mul (a[1], b[0], c[1]);
       mpz_addmul (a[1], b[1], c[0]);
-      return 3;
+      return;
     case 3:
       karatsuba (a, b, c, 2, t);
       mpz_addmul (a[2], b[2], c[0]);
       mpz_addmul (a[2], b[0], c[2]);
-      return 5;
+      return;
     default:
       /* MULT is 2 for Karatsuba, 3 for Toom3, 4 for Toom4 */
       for (p = 1; MULT * p <= K; p *= MULT); /* p = greatest power of MULT <=K */
       p = (K / p) * p;
       ASSERTD(list_check(b,p,n) && list_check(c,p,n));
-      muls = LIST_MULT_N (a, b, c, p, t);
+      LIST_MULT_N (a, b, c, p, t);
       if ((q = K - p))
         {
-          muls += list_mul_low (t, b + p, c, q, t + 2 * q - 1, n);
+          list_mul_low (t, b + p, c, q, t + 2 * q - 1, n);
           list_add (a + p, a + p, t, q);
-          muls += list_mul_low (t, c + p, b, q, t + 2 * q - 1, n);
+          list_mul_low (t, c + p, b, q, t + 2 * q - 1, n);
           list_add (a + p, a + p, t, q);
         }
-      return muls;
     }
 }
 
 /* puts in a[K-1]..a[2K-2] the K high terms of the product 
    of b[0..K-1] and c[0..K-1].
-   Returns the number of scalar multiplies.
    Assumes K >= 1, and a[0..2K-2] exist.
    Needs space for list_mul_mem(K) in t.
 */
-int
+void
 list_mul_high (listz_t a, listz_t b, listz_t c, unsigned int K, listz_t t)
 {
 #ifdef KS_MULTIPLY /* ks is faster */
-  return LIST_MULT_N (a, b, c, K, t);
+  LIST_MULT_N (a, b, c, K, t);
 #else
-  unsigned int p, q, muls;
+  unsigned int p, q;
 
   switch (K)
     {
     case 1:
       mpz_mul (a[0], b[0], c[0]);
-      return 1;
+      return;
       
     case 2:
       mpz_mul (a[2], b[1], c[1]);
       mpz_mul (a[1], b[1], c[0]);
       mpz_addmul (a[1], b[0], c[1]);
-      return 3;
+      return;
 
     case 3:
       karatsuba (a + 2, b + 1, c + 1, 2, t);
       mpz_addmul (a[2], b[0], c[2]);
       mpz_addmul (a[2], b[2], c[0]);
-      return 5;
+      return;
 
     default:
       /* MULT is 2 for Karatsuba, 3 for Toom3, 4 for Toom4 */
       for (p = 1; MULT * p <= K; p *= MULT);
       p = (K / p) * p;
       q = K - p;
-      muls = LIST_MULT_N (a + 2 * q, b + q, c + q, p, t);
+      LIST_MULT_N (a + 2 * q, b + q, c + q, p, t);
       if (q)
         {
-          muls += list_mul_high (t, b + p, c, q, t + 2 * q - 1);
+          list_mul_high (t, b + p, c, q, t + 2 * q - 1);
           list_add (a + K - 1, a + K - 1, t + q - 1, q);
-          muls += list_mul_high (t, c + p, b, q, t + 2 * q - 1);
+          list_mul_high (t, c + p, b, q, t + 2 * q - 1);
           list_add (a + K - 1, a + K - 1, t + q - 1, q);
         }
-      return muls;
     }
 #endif
 }
@@ -369,16 +346,14 @@ list_mul_high (listz_t a, listz_t b, listz_t c, unsigned int K, listz_t t)
 /* Puts in a[0..2K-2] the product of b[0..K-1] and c[0..K-1].
    The auxiliary memory M(K) necessary in T satisfies:
    M(1)=0, M(K) = max(3*l-1,2*l-2+M(l)) <= 2*K-1 where l = ceil(K/2).
-   Returns the number of scalar multiplies.
    Assumes K >= 1.
 */
-int
+void
 karatsuba (listz_t a, listz_t b, listz_t c, unsigned int K, listz_t t)
 {
   if (K == 1)
     {
       mpz_mul (a[0], b[0], c[0]);
-      return 1;
     }
   else if (K == 2) /* basic Karatsuba scheme */
     {
@@ -389,7 +364,6 @@ karatsuba (listz_t a, listz_t b, listz_t c, unsigned int K, listz_t t)
       mpz_mul (a[2], b[1], c[1]); /* a2 = b_1 * c_1 */
       mpz_sub (a[1], a[1], a[0]); /* a1 = b_0*c_1 + b_1*c_0 + b_1*c_1 */
       mpz_sub (a[1], a[1], a[2]); /* a1 = b_0*c_1 + b_1*c_0 */
-      return 3;
     }
   else if (K == 3)
     {
@@ -418,11 +392,10 @@ karatsuba (listz_t a, listz_t b, listz_t c, unsigned int K, listz_t t)
       mpz_sub (t[2], t[2], a[0]);
       mpz_sub (t[2], t[2], a[4]);
       mpz_add (a[2], a[2], t[2]);
-      return 6;
     }
   else
     { 
-      unsigned int i, k, l, muls;
+      unsigned int i, k, l;
       listz_t z;
 
       k = K / 2;
@@ -447,14 +420,14 @@ karatsuba (listz_t a, listz_t b, listz_t c, unsigned int K, listz_t t)
       /* as b[0..l-1] + b[l..K-1] is stored in t[2l-1..3l-2], we need
          here at least 3l-1 entries in t */
 
-      muls = karatsuba (t, z, a, l, a + l); /* fills t[0..2l-2] */
+      karatsuba (t, z, a, l, a + l); /* fills t[0..2l-2] */
        
       /* trick: save t[2l-2] in a[2l-1] to enable M(K) <= 2*K-1 */
       z = t + 2 * l - 2;
       mpz_set (a[2*l-1], t[2*l-2]);
 
-      muls += karatsuba (a, b, c, l, z); /* fill a[0..2l-2] */
-      muls += karatsuba (a + 2 * l, b + l, c + l, k, z); /* fills a[2l..2K-2] */
+      karatsuba (a, b, c, l, z); /* fill a[0..2l-2] */
+      karatsuba (a + 2 * l, b + l, c + l, k, z); /* fills a[2l..2K-2] */
 
       mpz_set (t[2*l-2], a[2*l-1]); /* restore t[2*l-2] */
       mpz_set_ui (a[2*l-1], 0);
@@ -487,8 +460,6 @@ karatsuba (listz_t a, listz_t b, listz_t c, unsigned int K, listz_t t)
         }
 
       list_sub (a + l, a + l, t, 2 * l - 1);
-
-      return muls;
     }
 }
 
@@ -499,13 +470,12 @@ karatsuba (listz_t a, listz_t b, listz_t c, unsigned int K, listz_t t)
    Assumes k = l or k = l+1.
    The auxiliary array t contains at least list_mul_mem(l) entries.
    a and t should not overlap.
-   Return the number of scalar multiplies.
 */
-int
+void
 list_mul (listz_t a, listz_t b, unsigned int k, int monic_b,
           listz_t c, unsigned int l, int monic_c, listz_t t)
 {
-  unsigned int i, po2, muls;
+  unsigned int i, po2;
 
   ASSERTD (k >= l);
   
@@ -519,21 +489,20 @@ list_mul (listz_t a, listz_t b, unsigned int k, int monic_b,
     {
       if (monic_b && monic_c && l == k)
         {
-          muls = F_mul (a, b, c, l, MONIC, Fermat, t);
+          F_mul (a, b, c, l, MONIC, Fermat, t);
           monic_b = monic_c = 0;
         }
       else
-        muls = F_mul (a, b, c, l, DEFAULT, Fermat, t);
+        F_mul (a, b, c, l, DEFAULT, Fermat, t);
     }
   else
-    muls = LIST_MULT_N (a, b, c, l, t); /* set a[0]...a[2l-2] */
+    LIST_MULT_N (a, b, c, l, t); /* set a[0]...a[2l-2] */
 
   if (k > l) /* multiply b[l]*x^l by c[0]+...+c[l-1]*x^(l-1) */
     {
       for (i = 0; i < l - 1; i++)
         mpz_addmul (a[l+i], b[l], c[i]);
       mpz_mul (a[2*l-1], b[l], c[l-1]);
-      muls += l;
     }
 
   /* deal with x^k and x^l */
@@ -559,8 +528,6 @@ list_mul (listz_t a, listz_t b, unsigned int k, int monic_b,
       else /* only monic_b, add x^k * c */
         list_add (a + k, a + k, c, l);
     }
-  
-  return muls;
 }
 
 /*
@@ -734,26 +701,25 @@ PolyInvert (listz_t q, listz_t b, unsigned int K, listz_t t, mpz_t n)
   Puts the quotient in q[0]+q[1]*x+...+q[K-1]*x^(K-1)
   and the remainder in a[0]+a[1]*x+...+a[K-1]*x^(K-1)
   Needs space for list_mul_mem(K) coefficients in t.
-  Return the number of scalar multiplies performed.
   If top is non-zero, a[0]..a[K-1] are reduced mod n.
 */
-int
+void
 RecursiveDivision (listz_t q, listz_t a, listz_t b, unsigned int K,
                    listz_t t, mpz_t n, int top)
 {
   if (K == 1) /* a0+a1*x = a1*(b0+x) + a0-a1*b0 */
     {
       mpz_mod (a[1], a[1], n);
-      mpz_mulmod (q[0], a[1], b[0], n);
+      mpz_mul (q[0], a[1], b[0]);
+      mpz_mod (q[0], q[0], n);
       mpz_sub (a[0], a[0], q[0]);
       if (top)
         mpz_mod (a[0], a[0], n);
       mpz_set (q[0], a[1]);
-      return 1;
     }
   else
     {
-      unsigned int k, l, i, muls, po2;
+      unsigned int k, l, i, po2;
 
       k = K / 2;
       l = K - k;
@@ -761,13 +727,13 @@ RecursiveDivision (listz_t q, listz_t a, listz_t b, unsigned int K,
       po2 = (po2 == 1);
 
       /* first perform a (2l) / l division */
-      muls = RecursiveDivision (q + k, a + 2 * k, b + k, l, t, n, 0);
+      RecursiveDivision (q + k, a + 2 * k, b + k, l, t, n, 0);
       /* subtract q[k..k+l-1] * b[0..k-1] */
       ASSERTD(list_check(q+l,k,n) && list_check(b,k,n));
       if (po2 && Fermat)
-        muls += F_mul (t, q + l, b, k, DEFAULT, Fermat, t + K); /* sets t[0..2*k-2] */
+        F_mul (t, q + l, b, k, DEFAULT, Fermat, t + K); /* sets t[0..2*k-2] */
       else
-        muls += LIST_MULT_N (t, q + l, b, k, t + K - 1); /* sets t[0..2*k-2] */
+        LIST_MULT_N (t, q + l, b, k, t + K - 1); /* sets t[0..2*k-2] */
       list_sub (a + l, a + l, t, 2 * k - 1);
       if (k < l) /* don't forget to subtract q[k] * b[0..k-1] */
         {
@@ -776,18 +742,17 @@ RecursiveDivision (listz_t q, listz_t a, listz_t b, unsigned int K,
 	      mpz_mul (t[0], q[k], b[i]); /* TODO: need to reduce t[0]? */
 	      mpz_sub (a[k+i], a[k+i], t[0]);
 	    }
-          muls += k;
         }
       /* remainder is in a[0..K+k-1] */
 
       /* then perform a (2k) / k division */
-      muls += RecursiveDivision (q, a + l, b + l, k, t, n, 0);
+      RecursiveDivision (q, a + l, b + l, k, t, n, 0);
       /* subtract q[0..k-1] * b[0..l-1] */
       ASSERTD(list_check(q,k,n) && list_check(b,k,n));
       if (po2 && Fermat)
-        muls += F_mul (t, q, b, k, DEFAULT, Fermat, t + K);
+        F_mul (t, q, b, k, DEFAULT, Fermat, t + K);
       else
-        muls += LIST_MULT_N (t, q, b, k, t + K - 1);
+        LIST_MULT_N (t, q, b, k, t + K - 1);
       list_sub (a, a, t, 2 * k - 1);
       if (k < l) /* don't forget to subtract q[0..k-1] * b[k] */
         {
@@ -796,14 +761,11 @@ RecursiveDivision (listz_t q, listz_t a, listz_t b, unsigned int K,
               mpz_mul (t[0], q[i], b[k]); /* TODO: need to reduce t[0]? */
               mpz_sub (a[k+i], a[k+i], t[0]);
             }
-          muls += k;
         }
 
       /* normalizes the remainder wrt n */
       if (top)
         list_mod (a, a, K, n);
-
-      return muls;
     }
 }
 
@@ -906,56 +868,6 @@ PrerevertDivision (listz_t a, listz_t b, listz_t invb,
   /* now {t, K} contains the low K terms from Q*B */
   list_sub (a, a, t, K);
   list_mod (a, a, K, n);
-}
-
-/* a <- a mod b, with quotient q stored in a[d]*x + a[d-1],
-   a has degree d, b has degree (d-1). */
-int
-list_mod1 (mpz_t p, listz_t a, listz_t b, unsigned int d, mpz_t n, listz_t t)
-{
-  unsigned int i;
-
-  mpz_gcdext (p, t[0], NULL, b[d-1], n);
-  if (mpz_cmp_ui (p, 1) != 0)
-    return 1;
-  /* t[0] = 1/b[d-1] mod n */
-
-  /* subtract a[d]*t[0]*x*b from a */
-  mpz_mulmod (a[d], a[d], t[0], n);
-  for (i=0; i<d-1; i++)
-    {
-      mpz_mulmod (t[1], b[i], a[d], n);
-      mpz_sub (a[i+1], a[i+1], t[1]);
-    }
-  /* now deg(a) = d-1 */
-  
-  /* subtract a[d-1]*t[0]*b from a */
-  mpz_mulmod (a[d-1], a[d-1], t[0], n);
-  for (i=0; i<d-1; i++)
-    {
-      mpz_mulmod (t[1], b[i], a[d-1], n);
-      mpz_sub (a[i], a[i], t[1]);
-    }
-  /* now deg(a) = d-2, q = a[d]*x + a[d-1] */
-
-  return 0;
-}
-
-/* a[0..d] <- a[0..d] - (q[1]*x + q[0]) * b[0..d-1] */
-void
-poly_submul2 (listz_t a, listz_t q, listz_t b, unsigned int d, mpz_t n, mpz_t t)
-{
-  unsigned int i;
-
-  mpz_set_ui (a[d+1], 0);
-  mpz_set_ui (a[d], 0);
-  for (i=0; i<d; i++)
-    {
-      mpz_mulmod (t, b[i], q[0], n);
-      mpz_sub (a[i], a[i], t);
-      mpz_mulmod (t, b[i], q[1], n);
-      mpz_sub (a[i+1], a[i+1], t);
-    }
 }
 
 /* Puts in inv[0..l-1] the inverses of a[0..l-1] (mod n), using 3*(l-1) 
