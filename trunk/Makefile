@@ -27,7 +27,7 @@ GMP=/usr/local
 # libntl.a should be in $(NTL)/lib
 NTL=/usr/local
 
-VERSION=5.0-beta-pl3
+VERSION=5.0
 
 ###################### do not edit below this line ############################
 
