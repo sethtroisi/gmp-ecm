@@ -376,8 +376,9 @@ pp1_rootsF (listz_t F, unsigned int d1, unsigned int d2, unsigned int dF,
 	  expensive, since it can use up to 4*(d1/6) muls */
     {
       init_roots_state (&state, S, d1, d2, 1.0);
-      coeffs = init_progression_coeffs (0.0, state.dsieve, d2, 1, 6, state.S,
+      coeffs = init_progression_coeffs (*t, state.dsieve, d2, 1, 6, state.S,
                                         state.dickson_a);
+      
       if (coeffs == NULL)
         return ECM_ERROR;
 
@@ -461,7 +462,7 @@ pp1_rootsF (listz_t F, unsigned int d1, unsigned int d2, unsigned int dF,
 
 /* return NULL if an error occurred */
 pp1_roots_state *
-pp1_rootsG_init (mpres_t *x, double s, unsigned int d1, unsigned int d2, 
+pp1_rootsG_init (mpres_t *x, mpz_t s, unsigned int d1, unsigned int d2, 
                  int S, mpmod_t modulus)
 {
   int st;
@@ -491,13 +492,14 @@ pp1_rootsG_init (mpres_t *x, double s, unsigned int d1, unsigned int d2,
       state->dsieve = d2; /* needed in pp1_rootsG */
       /* We want to skip values where gcd(s + i * d1, d2) != 1 */
       /* state->rsieve = s % d2 */
-      state->rsieve = (unsigned int) (s - floor (s / (double) d2) * (double) d2);
+      state->rsieve = mpz_fdiv_ui (s, d2);
 
-      mpz_set_d (t, s);
-      pp1_mul (state->tmp[0], *x, t, modulus, state->tmp[3], P);
+      pp1_mul (state->tmp[0], *x, s, modulus, state->tmp[3], P);
       mpz_set_ui (t, d1);
       pp1_mul (state->tmp[1], *x, t, modulus, state->tmp[3], P);
-      mpz_set_d (t, fabs (s - (double) d1));
+      mpz_set (t, s);
+      mpz_sub_ui (t, t, d1);
+      mpz_abs (t, t);
       pp1_mul (state->tmp[2], *x, t, modulus, state->tmp[3], P);
       /* for P+1, tmp[0] = V_s(P), tmp[1] = V_d1(P), tmp[2] = V_{|s-d1|}(P) */
 
@@ -521,7 +523,7 @@ pp1_rootsG_init (mpres_t *x, double s, unsigned int d1, unsigned int d2,
           free (state);
           return NULL;
         }
-
+      
       coeffs = init_progression_coeffs (s, d2, d1, 1, 1, state->S, dickson_a);
       if (coeffs == NULL)
         {

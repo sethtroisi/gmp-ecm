@@ -428,6 +428,7 @@ ecm_rootsF (mpz_t f, listz_t F, unsigned int d1, unsigned int d2,
   int youpi = ECM_NO_FACTOR_FOUND;
   listz_t coeffs;
   ecm_roots_state state;
+  mpz_t t;
   
   if (dF == 0)
     return ECM_NO_FACTOR_FOUND;
@@ -443,8 +444,10 @@ ecm_rootsF (mpz_t f, listz_t F, unsigned int d1, unsigned int d2,
 	   state.S, state.dickson_a);
 
   /* Init finite differences tables */
-  coeffs = init_progression_coeffs (0.0, state.dsieve, d2, 1, 6, state.S, 
+  mpz_init (t); /* t = 0 */
+  coeffs = init_progression_coeffs (t, state.dsieve, d2, 1, 6, state.S, 
                                     state.dickson_a);
+  mpz_clear (t);
 
   if (coeffs == NULL) /* error */
     {
@@ -583,7 +586,7 @@ ecm_rootsF (mpz_t f, listz_t F, unsigned int d1, unsigned int d2,
    factor in f. If an error occurred, NULL is returned and f is -1.
 */
 ecm_roots_state *
-ecm_rootsG_init (mpz_t f, curve *X, double s, unsigned int d1, unsigned int d2,
+ecm_rootsG_init (mpz_t f, curve *X, mpz_t s, unsigned int d1, unsigned int d2,
                  unsigned int dF, unsigned int blocks, int S, mpmod_t modulus)
 {
   unsigned int k, lenT, phid2;
@@ -595,6 +598,7 @@ ecm_rootsG_init (mpz_t f, curve *X, double s, unsigned int d1, unsigned int d2,
   unsigned int T_inv;
   double bestnr;
   int st = 0;
+  mpz_t t;
 
   ASSERT (gcd (d1, d2) == 1);
 
@@ -637,7 +641,7 @@ ecm_rootsG_init (mpz_t f, curve *X, double s, unsigned int d1, unsigned int d2,
   state->S = S;
   state->size_fd = state->nr * (state->S + 1);
 
-  outputf (OUTPUT_DEVVERBOSE, "ecm_rootsG_init: s=%f, d1=%u, d2=%d, dF=%d, blocks=%d, S=%u, T_inv = %d, nr=%d\n", 
+  outputf (OUTPUT_DEVVERBOSE, "ecm_rootsG_init: s=%Zd, d1=%u, d2=%d, dF=%d, blocks=%d, S=%u, T_inv = %d, nr=%d\n", 
 	   s, d1, d2, dF, blocks, S, T_inv, state->nr);
   
   state->X = X;

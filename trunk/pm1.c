@@ -411,6 +411,7 @@ pm1_rootsF (mpz_t f, listz_t F, unsigned int d1, unsigned int d2,
   int st, st1;
   pm1_roots_state state;
   listz_t coeffs;
+  mpz_t ts;
 
   if (dF == 0)
     return 0;
@@ -439,8 +440,10 @@ pm1_rootsF (mpz_t f, listz_t F, unsigned int d1, unsigned int d2,
 	   state.size_fd, state.S, state.dickson_a, state.invtrick);
 
   /* Init finite differences tables */
-  coeffs = init_progression_coeffs (0.0, state.dsieve, d2, 1, 6, state.S, 
+  mpz_init (ts); /* ts = 0 */
+  coeffs = init_progression_coeffs (ts, state.dsieve, d2, 1, 6, state.S, 
                                     state.dickson_a);
+  mpz_clear (ts);
 
   if (coeffs == NULL)
     return ECM_ERROR;
@@ -538,7 +541,7 @@ pm1_rootsF (mpz_t f, listz_t F, unsigned int d1, unsigned int d2,
 */
 
 pm1_roots_state *
-pm1_rootsG_init (mpres_t *x, double s, unsigned int d1, unsigned int d2, 
+pm1_rootsG_init (mpres_t *x, mpz_t s, unsigned int d1, unsigned int d2, 
                  int S, mpmod_t modulus)
 {
   unsigned int i;

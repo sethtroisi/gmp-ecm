@@ -75,6 +75,7 @@ int pm1 (mpz_t, mpz_t, mpz_t, mpz_t, double, double, double,
 #define ECM_DEFAULT_B2 -1.0
 #define ECM_IS_DEFAULT_B2(x) ((x) < 0.0)
 
-#define ECM_DEFAULT_K 2 /* default number of blocks in stage 2 */
+#define ECM_DEFAULT_K 0 /* default number of blocks in stage 2. 0 = automatic
+                           choice */
 #define ECM_DEFAULT_S 0 /* polynomial is chosen automatically */
 #define ECM_DEFAULT_REPR 0 /* automatic choice */
