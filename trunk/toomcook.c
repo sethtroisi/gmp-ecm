@@ -2,7 +2,7 @@
   Implementation of the Toom-Cook 3-way and 4-way algorithms for 
   polynomial convolution products. 
   
-  Copyright 2001, 2002, 2003 Alexander Kruppa and Paul Zimmermann.
+  Copyright 2001, 2002, 2003 Paul Zimmermann and Alexander Kruppa.
   
   This program is free software; you can redistribute it and/or modify it
   under the terms of the GNU General Public License as published by the

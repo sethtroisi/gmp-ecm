@@ -1,6 +1,6 @@
 /* Elliptic Curve Method implementation: stage 2 routines.
 
-  Copyright 2002, 2003 Alexander Kruppa and Paul Zimmermann.
+  Copyright 2002, 2003 Paul Zimmermann and Alexander Kruppa.
 
   This program is free software; you can redistribute it and/or modify it
   under the terms of the GNU General Public License as published by the
