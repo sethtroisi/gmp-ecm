@@ -34,7 +34,7 @@ unsigned int lucas_cost (unsigned, double);
 void prac (mpres_t, mpres_t, unsigned int, mpmod_t, mpres_t, mpres_t, mpres_t, 
            mpres_t, mpres_t, mpres_t, mpres_t, mpres_t, mpres_t, mpres_t, 
            mpres_t, mpres_t);
-int ecm_stage1 (mpz_t, mpres_t, mpres_t, mpmod_t, double, double);
+int ecm_stage1 (mpz_t, mpres_t, mpres_t, mpmod_t, double, double, mpz_t, mpz_t, int);
 
 /******************************************************************************
 *                                                                             *
@@ -469,15 +469,14 @@ prac (mpres_t xA, mpres_t zA, unsigned int k, mpmod_t n, mpres_t b,
 */
 int
 ecm_stage1 (mpz_t f, mpres_t x, mpres_t A, mpmod_t n, double B1, 
-            double B1done)
+            double B1done, mpz_t sigma, mpz_t orig_n, int verbose)
 {
   mpres_t b, z, u, v, w, xB, zB, xC, zC, xT, zT, xT2, zT2;
   double q, r;
   int ret = 0;
-  int Counter = 0, st;
+  int Counter = 0, st, st_save;
 
-  st = cputime ();
-
+  st_save = st = cputime ();
 
   mpres_init (b, n);
   mpres_init (z, n);
@@ -517,24 +516,59 @@ ecm_stage1 (mpz_t f, mpres_t x, mpres_t A, mpmod_t n, double B1,
       for (r = q; r <= B1; r *= q)
 	if (r > B1done)
 	  prac (x, z, (int) q, n, b, u, v, w, xB, zB, xC, zC, xT, zT, xT2, zT2);
-      if (++Counter == 10)
+      if (++Counter == 25)
 	{
-	  /* only output to screen at most once every 5 seconds */
-	  if (cputime() - st > 5000)
+	  /* only output to screen at most once every 30 seconds */
+	  int st_now = cputime();
+	  if (st_now - st > 30000)
 	    {
 	      /* Check to see if we should update our screen "percentage counter" */
 	      double Percentage = q;
 
-	      st = cputime();
+	      st = st_now;
 	      Percentage /= B1;
 	      Percentage *= 100;
 	      fprintf (stderr, "1:%03d\r", (int)Percentage);
   	    }
-	  /*  This code is here to see just how often this ++Counter loop is entered.  It is entered quite a bit
-	  static int x;
-	  fprintf (stderr, "1:%03d  q=%.0f r=%.0f\r", ++x, q, r);
-	  */
 	  Counter=0;
+	  /* should we save the current "ecm_wip.sav" file??? It is saved every 15 minutes */
+	  /* NOTE this saving DOES NOT save the expression.  It is just a "fail-safe" measure */
+#if defined (DEBUG_AUTO_SAVE)
+	  if (st_now - st_save > 2000)
+#else
+	  if (st_now - st_save > 15 * 60 * 1000)
+#endif
+	    {
+	      /* PAUL!  This code does not work. I don't yet know what I am doing with
+	         your modular form items.  Can you please help get this working, as I 
+		 think this was a very "good" item from the todo list, and when this 
+		 gets operational, then incremental saving should work */
+	      mpz_t XX, UU;
+	      st_save = st_now;
+	      mpz_init (XX);
+	      mpz_init (UU);
+	      mpz_init_set (XX, x);
+	      mpz_init_set (UU, u);
+	      if (!mpres_invert (u, z, n)) /* Factor found? */
+		{
+		  mpres_gcd (f, z, n);
+		  ret = 1;
+		}
+	      mpres_mul (x, x, u, n);
+	      mpres_get_z (x, x, n);
+              write_temp_resumefile (EC_METHOD, q+1, sigma, A, x, orig_n, verbose);
+	      mpz_set (x, XX);
+	      mpz_set (u, UU);
+	      mpz_clear (XX);
+	      mpz_clear (UU);
+	    }
+
+	  /*  This "testing" code is here to see just how often this ++Counter loop is entered.
+	  {
+	    static int x;
+  	    fprintf (stderr, "1:%03d  q=%.0f r=%.0f\r", ++x, q, r);
+	  }
+	  */
 	}
     }
   getprime (0.0); /* free the prime tables, and reinitialize */
@@ -694,7 +728,7 @@ ecm (mpz_t f, mpz_t x, mpz_t sigma, mpz_t n, double B1done, double B1,
     }
 
   if (B1 > B1done)
-    youpi = ecm_stage1 (f, P.x, P.A, modulus, B1, B1done);
+    youpi = ecm_stage1 (f, P.x, P.A, modulus, B1, B1done, sigma, n, verbose);
 
   if (verbose >= 1)
     {
