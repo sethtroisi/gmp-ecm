@@ -33,7 +33,7 @@ void mpn_mul_lo_basecase (mp_ptr, mp_srcptr, mp_srcptr, mp_size_t);
    MPN_COPY (rp, tp, n);
    Remark: it is assumed at least 2*n limbs are allocated starting from rp.
  */
-#if defined (__GNUC__)
+#if defined (__GNUC__) && ! defined (__cplusplus)
 inline
 #endif
 void
@@ -46,7 +46,7 @@ mpn_mul_lo_basecase (mp_ptr rp, mp_srcptr np, mp_srcptr mp, mp_size_t n)
 
 #define MPN_MUL_LO_THRESHOLD (2 * MUL_KARATSUBA_THRESHOLD)
 
-#if defined (__GNUC__) 
+#if defined (__GNUC__) && ! defined (__cplusplus)
 inline 
 #endif 
 void
