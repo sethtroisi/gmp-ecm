@@ -144,8 +144,8 @@ void usage (void)
     printf ("  -i n         increment B1 by this constant on each run\n");
     printf ("  -I f         auto-calculated increment for B1 multiplied by 'f' scale factor\n");
     printf ("  -inp file    Use file as input (instead of redirecting stdin)\n");
-    printf ("  -b           Use breadth-first mode of file processing (recommended)\n");
-    printf ("  -d           Use depth-first mode of file processing\n");
+    printf ("  -b           Use breadth-first mode of file processing\n");
+    printf ("  -d           Use depth-first mode of file processing (default)\n");
     printf ("  -one         Stop processing a candidate if a factor is found (looping mode)\n");
     printf ("  -n           run ecm in \"nice\" mode (below normal priority)\n");
     printf ("  -nn          run ecm in \"very nice\" mode (idle priority)\n");
@@ -930,8 +930,12 @@ BreadthFirstDoAgain:;
         }
       if (verbose >= 1)
 	{
+	  time_t t;
+	  
+	  t = time (NULL);
 	  if ((!breadthfirst && cnt == count) || (breadthfirst && 1 == breadthfirst_cnt))
 	    {
+	      printf ("[%.24s]\n", ctime (&t));
 	      /* first time this candidate has been run (if looping more than once */
 	      if (n.cpExpr && n.nexprlen < 1000)
 		printf ("Input number is %s (%u digits)\n", n.cpExpr, n.ndigits);

@@ -262,7 +262,7 @@ double   getprime       (double);
 int     pm1_rootsF       (mpz_t, listz_t, unsigned int, unsigned int,
 			  unsigned int, mpres_t *, listz_t, int, mpmod_t);
 #define pm1_rootsG_init __ECM(pm1_rootsG_init)
-pm1_roots_state* pm1_rootsG_init  (mpres_t *, double, unsigned int,
+pm1_roots_state* pm1_rootsG_init  (mpres_t *, mpz_t, unsigned int,
 				   unsigned int, int, mpmod_t);
 #define pm1_rootsG __ECM(pm1_rootsG)
 int     pm1_rootsG       (mpz_t, listz_t, unsigned int, pm1_roots_state *, 
@@ -274,11 +274,8 @@ void    pm1_rootsG_clear (pm1_roots_state *, mpmod_t);
 #define phi __ECM(phi)
 unsigned long phi (unsigned long);
 #define bestD __ECM(bestD)
-int     bestD (double, double, unsigned int *, unsigned int *, 
-               unsigned int *, double *);
-#define bestD_po2 __ECM(bestD_po2)
-int   bestD_po2 (double, double, unsigned int *, unsigned int *, 
-                 unsigned int *, double *);
+int     bestD (double, double, int, unsigned int *, unsigned int *, 
+               unsigned int *, unsigned int *, mpz_t);
 
 /* ecm.c */
 #define choose_S __ECM(choose_S)
@@ -289,7 +286,7 @@ int choose_S (double);
 int     ecm_rootsF       (mpz_t, listz_t, unsigned int, unsigned int,
 			  unsigned int, curve *, int, mpmod_t);
 #define ecm_rootsG_init __ECM(ecm_rootsG_init)
-ecm_roots_state* ecm_rootsG_init (mpz_t, curve *, double, unsigned int,
+ecm_roots_state* ecm_rootsG_init (mpz_t, curve *, mpz_t, unsigned int,
 		  unsigned int, unsigned int, unsigned int, int, mpmod_t);
 #define ecm_rootsG __ECM(ecm_rootsG)
 int     ecm_rootsG       (mpz_t, listz_t, unsigned int, ecm_roots_state *, 
@@ -311,7 +308,7 @@ int   pp1_rootsF       (listz_t, unsigned int, unsigned int, unsigned int,
 #define pp1_rootsG __ECM(pp1_rootsG)
 int   pp1_rootsG   (listz_t, unsigned int, pp1_roots_state *, mpmod_t, mpres_t*);
 #define pp1_rootsG_init __ECM(pp1_rootsG_init)
-pp1_roots_state* pp1_rootsG_init (mpres_t*, double, unsigned int,
+pp1_roots_state* pp1_rootsG_init (mpres_t*, mpz_t, unsigned int,
                                   unsigned int, int, mpmod_t);
 #define pp1_rootsG_clear __ECM(pp1_rootsG_clear)
 void  pp1_rootsG_clear (pp1_roots_state *, mpmod_t);
@@ -321,7 +318,7 @@ void  pp1_rootsG_clear (pp1_roots_state *, mpmod_t);
 int          stage2     (mpz_t, void *, mpmod_t, double, double, unsigned int,
                          int, int, int, char *);
 #define init_progression_coeffs __ECM(init_progression_coeffs)
-listz_t init_progression_coeffs (double, unsigned int, unsigned int,
+listz_t init_progression_coeffs (mpz_t, unsigned int, unsigned int,
                          unsigned int, unsigned int, unsigned int, int);
 
 /* listz.c */
