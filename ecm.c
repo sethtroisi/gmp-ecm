@@ -613,7 +613,7 @@ ecm (mpz_t f, mpz_t x, mpz_t sigma, mpz_t n, double B1done, double B1,
   else if (repr > 16)
     mpmod_init_BASE2 (modulus, repr, n);
   else
-    mpmod_init (modulus, n);
+    mpmod_init (modulus, n, repr);
 
   mpres_init (P.x, modulus);
   mpres_init (P.A, modulus);

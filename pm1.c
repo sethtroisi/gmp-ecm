@@ -600,7 +600,7 @@ pm1 (mpz_t f, mpz_t p, mpz_t N, double B1done, double B1, double B2min,
       fflush (stdout);
     }
 
-  if (repr)
+  if (repr > 0) /* repr = 0 is the default, -1 means nobase2 */
     {
       if (repr == 2)
         mpmod_init_MODMULN (modulus, N);
@@ -615,7 +615,7 @@ pm1 (mpz_t f, mpz_t p, mpz_t N, double B1done, double B1, double B2min,
     {
       /* Find a good arithmetic for this number */
       Nbits = mpz_sizeinbase (N, 2);
-      base2 = isbase2 (N, 2.0);
+      base2 = (repr == 0) ? isbase2 (N, 2.0) : 0;
       smallbase = mpz_fits_uint_p (p);
       
       /* TODO: make dependant on Nbits and base2 */
