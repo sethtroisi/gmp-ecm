@@ -31,9 +31,9 @@ VERSION=5.0-beta
 
 ###################### do not edit below this line ############################
 
-FILES= auxi.o bestd.o ecm.o ecm2.o getprime.o listz.o lucas.o main.o pm1.o pp1.o stage2.o toomcook.o memory.o mpmod.o polyeval.o resume.o
+FILES= auxi.o bestd.o ecm.o ecm2.o getprime.o listz.o lucas.o main.o pm1.o pp1.o stage2.o toomcook.o memory.o mpmod.o mul_lo.o polyeval.o resume.o
 
-CFLAG= -O2 -g -Wall -Wmissing-prototypes -ansi -pedantic
+CFLAG= -O2 -g -Wall -Wmissing-prototypes -pedantic
 LDFLAG= -lgmp -lm
 CXX=gcc
 CC=gcc
@@ -44,8 +44,8 @@ CFLAGS= $(CFLAG)
 LDFLAGS= $(LDFLAG)
 POLYGCD=0
 
-DIST=  auxi.c bestd.c ecm.c ecm2.c getprime.c listz.c lucas.c main.c ntl.c pm1.c polyz.c pp1.c stage2.c toomcook.c memory.c mpmod.c polyeval.c resume.c
-EXTRADIST= COPYING INSTALL Makefile README ecm.h test.pm1 test.pp1 test.ecm
+DIST=  auxi.c bestd.c ecm.c ecm2.c getprime.c listz.c lucas.c main.c ntl.c pm1.c polyz.c pp1.c stage2.c toomcook.c memory.c mpmod.c mul_lo.c polyeval.c resume.c
+EXTRADIST= COPYING INSTALL Makefile README ecm.h test.pm1 test.pp1 test.ecm tune.c
 
 .SUFFIXES: .c .o
 
@@ -61,6 +61,9 @@ all:
 
 ecm: $(ALLFILES) ecm.h
 	$(LD) $(CFLAGS) -L$(GMP)/lib -L$(NTL)/lib $(ALLFILES) -o $@ $(LDFLAGS)
+
+tune: mpmod.o ecm.h tune.o auxi.o mul_hi.o mul_lo.o
+	$(CC) $(CFLAGS) -L$(GMP)/lib tune.o mpmod.o auxi.o mul_hi.o mul_lo.o -o $@ -lgmp
 
 ntl.o: ntl.c
 	$(CXX) $(CFLAGS) -c -I$(GMP)/include -I$(NTL)/include $<
