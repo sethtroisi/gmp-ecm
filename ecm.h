@@ -140,9 +140,9 @@ int     pm1_rootsG       (mpz_t, listz_t, unsigned int, mpres_t *, listz_t,
 /* ecm.c */
 int          ecm        (mpz_t, mpz_t, mpz_t, mpz_t, double, double, double,
                          double, unsigned int, int, int, int, int);
-unsigned int phi        (unsigned int);
-unsigned int bestD      (double);
-double       block_size (unsigned int);
+unsigned long phi        (unsigned long);
+  unsigned long bestD      (double, unsigned int, unsigned int *, double, int);
+double       block_size (unsigned long);
 int          cputime    (void);
 
 /* ecm2.c */
@@ -170,7 +170,7 @@ int   pp1_rootsG         (listz_t, unsigned int, mpres_t *, mpmod_t,
 
 /* stage2.c */
 int          stage2     (mpz_t, void *, mpmod_t, double, double, unsigned int, 
-                         unsigned int, int, int);
+                         int, int, int);
 void  fin_diff_coeff    (listz_t coeffs, unsigned int s, unsigned int D, 
                          unsigned int E, int dickson_a);
 
