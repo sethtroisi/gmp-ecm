@@ -408,7 +408,7 @@ bestD_po2 (double B2min, double B2, unsigned int *finald,
               (*k + 1) * dF * (unsigned long)(log(dF) / log(2) + 0.5) + /* Building from roots */
               6 * dF - 16 +         /* Inverting F */
               (*k - 1) * 5 * dF +   /* G = G*H (mod F) */
-              2 * dF * (unsigned long)(log(dF) / log(2.) - 0.5); /* Polyeval */
+              2 * dF * (unsigned long)(log(dF) / log(2.) + 0.5) + dF; /* Polyeval */
   
   return;
 }
