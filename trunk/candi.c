@@ -143,7 +143,7 @@ int mpcandi_t_add_candidate(mpcandi_t *n, mpz_t c, const char *cpExpr, int prime
     }
   mpz_set(n->n, c);
   if (primetest)
-    n->isPrp = mpz_probab_prime_p (c, PROBAB_PRIME_TESTS);
+    n->isPrp = smart_probab_prime_p (c, PROBAB_PRIME_TESTS);
   else
     n->isPrp = 0; /* there is a candate there now, and the user did not tell us to prp it, so assume it is composite */
   n->ndigits = nb_digits(c);
@@ -205,7 +205,7 @@ int mpcandi_t_addfoundfactor(mpcandi_t *n, mpz_t f, int displaywarning)
   /* remove f from n->n */
   mpz_divexact (n->n, n->n, f);
   n->ndigits = nb_digits (n->n);
-  n->isPrp = mpz_probab_prime_p (n->n, PROBAB_PRIME_TESTS);
+  n->isPrp = smart_probab_prime_p (n->n, PROBAB_PRIME_TESTS);
   if (n->cpExpr != NULL)
     {
       /* If there is an expression, then lets preserve it */
