@@ -26,6 +26,12 @@
 #include "gmp.h"
 #include "ecm.h"
 
+#if defined (_MSC_VER) || defined (__MINGW32__)
+// needed to declare GetComputerName() in resume function
+#include <windows.h>
+#endif
+
+
 #define DEBUG
 
 /* Reads a string of characters from fd while they match the string s.
@@ -85,7 +91,7 @@ freadstrn (FILE *fd, char *s, char delim, unsigned int len)
 */
 
 int 
-read_resumefile_line (int *method, mpz_t x, mpz_t n, mpz_t sigma, mpz_t A, 
+read_resumefile_line (int *method, mpz_t x, mpcandi_t *n, mpz_t sigma, mpz_t A, 
         mpz_t x0, double *b1, char *program, char *who, char *rtime, 
         char *comment, FILE *fd)
 {
@@ -188,8 +194,9 @@ read_resumefile_line (int *method, mpz_t x, mpz_t n, mpz_t sigma, mpz_t A,
             }
           else if (strcmp (tag, "N") == 0)
             {
-              mpz_inp_str (n, fd, 0);
-              have_n = 1;
+              /*mpz_inp_str (n, fd, 0);*/
+	      /* we want to "maintain" any expressions, which were possibly stored in the file for N */
+              have_n = read_number (n, fd, 0);
             }
           else if (strcmp (tag, "SIGMA") == 0)
             {
@@ -288,7 +295,7 @@ read_resumefile_line (int *method, mpz_t x, mpz_t n, mpz_t sigma, mpz_t A,
             mpz_mul_ui (checksum, checksum, mpz_fdiv_ui (sigma, CHKSUMMOD));
           if (have_a)
             mpz_mul_ui (checksum, checksum, mpz_fdiv_ui (A, CHKSUMMOD));
-          mpz_mul_ui (checksum, checksum, mpz_fdiv_ui (n, CHKSUMMOD));
+          mpz_mul_ui (checksum, checksum, mpz_fdiv_ui (n->n, CHKSUMMOD));
           mpz_mul_ui (checksum, checksum, mpz_fdiv_ui (x, CHKSUMMOD));
           if (mpz_fdiv_ui (checksum, CHKSUMMOD) != saved_checksum)
             {
@@ -315,7 +322,7 @@ error:
 
 void 
 write_resumefile_line (FILE *fd, int method, double B1, mpz_t sigma, mpz_t A, 
-	mpz_t x, mpz_t n, mpz_t x0, char *comment)
+	mpz_t x, mpcandi_t *n, mpz_t x0, char *comment)
 {
   mpz_t checksum;
   time_t t;
@@ -355,10 +362,13 @@ write_resumefile_line (FILE *fd, int method, double B1, mpz_t sigma, mpz_t A,
     }
   
   fprintf (fd, "; B1=%.0f; N=", B1);
-  mpz_out_str (fd, 10, n);
+  if (n->cpExpr)
+    fprintf(fd, "%s", n->cpExpr);
+  else
+    mpz_out_str (fd, 10, n->n);
   fprintf (fd, "; X=0x");
   mpz_out_str (fd, 16, x);
-  mpz_mul_ui (checksum, checksum, mpz_fdiv_ui (n, CHKSUMMOD));
+  mpz_mul_ui (checksum, checksum, mpz_fdiv_ui (n->n, CHKSUMMOD));
   mpz_mul_ui (checksum, checksum, mpz_fdiv_ui (x, CHKSUMMOD));
   fprintf (fd, "; CHECKSUM=%lu; PROGRAM=GMP-ECM %s;",
            mpz_fdiv_ui (checksum, CHKSUMMOD), ECM_VERSION);
@@ -379,8 +389,27 @@ write_resumefile_line (FILE *fd, int method, double B1, mpz_t sigma, mpz_t A,
   if (uname == NULL)
     uname = "";
   
+#if defined (_MSC_VER) || defined (__MINGW32__)
+  // dummy block, so that the vars needed here don't need to
+  // "spill" over to the rest of the function.
+  {
+    DWORD size, i;
+    TCHAR T[MAX_COMPUTERNAME_LENGTH+2];
+    size=MAX_COMPUTERNAME_LENGTH+1;
+    if (!GetComputerName(T, &size))
+      strcpy(mname, "localPC");
+    else
+      {
+        //fprintf(stderr, "\nGetComputerName() returned %s\n", T);
+        for (i = 0; i < sizeof(mname)-1; ++i)
+          mname[i] = T[i];
+        mname[sizeof(mname)-1] = 0;
+      }
+  }
+#else
   if (gethostname (mname, 32) != 0)
     mname[0] = 0;
+#endif
   
   if (uname[0] != 0 || mname[0] != 0)
     {
