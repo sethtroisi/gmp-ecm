@@ -38,19 +38,6 @@
 #define t2 t[2*l+i-1]
 #define T  t[4*l-2]
 
-/* Divide RS by 3. RS must be multiple of 3 or result will be undefined */
-void
-mpz_divby3_1op (mpz_t RS)
-{
-  if (RS->_mp_size != 0)
-    {
-      mp_size_t abssize = ABS (RS->_mp_size);
-      mpn_divexact_by3 (RS->_mp_d, RS->_mp_d, abssize);
-      if (RS->_mp_d[abssize - 1] == 0)
-        RS->_mp_size += (RS->_mp_size < 0) ? 1 : -1;
-    }
-}
-
 /* Puts in C[0..2len-2] the product of A[0..len-1] and B[0..len-1].
    Returns the number of multiplies performed. This version works for 
    all input sizes, but cannot handle input arrays overlapping with output.

@@ -193,6 +193,7 @@ double   getprime       (double);
 unsigned int nb_digits  (const mpz_t);
 unsigned int gcd        (unsigned int, unsigned int);
 void         mpz_sub_si (mpz_t, mpz_t, int);
+void         mpz_divby3_1op (mpz_t);
 unsigned int ceil_log2  (unsigned int);
 void *       xmalloc    (size_t);
 int          cputime    ();
@@ -305,7 +306,6 @@ unsigned int muls_tuptree (unsigned int k);
 unsigned int muls_polyeval_tellegen (unsigned int k);
 
 /* toomcook.c */
-void     mpz_divby3_1op (mpz_t);
 int           toomcook3 (listz_t, listz_t, listz_t, unsigned int, listz_t);
 int           toomcook4 (listz_t, listz_t, listz_t, unsigned int, listz_t);
 
@@ -444,7 +444,7 @@ void list_add_safe (listz_t ret, listz_t a, listz_t b,
 
 /* schoen_strass.c */
 
-unsigned int F_mul (mpz_t *, mpz_t *, mpz_t *, unsigned int, unsigned int, mpz_t *);
+unsigned int F_mul (mpz_t *, mpz_t *, mpz_t *, unsigned int, int, unsigned int, mpz_t *);
 unsigned int F_mul_trans (mpz_t *, mpz_t *, mpz_t *, unsigned int, unsigned int, mpz_t *);
 
 /* memory.c */
