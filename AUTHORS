@@ -1,6 +1,6 @@
 Jim Fougeron <jfoug@kdsi.net>
 	contributed the expression parser and several command-line options
-Laurent Fousse <fousse@loria.fr>
+Laurent Fousse <laurent@komite.net>
 	contributed the middle product code, the autoconf/automake tools,
 	and author of the Debian package
 Alexander Kruppa <alexander.kruppa@stud.tu-muenchen.de>
