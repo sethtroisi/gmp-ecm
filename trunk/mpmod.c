@@ -670,7 +670,7 @@ mpres_mul (mpres_t R, mpres_t S1, mpres_t S2, mpmod_t modulus)
   ASSERT_NORMALIZED (S2);
 
 #ifdef HAVE_FFT
-  if (modulus->repr = MOD_BASE2 && modulus->Fermat >= 32768)
+  if (modulus->repr == MOD_BASE2 && modulus->Fermat >= 32768)
     {
       mp_size_t n = modulus->Fermat / __GMP_BITS_PER_MP_LIMB;
       unsigned long k;
