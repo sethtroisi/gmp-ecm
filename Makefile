@@ -56,7 +56,7 @@ all:
            LDFLAGS="-lntl $(LDFLAG)";  \
            make ecm GMP=$(GMP) NTL=$(NTL) CXX=g++ EXTRAFILES="ntl.o polyz.o" LDFLAGS="-lntl $(LDFLAG) CFLAGS="$(CFLAG) -DPOLYGCD""; \
         else \
-           make ecm GMP=$(GMP); \
+           make ecm GMP=$(GMP) LD="$(LD)"; \
         fi
 
 ecm: $(ALLFILES) ecm.h
