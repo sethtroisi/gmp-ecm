@@ -431,15 +431,13 @@ stage2 (mpz_t f, void *X, mpmod_t modulus, double B2min, double B2,
     }
 
 #ifdef POLYEVAL
+  st = cputime ();
 #ifdef POLYEVALTELLEGEN
-
   muls = polyeval_tellegen (T, dF, Tree, T + dF + 1, 
                             sizeT - dF - 1, invF, n, 0);
-  tot_muls += muls;
-  youpi = list_gcd (f, T, dF, n) ? 2 : 0;
 #else
-  st = cputime ();
   muls = polyeval (T, dF, Tree, T + dF + 1, n, verbose, 0);
+#endif
   tot_muls += muls;
 
   fprintf (stderr, "2:%02d\r",
@@ -449,7 +447,6 @@ stage2 (mpz_t f, void *X, mpmod_t modulus, double B2min, double B2,
     printf ("Computing polyeval(F,G) took %ums and %lu muls\n",
             cputime() - st, muls);
   youpi = list_gcd (f, T, dF, n) ? 2 : 0;
-#endif
 #else
   st = cputime ();
   init_poly_list (polyF, dF, F);
