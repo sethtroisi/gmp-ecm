@@ -459,7 +459,7 @@ karatsuba (listz_t a, listz_t b, listz_t c, unsigned int K, listz_t t)
 */
 static void
 list_mul (listz_t a, listz_t b, unsigned int k, int monic_b,
-          listz_t c, unsigned int l, int monic_c, listz_t t)
+          listz_t c, unsigned int l, int monic_c, listz_t t, FILE *es)
 {
   unsigned int i, po2;
 
@@ -477,11 +477,11 @@ list_mul (listz_t a, listz_t b, unsigned int k, int monic_b,
     {
       if (monic_b && monic_c && l == k)
         {
-          F_mul (a, b, c, l, MONIC, Fermat, t);
+          F_mul (a, b, c, l, MONIC, Fermat, t, es);
           monic_b = monic_c = 0;
         }
       else
-        F_mul (a, b, c, l, DEFAULT, Fermat, t);
+        F_mul (a, b, c, l, DEFAULT, Fermat, t, es);
     }
   else
     LIST_MULT_N (a, b, c, l, t); /* set a[0]...a[2l-2] */
@@ -526,7 +526,7 @@ list_mul (listz_t a, listz_t b, unsigned int k, int monic_b,
  */
 void
 list_mulmod (listz_t a2, listz_t a, listz_t b, listz_t c, unsigned int k,
-              listz_t t, mpz_t n)
+              listz_t t, mpz_t n, FILE *es)
 {
   int i;
 
@@ -535,7 +535,7 @@ list_mulmod (listz_t a2, listz_t a, listz_t b, listz_t c, unsigned int k,
   ASSERTD(list_check(b,k,n));
   ASSERTD(list_check(c,k,n));
   if (i == 1 && Fermat)
-    F_mul (a, b, c, k, DEFAULT, Fermat, t); 
+    F_mul (a, b, c, k, DEFAULT, Fermat, t, es);
   else
     LIST_MULT_N (a, b, c, k, t); /* set a[0]...a[2l-2] */
 
@@ -554,7 +554,7 @@ list_mulmod (listz_t a2, listz_t a, listz_t b, listz_t c, unsigned int k,
 */
 void
 PolyFromRoots (listz_t G, listz_t a, unsigned int k, listz_t T, int verbose,
-               mpz_t n, char F, listz_t *Tree, unsigned int sh, FILE *os)
+             mpz_t n, char F, listz_t *Tree, unsigned int sh, FILE *os, FILE *es)
 {
   unsigned int l, m, st;
   listz_t H1, *NextTree;
@@ -604,9 +604,9 @@ PolyFromRoots (listz_t G, listz_t a, unsigned int k, listz_t T, int verbose,
        return;
      }
 
-   PolyFromRoots (H1, a, l, T, 0, n, F, NextTree, sh, os);
-   PolyFromRoots (H1 + l, a + l, m, T, 0, n, F, NextTree, sh + l, os);
-   list_mul (T, H1, l, 1, H1 + l, m, 1, T + k);
+   PolyFromRoots (H1, a, l, T, 0, n, F, NextTree, sh, os, es);
+   PolyFromRoots (H1 + l, a + l, m, T, 0, n, F, NextTree, sh + l, os, es);
+   list_mul (T, H1, l, 1, H1 + l, m, 1, T + k, es);
    list_mod (G, T, k, n);
    
    if (verbose >= 2)
@@ -617,7 +617,7 @@ PolyFromRoots (listz_t G, listz_t a, unsigned int k, listz_t T, int verbose,
    where B = b[0]+b[1]*x+...+b[K-1]*x^(K-1) with b[K-1]=1.
 */
 void
-PolyInvert (listz_t q, listz_t b, unsigned int K, listz_t t, mpz_t n)
+PolyInvert (listz_t q, listz_t b, unsigned int K, listz_t t, mpz_t n, FILE *es)
 {
   if (K == 1)
     {
@@ -639,7 +639,7 @@ PolyInvert (listz_t q, listz_t b, unsigned int K, listz_t t, mpz_t n)
       po2 = (po2 == 1 && Fermat != 0);
 
       /* first determine l most-significant coeffs of Q */
-      PolyInvert (q + k, b + k, l, t, n); /* Q1 = {q+k, l} */
+      PolyInvert (q + k, b + k, l, t, n, es); /* Q1 = {q+k, l} */
 
       /* now Q1 * B = x^(2K-2) + O(x^(2K-2-l)) = x^(2K-2) + O(x^(K+k-2)).
          We need the coefficients of degree K-1 to K+k-2 of Q1*B */
@@ -654,7 +654,7 @@ PolyInvert (listz_t q, listz_t b, unsigned int K, listz_t t, mpz_t n)
         {
           list_revert (q + k, l - 1);
           /* This expects the leading monomials explicitly in q[2k-1] and b[k+l-1] */
-          F_mul_trans (t, q + k, b, K, Fermat, t + k);
+          F_mul_trans (t, q + k, b, K, Fermat, t + k, es);
           list_revert (q + k, l - 1);
           list_neg (t, t, k, n);
         }
@@ -666,7 +666,7 @@ PolyInvert (listz_t q, listz_t b, unsigned int K, listz_t t, mpz_t n)
           if (k > 1)
             {
               list_mul (t + k, q + k, l - 1, 1, b + l, k - 1, 1,
-                                t + k + K - 2); /* Q1 * B1 */
+                                t + k + K - 2, es); /* Q1 * B1 */
               list_sub (t + 1, t + 1, t + k, k - 1);
             }
         }
@@ -674,7 +674,7 @@ PolyInvert (listz_t q, listz_t b, unsigned int K, listz_t t, mpz_t n)
 
       ASSERTD(list_check(t,k,n) && list_check(q+l,k,n));
       if (po2)
-        F_mul (t + k, t, q + l, k, DEFAULT, Fermat, t + 3 * k);
+        F_mul (t + k, t, q + l, k, DEFAULT, Fermat, t + 3 * k, es);
       else
         LIST_MULT_N (t + k, t, q + l, k, t + 3 * k - 1);
       list_mod (q, t + 2 * k - 1, k, n);
@@ -693,7 +693,7 @@ PolyInvert (listz_t q, listz_t b, unsigned int K, listz_t t, mpz_t n)
 */
 void
 RecursiveDivision (listz_t q, listz_t a, listz_t b, unsigned int K,
-                   listz_t t, mpz_t n, int top)
+                   listz_t t, mpz_t n, int top, FILE *es)
 {
   if (K == 1) /* a0+a1*x = a1*(b0+x) + a0-a1*b0 */
     {
@@ -715,11 +715,11 @@ RecursiveDivision (listz_t q, listz_t a, listz_t b, unsigned int K,
       po2 = (po2 == 1);
 
       /* first perform a (2l) / l division */
-      RecursiveDivision (q + k, a + 2 * k, b + k, l, t, n, 0);
+      RecursiveDivision (q + k, a + 2 * k, b + k, l, t, n, 0, es);
       /* subtract q[k..k+l-1] * b[0..k-1] */
       ASSERTD(list_check(q+l,k,n) && list_check(b,k,n));
       if (po2 && Fermat)
-        F_mul (t, q + l, b, k, DEFAULT, Fermat, t + K); /* sets t[0..2*k-2] */
+        F_mul (t, q + l, b, k, DEFAULT, Fermat, t + K, es); /* sets t[0..2*k-2]*/
       else
         LIST_MULT_N (t, q + l, b, k, t + K - 1); /* sets t[0..2*k-2] */
       list_sub (a + l, a + l, t, 2 * k - 1);
@@ -734,11 +734,11 @@ RecursiveDivision (listz_t q, listz_t a, listz_t b, unsigned int K,
       /* remainder is in a[0..K+k-1] */
 
       /* then perform a (2k) / k division */
-      RecursiveDivision (q, a + l, b + l, k, t, n, 0);
+      RecursiveDivision (q, a + l, b + l, k, t, n, 0, es);
       /* subtract q[0..k-1] * b[0..l-1] */
       ASSERTD(list_check(q,k,n) && list_check(b,k,n));
       if (po2 && Fermat)
-        F_mul (t, q, b, k, DEFAULT, Fermat, t + K);
+        F_mul (t, q, b, k, DEFAULT, Fermat, t + K, es);
       else
         LIST_MULT_N (t, q, b, k, t + K - 1);
       list_sub (a, a, t, 2 * k - 1);
@@ -791,13 +791,13 @@ PrerevertDivision (listz_t a, listz_t b, listz_t invb,
       mpz_set_ui (a[2 * K - 1], 0);
       if (K <= 4 * Fermat)
         {
-          F_mul (t, a + K, invb, K, DEFAULT, Fermat, t + 2 * K);
+          F_mul (t, a + K, invb, K, DEFAULT, Fermat, t + 2 * K, es);
           /* Put Q in T, as we still need high(A) later on */
           list_mod (t, t + K - 2, K, n);
         }
       else
         {
-          F_mul (t, a + K, invb, K, DEFAULT, Fermat, t + 2 * K);
+          F_mul (t, a + K, invb, K, DEFAULT, Fermat, t + 2 * K, es);
           list_mod (a + K, t + K - 2, K, n);
         }
     }
@@ -828,14 +828,14 @@ PrerevertDivision (listz_t a, listz_t b, listz_t invb,
       if (K <= 4 * Fermat)
         {
           /* Multiply without zero padding, result is (mod x^K - 1) */
-          F_mul (t + K, t, b, K, NOPAD, Fermat, t + 2 * K);
+          F_mul (t + K, t, b, K, NOPAD, Fermat, t + 2 * K, es);
           /* Take the leading monomial x^K of B into account */
           list_add (t, t + K, t, K);
           /* Subtract high(A) */
           list_sub(t, t, a + K, K);
         }
       else
-        F_mul (t, a + K, b, K, DEFAULT, Fermat, t + 2 * K);
+        F_mul (t, a + K, b, K, DEFAULT, Fermat, t + 2 * K, es);
     }
   else /* non-Fermat case */
     {

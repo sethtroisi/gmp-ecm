@@ -427,7 +427,7 @@ stage2 (mpz_t f, void *X, mpmod_t modulus, double B2min, double B2,
   print_list (os, F, dF);
 #endif
   mpz_init_set (n, modulus->orig_modulus);
-  PolyFromRoots (F, F, dF, T, verbose | 1, n, 'F', Tree, 0, os);
+  PolyFromRoots (F, F, dF, T, verbose | 1, n, 'F', Tree, 0, os, es);
 
 #ifdef SAVE_TREE
  {
@@ -471,7 +471,7 @@ stage2 (mpz_t f, void *X, mpmod_t modulus, double B2min, double B2,
 	  goto free_Tree_i;
 	}
       st = cputime ();
-      PolyInvert (invF, F + 1, dF, T, n);
+      PolyInvert (invF, F + 1, dF, T, n, es);
 
       /* now invF[0..dF-1] = Quo(x^(2dF-1), F) */
       if (verbose >= 2)
@@ -543,7 +543,7 @@ stage2 (mpz_t f, void *X, mpmod_t modulus, double B2min, double B2,
      |  F(x)  | 1/F(x) | rootsG |      ???         |
      ----------------------------------------------- */
 
-      PolyFromRoots (G, G, dF, T + dF, verbose, n, 'G', NULL, 0, os);
+      PolyFromRoots (G, G, dF, T + dF, verbose, n, 'G', NULL, 0, os, es);
       /* needs 2*dF+list_mul_mem(dF/2) cells in T */
 
   /* -----------------------------------------------
@@ -578,7 +578,7 @@ stage2 (mpz_t f, void *X, mpmod_t modulus, double B2min, double B2,
 	  st = cputime ();
 	  /* previous G mod F is in H, with degree < dF, i.e. dF coefficients:
 	     requires 3dF-1+list_mul_mem(dF) cells in T */
-	  list_mulmod (H, T + dF, G, H, dF, T + 3 * dF, n);
+	  list_mulmod (H, T + dF, G, H, dF, T + 3 * dF, n, es);
 
           if (verbose >= 2)
             fprintf (os, "Computing G * H took %ums\n", cputime() - st);
@@ -626,7 +626,7 @@ stage2 (mpz_t f, void *X, mpmod_t modulus, double B2min, double B2,
   st = cputime ();
 #ifdef POLYEVALTELLEGEN
   youpi = polyeval_tellegen (T, dF, Tree, T + dF + 1, sizeT - dF - 1, invF,
-			     n, 0);
+			     n, 0, es);
   if (youpi)
     {
       fprintf (es, "Error, not enough memory\n");
@@ -635,7 +635,7 @@ stage2 (mpz_t f, void *X, mpmod_t modulus, double B2min, double B2,
 #else
   clear_list (invF, dF + 1);
   invF = NULL;
-  polyeval (T, dF, Tree, T + dF + 1, n, 0);
+  polyeval (T, dF, Tree, T + dF + 1, n, 0, es);
 #endif
 
   if (verbose >= 2)

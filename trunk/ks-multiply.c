@@ -20,6 +20,7 @@
   MA 02111-1307, USA.
 */
 
+#include <stdio.h>
 #include <stdlib.h>
 #include <assert.h>
 
@@ -40,8 +41,9 @@
       but tests have shown this doesn't give any significant speed increase,
       even for large degree polynomials.
     - this code requires that all coefficients A[] and B[] are nonnegative.
+    Return non-zero if an error occurred.
 */    
-void
+int
 kronecker_schonhage (listz_t R, listz_t A, listz_t B, unsigned int l,
                      listz_t T)
 {
@@ -53,7 +55,7 @@ kronecker_schonhage (listz_t R, listz_t A, listz_t B, unsigned int l,
   if ((double) l * (double) s < KS_MUL_THRESHOLD)
     {
       toomcook4 (R, A, B, l, T);
-      return;
+      return 0;
     }
 
   for (i = 0; i < l; i++)
@@ -77,7 +79,9 @@ kronecker_schonhage (listz_t R, listz_t A, listz_t B, unsigned int l,
   size_t0 = s * l;
 
   /* allocate one double-buffer to save malloc/MPN_ZERO/free calls */
-  t0_ptr = (mp_ptr) xmalloc (2 * size_t0 * sizeof (mp_limb_t));
+  t0_ptr = (mp_ptr) malloc (2 * size_t0 * sizeof (mp_limb_t));
+  if (t0_ptr == NULL)
+    return 1;
   t1_ptr = t0_ptr + size_t0;
     
   MPN_ZERO (t0_ptr, size_t0 + size_t0);
@@ -90,7 +94,12 @@ kronecker_schonhage (listz_t R, listz_t A, listz_t B, unsigned int l,
         MPN_COPY (t1_ptr + i * s, PTR(B[i]), SIZ(B[i]));
     }
 
-  t2_ptr = (mp_ptr) xmalloc (2 * size_t0 * sizeof (mp_limb_t));
+  t2_ptr = (mp_ptr) malloc (2 * size_t0 * sizeof (mp_limb_t));
+  if (t2_ptr == NULL)
+    {
+      free (t0_ptr);
+      return 1;
+    }
 
   mpn_mul_n (t2_ptr, t0_ptr, t1_ptr, size_t0);
   
@@ -106,6 +115,8 @@ kronecker_schonhage (listz_t R, listz_t A, listz_t B, unsigned int l,
 
   free (t0_ptr);
   free (t2_ptr);
+
+  return 0;
 }
 
 /* Given a[0..m] and c[0..l], puts in b[0..n] the coefficients
@@ -119,14 +130,17 @@ kronecker_schonhage (listz_t R, listz_t A, listz_t B, unsigned int l,
    If rev=0, consider a instead of rev(a).
 
    Assumes n <= l.
+
+   Return non-zero if an error occurred.
 */
-unsigned int
+int
 TMulKS (listz_t b, unsigned int n, listz_t a, unsigned int m,
         listz_t c, unsigned int l, mpz_t modulus, int rev)
 {
   unsigned long i, s = 0, t, k;
   mp_ptr ap, bp, cp;
   mp_size_t an, bn, cn;
+  int ret = 0; /* default return value */
 #ifdef DEBUG
   int st = cputime ();
   printf ("n=%u m=%u l=%u bits=%u n*bits=%u: ", n, m, l,
@@ -169,8 +183,18 @@ TMulKS (listz_t b, unsigned int n, listz_t a, unsigned int m,
   bn = an + cn;
 
   /* a[0..m] needs (m+1) * s limbs */
-  ap = (mp_ptr) xmalloc (an * sizeof (mp_limb_t));
-  cp = (mp_ptr) xmalloc (cn * sizeof (mp_limb_t));
+  ap = (mp_ptr) malloc (an * sizeof (mp_limb_t));
+  if (ap == NULL)
+    {
+      ret = 1;
+      goto TMulKS_end;
+    }
+  cp = (mp_ptr) malloc (cn * sizeof (mp_limb_t));
+  if (cp == NULL)
+    {
+      ret = 1;
+      goto TMulKS_free_ap;
+    }
 
   MPN_ZERO (ap, an);
   MPN_ZERO (cp, cn);
@@ -189,12 +213,22 @@ TMulKS (listz_t b, unsigned int n, listz_t a, unsigned int m,
      If we compute mod (m+n+1) * s limbs, we are ok */
   k = mpn_fft_best_k ((m + n + 1) * s, 0);
   bn = mpn_fft_next_size ((m + n + 1) * s, k);
-  bp = (mp_ptr) xmalloc ((bn + 1) * sizeof (mp_limb_t));
+  bp = (mp_ptr) malloc ((bn + 1) * sizeof (mp_limb_t));
+  if (bp == NULL)
+    {
+      ret = 1;
+      goto TMulKS_free_cp;
+    }
   mpn_mul_fft (bp, bn, ap, an, cp, cn, k);
   if (m && bp[m * s - 1] >> (GMP_NUMB_BITS - 1)) /* lo(b)-hi(b) is negative */
     mpn_add_1 (bp + m * s, bp + m * s, (n + 1) * s, (mp_limb_t) 1);
 #else
-  bp = (mp_ptr) xmalloc (bn * sizeof (mp_limb_t));
+  bp = (mp_ptr) malloc (bn * sizeof (mp_limb_t));
+  if (bp == NULL)
+    {
+      ret = 1;
+      goto TMulKS_free_cp;
+    }
   if (an >= cn)
     mpn_mul (bp, ap, an, cp, cn);
   else
@@ -215,15 +249,18 @@ TMulKS (listz_t b, unsigned int n, listz_t a, unsigned int m,
     }
   bp -= (m + n + 1) * s;
 
-  free (ap);
-  free (cp);
   free (bp);
+ TMulKS_free_cp:
+  free (cp);
+ TMulKS_free_ap:
+  free (ap);
 
 #ifdef DEBUG
   printf ("%dms\n", cputime () - st);
 #endif
   
-  return 0;
+ TMulKS_end:
+  return ret;
 }
 
 #ifdef DEBUG
@@ -258,9 +295,9 @@ ks_wrapmul_m (unsigned int m0, unsigned int k, mpz_t n)
 /* multiply in R[] A[0]+A[1]*x+...+A[k-1]*x^(k-1)
                 by B[0]+B[1]*x+...+B[l-1]*x^(l-1) modulo n,
    wrapping around coefficients of the product up from degree m >= m0.
-   Return m.
    Assumes k >= l.
    R is assumed to have 2*m0-3+list_mul_mem(m0-1) allocated cells.
+   Return m (or 0 if an error occurred).
 */
 unsigned int
 ks_wrapmul (listz_t R, unsigned int m0,
@@ -294,8 +331,15 @@ ks_wrapmul (listz_t R, unsigned int m0,
   size_t1 = s * l;
 
   /* allocate one double-buffer to save malloc/MPN_ZERO/free calls */
-  t0_ptr = (mp_ptr) xmalloc (size_t0 * sizeof (mp_limb_t));
-  t1_ptr = (mp_ptr) xmalloc (size_t1 * sizeof (mp_limb_t));
+  t0_ptr = (mp_ptr) malloc (size_t0 * sizeof (mp_limb_t));
+  if (t0_ptr == NULL)
+    return 0;
+  t1_ptr = (mp_ptr) malloc (size_t1 * sizeof (mp_limb_t));
+  if (t1_ptr == NULL)
+    {
+      free (t0_ptr);
+      return 0;
+    }
     
   MPN_ZERO (t0_ptr, size_t0);
   MPN_ZERO (t1_ptr, size_t1);
@@ -323,7 +367,13 @@ ks_wrapmul (listz_t R, unsigned int m0,
     }
 #endif
 
-  t2_ptr = (mp_ptr) xmalloc ((i + 1) * sizeof (mp_limb_t));
+  t2_ptr = (mp_ptr) malloc ((i + 1) * sizeof (mp_limb_t));
+  if (t2_ptr == NULL)
+    {
+      free (t0_ptr);
+      free (t1_ptr);
+      return 0;
+    }
 
   mpn_mul_fft (t2_ptr, i, t0_ptr, size_t0, t1_ptr, size_t1, fft_k);
   

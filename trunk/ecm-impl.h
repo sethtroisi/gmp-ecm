@@ -255,7 +255,6 @@ extern "C" {
 double   getprime       (double);
 
 /* pm1.c */
-#ifdef _ECM_H_HAVE_FILE
 #define pm1_rootsF __ECM(pm1_rootsF)
 int     pm1_rootsF       (mpz_t, listz_t, unsigned int, unsigned int,
             unsigned int, mpres_t *, listz_t, int, mpmod_t, int, FILE*, FILE*);
@@ -265,7 +264,6 @@ pm1_roots_state* pm1_rootsG_init  (mpres_t *, double, unsigned int,
 #define pm1_rootsG __ECM(pm1_rootsG)
 int     pm1_rootsG       (mpz_t, listz_t, unsigned int, pm1_roots_state *, 
                           listz_t, mpmod_t, int, FILE*);
-#endif
 #define pm1_rootsG_clear __ECM(pm1_rootsG_clear)
 void    pm1_rootsG_clear (pm1_roots_state *, mpmod_t);
 
@@ -280,7 +278,6 @@ void     bestD_po2 (double, double, unsigned int *, unsigned int *,
                          unsigned int *);
 
 /* ecm2.c */
-#ifdef _ECM_H_HAVE_FILE
 #define ecm_rootsF __ECM(ecm_rootsF)
 int     ecm_rootsF       (mpz_t, listz_t, unsigned int, unsigned int,
                        unsigned int, curve *, int, mpmod_t, int, FILE*, FILE*);
@@ -290,7 +287,6 @@ ecm_roots_state* ecm_rootsG_init (mpz_t, curve *, double, unsigned int,
 #define ecm_rootsG __ECM(ecm_rootsG)
 int     ecm_rootsG       (mpz_t, listz_t, unsigned int, ecm_roots_state *, 
                           mpmod_t, int, FILE*);
-#endif
 #define ecm_rootsG_clear __ECM(ecm_rootsG_clear)
 void    ecm_rootsG_clear (ecm_roots_state *, int, mpmod_t);
 void init_roots_state   (ecm_roots_state *, int, unsigned int, unsigned int, 
@@ -302,14 +298,12 @@ void  pp1_mul_prac     (mpres_t, unsigned long, mpmod_t, mpres_t, mpres_t,
                         mpres_t, mpres_t, mpres_t);
 
 /* pp1.c */
-#ifdef _ECM_H_HAVE_FILE
 #define pp1_rootsF __ECM(pp1_rootsF)
 int   pp1_rootsF       (listz_t, unsigned int, unsigned int, unsigned int,
                         mpres_t *, listz_t, mpmod_t, int, FILE*);
 #define pp1_rootsG __ECM(pp1_rootsG)
 int   pp1_rootsG     (listz_t, unsigned int, pp1_roots_state *, mpmod_t, int,
                       FILE*);
-#endif
 #define pp1_rootsG_init __ECM(pp1_rootsG_init)
 pp1_roots_state* pp1_rootsG_init (mpres_t*, double, unsigned int,
                                   unsigned int, mpmod_t);
@@ -317,14 +311,12 @@ pp1_roots_state* pp1_rootsG_init (mpres_t*, double, unsigned int,
 void  pp1_rootsG_clear (pp1_roots_state *, mpmod_t);
 
 /* stage2.c */
-#ifdef _ECM_H_HAVE_FILE
 #define stage2 __ECM(stage2)
 int          stage2     (mpz_t, void *, mpmod_t, double, double, unsigned int,
                          int, int, int, int, FILE*, FILE*);
 #define init_progression_coeffs __ECM(init_progression_coeffs)
 listz_t init_progression_coeffs (double, unsigned int, unsigned int,
                          unsigned int, unsigned int, unsigned int, int, FILE*);
-#endif
 
 /* listz.c */
 #define list_mul_mem __ECM(list_mul_mem)
@@ -333,10 +325,8 @@ int          list_mul_mem (unsigned int);
 listz_t      init_list  (unsigned int);
 #define clear_list __ECM(clear_list)
 void         clear_list (listz_t, unsigned int);
-#ifdef _ECM_H_HAVE_FILE
 #define print_list __ECM(print_list)
 void         print_list (FILE*, listz_t, unsigned int);
-#endif
 #define list_set __ECM(list_set)
 void         list_set   (listz_t, listz_t, unsigned int);
 #define list_revert __ECM(list_revert)
@@ -361,29 +351,28 @@ void      list_mul_high (listz_t, listz_t, listz_t, unsigned int, listz_t);
 void         karatsuba  (listz_t, listz_t, listz_t, unsigned int, listz_t);
 #define list_mulmod __ECM(list_mulmod)
 void        list_mulmod (listz_t, listz_t, listz_t, listz_t, unsigned int,
-                         listz_t, mpz_t);
+                         listz_t, mpz_t, FILE*);
 #define list_invert __ECM(list_invert)
 int         list_invert (listz_t, listz_t, unsigned int, mpz_t, mpmod_t);
-#ifdef _ECM_H_HAVE_FILE
 #define PolyFromRoots __ECM(PolyFromRoots)
 void      PolyFromRoots (listz_t, listz_t, unsigned int, listz_t, int, mpz_t,
-                         char, listz_t*, unsigned int, FILE*);
+                         char, listz_t*, unsigned int, FILE*, FILE*);
 #define PrerevertDivision __ECM(PrerevertDivision)
 int   PrerevertDivision (listz_t, listz_t, listz_t, unsigned int, listz_t,
                          mpz_t, FILE*);
-#endif
 #define PolyInvert __ECM(PolyInvert)
-void         PolyInvert (listz_t, listz_t, unsigned int, listz_t, mpz_t);
+void         PolyInvert (listz_t, listz_t, unsigned int, listz_t, mpz_t, FILE*);
 #define RecursiveDivision __ECM(RecursiveDivision)
 void  RecursiveDivision (listz_t, listz_t, listz_t, unsigned int,
-                         listz_t, mpz_t, int);
+                         listz_t, mpz_t, int, FILE*);
 
 /* polyeval.c */
 #define polyeval __ECM(polyeval)
-void polyeval (listz_t, unsigned int, listz_t*, listz_t, mpz_t, unsigned int);
+void polyeval (listz_t, unsigned int, listz_t*, listz_t, mpz_t, unsigned int,
+               FILE*);
 #define polyeval_tellegen __ECM(polyeval_tellegen)
 int polyeval_tellegen (listz_t b, unsigned int k, listz_t *Tree, listz_t T,
-               unsigned int sizeT, listz_t invF, mpz_t n, unsigned int sh);
+              unsigned int sizeT, listz_t invF, mpz_t n, unsigned int sh, FILE*);
 
 /* toomcook.c */
 #define toomcook3 __ECM(toomcook3)
@@ -393,10 +382,10 @@ void          toomcook4 (listz_t, listz_t, listz_t, unsigned int, listz_t);
 
 /* ks-multiply.c */
 #define kronecker_schonhage __ECM(kronecker_schonhage)
-void kronecker_schonhage (listz_t, listz_t, listz_t, unsigned int, listz_t);
+int kronecker_schonhage (listz_t, listz_t, listz_t, unsigned int, listz_t);
 #define TMulKS __ECM(TMulKS)
-unsigned int TMulKS     (listz_t, unsigned int, listz_t, unsigned int, listz_t,
-                         unsigned int, mpz_t, int);
+int TMulKS     (listz_t, unsigned int, listz_t, unsigned int, listz_t,
+                unsigned int, mpz_t, int);
 #define ks_wrapmul_m __ECM(ks_wrapmul_m)
 unsigned int ks_wrapmul_m (unsigned int, unsigned int, mpz_t);
 #define ks_wrapmul __ECM(ks_wrapmul)
@@ -406,10 +395,8 @@ unsigned int ks_wrapmul (listz_t, unsigned int, listz_t, unsigned int,
 /* mpmod.c */
 #define isbase2 __ECM(isbase2)
 int isbase2 (mpz_t, double);
-#ifdef _ECM_H_HAVE_FILE
 #define mpmod_init __ECM(mpmod_init)
 void mpmod_init (mpmod_t, mpz_t, int, int, FILE*);
-#endif
 #define mpmod_init_MPZ __ECM(mpmod_init_MPZ)
 void mpmod_init_MPZ (mpmod_t, mpz_t);
 #define mpmod_init_BASE2 __ECM(mpmod_init_BASE2)
@@ -454,10 +441,8 @@ void mpres_neg (mpres_t, mpres_t, mpmod_t);
 int  mpres_invert (mpres_t, mpres_t, mpmod_t);
 #define mpres_gcd __ECM(mpres_gcd)
 void mpres_gcd (mpz_t, mpres_t, mpmod_t);
-#ifdef _ECM_H_HAVE_FILE
 #define mpres_out_str __ECM(mpres_out_str)
 void mpres_out_str (FILE *, unsigned int, mpres_t, mpmod_t);
-#endif
 #define mpres_is_zero __ECM(mpres_is_zero)
 int  mpres_is_zero (mpres_t, mpmod_t);
 #define mpres_clear(a,n) mpz_clear (a)
@@ -472,7 +457,7 @@ void mpn_mul_lo_n (mp_ptr, mp_srcptr, mp_srcptr, mp_size_t);
 #define TMulGen __ECM(TMulGen)
 unsigned int
 TMulGen (listz_t, unsigned int, listz_t, unsigned int, listz_t, 
-         unsigned int, listz_t, mpz_t);
+         unsigned int, listz_t, mpz_t, FILE*);
 #define TMulGen_space __ECM(TMulGen_space)
 unsigned int
 TMulGen_space (unsigned int n, unsigned int m, unsigned int l);
@@ -483,10 +468,10 @@ TMulGen_space (unsigned int n, unsigned int m, unsigned int l);
 #define NOPAD 2
 #define F_mul __ECM(F_mul)
 unsigned int F_mul (mpz_t *, mpz_t *, mpz_t *, unsigned int, int,
-                    unsigned int, mpz_t *);
+                    unsigned int, mpz_t *, FILE*);
 #define F_mul_trans __ECM(F_mul_trans)
 unsigned int F_mul_trans (mpz_t *, mpz_t *, mpz_t *, unsigned int,
-                          unsigned int, mpz_t *);
+                          unsigned int, mpz_t *, FILE*);
 
 /* rho.c */
 #define rhoinit __ECM(rhoinit)
