@@ -26,7 +26,7 @@
 #include "gmp.h"
 #include "ecm.h"
 
-//#define TOOMCOOK3
+/* #define TOOMCOOK3 */
 #define TOOMCOOK4
 
 #if defined(TOOMCOOK4)
@@ -384,10 +384,6 @@ PolyFromRoots (listz_t G, unsigned int k, listz_t T, int verbose, mpz_t n, char 
 
    return muls;
 }
-
-#define mpz_mulmod(a,b,c,n) \
-        mpz_mul (a, b, c); \
-        mpz_mod (a, a, n);
 
 /* puts in q[0..K-1] the quotient of x^(2K-1) by B
    where B = b[0]+b[1]*x+...+b[K-1]*x^(K-1) with b[K-1]=1.
