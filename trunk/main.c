@@ -81,8 +81,8 @@ new_line:
     {
       do
         c = fgetc (fd);
-      while (c != EOF && c != '\n');
-      if (c == '\n')
+      while (c != EOF && !IS_NEWLINE(c));
+      if (IS_NEWLINE(c))
         goto new_line;
     }
 

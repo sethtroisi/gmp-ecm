@@ -79,3 +79,7 @@ int pm1 (mpz_t, mpz_t, mpz_t, mpz_t, double, double, mpz_t,
                            choice */
 #define ECM_DEFAULT_S 0 /* polynomial is chosen automatically */
 #define ECM_DEFAULT_REPR 0 /* automatic choice */
+
+/* Apple uses '\r' for newlines */
+#define IS_NEWLINE(c) (((c) == '\n') || ((c) == '\r'))
+
