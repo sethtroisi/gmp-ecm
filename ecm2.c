@@ -356,14 +356,14 @@ ecm_rootsG_init (mpz_t f, curve *X, unsigned int s, unsigned int d,
       unsigned int i;
       
       if (verbose >= 2)
-        printf ("Found factor while computing fd[%d]\n", k);
+        printf ("Found factor while computing fd[%d]\n", k - 1);
 
       /* fd[0 .. k-1] have been initialized */
 
       for (i = 0; i < k; i++)
         {
-          mpres_clear (fd[k].x, modulus);
-          mpres_clear (fd[k].y, modulus);
+          mpres_clear (fd[i].x, modulus);
+          mpres_clear (fd[i].y, modulus);
         }
       free (fd);
       
