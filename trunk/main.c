@@ -79,8 +79,12 @@ new_line:
   if (!eval (n, fd, primetest))
     goto new_line;
 
-  /*  Code to test out eval_str function, which "appears" to work correctly.
+#if 0
+  /*  Code to test out eval_str function, which "appears" to work correctly. */
   {
+    /* warning!! Line is pretty small, but since this is just testing code, we
+       can easily control the input for this test.  This code should NEVER be
+       compiled into released build, its only for testing of eval_str() */
     char Line[500], *cp;
     fgets (Line, sizeof(Line), fd);
 
@@ -88,7 +92,7 @@ new_line:
       goto new_line;
     fprintf (stderr, "\nLine is at %X cp is at %X\n", Line, cp);
   }
-  */
+#endif
 
 #if defined (DEBUG_EVALUATOR)
   if (n->cpExpr)
@@ -139,13 +143,15 @@ main (int argc, char *argv[])
   FILE *savefile = NULL, *resumefile = NULL, *infile = NULL;
   int primetest = 0;
   double autoincrementB1 = 0, startingB1;
-  unsigned int breadthfirst = 0, breadthfirst_maxcnt=0, breadthfirst_cnt=0;
+  unsigned int autoincrementB1_calc = 0;
+  unsigned int breadthfirst_maxcnt=0, breadthfirst_cnt=0;
+  int breadthfirst = 0;
   unsigned int count = 1; /* number of curves for each number */
   unsigned int cnt = 0;   /* number of remaining curves for current number */
   unsigned int linenum = 0, factsfound = 0;
   mpcandi_t *pCandidates=NULL;
   unsigned int nCandidates=0, nMaxCandidates=0;
-  int deep=0, trial_factor_found;
+  int deep=1, trial_factor_found;
   unsigned int displayexpr=0;
   double maxtrialdiv=0;
 
@@ -223,9 +229,9 @@ main (int argc, char *argv[])
 	  argv++;
 	  argc--;
         }
-      else if (strcmp (argv[1], "-deep") == 0)
+      else if (strcmp (argv[1], "-one") == 0)
         {
-          deep = 1;
+          deep = 0;
 	  argv++;
 	  argc--;
         }
@@ -235,10 +241,18 @@ main (int argc, char *argv[])
 	  argv++;
 	  argc--;
         }
+      else if (strcmp (argv[1], "-d") == 0)
+        {
+	  /* -1 is a flag used during argv processing where a subsquent -i file will NOT change it.  Then
+	     when done processing args, we change a -1 to a 0 */
+	  breadthfirst = -1;
+	  argv++;
+	  argc--;
+        }
 #if defined (__MINGW32__) || (_MSC_VER)
       else if (strcmp (argv[1], "-n") == 0)
         {
-	  fprintf (stderr, "Executing at lower priority\n");
+/*	  fprintf (stderr, "Executing at lower priority\n"); */
 	  SetPriorityClass (GetCurrentProcess (), IDLE_PRIORITY_CLASS);
 	  SetThreadPriority (GetCurrentThread (), THREAD_PRIORITY_BELOW_NORMAL);
 	  argv++;
@@ -246,7 +260,7 @@ main (int argc, char *argv[])
         }
       else if (strcmp (argv[1], "-nn") == 0)
         {
-	  fprintf (stderr, "Executing at idle priority\n");
+/*	  fprintf (stderr, "Executing at idle priority\n"); */
 	  SetPriorityClass (GetCurrentProcess (), IDLE_PRIORITY_CLASS);
 	  SetThreadPriority (GetCurrentThread (), THREAD_PRIORITY_IDLE);
 	  argv++;
@@ -354,34 +368,36 @@ main (int argc, char *argv[])
 	  argv += 2;
 	  argc -= 2;
 	}
-      else if ((argc > 2) && (strcmp (argv[1], "-a") == 0))
+      else if ((argc > 2) && (strcmp (argv[1], "-i") == 0))
 	{
 	  autoincrementB1 = strtod (argv[2], NULL);
 	  if (autoincrementB1 < 1)
 	    {
-	      fprintf (stderr, "Error, the -a command requires a number argument to follow it\n");
+	      fprintf (stderr, "Error, the -i command requires a whole number argument to follow it\n");
 	      exit (EXIT_FAILURE);
   	    }
 	  argv += 2;
 	  argc -= 2;
 	}
-      else if ((argc > 2) && (strcmp (argv[1], "-i") == 0))
+      else if ((argc > 2) && (strcmp (argv[1], "-I") == 0))
 	{
-	  infilename = argv[2];
-	  infile = fopen (infilename, "r");
-	  if (!infile)
-	  {
-	      fprintf (stderr, "Can't find input file %s\n", infilename);
+	  autoincrementB1 = strtod (argv[2], NULL);
+	  autoincrementB1_calc = 1;
+	  if (autoincrementB1 <= 0)
+	    {
+	      fprintf (stderr, "Error, the -I command requires a number argument to follow it > 0\n");
 	      exit (EXIT_FAILURE);
-	  }
+  	    }
 	  argv += 2;
 	  argc -= 2;
 	}
-      else if ((argc > 2) && (strcmp (argv[1], "-ib") == 0))
+      else if ((argc > 2) && (strcmp (argv[1], "-inp") == 0))
 	{
 	  infilename = argv[2];
 	  infile = fopen (infilename, "r");
-	  breadthfirst = 1;
+	  /* a -d depth-first switch has already been processed, so DO NOT reset to breadth-first */
+	  if (breadthfirst != -1)
+	    breadthfirst = 1;
 	  if (!infile)
 	    {
 	      fprintf (stderr, "Can't find input file %s\n", infilename);
@@ -427,6 +443,10 @@ main (int argc, char *argv[])
       exit (EXIT_FAILURE);
     }
 
+  /* Ok, now we can "reset" the breadthfirst switch so that we do depthfirst as requested */
+  if (breadthfirst == -1)
+    breadthfirst = 0;
+
   if (argc < 2)
     {
       fprintf (stderr, "Usage: ecm [options] B1 [[B2min-]B2] < file\n");
@@ -456,14 +476,12 @@ main (int argc, char *argv[])
       fprintf (stderr, "\n");
       fprintf (stderr, "  Options beyond ECM 5.0  (i.e. specific to ECM 5.0c\n");
       fprintf (stderr, "  -a n         increment B1 by this constant on each run\n");
-      fprintf (stderr, "  -i file      Use file as input (instead of redirecting stdin)\n");
-      fprintf (stderr, "  -ib file     Use file as input in a breadth-first mode\n");
-      fprintf (stderr, "  -b           Use breadth-first mode from stdin\n");
-      fprintf (stderr, "  -deep        Continue to find factors after finding a factor (looping mode)\n");
-//#if defined (__MINGW32__) || defined (__CYGWIN__) || defined (_MSC_VER)
+      fprintf (stderr, "  -inp file    Use file as input (instead of redirecting stdin)\n");
+      fprintf (stderr, "  -b           Use breadth-first mode of file processing (recommended)\n");
+      fprintf (stderr, "  -d           Use depth-first mode of file processing\n");
+      fprintf (stderr, "  -one         Stop processing a candidate when a factor is found (looping mode)\n");
       fprintf (stderr, "  -n           run ecm in \"nice\" mode (below normal priority)\n");
       fprintf (stderr, "  -nn          run ecm in \"very nice\" mode (idle priority)\n");
-//#endif
       fprintf (stderr, "  -t n         Trial divide candidates before P-1, P+1 or ECM up to n\n");
       fprintf (stderr, "  -ve n        Verbosely show short (< n character) expressions on each loop\n");
       exit (EXIT_FAILURE);
@@ -610,7 +628,7 @@ BreadthFirstDoAgain:;
 	  linenum = 0;
 	  if (breadthfirst_cnt++)
             {
-  	      B1 += autoincrementB1;
+  	      B1 = calc_B1_AutoIncrement(B1, autoincrementB1, autoincrementB1_calc);
 	      B2min = B1;
 	    }
 	  else
@@ -859,7 +877,6 @@ BreadthFirstDoAgain:;
 
       cnt --; /* one more curve performed */
 
-      fprintf (stderr, "1:000 \r");
       if (method == PM1_METHOD)
         result = pm1 (f, x, n.n, B1done, B1, B2min, B2, k, S, verbose, repr);
       else if (method == PP1_METHOD)
@@ -987,7 +1004,7 @@ OutputFactorStuff:;
       /* advance B1, if autoincrement value had been set during command line parsing */
       if (!breadthfirst && autoincrementB1)
 	{
-          B1 += autoincrementB1;
+	  B1 = calc_B1_AutoIncrement(B1, autoincrementB1, autoincrementB1_calc);
 	  B2min = B1;
 	}
     }
