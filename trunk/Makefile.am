@@ -13,8 +13,8 @@ ecm_SOURCES = auxi.c b1_ainc.c candi.c eval.c random2.c\
 	      main.c trial.c memory.c resume.c smartprp.c getprime2.c
 ecmfactor_SOURCES = ecmfactor.c
 
-tune_SOURCES = mpmod.c tune.c auxi.c mul_lo.c memory.c
-tune2_SOURCES = tune2.c auxi.c memory.c
+tune_SOURCES = mpmod.c tune.c mul_lo.c
+tune2_SOURCES = tune2.c
 
 LDADD = libecm.a
 
