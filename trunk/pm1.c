@@ -650,8 +650,12 @@ pm1 (mpz_t f, mpz_t p, mpz_t N, double B1done, double B1, double B2min,
       else
         printf("polynomial Dickson(%u)", -S);
 
-      printf (", x0=");
-      mpz_out_str (stdout, 10, p);
+      if (B1done == 1.0 || verbose > 1) 
+	/* don't print in resume case, since x0 is saved in resume file */
+	{
+	  printf (", x0=");
+	  mpz_out_str (stdout, 10, p);
+	}
       printf ("\n");
       fflush (stdout);
     }
