@@ -226,7 +226,7 @@ int trial_factor (mpcandi_t *n, double maxfact, int deep);
 int     ecm_rootsF       (mpz_t, listz_t, unsigned int, unsigned int, 
                           curve *, int, mpmod_t, int, unsigned long *);
 ecm_rootsG_state * ecm_rootsG_init  (mpz_t, curve *, double, unsigned int, 
-                          unsigned int, int, mpmod_t, int);
+                          unsigned int, unsigned int, int, mpmod_t, int);
 void    ecm_rootsG_clear (ecm_rootsG_state *, int, mpmod_t);
 int     ecm_rootsG       (mpz_t, listz_t, unsigned int, ecm_rootsG_state *, 
                           curve *, int, mpmod_t, int, unsigned long *);

@@ -42,9 +42,12 @@
 #define getbit(x,i) (PTR(x)[i/mp_bits_per_limb] & ((mp_limb_t)1<<(i%mp_bits_per_limb)))
 #define min(a,b) (((a)<(b))?(a):(b))
 
+int multiplyW2n (mpz_t, point *, curve *, mpz_t *, unsigned int, mpmod_t, 
+                 mpres_t, mpres_t, mpres_t *, unsigned long *, unsigned long *);
+
 /*
   (x1:y1) <- 2*(x:y) where (x:y) can be identical to (x1:y1).
-  a is the Weierstrass parameter, u and v are auxiliary variables.
+  a is the Weierstrass curve parameter, u and v are auxiliary variables.
   Uses 4 mul and 1 extgcd.
 */
 static int
@@ -114,6 +117,10 @@ multiplyW2n (mpz_t p, point *R, curve *S, mpz_t *q, unsigned int n,
 {
   unsigned int i, maxbit, k, /* k is the number of values to batch invert */
                l, t, muls = 0, gcds = 0;
+#ifdef WANT_EXPCOST
+  unsigned int hamweight = 0;
+#endif
+
   int youpi = 0;
   mpz_t flag; /* Used as bit field, keeps track of which R[i] contain partial results */
   point s;    /* 2^t * S */
@@ -137,9 +144,22 @@ multiplyW2n (mpz_t p, point *R, curve *S, mpz_t *q, unsigned int n,
           fprintf (stderr, "multiplyW2n: multiplicand q[%d] == 0, neutral element not supported\n", i);
           exit (EXIT_FAILURE);
         }
+      if (mpz_sgn (q[i]) < 0)
+        {
+          fprintf (stderr, "multiplyW2n: multiplicand q[%d] < 0, negatives not supported\n", i);
+          exit (EXIT_FAILURE);
+        }
       if ((t = mpz_sizeinbase (q[i], 2) - 1) > maxbit)
           maxbit = t;
+#ifdef WANT_EXPCOST
+      hamweight += mpz_popcount (q[i]) - 1;
+#endif
     }
+
+#ifdef WANT_EXPCOST
+  printf ("Expecting %d multiplications and %d extgcds\n", 
+          4 * (maxbit) + 6 * hamweight - 3, maxbit + 1);      /* maxbit is floor(log_2(max(q_i))) */
+#endif
 
   for (t = 0; t <= maxbit && !youpi; t++)    /* Examine t-th bit of the q[i] */
     {
@@ -289,7 +309,7 @@ multiplyW2n (mpz_t p, point *R, curve *S, mpz_t *q, unsigned int n,
 */
 
 static int
-addWnm (mpz_t p, point *X, mpmod_t modulus, unsigned int m, unsigned int n, 
+addWnm (mpz_t p, point *X, curve *S, mpmod_t modulus, unsigned int m, unsigned int n, 
         mpres_t *T, unsigned long *tot_muls, unsigned long *tot_gcds)
 {
   unsigned int k, l;
@@ -303,6 +323,12 @@ addWnm (mpz_t p, point *X, mpmod_t modulus, unsigned int m, unsigned int n,
     for (j = n - 1; j >= 0; j--)  /* Go through each list backwards */
       {                           /* And prepare the values to be inverted */
         mpres_sub (T[k], X[i * (n + 1) + j + 1].x, X[i * (n + 1) + j].x, modulus);
+        /* Schedule X2.x - X1.x */
+
+        if (mpres_is_zero (T[k]))  /* If both points are identical (or the x-coordinates at least) */
+          mpres_add (T[k], X[i * (n + 1) + j + 1].y, X[i * (n + 1) + j + 1].y, modulus); 
+          /* Schedule 2*X[...].y instead*/
+
         if (k > 0)
           mpres_mul (T[k], T[k], T[k - 1], modulus);
         k++;
@@ -331,34 +357,59 @@ addWnm (mpz_t p, point *X, mpmod_t modulus, unsigned int m, unsigned int n,
         X1 = X + i * (n + 1) + j;
         X2 = X + i * (n + 1) + j + 1;
 
-        if (l > 0)
-          {
-            mpres_mul (T[l], T[k], T[l - 1], modulus); 
-            /* T_l = 1/(v_0 * ... * v_l) * (v_0 * ... * v_{l-1}) = 1/v_l */
+        if (l == 0)
+          mpz_set (T[0], T[k]);
+        else
+          mpres_mul (T[l], T[k], T[l - 1], modulus); 
+          /* T_l = 1/(v_0 * ... * v_l) * (v_0 * ... * v_{l-1}) = 1/v_l */
 
-            mpres_sub (T[k + 1], X2->x, X1->x, modulus);
-            mpres_mul (T[k], T[k], T[k + 1], modulus);
-            /* T_k = 1/(v_0 * ... * v_l) * v_l = 1/(v_0 * ... * v_{l-1}) */
+        mpres_sub (T[k + 1], X2->x, X1->x, modulus); /* T[k+1] = v_{l} */
+
+        if (mpres_is_zero(T[k + 1])) /* Identical points, so double X1 */
+          {
+            if (l > 0)
+              {
+                mpres_add (T[k + 1], X1->y, X1->y, modulus); /* T[k+1] = v_{l} */
+                mpres_mul (T[k], T[k], T[k + 1], modulus);
+                /* T_k = 1/(v_0 * ... * v_l) * v_l = 1/(v_0 * ... * v_{l-1}) */
+              }
+            
+            mpres_mul (T[k + 1], X1->x, X1->x, modulus);
+            mpres_mul_ui (T[k + 1], T[k + 1], 3, modulus);
+            mpres_add (T[k + 1], T[k + 1], S->A, modulus);
+            mpres_mul (T[l], T[k + 1], T[l], modulus); /* T[l] = lambda */
+            mpres_mul (T[k + 1], T[l], T[l], modulus);       /* T1   = lambda^2 */
+            mpres_sub (T[k + 1], T[k + 1], X1->x, modulus);  /* T1   = lambda^2 - x1 */
+            mpres_sub (X1->x, T[k + 1], X2->x, modulus);     /* X1.x = lambda^2 - x1 - x2 = x3 */
+            mpres_sub (T[k + 1], X2->x, X1->x, modulus);     /* T1   = x2 - x3 */
+            mpres_mul (T[k + 1], T[k + 1], T[l], modulus);   /* T1   = lambda*(x2 - x3) */
+            mpres_sub (X1->y, T[k + 1], X2->y, modulus);     /* Y1   = lambda*(x2 - x3) - y2 = y3 */
           }
         else
           {
-            mpz_set (T[0], T[k]);
+            if (l > 0)
+              {
+                mpres_mul (T[k], T[k], T[k + 1], modulus);
+                /* T_k = 1/(v_0 * ... * v_l) * v_l = 1/(v_0 * ... * v_{l-1}) */
+              }
+
+            mpres_sub (T[k + 1], X2->y, X1->y, modulus);     /* T1   = y2 - y1 */
+            mpres_mul (T[l], T[l], T[k + 1], modulus);       /* Tl   = (y2 - y1) / (x2 - x1) = lambda */
+            mpres_mul (T[k + 1], T[l], T[l], modulus);       /* T1   = lambda^2 */
+            mpres_sub (T[k + 1], T[k + 1], X1->x, modulus);  /* T1   = lambda^2 - x1 */
+            mpres_sub (X1->x, T[k + 1], X2->x, modulus);     /* X1.x = lambda^2 - x1 - x2 = x3 */
+            mpres_sub (T[k + 1], X2->x, X1->x, modulus);     /* T1   = x2 - x3 */
+            mpres_mul (T[k + 1], T[k + 1], T[l], modulus);   /* T1   = lambda*(x2 - x3) */
+            mpres_sub (X1->y, T[k + 1], X2->y, modulus);     /* Y1   = lambda*(x2 - x3) - y2 = y3 */
           }
-        
-        mpres_sub (T[k + 1], X2->y, X1->y, modulus);     /* T1   = y2 - y1 */
-        mpres_mul (T[l], T[l], T[k + 1], modulus);       /* Tl   = (y2 - y1) / (x2 - x1) = lambda */
-        mpres_mul (T[k + 1], T[l], T[l], modulus);       /* T1   = lambda^2 */
-        mpres_sub (T[k + 1], T[k + 1], X1->x, modulus);  /* T1   = lambda^2 - x1 */
-        mpres_sub (X1->x, T[k + 1], X2->x, modulus);     /* X1.x = lambda^2 - x1 - x2 = x3 */
-        mpres_sub (T[k + 1], X2->x, X1->x, modulus);     /* T1   = x2 - x3 */
-        mpres_mul (T[k + 1], T[k + 1], T[l], modulus);   /* T1   = lambda*(x2 - x3) */
-        mpres_sub (X1->y, T[k + 1], X2->y, modulus);     /* Y1   = lambda*(x2 - x3) - y2 = y3 */
         
         l--;
       }
 
-  (*tot_muls) += 6 * m * n - 3;
-  (*tot_gcds) ++;
+  if (tot_muls != NULL)
+    (*tot_muls) += 6 * m * n - 3;
+  if (tot_gcds != NULL)
+    (*tot_gcds) ++;
 
   return 0;
 }
@@ -403,7 +454,7 @@ ecm_rootsF (mpz_t f, listz_t F, unsigned int d, unsigned int dF, curve *s,
       /* Now choose a value for stepj */
       stepj = 6;
 
-      if (d % 5 == 0)
+      if (d / stepj > 50 && d % 5 == 0)
         {
           stepj *= 5;
           size_fd *= 4;
@@ -413,6 +464,12 @@ ecm_rootsF (mpz_t f, listz_t F, unsigned int d, unsigned int dF, curve *s,
         {
           stepj *= 7;
           size_fd *= 6;
+        }
+      
+      if (d / stepj > 500 && d % 11 == 0)
+        {
+          stepj *= 11;
+          size_fd *= 10;
         }
       
       if (verbose >= 3)
@@ -498,14 +555,15 @@ ecm_rootsF (mpz_t f, listz_t F, unsigned int d, unsigned int dF, curve *s,
             {
               if (gcd (j, d) == 1) /* Is this a j value where we want f(j)*X? as a root of F? */
                 mpres_get_z (F[i++], fd[k].x, modulus);
+
               k += S + 1;
               if (k == size_fd && i < dF) /* Is it time to update fd[] ? */
                 {
                   unsigned int howmany = min(size_fd / (S + 1), dF - i);
-                  youpi = addWnm (f, fd, modulus, howmany, S, T, &muls, &gcds);
+                  youpi = addWnm (f, fd, s, modulus, howmany, S, T, &muls, &gcds);
                   k = 0;
                   if (youpi && verbose >= 2)
-                    printf ("Found factor while computing roots of F");
+                    printf ("Found factor while computing roots of F\n");
                 }
             }
           j += 6;
@@ -549,8 +607,8 @@ ecm_rootsF (mpz_t f, listz_t F, unsigned int d, unsigned int dF, curve *s,
 
 
 ecm_rootsG_state *
-ecm_rootsG_init (mpz_t f, curve *X, double s, unsigned int d, unsigned int blocks,
-                 int S, mpmod_t modulus, int verbose)
+ecm_rootsG_init (mpz_t f, curve *X, double s, unsigned int d, unsigned int dF,
+                 unsigned int blocks, int S, mpmod_t modulus, int verbose)
 {
   unsigned int k, nr, lenT;
   unsigned long muls = 0, gcds = 0;
@@ -558,7 +616,7 @@ ecm_rootsG_init (mpz_t f, curve *X, double s, unsigned int d, unsigned int block
   ecm_rootsG_state *state;
   int youpi = 0;
   int dickson_a;
-  int T_inv, dG;
+  int T_inv;
   double bestnr;
   int st = 0;
   
@@ -570,13 +628,11 @@ ecm_rootsG_init (mpz_t f, curve *X, double s, unsigned int d, unsigned int block
   S = abs (S);
 
   if (modulus->repr == MOD_BASE2)
-    T_inv = 15;
+    T_inv = 18;
   else
-    T_inv = 8;
+    T_inv = 6;
   
-  dG = 2 * phi (d / 2);
-  
-  bestnr = -(4 + T_inv) + sqrt(12. * dG * blocks * (T_inv - 3) * 
+  bestnr = -(4 + T_inv) + sqrt(12. * dF * blocks * (T_inv - 3) * 
            log (2 * d) / log (2) - (4 + T_inv) * (4 + T_inv));
   bestnr /= 6. * S * log (2 * d) / log (2);
   
@@ -584,6 +640,9 @@ ecm_rootsG_init (mpz_t f, curve *X, double s, unsigned int d, unsigned int block
     nr = 1;
   else
     nr = (unsigned int) (bestnr + .5);
+
+  while ((blocks * dF) % nr != 0)
+    nr--;
 
   if (verbose >= 3)
     printf ("ecm_rootsG_init: s=%f, d=%u, S=%u, T_inv = %d, nr=%d\n", 
@@ -704,7 +763,7 @@ ecm_rootsG_clear (ecm_rootsG_state *state, UNUSED int S, UNUSED mpmod_t modulus)
 
 int 
 ecm_rootsG (mpz_t f, listz_t G, unsigned int d, ecm_rootsG_state *state, curve *X,
-            int Sparam, mpmod_t modulus, int verbose, unsigned long *tot_muls)
+            UNUSED int Sparam, mpmod_t modulus, int verbose, unsigned long *tot_muls)
 {
   unsigned int i, S;
   unsigned long muls = 0, gcds = 0;
@@ -720,66 +779,10 @@ ecm_rootsG (mpz_t f, listz_t G, unsigned int d, ecm_rootsG_state *state, curve *
     {
       if (state->next == state->nr)
        {
-          youpi = addWnm (f, state->fd, modulus, state->nr, S, state->T, 
+          youpi = addWnm (f, state->fd, X, modulus, state->nr, S, state->T, 
                           &muls, &gcds);
           state->next = 0;
           nextptr = state->fd;
-          
-          if (youpi)
-            {
-              /* It may be that there are two identical values in adjacent
-                 cells of fd[], so the inversion of x2-x1 fails and report
-                 N as a "factor". Let's see if that's what has happened. */
-              
-              if (mpz_cmp (f, modulus->orig_modulus) == 0)
-                {
-                  /* Try to find which one */
-                  unsigned int j, k;
-                  mpz_t t1, t2;
-                  
-                  mpz_init (t1);
-                  mpz_init (t2);
-                  youpi = 0;
-                  
-                  for (k = 0; k < state->nr && !youpi; k++)
-                    {
-                      point *pptr = state->fd + k * (S + 1);
-                      mpres_get_z (t1, pptr->x, modulus);
-                      
-                      for (j = 1; j < S + 1 && !youpi; j++, pptr++)
-                        {
-                          mpres_get_z (t2, (pptr + 1)->x, modulus);
-                          if (mpz_cmp (t1, t2) == 0) /* Does comparing x-coordinates suffice ? */
-                            {
-                              /* Here they are */
-                              if (verbose >= 3)
-                                {
-                                  printf ("ecm_rootsG: Found identical points in fd[%d] and fd[%d]\n", 
-                                          k * (S + 1) + j - 1, k * (S + 1) + j);
-                                }
-                              youpi = duplicateW (f, pptr->x, pptr->y, pptr->x, pptr->y, 
-                                                  modulus, X->A, state->T[0], state->T[1]);
-                              muls += 4;
-                              gcds ++;
-                            }
-                          else
-                            {
-                              /* Looks kosher, do regular add */
-                              youpi = addW (f, pptr->x, pptr->y, pptr->x, pptr->y, 
-                                            (pptr + 1)->x, (pptr + 1)->y, modulus,
-                                            state->T[0], state->T[1]);
-                              muls += 3;
-                              gcds ++;
-                            }
-                          
-                          mpz_set (t1, t2);
-                        }
-                    }
-                  
-                  mpz_clear (t1);
-                  mpz_clear (t2);
-                }
-            }
           
           if (youpi)
             {
