@@ -1,5 +1,5 @@
 
-bin_PROGRAMS = ecm tune
+bin_PROGRAMS = ecm tune tune2
 
 ecm_SOURCES = auxi.c b1_ainc.c bestd.c candi.c ecm.c ecm2.c eval.c getprime.c\
 	      listz.c lucas.c main.c pm1.c pp1.c stage2.c toomcook.c trial.c\
@@ -7,6 +7,7 @@ ecm_SOURCES = auxi.c b1_ainc.c bestd.c candi.c ecm.c ecm2.c eval.c getprime.c\
 	      smartprp.c schoen_strass.c ks-multiply.c rho.c
 
 tune_SOURCES = mpmod.c tune.c auxi.c mul_lo.c
+tune2_SOURCES = tune2.c auxi.c
 
 noinst_HEADERS = ecm.h ecm-gmp.h
 

@@ -18,6 +18,9 @@
   02111-1307, USA.
 */
 
+#ifndef __ECM_H
+#define __ECM_H
+
 /* Warnings about unused parameters by gcc can be suppressed by prefixing 
    parameter with UNUSED when parameter can't be removed, i.e. for
    interface consistency reasons */
@@ -530,3 +533,5 @@ void tests_memory_status (void);
    mpz_mul (a, b, t);
 #endif
 #endif
+
+#endif /* __ECM_H */
