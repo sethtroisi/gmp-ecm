@@ -323,7 +323,6 @@ muls_tkara (unsigned int n)
   return tot_muls;
 }
 
-#define TTCDEBUG
 
 /* list_sub with bound checking
  */
@@ -413,7 +412,7 @@ TToomCookMul (listz_t b, unsigned int n,
             n, m, l);
 #endif
 
-    if ((n <= 1) || (m <= 1))
+    if ((n < 4) || (m < 4)) /* ensures n + 1 > 2 * nu */
     {
 #ifdef TTCDEBUG
         printf ("Opérandes trop petites, on appelle TKara.\n");
@@ -462,13 +461,17 @@ TToomCookMul (listz_t b, unsigned int n,
         if (l >= nu)
             tot_muls += TToomCookMul (b + nu, nu - 1, a, m, 
                                       c + nu, l - nu, tmp);
-        if ((n >= 2 * nu) && (l >= 2 * nu))
+        else
+            list_zero (b + nu, nu);
+        if (l >= 2 * nu) /* n >= 2 * nu is assured. Hopefully */
             tot_muls += TToomCookMul (b + 2 * nu, n - 2 * nu, a, m, 
                                       c + 2 * nu, l - 2 * nu, tmp);
+        else
+            list_zero (b + 2 * nu, n - 2 * nu + 1);
         return tot_muls;
     }
                   
-    /* Second degenerate case. We want 2 * mu < m.
+    /* Second degenerate case. We want 2 * mu < n.
      */
 
     if (n <= 2 * mu)
