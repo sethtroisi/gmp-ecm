@@ -132,6 +132,7 @@ void usage (void)
     printf ("  -pp1         perform P+1 instead of ECM\n");
     printf ("  -q           quiet mode\n");
     printf ("  -v           verbose mode\n");
+    printf ("  -timestamp   print a time stamp with each number\n");
     printf ("  -mpzmod      use GMP's mpz_mod for mod reduction\n");
     printf ("  -modmuln     use Montgomery's MODMULN for mod reduction\n");
     printf ("  -redc        use Montgomery's REDC for mod reduction\n");
@@ -188,6 +189,7 @@ main (int argc, char *argv[])
   double B1, B1done;
   int result = 0;
   int verbose = OUTPUT_NORMAL; /* verbose level */
+  int timestamp = 0;
   int method = ECM_ECM, method1;
   int specific_x0 = 0, /* 1=starting point supplied by user, 0=random or */
                        /* compute from sigma */
@@ -273,6 +275,12 @@ main (int argc, char *argv[])
       else if (strcmp (argv[1], "-v") == 0)
 	{
 	  verbose ++;
+	  argv++;
+	  argc--;
+	}
+      else if (strcmp (argv[1], "-timestamp") == 0)
+	{
+	  timestamp = 1;
 	  argv++;
 	  argc--;
 	}
@@ -981,14 +989,15 @@ BreadthFirstDoAgain:;
         }
       if (verbose >= 1)
 	{
-	  time_t t;
-	  
-	  t = time (NULL);
 	  if ((!breadthfirst && cnt == count) || (breadthfirst && 1 == breadthfirst_cnt))
 	    {
-              /* PZ: commented out since it produces a memory leak,
-                 and we need an option to enable and/or disable this. */
-	      /* printf ("[%.24s]\n", ctime (&t)); */
+              if (timestamp)
+                {
+                  time_t t;
+                  
+                  t = time (NULL);
+                  printf ("[%.24s]\n", ctime (&t));
+                }
 	      /* first time this candidate has been run (if looping more than once */
 	      if (n.cpExpr && n.nexprlen < 1000)
 		printf ("Input number is %s (%u digits)\n", n.cpExpr, n.ndigits);
