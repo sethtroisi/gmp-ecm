@@ -31,7 +31,7 @@
 void mpz_d_pow_ui (mpz_t, double, unsigned long int);
 void dickson_ui (mpz_t, double, unsigned int, int);
 
-unsigned int Fermat;
+extern unsigned int Fermat;
 
 /* r <- x^n */
 void
