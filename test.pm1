@@ -166,6 +166,6 @@ if ($status != 0) then
    rm test.pm1.save
    exit 1;
 endif
-rm -f test.pm1.save
+/bin/rm -f test.pm1.save
 
 echo "All tests are ok."
