@@ -79,6 +79,7 @@ clear_list (listz_t p, unsigned int n)
 
 #define POLYFORM
 
+#ifdef DEBUG
 /* prints a list of n coefficients */
 void
 print_list (listz_t p, unsigned int n)
@@ -100,6 +101,22 @@ print_list (listz_t p, unsigned int n)
     }
   putchar ('\n');
 }
+
+#define SIZ(x) ((x)->_mp_size)
+#define ABS(x) ((x) >= 0 ? (x) : -(x))
+#define ABSIZ(x) ABS (SIZ (x))
+
+unsigned int
+print_max_size (listz_t p, unsigned int n)
+{
+  unsigned int i, s = 0;
+
+  for (i = 0; i < n; i++)
+    if (ABSIZ(p[i]) > s)
+      s = ABSIZ(p[i]);
+  return s;
+}
+#endif
 
 /* p <- q */
 void
@@ -211,7 +228,6 @@ list_zerop (listz_t p, unsigned int n)
 int
 karatsuba (listz_t a, listz_t b, listz_t c, unsigned int K, listz_t t)
 {
-
   if (K == 1)
     {
       mpz_mul (a[0], b[0], c[0]);
@@ -497,6 +513,7 @@ PolyInvert (listz_t q, listz_t b, unsigned int K, listz_t t, mpz_t n)
   Needs space for list_mul_mem(K) coefficients in t.
   Return the number of scalar multiplies performed.
   Note: r and a may be equal.
+  TODO: how to perform the reduction optimally? 
 */
 int
 RecursiveDivision (listz_t q, listz_t r, listz_t a, listz_t b, unsigned int K,
@@ -526,7 +543,7 @@ RecursiveDivision (listz_t q, listz_t r, listz_t a, listz_t b, unsigned int K,
         {
 	  for (i=0; i<k; i++)
 	    {
-	      mpz_mul (t[0], q[k], b[i]);
+	      mpz_mul (t[0], q[k], b[i]); /* TODO: need to reduce t[0]? */
 	      mpz_sub (r[k+i], a[k+i], t[0]);
 	    }
           muls += k;
@@ -542,7 +559,7 @@ RecursiveDivision (listz_t q, listz_t r, listz_t a, listz_t b, unsigned int K,
         {
           for (i=0; i<k; i++)
             {
-              mpz_mul (t[0], q[i], b[k]);
+              mpz_mul (t[0], q[i], b[k]); /* TODO: need to reduce t[0]? */
               mpz_sub (r[k+i], a[k+i], t[0]);
             }
           muls += k;
