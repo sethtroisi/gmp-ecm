@@ -472,7 +472,7 @@ main (int argc, char *argv[])
       fprintf (stderr, "  -save file   save residues at end of stage 1 to file\n");
       fprintf (stderr, "  -resume file resume residues from file, reads from stdin if file is \"-\"\n");
       fprintf (stderr, "  -primetest   perform a primality test on input\n");
-      //rintf (stderr, "  -extra functions added by JimF\n");
+      /*rintf (stderr, "  -extra functions added by JimF\n"); */
       fprintf (stderr, "\n");
       fprintf (stderr, "  Options beyond ECM 5.0  (i.e. specific to ECM 5.0c\n");
       fprintf (stderr, "  -a n         increment B1 by this constant on each run\n");
