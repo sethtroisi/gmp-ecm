@@ -216,11 +216,11 @@ stage2 (mpz_t f, void *X, mpmod_t modulus, double B2min, double B2,
 
   /* needs dF+1 cells in T */
   if (method == PM1_METHOD)
-    youpi = pm1_rootsF (f, F, d, X, T, S, modulus, verbose, &tot_muls);
+    youpi = pm1_rootsF (f, F, d, (mpres_t *) X, T, S, modulus, verbose, &tot_muls);
   else if (method == PP1_METHOD)
-    youpi = pp1_rootsF (F, d, X, T, modulus, verbose, &tot_muls);
+    youpi = pp1_rootsF (F, d, (mpres_t *) X, T, modulus, verbose, &tot_muls);
   else 
-    youpi = ecm_rootsF (f, F, d, X, S, modulus, verbose, &tot_muls);
+    youpi = ecm_rootsF (f, F, d, (curve *) X, S, modulus, verbose, &tot_muls);
 
   if (youpi)
     {
@@ -286,12 +286,12 @@ stage2 (mpz_t f, void *X, mpmod_t modulus, double B2min, double B2,
     }
   st = cputime ();
   if (method == PM1_METHOD)
-    rootsG_state = pm1_rootsG_init (X, i0 * (double) d, d, S, modulus);
+    rootsG_state = pm1_rootsG_init ((mpres_t *) X, i0 * (double) d, d, S, modulus);
   else if (method == PP1_METHOD)
-    rootsG_state = pp1_rootsG_init (X, i0 * (double) d, d, modulus);
+    rootsG_state = pp1_rootsG_init ((mpres_t *) X, i0 * (double) d, d, modulus);
   else /* EC_METHOD */
     {
-      rootsG_state = ecm_rootsG_init (f, X, i0 * (double) d, d, S, modulus, verbose);
+      rootsG_state = ecm_rootsG_init (f, (curve *) X, i0 * (double) d, d, S, modulus, verbose);
       if (rootsG_state == NULL)
         {
           youpi = 2;

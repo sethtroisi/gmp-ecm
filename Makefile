@@ -37,7 +37,7 @@ CFLAGS= -O2 -g -W -Wall -Wmissing-prototypes -pedantic
 LDFLAGS= -lgmp -lm
 CXX=gcc
 CC=gcc
-LD=$(CC)
+LD=$(CXX)
 EXTRAOBJS=
 ALLOBJS= $(OBJS) $(EXTRAOBJS)
 POLYGCD=0
@@ -51,7 +51,7 @@ ecm: $(ALLOBJS) ecm.h ecm-gmp.h
 	$(LD) $(ALLOBJS) $(GMP)/lib/libgmp.a -o $@ $(LDFLAGS)
 
 ecm_with_ntl:
-	make ecm GMP=$(GMP) NTL=$(NTL) CXX=g++ EXTRAOBJS="ntl.o polyz.o" LDFLAGS="-L$(NTL)/lib -lntl $(LDFLAGS) CFLAGS="$(CFLAGS) -DPOLYGCD""
+	make ecm GMP=$(GMP) NTL=$(NTL) CXX=g++ EXTRAOBJS="ntl.o polyz.o" LDFLAGS="-L$(NTL)/lib -lntl $(LDFLAGS)" CFLAGS="$(CFLAGS) -DPOLYGCD"
 
 tune: mpmod.o ecm.h tune.o auxi.o mul_lo.o ecm-gmp.h
 	$(CC) $(CFLAGS) -L$(GMP)/lib tune.o mpmod.o auxi.o mul_lo.o -o $@ $(LDFLAGS)
@@ -63,7 +63,7 @@ ntl.o: ntl.c
 	$(CXX) $(CFLAGS) -c -I$(GMP)/include -I$(NTL)/include $<
 
 .c.o: ecm.h ecm-gmp.h
-	$(CC) $(CFLAGS) -I$(GMP)/include -c $<
+	$(CXX) $(CFLAGS) -I$(GMP)/include -c $<
 
 clean:
 	rm -f ecm ecm_with_ntl tune $(OBJS) 
