@@ -138,12 +138,12 @@ double       block_size (unsigned int);
 int          cputime    (void);
 
 /* ecm2.c */
-int     ecm_rootsF       (mpz_t, listz_t, unsigned int, curve *, listz_t, 
+int     ecm_rootsF       (mpz_t, listz_t, unsigned int, curve *,
                           int, mpmod_t, int);
 point * ecm_rootsG_init  (mpz_t, curve *, unsigned int, unsigned int, 
                           int, mpmod_t, int);
 void    ecm_rootsG_clear (point *, int, mpmod_t);
-int     ecm_rootsG       (mpz_t, listz_t, unsigned int, point *, listz_t, 
+int     ecm_rootsG       (mpz_t, listz_t, unsigned int, point *,
                           int, mpmod_t, int);
 
 /* pp1.c */
@@ -157,7 +157,7 @@ int   pp1_rootsF         (listz_t, unsigned int, mpres_t *, listz_t,
                           mpmod_t, int);
 mpres_t *pp1_rootsG_init (mpres_t *, unsigned int, unsigned int, mpmod_t);
 void  pp1_rootsG_clear   (mpres_t *, mpmod_t);
-int   pp1_rootsG         (listz_t, unsigned int, mpres_t *, mpmod_t, int);
+int   pp1_rootsG         (listz_t, unsigned int, mpres_t *, mpmod_t);
 
 /* stage2.c */
 int          stage2     (mpz_t, void *, mpmod_t, double, double, unsigned int, 

@@ -196,7 +196,7 @@ stage2 (mpz_t f, void *X, mpmod_t modulus, double B2min, double B2,
   else if (method == PP1_METHOD)
     youpi = pp1_rootsF (F, d, X, T, modulus, verbose);
   else 
-    youpi = ecm_rootsF (f, F, d, X, T, S, modulus, verbose);
+    youpi = ecm_rootsF (f, F, d, X, S, modulus, verbose);
 
   if (youpi)
     {
@@ -281,11 +281,10 @@ stage2 (mpz_t f, void *X, mpmod_t modulus, double B2min, double B2,
         youpi = pm1_rootsG (f, G, dF, (mpres_t *) rootsG_state, T + dF, S, 
                             modulus, verbose);
       else if (method == PP1_METHOD)
-        youpi = pp1_rootsG (G, dF, (mpres_t *) rootsG_state, modulus,
-                            verbose);
+        youpi = pp1_rootsG (G, dF, (mpres_t *) rootsG_state, modulus);
       else
-        youpi = ecm_rootsG (f, G, dF, (point *) rootsG_state, T + dF, S, 
-                            modulus, verbose);
+        youpi = ecm_rootsG (f, G, dF, (point *) rootsG_state, S, modulus,
+			    verbose);
       
       if (verbose >= 2)
         printf ("Computing roots of G took %dms\n", cputime () - st);
