@@ -135,7 +135,7 @@ read_resumefile_line (int *method, mpz_t x, mpz_t n, mpz_t sigma, mpz_t A,
           
           if (!facceptstr (fd, "="))
             {
-              printf ("No semicolon after: %s\n", tag);
+              printf ("Save file line has no equal sign after: %s\n", tag);
               goto error;
             }
           
@@ -224,7 +224,7 @@ read_resumefile_line (int *method, mpz_t x, mpz_t n, mpz_t sigma, mpz_t A,
               goto error;
             }
          
-         /* Prime95 lines have no semicolon after SIGMA */
+          /* Prime95 lines have no semicolon after SIGMA */
           if (!facceptstr (fd, ";") && ! (have_qx && have_n && have_sigma))
             {
               printf ("%s field not followed by semicolon\n", tag);
@@ -396,4 +396,5 @@ write_resumefile_line (FILE *fd, int method, double B1, mpz_t sigma, mpz_t A,
   text[strlen (text) - 1] = 0; /* Remove newline */
   fprintf (fd, " TIME=%s;", text);
   fprintf (fd, "\n");
+  fflush (fd);
 }
