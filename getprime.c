@@ -165,10 +165,7 @@ getprime (double pp)
   current = -1;
   while ((++current < len) && (sieve[current] == 0));
 
-#ifdef DEBUG /* this would mean we have a prime gap >= sqrt(x) around x */
-  if (current >= len)
-    abort ();
-#endif
+  ASSERT(current < len); /* otherwise we found a prime gap >= sqrt(x) around x */
   return offset + 2.0 * (double) current;
 }
 

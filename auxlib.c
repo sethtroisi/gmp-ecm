@@ -81,23 +81,6 @@ ceil_log2 (unsigned int n)
   return k;
 }
 
-/* malloc with elementary error checking */
-void *
-xmalloc (size_t size)
-{
-  void *p;
-  
-  p = malloc (size);
-  if (p == NULL)
-    {
-      fprintf (ECM_STDERR, "Could not allocate %lu bytes\n",
-	       (unsigned long) size);
-      exit (EXIT_FAILURE);
-    }
-  
-  return p;
-}
-
 /* Return user CPU time measured in milliseconds. Thanks to Torbjorn. */
 #if defined (ANSIONLY) || defined (USG) || defined (__SVR4) || defined (_UNICOS) || defined(__hpux)
 
@@ -203,7 +186,7 @@ outputf (int loglevel, char *format, ...)
   if (loglevel != OUTPUT_ERROR && loglevel <= verbose)
     {
       n = gmp_vfprintf (ECM_STDOUT, format, ap);
-      fflush (stdout);
+      fflush (ECM_STDOUT);
       return n;
     }
   

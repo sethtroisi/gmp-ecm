@@ -461,7 +461,12 @@ ecm_rootsF (mpz_t f, listz_t F, unsigned int d1, unsigned int d2,
 
   /* Allocate memory for fd[] and T[] */
 
-  state.fd = (point *) xmalloc (state.size_fd * sizeof (point));
+  state.fd = (point *) malloc (state.size_fd * sizeof (point));
+  if (state.fd == NULL)
+    {
+      youpi = ECM_ERROR;
+      goto exit_ecm_rootsF;
+    }
   for (i = 0; i < state.size_fd; i++)
     {
      if (verbose >= 4)
@@ -470,7 +475,12 @@ ecm_rootsF (mpz_t f, listz_t F, unsigned int d1, unsigned int d2,
       mpres_init (state.fd[i].y, modulus);
     }
 
-  state.T = (mpres_t *) xmalloc ((state.size_fd + 4) * sizeof (mpres_t));
+  state.T = (mpres_t *) malloc ((state.size_fd + 4) * sizeof (mpres_t));
+  if (state.T == NULL)
+    {
+      youpi = ECM_ERROR;
+      goto ecm_rootsF_clearfdi;
+    }
   for (i = 0 ; i < state.size_fd + 4; i++)
     mpres_init (state.T[i], modulus);
 
@@ -541,7 +551,8 @@ ecm_rootsF (mpz_t f, listz_t F, unsigned int d1, unsigned int d2,
   for (i = 0 ; i < state.size_fd + 4; i++)
     mpres_clear (state.T[i], modulus);
   free (state.T);
-  
+
+ ecm_rootsF_clearfdi:
   for (i = 0; i < state.size_fd; i++)
     {
       mpres_clear (state.fd[i].x, modulus);
@@ -549,6 +560,7 @@ ecm_rootsF (mpz_t f, listz_t F, unsigned int d1, unsigned int d2,
     }
   free (state.fd);
 
+ exit_ecm_rootsF:
   if (youpi)
     return youpi; /* error or factor found */
   
@@ -612,7 +624,9 @@ ecm_rootsG_init (mpz_t f, curve *X, double s, unsigned int d1, unsigned int d2,
   if (verbose >= 4)
     fprintf (ECM_STDOUT, "ecm_rootsG_init: bestnr = %f\n", bestnr);
   
-  state = (ecm_roots_state *) xmalloc (sizeof (ecm_roots_state));
+  state = (ecm_roots_state *) malloc (sizeof (ecm_roots_state));
+  if (state == NULL)
+    goto exit_error;
 
   if (bestnr < 1.)
     state->nr = 1;
@@ -643,11 +657,19 @@ ecm_rootsG_init (mpz_t f, curve *X, double s, unsigned int d1, unsigned int d2,
   if (coeffs == NULL) /* error */
     {
       free (state);
+    exit_error:
       mpz_set_si (f, -1);
       return NULL;
     }
 
-  state->fd = (point *) xmalloc (state->size_fd * sizeof (point));
+  state->fd = (point *) malloc (state->size_fd * sizeof (point));
+  if (state->fd == NULL)
+    {
+      clear_list (coeffs, state->size_fd);
+      free (state);
+      mpz_set_si (f, -1);
+      return NULL;
+    }
   for (k = 0; k < state->size_fd; k++)
     {
       mpres_init (state->fd[k].x, modulus);
@@ -655,7 +677,19 @@ ecm_rootsG_init (mpz_t f, curve *X, double s, unsigned int d1, unsigned int d2,
     }
   
   lenT = state->size_fd + 4;
-  state->T = (mpres_t *) xmalloc (lenT * sizeof (mpres_t));
+  state->T = (mpres_t *) malloc (lenT * sizeof (mpres_t));
+  if (state->T == NULL)
+    {
+      for (k = 0; k < state->size_fd; k++)
+        {
+          mpres_clear (state->fd[k].x, modulus);
+          mpres_clear (state->fd[k].y, modulus);
+        }
+      clear_list (coeffs, state->size_fd);
+      free (state);
+      mpz_set_si (f, -1);
+      return NULL;
+    }
   for (k = 0; k < lenT; k++)
     mpres_init (state->T[k], modulus);
 
