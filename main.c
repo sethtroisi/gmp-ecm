@@ -252,7 +252,7 @@ main (int argc, char *argv[])
   double B2scale=1.0;
 
 
-  /* intialize the group order canidate */
+  /* initialize the group order candidate */
   mpgocandi_t_init(&go);
 
   /* check ecm is linked with a compatible librayr */
