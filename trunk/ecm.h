@@ -243,6 +243,9 @@ int  mpres_invert (mpres_t, mpres_t, mpmod_t);
 void mpres_gcd (mpz_t, mpres_t, mpmod_t);
 void mpres_out_str (FILE *, unsigned int, mpres_t, mpmod_t);
 
+/* mul_lo.c */
+void mpn_mul_lo_n (mp_ptr, mp_srcptr, mp_srcptr, mp_size_t);
+
 /* resume.c */
 int  facceptstr (FILE *, char *);
 int  freadstrn (FILE *, char *, char, unsigned int);
@@ -250,7 +253,6 @@ int  read_resumefile_line (int *, mpz_t, mpz_t, mpz_t, mpz_t, mpz_t, double *,
                            char *, char *, char *, char *, FILE *);
 void write_resumefile_line (FILE *, int, double, mpz_t, mpz_t, mpz_t, mpz_t, 
                             mpz_t, char *);
-
 
 void __gmp_default_free (void *, size_t);
 #ifdef MEMORY_DEBUG
