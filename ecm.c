@@ -127,8 +127,8 @@ montgomery_to_weierstrass (mpz_t f, mpres_t x, mpres_t y, mpres_t A, mpmod_t n)
   mpres_mul (y, y, g, n);    /* y = 3g^2 */
   if (!mpres_invert (y, y, n)) /* y = 1/(3g^2) temporarily */
     {
-      mpres_gcd(f, y, n);
-      mpres_clear(g, n);
+      mpres_gcd (f, y, n);
+      mpres_clear (g, n);
       return 1;
     }
   
@@ -148,7 +148,7 @@ montgomery_to_weierstrass (mpz_t f, mpres_t x, mpres_t y, mpres_t A, mpmod_t n)
   mpres_mul_ui (g, g, 3, n); /* 3g */
   mpres_mul (y, y, g, n);    /* (3g)/(3g^2) = 1/g */
   
-  mpres_clear(g, n);
+  mpres_clear (g, n);
   return 0;
 }
 
@@ -315,7 +315,7 @@ prac (mpres_t xA, mpres_t zA, unsigned int k, mpmod_t n, mpres_t b,
 {
   unsigned int d, e, r, i = 0;
   __mpz_struct *tmp;
-  static double val[NV] =
+  double val[NV] =
     { 1.61803398875, 1.72360679775, 1.618347119656, 1.617914406529,
       1.612429949509, 1.632839806089, 1.620181980807, 1.580178728295,
       1.617214616534, 1.38196601125 };
@@ -658,11 +658,11 @@ ecm (mpz_t f, mpz_t x, mpz_t sigma, mpz_t n, double B1done, double B1,
   
   if (verbose >= 2)
     {
-      printf("a=");
-      mpres_out_str(stdout, 10, P.A, modulus);
-      printf("\nstarting point: x=");
-      mpres_out_str(stdout, 10, P.x, modulus);
-      printf("\n");
+      printf ("a=");
+      mpres_out_str (stdout, 10, P.A, modulus);
+      printf ("\nstarting point: x=");
+      mpres_out_str (stdout, 10, P.x, modulus);
+      printf ("\n");
     }
 
   if (B1 > B1done)
@@ -686,7 +686,7 @@ ecm (mpz_t f, mpz_t x, mpz_t sigma, mpz_t n, double B1done, double B1,
     {
       printf ("x=");
       mpres_out_str (stdout, 10, P.x, modulus);
-      printf("\n");
+      printf ("\n");
       fflush (stdout);
     }
 
