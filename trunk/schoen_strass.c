@@ -7,10 +7,8 @@
 #include <string.h>
 #endif
 
-/*
 #define DEBUG 1
 #define CHECKSUM 1
-*/
 
 static mpz_t gt;
 static int gt_inited = 0;
@@ -27,20 +25,13 @@ static int gt_inited = 0;
 #define INLINE
 #endif
 
-/* a' <- a+b, b' <- a-b. No mod reduction if LAZY is defined. */
+/* a' <- a+b, b' <- a-b. */
 
-#ifdef LAZY
-#define ADDSUB_LAZYMOD(a, b) \
-  mpz_sub (gt, a, b); \
-  mpz_add (a, a, b);  \
-  mpz_set (b, gt);
-#else
-#define ADDSUB_LAZYMOD(a, b) \
+#define ADDSUB_MOD(a, b) \
   mpz_sub (gt, a, b); \
   mpz_add (a, a, b);  \
   F_mod_gt (b, n);    \
   F_mod_1 (a, n);
-#endif
 
 mp_limb_t __gmpn_mod_34lsub1 (mp_limb_t *src, mp_size_t size);
 void F_mod_1 (mpz_t, unsigned int);
@@ -343,32 +334,6 @@ F_divby2 (mpz_t R, mpz_t S, unsigned int n)
 }
 
 
-#if 0 /* commented out since already exists in toomcook.c 
-         FIXME: merge both versions.
-       */
-/* RS = RS / 3 */
-static void
-mpz_divby3_1op (mpz_t RS)
-{
-  if (RS->_mp_size != 0)
-    {
-      mp_size_t abssize = mpz_size (RS);
-      
-      if (abssize == 0)
-        return;
-      
-      if (mpn_divexact_by3 (RS->_mp_d, RS->_mp_d, abssize) != 0)
-        {
-          fprintf (stderr, "mpz_divby3_1op: division by 3 left remainder");
-          exit (EXIT_FAILURE);
-        }
-      if (RS->_mp_d[abssize - 1] == 0)
-        RS->_mp_size -= mpz_sgn (RS);
-    }
-}
-#endif
-
-
 /* RS = RS / 3 (mod 2^n + 1). RS == gt is ok */
 
 void 
@@ -658,7 +623,7 @@ F_fft_dif (mpz_t *A, int l, int stride2, int n)
 
   if (l == 2)
     {
-      ADDSUB_LAZYMOD(A[0], A[1<<stride2]);
+      ADDSUB_MOD(A[0], A[1<<stride2]);
       return;
     }
 
@@ -713,16 +678,14 @@ F_fft_dif (mpz_t *A, int l, int stride2, int n)
 
   l /= 2;
 
-  ADDSUB_LAZYMOD(A[0], A1s);
+  ADDSUB_MOD(A[0], A1s);
 
   for (i = 1, iomega = omega; i < l; i++, iomega += omega) 
     {
       mpz_sub (gt, A0is, A1is);
       mpz_add (A0is, A0is, A1is);
       F_mul_sqrt2exp_2 (A1is, gt, iomega, n);
-#ifndef LAZY
       F_mod_1 (A0is, n);
-#endif
     }
   
   F_fft_dif (A, l, stride2, n);
@@ -751,7 +714,7 @@ F_fft_dit (mpz_t *A, int l, int stride2, int n)
 
   if (l == 2)
     {
-      ADDSUB_LAZYMOD(A[0], A[1<<stride2]);
+      ADDSUB_MOD(A[0], A[1<<stride2]);
       return;
     }
 
@@ -812,20 +775,17 @@ F_fft_dit (mpz_t *A, int l, int stride2, int n)
   F_fft_dit (A, l, stride2, n);
   F_fft_dit (A + (l << stride2), l, stride2, n);
   
-  ADDSUB_LAZYMOD(A[0], A1s);
+  ADDSUB_MOD(A[0], A1s);
   
-  for (i = 1, iomega = omega; i < l; i++, iomega += omega) 
+  for (i = 1, iomega = 4*n - omega; i < l; i++, iomega -= omega) 
     {
       F_mul_sqrt2exp (A1is, A1is, iomega, n);
       mpz_sub (gt, A0is, A1is);
       mpz_add (A0is, A0is, A1is);
-#ifndef LAZY
       F_mod_gt (A1is, n);
       F_mod_1 (A0is, n);
-#else
-      mpz_set (A1is, gt);
-#endif
     }
+  
 }
 
 unsigned int *
@@ -973,10 +933,6 @@ F_fft_mfa (mpz_t *A, const unsigned int r, const unsigned int c, int sign, const
         {
           F_fft_dif (A + i, r, s2, n);
           /* The rows are now index-scrambeled */
-#ifdef LAZY
-          for (j = 0; j < r; j++)
-            F_mod_1 (A[i + j * c], n);
-#endif
         }
 
 
@@ -984,10 +940,6 @@ F_fft_mfa (mpz_t *A, const unsigned int r, const unsigned int c, int sign, const
 
       /* Row with index 0, need no multipy by \omega */
       F_fft_dif (A, c, 0, n);
-#ifdef LAZY
-      for (j = 0; j < c; j++)
-        F_mod_1 (A[j], n);
-#endif
 
       /* The other rows */
       for (i = 1; i < r; i++)
@@ -999,10 +951,6 @@ F_fft_mfa (mpz_t *A, const unsigned int r, const unsigned int c, int sign, const
             F_mul_sqrt2exp (A[i * c + j], A[i * c + j], ijomega, n);
 
           F_fft_dif (A + i * c, c, 0, n);
-#ifdef LAZY
-          for (j = 0; j < c; j++)
-            F_mod_1 (A[i * c + j], n);
-#endif
         }
 
     } else { /* Inverse transform */
@@ -1058,10 +1006,6 @@ F_fft_mfa_mul (mpz_t *A, mpz_t *B, const unsigned int r, const unsigned int c, c
     {
       F_fft_dif (A + i, r, s2, n);
       /* The rows are now index-scrambeled */
-#ifdef LAZY
-      for (j = 0; j < r; j++)
-        F_mod_1 (A[i + j * c], n);
-#endif
     }
 
 
@@ -1071,9 +1015,6 @@ F_fft_mfa_mul (mpz_t *A, mpz_t *B, const unsigned int r, const unsigned int c, c
   F_fft_dif (A, c, 0, n);
   for (j = 0; j < c; j++)
     {
-#ifdef LAZY
-      F_mod_1 (A[j], n);
-#endif
       F_mul_sqrt2exp (A[j], A[j], -l2, n);
       mpz_mul (gt, A[j], B[j]);
       F_mod_gt (A[j], n);
@@ -1094,9 +1035,6 @@ F_fft_mfa_mul (mpz_t *A, mpz_t *B, const unsigned int r, const unsigned int c, c
 
       for (j = 0; j < c; j++)
         {
-#ifdef LAZY
-          F_mod_1 (A[i * c + j], n);
-#endif
           mpz_mul (gt, A[i * c + j], B[i * c + j]);
           F_mod_gt (A[i * c + j], n);
         }
@@ -1211,19 +1149,19 @@ F_toomcook4 (mpz_t *C, mpz_t *A, mpz_t *B, unsigned int len, unsigned int n,
     /* A0      A(1)  A3  A(-1)              */
     /* C0  C1   C2   C3   C4    C5   C6  C7 */
 
-      r = F_mul (t, t, t, l, n, t + 6 * l);
+      r = F_mul (t, t, t, l, 0, n, t + 6 * l);
         /* t0 = (8*A(1/2)) ^ 2 = 64*C(1/2) */
-      r += F_mul (t + 2 * l, t + 2 * l, t + 2 * l, l, n, t + 6 * l);
+      r += F_mul (t + 2 * l, t + 2 * l, t + 2 * l, l, 0, n, t + 6 * l);
         /* t2 = A(2) ^ 2 = C(2) */
-      r += F_mul (t + 4 * l, t + 4 * l, t + 4 * l, l, n, t + 6 * l);
+      r += F_mul (t + 4 * l, t + 4 * l, t + 4 * l, l, 0, n, t + 6 * l);
         /* t4 = A(-2) ^ 2 = C(-2) */
-      r += F_mul (C, A, A, l, n, t + 6 * l);
+      r += F_mul (C, A, A, l, 0, n, t + 6 * l);
         /* C0 = A(0) ^ 2 = C(0) */
-      r += F_mul (C + 6 * l, A + 3 * l, A + 3 * l, l, n, t + 6 * l);
+      r += F_mul (C + 6 * l, A + 3 * l, A + 3 * l, l, 0, n, t + 6 * l);
         /* C6 = A(inf) ^ 2 = C(inf) */
-      r += F_mul (C + 2 * l, C + 2 * l, C + 2 * l, l, n, t + 6 * l);
+      r += F_mul (C + 2 * l, C + 2 * l, C + 2 * l, l, 0, n, t + 6 * l);
         /* C2 = A(1) ^ 2 = C(1). May overwrite A3 */
-      r += F_mul (C + 4 * l, C + 4 * l, C + 4 * l, l, n, t + 6 * l);
+      r += F_mul (C + 4 * l, C + 4 * l, C + 4 * l, l, 0, n, t + 6 * l);
         /* C4 = A(-1) ^ 2 = C(-1) */
     }
   else /* Multiply */
@@ -1319,19 +1257,19 @@ F_toomcook4 (mpz_t *C, mpz_t *A, mpz_t *B, unsigned int len, unsigned int n,
     /* A0 B0  A(1) B(1) A(-1) B(-1) A3 B3 */
     /* C0 C1   C2   C3   C4    C5   C6 C7 */
 
-      r = F_mul (t, t, t + l, l, n, t + 6 * l);
+      r = F_mul (t, t, t + l, l, 0, n, t + 6 * l);
         /* t0 = 8*A(1/2) * 8*B(1/2) = 64*C(1/2) */
-      r += F_mul (t + 2 * l, t + 2 * l, t + 3 * l, l, n, t + 6 * l);
+      r += F_mul (t + 2 * l, t + 2 * l, t + 3 * l, l, 0, n, t + 6 * l);
         /* t2 = A(2) * B(2) = C(2) */
-      r += F_mul (t + 4 * l, t + 4 * l, t + 5 * l, l, n, t + 6 * l);
+      r += F_mul (t + 4 * l, t + 4 * l, t + 5 * l, l, 0, n, t + 6 * l);
         /* t4 = A(-2) * B(-2) = C(-2) */
-      r += F_mul (C, A, C + l, l, n, t + 6 * l);
+      r += F_mul (C, A, C + l, l, 0, n, t + 6 * l);
         /* C0 = A(0)*B(0) = C(0) */
-      r += F_mul (C + 2 * l, C + 2 * l, C + 3 * l, l, n, t + 6 * l);
+      r += F_mul (C + 2 * l, C + 2 * l, C + 3 * l, l, 0, n, t + 6 * l);
         /* C2 = A(1)*B(1) = C(1) */
-      r += F_mul (C + 4 * l, C + 4 * l, C + 5 * l, l, n, t + 6 * l);
+      r += F_mul (C + 4 * l, C + 4 * l, C + 5 * l, l, 0, n, t + 6 * l);
         /* C4 = A(-1)*B(-1) = C(-1) */
-      r += F_mul (C + 6 * l, C + 6 * l, B + 3 * l, l, n, t + 6 * l);
+      r += F_mul (C + 6 * l, C + 6 * l, B + 3 * l, l, 0, n, t + 6 * l);
         /* C6 = A(inf)*B(inf) = C(inf) */
     }
   
@@ -1467,9 +1405,9 @@ F_karatsuba (mpz_t *R, mpz_t *A, mpz_t *B, unsigned int len, unsigned int n,
 
   if (A == B) /* Squaring */
     {
-      r = F_mul (t, A, A + len, len, n, t + 2 * len);
-      r += F_mul (R + 2 * len, A + len, A + len, len, n, t + 2 * len);
-      r += F_mul (R, A, A, len, n, t + 2 * len);
+      r = F_mul (t, A, A + len, len, 0, n, t + 2 * len); /* A0 * A1 */
+      r += F_mul (R + 2 * len, A + len, A + len, len, 0, n, t + 2 * len); /* A1^2 */
+      r += F_mul (R, A, A, len, 0, n, t + 2 * len); /* A0^2 */
       for (i = 0; i < 2 * len - 1; i++)
         {
           mpz_mul_2exp (t[i], t[i], 1);
@@ -1484,21 +1422,21 @@ F_karatsuba (mpz_t *R, mpz_t *A, mpz_t *B, unsigned int len, unsigned int n,
       mpz_add (t[i + len], B[i], B[i + len]); /* t1 = B0 + B1 */
     }
   
-  r = F_mul (t, t, t + len, len, n, t + 2 * len);
+  r = F_mul (t, t, t + len, len, 0, n, t + 2 * len);
   /* t[0...2*len-1] = (A0+A1) * (B0+B1) = A0*B0 + A0*B1 + A1*B0 + A1*B1 */
   
   if (R != A)
     {
-      r += F_mul (R, A, B, len, n, t + 2 * len);
+      r += F_mul (R, A, B, len, 0, n, t + 2 * len);
       /* R[0...2*len-1] = A0 * B0 */
-      r += F_mul (R + 2 * len, A + len, B + len, len, n, t + 2 * len);
+      r += F_mul (R + 2 * len, A + len, B + len, len, 0, n, t + 2 * len);
       /* R[2*len...4*len-1] = A1 * B1, may overwrite B */
     }
   else if (R + 2 * len != B)
     {
-      r += F_mul (R + 2 * len, A + len, B + len, len, n, t + 2 * len);
+      r += F_mul (R + 2 * len, A + len, B + len, len, 0, n, t + 2 * len);
       /* R[2*len...4*len-1] = A1 * B1 */
-      r += F_mul (R, A, B, len, n, t + 2 * len);
+      r += F_mul (R, A, B, len, 0, n, t + 2 * len);
       /* R[0...2*len-1] = A0 * B0, overwrites A */
     }
   else /* R == A && R + 2*len == B */
@@ -1511,9 +1449,9 @@ F_karatsuba (mpz_t *R, mpz_t *A, mpz_t *B, unsigned int len, unsigned int n,
           mpz_set (A[len + i], B[i]);
           mpz_set (B[i], gt);
         }
-      r += F_mul (R, R, R + len, len, n, t + 2 * len);
+      r += F_mul (R, R, R + len, len, 0, n, t + 2 * len);
       /* R[0...2*len-1] = A0 * B0, overwrites A */
-      r += F_mul (R + 2 * len, R + 2 * len, R + 3 * len, len, n, t + 2 * len);
+      r += F_mul (R + 2 * len, R + 2 * len, R + 3 * len, len, 0, n, t + 2 * len);
       /* R[2*len...4*len-1] = A1 * B1, overwrites B */
     }
 
@@ -1549,8 +1487,8 @@ F_karatsuba (mpz_t *R, mpz_t *A, mpz_t *B, unsigned int len, unsigned int n,
 /* Return value: number of multiplies performed */
 
 unsigned int 
-F_mul (mpz_t *R, mpz_t *A, mpz_t *B, unsigned int len, unsigned int n, 
-       mpz_t *t) 
+F_mul (mpz_t *R, mpz_t *A, mpz_t *B, unsigned int len, int monic, 
+       unsigned int n, mpz_t *t) 
 {
   unsigned int i, r=0, len2;
   int columns = 0;
@@ -1571,8 +1509,15 @@ F_mul (mpz_t *R, mpz_t *A, mpz_t *B, unsigned int len, unsigned int n,
   if (len == 1)
     {
       mpz_mul (gt, A[0], B[0]);
-      F_mod_gt (R[0], n);
-      mpz_set_ui (R[1], 0);
+      if (monic) /* (x + a0)(x + b0) = x^2 + (a0 + b0)x + a0*b0 */
+        {
+          mpz_add (R[1], A[0], B[0]); /* May overwrite B[0] */
+          /* We don't store the leading monomial in the result poly */
+        }
+      else
+        mpz_set_ui (R[1], 0);
+      F_mod_gt (R[0], n); /* May overwrite A[0] */
+      
       return 1;
     }
 
@@ -1590,7 +1535,7 @@ F_mul (mpz_t *R, mpz_t *A, mpz_t *B, unsigned int len, unsigned int n,
       mpz_add (gt, gt, B[i]);
 
       /* Compute A(-1) and B(-1) */
-      if ((i & 1) == 0)
+      if (i % 2 == 0)
         {
           mpz_add (chksum_1, chksum_1, A[i]);
           mpz_add (chksum0, chksum0, B[i]); /* chksum0 used temporarily here */
@@ -1602,6 +1547,14 @@ F_mul (mpz_t *R, mpz_t *A, mpz_t *B, unsigned int len, unsigned int n,
         }
     }
 
+  if (monic)
+    {
+      mpz_add_ui (chksum1, chksum1, 1);
+      mpz_add_ui (gt, gt, 1);
+      mpz_add_ui (chksum_1, chksum_1, 1);
+      mpz_add_ui (chksum0, chksum0, 1);
+    }
+  
   mpz_mul (gt, gt, chksum1);
   F_mod_gt (chksum1, n);
 
@@ -1615,20 +1568,25 @@ F_mul (mpz_t *R, mpz_t *A, mpz_t *B, unsigned int len, unsigned int n,
   /* Compute A(inf) * B(inf) */
   mpz_mul (gt, A[len - 1], B[len - 1]);
   F_mod_gt (chksuminf, n);
+  if (monic)
+    {
+      mpz_add (chksuminf, chksuminf, A[len - 2]);
+      mpz_add (chksuminf, chksuminf, B[len - 2]);
+    }
 
   r += 4;
 #endif /* CHECKSUM */
 
   /* Don't do FFT if len=<4 (Karatsuba or Toom-Cook are faster), or if
      len > 2*n (no suitable primitive roots of 1) */
-  if ((len > 4) && len <= 2 * n
+  if ((len > 4 || 1) && len <= 2 * n
 #ifdef TESTDRIVE
    && !nofft
 #endif
      ) 
     {
-      /* len2 = log_2(len) */
-      for (i = len, len2 = 0; i > 1 && (i&1) == 0; i >>= 1, len2++);
+      /* len2 = log_2(len). Assumes len > 0 */
+      for (i = len, len2 = 0; (i&1) == 0; i >>= 1, len2++);
       
       if (i != 1) 
         {
@@ -1648,7 +1606,7 @@ F_mul (mpz_t *R, mpz_t *A, mpz_t *B, unsigned int len, unsigned int n,
       /* Are we performing a squaring or multiplication? */
       if (A != B) 
         {
-          /* So it's a multiply */
+          /* So it's a multiplication */
           
 #ifdef TESTDRIVE
           if (do_timing)
@@ -1658,7 +1616,9 @@ F_mul (mpz_t *R, mpz_t *A, mpz_t *B, unsigned int len, unsigned int n,
           /* Put transform of B into t */
           for (i = 0; i < len; i++)
             mpz_set (t[i], B[i]);
-          for (i = len; i < 2 * len; i++)
+          if (monic)
+            mpz_set_ui (t[i++], 1);
+          for (; i < 2 * len; i++)
             mpz_set_ui (t[i], 0);
 
           if (columns)
@@ -1686,13 +1646,15 @@ F_mul (mpz_t *R, mpz_t *A, mpz_t *B, unsigned int len, unsigned int n,
         rdtscll(timer_start);
 #endif
 
-#ifndef MFA_MUL
-
-      /* Put transform of A into R */
+      /* Put A into R */
       for (i = 0; i < len; i++) 
         mpz_set (R[i], A[i]);
-      for (i = len; i < 2 * len; i++)
-        mpz_set_ui (R[i], 0); /* May overwrite B[i] */
+      if (monic)
+        mpz_set_ui (R[i++], 1); /* May overwrite B[0] */
+      for (; i < 2 * len; i++)
+        mpz_set_ui (R[i], 0); /* May overwrite B[i - len] */
+
+#ifndef MFA_MUL
 
       if (columns)
         F_fft_mfa (R, (2 * len) / columns, columns, 1, n);
@@ -1708,14 +1670,14 @@ F_mul (mpz_t *R, mpz_t *A, mpz_t *B, unsigned int len, unsigned int n,
                  R==A?"":"2", 2 * len, timer_stop / 1000000.0);
         }
       
-      if (do_timing)
-        rdtscll (timer_start);
-      
       if (verbose >= 2)
         printpoly (R, 2 * len, "FFT(A)");
+      
+      if (do_timing)
+        rdtscll (timer_start);
 #endif
       
-      for (i=0; i < 2 * len; i++) 
+      for (i = 0; i < 2 * len; i++) 
         {
 /*          printf ("Before multiply: mpz_size (R[%d]) = %d\n", i, mpz_size (R[i])); */
           F_mod_1 (R[i], n);
@@ -1774,6 +1736,7 @@ F_mul (mpz_t *R, mpz_t *A, mpz_t *B, unsigned int len, unsigned int n,
           F_fft_dit (R, 2 * len, 0, n);
         }
       r += 2 * len;
+      
 
 #ifdef TESTDRIVE
       if (do_timing) 
@@ -1785,9 +1748,15 @@ F_mul (mpz_t *R, mpz_t *A, mpz_t *B, unsigned int len, unsigned int n,
         }
 #endif
       
-#endif
+#endif /* MFA_MUL */
+
+      if (monic)
+        {
+          mpz_sub_ui (R[0], R[0], 1);
+        }
       
-    } else  /* Karatsuba or Toom-Cook split */
+    } else { /* Karatsuba or Toom-Cook split */
+
       if (len / n == 4 || len == 2 
 #ifdef TESTDRIVE
           || force_karatsuba
@@ -1797,9 +1766,27 @@ F_mul (mpz_t *R, mpz_t *A, mpz_t *B, unsigned int len, unsigned int n,
       else
         r += F_toomcook4 (R, A, B, len, n, t);
 
+      if (monic) /* Handle the leading monomial the hard way */
+        {
+          /* This only works if A, B and R do not overlap */
+          if (A == R || B == R + len)
+            {
+              fprintf (stderr, "F_mul: monic polynomials with Karatsuba/"
+                    "Toom-Cook and overlapping input/output not supported\n");
+              exit (EXIT_FAILURE);
+            }
+          for (i = 0; i < len; i++)
+            {
+              mpz_add (R[i + len], R[i + len], A[i]);
+              mpz_add (R[i + len], R[i + len], B[i]);
+              F_mod_1 (R[i + len], n);
+            }
+        }
+    }
+      
 #ifdef DEBUG
   F_mod_1 (R[2 * len - 1], n);
-  if (mpz_sgn (R[2 * len - 1]) != 0)
+  if (!monic && mpz_sgn (R[2 * len - 1]) != 0)
     {
       fprintf (stderr, "F_mul, len %d: R[%d] == ", len, 2 * len - 1);
       mpz_out_str (stderr, 10, R[2 * len - 1]);
@@ -1812,6 +1799,9 @@ F_mul (mpz_t *R, mpz_t *A, mpz_t *B, unsigned int len, unsigned int n,
 
   for (i = 0; i < 2*len; i++) 
     mpz_sub (chksum1, chksum1, R[i]);
+  
+  if (monic)
+    mpz_sub_ui (chksum1, chksum1, 1);
 
   while (mpz_sizeinbase (chksum1, 2) > n) 
     F_mod_1 (chksum1, n);
@@ -1828,7 +1818,10 @@ F_mul (mpz_t *R, mpz_t *A, mpz_t *B, unsigned int len, unsigned int n,
       mpz_sub (chksum_1, chksum_1, R[i]);
     else
       mpz_add (chksum_1, chksum_1, R[i]);
-
+  
+  if (monic)
+    mpz_sub_ui (chksum_1, chksum_1, 1);
+  
   while (mpz_sizeinbase (chksum_1, 2) > n) 
     F_mod_1 (chksum_1, n);
 
@@ -1865,8 +1858,8 @@ F_mul (mpz_t *R, mpz_t *A, mpz_t *B, unsigned int len, unsigned int n,
   mpz_clear (chksum_1);
   mpz_clear (chksum0);
   mpz_clear (chksuminf);
-#endif
-  
+#endif /* CHECKSUM */
+
   return r;
 }
 
@@ -2061,6 +2054,7 @@ main(int argc, char **argv)
   int length = 16;
   int fermat = 5;
   int fermat_e;
+  int monic = 0;
   unsigned int len2;
   unsigned long long timer_start, timer_stop;
 
@@ -2081,6 +2075,7 @@ main(int argc, char **argv)
           case 'm' : do_mfa = 1; break;
           case 'k' : force_karatsuba = 1; break;
           case 'n' : nofft = 1; break;
+          case 'o' : monic = 1; break;
           case '2' : radix2 = 1; break;
           default :
             {
@@ -2130,7 +2125,7 @@ main(int argc, char **argv)
   if (do_timing)
     rdtscll (timer_start);
     
-  F_mul (res, poly1, poly1, length, fermat_e, t);
+  F_mul (res, poly1, poly1, length, monic, fermat_e, t);
 
   if (do_timing)
     {
@@ -2151,7 +2146,7 @@ main(int argc, char **argv)
   if (do_timing)
     rdtscll (timer_start);
     
-  F_mul (res, res, res, length, fermat_e, t);
+  F_mul (res, res, res, length, monic, fermat_e, t);
 
   if (do_timing)
     {
@@ -2175,7 +2170,7 @@ main(int argc, char **argv)
   if (do_timing)
     rdtscll (timer_start);
     
-  F_mul (res, poly1, poly2, length, fermat_e, t);
+  F_mul (res, poly1, poly2, length, monic, fermat_e, t);
 
   if (do_timing)
     {
@@ -2318,7 +2313,7 @@ main(int argc, char **argv)
   if (do_timing)
     rdtscll (timer_start);
     
-  F_mul (res, res, res+length, length, fermat_e, t);
+  F_mul (res, res, res+length, length, monic, fermat_e, t);
   
   if (do_timing)
     {
