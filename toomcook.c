@@ -42,13 +42,15 @@
 #define ABS(x) (((x) >= 0) ? (x) : (-(x)))
 
 /* Divide RS by 3. RS must be multiple of 3 or result will be undefined */
-void mpz_divby3_1op(mpz_t RS) {
-  if (RS->_mp_size != 0) {
-    mp_size_t abssize = ABS(RS->_mp_size);
-    mpn_divexact_by3(RS->_mp_d, RS->_mp_d, abssize);
-    if (RS->_mp_d[abssize-1] == 0)
-      RS->_mp_size += (RS->_mp_size < 0) ? 1 : -1;
-  }
+void mpz_divby3_1op (mpz_t RS)
+{
+  if (RS->_mp_size != 0)
+    {
+      mp_size_t abssize = ABS(RS->_mp_size);
+      mpn_divexact_by3 (RS->_mp_d, RS->_mp_d, abssize);
+      if (RS->_mp_d[abssize-1] == 0)
+        RS->_mp_size += (RS->_mp_size < 0) ? 1 : -1;
+    }
 }
 
 /* Puts in C[0..2len-2] the product of A[0..len-1] and B[0..len-1].
@@ -361,7 +363,7 @@ toomcook4 (listz_t C, listz_t A, listz_t B, unsigned int len, listz_t t)
         mpz_sub(C4, C4, T);     /* C4 = C_2 + 4*C_4 */
       }
       mpz_sub(C4, C4, C2);      /* C4 = 3*C_4 */
-      mpz_divby3_1op(C4);       /* C4 = C_4 */
+      mpz_divby3_1op (C4);      /* C4 = C_4 */
       mpz_sub(C2, C2, C4);      /* C2 = C_2 */
 #ifdef DEBUG
       gmp_printf("C_1[%d] = %Zd\n", i, t2);
