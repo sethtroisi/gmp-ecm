@@ -276,12 +276,12 @@ void    pm1_rootsG_clear (pm1_roots_state *, mpmod_t);
 #define phi __ECM(phi)
 unsigned long phi (unsigned long);
 #define bestD __ECM(bestD)
-int     bestD (double, double, int, unsigned int *, unsigned int *, 
+int     bestD (mpz_t, mpz_t, int, unsigned int *, unsigned int *, 
                unsigned int *, unsigned int *, mpz_t);
 
 /* ecm.c */
 #define choose_S __ECM(choose_S)
-int choose_S (double);
+int choose_S (mpz_t);
 
 /* ecm2.c */
 #define ecm_rootsF __ECM(ecm_rootsF)
@@ -317,7 +317,7 @@ void  pp1_rootsG_clear (pp1_roots_state *, mpmod_t);
 
 /* stage2.c */
 #define stage2 __ECM(stage2)
-int          stage2     (mpz_t, void *, mpmod_t, double, double, unsigned int,
+int          stage2     (mpz_t, void *, mpmod_t, mpz_t, mpz_t, unsigned int,
                          int, int, int, char *);
 #define init_progression_coeffs __ECM(init_progression_coeffs)
 listz_t init_progression_coeffs (mpz_t, unsigned int, unsigned int,

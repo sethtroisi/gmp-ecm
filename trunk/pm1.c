@@ -735,7 +735,7 @@ pm1_rootsG (mpz_t f, listz_t G, unsigned int dF, pm1_roots_state *state,
 */
 int
 pm1 (mpz_t f, mpz_t p, mpz_t N, mpz_t go, double B1done, double B1,
-     double B2min, double B2, double B2scale, unsigned int k, int S,
+     mpz_t B2min, mpz_t B2, double B2scale, unsigned int k, int S,
      int verbose, int repr, FILE *os, FILE *es, char *TreeFilename)
 {
   mpmod_t modulus;
@@ -765,32 +765,33 @@ pm1 (mpz_t f, mpz_t p, mpz_t N, mpz_t go, double B1done, double B1,
   
   /* Set default B2. See ecm.c for comments */
   if (ECM_IS_DEFAULT_B2(B2))
-    B2 = pow (B1 / 6.0, 1.424828748);
-
-  /* Scale B2 by what the user said (or by the default scaling of 1.0) */
-  B2 *= B2scale;
+    mpz_set_d (B2, B2scale * pow (B1 / 6.0, 1.424828748));
 
   /* set B2min */
-  if (B2min < 0.0)
-    B2min = B1;
+  if (mpz_sgn (B2min) < 0)
+    mpz_set_ui (B2min, B1);
 
   /* Set default degree for Brent-Suyama extension */
   if (S == ECM_DEFAULT_S)
     {
-      if (B2 - B2min < 3.5e5) /* B1 < 50000 */
+      mpz_t t;
+      mpz_init (t);
+      mpz_sub (t, B2, B2min);
+      if (mpz_cmp_d (t, 3.5e5) < 0) /* B1 < 50000 */
         S = -4; /* Dickson polys give a slightly better chance of success */
-      else if (B2 - B2min < 1.1e7) /* B1 < 500000 */
+      else if (mpz_cmp_d (t, 1.1e7) < 0) /* B1 < 500000 */
         S = -6;
-      else if (B2 - B2min < 1.25e8) /* B1 < 3000000 */
+      else if (mpz_cmp_d (t, 1.25e8) < 0) /* B1 < 3000000 */
         S = 12; /* but for S>6, S-th powers are faster thanks to invtrick */
-      else if (B2 - B2min < 7.e9) /* B1 < 50000000 */
+      else if (mpz_cmp_d (t, 7.e9) < 0) /* B1 < 50000000 */
         S = 24;
-      else if (B2 - B2min < 1.9e10) /* B1 < 100000000 */
+      else if (mpz_cmp_d (t, 1.9e10) < 0) /* B1 < 100000000 */
         S = 48;
-      else if (B2 - B2min < 5.e11) /* B1 < 1000000000 */
+      else if (mpz_cmp_d (t, 5.e11) < 0) /* B1 < 1000000000 */
         S = 60;
       else
         S = 120;
+      mpz_clear (t);
     }
 
   /* We need Suyama's power even and at least 2 for P-1 stage 2 to work 
@@ -808,10 +809,10 @@ pm1 (mpz_t f, mpz_t p, mpz_t N, mpz_t go, double B1done, double B1,
         outputf (OUTPUT_NORMAL, "B1=%1.0f", B1);
       else
         outputf (OUTPUT_NORMAL, "B1=%1.0f-%1.0f", B1done, B1);
-      if (B2min <= B1)
-        outputf (OUTPUT_NORMAL, ", B2=%1.0f, ", B2);
+      if (mpz_cmp_d (B2min, B1) == 0)
+        outputf (OUTPUT_NORMAL, ", B2=%Zd, ", B2);
       else
-        outputf (OUTPUT_NORMAL, ", B2=%1.0f-%1.0f, ", B2min, B2);
+        outputf (OUTPUT_NORMAL, ", B2=%Zd-%Zd, ", B2min, B2);
       if (S > 0)
         outputf (OUTPUT_NORMAL, "polynomial x^%u", S);
       else

@@ -20,14 +20,14 @@
 
 typedef struct
 {
-  int method;  /* factorization method, default is ecm */
-  mpz_t x;     /* starting point (if non zero) */
-  mpz_t sigma; /* contains sigma or A (ecm only) */
+  int method;     /* factorization method, default is ecm */
+  mpz_t x;        /* starting point (if non zero) */
+  mpz_t sigma;    /* contains sigma or A (ecm only) */
   int sigma_is_A; /* if non-zero, 'sigma' contains A */
-  mpz_t go;    /* initial group order to preload (if NULL: do nothing) */
-  double B1done; /* step 1 was already done up to B1done */
-  double B2min;  /* lower bound for stage 2 (default is B1) */
-  double B2;     /* step 2 bound (chosen automatically if < 0.0) */
+  mpz_t go;       /* initial group order to preload (if NULL: do nothing) */
+  double B1done;  /* step 1 was already done up to B1done */
+  mpz_t B2min;    /* lower bound for stage 2 (default is B1) */
+  mpz_t B2;       /* step 2 bound (chosen automatically if < 0.0) */
   unsigned int k; /* number of blocks in stage 2 */
   int S;          /* degree of the Brent-Suyama's extension for stage 2 */
   int repr;       /* representation for modular arithmetic: 1=mpz,         
@@ -48,12 +48,12 @@ void ecm_init (ecm_params);
 void ecm_clear (ecm_params);
 
 /* the following interface is not supported */
-int ecm (mpz_t, mpz_t, mpz_t, mpz_t, mpz_t, double, double, double, double,
+int ecm (mpz_t, mpz_t, mpz_t, mpz_t, mpz_t, double, double, mpz_t, mpz_t,
          double, unsigned int, int, int, int, int, FILE*, FILE*, char*);
-int pp1 (mpz_t, mpz_t, mpz_t, mpz_t, double, double, double, double, 
+int pp1 (mpz_t, mpz_t, mpz_t, mpz_t, double, double, mpz_t, mpz_t, 
          double, unsigned int, int, int, int, FILE*, FILE*, char*);
-int pm1 (mpz_t, mpz_t, mpz_t, mpz_t, double, double, double, 
-          double, double, unsigned int, int, int, int, FILE*, FILE*, char*);
+int pm1 (mpz_t, mpz_t, mpz_t, mpz_t, double, double, mpz_t, 
+          mpz_t, double, unsigned int, int, int, int, FILE*, FILE*, char*);
 
 /* different methods implemented */
 #define ECM_ECM 0
@@ -72,8 +72,8 @@ int pm1 (mpz_t, mpz_t, mpz_t, mpz_t, double, double, double,
 #define ECM_IS_DEFAULT_B1_DONE(x) (x <= 1.0)
 
 /* stage 2 bound */
-#define ECM_DEFAULT_B2 -1.0
-#define ECM_IS_DEFAULT_B2(x) ((x) < 0.0)
+#define ECM_DEFAULT_B2 -1
+#define ECM_IS_DEFAULT_B2(x) (mpz_sgn (x) < 0)
 
 #define ECM_DEFAULT_K 0 /* default number of blocks in stage 2. 0 = automatic
                            choice */
