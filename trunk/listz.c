@@ -836,7 +836,7 @@ PrerevertDivision (listz_t a, listz_t b, listz_t invb,
   int po2, muls, wrap;
 #ifdef WRAP
   listz_t t2 = NULL;
-  wrap = K > 2;
+  wrap = K > 3;
 #else
   wrap = 0;
 #endif
