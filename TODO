@@ -1,5 +1,8 @@
 ToDo's:
 
+0) configure
+- check getrusage in configure, update cputime (auxlib.c)
+
 1) efficiency/memory
 - use mpres in step 2
 - optimize memory usage in step 2 (use an unique array for multiplies)

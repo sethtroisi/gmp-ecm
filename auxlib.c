@@ -85,6 +85,14 @@ ceil_log2 (unsigned int n)
 /* Return user CPU time measured in milliseconds. Thanks to Torbjorn. */
 #if defined (ANSIONLY) || defined (USG) || defined (__SVR4) || defined (_UNICOS) || defined(__hpux)
 
+int
+cputime ()
+{
+  return (int) ((double) clock () * 1000 / CLOCKS_PER_SEC);
+}
+
+#else	/* ANSIONLY and others */
+
 #if defined (__MINGW32__) || defined (_MSC_VER)
 
 static int
@@ -123,17 +131,7 @@ cputime ()
   return (unsigned) d;
 }
 
-#else
-
-int
-cputime ()
-{
-  return (int) ((double) clock () * 1000 / CLOCKS_PER_SEC);
-}
-
-#endif  /* __MINGW32___ or VC */
-
-#else	/* ANSIONLY and others */
+#else /* __MINGW32___ or VC */
 
 #include <sys/types.h>
 #include <sys/time.h>
@@ -147,7 +145,9 @@ cputime ()
   getrusage (RUSAGE_SELF, &rus);
   return rus.ru_utime.tv_sec * 1000 + rus.ru_utime.tv_usec / 1000;
 }
-#endif
+#endif  /* __MINGW32___ or VC */
+
+#endif /* ANSIONLY and others */
 
 int 
 get_verbose ()
