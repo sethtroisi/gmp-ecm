@@ -614,14 +614,15 @@ choose_S (mpz_t B2len)
 */
 int
 ecm (mpz_t f, mpz_t x, mpz_t sigma, mpz_t n, mpz_t go, double B1done,
-     double B1, mpz_t B2min, mpz_t B2, double B2scale, unsigned int k,
-     int S, int verbose, int repr, int sigma_is_A, FILE *os, FILE* es, 
-     char *TreeFilename)
+     double B1, mpz_t B2min_parm, mpz_t B2_parm, double B2scale, 
+     unsigned int k, int S, int verbose, int repr, int sigma_is_A, 
+     FILE *os, FILE* es, char *TreeFilename)
 {
   int youpi = ECM_NO_FACTOR_FOUND;
   unsigned int st;
   mpmod_t modulus;
   curve P;
+  mpz_t B2min, B2; /* Local B2, B2min to avoid changing caller's values */
 
   set_verbose (verbose);
   ECM_STDOUT = (os == NULL) ? stdout : os;
@@ -637,6 +638,9 @@ ecm (mpz_t f, mpz_t x, mpz_t sigma, mpz_t n, mpz_t go, double B1done,
   /* now n is odd */
 
   st = cputime ();
+
+  mpz_init_set (B2min, B2min_parm);
+  mpz_init_set (B2, B2_parm);
 
   /* set second stage bound B2: when using polynomial multiplication of
      complexity n^alpha, stage 2 has complexity about B2^(alpha/2), and
@@ -812,6 +816,8 @@ end_of_ecm:
   mpres_clear (P.x, modulus);
   mpres_clear (P.A, modulus);
   mpmod_clear (modulus);
+  mpz_clear (B2);
+  mpz_clear (B2min);
 
   return youpi;
 }

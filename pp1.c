@@ -678,13 +678,14 @@ pp1_rootsG (listz_t G, unsigned int dF, pp1_roots_state *state, mpmod_t modulus,
 */
 int
 pp1 (mpz_t f, mpz_t p, mpz_t n, mpz_t go, double B1done, double B1,
-     mpz_t B2min, mpz_t B2, double B2scale, unsigned int k, int S,
+     mpz_t B2min_parm, mpz_t B2_parm, double B2scale, unsigned int k, int S,
      int verbose, int repr, FILE *os, FILE *es, char *TreeFilename)
 {
   int youpi = 0;
   unsigned int st;
   mpres_t a;
   mpmod_t modulus;
+  mpz_t B2min, B2; /* Local B2, B2min to avoid changing caller's values */
 
   set_verbose (verbose);
   ECM_STDOUT = (os == NULL) ? stdout : os;
@@ -706,6 +707,9 @@ pp1 (mpz_t f, mpz_t p, mpz_t n, mpz_t go, double B1done, double B1,
       pm1_random_seed (p, n, state);
       gmp_randclear (state);
     }
+
+  mpz_init_set (B2min, B2min_parm);
+  mpz_init_set (B2, B2_parm);
 
   /* Set default B2. See ecm.c for comments */
   if (ECM_IS_DEFAULT_B2(B2))
@@ -810,6 +814,8 @@ pp1 (mpz_t f, mpz_t p, mpz_t n, mpz_t go, double B1done, double B1,
  clear_pp1:
   mpres_clear (a, modulus);
   mpmod_clear (modulus);
+  mpz_clear (B2);
+  mpz_clear (B2min);
 
   return youpi;
 }
