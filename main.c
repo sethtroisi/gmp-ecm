@@ -523,15 +523,13 @@ main (int argc, char *argv[])
 	    {
 	      if (mpz_sizeinbase (n, 10) < 1000)
 		{
-		  char *str;
-		  str = mpz_get_str (NULL, 10, n);
-		  printf ("Input number is %s (%u digits)\n", str,
-			  (unsigned) strlen (str));
-		  FREE (str, strlen (str) + 1);
+                  char *s;
+                  s = mpz_get_str (NULL, 10, n);
+		  printf ("Input number is %s (%u digits)\n", s, strlen (s));
+                  FREE (s, strlen (s) + 1);
 		}
 	      else
-		printf ("Input number has around %u digits\n", (unsigned) 
-			mpz_sizeinbase (n, 10));
+		printf ("Input number has %u digits\n", nb_digits (n));
 	      if (primetest && mpz_probab_prime_p (n, 1))
 		printf ("****** Warning: input is probably prime ******\n");
 	    }
