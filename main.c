@@ -35,7 +35,7 @@
 /* #define DEBUG */
 
 /* people keeping track of champions and corresponding url's */
-unsigned int champion_digits[3] = { 51, 39, 37 };
+unsigned int champion_digits[3] = { 52, 40, 37 };
 char *champion_keeper[3] =
 { "Richard Brent <rpb@comlab.ox.ac.uk>",
   "Paul Zimmermann <zimmerma@loria.fr>",
