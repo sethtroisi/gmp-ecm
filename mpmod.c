@@ -798,7 +798,7 @@ mpres_set_z (mpres_t R, mpz_t S, mpmod_t modulus)
   ASSERT_NORMALIZED (R);
 }
 
-/* S must not be modulus->temp1 for REDC */
+/* R and S must not be modulus->temp1 */
 void 
 mpres_get_z (mpz_t R, mpres_t S, mpmod_t modulus)
 {
@@ -912,6 +912,6 @@ mpres_gcd (mpz_t R, mpres_t S, mpmod_t modulus)
 void 
 mpres_out_str (FILE *fd, unsigned int base, mpres_t S, mpmod_t modulus)
 {
-  mpres_get_z (modulus->temp1, S, modulus);
-  mpz_out_str (fd, base, modulus->temp1);
+  mpres_get_z (modulus->temp2, S, modulus);
+  mpz_out_str (fd, base, modulus->temp2);
 }
