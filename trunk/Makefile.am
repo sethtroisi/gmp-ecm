@@ -7,11 +7,12 @@ ecm_SOURCES = auxi.c b1_ainc.c bestd.c candi.c ecm.c ecm2.c eval.c getprime.c\
 	      smartprp.c schoen_strass.c ks-multiply.c rho.c polyz.c
 
 noinst_HEADERS = ecm.h ecm-gmp.h
+
 EXTRA_DIST = test.pm1 test.pp1 test.ecm
 
 AM_LDFLAGS = -lgmp -lm
 
-test: ecm
-	./test.pp1 ./ecm
-	./test.pm1 ./ecm
-	./test.ecm ./ecm
+check: ecm
+	$(srcdir)/test.pp1 ./ecm
+	$(srcdir)/test.pm1 ./ecm
+	$(srcdir)/test.ecm ./ecm
