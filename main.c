@@ -718,26 +718,48 @@ main (int argc, char *argv[])
       else
         endptr = NULL;
       
+      c = -1;
       gmp_sscanf (argv[2], "%Zd%n", B2, &c); /* Try parsing as integer */
-      if (argv[2][c] != '\0')
+#ifdef __MINGW32__
+      /* MinGW scanf() returns a value 1 too high for %n */
+      /* Reported to MinGW as bug number 1163607 */
+      if (c > 0 && argv[2][c - 1] == 0)
+        c--;
+#endif
+
+      if (c < 0 || argv[2][c] != '\0')
         {
+          c = -1;
           gmp_sscanf (argv[2], "%lf%n", &d, &c); /* Try parsing scientific */
+#ifdef __MINGW32__
+          if (c > 0 && argv[2][c - 1] == 0)
+            c--;
+#endif
           mpz_set_d (B2, d);
         }
-      if (argv[2][c] != '\0' || argv[2][0] == '\0') 
+      if (c < 0 || argv[2][c] != '\0' || argv[2][0] == '\0') 
       /* If not the whole token could be parsed either way, or if there was
          no token to begin with (i.e string starting with '-') signal error */
         c = -1;
       else if (endptr != NULL) /* Did we have a '-' in there? */
         {
           mpz_set (B2min, B2);
+          c = -1;
           gmp_sscanf (endptr, "%Zd%n", B2, &c);
-          if (endptr[c] != '\0')
+#ifdef __MINGW32__
+          if (c > 0 && endptr[c - 1] == 0)
+            c--;
+#endif
+          if (c < 0 || endptr[c] != '\0')
             {
               gmp_sscanf (endptr, "%lf%n", &d, &c);
+#ifdef __MINGW32__
+              if (c > 0 && endptr[c - 1] == 0)
+                c--;
+#endif
               mpz_set_d (B2, d);
             }
-          if (endptr[c] != '\0')
+          if (c < 0 || endptr[c] != '\0')
             c = -1;
         }
       if (c == -1)
