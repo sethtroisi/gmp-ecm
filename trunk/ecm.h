@@ -20,6 +20,10 @@
 
 #define ECM_VERSION "5.1-beta"
 
+/* To use new polyeval_tellegen :
+ * #define POLYEVALTELLEGEN
+ */
+
 #ifndef POLYGCD
 #define POLYEVAL
 #endif
@@ -244,6 +248,14 @@ int          list_invert (listz_t, listz_t, unsigned int, mpz_t, mpz_t);
 /* polyeval.c */
 unsigned int polyeval (listz_t, unsigned int, listz_t*, listz_t, mpz_t, int,
                unsigned int);
+unsigned int
+polyeval_tellegen (listz_t b, unsigned int k, listz_t *Tree, listz_t T,
+                   unsigned int sizeT, listz_t invF, mpz_t n, unsigned int sh);
+unsigned int TUpTree (listz_t b, listz_t *Tree, unsigned int k,
+              listz_t tmp, unsigned int sh, mpz_t n);
+unsigned int TUpTree_space (unsigned int k);
+unsigned int muls_tuptree (unsigned int k);
+unsigned int muls_polyeval_tellegen (unsigned int k);
 
 /* toomcook.c */
 void     mpz_divby3_1op (mpz_t);
@@ -330,6 +342,19 @@ int  mpcandi_t_addfoundfactor_d (mpcandi_t *n, double f);
 
 /* b1_ainc.c */
 double calc_B1_AutoIncrement(double cur_B1, double incB1val, int calcInc);
+
+/* median.c */
+unsigned int
+TKarMul (listz_t, unsigned int, listz_t, unsigned int, listz_t, 
+         unsigned int, listz_t);
+void list_add_wrapper (listz_t, listz_t, listz_t, unsigned int,
+                       unsigned int);
+void list_sub_wrapper (listz_t, listz_t, listz_t, unsigned int,
+                       unsigned int);
+unsigned int
+TKarMul_space (unsigned int n, unsigned int m, unsigned int l);
+
+unsigned int muls_tkara (unsigned int n, unsigned int m, unsigned int l);
 
 /* memory.c */
 #ifdef MEMORY_DEBUG
