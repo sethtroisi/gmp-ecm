@@ -115,13 +115,13 @@ dickson_ui (mpz_t r, double x, unsigned int n, int a)
 */
 
 void 
-fin_diff_coeff (listz_t coeffs, double s, unsigned int D,
+fin_diff_coeff (listz_t coeffs, double s, double D,
                 unsigned int E, int dickson_a)
 {
   unsigned int i, k;
 
   /* check maximal value of s + i * D does not overflow */
-  if (s + (double) E * (double) D > 9007199254740992.0) /* 2^53 */
+  if (s + (double) E * D > 9007199254740992.0) /* 2^53 */
     {
       fprintf (stderr, "Error, overflow in fin_diff_coeff\n");
       fprintf (stderr, "Please use a smaller B1 or B2min\n");
@@ -129,15 +129,54 @@ fin_diff_coeff (listz_t coeffs, double s, unsigned int D,
     }
   for (i = 0; i <= E; i++)
     if (dickson_a != 0)         /* fd[i] = dickson_{E,a} (s+i*D) */
-      dickson_ui (coeffs[i], s + (double) i * (double) D, E, dickson_a); 
+      dickson_ui (coeffs[i], s + (double) i * D, E, dickson_a); 
     else                        /* fd[i] = (s+i*D)^E */
-      mpz_d_pow_ui (coeffs[i], s + (double) i * (double) D, E);
+      mpz_d_pow_ui (coeffs[i], s + (double) i * D, E);
   
   for (k = 1; k <= E; k++)
     for (i = E; i >= k; i--)
       mpz_sub (coeffs[i], coeffs[i], coeffs[i-1]);
 }
 
+
+/* Init several disjoint progressions for the computation of 
+
+   Dickson_{E,a} (s + e * (i + d * n * k)), 0 <= i < k * d, gcd(i, d) == 1,
+                                            i == 1 (mod m)
+   
+   for successive n. m must divide d.
+*/
+
+listz_t
+init_progression_coeffs (double s, unsigned int d, unsigned int e, 
+                         unsigned int k, unsigned int m, unsigned int E, 
+                         int dickson_a)
+{
+  unsigned int i, j, size_fd;
+  listz_t fd;
+  double de;
+
+  assert (d % m == 0);
+
+  size_fd = k * phi(d) / phi(m) * (E + 1);
+  fd = (listz_t) xmalloc (size_fd * sizeof (mpz_t));
+  for (i = 0; i < size_fd; i++)
+    mpz_init (fd[i]);
+
+  de = (double) e;
+
+  j = 0;
+  for (i = 1 % m; i < k * d; i += m)
+    {
+      if (gcd (i, d) == 1)
+        {
+          fin_diff_coeff (fd + j, s + de * i, de * k * d, E, dickson_a);
+          j += E + 1;
+        }
+    }
+
+  return fd;
+}
 
 /* Input:  X is the point at end of stage 1
            n is the number to factor
@@ -161,7 +200,7 @@ stage2 (mpz_t f, void *X, mpmod_t modulus, double B2min, double B2,
 {
   double b2;
   unsigned int k;
-  unsigned int i, d, dF, sizeT;
+  unsigned int i, d, d2, dF, sizeT;
   double i0;
   unsigned long muls, tot_muls = 0, est_muls;
   mpz_t n;
@@ -191,7 +230,7 @@ stage2 (mpz_t f, void *X, mpmod_t modulus, double B2min, double B2,
      and [(i-1)*d,i*d]. Thus to cover [B2min, B2] with all intervals 
      [i*d,(i+1)*d] for i0 <= i < i1 , we should  have i0*d <= B2min and 
      B2 <= (i1-1)*d */
-  d = dF = 0;
+  d = d2 = dF = 0;
   Fermat = 0;
   if (modulus->repr == 1 && modulus->bits > 0)
     {
@@ -202,26 +241,34 @@ stage2 (mpz_t f, void *X, mpmod_t modulus, double B2min, double B2,
           if (verbose >= 3)
             printf ("Choosing power of 2 poly length for 2^%d+1 (%d blocks)\n", 
                     Fermat, k0);
-          d = bestD_po2 (B2min, B2, k0, &k, &est_muls);
+          k = k0;
+          bestD_po2 (B2min, B2, &d, &d2, &k, &est_muls);
           dF = 1 << ceil_log2 (phi (d) / 2);
+          /* FIXME: This will go as soon as P+1 can handle d2 */
+          if (method == PP1_METHOD)
+            d2 = 1;
         }
     }
   if (d == 0)
     {
       d = bestD (B2 - B2min, k0, &k, (S < 0) ? -S : S, &est_muls);
       dF = phi (d) / 2;
+      d2 = 1;
+      /* FIXME: This if() will go as soon as P+1 can handle d2 */
+      if (method == EC_METHOD || method == PM1_METHOD)
+        {
+          if (d % 23 != 0 && dF >= 22) d2 = 23;
+          if (d % 19 != 0 && dF >= 18) d2 = 19;
+          if (d % 17 != 0 && dF >= 16) d2 = 17;
+          if (d % 13 != 0 && dF >= 12) d2 = 13;
+          if (d % 11 != 0 && dF >= 11) d2 = 11;
+          if (d % 7 != 0 && dF >= 6) d2 = 7;
+          if (d % 5 != 0 && dF >= 4) d2 = 5;
+        }
     }
-  i0 = floor (B2min / (double) d);
-  /* In ECM, if q == ord_p(X), q == 1 (mod 6), gcd (q, d) == 1, q < d, then
-     p will be found while computing the roots of F. If q == 5 (mod 6), q
-     will be included as (d-i), i.e. in line m=1. Thus i0=0 can be increased
-     to 1, so avoiding having to deal with the neutral element which has no
-     representation in Weierstrass coordinates that works with the usual point 
-     addition functions. P-1 and P+1 deal with the neutral element correctly. 
-  */
-  if (i0 == 0. && method == EC_METHOD)
-    i0 = 1.;
   
+  i0 = floor (B2min / (double) d / (double) d2) * d2;
+
   /* check that i0 * d does not overflow */
   if (i0 * (double) d > 9007199254740992.0) /* 2^53 */
     {
@@ -230,13 +277,17 @@ stage2 (mpz_t f, void *X, mpmod_t modulus, double B2min, double B2,
       exit (1);
     }
 
-  b2 = (double) d * (double) dF;
+  b2 = (double) dF * (double) d * (double) d2 / (double) phi (d2);
+
+  /* compute real B2min */
+  B2min = (double) i0 * (double) d;
 
   /* compute real B2 */
-  B2 = (i0 - 1.0) * (double) d + (double) k * b2;
+  B2 = B2min + floor ((double) k * b2);
 
   if (verbose >= 2)
-    printf ("B2'=%1.0f k=%u b2=%1.0f d=%u dF=%u, i0=%.0f\n", B2, k, b2, d, dF, i0);
+    printf ("B2'=%1.0f k=%u b2=%1.0f d=%u d2=%u dF=%u, i0=%.0f\n", 
+            B2, k, b2, d, d2, dF, i0);
 
   /* Prep the screen for stage 2 */
   showscreenticks_change_stage(2);
@@ -251,11 +302,11 @@ stage2 (mpz_t f, void *X, mpmod_t modulus, double B2min, double B2,
 
   /* needs dF+1 cells in T */
   if (method == PM1_METHOD)
-    youpi = pm1_rootsF (f, F, d, dF, (mpres_t *) X, T, S, modulus, verbose, &tot_muls);
+    youpi = pm1_rootsF (f, F, d, d2, dF, (mpres_t *) X, T, S, modulus, verbose, &tot_muls);
   else if (method == PP1_METHOD)
     youpi = pp1_rootsF (F, d, dF, (mpres_t *) X, T, modulus, verbose, &tot_muls);
   else 
-    youpi = ecm_rootsF (f, F, d, dF, (curve *) X, S, modulus, verbose, &tot_muls);
+    youpi = ecm_rootsF (f, F, d, d2, dF, (curve *) X, S, modulus, verbose, &tot_muls);
 
   showscreenticks(2, (int) (100.0 * (double) tot_muls / (double) est_muls));
 
@@ -359,12 +410,12 @@ stage2 (mpz_t f, void *X, mpmod_t modulus, double B2min, double B2,
   G = init_list (dF);
   st = cputime ();
   if (method == PM1_METHOD)
-    rootsG_state = pm1_rootsG_init ((mpres_t *) X, i0 * (double) d, d, S, modulus);
+    rootsG_state = pm1_rootsG_init ((mpres_t *) X, i0 * (double) d, d, d2, S, verbose, modulus);
   else if (method == PP1_METHOD)
     rootsG_state = pp1_rootsG_init ((mpres_t *) X, i0 * (double) d, d, modulus);
   else /* EC_METHOD */
     {
-      rootsG_state = ecm_rootsG_init (f, (curve *) X, i0 * (double) d, d, dF, k, S, modulus, verbose);
+      rootsG_state = ecm_rootsG_init (f, (curve *) X, i0 * (double) d, d, d2, dF, k, S, modulus, verbose);
       if (rootsG_state == NULL)
         {
           youpi = 2;
@@ -383,13 +434,13 @@ stage2 (mpz_t f, void *X, mpmod_t modulus, double B2min, double B2,
       
       /* needs dF+1 cells in T+dF */
       if (method == PM1_METHOD)
-        youpi = pm1_rootsG (f, G, dF, (mpres_t *) rootsG_state, T + dF, S, 
+        youpi = pm1_rootsG (f, G, dF, (pm1_roots_state *) rootsG_state, T + dF, 
                             modulus, verbose, &tot_muls);
       else if (method == PP1_METHOD)
         youpi = pp1_rootsG (G, dF, (mpres_t *) rootsG_state, modulus, 
                             &tot_muls);
       else
-        youpi = ecm_rootsG (f, G, dF, (ecm_rootsG_state *) rootsG_state, (curve *) X, S, 
+        youpi = ecm_rootsG (f, G, dF, (ecm_roots_state *) rootsG_state, 
 			    modulus, verbose, &tot_muls);
 
       showscreenticks(2, (int) (100.0 * (double) tot_muls / (double) est_muls));
@@ -541,11 +592,11 @@ stage2 (mpz_t f, void *X, mpmod_t modulus, double B2min, double B2,
 
  clear_fd:
   if (method == PM1_METHOD)
-    pm1_rootsG_clear ((mpres_t *) rootsG_state, S, modulus);
+    pm1_rootsG_clear ((pm1_roots_state *) rootsG_state, modulus);
   else if (method == PP1_METHOD)
     pp1_rootsG_clear ((mpres_t *) rootsG_state, modulus);
   else /* EC_METHOD */
-    ecm_rootsG_clear ((ecm_rootsG_state *) rootsG_state, S, modulus);
+    ecm_rootsG_clear ((ecm_roots_state *) rootsG_state, S, modulus);
 
 clear_G:
   clear_list (G, dF);
