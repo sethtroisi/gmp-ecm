@@ -25,7 +25,7 @@
 #include "ecm.h"
 
 int
-trial_factor (mpcandi_t *n, double maxfact)
+trial_factor (mpcandi_t *n, double maxfact, int deep)
 {
   int factors=0, cnt_this_fact;
   mpz_t t;
@@ -55,6 +55,9 @@ trial_factor (mpcandi_t *n, double maxfact)
 	  else
 	    printf("Found Proven Prime   factor of %2u digits: %s\n", strlen(numbuf), numbuf); 
 	  factors += cnt_this_fact;
+	  if (!deep)
+	    /* We only want the first factor if not in "deep" mode */
+	    break;
 	}
       if (++Counter == 50000)
 	{
