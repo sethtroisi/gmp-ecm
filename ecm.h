@@ -18,6 +18,30 @@
   02111-1307, USA.
 */
 
+typedef struct
+{
+  int method;  /* factorization method, default is ecm */
+  mpz_t x;     /* starting point (if non zero) */
+  mpz_t sigma; /* contains sigma or A (ecm only) */
+  int sigma_is_A; /* if non-zero, 'sigma' contains A */
+  mpz_t go;    /* initial group order to preload (if NULL: do nothing) */
+  double B1done; /* step 1 was already done up to B1done */
+  double B2min;  /* lower bound for stage 2 (default is B1) */
+  double B2;     /* step 2 bound (chosen automatically if < 0.0) */
+  unsigned int k; /* number of blocks in stage 2 */
+  int S;          /* degree of the Brent-Suyama's extension for stage 2 */
+  int repr;       /* representation for modular arithmetic: 1=mpz,         
+		     2=modmuln (Montgomery's quadratic multiplication),
+		     3=redc (Montgomery's subquadratic multiplication),
+		     > 16 : special base-2 representation        
+		     otherwise: automatic choice */
+  int verbose;    /* verbosity level: 0 no output, 1 normal output,   
+		     2 diagnostic output */
+  FILE *os;       /* output stream (for verbose messages) */
+  FILE *es;       /* error  stream (for error   messages) */
+} __ecm_param_struct;
+typedef __ecm_param_struct ecm_params[1];
+
 /* Input: x is the starting point or zero
           sigma is sigma value (if x is set to zero) or 
             A parameter (if x is non-zero) of curve
@@ -59,6 +83,11 @@ int pp1 (mpz_t, mpz_t, mpz_t, mpz_t, double, double, double,
           double, double, unsigned int, unsigned int, int, int, FILE*, FILE*);
 int pm1 (mpz_t, mpz_t, mpz_t, mpz_t, double, double, double, 
           double, double, unsigned int, int, int, int, FILE*, FILE*);
+
+/* different methods implemented */
+#define ECM_ECM 0
+#define ECM_PM1 1
+#define ECM_PP1 2
 
 /* return value of ecm, pm1, pp1 */
 #define ECM_FACTOR_FOUND 1 /* should be non-zero */

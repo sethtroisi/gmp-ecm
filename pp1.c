@@ -499,7 +499,7 @@ pp1 (mpz_t f, mpz_t p, mpz_t n, mpz_t go, double B1done, double B1,
     }
 
   if (youpi == ECM_NO_FACTOR_FOUND) /* no factor found, no error */
-    youpi = stage2 (f, &a, modulus, B2min, B2, k, S, verbose, PP1_METHOD, st);
+    youpi = stage2 (f, &a, modulus, B2min, B2, k, S, verbose, ECM_PP1, st);
 
   if (youpi == ECM_FACTOR_FOUND && verbose > 0)
     pp1_check_factor (p, f, ECM_STDOUT); /* tell user if factor was found by P-1 */

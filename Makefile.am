@@ -4,7 +4,7 @@ lib_LIBRARIES = libecm.a
 libecm_a_SOURCES = ecm.c ecm2.c pm1.c pp1.c getprime.c listz.c lucas.c\
 		   stage2.c toomcook.c mpmod.c mul_lo.c polyeval.c median.c\
 		   schoen_strass.c ks-multiply.c rho.c bestd.c auxlib.c\
-		   random.c
+		   random.c factor.c
 
 bin_PROGRAMS = ecm tune tune2 ecmfactor
 

@@ -130,11 +130,6 @@ extern FILE *ECM_STDOUT, *ECM_STDERR;
 /* stage 2 bound */
 #define IS_DEFAULT_B2(x) (x < 0.0)
 
-/* different methods implemented */
-#define EC_METHOD 0
-#define PM1_METHOD 1
-#define PP1_METHOD 2
-
 /* getprime */
 #define WANT_FREE_PRIME_TABLE(p) (p < 0.0)
 #define FREE_PRIME_TABLE -1.0

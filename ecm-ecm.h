@@ -57,9 +57,9 @@ void set_verbose (int);
 int  inc_verbose ();
 
 /* different methods implemented */
-#define EC_METHOD 0
-#define PM1_METHOD 1
-#define PP1_METHOD 2
+#define ECM_ECM 0
+#define ECM_PM1 1
+#define ECM_PP1 2
 
 /* getprime2.c */
 double getprime (double);

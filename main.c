@@ -184,7 +184,7 @@ main (int argc, char *argv[])
   double B1, B1done, B2, B2min, startingB2min;
   int result = 0;
   int verbose = OUTPUT_NORMAL; /* verbose level */
-  int method = EC_METHOD, method1;
+  int method = ECM_ECM, method1;
   int specific_x0 = 0, /* 1=starting point supplied by user, 0=random or */
                        /* compute from sigma */
       specific_sigma = 0;  /* 1=sigma from command line, 0=make random */
@@ -243,13 +243,13 @@ main (int argc, char *argv[])
     {
       if (strcmp (argv[1], "-pm1") == 0)
 	{
-	  method = PM1_METHOD;
+	  method = ECM_PM1;
 	  argv++;
 	  argc--;
 	}
       else if (strcmp (argv[1], "-pp1") == 0)
 	{
-	  method = PP1_METHOD;
+	  method = ECM_PP1;
 	  argv++;
 	  argc--;
 	}
@@ -589,7 +589,7 @@ main (int argc, char *argv[])
     }
 
   /* check that S is even for P-1 */
-  if ((method == PM1_METHOD) && (S % 2 != 0))
+  if ((method == ECM_PM1) && (S % 2 != 0))
     {
       fprintf (stderr, "Error, S should be even for P-1\n");
       exit (EXIT_FAILURE);
@@ -614,10 +614,10 @@ main (int argc, char *argv[])
       printf ("] [");
       switch (method)
 	{
-	case PM1_METHOD:
+	case ECM_PM1:
 	  printf ("P-1");
 	  break;
-	case PP1_METHOD:
+	case ECM_PP1:
 	  printf ("P+1");
 	  break;
 	default:
@@ -820,11 +820,11 @@ BreadthFirstDoAgain:;
           if (verbose > 0)
             {
               printf ("Resuming ");
-              if (method == EC_METHOD)
+              if (method == ECM_ECM)
                 printf ("ECM");
-              else if (method == PM1_METHOD)
+              else if (method == ECM_PM1)
                 printf ("P-1");
-              else if (method == PP1_METHOD)
+              else if (method == ECM_PP1)
                 printf ("P+1");
               printf (" residue ");
               if (program[0] || who[0] || rtime[0])
@@ -891,11 +891,11 @@ BreadthFirstDoAgain:;
           else /* Make a random starting point for P-1 and P+1. ECM will */
                /* compute a suitable value from sigma or A if x is zero */
             {
-              if (method == EC_METHOD)
+              if (method == ECM_ECM)
                 mpz_set_ui (x, 0);
-              if (method == PP1_METHOD)
+              if (method == ECM_PP1)
                 pp1_random_seed (x, n.n, randstate);
-              if (method == PM1_METHOD)
+              if (method == ECM_PM1)
                 pm1_random_seed (x, n.n, randstate);
             }
          
@@ -905,7 +905,7 @@ BreadthFirstDoAgain:;
           /* Make a random sigma if we have neither specific sigma nor A 
              given. Warning: sigma may still contain previous random value
              and thus be nonzero here even if no specific sigma was given */
-          if (method == EC_METHOD && !specific_sigma && !mpz_sgn (A))
+          if (method == ECM_ECM && !specific_sigma && !mpz_sgn (A))
             {
               /* Make random sigma, 0 < sigma <= 2^32 */
               mpz_urandomb (sigma, randstate, 32);
@@ -1000,10 +1000,10 @@ BreadthFirstDoAgain:;
 
       mpgocandi_fixup_with_N (&go, &n);
 
-      if (method == PM1_METHOD)
+      if (method == ECM_PM1)
         result = pm1 (f, x, n.n, go.Candi.n, B1done, B1, B2min, B2, B2scale,
 		      k, S, verbose, repr, stdout, stderr);
-      else if (method == PP1_METHOD)
+      else if (method == ECM_PP1)
         result = pp1 (f, x, n.n, go.Candi.n, B1done, B1, B2min, B2, B2scale,
 		      k, S, verbose, repr, stdout, stderr);
       else /* ECM */
@@ -1073,8 +1073,8 @@ OutputFactorStuff:;
                 printf (" ");
 	      
               /* check for champions (top ten for each method) */
-	      method1 = ((method == PP1_METHOD) && (result < 0))
-		? PM1_METHOD : method;
+	      method1 = ((method == ECM_PP1) && (result < 0))
+		? ECM_PM1 : method;
 	      if ((verbose > 0) && factor_is_prime && 
                   nb_digits (f) >= champion_digits[method1])
                 {

@@ -766,7 +766,7 @@ ecm (mpz_t f, mpz_t x, mpz_t sigma, mpz_t n, mpz_t go, double B1done,
   youpi = montgomery_to_weierstrass (f, P.x, P.y, P.A, modulus);
 
   if (youpi == 0)
-    youpi = stage2 (f, &P, modulus, B2min, B2, k, S, verbose, EC_METHOD, st);
+    youpi = stage2 (f, &P, modulus, B2min, B2, k, S, verbose, ECM_ECM, st);
   
   mpres_clear (P.y, modulus);
 
