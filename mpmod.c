@@ -251,10 +251,7 @@ mpz_mod_n (mpz_ptr r, mpz_ptr c, mpmod_t modulus)
   mp_ptr cp;
   mp_srcptr np;
   mp_limb_t cy;
-  mp_ptr cys; /* vector of carries */
-  mp_limb_t q;
   mp_size_t j, nn = modulus->bits / __GMP_BITS_PER_MP_LIMB;
-  TMP_DECL(marker);
 
   ASSERT(ABSIZ(c) <= 2 * nn);
   ASSERT(ALLOC(r) >= nn);
@@ -263,23 +260,17 @@ mpz_mod_n (mpz_ptr r, mpz_ptr c, mpmod_t modulus)
   np = PTR(modulus->orig_modulus);
   for (j = ABSIZ(c); j < 2 * nn; j++) 
     cp[j] = 0;
-  TMP_MARK(marker);
-  cys = TMP_ALLOC_LIMBS(nn);
-  for (j = 0; j < nn; j++, cp++)
+  for (j = 0; j < nn; j++)
     {
-      q = cp[0] * modulus->Nprim;
-      cys[j] = mpn_addmul_1 (cp, np, nn, q);
+      cp[0] = mpn_addmul_1 (cp, np, nn, cp[0] * modulus->Nprim);
+      cp++;
     }
   /* add vector of carries and shift */
-  cy = mpn_add_n (rp, cp, cys, nn);
-  TMP_FREE(marker);
+  cy = mpn_add_n (rp, cp, cp - nn, nn);
   /* the result of Montgomery's REDC is less than 2^Nbits + N,
      thus at most one correction is enough */
-  if (cy)
-    {
-      cy -= mpn_sub_n (rp, rp, np, nn);
-      ASSERT(cy == 0);
-    }
+  if (cy != 0)
+    mpn_sub_n (rp, rp, np, nn); /* a borrow should always occur here */
   MPN_NORMALIZE (rp, nn);
   SIZ(r) = SIZ(c) < 0 ? -nn : nn;
 }
