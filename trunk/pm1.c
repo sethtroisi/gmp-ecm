@@ -54,11 +54,11 @@ pm1_random_seed (mpz_t a, mpz_t n, gmp_randstate_t randstate)
 /* Input:  a is the generator (sigma)
            n is the number to factor
            B1 is the stage 1 bound
-   Output: a is the factor found, or the value at end of stage 1
+   Output: f is the factor found, a is the value at end of stage 1
    Return value: non-zero iff a factor was found.
 */
 int
-pm1_stage1 (mpz_t a, mpz_t n, double B1)
+pm1_stage1 (mpz_t f, mpz_t a, mpz_t n, double B1, double B1done)
 {
   double B0, p, q, r;
   mpz_t g, d;
@@ -88,7 +88,8 @@ pm1_stage1 (mpz_t a, mpz_t n, double B1)
   /* first loop through small primes <= sqrt(B1) */
   for (p = 2.0; p <= B0; p = getprime(p))
     {
-      for (q = 1, r = p; r <= B1; q = r, r *= p);
+      for (q = 1, r = p; r <= B1; r *= p)
+        if (r>B1done) q *= p;
       mpz_mul_d (g, g, q, d);
       if (mpz_sizeinbase (g, 2) >= max_size)
 	{
@@ -99,14 +100,15 @@ pm1_stage1 (mpz_t a, mpz_t n, double B1)
 
   /* then all primes > sqrt(B1) and taken with exponent 1 */
   for (; p <= B1; p = getprime(p))
-    {
-      mpz_mul_d (g, g, p, d);
-      if (mpz_sizeinbase (g, 2) >= max_size)
-	{
-	  mpz_powm (a, a, g, n);
-	  mpz_set_ui (g, 1);
-	}
-    }
+    if (p > B1done)
+      {
+        mpz_mul_d (g, g, p, d);
+        if (mpz_sizeinbase (g, 2) >= max_size)
+	  {
+	    mpz_powm (a, a, g, n);
+	    mpz_set_ui (g, 1);
+	  }
+      }
 
   getprime (0.0); /* free the prime tables, and reinitialize */
 
@@ -115,9 +117,8 @@ pm1_stage1 (mpz_t a, mpz_t n, double B1)
   mpz_powm (a, a, g, n);
 
   mpz_sub_ui (g, a, 1);
-  mpz_gcd (g, g, n);
-  if ((youpi = mpz_cmp_ui (g, 1)))
-    mpz_set (a, g);
+  mpz_gcd (f, g, n);
+  youpi = mpz_cmp_ui (f, 1);
 
   mpz_clear (g);
   
@@ -134,16 +135,18 @@ pm1_stage1 (mpz_t a, mpz_t n, double B1)
           n is the number to factor
 	  B1 is the stage 1 bound
 	  B2 is the stage 2 bound
+	  B1done is the stage 1 limit to which supplied residue has 
+	    already been computed
           k is the number of blocks for stage 2
           verbose is the verbose level: 0=quiet, 1=normal, 2=verbose
-   Output: p is the factor found
+   Output: f is the factor found, p is the residue at end of stage 1
    Return value: non-zero iff a factor is found (1 for stage 1, 2 for stage 2)
 */
 int
-pm1 (mpz_t p, mpz_t n, double B1, double B2, unsigned int k, unsigned int S, 
-     int verbose)
+pm1 (mpz_t f, mpz_t p, mpz_t n, double B1, double B2, double B1done,
+     unsigned int k, unsigned int S, int verbose)
 {
-  int youpi, st;
+  int youpi = 0, st;
 
   st = cputime ();
 
@@ -154,7 +157,8 @@ pm1 (mpz_t p, mpz_t n, double B1, double B2, unsigned int k, unsigned int S,
       printf ("\n");
     }
 
-  youpi = pm1_stage1 (p, n, B1);
+  if (B1 > B1done)
+    youpi = pm1_stage1 (f, p, n, B1, B1done);
 
   if (verbose >= 1)
     {
@@ -165,5 +169,5 @@ pm1 (mpz_t p, mpz_t n, double B1, double B2, unsigned int k, unsigned int S,
   if (youpi != 0) /* a factor was found */
     return 1;
 
-  return (B2 > B1) ? stage2 (p, n, B2, k, S, verbose, 1, PM1_METHOD) : 0;
+  return (B2 > B1) ? stage2 (f, p, n, B2, k, S, verbose, 1, PM1_METHOD) : 0;
 }

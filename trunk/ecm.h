@@ -21,13 +21,13 @@ unsigned int nb_digits  (mpz_t);
 
 /* pm1.c */
 void    pm1_random_seed (mpz_t, mpz_t, gmp_randstate_t);
-int      pm1_stage1     (mpz_t, mpz_t, double);
-int          pm1        (mpz_t, mpz_t, double, double, unsigned int, 
-                         unsigned int, int);
+int      pm1_stage1     (mpz_t, mpz_t, double, double);
+int          pm1        (mpz_t, mpz_t, mpz_t, double, double, double, 
+                         unsigned int, unsigned int, int);
 
 /* ecm.c */
-int          ecm        (mpz_t, mpz_t, mpz_t, double, double, unsigned int, 
-                         unsigned int, int);
+int          ecm        (mpz_t, mpz_t, mpz_t, mpz_t, double, double, double, 
+                         unsigned int, unsigned int, int);
 unsigned int phi        (unsigned int);
 unsigned int bestD      (double);
 double       block_size (unsigned int);
@@ -39,18 +39,18 @@ void         pp1_mul    (mpz_t, mpz_t, mpz_t, mpz_t, mpz_t, mpz_t);
 void         pp1_mul_ui (mpz_t, mpz_t, unsigned long, mpz_t, mpz_t, mpz_t);
 void         pp1_mul_prac (mpz_t, unsigned long, mpz_t, mpz_t, mpz_t, mpz_t,
                            mpz_t, mpz_t);
-int          pp1_stage1 (mpz_t, mpz_t, double);
+int          pp1_stage1 (mpz_t, mpz_t, double, double);
 void    pp1_random_seed (mpz_t, mpz_t, gmp_randstate_t);
-int          pp1        (mpz_t, mpz_t, double, double, unsigned int, 
-                         unsigned int, int);
+int          pp1        (mpz_t, mpz_t, mpz_t, double, double, double, 
+                         unsigned int, unsigned int, int);
 
 /* stage2.c */
 int          rootsF     (listz_t, unsigned int, mpz_t, mpz_t, mpz_t *, 
                          unsigned int , mpz_t, int, int);
 void         rootsG     (listz_t, unsigned int, listz_t, listz_t, 
                          listz_t, unsigned int, mpz_t, int);
-int          stage2     (mpz_t, mpz_t, double, unsigned int, unsigned int, int,
-                         int, int);
+int          stage2     (mpz_t, mpz_t, mpz_t, double, unsigned int, 
+                         unsigned int, int, int, int);
 
 /* listz.c */
 int          list_mul_mem (unsigned int);
