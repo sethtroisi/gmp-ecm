@@ -446,8 +446,9 @@ pm1_stage1 (mpz_t f, mpres_t a, mpmod_t n, double B1, double B1done,
 */
 
 int
-pm1_rootsF (mpz_t f, listz_t F, unsigned int d, mpres_t *x, listz_t t,
-        int S, mpmod_t modulus, int verbose, unsigned long *tot_muls)
+pm1_rootsF (mpz_t f, listz_t F, unsigned int d, unsigned int dF, mpres_t *x,
+        listz_t t, int S, mpmod_t modulus, int verbose, 
+        unsigned long *tot_muls)
 {
   unsigned int i, j, k, muls = 0;
   int st, st2;
@@ -458,7 +459,6 @@ pm1_rootsF (mpz_t f, listz_t F, unsigned int d, mpres_t *x, listz_t t,
   st = cputime ();
 
   mpres_get_z (F[0], *x, modulus); /* s^1 for P-1 */
-  i = 1;
 
   if (S > 6 && (S & 1) == 0) /* If we use S-th power, S > 6 */
     {
@@ -495,7 +495,7 @@ pm1_rootsF (mpz_t f, listz_t F, unsigned int d, mpres_t *x, listz_t t,
       if (verbose >= 2)
         printf ("Initializing table of differences for F took %dms\n", cputime () - st2);
 
-      for (j = 7; j < d; j += 6)
+      for (j = 7, i = 1; i < dF; j += 6)
         {
           if (gcd (j, d) == 1)
             mpres_get_z (F[i++], fd[0], modulus);
@@ -514,17 +514,17 @@ pm1_rootsF (mpz_t f, listz_t F, unsigned int d, mpres_t *x, listz_t t,
 
   if (invtrick)
     {
-      if (list_invert (t, F, i, t[i], modulus->orig_modulus)) 
+      if (list_invert (t, F, dF, t[dF], modulus)) 
         {
           if (verbose >= 2)
             printf ("Found factor while inverting F[0]*..*F[d]\n");
-          mpz_set (f, t[i]);
+          mpz_set (f, t[dF]);
           return 1;
         }
       
-      muls += 3 * i;
+      muls += 3 * dF;
       
-      for (j = 0; j < i; j++) 
+      for (j = 0; j < dF; j++) 
         {
           mpz_add (F[j], F[j], t[j]);
           mpz_mod (F[j], F[j], modulus->orig_modulus);
@@ -654,7 +654,7 @@ pm1_rootsG (mpz_t f, listz_t G, unsigned int d, mpres_t *fd, listz_t t,
   
   if (invtrick)
     {
-      if (list_invert (t, G, d, t[d], modulus->orig_modulus)) 
+      if (list_invert (t, G, d, t[d], modulus)) 
         {
           if (verbose >= 2)
             printf ("Found factor while inverting G[0]*..*G[d]\n");
