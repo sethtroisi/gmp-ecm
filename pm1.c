@@ -355,9 +355,9 @@ pm1_stage1 (mpz_t f, mpres_t a, mpmod_t n, double B1, double B1done,
 
 int
 pm1_rootsF (mpz_t f, listz_t F, unsigned int d, mpres_t *x, listz_t t,
-        int S, mpmod_t modulus, int verbose)
+        int S, mpmod_t modulus, int verbose, unsigned long *tot_muls)
 {
-  unsigned int i, j, k;
+  unsigned int i, j, k, muls = 0;
   int st, st2;
   mpres_t *fd;
   listz_t coeffs;
@@ -406,6 +406,8 @@ pm1_rootsF (mpz_t f, listz_t F, unsigned int d, mpres_t *x, listz_t t,
           /* Compute value of f_{S, a}(7+n*6) for the next n */
           for (k = 0; k < (unsigned) S; k++)
             mpres_mul (fd[k], fd[k], fd[k+1], modulus);
+          
+          muls += S;
         }
       
       for (k = 0; k <= (unsigned) S; k++)
@@ -423,6 +425,8 @@ pm1_rootsF (mpz_t f, listz_t F, unsigned int d, mpres_t *x, listz_t t,
           return 1;
         }
       
+      muls += 3 * i;
+      
       for (j = 0; j < i; j++) 
         {
           mpz_add (F[j], F[j], t[j]);
@@ -431,7 +435,11 @@ pm1_rootsF (mpz_t f, listz_t F, unsigned int d, mpres_t *x, listz_t t,
     }
   
   if (verbose >= 2)
-    printf ("Computing roots of F took %dms\n", cputime () - st);
+    printf ("Computing roots of F took %dms and %d muls\n", cputime () - st, 
+            muls);
+  
+  if (tot_muls != NULL)
+    *tot_muls += muls;
 
   return 0;
 }
@@ -514,10 +522,10 @@ pm1_rootsG_clear (mpres_t *fd, int S, mpmod_t modulus)
 */
 
 int
-pm1_rootsG (mpz_t f, listz_t G, unsigned int d, mpres_t *fd, 
-        listz_t t, int S, mpmod_t modulus, int verbose)
+pm1_rootsG (mpz_t f, listz_t G, unsigned int d, mpres_t *fd, listz_t t, 
+        int S, mpmod_t modulus, int verbose, unsigned long *tot_muls)
 {
-  unsigned int i, j;
+  unsigned int i, j, muls = 0;
   int st;
   int invtrick = 0, dickson_a = 0;
   
@@ -540,6 +548,7 @@ pm1_rootsG (mpz_t f, listz_t G, unsigned int d, mpres_t *fd,
       for (j = 0; j < (unsigned) S; j++)
         mpres_mul(fd[j], fd[j], fd[j+1], modulus);
     }
+  muls += d * S;
   
   if (invtrick)
     {
@@ -550,6 +559,7 @@ pm1_rootsG (mpz_t f, listz_t G, unsigned int d, mpres_t *fd,
           mpz_set (f, t[d]);
           return 1;
         }
+      muls += 3 * d;
     
       for (i = 0; i < d; i++) 
         {
@@ -557,6 +567,9 @@ pm1_rootsG (mpz_t f, listz_t G, unsigned int d, mpres_t *fd,
           mpz_mod (G[i], G[i], modulus->orig_modulus);
         }
     }
+  
+  if (tot_muls != NULL)
+    *tot_muls += muls;
   
   return 0;
 }
@@ -596,7 +609,22 @@ pm1 (mpz_t f, mpz_t p, mpz_t N, double B1done, double B1, double B2min,
   /* Set default degree for Brent-Suyama extension */
   
   if (S == 0)
-    S = 2;
+    {
+      if (B2 - B2min < 3.5e5) /* B1 < 50000 */
+        S = -4;
+      else if (B2 - B2min < 1.1e7) /* B1 < 500000 */
+        S = -6;
+      else if (B2 - B2min < 1.25e8) /* B1 < 3000000 */
+        S = 12;
+      else if (B2 - B2min < 7.e9) /* B1 < 50000000 */
+        S = 24;
+      else if (B2 - B2min < 1.9e10) /* B1 < 100000000 */
+        S = 48;
+      else if (B2 - B2min < 5.e11) /* B1 < 1000000000 */
+        S = 60;
+      else
+        S = 120;
+    }
 
   /* We need Suyama's power even and at least 2 for P-1 stage 2 to work 
      correctly */

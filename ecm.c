@@ -471,13 +471,12 @@ int
 ecm_stage1 (mpz_t f, mpres_t x, mpres_t A, mpmod_t n, double B1, 
             double B1done)
 {
-  mpres_t b, z, t, u, v, w, xB, zB, xC, zC, xT, zT, xT2, zT2;
+  mpres_t b, z, u, v, w, xB, zB, xC, zC, xT, zT, xT2, zT2;
   double q, r;
   int ret = 0;
 
   mpres_init (b, n);
   mpres_init (z, n);
-  mpres_init (t, n);
   mpres_init (u, n);
   mpres_init (v, n);
   mpres_init (w, n);
@@ -535,7 +534,6 @@ ecm_stage1 (mpz_t f, mpres_t x, mpres_t A, mpmod_t n, double B1,
   mpres_clear (w, n);
   mpres_clear (v, n);
   mpres_clear (u, n);
-  mpres_clear (t, n);
   mpres_clear (z, n);
   mpres_clear (b, n);
   

@@ -120,12 +120,12 @@ void    pm1_random_seed  (mpz_t, mpz_t, gmp_randstate_t);
 int          pm1         (mpz_t, mpz_t, mpz_t, double, double, double, double,
                           unsigned int, int, int, int);
 int     pm1_rootsF       (mpz_t, listz_t, unsigned int, mpres_t *, listz_t,
-                          int, mpmod_t, int);
+                          int, mpmod_t, int, unsigned long *);
 mpres_t *pm1_rootsG_init (mpres_t *, unsigned int, unsigned int, int,
                           mpmod_t);
 void    pm1_rootsG_clear (mpres_t *, int, mpmod_t);
 int     pm1_rootsG       (mpz_t, listz_t, unsigned int, mpres_t *, listz_t, 
-                          int, mpmod_t, int);
+                          int, mpmod_t, int, unsigned long *);
 
 
 
@@ -139,12 +139,12 @@ int          cputime    (void);
 
 /* ecm2.c */
 int     ecm_rootsF       (mpz_t, listz_t, unsigned int, curve *,
-                          int, mpmod_t, int);
+                          int, mpmod_t, int, unsigned long *);
 point * ecm_rootsG_init  (mpz_t, curve *, unsigned int, unsigned int, 
                           int, mpmod_t, int);
 void    ecm_rootsG_clear (point *, int, mpmod_t);
 int     ecm_rootsG       (mpz_t, listz_t, unsigned int, point *,
-                          int, mpmod_t, int);
+                          int, mpmod_t, int, unsigned long *);
 
 /* pp1.c */
 int          pp1_mul     (mpres_t, mpres_t, mpz_t, mpmod_t, mpres_t, mpres_t);
@@ -154,10 +154,11 @@ void    pp1_random_seed  (mpz_t, mpz_t, gmp_randstate_t);
 int          pp1         (mpz_t, mpz_t, mpz_t, double, double, double, double,
                           unsigned int, unsigned int, int, int);
 int   pp1_rootsF         (listz_t, unsigned int, mpres_t *, listz_t,
-                          mpmod_t, int);
+                          mpmod_t, int, unsigned long *);
 mpres_t *pp1_rootsG_init (mpres_t *, unsigned int, unsigned int, mpmod_t);
 void  pp1_rootsG_clear   (mpres_t *, mpmod_t);
-int   pp1_rootsG         (listz_t, unsigned int, mpres_t *, mpmod_t);
+int   pp1_rootsG         (listz_t, unsigned int, mpres_t *, mpmod_t,
+                          unsigned long *);
 
 /* stage2.c */
 int          stage2     (mpz_t, void *, mpmod_t, double, double, unsigned int, 
