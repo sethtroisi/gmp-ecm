@@ -53,12 +53,16 @@ typedef struct
                          1: base 2 number
                          2: MODMULN
                          3: REDC representation */
-  int bits;           /* in case of a base 2 number 2^k[+-]1, bits = [+-]k
-                         in case of REDC representation, nr. of bits */
+  int bits;           /* in case of a base 2 number, 2^k[+-]1, bits = [+-]k
+                         in case of MODMULN or REDC representation, nr. of 
+                         bits b so that 2^b > orig_modulus and 
+                         mp_bits_per_limb | b */
+  mp_limb_t Nprim;    /* For MODMULN */
   mpz_t orig_modulus; /* The original modulus */
-  mpz_t aux_modulus;  /* The auxiliary modulus value (i.e. normalized
-                         modulus, or 1/N (mod 2^bits) for REDC */
-  mpz_t RmodN;        /* For REDC, (2^bits) % orig_modulus */
+  mpz_t aux_modulus;  /* The auxiliary modulus value (i.e. normalized 
+                         modulus, or -1/N (mod 2^bits) for REDC */
+  mpz_t R2, R3;       /* For MODMULN and REDC, R^2 and R^3 (mod orig_modulus), 
+                         where R = 2^bits. */
   mpz_t temp1, temp2; /* Temp values used during multiplication etc. */
 } __mpmod_struct;
 typedef __mpmod_struct mpmod_t[1];
