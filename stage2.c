@@ -28,16 +28,74 @@
 #include "ecm.h"
 #include "cputime.h"
 
+void dickson_ui(mpz_t r, unsigned int x, unsigned int n, int a);
 int fin_diff_init (point **, curve, unsigned int, unsigned int, unsigned int,
-                   mpz_t, int, mpz_t);
+                   mpz_t, int, int, mpz_t);
 int   fin_diff_next  (mpz_t, point *, unsigned int, mpz_t, int);
 void  fin_diff_clear (point *, unsigned int, int);
 int          rootsF     (mpz_t, listz_t, unsigned int, curve, listz_t, 
-                         unsigned int , mpz_t, int, int);
+                         unsigned int , mpz_t, int, int, int);
 void         rootsG     (mpz_t, listz_t, unsigned int, point *, point *,
                          listz_t, unsigned int, mpz_t, int, int);
 
 #define INVF /* precompute 1/F for divisions by F */
+
+void 
+dickson_ui(mpz_t r, unsigned int x, unsigned int n, int a)
+{
+  unsigned int i, b = 0;
+  mpz_t t, u;
+
+  if (n == 0)
+    {
+      mpz_set_ui (r, 2);
+      return;
+    }
+  
+  while (n > 2 && (n & 1) == 0)
+    {
+      b++;
+      n >>= 1;
+    }
+  
+  mpz_set_ui (r, x);
+  
+  mpz_init(t);
+  mpz_init(u);
+
+  if (n > 1)
+    {
+      mpz_set_ui (r, x);
+      mpz_mul_ui (r, r, x);
+      mpz_sub_si (r, r, a);
+      mpz_sub_si (r, r, a); /* r = dickson(x, 2, a) */
+      
+      mpz_set_ui (t, x);    /* t = dickson(x, 1, a) */
+      
+      for (i = 2; i < n; i++)
+        {
+          mpz_mul_si (u, t, a);
+          mpz_set (t, r);     /* t = dickson(x, i, a) */
+          mpz_mul_ui (r, r, x);
+          mpz_sub (r, r, u);  /* r = dickson(x, i+1, a) */
+        }
+    }
+  
+  for ( ; b > 0; b--)
+    {
+      mpz_mul (t, r, r); /* t = dickson(x, n, a) ^ 2 */
+      mpz_ui_pow_ui (u, abs(a), n);
+      if (n & 1 && a < 0)
+        mpz_neg (u, u);
+      mpz_mul_2exp (u, u, 1); /* u = 2 * a^n */
+      mpz_sub (r, t, u); /* r = dickson(x, 2*n, a) */
+      n <<= 1;
+    }
+  
+  mpz_clear(t);
+  mpz_clear(u);
+  
+}
 
 /* Init table to allow successive computation of:
    X^((s + n*D)^E) mod N for P-1,
@@ -51,7 +109,7 @@ void         rootsG     (mpz_t, listz_t, unsigned int, point *, point *,
 int
 fin_diff_init (point **Fd,
                curve X, unsigned int s, unsigned int D, unsigned int E,
-               mpz_t N, int method, mpz_t f)
+               mpz_t N, int method, int use_dickson, mpz_t f)
 {
   unsigned int i, k, allocated;
   mpz_t P, Q;      /* for P+1 */
@@ -84,7 +142,10 @@ fin_diff_init (point **Fd,
       mpz_init (fd[i].y);
   
   for (i = 0; i <= E; i++)
-    mpz_ui_pow_ui (fd[i].x, s + i * D, E); /* fd[i] = (s+i*D)^E */
+    if (use_dickson)
+      dickson_ui(fd[i].x, s + i * D, E, -1);
+    else
+      mpz_ui_pow_ui (fd[i].x, s + i * D, E); /* fd[i] = (s+i*D)^E */
   
   for (k = 1; k <= E; k++)
     for (i = E; i >= k; i--)
@@ -189,7 +250,7 @@ fin_diff_clear (point *fd, unsigned int E, int method)
 */
 int
 rootsF (mpz_t f, listz_t F, unsigned int d, curve s, listz_t t,
-        unsigned int S, mpz_t n, int verbose, int method)
+        unsigned int S, mpz_t n, int verbose, int method, int use_dickson)
 {
   unsigned int i, j;
   int st, st2;
@@ -203,7 +264,7 @@ rootsF (mpz_t f, listz_t F, unsigned int d, curve s, listz_t t,
   if (d > 7)
     {
       st2 = cputime ();
-      youpi = fin_diff_init (&fd, s, 7, 6, S, n, method, f);
+      youpi = fin_diff_init (&fd, s, 7, 6, S, n, method, use_dickson, f);
       /* for P+1, fd[0] = V_7(P), fd[1] = V_6(P) */
       if (verbose >= 2)
         printf ("Initializing table of differences for F took %dms\n", cputime () - st2);
@@ -263,7 +324,7 @@ rootsF (mpz_t f, listz_t F, unsigned int d, curve s, listz_t t,
               curve Y; /* for 1/s */
               mpz_init (Y.x);
               mpz_set (Y.x, s.y);
-              youpi = fin_diff_init (&fd, Y, 7, 6, S, n, method, f);
+              youpi = fin_diff_init (&fd, Y, 7, 6, S, n, method, use_dickson, f);
               mpz_clear (Y.x);
               j = 7;
               while (j < d && youpi == 0)
@@ -370,6 +431,8 @@ stage2 (mpz_t f, curve *X, mpz_t n, double B2, unsigned int k, unsigned int S,
         int verbose, int method, double B1)
 {
   int invtrick = method == PM1_METHOD;
+//  int use_dickson = !invtrick;
+  int use_dickson = 0;
   double b2;
   unsigned int i, d, dF, sizeT;
   unsigned long muls;
@@ -434,7 +497,7 @@ stage2 (mpz_t f, curve *X, mpz_t n, double B2, unsigned int k, unsigned int S,
   H = T;
 
   /* needs dF+1 cells in T */
-  if (rootsF (f, F, d, *X, T, S, n, verbose, method))
+  if (rootsF (f, F, d, *X, T, S, n, verbose, method, use_dickson))
     {
       mpz_set (f, X->x);
       youpi = 2;
@@ -485,7 +548,7 @@ stage2 (mpz_t f, curve *X, mpz_t n, double B2, unsigned int k, unsigned int S,
 
   G = init_list (dF);
   st = cputime ();
-  if ((youpi = fin_diff_init (&fd_x, *X, 2*d, d, S, n, method, f)))
+  if ((youpi = fin_diff_init (&fd_x, *X, 2*d, d, S, n, method, use_dickson, f)))
     goto clear_fd;
 
   if (verbose >= 2)
@@ -495,7 +558,7 @@ stage2 (mpz_t f, curve *X, mpz_t n, double B2, unsigned int k, unsigned int S,
     {
       curve Y;
       mpz_init_set (Y.x, invx);
-      youpi = fin_diff_init (&fd_invx, Y, 2*d, d, S, n, method, f);
+      youpi = fin_diff_init (&fd_invx, Y, 2*d, d, S, n, method, use_dickson, f);
       mpz_clear (Y.x);
       if (youpi)
         goto clear_fd_invx;
