@@ -523,7 +523,6 @@ Options to control input/output:
 -ve n     Verbosely show short (< n character) expressions on each loop.
           This gives a "better" feel for what is being processed when
           expressions are used.
--ticdelay n This will cause percentage ticks to be output every n ms.
 
 Options to control modular arithmetic (see "How to get the best of gmp-ecm?"):
 -mpzmod   Use GMP's mpz_mod for modular reduction.

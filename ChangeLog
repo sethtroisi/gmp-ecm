@@ -1,5 +1,7 @@
 Changes between ecm-5.0.3 and ecm-5.2.0:
 
+- use of the autotools (configure/make)	
+- there is now a documentation in "man" format (ecm.1)
 - added a set of -prp* command line switches which will use an external
     program to perform prp testing of candidate and factors.  When the
 	numbers get large, GMP becomes very non-optimal in PRP testing.
@@ -17,8 +19,7 @@ Changes between ecm-5.0.3 and ecm-5.2.0:
   Example:
   $ echo 438573459834757 | ./ecm -sigma 6 -q 1e2
   2166151 202466707
-- added special code for Fermat numbers, which improves both steps,
-  example for F12:
+- special code for Fermat numbers, which improves both steps, example for F12:
   GMP-ECM 5.0.3 [powered by GMP 4.1.4] [ECM]
   Input number has 1187 digits
   Using B1=100000, B2=31565866, polynomial x^2, sigma=4155936925
@@ -30,7 +31,7 @@ Changes between ecm-5.0.3 and ecm-5.2.0:
   Step 1 took 24264ms
   Step 2 took 6605ms
 - speed improvement in step 2, especially for large B2 (here with the c155
-  in the gmp-ecm sources):
+  in the gmp-ecm sources), using Kronecker/Schonhage multiplication:
   GMP-ECM 5.0.3 [powered by GMP 4.1.4] [ECM]
   Using B1=3000000, B2=4016636514, polynomial Dickson(12), sigma=2383768044
   Step 1 took 62305ms
@@ -39,6 +40,7 @@ Changes between ecm-5.0.3 and ecm-5.2.0:
   Using B1=3000000, B2=4016636514, polynomial Dickson(12), sigma=3595368442
   Step 1 took 61824ms
   Step 2 took 32989ms
+- trial division is available (option -t n)
 
 Changes between ecm-5.0 and ecm-5.0.1:
 

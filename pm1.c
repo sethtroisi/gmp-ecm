@@ -215,9 +215,6 @@ pm1_stage1 (mpz_t f, mpres_t a, mpmod_t n, double B1, double B1done,
   mpz_init (g);
   mpz_init (d);
 
-  /* Prep for stage one counter */
-  showscreenticks_change_stage(1);
-
   B0 = sqrt (B1);
 
   size_n = mpz_sizeinbase (n->orig_modulus, 2);
@@ -349,9 +346,6 @@ pm1_stage1 (mpz_t f, mpres_t a, mpmod_t n, double B1, double B1done,
         }
     }
   
-  /* update the screen mode after the cascade work is done */
-  showscreenticks(1,(int) (100.0 * (double) p / (double) B1));
-
   /* then remaining primes > max(sqrt(B1), cascade_limit) and taken 
      with exponent 1 */
   for (; p <= B1; p = getprime(p))

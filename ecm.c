@@ -476,9 +476,6 @@ ecm_stage1 (mpz_t f, mpres_t x, mpres_t A, mpmod_t n, double B1, double B1done)
   mpres_init (xT2, n);
   mpres_init (zT2, n);
 
-  /* Prep for stage one counter */
-  showscreenticks_change_stage(1);
-
   mpres_set_ui (z, 1, n);
   
   mpres_add_ui (b, A, 2, n);
