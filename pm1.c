@@ -819,7 +819,7 @@ pm1 (mpz_t f, mpz_t p, mpz_t N, mpz_t go, double B1done, double B1,
 
       if (ECM_IS_DEFAULT_B1_DONE(B1done))
 	/* don't print in resume case, since x0 is saved in resume file */
-         outputf (OUTPUT_VERBOSE, ", x0=%Zd", p);
+         outputf (OUTPUT_NORMAL, ", x0=%Zd", p);
 
       outputf (OUTPUT_NORMAL, "\n");
     }
