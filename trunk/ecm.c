@@ -474,6 +474,10 @@ ecm_stage1 (mpz_t f, mpres_t x, mpres_t A, mpmod_t n, double B1,
   mpres_t b, z, u, v, w, xB, zB, xC, zC, xT, zT, xT2, zT2;
   double q, r;
   int ret = 0;
+  int Counter = 0, st;
+
+  st = cputime ();
+
 
   mpres_init (b, n);
   mpres_init (z, n);
@@ -509,9 +513,29 @@ ecm_stage1 (mpz_t f, mpres_t x, mpres_t A, mpmod_t n, double B1,
   
   q = getprime (2.0); /* Puts 3.0 into q. Next call gives 5.0 */
   for (q = getprime (q); q <= B1; q = getprime (q))
-    for (r = q; r <= B1; r *= q)
-      if (r > B1done)
+    {
+      for (r = q; r <= B1; r *= q)
+	if (r > B1done)
 	  prac (x, z, (int) q, n, b, u, v, w, xB, zB, xC, zC, xT, zT, xT2, zT2);
+      if (++Counter == 10)
+	{
+	  /* only output to screen at most once every 5 seconds */
+	  if (cputime() - st > 5000)
+	    {
+	      /* Check to see if we should update our screen "percentage counter" */
+	      st = cputime();
+	      double Percentage = q;
+	      Percentage /= B1;
+	      Percentage *= 100;
+	      fprintf (stderr, "1:%03d\r", (int)Percentage);
+  	    }
+	  /*  This code is here to see just how often this ++Counter loop is entered.  It is entered quite a bit
+	  static int x;
+	  fprintf (stderr, "1:%03d  q=%.0f r=%.0f\r", ++x, q, r);
+	  */
+	  Counter=0;
+	}
+    }
   getprime (0.0); /* free the prime tables, and reinitialize */
 
 
@@ -536,6 +560,9 @@ ecm_stage1 (mpz_t f, mpres_t x, mpres_t A, mpmod_t n, double B1,
   mpres_clear (u, n);
   mpres_clear (z, n);
   mpres_clear (b, n);
+
+  /* Pre the screen for stage 2 */
+  fprintf (stderr, "2:000\r");
   
   return ret;
 }
