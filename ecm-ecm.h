@@ -42,7 +42,6 @@ typedef struct
 
 /* auxi.c */
 unsigned int nb_digits  (const mpz_t);
-unsigned int gcd        (unsigned int, unsigned int);
 unsigned int get_random_ui (void);
 
 #define OUTPUT_ALWAYS 0
