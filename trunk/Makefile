@@ -43,7 +43,7 @@ ALLFILES= $(FILES) $(EXTRAFILES)
 POLYGCD=0
 
 DIST=  auxi.c bestd.c ecm.c ecm2.c getprime.c listz.c lucas.c main.c ntl.c pm1.c polyz.c pp1.c stage2.c toomcook.c memory.c mpmod.c mul_lo.c polyeval.c resume.c
-EXTRADIST= COPYING INSTALL Makefile README ecm.h test.pm1 test.pp1 test.ecm tune.c
+EXTRADIST= COPYING INSTALL Makefile README ecm.h test.pm1 test.pp1 test.ecm tune.c c155
 
 .SUFFIXES: .c .o
 
