@@ -24,12 +24,15 @@
 #include "gmp.h"
 #include "ecm-impl.h"
 
-/* puts in {rp, n} the low part of {np, n} times {mp, n}
-   i.e. equivalent to:
+/* puts in {rp, n} the low part of {np, n} times {mp, n}, i.e. equivalent to:
+
+   mp_ptr tp;
+   TMP_DECL(marker);
+   TMP_MARK(marker);
    tp = TMP_ALLOC_LIMBS (2 * n);
    mpn_mul_n (tp, np, mp, n);
    MPN_COPY (rp, tp, n);
-   Remark: it is assumed at least 2*n limbs are allocated starting from rp.
+   TMP_FREE(marker);
  */
 static INLINE void
 ecm_mul_lo_basecase (mp_ptr rp, mp_srcptr np, mp_srcptr mp, mp_size_t n)

@@ -520,9 +520,13 @@ ecm_stage1 (mpz_t f, mpres_t x, mpres_t A, mpmod_t n, double B1, double B1done,
   mpres_init (zT2, n);
 
   mpres_set_ui (z, 1, n);
-  
+
   mpres_add_ui (b, A, 2, n);
-  mpres_div_2exp (b, b, 2, n); /* b == (A+2)/4 */
+  mpres_div_2exp (b, b, 2, n); /* b == (A0+2)*B/4, where B=2^(k*GMP_NUMB_LIMB)
+                                  for MODMULN or REDC, B=1 otherwise */
+#ifndef FULL_REDUCTION
+  mpres_semi_normalize (b, mpz_size (n->orig_modulus));
+#endif
 
   /* preload group order */
   if (go != NULL)
@@ -552,6 +556,9 @@ ecm_stage1 (mpz_t f, mpres_t x, mpres_t A, mpmod_t n, double B1, double B1done,
   getprime (FREE_PRIME_TABLE); /* free the prime tables, and reinitialize */
 
   /* Normalize z to 1 */
+#ifndef FULL_REDUCTION
+  mpres_normalize (z); /* needed for gcd */
+#endif
   if (!mpres_invert (u, z, n)) /* Factor found? */
     {
       mpres_gcd (f, z, n);
