@@ -1,20 +1,20 @@
 # directory where GMP is installed
 # gmp.h should be in $(GMP)/include
 # libgmp.a/libgmp.so should be in $(GMP)/lib
-GMP=/usr/local/gmp
+GMP=/usr/local/gmp-4.1
 
 # directory where NTL is installed
 # ZZ_pX.h and version.h should be in $(NTL)/include/NTL
 # libntl.a should be in $(NTL)/lib
-NTL=/usr/local/ntl
+NTL=/usr/local/ntl-5.3
 
 ###################### do not edit below this line ############################
 
 CFLAGS=-O2 -g -Wall -Wmissing-prototypes -ansi -pedantic
 CC=g++
 
-FILES= aux.o bestd.o ecm.o getprime.o listz.o main.o ntl.o pm1.o polyz.o pp1.o stage2.o toomcook.o
-DIST=  aux.c bestd.c ecm.c getprime.c listz.c main.c ntl.c pm1.c polyz.c pp1.c stage2.c toomcook.c
+FILES= aux.o bestd.o ecm.o getprime.o listz.o lucas.o main.o ntl.o pm1.o polyz.o pp1.o stage2.o toomcook.o
+DIST=  aux.c bestd.c ecm.c getprime.c listz.c lucas.c main.c ntl.c pm1.c polyz.c pp1.c stage2.c toomcook.c
 EXTRADIST= COPYING INSTALL Makefile README cputime.h ecm.h test.pm1 test.pp1
 
 .SUFFIXES: .c .o
