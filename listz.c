@@ -24,7 +24,15 @@
 #include "gmp.h"
 #include "ecm.h"
 
+#if (MULT == TOOM4)
 #define LIST_MULT_N toomcook4
+#elif (MULT == TOOM3)
+#define LIST_MULT_N toomcook3
+#elif (MULT == KARA)
+#define LIST_MULT_N karatsuba
+#else
+#error "MULT is neither TOOM4, nor TOOM3, nor KARA"
+#endif
 
 /* returns a bound on the auxiliary memory needed by LIST_MULT_N */
 int
@@ -233,8 +241,8 @@ list_zerop (listz_t p, unsigned int n)
    Returns the number of scalar multiplies.
    Assumes K >= 1, and a[0..2K-2] exist.
 */
-int
-toomcook4_low (listz_t a, listz_t b, listz_t c, unsigned int K, listz_t t)
+static int
+list_mul_low (listz_t a, listz_t b, listz_t c, unsigned int K, listz_t t)
 {
   unsigned int p, q, muls;
 
@@ -254,14 +262,15 @@ toomcook4_low (listz_t a, listz_t b, listz_t c, unsigned int K, listz_t t)
       mpz_addmul (a[2], b[0], c[2]);
       return 5;
     default:
-      for (p = 1; 4 * p <= K; p *= 4);
+      /* MULT is 2 for Karatsuba, 3 for Toom3, 4 for Toom4 */
+      for (p = 1; MULT * p <= K; p *= MULT);
       p = (K / p) * p;
-      muls = toomcook4 (a, b, c, p, t);
+      muls = LIST_MULT_N (a, b, c, p, t);
       if ((q = K - p))
         {
-          muls += toomcook4_low (t, b + p, c, q, t + 2 * q - 1);
+          muls += list_mul_low (t, b + p, c, q, t + 2 * q - 1);
           list_add (a + p, a + p, t, q);
-          muls += toomcook4_low (t, c + p, b, q, t + 2 * q - 1);
+          muls += list_mul_low (t, c + p, b, q, t + 2 * q - 1);
           list_add (a + p, a + p, t, q);
         }
       return muls;
@@ -273,8 +282,8 @@ toomcook4_low (listz_t a, listz_t b, listz_t c, unsigned int K, listz_t t)
    Returns the number of scalar multiplies.
    Assumes K >= 1, and a[0..2K-2] exist.
 */
-int
-toomcook4_high (listz_t a, listz_t b, listz_t c, unsigned int K, listz_t t)
+static int
+list_mul_high (listz_t a, listz_t b, listz_t c, unsigned int K, listz_t t)
 {
   unsigned int p, q, muls;
 
@@ -297,15 +306,16 @@ toomcook4_high (listz_t a, listz_t b, listz_t c, unsigned int K, listz_t t)
       return 5;
 
     default:
-      for (p = 1; 4 * p <= K; p *= 4);
+      /* MULT is 2 for Karatsuba, 3 for Toom3, 4 for Toom4 */
+      for (p = 1; MULT * p <= K; p *= MULT);
       p = (K / p) * p;
       q = K - p;
-      muls = toomcook4 (a + 2 * q, b + q, c + q, p, t);
+      muls = LIST_MULT_N (a + 2 * q, b + q, c + q, p, t);
       if (q)
         {
-          muls += toomcook4_high (t, b + p, c, q, t + 2 * q - 1);
+          muls += list_mul_high (t, b + p, c, q, t + 2 * q - 1);
           list_add (a + K - 1, a + K - 1, t + q - 1, q);
-          muls += toomcook4_high (t, c + p, b, q, t + 2 * q - 1);
+          muls += list_mul_high (t, c + p, b, q, t + 2 * q - 1);
           list_add (a + K - 1, a + K - 1, t + q - 1, q);
         }
       return muls;
@@ -690,14 +700,14 @@ PrerevertDivision (listz_t a, listz_t b, listz_t invb,
   int muls;
 
   /* Q <- high(A * INVB) with a short product */
-  muls = toomcook4_high (t, a + K, invb, K - 1, t + 2 * K - 3);
+  muls = list_mul_high (t, a + K, invb, K - 1, t + 2 * K - 3);
   list_mod (a + K, t + K - 2, K - 1, n);
 
   /* the quotient Q has degree K-2, i.e. K-1 terms */
 
   /* T <- low(Q * B) with a short product */
   mpz_set_ui (a[2 * K - 1], 0);
-  muls += toomcook4_low (t, a + K, b, K, t + 2 * K - 1);
+  muls += list_mul_low (t, a + K, b, K, t + 2 * K - 1);
 
   /* now {t, K} contains the low K terms from Q*B */
   list_sub (a, a, t, K);
