@@ -347,6 +347,14 @@ means 15*12*9*6*3.</para>
 <replaceable>Phi(x,n)</replaceable>.</para>
 </refsect1>
 
+<refsect1 id='bugs'><title>BUGS</title>
+<para>
+Report bugs to &lt;ecm-dev@lists.fousse.info&gt;, after checking
+&lt;http://www.loria.fr/~zimmerma/records/ecmnet.html&gt; for bug fixes
+or new versions.
+</para>
+</refsect1>
+
 <refsect1 id='author'><title>AUTHORS</title>
 <para>
 Jim Fougeron &lt;jfoug@kdsi.net&gt; contributed the expression parser and
