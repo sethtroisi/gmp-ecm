@@ -5,6 +5,9 @@
 
 #define N 32
 
+/* to avoid conflict with that of libecm */
+#define mpn_mul_lo_basecase tune_mpn_mul_lo_basecase
+
 INLINE void
 mpn_mul_lo_basecase (mp_ptr rp, mp_srcptr np, mp_srcptr mp, mp_size_t n)
 {

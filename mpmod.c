@@ -301,33 +301,33 @@ ecm_redc_basecase (mpz_ptr r, mpz_ptr c, mpmod_t modulus)
 
 /* don't use base2 if repr == -1, i.e. -nobase2 */
 void 
-mpmod_init (mpmod_t modulus, mpz_t N, int repr, int verbose, FILE *os)
+mpmod_init (mpmod_t modulus, mpz_t N, int repr, int verbose)
 {
   int base2;
   
   if ((repr != -1) && (base2 = isbase2 (N, BASE2_THRESHOLD)))
     {
       if (verbose > 1)
-	fprintf (os, "Using special division for factor of 2^%d%c1\n",
+	fprintf (ECM_STDOUT, "Using special division for factor of 2^%d%c1\n",
 		 abs (base2), (base2 < 0) ? '-' : '+');
       mpmod_init_BASE2 (modulus, base2, N);
     }
   else if (mpz_size (N) < MPZMOD_THRESHOLD)
     {
       if (verbose > 1)
-	fprintf (os, "Using MODMULN\n");
+	fprintf (ECM_STDOUT, "Using MODMULN\n");
       mpmod_init_MODMULN (modulus, N);
     }
   else if (mpz_sizeinbase (N, 2) < REDC_THRESHOLD)
     {
       if (verbose > 1)
-	fprintf (os, "Using mpz_mod\n");
+	fprintf (ECM_STDOUT, "Using mpz_mod\n");
       mpmod_init_MPZ (modulus, N);
     }
   else
     {
       if (verbose > 1)
-	fprintf(os, "Using REDC\n");
+	fprintf(ECM_STDOUT, "Using REDC\n");
       mpmod_init_REDC (modulus, N);
     }
   
@@ -933,7 +933,7 @@ mpres_get_z (mpz_t R, mpres_t S, mpmod_t modulus)
 #ifdef DEBUG
   else
     {
-      fprintf (stderr, "mpres_get_z: Unexpected representation %d\n", 
+      fprintf (ECM_STDERR, "mpres_get_z: Unexpected representation %d\n", 
                modulus->repr);
       exit (EXIT_FAILURE);
     }
@@ -1004,7 +1004,7 @@ mpres_invert (mpres_t R, mpres_t S, mpmod_t modulus)
 #ifdef DEBUG
   else
     {
-      fprintf (stderr, "mpres_invert: Unexpected representation %d\n", 
+      fprintf (ECM_STDERR, "mpres_invert: Unexpected representation %d\n", 
                modulus->repr);
       exit (EXIT_FAILURE);
     }

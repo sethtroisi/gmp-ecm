@@ -143,8 +143,8 @@ TMulKS (listz_t b, unsigned int n, listz_t a, unsigned int m,
   int ret = 0; /* default return value */
 #ifdef DEBUG
   int st = cputime ();
-  printf ("n=%u m=%u l=%u bits=%u n*bits=%u: ", n, m, l,
-          mpz_sizeinbase (modulus, 2), n * mpz_sizeinbase (modulus, 2));
+  fprintf (ECM_STDOUT, "n=%u m=%u l=%u bits=%u n*bits=%u: ", n, m, l,
+	   mpz_sizeinbase (modulus, 2), n * mpz_sizeinbase (modulus, 2));
 #endif
 
   ASSERT (n <= l); /* otherwise the upper coefficients of b are 0 */
@@ -256,7 +256,7 @@ TMulKS (listz_t b, unsigned int n, listz_t a, unsigned int m,
   free (ap);
 
 #ifdef DEBUG
-  printf ("%dms\n", cputime () - st);
+  fprintf (ECM_STDOUT, "%dms\n", cputime () - st);
 #endif
   
  TMulKS_end:
@@ -269,8 +269,8 @@ mpn_print (mp_ptr np, mp_size_t nn)
 {
   mp_size_t i;
   for (i = 0; i < nn; i++)
-    printf ("+%lu*B^%u", np[i], i);
-  printf ("\n");
+    fprintf (ECM_STDOUT, "+%lu*B^%u", np[i], i);
+  fprintf (ECM_STDOUT, "\n");
 }
 #endif
 
@@ -358,14 +358,7 @@ ks_wrapmul (listz_t R, unsigned int m0,
   while (i % s)
     i = mpn_fft_next_size (i + 1, fft_k);
   m = i / s;
-#ifdef DEBUG  
-  if (m > 2 * m0 - 3 + list_mul_mem (m0 - 1))
-    {
-      fprintf (stderr, "Error: m > 2*m0-3+list_mul_mem(m0-1) in ks_wrapmul: m=%u m0=%u\n",
-	       m, m0);
-      exit (1);
-    }
-#endif
+  ASSERT(m <= 2 * m0 - 3 + list_mul_mem (m0 - 1));
 
   t2_ptr = (mp_ptr) malloc ((i + 1) * sizeof (mp_limb_t));
   if (t2_ptr == NULL)

@@ -28,6 +28,8 @@
 #include "ecm.h"
 #include "ecm-impl.h"
 
+FILE *ECM_STDOUT, *ECM_STDERR;
+
 /******************************************************************************
 *                                                                             *
 *                            Elliptic Curve Method                            *
@@ -482,14 +484,8 @@ prac (mpres_t xA, mpres_t zA, unsigned long k, mpmod_t n, mpres_t b,
     }
   
   add3 (xA, zA, xA, zA, xB, zB, xC, zC, n, u, v, w);
-  
-#ifdef DEBUG
-  if (d != 1)
-    {
-      fprintf (stderr, "d <> 1 at the end of prac\n");
-      exit (EXIT_FAILURE);
-    }
-#endif
+
+  ASSERT(d == 1);
 }
 
 
@@ -610,6 +606,9 @@ ecm (mpz_t f, mpz_t x, mpz_t sigma, mpz_t n, mpz_t go, double B1done,
   mpmod_t modulus;
   curve P;
 
+  ECM_STDOUT = (os == NULL) ? stdout : os;
+  ECM_STDERR = (es == NULL) ? stdout : es;
+
   /* if n is even, return 2 */
   if (mpz_divisible_2exp_p (n, 1))
     {
@@ -671,7 +670,7 @@ ecm (mpz_t f, mpz_t x, mpz_t sigma, mpz_t n, mpz_t go, double B1done,
   else if (repr > 16)
     mpmod_init_BASE2 (modulus, repr, n);
   else
-    mpmod_init (modulus, n, repr, verbose, os);
+    mpmod_init (modulus, n, repr, verbose);
 
   mpres_init (P.x, modulus);
   mpres_init (P.A, modulus);
@@ -679,7 +678,6 @@ ecm (mpz_t f, mpz_t x, mpz_t sigma, mpz_t n, mpz_t go, double B1done,
   if (sigma_is_A == 0)
     {
       /* sigma contains sigma value, A value must be computed */
-
       outputf (OUTPUT_NORMAL, "Using B1=%1.0f, B2=", B1);
       if (B2min <= B1)
         outputf (OUTPUT_NORMAL, "%1.0f", B2);
@@ -768,8 +766,7 @@ ecm (mpz_t f, mpz_t x, mpz_t sigma, mpz_t n, mpz_t go, double B1done,
   youpi = montgomery_to_weierstrass (f, P.x, P.y, P.A, modulus);
 
   if (youpi == 0)
-    youpi = stage2 (f, &P, modulus, B2min, B2, k, S, verbose, EC_METHOD, st,
-		    os, es);
+    youpi = stage2 (f, &P, modulus, B2min, B2, k, S, verbose, EC_METHOD, st);
   
   mpres_clear (P.y, modulus);
 

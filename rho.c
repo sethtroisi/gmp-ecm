@@ -130,7 +130,7 @@ dilog (double x)
     }
   else
     {
-      fprintf (stderr, "dilog: not implemented for argument %f > -1.0", x);
+      fprintf (ECM_STDERR, "dilog: not implemented for argument %f > -1.0", x);
       exit (EXIT_FAILURE);
     }
 }
@@ -155,7 +155,7 @@ rhoexact (double x)
   if (x <= 3.)
     return 1. - log (x) * (1. - log (x - 1.)) + dilog (1. - x) + 0.5 * M_PI_SQR_6;
 
-  fprintf (stderr, "rhoexact: not implemented for argument %f > 3.0", x);
+  fprintf (ECM_STDERR, "rhoexact: not implemented for argument %f > 3.0", x);
   exit (EXIT_FAILURE);
 }
 
@@ -196,7 +196,7 @@ rhoinit (int parm_invh, int parm_tablemax)
             rhotable[i] = 0.;
           else
             {
-              fprintf (stderr, "rhoinit: rhotable[%d] = %.16f\n", i, 
+              fprintf (ECM_STDERR, "rhoinit: rhotable[%d] = %.16f\n", i, 
                        rhotable[i]);
               exit (EXIT_FAILURE);
             }
@@ -362,7 +362,7 @@ ecmprob (double B1, double B2, double N, double nr, int S)
   
   if (rhotable == NULL)
     {
-      fprintf (stderr, "ecmprob: rho table has not been initialised\n");
+      fprintf (ECM_STDERR, "ecmprob: rho table has not been initialised\n");
       exit (EXIT_FAILURE);
     }
 

@@ -1,5 +1,12 @@
 /* private header file for gmp-ecm */
 
+#if WANT_ASSERT
+#include <assert.h>
+#define ASSERT(expr)   assert (expr)
+#else
+#define ASSERT(expr)   do {} while (0)
+#endif
+
 /* Structure for candidate usage.  This is much more powerful than using a
    simple mpz_t to hold the candidate.  This structure also houses the 
    expression (in raw form), and will modify the expression as factors 

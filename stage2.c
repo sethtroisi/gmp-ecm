@@ -26,6 +26,7 @@
 #include <stdio.h>
 #include <math.h>
 #include <limits.h>
+#include <math.h> /* for floor */
 #include "gmp.h"
 #include "ecm.h"
 #include "ecm-impl.h"
@@ -115,7 +116,7 @@ dickson_ui (mpz_t r, double x, unsigned int n, int a)
 
 static int
 fin_diff_coeff (listz_t coeffs, double s, double D,
-                unsigned int E, int dickson_a, FILE *es)
+                unsigned int E, int dickson_a, FILE *ECM_STDERR)
 {
   unsigned int i, k;
 
@@ -151,15 +152,13 @@ fin_diff_coeff (listz_t coeffs, double s, double D,
 listz_t
 init_progression_coeffs (double s, unsigned int d, unsigned int e, 
                          unsigned int k, unsigned int m, unsigned int E, 
-                         int dickson_a, FILE *es)
+                         int dickson_a)
 {
   unsigned int i, j, size_fd;
   listz_t fd;
   double de;
 
-  if (d % m)
-    outputf (OUTPUT_ALWAYS, "d=%u e=%u m=%u\n", d, e, m);
-  assert (d % m == 0);
+  ASSERT (d % m == 0);
 
   size_fd = k * phi(d) / phi(m) * (E + 1);
   fd = (listz_t) xmalloc (size_fd * sizeof (mpz_t));
@@ -174,7 +173,7 @@ init_progression_coeffs (double s, unsigned int d, unsigned int e,
       if (gcd (i, d) == 1)
         {
           if (fin_diff_coeff (fd + j, s + de * i, de * k * d, E, dickson_a,
-			      es) == ECM_ERROR)
+			      ECM_STDERR) == ECM_ERROR)
 	    {
 	      for (i = 0; i < size_fd; i++)
 		mpz_clear (fd[i]);
@@ -259,13 +258,11 @@ init_roots_state (ecm_roots_state *state, int S, unsigned int d1,
 */
 int
 stage2 (mpz_t f, void *X, mpmod_t modulus, double B2min, double B2,
-        unsigned int k0, int S, int verbose, int method, int stage1time,
-	FILE *os, FILE *es)
+        unsigned int k0, int S, int verbose, int method, int stage1time)
 {
-  double b2, b2min;
+  double b2, b2min, i0;
   unsigned int k;
   unsigned int i, d, d2, dF, sizeT;
-  double i0;
   mpz_t n;
   listz_t F, G, H, T;
   int youpi = 0, st, st0;
@@ -315,7 +312,7 @@ stage2 (mpz_t f, void *X, mpmod_t modulus, double B2min, double B2,
       dF = phi (d) / 2;
     }
   
-  i0 = floor (B2min / (double) d / (double) d2) * d2;
+  i0 = floor ((B2min / (double) d) / (double) d2) * (double) d2;
 
   /* check that i0 * d does not overflow */
   if (i0 * (double) d > TWO53) /* 2^53 */
@@ -328,7 +325,7 @@ stage2 (mpz_t f, void *X, mpmod_t modulus, double B2min, double B2,
   b2 = (double) dF * (double) d * (double) d2 / (double) phi (d2);
 
   /* compute real B2min */
-  b2min = (double) i0 * (double) d;
+  b2min = i0 * (double) d;
 
   /* compute real B2 */
   B2 = b2min + floor ((double) k * b2 / d / d2) * d * d2;
@@ -375,11 +372,11 @@ stage2 (mpz_t f, void *X, mpmod_t modulus, double B2min, double B2,
 
   /* needs dF+1 cells in T */
   if (method == PM1_METHOD)
-    youpi = pm1_rootsF (f, F, d, d2, dF, (mpres_t*) X, T, S, modulus, verbose, os, es);
+    youpi = pm1_rootsF (f, F, d, d2, dF, (mpres_t*) X, T, S, modulus, verbose);
   else if (method == PP1_METHOD)
-    youpi = pp1_rootsF (F, d, d2, dF, (mpres_t*) X, T, modulus, verbose, os);
+    youpi = pp1_rootsF (F, d, d2, dF, (mpres_t*) X, T, modulus, verbose);
   else 
-    youpi = ecm_rootsF (f, F, d, d2, dF, (curve*) X, S, modulus, verbose, os, es);
+    youpi = ecm_rootsF (f, F, d, d2, dF, (curve*) X, S, modulus, verbose);
 
   if (youpi != ECM_NO_FACTOR_FOUND)
     {
@@ -421,7 +418,7 @@ stage2 (mpz_t f, void *X, mpmod_t modulus, double B2min, double B2,
   print_list (os, F, dF);
 #endif
   mpz_init_set (n, modulus->orig_modulus);
-  PolyFromRoots (F, F, dF, T, verbose | 1, n, 'F', Tree, 0, os, es);
+  PolyFromRoots (F, F, dF, T, verbose | 1, n, 'F', Tree, 0);
 
   /* needs dF+list_mul_mem(dF/2) cells in T */
 
@@ -447,7 +444,7 @@ stage2 (mpz_t f, void *X, mpmod_t modulus, double B2min, double B2,
 	  goto free_Tree_i;
 	}
       st = cputime ();
-      PolyInvert (invF, F + 1, dF, T, n, es);
+      PolyInvert (invF, F + 1, dF, T, n);
 
       /* now invF[0..dF-1] = Quo(x^(2dF-1), F) */
       outputf (OUTPUT_VERBOSE, "Computing 1/F took %ums\n", cputime () - st);
@@ -470,13 +467,12 @@ stage2 (mpz_t f, void *X, mpmod_t modulus, double B2min, double B2,
 
   st = cputime ();
   if (method == PM1_METHOD)
-    rootsG_state = pm1_rootsG_init ((mpres_t *) X, i0 * (double) d, d, d2, S, verbose, modulus, os, es);
+    rootsG_state = pm1_rootsG_init ((mpres_t *) X, i0 * (double) d, d, d2, S, verbose, modulus);
   else if (method == PP1_METHOD)
     rootsG_state = pp1_rootsG_init ((mpres_t *) X, i0 * (double) d, d, d2, modulus);
   else /* EC_METHOD */
-    {
-      rootsG_state = ecm_rootsG_init (f, (curve *) X, i0 * (double) d, d, d2, dF, k, S, modulus, verbose, os, es);
-    }
+    rootsG_state = ecm_rootsG_init (f, (curve *) X, i0 * (double) d, d, d2,
+				    dF, k, S, modulus, verbose);
 
   /* rootsG_state=NULL if an error occurred or (ecm only) a factor was found */
   if (rootsG_state == NULL)
@@ -497,13 +493,13 @@ stage2 (mpz_t f, void *X, mpmod_t modulus, double B2min, double B2,
       /* needs dF+1 cells in T+dF */
       if (method == PM1_METHOD)
 	youpi = pm1_rootsG (f, G, dF, (pm1_roots_state *) rootsG_state, T + dF,
-			    modulus, verbose, os);
+			    modulus, verbose);
       else if (method == PP1_METHOD)
         youpi = pp1_rootsG (G, dF, (pp1_roots_state *) rootsG_state, modulus,
-                            verbose, os);
+                            verbose);
       else
 	youpi = ecm_rootsG (f, G, dF, (ecm_roots_state *) rootsG_state, 
-			    modulus, verbose, os);
+			    modulus, verbose);
 
       ASSERT(youpi != ECM_ERROR); /* xxx_rootsG cannot fail */
       if (youpi) /* factor found */
@@ -518,7 +514,7 @@ stage2 (mpz_t f, void *X, mpmod_t modulus, double B2min, double B2,
      |  F(x)  | 1/F(x) | rootsG |      ???         |
      ----------------------------------------------- */
 
-      PolyFromRoots (G, G, dF, T + dF, verbose, n, 'G', NULL, 0, os, es);
+      PolyFromRoots (G, G, dF, T + dF, verbose, n, 'G', NULL, 0);
       /* needs 2*dF+list_mul_mem(dF/2) cells in T */
 
   /* -----------------------------------------------
@@ -553,7 +549,7 @@ stage2 (mpz_t f, void *X, mpmod_t modulus, double B2min, double B2,
 	  st = cputime ();
 	  /* previous G mod F is in H, with degree < dF, i.e. dF coefficients:
 	     requires 3dF-1+list_mul_mem(dF) cells in T */
-	  list_mulmod (H, T + dF, G, H, dF, T + 3 * dF, n, es);
+	  list_mulmod (H, T + dF, G, H, dF, T + 3 * dF, n);
 
           outputf (OUTPUT_VERBOSE, "Computing G * H took %ums\n", 
                    cputime () - st);
@@ -565,7 +561,7 @@ stage2 (mpz_t f, void *X, mpmod_t modulus, double B2min, double B2,
              ------------------------------------------------ */
 
 	  st = cputime ();
-          if (PrerevertDivision (H, F, invF + 1, dF, T + 2 * dF, n, es))
+          if (PrerevertDivision (H, F, invF + 1, dF, T + 2 * dF, n))
 	    {
 	      youpi = ECM_ERROR;
 	      goto clear_fd;
@@ -583,7 +579,7 @@ stage2 (mpz_t f, void *X, mpmod_t modulus, double B2min, double B2,
   st = cputime ();
 #ifdef POLYEVALTELLEGEN
   youpi = polyeval_tellegen (T, dF, Tree, T + dF + 1, sizeT - dF - 1, invF,
-			     n, 0, es);
+			     n, 0);
   if (youpi)
     {
       outputf (OUTPUT_ERROR, "Error, not enough memory\n");
@@ -592,7 +588,7 @@ stage2 (mpz_t f, void *X, mpmod_t modulus, double B2min, double B2,
 #else
   clear_list (invF, dF + 1);
   invF = NULL;
-  polyeval (T, dF, Tree, T + dF + 1, n, 0, es);
+  polyeval (T, dF, Tree, T + dF + 1, n, 0, ECM_STDERR);
 #endif
 
   outputf (OUTPUT_VERBOSE, "Computing polyeval(F,G) took %ums\n", 

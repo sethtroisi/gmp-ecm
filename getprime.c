@@ -85,13 +85,8 @@ getprime (double pp)
       free (sieve);
       len *= 2;
       sieve = (unsigned char *) malloc (len * sizeof (unsigned char));
-#ifdef DEBUG /* assume this "small" malloc will not fail in normal usage */
-      if (sieve == NULL)
-        {
-          fprintf (stderr, "Error: not enough memory\n");
-          exit (EXIT_FAILURE);
-        }
-#endif
+      /* assume this "small" malloc will not fail in normal usage */
+      ASSERT(sieve != NULL);
     }
 
   /* now enlarge small prime table if too small */
@@ -101,32 +96,17 @@ getprime (double pp)
 	  {
 	    nprimes = 1;
 	    primes = (unsigned *) malloc (nprimes * sizeof(unsigned long int));
-#ifdef DEBUG /* assume this "small" malloc will not fail in normal usage */
-            if (primes == NULL)
-              {
-                fprintf (stderr, "Error: not enough memory\n");
-                exit (EXIT_FAILURE);
-              }
-#endif
+	    /* assume this "small" malloc will not fail in normal usage */
+	    ASSERT(primes != NULL);
 	    moduli = (long unsigned int *) malloc (nprimes *
                                                    sizeof(unsigned long int));
-#ifdef DEBUG /* assume this "small" malloc will not fail in normal usage */
-            if (moduli == NULL)
-              {
-                fprintf (stderr, "Error: not enough memory\n");
-                exit (EXIT_FAILURE);
-              }
-#endif
+	    /* assume this "small" malloc will not fail in normal usage */
+	    ASSERT(moduli != NULL);
 	    len = 1;
 	    sieve = (unsigned char *) malloc(len *
                                        sizeof(unsigned char)); /* len=1 here */
-#ifdef DEBUG /* assume this "small" malloc will not fail in normal usage */
-            if (sieve == NULL)
-              {
-                fprintf (stderr, "Error: not enough memory\n");
-                exit (EXIT_FAILURE);
-              }
-#endif
+	    /* assume this "small" malloc will not fail in normal usage */
+	    ASSERT(sieve != NULL);
 	    offset = 5.0;
 	    sieve[0] = 1; /* corresponding to 5 */
 	    primes[0] = 3;
@@ -144,13 +124,8 @@ getprime (double pp)
                                            sizeof(unsigned long int));
 	    moduli = (unsigned long int *) realloc (moduli, nprimes *
                                                     sizeof(unsigned long int));
-#ifdef DEBUG /* assume those "small" realloc's will not fail in normal usage */
-            if (primes == NULL || moduli == NULL)
-              {
-                fprintf (stderr, "Error: not enough memory\n");
-                exit (EXIT_FAILURE);
-              }
-#endif
+	    /* assume those "small" realloc's will not fail in normal usage */
+	    ASSERT(primes != NULL && moduli != NULL);
 	    for (p = primes[i-1]; i < nprimes; i++)
 	      {
 		/* find next (odd) prime > p */
