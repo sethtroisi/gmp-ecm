@@ -188,13 +188,12 @@ list_gcd (mpz_t p, listz_t l, unsigned int k, mpz_t n)
 {
   unsigned int i;
   
-  mpz_set (p, l[0]);
   for (i=1; i<k; i++)
     {
-      mpz_mul (p, p, l[i]);
-      mpz_mod (p, p, n);
+      mpz_mul (l[0], l[0], l[i]);
+      mpz_mod (l[0], l[0], n);
     }
-  mpz_gcd (p, p, n);
+  mpz_gcd (p, l[0], n);
 
   return mpz_cmp_ui (p, 1);
 }
