@@ -143,7 +143,7 @@ pp1_stage1 (mpz_t f, mpres_t P0, mpmod_t n, double B1, double B1done,
   mpres_t P, Q;
   mpres_t R, S, T;
   int youpi;
-  unsigned int max_size;
+  unsigned int max_size, size_n;
 
   mpz_init (g);
   mpres_init (P, n);
@@ -154,14 +154,18 @@ pp1_stage1 (mpz_t f, mpres_t P0, mpmod_t n, double B1, double B1done,
 
   B0 = ceil (sqrt (B1));
 
-  max_size = L1 * mpz_sizeinbase (n->orig_modulus, 2);
+  size_n = mpz_sizeinbase (n->orig_modulus, 2);
+  max_size = L1 * size_n;
 
   /* suggestion from Peter Montgomery: start with exponent n-1,
      since any prime divisor of b^m-1 which does not divide any
      algebraic factor of b^m-1 must be of the form km+1 [Williams82].
      Do this only when n is composite, otherwise all tests with prime
-     n factor of a Cunningham number will succeed in stage 1. */
-  if (mpz_probab_prime_p (n->orig_modulus, 1) == 0)
+     n factor of a Cunningham number will succeed in stage 1.
+
+     As in P-1, for small overhead, use that trick only when lg(n) <= sqrt(B1).
+  */
+  if ((double) size_n <= B0 && mpz_probab_prime_p (n->orig_modulus, 1) == 0)
     {
       mpz_sub_ui (g, n->orig_modulus, 1);
       *muls += pp1_mul (P0, P0, g, n, P, Q);
@@ -416,17 +420,17 @@ pp1 (mpz_t f, mpz_t p, mpz_t n, double B1done, double B1, double B2min,
   
   if (verbose >= 1)
     {
-      printf ("Williams P+1 Method with ");   
+      printf ("Using ");
       if (B1done == 1.0)
         printf("B1=%1.0f", B1);
       else
         printf("B1=%1.0f-%1.0f", B1done, B1);
       if (B2min <= B1)
-        printf(", B2=%1.0f\n", B2);
+        printf(", B2=%1.0f", B2);
       else
-        printf(", B2=%1.0f-%1.0f\n", B2min, B2);
+        printf(", B2=%1.0f-%1.0f", B2min, B2);
 
-      printf ("Using seed=");
+      printf (", polynomial x^1, x0=");
       mpz_out_str (stdout, 10, p);
       printf ("\n");
       fflush (stdout);
@@ -441,7 +445,7 @@ pp1 (mpz_t f, mpz_t p, mpz_t n, double B1done, double B1, double B2min,
   else if (repr > 16)
     mpmod_init_BASE2 (modulus, repr, n);
   else
-    mpmod_init (modulus, n, repr);
+    mpmod_init (modulus, n, repr, verbose);
 
   mpres_init (a, modulus);
   mpres_set_z (a, p, modulus);
@@ -451,7 +455,7 @@ pp1 (mpz_t f, mpz_t p, mpz_t n, double B1done, double B1, double B2min,
 
   if (verbose >= 1)
     {
-      printf ("Stage 1 took %dms", cputime () - st);
+      printf ("Step 1 took %dms", cputime () - st);
       if (verbose >= 2)
 	printf (" for %lu muls", muls);
       printf ("\n");

@@ -513,8 +513,7 @@ ecm_stage1 (mpz_t f, mpres_t x, mpres_t A, mpmod_t n, double B1,
   for (q = getprime (q); q <= B1; q = getprime (q))
     for (r = q; r <= B1; r *= q)
       if (r > B1done)
-        prac (x, z, (int) q, n, b, t, u, v, w, xB, zB, xC, zC, xT, zT, xT2, zT2);
-
+	  prac (x, z, (int) q, n, b, t, u, v, w, xB, zB, xC, zC, xT, zT, xT2, zT2);
   getprime (0.0); /* free the prime tables, and reinitialize */
 
 
@@ -588,23 +587,6 @@ ecm (mpz_t f, mpz_t x, mpz_t sigma, mpz_t n, double B1done, double B1,
   if (S == 0)
     S = 1;
   
-  if (verbose >= 1)
-    {
-      printf ("Elliptic Curve Method with ");
-      if (B1done == 1.0)
-        printf("B1=%1.0f", B1);
-      else
-        printf("B1=%1.0f-%1.0f", B1done, B1);
-      if (B2min <= B1)
-        printf(", B2=%1.0f, ", B2);
-      else
-        printf(", B2=%1.0f-%1.0f, ", B2min, B2);
-      if (S > 0)
-        printf("x^%u\n", S);
-      else
-        printf("Dickson(%u)\n", -S);
-    }
-  
   if (repr == 1)
     mpmod_init_MPZ (modulus, n);
   else if (repr == 2)
@@ -614,7 +596,7 @@ ecm (mpz_t f, mpz_t x, mpz_t sigma, mpz_t n, double B1done, double B1,
   else if (repr > 16)
     mpmod_init_BASE2 (modulus, repr, n);
   else
-    mpmod_init (modulus, n, repr);
+    mpmod_init (modulus, n, repr, verbose);
 
   mpres_init (P.x, modulus);
   mpres_init (P.A, modulus);
@@ -624,9 +606,19 @@ ecm (mpz_t f, mpz_t x, mpz_t sigma, mpz_t n, double B1done, double B1,
       /* sigma contains sigma value, A value must be computed */
       if (verbose >= 1)
         {
-          printf ("Using sigma=");
+          printf ("Using B1=%1.0f, B2=", B1);
+	  if (B2min <= B1)
+	    printf ("%1.0f", B2);
+	  else
+	    printf ("%1.0f-%1.0f", B2min, B2);
+	  printf (", polynomial ");
+	  if (S > 0)
+	    printf ("x^%u", S);
+	  else
+	    printf ("Dickson(%u)", -S);
+	  printf (", sigma=");
           mpz_out_str (stdout, 10, sigma);
-          printf("\n");
+          printf ("\n");
           fflush (stdout);
         }
       if ((youpi = get_curve_from_sigma (f, P.A, P.x, sigma, modulus)))
@@ -663,7 +655,7 @@ ecm (mpz_t f, mpz_t x, mpz_t sigma, mpz_t n, double B1done, double B1,
 
   if (verbose >= 1)
     {
-      printf ("Stage 1 took %dms\n", cputime () - st);
+      printf ("Step 1 took %dms\n", cputime () - st);
       fflush (stdout);
     }
 

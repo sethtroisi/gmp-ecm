@@ -37,6 +37,18 @@ Instructions to install gmp-ecm:
    On an Athlon 2000+ with GMP 4.1.2, the P+1 test takes about 5 seconds,
    the P-1 test about 37 seconds, and the ECM test about 2 minutes.
 
+   We have succesfully tested this version on the following configurations.
+   Here are some timings obtained with ECM (B1=3e6) on the c155 file, with
+   the command "./ecm 3e6 < c155":
+
+configuration          version   compiler      stage 1     stage 2
+                       of gmp                  (seconds)   (seconds)
+athlon-pc-linux-gnu   gmp-4.1.2 gcc-2.95.3       79.7       47.3 MP 2000+
+alphaev6-dec-osf4.0f  gmp-4.1.2 gcc-2.95.3      106.0       84.4 EV6-500
+powerpc630-ibm-aix5.1.0.0 4.1.2 xlc             337.5      155.0 Power3+ 375
+pentium3-pc-linux-gnu gmp-4.1.2 gcc-2.95.3      411.2      214.4 PIII-500
+mips64-sgi-irix6.5    gmp-4.1.2 gcc-3.0.1       401.3      251.0 R10K-250
+
 3) If you like gmp-ecm, please help us factoring Cunningham numbers. First
    download "cunningham.in" on <http://www.loria.fr/~zimmerma/ecmnet/>, then
    perform one ecm test with B1=3e6 on each number of this file:
@@ -51,12 +63,12 @@ The README file explains how to efficiently use P-1, P+1 and ECM.
 In case of problem, report it to us, with:
 - the versions of GMP-ECM and GMP used (first output line), for example:
   
-  GMP-ECM 5.0 [powered by GMP 4.1]
+  GMP-ECM 5.0 [powered by GMP 4.1] [P+1]
 
 - the machine type and operating system (uname -a or config.guess from GMP)
 - the detailed input enabling us to reproduce the problem, for example:
 
-  $ echo 328006342451 | ./ecm5 -pp1 107 5 7043
+  $ echo 328006342451 | ./ecm -pp1 -x0 5 120 7043
 
 - the output you get.
 

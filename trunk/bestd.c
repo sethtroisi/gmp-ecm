@@ -120,7 +120,7 @@ bestD (double B2)
    B = block_size (l[N-1]);
    if (B2 > B)
      {
-       fprintf (stderr, "too large B2\n");
+       fprintf (stderr, "Error: too large B2, maximal value is k*%1.0f where k is the number of step 2 blocks (see option -k)\n", B);
        exit (1);
      }
 

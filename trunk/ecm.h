@@ -18,7 +18,7 @@
   02111-1307, USA.
 */
 
-#define ECM_VERSION "5.0-beta"
+#define ECM_VERSION "5.0-beta-pl1"
 
 #ifndef POLYGCD
 #define POLYEVAL
@@ -227,7 +227,7 @@ void NTL_get_factor (mpz_t);
 
 /* mpmod.c */
 int isbase2 (mpz_t, double);
-void mpmod_init (mpmod_t, mpz_t, int);
+void mpmod_init (mpmod_t, mpz_t, int, int);
 void mpmod_init_MPZ (mpmod_t, mpz_t);
 void mpmod_init_BASE2 (mpmod_t, int, mpz_t);
 void mpmod_init_MODMULN (mpmod_t, mpz_t);

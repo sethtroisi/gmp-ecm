@@ -1,5 +1,19 @@
-This is a new version of gmp-ecm, replacing version 4c.
-The contained files are:
+This is the README file of gmp-ecm-5.0-beta, a new version of gmp-ecm,
+replacing version 4c.
+
+Table of contents of this file:
+1. Files included in this distribution.
+2. Main changes with respect to gmp-ecm 4c.
+3. How to efficiently use P-1, P+1 and ECM?
+4. Extra factors and Brent-Suyama's extension.
+5. Memory usage.
+6. Options -save and -resume.
+7. How to get the best of gmp-ecm?
+8. Command line options.
+
+##############################################################################
+
+1. Files included in this distribution.
 
 COPYING - GNU GENERAL PUBLIC LICENSE
 INSTALL - instructions to install gmp-ecm
@@ -31,7 +45,9 @@ test.pp1 - test file for P+1
 toomcook.c - Toom-Cook 3 and Toom-Cook 4 multiplication
 tune.c - auxiliary routines to compute optimal thresholds
 
-The main changes wrt gmp-ecm 4c are the following:
+##############################################################################
+
+2. Main changes with respect to gmp-ecm 4c.
 
 - the code is split into several files to make the code easier to maintain
 	and compile.
@@ -49,7 +65,7 @@ The main changes wrt gmp-ecm 4c are the following:
 
 ##############################################################################
 
-How to efficiently use P-1, P+1 and ECM.
+3. How to efficiently use P-1, P+1 and ECM?
 
 The P-1 method works well when the input number has a prime factor P such
 that P-1 is "smooth", i.e. has all its prime factor less or equal the 
@@ -59,13 +75,11 @@ bound B2. For P=67872792749091946529, we have P-1 = 2^5 * 11 * 17 * 19 *
 and B2 >= 11004397:
 
 $ echo 67872792749091946529 | ./ecm -pm1 -x0 2809890345 8467 11004397
-GMP-ECM 5.0-beta [powered by GMP 4.1.2]
+GMP-ECM 5.0-beta-pl1 [powered by GMP 4.1.2] [P-1]
 Input number is 67872792749091946529 (20 digits)
-Pollard P-1 Method with B1=8467, B2=11004397, x^2
-Using seed=2809890345
-Using MODMULN
-Stage 1 took 10ms
-Stage 2 took 330ms
+Using B1=8467, B2=11004397, polynomial x^2, x0=2809890345
+Step 1 took 0ms
+Step 2 took 330ms
 ********** Factor found in step 2: 67872792749091946529
 Found input number N
 
@@ -78,15 +92,12 @@ P+1 = 2^4 * 283 * 2423 * 21881 * 39839 * 1414261 * 2337233 * 132554351, so
 this factor will be found as long as B1 >= 2337233 and B2 >= 132554351:
 
 $ echo 4190453151940208656715582382315221647 | ./ecm -pp1 -x0 2284918860 2337233 132554351
-GMP-ECM 5.0-beta [powered by GMP 4.1.2]
+GMP-ECM 5.0-beta-pl1 [powered by GMP 4.1.2] [P+1]
 Input number is 4190453151940208656715582382315221647 (37 digits)
-Williams P+1 Method with B1=2337233, B2=132554351
-Using seed=2284918860
-Using MODMULN
-Stage 1 took 3400ms
-Stage 2 took 2470ms
-********** Factor found in step 2:
-4190453151940208656715582382315221647
+Using B1=2337233, B2=132554351, polynomial x^1, x0=2284918860
+Step 1 took 3200ms
+Step 2 took 2470ms
+********** Factor found in step 2: 4190453151940208656715582382315221647
 Found input number N
 
 However not all seeds will succeed: a given seed 's' works iff the Jacobi
@@ -136,7 +147,11 @@ Note: if a factor is found in steps 2, 3 or 4, simply continue the current
 	to start again from 0, since the factorization effort on the cofactor
 	is not lost.
 
-Extra factors and Brent-Suyama's extension. GMP-ECM may sometimes find some
+##############################################################################
+
+4. Extra factors and Brent-Suyama's extension.
+
+GMP-ECM may sometimes find some
 "extra" factors, such that one factor of P-1, P+1 or P+t exceeds the stage 2
 bound B2, thanks to Brent-Suyama's extension. Let explain how it works for P-1,
 since it's simpler. The classical stage 2 (without Brent-Suyama's extension)
@@ -148,14 +163,12 @@ classical stage 2 corresponds to f(x)=x^1]. Then P will be found whenever
 all but one of the factors of P-1 are <= B1, and one factor divides one
 f(j*d) +/- f(i):
 
-$ echo 1207946164033269799036708918081 | ./ecm -pm1 -k 4 -power 12 286493 25000000
-GMP-ECM 5.0-beta [powered by GMP 4.1.2]
+$ echo 1207946164033269799036708918081 | ./ecm -pm1 -k 4 -power 12 286493 25e6
+GMP-ECM 5.0-beta-pl1 [powered by GMP 4.1.2] [P-1]
 Input number is 1207946164033269799036708918081 (31 digits)
-Pollard P-1 Method with B1=286493, B2=25000000, x^12
-Using seed=2760000764
-Using MODMULN
-Stage 1 took 290ms
-Stage 2 took 760ms
+Using B1=286493, B2=25000000, polynomial x^12, x0=3418200174
+Step 1 took 270ms
+Step 2 took 770ms
 ********** Factor found in step 2: 1207946164033269799036708918081
 Found input number N
 
@@ -164,21 +177,12 @@ Warning: these "extra" factorizations may not be reproducible in future
 versions of gmp-ecm, since they depend on some internal parameters that
 may change.
 
-We have succesfully tested this version on the following configurations.
-Here are some timings obtained with ECM (B1=3e6) on the c155 file, with
-the command "./ecm 3e6 < c155":
-
-configuration          version   compiler      stage 1     stage 2
-                       of gmp                  (seconds)   (seconds)
-athlon-pc-linux-gnu   gmp-4.1.2 gcc-2.95.3       79.7       47.3 MP 2000+
-alphaev6-dec-osf4.0f  gmp-4.1.2 gcc-2.95.3      106.0       84.4 EV6-500
-powerpc630-ibm-aix5.1.0.0 4.1.2 xlc             337.5      155.0 Power3+ 375
-pentium3-pc-linux-gnu gmp-4.1.2 gcc-2.95.3      411.2      214.4 PIII-500
-mips64-sgi-irix6.5    gmp-4.1.2 gcc-3.0.1       401.3      251.0 R10K-250
 
 ##############################################################################
 
-Memory usage. Stage 1 does not require much memory (about the same size as
+5. Memory usage.
+
+Stage 1 does not require much memory (about the same size as
 the input number). Stage 2 may be quite memory expensive, especially for
 large B2, since its efficient algorithms use some large tables. To reduce
 the memory usage of stage 2, you may increase the 'k' parameter, which controls
@@ -189,45 +193,46 @@ k, but only 14MB with k=32.
 
 ##############################################################################
 
-Option -save. This option is useful to save the current stage in the current
-method, or to exchange data with other software. It should allow to perform
-stage 1 with gmp-ecm, and stage 2 with another software (or vice-versa).
+6. Options -save and -resume.
+
+These options are useful to save the current state of the computation after
+step 1, or to exchange data with other software. It allows to perform
+step 1 with gmp-ecm, and step 2 with another software (or vice-versa).
 
 Here is an example how to reuse some P-1 computation:
 
 $ cat c71
 13155161912808540373988986448257115022677318870175067553764004308210487
-$ ./ecm -save toto -pm1 -mpzmod 5000000 < c71
-GMP-ECM 5.0-beta [powered by GMP 4.1.2]
-Input number is 13155161912808540373988986448257115022677318870175067553764004308210487 (71 digits)
-Pollard P-1 Method with B1=5000000, B2=272993793, x^2
-Using seed=3786455126
-Stage 1 took 5590ms
-Stage 2 took 5300ms
+$ ./ecm -save toto -pm1 -mpzmod -x0 2 5000000 < c71
+GMP-ECM 5.0-beta-pl1 [powered by GMP 4.1.2] [P-1]
+Input number is
+13155161912808540373988986448257115022677318870175067553764004308210487
+(71 digits)
+Using B1=5000000, B2=272993793, polynomial x^2, x0=2
+Step 1 took 5720ms
+Step 2 took 5300ms
 
 The file "toto" now contains some information about the method use, the stage
 1 bound, the number to factor, the value X at the end of stage 1 (in hexa-
 decimal), and a checksum to verify that no data was corrupted:
 
 $ cat toto
-METHOD=P-1; B1=5000000; N=13155161912808540373988986448257115022677318870175067553764004308210487; X=0x10758be718f6f2b073560c3b25719a1cc070541ea77c33a9e5639f987de; CHECKSUM=2852819094; PROGRAM=GMP-ECM 5.0-beta; X0=0xe1b0b856; TIME=Thu Feb 13 19:00:40 2003;
+METHOD=P-1; B1=5000000; N=13155161912808540373988986448257115022677318870175067553764004308210487; X=0x12530157ae22ae14d54d6a5bc404ae9458e54032c1bb2ab269837d1519f; CHECKSUM=2287710189; PROGRAM=GMP-ECM 5.0-beta-pl1; X0=0x2; TIME=Sun Feb 16 15:08:15 2003;
 
 Then one can resume the computation with larger B1 and/or B2 as follows:
 
 $ ./ecm -resume toto 1e7
-GMP-ECM 5.0-beta [powered by GMP 4.1.2]
-Resuming P-1 residue saved with GMP-ECM 5.0-beta on Thu Feb 13 19:00:40 2003 
+GMP-ECM 5.0-beta-pl1 [powered by GMP 4.1.2] [ECM]
+Resuming P-1 residue saved with GMP-ECM 5.0-beta-pl1 on Sun Feb 16 15:08:15 2003 
 Input number is 13155161912808540373988986448257115022677318870175067553764004308210487 (71 digits)
-Pollard P-1 Method with B1=5000000-10000000, B2=732940912, x^2
-Using seed=7099811799078274438499407444687937142532482907012972881923709769189342
-Using mpz_powm
-Stage 1 took 5510ms
-Stage 2 took 10150ms
+Using B1=5000000-10000000, B2=732940912, polynomial x^2, x0=7904328199840271949579977404684383171653860277045264805144523458040223
+Step 1 took 5530ms
+Step 2 took 10230ms
 ********** Factor found in step 2: 1448595612076564044790098185437
 Found probable prime factor of 31 digits: 1448595612076564044790098185437
 Probable prime cofactor 9081321110693270343633073697474256143651 has 40 digits
 
-The second run only considered the primes in [5000000-10000000] in stage 1,
+The second run only considered the primes in [5e6-10e6] in stage 1,
 which saved half the time of stage 1.
 
 The format used is the following:
@@ -240,8 +245,10 @@ The format used is the following:
     - N (composite to factor)
     - X (value at the end of stage 1)
     - A (A-parameter of the elliptic curve)
+    - CHECKSUM (internal value to check correctness of the format)
     - X0 (initial point for ECM, or initial residue for P-1/P+1) [optional]
-    - PROGRAM (program used to perform stage 1, useful for factor credits)
+    - PROGRAM (program used to perform stage 1, useful for factor credits) 
+    - TIME (date and time of first stage)
   SIGMA and X0 would be optional, and would be mainly be used in case of a
   factor is found, to be able to reproduce the factorization.
 
@@ -260,12 +267,13 @@ computations. Options -save/-resume is useful in the following cases:
 (c) you did a huge stage 1 P-1 or P+1 computation on a given machine, and you
     want to perform a huge stage 2 in parallel on several
     machines. For example machine 1 tests the range B2_1-B2_2, machine
-    2 tests B2_2-B2_3, ... For the same reason as (b), this does not
-    apply to ECM.
+    2 tests B2_2-B2_3, ... This also decreases the memory usage for
+    each machine, which is function of the range width B2min-B2max.
+    For the same reason as (b), this does not apply to ECM. 
 
 ##############################################################################
 
-How to get the best of gmp-ecm?
+7. How to get the best of gmp-ecm?
 
 Choice of modular multiplication. The ecm program may choose between 4 kinds
 of modular arithmetic:
@@ -310,7 +318,9 @@ corresponding default value of B2.
 Changing the value of the number of blocks will not modify the chance
 of finding a factor (except for extra factors, but some will be lost,
 and some will be won, so the balance should be even). However it will
-change the time spent in Stage 2, and the memory used by Stage 2.
+increase the time spent in Stage 2 (when less or greater than the
+optimal value) and the memory used by Stage 2 (see the paragraph 
+"Memory usage").
 
 Optimal gmp thresholds. The default configuration of gmp-ecm requires
 only the default gmp installation, in particular it only needs the
@@ -321,5 +331,96 @@ the optimal thresholds on your machine, you need the headers
 files from the GMP build directory, and to add -DWANT_GMP_IMPL to
 the C flags in Makefile.
 
+##############################################################################
+
+8. Command line parameters and options.
+
+The usage of the "ecm" command is the following:
+
+$ ecm [options] B1 [[B2min-]B2] < file
+
+Parameters:
+- B1 is the step 1 bound. It is a mandatory parameter. It can be
+  given either in integer format (for example 3000000) or in
+  floating-point format (3000000.0 or 3e6). The largest possible
+  B1 value is 9007199254740996.
+  All primes 2 <= p <= B1 are processed in step 1.
+- B2 is the step 2 bound. It is optional: if not given, it is computed
+  from B1 so that step 2 takes about half the time of step 1. Since the
+  relative cost of both steps differs with the different methods, the
+  default B2 value also differs; for the same B1, the default B2 for
+  P+1 will be larger than that for P-1, and that for ECM will be still
+  larger. Like B1, it can be given either in integer or in floating-point 
+  format. The largest possible value of B2 depends on the number of blocks
+  in stage 2 (see option -k); it is about 9846466279650*k.
+  All primes B1 <= p <= B2 are processed in step 2. If B2 < B1, no step 2
+  is performed.
+- alternatively one may use the B2min-B2max form, which means that all
+  primes B2min <= p <= B2max should be processed. Thus B2 corresponds to
+  B1-B2.
+
+Options: options must appear before the parameters, and can be in any order.
+
+Options to control the factorization method [ECM is the default]:
+-pm1. Perform P-1 instead of ECM.
+-pp1. Perform P+1 instead of ECM.
+
+Options to control the group and initial point used:
+-x0 x [P-1,P+1,ECM]. Use x as initial point. x can be an arbitrary-precision
+   integer or rational. For example, -x0 1/3 is valid. If not given, x0 is
+   either generated from the sigma value for ECM, or at random.
+-sigma s [ECM]. Use s (arbitrary-precision integer) as curve generator.
+   If not given, sigma is generated at random (32-bit integer).
+-A a [ECM]. Use 'a' (arbitrary-precision integer) as curve parameter.
+   If not given, is generated from sigma.
+
+Options to control stage 2 parameters:
+-k n [P-1,P+1,ECM]. Perform n steps in stage 2 (default is 5). See
+   paragraph "Memory usage" above.
+-power n. Use x^n for Brent-Suyama's extension (see paragraph "Extra factors
+   and Brent-Suyama's extension). Default is x^1 for P+1 and ECM, x^2 for P-1.
+   For P-1, the exponent should be even.
+-dickson n. Use degree-n Dickson's polynomial for Brent-Suyama's
+   extension, instead of x^n. As for x^n, 'n' should be even for P-1. 
+
+Options to control output:
+-q. Quiet mode. Found factors are printed on standard error, and
+   cofactors (if not probable prime) are printed on standard output.
+   This option is useful to deal with a file of cofactors: type
+   ecm B1 < file > file2, so that non-factored numbers and composite
+   cofactors are written in file2, while factors found are printed on
+   standard error. Then one can do ecm B1 < file2 > file3, ...
+-v. Verbose mode. Several informations are printed (modular
+   multiplication used, initial A and x0 values, value of x at the end
+   of step 1, parameters for step 2, and timing for sub-steps from step 2).
+
+Options to control modular arithmetic (see "How to get the best of gmp-ecm?"):
+-mpzmod.  Use GMP's mpz_mod for modular reduction.
+-modmuln. Use Montgomery's MODMULN for modular reduction.
+-redc.    Use Montgomery's REDC for modular reduction.
+-nobase2  Disable special base-2 code. Base-2 division is used
+          when the input number if a factor of 2^n+1 or 2^n-1,
+          and the ratio of the number of bits is not too small.
+
+Options for saving and resuming to/from files (see paragraph "Options
+   -save and -resume"):
+-save file. Save residues at end of stage 1 to file.
+-resume file. Resume residues from file, reads from stdin if file is "-".
+
+Miscallenaous options:
+-primetest. Perform a primality test on input number, and prints a
+   message if it is probably prime. This is not done by default since
+   the primality test may be quite expensive (especially for large input).
+	
+
+
+
+
+
+  
+  
+  
+
+  
 
 
