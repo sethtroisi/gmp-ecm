@@ -277,3 +277,47 @@ Powering["P+1"] := proc(P0, p, n) local l, i, P, Q, R;
    od;
    P
 end:
+
+############################ ecm ###################################
+
+# converts (x:1:1) to Weierstrass form (mod p)
+# returns [X,Y,A]
+montgomery_to_weierstrass := proc(x, a, p) local g;
+   g := (x^3 + a*x^2 + x) mod p;
+   [(3*x+a)/(3*g) mod p, 1/g mod p, (3-a^2)/(3*g^2) mod p]
+end:
+
+addW := proc(x1, y1, x2, y2, n) local u, v, p;
+   u := x2-x1;
+   v := 1/u mod n; # 1/(x2-x1)
+   p := (y2-y1)*v mod n; # lambda=(y2-y1)/(x2-x1)
+   u := p*p-x1; # lambda^2-x1
+   v := u-x2 mod n; # lambda^2-x1-x2
+   u := (x1-v)*p; # (2x1+x2-lambda^2)*lambda
+   [v, u-y1 mod n]
+end:
+
+# (x::y) -> 2*(x::y)
+dupW := proc(x, y, n, a) local u, v, p;
+   v := 1/(2*y) mod n;
+   u := 3*x^2+a mod n;
+   p := u*v mod n;
+   u := p^2;
+   v := 2*x;
+   u := u-v mod n;
+   [u, (x-u)*p-y mod n]
+end:
+
+# (x::y) -> k*(x::y)
+mulW := proc(x, y, k, n, a) local l, P, i;
+   if k=1 then [x,y]
+   else # k >= 3
+      l := convert(k, base, 2);
+      P := [x, y];
+      for i from nops(l)-1 by -1 to 1 do
+         P := dupW(op(P), n, a);
+         if l[i]=1 then P := addW(op(P), x, y, n) fi
+      od;
+      P
+   fi
+end:
