@@ -338,7 +338,6 @@ ntt_PrerevertDivision (mpzp_t a, mpzp_t b, mpzp_t invb, spv_size_t len,
   list_mod (a, a, len, n);
 }
 
-#if 0
 void ntt_PolyInvert (mpzp_t q, mpzp_t b, spv_size_t len, mpzp_t t, mpz_t n)
 {
   if (len < POLYINVERT_NTT_THRESHOLD)
@@ -347,51 +346,29 @@ void ntt_PolyInvert (mpzp_t q, mpzp_t b, spv_size_t len, mpzp_t t, mpz_t n)
       return;
     }
 
-  spv_size_t m = POLYINVERT_NTT_THRESHOLD / 2;
+  spv_size_t k = POLYINVERT_NTT_THRESHOLD / 2;
+  
+  PolyInvert (q + len - k, b + len - k, k, t, n);
+  
+  for (; k < len; k *= 2)
+    {
+      ntt_mul_partial (t, q + len - k, k, b + len - 2 * k, 2 * k, k - 1,
+        2 * k - 1, NULL, 0, n);    
+      list_neg (t, t + k - 1, k, n);
+      list_mod (t, t, k, n);
+  
+      ntt_mul (t + k, t, q + len - k, k, t + 3 * k - 1, 0, n);
+      list_mod (q + len - 2 * k, t + 2 * k - 1, k, n);
+  }
+
+#ifdef DEBUG
+  ntt_mul_partial (t, q, len, b, len, 0, 2 * len - 1, NULL, 0, n);
+  list_mod (t, t, 2 * len - 1, n);
   spv_size_t i;
-
-  PolyInvert (q + m, b + len - m, m, t, n);
-  
-  for (; m < len; m *= 2)
-    {
-      ntt_mul_partial (t, q + m, m, b + len - 2 * m, 2 * m, 2 * m - 1,
-	  3 * m - 1, NULL, 0, n);
-      
-      for (i = 0; i < m; i++)
-        {
-	  mpz_neg (t[m - 1 + i], t[m - 1 + i]);
-	  mpz_mod (t[i], t[m - 1 + i], n);
-	}
-      
-      list_mod (t, t, m, n);
-  
-      ntt_mul (t + m, t, q + m, m, t + 3 * m - 1, 0, n);
-      list_mod (q, t + 2 * m - 1, m, n);
-    }
-}
-#else
-
-void ntt_PolyInvert (mpzp_t q, mpzp_t b, spv_size_t len, mpzp_t t, mpz_t n)
-{
-  /* FIXME unroll recursion */
-  
-  if (len < POLYINVERT_NTT_THRESHOLD)
-    {
-      PolyInvert (q, b, len, t, n);
-      return;
-    }
-
-  spv_size_t k = len / 2;
-  
-  ntt_PolyInvert (q + k, b + k, k, t, n);
-  
-  ntt_mul_partial (t, q + k, k, b, 2 * k, 2 * k - 1, 3 * k - 1, NULL, 0, n);
-      
-  list_neg (t, t + k - 1, k, n);
-  list_mod (t, t, k, n);
-  
-  ntt_mul (t + k, t, q + k, k, t + 3 * k - 1, 0, n);
-  list_mod (q, t + 2 * k - 1, k, n);
-}
-
+  for (i = len - 1; i < 2 * len - 2; i++)
+    if (mpz_cmp_ui (t[i], 0))
+      printf ("error in ntt_PolyInvert\n");
+  if (mpz_cmp_ui (t[2 * len - 2], 1))
+    printf ("error in ntt_PolyInvert-\n");
 #endif
+}
