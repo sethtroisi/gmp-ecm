@@ -491,7 +491,10 @@ ecm_stage1 (mpz_t f, mpres_t x, mpres_t A, mpmod_t n, double B1,
   mpres_init (zT, n);
   mpres_init (xT2, n);
   mpres_init (zT2, n);
-  
+
+  /* Prep for stage one counter */
+  fprintf ("1:000 \r");
+
   mpres_set_ui (z, 1, n);
   
   mpres_add_ui (b, A, 2, n);
@@ -596,9 +599,6 @@ ecm_stage1 (mpz_t f, mpres_t x, mpres_t A, mpmod_t n, double B1,
   mpres_clear (z, n);
   mpres_clear (b, n);
 
-  /* Pre the screen for stage 2 */
-  fprintf (stderr, "2:000\r");
-  
   return ret;
 }
 
