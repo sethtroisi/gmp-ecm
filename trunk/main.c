@@ -121,7 +121,7 @@ main (int argc, char *argv[])
   gmp_randstate_t randstate;
   char *savefilename = NULL, *resumefilename = NULL;
   char *endptr[1]; /* to parse B2 or B2min-B2max */
-  char rtime[256], who[256], comment[256], program[256];
+  char rtime[256] = "", who[256] = "", comment[256] = "", program[256] = "";
   FILE *savefile = NULL, *resumefile = NULL;
   int primetest = 0;
   unsigned int count = 1; /* number of curves for each number */
