@@ -32,6 +32,9 @@ int trial_factor(mpcandi_t *n, double maxfact)
   unsigned long Remainder;
   double p;
   char numbuf[40];
+  int Counter = 0, st;
+
+  st = cputime ();
   
   getprime(0.0);  /* free the prime tables, and reinitialize */
   /* brain dead trial factor'r but it werks */
@@ -50,6 +53,25 @@ int trial_factor(mpcandi_t *n, double maxfact)
 	  else
 	    printf("Found Proven Prime   factor of %2u digits: %s\n", strlen(numbuf), numbuf); 
 	  factors += cnt_this_fact;
+	}
+      if (++Counter == 50000)
+	{
+	  /* only output to screen at most once every 5 seconds */
+	  if (cputime() - st > 5000)
+	    {
+	      /* Check to see if we should update our screen "percentage counter" */
+	      st = cputime();
+	      double Percentage = p;
+	      Percentage /= maxfact;
+	      Percentage *= 100;
+	      fprintf (stderr, "T:%03d\r", (int)Percentage);
+
+	      /*  This code is here to see just how often this ++Counter loop is entered.  It is entered quite a bit
+	      static int x;
+	      fprintf (stderr, "T:%03d\r", ++x);
+	      */
+  	    }
+          Counter=0;
 	}
     }
   mpz_clear(t);
