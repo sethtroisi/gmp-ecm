@@ -835,7 +835,7 @@ PrerevertDivision (listz_t a, listz_t b, listz_t invb,
 {
   int po2, muls, wrap;
 #ifdef WRAP
-  listz_t t2;
+  listz_t t2 = NULL;
   wrap = K > 2;
 #else
   wrap = 0;
@@ -890,25 +890,27 @@ PrerevertDivision (listz_t a, listz_t b, listz_t invb,
         muls += F_mul (t, a + K, b, K, DEFAULT, Fermat, t + 2 * K);
     }
   else
+    {
 #ifdef KS_MULTIPLY /* ks is faster */
-    if (wrap)
-    /* Q = {t2, K-1}, B = {b, K+1}
-       We know that Q*B vanishes with the coefficients of degree
-       K to 2K-2 of {A, 2K-1} */
-      {
-	unsigned int m;
-	m = ks_wrapmul (t, K + 1, b, K + 1, t2, K - 1);
-	clear_list (t2, K - 1);
-	/* coefficients of degree m..2K-2 wrap around,
-	   i.e. were subtracted to 0..2K-2-m */
-	if (m < 2 * K - 1) /* otherwise product is exact */
-	  list_add (t, t, a + m, 2 * K - 1 - m);
-      }
-    else
-      muls += LIST_MULT_N (t, a + K, b, K, t + 2 * K - 1);
+      if (wrap)
+        /* Q = {t2, K-1}, B = {b, K+1}
+           We know that Q*B vanishes with the coefficients of degree
+           K to 2K-2 of {A, 2K-1} */
+        {
+          unsigned int m;
+          m = ks_wrapmul (t, K + 1, b, K + 1, t2, K - 1);
+          clear_list (t2, K - 1);
+          /* coefficients of degree m..2K-2 wrap around,
+             i.e. were subtracted to 0..2K-2-m */
+          if (m < 2 * K - 1) /* otherwise product is exact */
+            list_add (t, t, a + m, 2 * K - 1 - m);
+        }
+      else
+        muls += LIST_MULT_N (t, a + K, b, K, t + 2 * K - 1);
 #else
       muls += list_mul_low (t, a + K, b, K, t + 2 * K - 1, n);
 #endif
+    }
 
   /* now {t, K} contains the low K terms from Q*B */
   list_sub (a, a, t, K);
