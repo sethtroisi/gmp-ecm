@@ -18,7 +18,7 @@
   02111-1307, USA.
 */
 
-#define ECM_VERSION "5.0"
+#define ECM_VERSION "5.0-beta"
 
 #include <stdio.h>
 #include <gmp.h>
