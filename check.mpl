@@ -66,6 +66,17 @@ local x, F, inva, i, v, t, u, a, dF, G, j, H, ij;
    if degree(G)<>0 then lprint("****** Found factor in stage 2: ", p) fi;
 end:
 
+list_mul_opt := proc(n) option remember;
+   if n<=1 then n
+   elif member(n, {2,5,6,7,8,17,18,23,24,29,30}) then # Karatsuba
+      2*procname(ceil(n/2))+procname(floor(n/2))
+   elif member(n, {3,9,10,11,12,20,21,25,26,27}) then # toomcook3
+      4*procname(ceil(n/3))+procname(n-2*ceil(n/3))
+   else # toomcook4
+      6*procname(ceil(n/4))+procname(n-3*ceil(n/4))
+   fi
+end:
+
 # number of scalar multiplies from karatsuba
 karatsuba := proc(n) option remember;
    if n<=1 then n
@@ -73,13 +84,114 @@ karatsuba := proc(n) option remember;
    fi
 end:
 
-# number of scalar multiplies from toomcook3
+# number of scalar multiplies from karatsuba, short product
+karatsuba_short := proc(n) option remember;
+   if n<=1 then n
+   else procname(ceil(n/2))+2*procname(floor(n/2))
+   fi
+end:
+
+# number of scalar multiplies from Karatsuba
+# Mulders' short product (optimal cutoff)
+karatsuba_short_mulders := proc(n) option remember; local p, m;
+   if n<=1 then n
+   else
+      m := infinity;
+      for p from ceil(n/2) to n-1 do
+         m := min(m, karatsuba(p)+2*procname(n-p))
+      od;
+      m
+   fi
+end:
+
+# get m terms, with entries of n terms
+karatsuba_short2 := proc(n0, m0) option remember; local n, m;
+   n := n0;
+   m := m0;
+   if m>2*n-1 then m:=2*n-1
+   elif m<n then n:=m
+   fi;
+   if n<=1 then n
+   else
+      procname(ceil(n/2), ceil(m/2)) # evaluation at t=0
+      + procname(ceil(n/2), ceil((m-1)/2)) # eval. at t=1
+      + procname(ceil((n-1)/2), ceil((m-1)/2)) # t = inf
+   fi
+end:
+
+# number of scalar multiplies from toomcook3, as implemented in ecm-5.0.1
 toomcook3 := proc(n) option remember; local l, k;
-   if n <= 2 or n=4 then karatsuba(n)
+   if member (n, {0,1,2,4}) then karatsuba(n)
    else
       l := iquo(n + 2, 3);
       k := n - 2*l;
       4*procname(l) + procname(k)
+   fi
+end:
+
+# number of scalar multiplies for Toom3
+# Mulders' short product (optimal cutoff)
+toomcook3_short_mulders := proc(n) option remember; local p, m, c, s;
+   if n<=1 then n
+   else
+      m := infinity;
+      for p from ceil(n/2) to n do
+         c := toomcook3(p)+2*procname(n-p);
+         if c<m then m:=c; s:={p}
+         elif c=m then s:=s union {p}
+         fi
+      od;
+#      lprint(n, s);
+      m
+   fi
+end:
+
+# conjectured optimal cutoff: largest of 3^k or 2*3^k that is between n/2 and n
+# seems to be true: works for all n<=1000
+toomcook3_short_mulders2 := proc(n) option remember; local p;
+   if n<=1 then n
+   else
+      p := 1;
+      while 3*p<=n do p:=3*p od;
+      p := floor(n/p)*p;
+      toomcook3(p)+2*procname(n-p);
+   fi
+end:
+
+# number of scalar multiplies from toomcook3, short product
+# odd-even variant: short (a0(x^3) + x*a1(x^3)+ x^2*a2(x^3), n)
+toomcook3_short := proc(n) option remember;
+   if n <= 2 or n = 5 then karatsuba_short(n)
+   else
+      if n mod 3 = 2 then # consider (x*a(x))^2
+         procname(iquo(n,3)) + 4*procname(iquo(n+2,3))
+      else procname(ceil(n/3)) + 4*procname(ceil((n-1)/3))
+      fi
+   fi
+end:
+
+# get m terms, with entries of n terms
+toomcook3_short2 := proc(n0, m0) option remember; local n, m, c1, c2;
+   n := n0;
+   m := m0;
+   if m>2*n-1 then m:=2*n-1
+   elif m<n then n:=m
+   fi;
+   if n<=1 then n
+   elif member([n,m],{[2,2],[2,3],[4,5],[4,6],[4,7],[5,5]}) then karatsuba_short2(n,m)
+   else
+      c1 := toomcook3_short2(ceil(n/3), ceil(m/3)) # evaluation at t=0
+      + 3*toomcook3_short2(ceil(n/3), ceil((m-1)/3)) # eval. at t=1, -1, 2
+      + toomcook3_short2(ceil((n-2)/3), ceil((m-1)/3)); # t = inf
+      # shift entries by x: n->n+1, m->m+2
+      c2 := toomcook3_short2(ceil((n+1)/3)-1, ceil((m-4)/3)) # eval. at 0
+      + 3*toomcook3_short2(ceil((n+1)/3), ceil((m+1)/3)) # eval. at t=1, -1, 2
+      + toomcook3_short2(ceil((n-1)/3), ceil((m+1)/3)); # t = inf
+      c1 := min(c1, c2);
+      if karatsuba_short2(n,m) < c1 then
+         lprint("karatsuba_short2 faster for ", n, m)
+      fi;
+      c1
    fi
 end:
 
@@ -106,11 +218,69 @@ M(4):=5:
 
 # number of scalar multiplies from toomcook4
 toomcook4 := proc(n) option remember; local l, k;
-   if n<=3 or member(n,{5,6,9,17,18,26,27,77,78,79,80,81}) then toomcook3(n)
+   if member(n,{0,1,2,3,5,6,9,17,18,25,26,27,77,78,79,80,81}) then toomcook3(n)
    else
       l := iquo(n + 3, 4);
       k := n - 3 * l;
       6*procname(l) + procname(k)
+   fi
+end:
+
+# find optimal method between kara, toom3 and toom4
+find_opt := proc(nmax) local n, T, kara, toom3, toom4;
+   T[0]:=0;
+   T[1]:=1;
+   for n from 2 to nmax do
+      kara := 2*T[ceil(n/2)]+T[floor(n/2)];
+      toom3 := 4*T[ceil(n/3)]+T[n-2*ceil(n/3)];
+      if n>=4 and n<>5 then
+         toom4 := 6*T[ceil(n/4)]+T[n-3*ceil(n/4)]
+      else
+         toom4 := kara;
+      fi;
+      if kara<=min(toom3,toom4) then lprint(n, "karatsuba", kara); T[n]:=kara
+      elif toom3<=toom4 then lprint(n, "toomcook3", toom3); T[n]:=toom3
+      else T[n]:=toom4
+      fi
+   od;
+end:
+
+# number of scalar multiplies for Toom3
+# Mulders' short product (optimal cutoff)
+toomcook4_short_mulders := proc(n) option remember; local p, m, c, s;
+   if n<=1 then n
+   else
+      m := infinity;
+      for p from ceil(n/2) to n do
+         c := toomcook4(p)+2*procname(n-p);
+         if c<m then m:=c; s:={p}
+         elif c=m then s:=s union {p}
+         fi
+      od;
+      lprint(n, s);
+      m
+   fi
+end:
+
+# conjectured optimal cutoff: 4^k or 2*4^k or 3*4^k that is between n/2 and n
+# works for almost all n: exceptions are n=32 (p=27),
+# n=125-130 (108)
+toomcook4_short_mulders2 := proc(n) option remember; local p;
+   if n<=1 then n
+   else
+      p := 1;
+      while 4*p<=n do p:=4*p od;
+      p:=floor(n/p)*p;
+      toomcook4(p)+2*toomcook4_short_mulders(n-p);
+   fi
+end:
+
+# number of scalar multiplies from toomcook4, short product
+toomcook4_short := proc(n) option remember;
+   if n <= 3 or member (n, {6,7,10,22,30,31,90,91,94}) then toomcook3_short(n)
+   else
+      min(procname(ceil(n/4)) + 6*procname(ceil((n-1)/4)),
+          procname(ceil((n+1)/4)-1) + 6*procname(ceil(n/4)))
    fi
 end:
 
@@ -383,5 +553,72 @@ mulW := proc(x, y, k, n, a) local l, P, i;
          if l[i]=1 then P := addW(op(P), x, y, n) fi
       od;
       P
+   fi
+end:
+
+##############################################################################
+
+# odd-even variant
+kara_short_mul := proc(a, b, n)
+local a0, a1, b0, b1, c0, c1, c2, p, q, r, i, res;
+   if n = 0 then []
+   elif n = 1 then [a[1]*b[1]]
+   else
+      p := ceil(n/2);
+      q := ceil((n-1)/2);
+      r := q;
+      a0 := [seq(a[2*i-1],i=1..p)];
+      b0 := [seq(b[2*i-1],i=1..p)];
+      a1 := [seq(a[2*i], i=1..q)];
+      b1 := [seq(b[2*i], i=1..q)];
+      c0 := procname(a0, b0, p);
+      c1 := procname(a0[1..q]+a1, b0[1..q]+b1, q);
+      c2 := procname(a1, b1, r);
+      c1 := c1 - c0[1..q] - [op(c2),0$(q-r)];
+      res := [0$n];
+      for i to p do res[2*i-1]:=c0[i] od;
+      for i to min(r,iquo(n-1,2)) do res[2*i+1]:=res[2*i+1]+c2[i] od;
+      for i to q do res[2*i]:=c1[i] od;
+      res
+   fi
+end:
+
+# odd-even variant
+toom3_short_mul := proc(a, b, n)
+local a0, a1, a2, b0, b1, b2, c0, c1, c2, c3, c4, p, q, r, i, res;
+   if n = 0 then []
+   elif n = 1 then [a[1]*b[1]]
+   elif n = 2 then [a[1]*b[1], a[1]*b[2]+a[2]*b[1]]
+   else
+      p := ceil(n/3);
+      q := ceil((n-1)/3);
+      r := ceil((n-2)/3);
+      a0 := [seq(a[3*i-2],i=1..p)];
+      b0 := [seq(b[3*i-2],i=1..p)];
+      a1 := [seq(a[3*i-1], i=1..q)];
+      b1 := [seq(b[3*i-1], i=1..q)];
+      a2 := [seq(a[3*i], i=1..r), 0$(q-r)];
+      b2 := [seq(b[3*i], i=1..r), 0$(q-r)];
+      c0 := procname(a0, b0, p); # 0
+      c1 := procname(a0[1..q]+a1+a2, b0[1..q]+b1+b2, q); # 1
+      c2 := procname(a0[1..q]-a1+a2, b0[1..q]-b1+b2, q); # -1
+      c3 := procname(a0[1..q]+2*a1+4*a2, b0[1..q]+2*b1+4*b2, q); # 2
+      c4 := procname(a2, b2, q);
+      c1 := c1 - c0[1..q] - c4;    # d1+d2+d3
+      c2 := c2 - c0[1..q] - c4;    # -d1+d2-d3
+      c3 := c3 - c0[1..q] - 16*c4; # 2*d1+4*d2+8*d3
+      c1 := (c1 + c2)/2; # d2
+      c2 := c2 - c1;     # -d1-d3
+      c3 := c3 - 4*c1;   # 2*d1+8*d3
+      c3 := c3 + 2*c2;   # 6*d3
+      c3 := c3/6;        # d3
+      c2 := -c2-c3;      # d1
+      res := [0$n];
+      for i to p do res[3*i-2]:=c0[i] od;
+      for i to q do res[3*i-1]:=res[3*i-1]+c2[i] od;
+      for i to ceil((n-2)/3) do res[3*i]:=res[3*i]+c1[i] od;
+      for i to ceil((n-3)/3) do res[3*i+1]:=res[3*i+1]+c3[i] od;
+      for i to ceil((n-4)/3) do res[3*i+2]:=res[3*i+2]+c4[i] od;
+      res
    fi
 end:
