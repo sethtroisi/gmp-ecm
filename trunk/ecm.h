@@ -320,6 +320,9 @@ int  mpcandi_t_add_candidate (mpcandi_t *n, mpz_t c, const char *cpExpr, int bPr
 int  mpcandi_t_addfoundfactor (mpcandi_t *n, mpz_t f, int displaywarning);
 int  mpcandi_t_addfoundfactor_d (mpcandi_t *n, double f);
 
+/* b1_ainc.c */
+double calc_B1_AutoIncrement(double cur_B1, double incB1val, int calcInc);
+
 /* memory.c */
 #ifdef MEMORY_DEBUG
 void __gmp_default_free (void *, size_t);
