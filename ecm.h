@@ -61,6 +61,9 @@
 /* delay between percentage updates (in milliseconds) */
 #define SCREEN_UPDATE_DELAY 1000
 
+/* default number of probable prime tests */
+#define PROBAB_PRIME_TESTS 1
+
 #define ABS(x) ((x) >= 0 ? (x) : -(x))
 
 #define mpz_mulmod(a,b,c,n) \
