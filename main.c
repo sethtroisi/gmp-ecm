@@ -264,7 +264,7 @@ main (int argc, char *argv[])
   if (verbose >= 1)
     {
       printf ("GMP-ECM %s [powered by GMP %s", ECM_VERSION, gmp_version);
-#ifndef POLYEVAL      
+#ifdef POLYGCD
       printf (" and NTL %u.%u", NTL_major_version (), NTL_minor_version ());
 #endif
       printf ("]\n");
@@ -294,7 +294,7 @@ main (int argc, char *argv[])
       exit (1);
     }
 
-#ifndef POLYEVAL
+#ifdef POLYGCD
   NTL_init ();
 #endif
 
@@ -516,7 +516,7 @@ main (int argc, char *argv[])
         }
     }
 
-#ifndef POLYEVAL
+#ifdef POLYGCD
   NTL_clear ();
 #endif
 
