@@ -435,27 +435,6 @@ TToomCookMul (listz_t b, unsigned int n,
 
     l = MIN(l, n + m);
 
-    /*  We should not be called with so small arguments, but
-     *  treat this cases anyway.
-     */
-
-    if (n == 0)
-    {
-        mpz_mul (b[0], a[0], c[0]);
-        for (i = 1; (i <= m) && (i <= l); i++)
-            mpz_addmul (b[0], a[i], c[i]);
-        return MIN(m, l);
-    }
-
-    if (m == 0)
-    {
-        for (i = 0; (i <= l) && (i <= n); i++)
-            mpz_mul (b[i], a[0], c[i]);
-        for (i = l + 1; i <= n; i++)
-            mpz_set_ui (b[i], 0);
-        return MIN(n, l) + 1;
-    }
-
     /* Now the degenerate cases. We want 2 * nu <= m.
      * 
      */
@@ -746,16 +725,6 @@ TToomCookMul_space (unsigned int n, unsigned int m, unsigned int l)
      */
 
     l = MIN(l, n + m);
-
-    /*  We should not be called with so small arguments, but
-     *  treat this cases anyway.
-     */
-
-    if (n == 0)
-        return 0;
-
-    if (m == 0)
-        return 0;
 
     /* Now the degenerate cases. We want 2 * nu < m.
      * 
