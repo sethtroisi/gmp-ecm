@@ -70,12 +70,11 @@ Code up the following for power-of-two poly lengths only - much easier.
 
 1) ntt_PolyFromRoots (DONE - DN), ntt_PolyFromRoots_Tree (DONE - DN)
 
-2) Poly_Invert
+2) Poly_Invert (DONE - DN)
 
 3) Recursive_Division
 
-4) Prerevert_Division with cached transforms (DONE but without transform
-caching - DN)
+4) Prerevert_Division with cached transforms (DONE - DN)
 
 5) transposed Polyeval functions with cached transforms
 
