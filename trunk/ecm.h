@@ -108,6 +108,8 @@ typedef struct
   mpz_t orig_modulus; /* The original modulus */
   mpz_t aux_modulus;  /* The auxiliary modulus value (i.e. normalized 
                          modulus, or -1/N (mod 2^bits) for REDC */
+  mpz_t multiple;     /* The smallest multiple of N that is larger or
+			 equal to 2^bits for REDC/MODMULN */
   mpz_t R2, R3;       /* For MODMULN and REDC, R^2 and R^3 (mod orig_modulus), 
                          where R = 2^bits. */
   mpz_t temp1, temp2; /* Temp values used during multiplication etc. */
@@ -166,19 +168,22 @@ int     pm1_rootsG       (mpz_t, listz_t, unsigned int, mpres_t *, listz_t,
 /* ecm.c */
 int          ecm        (mpz_t, mpz_t, mpz_t, mpz_t, double, double, double, double,
                          double, unsigned int, int, int, int, int);
-unsigned long phi        (unsigned long);
-unsigned long bestD      (double, unsigned int, unsigned int *, double, int);
-double       block_size (unsigned long);
 int          cputime    (void);
 
+/* bestd.c */
+unsigned long   phi (unsigned long);
+double   block_size (unsigned long);
+unsigned long bestD (double, unsigned int, unsigned int *, unsigned int,
+                     unsigned long *);
+
 /* trial.c */
-int trial_factor(mpcandi_t *n, double maxfact, int deep);
+int trial_factor (mpcandi_t *n, double maxfact, int deep);
 
 /* ecm2.c */
 int     ecm_rootsF       (mpz_t, listz_t, unsigned int, curve *,
                           int, mpmod_t, int, unsigned long *);
 point * ecm_rootsG_init  (mpz_t, curve *, double, unsigned int, 
-						  int, mpmod_t, int);
+                          int, mpmod_t, int);
 void    ecm_rootsG_clear (point *, int, mpmod_t);
 int     ecm_rootsG       (mpz_t, listz_t, unsigned int, point *,
                           int, mpmod_t, int, unsigned long *);
@@ -198,8 +203,8 @@ int   pp1_rootsG         (listz_t, unsigned int, mpres_t *, mpmod_t,
                           unsigned long *);
 
 /* stage2.c */
-int          stage2     (mpz_t, void *, mpmod_t, double, double, unsigned int, 
-                         unsigned int, int, int);
+int          stage2     (mpz_t, void *, mpmod_t, double, double, unsigned int,
+                         int, int, int);
 void  fin_diff_coeff    (listz_t, double, unsigned int, unsigned int, int);
 
 /* listz.c */
@@ -216,9 +221,11 @@ void         list_mul_z (listz_t, listz_t, mpz_t, unsigned int, mpz_t);
 int          list_gcd   (mpz_t, listz_t, unsigned int, mpz_t);
 void         list_zero  (listz_t, unsigned int);
 int          list_zerop (listz_t, unsigned int);
+int       toomcook4_low (listz_t, listz_t, listz_t, unsigned int, listz_t);
+int      toomcook4_high (listz_t, listz_t, listz_t, unsigned int, listz_t);
 int          karatsuba  (listz_t, listz_t, listz_t, unsigned int, listz_t);
-int          list_mul   (listz_t, listz_t, unsigned int, listz_t, unsigned int,
-			 listz_t);
+int          list_mul   (listz_t, listz_t, unsigned int, int, listz_t,
+                         unsigned int, int, listz_t);
 int         list_mulmod (listz_t, listz_t, listz_t, unsigned int, listz_t,
 			 mpz_t);
 int         list_mulmod2(listz_t, listz_t, listz_t, listz_t, unsigned int,
@@ -226,12 +233,10 @@ int         list_mulmod2(listz_t, listz_t, listz_t, listz_t, unsigned int,
 int       PolyFromRoots (listz_t, listz_t, unsigned int, listz_t, int, mpz_t,
                          char, listz_t*, unsigned int);
 int          PolyInvert (listz_t, listz_t, unsigned int, listz_t, mpz_t);
-int   RecursiveDivision (listz_t, listz_t, listz_t, listz_t, unsigned int,
-                         listz_t, mpz_t);
+int   RecursiveDivision (listz_t, listz_t, listz_t, unsigned int,
+                         listz_t, mpz_t, int);
 int   PrerevertDivision (listz_t, listz_t, listz_t, unsigned int, listz_t,
                          mpz_t);
-void         Div3by2    (listz_t, listz_t, listz_t, unsigned int, listz_t,
-			 mpz_t);
 int          list_mod1  (mpz_t, listz_t, listz_t, unsigned int, mpz_t, mpz_t*);
 void      poly_submul2 (listz_t, listz_t, listz_t, unsigned int, mpz_t, mpz_t);
 int          list_invert (listz_t, listz_t, unsigned int, mpz_t, mpz_t);
