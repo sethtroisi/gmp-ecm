@@ -246,14 +246,14 @@ void mpres_set_z (mpres_t, mpz_t, mpmod_t);
 void mpres_get_z (mpz_t, mpres_t, mpmod_t);
 void mpres_set_ui (mpres_t, unsigned int, mpmod_t);
 void mpres_init (mpres_t R, mpmod_t modulus);
-void mpres_clear (mpres_t R, mpmod_t modulus);
-void mpres_set (mpres_t R, mpres_t S, mpmod_t modulus);
-void mpres_swap (mpres_t R, mpres_t S, mpmod_t modulus);
 void mpres_mul_ui (mpres_t, mpres_t, unsigned int, mpmod_t);
 void mpres_neg (mpres_t, mpres_t, mpmod_t);
 int  mpres_invert (mpres_t, mpres_t, mpmod_t);
 void mpres_gcd (mpz_t, mpres_t, mpmod_t);
 void mpres_out_str (FILE *, unsigned int, mpres_t, mpmod_t);
+#define mpres_clear(a,n) mpz_clear (a)
+#define mpres_set(a,b,n) mpz_set (a, b)
+#define mpres_swap(a,b,n) mpz_swap (a, b)
 
 /* mul_lo.c */
 void mpn_mul_lo_n (mp_ptr, mp_srcptr, mp_srcptr, mp_size_t);

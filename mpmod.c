@@ -411,24 +411,6 @@ mpres_init (mpres_t R, mpmod_t modulus)
   mpz_init2 (R, mpz_sizeinbase (modulus->orig_modulus, 2));
 }
 
-void 
-mpres_clear (mpres_t R, mpmod_t modulus)
-{
-  mpz_clear (R);
-}
-
-void 
-mpres_set (mpres_t R, mpres_t S, mpmod_t modulus)
-{
-  mpz_set (R, S);
-}
-
-void 
-mpres_swap (mpres_t R, mpres_t S, mpmod_t modulus)
-{
-  mpz_swap (R, S);
-}
-
 /* R <- BASE^EXP mod modulus */ 
 void 
 mpres_pow (mpres_t R, mpres_t BASE, mpres_t EXP, mpmod_t modulus)
@@ -704,12 +686,14 @@ mpres_sub_ui (mpres_t R, mpres_t S, unsigned int n, mpmod_t modulus)
       mpz_sub (modulus->temp1, S, modulus->temp1);
       mpz_mod (R, modulus->temp1, modulus->orig_modulus);
     }
+#ifdef DEBUG
   else
     {
       fprintf (stderr, "mpres_sub_ui: Unexpected  representation %d\n", 
                modulus->repr);
       exit (EXIT_FAILURE);
     }
+#endif
 }
 
 /* R <- S1 - S2 mod modulus.
@@ -745,12 +729,14 @@ mpres_set_z (mpres_t R, mpz_t S, mpmod_t modulus)
       mpz_mul (modulus->temp1, modulus->temp2, modulus->R2);
       REDC (R, modulus->temp1, modulus->temp2, modulus);
     }
+#ifdef DEBUG
   else
     {
       fprintf (stderr, "mpres_set_z: Unexpected  representation %d\n", 
                modulus->repr);
       exit (EXIT_FAILURE);
     }
+#endif
 }
 
 /* S must not be modulus->temp1 for REDC */
@@ -770,12 +756,14 @@ mpres_get_z (mpz_t R, mpres_t S, mpmod_t modulus)
     {
       REDC (R, S, modulus->temp1, modulus);
     }
+#ifdef DEBUG
   else
     {
       fprintf (stderr, "mpres_get_z: Unexpected representation %d\n", 
                modulus->repr);
       exit (EXIT_FAILURE);
     }
+#endif
 }
 
 void 
@@ -792,12 +780,14 @@ mpres_set_ui (mpres_t R, unsigned int n, mpmod_t modulus)
       mpz_mul_2exp (modulus->temp1, modulus->temp1, modulus->bits);
       mpz_mod (R, modulus->temp1, modulus->orig_modulus);
     }
+#ifdef DEBUG
   else
     {
       fprintf (stderr, "mpres_set_ui: Unexpected representation %d\n", 
                modulus->repr);
       exit (EXIT_FAILURE);
     }
+#endif
 }
 
 /* R <- -S mod modulus. Does not need to be efficient. */
@@ -836,12 +826,15 @@ mpres_invert (mpres_t R, mpres_t S, mpmod_t modulus)
       else
         return 0;
     }
+#ifdef DEBUG
   else
     {
       fprintf (stderr, "mpres_invert: Unexpected representation %d\n", 
                modulus->repr);
       exit (EXIT_FAILURE);
     }
+#endif
+  return 0;
 }
 
 void 
