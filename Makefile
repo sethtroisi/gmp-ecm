@@ -62,8 +62,8 @@ all:
 ecm: $(ALLFILES) ecm.h
 	$(LD) $(CFLAGS) -L$(GMP)/lib -L$(NTL)/lib $(ALLFILES) -o $@ $(LDFLAGS)
 
-tune: mpmod.o ecm.h tune.o auxi.o mul_hi.o mul_lo.o
-	$(CC) $(CFLAGS) -L$(GMP)/lib tune.o mpmod.o auxi.o mul_hi.o mul_lo.o -o $@ -lgmp
+tune: mpmod.o ecm.h tune.o auxi.o mul_lo.o
+	$(CC) $(CFLAGS) -L$(GMP)/lib tune.o mpmod.o auxi.o mul_lo.o -o $@ -lgmp
 
 ntl.o: ntl.c
 	$(CXX) $(CFLAGS) -c -I$(GMP)/include -I$(NTL)/include $<
