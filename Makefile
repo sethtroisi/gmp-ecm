@@ -20,12 +20,12 @@
 # directory where GMP is installed
 # gmp.h should be in $(GMP)/include
 # libgmp.a/libgmp.so should be in $(GMP)/lib
-GMP=/usr/local/gmp
+GMP=/usr/local
 
 # directory where NTL is installed
 # ZZ_pX.h and version.h should be in $(NTL)/include/NTL
 # libntl.a should be in $(NTL)/lib
-NTL=/usr/local/ntl
+NTL=/usr/local
 
 VERSION=5.0-beta-pl2
 
