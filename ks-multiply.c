@@ -68,6 +68,8 @@ kronecker_schonhage (listz_t R, listz_t A, listz_t B, unsigned int l,
   /* work out the corresponding number of limbs */
   s = 1 + (s - 1) / GMP_NUMB_BITS;
 
+  /* Note: s * (l - 1) + ceil(t/GMP_NUMB_BITS) should be faster,
+     but no significant speedup was observed */
   size_t0 = s * l;
 
   /* allocate one double-buffer to save malloc/MPN_ZERO/free calls */
