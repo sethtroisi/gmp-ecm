@@ -81,7 +81,7 @@ phi (unsigned long n)
 
   return (n == 1) ? phi : phi * (n - 1);
 }
-#endif
+#endif /* TESTDRIVE */
 
 /* dilog_series() from the Gnu scientific library */
 /* Evaluate series for real dilog(x)

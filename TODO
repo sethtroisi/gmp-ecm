@@ -30,6 +30,7 @@ ToDo's:
 	replace printf, or pass a stream to replace stdout)
   (b) error control: don't call exit/abort but return an error value
       Proposal: 1=factor found, 0=no factor found, -1=error.
+	remains to do: rho.c bestd.c auxlib.c random.c
   (c) have polygcd in stage 2 (to use less memory)
   (d) get rid of the mpz_ layer (Magma only uses mpn currently)
 
