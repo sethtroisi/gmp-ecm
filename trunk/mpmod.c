@@ -21,15 +21,19 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include "gmp.h"
-#include "ecm.h"
 #ifdef WANT_GMP_IMPL
 #include "gmp-impl.h"
 #else
 #include "ecm-gmp.h"
 #endif /* WANT_GMP_IMPL */
+#include "ecm.h"
 
-#ifndef MOD_PLAIN_TO_REDC_THRESHOLD
-#define MOD_PLAIN_TO_REDC_THRESHOLD 20000
+#ifndef MPZMOD_THRESHOLD
+#define MPZMOD_THRESHOLD MPZMOD_THRESHOLD_DEFAULT
+#endif
+
+#ifndef REDC_THRESHOLD
+#define REDC_THRESHOLD REDC_THRESHOLD_DEFAULT
 #endif
 
 #define FULL_REDUCTION
@@ -245,13 +249,13 @@ mpmod_init (mpmod_t modulus, mpz_t N, int repr, int verbose)
 		abs (base2), (base2 < 0) ? '-' : '+');
       mpmod_init_BASE2 (modulus, base2, N);
     }
-  else if (mpz_size (N) < 3 * DIV_DC_THRESHOLD / 2)
+  else if (mpz_size (N) < MPZMOD_THRESHOLD)
     {
       if (verbose > 1)
 	printf ("Using MODMULN\n");
       mpmod_init_MODMULN (modulus, N);
     }
-  else if (mpz_sizeinbase (N, 2) < MOD_PLAIN_TO_REDC_THRESHOLD)
+  else if (mpz_sizeinbase (N, 2) < REDC_THRESHOLD)
     {
       if (verbose > 1)
 	printf ("Using mpz_mod\n");
