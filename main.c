@@ -475,7 +475,8 @@ main (int argc, char *argv[])
       /*rintf (stderr, "  -extra functions added by JimF\n"); */
       fprintf (stderr, "\n");
       fprintf (stderr, "  Options beyond ECM 5.0  (i.e. specific to ECM 5.0c\n");
-      fprintf (stderr, "  -a n         increment B1 by this constant on each run\n");
+      fprintf (stderr, "  -i n         increment B1 by this constant on each run\n");
+      fprintf (stderr, "  -I f         auto-calculated increment for B1 multiplied by 'f' scale factor\n");
       fprintf (stderr, "  -inp file    Use file as input (instead of redirecting stdin)\n");
       fprintf (stderr, "  -b           Use breadth-first mode of file processing (recommended)\n");
       fprintf (stderr, "  -d           Use depth-first mode of file processing\n");
@@ -1023,7 +1024,7 @@ OutputFactorStuff:;
   
 
 
-  if (infilename)	// note infile "might" be stdin, and don't fclose that!
+  if (infilename)	/* note infile "might" be stdin, and don't fclose that! */
     fclose (infile);
   if (savefile)
     fclose (savefile);
