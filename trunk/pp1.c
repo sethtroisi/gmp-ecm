@@ -310,8 +310,11 @@ pp1_rootsG_init (mpres_t *x, double s, unsigned int d, unsigned int d2,
   mpres_init (state->fd[3], modulus);
   mpres_init (P, modulus);
 
+  state->d = d;
   state->dsieve = d2;
-  state->rsieve = 0; /* Assumes (d1*d2)|s */
+  /* We want to skip values where gcd(s + i * d, d2) != 1 */
+  /* state->rsieve = s % d2 */
+  state->rsieve = (unsigned int) (s - floor (s / (double)d2) * (double)d2);
 
   mpz_set_d (t, s);
   pp1_mul (state->fd[0], *x, t, modulus, state->fd[3], P);
@@ -353,7 +356,7 @@ pp1_rootsG (listz_t G, unsigned int d, pp1_roots_state *state, mpmod_t modulus)
       mpres_swap (state->fd[0], state->fd[2], modulus);
       mpres_mul (state->fd[3], state->fd[2], state->fd[1], modulus);
       mpres_sub (state->fd[0], state->fd[3], state->fd[0], modulus);
-      state->rsieve ++;
+      state->rsieve = (state->rsieve + state->d) % state->dsieve;
     }
 
   outputf (OUTPUT_VERBOSE, "Computing roots of G took %dms", cputime () - st);

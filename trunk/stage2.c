@@ -150,7 +150,11 @@ fin_diff_coeff (listz_t coeffs, double s, double D,
                                             i == 1 (mod m)
    
    for successive n. m must divide d.
-
+   
+   This means there will be k sets of progressions, where each set contains
+   eulerphi(d) progressions that generate the values coprime to d and 
+   == 1 (mod m).
+   
    Return NULL if an error occurred.
 */
 
@@ -159,9 +163,9 @@ init_progression_coeffs (double s, unsigned int d, unsigned int e,
                          unsigned int k, unsigned int m, unsigned int E, 
                          int dickson_a)
 {
-  unsigned int i, j, size_fd;
+  unsigned int i, j, size_fd, smd;
   listz_t fd;
-  double de;
+  const double de = (double) e;
 
   ASSERT (d % m == 0);
 
@@ -172,12 +176,13 @@ init_progression_coeffs (double s, unsigned int d, unsigned int e,
   for (i = 0; i < size_fd; i++)
     mpz_init (fd[i]);
 
-  de = (double) e;
+  /* smd := s % d */
+  smd = (unsigned int) (s - floor (s / (double)d) * (double)d); 
 
   j = 0;
   for (i = 1 % m; i < k * d; i += m)
     {
-      if (gcd (i, d) == 1)
+      if (gcd (smd + e * (i % d), d) == 1)
         {
           if (fin_diff_coeff (fd + j, s + de * i, de * k * d, E, dickson_a)
 	      == ECM_ERROR)
@@ -267,7 +272,7 @@ stage2 (mpz_t f, void *X, mpmod_t modulus, double B2min, double B2,
         unsigned int k0, int S, int method, int stage1time, 
         char *TreeFilename)
 {
-  double b2, b2min, i0;
+  double b2, i0;
   unsigned int k;
   unsigned int i, d, d2, dF, sizeT;
   mpz_t n;
@@ -300,6 +305,7 @@ stage2 (mpz_t f, void *X, mpmod_t modulus, double B2min, double B2,
      B2 <= (i1-1)*d */
   d = d2 = dF = 0;
   Fermat = 0;
+  k = k0;
   if (modulus->repr == 1 && modulus->bits > 0)
     {
       for (i = modulus->bits; (i & 1) == 0; i >>= 1);
@@ -308,21 +314,18 @@ stage2 (mpz_t f, void *X, mpmod_t modulus, double B2min, double B2,
           Fermat = modulus->bits;
           outputf (OUTPUT_DEVVERBOSE, "Choosing power of 2 poly length "
                    "for 2^%d+1 (%d blocks)\n", Fermat, k0);
-          k = k0;
-          if (bestD_po2 (B2min, B2, &d, &d2, &k) == ECM_ERROR)
+          if (bestD_po2 (B2min, B2, &d, &d2, &k, &i0) == ECM_ERROR)
             return ECM_ERROR;
           dF = 1 << ceil_log2 (phi (d) / 2);
         }
     }
   if (d == 0)
     {
-      if (bestD (B2min, B2, k0, &d, &d2, &k) == ECM_ERROR)
+      if (bestD (B2min, B2, &d, &d2, &k, &i0) == ECM_ERROR)
         return ECM_ERROR;
       dF = phi (d) / 2;
     }
   
-  i0 = floor ((B2min / (double) d) / (double) d2) * (double) d2;
-
   /* check that i0 * d does not overflow */
   if (i0 * (double) d > TWO53) /* 2^53 */
     {
@@ -333,11 +336,8 @@ stage2 (mpz_t f, void *X, mpmod_t modulus, double B2min, double B2,
 
   b2 = (double) dF * (double) d * (double) d2 / (double) phi (d2);
 
-  /* compute real B2min */
-  b2min = i0 * (double) d;
-
   /* compute real B2 */
-  B2 = b2min + floor ((double) k * b2 / d / d2) * d * d2;
+  B2 = i0 * (double) d + floor ((double) k * b2 / d / d2) * d * d2;
 
   outputf (OUTPUT_VERBOSE, "B2'=%1.0f k=%u b2=%1.0f d=%u d2=%u dF=%u, "
            "i0=%.0f\n", B2, k, b2, d, d2, dF, i0);
