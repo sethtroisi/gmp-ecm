@@ -32,7 +32,7 @@
    Remark: it is assumed at least 2*n limbs are allocated starting from rp.
  */
 static INLINE void
-mpn_mul_lo_basecase (mp_ptr rp, mp_srcptr np, mp_srcptr mp, mp_size_t n)
+ecm_mul_lo_basecase (mp_ptr rp, mp_srcptr np, mp_srcptr mp, mp_size_t n)
 {
   mpn_mul_1 (rp, np, n, mp[0]);
   for (; --n;)
@@ -46,7 +46,7 @@ static mp_size_t threshold[MPN_MUL_LO_THRESHOLD] =
 
 
 void
-mpn_mul_lo_n (mp_ptr rp, mp_srcptr np, mp_srcptr mp, mp_size_t n)
+ecm_mul_lo_n (mp_ptr rp, mp_srcptr np, mp_srcptr mp, mp_size_t n)
 {
   mp_size_t k;
 
@@ -61,7 +61,7 @@ mpn_mul_lo_n (mp_ptr rp, mp_srcptr np, mp_srcptr mp, mp_size_t n)
           }
         case 1:
           {
-            mpn_mul_lo_basecase (rp, np, mp, n);
+            ecm_mul_lo_basecase (rp, np, mp, n);
             return;
           }
           /* else go through */
@@ -73,8 +73,8 @@ mpn_mul_lo_n (mp_ptr rp, mp_srcptr np, mp_srcptr mp, mp_size_t n)
   mpn_mul_n (rp, np, mp, k);
   rp += k;
   n -= k;
-  mpn_mul_lo_n (rp + n, np + k, mp, n);
+  ecm_mul_lo_n (rp + n, np + k, mp, n);
   mpn_add_n (rp, rp, rp + n, n);
-  mpn_mul_lo_n (rp + n, np, mp + k, n);
+  ecm_mul_lo_n (rp + n, np, mp + k, n);
   mpn_add_n (rp, rp, rp + n, n);
 }

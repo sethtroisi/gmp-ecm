@@ -1,6 +1,6 @@
 /* ecm-impl.h - header file for libecm
  
-  Copyright 2001, 2002, 2003 Paul Zimmermann and Alexander Kruppa.
+  Copyright 2001, 2002, 2003, 2004, 2005 Paul Zimmermann and Alexander Kruppa.
  
   This program is free software; you can redistribute it and/or modify it
   under the terms of the GNU General Public License as published by the
@@ -460,8 +460,8 @@ int  mpres_is_zero (mpres_t, mpmod_t);
 #define mpres_swap(a,b,n) mpz_swap (a, b)
 
 /* mul_lo.c */
-#define mpn_mul_lo_n __ECM(mpn_mul_lo_n)
-void mpn_mul_lo_n (mp_ptr, mp_srcptr, mp_srcptr, mp_size_t);
+#define ecm_mul_lo_n __ECM(ecm_mul_lo_n)
+void ecm_mul_lo_n (mp_ptr, mp_srcptr, mp_srcptr, mp_size_t);
 
 /* median.c */
 #define TMulGen __ECM(TMulGen)

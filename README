@@ -1,14 +1,14 @@
-This is the README file for gmp-ecm. (See README.lib for the ecm library.)
+This is the README file for GMP-ECM. (See README.lib for the ecm library.)
 
 Table of contents of this file:
 1. Files included in this distribution.
 2. How to efficiently use P-1, P+1 and ECM?
 3. Extra factors and Brent-Suyama's extension.
 4. Memory usage.
-5. Expression syntax reference for gmp-ecm's syntax parser.
+5. Expression syntax reference for GMP-ECM's syntax parser.
 6. Options -save and -resume.
 7. working with very large numbers (the -prp* options)
-8. How to get the best of gmp-ecm?
+8. How to get the best of GMP-ECM?
 9. Known problems.
 10. Record factors.
 
@@ -26,7 +26,7 @@ config*      - configuration files
 depcomp      - configuration file
 ecm.1        - man page
 *.h          - header files
-INSTALL      - instructions to compile and install gmp-ecm
+INSTALL      - instructions to compile and install GMP-ECM
 install-sh   - installation file
 Makefile*    - to build the binary file
 missing      - configuration file
@@ -107,7 +107,7 @@ nomial used by default: D(n) means Dickson's polynomial of degree n):
           65       85e7        1.6e13          77516            69351 [D(30)]
 
           Table 1: optimal B1 and expected number of curves to find a
-          factor of D digits with gmp-ecm.
+          factor of D digits with GMP-ECM.
 
 After performing the expected number of curves from Table 1, the
 probability that a factor of D digits was missed is exp(-1), i.e.
@@ -118,22 +118,22 @@ Example: after performing 8510 curves with B1=43e6 and B2=2.0e11
 (or 7771 curves with -dickson 12), the probability to miss a 50-digit
 factor is about 37%.
 
-As of version 6, gmp-ecm prints the expected number of curves and expected
+As of version 6, GMP-ECM prints the expected number of curves and expected
 time to find factors of different sizes in verbose mode (option -v). This
 makes it easy to further optimize parameters for a certain factor size if 
 desired, simply try to minimize the expected time.
 
 (lengthy NOTE: The order of an elliptic curve with Montgomery parameteriza-
-tion, as used by gmp-ecm, is known to be divisible by 12. Therefore one can 
+tion, as used by GMP-ECM, is known to be divisible by 12. Therefore one can 
 assume that the probability that the order is B1,B2 smooth should be about as 
 great as for a random integer 1/12th in value. However, Montgomery observed 
 that the order behaves even nicer than that: heuristically, it seems that the 
 order is as likely to be smooth as a random integer about 1/23.4 in value. In 
-gmp-ecm, we assume a factor of 1/24 and the computed probabilities match 
+GMP-ECM, we assume a factor of 1/24 and the computed probabilities match 
 those observed in experiments very well. This however means that the so 
 computed values for the expected number of curves for given B1,B2 values and 
 factor sizes do not match those published in the literature where a factor of 
-only 1/12 was used. The factor gmp-ecm uses is defined as ECM_EXTRA_SMOOTHNESS 
+only 1/12 was used. The factor GMP-ECM uses is defined as ECM_EXTRA_SMOOTHNESS 
 in rho.c, you can change it to 12.0 if you want to reproduce the more 
 pessimistic values found in the literature.)
 
@@ -141,7 +141,7 @@ In summary, we advise the following method:
 
 0 - choose a target factor size of D digits
 1 - choose optimal B1 and B2 values to find factors of D digits (cf Table 1)
-2 - run once P-1 with 10*B1, and the default B2 chosen by gmp-ecm
+2 - run once P-1 with 10*B1, and the default B2 chosen by GMP-ECM
 3 - (optional) run 3 times P+1 with 5*B1, and the default B2
 4 - run N(B1,B2,D) times ECM with those B1 and B2, where N(B1,B2,D) is the
     expected number of ECM curves with step 1 bound B1, step 2 bound B2,
@@ -179,7 +179,7 @@ Found input number N
 
 Here the largest factor of P-1 is 83957197, which is 3.35 times larger than B2.
 Warning: these "extra" factorizations may not be reproducible from one
-version of gmp-ecm to another one, since they depend on some internal
+version of GMP-ECM to another one, since they depend on some internal
 parameters that may change.
 
 For P-1, the degree of the Brent-Suyama polynomial should be even. Since
@@ -194,16 +194,15 @@ i.e. give only a marginal overhead in step 2, while enabling extra factors.
 
 4. Memory usage.
 
-Step 1 does not require much memory (about the same size as
-the input number). Step 2 may be quite memory expensive, especially for
-large B2, since its efficient algorithms use some large tables. To reduce
-the memory usage of step 2, you may increase the 'k' parameter, which controls
-the number of "blocks" performed in step 2. Multiplying the default value of
-k by 4 will decrease the memory usage by a factor of 2. For example with 
-B2=1e10 and a 155-digit number, step 2 requires about 96MB with the default 
-k=2, but only 42MB with k=8. Increasing k does, however, slightly increase 
-the time required for step 2 (see section "How to get the best of
-gmp-ecm?"). 
+Step 1 does not require much memory: O(n) for an input number of n digits.
+Step 2 may be quite memory expensive, especially for large B2, since its
+efficient algorithms use some large tables. To reduce the memory usage of
+step 2, you may increase the 'k' parameter, which controls the number of
+"blocks" performed in step 2. Multiplying the default value of k by 4 will
+decrease the memory usage by a factor of 2. For example with  B2=1e10 and
+a 155-digit number, step 2 requires about 96MB with the default k=2, but
+only 42MB with k=8. Increasing k does, however, slightly increase the time
+required for step 2 (see section "How to get the best of GMP-ECM?"). 
 
 Another way is to use the -treefile paramater, which causes some of the 
 tables to be stored on disk instead of in memory. Using the parameter
@@ -216,13 +215,13 @@ Increasing the number of blocks with -k also reduces the amount of data that
 needs to get written to disk, thus reducing disk I/O time. Combining these 
 parameters is a very effective way of reducing memory use.
 
-NOTE that in -b "breadth-first" mode, gmp-ecm reads all candidate numbers in 
+NOTE that in -b "breadth-first" mode, GMP-ECM reads all candidate numbers in 
 the input stream and keeps them in memory, so if there are many large numbers
 to be tested, the memory requirement will increase noticeably.
 
 ##############################################################################
 
-5. Expression syntax reference for gmp-ecm's syntax parser.
+5. Expression syntax reference for GMP-ECM's syntax parser.
 
 Up from release 5.2.0, GMP-ECM can handle several kinds of expressions
 as input numbers. Here is the syntax that is handled:
@@ -278,7 +277,7 @@ Probable prime cofactor (3*2^210+1)/1358437 has 58 digits
 
 These options are useful to save the current state of the computation after
 step 1, or to exchange data with other software. It allows to perform
-step 1 with gmp-ecm, and step 2 with another software (or vice-versa).
+step 1 with GMP-ECM, and step 2 with another software (or vice-versa).
 
 Here is an example how to reuse some P-1 computation:
 
@@ -342,8 +341,8 @@ input with the same B1/B2 values, since those runs will do the same
 computations. Options -save/-resume is useful in the following cases:
 
 (a) somebody did a previous step 1 computation with another software
-    which is faster than gmp-ecm, and wants to perform Step 2 with
-    gmp-ecm which is faster for that task.
+    which is faster than GMP-ECM, and wants to perform Step 2 with
+    GMP-ECM which is faster for that task.
 (b) somebody did a previous step 1 for P-1 or P+1 up to a given bound
     B1, and you want to extend that computation with B1' > B1, without
     restarting from scratch. Note: this does not apply to ECM, where 
@@ -370,7 +369,9 @@ Intel 32 bit CPU's, as the FFT code is written in assembler for those systems.
 
 ##############################################################################
 
-8. How to get the best of gmp-ecm?
+8. How to get the best of GMP-ECM?
+
+It is better to link statically the gmp library: add -static to CFLAGS.
 
 Choice of modular multiplication. The ecm program may choose between 4 kinds
 of modular arithmetic:
@@ -418,19 +419,19 @@ increase the time spent in Step 2 (when less or greater than the
 optimal value), and modify the memory used by Step 2 (see the section 
 "Memory usage").
 
-Optimal gmp thresholds. One may improve the performance of gmp-ecm
+Optimal gmp thresholds. One may improve the performance of GMP-ECM
 by telling the thresholds used by GMP for Karatsuba's multiplication
-and divide-and-conquer division, which you can get by typing:
+and divide-and-conquer division, which you can get by doing "make tune"
+in GMP's build 'tune' subdirectory.
 
-$ egrep 'MUL_KARATSUBA_THRESHOLD|DIV_DC_THRESHOLD' gmp-mparam.h
+$ make tune | egrep 'MUL_KARATSUBA_THRESHOLD|DIV_DC_THRESHOLD'
 
-in the GMP build directory. You can override the default values
-(32 for MUL_KARATSUBA_THRESHOLD, and 96 for DIV_DC_THRESHOLD)
-by adding -DMUL_KARATSUBA_THRESHOLD=... -DDIV_DC_THRESHOLD=...
-to the CFLAGS.
+You can override the default values (32 for MUL_KARATSUBA_THRESHOLD,
+and 96 for DIV_DC_THRESHOLD) by adding 
+-DMUL_KARATSUBA_THRESHOLD=... -DDIV_DC_THRESHOLD=... to the CFLAGS.
 
 Note on factoring Fermat numbers:
-gmp-ecm features Sch"onhage-Strassen multiplication for polynomials in 
+GMP-ECM features Sch"onhage-Strassen multiplication for polynomials in 
 stage 2 when factoring Fermat numbers. This greatly reduces the number of 
 modular multiplications required, thus improving speed. It does, however, 
 restrict the length of the polynomials to powers of two, so that for a given 
@@ -491,18 +492,15 @@ specify by hand a different seed using the -sigma or -x0 options.
 In all cases, when running several curves on the same number, it is
 safe to check that the sigma/x0 values are different for each run.
 
-(b) Under some operating systems (for example FreeBSD), you may have
-to comment the #include <alloca.h> line in ecm-gmp.h.
-
-(c) stderr output was mixed with stdout output.  This allows redirection
-of output to a file, with ecm-gmp giving a VERY useful single line, listing
+(b) stderr output was mixed with stdout output.  This allows redirection
+of output to a file, with GMP-ECM giving a VERY useful single line, listing
 many good statistics of what is happening (current line of the file, current
 "curve" count and total curve count to do, number of factors found, current
 B1 level, ...)  The output also looks fine if stdout is not redirected
 (stdout overwrites the stderr information and "looks right").  However, 
 there can be some "strangeness" in some screen output if the stdout is being
-handled by an external process (i.e. something like tee).  Since ecm-gmp 
-is sending data to the screen which was sent to stderr, yet ecm-gmp does
+handled by an external process (i.e. something like tee).  Since GMP-ECM
+is sending data to the screen which was sent to stderr, yet GMP-ECM does
 not write to the screen on it's stdout output (tee is getting that output
 and IT is writing it to screen), then some of the written output (to 
 screen only), can get slightly "messed up" (out of order screen drawing.
@@ -514,7 +512,7 @@ of this is that you get a VERY nice 1 line screen output, yet on a different
 screen, can "see" the work as it is done, while still having the data
 stored to disk (in case of power outage, or other catastophe).
 
-(d) there may be "strangeness" caused by the writing to stderr. I can not 
+(c) there may be "strangeness" caused by the writing to stderr. I can not 
 fully comment on this due to my lack of usage of the  ecm client server (or
 using ecm as:   "ecm options < in & nohup" (or whatever the syntax is for
 running unnending in the background in *nix (Paul, please test how the
