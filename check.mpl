@@ -1,3 +1,18 @@
+pm1_stage1 := proc(n, a0, B1)
+local p, a, q;
+   p := 2;
+   a := a0;
+   while p <= B1 do
+      q := 1;
+      while q*p <= B1 do
+         q := q*p;
+         a := Power(a, p) mod n;
+      od;
+      p := nextprime(p);
+   od;
+   a
+end:
+
 # stage2
 stage2 := proc(p, d, a0, k) local x, F, inva, i, v, t, u, a, dF, G, j, H;
    a := a0;
