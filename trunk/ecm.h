@@ -18,7 +18,7 @@
   02111-1307, USA.
 */
 
-#define ECM_VERSION "5.1.1-beta"
+#define ECM_VERSION "5.1.2-beta"
 
 /* To use new polyeval_tellegen */
 #define POLYEVALTELLEGEN
@@ -359,6 +359,18 @@ int  mpcandi_t_copy (mpcandi_t *to, mpcandi_t *from);
 int  mpcandi_t_add_candidate (mpcandi_t *n, mpz_t c, const char *cpExpr, int bPrp);
 int  mpcandi_t_addfoundfactor (mpcandi_t *n, mpz_t f, int displaywarning);
 int  mpcandi_t_addfoundfactor_d (mpcandi_t *n, double f);
+
+/* smartprp.c */
+int smart_probab_prime_p(mpz_t const n, int c);
+
+/* Options for using an external PRPer rather than internal GMP */
+extern char *externalprp; /* call out to external program  */  
+extern char *externallog; /* where to find output */
+extern char *externalinputprpfile; /* Used to place the n value (a temp file). Is deleted after system */
+extern char *externalisprp; /* what to match output against */
+extern char *externaliscomposite; /* ditto */
+extern int externalprplen; /* length where we go external */
+extern int externalprpval; /* exit value meaning it's prp, -1 is impossible */
 
 /* b1_ainc.c */
 double calc_B1_AutoIncrement(double cur_B1, double incB1val, int calcInc);
