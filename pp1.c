@@ -234,7 +234,23 @@ pp1 (mpz_t p, mpz_t n, double B1, double B2, unsigned int k, unsigned int S,
   int youpi, st;
 
   st = cputime ();
+
+  if (mpz_sgn (p) == 0)
+    {
+      /* No specific seed given, use default.
+         What is a good default seed for P+1 ? */
+        mpz_set_ui(p, 17);
+    }
+  
+  if (verbose >= 1)
+    {
+      printf ("Using seed=");
+      mpz_out_str (stdout, 10, p);
+      printf ("\n");
+    }
+
   youpi = pp1_stage1 (p, n, B1);
+
   if (verbose >= 1)
     {
       printf ("Stage 1 took %dms\n", cputime() - st);

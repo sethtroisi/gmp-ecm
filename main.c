@@ -226,40 +226,12 @@ main (int argc, char *argv[])
 	}
 
       /* Set effective seed/sigma for factoring attempt on this number */
-      if (method == PM1_METHOD || method == PP1_METHOD)
+      mpz_set (p, seed);
+      if (method == EC_METHOD && !specific_sigma)
         {
-          if (mpz_sgn (seed) != 0)
-            mpz_set (p, seed);
-          else
-          /* No specific seed given, use default. For Pollard P-1, avoid 
-             small sigma (2, 3, ...) because it may hit the whole input 
-             number when it divides s^n-1 */
-            mpz_set_ui(p, 17);
-        }
-      else /* EC_METHOD */
-        {
-          if (!specific_sigma)
-            {
-              /* Make random sigma, 0 < sigma <= 2^32 */
-              mpz_urandomb (sigma, randstate, 32);
-              mpz_add_ui(sigma, sigma, 1);
-            }
-          mpz_set(p, seed);
-         }
-
-      if (verbose >= 1)
-        {
-          if (method == PM1_METHOD || method == PP1_METHOD)
-            {
-              printf ("Using seed=");
-              mpz_out_str (stdout, 10, p);
-            }
-          else
-            {
-              printf ("Using sigma=");
-              mpz_out_str (stdout, 10, sigma);
-            }
-          printf ("\n");
+          /* Make random sigma, 0 < sigma <= 2^32 */
+          mpz_urandomb (sigma, randstate, 32);
+          mpz_add_ui(sigma, sigma, 1);
         }
 
       if (method == PM1_METHOD)
