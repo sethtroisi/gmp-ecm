@@ -78,7 +78,9 @@ since P is usually not known in advance, there is no way to ensure that this
 holds. However, if the seed is chosen randomly, there is a probability of 
 about 1/2 that it will give a Jacobi symbol of -1 (i.e. the factor P will 
 be found if P+1 is smooth enough). A rule of thumb is to run 3 times P+1 
-with different random seeds.
+with different random seeds. When factoring Fibonacci numbers F_n or Lucas 
+numbers L_n, using the seed -x0 23/11 ensures that the group order is
+divisible by 2n, making other P+1 (and probably P-1) work unneccessary.
 
 The ECM method is a probabilistic method, and can be viewed in some sense
 as a generalization of the P-1 and P+1 method, where we only require that
@@ -120,13 +122,13 @@ In summary, we advise the following method:
 
 0 - choose a target factor size of D digits
 1 - choose optimal B1 and B2 values to find factors of D digits (cf Table 1)
-2 - run once P-1 with that B1, and the default B2 chosen by gmp-ecm
-3 - run 3 times P+1 with that B1, and the default B2 chosen by gmp-ecm
+2 - run once P-1 with 10*B1, and the default B2 chosen by gmp-ecm
+3 - (optional) run 3 times P+1 with 5*B1, and the default B2
 4 - run N(B1,B2,D) times ECM with those B1 and B2, where N(B1,B2,D) is the
     expected number of ECM curves with step 1 bound B1, step 2 bound B2,
     to find a factor of D digits (cf above table). 
-5 - if no factor is found, either increase D and go to 0, or use another
-    factorization method (MPQS, GNFS)
+5 - if no factor is found, either increase D by 5 digits and go to 0, or use 
+    another factorization method (MPQS, GNFS)
 
 Note: if a factor is found in steps 2, 3 or 4, simply continue the current
       step with the remaining cofactor (if composite). There is no need
@@ -178,10 +180,22 @@ the input number). Step 2 may be quite memory expensive, especially for
 large B2, since its efficient algorithms use some large tables. To reduce
 the memory usage of step 2, you may increase the 'k' parameter, which controls
 the number of "blocks" performed in step 2. Multiplying the default value of
-k by 4 will decrease the memory usage by 2. For example with B2=1e10 and
-a 155-digit number, step 2 requires about 96MB with the default k=2,
-but only 42MB with k=8. Increasing k does, however, slightly increase the
-time required for step 2 (see section "How to get the best of gmp-ecm?")
+k by 4 will decrease the memory usage by a factor of 2. For example with 
+B2=1e10 and a 155-digit number, step 2 requires about 96MB with the default 
+k=2, but only 42MB with k=8. Increasing k does, however, slightly increase 
+the time required for step 2 (see section "How to get the best of
+gmp-ecm?"). 
+
+Another way is to use the -treefile paramater, which causes some of the 
+tables to be stored on disk instead of in memory. Using the parameter
+"-treefile /var/tmp/ecmtree" will create the files "/var/tmp/ecmtree.1", 
+"/var/tmp/ecmtree.2" etc. The files are deleted upon completion of stage 2. 
+Due to time consuming disk I/O, this will cause stage 2 to take somewhat 
+longer. How much memory is saved depends on stage 2 parameters, but a
+typical value is that memory use is reduced by a factor of about 3.
+Increasing the number of blocks with -k also reduces the amout of data that 
+needs to get written to disk, thus reducing disk I/O time. Combining these 
+parameters is a very effective way of reducing memory use.
 
 NOTE that in -b "breadth-first" mode, gmp-ecm reads all candidate numbers in 
 the input stream and keeps them in memory, so if there are many large numbers
@@ -286,11 +300,11 @@ The format used is the following:
   - a line contains assignments <id>=<value> separated by semi-colons ';'
   - possible values for <id> are 
     - METHOD (value = ECM or P-1 or P+1)
-    - SIGMA (value = ECM sigma parameter) [optional]
+    - SIGMA (value = ECM sigma parameter) [ECM only]
     - B1 (first step bound)
-    - N (composite to factor)
+    - N (composite number to factor)
     - X (value at the end of step 1)
-    - A (A-parameter of the elliptic curve)
+    - A (A-parameter of the elliptic curve) [ECM only]
     - CHECKSUM (internal value to check correctness of the format)
     - PROGRAM (program used to perform step 1, useful for factor credits) 
     - X0 (initial point for ECM, or initial residue for P-1/P+1) [optional]
@@ -315,7 +329,7 @@ computations. Options -save/-resume is useful in the following cases:
     B1, and you want to extend that computation with B1' > B1, without
     restarting from scratch. Note: this does not apply to ECM, where 
     the smoothness property depends on the (random) curve chosen, not
-    on the input number.
+    only on the input number.
 (c) you did a huge step 1 P-1 or P+1 computation on a given machine, and you
     want to perform a huge step 2 in parallel on several
     machines. For example machine 1 tests the range B2_1-B2_2, machine
@@ -330,10 +344,10 @@ computations. Options -save/-resume is useful in the following cases:
 When working with very large numbers, probable-primality testing becomes
 very slow when using GMP.  A faster program is available: OpenPFGW (pfgw).
 pfgw only does a simple Fermat test, but is much faster, due to it's highly 
-optimal FFT multiplication code.  The difference at 15k digits is about 10
-minutes for GMP, and about 20s for PFGW (and the difference only gets more
-severe).  A limitation of OpenPFGW, is it will only be a viable solution for
-Intel 32 bit CPU's, as the FFT code is only built for those systems.
+optimized FFT multiplication code.  The difference at 15k digits is about 10
+minutes for GMP, and about 20s for PFGW (and the advantage increases for
+larger numbers).  A limitation of OpenPFGW is that it will only run on 
+Intel 32 bit CPU's, as the FFT code is written in assembler for those systems.
 
 ##############################################################################
 
@@ -355,7 +369,7 @@ of modular arithmetic:
     or very large inputs.
 (4) base-2 arithmetic for numbers dividing 2^n+1 or 2^n-1.
     Each division has only linear time, but the multiplication are
-    most expensive since they are done on larger numbers.
+    more expensive since they are done on larger numbers.
 
 The ecm program automatically selects what he thinks is the best
 arithmetic for the given input number. If that choice is not optimal, you may 
@@ -403,7 +417,7 @@ modular multiplications required, thus improving speed. It does, however,
 restrict the length of the polynomials to powers of two, so that for a given 
 number of blocks (-k parameter), the B2 value can only increase by factors of 
 approximately 4.
-For the number of blocks, choices of 1, 2 or 3 usually give best performance.
+For the number of blocks, choices of 2, 3 or 4 usually give best performance.
 However, if the polynomial degree becomes too large, relatively expensive
 Karatsuba or Toom-Coom methods are required to split the polynomial before
 Sch"onhage-Strassen's method can handle them. That can make a larger number 
@@ -413,14 +427,16 @@ requires a degree much larger than this (dF is printed with the -v
 parameter), try increasing the number of blocks with -k and see if
 performance improves.
 The Brent-Suyama extension should not be used when factoring Fermat numbers,
-it is more efficient to simply increase B2. You should always use parameters
--power 1 for ECM, or -power 2 for P-1.
+it is more efficient to simply increase B2. You should use parameters 
+-power 1 for ECM, or -power 2 for P-1 (except possibly for P-1 runs with
+smaller Fermat numbers and extremely large B2.)
 Factoring Fermat numbers uses a lot of memory, depending on the size of the
 Fermat number and on dF. The amount of data kept in memory in stage 2 is
 approximately dF*(log_2(dF)+6) residues. For dF=65536 and F_12, this means
 704 MB. If your system does not have enough memory, you will have to use a
 larger number of blocks to reach the desired B2 value with a smaller poly
-degree dF, which sacrifices some performance.
+degree dF, which sacrifices some performance. Additionally, you may use the
+-treefile option (see 4. Memory usage)
 
                 k=1             k=2             k=3             k=4
 
