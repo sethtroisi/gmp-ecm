@@ -81,10 +81,8 @@
 #endif
 
 /* thresholds */
-#ifndef WANT_GMP_IMPL
 #ifndef MUL_KARATSUBA_THRESHOLD
 #define MUL_KARATSUBA_THRESHOLD 32
-#endif
 #endif
 
 #ifndef DIV_DC_THRESHOLD

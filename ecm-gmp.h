@@ -3,7 +3,7 @@
 Copyright 1991, 1993, 1994, 1995, 1996, 1997, 1999, 2000, 2001, 2002 Free
 Software Foundation, Inc.
 
-This file is part of the GNU MP Library.
+This file contains modified code from the GNU MP Library.
 
 The GNU MP Library is free software; you can redistribute it and/or modify
 it under the terms of the GNU Lesser General Public License as published by
@@ -53,7 +53,7 @@ MA 02111-1307, USA. */
 #endif
 
 #ifndef MPN_COPY
-#define MPN_COPY(d,s,n) mpn_add_1(d,s,n,(mp_limb_t)0)
+#define MPN_COPY(d,s,n) memcpy((d),(s),(n)*sizeof(mp_limb_t))
 #endif
 
 #ifndef MPN_NORMALIZE
@@ -81,6 +81,33 @@ MA 02111-1307, USA. */
 	while (--__n);				\
       }						\
   } while (0)
+#endif
+
+/* Return non-zero if xp,xsize and yp,ysize are either identical or not
+   overlapping.  Return zero if they're partially overlapping. */
+#define MPN_SAME_OR_SEPARATE_P(xp, yp, size)    \
+  MPN_SAME_OR_SEPARATE2_P(xp, size, yp, size)
+#define MPN_SAME_OR_SEPARATE2_P(xp, xsize, yp, ysize)           \
+  ((xp) == (yp) || ! MPN_OVERLAP_P (xp, xsize, yp, ysize))
+
+#ifndef mpn_com_n
+#define mpn_com_n(d,s,n)                                \
+  do {                                                  \
+    mp_ptr     __d = (d);                               \
+    mp_srcptr  __s = (s);                               \
+    mp_size_t  __n = (n);                               \
+    ASSERT (__n >= 1);                                  \
+    ASSERT (MPN_SAME_OR_SEPARATE_P (__d, __s, __n));    \
+    do                                                  \
+      *__d++ = (~ *__s++) & GMP_NUMB_MASK;              \
+    while (--__n);                                      \
+  } while (0)
+#endif
+
+#ifdef HAVE_NATIVE_mpn_add_nc
+#ifndef __gmpn_add_nc
+mp_limb_t __gmpn_add_nc (mp_ptr, mp_srcptr, mp_srcptr, mp_size_t, mp_limb_t);
+#endif
 #endif
 
 /* fft stuff */

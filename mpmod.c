@@ -21,27 +21,15 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include "gmp.h"
-
-/* define WANT_ASSERT to check normalization of residues */
-/* #define WANT_ASSERT 1 */
-
-#ifdef WANT_GMP_IMPL
-#include "gmp-impl.h"
-#else
 #include "ecm-gmp.h"
-#endif /* WANT_GMP_IMPL */
-
-#ifdef HAVE_NATIVE_mpn_add_nc
-#ifndef __gmpn_add_nc
-mp_limb_t __gmpn_add_nc (mp_ptr, mp_srcptr, mp_srcptr, mp_size_t, mp_limb_t);
-#endif
-#endif
-
 #include "ecm.h"
-
 #ifdef HAVE_GWNUM
 #include "Fgw.h"
 #endif
+
+/* define WANT_ASSERT to check normalization of residues */
+/* #define WANT_ASSERT 1 */
+/* #define DEBUG */
 
 #define ASSERT_NORMALIZED(x) ASSERT ((modulus->repr != MOD_MODMULN && \
 				      modulus->repr != MOD_REDC) || \
@@ -56,7 +44,6 @@ mp_limb_t __gmpn_add_nc (mp_ptr, mp_srcptr, mp_srcptr, mp_size_t, mp_limb_t);
 #define REDC_THRESHOLD REDC_THRESHOLD_DEFAULT
 #endif
 
-/* #define DEBUG */
 
 #ifndef GMP_NUMB_BITS
 #define GMP_NUMB_BITS __GMP_BITS_PER_MP_LIMB
