@@ -112,4 +112,3 @@ ECM="$1"
    (echo "############### ERROR ###############"; exit 1) || exit
 
 echo "All ECM tests are ok."
-echo ""
