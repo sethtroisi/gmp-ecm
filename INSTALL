@@ -26,10 +26,6 @@ Instructions to install gmp-ecm:
    sure to correctly set your dynamic libraries search path (LD_LIBRARY_PATH
    on Unix systems), otherwise the configure script may fail.
 
-2) compile the program with:
-
-   $ make
-
    Warning: it is recommended to use the same compiler and options as those
    used to compile GMP, otherwise the compilation may fail, or you may get
    poor performance. In the GMP build directory, simply type:
@@ -39,7 +35,11 @@ Instructions to install gmp-ecm:
    to see which compiler and options were used to build GMP. For example
    on a Sparc v9 you may want to type:
    
-   $ make CC=cc CFLAGS="-fast -fns=no -fsimple=1 -xarch=v9" 
+   $ ./configure CC=cc CFLAGS="-fast -fns=no -fsimple=1 -xarch=v9" 
+
+2) compile the program with:
+
+   $ make
 
 3) to check that the program works correctly, type:
 
