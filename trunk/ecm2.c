@@ -1,6 +1,6 @@
 /* Elliptic Curve Method implementation: stage 2 routines.
 
-  Copyright (C) 2002 Alexander Kruppa and Paul Zimmermann.
+  Copyright 2002, 2003 Alexander Kruppa and Paul Zimmermann.
 
   This program is free software; you can redistribute it and/or modify it
   under the terms of the GNU General Public License as published by the
@@ -23,14 +23,12 @@
 #include "gmp.h"
 #include "ecm.h"
 
-#define DEBUG
+/* #define DEBUG */
 
 int duplicateW (mpz_t, mpres_t, mpres_t, mpres_t, mpres_t, mpmod_t, 
                 mpres_t, mpres_t, mpres_t);
 int addW (mpz_t, mpres_t, mpres_t, mpres_t, mpres_t, mpres_t, mpres_t, 
           mpmod_t, mpres_t, mpres_t);
-int multiplyW (mpz_t, mpz_t, mpz_t, mpz_t, mpz_t, unsigned long, mpz_t, mpz_t,
-               mpz_t, mpz_t);
 int multiplyW2 (mpz_t, mpres_t, mpres_t, mpres_t, mpres_t, mpz_t, mpmod_t, 
                 mpres_t, mpres_t, mpres_t);
 int addWn (mpz_t, point *, mpmod_t, long);
@@ -95,59 +93,6 @@ addW (mpz_t p, mpres_t x, mpres_t y, mpres_t x1, mpres_t y1, mpres_t x2,
 
   return 0;
 }
-
-#if 0
-/* (x1:y1) <- q*(x:y) where q is a small integer.
-   a is the Weierstrass parameter.
-   u and v are auxiliary variables.
-   Should work when (x1:y1) and (x:y) are the same variables.
-   Return non-zero iff a factor was found.
-*/
-int
-multiplyW (mpz_t p, mpz_t x1, mpz_t y1, mpz_t x, mpz_t y, unsigned long q,
-           mpz_t n, mpz_t a, mpz_t u, mpz_t v)
-{
-  unsigned long j, r, restore;
-  mpz_t x2, y2;
-
-  restore = (x1 == x);
-  if (restore)
-    {
-      mpz_init (x2);
-      mpz_init (y2);
-      x1 = x2;
-      y1 = y2;
-    }
-  for (r = q, j = 1; r != 1; r /= 2, j <<= 1);
-  j >>= 1; 
-  r = duplicateW (p, x1, y1, x, y, n, a, u, v);
-  if (r)
-    return r;
-  if (q & j)
-    r = addW (p, x1, y1, x1, y1, x, y, n, u, v);
-  if (r)
-    return r;
-  j >>= 1;
-  while (j != 0)
-    {
-      if (duplicateW (p, x1, y1, x1, y1, n, a, u, v))
-        return 1;
-      if (q & j)
-        if (addW (p, x1, y1, x1, y1, x, y, n, u, v))
-          return 1;
-    j >>= 1;
-  }
-  if (restore)
-    {
-      mpz_set (x, x1);
-      mpz_set (y, y1);
-      mpz_clear (x2);
-      mpz_clear (y2);
-    }
-
-  return 0;
-}
-#endif
 
 /* (x1:y1) <- q*(x:y) where q is a large integer */
 int
@@ -257,22 +202,6 @@ addWn (mpz_t p, point *X, mpmod_t n, long e)
 
   return 0;
 }
-
-#if 0
-/* (x,y) can be identical to (x1,y1) */
-int subW(p,x,y,x1,y1,x2,y2,n,u,v) mpz_t p,x,y,x1,y1,x2,y2,n,u,v;
-{
-  mpz_sub(u,x1,x2);
-  mpz_gcdext(p,v,NULL,u,initial_n); if (mpz_cmp_ui(p,1)!=0) return(1);
-  mpz_add(p,y1,y2); mpz_mulmod(p,v,p,n);
-  mpz_mul(u,p,p); mpz_sub(u,u,x1); mpz_sub(v,u,x2); mod(v,v,n);
-  mpz_sub(u,x1,v); mpz_mul(u,u,p); mpz_sub(y,u,y1); mod(y,y,n);
-  mpz_set(x,v);
-  mul+=3; gcdexts++;
-  return(0);
-}
-#endif
-
 
 /* puts in F[0..dF-1] the successive values of 
 
