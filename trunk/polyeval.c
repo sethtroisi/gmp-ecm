@@ -304,7 +304,7 @@ unsigned int muls_tuptree (unsigned int k)
     if (l == m)
     {
         tmp = muls_tgen (l - 1);
-        tot_muls += tmp;
+        tot_muls += 2 * tmp;
         tot_muls += (muls_tuptree (l)) * 2;
     }
     else
