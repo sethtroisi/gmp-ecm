@@ -87,8 +87,21 @@ mpzspp_set (mpzspp_t r, mpzspp_t x, spv_size_t len, spv_size_t offset1,
   for (i = 0; i < r->mpzspm->sp_num; i++)
     spv_set (r->spv[i] + offset1, x->spv[i] + offset2, len);
 
-  r->len = MAX(len + offset1, r->len);
+  r->len = MAX (len + offset1, r->len);
   r->monic_pos = x->monic_pos;
+}
+
+void
+mpzspp_set_sp (mpzspp_t r, sp_t c, spv_size_t len, spv_size_t offset)
+{
+  unsigned int i;
+
+  MPZSPP_REALLOC (r, len + offset);
+
+  for (i = 0; i < r->mpzspm->sp_num; i++)
+    spv_set_sp (r->spv[i] + offset, c, len);
+
+  r->len = MAX (len + offset, r->len);
 }
 
 void
@@ -105,6 +118,24 @@ mpzspp_neg (mpzspp_t r, mpzspp_t x, spv_size_t len, spv_size_t offset)
 
   r->len = len;
   r->monic_pos = x->monic_pos;
+}
+
+void
+mpzspp_reverse (mpzspp_t x, spv_size_t len)
+{
+  unsigned int i;
+  spv_size_t j;
+  sp_t t;
+  
+  for (i = 0; i < x->mpzspm->sp_num; i++)
+    {
+      for (j = 0; j < len - 1 - j; j++)
+        {
+	  t = x->spv[i][j];
+	  x->spv[i][j] = x->spv[i][len - 1 - j];
+	  x->spv[i][len - 1 - j] = t;
+	}
+    }
 }
 
 void
