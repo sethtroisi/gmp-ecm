@@ -46,6 +46,7 @@ polyeval.c - algorithm POLYEVAL
 polyz.c - routines for polynomial arithmetic
 pp1.c - P+1 factorization routines
 resume.c - routines to resume a computation
+schoen_strass.c - Sch"onhage-Strassen multiplication for polynomials
 stage2.c - common step 2 implementation for ecm, P-1 and P+1
 test.ecm - test file for ECM
 test.pm1 - test file for P-1
@@ -183,7 +184,7 @@ experimental option, that has not yet been fully studied, however, it
 does (might) kick out factors more quickly.
 
 After performing the expected number of curves from Table 1, the
-probability that a number of D digits was missed is exp(-1), i.e.
+probability that a factor of D digits was missed is exp(-1), i.e.
 about 37%. After twice the expected number of curves, it is exp(-2),
 i.e. about 14%, and so on.
 
@@ -221,17 +222,16 @@ Note2: Adjustments made using the "-B2scale f" will reduce the number of
 
 4. Extra factors and Brent-Suyama's extension.
 
-GMP-ECM may sometimes find some
-"extra" factors, such that one factor of P-1, P+1 or P+t exceeds the step 2
-bound B2, thanks to Brent-Suyama's extension. Let explain how it works for P-1,
-since it's simpler. The classical step 2 (without Brent-Suyama's extension)
-considers s^(j*d) mod N and s^i mod N, where N is the number to factor, and
-s the initial seed. Here, d is fixed, and the integers i and j vary in two
-sets so that j*d+/-i covers all primes in [B1, B2]. Now consider a polynomial
-f(x), and compute s^f(j*d) and s^f(i) instead of s^(j*d) and s^i [thus the
-classical step 2 corresponds to f(x)=x^1]. Then P will be found whenever
-all but one of the factors of P-1 are <= B1, and one factor divides one
-f(j*d) +/- f(i):
+GMP-ECM may sometimes find some "extra" factors, such that one factor of P-1, 
+P+1 or P+t exceeds the step 2 bound B2, thanks to Brent-Suyama's extension. 
+Let's explain how it works for P-1, since it's simpler. The classical step 2 
+(without Brent-Suyama's extension) considers s^(j*d) mod N and s^i mod N, 
+where N is the number to factor, and s is the residue computed in stage 1. 
+Here, d is fixed, and the integers i and j vary in two sets so that j*d-i 
+covers all primes in [B1, B2]. Now consider a polynomial f(x), and compute 
+s^f(j*d) and s^f(i) instead of s^(j*d) and s^i [thus the classical step 2 
+corresponds to f(x)=x^1]. Then P will be found whenever all but one of the 
+factors of P-1 are <= B1, and one factor divides some f(j*d) - f(i):
 
 $ echo 1207946164033269799036708918081 | ./ecm -pm1 -k 4 -power 12 286493 25e6
 GMP-ECM 5.0 [powered by GMP 4.1.2] [P-1]
@@ -246,6 +246,11 @@ Here the largest factor of P-1 is 83957197, which is 3.35 times larger than B2.
 Warning: these "extra" factorizations may not be reproducible in future
 versions of gmp-ecm, since they depend on some internal parameters that
 may change.
+
+For P-1, the degree of the Brent-Suyama polynomial should be even. Since
+i^2k - (j*d)^2k = (i^k - (j*d)^k)(i^k + (j*d)^k), this allows testing two
+values symmetric around a multiple of d simultaneously, halving the amount of
+computation required in stage 2. P+1 and ECM do this inherently.
 
 The default polynomial used for a given B2 should be near optimal, 
 i.e. give only a marginal overhead in step 2, while enabling extra factors.
@@ -264,16 +269,16 @@ B2=1e10 and a 155-digit number, step 2 requires about 28MB with the default
 k, but only 14MB with k=32. Increasing k does, however, also increase the
 time required for step 2 (see section "8. How to get the best of gmp-ecm?")
 
-NOTE that in -b "breadth-first" mode, gmp-ecm DOES pre-read all candidate 
-numbers in the input stream, so if there are lots of large numbers to be 
-tested, the memory requirement WILL go up.
+NOTE that in -b "breadth-first" mode, gmp-ecm reads all candidate numbers in 
+the input stream and keeps them in memory simultaneously, so if there are many 
+large numbers to be tested, the memory requirement will increase noticeably.
 
 ##############################################################################
 
 6. Expression syntax reference for gmp-ecm's syntax parser.
 
-With release 5.1 of GMP-ECM, it now can handle expression form of input numbers.
-Here is the syntax that is handled:
+With release 5.1 of GMP-ECM, it now can handle expression form of input 
+numbers. Here is the syntax that is handled:
 
 1.  Raw decimal numbers (as it has always done)
 2.  Comments can be placed in the file.  The C++ "one line comment"  // 
@@ -477,6 +482,52 @@ and division) that may not be optimal on a given machine. To get
 the optimal thresholds on your machine, you need the headers
 files from the GMP build directory, and to add -DWANT_GMP_IMPL to
 the C flags in Makefile.
+
+NOTE on factoring Fermat numbers:
+As of version 5.2, gmp-ecm features Sch"onhage-Strassen multiplication for 
+polynomials in stage 2 when factoring Fermat numbers. This greatly reduces
+the number of modular multipliations required, thus improving speed. It
+does, however, restrict the length of the polynomials to powers of two, so
+that for a given number of blocks (-k parameter), the B2 value can only
+increase by factors of approximately 4. 
+For the number of blocks, choices of 1, 2 or 3 usually give best performance.
+However, if the polynomial degree becomes too large, relatively expensive
+Karatsuba or Toom-Coom methods are required to split the polynomial before
+Sch"onhage-Strassen's method can handle them. That can make a larger number 
+of blocks worthwhile. When factoring the m-th Fermat number F_m = 2^(2^m)+1,
+degrees up to dF=2^(m+1) can be handled directly. If your B2 choice
+requires a degree much larger than this (dF is printed with the -v
+parameter), try increasing the number of blocks with -k and see if
+performance improves.
+The Brent-Suyama extension should not be used when factoring Fermat numbers,
+it is more efficient to simply increase B2. You should always use parameters
+-power 1 for ECM, or -power 2 for P-1.
+Factoring Fermat numbers uses a lot of memory, depending on the size of the
+Fermat number and on dF. The amount of data kept in memory in stage 2 is
+approximately dF*(log_2(dF)+6) residues. For dF=65536 and F_12, this means
+704 MB. If your system does not have enough memory, you will have to use a
+larger number of blocks to reach the desired B2 value with a smaller poly
+degree dF, which sacrifices some performance.
+
+		k=1		k=2		k=3		k=4
+
+dF=256		630630		1261260		1921920		2552550
+dF=512		2522520		5105100		7687680		10210200
+dF=1024		10210200	20420400	30750720	40960920
+dF=2048		42882840	85975890	129068940	172161990
+dF=4096		174083910	348167820	522762240	696846150
+dF=8192		713242530	1426485060	2139727590	2852970120
+dF=16384	2852970120	5705940240	8560652100	11413622220
+dF=32768	11707015320	23417604210	35128193100	46838781990
+dF=65536	48094126080	96188252160	144282378240	192376504320
+dF=131072	194046382530	388092765060	582139147590	776185530120
+
+		Table 2: Stage 2 interval length B2-B2min, for dF
+		a power of 2 and small values of k.
+
+For example, if you'd like to run stage 2 on F_12 with B2 ~= 40G, try
+parameters "-power 1 -k 1 <B1> 48e9", "-power 1 -k 3 <B1> 35e9" or 
+"-power 1 -k 4 <B1> 46e9".
 
 ##############################################################################
 
