@@ -97,14 +97,21 @@ AC_CHECK_FUNC(__gmpn_mul_fft, AC_DEFINE(HAVE_FFT))
 AC_CHECK_FUNC(__gmpn_add_nc, AC_DEFINE(HAVE_NATIVE_mpn_add_nc))
 AC_CHECK_FUNC(__gmpn_mod_34lsub1, AC_DEFINE(HAVE_NATIVE_mpn_mod_34lsub1))
 
-dnl If user wants GWNUM, check if the file exists
+dnl If user wants GWNUM, check if the file exists (either as .a or .lib)
 if test "x$with_gwnum" = x; then :; else
-  AC_CHECK_FILE($with_gwnum/gwnum.lib, [
+  AC_CHECK_FILE($with_gwnum/gwnum.a, [
     AC_DEFINE(HAVE_GWNUM)
-    GWLIB="$LIBS $with_gwnum/gwnum.lib"
+    LIBS="$LIBS $with_gwnum/gwnum.a"
+    CPPFLAGS="$CPPFLAGS -I$with_gwnum"
   ],[
-    with_gwnum=
-    AC_MSG_WARN([Woltman's GWNUM library not found, have you compiled it?])
+    AC_CHECK_FILE($with_gwnum/gwnum.lib, [
+      AC_DEFINE(HAVE_GWNUM)
+      LIBS="$LIBS $with_gwnum/gwnum.lib"
+      CPPFLAGS="$CPPFLAGS -I$with_gwnum"
+    ],[
+      with_gwnum=
+      AC_MSG_WARN([Woltman's GWNUM library not found, have you compiled it?])
+    ])
   ])
 fi
 

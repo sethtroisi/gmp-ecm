@@ -19,11 +19,18 @@
   02111-1307, USA.
 */
 
+#ifndef HAVE_GWNUM
+
+/* This file does nothing at all if HAVE_GWNUM is not defined */
+
+#else
+
 #include <stdlib.h>
 #include <stdio.h>
 #include <gmp.h>
 #include "ecm-gmp.h"
-#include "Fgw.h"
+#include "ecm-impl.h"
+#define ADD_UNDERSCORES
 #include "gwnum.h"
 #include "cpuid.h"
 
@@ -43,11 +50,6 @@ extern int ZERO_PADDED_FFT;
 
 static gwnum g1 = NULL, g2 = NULL;
 static gwconvplan_t *gwplan = NULL;
-
-void dwordstogw (unsigned long *, long, gwnum, gwconvplan_t *);
-void gwtodwords (gwnum, unsigned long *, int *, int, gwconvplan_t *);
-void Fdwordstogw (unsigned long *, long, gwnum, gwconvplan_t *);
-void Fgwtodwords (gwnum, unsigned long *, int *, int, gwconvplan_t *);
 
 static gwconvplan_t *
 make_conv_plan ()
@@ -69,8 +71,8 @@ make_conv_plan ()
       plan->bigword[i] = is_big_word (i) ? 1 : 0;
       offset = addr_offset (FFTLEN, i);
       plan->offsets[i] = offset - lastoff;
-      plan->weights[i] = fft_weight (i);;
-      plan->invweights[i] = fft_weight_inverse (i);
+      plan->weights[i] = gwfft_weight (i);;
+      plan->invweights[i] = gwfft_weight_inverse (i);
       lastoff = offset;
     }
 
@@ -89,98 +91,11 @@ gwdump (gwnum g)
   printf ("\n");
 }
 
-void 
-Fgwinit (int Fermat)
-{
-  /* Init GW routines with 16 bits per FFT element */
-  guessCpuType ();
-  guessCpuSpeed ();
-  gwsetup (1., 2, Fermat, 1, Fermat / 16);
-  g1 = gwalloc();
-  g2 = gwalloc();
-  gwplan = make_conv_plan ();
-}
-
-void 
-Fgwclear ()
-{
-  free (gwplan);
-  gwplan = NULL;
-  gwfree (g2);
-  g2 = NULL;
-  gwfree (g1);
-  g1 = NULL;
-  gwdone ();
-}
-
-void
-Fgwmul (mpz_t R, mpz_t S1, mpz_t S2)
-{
-  int sgnchg = 0;
-#ifdef DEBUG
-  mpz_t t;
-#endif
-
-  if (g1 == NULL || g2 == NULL || gwplan == NULL)
-    {
-      fprintf (stderr, "Fgwmul: g1, g2 or gwplan not initialised\n");
-      exit (EXIT_FAILURE);
-    }
-
-#ifdef DEBUG
-  /* Test if converting to gwnum and back is identity */
-  mpz_init (t);
-  _mpz_realloc (t, FFTLEN / 2);
-  Fdwordstogw (PTR(S1), ABSIZ(S1), g1, gwplan);
-  Fgwtodwords (g1, PTR(t), &SIZ(t), ALLOC(t), gwplan);
-  if (mpz_sgn (S1) < 0)
-    mpz_neg (t, t);
-  if (mpz_cmp (S1, t) != 0)
-    {
-      gmp_printf ("Fdwordstogw/Fgwtodwords is not identity for %Zd\nResult: %Zd\ng = ", 
-                  S1, t);
-      gwdump (g1);
-    }
-  Fdwordstogw (PTR(S2), ABSIZ(S2), g1, gwplan);
-  Fgwtodwords (g1, PTR(t), &SIZ(t), ALLOC(t), gwplan);
-  if (mpz_sgn (S2) < 0)
-    mpz_neg (t, t);
-  if (mpz_cmp (S2, t) != 0)
-    {
-      gmp_printf ("Fdwordstogw/Fgwtodwords is not identity for %Zd\nResult: %Zd\ng = ", 
-                  S2, t);
-      gwdump (g1);
-    }
-  mpz_clear (t);
-#endif
-
-  if (ALLOC(R) < (signed) FFTLEN / 2)
-    _mpz_realloc (R, FFTLEN / 2);
-
-  Fdwordstogw (PTR(S1), ABSIZ(S1), g1, gwplan);
-  if (S1 == S2)
-    gwsquare (g1);
-  else
-    {
-      sgnchg = mpz_sgn (S1) ^ mpz_sgn (S2);
-      Fdwordstogw (PTR(S2), ABSIZ(S2), g2, gwplan);
-      gwmul (g2, g1); /* g1 = g1 * g2, g2 left FFT'd */
-    }
-  if (gw_test_for_error () != 0)
-    {
-      fprintf (stderr, "Fgwmul: gwsquare/gwmul reports error %ld\n", 
-               gw_test_for_error ());
-      exit (EXIT_FAILURE);
-    }
-  Fgwtodwords (g1, PTR(R), &SIZ(R), ALLOC(R), gwplan);
-  if (sgnchg < 0)
-    mpz_neg (R, R);
-}
-
 /* Convert a number stored as an array of dwords to the gwnum FFT format. */
 /* Only for b^n+c numbers, i.e. k==1 */
 
-void dwordstogw (
+static void 
+dwordstogw (
 	unsigned long *e1,
 	long e1len,
 	gwnum	g,
@@ -247,7 +162,8 @@ void dwordstogw (
 
 /* Convert a gwnum value to an array of dwords */
 
-void gwtodwords (
+static void 
+gwtodwords (
 	gwnum	gg,
 	unsigned long *outptrparam,
 	int *outlen,
@@ -357,7 +273,8 @@ void gwtodwords (
 /* Convert a number stored as an array of dwords to the gwnum FFT format. */
 /* Assumes 16 bits per FFT element and all DWT weights == 1.0 */
 
-void Fdwordstogw (
+void 
+Fdwordstogw (
 	unsigned long *e1,
 	long e1len,
 	gwnum	g,
@@ -505,7 +422,8 @@ void Fdwordstogw (
 /* Convert a gwnum value to an array of dwords. Assumes a DWT with 16 bits
    per FFT element */
 
-void Fgwtodwords (
+void 
+Fgwtodwords (
         gwnum   g,
         unsigned long *outptrparam,
         int *outlen,
@@ -597,3 +515,94 @@ void Fgwtodwords (
 		*outlen = -(*outlen);
 	}
 }
+
+void 
+Fgwinit (int Fermat)
+{
+  /* Init GW routines with 16 bits per FFT element */
+  guessCpuType ();
+  guessCpuSpeed ();
+  gwsetup (1., 2, Fermat, 1, Fermat / 16);
+  g1 = gwalloc();
+  g2 = gwalloc();
+  gwplan = make_conv_plan ();
+}
+
+void 
+Fgwclear ()
+{
+  free (gwplan);
+  gwplan = NULL;
+  gwfree (g2);
+  g2 = NULL;
+  gwfree (g1);
+  g1 = NULL;
+  gwdone ();
+}
+
+void
+Fgwmul (mpz_t R, mpz_t S1, mpz_t S2)
+{
+  int sgnchg = 0;
+#ifdef DEBUG
+  mpz_t t;
+#endif
+
+  if (g1 == NULL || g2 == NULL || gwplan == NULL)
+    {
+      fprintf (stderr, "Fgwmul: g1, g2 or gwplan not initialised\n");
+      exit (EXIT_FAILURE);
+    }
+
+#ifdef DEBUG
+  /* Test if converting to gwnum and back is identity */
+  mpz_init (t);
+  _mpz_realloc (t, FFTLEN / 2);
+  Fdwordstogw (PTR(S1), ABSIZ(S1), g1, gwplan);
+  Fgwtodwords (g1, PTR(t), &SIZ(t), ALLOC(t), gwplan);
+  if (mpz_sgn (S1) < 0)
+    mpz_neg (t, t);
+  if (mpz_cmp (S1, t) != 0)
+    {
+      gmp_printf ("Fdwordstogw/Fgwtodwords is not identity for %Zd\nResult: %Zd\ng = ", 
+                  S1, t);
+      gwdump (g1);
+    }
+  Fdwordstogw (PTR(S2), ABSIZ(S2), g1, gwplan);
+  Fgwtodwords (g1, PTR(t), &SIZ(t), ALLOC(t), gwplan);
+  if (mpz_sgn (S2) < 0)
+    mpz_neg (t, t);
+  if (mpz_cmp (S2, t) != 0)
+    {
+      gmp_printf ("Fdwordstogw/Fgwtodwords is not identity for %Zd\nResult: %Zd\ng = ", 
+                  S2, t);
+      gwdump (g1);
+    }
+  mpz_clear (t);
+#endif
+
+  if (ALLOC(R) < (signed) FFTLEN / 2)
+    _mpz_realloc (R, FFTLEN / 2);
+
+  Fdwordstogw (PTR(S1), ABSIZ(S1), g1, gwplan);
+  if (S1 == S2)
+    gwsquare (g1);
+  else
+    {
+      sgnchg = mpz_sgn (S1) ^ mpz_sgn (S2);
+      Fdwordstogw (PTR(S2), ABSIZ(S2), g2, gwplan);
+      gwmul (g2, g1); /* g1 = g1 * g2, g2 left FFT'd */
+    }
+  if (gw_test_for_error () != 0)
+    {
+      fprintf (stderr, "Fgwmul: gwsquare/gwmul reports error %ld\n", 
+               gw_test_for_error ());
+      exit (EXIT_FAILURE);
+    }
+  Fgwtodwords (g1, PTR(R), &SIZ(R), ALLOC(R), gwplan);
+  if (sgnchg < 0)
+    mpz_neg (R, R);
+}
+
+
+#endif /* endelse of #ifndef HAVE_GWNUM */

@@ -29,9 +29,6 @@
 
 #include "ecm-gmp.h"
 #include "ecm-impl.h"
-#ifdef HAVE_GWNUM
-#include "Fgw.h"
-#endif
 
 /* define WANT_ASSERT to check normalization of residues */
 /* #define WANT_ASSERT 1 */

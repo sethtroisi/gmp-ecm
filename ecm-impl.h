@@ -520,6 +520,14 @@ void pm1_random_seed  (mpz_t, mpz_t, gmp_randstate_t);
 #define get_random_ui   __ECM(get_random_ui)
 unsigned int get_random_ui (void);
 
+/* Fgw.c */
+#ifdef HAVE_GWNUM
+void Fgwinit (int);
+void Fgwclear (void);
+void Fgwmul (mpz_t, mpz_t, mpz_t);
+#endif
+
+
 #if defined (__cplusplus)
 }
 #endif
