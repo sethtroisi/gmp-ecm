@@ -383,8 +383,7 @@ pm1_stage1 (mpz_t f, mpres_t a, mpmod_t n, double B1, double B1done,
 ******************************************************************************/
 
 static void
-update_fd (mpres_t *fd, unsigned int nr, unsigned int S, mpmod_t modulus, 
-           unsigned int *muls)
+update_fd (mpres_t *fd, unsigned int nr, unsigned int S, mpmod_t modulus)
 {
   unsigned int j, k;
   
@@ -491,7 +490,7 @@ pm1_rootsF (mpz_t f, listz_t F, unsigned int d1, unsigned int d2,
               if (verbose >= 4)
                 printf ("pm1_rootsF: Updating table at rsieve = %d\n", state.rsieve);
               
-              update_fd (state.fd, state.nr, state.S, modulus, &muls);
+              update_fd (state.fd, state.nr, state.S, modulus);
               
               state.next = 0;
             }
@@ -700,7 +699,7 @@ pm1_rootsG (mpz_t f, listz_t G, unsigned int dF, pm1_roots_state *state,
     {
       printf ("Computing roots of G took %dms", cputime () - st);
       if (verbose > 2)
-        printf (", %lu muls and %lu extgcds", muls, gcds);
+        printf (", %u muls and %u extgcds", muls, gcds);
       printf ("\n");
     }
   

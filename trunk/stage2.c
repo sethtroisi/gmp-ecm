@@ -19,7 +19,7 @@
 */
 
 #include <assert.h>
-#include <math.h>
+#include <math.h> /* for finite() */
 #include <stdlib.h>
 #include <stdio.h>
 #include <limits.h>
@@ -602,7 +602,7 @@ clear_G:
             printf ("%.2fy%c", exptime / 31536000000., i < 65 ? '\t' : '\n');
           else if (exptime < 31536000000000000.) /* One million years */
             printf ("%.0fy%c", exptime / 31536000000., i < 65 ? '\t' : '\n');
-          else if (finite(exptime))
+          else if (finite (exptime))
             printf ("%.1gy%c", exptime / 31536000000., i < 65 ? '\t' : '\n');
           else 
             printf ("%.0f%c", exptime, i < 65 ? '\t' : '\n');
