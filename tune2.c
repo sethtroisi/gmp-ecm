@@ -66,15 +66,15 @@ ecm_mul_lo_n_tune (mp_ptr rp, mp_srcptr np, mp_srcptr mp, mp_size_t n)
     }
 }
 
-static int
+static unsigned int
 test (mp_ptr cp, mp_ptr ap, mp_ptr bp, mp_size_t n, int k)
 {
-  int st = cputime ();
+  unsigned int st = cputime ();
 
   while (k--)
     ecm_mul_lo_n_tune (cp, ap, bp, n);
 
-  return cputime () - st;
+  return elltime (st, cputime ());
 }
 
 #define MINTIME 1000
@@ -84,7 +84,8 @@ main ()
 {
   mp_size_t n, t, topt = 0;
   mp_limb_t ap[N], bp[N], cp[2*N];
-  int st[3], s, k;
+  unsigned int st[3], s;
+  int k;
 
   printf ("n\tmul_n\tlow_bc\tlow_n\n");
 

@@ -82,28 +82,33 @@ ceil_log2 (unsigned int n)
   return k;
 }
 
-/* Return user CPU time measured in milliseconds. Thanks to Torbjorn. */
+/* cputime() gives the CPU time in microseconds */
 #if defined (ANSIONLY) || defined (USG) || defined (__SVR4) || defined (_UNICOS) || defined(__hpux)
 
-int
+/* multiplier to get time in milliseconds */
+#define TICK (1000.0 / (double) CLOCKS_PER_SEC)
+
+unsigned int
 cputime ()
 {
-  return (int) ((double) clock () * 1000 / CLOCKS_PER_SEC);
+  return (unsigned int) clock ();
 }
 
 #else	/* ANSIONLY and others */
 
 #if defined (__MINGW32__) || defined (_MSC_VER)
 
-static int
+#define TICK (1000.0 / (double) CLOCKS_PER_SEC)
+
+static unsigned int
 cputime_x (void)
 {
-  return (int) ((double) clock () * 1000 / CLOCKS_PER_SEC);
+  return (unsigned int) clock ();
 }
 
 #include <windows.h>
 
-int
+unsigned int
 cputime ()
 {
   static int First = 1;
@@ -123,12 +128,9 @@ cputime ()
   QueryPerformanceCounter (&i);
   d = (double)*(__int64*)&i;
   d /= *(__int64*)&PF;
-  d *= 1000;
+  d *= (double) CLOCKS_PER_SEC;
 
-  /* NOTE a double converting to int is wrong!.  We need the number mod
-     2^31-1 (which is correct auto type-conversion from a unsigned ) */
-  /* The "other" cputime() functions probably also have this "bug" */
-  return (unsigned) d;
+  return (unsigned int) d;
 }
 
 #else /* __MINGW32___ or VC */
@@ -137,7 +139,9 @@ cputime ()
 #include <sys/time.h>
 #include <sys/resource.h>
 
-int
+#define TICK 1.0
+
+unsigned int
 cputime ()
 {
   struct rusage rus;
@@ -148,6 +152,15 @@ cputime ()
 #endif  /* __MINGW32___ or VC */
 
 #endif /* ANSIONLY and others */
+
+/* ellapsed time (in milliseconds) between st0 and st1 (values of cputime) */
+unsigned int
+elltime (unsigned int st0, unsigned int st1)
+{
+  st1 = st1 - st0; /* correct even if wrap around, as long as the time
+		      difference is less than UINT_MAX */
+  return (unsigned int) ((double) st1 * TICK);
+}
 
 int 
 get_verbose ()
