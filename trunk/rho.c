@@ -26,6 +26,10 @@
 #include "gmp.h"
 #include "ecm-impl.h"
 
+#ifndef ECM_EXTRA_SMOOTHNESS
+#define ECM_EXTRA_SMOOTHNESS 24.0
+#endif
+
 #define M_PI_SQR   9.869604401089358619 /* Pi^2 */
 #define M_PI_SQR_6 1.644934066848226436 /* Pi^2/6 */
 #define M_EULER    0.577215664901532861
@@ -367,17 +371,17 @@ ecmprob (double B1, double B2, double N, double nr, int S)
   printf ("B1 = %f, B2 = %f, N = %.0f, nr = %f, S = %d\n", B1, B2, N, nr, S);
 #endif
   
-  alpha = log (N/12.) / log (B1);
+  alpha = log (N / ECM_EXTRA_SMOOTHNESS) / log (B1);
   beta = log (B2) / log (B1);
-  stage1 = dickmanlocal (alpha, N / 12.);
+  stage1 = dickmanlocal (alpha, N / ECM_EXTRA_SMOOTHNESS);
   stage2 = 0.;
   if (B2 > B1)
-    stage2 = dickmanmu (alpha, beta, N / 12.);
+    stage2 = dickmanmu (alpha, beta, N / ECM_EXTRA_SMOOTHNESS);
   brsu = 0.;
   if (S < -1)
-    brsu = brsudickson (B1, B2, N / 12., nr, -S * 2);
+    brsu = brsudickson (B1, B2, N / ECM_EXTRA_SMOOTHNESS, nr, -S * 2);
   if (S > 1)
-    brsu = brsupower (B1, B2, N / 12., nr, S * 2);
+    brsu = brsupower (B1, B2, N / ECM_EXTRA_SMOOTHNESS, nr, S * 2);
 
 #ifdef TESTDRIVE
   printf ("stage 1 : %f, stage 2 : %f, Brent-Suyama : %f\n", stage1, stage2, brsu);
