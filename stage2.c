@@ -329,8 +329,8 @@ stage2 (mpz_t f, void *X, mpmod_t modulus, mpz_t B2min, mpz_t B2,
   mpz_mul_ui (s, i0, d); /* s = i0 * d */
   b2 = (double) dF * (double) d * (double) d2 / (double) phi (d2);
 
-  /* compute real B2 */
-  // B2 = mpz_get_d (s) + floor ((double) k * b2 / d / d2) * d * d2;
+  /* compute real B2. bestD() does it now */
+  // B2 = mpz_get_d (s) + floor ((double) k * b2 / d) * d;
 
   outputf (OUTPUT_VERBOSE, "B2'=%Zd k=%u b2=%1.0f d=%u d2=%u dF=%u, "
            "i0=%Zd\n", B2, k, b2, d, d2, dF, i0);
