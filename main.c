@@ -150,6 +150,7 @@ main (int argc, char *argv[])
 {
   mpz_t x, sigma, A, f, orig_x0;
   mpcandi_t n;
+  mpgocandi_t go;
   mpq_t rat_x0;
   double B1, B1done, B2, B2min, startingB2min;
   int result = 0;
@@ -190,6 +191,10 @@ main (int argc, char *argv[])
   unsigned int decimal_cofactor = 0;
   double maxtrialdiv=0;
   double B2scale=1.0;
+
+
+  /* intialize the group order canidate */
+  mpgocandi_t_init(&go);
 
   /* check ecm is linked with a compatible librayr */
   if (mp_bits_per_limb != GMP_NUMB_BITS)
@@ -489,6 +494,33 @@ main (int argc, char *argv[])
 	  argv += 2;
 	  argc -= 2;
 	}
+
+      else if ((argc > 2) && (strcmp (argv[1], "-go") == 0))
+	{
+	  if (go.cpOrigExpr)
+	    free(go.cpOrigExpr);
+	  go.cpOrigExpr = malloc(strlen(argv[2])+1);
+	  strcpy(go.cpOrigExpr, argv[2]);
+	  if (strchr(go.cpOrigExpr, 'N'))
+	    {
+    	      /*gmp_printf ("preloading Group Order with factor knowledge of %s\n", argv[2]); */
+	      go.containsN = 1;
+	      go.Valid = 1;  /* we actually do not know if it is valid here, but we "assume" until the first time
+	                        it gets run through */
+	    }
+	  else
+	    { 
+	      go.containsN = 0;  /* have "fully" parsed expr or number.  do not recompute for each N */
+	      if (eval_str (&(go.Candi), go.cpOrigExpr, 0, NULL))
+	      {
+		/*gmp_printf ("preloading Group Order with factor knowledge of %s [%Zi]\n", argv[2], go->Candi.n); */
+		go.Valid = 1;
+	      }
+	    }
+	  argv += 2;
+	  argc -= 2;
+	}
+
      else if ((argc > 2) && (strcmp (argv[1], "-prp") == 0))
        {
          externalprp = argv[2];
@@ -591,6 +623,8 @@ main (int argc, char *argv[])
       fprintf (stderr, "  -cofdec      Force cofactor output in decimal (even if expressions are used)\n");
       fprintf (stderr, "  -B2scale f   Multiplies the 'computed' B2 value by the specified multiplier\n");
       fprintf (stderr, "  -ticdelay n  Delay in ms between %% completed (-1 eliminates completion countdown)\n");
+      fprintf (stderr, "  -go VAL      Preload with Group Order VAL. VAL can be a simple expression, or it\n");
+      fprintf (stderr, "               can use N in it to signify the candidate number being factored.\n");
 
       /*rintf (stderr, "  -extra functions added by PhilC\n"); */
       fprintf (stderr, "  -prp cmd     use shell command cmd to do large primality tests\n");
@@ -1019,16 +1053,18 @@ BreadthFirstDoAgain:;
 
       cnt --; /* one more curve performed */
 
+      mpgocandi_fixup_with_N(&go, &n);
+
       if (method == PM1_METHOD)
-        result = pm1 (f, x, n.n, B1done, B1, B2min, B2, B2scale, k, S, verbose, repr, orig_x0);
+        result = pm1 (f, x, n.n, go.Candi.n, B1done, B1, B2min, B2, B2scale, k, S, verbose, repr, orig_x0);
       else if (method == PP1_METHOD)
-        result = pp1 (f, x, n.n, B1done, B1, B2min, B2, B2scale, k, S, verbose, repr);
+        result = pp1 (f, x, n.n, go.Candi.n, B1done, B1, B2min, B2, B2scale, k, S, verbose, repr);
       else /* ECM */
 	{
 	  if (mpz_sgn (sigma) == 0) /* If sigma is zero, then we use the A value instead */
-	    result = ecm (f, x, A, n.n, B1done, B1, B2min, B2, B2scale, k, S, verbose, repr, 1);
+	    result = ecm (f, x, A, n.n, go.Candi.n, B1done, B1, B2min, B2, B2scale, k, S, verbose, repr, 1);
 	  else
-	    result = ecm (f, x, sigma, n.n, B1done, B1, B2min, B2, B2scale, k, S, verbose, repr, 0);
+	    result = ecm (f, x, sigma, n.n, go.Candi.n, B1done, B1, B2min, B2, B2scale, k, S, verbose, repr, 0);
         }
 
       if (result == 0)
@@ -1209,6 +1245,7 @@ OutputFactorStuff:;
   mpz_clear (sigma);
   mpz_clear (A);
   mpq_clear (rat_x0);
+  mpgocandi_t_free (&go);
 
 #ifdef MEMORY_DEBUG
   tests_memory_end ();
