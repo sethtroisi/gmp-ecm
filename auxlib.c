@@ -27,6 +27,7 @@
 #include "gmp.h"
 #include "ecm-impl.h"
 
+#define VERBOSE __ECM(verbose)
 static int VERBOSE = OUTPUT_NORMAL;
 
 unsigned int

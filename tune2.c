@@ -8,7 +8,7 @@
 /* to avoid conflict with that of libecm */
 #define mpn_mul_lo_basecase tune_mpn_mul_lo_basecase
 
-INLINE void
+static INLINE void
 mpn_mul_lo_basecase (mp_ptr rp, mp_srcptr np, mp_srcptr mp, mp_size_t n)
 {
   mpn_mul_1 (rp, np, n, mp[0]);
@@ -62,7 +62,7 @@ test (mp_ptr cp, mp_ptr ap, mp_ptr bp, mp_size_t n, int k)
 int
 main ()
 {
-  mp_size_t n, t, topt;
+  mp_size_t n, t, topt = 0;
   mp_limb_t ap[N], bp[N], cp[2*N];
   int st[3], s, k;
 
@@ -73,7 +73,7 @@ main ()
 
   for (n = 2; n < N; n++)
     {
-      printf ("%u\t", n);
+      printf ("%u\t", (unsigned int) n);
       mpn_random (ap, n);
       mpn_random (bp, n);
 
@@ -99,7 +99,7 @@ main ()
             }
         }
 
-      printf ("%u(%u)\t", st[2], topt);
+      printf ("%u(%u)\t", st[2], (unsigned int) topt);
       threshold[n] = topt;
 
       if (st[1] <= st[2]) /* mpn_mul_lo_n slower than mpn_mul_lo_basecase */
@@ -125,7 +125,7 @@ main ()
 	  else
 	    {
 	      threshold[n] = topt;
-	      printf ("low_n(%u)", topt);
+	      printf ("low_n(%u)", (unsigned int) topt);
 	    }
 	}
 
@@ -137,7 +137,7 @@ main ()
     {
       if (n)
 	printf (",");
-      printf ("%u", threshold[n]);
+      printf ("%u", (unsigned int) threshold[n]);
     }
   printf ("}\n");
 

@@ -8,7 +8,7 @@
 int
 main (int argc, char *argv[])
 {
-  mpz_t n, f, x, sigma;
+  mpz_t n, f;
   int res;
   double B1;
 
@@ -53,4 +53,6 @@ main (int argc, char *argv[])
 
   mpz_clear (f);
   mpz_clear (n);
+
+  return 0;
 }

@@ -137,8 +137,6 @@ extern FILE *ECM_STDOUT, *ECM_STDERR;
 #define MOD_REDC 3
 
 /* Various logging levels */
-#define VERBOSE __ECM(verbose)
-extern int VERBOSE;
 /* OUTPUT_ALWAYS means print always, regardless of verbose value */
 #define OUTPUT_ALWAYS 0
 /* OUTPUT_NORMAL means print during normal program execution */
@@ -483,10 +481,14 @@ void         mpz_divby3_1op (mpz_t);
 unsigned int ceil_log2  (unsigned int);
 #define cputime __ECM(cputime)
 int          cputime    (void);
+#define test_verbose __ECM(test_verbose)
 int          test_verbose (int);
-int          get_verbose ();
+#define get_verbose __ECM(get_verbose)
+int          get_verbose (void);
+#define set_verbose __ECM(set_verbose)
 void         set_verbose (int);
-int          inc_verbose ();
+#define inc_verbose __ECM(inc_verbose)
+int          inc_verbose (void);
 #define outputf __ECM(outputf)
 int          outputf (int, char *, ...);
 
