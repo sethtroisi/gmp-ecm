@@ -147,7 +147,7 @@ pp1_stage1 (mpz_t f, mpres_t P0, mpmod_t n, double B1, double B1done,
   int Counter = 0, st, st_save;
 
   /* Prep for stage one counter */
-  fprintf (stderr, "1:000 \r");
+  fprintf (stderr, "1:00 \r");
 
   mpz_init (g);
   mpres_init (P, n);
@@ -200,7 +200,7 @@ pp1_stage1 (mpz_t f, mpres_t P0, mpmod_t n, double B1, double B1done,
   st_save = st = cputime ();
   percentage /= B1;
   percentage *= 100;
-  fprintf (stderr, "1:%03d\r", (int)percentage);
+  fprintf (stderr, "1:%02d\r", (int) percentage);
 
   /* then all primes > sqrt(B1) and taken with exponent 1 */
   for (; p <= B1; p = getprime(p))
@@ -210,14 +210,14 @@ pp1_stage1 (mpz_t f, mpres_t P0, mpmod_t n, double B1, double B1done,
       if (++Counter == 3000)
 	{
 	  int st_now = cputime();
-	  if (st_now - st > 30000)
+	  if (st_now - st > SCREEN_UPDATE_DELAY)
 	    {
 	      /* Check to see if we should update our screen "percentage counter" */
 	      percentage = p;
 	      st = st_now;
 	      percentage /= B1;
 	      percentage *= 100;
-	      fprintf (stderr, "1:%03d\r", (int)percentage);
+	      fprintf (stderr, "1:%02d\r", (int) percentage);
   	    }
 	  Counter=0;
 	    /* should we save the current "ecm_wip.sav" file??? It is saved every 15 minutes */
@@ -548,10 +548,9 @@ pp1 (mpz_t f, mpz_t p, mpz_t n, double B1done, double B1, double B2min, double B
   youpi = stage2 (f, &a, modulus, B2min, B2, k, S, verbose, PP1_METHOD);
 
  end:
-  if (youpi != 0) 
-    {
-      pp1_check_factor (p, f);
-    }
+  if (youpi != 0 && verbose != 0)
+    pp1_check_factor (p, f); /* tell user if factor was found in fact by P-1 */
+
   mpres_get_z (p, a, modulus);
   mpres_clear (a, modulus);
   mpmod_clear (modulus);
