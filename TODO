@@ -24,3 +24,5 @@ ToDo's:
 	[suggested by SleepHound <sleephound@yahoo.com>]
 - when resuming, print the *initial* x0 for P-1/P+1?
 
+3) documentation
+- check README is up-to-date wrt tune/tune2 (and merge tune/tune2)
