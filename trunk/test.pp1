@@ -96,5 +96,5 @@ PP1="$1 -pp1"
 (echo 630503947831861669 | $PP1 -x0 5 7 9007199254740000-9007199254741000)||
    (echo "############### ERROR ###############"; exit 1) || exit
 
+echo "All P+1 tests are ok."
 echo ""
-echo "All tests are ok."
