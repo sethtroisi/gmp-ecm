@@ -83,7 +83,7 @@ get_curve_from_sigma (mpz_t f, mpres_t A, mpres_t x, mpz_t sigma, mpmod_t n)
   mpres_mul (v, b, z, n);
   if (!mpres_invert (u, v, n)) /* u = (b*z)^(-1) (mod n) */
     {
-      mpres_gcd (f, t, n);
+      mpres_gcd (f, v, n);
       mpres_clear (t, n);
       mpres_clear (u, n);
       mpres_clear (v, n);
