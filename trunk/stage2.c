@@ -274,15 +274,17 @@ stage2 (mpz_t f, void *X, mpmod_t modulus, double B2min, double B2,
      to get degree dF-1 */
   if (dF > 1)
     {
-      invF = init_list (dF - 1);
+      /* only dF-1 coefficients of 1/F are needed to reduce G*H,
+         but we need one more for TUpTree */
+      invF = init_list (dF);
       st = cputime ();
-      muls = PolyInvert (invF, F + 2, dF - 1, T, n);
+      muls = PolyInvert (invF, F + 1, dF, T, n);
       tot_muls += muls;
 
       fprintf (stderr, "2:%02d\r",
                (int) (100.0 * (double) tot_muls / (double) est_muls));
 
-      /* now invF[0..K-2] = Quo(x^(2dF-3), F) */
+      /* now invF[0..dF-1] = Quo(x^(2dF-1), F) */
       if (verbose >= 2)
         printf ("Computing 1/F took %ums and %lu muls\n", cputime() - st, muls);
       
@@ -403,7 +405,7 @@ stage2 (mpz_t f, void *X, mpmod_t modulus, double B2min, double B2,
              ------------------------------------------------ */
 
 	  st = cputime ();
-          muls = PrerevertDivision (H, F, invF, dF, T + 2 * dF, n);
+          muls = PrerevertDivision (H, F, invF + 1, dF, T + 2 * dF, n);
           tot_muls += muls;
 
           fprintf (stderr, "2:%02d\r",
@@ -448,8 +450,8 @@ stage2 (mpz_t f, void *X, mpmod_t modulus, double B2min, double B2,
 clear_G:
   clear_list (G, dF);
 
-  if (dF > 1)
-    clear_list (invF, dF - 1);
+  if (dF > 0)
+    clear_list (invF, dF);
 
 #ifdef POLYEVAL
   for (i = 0; i < lgk; i++)
