@@ -32,6 +32,7 @@
 
 #if (MULT == KS)
 #define LIST_MULT_N kronecker_schonhage
+#define WRAP /* use wrap-around multiplication for low short product */
 #elif (MULT == TOOM4)
 #define LIST_MULT_N toomcook4
 #elif (MULT == TOOM3)
@@ -322,11 +323,10 @@ list_mul_low (listz_t a, listz_t b, listz_t c, unsigned int K, listz_t t, mpz_t 
 int
 list_mul_high (listz_t a, listz_t b, listz_t c, unsigned int K, listz_t t)
 {
-  unsigned int p, q, muls;
-
 #ifdef KS_MULTIPLY /* ks is faster */
   return LIST_MULT_N (a, b, c, K, t);
 #else
+  unsigned int p, q, muls;
 
   switch (K)
     {
@@ -834,8 +834,8 @@ PrerevertDivision (listz_t a, listz_t b, listz_t invb,
                    unsigned int K, listz_t t, mpz_t n)
 {
   int po2, muls, wrap;
-  listz_t t2;
 #ifdef WRAP
+  listz_t t2;
   wrap = K > 2;
 #else
   wrap = 0;

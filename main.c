@@ -1076,15 +1076,15 @@ BreadthFirstDoAgain:;
       mpgocandi_fixup_with_N(&go, &n);
 
       if (method == PM1_METHOD)
-        result = pm1 (f, x, n.n, go.Candi.n, B1done, B1, B2min, B2, B2scale, k, S, verbose, repr, orig_x0);
+        result = pm1 (f, x, n.n, go.Candi.n, B1done, B1, B2min, B2, B2scale, k, S, verbose, repr);
       else if (method == PP1_METHOD)
-        result = pp1 (f, x, n.n, go.Candi.n, B1done, B1, B2min, B2, B2scale, k, S, verbose, repr);
+        result = pp1 (f, x, n.n, B1done, B1, B2min, B2, B2scale, k, S, verbose, repr);
       else /* ECM */
 	{
 	  if (mpz_sgn (sigma) == 0) /* If sigma is zero, then we use the A value instead */
-	    result = ecm (f, x, A, n.n, go.Candi.n, B1done, B1, B2min, B2, B2scale, k, S, verbose, repr, 1);
+	    result = ecm (f, x, A, n.n, B1done, B1, B2min, B2, B2scale, k, S, verbose, repr, 1);
 	  else
-	    result = ecm (f, x, sigma, n.n, go.Candi.n, B1done, B1, B2min, B2, B2scale, k, S, verbose, repr, 0);
+	    result = ecm (f, x, sigma, n.n, B1done, B1, B2min, B2, B2scale, k, S, verbose, repr, 0);
         }
 
       if (result == 0)
