@@ -77,6 +77,9 @@ extern FILE *ECM_STDOUT, *ECM_STDERR;
 #define NTT 6
 
 #define HAVE_NTT
+#ifdef HAVE_NTT
+#include "sp.h"
+#endif
 
 /* compile with -DMULT=2 to override default */
 #ifndef MULT
@@ -380,24 +383,26 @@ void      PolyFromRoots (listz_t, listz_t, unsigned int, listz_t, mpz_t);
 int       PolyFromRoots_Tree (listz_t, listz_t, unsigned int, listz_t, int, 
                          mpz_t, listz_t*, FILE*, unsigned int);
 #define ntt_PolyFromRoots __ECM(ntt_PolyFromRoots)
-void	  ntt_PolyFromRoots (listz_t, listz_t, unsigned long, listz_t, mpz_t);
+void	  ntt_PolyFromRoots (listz_t, listz_t, unsigned long, listz_t,
+		mpzspm_t);
 
 #define ntt_PolyFromRoots_Tree __ECM(ntt_PolyFromRoots_Tree)
 int       ntt_PolyFromRoots_Tree (listz_t, listz_t, unsigned long, listz_t,
-                         mpz_t, listz_t *, FILE *);
+                         mpzspm_t, listz_t *, FILE *);
 
 #define PrerevertDivision __ECM(PrerevertDivision)
 int   PrerevertDivision (listz_t, listz_t, listz_t, unsigned int, listz_t,
 			 mpz_t);
 #define ntt_PrerevertDivision __ECM(ntt_PrerevertDivision)
-void  ntt_PrerevertDivision (listz_t, listz_t, listz_t, unsigned long, listz_t,
-                         mpz_t);
+void  ntt_PrerevertDivision (listz_t, listz_t, listz_t, mpzspp_t,
+		unsigned long, listz_t, mpzspm_t);
 
 #define PolyInvert __ECM(PolyInvert)
 void         PolyInvert (listz_t, listz_t, unsigned int, listz_t, mpz_t);
 
 #define ntt_PolyInvert __ECM(ntt_PolyInvert)
-void	     ntt_PolyInvert (listz_t, listz_t, unsigned long, listz_t, mpz_t);
+void	     ntt_PolyInvert (listz_t, listz_t, unsigned long, listz_t,
+		mpzspm_t);
 
 #define RecursiveDivision __ECM(RecursiveDivision)
 void  RecursiveDivision (listz_t, listz_t, listz_t, unsigned int,

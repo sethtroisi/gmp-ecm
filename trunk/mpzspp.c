@@ -42,6 +42,14 @@ mpzspp_init (mpzspm_t mpzspm)
   return mpzspp;
 }
 
+mpzspp_t
+mpzspp_init2 (mpzspm_t mpzspm, spv_size_t len)
+{
+  mpzspp_t mpzspp = mpzspp_init (mpzspm);
+  mpzspp_realloc (mpzspp, len);
+  return mpzspp;
+}
+
 void
 mpzspp_clear (mpzspp_t mpzspp)
 {
@@ -64,6 +72,39 @@ mpzspp_realloc (mpzspp_t mpzspp, spv_size_t len)
   
   if (mpzspp->len > len)
     mpzspp->len = len;
+}
+
+void
+mpzspp_set (mpzspp_t r, mpzspp_t x, spv_size_t len, spv_size_t offset1,
+    spv_size_t offset2)
+{
+  unsigned int i;
+  
+  MPZSPP_REALLOC (r, len + offset1);
+  
+  r->mpzspm = x->mpzspm;
+
+  for (i = 0; i < r->mpzspm->sp_num; i++)
+    spv_set (r->spv[i] + offset1, x->spv[i] + offset2, len);
+
+  r->len = MAX(len + offset1, r->len);
+  r->monic_pos = x->monic_pos;
+}
+
+void
+mpzspp_neg (mpzspp_t r, mpzspp_t x, spv_size_t len, spv_size_t offset)
+{
+  unsigned int i;
+  
+  MPZSPP_REALLOC (r, len);
+  
+  r->mpzspm = x->mpzspm;
+
+  for (i = 0; i < r->mpzspm->sp_num; i++)
+    spv_neg (r->spv[i], x->spv[i] + offset, len, r->mpzspm->spm[i].sp);
+
+  r->len = len;
+  r->monic_pos = x->monic_pos;
 }
 
 void
@@ -102,11 +143,6 @@ mpzspp_set_mpzp (mpzspp_t mpzspp, mpzp_t mpzp, spv_size_t len,
     }
 
   mpzspp->len = MAX(len + offset, mpzspp->len);
-  
-  /* For some combinations of offset/len we don't overwrite all the coeffs
-   * so strictly speaking, the normalised and ntt flags are undefined */
-  mpzspp->normalised = 1;
-  mpzspp->ntt = 0;
   mpzspp->monic_pos = 0;
 }
 
@@ -121,9 +157,6 @@ mpzspp_get_mpzp (mpzspp_t mpzspp, mpzp_t mpzp, spv_size_t len,
   unsigned int sp_num = mpzspp->mpzspm->sp_num;
   float *f = (float *) malloc (len * sizeof (float));
   float prime_recip;
-  
-  if (mpzspp->ntt)
-    mpzspp_from_ntt (mpzspp);
   
   for (j = 0; j < len; j++)
     {
@@ -152,10 +185,9 @@ mpzspp_get_mpzp (mpzspp_t mpzspp, mpzp_t mpzp, spv_size_t len,
       mpz_add (mpzp[j], mpzp[j], mpzspp->mpzspm->crt2[(unsigned int) f[j]]);
   
   free (f);
-
-  /* coeffs are clobbered so no point setting normalised or ntt flags */
 }  
 
+#if 0
 void
 mpzspp_mul (mpzspp_t r, mpzspp_t x, mpzspp_t y, int monic)
 {
@@ -178,7 +210,7 @@ mpzspp_mul (mpzspp_t r, mpzspp_t x, mpzspp_t y, int monic)
 
   MPZSPP_REALLOC (r, ntt_size);
   
-  if (x->ntt || y->ntt || ntt_size >= 2 * MUL_NTT_THRESHOLD)
+  if (ntt_size >= 2 * MUL_NTT_THRESHOLD)
     {
       mpzspp_to_ntt (x, ntt_size, monic);
       mpzspp_to_ntt (y, ntt_size, monic);
@@ -187,20 +219,16 @@ mpzspp_mul (mpzspp_t r, mpzspp_t x, mpzspp_t y, int monic)
     }
   else
     {
-      mpzspp_from_ntt (x);
-      mpzspp_from_ntt (y);
-      
       for (i = 0; i < x->mpzspm->sp_num; i++)
         spv_mul (r->spv[i], x->spv[i], x->len, y->spv[i], y->len,
 	    0, 0, monic, x->mpzspm->spm + i);
-
-      r->normalised = 0;
-      r->ntt = 0;
     }
   
   r->len = r_len;
 }
+#endif
 
+#if 0
 void
 mpzspp_mul_partial (mpzspp_t r, mpzspp_t x, mpzspp_t y, 
     spv_size_t k, spv_size_t l, int monic)
@@ -225,9 +253,8 @@ mpzspp_mul_partial (mpzspp_t r, mpzspp_t x, mpzspp_t y,
 	monic, x->mpzspm->spm + i);
   
   r->len = l;
-  r->ntt = 0;
-  r->normalised = 0;
 }
+#endif
 
 void
 mpzspp_pwmul (mpzspp_t r, mpzspp_t x, mpzspp_t y)
@@ -241,11 +268,11 @@ mpzspp_pwmul (mpzspp_t r, mpzspp_t x, mpzspp_t y)
 	x->mpzspm->spm[i].mul_c);
 
   r->len = x->len;
-  r->normalised = 0;
-  r->ntt = x->ntt;
   
   if (x->monic_pos && y->monic_pos)
     r->monic_pos = x->monic_pos + y->monic_pos;
+  else
+    r->monic_pos = 0;
 }
 
 #define STRIDE MIN(256,len)
@@ -269,12 +296,6 @@ mpzspp_normalise (mpzspp_t x, spv_size_t len, spv_size_t offset)
   
 #else
     
-  if (x->normalised)
-    return;
-  
-  if (x->ntt)
-    mpzspp_from_ntt (x);
-  
   unsigned long i, j, k, l;
   unsigned int sp_num = x->mpzspm->sp_num;
   sp_t v;
@@ -320,7 +341,7 @@ mpzspp_normalise (mpzspp_t x, spv_size_t len, spv_size_t offset)
 	
         for (j = 0; j < sp_num; j++)
           {
-	    w = x->spv[j];
+	    w = x->spv[j] + offset;
 	    v = x->mpzspm->crt4[i][j];
 	    
 	    for (k = 0; k < STRIDE; k++)
@@ -356,26 +377,12 @@ mpzspp_normalise (mpzspp_t x, spv_size_t len, spv_size_t offset)
   free (s1);
   free (d1);
   free (f);
-
 #endif
-  x->normalised = 1;
 }
 
 void
 mpzspp_to_ntt (mpzspp_t x, spv_size_t ntt_size, int monic)
 {
-  if (!x->normalised)
-    mpzspp_normalise (x, x->len, 0);
-
-  if (x->ntt)
-    {
-      /* FIXME: add the easy ntt_size < x->len case */
-      if (ntt_size != x->len)
-	mpzspp_from_ntt (x);
-      else
-	return;
-    }
-
   MPZSPP_REALLOC (x, ntt_size);
   
   unsigned int i;
@@ -406,14 +413,10 @@ mpzspp_to_ntt (mpzspp_t x, spv_size_t ntt_size, int monic)
 
   x->monic_pos = monic ? x->len : 0;
   x->len = ntt_size;
-  x->ntt = 1;
 }
 
 void mpzspp_from_ntt (mpzspp_t x)
 {
-  if (!x->ntt)
-    return;
-
   unsigned int i;
   spm_t spm;
   sp_t root;
@@ -434,8 +437,6 @@ void mpzspp_from_ntt (mpzspp_t x)
       if (x->monic_pos)
 	x->spv[i][monic_pos] = sp_sub (x->spv[i][monic_pos], 1, spm->sp);
     }
-
-  x->ntt = 0;
 }
 
 
