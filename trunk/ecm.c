@@ -523,8 +523,9 @@ ecm_stage1 (mpz_t f, mpres_t x, mpres_t A, mpmod_t n, double B1,
 	  if (cputime() - st > 5000)
 	    {
 	      /* Check to see if we should update our screen "percentage counter" */
-	      st = cputime();
 	      double Percentage = q;
+
+	      st = cputime();
 	      Percentage /= B1;
 	      Percentage *= 100;
 	      fprintf (stderr, "1:%03d\r", (int)Percentage);

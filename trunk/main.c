@@ -821,9 +821,9 @@ BreadthFirstDoAgain:;
 
       if ((!breadthfirst && cnt == count) || (breadthfirst && 1 == breadthfirst_cnt))
 	{
+	  int SomeFactor = trial_factor (&n, maxtrialdiv);
 	  /*  Note, if a factors are found, then n will be adjusted "down" */
 	  fprintf (stderr, "T:000 \r");
-	  int SomeFactor = trial_factor (&n, maxtrialdiv);
 	  if (SomeFactor)
 	    {
 	      /* should we increase factors found for trivials ??? */
