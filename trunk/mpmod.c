@@ -91,12 +91,10 @@ void REDC (mpres_t, mpres_t, mpz_t, mpmod_t);
 void mpn_REDC (mp_ptr, mp_srcptr, mp_srcptr, mp_srcptr, mp_size_t);
 void mod_mul2exp (mpz_t, unsigned int, mpmod_t);
 void mod_div2exp (mpz_t, unsigned int, mpmod_t);
-void mpz_mod_n (mpz_t, mpmod_t);
+void mpz_mod_n (mpz_t, mpz_t, mpmod_t);
 
-/* returns +/-k if n is a factor of N = 2^k +/- 1 with N < =n^threshold, 
-   0 otherwise 
-   TODO: Complete Fermat numbers (no prime factor divided out) are not
-         recognized 
+/* returns +/-l if n is a factor of N = 2^l +/- 1 with N <= n^threshold, 
+   0 otherwise.
 */
 int 
 isbase2 (mpz_t n, double threshold)
@@ -107,19 +105,21 @@ isbase2 (mpz_t n, double threshold)
 
   mpz_init (u);
   mpz_init (w);
-  lo = mpz_sizeinbase (n, 2) - 1;
+  lo = mpz_sizeinbase (n, 2) - 1; /* 2^lo <= n < 2^(lo+1) */  
   mpz_set_ui (u, 1);
   mpz_mul_2exp (u, u, 2 * lo);
-  mpz_mod (w, u, n); /* 2^(2lo) mod n = +/-2^(2lo-k) if m*n = 2^k+/-1 */
+  mpz_mod (w, u, n); /* 2^(2lo) mod n = -/+2^(2lo-l) if m*n = 2^l+/-1 */
+  if (mpz_cmp_ui (w, 1) == 0) /* if 2^(2lo) mod n = 1, then n divides 2^lo+1, 
+				 since n has lo+1 bits. */
+    return lo;
   k = mpz_sizeinbase (w, 2) - 1;
-  /* try w = 2^k */
+  /* if w = 2^k then n divides 2^(2*lo-k)-1 */
   mpz_set_ui (u, 1);
   mpz_mul_2exp (u, u, k);
   if (mpz_cmp(w, u) == 0) 
     res = k - 2 * lo;
-  else 
+  else /* if w = -2^k then n divides 2^(2*lo-k)+1 */
     {
-      /* try w = -2^k */
       mpz_neg (w, w);
       mpz_mod (w, w, n);
       k = mpz_sizeinbase (w, 2) - 1;
@@ -225,19 +225,29 @@ mod_div2exp (mpz_t c, unsigned int k, mpmod_t n)
   mpz_mod (c, n->temp1, n->orig_modulus);
 }
 
-/* Computes c/R^nn mod n, where n are nn limbs
-   and c has space for size(c)+1 limbs.  n must be odd.
+/* r <- c/R^nn mod n, where n are nn limbs.
+   n must be odd.
+   c must have space for at least 2*nn+1 limbs.
+   c and r can be the same variable.
+   The data in c is clobbered.
 */
 void 
-mpz_mod_n (mpz_t c, mpmod_t modulus)
+mpz_mod_n (mpz_ptr r, mpz_ptr c, mpmod_t modulus)
 {
-  mp_ptr cp = PTR (c), np = PTR (modulus->orig_modulus);
+  mp_ptr rp;
+  mp_ptr cp;
+  mp_srcptr np;
   mp_limb_t cy;
   mp_ptr cys; /* vector of carries */
   mp_limb_t q;
   size_t j, nn = modulus->bits / __GMP_BITS_PER_MP_LIMB;
   TMP_DECL(marker);
 
+  if (ALLOC(r) < nn)
+    _mpz_realloc (r, nn);
+  cp = PTR(c);
+  rp = PTR(r);
+  np = PTR(modulus->orig_modulus); 
   ASSERT(ALLOC(c) >= 2 * nn + 1);
   ASSERT(ABSIZ(c) <= 2 * nn + 1);
   for (j = ABSIZ(c); j <= 2 * nn; j++) 
@@ -251,20 +261,19 @@ mpz_mod_n (mpz_t c, mpmod_t modulus)
       cp++;
     }
   cy = cp[nn];
-  cp -= nn;
   /* add vector of carries and shift */
-  cy += mpn_add_n (cp, cp + nn, cys, nn);
+  cy += mpn_add_n (rp, cp, cys, nn);
   TMP_FREE(marker);
   if (cy)
     {
-      cy -= mpn_sub_n (cp, cp, np, nn);
+      cy -= mpn_sub_n (rp, rp, np, nn);
       while (cy > 1) /* subtract cy * {np, nn} */
-        cy -= mpn_submul_1 (cp, np, nn, cy);
+        cy -= mpn_submul_1 (rp, np, nn, cy);
       while (cy) /* subtract {np, nn} */
-        cy -= mpn_sub_n (cp, cp, np, nn);
+        cy -= mpn_sub_n (rp, rp, np, nn);
     }
-  MPN_NORMALIZE (cp, nn);
-  SIZ(c) = SIZ(c) < 0 ? -nn : nn;
+  MPN_NORMALIZE (rp, nn);
+  SIZ(r) = SIZ(c) < 0 ? -nn : nn;
 }
 
 /* don't use base2 if repr == -1 */
@@ -460,6 +469,7 @@ mpres_swap (mpres_t R, mpres_t S, mpmod_t n)
   mpz_swap (R, S);
 }
 
+/* R <- BASE^EXP mod modulus */ 
 void 
 mpres_pow (mpres_t R, mpres_t BASE, mpres_t EXP, mpmod_t modulus)
 {
@@ -509,8 +519,7 @@ mpres_pow (mpres_t R, mpres_t BASE, mpres_t EXP, mpmod_t modulus)
                 base2mod (modulus->temp2 , modulus->temp1, modulus->temp1, modulus);
               else if (modulus->repr == MOD_MODMULN)
                 {
-                  mpz_mod_n (modulus->temp1, modulus);
-                  mpz_set (modulus->temp2, modulus->temp1); /* TODO: get rid of */
+                  mpz_mod_n (modulus->temp2, modulus->temp1, modulus);
                 }
               else
                 REDC (modulus->temp2, modulus->temp1, modulus->temp2, modulus);
@@ -522,8 +531,7 @@ mpres_pow (mpres_t R, mpres_t BASE, mpres_t EXP, mpmod_t modulus)
                     base2mod (modulus->temp2, modulus->temp1, modulus->temp1, modulus);
                   else if (modulus->repr == MOD_MODMULN)
                     {
-                      mpz_mod_n (modulus->temp1, modulus);
-                      mpz_set (modulus->temp2, modulus->temp1); /* TODO: get rid of */
+                      mpz_mod_n (modulus->temp2, modulus->temp1, modulus);
                     }
                   else
                     REDC (modulus->temp2, modulus->temp1, modulus->temp2, modulus);
@@ -535,10 +543,13 @@ mpres_pow (mpres_t R, mpres_t BASE, mpres_t EXP, mpmod_t modulus)
           expbits = mpz_getlimbn (EXP, expidx);
           bitmask = (mp_limb_t) 1 << (__GMP_BITS_PER_MP_LIMB - 1);
         }
-      mpz_set (R, modulus->temp2);
+      mpz_set (R, modulus->temp2); /* TODO: isn't it possible to use R instead
+				      of modulus->temp2 above to avoid this
+				      copy? */
     } /* if (modulus->repr == MOD_BASE2) */
 }
 
+/* R <- BASE^EXP mod modulus */ 
 void 
 mpres_ui_pow (mpres_t R, unsigned int BASE, mpres_t EXP, mpmod_t modulus)
 {
@@ -594,8 +605,7 @@ mpres_ui_pow (mpres_t R, unsigned int BASE, mpres_t EXP, mpmod_t modulus)
                 base2mod (modulus->temp2 , modulus->temp1, modulus->temp1, modulus);
               else if (modulus->repr == MOD_MODMULN)
                 {
-                  mpz_mod_n (modulus->temp1, modulus);
-                  mpz_set (modulus->temp2, modulus->temp1); /* TODO: get rid of */
+                  mpz_mod_n (modulus->temp2, modulus->temp1, modulus);
                 }
               else
                 REDC (modulus->temp2, modulus->temp1, modulus->temp2, modulus);
@@ -621,7 +631,8 @@ mpres_ui_pow (mpres_t R, unsigned int BASE, mpres_t EXP, mpmod_t modulus)
           expbits = mpz_getlimbn (EXP, expidx);
           bitmask = (mp_limb_t) 1 << (__GMP_BITS_PER_MP_LIMB - 1);
         }
-      mpz_set (R, modulus->temp2);
+      mpz_set (R, modulus->temp2); /* TODO: use R instead of modulus->temp2
+				      above to avoid this copy? */
     } /* if (modulus->repr == MOD_BASE2) */
 }
 
@@ -629,20 +640,22 @@ void
 mpres_mul (mpres_t R, mpres_t S1, mpres_t S2, mpmod_t modulus)
 {
   mpz_mul (modulus->temp1, S1, S2);
-  
-  if (modulus->repr == MOD_BASE2)
-    base2mod (R, modulus->temp1, modulus->temp1, modulus);
-  else if (modulus->repr == MOD_MODMULN)
-    {
-      mpz_mod_n (modulus->temp1, modulus);
-      mpz_set (R, modulus->temp1);
-    }
-  else if (modulus->repr == MOD_REDC)
-    REDC (R, modulus->temp1, modulus->temp2, modulus);
-  else
-    mpz_mod (R, modulus->temp1, modulus->orig_modulus);
 
-  return;
+  switch (modulus->repr)
+    {
+    case MOD_BASE2:
+      base2mod (R, modulus->temp1, modulus->temp1, modulus);
+      return;
+    case MOD_MODMULN:
+      mpz_mod_n (R, modulus->temp1, modulus);
+      return;
+    case MOD_REDC:
+      REDC (R, modulus->temp1, modulus->temp2, modulus);
+      return;
+    default:
+      mpz_mod (R, modulus->temp1, modulus->orig_modulus);
+      return;
+    }
 }
 
 void 
@@ -653,7 +666,7 @@ mpres_mul_ui (mpres_t R, mpres_t S, unsigned int n, mpmod_t modulus)
   mpz_mod (R, modulus->temp1, modulus->orig_modulus);
 }
 
-/* TODO: make faster */
+/* R <- S / 2^n mod modulus. Does not need to be fast. */
 void 
 mpres_div_2exp (mpres_t R, mpres_t S, unsigned int n, mpmod_t modulus)
 {
@@ -701,12 +714,17 @@ mpres_add_ui (mpres_t R, mpres_t S, unsigned int n, mpmod_t modulus)
     }
 }
 
+/* R <- S1 + S2 mod modulus.
+   Remark: don't need 0 <= R < modulus, since mpres_mul can deal with
+   extra bits. */
 void 
 mpres_add (mpres_t R, mpres_t S1, mpres_t S2, mpmod_t modulus)
 {
   mpz_add (R, S1, S2);
+#if 0
   if (mpz_cmp (R, modulus->orig_modulus) > 0)
     mpz_sub (R, R, modulus->orig_modulus);
+#endif
 }
 
 void
@@ -733,12 +751,17 @@ mpres_sub_ui (mpres_t R, mpres_t S, unsigned int n, mpmod_t modulus)
     }
 }
 
+/* R <- S1 - S2 mod modulus.
+   Remark: don't need 0 <= R < modulus, since mpres_mul can deal with
+   extra bits. */
 void 
 mpres_sub (mpres_t R, mpres_t S1, mpres_t S2, mpmod_t modulus)
 {
   mpz_sub (R, S1, S2);
+#if 0
   if (mpz_sgn (R) < 0)
     mpz_add (R, R, modulus->orig_modulus);
+#endif
 }
 
 void 
@@ -752,8 +775,7 @@ mpres_set_z (mpres_t R, mpz_t S, mpmod_t modulus)
     {
       mpz_mod (modulus->temp2, S, modulus->orig_modulus);
       mpz_mul (modulus->temp1, modulus->temp2, modulus->R2);
-      mpz_mod_n (modulus->temp1, modulus);
-      mpz_set (R, modulus->temp1);
+      mpz_mod_n (R, modulus->temp1, modulus);
     }
   else if (modulus->repr == MOD_REDC)
     {
@@ -780,8 +802,7 @@ mpres_get_z (mpz_t R, mpres_t S, mpmod_t modulus)
   else if (modulus->repr == MOD_MODMULN)
     {
       mpz_set (modulus->temp1, S);
-      mpz_mod_n (modulus->temp1, modulus);
-      mpz_set (R, modulus->temp1);
+      mpz_mod_n (R, modulus->temp1, modulus);
     }
   else if (modulus->repr == MOD_REDC)
     {
@@ -817,6 +838,7 @@ mpres_set_ui (mpres_t R, unsigned int n, mpmod_t modulus)
     }
 }
 
+/* R <- -S mod modulus. Does not need to be efficient. */
 void
 mpres_neg (mpres_t R, mpres_t S, mpmod_t modulus)
 { /* TODO: R < modulus  assumes  0 < S */
@@ -835,8 +857,7 @@ mpres_invert (mpres_t R, mpres_t S, mpmod_t modulus)
       if (mpz_invert (modulus->temp2, S, modulus->orig_modulus))
         {
           mpz_mul (modulus->temp1, modulus->temp2, modulus->R3);
-          mpz_mod_n (modulus->temp1, modulus);
-          mpz_set (R, modulus->temp1); /* TODO: get rid of */
+          mpz_mod_n (R, modulus->temp1, modulus);
           return 1;
         }
       else
