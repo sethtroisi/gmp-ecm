@@ -73,7 +73,8 @@ fin_diff_init (mpz_t x, unsigned int s, unsigned int D, unsigned int E,
   if (method == PP1_METHOD) /* necessarily E=1 */
     {
       /* fd[0] = V_s(x), fd[1] = V_D(x) */
-      pp1_mul_ui (fd[2], x, P, Q, (s > D) ? s - D : D - s, N); /* V_{s-D}(x) */
+      mpz_set_ui (fd[2], (s > D) ? (s - D) : (D - s));
+      pp1_mul (fd[2], x, P, Q, fd[2], N); /* V_{s-D}(x) */
       mpz_clear (P);
       mpz_clear (Q);
     }
