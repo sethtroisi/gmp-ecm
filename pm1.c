@@ -40,7 +40,7 @@ typedef struct {
   mpz_t *val;
 } mul_casc;
 
-int      pm1_stage1     (mpz_t, mpres_t, mpmod_t, double, double, int, mpz_t);
+int      pm1_stage1     (mpz_t, mpres_t, mpmod_t, double, double, int, mpz_t, mpz_t);
 mul_casc *mulcascade_init (void);
 void     mulcascade_free (mul_casc *);
 mul_casc *mulcascade_mul_d (mul_casc *c, const double n, mpz_t t);
@@ -171,7 +171,7 @@ mulcascade_get_z (mpz_t r, mul_casc *c)
 
 int
 pm1_stage1 (mpz_t f, mpres_t a, mpmod_t n, double B1, double B1done,
-	    int verbose, mpz_t orig_n)
+	    int verbose, mpz_t orig_n, mpz_t orig_X0)
 {
   double B0, p, q, r, cascade_limit, percentage;
   mpz_t g, d;
@@ -333,7 +333,7 @@ pm1_stage1 (mpz_t f, mpres_t a, mpmod_t n, double B1, double B1done,
       }
     if (++Counter == 1500)
       {
-	int st_now = cputime();
+	int st_now = cputime ();
 	if (st_now - st > 30000)
 	  {
 	    /* Check to see if we should update our screen "percentage counter" */
@@ -352,17 +352,23 @@ pm1_stage1 (mpz_t f, mpres_t a, mpmod_t n, double B1, double B1done,
         if (st_now - st_save > 15 * 60 * 1000)
 #endif
 	  {
-	    /* PAUL!  This code does not work. I don't yet know what I am doing with
-	       your modular form items.  Can you please help get this working, as I 
-	       think this was a very "good" item from the todo list, and when this 
-	       gets operational, then incremental saving should work */
+	    /* sigma and A are not needed for the save.  Simply create "dummies" here to pass in */
+/*	    mpz_t sigma, A, X;
+	    mpz_init_set_ui (sigma, 0);
+	    mpz_init_set_ui (A, 0);
+	    mpz_init (X);
+*/
+	    /* Suck the X value out of a */
+	    /*mpres_get_z (X, a, n);*/
+/*
+	    mpres_get_z (X, g, n);
+		write_temp_resumefile (PM1_METHOD, p, sigma, A, X, orig_n, orig_X0, verbose);
+	    mpz_clear (X);
+	    mpz_clear (A);
+	    mpz_clear (sigma);
+*/		
+	    /* Reset our "timeout" value, so we save again in 15 minutes */
 	    st_save = st_now;
-	    /* Figure out how to save here */
-	    /* sigma is not needed */
-	    /* A is not needed */
-
-	    /******** THIS NEEDS TO BE MADE TO SAVE *****************/
-	    /* write_temp_resumefile (PM1_METHOD, p+1, sigma, A, x, orig_n, verbose); */
 	  }
 	  /*  This "testing" code is here to see just how often this ++Counter loop is entered.
 	  {
@@ -376,16 +382,13 @@ pm1_stage1 (mpz_t f, mpres_t a, mpmod_t n, double B1, double B1done,
   getprime (0.0); /* free the prime tables, and reinitialize */
 
   mpz_clear (d);
-
   mpres_pow (a, a, g, n);
-
   mpz_clear (g);
   
   mpres_sub_ui (a, a, 1, n);
   mpres_gcd (f, a, n);
   youpi = mpz_cmp_ui (f, 1);
   mpres_add_ui (a, a, 1, n);
-
   return youpi;
 }
 
@@ -510,7 +513,7 @@ pm1_rootsF (mpz_t f, listz_t F, unsigned int d, mpres_t *x, listz_t t,
 */
 
 mpres_t *
-pm1_rootsG_init (mpres_t *x, unsigned long s, unsigned int d, int S,
+pm1_rootsG_init (mpres_t *x, double s, unsigned int d, int S,
                  mpmod_t modulus)
 {
   unsigned int k;
@@ -649,7 +652,7 @@ pm1_rootsG (mpz_t f, listz_t G, unsigned int d, mpres_t *fd, listz_t t,
 */
 int
 pm1 (mpz_t f, mpz_t p, mpz_t N, double B1done, double B1, double B2min, double B2,
-     double B2scale, unsigned int k, int S, int verbose, int repr)
+     double B2scale, unsigned int k, int S, int verbose, int repr, mpz_t orig_X0)
 {
   mpmod_t modulus;
   mpres_t x;
@@ -660,7 +663,7 @@ pm1 (mpz_t f, mpz_t p, mpz_t N, double B1done, double B1, double B2min, double B
   /* Set default B2. See ecm.c for comments */
   if (B2 == 0.0)
     B2 = pow (B1 / 6.0, 1.424828748);
-  
+
   /* Scale B2 by what the user said (or by the default scaling of 1.0) */
   B2 *= B2scale;
 
@@ -745,7 +748,7 @@ pm1 (mpz_t f, mpz_t p, mpz_t N, double B1done, double B1, double B2min, double B
           mpmod_init_BASE2 (modulus, base2, N);
         }
 
-      else if (mpz_size (N) <= 2 * POWM_THRESHOLD && smallbase)
+      else if (mpz_size (N) <= 2 * POWM_THRESHOLD && smallbase && B1 <= 1e6)
       /* Below POWM_THRESHOLD, mpz_powm uses MODMULN reduction, too, but 
          without special code for small bases which makes our MODMULN
          faster. Above POWM_THRESHOLD mpz_powm uses faster mod reduction,
@@ -774,7 +777,7 @@ pm1 (mpz_t f, mpz_t p, mpz_t N, double B1done, double B1, double B2min, double B
   mpres_set_z (x, p, modulus);
 
   if (B1 > B1done)
-    youpi = pm1_stage1 (f, x, modulus, B1, B1done, verbose, N);
+    youpi = pm1_stage1 (f, x, modulus, B1, B1done, verbose, N, orig_X0);
 
   if (verbose >= 1)
     {
