@@ -410,7 +410,7 @@ void mpmod_init (mpmod_t, mpz_t, int);
 #define mpmod_init_MPZ __ECM(mpmod_init_MPZ)
 void mpmod_init_MPZ (mpmod_t, mpz_t);
 #define mpmod_init_BASE2 __ECM(mpmod_init_BASE2)
-void mpmod_init_BASE2 (mpmod_t, int, mpz_t);
+int mpmod_init_BASE2 (mpmod_t, int, mpz_t);
 #define mpmod_init_MODMULN __ECM(mpmod_init_MODMULN)
 void mpmod_init_MODMULN (mpmod_t, mpz_t);
 #define mpmod_init_REDC __ECM(mpmod_init_REDC)

@@ -747,8 +747,11 @@ pp1 (mpz_t f, mpz_t p, mpz_t n, mpz_t go, double B1done, double B1,
     mpmod_init_MODMULN (modulus, n);
   else if (repr == 3)
     mpmod_init_REDC (modulus, n);
-  else if (repr > 16)
-    mpmod_init_BASE2 (modulus, repr, n);
+  else if (abs (repr) > 16)
+    {
+      if (mpmod_init_BASE2 (modulus, repr, n) == ECM_ERROR)
+        return ECM_ERROR;
+    }
   else /* automatic choice */
     mpmod_init (modulus, n, repr);
 
