@@ -22,7 +22,11 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#if !defined (_MSC_VER)
 #include <unistd.h>
+#else
+#define snprintf _snprintf
+#endif
 #include "gmp.h"
 #include "ecm.h"
 #include "ecm-impl.h"

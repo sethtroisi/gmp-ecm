@@ -644,7 +644,7 @@ main (int argc, char *argv[])
 
   if (argc < 2)
     {
-      fprintf (stderr, "Invalid arguments. See ecm --help.\n");
+      fprintf (stderr, "Invalid arguments. See %s --help.\n", argv[0]);
       exit (EXIT_FAILURE);
     }
 

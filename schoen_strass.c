@@ -37,8 +37,6 @@ static int gt_inited = 0;
 static int radix2 = 0;
 unsigned int Fermat;
 
-#define min(a,b) ((a)<(b)?(a):(b))
-
 #define CACHESIZE 512U
 
 /* a' <- a+b, b' <- a-b. */
