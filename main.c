@@ -121,6 +121,7 @@ main (int argc, char *argv[])
   char *endptr[1]; /* to parse B2 or B2min-B2max */
   char rtime[256], who[256], comment[256], program[256];
   FILE *savefile = NULL, *resumefile = NULL;
+  int primetest = 0;
 
 #ifdef MEMORY_DEBUG
   tests_memory_start ();
@@ -179,6 +180,12 @@ main (int argc, char *argv[])
       else if (strcmp (argv[1], "-nobase2") == 0)
         {
           repr = -1;
+	  argv++;
+	  argc--;
+        }
+      else if (strcmp (argv[1], "-primetest") == 0)
+        {
+          primetest = 1;
 	  argv++;
 	  argc--;
         }
@@ -265,6 +272,7 @@ main (int argc, char *argv[])
       fprintf (stderr, "  -nobase2     disable special base-2 code\n");
       fprintf (stderr, "  -save file   save residues at end of stage 1 to file\n");
       fprintf (stderr, "  -resume file resume residues from file, reads from stdin if file is \"-\"\n");
+      fprintf (stderr, "  -primetest   perform a primality test on input\n");
       exit (1);
     }
 
@@ -448,12 +456,14 @@ main (int argc, char *argv[])
 	      str = mpz_get_str (NULL, 10, n);
 	      printf ("Input number is %s (%u digits)\n", str,
 		      (unsigned) strlen (str));
-	      fflush (stdout);
 	      __gmp_free_func (str, strlen (str) + 1);
 	    }
 	  else
 	    printf ("Input number has around %u digits\n", (unsigned) 
 		    mpz_sizeinbase (n, 10));
+	  if (primetest && mpz_probab_prime_p (n, 1))
+	    printf ("****** Warning: input is probably prime ******\n"); 
+	  fflush (stdout);
 	}
 
       factor_is_prime = cofactor_is_prime = 0;
