@@ -32,10 +32,6 @@
 #define CHECKSUM 1
 */
 
-#ifdef HAVE_GWNUM
-#include "Fgw.h"
-#endif
-
 static mpz_t gt;
 static int gt_inited = 0;
 static int radix2 = 0;

@@ -35,6 +35,10 @@
 #include "gmp.h"
 #include "ecm.h"
 #include "ecm-ecm.h"
+#ifdef HAVE_GWNUM
+/* For GWNUM_VERSION */
+#include "gwnum.h"
+#endif
 
 #if defined (__MINGW32__) || defined (_MSC_VER) /* || defined (__CYGWIN__) */
 /* needed for priority setting */               /* not sure about CyGwin and windows.h and Win32 API functions */
@@ -647,7 +651,12 @@ main (int argc, char *argv[])
   /* start of the program */
   if (verbose >= 1)
     {
+#ifdef HAVE_GWNUM
+      printf ("GMP-ECM %s [powered by GMP %s and GWNUM %s] [", 
+              VERSION, gmp_version, GWNUM_VERSION);
+#else
       printf ("GMP-ECM %s [powered by GMP %s] [", VERSION, gmp_version);
+#endif
       switch (method)
 	{
 	case ECM_PM1:
@@ -660,6 +669,10 @@ main (int argc, char *argv[])
 	  printf ("ECM");
 	}
       printf ("]\n");
+#ifdef HAVE_GWNUM
+      printf ("Due to incompatible licenses, this binary file must not "
+              "be distributed.\n");
+#endif
     }
 
   /* set first stage bound B1 */
