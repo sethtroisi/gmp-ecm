@@ -53,12 +53,17 @@ extern "C" {
 #endif  
 
 double   getprime       (double);
-unsigned int nb_digits  (mpz_t);
+
+/* auxi.c */
+unsigned int nb_digits (mpz_t);
+unsigned int gcd (unsigned int, unsigned int);
+void mpz_sub_si(mpz_t, mpz_t, int);
 
 /* pm1.c */
 void    pm1_random_seed (mpz_t, mpz_t, gmp_randstate_t);
 int          pm1        (mpz_t, mpz_t, mpz_t, double, double, double, 
                          unsigned int, unsigned int, int);
+
 
 /* ecm.c */
 int          ecm        (mpz_t, mpz_t, mpz_t, mpz_t, double, double, double, 
@@ -66,7 +71,6 @@ int          ecm        (mpz_t, mpz_t, mpz_t, mpz_t, double, double, double,
 unsigned int phi        (unsigned int);
 unsigned int bestD      (double);
 double       block_size (unsigned int);
-unsigned int gcd        (unsigned int, unsigned int);
 int          cputime    (void);
 
 /* ecm2.c */
