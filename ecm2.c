@@ -219,12 +219,14 @@ ecm_rootsF (mpz_t f, listz_t F, unsigned int d, curve *s,
   int youpi = 0, dickson_a;
   listz_t coeffs;
   mpres_t u, v;
+  unsigned int size_fd;
   
   st = cputime ();
 
   /* If S < 0, use degree |S| Dickson poly, otherwise use x^S */
   dickson_a = (S < 0) ? -1 : 0;
   S = abs (S);
+  size_fd = 2 * (unsigned int) S + 2;
 
   mpres_get_z (F[0], s->x, modulus); /* (1*P)=P for ECM */
   i = 1;
@@ -239,9 +241,9 @@ ecm_rootsF (mpz_t f, listz_t F, unsigned int d, curve *s,
       coeffs = init_list (S + 1);
       fin_diff_coeff (coeffs, 7, 6, S, dickson_a);
 
-      fd = (point *) malloc ((2 * S + 2) * sizeof (point));
+      fd = (point *) malloc (size_fd * sizeof (point));
 
-      for (j = 0; j <= (unsigned) S && youpi == 0; j++)
+      for (j = 0; (j <= (unsigned) S) && (youpi == 0); j++)
         {
           mpres_init (fd[j].x, modulus);
           mpres_init (fd[j].y, modulus);
@@ -254,7 +256,7 @@ ecm_rootsF (mpz_t f, listz_t F, unsigned int d, curve *s,
       clear_list (coeffs, S + 1);
 
       /* Allocate workspace for addWn */
-      for ( ; j < 2 * (unsigned) S + 2; j++)
+      for ( ; j < size_fd; j++)
         {
           mpres_init (fd[j].x, modulus);
           mpres_init (fd[j].y, modulus);
@@ -279,7 +281,7 @@ ecm_rootsF (mpz_t f, listz_t F, unsigned int d, curve *s,
           j += 6;
         }
 
-      for (j = 0; j < 2 * (unsigned) S + 2; j++)
+      for (j = 0; j < size_fd; j++)
         {
           mpres_clear (fd[j].x, modulus);
           mpres_clear (fd[j].y, modulus);
