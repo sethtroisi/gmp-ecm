@@ -172,6 +172,9 @@ stage2 (mpz_t f, void *X, mpmod_t modulus, double B2min, double B2,
 #endif
   listz_t invF = NULL;
 
+  /* check alloc. size of f */
+  mpres_realloc (f, modulus);
+
   if (B2 < B2min)
     return 0;
 
