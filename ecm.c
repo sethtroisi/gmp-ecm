@@ -661,27 +661,11 @@ ecm (mpz_t f, mpz_t x, mpz_t sigma, mpz_t n, mpz_t go, double B1done,
   if (mpz_sgn (B2min) < 0)
     mpz_set_d (B2min, B1);
 
-  /* Set default degree for Brent-Suyama extension */
-  /* We try to keep the time used by the Brent-Suyama extension
-     at about 10% of the stage 2 time */
-  /* Degree S Dickson polys and x^S are equally fast for ECM, so we go for
-     the better Dickson polys whenever possible. For S == 1, 2, they behave
-     identically. */
-
-  if (S == ECM_DEFAULT_S)
-    {
-      mpz_t t;
-      mpz_init (t);
-      mpz_sub (t, B2, B2min);
-      S = choose_S (t);
-      mpz_clear (t);
-    }
-  
   if (repr == 1)
     mpmod_init_MPZ (modulus, n);
-  else if (repr == 2)
+  else if (repr == MOD_MODMULN)
     mpmod_init_MODMULN (modulus, n);
-  else if (repr == 3)
+  else if (repr == MOD_REDC)
     mpmod_init_REDC (modulus, n);
   else if (abs (repr) > 16)
     {
@@ -691,6 +675,31 @@ ecm (mpz_t f, mpz_t x, mpz_t sigma, mpz_t n, mpz_t go, double B1done,
   else /* automatic choice, avoiding base2 if repr=-1 */
     mpmod_init (modulus, n, repr);
 
+  /* Set default degree for Brent-Suyama extension */
+  /* We try to keep the time used by the Brent-Suyama extension
+     at about 10% of the stage 2 time */
+  /* Degree S Dickson polys and x^S are equally fast for ECM, so we go for
+     the better Dickson polys whenever possible. For S == 1, 2, they behave
+     identically. */
+
+  if (S == ECM_DEFAULT_S)
+    {
+      /* This requires that modulus is already inited */
+      if (modulus->repr == MOD_BASE2 && modulus->Fermat > 0)
+        {
+          /* For Fermat numbers, default is 1 (no Brent-Suyama) */
+          S = 1;
+        }
+      else
+        {
+          mpz_t t;
+          mpz_init (t);
+          mpz_sub (t, B2, B2min);
+          S = choose_S (t);
+          mpz_clear (t);
+        }
+    }
+  
   mpres_init (P.x, modulus);
   mpres_init (P.A, modulus);
 

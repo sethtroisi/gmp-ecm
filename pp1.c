@@ -715,14 +715,36 @@ pp1 (mpz_t f, mpz_t p, mpz_t n, mpz_t go, double B1done, double B1,
   if (mpz_sgn (B2min) < 0)
     mpz_set_d (B2min, B1);
 
+  if (repr == 1)
+    mpmod_init_MPZ (modulus, n);
+  else   if (repr == MOD_MODMULN)
+    mpmod_init_MODMULN (modulus, n);
+  else if (repr == MOD_REDC)
+    mpmod_init_REDC (modulus, n);
+  else if (abs (repr) > 16)
+    {
+      if (mpmod_init_BASE2 (modulus, repr, n) == ECM_ERROR)
+        return ECM_ERROR;
+    }
+  else /* automatic choice */
+    mpmod_init (modulus, n, repr);
+
   /* Set default degree for Brent-Suyama extension */
   if (S == ECM_DEFAULT_S)
     {
-      mpz_t t;
-      mpz_init (t);
-      mpz_sub (t, B2, B2min);
-      S = choose_S (t);
-      mpz_clear (t);
+      if (modulus->repr == MOD_BASE2 && modulus->Fermat > 0)
+        {
+          /* For Fermat numbers, default is 1 (no Brent-Suyama) */
+          S = 1;
+        }
+      else
+        {
+          mpz_t t;
+          mpz_init (t);
+          mpz_sub (t, B2, B2min);
+          S = choose_S (t);
+          mpz_clear (t);
+        }
     }
 
   if (test_verbose (OUTPUT_NORMAL))
@@ -746,20 +768,6 @@ pp1 (mpz_t f, mpz_t p, mpz_t n, mpz_t go, double B1done, double B1,
         outputf (OUTPUT_NORMAL, ", x0=%Zd", p);
       outputf (OUTPUT_NORMAL, "\n");
     }
-
-  if (repr == 1)
-    mpmod_init_MPZ (modulus, n);
-  else   if (repr == 2)
-    mpmod_init_MODMULN (modulus, n);
-  else if (repr == 3)
-    mpmod_init_REDC (modulus, n);
-  else if (abs (repr) > 16)
-    {
-      if (mpmod_init_BASE2 (modulus, repr, n) == ECM_ERROR)
-        return ECM_ERROR;
-    }
-  else /* automatic choice */
-    mpmod_init (modulus, n, repr);
 
   mpres_init (a, modulus);
   mpres_set_z (a, p, modulus);
