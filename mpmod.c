@@ -148,6 +148,29 @@ base2mod_1 (mpres_t RS, mpres_t t, mpmod_t modulus)
     }
 }
 
+/* Fermat-mod */
+static void
+base2mod_2 (mpres_t RS, mp_size_t n, mpz_t modulus)
+{
+  mp_size_t s;
+
+  s = ABSIZ(RS);
+  if (s > n)
+    {
+      if (s == n + 1)
+        {
+          mp_ptr rp = PTR(RS);
+
+          if ((rp[n] = mpn_sub_1 (rp, rp, n, rp[n])))
+            rp[n] = mpn_add_1 (rp, rp, n, rp[n]);
+          MPN_NORMALIZE(rp, s);
+          SIZ(RS) = (SIZ(RS) > 0) ? s : -s;
+        }
+      else /* should happen rarely */
+        mpz_mod (RS, RS, modulus);
+    }
+}
+
 /* subquadratic REDC, at mpn level.
    {orig,n} is the original modulus.
    {aux,n} is the auxiliary modulus.
@@ -714,13 +737,15 @@ mpres_mul (mpres_t R, mpres_t S1, mpres_t S2, mpmod_t modulus)
     {
       mp_size_t n = modulus->Fermat / __GMP_BITS_PER_MP_LIMB;
       unsigned long k;
-
+      
       _mpz_realloc (R, n + 1);
       k = mpn_fft_best_k (n, S1 == S2);
-      if (ABSIZ(S1) > n)
-        mpz_mod (S1, S1, modulus->orig_modulus);
-      if (ABSIZ(S2) > n)
-        mpz_mod (S2, S2, modulus->orig_modulus);
+#ifdef DEBUG
+      if (mpn_fft_next_size (n, k) != n)
+        abort();
+#endif
+      base2mod_2 (S1, n, modulus->orig_modulus);
+      base2mod_2 (S2, n, modulus->orig_modulus);
       mpn_mul_fft (PTR(R), n, PTR(S1), ABSIZ(S1), PTR(S2), ABSIZ(S2), k);
       n++;
       MPN_NORMALIZE(PTR(R), n);
