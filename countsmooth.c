@@ -24,7 +24,12 @@
 #include <string.h>
 #include <math.h>
 #include <gmp.h>
+
+#ifdef PRIMEGEN
 #include <primegen.h>
+#else
+double getprime (double);
+#endif
 
 #define mulmod(r,u,v,n) mpz_mul(r,u,v);mpz_mod(r,r,n);
 
@@ -418,7 +423,9 @@ main(int argc, char **argv)
 {
   mpz_t N, a, *cofac;
   unsigned int p, B1=0, nrtests=0, i, D, S, startG, endG;
+#ifdef PRIMEGEN
   primegen pg[1];
+#endif
   double ppow, 
          B2=0., 
          maxBS, /* Try Brent-Suyama only on cofactors <= maxBS */
@@ -488,8 +495,12 @@ main(int argc, char **argv)
     mpz_init (G[i]);
 
   /* Do the sieving */
+#ifdef PRIMEGEN
   primegen_init (pg);
   for (p=primegen_next(pg); p <= B1; p=primegen_next(pg))
+#else
+  for (p=2; p <= B1; p=getprime(p))
+#endif
     {
       i = mpz_fdiv_ui (N, p);
       if (i > 0)
