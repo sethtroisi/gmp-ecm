@@ -31,7 +31,7 @@ VERSION=5.0-beta
 
 ###################### do not edit below this line ############################
 
-FILES= auxi.o bestd.o ecm.o ecm2.o getprime.o listz.o lucas.o main.o pm1.o pp1.o stage2.o toomcook.o memory.o mpmod.o polyeval.o
+FILES= auxi.o bestd.o ecm.o ecm2.o getprime.o listz.o lucas.o main.o pm1.o pp1.o stage2.o toomcook.o memory.o mpmod.o polyeval.o resume.o
 
 CFLAG= -O2 -g -Wall -Wmissing-prototypes -ansi -pedantic
 LDFLAG= -lgmp -lm
@@ -43,7 +43,7 @@ CFLAGS= $(CFLAG)
 LDFLAGS= $(LDFLAG)
 POLYGCD=0
 
-DIST=  auxi.c bestd.c ecm.c ecm2.c getprime.c listz.c lucas.c main.c ntl.c pm1.c polyz.c pp1.c stage2.c toomcook.c memory.c mpmod.c polyeval.c
+DIST=  auxi.c bestd.c ecm.c ecm2.c getprime.c listz.c lucas.c main.c ntl.c pm1.c polyz.c pp1.c stage2.c toomcook.c memory.c mpmod.c polyeval.c resume.c
 EXTRADIST= COPYING INSTALL Makefile README ecm.h test.pm1 test.pp1 test.ecm
 
 .SUFFIXES: .c .o

@@ -120,7 +120,7 @@ int     pm1_rootsG       (mpz_t, listz_t, unsigned int, mpres_t *, listz_t,
 
 /* ecm.c */
 int          ecm        (mpz_t, mpz_t, mpz_t, mpz_t, double, double, double,
-                         double, unsigned int, int, int, int);
+                         double, unsigned int, int, int, int, int);
 unsigned int phi        (unsigned int);
 unsigned int bestD      (double);
 double       block_size (unsigned int);
@@ -240,8 +240,17 @@ void mpres_swap (mpres_t R, mpres_t S, mpmod_t modulus);
 void mpres_mul_ui (mpres_t, mpres_t, unsigned int, mpmod_t);
 void mpres_neg (mpres_t, mpres_t, mpmod_t);
 int  mpres_invert (mpres_t, mpres_t, mpmod_t);
-void mpres_gcd(mpz_t, mpres_t, mpmod_t);
+void mpres_gcd (mpz_t, mpres_t, mpmod_t);
 void mpres_out_str (FILE *, unsigned int, mpres_t, mpmod_t);
+
+/* resume.c */
+int  facceptstr (FILE *, char *);
+int  freadstrn (FILE *, char *, char, unsigned int);
+int  read_resumefile_line (int *, mpz_t, mpz_t, mpz_t, mpz_t, mpz_t, double *,
+                           char *, char *, char *, char *, FILE *);
+void write_resumefile_line (FILE *, int, double, mpz_t, mpz_t, mpz_t, mpz_t, 
+                            mpz_t, char *);
+
 
 void __gmp_default_free (void *, size_t);
 #ifdef MEMORY_DEBUG

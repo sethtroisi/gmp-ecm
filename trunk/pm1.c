@@ -25,6 +25,11 @@
 #include "gmp-mparam.h"
 #include "ecm.h"
 
+/* #define DEBUG */
+
+#define CASCADE_THRES 3
+#define CASCADE_MAX 50000000
+
 typedef struct {
   unsigned int size;
   mpz_t val[1];
@@ -63,7 +68,6 @@ pm1_random_seed (mpres_t a, mpz_t n, gmp_randstate_t randstate)
 }
 
 /*** Cascaded multiply ***/
-#define CASCADE_THRES 3
 
 mul_casc *
 mulcascade_init (void)
@@ -75,27 +79,29 @@ mulcascade_init (void)
       fprintf (stderr, "mulcascade_init: could not allocate memory\n");
       exit (EXIT_FAILURE);
     }
+  mpz_init (t->val[0]);
   t->size = 1;
-  mpz_init_set_ui (t->val[0], 1);
   return t;
 }
 
 void 
-mulcascade_free (mul_casc *c) {
+mulcascade_free (mul_casc *c)
+{
   unsigned int i;
   for (i = 0; i < c->size; i++)
-    mpz_clear( c->val[i] );
-  free(c);
+    mpz_clear (c->val[i]);
+  free (c);
 }
 
 /* TODO mulcascade_mul_d */
 mul_casc * 
-mulcascade_mul_ui (mul_casc *c, unsigned int n) {
+mulcascade_mul_ui (mul_casc *c, unsigned int n)
+{
   unsigned int i;
 
-  if (mpz_cmp_ui (c->val[0], 1) == 0) /* TODO: Compare to 0 for speed? */
+  if (mpz_sgn (c->val[0]) == 0)
     {
-      mpz_set_ui(c->val[0], n);
+      mpz_set_ui (c->val[0], n);
       return c;
     }
 
@@ -105,14 +111,14 @@ mulcascade_mul_ui (mul_casc *c, unsigned int n) {
   
   for (i = 1; i < c->size; i++) 
     {
-      if (mpz_cmp_ui (c->val[i], 1) == 0) 
+      if (mpz_sgn (c->val[i]) == 0) 
         {
           mpz_set (c->val[i], c->val[i-1]);
-          mpz_set_ui (c->val[i-1], 1);
+          mpz_set_ui (c->val[i-1], 0);
           return c;
         } else {
           mpz_mul (c->val[i], c->val[i], c->val[i-1]);
-          mpz_set_ui (c->val[i-1], 1);
+          mpz_set_ui (c->val[i-1], 0);
         }
     }
   
@@ -121,8 +127,7 @@ mulcascade_mul_ui (mul_casc *c, unsigned int n) {
   i = c->size++;
   c = realloc (c, sizeof (unsigned int) + c->size * sizeof (mpz_t));
   mpz_init (c->val[i]);
-  mpz_set (c->val[i], c->val[i-1]);
-  mpz_set_ui (c->val[i-1], 1);
+  mpz_swap (c->val[i], c->val[i-1]);
   return c;
 }
 
@@ -136,9 +141,9 @@ mulcascade_get_z (mpz_t r, mul_casc *c) {
       return;
     }
 
-  mpz_set(r, c->val[0]);
+  mpz_set_ui (r, 1);
   
-  for (i = 1; i < c->size; i++)
+  for (i = 0; i < c->size; i++)
     if (mpz_sgn (c->val[i]) != 0)
       mpz_mul (r, r, c->val[i]);
 }
@@ -186,8 +191,15 @@ pm1_stage1 (mpz_t f, mpres_t a, mpmod_t n, double B1, double B1done)
   else
     mpz_set_ui (g, 1);
 
-  /* TODO set dynamically depending on size of N */
-  cascade_limit = 1000000;
+  /* Set a limit of roughly 10000 * log_10(N) for the primes that are 
+     multiplied up in the exponent, i.e. 1M for a 100 digit number, 
+     but limit to CASCADE_MAX to avoid problems with stack allocation */
+  
+  cascade_limit = mpz_sizeinbase (n->orig_modulus, 2) * 3000;
+
+  if (cascade_limit > CASCADE_MAX)
+    cascade_limit = CASCADE_MAX;
+  
   if (cascade_limit > B1)
     cascade_limit = B1;
 
@@ -217,7 +229,8 @@ pm1_stage1 (mpz_t f, mpres_t a, mpmod_t n, double B1, double B1done)
       if (smallbase)
         {
 #ifdef DEBUG
-          printf ("Using mpres_ui_pow, base %u\n", smallbase);
+          printf ("Using mpres_ui_pow, repr=%d, base %u\n", n->repr,
+                  smallbase);
 #endif
           mpres_ui_pow (a, smallbase, g, n);
         }
@@ -544,9 +557,40 @@ pm1 (mpz_t f, mpz_t p, mpz_t N, double B1done, double B1, double B2min,
   int youpi = 0, st, base2, Nbits, smallbase;
 
   st = cputime ();
+  
+  /* Set default B2. See ecm.c for comments */
+  if (B2 == 0.0)
+    B2 = pow (B1 / 6.0, 1.424828748);
+  
+  /* Set default degree for Brent-Suyama extension */
+  
+  if (S == 0)
+    S = 2;
 
+  /* We need Suyama's power even and at least 2 for P-1 stage 2 to work 
+     correctly */
+  if (abs(S) < 2)
+    S = 2;
+
+  if (S & 1)
+    S *= 2; /* FIXME: Is this what the user would expect? */
+  
   if (verbose >= 1)
     {
+      printf ("Pollard P-1 Method with ");
+      if (B1done == 1.0)
+        printf("B1=%1.0f", B1);
+      else
+        printf("B1=%1.0f-%1.0f", B1done, B1);
+      if (B2min <= B1)
+        printf(", B2=%1.0f, ", B2);
+      else
+        printf(", B2=%1.0f-%1.0f, ", B2min, B2);
+      if (S > 0)
+        printf("x^%u\n", S);
+      else
+        printf("Dickson(%u)\n", -S);
+
       printf ("Using seed=");
       mpz_out_str (stdout, 10, p);
       printf ("\n");
@@ -623,19 +667,6 @@ pm1 (mpz_t f, mpz_t p, mpz_t N, double B1done, double B1, double B2min,
 
   if (youpi != 0) /* a factor was found */
     goto clear_and_exit;
-
-  /* Set default degree for Brent-Suyama extension */
-  
-  if (S == 0)
-    S = 2;
-
-  /* We need Suyama's power even and at least 2 for P-1 stage 2 to work 
-     correctly */
-  if (abs(S) < 2)
-    S = 2;
-
-  if (S & 1)
-    S *= 2;
 
   youpi = stage2 (f, &x, modulus, B2min, B2, k, S, verbose, PM1_METHOD);
 

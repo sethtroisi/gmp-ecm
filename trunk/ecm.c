@@ -20,6 +20,7 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <math.h>
 #include "gmp.h"
 #include "ecm.h"
 
@@ -550,23 +551,62 @@ ecm_stage1 (mpz_t f, mpres_t x, mpres_t A, mpmod_t n, double B1,
           k is the number of blocks to do in stage 2
           S is the degree of the Suyama-Brent extension for stage 2
           verbose is verbosity level: 0 no output, 1 normal output,
-          2 diagnostic output.
+            2 diagnostic output.
+          sigma_is_a: If true, the sigma parameter contains the curve's A value
    Output: f is the factor found.
    Return value: non-zero iff a factor was found.
 */
 int
 ecm (mpz_t f, mpz_t x, mpz_t sigma, mpz_t n, double B1done, double B1,
-     double B2min, double B2, unsigned int k, int S, int verbose, int repr)
+     double B2min, double B2, unsigned int k, int S, int verbose, int repr,
+     int sigma_is_A)
 {
   int youpi = 0, st;
   mpmod_t modulus;
   curve P;
 
   st = cputime ();
+
+  /* set second stage bound B2: when using polynomial multiplication of
+     complexity n^alpha, stage 2 has complexity about B2^(alpha/2), and
+     we want stage 2 to take about half of stage 1, thus we choose
+     B2 = (c*B1)^(2/alpha). Experimentally, c=1/4 seems to work well.
+     For Toom-Cook 3, this gives alpha=log(5)/log(3), and B2 ~ (c*B1)^1.365.
+     For Toom-Cook 4, this gives alpha=log(7)/log(4), and B2 ~ (c*B1)^1.424. */
+
+  /* We take the cost of P+1 stage 1 to be about twice that of P-1.
+     Since nai"ve P+1 and ECM cost respectively 2 and 11 multiplies per
+     addition and duplicate, and both are optimized with PRAC, we can
+     assume the ratio remains about 11/2. */
+
+  if (B2 == 0.0)
+    B2 = pow (11.0 / 6.0 * B1, 1.424828748);
+  
+  /* Set default degree for Brent-Suyama extension */
+  
+  if (S == 0)
+    S = 1;
+  
+  if (verbose >= 1)
+    {
+      printf ("Elliptic Curve Method with ");
+      if (B1done == 1.0)
+        printf("B1=%1.0f", B1);
+      else
+        printf("B1=%1.0f-%1.0f", B1done, B1);
+      if (B2min <= B1)
+        printf(", B2=%1.0f, ", B2);
+      else
+        printf(", B2=%1.0f-%1.0f, ", B2min, B2);
+      if (S > 0)
+        printf("x^%u\n", S);
+      else
+        printf("Dickson(%u)\n", -S);
+    }
   
   if (repr == 1)
     mpmod_init_MPZ (modulus, n);
-  else   if (repr == 2)
+  else if (repr == 2)
     mpmod_init_MODMULN (modulus, n);
   else if (repr == 3)
     mpmod_init_REDC (modulus, n);
@@ -578,10 +618,9 @@ ecm (mpz_t f, mpz_t x, mpz_t sigma, mpz_t n, double B1done, double B1,
   mpres_init (P.x, modulus);
   mpres_init (P.A, modulus);
 
-  if (mpz_sgn (x) == 0)
+  if (sigma_is_A == 0)
     {
-      /* sigma contains sigma value, starting point and A value must be 
-         computed */
+      /* sigma contains sigma value, A value must be computed */
       if (verbose >= 1)
         {
           printf ("Using sigma=");
@@ -594,10 +633,20 @@ ecm (mpz_t f, mpz_t x, mpz_t sigma, mpz_t n, double B1done, double B1,
     }
   else
     {
-      /* sigma contains the A value, x contains starting point */
-      mpres_set_z (P.x, x, modulus);
+      /* sigma contains the A value */
       mpres_set_z (P.A, sigma, modulus);
+      /* TODO: make a valid, random starting point in case none was given */
+      /* For now, we'll just chicken out. */
+      if (mpz_sgn (x) == 0)
+        {
+          fprintf (stderr, "The -A option requires that a starting point is given as well by the -x0\noption\n");
+          exit (EXIT_FAILURE);
+        }
     }
+
+  /* If a nonzero value is given in x, then we use it as the starting point */
+  if (mpz_sgn (x) != 0)
+      mpres_set_z (P.x, x, modulus);
   
   if (verbose >= 2)
     {
@@ -608,11 +657,6 @@ ecm (mpz_t f, mpz_t x, mpz_t sigma, mpz_t n, double B1done, double B1,
       printf("\n");
     }
 
-  /* Set default degree for Brent-Suyama extension */
-  
-  if (S == 0)
-    S = 1;
-  
   if (B1 > B1done)
     youpi = ecm_stage1 (f, P.x, P.A, modulus, B1, B1done, verbose);
 
