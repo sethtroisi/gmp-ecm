@@ -223,7 +223,7 @@ pp1_check_factor (mpz_t a, mpz_t p)
 static void
 pp1_mul2 (mpres_t a, mpres_t b, mpres_t P, mpz_t e, mpmod_t n)
 {
-  unsigned long l, i;
+  unsigned long l;
   mpres_t t;
 
   if (mpz_cmp_ui (e, 0) == 0) /* x^0 = 1 */
@@ -313,7 +313,8 @@ pp1_rootsF (listz_t F, unsigned int d1, unsigned int d2, unsigned int dF,
 {
   unsigned int i, j;
   unsigned long muls = 0;
-  int st, st2, youpi = ECM_NO_FACTOR_FOUND;
+  unsigned int st, st2;
+  int youpi = ECM_NO_FACTOR_FOUND;
   mpres_t fd[3];
   mpres_t u, v; /* auxiliary variables */
   listz_t coeffs;
@@ -349,8 +350,8 @@ pp1_rootsF (listz_t F, unsigned int d1, unsigned int d2, unsigned int dF,
       /* fd[0] = V_{7*d2}(P), fd[1] = V_{6*d2}(P), fd[2] = V_{d2}(P) */
 
       outputf (OUTPUT_VERBOSE,
-	       "Initializing table of differences for F took %dms\n",
-	       cputime () - st2);
+	       "Initializing table of differences for F took %ums\n",
+	       elltime (st2, cputime ()));
 
       i = 1;
       j = 7;
@@ -406,8 +407,8 @@ pp1_rootsF (listz_t F, unsigned int d1, unsigned int d2, unsigned int dF,
       clear_list (coeffs, state.size_fd);
 
       outputf (OUTPUT_VERBOSE,
-	       "Initializing table of differences for F took %dms\n",
-	       cputime () - st2);
+	       "Initializing table of differences for F took %ums\n",
+	       elltime (st2, cputime ()));
 
       /* Now for the actual calculation of the roots. */
       for (i = 0; i < dF && !youpi;)
@@ -443,8 +444,6 @@ pp1_rootsF (listz_t F, unsigned int d1, unsigned int d2, unsigned int dF,
 	  state.rsieve += 6;
 	}
 
-      
-    clear_fdi:
       for (i = 0; i < state.size_fd; i++)
         {
           mpres_clear (state.fd[i].x, modulus);
@@ -456,7 +455,8 @@ pp1_rootsF (listz_t F, unsigned int d1, unsigned int d2, unsigned int dF,
   mpres_clear (u, modulus);
   mpres_clear (v, modulus);
 
-  outputf (OUTPUT_VERBOSE, "Computing roots of F took %dms", cputime () - st);
+  outputf (OUTPUT_VERBOSE, "Computing roots of F took %ums",
+	   elltime (st, cputime ()));
   outputf (OUTPUT_DEVVERBOSE, " and %d muls", muls);
   outputf (OUTPUT_VERBOSE, "\n");
   
@@ -468,7 +468,7 @@ pp1_roots_state *
 pp1_rootsG_init (mpres_t *x, mpz_t s, unsigned int d1, unsigned int d2, 
                  int S, mpmod_t modulus)
 {
-  int st;
+  unsigned int st;
   mpres_t P;
   mpz_t t;
   pp1_roots_state *state;
@@ -589,7 +589,7 @@ pp1_rootsG (listz_t G, unsigned int dF, pp1_roots_state *state, mpmod_t modulus,
 {
   unsigned int i;
   unsigned long muls = 0;
-  int st;
+  unsigned int st;
 
   st = cputime ();
 
@@ -652,7 +652,8 @@ pp1_rootsG (listz_t G, unsigned int dF, pp1_roots_state *state, mpmod_t modulus,
       mpres_clear (v, modulus);
     }
 
-  outputf (OUTPUT_VERBOSE, "Computing roots of G took %dms", cputime () - st);
+  outputf (OUTPUT_VERBOSE, "Computing roots of G took %ums",
+	   elltime (st, cputime ()));
   outputf (OUTPUT_DEVVERBOSE, ", %u muls", dF);
   outputf (OUTPUT_VERBOSE, "\n");
   
@@ -680,7 +681,8 @@ pp1 (mpz_t f, mpz_t p, mpz_t n, mpz_t go, double B1done, double B1,
      mpz_t B2min, mpz_t B2, double B2scale, unsigned int k, int S,
      int verbose, int repr, FILE *os, FILE *es, char *TreeFilename)
 {
-  int youpi = 0, st;
+  int youpi = 0;
+  unsigned int st;
   mpres_t a;
   mpmod_t modulus;
 
@@ -775,9 +777,9 @@ pp1 (mpz_t f, mpz_t p, mpz_t n, mpz_t go, double B1done, double B1,
   if (B1 > B1done)
     youpi = pp1_stage1 (f, a, modulus, B1, B1done, go);
 
-  st = cputime () - st;
+  st = elltime (st, cputime ());
 
-  outputf (OUTPUT_NORMAL, "Step 1 took %dms\n", st);
+  outputf (OUTPUT_NORMAL, "Step 1 took %ums\n", st);
   if (test_verbose (OUTPUT_RESVERBOSE))
     {
       mpz_t t;

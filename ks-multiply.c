@@ -142,7 +142,7 @@ TMulKS (listz_t b, unsigned int n, listz_t a, unsigned int m,
   mp_size_t an, bn, cn;
   int ret = 0; /* default return value */
 #ifdef DEBUG
-  int st = cputime ();
+  unsigned int st = cputime ();
   fprintf (ECM_STDOUT, "n=%u m=%u l=%u bits=%u n*bits=%u: ", n, m, l,
 	   mpz_sizeinbase (modulus, 2), n * mpz_sizeinbase (modulus, 2));
 #endif
@@ -256,7 +256,7 @@ TMulKS (listz_t b, unsigned int n, listz_t a, unsigned int m,
   free (ap);
 
 #ifdef DEBUG
-  fprintf (ECM_STDOUT, "%dms\n", cputime () - st);
+  fprintf (ECM_STDOUT, "%ums\n", elltime (st, cputime ()));
 #endif
   
  TMulKS_end:
