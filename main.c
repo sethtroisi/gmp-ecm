@@ -152,8 +152,9 @@ main (int argc, char *argv[])
       fprintf (stderr, "  B2          stage 2 bound\n");
       fprintf (stderr, "\nOptions:\n");
       fprintf (stderr, "  -k n        perform n steps in stage 2\n");
-      fprintf (stderr, "  -e n        impose polynomial x^n for Brent-Suyama's extension\n");
-      fprintf (stderr, "  -dickson    use Dickson's n-th polynomial instead of x^n\n");
+      fprintf (stderr, "  -e n        use degree-n Brent-Suyama's extension\n");
+      fprintf (stderr, "  -power      use x^n for Brent-Suyama's extension\n");
+      fprintf (stderr, "  -dickson    use n-th Dickson's polynomial for Brent-Suyama's extension\n");
       fprintf (stderr, "  -pm1        runs Pollard P-1 instead of ECM\n");
       fprintf (stderr, "  -pp1        runs Williams P+1 instead of ECM\n");
       fprintf (stderr, "  -q          quiet mode\n");
@@ -378,8 +379,7 @@ main (int argc, char *argv[])
 	        }
 	    }
 	  else
-	    printf ("Found input number N");
-	  printf ("\n");
+	    printf ("Found input number N\n");
 	  fflush (stdout);
 	}
       
