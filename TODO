@@ -1,4 +1,6 @@
 ToDo's:
+- with -resume, print %time for THIS RUN instead of total run?
+	[suggested by SleepHound <sleephound@yahoo.com>]
 - check if return value of malloc() is zero or not, and print appropriate
 	error message when it is zero
 - implement semi-normalized residues in mpmod.c: instead of ensuring
