@@ -9,72 +9,66 @@ Instructions to install gmp-ecm:
    latest version of GNU MP (4.1.4 on January 2005), and to compile it
    on your particular processor.
 
-1) to create the binary file "ecm", type:
+1) check your configuration with:
 
-      $ make GMP=<gmpdir>
+   $ ./configure
 
-   where <gmpdir> is the directory where GMP is installed
-   (default is /usr/local/gmp).
+   The configure script accepts several options (see ./configure --help).
+   In particular you can specify the GMP installation directory with:
 
-   By default, a static binary is made. If this fails, try adding
-   LDFLAGS="-lgmp -lm" to the make command. This is the case for
-   example under Darwin.
+   $ ./configure --with-gmp=<gmpdir>
 
-   Warning: to compile gmp-ecm, it is better to use the same compiler and
-   options than used to compile GMP, otherwise the compilation may
-   fail, or you may get poor performance. In the GMP build directory,
-   simply type:
+   where <gmpdir>/include contains the header file gmp.h, and <gmpdir>/lib
+   contains the static or dynamic libraries (libgmp.a, libgmp.so, libgmp.lib).
+ 
+   Note: the configure script will first search for a static GMP library, which
+   makes gmp-ecm more efficient. When only a dynamic library is available, make
+   sure to correctly set your dynamic libraries search path (LD_LIBRARY_PATH
+   on Unix systems), otherwise the configure script may fail.
 
-   $ egrep '(CC|CFLAGS)' Makefile
+2) compile the program with:
+
+   $ make
+
+   Warning: it is recommended to use the same compiler and options than those
+   used to compile GMP, otherwise the compilation may fail, or you may get
+   poor performance. In the GMP build directory, simply type:
+
+   $ egrep -w '(CC|CFLAGS)' config.log
 
    to see which compiler and options were used to build GMP. For example
    on a Sparc v9 you may want to type:
    
-   $ make GMP=<gmpdir> CC=cc CFLAGS="-fast -fns=no -fsimple=1 -xarch=v9" 
+   $ make CC=cc CFLAGS="-fast -fns=no -fsimple=1 -xarch=v9" 
 
-2) (optional) to check that "ecm" works correctly, type:
+3) to check that the program works correctly, type:
 
-      $ ./test.pm1 ./ecm # this checks P-1
-      $ ./test.pp1 ./ecm # this checks P+1
-      $ ./test.ecm ./ecm # this checks ECM
+   $ make check
 
-   We have succesfully tested this version on the following configurations.
-   Here are some timings obtained with ECM (B1=3e6) on the c155 file, with
-   the command "./ecm -power 1 3e6 < c155":
+   This will run several tests for P+1, P-1, ECM. These tests take a few
+   minutes. It should normally end with "All ECM tests are ok."
 
-configuration          version   compiler       step 1      step 2
-                       of gmp                  (seconds)   (seconds)
-pentium4-pc-linux-gnu gmp-4.1.4 gcc-3.3.3        62.2       24.3 P4-3Ghz
-
-Options used:
-pentium4-pc-linux-gnu:
--O2 -fomit-frame-pointer -mcpu=pentium4 -march=pentium4 -mno-sse2 -DWANT_GMP_IMPL
-
-3) If you like gmp-ecm, please help us factoring Cunningham numbers. First
+4) If you like gmp-ecm, please help us factoring Cunningham numbers. First
    download "cunningham.in" on <http://www.loria.fr/~zimmerma/ecmnet/>, then
-   perform one ecm test with B1=3e6 on each number of this file:
+   perform one ecm test with B1=11e6 on each number of this file:
 
-   $ ./ecm 3e6 < cunningham.in > cunningham.out &
+   $ ./ecm 11e6 < cunningham.in > cunningham.out &
 
    If you find any factor (grep found cunningham.out), please submit it
    using the report form on <http://www.loria.fr/~zimmerma/ecmnet/>.
 
-The README file explains how to efficiently use P-1, P+1 and ECM.
-
 In case of problem, report it to us, with:
+
+- the output of the config.log file
+
 - the versions of GMP-ECM and GMP used (first output line), for example:
   
-  GMP-ECM 5.0 [powered by GMP 4.1.2] [P+1]
+  GMP-ECM 5.2.0 [powered by GMP 4.1.4, fft] [P+1]
 
-- the machine type and operating system (uname -a or config.guess from GMP)
 - the detailed input enabling us to reproduce the problem, for example:
 
   $ echo 328006342451 | ./ecm -pp1 -x0 5 120 7043
 
 - the output you get.
 
-Then send your report to us:
-Jim Fougeron <jfoug@kdsi.net>
-Laurent Fousse <fousse@loria.fr>
-Alexander Kruppa <alexander.kruppa@stud.tu-muenchen.de>
-Paul Zimmermann <zimmerma@loria.fr>
+Then send your report to us at <ecm-dev@lists.fousse.info>.
