@@ -1,6 +1,8 @@
 /* Dickman's rho function (to compute probability of success of ecm).
 
   Copyright 2004, 2005 Alexander Kruppa.
+  Contains code from the GNU Scientific Library, file specfunc/dilog.c, 
+    copyright Gerard Jungman
 
   This file is part of the ECM Library.
 
@@ -87,7 +89,7 @@ phi (unsigned long n)
 }
 #endif /* TESTDRIVE */
 
-/* dilog_series() from the Gnu scientific library */
+/* dilog_series() from the Gnu scientific library, file specfunc/dilog.c */
 /* Evaluate series for real dilog(x)
  * Sum[ x^k / k^2, {k,1,Infinity}]
  *
@@ -169,12 +171,18 @@ rhoinit (int parm_invh, int parm_tablemax)
     return;
 
   if (rhotable != NULL)
-    free (rhotable);
+    {
+      free (rhotable);
+      rhotable = NULL;
+    }
   
   invh = parm_invh;
   h = 1. / (double) invh;
   tablemax = (double) parm_tablemax;
   
+  if (parm_tablemax == 0)
+    return;
+    
   rhotable = (double *) malloc (parm_invh * parm_tablemax * sizeof (double));
   
   for (i = 0; i < (3 < parm_tablemax ? 3 : parm_tablemax) * invh; i++)
