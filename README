@@ -8,10 +8,11 @@ Table of contents of this file:
 5. Memory usage.
 6. Expression syntax reference for gmp-ecm's syntax parser.
 7. Options -save and -resume.
-8. How to get the best of gmp-ecm?
-9. Command line options.
-10. Known problems.
-11. Record factors.
+8. working with very large numbers (the -prp* options)
+9. How to get the best of gmp-ecm?
+10. Command line options.
+11. Known problems.
+12. Record factors.
 
 ##############################################################################
 
@@ -402,7 +403,21 @@ computations. Options -save/-resume is useful in the following cases:
 
 ##############################################################################
 
-8. How to get the best of gmp-ecm?
+8. Working with very large numbers (the -prp* options)
+
+When working with VERY large numbers, PRP testing can become very slow when
+using GMP.  A much faster program is available.  That program is OpenPFGW (pfgw).
+pfgw only does a simple Fermat test, but is much faster, due to it's highly 
+optimal FFT multiplcation code.  The difference at 15k digits is about 10
+minutes for GMP, and about 20s for PFGW (and the difference only gets more
+severe).  A limitation of OpenPFGW, is it will ONLY be a viable solution for
+Intel 32 bit CPU's, as the FFT code is only built for those systems.
+
+Chapter 10 lists more information about the -prp* options, and using them.
+
+##############################################################################
+
+9. How to get the best of gmp-ecm?
 
 Choice of modular multiplication. The ecm program may choose between 4 kinds
 of modular arithmetic:
@@ -465,7 +480,7 @@ the C flags in Makefile.
 
 ##############################################################################
 
-9. Command line parameters and options.
+10. Command line parameters and options.
 
 The usage of the "ecm" command is the following:
 
@@ -569,6 +584,48 @@ Options for saving and resuming to/from files (see section "7. Options
               developers (with more in-depth knowledge of the code), 
               gets it working.
 
+Options for prp testing using extern proces 
+  (i.e. prp testing using OpenPFGW)  see section "8. Working with very large
+  numbers (the -prp* options)
+-prp cmd     use shell command cmd to do large primality tests.  Withing the
+             cmd part, there are these escape sequences:  %n will be replaced
+             with the decimal number needing checked for prp,  %l will be 
+             replaced by the "file" part of -prplog, and %t will be replaced
+             with the "file" part of -prptmp
+             All other characters within the cmd will be replaced verbetim,
+             and the system call will be made to exectute the cmd.  NOTE in
+             PFGW, only a Fermat test is dome (with a default of Fermat-3).
+             If testing numbers of the form 3^??? +-1 (or factors thereof),
+             or any other number form where Fermat-3 failes, be SURE to add
+             a -bn (replace n with a number from 2 to 255), and a Fermat-n
+             test will be performed.  
+             Example"  -prp "pfgw -q%n %O/dev/nul 2%O/dev/nul -b139"
+-prplen n    The external prp tester (PFGW) will be called only when 
+             candidate numbers are longer (decimal length) than this number 
+             of digits.  The "default" is 800 decimal digits.
+-prpval n    Return code which indicates the prp command found the number 
+             to be PRP.  The "latest" version of PFGW returns a 0 for 
+             Prp or Prime.  IF this switch is NOT set, then ecm will 
+             use the prplog and prpyes/prpno values.  Only the latest
+             versions of PFGW correctly return errorcode listing PRP or 
+             composite.
+-prplog file If not using prpval, then get PRP results from this file.
+             This file will be deleted after the test is run (and the 
+             results are pulled from it.
+-prptmp file This will cause the n value to be written to this temp file
+             prior to the command being run.  If working with REALLY big
+             numbers (i.e. numbers larger than what the command line can
+             support), then this will write them to a file, and the program
+             doing the PRP testing must be able to read the number from 
+             a file.  The number will be written as one very long string,
+             with only a single end of line marker at the very end of the
+             number.
+-prpyes str  literal string found in prplog file when number is PRP.  The
+             default string to scan for is "-PRP!"
+-prpno str   literal string found in prplog file when number is composite.
+             The default string to scan for is "is composite"
+
+
 Miscellaneous options:
 -primetest  Perform a primality test on input number, and prints a
       message if it is probably prime. This is not done by default since
@@ -607,7 +664,7 @@ Miscellaneous options:
 
 ##############################################################################
         
-10. Known problems.
+11. Known problems.
 
 (a) Under some operating systems (in particular Windows), ecm may use the
 same random seed for several curves started during the same second. 
@@ -654,7 +711,7 @@ known problem, or remove it if it is not a problem).
         
 ##############################################################################
 
-11. Record factors.
+12. Record factors.
 
 If you find a very large factor, the program will print a message like:
 
