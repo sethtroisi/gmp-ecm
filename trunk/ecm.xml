@@ -102,7 +102,7 @@ subject to the number of blocks <replaceable>k</replaceable>.</para>
   <term><option>-t <replaceable>n</replaceable></option></term>
   <listitem>
 <para>Perform trial division up to <replaceable>n</replaceable>,
-before P-1, P+1 or ECM.  In loop mode (see below),
+before P-1, P+1 or ECM.  In loop mode (see option <option>-c</option>),
 trial division is only performed in the first run.
 </para>
   </listitem>
@@ -147,7 +147,7 @@ curve parameter. If omitted, is it generated from the sigma value.
   <listitem>
 <para>[ECM, P-1, P+1] Multiply the initial point by
 <replaceable>val</replaceable>, which can any valid expression,
-possible containing the special character N, as place holder for the current
+possibly containing the special character N as place holder for the current
 input number. Example:
 <programlisting>ecm -pp1 -x0 "N^2-1" 1e6 &lt; composite2000</programlisting>
 </para>
@@ -186,7 +186,7 @@ files <replaceable>file</replaceable>.1, <replaceable>file</replaceable>.2 etc.
 Use x^<replaceable>n</replaceable> for Brent-Suyama's extension
 (<option>-power 1</option> disables Brent-Suyama's extension).
 The default polynomial is chosen depending on the method and B2.
-For P-1, <replaceable>n</replaceable> should be even.</para>
+For P-1, <replaceable>n</replaceable> must be even.</para>
 
   </listitem>
   </varlistentry>
@@ -195,8 +195,8 @@ For P-1, <replaceable>n</replaceable> should be even.</para>
   <listitem>
 <para>[ECM, P-1]
 Use degree-<replaceable>n</replaceable> Dickson's polynomial for Brent-Suyama's extension.
-Like for <option>-power</option> <replaceable>n</replaceable>, the degree 
-should be even for P-1.</para>
+Like for <option>-power</option>, <replaceable>n</replaceable>, must be 
+even for P-1.</para>
 
   </listitem>
   </varlistentry>
@@ -247,7 +247,7 @@ one can force a given method with the following options.</para>
   <varlistentry>
   <term><option>-mpzmod</option></term>
   <listitem>
-<para>Use GMP's mpz_mod function (subquadratic for large inputs, but induces
+<para>Use GMP's mpz_mod function (sub-quadratic for large inputs, but induces
 some overhead for small ones).</para>
   </listitem>
   </varlistentry>
@@ -263,7 +263,7 @@ best method for small input.</para>
   <varlistentry>
   <term><option>-redc</option></term>
   <listitem>
-<para>Use Montgomery's multiplication (subquadratic version).
+<para>Use Montgomery's multiplication (sub-quadratic version).
 Theoretically optimal for large input.</para>
   </listitem>
   </varlistentry>
@@ -277,11 +277,11 @@ large factor of 2^n+1 or 2^n-1, see <option>-v</option>).</para>
   </varlistentry>
 
   <varlistentry>
-  <term><option>-base2</option> <replaceable>b</replaceable></term>
+  <term><option>-base2</option> <replaceable>n</replaceable></term>
   <listitem>
 <para>Force use of special base-2 code, input number must divide 
-2^<replaceable>b</replaceable>+1 if <replaceable>b</replaceable> &gt; 0, 
-or 2^|<replaceable>b</replaceable>|-1 if <replaceable>b</replaceable> &lt; 0.
+2^<replaceable>n</replaceable>+1 if <replaceable>n</replaceable> &gt; 0, 
+or 2^|<replaceable>n</replaceable>|-1 if <replaceable>n</replaceable> &lt; 0.
 </para>
   </listitem>
   </varlistentry>
@@ -292,8 +292,8 @@ or 2^|<replaceable>b</replaceable>|-1 if <replaceable>b</replaceable> &lt; 0.
 <refsect1 id='file_io'><title>FILE I/O</title>
 <para>The following options enable one to perform step 1 and step 2 separately,
 either on different machines, at different times, or using different
-software (in particular, George Woltman's Prime95/mprime program uses the
-same convention for save files).
+software (in particular, George Woltman's Prime95/mprime program can produce
+step 1 output suitable for resuming with GMP-ECM).
 It can also be useful to split step 2 into several runs,
 using the <replaceable>B2min-B2max</replaceable> option.</para>
 <variablelist remap='TP'>
@@ -312,8 +312,9 @@ standard input.
   <listitem>
 <para>Save result of step 1 in <replaceable>file</replaceable>. If 
 <replaceable>file</replaceable> exists, an error is raised.
-Example: to perform only step 1 and save its result in file 
-<replaceable>foo</replaceable>, use 
+Example: to perform only step 1 with <replaceable>B1</replaceable>=1000000
+on the composite number in the file "c155" and save its result in file 
+"foo", use 
 <programlisting>ecm -save foo 1e6 1 &lt; c155</programlisting>
 </para>
   </listitem>
@@ -330,8 +331,8 @@ Example: to perform only step 1 and save its result in file
   <varlistentry>
   <term><option>-resume <replaceable>file</replaceable></option></term>
   <listitem>
-<para>Resume residues from <replaceable>file</replaceable>, reads from stdin
-if <replaceable>file</replaceable> is  "-".
+<para>Resume residues from <replaceable>file</replaceable>, reads from
+standard input if <replaceable>file</replaceable> is  "-".
 Example: to perform step 2 following the above step 1 computation, use
 <programlisting>ecm -resume foo 1e6</programlisting>
 </para>
@@ -352,9 +353,10 @@ on each input number. The following options control its behavior.
   <term><option>-c <replaceable>n</replaceable></option></term>
   <listitem>
 <para>Perform <replaceable>n</replaceable> runs on each input number
-instead of just one (default).
-This option is mainly useful for P+1 (for example with c=3) or for ECM,
-where <replaceable>n</replaceable> could be set to the expected number of 
+(default is one).
+This option is mainly useful for P+1 (for example with
+<replaceable>n</replaceable>=3) or for ECM, where 
+<replaceable>n</replaceable> could be set to the expected number of 
 curves to find a d-digit factor with a given step 1 bound.
 This option is incompatible with <option>-resume, -sigma, 
 -x0</option>. Giving <option>-c 0</option> produces an infinite loop until a 
@@ -416,9 +418,9 @@ by <replaceable>n</replaceable> after each curve.
   <listitem>
 <para>In loop mode, multiply <replaceable>B1</replaceable>
 by a factor depending on <replaceable>n</replaceable> after each curve.
-Using <option>-I</option> 1 should be optimal
-on one machine, and <option>-I 10</option> when
-trying to factor the same number simultaneously on 10 machines.
+Default is one which should be optimal on one machine, while  
+<option>-I 10</option> could be used when trying to factor the same number 
+simultaneously on 10 identical machines.
 </para>
   </listitem>
   </varlistentry>
@@ -426,7 +428,7 @@ trying to factor the same number simultaneously on 10 machines.
 </variablelist>
 </refsect1>
 
-<refsect1 id='prp'><title>PRIMALITY TESTTING</title>
+<refsect1 id='prp'><title>PRIMALITY TESTING</title>
 <para>The following options are useful for primality testing using
 external programs (e.g. OpenPFGW).</para>
 <variablelist remap='TP'>
@@ -561,7 +563,7 @@ divides the default <replaceable>B2</replaceable> by 2.</para>
   </varlistentry>
 
   <varlistentry>
-  <term><option>--help</option></term>
+  <term><option>-h</option>, <option>--help</option></term>
   <listitem>
   <para>Display a short description of ecm usage, parameters and command line
   options.</para>
@@ -605,17 +607,20 @@ or new versions.
 
 <refsect1 id='author'><title>AUTHORS</title>
 <para>
-Jim Fougeron &lt;jfoug@cox.net&gt; contributed the expression parser and
-several command-line options;
-Laurent Fousse &lt;laurent@komite.net&gt; contributed the middle product code,
-the autoconf/automake tools, and is the maintainer of the Debian package;
-Alexander Kruppa &lt;alexander.kruppa@stud.tu-muenchen.de&gt;
-contributed the Toom-Cook multiplication code, the special code for Fermat
-numbers, and many other nice things;
-Dave Newman &lt;david.newman@jesus.ox.ac.uk&gt;
-contributed the Kronecker-Schoenhage multiplication code;
-Paul Zimmermann &lt;zimmerma@loria.fr&gt; is the author of the first version
-of the program.
+Jim Fougeron &lt;jfoug at cox dot net&gt; contributed the expression parser 
+and several command-line options;
+Laurent Fousse &lt;laurent at komite dot net&gt; contributed the middle 
+product code, the autoconf/automake tools, and is the maintainer of the 
+Debian package;
+Alexander Kruppa &lt;firstname.lastname@mytum.de&gt; contributed the 
+Toom-Cook multiplication code, the special code for Fermat numbers, and many 
+other nice things;
+Dave Newman &lt;firstname.lastname@jesus.ox.ac.uk&gt;
+contributed the Kronecker-Schönhage multiplication code;
+Paul Zimmermann &lt;zimmerma at loria dot fr&gt; is the author of the first 
+version of the program.
+Note: email addresses have been obscured, the required substitutions should
+be obvious.
 </para>
 </refsect1>
 </refentry>
