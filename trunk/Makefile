@@ -27,7 +27,7 @@ GMP=/usr/local
 # libntl.a should be in $(NTL)/lib
 NTL=/usr/local
 
-VERSION=5.0-beta-pl2
+VERSION=5.0-beta-pl3
 
 ###################### do not edit below this line ############################
 
@@ -66,7 +66,7 @@ ntl.o: ntl.c
 	$(CC) $(CFLAGS) -I$(GMP)/include -c $<
 
 clean:
-	rm ecm *.o *~
+	rm -f ecm *.o 
 
 dist: $(DIST)
 	mkdir ecm-$(VERSION)
