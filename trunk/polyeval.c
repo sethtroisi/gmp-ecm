@@ -42,10 +42,12 @@ polyeval (listz_t G, unsigned int k, listz_t *Tree, listz_t T, mpz_t n,
           int verbose, unsigned int sh)
 {
   unsigned int l, m, muls;
-  listz_t T0 = Tree[0] + sh;
+  listz_t T0;
 
   if (k == 1)
     return 0;
+
+  T0 = Tree[0] + sh;
   
   m = k / 2;
   l = k - m;
