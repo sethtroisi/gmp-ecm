@@ -44,12 +44,16 @@ main (int argc, char *argv[])
   int result = 1;
   int verbose = 1; /* verbose level */
   int method = EC_METHOD;
-  int k = 7; /* default number of blocks in stage 2 */
+  int k = 8; /* default number of blocks in stage 2 */
   int specific_sigma = 0; /* 1=sigma supplied by user, 0=random */
   unsigned int S = 0;
   gmp_randstate_t randstate;
   char *savefilename = NULL;
   FILE *savefile = NULL;
+
+#ifdef MEMORY_DEBUG
+  tests_memory_start ();
+#endif
 
   /* first look for options */
   while ((argc > 1) && (argv[1][0] == '-'))
@@ -122,8 +126,11 @@ main (int argc, char *argv[])
 
   if (verbose >= 1)
     {
-      printf ("GMP-ECM 5.0 [powered by GMP %s and NTL %u.%u]\n",
-	      gmp_version, NTL_major_version (), NTL_minor_version ());
+      printf ("GMP-ECM %s [powered by GMP %s", ECM_VERSION, gmp_version);
+#ifdef MPM
+      printf (", MPM");
+#endif      
+      printf (" and NTL %u.%u]\n", NTL_major_version (), NTL_minor_version ());
     }
 
   /* set first stage bound B1 */
@@ -152,7 +159,7 @@ main (int argc, char *argv[])
   NTL_init ();
 
   mpz_init (seed); /* starting point */
-  if (method == EC_METHOD) 
+  if (method == EC_METHOD)
     mpz_init (sigma);
 
   /* set initial point/sigma. If none specified, we'll set default 
@@ -218,7 +225,7 @@ main (int argc, char *argv[])
         printf ("Williams P+1");
       else
         printf ("Elliptic Curve");
-      printf (" method with ");
+      printf (" Method with ");
       if (B1done == 1.0)
         printf("B1=%1.0f", B1);
       else
@@ -265,7 +272,7 @@ main (int argc, char *argv[])
 	      printf ("Input number is %s (%u digits)\n", str,
 		      (unsigned) strlen (str));
 	      fflush (stdout);
-	      free (str);
+	      __gmp_free_func (str, strlen (str) + 1);
 	    }
 	  else
 	    printf ("Input number has around %u digits\n", (unsigned) 
@@ -370,11 +377,19 @@ main (int argc, char *argv[])
 
  end:
   NTL_clear ();
+  mpz_clear (f);
   mpz_clear (p);
   mpz_clear (n);
   if (method == EC_METHOD)
     mpz_clear (sigma);
   mpz_clear (seed);
+
+  if (!specific_sigma)
+    gmp_randclear (randstate);
+
+#ifdef MEMORY_DEBUG
+  tests_memory_end ();
+#endif
 
   /* exit 0 iff a factor was found for the last input */
   return result;
