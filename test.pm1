@@ -1,6 +1,11 @@
 #!/bin/csh
 set ECM="$1"
 ### stage 2 less than 10^9 ###
+echo 335203548019575991076297 | $ECM -pm1 23 2 31
+if ($status != 0) then
+   echo "############### ERROR ###############";
+   exit 1;
+endif
 echo 5735039483399104015346944564789 | $ECM -pm1 1277209 0 9247741
 if ($status != 0) then
    echo "############### ERROR ###############";
