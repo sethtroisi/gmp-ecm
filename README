@@ -88,23 +88,23 @@ P+t is smooth, with t random of order P^(1/2). The optimal B1 and B2 bounds
 have to be chosen according to the (usually unknown) size of P. The following
 table gives a set of near-to-optimal B1 and B2 pairs, with the corresponding
 expected number of curves to find a factor of given size (column "-power 1"
-does not take into account the extra factors found by Brent-Suyama's extension,
-whereas column "default poly" takes them into account, with the polynomial used
-by default: D(n) means Dickson's polynomial of degree n):
+does not take into account the extra factors found by Brent-Suyama's exten-
+sion, whereas column "default poly" takes them into account, with the poly-
+nomial used by default: D(n) means Dickson's polynomial of degree n):
 
-       digits D  optimal B1      B2                expected curves
+       digits D  optimal B1   default B2           expected curves
                                                        N(B1,B2,D)
                                               -power 1         default poly
-          20       11e3         1.7e6             89               89 [x^1]
-          25        5e4         1.5e7            244              237 [x^2]
-          30       25e4         1.2e8            526              499 [D(3)]
-          35        1e6         9.7e8           1132             1044 [D(6)]
-          40        3e6         4.5e9           2992             2691 [D(12)]
-          45       11e6        3.0e10           5706             5166 [D(12)]
-          50       43e6        1.9e11           9507             8370 [D(30)]
-          55       11e7        7.2e11          22605            19977 [D(30)]
-          60       26e7        2.4e12          54580            48478 [D(30)]
-          65       85e7        1.5e13          85729            76396 [D(30)]
+          20       11e3         1.7e6             80               80 [x^1]
+          25        5e4         1.2e7            224              216 [x^2]
+          30       25e4         1.2e8            460              435 [D(3)]
+          35        1e6         8.4e8           1024              969 [D(3)]
+          40        3e6         4.0e9           2701             2502 [D(6)]
+          45       11e6        2.6e10           5227             4712 [D(12)]
+          50       43e6        1.8e11           8672             7792 [D(12)]
+          55       11e7        6.8e11          20534            17831 [D(30)]
+          60       26e7        2.3e12          49508            43787 [D(30)]
+          65       85e7        1.5e13          80336            71003 [D(30)]
 
           Table 1: optimal B1 and expected number of curves to find a
           factor of D digits with gmp-ecm.
@@ -117,6 +117,25 @@ i.e. about 14%, and so on.
 Example: after performing 9507 curves with B1=43e6 and B2=1.9e11
 (or 8370 curves with -dickson 30), the probability to miss a 50-digit
 factor is about 37%.
+
+As of version 6, gmp-ecm prints the expected number of curves and expected
+time to find factors of different size in verbose mode (option -v). This
+makes is easy to further optimize parameters for a certain factor size if 
+desired, simply try to minimize the expected time.
+
+(lengthy NOTE: The order of an elliptic curve with Montgomery parameteriza-
+tion, as used by gmp-ecm, is known to be divisible by 12. Therefore one can 
+assume that the probability that the order is B1,B2 smooth should be about as 
+great as for a random integer 1/12th in value. However, Montgomery observed 
+that the order behaves even nicer than that: heuristically, it seems that the 
+order is as likely to be smooth as a random integer about 1/23.4 in value. In 
+gmp-ecm, we assume a factor of 1/24 and the computed probabilities match 
+those observed in experiments very well. This however means that the so 
+computed values for the expected number of curves for given B1,B2 values and 
+factor sizes do not match those published in the literature where a factor of 
+only 1/12 was used. The factor gmp-ecm uses is defined as ECM_EXTRA_SMOOTHNESS 
+in rho.c, you can change it to 12.0 if you want to reproduce the more 
+pessimistic values found in the literature.)
 
 In summary, we advise the following method:
 

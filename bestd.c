@@ -182,6 +182,7 @@ od:
   *finald2 = d2;
   *finaldF = dF;
   mpz_set (finali0, i0);
+  mpz_mul_ui (B2, i1, d);
   
 clear_and_exit:
   mpz_clear (t);
