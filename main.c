@@ -519,7 +519,7 @@ main (int argc, char *argv[])
 		  str = mpz_get_str (NULL, 10, n);
 		  printf ("Input number is %s (%u digits)\n", str,
 			  (unsigned) strlen (str));
-		  __gmp_free_func (str, strlen (str) + 1);
+		  FREE (str, strlen (str) + 1);
 		}
 	      else
 		printf ("Input number has around %u digits\n", (unsigned) 
