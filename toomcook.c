@@ -3,7 +3,7 @@
   polynomial convolution products. This version works for all input 
   sizes, but cannot handle input arrays overlapping with output.
   
-  Copyright (C) 2002 A.Kruppa <alexander.kruppa@stud.tu-muenchen.de>
+  Copyright (C) 2002 A. Kruppa <alexander.kruppa@stud.tu-muenchen.de>
   
   This program is free software; you can redistribute it and/or modify it
   under the terms of the GNU General Public License as published by the
@@ -52,7 +52,8 @@ void mpz_divby3_1op(mpz_t RS) {
 }
 
 /* Puts in C[0..2len-2] the product of A[0..len-1] and B[0..len-1].
-   Returns the number of multiplies performed .
+   Returns the number of multiplies performed.
+   Assumes len >= 1.
 
    The auxiliary memory M(len) necessary in t satisfies:
    M(0) = 0, M(1) = 0, M(2) = 1, M(4) = 5,
@@ -70,41 +71,10 @@ int
 toomcook3 (listz_t C, listz_t A, listz_t B, unsigned int len, listz_t t)
 {
   int i, l, k, r;
-  
-  if (len == 0) 
-    return 0;
-  
-  if (len == 1)
-    {
-      mpz_mul (C[0], A[0], B[0]);
-      return 1;
-    }
-  
-  if (len == 2) /* Karatsuba scheme */
-    {
-      mpz_add (t[0], A[0], A[1]); /* t0 = A_0 + A_1 */
-      mpz_add (C[1], B[0], B[1]); /* C1 = B_0 + B_1 */
-      mpz_mul (C[1], C[1], t[0]); /* C1 = A_0*B_0 + A_0*B_1 + A_1*B_0 + A_1*B_1 */
-      mpz_mul (C[0], A[0], B[0]); /* C0 = A_0 * B_0 */
-      mpz_mul (C[2], A[1], B[1]); /* C2 = A_1 * B_1 */
-      mpz_sub (C[1], C[1], C[0]); /* C1 = A_0*B_1 + A_1*B_0 + A_1*B_1 */
-      mpz_sub (C[1], C[1], C[2]); /* C1 = A_0*B_1 + A_1*B_0 */
-      return 3;
-    }
 
-#define LEN_4_SHORTCUT
-#ifdef LEN_4_SHORTCUT
-  /* A 2,2,0 split (12 muls) is less efficient than Karatsuba (9 muls) 
-     for len==4 */
-  /* Maybe we should call toomcook4() instead. Then agin, if toomcook4()
-     was called originally, we'll never get to this case */
-  if (len == 4)
-    {
-      karatsuba (C, A, B, len, t);
-      return 9;
-    }
-#endif
-  
+  if (len <= 2 || len == 4)
+    return karatsuba (C, A, B, len, t);
+
   l = (len + 2) / 3; /* ceil(len/3) */
   k = len - 2 * l;   /* smaller part */
   
@@ -217,20 +187,26 @@ toomcook3 (listz_t C, listz_t A, listz_t B, unsigned int len, listz_t t)
 #undef T
 #define T t[6*l-3]
 
-int 
+/* the number of multiplies satisfies
+
+   T4(n) = 6 * T4(l) + T4(n-3*l) where l = ceil(n/4)
+*/
+int
 toomcook4 (listz_t C, listz_t A, listz_t B, unsigned int len, listz_t t)
 {
   unsigned int l, k, i;
   int r;
   
-  /* toomcook4 cannot handle 1 <= len <= 3 and len == 5
-     For len==6, toomcook4 uses 18 multiplies, toomcook3 only 15.
-     For len==9, toomcook4 uses 30 multiplies, toomcook3 only 25.
-     (Note: for len==10, both need 31, len==11, both 33 muls. In
-      all other cases, toomcook4 is more efficient than toomcook3.)
+  /* toomcook4 cannot handle len = 1, 2, 5
+     since we need k := len - 3*ceil(len/4) >= 0.
+     For len=3, toomcook4 would use 6 multiplies, toomcook3 uses only 5.
+     For len=6, toomcook4 would use 18 multiplies, toomcook3 only 15.
+     For len=9, toomcook4 would use 30 multiplies, toomcook3 only 25.
+     Further values where toomcook3 is faster are 17,18,26,27,77,78,79,80,81.
   */
-  if ((len != 4 && len <= 6) || len == 9)
-    return toomcook3(C, A, B, len, t);
+  if ((len <= 6 && len != 4) || len == 9 || len == 17 || len == 18 || len == 26
+      || len == 27 || (77 <= len && len <= 81))
+    return toomcook3 (C, A, B, len, t);
   
   l = (len + 3) / 4; /* l = ceil(len/4) */
   k = len - 3*l;     /* k = smaller part. len = 3*l + k, k <= l */
