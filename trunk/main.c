@@ -373,6 +373,14 @@ main (int argc, char *argv[])
   /* FIXME: append by default ? */
   if (savefilename != NULL)
     {
+      /* Does this file already exist ? */
+      savefile = fopen (savefilename, "r");
+      if (savefile != NULL)
+        {
+          printf ("Save file %s already exists, will not overwrite\n", 
+                  savefilename);
+          exit (EXIT_FAILURE);
+        }
       savefile = fopen (savefilename, "w");
       if (savefile == NULL)
         {
