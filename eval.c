@@ -87,6 +87,11 @@ int eval (mpcandi_t *n, FILE *fd, int primetest)
   int c;
   char *expr = malloc(nMaxSize+1);
 
+  if (expr == NULL)
+    {
+      fprintf (stderr, "Error: not enough memory\n");
+      exit (EXIT_FAILURE);
+    }
 /* Lines ending in '\\' are "joined" as a single longer line */
 JoinLinesLoop:;
   c = fgetc (fd);
@@ -173,6 +178,11 @@ int eval_str (mpcandi_t *n, char *cp, int primetest, char **EndChar)
   char *c;
   char *expr = malloc(nMaxSize+1);
 
+  if (expr == NULL)
+    {
+      fprintf (stderr, "Error: not enough memory\n");
+      exit (EXIT_FAILURE);
+    }
 /* Lines ending in '\\' are "joined" as a single longer line */
   c = cp;
 JoinLinesLoop:;

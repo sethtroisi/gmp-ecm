@@ -298,6 +298,11 @@ insert (d_struct *l, unsigned long d, COEFF a, COEFF b)
 
   /* now either l=NULL, or (l->a > a and l->b <= b) */
   newl = (d_struct*) malloc (sizeof (d_struct));
+  if (newl == NULL)
+    {
+      fprintf (stderr, "Error: not enough memory\n");
+      exit (EXIT_FAILURE);
+    }
   newl->d = d;
   newl->a = a;
   newl->b = b;
@@ -366,9 +371,29 @@ main (int argc, char *argv[])
   maxdF = dmax / 6;
 
   toomcook4 = (COEFF*) malloc ((maxdF + 1) * sizeof (COEFF));
+  if (toomcook4 == NULL)
+    {
+      fprintf (stderr, "Error: not enough memory\n");
+      exit (EXIT_FAILURE);
+    }
   PolyFromRoots = (COEFF*) malloc ((maxdF + 1) * sizeof (COEFF));
+  if (PolyFromRoots == NULL)
+    {
+      fprintf (stderr, "Error: not enough memory\n");
+      exit (EXIT_FAILURE);
+    }
   RecursiveDivision = (COEFF*) malloc ((maxdF + 1) * sizeof (COEFF));
+  if (RecursiveDivision == NULL)
+    {
+      fprintf (stderr, "Error: not enough memory\n");
+      exit (EXIT_FAILURE);
+    }
   PolyEval = (COEFF*) malloc ((maxdF + 1) * sizeof (COEFF));
+  if (PolyEval == NULL)
+    {
+      fprintf (stderr, "Error: not enough memory\n");
+      exit (EXIT_FAILURE);
+    }
 
   fill_toomcook3 (81);
   fill_toomcook4 (maxdF);

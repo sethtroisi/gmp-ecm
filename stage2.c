@@ -244,6 +244,11 @@ stage2 (mpz_t f, void *X, mpmod_t modulus, double B2min, double B2,
 #ifdef POLYEVAL
   lgk = ceil_log2 (dF);
   Tree = (listz_t*) malloc (lgk * sizeof(listz_t));
+  if (Tree == NULL)
+    {
+      fprintf (stderr, "Error: not enough memory\n");
+      exit (EXIT_FAILURE);
+    }
   for (i = 0; i < lgk; i++)
     Tree[i] = init_list (dF);
   list_set (Tree[lgk - 1], F, dF);
