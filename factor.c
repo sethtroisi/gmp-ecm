@@ -29,6 +29,8 @@ ecm_clear (ecm_params q)
   mpz_clear (q->x);
   mpz_clear (q->sigma);
   mpz_clear (q->go);
+  mpz_clear (q->B2min);
+  mpz_clear (q->B2);
 }
 
 /* returns ECM_FACTOR_FOUND, ECM_NO_FACTOR_FOUND, or ECM_ERROR */
