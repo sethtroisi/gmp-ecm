@@ -438,8 +438,12 @@ pp1 (mpz_t f, mpz_t p, mpz_t n, double B1done, double B1, double B2min,
       else
         printf(", B2=%1.0f-%1.0f", B2min, B2);
 
-      printf (", polynomial x^1, x0=");
-      mpz_out_str (stdout, 10, p);
+      printf (", polynomial x^1");
+      if (B1done == 1.0 || verbose > 1) /* don't print x0 in resume case */
+	{
+	  printf (", x0=");
+	  mpz_out_str (stdout, 10, p);
+	}
       printf ("\n");
       fflush (stdout);
     }
