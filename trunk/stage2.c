@@ -27,12 +27,15 @@
 #include <math.h>
 #include <limits.h>
 #include <math.h> /* for floor */
+#include "sp.h"
 #if defined (_MSC_VER)
 #define snprintf _snprintf
 #endif
 #include "gmp.h"
 #include "ecm.h"
 #include "ecm-impl.h"
+
+//#undef HAVE_NTT
 
 extern unsigned int Fermat;
 
@@ -325,7 +328,12 @@ stage2 (mpz_t f, void *X, mpmod_t modulus, mpz_t B2min, mpz_t B2,
     }
   if (d == 0)
     {
+#if 1 || defined HAVE_NTT
+      /* choose power-of-two dF */
+      if (bestD (B2min, effB2, 1, &d, &d2, &k, &dF, i0) == ECM_ERROR)
+#else
       if (bestD (B2min, effB2, 0, &d, &d2, &k, &dF, i0) == ECM_ERROR)
+#endif
         {
           youpi = ECM_ERROR;
           goto clear_s_i0;
@@ -480,7 +488,11 @@ stage2 (mpz_t f, void *X, mpmod_t modulus, mpz_t B2min, mpz_t B2,
         }
     }
   else
+#ifdef HAVE_NTT
+    ntt_PolyFromRoots_Tree (F, F, dF, T, n, Tree, NULL);
+#else
     PolyFromRoots_Tree (F, F, dF, T, -1, n, Tree, NULL, 0);
+#endif
   
   outputf (OUTPUT_VERBOSE, "Building F from its roots took %ums\n", 
            elltime (st, cputime ()));
@@ -509,8 +521,11 @@ stage2 (mpz_t f, void *X, mpmod_t modulus, mpz_t B2min, mpz_t B2,
 	  goto free_Tree_i;
 	}
       st = cputime ();
+#ifdef HAVE_NTT
+      ntt_PolyInvert (invF, F + 1, dF, T, n);
+#else
       PolyInvert (invF, F + 1, dF, T, n);
-
+#endif
       /* now invF[0..dF-1] = Quo(x^(2dF-1), F) */
       outputf (OUTPUT_VERBOSE, "Computing 1/F took %ums\n",
 	       elltime (st, cputime ()));
@@ -579,7 +594,12 @@ stage2 (mpz_t f, void *X, mpmod_t modulus, mpz_t B2min, mpz_t B2,
      ----------------------------------------------- */
 
       st = cputime ();
+#ifdef HAVE_NTT
+      ntt_PolyFromRoots (G, G, dF, T + dF, n);
+#else
       PolyFromRoots (G, G, dF, T + dF, n);
+#endif
+
       /* needs 2*dF+list_mul_mem(dF/2) cells in T */
       outputf (OUTPUT_VERBOSE, "Building G from its roots took %ums\n", 
                elltime (st, cputime ()));
@@ -616,7 +636,12 @@ stage2 (mpz_t f, void *X, mpmod_t modulus, mpz_t B2min, mpz_t B2,
 	  st = cputime ();
 	  /* previous G mod F is in H, with degree < dF, i.e. dF coefficients:
 	     requires 3dF-1+list_mul_mem(dF) cells in T */
+#ifdef HAVE_NTT
+	  ntt_mul (T + dF, G, H, dF, T + 3 * dF, 0, n);
+	  list_mod (H, T + dF, 2 * dF, n);
+#else
 	  list_mulmod (H, T + dF, G, H, dF, T + 3 * dF, n);
+#endif
 
           outputf (OUTPUT_VERBOSE, "Computing G * H took %ums\n", 
                    elltime (st, cputime ()));
@@ -628,17 +653,20 @@ stage2 (mpz_t f, void *X, mpmod_t modulus, mpz_t B2min, mpz_t B2,
              ------------------------------------------------ */
 
 	  st = cputime ();
-          if (PrerevertDivision (H, F, invF + 1, dF, T + 2 * dF, n))
+#ifdef HAVE_NTT
+	  ntt_PrerevertDivision (H, F, invF + 1, dF, T + 2 * dF, n);
+#else
+	  if (PrerevertDivision (H, F, invF + 1, dF, T + 2 * dF, n))
 	    {
 	      youpi = ECM_ERROR;
 	      goto clear_fd;
 	    }
-
+#endif
           outputf (OUTPUT_VERBOSE, "Reducing  G * H mod F took %ums\n", 
                    elltime (st, cputime ()));
 	}
     }
-
+  
   clear_list (F, dF + 1);
   F = NULL;
   clear_list (G, dF);
