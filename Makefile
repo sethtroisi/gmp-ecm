@@ -56,7 +56,7 @@ EXTRADIST= COPYING COPYING.LIB INSTALL Makefile README ecm.h test.pm1 test.pp1 t
 .SUFFIXES: .c .o
 
 ecm: $(ALLOBJS) ecm.h ecm-gmp.h
-	$(LD) $(ALLOBJS) -o $@ $(LDFLAGS)
+	$(LD) $(CFLAGS) $(ALLOBJS) -o $@ $(LDFLAGS)
 
 ecm_with_ntl:
 	make ecm GMP=$(GMP) NTL=$(NTL) LD='$(CXX)' EXTRAOBJS="ntl.o polyz.o" LDFLAGS='-L$(NTL)/lib -lntl $(LDFLAGS)' CFLAGS='$(CFLAGS) -DPOLYGCD'
