@@ -29,7 +29,13 @@
 #define UNUSED
 #endif
 
-/* either one of POLYEVAL or POLYEVALTELLEGEN or POLYGCD should be defined */
+#ifdef __GNUC__
+#define INLINE inline
+#else
+#define INLINE
+#endif
+
+/* either one of POLYEVAL or POLYEVALTELLEGEN should be defined */
 #define POLYEVALTELLEGEN /* use polyeval_tellegen() routine */
 
 /* use Kronecker-Scho"nhage's multiplication */
@@ -53,12 +59,6 @@
 #ifdef POLYEVALTELLEGEN
 #define POLYEVAL
 #define USE_SHORT_PRODUCT
-#endif
-
-/* If POLYGCD was set, override POLYEVAL */
-#ifdef POLYGCD
-#undef POLYEVAL
-#undef POLYEVALTELLEGEN
 #endif
 
 /* Use George Woltman's GWNUM library */
@@ -233,7 +233,7 @@ typedef struct
 #endif
   char *cpExpr;		/* if non-NULL, then this is a "simpler" expression than the 
 			   decimal output of n */
-  mpz_t n;		/* the cofactor canidate currently being used to find factors from */
+  mpz_t n;		/* the cofactor candidate currently being used to find factors from */
   unsigned ndigits;	/* the number of digits (decimal) in n */
   unsigned nexprlen;	/* strlen of expression, 0 if there is NO expression */
   int isPrp;		/* usually 0, but turns 1 if factor found, and the cofactor is PRP, 
@@ -272,13 +272,13 @@ void    pm1_random_seed  (mpz_t, mpz_t, gmp_randstate_t);
 int          pm1         (mpz_t, mpz_t, mpz_t, mpz_t, double, double, double, 
                           double, double, unsigned int, int, int, int);
 int     pm1_rootsF       (mpz_t, listz_t, unsigned int, unsigned int, unsigned int,
-                          mpres_t *, listz_t, int, mpmod_t, int, unsigned long *);
+                          mpres_t *, listz_t, int, mpmod_t, int);
 pm1_roots_state *
         pm1_rootsG_init  (mpres_t *, double, unsigned int, unsigned int, int, 
                           int, mpmod_t);
 void    pm1_rootsG_clear (pm1_roots_state *, mpmod_t);
 int     pm1_rootsG       (mpz_t, listz_t, unsigned int, pm1_roots_state *, 
-                          listz_t, mpmod_t, int, unsigned long *);
+                          listz_t, mpmod_t, int);
 
 
 
@@ -295,37 +295,37 @@ unsigned long phi (unsigned long);
 double   block_size (unsigned long);
 void     bestD (double, double, unsigned int, unsigned int *, unsigned int *, 
                 unsigned int *);
-void          bestD_po2 (double, double, unsigned int *, unsigned int *, 
-                         unsigned int *, unsigned long *);
+void     bestD_po2 (double, double, unsigned int *, unsigned int *, 
+                         unsigned int *);
 
 /* trial.c */
 int trial_factor (mpcandi_t *n, double maxfact, int deep);
 
 /* ecm2.c */
 int     ecm_rootsF       (mpz_t, listz_t, unsigned int, unsigned int, 
-                          unsigned int, curve *, int, mpmod_t, int, 
-                          unsigned long *);
+                          unsigned int, curve *, int, mpmod_t, int);
 ecm_roots_state * 
 	ecm_rootsG_init  (mpz_t, curve *, double, unsigned int, unsigned int,
                           unsigned int, unsigned int, int, mpmod_t, int);
 void    ecm_rootsG_clear (ecm_roots_state *, int, mpmod_t);
 int     ecm_rootsG       (mpz_t, listz_t, unsigned int, ecm_roots_state *, 
-                          mpmod_t, int, unsigned long *);
+                          mpmod_t, int);
+
+/* lucas.c */
+void  pp1_mul_prac     (mpres_t, unsigned long, mpmod_t, mpres_t, mpres_t,
+                        mpres_t, mpres_t, mpres_t);
 
 /* pp1.c */
-int   pp1_mul          (mpres_t, mpres_t, mpz_t, mpmod_t, mpres_t, mpres_t);
-int   pp1_mul_prac     (mpres_t, unsigned long, mpmod_t, mpres_t, mpres_t,
-                        mpres_t, mpres_t, mpres_t);
 void  pp1_random_seed  (mpz_t, mpz_t, gmp_randstate_t);
 int   pp1              (mpz_t, mpz_t, mpz_t, double, double, double, 
                         double, double, unsigned int, unsigned int, int, int);
-int   pp1_rootsF       (listz_t, unsigned int, unsigned int, unsigned int, 
-                        mpres_t *, listz_t, mpmod_t, int, unsigned long *);
+int   pp1_rootsF       (listz_t, unsigned int, unsigned int, unsigned int,
+                        mpres_t *, listz_t, mpmod_t, int);
 pp1_roots_state *
       pp1_rootsG_init  (mpres_t *, double, unsigned int, unsigned int, mpmod_t);
 void  pp1_rootsG_clear (pp1_roots_state *, mpmod_t);
-int   pp1_rootsG       (listz_t, unsigned int, pp1_roots_state *, mpmod_t,
-                        unsigned long *);
+int   pp1_rootsG       (listz_t, unsigned int, pp1_roots_state *, mpmod_t);
+
 
 /* stage2.c */
 int          stage2     (mpz_t, void *, mpmod_t, double, double, unsigned int,
@@ -360,30 +360,25 @@ int      toomcook4_high (listz_t, listz_t, listz_t, unsigned int, listz_t);
 int          karatsuba  (listz_t, listz_t, listz_t, unsigned int, listz_t);
 int          list_mul   (listz_t, listz_t, unsigned int, int, listz_t,
                          unsigned int, int, listz_t);
-int         list_mulmod (listz_t, listz_t, listz_t, listz_t, unsigned int,
+void        list_mulmod (listz_t, listz_t, listz_t, listz_t, unsigned int,
                          listz_t, mpz_t);
-int       PolyFromRoots (listz_t, listz_t, unsigned int, listz_t, int, mpz_t,
+void      PolyFromRoots (listz_t, listz_t, unsigned int, listz_t, int, mpz_t,
                          char, listz_t*, unsigned int);
-int          PolyInvert (listz_t, listz_t, unsigned int, listz_t, mpz_t);
+void         PolyInvert (listz_t, listz_t, unsigned int, listz_t, mpz_t);
 int   RecursiveDivision (listz_t, listz_t, listz_t, unsigned int,
                          listz_t, mpz_t, int);
-int   PrerevertDivision (listz_t, listz_t, listz_t, unsigned int, listz_t,
+void  PrerevertDivision (listz_t, listz_t, listz_t, unsigned int, listz_t,
                          mpz_t);
 int          list_mod1  (mpz_t, listz_t, listz_t, unsigned int, mpz_t, mpz_t*);
 void      poly_submul2 (listz_t, listz_t, listz_t, unsigned int, mpz_t, mpz_t);
 int          list_invert (listz_t, listz_t, unsigned int, mpz_t, mpmod_t);
 
 /* polyeval.c */
-unsigned int polyeval (listz_t, unsigned int, listz_t*, listz_t, mpz_t, int,
+void polyeval (listz_t, unsigned int, listz_t*, listz_t, mpz_t, int,
                unsigned int);
-unsigned int
+void
 polyeval_tellegen (listz_t b, unsigned int k, listz_t *Tree, listz_t T,
                    unsigned int sizeT, listz_t invF, mpz_t n, unsigned int sh);
-unsigned int TUpTree (listz_t b, listz_t *Tree, unsigned int k,
-              listz_t tmp, unsigned int sh, mpz_t n);
-unsigned int TUpTree_space (unsigned int k);
-unsigned int muls_tuptree (unsigned int k);
-unsigned int muls_polyeval_tellegen (unsigned int k);
 
 /* toomcook.c */
 int           toomcook3 (listz_t, listz_t, listz_t, unsigned int, listz_t);
@@ -395,23 +390,6 @@ unsigned int TMulKS     (listz_t, unsigned int, listz_t, unsigned int, listz_t,
                          unsigned int, mpz_t, int);
 unsigned int ks_wrapmul (listz_t, unsigned int, listz_t, unsigned int,
                          listz_t, unsigned int);
-
-/* polyz.c */
-void init_poly      (polyz_t, int);
-void init_poly_list (polyz_t, int, listz_t);
-void clear_poly     (polyz_t);
-int  poly_zerop     (polyz_t);
-void poly_set_ui    (polyz_t, unsigned long int);
-int  poly_gcd       (mpz_t, polyz_t, polyz_t, mpz_t, listz_t);
-int  poly_mod1      (mpz_t, polyz_t, polyz_t, mpz_t, listz_t);
-
-/* ntl.c */
-int NTL_major_version (void);
-int NTL_minor_version (void);
-int ntl_poly_gcd   (mpz_t, polyz_t, polyz_t, mpz_t);
-void NTL_init (void);
-void NTL_clear (void);
-void NTL_get_factor (mpz_t);
 
 /* mpmod.c */
 int isbase2 (mpz_t, double);

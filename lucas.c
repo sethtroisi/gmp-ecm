@@ -31,8 +31,6 @@
 #include "gmp.h"
 #include "ecm.h"
 
-unsigned int lucas_cost_pp1 (unsigned, double);
-
 /* the following constant were tested experimentally: in theory, we should
    have ADD = 2*DUP in the basecase range, and ADD = 3/2*DUP in the FFT range.
    Only the ratio ADD/DUP counts. */
@@ -66,7 +64,7 @@ add3 (mpres_t P, mpres_t Q, mpres_t R, mpres_t S, mpmod_t n, mpres_t t)
    ADD is the cost of an addition
    DUP is the cost of a duplicate
 */
-unsigned int
+static unsigned int
 lucas_cost_pp1 (unsigned n, double v)
 {
   unsigned int c, d, e, r;
@@ -139,7 +137,7 @@ lucas_cost_pp1 (unsigned n, double v)
         }
     }
   
-  return (c);
+  return c;
 }
 
 
@@ -151,14 +149,13 @@ lucas_cost_pp1 (unsigned n, double v)
 /* computes V_k(P) from P=A and puts the result in P=A. Assumes k>2.
    Uses auxiliary variables t, B, C, T, T2.
 */
-int
+void
 pp1_mul_prac (mpres_t A, unsigned long k, mpmod_t n, mpres_t t, mpres_t B,
               mpres_t C, mpres_t T, mpres_t T2)
 {
   unsigned int d, e, r, i = 0;
   static double val[NV] =
   {1.61803398875, 1.72360679775, 1.618347119656, 1.617914406529};
-  unsigned long muls;
 
   /* chooses the best value of v */
   for (d = 0, r = ADD * k; d < NV; d++)
@@ -179,7 +176,6 @@ pp1_mul_prac (mpres_t A, unsigned long k, mpmod_t n, mpres_t t, mpres_t B,
   mpres_set (B, A, n); /* B=A */
   mpres_set (C, A, n); /* C=A */
   duplicate (A, A, n); /* A = 2*A */
-  muls = 1;
   while (d != e)
     {
       if (d < e)
@@ -198,35 +194,30 @@ pp1_mul_prac (mpres_t A, unsigned long k, mpmod_t n, mpres_t t, mpres_t B,
           add3 (T2, T, A, B, n, t); /* T2 = f(T,A,B) */
           add3 (B,  B, T, A, n, t); /* B = f(B,T,A) */
           mpres_swap (A, T2, n);    /* swap A and T2 */
-          muls += 3;
         }
       else if (4 * d <= 5 * e && (d - e) % 6 == 0)
         { /* condition 2 */
           d = (d - e) / 2;
           add3 (B, A, B, C, n, t); /* B = f(A,B,C) */
           duplicate (A, A, n);     /* A = 2*A */
-          muls += 2;
         }
       else if (d <= (4 * e))
         { /* condition 3 */
           d -= e;
           add3 (C, B, A, C, n, t); /* C = f(B,A,C) */
           SWAP (B, C, n);
-          muls ++;
         }
       else if ((d + e) % 2 == 0)
         { /* condition 4 */
           d = (d - e) / 2;
           add3 (B, B, A, C, n, t); /* B = f(B,A,C) */
           duplicate (A, A, n);     /* A = 2*A */
-          muls += 2;
         }
       else if (d % 2 == 0)
         { /* condition 5 */
           d /= 2;
           add3 (C, C, A, B, n, t); /* C = f(C,A,B) */
           duplicate (A, A, n);     /* A = 2*A */
-          muls += 2;
         }
       else if (d % 3 == 0)
         { /* condition 6 */
@@ -236,7 +227,6 @@ pp1_mul_prac (mpres_t A, unsigned long k, mpmod_t n, mpres_t t, mpres_t B,
           add3 (A,  T, A, A, n, t);  /* A = f(T,A,A) */
           add3 (C,  T, T2, C, n, t); /* C = f(T,T2,C) */
           SWAP (B, C, n);
-          muls += 4;
         }
       else if ((d + e) % 3 == 0)
         { /* condition 7 */
@@ -245,7 +235,6 @@ pp1_mul_prac (mpres_t A, unsigned long k, mpmod_t n, mpres_t t, mpres_t B,
           add3 (B, T, A, B, n, t); /* B = f(T1,A,B) */
           duplicate (T, A, n);
           add3 (A, A, T, A, n, t); /* A = 3*A */
-          muls += 4;
         }
       else if ((d - e) % 3 == 0)
         { /* condition 8: never happens? */
@@ -255,14 +244,12 @@ pp1_mul_prac (mpres_t A, unsigned long k, mpmod_t n, mpres_t t, mpres_t B,
           SWAP (B, T, n);          /* swap B and T */
           duplicate (T, A, n);
           add3 (A, A, T, A, n, t); /* A = 3*A */
-          muls += 4;
         }
       else if (e % 2 == 0)
         { /* condition 9: never happens? */
           e /= 2;
           add3 (C, C, B, A, n, t); /* C = f(C,B,A) */
           duplicate (B, B, n);     /* B = 2*B */
-          muls += 2;
         }
       else
         {
@@ -280,6 +267,4 @@ pp1_mul_prac (mpres_t A, unsigned long k, mpmod_t n, mpres_t t, mpres_t B,
       exit (1);
     }
 #endif
-
-  return muls + 1;
 }

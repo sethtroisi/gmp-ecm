@@ -202,7 +202,6 @@ stage2 (mpz_t f, void *X, mpmod_t modulus, double B2min, double B2,
   unsigned int k;
   unsigned int i, d, d2, dF, sizeT;
   double i0;
-  unsigned long muls, tot_muls = 0, est_muls;
   mpz_t n;
   listz_t F, G, H, T;
   int youpi = 0, st, st0;
@@ -242,7 +241,7 @@ stage2 (mpz_t f, void *X, mpmod_t modulus, double B2min, double B2,
             printf ("Choosing power of 2 poly length for 2^%d+1 (%d blocks)\n", 
                     Fermat, k0);
           k = k0;
-          bestD_po2 (B2min, B2, &d, &d2, &k, &est_muls);
+          bestD_po2 (B2min, B2, &d, &d2, &k);
           dF = 1 << ceil_log2 (phi (d) / 2);
         }
     }
@@ -305,13 +304,11 @@ stage2 (mpz_t f, void *X, mpmod_t modulus, double B2min, double B2,
 
   /* needs dF+1 cells in T */
   if (method == PM1_METHOD)
-    youpi = pm1_rootsF (f, F, d, d2, dF, (mpres_t *) X, T, S, modulus, verbose, &tot_muls);
+    youpi = pm1_rootsF (f, F, d, d2, dF, (mpres_t*) X, T, S, modulus, verbose);
   else if (method == PP1_METHOD)
-    youpi = pp1_rootsF (F, d, d2, dF, (mpres_t *) X, T, modulus, verbose, &tot_muls);
+    youpi = pp1_rootsF (F, d, d2, dF, (mpres_t*) X, T, modulus, verbose);
   else 
-    youpi = ecm_rootsF (f, F, d, d2, dF, (curve *) X, S, modulus, verbose, &tot_muls);
-
-  showscreenticks(2, (int) (100.0 * (double) tot_muls / (double) est_muls));
+    youpi = ecm_rootsF (f, F, d, d2, dF, (curve*) X, S, modulus, verbose);
 
   if (youpi)
     {
@@ -342,7 +339,7 @@ stage2 (mpz_t f, void *X, mpmod_t modulus, double B2min, double B2,
   printf ("Roots = ");
   print_list (F, dF);
 #endif
-  tot_muls += PolyFromRoots (F, F, dF, T, verbose | 1, n, 'F', Tree, 0);
+  PolyFromRoots (F, F, dF, T, verbose | 1, n, 'F', Tree, 0);
 
 #ifdef SAVE_TREE
  {
@@ -361,8 +358,6 @@ stage2 (mpz_t f, void *X, mpmod_t modulus, double B2min, double B2,
    fprintf (stderr, "done\n");
  }
 #endif
-
-  showscreenticks(2, (int) (100.0 * (double) tot_muls / (double) est_muls));
 
   /* needs dF+list_mul_mem(dF/2) cells in T */
 
@@ -383,10 +378,7 @@ stage2 (mpz_t f, void *X, mpmod_t modulus, double B2min, double B2,
          but we need one more for TUpTree */
       invF = init_list (dF + 1); /* added "+ 1", F_mul need dF instead of dF-1, Alex */
       st = cputime ();
-      muls = PolyInvert (invF, F + 1, dF, T, n);
-      tot_muls += muls;
-
-      showscreenticks(2, (int) (100.0 * (double) tot_muls / (double) est_muls));
+      PolyInvert (invF, F + 1, dF, T, n);
 
       /* now invF[0..dF-1] = Quo(x^(2dF-1), F) */
 #ifdef TELLEGEN_DEBUG
@@ -399,7 +391,7 @@ stage2 (mpz_t f, void *X, mpmod_t modulus, double B2min, double B2,
       print_list (invF, dF); 
 #endif
       if (verbose >= 2)
-        printf ("Computing 1/F took %ums and %lu muls\n", cputime() - st, muls);
+        printf ("Computing 1/F took %ums\n", cputime() - st);
       
       /* ----------------------------------------------
          |   F    |  invF  |   G   |         T        |
@@ -433,27 +425,22 @@ stage2 (mpz_t f, void *X, mpmod_t modulus, double B2min, double B2,
   for (i = 0; i < k; i++)
     {
       st = cputime ();
-      muls = tot_muls;
       
       /* needs dF+1 cells in T+dF */
       if (method == PM1_METHOD)
         youpi = pm1_rootsG (f, G, dF, (pm1_roots_state *) rootsG_state, T + dF, 
-                            modulus, verbose, &tot_muls);
+                            modulus, verbose);
       else if (method == PP1_METHOD)
-        youpi = pp1_rootsG (G, dF, (pp1_roots_state *) rootsG_state, modulus, 
-                            &tot_muls);
+        youpi = pp1_rootsG (G, dF, (pp1_roots_state *) rootsG_state, modulus);
       else
         youpi = ecm_rootsG (f, G, dF, (ecm_roots_state *) rootsG_state, 
-			    modulus, verbose, &tot_muls);
-
-      showscreenticks(2, (int) (100.0 * (double) tot_muls / (double) est_muls));
+			    modulus, verbose);
 
       if (youpi)
 	youpi = 2;
       
       if (verbose >= 2 && method != EC_METHOD) /* ecm_rootsG prints itself */
-        printf ("Computing roots of G took %dms and %lu muls\n", 
-                cputime () - st, tot_muls - muls);
+        printf ("Computing roots of G[%u] took %dms\n", i + 1, cputime () - st);
 
       if (youpi)
         goto clear_fd;
@@ -464,10 +451,8 @@ stage2 (mpz_t f, void *X, mpmod_t modulus, double B2min, double B2,
      |  F(x)  | 1/F(x) | rootsG |      ???         |
      ----------------------------------------------- */
 
-      tot_muls += PolyFromRoots (G, G, dF, T + dF, verbose, n, 'G', NULL, 0);
+      PolyFromRoots (G, G, dF, T + dF, verbose, n, 'G', NULL, 0);
       /* needs 2*dF+list_mul_mem(dF/2) cells in T */
-
-      showscreenticks(2, (int) (100.0 * (double) tot_muls / (double) est_muls));
 
   /* -----------------------------------------------
      |   F    |  invF  |   G    |         T        |
@@ -501,14 +486,10 @@ stage2 (mpz_t f, void *X, mpmod_t modulus, double B2min, double B2,
 	  st = cputime ();
 	  /* previous G mod F is in H, with degree < dF, i.e. dF coefficients:
 	     requires 3dF-1+list_mul_mem(dF) cells in T */
-	  muls = list_mulmod (H, T + dF, G, H, dF, T + 3 * dF - 1 + 1, n); /* added "+ 1", Alex */
-          tot_muls += muls;
-
-          showscreenticks(2, (int) (100.0 * (double) tot_muls / (double) est_muls));
+	  list_mulmod (H, T + dF, G, H, dF, T + 3 * dF - 1 + 1, n); /* added "+ 1", Alex */
 
           if (verbose >= 2)
-            printf ("Computing G * H took %ums and %lu muls\n", cputime() - st,
-                    muls);
+            printf ("Computing G * H took %ums\n", cputime() - st);
 
           /* ------------------------------------------------
              |   F    |  invF  |    G    |         T        |
@@ -517,14 +498,10 @@ stage2 (mpz_t f, void *X, mpmod_t modulus, double B2min, double B2,
              ------------------------------------------------ */
 
 	  st = cputime ();
-          muls = PrerevertDivision (H, F, invF + 1, dF, T + 2 * dF, n);
-          tot_muls += muls;
-
-          showscreenticks(2, (int) (100.0 * (double) tot_muls / (double) est_muls));
+          PrerevertDivision (H, F, invF + 1, dF, T + 2 * dF, n);
 
           if (verbose >= 2)
-            printf ("Reducing G * H mod F took %ums and %lu muls\n",
-                    cputime() - st, muls);
+            printf ("Reducing  G * H mod F took %ums\n", cputime() - st);
 	}
     }
 
@@ -553,37 +530,19 @@ stage2 (mpz_t f, void *X, mpmod_t modulus, double B2min, double B2,
   G = NULL;
   st = cputime ();
 #ifdef POLYEVALTELLEGEN
-  muls = polyeval_tellegen (T, dF, Tree, T + dF + 1, 
-                            sizeT - dF - 1, invF, n, 0);
+  polyeval_tellegen (T, dF, Tree, T + dF + 1, sizeT - dF - 1, invF, n, 0);
 #else
   clear_list (invF, dF + 1);
   invF = NULL;
-  muls = polyeval (T, dF, Tree, T + dF + 1, n, verbose, 0);
+  polyeval (T, dF, Tree, T + dF + 1, n, verbose, 0);
 #endif
-  tot_muls += muls;
-
-  showscreenticks(2, (int) (100.0 * (double) tot_muls / (double) est_muls));
 
   if (verbose >= 2)
-    printf ("Computing polyeval(F,G) took %ums and %lu muls\n",
-            cputime() - st, muls);
+    printf ("Computing polyeval(F,G) took %ums\n", cputime() - st);
 
   youpi = list_gcd (f, T, dF, n) ? 2 : 0;
   if (verbose >= 3)
     gmp_printf ("Product of G(f_i) = %Zd\n", T[0]);
-    /* list_gcd() puts product in T[0] */
-#else
-  clear_list (invF, dF + 1);
-  invF = NULL;
-  clear_list (G, dF);
-  G = NULL;
-  st = cputime ();
-  init_poly_list (polyF, dF, F);
-  init_poly_list (polyT, dF - 1, T);
-  if ((youpi = poly_gcd (f, polyF, polyT, n, T + dF)))
-    NTL_get_factor (f);
-  if (verbose >= 2)
-    printf ("Computing gcd of F and G took %dms\n", cputime() - st);
 #endif
 
  clear_fd:
@@ -613,10 +572,7 @@ clear_G:
 
   if (verbose >= 1)
     {
-      printf ("Step 2 took %dms", st0);
-      if (verbose >= 2)
-	printf (" for %lu muls", tot_muls);
-      printf ("\n");
+      printf ("Step 2 took %dms\n", st0);
       fflush (stdout);
     }
 

@@ -21,19 +21,9 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <math.h>
+#include <limits.h> /* for ULONG_MAX */
 #include "gmp.h"
 #include "ecm.h"
-
-int get_curve_from_sigma (mpz_t, mpres_t, mpres_t, mpres_t, mpmod_t);
-void add3 (mpres_t, mpres_t, mpres_t, mpres_t, mpres_t, mpres_t, mpres_t,
-           mpres_t, mpmod_t, mpres_t, mpres_t, mpres_t);
-void duplicate (mpres_t, mpres_t, mpres_t, mpres_t, mpmod_t, mpres_t,
-                mpres_t, mpres_t, mpres_t);
-unsigned int lucas_cost (unsigned, double);
-void prac (mpres_t, mpres_t, unsigned int, mpmod_t, mpres_t, mpres_t, mpres_t, 
-           mpres_t, mpres_t, mpres_t, mpres_t, mpres_t, mpres_t, mpres_t, 
-           mpres_t, mpres_t);
-static int ecm_stage1 (mpz_t, mpres_t, mpres_t, mpmod_t, double, double);
 
 /******************************************************************************
 *                                                                             *
@@ -43,13 +33,12 @@ static int ecm_stage1 (mpz_t, mpres_t, mpres_t, mpmod_t, double, double);
 
 #define mpz_mulmod5(r,s1,s2,m,t) { mpz_mul(t,s1,s2); mpz_mod(r, t, m); }
 
-
 /* Computes curve parameter A and a starting point (x:1) from a given 
    sigma value.
    If a factor of n was found during the process, returns 1 (and factor 
    in A), 0 otherwise.
 */
-int
+static int
 get_curve_from_sigma (mpz_t f, mpres_t A, mpres_t x, mpz_t sigma, mpmod_t n)
 {
   mpres_t t, u, v, b, z;
@@ -160,7 +149,7 @@ montgomery_to_weierstrass (mpz_t f, mpres_t x, mpres_t y, mpres_t A, mpmod_t n)
    Modifies: x3, z3, t, u, v, w.
    (x3,z3) may be identical to (x2,z2) and to (x,z)
 */
-void
+static void
 add3 (mpres_t x3, mpres_t z3, mpres_t x2, mpres_t z2, mpres_t x1, mpres_t z1, 
       mpres_t x, mpres_t z, mpmod_t n, mpres_t u, mpres_t v, mpres_t w)
 {
@@ -202,7 +191,7 @@ add3 (mpres_t x3, mpres_t z3, mpres_t x2, mpres_t z2, mpres_t x1, mpres_t z1,
      - b : (a+2)/4 mod n
      - t, u, v, w : auxiliary variables
 */
-void
+static void
 duplicate (mpres_t x2, mpres_t z2, mpres_t x1, mpres_t z1, mpmod_t n, 
            mpres_t b, mpres_t u, mpres_t v, mpres_t w)
 {
@@ -217,8 +206,8 @@ duplicate (mpres_t x2, mpres_t z2, mpres_t x1, mpres_t z1, mpmod_t n,
   mpres_mul (z2, w, u, n);  /* z2 = ((4*x1*z1)*((x1-z1)^2+(A+2)/4*(4*x1*z1))) mod n */
 }
 
-#define ADD 6 /* number of multiplications in an addition */
-#define DUP 5 /* number of multiplications in a duplicate */
+#define ADD 6.0 /* number of multiplications in an addition */
+#define DUP 5.0 /* number of multiplications in a duplicate */
 
 #define START(d,v) ((d)/1.6180339887498948482-128.0+(v))
 
@@ -227,15 +216,16 @@ duplicate (mpres_t x2, mpres_t z2, mpres_t x1, mpres_t z1, mpmod_t n,
    ADD is the cost of an addition
    DUP is the cost of a duplicate
 */
-unsigned int
-lucas_cost (unsigned n, double v)
+static double
+lucas_cost (unsigned long n, double v)
 {
-  unsigned int c, d, e, r;
+  unsigned long d, e, r;
+  double c; /* cost */
 
   d = n;
-  r = (unsigned int) ((double) d / v + 0.5);
+  r = (unsigned long) ((double) d / v + 0.5);
   if (r >= n)
-    return (ADD * n);
+    return (ADD * (double) n);
   d = n - r;
   e = 2 * r - n;
   c = DUP + ADD; /* initial duplicate and final addition */
@@ -251,12 +241,12 @@ lucas_cost (unsigned n, double v)
         { /* condition 1 */
           d = (2 * d - e) / 3;
           e = (e - d) / 2;
-          c += 3 * ADD; /* 3 additions */
+          c += 3.0 * ADD; /* 3 additions */
         }
       else if (4 * d <= 5 * e && (d - e) % 6 == 0)
         { /* condition 2 */
           d = (d - e) / 2;
-          c += ADD+DUP; /* one addition, one duplicate */
+          c += ADD + DUP; /* one addition, one duplicate */
         }
       else if (d <= 4 * e)
         { /* condition 3 */
@@ -271,22 +261,22 @@ lucas_cost (unsigned n, double v)
       else if (d % 2 == 0)
         { /* condition 5 */
           d /= 2;
-          c += ADD+DUP; /* one addition, one duplicate */
+          c += ADD + DUP; /* one addition, one duplicate */
         }
       else if (d % 3 == 0)
         { /* condition 6 */
           d = d / 3 - e;
-          c += 3 * ADD + DUP; /* three additions, one duplicate */
+          c += 3.0 * ADD + DUP; /* three additions, one duplicate */
         }
       else if ((d + e) % 3 == 0)
         { /* condition 7 */
           d = (d - 2 * e) / 3;
-          c += 3 * ADD + DUP; /* three additions, one duplicate */
+          c += 3.0 * ADD + DUP; /* three additions, one duplicate */
         }
       else if ((d - e) % 3 == 0)
         { /* condition 8 */
           d = (d - e) / 3;
-          c += 3 * ADD + DUP; /* three additions, one duplicate */
+          c += 3.0 * ADD + DUP; /* three additions, one duplicate */
         }
       else if (e % 2 == 0)
         { /* condition 9 */
@@ -295,42 +285,41 @@ lucas_cost (unsigned n, double v)
         }
       else
         {
-          fprintf (stderr, "lucas_cost: no condition qualifies for d=%u e=%u\n", d, e);
+          fprintf (stderr, "lucas_cost: no condition qualifies for d=%lu e=%lu\n", d, e);
           exit (EXIT_FAILURE);
         }
     }
   
-  return (c);
+  return c;
 }
 
 
-#define NV 10
-
 /* computes kP from P=(xA:zA) and puts the result in (xA:zA). Assumes k>2. */
-void
-prac (mpres_t xA, mpres_t zA, unsigned int k, mpmod_t n, mpres_t b, 
+static void
+prac (mpres_t xA, mpres_t zA, unsigned long k, mpmod_t n, mpres_t b,
       mpres_t u, mpres_t v, mpres_t w, mpres_t xB, mpres_t zB, mpres_t xC, 
       mpres_t zC, mpres_t xT, mpres_t zT, mpres_t xT2, mpres_t zT2)
 {
-  unsigned int d, e, r, i = 0;
+  unsigned long d, e, r, i = 0;
+  double c, cmin;
   __mpz_struct *tmp;
-  static double val[NV] =
+  static double val[] =
     { 1.61803398875, 1.72360679775, 1.618347119656, 1.617914406529,
       1.612429949509, 1.632839806089, 1.620181980807, 1.580178728295,
-      1.617214616534, 1.38196601125 };
+      1.617214616534, 1.38196601125, 0.0 };
   
   /* chooses the best value of v */
-  for (d = 0, r = ADD * k; d < NV; d++)
+  for (d = 0, cmin = ADD * (double) k; (c = val[d]) != 0.0; d++)
     {
-      e = lucas_cost (k, val[d]);
-      if (e < r)
+      c = lucas_cost (k, c);
+      if (c < cmin)
         {
-          r = e;
+          cmin = c;
           i = d;
         }
     }
   d = k;
-  r = (int) ((double) d / val[i] + 0.5);
+  r = (unsigned long) ((double) d / val[i] + 0.5);
   
   /* first iteration always begins by Condition 3, then a swap */
   d = k - r;
@@ -436,7 +425,7 @@ prac (mpres_t xA, mpres_t zA, unsigned int k, mpmod_t n, mpres_t b,
         }
       else
         {
-          fprintf (stderr, "no condition qualifies for d=%u e=%u\n", d, e);
+          fprintf (stderr, "no condition qualifies for d=%lu e=%lu\n", d, e);
           exit (EXIT_FAILURE);
         }
     }
@@ -509,11 +498,17 @@ ecm_stage1 (mpz_t f, mpres_t x, mpres_t A, mpmod_t n, double B1, double B1done)
       }
   
   q = getprime (2.0); /* Puts 3.0 into q. Next call gives 5.0 */
+  /* check that B1 is not too large */
+  if (B1 > (double) ULONG_MAX)
+    {
+      fprintf (stderr, "Error, maximal step1 bound B1 for ECM is %lu\n", ULONG_MAX);
+      exit (EXIT_FAILURE);
+    }
   for (q = getprime (q); q <= B1; q = getprime (q))
     {
       for (r = q; r <= B1; r *= q)
 	if (r > B1done)
-	  prac (x, z, (int) q, n, b, u, v, w, xB, zB, xC, zC, xT, zT, xT2, zT2);
+	  prac (x, z, (unsigned long) q, n, b, u, v, w, xB, zB, xC, zC, xT, zT, xT2, zT2);
     }
   getprime (0.0); /* free the prime tables, and reinitialize */
 

@@ -444,7 +444,8 @@ Parameters:
 - B1 is the step 1 bound. It is the only mandatory parameter. It can
   be given either in integer format (for example 3000000) or in
   floating-point format (3000000.0 or 3e6). The largest possible
-  B1 value is 9007199254740996 for P-1, 4294967295 for ECM and P+1.
+  B1 value is 9007199254740996 for P-1, ULONG_MAX for ECM and P+1
+  (2^32-1 on a 32-bit machine, 2^64-1 on a 64-bit machine).
   All primes 2 <= p <= B1 are processed in step 1.
 - B2 is the step 2 bound. It is optional: if not given, it is computed
   from B1 so that step 2 takes about half the time of step 1. Since the
@@ -473,10 +474,11 @@ Options to control the group and initial point used:
 -x0 x  [P-1,P+1,ECM]. Use x as initial point. x can be an arbitrary-precision
    integer or rational. For example, -x0 1/3 is valid. If not given, x0 is
    either generated from the sigma value for ECM, or at random.
--sigma s  [ECM]. Use s (arbitrary-precision integer) as curve generator.
-   If not given, sigma is generated at random (32-bit integer). Any
-   value has the same probability to hit a factor, the only important 
-   thing is to ensure different values for different runs on the same number.
+-sigma s  [ECM]. Use s (arbitrary-precision integer) as curve generator,
+   where s must be >= 6. If not given, sigma is generated at random
+   (32-bit integer). Any value has the same probability to hit a
+   factor, the only important thing is to ensure different values for
+   different runs on the same number.
 -A a  [ECM]. Use 'a' (arbitrary-precision integer) as curve parameter.
    If not given, is generated from sigma. Like sigma, the value of A itself
    is not important; what is important is to ensure different values
