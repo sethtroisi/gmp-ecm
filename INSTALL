@@ -16,6 +16,13 @@ Instructions to install gmp-ecm:
    where <gmpdir> is the directory where GMP is installed
    (default is /usr/local/gmp).
 
+   By default, a static binary is made. If this fails, try adding
+   LDFLAGS="-lgmp -lm" to the make command.
+
+   On systems without alloca.h (for example 32-bit AIX, NetBSD,
+   FreeBSD), you need to add -D__freebsd to the C flags, for example
+   using make CC="gcc -D__freebsd".
+
    Warning: to compile gmp-ecm, it is better to use the same compiler and
    options than used to compile GMP, otherwise the compilation may
    fail, or you may get poor performance. In the GMP build directory,
