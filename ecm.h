@@ -41,6 +41,9 @@
 #define MPZMOD_THRESHOLD_DEFAULT (3 * DIV_DC_THRESHOLD / 2)
 #define REDC_THRESHOLD_DEFAULT   (2 * DIV_DC_THRESHOLD)
 
+/* delay between percentage updates (in milliseconds) */
+#define SCREEN_UPDATE_DELAY 1000
+
 #define ABS(x) ((x) >= 0 ? (x) : -(x))
 
 #define mpz_mulmod(a,b,c,n) \

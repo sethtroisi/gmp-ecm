@@ -1,3 +1,11 @@
+Changes between ecm-5.0 and ecm-5.1:
+
+- quiet mode (-q) now prints on stdout all factors found on the same line:
+
+  f1 f2 ... fk ccc
+
+  where ccc is the remaining composite (contributed by Laurent Fousse).
+
 Changes between ecm-5.0 and ecm-5.0.1:
 
 - fixed bug when B1 or B2min is too large, and an overflow occurs in step 2,

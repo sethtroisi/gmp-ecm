@@ -185,7 +185,7 @@ pm1_stage1 (mpz_t f, mpres_t a, mpmod_t n, double B1, double B1done,
   mpz_init (d);
 
   /* Prep for stage one counter */
-  fprintf (stderr, "1:000 \r");
+  fprintf (stderr, "1:00 \r");
 
   B0 = sqrt (B1);
 
@@ -316,7 +316,7 @@ pm1_stage1 (mpz_t f, mpres_t a, mpmod_t n, double B1, double B1done,
   st_save = st = cputime ();
   percentage /= B1;
   percentage *= 100;
-  fprintf (stderr, "1:%03d\r", (int)percentage);
+  fprintf (stderr, "1:%02d\r", (int) percentage);
 
   /* then remaining primes > max(sqrt(B1), cascade_limit) and taken 
      with exponent 1 */
@@ -334,14 +334,14 @@ pm1_stage1 (mpz_t f, mpres_t a, mpmod_t n, double B1, double B1done,
     if (++Counter == 1500)
       {
 	int st_now = cputime ();
-	if (st_now - st > 30000)
+	if (st_now - st > SCREEN_UPDATE_DELAY)
 	  {
 	    /* Check to see if we should update our screen "percentage counter" */
 	    percentage = p;
 	    st = st_now;
 	    percentage /= B1;
 	    percentage *= 100;
-	    fprintf (stderr, "1:%03d\r", (int)percentage);
+	    fprintf (stderr, "1:%02d\r", (int) percentage);
   	  }
 	Counter=0;
 	  /* should we save the current "ecm_wip.sav" file??? It is saved every 15 minutes */

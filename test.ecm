@@ -22,7 +22,7 @@
 ECM="$1"
 
 # try primes < d in stage 2
-(echo 2050449353925555290706354283 | ./ecm -sigma 7 -k 1 30 0-1e6) ||
+(echo 2050449353925555290706354283 | $ECM -sigma 7 -k 1 30 0-1e6) ||
    (echo "############### ERROR ###############"; exit 1) || exit
 
 # tests from Torbjo"rn Granlund

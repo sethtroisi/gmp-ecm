@@ -149,11 +149,11 @@ main (int argc, char *argv[])
   unsigned int count = 1; /* number of curves for each number */
   unsigned int cnt = 0;   /* number of remaining curves for current number */
   unsigned int linenum = 0, factsfound = 0;
-  mpcandi_t *pCandidates=NULL;
+  mpcandi_t *pCandidates = NULL;
   unsigned int nCandidates=0, nMaxCandidates=0;
   int deep=1, trial_factor_found;
   unsigned int displayexpr=0;
-  unsigned int decimal_cofactor=0;
+  unsigned int decimal_cofactor = 0;
   double maxtrialdiv=0;
   double B2scale=1.0;
 
@@ -251,6 +251,12 @@ main (int argc, char *argv[])
 	  argv++;
 	  argc--;
         }
+      else if (strcmp (argv[1], "-cofdec") == 0)
+        {
+	  decimal_cofactor = 1;
+	  argv++;
+	  argc--;
+        }
 #if defined (__MINGW32__) || (_MSC_VER)
       else if (strcmp (argv[1], "-n") == 0)
         {
@@ -265,12 +271,6 @@ main (int argc, char *argv[])
 /*	  fprintf (stderr, "Executing at idle priority\n"); */
 	  SetPriorityClass (GetCurrentProcess (), IDLE_PRIORITY_CLASS);
 	  SetThreadPriority (GetCurrentThread (), THREAD_PRIORITY_IDLE);
-	  argv++;
-	  argc--;
-        }
-      else if (strcmp (argv[1], "-cofdec") == 0)
-        {
-	  decimal_cofactor = 1;
 	  argv++;
 	  argc--;
         }
@@ -642,7 +642,7 @@ main (int argc, char *argv[])
 
   if (breadthfirst == 1)
     {
-      breadthfirst_maxcnt=count;
+      breadthfirst_maxcnt = count;
       count=1;
       breadthfirst_cnt=0;
     }
@@ -667,7 +667,8 @@ BreadthFirstDoAgain:;
 		  or remove a candidate if factor found, or if in deep mode and cofactor is prp (or if original candidate
 		  is prp and we are prp testing) */
 	      nMaxCandidates = 100;
-	      pCandidates = malloc (nMaxCandidates*sizeof(mpcandi_t));
+	      pCandidates = (mpcandi_t*) malloc (nMaxCandidates *
+                                                 sizeof(mpcandi_t));
               if (pCandidates == NULL)
                 {
                   fprintf (stderr, "Error: not enough memory\n");
@@ -683,7 +684,8 @@ BreadthFirstDoAgain:;
 		      if (nCandidates == nMaxCandidates)
 			{
 			    mpcandi_t *tmp = pCandidates;
-			    pCandidates = malloc ((nMaxCandidates+100)*sizeof(mpcandi_t));
+			    pCandidates = (mpcandi_t*) malloc ((nMaxCandidates
+                                                 + 100) * sizeof(mpcandi_t));
                             if (pCandidates == NULL)
                               {
                                 fprintf (stderr, "Error: not enough memory\n");
@@ -820,14 +822,18 @@ BreadthFirstDoAgain:;
               mpz_add_ui (sigma, sigma, 1); /* FIXME: need sigma>=5? */
             }
         }
-      if (count == cnt)
-	fprintf (stderr, "\r      Line=%u B1=%.0f factors=%u           \r", linenum, B1, factsfound);
-      if (count != cnt)
-	fprintf (stderr, "\r      Line=%u Curves=%u/%u B1=%.0f factors=%u   \r", linenum, count-cnt+1, count, B1, factsfound);
-      if (breadthfirst && nCandidates > 1)
-	fprintf (stderr, "\r      Line=%u/%u Curves=%u/%u B1=%.0f factors=%u   \r", linenum, nCandidates, breadthfirst_cnt, breadthfirst_maxcnt, B1, factsfound);
       if (verbose > 0)
 	{
+          if (count == cnt)
+            fprintf (stderr, "\r      Line=%u B1=%.0f factors=%u           \r",
+                     linenum, B1, factsfound);
+          if (count != cnt)
+            fprintf (stderr, "\r      Line=%u Curves=%u/%u B1=%.0f factors=%u"
+                     "   \r", linenum, count-cnt+1, count, B1, factsfound);
+          if (breadthfirst && nCandidates > 1)
+            fprintf (stderr, "\r      Line=%u/%u Curves=%u/%u B1=%.0f"
+                     " factors=%u   \r", linenum, nCandidates,
+                     breadthfirst_cnt, breadthfirst_maxcnt, B1, factsfound);
 	  if ((!breadthfirst && cnt == count) || (breadthfirst && 1 == breadthfirst_cnt))
 	    {
 	      /* first time this candidate has been run (if looping more than once */
@@ -947,9 +953,11 @@ BreadthFirstDoAgain:;
       if (result != 0)
 	{
 	  factsfound++;
-          printf ("********** Factor found in step %u: ", ABS(result));
+          if (verbose > 0)
+            printf ("********** Factor found in step %u: ", ABS(result));
           mpz_out_str (stdout, 10, f);
-          printf ("\n");
+          if (verbose > 0)
+            printf ("\n");
 	  if (mpz_cmp (f, n.n))
 	    {
               if (mpz_cmp_ui (f, 1) == 0)
@@ -960,11 +968,14 @@ BreadthFirstDoAgain:;
                 }
 	      /* prints factor found and cofactor on standard error. */
 	      factor_is_prime = mpz_probab_prime_p (f, 25);
-	      printf ("Found %s factor of %2u digits: ", 
-		      factor_is_prime ? "probable prime" : "COMPOSITE     ",
-		      nb_digits (f));
-	      mpz_out_str (stdout, 10, f);
-	      printf ("\n");
+              if (verbose)
+                {
+                  printf ("Found %s factor of %2u digits: ", 
+                          factor_is_prime ? "probable prime" :
+                          "COMPOSITE     ", nb_digits (f));
+                  mpz_out_str (stdout, 10, f);
+                  printf ("\n");
+                }
 
 	      mpcandi_t_addfoundfactor (&n, f, 1); /* 1 for display warning if factor does not divide the current candidate */
 
@@ -979,11 +990,15 @@ OutputFactorStuff:;
 		    mpz_out_str (stdout, 10, n.n);
 		  printf (" has %u digits\n", n.ndigits);
 		}
+              else /* quiet mode: just print a space here, remaining cofactor
+                      will be printed after last curve */
+                printf (" ");
 	      
               /* check for champions (top ten for each method) */
 	      method1 = ((method == PP1_METHOD) && (result < 0))
 		? PM1_METHOD : method;
-	      if (factor_is_prime && nb_digits (f) >= champion_digits[method1])
+	      if ((verbose > 0) && factor_is_prime && 
+                  nb_digits (f) >= champion_digits[method1])
                 {
                   printf ("Report your potential champion to %s\n",
                           champion_keeper[method1]);
@@ -1011,13 +1026,15 @@ OutputFactorStuff:;
 		   check this candidate again */
 		pCandidates[linenum-1].isPrp = 1;
 	      cnt = 0; /* no more curve to perform */
-	      printf ("Found input number N\n");
+              if (verbose)
+                printf ("Found input number N");
+              printf ("\n");
 	    }
 	  fflush (stdout);
 	}
-      
-      /* if quiet, prints composite cofactors on standard output. */
-      if (!count && (verbose == 0) && !n.isPrp)
+
+      /* if quiet mode, prints remaining cofactor after last curve */
+      if ((cnt == 0) && (verbose == 0))
 	{
 	  if (n.cpExpr && !decimal_cofactor)
 	    printf ("%s", n.cpExpr);
@@ -1063,12 +1080,15 @@ OutputFactorStuff:;
   /* NOTE finding a factor may have caused the loop to exit, but what is left on screen is the 
      wrong count of factors (missing the just found factor.  Update the screen to at least specify the 
      current count */
-  if (breadthfirst_maxcnt)
-    fprintf (stderr, "\rLine=%u Curves=%u/%u B1=%.0f factors=%u      \n", linenum, breadthfirst_cnt, breadthfirst_maxcnt, B1, factsfound);
-  else if (count != 1)
-    fprintf (stderr, "Line=%u Curves=%u/%u B1=%.0f factors=%u      \n", linenum, count-cnt+1, count, B1, factsfound);
-  
-
+  if (verbose)
+    {
+    if (breadthfirst_maxcnt)
+      fprintf (stderr, "\rLine=%u Curves=%u/%u B1=%.0f factors=%u      \n",
+               linenum, breadthfirst_cnt, breadthfirst_maxcnt, B1, factsfound);
+    else if (count != 1)
+      fprintf (stderr, "Line=%u Curves=%u/%u B1=%.0f factors=%u      \n",
+               linenum, count-cnt+1, count, B1, factsfound);
+    }
 
   if (infilename)	/* note infile "might" be stdin, and don't fclose that! */
     fclose (infile);
