@@ -11,8 +11,10 @@ typedef __polyz_struct polyz_t[1];
 double   getprime       (double);
 unsigned int nb_digits  (mpz_t);
 int          stage1     (mpz_t, mpz_t, double);
-int          pm1        (mpz_t, mpz_t, double, double, unsigned int, int);
-int          ecm        (mpz_t, mpz_t, double, double, unsigned int, int);
+int          pm1        (mpz_t, mpz_t, double, double, unsigned int, 
+                         unsigned int, int);
+int          ecm        (mpz_t, mpz_t, double, double, unsigned int, 
+                         unsigned int, int);
 unsigned int phi        (unsigned int);
 unsigned int bestD      (double);
 double       block_size (unsigned int);
@@ -20,11 +22,11 @@ unsigned int gcd        (unsigned int, unsigned int);
 int          cputime    (void);
 
 /* stage2.c */
-int          rootsF     (listz_t, unsigned int, mpz_t, mpz_t, mpz_t, mpz_t,
-			 mpz_t, int);
+int          rootsF     (listz_t, unsigned int, mpz_t, mpz_t, mpz_t *, 
+                         unsigned int , mpz_t, int);
 void         rootsG     (listz_t, unsigned int, mpz_t, mpz_t, mpz_t, mpz_t,
-			 mpz_t, int);
-int          stage2     (mpz_t, mpz_t, double, unsigned int, int);
+			 unsigned int, mpz_t, int);
+int          stage2     (mpz_t, mpz_t, double, unsigned int, unsigned int, int);
 
 /* listz.c */
 int          list_mul_mem (unsigned int);
@@ -53,7 +55,8 @@ int          hgcd_naive (mpz_t, listz_t, listz_t, listz_t, listz_t,
                          listz_t, listz_t, unsigned int, mpz_t, listz_t, int);
 int          hgcd       (mpz_t, listz_t, listz_t, listz_t, listz_t,
                          listz_t, listz_t, unsigned int, mpz_t, listz_t, int);
-int          list_gcd  (mpz_t, listz_t, listz_t, unsigned int, mpz_t, listz_t);
+int          list_gcd   (mpz_t, listz_t, listz_t, unsigned int, mpz_t, listz_t);
+int          list_invert(listz_t, listz_t, unsigned int, mpz_t, mpz_t);
 
 /* polyz.c */
 void init_poly      (polyz_t, int);

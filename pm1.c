@@ -129,7 +129,8 @@ stage1 (mpz_t a, mpz_t n, double B1)
    Return value: non-zero iff a factor is found (1 for stage 1, 2 for stage 2)
 */
 int
-pm1 (mpz_t p, mpz_t n, double B1, double B2, unsigned int k, int verbose)
+pm1 (mpz_t p, mpz_t n, double B1, double B2, unsigned int k, unsigned int S, 
+     int verbose)
 {
   int youpi, st;
 
@@ -144,5 +145,5 @@ pm1 (mpz_t p, mpz_t n, double B1, double B2, unsigned int k, int verbose)
   if (youpi != 0) /* a factor was found */
     return 1;
 
-  return (B2 > B1) ? stage2 (p, n, B2, k, verbose) : 0;
+  return (B2 > B1) ? stage2 (p, n, B2, k, S, verbose) : 0;
 }
