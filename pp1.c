@@ -147,7 +147,7 @@ pp1_stage1 (mpz_t f, mpres_t P0, mpmod_t n, double B1, double B1done,
   int Counter = 0, st, st_save;
 
   /* Prep for stage one counter */
-  fprintf ("1:000 \r");
+  fprintf (stderr, "1:000 \r");
 
   mpz_init (g);
   mpres_init (P, n);
