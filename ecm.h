@@ -20,8 +20,10 @@
 
 #define ECM_VERSION "5.1.2-beta"
 
-/* To use new polyeval_tellegen */
-#define POLYEVALTELLEGEN
+/* either one of POLYEVAL or POLYEVALTELLEGEN or POLYGCD should be defined */
+#define POLYEVALTELLEGEN /* use polyeval_tellegen() routine */
+
+/* use Kronecker-Scho"nhage's multiplication */
 #define KS_MULTIPLY
 
 /* define top-level multiplication */
