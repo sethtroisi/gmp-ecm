@@ -825,7 +825,7 @@ PrerevertDivision (listz_t a, listz_t b, listz_t invb,
   int po2, wrap;
 #ifdef WRAP
   listz_t t2 = NULL;
-  wrap = K > 3;
+  wrap = ks_wrapmul_m (K + 1, K + 1, n) <= 2 * K - 1 + list_mul_mem (K);
 #else
   wrap = 0;
 #endif
@@ -887,7 +887,7 @@ PrerevertDivision (listz_t a, listz_t b, listz_t invb,
            K to 2K-2 of {A, 2K-1} */
         {
           unsigned int m;
-          m = ks_wrapmul (t, K + 1, b, K + 1, t2, K - 1);
+          m = ks_wrapmul (t, K + 1, b, K + 1, t2, K - 1, n);
           clear_list (t2, K - 1);
           /* coefficients of degree m..2K-2 wrap around,
              i.e. were subtracted to 0..2K-2-m */
