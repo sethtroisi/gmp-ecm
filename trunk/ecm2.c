@@ -43,6 +43,13 @@ int
 duplicateW (mpz_t p, mpres_t x1, mpres_t y1, mpres_t x, mpres_t y, mpmod_t n, 
             mpres_t a, mpres_t u, mpres_t v)
 {
+  if (mpres_is_zero(x) && mpres_is_zero(y))
+    {
+      mpres_set (x1, x, n);
+      mpres_set (y1, y, n);
+      return 0;
+    }
+
   mpres_add (u, y, y, n);
   if (!mpres_invert (v, u, n))
     {
@@ -73,6 +80,20 @@ int
 addW (mpz_t p, mpres_t x, mpres_t y, mpres_t x1, mpres_t y1, mpres_t x2, 
       mpres_t y2, mpmod_t n, mpres_t u, mpres_t v)
 {
+  if (mpres_is_zero(x1) && mpres_is_zero(y1))
+    {
+      mpres_set (x, x2, n);
+      mpres_set (y, y2, n);
+      return 0;
+    }
+
+  if (mpres_is_zero(x2) && mpres_is_zero(y2))
+    {
+      mpres_set (x, x1, n);
+      mpres_set (y, y1, n);
+      return 0;
+    }
+
   mpres_sub (u, x2, x1, n);
   if (!mpres_invert (v, u, n))
     {
@@ -104,8 +125,15 @@ multiplyW2 (mpz_t p, mpres_t x1, mpres_t y1, mpres_t x, mpres_t y, mpz_t q,
 
   if (sign_q == 0)
     {
-      fprintf (stderr, "Error: q=0 in multiplyW2\n");
-      exit (EXIT_FAILURE);
+      mpz_set_ui (x1, 0); /* We use (0:0) to represent the neutral */
+      mpz_set_ui (y1, 0); /* element */
+    }
+
+  if (mpres_is_zero(x) && mpres_is_zero(y))
+    {
+      mpres_set (x1, x, n);
+      mpres_set (y1, y, n);
+      return 0;
     }
 
   if (sign_q < 0)
@@ -150,12 +178,22 @@ multiplyW2 (mpz_t p, mpres_t x1, mpres_t y1, mpres_t x, mpres_t y, mpz_t q,
    return(0);
 
    Uses one inversion and 6*e multiplications for e>1 (3 muls for e=1)
+   x[0] may contain the neutral element (0:0), the others must not.
 */
 int
 addWn (mpz_t p, point *X, mpmod_t n, long e)
 {
   long j;
   point *u, *v;
+
+  if (mpres_is_zero (X[0].x) && mpres_is_zero (X[0].y))
+   {
+     mpres_set (X[0].x, X[1].x, n);
+     mpres_set (X[0].y, X[1].y, n);
+     X++;
+     if (--e == 0)
+       return 0;
+   }
 
   if (e == 1)
     return addW (p, X[0].x, X[0].y, X[0].x, X[0].y, X[1].x, X[1].y, n, X[2].x,

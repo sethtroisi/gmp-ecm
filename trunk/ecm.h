@@ -287,6 +287,7 @@ void mpres_out_str (FILE *, unsigned int, mpres_t, mpmod_t);
 #define mpres_clear(a,n) mpz_clear (a)
 #define mpres_set(a,b,n) mpz_set (a, b)
 #define mpres_swap(a,b,n) mpz_swap (a, b)
+#define mpres_is_zero(n) (mpz_sgn (n) == 0)
 
 /* mul_lo.c */
 void mpn_mul_lo_n (mp_ptr, mp_srcptr, mp_srcptr, mp_size_t);
