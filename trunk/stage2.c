@@ -33,20 +33,12 @@
 
 extern unsigned int Fermat;
 
-/* r <- x^n */
-static void
-mpz_d_pow_ui (mpz_t r, double x, unsigned long int n)
-{
-  mpz_set_d (r, x);
-  mpz_pow_ui (r, r, n);
-}
-
 /* r <- Dickson(n,a)(x) */
 static void 
-dickson_ui (mpz_t r, double x, unsigned int n, int a)
+dickson (mpz_t r, mpz_t x, unsigned int n, int a)
 {
   unsigned int i, b = 0;
-  mpz_t t, u, v;
+  mpz_t t, u;
 
   if (n == 0)
     {
@@ -60,28 +52,25 @@ dickson_ui (mpz_t r, double x, unsigned int n, int a)
       n >>= 1;
     }
   
-  mpz_set_d (r, x);
+  mpz_set (r, x);
   
   mpz_init (t);
   mpz_init (u);
-  mpz_init (v);
-
-  mpz_set_d (v, x);
 
   if (n > 1)
     {
-      mpz_set (r, v);
+      mpz_set (r, x);
       mpz_mul (r, r, r);
       mpz_sub_si (r, r, a);
       mpz_sub_si (r, r, a); /* r = dickson(x, 2, a) */
       
-      mpz_set (t, v);    /* t = dickson(x, 1, a) */
+      mpz_set (t, x);    /* t = dickson(x, 1, a) */
       
       for (i = 2; i < n; i++)
         {
           mpz_mul_si (u, t, a);
           mpz_set (t, r);     /* t = dickson(x, i, a) */
-          mpz_mul (r, r, v);
+          mpz_mul (r, r, x);
           mpz_sub (r, r, u);  /* r = dickson(x, i+1, a) */
         }
     }
@@ -99,7 +88,6 @@ dickson_ui (mpz_t r, double x, unsigned int n, int a)
   
   mpz_clear (t);
   mpz_clear (u);
-  mpz_clear (v);
 }
 
 
@@ -122,38 +110,43 @@ fin_diff_coeff (listz_t coeffs, double s, double D,
                 unsigned int E, int dickson_a)
 {
   unsigned int i, k;
-
-  /* check maximal value of s + i * D does not overflow */
-  if (s + (double) E * D > TWO53) /* 2^53 */
-    {
-      outputf (OUTPUT_ERROR, "Error, overflow in fin_diff_coeff\n");
-      outputf (OUTPUT_ERROR, "Please use a smaller B1 or B2min\n");
-      return ECM_ERROR;
-    }
+  mpz_t t, v;
+  
+  mpz_init (t);
+  mpz_init (v);
+  mpz_set_d (t, s);
+  mpz_set_d (v, D);
+  
   for (i = 0; i <= E; i++)
-    if (dickson_a != 0)         /* fd[i] = dickson_{E,a} (s+i*D) */
-      dickson_ui (coeffs[i], s + (double) i * D, E, dickson_a); 
-    else                        /* fd[i] = (s+i*D)^E */
-      mpz_d_pow_ui (coeffs[i], s + (double) i * D, E);
+    {
+      if (dickson_a != 0)         /* fd[i] = dickson_{E,a} (s+i*D) */
+        dickson (coeffs[i], t, E, dickson_a); 
+      else                        /* fd[i] = (s+i*D)^E */
+        mpz_pow_ui (coeffs[i], t, E);
+      mpz_add (t, t, v);          /* t = s + i * D */
+    }
   
   for (k = 1; k <= E; k++)
     for (i = E; i >= k; i--)
       mpz_sub (coeffs[i], coeffs[i], coeffs[i-1]);
-
+  
+  mpz_clear (v);
+  mpz_clear (t);
+  
   return ECM_NO_FACTOR_FOUND;
 }
 
 
 /* Init several disjoint progressions for the computation of 
 
-   Dickson_{E,a} (s + e * (i + d * n * k)), 0 <= i < k * d, gcd(i, d) == 1,
+   Dickson_{E,a} (s + e * (i + d * n * k)), 0 <= i < k * d, gcd(s+e*i, d) == 1,
                                             i == 1 (mod m)
    
    for successive n. m must divide d.
    
    This means there will be k sets of progressions, where each set contains
-   eulerphi(d) progressions that generate the values coprime to d and 
-   == 1 (mod m).
+   eulerphi(d) progressions that generate the values coprime to d and with
+   i == 1 (mod m).
    
    Return NULL if an error occurred.
 */
@@ -220,10 +213,10 @@ init_roots_state (ecm_roots_state *state, int S, unsigned int d1,
      Prospective cost increase:
      4 times as many progressions to init (that is, 3 * state->nr more),
      each costs ~ S * S * log_2(5 * dsieve * d2) / 2 point adds
-     The state->dsieve and one S cancel.
+     The state->nr and one S cancel.
   */
   if (d1 % 5 == 0 &&
-      d1 / state->dsieve / 5 * cost > 
+      d1 / state->dsieve / 5. * cost > 
       3. * state->S * log (5. * state->dsieve * d2) / 2.)
     {
       state->dsieve *= 5;
@@ -231,7 +224,7 @@ init_roots_state (ecm_roots_state *state, int S, unsigned int d1,
     }
 
   if (d1 % 7 == 0 &&
-      d1 / state->dsieve / 7 * cost > 
+      d1 / state->dsieve / 7. * cost > 
       5. * state->S * log (7. * state->dsieve * d2) / 2.)
     {
       state->dsieve *= 7;
@@ -239,7 +232,7 @@ init_roots_state (ecm_roots_state *state, int S, unsigned int d1,
     }
 
   if (d1 % 11 == 0 &&
-      d1 / state->dsieve / 11 * cost > 
+      d1 / state->dsieve / 11. * cost > 
       9. * state->S * log (11. * state->dsieve * d2) / 2.)
     {
       state->dsieve *= 11;
@@ -365,7 +358,7 @@ stage2 (mpz_t f, void *X, mpmod_t modulus, double B2min, double B2,
   if (F == NULL)
     {
       youpi = ECM_ERROR;
-      goto clear_n;
+      goto exit_stage2;
     }
 
   sizeT = 3 * dF + list_mul_mem (dF);
@@ -418,8 +411,9 @@ stage2 (mpz_t f, void *X, mpmod_t modulus, double B2min, double B2,
               /* clear already allocated Tree[i] */
               while (i)
               clear_list (Tree[--i], dF);
+              free (Tree);
               youpi = ECM_ERROR;
-              goto free_Tree;
+              goto clear_T;
             }
         }
       /* list_set (Tree[lgk - 1], F, dF); PolyFromRoots_Tree does it */
@@ -445,19 +439,19 @@ stage2 (mpz_t f, void *X, mpmod_t modulus, double B2min, double B2,
             {
               outputf (OUTPUT_ERROR, "Error opening file for product tree of F\n");
               youpi = ECM_ERROR;
-              goto clear_T;
+              goto free_Tree_i;
             }
           if (PolyFromRoots_Tree (F, F, dF, T, i - 1, n, NULL, TreeFile, 0)
               == ECM_ERROR)
             {
               fclose (TreeFile);
               youpi = ECM_ERROR;
-              goto clear_T;
+              goto free_Tree_i;
             };
           if (fclose (TreeFile) != 0)
             {
               youpi = ECM_ERROR;
-              goto clear_T;
+              goto free_Tree_i;
             }
         }
     }
@@ -661,23 +655,27 @@ clear_G:
   clear_list (invF, dF + 1);
 
 free_Tree_i:
-  if (TreeFilename == NULL)
-    for (i = 0; i < lgk; i++)
-      clear_list (Tree[i], dF);
-free_Tree:
-  if (TreeFilename == NULL)
-    free (Tree);
+  if (Tree != NULL)
+    {
+      for (i = 0; i < lgk; i++)
+        clear_list (Tree[i], dF);
+      free (Tree);
+    }
+
+  mpz_clear (n);
 
 clear_T:
   clear_list (T, sizeT);
 clear_F:
   clear_list (F, dF + 1);
 
+exit_stage2:
+
   st0 = cputime () - st0;
 
   outputf (OUTPUT_NORMAL, "Step 2 took %dms\n", st0);
 
-  if (method == ECM_ECM && test_verbose (OUTPUT_VERBOSE))
+  if (method == ECM_ECM && test_verbose (OUTPUT_VERBOSE) && youpi != ECM_ERROR)
     {
       double prob, tottime, exptime;
       rhoinit (256, 10);
@@ -711,9 +709,6 @@ clear_F:
             outputf (OUTPUT_VERBOSE, "Inf%c", sep);
         }
     }
-
- clear_n:
-  mpz_clear (n);
 
   return youpi;
 }
