@@ -73,11 +73,15 @@ poly_set_ui (polyz_t p, unsigned long int i)
 int
 poly_gcd (mpz_t p, polyz_t a, polyz_t b, mpz_t n, listz_t t)
 {
-  unsigned int da;
+  int result;
 
-  da = a->degree;
-
-  return ntl_poly_gcd (p, a, b, n);
-  return 0;
+#ifdef MEMORY_DEBUG
+  tests_memory_reset ();
+#endif
+  result = ntl_poly_gcd (p, a, b, n);
+#ifdef MEMORY_DEBUG
+  tests_memory_start ();
+#endif
+  return result;
 }
 
