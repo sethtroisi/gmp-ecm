@@ -61,6 +61,9 @@ ecm: $(ALLOBJS) ecm.h ecm-gmp.h
 ecm_with_ntl:
 	make ecm GMP=$(GMP) NTL=$(NTL) LD='$(CXX)' EXTRAOBJS="ntl.o polyz.o" LDFLAGS='-L$(NTL)/lib -lntl $(LDFLAGS)' CFLAGS='$(CFLAGS) -DPOLYGCD'
 
+ecm_gw:
+	make ecm GMP=$(GMP) NTL=$(NTL) LD='$(CXX)' EXTRAOBJS="Fgw.o gwnum.o" LDFLAGS='$(LDFLAGS)' CFLAGS='$(CFLAGS) -DHAVE_GWNUM'
+
 tune: mpmod.o ecm.h tune.o auxi.o mul_lo.o ecm-gmp.h
 	$(CC) $(CFLAGS) tune.o mpmod.o auxi.o mul_lo.o -o $@ $(LDFLAGS)
 
@@ -77,7 +80,7 @@ ntl.o: ntl.c
 	$(CC) $(CFLAGS) -I$(GMP)/include -c $<
 
 clean:
-	rm -f ecm ecm_with_ntl tune $(OBJS)
+	rm -f ecm ecm_with_ntl tune $(OBJS) Fgw.o
 
 dist: $(DIST)
 	mkdir ecm-$(VERSION)

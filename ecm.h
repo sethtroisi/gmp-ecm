@@ -61,6 +61,17 @@
 #undef POLYEVALTELLEGEN
 #endif
 
+/* Use George Woltman's GWNUM library */
+/* Should be defined via -DHAVE_GWNUM by Makefile
+#define HAVE_GWNUM
+*/
+
+#ifdef HAVE_GWNUM
+/* Only Fermat numbers with exponent >= GWTHRESHOLD are multiplied with 
+   Woltman's DWT */
+#define GWTHRESHOLD 1024
+#endif
+
 #include <stdio.h>
 #include <gmp.h>
 

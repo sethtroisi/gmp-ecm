@@ -9,9 +9,9 @@
 #define CHECKSUM 1
 */
 
-/*
-#define HAVE_FFT
-*/
+#ifdef HAVE_GWNUM
+#include "Fgw.h"
+#endif
 
 static mpz_t gt;
 static int gt_inited = 0;
@@ -133,10 +133,6 @@ void
 F_mulmod (mpz_t R, mpz_t S1, mpz_t S2, unsigned int n)
 {
   mp_size_t n2 = n / __GMP_BITS_PER_MP_LIMB;
-#if defined(HAVE_FFT)
-  unsigned long k;
-#endif
-
   F_mod_1 (S1, n);
   F_mod_1 (S2, n);
   while (mpz_size (S1) > (unsigned) n2)
@@ -151,21 +147,53 @@ F_mulmod (mpz_t R, mpz_t S1, mpz_t S2, unsigned int n)
                n, mpz_sizeinbase (S2, 2));
       F_mod_1 (S2, n);
     }
-
-#if defined(HAVE_FFT)
+#if defined(HAVE_GWNUM)
+  if (n >= GWTHRESHOLD)
+    {
+#ifdef DEBUG
+      mpz_t t, t2;
+      mpz_init (t);
+      mpz_mul (gt, S1, S2);
+      F_mod_gt (t, n);
+      F_mod_1 (t, n);
+#endif
+      Fgwmul (R, S1, S2);
+      F_mod_1 (R, n);
+#ifdef DEBUG
+      if (mpz_cmp (t, R) != 0)
+        {
+          /* Perhaps they are congruent, but of opposite sign */
+          mpz_init (t2);
+          mpz_sub (t2, t, R);
+          F_mod_1 (t2, n);
+          if (mpz_sgn (t2) != 0)
+            {
+              gmp_printf ("F_mulmod: results of mpz_mul and Fgwmul differ:\n%Zd\n%Zd\n",
+                          t, R);
+              return;
+            }
+          mpz_clear (t2);
+        }
+      mpz_clear (t);
+#endif
+      return 0;
+    }
+#elif defined(HAVE_FFT)
   if (n >= 32768)
     {
+      unsigned long k;
       _mpz_realloc (gt, n2 + 1);
       k = mpn_fft_best_k (n2, S1 == S2);
       mpn_mul_fft (PTR(gt), n2, PTR(S1), ABSIZ(S1), PTR(S2), ABSIZ(S2), k);
       MPN_NORMALIZE(PTR(gt), n2);
-      SIZ(gt) = ((SIZ(S1) ^ SIZ(S2)) > 0) ? n2 : -n2;
+      SIZ(gt) = ((SIZ(S1) ^ SIZ(S2)) >= 0) ? n2 : -n2;
       F_mod_gt (R, n);
       return;
     }
 #endif
   mpz_mul (gt, S1, S2);
   F_mod_gt (R, n);
+  return;
 }
 
 /* R = S + sgn(S)*(2^e) */
@@ -346,7 +374,7 @@ F_mul_sqrt2exp (mpz_t R, mpz_t S, int e, unsigned int n)
       printf ("F_mul_sqrt2exp: %c == gt\n", S==gt?'S':'R');
       exit (EXIT_FAILURE);
     }
-  if (abs (e) >= 4 * n)
+  if ((unsigned) abs (e) >= 4 * n)
     {
       printf ("F_mul_sqrt2exp: e = %d, abs(e) >= 4*n\n", e);
       exit (EXIT_FAILURE);
@@ -417,7 +445,7 @@ F_mul_sqrt2exp_2 (mpz_t R, mpz_t S, int e, unsigned int n)
     printf("F_mul_sqrt2exp_2: R == %s\n", R==S ? "S" : "gt");
     exit(EXIT_FAILURE);
   }
-  if (abs (e) >= 4 * n)
+  if ((unsigned) abs (e) >= 4 * n)
     {
       printf ("F_mul_sqrt2exp_2: e = %d > 4*n = %d\n", e, 4*n);
     }
@@ -1229,7 +1257,7 @@ F_mul (mpz_t *R, mpz_t *A, mpz_t *B, unsigned int len, int parameter,
       
 #ifdef DEBUG
   F_mod_1 (R[2 * len - 1], n);
-  if (parameter != MONIC && mpz_sgn (R[2 * len - 1]) != 0)
+  if (parameter != MONIC && parameter != NOPAD && mpz_sgn (R[2 * len - 1]) != 0)
     {
       fprintf (stderr, "F_mul, len %d: R[%d] == ", len, 2 * len - 1);
       mpz_out_str (stderr, 10, R[2 * len - 1]);

@@ -33,6 +33,10 @@
 
 #include "ecm.h"
 
+#ifdef HAVE_GWNUM
+#include "Fgw.h"
+#endif
+
 #define ASSERT_NORMALIZED(x) ASSERT ((modulus->repr != MOD_MODMULN && \
 				      modulus->repr != MOD_REDC) || \
 			     mpz_size (x) <= mpz_size (modulus->orig_modulus))
@@ -53,6 +57,7 @@
 #endif
 
 void base2mod (mpres_t, mpres_t, mpres_t, mpmod_t);
+void base2mod_1 (mpres_t, mpres_t, mpmod_t);
 void REDC (mpres_t, mpres_t, mpz_t, mpmod_t);
 void mpn_REDC (mp_ptr, mp_srcptr, mp_srcptr, mp_srcptr, mp_size_t);
 void mod_mul2exp (mpz_t, unsigned int, mpmod_t);
@@ -106,6 +111,7 @@ base2mod (mpres_t R, mpres_t S, mpres_t t, mpmod_t modulus)
 {
   unsigned long absbits = abs (modulus->bits);
 
+  ASSERT (R != S && R != t);
   mpz_tdiv_q_2exp (R, S, absbits);
   mpz_tdiv_r_2exp (t, S, absbits);
   if (modulus->bits < 0)
@@ -122,6 +128,24 @@ base2mod (mpres_t R, mpres_t S, mpres_t t, mpmod_t modulus)
         mpz_add (R, R, t);
       else
         mpz_sub (R, R, t);
+    }
+}
+
+/* Same, but source and result in same variable */
+void
+base2mod_1 (mpres_t RS, mpres_t t, mpmod_t modulus)
+{
+  unsigned long absbits = abs (modulus->bits);
+
+  ASSERT (RS != t);
+  while (mpz_sizeinbase (RS, 2) > absbits)
+    {
+      mpz_tdiv_q_2exp (t, RS, absbits);
+      mpz_tdiv_r_2exp (RS, RS, absbits); /* Just a truncate */
+      if (modulus->bits < 0)
+        mpz_add (RS, RS, t);
+      else
+        mpz_sub (RS, RS, t);
     }
 }
 
@@ -326,7 +350,13 @@ mpmod_init_BASE2 (mpmod_t modulus, int base2, mpz_t N)
       unsigned long i;
       for (i = base2; (i & 1) == 0; i >>= 1);
       if (i == 1)
-        modulus->Fermat = base2;
+        {
+          modulus->Fermat = base2;
+#ifdef HAVE_GWNUM
+          if (modulus->Fermat >= GWTHRESHOLD)
+            Fgwinit (modulus->Fermat);
+#endif
+        }
     }
   
   Nbits = mpz_size (N) * __GMP_BITS_PER_MP_LIMB; /* Number of bits, rounded
@@ -450,6 +480,10 @@ mpmod_clear (mpmod_t modulus)
       if (modulus->repr == MOD_REDC)
         mpz_clear (modulus->aux_modulus);
     }
+#ifdef HAVE_GWNUM
+  if (modulus->Fermat >= GWTHRESHOLD)
+    Fgwclear ();
+#endif
   
   return;
 }
@@ -669,7 +703,17 @@ mpres_mul (mpres_t R, mpres_t S1, mpres_t S2, mpmod_t modulus)
   ASSERT_NORMALIZED (S1);
   ASSERT_NORMALIZED (S2);
 
-#ifdef HAVE_FFT
+#ifdef HAVE_GWNUM
+  if (modulus->repr == MOD_BASE2 && modulus->Fermat >= 1024)
+    {
+      base2mod_1 (S1, modulus->temp1, modulus);
+      base2mod_1 (S2, modulus->temp1, modulus);
+      ASSERT (mpz_sizeinbase (S1, 2) <= (unsigned) abs(modulus->bits));
+      ASSERT (mpz_sizeinbase (S2, 2) <= (unsigned) abs(modulus->bits));
+      Fgwmul (R, S1, S2);
+      return;
+    }
+#elif defined(HAVE_FFT)
   if (modulus->repr == MOD_BASE2 && modulus->Fermat >= 32768)
     {
       mp_size_t n = modulus->Fermat / __GMP_BITS_PER_MP_LIMB;
