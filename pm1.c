@@ -197,6 +197,8 @@ mulcascade_get_z (mpz_t r, mul_casc *c)
 /* Input:  a is the generator (sigma)
            n is the number to factor
            B1 is the stage 1 bound
+	   B1done: stage 1 was already done up to that limit
+	   go is the group order to preload
    Output: f is the factor found, a is the value at end of stage 1
    Return value: non-zero iff a factor was found.
 */
@@ -269,9 +271,8 @@ pm1_stage1 (mpz_t f, mpres_t a, mpmod_t n, double B1, double B1done,
      i.e. B1 > 25e14 for CASCADE_MAX=5e7.
 */
 
-  /* If the user "knows" that P-1 factors always have a certain form, then the user can "enter" that known factor */
-  /* HOWEVER, this is done in a double, so the user must only load in at most 53 bits or so? */
-  if (mpz_get_ui(go) > 1 || mpz_size (go) > 1)
+  /* if the user "knows" that P-1 has a given, he/she can "enter" it */
+  if (mpz_cmp_ui (go, 1) > 0)
     cascade = mulcascade_mul (cascade, go);
 
   if (B0 <= cascade_limit)
@@ -725,8 +726,9 @@ pm1_rootsG (mpz_t f, listz_t G, unsigned int dF, pm1_roots_state *state,
    Return value: non-zero iff a factor is found (1 for stage 1, 2 for stage 2)
 */
 int
-pm1 (mpz_t f, mpz_t p, mpz_t N, mpz_t go, double B1done, double B1, double B2min,
-     double B2, double B2scale, unsigned int k, int S, int verbose, int repr)
+pm1 (mpz_t f, mpz_t p, mpz_t N, mpz_t go, double B1done, double B1,
+     double B2min, double B2, double B2scale, unsigned int k, int S,
+     int verbose, int repr)
 {
   mpmod_t modulus;
   mpres_t x;
