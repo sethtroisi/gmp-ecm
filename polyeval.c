@@ -129,28 +129,30 @@ void print_vect (listz_t t, unsigned int l)
  * of the tree.
  */
 
-unsigned int TUpTree (listz_t b, listz_t *Tree, unsigned int k,
-              listz_t tmp, unsigned int sh, mpz_t n)
+unsigned int
+TUpTree (listz_t b, listz_t *Tree, unsigned int k,
+         listz_t tmp, unsigned int sh, mpz_t n)
 {
 
-    unsigned int m, l, i;
+    unsigned int m, l;
     unsigned int tot_muls = 0;
     unsigned int muls;
 
     m = k / 2;
     l = k - m;
     
-    if (k == 1) {
+    if (k == 1)
+      {
         mpz_mod (b[0], b[0], n);
         return 0;
-    }
+      }
    
 #ifdef TUPTREE_DEBUG
-    printf ("Dans TupTree, k = %d.\n", k);
+    printf ("In TupTree, k = %d.\n", k);
 
     printf ("b = ");
     print_vect (b, k);
-    printf ("\nLes poly de ce niveau sont : ");
+    printf ("\nThe polynomials at that level are: ");
     print_vect (Tree[0] + sh, k);
     printf ("\n");
 #endif
@@ -167,38 +169,23 @@ unsigned int TUpTree (listz_t b, listz_t *Tree, unsigned int k,
     tot_muls += muls;
 
 #ifdef TUPTREE_DEBUG
-    printf ("Et le résultat à ce niveau (avant correction) est : ");
+    printf ("And the result at that level (before correction) is:");
     print_vect (tmp, k);
     printf ("\n");
 #endif
 
     /* gmp-ecm specific: leading coefficients in the product tree
-     * are ones and are implied, so we need some extra work here.
+     * are implicit ones, so we need some extra work here.
      */
 
-    for (i = 0; i < l; i++)
-    {
-        mpz_add (tmp[i], tmp[i], b[m + i]);
-    }
+    list_add (tmp, tmp, b + m, l);
+    list_add (tmp + l, tmp + l, b + l, m);
 
-    for (i = 0; i < m; i++)
-    {
-        mpz_add (tmp[l + i], tmp[l + i], b[l + i]);
-    }
-
-    for (i = 0; i < l; i++)
-    {
-        mpz_mod (b[i], tmp[i], n);
-    }
-
-    for (i = 0; i < m; i++)
-    {
-        mpz_mod (b[i + l], tmp[l + i], n);
-    }
-
+    list_mod (b, tmp, l, n);
+    list_mod (b + l, tmp + l, m, n);
 
 #ifdef TUPTREE_DEBUG
-    printf ("Et le résultat à ce niveau est : ");
+    printf ("And the result at this level is:");
     print_vect (b, k);
     printf ("\n");
 #endif
@@ -208,7 +195,8 @@ unsigned int TUpTree (listz_t b, listz_t *Tree, unsigned int k,
     return tot_muls;
 }
 
-unsigned int TUpTree_space (unsigned int k)
+unsigned int
+TUpTree_space (unsigned int k)
 {
 
     unsigned int m, l;
@@ -217,21 +205,25 @@ unsigned int TUpTree_space (unsigned int k)
     m = k / 2;
     l = k - m;
     
-    if (k == 1) {
-        return 0;
-    }
+    if (k == 1)
+      return 0;
    
     r1 = TMulGen_space (l - 1, m - 1, k - 1) + l;
-    r2 = TMulGen_space (m - 1, l - 1, k - 1) + k;
-
-    r1 = MAX (r1, r2);
-
-
+    if (m != l)
+      {
+        r2 = TMulGen_space (m - 1, l - 1, k - 1) + k;
+        r1 = MAX (r1, r2);
+      }
 
     r2 = TUpTree_space (l);
     r1 = MAX (r1, r2);
-    r2 = TUpTree_space (m);
-    r1 = MAX (r1, r2);
+    
+    if (m != l)
+      {
+        r2 = TUpTree_space (m);
+        r1 = MAX (r1, r2);
+      }
+
     return r1;
 }
 
@@ -243,7 +235,6 @@ unsigned int
 polyeval_tellegen (listz_t b, unsigned int k, listz_t *Tree, listz_t tmp,
                    unsigned int sizeT, listz_t invF, mpz_t n, unsigned int sh)
 {
-    unsigned int i;
     unsigned int tupspace;
     unsigned int tkspace;
     unsigned int totmuls = 0, muls;
@@ -262,20 +253,19 @@ polyeval_tellegen (listz_t b, unsigned int k, listz_t *Tree, listz_t tmp,
     if (sizeT >= tupspace)
         T = tmp;
     else
-    {
+      {
         T = init_list (tupspace);
         allocated = 1;
-    }
+      }
     
 #ifdef TELLEGEN_DEBUG
-    printf ("Dans polyeval_tellegen, k = %d.\n", k);
-    printf ("Espace requis : %d.\n", 
+    printf ("In polyeval_tellegen, k = %d.\n", k);
+    printf ("Required memory: %d.\n", 
             TMulGen_space (k - 1, k - 1, k - 1));
 #endif
 #ifndef USE_SHORT_PRODUCT
     /* revert invF for call to TMulGen below */
-    for (i = 0; i < k / 2; i++)
-        mpz_swap (invF[i], invF[k - 1 - i]);
+    list_revert (invF, k - 1);
     muls = TMulGen (T, k - 1, invF, k - 1, b, k - 1, T + k);
 #ifdef CHECK_MULS
     if (muls != muls_tgen (k-1)) { printf ("%u %u %u\n", k, muls, muls_tgen (k-1)); abort();}
@@ -292,24 +282,22 @@ polyeval_tellegen (listz_t b, unsigned int k, listz_t *Tree, listz_t tmp,
     printf ("\nt = ");
     print_list (T, k);
 #endif
-    for (i = 0; i < k / 2; i++)
-        mpz_swap (T[i], T[k - 1 - i]);
+    list_revert (T, k - 1);
 #ifdef TELLEGEN_DEBUG
     printf ("s = ");
     print_list (T, k);
 #endif
     totmuls += TUpTree (T, Tree, k, T + k, sh, n);
-    for (i = 0; i < k; i++)
-    {
-        mpz_set (b[i], T[i]);
-    }
+    list_set (b, T, k);
 
     if (allocated)
-        clear_list (T, tupspace);
+      clear_list (T, tupspace);
+
     return totmuls;
 }
 
-unsigned int muls_tuptree (unsigned int k)
+unsigned int
+muls_tuptree (unsigned int k)
 {
     unsigned int m, l;
     unsigned int tot_muls = 0;
@@ -325,9 +313,7 @@ unsigned int muls_tuptree (unsigned int k)
     tot_muls += 2 * muls_tgen (l - 1);
 
     if (l == m)
-      {
-        tot_muls += 2 * muls_tuptree (l);
-      }
+      tot_muls += 2 * muls_tuptree (l);
     else
       {
         tot_muls += muls_tuptree (m);

@@ -45,16 +45,33 @@ Proc. of ISSAC'03, Philadelphia, 2003.
 
 extern unsigned int Fermat;
 
-void list_add_wrapper (listz_t p, listz_t q, listz_t r, unsigned int n,
-                       unsigned int max_r)
+static void list_add_wrapper (listz_t, listz_t, listz_t, unsigned int,
+                              unsigned int);
+static void list_sub_wrapper (listz_t, listz_t, listz_t, unsigned int,
+                              unsigned int);
+static unsigned int TKarMul  (listz_t, unsigned int, listz_t, unsigned int,
+                              listz_t, unsigned int, listz_t);
+static void list_sub_safe    (listz_t, listz_t, listz_t, unsigned int,
+                              unsigned int, unsigned int);
+static void list_add_safe    (listz_t, listz_t, listz_t, unsigned int,
+                              unsigned int, unsigned int);
+static unsigned int TToomCookMul (listz_t, unsigned int, listz_t, unsigned int,
+                                  listz_t, unsigned int, listz_t);
+static unsigned int TToomCookMul_space (unsigned int, unsigned int,
+                                        unsigned int);
+
+static void
+list_add_wrapper (listz_t p, listz_t q, listz_t r, unsigned int n,
+                  unsigned int max_r)
 {
     list_add (p, q, r, MIN (n, max_r));
     if (n > max_r) 
         list_set (p + max_r, q + max_r, n - max_r);
 }
 
-void list_sub_wrapper (listz_t p, listz_t q, listz_t r, unsigned int n,
-                       unsigned int max_r)
+static void
+list_sub_wrapper (listz_t p, listz_t q, listz_t r, unsigned int n,
+                  unsigned int max_r)
 {
     list_sub (p, q, r, MIN (n, max_r));
     if (n > max_r) 
@@ -73,7 +90,7 @@ void list_sub_wrapper (listz_t p, listz_t q, listz_t r, unsigned int n,
    Assumes deg(c) = l <= m+n.
 */
 
-unsigned int
+static unsigned int
 TKarMul (listz_t b, unsigned int n,
 	 listz_t a, unsigned int m, listz_t c, unsigned int l, listz_t t)
 {
@@ -81,8 +98,8 @@ TKarMul (listz_t b, unsigned int n,
   unsigned int s1;
   unsigned tot_muls = 0;
 #ifdef TKARMULDEBUG
-  printf ("Entrée dans TKarMul.\nm = %d\nn = %d\nl = %d\ndepth = %d\n", m, n,
-                                l, depth);
+  printf ("Enter TKarMul.\nm = %d\nn = %d\nl = %d\ndepth = %d\n", m, n,
+          l, depth);
   printf ("a = ");
   print_list (a, m + 1);
   printf ("\nc = ");
@@ -94,14 +111,14 @@ TKarMul (listz_t b, unsigned int n,
   if (n == 0)
     {
 #ifdef TKARMULDEBUG
-      printf ("Cas n = 0.\n");
+      printf ("Case n = 0.\n");
 #endif
       mpz_mul (b[0], a[0], c[0]);
       for (k = 1; (k <= m) && (k <= l); k++)
 	mpz_addmul (b[0], a[k], c[k]);
 #ifdef TKARMULDEBUG
-      printf ("Sortie de TKarMul.\n");
-      show_result(a, m, c, l, b, n);
+      printf ("Exit TKarMul.\n");
+      show_result (a, m, c, l, b, n);
 #endif
       return MIN (m, l) + 1;
     }
@@ -109,15 +126,15 @@ TKarMul (listz_t b, unsigned int n,
   if (m == 0)
     {
 #ifdef TKARMULDEBUG
-      printf ("Cas m = 0.\n");
+      printf ("Case m = 0.\n");
 #endif
       for (k = 0; (k <= l) && (k <= n); k++)
 	mpz_mul (b[k], a[0], c[k]);
       for (k = l + 1; k <= n; k++)
 	mpz_set_ui (b[k], 0);
 #ifdef TKARMULDEBUG
-      printf ("Sortie de TKarMul.\n");
-      show_result(a, m, c, l, b, n);
+      printf ("Exit TKarMul.\n");
+      show_result (a, m, c, l, b, n);
 #endif
       return MIN (n, l) + 1;
     }
@@ -133,7 +150,7 @@ TKarMul (listz_t b, unsigned int n,
   if (mu > n)
     {
 #ifdef TKARMULDEBUG
-      printf ("Cas mu > n.\n");
+      printf ("Case mu > n.\n");
 #endif
 
       tot_muls += TKarMul (b, n, a, mu - 1, c, l, t);
@@ -144,8 +161,8 @@ TKarMul (listz_t b, unsigned int n,
 	  list_add (b, b, t, n + 1);
 	}
 #ifdef TKARMULDEBUG
-      printf ("Sortie de TKarMul.\n");
-      show_result(a, m, c, l, b, n);
+      printf ("Exit TKarMul.\n");
+      show_result (a, m, c, l, b, n);
 #endif
       return tot_muls;
     }
@@ -153,7 +170,7 @@ TKarMul (listz_t b, unsigned int n,
   if (nu > m)
     {
 #ifdef TKARMULDEBUG
-      printf ("Cas nu > m.\n");
+      printf ("Case nu > m.\n");
 #endif
 
       /* we have to check MIN(l,m+nu-1) <= nu-1+m: trivial */
@@ -172,8 +189,8 @@ TKarMul (listz_t b, unsigned int n,
       else
         list_zero (b + nu, n - nu + 1);
 #ifdef TKARMULDEBUG
-      printf ("Sortie de TKarMul.\n");
-      show_result(a, m, c, l, b, n);
+      printf ("Exit TKarMul.\n");
+      show_result (a, m, c, l, b, n);
 #endif
       return tot_muls;
     }
@@ -183,7 +200,7 @@ TKarMul (listz_t b, unsigned int n,
   mu = nu = h;
   
 #ifdef TKARMULDEBUG
-  printf ("Cas de base.\n");
+  printf ("Base Case.\n");
 #endif
   
   s1 = MIN (l + 1, n + mu);
@@ -194,13 +211,13 @@ TKarMul (listz_t b, unsigned int n,
 #ifdef TKARMULDEBUG
       printf ("DEBUG c - c[nu].\n");
       print_list (t, s1);
-      printf ("On calcule (1) - (3)\n");
+      printf ("We compute (1) - (3)\n");
 #endif
       tot_muls += TKarMul (b, nu - 1, a, mu - 1, t, s1 - 1, t + s1);
       /* (1) - (3) */
 #ifdef TKARMULDEBUG
       print_list (b, nu);
-      printf ("On calcule (2) - (4)\n");
+      printf ("We compute (2) - (4)\n");
 #endif
       if (s1 >= nu + 1) { /* nu - 1 */
         tot_muls += TKarMul (b + nu, n - nu, a + mu, m - mu, 
@@ -215,7 +232,7 @@ TKarMul (listz_t b, unsigned int n,
 #endif
       list_add_wrapper (t, a, a + mu, mu, m + 1 - mu);
 #ifdef TKARMULDEBUG
-      printf ("On calcule (2) + (3)\n");
+      printf ("We compute (2) + (3)\n");
 #endif
       if (l >= nu) {
           tot_muls += TKarMul (t + mu, nu - 1, t, mu - 1, c + nu, l - nu,
@@ -230,7 +247,7 @@ TKarMul (listz_t b, unsigned int n,
       list_add (b, b, t + mu, nu);
       list_sub (b + nu, t + mu, b + nu, n - nu + 1);
 #ifdef TKARMULDEBUG
-      show_result(a, m, c, l, b, n);
+      show_result (a, m, c, l, b, n);
 #endif
       return tot_muls;
 }
@@ -331,10 +348,10 @@ muls_tkara (unsigned int n)
   if (n + 1 == 2 * nu)
       tot_muls += 3 * muls_tkara (nu - 1);
   else
-  {
+    {
       tot_muls += 2 * muls_tkara (nu - 1);
       tot_muls += muls_tkara (n - nu);
-  }
+    }
   return tot_muls;
 }
 
@@ -342,18 +359,19 @@ muls_tkara (unsigned int n)
 /* list_sub with bound checking
  */
 
-void list_sub_safe (listz_t ret, listz_t a, listz_t b,
-                        unsigned int sizea, unsigned int sizeb,
-                        unsigned int needed)
+static void
+list_sub_safe (listz_t ret, listz_t a, listz_t b,
+               unsigned int sizea, unsigned int sizeb,
+               unsigned int needed)
 {
     unsigned int i;
     unsigned int safe;
     safe = MIN(sizea, sizeb);
     safe = MIN(safe, needed);
 
-    for (i = 0; i < safe; i++)
-        mpz_sub (ret[i], a[i], b[i]);
+    list_sub (ret, a, b, safe);
 
+    i = safe;
     while (i < needed)
     {
         if (i < sizea)
@@ -377,7 +395,8 @@ void list_sub_safe (listz_t ret, listz_t a, listz_t b,
 /* list_add with bound checking
  */
 
-void list_add_safe (listz_t ret, listz_t a, listz_t b,
+static void
+list_add_safe (listz_t ret, listz_t a, listz_t b,
                         unsigned int sizea, unsigned int sizeb,
                         unsigned int needed)
 {
@@ -386,8 +405,7 @@ void list_add_safe (listz_t ret, listz_t a, listz_t b,
     safe = MIN(sizea, sizeb);
     safe = MIN(safe, needed);
 
-    for (i = 0; i < safe; i++)
-        mpz_add (ret[i], a[i], b[i]);
+    list_add (ret, a, b, i = safe);
 
     while (i < needed)
     {
@@ -409,7 +427,7 @@ void list_add_safe (listz_t ret, listz_t a, listz_t b,
     }
 }
 
-unsigned int
+static unsigned int
 TToomCookMul (listz_t b, unsigned int n,
               listz_t a, unsigned int m, listz_t c, unsigned int l, 
               listz_t tmp)
@@ -427,7 +445,7 @@ TToomCookMul (listz_t b, unsigned int n,
     if ((n < 2 * nu) || (m < 2 * mu))
     {
 #ifdef TTCDEBUG
-        printf ("Opérandes trop petites, on appelle TKara.\n");
+        printf ("Too small operands, calling TKara.\n");
 #endif
         return TKarMul (b, n, a, m, c, l, tmp);
     }
@@ -444,7 +462,7 @@ TToomCookMul (listz_t b, unsigned int n,
     if (m < 2 * nu)
     {
 #ifdef TTCDEBUG
-        printf ("Cas dégénéré 1.\n");
+        printf ("Degenerate Case 1.\n");
 #endif
         tot_muls += TToomCookMul (b, nu - 1, a, m, c, l, tmp);
         if (l >= nu)
@@ -466,7 +484,7 @@ TToomCookMul (listz_t b, unsigned int n,
     if (n < 2 * mu)
     {
 #ifdef TTCDEBUG
-        printf ("Cas dégénéré 2.\n");
+        printf ("Degenerate Case 2.\n");
 #endif
         tot_muls += TToomCookMul (b, n, a, mu - 1, c, l, tmp);
         if (l >= mu)
@@ -485,7 +503,7 @@ TToomCookMul (listz_t b, unsigned int n,
     }
 
 #ifdef TTCDEBUG
-    printf ("Cas de base.\n");
+    printf ("Base Case.\n");
     printf ("a = ");
     print_list (a, m + 1);
 
@@ -504,7 +522,7 @@ TToomCookMul (listz_t b, unsigned int n,
                    l + 1, (l + 1 > 2 * h ? l + 1 - 2 * h : 0),
                    2 * h - 1);
     for (i = 0; i < 2 * h - 1; i++)
-        mpz_mul_ui (tmp[2 * h - 1 + i], tmp[2 * h - 1 + i], 2);
+        mpz_mul_2exp (tmp[2 * h - 1 + i], tmp[2 * h - 1 + i], 1);
     
 #ifdef TTCDEBUG
     print_list (tmp, 4 * h - 2);
@@ -529,11 +547,10 @@ TToomCookMul (listz_t b, unsigned int n,
     print_list (b, h);
 #endif
 
-    for (i = 0; i < h; i++)
-        mpz_add (tmp[2 * h - 1 + i], a[i], a[h + i]);
-    
-    for (i = 0; i < MIN(h, m + 1 - 2 * h); i++)
-        mpz_add (tmp[2 * h - 1 + i], tmp[2 * h - 1 + i], a[2 * h + i]);
+    list_add (tmp + 2 * h - 1, a, a + h, h);
+
+    list_add (tmp + 2 * h - 1, tmp + 2 * h - 1, a + 2 * h,
+              MIN(h, m + 1 - 2 * h));
 
     /* tmp[2*h-1 .. 3*h-2] = a0 + a1 + a2 */
 
@@ -557,15 +574,15 @@ TToomCookMul (listz_t b, unsigned int n,
     btmp = (l + 1 > h ? l + 1 - h : 0);
     btmp = MIN(btmp, 2 * h - 1);
     for (i = 0; i < btmp; i++)
-    {
-        mpz_mul_ui (comp_tmp, c[h + i], 2);
+      {
+        mpz_mul_2exp (comp_tmp, c[h + i], 1);
         mpz_add (tmp[5 * h - 2 + i], comp_tmp, tmp[3 * h - 1 + i]);
-    }
+      }
     while (i < 2 * h - 1)
-    {
+      {
         mpz_set (tmp[5 * h - 2 + i], tmp[3 * h - 1 + i]);
         i++;
-    }
+      }
 
     tot_muls += TToomCookMul (b + h, h - 1, tmp + 2 * h - 1, h - 1, 
                               tmp + 5 * h - 2, 2 * h - 2,
@@ -589,10 +606,7 @@ TToomCookMul (listz_t b, unsigned int n,
     {
         mpz_add (tmp[2 * h  - 1 + i], tmp[2 * h  - 1 + i], a[i + h]);
         if (2 * h + i <= m)
-        {
-            mpz_mul_ui (comp_tmp, a[2 * h + i], 3);
-            mpz_add (tmp[2 * h  - 1 + i], tmp[2 * h - 1 + i], comp_tmp);
-        }
+          mpz_addmul_ui (tmp[2 * h  - 1 + i], a[2 * h + i], 3);
     }
     tot_muls += TToomCookMul (tmp + 5 * h - 2, h - 1, 
                               tmp + 2 * h - 1, h - 1,
@@ -614,7 +628,7 @@ TToomCookMul (listz_t b, unsigned int n,
     for (i = 0; i < 2 * h - 1; i++)
     {
         mpz_mul_ui (tmp[3 * h - 1 + i], tmp[3 * h - 1 + i], 3);
-        mpz_mul_ui (tmp[i], tmp[i], 2);
+        mpz_mul_2exp (tmp[i], tmp[i], 1);
     }
 
     list_add (tmp + 3 * h - 1, tmp + 3 * h - 1, tmp, 2 * h - 1);
@@ -675,7 +689,7 @@ TToomCookMul (listz_t b, unsigned int n,
     list_add (b, b, b + h, h);
     list_add (b, b, tmp, h);
     for (i = 0; i < h; i++)
-        mpz_tdiv_q_2exp (b[i], b[i], 1);
+      mpz_tdiv_q_2exp (b[i], b[i], 1);
 
     /* b_{low} should be correct */
 
@@ -688,18 +702,19 @@ TToomCookMul (listz_t b, unsigned int n,
     list_add (b + h, tmp, tmp + h, h);
     list_sub (b + h, b + h, tmp + 6 * h - 2, h);
     for (i = 0; i < h; i++)
-        mpz_tdiv_q_2exp (b[h + i], b[h + i], 1);
+      mpz_tdiv_q_2exp (b[h + i], b[h + i], 1);
 
     /* b_{mid} should be correct */
 
     list_add (tmp + h, tmp + h, tmp + 5 * h - 2, n + 1 - 2 * h);
     for (i = 0; i < n + 1 - 2 * h; i++)
-        mpz_tdiv_q_2exp (tmp[h + i], tmp[h + i], 1);
+      mpz_tdiv_q_2exp (tmp[h + i], tmp[h + i], 1);
 
     list_add (b + 2 * h, b + 2 * h, tmp + h, n + 1 - 2 * h);
     /* b_{high} should be correct */
 
     mpz_clear (comp_tmp);
+
     return tot_muls;
 }
 
@@ -719,9 +734,7 @@ TToomCookMul_space (unsigned int n, unsigned int m, unsigned int l)
 
     /* ensures n + 1 > 2 * nu */
     if ((n < 2 * nu) || (m < 2 * mu))
-    {
-        return TKarMul_space (n, m, l);
-    }
+      return TKarMul_space (n, m, l);
 
     /* First strip unnecessary trailing coefficients of c:
      */
@@ -772,10 +785,19 @@ TToomCookMul_space (unsigned int n, unsigned int m, unsigned int l)
     return MAX(stmp1, stmp2);
 }
 
+/* Given a[0..m] and c[0..l], puts in b[0..n] the coefficients
+   of degree m to n+m of rev(a)*c, i.e.
+   b[0] = a[0]*c[0] + ... + a[i]*c[i] with i = min(m, l)
+   ...
+   b[k] = a[0]*c[k] + ... + a[i]*c[i+k] with i = min(m, l-k)
+   ...
+   b[n] = a[0]*c[n] + ... + a[i]*c[i+n] with i = min(m, l-n) [=l-n].
+   Using auxiliary memory in tmp.
+   Assumes deg(c) = l <= m+n.
+*/
 unsigned int
 TMulGen (listz_t b, unsigned int n,
-              listz_t a, unsigned int m, listz_t c, unsigned int l, 
-              listz_t tmp)
+         listz_t a, unsigned int m, listz_t c, unsigned int l, listz_t tmp)
 {
     unsigned int i, muls;
 

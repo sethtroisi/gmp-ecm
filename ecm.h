@@ -75,6 +75,9 @@
 /* default number of probable prime tests */
 #define PROBAB_PRIME_TESTS 1
 
+/* kronecker_schonhage() is used when bitsize(poly) >= KS_MUL_THRESHOLD */
+#define KS_MUL_THRESHOLD 1e6
+
 #define ABS(x) ((x) >= 0 ? (x) : -(x))
 
 #define mpz_mulmod(a,b,c,n) \
@@ -272,6 +275,7 @@ listz_t      init_list  (unsigned int);
 void         clear_list (listz_t, unsigned int);
 void         print_list (listz_t, unsigned int);
 void         list_set   (listz_t, listz_t, unsigned int);
+void         list_revert (listz_t, unsigned int);
 void         list_neg   (listz_t, listz_t, unsigned int, mpz_t);
 void         list_mod   (listz_t, listz_t, unsigned int, mpz_t);
 void         list_add   (listz_t, listz_t, listz_t, unsigned int);
@@ -422,32 +426,14 @@ double calc_B1_AutoIncrement(double cur_B1, double incB1val, int calcInc);
 
 /* median.c */
 unsigned int
-TToomCookMul (listz_t, unsigned int, listz_t, unsigned int, listz_t, 
-         unsigned int, listz_t);
-unsigned int
 TMulGen (listz_t, unsigned int, listz_t, unsigned int, listz_t, 
          unsigned int, listz_t);
-unsigned int
-TKarMul (listz_t, unsigned int, listz_t, unsigned int, listz_t, 
-         unsigned int, listz_t);
-void list_add_wrapper (listz_t, listz_t, listz_t, unsigned int,
-                       unsigned int);
-void list_sub_wrapper (listz_t, listz_t, listz_t, unsigned int,
-                       unsigned int);
 unsigned int
 TKarMul_space (unsigned int n, unsigned int m, unsigned int l);
 unsigned int
 TMulGen_space (unsigned int n, unsigned int m, unsigned int l);
-unsigned int
-TToomCookMul_space (unsigned int n, unsigned int m, unsigned int l);
 unsigned int muls_tkara (unsigned int n);
 unsigned int muls_tgen (unsigned int n);
-void list_sub_safe (listz_t ret, listz_t a, listz_t b,
-                        unsigned int sizea, unsigned int sizeb,
-                        unsigned int needed);
-void list_add_safe (listz_t ret, listz_t a, listz_t b,
-                        unsigned int sizea, unsigned int sizeb,
-                        unsigned int needed);
 
 /* schoen_strass.c */
 
