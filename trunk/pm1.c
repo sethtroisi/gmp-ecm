@@ -595,7 +595,7 @@ pm1_rootsG_init (mpres_t *x, double s, unsigned int d1, unsigned int d2,
     printf ("pm1_rootsG_init: d1 = %d, d2 = %d, state: dsieve = %d, nr = %d, size_fd = %d, S = %d, invtrick = %d\n",
              d1, d2, state->dsieve, state->nr, state->size_fd, state->S, state->invtrick);
   
-  state->fd = (mpres_t *) xmalloc (state->nr * (state->S + 1) * sizeof (mpres_t));
+  state->fd = (mpres_t *) xmalloc (state->size_fd * sizeof (mpres_t));
 
   /* Init for Dickson_{E,a} (s + d1 * n) */
   coeffs = init_progression_coeffs (s, d2, d1, 1, 1, state->S, dickson_a);
@@ -612,7 +612,7 @@ pm1_rootsG_init (mpres_t *x, double s, unsigned int d1, unsigned int d2,
         mpres_pow (state->fd[i], *x, coeffs[i], modulus);
     }
 
-  clear_list (coeffs, state->S + 1);
+  clear_list (coeffs, state->size_fd);
    
   return state;
 }
