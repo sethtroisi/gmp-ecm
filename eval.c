@@ -59,6 +59,22 @@ static void eval_sum (mpz_t prior_n, mpz_t n,char op);
 static int  eval_Phi (mpz_t prior_n, mpz_t n, int ParamCnt);
 static int  eval_2 (int bInFuncParams);
 
+#if !defined (_MSC_VER) && !defined (__MINGW32__)
+/* Here is a simple strnicmp() function for compilers without it */
+int strnicmp(const char *src, const char *pattern, int cnt)
+{
+  int i;
+  for (i = 0; i < cnt; ++i)
+    if (toupper(src[i]) != toupper(pattern[i]))
+      {
+	if ( (toupper(src[i]) - toupper(pattern[i])) < 0)
+	  return -1;
+	return 1;
+      }
+  return 0;
+}
+#endif
+
 /**************************************/
 /* Main expression evalation function */
 /* This is the function that the app  */
@@ -498,7 +514,7 @@ int eval_2 (int bInFuncParams)
 	  if (!i)         /* No digits found */
 	    {
 	      /* check for a valid "function" */
-	      if (!strncmp (&expr_str[i], "phi(", 4))
+	      if (!strnicmp (&expr_str[i], "phi(", 4))
 		{
 		  /* Process the phi(B,N) function */
 		  expr_str+=4;
