@@ -25,6 +25,8 @@
 #include <string.h>
 #if !defined (_MSC_VER)
 #include <unistd.h>
+#include <sys/time.h>
+#include <sys/resource.h> /* for setpriority */
 #else
 #include <io.h>		/* for access() */
 #define F_OK 0
@@ -329,16 +331,15 @@ main (int argc, char *argv[])
 	  argc--;
         }
 #else
-      /* The nix boys need to do this (if they want -n or -nn) */
       else if (strcmp (argv[1], "-n") == 0)
         {
-	  nice (20);
+          setpriority (PRIO_PROCESS, 0, 10);
 	  argv++;
 	  argc--;
         }
       else if (strcmp (argv[1], "-nn") == 0)
         {
-	  nice (20);
+          setpriority (PRIO_PROCESS, 0, 20);
 	  argv++;
 	  argc--;
         }
