@@ -1,6 +1,6 @@
 /* Auxiliary functions for GMP-ECM.
 
-  Copyright 2001, 2002, 2003 Paul Zimmermann and Alexander Kruppa.
+  Copyright 2001, 2002, 2003, 2004, 2005 Paul Zimmermann and Alexander Kruppa.
 
   This program is free software; you can redistribute it and/or modify it
   under the terms of the GNU General Public License as published by the
