@@ -106,6 +106,12 @@ main (int argc, char *argv[])
 	  argv++;
 	  argc--;
         }
+      else if (strcmp (argv[1], "-power") == 0)
+        {
+          use_dickson = 0;
+	  argv++;
+	  argc--;
+        }
       else if (strcmp (argv[1], "-dickson") == 0)
         {
           use_dickson = 1;
@@ -162,7 +168,10 @@ main (int argc, char *argv[])
   if (verbose >= 1)
     {
       printf ("GMP-ECM %s [powered by GMP %s", ECM_VERSION, gmp_version);
-      printf (" and NTL %u.%u]\n", NTL_major_version (), NTL_minor_version ());
+#ifndef POLYEVAL      
+      printf (" and NTL %u.%u", NTL_major_version (), NTL_minor_version ());
+#endif
+      printf ("]\n");
     }
 
   /* set first stage bound B1 */
@@ -188,7 +197,9 @@ main (int argc, char *argv[])
       exit (1);
     }
 
+#ifndef POLYEVAL
   NTL_init ();
+#endif
 
   mpz_init (seed); /* starting point */
   if (method == EC_METHOD)
@@ -430,7 +441,9 @@ main (int argc, char *argv[])
     }
 
  end:
+#ifndef POLYEVAL
   NTL_clear ();
+#endif
   mpz_clear (f);
   mpz_clear (n);
   if (method == EC_METHOD)
