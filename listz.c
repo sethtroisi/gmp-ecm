@@ -833,7 +833,13 @@ int
 PrerevertDivision (listz_t a, listz_t b, listz_t invb,
                    unsigned int K, listz_t t, mpz_t n)
 {
-  int po2, muls;
+  int po2, muls, wrap;
+  listz_t t2;
+#ifdef WRAP
+  wrap = K > 2;
+#else
+  wrap = 0;
+#endif
 
   /* Q <- high(high(A) * INVB) with a short product */
   for (po2 = K; (po2 & 1) == 0; po2 >>= 1);
@@ -856,7 +862,13 @@ PrerevertDivision (listz_t a, listz_t b, listz_t invb,
   else
     {
       muls = list_mul_high (t, a + K, invb, K - 1, t + 2 * K - 3);
-      list_mod (a + K, t + K - 2, K - 1, n);
+      if (wrap)
+	{
+	  t2 = init_list (K - 1);
+	  list_mod (t2, t + K - 2, K - 1, n);
+	}
+      else
+	list_mod (a + K, t + K - 2, K - 1, n);
     }
 
   /* the quotient Q = trunc(A / B) has degree K-2, i.e. K-1 terms */
@@ -879,6 +891,20 @@ PrerevertDivision (listz_t a, listz_t b, listz_t invb,
     }
   else
 #ifdef KS_MULTIPLY /* ks is faster */
+    if (wrap)
+    /* Q = {t2, K-1}, B = {b, K+1}
+       We know that Q*B vanishes with the coefficients of degree
+       K to 2K-2 of {A, 2K-1} */
+      {
+	unsigned int m;
+	m = ks_wrapmul (t, K + 1, b, K + 1, t2, K - 1);
+	clear_list (t2, K - 1);
+	/* coefficients of degree m..2K-2 wrap around,
+	   i.e. were subtracted to 0..2K-2-m */
+	if (m < 2 * K - 1) /* otherwise product is exact */
+	  list_add (t, t, a + m, 2 * K - 1 - m);
+      }
+    else
       muls += LIST_MULT_N (t, a + K, b, K, t + 2 * K - 1);
 #else
       muls += list_mul_low (t, a + K, b, K, t + 2 * K - 1, n);
