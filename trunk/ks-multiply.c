@@ -1,6 +1,7 @@
 /* Polynomial multiplication using GMP's integer multiplication code
 
-  Original code: Copyright 2004 Dave Newman.
+  Original code: Copyright 2004 Dave Newman
+  david (dot) newman [at] jesus {dot} ox <dot> ac $dot$ uk
   Modified by Paul Zimmermann.
 
   This program is free software; you can redistribute it and/or modify it
