@@ -64,6 +64,7 @@ poly_set_ui (polyz_t p, unsigned long int i)
   mpz_set_ui (p->coeff[0], i);
 }
 
+#ifndef POLYEVAL
 /* Input: a is a polynomial.
           b is a polynomial with deg(b) < deg(a).
    Output: g = gcd(a, b) is in a.
@@ -84,4 +85,4 @@ poly_gcd (mpz_t p, polyz_t a, polyz_t b, mpz_t n, listz_t t)
 #endif
   return result;
 }
-
+#endif
