@@ -129,11 +129,11 @@ read_resumefile_line (int *method, mpz_t x, mpz_t n, mpz_t sigma, mpz_t A,
                 }
               else if (facceptstr (fd, "P"))
                 {
-                  if ((a = facceptstr (fd, "M1") == 2))
+                  if ((a = facceptstr (fd, "-1") == 2))
                     {
                       *method = PM1_METHOD;
                     }
-                  else if (a == 0 && facceptstr (fd, "P1") == 2)
+                  else if (a == 0 && facceptstr (fd, "+1") == 2)
                     {
                       *method = PP1_METHOD;
                     }
@@ -335,9 +335,9 @@ write_resumefile_line (FILE *fd, int method, double B1, mpz_t sigma, mpz_t A,
   mpz_set_d (checksum, B1);
   fprintf (fd, "METHOD=");
   if (method == PM1_METHOD)
-    fprintf (fd, "PM1");
+    fprintf (fd, "P-1");
   else if (method == PP1_METHOD)
-    fprintf (fd, "PP1");
+    fprintf (fd, "P+1");
   else 
     {
       fprintf (fd, "ECM; ");
