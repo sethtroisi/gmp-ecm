@@ -444,7 +444,7 @@ PolyFromRoots (listz_t G, listz_t a, unsigned int k, listz_t T, int verbose,
    list_mod (G, T, k, n);
    
    if (verbose >= 2)
-     printf ("Building %c from its roots took %ums and %lumuls\n", F,
+     printf ("Building %c from its roots took %ums and %lu muls\n", F,
 	      cputime() - st, muls);
 
    return muls;
