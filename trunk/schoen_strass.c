@@ -46,121 +46,11 @@ void F_mul_sqrt2exp (mpz_t, mpz_t, int, unsigned int);
 void F_mul_sqrt2exp_2 (mpz_t, mpz_t, int, unsigned int);
 void F_fft_dif (mpz_t *, int, int, int);
 void F_fft_dit (mpz_t *, int, int, int);
-unsigned int *make_scramble_list (int);
-unsigned int *make_scramble_list_r4 (int);
-void F_fft_mfa (mpz_t *, const unsigned int, const unsigned int, int, const unsigned int);
-void F_fft_mfa_mul (mpz_t *, mpz_t *, const unsigned int, const unsigned int, const unsigned int);
 unsigned int F_toomcook4 (mpz_t *, mpz_t *, mpz_t *, unsigned int, unsigned int, mpz_t *);
 unsigned int F_karatsuba (mpz_t *, mpz_t *, mpz_t *, unsigned int, unsigned int, mpz_t *);
-/*
-unsigned int F_mul (mpz_t *, mpz_t *, mpz_t *, unsigned int, unsigned int, mpz_t *);
-unsigned int F_mul_trans (mpz_t *, mpz_t *, mpz_t *, unsigned int, unsigned int, mpz_t *);
-*/
 
-static int radix2 = 0, do_mfa = 1;
+static int radix2 = 0;
 
-#ifdef TESTDRIVE
-int do_timing = 0, force_karatsuba = 0, verbose = 0, nofft = 0;
-unsigned long long timer_start=0, timer_stop;
-
-void * allocate_function (size_t ALLOC_SIZE)
-{
-  void *ptr;
-  
-  ptr = malloc (ALLOC_SIZE);
-  if (ptr == NULL)
-    {
-      fprintf (stderr, "allocate_function: Failed to allocate %d bytes.\n", 
-                       ALLOC_SIZE);
-      exit (EXIT_FAILURE);
-    }
-  
-  return ptr;
-}
-
-void * reallocate_function (void *PTR, UNUSED size_t OLD_SIZE, size_t NEW_SIZE)
-{
-  void *ptr;
-  
-#ifdef DEBUG_REALLOC
-  printf ("reallocate_function: Reallocating %d bytes to %d bytes at %p\n",
-          OLD_SIZE, NEW_SIZE, PTR);
-#endif
-  
-  ptr = realloc (PTR, NEW_SIZE);
-
-  if (ptr == NULL)
-    {
-      fprintf (stderr, "reallocate_function: Failed to reallocate %d bytes.\n", 
-                       NEW_SIZE);
-      exit (EXIT_FAILURE);
-    }
-  
-  return ptr;
-}
-
-void deallocate_function (void *PTR, UNUSED size_t SIZE)
-{
-  free (PTR);
-}
-
-void printpoly(mpz_t *P, unsigned int l, char *t) 
-{
-  unsigned int i;
-  
-  if (verbose < 2)
-    return;
-  
-  for (i=0; i<l; i++) {
-    gmp_printf("%s[%d]: %Zd\n", t, i, P[i]);
-  }
-}
-
-void print2polys(mpz_t *P, mpz_t *Q, unsigned int l, char *t, char *u) 
-{
-  unsigned int i;
-  
-  if (verbose < 2)
-    return;
-  
-  for (i=0; i<l; i++) {
-    gmp_printf("%s[%d]: %Zd   %s[%d]: %Zd\n", t, i, P[i], u, i, Q[i]);
-  }
-}
-
-
-/* Allocates memory for a poly of degree len-1, and inits the mpz_t's.
-   Each mpz_t get space for size bits allocated */
-mpz_t *
-poly_init (unsigned int len, unsigned int size)
-{
-  mpz_t *r;
-  unsigned int i;
-  
-  r = (mpz_t *) malloc (len * sizeof (mpz_t));
-  
-  if (r)
-    for (i = 0; i < len; i++)
-      mpz_init2 (r[i], size);
-
-  return r;
-}
-
-
-/* Add 2^n+1 to RS. Only used in main(), to make negative residues 
-   positive for output. */
-
-void
-F_add_F (mpz_t RS, unsigned int n)
-{
-  mpz_set_ui (gt, 1);
-  mpz_mul_2exp (gt, gt, n);
-  mpz_add_ui (gt, gt, 1);
-  mpz_add (gt, gt, RS); /* F_n has (n/GMP_NUMB_BITS)+1 limbs, dest gets */
-  mpz_set (RS, gt);     /* allocated one extra during add, causing growth */
-}
-
-#endif /* TESTDRIVE */
 
 /* RS -> RS (mod 2^n+1). If input |RS| < 2^(2*n), result |RS| < 2^(n+1) */
 
@@ -171,16 +61,6 @@ F_mod_1 (mpz_t RS, unsigned int n)
   mp_limb_t v;
   
   size = mpz_size (RS);
-
-#ifdef DEBUG_MOD
-  printf ("F_mod_1: input log_2(RS) = %d, ", mpz_sizeinbase(RS, 2));
-
-  if ((unsigned int) size <= n / GMP_NUMB_BITS)
-    {
-      printf ("done.\n");
-      return;
-    }
-#endif
 
   if ((unsigned int) size == n / GMP_NUMB_BITS + 1)
     {
@@ -200,9 +80,6 @@ F_mod_1 (mpz_t RS, unsigned int n)
       mpz_tdiv_r_2exp (RS, RS, n); /* |RS| < 2^n */
       mpz_sub (RS, RS, gt);        /* |RS| < 2^(n+1) */
     }
-#ifdef DEBUG_MOD
-  printf ("output log_2(RS) = %d\n", mpz_sizeinbase (RS, 2));
-#endif
 }
 
 
@@ -221,17 +98,6 @@ F_mod_gt (mpz_t R, unsigned int n)
     {
       fprintf (stderr, "F_mod_gt: R == gt\n");
       exit (EXIT_FAILURE);
-    }
-#endif
-
-#ifdef DEBUG_MOD
-  printf ("F_mod_gt: input log_2(gt) = %d, ", mpz_sizeinbase(gt, 2));
-
-  if ((unsigned int) size <= n / GMP_NUMB_BITS)
-    {
-      printf ("done.\n");
-      mpz_set (R, gt);
-      return;
     }
 #endif
 
@@ -254,10 +120,6 @@ F_mod_gt (mpz_t R, unsigned int n)
     }
   else 
     mpz_set (R, gt);
-
-#ifdef DEBUG_MOD
-  printf ("output log_2(R) = %d\n", mpz_sizeinbase (R, 2));
-#endif
 }
 
 
@@ -276,12 +138,7 @@ mpz_absadd_2exp (mpz_t RS, unsigned int e)
   sgn = (mpz_sgn (RS) >= 0) ? 1 : -1;
   
   if (limb_idx >= RS->_mp_alloc)
-    {
-#ifdef DEBUG_REALLOC
-      printf ("mpz_absadd_2exp: reallocating RS\n");
-#endif
-      mpz_realloc2 (RS, (limb_idx + 1) * GMP_NUMB_BITS);
-    }
+    mpz_realloc2 (RS, (limb_idx + 1) * GMP_NUMB_BITS);
   
   /* Now RS->_mp_alloc > limb_idx) */
   
@@ -298,12 +155,7 @@ mpz_absadd_2exp (mpz_t RS, unsigned int e)
   if (cy)
     {
       if (RS->_mp_alloc <= siz)
-        {
-#ifdef DEBUG_REALLOC
-          printf ("mpz_absadd_2exp: reallocating RS for carry\n");
-#endif
-          mpz_realloc2 (RS, (siz + 1) * GMP_NUMB_BITS);
-        }
+        mpz_realloc2 (RS, (siz + 1) * GMP_NUMB_BITS);
 
       RS->_mp_d[siz] = 1;
       RS->_mp_size += sgn;
@@ -327,7 +179,7 @@ F_divby2 (mpz_t R, mpz_t S, unsigned int n)
          that becomes -2^(n-1), so we add -2^(n-1) + 2^n+1 = 2^(n-1)+1.
          If |S| < 2^(n+1), |R| < 2^n + 2^(n-1) + 1 < 2^(n+1) for n > 1. */
       
-      mpz_absadd_2exp (R, n-1);
+      mpz_absadd_2exp (R, n - 1);
       if (sgn < 0)
         mpz_sub_ui (R, R, 1);
       else
@@ -507,14 +359,6 @@ F_mul_sqrt2exp (mpz_t R, mpz_t S, int e, unsigned int n)
 
   if (chgsgn) 
     mpz_neg (R, R);
-
-#ifdef DEBUG_MOD
-  if (mpz_sizeinbase (R, 2) > n) 
-    {
-      printf ("F_mul_sqrt2exp: log_2(|R|) == %u > 2^n\n", mpz_sizeinbase(R, 2));
-      F_mod_1 (R, n);
-    }
-#endif
 }
 
 /* Same, but input may be gt. Input and output must not be identical */
@@ -528,9 +372,6 @@ F_mul_sqrt2exp_2 (mpz_t R, mpz_t S, int e, unsigned int n)
     printf("F_mul_sqrt2exp_2: R == %s\n", R==S ? "S" : "gt");
     exit(EXIT_FAILURE);
   }
-#endif
-
-#ifdef DEBUG_PERF
   if (abs (e) >= 4 * n)
     {
       printf ("F_mul_sqrt2exp_2: e = %d > 4*n = %d\n", e, 4*n);
@@ -583,15 +424,6 @@ F_mul_sqrt2exp_2 (mpz_t R, mpz_t S, int e, unsigned int n)
 
   if (chgsgn == -1) 
     mpz_neg (R, R);
-
-#ifdef DEBUG_MOD
-  if (mpz_sizeinbase (R, 2) > n)
-    {
-      printf ("F_mul_sqrt2exp_2(%s%d): log_2(|R|) == %u > 2^n\n", 
-              sgn==1?"":"-", e, mpz_sizeinbase(R, 2));
-      F_mod_1 (R, n);
-    }
-#endif
 }
 
 #define A0s A[0]
@@ -631,11 +463,6 @@ F_fft_dif (mpz_t *A, int l, int stride2, int n)
 
   if (!radix2)
     {
-#ifdef TESTDRIVE
-      if (verbose >= 2)
-        printf ("Radix-4 DIF, len=%d, omega=%d\n", l, omega);
-#endif
-
       l /= 4;
 
       mpz_sub (gt, A1s, A3s);            /* gt = a1 - a3 */
@@ -722,11 +549,6 @@ F_fft_dit (mpz_t *A, int l, int stride2, int n)
 
   if (!radix2)
     {
-#ifdef TESTDRIVE
-      if (verbose >= 2)
-        printf ("Radix-4 DIT, len=%d, omega=%d\n", l, omega); 
-#endif
-
       l /= 4;
       
       if (l > 1)
@@ -797,272 +619,6 @@ F_fft_dit (mpz_t *A, int l, int stride2, int n)
   
 }
 
-unsigned int *
-make_scramble_list (int n)
-{
-  int i, j, ldn, bit;
-  unsigned int *list;
-  
-  if (n == 0)
-    return NULL;
-  
-  list = (unsigned int *) malloc (n * sizeof (int));
-  if (list == NULL)
-    {
-      printf ("make_scramble_list: could not allocate memory for list\n");
-      exit (EXIT_FAILURE);
-    }
-    
-  for (i = n, ldn = 0; (i & 1) == 0; i >>= 1, ldn++);
-  
-  if (i != 1)
-    {
-      printf ("make_scramble_list: n is not a power of 2\n");
-      exit (EXIT_FAILURE);
-    }
-  
-  j = 0;
-  list[0] = 0;
-  for (i = 1; i < n; i++)
-    {
-      bit = 1 << (ldn - 1); 
-      while (j & bit)
-        {
-          j ^= bit;
-          bit >>= 1;
-        }
-      j ^= bit;
-      list[i] = j;
-/*      printf("scramble(%d) = %d\n", i, j); */
-    }
-
-  return list;
-}
-
-
-unsigned int *
-make_scramble_list_r4 (int n)
-{
-  int i, j, k, ldn, t;
-  unsigned int *list;
-  
-  if (n == 0)
-    return NULL;
-  
-  list = (unsigned int *) malloc (n * sizeof (int));
-  if (list == NULL)
-    {
-      printf ("make_scramble_list_r4: could not allocate memory for list\n");
-      exit (EXIT_FAILURE);
-    }
-    
-  for (i = n, ldn = 0; (i & 1) == 0; i >>= 1, ldn++);
-#ifdef DEBUG
-  if (i != 1)
-    {
-      printf ("make_scramble_list_r4: n is not a power of 2\n");
-      exit (EXIT_FAILURE);
-    }
-#endif
-  
-  list[0] = 0;
-  if ((ldn & 1) == 0) /* Will we have a radix-2 step? */
-    for (i = 1; i < n; i++)
-      {
-        j = i & 3;
-        t = i >> 2;
-        for (k = 2; k < ldn; k += 2)
-          {
-            j <<= 2;
-            j |= t & 3;
-            t >>= 2;
-          }
-        list[i] = j;
-/*        printf("scramble(%d) = %d\n", i, j); */
-      }
-  else
-    for (i = 1; i < n; i++)
-      {
-        j = i & 1;
-        t = i >> 1;
-        for (k = 1; k < ldn; k += 2)
-          {
-            j <<= 2;
-            j |= t & 3;
-            t >>= 2;
-          }
-        list[i] = j;
-/*        printf("scramble(%d) = %d\n", i, j); */
-      }
-
-  return list;
-}
-
-
-/* Computes DFT (mod 2^n+1) using Matrix Fourier Algorithm.
-   Matrix has r rows (each of length c) and c columns (each of length r).
-   Result of forward transform is a transposed and scrambled (digit-reversal 
-   of indices) matrix, inverse transform expects it like that.
-   One row, that is c residues of n bits each, should fit into cache
-*/
-
-void
-F_fft_mfa (mpz_t *A, const unsigned int r, const unsigned int c, int sign, const unsigned int n)
-{
-  unsigned int i, j, s2;
-  unsigned int *scramble;
-
-#ifdef TESTDRIVE
-  if (verbose)
-    printf ("MFA transform of %d rows and %d columns\n", r, c);
-#endif
-
-#ifdef DEBUG
-  if ((4*n) % (c*r) != 0) 
-    {
-      fprintf(stderr, "F_fft_mfa: 4*n (%d) not a multiple of rows*columns (%d*%d)\n",
-              4*n, r, c);
-      exit(EXIT_FAILURE);
-    }
-#endif
-  
-  if (radix2)
-    scramble = make_scramble_list (r);
-  else
-    scramble = make_scramble_list_r4 (r);
-  
-  /* Compute s2 = log_2(c) for use as stride */
-  for (i = 1, s2 = 0; i < c; i <<= 1, s2++); 
-
-  if (sign == 1)
-    { /* Forward transform */
-
-      /* DFT on columns */
-      for (i = 0; i < c; i++)
-        {
-          F_fft_dif (A + i, r, s2, n);
-          /* The rows are now index-scrambeled */
-        }
-
-
-      /* DFT on rows */
-
-      /* Row with index 0, need no multipy by \omega */
-      F_fft_dif (A, c, 0, n);
-
-      /* The other rows */
-      for (i = 1; i < r; i++)
-        {
-          unsigned int iomega = scramble[i] * ((4 * n) / (r * c)), ijomega;
-
-          /* Multiply by \omega^{ij} */
-          for (j = 1, ijomega = iomega; j < c; j++, ijomega += iomega)
-            F_mul_sqrt2exp (A[i * c + j], A[i * c + j], ijomega, n);
-
-          F_fft_dif (A + i * c, c, 0, n);
-        }
-
-    } else { /* Inverse transform */
-
-      /* DFT on rows */
-      F_fft_dit (A, c, 0, n);
-      for (i = 1; i < r; i++)
-        {
-          unsigned int iomega = scramble[i] * ((4 * n) / (r * c)), ijomega;
-          F_fft_dit (A + i * c, c, 0, n);
-
-          /* Divide by \omega^{ij} */
-          for (j = 1, ijomega = 4 * n - iomega; j < c; j++, ijomega -= iomega)
-            F_mul_sqrt2exp (A[i * c + j], A[i * c + j], ijomega, n);
-        }
-      
-      /* DFT on columns */
-      for (i = 0; i < c; i++)
-        F_fft_dit (A + i, r, s2, n);
-    }
-
-  free (scramble);
-}
-
-
-/* Computes convolution product A*B (mod 2^n+1) using Matrix Fourier Algorithm.
-   B is assumed to be FFT'd my MFA already (rows and columns index scrambled)
-*/
-
-void
-F_fft_mfa_mul (mpz_t *A, mpz_t *B, const unsigned int r, const unsigned int c, const unsigned int n)
-{
-  unsigned int i, j, s2, l2;
-  unsigned int *scramble;
-
-  if (radix2)
-    scramble = make_scramble_list (r);
-  else
-    scramble = make_scramble_list_r4 (r);
-  
-  /* Compute s2 = log_2(c) for use as stride */
-  for (i = 1, s2 = 0; i < c; i <<= 1, s2++); 
-
-  /* Compute l2 = log_2(len) for divide-by-length */
-  for (i = 1, l2 = 0; i < r; i <<= 1, l2++);
-  l2 += s2;
-  /* We later need to divide by (sqrt(2))^(2*l2), so we'll keep 2*l2 */
-  l2 <<= 1;
-
-
-  /* DFT on columns */
-  for (i = 0; i < c; i++)
-    {
-      F_fft_dif (A + i, r, s2, n);
-      /* The rows are now index-scrambeled */
-    }
-
-
-  /* DFT on rows, multiply, back transform of rows */
-
-  /* Row with index 0, needs no multipy by \omega, just divide by length */
-  F_fft_dif (A, c, 0, n);
-  for (j = 0; j < c; j++)
-    {
-      F_mul_sqrt2exp (A[j], A[j], -l2, n);
-      mpz_mul (gt, A[j], B[j]);
-      F_mod_gt (A[j], n);
-    }
-  F_fft_dit (A, c, 0, n);
-  
-  
-  /* The other rows */
-  for (i = 1; i < r; i++)
-    {
-      int iomega = scramble[i] * ((4 * n) / (r * c)), ijomega;
-
-      /* Multiply by \omega^{ij}, divide by transform length */
-      for (j = 1, ijomega = iomega - l2; j < c; j++, ijomega += iomega)
-        F_mul_sqrt2exp (A[i * c + j], A[i * c + j], ijomega, n);
-
-      F_fft_dif (A + i * c, c, 0, n);
-
-      for (j = 0; j < c; j++)
-        {
-          mpz_mul (gt, A[i * c + j], B[i * c + j]);
-          F_mod_gt (A[i * c + j], n);
-        }
-      
-      /* IDFT on rows */
-      F_fft_dit (A + i * c, c, 0, n);
-          
-      /* Divide by \omega^{ij} */
-      for (j = 1, ijomega = 4 * n - iomega; j < c; j++, ijomega -= iomega)
-        F_mul_sqrt2exp (A[i * c + j], A[i * c + j], ijomega, n);
-    }
-
-      
-  /* IDFT on columns */
-  for (i = 0; i < c; i++)
-    F_fft_dit (A + i, r, s2, n);
-
-  free (scramble);
-}
 
 #define A0 A[i]
 #define A1 A[l+i]
@@ -1102,11 +658,6 @@ F_toomcook4 (mpz_t *C, mpz_t *A, mpz_t *B, unsigned int len, unsigned int n,
     }
 #endif
 
-#ifdef TESTDRIVE
-  if (verbose)
-    printf ("Toom-Cook, len = %d\n", len);
-#endif
-  
   l = len / 4;
   
   if (A == B) /* Squaring. The interpolation could probably be optimized, too */
@@ -1139,19 +690,6 @@ F_toomcook4 (mpz_t *C, mpz_t *A, mpz_t *B, unsigned int len, unsigned int n,
           mpz_add (C2, C2, gt);         /* C2 = A(1) < 4*N */
           F_mod_1 (C2, n);
           F_mod_1 (C4, n);
-
-#ifdef TESTDRIVE
-          if (verbose >= 2)
-            {
-              gmp_printf ("A(0)[%d] = %Zd\n", i, C0);
-              gmp_printf ("A(1)[%d] = %Zd\n", i, C2);
-              gmp_printf ("A(-1)[%d] = %Zd\n", i, C4);
-              gmp_printf ("A(inf)[%d] = %Zd\n", i, A3);
-              gmp_printf ("8*A(1/2)[%d] = %Zd\n", i, t0);
-              gmp_printf ("A(2)[%d] = %Zd\n", i, t2);
-              gmp_printf ("A(-2)[%d] = %Zd\n", i, t4);
-            }
-#endif
         }
 
     /* A0  A1   A2   A3                     */
@@ -1219,12 +757,12 @@ F_toomcook4 (mpz_t *C, mpz_t *A, mpz_t *B, unsigned int len, unsigned int n,
 
           /* Evaluate A(1), A(-1) */
           mpz_add (C2, A0, A2);         /* May overwrite A2 */
-    #undef A2
+#undef A2
           mpz_add (gt, A1, A3);
           mpz_set (C1, B0);             /* C1 = B(0) May overwrite A1 */
-    #undef A1
+#undef A1
           mpz_sub (C4, C2, gt);         /* C4 = A(-1). May overwrite B0 */
-    #undef B0
+#undef B0
           mpz_add (C2, C2, gt);         /* C2 = A(1) < 4*N */
           F_mod_1 (C2, n);
           F_mod_1 (C4, n);
@@ -1232,34 +770,14 @@ F_toomcook4 (mpz_t *C, mpz_t *A, mpz_t *B, unsigned int len, unsigned int n,
           /* Evaluate B(1), B(-1) */
           mpz_add (gt, C1, B2);         /* B0 is in C1 */
           mpz_set (C6, A3);             /* C6 = A(inf) May overwrite B2 */
-    #undef B2
+#undef B2
           mpz_add (C3, B1, B3);         /* May overwrite A3 */
-    #undef A3
+#undef A3
           mpz_sub (C5, gt, C3);         /* C5 = B(-1). May overwrite B1 */
-    #undef B1
+#undef B1
           mpz_add (C3, gt, C3);         /* C3 = B(1) */
           F_mod_1 (C3, n);
           F_mod_1 (C5, n);
-
-    #ifdef TESTDRIVE
-          if (verbose >= 2)
-            {
-              gmp_printf ("A(0)[%d] = %Zd\n", i, C0);
-              gmp_printf ("B(0)[%d] = %Zd\n", i, C1);
-              gmp_printf ("A(1)[%d] = %Zd\n", i, C2);
-              gmp_printf ("B(1)[%d] = %Zd\n", i, C3);
-              gmp_printf ("A(-1)[%d] = %Zd\n", i, C4);
-              gmp_printf ("B(-1)[%d] = %Zd\n", i, C5);
-              gmp_printf ("A(inf)[%d] = %Zd\n", i, C6);
-              gmp_printf ("B(inf)[%d] = %Zd\n", i, B3);
-              gmp_printf ("8*A(1/2)[%d] = %Zd\n", i, t0);
-              gmp_printf ("8*B(1/2)[%d] = %Zd\n", i, t1);
-              gmp_printf ("A(2)[%d] = %Zd\n", i, t2);
-              gmp_printf ("B(2)[%d] = %Zd\n", i, t3);
-              gmp_printf ("A(-2)[%d] = %Zd\n", i, t4);
-              gmp_printf ("B(-2)[%d] = %Zd\n", i, t5);
-            }
-    #endif
         }
 
     /* A0 A1   A2   A3   B0    B1   B2 B3 */
@@ -1332,19 +850,6 @@ F_toomcook4 (mpz_t *C, mpz_t *A, mpz_t *B, unsigned int len, unsigned int n,
       mpz_sub (C4, C4, C2);             /* C4 = 3*C_4 */
       F_divby3_1 (C4, n);               /* C4 = C_4 */
       mpz_sub (C2, C2, C4);             /* C2 = C_2 */
-
-#ifdef TESTDRIVE
-      if (verbose >= 2)
-        {
-          gmp_printf ("C0[%d] = %Zd\n", i, C0);
-          gmp_printf ("C1[%d] = %Zd\n", i, t2);
-          gmp_printf ("C2[%d] = %Zd\n", i, C2);
-          gmp_printf ("C3[%d] = %Zd\n", i, t0);
-          gmp_printf ("C4[%d] = %Zd\n", i, C4);
-          gmp_printf ("C5[%d] = %Zd\n", i, t4);
-          gmp_printf ("C6[%d] = %Zd\n", i, C6);
-        }
-#endif
     }
 
   for (i = 0; i < l - 1; i++)
@@ -1405,11 +910,6 @@ F_karatsuba (mpz_t *R, mpz_t *A, mpz_t *B, unsigned int len, unsigned int n,
     }
 #endif
 
-#ifdef TESTDRIVE
-  if (verbose)
-    printf ("Karatsuba, len=%d\n", len);
-#endif
-
   len /= 2;
 
   if (A == B) /* Squaring */
@@ -1452,8 +952,7 @@ F_karatsuba (mpz_t *R, mpz_t *A, mpz_t *B, unsigned int len, unsigned int n,
     {
       for (i = 0; i < len; i++)
         { /* mpz_swap instead? Perhaps undo later? Or interface for F_mul
-             to specify separate result arrays for high/low half? (Would 
-             make MFA awful!) */
+             to specify separate result arrays for high/low half? */
           mpz_set (gt, A[len + i]); /* Swap A1 and B0 */
           mpz_set (A[len + i], B[i]);
           mpz_set (B[i], gt);
@@ -1500,7 +999,7 @@ F_mul (mpz_t *R, mpz_t *A, mpz_t *B, unsigned int len, int parameter,
        unsigned int n, mpz_t *t) 
 {
   unsigned int i, r=0;
-  int columns = 0;
+  unsigned int transformlen = (parameter == NOPAD) ? len : 2 * len;
 #ifdef CHECKSUM
   mpz_t chksum1, chksum_1, chksum0, chksuminf;
 #endif
@@ -1587,15 +1086,11 @@ F_mul (mpz_t *R, mpz_t *A, mpz_t *B, unsigned int len, int parameter,
   r += 4;
 #endif /* CHECKSUM */
 
-  /* Don't do FFT if len=<4 (Karatsuba or Toom-Cook are faster), or if
-     len > 2*n (no suitable primitive roots of 1) */
-  if ((len > 4) && len <= 2 * n
-#ifdef TESTDRIVE
-   && !nofft
-#endif
-     ) 
+  /* Don't do FFT if len =< 4 (Karatsuba or Toom-Cook are faster) unless we 
+     do a transform without zero padding, or if transformlen > 4*n 
+     (no suitable primitive roots of 1) */
+  if ((len > 4 || parameter == NOPAD) && transformlen <= 4 * n) 
     {
-      unsigned int transformlen = (parameter == NOPAD) ? len : 2 * len;
       unsigned int len2;
       
       /* len2 = log_2(transformlen). Assumes transformlen > 0 */
@@ -1608,24 +1103,11 @@ F_mul (mpz_t *R, mpz_t *A, mpz_t *B, unsigned int len, int parameter,
           exit (EXIT_FAILURE);
         }
       
-      /* If we use MFA, make a row use at most half the cache size, */
-      /* Don't use MFA if full transform fits in half of L2 cache. */
-      columns = 0;
-      if (do_mfa && CACHESIZE * 8192 / 2 <= transformlen * n)
-        {
-          columns = min(1U<<(len2 / 2), (CACHESIZE * 8192 / 2) / n);
-        }
-
       /* Are we performing a squaring or multiplication? */
       if (A != B) 
         {
           /* So it's a multiplication */
           
-#ifdef TESTDRIVE
-          if (do_timing)
-            rdtscll (timer_start);
-#endif
-
           /* Put transform of B into t */
           for (i = 0; i < len; i++)
             mpz_set (t[i], B[i]);
@@ -1634,23 +1116,7 @@ F_mul (mpz_t *R, mpz_t *A, mpz_t *B, unsigned int len, int parameter,
           for (; i < transformlen; i++)
             mpz_set_ui (t[i], 0);
 
-          if (columns)
-            F_fft_mfa (t, transformlen / columns, columns, 1, n);
-          else
-            F_fft_dif (t, transformlen, 0, n);
-
-#ifdef TESTDRIVE
-          if (do_timing) 
-            {
-              rdtscll (timer_stop);
-              timer_stop -= timer_start;
-              printf("FFT(B), length %d: %.5fM clocks\n",  transformlen, timer_stop/1000000.0);
-            }
-          
-          if (verbose >= 2)
-            printpoly (t, transformlen, "FFT(B)");
-#endif
-
+          F_fft_dif (t, transformlen, 0, n);
         } else
           t = R; /* Do squaring */
 
@@ -1667,29 +1133,8 @@ F_mul (mpz_t *R, mpz_t *A, mpz_t *B, unsigned int len, int parameter,
       for (; i < transformlen; i++)
         mpz_set_ui (R[i], 0); /* May overwrite B[i - len] */
 
-#ifndef MFA_MUL
+      F_fft_dif (R, transformlen, 0, n);
 
-      if (columns)
-        F_fft_mfa (R, transformlen / columns, columns, 1, n);
-      else
-        F_fft_dif (R, transformlen, 0, n);
-
-#ifdef TESTDRIVE
-      if (do_timing) 
-        {
-          rdtscll (timer_stop);
-          timer_stop -= timer_start;
-          printf ("FFT%s(A), length %d: %.5fM clocks\n", 
-                 R==A?"":"2", transformlen, timer_stop / 1000000.0);
-        }
-      
-      if (verbose >= 2)
-        printpoly (R, transformlen, "FFT(A)");
-      
-      if (do_timing)
-        rdtscll (timer_start);
-#endif
-      
       for (i = 0; i < transformlen; i++) 
         {
 /*          printf ("Before multiply: mpz_size (R[%d]) = %d\n", i, mpz_size (R[i])); */
@@ -1708,73 +1153,20 @@ F_mul (mpz_t *R, mpz_t *A, mpz_t *B, unsigned int len, int parameter,
 
       r += transformlen;
 
-#ifdef TESTDRIVE
-      if (do_timing) 
-        {
-          rdtscll (timer_stop);
-          timer_stop -= timer_start;
-          printf ("%d Multiplies: %.5fM clocks\n", transformlen, timer_stop / 1000000.0);
-          fflush (stdout);
-          rdtscll (timer_start);
-        }
-#endif
-      if (columns)
-        F_fft_mfa (R, transformlen / columns, columns, -1, n);
-      else
-        F_fft_dit (R, transformlen, 0, n);
-
-#ifdef TESTDRIVE
-      if (do_timing) 
-        {
-          rdtscll (timer_stop);
-          timer_stop -= timer_start;
-          printf ("IFFT, length %d: %.5fM clocks (%.0f per butterfly)\n", 
-            transformlen, timer_stop / 1000000.0, 
-            timer_stop / ((double)transformlen * (double)len2));
-        }
-#endif
-
-#else /* MFA_MUL */
-      
-      if (columns)
-        F_fft_mfa_mul (R, t, transformlen / columns, columns, n);
-      else
-        {
-          F_fft_dif (R, transformlen, 0, n);
-          for (i=0; i < transformlen; i++)
-           {
-             F_mod_1 (R[i], n);
-             mpz_mul (gt, R[i], t[i]);
-             F_mod_gt (R[i], n);
-             F_mul_sqrt2exp (R[i], R[i], - 2 * len2, n);
-           }
-          F_fft_dit (R, transformlen, 0, n);
-        }
-      r += transformlen;
-      
-
-#ifdef TESTDRIVE
-      if (do_timing) 
-        {
-          rdtscll (timer_stop);
-          timer_stop -= timer_start;
-          printf ("Time for F_fft_mfa_mul, length %d: %.5fM clocks\n", 
-            transformlen, timer_stop / 1000000.0);
-        }
-#endif
-      
-#endif /* MFA_MUL */
+      F_fft_dit (R, transformlen, 0, n);
 
       if (parameter == MONIC)
         mpz_sub_ui (R[0], R[0], 1);
       
     } else { /* Karatsuba or Toom-Cook split */
-
-      if (len / n == 4 || len == 2 
-#ifdef TESTDRIVE
-          || force_karatsuba
-#endif
-         )
+      
+      if (parameter == NOPAD)
+        {
+          fprintf (stderr, "F_mul: cyclic/short products not supported by Karatsuba/Toom-Cook\n");
+          exit (EXIT_FAILURE);
+        }
+      
+      if (len / n == 4 || len == 2)
         r += F_karatsuba (R, A, B, len, n, t);
       else
         r += F_toomcook4 (R, A, B, len, n, t);
@@ -1891,7 +1283,6 @@ F_mul_trans (mpz_t *R, mpz_t *A, mpz_t *B, unsigned int len, unsigned int n,
              mpz_t *t) 
 {
   unsigned int i, r = 0, len2;
-  int columns = 0;
 
   /* Handle trivial cases */
   if (len < 2)
@@ -1922,18 +1313,11 @@ F_mul_trans (mpz_t *R, mpz_t *A, mpz_t *B, unsigned int len, unsigned int n,
           exit (EXIT_FAILURE);
         }
       
-      /* If we use MFA, make a row use at most half the cache size */
-      if (do_mfa)
-        columns = min(1U<<(len2 / 2), (CACHESIZE * 4096) / n);
-
       /* Put transform of B into t */
       for (i = 0; i < len; i++)
         mpz_set (t[i], B[i]);
 
-      if (do_mfa)
-        F_fft_mfa (t, len / columns, columns, 1, n);
-      else
-        F_fft_dif (t, len, 0, n);
+      F_fft_dif (t, len, 0, n);
 
       /* Put transform of reversed A into t + len */
       for (i = 0; i < len / 2; i++) 
@@ -1941,10 +1325,7 @@ F_mul_trans (mpz_t *R, mpz_t *A, mpz_t *B, unsigned int len, unsigned int n,
       for (i = len / 2; i < len; i++)
         mpz_set_ui (t[i + len], 0);
 
-      if (do_mfa)
-        F_fft_mfa (t + len, len / columns, columns, 1, n);
-      else
-        F_fft_dif (t + len, len, 0, n);
+      F_fft_dif (t + len, len, 0, n);
 
       for (i = 0; i < len; i++) 
         {
@@ -1964,10 +1345,7 @@ F_mul_trans (mpz_t *R, mpz_t *A, mpz_t *B, unsigned int len, unsigned int n,
 
       r += len;
 
-      if (do_mfa)
-        F_fft_mfa (t, len / columns, columns, -1, n);
-      else
-        F_fft_dit (t, len, 0, n);
+      F_fft_dit (t, len, 0, n);
       
       for (i = 0; i < len / 2; i++)
         mpz_set (R[i], t[i + len / 2 - 1]);
@@ -2047,302 +1425,3 @@ F_mul_trans (mpz_t *R, mpz_t *A, mpz_t *B, unsigned int len, unsigned int n,
   
   return r;
 }
-
-#ifdef TESTDRIVE
-
-int 
-main(int argc, char **argv) 
-{
-  int i;
-  int length = 16;
-  int fermat = 5;
-  int fermat_e;
-  int monic = DEFAULT;
-  unsigned int len2;
-  unsigned long long timer_start, timer_stop;
-
-  mpz_t *res, *poly1, *poly2, *t;
-  mpz_t F;
- 
-  mp_set_memory_functions (&allocate_function, &reallocate_function,
-                           &deallocate_function);
-
-  do_mfa = 0;
-
-  while (argc > 1 && argv[1][0] == '-')
-    {
-      switch (argv[1][1])
-        {
-          case 'v' : verbose++; break;
-          case 't' : do_timing = 1; break;
-          case 'm' : do_mfa = 1; break;
-          case 'k' : force_karatsuba = 1; break;
-          case 'n' : nofft = 1; break;
-          case 'o' : monic = MONIC; break;
-          case '2' : radix2 = 1; break;
-          default :
-            {
-              fprintf (stderr, "Unknown option: %s\n", argv[1]);
-              exit (EXIT_FAILURE);
-            }
-        }
-      argc--;
-      argv++;
-    }
-  
-  /* First command line argument is length */
-  if (argc > 1)
-    length = atoi(argv[1]);
-  
-  /* Second command line argument is m (Fermat number F_m) */
-  if (argc > 2)
-    fermat = atoi(argv[2]);
-
-  fermat_e = 1<<fermat;
-
-  for (i = length, len2 = 0; i > 1 && (i&1) == 0; i >>= 1, len2++);
-
-  mpz_init2 (gt, 2*fermat_e + 2 * GMP_NUMB_BITS);
-  mpz_init2 (F, fermat_e + 2 * GMP_NUMB_BITS);
-  mpz_set_ui (F, 1);
-  mpz_mul_2exp (F, F, fermat_e);
-  mpz_add_ui (F, F, 1);
-
-  /* Quick mod reduction with F_mod_* produces values in [-2^(n+1), 2^(n+1)].
-     This would fit into (n/GMP_NUMB_BITS)+1 limbs.
-     However, mpz_{add|sub} and others allocate max(size(S1),size(S2))+1 limbs
-     to the destination, which lets the destination grow to 
-     (n/GMP_NUMB_BITS)+2 limbs */
-  
-  poly1 = poly_init (length, fermat_e + 2 * GMP_NUMB_BITS);
-  poly2 = poly_init (length, fermat_e + 2 * GMP_NUMB_BITS);
-  res = poly_init (2 * length, fermat_e + 2 * GMP_NUMB_BITS);
-  t = poly_init (3 * length, fermat_e + 2 * GMP_NUMB_BITS);
-  
-  /* Test squaring */
-  printf ("Squaring, not in-place\n");
-  for (i=0; i<length; i++)
-    mpz_set_ui (poly1[i], 1);
-  printpoly (poly1, length, "Poly1");
-  
-  if (do_timing)
-    rdtscll (timer_start);
-    
-  F_mul (res, poly1, poly1, length, monic, fermat_e, t);
-
-  if (do_timing)
-    {
-      rdtscll (timer_stop);
-      timer_stop -= timer_start;
-      printf("Total: %.5fM clocks\n",  timer_stop/1000000.0);
-    }
-
-  printpoly (res, 2*length, "Res");
-
-
-  /***** Test an in-place squaring *****/
-  printf ("Squaring, in-place\n");
-  for (i=0; i<length; i++)
-    mpz_set_ui (res[i], 1);
-  printpoly (res, length, "Poly1");
-  
-  if (do_timing)
-    rdtscll (timer_start);
-    
-  F_mul (res, res, res, length, monic, fermat_e, t);
-
-  if (do_timing)
-    {
-      rdtscll (timer_stop);
-      timer_stop -= timer_start;
-      printf("Total: %.5fM clocks\n",  timer_stop/1000000.0);
-    }
-
-  printpoly (res, 2*length, "Res");
-
-  /* Test a multiply */
-  printf ("Multiply, not in-place\n");
-  for (i = 0; i < length; i++) 
-    {
-      mpz_set_ui (poly1[i], 1);
-      mpz_set_ui (poly2[i], i);
-    }
-
-  print2polys (poly1, poly2, length, "Poly1", "Poly2");
-  
-  if (do_timing)
-    rdtscll (timer_start);
-    
-  F_mul (res, poly1, poly2, length, monic, fermat_e, t);
-
-  if (do_timing)
-    {
-      rdtscll (timer_stop);
-      timer_stop -= timer_start;
-      printf("Total: %.5fM clocks\n",  timer_stop/1000000.0);
-    }
-
-  printpoly (res, 2*length, "Res");
-
-  /* Test an in-place multiply */
-  printf ("Multiply, in-place\n");
-  mpz_set_ui (res[0], 3);
-  mpz_set_ui (res[length], 5);
-  for (i = 0; i < 20; i++) 
-    {
-      mpz_mul (gt, res[0], res[0]);
-      F_mod_gt (res[0], fermat_e);
-      mpz_mul (gt, res[length], res[length]);
-      F_mod_gt (res[length], fermat_e);
-    }
-  
-/*  printf ("Inited poly start values\n"); */
-  
-  for (i = 1; i < length; i++) 
-    {
-      mpz_mul (gt, res[i - 1], res[i - 1]);
-      F_mod_gt (res[i], fermat_e);
-      mpz_mul (gt, res[length + i - 1], res[length + i - 1]);
-      F_mod_gt (res[length + i], fermat_e);
-    }
-
-/*  printf ("Inited polys\n"); */
-
-  for (i = 0; i < 2 * length; i++) 
-    {
-      if (mpz_sizeinbase (res[i], 2) > (unsigned) fermat_e + 1)
-        printf ("Init: mpz_sizeinbase(res[%d], 2) == %d\n", i, mpz_sizeinbase (res[i], 2));
-    }
-  
-  if (4 * fermat_e >= length)
-    {
-      /* Try if IFFT(FFT()) is identity */
-
-      if (verbose >= 1)
-        printf ("Testing if IFFT(FFT()) is identity, plain DIT/DIF\n");
-
-      for (i = 0; i < 2 * length; i++)
-        {
-          F_mod_1 (res[i], fermat_e);
-          if (mpz_sgn (res[i]) < 0)
-            F_add_F (res[i], fermat_e);
-          mpz_set (t[i], res[i]);
-        }
-      
-/*      printf ("Mod reduction on res done\nHere come the FFTs\n"); */
-
-      F_fft_dif (t, length, 0, fermat_e);
-      if (verbose >= 2)
-        for (i = 0; i < length; i++)
-            gmp_printf ("FFT_DIF(A)[%d] = %Zd\n", i, t[i]);
-      F_fft_dit (t, length, 0, fermat_e);
-      F_fft_dif (t + length, length, 0, fermat_e);
-      F_fft_dit (t + length, length, 0, fermat_e);
-
-/*      printf ("Done FFTs\n"); */
-
-      for (i = 0; i < 2 * length; i++)
-        {
-          F_mul_sqrt2exp (t[i], t[i], - 2 * len2, fermat_e);
-          F_mod_1 (t[i], fermat_e);
-        }
-      
-/*      printf ("Done div-by-length and mod reduction\n"); */
-
-      for (i = 0; i < 2 * length; i++)
-        {
-          if (mpz_sgn(t[i]) < 0)
-            F_add_F (t[i], fermat_e);
-          if (mpz_cmp (t[i], res[i]) != 0)
-            {
-              printf ("res[%d] = ", i);
-              mpz_out_str (stdout, 10, res[i]);
-              printf ("\nIFFT_dit(FFT_dif(res))[%d] = ", i);
-              mpz_out_str (stdout, 10, t[i]);
-              printf ("\n");
-            }
-        }
-
-      if (verbose >= 1) 
-        printf ("Testing if IFFT(FFT()) is identity, MFA\n");
-
-      for (i = 0; i < length; i++)
-        {
-          mpz_set (t[i], res[i]);
-          mpz_set (t[length + i], res[length + i]);
-        }
-
-      {
-        unsigned int rows, columns;
-        
-        columns = min(1U<<((len2 + 1) / 2), (CACHESIZE * 4096) / fermat_e);
-        rows = length / columns;
-
-        F_fft_mfa (t, rows, columns, 1, fermat_e);
-        F_fft_mfa (t, rows, columns, -1, fermat_e);
-        F_fft_mfa (t + length, rows, columns, 1, fermat_e);
-        F_fft_mfa (t + length, rows, columns, -1, fermat_e);
-      }
-
-      for (i = 0; i < 2 * length; i++)
-        {
-          F_mul_sqrt2exp (t[i], t[i], - 2 * len2, fermat_e);
-          F_mod_1 (t[i], fermat_e);
-          if (mpz_sgn (t[i]) < 0)
-            F_add_F (t[i], fermat_e);
-          if (mpz_cmp (t[i], res[i]) != 0)
-            {
-              printf ("res[%d] = ", i);
-              mpz_out_str (stdout, 10, res[i]);
-              printf ("\nIFFT_mfa(FFT_mfa(res))[%d] = ", i);
-              mpz_out_str (stdout, 10, t[i]);
-              printf ("\n");
-            }
-        }
-      
-      if (verbose >= 1)
-        printf ("Finished Id test\n");
-
-      for (i = 0; i < 2 * length; i++) 
-        {
-          if (mpz_sizeinbase (res[i], 2) > (unsigned) fermat_e + 1)
-            printf ("After Id test: mpz_sizeinbase(res[%d], 2) == %d\n", i, mpz_sizeinbase (res[i], 2));
-        }
-  } else if (verbose >= 1)
-    printf ("Could not do identity test, length too large for direct transform\n");
-
-  print2polys (res, res+length, length, "Poly1", "Poly2");
-  
-  if (do_timing)
-    rdtscll (timer_start);
-    
-  F_mul (res, res, res+length, length, monic, fermat_e, t);
-  
-  if (do_timing)
-    {
-      rdtscll (timer_stop);
-      timer_stop -= timer_start;
-      printf("Total: %.5fM clocks\n",  timer_stop/1000000.0);
-    }
-
-  printpoly(res, 2*length, "Res");
-
-  for (i = 0; i < length; i++) 
-    if (poly1[i]->_mp_alloc > fermat_e / 32 + 2)
-      printf ("poly1[%d]._mp_alloc = %u\n", i, poly1[i]->_mp_alloc);
-
-  for (i = 0; i < length; i++) 
-    if (poly2[i]->_mp_alloc > fermat_e / 32 + 2)
-      printf ("poly2[%d]._mp_alloc = %u\n", i, poly2[i]->_mp_alloc);
-
-  for (i = 0; i < 2 * length; i++) 
-    if (res[i]->_mp_alloc > fermat_e / 32 + 2)
-      printf ("res[%d]._mp_alloc = %u\n", i, res[i]->_mp_alloc);
-
-  for (i = 0; i < 2 * length; i++) 
-    if (t[i]->_mp_alloc > fermat_e / 32 + 2)
-      printf ("t[%d]._mp_alloc = %u\n", i, t[i]->_mp_alloc);
-
-  return 0;
-}
-#endif
