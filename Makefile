@@ -34,7 +34,7 @@ VERSION=5.1-beta
 OBJS= auxi.o b1_ainc.o bestd.o candi.o ecm.o ecm2.o eval.o getprime.o listz.o lucas.o main.o pm1.o pp1.o stage2.o toomcook.o trial.o memory.o mpmod.o mul_lo.o polyeval.o resume.o
 
 CFLAGS= -O2 -g -W -Wall -Wmissing-prototypes -pedantic
-LDFLAGS= -static -lgmp -lm
+LDFLAGS= -lgmp -lm
 CXX=gcc
 CC=gcc
 LD=$(CC)
@@ -48,7 +48,7 @@ EXTRADIST= COPYING INSTALL Makefile README ecm.h test.pm1 test.pp1 test.ecm tune
 .SUFFIXES: .c .o
 
 ecm: $(ALLOBJS) ecm.h ecm-gmp.h
-	$(LD) -L$(GMP)/lib $(ALLOBJS) -o $@ $(LDFLAGS)
+	$(LD) $(ALLOBJS) $(GMP)/lib/libgmp.a -o $@ $(LDFLAGS)
 
 ecm_with_ntl:
 	make ecm GMP=$(GMP) NTL=$(NTL) CXX=g++ EXTRAOBJS="ntl.o polyz.o" LDFLAGS="-L$(NTL)/lib -lntl $(LDFLAGS) CFLAGS="$(CFLAGS) -DPOLYGCD""
