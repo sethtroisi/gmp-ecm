@@ -581,8 +581,9 @@ Options to control modular arithmetic (see "How to get the best of gmp-ecm?"):
 -modmuln  Use Montgomery's MODMULN for modular reduction.
 -redc     Use Montgomery's REDC for modular reduction.
 -nobase2  Disable special base-2 code. Base-2 division is used
-          when the input number if a factor of 2^n+1 or 2^n-1,
-          and the ratio of the number of bits is not too small.
+          when the input number is a factor of 2^n+1 or 2^n-1,
+		  and the size of the input number is not too small compared to the
+		  size of 2^n+/-1. The threshold is optimized for Cunningham numbers.
 
 Options for saving and resuming to/from files (see section "7. Options
    -save and -resume"):
