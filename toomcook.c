@@ -1,5 +1,25 @@
-/* This version works for all sizes, but cannot handle overlapping arrays */
-/* Returns the number of multiplies performed */
+/* 
+  Implementation of the Toom-Cook 3-way algorithm for polynomial 
+  convolution products. This version works for all input sizes, but 
+  cannot handle input arrays overlapping with output.
+  
+  Copyright (C) 2002 A.Kruppa <alexander.kruppa@stud.tu-muenchen.de>
+  
+  This program is free software; you can redistribute it and/or modify it
+  under the terms of the GNU General Public License as published by the
+  Free Software Foundation; either version 2 of the License, or (at your
+  option) any later version.
+
+  This program is distributed in the hope that it will be useful, but WITHOUT
+  ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+  FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License for
+  more details.
+
+  You should have received a copy of the GNU General Public License along
+  with this program; see the file COPYING.  If not, write to the Free
+  Software Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA
+  02111-1307, USA.
+*/
 
 #include <gmp.h>
 #include "ecm.h"
@@ -36,6 +56,8 @@ void mpz_divby3_1op(mpz_t R) {
 }
 
 /* Puts in C[0..2len-2] the product of A[0..len-1] and B[0..len-1].
+   Returns the number of multiplies performed .
+
    The auxiliary memory M(len) necessary in t satisfies:
    M(0) = 0, M(1) = 0, M(2) = 1, M(4) = 5,
    otherwise M(len) = 4*l + max(M(l), 1)
@@ -47,6 +69,7 @@ void mpz_divby3_1op(mpz_t R) {
                            <= 2*(len+2) + 4 * (k-1)
                            <= 2*len + 4 * k
 */
+
 int
 toomcook3 (listz_t C, listz_t A, listz_t B, unsigned int len, listz_t t)
 {
@@ -97,7 +120,7 @@ toomcook3 (listz_t C, listz_t A, listz_t B, unsigned int len, listz_t t)
       mpz_add (t1, t1, B1); /* t1 = B0 + B1 + B2 = B(1) */
     }
   for (; i<l; i++) /* uses t[0..4*l-1] */
-    { /* A3 and B3 are smaller than the rest */
+    { /* A2 and B2 are smaller than the rest */
       mpz_add (t0, A0, A1);
       mpz_sub (t2, A0, A1);
       mpz_add (t1, B0, B1);
