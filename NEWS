@@ -1,4 +1,4 @@
-Changes between ecm-5.0.3 and ecm-5.2.0:
+Changes between ecm-5.0.3 and ecm-6.0:
 
 * use of the autotools (configure/make)	
 * there is now a documentation in "man" format (ecm.1)
