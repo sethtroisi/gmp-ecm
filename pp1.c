@@ -356,8 +356,7 @@ pp1_rootsG_clear (mpres_t *fd, mpmod_t modulus)
 }
 
 int
-pp1_rootsG (listz_t G, unsigned int d, mpres_t *fd, mpmod_t modulus, 
-            int verbose)
+pp1_rootsG (listz_t G, unsigned int d, mpres_t *fd, mpmod_t modulus) 
 {
   unsigned int i;
   int st;

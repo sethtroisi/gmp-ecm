@@ -210,7 +210,7 @@ addWn (mpz_t p, point *X, mpmod_t n, long e)
 */
 
 int
-ecm_rootsF (mpz_t f, listz_t F, unsigned int d, curve *s, listz_t t,
+ecm_rootsF (mpz_t f, listz_t F, unsigned int d, curve *s,
         int S, mpmod_t modulus, int verbose)
 {
   unsigned int i, j;
@@ -404,7 +404,7 @@ ecm_rootsG_clear (point *fd, int S, mpmod_t modulus)
 */
 
 int 
-ecm_rootsG (mpz_t f, listz_t G, unsigned int d, point *fd, listz_t t, 
+ecm_rootsG (mpz_t f, listz_t G, unsigned int d, point *fd,
             int S, mpmod_t modulus, int verbose)
 {
   unsigned int i;

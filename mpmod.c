@@ -245,7 +245,7 @@ mpz_mod_n (mpz_ptr r, mpz_ptr c, mpmod_t modulus)
   mp_limb_t cy;
   mp_ptr cys; /* vector of carries */
   mp_limb_t q;
-  size_t j, nn = modulus->bits / __GMP_BITS_PER_MP_LIMB;
+  mp_size_t j, nn = modulus->bits / __GMP_BITS_PER_MP_LIMB;
   TMP_DECL(marker);
 
   if (ALLOC(r) < nn)
