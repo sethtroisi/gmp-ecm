@@ -31,7 +31,7 @@ VERSION=5.1-beta
 
 ###################### do not edit below this line ############################
 
-OBJS= auxi.o bestd.o candi.o ecm.o ecm2.o eval.o getprime.o listz.o lucas.o main.o pm1.o pp1.o stage2.o toomcook.o trial.o memory.o mpmod.o mul_lo.o polyeval.o resume.o
+OBJS= auxi.o b1_ainc.o bestd.o candi.o ecm.o ecm2.o eval.o getprime.o listz.o lucas.o main.o pm1.o pp1.o stage2.o toomcook.o trial.o memory.o mpmod.o mul_lo.o polyeval.o resume.o
 
 CFLAGS= -O2 -g -W -Wall -Wmissing-prototypes
 LDFLAGS= -static -lgmp -lm
@@ -42,7 +42,7 @@ EXTRAOBJS=
 ALLOBJS= $(OBJS) $(EXTRAOBJS)
 POLYGCD=0
 
-DIST=  auxi.c bestd.c candi.c ecm.c ecm2.c eval.c getprime.c listz.c lucas.c main.c ntl.c pm1.c polyz.c pp1.c stage2.c trial.c toomcook.c memory.c mpmod.c mul_lo.c polyeval.c resume.c
+DIST=  auxi.c b1_ainc.c bestd.c candi.c ecm.c ecm2.c eval.c getprime.c listz.c lucas.c main.c ntl.c pm1.c polyz.c pp1.c stage2.c trial.c toomcook.c memory.c mpmod.c mul_lo.c polyeval.c resume.c
 EXTRADIST= COPYING INSTALL Makefile README ecm.h test.pm1 test.pp1 test.ecm tune.c c155 ecm-gmp.h
 
 .SUFFIXES: .c .o
