@@ -11,7 +11,5 @@ Long term:
   (Avoids i0=1 i.e. d + d -> 2d, or i0=0, i.e. 0 + d -> d, d + d -> 2d.)
 - instead of putting B1, B2 as 1st, 2nd parameters, add options
 	for them: -B1 <value>, -B2 <value>
-- add an option -primetest for input (Jay Berg <jberg@eCompute.org>)
-  [always for say B1 >= 1e6]
 - add -fft option for 2^n+1 (in particular Fermat numbers)
 
