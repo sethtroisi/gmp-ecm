@@ -33,7 +33,7 @@ VERSION=5.0-beta-pl1
 
 FILES= auxi.o bestd.o ecm.o ecm2.o getprime.o listz.o lucas.o main.o pm1.o pp1.o stage2.o toomcook.o memory.o mpmod.o mul_lo.o polyeval.o resume.o
 
-CFLAGS= -O2 -g -Wall -Wmissing-prototypes
+CFLAGS= -O2 -g -W -Wall -Wmissing-prototypes
 LDFLAGS= -lgmp -lm
 CXX=gcc
 CC=gcc

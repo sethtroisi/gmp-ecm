@@ -34,7 +34,7 @@ unsigned int lucas_cost (unsigned, double);
 void prac (mpres_t, mpres_t, unsigned int, mpmod_t, mpres_t, mpres_t, mpres_t, 
            mpres_t, mpres_t, mpres_t, mpres_t, mpres_t, mpres_t, mpres_t, 
            mpres_t, mpres_t);
-int ecm_stage1 (mpz_t, mpres_t, mpres_t, mpmod_t, double, double, int);
+int ecm_stage1 (mpz_t, mpres_t, mpres_t, mpmod_t, double, double);
 
 /******************************************************************************
 *                                                                             *
@@ -469,7 +469,7 @@ prac (mpres_t xA, mpres_t zA, unsigned int k, mpmod_t n, mpres_t b,
 */
 int
 ecm_stage1 (mpz_t f, mpres_t x, mpres_t A, mpmod_t n, double B1, 
-            double B1done, int verbose)
+            double B1done)
 {
   mpres_t b, z, t, u, v, w, xB, zB, xC, zC, xT, zT, xT2, zT2;
   double q, r;
@@ -668,7 +668,7 @@ ecm (mpz_t f, mpz_t x, mpz_t sigma, mpz_t n, double B1done, double B1,
     }
 
   if (B1 > B1done)
-    youpi = ecm_stage1 (f, P.x, P.A, modulus, B1, B1done, verbose);
+    youpi = ecm_stage1 (f, P.x, P.A, modulus, B1, B1done);
 
   if (verbose >= 1)
     {
