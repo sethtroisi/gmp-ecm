@@ -23,6 +23,10 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include "gmp.h"
+
+/* For ECM_ERROR */
+#include "ecm.h"
+
 #include "ecm-gmp.h"
 #include "ecm-impl.h"
 #ifdef HAVE_GWNUM
@@ -307,10 +311,12 @@ mpmod_init (mpmod_t modulus, mpz_t N, int repr)
   
   if ((repr != -1) && (base2 = isbase2 (N, BASE2_THRESHOLD)))
     {
+      int r;
       outputf (OUTPUT_VERBOSE,
 	       "Using special division for factor of 2^%d%c1\n",
 	       abs (base2), (base2 < 0) ? '-' : '+');
-      mpmod_init_BASE2 (modulus, base2, N);
+      r = mpmod_init_BASE2 (modulus, base2, N);
+      ASSERT (r == 0); /* error should not happen if isbase2 is correct */
     }
   else if (mpz_size (N) < MPZMOD_THRESHOLD)
     {
@@ -347,7 +353,7 @@ mpmod_init_MPZ (mpmod_t modulus, mpz_t N)
   return;
 }
 
-void 
+int 
 mpmod_init_BASE2 (mpmod_t modulus, int base2, mpz_t N)
 {
   int Nbits;
@@ -356,6 +362,27 @@ mpmod_init_BASE2 (mpmod_t modulus, int base2, mpz_t N)
   modulus->repr = MOD_BASE2;
   modulus->bits = base2;
 
+  Nbits = mpz_size (N) * __GMP_BITS_PER_MP_LIMB; /* Number of bits, rounded
+                                                    up to full limb */
+  mpz_init2 (modulus->temp1, 2 * Nbits + __GMP_BITS_PER_MP_LIMB);
+  mpz_init2 (modulus->temp2, Nbits);
+  
+  mpz_set_ui (modulus->temp1, 1);
+  mpz_mul_2exp (modulus->temp1, modulus->temp1, abs (base2));
+  if (base2 < 0)
+    mpz_sub_ui (modulus->temp1, modulus->temp1, 1);
+  else
+    mpz_add_ui (modulus->temp1, modulus->temp1, 1);
+  if (!mpz_divisible_p (modulus->temp1, N))
+    {
+       outputf (OUTPUT_ERROR, "mpmod_init_BASE2: n does not divide 2^%d%c1\n",
+                abs (base2), base2 < 0 ? '-' : '+');
+       mpz_clear (modulus->temp2);
+       mpz_clear (modulus->temp1);
+       mpz_clear (modulus->orig_modulus);
+       return ECM_ERROR;
+    }
+  
   modulus->Fermat = 0;
   if (base2 > 0)
     {
@@ -371,12 +398,7 @@ mpmod_init_BASE2 (mpmod_t modulus, int base2, mpz_t N)
         }
     }
   
-  Nbits = mpz_size (N) * __GMP_BITS_PER_MP_LIMB; /* Number of bits, rounded
-                                                    up to full limb */
-  mpz_init2 (modulus->temp1, 2 * Nbits + __GMP_BITS_PER_MP_LIMB);
-  mpz_init2 (modulus->temp2, Nbits);
-  
-  return;
+  return 0;
 }
 
 void

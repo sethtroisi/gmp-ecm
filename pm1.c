@@ -830,8 +830,11 @@ pm1 (mpz_t f, mpz_t p, mpz_t N, mpz_t go, double B1done, double B1,
         mpmod_init_MODMULN (modulus, N);
       else if (repr == 3)
         mpmod_init_REDC (modulus, N);
-      else if (repr > 16)
-        mpmod_init_BASE2 (modulus, repr, N);
+      else if (abs (repr) > 16)
+        {
+          if (mpmod_init_BASE2 (modulus, repr, N) == ECM_ERROR)
+            return ECM_ERROR;
+        }
       else
         mpmod_init_MPZ (modulus, N);
     }

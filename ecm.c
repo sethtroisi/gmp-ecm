@@ -678,8 +678,11 @@ ecm (mpz_t f, mpz_t x, mpz_t sigma, mpz_t n, mpz_t go, double B1done,
     mpmod_init_MODMULN (modulus, n);
   else if (repr == 3)
     mpmod_init_REDC (modulus, n);
-  else if (repr > 16) /* FIXME: can this happen (from main.c)? */
-    mpmod_init_BASE2 (modulus, repr, n);
+  else if (abs (repr) > 16)
+    {
+      if (mpmod_init_BASE2 (modulus, repr, n) == ECM_ERROR)
+        return ECM_ERROR;
+    }
   else /* automatic choice, avoiding base2 if repr=-1 */
     mpmod_init (modulus, n, repr);
 

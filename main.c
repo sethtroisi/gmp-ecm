@@ -135,7 +135,9 @@ void usage (void)
     printf ("  -modmuln     use Montgomery's MODMULN for mod reduction\n");
     printf ("  -redc        use Montgomery's REDC for mod reduction\n");
     printf ("  -nobase2     disable special base-2 code\n");
+    printf ("  -base2 n     force base 2 mode with 2^n+1 (n>0) or 2^n-1 (n<0)");
     printf ("  -save file   save residues at end of stage 1 to file\n");
+    printf ("  -savea file  like -save, appends to existing files\n");
     printf ("  -resume file resume residues from file, reads from stdin if file is \"-\"\n");
     printf ("  -primetest   perform a primality test on input\n");
     printf ("  -treefile f  store product tree of F in files f.0 f.1 ... \n");
@@ -205,7 +207,7 @@ main (int argc, char *argv[])
   char *endptr[1]; /* to parse B2 or B2min-B2max */
   char rtime[256] = "", who[256] = "", comment[256] = "", program[256] = "";
   FILE *savefile = NULL, *resumefile = NULL, *infile = NULL;
-  int primetest = 0;
+  int primetest = 0, saveappend = 0;
   double autoincrementB1 = 0.0, startingB1;
   unsigned int autoincrementB1_calc = 0;
   unsigned int breadthfirst_maxcnt=0, breadthfirst_cnt=0;
@@ -352,14 +354,14 @@ main (int argc, char *argv[])
 #elif __CYGWIN__
       else if (strcmp (argv[1], "-n") == 0)
         {
-	  /* Not sure what is correct here */
-	  nice (20);
+	  /* Increase niceness by 10 */
+	  nice (10);
 	  argv++;
 	  argc--;
         }
       else if (strcmp (argv[1], "-nn") == 0)
         {
-	  /* Not sure what is correct here */
+	  /* Increase niceness by 20 */
 	  nice (20);
 	  argv++;
 	  argc--;
@@ -441,6 +443,14 @@ main (int argc, char *argv[])
       else if ((argc > 2) && (strcmp (argv[1], "-save") == 0))
 	{
 	  savefilename = argv[2];
+	  saveappend = 0;
+	  argv += 2;
+	  argc -= 2;
+	}
+      else if ((argc > 2) && (strcmp (argv[1], "-savea") == 0))
+	{
+	  savefilename = argv[2];
+	  saveappend = 1;
 	  argv += 2;
 	  argc -= 2;
 	}
@@ -453,6 +463,14 @@ main (int argc, char *argv[])
       else if ((argc > 2) && (strcmp (argv[1], "-treefile") == 0))
 	{
 	  TreeFilename = argv[2];
+	  argv += 2;
+	  argc -= 2;
+	}
+      else if ((argc > 2) && (strcmp (argv[1], "-base2") == 0))
+	{
+	  int b = atoi (argv[2]);
+	  if (abs (b) >= 16) /* |Values| < 16 are reserved for other methods */
+	    repr = b;        /* keep method unchanged in that case */
 	  argv += 2;
 	  argc -= 2;
 	}
@@ -702,17 +720,16 @@ main (int argc, char *argv[])
     }
 
   /* Open save file for writing, if saving is requested */
-  /* FIXME: append by default ? */
   if (savefilename != NULL)
     {
-      /* Does this file already exist ? */
-      if (access (savefilename, F_OK) == 0)
+      /* Are we not appending and does this file already exist ? */
+      if (!saveappend && access (savefilename, F_OK) == 0)
         {
           printf ("Save file %s already exists, will not overwrite\n", 
                   savefilename);
           exit (EXIT_FAILURE);
         }
-      savefile = fopen (savefilename, "w");
+      savefile = fopen (savefilename, saveappend ? "a" : "w");
       if (savefile == NULL)
         {
           fprintf (stderr, "Could not open file %s for writing\n", savefilename);
