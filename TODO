@@ -27,3 +27,5 @@ Long term:
 - partial saves during step 1 (Jay)?
 - need sigma >= 5 for ECM?
 - when resuming, print the *initial* x0 for P-1/P+1?
+- check files for -save and -resume are different
+- print the exact number of digits for >= 1000 digits
