@@ -38,6 +38,18 @@ unsigned int nb_digits  (const mpz_t);
 unsigned int gcd        (unsigned int, unsigned int);
 unsigned int get_random_ui (void);
 
+#define OUTPUT_ALWAYS 0
+#define OUTPUT_NORMAL 1
+#define OUTPUT_VERBOSE 2
+#define OUTPUT_DEVVERBOSE 3
+#define OUTPUT_TRACE 4
+#define OUTPUT_ERROR -1
+
+/* auxlib.c */
+int  test_verbose (int);
+void set_verbose (int);
+int  inc_verbose ();
+
 /* different methods implemented */
 #define EC_METHOD 0
 #define PM1_METHOD 1
