@@ -1,8 +1,6 @@
 /* Dickman's rho function (to compute probability of success of ecm).
 
   Copyright 2004, 2005 Alexander Kruppa.
-  Contains code from the GNU Scientific Library, file specfunc/dilog.c, 
-    copyright Gerard Jungman
 
   This file is part of the ECM Library.
 
@@ -29,7 +27,7 @@
 #include "ecm-impl.h"
 
 #ifndef ECM_EXTRA_SMOOTHNESS
-#define ECM_EXTRA_SMOOTHNESS 24.0
+#define ECM_EXTRA_SMOOTHNESS 23.4
 #endif
 
 #define M_PI_SQR   9.869604401089358619 /* Pi^2 */
@@ -89,31 +87,24 @@ phi (unsigned long n)
 }
 #endif /* TESTDRIVE */
 
-/* dilog_series() from the Gnu scientific library, file specfunc/dilog.c */
-/* Evaluate series for real dilog(x)
- * Sum[ x^k / k^2, {k,1,Infinity}]
- *
- * Converges rapidly for |x| < 1/2.
+/*
+  Evaluate dilogarithm via the sum 
+  \Li_{2}(z)=\sum_{k=1}^{\infty} \frac{z^k}{k^2}, 
+  see http://mathworld.wolfram.com/Dilogarithm.html
+  Assumes |z| <= 0.5, for which the sum converges quickly.
  */
 
 static double
-dilog_series (const double x)
+dilog_series (const double z)
 {
-  const int kmax = 1000;
-  double sum  = x;
-  double term = x;
-  int k;
-  for (k = 2; k < kmax; k++) 
-    {
-      double rk = (k - 1.0) / k;
-      term *= x;
-      term *= rk * rk;
-      sum += term;
-      if (fabs (term / sum) < GSL_DBL_EPSILON) 
-        break;
-    }
+  double r = 0.0, zk; /* zk = z^k */
+  int k, k2; /* k2 = k^2 */
+  /* Doubles have 53 bits in significand, with |z| <= 0.5 the k+1-st term
+     is <= 1/(2^k k^2) of the result, so 44 terms should do */
+  for (k = 1, k2 = 1, zk = z; k <= 44; k2 += 2 * k + 1, k++, zk *= z)
+    r += zk / (double) k2;
 
-  return sum;
+  return r;
 }
 
 static double
