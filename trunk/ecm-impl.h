@@ -54,12 +54,12 @@
 #endif
 
 /* Warnings about unused parameters by gcc can be suppressed by prefixing 
-   parameter with UNUSED when parameter can't be removed, i.e. for
-   interface consistency reasons */
+   parameter with ATTRIBUTE_UNUSED when parameter can't be removed, i.e. 
+   for interface consistency reasons */
 #ifdef __GNUC__
-#define UNUSED __attribute__ ((unused))
+#define ATTRIBUTE_UNUSED __attribute__ ((unused))
 #else
-#define UNUSED
+#define ATTRIBUTE_UNUSED
 #endif
 
 #ifdef __GNUC__
