@@ -338,6 +338,7 @@ ntt_PrerevertDivision (mpzp_t a, mpzp_t b, mpzp_t invb, spv_size_t len,
   list_mod (a, a, len, n);
 }
 
+#if 0
 void ntt_PolyInvert (mpzp_t q, mpzp_t b, spv_size_t len, mpzp_t t, mpz_t n)
 {
   if (len < POLYINVERT_NTT_THRESHOLD)
@@ -368,4 +369,29 @@ void ntt_PolyInvert (mpzp_t q, mpzp_t b, spv_size_t len, mpzp_t t, mpz_t n)
       list_mod (q, t + 2 * m - 1, m, n);
     }
 }
+#else
 
+void ntt_PolyInvert (mpzp_t q, mpzp_t b, spv_size_t len, mpzp_t t, mpz_t n)
+{
+  /* FIXME unroll recursion */
+  
+  if (len < POLYINVERT_NTT_THRESHOLD)
+    {
+      PolyInvert (q, b, len, t, n);
+      return;
+    }
+
+  spv_size_t k = len / 2;
+  
+  ntt_PolyInvert (q + k, b + k, k, t, n);
+  
+  ntt_mul_partial (t, q + k, k, b, 2 * k, 2 * k - 1, 3 * k - 1, NULL, 0, n);
+      
+  list_neg (t, t + k - 1, k, n);
+  list_mod (t, t, k, n);
+  
+  ntt_mul (t + k, t, q + k, k, t + 3 * k - 1, 0, n);
+  list_mod (q, t + 2 * k - 1, k, n);
+}
+
+#endif
