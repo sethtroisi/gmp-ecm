@@ -18,22 +18,11 @@ ToDo's:
 - perform PolyFromRoots/Polyeval level by level (add one parameter i which
 	says which level has to be performed, and save/restore the
 	corresponding data to/from file)
+- implement assembly code (redc.asm) for other architectures
+  (rename it to redc.s, add AM_PROG_AS in configure.in, add an option
+	--want_asm or similar)
 
 2) interface
-- Add -go <NUM> to the input syntax.  This will allow the user to input
-  a known group order.  <NUM> can be a simple number, a simple expression,
-  or an express which uses the special letter 'N'.  Each curve, if there
-  is an 'N' in the expression (or more than one), the value of the
-  current N number is substituded into the expression and then the
-  expression is re-computed.  
-  Tasks done so far:
-  argument processing in main.c  (done)
-  Built a mpgocandi_t to keep track of the group order items (done)
-  Added parameters (mpz_t) to ecm, pp1, pm1 (and the stage1 for each).
-  Added code into pm1_stage1()
-  In pm1_stage1() the starting p^(N-1) is still left in at this time.
-  In ecm_stage1() and pp1_stage1() the go data is not yet used.
-  Chapter 10 of README needs a better description.  I started one, but it's not done.
 - with -resume, print %time for THIS RUN instead of total run?
 	[suggested by SleepHound <sleephound@yahoo.com>]
 - when resuming, print the *initial* x0 for P-1/P+1?
