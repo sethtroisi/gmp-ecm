@@ -180,7 +180,7 @@ int
 outputf (int loglevel, char *format, ...)
 {
   va_list ap;
-  int n;
+  int n = 0;
   
   va_start (ap, format);
 
@@ -188,11 +188,11 @@ outputf (int loglevel, char *format, ...)
     {
       n = gmp_vfprintf (ECM_STDOUT, format, ap);
       fflush (ECM_STDOUT);
-      return n;
     }
+  else if (loglevel == OUTPUT_ERROR)
+    n = gmp_vfprintf (ECM_STDERR, format, ap);
   
-  if (loglevel == OUTPUT_ERROR)
-    return gmp_vfprintf (ECM_STDERR, format, ap);
-
-  return 0;
+  va_end (ap);
+  
+  return n;
 }
