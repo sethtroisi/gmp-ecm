@@ -1,0 +1,197 @@
+# !/bin/sh
+
+# test file for P-1 method
+#
+# Copyright 2002, 2003 Paul Zimmermann and Alexander Kruppa.
+#
+# This program is free software; you can redistribute it and/or modify it
+# under the terms of the GNU General Public License as published by the
+# Free Software Foundation; either version 2 of the License, or (at your
+# option) any later version.
+#
+# This program is distributed in the hope that it will be useful, but WITHOUT
+# ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+# FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License for
+# more details.
+#
+# You should have received a copy of the GNU General Public License along
+# with this program; see the file COPYING.  If not, write to the Free
+# Software Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA
+# 02111-1307, USA.
+
+export ECM="$1"
+
+### stage 2 less than 10^9 ###
+echo 335203548019575991076297 | $ECM -pm1 -x0 2 23 31
+if $?
+then
+   echo "############### ERROR ###############";
+   exit 1;
+fi
+# This factor was missed by an early development version of stage 2
+echo 67872792749091946529 | $ECM -pm1 -x0 3 8467 11004397
+if $?
+then
+   echo "############### ERROR ###############";
+   exit 1;
+fi
+echo 5735039483399104015346944564789 | $ECM -pm1 1277209 9247741
+if $?
+then
+   echo "############### ERROR ###############";
+   exit 1;
+fi
+echo 620224739362954187513 | $ECM -pm1 -x0 3 668093 65087177
+if $? then
+then
+   echo "############### ERROR ###############";
+   exit 1;
+fi
+echo 1405929742229533753 | $ECM -pm1 1123483 75240667
+if $?
+then
+   echo "############### ERROR ###############";
+   exit 1;
+fi
+# echo 65438094203676554432094356953 | $ECM -pm1 58274509 130698721
+# if $?
+# then
+#    echo "############### ERROR ###############";
+#    exit 1;
+# fi
+echo 16811052664235873 | $ECM -pm1 -x0 3 19110 178253039
+if $?
+then
+   echo "############### ERROR ###############";
+   exit 1;
+fi
+echo 9110965748024759967611 | $ECM -pm1 1193119 316014211
+if $?
+then
+   echo "############### ERROR ###############";
+   exit 1;
+fi
+# echo 1448595612076564044790098185437 | $ECM -pm1 9352699 643241009
+# if $?
+# then
+#    echo "############### ERROR ###############";
+#    exit 1;
+# fi
+echo 563796628294674772855559264041716715663 | $ECM -pm1 4031563 14334623
+if $?
+then
+   echo "############### ERROR ###############";
+   exit 1;
+fi
+echo 188879386195169498836498369376071664143 | $ECM -pm1 3026227 99836987
+if $?
+then
+   echo "############### ERROR ###############";
+   exit 1;
+fi
+# factor of 909*9^909+1 found by Paul Leyland on 15 Nov 2002
+echo 474476178924594486566271953891 | $ECM -pm1 9594209 519569569
+if $?
+then
+   echo "############### ERROR ###############";
+   exit 1;
+fi
+
+### stage 2 less than 10^10 ###
+echo 2124306045220073929294177 | $ECM -pm1 290021 1193749003
+if $?
+then
+   echo "############### ERROR ###############";
+   exit 1;
+fi
+# echo 107893061830917983   | $ECM -pm1 -x0 3 5153 1756831033
+# if $?
+# then
+#    echo "############### ERROR ###############";
+#    exit 1;
+# fi
+# echo 152873624211113444108313548197 | $ECM -pm1 268439 2223837703
+# if $?
+# then
+#    echo "############### ERROR ###############";
+#    exit 1;
+# fi
+# echo 17730171464865679 | $ECM -pm1 -x0 3 2591 4177645891
+# if $?
+# then
+#    echo "############### ERROR ###############";
+#    exit 1;
+# fi
+# echo 3020347584080949101701361 | $ECM -pm1 -x0 3 16141679 4561257731
+# if $?
+# then
+#    echo "############### ERROR ###############";
+#    exit 1;
+# fi
+# echo 784845784608594641   | $ECM -pm1 -x0 3 2551 5470519361
+# if $?
+# then
+#    echo "############### ERROR ###############";
+#    exit 1;
+# fi
+# echo 15814084061017077487 | $ECM -pm1 -x0 3 1609 6382095961
+
+### stage 2 less than 10^11 ###
+# echo 7737559024491236086283 | $ECM -pm1 100391 11375877203
+# if $?
+# then
+#    echo "############### ERROR ###############";
+#    exit 1;
+# fi
+# echo 2418666002101476599410229029 | $ECM -pm1 2133251 13791323747
+# if $?
+# then
+#    echo "############### ERROR ###############";
+#    exit 1;
+# fi
+# echo 404504816877093789389878043 | $ECM -pm1 43072229 38858725541
+# if $?
+# then
+#    echo "############### ERROR ###############";
+#    exit 1;
+# fi
+
+### stage 2 less than 10^12 ###
+
+### stage 2 less than 10^13 ###
+# echo 1000215069936448424297877519565769 | $ECM -pm1 1698311 1898999006273
+# if $?
+# then
+#    echo "############### ERROR ###############";
+#    exit 1;
+# fi
+
+### Try a factor found by Suyama's powers
+# removed since may not be reproducible
+# echo 1207946164033269799036708918081 | $ECM -power 12 -k 2 -pm1 286493 2500000
+# if $?
+# then
+#    echo "############### ERROR ###############";
+#    exit 1;
+# fi
+
+# record P-1 factor (http://www.users.globalnet.co.uk/~aads/Pminus1.html)
+# echo 226211124686120782835233945344253671049543 | $ECM -pm1 178131337 685331099
+# if $?
+# then
+#    echo "############### ERROR ###############";
+#    exit 1;
+# fi
+
+### Try saving and resuming
+echo 25591172394760497166702530699464321 | $ECM -pm1 -save test.pm1.save 100000
+$ECM -pm1 -resume test.pm1.save 120557 2007301
+if $?
+then
+   echo "############### ERROR ###############";
+   rm test.pm1.save
+   exit 1;
+fi
+/bin/rm -f test.pm1.save
+
+echo "All tests are ok."
