@@ -1,7 +1,9 @@
 - implement semi-normalized residues in mpmod.c: instead of ensuring
   0 <= r < n, just require limbs(r) <= limbs(n)
 - use mpres in step 2
-- print progress (80 dots in step 1/2) [Jay Berg]
+- print progress (80 dots in step 1/2) [Jay Berg]  (NOTE this may be
+  difficult to do with the new 1 line output mode already using stderr,
+  however I do have some ideas on how to do this, JimF).
 - write a real documentation (which format? texi can generate dvi and
   html,	or LaTeX can also generate dvi, pdf and html)
 - document how to use the ecm(), pm1(), pp1() functions from a C program
@@ -18,10 +20,10 @@
   to [j*d+1, i] with gcd(i+1,d)=1, i=0 mod 6 ?
   (Avoids i0=0 or 1 i.e. d + d -> 2d, or i0=0, i.e. 0 + d -> d, d + d -> 2d.)
 - add -fft option for 2^n+1 (in particular Fermat numbers)
-- option -nice ? -kill when user on console?
+* option -nice ? -kill when user on console?
 - optimize memory usage in step 2 (use an unique array for multiplies)
-- parser for input number in symbolic form, i.e. (2^(2^12)/(7*2^14+1)...)
-  (Jay Berg)
++ parser for input number in symbolic form, i.e. (2^(2^12)/(7*2^14+1)...)
+  (Jay Berg)  (There is still more functions to add, but the parser is done)
 - compute probability that a factor of a certain size will be found with
   given paramters (Dickman's function, how to do it for P+/-1 ?)
 - partial saves during step 1 (Jay)?
@@ -40,5 +42,8 @@
 - use/implement a mpn_mul_hi_n routine for use in mpn_REDC
 - use mpn_addmul_2, mpn_addmul_4 in the basecase REDC [for machines
   where it exists]
-  
-  
+
+Key:
+- ToDo's
+* Partial Todo (partly done, or work started)
++ Done's
