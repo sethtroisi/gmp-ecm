@@ -231,7 +231,8 @@ stage2 (mpz_t x, mpz_t n, double B2, unsigned int k, unsigned int S,
   F = init_list (dF + 1); 
 
   mpz_init (invx);
-  T = init_list (5 * dF - 1);
+  sizeT = 3 * dF + list_mul_mem (dF);
+  T = init_list (sizeT);
 
   if ((i = rootsF (F, d, x, invx, T, S, n, verbose)) == 0)
     {
@@ -241,8 +242,6 @@ stage2 (mpz_t x, mpz_t n, double B2, unsigned int k, unsigned int S,
 
   assert (i == dF);
 
-  sizeT = 3 * dF + list_mul_mem (dF);
-  T = init_list (sizeT);
   buildG (F, dF, T, verbose, n, 'F'); /* needs dF+list_mul_mem(dF/2) cells in T */
 
   G = init_list (dG + 1);
