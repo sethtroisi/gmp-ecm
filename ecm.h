@@ -108,10 +108,6 @@
 
 #define ABS(x) ((x) >= 0 ? (x) : -(x))
 
-#define mpz_mulmod(a,b,c,n) \
-        { mpz_mul (a, b, c); \
-        mpz_mod (a, a, n); }
-
 /* maximal stage 1 bound = 2^53 + 4, the next prime being 2^53 + 5 */
 #define MAX_B1 9007199254740996.0
 
@@ -286,11 +282,7 @@ int          ecm        (mpz_t, mpz_t, mpz_t, mpz_t, double, double, double, dou
 int          cputime    (void);
 
 /* bestd.c */
-unsigned long muls_toom3 (unsigned int);
-unsigned long muls_gen (unsigned int);
-unsigned long muls_gen_short (unsigned int);
 unsigned long phi (unsigned long);
-double   block_size (unsigned long);
 void     bestD (double, double, unsigned int, unsigned int *, unsigned int *, 
                 unsigned int *);
 void     bestD_po2 (double, double, unsigned int *, unsigned int *, 
@@ -352,23 +344,21 @@ int          list_gcd   (mpz_t, listz_t, unsigned int, mpz_t);
 void         list_zero  (listz_t, unsigned int);
 int          list_zerop (listz_t, unsigned int);
 int          list_check (listz_t, unsigned int, mpz_t);
-int       list_mul_high (listz_t, listz_t, listz_t, unsigned int, listz_t);
+void      list_mul_high (listz_t, listz_t, listz_t, unsigned int, listz_t);
 int       toomcook4_low (listz_t, listz_t, listz_t, unsigned int, listz_t);
 int      toomcook4_high (listz_t, listz_t, listz_t, unsigned int, listz_t);
-int          karatsuba  (listz_t, listz_t, listz_t, unsigned int, listz_t);
-int          list_mul   (listz_t, listz_t, unsigned int, int, listz_t,
+void         karatsuba  (listz_t, listz_t, listz_t, unsigned int, listz_t);
+void         list_mul   (listz_t, listz_t, unsigned int, int, listz_t,
                          unsigned int, int, listz_t);
 void        list_mulmod (listz_t, listz_t, listz_t, listz_t, unsigned int,
                          listz_t, mpz_t);
 void      PolyFromRoots (listz_t, listz_t, unsigned int, listz_t, int, mpz_t,
                          char, listz_t*, unsigned int);
 void         PolyInvert (listz_t, listz_t, unsigned int, listz_t, mpz_t);
-int   RecursiveDivision (listz_t, listz_t, listz_t, unsigned int,
+void  RecursiveDivision (listz_t, listz_t, listz_t, unsigned int,
                          listz_t, mpz_t, int);
 void  PrerevertDivision (listz_t, listz_t, listz_t, unsigned int, listz_t,
                          mpz_t);
-int          list_mod1  (mpz_t, listz_t, listz_t, unsigned int, mpz_t, mpz_t*);
-void      poly_submul2 (listz_t, listz_t, listz_t, unsigned int, mpz_t, mpz_t);
 int          list_invert (listz_t, listz_t, unsigned int, mpz_t, mpmod_t);
 
 /* polyeval.c */
@@ -379,11 +369,11 @@ polyeval_tellegen (listz_t b, unsigned int k, listz_t *Tree, listz_t T,
                    unsigned int sizeT, listz_t invF, mpz_t n, unsigned int sh);
 
 /* toomcook.c */
-int           toomcook3 (listz_t, listz_t, listz_t, unsigned int, listz_t);
-int           toomcook4 (listz_t, listz_t, listz_t, unsigned int, listz_t);
+void          toomcook3 (listz_t, listz_t, listz_t, unsigned int, listz_t);
+void          toomcook4 (listz_t, listz_t, listz_t, unsigned int, listz_t);
 
 /* ks-multiply.c */
-int kronecker_schonhage (listz_t, listz_t, listz_t, unsigned int, listz_t);
+void kronecker_schonhage (listz_t, listz_t, listz_t, unsigned int, listz_t);
 unsigned int TMulKS     (listz_t, unsigned int, listz_t, unsigned int, listz_t,
                          unsigned int, mpz_t, int);
 unsigned int ks_wrapmul_m (unsigned int, unsigned int, mpz_t);
@@ -483,7 +473,6 @@ TKarMul_space (unsigned int n, unsigned int m, unsigned int l);
 unsigned int
 TMulGen_space (unsigned int n, unsigned int m, unsigned int l);
 unsigned int muls_tkara (unsigned int n);
-unsigned int muls_tgen (unsigned int n);
 
 /* schoen_strass.c */
 
