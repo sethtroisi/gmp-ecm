@@ -188,6 +188,7 @@ int          ecm        (mpz_t, mpz_t, mpz_t, mpz_t, double, double, double, dou
 int          cputime    (void);
 
 /* bestd.c */
+unsigned long muls_toom3 (unsigned int);
 unsigned long muls_gen (unsigned int);
 unsigned long   phi (unsigned long);
 double   block_size (unsigned long);

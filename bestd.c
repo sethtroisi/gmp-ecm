@@ -40,7 +40,7 @@ muls_kara (unsigned int K)
 }
 
 /* number of multiplication of toomcook3 */
-static unsigned long
+unsigned long
 muls_toom3 (unsigned int n)
 {
   unsigned int l, k;
