@@ -11,6 +11,9 @@ ToDo's:
 - use mpres in step 2
 - Add a -qq switch that is "really" screen IO quiet (no stderr printing, etc).
   This would be for the ECM C/S project.
+- add a -Q option (same than -q, but prints just one line for each number,
+  either the input number if no factor found, or a space separated list of
+  factors) [from Laurent Fousse, laurent@fousse.info]
 - write a real documentation (which format? texi can generate dvi and
   html,	or LaTeX can also generate dvi, pdf and html)
 - document how to use the ecm(), pm1(), pp1() functions from a C program
