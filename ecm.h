@@ -313,7 +313,7 @@ int   pp1_rootsF       (listz_t, unsigned int, unsigned int, unsigned int,
 pp1_roots_state *
       pp1_rootsG_init  (mpres_t *, double, unsigned int, unsigned int, mpmod_t);
 void  pp1_rootsG_clear (pp1_roots_state *, mpmod_t);
-int   pp1_rootsG       (listz_t, unsigned int, pp1_roots_state *, mpmod_t);
+int   pp1_rootsG       (listz_t, unsigned int, pp1_roots_state *, mpmod_t, int);
 
 
 /* stage2.c */

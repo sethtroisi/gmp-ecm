@@ -432,19 +432,17 @@ stage2 (mpz_t f, void *X, mpmod_t modulus, double B2min, double B2,
         youpi = pm1_rootsG (f, G, dF, (pm1_roots_state *) rootsG_state, T + dF, 
                             modulus, verbose);
       else if (method == PP1_METHOD)
-        youpi = pp1_rootsG (G, dF, (pp1_roots_state *) rootsG_state, modulus);
+        youpi = pp1_rootsG (G, dF, (pp1_roots_state *) rootsG_state, modulus,
+                            verbose);
       else
         youpi = ecm_rootsG (f, G, dF, (ecm_roots_state *) rootsG_state, 
 			    modulus, verbose);
 
       if (youpi)
-	youpi = 2;
-      
-      if (verbose >= 2 && method != EC_METHOD) /* ecm_rootsG prints itself */
-        printf ("Computing roots of G[%u] took %dms\n", i + 1, cputime () - st);
-
-      if (youpi)
-        goto clear_fd;
+        {
+          youpi = 2;
+          goto clear_fd;
+        }
 
   /* -----------------------------------------------
      |   F    |  invF  |   G    |         T        |

@@ -252,7 +252,7 @@ int
 pp1_rootsF (listz_t F, unsigned int d1, unsigned int d2, unsigned int dF, 
             mpres_t *x, listz_t t, mpmod_t modulus, int verbose)
 {
-  unsigned int i, j;
+  unsigned int i, j, muls = 0;
   int st, st2;
   mpres_t fd[5]; /* fd[3..4] are temp vars */
   
@@ -297,6 +297,7 @@ pp1_rootsF (listz_t F, unsigned int d1, unsigned int d2, unsigned int dF,
       mpres_sub (fd[0], fd[3], fd[0], modulus);
       /* fd[0] = V_{m+n}, fd[1] = V_n, fd[2] = V_m */
       j += 6;
+      muls++;
     }
   mpres_clear (fd[0], modulus);
   mpres_clear (fd[1], modulus);
@@ -305,7 +306,12 @@ pp1_rootsF (listz_t F, unsigned int d1, unsigned int d2, unsigned int dF,
   mpres_clear (fd[4], modulus);
 
   if (verbose >= 2)
-    printf ("Computing roots of F took %dms\n", cputime () - st);
+    {
+      printf ("Computing roots of F took %dms", cputime () - st);
+      if (verbose > 2)
+        printf (" and %d muls", muls);
+      printf ("\n");
+    }
   
   return 0;
 }
@@ -358,7 +364,8 @@ pp1_rootsG_clear (pp1_roots_state *state, UNUSED mpmod_t modulus)
 }
 
 int
-pp1_rootsG (listz_t G, unsigned int d, pp1_roots_state *state, mpmod_t modulus)
+pp1_rootsG (listz_t G, unsigned int d, pp1_roots_state *state, 
+            mpmod_t modulus, int verbose) 
 {
   unsigned int i;
   int st;
@@ -375,6 +382,15 @@ pp1_rootsG (listz_t G, unsigned int d, pp1_roots_state *state, mpmod_t modulus)
       mpres_sub (state->fd[0], state->fd[3], state->fd[0], modulus);
       state->rsieve++;
     }
+
+  if (verbose >= 2)
+    {
+      printf ("Computing roots of G took %dms", cputime () - st);
+      if (verbose > 2)
+        printf (", %u muls", d);
+      printf ("\n");
+    }
+
   
   return 0;
 }
