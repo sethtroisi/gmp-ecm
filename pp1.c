@@ -1,6 +1,6 @@
-/* Williams 'P+1' algorithm.
+/* The 'P+1' algorithm.
 
-  Copyright (C) 2002 Alexander Kruppa and Paul Zimmermann.
+  Copyright 2002, 2003 Alexander Kruppa and Paul Zimmermann.
 
   This program is free software; you can redistribute it and/or modify it
   under the terms of the GNU General Public License as published by the
@@ -389,8 +389,8 @@ pp1_rootsG (listz_t G, unsigned int d, mpres_t *fd, mpmod_t modulus,
    Return value: non-zero iff a factor is found (1 for stage 1, 2 for stage 2)
 */
 int
-pp1 (mpz_t f, mpz_t p, mpz_t n, double B1, double B2, double B1done, 
-     unsigned int k, unsigned int S, int verbose, int repr)
+pp1 (mpz_t f, mpz_t p, mpz_t n, double B1done, double B1, double B2min,
+     double B2, unsigned int k, unsigned int S, int verbose, int repr)
 {
   int youpi = 0, st;
   mpres_t a;
@@ -452,7 +452,7 @@ pp1 (mpz_t f, mpz_t p, mpz_t n, double B1, double B2, double B1done,
       S = 1;
     }
   
-  youpi = stage2 (f, &a, modulus, B2, k, S, verbose, PP1_METHOD, B1);
+  youpi = stage2 (f, &a, modulus, B2min, B2, k, S, verbose, PP1_METHOD);
 
  end:
   if (youpi != 0) 
