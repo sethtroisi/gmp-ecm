@@ -27,7 +27,7 @@
 #include "gmp.h"
 #include "ecm-impl.h"
 
-static int verbose = OUTPUT_NORMAL;
+static int VERBOSE = OUTPUT_NORMAL;
 
 unsigned int
 gcd (unsigned int a, unsigned int b)
@@ -151,7 +151,7 @@ cputime ()
 int 
 get_verbose ()
 {
-  return verbose;
+  return VERBOSE;
 }
 
 /* Tests if loglevel gets printed with the current verbose setting */
@@ -159,20 +159,20 @@ get_verbose ()
 int 
 test_verbose (int loglevel)
 {
-  return (loglevel <= verbose);
+  return (loglevel <= VERBOSE);
 }
 
 void 
 set_verbose (int v)
 {
-  verbose = v;
+  VERBOSE = v;
 }
 
 int 
 inc_verbose ()
 {
-  verbose++;
-  return verbose;
+  VERBOSE ++;
+  return VERBOSE;
 }
 
 int
@@ -183,7 +183,7 @@ outputf (int loglevel, char *format, ...)
   
   va_start (ap, format);
 
-  if (loglevel != OUTPUT_ERROR && loglevel <= verbose)
+  if (loglevel != OUTPUT_ERROR && loglevel <= VERBOSE)
     {
       n = gmp_vfprintf (ECM_STDOUT, format, ap);
       fflush (ECM_STDOUT);

@@ -257,14 +257,14 @@ main (int argc, char *argv[])
 	}
       else if (strcmp (argv[1], "-q") == 0)
 	{
-	  verbose = 0;
-	  set_verbose (0);
+	  verbose = OUTPUT_ALWAYS;
+	  set_verbose (OUTPUT_ALWAYS);
 	  argv++;
 	  argc--;
 	}
       else if (strcmp (argv[1], "-v") == 0)
 	{
-	  verbose++;
+	  verbose ++;
 	  inc_verbose ();
 	  argv++;
 	  argc--;
@@ -511,7 +511,7 @@ main (int argc, char *argv[])
       else if ((argc > 2) && (strcmp (argv[1], "-B2scale") == 0))
 	{
 	  B2scale = atof (argv[2]);
-	  if (verbose > 1)
+	  if (verbose >= 2)
 	    printf ("Scaling B2 values by a factor of %.4f\n", B2scale);
 	  argv += 2;
 	  argc -= 2;
@@ -819,7 +819,7 @@ BreadthFirstDoAgain:;
 
 	  cnt = count;
 
-          if (verbose > 0)
+          if (verbose >= 1)
             {
               printf ("Resuming ");
               if (method == ECM_ECM)
@@ -914,7 +914,7 @@ BreadthFirstDoAgain:;
               mpz_add_ui (sigma, sigma, 6); /* we need sigma >= 6 */
             }
         }
-      if (verbose > 0)
+      if (verbose >= 1)
 	{
 	  if ((!breadthfirst && cnt == count) || (breadthfirst && 1 == breadthfirst_cnt))
 	    {
@@ -1032,10 +1032,10 @@ BreadthFirstDoAgain:;
       if (result != 0)
 	{
 	  factsfound++;
-          if (verbose > 0)
-            printf ("********** Factor found in step %u: ", ABS (result));
+	  if (verbose > 0)
+	    printf ("********** Factor found in step %u: ", ABS (result));
           mpz_out_str (stdout, 10, f);
-          if (verbose > 0)
+	  if (verbose > 0)
             printf ("\n");
 	  if (mpz_cmp (f, n.n))
 	    {
@@ -1048,7 +1048,7 @@ BreadthFirstDoAgain:;
 	      /* prints factor found and cofactor on standard error. */
 	      factor_is_prime = smart_probab_prime_p (f, PROBAB_PRIME_TESTS);
 
-              if (verbose > 0)
+              if (verbose >= 1)
                 {
                   printf ("Found %s factor of %2u digits: ", 
                           factor_is_prime ? "probable prime" : "composite",
@@ -1060,7 +1060,7 @@ BreadthFirstDoAgain:;
 	      mpcandi_t_addfoundfactor (&n, f, 1); /* 1 for display warning if factor does not divide the current candidate */
 
 OutputFactorStuff:;
-	      if (verbose > 0)
+	      if (verbose >= 1)
 		{
 		  printf ("%s cofactor ",
 			  n.isPrp ? "Probable prime" : "Composite");

@@ -460,7 +460,7 @@ karatsuba (listz_t a, listz_t b, listz_t c, unsigned int K, listz_t t)
 */
 static void
 list_mul (listz_t a, listz_t b, unsigned int k, int monic_b,
-          listz_t c, unsigned int l, int monic_c, listz_t t, FILE *ECM_STDERR)
+          listz_t c, unsigned int l, int monic_c, listz_t t)
 {
   unsigned int i, po2;
 
@@ -552,9 +552,11 @@ list_mulmod (listz_t a2, listz_t a, listz_t b, listz_t c, unsigned int k,
    Tree[1][0..k-1] (degree k/4), ...,
    Tree[lgk-1][0..k-1] (degree 1)
    (then we should have initially Tree[lgk-1] = a).
+
+   depth is the depth (0 at root).
 */
 void
-PolyFromRoots (listz_t G, listz_t a, unsigned int k, listz_t T, int verbose,
+PolyFromRoots (listz_t G, listz_t a, unsigned int k, listz_t T, int depth,
              mpz_t n, char F, listz_t *Tree, unsigned int sh)
 {
   unsigned int l, m, st;
@@ -574,7 +576,7 @@ PolyFromRoots (listz_t G, listz_t a, unsigned int k, listz_t T, int verbose,
    m = k / 2;
    l = k - m;
 
-   if ((Tree == NULL) || verbose) /* top call */
+   if ((Tree == NULL) || (depth == 0)) /* top call */
      {
        H1 = (Tree == NULL) ? G : Tree[0]; /* target for rec. calls */
        NextTree = Tree;
@@ -605,13 +607,14 @@ PolyFromRoots (listz_t G, listz_t a, unsigned int k, listz_t T, int verbose,
        return;
      }
 
-   PolyFromRoots (H1, a, l, T, 0, n, F, NextTree, sh);
-   PolyFromRoots (H1 + l, a + l, m, T, 0, n, F, NextTree, sh + l);
-   list_mul (T, H1, l, 1, H1 + l, m, 1, T + k, ECM_STDERR);
+   PolyFromRoots (H1, a, l, T, depth + 1, n, F, NextTree, sh);
+   PolyFromRoots (H1 + l, a + l, m, T, depth + 1, n, F, NextTree, sh + l);
+   list_mul (T, H1, l, 1, H1 + l, m, 1, T + k);
    list_mod (G, T, k, n);
    
-   if (verbose >= 2)
-     fprintf (ECM_STDOUT, "Building %c from its roots took %ums\n", F, cputime() - st);
+   if (depth == 0)
+     outputf (OUTPUT_VERBOSE, "Building %c from its roots took %ums\n", F,
+	      cputime() - st);
 }
 
 /* puts in q[0..K-1] the quotient of x^(2K-2) by B
@@ -667,7 +670,7 @@ PolyInvert (listz_t q, listz_t b, unsigned int K, listz_t t, mpz_t n)
           if (k > 1)
             {
               list_mul (t + k, q + k, l - 1, 1, b + l, k - 1, 1,
-                                t + k + K - 2, ECM_STDERR); /* Q1 * B1 */
+			t + k + K - 2); /* Q1 * B1 */
               list_sub (t + 1, t + 1, t + k, k - 1);
             }
         }

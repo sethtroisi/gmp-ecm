@@ -53,20 +53,20 @@ typedef struct {
 
 /* return NULL if an error occurred */
 static mul_casc *
-mulcascade_init (FILE *ECM_STDERR)
+mulcascade_init (void)
 {
   mul_casc *t;
 
   t = (mul_casc *) malloc (sizeof (mul_casc));
   if (t == NULL)
     {
-      fprintf (ECM_STDERR, "mulcascade_init: could not allocate memory\n");
+      outputf (OUTPUT_ERROR, "mulcascade_init: could not allocate memory\n");
       return NULL;
     }
   t->val = (mpz_t*) malloc (sizeof (mpz_t));
   if (t->val == NULL)
     {
-      fprintf (ECM_STDERR, "mulcascade_init: could not allocate memory\n");
+      outputf (OUTPUT_ERROR, "mulcascade_init: could not allocate memory\n");
       free (t);
       return NULL;
     }
@@ -193,8 +193,7 @@ mulcascade_get_z (mpz_t r, mul_casc *c)
 */
 
 static int
-pm1_stage1 (mpz_t f, mpres_t a, mpmod_t n, double B1, double B1done,
-	    int verbose, mpz_t go, FILE *ECM_STDOUT, FILE *ECM_STDERR)
+pm1_stage1 (mpz_t f, mpres_t a, mpmod_t n, double B1, double B1done, mpz_t go)
 {
   double B0, p, q, r, cascade_limit;
   mpz_t g, d;
@@ -247,7 +246,7 @@ pm1_stage1 (mpz_t f, mpres_t a, mpmod_t n, double B1, double B1done,
   if (cascade_limit > B1)
     cascade_limit = B1;
 
-  cascade = mulcascade_init (ECM_STDERR);
+  cascade = mulcascade_init ();
   if (cascade == NULL)
     {
       youpi = ECM_ERROR;
@@ -290,8 +289,7 @@ pm1_stage1 (mpz_t f, mpres_t a, mpmod_t n, double B1, double B1done,
 #endif
       if (smallbase)
         {
-	  if (verbose > 1)
-	    fprintf (ECM_STDOUT, "Using mpres_ui_pow, base %u\n", smallbase);
+	  outputf (OUTPUT_VERBOSE, "Using mpres_ui_pow, base %u\n", smallbase);
           mpres_ui_pow (a, smallbase, g, n);
         }
       else
@@ -316,8 +314,7 @@ pm1_stage1 (mpz_t f, mpres_t a, mpmod_t n, double B1, double B1done,
 #endif
       if (smallbase)
         {
-	  if (verbose > 1)
-	    fprintf (ECM_STDOUT, "Using mpres_ui_pow, base %u\n", smallbase);
+	  outputf (OUTPUT_VERBOSE, "Using mpres_ui_pow, base %u\n", smallbase);
           mpres_ui_pow (a, smallbase, g, n);
         }
       else
@@ -407,20 +404,18 @@ update_fd (mpres_t *fd, unsigned int nr, unsigned int S, mpmod_t modulus,
 
 int
 pm1_rootsF (mpz_t f, listz_t F, unsigned int d1, unsigned int d2, 
-            unsigned int dF, mpres_t *x, listz_t t, int S, mpmod_t modulus, 
-            int verbose)
+            unsigned int dF, mpres_t *x, listz_t t, int S, mpmod_t modulus)
 {
   unsigned int i;
   unsigned long muls = 0, gcds = 0;
-  int st;
+  int st, st1;
   pm1_roots_state state;
   listz_t coeffs;
 
   if (dF == 0)
     return 0;
 
-  if (verbose >= 2)
-    st = cputime ();
+  st = cputime ();
 
   /* Relative cost of point add during init and computing roots assumed =1 */
   /* The typecast from hell: the relevant fields of ecm_roots_state and
@@ -438,10 +433,10 @@ pm1_rootsF (mpz_t f, listz_t F, unsigned int d1, unsigned int d2,
   else
     state.invtrick = 0;
 
-  if (verbose >= 3)
-    fprintf (ECM_STDOUT, "pm1_rootsF: state: nr = %d, dsieve = %d, size_fd = %d, S = %d, "
-             "dickson_a = %d, invtrick = %d\n", state.nr, state.dsieve, 
-             state.size_fd, state.S, state.dickson_a, state.invtrick);
+  outputf (OUTPUT_DEVVERBOSE, 
+	   "pm1_rootsF: state: nr = %d, dsieve = %d, size_fd = %d, S = %d, "
+	   "dickson_a = %d, invtrick = %d\n", state.nr, state.dsieve, 
+	   state.size_fd, state.S, state.dickson_a, state.invtrick);
 
   /* Init finite differences tables */
   coeffs = init_progression_coeffs (0.0, state.dsieve, d2, 1, 6, state.S, 
@@ -460,8 +455,7 @@ pm1_rootsF (mpz_t f, listz_t F, unsigned int d1, unsigned int d2,
 
   for (i = 0; i < state.size_fd; i++) 
     {
-      if (verbose >= 4)
-        gmp_fprintf (ECM_STDOUT, "pm1_rootsF: coeffs[%d] = %Zd\n", i, coeffs[i]);
+      outputf (OUTPUT_TRACE, "pm1_rootsF: coeffs[%d] = %Zd\n", i, coeffs[i]);
       mpres_init (state.fd[i], modulus);
       /* The highest coefficient of all progressions is identical */
       if (i > state.S + 1 && i % (state.S + 1) == state.S)
@@ -473,14 +467,10 @@ pm1_rootsF (mpz_t f, listz_t F, unsigned int d1, unsigned int d2,
   clear_list (coeffs, state.size_fd);
   coeffs = NULL;
   
-  if (verbose >= 2)
-    {
-      int st1 = cputime ();
-
-      fprintf (ECM_STDOUT, "Initializing table of differences for F took %dms\n",
-               st1 - st);
-      st = st1;
-    }
+  st1 = cputime ();
+  outputf (OUTPUT_VERBOSE,
+	   "Initializing table of differences for F took %dms\n", st1 - st);
+  st = st1;
 
   /* Now for the actual calculation of the roots. */
   for (i = 0; i < dF;)
@@ -514,8 +504,7 @@ pm1_rootsF (mpz_t f, listz_t F, unsigned int d1, unsigned int d2,
     {
       if (list_invert (t, F, dF, t[dF], modulus)) 
         {
-          if (verbose >= 2)
-            fprintf (ECM_STDOUT, "Found factor while inverting F[0]*..*F[d]\n");
+	  outputf (OUTPUT_VERBOSE, "Found factor while inverting F[0]*..*F[d]\n");
           mpz_set (f, t[dF]);
           return ECM_FACTOR_FOUND_STEP2;
         }
@@ -530,13 +519,9 @@ pm1_rootsF (mpz_t f, listz_t F, unsigned int d1, unsigned int d2,
         }
     }
   
-  if (verbose >= 2)
-    {
-      fprintf (ECM_STDOUT, "Computing roots of F took %dms", cputime () - st);
-      if (verbose > 2)
-        fprintf (ECM_STDOUT, ", %lu muls and %lu extgcds", muls, gcds);
-      fprintf (ECM_STDOUT, "\n");
-    }
+  outputf (OUTPUT_VERBOSE, "Computing roots of F took %dms", cputime () - st);
+  outputf (OUTPUT_DEVVERBOSE, ", %lu muls and %lu extgcds", muls, gcds);
+  outputf (OUTPUT_VERBOSE, "\n");
   
   return ECM_NO_FACTOR_FOUND;
 }
@@ -554,7 +539,7 @@ pm1_rootsF (mpz_t f, listz_t F, unsigned int d1, unsigned int d2,
 
 pm1_roots_state *
 pm1_rootsG_init (mpres_t *x, double s, unsigned int d1, unsigned int d2, 
-                 int S, int verbose, mpmod_t modulus)
+                 int S, mpmod_t modulus)
 {
   unsigned int i;
   int dickson_a;
@@ -575,10 +560,10 @@ pm1_rootsG_init (mpres_t *x, double s, unsigned int d1, unsigned int d2,
   state->dsieve = 1;
   state->rsieve = 1;
   
-  if (verbose >= 3)
-    fprintf (ECM_STDOUT, "pm1_rootsG_init: d1 = %d, d2 = %d, state: dsieve = %d, nr = %d, "
-             "size_fd = %d, S = %d, invtrick = %d\n", d1, d2, state->dsieve, 
-             state->nr, state->size_fd, state->S, state->invtrick);
+  outputf (OUTPUT_DEVVERBOSE,
+	   "pm1_rootsG_init: d1 = %d, d2 = %d, state: dsieve = %d, nr = %d, "
+	   "size_fd = %d, S = %d, invtrick = %d\n", d1, d2, state->dsieve, 
+	   state->nr, state->size_fd, state->S, state->invtrick);
   
   state->fd = (mpres_t *) malloc (state->size_fd * sizeof (mpres_t));
   if (state->fd == NULL)
@@ -655,15 +640,15 @@ pm1_rootsG_clear (pm1_roots_state *state, ATTRIBUTE_UNUSED mpmod_t modulus)
 
 int
 pm1_rootsG (mpz_t f, listz_t G, unsigned int dF, pm1_roots_state *state, 
-            listz_t t, mpmod_t modulus, int verbose)
+            listz_t t, mpmod_t modulus)
 {
-  unsigned int i, j, k;
+  unsigned int i;
   unsigned long muls = 0, gcds = 0;
   int st;
   
-  if (verbose >= 4)
-    fprintf (ECM_STDOUT, "pm1_rootsG: dF = %d, state: size_fd = %d, nr = %d, S = %d\n",
-	     dF, state->size_fd, state->nr, state->S);
+  outputf (OUTPUT_TRACE,
+	   "pm1_rootsG: dF = %d, state: size_fd = %d, nr = %d, S = %d\n",
+	   dF, state->size_fd, state->nr, state->S);
   
   st = cputime ();
   
@@ -673,10 +658,8 @@ pm1_rootsG (mpz_t f, listz_t G, unsigned int dF, pm1_roots_state *state,
       if (state->next == state->nr)
         {
           /* Yes, time to update again */
-          if (verbose >= 4)
-            fprintf (ECM_STDOUT, "pm1_rootsG: Updating table at rsieve = %d\n",
-		     state->rsieve);
-          
+	  outputf (OUTPUT_TRACE, "pm1_rootsG: Updating table at rsieve = %d\n",
+		   state->rsieve);
           update_fd (state->fd, state->nr, state->S, modulus, &muls);
           state->next = 0;
         }
@@ -684,15 +667,14 @@ pm1_rootsG (mpz_t f, listz_t G, unsigned int dF, pm1_roots_state *state,
       /* Is this a root we should skip? (Take only if gcd == 1) */
       if (gcd (state->rsieve, state->dsieve) == 1)
         {
-          if (verbose >= 4)
-            fprintf (ECM_STDOUT, "pm1_rootsG: Taking root G[%d] at rsieve = %d\n",
-		     i, state->rsieve);
+	  outputf (OUTPUT_TRACE,
+		   "pm1_rootsG: Taking root G[%d] at rsieve = %d\n",
+		   i, state->rsieve);
           mpres_get_z (G[i++], state->fd[state->next * (state->S + 1)], modulus);
         }
       else
-        if (verbose >= 4)
-          fprintf (ECM_STDOUT, "pm1_rootsG: Skipping root at rsieve = %d\n",
-		   state->rsieve);
+	outputf (OUTPUT_TRACE, "pm1_rootsG: Skipping root at rsieve = %d\n",
+		 state->rsieve);
       
       state->next ++;
       state->rsieve ++;
@@ -702,8 +684,8 @@ pm1_rootsG (mpz_t f, listz_t G, unsigned int dF, pm1_roots_state *state,
     {
       if (list_invert (t, G, dF, t[dF], modulus)) 
         {
-          if (verbose >= 2)
-            fprintf (ECM_STDOUT, "Found factor while inverting G[0]*..*G[d]\n");
+	  outputf (OUTPUT_VERBOSE,
+		   "Found factor while inverting G[0]*..*G[d]\n");
           mpz_set (f, t[dF]);
           return ECM_FACTOR_FOUND_STEP2;
         }
@@ -718,13 +700,9 @@ pm1_rootsG (mpz_t f, listz_t G, unsigned int dF, pm1_roots_state *state,
         }
     }
   
-  if (verbose >= 2)
-    {
-      fprintf (ECM_STDOUT, "Computing roots of G took %dms", cputime () - st);
-      if (verbose > 2)
-        fprintf (ECM_STDOUT, ", %lu muls and %lu extgcds", muls, gcds);
-      fprintf (ECM_STDOUT, "\n");
-    }
+  outputf (OUTPUT_VERBOSE, "Computing roots of G took %dms", cputime () - st);
+  outputf (OUTPUT_DEVVERBOSE, ", %lu muls and %lu extgcds", muls, gcds);
+  outputf (OUTPUT_VERBOSE, "\n");
   
   return ECM_NO_FACTOR_FOUND;
 }
@@ -743,7 +721,7 @@ pm1_rootsG (mpz_t f, listz_t G, unsigned int dF, pm1_roots_state *state,
 	  B1done is the stage 1 limit to which supplied residue has 
 	    already been computed
           k is the number of blocks for stage 2
-          verbose is the verbose level: 0=quiet, 1=normal, 2=verbose
+          verbose is the verbosity level
    Output: f is the factor found, p is the residue at end of stage 1
    Return value: non-zero iff a factor is found (1 for stage 1, 2 for stage 2)
 */
@@ -756,6 +734,7 @@ pm1 (mpz_t f, mpz_t p, mpz_t N, mpz_t go, double B1done, double B1,
   mpres_t x;
   int youpi = 0, st, base2, Nbits, smallbase;
 
+  set_verbose (verbose);
   ECM_STDOUT = (os == NULL) ? stdout : os;
   ECM_STDERR = (es == NULL) ? stdout : es;
 
@@ -811,7 +790,7 @@ pm1 (mpz_t f, mpz_t p, mpz_t N, mpz_t go, double B1done, double B1,
   if (S & 1)
     S *= 2; /* FIXME: Is this what the user would expect? */
   
-  if (verbose >= 1)
+  if (test_verbose (OUTPUT_NORMAL))
     {
       fprintf (ECM_STDOUT, "Using ");
       if (ECM_IS_DEFAULT_B1_DONE(B1done))
@@ -827,7 +806,7 @@ pm1 (mpz_t f, mpz_t p, mpz_t N, mpz_t go, double B1done, double B1,
       else
         fprintf (ECM_STDOUT, "polynomial Dickson(%u)", -S);
 
-      if (ECM_IS_DEFAULT_B1_DONE(B1done) || verbose > 1) 
+      if (ECM_IS_DEFAULT_B1_DONE(B1done) || test_verbose (OUTPUT_VERBOSE))
 	/* don't print in resume case, since x0 is saved in resume file */
 	{
 	  fprintf (ECM_STDOUT, ", x0=");
@@ -858,8 +837,7 @@ pm1 (mpz_t f, mpz_t p, mpz_t N, mpz_t go, double B1done, double B1,
       /* TODO: make dependent on Nbits and base2 */
       if (base2)
         {
-	  if (verbose > 1)
-	    fprintf (ECM_STDOUT, "Using special division for factor of 2^%d%c1\n", 
+	  outputf (OUTPUT_VERBOSE, "Using special division for factor of 2^%d%c1\n", 
 		     abs (base2), (base2 > 0) ? '+' : '-');
           mpmod_init_BASE2 (modulus, base2, N);
         }
@@ -871,20 +849,17 @@ pm1 (mpz_t f, mpz_t p, mpz_t N, mpz_t go, double B1done, double B1,
          at about 2*POWM_THRESHOLD it catches up with our smallbase-MODMULN
          and then is faster until REDC takes over. */
         {
-	  if (verbose > 1)
-	    fprintf (ECM_STDOUT, "Using MODMULN\n");
+	  outputf (OUTPUT_VERBOSE, "Using MODMULN\n");
           mpmod_init_MODMULN (modulus, N);
         }
       else if (Nbits > 50000 ||  (Nbits > 3500 && smallbase))
         {
-	  if (verbose > 1)
-	    fprintf (ECM_STDOUT, "Using REDC\n");
+	  outputf (OUTPUT_VERBOSE, "Using REDC\n");
           mpmod_init_REDC (modulus, N);
         }
       else
         {
-	  if (verbose > 1)
-	    fprintf (ECM_STDOUT, "Using mpz_powm\n");
+	  outputf (OUTPUT_VERBOSE, "Using mpz_powm\n");
           mpmod_init_MPZ (modulus, N);
         }
     }
@@ -893,28 +868,22 @@ pm1 (mpz_t f, mpz_t p, mpz_t N, mpz_t go, double B1done, double B1,
   mpres_set_z (x, p, modulus);
 
   if (B1 > B1done)
-    youpi = pm1_stage1 (f, x, modulus, B1, B1done, verbose, go, ECM_STDOUT, ECM_STDERR);
+    youpi = pm1_stage1 (f, x, modulus, B1, B1done, go);
 
   st = cputime() - st;
 
-  if (verbose >= 1)
+  outputf (OUTPUT_NORMAL, "Step 1 took %dms\n", st);
+  if (test_verbose (OUTPUT_VERBOSE))
     {
-      fprintf (ECM_STDOUT, "Step 1 took %dms\n", st);
-      fflush (ECM_STDOUT);
-      if (verbose >= 2)
-	{
-	  fprintf (ECM_STDOUT, "x=");
-	  mpres_out_str (ECM_STDOUT, 10, x, modulus);
-	  fprintf (ECM_STDOUT, "\n");
-	  fflush (ECM_STDOUT);
-	}
+      outputf (OUTPUT_VERBOSE, "x=");
+      mpres_out_str (ECM_STDOUT, 10, x, modulus);
+      outputf (OUTPUT_VERBOSE, "\n");
     }
-
 
   if (youpi != ECM_NO_FACTOR_FOUND) /* factor found, or an error occurred */
     goto clear_and_exit;
 
-  youpi = stage2 (f, &x, modulus, B2min, B2, k, S, verbose, ECM_PM1, st);
+  youpi = stage2 (f, &x, modulus, B2min, B2, k, S, ECM_PM1, st);
 
 clear_and_exit:
   mpres_get_z (p, x, modulus);
