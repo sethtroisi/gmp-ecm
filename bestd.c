@@ -328,29 +328,35 @@ bestD (double B2, unsigned int k0, unsigned int *k, unsigned int S,
   (0) k == k0 if k0 > 0, 2 <= k <= 9 otherwise
   (1) d is a multiple of 6
   (2) k * d * (phi(d)/2) >= B2
-  (3) phi(d) is a power of 2
+  (3) d maximal with phi(d) just below or equal a power of 2
  */
 unsigned long
-bestD_po2 (double B2, unsigned int k0, unsigned int *k, unsigned long * est_muls)
+bestD_po2 (double B2min, double B2, unsigned int k0, unsigned int *k, 
+           unsigned long *est_muls)
 {
-/* List of d values where phi(2*d)/2 is just below a power of 2 */
-#define Npo2 21
-  static unsigned int l[Npo2] = {9, 21, 45, 105, 231, 525, 1155, 2310, 4620, 
-                                 9555, 19635, 39585, 79695, 165165, 345345, 
-                                 690690, 1426425, 2852850, 5705700, 11741730, 
-                                 23483460};
+/* List of d values where phi(d)/2 is just below or equal a power of 2 */
+#define Npo2 22
+
+  static unsigned int l[Npo2] = {12, 30, 60, 120, 240, 510, 1050, 2310, 4620, 
+                                 9240, 19110, 39270, 79170, 159390, 330330, 
+                                 690690, 1381380, 2852850, 5705700, 11741730, 
+                                 23483460, 48498450};
 
   unsigned int i, j;
   unsigned long d, dmin = 0, dF;
+  double len;
 
-  /* Find the smallest degree so that the required number of blocks to cover
-     a stage 2 interval of length "B2" is no greater than k0, or no greater 
-     than 9 if no k0 is given */
+  /* Find the smallest d so that the required number of blocks to cover
+     a stage 2 interval of length B2-B2min is no greater than k0, or no 
+     greater than 9 if no k0 is given */
   for (i = 0; i < Npo2; i++)
     {
-      d = 2 * l[i];
+      d = l[i];
       dF = phi (d) / 2;
-      j = (unsigned int) ceil ((B2 / (double) d + 2.0) / (double) dF);
+      for (j = 1; j < dF; j <<= 1); /* Find power of 2 that is >= dF */
+      dF = j;
+      len = ceil (B2 / d) - floor (B2min / d); /* How many lines */
+      j = ceil (len / dF);                     /* How many blocks */
       if (j <= k0 || (k0 == 0 && j <= 9))
         {
           dmin = d;
