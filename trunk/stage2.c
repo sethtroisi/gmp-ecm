@@ -389,7 +389,13 @@ clear_G:
   clear_list (F, dF + 1);
 
   if (verbose >= 1)
-    printf ("Stage 2 took %dms and %lumuls\n", cputime() - st0, tot_muls);
+    {
+      printf ("Stage 2 took %dms", cputime() - st0);
+      if (verbose >= 2)
+	printf ("and %lumuls", tot_muls);
+      printf ("\n");
+      fflush (stdout);
+    }
 
   mpz_clear (n);
 
