@@ -47,6 +47,9 @@ Changes between ecm-5.0.3 and ecm-5.2.0:
 - the looping mode (-c n) now continues to try to factor the composite when
   a factor is found (use -one to stop)
 - new option -ve n to display only inputs of <= n characters (looping mode)
+- new option -treefile which stores product tree of F on disk to save memory
+- generation of roots use double sieve idea, increases B2 for given k, dF
+- generation of roots for ECM rewritten to reduce number of extgcds
 
 Changes between ecm-5.0 and ecm-5.0.1:
 
