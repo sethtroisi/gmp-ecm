@@ -44,6 +44,8 @@
  *   Phi(x,n)							 *
  *                                                               *
  * NOTE Lines ending in a \ character are "joined"               *
+ * NOTE Lines starting with #are comments                        *
+ * NOTE C++ // single line comments (rest of line is a comment)  *
  *                                                               *
  ****************************************************************/
 
@@ -74,6 +76,7 @@ JoinLinesLoop:;
   c = fgetc (fd);
   if (c == '#')
     {
+ChompLine:;
       do
         c = fgetc (fd);
       while (c != EOF && c != '\n');
@@ -83,9 +86,23 @@ JoinLinesLoop:;
   
   while (c != EOF && c != '\n' && c != ';')
     {
+      if (c == '/')
+	{
+	  /* This might be a C++ // comment or it might be a / division operator.  
+	     Check it out, and if it is a comment, then "eat it" */
+	  int peek_c = fgetc(fd);
+	  if (peek_c == '/')
+	    /* Got a C++ single line comment, so Chomp the line */
+	    goto ChompLine;
+
+	  /* Put the char back on the file, then allow the code to add the '/' char to the buffer */
+	  ungetc(peek_c, fd);
+        }
+
       /* strip space and tabs out here, and then we DON'T have to mess with them in the rest of the parser */
       if (!isspace(c))
 	expr[nCurSize++] = c;
+
       if (nCurSize == nMaxSize)
       {
 	nMaxSize += 5000;
