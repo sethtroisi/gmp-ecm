@@ -1,41 +1,19 @@
-What remains to do:
+What remains to do for the 1st release:
 
-- print messages for record factors
-- implement Brent-Suyama's extension for p+1
-- change -e n, -power, -dickson to -power n, -dickson n
+- implement -restore file to continue from data in <file>
+	(or read from stdin ?)
+- add option -nobase2
+
+Long term:
+
+- add a configure file
 - tune stage 2 values of 'd' to optimize toomcook4(d)/(d*phi(d/2))
-- get rid of NTL
-- implement polyeval (possibly by recomputing F from its roots level by
-	level, reusing the already allocated temporary space)
-- allow a range B2min-B2max for stage 2 (and start with B2min=B1 by default
-	instead of B2min=0 currently)
-- allow a rational sigma
-- documentation: explain the use of P-1, P+1. Explain the memory usage.
-- implement special base-2 division
--  > ECM: ecm -sigma s  # give sigma, and deduce A and x from it
-   >      ecm -A a -X x # give explicitely A and the starting point x
-   > P-1: ecm -pm1 -X x # give explicitely the starting point x
-   > P+1: ecm -pp1 -X x # idem than P-1
-- add option -save file to save result of stage 1 in a file (Paul Leyland)
-  We propose the following format:
-  - each line corresponds to a composite
-  - a line contains assignments <id>=<value> separated by semi-colons ';'
-  - possible values for <id> are 
-    - METHOD (value = ECM or P-1 or P+1)
-    - SIGMA (value = ECM sigma parameter) [optional]
-    - B1 (first stage bound)
-    - N (composite to factor)
-    - X (value at the end of stage 1)
-    - A (A-parameter of the elliptic curve)
-    - X0 (initial point for ECM, or initial residue for P-1/P+1) [optional]
-  SIGMA and X0 would be optional, and would be mainly be used in case of a
-  factor is found, to be able to reproduce the factorization. 
-  We would have for example (this is a real output from what Alex already
-  implemented):
-  METHOD=ECM; SIGMA=1770026555; B1=1000;
-  N=1587588318851301228604651024730947651948784456849646568190576138037651
-  178467412892341343994424722958224463602199043153616322427410811896792370
-  47709367122998367092709618448242861441;
-  X=7148550785213954744183799609062684804812206124809252968227609403721519
-  183747494660320481186778649947833446684059082368021643593326753051315605
-  6577430935165571425337982070009734843
+- implement Brent-Suyama's extension for p+1 (how to do it efficiently?)
+- get rid of NTL for polygcd, and allow runtime choice between polyeval/polygcd
+- change [j*d, i] in stage2 with gcd(i,d)=1, i=1 mod 6
+  to [j*d+1, i] with gcd(i+1,d)=1, i=0 mod 6 ?
+  (Avoids i0=1 i.e. d + d -> 2d, or i0=0, i.e. 0 + d -> d, d + d -> 2d.)
+- instead of putting B1, sigma, B2 as 1st, 2nd, 3rd parameters, add options
+	for them: -B1 <value>, -sigma <value>, -B2 <value>, -A <value>
+- add an option -primetest for input (Jay Berg <jberg@eCompute.org>)
+
