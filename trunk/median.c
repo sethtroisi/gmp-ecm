@@ -289,10 +289,11 @@ TKarMul_space (unsigned int n, unsigned int m, unsigned int l)
   return r1;
 }
 
+/* return number of muls when multiplying two polynomials of degree n */
 unsigned int
 muls_tgen (unsigned int n)
 {
-    return muls_tkara (n);
+  return muls_gen (n + 1); /* n is number of terms in muls_gen */
 }
 
 /* Returns the number of multiplication made in TKarMul
