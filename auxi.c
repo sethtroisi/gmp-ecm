@@ -59,3 +59,12 @@ gcd (unsigned int a, unsigned int b)
 
   return a;
 }
+
+void 
+mpz_sub_si(mpz_t r, mpz_t s, int i)
+{
+  if (i >= 0)
+    mpz_sub_ui (r, s, (unsigned int) i);
+  else
+    mpz_add_ui (r, s, (unsigned int) (-i));
+}
