@@ -92,12 +92,12 @@ JoinLinesLoop:;
 ChompLine:;
       do
         c = fgetc (fd);
-      while (c != EOF && c != '\n');
-      if (c == '\n')
+      while (c != EOF && !IS_NEWLINE(c));
+      if (IS_NEWLINE(c))
         goto JoinLinesLoop;
     }
   
-  while (c != EOF && c != '\n' && c != ';')
+  while (c != EOF && !IS_NEWLINE(c) && c != ';')
     {
       if (c == '/')
 	{
@@ -182,12 +182,12 @@ JoinLinesLoop:;
     {
       do
         ++c;
-      while (*c && *c != '\n');
-      if (*c == '\n')
+      while (*c && !IS_NEWLINE(*c));
+      if (IS_NEWLINE(*c))
         goto JoinLinesLoop;
     }
   
-  while (*c && *c != '\n' && *c != ';')
+  while (*c && !IS_NEWLINE(*c) && *c != ';')
     {
       /* strip space and tabs out here, and then we DON'T have to mess with them in the rest of the parser */
       if (!isspace(*c))
