@@ -71,6 +71,9 @@ extern FILE *ECM_STDOUT, *ECM_STDERR;
 #define TOOM3 3
 #define TOOM4 4
 #define KS 5
+#define NTT 6
+
+#define HAVE_NTT
 
 /* compile with -DMULT=2 to override default */
 #ifndef MULT
@@ -342,6 +345,8 @@ void         list_set   (listz_t, listz_t, unsigned int);
 void         list_revert (listz_t, unsigned int);
 #define list_swap __ECM(list_swap)
 void         list_swap  (listz_t, listz_t, unsigned int);
+#define list_neg __ECM(list_neg)
+void         list_neg (listz_t, listz_t, unsigned int, mpz_t);
 #define list_mod __ECM(list_mod)
 void         list_mod   (listz_t, listz_t, unsigned int, mpz_t);
 #define list_add __ECM(list_add)
@@ -354,6 +359,9 @@ void         list_mul_z (listz_t, listz_t, mpz_t, unsigned int, mpz_t);
 int          list_gcd   (mpz_t, listz_t, unsigned int, mpz_t);
 #define list_zero __ECM(list_zero)
 void         list_zero  (listz_t, unsigned int);
+#define list_mul __ECM(list_mul)
+void         list_mul (listz_t, listz_t, unsigned int, int, listz_t,
+    unsigned int, int, listz_t);
 #define list_mul_high __ECM(list_mul_high)
 void      list_mul_high (listz_t, listz_t, listz_t, unsigned int, listz_t);
 #define karatsuba __ECM(karatsuba)
@@ -368,11 +376,26 @@ void      PolyFromRoots (listz_t, listz_t, unsigned int, listz_t, mpz_t);
 #define PolyFromRoots_Tree __ECM(PolyFromRoots_Tree)
 int       PolyFromRoots_Tree (listz_t, listz_t, unsigned int, listz_t, int, 
                          mpz_t, listz_t*, FILE*, unsigned int);
+#define ntt_PolyFromRoots __ECM(ntt_PolyFromRoots)
+void	  ntt_PolyFromRoots (listz_t, listz_t, unsigned long, listz_t, mpz_t);
+
+#define ntt_PolyFromRoots_Tree __ECM(ntt_PolyFromRoots_Tree)
+int       ntt_PolyFromRoots_Tree (listz_t, listz_t, unsigned long, listz_t,
+                         mpz_t, listz_t *, FILE *);
+
 #define PrerevertDivision __ECM(PrerevertDivision)
 int   PrerevertDivision (listz_t, listz_t, listz_t, unsigned int, listz_t,
 			 mpz_t);
+#define ntt_PrerevertDivision __ECM(ntt_PrerevertDivision)
+void  ntt_PrerevertDivision (listz_t, listz_t, listz_t, unsigned long, listz_t,
+                         mpz_t);
+
 #define PolyInvert __ECM(PolyInvert)
 void         PolyInvert (listz_t, listz_t, unsigned int, listz_t, mpz_t);
+
+#define ntt_PolyInvert __ECM(ntt_PolyInvert)
+void	     ntt_PolyInvert (listz_t, listz_t, unsigned long, listz_t, mpz_t);
+
 #define RecursiveDivision __ECM(RecursiveDivision)
 void  RecursiveDivision (listz_t, listz_t, listz_t, unsigned int,
                          listz_t, mpz_t, int);
