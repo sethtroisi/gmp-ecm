@@ -371,8 +371,6 @@ Intel 32 bit CPU's, as the FFT code is written in assembler for those systems.
 
 8. How to get the best of GMP-ECM?
 
-It is better to link statically the gmp library: add -static to CFLAGS.
-
 Choice of modular multiplication. The ecm program may choose between 4 kinds
 of modular arithmetic:
 
