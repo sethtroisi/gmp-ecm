@@ -1,8 +1,6 @@
 /* Pollard 'P-1' algorithm.
 
-  Copyright (C) 2001 Paul Zimmermann,
-  LORIA/INRIA Lorraine, zimmerma@loria.fr
-  See http://www.loria.fr/~zimmerma/records/ecmnet.html
+  Copyright 2001, 2002, 2003 Alexander Kruppa and Paul Zimmermann.
 
   This program is free software; you can redistribute it and/or modify it
   under the terms of the GNU General Public License as published by the
@@ -428,7 +426,7 @@ pm1_rootsG_init (mpres_t *x, unsigned int s, unsigned int d, int S,
   
   coeffs = init_list (S + 1);
 
-  fin_diff_coeff(coeffs, s, d, S, dickson_a);
+  fin_diff_coeff (coeffs, s, d, S, dickson_a);
   
   fd = (mpres_t *) malloc((S + 1) * sizeof(mpres_t));
   for (k = 0; k <= S; k++) 
@@ -538,8 +536,8 @@ pm1_rootsG (mpz_t f, listz_t G, unsigned int d, mpres_t *fd,
    Return value: non-zero iff a factor is found (1 for stage 1, 2 for stage 2)
 */
 int
-pm1 (mpz_t f, mpz_t p, mpz_t N, double B1, double B2, double B1done,
-     unsigned int k, int S, int verbose, int repr)
+pm1 (mpz_t f, mpz_t p, mpz_t N, double B1done, double B1, double B2min,
+     double B2, unsigned int k, int S, int verbose, int repr)
 {
   mpmod_t modulus;
   mpres_t x;
@@ -639,7 +637,7 @@ pm1 (mpz_t f, mpz_t p, mpz_t N, double B1, double B2, double B1done,
   if (S & 1)
     S *= 2;
 
-  youpi = stage2 (f, &x, modulus, B2, k, S, verbose, PM1_METHOD, B1);
+  youpi = stage2 (f, &x, modulus, B2min, B2, k, S, verbose, PM1_METHOD);
 
 clear_and_exit:
   mpres_get_z (p, x, modulus);
