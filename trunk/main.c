@@ -25,6 +25,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <time.h>
 #include "gmp.h"
 #include "gmp-impl.h"
 #include "ecm.h"
@@ -37,40 +38,42 @@
 
 /* maximal stage 1 bound = 2^53 + 4, the next prime being 2^53 + 5 */
 #define MAX_B1 9007199254740996.0
+#define EC_METHOD 0
+#define PM1_METHOD 1
 
 int
 main (int argc, char *argv[])
 {
-  mpz_t sigma, n, p;
+  mpz_t sigma, n, p, seed;
   double B1, B2;
   int result = 1;
   int verbose = 1; /* verbose level */
-  int (*factor) _PROTO((mpz_t, mpz_t, double, double, unsigned int, 
-                        unsigned int, int)) 
-    = ecm;
+  int method = EC_METHOD;
   int k = 7; /* default number of blocks in stage 2 */
+  int specific_sigma = 0; /* 1=sigma supplied by user, 0=random */
   unsigned int S = 0;
+  gmp_randstate_t randstate;
 
   /* first look for options */
   while ((argc > 1) && (argv[1][0] == '-'))
     {
       if (strcmp (argv[1], "-pm1") == 0)
 	{
-	  factor = pm1;
-	  argv ++;
-	  argc --;
+	  method = PM1_METHOD;
+	  argv++;
+	  argc--;
 	}
       else if (strcmp (argv[1], "-q") == 0)
 	{
 	  verbose = 0;
-	  argv ++;
-	  argc --;
+	  argv++;
+	  argc--;
 	}
       else if (strcmp (argv[1], "-v") == 0)
 	{
 	  verbose = 2;
-	  argv ++;
-	  argc --;
+	  argv++;
+	  argc--;
 	}
       else if ((argc > 2) && (strcmp (argv[1], "-k") == 0))
 	{
@@ -125,12 +128,32 @@ main (int argc, char *argv[])
 
   NTL_init ();
 
-  /* set initial seed sigma */
-  mpz_init (sigma);
+  mpz_init (seed); /* starting point */
+  if (method == EC_METHOD) 
+    mpz_init (sigma);
+
+  /* set initial point/sigma. If none specified, we'll set default 
+     values later */
   if (argc >= 3)
-    mpz_set_str (sigma, argv[2], 10);
-  else
-    mpz_set_ui (sigma, 0); /* default value */
+    {
+       /* For P-1, this is the initial seed. For ECM, it's the
+          sigma or A parameter */
+       if (method == PM1_METHOD)
+         mpz_set_str (seed, argv[2], 10);
+       else
+         {
+           mpz_set_str (sigma, argv[2], 10);
+           specific_sigma = (mpz_sgn(sigma) != 0); /* zero sigma => make random */
+         }
+    }
+
+  /* We need random numbers for ECM without user-specified sigma */
+  if (method == EC_METHOD && !specific_sigma)
+    {
+      gmp_randinit_default (randstate);
+      gmp_randseed_ui (randstate, time (NULL)); 
+      /* todo: need higer resolution */
+    }
 
   /* set second stage bound B2: when using polynomial multiplication of
      complexity n^alpha, stage 2 has complexity about B2^(alpha/2), and
@@ -140,13 +163,17 @@ main (int argc, char *argv[])
      For Toom-Cook 4, this gives alpha=log(7)/log(4), and B2 ~ (c*B1)^1.424. */
   B2 = (argc >= 4) ? atof (argv[3]) : pow((double) B1 / 4.0, 1.36521239);
 
+  /* set initial starting point for ECM */
+  if (argc >= 5 && method == EC_METHOD)
+    mpz_set_str (seed, argv[4], 10);
+  
   /* set default Brent-Suyama's exponent */
   if (S == 0)
     S = 1;
 
   if (verbose >= 1)
     {
-      if (factor == pm1)
+      if (method == PM1_METHOD)
         printf ("Pollard P-1");
       else
         printf ("Elliptic Curve");
@@ -154,7 +181,7 @@ main (int argc, char *argv[])
     }
 
   mpz_init (n); /* number(s) to factor */
-  mpz_init (p); /* found prime */
+  mpz_init (p); /* seed/factor found */
   /* loop for number in standard input or file */
   while (feof (stdin) == 0)
     {
@@ -187,20 +214,49 @@ main (int argc, char *argv[])
 		    mpz_sizeinbase (n, 10));
 	}
 
-      /* for Pollard P-1, avoid small sigma (2, 3, ...) because it may
-         hit the whole input number when it divides s^n-1 */
-      if (mpz_cmp_ui (sigma, 0) == 0 && factor == pm1)
-        mpz_set_ui (sigma, 17);
+      /* Set effective seed/sigma for factoring attempt on this number */
+      if (method == PM1_METHOD)
+        {
+          if (mpz_sgn (seed) != 0)
+            mpz_set (p, seed);
+          else
+          /* No specific seed given, use default. For Pollard P-1, avoid 
+             small sigma (2, 3, ...) because it may hit the whole input 
+             number when it divides s^n-1 */
+            mpz_set_ui(p, 17);
+        }
+      else /* EC_METHOD */
+        {
+          if (!specific_sigma)
+            {
+              /* Make random sigma, 0 < sigma <= 2^32 */
+              mpz_urandomb (sigma, randstate, 32);
+              mpz_add_ui(sigma, sigma, 1);
+            }
+          mpz_set(p, seed);
+         }
 
       if (verbose >= 1)
         {
-          printf ("Using sigma=");
-          mpz_out_str (stdout, 10, sigma);
+          if (method == PM1_METHOD)
+            {
+              printf ("Using seed=");
+              mpz_out_str (stdout, 10, p);
+            }
+          else
+            {
+              printf ("Using sigma=");
+              mpz_out_str (stdout, 10, sigma);
+            }
           printf ("\n");
         }
 
-      mpz_set (p, sigma);
-      if ((result = factor (p, n, B1, B2, k, S, verbose)))
+      if (method == PM1_METHOD)
+        result = pm1 (p, n, B1, B2, k, S, verbose);
+      else
+        result = ecm (p, sigma, n, B1, B2, k, S, verbose);
+
+      if (result != 0)
 	{
           printf ("********** Factor found in step %u: ", result);
           mpz_out_str (stdout, 10, p);
@@ -254,7 +310,9 @@ main (int argc, char *argv[])
   NTL_clear ();
   mpz_clear (p);
   mpz_clear (n);
-  mpz_clear (sigma);
+  if (method == EC_METHOD)
+    mpz_clear (sigma);
+  mpz_clear (seed);
 
   /* exit 0 iff a factor was found for the last input */
   return result;
