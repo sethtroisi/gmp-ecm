@@ -881,12 +881,12 @@ pm1 (mpz_t f, mpz_t p, mpz_t N, mpz_t go, double B1done, double B1,
   st = cputime() - st;
 
   outputf (OUTPUT_NORMAL, "Step 1 took %dms\n", st);
-  if (test_verbose (OUTPUT_VERBOSE))
+  if (test_verbose (OUTPUT_RESVERBOSE))
     {
       mpz_t tx;
       mpz_init (tx);
       mpres_get_z (tx, x, modulus);
-      outputf (OUTPUT_VERBOSE, "x=%Zd\n", tx);
+      outputf (OUTPUT_RESVERBOSE, "x=%Zd\n", tx);
       mpz_clear (tx);
     }
 

@@ -640,7 +640,7 @@ stage2 (mpz_t f, void *X, mpmod_t modulus, double B2min, double B2,
            cputime () - st);
 
   youpi = list_gcd (f, T, dF, n) ? 2 : 0;
-  outputf (OUTPUT_DEVVERBOSE, "Product of G(f_i) = %Zd\n", T[0]);
+  outputf (OUTPUT_RESVERBOSE, "Product of G(f_i) = %Zd\n", T[0]);
 
  clear_fd:
   if (method == ECM_PM1)
