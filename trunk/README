@@ -7,10 +7,9 @@ Table of contents of this file:
 4. Memory usage.
 5. Expression syntax reference for GMP-ECM's syntax parser.
 6. Options -save and -resume.
-7. working with very large numbers (the -prp* options)
+7. Working with very large numbers (the -prp* options).
 8. How to get the best of GMP-ECM?
-9. Known problems.
-10. Record factors.
+9. Record factors.
 
 ##############################################################################
 
@@ -47,7 +46,7 @@ bound B2. For P=67872792749091946529, we have P-1 = 2^5 * 11 * 17 * 19 *
 and B2 >= 11004397:
 
 $ echo 67872792749091946529 | ./ecm -pm1 -x0 2809890345 8467 11004397
-GMP-ECM 5.2.0 [powered by GMP 4.1.4] [P-1]
+GMP-ECM 6.0 [powered by GMP 4.1.4] [P-1]
 Input number is 67872792749091946529 (20 digits)
 Using B1=8467, B2=11004397, polynomial Dickson(6), x0=2809890345
 Step 1 took 5ms
@@ -64,7 +63,7 @@ P+1 = 2^4 * 283 * 2423 * 21881 * 39839 * 1414261 * 2337233 * 132554351, so
 this factor will be found as long as B1 >= 2337233 and B2 >= 132554351:
 
 $ echo 4190453151940208656715582382315221647 | ./ecm -pp1 -x0 2284918860 2337233 132554351
-GMP-ECM 5.2.0 [powered by GMP 4.1.4] [P+1]
+GMP-ECM 6.0 [powered by GMP 4.1.4] [P+1]
 Input number is 4190453151940208656715582382315221647 (37 digits)
 Using B1=2337233, B2=132554351, polynomial x^1, x0=2284918860
 Step 1 took 2912ms
@@ -118,7 +117,7 @@ Example: after performing 8510 curves with B1=43e6 and B2=2.0e11
 (or 7771 curves with -dickson 12), the probability to miss a 50-digit
 factor is about 37%.
 
-As of version 6, GMP-ECM prints the expected number of curves and expected
+Up from version 6.0, GMP-ECM prints the expected number of curves and expected
 time to find factors of different sizes in verbose mode (option -v). This
 makes it easy to further optimize parameters for a certain factor size if 
 desired, simply try to minimize the expected time.
@@ -169,7 +168,7 @@ corresponds to f(x)=x^1]. Then P will be found whenever all but one of the
 factors of P-1 are <= B1, and one factor divides some f(j*d) - f(i):
 
 $ echo 1207946164033269799036708918081 | ./ecm -pm1 -k 3 -power 12 286493 25e6
-GMP-ECM 5.2.0 [powered by GMP 4.1.4] [P-1]
+GMP-ECM 6.0 [powered by GMP 4.1.4] [P-1]
 Input number is 1207946164033269799036708918081 (31 digits)
 Using B1=286493, B2=25000000, polynomial x^12, x0=2645739889
 Step 1 took 238ms
@@ -223,7 +222,7 @@ to be tested, the memory requirement will increase noticeably.
 
 5. Expression syntax reference for GMP-ECM's syntax parser.
 
-Up from release 5.2.0, GMP-ECM can handle several kinds of expressions
+Up from release 6.0, GMP-ECM can handle several kinds of expressions
 as input numbers. Here is the syntax that is handled:
 
 1.  Raw decimal numbers (as in previous versions) like 123456789
@@ -262,7 +261,7 @@ decimal number). When a factor is found, the cofactor expression is of the
 form (original_expression)/factor_found (see however option -cofdec):
 
 $ echo "3*2^210+1" | ./ecm -sigma 4007218240 2500
-GMP-ECM 5.2.0 [powered by GMP 4.1.4] [ECM]
+GMP-ECM 6.0 [powered by GMP 4.1.4] [ECM]
 Input number is 3*2^210+1 (64 digits)
 Using B1=2500, B2=164648, polynomial x^1, sigma=4007218240
 Step 1 took 23ms
@@ -284,7 +283,7 @@ Here is an example how to reuse some P-1 computation:
 $ cat c71
 13155161912808540373988986448257115022677318870175067553764004308210487
 $ ./ecm -save toto -pm1 -mpzmod -x0 2 5000000 < c71
-GMP-ECM 5.2.0 [powered by GMP 4.1.4] [P-1]
+GMP-ECM 6.0 [powered by GMP 4.1.4] [P-1]
 Input number is 13155161912808540373988986448257115022677318870175067553764004308210487 (71 digits)
 Using B1=5000000, B2=272993793, polynomial x^24, x0=2
 Step 1 took 5149ms
@@ -295,13 +294,13 @@ The file "toto" now contains some information about the method used, the step
 decimal), and a checksum to verify that no data was corrupted:
 
 $ cat toto
-METHOD=P-1; B1=5000000; N=13155161912808540373988986448257115022677318870175067553764004308210487; X=0x12530157ae22ae14d54d6a5bc404ae9458e54032c1bb2ab269837d1519f; CHECKSUM=2287710189; PROGRAM=GMP-ECM 5.2.0; X0=0x2; WHO=zimmerma@localhost.localdomain; TIME=Wed Jan 26 21:09:49 2005;
+METHOD=P-1; B1=5000000; N=13155161912808540373988986448257115022677318870175067553764004308210487; X=0x12530157ae22ae14d54d6a5bc404ae9458e54032c1bb2ab269837d1519f; CHECKSUM=2287710189; PROGRAM=GMP-ECM 6.0; X0=0x2; WHO=zimmerma@localhost.localdomain; TIME=Wed Jan 26 21:09:49 2005;
 
 Then one can resume the computation with larger B1 and/or B2 as follows:
 
 $ ./ecm -resume toto 1e7
-GMP-ECM 5.2.0 [powered by GMP 4.1.4] [ECM]
-Resuming P-1 residue saved by zimmerma@localhost.localdomain with GMP-ECM 5.2.0 on Wed Jan 26 21:09:49 2005 
+GMP-ECM 6.0 [powered by GMP 4.1.4] [ECM]
+Resuming P-1 residue saved by zimmerma@localhost.localdomain with GMP-ECM 6.0 on Wed Jan 26 21:09:49 2005 
 Input number is 13155161912808540373988986448257115022677318870175067553764004308210487 (71 digits)
 Using B1=5000000-10000000, B2=732940912, polynomial x^24
 Step 1 took 5091ms
@@ -478,48 +477,7 @@ parameters "-power 1 -k 1 <B1> 48e9", "-power 1 -k 3 <B1> 35e9" or
 
 ##############################################################################
 
-9. Known problems.
-
-(a) Under some operating systems (in particular Windows), ecm may use the
-same random seed for several curves started during the same second. 
-This is due to the fact that the getpid() function returns a constant
-value under those systems. This will cause an efficiency loss, since
-the same computation will be done twice. A workaround is to wait at
-least one second between different curves on the same number, or to
-specify by hand a different seed using the -sigma or -x0 options.
-In all cases, when running several curves on the same number, it is
-safe to check that the sigma/x0 values are different for each run.
-
-(b) stderr output was mixed with stdout output.  This allows redirection
-of output to a file, with GMP-ECM giving a VERY useful single line, listing
-many good statistics of what is happening (current line of the file, current
-"curve" count and total curve count to do, number of factors found, current
-B1 level, ...)  The output also looks fine if stdout is not redirected
-(stdout overwrites the stderr information and "looks right").  However, 
-there can be some "strangeness" in some screen output if the stdout is being
-handled by an external process (i.e. something like tee).  Since GMP-ECM
-is sending data to the screen which was sent to stderr, yet GMP-ECM does
-not write to the screen on it's stdout output (tee is getting that output
-and IT is writing it to screen), then some of the written output (to 
-screen only), can get slightly "messed up" (out of order screen drawing.
-There currently is no work around for this if using something like tee,
-however, if you "do" want to "watch" the output to screen (while storing
-it to file like you should be doing), then simply use absolute redirection
-to a file, then use tail -f to "view" the outputted data.  The benefit
-of this is that you get a VERY nice 1 line screen output, yet on a different
-screen, can "see" the work as it is done, while still having the data
-stored to disk (in case of power outage, or other catastophe).
-
-(c) there may be "strangeness" caused by the writing to stderr. I can not 
-fully comment on this due to my lack of usage of the  ecm client server (or
-using ecm as:   "ecm options < in & nohup" (or whatever the syntax is for
-running unnending in the background in *nix (Paul, please test how the
-current version works under these conditions, then either update this 
-known problem, or remove it if it is not a problem).
-        
-##############################################################################
-
-10. Record factors.
+9. Record factors.
 
 If you find a very large factor, the program will print a message like:
 
