@@ -10,6 +10,8 @@ AC_PROG_CC
 AC_LANG_C
 
 AC_CHECK_LIB(gmp, __gmpz_init)
+AC_CHECK_LIB(gmp, __gmpn_mul_fft, , [AC_MSG_ERROR(                              
+     [Please install GMP (http://swox.com/gmp) with FFT enabled])])
 
 AC_CONFIG_FILES(Makefile)
 
