@@ -2,7 +2,7 @@
 
 Copyright 2001, 2002 Free Software Foundation, Inc.
 
-This file is part of the GNU MP Library.
+This file was copied from the GNU MP Library.
 
 The GNU MP Library is free software; you can redistribute it and/or modify
 it under the terms of the GNU Lesser General Public License as published by
