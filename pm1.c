@@ -639,7 +639,7 @@ int
 pm1_rootsG (mpz_t f, listz_t G, unsigned int dF, pm1_roots_state *state, 
             listz_t t, mpmod_t modulus, int verbose)
 {
-  unsigned int i, j, k;
+  unsigned int i;
   unsigned long muls = 0, gcds = 0;
   int st;
   
