@@ -141,6 +141,14 @@ than the "classical" one we get with B2=100*B1. This is due to the
 fact that this new version of gmp-ecm uses a default B2 which is much
 larger than 100*B1 (for large B1), thanks to the improvements in step 2.
 
+After performing the expected number of curves from Table 1, the
+probability that a number of D digits was missed is exp(-1), i.e.
+about 37%. After twice the expected number of curves, it is exp(-2),
+i.e. about 14%, and so on.
+
+Example: after performing 9000 curves with B1=43e6 and B2=1.8e11,
+the probability to miss a 50-digit factor is about 37%.
+
 In summary, we advise the following method:
 
 0 - choose a target factor size of D digits
