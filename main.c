@@ -286,7 +286,7 @@ main (int argc, char *argv[])
       fprintf (stderr, "  -x0 x        use x as initial point\n"); 
       fprintf (stderr, "  -sigma s     use s as curve generator [ecm]\n");
       fprintf (stderr, "  -A a         use a as curve parameter [ecm]\n");
-      fprintf (stderr, "  -k n         perform n steps in stage 2\n");
+      fprintf (stderr, "  -k n         perform >= n steps in stage 2\n");
       fprintf (stderr, "  -power n     use x^n for Brent-Suyama's extension\n");
       fprintf (stderr, "  -dickson n   use n-th Dickson's polynomial for Brent-Suyama's extension\n");
       fprintf (stderr, "  -c n         perform n runs for each input\n");
