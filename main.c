@@ -141,6 +141,63 @@ void showscreenticks_change_stage(int stage)
     }
 }
 
+void usage (void)
+{
+    printf ("Usage: ecm [options] B1 [[B2min-]B2] < file\n");
+    printf ("\nParameters:\n");
+    printf ("  B1           stage 1 bound\n");
+    printf ("  B2           stage 2 bound (or interval B2min-B2max)\n");
+    printf ("\nOptions:\n");
+    printf ("  -x0 x        use x as initial point\n"); 
+    printf ("  -sigma s     use s as curve generator [ecm]\n");
+    printf ("  -A a         use a as curve parameter [ecm]\n");
+    printf ("  -k n         perform >= n steps in stage 2\n");
+    printf ("  -power n     use x^n for Brent-Suyama's extension\n");
+    printf ("  -dickson n   use n-th Dickson's polynomial for Brent-Suyama's extension\n");
+    printf ("  -c n         perform n runs for each input\n");
+    printf ("  -pm1         perform P-1 instead of ECM\n");
+    printf ("  -pp1         perform P+1 instead of ECM\n");
+    printf ("  -q           quiet mode\n");
+    printf ("  -v           verbose mode\n");
+    printf ("  -mpzmod      use GMP's mpz_mod for mod reduction\n");
+    printf ("  -modmuln     use Montgomery's MODMULN for mod reduction\n");
+    printf ("  -redc        use Montgomery's REDC for mod reduction\n");
+    printf ("  -nobase2     disable special base-2 code\n");
+    printf ("  -save file   save residues at end of stage 1 to file\n");
+    printf ("  -resume file resume residues from file, reads from stdin if file is \"-\"\n");
+    printf ("  -primetest   perform a primality test on input\n");
+    /*printf ("  -extra functions added by JimF\n"); */
+    printf ("\n");
+    printf ("  Options new to ECM 5.1\n");
+    printf ("  -i n         increment B1 by this constant on each run\n");
+    printf ("  -I f         auto-calculated increment for B1 multiplied by 'f' scale factor\n");
+    printf ("  -inp file    Use file as input (instead of redirecting stdin)\n");
+    printf ("  -b           Use breadth-first mode of file processing (recommended)\n");
+    printf ("  -d           Use depth-first mode of file processing\n");
+    printf ("  -one         Stop processing a candidate if a factor is found (looping mode)\n");
+    printf ("  -n           run ecm in \"nice\" mode (below normal priority)\n");
+    printf ("  -nn          run ecm in \"very nice\" mode (idle priority)\n");
+    printf ("  -t n         Trial divide candidates before P-1, P+1 or ECM up to n\n");
+    printf ("  -ve n        Verbosely show short (< n character) expressions on each loop\n");
+    printf ("  -cofdec      Force cofactor output in decimal (even if expressions are used)\n");
+    printf ("  -B2scale f   Multiplies the 'computed' B2 value by the specified multiplier\n");
+    printf ("  -ticdelay n  Delay in ms between %% completed (-1 eliminates completion countdown)\n");
+    printf ("  -go VAL      Preload with Group Order VAL. VAL can be a simple expression, or it\n");
+    printf ("               can use N in it to signify the candidate number being factored.\n");
+
+    /*printf ("  -extra functions added by PhilC\n"); */
+    printf ("  -prp cmd     use shell command cmd to do large primality tests\n");
+    printf ("  -prplen n    only candidates longer than this number of digits are 'large'\n");
+    printf ("  -prpval n    value>=0 which indicates the prp command foundnumber to be PRP.\n");
+    printf ("  -prptmp file outputs n value to temp file prior to running (NB. gets deleted)\n");
+    printf ("  -prplog file otherwise get PRP results from this file (NB. gets deleted)\n");
+    printf ("  -prpyes str  literal string found in prplog file when number is PRP\n");
+    printf ("  -prpno str   literal string found in prplog file when number is composite\n");
+    printf ("  --help       Prints this help and exit.\n");
+}
+
+
+
 /******************************************************************************
 *                                                                             *
 *                                Main program                                 *
@@ -283,6 +340,11 @@ main (int argc, char *argv[])
 	  breadthfirst = 1;
 	  argv++;
 	  argc--;
+        }
+      else if (strcmp (argv[1], "--help") == 0)
+        {
+          usage ();
+          exit (0);
         }
       else if (strcmp (argv[1], "-d") == 0)
         {
@@ -585,57 +647,7 @@ main (int argc, char *argv[])
 
   if (argc < 2)
     {
-      fprintf (stderr, "Usage: ecm [options] B1 [[B2min-]B2] < file\n");
-      fprintf (stderr, "\nParameters:\n");
-      fprintf (stderr, "  B1           stage 1 bound\n");
-      fprintf (stderr, "  B2           stage 2 bound (or interval B2min-B2max)\n");
-      fprintf (stderr, "\nOptions:\n");
-      fprintf (stderr, "  -x0 x        use x as initial point\n"); 
-      fprintf (stderr, "  -sigma s     use s as curve generator [ecm]\n");
-      fprintf (stderr, "  -A a         use a as curve parameter [ecm]\n");
-      fprintf (stderr, "  -k n         perform >= n steps in stage 2\n");
-      fprintf (stderr, "  -power n     use x^n for Brent-Suyama's extension\n");
-      fprintf (stderr, "  -dickson n   use n-th Dickson's polynomial for Brent-Suyama's extension\n");
-      fprintf (stderr, "  -c n         perform n runs for each input\n");
-      fprintf (stderr, "  -pm1         perform P-1 instead of ECM\n");
-      fprintf (stderr, "  -pp1         perform P+1 instead of ECM\n");
-      fprintf (stderr, "  -q           quiet mode\n");
-      fprintf (stderr, "  -v           verbose mode\n");
-      fprintf (stderr, "  -mpzmod      use GMP's mpz_mod for mod reduction\n");
-      fprintf (stderr, "  -modmuln     use Montgomery's MODMULN for mod reduction\n");
-      fprintf (stderr, "  -redc        use Montgomery's REDC for mod reduction\n");
-      fprintf (stderr, "  -nobase2     disable special base-2 code\n");
-      fprintf (stderr, "  -save file   save residues at end of stage 1 to file\n");
-      fprintf (stderr, "  -resume file resume residues from file, reads from stdin if file is \"-\"\n");
-      fprintf (stderr, "  -primetest   perform a primality test on input\n");
-      /*rintf (stderr, "  -extra functions added by JimF\n"); */
-      fprintf (stderr, "\n");
-      fprintf (stderr, "  Options new to ECM 5.1\n");
-      fprintf (stderr, "  -i n         increment B1 by this constant on each run\n");
-      fprintf (stderr, "  -I f         auto-calculated increment for B1 multiplied by 'f' scale factor\n");
-      fprintf (stderr, "  -inp file    Use file as input (instead of redirecting stdin)\n");
-      fprintf (stderr, "  -b           Use breadth-first mode of file processing (recommended)\n");
-      fprintf (stderr, "  -d           Use depth-first mode of file processing\n");
-      fprintf (stderr, "  -one         Stop processing a candidate if a factor is found (looping mode)\n");
-      fprintf (stderr, "  -n           run ecm in \"nice\" mode (below normal priority)\n");
-      fprintf (stderr, "  -nn          run ecm in \"very nice\" mode (idle priority)\n");
-      fprintf (stderr, "  -t n         Trial divide candidates before P-1, P+1 or ECM up to n\n");
-      fprintf (stderr, "  -ve n        Verbosely show short (< n character) expressions on each loop\n");
-      fprintf (stderr, "  -cofdec      Force cofactor output in decimal (even if expressions are used)\n");
-      fprintf (stderr, "  -B2scale f   Multiplies the 'computed' B2 value by the specified multiplier\n");
-      fprintf (stderr, "  -ticdelay n  Delay in ms between %% completed (-1 eliminates completion countdown)\n");
-      fprintf (stderr, "  -go VAL      Preload with Group Order VAL. VAL can be a simple expression, or it\n");
-      fprintf (stderr, "               can use N in it to signify the candidate number being factored.\n");
-
-      /*rintf (stderr, "  -extra functions added by PhilC\n"); */
-      fprintf (stderr, "  -prp cmd     use shell command cmd to do large primality tests\n");
-      fprintf (stderr, "  -prplen n    only candidates longer than this number of digits are 'large'\n");
-      fprintf (stderr, "  -prpval n    value>=0 which indicates the prp command foundnumber to be PRP.\n");
-      fprintf (stderr, "  -prptmp file outputs n value to temp file prior to running (NB. gets deleted)\n");
-      fprintf (stderr, "  -prplog file otherwise get PRP results from this file (NB. gets deleted)\n");
-      fprintf (stderr, "  -prpyes str  literal string found in prplog file when number is PRP\n");
-      fprintf (stderr, "  -prpno str   literal string found in prplog file when number is composite\n");
-
+      fprintf (stderr, "Invalid arguments. See ecm --help.\n");
       exit (EXIT_FAILURE);
     }
 
