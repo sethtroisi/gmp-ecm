@@ -344,7 +344,7 @@ stage2 (mpz_t f, void *X, mpmod_t modulus, double B2min, double B2,
     rootsG_state = pp1_rootsG_init ((mpres_t *) X, i0 * (double) d, d, modulus);
   else /* EC_METHOD */
     {
-      rootsG_state = ecm_rootsG_init (f, (curve *) X, i0 * (double) d, d, k, S, modulus, verbose);
+      rootsG_state = ecm_rootsG_init (f, (curve *) X, i0 * (double) d, d, dF, k, S, modulus, verbose);
       if (rootsG_state == NULL)
         {
           youpi = 2;
