@@ -1,4 +1,6 @@
 ToDo's:
+- check if return value of malloc() is zero or not, and print appropriate
+	error message when it is zero
 - implement semi-normalized residues in mpmod.c: instead of ensuring
   0 <= r < n, just require limbs(r) <= limbs(n)
 - use mpres in step 2
