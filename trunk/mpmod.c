@@ -553,6 +553,18 @@ mpres_pow (mpres_t R, mpres_t BASE, mpres_t EXP, mpmod_t modulus)
   ASSERT_NORMALIZED (R);
 }
 
+
+/* Returns 1 if S == 0 (mod modulus), 0 otherwise */
+
+int
+mpres_is_zero (mpres_t S, mpmod_t modulus)
+{
+  mpz_mod (modulus->temp1, S, modulus->orig_modulus);
+  /* For all currently implemented representations, a zero residue has zero
+     integer representation */
+  return (mpz_sgn (modulus->temp1) == 0) ? 1 : 0;
+}
+
 /* R <- BASE^EXP mod modulus */ 
 void 
 mpres_ui_pow (mpres_t R, unsigned int BASE, mpres_t EXP, mpmod_t modulus)

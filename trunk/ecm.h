@@ -20,6 +20,15 @@
 
 #define ECM_VERSION "5.1.2-beta"
 
+/* Warnings about unused parameters by gcc can be suppressed by prefixing 
+   parameter with UNUSED when parameter can't be removed, i.e. for
+   interface consistency reasons */
+#ifdef __GNUC__
+#define UNUSED __attribute__ ((unused))
+#else
+#define UNUSED
+#endif
+
 /* either one of POLYEVAL or POLYEVALTELLEGEN or POLYGCD should be defined */
 #define POLYEVALTELLEGEN /* use polyeval_tellegen() routine */
 
@@ -133,12 +142,29 @@ typedef __curve_struct curve;
 typedef struct
 {
   point *fd;
-  mpres_t *T;        /* For temp values. FIXME: should go! */
-  unsigned int nr;   /* How many separate progressions there are */
-  unsigned int next; /* From which progression to take the next root */
-  unsigned int S;    /* Degree of the polynomials */
-} __ecm_rootsG_state;
-typedef __ecm_rootsG_state ecm_rootsG_state;
+  mpres_t *T;          /* For temp values. FIXME: should go! */
+  curve *X;            /* The curve the points are on */
+  unsigned int size_fd; /* How many entries .fd has */
+  unsigned int nr;     /* How many separate progressions there are */
+  unsigned int next;   /* From which progression to take the next root */
+  unsigned int S;      /* Degree of the polynomials */
+  unsigned int dsieve; /* Values not coprime to dsieve are skipped */
+  unsigned int rsieve; /* Which residue mod dsieve current .next belongs to */
+} __ecm_roots_state;
+typedef __ecm_roots_state ecm_roots_state;
+
+typedef struct
+{
+  mpres_t *fd;
+  unsigned int size_fd; /* How many entries .fd has */
+  unsigned int nr;     /* How many separate progressions there are */
+  unsigned int next;   /* From which progression to take the next root */
+  unsigned int S;      /* Degree of the polynomials */
+  unsigned int dsieve; /* Values not coprime to dsieve are skipped */
+  unsigned int rsieve; /* Which residue mod dsieve current .next belongs to */
+  int invtrick;
+} __pm1_roots_state;
+typedef __pm1_roots_state pm1_roots_state;
 
 typedef struct
 {
@@ -221,14 +247,16 @@ unsigned int get_random_ui (void);
 
 /* pm1.c */
 void    pm1_random_seed  (mpz_t, mpz_t, gmp_randstate_t);
-int          pm1         (mpz_t, mpz_t, mpz_t, mpz_t, double, double, double, double, double, 
-                          unsigned int, int, int, int, mpz_t);
-int     pm1_rootsF       (mpz_t, listz_t, unsigned int, unsigned int, mpres_t *,
-                          listz_t, int, mpmod_t, int, unsigned long *);
-mpres_t *pm1_rootsG_init (mpres_t *, double, unsigned int, int, mpmod_t);
-void    pm1_rootsG_clear (mpres_t *, int, mpmod_t);
-int     pm1_rootsG       (mpz_t, listz_t, unsigned int, mpres_t *, listz_t, 
-                          int, mpmod_t, int, unsigned long *);
+int          pm1         (mpz_t, mpz_t, mpz_t, mpz_t, double, double, double, 
+                          double, double, unsigned int, int, int, int, mpz_t);
+int     pm1_rootsF       (mpz_t, listz_t, unsigned int, unsigned int, unsigned int,
+                          mpres_t *, listz_t, int, mpmod_t, int, unsigned long *);
+pm1_roots_state *
+        pm1_rootsG_init  (mpres_t *, double, unsigned int, unsigned int, int, 
+                          int, mpmod_t);
+void    pm1_rootsG_clear (pm1_roots_state *, mpmod_t);
+int     pm1_rootsG       (mpz_t, listz_t, unsigned int, pm1_roots_state *, 
+                          listz_t, mpmod_t, int, unsigned long *);
 
 
 
@@ -241,24 +269,26 @@ int          cputime    (void);
 unsigned long muls_toom3 (unsigned int);
 unsigned long muls_gen (unsigned int);
 unsigned long muls_gen_short (unsigned int);
-unsigned long   phi (unsigned long);
+unsigned long phi (unsigned long);
 double   block_size (unsigned long);
 unsigned long bestD (double, unsigned int, unsigned int *, unsigned int,
                      unsigned long *);
-unsigned long bestD_po2 (double, double, unsigned int, unsigned int *, 
-                         unsigned long *);
+void          bestD_po2 (double, double, unsigned int *, unsigned int *, 
+                         unsigned int *, unsigned long *);
 
 /* trial.c */
 int trial_factor (mpcandi_t *n, double maxfact, int deep);
 
 /* ecm2.c */
 int     ecm_rootsF       (mpz_t, listz_t, unsigned int, unsigned int, 
-                          curve *, int, mpmod_t, int, unsigned long *);
-ecm_rootsG_state * ecm_rootsG_init  (mpz_t, curve *, double, unsigned int, 
+                          unsigned int, curve *, int, mpmod_t, int, 
+                          unsigned long *);
+ecm_roots_state * 
+	ecm_rootsG_init  (mpz_t, curve *, double, unsigned int, unsigned int,
                           unsigned int, unsigned int, int, mpmod_t, int);
-void    ecm_rootsG_clear (ecm_rootsG_state *, int, mpmod_t);
-int     ecm_rootsG       (mpz_t, listz_t, unsigned int, ecm_rootsG_state *, 
-                          curve *, int, mpmod_t, int, unsigned long *);
+void    ecm_rootsG_clear (ecm_roots_state *, int, mpmod_t);
+int     ecm_rootsG       (mpz_t, listz_t, unsigned int, ecm_roots_state *, 
+                          mpmod_t, int, unsigned long *);
 
 /* pp1.c */
 int          pp1_mul     (mpres_t, mpres_t, mpz_t, mpmod_t, mpres_t, mpres_t);
@@ -277,7 +307,12 @@ int   pp1_rootsG         (listz_t, unsigned int, mpres_t *, mpmod_t,
 /* stage2.c */
 int          stage2     (mpz_t, void *, mpmod_t, double, double, unsigned int,
                          int, int, int);
-void  fin_diff_coeff    (listz_t, double, unsigned int, unsigned int, int);
+void  fin_diff_coeff    (listz_t, double, double, unsigned int, int);
+listz_t init_progression_coeffs 
+			(double, unsigned int, unsigned int, unsigned int, 
+			 unsigned int, unsigned int, int);
+void clear_progression_coeffs 
+			(listz_t, unsigned int, unsigned int, unsigned int, unsigned int);
 
 /* listz.c */
 int          list_mul_mem (unsigned int);
@@ -379,10 +414,10 @@ void mpres_neg (mpres_t, mpres_t, mpmod_t);
 int  mpres_invert (mpres_t, mpres_t, mpmod_t);
 void mpres_gcd (mpz_t, mpres_t, mpmod_t);
 void mpres_out_str (FILE *, unsigned int, mpres_t, mpmod_t);
+int  mpres_is_zero (mpres_t, mpmod_t);
 #define mpres_clear(a,n) mpz_clear (a)
 #define mpres_set(a,b,n) mpz_set (a, b)
 #define mpres_swap(a,b,n) mpz_swap (a, b)
-#define mpres_is_zero(n) (mpz_sgn (n) == 0)
 
 /* mul_lo.c */
 void mpn_mul_lo_n (mp_ptr, mp_srcptr, mp_srcptr, mp_size_t);
