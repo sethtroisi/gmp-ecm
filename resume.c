@@ -29,7 +29,7 @@
 #include "ecm.h"
 
 #if defined (_MSC_VER) || defined (__MINGW32__)
-/* needed to declare GetComputerName() in resume function */
+/* needed to declare GetComputerName() for write_resumefile_line() */
 #include <windows.h>
 #endif
 
@@ -446,6 +446,7 @@ write_resumefile_line (FILE *fd, int method, double B1, mpz_t sigma, mpz_t A,
 #else
   if (gethostname (mname, 32) != 0)
     mname[0] = 0;
+  mname[31] = 0; /* gethostname() may omit trailing 0 if hostname >31 chars */
 #endif
   
   if (uname[0] != 0 || mname[0] != 0)
