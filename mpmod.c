@@ -59,7 +59,6 @@
 void base2mod (mpres_t, mpres_t, mpres_t, mpmod_t);
 void base2mod_1 (mpres_t, mpres_t, mpmod_t);
 void REDC (mpres_t, mpres_t, mpz_t, mpmod_t);
-void mpn_REDC (mp_ptr, mp_srcptr, mp_srcptr, mp_srcptr, mp_size_t);
 void mod_mul2exp (mpz_t, unsigned int, mpmod_t);
 void mod_div2exp (mpz_t, unsigned int, mpmod_t);
 
@@ -149,47 +148,13 @@ base2mod_1 (mpres_t RS, mpres_t t, mpmod_t modulus)
     }
 }
 
-/* REDC. x and t must not be identical, t has limb growth */
-/* subquadratic REDC, at mpz level */
-void 
-REDC (mpres_t r, mpres_t x, mpz_t t, mpmod_t modulus)
-{
-  mp_size_t n = modulus->bits / GMP_NUMB_BITS;
-
-  ASSERT (ABSIZ(x) <= 2 * n);
-  if (ABSIZ(x) == 2 * n)
-    {
-      mp_ptr rp;
-      if (ALLOC(r) < n)
-	_mpz_realloc (r, n);
-      rp = PTR(r);
-      mpn_REDC (rp, PTR(x), PTR(modulus->orig_modulus), 
-		PTR(modulus->aux_modulus), n);
-      MPN_NORMALIZE(rp, n);
-      SIZ(r) = (SIZ(x) > 0) ? n : -n;
-      MPZ_NORMALIZED (r);
-    }
-  else
-    {
-      mpz_tdiv_r_2exp (t, x, modulus->bits);
-      mpz_mul (t, t, modulus->aux_modulus);
-      mpz_tdiv_r_2exp (t, t, modulus->bits);  /* t = (x % R) * 1/N (mod R) */
-      mpz_mul (t, t, modulus->orig_modulus);
-      mpz_add (t, t, x);
-      mpz_tdiv_q_2exp (r, t, modulus->bits);  /* r = (x + m*N) / R */
-      if (ABSIZ (r) > n)
-	mpz_sub (r, r, modulus->multiple);
-    }
-  ASSERT (ABSIZ(r) <= n);
-}
-
 /* subquadratic REDC, at mpn level.
    {orig,n} is the original modulus.
    {aux,n} is the auxiliary modulus.
    Requires ABSIZ(x) = 2n and ABSIZ(orig_modulus)=ABSIZ(aux_modulus)=n.
  */
-void
-mpn_REDC (mp_ptr rp, mp_srcptr xp, mp_srcptr orig, mp_srcptr aux, mp_size_t n)
+static void
+ecm_redc_n (mp_ptr rp, mp_srcptr xp, mp_srcptr orig, mp_srcptr aux, mp_size_t n)
 {
   mp_ptr tp, up;
   mp_size_t nn = n + n;
@@ -213,6 +178,40 @@ mpn_REDC (mp_ptr rp, mp_srcptr xp, mp_srcptr orig, mp_srcptr aux, mp_size_t n)
     cy -= mpn_sub_n (rp, rp, orig, n);
   /* ASSERT ((cy == 0) && (mpn_cmp (rp, orig, n) < 0)); */
   TMP_FREE(marker);
+}
+
+/* REDC. x and t must not be identical, t has limb growth */
+/* subquadratic REDC, at mpz level */
+void 
+REDC (mpres_t r, mpres_t x, mpz_t t, mpmod_t modulus)
+{
+  mp_size_t n = modulus->bits / GMP_NUMB_BITS;
+
+  ASSERT (ABSIZ(x) <= 2 * n);
+  if (ABSIZ(x) == 2 * n)
+    {
+      mp_ptr rp;
+      if (ALLOC(r) < n)
+	_mpz_realloc (r, n);
+      rp = PTR(r);
+      ecm_redc_n (rp, PTR(x), PTR(modulus->orig_modulus), 
+		PTR(modulus->aux_modulus), n);
+      MPN_NORMALIZE(rp, n);
+      SIZ(r) = (SIZ(x) > 0) ? n : -n;
+      MPZ_NORMALIZED (r);
+    }
+  else
+    {
+      mpz_tdiv_r_2exp (t, x, modulus->bits);
+      mpz_mul (t, t, modulus->aux_modulus);
+      mpz_tdiv_r_2exp (t, t, modulus->bits);  /* t = (x % R) * 1/N (mod R) */
+      mpz_mul (t, t, modulus->orig_modulus);
+      mpz_add (t, t, x);
+      mpz_tdiv_q_2exp (r, t, modulus->bits);  /* r = (x + m*N) / R */
+      if (ABSIZ (r) > n)
+	mpz_sub (r, r, modulus->multiple);
+    }
+  ASSERT (ABSIZ(r) <= n);
 }
 
 /* multiplies c by R^k modulo n where R=2^mp_bits_per_limb 
@@ -245,7 +244,7 @@ mod_div2exp (mpz_t c, unsigned int k, mpmod_t modulus)
    The data in c is clobbered.
 */
 static void 
-mpz_mod_n (mpz_ptr r, mpz_ptr c, mpmod_t modulus)
+ecm_redc_basecase (mpz_ptr r, mpz_ptr c, mpmod_t modulus)
 {
   mp_ptr rp;
   mp_ptr cp;
@@ -429,7 +428,7 @@ mpmod_init_REDC (mpmod_t modulus, mpz_t N)
       exit (EXIT_FAILURE);
     }
   mpz_sub (modulus->aux_modulus, modulus->temp1, modulus->aux_modulus);
-  /* ensure aux_modulus has n allocated limbs, for mpn_REDC */
+  /* ensure aux_modulus has n allocated limbs, for ecm_redc_n */
   if (ABSIZ(modulus->aux_modulus) < n)
     {
       _mpz_realloc (modulus->aux_modulus, n);
@@ -556,7 +555,7 @@ mpres_pow (mpres_t R, mpres_t BASE, mpres_t EXP, mpmod_t modulus)
                 base2mod (modulus->temp2 , modulus->temp1, modulus->temp1, modulus);
               else if (modulus->repr == MOD_MODMULN)
                 {
-                  mpz_mod_n (modulus->temp2, modulus->temp1, modulus);
+                  ecm_redc_basecase (modulus->temp2, modulus->temp1, modulus);
                 }
               else
                 REDC (modulus->temp2, modulus->temp1, modulus->temp2, modulus);
@@ -568,7 +567,7 @@ mpres_pow (mpres_t R, mpres_t BASE, mpres_t EXP, mpmod_t modulus)
                     base2mod (modulus->temp2, modulus->temp1, modulus->temp1, modulus);
                   else if (modulus->repr == MOD_MODMULN)
                     {
-                      mpz_mod_n (modulus->temp2, modulus->temp1, modulus);
+                      ecm_redc_basecase (modulus->temp2, modulus->temp1, modulus);
                     }
                   else
                     REDC (modulus->temp2, modulus->temp1, modulus->temp2, modulus);
@@ -656,7 +655,7 @@ mpres_ui_pow (mpres_t R, unsigned int BASE, mpres_t EXP, mpmod_t modulus)
                 base2mod (modulus->temp2 , modulus->temp1, modulus->temp1, modulus);
               else if (modulus->repr == MOD_MODMULN)
                 {
-                  mpz_mod_n (modulus->temp2, modulus->temp1, modulus);
+                  ecm_redc_basecase (modulus->temp2, modulus->temp1, modulus);
                 }
               else
                 REDC (modulus->temp2, modulus->temp1, modulus->temp2, modulus);
@@ -732,7 +731,7 @@ mpres_mul (mpres_t R, mpres_t S1, mpres_t S2, mpmod_t modulus)
       base2mod (R, modulus->temp1, modulus->temp1, modulus);
       break;
     case MOD_MODMULN:
-      mpz_mod_n (R, modulus->temp1, modulus);
+      ecm_redc_basecase (R, modulus->temp1, modulus);
       break;
     case MOD_REDC:
       REDC (R, modulus->temp1, modulus->temp2, modulus);
@@ -875,7 +874,7 @@ mpres_set_z (mpres_t R, mpz_t S, mpmod_t modulus)
     {
       mpz_mod (modulus->temp2, S, modulus->orig_modulus);
       mpz_mul (modulus->temp1, modulus->temp2, modulus->R2);
-      mpz_mod_n (R, modulus->temp1, modulus);
+      ecm_redc_basecase (R, modulus->temp1, modulus);
     }
   else if (modulus->repr == MOD_REDC)
     {
@@ -899,7 +898,7 @@ mpres_get_z (mpz_t R, mpres_t S, mpmod_t modulus)
     {
       mpz_set (modulus->temp1, S);
       _mpz_realloc (R, modulus->bits / GMP_NUMB_BITS);
-      mpz_mod_n (R, modulus->temp1, modulus);
+      ecm_redc_basecase (R, modulus->temp1, modulus);
     }
   else if (modulus->repr == MOD_REDC)
     {
@@ -956,7 +955,7 @@ mpres_invert (mpres_t R, mpres_t S, mpmod_t modulus)
       if (mpz_invert (modulus->temp2, S, modulus->orig_modulus))
         {
           mpz_mul (modulus->temp1, modulus->temp2, modulus->R3);
-          mpz_mod_n (R, modulus->temp1, modulus);
+          ecm_redc_basecase (R, modulus->temp1, modulus);
 	  ASSERT_NORMALIZED (R);
           return 1;
         }
