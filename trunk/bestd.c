@@ -31,12 +31,12 @@ muls_kara (unsigned int K)
 {
   unsigned int k, l;
 
-  if (K == 1)
-    return 1;
+  if (K <= 1)
+    return K;
   
   k = K / 2;
   l = K - k;
-  return (k == l) ? 3 * muls_kara (k) : 2 * muls_kara (k) + muls_kara (l);
+  return (k == l) ? 3 * muls_kara (k) : 2 * muls_kara (l) + muls_kara (k);
 }
 
 /* number of multiplication of toomcook3 */
@@ -95,6 +95,42 @@ muls_toom4_short (unsigned int n)
     }
 }
 
+unsigned long
+muls_gen (unsigned int n)
+{
+#if (MULT == TOOM4)
+  return muls_toom4 (n);
+#elif (MULT == TOOM3)
+  return muls_toom3 (n);
+#elif (MULT == KARA)
+  return muls_kara (n);
+#else
+#error "MULT is neither TOOM4, nor TOOM3, nor KARA"
+#endif
+}
+
+static unsigned long
+muls_gen_short (unsigned int n)
+{
+  unsigned int p, q, muls;
+  switch (n)
+    {
+    case 1:
+      return 1;
+    case 2:
+      return 3;
+    case 3:
+      return 5;
+    default:
+      for (p = 1; MULT * p <= n; p *= MULT);
+      p = (n / p) * p;
+      muls = muls_gen (p);
+      if ((q = n - p))
+        muls += 2 * muls_gen_short (q);
+      return muls;
+    }
+}
+
 static unsigned long
 muls_polyfromroots (unsigned int k)
 {
@@ -108,7 +144,7 @@ muls_polyfromroots (unsigned int k)
    l = k - m;
    muls = (m == l) ? 2 * muls_polyfromroots (l)
      : muls_polyfromroots (l) + muls_polyfromroots (m);
-   muls += muls_toom4 (m);
+   muls += muls_gen (m);
    if (l > m)
      muls += m;
    return muls;
@@ -126,21 +162,21 @@ muls_polyinvert (unsigned int K)
   k = K / 2;
   l = K - k;
 
-  muls = muls_polyinvert (l) + muls_toom4 (l);
+  muls = muls_polyinvert (l) + muls_gen (l);
   if (k > 1)
     {
-      muls += muls_toom4 (k - 1);
+      muls += muls_gen (k - 1);
       if (l > k)
         muls += k - 1;
     }
-  muls += muls_toom4 (k);
+  muls += muls_gen (k);
   return muls;
 }
 
 static unsigned long
 muls_prerevertdiv (unsigned int n)
 {
-  return muls_toom4_short (n - 1) + muls_toom4_short (n);
+  return muls_gen_short (n - 1) + muls_gen_short (n);
 }
 
 static unsigned long
@@ -157,7 +193,7 @@ muls_recdiv (unsigned int K)
 
   muls = (k < l) ? 2 * k + muls_recdiv (l) + muls_recdiv (k)
     : 2 * muls_recdiv (k);
-  muls += 2 * muls_toom4 (k);
+  muls += 2 * muls_gen (k);
   return muls;
 }
 
@@ -186,10 +222,9 @@ muls_stage2 (unsigned int dF, unsigned int d, unsigned int S, unsigned int k)
 
   muls = (double) (d - 6) * S; /* ecm_rootsF */
   muls += (double) (k + 1) * muls_polyfromroots (dF);
-  if (dF > 1)
-    muls += (double) muls_polyinvert (dF - 1);
+  muls += (double) muls_polyinvert (dF);
   muls += (double) k * 6 * S * dF;
-  muls += (k - 1) * (double) muls_toom4 (dF);
+  muls += (k - 1) * (double) muls_gen (dF);
   muls += (k - 1) * (double) muls_prerevertdiv (dF);
 #ifdef POLYEVALTELLEGEN
   muls += (double) muls_polyeval_tellegen (dF);
