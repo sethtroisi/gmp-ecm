@@ -22,7 +22,7 @@
   <command>ecm</command>    
     <arg choice='opt'><option>options</option></arg>
     <arg choice='plain'><replaceable>B1</replaceable></arg>
-    <group choice='opt'><arg choice='plain'><replaceable>B2min-B2max</replaceable></arg><arg choice='plain'><replaceable>B2</replaceable></arg></group>
+    <group choice='opt'><arg choice='plain'><replaceable>B2min</replaceable>-<replaceable>B2max</replaceable></arg><arg choice='plain'><replaceable>B2</replaceable></arg></group>
     <sbr/>
 </cmdsynopsis>
 </refsynopsisdiv>
@@ -31,8 +31,8 @@
 <refsect1 id='description'><title>DESCRIPTION</title>
 <para>ecm is an integer factoring program using the Elliptic Curve
 Method (ECM), the P-1 method, or the P+1 method.
-The following sections describe parameters relevant to this
-algorithm.</para>
+The following sections describe parameters relevant to these
+algorithms.</para>
 
 </refsect1>
 
@@ -52,22 +52,30 @@ p &lt;= <replaceable>B1</replaceable> are processed in step 1.</para>
   <varlistentry>
   <term><emphasis remap='B'><replaceable>B2</replaceable></emphasis></term>
   <listitem>
-<para><replaceable>B2</replaceable> is the step 2 bound. It is optional: if omitted, a default value is
-computed from B1, which should be close to optimal.
-Like B1, it can be given either in integer or in
-floating-point format. The largest possible value of <replaceable>B2</replaceable> depends on the
-number k of blocks in step 2 (see option -k), and is of the form b2_max*k.
-All primes B1 &lt;= p &lt;= <replaceable>B2</replaceable> are processed in step 2. If
-<replaceable>B2</replaceable> &lt; B1, no step 2 is performed.</para>
+<para><replaceable>B2</replaceable> is the step 2 bound. It is optional: if 
+omitted, a default value is computed from B1, which should be close to 
+optimal. Like B1, it can be given either in integer or in floating-point 
+format. The largest possible value of <replaceable>B2</replaceable> is
+approximately 9e23, but depends on the number of blocks
+<replaceable>k</replaceable> if you specify the <option>-k</option> option.
+All primes <replaceable>B1</replaceable> &lt;= p &lt;= <replaceable>B2</replaceable> 
+are processed in step 2. If <replaceable>B2</replaceable> &lt;
+<replaceable>B1</replaceable>, no step 2 is performed.</para>
 
   </listitem>
   </varlistentry>
   <varlistentry>
-  <term><emphasis remap='B'><replaceable>B2min-B2max</replaceable></emphasis></term>
+  <term><emphasis remap='B'><replaceable>B2min</replaceable>-<replaceable>B2max</replaceable></emphasis></term>
   <listitem>
-<para>alternatively one may use the <replaceable>B2min-B2max</replaceable> form, which means that all
-primes B2min &lt;= p &lt;= B2max should be processed. Thus specifying B2 only
-corresponds to B1-B2.</para>
+<para>alternatively one may use the 
+<replaceable>B2min</replaceable>-<replaceable>B2max</replaceable> 
+form, which means that all primes 
+<replaceable>B2min</replaceable> &lt;= p &lt;= <replaceable>B2max</replaceable> 
+should be processed. Thus specifying <replaceable>B2</replaceable> only corresponds to 
+<replaceable>B1</replaceable>-<replaceable>B2</replaceable>. The values of 
+<replaceable>B2min</replaceable> and <replaceable>B2max</replaceable> may be 
+arbitrarily large, but their difference must not exceed approximately 9e23, 
+subject to the number of blocks <replaceable>k</replaceable>.</para>
   </listitem>
   </varlistentry>
 </variablelist>
@@ -109,7 +117,7 @@ trial division is only performed in the first run.
   <listitem>
 <para>[ECM, P-1, P+1] Use <replaceable>x</replaceable> 
 (arbitrary-precision integer or rational)
-as initial point. For example, -x0 1/3 is
+as initial point. For example, <option>-x0</option> 1/3 is
 valid. If not given, <replaceable>x</replaceable> is generated from the sigma
 value for ECM, or at random for P-1 and P+1.</para>
 
@@ -136,10 +144,11 @@ curve parameter. If omitted, is it generated from the sigma value.
   <varlistentry>
   <term><option>-go <replaceable>val</replaceable></option></term>
   <listitem>
-<para>[ECM, P-1, P+1] Exponentiate the initial point x0 to order
+<para>[ECM, P-1, P+1] Exponentiate the initial point x0 by
 <replaceable>val</replaceable>, which can any valid expression,
 possible containing the special character N, as place holder for the current
-input number.
+input number. Example:
+<programlisting>ecm -pp1 -x0 "N^2-1" 1e6 &lt; composite2000</programlisting>
 </para>
   </listitem>
   </varlistentry>
@@ -153,11 +162,22 @@ input number.
   <term><option>-k <replaceable>n</replaceable></option></term>
   <listitem>
 <para>[ECM, P-1, P+1] Perform <replaceable>n</replaceable> blocks in step 2.
-Increasing <replaceable>n</replaceable> decreases the memory usage of
-step 2, at the expense of some cpu time.</para>
-
+For a given <replaceable>B2</replaceable> value, increasing 
+<replaceable>n</replaceable> decreases the memory usage of step 2, at the 
+expense of more cpu time.</para>
   </listitem>
   </varlistentry>
+
+  <varlistentry>
+  <term><option>-treefile <replaceable>file</replaceable></option></term>
+  <listitem>
+<para>Stores some tables of data in disk files to reduce the amount of 
+memory occupied in step 2, at the expense of disk I/O. Data will be written to 
+files <replaceable>file</replaceable>.1, <replaceable>file</replaceable>.2 etc.
+</para>
+  </listitem>
+  </varlistentry>
+
   <varlistentry>
   <term><option>-power <replaceable>n</replaceable></option></term>
   <listitem>
@@ -192,19 +212,30 @@ should be even for P-1.</para>
 with factors separated by white spaces, one line per input number
 (if no factor was found, the input number is simply copied).
 </para>
-
   </listitem>
   </varlistentry>
+
   <varlistentry>
   <term><option>-v</option></term>
   <listitem>
-<para>Verbose mode. Several informations are printed (kind of modular
-multiplication used, initial A and x0 values, value of x at the end of step 1,
-parameters for step 2, timings for sub-steps from step 2,
-expected curves and time to find factors of different sizes).</para>
-
+<para>Verbose mode. More information is printed, more <option>-v</option> 
+options increase verbosity. With one <option>-v</option>, the kind of modular
+multiplication used, initial x0 value, step 2 parameters and progress, and 
+expected curves and time to find factors of different sizes for ECM are 
+printed. With <option>-v -v</option>, the A value for ECM 
+and residues at the end of step 1 and step 2 are printed. More 
+<option>-v</option> print internal data for debugging.
+</para>
   </listitem>
   </varlistentry>
+
+  <varlistentry>
+  <term><option>-timestamp</option></term>
+  <listitem>
+<para>Print a time stamp whenever a new input number is processed.</para>
+  </listitem>
+  </varlistentry>
+
 </variablelist>
 </refsect1>
 
@@ -218,17 +249,17 @@ one can force a given method with the following options.</para>
   <listitem>
 <para>Use GMP's mpz_mod function (subquadratic for large inputs, but induces
 some overhead for small ones).</para>
-
   </listitem>
   </varlistentry>
+
   <varlistentry>
   <term><option>-modmuln</option></term>
   <listitem>
 <para>Use Montgomery's multiplication (quadratic version). Usually
 best method for small input.</para>
-
   </listitem>
   </varlistentry>
+
   <varlistentry>
   <term><option>-redc</option></term>
   <listitem>
@@ -236,14 +267,24 @@ best method for small input.</para>
 Theoretically optimal for large input.</para>
   </listitem>
   </varlistentry>
+
   <varlistentry>
   <term><option>-nobase2</option></term>
   <listitem>
 <para>Disable special base-2 code (which is used when the input number is a
 large factor of 2^n+1 or 2^n-1, see <option>-v</option>).</para>
-
   </listitem>
   </varlistentry>
+
+  <varlistentry>
+  <term><option>-base2</option> <replaceable>b</replaceable></term>
+  <listitem>
+<para>Force use of special base-2 code, input number must divide 
+2^<replaceable>b</replaceable>+1 if b &gt; 0, or 2^|<replaceable>b</replaceable>|-1 
+if b &lt; 0.</para>
+  </listitem>
+  </varlistentry>
+
 </variablelist>
 </refsect1>
 
@@ -268,9 +309,19 @@ standard input.
   <varlistentry>
   <term><option>-save <replaceable>file</replaceable></option></term>
   <listitem>
-<para>Save result of step 1 in <replaceable>file</replaceable>.
-Example: <replaceable>ecm -save foo 1e6 1 &lt; c155</replaceable> performs
-only step 1, and saves its result in file <replaceable>foo</replaceable>.
+<para>Save result of step 1 in <replaceable>file</replaceable>. If 
+<replaceable>file</replaceable> exists, an error is raised.
+Example: to perform only step 1 and save its result in file 
+<replaceable>foo</replaceable>, use 
+<programlisting>ecm -save foo 1e6 1 &lt; c155</programlisting>
+</para>
+  </listitem>
+  </varlistentry>
+
+  <varlistentry>
+  <term><option>-savea <replaceable>file</replaceable></option></term>
+  <listitem>
+<para>Like <option>-save</option>, but appends to existing files.
 </para>
   </listitem>
   </varlistentry>
@@ -279,9 +330,9 @@ only step 1, and saves its result in file <replaceable>foo</replaceable>.
   <term><option>-resume <replaceable>file</replaceable></option></term>
   <listitem>
 <para>Resume residues from <replaceable>file</replaceable>, reads from stdin
-if <option>-resume</option> <replaceable>-</replaceable>.
-Example: <replaceable>ecm -resume foo 1e6</replaceable> performs step 2
-corresponding to the above step 1 computation.
+if <replaceable>file</replaceable> is  "-".
+Example: to performs step 2 following the above step 1 computation, use
+<programlisting>ecm -resume foo 1e6</programlisting>
 </para>
 
   </listitem>
@@ -305,8 +356,8 @@ This option is mainly useful for P+1 (for example with c=3) or for ECM,
 where <replaceable>n</replaceable> is the expected number of curves
 to find a d-digit factor with a given step 1 bound.
 This option is incompatible with <option>-resume, -sigma, 
--x0</option>. Giving <option>-c</option> <replaceable>0</replaceable>
-emulates an infinite loop until a factor is found.</para>
+-x0</option>. Giving <option>-c</option> 0
+produces an infinite loop until a factor is found.</para>
   </listitem>
   </varlistentry>
 
@@ -314,7 +365,7 @@ emulates an infinite loop until a factor is found.</para>
   <term><option>-one</option></term>
   <listitem>
 <para>In loop mode, stop when a factor is found; the default is to continue
-until the cofactor is prime or <replaceable>n</replaceable> runs are done.
+until the cofactor is prime or the specified number of runs are done.
 </para>
   </listitem>
   </varlistentry>
@@ -406,7 +457,8 @@ Also any possible character
              All other characters within <replaceable>cmd</replaceable>
 will be replaced verbatim,
 and a system call will be made to execute the command.
-Example:  <option>-prp "pfgw -q%n &gt; /dev/null 2&gt; /dev/null -b139"</option>.
+Example:  
+<programlisting>-prp "pfgw -q%n &gt; /dev/null 2&gt; /dev/null -b139"</programlisting>
 </para>
   </listitem>
   </varlistentry>
@@ -492,7 +544,7 @@ the number is composite.  Default is <replaceable>"is composite"</replaceable>.
   <varlistentry>
   <term><option>-B2scale <replaceable>f</replaceable></option></term>
   <listitem>
-<para>Multiply the step 2 bound <replaceable>B2</replaceable>
+<para>Multiply the default step 2 bound <replaceable>B2</replaceable>
 by the floating-point value <replaceable>f</replaceable>.
 Example: <option>-B2scale <replaceable>0.5</replaceable></option>
 divides the default <replaceable>B2</replaceable> by 2.</para>
