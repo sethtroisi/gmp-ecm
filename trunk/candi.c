@@ -227,3 +227,82 @@ int mpcandi_t_addfoundfactor(mpcandi_t *n, mpz_t f, int displaywarning)
 #endif
   return 1;
 }
+
+/**********************************************************************
+  Group order candidate functions.  These wrap the logic for the -go
+  command line switch which allows the user to "insert" the proper
+  group order.
+**********************************************************************/
+void mpgocandi_t_init(mpgocandi_t *go)
+{
+  go->cpOrigExpr = NULL;
+  mpcandi_t_init(&(go->Candi));
+  go->containsN = 0;
+  go->Valid = 0;
+}
+
+void mpgocandi_t_free(mpgocandi_t *go)
+{
+  if (go->cpOrigExpr)
+    free(go->cpOrigExpr);
+  mpcandi_t_free(&(go->Candi));
+  go->Valid = 0;
+}
+
+int mpgocandi_fixup_with_N(mpgocandi_t *go, mpcandi_t *n)
+{
+  int NumNs, len;
+  char *cp, *cpo, *numbuf;
+
+  if (go->Valid == 0)
+    return 0;
+  if (go->containsN == 0)
+    return 1;  /* a valid "normal" expression does not need updating */
+
+  cp = strchr(go->cpOrigExpr, 'N');
+  NumNs = 0;
+  while (cp)
+    {
+      ++NumNs;
+      cp = strchr(&cp[1], 'N');
+    }
+  /* compute size of string needed, and add some safety buffer to it */
+  cp = go->cpOrigExpr;
+  len = NumNs * mpz_sizeinbase(n->n, 10) + strlen(cp) + 100;
+  numbuf = (char *)malloc(len);
+  if (numbuf == NULL)
+    {
+      fprintf (stderr, "Error: not enough memory\n");
+      exit (EXIT_FAILURE);
+    }
+  cpo = numbuf;
+  while (*cp)
+    {
+      if (*cp == 'N')
+	  cpo += gmp_sprintf(cpo, "%Zi", n->n);
+      else
+        *cpo++ = *cp;
+      ++cp;
+    }
+
+  *cpo = 0; /* Null terminate the string correctly. */
+
+  if (eval_str (&(go->Candi), numbuf, 0, NULL))
+    {
+      /*gmp_printf ("preloading Group Order with factor knowledge of %s [%Zi]\n", argv[2], go.pCandi); */
+      go->Valid = 1;
+    }
+  else
+    {
+      static int warned = 0;
+      if (!warned)
+	{
+	  warned = 1;
+	  fprintf(stderr, "Warning, the expression %s for the -go switch was invalid for some reason\n", go->cpOrigExpr);
+	}
+      go->Valid = 0;  /* it is not valid, so do not use it */
+    }
+
+  free(numbuf);
+  return go->Valid;
+}

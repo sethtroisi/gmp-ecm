@@ -40,10 +40,11 @@ typedef struct {
   mpz_t *val;
 } mul_casc;
 
-int      pm1_stage1     (mpz_t, mpres_t, mpmod_t, double, double, int, mpz_t, mpz_t);
+int      pm1_stage1     (mpz_t, mpres_t, mpmod_t, double, double, int, mpz_t, mpz_t, mpz_t);
 mul_casc *mulcascade_init (void);
 void     mulcascade_free (mul_casc *);
 mul_casc *mulcascade_mul_d (mul_casc *c, const double n, mpz_t t);
+mul_casc *mulcascade_mul   (mul_casc *c, mpz_t n);
 void     mulcascade_get_z (mpz_t, mul_casc *);
 
 /******************************************************************************
@@ -143,6 +144,44 @@ mulcascade_mul_d (mul_casc *c, const double n, mpz_t t)
   return c;
 }
 
+mul_casc * 
+mulcascade_mul (mul_casc *c, mpz_t n)
+{
+  unsigned int i;
+
+  if (mpz_sgn (c->val[0]) == 0)
+    {
+      mpz_set (c->val[0], n);
+      return c;
+    }
+
+  mpz_mul (c->val[0], c->val[0], n);
+  if (mpz_size (c->val[0]) <= CASCADE_THRES)
+    return c;
+  
+  for (i = 1; i < c->size; i++) 
+    {
+      if (mpz_sgn (c->val[i]) == 0) 
+        {
+          mpz_set (c->val[i], c->val[i-1]);
+          mpz_set_ui (c->val[i-1], 0);
+          return c;
+        } else {
+          mpz_mul (c->val[i], c->val[i], c->val[i-1]);
+          mpz_set_ui (c->val[i-1], 0);
+        }
+    }
+  
+  /* Allocate more space for cascade */
+  
+  i = c->size++;
+  c->val = (mpz_t*) realloc (c->val, c->size * sizeof (mpz_t));
+  mpz_init (c->val[i]);
+  mpz_swap (c->val[i], c->val[i-1]);
+
+  return c;
+}
+
 void 
 mulcascade_get_z (mpz_t r, mul_casc *c) 
 {
@@ -171,7 +210,7 @@ mulcascade_get_z (mpz_t r, mul_casc *c)
 
 int
 pm1_stage1 (mpz_t f, mpres_t a, mpmod_t n, double B1, double B1done,
-	    int verbose, mpz_t orig_n, mpz_t orig_X0)
+	    int verbose, mpz_t orig_n, mpz_t orig_X0, mpz_t go)
 {
   double B0, p, q, r, cascade_limit;
   mpz_t g, d;
@@ -208,6 +247,7 @@ pm1_stage1 (mpz_t f, mpres_t a, mpmod_t n, double B1, double B1done,
      multiplications, and P-1 perform about B1 modular multiplications,
      to ensure small overhead, use that trick only when lg(n) <= sqrt(B1).
   */
+  /* For now, this p^N-1 is left in.  We might want it out at a later time */
   if ((double) size_n <= B0 &&
       mpz_probab_prime_p (n->orig_modulus, PROBAB_PRIME_TESTS) == 0)
     {
@@ -239,6 +279,11 @@ pm1_stage1 (mpz_t f, mpres_t a, mpmod_t n, double B1, double B1done,
      For sizeinbase(n,2) > CASCADE_MAX/3000, this means B1 > CASCADE_MAX^2,
      i.e. B1 > 25e14 for CASCADE_MAX=5e7.
 */
+
+  /* If the user "knows" that P-1 factors always have a certain form, then the user can "enter" that known factor */
+  /* HOWEVER, this is done in a double, so the user must only load in at most 53 bits or so? */
+  if (mpz_get_ui(go) > 1 || mpz_size (go) > 1)
+    cascade = mulcascade_mul (cascade, go);
 
   if (B0 <= cascade_limit)
     {
@@ -650,7 +695,7 @@ pm1_rootsG (mpz_t f, listz_t G, unsigned int d, mpres_t *fd, listz_t t,
    Return value: non-zero iff a factor is found (1 for stage 1, 2 for stage 2)
 */
 int
-pm1 (mpz_t f, mpz_t p, mpz_t N, double B1done, double B1, double B2min, double B2,
+pm1 (mpz_t f, mpz_t p, mpz_t N, mpz_t go, double B1done, double B1, double B2min, double B2,
      double B2scale, unsigned int k, int S, int verbose, int repr, mpz_t orig_X0)
 {
   mpmod_t modulus;
@@ -776,7 +821,7 @@ pm1 (mpz_t f, mpz_t p, mpz_t N, double B1done, double B1, double B2min, double B
   mpres_set_z (x, p, modulus);
 
   if (B1 > B1done)
-    youpi = pm1_stage1 (f, x, modulus, B1, B1done, verbose, N, orig_X0);
+    youpi = pm1_stage1 (f, x, modulus, B1, B1done, verbose, N, orig_X0, go);
 
   if (verbose >= 1)
     {

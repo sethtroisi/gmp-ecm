@@ -535,6 +535,15 @@ Options to control the group and initial point used:
    If not given, is generated from sigma. Like sigma, the value of A itself
    is not important; what is important is to ensure different values
    for different runs.
+-go <VAL>   [P-1,P+1,ECM].  Preload with Group Order value of VAL.  VAL can
+   be a simple number (such as 12345) or any valid expression (such as 2^40)
+   or it can be an expression that contains the special character N, (such
+   as N^2-1).  If the expression contains the N character, then the expression
+   is recomputed before for each curve, and the value of the candidate is 
+   substituted into the expression.  For instance:
+   echo 111112222334567 | ecm -go N^2-1 -pm1 5000   will convert the -go
+   expression into 111112222334567^2-1 then evaluated, before processing
+   the P-1.  
 
 Options to control step 2 parameters:
 -k n  [P-1,P+1,ECM]. Perform >= n blocks in step 2 (default is 0). See
@@ -564,6 +573,8 @@ Options to control output:
 -ve n     Verbosely show short (< n character) expressions on each loop.
           This gives a "better" feel for what is being processed when
           expressions are used.
+-ticdelay n This will cause the percentage ticks to only output every n
+            ms.  If n is -1, then the tic display will NOT happen at all.
 
 Options to control modular arithmetic (see "How to get the best of gmp-ecm?"):
 -mpzmod   Use GMP's mpz_mod for modular reduction.
