@@ -40,9 +40,9 @@ trial_factor (mpcandi_t *n, double maxfact, int deep)
 
   st = cputime ();
   
-  getprime(0.0);  /* free the prime tables, and reinitialize */
+  getprime (FREE_PRIME_TABLE);  /* free the prime tables, and reinitialize */
   /* brain dead trial factor'r but it werks */
-  for (p = 2.0; p <= maxfact; p = getprime(p))
+  for (p = 2.0; p <= maxfact; p = getprime (p))
     {
       Remainder=mpz_mod_ui(t,n->n,(unsigned long)p);
       if (!Remainder)
@@ -82,7 +82,7 @@ trial_factor (mpcandi_t *n, double maxfact, int deep)
           Counter=0;
 	}
     }
-  mpz_clear(t);
-  getprime(0.0);  /* free the prime tables, and reinitialize */
+  mpz_clear (t);
+  getprime (FREE_PRIME_TABLE);  /* free the prime tables, and reinitialize */
   return factors;
 }

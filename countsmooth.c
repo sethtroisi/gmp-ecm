@@ -28,7 +28,7 @@
 #ifdef PRIMEGEN
 #include <primegen.h>
 #else
-double getprime (double);
+#include "ecm.h" /* for getprime() */
 #endif
 
 #define mulmod(r,u,v,n) mpz_mul(r,u,v);mpz_mod(r,r,n);
@@ -663,9 +663,9 @@ main(int argc, char **argv)
       /* Do the sieving */
 #ifdef PRIMEGEN
       primegen_init (pg);
-      for (p=primegen_next(pg); p <= B1; p=primegen_next(pg))
+      for (p = primegen_next (pg); p <= B1; p = primegen_next (pg))
 #else
-      for (p=2; p <= B1; p=getprime(p))
+      for (p = 2; p <= B1; p = getprime (p))
 #endif
         {
           /* Compute first sieve location where p divides */
@@ -773,7 +773,7 @@ main(int argc, char **argv)
       nr_tests -= blocklen;
       blockstart += blocklen;
       mpz_add_ui (N, N, blocklen);
-      p = getprime (0.);
+      p = getprime (FREE_PRIME_TABLE);
     }
   
   for (i = 0; i < get_lenF (D); i++)

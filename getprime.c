@@ -51,7 +51,7 @@ getprime (double pp)
   static long int len = 0; /* length of sieving table */
   static unsigned long int *moduli = NULL; /* offset for small primes */
 
-  if (pp == 0.0) /* free the tables, and reinitialize */
+  if (WANT_FREE_PRIME_TABLE(pp)) /* free the tables, and reinitialize */
     {
       offset = 0.0;
       current = -1;
