@@ -23,15 +23,6 @@
 #include "gmp.h"
 #include "ecm.h"
 
-int duplicateW (mpz_t, mpres_t, mpres_t, mpres_t, mpres_t, mpmod_t, 
-                mpres_t, mpres_t, mpres_t);
-int addW (mpz_t, mpres_t, mpres_t, mpres_t, mpres_t, mpres_t, mpres_t, 
-          mpmod_t, mpres_t, mpres_t);
-int multiplyW2 (mpz_t, mpres_t, mpres_t, mpres_t, mpres_t, mpz_t, mpmod_t, 
-                mpres_t, mpres_t, mpres_t);
-int addWn (mpz_t, point *, mpmod_t, long);
-
-
 #define PTR(x) ((x)->_mp_d)
 #define getbit(x,i) (PTR(x)[i/mp_bits_per_limb] & ((mp_limb_t)1<<(i%mp_bits_per_limb)))
 
@@ -39,7 +30,7 @@ int addWn (mpz_t, point *, mpmod_t, long);
   (x1:y1) <- 2*(x:y) where (x:y) can be identical to (x1:y1).
   a is the Weierstrass parameter, u and v are auxiliary variables.
 */
-int
+static int
 duplicateW (mpz_t p, mpres_t x1, mpres_t y1, mpres_t x, mpres_t y, mpmod_t n, 
             mpres_t a, mpres_t u, mpres_t v)
 {
@@ -76,7 +67,7 @@ duplicateW (mpz_t p, mpres_t x1, mpres_t y1, mpres_t x, mpres_t y, mpmod_t n,
    n is the number to factor.
    u, v are auxiliary variables.
 */
-int
+static int
 addW (mpz_t p, mpres_t x, mpres_t y, mpres_t x1, mpres_t y1, mpres_t x2, 
       mpres_t y2, mpmod_t n, mpres_t u, mpres_t v)
 {
@@ -114,7 +105,7 @@ addW (mpz_t p, mpres_t x, mpres_t y, mpres_t x1, mpres_t y1, mpres_t x2,
 }
 
 /* (x1:y1) <- q*(x:y) where q is a large integer */
-int
+static int
 multiplyW2 (mpz_t p, mpres_t x1, mpres_t y1, mpres_t x, mpres_t y, mpz_t q, 
             mpmod_t n, mpres_t a, mpres_t u, mpres_t v)
 {
@@ -180,7 +171,7 @@ multiplyW2 (mpz_t p, mpres_t x1, mpres_t y1, mpres_t x, mpres_t y, mpz_t q,
    Uses one inversion and 6*e multiplications for e>1 (3 muls for e=1)
    x[0] may contain the neutral element (0:0), the others must not.
 */
-int
+static int
 addWn (mpz_t p, point *X, mpmod_t n, long e)
 {
   long j;
