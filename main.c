@@ -819,8 +819,8 @@ main (int argc, char *argv[])
   if (breadthfirst == 1)
     {
       breadthfirst_maxcnt = count;
-      count=1;
-      breadthfirst_cnt=0;
+      count = 1;
+      breadthfirst_cnt = 0;
     }
 
 BreadthFirstDoAgain:;
@@ -890,7 +890,7 @@ BreadthFirstDoAgain:;
   while ((breadthfirst && linenum < nCandidates) || feof (infile) == 0)
     {
       trial_factor_found = 0;
-      if (resumefile != NULL)
+      if (resumefile != NULL) /* resume case */
         {
 	  if (count != 1)
 	    {
@@ -902,7 +902,7 @@ BreadthFirstDoAgain:;
                 &B1done, program, who, rtime, comment, resumefile))
             break;
 
-	  cnt = count;
+	  cnt = count; /* i.e. 1 */
 
           if (verbose >= 1)
             {
@@ -927,10 +927,12 @@ BreadthFirstDoAgain:;
               printf ("\n");
             }
         }
-      else
+      else /* no-resume case */
         {
 	  if (cnt) /* nothing to read: reuse old number */
 	    {
+              if (verbose >= OUTPUT_NORMAL)
+                printf ("Run %u out of %u:\n", count - cnt + 1, count);
 	    }
 	  else /* new number */
 	    {
