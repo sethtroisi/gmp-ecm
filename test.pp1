@@ -1,4 +1,4 @@
-#!/bin/csh
+#!/bin/sh
 # test file for P+1 method
 #
 # Copyright 2002, 2003 Paul Zimmermann and Alexander Kruppa.
@@ -18,144 +18,100 @@
 # Software Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA
 # 02111-1307, USA.
 
-set ECM="$1 -pp1"
+PP1="$1 -pp1"
 
 # P+1 requires that sigma^2-4 is a quadratic non-residue mod p
 
-echo 328006342451 | $ECM -x0 5 120 7043
-if ($status != 0) then
-   echo "############### ERROR ###############";
-   exit 1;
-endif
+(echo 328006342451 | $PP1 -x0 5 120 7043)||
+   (echo "############### ERROR ###############";
+   exit 1;)
 
 # check rational seed
-echo 328006342451 | $ECM -x0 1/5 120 7043
-if ($status != 0) then
-   echo "############### ERROR ###############";
-   exit 1;
-endif
+(echo 328006342451 | $PP1 -x0 1/5 120 7043)||
+   (echo "############### ERROR ###############";
+   exit 1;)
 
-echo 6215074747201 | $ECM -x0 5 630 199729
-if ($status != 0) then
-   echo "############### ERROR ###############";
-   exit 1;
-endif
+(echo 6215074747201 | $PP1 -x0 5 630 199729)||
+   (echo "############### ERROR ###############";
+   exit 1;)
 
-echo 8857714771093 | $ECM -x0 3 23251 49207
-if ($status != 0) then
-   echo "############### ERROR ###############";
-   exit 1;
-endif
+(echo 8857714771093 | $PP1 -x0 3 23251 49207)||
+   (echo "############### ERROR ###############";
+   exit 1;)
 
-echo 236344687097 | $ECM -x0 3 619 55001
-if ($status != 0) then
-   echo "############### ERROR ###############";
-   exit 1;
-endif
+(echo 236344687097 | $PP1 -x0 3 619 55001)||
+   (echo "############### ERROR ###############";
+   exit 1;)
 
-echo 87251820842149 | $ECM -x0 5 3691 170249
-if ($status != 0) then
-   echo "############### ERROR ###############";
-   exit 1;
-endif
+(echo 87251820842149 | $PP1 -x0 5 3691 170249)||
+   (echo "############### ERROR ###############";
+   exit 1;)
 
-echo 719571227339189 | $ECM -x0 4 41039 57679
-if ($status != 0) then
-   echo "############### ERROR ###############";
-   exit 1;
-endif
+(echo 719571227339189 | $PP1 -x0 4 41039 57679)||
+   (echo "############### ERROR ###############";
+   exit 1;)
 
-echo 5468575720021 | $ECM -x0 6 1439 175759
-if ($status != 0) then
-   echo "############### ERROR ###############";
-   exit 1;
-endif
+(echo 5468575720021 | $PP1 -x0 6 1439 175759)||
+   (echo "############### ERROR ###############";
+   exit 1;)
 
-echo 49804972211 | $ECM -x0 5 15443 268757
-if ($status != 0) then
-   echo "############### ERROR ###############";
-   exit 1;
-endif
+(echo 49804972211 | $PP1 -x0 5 15443 268757)||
+   (echo "############### ERROR ###############";
+   exit 1;)
 
-echo 329573417220613 | $ECM -x0 3 5279 101573
-if ($status != 0) then
-   echo "############### ERROR ###############";
-   exit 1;
-endif
+(echo 329573417220613 | $PP1 -x0 3 5279 101573)||
+   (echo "############### ERROR ###############";
+   exit 1;)
 
-echo 4866979762781 | $ECM -x0 4 7309 97609
-if ($status != 0) then
-   echo "############### ERROR ###############";
-   exit 1;
-endif
+(echo 4866979762781 | $PP1 -x0 4 7309 97609)||
+   (echo "############### ERROR ###############";
+   exit 1;)
 
-echo 187333846633 | $ECM -x0 3 2063 9851
-if ($status != 0) then
-   echo "############### ERROR ###############";
-   exit 1;
-endif
+(echo 187333846633 | $PP1 -x0 3 2063 9851)||
+   (echo "############### ERROR ###############";
+   exit 1;)
 
-echo 332526664667473 | $ECM -x0 3 65993 111919
-if ($status != 0) then
-   echo "############### ERROR ###############";
-   exit 1;
-endif
+(echo 332526664667473 | $PP1 -x0 3 65993 111919)||
+   (echo "############### ERROR ###############";
+   exit 1;)
 
-echo 265043186297 | $ECM -x0 3 8761 152791
-if ($status != 0) then
-   echo "############### ERROR ###############";
-   exit 1;
-endif
+(echo 265043186297 | $PP1 -x0 3 8761 152791)||
+   (echo "############### ERROR ###############";
+   exit 1;)
 
-echo 207734163253 | $ECM -x0 3 1877 4211
-if ($status != 0) then
-   echo "############### ERROR ###############";
-   exit 1;
-endif
+(echo 207734163253 | $PP1 -x0 3 1877 4211)||
+   (echo "############### ERROR ###############";
+   exit 1;)
 
-echo 225974065503889 | $ECM -x0 5 7867 8243
-if ($status != 0) then
-   echo "############### ERROR ###############";
-   exit 1;
-endif
+(echo 225974065503889 | $PP1 -x0 5 7867 8243)||
+   (echo "############### ERROR ###############";
+   exit 1;)
 
-echo 660198074631409 | $ECM -x0 5 22541 115679
-if ($status != 0) then
-   echo "############### ERROR ###############";
-   exit 1;
-endif
+(echo 660198074631409 | $PP1 -x0 5 22541 115679)||
+   (echo "############### ERROR ###############";
+   exit 1;)
 
-echo 563215815517 | $ECM -x0 3 3469 109849
-if ($status != 0) then
-   echo "############### ERROR ###############";
-   exit 1;
-endif
+(echo 563215815517 | $PP1 -x0 3 3469 109849)||
+   (echo "############### ERROR ###############";
+   exit 1;)
 
 # test B2min-B2
-echo 563215815517 | $ECM -x0 3 3469 109849-109849
-if ($status != 0) then
-   echo "############### ERROR ###############";
-   exit 1;
-endif
+(echo 563215815517 | $PP1 -x0 3 3469 109849-109849)||
+   (echo "############### ERROR ###############";
+   exit 1;)
 
-echo 409100738617 | $ECM -x0 3 19 19
-if ($status != 0) then
-   echo "############### ERROR ###############";
-   exit 1;
-endif
+(echo 409100738617 | $PP1 -x0 3 19 19)||
+   (echo "############### ERROR ###############";
+   exit 1;)
 
 # p37 from 45^123+1 found by Peter Montgomery with B1=30M
-echo 4190453151940208656715582382315221647 | $ECM -x0 3 2337233 132554351
-if ($status != 0) then
-   echo "############### ERROR ###############";
-   exit 1;
-endif
+(echo 4190453151940208656715582382315221647 | $PP1 -x0 3 2337233 132554351)||
+   (echo "############### ERROR ###############";
+   exit 1;)
 
 # bug in ecm-5.0 (overflow in fin_diff_coeff)
-echo 630503947831861669 | $ECM -x0 5 7 9007199254740000-9007199254741000
-if ($status != 0) then
-   echo "############### ERROR ###############";
-   exit 1;
-endif
+(echo 630503947831861669 | $PP1 -x0 5 7 9007199254740000-9007199254741000)||
+   (echo "############### ERROR ###############";
+   exit 1;)
 
 echo "All tests are ok."
