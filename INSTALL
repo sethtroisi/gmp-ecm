@@ -10,7 +10,7 @@ Instructions to install gmp-ecm:
    and to compile it on your particular processor.
 
    Moreover for efficiency reasons, gmp-ecm requires some internal GMP
-   header files (gmp-mparam.h, gmp-impl.h, longlong.h). So you need
+   header files (gmp-mparam.h, gmp-impl.h, config.h). So you need
    to copy those internal files in <gmpdir>/include (see below).
 
 1) to create the binary file "ecm5", type:
@@ -26,8 +26,8 @@ Instructions to install gmp-ecm:
       $ ./test.pp1 ./ecm5 # this checks P+1
       $ ./test.ecm ./ecm5 # this checks ECM
 
-   The P+1 test takes about 30 seconds on a PIII-366 with GMP 4.1.
-   The P-1 and ECM tests take much longer.
+   On a Athlon 2000+ with GMP 4.1.2, the P+1 test takes about 6 seconds,
+   the P-1 test about 30 seconds, and the ECM test about 2 minutes.
 
 Note: if you care about efficiency, you might try to compile ecm5 with the
 same CFLAGS as GMP (grep CFLAGS <gmp_source_dir>/Makefile).
