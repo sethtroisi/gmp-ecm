@@ -756,25 +756,24 @@ TToomCookMul_space (unsigned int n, unsigned int m, unsigned int l)
 */
 unsigned int
 TMulGen (listz_t b, unsigned int n, listz_t a, unsigned int m,
-         listz_t c, unsigned int l, listz_t tmp, mpz_t modulus)
+         listz_t c, unsigned int l, listz_t tmp, mpz_t modulus, FILE *es)
 {
-    unsigned int i, muls;
+    unsigned int i, muls = 0;
 
     for (i = l + 1; i > 1 && (i&1) == 0; i >>= 1);
     
     if (Fermat)
       {
         if (i == 1 && m + n + 1 == l)
-          return F_mul_trans (b, a, c, l + 1, Fermat, tmp);
+          return F_mul_trans (b, a, c, l + 1, Fermat, tmp, es);
         else
-          printf ("TMulGen: Fermat = %d, but m+1 = %d, n+1 = %d, l+1 = %d\n", 
-                  Fermat, m+1, n+1, l+1);
+          fprintf (es, "TMulGen: Fermat = %d, but m+1 = %d, n+1 = %d, l+1 = %d\n", 
+                   Fermat, m+1, n+1, l+1);
       }
 
 #ifdef KS_MULTIPLY
-    if ((double) n * (double) mpz_sizeinbase (modulus, 2) >=
-             KS_TMUL_THRESHOLD)
-      muls = TMulKS (b, n, a, m, c, l, modulus, 1);
+    if ((double) n * (double) mpz_sizeinbase (modulus, 2) >= KS_TMUL_THRESHOLD)
+      TMulKS (b, n, a, m, c, l, modulus, 1); /* does no muls count */
     else
 #endif
       muls = TToomCookMul (b, n, a, m, c, l, tmp);

@@ -50,7 +50,7 @@ Since list_mul_mem(k) >= 2*k, the maximum is the 1st.
 */
 void
 polyeval (listz_t G, unsigned int k, listz_t *Tree, listz_t T, mpz_t n,
-          unsigned int sh)
+          unsigned int sh, FILE *es)
 {
   unsigned int l, m;
   listz_t T0;
@@ -73,7 +73,7 @@ polyeval (listz_t G, unsigned int k, listz_t *Tree, listz_t T, mpz_t n,
          to RecursiveDivision */
       list_set (T, G, k);
       /* the following needs k+m+list_mul_mem(m) in T */
-      RecursiveDivision (T + k, T, T0 + l, m, T + k + m, n, 1);
+      RecursiveDivision (T + k, T, T0 + l, m, T + k + m, n, 1, es);
     }
   else /* k = 2m+1: subtract G[k-1]*x^(l-1) * T0 from G */
     {
@@ -82,7 +82,7 @@ polyeval (listz_t G, unsigned int k, listz_t *Tree, listz_t T, mpz_t n,
       list_mul_z (T + m, T0 + l, G[k - 1], m, n);
       list_sub (T + m, G + m, T + m, m);
       /* the following needs 3m+list_mul_mem(m) in T */
-      RecursiveDivision (T + 2 * m, T, T0 + l, m, T + 3 * m, n, 1);
+      RecursiveDivision (T + 2 * m, T, T0 + l, m, T + 3 * m, n, 1, es);
     }
   /* in both cases we need 3*(k/2)+list_mul_mem(k/2) */
 
@@ -97,7 +97,7 @@ polyeval (listz_t G, unsigned int k, listz_t *Tree, listz_t T, mpz_t n,
   if (k < 2 * l)
     mpz_set_ui (G[k], 0);
   /* the following needs k+list_mul_mem(l) in T */
-  RecursiveDivision (T + m, G, T0, l, T + k, n, 1);
+  RecursiveDivision (T + m, G, T0, l, T + k, n, 1, es);
 
   /* left remainder is in {G,l} */
   
@@ -135,7 +135,7 @@ print_vect (listz_t t, unsigned int l)
 
 static void
 TUpTree (listz_t b, listz_t *Tree, unsigned int k,
-         listz_t tmp, unsigned int sh, mpz_t n)
+         listz_t tmp, unsigned int sh, mpz_t n, FILE *es)
 {
 
     unsigned int m, l;
@@ -156,8 +156,8 @@ TUpTree (listz_t b, listz_t *Tree, unsigned int k,
     printf ("\n");
 #endif
 
-    TMulGen (tmp, l - 1, Tree[0] + sh + l, m - 1, b, k - 1, tmp + l, n);
-    TMulGen (tmp + l, m - 1, Tree[0] + sh, l - 1, b, k - 1, tmp + k, n);
+    TMulGen (tmp, l - 1, Tree[0] + sh + l, m - 1, b, k - 1, tmp + l, n, es);
+    TMulGen (tmp + l, m - 1, Tree[0] + sh, l - 1, b, k - 1, tmp + k, n, es);
 
 #ifdef DEBUG
     printf ("And the result at that level (before correction) is:");
@@ -180,8 +180,8 @@ TUpTree (listz_t b, listz_t *Tree, unsigned int k,
     printf ("\n");
 #endif
     
-    TUpTree (b, Tree + 1, l, tmp, sh, n);
-    TUpTree (b + l, Tree + 1, m, tmp, sh + l, n);
+    TUpTree (b, Tree + 1, l, tmp, sh, n, es);
+    TUpTree (b + l, Tree + 1, m, tmp, sh + l, n, es);
 }
 
 static unsigned int
@@ -222,7 +222,8 @@ TUpTree_space (unsigned int k)
 */
 int
 polyeval_tellegen (listz_t b, unsigned int k, listz_t *Tree, listz_t tmp,
-                   unsigned int sizeT, listz_t invF, mpz_t n, unsigned int sh)
+                   unsigned int sizeT, listz_t invF, mpz_t n, unsigned int sh,
+                   FILE *es)
 {
     unsigned int tupspace;
     unsigned int tkspace;
@@ -257,7 +258,7 @@ polyeval_tellegen (listz_t b, unsigned int k, listz_t *Tree, listz_t tmp,
     if (Fermat)
       {
         /* Schoenhage-Strassen can't do a half product faster than a full */
-        F_mul (T, invF, b, k, DEFAULT, Fermat, T + 2 * k);
+        F_mul (T, invF, b, k, DEFAULT, Fermat, T + 2 * k, es);
         list_mod (T, T + k - 1, k, n);
       }
     else
@@ -269,11 +270,11 @@ polyeval_tellegen (listz_t b, unsigned int k, listz_t *Tree, listz_t tmp,
 #else
         /* revert invF for call to TMulGen below */
         list_revert (invF, k - 1);
-        TMulGen (T, k - 1, invF, k - 1, b, k - 1, T + k, n);
+        TMulGen (T, k - 1, invF, k - 1, b, k - 1, T + k, n, es);
 #endif
       }
     list_revert (T, k - 1);
-    TUpTree (T, Tree, k, T + k, sh, n);
+    TUpTree (T, Tree, k, T + k, sh, n, es);
     list_swap (b, T, k); /* more efficient than list_set, since T is not
                             needed anymore */
 
