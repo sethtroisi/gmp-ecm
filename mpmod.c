@@ -22,7 +22,7 @@
 #include <stdio.h>
 #include "gmp.h"
 #include "ecm-gmp.h"
-#include "ecm.h"
+#include "ecm-impl.h"
 #ifdef HAVE_GWNUM
 #include "Fgw.h"
 #endif

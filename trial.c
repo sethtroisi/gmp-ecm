@@ -25,6 +25,7 @@
 #endif
 #include "gmp.h"
 #include "ecm.h"
+#include "ecm-ecm.h"
 
 int
 trial_factor (mpcandi_t *n, double maxfact, int deep)
@@ -34,12 +35,9 @@ trial_factor (mpcandi_t *n, double maxfact, int deep)
   unsigned long Remainder;
   double p;
   char numbuf[40];
-  int Counter = 0, st;
 
   mpz_init(t);
 
-  st = cputime ();
-  
   getprime (FREE_PRIME_TABLE);  /* free the prime tables, and reinitialize */
   /* brain dead trial factor'r but it werks */
   for (p = 2.0; p <= maxfact; p = getprime (p))
@@ -63,26 +61,9 @@ trial_factor (mpcandi_t *n, double maxfact, int deep)
 	    /* We only want the first factor if not in "deep" mode */
 	    break;
 	}
-      if (++Counter == 50000)
-	{
-	  /* only output to screen at most once every 5 seconds */
-	  if (cputime() - st > 5000)
-	    {
-	      /* Check to see if we should update our screen "percentage counter" */
-	      double Percentage = p;
-	      st = cputime ();
-	      Percentage /= maxfact;
-	      Percentage *= 100;
-	      fprintf (stderr, "T:%03d\r", (int)Percentage);
- 	    }
-	  /*  This code is here to see just how often this ++Counter loop is entered.  It is entered quite a bit
-	  static int x;
-	  fprintf (stderr, "T:%03d\r", ++x);
-	  */
-          Counter=0;
-	}
     }
   mpz_clear (t);
   getprime (FREE_PRIME_TABLE);  /* free the prime tables, and reinitialize */
+
   return factors;
 }

@@ -19,7 +19,7 @@
 */
 
 #include "gmp.h"
-#include "ecm.h"
+#include "ecm-impl.h"
 
 void mpn_mul_lo_basecase (mp_ptr, mp_srcptr, mp_srcptr, mp_size_t);
 
@@ -41,6 +41,9 @@ mpn_mul_lo_basecase (mp_ptr rp, mp_srcptr np, mp_srcptr mp, mp_size_t n)
 #ifndef MPN_MUL_LO_THRESHOLD
 #define MPN_MUL_LO_THRESHOLD (2 * MUL_KARATSUBA_THRESHOLD)
 #endif
+
+#define N 32
+#define MUL_LOW_THRESHOLD_TABLE {0,0,0,0,0,1,1,0,0,1,1,1,1,1,1,1,11,12,1,1,15,15,16,18,15,19,17,18,19,20,21,21}
 
 INLINE void
 mpn_mul_lo_n (mp_ptr rp, mp_srcptr np, mp_srcptr mp, mp_size_t n)

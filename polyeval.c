@@ -19,7 +19,7 @@
 */
 
 #include "gmp.h"
-#include "ecm.h"
+#include "ecm-impl.h"
 
 #ifndef MAX
 #define MAX(a,b) (((a) > (b)) ? (a) : (b))

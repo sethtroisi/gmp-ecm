@@ -22,7 +22,7 @@
 #include <stdlib.h>
 #include <math.h>
 #include "gmp.h"
-#include "ecm.h"
+#include "ecm-impl.h"
 
 #if WANT_ASSERT
 #include <assert.h>
@@ -470,7 +470,7 @@ addWnm (mpz_t p, point *X, curve *S, mpmod_t modulus, unsigned int m,
 
 /* puts in F[0..dF-1] the successive values of 
 
-   Dickson_{S, a} (j * d2) * s  where s is a point on the elliptic curve
+   Dickson_{S, a} (d2*j) * s  where s is a point on the elliptic curve
 
    for j == 1 mod 6, j and d1 coprime.
    Returns non-zero iff a factor was found (then stored in f).
@@ -482,42 +482,69 @@ ecm_rootsF (mpz_t f, listz_t F, unsigned int d1, unsigned int d2,
 {
   unsigned int i;
   unsigned long muls = 0, gcds = 0;
-  int st;
-  int youpi = 0;
+  int st, st1;
+  int youpi = 0, dickson_a;
   listz_t coeffs;
   ecm_roots_state state;
   
   if (dF == 0)
     return 0;
 
-  if (verbose >= 2)
-    st = cputime ();
+  ASSERT (gcd (d1, d2) == 1);
 
-  /* Relative cost of point add during init and computing roots assumed =1 */
-  init_roots_state (&state, S, d1, d2, 1.0);
+  st = cputime ();
+
+  /* If S < 0, use degree |S| Dickson poly, otherwise use x^S */
+  dickson_a = (S < 0) ? -1 : 0;
+  S = abs (S);
+
+  /* We only calculate j*P where gcd (j, dsieve) == 1 and j == 1 (mod 6)
+     by doing nr=eulerphi(dsieve/6) separate progressions. */
+  /* Now choose a value for dsieve. */
+  state.dsieve = 6;
+  state.nr = 1;
+
+  /* Prospective saving by sieving out multiples of 5:
+       d1 / state.dsieve * state.nr / 5 roots, each one costs S point adds
+     Prospective cost increase:
+       4 times as many progressions to init (that is, 3 * state.nr more), 
+       each costs ~ S * S * log_2(5 * dsieve * d2) / 2 point adds
+     The state.dsieve and one S cancel.
+  */
+  if (d1 % 5 == 0 && 
+      d1 / state.dsieve / 5 > 3. * S * log (5. * state.dsieve * d2) / 2.)
+    {
+      state.dsieve *= 5;
+      state.nr *= 4;
+    }
+
+  if (d1 % 7 == 0 && 
+      d1 / state.dsieve / 7 > 5. * S * log (7. * state.dsieve * d2) / 2.)
+    {
+      state.dsieve *= 7;
+      state.nr *= 6;
+    }
+  
+  if (d1 % 11 == 0 && 
+      d1 / state.dsieve / 11 > 9. * S * log (11. * state.dsieve * d2) / 2.)
+    {
+      state.dsieve *= 11;
+      state.nr *= 10;
+    }
+  
+  state.size_fd = (S + 1) * state.nr;
+  state.next = 0;
+  state.rsieve = 1;
 
   if (verbose >= 3)
-    printf ("ecm_rootsF: state: nr = %d, dsieve = %d, size_fd = %d, S = %d, "
-            "dickson_a = %d\n", state.nr, state.dsieve, state.size_fd, 
-            state.S, state.dickson_a);
-
-  /* Init finite differences tables */
-
-  coeffs = init_progression_coeffs (0., state.dsieve, d2, 1, 6, state.S, 
-                                    state.dickson_a);
-
-  /* The highest coefficient is the same for all progressions, so set them
-     to one for all but the first progression, later we copy the point */
-  for (i = state.S + 1; i < state.size_fd; i += state.S + 1)
-    mpz_set_ui (coeffs[i + state.S], 1);
+    printf ("ecm_rootsF: state: nr = %d, dsieve = %d, size_fd = %d\n", 
+            state.nr, state.dsieve, state.size_fd);
 
   /* Allocate memory for fd[] and T[] */
 
   state.fd = (point *) xmalloc (state.size_fd * sizeof (point));
-  for (i = 0; i < state.size_fd; i++)
+  for (i = 0 ; i < state.size_fd; i++)
     {
-     if (verbose >= 4)
-       gmp_printf ("ecm_rootsF: coeffs[%d] = %Zd\n", i, coeffs[i]);
       mpres_init (state.fd[i].x, modulus);
       mpres_init (state.fd[i].y, modulus);
     }
@@ -526,28 +553,39 @@ ecm_rootsF (mpz_t f, listz_t F, unsigned int d1, unsigned int d2,
   for (i = 0 ; i < state.size_fd + 4; i++)
     mpres_init (state.T[i], modulus);
 
-  /* Multiply fd[] = s * coeffs[] */
+  /* Init finite differences tables */
 
+  st = cputime ();
+  
+  coeffs = init_progression_coeffs (0., state.dsieve, d2, 1, 6, S, dickson_a);
+
+  /* The highest coefficient is the same for all progressions, so set them
+     to one for all but the first progression, later we copy the point */
+  for (i = S + 1; i < state.size_fd; i += S + 1)
+    mpz_set_ui (coeffs[i + S], 1);
+  
+  if (verbose >= 4)
+    for (i = 0; i < state.size_fd; i++)
+      gmp_printf ("ecm_rootsF: coeffs[%d] = %Zd\n", i, coeffs[i]);
+  
   youpi = multiplyW2n (f, state.fd, s, coeffs, state.size_fd, modulus, 
                        state.T[0], state.T[1], state.T + 2, &muls, &gcds);
   if (youpi && verbose >= 2)
-    printf ("Found factor while computing coeff[] * X\n");
+    printf ("Found factor while computing fd[] * X\n");
   
-  /* Copy the point corresponding to the highest coefficient of the first 
-     progression to the other progressions */
-  for (i = state.S + 1; i < state.size_fd; i += state.S + 1)
-    {
-      mpres_set (state.fd[i + state.S].x, state.fd[state.S].x, modulus);
-      mpres_set (state.fd[i + state.S].y, state.fd[state.S].y, modulus);
-    }
-
   clear_list (coeffs, state.size_fd);
   coeffs = NULL;
   
+  /* Copy the point corresponding to the highest coefficient of the first 
+     progression to the other progressions */
+  for (i = S + 1; i < state.size_fd; i += S + 1)
+    {
+      mpres_set (state.fd[i + S].x, state.fd[S].x, modulus);
+      mpres_set (state.fd[i + S].y, state.fd[S].y, modulus);
+    }
+
   if (verbose >= 2)
     {
-      int st1;
-      
       st1 = cputime ();
       printf ("Initializing tables of differences for F took %dms", st1 - st);
       if (verbose > 2)
@@ -558,28 +596,27 @@ ecm_rootsF (mpz_t f, listz_t F, unsigned int d1, unsigned int d2,
       gcds = 0;
     }
 
-  /* Now for the actual calculation of the roots. */
+  /* Now for the actual calculation of the roots. k keeps track of which fd[] 
+     entry to get the next root from. */
 
-  for (i = 0; i < dF && !youpi;)
+  i = 0;
+  while (i < dF && !youpi)
     {
-      /* Is this a rsieve value where we computed Dickson(j * d2) * X? */
+      /* Is this a rsieve value where we computed Dickson(j)*X? */
       if (gcd (state.rsieve, state.dsieve) == 1) 
         {
-          /* Did we use every progression since the last update? */
-          if (state.next == state.nr)
+          if (state.next == state.nr) /* Is it time to update fd[] ? */
             {
-              /* Yes, time to update again */
-              youpi = addWnm (f, state.fd, s, modulus, state.nr, state.S, 
-                              state.T, &muls, &gcds);
+              youpi = addWnm (f, state.fd, s, modulus, state.nr, S, state.T, 
+                              &muls, &gcds);
               state.next = 0;
               if (youpi && verbose >= 2)
                 printf ("Found factor while computing roots of F\n");
             }
           
-          /* Is this a j value where we want Dickson(j * d2) * X as a root? */
+          /* Is this a j value where we want Dickson(j)*X? as a root of F? */
           if (gcd (state.rsieve, d1) == 1) 
-            mpres_get_z (F[i++], state.fd[state.next * (state.S + 1)].x, 
-                         modulus);
+            mpres_get_z (F[i++], state.fd[state.next * (S + 1)].x, modulus);
 
           state.next++;
         }
@@ -675,14 +712,14 @@ ecm_rootsG_init (mpz_t f, curve *X, double s, unsigned int d1, unsigned int d2,
   if (phid2 > 1)
     state->nr = ((state->nr + (phid2 - 1)) / phid2) * phid2;
 
-  state->S = S;
-  state->size_fd = state->nr * (state->S + 1);
+  state->size_fd = state->nr * (S + 1);
 
   if (verbose >= 3)
     printf ("ecm_rootsG_init: s=%f, d1=%u, d2=%d, dF=%d, blocks=%d, S=%u, T_inv = %d, nr=%d\n", 
             s, d1, d2, dF, blocks, S, T_inv, state->nr);
   
   state->X = X;
+  state->S = S;
   state->next = 0;
   state->dsieve = 1; /* We only init progressions coprime to d2, so nothing to be skipped */
   state->rsieve = 1;

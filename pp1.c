@@ -32,6 +32,7 @@
 #include <limits.h> /* for ULONG_MAX */
 #include "gmp.h"
 #include "ecm.h"
+#include "ecm-impl.h"
 
 /******************************************************************************
 *                                                                             *
@@ -198,27 +199,6 @@ pp1_stage1 (mpz_t f, mpres_t P0, mpmod_t n, double B1, double B1done, mpz_t go)
   mpres_clear (P, n);
   
   return youpi;
-}
-
-/* put in seed a valid random seed for P+1 */
-void
-pp1_random_seed (mpz_t seed, mpz_t n, gmp_randstate_t randstate)
-{
-  mpz_t q;
-
-  /* need gcd(p^2-4, n) = 1. */
-  mpz_init (q);
-  do
-    {
-      mpz_urandomb (q, randstate, 32);
-      mpz_add_ui (q, q, 1);
-      mpz_set (seed, q);
-      mpz_mul (q, q, q);
-      mpz_sub_ui (q, q, 4);
-      mpz_gcd (q, q, n);
-    }
-  while (mpz_cmp_ui (q, 1) != 0);
-  mpz_clear (q);
 }
 
 /* checks if the factor p was found by P+1 or P-1 (when prime).
@@ -402,7 +382,7 @@ pp1_rootsG (listz_t G, unsigned int d, pp1_roots_state *state,
 *                                                                             *
 ******************************************************************************/
 
-/* Input: p is the initial generator (sigma)
+/* Input: p is the initial generator (sigma), if 0 generate it at random.
           n is the number to factor
 	  B1 is the stage 1 bound
 	  B2 is the stage 2 bound
@@ -421,6 +401,14 @@ pp1 (mpz_t f, mpz_t p, mpz_t n, mpz_t go, double B1done, double B1,
   mpmod_t modulus;
 
   st = cputime ();
+
+  if (mpz_cmp_ui (p, 0) == 0)
+    {
+      gmp_randstate_t state;
+      gmp_randinit_default (state);
+      pm1_random_seed (p, n, state);
+      gmp_randclear (state);
+    }
 
   /* Set default B2. See ecm.c for comments */
   if (IS_DEFAULT_B2(B2))

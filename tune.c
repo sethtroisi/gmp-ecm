@@ -22,14 +22,14 @@
 #include <stdlib.h>
 #include "gmp.h"
 #include "ecm-gmp.h"
-#include "ecm.h"
+#include "ecm-impl.h"
 
 #define MINTIME 1000 /* one second */
 
 /* performs k computations of p*q mod N using representation 'repr'
    and return the total time.
 */
-static int
+int
 test (mpz_t N, mpz_t p, mpz_t q, int repr, int k)
 {
   mpmod_t modulus;

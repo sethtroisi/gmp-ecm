@@ -24,6 +24,7 @@
 #include <limits.h> /* for UINT_MAX */
 #include "gmp.h"
 #include "ecm.h"
+#include "ecm-impl.h"
 
 /* returns Euler's totient phi function */
 unsigned long

@@ -29,7 +29,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include "gmp.h"
-#include "ecm.h"
+#include "ecm-impl.h"
 
 /* the following constant were tested experimentally: in theory, we should
    have ADD = 2*DUP in the basecase range, and ADD = 3/2*DUP in the FFT range.

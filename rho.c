@@ -1,9 +1,27 @@
+/* 
+  Copyright 2004, 2005 Alexander Kruppa.
+
+  This program is free software; you can redistribute it and/or modify it
+  under the terms of the GNU General Public License as published by the
+  Free Software Foundation; either version 2 of the License, or (at your
+  option) any later version.
+
+  This program is distributed in the hope that it will be useful, but WITHOUT
+  ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+  FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License for
+  more details.
+
+  You should have received a copy of the GNU General Public License along
+  with this program; see the file COPYING.  If not, write to the Free
+  Software Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA
+  02111-1307, USA.
+*/
+
 #include <stdlib.h>
 #include <stdio.h>
 #include <math.h>
-#ifndef TESTDRIVE
-#include "ecm.h"
-#endif
+#include "gmp.h"
+#include "ecm-impl.h"
 
 #define M_PI_SQR   9.869604401089358619 /* Pi^2 */
 #define M_PI_SQR_6 1.644934066848226436 /* Pi^2/6 */
@@ -11,20 +29,7 @@
 #define M_EULER_1   0.422784335098467139 /* 1 - Euler */
 #define GSL_DBL_EPSILON 2.2204460492503131e-16
 
-static double dilog_series (const double);
-double dilog (double);
-double L2 (double);
-double rhoexact (double);
-void rhoinit (int, int);
-double dickmanrho (double);
-double dickmanrhosigma (double, double);
-double dickmanrhosigma_i (int, double);
-double dickmanlocal (double, double);
-double dickmanlocal_i (int, double);
-double dickmanmu (double, double, double);
-double brentsuyama (double, double, double, double);
-double brsudickson (double, double, double, double, int);
-double brsupower (double, double, double, double, int);
+void rhoinit (int, int); /* used in stage2.c */
 
 static double *rhotable = NULL;
 static int invh = 0;
@@ -82,8 +87,7 @@ phi (unsigned long n)
  * Converges rapidly for |x| < 1/2.
  */
 
-static
-double
+static double
 dilog_series (const double x)
 {
   const int kmax = 1000;
@@ -103,7 +107,7 @@ dilog_series (const double x)
   return sum;
 }
 
-double
+static double
 dilog (double x)
 {
   if (x <= -2.0)
@@ -128,13 +132,15 @@ dilog (double x)
     }
 }
 
-double 
+#if 0
+static double 
 L2 (double x)
 {
   return log (x) * (1 - log (x-1)) + M_PI_SQR_6 - dilog (1 - x);
 }
+#endif
 
-double
+static double
 rhoexact (double x)
 {
   if (x <= 0.)
@@ -195,7 +201,7 @@ rhoinit (int parm_invh, int parm_tablemax)
     }
 }
 
-double
+static double
 dickmanrho (double alpha)
 {
   if (alpha <= 3.)
@@ -211,7 +217,7 @@ dickmanrho (double alpha)
   return 0.;
 }
 
-double 
+static double 
 dickmanrhosigma (double alpha, double x)
 {
   if (alpha <= 0.)
@@ -224,7 +230,8 @@ dickmanrhosigma (double alpha, double x)
   return 0;
 }
 
-double
+#if 0
+static double
 dickmanrhosigma_i (int ai, double x)
 {
   if (ai <= 0)
@@ -236,8 +243,9 @@ dickmanrhosigma_i (int ai, double x)
   
   return 0.;
 }
+#endif
 
-double
+static double
 dickmanlocal (double alpha, double x)
 {
   if (alpha <= 0.)
@@ -250,7 +258,7 @@ dickmanlocal (double alpha, double x)
   return (0);
 }
 
-double
+static double
 dickmanlocal_i (int ai, double x)
 {
   if (ai <= 0)
@@ -269,7 +277,7 @@ dickmanlocal_i (int ai, double x)
   return 0.;
 }
 
-double
+static double
 dickmanmu (double alpha, double beta, double x)
 {
   double a, b, sum;
@@ -290,7 +298,7 @@ dickmanmu (double alpha, double beta, double x)
   return sum;
 }
 
-double
+static double
 brentsuyama (double B1, double B2, double N, double nr)
 {
   double a, alpha, beta, sum;
@@ -310,7 +318,7 @@ brentsuyama (double B1, double B2, double N, double nr)
   return sum;
 }
 
-double 
+static double 
 brsudickson (double B1, double B2, double N, double nr, int S)
 {
   int i, f;
@@ -324,7 +332,8 @@ brsudickson (double B1, double B2, double N, double nr, int S)
   return sum / (double)f;
 }
 
-double brsupower (double B1, double B2, double N, double nr, int S)
+static double
+brsupower (double B1, double B2, double N, double nr, int S)
 {
   int i, f;
   double sum;

@@ -33,6 +33,7 @@
 #endif
 #include "gmp.h"
 #include "ecm.h"
+#include "ecm-ecm.h"
 
 #if defined (__MINGW32__) || defined (_MSC_VER) /* || defined (__CYGWIN__) */
 /* needed for priority setting */               /* not sure about CyGwin and windows.h and Win32 API functions */
@@ -191,11 +192,7 @@ main (int argc, char *argv[])
         /* If a factor was found, indicate whether factor, cofactor are */
         /* prime. If no factor was found, both are zero. */
   int repr = 0;
-#ifdef POLYEVAL
-  int k = 2;
-#else /* POLYGCD is more expensive -> perform more blocks */
-  int k = 8; /* default number of blocks in stage 2 */
-#endif
+  int k = ECM_DEFAULT_K; /* default number of blocks in stage 2 */
   int S = 0; /* Degree for Brent-Suyama extension requested by user */
              /* Positive value: use S-th power, */
              /* negative: use degree |S| Dickson poly */
@@ -1029,7 +1026,7 @@ BreadthFirstDoAgain:;
 	{
 	  factsfound++;
           if (verbose > 0)
-            printf ("********** Factor found in step %u: ", ABS(result));
+            printf ("********** Factor found in step %u: ", ABS (result));
           mpz_out_str (stdout, 10, f);
           if (verbose > 0)
             printf ("\n");
