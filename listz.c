@@ -79,6 +79,8 @@ clear_list (listz_t p, unsigned int n)
   free (p);
 }
 
+#define POLYFORM
+
 /* prints a list of n coefficients */
 void
 print_list (listz_t p, unsigned int n)
@@ -87,8 +89,16 @@ print_list (listz_t p, unsigned int n)
 
   for (i = 0; i < n; i++)
     {
+#ifdef POLYFORM
+      if (i > 0 && mpz_cmp_ui (p[i], 0) >= 0)
+        printf ("+");
+#endif
       mpz_out_str (stdout, 10, p[i]);
+#ifdef POLYFORM
+      printf ("*x^%u", i);
+#else
       printf (" ");
+#endif
     }
   putchar ('\n');
 }
@@ -141,6 +151,34 @@ list_sub (listz_t p, listz_t q, listz_t r, unsigned int n)
 
   for (i = 0; i < n; i++)
     mpz_sub (p[i], q[i], r[i]);
+}
+
+/* p <- q * r */
+void
+list_mul_z (listz_t p, listz_t q, mpz_t r, unsigned int n)
+{
+  unsigned int i;
+
+  for (i = 0; i < n; i++)
+    mpz_mul (p[i], q[i], r);
+}
+
+/* p <- gcd(n, l[0]*l[1]*...*l[k-1],
+   returns non-zero iff p is non trivial */
+int
+list_gcd (mpz_t p, listz_t l, unsigned int k, mpz_t n)
+{
+  unsigned int i;
+  
+  mpz_set (p, l[0]);
+  for (i=1; i<k; i++)
+    {
+      mpz_mul (p, p, l[i]);
+      mpz_mod (p, p, n);
+    }
+  mpz_gcd (p, p, n);
+
+  return mpz_cmp_ui (p, 1);
 }
 
 /* p <- 0 */
@@ -339,33 +377,31 @@ list_mulmod2 (listz_t a2, listz_t a, listz_t b, listz_t c, unsigned int k,
   return muls;
 }
 
-/* puts in G[0]..G[k-1] the coefficients from (x-G[0])...(x-G[k-1])
+/* puts in G[0]..G[k-1] the coefficients from (x-a[0])...(x-a[k-1])
    Warning: doesn't fill the coefficient 1 of G[k], which is implicit.
    Needs k + list_mul_mem(k/2) cells in T.
    Return the number of multiplies.
+   If Tree <> NULL, the product tree is stored in:
+   G[0..k-1]       (degree k)
+   Tree[0][0..k-1] (degree k/2)
+   Tree[1][0..k-1] (degree k/4), ...,
+   Tree[lgk-1][0..k-1] (degree 1)
+   (then we should have initially Tree[lgk-1] = a).
 */
 int
-PolyFromRoots (listz_t G, unsigned int k, listz_t T, int verbose, mpz_t n, char F)
+PolyFromRoots (listz_t G, listz_t a, unsigned int k, listz_t T, int verbose,
+               mpz_t n, char F, listz_t *Tree, unsigned int sh)
 {
   unsigned int l, m, st;
   unsigned long muls;
+  listz_t H1, *NextTree;
 
    if (k <= 1)
-     return 0;
-
-    /* (x-G[0]) * (x-G[1]) = x^2 - (G[0]+G[1]) * x + G[0]*G[1]
-       however we construct (x+G[0]) * (x+G[1]) instead, i.e. the
-       polynomial with the opposite roots. This has no consequence if
-       we do it for all polynomials: if F(x) and G(x) have a common root,
-       then so do F(-x) and G(-x). This saves one negation.
-     */
-   if (k == 2)
      {
-       mpz_mul (T[0], G[0], G[1]);
-       mpz_add (G[1], G[1], G[0]);
-       mpz_mod (G[1], G[1], n);
-       mpz_mod (G[0], T[0], n);
-       return 1;
+       /* if Tree=NULL, then G=a and nothing to do */
+       if (Tree != NULL)
+         mpz_set (G[0], a[0]);
+       return 0;
      }
 
    st = cputime ();
@@ -373,9 +409,40 @@ PolyFromRoots (listz_t G, unsigned int k, listz_t T, int verbose, mpz_t n, char 
    m = k / 2;
    l = k - m;
 
-   muls = PolyFromRoots (G, l, T, 0, n, F);
-   muls += PolyFromRoots (G + l, m, T, 0, n, F);
-   muls += list_mul (T, G, l, G + l, m, T + k);
+   if ((Tree == NULL) || verbose) /* top call */
+     {
+       H1 = (Tree == NULL) ? G : Tree[0]; /* target for rec. calls */
+       NextTree = Tree;
+     }
+   else
+     {
+       H1 = Tree[1] + sh;
+       NextTree = Tree + 1;
+     }
+
+    /* (x-a[0]) * (x-a[1]) = x^2 - (a[0]+a[1]) * x + a[0]*a[1]
+       however we construct (x+a[0]) * (x+a[1]) instead, i.e. the
+       polynomial with the opposite roots. This has no consequence if
+       we do it for all polynomials: if F(x) and G(x) have a common root,
+       then so do F(-x) and G(-x). This saves one negation.
+     */
+   if (k == 2)
+     {
+       if (Tree != NULL)
+         {
+           mpz_set (H1[0], a[0]);
+           mpz_set (H1[1], a[1]);
+         }
+       mpz_mul (T[0], a[0], a[1]);
+       mpz_add (G[1], a[1], a[0]);
+       mpz_mod (G[1], G[1], n);
+       mpz_mod (G[0], T[0], n);
+       return 1;
+     }
+
+   muls = PolyFromRoots (H1, a, l, T, 0, n, F, NextTree, sh);
+   muls += PolyFromRoots (H1 + l, a + l, m, T, 0, n, F, NextTree, sh + l);
+   muls += list_mul (T, H1, l, H1 + l, m, T + k);
    list_mod (G, T, k, n);
    
    if (verbose >= 2)
@@ -428,20 +495,21 @@ PolyInvert (listz_t q, listz_t b, unsigned int K, listz_t t, mpz_t n)
   i.e. a polynomial of 2K coefficients divided by a monic polynomial
   with K+1 coefficients (b[K]=1 is implicit).
   Puts the quotient in q[0]+q[1]*x+...+q[K-1]*x^(K-1)
-  and the remainder in a[0]+a[1]*x+...+a[K-1]*x^(K-1)
+  and the remainder in r[0]+r[1]*x+...+r[K-1]*x^(K-1)
   Needs space for list_mul_mem(K) coefficients in t.
   Return the number of scalar multiplies performed.
+  Note: r and a may be equal.
 */
 int
-RecursiveDivision (listz_t q, listz_t a, listz_t b, unsigned int K, listz_t t,
-		   mpz_t n)
+RecursiveDivision (listz_t q, listz_t r, listz_t a, listz_t b, unsigned int K,
+                   listz_t t, mpz_t n)
 {
   if (K == 1) /* a0+a1*x = a1*(b0+x) + a0-a1*b0 */
     {
       mpz_mulmod (q[0], a[1], b[0], n);
-      mpz_sub (a[0], a[0], q[0]);
+      mpz_sub (r[0], a[0], q[0]);
       mpz_set (q[0], a[1]);
-      mpz_mod (a[0], a[0], n);
+      mpz_mod (r[0], r[0], n);
       return 1;
     }
   else
@@ -452,38 +520,38 @@ RecursiveDivision (listz_t q, listz_t a, listz_t b, unsigned int K, listz_t t,
       l = K - k;
 
       /* first perform a (2l) / l division */
-      muls = RecursiveDivision (q + k, a + 2 * k, b + k, l, t, n);
+      muls = RecursiveDivision (q + k, r + 2 * k, a + 2 * k, b + k, l, t, n);
       /* subtract q[k..k+l-1] * b[0..k-1] */
       muls += LIST_MULT_N (t, q + l, b, k, t + K - 1); /* sets t[0..2*k-2] */
-      list_sub (a + l, a + l, t, 2 * k - 1);
+      list_sub (r + l, a + l, t, 2 * k - 1);
       if (k < l) /* don't forget to subtract q[k] * b[0..k-1] */
         {
 	  for (i=0; i<k; i++)
 	    {
 	      mpz_mul (t[0], q[k], b[i]);
-	      mpz_sub (a[k+i], a[k+i], t[0]);
+	      mpz_sub (r[k+i], a[k+i], t[0]);
 	    }
           muls += k;
         }
       /* remainder is in a[0..K+k-1] */
 
       /* then perform a (2k) / k division */
-      muls += RecursiveDivision (q, a + l, b + l, k, t, n);
+      muls += RecursiveDivision (q, r + l, a + l, b + l, k, t, n);
       /* subtract q[0..k-1] * b[0..l-1] */
       muls += LIST_MULT_N (t, q, b, k, t + K - 1);
-      list_sub (a, a, t, 2 * k - 1);
+      list_sub (r, a, t, 2 * k - 1);
       if (k < l) /* don't forget to subtract q[0..k-1] * b[k] */
         {
           for (i=0; i<k; i++)
             {
               mpz_mul (t[0], q[i], b[k]);
-              mpz_sub (a[k+i], a[k+i], t[0]);
+              mpz_sub (r[k+i], a[k+i], t[0]);
             }
           muls += k;
         }
 
       /* normalizes the remainder wrt n */
-      list_mod (a, a, K, n);
+      list_mod (r, r, K, n);
 
       return muls;
     }
@@ -547,12 +615,13 @@ Div3by2 (listz_t q, listz_t a, listz_t b, unsigned int K,
   else { 
     unsigned int i=0;
 
-    RecursiveDivision (q, a+K, b+K, K, t, n);
+    RecursiveDivision (q, a + K, a + K, b + K, K, t, n);
     LIST_MULT_N (t, q, b, K, t + 2 * K); /* needs 2K memory in t+2K */
-    for (i=0;i<=2*K-2;i++) {
-      mpz_sub (a[i], a[i], t[i]);
-      mpz_mod (a[i], a[i], n);
-    }
+    for (i = 0; i <= 2 * K - 2; i++)
+      {
+        mpz_sub (a[i], a[i], t[i]);
+        mpz_mod (a[i], a[i], n);
+      }
     /* we could also have a special version of karatsuba/toomcook that directly
        subtract the result to a */
   }
