@@ -252,19 +252,39 @@ mpn_print (mp_ptr np, mp_size_t nn)
   } while (0)
 #endif
 
+unsigned int
+ks_wrapmul_m (unsigned int m0, unsigned int k, mpz_t n)
+{
+  mp_size_t t, s;
+  unsigned long i, fft_k, m;
+
+  t = mpz_sizeinbase (n, 2);
+  s = t * 2 + 1;
+  for (i = k - 1; i; s++, i >>= 1);
+  s = 1 + (s - 1) / GMP_NUMB_BITS;
+  fft_k = mpn_fft_best_k (m0 * s, 0);
+  i = mpn_fft_next_size (m0 * s, fft_k);
+  while (i % s)
+    i = mpn_fft_next_size (i + 1, fft_k);
+  m = i / s;
+  return m;
+}
+
 /* multiply in R[] A[0]+A[1]*x+...+A[k-1]*x^(k-1)
                 by B[0]+B[1]*x+...+B[l-1]*x^(l-1) modulo n,
    wrapping around coefficients of the product up from degree m >= m0.
    Return m.
    Assumes k >= l.
+   R is assumed to have 2*m0-3+list_mul_mem(m0-1) allocated cells.
 */
 unsigned int
 ks_wrapmul (listz_t R, unsigned int m0,
             listz_t A, unsigned int k,
-            listz_t B, unsigned int l)
+            listz_t B, unsigned int l,
+	    mpz_t n)
 {
-  unsigned long i, fft_k, m;
-  mp_size_t s, t = 0, size_t0, size_t1, size_tmp;
+  unsigned long i, fft_k, m, t;
+  mp_size_t s, size_t0, size_t1, size_tmp;
   mp_ptr t0_ptr, t1_ptr, t2_ptr, r_ptr, tp;
   int negative;
 
@@ -272,12 +292,13 @@ ks_wrapmul (listz_t R, unsigned int m0,
   if (k < l) abort();
 #endif
 
+  t = mpz_sizeinbase (n, 2);
   for (i = 0; i < k; i++)
-    if ((s = mpz_sizeinbase (A[i], 2)) > t)
-      t = s;
+    if (mpz_sgn (A[i]) < 0 || mpz_sizeinbase (A[i], 2) > t)
+      mpz_mod (A[i], A[i], n);
   for (i = 0; i < l; i++)
-    if ((s = mpz_sizeinbase (B[i], 2)) > t)
-      t = s;
+    if (mpz_sgn (B[i]) < 0 || mpz_sizeinbase (B[i], 2) > t)
+      mpz_mod (B[i], B[i], n);
   
   s = t * 2 + 1; /* one extra sign bit */
   for (i = k - 1; i; s++, i >>= 1);
@@ -308,6 +329,14 @@ ks_wrapmul (listz_t R, unsigned int m0,
   while (i % s)
     i = mpn_fft_next_size (i + 1, fft_k);
   m = i / s;
+#ifdef DEBUG  
+  if (m > 2 * m0 - 3 + list_mul_mem (m0 - 1))
+    {
+      fprintf (stderr, "Error: m > 2*m0-3+list_mul_mem(m0-1) in ks_wrapmul: m=%u m0=%u\n",
+	       m, m0);
+      exit (1);
+    }
+#endif
 
   t2_ptr = (mp_ptr) xmalloc ((i + 1) * sizeof (mp_limb_t));
 
