@@ -25,7 +25,7 @@
 #include <unistd.h>
 #endif
 #include <time.h>
-#include "gmp.h"
+#include <gmp.h>
 #include "ecm.h"
 
 /******************************************************************************
@@ -80,6 +80,22 @@ ceil_log2 (unsigned int n)
   /* f(1)=0, f(n)=1+f((n+1)/2) */
   for (k=0; n>1; n = (n + 1) / 2, k++);
   return k;
+}
+
+/* malloc with elementary error checking */
+void *
+xmalloc (size_t size)
+{
+  void *p;
+  
+  p = malloc (size);
+  if (p == NULL)
+    {
+      fprintf (stderr, "Could not allocate %d bytes\n", size);
+      exit (EXIT_FAILURE);
+    }
+  
+  return p;
 }
 
 /* Return user CPU time measured in milliseconds. Thanks to Torbjorn. */

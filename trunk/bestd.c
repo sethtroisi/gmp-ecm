@@ -21,7 +21,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <math.h>
-#if defined (__MINGW32__) || defined (_MSC_VER)
+#if defined (__MINGW32__) || defined (_MSC_VER) || defined (__sun__) || defined (sun)
 #include <float.h> /* for DBL_MAX, in MinGW and VC */
 #else
 #include <values.h> /* for DBL_MAX */
@@ -295,7 +295,7 @@ bestD (double B2, unsigned int k0, unsigned int *k, unsigned int S,
   static double l[N] = {12.0, 18.0, 30.0, 60.0, 90.0, 120.0, 210.0, 240.0, 270.0, 330.0, 420.0, 510.0, 840.0, 1020.0, 1260.0, 1470.0, 1680.0, 1890.0, 2040.0, 2310.0, 3570.0, 3990.0, 4080.0, 4620.0, 5460.0, 6090.0, 7140.0, 8190.0, 9240.0, 14280.0, 16170.0, 16380.0, 18480.0, 19110.0, 21840.0, 24570.0, 24990.0, 25410.0, 28560.0, 30030.0, 32760.0, 34650.0, 39270.0, 60060.0, 66990.0, 67830.0, 71610.0, 78540.0, 79170.0, 90090.0, 92820.0, 103740.0, 103530.0, 106260.0, 106470.0, 108570.0, 120120.0, 131670.0, 133980.0, 139230.0, 150150.0, 157080.0, 158340.0, 240240.0, 237510.0, 237930.0, 270270.0, 274890.0, 278460.0, 300300.0, 314160.0, 324870.0, 330330.0, 371280.0, 420420.0, 417690.0, 431970.0, 450450.0, 510510.0, 570570.0, 565110.0, 600600.0, 628320.0, 649740.0, 690690.0, 1021020.0, 1141140.0, 1138830.0, 1231230.0, 1256640.0, 1291290.0, 1345890.0, 1381380.0, 1711710.0, 1741740.0, 1763580.0, 1806420.0, 1861860.0, 1845690.0, 2042040.0, 2072070.0, 2282280.0, 2277660.0, 2312310.0, 2316930.0, 2372370.0, 2386020.0, 2552550.0, 2513280.0, 2612610.0, 2645370.0, 2691780.0, 2762760.0, 2732730.0, 2852850.0, 4084080.0, 4037670.0, 4144140.0, 4114110.0, 4594590.0, 4555320.0, 4654650.0, 4834830.0, 5105100.0, 5135130.0, 5026560.0, 5225220.0, 5290740.0, 5383560.0, 5615610.0, 5705700.0, 7147140.0, 7054320.0, 7087080.0, 7225680.0, 7417410.0, 7657650.0, 7537530.0, 7987980.0, 8168160.0, 8288280.0, 8198190.0, 8678670.0, 9699690.0, 9669660.0, 9606870.0, 9639630.0, 10210200.0, 10270260.0, 10360350.0, 10330320.0, 10307220.0, 10292100.0, 10341870.0};
 
   unsigned int i, j;
-  unsigned long d, dmin, dF;
+  unsigned long d, dmin = 0, dF;
   double cost, mincost = DBL_MAX;
 
   for (i = 0; i < N; i++)
@@ -312,7 +312,7 @@ bestD (double B2, unsigned int k0, unsigned int *k, unsigned int S,
         }
     }
 
-  if (mincost == DBL_MAX)
+  if (dmin == 0)
     {
       fprintf (stderr, "Error, too large step2 range, please increase k\n");
       exit (1);
@@ -320,5 +320,63 @@ bestD (double B2, unsigned int k0, unsigned int *k, unsigned int S,
 
   *estimated_cost = (unsigned long) mincost;
 
+  return dmin;
+}
+
+/*
+  Return (d,k) such that:
+  (0) k == k0 if k0 > 0, 2 <= k <= 9 otherwise
+  (1) d is a multiple of 6
+  (2) k * d * (phi(d)/2) >= B2
+  (3) phi(d) is a power of 2
+ */
+unsigned long
+bestD_po2 (double B2, unsigned int k0, unsigned int *k, unsigned long * est_muls)
+{
+/* List of d values where phi(2*d)/2 is just below a power of 2 */
+#define Npo2 21
+  static unsigned int l[Npo2] = {9, 21, 45, 105, 231, 525, 1155, 2310, 4620, 
+                                 9555, 19635, 39585, 79695, 165165, 345345, 
+                                 690690, 1426425, 2852850, 5705700, 11741730, 
+                                 23483460};
+
+  unsigned int i, j;
+  unsigned long d, dmin = 0, dF;
+
+  /* Find the smallest degree so that the required number of blocks to cover
+     a stage 2 interval of length "B2" is no greater than k0, or no greater 
+     than 9 if no k0 is given */
+  for (i = 0; i < Npo2; i++)
+    {
+      d = 2 * l[i];
+      dF = phi (d) / 2;
+      j = (unsigned int) ceil ((B2 / (double) d + 2.0) / (double) dF);
+      if (j <= k0 || (k0 == 0 && j <= 9))
+        {
+          dmin = d;
+          *k = j;
+          break;
+        }
+    }
+
+  if (dmin == 0)
+    {
+      fprintf (stderr, "Error, too large step2 range, please increase k\n");
+      exit (1);
+    }
+  
+  /* If the user specified a number of blocks, we'll use that no matter what.
+     Since j may be smaller than k0, this may increase the B2 limit */
+  if (k0)
+    *k = k0;
+
+  /* Q&D cost estimation. Doesn't account for Karatsuba and Toom-Cook in F_mul
+     and gets the Polyeval cost rather wrong */
+  *est_muls = 6 * (1 + *k) * dF +   /* Roots of F and G */
+              (*k + 1) * dF * (unsigned long)(log(dF) / log(2) + 0.5) + /* Building from roots */
+              6 * dF - 16 +         /* Inverting F */
+              (*k - 1) * 6 * dF +   /* G = G*H (mod F) */
+              3 * dF * (unsigned long)(log(dF) / log(2.) + 0.5); /* Polyeval */
+  
   return dmin;
 }

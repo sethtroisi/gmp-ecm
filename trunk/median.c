@@ -43,6 +43,8 @@ Proc. of ISSAC'03, Philadelphia, 2003.
 #define MIN(a,b) (((a) < (b)) ? (a) : (b))
 #endif
 
+extern unsigned int Fermat;
+
 void list_add_wrapper (listz_t p, listz_t q, listz_t r, unsigned int n,
                        unsigned int max_r)
 {
@@ -775,13 +777,24 @@ TMulGen (listz_t b, unsigned int n,
               listz_t a, unsigned int m, listz_t c, unsigned int l, 
               listz_t tmp)
 {
-    return TToomCookMul (b, n, a, m, c, l, tmp);
-}
+    unsigned int i, muls;
 
+    for (i = l + 1; i > 1 && (i&1) == 0; i >>= 1);
+    
+    if (l > 4 && Fermat && i == 1)
+      muls = F_mul_trans (b, a, c, l + 1, Fermat, tmp);
+    else
+      muls = TToomCookMul (b, n, a, m, c, l, tmp);
+
+  return muls;
+}
 
 
 unsigned int
 TMulGen_space (unsigned int n, unsigned int m, unsigned int l)
 {
-    return TToomCookMul_space (n, m, l);
+    if (Fermat)
+      return 2 * (l + 1);
+    else
+      return TToomCookMul_space (n, m, l);
 }

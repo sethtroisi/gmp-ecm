@@ -29,6 +29,8 @@
 void mpz_d_pow_ui (mpz_t, double, unsigned long int);
 void dickson_ui (mpz_t, double, unsigned int, int);
 
+unsigned int Fermat;
+
 /* r <- x^n */
 void
 mpz_d_pow_ui (mpz_t r, double x, unsigned long int n)
@@ -187,8 +189,37 @@ stage2 (mpz_t f, void *X, mpmod_t modulus, double B2min, double B2,
      and [(i-1)*d,i*d]. Thus to cover [B2min, B2] with all intervals 
      [i*d,(i+1)*d] for i0 <= i < i1 , we should  have i0*d <= B2min and 
      B2 <= (i1-1)*d */
-  d = bestD (B2 - B2min, k0, &k, (S < 0) ? -S : S, &est_muls);
+  d = dF = 0;
+  Fermat = 0;
+  if (modulus->repr == 1 && modulus->bits > 0)
+    {
+      for (i = modulus->bits; (i & 1) == 0; i >>= 1);
+      if (1 && i == 1)
+        {
+          Fermat = modulus->bits;
+          if (verbose >= 3)
+            printf ("Choosing power of 2 poly length for 2^%d+1 (%d blocks)\n", 
+                    Fermat, k0);
+          d = bestD_po2 (B2 - B2min, k0, &k, &est_muls);
+          dF = 1 << ceil_log2 (phi (d) / 2);
+        }
+    }
+  if (d == 0)
+    {
+      d = bestD (B2 - B2min, k0, &k, (S < 0) ? -S : S, &est_muls);
+      dF = phi (d) / 2;
+    }
   i0 = floor (B2min / (double) d);
+  /* In ECM, if q == ord_p(X), q == 1 (mod 6), gcd (q, d) == 1, q < d, then
+     p will be found while computing the roots of F. If q == 5 (mod 6), q
+     will be included as (d-i), i.e. in line m=1. Thus i0=0 can be increased
+     to 1, so avoiding having to deal with the neutral element which has no
+     representation in Weierstrass coordinates that works with the usual point 
+     addition functions. P-1 and P+1 deal with the neutral element correctly. 
+  */
+  if (i0 == 0. && method == EC_METHOD)
+    i0 = 1.;
+  
   /* check that i0 * d does not overflow */
   if (i0 * (double) d > 9007199254740992.0) /* 2^53 */
     {
@@ -202,10 +233,8 @@ stage2 (mpz_t f, void *X, mpmod_t modulus, double B2min, double B2,
   /* compute real B2 */
   B2 = (i0 - 1.0) * (double) d + (double) k * b2;
 
-  dF = phi (d) / 2;
-
   if (verbose >= 2)
-    printf ("B2'=%1.0f k=%u b2=%1.0f d=%u dF=%u\n", B2, k, b2, d, dF);
+    printf ("B2'=%1.0f k=%u b2=%1.0f d=%u dF=%u, i0=%.0f\n", B2, k, b2, d, dF, i0);
 
   /* Prep the screen for stage 2 */
   showscreenticks_change_stage(2);
@@ -214,17 +243,17 @@ stage2 (mpz_t f, void *X, mpmod_t modulus, double B2min, double B2,
 
   sizeT = 3 * dF - 1 + list_mul_mem (dF);
   if (dF > 3)
-    sizeT += dF - 3;
+    sizeT += dF + 1 /* "+ 1" was "- 3", Alex */ ;
   T = init_list (sizeT);
   H = T;
 
   /* needs dF+1 cells in T */
   if (method == PM1_METHOD)
-    youpi = pm1_rootsF (f, F, d, (mpres_t *) X, T, S, modulus, verbose, &tot_muls);
+    youpi = pm1_rootsF (f, F, d, dF, (mpres_t *) X, T, S, modulus, verbose, &tot_muls);
   else if (method == PP1_METHOD)
-    youpi = pp1_rootsF (F, d, (mpres_t *) X, T, modulus, verbose, &tot_muls);
+    youpi = pp1_rootsF (F, d, dF, (mpres_t *) X, T, modulus, verbose, &tot_muls);
   else 
-    youpi = ecm_rootsF (f, F, d, (curve *) X, S, modulus, verbose, &tot_muls);
+    youpi = ecm_rootsF (f, F, d, dF, (curve *) X, S, modulus, verbose, &tot_muls);
 
   showscreenticks(2, (int) (100.0 * (double) tot_muls / (double) est_muls));
 
@@ -278,7 +307,7 @@ stage2 (mpz_t f, void *X, mpmod_t modulus, double B2min, double B2,
     {
       /* only dF-1 coefficients of 1/F are needed to reduce G*H,
          but we need one more for TUpTree */
-      invF = init_list (dF);
+      invF = init_list (dF + 1); /* added "+ 1", F_mul need dF instead of dF-1, Alex */
       st = cputime ();
       muls = PolyInvert (invF, F + 1, dF, T, n);
       tot_muls += muls;
@@ -315,7 +344,7 @@ stage2 (mpz_t f, void *X, mpmod_t modulus, double B2min, double B2,
     rootsG_state = pp1_rootsG_init ((mpres_t *) X, i0 * (double) d, d, modulus);
   else /* EC_METHOD */
     {
-      rootsG_state = ecm_rootsG_init (f, (curve *) X, i0 * (double) d, d, S, modulus, verbose);
+      rootsG_state = ecm_rootsG_init (f, (curve *) X, i0 * (double) d, d, k, S, modulus, verbose);
       if (rootsG_state == NULL)
         {
           youpi = 2;
@@ -323,11 +352,11 @@ stage2 (mpz_t f, void *X, mpmod_t modulus, double B2min, double B2,
         }
     }
   
-  if (verbose >= 2)
+  if (verbose >= 2 && method != EC_METHOD) /* ecm_rootsG_init prints itself */
     printf ("Initializing table of differences for G took %dms\n",
             cputime () - st);
 
-  for (i=0; i<k; i++)
+  for (i = 0; i < k; i++)
     {
       st = cputime ();
       muls = tot_muls;
@@ -340,15 +369,15 @@ stage2 (mpz_t f, void *X, mpmod_t modulus, double B2min, double B2,
         youpi = pp1_rootsG (G, dF, (mpres_t *) rootsG_state, modulus, 
                             &tot_muls);
       else
-        youpi = ecm_rootsG (f, G, dF, (point *) rootsG_state, S, modulus,
-			    verbose, &tot_muls);
+        youpi = ecm_rootsG (f, G, dF, (ecm_rootsG_state *) rootsG_state, (curve *) X, S, 
+			    modulus, verbose, &tot_muls);
 
       showscreenticks(2, (int) (100.0 * (double) tot_muls / (double) est_muls));
 
       if (youpi)
 	youpi = 2;
       
-      if (verbose >= 2)
+      if (verbose >= 2 && method != EC_METHOD) /* ecm_rootsG prints itself */
         printf ("Computing roots of G took %dms and %lu muls\n", 
                 cputime () - st, tot_muls - muls);
 
@@ -396,7 +425,7 @@ stage2 (mpz_t f, void *X, mpmod_t modulus, double B2min, double B2,
 	  st = cputime ();
 	  /* previous G mod F is in H, with degree < dF, i.e. dF coefficients:
 	     requires 3dF-1+list_mul_mem(dF) cells in T */
-	  muls = list_mulmod2 (H, T + dF, G, H, dF, T + 3 * dF - 1, n);
+	  muls = list_mulmod (H, T + dF, G, H, dF, T + 3 * dF - 1 + 1, n); /* added "+ 1", Alex */
           tot_muls += muls;
 
           showscreenticks(2, (int) (100.0 * (double) tot_muls / (double) est_muls));
@@ -460,7 +489,7 @@ stage2 (mpz_t f, void *X, mpmod_t modulus, double B2min, double B2,
   else if (method == PP1_METHOD)
     pp1_rootsG_clear ((mpres_t *) rootsG_state, modulus);
   else /* EC_METHOD */
-    ecm_rootsG_clear ((point *) rootsG_state, S, modulus);
+    ecm_rootsG_clear ((ecm_rootsG_state *) rootsG_state, S, modulus);
 
 clear_G:
   clear_list (G, dF);
