@@ -587,12 +587,12 @@ pm1_rootsG_init (mpres_t *x, double s, unsigned int d1, unsigned int d2,
       /* gmp_fprintf (ECM_STDOUT, "pm1_rootsG_init: coeffs[%d] = %Zd\n", i, coeffs[i]); */
       mpres_init (state->fd[i], modulus);
       /* The S-th coeff of all progressions is identical */
-      if (i > state->S + 1 && i % (state->S + 1) == state->S) 
+      if (i > state->S && i % (state->S + 1) == state->S) 
         {
 #ifdef DEBUG
           if (mpz_cmp (coeffs[i], coeffs[state->S]) != 0)
             {
-              fprintf (ECM_STDERR, "pm1_rootsG_init: coeffs[%d] != coeffs[%d]\n", 
+              fprintf (ECM_STDERR, "pm1_rootsG_init: coeffs[%d] != coeffs[%d]\n",
                        i, state->S);
               exit (EXIT_FAILURE);
             }

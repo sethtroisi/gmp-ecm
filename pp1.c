@@ -317,7 +317,7 @@ pp1_rootsF (listz_t F, unsigned int d1, unsigned int d2, unsigned int dF,
   mpres_t u, v; /* auxiliary variables */
   listz_t coeffs;
   ecm_roots_state state;
-  
+
   if (dF == 0)
     return youpi;
 
@@ -329,7 +329,7 @@ pp1_rootsF (listz_t F, unsigned int d1, unsigned int d2, unsigned int dF,
   mpres_init (u, modulus);
   mpres_init (v, modulus);
 
-  if (S == 1) /* special code with d1/6 muls */
+  if (ABS(S) == 1) /* special code with d1/6 muls */
     {
       mpres_init (fd[0], modulus);
       mpres_init (fd[1], modulus);
@@ -372,7 +372,7 @@ pp1_rootsF (listz_t F, unsigned int d1, unsigned int d2, unsigned int dF,
       mpres_clear (fd[1], modulus);
       mpres_clear (fd[2], modulus);
     }
-  else /* case S <> 1: this code works also for S=1, but is more
+  else /* case |S| <> 1: this code works also for S=1, but is more
 	  expensive, since it can use up to 4*(d1/6) muls */
     {
       init_roots_state (&state, S, d1, d2, 1.0);
@@ -424,7 +424,9 @@ pp1_rootsF (listz_t F, unsigned int d1, unsigned int d2, unsigned int dF,
 	      if (gcd (state.rsieve, d1) == 1)
 		{
 		  /* we have alpha^k = x * alpha + y
-		     thus alpha^k + beta^k = x * P + 2 * y */
+		     thus alpha^k + beta^k = x * P + 2 * y.
+                     FIXME: can we avoid returning to the Lucas form?
+                  */
 		  mpres_mul (u, state.fd[state.next * (state.S + 1)].x, x[0],
 			     modulus);
 		  mpres_mul_ui (v, state.fd[state.next * (state.S + 1)].y,
@@ -467,7 +469,7 @@ pp1_rootsG_init (mpres_t *x, double s, unsigned int d1, unsigned int d2,
   mpz_t t;
   pp1_roots_state *state;
   unsigned long i;
-  
+
   ASSERT (gcd (d1, d2) == 1);
 
   st = cputime ();
@@ -476,40 +478,75 @@ pp1_rootsG_init (mpres_t *x, double s, unsigned int d1, unsigned int d2,
   if (state == NULL)
     return NULL;
 
-  mpz_init (t);
-  mpres_init (P, modulus);
+  state->S = ABS(S); /* we don't need the sign anymore after pp1_rootsG_init */
 
-  if (S == 1)
-    state->size_fd = 4;
+  if (state->S == 1)
+    {
+      mpz_init (t);
+      mpres_init (P, modulus);
+      for (i = 0; i < 4; i++)
+        mpres_init (state->tmp[i], modulus);
+
+      state->d = d1; /* needed in pp1_rootsG */
+      state->dsieve = d2; /* needed in pp1_rootsG */
+      /* We want to skip values where gcd(s + i * d1, d2) != 1 */
+      /* state->rsieve = s % d2 */
+      state->rsieve = (unsigned int) (s - floor (s / (double) d2) * (double) d2);
+
+      mpz_set_d (t, s);
+      pp1_mul (state->tmp[0], *x, t, modulus, state->tmp[3], P);
+      mpz_set_ui (t, d1);
+      pp1_mul (state->tmp[1], *x, t, modulus, state->tmp[3], P);
+      mpz_set_d (t, fabs (s - (double) d1));
+      pp1_mul (state->tmp[2], *x, t, modulus, state->tmp[3], P);
+      /* for P+1, tmp[0] = V_s(P), tmp[1] = V_d1(P), tmp[2] = V_{|s-d1|}(P) */
+
+      mpres_clear (P, modulus);
+      mpz_clear (t);
+    }
   else
     {
+      listz_t coeffs;
+      int dickson_a = (S < 0) ? -1 : 0;
+
       state->nr = (d2 > 1) ? d2 - 1 : 1;
-      state->next = 0;
-      state->S = ABS(S);
       state->size_fd = state->nr * (state->S + 1);
+      state->next = 0;
       state->dsieve = 1;
       state->rsieve = 1;
+
+      state->fd = (point *) malloc (state->size_fd * sizeof (point));
+      if (state->fd == NULL)
+        {
+          free (state);
+          return NULL;
+        }
+
+      coeffs = init_progression_coeffs (s, d2, d1, 1, 1, state->S, dickson_a);
+      if (coeffs == NULL)
+        {
+          free (state->fd);
+          free (state);
+          return NULL;
+        }
+
+      for (i = 0; i < state->size_fd; i++) 
+        {
+          mpres_init (state->fd[i].x, modulus);
+          mpres_init (state->fd[i].y, modulus);
+          /* The S-th coeff of all progressions is identical */
+          if (i > state->S && i % (state->S + 1) == state->S) 
+            {
+              /* Simply copy from the first progression */
+              mpres_set (state->fd[i].x, state->fd[state->S].x, modulus); 
+              mpres_set (state->fd[i].y, state->fd[state->S].y, modulus); 
+            }
+          else
+            pp1_mul2 (state->fd[i].x, state->fd[i].y, x[0], coeffs[i], modulus);
+        }
+
+      clear_list (coeffs, state->size_fd);
     }
-  state->fd = (mpres_t*) malloc (state->size_fd * sizeof (mpres_t));
-  for (i = 0; i < state->size_fd; i++)
-    mpres_init (state->fd[i], modulus);
-
-  state->d = d1;
-  state->dsieve = d2;
-  /* We want to skip values where gcd(s + i * d1, d2) != 1 */
-  /* state->rsieve = s % d2 */
-  state->rsieve = (unsigned int) (s - floor (s / (double)d2) * (double)d2);
-
-  mpz_set_d (t, s);
-  pp1_mul (state->fd[0], *x, t, modulus, state->fd[3], P);
-  mpz_set_ui (t, d1);
-  pp1_mul (state->fd[1], *x, t, modulus, state->fd[3], P);
-  mpz_set_d (t, fabs (s - (double) d1));
-  pp1_mul (state->fd[2], *x, t, modulus, state->fd[3], P);
-  /* for P+1, fd[0] = V_s(P), fd[1] = V_d1(P), fd[2] = V_{|s-d1|}(P) */
-
-  mpres_clear (P, modulus);
-  mpz_clear (t);
 
   return state;
 }
@@ -518,34 +555,87 @@ void
 pp1_rootsG_clear (pp1_roots_state *state, ATTRIBUTE_UNUSED mpmod_t modulus)
 {
   unsigned long i;
-  
-  for (i = 0; i < state->size_fd; i++)
-    mpres_clear (state->fd[i], modulus);
-  free (state->fd);
+
+  if (state->S == 1)
+    {
+      for (i = 0; i < 4; i++)
+        mpres_clear (state->tmp[i], modulus);
+    }
+  else
+    {
+      for (i = 0; i < state->size_fd; i++)
+        {
+          mpres_clear (state->fd[i].x, modulus);
+          mpres_clear (state->fd[i].y, modulus);
+        }
+      free (state->fd);
+    }
+
   free (state);
 }
 
 int
-pp1_rootsG (listz_t G, unsigned int d, pp1_roots_state *state, mpmod_t modulus)
+pp1_rootsG (listz_t G, unsigned int dF, pp1_roots_state *state, mpmod_t modulus,
+            mpres_t *x)
 {
   unsigned int i;
+  unsigned long muls = 0;
   int st;
-  
+
   st = cputime ();
 
-  for (i = 0; i < d;)
-    {
-      if (gcd (state->rsieve, state->dsieve) == 1)
-         mpres_get_z (G[i++], state->fd[0], modulus);
+  /* state->S is positive: we don't need the sign anymore, since the
+     polynomial is defined by the table of differences */
 
-      mpres_swap (state->fd[0], state->fd[2], modulus);
-      mpres_mul (state->fd[3], state->fd[2], state->fd[1], modulus);
-      mpres_sub (state->fd[0], state->fd[3], state->fd[0], modulus);
-      state->rsieve = (state->rsieve + state->d) % state->dsieve;
+  if (state->S == 1)
+    {
+      for (i = 0; i < dF;)
+        {
+          if (gcd (state->rsieve, state->dsieve) == 1)
+            mpres_get_z (G[i++], state->tmp[0], modulus);
+
+          mpres_swap (state->tmp[0], state->tmp[2], modulus);
+          mpres_mul (state->tmp[3], state->tmp[2], state->tmp[1], modulus);
+          mpres_sub (state->tmp[0], state->tmp[3], state->tmp[0], modulus);
+          state->rsieve = (state->rsieve + state->d) % state->dsieve;
+        }
+    }
+  else
+    {
+      mpres_t u, v;
+
+      mpres_init (u, modulus);
+      mpres_init (v, modulus);
+      for (i = 0; i < dF;)
+        {
+          /* Did we use every progression since the last update? */
+          if (state->next == state->nr)
+            {
+              /* Yes, time to update again */
+              addWnm (state->fd, x[0], modulus, state->nr, state->S, &muls);
+              state->next = 0;
+            }
+      
+          /* Is this a root we should skip? (Take only if gcd == 1) */
+          if (gcd (state->rsieve, state->dsieve) == 1)
+            {
+              mpres_mul (u, state->fd[state->next * (state->S + 1)].x, x[0],
+                         modulus);
+              mpres_mul_ui (v, state->fd[state->next * (state->S + 1)].y,
+                            2, modulus);
+              mpres_add (u, u, v, modulus);
+              mpres_get_z (G[i++], u, modulus);
+            }
+      
+          state->next ++;
+          state->rsieve ++;
+        }
+      mpres_clear (u, modulus);
+      mpres_clear (v, modulus);
     }
 
   outputf (OUTPUT_VERBOSE, "Computing roots of G took %dms", cputime () - st);
-  outputf (OUTPUT_DEVVERBOSE, ", %u muls", d);
+  outputf (OUTPUT_DEVVERBOSE, ", %u muls", dF);
   outputf (OUTPUT_VERBOSE, "\n");
   
   return ECM_NO_FACTOR_FOUND;
@@ -569,7 +659,7 @@ pp1_rootsG (listz_t G, unsigned int d, pp1_roots_state *state, mpmod_t modulus)
 */
 int
 pp1 (mpz_t f, mpz_t p, mpz_t n, mpz_t go, double B1done, double B1,
-     double B2min, double B2, double B2scale, unsigned int k, unsigned int S,
+     double B2min, double B2, double B2scale, unsigned int k, int S,
      int verbose, int repr, FILE *os, FILE *es, char *TreeFilename)
 {
   int youpi = 0, st;
@@ -612,12 +702,6 @@ pp1 (mpz_t f, mpz_t p, mpz_t n, mpz_t go, double B1done, double B1,
   if (S == ECM_DEFAULT_S)
     S = 1;
 
-  if (S != 1)
-    {
-      fprintf (ECM_STDOUT, "Warning: no Brent-Suyama's extension available with P+1, using x^1\n");
-      S = 1;
-    }
-  
   if (test_verbose (OUTPUT_NORMAL))
     {
       fprintf (ECM_STDOUT, "Using ");
@@ -630,7 +714,10 @@ pp1 (mpz_t f, mpz_t p, mpz_t n, mpz_t go, double B1done, double B1,
       else
         fprintf (ECM_STDOUT, ", B2=%1.0f-%1.0f", B2min, B2);
 
-      fprintf (ECM_STDOUT, ", polynomial x^1");
+      if (S > 0)
+        fprintf (ECM_STDOUT, ", polynomial x^%u", S);
+      else
+        fprintf (ECM_STDOUT, ", polynomial Dickson(%u)", -S);
       if (ECM_IS_DEFAULT_B1_DONE(B1done) || test_verbose (OUTPUT_VERBOSE)) /* don't print x0 in resume case */
 	{
 	  fprintf (ECM_STDOUT, ", x0=");
