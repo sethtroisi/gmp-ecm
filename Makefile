@@ -20,12 +20,12 @@
 # directory where GMP is installed
 # gmp.h should be in $(GMP)/include
 # libgmp.a/libgmp.so should be in $(GMP)/lib
-GMP=/usr/local/gmp-4.1.1
+GMP=/usr/local/gmp
 
 # directory where NTL is installed
 # ZZ_pX.h and version.h should be in $(NTL)/include/NTL
 # libntl.a should be in $(NTL)/lib
-NTL=/usr/local/ntl-5.3
+NTL=/usr/local/ntl
 
 VERSION=5.0-beta
 
@@ -53,9 +53,9 @@ all:
            CXX=g++;                    \
            EXTRAFILES=ntl.o;           \
            LDFLAGS="-lntl $(LDFLAG)";  \
-           make ecm5 CXX=g++ EXTRAFILES="ntl.o polyz.o" LDFLAGS="-lntl $(LDFLAG)"; \
+           make ecm5 GMP=$(GMP) NTL=$(NTL) CXX=g++ EXTRAFILES="ntl.o polyz.o" LDFLAGS="-lntl $(LDFLAG)"; \
         else \
-           make ecm5 CFLAGS="$(CFLAG) -DPOLYEVAL"; \
+           make ecm5 GMP=$(GMP) CFLAGS="$(CFLAG) -DPOLYEVAL"; \
         fi
 
 ecm5: $(ALLFILES) ecm.h
