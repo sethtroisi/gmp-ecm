@@ -105,8 +105,8 @@ ChompLine:;
 
       if (nCurSize == nMaxSize)
       {
+	char *cp = realloc (expr, nMaxSize+1);
 	nMaxSize += 5000;
-	char *cp = realloc(expr, nMaxSize+1);
 	if (!cp)
 	{
 	  free(expr);
@@ -175,8 +175,8 @@ JoinLinesLoop:;
 	expr[nCurSize++] = *c;
       if (nCurSize == nMaxSize)
       {
+	char *cp = realloc (expr, nMaxSize + 1);
 	nMaxSize += 5000;
-	char *cp = realloc(expr, nMaxSize+1);
 	if (!cp)
 	{
 	  free(expr);
@@ -498,7 +498,7 @@ int eval_2 (int bInFuncParams)
 	  if (!i)         /* No digits found */
 	    {
 	      /* check for a valid "function" */
-	      if (!strnicmp(&expr_str[i], "phi(", 4))
+	      if (!strncmp (&expr_str[i], "phi(", 4))
 		{
 		  /* Process the phi(B,N) function */
 		  expr_str+=4;

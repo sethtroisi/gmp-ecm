@@ -24,15 +24,17 @@
 #include "gmp.h"
 #include "ecm.h"
 
-int trial_factor(mpcandi_t *n, double maxfact)
+int
+trial_factor (mpcandi_t *n, double maxfact)
 {
   int factors=0, cnt_this_fact;
   mpz_t t;
-  mpz_init(t);
   unsigned long Remainder;
   double p;
   char numbuf[40];
   int Counter = 0, st;
+
+  mpz_init(t);
 
   st = cputime ();
   
@@ -60,8 +62,8 @@ int trial_factor(mpcandi_t *n, double maxfact)
 	  if (cputime() - st > 5000)
 	    {
 	      /* Check to see if we should update our screen "percentage counter" */
-	      st = cputime();
 	      double Percentage = p;
+	      st = cputime ();
 	      Percentage /= maxfact;
 	      Percentage *= 100;
 	      fprintf (stderr, "T:%03d\r", (int)Percentage);

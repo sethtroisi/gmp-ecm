@@ -22,7 +22,9 @@ MA 02111-1307, USA. */
 
 #if !defined(__freebsd)
 #if defined (__GNUC__)
+#ifndef _ALLOCA_H
 #define alloca __builtin_alloca
+#endif
 #else
 #include <alloca.h>
 #endif
