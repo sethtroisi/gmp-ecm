@@ -34,7 +34,7 @@
 
 /* returns the number of decimal digits of n */
 unsigned int
-nb_digits (mpz_t n)
+nb_digits (const mpz_t n)
 {
    unsigned int size;
    char *str;
@@ -104,6 +104,20 @@ cputime ()
 #endif
 
 /* Produces a random unsigned int value */
+#if defined (_MSC_VER) || defined (__MINGW32__)
+#include <windows.h>
+unsigned int 
+get_random_ui ()
+{
+  SYSTEMTIME tv;
+  GetSystemTime(&tv);
+  // This gets us 27 bits of somewhat "random" data based on the time clock.
+  // It would probably do the program justice if a better random mixing was done
+  // in the non-MinGW get_random_ui if /dev/random does not exist
+  return ((tv.wHour<<22)+(tv.wMinute<<16)+(tv.wSecond<<10)+tv.wMilliseconds) ^
+         ((tv.wMilliseconds<<17)+(tv.wMinute<<11)+(tv.wHour<<6)+tv.wSecond);
+}
+#else
 unsigned int 
 get_random_ui ()
 {
@@ -139,4 +153,4 @@ get_random_ui ()
 #endif
   return time (NULL) + getpid ();
 }
-
+#endif
