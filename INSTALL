@@ -9,9 +9,14 @@ Instructions to install gmp-ecm:
    be sure to install the latest version of GNU MP (4.1.2 on February 2003),
    and to compile it on your particular processor.
 
-   Moreover for efficiency reasons, gmp-ecm requires some internal GMP
-   header files (gmp-mparam.h, gmp-impl.h, config.h). So you need
-   to copy those internal files in <gmpdir>/include (see below).
+   Warning: to compile gmp-ecm, it is better to use the same compiler and
+   options than used to compile GMP, otherwise the compilation may
+   fail, or you may get poor performance. In the GMP build directory,
+   simply type:
+
+   $ egrep '(CC|CFLAGS)' Makefile
+
+   to see which compiler and options were used to build GMP.
 
 1) to create the binary file "ecm5", type:
 
