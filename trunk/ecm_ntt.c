@@ -39,16 +39,13 @@ ntt_mul (mpzp_t r, mpzp_t x, mpzp_t y, spv_size_t len, mpzp_t t,
 
   mpzspm_t mpzspm = mpzspm_init (modulus, 1 << ceil_log_2 (len * 2 - 1 + monic));
   mpzspp_t X, Y;
-  int i;
     
   X = mpzspp_init (mpzspm);
   Y = mpzspp_init (mpzspm);
   
   mpzspp_set_mpzp (X, x, len, 0);
   mpzspp_set_mpzp (Y, y, len, 0);
-
   mpzspp_mul (X, X, Y, monic);
-
   mpzspp_get_mpzp (X, r, 2 * len - 1 + monic, 0);
   
   mpzspp_clear (X);
@@ -70,9 +67,7 @@ ntt_mul_partial (mpzp_t r, mpzp_t x, spv_size_t x_len, mpzp_t y,
   
   mpzspp_set_mpzp (X, x, x_len, 0);
   mpzspp_set_mpzp (Y, y, y_len, 0);
-
   mpzspp_mul_partial (X, X, Y, k, l, monic);
-
   mpzspp_get_mpzp (X, r, l, 0);
   
   mpzspp_clear (X);
@@ -148,13 +143,13 @@ ntt_PolyFromRoots (mpzp_t r, mpzp_t a, spv_size_t len, mpzp_t t, mpz_t n)
 	    }
 	}
 
-      if (m != len / 2)
-        /*for (i = 0; i < 2 * len; i += 4 * m)
-	  mpzspp_normalize (mpzspp, 2 * m, i);*/
-	
-	/* theoretically inefficient but seems to be faster
-	 * (probably due to less mallocing) */
-	mpzspp_normalize (mpzspp, 2 * len - 2 * m, 0);
+      /* theoretically inefficient but seems to be faster
+       * (probably due to less mallocing) */
+      if (2 * m < len)
+        {
+	  mpzspp->normalised = 0;
+	  mpzspp_normalise (mpzspp, 2 * len - 2 * m, 0);
+	}
     }
       
   mpzspp_get_mpzp (mpzspp, r, len, 0);
@@ -297,36 +292,17 @@ ntt_PrerevertDivision (mpzp_t a, mpzp_t b, mpzp_t invb, spv_size_t len,
   /* Although our ntt size is only len, each term in the result is the sum
    * of 2 * len coeffs, so we need to make sure we don't overflow */
   mpzspm_t mpzspm = mpzspm_init (n, 2 * len);
-  sp_t root;
-  spm_t spm;
   mpzspp_t x, y;
-  unsigned int i;
     
   x = mpzspp_init (mpzspm);
   y = mpzspp_init (mpzspm);
   
-  /* Do the X^(2*len) term of b now by wrapping
-   * it round explicitly (saves a list_add) */
-  
-  mpz_add_ui (b[0], b[0], 1);
   mpzspp_set_mpzp (x, t + len - 2, len, 0);
   mpzspp_set_mpzp (y, b, len, 0);
-  mpz_sub_ui (b[0], b[0], 1);
   
-  /* FIXME: Remove all this and add a no_zero_pad option to ntt_mul */
-  for (i = 0; i < x->mpzspm->sp_num; i++)
-    {
-      spm = x->mpzspm->spm + i;
-      root = sp_pow (spm->prim_root, (spm->sp - 1) / len, spm->sp, spm->mul_c);
-      spv_ntt_gfp_dif (x->spv[i], len, spm->sp, spm->mul_c, root);
-      spv_ntt_gfp_dif (y->spv[i], len, spm->sp, spm->mul_c, root);
-      spv_pwmul (x->spv[i], x->spv[i], y->spv[i], len, spm->sp, spm->mul_c);
-      root = sp_inv (root, spm->sp, spm->mul_c);
-      spv_ntt_gfp_dit (x->spv[i], len, spm->sp, spm->mul_c, root);
-      root = sp_inv (len, spm->sp, spm->mul_c);
-      spv_mul_sp (x->spv[i], x->spv[i], root, len, spm->sp, spm->mul_c);
-    }
-  
+  mpzspp_to_ntt (x, len, 0);
+  mpzspp_to_ntt (y, len, 1); /* b has leading monomial */
+  mpzspp_pwmul (x, x, y);
   mpzspp_get_mpzp (x, t, len, 0);
   
   mpzspp_clear (x);
