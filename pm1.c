@@ -728,7 +728,7 @@ pm1_rootsG (mpz_t f, listz_t G, unsigned int dF, pm1_roots_state *state,
 int
 pm1 (mpz_t f, mpz_t p, mpz_t N, mpz_t go, double B1done, double B1,
      double B2min, double B2, double B2scale, unsigned int k, int S,
-     int verbose, int repr, FILE *os, FILE *es)
+     int verbose, int repr, FILE *os, FILE *es, char *TreeFilename)
 {
   mpmod_t modulus;
   mpres_t x;
@@ -886,7 +886,7 @@ pm1 (mpz_t f, mpz_t p, mpz_t N, mpz_t go, double B1done, double B1,
   if (youpi != ECM_NO_FACTOR_FOUND) /* factor found, or an error occurred */
     goto clear_and_exit;
 
-  youpi = stage2 (f, &x, modulus, B2min, B2, k, S, ECM_PM1, st);
+  youpi = stage2 (f, &x, modulus, B2min, B2, k, S, ECM_PM1, st, TreeFilename);
 
 clear_and_exit:
   mpres_get_z (p, x, modulus);

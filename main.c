@@ -138,6 +138,7 @@ void usage (void)
     printf ("  -save file   save residues at end of stage 1 to file\n");
     printf ("  -resume file resume residues from file, reads from stdin if file is \"-\"\n");
     printf ("  -primetest   perform a primality test on input\n");
+    printf ("  -treefile f  store product tree of F in files f.0 f.1 ... \n");
 
     /*printf ("  -extra functions added by JimF\n"); */
     printf ("  -i n         increment B1 by this constant on each run\n");
@@ -200,6 +201,7 @@ main (int argc, char *argv[])
                 default (0): automatic choice. */
   gmp_randstate_t randstate;
   char *savefilename = NULL, *resumefilename = NULL, *infilename = NULL;
+  char *TreeFilename = NULL;
   char *endptr[1]; /* to parse B2 or B2min-B2max */
   char rtime[256] = "", who[256] = "", comment[256] = "", program[256] = "";
   FILE *savefile = NULL, *resumefile = NULL, *infile = NULL;
@@ -448,6 +450,12 @@ main (int argc, char *argv[])
 	  argv += 2;
 	  argc -= 2;
 	}
+      else if ((argc > 2) && (strcmp (argv[1], "-treefile") == 0))
+	{
+	  TreeFilename = argv[2];
+	  argv += 2;
+	  argc -= 2;
+	}
       else if ((argc > 2) && (strcmp (argv[1], "-i") == 0))
 	{
 	  autoincrementB1 = strtod (argv[2], NULL);
@@ -675,6 +683,7 @@ main (int argc, char *argv[])
   params->k = k;
   params->S = S;
   params->repr = repr;
+  params->TreeFilename = TreeFilename;
 
   /* Open resume file for reading, if resuming is requested */
   if (resumefilename != NULL)
@@ -1009,6 +1018,7 @@ BreadthFirstDoAgain:;
       mpgocandi_fixup_with_N (&go, &n);
 
       /* set parameters that mau change from one curve to another */
+      params->method = method; /* may change with resume */
       mpz_set (params->x, x); /* may change with resume */
       /* if sigma is zero, then we use the A value instead */
       params->sigma_is_A = mpz_sgn (sigma) == 0;

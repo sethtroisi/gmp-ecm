@@ -382,7 +382,7 @@ pp1_rootsG (listz_t G, unsigned int d, pp1_roots_state *state, mpmod_t modulus)
 int
 pp1 (mpz_t f, mpz_t p, mpz_t n, mpz_t go, double B1done, double B1,
      double B2min, double B2, double B2scale, unsigned int k, unsigned int S,
-     int verbose, int repr, FILE *os, FILE *es)
+     int verbose, int repr, FILE *os, FILE *es, char *TreeFilename)
 {
   int youpi = 0, st;
   mpres_t a;
@@ -490,7 +490,8 @@ pp1 (mpz_t f, mpz_t p, mpz_t n, mpz_t go, double B1done, double B1,
     }
 
   if (youpi == ECM_NO_FACTOR_FOUND) /* no factor found, no error */
-    youpi = stage2 (f, &a, modulus, B2min, B2, k, S, ECM_PP1, st);
+    youpi = stage2 (f, &a, modulus, B2min, B2, k, S, ECM_PP1, st, 
+                    TreeFilename);
 
   if (youpi > 0 && test_verbose (OUTPUT_NORMAL))
     pp1_check_factor (p, f, ECM_STDOUT); /* tell user if factor was found by P-1 */
