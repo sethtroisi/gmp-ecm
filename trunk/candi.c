@@ -136,26 +136,26 @@ mpcandi_t_add_candidate (mpcandi_t *n, mpz_t c, const char *cpExpr,
 #endif
 
   if (n->cpExpr)
-    free(n->cpExpr);
+    free (n->cpExpr);
   n->cpExpr = NULL;
   if (cpExpr)
     {
-      n->nexprlen = strlen(cpExpr);
-      n->cpExpr = (char *) malloc(n->nexprlen+1);
+      n->nexprlen = strlen (cpExpr);
+      n->cpExpr = (char *) malloc (n->nexprlen + 1);
       if (n->cpExpr == NULL)
         {
           fprintf (stderr, "Error: not enough memory\n");
           exit (EXIT_FAILURE);
         }
-      strcpy(n->cpExpr, cpExpr);
+      strcpy (n->cpExpr, cpExpr);
     }
-  mpz_set(n->n, c);
+  mpz_set (n->n, c);
   if (primetest)
     n->isPrp = smart_probab_prime_p (c, PROBAB_PRIME_TESTS);
   else
     n->isPrp = 0; /* there is a candidate there now, and the user did not
 		     tell us to prp it, so assume it is composite */
-  n->ndigits = nb_digits(c);
+  n->ndigits = nb_digits (c);
 
 #if defined (CANDI_DEBUG)
   Candi_Validate("Post mpcandi_t_add_candidate", n);
