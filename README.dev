@@ -9,3 +9,23 @@ $ make check
 
 Warning: only configure.in and Makefile.am should be in cvs
 	(the other files are automatically generated)
+
+##############################################################################
+
+Documentation:
+- ecm.xml was generated from ecm.1 using doclifter-2.1
+  ./doclifter < ecm.1 > ecm.xml
+  (http://en.tldp.org/HOWTO/DocBook-Demystification-HOWTO/x181.html
+   http://www.catb.org/~esr//doclifter/)
+
+- to generate ecm.html:
+  $ xsltproc $XSLDIR/html/docbook.xsl ecm.xml > ecm.html
+  where XSLDIR is the directory where docbook stylesheets are installed
+  (e.g. /usr/share/sgml/docbook/xsl-stylesheets-1.65.1-1)
+
+- to generate man format:
+  $ xsltproc $XSLDIR/manpages/docbook.xsl ecm.xml > ecm.1
+  (or "xmlto man ecm.xml")
+
+- to generate pdf:
+  $ xmlto pdf ecm.xml
