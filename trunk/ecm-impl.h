@@ -210,7 +210,8 @@ typedef struct
   unsigned int S;      /* Degree of the polynomials */
   unsigned int dsieve; /* Values not coprime to dsieve are skipped */
   unsigned int rsieve; /* Which residue mod dsieve current .next belongs to */
-  mpres_t *fd;
+  point *fd;           /* for S != 1 */
+  mpres_t tmp[4];      /* for S=1 */
   unsigned int d;      /* Step size for computing roots of G */
 } __pp1_roots_state;
 typedef __pp1_roots_state pp1_roots_state;
@@ -304,7 +305,7 @@ void  pp1_mul_prac     (mpres_t, unsigned long, mpmod_t, mpres_t, mpres_t,
 int   pp1_rootsF       (listz_t, unsigned int, unsigned int, unsigned int,
                         mpres_t *, listz_t, int, mpmod_t);
 #define pp1_rootsG __ECM(pp1_rootsG)
-int   pp1_rootsG     (listz_t, unsigned int, pp1_roots_state *, mpmod_t);
+int   pp1_rootsG   (listz_t, unsigned int, pp1_roots_state *, mpmod_t, mpres_t*);
 #define pp1_rootsG_init __ECM(pp1_rootsG_init)
 pp1_roots_state* pp1_rootsG_init (mpres_t*, double, unsigned int,
                                   unsigned int, int, mpmod_t);
