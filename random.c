@@ -101,9 +101,7 @@ get_random_ui (void)
     {
       if (fread (&t, sizeof(unsigned int), 1, rndfd) == 1)
         {
-#ifdef DEBUG
-          printf ("Got seed for RNG from /dev/urandom\n");
-#endif
+          outputf (OUTPUT_DEVVERBOSE, "Got seed for RNG from /dev/urandom\n");
           fclose (rndfd);
           return t;
         }
@@ -112,15 +110,12 @@ get_random_ui (void)
 
   if (gettimeofday (&tv, NULL) == 0)
     {
-#ifdef DEBUG
-      printf ("Got seed for RNG from gettimeofday()\n");
-#endif
+      outputf (OUTPUT_DEVVERBOSE, "Got seed for RNG from gettimeofday()\n");
       return tv.tv_sec + tv.tv_usec;
     }
 
-#ifdef DEBUG
-  printf ("Got seed for RNG from time()+getpid()\n");
-#endif
+  outputf (OUTPUT_DEVVERBOSE, "Got seed for RNG from time()+getpid()\n");
+
   return time (NULL) + getpid ();
 }
 #endif
