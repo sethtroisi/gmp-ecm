@@ -10,6 +10,7 @@ Table of contents of this file:
 7. Working with very large numbers (the -prp* options).
 8. How to get the best of GMP-ECM?
 9. Record factors.
+10. Known problems.
 
 ##############################################################################
 
@@ -20,17 +21,19 @@ AUTHORS      - program authors
 *.c          - C source files
 COPYING      - GNU General Public License
 COPYING.LIB  - GNU Lesser General Public License
-ChangeLog    - changes with respect to previous versions
+ChangeLog    - detailed development log messages
 config*      - configuration files
 depcomp      - configuration file
-ecm.1        - man page
+ecm.1        - documentation (man format)
+ecm.xml      - documentation (XML format)
 *.h          - header files
 INSTALL      - instructions to compile and install GMP-ECM
 install-sh   - installation file
-Makefile*    - to build the binary file
+Makefile*    - to build the binary files and the library
 missing      - configuration file
-NEWS         - news file
+NEWS         - changes between different versions
 README       - this file
+README.lib   - documentation for the ecm library
 test.*       - test files
 TODO         - to-do list
 
@@ -493,3 +496,12 @@ Cf the following URLs:
 ECM: ftp://ftp.comlab.ox.ac.uk/pub/Documents/techpapers/Richard.Brent/champs.txt
 P-1: http://www.loria.fr/~zimmerma/records/Pminus1.html
 P+1: http://www.loria.fr/~zimmerma/records/Pplus1.html
+
+##############################################################################
+
+10. Known problems.
+
+On some machines, GMP-ECM uses the clock() function to measure the cpu time
+used by step 1 and 2. Since that function returns a 32-bit integer, there
+is a possible wrap-around effect when the clock() value goes back from 2^32-1
+to 0, which may produce negative timings.
