@@ -29,6 +29,9 @@
 
 #define CASCADE_THRES 3
 #define CASCADE_MAX 50000000
+#ifndef POWM_THRESHOLD
+#define POWM_THRESHOLD 100
+#endif
 
 typedef struct {
   unsigned int size;
