@@ -321,15 +321,10 @@ error:
 }
 
 void 
-write_temp_resumefile (int method, double B1, mpz_t sigma, mpz_t A, mpz_t x, mpz_t n, int verbose)
+write_temp_resumefile (int method, double B1, mpz_t sigma, mpz_t A, mpz_t x, mpz_t n, mpz_t orig_x0, int verbose)
 {
-  /* FOR NOW simply exit UNTIL the code within ecm/pm1/pp1 stage1 is correctly working */
-  return;
-
-#if 0
   FILE *fd;
   mpcandi_t data;
-  mpz_t x0;
   char *comment = "ECM_WIP_AutoSave";
 
   /* Use a 2 file save method.  It saves to a second file name, and when that is "correctly"
@@ -346,15 +341,12 @@ write_temp_resumefile (int method, double B1, mpz_t sigma, mpz_t A, mpz_t x, mpz
     }
   
   mpcandi_t_init (&data);
-  mpz_init_set_ui (x0,0);
   mpcandi_t_add_candidate (&data, n, NULL, 0);
-  write_resumefile_line (fd, method, B1, sigma, A, x, &data, x0, comment);
+  write_resumefile_line (fd, method, B1, sigma, A, x, &data, orig_x0, comment);
   mpcandi_t_free (&data);
   fclose (fd);
-  mpz_clear (x0);
   remove ("gmp_ecm.wip");
   rename ("gmpecm1.wip", "gmp_ecm.wip");
-#endif
 }
 
 void kill_temp_resume_file (void)
@@ -442,7 +434,6 @@ write_resumefile_line (FILE *fd, int method, double B1, mpz_t sigma, mpz_t A,
       strcpy(mname, "localPC");
     else
       {
-        /*fprintf(stderr, "\nGetComputerName() returned %s\n", T); */
         for (i = 0; i < sizeof(mname)-1; ++i)
           mname[i] = T[i];
         mname[sizeof(mname)-1] = 0;
