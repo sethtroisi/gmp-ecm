@@ -10,6 +10,10 @@
 /* maximal stage 1 bound = 2^53 + 4, the next prime being 2^53 + 5 */
 #define MAX_B1 9007199254740996.0
 
+/* The checksum for savefile is the product of all mandatory files, modulo
+   the greatest prime below 2^32 */
+#define CHKSUMMOD 4294967291U
+
 /* different methods implemented */
 #define EC_METHOD 0
 #define PM1_METHOD 1
@@ -81,20 +85,20 @@ void mpz_sub_si(mpz_t, mpz_t, int);
 /* pm1.c */
 void    pm1_random_seed  (mpz_t, mpz_t, gmp_randstate_t);
 int          pm1         (mpz_t, mpz_t, mpz_t, double, double, double, 
-                          unsigned int, unsigned int, int, int);
+                          unsigned int, int, int, int);
 int     pm1_rootsF       (mpz_t, listz_t, unsigned int, mpres_t *, listz_t,
-                          unsigned int, mpmod_t, int);
-mpres_t *pm1_rootsG_init (mpres_t *, unsigned int, unsigned int, unsigned int,
+                          int, mpmod_t, int);
+mpres_t *pm1_rootsG_init (mpres_t *, unsigned int, unsigned int, int,
                           mpmod_t);
-void    pm1_rootsG_clear (mpres_t *, unsigned int, mpmod_t);
+void    pm1_rootsG_clear (mpres_t *, int, mpmod_t);
 int     pm1_rootsG       (mpz_t, listz_t, unsigned int, mpres_t *, listz_t, 
-                          unsigned int, mpmod_t, int);
+                          int, mpmod_t, int);
 
 
 
 /* ecm.c */
 int          ecm        (mpz_t, mpz_t, mpz_t, mpz_t, double, double, 
-                         double, unsigned int, unsigned int, int, int);
+                         double, unsigned int, int, int, int);
 unsigned int phi        (unsigned int);
 unsigned int bestD      (double);
 double       block_size (unsigned int);
@@ -102,12 +106,12 @@ int          cputime    (void);
 
 /* ecm2.c */
 int     ecm_rootsF       (mpz_t, listz_t, unsigned int, curve *, listz_t, 
-                          unsigned int, mpmod_t, int);
+                          int, mpmod_t, int);
 point * ecm_rootsG_init  (mpz_t, curve *, unsigned int, unsigned int, 
-                          unsigned int, mpmod_t);
-void    ecm_rootsG_clear (point *, unsigned int, mpmod_t);
+                          int, mpmod_t);
+void    ecm_rootsG_clear (point *, int, mpmod_t);
 int     ecm_rootsG       (mpz_t, listz_t, unsigned int, point *, listz_t, 
-                          unsigned int, mpmod_t, int);
+                          int, mpmod_t, int);
 
 /* pp1.c */
 int          pp1_mul     (mpres_t, mpres_t, mpz_t, mpmod_t, mpres_t, mpres_t);

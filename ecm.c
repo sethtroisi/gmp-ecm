@@ -515,6 +515,9 @@ ecm_stage1 (mpz_t f, mpres_t x, mpres_t A, mpmod_t n, double B1,
       if (r > B1done)
         prac (x, z, (int) q, n, b, t, u, v, w, xB, zB, xC, zC, xT, zT, xT2, zT2);
 
+  getprime (0.0); /* free the prime tables, and reinitialize */
+
+
   /* Normalize z to 1 */
   if (!mpres_invert (u, z, n)) /* Factor found? */
     {
@@ -555,7 +558,7 @@ ecm_stage1 (mpz_t f, mpres_t x, mpres_t A, mpmod_t n, double B1,
 */
 int
 ecm (mpz_t f, mpz_t x, mpz_t sigma, mpz_t n, double B1, double B2, 
-     double B1done, unsigned int k, unsigned int S, int verbose, int repr)
+     double B1done, unsigned int k, int S, int verbose, int repr)
 {
   int youpi = 0, st;
   mpmod_t modulus;
@@ -606,6 +609,11 @@ ecm (mpz_t f, mpz_t x, mpz_t sigma, mpz_t n, double B1, double B2,
       mpres_out_str(stdout, 10, P.x, modulus);
       printf("\n");
     }
+
+  /* Set default degree for Brent-Suyama extension */
+  
+  if (S == 0)
+    S = 1;
   
   if (B1 > B1done)
     youpi = ecm_stage1 (f, P.x, P.A, modulus, B1, B1done, verbose);
@@ -616,8 +624,8 @@ ecm (mpz_t f, mpz_t x, mpz_t sigma, mpz_t n, double B1, double B2,
       fflush (stdout);
     }
 
-  /* Store end-of-stage-1 modulus in x in case we write it to a save file, 
-     before P.x in converted to Weierstrass form */
+  /* Store end-of-stage-1 residue in x in case we write it to a save file, 
+     before P.x is converted to Weierstrass form */
   
   mpres_get_z (x, P.x, modulus);
 

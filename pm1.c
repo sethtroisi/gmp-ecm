@@ -317,24 +317,28 @@ pm1_stage1 (mpz_t f, mpres_t a, mpmod_t n, double B1, double B1done)
 
 int
 pm1_rootsF (mpz_t f, listz_t F, unsigned int d, mpres_t *x, listz_t t,
-        unsigned int S, mpmod_t modulus, int verbose)
+        int S, mpmod_t modulus, int verbose)
 {
   unsigned int i, j, k;
   int st, st2;
   mpres_t *fd;
   listz_t coeffs;
-  int invtrick = 0, dickson_a = -1;
+  int invtrick = 0, dickson_a = 0;
 
   st = cputime ();
 
   mpres_get_z (F[0], *x, modulus); /* s^1 for P-1 */
   i = 1;
 
-  if (S > 6 && (S & 1) == 0)
-    { /* We can't use both invtrick and proper Dickson polys */
-      invtrick = 1;
-      dickson_a = 0;
+  if (S > 6 && (S & 1) == 0) /* If we use S-th power, S > 6 */
+    {
+      invtrick = 1; /* then the invtrick is profitable */
       S /= 2;
+    }
+  else if (S < 0)
+    {
+      dickson_a = -1;
+      S = -S;
     }
 
   if (d > 7)
@@ -403,19 +407,23 @@ pm1_rootsF (mpz_t f, listz_t F, unsigned int d, mpres_t *x, listz_t t,
 */
 
 mpres_t *
-pm1_rootsG_init (mpres_t *x, unsigned int s, unsigned int d, unsigned int S,
+pm1_rootsG_init (mpres_t *x, unsigned int s, unsigned int d, int S,
                  mpmod_t modulus)
 {
   unsigned int k;
-  int invtrick = 0, dickson_a = -1;
+  int invtrick = 0, dickson_a = 0;
   listz_t coeffs;
   mpres_t *fd;
   
   if (S > 6 && (S & 1) == 0)
     {
       invtrick = 1;
-      dickson_a = 0;
       S /= 2;
+    }
+  else if (S < 0)
+    {
+      dickson_a = -1;
+      S = -S;
     }
   
   coeffs = init_list (S + 1);
@@ -437,7 +445,7 @@ pm1_rootsG_init (mpres_t *x, unsigned int s, unsigned int d, unsigned int S,
 /* Frees all the dynamic variables allocated by pm1_rootsG_init() */
 
 void 
-pm1_rootsG_clear (mpres_t *fd, unsigned int S, mpmod_t modulus)
+pm1_rootsG_clear (mpres_t *fd, int S, mpmod_t modulus)
 {
   unsigned int k;
   
@@ -445,6 +453,7 @@ pm1_rootsG_clear (mpres_t *fd, unsigned int S, mpmod_t modulus)
     {
       S /= 2;
     }
+  S = abs (S);
   
   for (k = 0; k <= S; k++)
     mpres_clear (fd[k], modulus);
@@ -466,20 +475,25 @@ pm1_rootsG_clear (mpres_t *fd, unsigned int S, mpmod_t modulus)
 
 int
 pm1_rootsG (mpz_t f, listz_t G, unsigned int d, mpres_t *fd, 
-        listz_t t, unsigned int S, mpmod_t modulus, int verbose)
+        listz_t t, int S, mpmod_t modulus, int verbose)
 {
   unsigned int i, j;
   int st;
-  int invtrick = 0;
+  int invtrick = 0, dickson_a = 0;
   
   st = cputime ();
 
-  if (S > 6 && (S & 1) == 0) 
+  if (S > 6 && (S & 1) == 0)
     {
       invtrick = 1;
       S /= 2;
     }
-  
+  else if (S < 0)
+    {
+      dickson_a = -1;
+      S = -S;
+    }
+
   for (i = 0; i < d; i++)
     {
       mpres_get_z (G[i], fd[0], modulus);
@@ -525,7 +539,7 @@ pm1_rootsG (mpz_t f, listz_t G, unsigned int d, mpres_t *fd,
 */
 int
 pm1 (mpz_t f, mpz_t p, mpz_t N, double B1, double B2, double B1done,
-     unsigned int k, unsigned int S, int verbose, int repr)
+     unsigned int k, int S, int verbose, int repr)
 {
   mpmod_t modulus;
   mpres_t x;
@@ -612,13 +626,18 @@ pm1 (mpz_t f, mpz_t p, mpz_t N, double B1, double B2, double B1done,
   if (youpi != 0) /* a factor was found */
     goto clear_and_exit;
 
-  /* We need Suyama's power even and at least 2 for stage 2 to work 
+  /* Set default degree for Brent-Suyama extension */
+  
+  if (S == 0)
+    S = 2;
+
+  /* We need Suyama's power even and at least 2 for P-1 stage 2 to work 
      correctly */
-  if (S < 2)
+  if (abs(S) < 2)
     S = 2;
 
   if (S & 1)
-    S++;
+    S *= 2;
 
   youpi = stage2 (f, &x, modulus, B2, k, S, verbose, PM1_METHOD, B1);
 
