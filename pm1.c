@@ -156,5 +156,5 @@ pm1 (mpz_t p, mpz_t n, double B1, double B2, unsigned int k, unsigned int S,
   if (youpi != 0) /* a factor was found */
     return 1;
 
-  return (B2 > B1) ? stage2 (p, n, B2, k, S, verbose) : 0;
+  return (B2 > B1) ? stage2 (p, n, B2, k, S, verbose, 1) : 0;
 }
