@@ -36,9 +36,12 @@ end function;
 // sigma=1/4: n= 1000 e2= 3.335 e3= 1.657 e5= 0.251 success= 0
 // ecmprob(45, 11000000, 30114892080, 1000, 6);
 // sigma=6: n= 1000 e2= 3.244 e3= 1.721 e5= 0.317 success= 0
+// sigma=7: n= 1000 e2= 3.334 e3= 1.668 e5= 0.295 success= 0
 // sigma=1/4: n= 1000 e2= 3.295 e3= 1.647 e5= 0.305 success= 0
 // ecmprob(50, 43000000, 198674155680, 1000, 6);
 // sigma=1/4: n= 1000 e2= 3.396 e3= 1.655 e5= 0.267 success= 0
+// ecmprob(55, 110000000, 729516567780, 1000, 6);
+// sigma=1/4: n= 1000 e2= 3.217 e3= 1.629 e5= 0.301 success= 0
 ecmprob := procedure (d, B1, B2, N, sigma)
 local p, g, n, e2, e3, e5, i, success, l, S, T;
    T := RealField(d);
