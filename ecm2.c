@@ -281,7 +281,7 @@ int subW(p,x,y,x1,y1,x2,y2,n,u,v) mpz_t p,x,y,x1,y1,x2,y2,n,u,v;
 */
 
 int
-ecm_rootsF (mpz_t f, listz_t F, unsigned int d, curve s, listz_t t,
+ecm_rootsF (mpz_t f, listz_t F, unsigned int d, curve *s, listz_t t,
         unsigned int S, mpmod_t modulus, int verbose)
 {
   unsigned int i, j;
@@ -293,7 +293,7 @@ ecm_rootsF (mpz_t f, listz_t F, unsigned int d, curve s, listz_t t,
   
   st = cputime ();
 
-  mpres_get_z (F[0], s.x, modulus); /* (1*P)=P for ECM */
+  mpres_get_z (F[0], s->x, modulus); /* (1*P)=P for ECM */
   i = 1;
 
   if (d > 7)
@@ -312,8 +312,8 @@ ecm_rootsF (mpz_t f, listz_t F, unsigned int d, curve s, listz_t t,
         {
           mpres_init (fd[j].x, modulus);
           mpres_init (fd[j].y, modulus);
-          youpi = multiplyW2 (f, fd[j].x, fd[j].y, s.x, s.y, coeffs[j], 
-                              modulus, s.A, u, v);
+          youpi = multiplyW2 (f, fd[j].x, fd[j].y, s->x, s->y, coeffs[j], 
+                              modulus, s->A, u, v);
 #ifdef DEBUG
           if (youpi)
             printf("ecm_rootsF: found factor while computing fd[%d]\n", j);

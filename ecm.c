@@ -554,17 +554,28 @@ ecm_stage1 (mpz_t f, mpres_t x, mpres_t A, mpmod_t n, double B1,
    Return value: non-zero iff a factor was found.
 */
 int
-ecm (mpz_t f, mpres_t x, mpz_t sigma, mpmod_t n, double B1, double B2, 
-     double B1done, unsigned int k, unsigned int S, int verbose)
+ecm (mpz_t f, mpz_t x, mpz_t sigma, mpz_t n, double B1, double B2, 
+     double B1done, unsigned int k, unsigned int S, int verbose, int repr)
 {
   int youpi = 0, st;
-  mpres_t A, y;
+  mpmod_t modulus;
   curve P;
 
   st = cputime ();
   
-  mpres_init (A, n);
-  mpres_init (y, n);
+  if (repr == 1)
+    mpmod_init_MPZ (modulus, n);
+  else   if (repr == 2)
+    mpmod_init_MODMULN (modulus, n);
+  else if (repr == 3)
+    mpmod_init_REDC (modulus, n);
+  else if (repr > 16)
+    mpmod_init_BASE2 (modulus, repr, n);
+  else
+    mpmod_init (modulus, n);
+
+  mpres_init (P.x, modulus);
+  mpres_init (P.A, modulus);
 
   if (mpz_sgn (x) == 0)
     {
@@ -577,26 +588,27 @@ ecm (mpz_t f, mpres_t x, mpz_t sigma, mpmod_t n, double B1, double B2,
           printf("\n");
           fflush (stdout);
         }
-      if ((youpi = get_curve_from_sigma (f, A, x, sigma, n)))
+      if ((youpi = get_curve_from_sigma (f, P.A, P.x, sigma, modulus)))
         goto end_of_ecm;
     }
   else
     {
       /* sigma contains the A value, x contains starting point */
-      mpres_set_z (A, sigma, n);
+      mpres_set_z (P.x, x, modulus);
+      mpres_set_z (P.A, sigma, modulus);
     }
   
   if (verbose >= 2)
     {
       printf("a=");
-      mpres_out_str(stdout, 10, A, n);
+      mpres_out_str(stdout, 10, P.A, modulus);
       printf("\nstarting point: x=");
-      mpres_out_str(stdout, 10, x, n);
+      mpres_out_str(stdout, 10, P.x, modulus);
       printf("\n");
     }
   
   if (B1 > B1done)
-    youpi = ecm_stage1 (f, x, A, n, B1, B1done, verbose);
+    youpi = ecm_stage1 (f, P.x, P.A, modulus, B1, B1done, verbose);
 
   if (verbose >= 1)
     {
@@ -604,31 +616,35 @@ ecm (mpz_t f, mpres_t x, mpz_t sigma, mpmod_t n, double B1, double B2,
       fflush (stdout);
     }
 
+  /* Store end-of-stage-1 modulus in x in case we write it to a save file, 
+     before P.x in converted to Weierstrass form */
+  
+  mpres_get_z (x, P.x, modulus);
+
   if (youpi != 0) /* a factor was found */
     goto end_of_ecm;
 
   if (verbose >= 2) 
     {
       printf ("x=");
-      mpres_out_str (stdout, 10, x, n);
+      mpres_out_str (stdout, 10, P.x, modulus);
       printf("\n");
       fflush (stdout);
     }
 
-  if ((youpi = montgomery_to_weierstrass (f, x, y, A, n)))
-    goto end_of_ecm;
+  mpres_init (P.y, modulus);
 
-  mpz_init_set (P.x, x); 
-  mpz_init_set (P.y, y);
-  mpz_init_set (P.A, A);
-  youpi = stage2 (f, &P, n, B2, k, S, verbose, EC_METHOD, B1);
-  mpz_clear (P.x);
-  mpz_clear (P.y);
-  mpz_clear (P.A);
+  youpi = montgomery_to_weierstrass (f, P.x, P.y, P.A, modulus);
+  
+  if (youpi == 0)
+    youpi = stage2 (f, &P, modulus, B2, k, S, verbose, EC_METHOD, B1);
+  
+  mpres_clear (P.y, modulus);
 
- end_of_ecm:
-  mpres_clear (A, n);
-  mpres_clear (y, n);
+end_of_ecm:
+  mpres_clear (P.x, modulus);
+  mpres_clear (P.A, modulus);
+  mpmod_clear (modulus);
 
   return youpi;
 }

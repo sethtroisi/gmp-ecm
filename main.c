@@ -41,11 +41,11 @@ main (int argc, char *argv[])
 {
   mpz_t sigma, n, seed, f;
   mpres_t p;
-  mpmod_t modulus;
   double B1, B2, B1done, B1cost;
   int result = 1;
   int verbose = 1; /* verbose level */
   int method = EC_METHOD;
+  int repr = 0;
   int k = 8; /* default number of blocks in stage 2 */
   int specific_sigma = 0; /* 1=sigma supplied by user, 0=random */
   unsigned int S = 0;
@@ -84,6 +84,24 @@ main (int argc, char *argv[])
 	  argv++;
 	  argc--;
 	}
+      else if (strcmp (argv[1], "-mpzmod") == 0)
+        {
+          repr = 1;
+	  argv++;
+	  argc--;
+        }
+      else if (strcmp (argv[1], "-modmuln") == 0)
+        {
+          repr = 2;
+	  argv++;
+	  argc--;
+        }
+      else if (strcmp (argv[1], "-redc") == 0)
+        {
+          repr = 3;
+	  argv++;
+	  argc--;
+        }
       else if ((argc > 2) && (strcmp (argv[1], "-k") == 0))
 	{
 	  k = atoi(argv[2]);
@@ -113,16 +131,20 @@ main (int argc, char *argv[])
     {
       fprintf (stderr, "Usage: ecm B1 [sigma] [B2] < file\n");
       fprintf (stderr, "\nParameters:\n");
-      fprintf (stderr, "  B1         stage 1 bound\n");
-      fprintf (stderr, "  sigma      elliptic curve seed or generator for P-1 (0 = random)\n");
-      fprintf (stderr, "  B2         stage 2 bound\n");
+      fprintf (stderr, "  B1          stage 1 bound\n");
+      fprintf (stderr, "  sigma       elliptic curve seed or generator for P-1 (0 = random)\n");
+      fprintf (stderr, "  B2          stage 2 bound\n");
       fprintf (stderr, "\nOptions:\n");
-      fprintf (stderr, "  -k n       perform n steps in stage 2\n");
-      fprintf (stderr, "  -e n       impose polynomial x^n for Brent-Suyama's extension\n");
-      fprintf (stderr, "  -pm1       runs Pollard P-1 instead of ECM\n");
-      fprintf (stderr, "  -pp1       runs Williams P+1 instead of ECM\n");
-      fprintf (stderr, "  -q         quiet mode\n");
-      fprintf (stderr, "  -v         verbose mode\n");
+      fprintf (stderr, "  -k n        perform n steps in stage 2\n");
+      fprintf (stderr, "  -e n        impose polynomial x^n for Brent-Suyama's extension\n");
+      fprintf (stderr, "  -pm1        runs Pollard P-1 instead of ECM\n");
+      fprintf (stderr, "  -pp1        runs Williams P+1 instead of ECM\n");
+      fprintf (stderr, "  -q          quiet mode\n");
+      fprintf (stderr, "  -v          verbose mode\n");
+      fprintf (stderr, "  -mpzmod     use GMP's mpz_mod for mod reduction\n");
+      fprintf (stderr, "  -modmuln    use Montgomery's MODMULN for mod reduction\n");
+      fprintf (stderr, "  -redc       use Montgomery's REDC for mod reduction\n");
+      fprintf (stderr, "  -save file  save residues at end of stage 1 to file\n");
       exit (1);
     }
 
@@ -235,11 +257,11 @@ main (int argc, char *argv[])
   /* Open save file for writing, if saving is requested */
   if (savefilename != NULL)
     {
-      savefile = fopen(savefilename, "w");
+      savefile = fopen (savefilename, "w");
       if (savefile == NULL)
         {
-          fprintf(stderr, "Could not open file %s for writing\n", savefilename);
-          exit(EXIT_FAILURE);
+          fprintf (stderr, "Could not open file %s for writing\n", savefilename);
+          exit (EXIT_FAILURE);
         }
     }
 
@@ -277,12 +299,10 @@ main (int argc, char *argv[])
 		    mpz_sizeinbase (n, 10));
 	}
 
-      /* Init modulus */
-      mpmod_init(modulus, n);
-      mpres_init (p, modulus); /* seed/stage 1 residue */
+      mpz_init (p); /* seed/stage 1 residue */
 
       /* Set effective seed/sigma for factoring attempt on this number */
-      mpres_set_z (p, seed, modulus);
+      mpz_set (p, seed);
       if (!specific_sigma)
         {
           if (method == EC_METHOD)
@@ -293,17 +313,18 @@ main (int argc, char *argv[])
               mpz_add_ui (sigma, sigma, 1);
             }
           else if (method == PP1_METHOD)
-            pp1_random_seed (p, modulus, randstate);
+            pp1_random_seed (p, n, randstate);
           else if (method == PM1_METHOD)
-            pm1_random_seed (p, n, randstate);
+            mpz_set_ui (p, 2);
+/*            pm1_random_seed (p, n, randstate); */
         }
 
       if (method == PM1_METHOD)
-        result = pm1 (f, p, modulus, B1, B2, B1done, k, S, verbose);
+        result = pm1 (f, p, n, B1, B2, B1done, k, S, verbose, repr);
       else if (method == PP1_METHOD)
-        result = pp1 (f, p, modulus, B1, B2, B1done, k, S, verbose);
+        result = pp1 (f, p, n, B1, B2, B1done, k, S, verbose, repr);
       else
-        result = ecm (f, p, sigma, modulus, B1, B2, B1done, k, S, verbose);
+        result = ecm (f, p, sigma, n, B1, B2, B1done, k, S, verbose, repr);
 
       if (result != 0)
 	{
@@ -329,7 +350,6 @@ main (int argc, char *argv[])
 	      if (verbose > 0)
 		mpz_out_str (stdout, 10, n);
 	      printf (" has %u digits", nb_digits(n));
-	      mpz_mod(p, p, n); /* Reduce stage 1 residue wrt new cofactor */
 	    }
 	  else
 	    printf ("Found input number N");
@@ -345,32 +365,37 @@ main (int argc, char *argv[])
 	  fflush (stdout);
 	}
 
+#define SAVEFILE
 #ifdef SAVEFILE
       /* Write composite cofactors to savefile if requested */
       /* If no factor was found, we consider cofactor composite and write it */
       if (savefile != NULL && (result == 0 || mpz_probab_prime_p (n, 25) == 0))
         {
-          fprintf(savefile, "METHOD=");
+          mpz_t t;
+          mpz_init (t);
+          mpz_set (t, p);
+          mpz_mod (t, t, n); /* Reduce stage 1 residue wrt new cofactor */
+          fprintf (savefile, "METHOD=");
           if (method == PM1_METHOD)
-            fprintf(savefile, "PM1");
+            fprintf (savefile, "PM1");
           else if (method == PP1_METHOD)
-            fprintf(savefile, "PP1");
+            fprintf (savefile, "PP1");
           else 
             {
-              fprintf(savefile, "ECM; SIGMA=");
-              mpz_out_str(savefile, 10, sigma);
+              fprintf (savefile, "ECM; SIGMA=");
+              mpz_out_str (savefile, 10, sigma);
             }
           
-          fprintf(savefile, "; B1=%.0f; N=", B1);
-          mpz_out_str(savefile, 10, n);
-          fprintf(savefile, "; X=");
-          mpz_out_str(savefile, 10, p);
-          fprintf(savefile , "\n");
+          fprintf (savefile, "; B1=%.0f; N=", B1);
+          mpz_out_str (savefile, 10, n);
+          fprintf (savefile, "; X=");
+          mpz_out_str (savefile, 10, t);
+          fprintf (savefile , "\n");
+          mpz_clear (t);
         }
 #endif /* SAVEFILE */
 
-      mpres_clear (p, modulus);
-      mpmod_clear (modulus);
+      mpz_clear (p);
 
       while ((feof (stdin) == 0) && (isdigit (c = getchar ()) == 0));
 

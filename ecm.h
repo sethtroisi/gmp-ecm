@@ -80,11 +80,11 @@ void mpz_sub_si(mpz_t, mpz_t, int);
 
 /* pm1.c */
 void    pm1_random_seed  (mpz_t, mpz_t, gmp_randstate_t);
-int          pm1         (mpz_t, mpz_t, mpmod_t, double, double, double, 
-                          unsigned int, unsigned int, int);
-int     pm1_rootsF       (mpz_t, listz_t, unsigned int, mpres_t, listz_t,
+int          pm1         (mpz_t, mpz_t, mpz_t, double, double, double, 
+                          unsigned int, unsigned int, int, int);
+int     pm1_rootsF       (mpz_t, listz_t, unsigned int, mpres_t *, listz_t,
                           unsigned int, mpmod_t, int);
-mpres_t *pm1_rootsG_init (mpres_t, unsigned int, unsigned int, unsigned int,
+mpres_t *pm1_rootsG_init (mpres_t *, unsigned int, unsigned int, unsigned int,
                           mpmod_t);
 void    pm1_rootsG_clear (mpres_t *, unsigned int, mpmod_t);
 int     pm1_rootsG       (mpz_t, listz_t, unsigned int, mpres_t *, listz_t, 
@@ -93,15 +93,15 @@ int     pm1_rootsG       (mpz_t, listz_t, unsigned int, mpres_t *, listz_t,
 
 
 /* ecm.c */
-int          ecm        (mpz_t, mpres_t, mpz_t, mpmod_t, double, double, 
-                         double, unsigned int, unsigned int, int);
+int          ecm        (mpz_t, mpz_t, mpz_t, mpz_t, double, double, 
+                         double, unsigned int, unsigned int, int, int);
 unsigned int phi        (unsigned int);
 unsigned int bestD      (double);
 double       block_size (unsigned int);
 int          cputime    (void);
 
 /* ecm2.c */
-int     ecm_rootsF       (mpz_t, listz_t, unsigned int, curve, listz_t, 
+int     ecm_rootsF       (mpz_t, listz_t, unsigned int, curve *, listz_t, 
                           unsigned int, mpmod_t, int);
 point * ecm_rootsG_init  (mpz_t, curve *, unsigned int, unsigned int, 
                           unsigned int, mpmod_t);
@@ -113,17 +113,17 @@ int     ecm_rootsG       (mpz_t, listz_t, unsigned int, point *, listz_t,
 int          pp1_mul     (mpres_t, mpres_t, mpz_t, mpmod_t, mpres_t, mpres_t);
 int          pp1_mul_prac(mpres_t, unsigned long, mpmod_t, mpres_t, mpres_t,
                           mpres_t, mpres_t, mpres_t);
-void    pp1_random_seed  (mpres_t, mpmod_t, gmp_randstate_t);
-int          pp1         (mpz_t, mpres_t, mpmod_t, double, double, double, 
-                          unsigned int, unsigned int, int);
-int   pp1_rootsF         (listz_t, unsigned int, mpres_t, listz_t,
+void    pp1_random_seed  (mpz_t, mpz_t, gmp_randstate_t);
+int          pp1         (mpz_t, mpz_t, mpz_t, double, double, double, 
+                          unsigned int, unsigned int, int, int);
+int   pp1_rootsF         (listz_t, unsigned int, mpres_t *, listz_t,
                           mpmod_t, int);
-mpres_t *pp1_rootsG_init (mpres_t, unsigned int, unsigned int, mpmod_t);
+mpres_t *pp1_rootsG_init (mpres_t *, unsigned int, unsigned int, mpmod_t);
 void  pp1_rootsG_clear   (mpres_t *, mpmod_t);
 int   pp1_rootsG         (listz_t, unsigned int, mpres_t *, mpmod_t, int);
 
 /* stage2.c */
-int          stage2     (mpz_t, curve *, mpmod_t, double, unsigned int, 
+int          stage2     (mpz_t, void *, mpmod_t, double, unsigned int, 
                          unsigned int, int, int, double);
 void  fin_diff_coeff    (listz_t coeffs, unsigned int s, unsigned int D, 
                          unsigned int E, int dickson_a);
@@ -182,9 +182,15 @@ void NTL_clear (void);
 void NTL_get_factor (mpz_t);
 
 /* mpmod.c */
-void mpmod_init(mpmod_t, mpz_t);
+int isbase2 (mpz_t, double);
+void mpmod_init (mpmod_t, mpz_t);
+void mpmod_init_MPZ (mpmod_t, mpz_t);
+void mpmod_init_BASE2 (mpmod_t, int, mpz_t);
+void mpmod_init_MODMULN (mpmod_t, mpz_t);
+void mpmod_init_REDC (mpmod_t, mpz_t);
 void mpmod_clear (mpmod_t);
 void mpres_pow(mpres_t, mpres_t, mpres_t, mpmod_t);
+void mpres_ui_pow (mpres_t, unsigned int, mpres_t, mpmod_t);
 void mpres_mul(mpres_t, mpres_t, mpres_t, mpmod_t);
 void mpres_div_2exp(mpres_t, mpres_t, unsigned int, mpmod_t);
 void mpres_add_ui (mpres_t, mpres_t, unsigned int, mpmod_t);
