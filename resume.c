@@ -427,8 +427,8 @@ write_resumefile_line (FILE *fd, int method, double B1, mpz_t sigma, mpz_t A,
     uname = "";
   
 #if defined (_MSC_VER) || defined (__MINGW32__)
-  // dummy block, so that the vars needed here don't need to
-  // "spill" over to the rest of the function.
+  /* dummy block, so that the vars needed here don't need to
+    "spill" over to the rest of the function. */
   {
     DWORD size, i;
     TCHAR T[MAX_COMPUTERNAME_LENGTH+2];
@@ -437,7 +437,7 @@ write_resumefile_line (FILE *fd, int method, double B1, mpz_t sigma, mpz_t A,
       strcpy(mname, "localPC");
     else
       {
-        //fprintf(stderr, "\nGetComputerName() returned %s\n", T);
+        /*fprintf(stderr, "\nGetComputerName() returned %s\n", T); */
         for (i = 0; i < sizeof(mname)-1; ++i)
           mname[i] = T[i];
         mname[sizeof(mname)-1] = 0;
