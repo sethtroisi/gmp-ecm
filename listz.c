@@ -809,29 +809,54 @@ PrerevertDivision (listz_t a, listz_t b, listz_t invb,
 {
   int po2, muls;
 
-  /* Q <- high(A * INVB) with a short product */
+  /* Q <- high(high(A) * INVB) with a short product */
   for (po2 = K; (po2 & 1) == 0; po2 >>= 1);
   po2 = (po2 == 1);
   if (Fermat && po2)
     {
-      mpz_set_ui (a[2*K-1], 0);
-      muls = F_mul (t, a + K, invb, K, DEFAULT, Fermat, t + 2 * K);
+      mpz_set_ui (a[2 * K - 1], 0);
+      if (K <= 4 * Fermat)
+        {
+          muls = F_mul (t, a + K, invb, K, DEFAULT, Fermat, t + 2 * K);
+          /* Put Q in T, as we still need high(A) later on */
+          list_mod (t, t + K - 2, K, n);
+        }
+      else
+        {
+          muls = F_mul (t, a + K, invb, K, DEFAULT, Fermat, t + 2 * K);
+          list_mod (a + K, t + K - 2, K, n);
+        }
     }
   else
+    {
 #ifdef KS_MULTIPLY /* ks is faster */
-    muls = LIST_MULT_N (t, a + K, invb, K - 1, t + 2 * K - 3);
+      muls = LIST_MULT_N (t, a + K, invb, K - 1, t + 2 * K - 3);
 #else
-    muls = list_mul_high (t, a + K, invb, K - 1, t + 2 * K - 3, n);
+      muls = list_mul_high (t, a + K, invb, K - 1, t + 2 * K - 3, n);
 #endif
+      list_mod (a + K, t + K - 2, K - 1, n);
+    }
 
-  list_mod (a + K, t + K - 2, K - 1, n);
-
-  /* the quotient Q has degree K-2, i.e. K-1 terms */
+  /* the quotient Q = trunc(A / B) has degree K-2, i.e. K-1 terms */
 
   /* T <- low(Q * B) with a short product */
   mpz_set_ui (a[2 * K - 1], 0);
   if (Fermat && po2)
-      muls += F_mul (t, a + K, b, K, DEFAULT, Fermat, t + 2 * K);
+    {
+      if (K <= 4 * Fermat)
+        {
+          /* Multiply without zero padding, result is (mod x^K - 1) */
+          muls += F_mul (t + K, t, b, K, NOPAD, Fermat, t + 2 * K);
+          /* Take the leading monomial x^K of B into account */
+          list_add (t, t + K, t, K);
+          /* Subtract high(A) */
+          list_sub(t, t, a + K, K);
+        }
+      else
+        {
+          muls += F_mul (t, a + K, b, K, DEFAULT, Fermat, t + 2 * K);
+        }
+    }
   else
 #ifdef KS_MULTIPLY /* ks is faster */
       muls += LIST_MULT_N (t, a + K, b, K, t + 2 * K - 1);
