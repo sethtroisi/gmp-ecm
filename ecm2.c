@@ -504,19 +504,29 @@ ecm_rootsF (mpz_t f, listz_t F, unsigned int d1, unsigned int d2,
   state.dsieve = 6;
   state.nr = 1;
 
-  if (d1 / state.dsieve > 50 && d1 % 5 == 0)
+  /* Prospective saving by sieving out multiples of 5:
+       d1 / state.dsieve * state.nr / 5 roots, each one costs S point adds
+     Prospective cost increase:
+       4 times as many progressions to init (that is, 3 * state.nr more), 
+       each costs ~ S * S * log_2(5 * dsieve * d2) / 2 point adds
+     The state.dsieve and one S cancel.
+  */
+  if (d1 % 5 == 0 && 
+      d1 / state.dsieve / 5 > 3. * S * log (5. * state.dsieve * d2) / 2.)
     {
       state.dsieve *= 5;
       state.nr *= 4;
     }
 
-  if (d1 / state.dsieve > 100 && d1 % 7 == 0)
+  if (d1 % 7 == 0 && 
+      d1 / state.dsieve / 7 > 5. * S * log (7. * state.dsieve * d2) / 2.)
     {
       state.dsieve *= 7;
       state.nr *= 6;
     }
   
-  if (d1 / state.dsieve > 500 && d1 % 11 == 0)
+  if (d1 % 11 == 0 && 
+      d1 / state.dsieve / 11 > 9. * S * log (11. * state.dsieve * d2) / 2.)
     {
       state.dsieve *= 11;
       state.nr *= 10;
