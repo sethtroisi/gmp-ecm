@@ -617,7 +617,7 @@ Debian package;
 Alexander Kruppa &lt;firstname.lastname@mytum.de&gt; contributed the 
 Toom-Cook multiplication code, the special code for Fermat numbers, and many 
 other nice things;
-Dave Newman &lt;firstname.lastname@jesus.ox.ac.uk&gt;
+Dave Newman &lt;david.lastname@jesus.ox.ac.uk&gt;
 contributed the Kronecker-Schoenhage multiplication code;
 Paul Zimmermann &lt;zimmerma at loria dot fr&gt; is the author of the first 
 version of the program.
