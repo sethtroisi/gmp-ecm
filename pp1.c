@@ -37,7 +37,7 @@ void             pp1_mul_ui (mpres_t, mpres_t, unsigned long, mpmod_t,
 int  count_significant_bits (mp_limb_t);
 void pp1_check_factor       (mpz_t, mpz_t);
 int          pp1_stage1     (mpz_t, mpres_t, mpmod_t, double, double,
-                             unsigned long *, mpz_t);
+                             unsigned long *, mpz_t, mpz_t);
 
 /******************************************************************************
 *                                                                             *
@@ -136,7 +136,7 @@ count_significant_bits (mp_limb_t e)
 */
 int
 pp1_stage1 (mpz_t f, mpres_t P0, mpmod_t n, double B1, double B1done,
-            unsigned long *muls, mpz_t orig_n)
+            unsigned long *muls, mpz_t orig_n, mpz_t go)
 {
   double B0, p, q, r;
   mpz_t g;
@@ -447,7 +447,7 @@ pp1_rootsG (listz_t G, unsigned int d, mpres_t *fd, mpmod_t modulus,
    Return value: non-zero iff a factor is found (1 for stage 1, 2 for stage 2)
 */
 int
-pp1 (mpz_t f, mpz_t p, mpz_t n, double B1done, double B1, double B2min, double B2, 
+pp1 (mpz_t f, mpz_t p, mpz_t n, mpz_t go, double B1done, double B1, double B2min, double B2, 
      double B2scale, unsigned int k, unsigned int S, int verbose, int repr)
 {
   int youpi = 0, st;
@@ -512,7 +512,7 @@ pp1 (mpz_t f, mpz_t p, mpz_t n, double B1done, double B1, double B2min, double B
   mpres_set_z (a, p, modulus);
 
   if (B1 > B1done)
-    youpi = pp1_stage1 (f, a, modulus, B1, B1done, &muls, n);
+    youpi = pp1_stage1 (f, a, modulus, B1, B1done, &muls, n, go);
 
   if (verbose >= 1)
     {

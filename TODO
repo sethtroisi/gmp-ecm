@@ -1,4 +1,18 @@
 ToDo's:
+- Add -go <NUM> to the input syntax.  This will allow the user to input
+  a known group order.  <NUM> can be a simple number, a simple expression,
+  or an express which uses the special letter 'N'.  Each curve, if there
+  is an 'N' in the expression (or more than one), the value of the
+  current N number is substituded into the expression and then the
+  expression is re-computed.  
+  Tasks done so far:
+  argument processing in main.c  (done)
+  Built a mpgocandi_t to keep track of the group order items (done)
+  Added parameters (mpz_t) to ecm, pp1, pm1 (and the stage1 for each).
+  Added code into pm1_stage1()
+  In pm1_stage1() the starting p^(N-1) is still left in at this time.
+  In ecm_stage1() and pp1_stage1() the go data is not yet used.
+  Chapter 10 of README needs a better description.  I started one, but it's not done.
 - fix problem found by SleepHound <sleephound@yahoo.com> for
   ./ecm -sigma 1404040793 -power 2 5e4 11757135 < c3456
   where c3456 is the remaining composite from 2^22176+1

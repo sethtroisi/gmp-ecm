@@ -155,6 +155,17 @@ typedef struct
 			   OR if the original candidate was PRP and the user asked to prp check */
 } mpcandi_t;
 
+typedef struct
+{
+  int  Valid;           /* Is ONLY set to 1 if there is a proper -go <integer> switch.  Otherwise is 0
+                           and if 0, then PM1, PP1 and ECM all ignore it */
+  char *cpOrigExpr;	/* if non-NULL, then this is a "simpler" expression than the 
+			   decimal output of n */
+  mpcandi_t Candi;      /* The value after expression checked */
+  int containsN;        /* 0 for simple number or expression.  1 if the expression "contains" N as
+                           that expression will have to be built for each candidate */
+} mpgocandi_t;
+
 #if defined (__cplusplus)
 extern "C" {
 #endif  
@@ -171,7 +182,7 @@ unsigned int get_random_ui (void);
 
 /* pm1.c */
 void    pm1_random_seed  (mpz_t, mpz_t, gmp_randstate_t);
-int          pm1         (mpz_t, mpz_t, mpz_t, double, double, double, double, double, 
+int          pm1         (mpz_t, mpz_t, mpz_t, mpz_t, double, double, double, double, double, 
                           unsigned int, int, int, int, mpz_t);
 int     pm1_rootsF       (mpz_t, listz_t, unsigned int, mpres_t *, listz_t,
                           int, mpmod_t, int, unsigned long *);
@@ -183,7 +194,7 @@ int     pm1_rootsG       (mpz_t, listz_t, unsigned int, mpres_t *, listz_t,
 
 
 /* ecm.c */
-int          ecm        (mpz_t, mpz_t, mpz_t, mpz_t, double, double, double, double,
+int          ecm        (mpz_t, mpz_t, mpz_t, mpz_t, mpz_t, double, double, double, double,
                          double, unsigned int, int, int, int, int);
 int          cputime    (void);
 
@@ -213,7 +224,7 @@ int          pp1_mul     (mpres_t, mpres_t, mpz_t, mpmod_t, mpres_t, mpres_t);
 int          pp1_mul_prac(mpres_t, unsigned long, mpmod_t, mpres_t, mpres_t,
                           mpres_t, mpres_t, mpres_t);
 void    pp1_random_seed  (mpz_t, mpz_t, gmp_randstate_t);
-int          pp1         (mpz_t, mpz_t, mpz_t, double, double, double, double, double, 
+int          pp1         (mpz_t, mpz_t, mpz_t, mpz_t, double, double, double, double, double, 
                           unsigned int, unsigned int, int, int);
 int   pp1_rootsF         (listz_t, unsigned int, mpres_t *, listz_t,
                           mpmod_t, int, unsigned long *);
@@ -358,6 +369,11 @@ int  mpcandi_t_copy (mpcandi_t *to, mpcandi_t *from);
 int  mpcandi_t_add_candidate (mpcandi_t *n, mpz_t c, const char *cpExpr, int bPrp);
 int  mpcandi_t_addfoundfactor (mpcandi_t *n, mpz_t f, int displaywarning);
 int  mpcandi_t_addfoundfactor_d (mpcandi_t *n, double f);
+/* candi.c   Group Order candidate functions.  */
+void mpgocandi_t_init(mpgocandi_t *go);
+void mpgocandi_t_free(mpgocandi_t *go);
+int  mpgocandi_fixup_with_N(mpgocandi_t *go, mpcandi_t *n);
+
 
 /* smartprp.c */
 int smart_probab_prime_p(mpz_t const n, int c);
