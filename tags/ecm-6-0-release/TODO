@@ -1,0 +1,26 @@
+ToDo's:
+
+0) configure
+- check getrusage in configure, update cputime (auxlib.c)
+
+1) efficiency/memory
+- use mpres in step 2
+- optimize memory usage in step 2 (use a unique array for multiplies)
+- write a mpn version of add3 and duplicate  
+- use/implement a mpn_mul_hi_n routine for use in mpn_REDC
+- use mpn_addmul_2, mpn_addmul_4 in the basecase REDC [for machines
+  where it exists]
+- try McLaughlin's algorithm for Montgomery's modular multiplication
+  (http://www.ams.org/mcom/0000-000-00/S0025-5718-03-01543-6/home.html)
+- consider Colin Percival's generalized DWT for multiplication modulo
+  k*a^n+b, where k*a*b is highly composite. May belong to GMP rather than
+  GMP-ECM.
+- implement assembly code (redc.asm) for other architectures
+  (rename it to redc.s, add AM_PROG_AS in configure.in, add an option
+	--want_asm or similar)
+
+2) interface
+- with -resume, print %time for THIS RUN instead of total run?
+	[suggested by SleepHound <sleephound@yahoo.com>]
+- when resuming, print the *initial* x0 for P-1/P+1?
+

@@ -1,0 +1,119 @@
+#!/bin/sh
+
+# test file for ECM
+#
+# Copyright 2002, 2003 Paul Zimmermann and Alexander Kruppa.
+#
+# This program is free software; you can redistribute it and/or modify it
+# under the terms of the GNU General Public License as published by the
+# Free Software Foundation; either version 2 of the License, or (at your
+# option) any later version.
+#
+# This program is distributed in the hope that it will be useful, but WITHOUT
+# ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+# FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License for
+# more details.
+#
+# You should have received a copy of the GNU General Public License along
+# with this program; see the file COPYING.  If not, write to the Free
+# Software Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA
+# 02111-1307, USA.
+
+ECM="$1"
+
+# try primes < d in stage 2. Curve with sigma=7, mod 30210181 has order
+# 2^4 * 3^3 * 29 * 2411
+(echo 2050449353925555290706354283 | $ECM -sigma 7 -k 1 30 0-1e6) ||
+   (echo "############### ERROR ###############"; exit 1) || exit
+
+# tests from Torbjo"rn Granlund
+(echo 137703491 | $ECM -sigma 6 84 1000) ||
+   (echo "############### ERROR ###############"; exit 1) || exit
+
+(echo 3533000986701102061387017352606588294716061 | $ECM -sigma 1621 191 225)||
+   (echo "############### ERROR ###############"; exit 1) || exit
+
+(echo 145152979917007299777325725119 | $ECM -sigma 711387948 924 117751)||
+   (echo "############### ERROR ###############"; exit 1) || exit
+
+(echo 242668358425701966181147598421249782519178289604307455138484425562807899 | $ECM -sigma 1417477358 28560 85507063)||
+   (echo "############### ERROR ###############"; exit 1) || exit
+
+# bug found by Jim Fougeron
+(echo 3533000986701102061387017352606588294716061 | $ECM -sigma 291310394389387 191 225)||
+   (echo "############### ERROR ###############"; exit 1) || exit
+
+(echo 121279606270805899614487548491773862357 | $ECM -sigma 1931630101 120)||
+   (echo "############### ERROR ###############"; exit 1) || exit
+
+(echo 291310394389387 | $ECM -power 3 -sigma 40 2000)||
+   (echo "############### ERROR ###############"; exit 1) || exit
+
+(echo 3533000986701102061387017352606588294716061 | $ECM -sigma 3547 167 211)||
+   (echo "############### ERROR ###############"; exit 1) || exit
+
+(echo 449590253344339769860648131841615148645295989319968106906219761704350259884936939123964073775456979170209297434164627098624602597663490109944575251386017 | $ECM -sigma 63844855 172969 20658299)||
+   (echo "############### ERROR ###############"; exit 1) || exit
+
+(echo 17061648125571273329563156588435816942778260706938821014533 | $ECM -sigma 585928442 174000)||
+   (echo "############### ERROR ###############"; exit 1) || exit
+
+(echo 89101594496537524661600025466303491594098940711325290746374420963129505171895306244425914080753573576861992127359576789001 | $ECM -sigma 877655087 325001 1032299)||
+   (echo "############### ERROR ###############"; exit 1) || exit
+
+(echo 5394204444759808120647321820789847518754252780933425517607611172590240019087317088600360602042567541009369753816111824690753627535877960715703346991252857 | $ECM -sigma 805816989 345551)||
+   (echo "############### ERROR ###############"; exit 1) || exit
+
+(echo 242668358425701966181147598421249782519178289604307455138484425562807899 | $ECM -sigma 1417477358 854975 85510503)||
+   (echo "############### ERROR ###############"; exit 1) || exit
+
+(echo 3923385745693995079670229419275984584311007321932374190635656246740175165573932140787529348954892963218868359081838772941945556717 | $ECM -sigma 876329474 141667 150814537)||
+   (echo "############### ERROR ###############"; exit 1) || exit
+
+(echo 124539923134619429718018353168641490719788526741873602224103589351798060075728544650990190016536810151633233676972068237330360238752628542584228856301923448951 | $ECM -sigma 1604840403 1260317 24289207)||
+   (echo "############### ERROR ###############"; exit 1) || exit
+
+# for ecm3, g1=4043946241 divides 484984500^120-17923^120
+# doesn't work with Dickson(60), commented since may be not reproducible
+#(echo 5735013127104523546495917836490637235369 | $ECM -power 60 -k 2 -A 3848610099745584498259560038340842096471 -x0 2527419713481530878734189429997880136878 330000 500000000)||
+#   (echo "############### ERROR ###############"; exit 1) || exit
+
+# g1=1805746381 divides 1577240280^12-349^12, doesn't work with Dickson
+# warning: depends on the value of d chosen in stage 2
+# works with -k 2 (d=92820), -k 3 (d=78540)
+#(echo 17833653493084084667826559287841287911473 | $ECM -power 6 -k 2 -A 7423036368129288563912180723909655170075 -x0 9011819881065862648414808987718432766274 389797 16e8)||
+#   (echo "############### ERROR ###############"; exit 1) || exit
+
+# g1=1822795201 divides 185550750^30-25009^30, doesn't work with Dickson
+#(echo 212252637915375215854013140804296246361 | $ECM -power 15 -k 2 -sigma 781683988 1000000)||
+#   (echo "############### ERROR ###############"; exit 1) || exit
+
+# p49 found by Sean Irvine
+(echo 4983070578699621345648758795946786489699447158923341167929707152021191319057138908604417894224244096909460401007237133698775496719078793168004317119431646035122982915288481052088094940158965731422616671 | $ECM -sigma 909010734 122861 176711)||
+   (echo "############### ERROR ###############"; exit 1) || exit
+
+# bug in ecm-5.0 (overflow in fin_diff_coeff)
+(echo 1408323592065265621229603282020508687 | $ECM -sigma 1549542516 3e6 29973883000-29973884000)||
+   (echo "############### ERROR ###############"; exit 1) || exit
+
+# bug in ecm 5.0 and 5.0.1 (factor found for c110 input, not with p58)
+(echo 3213162276640339413566047915418064969550383692549981333701 | $ECM -sigma 2735675386 3897500) ||
+   (echo "############### ERROR ###############"; exit 1) || exit
+
+(echo 39614081257132168796771975177 | $ECM -sigma 480 1e6) ||
+   (echo "############### ERROR ###############"; exit 1) || exit
+
+(echo 10000286586958753753 | $ECM -sigma 3956738175 1e6) ||
+   (echo "############### ERROR ###############"; exit 1) || exit
+
+(echo 49672383630046506169472128421 | $ECM -sigma 2687434659 3e6) ||
+   (echo "############### ERROR ###############"; exit 1) || exit
+
+(echo 216259730493575791390589173296092767511 | $ECM -sigma 214659179 2e6) ||
+   (echo "############### ERROR ###############"; exit 1) || exit
+
+# test -go option
+(echo 9144205714687032445758003941 | $ECM -sigma 2076570331 -go 4346981 4663 1) ||
+   (echo "############### ERROR ###############"; exit 1) || exit
+
+echo "All ECM tests are ok."

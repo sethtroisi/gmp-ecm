@@ -1,0 +1,93 @@
+Instructions to install GMP-ECM:
+
+0) you first need to install the GNU MP (GMP) library.
+   GNU MP is available from <http://www.swox.com/gmp/>.
+
+   Remark: GNU MP is already installed in most Linux distributions.
+   However it is often an old version, moreover without processor-specific
+   optimizations. If you care about efficiency, be sure to install the
+   latest version of GNU MP (4.1.4 as of January 2005), and to compile it
+   for your particular processor.
+
+1) check your configuration with:
+
+   $ ./configure
+
+   The configure script accepts several options (see ./configure --help).
+   In particular you can specify the GMP installation directory with:
+
+   $ ./configure --with-gmp=<gmpdir>
+
+   where <gmpdir>/include contains the header file gmp.h, and <gmpdir>/lib
+   contains the static or dynamic libraries (libgmp.a, libgmp.so, libgmp.lib).
+ 
+   Note: the configure script will first search for a static GMP library, which
+   makes GMP-ECM more efficient. When only a dynamic library is available, make
+   sure to correctly set your dynamic libraries search path (LD_LIBRARY_PATH
+   on Unix systems), otherwise the configure script may fail.
+
+   Warning: it is recommended to use the same compiler and options as those
+   used to compile GMP, otherwise the compilation may fail, or you may get
+   poor performance. In the GMP build directory, simply type:
+
+   $ egrep -w '(CC|CFLAGS)' config.log
+
+   to see which compiler and options were used to build GMP. For example
+   on a Sparc v9 you may have to type:
+   
+   $ ./configure CC=cc CFLAGS="-fast -fns=no -fsimple=1 -xarch=v9" 
+
+2) compile the program with:
+
+   $ make
+
+   This will create the 'libecm.a' library, the 'ecm' binary file,
+   the 'ecmfactor' binary file (sample use of libecm.a), and 'tune'
+   and 'tune2', two tuning files.
+
+3) to check that the program works correctly, type:
+
+   $ make check
+
+   This will run several tests for P+1, P-1, ECM. These tests take a few
+   minutes. It should normally end with "All ECM tests are ok."
+
+4) (optional) you can then install the ecm binary and its man page:
+
+   $ make install
+
+   By default, installation will be done in /usr/local.
+   You can change with the --prefix option of configure at step 1:
+   
+   $ ./configure --prefix=<my_installation_directory>
+
+   The ecm binary will go in <my_installation_directory>/bin,
+   its man page in <my_installation_directory>/man/man1, and the
+   ecm library in <my_installation_directory>/lib.
+
+   You can also do "make uninstall" to remove those files.
+
+5) If you like GMP-ECM, please help us factoring Cunningham numbers. First
+   download "cunningham.in" on <http://www.loria.fr/~zimmerma/ecmnet/>, then
+   perform one ecm test with B1=11e6 on each number of this file:
+
+   $ ./ecm 11e6 < cunningham.in > cunningham.out &
+
+   If you find any factor (grep found cunningham.out), please submit it
+   using the report form on <http://www.loria.fr/~zimmerma/ecmnet/>.
+
+In case of a problem, report it to us, with:
+
+- the output of the config.log file
+
+- the versions of GMP-ECM and GMP used (first output line), for example:
+  
+  GMP-ECM 6.0 [powered by GMP 4.1.4, fft] [P+1]
+
+- the detailed input enabling us to reproduce the problem, for example:
+
+  $ echo 328006342451 | ./ecm -pp1 -x0 5 120 7043
+
+- the output you get.
+
+Then send your bug report at <ecm-dev@lists.fousse.info>.
