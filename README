@@ -168,10 +168,8 @@ factor), and the "f" user scaling factor to also adjust this value.
 There is also a "-i n" switch which will increment B1 by a "fixed" value
 (the n value).  This code is still "new" and some testing/tuning may still
 be needed to obtain the optimal results, however, the -I f should currently
-be "pretty" close to optimal.  The -i n has been in use for over a year
-in the ecm4c-rx (x greater than 2) and has shown to be VERY powerful in
-speeding up the finding of factors.  NOTE that -I 10 is a wonderful way
-to find factors of the same number across 10 "simplilar" PC's at the
+be "pretty" close to optimal.  NOTE that -I 10 is a wonderful way
+to find factors of the same number across 10 machines at the
 same time.  This will cause each "next" auto-computation of B1 to be 
 scaled 10x larger than normal.  Thus the "correct" amount of work will
 be done in 10 parallel systems automatically.
