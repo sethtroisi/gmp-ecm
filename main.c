@@ -167,8 +167,13 @@ main (int argc, char *argv[])
      For Toom-Cook 3, this gives alpha=log(5)/log(3), and B2 ~ (c*B1)^1.365.
      For Toom-Cook 4, this gives alpha=log(7)/log(4), and B2 ~ (c*B1)^1.424. */
   B1cost = (double) B1 / 6.0; /* default for P-1 */
+  /* Since nai"ve P+1 and ECM cost respectively 2 and 11 multiplies per
+     addition and duplicate, and both are optimized with PRAC, we can
+     assume the ratio remains about 11/2. */
   if (method == PP1_METHOD)
     B1cost *= 2.0;
+  else if (method == EC_METHOD)
+    B1cost *= 11.0;
   B2 = (argc >= 4) ? atof (argv[3]) : pow (B1cost, 1.424828748);
 
   /* set initial starting point for ECM */
