@@ -11,7 +11,10 @@ Long term:
 - document how to use the ecm(), pm1(), pp1() functions from a C program
   (may need changes to give parameters or options)
 - add a configure file (check if alloca.h is needed, cf FreeBSD)
-- tune stage 2 values of 'd' to optimize toomcook4(d)/(d*phi(d/2))
+- tune stage 2 values of 'd' to optimize toomcook4(d)/(d*phi(d/2)):
+  for each value of d, compute k = ceil(B2/(d*phi(d)/2), then
+  compute cost(d,k) = (k+1)*PolyFromRoots(dF)+Invert(dF)+(k-1)*toomcook4(dF)
+  +(k-1)*Reduce(dF)+polyeval(dF) where dF=Phi(d)/2
 - implement Brent-Suyama's extension for p+1 (how to do it efficiently?
   Could "Powers of 2^(k/2) and 3^k", Montgomery dissertation, 5.5, work?)
 - get rid of NTL for polygcd, and allow runtime choice between polyeval/polygcd
@@ -30,3 +33,6 @@ Long term:
 - when resuming, print the *initial* x0 for P-1/P+1?
 - option -base2 to force base2 when res/lo > threshold?
 - extend maximal B1 in P+1 and ECM
+- check number of multiplies in step 2, compute it for step 1
+- get rid of __gmp_free_func (no longer declared in gmp.h)
+- implement high/low products in step 2
