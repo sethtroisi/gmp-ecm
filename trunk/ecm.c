@@ -1,8 +1,6 @@
 /* Elliptic Curve Method implementation.
 
-  Copyright (C) 2001 Paul Zimmermann,
-  LORIA/INRIA Lorraine, zimmerma@loria.fr
-  See http://www.loria.fr/~zimmerma/records/ecmnet.html
+  Copyright 2001, 2002, 2003 Alexander Kruppa and Paul Zimmermann.
 
   This program is free software; you can redistribute it and/or modify it
   under the terms of the GNU General Public License as published by the
@@ -557,8 +555,8 @@ ecm_stage1 (mpz_t f, mpres_t x, mpres_t A, mpmod_t n, double B1,
    Return value: non-zero iff a factor was found.
 */
 int
-ecm (mpz_t f, mpz_t x, mpz_t sigma, mpz_t n, double B1, double B2, 
-     double B1done, unsigned int k, int S, int verbose, int repr)
+ecm (mpz_t f, mpz_t x, mpz_t sigma, mpz_t n, double B1done, double B1,
+     double B2min, double B2, unsigned int k, int S, int verbose, int repr)
 {
   int youpi = 0, st;
   mpmod_t modulus;
@@ -645,7 +643,7 @@ ecm (mpz_t f, mpz_t x, mpz_t sigma, mpz_t n, double B1, double B2,
   youpi = montgomery_to_weierstrass (f, P.x, P.y, P.A, modulus);
   
   if (youpi == 0)
-    youpi = stage2 (f, &P, modulus, B2, k, S, verbose, EC_METHOD, B1);
+    youpi = stage2 (f, &P, modulus, B2min, B2, k, S, verbose, EC_METHOD);
   
   mpres_clear (P.y, modulus);
 
