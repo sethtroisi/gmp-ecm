@@ -42,43 +42,8 @@ typedef struct
 } __ecm_param_struct;
 typedef __ecm_param_struct ecm_params[1];
 
-/* Input: x is the starting point or zero
-          sigma is sigma value (if x is set to zero) or 
-            A parameter (if x is non-zero) of curve
-          n is the number to factor
-          B1, B2 are the stage 1/stage 2 bounds, respectively
-          k is the number of blocks to do in stage 2
-          S is the degree of the Suyama-Brent extension for stage 2
-          verbose is verbosity level: 0 no output, 1 normal output,
-            2 diagnostic output.
-          sigma_is_a: If true, the sigma parameter contains the curve's A value
-   Output: f is the factor found.
-   Return value: non-zero iff a factor was found.
-*/
-int /* return value is non-zero iff a factor was found */
-ecm (mpz_t, /* f: factor found if any */
-     mpz_t, /* x: starting point (if non zero) */
-     mpz_t, /* sigma: contains sigma or A */
-     mpz_t, /* n: number to factor */
-     mpz_t, /* go: initial group order to preload (if NULL: do nothing) */
-     double, /* B1done: step 1 was already done up to B1done */
-     double, /* B1: step 1 bound */
-     double, /* B2min: lower bound for stage 2 (default is B1) */
-     double, /* B2: step 2 bound (chosen automatically if < 0.0) */
-     double, /* B2scale: B2 scale factor */
-     unsigned int, /* k: number of blocks in stage 2 */
-     int,          /* S: degree of the Brent-Suyama's extension for stage 2 */
-     int,          /* verbose: verbosity level: 0 no output, 1 normal output,
-                      2 diagnostic output */
-     int,          /* representation for modular arithmetic: 1=mpz,
-                      2=modmuln (Montgomery's quadratic multiplication),
-                      3=redc (Montgomery's subquadratic multiplication),
-                      > 16 : special base-2 representation
-                      otherwise: automatic choice */
-     int,          /* sigma_is_A: if non-zero, 'sigma' contains A */
-     FILE*,        /* standard output (for verbose messages) */
-     FILE*);       /* standard error  (for error   messages) */
-
+int ecm (mpz_t, mpz_t, mpz_t, mpz_t, mpz_t, double, double, double, double,
+         double, unsigned int, int, int, int, int, FILE*, FILE*);
 int pp1 (mpz_t, mpz_t, mpz_t, mpz_t, double, double, double, 
           double, double, unsigned int, unsigned int, int, int, FILE*, FILE*);
 int pm1 (mpz_t, mpz_t, mpz_t, mpz_t, double, double, double, 
@@ -90,11 +55,20 @@ int pm1 (mpz_t, mpz_t, mpz_t, mpz_t, double, double, double,
 #define ECM_PP1 2
 
 /* return value of ecm, pm1, pp1 */
-#define ECM_FACTOR_FOUND 1 /* should be non-zero */
+#define ECM_FACTOR_FOUND_STEP1 1 /* should be positive */
+#define ECM_FACTOR_FOUND_STEP2 2 /* should be positive */
 #define ECM_NO_FACTOR_FOUND 0 /* should be zero */
 #define ECM_ERROR -1 /* should be non-zero */
+#define ECM_FACTOR_FOUND_P(x) ((x) > 0)
+#define ECM_ERROR_P(x)        ((x) < 0)
 
-#define DEFAULT_B1_DONE 1.0
-#define IS_DEFAULT_B1_DONE(x) (x <= 1.0)
+#define ECM_DEFAULT_B1_DONE 1.0
+#define ECM_IS_DEFAULT_B1_DONE(x) (x <= 1.0)
+
+/* stage 2 bound */
+#define ECM_DEFAULT_B2 -1.0
+#define ECM_IS_DEFAULT_B2(x) ((x) < 0.0)
 
 #define ECM_DEFAULT_K 2 /* default number of blocks in stage 2 */
+#define ECM_DEFAULT_S 0 /* polynomial is chosen automatically */
+#define ECM_DEFAULT_REPR 0 /* automatic choice */
