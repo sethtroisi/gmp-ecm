@@ -1,3 +1,60 @@
+2005-02-28  paul  <zimmerma>
+
+	* release version 6.0
+
+	* ecm.xml: updated -primetest
+
+2005-02-27  alex  <kruppa>
+
+	* pm1.c, pp1.c, ecm.c:
+	For Fermat numbers, S=1 (S=2 for P-1) is now default
+
+	* Makefile.am, configure.in, ecm-impl.h, main.c, mpmod.c, schoen_strass.c, Fgw.c:
+	More changes for linking gwnum
+
+2005-02-24  alex  <kruppa>
+
+	* Fgw.c, configure.in: Changes for linking gwnum (incomplete)
+
+	* main.c: Added option -h for getting help
+
+	* ecm.xml: More cleanup
+
+2005-02-23  paul  <zimmerma>
+
+	* auxlib.c, ecm-impl.h, ecm.c, ecm2.c, ks-multiply.c, pm1.c, pp1.c, stage2.c, tune.c, tune2.c:
+	hopefully fixed the wrap-around bug of cputime()
+
+	* INSTALL, NEWS, README, configure.in: changed version to 6.0
+	removed "Known problems" in README (were obsolete)
+
+	* random2.c, smartprp.c, trial.c, auxi.c, b1_ainc.c, candi.c, eval.c, getprime2.c, main.c:
+	fixed copyright years/names
+
+2005-02-23  alex  <kruppa>
+
+	* ecm.xml: Some inconsistent typesetting fixed
+
+	* ecm.xml: added -base2, -timestamp, -savea, different loglevels
+
+2005-02-23  paul  <zimmerma>
+
+	* ChangeLog, Makefile.am, README, README.lib, auxi.c, configure.in, ecmfactor.c, factor.c, pp1.c, smartprp.c, tune2.c:
+	gmp -> GMP
+	fixed one memory leak
+	added missing (L)GPL headers
+
+2005-02-22  paul  <zimmerma>
+
+	* Makefile.am, README: forgot to install ecm.h
+
+	* AUTHORS, ChangeLog, INSTALL, Makefile.am, NEWS, README, README.lib, TODO, ecm-ecm.h, ecm-impl.h, ecm.xml, eval.c, mpmod.c, mul_lo.c, polyeval.c, tune2.c:
+	changes after remarks from Torbjo"rn on rc4
+
+	* INSTALL, Makefile.am, auxi.c, candi.c, eval.c, main.c, memory.c:
+	don't install tune*, ecmfactor
+	fixed problems with -DMEMORY_DEBUG
+
 2005-02-22  paul  <zimmerma>
 
 	* INSTALL, Makefile.am, auxi.c, candi.c, eval.c, main.c, memory.c:
