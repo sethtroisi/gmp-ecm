@@ -111,9 +111,9 @@ get_random_ui ()
 {
   SYSTEMTIME tv;
   GetSystemTime(&tv);
-  // This gets us 27 bits of somewhat "random" data based on the time clock.
-  // It would probably do the program justice if a better random mixing was done
-  // in the non-MinGW get_random_ui if /dev/random does not exist
+  /* This gets us 27 bits of somewhat "random" data based on the time clock.
+     It would probably do the program justice if a better random mixing was done
+     in the non-MinGW get_random_ui if /dev/random does not exist */
   return ((tv.wHour<<22)+(tv.wMinute<<16)+(tv.wSecond<<10)+tv.wMilliseconds) ^
          ((tv.wMilliseconds<<17)+(tv.wMinute<<11)+(tv.wHour<<6)+tv.wSecond);
 }
