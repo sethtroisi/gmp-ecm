@@ -16,9 +16,6 @@ ToDo's:
 - implement Brent-Suyama's extension for p+1 (how to do it efficiently?
   Could "Powers of 2^(k/2) and 3^k", Montgomery dissertation, 5.5, work?)
 - get rid of NTL for polygcd, and allow runtime choice between polyeval/polygcd
-- change [j*d, i] in stage2 with gcd(i,d)=1, i=1 mod 6
-  to [j*d+1, i] with gcd(i+1,d)=1, i=0 mod 6 ?
-  (Avoids i0=0 or 1 i.e. d + d -> 2d, or i0=0, i.e. 0 + d -> d, d + d -> 2d.)
 - add -fft option for 2^n+1 (in particular Fermat numbers)
 - optimize memory usage in step 2 (use an unique array for multiplies)
 - option -kill when user on console?
@@ -48,6 +45,9 @@ ToDo's:
   (Mersenne and Fermats are idea for this type of trial factoring).
 - try McLaughlin's algorithm for Montgomery's modular multiplication
   (http://www.ams.org/mcom/0000-000-00/S0025-5718-03-01543-6/home.html)
+- consider Colin Percival's generalized DWT for multiplication modulo
+  k*a^n+b, where k*a*b is highly composite. May belong into GMP rather than
+  gmp-ecm.
 
 Partially Done's:
 * print progress (80 dots in step 1/2) [Jay Berg]
@@ -83,3 +83,7 @@ Done's:
   run.  One range is 30 curves at B1=2000 and the next range starts at B1=11000.
   So there is a B1 range of 9000 for 30 curves, and we compute the "Optimal" B1
   increment at 300.
++ change [j*d, i] in stage2 with gcd(i,d)=1, i=1 mod 6
+  to [j*d+1, i] with gcd(i+1,d)=1, i=0 mod 6 ?
+  (Avoids i0=0 or 1 i.e. d + d -> 2d, or i0=0, i.e. 0 + d -> d, d + d -> 2d.)
+  Not neccessary anymore as ECM now handles the neutral element in stage 2.
