@@ -326,7 +326,7 @@ list_mul_high (listz_t a, listz_t b, listz_t c, unsigned int K, listz_t t)
 
 #ifdef KS_MULTIPLY /* ks is faster */
   return LIST_MULT_N (a, b, c, K, t);
-#endif
+#else
 
   switch (K)
     {
@@ -361,6 +361,7 @@ list_mul_high (listz_t a, listz_t b, listz_t c, unsigned int K, listz_t t)
         }
       return muls;
     }
+#endif
 }
 
 /* Puts in a[0..2K-2] the product of b[0..K-1] and c[0..K-1].
