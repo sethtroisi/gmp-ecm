@@ -52,7 +52,7 @@ char *champion_url[3] =
  "http://www.loria.fr/~zimmerma/records/Pminus1.html",
  "http://www.loria.fr/~zimmerma/records/Pplus1.html"};
 /* minimal number of digits to enter the champions table for ECM, P-1, P+1 */
-unsigned int champion_digits[3] = { 53, 42, 37 };
+unsigned int champion_digits[3] = { 53, 43, 37 };
 
 /* Tries to read a number from a line from fd and stores it in r.
    Keeps reading lines until a number is found. Lines beginning with "#"
