@@ -184,10 +184,11 @@ add3 (mpres_t x3, mpres_t z3, mpres_t x2, mpres_t z2, mpres_t x1, mpres_t z1,
 
   if (x == x3) /* same variable: in-place variant */
     {
-      mpres_set (u, x, n);
-      mpres_mul (w, w, z, n);
-      mpres_mul (z3, u, v, n);
-      mpres_set (x3, w, n);
+      /* x3 <- w * z mod n
+	 z3 <- x * v mod n */
+      mpres_mul (z3, w, z, n);
+      mpres_mul (x3, x, v, n);
+      mpres_swap (x3, z3, n);
     }
   else
     {
@@ -493,7 +494,7 @@ ecm_stage1 (mpz_t f, mpres_t x, mpres_t A, mpmod_t n, double B1,
   mpres_set_ui (z, 1, n);
   
   mpres_add_ui (b, A, 2, n);
-  mpres_div_2exp(b, b, 2, n); /* b == (A+2)/4 */
+  mpres_div_2exp (b, b, 2, n); /* b == (A+2)/4 */
 
   /* prac() wants multiplicands > 2 */
   for (r = 2.0; r <= B1; r *= 2.0)
