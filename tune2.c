@@ -5,7 +5,7 @@
 
 #define N 100
 
-INLINE void
+static INLINE void
 mpn_mul_lo_basecase (mp_ptr rp, mp_srcptr np, mp_srcptr mp, mp_size_t n)
 {
   mpn_mul_1 (rp, np, n, mp[0]);
@@ -74,7 +74,7 @@ test3 (mp_ptr cp, mp_ptr ap, mp_ptr bp, mp_size_t n, int k)
 int
 main ()
 {
-  mp_size_t n, t, topt;
+  unsigned int n, t, topt;
   mp_limb_t ap[N], bp[N], cp[2*N];
   int st[3], s, k;
 

@@ -29,7 +29,7 @@
 /* performs k computations of p*q mod N using representation 'repr'
    and return the total time.
 */
-int
+static int
 test (mpz_t N, mpz_t p, mpz_t q, int repr, int k)
 {
   mpmod_t modulus;
