@@ -41,7 +41,7 @@ nb_digits (mpz_t n)
  
    str = mpz_get_str (NULL, 10, n);
    size = strlen (str);
-   free (str);
+   FREE (str, size + 1);
    return size;
 }
 
