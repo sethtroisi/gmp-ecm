@@ -173,19 +173,19 @@ int
 pm1_stage1 (mpz_t f, mpres_t a, mpmod_t n, double B1, double B1done,
 	    int verbose, mpz_t orig_n, mpz_t orig_X0)
 {
-  double B0, p, q, r, cascade_limit, percentage;
+  double B0, p, q, r, cascade_limit;
   mpz_t g, d;
   int youpi;
   unsigned int size_n, max_size;
   unsigned int smallbase = 0;
   mul_casc *cascade;
-  int Counter = 0, st, st_save;
+  int Counter = 0, st_save;
 
   mpz_init (g);
   mpz_init (d);
 
   /* Prep for stage one counter */
-  fprintf (stderr, "1:00 \r");
+  showscreenticks_change_stage(1);
 
   B0 = sqrt (B1);
 
@@ -313,11 +313,8 @@ pm1_stage1 (mpz_t f, mpres_t a, mpmod_t n, double B1, double B1done,
     }
   
   /* update the screen mode after the cascade work is done */
-  percentage = p;
-  st_save = st = cputime ();
-  percentage /= B1;
-  percentage *= 100;
-  fprintf (stderr, "1:%02d\r", (int) percentage);
+  st_save = cputime ();
+  showscreenticks(1,(int) (100.0 * (double) p / (double) B1));
 
   /* then remaining primes > max(sqrt(B1), cascade_limit) and taken 
      with exponent 1 */
@@ -332,27 +329,19 @@ pm1_stage1 (mpz_t f, mpres_t a, mpmod_t n, double B1, double B1done,
 	    mpz_set_ui (g, 1);
 	  }
       }
-    if (++Counter == 1500)
+    if (++Counter == 250)
       {
-	int st_now = cputime ();
-	if (st_now - st > SCREEN_UPDATE_DELAY)
-	  {
-	    /* Check to see if we should update our screen "percentage counter" */
-	    percentage = p;
-	    st = st_now;
-	    percentage /= B1;
-	    percentage *= 100;
-	    fprintf (stderr, "1:%02d\r", (int) percentage);
-  	  }
+        showscreenticks(1,(int) (100.0 * (double) p / (double) B1));
 	Counter=0;
 	  /* should we save the current "ecm_wip.sav" file??? It is saved every 15 minutes */
 	  /* NOTE this saving DOES NOT save the expression.  It is just a "fail-safe" measure */
 #if defined (DEBUG_AUTO_SAVE)
-        if (st_now - st_save > 2000)
+        if (cputime () - st_save > 2000)
 #else
-        if (st_now - st_save > 15 * 60 * 1000)
+        if (cputime () - st_save > 15 * 60 * 1000)
 #endif
 	  {
+	    st_save = cputime ();
 	    /* sigma and A are not needed for the save.  Simply create "dummies" here to pass in */
 /*	    mpz_t sigma, A, X;
 	    mpz_init_set_ui (sigma, 0);
@@ -369,12 +358,11 @@ pm1_stage1 (mpz_t f, mpres_t a, mpmod_t n, double B1, double B1done,
 	    mpz_clear (sigma);
 */		
 	    /* Reset our "timeout" value, so we save again in 15 minutes */
-	    st_save = st_now;
 	  }
 	  /*  This "testing" code is here to see just how often this ++Counter loop is entered.
 	  {
 	    static int x;
-  	    fprintf (stderr, "1:%03d  p=%.0f\r", ++x, p);
+  	    fprintf (stderr, "1:%02d  p=%.0f\r", ++x, p);
 	  }
 	  */
       }
