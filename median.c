@@ -22,6 +22,11 @@ References:
 Proc. of ISSAC'03, Philadelphia, 2003.
 */
 
+#include <stdio.h>
+#include <stdlib.h>
+#include "gmp.h"
+#include "ecm.h"
+
 #if !defined (_MSC_VER)
 #include <sys/time.h>
 #include <unistd.h>
@@ -29,11 +34,6 @@ Proc. of ISSAC'03, Philadelphia, 2003.
 #include <sys/resource.h>
 #endif
 #endif
-
-#include <stdio.h>
-#include <stdlib.h>
-#include "gmp.h"
-#include "ecm.h"
 
 #ifndef MAX
 #define MAX(a,b) (((a) > (b)) ? (a) : (b))
@@ -793,11 +793,12 @@ TToomCookMul_space (unsigned int n, unsigned int m, unsigned int l)
    ...
    b[n] = a[0]*c[n] + ... + a[i]*c[i+n] with i = min(m, l-n) [=l-n].
    Using auxiliary memory in tmp.
-   Assumes deg(c) = l <= m+n.
+
+   Assumes n <= l.
 */
 unsigned int
-TMulGen (listz_t b, unsigned int n,
-         listz_t a, unsigned int m, listz_t c, unsigned int l, listz_t tmp)
+TMulGen (listz_t b, unsigned int n, listz_t a, unsigned int m,
+         listz_t c, unsigned int l, listz_t tmp, mpz_t modulus)
 {
     unsigned int i, muls;
 
@@ -805,8 +806,11 @@ TMulGen (listz_t b, unsigned int n,
     
     if (l > 4 && Fermat && i == 1)
       muls = F_mul_trans (b, a, c, l + 1, Fermat, tmp);
-    else
+    else if ((double) n * (double) mpz_sizeinbase (modulus, 2) <
+             KS_TMUL_THRESHOLD)
       muls = TToomCookMul (b, n, a, m, c, l, tmp);
+    else
+      muls = TMulKS (b, n, a, m, c, l, modulus);
 
   return muls;
 }

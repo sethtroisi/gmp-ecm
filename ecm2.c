@@ -804,7 +804,7 @@ ecm_rootsG (mpz_t f, listz_t G, unsigned int d, ecm_rootsG_state *state, curve *
     }
   
   if (verbose >= 2)
-    printf ("Computing roots of G took %dms, %lu muls and %lu extgcd\n",
+    printf ("Computing roots of G took %dms, %lu muls and %lu extgcds\n",
              cputime () - st, muls, gcds);
   
   if (tot_muls != NULL)
