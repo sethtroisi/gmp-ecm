@@ -83,6 +83,12 @@ MA 02111-1307, USA. */
   } while (0)
 #endif
 
+/* Return non-zero if xp,xsize and yp,ysize overlap.
+   If xp+xsize<=yp there's no overlap, or if yp+ysize<=xp there's no
+   overlap.  If both these are false, there's an overlap. */
+#define MPN_OVERLAP_P(xp, xsize, yp, ysize) \
+  ((xp) + (xsize) > (yp) && (yp) + (ysize) > (xp))
+
 /* Return non-zero if xp,xsize and yp,ysize are either identical or not
    overlapping.  Return zero if they're partially overlapping. */
 #define MPN_SAME_OR_SEPARATE_P(xp, yp, size)    \
