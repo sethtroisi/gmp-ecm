@@ -256,11 +256,5 @@ pp1_mul_prac (mpres_t A, unsigned long k, mpmod_t n, mpres_t t, mpres_t B,
   
   add3 (A, A, B, C, n, t);
 
-#ifdef DEBUG  
-  if (d != 1)
-    {
-      fprintf (stderr, "d <> 1 at the end of pp1_mul_prac: %u\n", d);
-      exit (EXIT_FAILURE);
-    }
-#endif
+  ASSERT(d == 1);
 }

@@ -46,7 +46,7 @@
 static int
 multiplyW2n (mpz_t p, point *R, curve *S, mpz_t *q, unsigned int n, 
               mpmod_t modulus, mpres_t u, mpres_t v, mpres_t *T,
-              unsigned long *tot_muls, unsigned long *tot_gcds, FILE *es)
+              unsigned long *tot_muls, unsigned long *tot_gcds, FILE *ECM_STDERR)
 {
   unsigned int i, maxbit, k; /* k is the number of values to batch invert */
   unsigned int l, t, muls = 0, gcds = 0;
@@ -84,7 +84,7 @@ multiplyW2n (mpz_t p, point *R, curve *S, mpz_t *q, unsigned int n,
     {
       if (mpz_sgn (q[i]) < 0)
         {
-          fprintf (es, "multiplyW2n: multiplicand q[%d] < 0, negatives not supported\n", i);
+          fprintf (ECM_STDERR, "multiplyW2n: multiplicand q[%d] < 0, negatives not supported\n", i);
 	  youpi = ECM_ERROR;
 	  goto clear_w2;
         }
@@ -103,7 +103,7 @@ multiplyW2n (mpz_t p, point *R, curve *S, mpz_t *q, unsigned int n,
     }
 
 #ifdef WANT_EXPCOST
-  fprintf (es, "Expecting %d multiplications and %d extgcds\n", 
+  fprintf (ECM_STDERR, "Expecting %d multiplications and %d extgcds\n", 
           4 * (maxbit) + 6 * hamweight - 3, maxbit + 1);      /* maxbit is floor(log_2(max(q_i))) */
 #endif
 
@@ -177,7 +177,7 @@ multiplyW2n (mpz_t p, point *R, curve *S, mpz_t *q, unsigned int n,
                 mpres_get_z (p, u, modulus);
                 mpz_mod (p, p, modulus->orig_modulus);
                 if (mpz_cmp_ui (p, 1) != 0) 
-                  gmp_fprintf (es, "Error, (s.x - R[%d].x) * T[%d] == %Zd\n", i, l, T[l - 1]);
+                  gmp_fprintf (ECM_STDERR, "Error, (s.x - R[%d].x) * T[%d] == %Zd\n", i, l, T[l - 1]);
 #endif
                 
                 mpres_sub (u, s.y, R[i].y, modulus);   /* U    = y2 - y1 */
@@ -208,7 +208,7 @@ multiplyW2n (mpz_t p, point *R, curve *S, mpz_t *q, unsigned int n,
           mpres_get_z (p, u, modulus);
           mpz_mod (p, p, modulus->orig_modulus);
           if (mpz_cmp_ui (p, 1) != 0)
-            gmp_fprintf (es, "Error, at t==%d, 2*s.y / (2*s.y) == %Zd\n", t, p);
+            gmp_fprintf (ECM_STDERR, "Error, at t==%d, 2*s.y / (2*s.y) == %Zd\n", t, p);
 #endif          
 
                                                /* 1/(2*s.y) is in T[k] */
@@ -421,8 +421,7 @@ addWnm (mpz_t p, point *X, curve *S, mpmod_t modulus, unsigned int m,
 
 int
 ecm_rootsF (mpz_t f, listz_t F, unsigned int d1, unsigned int d2, 
-            unsigned int dF, curve *s, int S, mpmod_t modulus, int verbose,
-	    FILE *os, FILE *es)
+            unsigned int dF, curve *s, int S, mpmod_t modulus, int verbose)
 {
   unsigned int i;
   unsigned long muls = 0, gcds = 0;
@@ -441,13 +440,13 @@ ecm_rootsF (mpz_t f, listz_t F, unsigned int d1, unsigned int d2,
   init_roots_state (&state, S, d1, d2, 1.0);
 
   if (verbose >= 3)
-     fprintf (os, "ecm_rootsF: state: nr = %d, dsieve = %d, size_fd = %d, S = %d, "
+     fprintf (ECM_STDOUT, "ecm_rootsF: state: nr = %d, dsieve = %d, size_fd = %d, S = %d, "
               "dickson_a = %d\n", state.nr, state.dsieve, state.size_fd, 
               state.S, state.dickson_a);
 
   /* Init finite differences tables */
   coeffs = init_progression_coeffs (0.0, state.dsieve, d2, 1, 6, state.S, 
-                                    state.dickson_a, es);
+                                    state.dickson_a);
 
   if (coeffs == NULL) /* error */
     {
@@ -466,7 +465,7 @@ ecm_rootsF (mpz_t f, listz_t F, unsigned int d1, unsigned int d2,
   for (i = 0; i < state.size_fd; i++)
     {
      if (verbose >= 4)
-       gmp_fprintf (os, "ecm_rootsF: coeffs[%d] = %Zd\n", i, coeffs[i]);
+       gmp_fprintf (ECM_STDOUT, "ecm_rootsF: coeffs[%d] = %Zd\n", i, coeffs[i]);
       mpres_init (state.fd[i].x, modulus);
       mpres_init (state.fd[i].y, modulus);
     }
@@ -478,9 +477,9 @@ ecm_rootsF (mpz_t f, listz_t F, unsigned int d1, unsigned int d2,
   /* Multiply fd[] = s * coeffs[] */
 
   youpi = multiplyW2n (f, state.fd, s, coeffs, state.size_fd, modulus, 
-                       state.T[0], state.T[1], state.T + 2, &muls, &gcds, es);
+                       state.T[0], state.T[1], state.T + 2, &muls, &gcds, ECM_STDERR);
   if (youpi == ECM_FACTOR_FOUND && verbose >= 2)
-    fprintf (os, "Found factor while computing coeff[] * X\n");  
+    fprintf (ECM_STDOUT, "Found factor while computing coeff[] * X\n");  
 
   if (youpi == ECM_ERROR)
     goto clear;
@@ -499,11 +498,11 @@ ecm_rootsF (mpz_t f, listz_t F, unsigned int d1, unsigned int d2,
   if (verbose >= 2)
     {
       int st1 = cputime ();
-      fprintf (os, "Initializing tables of differences for F took %dms",
+      fprintf (ECM_STDOUT, "Initializing tables of differences for F took %dms",
 	       st1 - st);
       if (verbose > 2)
-        fprintf (os, ", %lu muls and %lu extgcds", muls, gcds);
-      fprintf (os, "\n");
+        fprintf (ECM_STDOUT, ", %lu muls and %lu extgcds", muls, gcds);
+      fprintf (ECM_STDOUT, "\n");
       st = st1;
       muls = 0;
       gcds = 0;
@@ -525,7 +524,7 @@ ecm_rootsF (mpz_t f, listz_t F, unsigned int d1, unsigned int d2,
 	      ASSERT(youpi != ECM_ERROR); /* no error can occur in addWnm */
               state.next = 0;
               if (youpi == ECM_FACTOR_FOUND && verbose >= 2)
-                fprintf (os, "Found factor while computing roots of F\n");
+                fprintf (ECM_STDOUT, "Found factor while computing roots of F\n");
             }
           
           /* Is this a j value where we want Dickson(j * d2) * X as a root? */
@@ -555,10 +554,10 @@ ecm_rootsF (mpz_t f, listz_t F, unsigned int d1, unsigned int d2,
   
   if (verbose >= 2)
     {
-      fprintf (os, "Computing roots of F took %dms", cputime () - st);
+      fprintf (ECM_STDOUT, "Computing roots of F took %dms", cputime () - st);
       if (verbose > 2)
-        fprintf (os, ", %ld muls and %ld extgcds", muls, gcds);
-      fprintf (os, "\n");
+        fprintf (ECM_STDOUT, ", %ld muls and %ld extgcds", muls, gcds);
+      fprintf (ECM_STDOUT, "\n");
     }
 
   return ECM_NO_FACTOR_FOUND;
@@ -577,7 +576,7 @@ ecm_rootsF (mpz_t f, listz_t F, unsigned int d1, unsigned int d2,
 ecm_roots_state *
 ecm_rootsG_init (mpz_t f, curve *X, double s, unsigned int d1, unsigned int d2,
                  unsigned int dF, unsigned int blocks, int S, mpmod_t modulus, 
-                 int verbose, FILE *os, FILE *es)
+                 int verbose)
 {
   unsigned int k, lenT, phid2;
   unsigned long muls = 0, gcds = 0;
@@ -611,7 +610,7 @@ ecm_rootsG_init (mpz_t f, curve *X, double s, unsigned int d1, unsigned int d2,
   bestnr /= 6. * (double) S * log (2. * d1) / log (2);
   
   if (verbose >= 4)
-    fprintf (os, "ecm_rootsG_init: bestnr = %f\n", bestnr);
+    fprintf (ECM_STDOUT, "ecm_rootsG_init: bestnr = %f\n", bestnr);
   
   state = (ecm_roots_state *) xmalloc (sizeof (ecm_roots_state));
 
@@ -630,7 +629,7 @@ ecm_rootsG_init (mpz_t f, curve *X, double s, unsigned int d1, unsigned int d2,
   state->size_fd = state->nr * (state->S + 1);
 
   if (verbose >= 3)
-    fprintf (os, "ecm_rootsG_init: s=%f, d1=%u, d2=%d, dF=%d, blocks=%d, S=%u, T_inv = %d, nr=%d\n", 
+    fprintf (ECM_STDOUT, "ecm_rootsG_init: s=%f, d1=%u, d2=%d, dF=%d, blocks=%d, S=%u, T_inv = %d, nr=%d\n", 
 	     s, d1, d2, dF, blocks, S, T_inv, state->nr);
   
   state->X = X;
@@ -639,7 +638,7 @@ ecm_rootsG_init (mpz_t f, curve *X, double s, unsigned int d1, unsigned int d2,
   state->rsieve = 1;
 
   coeffs = init_progression_coeffs (s, d2, d1, state->nr / phid2, 1, S, 
-                                    dickson_a, es);
+                                    dickson_a);
 
   if (coeffs == NULL) /* error */
     {
@@ -665,10 +664,10 @@ ecm_rootsG_init (mpz_t f, curve *X, double s, unsigned int d1, unsigned int d2,
 
   if (verbose >= 4)
     for (k = 0; k < state->size_fd; k++)
-      gmp_fprintf (os, "ecm_rootsG_init: coeffs[%d] == %Zd\n", k, coeffs[k]);
+      gmp_fprintf (ECM_STDOUT, "ecm_rootsG_init: coeffs[%d] == %Zd\n", k, coeffs[k]);
 
   youpi = multiplyW2n (f, state->fd, X, coeffs, state->size_fd, modulus, 
-                     state->T[0], state->T[1], state->T + 2, &muls, &gcds, es);
+                     state->T[0], state->T[1], state->T + 2, &muls, &gcds, ECM_STDERR);
   if (youpi == ECM_ERROR)
     mpz_set_si (f, -1); /* fall through */
 
@@ -684,7 +683,7 @@ ecm_rootsG_init (mpz_t f, curve *X, double s, unsigned int d1, unsigned int d2,
   if (youpi != ECM_NO_FACTOR_FOUND) /* factor found or error */
     {
       if (youpi == ECM_FACTOR_FOUND && verbose >= 2)
-        fprintf (os, "Found factor while computing fd[]\n");
+        fprintf (ECM_STDOUT, "Found factor while computing fd[]\n");
 
       ecm_rootsG_clear (state, S, modulus);
       
@@ -696,10 +695,10 @@ ecm_rootsG_init (mpz_t f, curve *X, double s, unsigned int d1, unsigned int d2,
       if (verbose >= 2)
         {
           st = cputime () - st;
-          fprintf (os, "Initializing table of differences for G took %dms", st);
+          fprintf (ECM_STDOUT, "Initializing table of differences for G took %dms", st);
           if (verbose > 2)
-            fprintf (os, ", %lu muls and %lu extgcds", muls, gcds);
-          fprintf (os, "\n");
+            fprintf (ECM_STDOUT, ", %lu muls and %lu extgcds", muls, gcds);
+          fprintf (ECM_STDOUT, "\n");
         }
     }
   
@@ -741,7 +740,7 @@ ecm_rootsG_clear (ecm_roots_state *state, ATTRIBUTE_UNUSED int S,
 
 int 
 ecm_rootsG (mpz_t f, listz_t G, unsigned int dF, ecm_roots_state *state, 
-            mpmod_t modulus, int verbose, FILE *os)
+            mpmod_t modulus, int verbose)
 {
   unsigned int i;
   unsigned long muls = 0, gcds = 0;
@@ -763,7 +762,7 @@ ecm_rootsG (mpz_t f, listz_t G, unsigned int dF, ecm_roots_state *state,
           if (youpi == ECM_FACTOR_FOUND)
             {
               if (verbose >= 2)
-                fprintf (os, "Found factor while computing G[]\n");
+                fprintf (ECM_STDOUT, "Found factor while computing G[]\n");
               break;
             }
         }
@@ -779,10 +778,10 @@ ecm_rootsG (mpz_t f, listz_t G, unsigned int dF, ecm_roots_state *state,
   
   if (verbose >= 2)
     {
-      fprintf (os, "Computing roots of G took %dms", cputime () - st);
+      fprintf (ECM_STDOUT, "Computing roots of G took %dms", cputime () - st);
       if (verbose > 2)
-        fprintf (os, ", %lu muls and %lu extgcds", muls, gcds);
-      fprintf (os, "\n");
+        fprintf (ECM_STDOUT, ", %lu muls and %lu extgcds", muls, gcds);
+      fprintf (ECM_STDOUT, "\n");
     }
   
   return youpi;

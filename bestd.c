@@ -128,7 +128,7 @@ od:
 
   if (dmin == 0)
     {
-      fprintf (stderr, "Error, too large step2 range, please increase k\n");
+      fprintf (ECM_STDERR, "Error, too large step 2 bound, increase -k\n");
       exit (1);
     }
 
@@ -184,7 +184,7 @@ bestD_po2 (double B2min, double B2, unsigned int *finald,
 
   if (i == Npo2)
     {
-      fprintf (stderr, "Error, too large step2 range, please increase k\n");
+      fprintf (ECM_STDERR, "Error, too large step 2 bound, increase -k\n");
       exit (1);
     }
   

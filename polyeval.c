@@ -50,7 +50,7 @@ Since list_mul_mem(k) >= 2*k, the maximum is the 1st.
 */
 void
 polyeval (listz_t G, unsigned int k, listz_t *Tree, listz_t T, mpz_t n,
-          unsigned int sh, FILE *es)
+          unsigned int sh)
 {
   unsigned int l, m;
   listz_t T0;
@@ -73,7 +73,7 @@ polyeval (listz_t G, unsigned int k, listz_t *Tree, listz_t T, mpz_t n,
          to RecursiveDivision */
       list_set (T, G, k);
       /* the following needs k+m+list_mul_mem(m) in T */
-      RecursiveDivision (T + k, T, T0 + l, m, T + k + m, n, 1, es);
+      RecursiveDivision (T + k, T, T0 + l, m, T + k + m, n, 1);
     }
   else /* k = 2m+1: subtract G[k-1]*x^(l-1) * T0 from G */
     {
@@ -82,7 +82,7 @@ polyeval (listz_t G, unsigned int k, listz_t *Tree, listz_t T, mpz_t n,
       list_mul_z (T + m, T0 + l, G[k - 1], m, n);
       list_sub (T + m, G + m, T + m, m);
       /* the following needs 3m+list_mul_mem(m) in T */
-      RecursiveDivision (T + 2 * m, T, T0 + l, m, T + 3 * m, n, 1, es);
+      RecursiveDivision (T + 2 * m, T, T0 + l, m, T + 3 * m, n, 1);
     }
   /* in both cases we need 3*(k/2)+list_mul_mem(k/2) */
 
@@ -97,7 +97,7 @@ polyeval (listz_t G, unsigned int k, listz_t *Tree, listz_t T, mpz_t n,
   if (k < 2 * l)
     mpz_set_ui (G[k], 0);
   /* the following needs k+list_mul_mem(l) in T */
-  RecursiveDivision (T + m, G, T0, l, T + k, n, 1, es);
+  RecursiveDivision (T + m, G, T0, l, T + k, n, 1);
 
   /* left remainder is in {G,l} */
   
@@ -115,14 +115,14 @@ print_vect (listz_t t, unsigned int l)
 {
     unsigned int i;
 
-    printf ("[");
+    fprintf (ECM_STDOUT, "[");
     for (i = 0; i < l; i++)
     {
-        mpz_out_str (NULL, 10, t[i]);
+        mpz_out_str (ECM_STDOUT, 10, t[i]);
         if (i != l - 1)
-            printf (", ");
+            fprintf (ECM_STDOUT, ", ");
         else
-            printf ("]");
+            fprintf (ECM_STDOUT, "]");
     }
 }
 #endif
@@ -135,7 +135,7 @@ print_vect (listz_t t, unsigned int l)
 
 static void
 TUpTree (listz_t b, listz_t *Tree, unsigned int k,
-         listz_t tmp, unsigned int sh, mpz_t n, FILE *es)
+         listz_t tmp, unsigned int sh, mpz_t n, FILE *ECM_STDERR)
 {
 
     unsigned int m, l;
@@ -147,22 +147,22 @@ TUpTree (listz_t b, listz_t *Tree, unsigned int k,
       return;
    
 #ifdef DEBUG
-    printf ("In TupTree, k = %d.\n", k);
+    fprintf (ECM_STDOUT, "In TupTree, k = %d.\n", k);
 
-    printf ("b = ");
+    fprintf (ECM_STDOUT, "b = ");
     print_vect (b, k);
-    printf ("\nThe polynomials at that level are: ");
+    fprintf (ECM_STDOUT, "\nThe polynomials at that level are: ");
     print_vect (Tree[0] + sh, k);
-    printf ("\n");
+    fprintf (ECM_STDOUT, "\n");
 #endif
 
-    TMulGen (tmp, l - 1, Tree[0] + sh + l, m - 1, b, k - 1, tmp + l, n, es);
-    TMulGen (tmp + l, m - 1, Tree[0] + sh, l - 1, b, k - 1, tmp + k, n, es);
+    TMulGen (tmp, l - 1, Tree[0] + sh + l, m - 1, b, k - 1, tmp + l, n);
+    TMulGen (tmp + l, m - 1, Tree[0] + sh, l - 1, b, k - 1, tmp + k, n);
 
 #ifdef DEBUG
-    printf ("And the result at that level (before correction) is:");
+    fprintf (ECM_STDOUT, "And the result at that level (before correction) is:");
     print_vect (tmp, k);
-    printf ("\n");
+    fprintf (ECM_STDOUT, "\n");
 #endif
 
     /* gmp-ecm specific: leading coefficients in the product tree
@@ -175,13 +175,13 @@ TUpTree (listz_t b, listz_t *Tree, unsigned int k,
     list_mod (b, tmp, k, n); /* reduce both parts simultaneously */
 
 #ifdef DEBUG
-    printf ("And the result at this level is:");
+    fprintf (ECM_STDOUT, "And the result at this level is:");
     print_vect (b, k);
-    printf ("\n");
+    fprintf (ECM_STDOUT, "\n");
 #endif
     
-    TUpTree (b, Tree + 1, l, tmp, sh, n, es);
-    TUpTree (b + l, Tree + 1, m, tmp, sh + l, n, es);
+    TUpTree (b, Tree + 1, l, tmp, sh, n, ECM_STDERR);
+    TUpTree (b + l, Tree + 1, m, tmp, sh + l, n, ECM_STDERR);
 }
 
 static unsigned int
@@ -222,8 +222,7 @@ TUpTree_space (unsigned int k)
 */
 int
 polyeval_tellegen (listz_t b, unsigned int k, listz_t *Tree, listz_t tmp,
-                   unsigned int sizeT, listz_t invF, mpz_t n, unsigned int sh,
-                   FILE *es)
+                   unsigned int sizeT, listz_t invF, mpz_t n, unsigned int sh)
 {
     unsigned int tupspace;
     unsigned int tkspace;
@@ -250,15 +249,15 @@ polyeval_tellegen (listz_t b, unsigned int k, listz_t *Tree, listz_t tmp,
       }
     
 #ifdef TELLEGEN_DEBUG
-    printf ("In polyeval_tellegen, k = %d.\n", k);
-    printf ("Required memory: %d.\n", 
-            TMulGen_space (k - 1, k - 1, k - 1));
+    fprintf (ECM_STDOUT, "In polyeval_tellegen, k = %d.\n", k);
+    fprintf (ECM_STDOUT, "Required memory: %d.\n", 
+	     TMulGen_space (k - 1, k - 1, k - 1));
 #endif
 
     if (Fermat)
       {
         /* Schoenhage-Strassen can't do a half product faster than a full */
-        F_mul (T, invF, b, k, DEFAULT, Fermat, T + 2 * k, es);
+        F_mul (T, invF, b, k, DEFAULT, Fermat, T + 2 * k);
         list_mod (T, T + k - 1, k, n);
       }
     else
@@ -270,11 +269,11 @@ polyeval_tellegen (listz_t b, unsigned int k, listz_t *Tree, listz_t tmp,
 #else
         /* revert invF for call to TMulGen below */
         list_revert (invF, k - 1);
-        TMulGen (T, k - 1, invF, k - 1, b, k - 1, T + k, n, es);
+        TMulGen (T, k - 1, invF, k - 1, b, k - 1, T + k, n);
 #endif
       }
     list_revert (T, k - 1);
-    TUpTree (T, Tree, k, T + k, sh, n, es);
+    TUpTree (T, Tree, k, T + k, sh, n, ECM_STDERR);
     list_swap (b, T, k); /* more efficient than list_set, since T is not
                             needed anymore */
 
