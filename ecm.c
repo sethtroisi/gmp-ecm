@@ -473,9 +473,9 @@ ecm_stage1 (mpz_t f, mpres_t x, mpres_t A, mpmod_t n, double B1,
   mpres_t b, z, u, v, w, xB, zB, xC, zC, xT, zT, xT2, zT2;
   double q, r;
   int ret = 0;
-  int Counter = 0, st, st_save;
+  int Counter = 0, st_save;
 
-  st_save = st = cputime ();
+  st_save = cputime ();
 
   mpres_init (b, n);
   mpres_init (z, n);
@@ -492,7 +492,7 @@ ecm_stage1 (mpz_t f, mpres_t x, mpres_t A, mpmod_t n, double B1,
   mpres_init (zT2, n);
 
   /* Prep for stage one counter */
-  fprintf (stderr, "1:00 \r");
+  showscreenticks_change_stage(1);
 
   mpres_set_ui (z, 1, n);
   
@@ -520,27 +520,17 @@ ecm_stage1 (mpz_t f, mpres_t x, mpres_t A, mpmod_t n, double B1,
 	  prac (x, z, (int) q, n, b, u, v, w, xB, zB, xC, zC, xT, zT, xT2, zT2);
       if (++Counter == 25)
 	{
-	  /* only output to screen at most once every 30 seconds */
-	  int st_now = cputime();
-	  if (st_now - st > SCREEN_UPDATE_DELAY)
-	    {
-	      /* Check to see if we should update our screen "percentage counter" */
-	      double Percentage = q;
-
-	      st = st_now;
-	      Percentage /= B1;
-	      Percentage *= 100;
-	      fprintf (stderr, "1:%02d\r", (int) Percentage);
-  	    }
+          showscreenticks(1,(int) (100.0 * (double) q / (double) B1));
 	  Counter=0;
 	  /* should we save the current "ecm_wip.sav" file??? It is saved every 15 minutes */
 	  /* NOTE this saving DOES NOT save the expression.  It is just a "fail-safe" measure */
 #if defined (DEBUG_AUTO_SAVE)
-	  if (st_now - st_save > 2000)
+	  if (cputime() - st_save > 2000)
 #else
-	  if (st_now - st_save > 15 * 60 * 1000)
+	  if (cputime() - st_save > 15 * 60 * 1000)
 #endif
 	    {
+	      st_save = cputime();
 	      /* orig_X0 not needed for the save.  Simply create a "dummy" 
                  here to pass in */
 /*	      mpz_t orig_X0, X, U, Z; 
@@ -561,7 +551,6 @@ ecm_stage1 (mpz_t f, mpres_t x, mpres_t A, mpmod_t n, double B1,
 	      mpz_clear (X);
 */
 	      /* Reset our "timeout" value, so we save again in 15 minutes */
-	      st_save = st_now;
 	    }
 	}
     }
