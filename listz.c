@@ -504,10 +504,15 @@ list_mul (listz_t a, listz_t b, unsigned int k, int monic_b,
 
   ASSERTD(list_check(b,l,n));
   ASSERTD(list_check(c,l,n));
-  if (po2 && Fermat && l == k && monic_b == monic_c)
+  if (po2 && Fermat)
     {
-      muls = F_mul (a, b, c, l, monic_b, Fermat, t);
-      monic_b = monic_c = 0;
+      if (monic_b && monic_c && l == k)
+        {
+          muls = F_mul (a, b, c, l, MONIC, Fermat, t);
+          monic_b = monic_c = 0;
+        }
+      else
+        muls = F_mul (a, b, c, l, DEFAULT, Fermat, t);
     }
   else
     muls = LIST_MULT_N (a, b, c, l, t); /* set a[0]...a[2l-2] */
@@ -565,7 +570,7 @@ list_mulmod (listz_t a2, listz_t a, listz_t b, listz_t c, unsigned int k,
   ASSERTD(list_check(b,k,n));
   ASSERTD(list_check(c,k,n));
   if (i == 1 && Fermat)
-    muls = F_mul (a, b, c, k, 0, Fermat, t); 
+    muls = F_mul (a, b, c, k, DEFAULT, Fermat, t); 
   else
     muls = LIST_MULT_N (a, b, c, k, t); /* set a[0]...a[2l-2] */
 
@@ -676,7 +681,7 @@ PolyInvert (listz_t q, listz_t b, unsigned int K, listz_t t, mpz_t n)
 
       ASSERTD(list_check(q+k,l,n) && list_check(b,l,n));
       if (po2)
-        muls += F_mul (t, q + k, b, l, 0, Fermat, t + 2 * l);   /* t[0..2l-1] = Q1 * B0 */
+        muls += F_mul (t, q + k, b, l, DEFAULT, Fermat, t + 2 * l); /* t[0..2l-1] = Q1 * B0 */
       else
         muls += LIST_MULT_N (t, q + k, b, l, t + 2 * l - 1); /* t[0..2l-1] = Q1 * B0 */
       list_neg (t, t + l - 1, k, n);
@@ -685,7 +690,7 @@ PolyInvert (listz_t q, listz_t b, unsigned int K, listz_t t, mpz_t n)
         {
           if (po2)
             /* This expects the leading monomials explicitly in q[2k-1] and b[k+l-1] */
-            muls += F_mul (t + k, q + k, b + l, k, 0, Fermat, t + k + K); /* t[k ... l+k-1] = Q1 * B1 */
+            muls += F_mul (t + k, q + k, b + l, k, DEFAULT, Fermat, t + k + K); /* t[k ... l+k-1] = Q1 * B1 */
           else
             muls += list_mul (t + k, q + k, l - 1, 1, b + l, k - 1, 1,
                               t + k + K - 2, n); /* Q1 * B1 */
@@ -695,7 +700,7 @@ PolyInvert (listz_t q, listz_t b, unsigned int K, listz_t t, mpz_t n)
 
       ASSERTD(list_check(t,k,n) && list_check(q+l,k,n));
       if (po2)
-        muls += F_mul (t + k, t, q + l, k, 0, Fermat, t + 3 * k);
+        muls += F_mul (t + k, t, q + l, k, DEFAULT, Fermat, t + 3 * k);
       else
         muls += LIST_MULT_N (t + k, t, q + l, k, t + 3 * k - 1);
       list_mod (q, t + 2 * k - 1, k, n);
@@ -743,7 +748,7 @@ RecursiveDivision (listz_t q, listz_t a, listz_t b, unsigned int K,
       /* subtract q[k..k+l-1] * b[0..k-1] */
       ASSERTD(list_check(q+l,k,n) && list_check(b,k,n));
       if (po2 && Fermat)
-        muls += F_mul (t, q + l, b, k, 0, Fermat, t + K); /* sets t[0..2*k-2] */
+        muls += F_mul (t, q + l, b, k, DEFAULT, Fermat, t + K); /* sets t[0..2*k-2] */
       else
         muls += LIST_MULT_N (t, q + l, b, k, t + K - 1); /* sets t[0..2*k-2] */
       list_sub (a + l, a + l, t, 2 * k - 1);
@@ -763,7 +768,7 @@ RecursiveDivision (listz_t q, listz_t a, listz_t b, unsigned int K,
       /* subtract q[0..k-1] * b[0..l-1] */
       ASSERTD(list_check(q,k,n) && list_check(b,k,n));
       if (po2 && Fermat)
-        muls += F_mul (t, q, b, k, 0, Fermat, t + K);
+        muls += F_mul (t, q, b, k, DEFAULT, Fermat, t + K);
       else
         muls += LIST_MULT_N (t, q, b, k, t + K - 1);
       list_sub (a, a, t, 2 * k - 1);
@@ -810,7 +815,7 @@ PrerevertDivision (listz_t a, listz_t b, listz_t invb,
   if (Fermat && po2)
     {
       mpz_set_ui (a[2*K-1], 0);
-      muls = F_mul (t, a + K, invb, K, 0, Fermat, t + 2 * K);
+      muls = F_mul (t, a + K, invb, K, DEFAULT, Fermat, t + 2 * K);
     }
   else
 #ifdef KS_MULTIPLY /* ks is faster */
@@ -826,7 +831,7 @@ PrerevertDivision (listz_t a, listz_t b, listz_t invb,
   /* T <- low(Q * B) with a short product */
   mpz_set_ui (a[2 * K - 1], 0);
   if (Fermat && po2)
-      muls += F_mul (t, a + K, b, K, 0, Fermat, t + 2 * K);
+      muls += F_mul (t, a + K, b, K, DEFAULT, Fermat, t + 2 * K);
   else
 #ifdef KS_MULTIPLY /* ks is faster */
       muls += LIST_MULT_N (t, a + K, b, K, t + 2 * K - 1);
