@@ -3,6 +3,7 @@ What remains to do for the 1st release:
 - implement -restore file to continue from data in <file>
 	(or read from stdin ?)
 - add option -nobase2
+- get rid of gmp-mparam.h and gmp-impl.h?
 
 Long term:
 
