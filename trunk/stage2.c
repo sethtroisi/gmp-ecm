@@ -28,6 +28,8 @@
 #include "ecm.h"
 #include "cputime.h"
 
+#define INVF /* precompute 1/F for divisions by F */
+
 /* Init table to allow successive computation of x^((s + n*D)^E) mod N */
 /* See Knuth, TAOCP vol.2, 4.6.4 and exercise 7 in 4.6.4 */
 mpz_t *
@@ -79,10 +81,11 @@ fin_diff_clear (mpz_t *fd, unsigned int E)
   return;
 }
 
-/* puts in F the successive values of s^(j^S), for 0 < j < d, j=1 mod 7, 
+/* puts in F[0..dF-1] the successive values of s^(j^S), for 0 < j = 1 mod 7 < d
    j and d coprime.
-   Returns the degree of F, or 0 if a factor was found.
+   Returns df = degree of F, or 0 if a factor was found.
    If invs=0, don't use the x+1/x trick.
+   Requires (dF+1) cells in t.
 */
 int
 rootsF (listz_t F, unsigned int d, mpz_t s, mpz_t invs, listz_t t,
@@ -176,6 +179,7 @@ rootsF (listz_t F, unsigned int d, mpz_t s, mpz_t invs, listz_t t,
 /* puts in G the successive values of t0*s^j, for 1 <= j <= d
    returns in t the value of t0*s^d, in u the value of u0*invs^d.
    If listz_t=NULL, don't use the x+1/x trick.
+   Needs d+1 cells in t.
 */
 void
 rootsG (listz_t G, unsigned int d, listz_t fd_x, listz_t fd_invx, 
@@ -251,11 +255,15 @@ stage2 (mpz_t x, mpz_t n, double B2, unsigned int k, unsigned int S,
         int verbose, int invtrick)
 {
   double b2;
-  unsigned int i, d, dF, dG, sizeT;
-  listz_t F, G, T, fd_x, fd_invx = NULL;
+  unsigned int i, d, dF, sizeT;
+  unsigned long muls;
+  listz_t F, G, H, T, fd_x, fd_invx = NULL;
   polyz_t polyF, polyT;
   mpz_t invx;
   int youpi = 0, st, st0;
+#ifdef INVF
+  listz_t invF;
+#endif
 
   st0 = cputime ();
 
@@ -275,28 +283,73 @@ stage2 (mpz_t x, mpz_t n, double B2, unsigned int k, unsigned int S,
   B2 = (double) k * b2;
 
   dF = phi (d) / 2;
-  dG = dF - 1;
 
   if (verbose >= 2)
-    printf ("B2=%1.0f k=%u b2=%1.0f d=%u dF=%u dG=%u\n", B2, k, b2, d, dF, dG);
+    printf ("B2=%1.0f k=%u b2=%1.0f d=%u dF=%u\n", B2, k, b2, d, dF);
 
-  F = init_list (dF + 1); 
+  F = init_list (dF + 1);
 
   mpz_init_set_ui (invx, invtrick);
-  sizeT = 3 * dF + list_mul_mem (dF);
+  sizeT = 3 * dF - 1 + list_mul_mem (dF);
+#ifdef INVF
+  if (dF > 3)
+    sizeT += dF - 3;
+#endif
   T = init_list (sizeT);
+  H = T;
 
+  /* needs dF+1 cells in T */
   if ((i = rootsF (F, d, x, invx, T, S, n, verbose)) == 0)
     {
       youpi = 2;
       goto clear_F;
     }
 
+  /* ----------------------------------------------
+     |   F    |  invF  |   G   |         T        |
+     ----------------------------------------------
+     | rootsF |  ???   |  ???  |      ???         |
+     ---------------------------------------------- */
+
   assert (i == dF);
 
-  buildG (F, dF, T, verbose, n, 'F'); /* needs dF+list_mul_mem(dF/2) cells in T */
+  PolyFromRoots (F, dF, T, verbose, n, 'F'); /* needs dF+list_mul_mem(dF/2) cells in T */
+  mpz_set_ui (F[dF], 1); /* the leading monic coefficient needs to be stored
+                             explicitely for PrerevertDivision and polygcd */
 
-  G = init_list (dG + 1);
+  /* ----------------------------------------------
+     |   F    |  invF  |   G   |         T        |
+     ----------------------------------------------
+     |  F(x)  |  ???   |  ???  |      ???         |
+     ---------------------------------------------- */
+
+#ifdef INVF
+  /* G*H has degree 2*dF-2, hence we must cancel dF-1 coefficients
+     to get degree dF-1 */
+  if (dF > 1)
+    {
+      invF = init_list (dF - 1);
+      st = cputime ();
+#if 0
+      list_zero (T, 2 * dF - 3);
+      mpz_set_ui (T[2 * dF - 3], 1); /* T[0..2dF-3] = x^(2dF-3) */
+      muls = RecursiveDivision (invF, T, F + 1, dF - 1, T + 2 * dF - 2, n);
+#else
+      muls = PolyInvert (invF, F + 2, dF - 1, T, n);
+#endif
+      /* now invF[0..K-2] = Quo(x^(2dF-3), F) */
+      if (verbose >= 2)
+        printf ("Computing 1/F took %ums and %lumuls\n", cputime() - st, muls);
+      
+      /* ----------------------------------------------
+         |   F    |  invF  |   G   |         T        |
+         ----------------------------------------------
+         |  F(x)  | 1/F(x) |  ???  |      ???         |
+         ---------------------------------------------- */
+    }
+#endif
+
+  G = init_list (dF);
   st = cputime ();
   fd_x = fin_diff_init (x, 0, d, S, n);
   if (verbose >= 2)
@@ -307,33 +360,72 @@ stage2 (mpz_t x, mpz_t n, double B2, unsigned int k, unsigned int S,
 
   for (i=0; i<k; i++)
     {
-      rootsG (G, dG, fd_x, fd_invx, T + dF, S, n, verbose);
+      /* needs dF+1 cells in T+dF */
+      rootsG (G, dF, fd_x, fd_invx, T + dF, S, n, verbose);
 
-      buildG (G, dG, T + dF, verbose, n, 'G'); /* needs 2*dF+list_mul_mem(dF/2) cells in T */
-      mpz_set_ui (G[dG], 1);
+  /* -----------------------------------------------
+     |   F    |  invF  |   G    |         T        |
+     -----------------------------------------------
+     |  F(x)  | 1/F(x) | rootsG |      ???         |
+     ----------------------------------------------- */
+
+      PolyFromRoots (G, dF, T + dF, verbose, n, 'G'); /* needs 2*dF+list_mul_mem(dF/2) cells in T */
+
+  /* -----------------------------------------------
+     |   F    |  invF  |   G    |         T        |
+     -----------------------------------------------
+     |  F(x)  | 1/F(x) |  G(x)  |      ???         |
+     ----------------------------------------------- */
 
       if (i == 0)
-	  list_set (T, G, dF);
+        {
+          list_sub (H, G, F, dF); /* coefficients 1 of degree cancel,
+                                     thus T is of degree < dF */
+          /* ------------------------------------------------
+             |   F    |  invF  |    G    |         T        |
+             ------------------------------------------------
+             |  F(x)  | 1/F(x) |  ???    |G(x)-F(x)|  ???   |
+             ------------------------------------------------ */
+        }
       else
 	{
+          /* since F and G are monic of same degree, G mod F = G - F */
+          list_sub (G, G, F, dF);
+
+          /* ------------------------------------------------
+             |   F    |  invF  |    G    |         T        |
+             ------------------------------------------------
+             |  F(x)  | 1/F(x) |G(x)-F(x)|  H(x)  |         |
+             ------------------------------------------------ */
+
 	  st = cputime ();
-	  /* previous G is in T, with degree < dF, i.e. dF coefficients
-	     and dG = dF - 1, requires 3dF+list_mul_mem(dF) cells in T */
-	  list_mulmod (T + dF, G, T, dF, T + 3 * dF, n);
+	  /* previous G mod F is in H, with degree < dF, i.e. dF coefficients:
+	     requires 3dF-1+list_mul_mem(dF) cells in T */
+	  muls = list_mulmod2 (H, T + dF, G, H, dF, T + 3 * dF - 1, n);
           if (verbose >= 2)
-            printf ("Computing G * H took %dms\n", cputime() - st);
+            printf ("Computing G * H took %ums and %lumuls\n", cputime() - st,
+                    muls);
+
+          /* ------------------------------------------------
+             |   F    |  invF  |    G    |         T        |
+             ------------------------------------------------
+             |  F(x)  | 1/F(x) |G(x)-F(x)| G * H  |         |
+             ------------------------------------------------ */
+
 	  st = cputime ();
-          mpz_set_ui (T[3*dF-1], 0); /* since RecursiveDivision expects a
+#ifdef INVF
+          muls = PrerevertDivision (H, F, invF, dF, T + 2 * dF - 1, n);
+#else
+          mpz_set_ui (T[2*dF-1], 0); /* since RecursiveDivision expects a
                                         dividend of 2*dF coefficients */
-	  RecursiveDivision (T, T + dF, F, dF, T + 3 * dF, n);
-          list_set (T, T + dF, dF);
+	  muls = RecursiveDivision (G, H, F, dF, T + 2 * dF, n);
+#endif
           if (verbose >= 2)
-            printf ("Reducing G * H mod F took %dms\n", cputime() - st);
+            printf ("Reducing G * H mod F took %ums and %lumuls\n",
+                    cputime() - st, muls);
 	}
     }
 
-  mpz_set_ui (F[dF], 1); /* the leading monic coefficient needs to be stored
-                             explicitely for polygcd */
   st = cputime ();
   init_poly_list (polyF, dF, F);
   init_poly_list (polyT, dF - 1, T);
@@ -342,11 +434,15 @@ stage2 (mpz_t x, mpz_t n, double B2, unsigned int k, unsigned int S,
   if (verbose >= 2)
     printf ("Computing gcd of F and G took %dms\n", cputime() - st);
 
-  clear_list (G, dG + 1);
+  clear_list (G, dF);
   if (invtrick)
     fin_diff_clear (fd_invx, S);
   fin_diff_clear (fd_x, S);
   clear_list (T, sizeT);
+
+#ifdef INVF
+  clear_list (invF, dF - 1);
+#endif
 
  clear_F:
   mpz_clear (invx);

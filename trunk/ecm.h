@@ -35,28 +35,30 @@ listz_t      init_list  (unsigned int);
 void         clear_list (listz_t, unsigned int);
 void         print_list (listz_t, unsigned int);
 void         list_set   (listz_t, listz_t, unsigned int);
+void         list_neg   (listz_t, listz_t, unsigned int);
 void         list_mod   (listz_t, listz_t, unsigned int, mpz_t);
 void         list_add   (listz_t, listz_t, listz_t, unsigned int);
 void         list_sub   (listz_t, listz_t, listz_t, unsigned int);
+void         list_zero  (listz_t, unsigned int);
 int          list_zerop (listz_t, unsigned int);
 int          karatsuba  (listz_t, listz_t, listz_t, unsigned int, listz_t);
-void         list_mul   (listz_t, listz_t, unsigned int, listz_t, unsigned int,
+int          list_mul   (listz_t, listz_t, unsigned int, listz_t, unsigned int,
 			 listz_t);
-void        list_mulmod (listz_t, listz_t, listz_t, unsigned int, listz_t,
+int         list_mulmod (listz_t, listz_t, listz_t, unsigned int, listz_t,
 			 mpz_t);
-void         buildG     (listz_t, unsigned int, listz_t, int, mpz_t, char);
-void  RecursiveDivision (listz_t, listz_t, listz_t, unsigned int, listz_t,
+int         list_mulmod2(listz_t, listz_t, listz_t, listz_t, unsigned int,
+                         listz_t, mpz_t);
+int       PolyFromRoots (listz_t, unsigned int, listz_t, int, mpz_t, char);
+int          PolyInvert (listz_t, listz_t, unsigned int, listz_t, mpz_t);
+int   RecursiveDivision (listz_t, listz_t, listz_t, unsigned int, listz_t,
 			 mpz_t);
+int   PrerevertDivision (listz_t, listz_t, listz_t, unsigned int, listz_t,
+                         mpz_t);
 void         Div3by2    (listz_t, listz_t, listz_t, unsigned int, listz_t,
 			 mpz_t);
 int          list_mod1  (mpz_t, listz_t, listz_t, unsigned int, mpz_t, mpz_t*);
 void      poly_submul2 (listz_t, listz_t, listz_t, unsigned int, mpz_t, mpz_t);
-int          hgcd_naive (mpz_t, listz_t, listz_t, listz_t, listz_t,
-                         listz_t, listz_t, unsigned int, mpz_t, listz_t, int);
-int          hgcd       (mpz_t, listz_t, listz_t, listz_t, listz_t,
-                         listz_t, listz_t, unsigned int, mpz_t, listz_t, int);
-int          list_gcd   (mpz_t, listz_t, listz_t, unsigned int, mpz_t, listz_t);
-int          list_invert(listz_t, listz_t, unsigned int, mpz_t, mpz_t);
+int          list_invert (listz_t, listz_t, unsigned int, mpz_t, mpz_t);
 
 /* toomcook.c */
 void     mpz_divby3_1op (mpz_t RS);

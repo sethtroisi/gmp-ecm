@@ -103,6 +103,16 @@ list_set (listz_t p, listz_t q, unsigned int n)
     mpz_set (p[i], q[i]);
 }
 
+/* p <- -q */
+void
+list_neg (listz_t p, listz_t q, unsigned int n)
+{
+  unsigned int i;
+
+  for (i = 0; i < n; i++)
+    mpz_neg (p[i], q[i]);
+}
+
 /* p <- q modulo mod */
 void
 list_mod (listz_t p, listz_t q, unsigned int n, mpz_t mod)
@@ -133,6 +143,16 @@ list_sub (listz_t p, listz_t q, listz_t r, unsigned int n)
     mpz_sub (p[i], q[i], r[i]);
 }
 
+/* p <- 0 */
+void
+list_zero (listz_t p, unsigned int n)
+{
+  unsigned int i;
+
+  for (i = 0; i < n; i++)
+    mpz_set_ui (p[i], 0);
+}
+
 /* returns non-zero iff p is 0 */
 int
 list_zerop (listz_t p, unsigned int n)
@@ -146,60 +166,72 @@ list_zerop (listz_t p, unsigned int n)
   return iszero;
 }
 
-/* Puts in a[0..2K-2] the product of b[0..K-1] and b[0..K-1].
+/* Puts in a[0..2K-2] the product of b[0..K-1] and c[0..K-1].
    The auxiliary memory M(K) necessary in T satisfies:
-   M(1)=0, M(K) = max(3*l-1,2*l-2+M(l)) <= 2*K-1 where l = ceil(K/2)
+   M(1)=0, M(K) = max(3*l-1,2*l-2+M(l)) <= 2*K-1 where l = ceil(K/2).
+   Returns the number of scalar multiplies.
+   Assumes K >= 1.
 */
 int
 karatsuba (listz_t a, listz_t b, listz_t c, unsigned int K, listz_t t)
 {
 
-   if (K == 1)
-     {
-       mpz_mul (a[0], b[0], c[0]);
-       return 1;
-     }
-   else
-     { 
-       unsigned int i, k, l;
-       listz_t z;
-       int muls;
+  if (K == 1)
+    {
+      mpz_mul (a[0], b[0], c[0]);
+      return 1;
+    }
+  else if (K == 2) /* basic Karatsuba scheme */
+    {
+      mpz_add (t[0], b[0], b[1]); /* t0 = b_0 + b_1 */
+      mpz_add (a[1], c[0], c[1]); /* a1 = c_0 + c_1 */
+      mpz_mul (a[1], a[1], t[0]); /* a1 = b_0*c_0 + b_0*c_1 + b_1*c_0 + b_1*c_1 */
+      mpz_mul (a[0], b[0], c[0]); /* a0 = b_0 * c_0 */
+      mpz_mul (a[2], b[1], c[1]); /* a2 = b_1 * c_1 */
+      mpz_sub (a[1], a[1], a[0]); /* a1 = b_0*c_1 + b_1*c_0 + b_1*c_1 */
+      mpz_sub (a[1], a[1], a[2]); /* a1 = b_0*c_1 + b_1*c_0 */
+      return 3;
+    }
+  else
+    { 
+      unsigned int i, k, l, muls;
+      listz_t z;
        
-       k = K / 2;
-       l = K - k;
+      k = K / 2;
+      l = K - k;
 
-       z = t + 2 * l - 1;
+      z = t + 2 * l - 1;
 
-       /* improved code with 7*k-3 additions, 
-	  contributed by Philip McLaughlin <mpbjr@qwest.net> */
-       for (i = 0; i < k; i++)
-	 {
-	   mpz_sub (z[i], b[i], b[l+i]);
-	   mpz_sub (a[i], c[i], c[l+i]);
-	 }
+      /* improved code with 7*k-3 additions, 
+         contributed by Philip McLaughlin <mpbjr@qwest.net> */
+      for (i = 0; i < k; i++)
+        {
+          mpz_sub (z[i], b[i], b[l+i]);
+          mpz_sub (a[i], c[i], c[l+i]);
+        }
 
-       if (l > k) /* case K odd */
-	 {
-	   mpz_set (z[k], b[k]);
-	   mpz_set (a[k], c[k]);
-	 }
+      if (l > k) /* case K odd */
+        {
+          mpz_set (z[k], b[k]);
+          mpz_set (a[k], c[k]);
+        }
 
-       /* as b[0..l-1] + b[l..K-1] is stored in t[2l-1..3l-2], we need
-	  here at least 3l-1 entries in t */
+      /* as b[0..l-1] + b[l..K-1] is stored in t[2l-1..3l-2], we need
+         here at least 3l-1 entries in t */
 
-       muls = karatsuba (t, z, a, l, a + l); /* fills t[0..2l-2] */
+      muls = karatsuba (t, z, a, l, a + l); /* fills t[0..2l-2] */
        
-       /* trick: save t[2l-2] in a[2l-1] to enable M(K) <= 2*K-1 */
-       z = t + 2 * l - 2;
-       mpz_set (a[2*l-1], t[2*l-2]);
+      /* trick: save t[2l-2] in a[2l-1] to enable M(K) <= 2*K-1 */
+      z = t + 2 * l - 2;
+      mpz_set (a[2*l-1], t[2*l-2]);
 
-       muls += karatsuba (a, b, c, l, z); /* fill a[0..2l-2] */
-       muls += karatsuba (a + 2 * l, b + l, c + l, k, z); /* fills a[2l..2K-2] */
+      muls += karatsuba (a, b, c, l, z); /* fill a[0..2l-2] */
+      muls += karatsuba (a + 2 * l, b + l, c + l, k, z); /* fills a[2l..2K-2] */
 
-       mpz_set (t[2*l-2], a[2*l-1]); /* restore t[2*l-2] */
-       mpz_set_ui (a[2*l-1], 0);
+      mpz_set (t[2*l-2], a[2*l-1]); /* restore t[2*l-2] */
+      mpz_set_ui (a[2*l-1], 0);
 
-       /*
+      /*
 	      l          l-1     1    l          2k-1-l
         _________________________________________________
 	|    a0    |     a1    |0|    a2    |     a3    |
@@ -213,21 +245,23 @@ karatsuba (listz_t a, listz_t b, listz_t c, unsigned int K, listz_t t)
 	i.e. [a12 + a0 - t0, a12 + a3 - t1] where a12 = a1 + a2.
        */
 
-       list_add (a + 2 * l, a + 2 * l, a + l, l-1); /* a[2l..3l-1] <- a1+a2 */
-       if (k > 1)
-	 {
-	   list_add (a + l, a + 2 * l, a, l); /* a[l..2l-1] <- a0 + a1 + a2 */
-	   list_add (a + 2 * l, a + 2 * l, a + 3 * l, 2 * k - 1 - l);
-	 }
-       else /* k=1, i.e. K=2 or K=3, and a2 has only one entry */
-	 {
-	   mpz_add (a[l], a[2*l], a[0]);
-	   if (K==3) mpz_set (a[l+1], a[1]);
-	 }
+      list_add (a + 2 * l, a + 2 * l, a + l, l-1); /* a[2l..3l-1] <- a1+a2 */
+      if (k > 1)
+        {
+          list_add (a + l, a + 2 * l, a, l); /* a[l..2l-1] <- a0 + a1 + a2 */
+          list_add (a + 2 * l, a + 2 * l, a + 3 * l, 2 * k - 1 - l);
+        }
+      else /* k=1, i.e. K=2 or K=3, and a2 has only one entry */
+        {
+          mpz_add (a[l], a[2*l], a[0]);
+          if (K == 3)
+            mpz_set (a[l+1], a[1]);
+        }
 
-       list_sub (a + l, a + l, t, 2 * l - 1);
-       return muls;
-     }
+      list_sub (a + l, a + l, t, 2 * l - 1);
+
+      return muls;
+    }
 }
 
 /* multiplies b[0]+...+b[k-1]*x^(k-1)+x^k by c[0]+...+c[l-1]*x^(l-1)+x^l
@@ -236,15 +270,16 @@ karatsuba (listz_t a, listz_t b, listz_t c, unsigned int K, listz_t t)
    Assumes k = l or k = l+1.
    The auxiliary array t contains at least list_mul_mem(l) entries.
    a and t should not overlap.
+   Return the number of scalar multiplies.
 */
-void
+int
 list_mul (listz_t a, listz_t b, unsigned int k, listz_t c, unsigned int l,
           listz_t t)
 {
-  unsigned int i;
+  unsigned int i, muls;
 
   assert (k >= l);
-  LIST_MULT_N (a, b, c, l, t); /* set a[0]...a[2l-2] */
+  muls = LIST_MULT_N (a, b, c, l, t); /* set a[0]...a[2l-2] */
 
   if (k > l) /* multiply b[l]*x^l by c[0]+...+c[l-1]*x^(l-1) */
     {
@@ -254,6 +289,7 @@ list_mul (listz_t a, listz_t b, unsigned int k, listz_t c, unsigned int l,
           mpz_add (a[l+i], a[l+i], a[2*l-1]);
         }
       mpz_mul (a[2*l-1], b[l], c[l-1]);
+      muls += l;
     }
 
   /* deal with x^k and x^l */
@@ -262,30 +298,60 @@ list_mul (listz_t a, listz_t b, unsigned int k, listz_t c, unsigned int l,
   list_add (a + l, a + l, b, k);
   /* add x^k * c */
   list_add (a + k, a + k, c, l);
+  
+  return muls;
 }
 
 /*
   Multiplies b[0..k-1] by c[0..k-1], and stores the result in a[0..2k-2].
   (Here, there is no implicit monic leading monomial.)
   Requires at least list_mul_mem(k) cells in t.
+  Return the number of scalar multiplies.
  */
-void
+int
 list_mulmod (listz_t a, listz_t b, listz_t c, unsigned int k, listz_t t,
              mpz_t n)
 {
-  LIST_MULT_N (a, b, c, k, t);
+  int muls;
+
+  muls = LIST_MULT_N (a, b, c, k, t);
   list_mod (a, a, 2*k - 1, n);
+
+  return muls;
 }
 
-/* puts in G the coefficients from (x-G[0])...(x-G[k-1])
-   Needs at least k+list_mul_mem(k/2) >= 2k cells in T */
-void
-buildG (listz_t G, unsigned int k, listz_t T, int verbose, mpz_t n, char F)
+/*
+  Multiplies b[0..k-1] by c[0..k-1], stores the result in a[0..2k-2],
+  and stores the reduced product in a2[0..2k-2].
+  (Here, there is no implicit monic leading monomial.)
+  Requires at least list_mul_mem(k) cells in t.
+  Return the number of scalar multiplies.
+ */
+int
+list_mulmod2 (listz_t a2, listz_t a, listz_t b, listz_t c, unsigned int k,
+              listz_t t, mpz_t n)
 {
-   unsigned int l, m, st;
+  int muls;
+
+  muls = LIST_MULT_N (a, b, c, k, t);
+  list_mod (a2, a, 2*k - 1, n);
+
+  return muls;
+}
+
+/* puts in G[0]..G[k-1] the coefficients from (x-G[0])...(x-G[k-1])
+   Warning: doesn't fill the coefficient 1 of G[k], which is implicit.
+   Needs k + list_mul_mem(k/2) cells in T.
+   Return the number of multiplies.
+*/
+int
+PolyFromRoots (listz_t G, unsigned int k, listz_t T, int verbose, mpz_t n, char F)
+{
+  unsigned int l, m, st;
+  unsigned long muls;
 
    if (k <= 1)
-     return;
+     return 0;
 
     /* (x-G[0]) * (x-G[1]) = x^2 - (G[0]+G[1]) * x + G[0]*G[1]
        however we construct (x+G[0]) * (x+G[1]) instead, i.e. the
@@ -299,7 +365,7 @@ buildG (listz_t G, unsigned int k, listz_t T, int verbose, mpz_t n, char F)
        mpz_add (G[1], G[1], G[0]);
        mpz_mod (G[1], G[1], n);
        mpz_mod (G[0], T[0], n);
-       return;
+       return 1;
      }
 
    st = cputime ();
@@ -307,28 +373,70 @@ buildG (listz_t G, unsigned int k, listz_t T, int verbose, mpz_t n, char F)
    m = k / 2;
    l = k - m;
 
-   buildG (G, l, T, 0, n, F);
-   buildG (G + l, m, T, 0, n, F);
-   list_mul (T, G, l, G + l, m, T + k);
+   muls = PolyFromRoots (G, l, T, 0, n, F);
+   muls += PolyFromRoots (G + l, m, T, 0, n, F);
+   muls += list_mul (T, G, l, G + l, m, T + k);
    list_mod (G, T, k, n);
    
    if (verbose >= 2)
-     printf ("Building %c from its roots took %dms\n", F,
-	      cputime() - st);
+     fprintf (stderr, "Building %c from its roots took %ums and %lumuls\n", F,
+	      cputime() - st, muls);
+
+   return muls;
 }
 
 #define mpz_mulmod(a,b,c,n) \
         mpz_mul (a, b, c); \
         mpz_mod (a, a, n);
 
+/* puts in q[0..K-1] the quotient of x^(2K-1) by B
+   where B = b[0]+b[1]*x+...+b[K-1]*x^(K-1) with b[K-1]=1.
+   Return the number of scalar multiplies performed.
+*/
+int
+PolyInvert (listz_t q, listz_t b, unsigned int K, listz_t t, mpz_t n)
+{
+  if (K == 1)
+    {
+      mpz_set_ui (q[0], 1);
+      return 0;
+    }
+  else
+    {
+      int k, l, muls;
+
+      k = K / 2;
+      l = K - k;
+
+      muls = PolyInvert (q + k, b + k, l, t, n); /* Q1 = {q+k, l} */
+
+      muls += LIST_MULT_N (t, q + k, b, l, t + 2 * l - 1); /* Q1 * B0 */
+      list_neg (t, t + l - 1, k);
+      
+      if (k > 1)
+        {
+          muls += list_mul (t + k, q + k, l - 1, b + l, k - 1, t + k + K - 2); /* Q1 * B1 */
+          list_sub (t + 1, t + 1, t + k, k - 1);
+        }
+      list_mod (t, t, k, n); /* high(1-B*Q1) */
+      muls += LIST_MULT_N (t + k, t, q + l, k, t + 3 * k - 1);
+      list_mod (q, t + 2 * k - 1, k, n);
+
+      return muls;
+    }
+}
+
 /*
   divides a[0]+a[1]*x+...+a[2K-1]*x^(2K-1)
-  by b[0]+b[1]*x+...+b[L-1]*x^(L-1)+x^L
-  puts the quotient in q[0]+q[1]*x+...+q[K-1]*x^(K-1)
+  By b[0]+b[1]*x+...+b[K-1]*x^(K-1)+x^K
+  i.e. a polynomial of 2K coefficients divided by a monic polynomial
+  with K+1 coefficients (b[K]=1 is implicit).
+  Puts the quotient in q[0]+q[1]*x+...+q[K-1]*x^(K-1)
   and the remainder in a[0]+a[1]*x+...+a[K-1]*x^(K-1)
   Needs space for list_mul_mem(K) coefficients in t.
+  Return the number of scalar multiplies performed.
 */
-void
+int
 RecursiveDivision (listz_t q, listz_t a, listz_t b, unsigned int K, listz_t t,
 		   mpz_t n)
 {
@@ -337,41 +445,87 @@ RecursiveDivision (listz_t q, listz_t a, listz_t b, unsigned int K, listz_t t,
       mpz_mulmod (q[0], a[1], b[0], n);
       mpz_sub (a[0], a[0], q[0]);
       mpz_set (q[0], a[1]);
+      mpz_mod (a[0], a[0], n);
+      return 1;
     }
   else
     {
-      unsigned int k, l, i;
+      unsigned int k, l, i, muls;
 
       k = K / 2;
       l = K - k;
 
       /* first perform a (2l) / l division */
-      RecursiveDivision (q + k, a + 2 * k, b + k, l, t, n);
+      muls = RecursiveDivision (q + k, a + 2 * k, b + k, l, t, n);
       /* subtract q[k..k+l-1] * b[0..k-1] */
-      LIST_MULT_N (t, q + l, b, k, t + K - 1); /* sets t[0..2*k-2] */
+      muls += LIST_MULT_N (t, q + l, b, k, t + K - 1); /* sets t[0..2*k-2] */
       list_sub (a + l, a + l, t, 2 * k - 1);
       if (k < l) /* don't forget to subtract q[k] * b[0..k-1] */
+        {
 	  for (i=0; i<k; i++)
 	    {
 	      mpz_mul (t[0], q[k], b[i]);
 	      mpz_sub (a[k+i], a[k+i], t[0]);
 	    }
+          muls += k;
+        }
       /* remainder is in a[0..K+k-1] */
 
       /* then perform a (2k) / k division */
-      RecursiveDivision (q, a + l, b + l, k, t, n);
+      muls += RecursiveDivision (q, a + l, b + l, k, t, n);
       /* subtract q[0..k-1] * b[0..l-1] */
-      LIST_MULT_N (t, q, b, k, t + K - 1);
+      muls += LIST_MULT_N (t, q, b, k, t + K - 1);
       list_sub (a, a, t, 2 * k - 1);
       if (k < l) /* don't forget to subtract q[0..k-1] * b[k] */
-	for (i=0; i<k; i++)
-	  {
-	    mpz_mul (t[0], q[i], b[k]);
-	    mpz_sub (a[k+i], a[k+i], t[0]);
-	  }
+        {
+          for (i=0; i<k; i++)
+            {
+              mpz_mul (t[0], q[i], b[k]);
+              mpz_sub (a[k+i], a[k+i], t[0]);
+            }
+          muls += k;
+        }
+
+      /* normalizes the remainder wrt n */
+      list_mod (a, a, K, n);
+
+      return muls;
     }
-  /* normalizes the remainder wrt n */
-  list_mod (a, a, K, n);
+}
+
+/*
+  Returns in a[0]+a[1]*x+...+a[K-1]*x^(K-1)
+  the remainder of the division of
+  A = a[0]+a[1]*x+...+a[2K-2]*x^(2K-2)
+  by B = b[0]+b[1]*x+...+b[K-1]*x^(K-1)+b[K]*x^K with b[K]=1 *explicit*.
+  (We have A = Q*B + R with deg(Q)=K-2 and deg(R)=K-1.)
+  Assumes invb[0]+invb[1]*x+...+invb[K-2]*x^(K-2) equals Quo(x^(2K-2), B).
+  Assumes K >= 2.
+  Requires 2K-3 + list_mul_mem(K-1) cells in t.
+
+  Notations: R = r[0..K-1], A = a[0..2K-2], low(A) = a[0..K-1],
+  high(A) = a[K..2K-2], Q = t[0..K-2]
+*/
+int
+PrerevertDivision (listz_t a, listz_t b, listz_t invb,
+                   unsigned int K, listz_t t, mpz_t n)
+{
+  int muls;
+
+  /* Q <- high(A * INVB): could use a short product here */
+  muls = LIST_MULT_N (t, a + K, invb, K - 1, t + 2 * K - 3);
+  list_mod (a + K, t + K - 2, K - 1, n);
+
+  /* T <- low(Q * B): could use a short product here */
+  muls += LIST_MULT_N (t, a + K, b, K - 1, t + 2 * K - 3);
+  list_mod (t, t, K, n);
+
+  list_sub (a, a, t, (K == 2) ? 1 : K);
+  /* remains to subtract Q[0] * (b[K-1]*x^(K-1)) */
+  mpz_mulmod (t[0], a[K], b[K-1], n);
+  mpz_sub (a[K-1], a[K-1], t[0]);
+
+  return muls + 1;
 }
 
 /*
