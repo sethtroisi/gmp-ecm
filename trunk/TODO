@@ -27,3 +27,8 @@ ToDo's:
 
 3) documentation
 - check README is up-to-date wrt tune/tune2 (and merge tune/tune2)
+
+4) others
+- the B2' value is wrong in ecm-6.0: for example with B1=1e6 and the default
+  B2=839549779, we get B2'=975441390. But asking for B2=975441390 doesn't
+  give B2'=975441390, but B2'=1306905600.
