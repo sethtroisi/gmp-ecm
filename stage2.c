@@ -27,6 +27,9 @@
 #include <math.h>
 #include <limits.h>
 #include <math.h> /* for floor */
+#if defined (_MSC_VER)
+#define snprintf _snprintf
+#endif
 #include "gmp.h"
 #include "ecm.h"
 #include "ecm-impl.h"
@@ -284,6 +287,7 @@ stage2 (mpz_t f, void *X, mpmod_t modulus, mpz_t B2min, mpz_t B2,
   listz_t *Tree = NULL; /* stores the product tree for F */
   unsigned int lgk; /* ceil(log(k)/log(2)) */
   listz_t invF = NULL;
+  double mem;
 
   /* check alloc. size of f */
   mpres_realloc (f, modulus);
@@ -333,6 +337,24 @@ stage2 (mpz_t f, void *X, mpmod_t modulus, mpz_t B2min, mpz_t B2,
 
   outputf (OUTPUT_VERBOSE, "B2'=%Zd k=%u b2=%1.0f d=%u d2=%u dF=%u, "
            "i0=%Zd\n", effB2, k, b2, d, d2, dF, i0);
+
+  lgk = ceil_log2 (dF);
+  mem = 9.0 + (double) lgk;
+#if (MULT == KS)
+  mem += 24.0; /* estimated memory for kronecker_schonhage */
+  mem += 1.0;  /* for the wrap-case in PrerevertDivision   */
+#endif
+  mem *= (double) dF;
+  mem *= (double) mpz_size (modulus->orig_modulus);
+  mem *= (double) mp_bits_per_limb / 8.0;
+  if (mem < 1e4)
+    outputf (OUTPUT_VERBOSE, "Estimated memory usage: %1.0f\n", mem);
+  else if (mem < 1e7)
+    outputf (OUTPUT_VERBOSE, "Estimated memory usage: %1.0fK\n", mem / 1e3);
+  else if (mem < 1e10)
+    outputf (OUTPUT_VERBOSE, "Estimated memory usage: %1.0fM\n", mem / 1e6);
+  else
+    outputf (OUTPUT_VERBOSE, "Estimated memory usage: %1.0fG\n", mem / 1e9);
 
   if (method == ECM_ECM && test_verbose (OUTPUT_VERBOSE))
     {
@@ -392,7 +414,6 @@ stage2 (mpz_t f, void *X, mpmod_t modulus, mpz_t B2min, mpz_t B2,
      | rootsF |  ???   |  ???  |      ???         |
      ---------------------------------------------- */
 
-  lgk = ceil_log2 (dF);
   if (TreeFilename == NULL)
     {
       Tree = (listz_t*) malloc (lgk * sizeof (listz_t));

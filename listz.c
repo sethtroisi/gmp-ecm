@@ -75,7 +75,7 @@ init_list (unsigned int n)
   listz_t p;
   unsigned int i;
 
-  p = (mpz_t*) malloc (n * sizeof(mpz_t));
+  p = (mpz_t*) malloc (n * sizeof (mpz_t));
   if (p == NULL)
     return NULL;
   for (i = 0; i < n; i++)

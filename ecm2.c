@@ -34,8 +34,6 @@
 #define ASSERT(expr)   do {} while (0)
 #endif
 
-#define min(a,b) (((a)<(b))?(a):(b))
-
 /* R_i <- q_i * S, 0 <= i < n, where q_i are large positive integers, S 
    is a point on an elliptic curve. Uses max(bits in q_i) modular 
    inversions (one less if max(q_i) is a power of 2).

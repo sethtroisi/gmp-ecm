@@ -24,9 +24,9 @@
 #include <stdlib.h>
 #if !defined (_MSC_VER)
 #include <unistd.h>
+#include <sys/time.h> /* gettimeofday */
 #endif
 #include <time.h>
-#include <sys/time.h> /* gettimeofday */
 
 #include "gmp.h"
 #ifdef OUTSIDE_LIBECM
