@@ -147,6 +147,10 @@ void usage (void)
     printf ("  -resume file resume residues from file, reads from stdin if file is \"-\"\n");
     printf ("  -primetest   perform a primality test on input\n");
     printf ("  -treefile f  store product tree of F in files f.0 f.1 ... \n");
+#if defined(WANT_FACCMD) && defined(unix)
+    printf ("  -faccmd cmd  execute cmd when factor is found. Input number, factor\n"
+            "               and cofactor are given to cmd via stdin, each on a line\n");
+#endif
 
     /*printf ("  -extra functions added by JimF\n"); */
     printf ("  -i n         increment B1 by this constant on each run\n");
@@ -229,6 +233,9 @@ main (int argc, char *argv[])
   double maxtrialdiv = 0.0;
   double B2scale = 1.0;
   ecm_params params;
+#if defined(WANT_FACCMD) && defined(unix)
+  char *faccmd = NULL;
+#endif
 
   /* check ecm is linked with a compatible library */
   if (mp_bits_per_limb != GMP_NUMB_BITS)
@@ -623,6 +630,14 @@ main (int argc, char *argv[])
          argv += 2;
          argc -= 2;
        }
+#if defined(WANT_FACCMD) && defined(unix)
+     else if ((argc > 2) && (strcmp (argv[1], "-faccmd") == 0))
+       {
+         faccmd = argv[2];
+         argv += 2;
+         argc -= 2;
+       }
+#endif
 
       else
 	{
@@ -1156,6 +1171,24 @@ BreadthFirstDoAgain:;
           mpz_out_str (stdout, 10, f);
 	  if (verbose > 0)
             printf ("\n");
+#if defined(WANT_FACCMD) && defined(unix)
+	  if (faccmd != NULL)
+	    {
+	      FILE *fc;
+	      fc = popen (faccmd, "w");
+	      if (fc != NULL)
+	        {
+	          mpz_t cof;
+	          mpz_init_set (cof, n.n);
+	          mpz_divexact (cof, cof, f);
+	          gmp_fprintf (fc, "%Zd\n", n.n);
+	          gmp_fprintf (fc, "%Zd\n", f);
+	          gmp_fprintf (fc, "%Zd\n", cof);
+	          mpz_clear (cof);
+	          pclose (fc);
+	        }
+	    }
+#endif
 	  if (mpz_cmp (f, n.n))
 	    {
               if (mpz_cmp_ui (f, 1) == 0)
