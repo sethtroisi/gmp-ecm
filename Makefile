@@ -13,8 +13,8 @@ NTL=/usr/local/ntl-5.3
 CFLAGS=-O2 -g -Wall -Wmissing-prototypes -ansi -pedantic
 CC=g++
 
-FILES= aux.o bestd.o ecm.o getprime.o listz.o lucas.o main.o ntl.o pm1.o polyz.o pp1.o stage2.o toomcook.o
-DIST=  aux.c bestd.c ecm.c getprime.c listz.c lucas.c main.c ntl.c pm1.c polyz.c pp1.c stage2.c toomcook.c
+FILES= auxi.o bestd.o ecm.o getprime.o listz.o lucas.o main.o ntl.o pm1.o polyz.o pp1.o stage2.o toomcook.o
+DIST=  auxi.c bestd.c ecm.c getprime.c listz.c lucas.c main.c ntl.c pm1.c polyz.c pp1.c stage2.c toomcook.c
 EXTRADIST= COPYING INSTALL Makefile README cputime.h ecm.h test.pm1 test.pp1
 
 .SUFFIXES: .c .o
