@@ -53,6 +53,7 @@ getprime (double pp)
 
   if (pp == 0.0) /* free the tables, and reinitialize */
     {
+      offset = 0.0;
       current = -1;
       free (primes);
       primes = NULL;
