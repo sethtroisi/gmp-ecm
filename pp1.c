@@ -355,7 +355,7 @@ pp1_rootsF (listz_t F, unsigned int d1, unsigned int d2, unsigned int dF,
       j = 7;
       while (i < dF)
 	{
-	  if (gcd (j, d1) == 1)
+	  if (gcd (j, d1) == 1) /* (d2,d1) == 1 ==> (j*d2,d1) == (j,d1) */
 	    mpres_get_z (F[i++], fd[0], modulus);
 
 	  /* V_{m+n} = V_m * V_n - V_{m-n} */
@@ -376,6 +376,7 @@ pp1_rootsF (listz_t F, unsigned int d1, unsigned int d2, unsigned int dF,
 	  expensive, since it can use up to 4*(d1/6) muls */
     {
       init_roots_state (&state, S, d1, d2, 1.0);
+      mpz_set_ui (*t, 0);
       coeffs = init_progression_coeffs (*t, state.dsieve, d2, 1, 6, state.S,
                                         state.dickson_a);
       
@@ -472,6 +473,7 @@ pp1_rootsG_init (mpres_t *x, mpz_t s, unsigned int d1, unsigned int d2,
   unsigned long i;
 
   ASSERT (gcd (d1, d2) == 1);
+  ASSERT (mpz_fdiv_ui (s, d1) == 0);
 
   st = cputime ();
 
@@ -493,12 +495,15 @@ pp1_rootsG_init (mpres_t *x, mpz_t s, unsigned int d1, unsigned int d2,
       /* We want to skip values where gcd(s + i * d1, d2) != 1 */
       /* state->rsieve = s % d2 */
       state->rsieve = mpz_fdiv_ui (s, d2);
-
+      
+      outputf (OUTPUT_DEVVERBOSE, "pp1_rootsG_init: s = %Zd, state: d = %d, "
+               "dsieve = %d, rsieve = %d, S = %d\n", 
+               s, state->d, state->dsieve, state->rsieve, state->S);
+      
       pp1_mul (state->tmp[0], *x, s, modulus, state->tmp[3], P);
       mpz_set_ui (t, d1);
       pp1_mul (state->tmp[1], *x, t, modulus, state->tmp[3], P);
-      mpz_set (t, s);
-      mpz_sub_ui (t, t, d1);
+      mpz_sub_ui (t, s, d1);
       mpz_abs (t, t);
       pp1_mul (state->tmp[2], *x, t, modulus, state->tmp[3], P);
       /* for P+1, tmp[0] = V_s(P), tmp[1] = V_d1(P), tmp[2] = V_{|s-d1|}(P) */
@@ -594,7 +599,16 @@ pp1_rootsG (listz_t G, unsigned int dF, pp1_roots_state *state, mpmod_t modulus,
       for (i = 0; i < dF;)
         {
           if (gcd (state->rsieve, state->dsieve) == 1)
-            mpres_get_z (G[i++], state->tmp[0], modulus);
+            {
+              outputf (OUTPUT_TRACE, "pp1_rootsG: Taking root G[%d], rsieve = %d\n", 
+                       i, state->rsieve);
+              mpres_get_z (G[i++], state->tmp[0], modulus);
+            }
+          else
+            {
+              outputf (OUTPUT_TRACE, "pp1_rootsG: NOT taking root, rsieve = %d, gcd = %d\n", 
+                       state->rsieve, gcd (state->rsieve, state->dsieve));
+            }
 
           mpres_swap (state->tmp[0], state->tmp[2], modulus);
           mpres_mul (state->tmp[3], state->tmp[2], state->tmp[1], modulus);
