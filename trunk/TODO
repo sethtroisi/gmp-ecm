@@ -1,7 +1,3 @@
-What remains to do for the 1st release:
-
-Long term:
-
 - implement semi-normalized residues in mpmod.c: instead of ensuring
   0 <= r < n, just require limbs(r) <= limbs(n)
 - use mpres in step 2
@@ -13,7 +9,7 @@ Long term:
 - add a configure file (check if alloca.h is needed, cf FreeBSD)
 - tune stage 2 values of 'd' to optimize toomcook4(d)/(d*phi(d/2)):
   for each value of d, compute k = ceil(B2/(d*phi(d)/2), then
-  compute cost(d,k) = (k+1)*PolyFromRoots(dF)+Invert(dF)+(k-1)*toomcook4(dF)
+  compute cost(d,k) = (k+1)*PolyFromRoots(dF)+PolyInvert(dF-1)+(k-1)*toomcook4(dF)
   +(k-1)*Reduce(dF)+polyeval(dF) where dF=Phi(d)/2
 - implement Brent-Suyama's extension for p+1 (how to do it efficiently?
   Could "Powers of 2^(k/2) and 3^k", Montgomery dissertation, 5.5, work?)
@@ -36,3 +32,13 @@ Long term:
 - check number of multiplies in step 2, compute it for step 1
 - get rid of __gmp_free_func (no longer declared in gmp.h)
 - implement high/low products in step 2
+- fix efficiency problem with P-1 (default is slower than -mpzmod for B1=1e7)
+- for some values of len, toomcook3 shoud use toomcook4 for the
+  recursive calls (for example len=26, where for len'=8, tc4 uses only
+  21 multiplies instead of 23)
+- write a mpn version of add3 and duplicate  
+- use/implement a mpn_mul_hi_n routine for use in mpn_REDC
+- use mpn_addmul_2, mpn_addmul_4 in the basecase REDC [for machines
+  where it exists]
+  
+  
