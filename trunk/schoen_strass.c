@@ -1,6 +1,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <gmp.h>
+#include "ecm.h"
 #ifdef TESTDRIVE
 #include <asm/msr.h>
 #include <string.h>
@@ -55,10 +56,13 @@ void F_fft_dit (mpz_t *, int, int, int);
 unsigned int *make_scramble_list (int);
 unsigned int *make_scramble_list_r4 (int);
 void F_fft_mfa (mpz_t *, const unsigned int, const unsigned int, int, const unsigned int);
+void F_fft_mfa_mul (mpz_t *, mpz_t *, const unsigned int, const unsigned int, const unsigned int);
 unsigned int F_toomcook4 (mpz_t *, mpz_t *, mpz_t *, unsigned int, unsigned int, mpz_t *);
 unsigned int F_karatsuba (mpz_t *, mpz_t *, mpz_t *, unsigned int, unsigned int, mpz_t *);
+/*
 unsigned int F_mul (mpz_t *, mpz_t *, mpz_t *, unsigned int, unsigned int, mpz_t *);
 unsigned int F_mul_trans (mpz_t *, mpz_t *, mpz_t *, unsigned int, unsigned int, mpz_t *);
+*/
 
 static int radix2 = 0, do_mfa = 1;
 
@@ -1020,6 +1024,96 @@ F_fft_mfa (mpz_t *A, const unsigned int r, const unsigned int c, int sign, const
   free (scramble);
 }
 
+
+/* Computes convolution product A*B (mod 2^n+1) using Matrix Fourier Algorithm.
+   B is assumed to be FFT'd my MFA already (rows and columns index scrambled)
+*/
+
+void
+F_fft_mfa_mul (mpz_t *A, mpz_t *B, const unsigned int r, const unsigned int c, const unsigned int n)
+{
+  unsigned int i, j, s2, l2;
+  unsigned int *scramble;
+
+  if (radix2)
+    scramble = make_scramble_list (r);
+  else
+    scramble = make_scramble_list_r4 (r);
+  
+  /* Compute s2 = log_2(c) for use as stride */
+  for (i = 1, s2 = 0; i < c; i <<= 1, s2++); 
+
+  /* Compute l2 = log_2(len) for divide-by-length */
+  for (i = 1, l2 = 0; i < r; i <<= 1, l2++);
+  l2 += s2;
+  /* We later need to divide by (sqrt(2))^(2*l2), so we'll keep 2*l2 */
+  l2 <<= 1;
+
+
+  /* DFT on columns */
+  for (i = 0; i < c; i++)
+    {
+      F_fft_dif (A + i, r, s2, n);
+      /* The rows are now index-scrambeled */
+#ifdef LAZY
+      for (j = 0; j < r; j++)
+        F_mod_1 (A[i + j * c], n);
+#endif
+    }
+
+
+  /* DFT on rows, multiply, back transform of rows */
+
+  /* Row with index 0, needs no multipy by \omega, just divide by length */
+  F_fft_dif (A, c, 0, n);
+  for (j = 0; j < c; j++)
+    {
+#ifdef LAZY
+      F_mod_1 (A[j], n);
+#endif
+      F_mul_sqrt2exp (A[j], A[j], -l2, n);
+      mpz_mul (gt, A[j], B[j]);
+      F_mod_gt (A[j], n);
+    }
+  F_fft_dit (A, c, 0, n);
+  
+  
+  /* The other rows */
+  for (i = 1; i < r; i++)
+    {
+      int iomega = scramble[i] * ((4 * n) / (r * c)), ijomega;
+
+      /* Multiply by \omega^{ij}, divide by transform length */
+      for (j = 1, ijomega = iomega - l2; j < c; j++, ijomega += iomega)
+        F_mul_sqrt2exp (A[i * c + j], A[i * c + j], ijomega, n);
+
+      F_fft_dif (A + i * c, c, 0, n);
+
+      for (j = 0; j < c; j++)
+        {
+#ifdef LAZY
+          F_mod_1 (A[i * c + j], n);
+#endif
+          mpz_mul (gt, A[i * c + j], B[i * c + j]);
+          F_mod_gt (A[i * c + j], n);
+        }
+      
+      /* IDFT on rows */
+      F_fft_dit (A + i * c, c, 0, n);
+          
+      /* Divide by \omega^{ij} */
+      for (j = 1, ijomega = 4 * n - iomega; j < c; j++, ijomega -= iomega)
+        F_mul_sqrt2exp (A[i * c + j], A[i * c + j], ijomega, n);
+    }
+
+      
+  /* IDFT on columns */
+  for (i = 0; i < c; i++)
+    F_fft_dit (A + i, r, s2, n);
+
+  free (scramble);
+}
+
 #define A0 A[i]
 #define A1 A[l+i]
 #define A2 A[2*l+i]
@@ -1456,7 +1550,7 @@ F_mul (mpz_t *R, mpz_t *A, mpz_t *B, unsigned int len, unsigned int n,
        mpz_t *t) 
 {
   unsigned int i, r=0, len2;
-  int columns;
+  int columns = 0;
 #ifdef CHECKSUM
   mpz_t chksum1, chksum_1, chksum0, chksuminf;
 #endif
@@ -1540,9 +1634,13 @@ F_mul (mpz_t *R, mpz_t *A, mpz_t *B, unsigned int len, unsigned int n,
           exit (EXIT_FAILURE);
         }
       
-      /* If we use MFA, make a row use at most half the cache size */
-      if (do_mfa)
-        columns = min(1U<<((len2 + 1) / 2), (CACHESIZE * 4096) / n);
+      /* If we use MFA, make a row use at most half the cache size, */
+      /* Don't use MFA if full transform fits in half of L2 cache. */
+      columns = 0;
+      if (do_mfa && CACHESIZE * 8192 / 2 <= 2 * len * n)
+        {
+          columns = min(1U<<((len2 + 1) / 2), (CACHESIZE * 8192 / 2) / n);
+        }
 
       /* Are we performing a squaring or multiplication? */
       if (A != B) 
@@ -1560,7 +1658,7 @@ F_mul (mpz_t *R, mpz_t *A, mpz_t *B, unsigned int len, unsigned int n,
           for (i = len; i < 2 * len; i++)
             mpz_set_ui (t[i], 0);
 
-          if (do_mfa)
+          if (columns)
             F_fft_mfa (t, (2 * len) / columns, columns, 1, n);
           else
             F_fft_dif (t, 2 * len, 0, n);
@@ -1585,13 +1683,15 @@ F_mul (mpz_t *R, mpz_t *A, mpz_t *B, unsigned int len, unsigned int n,
         rdtscll(timer_start);
 #endif
 
+#ifndef MFA_MUL
+
       /* Put transform of A into R */
       for (i = 0; i < len; i++) 
         mpz_set (R[i], A[i]);
       for (i = len; i < 2 * len; i++)
         mpz_set_ui (R[i], 0); /* May overwrite B[i] */
 
-      if (do_mfa)
+      if (columns)
         F_fft_mfa (R, (2 * len) / columns, columns, 1, n);
       else
         F_fft_dif (R, 2 * len, 0, n);
@@ -1639,7 +1739,7 @@ F_mul (mpz_t *R, mpz_t *A, mpz_t *B, unsigned int len, unsigned int n,
           rdtscll (timer_start);
         }
 #endif
-      if (do_mfa)
+      if (columns)
         F_fft_mfa (R, (2 * len) / columns, columns, -1, n);
       else
         F_fft_dit (R, 2 * len, 0, n);
@@ -1652,6 +1752,36 @@ F_mul (mpz_t *R, mpz_t *A, mpz_t *B, unsigned int len, unsigned int n,
           printf ("IFFT, length %d: %.5fM clocks (%.0f per butterfly)\n", 
             2*len, timer_stop / 1000000.0, timer_stop / (2.*len*(len2+1)));
         }
+#endif
+
+#else /* MFA_MUL */
+      
+      if (columns)
+        F_fft_mfa_mul (R, t, (2 * len) / columns, columns, n);
+      else
+        {
+          F_fft_dif (R, 2 * len, 0, n);
+          for (i=0; i < 2 * len; i++)
+           {
+             F_mod_1 (R[i], n);
+             mpz_mul (gt, R[i], t[i]);
+             F_mod_gt (R[i], n);
+             F_mul_sqrt2exp (R[i], R[i], - 2 * (len2 + 1), n);
+           }
+          F_fft_dit (R, 2 * len, 0, n);
+        }
+      r += 2 * len;
+
+#ifdef TESTDRIVE
+      if (do_timing) 
+        {
+          rdtscll (timer_stop);
+          timer_stop -= timer_start;
+          printf ("Time for F_fft_mfa_mul, length %d: %.5fM clocks\n", 
+            2*len, timer_stop / 1000000.0);
+        }
+#endif
+      
 #endif
       
     } else  /* Karatsuba or Toom-Cook split */
@@ -1752,7 +1882,7 @@ F_mul_trans (mpz_t *R, mpz_t *A, mpz_t *B, unsigned int len, unsigned int n,
              mpz_t *t) 
 {
   unsigned int i, r = 0, len2;
-  int columns;
+  int columns = 0;
 
 /*  printf ("F_mul_trans: R=%p, A=%p, B=%p, len=%d, n=%d, t=%p\n", 
           R, A, B, len, n, t);
@@ -1936,6 +2066,8 @@ main(int argc, char **argv)
  
   mp_set_memory_functions (&allocate_function, &reallocate_function,
                            &deallocate_function);
+
+  do_mfa = 0;
 
   while (argc > 1 && argv[1][0] == '-')
     {
