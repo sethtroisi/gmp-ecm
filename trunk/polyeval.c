@@ -157,12 +157,12 @@ unsigned int TUpTree (listz_t b, listz_t *Tree, unsigned int k,
 
     muls = TMulGen (tmp, l - 1, Tree[0] + sh + l, m - 1, b, k - 1, tmp + l);
 #ifdef CHECK_MULS
-    if (muls != muls_tgen (l-1)) { printf ("%u %u %u\n", l, muls, muls_tgen (l-1)); abort(); }
+    if (muls > muls_tgen (l-1)) { printf ("l=%u m=%u k=%u %u %u\n", l, m, k, muls, muls_tgen (l-1)); abort(); }
 #endif
     tot_muls += muls;
     muls = TMulGen (tmp + l, m - 1, Tree[0] + sh, l - 1, b, k - 1, tmp + k);
 #ifdef CHECK_MULS
-    if (muls != muls_tgen (m-1)) { printf ("%u %u %u\n", m, muls, muls_tgen (m-1)); abort();}
+    if (muls > muls_tgen (l-1)) { printf ("m=%u l=%u k=%u %u %u\n", m, l, k, muls, muls_tgen (m-1)); abort();}
 #endif
     tot_muls += muls;
 
@@ -249,12 +249,13 @@ polyeval_tellegen (listz_t b, unsigned int k, listz_t *Tree, listz_t tmp,
     unsigned int totmuls = 0, muls;
     int allocated = 0;
     listz_t T;
-    
-    for (i = 0; i < k / 2; i++)
-        mpz_swap (invF[i], invF[k - 1 - i]);
 
     tupspace = TUpTree_space (k) + k;
+#ifndef USE_SHORT_PRODUCT
     tkspace = TMulGen_space (k - 1, k - 1, k - 1) + k;
+#else
+    tkspace = 2 * k - 1 + list_mul_mem (k);
+#endif
 
     tupspace = MAX (tupspace, tkspace);
 
@@ -271,9 +272,18 @@ polyeval_tellegen (listz_t b, unsigned int k, listz_t *Tree, listz_t tmp,
     printf ("Espace requis : %d.\n", 
             TMulGen_space (k - 1, k - 1, k - 1));
 #endif
+#ifndef USE_SHORT_PRODUCT
+    /* revert invF for call to TMulGen below */
+    for (i = 0; i < k / 2; i++)
+        mpz_swap (invF[i], invF[k - 1 - i]);
     muls = TMulGen (T, k - 1, invF, k - 1, b, k - 1, T + k);
 #ifdef CHECK_MULS
     if (muls != muls_tgen (k-1)) { printf ("%u %u %u\n", k, muls, muls_tgen (k-1)); abort();}
+#endif
+#else
+    /* need space 2k-1+list_mul_mem(k) in T */
+    muls = list_mul_high (T, invF, b, k, T + 2 * k - 1);
+    list_set (T, T + k - 1, k);
 #endif
     totmuls += muls;
 #ifdef TELLEGEN_DEBUG
@@ -303,28 +313,26 @@ unsigned int muls_tuptree (unsigned int k)
 {
     unsigned int m, l;
     unsigned int tot_muls = 0;
-    unsigned int tmp;
 
     m = k / 2;
     l = k - m;
     
     if (k == 1)
         return 0;
-   
+
+    /* bound both calls to TMulGen(l-1,m-1) and TMulGen(m-1,l-1)
+       by TMulGen(l-1,l-1) */
+    tot_muls += 2 * muls_tgen (l - 1);
 
     if (l == m)
-    {
-        tmp = muls_tgen (l - 1);
-        tot_muls += 2 * tmp;
-        tot_muls += (muls_tuptree (l)) * 2;
-    }
+      {
+        tot_muls += 2 * muls_tuptree (l);
+      }
     else
-    {
+      {
         tot_muls += muls_tuptree (m);
         tot_muls += muls_tuptree (l);
-        tot_muls += muls_tgen (l - 1);
-        tot_muls += muls_tgen (m - 1);
-    }
+      }
     return tot_muls;
 }
 
@@ -332,8 +340,12 @@ unsigned int
 muls_polyeval_tellegen (unsigned int k)
 {
     unsigned int tot_muls = 0;
-    
+
+#ifndef USE_SHORT_PRODUCT
     tot_muls += muls_tgen (k - 1);
+#else
+    tot_muls += muls_gen_short (k);
+#endif
     tot_muls += muls_tuptree (k);
     return tot_muls;
 }
