@@ -21,7 +21,7 @@
 
 set ECM="$1"
 ### bug in ecm-5.0 found by Jay Berg (overflow in i0*d)
-echo 441995541378330835457 | $ECM -pm1 2e3 7e9-72e8
+echo 441995541378330835457 | $ECM -pm1 157080 7e9-72e8
 if ($status != 0) then
    echo "############### ERROR ###############";
    exit 1;
