@@ -91,7 +91,7 @@ bestD (double B2, unsigned int k0, unsigned int *k, double S, int method)
   for (i = 0; i < N && l[i][1] < mincost; i++)
     {
       d = (unsigned long) l[i][0];
-      dF = phi (d) / 2.0;
+      dF = phi (d) / 2;
       j = ceil ((B2 / (double) d + 2.0) / (double) dF);
       a = l[i][1] + (double) (d / 6)  * (double) S;
       b = l[i][2] + (double) dF * (double) S;

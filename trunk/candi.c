@@ -98,7 +98,7 @@ int mpcandi_t_copy(mpcandi_t *to, mpcandi_t *from)
   to->cpExpr = NULL;
   if (from->cpExpr)
     {
-      to->cpExpr = malloc(from->nexprlen+1);
+      to->cpExpr = (char *) malloc(from->nexprlen+1);
       if (to->cpExpr == NULL)
         {
           fprintf (stderr, "Error: not enough memory\n");
@@ -131,7 +131,7 @@ int mpcandi_t_add_candidate(mpcandi_t *n, mpz_t c, const char *cpExpr, int prime
   if (cpExpr)
     {
       n->nexprlen = strlen(cpExpr);
-      n->cpExpr = malloc(n->nexprlen+1);
+      n->cpExpr = (char *) malloc(n->nexprlen+1);
       if (n->cpExpr == NULL)
         {
           fprintf (stderr, "Error: not enough memory\n");
@@ -208,7 +208,7 @@ int mpcandi_t_addfoundfactor(mpcandi_t *n, mpz_t f, int displaywarning)
     {
       /* If there is an expression, then lets preserve it */
       cp1 = mpz_get_str (NULL, 10, f);
-      cp = malloc(n->nexprlen+1 + 3 + strlen(cp1));  /* +1 for null, +3 for ()/ */
+      cp = (char *) malloc(n->nexprlen+1 + 3 + strlen(cp1));  /* +1 for null, +3 for ()/ */
       if (cp == NULL)
         {
           fprintf (stderr, "Error: not enough memory\n");

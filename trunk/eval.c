@@ -59,20 +59,8 @@ static void eval_sum (mpz_t prior_n, mpz_t n,char op);
 static int  eval_Phi (mpz_t prior_n, mpz_t n, int ParamCnt);
 static int  eval_2 (int bInFuncParams);
 
-#if !defined (_MSC_VER) && !defined (__MINGW32__)
-/* Here is a simple strnicmp() function for compilers without it */
-int strnicmp(const char *src, const char *pattern, int cnt)
-{
-  int i;
-  for (i = 0; i < cnt; ++i)
-    if (toupper(src[i]) != toupper(pattern[i]))
-      {
-	if ( (toupper(src[i]) - toupper(pattern[i])) < 0)
-	  return -1;
-	return 1;
-      }
-  return 0;
-}
+#if defined (_MSC_VER) || defined (__MINGW32__)
+#define strncasecmp strnicmp
 #endif
 
 /**************************************/
@@ -85,7 +73,7 @@ int eval (mpcandi_t *n, FILE *fd, int primetest)
   int ret;
   int nMaxSize=2000, nCurSize=0;
   int c;
-  char *expr = malloc(nMaxSize+1);
+  char *expr = (char *) malloc(nMaxSize+1);
 
   if (expr == NULL)
     {
@@ -128,7 +116,7 @@ ChompLine:;
       {
 	char *cp;
 	nMaxSize += 5000;
-	cp = realloc (expr, nMaxSize+1);
+	cp = (char *) realloc (expr, nMaxSize+1);
 	if (!cp)
 	{
 	  free(expr);
@@ -176,7 +164,7 @@ int eval_str (mpcandi_t *n, char *cp, int primetest, char **EndChar)
   int ret;
   int nMaxSize=2000, nCurSize=0;
   char *c;
-  char *expr = malloc(nMaxSize+1);
+  char *expr = (char *) malloc(nMaxSize+1);
 
   if (expr == NULL)
     {
@@ -204,7 +192,7 @@ JoinLinesLoop:;
       {
 	char *cp;
 	nMaxSize += 5000;
-	cp = realloc (expr, nMaxSize + 1);
+	cp = (char *) realloc (expr, nMaxSize + 1);
 	if (!cp)
 	{
 	  free(expr);
@@ -411,12 +399,12 @@ int eval_Phi (mpz_t b, mpz_t n, int ParamCnt)
   getprime(0.0);  /* free the prime tables, and reinitialize */
   for (p = 2.0; p <= _B; p = getprime(p))
     {
-      if (_B % (int)p == 0)
+      if (_B % (int) p == 0)
 	{
 	  /* Add the factor one time */
-	  factors[dwFactors++] = p;
+	  factors[dwFactors++] = (int) p;
 	  /* but be sure to totally remove it */
-	  do { _B /= p; } while (_B % (int)p == 0);
+	  do { _B /= (int) p; } while (_B % (int) p == 0);
         }
      }
   _B = mpz_get_si(b);
@@ -526,7 +514,7 @@ int eval_2 (int bInFuncParams)
 	  if (!i)         /* No digits found */
 	    {
 	      /* check for a valid "function" */
-	      if (!strnicmp (&expr_str[i], "phi(", 4))
+	      if (!strncasecmp (&expr_str[i], "phi(", 4))
 		{
 		  /* Process the phi(B,N) function */
 		  expr_str+=4;
