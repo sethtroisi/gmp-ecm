@@ -99,7 +99,7 @@ system, even if they don't have MinGW installed themselves.
 
 Step-by-step instructions, courtesy of Jes Hansen:
 
-1) Download the current Mingw from
+1) Download the current MinGW from
    http://prdownloads.sf.net/mingw/MinGW-3.1.0-1.exe?download
    and MSYS from http://prdownloads.sf.net/mingw/MSYS-1.0.10.exe?download
 
@@ -110,10 +110,11 @@ Step-by-step instructions, courtesy of Jes Hansen:
    Now you get an icon on the desktop where you can start the MinSys. Do
    this, because is creates your home folder. Then exit it again.
 
-4) Download the latest version of GMP from http://www.swox.com/gmp/ and 
-   place it in your newly created home folder. (At the time of writing
-   the latest version of GMP is 4.1.4, this will be assumed for the rest of 
-   this document.)
+4) Download the latest version of GMP (at the time of writing the latest 
+   version is 4.1.4, this will be assumed for the rest of this document) 
+   in .tar.gz format from http://www.swox.com/gmp/ and place it in your 
+   newly created home folder. The home folder is in C:\GNU\msys\home and 
+   has the same name as your Windows login name.
 
 5) Download GMP-ECM (if you do not have it already) from
    http://www.loria.fr/~zimmerma/records/ecmnet.html (check the News section
@@ -134,7 +135,7 @@ Step-by-step instructions, courtesy of Jes Hansen:
   ./configure --with-gmp=/usr/local
   make
 
-8) Four executables should have appeard. The main application is ecm.exe,
+8) Four executables should have appeared. The main application is ecm.exe,
    which can be run from the Windows command line.
 
 ============================================================================
