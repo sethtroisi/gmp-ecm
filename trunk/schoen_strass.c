@@ -14,6 +14,7 @@
 
 static mpz_t gt;
 static int gt_inited = 0;
+unsigned int Fermat;
 
 #define min(a,b) ((a)<(b)?(a):(b))
 
