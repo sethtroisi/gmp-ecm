@@ -26,7 +26,8 @@ int          rootsF     (listz_t, unsigned int, mpz_t, mpz_t, mpz_t *,
                          unsigned int , mpz_t, int);
 void         rootsG     (listz_t, unsigned int, listz_t, listz_t, 
                          listz_t, unsigned int, mpz_t, int);
-int          stage2     (mpz_t, mpz_t, double, unsigned int, unsigned int, int);
+int          stage2     (mpz_t, mpz_t, double, unsigned int, unsigned int, int,
+                         int);
 
 /* listz.c */
 int          list_mul_mem (unsigned int);
