@@ -493,11 +493,20 @@ stage2 (mpz_t f, void *X, mpmod_t modulus, double B2min, double B2,
 #endif
 
 #ifdef POLYEVAL
+  clear_list (F, dF);
+  F = NULL;
+  clear_list (G, dF);
+  G = NULL;
   st = cputime ();
 #ifdef POLYEVALTELLEGEN
   muls = polyeval_tellegen (T, dF, Tree, T + dF + 1, 
                             sizeT - dF - 1, invF, n, 0);
 #else
+  if (dF > 0)
+    {
+      clear_list (invF, dF);
+      invF = NULL;
+    }
   muls = polyeval (T, dF, Tree, T + dF + 1, n, verbose, 0);
 #endif
   tot_muls += muls;
@@ -514,6 +523,13 @@ stage2 (mpz_t f, void *X, mpmod_t modulus, double B2min, double B2,
 
   youpi = list_gcd (f, T, dF, n) ? 2 : 0;
 #else
+  if (dF > 0)
+    {
+      clear_list (invF, dF);
+      invF = NULL;
+    }
+  clear_list (G, dF);
+  G = NULL;
   st = cputime ();
   init_poly_list (polyF, dF, F);
   init_poly_list (polyT, dF - 1, T);

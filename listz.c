@@ -86,6 +86,8 @@ clear_list (listz_t p, unsigned int n)
 {
   unsigned int i;
 
+  if (p == NULL)
+    return;
   for (i = 0; i < n; i++)
     mpz_clear (p[i]);
   free (p);
