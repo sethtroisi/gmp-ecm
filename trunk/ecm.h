@@ -36,7 +36,9 @@ int          cputime    (void);
 
 /* pp1.c */
 void         pp1_mul    (mpz_t, mpz_t, mpz_t, mpz_t, mpz_t, mpz_t);
-void         pp1_mul_ui (mpz_t, mpz_t, mpz_t, mpz_t, mp_limb_t, mpz_t);
+void         pp1_mul_ui (mpz_t, mpz_t, unsigned long, mpz_t, mpz_t, mpz_t);
+void         pp1_mul_prac (mpz_t, unsigned long, mpz_t, mpz_t, mpz_t, mpz_t,
+                           mpz_t, mpz_t);
 int          pp1_stage1 (mpz_t, mpz_t, double);
 void    pp1_random_seed (mpz_t, mpz_t, gmp_randstate_t);
 int          pp1        (mpz_t, mpz_t, double, double, unsigned int, 
