@@ -3,7 +3,7 @@ Jim Fougeron <jfoug@kdsi.net>
 Laurent Fousse <laurent@komite.net>
 	contributed the middle product code, the autoconf/automake tools,
 	and author of the Debian package
-Alexander Kruppa <alexander.kruppa@stud.tu-muenchen.de>
+Alexander Kruppa <firstname.lastname@mytum.de> (substitute approriately)
 	joined Paul Zimmermann at release 5, contributed the Toom-Cook
 	multiplication code, the special code for Fermat numbers, and
 	many other nice things
