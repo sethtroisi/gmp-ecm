@@ -263,9 +263,9 @@ pp1_check_factor (mpz_t a, mpz_t p)
 
 int
 pp1_rootsF (listz_t F, unsigned int d, mpres_t *x, listz_t t,
-            mpmod_t modulus, int verbose)
+            mpmod_t modulus, int verbose, unsigned long *tot_muls)
 {
-  unsigned int i, j;
+  unsigned int i, j, muls = 0;
   int st, st2;
   mpres_t fd[4];
   
@@ -299,6 +299,7 @@ pp1_rootsF (listz_t F, unsigned int d, mpres_t *x, listz_t t,
           mpres_mul (fd[3], fd[2], fd[1], modulus);
           mpres_sub (fd[0], fd[3], fd[0], modulus);
           j += 6;
+          muls++;
         }
       mpres_clear (fd[0], modulus);
       mpres_clear (fd[1], modulus);
@@ -307,8 +308,12 @@ pp1_rootsF (listz_t F, unsigned int d, mpres_t *x, listz_t t,
     }
 
   if (verbose >= 2)
-    printf ("Computing roots of F took %dms\n", cputime () - st);
-
+    printf ("Computing roots of F took %dms and %d muls\n", cputime () - st, 
+            muls);
+  
+  if (tot_muls != NULL)
+    *tot_muls += muls;
+  
   return 0;
 }
 
@@ -356,7 +361,8 @@ pp1_rootsG_clear (mpres_t *fd, mpmod_t modulus)
 }
 
 int
-pp1_rootsG (listz_t G, unsigned int d, mpres_t *fd, mpmod_t modulus) 
+pp1_rootsG (listz_t G, unsigned int d, mpres_t *fd, mpmod_t modulus, 
+            unsigned long *tot_muls) 
 {
   unsigned int i;
   int st;
@@ -371,6 +377,9 @@ pp1_rootsG (listz_t G, unsigned int d, mpres_t *fd, mpmod_t modulus)
       mpres_mul (fd[3], fd[2], fd[1], modulus);
       mpres_sub (fd[0], fd[3], fd[0], modulus);
     }
+  
+  if (tot_muls != NULL)
+    *tot_muls += d;
   
   return 0;
 }

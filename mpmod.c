@@ -83,6 +83,7 @@
 #define MOD_PLAIN_TO_REDC_THRESHOLD 20000
 #endif
 
+#define FULL_REDUCTION
 /* #define DEBUG */
 
 void base2mod (mpres_t, mpres_t, mpres_t, mpmod_t);
@@ -516,7 +517,7 @@ mpres_pow (mpres_t R, mpres_t BASE, mpres_t EXP, mpmod_t modulus)
     /* here the most significant limb with any set bits is in expbits, */
     /* bitmask is set to mask in the msb of expbits */
 
-      mpz_set (modulus->temp2, BASE); /* In case R = BASE */
+      mpz_set (modulus->temp2, BASE);
       bitmask >>= 1;
 
       while (1) 
@@ -547,8 +548,8 @@ mpres_pow (mpres_t R, mpres_t BASE, mpres_t EXP, mpmod_t modulus)
                     REDC (modulus->temp2, modulus->temp1, modulus->temp2, modulus);
                 }
             }
-          if (expidx == 0)			/* if we just processed the least */
-            break;				/* significant limb, we are done */
+          if (expidx == 0)		/* if we just processed the least */
+            break;			/* significant limb, we are done */
           expidx--;
           expbits = mpz_getlimbn (EXP, expidx);
           bitmask = (mp_limb_t) 1 << (GMP_NUMB_BITS - 1);
@@ -556,7 +557,7 @@ mpres_pow (mpres_t R, mpres_t BASE, mpres_t EXP, mpmod_t modulus)
       mpz_set (R, modulus->temp2); /* TODO: isn't it possible to use R instead
 				      of modulus->temp2 above to avoid this
 				      copy? */
-    } /* if (modulus->repr == MOD_BASE2) */
+    } /* if (modulus->repr == MOD_BASE2 || ... ) */
 }
 
 /* R <- BASE^EXP mod modulus */ 
@@ -635,15 +636,15 @@ mpres_ui_pow (mpres_t R, unsigned int BASE, mpres_t EXP, mpmod_t modulus)
                     }
                 }
             }
-          if (expidx == 0)			/* if we just processed the least */
-            break;				/* significant limb, we are done */
+          if (expidx == 0)		/* if we just processed the least */
+            break;			/* significant limb, we are done */
           expidx--;
           expbits = mpz_getlimbn (EXP, expidx);
           bitmask = (mp_limb_t) 1 << (GMP_NUMB_BITS - 1);
         }
       mpz_set (R, modulus->temp2); /* TODO: use R instead of modulus->temp2
 				      above to avoid this copy? */
-    } /* if (modulus->repr == MOD_BASE2) */
+    } /* if (modulus->repr == MOD_BASE2 || ... ) */
 }
 
 void 
@@ -730,7 +731,11 @@ void
 mpres_add (mpres_t R, mpres_t S1, mpres_t S2, mpmod_t modulus)
 {
   mpz_add (R, S1, S2);
+#ifdef FULL_REDUCTION
   if (mpz_cmp (R, modulus->orig_modulus) > 0)
+#else
+  if (ABSIZ (R) > ABSIZ (modulus->orig_modulus))
+#endif
     mpz_sub (R, R, modulus->orig_modulus);
 }
 
@@ -764,7 +769,11 @@ void
 mpres_sub (mpres_t R, mpres_t S1, mpres_t S2, mpmod_t modulus)
 {
   mpz_sub (R, S1, S2);
+#ifdef FULL_REDUCTION
   if (mpz_sgn (R) < 0)
+#else
+  if (ABSIZ (R) > ABSIZ (modulus->orig_modulus))
+#endif
     mpz_add (R, R, modulus->orig_modulus);
 }
 

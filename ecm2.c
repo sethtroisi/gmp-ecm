@@ -211,9 +211,9 @@ addWn (mpz_t p, point *X, mpmod_t n, long e)
 
 int
 ecm_rootsF (mpz_t f, listz_t F, unsigned int d, curve *s,
-        int S, mpmod_t modulus, int verbose)
+        int S, mpmod_t modulus, int verbose, unsigned long *tot_muls)
 {
-  unsigned int i, j;
+  unsigned int i, j, muls = 0;
   int st, st2;
   point *fd;
   int youpi = 0, dickson_a;
@@ -271,6 +271,7 @@ ecm_rootsF (mpz_t f, listz_t F, unsigned int d, curve *s,
             mpres_get_z (F[i++], fd[0].x, modulus);
 
           youpi = addWn (f, fd, modulus, S);
+          muls += 6 * S;
 
           if (youpi && verbose >= 2)
             printf ("Found factor while computing F[%d]\n", i);
@@ -293,7 +294,11 @@ ecm_rootsF (mpz_t f, listz_t F, unsigned int d, curve *s,
     return 1;
   
   if (verbose >= 2)
-    printf ("Computing roots of F took %dms\n", cputime () - st);
+    printf ("Computing roots of F took %dms and %d muls\n", cputime () - st, 
+            muls);
+
+  if (tot_muls != NULL)
+    *tot_muls += muls;
 
   return 0;
 }
@@ -405,9 +410,9 @@ ecm_rootsG_clear (point *fd, int S, mpmod_t modulus)
 
 int 
 ecm_rootsG (mpz_t f, listz_t G, unsigned int d, point *fd,
-            int S, mpmod_t modulus, int verbose)
+            int S, mpmod_t modulus, int verbose, unsigned long *tot_muls)
 {
-  unsigned int i;
+  unsigned int i, muls = 0;
   int youpi = 0;
   
   S = abs (S);
@@ -415,10 +420,15 @@ ecm_rootsG (mpz_t f, listz_t G, unsigned int d, point *fd,
     {
       mpres_get_z (G[i], fd[0].x, modulus);
       youpi = addWn (f, fd, modulus, S);
+      muls += 6 * S;
 
       if (youpi && verbose >= 2)
         printf ("Found factor while computing G[%d]\n", i);
     }
+  
+  
+  if (tot_muls != NULL)
+    *tot_muls += muls;
   
   return youpi;
 }

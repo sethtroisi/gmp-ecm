@@ -192,11 +192,11 @@ stage2 (mpz_t f, void *X, mpmod_t modulus, double B2min, double B2,
 
   /* needs dF+1 cells in T */
   if (method == PM1_METHOD)
-    youpi = pm1_rootsF (f, F, d, X, T, S, modulus, verbose);
+    youpi = pm1_rootsF (f, F, d, X, T, S, modulus, verbose, &tot_muls);
   else if (method == PP1_METHOD)
-    youpi = pp1_rootsF (F, d, X, T, modulus, verbose);
+    youpi = pp1_rootsF (F, d, X, T, modulus, verbose, &tot_muls);
   else 
-    youpi = ecm_rootsF (f, F, d, X, S, modulus, verbose);
+    youpi = ecm_rootsF (f, F, d, X, S, modulus, verbose, &tot_muls);
 
   if (youpi)
     {
@@ -275,22 +275,25 @@ stage2 (mpz_t f, void *X, mpmod_t modulus, double B2min, double B2,
   for (i=0; i<k; i++)
     {
       st = cputime ();
+      muls = tot_muls;
       
       /* needs dF+1 cells in T+dF */
       if (method == PM1_METHOD)
         youpi = pm1_rootsG (f, G, dF, (mpres_t *) rootsG_state, T + dF, S, 
-                            modulus, verbose);
+                            modulus, verbose, &tot_muls);
       else if (method == PP1_METHOD)
-        youpi = pp1_rootsG (G, dF, (mpres_t *) rootsG_state, modulus);
+        youpi = pp1_rootsG (G, dF, (mpres_t *) rootsG_state, modulus, 
+                            &tot_muls);
       else
         youpi = ecm_rootsG (f, G, dF, (point *) rootsG_state, S, modulus,
-			    verbose);
+			    verbose, &tot_muls);
 
       if (youpi)
 	youpi = 2;
       
       if (verbose >= 2)
-        printf ("Computing roots of G took %dms\n", cputime () - st);
+        printf ("Computing roots of G took %dms and %lu muls\n", 
+                cputime () - st, tot_muls - muls);
 
       if (youpi)
         goto clear_fd;
