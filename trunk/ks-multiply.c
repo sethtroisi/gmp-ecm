@@ -49,7 +49,7 @@ kronecker_schonhage (listz_t R, listz_t A, listz_t B, unsigned int l,
   mp_ptr t0_ptr, t1_ptr, t2_ptr, r_ptr;
 
   s = mpz_sizeinbase (A[0], 2);
-  if ((double) l * (double) s < 1e6)
+  if ((double) l * (double) s < KS_MUL_THRESHOLD)
     return toomcook4 (R, A, B, l, T);
 
   for (i = 0; i < l; i++)

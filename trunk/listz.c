@@ -144,7 +144,6 @@ list_set (listz_t p, listz_t q, unsigned int n)
     mpz_set (p[i], q[i]);
 }
 
-#if 0
 /* p[0] <-> p[n], p[1] <-> p[n-1], ... */
 void
 list_revert (listz_t p, unsigned int n)
@@ -153,7 +152,6 @@ list_revert (listz_t p, unsigned int n)
   for (i = 0; i < n - i; i++)
     mpz_swap (p[i], p[n - i]);
 }
-#endif
 
 /* p <- -q, keeps residues normalized */
 void

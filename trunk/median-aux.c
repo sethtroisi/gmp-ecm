@@ -179,8 +179,9 @@ void check_result (listz_t b, unsigned int n, listz_t a, unsigned int m,
     }
 }
         
-void show_result (listz_t b, unsigned int n, listz_t a, unsigned int m,
-                  listz_t c, unsigned int l)
+void
+show_result (listz_t b, unsigned int n, listz_t a, unsigned int m,
+             listz_t c, unsigned int l)
 {
     printf ("RES: TKarmul (");
     print_list (a, m + 1);
