@@ -92,7 +92,7 @@ pp1_mul (mpz_t P1, mpz_t P0, mpz_t P, mpz_t Q, mpz_t e, mpz_t n)
   mpz_mod (P1, P, n);
 }
 
-/* P1 <- e * P0, using P, Q as auxiliary variables */
+/* P1 <- V_e(P0), using P, Q as auxiliary variables */
 void
 pp1_mul_ui (mpz_t P1, mpz_t P0, mpz_t P, mpz_t Q, mp_limb_t e, mpz_t n)
 {
@@ -100,6 +100,14 @@ pp1_mul_ui (mpz_t P1, mpz_t P0, mpz_t P, mpz_t Q, mp_limb_t e, mpz_t n)
   mp_limb_t mask;
 
   e = e - 1;
+
+  /* warning: count_leading_zeros is undefined for 0 */
+  if (e == 0)
+    {
+      mpz_set (P1, P0);
+      return;
+    }
+
   count_leading_zeros (i, e);
   i = BITS_PER_MP_LIMB - i;
   mask = (mp_limb_t) 1 << (i - 1);
