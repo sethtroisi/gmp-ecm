@@ -188,7 +188,7 @@ list_swap (listz_t p, listz_t q, unsigned int n)
 }
 
 /* p <- -q, keeps residues normalized */
-static void
+void
 list_neg (listz_t p, listz_t q, unsigned int l, mpz_t n)
 {
   unsigned int i;
@@ -486,7 +486,7 @@ karatsuba (listz_t a, listz_t b, listz_t c, unsigned int K, listz_t t)
    The auxiliary array t contains at least list_mul_mem(l) entries.
    a and t should not overlap.
 */
-static void
+void
 list_mul (listz_t a, listz_t b, unsigned int k, int monic_b,
           listz_t c, unsigned int l, int monic_c, listz_t t)
 {
