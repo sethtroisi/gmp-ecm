@@ -52,7 +52,9 @@ Instructions to install gmp-ecm:
 configuration          version   compiler       step 1      step 2
                        of gmp                  (seconds)   (seconds)
 athlon-pc-linux-gnu   gmp-4.1.2 gcc-3.2.1        77.5       43.9 MP 2000+
+pentium4-pc-mingw32   gmp-4.1.2 gcc-3.2 (mingw) 103.2       67.8 P4 2000
 alphaev6-dec-osf4.0f  gmp-4.1.2 gcc-2.95.3      107.6       83.7 EV6-500
+athlon-pc-mingw32     gmp-4.1.2 gcc-3.2 (mingw) 195.2      112.9 Athlon 750
 powerpc630-ibm-aix5.1.0.0 4.1.2 xlc             337.5      155.0 Power3+ 375
 pentium3-pc-linux-gnu gmp-4.1.2 gcc-2.95.3      411.2      214.4 PIII-500
 mips64-sgi-irix6.5    gmp-4.1.2 gcc-3.0.1       401.3      251.0 R10K-250
@@ -62,6 +64,13 @@ athlon-pc-linux-gnu:
    -O3 -fomit-frame-pointer -mcpu=pentiumpro -march=pentiumpro -DWANT_GMP_IMPL
 alphaev6-dec-osf4.0f:
    -O2 -mcpu=ev6 -Wa,-arch,ev6 -DWANT_GMP_IMPL
+athlon-pc-mingw32
+   -O2 -DANSIONLY -fomit-frame-pointer -mcpu=athlon -march=athlon
+pentium4-pc-mingw32
+   -O2 -DANSIONLY -fomit-frame-pointer -mcpu=pentium4 -march=pentium4
+
+Warning: we experienced a problem with gcc 2.95.4 and optimization -O2;
+we recommend using -O1 with this version of gcc.
 
 3) If you like gmp-ecm, please help us factoring Cunningham numbers. First
    download "cunningham.in" on <http://www.loria.fr/~zimmerma/ecmnet/>, then
@@ -87,5 +96,6 @@ In case of problem, report it to us, with:
 - the output you get.
 
 Then send you report to us:
+Jim Fougeron <jfoug@kdsi.net>
 Alexander Kruppa <alexander.kruppa@stud.tu-muenchen.de>
 Paul Zimmermann <zimmerma@loria.fr>
