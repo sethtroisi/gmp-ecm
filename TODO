@@ -9,3 +9,7 @@ What remains to do:
 - get rid of NTL
 - implement polyeval (possibly by recomputing F from its roots level by
 	level, reusing the already allocated temporary space)
+- allow a range A-B for stage 2
+- allow a rational sigma
+- documentation: explain the use of P-1, P+1. Explain the memory usage.
+- implement special base-2 division
