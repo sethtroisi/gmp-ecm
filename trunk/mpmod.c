@@ -32,9 +32,10 @@
 
 void base2mod (mpres_t, mpres_t, mpres_t, mpmod_t);
 void REDC (mpres_t, mpres_t, mpz_t, mpmod_t);
-void mod_mul2exp (mpz_t c, unsigned int k, mpmod_t n);
-void mod_div2exp (mpz_t c, unsigned int k, mpmod_t n);
-static void mpn_incr (mp_ptr p, mp_limb_t incr);
+void mpn_REDC (mp_ptr, mp_srcptr, mp_srcptr, mp_srcptr, mp_size_t);
+void mod_mul2exp (mpz_t, unsigned int, mpmod_t);
+void mod_div2exp (mpz_t, unsigned int, mpmod_t);
+static void mpn_incr (mp_ptr, mp_limb_t);
 void mpz_mod_n (mpz_t, mpmod_t);
 
 /* returns +/-k if n is a factor of N = 2^k +/- 1 with N < =n^threshold, 
@@ -92,78 +93,61 @@ base2mod (mpres_t R, mpres_t S, mpres_t t, mpmod_t modulus)
    mpz_mod (R, R, modulus->orig_modulus);
 }
 
-/* #define MPZ_REDC */
-
 /* REDC. x and t must not be identical, t has limb growth */
-#ifdef MPZ_REDC
 /* subquadratic REDC, at mpz level */
 void 
 REDC (mpres_t r, mpres_t x, mpz_t t, mpmod_t modulus)
 {
-  mpz_tdiv_r_2exp (t, x, modulus->bits);
-  mpz_mul (t, t, modulus->aux_modulus);
-  mpz_tdiv_r_2exp (t, t, modulus->bits);  /* t = (x % R) * 1/N (mod R) */
-  mpz_mul (t, t, modulus->orig_modulus);
-  mpz_add (t, t, x);
-  mpz_tdiv_q_2exp (r, t, modulus->bits);  /* r = (x + m*N) / R */
-  if (mpz_cmp (r, modulus->orig_modulus) > 0)
-    mpz_sub (r, r, modulus->orig_modulus);
+  mp_size_t n = modulus->bits / GMP_NUMB_BITS;
+
+  if (ABSIZ(x) == 2 * n)
+    {
+      if (ALLOC(r) < n)
+	_mpz_realloc (r, n);
+      mpn_REDC (PTR(r), PTR(x), PTR(modulus->orig_modulus), 
+		PTR(modulus->aux_modulus), n);
+      SIZ(r) = SIZ(x) / 2;
+      /* warning: r may not be normalized, i.e. high limbs may be zero */
+    }
+  else
+    {
+      mpz_tdiv_r_2exp (t, x, modulus->bits);
+      mpz_mul (t, t, modulus->aux_modulus);
+      mpz_tdiv_r_2exp (t, t, modulus->bits);  /* t = (x % R) * 1/N (mod R) */
+      mpz_mul (t, t, modulus->orig_modulus);
+      mpz_add (t, t, x);
+      mpz_tdiv_q_2exp (r, t, modulus->bits);  /* r = (x + m*N) / R */
+      if (mpz_cmp (r, modulus->orig_modulus) > 0)
+	mpz_sub (r, r, modulus->orig_modulus);
+    }
 }
-#else
-/* subquadratic REDC, at mpn level */
+
+/* subquadratic REDC, at mpn level.
+   {orig,n} is the original modulus.
+   {aux,n} is the auxiliary modulus.
+   Requires ABSIZ(x) = 2n and ABSIZ(orig_modulus)=ABSIZ(aux_modulus)=n.
+ */
 void
-REDC (mpres_t r, mpres_t x, mpz_t t, mpmod_t modulus)
+mpn_REDC (mp_ptr rp, mp_srcptr xp, mp_srcptr orig, mp_srcptr aux, mp_size_t n)
 {
-  mp_ptr tp, mp, xp, rp, up;
-  mp_size_t n, l, xl, ml, tl, nn, i;
+  mp_ptr tp, up;
+  mp_size_t nn = n + n;
   mp_limb_t cy;
   TMP_DECL(marker);
 
   TMP_MARK(marker);
-  ASSERT_ALWAYS(modulus->bits % GMP_NUMB_BITS == 0);
-  n = modulus->bits / GMP_NUMB_BITS;
-  nn = n + n;
-  xl = ABSIZ(x);
-  l = (xl <= n) ? xl : n; /* number of limbs of x mod N = min(xl,n) */
-  xp = PTR(x);
-  ml = ABSIZ(modulus->aux_modulus);
-  tl = l + ml;
-  up = TMP_ALLOC_LIMBS(tl);
-  if (ml >= l) 
-    mpn_mul (up, PTR(modulus->aux_modulus), ml, xp, l);
-  else
-    mpn_mul (up, xp, l, PTR(modulus->aux_modulus), ml);
-  if (tl > n)
-    tl = n;
-  mp = PTR(modulus->orig_modulus);
-  ASSERT_ALWAYS(tl >= n);
-  if (ALLOC(t) < nn)
-    _mpz_realloc (t, nn);
-  tp = PTR(t);
-  mpn_mul (tp, up, n, mp, n);
-  /* add {x, xl} and {tp, 2n} */
-  if (ALLOC(r) < n)
-    _mpz_realloc (r, n);
-  rp = PTR(r);
-  ASSERT_ALWAYS(nn >= xl);
-  cy = (xl > n) ? mpn_add_n (rp, tp + n, xp + n, xl - n) : (mp_limb_t) 0;
-  if (xl < n)
-    xl = n;
-  if (nn > xl)
-    cy = mpn_add_1 (rp + (xl - n), tp + xl, nn - xl, cy);
-  /* we know that {tp, n} + {xp, n} will give either 0, or a carry out */
-  /* l is the number of limbs of x mod N */
-  for (i = 0; (i < l) && (xp[i] == (mp_limb_t) 0); i++);
-  if (i < l)
-    cy += mpn_add_1 (rp, rp, n, (mp_limb_t) 1);
-  ASSERT_ALWAYS(ABSIZ(modulus->orig_modulus) >= n);
-  if (cy || mpn_cmp (rp, mp, n) > 0)
-    cy -= mpn_sub_n (rp, rp, mp, n);
-  MPN_NORMALIZE (rp, n);
-  SIZ(r) = (SIZ(x) > 0) ? n : -n;
+  up = TMP_ALLOC_LIMBS(nn + nn);
+  mpn_mul_lo_n (up, xp, aux, n);
+  tp = up + nn;
+  mpn_mul_n (tp, up, orig, n);
+  /* add {x, 2n} and {tp, 2n}. We know that {tp, n} + {xp, n} will give
+     either 0, or a carry out. If xp[n-1] <> 0, then there is a carry. */
+  cy = mpn_add_nc (rp, tp + n, xp + n, n, (mp_limb_t) ((xp[n - 1]) ? 1 : 0));
+  if (cy || mpn_cmp (rp, orig, n) > 0)
+    cy -= mpn_sub_n (rp, rp, orig, n);
+  /* ASSERT ((cy == 0) && (mpn_cmp (rp, orig, n) < 0)); */
   TMP_FREE(marker);
 }
-#endif
 
 /* multiplies c by R^k modulo n where R=2^mp_bits_per_limb 
    n is supposed odd. Does not need to be efficient. */
@@ -354,18 +338,20 @@ mpmod_init_MODMULN (mpmod_t modulus, mpz_t N)
 void 
 mpmod_init_REDC (mpmod_t modulus, mpz_t N)
 {
+  mp_size_t n;
   int Nbits;
   
   mpz_init_set (modulus->orig_modulus, N);
   
+  n = mpz_size (N);
   modulus->repr = MOD_REDC;
-  Nbits = mpz_size (N) * __GMP_BITS_PER_MP_LIMB; /* Number of bits, rounded
+  Nbits = n * __GMP_BITS_PER_MP_LIMB; /* Number of bits, rounded
                                                     up to full limb */
   modulus->bits = Nbits;
   
   mpz_init2 (modulus->temp1, 2 * Nbits + __GMP_BITS_PER_MP_LIMB);
   mpz_init2 (modulus->temp2, Nbits);
-  mpz_init(modulus->aux_modulus);
+  mpz_init (modulus->aux_modulus);
 
   mpz_set_ui (modulus->temp1, 1);
   mpz_mul_2exp (modulus->temp1, modulus->temp1, Nbits);
@@ -375,10 +361,17 @@ mpmod_init_REDC (mpmod_t modulus, mpz_t N)
       exit (EXIT_FAILURE);
     }
   mpz_sub (modulus->aux_modulus, modulus->temp1, modulus->aux_modulus);
+  /* ensure aux_modulus has n allocated limbs, for mpn_REDC */
+  if (ABSIZ(modulus->aux_modulus) < n)
+    {
+      _mpz_realloc (modulus->aux_modulus, n);
+      MPN_ZERO (PTR(modulus->aux_modulus) + ABSIZ(modulus->aux_modulus),
+		n - ABSIZ(modulus->aux_modulus));
+    }
 
   mpz_init (modulus->R2);
   mpz_set_ui (modulus->temp1, 1);
-  mpz_mul_2exp (modulus->temp1, modulus->temp1, 2*Nbits);
+  mpz_mul_2exp (modulus->temp1, modulus->temp1, 2 * Nbits);
   mpz_mod (modulus->R2, modulus->temp1, modulus->orig_modulus);
   /* Now R2 = (2^bits)^2 (mod N) */
   
