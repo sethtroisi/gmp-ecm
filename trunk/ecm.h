@@ -270,7 +270,7 @@ unsigned int get_random_ui (void);
 /* pm1.c */
 void    pm1_random_seed  (mpz_t, mpz_t, gmp_randstate_t);
 int          pm1         (mpz_t, mpz_t, mpz_t, mpz_t, double, double, double, 
-                          double, double, unsigned int, int, int, int, mpz_t);
+                          double, double, unsigned int, int, int, int);
 int     pm1_rootsF       (mpz_t, listz_t, unsigned int, unsigned int, unsigned int,
                           mpres_t *, listz_t, int, mpmod_t, int, unsigned long *);
 pm1_roots_state *
@@ -283,7 +283,7 @@ int     pm1_rootsG       (mpz_t, listz_t, unsigned int, pm1_roots_state *,
 
 
 /* ecm.c */
-int          ecm        (mpz_t, mpz_t, mpz_t, mpz_t, mpz_t, double, double, double, double,
+int          ecm        (mpz_t, mpz_t, mpz_t, mpz_t, double, double, double, double,
                          double, unsigned int, int, int, int, int);
 int          cputime    (void);
 
@@ -317,7 +317,7 @@ int   pp1_mul          (mpres_t, mpres_t, mpz_t, mpmod_t, mpres_t, mpres_t);
 int   pp1_mul_prac     (mpres_t, unsigned long, mpmod_t, mpres_t, mpres_t,
                         mpres_t, mpres_t, mpres_t);
 void  pp1_random_seed  (mpz_t, mpz_t, gmp_randstate_t);
-int   pp1              (mpz_t, mpz_t, mpz_t, mpz_t, double, double, double, 
+int   pp1              (mpz_t, mpz_t, mpz_t, double, double, double, 
                         double, double, unsigned int, unsigned int, int, int);
 int   pp1_rootsF       (listz_t, unsigned int, unsigned int, unsigned int, 
                         mpres_t *, listz_t, mpmod_t, int, unsigned long *);
@@ -393,6 +393,8 @@ int           toomcook4 (listz_t, listz_t, listz_t, unsigned int, listz_t);
 int kronecker_schonhage (listz_t, listz_t, listz_t, unsigned int, listz_t);
 unsigned int TMulKS     (listz_t, unsigned int, listz_t, unsigned int, listz_t,
                          unsigned int, mpz_t, int);
+unsigned int ks_wrapmul (listz_t, unsigned int, listz_t, unsigned int,
+                         listz_t, unsigned int);
 
 /* polyz.c */
 void init_poly      (polyz_t, int);

@@ -179,12 +179,6 @@ muls_polyinvert (unsigned int K)
 }
 
 static unsigned long
-muls_prerevertdiv (unsigned int n)
-{
-  return muls_gen_short (n - 1) + muls_gen_short (n);
-}
-
-static unsigned long
 muls_recdiv (unsigned int K)
 {
   unsigned int k, l;
@@ -216,26 +210,6 @@ muls_polyeval (unsigned int k)
   muls = (m < l) ? m + muls_recdiv (m) + muls_recdiv (l) : 2 * muls_recdiv (l);
   muls += (m < l) ? muls_polyeval (l) + muls_polyeval (m)
     : 2 * muls_polyeval (m);
-  return muls;
-}
-
-/* estimated number of multiplications for stage 2 [ecm] */
-static double
-muls_stage2 (unsigned int dF, unsigned int d, unsigned int S, unsigned int k)
-{
-  double muls;
-
-  muls = (double) (d - 6) * S; /* ecm_rootsF */
-  muls += (double) (k + 1) * muls_polyfromroots (dF);
-  muls += (double) muls_polyinvert (dF);
-  muls += (double) k * 6 * S * dF;
-  muls += (k - 1) * (double) muls_gen (dF);
-  muls += (k - 1) * (double) muls_prerevertdiv (dF);
-#ifdef POLYEVALTELLEGEN
-  muls += (double) muls_polyeval_tellegen (dF);
-#else
-  muls += (double) muls_polyeval (dF);
-#endif
   return muls;
 }
 

@@ -40,7 +40,7 @@ typedef struct {
   mpz_t *val;
 } mul_casc;
 
-int      pm1_stage1     (mpz_t, mpres_t, mpmod_t, double, double, int, mpz_t, mpz_t, mpz_t);
+static int pm1_stage1 (mpz_t, mpres_t, mpmod_t, double, double, int, mpz_t);
 mul_casc *mulcascade_init (void);
 void     mulcascade_free (mul_casc *);
 mul_casc *mulcascade_mul_d (mul_casc *c, const double n, mpz_t t);
@@ -210,9 +210,9 @@ mulcascade_get_z (mpz_t r, mul_casc *c)
    Return value: non-zero iff a factor was found.
 */
 
-int
+static int
 pm1_stage1 (mpz_t f, mpres_t a, mpmod_t n, double B1, double B1done,
-	    int verbose, mpz_t orig_n, mpz_t orig_X0, mpz_t go)
+	    int verbose, mpz_t go)
 {
   double B0, p, q, r, cascade_limit;
   mpz_t g, d;
@@ -220,7 +220,6 @@ pm1_stage1 (mpz_t f, mpres_t a, mpmod_t n, double B1, double B1done,
   unsigned int size_n, max_size;
   unsigned int smallbase = 0;
   mul_casc *cascade;
-  int Counter = 0, st_save;
 
   mpz_init (g);
   mpz_init (d);
@@ -360,7 +359,6 @@ pm1_stage1 (mpz_t f, mpres_t a, mpmod_t n, double B1, double B1done,
     }
   
   /* update the screen mode after the cascade work is done */
-  st_save = cputime ();
   showscreenticks(1,(int) (100.0 * (double) p / (double) B1));
 
   /* then remaining primes > max(sqrt(B1), cascade_limit) and taken 
@@ -374,36 +372,6 @@ pm1_stage1 (mpz_t f, mpres_t a, mpmod_t n, double B1, double B1done,
 	  {
 	    mpres_pow (a, a, g, n);
 	    mpz_set_ui (g, 1);
-	  }
-      }
-    if (++Counter == 250)
-      {
-        showscreenticks(1,(int) (100.0 * (double) p / (double) B1));
-	Counter=0;
-	  /* should we save the current "ecm_wip.sav" file??? It is saved every 15 minutes */
-	  /* NOTE this saving DOES NOT save the expression.  It is just a "fail-safe" measure */
-#if defined (DEBUG_AUTO_SAVE)
-        if (cputime () - st_save > 2000)
-#else
-        if (cputime () - st_save > 15 * 60 * 1000)
-#endif
-	  {
-	    st_save = cputime ();
-	    /* sigma and A are not needed for the save.  Simply create "dummies" here to pass in */
-/*	    mpz_t sigma, A, X;
-	    mpz_init_set_ui (sigma, 0);
-	    mpz_init_set_ui (A, 0);
-	    mpz_init (X);
-*/
-	    /* Suck the X value out of a */
-	    /*mpres_get_z (X, a, n);*/
-/*
-	    mpres_get_z (X, g, n);
-		write_temp_resumefile (PM1_METHOD, p, sigma, A, X, orig_n, orig_X0, verbose);
-	    mpz_clear (X);
-	    mpz_clear (A);
-	    mpz_clear (sigma);
-*/		
 	  }
       }
   }
@@ -762,8 +730,8 @@ pm1_rootsG (mpz_t f, listz_t G, unsigned int dF, pm1_roots_state *state,
    Return value: non-zero iff a factor is found (1 for stage 1, 2 for stage 2)
 */
 int
-pm1 (mpz_t f, mpz_t p, mpz_t N, mpz_t go, double B1done, double B1, double B2min, double B2,
-     double B2scale, unsigned int k, int S, int verbose, int repr, mpz_t orig_X0)
+pm1 (mpz_t f, mpz_t p, mpz_t N, mpz_t go, double B1done, double B1, double B2min,
+     double B2, double B2scale, unsigned int k, int S, int verbose, int repr)
 {
   mpmod_t modulus;
   mpres_t x;
@@ -888,7 +856,7 @@ pm1 (mpz_t f, mpz_t p, mpz_t N, mpz_t go, double B1done, double B1, double B2min
   mpres_set_z (x, p, modulus);
 
   if (B1 > B1done)
-    youpi = pm1_stage1 (f, x, modulus, B1, B1done, verbose, N, orig_X0, go);
+    youpi = pm1_stage1 (f, x, modulus, B1, B1done, verbose, go);
 
   st = cputime() - st;
 
