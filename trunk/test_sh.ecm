@@ -146,4 +146,13 @@ then
    echo "############### ERROR ###############";
    exit 1;
 fi
+
+# bug in ecm-5.0 (overflow in fin_diff_coeff)
+echo 1408323592065265621229603282020508687 | $ECM -sigma 1549542516 3e6 29973883000-29973884000
+if $?
+then
+   echo "############### ERROR ###############";
+   exit 1;
+fi
+
 echo "The tests passed."

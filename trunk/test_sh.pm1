@@ -194,4 +194,12 @@ then
 fi
 /bin/rm -f test.pm1.save
 
+# bug in ecm-5.0 (overflow in fin_diff_coeff)
+echo 504403158265489337 | $ECM -pm1 8 9007199254740000-9007199254741000
+if $?
+then
+   echo "############### ERROR ###############";
+   exit 1;
+fi
+
 echo "All tests are ok."
