@@ -41,8 +41,7 @@
 
 /* #define DEBUG */
 
-/* people keeping track of champions and corresponding url's */
-unsigned int champion_digits[3] = { 52, 40, 37 };
+/* people keeping track of champions and corresponding url's: ECM, P-1, P+1 */
 char *champion_keeper[3] =
 { "Richard Brent <rpb@comlab.ox.ac.uk>",
   "Paul Zimmermann <zimmerma@loria.fr>",
@@ -51,6 +50,8 @@ char *champion_url[3] =
 {"ftp://ftp.comlab.ox.ac.uk/pub/Documents/techpapers/Richard.Brent/champs.txt",
  "http://www.loria.fr/~zimmerma/records/Pminus1.html",
  "http://www.loria.fr/~zimmerma/records/Pplus1.html"};
+/* minimal number of digits to enter the champions table for ECM, P-1, P+1 */
+unsigned int champion_digits[3] = { 53, 42, 37 };
 
 /* Tries to read a number from a line from fd and stores it in r.
    Keeps reading lines until a number is found. Lines beginning with "#"
