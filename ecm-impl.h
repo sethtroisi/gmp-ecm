@@ -408,12 +408,19 @@ void	     ntt_PolyInvert (listz_t, listz_t, unsigned long, listz_t,
 void  RecursiveDivision (listz_t, listz_t, listz_t, unsigned int,
                          listz_t, mpz_t, int);
 
+#define ntt_polyevalT __ECM(ntt_polyevalT)
+void  ntt_polyevalT (mpzp_t, spv_size_t, mpzp_t *, mpzp_t, mpzspp_t,
+		mpzspm_t, char *);
+
 /* polyeval.c */
 #define polyeval __ECM(polyeval)
 void polyeval (listz_t, unsigned int, listz_t*, listz_t, mpz_t, unsigned int);
 #define polyeval_tellegen __ECM(polyeval_tellegen)
 int polyeval_tellegen (listz_t, unsigned int, listz_t*, listz_t,
 		       unsigned int, listz_t, mpz_t, char *);
+#define TUpTree __ECM(TUpTree)
+void TUpTree (listz_t, listz_t *, unsigned int, listz_t, int, unsigned int,
+		mpz_t, FILE *);
 
 /* toomcook.c */
 #define toomcook3 __ECM(toomcook3)

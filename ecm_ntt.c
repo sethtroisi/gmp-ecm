@@ -284,10 +284,10 @@ ntt_PrerevertDivision (mpzp_t a, mpzp_t b, mpzp_t invb, mpzspp_t sp_invb,
   mpzspp_to_ntt (x, 2 * len, 0);
   mpzspp_pwmul (x, x, sp_invb);
   mpzspp_from_ntt (x);
-  mpzspp_normalise (x, len, len - 2);
+  mpzspp_normalise (x, len, len - 1);
   
   /* can we avoid this (illegal) copy? */
-  mpzspp_set (x, x, len, 0, len - 2);
+  mpzspp_set (x, x, len, 0, len - 1);
   x->len = len;
   mpzspp_to_ntt (x, len, 0);
   mpzspp_set_mpzp (y, b, len, 0);
@@ -374,4 +374,64 @@ void ntt_PolyInvert (mpzp_t q, mpzp_t b, spv_size_t len, mpzp_t t,
   mpzspp_clear (x);
   mpzspp_clear (y);
   mpzspp_clear (z);
+}
+
+void
+ntt_polyevalT (mpzp_t b, spv_size_t len, mpzp_t *Tree, mpzp_t T,
+                   mpzspp_t sp_invF, mpzspm_t mpzspm, char *TreeFilename)
+{
+  spv_size_t m, i;
+    
+  mpzspp_t x = mpzspp_init2 (mpzspm, len);
+  mpzspp_t y = mpzspp_init2 (mpzspm, len);
+  mpzspp_t z = mpzspp_init2 (mpzspm, 2 * len);
+
+  mpzspp_set_mpzp (z, b, len, 0);
+  mpzspp_to_ntt (z, 2 * len, 0);
+  mpzspp_pwmul (z, z, sp_invF);
+  mpzspp_from_ntt (z);
+  mpzspp_normalise (z, len, len - 1);
+  mpzspp_set (z, z, len, 0, len - 1);
+  mpzspp_reverse (z, len);
+    
+  for (m = len / 2; m >= POLYEVALT_NTT_THRESHOLD; m /= 2)
+    {
+      for (i = 0; i < len; i += 2 * m)
+        {
+          list_revert (*Tree + i, m - 1);
+          mpzspp_set_sp (x, 1, 1, 0);   /* x contains reversed monic poly */
+          mpzspp_set_mpzp (x, *Tree + i, m, 1);
+	  x->len = m + 1;
+	  mpzspp_to_ntt (x, 2 * m, 0);
+	  /* FIXME: could save this copy by doing transforms in z */
+	  mpzspp_set (y, z, 2 * m, 0, i);
+	  y->len = 2 * m;
+	  mpzspp_to_ntt (y, 2 * m, 0);
+	  mpzspp_pwmul (x, x, y);
+	  mpzspp_from_ntt (x);
+          mpzspp_normalise (x, m, m);
+	  mpzspp_set (z, x, m, i + m, m);
+	    
+	  list_revert (*Tree + i + m, m - 1);
+	  mpzspp_set_sp (x, 1, 1, 0);
+	  mpzspp_set_mpzp (x, *Tree + i + m, m, 1);
+	  x->len = m + 1;
+	  mpzspp_to_ntt (x, 2 * m, 0);
+	  mpzspp_pwmul (x, x, y);
+	  mpzspp_from_ntt (x);
+	  mpzspp_normalise (x, m, m);
+	  mpzspp_set (z, x, m, i, m);
+        }
+      Tree++;
+    }
+    
+  mpzspp_get_mpzp (z, T, len, 0);
+    
+  for (i = 0; i < len; i += 2 * m)
+    TUpTree (T + i, Tree, 2 * m, T + len, -1, i, mpzspm->modulus, NULL);
+    
+  list_swap (b, T, len);
+    
+  mpzspp_clear (x);
+  mpzspp_clear (y);
 }

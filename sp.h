@@ -267,12 +267,17 @@ typedef __mpzspp_struct * mpzspp_t;
 
 /* poly length at which to start using ntts for PrerevertDivision */
 #ifndef PREREVERT_DIVISION_NTT_THRESHOLD
-#define PREREVERT_DIVISION_NTT_THRESHOLD 1024
+#define PREREVERT_DIVISION_NTT_THRESHOLD 512
 #endif
 
 /* poly length at which to start using ntts for PolyInvert */
 #ifndef POLYINVERT_NTT_THRESHOLD
 #define POLYINVERT_NTT_THRESHOLD 1024
+#endif
+
+/* poly length at which to start using ntts for PolyEvalT */
+#ifndef POLYEVALT_NTT_THRESHOLD
+#define POLYEVALT_NTT_THRESHOLD 512
 #endif
 
 /*************
@@ -503,7 +508,9 @@ mpzspp_t mpzspp_init2 (mpzspm_t, spv_size_t);
 void mpzspp_clear (mpzspp_t);
 void mpzspp_realloc (mpzspp_t, spv_size_t);
 void mpzspp_set (mpzspp_t, mpzspp_t, spv_size_t, spv_size_t, spv_size_t);
+void mpzspp_set_sp (mpzspp_t, sp_t, spv_size_t, spv_size_t);
 void mpzspp_set_mpzp (mpzspp_t, mpzp_t, spv_size_t, spv_size_t);
+void mpzspp_reverse (mpzspp_t, spv_size_t);
 void mpzspp_neg (mpzspp_t, mpzspp_t, spv_size_t, spv_size_t);
 void mpzspp_get_mpzp (mpzspp_t, mpzp_t, spv_size_t, spv_size_t);
 void mpzspp_mul (mpzspp_t, mpzspp_t, mpzspp_t, int);
