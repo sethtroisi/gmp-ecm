@@ -558,6 +558,9 @@ stage2 (mpz_t f, void *X, mpmod_t modulus, double B2min, double B2,
              est_muls, tot_muls);
 
   youpi = list_gcd (f, T, dF, n) ? 2 : 0;
+  if (verbose >= 3)
+    gmp_printf ("Product of G(f_i) = %Zd\n", T[0]);
+    /* list_gcd() puts product in T[0] */
 #else
   if (dF > 0)
     {
