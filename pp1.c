@@ -700,7 +700,7 @@ pp1 (mpz_t f, mpz_t p, mpz_t n, mpz_t go, double B1done, double B1,
 
   /* Set default degree for Brent-Suyama extension */
   if (S == ECM_DEFAULT_S)
-    S = 1;
+    S = choose_S (B2 - B2min);
 
   if (test_verbose (OUTPUT_NORMAL))
     {

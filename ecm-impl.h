@@ -280,6 +280,10 @@ int     bestD (double, double, unsigned int *, unsigned int *,
 int   bestD_po2 (double, double, unsigned int *, unsigned int *, 
                  unsigned int *, double *);
 
+/* ecm.c */
+#define choose_S __ECM(choose_S)
+int choose_S (double);
+
 /* ecm2.c */
 #define ecm_rootsF __ECM(ecm_rootsF)
 int     ecm_rootsF       (mpz_t, listz_t, unsigned int, unsigned int,
