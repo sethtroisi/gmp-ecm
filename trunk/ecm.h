@@ -349,6 +349,12 @@ double calc_B1_AutoIncrement(double cur_B1, double incB1val, int calcInc);
 
 /* median.c */
 unsigned int
+TToomCookMul (listz_t, unsigned int, listz_t, unsigned int, listz_t, 
+         unsigned int, listz_t);
+unsigned int
+TMulGen (listz_t, unsigned int, listz_t, unsigned int, listz_t, 
+         unsigned int, listz_t);
+unsigned int
 TKarMul (listz_t, unsigned int, listz_t, unsigned int, listz_t, 
          unsigned int, listz_t);
 void list_add_wrapper (listz_t, listz_t, listz_t, unsigned int,
@@ -357,8 +363,18 @@ void list_sub_wrapper (listz_t, listz_t, listz_t, unsigned int,
                        unsigned int);
 unsigned int
 TKarMul_space (unsigned int n, unsigned int m, unsigned int l);
-
+unsigned int
+TMulGen_space (unsigned int n, unsigned int m, unsigned int l);
+unsigned int
+TToomCookMul_space (unsigned int n, unsigned int m, unsigned int l);
 unsigned int muls_tkara (unsigned int n);
+unsigned int muls_tgen (unsigned int n);
+void list_sub_safe (listz_t ret, listz_t a, listz_t b,
+                        unsigned int sizea, unsigned int sizeb,
+                        unsigned int needed);
+void list_add_safe (listz_t ret, listz_t a, listz_t b,
+                        unsigned int sizea, unsigned int sizeb,
+                        unsigned int needed);
 
 /* memory.c */
 #ifdef MEMORY_DEBUG
