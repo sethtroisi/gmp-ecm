@@ -12,9 +12,6 @@ ToDo's:
 - consider Colin Percival's generalized DWT for multiplication modulo
   k*a^n+b, where k*a*b is highly composite. May belong into GMP rather than
   gmp-ecm.
-- implement Montgomery's idea of using to values d1, d2 (coprime and highly
-  composite) for sieving when generating roots of F and G (cf. Speeding the
-  Pollard and Elliptic Curve Methods of Factorizaion, 9.1.3)
 - perform PolyFromRoots/Polyeval level by level (add one parameter i which
 	says which level has to be performed, and save/restore the
 	corresponding data to/from file)
