@@ -343,8 +343,10 @@ F_divby2 (mpz_t R, mpz_t S, unsigned int n)
 }
 
 
+#if 0 /* commented out since already exists in toomcook.c 
+         FIXME: merge both versions.
+       */
 /* RS = RS / 3 */
-
 static void
 mpz_divby3_1op (mpz_t RS)
 {
@@ -364,6 +366,7 @@ mpz_divby3_1op (mpz_t RS)
         RS->_mp_size -= mpz_sgn (RS);
     }
 }
+#endif
 
 
 /* RS = RS / 3 (mod 2^n + 1). RS == gt is ok */
