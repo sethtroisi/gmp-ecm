@@ -19,10 +19,10 @@
 */
 
 #include "gmp.h"
-#include "ecm.h"
 #ifdef WANT_GMP_IMPL
 #include "gmp-impl.h"
 #endif
+#include "ecm.h"
 
 void mpn_mul_lo_basecase (mp_ptr, mp_srcptr, mp_srcptr, mp_size_t);
 
