@@ -39,6 +39,7 @@ typedef struct
 		     2 diagnostic output */
   FILE *os;       /* output stream (for verbose messages) */
   FILE *es;       /* error  stream (for error   messages) */
+  char *TreeFilename; /* Base filename for storing product tree of F */
 } __ecm_param_struct;
 typedef __ecm_param_struct ecm_params[1];
 
@@ -48,11 +49,11 @@ void ecm_clear (ecm_params);
 
 /* the following interface is not supported */
 int ecm (mpz_t, mpz_t, mpz_t, mpz_t, mpz_t, double, double, double, double,
-         double, unsigned int, int, int, int, int, FILE*, FILE*);
-int pp1 (mpz_t, mpz_t, mpz_t, mpz_t, double, double, double, 
-          double, double, unsigned int, unsigned int, int, int, FILE*, FILE*);
+         double, unsigned int, int, int, int, int, FILE*, FILE*, char*);
+int pp1 (mpz_t, mpz_t, mpz_t, mpz_t, double, double, double, double, 
+         double, unsigned int, unsigned int, int, int, FILE*, FILE*, char*);
 int pm1 (mpz_t, mpz_t, mpz_t, mpz_t, double, double, double, 
-          double, double, unsigned int, int, int, int, FILE*, FILE*);
+          double, double, unsigned int, int, int, int, FILE*, FILE*, char*);
 
 /* different methods implemented */
 #define ECM_ECM 0
