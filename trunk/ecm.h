@@ -24,6 +24,15 @@
  * #define POLYEVALTELLEGEN
  */
 
+/* define top-level multiplication */
+#define KARA 2
+#define TOOM3 3
+#define TOOM4 4
+/* compile with -DMULT=2 to override default */
+#ifndef MULT
+#define MULT TOOM4
+#endif
+
 #ifdef POLYEVALTELLEGEN
 #define POLYEVAL
 #endif
@@ -179,6 +188,7 @@ int          ecm        (mpz_t, mpz_t, mpz_t, mpz_t, double, double, double, dou
 int          cputime    (void);
 
 /* bestd.c */
+unsigned long muls_gen (unsigned int);
 unsigned long   phi (unsigned long);
 double   block_size (unsigned long);
 unsigned long bestD (double, unsigned int, unsigned int *, unsigned int,
