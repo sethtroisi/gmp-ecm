@@ -78,7 +78,7 @@ if ($status != 0) then
    exit 1;
 endif
 # factor of 909*9^909+1 found by Paul Leyland on 15 Nov 2002
-echo 474476178924594486566271953891 $ECM -pm1 9594209 0 519569569
+echo 474476178924594486566271953891 | $ECM -pm1 9594209 0 519569569
 if ($status != 0) then
    echo "############### ERROR ###############";
    exit 1;
