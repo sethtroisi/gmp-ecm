@@ -433,8 +433,7 @@ ecm_rootsF (mpz_t f, listz_t F, unsigned int d1, unsigned int d2,
   if (dF == 0)
     return ECM_NO_FACTOR_FOUND;
 
-  if (test_verbose (OUTPUT_VERBOSE))
-    st = cputime ();
+  st = cputime ();
 
   /* Relative cost of point add during init and computing roots assumed =1 */
   init_roots_state (&state, S, d1, d2, 1.0);

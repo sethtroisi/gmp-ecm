@@ -258,14 +258,12 @@ main (int argc, char *argv[])
       else if (strcmp (argv[1], "-q") == 0)
 	{
 	  verbose = OUTPUT_ALWAYS;
-	  set_verbose (OUTPUT_ALWAYS);
 	  argv++;
 	  argc--;
 	}
       else if (strcmp (argv[1], "-v") == 0)
 	{
 	  verbose ++;
-	  inc_verbose ();
 	  argv++;
 	  argc--;
 	}
@@ -609,11 +607,7 @@ main (int argc, char *argv[])
 
   if (verbose >= 1)
     {
-      printf ("GMP-ECM %s [powered by GMP %s", VERSION, gmp_version);
-#ifdef HAVE_FFT
-      printf (", fft");
-#endif
-      printf ("] [");
+      printf ("GMP-ECM %s [powered by GMP %s] [", VERSION, gmp_version);
       switch (method)
 	{
 	case ECM_PM1:
