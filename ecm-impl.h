@@ -298,7 +298,7 @@ void  pp1_mul_prac     (mpres_t, unsigned long, mpmod_t, mpres_t, mpres_t,
 /* pp1.c */
 #define pp1_rootsF __ECM(pp1_rootsF)
 int   pp1_rootsF       (listz_t, unsigned int, unsigned int, unsigned int,
-                        mpres_t *, listz_t, mpmod_t);
+                        mpres_t *, listz_t, int, mpmod_t);
 #define pp1_rootsG __ECM(pp1_rootsG)
 int   pp1_rootsG     (listz_t, unsigned int, pp1_roots_state *, mpmod_t);
 #define pp1_rootsG_init __ECM(pp1_rootsG_init)

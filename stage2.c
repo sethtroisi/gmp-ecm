@@ -177,7 +177,7 @@ init_progression_coeffs (double s, unsigned int d, unsigned int e,
     mpz_init (fd[i]);
 
   /* smd := s % d */
-  smd = (unsigned int) (s - floor (s / (double)d) * (double)d); 
+  smd = (unsigned int) (s - floor (s / (double) d) * (double) d);
 
   j = 0;
   for (i = 1 % m; i < k * d; i += m)
@@ -383,7 +383,7 @@ stage2 (mpz_t f, void *X, mpmod_t modulus, double B2min, double B2,
   if (method == ECM_PM1)
     youpi = pm1_rootsF (f, F, d, d2, dF, (mpres_t*) X, T, S, modulus);
   else if (method == ECM_PP1)
-    youpi = pp1_rootsF (F, d, d2, dF, (mpres_t*) X, T, modulus);
+    youpi = pp1_rootsF (F, d, d2, dF, (mpres_t*) X, T, S, modulus);
   else 
     youpi = ecm_rootsF (f, F, d, d2, dF, (curve*) X, S, modulus);
 
