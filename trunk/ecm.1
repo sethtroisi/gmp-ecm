@@ -1,0 +1,192 @@
+.\"                                      Hey, EMACS: -*- nroff -*-
+.\" First parameter, NAME, should be all caps
+.\" Second parameter, SECTION, should be 1-8, maybe w/ subsection
+.\" other parameters are allowed: see man(7), man(1)
+.TH ECM 1 "April 22, 2003"
+.\" Please adjust this date whenever revising the manpage.
+.\"
+.\" Some roff macros, for reference:
+.\" .nh        disable hyphenation
+.\" .hy        enable hyphenation
+.\" .ad l      left justify
+.\" .ad b      justify to both left and right margins
+.\" .nf        disable filling
+.\" .fi        enable filling
+.\" .br        insert line break
+.\" .sp <n>    insert n+1 empty lines
+.\" for manpage-specific macros, see man(7)
+.SH NAME
+ecm \- factor integers using the Elliptic Curve Method
+.SH SYNOPSIS
+.B ecm
+.RI 
+[ options ]  
+.BR B1 
+[ B2min-B2man | B2 ]
+.br
+.SH DESCRIPTION
+This manual page documents briefly the
+.BR ecm
+command.
+This manual page was written for the Debian distribution
+because the original program does not have a manual page. Please have
+a look at /usr/share/doc/gmp-ecm/README.gz for a more detailed
+documentation.
+
+ecm is an integer factoring program using the elliptic curve
+method. The following sections describe parameters relevant to this
+algorithm.
+
+.SH STEP 1 PARAMETERS
+
+.TP
+.B B1
+B1 is the step 1 bound. It is a mandatory parameter. It can be given
+either in integer format (for example 3000000) or in floating-point
+format (3000000.0 or 3e6). The largest possible B1 value is
+9007199254740996 for P-1, 4294967295 for ECM and P+1.  All primes 2 <=
+p <= B1 are processed in step 1.
+
+.TP
+.B B2
+B2 is the step 2 bound. It is optional: if not given, it is computed
+from B1 so that step 2 takes about half the time of step 1. Since the
+relative cost of both steps differs with the different methods, the
+default B2 value also differs; for the same B1, the default B2 for P+1
+will be larger than that for P-1, and that for ECM will be still
+larger. Like B1, it can be given either in integer or in
+floating-point format. The largest possible value of B2 depends on the
+number of blocks in step 2 (see option -k); it is about
+9846466279650*k.  All primes B1 <= p <= B2 are processed in step 2. If
+B2 < B1, no step 2 is performed.
+
+.TP
+.B Bmin-Bman
+alternatively one may use the B2min-B2max form, which means that all
+primes B2min <= p <= B2max should be processed. Thus specifying only
+B2 corresponds to B1-B2.
+
+.SH FACTORING METHOD
+
+.TP
+.B -pm1
+Perform P-1 instead of ECM.
+
+.TP
+.B -pp1 
+Perform P+1 instead of ECM.
+
+.SH GROUP AND INITIAL POINT PARAMETERS
+
+.TP
+.B -x0 x
+[ECM, PM1, PP1] Use x as initial point. x can be an
+arbitrary-precision integer or rational. For example, -x0 1/3 is
+valid. If not given, x0 is either generated from the sigma value for
+ECM, or at random.
+
+.TP
+.B -sigma s  
+[ECM]. Use s (arbitrary-precision integer) as curve generator. If not
+given, sigma is generated at random (32-bit integer). Any value has
+the same probability to hit a factor, the only important thing is to
+ensure different values for different runs on the same number.
+
+.TP
+.B -A a 
+[ECM]. Use 'a' (arbitrary-precision integer) as curve parameter. If
+not given, is generated from sigma. Like sigma, the value of 'a'
+itself is not important; what is important is to ensure different
+values for different runs.
+
+.SH STEP 2 PARAMETERS
+.TP
+.B -k n  
+[P-1,P+1,ECM]. Perform n blocks in step 2 (default is 5). Setting a
+higher value require less memory in step 2, but needs more time.
+
+.TP
+.B -power n  
+Use x^n for Brent-Suyama's extension (see paragraph "4. Extra factors
+and Brent-Suyama's extension"). Default is chosen depending on method
+and B2. For P-1, n should be even. Does not work with P+1.
+
+.TP
+.B -dickson n
+Use degree-n Dickson's polynomial for Brent-Suyama's extension,
+instead of x^n. As for x^n, 'n' should be even for P-1. Dickson
+polynomials give a better chance of finding factors, but for P-1 and
+n>6, x^n is faster. Does not work with P+1.
+
+.SH OUTPUT
+.TP
+.B -q
+Quiet mode. Found factors are printed on standard error, and cofactors
+(if not probable prime) are printed on standard output. This option is
+useful to deal with a file of cofactors: type ecm B1 < file > file2,
+so that non-factored numbers and composite cofactors are written in
+file2, while factors found are printed on standard error. Then one can
+do ecm B1 < file2 > file3, ...
+
+.TP
+.B -v 
+Verbose mode. Several informations are printed (modular multiplication
+used, initial A and x0 values, value of x at the end of step 1,
+parameters for step 2, and timing for sub-steps from step 2).
+
+.SH MODULAR ARITHMETIC OPTIONS
+.TP
+.B -mpzmod
+Use GMP's mpz_mod for modular reduction.
+
+.TP
+.B -modmuln
+Use Montgomery's MODMULN for modular reduction.
+
+.TP
+.B -redc
+Use Montgomery's REDC for modular reduction.
+.TP
+.B -nobase2
+Disable special base-2 code. Base-2 division is used when the input
+number if a factor of 2^n+1 or 2^n-1, and the ratio of the number of
+bits is not too small.
+
+.SH FILE I/O
+
+.TP
+.B -save file
+Save residues at end of step 1 to file.
+
+.TP
+.B
+-resume file
+Resume residues from file, reads from stdin if file is "-".
+
+.SH MISCELLANEOUS
+
+.TP
+.B -primetest 
+Perform a primality test on input number, and prints a message if it
+is probably prime. This is not done by default since the primality
+test may be quite expensive (especially for large input).
+
+.TP
+.B -c n 
+Perform n runs on each input number instead of just one by
+default. The runs are stopped before n in case a factor is found. This
+option is mainly useful for P+1 (for example with c=3) or for ECM,
+where n is the expected number of curves corresponding to a given B1
+in Table 1 (see "How to efficiently use P-1, P+1 and ECM?"). This
+option is incompatible with -resume, -sigma, -x0. Giving -c 0 will
+emulate an infinite loop until a factor is found.
+
+.PP
+.\" TeX users may be more comfortable with the \fB<whatever>\fP and
+.\" \fI<whatever>\fP escape sequences to invode bold face and italics, 
+.\" respectively.
+.SH AUTHOR
+The gmp-ecm software was written by Paul Zimmerman <zimmerma@loria.fr>
+and  Alexander Kruppa <alexander.kruppa@stud.tu-muenchen.de>.
+This manual page was written by Laurent Fousse <laurent@komite.net>,
+for the Debian GNU/Linux system (but may be used by others).
