@@ -43,7 +43,7 @@ CFLAGS= -g -W -Wall -Wmissing-prototypes -pedantic $(TUNEFLAGS)
 LDFLAGS= -lm
 CXX=g++
 CC=gcc
-LD=$(CXX)
+LD=$(CC)
 EXTRAOBJS=
 ALLOBJS= $(OBJS) $(EXTRAOBJS)
 POLYGCD=0
@@ -69,7 +69,7 @@ ntl.o: ntl.c
 	$(CXX) $(CFLAGS) -c -I$(GMP)/include -I$(NTL)/include $<
 
 .c.o: ecm.h ecm-gmp.h
-	$(CXX) $(CFLAGS) -I$(GMP)/include -c $<
+	$(CC) $(CFLAGS) -I$(GMP)/include -c $<
 
 clean:
 	rm -f ecm ecm_with_ntl tune $(OBJS) 
