@@ -113,7 +113,7 @@ xmalloc (size_t size)
   p = malloc (size);
   if (p == NULL)
     {
-      fprintf (stderr, "Could not allocate %d bytes\n", size);
+      fprintf (stderr, "Could not allocate %lu bytes\n", (unsigned long) size);
       exit (EXIT_FAILURE);
     }
   
