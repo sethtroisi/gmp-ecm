@@ -205,6 +205,7 @@ typedef __pm1_roots_state pm1_roots_state;
 typedef struct
 {
   mpres_t fd[4];
+  unsigned int d;      /* Step size for computing roots of G */
   unsigned int dsieve; /* Values not coprime to dsieve are skipped */
   unsigned int rsieve; /* Which residue mod dsieve current .next belongs to */
 } __pp1_roots_state;
@@ -268,10 +269,11 @@ void    pm1_rootsG_clear (pm1_roots_state *, mpmod_t);
 #define phi __ECM(phi)
 unsigned long phi (unsigned long);
 #define bestD __ECM(bestD)
-int     bestD (double, double, unsigned int, unsigned int *, unsigned int *, 
-               unsigned int *);
+int     bestD (double, double, unsigned int *, unsigned int *, 
+               unsigned int *, double *);
 #define bestD_po2 __ECM(bestD_po2)
-int   bestD_po2 (double, double, unsigned int *, unsigned int *, unsigned int *);
+int   bestD_po2 (double, double, unsigned int *, unsigned int *, 
+                 unsigned int *, double *);
 
 /* ecm2.c */
 #define ecm_rootsF __ECM(ecm_rootsF)
