@@ -21,7 +21,8 @@
 
 ECM="$1"
 
-# try primes < d in stage 2
+# try primes < d in stage 2. Curve with sigma=7, mod 30210181 has order
+# 2^4 * 3^3 * 29 * 2411
 (echo 2050449353925555290706354283 | $ECM -sigma 7 -k 1 30 0-1e6) ||
    (echo "############### ERROR ###############"; exit 1) || exit
 
