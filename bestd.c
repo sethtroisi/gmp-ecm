@@ -332,37 +332,47 @@ bestD (double B2, unsigned int k0, unsigned int *k, unsigned int S,
   (2) k * d * (phi(d)/2) >= B2
   (3) d maximal with phi(d) just below or equal a power of 2
  */
-unsigned long
-bestD_po2 (double B2min, double B2, unsigned int k0, unsigned int *k, 
-           unsigned long *est_muls)
+void
+bestD_po2 (double B2min, double B2, unsigned int *finald, 
+           unsigned int *finald2, unsigned int *k, unsigned long *est_muls)
 {
 /* List of d values where phi(d)/2 is just below or equal a power of 2 */
-#define Npo2 22
+#define Npo2 23
 
-  static unsigned int l[Npo2] = {12, 30, 60, 120, 240, 510, 1050, 2310, 4620, 
-                                 9240, 19110, 39270, 79170, 159390, 330330, 
-                                 690690, 1381380, 2852850, 5705700, 11741730, 
-                                 23483460, 48498450};
+  static unsigned int l[Npo2] = {12, 30, 60, 120, 240, 510, 1020, 2310, 4620, 
+                                 9240, 19110, 39270, 79170, 158340, 324870, 
+                                 690690, 1345890, 2852850, 5705700, 11741730, 
+                                 23130030, 48498450, 96996900};
+  /* l2[i] is always the smallest prime (or 1) not present in l[i] and < dF */
+  static unsigned int l2[Npo2] = {1, 1, 7, 7, 7, 7, 7, 13, 13, 
+                                 13, 11, 13, 11, 11, 11, 
+                                 17, 11, 17, 17, 19, 
+                                 13, 23, 23};
 
   unsigned int i, j;
-  unsigned long d, dmin = 0, dF;
-  double len;
+  unsigned long d, d2, dmin = 0, dF;
+  double dd2, b2, b2min;
 
   /* Find the smallest d so that the required number of blocks to cover
-     a stage 2 interval of length B2-B2min is no greater than k0, or no 
-     greater than 9 if no k0 is given */
+     a stage 2 interval of length B2-B2min is no greater than the given k, 
+     or no greater than 9 if no *k == 0 */
   for (i = 0; i < Npo2; i++)
     {
       d = l[i];
+      d2 = l2[i];
       dF = phi (d) / 2;
-      for (j = 1; j < dF; j <<= 1); /* Find power of 2 that is >= dF */
+      for (j = 1; j < dF; j <<= 1); /* j = 2^ceil(log_2(dF)) */
       dF = j;
-      len = ceil (B2 / d) - floor (B2min / d); /* How many lines */
-      j = ceil (len / dF);                     /* How many blocks */
-      if (j <= k0 || (k0 == 0 && j <= 9))
+      dd2 = (double) d * (double) d2;
+      b2min = floor (B2min / dd2) * dd2;
+      b2 = ceil (B2 / dd2) * dd2;
+      if (d2 > 1)    /* How many blocks */
+        j = ceil ((b2 - b2min) / d / d2 * (d2 - 1) / dF);
+      else
+        j = ceil ((b2 - b2min) / d / dF);
+      if (j <= *k || (*k == 0 && j <= 9))
         {
           dmin = d;
-          *k = j;
           break;
         }
     }
@@ -374,17 +384,19 @@ bestD_po2 (double B2min, double B2, unsigned int k0, unsigned int *k,
     }
   
   /* If the user specified a number of blocks, we'll use that no matter what.
-     Since j may be smaller than k0, this may increase the B2 limit */
-  if (k0)
-    *k = k0;
+     Since j may be smaller than k, this may increase the B2 limit */
+  if (*k == 0)
+    *k = j;
+  *finald = d;
+  *finald2 = d2;
 
   /* Q&D cost estimation. Doesn't account for Karatsuba and Toom-Cook in F_mul
      and gets the Polyeval cost rather wrong */
-  *est_muls = 6 * (1 + *k) * dF +   /* Roots of F and G */
+  *est_muls = 6 * (1 + *k) * dF +   /* Roots of F and G (for ECM) */
               (*k + 1) * dF * (unsigned long)(log(dF) / log(2) + 0.5) + /* Building from roots */
               6 * dF - 16 +         /* Inverting F */
-              (*k - 1) * 6 * dF +   /* G = G*H (mod F) */
-              3 * dF * (unsigned long)(log(dF) / log(2.) + 0.5); /* Polyeval */
+              (*k - 1) * 5 * dF +   /* G = G*H (mod F) */
+              2 * dF * (unsigned long)(log(dF) / log(2.) - 0.5); /* Polyeval */
   
-  return dmin;
+  return;
 }

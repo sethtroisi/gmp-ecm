@@ -46,6 +46,8 @@ void     mulcascade_free (mul_casc *);
 mul_casc *mulcascade_mul_d (mul_casc *c, const double n, mpz_t t);
 mul_casc *mulcascade_mul   (mul_casc *c, mpz_t n);
 void     mulcascade_get_z (mpz_t, mul_casc *);
+void     update_fd (mpres_t *, unsigned int, unsigned int, mpmod_t,
+                    unsigned int *);
 
 /******************************************************************************
 *                                                                             *
@@ -425,6 +427,19 @@ pm1_stage1 (mpz_t f, mpres_t a, mpmod_t n, double B1, double B1done,
 *                                                                             *
 ******************************************************************************/
 
+void
+update_fd (mpres_t *fd, unsigned int nr, unsigned int S, mpmod_t modulus, 
+           unsigned int *muls)
+{
+  unsigned int j, k;
+  for (j = 0; j < nr * (S + 1); j += S + 1)
+    for (k = 0; k < S; k++)
+      mpres_mul (fd[j + k], fd[j + k], fd[j + k + 1], modulus);
+  
+  if (muls != NULL)
+    *muls += nr * S;
+}
+
 /* Puts in F[0..dF-1] the successive values of 
 
    x^(Dickson_{S, a}(j))
@@ -439,73 +454,116 @@ pm1_stage1 (mpz_t f, mpres_t a, mpmod_t n, double B1, double B1done,
 */
 
 int
-pm1_rootsF (mpz_t f, listz_t F, unsigned int d, unsigned int dF, mpres_t *x,
-        listz_t t, int S, mpmod_t modulus, int verbose, 
-        unsigned long *tot_muls)
+pm1_rootsF (mpz_t f, listz_t F, unsigned int d1, unsigned int d2, 
+        unsigned int dF, mpres_t *x, listz_t t, int S, mpmod_t modulus, 
+        int verbose, unsigned long *tot_muls)
 {
-  unsigned int i, j, k, muls = 0;
+  unsigned int i, muls = 0;
   int st, st2;
-  mpres_t *fd;
+  pm1_roots_state state;
   listz_t coeffs;
-  int invtrick = 0, dickson_a = 0;
+  int dickson_a = 0;
 
   st = cputime ();
 
-  mpres_get_z (F[0], *x, modulus); /* s^1 for P-1 */
-
+  state.S = abs (S);
+  state.invtrick = 0;
   if (S > 6 && (S & 1) == 0) /* If we use S-th power, S > 6 */
     {
-      invtrick = 1; /* then the invtrick is profitable */
-      S /= 2;
+      state.invtrick = 1; /* then the invtrick is profitable */
+      state.S /= 2;
     }
   else if (S < 0)
+    dickson_a = -1;
+
+  st2 = cputime ();
+  
+  /* We only compute progressions that are coprime to state.dsieve and 
+     == 1 (mod 6). There are state.nr such progressions. */
+  state.dsieve = 6;
+  state.nr = 1;
+
+  if (d1 % 5 == 0 && dF > 50)
     {
-      dickson_a = -1;
-      S = -S;
+      state.dsieve *= 5;
+      state.nr *= 4;
+    }
+  
+  if (d1 % 7 == 0 && dF > 70 * state.dsieve)
+    {
+      state.dsieve *= 7;
+      state.nr *= 6;
     }
 
-  if (d > 7)
+  state.size_fd = (state.S + 1) * state.nr;
+  state.next = 0;
+  state.rsieve = 1;
+
+  if (verbose >= 3)
+    printf ("pm1_rootsF: d1 = %d, d2 = %d, state: dsieve = %d, nr = %d, size_fd = %d, S = %d, invtrick = %d\n",
+             d1, d2, state.dsieve, state.nr, state.size_fd, state.S, state.invtrick);
+
+  coeffs = init_progression_coeffs (0., state.dsieve, d2, 1, 6, state.S, 
+                                    dickson_a);
+  
+  state.fd = (mpres_t *) xmalloc (state.size_fd * sizeof (mpres_t));
+  for (i = 0; i < state.size_fd; i++) 
     {
-      st2 = cputime ();
-      coeffs = init_list (S + 1);
-      
-      fin_diff_coeff (coeffs, 7, 6, S, dickson_a);
-      
-      fd = (mpres_t *) malloc ((S + 1) * sizeof (mpres_t));
-      if (fd == NULL)
-        {
-          fprintf (stderr, "Error: not enough memory\n");
-          exit (EXIT_FAILURE);
-        }
-      for (k = 0; k <= (unsigned) S; k++) 
-        {
-          mpres_init (fd[k], modulus);
-          mpres_pow (fd[k], *x, coeffs[k], modulus);
-        }
-
-      clear_list (coeffs, S + 1);
-      
-      if (verbose >= 2)
-        printf ("Initializing table of differences for F took %dms\n", cputime () - st2);
-
-      for (j = 7, i = 1; i < dF; j += 6)
-        {
-          if (gcd (j, d) == 1)
-            mpres_get_z (F[i++], fd[0], modulus);
-          
-          /* Compute value of f_{S, a}(7+n*6) for the next n */
-          for (k = 0; k < (unsigned) S; k++)
-            mpres_mul (fd[k], fd[k], fd[k+1], modulus);
-          
-          muls += S;
-        }
-      
-      for (k = 0; k <= (unsigned) S; k++)
-        mpres_clear (fd[k], modulus);
-      free (fd);
+      if (verbose >= 4)
+        gmp_printf ("pm1_rootsF: coeffs[%d] = %Zd\n", i, coeffs[i]);
+      mpres_init (state.fd[i], modulus);
+      /* The highest coefficient of all progressions is identical */
+      if (i > state.S + 1 && i % (state.S + 1) == state.S)
+        mpres_set (state.fd[i], state.fd[state.S], modulus);
+      else
+        mpres_pow (state.fd[i], *x, coeffs[i], modulus);
     }
 
-  if (invtrick)
+  clear_list (coeffs, state.size_fd);
+  coeffs = NULL;
+  
+  if (verbose >= 2)
+    printf ("Initializing table of differences for F took %dms\n", cputime () - st2);
+
+  for (i = 0; i < dF;)
+    {
+      /* Is this a rsieve value where we compute the progression, 
+         i.e. coprime to state.dsieve ? */
+      if (gcd (state.rsieve, state.dsieve) == 1)
+        {
+          /* Did we use every progression since the last update? */
+          if (state.next == state.nr)
+            {
+              /* Yes, time to update again */
+              if (verbose >= 4)
+                printf ("pm1_rootsF: Updating table at rsieve = %d\n", state.rsieve);
+              
+              update_fd (state.fd, state.nr, state.S, modulus, &muls);
+              
+              state.next = 0;
+            }
+          
+          /* Is this a root we should skip? (Take only if coprime to d1) */
+          if (gcd (state.rsieve, d1) == 1)
+            {
+              if (verbose >= 4)
+                printf ("pm1_rootsF: Taking root F[%d] at rsieve = %d\n", i, state.rsieve);
+              mpres_get_z (F[i++], state.fd[state.next * (state.S + 1)], modulus);
+            }
+          else if (verbose >= 4)
+            printf ("pm1_rootsF: Skipping root at rsieve = %d\n", state.rsieve);
+            
+          state.next++;
+        }
+      state.rsieve += 6;
+    }
+
+  for (i = 0; i < state.size_fd; i++)
+    mpres_clear (state.fd[i], modulus);
+  free (state.fd);
+  state.fd = NULL;
+
+  if (state.invtrick)
     {
       if (list_invert (t, F, dF, t[dF], modulus)) 
         {
@@ -517,10 +575,10 @@ pm1_rootsF (mpz_t f, listz_t F, unsigned int d, unsigned int dF, mpres_t *x,
       
       muls += 3 * dF;
       
-      for (j = 0; j < dF; j++) 
+      for (i = 0; i < dF; i++) 
         {
-          mpz_add (F[j], F[j], t[j]);
-          mpz_mod (F[j], F[j], modulus->orig_modulus);
+          mpz_add (F[i], F[i], t[i]);
+          mpz_mod (F[i], F[i], modulus->orig_modulus);
         }
     }
   
@@ -544,64 +602,67 @@ pm1_rootsF (mpz_t f, listz_t F, unsigned int d, unsigned int dF, mpres_t *x,
      parameter a must be 0.
 */
 
-mpres_t *
-pm1_rootsG_init (mpres_t *x, double s, unsigned int d, int S,
-                 mpmod_t modulus)
+pm1_roots_state *
+pm1_rootsG_init (mpres_t *x, double s, unsigned int d1, unsigned int d2, 
+                 int S, int verbose, mpmod_t modulus)
 {
-  unsigned int k;
-  int dickson_a = 0;
+  unsigned int i;
+  int dickson_a;
   listz_t coeffs;
-  mpres_t *fd;
+  pm1_roots_state *state;
 
-  if (S > 6 && (S & 1) == 0)
-    {
-      S /= 2;
-    }
-  else if (S < 0)
-    {
-      dickson_a = -1;
-      S = -S;
-    }
+  state = (pm1_roots_state *) xmalloc (sizeof (pm1_roots_state));
   
-  coeffs = init_list (S + 1);
-
-  fin_diff_coeff (coeffs, s, d, S, dickson_a);
+  dickson_a = (S < 0) ? -1 : 0;
   
-  fd = (mpres_t *) malloc((S + 1) * sizeof(mpres_t));
-  if (fd == NULL)
+  state->nr = (d2 > 1) ? d2 - 1 : 1;
+  state->next = 0;
+  state->invtrick = (S > 6 && (S & 1) == 0);
+  state->S = (state->invtrick) ? abs (S) / 2 : abs (S);
+  state->size_fd = state->nr * (state->S + 1);
+  state->dsieve = 1;
+  state->rsieve = 1;
+  
+  if (verbose >= 3)
+    printf ("pm1_rootsG_init: d1 = %d, d2 = %d, state: dsieve = %d, nr = %d, size_fd = %d, S = %d, invtrick = %d\n",
+             d1, d2, state->dsieve, state->nr, state->size_fd, state->S, state->invtrick);
+  
+  state->fd = (mpres_t *) xmalloc (state->nr * (state->S + 1) * sizeof (mpres_t));
+
+  /* Init for Dickson_{E,a} (s + d1 * n) */
+  coeffs = init_progression_coeffs (s, d2, d1, 1, 1, state->S, dickson_a);
+
+  for (i = 0; i < state->size_fd; i++) 
     {
-      fprintf (stderr, "Error: not enough memory\n");
-      exit (EXIT_FAILURE);
+      /* gmp_printf ("pm1_rootsG_init: coeffs[%d] = %Zd\n", i, coeffs[i]); */
+      mpres_init (state->fd[i], modulus);
+#if 0
+      if (i > state->S + 1 && i % (state->S + 1) == state->S) /* The S-th coeff of all */
+        mpres_set (fd[i], fd[S], modulus); /* progressions is identical */
+      else
+#endif
+        mpres_pow (state->fd[i], *x, coeffs[i], modulus);
     }
 
-  for (k = 0; k <= (unsigned) S; k++) 
-    {
-      mpres_init (fd[k], modulus);
-      mpres_pow (fd[k], *x, coeffs[k], modulus);
-    }
-
-  clear_list (coeffs, S + 1);
-      
-  return fd;  
+  clear_list (coeffs, state->S + 1);
+   
+  return state;
 }
 
 /* Frees all the dynamic variables allocated by pm1_rootsG_init() */
 
 void 
-pm1_rootsG_clear (mpres_t *fd, int S, mpmod_t modulus)
+pm1_rootsG_clear (pm1_roots_state *state, mpmod_t modulus)
 {
   unsigned int k;
   
-  if (S > 6 && (S & 1) == 0)
-    {
-      S /= 2;
-    }
-  S = abs (S);
+  for (k = 0; k < state->size_fd; k++)
+    mpres_clear (state->fd[k], modulus);
+
+  free (state->fd);
+  state->fd = NULL;
   
-  for (k = 0; k <= (unsigned) S; k++)
-    mpres_clear (fd[k], modulus);
-  
-  free (fd);
+  free (state);
 }
 
 /* Puts in G the successive values of 
@@ -617,46 +678,59 @@ pm1_rootsG_clear (mpres_t *fd, int S, mpmod_t modulus)
 */
 
 int
-pm1_rootsG (mpz_t f, listz_t G, unsigned int d, mpres_t *fd, listz_t t, 
-        int S, mpmod_t modulus, int verbose, unsigned long *tot_muls)
+pm1_rootsG (mpz_t f, listz_t G, unsigned int dF, pm1_roots_state *state, 
+            listz_t t, mpmod_t modulus, int verbose, unsigned long *tot_muls)
 {
-  unsigned int i, j, muls = 0;
-  int st;
-  int invtrick = 0, dickson_a = 0;
+  unsigned int i, j, k, muls = 0;
   
-  st = cputime ();
-
-  if (S > 6 && (S & 1) == 0)
-    {
-      invtrick = 1;
-      S /= 2;
-    }
-  else if (S < 0)
-    {
-      dickson_a = -1;
-      S = -S;
-    }
-
-  for (i = 0; i < d; i++)
-    {
-      mpres_get_z (G[i], fd[0], modulus);
-      for (j = 0; j < (unsigned) S; j++)
-        mpres_mul(fd[j], fd[j], fd[j+1], modulus);
-    }
-  muls += d * S;
+  if (verbose >= 4)
+    printf ("pm1_rootsG: dF = %d, state: size_fd = %d, nr = %d, S = %d\n",
+            dF, state->size_fd, state->nr, state->S);
   
-  if (invtrick)
+  for (i = 0; i < dF;)
     {
-      if (list_invert (t, G, d, t[d], modulus)) 
+      /* Did we use every progression since the last update? */
+      if (state->next == state->nr)
+        {
+          /* Yes, time to update again */
+          if (verbose >= 4)
+            printf ("pm1_rootsG: Updating table at rsieve = %d\n", state->rsieve);
+          for (j = 0; j < state->size_fd; j += state->S + 1)
+            for (k = 0; k < state->S; k++)
+              mpres_mul (state->fd[j + k], state->fd[j + k], 
+                         state->fd[j + k + 1], modulus);
+          muls += state->nr * state->S;
+          state->next = 0;
+        }
+      
+      /* Is this a root we should skip? (Take only if gcd == 1) */
+      if (gcd(state->rsieve, state->dsieve) == 1)
+        {
+          if (verbose >= 4)
+            printf ("pm1_rootsG: Taking root G[%d] at rsieve = %d\n", i, state->rsieve);
+          mpres_get_z (G[i++], state->fd[state->next * (state->S + 1)], modulus);
+        }
+      else
+        if (verbose >= 4)
+          printf ("pm1_rootsG: Skipping root at rsieve = %d\n", state->rsieve);
+        
+      
+      state->next++;
+      state->rsieve++;
+    }
+  
+  if (state->invtrick)
+    {
+      if (list_invert (t, G, dF, t[dF], modulus)) 
         {
           if (verbose >= 2)
             printf ("Found factor while inverting G[0]*..*G[d]\n");
-          mpz_set (f, t[d]);
+          mpz_set (f, t[dF]);
           return 1;
         }
-      muls += 3 * d;
+      muls += 3 * (dF - 1);
     
-      for (i = 0; i < d; i++) 
+      for (i = 0; i < dF; i++) 
         {
           mpz_add (G[i], G[i], t[i]);
           mpz_mod (G[i], G[i], modulus->orig_modulus);
