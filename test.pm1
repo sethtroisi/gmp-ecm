@@ -47,6 +47,16 @@ if ($status != 0) then
    echo "############### ERROR ###############";
    exit 1;
 endif
+echo 563796628294674772855559264041716715663 | $ECM -pm1 4031563 0 14334623
+if ($status != 0) then
+   echo "############### ERROR ###############";
+   exit 1;
+endif
+echo 188879386195169498836498369376071664143 | $ECM -pm1 3026227 0 99836987
+if ($status != 0) then
+   echo "############### ERROR ###############";
+   exit 1;
+endif
 
 ### stage 2 less than 10^10 ###
 echo 2124306045220073929294177 | $ECM -pm1 290021 0 1193749003
@@ -108,7 +118,14 @@ if ($status != 0) then
 endif
 
 ### Try a factor found by Suyama's powers
-echo 1207946164033269799036708918081 | $ECM -e 6 -k 2 -pm1 286493 0 2500000
+echo 1207946164033269799036708918081 | $ECM -e 12 -k 2 -pm1 286493 0 2500000
+if ($status != 0) then
+   echo "############### ERROR ###############";
+   exit 1;
+endif
+
+# record P-1 factor (http://www.users.globalnet.co.uk/~aads/Pminus1.html)
+echo 226211124686120782835233945344253671049543 | $ECM -pm1 178131337 0 685331099
 if ($status != 0) then
    echo "############### ERROR ###############";
    exit 1;
