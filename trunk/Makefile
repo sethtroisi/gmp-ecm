@@ -1,7 +1,7 @@
 # directory where GMP is installed
 # gmp.h should be in $(GMP)/include
 # libgmp.a/libgmp.so should be in $(GMP)/lib
-GMP=/usr/local/gmp-4.1
+GMP=/usr/local/gmp-4.1.1
 
 # directory where NTL is installed
 # ZZ_pX.h and version.h should be in $(NTL)/include/NTL
@@ -11,25 +11,26 @@ NTL=/usr/local/ntl-5.3
 ###################### do not edit below this line ############################
 
 CFLAGS=-O2 -g -Wall -Wmissing-prototypes -ansi -pedantic
-CC=g++
+CXX=g++
+CC=gcc
 
-FILES= auxi.o bestd.o ecm.o getprime.o listz.o lucas.o main.o ntl.o pm1.o polyz.o pp1.o stage2.o toomcook.o
-DIST=  auxi.c bestd.c ecm.c getprime.c listz.c lucas.c main.c ntl.c pm1.c polyz.c pp1.c stage2.c toomcook.c
+FILES= auxi.o bestd.o ecm.o ecm2.o getprime.o listz.o lucas.o main.o ntl.o pm1.o polyz.o pp1.o stage2.o toomcook.o memory.o
+DIST=  auxi.c bestd.c ecm.c ecm2.c getprime.c listz.c lucas.c main.c ntl.c pm1.c polyz.c pp1.c stage2.c toomcook.c memory.c
 EXTRADIST= COPYING INSTALL Makefile README cputime.h ecm.h test.pm1 test.pp1
 
 .SUFFIXES: .c .o
 
 ecm5: $(FILES) ecm.h
-	$(CC) -static $(CFLAGS) -L$(GMP)/lib -L$(NTL)/lib $(FILES) -o $@ -lntl -lgmp -lm
+	$(CXX) -static $(CFLAGS) -L$(GMP)/lib -L$(NTL)/lib $(FILES) -o $@ -lntl -lgmp -lm
 
 ntl.o: ntl.c
-	$(CC) $(CFLAGS) -c -I$(GMP)/include -I$(NTL)/include ntl.c
+	$(CXX) $(CFLAGS) -c -I$(GMP)/include -I$(NTL)/include $<
 
 .c.o: ecm.h
 	$(CC) $(CFLAGS) -I$(GMP)/include -c $<
 
 clean:
-	rm ecm *.o *~
+	rm ecm5 *.o *~
 
 dist: $(DIST)
 	mkdir ecm-5.0
