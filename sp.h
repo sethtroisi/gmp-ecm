@@ -268,7 +268,7 @@ typedef __mpzspp_struct mpzspp_t[1];
 
 /* poly length at which to start using ntts for PolyInvert */
 #ifndef POLYINVERT_NTT_THRESHOLD
-#define POLYINVERT_NTT_THRESHOLD 2048
+#define POLYINVERT_NTT_THRESHOLD 1024
 #endif
 
 /*************
