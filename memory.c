@@ -26,6 +26,10 @@ MA 02111-1307, USA. */
 #include "gmp.h"
 #include "ecm.h"
 
+void *__gmp_default_allocate (size_t);
+void *__gmp_default_reallocate (void *, size_t, size_t);
+void __gmp_default_free (void *, size_t);
+
 /* Each block allocated is a separate malloc, for the benefit of a redzoning
    malloc debugger during development or when bug hunting.
 
@@ -35,7 +39,6 @@ MA 02111-1307, USA. */
    Memory leaks are checked by requiring that all blocks have been freed
    when tests_memory_end() is called.  Test programs must be sure to have
    "clear"s for all temporary variables used.  */
-
 
 struct header {
   void           *ptr;
@@ -83,7 +86,7 @@ tests_allocate (size_t size)
   tests_memory_list = h;
 
   h->size = size;
-  h->ptr = __gmp_default_allocate (size);
+  h->ptr = (struct header*) __gmp_default_allocate (size);
   return h->ptr;
 }
 
@@ -116,7 +119,7 @@ tests_reallocate (void *ptr, size_t old_size, size_t new_size)
     }
 
   h->size = new_size;
-  h->ptr = __gmp_default_reallocate (ptr, old_size, new_size);
+  h->ptr = (struct header*) __gmp_default_reallocate (ptr, old_size, new_size);
   return h->ptr;
 }
 
@@ -185,9 +188,9 @@ tests_memory_end (void)
 
       count = 0;
       for (h = tests_memory_list; h != NULL; h = h->next)
-        count++;
+	count++;
 
-      printf ("    %u blocks remaining\n", count);
+      printf ("    %u block(s) remaining\n", count);
       abort ();
     }
 }

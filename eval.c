@@ -75,9 +75,9 @@ static int  eval_2 (int bInFuncParams);
 int eval (mpcandi_t *n, FILE *fd, int primetest)
 {
   int ret;
-  int nMaxSize=2000, nCurSize=0;
+  int nMaxSize = 2000, nCurSize = 0;
   int c;
-  char *expr = (char *) malloc(nMaxSize+1);
+  char *expr = (char *) malloc (nMaxSize + 1);
 
   if (expr == NULL)
     {
@@ -103,33 +103,33 @@ ChompLine:;
 	{
 	  /* This might be a C++ // comment or it might be a / division operator.  
 	     Check it out, and if it is a comment, then "eat it" */
-	  int peek_c = fgetc(fd);
+	  int peek_c = fgetc (fd);
 	  if (peek_c == '/')
 	    /* Got a C++ single line comment, so Chomp the line */
 	    goto ChompLine;
 
 	  /* Put the char back on the file, then allow the code to add the '/' char to the buffer */
-	  ungetc(peek_c, fd);
+	  ungetc (peek_c, fd);
         }
 
       /* strip space and tabs out here, and then we DON'T have to mess with them in the rest of the parser */
-      if (!isspace(c))
+      if (!isspace (c))
 	expr[nCurSize++] = c;
 
       if (nCurSize == nMaxSize)
       {
 	char *cp;
 	nMaxSize += 5000;
-	cp = (char *) realloc (expr, nMaxSize+1);
+	cp = (char *) realloc (expr, nMaxSize + 1);
 	if (!cp)
 	{
-	  free(expr);
-	  fprintf(stderr, "Severe warning!, out of core memory reading number!\n");
+	  free (expr);
+	  fprintf (stderr, "Severe warning!, out of core memory reading number!\n");
 	  exit (EXIT_FAILURE);
 	}
 	expr = cp;
       }
-      c = fgetc(fd);
+      c = fgetc (fd);
     }
   expr[nCurSize] = 0;
   if (!nCurSize)
@@ -143,10 +143,10 @@ ChompLine:;
 	  goto JoinLinesLoop;
 	}
       if (c == ';')
-	ungetc(c, fd);
-      mpz_init(t);
+	ungetc (c, fd);
+      mpz_init (t);
       expr_str = expr;
-      ret = eval_2(0);
+      ret = eval_2 (0);
       if (ret)
 	{
 	  char *s;
@@ -154,7 +154,7 @@ ChompLine:;
 	  s = mpz_get_str (NULL, 10, t);
 	  if (!strcmp(s, cpTmpExpr))
 	    cpTmpExpr = NULL;
-	  ret = mpcandi_t_add_candidate(n, t, cpTmpExpr, primetest);
+	  ret = mpcandi_t_add_candidate (n, t, cpTmpExpr, primetest);
 	  FREE (s, strlen (s) + 1);
 	}
       mpz_clear(t);
