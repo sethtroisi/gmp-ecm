@@ -46,7 +46,7 @@
 static int
 multiplyW2n (mpz_t p, point *R, curve *S, mpz_t *q, unsigned int n, 
               mpmod_t modulus, mpres_t u, mpres_t v, mpres_t *T,
-              unsigned long *tot_muls, unsigned long *tot_gcds, FILE *ECM_STDERR)
+              unsigned long *tot_muls, unsigned long *tot_gcds)
 {
   unsigned int i, maxbit, k; /* k is the number of values to batch invert */
   unsigned int l, t, muls = 0, gcds = 0;
@@ -484,8 +484,8 @@ ecm_rootsF (mpz_t f, listz_t F, unsigned int d1, unsigned int d2,
 
   /* Multiply fd[] = s * coeffs[] */
 
-  youpi = multiplyW2n (f, state.fd, s, coeffs, state.size_fd, modulus, 
-                       state.T[0], state.T[1], state.T + 2, &muls, &gcds, ECM_STDERR);
+  youpi = multiplyW2n (f, state.fd, s, coeffs, state.size_fd, modulus,
+                       state.T[0], state.T[1], state.T + 2, &muls, &gcds);
   if (youpi == ECM_FACTOR_FOUND_STEP2)
     outputf (OUTPUT_VERBOSE, "Found factor while computing coeff[] * X\n");  
 
@@ -693,7 +693,7 @@ ecm_rootsG_init (mpz_t f, curve *X, double s, unsigned int d1, unsigned int d2,
       gmp_fprintf (ECM_STDOUT, "ecm_rootsG_init: coeffs[%d] == %Zd\n", k, coeffs[k]);
 
   youpi = multiplyW2n (f, state->fd, X, coeffs, state->size_fd, modulus, 
-                     state->T[0], state->T[1], state->T + 2, &muls, &gcds, ECM_STDERR);
+                     state->T[0], state->T[1], state->T + 2, &muls, &gcds);
   if (youpi == ECM_ERROR)
     mpz_set_si (f, -1); /* fall through */
 
