@@ -167,19 +167,11 @@ pp1_stage1 (mpz_t f, mpres_t P0, mpmod_t n, double B1, double B1done, mpz_t go)
 	  pp1_mul (P0, P0, g, n, P, Q);
 	  mpz_set_ui (g, 1);
 	}
-      /* No need to save incrementals here, or to show screen output, since this happens pretty quickly */
     }
 
   pp1_mul (P0, P0, g, n, P, Q);
 
   /* then all primes > sqrt(B1) and taken with exponent 1 */
-  /* since pp1_mul_prac takes an unsigned long, we have to check
-     that B1 <= MAX_ULONG */
-  if (B1 > (double) ULONG_MAX)
-    {
-      fprintf (stderr, "Error, maximal step1 bound B1 for P+1 is %lu\n", ULONG_MAX);
-      exit (EXIT_FAILURE);
-    }
   for (; p <= B1; p = getprime (p))
     {
       if (p > B1done)
@@ -207,14 +199,14 @@ pp1_stage1 (mpz_t f, mpres_t P0, mpmod_t n, double B1, double B1done, mpz_t go)
    a is the initial seed.
 */
 static void
-pp1_check_factor (mpz_t a, mpz_t p)
+pp1_check_factor (mpz_t a, mpz_t p, FILE *os)
 {
   if (mpz_probab_prime_p (p, PROBAB_PRIME_TESTS))
     {
       mpz_mul (a, a, a);
       mpz_sub_ui (a, a, 4);
       if (mpz_jacobi (a, p) == 1)
-        printf ("[factor found by P-1]\n");
+        fprintf (os, "[factor found by P-1]\n");
     }
 }
 
@@ -228,23 +220,23 @@ pp1_check_factor (mpz_t a, mpz_t p)
    V_j(P) for Williams P+1
    For P+1, we have V_{j+6} = V_j * V_6 - V_{j-6}.
    for 0 < j = 1 mod 6 < d, j and d coprime.
-   Return non-zero iff a factor was found.
+   Return non-zero iff a factor was found (always zero in fact).
 */
 int
 pp1_rootsF (listz_t F, unsigned int d1, unsigned int d2, unsigned int dF, 
-            mpres_t *x, listz_t t, mpmod_t modulus, int verbose)
+            mpres_t *x, listz_t t, mpmod_t modulus, int verbose, FILE *os)
 {
   unsigned int i, j, muls = 0;
   int st, st2;
   mpres_t fd[5]; /* fd[3..4] are temp vars */
   
   if (dF == 0)
-    return 0;
+    return ECM_NO_FACTOR_FOUND;
 
   st2 = st = cputime ();
 
   if (verbose >= 3)
-    printf ("pp1_rootsF: d1 = %d, d2 = %d, dF = %d\n", d1, d2, dF);
+    fprintf (os, "pp1_rootsF: d1 = %d, d2 = %d, dF = %d\n", d1, d2, dF);
 
   mpres_init (fd[0], modulus);
   mpres_init (fd[1], modulus);
@@ -264,7 +256,8 @@ pp1_rootsF (listz_t F, unsigned int d1, unsigned int d2, unsigned int dF,
   /* for P+1, fd[0] = V_{7*d2}(P), fd[1] = V_{6*d2}(P), fd[2] = V_{d2}(P) */
 
   if (verbose >= 2)
-    printf ("Initializing table of differences for F took %dms\n", cputime () - st2);
+    fprintf (os, "Initializing table of differences for F took %dms\n",
+	     cputime () - st2);
   i = 1;
   j = 7;
   while (i < dF)
@@ -279,7 +272,7 @@ pp1_rootsF (listz_t F, unsigned int d1, unsigned int d2, unsigned int dF,
       mpres_sub (fd[0], fd[3], fd[0], modulus);
       /* fd[0] = V_{m+n}, fd[1] = V_n, fd[2] = V_m */
       j += 6;
-      muls++;
+      muls ++;
     }
   mpres_clear (fd[0], modulus);
   mpres_clear (fd[1], modulus);
@@ -289,15 +282,16 @@ pp1_rootsF (listz_t F, unsigned int d1, unsigned int d2, unsigned int dF,
 
   if (verbose >= 2)
     {
-      printf ("Computing roots of F took %dms", cputime () - st);
+      fprintf (os, "Computing roots of F took %dms", cputime () - st);
       if (verbose > 2)
-        printf (" and %d muls", muls);
-      printf ("\n");
+        fprintf (os, " and %d muls", muls);
+      fprintf (os, "\n");
     }
   
-  return 0;
+  return ECM_NO_FACTOR_FOUND;
 }
 
+/* return NULL if an error occurred */
 pp1_roots_state *
 pp1_rootsG_init (mpres_t *x, double s, unsigned int d, unsigned int d2, 
                  mpmod_t modulus)
@@ -309,7 +303,9 @@ pp1_rootsG_init (mpres_t *x, double s, unsigned int d, unsigned int d2,
   
   st = cputime ();
   
-  state = (pp1_roots_state *) xmalloc (sizeof (pp1_roots_state));
+  state = (pp1_roots_state *) malloc (sizeof (pp1_roots_state));
+  if (state == NULL)
+    return NULL;
   mpz_init (t);
 
   mpres_init (state->fd[0], modulus);
@@ -325,7 +321,7 @@ pp1_rootsG_init (mpres_t *x, double s, unsigned int d, unsigned int d2,
   pp1_mul (state->fd[0], *x, t, modulus, state->fd[3], P);
   mpz_set_ui (t, d);
   pp1_mul (state->fd[1], *x, t, modulus, state->fd[3], P);
-  mpz_set_d (t, fabs (s - (double)d));
+  mpz_set_d (t, fabs (s - (double) d));
   pp1_mul (state->fd[2], *x, t, modulus, state->fd[3], P);
   /* for P+1, fd[0] = V_s(P), fd[1] = V_d(P), fd[2] = V_{|s-d|}(P) */
 
@@ -347,7 +343,7 @@ pp1_rootsG_clear (pp1_roots_state *state, ATTRIBUTE_UNUSED mpmod_t modulus)
 
 int
 pp1_rootsG (listz_t G, unsigned int d, pp1_roots_state *state, 
-            mpmod_t modulus, int verbose) 
+            mpmod_t modulus, int verbose, FILE *os)
 {
   unsigned int i;
   int st;
@@ -362,19 +358,18 @@ pp1_rootsG (listz_t G, unsigned int d, pp1_roots_state *state,
       mpres_swap (state->fd[0], state->fd[2], modulus);
       mpres_mul (state->fd[3], state->fd[2], state->fd[1], modulus);
       mpres_sub (state->fd[0], state->fd[3], state->fd[0], modulus);
-      state->rsieve++;
+      state->rsieve ++;
     }
 
   if (verbose >= 2)
     {
-      printf ("Computing roots of G took %dms", cputime () - st);
+      fprintf (os, "Computing roots of G took %dms", cputime () - st);
       if (verbose > 2)
-        printf (", %u muls", d);
-      printf ("\n");
+        fprintf (os, ", %u muls", d);
+      fprintf (os, "\n");
     }
-
   
-  return 0;
+  return ECM_NO_FACTOR_FOUND;
 }
 
 
@@ -396,11 +391,18 @@ pp1_rootsG (listz_t G, unsigned int d, pp1_roots_state *state,
 int
 pp1 (mpz_t f, mpz_t p, mpz_t n, mpz_t go, double B1done, double B1,
      double B2min, double B2, double B2scale, unsigned int k, unsigned int S,
-     int verbose, int repr)
+     int verbose, int repr, FILE *os, FILE *es)
 {
   int youpi = 0, st;
   mpres_t a;
   mpmod_t modulus;
+
+  /* if n is even, return 2 */
+  if (mpz_divisible_2exp_p (n, 1))
+    {
+      mpz_set_ui (f, 2);
+      return ECM_FACTOR_FOUND;
+    }
 
   st = cputime ();
 
@@ -426,30 +428,30 @@ pp1 (mpz_t f, mpz_t p, mpz_t n, mpz_t go, double B1done, double B1,
 
   if (S != 1)
     {
-      printf ("Warning: Brent-Suyama's extension does not work with P+1, using x^1\n");
+      fprintf (os, "Warning: no Brent-Suyama's extension available with P+1, using x^1\n");
       S = 1;
     }
   
   if (verbose >= 1)
     {
-      printf ("Using ");
+      fprintf (os, "Using ");
       if (IS_DEFAULT_B1_DONE(B1done))
-        printf("B1=%1.0f", B1);
+        fprintf (os, "B1=%1.0f", B1);
       else
-        printf("B1=%1.0f-%1.0f", B1done, B1);
+        fprintf (os, "B1=%1.0f-%1.0f", B1done, B1);
       if (B2min <= B1)
-        printf(", B2=%1.0f", B2);
+        fprintf (os, ", B2=%1.0f", B2);
       else
-        printf(", B2=%1.0f-%1.0f", B2min, B2);
+        fprintf (os, ", B2=%1.0f-%1.0f", B2min, B2);
 
-      printf (", polynomial x^1");
+      fprintf (os, ", polynomial x^1");
       if (IS_DEFAULT_B1_DONE(B1done) || verbose > 1) /* don't print x0 in resume case */
 	{
-	  printf (", x0=");
-	  mpz_out_str (stdout, 10, p);
+	  fprintf (os, ", x0=");
+	  mpz_out_str (os, 10, p);
 	}
-      printf ("\n");
-      fflush (stdout);
+      fprintf (os, "\n");
+      fflush (os);
     }
 
   if (repr == 1)
@@ -461,10 +463,19 @@ pp1 (mpz_t f, mpz_t p, mpz_t n, mpz_t go, double B1done, double B1,
   else if (repr > 16)
     mpmod_init_BASE2 (modulus, repr, n);
   else
-    mpmod_init (modulus, n, repr, verbose);
+    mpmod_init (modulus, n, repr, verbose, os);
 
   mpres_init (a, modulus);
   mpres_set_z (a, p, modulus);
+
+  /* since pp1_mul_prac takes an unsigned long, we have to check
+     that B1 <= MAX_ULONG */
+  if (B1 > (double) ULONG_MAX)
+    {
+      fprintf (es, "Error, maximal step1 bound for P+1 is %lu\n", ULONG_MAX);
+      youpi = ECM_ERROR;
+      goto clear_pp1;
+    }
 
   if (B1 > B1done)
     youpi = pp1_stage1 (f, a, modulus, B1, B1done, go);
@@ -473,28 +484,27 @@ pp1 (mpz_t f, mpz_t p, mpz_t n, mpz_t go, double B1done, double B1,
 
   if (verbose >= 1)
     {
-      printf ("Step 1 took %dms\n", st);
-      fflush (stdout);
+      fprintf (os, "Step 1 took %dms\n", st);
+      fflush (os);
+      if (verbose >= 2)
+	{
+	  fprintf (os, "x=");
+	  mpres_out_str (os, 10, a, modulus);
+	  fprintf (os, "\n");
+	  fflush (os);
+	}
     }
 
-  if (verbose >= 2)
-    {
-      printf ("x=");
-      mpres_out_str (stdout, 10, a, modulus);
-      printf ("\n");
-      fflush (stdout);
-    }
+  if (youpi == ECM_NO_FACTOR_FOUND) /* no factor found, no error */
+    youpi = stage2 (f, &a, modulus, B2min, B2, k, S, verbose, PP1_METHOD, st,
+		    os, es);
 
-  if (youpi != 0) /* a factor was found */
-    goto end;
-
-  youpi = stage2 (f, &a, modulus, B2min, B2, k, S, verbose, PP1_METHOD, st);
-
- end:
-  if (youpi != 0 && verbose != 0)
-    pp1_check_factor (p, f); /* tell user if factor was found in fact by P-1 */
+  if (youpi == ECM_FACTOR_FOUND && verbose > 0)
+    pp1_check_factor (p, f, os); /* tell user if factor was found by P-1 */
 
   mpres_get_z (p, a, modulus);
+
+ clear_pp1:
   mpres_clear (a, modulus);
   mpmod_clear (modulus);
 

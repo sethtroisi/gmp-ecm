@@ -39,7 +39,7 @@ main (int argc, char *argv[])
           B1, B2, mpz_get_ui (sigma));
 
   res = ecm (f, x, sigma, n, NULL, 1.0, B1, B2min, B2, 1.0, ECM_DEFAULT_K,
-             1, 0, 0, 0);
+             1, 0, 0, 0, stdout, stderr);
 
   if (res)
     {

@@ -107,11 +107,13 @@ lucas_cost_pp1 (unsigned n, double v)
           d = (d - e) / 2;
           c += ADD + DUP; /* one addition, one duplicate */
         } 
+      /* now d+e is odd */
       else if (d % 2 == 0)
         { /* condition 5 */
           d /= 2;
           c += ADD + DUP; /* one addition, one duplicate */
         }
+      /* now d is odd and e even */
       else if (d % 3 == 0)
         { /* condition 6 */
           d = d / 3 - e;
@@ -127,15 +129,10 @@ lucas_cost_pp1 (unsigned n, double v)
           d = (d - e) / 3;
           c += 3 * ADD + DUP; /* three additions, one duplicate */
         }
-      else if (e % 2 == 0)
+      else /* necessarily e is even */
         { /* condition 9 */
           e /= 2;
           c += ADD + DUP; /* one addition, one duplicate */
-        }
-      else
-        {
-          fprintf (stderr, "lucas_cost: no condition qualifies for d=%u e=%u\n", d, e);
-          exit (EXIT_FAILURE);
         }
     }
   
@@ -215,12 +212,14 @@ pp1_mul_prac (mpres_t A, unsigned long k, mpmod_t n, mpres_t t, mpres_t B,
           add3 (B, B, A, C, n, t); /* B = f(B,A,C) */
           duplicate (A, A, n);     /* A = 2*A */
         }
+      /* d+e is now odd */
       else if (d % 2 == 0)
         { /* condition 5 */
           d /= 2;
           add3 (C, C, A, B, n, t); /* C = f(C,A,B) */
           duplicate (A, A, n);     /* A = 2*A */
         }
+      /* d is odd, e even */
       else if (d % 3 == 0)
         { /* condition 6 */
           d = d / 3 - e;
@@ -247,16 +246,11 @@ pp1_mul_prac (mpres_t A, unsigned long k, mpmod_t n, mpres_t t, mpres_t B,
           duplicate (T, A, n);
           add3 (A, A, T, A, n, t); /* A = 3*A */
         }
-      else if (e % 2 == 0)
+      else /* necessarily e is even */
         { /* condition 9: never happens? */
           e /= 2;
           add3 (C, C, B, A, n, t); /* C = f(C,B,A) */
           duplicate (B, B, n);     /* B = 2*B */
-        }
-      else
-        {
-          fprintf (stderr, "no condition qualifies for d=%u e=%u\n", d, e);
-          exit (EXIT_FAILURE);
         }
     }
   
@@ -265,8 +259,8 @@ pp1_mul_prac (mpres_t A, unsigned long k, mpmod_t n, mpres_t t, mpres_t B,
 #ifdef DEBUG  
   if (d != 1)
     {
-      fprintf (stderr, "d!=1 at the end of PRAC: %u\n", d);
-      exit (1);
+      fprintf (stderr, "d <> 1 at the end of pp1_mul_prac: %u\n", d);
+      exit (EXIT_FAILURE);
     }
 #endif
 }
