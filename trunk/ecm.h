@@ -55,6 +55,13 @@
 #include <stdio.h>
 #include <gmp.h>
 
+#if WANT_ASSERT
+#include <assert.h>
+#define ASSERT(expr)   assert (expr)
+#else
+#define ASSERT(expr)   do {} while (0)
+#endif
+
 /* thresholds */
 #ifndef WANT_GMP_IMPL
 #ifndef MUL_KARATSUBA_THRESHOLD
@@ -75,8 +82,11 @@
 /* default number of probable prime tests */
 #define PROBAB_PRIME_TESTS 1
 
-/* kronecker_schonhage() is used when bitsize(poly) >= KS_MUL_THRESHOLD */
-#define KS_MUL_THRESHOLD 1e6
+/* kronecker_schonhage() is used instead of toomcook4()
+   when bitsize(poly) >= KS_MUL_THRESHOLD */
+#define KS_MUL_THRESHOLD  1e6
+/* same for median product */
+#define KS_TMUL_THRESHOLD 8e5
 
 #define ABS(x) ((x) >= 0 ? (x) : -(x))
 
@@ -323,6 +333,8 @@ int           toomcook4 (listz_t, listz_t, listz_t, unsigned int, listz_t);
 
 /* ks-multiply.c */
 int kronecker_schonhage (listz_t, listz_t, listz_t, unsigned int, listz_t);
+unsigned int TMulKS     (listz_t, unsigned int, listz_t, unsigned int, listz_t,
+                         unsigned int, mpz_t);
 
 /* polyz.c */
 void init_poly      (polyz_t, int);
@@ -428,7 +440,7 @@ double calc_B1_AutoIncrement(double cur_B1, double incB1val, int calcInc);
 /* median.c */
 unsigned int
 TMulGen (listz_t, unsigned int, listz_t, unsigned int, listz_t, 
-         unsigned int, listz_t);
+         unsigned int, listz_t, mpz_t);
 unsigned int
 TKarMul_space (unsigned int n, unsigned int m, unsigned int l);
 unsigned int

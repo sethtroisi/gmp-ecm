@@ -153,12 +153,12 @@ TUpTree (listz_t b, listz_t *Tree, unsigned int k,
     printf ("\n");
 #endif
 
-    muls = TMulGen (tmp, l - 1, Tree[0] + sh + l, m - 1, b, k - 1, tmp + l);
+    muls = TMulGen (tmp, l - 1, Tree[0] + sh + l, m - 1, b, k - 1, tmp + l, n);
 #ifdef CHECK_MULS
     if (muls > muls_tgen (l-1)) { printf ("l=%u m=%u k=%u %u %u\n", l, m, k, muls, muls_tgen (l-1)); abort(); }
 #endif
     tot_muls += muls;
-    muls = TMulGen (tmp + l, m - 1, Tree[0] + sh, l - 1, b, k - 1, tmp + k);
+    muls = TMulGen (tmp + l, m - 1, Tree[0] + sh, l - 1, b, k - 1, tmp + k, n);
 #ifdef CHECK_MULS
     if (muls > muls_tgen (l-1)) { printf ("m=%u l=%u k=%u %u %u\n", m, l, k, muls, muls_tgen (m-1)); abort();}
 #endif
@@ -259,7 +259,7 @@ polyeval_tellegen (listz_t b, unsigned int k, listz_t *Tree, listz_t tmp,
 #ifndef USE_SHORT_PRODUCT
     /* revert invF for call to TMulGen below */
     list_revert (invF, k - 1);
-    muls = TMulGen (T, k - 1, invF, k - 1, b, k - 1, T + k);
+    muls = TMulGen (T, k - 1, invF, k - 1, b, k - 1, T + k, n);
 #ifdef CHECK_MULS
     if (muls != muls_tgen (k-1)) { printf ("%u %u %u\n", k, muls, muls_tgen (k-1)); abort();}
 #endif
