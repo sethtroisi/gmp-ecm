@@ -18,6 +18,7 @@ Select["P-1"] := proc(i) evalb(i mod 6=1) end:
 Select["P+1"] := proc(i) member(i mod 6,{1,5}) end:
 
 # stage2, method="P-1" or "P+1"
+# p is the modulus
 stage2 := proc(p, d, a0, k, method)
 local x, F, inva, i, v, t, u, a, dF, G, j, H, ij;
    a := a0;
@@ -496,6 +497,7 @@ pp1_stage1 := proc(n, A0, B1) local a0, p, a, q;
    a
 end:
 
+# compute P0 "power" p mod n for P+1
 Powering["P+1"] := proc(P0, p, n) local l, i, P, Q, R;
    l := convert(p-1, base, 2);
    P := P0;

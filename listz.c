@@ -109,9 +109,24 @@ print_list (listz_t p, unsigned int n)
         printf ("+");
       mpz_out_str (stdout, 10, p[i]);
       printf ("*x^%u", i);
-      printf (" ");
     }
   putchar ('\n');
+}
+
+/* prints a list of n coefficients */
+void
+print_list2 (listz_t p, unsigned int n)
+{
+  unsigned int i;
+
+  printf ("[");
+  for (i = 0; i < n; i++)
+    {
+      if (i > 0)
+        printf (",");
+      mpz_out_str (stdout, 10, p[i]);
+    }
+  printf ("]\n");
 }
 #endif
 
