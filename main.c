@@ -102,8 +102,9 @@ main (int argc, char *argv[])
   int result = 0;
   int verbose = 1; /* verbose level */
   int method = EC_METHOD;
-  int specific_x0 = 0; /* 1=starting point supplied by user, 0=random or */
+  int specific_x0 = 0, /* 1=starting point supplied by user, 0=random or */
                        /* compute from sigma */
+      specific_sigma = 0;  /* 1=sigma from command line, 0=make random */
   int factor_is_prime, cofactor_is_prime;
         /* If a factor was found, indicate whether factor, cofactor are */
         /* prime. If no factor was found, both are zero. */
@@ -203,6 +204,7 @@ main (int argc, char *argv[])
       else if ((argc > 2) && (strcmp (argv[1], "-sigma")) == 0)
         {
           mpz_set_str (sigma, argv[2], 0);
+          specific_sigma = 1;
 	  argv += 2;
 	  argc -= 2;
         }
@@ -358,7 +360,7 @@ main (int argc, char *argv[])
         }
     }
 
-  if (resumefile && (mpz_sgn (sigma) != 0 || mpz_sgn (A) || specific_x0))
+  if (resumefile && (specific_sigma || mpz_sgn (A) || specific_x0))
     {
       fprintf (stderr, "Warning: -sigma, -A and -x0 parameters are ignored when resuming from\nsave files.\n");
       mpz_set_ui (sigma, 0);
@@ -439,8 +441,10 @@ main (int argc, char *argv[])
           if (B1done <= 1.0)
             mpz_set (orig_x0, x);
           
-          /* Make a random sigma if we have neither sigma nor A given */
-          if (method == EC_METHOD && !mpz_sgn (sigma) && !mpz_sgn (A))
+          /* Make a random sigma if we have neither specific sigma nor A 
+             given. Warning: sigma may still contain previous random value
+             and thus be nonzero here even if no specific sigma was given */
+          if (method == EC_METHOD && !specific_sigma && !mpz_sgn (A))
             {
               /* Make random sigma, 0 < sigma <= 2^32 */
               mpz_urandomb (sigma, randstate, 32);
