@@ -21,11 +21,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include "gmp.h"
-#ifdef WANT_GMP_IMPL
-#include "gmp-impl.h"
-#else
 #include "ecm-gmp.h"
-#endif /* WANT_GMP_IMPL */
 #include "ecm.h"
 
 #define MINTIME 1000

@@ -10,6 +10,14 @@ AC_ARG_WITH(gmp_lib, [  --with-gmp-lib=DIR      GMP lib directory ], with_gmp_li
 AC_ARG_WITH(gmp_build, [  --with-gmp-build=DIR    GMP source directory], with_gmp_include=$withval/ with_gmp_lib=$withval/.libs)
 AC_ARG_WITH(gmp, [  --with-gmp=DIR          GMP install directory ], with_gmp_include=$withval/include with_gmp_lib=$withval/lib)
 
+AC_ARG_ENABLE(assert,
+   [  --enable-assert         enable ASSERT checking [[default=no]]],
+   [ case $enableval in
+      yes) AC_DEFINE([WANT_ASSERT],1,[Want assertion]) ;;
+      no)  ;;
+      *) AC_MSG_ERROR([bad value for --enable-assert: yes, or no]) ;;
+     esac])
+
 dnl Checks for programs.
 AC_PROG_CC
 AC_PROG_RANLIB

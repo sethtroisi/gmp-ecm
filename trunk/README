@@ -103,7 +103,7 @@ by default: D(n) means Dickson's polynomial of degree n):
           50       43e6        1.9e11           9507             8370 [D(30)]
           55       11e7        7.2e11          22605            19977 [D(30)]
           60       26e7        2.4e12          54580            48478 [D(30)]
-          65       85e7        1.5e13          85729
+          65       85e7        1.5e13          85729            76396 [D(30)]
 
           Table 1: optimal B1 and expected number of curves to find a
           factor of D digits with gmp-ecm.
@@ -386,14 +386,16 @@ increase the time spent in Step 2 (when less or greater than the
 optimal value), and modify the memory used by Step 2 (see the section 
 "Memory usage").
 
-Optimal gmp thresholds. The default configuration of gmp-ecm requires
-only the default gmp installation, in particular it only needs the
-gmp.h header file from GMP. This default configuration uses some
-default thresholds (in particular for subquadratic multiplication 
-and division) that may not be optimal on a given machine. To get
-the optimal thresholds on your machine, you need the headers
-files from the GMP build directory, and to add -DWANT_GMP_IMPL to
-the C flags in Makefile.
+Optimal gmp thresholds. One may improve the performance of gmp-ecm
+by telling the thresholds used by GMP for Karatsuba's multiplication
+and divide-and-conquer division, which you can get by typing:
+
+$ egrep 'MUL_KARATSUBA_THRESHOLD|DIV_DC_THRESHOLD' gmp-mparam.h
+
+in the GMP build directory. You can override the default values
+(32 for MUL_KARATSUBA_THRESHOLD, and 96 for DIV_DC_THRESHOLD)
+by adding -DMUL_KARATSUBA_THRESHOLD=... -DDIV_DC_THRESHOLD=...
+to the CFLAGS.
 
 Note on factoring Fermat numbers:
 gmp-ecm features Sch"onhage-Strassen multiplication for polynomials in 
@@ -447,7 +449,6 @@ parameters "-power 1 -k 1 <B1> 48e9", "-power 1 -k 3 <B1> 35e9" or
 
 (a) Under some operating systems (in particular Windows), ecm may use the
 same random seed for several curves started during the same second. 
-  *** this has been fixed in version 5.1 compiled with MinGW32 ***
 This is due to the fact that the getpid() function returns a constant
 value under those systems. This will cause an efficiency loss, since
 the same computation will be done twice. A workaround is to wait at
@@ -457,9 +458,7 @@ In all cases, when running several curves on the same number, it is
 safe to check that the sigma/x0 values are different for each run.
 
 (b) Under some operating systems (for example FreeBSD), you may have
-to comment the #include <alloca.h> line in ecm-gmp.h. If that still
-does not work, then you need the GMP build file gmp-impl.h, and add
--DWANT_GMP_IMPL to CFLAGS.
+to comment the #include <alloca.h> line in ecm-gmp.h.
 
 (c) stderr output was mixed with stdout output.  This allows redirection
 of output to a file, with ecm-gmp giving a VERY useful single line, listing
