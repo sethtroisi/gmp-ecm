@@ -6,6 +6,12 @@ if ($status != 0) then
    echo "############### ERROR ###############";
    exit 1;
 endif
+# This factor was missed by an early development version of stage 2
+echo 67872792749091946529 | $ECM -pm1 8467 3 11004397
+if ($status != 0) then
+   echo "############### ERROR ###############";
+   exit 1;
+endif
 echo 5735039483399104015346944564789 | $ECM -pm1 1277209 0 9247741
 if ($status != 0) then
    echo "############### ERROR ###############";
