@@ -157,9 +157,10 @@ pp1_stage1 (mpz_t f, mpres_t P0, mpmod_t n, double B1, double B1done,
   size_n = mpz_sizeinbase (n->orig_modulus, 2);
   max_size = L1 * size_n;
 
-  /* suggestion from Peter Montgomery: start with exponent n-1,
-     since any prime divisor of b^m-1 which does not divide any
-     algebraic factor of b^m-1 must be of the form km+1 [Williams82].
+  /* suggestion from Peter Montgomery: start with exponent n^2-1,
+     as factors of Lucas and Fibonacci number are either +/-1 (mod index),
+     and so is n. Therefore, index will appear as a factor
+     of n^2-1 and be included in stage 1.
      Do this only when n is composite, otherwise all tests with prime
      n factor of a Cunningham number will succeed in stage 1.
 
@@ -167,11 +168,12 @@ pp1_stage1 (mpz_t f, mpres_t P0, mpmod_t n, double B1, double B1done,
   */
   if ((double) size_n <= B0 && mpz_probab_prime_p (n->orig_modulus, 1) == 0)
     {
-      mpz_sub_ui (g, n->orig_modulus, 1);
+      mpz_mul (g, n->orig_modulus, n->orig_modulus);
+      mpz_sub_ui (g, g, 1);
       *muls += pp1_mul (P0, P0, g, n, P, Q);
     }
-  else
-    mpz_set_ui (g, 1);
+
+  mpz_set_ui (g, 1);
 
   /* first loop through small primes <= sqrt(B1) */
   for (p = 2.0; p <= B0; p = getprime(p))
