@@ -355,6 +355,7 @@ void kill_temp_resume_file (void);
 int read_number (mpcandi_t *n, FILE *, int primetest);
 void showscreenticks(int stage, int percentage);   /* for outputting (or not outputting) the 1:98  or stage:percentage_complete  -Q will turn this off */
 void showscreenticks_change_stage(int stage);      /* puts up 1:00 or 2:00 and resets the "timeout" clock.  */
+void usage (void);
 
 /* eval.c */
 int eval (mpcandi_t *n, FILE *fd, int bPrp);
