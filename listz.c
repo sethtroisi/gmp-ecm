@@ -150,16 +150,20 @@ list_zerop (listz_t p, unsigned int n)
    The auxiliary memory M(K) necessary in T satisfies:
    M(1)=0, M(K) = max(3*l-1,2*l-2+M(l)) <= 2*K-1 where l = ceil(K/2)
 */
-void
+int
 karatsuba (listz_t a, listz_t b, listz_t c, unsigned int K, listz_t t)
 {
 
    if (K == 1)
-     mpz_mul (a[0], b[0], c[0]);
+     {
+       mpz_mul (a[0], b[0], c[0]);
+       return 1;
+     }
    else
      { 
        unsigned int i, k, l;
        listz_t z;
+       int muls;
        
        k = K / 2;
        l = K - k;
@@ -183,14 +187,14 @@ karatsuba (listz_t a, listz_t b, listz_t c, unsigned int K, listz_t t)
        /* as b[0..l-1] + b[l..K-1] is stored in t[2l-1..3l-2], we need
 	  here at least 3l-1 entries in t */
 
-       karatsuba (t, z, a, l, a + l); /* fills t[0..2l-2] */
+       muls = karatsuba (t, z, a, l, a + l); /* fills t[0..2l-2] */
        
        /* trick: save t[2l-2] in a[2l-1] to enable M(K) <= 2*K-1 */
        z = t + 2 * l - 2;
        mpz_set (a[2*l-1], t[2*l-2]);
 
-       karatsuba (a, b, c, l, z); /* fill a[0..2l-2] */
-       karatsuba (a + 2 * l, b + l, c + l, k, z); /* fills a[2l..2K-2] */
+       muls += karatsuba (a, b, c, l, z); /* fill a[0..2l-2] */
+       muls += karatsuba (a + 2 * l, b + l, c + l, k, z); /* fills a[2l..2K-2] */
 
        mpz_set (t[2*l-2], a[2*l-1]); /* restore t[2*l-2] */
        mpz_set_ui (a[2*l-1], 0);
@@ -222,6 +226,7 @@ karatsuba (listz_t a, listz_t b, listz_t c, unsigned int K, listz_t t)
 	 }
 
        list_sub (a + l, a + l, t, 2 * l - 1);
+       return muls;
      }
 }
 
