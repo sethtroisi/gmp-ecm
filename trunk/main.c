@@ -99,10 +99,13 @@ main (int argc, char *argv[])
     }
 
   if (verbose >= 1)
-    printf ("GMP-ECM 5.0 [powered by GMP %u.%u.%u and NTL %u.%u]\n",
-            __GNU_MP_VERSION, __GNU_MP_VERSION_MINOR,
-            __GNU_MP_VERSION_PATCHLEVEL, NTL_major_version (),
-            NTL_minor_version ());
+    {
+      printf ("GMP-ECM 5.0 [powered by GMP %u.%u",
+              __GNU_MP_VERSION, __GNU_MP_VERSION_MINOR);
+      if (__GNU_MP_VERSION_PATCHLEVEL != 0)
+        printf (".%u", __GNU_MP_VERSION_PATCHLEVEL);
+      printf (" and NTL %u.%u]\n", NTL_major_version (), NTL_minor_version ());
+    }
 
   /* set first stage bound B1 */
   B1 = atof (argv[1]);
@@ -120,8 +123,8 @@ main (int argc, char *argv[])
   mpz_init (sigma);
   if (argc >= 3)
     mpz_set_str (sigma, argv[2], 10);
-  if (mpz_cmp_ui (sigma, 0) == 0)
-    mpz_set_ui (sigma, 17); /* default is 17 */
+  else
+    mpz_set_ui (sigma, 0); /* default value */
 
   /* set second stage bound B2 */
   B2 = (argc >= 4) ? atof (argv[3]) : 100.0 * (double) B1;
@@ -168,6 +171,11 @@ main (int argc, char *argv[])
 	    printf ("Input number has around %u digits\n", (unsigned) 
 		    mpz_sizeinbase (n, 10));
 	}
+
+      /* for Pollard P-1, avoid small sigma (2, 3, ...) because it may
+         hit the whole input number when it divides s^n-1 */
+      if (mpz_cmp_ui (sigma, 0) == 0 && factor == pm1)
+        mpz_set_ui (sigma, 17);
 
       if (verbose >= 1)
         {
