@@ -53,7 +53,7 @@ MA 02111-1307, USA. */
 #endif
 
 #ifndef MPN_COPY
-#include <string.h>
+#include <string.h> /* for memcpy */
 #define MPN_COPY(d,s,n) memcpy((d),(s),(n)*sizeof(mp_limb_t))
 #endif
 

@@ -67,6 +67,8 @@ else
   LIBS="-lgmp"
 fi
 
+LIBS="$LIBS -lm"
+
 dnl Check for corresponding 'gmp.h' and libgmp.a
 AC_MSG_CHECKING(if gmp.h version and libgmp version are the same)
 AC_RUN_IFELSE([AC_LANG_SOURCE([[

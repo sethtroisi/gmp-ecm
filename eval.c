@@ -29,6 +29,7 @@
 #include <time.h>
 #include "gmp.h"
 #include "ecm.h"
+#include "ecm-ecm.h"
 
 /*****************************************************************
  *   Syntax for this VERY simple recursive expression parser:	 *

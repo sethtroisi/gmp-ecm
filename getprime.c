@@ -23,6 +23,11 @@
 #include <stdlib.h>
 #include "gmp.h"
 #include "ecm.h"
+#ifdef OUTSIDE_LIBECM
+#include "ecm-ecm.h"
+#else
+#include "ecm-impl.h"
+#endif
 
 /*
   B1          10^5    10^6     10^7     10^8        1e9        1e10

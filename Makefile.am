@@ -1,21 +1,27 @@
 
-bin_PROGRAMS = ecm tune tune2
+lib_LIBRARIES = libecm.a
 
-ecm_SOURCES = auxi.c b1_ainc.c bestd.c candi.c ecm.c ecm2.c eval.c getprime.c\
-	      listz.c lucas.c main.c pm1.c pp1.c stage2.c toomcook.c trial.c\
-	      memory.c mpmod.c mul_lo.c polyeval.c resume.c median.c\
-	      smartprp.c schoen_strass.c ks-multiply.c rho.c
+libecm_a_SOURCES = ecm.c ecm2.c pm1.c pp1.c getprime.c listz.c lucas.c\
+		   stage2.c toomcook.c mpmod.c mul_lo.c polyeval.c median.c\
+		   schoen_strass.c ks-multiply.c rho.c bestd.c auxlib.c\
+		   random.c
+
+bin_PROGRAMS = ecm tune tune2 ecmfactor
+
+ecm_SOURCES = auxi.c b1_ainc.c candi.c eval.c random2.c\
+	      main.c trial.c memory.c resume.c smartprp.c getprime2.c
+ecmfactor_SOURCES = ecmfactor.c
 
 tune_SOURCES = mpmod.c tune.c auxi.c mul_lo.c
 tune2_SOURCES = tune2.c auxi.c
 
-noinst_HEADERS = ecm.h ecm-gmp.h
+LDADD = libecm.a
+
+noinst_HEADERS = ecm-impl.h ecm-gmp.h
 
 EXTRA_DIST = test.pm1 test.pp1 test.ecm ecm.1
 
 man_MANS = ecm.1
-
-AM_LDFLAGS = -lm
 
 check: ecm
 	$(srcdir)/test.pp1 ./ecm

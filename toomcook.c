@@ -21,7 +21,7 @@
 */
 
 #include "gmp.h"
-#include "ecm.h"
+#include "ecm-impl.h"
 
 #define A0 A[i]
 #define A1 A[l+i]

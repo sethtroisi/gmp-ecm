@@ -1,5 +1,5 @@
 /* Enumerate smooth values from a range of numbers 
-   (with Brent-Suyama extenstion)
+   (with Brent-Suyama extension)
 
   Copyright 2003 Alexander Kruppa.
 

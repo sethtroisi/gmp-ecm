@@ -13,6 +13,7 @@ int isascii(int a) {return __isascii(a); }
 
 #include "gmp.h"
 #include "ecm.h"
+#include "ecm-ecm.h"
 
 /* Options for using an external PRPer rather than internal GMP */
 char *externalprp = NULL; /* call out to external program  */  

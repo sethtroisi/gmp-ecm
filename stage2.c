@@ -25,6 +25,7 @@
 #include <limits.h>
 #include "gmp.h"
 #include "ecm.h"
+#include "ecm-impl.h"
 
 #if defined(__sun__) || defined(sun)
 /* for finite() */
@@ -119,7 +120,7 @@ dickson_ui (mpz_t r, double x, unsigned int n, int a)
    Peter Montgomery, Dissertation, 1992, Chapter 5.
 */
 
-void 
+static void 
 fin_diff_coeff (listz_t coeffs, double s, double D,
                 unsigned int E, int dickson_a)
 {
@@ -183,62 +184,10 @@ init_progression_coeffs (double s, unsigned int d, unsigned int e,
   return fd;
 }
 
-void 
-init_roots_state (ecm_roots_state *state, int S, unsigned int d1, 
-                  unsigned int d2, double cost)
-{
-  ASSERT (gcd (d1, d2) == 1);
-  /* If S < 0, use degree |S| Dickson poly, otherwise use x^S */
-  state->S = abs (S);
-  state->dickson_a = (S < 0) ? -1 : 0;
-
-  /* We only calculate Dickson_{S, a}(j * d2) * s where
-     gcd (j, dsieve) == 1 and j == 1 (mod 6)
-     by doing nr = eulerphi(dsieve / 6) separate progressions. */
-  /* Now choose a value for dsieve. */
-  state->dsieve = 6;
-  state->nr = 1;
-
-  /* Prospective saving by sieving out multiples of 5:
-       d1 / state->dsieve * state->nr / 5 roots, each one costs S point adds
-     Prospective cost increase:
-       4 times as many progressions to init (that is, 3 * state->nr more),
-       each costs ~ S * S * log_2(5 * dsieve * d2) / 2 point adds
-     The state->dsieve and one S cancel.
-  */
-  if (d1 % 5 == 0 &&
-      d1 / state->dsieve / 5 * cost > 
-        3. * state->S * log (5. * state->dsieve * d2) / 2.)
-    {
-      state->dsieve *= 5;
-      state->nr *= 4;
-    }
-
-  if (d1 % 7 == 0 &&
-      d1 / state->dsieve / 7 * cost > 
-        5. * state->S * log (7. * state->dsieve * d2) / 2.)
-    {
-      state->dsieve *= 7;
-      state->nr *= 6;
-    }
-
-  if (d1 % 11 == 0 &&
-      d1 / state->dsieve / 11 * cost > 
-        9. * state->S * log (11. * state->dsieve * d2) / 2.)
-    {
-      state->dsieve *= 11;
-      state->nr *= 10;
-    }
-
-  state->size_fd = state->nr * (state->S + 1);
-  state->next = 0;
-  state->rsieve = 1;
-}
-
 /* Input:  X is the point at end of stage 1
            n is the number to factor
            B2min-B2 is the stage 2 range (we consider B2min is done)
-           k is the number of blocks
+           k0 is the number of blocks (if 0, use default)
            S is the exponent for Brent-Suyama's extension
            verbose is the verbose level
            invtrick is non-zero iff one uses x+1/x instead of x.
@@ -278,6 +227,12 @@ stage2 (mpz_t f, void *X, mpmod_t modulus, double B2min, double B2,
     return 0;
 
   st0 = cputime ();
+
+  if (k0 == 0)
+    {
+      fprintf (stderr, "Error: number of blocks in step 2 should be positive\n");
+      exit (EXIT_FAILURE);
+    }
 
   mpz_init_set (n, modulus->orig_modulus);
 
