@@ -278,7 +278,7 @@ pm1_stage1 (mpz_t f, mpres_t a, mpmod_t n, double B1, double B1done,
   if (B0 <= cascade_limit)
     {
       /* first loop through small primes <= sqrt(B1) */
-      for (p = 2.0; p <= B0; p = getprime(p))
+      for (p = 2.0; p <= B0; p = getprime (p))
         {
           for (q = 1, r = p; r <= B1; r *= p)
             if (r > B1done) q *= p;
@@ -310,7 +310,7 @@ pm1_stage1 (mpz_t f, mpres_t a, mpmod_t n, double B1, double B1done,
     }
   else
     {
-      for (p = 2.0; p <= cascade_limit; p = getprime(p))
+      for (p = 2.0; p <= cascade_limit; p = getprime (p))
         {
           for (q = 1.0, r = p; r <= B1; r *= p)
             if (r > B1done) q *= p;
@@ -334,7 +334,7 @@ pm1_stage1 (mpz_t f, mpres_t a, mpmod_t n, double B1, double B1done,
         }
       mpz_set_ui (g, 1);
       
-      for ( ; p <= B0; p = getprime(p))
+      for ( ; p <= B0; p = getprime (p))
         {
           for (q = 1, r = p; r <= B1; r *= p)
             if (r > B1done) q *= p;
@@ -349,7 +349,7 @@ pm1_stage1 (mpz_t f, mpres_t a, mpmod_t n, double B1, double B1done,
   
   /* then remaining primes > max(sqrt(B1), cascade_limit) and taken 
      with exponent 1 */
-  for (; p <= B1; p = getprime(p))
+  for (; p <= B1; p = getprime (p))
   {
     if (p > B1done)
       {
@@ -362,7 +362,7 @@ pm1_stage1 (mpz_t f, mpres_t a, mpmod_t n, double B1, double B1done,
       }
   }
 
-  getprime (0.0); /* free the prime tables, and reinitialize */
+  getprime (FREE_PRIME_TABLE); /* free the prime tables, and reinitialize */
 
   mpz_clear (d);
   mpres_pow (a, a, g, n);
@@ -737,7 +737,7 @@ pm1 (mpz_t f, mpz_t p, mpz_t N, mpz_t go, double B1done, double B1,
   st = cputime ();
   
   /* Set default B2. See ecm.c for comments */
-  if (B2 == 0.0)
+  if (IS_DEFAULT_B2(B2))
     B2 = pow (B1 / 6.0, 1.424828748);
 
   /* Scale B2 by what the user said (or by the default scaling of 1.0) */
@@ -774,7 +774,7 @@ pm1 (mpz_t f, mpz_t p, mpz_t N, mpz_t go, double B1done, double B1,
   if (verbose >= 1)
     {
       printf ("Using ");
-      if (B1done == 1.0)
+      if (IS_DEFAULT_B1_DONE(B1done))
         printf("B1=%1.0f", B1);
       else
         printf("B1=%1.0f-%1.0f", B1done, B1);
@@ -787,7 +787,7 @@ pm1 (mpz_t f, mpz_t p, mpz_t N, mpz_t go, double B1done, double B1,
       else
         printf("polynomial Dickson(%u)", -S);
 
-      if (B1done == 1.0 || verbose > 1) 
+      if (IS_DEFAULT_B1_DONE(B1done) || verbose > 1) 
 	/* don't print in resume case, since x0 is saved in resume file */
 	{
 	  printf (", x0=");

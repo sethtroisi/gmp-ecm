@@ -1,6 +1,6 @@
 /* The 'P+1' algorithm.
 
-  Copyright 2002, 2003 Paul Zimmermann and Alexander Kruppa.
+  Copyright 2002, 2003, 2004, 2005 Paul Zimmermann and Alexander Kruppa.
 
   This program is free software; you can redistribute it and/or modify it
   under the terms of the GNU General Public License as published by the
@@ -154,7 +154,7 @@ pp1_stage1 (mpz_t f, mpres_t P0, mpmod_t n, double B1, double B1done, mpz_t go)
   mpz_set_ui (g, 1);
 
   /* first loop through small primes <= sqrt(B1) */
-  for (p = 2.0; p <= B0; p = getprime(p))
+  for (p = 2.0; p <= B0; p = getprime (p))
     {
       for (q = 1, r = p; r <= B1; r *= p)
         if (r > B1done) q *= p;
@@ -177,13 +177,13 @@ pp1_stage1 (mpz_t f, mpres_t P0, mpmod_t n, double B1, double B1done, mpz_t go)
       fprintf (stderr, "Error, maximal step1 bound B1 for P+1 is %lu\n", ULONG_MAX);
       exit (EXIT_FAILURE);
     }
-  for (; p <= B1; p = getprime(p))
+  for (; p <= B1; p = getprime (p))
     {
       if (p > B1done)
         pp1_mul_prac (P0, (unsigned long) p, n, P, Q, R, S, T);
     }
 
-  getprime (0.0); /* free the prime tables, and reinitialize */
+  getprime (FREE_PRIME_TABLE); /* free the prime tables, and reinitialize */
 
   mpres_clear (Q, n);
   mpres_clear (R, n);
@@ -423,7 +423,7 @@ pp1 (mpz_t f, mpz_t p, mpz_t n, mpz_t go, double B1done, double B1,
   st = cputime ();
 
   /* Set default B2. See ecm.c for comments */
-  if (B2 == 0.0)
+  if (IS_DEFAULT_B2(B2))
     B2 = pow (2.0 * B1 / 6.0, 1.424828748);
 
   /* Scale B2 by what the user said (or by the default scaling of 1.0) */
@@ -443,7 +443,7 @@ pp1 (mpz_t f, mpz_t p, mpz_t n, mpz_t go, double B1done, double B1,
   if (verbose >= 1)
     {
       printf ("Using ");
-      if (B1done == 1.0)
+      if (IS_DEFAULT_B1_DONE(B1done))
         printf("B1=%1.0f", B1);
       else
         printf("B1=%1.0f-%1.0f", B1done, B1);
@@ -453,7 +453,7 @@ pp1 (mpz_t f, mpz_t p, mpz_t n, mpz_t go, double B1done, double B1,
         printf(", B2=%1.0f-%1.0f", B2min, B2);
 
       printf (", polynomial x^1");
-      if (B1done == 1.0 || verbose > 1) /* don't print x0 in resume case */
+      if (IS_DEFAULT_B1_DONE(B1done) || verbose > 1) /* don't print x0 in resume case */
 	{
 	  printf (", x0=");
 	  mpz_out_str (stdout, 10, p);

@@ -110,6 +110,16 @@
 
 /* maximal stage 1 bound = 2^53 + 4, the next prime being 2^53 + 5 */
 #define MAX_B1 9007199254740996.0
+#define DEFAULT_B1_DONE 1.0
+#define IS_DEFAULT_B1_DONE(x) (x <= 1.0)
+
+/* stage 2 bound */
+#define DEFAULT_B2 -1.0
+#define IS_DEFAULT_B2(x) (x < 0.0)
+
+/* getprime */
+#define FREE_PRIME_TABLE -1.0
+#define WANT_FREE_PRIME_TABLE(p) (p < 0.0)
 
 /* The checksum for savefile is the product of all mandatory fields, modulo
    the greatest prime below 2^32 */
@@ -249,6 +259,7 @@ typedef struct
 extern "C" {
 #endif  
 
+  /* getprime.c */
 double   getprime       (double);
 
 /* auxi.c */

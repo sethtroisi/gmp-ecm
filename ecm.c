@@ -356,15 +356,16 @@ prac (mpres_t xA, mpres_t zA, unsigned long k, mpmod_t n, mpres_t b,
   unsigned long d, e, r, i = 0;
   double c, cmin;
   __mpz_struct *tmp;
-  static double val[] =
+#define NV 10  
+  static double val[NV] =
     { 1.61803398875, 1.72360679775, 1.618347119656, 1.617914406529,
       1.612429949509, 1.632839806089, 1.620181980807, 1.580178728295,
-      1.617214616534, 1.38196601125, 0.0 };
+      1.617214616534, 1.38196601125 };
   
   /* chooses the best value of v */
-  for (d = 0, cmin = ADD * (double) k; (c = val[d]) != 0.0; d++)
+  for (d = 0, cmin = ADD * (double) k; d < NV; d++)
     {
-      c = lucas_cost (k, c);
+      c = lucas_cost (k, val[d]);
       if (c < cmin)
         {
           cmin = c;
@@ -566,7 +567,7 @@ ecm_stage1 (mpz_t f, mpres_t x, mpres_t A, mpmod_t n, double B1, double B1done,
 	  prac (x, z, (unsigned long) q, n, b, u, v, w, xB, zB, xC, zC, xT,
 		zT, xT2, zT2);
     }
-  getprime (0.0); /* free the prime tables, and reinitialize */
+  getprime (FREE_PRIME_TABLE); /* free the prime tables, and reinitialize */
 
   /* Normalize z to 1 */
   if (!mpres_invert (u, z, n)) /* Factor found? */
@@ -629,7 +630,7 @@ ecm (mpz_t f, mpz_t x, mpz_t sigma, mpz_t n, mpz_t go, double B1done,
      addition and duplicate, and both are optimized with PRAC, we can
      assume the ratio remains about 11/2. */
 
-  if (B2 == 0.0)
+  if (IS_DEFAULT_B2(B2))
     B2 = pow (11.0 / 6.0 * B1, 1.424828748);
 
   /* Scale B2 by what the user said (or by the default scaling of 1.0) */

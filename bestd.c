@@ -21,7 +21,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <math.h>
-#include <float.h> /* for DBL_MAX */
+#include <limits.h> /* for UINT_MAX */
 #include "gmp.h"
 #include "ecm.h"
 
@@ -80,7 +80,8 @@ od:
 
   unsigned int i;
   unsigned int d, d2, dmin = 0, d2min = 1, dF;
-  double j, dd2, jmin = DBL_MAX;
+  double dd2, jf;
+  unsigned int j, jmin = UINT_MAX;
   int found = 0; /* non-zero when some j >= k0 was found */
 
   for (i = 0; i < N; i++)
@@ -98,20 +99,20 @@ od:
       if (d2 >= 25 || d2 - 1 > dF)
         d2 = 1;
       dd2 = (double) d * (double) d2;
-      j = ceil (B2 / dd2) - floor (B2min / dd2);
-      j = ceil (j / (double) dF * (double) phi (d2));
+      jf = ceil (B2 / dd2) - floor (B2min / dd2);
+      j = (unsigned int) ceil (jf / (double) dF * (double) phi (d2));
       /* warning: if B2min=B2, we may always have j=1 here */
-      if (j >= (double) k0 || found == 0)
+      if (j >= k0 || found == 0)
 	{
 	  /* if found=0 and j>=k0: forgot previous and keep that one */
-	  if ((found == 0 && j >= (double) k0) || j < jmin
+	  if ((found == 0 && j >= k0) || j < jmin
 	      || (j == jmin && d < dmin))
 	    {
 	      dmin = d;
 	      d2min = d2;
 	      jmin = j;
 	    }
-	  found = (j >= (double) k0);
+	  found = (j >= k0);
 	}
     }
 
@@ -121,7 +122,7 @@ od:
       exit (1);
     }
 
-  *k = (unsigned int) jmin;
+  *k = jmin;
   *finald = dmin;
   *finald2 = d2min;
   
