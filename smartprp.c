@@ -1,6 +1,6 @@
 /* smartprp.c - probable primality test routines.
 
-  Copyright 2004 Jim Fougeron.
+  Copyright 2004, 2005 Jim Fougeron, Paul Zimmermann.
 
   This program is free software; you can redistribute it and/or modify it
   under the terms of the GNU General Public License as published by the
