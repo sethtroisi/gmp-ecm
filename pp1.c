@@ -29,9 +29,6 @@
 #include <math.h>
 #include <stdio.h>
 #include "gmp.h"
-#ifndef PRAC
-#include "longlong.h" /* needed for count_leading_zeros */
-#endif
 #include "ecm.h"
 
 /******************************************************************************
@@ -106,6 +103,18 @@ pp1_mul (mpz_t P1, mpz_t P0, mpz_t e, mpz_t n, mpz_t P, mpz_t Q)
   mpz_mod (P1, P, n);
 }
 
+int
+count_significant_bits (mp_limb_t e)
+{
+  int i = 0;
+  while (e)
+    {
+      e >>= 1;
+      i ++;
+    }
+  return i;
+}
+
 #ifndef PRAC
 /* P1 <- V_e(P0), using P, Q as auxiliary variables */
 void
@@ -116,15 +125,13 @@ pp1_mul_ui (mpz_t P1, mpz_t P0, unsigned long e, mpz_t n, mpz_t P, mpz_t Q)
 
   e = e - 1;
 
-  /* warning: count_leading_zeros is undefined for 0 */
   if (e == 0)
     {
       mpz_set (P1, P0);
       return;
     }
 
-  count_leading_zeros (i, e);
-  i = mp_bits_per_limb - i;
+  i = count_significant_bits (e);
   mask = (mp_limb_t) 1 << (i - 1);
   mpz_set (P, P0);
   mpz_set_ui (Q, 2);
