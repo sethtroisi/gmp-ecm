@@ -153,6 +153,14 @@ list_revert (listz_t p, unsigned int n)
     mpz_swap (p[i], p[n - i]);
 }
 
+void
+list_swap (listz_t p, listz_t q, unsigned int n)
+{
+  unsigned int i;
+  for (i = 0; i < n; i++)
+    mpz_swap (p[i], q[i]);
+}
+
 /* p <- -q, keeps residues normalized */
 void
 list_neg (listz_t p, listz_t q, unsigned int l, mpz_t n)
@@ -312,9 +320,13 @@ list_mul_low (listz_t a, listz_t b, listz_t c, unsigned int K, listz_t t, mpz_t 
    Needs space for list_mul_mem(K) in t.
 */
 int
-list_mul_high (listz_t a, listz_t b, listz_t c, unsigned int K, listz_t t, mpz_t n)
+list_mul_high (listz_t a, listz_t b, listz_t c, unsigned int K, listz_t t)
 {
   unsigned int p, q, muls;
+
+#ifdef KS_MULTIPLY /* ks is faster */
+  return LIST_MULT_N (a, b, c, K, t);
+#endif
 
   switch (K)
     {
@@ -339,13 +351,12 @@ list_mul_high (listz_t a, listz_t b, listz_t c, unsigned int K, listz_t t, mpz_t
       for (p = 1; MULT * p <= K; p *= MULT);
       p = (K / p) * p;
       q = K - p;
-      ASSERTD(list_check(b+q,p,n) && list_check(c+q,p,n));
       muls = LIST_MULT_N (a + 2 * q, b + q, c + q, p, t);
       if (q)
         {
-          muls += list_mul_high (t, b + p, c, q, t + 2 * q - 1, n);
+          muls += list_mul_high (t, b + p, c, q, t + 2 * q - 1);
           list_add (a + K - 1, a + K - 1, t + q - 1, q);
-          muls += list_mul_high (t, c + p, b, q, t + 2 * q - 1, n);
+          muls += list_mul_high (t, c + p, b, q, t + 2 * q - 1);
           list_add (a + K - 1, a + K - 1, t + q - 1, q);
         }
       return muls;
@@ -489,8 +500,7 @@ karatsuba (listz_t a, listz_t b, listz_t c, unsigned int K, listz_t t)
 */
 int
 list_mul (listz_t a, listz_t b, unsigned int k, int monic_b,
-          listz_t c, unsigned int l, int monic_c,
-          listz_t t, mpz_t n)
+          listz_t c, unsigned int l, int monic_c, listz_t t)
 {
   unsigned int i, po2, muls;
 
@@ -502,8 +512,6 @@ list_mul (listz_t a, listz_t b, unsigned int k, int monic_b,
   if (Fermat && !(po2 && l == k))
     printf ("list_mul: Fermat number, but poly lengths %d and %d\n", k, l);
 
-  ASSERTD(list_check(b,l,n));
-  ASSERTD(list_check(c,l,n));
   if (po2 && Fermat)
     {
       if (monic_b && monic_c && l == k)
@@ -645,7 +653,7 @@ PolyFromRoots (listz_t G, listz_t a, unsigned int k, listz_t T, int verbose,
 
    muls = PolyFromRoots (H1, a, l, T, 0, n, F, NextTree, sh);
    muls += PolyFromRoots (H1 + l, a + l, m, T, 0, n, F, NextTree, sh + l);
-   muls += list_mul (T, H1, l, 1, H1 + l, m, 1, T + k, n);
+   muls += list_mul (T, H1, l, 1, H1 + l, m, 1, T + k);
    list_mod (G, T, k, n);
    
    if (verbose >= 2)
@@ -693,7 +701,7 @@ PolyInvert (listz_t q, listz_t b, unsigned int K, listz_t t, mpz_t n)
             muls += F_mul (t + k, q + k, b + l, k, DEFAULT, Fermat, t + k + K); /* t[k ... l+k-1] = Q1 * B1 */
           else
             muls += list_mul (t + k, q + k, l - 1, 1, b + l, k - 1, 1,
-                              t + k + K - 2, n); /* Q1 * B1 */
+                              t + k + K - 2); /* Q1 * B1 */
           list_sub (t + 1, t + 1, t + k, k - 1);
         }
       list_mod (t, t, k, n); /* high(1-B*Q1) */
@@ -829,11 +837,7 @@ PrerevertDivision (listz_t a, listz_t b, listz_t invb,
     }
   else
     {
-#ifdef KS_MULTIPLY /* ks is faster */
-      muls = LIST_MULT_N (t, a + K, invb, K - 1, t + 2 * K - 3);
-#else
-      muls = list_mul_high (t, a + K, invb, K - 1, t + 2 * K - 3, n);
-#endif
+      muls = list_mul_high (t, a + K, invb, K - 1, t + 2 * K - 3);
       list_mod (a + K, t + K - 2, K - 1, n);
     }
 

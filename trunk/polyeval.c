@@ -105,8 +105,8 @@ polyeval (listz_t G, unsigned int k, listz_t *Tree, listz_t T, mpz_t n,
 }
 
 #ifdef TUPTREE_DEBUG
-
-void print_vect (listz_t t, unsigned int l)
+void
+print_vect (listz_t t, unsigned int l)
 {
     unsigned int i;
 
@@ -120,7 +120,6 @@ void print_vect (listz_t t, unsigned int l)
             printf ("]");
     }
 }
-
 #endif
 
 /* Computes TUpTree as described in ref[1]. k is the degree of the
@@ -142,10 +141,7 @@ TUpTree (listz_t b, listz_t *Tree, unsigned int k,
     l = k - m;
     
     if (k == 1)
-      {
-        mpz_mod (b[0], b[0], n);
-        return 0;
-      }
+      return 0;
    
 #ifdef TUPTREE_DEBUG
     printf ("In TupTree, k = %d.\n", k);
@@ -181,8 +177,7 @@ TUpTree (listz_t b, listz_t *Tree, unsigned int k,
     list_add (tmp, tmp, b + m, l);
     list_add (tmp + l, tmp + l, b + l, m);
 
-    list_mod (b, tmp, l, n);
-    list_mod (b + l, tmp + l, m, n);
+    list_mod (b, tmp, k, n); /* reduce both parts simultaneously */
 
 #ifdef TUPTREE_DEBUG
     printf ("And the result at this level is:");
@@ -227,10 +222,8 @@ TUpTree_space (unsigned int k)
     return r1;
 }
 
-
 /* Same as polyeval. Needs invF as extra argument.
  */
-
 unsigned int
 polyeval_tellegen (listz_t b, unsigned int k, listz_t *Tree, listz_t tmp,
                    unsigned int sizeT, listz_t invF, mpz_t n, unsigned int sh)
@@ -272,8 +265,8 @@ polyeval_tellegen (listz_t b, unsigned int k, listz_t *Tree, listz_t tmp,
 #endif
 #else
     /* need space 2k-1+list_mul_mem(k) in T */
-    muls = list_mul_high (T, invF, b, k, T + 2 * k - 1, n);
-    list_set (T, T + k - 1, k);
+    muls = list_mul_high (T, invF, b, k, T + 2 * k - 1);
+    list_mod (T, T + k - 1, k, n);
 #endif
     totmuls += muls;
 #ifdef TELLEGEN_DEBUG
@@ -288,7 +281,8 @@ polyeval_tellegen (listz_t b, unsigned int k, listz_t *Tree, listz_t tmp,
     print_list (T, k);
 #endif
     totmuls += TUpTree (T, Tree, k, T + k, sh, n);
-    list_set (b, T, k);
+    list_swap (b, T, k); /* more efficient than list_set, since T is not
+                            needed anymore */
 
     if (allocated)
       clear_list (T, tupspace);

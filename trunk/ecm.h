@@ -276,6 +276,7 @@ void         clear_list (listz_t, unsigned int);
 void         print_list (listz_t, unsigned int);
 void         list_set   (listz_t, listz_t, unsigned int);
 void         list_revert (listz_t, unsigned int);
+void         list_swap  (listz_t, listz_t, unsigned int);
 void         list_neg   (listz_t, listz_t, unsigned int, mpz_t);
 void         list_mod   (listz_t, listz_t, unsigned int, mpz_t);
 void         list_add   (listz_t, listz_t, listz_t, unsigned int);
@@ -285,12 +286,12 @@ int          list_gcd   (mpz_t, listz_t, unsigned int, mpz_t);
 void         list_zero  (listz_t, unsigned int);
 int          list_zerop (listz_t, unsigned int);
 int          list_check (listz_t, unsigned int, mpz_t);
-int       list_mul_high (listz_t, listz_t, listz_t, unsigned int, listz_t, mpz_t);
+int       list_mul_high (listz_t, listz_t, listz_t, unsigned int, listz_t);
 int       toomcook4_low (listz_t, listz_t, listz_t, unsigned int, listz_t);
 int      toomcook4_high (listz_t, listz_t, listz_t, unsigned int, listz_t);
 int          karatsuba  (listz_t, listz_t, listz_t, unsigned int, listz_t);
 int          list_mul   (listz_t, listz_t, unsigned int, int, listz_t,
-                         unsigned int, int, listz_t, mpz_t);
+                         unsigned int, int, listz_t);
 int         list_mulmod (listz_t, listz_t, listz_t, listz_t, unsigned int,
                          listz_t, mpz_t);
 int       PolyFromRoots (listz_t, listz_t, unsigned int, listz_t, int, mpz_t,
