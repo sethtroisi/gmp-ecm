@@ -1,3 +1,23 @@
+/* ecm.h - header file for gmp-ecm
+ 
+  Copyright 2001, 2002, 2003 Alexander Kruppa and Paul Zimmermann.
+ 
+  This program is free software; you can redistribute it and/or modify it
+  under the terms of the GNU General Public License as published by the
+  Free Software Foundation; either version 2 of the License, or (at your
+  option) any later version.
+ 
+  This program is distributed in the hope that it will be useful, but WITHOUT
+  ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+  FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License for
+  more details.
+ 
+  You should have received a copy of the GNU General Public License along
+  with this program; see the file COPYING.  If not, write to the Free
+  Software Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA
+  02111-1307, USA.
+*/
+
 #define ECM_VERSION "5.0"
 
 #include <stdio.h>
@@ -82,10 +102,11 @@ unsigned int nb_digits  (mpz_t);
 unsigned int gcd        (unsigned int, unsigned int);
 void         mpz_sub_si (mpz_t, mpz_t, int);
 unsigned int ceil_log2  (unsigned int);
+int          cputime    ();
 
 /* pm1.c */
 void    pm1_random_seed  (mpz_t, mpz_t, gmp_randstate_t);
-int          pm1         (mpz_t, mpz_t, mpz_t, double, double, double, 
+int          pm1         (mpz_t, mpz_t, mpz_t, double, double, double, double,
                           unsigned int, int, int, int);
 int     pm1_rootsF       (mpz_t, listz_t, unsigned int, mpres_t *, listz_t,
                           int, mpmod_t, int);
@@ -98,7 +119,7 @@ int     pm1_rootsG       (mpz_t, listz_t, unsigned int, mpres_t *, listz_t,
 
 
 /* ecm.c */
-int          ecm        (mpz_t, mpz_t, mpz_t, mpz_t, double, double, 
+int          ecm        (mpz_t, mpz_t, mpz_t, mpz_t, double, double, double,
                          double, unsigned int, int, int, int);
 unsigned int phi        (unsigned int);
 unsigned int bestD      (double);
@@ -119,7 +140,7 @@ int          pp1_mul     (mpres_t, mpres_t, mpz_t, mpmod_t, mpres_t, mpres_t);
 int          pp1_mul_prac(mpres_t, unsigned long, mpmod_t, mpres_t, mpres_t,
                           mpres_t, mpres_t, mpres_t);
 void    pp1_random_seed  (mpz_t, mpz_t, gmp_randstate_t);
-int          pp1         (mpz_t, mpz_t, mpz_t, double, double, double, 
+int          pp1         (mpz_t, mpz_t, mpz_t, double, double, double, double,
                           unsigned int, unsigned int, int, int);
 int   pp1_rootsF         (listz_t, unsigned int, mpres_t *, listz_t,
                           mpmod_t, int);
@@ -128,8 +149,8 @@ void  pp1_rootsG_clear   (mpres_t *, mpmod_t);
 int   pp1_rootsG         (listz_t, unsigned int, mpres_t *, mpmod_t, int);
 
 /* stage2.c */
-int          stage2     (mpz_t, void *, mpmod_t, double, unsigned int, 
-                         unsigned int, int, int, double);
+int          stage2     (mpz_t, void *, mpmod_t, double, double, unsigned int, 
+                         unsigned int, int, int);
 void  fin_diff_coeff    (listz_t coeffs, unsigned int s, unsigned int D, 
                          unsigned int E, int dickson_a);
 
@@ -168,7 +189,7 @@ void      poly_submul2 (listz_t, listz_t, listz_t, unsigned int, mpz_t, mpz_t);
 int          list_invert (listz_t, listz_t, unsigned int, mpz_t, mpz_t);
 
 /* polyeval.c */
-void polyeval (listz_t, unsigned int, listz_t*, listz_t, mpz_t, int,
+unsigned int polyeval (listz_t, unsigned int, listz_t*, listz_t, mpz_t, int,
                unsigned int);
 
 /* toomcook.c */
