@@ -780,7 +780,7 @@ pm1 (mpz_t f, mpz_t p, mpz_t N, mpz_t go, double B1done, double B1, double B2min
     {
       /* Find a good arithmetic for this number */
       Nbits = mpz_sizeinbase (N, 2);
-      base2 = (repr == 0) ? isbase2 (N, 2.0) : 0;
+      base2 = (repr == 0) ? isbase2 (N, BASE2_THRESHOLD) : 0;
       smallbase = mpz_fits_uint_p (p);
 
       /* TODO: make dependent on Nbits and base2 */

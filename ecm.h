@@ -67,6 +67,9 @@
 #define MPZMOD_THRESHOLD_DEFAULT (3 * DIV_DC_THRESHOLD / 2)
 #define REDC_THRESHOLD_DEFAULT   (2 * DIV_DC_THRESHOLD)
 
+/* base2mod is used when size(2^n+/-1) <= BASE2_THRESHOLD * size(cofactor) */
+#define BASE2_THRESHOLD 1.4
+
 /* default number of probable prime tests */
 #define PROBAB_PRIME_TESTS 1
 
