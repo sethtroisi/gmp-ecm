@@ -169,7 +169,7 @@ stage2 (mpz_t f, void *X, mpmod_t modulus, double B2min, double B2,
     {
       fprintf (stderr, "Error, too small B1 or B2min, increase k or use B1>=%u at least\n",
 	       ((method == EC_METHOD) ? 2 : 1) * d);
-      exit (1);
+      exit (EXIT_FAILURE);
     }
 
   b2 = block_size (d);

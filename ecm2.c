@@ -105,7 +105,7 @@ multiplyW2 (mpz_t p, mpres_t x1, mpres_t y1, mpres_t x, mpres_t y, mpz_t q,
   if (sign_q == 0)
     {
       fprintf (stderr, "Error: q=0 in multiplyW2\n");
-      exit (1);
+      exit (EXIT_FAILURE);
     }
 
   if (sign_q < 0)
