@@ -33,6 +33,15 @@ ToDo's:
 	remains to do: rho.c bestd.c auxlib.c random.c
   (c) have polygcd in stage 2 (to use less memory)
   (d) get rid of the mpz_ layer (Magma only uses mpn currently)
+- proposal from Karim Belabas <Karim.BELABAS@math.u-psud.fr>: define an
+	abstract interface for the parameters, to be able to modify it
+	in the future, for example:
+   int
+   ecm(mpz_t,               /* n:number to factor */
+       struct ecm_params *, /* all technical parameters */
+       struct ecm_debug *); /* all verbosity/debugging parameters */
+
+   where ecm (N, NULL, NULL) would give the default behaviour.
 
 3) new features
 - implement Brent-Suyama's extension for p+1 (how to do it efficiently?
