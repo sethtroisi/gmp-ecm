@@ -26,6 +26,11 @@
 #include "gmp.h"
 #include "ecm.h"
 
+#if defined(__sun__) || defined(sun)
+/* for finite() */
+#include <ieeefp.h>
+#endif
+
 /* #define SAVE_TREE */
 
 void mpz_d_pow_ui (mpz_t, double, unsigned long int);
@@ -298,7 +303,7 @@ stage2 (mpz_t f, void *X, mpmod_t modulus, double B2min, double B2,
 
   sizeT = 3 * dF + list_mul_mem (dF);
   if (dF > 3)
-    sizeT += dF;  /* "- 3" removed, Alex */
+    sizeT += dF;
   T = init_list (sizeT);
   H = T;
 
@@ -376,7 +381,7 @@ stage2 (mpz_t f, void *X, mpmod_t modulus, double B2min, double B2,
     {
       /* only dF-1 coefficients of 1/F are needed to reduce G*H,
          but we need one more for TUpTree */
-      invF = init_list (dF + 1); /* added "+ 1", F_mul need dF instead of dF-1, Alex */
+      invF = init_list (dF + 1);
       st = cputime ();
       PolyInvert (invF, F + 1, dF, T, n);
 
@@ -486,7 +491,7 @@ stage2 (mpz_t f, void *X, mpmod_t modulus, double B2min, double B2,
 	  st = cputime ();
 	  /* previous G mod F is in H, with degree < dF, i.e. dF coefficients:
 	     requires 3dF-1+list_mul_mem(dF) cells in T */
-	  list_mulmod (H, T + dF, G, H, dF, T + 3 * dF - 1 + 1, n); /* added "+ 1", Alex */
+	  list_mulmod (H, T + dF, G, H, dF, T + 3 * dF, n);
 
           if (verbose >= 2)
             printf ("Computing G * H took %ums\n", cputime() - st);
