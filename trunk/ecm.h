@@ -27,6 +27,7 @@ void         rootsG     (listz_t, unsigned int, mpz_t, mpz_t, mpz_t, mpz_t,
 int          stage2     (mpz_t, mpz_t, double, unsigned int, int);
 
 /* listz.c */
+int          list_mul_mem (unsigned int);
 listz_t      init_list  (unsigned int);
 void         clear_list (listz_t, unsigned int);
 void         print_list (listz_t, unsigned int);
@@ -36,8 +37,9 @@ void         list_add   (listz_t, listz_t, listz_t, unsigned int);
 void         list_sub   (listz_t, listz_t, listz_t, unsigned int);
 int          list_zerop (listz_t, unsigned int);
 void         karatsuba  (listz_t, listz_t, listz_t, unsigned int, listz_t);
+int          toomcook3  (listz_t, listz_t, listz_t, unsigned int, listz_t);
 void         list_mul   (listz_t, listz_t, unsigned int, listz_t, unsigned int,
-			 listz_t, int);
+			 listz_t);
 void        list_mulmod (listz_t, listz_t, listz_t, unsigned int, listz_t,
 			 mpz_t);
 void         buildG     (listz_t, unsigned int, listz_t, int, mpz_t, char);
