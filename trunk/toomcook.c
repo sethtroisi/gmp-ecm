@@ -38,8 +38,6 @@
 #define t2 t[2*l+i-1]
 #define T  t[4*l-2]
 
-#define ABS(x) (((x) >= 0) ? (x) : (-(x)))
-
 /* Divide RS by 3. RS must be multiple of 3 or result will be undefined */
 void
 mpz_divby3_1op (mpz_t RS)
