@@ -112,7 +112,7 @@ Step-by-step instructions, courtesy of Jes Hansen:
 
 4) Download the latest version of GMP from http://www.swox.com/gmp/ and 
    place it in your newly created home folder. (At the time of writing
-   the latest version of GMP is 4.1.4, this will be assume for the rest of 
+   the latest version of GMP is 4.1.4, this will be assumed for the rest of 
    this document.)
 
 5) Download GMP-ECM (if you do not have it already) from
