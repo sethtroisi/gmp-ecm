@@ -1,0 +1,4 @@
+What remains to do:
+
+- implement ECM stage 1 in ecm.c, and call stage2 from stage2.c.
+- add option -save file to save result of stage 1 in a file (Paul Leyland)
