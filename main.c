@@ -912,7 +912,7 @@ BreadthFirstDoAgain:;
       cnt --; /* one more curve performed */
 
       if (method == PM1_METHOD)
-        result = pm1 (f, x, n.n, B1done, B1, B2min, B2, B2scale, k, S, verbose, repr);
+        result = pm1 (f, x, n.n, B1done, B1, B2min, B2, B2scale, k, S, verbose, repr, orig_x0);
       else if (method == PP1_METHOD)
         result = pp1 (f, x, n.n, B1done, B1, B2min, B2, B2scale, k, S, verbose, repr);
       else /* ECM */
