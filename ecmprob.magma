@@ -1,0 +1,74 @@
+SetVerbose("MPQS",false); // disable MPQS messages (if any)
+
+FindGroupOrder := function (p, sigma)
+   K := GF(p);
+   v := K ! (4*sigma);
+   u := K ! (sigma^2-5);
+   x := u^3;
+   b := 4*x*v;
+   a := (v-u)^3*(3*u+v);
+   A := a/b-2;
+   x := x/v^3;
+   b := x^3 + A*x^2 + x;
+   E := EllipticCurve([0,b*A,0,b^2,0]);
+   return FactoredOrder(E);
+end function;
+
+// ecmprob(20, 11000, 1583400, 1000, 6);
+// sigma=6: n= 1000 e2= 3.269 e3= 1.696 e5= 0.281 success= 13/1000
+// sigma=7: n= 1000 e2= 3.304 e3= 1.656 e5= 0.29 success= 11/1000
+// sigma=1/4: n= 1000 e2= 3.327 e3= 1.687 e5= 0.298 success= 3/200
+// ecmprob(25, 50000, 14201460, 1000, 6);
+// sigma=6: n= 1000 e2= 3.353 e3= 1.665 e5= 0.319 success= 3/1000
+// sigma=7: n= 1000 e2= 3.293 e3= 1.662 e5= 0.299 success= 1/250
+// sigma=1/4: n= 1000 e2= 3.374 e3= 1.646 e5= 0.291 success= 3/500
+// ecmprob(30, 250000, 173213040, 1000, 6);
+// sigma=6: n= 1000 e2= 3.369 e3= 1.655 e5= 0.314 success= 1/250
+// sigma=7: n= 1000 e2= 3.219 e3= 1.676 e5= 0.308 success= 1/500
+// sigma=1/4: n= 1000 e2= 3.373 e3= 1.678 e5= 0.287 success= 3/1000
+// ecmprob(35, 1000000, 975508380, 1000, 6);
+// sigma=6: n= 1000 e2= 3.39 e3= 1.699 e5= 0.292 success= 3/1000
+// sigma=7: n= 1000 e2= 3.292 e3= 1.665 e5= 0.329 success= 1/1000
+// sigma=1/4: n= 1000 e2= 3.346 e3= 1.675 e5= 0.321 success= 1/1000
+// ecmprob(40, 3000000, 4595040450, 1000, 6);
+// sigma=6: n= 1000 e2= 3.391 e3= 1.667 e5= 0.298 success= 1/1000
+// sigma=7: n= 1000 e2= 3.237 e3= 1.685 e5= 0.308 success= 1/1000
+// sigma=1/4: n= 1000 e2= 3.335 e3= 1.657 e5= 0.251 success= 0
+// ecmprob(45, 11000000, 30114892080, 1000, 6);
+// sigma=6: n= 1000 e2= 3.244 e3= 1.721 e5= 0.317 success= 0
+// sigma=1/4: n= 1000 e2= 3.295 e3= 1.647 e5= 0.305 success= 0
+// ecmprob(50, 43000000, 198674155680, 1000, 6);
+// sigma=1/4: n= 1000 e2= 3.396 e3= 1.655 e5= 0.267 success= 0
+ecmprob := procedure (d, B1, B2, N, sigma)
+local p, g, n, e2, e3, e5, i, success, l, S, T;
+   T := RealField(d);
+   p := Ceiling(Exp((T ! d - T ! 0.5) * Log(T ! 10.0)));
+   S := RealField(8);
+   e2 := S ! 0.0;
+   e3 := S ! 0.0;
+   e5 := S ! 0.0;
+   n := 0; // number of primes
+   success := 0;
+   for n := 1 to N do
+      p := NextPrime (p : Proof := false);
+      g := FindGroupOrder (p, sigma);
+      i := 1;
+      l := #g;
+      if l ge i and g[i][1] eq 2 then
+         e2 := e2 + g[i][2];
+         i := i + 1;
+      end if;
+      if l ge i and g[i][1] eq 3 then
+         e3 := e3 + g[i][2];
+         i := i + 1;
+      end if;
+      if l ge i and g[i][1] eq 5 then
+         e5 := e5 + g[i][2];
+         i := i + 1;
+      end if;
+      if g[l][1] le B2 and (l eq 1 or g[l-1][1] le B1) then
+         success := success + 1;
+      end if;
+      print "n=",n,"e2=",e2/n,"e3=",e3/n,"e5=",e5/n,"success=",success/n;
+   end for;
+end procedure;

@@ -542,7 +542,8 @@ stage2 (mpz_t f, void *X, mpmod_t modulus, double B2min, double B2,
 	youpi = pm1_rootsG (f, G, dF, (pm1_roots_state *) rootsG_state, T + dF,
 			    modulus);
       else if (method == ECM_PP1)
-        youpi = pp1_rootsG (G, dF, (pp1_roots_state *) rootsG_state, modulus);
+        youpi = pp1_rootsG (G, dF, (pp1_roots_state *) rootsG_state, modulus,
+                            (mpres_t *) X);
       else
 	youpi = ecm_rootsG (f, G, dF, (ecm_roots_state *) rootsG_state, 
 			    modulus);

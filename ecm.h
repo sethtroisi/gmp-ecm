@@ -51,7 +51,7 @@ void ecm_clear (ecm_params);
 int ecm (mpz_t, mpz_t, mpz_t, mpz_t, mpz_t, double, double, double, double,
          double, unsigned int, int, int, int, int, FILE*, FILE*, char*);
 int pp1 (mpz_t, mpz_t, mpz_t, mpz_t, double, double, double, double, 
-         double, unsigned int, unsigned int, int, int, FILE*, FILE*, char*);
+         double, unsigned int, int, int, int, FILE*, FILE*, char*);
 int pm1 (mpz_t, mpz_t, mpz_t, mpz_t, double, double, double, 
           double, double, unsigned int, int, int, int, FILE*, FILE*, char*);
 
