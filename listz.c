@@ -194,8 +194,12 @@ list_neg (listz_t p, listz_t q, unsigned int l, mpz_t n)
   unsigned int i;
 
   for (i = 0; i < l; i++)
-    if (mpz_sgn (p[i]))
-      mpz_sub (p[i], n, q[i]);
+    {
+      if (mpz_sgn (p[i]))
+        mpz_sub (p[i], n, q[i]);
+      else
+        mpz_set_ui (p[i], 0);
+    }
 }
 
 /* p <- q modulo mod */
