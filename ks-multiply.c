@@ -81,8 +81,10 @@ kronecker_schonhage (listz_t R, listz_t A, listz_t B, unsigned int l,
 
   for (i = 0; i < l; i++)
     {
-      MPN_COPY (t0_ptr + i * s, PTR(A[i]), SIZ(A[i]));
-      MPN_COPY (t1_ptr + i * s, PTR(B[i]), SIZ(B[i]));
+      if (SIZ(A[i]))
+        MPN_COPY (t0_ptr + i * s, PTR(A[i]), SIZ(A[i]));
+      if (SIZ(B[i]))
+        MPN_COPY (t1_ptr + i * s, PTR(B[i]), SIZ(B[i]));
     }
 
   t2_ptr = (mp_ptr) xmalloc (2 * size_t0 * sizeof (mp_limb_t));
@@ -94,7 +96,8 @@ kronecker_schonhage (listz_t R, listz_t A, listz_t B, unsigned int l,
       size_tmp = s;
       MPN_NORMALIZE(t2_ptr + i * s, size_tmp);
       r_ptr = MPZ_REALLOC (R[i], size_tmp);
-      MPN_COPY (r_ptr, t2_ptr + i * s, size_tmp);
+      if (size_tmp)
+        MPN_COPY (r_ptr, t2_ptr + i * s, size_tmp);
       SIZ(R[i]) = size_tmp;
     }
 
@@ -175,9 +178,11 @@ TMulKS (listz_t b, unsigned int n, listz_t a, unsigned int m,
 
   /* a is reverted */
   for (i = 0; i <= m; i++)
-    MPN_COPY (ap + ((rev) ? (m - i) : i) * s, PTR(a[i]), SIZ(a[i]));
+    if (SIZ(a[i]))
+      MPN_COPY (ap + ((rev) ? (m - i) : i) * s, PTR(a[i]), SIZ(a[i]));
   for (i = 0; i <= l; i++)
-    MPN_COPY (cp + i * s, PTR(c[i]), SIZ(c[i]));
+    if (SIZ(c[i]))
+      MPN_COPY (cp + i * s, PTR(c[i]), SIZ(c[i]));
 
 #ifdef FFT_WRAP
   /* the product rev(a) * c has m+l+1 coefficients.
@@ -203,9 +208,9 @@ TMulKS (listz_t b, unsigned int n, listz_t a, unsigned int m,
     {
       t = s;
       MPN_NORMALIZE(bp, t);
-      if (t==0) abort();
       _mpz_realloc (b[i], t);
-      MPN_COPY (PTR(b[i]), bp, t);
+      if (t)
+        MPN_COPY (PTR(b[i]), bp, t);
       SIZ(b[i]) = t;
       bp += s;
     }
@@ -290,9 +295,11 @@ ks_wrapmul (listz_t R, unsigned int m0,
   MPN_ZERO (t1_ptr, size_t1);
 
   for (i = 0; i < k; i++)
-    MPN_COPY (t0_ptr + i * s, PTR(A[i]), SIZ(A[i]));
+    if (SIZ(A[i]))
+      MPN_COPY (t0_ptr + i * s, PTR(A[i]), SIZ(A[i]));
   for (i = 0; i < l; i++)
-    MPN_COPY (t1_ptr + i * s, PTR(B[i]), SIZ(B[i]));
+    if (SIZ(B[i]))
+      MPN_COPY (t1_ptr + i * s, PTR(B[i]), SIZ(B[i]));
 
   fft_k = mpn_fft_best_k (m0 * s, 0);
   i = mpn_fft_next_size (m0 * s, fft_k);
@@ -323,7 +330,8 @@ ks_wrapmul (listz_t R, unsigned int m0,
       else
 	negative = 0;
       r_ptr = MPZ_REALLOC (R[i], size_tmp);
-      MPN_COPY (r_ptr, tp, size_tmp);
+      if (size_tmp)
+        MPN_COPY (r_ptr, tp, size_tmp);
       SIZ(R[i]) = (negative) ? -size_tmp : size_tmp;
       tp += s;
     }
