@@ -259,6 +259,7 @@ ecm_redc_basecase (mpz_ptr r, mpz_ptr c, mpmod_t modulus)
   np = PTR(modulus->orig_modulus);
   for (j = ABSIZ(c); j < 2 * nn; j++) 
     cp[j] = 0;
+#ifndef NATIVE_REDC
   for (j = 0; j < nn; j++)
     {
       cp[0] = mpn_addmul_1 (cp, np, nn, cp[0] * modulus->Nprim);
@@ -266,6 +267,11 @@ ecm_redc_basecase (mpz_ptr r, mpz_ptr c, mpmod_t modulus)
     }
   /* add vector of carries and shift */
   cy = mpn_add_n (rp, cp, cp - nn, nn);
+#else
+  ecm_redc3 (cp, np, nn, modulus->Nprim);
+  /* add vector of carries and shift */
+  cy = mpn_add_n (rp, cp + nn, cp, nn);
+#endif
   /* the result of Montgomery's REDC is less than 2^Nbits + N,
      thus at most one correction is enough */
   if (cy != 0)

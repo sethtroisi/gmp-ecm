@@ -37,6 +37,8 @@ GCOVFLAGS=
 
 VERSION=5.1.2-beta
 
+# define EXTRAOBJS=redc.o to get assembly code for redc
+
 ###################### do not edit below this line ############################
 
 OBJS= auxi.o b1_ainc.o bestd.o candi.o ecm.o ecm2.o eval.o getprime.o listz.o lucas.o main.o pm1.o pp1.o stage2.o toomcook.o trial.o memory.o mpmod.o mul_lo.o polyeval.o resume.o median.o smartprp.o schoen_strass.o ks-multiply.o rho.o
@@ -91,3 +93,8 @@ dist: $(DIST)
 
 median: median-aux.o auxi.o listz.o toomcook.o median.o
 	gcc -lgmp -lm $^ -o median
+
+redc.o: redc.asm
+	cp redc.asm redc.s
+	gcc -c redc.s
+	rm redc.s
