@@ -37,6 +37,7 @@ CFLAG= -O2 -g -Wall -Wmissing-prototypes -ansi -pedantic
 LDFLAG= -lgmp -lm
 CXX=gcc
 CC=gcc
+LD=gcc
 EXTRAFILES=
 ALLFILES= $(FILES) $(EXTRAFILES)
 CFLAGS= $(CFLAG)
@@ -59,7 +60,7 @@ all:
         fi
 
 ecm: $(ALLFILES) ecm.h
-	$(CXX) $(CFLAGS) -L$(GMP)/lib -L$(NTL)/lib $(ALLFILES) -o $@ $(LDFLAGS)
+	$(LD) $(CFLAGS) -L$(GMP)/lib -L$(NTL)/lib $(ALLFILES) -o $@ $(LDFLAGS)
 
 ntl.o: ntl.c
 	$(CXX) $(CFLAGS) -c -I$(GMP)/include -I$(NTL)/include $<
