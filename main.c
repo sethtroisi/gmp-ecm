@@ -110,6 +110,35 @@ new_line:
 }
 
 
+/* the 1:nn and 2:nn have been placed into the 2 following functions.  This is done to provide 
+   better control over them, and also to allow them to be TOTALLY turned off, in such cases as 
+   where ECM should not update to the stderr at all (i.e. client server)
+*/
+static int screenticks_lastupd=0;
+static int SCREEN_UPDATE_DELAY=3000;
+void
+showscreenticks(int stage, int percentage)
+{
+  if (SCREEN_UPDATE_DELAY >= 0 && cputime() - screenticks_lastupd > SCREEN_UPDATE_DELAY)
+    {
+      screenticks_lastupd = cputime();
+      if (percentage > 99)
+        percentage = 99;
+      if (percentage < 0)
+        percentage = 0;
+      fprintf (stderr, "%d:%02d \r", stage, percentage);
+    }
+}
+
+void showscreenticks_change_stage(int stage)
+{
+  if (SCREEN_UPDATE_DELAY >= 0)
+    {
+      screenticks_lastupd = cputime();
+      fprintf (stderr, "%d:00 \r", stage);
+    }
+}
+
 /******************************************************************************
 *                                                                             *
 *                                Main program                                 *
@@ -432,7 +461,7 @@ main (int argc, char *argv[])
 	}
       else if ((argc > 2) && (strcmp (argv[1], "-ve") == 0))
         {
-	  displayexpr=atoi (argv[2]);
+	  displayexpr = atoi (argv[2]);
 	  if (displayexpr == 0)
 	    {
 	      fprintf (stderr, "Error, the -ve command requires a number argument to follow it\n");
@@ -443,8 +472,7 @@ main (int argc, char *argv[])
         }
       else if ((argc > 2) && (strcmp (argv[1], "-B2scale") == 0))
 	{
-	  B2scale=atof(argv[2]);
-	  B2scale = strtod (argv[2], NULL);
+	  B2scale = atof(argv[2]);
 	  if (verbose > 1)
 	    printf ("Scaling B2 values by a factor of %.4f\n", B2scale);
 	  if (B2scale <= 0.02)
@@ -452,6 +480,12 @@ main (int argc, char *argv[])
 	      fprintf (stderr, "Error, the -B2scale command requires a float number argument to follow it > 0.02\n");
 	      exit (EXIT_FAILURE);
   	    }
+	  argv += 2;
+	  argc -= 2;
+	}
+      else if ((argc > 2) && (strcmp (argv[1], "-ticdelay") == 0))
+	{
+	  SCREEN_UPDATE_DELAY = atoi (argv[2]);
 	  argv += 2;
 	  argc -= 2;
 	}
@@ -556,6 +590,7 @@ main (int argc, char *argv[])
       fprintf (stderr, "  -ve n        Verbosely show short (< n character) expressions on each loop\n");
       fprintf (stderr, "  -cofdec      Force cofactor output in decimal (even if expressions are used)\n");
       fprintf (stderr, "  -B2scale f   Multiplies the 'computed' B2 value by the specified multiplier\n");
+      fprintf (stderr, "  -ticdelay n  Delay in ms between %% completed (-1 eliminates completion countdown)\n");
 
       /*rintf (stderr, "  -extra functions added by PhilC\n"); */
       fprintf (stderr, "  -prp cmd     use shell command cmd to do large primality tests\n");
@@ -998,9 +1033,7 @@ BreadthFirstDoAgain:;
 
       if (result == 0)
 	{
-	  if (!trial_factor_found)
-            fprintf (stderr, "2:100\r");
-	  else
+	  if (trial_factor_found)
 	  {
 	    factor_is_prime = 1;
 	    mpz_set_ui (f,1);
