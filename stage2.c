@@ -28,20 +28,36 @@
 #include "ecm.h"
 #include "cputime.h"
 
+int fin_diff_init (point **, curve, unsigned int, unsigned int, unsigned int,
+                   mpz_t, int, mpz_t);
+int   fin_diff_next  (mpz_t, point *, unsigned int, mpz_t, int);
+void  fin_diff_clear (point *, unsigned int, int);
+int          rootsF     (mpz_t, listz_t, unsigned int, curve, listz_t, 
+                         unsigned int , mpz_t, int, int);
+void         rootsG     (mpz_t, listz_t, unsigned int, point *, point *,
+                         listz_t, unsigned int, mpz_t, int, int);
+
 #define INVF /* precompute 1/F for divisions by F */
 
-/* Init table to allow successive computation of x^((s + n*D)^E) mod N
+/* Init table to allow successive computation of:
+   X^((s + n*D)^E) mod N for P-1,
+   V_{(s + n*D)^E}(X) for P+1,
+   ((s + n*D)^E)*X for ECM.
    See Knuth, TAOCP vol.2, 4.6.4 and exercise 7 in 4.6.4.
-   For s=7, D=6, E=1: fd[0] = x^7, fd[1] = x^6.
-   For s=0, D=d, E=1: fd[0] = x^0, fd[1] = x^d.
+   For s=7, D=6, E=1: fd[0] = X^7, fd[1] = X^6.
+   For s=0, D=d, E=1: fd[0] = X^0, fd[1] = X^d.
+   Return non-zero iff a factor was found (then stored in f).
 */
-mpz_t *
-fin_diff_init (mpz_t x, unsigned int s, unsigned int D, unsigned int E,
-               mpz_t N, int method)
+int
+fin_diff_init (point **Fd,
+               curve X, unsigned int s, unsigned int D, unsigned int E,
+               mpz_t N, int method, mpz_t f)
 {
-  mpz_t *fd;
   unsigned int i, k, allocated;
-  mpz_t P, Q;
+  mpz_t P, Q;      /* for P+1 */
+  mpz_t p, x1, u, v; /* for ECM */
+  point *fd;
+  int youpi = 0;
 
   allocated = E + 1;
 
@@ -51,72 +67,109 @@ fin_diff_init (mpz_t x, unsigned int s, unsigned int D, unsigned int E,
       mpz_init (Q);
       allocated += 2;
     }
+  else if (method == EC_METHOD)
+    {
+      mpz_init (p);
+      mpz_init (x1);
+      mpz_init (u);
+      mpz_init (v);
+      allocated += E + 1; /* auxiliary space for addWn */
+    }
 
-  fd = (mpz_t *) malloc (allocated * sizeof(mpz_t));
+  fd = (point *) malloc (allocated * sizeof(point));
   for (i = 0; i < allocated; i++)
-    mpz_init (fd[i]);
+    mpz_init (fd[i].x);
+  if (method == EC_METHOD)
+    for (i = 0; i < allocated; i++)
+      mpz_init (fd[i].y);
   
   for (i = 0; i <= E; i++)
-    mpz_ui_pow_ui (fd[i], s + i * D, E); /* fd[i] = (s+i*D)^E */
+    mpz_ui_pow_ui (fd[i].x, s + i * D, E); /* fd[i] = (s+i*D)^E */
   
   for (k = 1; k <= E; k++)
     for (i = E; i >= k; i--)
-      mpz_sub (fd[i], fd[i], fd[i-1]);
+      mpz_sub (fd[i].x, fd[i].x, fd[i-1].x);
   
-  for (i = 0; i <= E; i++)
+  for (i = 0; i <= E && youpi == 0; i++)
     if (method == PM1_METHOD)
-      mpz_powm (fd[i], x, fd[i], N);
+      mpz_powm (fd[i].x, X.x, fd[i].x, N);
     else if (method == PP1_METHOD)
-      pp1_mul (fd[i], x, fd[i], N, P, Q);
-    else abort ();
+      pp1_mul (fd[i].x, X.x, fd[i].x, N, P, Q);
+    else /* ECM */
+      {
+        /* copy in x1 since multiplyW2 doesn't allow x1 and q to be equal */
+        youpi = multiplyW2 (f, x1, fd[i].y, X.x, X.y, fd[i].x, N, X.A, u, v);
+        mpz_set (fd[i].x, x1);
+      }
 
   if (method == PP1_METHOD) /* necessarily E=1 */
     {
       /* fd[0] = V_s(x), fd[1] = V_D(x) */
-      mpz_set_ui (fd[2], (s > D) ? (s - D) : (D - s));
-      pp1_mul (fd[2], x, fd[2], N, P, Q); /* V_{s-D}(x) */
+      mpz_set_ui (fd[2].x, (s > D) ? (s - D) : (D - s));
+      pp1_mul (fd[2].x, X.x, fd[2].x, N, P, Q); /* V_{s-D}(x) */
       mpz_clear (P);
       mpz_clear (Q);
     }
 
-  return fd;
+  if (method == EC_METHOD)
+    {
+      mpz_clear (p);
+      mpz_clear (x1);
+      mpz_clear (u);
+      mpz_clear (v);
+    }
+
+  *Fd = fd;
+  return youpi;
 }
 
 /* P-1: Computes x^((s + (n+1)*D)^E and stores in fd[0]
    P+1: Computes V_{j+D} from fd[0] = V_j, fd[1] = V_D, and fd[2] = V_{j-D}.
+   Return non-zero iff a factor was found (can happen only with ECM), in which
+   case the factor is stored in f.
 */
-void 
-fin_diff_next (mpz_t *fd, unsigned int E, mpz_t N, int method)
+int
+fin_diff_next (mpz_t f, point *fd, unsigned int E, mpz_t N, int method)
 {
   unsigned int i;
 
   if (method == PP1_METHOD)
     {
-      mpz_swap (fd[0], fd[2]);
-      mpz_mul (fd[3], fd[2], fd[1]);
-      mpz_sub (fd[0], fd[3], fd[0]);
-      mpz_mod (fd[0], fd[0], N);
-      return;
+      mpz_swap (fd[0].x, fd[2].x);
+      mpz_mul (fd[3].x, fd[2].x, fd[1].x);
+      mpz_sub (fd[0].x, fd[3].x, fd[0].x);
+      mpz_mod (fd[0].x, fd[0].x, N);
+      return 0;
     }
 
-  for (i = 0; i < E; i++)
-    {
-      mpz_mul (fd[i], fd[i], fd[i+1]);
-      mpz_mod (fd[i], fd[i], N);
-    }
-  return;
+  if (method == EC_METHOD)
+    return addWn (f, fd, N, E);
+  else /* P-1 */
+    for (i = 0; i < E; i++)
+      {
+        mpz_mul (fd[i].x, fd[i].x, fd[i+1].x);
+        mpz_mod (fd[i].x, fd[i].x, N);
+      }
+
+  return 0;
 }
 
 void 
-fin_diff_clear (mpz_t *fd, unsigned int E, int method)
+fin_diff_clear (point *fd, unsigned int E, int method)
 {
   unsigned int i, allocated = E + 1;
 
   if (method == PP1_METHOD)
     allocated += 2;
+  else if (method == EC_METHOD)
+    allocated += E + 1;
   
   for (i = 0; i < allocated; i++)
-    mpz_clear (fd[i]);
+    mpz_clear (fd[i].x);
+  if (method == EC_METHOD)
+    for (i = 0; i < allocated; i++)
+      mpz_clear (fd[i].y);
+
   free (fd);
   return;
 }
@@ -130,97 +183,109 @@ fin_diff_clear (mpz_t *fd, unsigned int E, int method)
    For P+1, we have V_{j+6} = V_j * V_6 - V_{j-6}.
 
    for 0 < j = 1 mod 7 < d, j and d coprime.
-   Returns df = degree of F, or 0 if a factor was found.
-   P-1 only: If invs=0, don't use the x+1/x trick.
+   Returns non-zero iff a factor was found (then stored in f).
+   P-1 only: If s.y=0, don't use the x+1/x trick, otherwise s.y=1/(s.x) mod n.
    Requires (dF+1) cells in t.
 */
 int
-rootsF (listz_t F, unsigned int d, mpz_t s, mpz_t invs, listz_t t,
+rootsF (mpz_t f, listz_t F, unsigned int d, curve s, listz_t t,
         unsigned int S, mpz_t n, int verbose, int method)
 {
   unsigned int i, j;
   int st, st2;
-  mpz_t *fd;
+  point *fd;
+  int youpi = 0;
   
   st = cputime ();
 
-  mpz_set (F[0], s); /* s^1 for P-1, V_1(P)=P for P+1 */
+  mpz_set (F[0], s.x); /* s^1 for P-1, V_1(P)=P for P+1, (1*P)=P for ECM */
   i = 1;
   if (d > 7)
     {
       st2 = cputime ();
-      fd = fin_diff_init (s, 7, 6, S, n, method);
+      youpi = fin_diff_init (&fd, s, 7, 6, S, n, method, f);
       /* for P+1, fd[0] = V_7(P), fd[1] = V_6(P) */
       if (verbose >= 2)
         printf ("Initializing table of differences for F took %dms\n", cputime () - st2);
       j = 7;
-      while (j < d) 
+      while (j < d && youpi == 0)
         {
           if (gcd (j, d) == 1)
-            mpz_set (F[i++], fd[0]);
-          fin_diff_next (fd, S, n, method);
+            {
+              mpz_set (F[i], fd[0].x);
+              i++;
+            }
+          youpi = fin_diff_next (f, fd, S, n, method);
           j += 6;
         }
       fin_diff_clear (fd, S, method);
     }
 
-  if (method == PM1_METHOD && mpz_cmp_ui (invs, 0) != 0)
-    if ((d/6)*S > 3*(i-1)) /* Batch inversion is cheaper */
-      {
-        if (list_invert (t, F, i, t[i], n)) 
-          {
-            mpz_set (s, t[i]);
-            return 0;
-          }
+  if (youpi)
+    return 1;
+
+  if (method == PM1_METHOD && mpz_cmp_ui (s.y, 0) != 0)
+    {
+      if ((d/6)*S > 3*(i-1)) /* Batch inversion is cheaper */
+        {
+          if (list_invert (t, F, i, t[i], n)) 
+            {
+              mpz_set (f, t[i]);
+              return 1;
+            }
      
-        for (j = 0; j < i; j++) 
-          {
-            mpz_add (F[j], F[j], t[j]);
-            mpz_mod (F[j], F[j], n);
-          }
+          for (j = 0; j < i; j++) 
+            {
+              mpz_add (F[j], F[j], t[j]);
+              mpz_mod (F[j], F[j], n);
+            }
      
-        mpz_set (invs, t[0]); /* Save s^(-1) in invs */
+          mpz_set (s.y, t[0]); /* Save s^(-1) in s.y */
     
-      }
-    else
-      { /* fin_diff code is cheaper */
-        
-        mpz_gcdext (*t, invs, NULL, s, n);
+        }
+      else
+        { /* fin_diff code is cheaper */
 
-        if (mpz_cmp_ui (*t, 1) != 0)
-          {
-            mpz_set (s, *t);
-            return 0;
-          }
+#if 0 /* s.y already contains 1/(s.x) */
+          mpz_gcdext (f, s.y, NULL, s.x, n);
 
-        mpz_add (F[0], F[0], invs);
-        mpz_mod (F[0], F[0], n);
+          if (mpz_cmp_ui (f, 1) != 0)
+            return 1;
+#endif
 
-        i = 1;
+          mpz_add (F[0], F[0], s.y);
+          mpz_mod (F[0], F[0], n);
+
+          i = 1;
        
-        if (d > 7) 
-          {
-            fd = fin_diff_init (invs, 7, 6, S, n, method);
-            j = 7;
-            while (j < d) 
-              {
-                if (gcd (j, d) == 1)
-                  {
-                    mpz_add (F[i], F[i], fd[0]);
-                    mpz_mod (F[i], F[i], n);
-                    i++;
-                  }
-                fin_diff_next (fd, S, n, method);
-                j += 6;
-              }
-            fin_diff_clear (fd, S, method);
-          }
-      }
+          if (d > 7) 
+            {
+              curve Y; /* for 1/s */
+              mpz_init (Y.x);
+              mpz_set (Y.x, s.y);
+              youpi = fin_diff_init (&fd, Y, 7, 6, S, n, method, f);
+              mpz_clear (Y.x);
+              j = 7;
+              while (j < d && youpi == 0)
+                {
+                  if (gcd (j, d) == 1)
+                    {
+                      mpz_add (F[i], F[i], fd[0].x);
+                      mpz_mod (F[i], F[i], n);
+                      i++;
+                    }
+                  youpi = fin_diff_next (f, fd, S, n, method);
+                  j += 6;
+                }
+              fin_diff_clear (fd, S, method);
+            }
+        }
+    }
   
   if (verbose >= 2)
     printf ("Computing roots of F took %dms\n", cputime () - st);
 
-  return i;
+  return youpi;
 }
 
 
@@ -230,7 +295,7 @@ rootsF (listz_t F, unsigned int d, mpz_t s, mpz_t invs, listz_t t,
    Needs d+1 cells in t.
 */
 void
-rootsG (listz_t G, unsigned int d, listz_t fd_x, listz_t fd_invx, 
+rootsG (mpz_t f, listz_t G, unsigned int d, point *fd, point *fdinv, 
         listz_t t, unsigned int S, mpz_t n, int verbose, int method)
 {
   unsigned int i;
@@ -238,16 +303,17 @@ rootsG (listz_t G, unsigned int d, listz_t fd_x, listz_t fd_invx,
 
   st = cputime ();
 
-  if (fd_invx != NULL && S > 3)
+  if (fdinv != NULL && S > 3) /* Montgomery's trick to perform only
+                                 one inversion */
     {
-      mpz_set (G[0], fd_x[0]);
-      mpz_set (t[0], fd_x[0]);
+      mpz_set (G[0], fd[0].x);
+      mpz_set (t[0], fd[0].x);
 
       for (i = 1; i < d; i++)
         {
-          fin_diff_next (fd_x, S, n, method);
-          mpz_set (G[i], fd_x[0]);
-          mpz_mul (t[i], t[i-1], fd_x[0]);
+          fin_diff_next (f, fd, S, n, method);
+          mpz_set (G[i], fd[0].x);
+          mpz_mul (t[i], t[i-1], fd[0].x);
           mpz_mod (t[i], t[i], n);
         }
 
@@ -263,19 +329,19 @@ rootsG (listz_t G, unsigned int d, listz_t fd_x, listz_t fd_invx,
         }
 
     }
-  else /* fd_invx=NULL or S <= 2 */
+  else /* fdinv=NULL or S <= 2 */
     {
       for (i = 0; i < d; i++)
         {
-          if (fd_invx != NULL)
+          if (fdinv != NULL)
             {
-              mpz_add (G[i], fd_x[0], fd_invx[0]);
+              mpz_add (G[i], fd[0].x, fdinv[0].x);
               mpz_mod (G[i], G[i], n);
-              fin_diff_next (fd_invx, S, n, method);
+              fin_diff_next (f, fdinv, S, n, method);
             }
           else
-            mpz_set (G[i], fd_x[0]);
-          fin_diff_next (fd_x, S, n, method);
+            mpz_set (G[i], fd[0].x);
+          fin_diff_next (f, fd, S, n, method);
         }
     }
 
@@ -283,7 +349,7 @@ rootsG (listz_t G, unsigned int d, listz_t fd_x, listz_t fd_invx,
     printf ("Computing roots of G took %dms\n", cputime () - st);
 }
 
-/* Input:  x is the value at end of stage 1
+/* Input:  X is the point at end of stage 1
            n is the number to factor
            B2 is the stage 2 bound
            k is the number of blocks
@@ -300,13 +366,15 @@ rootsG (listz_t G, unsigned int d, listz_t fd_x, listz_t fd_invx,
    Return value: non-zero iff a factor was found.
 */
 int
-stage2 (mpz_t f, mpz_t x, mpz_t n, double B2, unsigned int k, unsigned int S, 
-        int verbose, int invtrick, int method)
+stage2 (mpz_t f, curve *X, mpz_t n, double B2, unsigned int k, unsigned int S, 
+        int verbose, int method, double B1)
 {
+  int invtrick = method == PM1_METHOD;
   double b2;
   unsigned int i, d, dF, sizeT;
   unsigned long muls;
-  listz_t F, G, H, T, fd_x, fd_invx = NULL;
+  listz_t F, G, H, T;
+  point *fd_x, *fd_invx = NULL;
   polyz_t polyF, polyT;
   mpz_t invx;
   int youpi = 0, st, st0;
@@ -314,18 +382,29 @@ stage2 (mpz_t f, mpz_t x, mpz_t n, double B2, unsigned int k, unsigned int S,
   listz_t invF = NULL;
 #endif
 
+  if (B2 <= B1)
+    return 0;
+
   st0 = cputime ();
 
   if (verbose >= 2)
     {
       printf ("starting stage 2 with x=");
-      mpz_out_str (stdout, 10, x);
+      mpz_out_str (stdout, 10, X->x);
       putchar ('\n');
     }
 
   b2 = ceil(B2 / k); /* b2 = ceil(B2/k): small block size */
 
   d = bestD (b2);
+
+#if 0
+  if (2.0 * (double) d > B1)
+    {
+      fprintf (stderr, "Error: 2*d > B1\n");
+      exit (1);
+    }
+#endif
 
   b2 = block_size (d);
 
@@ -338,8 +417,13 @@ stage2 (mpz_t f, mpz_t x, mpz_t n, double B2, unsigned int k, unsigned int S,
 
   F = init_list (dF + 1);
 
-  /* if method <> PM1_METHOD, invtrick thus invx is 0 */
-  mpz_init_set_ui (invx, invtrick);
+  /* if method <> PM1_METHOD, invtrick=0 thus invx is 0 */
+  if (invtrick)
+    {
+      mpz_init (invx);
+      mpz_gcdext (f, invx, NULL, X->x, n);
+      mpz_set (X->y, invx);
+    }
 
   sizeT = 3 * dF - 1 + list_mul_mem (dF);
 #ifdef INVF
@@ -350,8 +434,9 @@ stage2 (mpz_t f, mpz_t x, mpz_t n, double B2, unsigned int k, unsigned int S,
   H = T;
 
   /* needs dF+1 cells in T */
-  if ((i = rootsF (F, d, x, invx, T, S, n, verbose, method)) == 0)
+  if (rootsF (f, F, d, *X, T, S, n, verbose, method))
     {
+      mpz_set (f, X->x);
       youpi = 2;
       goto clear_F;
     }
@@ -361,8 +446,6 @@ stage2 (mpz_t f, mpz_t x, mpz_t n, double B2, unsigned int k, unsigned int S,
      ----------------------------------------------
      | rootsF |  ???   |  ???  |      ???         |
      ---------------------------------------------- */
-
-  assert (i == dF);
 
   PolyFromRoots (F, dF, T, verbose, n, 'F'); /* needs dF+list_mul_mem(dF/2) cells in T */
   mpz_set_ui (F[dF], 1); /* the leading monic coefficient needs to be stored
@@ -402,17 +485,26 @@ stage2 (mpz_t f, mpz_t x, mpz_t n, double B2, unsigned int k, unsigned int S,
 
   G = init_list (dF);
   st = cputime ();
-  fd_x = fin_diff_init (x, 0, d, S, n, method);
+  if ((youpi = fin_diff_init (&fd_x, *X, 2*d, d, S, n, method, f)))
+    goto clear_fd;
+
   if (verbose >= 2)
     printf ("Initializing table of differences for G took %dms\n", cputime () - st);
-    
-  if (invtrick)
-    fd_invx = fin_diff_init (invx, 0, d, S, n, method);
+
+  if (invtrick) /* P-1: only x is needed */
+    {
+      curve Y;
+      mpz_init_set (Y.x, invx);
+      youpi = fin_diff_init (&fd_invx, Y, 2*d, d, S, n, method, f);
+      mpz_clear (Y.x);
+      if (youpi)
+        goto clear_fd_invx;
+    }
 
   for (i=0; i<k; i++)
     {
       /* needs dF+1 cells in T+dF */
-      rootsG (G, dF, fd_x, fd_invx, T + dF, S, n, verbose, method);
+      rootsG (f, G, dF, fd_x, fd_invx, T + dF, S, n, verbose, method);
 
   /* -----------------------------------------------
      |   F    |  invF  |   G    |         T        |
@@ -485,18 +577,22 @@ stage2 (mpz_t f, mpz_t x, mpz_t n, double B2, unsigned int k, unsigned int S,
   if (verbose >= 2)
     printf ("Computing gcd of F and G took %dms\n", cputime() - st);
 
-  clear_list (G, dF);
+ clear_fd_invx:
   if (invtrick)
     fin_diff_clear (fd_invx, S, method);
+ clear_fd:
   fin_diff_clear (fd_x, S, method);
-  clear_list (T, sizeT);
+  clear_list (G, dF);
 
 #ifdef INVF
-  clear_list (invF, dF - 1);
+  if (dF > 1)
+    clear_list (invF, dF - 1);
 #endif
 
  clear_F:
-  mpz_clear (invx);
+  clear_list (T, sizeT);
+  if (invtrick)
+    mpz_clear (invx);
   clear_list (F, dF + 1);
 
   if (verbose >= 1)
