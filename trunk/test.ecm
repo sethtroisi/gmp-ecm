@@ -20,6 +20,27 @@
 # 02111-1307, USA.
 
 set ECM="$1"
+# tests from Torbjo"rn Granlund
+echo 137703491 | $ECM -sigma 6 84 1000
+if ($status != 0) then
+   echo "############### ERROR ###############";
+   exit 1;
+endif
+echo 3533000986701102061387017352606588294716061 | $ECM -sigma 1621 191 225
+if ($status != 0) then
+   echo "############### ERROR ###############";
+   exit 1;
+endif
+echo 145152979917007299777325725119 | $ECM -sigma 711387948 924 117751
+if ($status != 0) then
+   echo "############### ERROR ###############";
+   exit 1;
+endif
+echo 242668358425701966181147598421249782519178289604307455138484425562807899 | $ECM -sigma 1417477358 24780 85507063
+if ($status != 0) then
+   echo "############### ERROR ###############";
+   exit 1;
+endif
 echo 291310394389387 | $ECM -power 3 -sigma 40 2000
 if ($status != 0) then
    echo "############### ERROR ###############";
