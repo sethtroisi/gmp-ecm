@@ -22,8 +22,6 @@
 
 #include <stdio.h>
 #include <stdlib.h>
-#include <errno.h>
-#include <string.h>
 #include <unistd.h>
 #include "gmp.h"
 #include "ecm.h"
@@ -285,6 +283,8 @@ polyeval_tellegen (listz_t b, unsigned int k, listz_t *Tree, listz_t tmp,
         T = tmp;
     else
       {
+        outputf (OUTPUT_DEVVERBOSE, "polyeval_tellegen: allocating extra temp"
+                 " space, want %d but T has only %d\n", tupspace, sizeT);
         T = init_list (tupspace);
 	if (T == NULL)
 	  return ECM_ERROR;
@@ -325,14 +325,13 @@ polyeval_tellegen (listz_t b, unsigned int k, listz_t *Tree, listz_t tmp,
         lgk = ceil_log2 (k);
         for (i = 0; i < lgk; i++)
           {
-            sprintf (fullname, "%.252s.%d", TreeFilename, i);
+            snprintf (fullname, 256, "%.252s.%d", TreeFilename, i);
             TreeFile = fopen (fullname, "rb");
             if (TreeFile == NULL)
               {
-                int err = errno;
                 outputf (OUTPUT_ERROR, 
-                         "Error opening file %s for product tree of F: %s\n",
-                         fullname, strerror (err));
+                         "Error opening file %s for product tree of F\n",
+                         fullname);
                 r = ECM_ERROR;
                 goto clear_T;
               }

@@ -439,7 +439,7 @@ stage2 (mpz_t f, void *X, mpmod_t modulus, double B2min, double B2,
       char fullname[256];
       for (i = lgk; i > 0; i--)
         {
-          sprintf (fullname, "%.252s.%d", TreeFilename, i - 1);
+          snprintf (fullname, 256, "%.252s.%d", TreeFilename, i - 1);
           TreeFile = fopen (fullname, "wb");
           if (TreeFile == NULL)
             {
@@ -447,13 +447,18 @@ stage2 (mpz_t f, void *X, mpmod_t modulus, double B2min, double B2,
               youpi = ECM_ERROR;
               goto clear_T;
             }
-          if (PolyFromRoots_Tree (F, F, dF, T, i - 1, n, NULL, TreeFile, 0) ==
-              ECM_ERROR)
+          if (PolyFromRoots_Tree (F, F, dF, T, i - 1, n, NULL, TreeFile, 0)
+              == ECM_ERROR)
             {
+              fclose (TreeFile);
               youpi = ECM_ERROR;
               goto clear_T;
             };
-          fclose (TreeFile);
+          if (fclose (TreeFile) != 0)
+            {
+              youpi = ECM_ERROR;
+              goto clear_T;
+            }
         }
     }
   else
@@ -465,7 +470,7 @@ stage2 (mpz_t f, void *X, mpmod_t modulus, double B2min, double B2,
   /* needs dF+list_mul_mem(dF/2) cells in T */
 
   mpz_set_ui (F[dF], 1); /* the leading monic coefficient needs to be stored
-                             explicitely for PrerevertDivision and polygcd */
+                             explicitly for PrerevertDivision */
 
   /* ----------------------------------------------
      |   F    |  invF  |   G   |         T        |
