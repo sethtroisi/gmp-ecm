@@ -40,6 +40,7 @@ void         list_sub   (listz_t, listz_t, listz_t, unsigned int);
 int          list_zerop (listz_t, unsigned int);
 void         karatsuba  (listz_t, listz_t, listz_t, unsigned int, listz_t);
 int          toomcook3  (listz_t, listz_t, listz_t, unsigned int, listz_t);
+int          toomcook4  (listz_t, listz_t, listz_t, unsigned int, listz_t);
 void         list_mul   (listz_t, listz_t, unsigned int, listz_t, unsigned int,
 			 listz_t);
 void        list_mulmod (listz_t, listz_t, listz_t, unsigned int, listz_t,
