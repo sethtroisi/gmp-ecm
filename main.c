@@ -109,11 +109,8 @@ main (int argc, char *argv[])
 
   if (verbose >= 1)
     {
-      printf ("GMP-ECM 5.0 [powered by GMP %u.%u",
-              __GNU_MP_VERSION, __GNU_MP_VERSION_MINOR);
-      if (__GNU_MP_VERSION_PATCHLEVEL != 0)
-        printf (".%u", __GNU_MP_VERSION_PATCHLEVEL);
-      printf (" and NTL %u.%u]\n", NTL_major_version (), NTL_minor_version ());
+      printf ("GMP-ECM 5.0 [powered by GMP %s and NTL %u.%u]\n",
+	      gmp_version, NTL_major_version (), NTL_minor_version ());
     }
 
   /* set first stage bound B1 */
