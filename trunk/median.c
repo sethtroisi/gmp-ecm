@@ -810,7 +810,7 @@ TMulGen (listz_t b, unsigned int n, listz_t a, unsigned int m,
              KS_TMUL_THRESHOLD)
       muls = TToomCookMul (b, n, a, m, c, l, tmp);
     else
-      muls = TMulKS (b, n, a, m, c, l, modulus);
+      muls = TMulKS (b, n, a, m, c, l, modulus, 1);
 
   return muls;
 }
