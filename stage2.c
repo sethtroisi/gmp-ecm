@@ -24,12 +24,11 @@
 #include <assert.h>
 #include <stdlib.h>
 #include <stdio.h>
+#include <math.h>
 #include <limits.h>
 #include "gmp.h"
 #include "ecm.h"
 #include "ecm-impl.h"
-
-/* #define SAVE_TREE */
 
 extern unsigned int Fermat;
 
@@ -423,24 +422,6 @@ stage2 (mpz_t f, void *X, mpmod_t modulus, double B2min, double B2,
   mpz_init_set (n, modulus->orig_modulus);
   PolyFromRoots (F, F, dF, T, verbose | 1, n, 'F', Tree, 0, os, es);
 
-#ifdef SAVE_TREE
- {
-   FILE *fp;
-   unsigned long j;
-   fprintf (es, "Saving product tree...");
-   fflush (es);
-   fp = fopen ("Tree.save", "w");
-   for (i = 0; i < lgk; i++)
-     for (j = 0; j < dF; j++)
-       {
-         mpz_out_raw (fp, Tree[i][j]);
-         mpz_clear (Tree[i][j]);
-       }
-   fclose (fp);
-   fprintf (es, "done\n");
- }
-#endif
-
   /* needs dF+list_mul_mem(dF/2) cells in T */
 
   mpz_set_ui (F[dF], 1); /* the leading monic coefficient needs to be stored
@@ -594,24 +575,6 @@ stage2 (mpz_t f, void *X, mpmod_t modulus, double B2min, double B2,
             fprintf (os, "Reducing  G * H mod F took %ums\n", cputime() - st);
 	}
     }
-
-#ifdef SAVE_TREE
- {
-   FILE *fp;
-   unsigned long j;
-   fprintf (es, "Restoring product tree...");
-   fflush (es);
-   fp = fopen ("Tree.save", "r");
-   for (i = 0; i < lgk; i++)
-     for (j = 0; j < dF; j++)
-       {
-         mpz_init (Tree[i][j]);
-         mpz_inp_raw (Tree[i][j], fp);
-       }
-   fclose (fp);
-   fprintf (es, "done\n");
- }
-#endif
 
   clear_list (F, dF + 1);
   F = NULL;
