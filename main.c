@@ -155,6 +155,7 @@ main (int argc, char *argv[])
   unsigned int displayexpr=0;
   unsigned int decimal_cofactor=0;
   double maxtrialdiv=0;
+  double B2scale=1.0;
 
   /* check ecm is linked with a compatible librayr */
   if (mp_bits_per_limb != GMP_NUMB_BITS)
@@ -435,6 +436,20 @@ main (int argc, char *argv[])
 	  argv += 2;
 	  argc -= 2;
         }
+      else if ((argc > 2) && (strcmp (argv[1], "-B2scale") == 0))
+	{
+	  B2scale=atof(argv[2]);
+	  B2scale = strtod (argv[2], NULL);
+	  if (verbose > 1)
+	    printf ("Scaling B2 values by a factor of %.4f\n", B2scale);
+	  if (B2scale <= 0.02)
+	    {
+	      fprintf (stderr, "Error, the -B2scale command requires a float number argument to follow it > 0.02\n");
+	      exit (EXIT_FAILURE);
+  	    }
+	  argv += 2;
+	  argc -= 2;
+	}
 
       else
 	{
@@ -481,18 +496,19 @@ main (int argc, char *argv[])
       fprintf (stderr, "  -primetest   perform a primality test on input\n");
       /*rintf (stderr, "  -extra functions added by JimF\n"); */
       fprintf (stderr, "\n");
-      fprintf (stderr, "  Options beyond ECM 5.0  (i.e. specific to ECM 5.0c\n");
+      fprintf (stderr, "  Options new to ECM 5.1\n");
       fprintf (stderr, "  -i n         increment B1 by this constant on each run\n");
       fprintf (stderr, "  -I f         auto-calculated increment for B1 multiplied by 'f' scale factor\n");
       fprintf (stderr, "  -inp file    Use file as input (instead of redirecting stdin)\n");
       fprintf (stderr, "  -b           Use breadth-first mode of file processing (recommended)\n");
       fprintf (stderr, "  -d           Use depth-first mode of file processing\n");
-      fprintf (stderr, "  -one         Stop processing a candidate when a factor is found (looping mode)\n");
+      fprintf (stderr, "  -one         Stop processing a candidate if a factor is found (looping mode)\n");
       fprintf (stderr, "  -n           run ecm in \"nice\" mode (below normal priority)\n");
       fprintf (stderr, "  -nn          run ecm in \"very nice\" mode (idle priority)\n");
       fprintf (stderr, "  -t n         Trial divide candidates before P-1, P+1 or ECM up to n\n");
       fprintf (stderr, "  -ve n        Verbosely show short (< n character) expressions on each loop\n");
-      fprintf (stderr, "  -cofdec      Force cofactor output in decimal (even if expressions are possible)\n");
+      fprintf (stderr, "  -cofdec      Force cofactor output in decimal (even if expressions are used)\n");
+      fprintf (stderr, "  -B2scale f   Multiplies the 'computed' B2 value by the specified multiplier\n");
       exit (EXIT_FAILURE);
     }
 
@@ -896,15 +912,15 @@ BreadthFirstDoAgain:;
       cnt --; /* one more curve performed */
 
       if (method == PM1_METHOD)
-        result = pm1 (f, x, n.n, B1done, B1, B2min, B2, k, S, verbose, repr);
+        result = pm1 (f, x, n.n, B1done, B1, B2min, B2, B2scale, k, S, verbose, repr);
       else if (method == PP1_METHOD)
-        result = pp1 (f, x, n.n, B1done, B1, B2min, B2, k, S, verbose, repr);
+        result = pp1 (f, x, n.n, B1done, B1, B2min, B2, B2scale, k, S, verbose, repr);
       else /* ECM */
 	{
 	  if (mpz_sgn (sigma) == 0) /* If sigma is zero, then we use the A value instead */
-	    result = ecm (f, x, A, n.n, B1done, B1, B2min, B2, k, S, verbose, repr, 1);
+	    result = ecm (f, x, A, n.n, B1done, B1, B2min, B2, B2scale, k, S, verbose, repr, 1);
 	  else
-	    result = ecm (f, x, sigma, n.n, B1done, B1, B2min, B2, k, S, verbose, repr, 0);
+	    result = ecm (f, x, sigma, n.n, B1done, B1, B2min, B2, B2scale, k, S, verbose, repr, 0);
         }
 
       if (result == 0)
