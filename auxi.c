@@ -107,44 +107,39 @@ cputime ()
 unsigned int 
 get_random_ui ()
 {
-  unsigned int rnd = 0;
+  unsigned char t[4];
   FILE *rndfd;
   struct timeval tv;
 
-  /* Try /dev/random */
+  /* Try /dev/urandom */
   rndfd = fopen ("/dev/urandom", "r");
   if (rndfd != NULL)
     {
-      if (fread (&rnd, 4, 1, rndfd) != 1)
-        rnd = 0;
+      if (fread (t, 4, 1, rndfd) == 1)
+        {
 #ifdef DEBUG
-      else
-        printf ("Got seed for RNG from /dev/urandom\n");
+          printf ("Got seed for RNG from /dev/urandom\n");
 #endif
+          fclose (rndfd);
+          return t[0] + 
+                 ((unsigned int) t[1] << 8) + 
+                 ((unsigned int) t[2] << 16) + 
+                 ((unsigned int) t[3] << 24);
+        }
       fclose (rndfd);
     }
 
-#if !(defined (ANSIONLY) || defined (USG) || defined (__SVR4) || defined (_UNICOS) || defined(__hpux))
-  if (rnd == 0)
+  if (gettimeofday (&tv, NULL) == 0)
     {
-      if (gettimeofday (&tv, NULL) == 0)
-        {
-          rnd = tv.tv_sec + tv.tv_usec;
 #ifdef DEBUG
-          printf ("Got seed for RNG from gettimeofday()\n");
+      printf ("Got seed for RNG from gettimeofday()\n");
 #endif
-        }
+      return tv.tv_sec + tv.tv_usec;
     }
-#endif
-  
-  if (rnd == 0)
-    {
-      rnd = time (NULL) + getpid ();
+
 #ifdef DEBUG
-          printf ("Got seed for RNG from time()+getpid()\n");
+  printf ("Got seed for RNG from time()+getpid()\n");
 #endif
-    }
-  
-  return rnd;
+  return time (NULL) + getpid ();
 }
 
