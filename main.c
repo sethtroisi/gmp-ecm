@@ -972,7 +972,7 @@ BreadthFirstDoAgain:;
                   exit (1);
                 }
 	      /* prints factor found and cofactor on standard error. */
-	      factor_is_prime = mpz_probab_prime_p (f, 25);
+	      factor_is_prime = mpz_probab_prime_p (f, PROBAB_PRIME_TESTS);
               if (verbose)
                 {
                   printf ("Found %s factor of %2u digits: ", 
