@@ -128,7 +128,7 @@ fin_diff_coeff (listz_t coeffs, unsigned int s, unsigned int D,
                reduces the cost of Brent-Suyama's extension from 2*e
                to e+3 multiplications per value of i.
    Output: f is the factor found
-   Return value: non-zero iff a factor was found.
+   Return value: 2 (step number) iff a factor was found.
 */
 int
 stage2 (mpz_t f, void *X, mpmod_t modulus, double B2min, double B2,
@@ -285,6 +285,9 @@ stage2 (mpz_t f, void *X, mpmod_t modulus, double B2min, double B2,
       else
         youpi = ecm_rootsG (f, G, dF, (point *) rootsG_state, S, modulus,
 			    verbose);
+
+      if (youpi)
+	youpi = 2;
       
       if (verbose >= 2)
         printf ("Computing roots of G took %dms\n", cputime () - st);
