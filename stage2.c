@@ -198,7 +198,7 @@ int
 stage2 (mpz_t f, void *X, mpmod_t modulus, double B2min, double B2,
         unsigned int k0, int S, int verbose, int method)
 {
-  double b2;
+  double b2, b2min;
   unsigned int k;
   unsigned int i, d, d2, dF, sizeT;
   double i0;
@@ -265,14 +265,31 @@ stage2 (mpz_t f, void *X, mpmod_t modulus, double B2min, double B2,
   b2 = (double) dF * (double) d * (double) d2 / (double) phi (d2);
 
   /* compute real B2min */
-  B2min = (double) i0 * (double) d;
+  b2min = (double) i0 * (double) d;
 
   /* compute real B2 */
-  B2 = B2min + floor ((double) k * b2 / d / d2) * d * d2;
+  B2 = b2min + floor ((double) k * b2 / d / d2) * d * d2;
 
   if (verbose >= 2)
-    printf ("B2'=%1.0f k=%u b2=%1.0f d=%u d2=%u dF=%u, i0=%.0f\n", 
-            B2, k, b2, d, d2, dF, i0);
+    {
+      double nrcurves;
+      printf ("B2'=%1.0f k=%u b2=%1.0f d=%u d2=%u dF=%u, i0=%.0f\n", 
+              B2, k, b2, d, d2, dF, i0);
+
+      rhoinit (256, 10);
+      printf ("Expected number of curves to find a factor of n digits:\n"
+              "20\t25\t30\t35\t40\t45\t50\t55\t60\t65\n");
+      for (i = 20; i <= 65; i+=5)
+        {
+          nrcurves = 1. / ecmprob (B2min, B2, pow (10., i - .5), 
+                                 (double)dF * (double)dF * k, S); 
+          if (nrcurves < 10000000)
+            printf ("%.0f%c", floor (nrcurves + .5), i < 65 ? '\t' : '\n');
+          else
+            printf ("%.2g%c", floor (nrcurves + .5), i < 65 ? '\t' : '\n');
+        }
+    }
+    
 
   /* Prep the screen for stage 2 */
   showscreenticks_change_stage(2);
