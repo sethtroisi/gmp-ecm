@@ -468,8 +468,8 @@ main (int argc, char *argv[])
           mpz_out_str (savefile, 16, p);
           mpz_mul_ui (checksum, checksum, mpz_fdiv_ui (n, CHKSUMMOD));
           mpz_mul_ui (checksum, checksum, mpz_fdiv_ui (p, CHKSUMMOD));
-          fprintf (savefile, "; CHECKSUM=%lu; PROGRAM=GMP-ECM ver. 5 alpha;\n", 
-                   mpz_fdiv_ui (checksum, CHKSUMMOD));
+          fprintf (savefile, "; CHECKSUM=%lu; PROGRAM=GMP-ECM %s;\n",
+                   mpz_fdiv_ui (checksum, CHKSUMMOD), ECM_VERSION);
           mpz_clear (checksum);
           
         }
