@@ -37,7 +37,7 @@ VERSION=5.1-beta
 
 ###################### do not edit below this line ############################
 
-OBJS= auxi.o b1_ainc.o bestd.o candi.o ecm.o ecm2.o eval.o getprime.o listz.o lucas.o main.o pm1.o pp1.o stage2.o toomcook.o trial.o memory.o mpmod.o mul_lo.o polyeval.o resume.o
+OBJS= auxi.o b1_ainc.o bestd.o candi.o ecm.o ecm2.o eval.o getprime.o listz.o lucas.o main.o pm1.o pp1.o stage2.o toomcook.o trial.o memory.o mpmod.o mul_lo.o polyeval.o resume.o median.o
 
 CFLAGS= -g -W -Wall -Wmissing-prototypes -pedantic $(TUNEFLAGS)
 LDFLAGS= -lm
@@ -72,7 +72,7 @@ ntl.o: ntl.c
 	$(CC) $(CFLAGS) -I$(GMP)/include -c $<
 
 clean:
-	rm -f ecm ecm_with_ntl tune $(OBJS) 
+	rm -f ecm ecm_with_ntl tune $(OBJS)
 
 dist: $(DIST)
 	mkdir ecm-$(VERSION)
