@@ -96,9 +96,9 @@ double calc_B1_AutoIncrement_v1(double cur_B1, double incB1val, int calcInc)
  *
  * THIS is the version being used.
  */
-double calc_B1_AutoIncrement(double cur_B1, double incB1val, int calcInc)
+double calc_B1_AutoIncrement (double cur_B1, double incB1val, int calcInc)
 {
-  const double const_adj=1.33;
+  const double const_adj = 1.33;
   double B1Mod;
   if (!calcInc)
     return cur_B1 + incB1val;  /* incB1val is a constant to add to B1 */
