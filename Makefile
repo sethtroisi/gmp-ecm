@@ -32,13 +32,14 @@ NTL=$(prefix)
 # example of TUNEFLAGS for x86
 # TUNEFLAGS= -O3 -mcpu=i586 -fstrict-aliasing -I/usr/include/gmp -DWANT_GMP_IMPL -DMPZMOD_THRESHOLD=69 -DREDC_THRESHOLD=92
 TUNEFLAGS= -O2
+GCOVFLAGS= -fprofile-arcs -ftest-coverage
 
 VERSION=5.1.2-beta
 
 ###################### do not edit below this line ############################
 
 OBJS= auxi.o b1_ainc.o bestd.o candi.o ecm.o ecm2.o eval.o getprime.o listz.o lucas.o main.o pm1.o pp1.o stage2.o toomcook.o trial.o memory.o mpmod.o mul_lo.o polyeval.o resume.o median.o smartprp.o
-CFLAGS= -g -W -Wall -Wmissing-prototypes -pedantic $(TUNEFLAGS)
+CFLAGS= -g -W -Wall -Wmissing-prototypes -pedantic $(TUNEFLAGS) $(GCOVFLAGS)
 LDFLAGS= -lm
 CXX=g++
 CC=gcc
