@@ -117,9 +117,6 @@ pp1_stage1 (mpz_t f, mpres_t P0, mpmod_t n, double B1, double B1done)
   int youpi;
   unsigned int max_size, size_n;
 
-  /* Prep for stage one counter */
-  showscreenticks_change_stage(1);
-
   mpz_init (g);
   mpres_init (P, n);
   mpres_init (Q, n);
@@ -166,9 +163,6 @@ pp1_stage1 (mpz_t f, mpres_t P0, mpmod_t n, double B1, double B1done)
     }
 
   pp1_mul (P0, P0, g, n, P, Q);
-
-  /* update the screen mode after the cascade work is done */
-  showscreenticks(1,(int) (100.0 * (double) p / (double) B1));
 
   /* then all primes > sqrt(B1) and taken with exponent 1 */
   /* since pp1_mul_prac takes an unsigned long, we have to check
