@@ -30,47 +30,52 @@
 
 /* Init table to allow successive computation of x^((s + n*D)^E) mod N */
 /* See Knuth, TAOCP vol.2, 4.6.4 and exercise 7 in 4.6.4 */
-mpz_t *fin_diff_init(mpz_t x, unsigned int s, unsigned int D, unsigned int E,
-                     mpz_t N) {
+mpz_t *
+fin_diff_init(mpz_t x, unsigned int s, unsigned int D, unsigned int E,
+              mpz_t N) 
+{
   mpz_t *fd;
   unsigned int i, k;
   
-  fd = (mpz_t *) malloc((E+1) * sizeof(mpz_t));
-  for (i=0; i <= E; i++)
-    mpz_init(fd[i]);
+  fd = (mpz_t *) malloc ((E+1) * sizeof(mpz_t));
+  for (i = 0; i <= E; i++)
+    mpz_init (fd[i]);
   
-  for (i=0; i <= E; i++)
-    mpz_ui_pow_ui(fd[i], s+i*D, E);
+  for (i = 0; i <= E; i++)
+    mpz_ui_pow_ui (fd[i], s+i*D, E);
   
-  for (k=1; k<=E; k++)
-    for (i=E; i>=k; i--)
-      mpz_sub(fd[i], fd[i], fd[i-1]);
+  for (k = 1; k <= E; k++)
+    for (i = E; i >= k; i--)
+      mpz_sub (fd[i], fd[i], fd[i-1]);
   
-  for (i=0; i<=E; i++)
-    mpz_powm(fd[i], x, fd[i], N);
+  for (i = 0; i <= E; i++)
+    mpz_powm (fd[i], x, fd[i], N);
 
   return fd;
 }
 
 /* Computes x^((s + (n+1)*D)^E and stores in fd[0] */
 void 
-fin_diff_next(mpz_t *fd, unsigned int E, mpz_t N) {
+fin_diff_next (mpz_t *fd, unsigned int E, mpz_t N) 
+{
   unsigned int i;
   
-  for (i=0; i<E; i++) {
-    mpz_mul(fd[i], fd[i], fd[i+1]);
-    mpz_mod(fd[i], fd[i], N);
-  }
+  for (i = 0; i < E; i++)
+    {
+      mpz_mul (fd[i], fd[i], fd[i+1]);
+      mpz_mod (fd[i], fd[i], N);
+    }
   return;
 }
 
 void 
-fin_diff_clear(mpz_t *fd, unsigned int E) {
+fin_diff_clear (mpz_t *fd, unsigned int E)
+{
   unsigned int i;
   
-  for (i=0; i<=E; i++)
-    mpz_clear(fd[i]);
-  free(fd);
+  for (i = 0; i <= E; i++)
+    mpz_clear (fd[i]);
+  free (fd);
   return;
 }
 
@@ -81,82 +86,84 @@ fin_diff_clear(mpz_t *fd, unsigned int E) {
 int
 rootsF (listz_t F, unsigned int d, mpz_t s, mpz_t invs, listz_t t, 
         unsigned int S, mpz_t n, int verbose)
-  {
-    unsigned int i, j;
-    int st;
-    mpz_t *fd;
-    
-    st = cputime ();
+{
+  unsigned int i, j;
+  int st;
+  mpz_t *fd;
+  
+  st = cputime ();
 
-    mpz_set(F[0], s);
-    i = 1;
+  mpz_set (F[0], s);
+  i = 1;
+  
+  if (d > 7)
+    {
+      fd = fin_diff_init (s, 7, 6, S, n);
+      j = 7;
+      while (j < d) 
+        {
+          if (gcd (j, d) == 1)
+            mpz_set (F[i++], fd[0]);
+          fin_diff_next (fd, S, n);
+          j += 6;
+        }
+      fin_diff_clear (fd, S);
+    }
+  
+  if ((d/6)*S > 3*(i-1)) /* Batch inversion is cheaper */
+    {
+      if (list_invert (t, F, i, t[i], n)) 
+        {
+          mpz_set (s, t[i]);
+          return 0;
+        }
+     
+      for (j = 0; j < i; j++) 
+        {
+          mpz_add (F[j], F[j], t[j]);
+          mpz_mod (F[j], F[j], n);
+        }
+     
+      mpz_set (invs, t[0]); /* Save s^(-1) in invs */
     
-    if (d > 7) 
-      {
-        fd = fin_diff_init(s, 7, 6, S, n);
-        j = 7;
-        while (j < d) 
-          {
-            if (gcd(j, d) == 1)
-              mpz_set(F[i++], fd[0]);
-            fin_diff_next(fd, S, n);
-            j += 6;
-          }
-        fin_diff_clear(fd, S);
-      }
-    
-    if (S > 3) /* Batch inversion is cheaper */
-      {
-        if (list_invert(t, F, i, t[i], n)) {
-          mpz_set(s, t[i]);
+    } else { /* fin_diff code is cheaper */
+
+      mpz_gcdext (*t, invs, NULL, s, n);
+
+      if (mpz_cmp_ui (*t, 1) != 0)
+        {
+          mpz_set (s, *t);
           return 0;
         }
 
-       for (j = 0; j < i; j++) {
-         mpz_add(F[j], F[j], t[j]);
-         mpz_mod(F[j], F[j], n);
-       }
+      mpz_add (F[0], F[0], invs);
+      mpz_mod (F[0], F[0], n);
 
-       mpz_set(invs, t[0]); /* Save s^(-1) in invs */
+      i = 1;
        
-      } else { /* S <= 3: fin_diff code is cheaper */
+      if (d > 7) 
+        {
+          fd = fin_diff_init (invs, 7, 6, S, n);
+          j = 7;
+          while (j < d) 
+            {
+              if (gcd (j, d) == 1)
+                {
+                  mpz_add (F[i], F[i], fd[0]);
+                  mpz_mod (F[i], F[i], n);
+                  i++;
+                }
+              fin_diff_next (fd, S, n);
+              j += 6;
+            }
+          fin_diff_clear (fd, S);
+        }
+    }
+  
+  if (verbose >= 2)
+    printf ("Computing roots of F took %dms\n", cputime () - st);
 
-        mpz_gcdext (*t, invs, NULL, s, n);
-
-        if (mpz_cmp_ui (*t, 1) != 0)
-          {
-            mpz_set (s, *t);
-            return 0;
-          }
-
-        mpz_add(F[0], F[0], invs);
-        mpz_mod(F[0], F[0], n);
-
-        i = 1;
-        
-        if (d > 7) 
-          {
-            fd = fin_diff_init(invs, 7, 6, S, n);
-            j = 7;
-            while (j < d) 
-              {
-                if (gcd(j, d) == 1)
-                  {
-                    mpz_add(F[i], F[i], fd[0]);
-                    mpz_mod(F[i], F[i], n);
-                    i++;
-                  }
-                fin_diff_next(fd, S, n);
-                j += 6;
-              }
-            fin_diff_clear(fd, S);
-          }
-     }
-    
-    if (verbose >= 2)
-      printf ("Computing roots of F took %dms\n", cputime () - st);
-
-    return i;
+  return i;
 }
 
 
@@ -164,20 +171,47 @@ rootsF (listz_t F, unsigned int d, mpz_t s, mpz_t invs, listz_t t,
    returns in t the value of t0*s^d, in u the value of u0*invs^d
 */
 void
-rootsG (mpz_t *G, unsigned int d, mpz_t s, mpz_t invs, listz_t fd_x, 
-        listz_t fd_invx, unsigned int S, mpz_t n, int verbose)
+rootsG (listz_t G, unsigned int d, listz_t fd_x, listz_t fd_invx, 
+        listz_t t, unsigned int S, mpz_t n, int verbose)
 {
   unsigned int i;
   int st;
 
   st = cputime ();
 
-  for (i = 0; i < d; i++)
+  if (S > 3 && d > 0)
     {
-      mpz_add (G[i], fd_x[0], fd_invx[0]);
-      mpz_mod (G[i], G[i], n);
-      fin_diff_next(fd_x, S, n);
-      fin_diff_next(fd_invx, S, n);
+      mpz_set (G[0], fd_x[0]);
+      mpz_set (t[0], fd_x[0]);
+
+      for (i = 1; i < d; i++)
+        {
+          fin_diff_next (fd_x, S, n);
+          mpz_set (G[i], fd_x[0]);
+          mpz_mul (t[i], t[i-1], fd_x[0]);
+          mpz_mod (t[i], t[i], n);
+        }
+
+      mpz_gcdext (t[d], t[d-1], NULL, t[d-1], n);
+
+      for (i = d-1; i > 0; i--) 
+        {
+          mpz_mul (t[d], t[i], t[i-1]);
+          mpz_mul (t[i-1], t[i], G[i]);
+          mpz_mod (t[i-1], t[i-1], n);
+          mpz_add (t[d], t[d], G[i]);
+          mpz_mod (G[i], t[d], n);
+        }
+
+    } else {
+
+      for (i = 0; i < d; i++)
+        {
+          mpz_add (G[i], fd_x[0], fd_invx[0]);
+          mpz_mod (G[i], G[i], n);
+          fin_diff_next (fd_x, S, n);
+          fin_diff_next (fd_invx, S, n);
+        }
     }
 
   if (verbose >= 2)
@@ -245,12 +279,12 @@ stage2 (mpz_t x, mpz_t n, double B2, unsigned int k, unsigned int S,
   buildG (F, dF, T, verbose, n, 'F'); /* needs dF+list_mul_mem(dF/2) cells in T */
 
   G = init_list (dG + 1);
-  fd_x = fin_diff_init(x, 0, d, S, n);
-  fd_invx = fin_diff_init(invx, 0, d, S, n);
+  fd_x = fin_diff_init (x, 0, d, S, n);
+  fd_invx = fin_diff_init (invx, 0, d, S, n);
 
   for (i=0; i<k; i++)
     {
-      rootsG (G, dG, x, invx, fd_x, fd_invx, S, n, verbose);
+      rootsG (G, dG, fd_x, fd_invx, T + dF, S, n, verbose);
 
       buildG (G, dG, T + dF, 1, n, 'G'); /* needs 2*dF+list_mul_mem(dF/2) cells in T */
       mpz_set_ui (G[dG], 1);
@@ -286,8 +320,8 @@ stage2 (mpz_t x, mpz_t n, double B2, unsigned int k, unsigned int S,
     printf ("Computing gcd of F and G took %dms\n", cputime() - st);
 
   clear_list (G, dG + 1);
-  fin_diff_clear(fd_invx, S);
-  fin_diff_clear(fd_x, S);
+  fin_diff_clear (fd_invx, S);
+  fin_diff_clear (fd_x, S);
   clear_list (T, sizeT);
 
  clear_F:

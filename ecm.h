@@ -24,8 +24,8 @@ int          cputime    (void);
 /* stage2.c */
 int          rootsF     (listz_t, unsigned int, mpz_t, mpz_t, mpz_t *, 
                          unsigned int , mpz_t, int);
-void         rootsG     (listz_t, unsigned int, mpz_t, mpz_t, mpz_t, mpz_t,
-			 unsigned int, mpz_t, int);
+void         rootsG     (listz_t, unsigned int, listz_t, listz_t, 
+                         listz_t, unsigned int, mpz_t, int);
 int          stage2     (mpz_t, mpz_t, double, unsigned int, unsigned int, int);
 
 /* listz.c */
