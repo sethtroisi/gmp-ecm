@@ -510,14 +510,14 @@ pm1_rootsF (mpz_t f, listz_t F, unsigned int d, mpres_t *x, listz_t t,
 */
 
 mpres_t *
-pm1_rootsG_init (mpres_t *x, unsigned int s, unsigned int d, int S,
+pm1_rootsG_init (mpres_t *x, unsigned long s, unsigned int d, int S,
                  mpmod_t modulus)
 {
   unsigned int k;
   int invtrick = 0, dickson_a = 0;
   listz_t coeffs;
   mpres_t *fd;
-  
+
   if (S > 6 && (S & 1) == 0)
     {
       invtrick = 1;
