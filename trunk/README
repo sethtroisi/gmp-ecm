@@ -102,12 +102,13 @@ Step 2 took 2470ms
 ********** Factor found in step 2: 4190453151940208656715582382315221647
 Found input number N
 
-However not all seeds will succeed: a given seed 's' works iff the Jacobi
-symbol of s^2-4 and P is -1. Unfortunately, since P is usually not known
-in advance, there is no way to ensure that this holds. However, if the
-seed is chosen randomly, there is a probability of about 1/2 that it will
-give a Jacobi symbol of -1 (i.e. the factor P will be found if it is smooth
-enough). A rule of thumb is to run 3 times P+1 with different random seeds.
+However not all seeds will succeed: only half of the seeds 's' work for P+1
+(namely those where the Jacobi symbol of s^2-4 and P is -1.) Unfortunately, 
+since P is usually not known in advance, there is no way to ensure that this 
+holds. However, if the seed is chosen randomly, there is a probability of 
+about 1/2 that it will give a Jacobi symbol of -1 (i.e. the factor P will 
+be found if P+1 is smooth enough). A rule of thumb is to run 3 times P+1 
+with different random seeds.
 
 The ECM method is a probabilistic method, and can be viewed in some sense
 as a generalization of the P-1 and P+1 method, where we only require that
@@ -187,9 +188,8 @@ Warning: these "extra" factorizations may not be reproducible in future
 versions of gmp-ecm, since they depend on some internal parameters that
 may change.
 
-The default polynomial used for a given B2 should be near from
-optimal, i.e. give only a marginal overhead in step 2, while
-enabling extra factors.
+The default polynomial used for a given B2 should be near optimal, 
+i.e. give only a marginal overhead in step 2, while enabling extra factors.
 
 ##############################################################################
 
@@ -200,9 +200,11 @@ the input number). Stage 2 may be quite memory expensive, especially for
 large B2, since its efficient algorithms use some large tables. To reduce
 the memory usage of stage 2, you may increase the 'k' parameter, which controls
 the number of "blocks" performed in stage 2. Multiplying the default value of
-k (which is 8) by 4 will decrease the memory usage by 2. For example with 
+k (which is 5) by 4 will decrease the memory usage by 2. For example with 
 B2=1e10 and a 155-digit number, stage 2 requires about 28MB with the default
-k, but only 14MB with k=32.
+k, but only 14MB with k=32. Increasing k does, however, also increase the
+time required for stage 2 (see paragraph "7. How to get the best of
+gmp-ecm?")
 
 ##############################################################################
 
@@ -378,61 +380,63 @@ Parameters:
 Options: options must appear before the parameters, and can be in any order.
 
 Options to control the factorization method [ECM is the default]:
--pm1. Perform P-1 instead of ECM.
--pp1. Perform P+1 instead of ECM.
+-pm1  Perform P-1 instead of ECM.
+-pp1  Perform P+1 instead of ECM.
 
 Options to control the group and initial point used:
--x0 x [P-1,P+1,ECM]. Use x as initial point. x can be an arbitrary-precision
+-x0 x  [P-1,P+1,ECM]. Use x as initial point. x can be an arbitrary-precision
    integer or rational. For example, -x0 1/3 is valid. If not given, x0 is
    either generated from the sigma value for ECM, or at random.
--sigma s [ECM]. Use s (arbitrary-precision integer) as curve generator.
+-sigma s  [ECM]. Use s (arbitrary-precision integer) as curve generator.
    If not given, sigma is generated at random (32-bit integer). Any
    value has the same probability to hit a factor, the only important 
    thing is to ensure different values for different runs on the same number.
--A a [ECM]. Use 'a' (arbitrary-precision integer) as curve parameter.
+-A a  [ECM]. Use 'a' (arbitrary-precision integer) as curve parameter.
    If not given, is generated from sigma. Like sigma, the value of A itself
    is not important; what is important is to ensure different values
    for different runs.
 
 Options to control stage 2 parameters:
--k n [P-1,P+1,ECM]. Perform n steps in stage 2 (default is 5). See
+-k n  [P-1,P+1,ECM]. Perform n blocks in stage 2 (default is 5). See
    paragraph "Memory usage" above.
--power n. Use x^n for Brent-Suyama's extension (see paragraph "Extra factors
-   and Brent-Suyama's extension). Default is x^1 for P+1 and ECM, x^2 for P-1.
-   For P-1, the exponent should be even.
--dickson n. Use degree-n Dickson's polynomial for Brent-Suyama's
+-power n  Use x^n for Brent-Suyama's extension (see paragraph "4. Extra 
+   factors and Brent-Suyama's extension). Default is chosen depending on
+   method and B2. For P-1, n should be even. Does not work with P+1.
+-dickson n  Use degree-n Dickson's polynomial for Brent-Suyama's
    extension, instead of x^n. As for x^n, 'n' should be even for P-1. 
+   Dickson polynomials give a better chance of finding factors, but for
+   P-1 and n>6, x^n is faster. Does not work with P+1.
 
 Options to control output:
--q. Quiet mode. Found factors are printed on standard error, and
+-q  Quiet mode. Found factors are printed on standard error, and
    cofactors (if not probable prime) are printed on standard output.
    This option is useful to deal with a file of cofactors: type
    ecm B1 < file > file2, so that non-factored numbers and composite
    cofactors are written in file2, while factors found are printed on
    standard error. Then one can do ecm B1 < file2 > file3, ...
--v. Verbose mode. Several informations are printed (modular
+-v  Verbose mode. Several informations are printed (modular
    multiplication used, initial A and x0 values, value of x at the end
    of step 1, parameters for step 2, and timing for sub-steps from step 2).
 
 Options to control modular arithmetic (see "How to get the best of gmp-ecm?"):
--mpzmod.  Use GMP's mpz_mod for modular reduction.
--modmuln. Use Montgomery's MODMULN for modular reduction.
--redc.    Use Montgomery's REDC for modular reduction.
+-mpzmod   Use GMP's mpz_mod for modular reduction.
+-modmuln  Use Montgomery's MODMULN for modular reduction.
+-redc     Use Montgomery's REDC for modular reduction.
 -nobase2  Disable special base-2 code. Base-2 division is used
           when the input number if a factor of 2^n+1 or 2^n-1,
           and the ratio of the number of bits is not too small.
 
-Options for saving and resuming to/from files (see paragraph "Options
+Options for saving and resuming to/from files (see paragraph "6. Options
    -save and -resume"):
--save file. Save residues at end of stage 1 to file.
--resume file. Resume residues from file, reads from stdin if file is "-".
+-save file    Save residues at end of stage 1 to file.
+-resume file  Resume residues from file, reads from stdin if file is "-".
 
 Miscallenaous options:
--primetest. Perform a primality test on input number, and prints a
+-primetest  Perform a primality test on input number, and prints a
    message if it is probably prime. This is not done by default since
    the primality test may be quite expensive (especially for large
    input).
--c n. Perform n runs on each input number instead of just one by
+-c n  Perform n runs on each input number instead of just one by
    default. The runs are stopped before n in case a factor is found.
    This option is mainly useful for P+1 (for example with c=3) or for
    ECM, where n is the expected number of curves corresponding to a
