@@ -17,7 +17,8 @@ Instructions to install gmp-ecm:
    (default is /usr/local/gmp).
 
    By default, a static binary is made. If this fails, try adding
-   LDFLAGS="-lgmp -lm" to the make command.
+   LDFLAGS="-lgmp -lm" to the make command. This is the case for
+   example under Darwin.
 
    On systems without alloca.h (for example 32-bit AIX, NetBSD,
    FreeBSD), you need to add -D__freebsd to the C flags, for example
