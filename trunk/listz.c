@@ -32,7 +32,9 @@
 
 #if (MULT == KS)
 #define LIST_MULT_N kronecker_schonhage
+#ifdef HAVE_FFT
 #define WRAP /* use wrap-around multiplication for low short product */
+#endif
 #elif (MULT == TOOM4)
 #define LIST_MULT_N toomcook4
 #elif (MULT == TOOM3)

@@ -248,7 +248,7 @@ Using B1=5000000, B2=272993793, polynomial x^24, x0=2
 Step 1 took 5149ms
 Step 2 took 3523ms
 
-The file "toto" now contains some information about the method use, the step
+The file "toto" now contains some information about the method used, the step
 1 bound, the number to factor, the value X at the end of step 1 (in hexa-
 decimal), and a checksum to verify that no data was corrupted:
 
