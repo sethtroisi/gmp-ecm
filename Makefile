@@ -6,7 +6,7 @@ NTL=/global/ecrouves/loria/linux/ntl-5.3
 
 ###################### do not edit below this line ############################
 
-CFLAGS=-O2 -g -static -Wall -Wmissing-prototypes -ansi -pedantic
+CFLAGS=-O2 -g -Wall -Wmissing-prototypes -ansi -pedantic
 CC=g++
 
 FILES= aux.o bestd.o ecm.o getprime.o main.o pm1.o listz.o stage2.o polyz.o ntl.o toomcook.o
