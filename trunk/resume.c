@@ -388,16 +388,16 @@ write_resumefile_line (FILE *fd, int method, double B1, mpz_t sigma, mpz_t A,
     fprintf (fd, "P+1");
   else 
     {
-      fprintf (fd, "ECM; ");
+      fprintf (fd, "ECM");
       if (mpz_sgn (sigma) != 0)
         {
-          fprintf (fd, "SIGMA=");
+          fprintf (fd, "; SIGMA=");
           mpz_out_str (fd, 10, sigma);
           mpz_mul_ui (checksum, checksum, mpz_fdiv_ui (sigma, CHKSUMMOD));
         }
       else if (mpz_sgn (A) != 0)
         {
-          fprintf (fd, "A=");
+          fprintf (fd, "; A=");
           mpz_out_str (fd, 10, A);
           mpz_mul_ui (checksum, checksum, mpz_fdiv_ui (A, CHKSUMMOD));
         }
