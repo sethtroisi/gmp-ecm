@@ -1,8 +1,6 @@
 /* Polynomial arithmetic.
 
-  Copyright (C) 2002 Paul Zimmermann,
-  LORIA/INRIA Lorraine, zimmerma@loria.fr
-  See http://www.loria.fr/~zimmerma/records/ecmnet.html
+  Copyright 2002, 2003 Alexander Kruppa and Paul Zimmermann.
 
   This program is free software; you can redistribute it and/or modify it
   under the terms of the GNU General Public License as published by the
@@ -26,14 +24,7 @@
 #include "gmp.h"
 #include "ecm.h"
 
-/* initializes a polynomial of degree n */
-void
-init_poly (polyz_t p, int n)
-{
-  p->coeff = init_list (n + 1);
-  p->alloc = n + 1;
-}
-
+#ifndef POLYEVAL
 /* initializes a polynomial of degree n from a given list */
 void
 init_poly_list (polyz_t p, int n, listz_t l)
@@ -43,28 +34,6 @@ init_poly_list (polyz_t p, int n, listz_t l)
   p->alloc = n + 1;
 }
 
-/* clears a polynomial */
-void
-clear_poly (polyz_t p)
-{
-  clear_list (p->coeff, p->alloc);
-}
-
-/* returns non-zero iff p is 0 */
-int
-poly_zerop (polyz_t p)
-{
-  return list_zerop (p->coeff, p->degree + 1);
-}
-
-void
-poly_set_ui (polyz_t p, unsigned long int i)
-{
-  assert(p->alloc >= 1);
-  mpz_set_ui (p->coeff[0], i);
-}
-
-#ifndef POLYEVAL
 /* Input: a is a polynomial.
           b is a polynomial with deg(b) < deg(a).
    Output: g = gcd(a, b) is in a.
