@@ -320,6 +320,14 @@ emulates an infinite loop until a factor is found.</para>
   </listitem>
   </varlistentry>
 
+  <varlistentry>
+  <term><option><replaceable>--help</replaceable></option></term>
+  <listitem>
+  <para>Display a short description of ecm usage, parameters and command line
+  options.</para>
+  </listitem>
+  </varlistentry>
+
 </variablelist>
 
 <!--  TeX users may be more comfortable with the \fB&lt;whatever&gt;\fP and -->
