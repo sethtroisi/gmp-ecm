@@ -108,7 +108,11 @@ main (int argc, char *argv[])
         /* If a factor was found, indicate whether factor, cofactor are */
         /* prime. If no factor was found, both are zero. */
   int repr = 0;
+#ifdef POLYEVAL
+  int k = 5;
+#else /* POLYGCD is more expensive -> perform more blocks */
   int k = 8; /* default number of blocks in stage 2 */
+#endif
   int S = 0; /* Degree for Brent-Suyama extension requested by user */
              /* Positive value: use S-th power, */
              /* negative: use degree |S| Dickson poly */
