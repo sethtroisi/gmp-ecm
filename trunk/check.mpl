@@ -136,6 +136,7 @@ end:
 # assumes k>=l
 list_mul := proc(k, l)
    if k=l then toomcook4(l)
+   elif k=l+1 then  toomcook4(l) + l # special important case
    else toomcook4(l) + list_mul(max(k-l, l), min(k-l, l))
    fi
 end:
@@ -146,7 +147,7 @@ PolyFromRoots := proc(k) option remember; local l, m;
    elif k=2 then 1
    else
       m := iquo(k, 2);
-      l := k - m;
+      l := k - m; # l = k or l = k + 1
       procname(l) + procname (m) + list_mul(l, m)
    fi
 end:
@@ -181,6 +182,69 @@ RecursiveDivision := proc(K) option remember; local k, l;
       l := K - k;
       procname(l) + 2*toomcook4(k) + 2*k * (l-k) + procname(k)
    fi
+end:
+
+Reduce := proc(n) 2*toomcook4(n-1) + 1 end:
+
+rootsF := proc(d, S)
+   2.5 * 6 * (d/6) * S
+end:
+
+rootsG := proc(dF, S)
+   2.5 * 6 * dF * S
+end:
+
+step2_cost := proc(B2, d, S) option remember; local dF, k, a, b;
+   dF := numtheory[phi](d)/2;
+   k := ceil (B2 / d / dF);
+   a := PolyFromRoots(dF) + PolyInvert(dF-1) - toomcook4(dF) -
+   Reduce(dF)
+   + PolyEval(dF) + rootsF(d, S);
+   b := PolyFromRoots(dF) # Building G from its roots
+   + toomcook4(dF)   # Computing G * H
+   + Reduce(dF) # Reducing G * H mod F
+   + rootsG(dF, S);
+   k, a, b, a + k * b;
+end:
+
+PolyInvert := proc(n) option remember; local k, l, v;
+   if n=1 then 0
+   else
+      k := iquo(n, 2);
+      l := n - k;
+      v := procname(l) + toomcook4(l) + toomcook4(k);
+      if k > 1 then v := v + list_mul (l-1, k-1) fi;
+      v
+   fi
+end:
+
+PolyEval := proc(k) option remember; local m, l, v;
+   if k=1 then 0
+   else
+      m := iquo(k, 2);
+      l := k - m;
+      v := RecursiveDivision(m);
+      if k > 2*m then v := v + m fi;
+      v + RecursiveDivision(l) + procname(l) + procname(m)
+   fi
+end:
+
+# output list with increasing phi(d) and decreasing step2_cost(d)
+gen_bestD := proc(d0, d1) local l, d, c, p, i, j;
+   l := [[d0,numtheory[phi](d0),step2_cost(d0)]];
+   for d from d0+6 by 6 to d1 do
+      p := numtheory[phi](d);
+      c := step2_cost(d);
+      for i to nops(l) while p > l[i][2] and c < l[i][3] do od;
+      # now i > nops(l) or phi(d) <= phi(l[i]) or c >= step2_cost(l[i])
+      if i > nops(l) then l:=[op(l),[d,p,c]]
+      elif p <= l[i][2] then # p <= l[j][2] for j >= i
+         for j from i to nops(l) while c <= l[j][3] do od;
+         l:=[op(1..i-1, l), [d,p,c], op(j..nops(l), l)]
+      else # p > l[i][2] and c >= step2_cost(l[i])
+      fi
+   od;
+   l
 end:
 
 # estimate number of multiplies of PolyGcd(F, G)
