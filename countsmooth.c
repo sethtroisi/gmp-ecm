@@ -25,6 +25,10 @@
 #include <math.h>
 #include <gmp.h>
 
+/* uncomment the following to use primegen,
+   cf http://cr.yp.to/primegen/primegen-0.97.tar.gz */
+/* #define PRIMEGEN */
+
 #ifdef PRIMEGEN
 #include <primegen.h>
 #else
@@ -773,7 +777,9 @@ main(int argc, char **argv)
       nr_tests -= blocklen;
       blockstart += blocklen;
       mpz_add_ui (N, N, blocklen);
+#ifndef PRIMEGEN
       p = getprime (FREE_PRIME_TABLE);
+#endif
     }
   
   for (i = 0; i < get_lenF (D); i++)
