@@ -1,4 +1,7 @@
 ToDo's:
+- fix problem found by SleepHound <sleephound@yahoo.com> for
+  ./ecm -sigma 1404040793 -power 2 5e4 11757135 < c3456
+  where c3456 is the remaining composite from 2^22176+1.
 - with -resume, print %time for THIS RUN instead of total run?
 	[suggested by SleepHound <sleephound@yahoo.com>]
 - check if return value of malloc() is zero or not, and print appropriate
