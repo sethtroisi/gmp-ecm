@@ -59,6 +59,9 @@ extern FILE *ECM_STDOUT, *ECM_STDERR;
 #define INLINE
 #endif
 
+/* residues are fully reduced (i.e. in canonical mpz form) */
+#define FULL_REDUCTION
+
 /* if POLYEVALTELLEGEN is defined, use polyeval_tellegen(),
    otherwise use polyeval() */
 #define POLYEVALTELLEGEN
