@@ -25,8 +25,6 @@
 #include "gmp.h"
 #include "ecm.h"
 
-#define DEBUG
-
 void dickson_ui        (mpz_t r, unsigned int x, unsigned int n, int a);
 
 void 
