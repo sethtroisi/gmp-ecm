@@ -27,6 +27,8 @@
         "prelim" setting to T:000 and 1:000 and 2:100 are done to stderr.
         Also, Trial division is done, and can be seen as a "model" of what
         we can do with the other (stage 1 and stage 2) blocks of run-time.
+- Add a -qq switch that is "really" screen IO quiet (no stderr printing, etc).
+  This would be for the ECM C/S project.
 - write a real documentation (which format? texi can generate dvi and
   html,	or LaTeX can also generate dvi, pdf and html)
 - document how to use the ecm(), pm1(), pp1() functions from a C program
