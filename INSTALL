@@ -1,33 +1,51 @@
-Instructions to install ecm-5.0:
+Instructions to install gmp-ecm:
 
-0) you first need to install the GNU MP (GMP) and NTL libraries.
+0) you first need to install the GNU MP (GMP) library.
    GNU MP is available from <http://www.swox.com/gmp/>.
-   NTL is available from <http://www.shoup.net/ntl/>.
 
    Remark: GNU MP is already installed in most Linux distributions.
    However it is often an old version (3.1.1 for example), moreover
    without processor-specific optimizations. If you care about efficiency,
-   be sure to install the latest version of GNU MP (4.1 currently), and to
-   compile it on your particular processor.
+   be sure to install the latest version of GNU MP (4.1.2 on February 2003),
+   and to compile it on your particular processor.
+
+   Moreover for efficiency reasons, gmp-ecm requires some internal GMP
+   header files (gmp-mparam.h, gmp-impl.h, longlong.h). So you need
+   to copy those internal files in <gmpdir>/include (see below).
 
 1) to create the binary file "ecm5", type:
 
-      $ make GMP=<gmpdir> NTL=<ntldir>
+      $ make GMP=<gmpdir>
 
-   where <gmpdir> and <ntldir> are the directories where GMP and NTL are
-   installed respectively (default are /usr/local/gmp and /usr/local/ntl).
+   where <gmpdir> is the directory where GMP is installed
+   (default is /usr/local/gmp).
 
 2) (optional) to check that "ecm5" works correctly, type:
 
-      $ ./test.pm1 ./ecm5 # this checks Pollard's P-1
-      $ ./test.pp1 ./ecm5 # this checks Williams' P+1
+      $ ./test.pm1 ./ecm5 # this checks P-1
+      $ ./test.pp1 ./ecm5 # this checks P+1
+      $ ./test.ecm ./ecm5 # this checks ECM
 
-   The P+1 test takes about 30 seconds on a PIII-500 with GMP 4.1 and NTL 5.3.
-   The P-1 test takes much longer.
+   The P+1 test takes about 30 seconds on a PIII-366 with GMP 4.1.
+   The P-1 and ECM tests take much longer.
 
 Note: if you care about efficiency, you might try to compile ecm5 with the
 same CFLAGS as GMP (grep CFLAGS <gmp_source_dir>/Makefile).
 
-In case of problem, report it to us:
+The README file explains how to efficiently use P-1, P+1 and ECM.
+
+In case of problem, report it to us, with:
+- the versions of GMP-ECM and GMP used (first output line), for example:
+  
+  GMP-ECM 5.0 [powered by GMP 4.1]
+
+- the machine type and operating system (uname -a or config.guess from GMP)
+- the detailed input enabling us to reproduce the problem, for example:
+
+  $ echo 328006342451 | ./ecm5 -pp1 107 5 7043
+
+- the output you get.
+
+Then send you report to us:
 Alexander Kruppa <alexander.kruppa@stud.tu-muenchen.de>
 Paul Zimmermann <zimmerma@loria.fr>
