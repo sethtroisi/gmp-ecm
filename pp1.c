@@ -254,7 +254,7 @@ pp1_check_factor (mpz_t a, mpz_t p)
 
    For P+1, we have V_{j+6} = V_j * V_6 - V_{j-6}.
 
-   for 0 < j = 1 mod 7 < d, j and d coprime.
+   for 0 < j = 1 mod 6 < d, j and d coprime.
 */
 
 int
@@ -348,6 +348,7 @@ pp1_rootsG_clear (mpres_t *fd, mpmod_t modulus)
   mpres_clear (fd[1], modulus);
   mpres_clear (fd[2], modulus);
   mpres_clear (fd[3], modulus);
+  free (fd);
 }
 
 int
