@@ -22,6 +22,7 @@
 #include <math.h>
 #include <stdlib.h>
 #include <stdio.h>
+#include <limits.h> /* for ULONG_MAX */
 #include "gmp.h"
 #include "ecm.h"
 
@@ -97,11 +98,18 @@ dickson_ui (mpz_t r, unsigned int x, unsigned int n, int a)
 */
 
 void 
-fin_diff_coeff (listz_t coeffs, unsigned int s, unsigned int D, 
+fin_diff_coeff (listz_t coeffs, unsigned long s, unsigned int D,
                 unsigned int E, int dickson_a)
 {
   unsigned int i, k;
-  
+
+  /* check maximal value of s + i * D does not overflow */
+  if ((double) s + (double) E * (double) D > (double) ULONG_MAX)
+    {
+      fprintf (stderr, "Error, overflow in fin_diff_coeff\n");
+      fprintf (stderr, "Please use a smaller B1 or B2min\n");
+      exit (1);
+    }
   for (i = 0; i <= E; i++)
     if (dickson_a != 0)         /* fd[i] = dickson_{E,a} (s+i*D) */
       dickson_ui (coeffs[i], s + i * D, E, dickson_a); 
@@ -255,6 +263,13 @@ stage2 (mpz_t f, void *X, mpmod_t modulus, double B2min, double B2,
   /* start computing G with roots at i0*d, (i0+1)*d, (i0+2)*d, ... 
      where i0*d <= B2min < (i0+1)*d */
   G = init_list (dF);
+  /* check that i0 * d does not overflow */
+  if ((double) i0 * (double) d > (double) ULONG_MAX)
+    {
+      fprintf (stderr, "Error, overflow in stage 2\n");
+      fprintf (stderr, "Please use a smaller B1 or B2min\n");
+      exit (1);
+    }
   st = cputime ();
   if (method == PM1_METHOD)
     rootsG_state = pm1_rootsG_init (X, i0 * d, d, S, modulus);

@@ -20,6 +20,12 @@
 # 02111-1307, USA.
 
 set ECM="$1"
+### bug in ecm-5.0 found by Jay Berg (overflow in i0*d)
+echo 441995541378330835457 | $ECM -pm1 2e3 7e9-72e8
+if ($status != 0) then
+   echo "############### ERROR ###############";
+   exit 1;
+endif
 ### stage 2 less than 10^9 ###
 echo 335203548019575991076297 | $ECM -pm1 -x0 2 23 31
 if ($status != 0) then

@@ -370,7 +370,7 @@ pp1_rootsF (listz_t F, unsigned int d, mpres_t *x, listz_t t,
 }
 
 mpres_t *
-pp1_rootsG_init (mpres_t *x, unsigned int s, unsigned int d, mpmod_t modulus)
+pp1_rootsG_init (mpres_t *x, unsigned long s, unsigned int d, mpmod_t modulus)
 {
   int st;
   mpres_t *fd, P;
