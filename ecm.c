@@ -542,30 +542,27 @@ ecm_stage1 (mpz_t f, mpres_t x, mpres_t A, mpmod_t n, double B1,
 	  if (st_now - st_save > 15 * 60 * 1000)
 #endif
 	    {
-	      /* PAUL!  This code does not work. I don't yet know what I am doing with
-	         your modular form items.  Can you please help get this working, as I 
-		 think this was a very "good" item from the todo list, and when this 
-		 gets operational, then incremental saving should work */
-	      mpz_t XX, UU;
-	      st_save = st_now;
-	      mpz_init (XX);
-	      mpz_init (UU);
-	      mpz_init_set (XX, x);
-	      mpz_init_set (UU, u);
-	      if (!mpres_invert (u, z, n)) /* Factor found? */
-		{
-		  mpres_gcd (f, z, n);
-		  ret = 1;
-		}
-	      mpres_mul (x, x, u, n);
-	      mpres_get_z (x, x, n);
-              write_temp_resumefile (EC_METHOD, q+1, sigma, A, x, orig_n, verbose);
-	      mpz_set (x, XX);
-	      mpz_set (u, UU);
-	      mpz_clear (XX);
-	      mpz_clear (UU);
-	    }
+	      /* orig_X0 not needed for the save.  Simply create a "dummy" here to pass in */
+/*	      mpz_t orig_X0, X, U, Z; 
+	      mpz_init_set_ui (orig_X0, 0);
+	      mpz_init (X);
+*/
+	      /* Suck the X value out of a */
 
+/*	      mpres_invert (u, z, n);
+	      mpres_mul (x, x, u, n);
+	      mpres_get_z (X, x, n);
+
+	      write_temp_resumefile (EC_METHOD, q, sigma, A, X, orig_n, orig_X0, verbose);
+*/
+	      /*exit(1);*/
+
+/*	      mpz_clear (orig_X0);
+	      mpz_clear (X);
+/*
+	      /* Reset our "timeout" value, so we save again in 15 minutes */
+	      st_save = st_now;
+	    }
 	  /*  This "testing" code is here to see just how often this ++Counter loop is entered.
 	  {
 	    static int x;
@@ -617,7 +614,7 @@ ecm_stage1 (mpz_t f, mpres_t x, mpres_t A, mpmod_t n, double B1,
 */
 int
 ecm (mpz_t f, mpz_t x, mpz_t sigma, mpz_t n, double B1done, double B1,
-     double B2min, double B2, double B2scale, unsigned int k, int S, int verbose, 
+     double B2min, double B2, double B2scale, unsigned int k, int S, int verbose,
      int repr, int sigma_is_A)
 {
   int youpi = 0, st;
