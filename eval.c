@@ -21,7 +21,9 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#if !defined (_MSC_VER)
 #include <unistd.h>
+#endif
 #include <ctype.h>
 #include <time.h>
 #include "gmp.h"
