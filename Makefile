@@ -17,15 +17,21 @@
 # Software Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA
 # 02111-1307, USA.
 
+# Standard installation prefix
+prefix=/usr
+
 # directory where GMP is installed
 # gmp.h should be in $(GMP)/include
 # libgmp.a/libgmp.so should be in $(GMP)/lib
-GMP=/usr/local
+GMP=$(prefix)
 
 # directory where NTL is installed
 # ZZ_pX.h and version.h should be in $(NTL)/include/NTL
 # libntl.a should be in $(NTL)/lib
-NTL=/usr/local
+NTL=$(prefix)
+# example of TUNEFLAGS for x86
+# TUNEFLAGS= -O3 -mcpu=i586 -fstrict-aliasing -I/usr/include/gmp -DWANT_GMP_IMPL -DMPZMOD_THRESHOLD=69 -DREDC_THRESHOLD=92
+TUNEFLAGS= -O2
 
 VERSION=5.1-beta
 
@@ -33,9 +39,9 @@ VERSION=5.1-beta
 
 OBJS= auxi.o b1_ainc.o bestd.o candi.o ecm.o ecm2.o eval.o getprime.o listz.o lucas.o main.o pm1.o pp1.o stage2.o toomcook.o trial.o memory.o mpmod.o mul_lo.o polyeval.o resume.o
 
-CFLAGS= -O2 -g -W -Wall -Wmissing-prototypes -pedantic
+CFLAGS= -g -W -Wall -Wmissing-prototypes -pedantic $(TUNEFLAGS)
 LDFLAGS= -lgmp -lm
-CXX=gcc
+CXX=g++
 CC=gcc
 LD=$(CXX)
 EXTRAOBJS=
@@ -51,7 +57,7 @@ ecm: $(ALLOBJS) ecm.h ecm-gmp.h
 	$(LD) $(ALLOBJS) $(GMP)/lib/libgmp.a -o $@ $(LDFLAGS)
 
 ecm_with_ntl:
-	make ecm GMP=$(GMP) NTL=$(NTL) CXX=g++ EXTRAOBJS="ntl.o polyz.o" LDFLAGS="-L$(NTL)/lib -lntl $(LDFLAGS)" CFLAGS="$(CFLAGS) -DPOLYGCD"
+	make ecm GMP=$(GMP) NTL=$(NTL) LD='$(CXX)' EXTRAOBJS="ntl.o polyz.o" LDFLAGS='-L$(NTL)/lib -lntl $(LDFLAGS)' CFLAGS='$(CFLAGS) -DPOLYGCD'
 
 tune: mpmod.o ecm.h tune.o auxi.o mul_lo.o ecm-gmp.h
 	$(CC) $(CFLAGS) -L$(GMP)/lib tune.o mpmod.o auxi.o mul_lo.o -o $@ $(LDFLAGS)
