@@ -678,7 +678,11 @@ PolyInvert (listz_t q, listz_t b, unsigned int K, listz_t t, mpz_t n)
     }
   else
     {
-      int k, l, muls, po2;
+      int k, l, muls, po2, use_middle_product = 0;
+
+#ifdef KS_MULTIPLY
+      use_middle_product = 1;
+#endif
 
       k = K / 2;
       l = K - k;
@@ -686,24 +690,36 @@ PolyInvert (listz_t q, listz_t b, unsigned int K, listz_t t, mpz_t n)
       for (po2 = K; (po2 & 1) == 0; po2 >>= 1);
       po2 = (po2 == 1 && Fermat != 0);
 
+      /* first determine l most-significant coeffs of Q */
       muls = PolyInvert (q + k, b + k, l, t, n); /* Q1 = {q+k, l} */
 
+      /* now Q1 * B = x^(2K-2) + O(x^(2K-2-l)) = x^(2K-2) + O(x^(K+k-2)).
+         We need the coefficients of degree K-1 to K+k-2 of Q1*B */
+
       ASSERTD(list_check(q+k,l,n) && list_check(b,l,n));
-      if (po2)
-        muls += F_mul (t, q + k, b, l, DEFAULT, Fermat, t + 2 * l); /* t[0..2l-1] = Q1 * B0 */
+      if (po2 == 0 && use_middle_product)
+        {
+          TMulKS (t, k - 1, q + k, l - 1, b, K - 1, n, 0);
+          list_neg (t, t, k, n);
+        }
       else
-        muls += LIST_MULT_N (t, q + k, b, l, t + 2 * l - 1); /* t[0..2l-1] = Q1 * B0 */
-      list_neg (t, t + l - 1, k, n);
-      
-      if (k > 1)
         {
           if (po2)
-            /* This expects the leading monomials explicitly in q[2k-1] and b[k+l-1] */
-            muls += F_mul (t + k, q + k, b + l, k, DEFAULT, Fermat, t + k + K); /* t[k ... l+k-1] = Q1 * B1 */
+            muls += F_mul (t, q + k, b, l, DEFAULT, Fermat, t + 2 * l); /* t[0..2l-1] = Q1 * B0 */
           else
-            muls += list_mul (t + k, q + k, l - 1, 1, b + l, k - 1, 1,
-                              t + k + K - 2); /* Q1 * B1 */
-          list_sub (t + 1, t + 1, t + k, k - 1);
+            muls += LIST_MULT_N (t, q + k, b, l, t + 2 * l - 1); /* t[0..2l-1] = Q1 * B0 */
+          list_neg (t, t + l - 1, k, n);
+      
+          if (k > 1)
+            {
+              if (po2)
+                /* This expects the leading monomials explicitly in q[2k-1] and b[k+l-1] */
+                muls += F_mul (t + k, q + k, b + l, k, DEFAULT, Fermat, t + k + K); /* t[k ... l+k-1] = Q1 * B1 */
+              else
+                muls += list_mul (t + k, q + k, l - 1, 1, b + l, k - 1, 1,
+                                  t + k + K - 2); /* Q1 * B1 */
+              list_sub (t + 1, t + 1, t + k, k - 1);
+            }
         }
       list_mod (t, t, k, n); /* high(1-B*Q1) */
 

@@ -369,7 +369,7 @@ int           toomcook4 (listz_t, listz_t, listz_t, unsigned int, listz_t);
 /* ks-multiply.c */
 int kronecker_schonhage (listz_t, listz_t, listz_t, unsigned int, listz_t);
 unsigned int TMulKS     (listz_t, unsigned int, listz_t, unsigned int, listz_t,
-                         unsigned int, mpz_t);
+                         unsigned int, mpz_t, int);
 
 /* polyz.c */
 void init_poly      (polyz_t, int);

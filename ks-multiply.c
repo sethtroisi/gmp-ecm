@@ -112,11 +112,13 @@ kronecker_schonhage (listz_t R, listz_t A, listz_t B, unsigned int l,
    ...
    b[n] = a[0]*c[n] + ... + a[i]*c[i+n] with i = min(m, l-n) [=l-n].
 
+   If rev=0, consider a instead of rev(a).
+
    Assumes n <= l.
 */
 unsigned int
-TMulKS (listz_t b, unsigned int n,
-        listz_t a, unsigned int m, listz_t c, unsigned int l, mpz_t modulus)
+TMulKS (listz_t b, unsigned int n, listz_t a, unsigned int m,
+        listz_t c, unsigned int l, mpz_t modulus, int rev)
 {
   unsigned long i, s = 0, t, k;
   mp_ptr ap, bp, cp;
@@ -172,7 +174,7 @@ TMulKS (listz_t b, unsigned int n,
 
   /* a is reverted */
   for (i = 0; i <= m; i++)
-    MPN_COPY (ap + (m - i) * s, PTR(a[i]), SIZ(a[i]));
+    MPN_COPY (ap + ((rev) ? (m - i) : i) * s, PTR(a[i]), SIZ(a[i]));
   for (i = 0; i <= l; i++)
     MPN_COPY (cp + i * s, PTR(c[i]), SIZ(c[i]));
 
