@@ -289,6 +289,12 @@ TKarMul_space (unsigned int n, unsigned int m, unsigned int l)
   return r1;
 }
 
+unsigned int
+muls_tgen (unsigned int n)
+{
+    return muls_tkara (n);
+}
+
 /* Returns the number of multiplication made in TKarMul
  */
 
@@ -394,8 +400,6 @@ void list_add_safe (listz_t ret, listz_t a, listz_t b,
     }
 }
 
-
-
 unsigned int
 TToomCookMul (listz_t b, unsigned int n,
               listz_t a, unsigned int m, listz_t c, unsigned int l, 
@@ -407,16 +411,12 @@ TToomCookMul (listz_t b, unsigned int n,
     mpz_t comp_tmp;
     unsigned int tot_muls = 0;
 
-#ifdef TTCDEBUG
-    printf ("Entrée de TToomCookMul, n = %d, m = %d, l = %d.\n",
-            n, m, l);
-#endif
 
     nu = n / 3 + 1;
     mu = m / 3 + 1;
 
     /* ensures n + 1 > 2 * nu */
-    if ((n < 2 * nu) || (m < 2 * mu))
+    if ((n < 2 * nu) || (m < 2 * mu) || (n == 6))
     {
 #ifdef TTCDEBUG
         printf ("Opérandes trop petites, on appelle TKara.\n");
@@ -581,7 +581,7 @@ TToomCookMul (listz_t b, unsigned int n,
     }
 
     tot_muls += TToomCookMul (b + h, h - 1, tmp + 2 * h - 1, h - 1, 
-                              tmp + 5 * h - 2, 2 * h - 1,
+                              tmp + 5 * h - 2, 2 * h - 2,
                               tmp + 7 * h - 3);
 
     /* b[h .. 2 * h - 1] = 2 * m1 */
@@ -609,7 +609,7 @@ TToomCookMul (listz_t b, unsigned int n,
     }
     tot_muls += TToomCookMul (tmp + 5 * h - 2, h - 1, 
                               tmp + 2 * h - 1, h - 1,
-                              tmp, 2 * h - 1, tmp + 6 * h - 2);
+                              tmp, 2 * h - 2, tmp + 6 * h - 2);
 
     /* tmp[5*h-2 .. 6*h - 3] = 6 * m2  */ 
     
@@ -634,7 +634,7 @@ TToomCookMul (listz_t b, unsigned int n,
 
     tot_muls += TToomCookMul (tmp + 6 * h - 2, h - 1,
                               tmp + 2 * h - 1, h - 1,
-                              tmp + 3 * h - 1, 2 * h - 1, 
+                              tmp + 3 * h - 1, 2 * h - 2, 
                               tmp + 7 * h - 2);
 
     /* tmp[6h-2 .. 7h - 3] = 6 * mm1 */
@@ -714,4 +714,99 @@ TToomCookMul (listz_t b, unsigned int n,
 
     mpz_clear (comp_tmp);
     return tot_muls;
+}
+
+/* Returns space needed by TToomCookMul */
+
+unsigned int
+TToomCookMul_space (unsigned int n, unsigned int m, unsigned int l)
+              
+{
+    unsigned int nu, mu, h;
+    unsigned int stmp1, stmp2;
+
+    nu = n / 3 + 1;
+    mu = m / 3 + 1;
+
+    stmp1 = stmp2 = 0;
+
+    /* ensures n + 1 > 2 * nu */
+    if ((n < 2 * nu) || (m < 2 * mu))
+    {
+        return TKarMul_space (n, m, l);
+    }
+
+    /* First strip unnecessary trailing coefficients of c:
+     */
+
+    l = MIN(l, n + m);
+
+    /*  We should not be called with so small arguments, but
+     *  treat this cases anyway.
+     */
+
+    if (n == 0)
+        return 0;
+
+    if (m == 0)
+        return 0;
+
+    /* Now the degenerate cases. We want 2 * nu < m.
+     * 
+     */
+
+    if (m <= 2 * nu)
+    {
+        stmp1 = TToomCookMul_space (nu - 1, m, l);
+        if (l >= nu)
+            stmp2 = TToomCookMul_space (nu - 1, m, l - nu);
+        stmp1 = MAX(stmp1, stmp2);
+        if (l >= 2 * nu)
+            stmp2 = TToomCookMul_space (n - 2 * nu, m, l - 2 * nu);
+        stmp1 = MAX(stmp1, stmp2);
+        return stmp1;
+    }
+                  
+    /* Second degenerate case. We want 2 * mu < n.
+     */
+
+    if (n <= 2 * mu)
+    {
+        stmp1 += TToomCookMul_space (n, mu - 1, l);
+        if (l >= mu)
+        {
+            stmp2 = TToomCookMul_space (n, mu - 1, l - mu) + n + 1;
+            stmp1 = MAX(stmp1, stmp2);
+        }
+        if (l >= 2 * mu)
+        {
+            stmp2 = TToomCookMul_space (n, m - 2 * mu, l - 2 * mu) + n + 1;
+            stmp1 = MAX(stmp1, stmp2);
+        }
+        return stmp1;
+    }
+
+    h = MAX(nu, mu);
+
+    stmp2 = TToomCookMul_space (h - 1, h - 1, 2 * h - 2) + 7 * h - 2;
+    stmp1 = TToomCookMul_space (h - 1, h - 1, 2 * h - 2) + 6 * h - 2;
+    stmp1 = MAX(stmp1, stmp2);
+    stmp2 = TToomCookMul_space (n - 2 * h, m - 2 * h, 2 * h - 1) + 7*h-2;
+    return MAX(stmp1, stmp2);
+}
+
+unsigned int
+TMulGen (listz_t b, unsigned int n,
+              listz_t a, unsigned int m, listz_t c, unsigned int l, 
+              listz_t tmp)
+{
+    return TToomCookMul (b, n, a, m, c, l, tmp);
+}
+
+
+
+unsigned int
+TMulGen_space (unsigned int n, unsigned int m, unsigned int l)
+{
+    return TToomCookMul_space (n, m, l);
 }
