@@ -27,7 +27,6 @@
 #include <string.h>
 #include <time.h>
 #include "gmp.h"
-#include "gmp-impl.h"
 #include "ecm.h"
 
 /******************************************************************************
@@ -36,16 +35,11 @@
 *                                                                             *
 ******************************************************************************/
 
-/* maximal stage 1 bound = 2^53 + 4, the next prime being 2^53 + 5 */
-#define MAX_B1 9007199254740996.0
-#define EC_METHOD 0
-#define PM1_METHOD 1
-
 int
 main (int argc, char *argv[])
 {
   mpz_t sigma, n, p, seed;
-  double B1, B2;
+  double B1, B2, B1cost;
   int result = 1;
   int verbose = 1; /* verbose level */
   int method = EC_METHOD;
@@ -60,6 +54,12 @@ main (int argc, char *argv[])
       if (strcmp (argv[1], "-pm1") == 0)
 	{
 	  method = PM1_METHOD;
+	  argv++;
+	  argc--;
+	}
+      else if (strcmp (argv[1], "-pp1") == 0)
+	{
+	  method = PP1_METHOD;
 	  argv++;
 	  argc--;
 	}
@@ -105,6 +105,7 @@ main (int argc, char *argv[])
       fprintf (stderr, "  -k n       perform n steps in stage 2\n");
       fprintf (stderr, "  -e n       impose polynomial x^n for Brent-Suyama's extension\n");
       fprintf (stderr, "  -pm1       runs Pollard P-1 instead of ECM\n");
+      fprintf (stderr, "  -pp1       runs Williams P+1 instead of ECM\n");
       fprintf (stderr, "  -q         quiet mode\n");
       fprintf (stderr, "  -v         verbose mode\n");
       exit (1);
@@ -138,7 +139,7 @@ main (int argc, char *argv[])
     {
        /* For P-1, this is the initial seed. For ECM, it's the
           sigma or A parameter */
-       if (method == PM1_METHOD)
+       if (method == PM1_METHOD || method == PP1_METHOD)
          mpz_set_str (seed, argv[2], 10);
        else
          {
@@ -161,7 +162,10 @@ main (int argc, char *argv[])
      B2 = (c*B1)^(2/alpha). Experimentally, c=1/4 seems to work well.
      For Toom-Cook 3, this gives alpha=log(5)/log(3), and B2 ~ (c*B1)^1.365.
      For Toom-Cook 4, this gives alpha=log(7)/log(4), and B2 ~ (c*B1)^1.424. */
-  B2 = (argc >= 4) ? atof (argv[3]) : pow((double) B1 / 4.0, 1.36521239);
+  B1cost = (double) B1 / 6.0; /* default for P-1 */
+  if (method == PP1_METHOD)
+    B1cost *= 2.0;
+  B2 = (argc >= 4) ? atof (argv[3]) : pow (B1cost, 1.424828748);
 
   /* set initial starting point for ECM */
   if (argc >= 5 && method == EC_METHOD)
@@ -170,11 +174,18 @@ main (int argc, char *argv[])
   /* set default Brent-Suyama's exponent */
   if (S == 0)
     S = 1;
+  if (method == PP1_METHOD && S > 1)
+    {
+      printf ("Warning: Brent-Suyama's extension does not work with P+1, using x^1\n");
+      S = 1;
+    }
 
   if (verbose >= 1)
     {
       if (method == PM1_METHOD)
         printf ("Pollard P-1");
+      else if (method == PP1_METHOD)
+        printf ("Williams P+1");
       else
         printf ("Elliptic Curve");
       printf (" method with B1=%1.0f, B2=%1.0f, x^%u\n", B1, B2, S);
@@ -215,7 +226,7 @@ main (int argc, char *argv[])
 	}
 
       /* Set effective seed/sigma for factoring attempt on this number */
-      if (method == PM1_METHOD)
+      if (method == PM1_METHOD || method == PP1_METHOD)
         {
           if (mpz_sgn (seed) != 0)
             mpz_set (p, seed);
@@ -238,7 +249,7 @@ main (int argc, char *argv[])
 
       if (verbose >= 1)
         {
-          if (method == PM1_METHOD)
+          if (method == PM1_METHOD || method == PP1_METHOD)
             {
               printf ("Using seed=");
               mpz_out_str (stdout, 10, p);
@@ -253,6 +264,8 @@ main (int argc, char *argv[])
 
       if (method == PM1_METHOD)
         result = pm1 (p, n, B1, B2, k, S, verbose);
+      else if (method == PP1_METHOD)
+        result = pp1 (p, n, B1, B2, k, S, verbose);
       else
         result = ecm (p, sigma, n, B1, B2, k, S, verbose);
 
