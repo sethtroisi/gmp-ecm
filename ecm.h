@@ -43,6 +43,8 @@ typedef struct
 typedef __ecm_param_struct ecm_params[1];
 
 int ecm_factor (mpz_t, mpz_t, double, ecm_params);
+void ecm_init (ecm_params);
+void ecm_clear (ecm_params);
 
 /* the following interface is not supported */
 int ecm (mpz_t, mpz_t, mpz_t, mpz_t, mpz_t, double, double, double, double,

@@ -41,6 +41,7 @@ mpz_d_pow_ui (mpz_t r, double x, unsigned long int n)
   mpz_pow_ui (r, r, n);
 }
 
+/* r <- Dickson(n,a)(x) */
 static void 
 dickson_ui (mpz_t r, double x, unsigned int n, int a)
 {

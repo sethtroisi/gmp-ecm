@@ -762,8 +762,11 @@ pm1 (mpz_t f, mpz_t p, mpz_t N, mpz_t go, double B1done, double B1,
   /* Scale B2 by what the user said (or by the default scaling of 1.0) */
   B2 *= B2scale;
 
+  /* set B2min */
+  if (B2min < 0.0)
+    B2min = B1;
+
   /* Set default degree for Brent-Suyama extension */
-  
   if (S == ECM_DEFAULT_S)
     {
       if (B2 - B2min < 3.5e5) /* B1 < 50000 */

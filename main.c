@@ -218,12 +218,9 @@ main (int argc, char *argv[])
   unsigned int decimal_cofactor = 0;
   double maxtrialdiv = 0.0;
   double B2scale = 1.0;
+  ecm_params params;
 
-
-  /* initialize the group order candidate */
-  mpgocandi_t_init (&go);
-
-  /* check ecm is linked with a compatible librayr */
+  /* check ecm is linked with a compatible library */
   if (mp_bits_per_limb != GMP_NUMB_BITS)
     {
       fprintf (stderr, "Error, mp_bits_per_limb and GMP_NUMB_BITS differ\n");
@@ -234,6 +231,11 @@ main (int argc, char *argv[])
 #ifdef MEMORY_DEBUG
   tests_memory_start ();
 #endif
+
+  ecm_init (params);
+
+  /* initialize the group order candidate */
+  mpgocandi_t_init (&go);
 
   /* Init variables we might need to store options */
   mpz_init (sigma);
@@ -605,6 +607,7 @@ main (int argc, char *argv[])
       exit (EXIT_FAILURE);
     }
 
+  /* start of the program */
   if (verbose >= 1)
     {
       printf ("GMP-ECM %s [powered by GMP %s] [", VERSION, gmp_version);
@@ -631,7 +634,7 @@ main (int argc, char *argv[])
     }
   else
     B1done = ECM_DEFAULT_B1_DONE;
-  B2min = B1;
+  B2min = -1.0; /* default, means that B2min will be set to B1 */
 
   if (B1 < 0.0 || B1done < 0.0)
     {
@@ -664,6 +667,14 @@ main (int argc, char *argv[])
           B2 = atof (*endptr + 1);
         }
     }
+
+  /* set static parameters (i.e. those that don't change during the program) */
+  params->verbose = verbose;
+  params->method = method;
+  params->B2 = B2;
+  params->k = k;
+  params->S = S;
+  params->repr = repr;
 
   /* Open resume file for reading, if resuming is requested */
   if (resumefilename != NULL)
@@ -945,8 +956,9 @@ BreadthFirstDoAgain:;
 	    }
 	  fflush (stdout);
 	}
-      /* Even in verbose==0 we should primality check if told to do so, however, we will print to stderr to keep stdout "clean"
-         for verbose==0 like behavior */
+      /* Even in verbose=0 we should primality check if told to do so, however,
+         we will print to stderr to keep stdout "clean"
+         for verbose=0 like behavior */
       else if (((!breadthfirst && cnt == count) || (breadthfirst && breadthfirst_cnt==1)) && n.isPrp)
 	{
 	  char *s;
@@ -996,23 +1008,24 @@ BreadthFirstDoAgain:;
 
       mpgocandi_fixup_with_N (&go, &n);
 
-      if (method == ECM_PM1)
-        result = pm1 (f, x, n.n, go.Candi.n, B1done, B1, B2min, B2, B2scale,
-		      k, S, verbose, repr, stdout, stderr);
-      else if (method == ECM_PP1)
-        result = pp1 (f, x, n.n, go.Candi.n, B1done, B1, B2min, B2, B2scale,
-		      k, S, verbose, repr, stdout, stderr);
-      else /* ECM */
-	{
-	  int sigma_is_A = mpz_sgn (sigma) == 0;
-	  /* if sigma is zero, then we use the A value instead */
-	  result = ecm (f, x, (sigma_is_A) ? A : sigma, n.n, go.Candi.n,
-			B1done, B1, B2min, B2, B2scale, k, S, verbose, repr,
-			sigma_is_A, stdout, stderr);
-        }
+      /* set parameters that mau change from one curve to another */
+      mpz_set (params->x, x); /* may change with resume */
+      /* if sigma is zero, then we use the A value instead */
+      params->sigma_is_A = mpz_sgn (sigma) == 0;
+      mpz_set (params->sigma, (params->sigma_is_A) ? A : sigma);
+      mpz_set (params->go, go.Candi.n); /* may change if contains N */
+      params->B1done = B1done; /* may change with resume */
+      params->B2min = B2min; /* may change with -c */
+
+      /* now call the ecm library */
+      result = ecm_factor (f, n.n, B1, params);
 
       if (result == ECM_ERROR)
-	exit (1);
+        {
+          fprintf (stderr, "Please report internal errors at <%s>.\n",
+                   PACKAGE_BUGREPORT);
+          exit (EXIT_FAILURE);
+        }
 
       if (result == 0)
 	{
@@ -1122,8 +1135,8 @@ OutputFactorStuff:;
       /* If no factor was found, we consider cofactor composite and write it */
       if (savefile != NULL && !n.isPrp)
         {
-          mpz_mod (x, x, n.n); /* Reduce stage 1 residue wrt new cofactor, in
-                               case a factor was found */
+          mpz_mod (x, params->x, n.n); /* Reduce stage 1 residue wrt new
+                                          cofactor, in case a factor was found */
           write_resumefile_line (savefile, method, B1, sigma, A, x, &n, 
                                  orig_x0, comment);
         }
@@ -1180,6 +1193,8 @@ OutputFactorStuff:;
   mpz_clear (A);
   mpq_clear (rat_x0);
   mpgocandi_t_free (&go);
+
+  ecm_clear (params);
 
 #ifdef MEMORY_DEBUG
   tests_memory_end ();
