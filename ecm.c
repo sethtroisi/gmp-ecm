@@ -25,15 +25,17 @@
 #include "gmp.h"
 #include "ecm.h"
 
-int get_curve_from_sigma (mpz_t, mpz_t, mpz_t, mpz_t);
-void add3 (mpz_t, mpz_t, mpz_t, mpz_t, mpz_t, mpz_t, mpz_t,
-           mpz_t, mpz_t, mpz_t, mpz_t, mpz_t, mpz_t);
-void duplicate (mpz_t, mpz_t, mpz_t, mpz_t, mpz_t, mpz_t,
-                mpz_t, mpz_t, mpz_t, mpz_t);
+int get_curve_from_sigma (mpz_t, mpres_t, mpres_t, mpres_t, mpmod_t);
+int montgomery_to_weierstrass (mpz_t, mpres_t, mpres_t, mpres_t, mpmod_t);
+void add3 (mpres_t, mpres_t, mpres_t, mpres_t, mpres_t, mpres_t, mpres_t,
+           mpres_t, mpmod_t, mpres_t, mpres_t, mpres_t, mpres_t);
+void duplicate (mpres_t, mpres_t, mpres_t, mpres_t, mpmod_t, mpres_t,
+                mpres_t, mpres_t, mpres_t, mpres_t);
 unsigned int lucas_cost (unsigned, double);
-void prac (mpz_t, mpz_t, unsigned int, mpz_t, mpz_t, mpz_t, mpz_t, mpz_t,
-           mpz_t, mpz_t, mpz_t, mpz_t, mpz_t, mpz_t, mpz_t, mpz_t, mpz_t);
-int ecm_stage1 (mpz_t, mpz_t, mpz_t, mpz_t, double, double, int);
+void prac (mpres_t, mpres_t, unsigned int, mpmod_t, mpres_t, mpres_t, mpres_t, 
+           mpres_t, mpres_t, mpres_t, mpres_t, mpres_t, mpres_t, mpres_t, 
+           mpres_t, mpres_t, mpres_t);
+int ecm_stage1 (mpz_t, mpres_t, mpres_t, mpmod_t, double, double, int);
 
 /******************************************************************************
 *                                                                             *
@@ -50,70 +52,107 @@ int ecm_stage1 (mpz_t, mpz_t, mpz_t, mpz_t, double, double, int);
    in A), 0 otherwise.
 */
 int
-get_curve_from_sigma (mpz_t A, mpz_t x, mpz_t sigma, mpz_t n)
+get_curve_from_sigma (mpz_t f, mpres_t A, mpres_t x, mpz_t sigma, mpmod_t n)
 {
-  mpz_t t, u, v, b, z;
+  mpres_t t, u, v, b, z;
   
-  mpz_init (t);
-  mpz_init (u);
-  mpz_init (v);
-  mpz_init (b);
-  mpz_init (z);
+  mpres_init (t, n);
+  mpres_init (u, n);
+  mpres_init (v, n);
+  mpres_init (b, n);
+  mpres_init (z, n);
 
-  mpz_mul_2exp (t, sigma, 2);
-  mpz_mod (v, t, n);            /* v = (4*sigma) mod n */
-  mpz_mul (t, sigma, sigma);
-  mpz_sub_ui (t, t, 5);
-  mpz_mod (u, t, n);            /* u = (sigma^2-5) mod n */
-  mpz_mul (t, u, u);
-  mpz_mul (t, t, u);
-  mpz_mod (x, t, n);            /* x = (u^3) mod n */
-  mpz_mul (t, v, v);
-  mpz_mul (t, t, v);
-  mpz_mod (z, t, n);            /* z = (v^3) mod n */
-  mpz_mul (t, x, v);
-  mpz_mul_2exp (t, t, 2);
-  mpz_mod (b, t, n);            /* b = (4*x*v) mod n */
-  mpz_mul_ui (t, u, 3);
-  mpz_sub (u, v, u);            /* u' = v-u */
-  mpz_add (t, t, v);
-  mpz_mod (v, t, n);            /* v' = (3*u+v) mod n */
-  mpz_mul (t, u, u);
-  mpz_mul (t, t, u);
-  mpz_mod (u, t, n);            /* u'' = ((v-u)^3) mod n */
-  mpz_mulmod5 (A, u, v, n, t);   /* a = (u'' * v') mod n = 
-                                   ((v-u)^3 * (3*u+v)) mod n */
+  mpres_set_z  (u, sigma, n);
+  mpres_mul_ui (v, u, 4, n);   /* v = (4*sigma) mod n */
+  mpres_mul (t, u, u, n);
+  mpres_sub_ui (u, t, 5, n);       /* u = (sigma^2-5) mod n */
+  mpres_mul (t, u, u, n);
+  mpres_mul (x, t, u, n);          /* x = (u^3) mod n */
+  mpres_mul (t, v, v, n);
+  mpres_mul (z, t, v, n);          /* z = (v^3) mod n */
+  mpres_mul (t, x, v, n);
+  mpres_mul_ui (b, t, 4, n);       /* b = (4*x*v) mod n */
+  mpres_mul_ui (t, u, 3, n);
+  mpres_sub (u, v, u, n);          /* u' = v-u */
+  mpres_add (v, t, v, n);          /* v' = (3*u+v) mod n */
+  mpres_mul (t, u, u, n);
+  mpres_mul (u, t, u, n);          /* u'' = ((v-u)^3) mod n */
+  mpres_mul (A, u, v, n);          /* a = (u'' * v') mod n = 
+                                      ((v-u)^3 * (3*u+v)) mod n */
   
   /* Normalize b and z to 1 */
-  mpz_mulmod5 (v, b, z, n, t);
-  mpz_gcdext (t, u, (__mpz_struct *) NULL, v, n); /* u = (b*z)^(-1) (mod n) */
-  if (mpz_cmp_ui (t, 1) != 0)
+  mpres_mul (v, b, z, n);
+  if (!mpres_invert (u, v, n)) /* u = (b*z)^(-1) (mod n) */
     {
-      mpz_set (A, t);
-      mpz_clear (t);
-      mpz_clear (u);
-      mpz_clear (v);
-      mpz_clear (b);
-      mpz_clear (z);
+      mpres_gcd (f, t, n);
+      mpres_clear (t, n);
+      mpres_clear (u, n);
+      mpres_clear (v, n);
+      mpres_clear (b, n);
+      mpres_clear (z, n);
       return 1;
     }
   
-  mpz_mulmod5 (v, u, b, n, t);   /* v = z^(-1) (mod n) */
-  mpz_mulmod5 (x, x, v, n, t);   /* x = x * z^(-1) */
+  mpres_mul (v, u, b, n);   /* v = z^(-1) (mod n) */
+  mpres_mul (x, x, v, n);   /* x = x * z^(-1) */
   
-  mpz_mulmod5 (v, u, z, n, t);   /* v = b^(-1) (mod n) */
-  mpz_mul (t, A, v);
-  mpz_sub_ui (t, t, 2);
-  mpz_mod (A, t, n);
+  mpres_mul (v, u, z, n);   /* v = b^(-1) (mod n) */
+  mpres_mul (t, A, v, n);
+  mpres_sub_ui (A, t, 2, n);
   
-  mpz_clear (t);
-  mpz_clear (u);
-  mpz_clear (v);
-  mpz_clear (b);
-  mpz_clear (z);
+  mpres_clear (t, n);
+  mpres_clear (u, n);
+  mpres_clear (v, n);
+  mpres_clear (b, n);
+  mpres_clear (z, n);
 
   return 0;
 }
+
+/* switch from Montgomery's form g*y^2 = x^3 + a*x^2 + x
+   to Weierstrass' form          Y^2 = X^3 + A*X + B
+   by change of variables x -> g*X-a/3, y -> g*Y.
+   We have A = (3-a^2)/(3g^2), X = (3x+a)/(3g), Y = y/g.
+*/
+int 
+montgomery_to_weierstrass (mpz_t f, mpres_t x, mpres_t y, mpres_t A, mpmod_t n)
+{
+  mpres_t g;
+  
+  mpres_init (g, n);
+  mpres_add (g, x, A, n);
+  mpres_mul (g, g, x, n);
+  mpres_add_ui (g, g, 1, n);
+  mpres_mul (g, g, x, n);    /* g = x^3+a*x^2+x (y=1) */
+  mpres_mul_ui (y, g, 3, n);
+  mpres_mul (y, y, g, n);    /* y = 3g^2 */
+  if (!mpres_invert (y, y, n)) /* y = 1/(3g^2) temporarily */
+    {
+      mpres_gcd(f, y, n);
+      mpres_clear(g, n);
+      return 1;
+    }
+  
+  /* update x */
+  mpres_mul_ui (x, x, 3, n); /* 3x */
+  mpres_add (x, x, A, n);    /* 3x+a */
+  mpres_mul (x, x, g, n);    /* (3x+a)*g */
+  mpres_mul (x, x, y, n);    /* (3x+a)/(3g) */
+
+  /* update A */
+  mpres_mul (A, A, A, n);    /* a^2 */
+  mpres_sub_ui (A, A, 3, n);
+  mpres_neg (A, A, n);       /* 3-a^2 */
+  mpres_mul (A, A, y, n);    /* (3-a^2)/(3g^2) */
+
+  /* update y */
+  mpres_mul_ui (g, g, 3, n); /* 3g */
+  mpres_mul (y, y, g, n);    /* (3g)/(3g^2) = 1/g */
+  
+  mpres_clear(g, n);
+  return 0;
+}
+
 
 /* adds Q=(x2:z2) and R=(x1:z1) and puts the result in (x3:z3),
      using 6 muls (4 muls and 2 squares), and 6 add/sub.
@@ -124,36 +163,37 @@ get_curve_from_sigma (mpz_t A, mpz_t x, mpz_t sigma, mpz_t n)
    (x3,z3) may be identical to (x2,z2) and to (x,z)
 */
 void
-add3 (mpz_t x3, mpz_t z3, mpz_t x2, mpz_t z2, mpz_t x1, mpz_t z1, mpz_t x,
-      mpz_t z, mpz_t n, mpz_t t, mpz_t u, mpz_t v, mpz_t w)
+add3 (mpres_t x3, mpres_t z3, mpres_t x2, mpres_t z2, mpres_t x1, mpres_t z1, 
+      mpres_t x, mpres_t z, mpmod_t n, mpres_t t, mpres_t u, mpres_t v, 
+      mpres_t w)
 {
-  mpz_sub (u, x2, z2);
-  mpz_add (v, x1, z1);          /* u = x2-z2, v = x1+z1 */
+  mpres_sub (u, x2, z2, n);
+  mpres_add (v, x1, z1, n);      /* u = x2-z2, v = x1+z1 */
 
-  mpz_mulmod5 (u, u, v, n, t);   /* u = (x2-z2)*(x1+z1) */
+  mpres_mul (u, u, v, n);        /* u = (x2-z2)*(x1+z1) */
 
-  mpz_add (w, x2, z2);
-  mpz_sub (v, x1, z1);          /* w = x2+z2, v = x1-z1 */
+  mpres_add (w, x2, z2, n);
+  mpres_sub (v, x1, z1, n);      /* w = x2+z2, v = x1-z1 */
 
-  mpz_mulmod5 (v, w, v, n, t);   /* v = (x2+z2)*(x1-z1) */
+  mpres_mul (v, w, v, n);        /* v = (x2+z2)*(x1-z1) */
 
-  mpz_add (w, u, v);            /* w = 2*(x1*x2-z1*z2) */
-  mpz_sub (v, u, v);            /* v = 2*(x2*z1-x1*z2) */
+  mpres_add (w, u, v, n);        /* w = 2*(x1*x2-z1*z2) */
+  mpres_sub (v, u, v, n);        /* v = 2*(x2*z1-x1*z2) */
 
-  mpz_mulmod5 (w, w, w, n, t);   /* w = 4*(x1*x2-z1*z2)^2 */
-  mpz_mulmod5 (v, v, v, n, t);   /* v = 4*(x2*z1-x1*z2)^2 */
+  mpres_mul (w, w, w, n);        /* w = 4*(x1*x2-z1*z2)^2 */
+  mpres_mul (v, v, v, n);        /* v = 4*(x2*z1-x1*z2)^2 */
 
   if (x == x3) /* same variable: in-place variant */
     {
-      mpz_set (u, x);
-      mpz_mulmod5 (w, w, z, n, t);
-      mpz_mulmod5 (z3, u, v, n, t);
-      mpz_set (x3, w);
+      mpres_set (u, x, n);
+      mpres_mul (w, w, z, n);
+      mpres_mul (z3, u, v, n);
+      mpres_set (x3, w, n);
     }
   else
     {
-      mpz_mulmod5(x3, w, z, n, t); /* x3 = 4*z*(x1*x2-z1*z2)^2 mod n */
-      mpz_mulmod5(z3, x, v, n, t); /* z3 = 4*x*(x2*z1-x1*z2)^2 mod n */
+      mpres_mul (x3, w, z, n);   /* x3 = 4*z*(x1*x2-z1*z2)^2 mod n */
+      mpres_mul (z3, x, v, n);   /* z3 = 4*x*(x2*z1-x1*z2)^2 mod n */
     }
   /* mul += 6; */
 }
@@ -165,18 +205,18 @@ add3 (mpz_t x3, mpz_t z3, mpz_t x2, mpz_t z2, mpz_t x1, mpz_t z1, mpz_t x,
      - t, u, v, w : auxiliary variables
 */
 void
-duplicate (mpz_t x2, mpz_t z2, mpz_t x1, mpz_t z1, mpz_t n, mpz_t b,
-           mpz_t t, mpz_t u, mpz_t v, mpz_t w)
+duplicate (mpres_t x2, mpres_t z2, mpres_t x1, mpres_t z1, mpmod_t n, 
+           mpres_t b, mpres_t t, mpres_t u, mpres_t v, mpres_t w)
 {
-  mpz_add (u, x1, z1);
-  mpz_mulmod5 (u, u, u, n, t);   /* u = (x1+z1)^2 mod n */
-  mpz_sub (v, x1, z1);
-  mpz_mulmod5 (v, v, v, n, t);   /* v = (x1-z1)^2 mod n */
-  mpz_mulmod5 (x2, u, v, n, t);  /* x2 = u*v = (x1^2 - z1^2)^2 mod n */
-  mpz_sub (w, u, v);            /* w = u-v = 4*x1*z1 */
-  mpz_mulmod5 (u, w, b, n, t);   /* u = w*b = ((A+2)/4*(4*x1*z1)) mod n */
-  mpz_add (u, u, v);            /* u = (x1-z1)^2+(A+2)/4*(4*x1*z1) */
-  mpz_mulmod5 (z2, w, u, n, t);  /* z2 = ((4*x1*z1)*((x1-z1)^2+(A+2)/4*(4*x1*z1))) mod n */
+  mpres_add (u, x1, z1, n);
+  mpres_mul (u, u, u, n);   /* u = (x1+z1)^2 mod n */
+  mpres_sub (v, x1, z1, n);
+  mpres_mul (v, v, v, n);   /* v = (x1-z1)^2 mod n */
+  mpres_mul (x2, u, v, n);  /* x2 = u*v = (x1^2 - z1^2)^2 mod n */
+  mpres_sub (w, u, v, n);   /* w = u-v = 4*x1*z1 */
+  mpres_mul (u, w, b, n);   /* u = w*b = ((A+2)/4*(4*x1*z1)) mod n */
+  mpres_add (u, u, v, n);   /* u = (x1-z1)^2+(A+2)/4*(4*x1*z1) */
+  mpres_mul (z2, w, u, n);  /* z2 = ((4*x1*z1)*((x1-z1)^2+(A+2)/4*(4*x1*z1))) mod n */
 }
 
 #define ADD 6 /* number of multiplications in an addition */
@@ -270,9 +310,9 @@ lucas_cost (unsigned n, double v)
 
 /* computes kP from P=(xA:zA) and puts the result in (xA:zA). Assumes k>2. */
 void
-prac (mpz_t xA, mpz_t zA, unsigned int k, mpz_t n, mpz_t b, mpz_t t, mpz_t u,
-      mpz_t v, mpz_t w, mpz_t xB, mpz_t zB, mpz_t xC, mpz_t zC, mpz_t xT,
-      mpz_t zT, mpz_t xT2, mpz_t zT2)
+prac (mpres_t xA, mpres_t zA, unsigned int k, mpmod_t n, mpres_t b, mpres_t t, 
+      mpres_t u, mpres_t v, mpres_t w, mpres_t xB, mpres_t zB, mpres_t xC, 
+      mpres_t zC, mpres_t xT, mpres_t zT, mpres_t xT2, mpres_t zT2)
 {
   unsigned int d, e, r, i = 0;
   __mpz_struct *tmp;
@@ -297,10 +337,10 @@ prac (mpz_t xA, mpz_t zA, unsigned int k, mpz_t n, mpz_t b, mpz_t t, mpz_t u,
   /* first iteration always begins by Condition 3, then a swap */
   d = k - r;
   e = 2 * r - k;
-  mpz_set (xB, xA);
-  mpz_set (zB, zA); /* B=A */
-  mpz_set (xC, xA);
-  mpz_set (zC, zA); /* C=A */
+  mpres_set (xB, xA, n);
+  mpres_set (zB, zA, n); /* B=A */
+  mpres_set (xC, xA, n);
+  mpres_set (zC, zA, n); /* C=A */
   duplicate (xA, zA, xA, zA, n, b, t, u, v, w); /* A = 2*A */
   while (d != e)
     {
@@ -309,8 +349,8 @@ prac (mpz_t xA, mpz_t zA, unsigned int k, mpz_t n, mpz_t b, mpz_t t, mpz_t u,
           r = d;
           d = e;
           e = r;
-          mpz_swap (xA, xB);
-          mpz_swap (zA, zB);
+          mpres_swap (xA, xB, n);
+          mpres_swap (zA, zB, n);
         }
       /* do the first line of Table 4 whose condition qualifies */
       if (4 * d <= 5 * e && ((d + e) % 3) == 0)
@@ -320,8 +360,8 @@ prac (mpz_t xA, mpz_t zA, unsigned int k, mpz_t n, mpz_t b, mpz_t t, mpz_t u,
           add3 (xT, zT, xA, zA, xB, zB, xC, zC, n, t, u, v, w); /* T = f(A,B,C) */
           add3 (xT2, zT2, xT, zT, xA, zA, xB, zB, n, t, u, v, w); /* T2 = f(T,A,B) */
           add3 (xB, zB, xB, zB, xT, zT, xA, zA, n, t, u, v, w); /* B = f(B,T,A) */
-          mpz_swap (xA, xT2);
-          mpz_swap (zA, zT2); /* swap A and T2 */
+          mpres_swap (xA, xT2, n);
+          mpres_swap (zA, zT2, n); /* swap A and T2 */
         }
       else if (4 * d <= 5 * e && (d - e) % 6 == 0)
         { /* condition 2 */
@@ -385,8 +425,8 @@ prac (mpz_t xA, mpz_t zA, unsigned int k, mpz_t n, mpz_t b, mpz_t t, mpz_t u,
           d = (d - e) / 3;
           add3 (xT, zT, xA, zA, xB, zB, xC, zC, n, t, u, v, w); /* T1 = f(A,B,C) */
           add3 (xC, zC, xC, zC, xA, zA, xB, zB, n, t, u, v, w); /* C = f(A,C,B) */
-          mpz_swap (xB, xT);
-          mpz_swap (zB, zT); /* swap B and T */
+          mpres_swap (xB, xT, n);
+          mpres_swap (zB, zT, n); /* swap B and T */
           duplicate (xT, zT, xA, zA, n, b, t, u, v, w);
           add3 (xA, zA, xA, zA, xT, zT, xA, zA, n, t, u, v, w); /* A = 3*A */
         }
@@ -429,37 +469,32 @@ prac (mpz_t xA, mpz_t zA, unsigned int k, mpz_t n, mpz_t b, mpz_t t, mpz_t u,
    Return value: non-zero iff a factor is found
 */
 int
-ecm_stage1 (mpz_t f, mpz_t x, mpz_t A, mpz_t n, double B1, double B1done,
-            int verbose)
+ecm_stage1 (mpz_t f, mpres_t x, mpres_t A, mpmod_t n, double B1, 
+            double B1done, int verbose)
 {
-  mpz_t b, z, t, u, v, w, xB, zB, xC, zC, xT, zT, xT2, zT2;
+  mpres_t b, z, t, u, v, w, xB, zB, xC, zC, xT, zT, xT2, zT2;
   double q, r;
   int ret = 0;
 
-  mpz_init2 (b, mpz_size (n) + 1);
-  mpz_init2 (z, mpz_size (n) + 1);
-  mpz_init2 (t, 3 * mpz_size (n));
-  mpz_init2 (u, mpz_size (n) + 1);
-  mpz_init2 (v, mpz_size (n) + 1);
-  mpz_init2 (w, mpz_size (n) + 1);
-  mpz_init2 (xB, mpz_size (n) + 1);
-  mpz_init2 (zB, mpz_size (n) + 1);
-  mpz_init2 (xC, mpz_size (n) + 1);
-  mpz_init2 (zC, mpz_size (n) + 1);
-  mpz_init2 (xT, mpz_size (n) + 1);
-  mpz_init2 (zT, mpz_size (n) + 1);
-  mpz_init2 (xT2, mpz_size (n) + 1);
-  mpz_init2 (zT2, mpz_size (n) + 1);
+  mpres_init (b, n);
+  mpres_init (z, n);
+  mpres_init (t, n);
+  mpres_init (u, n);
+  mpres_init (v, n);
+  mpres_init (w, n);
+  mpres_init (xB, n);
+  mpres_init (zB, n);
+  mpres_init (xC, n);
+  mpres_init (zC, n);
+  mpres_init (xT, n);
+  mpres_init (zT, n);
+  mpres_init (xT2, n);
+  mpres_init (zT2, n);
   
-  mpz_set_ui (z, 1);
+  mpres_set_ui (z, 1, n);
   
-  mpz_add_ui (b, A, 2);
-  if (mpz_odd_p (b))
-    mpz_add (b, b, n); /* Assumes n is odd */
-  mpz_tdiv_q_2exp (b, b, 1);
-  if (mpz_odd_p (b))
-    mpz_add (b, b, n);
-  mpz_tdiv_q_2exp (b, b, 1); /* Now b == (A+2)/4 */
+  mpres_add_ui (b, A, 2, n);
+  mpres_div_2exp(b, b, 2, n); /* b == (A+2)/4 */
 
   /* prac() wants multiplicands > 2 */
   for (r = 2.0; r <= B1; r *= 2.0)
@@ -481,27 +516,27 @@ ecm_stage1 (mpz_t f, mpz_t x, mpz_t A, mpz_t n, double B1, double B1done,
         prac (x, z, (int) q, n, b, t, u, v, w, xB, zB, xC, zC, xT, zT, xT2, zT2);
 
   /* Normalize z to 1 */
-  mpz_gcdext (f, u, (__mpz_struct *) NULL, z, n);
-  if (mpz_cmp_ui (f, 1) > 0) /* Factor found? */
+  if (!mpres_invert (u, z, n)) /* Factor found? */
     {
+      mpres_gcd (f, z, n);
       ret = 1;
     }
-  mpz_mulmod5 (x, x, u, n, t);
+  mpres_mul (x, x, u, n);
 
-  mpz_clear (zT2);
-  mpz_clear (xT2);
-  mpz_clear (zT);
-  mpz_clear (xT);
-  mpz_clear (zC);
-  mpz_clear (xC);
-  mpz_clear (zB);
-  mpz_clear (xB);
-  mpz_clear (w);
-  mpz_clear (v);
-  mpz_clear (u);
-  mpz_clear (t);
-  mpz_clear (z);
-  mpz_clear (b);
+  mpres_clear (zT2, n);
+  mpres_clear (xT2, n);
+  mpres_clear (zT, n);
+  mpres_clear (xT, n);
+  mpres_clear (zC, n);
+  mpres_clear (xC, n);
+  mpres_clear (zB, n);
+  mpres_clear (xB, n);
+  mpres_clear (w, n);
+  mpres_clear (v, n);
+  mpres_clear (u, n);
+  mpres_clear (t, n);
+  mpres_clear (z, n);
+  mpres_clear (b, n);
   
   return ret;
 }
@@ -519,18 +554,17 @@ ecm_stage1 (mpz_t f, mpz_t x, mpz_t A, mpz_t n, double B1, double B1done,
    Return value: non-zero iff a factor was found.
 */
 int
-ecm (mpz_t f, mpz_t x, mpz_t sigma, mpz_t n, double B1, double B2, 
+ecm (mpz_t f, mpres_t x, mpz_t sigma, mpmod_t n, double B1, double B2, 
      double B1done, unsigned int k, unsigned int S, int verbose)
 {
   int youpi = 0, st;
-  mpz_t A, g, y;
+  mpres_t A, y;
   curve P;
 
   st = cputime ();
   
-  mpz_init (A);
-  mpz_init (g);
-  mpz_init (y);
+  mpres_init (A, n);
+  mpres_init (y, n);
 
   if (mpz_sgn (x) == 0)
     {
@@ -543,20 +577,21 @@ ecm (mpz_t f, mpz_t x, mpz_t sigma, mpz_t n, double B1, double B2,
           printf("\n");
           fflush (stdout);
         }
-      get_curve_from_sigma (A, x, sigma, n);
+      if ((youpi = get_curve_from_sigma (f, A, x, sigma, n)))
+        goto end_of_ecm;
     }
   else
     {
       /* sigma contains the A value, x contains starting point */
-      mpz_set (A, sigma);
+      mpres_set_z (A, sigma, n);
     }
   
   if (verbose >= 2)
     {
       printf("a=");
-      mpz_out_str(stdout, 10, A);
+      mpres_out_str(stdout, 10, A, n);
       printf("\nstarting point: x=");
-      mpz_out_str(stdout, 10, x);
+      mpres_out_str(stdout, 10, x, n);
       printf("\n");
     }
   
@@ -572,38 +607,16 @@ ecm (mpz_t f, mpz_t x, mpz_t sigma, mpz_t n, double B1, double B2,
   if (youpi != 0) /* a factor was found */
     goto end_of_ecm;
 
-  if (verbose >= 2)
-    gmp_printf ("x=%Zd\n", x);
+  if (verbose >= 2) 
+    {
+      printf ("x=");
+      mpres_out_str (stdout, 10, x, n);
+      printf("\n");
+      fflush (stdout);
+    }
 
-  /* switch from Montgomery's form g*y^2 = x^3 + a*x^2 + x
-     to Weierstrass' form          Y^2 = X^3 + A*X + B
-     by change of variables x -> g*X-a/3, y -> g*Y.
-     We have A = (3-a^2)/(3g^2), X = (3x+a)/(3g), Y = y/g.
-  */
-  mpz_add (g, x, A);
-  mpz_mulmod (g, g, x, n);
-  mpz_add_ui (g, g, 1);
-  mpz_mulmod (g, g, x, n); /* g = x^3+a*x^2+x (y=1) */
-  mpz_mul_ui (y, g, 3);
-  mpz_mulmod (y, y, g, n); /* y = 3g^2 */
-  mpz_gcdext (f, y, NULL, y, n); /* y = 1/(3g^2) temporarily */
-  if ((youpi = mpz_cmp_ui (f, 1)))
+  if ((youpi = montgomery_to_weierstrass (f, x, y, A, n)))
     goto end_of_ecm;
-
-  /* update x */
-  mpz_mul_ui (x, x, 3);    /* 3x */
-  mpz_add (x, x, A);       /* 3x+a */
-  mpz_mulmod (x, x, g, n); /* (3x+a)*g */
-  mpz_mulmod (x, x, y, n); /* (3x+a)/(3g) */
-
-  /* update A */
-  mpz_mulmod (A, A, A, n); /* a^2 */
-  mpz_ui_sub (A, 3, A);    /* 3-a^2 */
-  mpz_mulmod (A, A, y, n); /* (3-a^2)/(3g^2) */
-
-  /* update y */
-  mpz_mul_ui (g, g, 3);    /* 3g */
-  mpz_mulmod (y, y, g, n); /* (3g)/(3g^2) = 1/g */
 
   mpz_init_set (P.x, x); 
   mpz_init_set (P.y, y);
@@ -614,9 +627,8 @@ ecm (mpz_t f, mpz_t x, mpz_t sigma, mpz_t n, double B1, double B2,
   mpz_clear (P.A);
 
  end_of_ecm:
-  mpz_clear (A);
-  mpz_clear (g);
-  mpz_clear (y);
+  mpres_clear (A, n);
+  mpres_clear (y, n);
 
   return youpi;
 }

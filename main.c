@@ -39,7 +39,9 @@
 int
 main (int argc, char *argv[])
 {
-  mpz_t sigma, n, p, f, seed;
+  mpz_t sigma, n, seed, f;
+  mpres_t p;
+  mpmod_t modulus;
   double B1, B2, B1done, B1cost;
   int result = 1;
   int verbose = 1; /* verbose level */
@@ -242,7 +244,6 @@ main (int argc, char *argv[])
     }
 
   mpz_init (n); /* number(s) to factor */
-  mpz_init (p); /* seed/stage 1 residue */
   mpz_init (f); /* factor found */
   /* loop for number in standard input or file */
   while (feof (stdin) == 0)
@@ -276,28 +277,33 @@ main (int argc, char *argv[])
 		    mpz_sizeinbase (n, 10));
 	}
 
+      /* Init modulus */
+      mpmod_init(modulus, n);
+      mpres_init (p, modulus); /* seed/stage 1 residue */
+
       /* Set effective seed/sigma for factoring attempt on this number */
-      mpz_set (p, seed);
+      mpres_set_z (p, seed, modulus);
       if (!specific_sigma)
         {
           if (method == EC_METHOD)
             {
               /* Make random sigma, 0 < sigma <= 2^32 */
+              /* Todo: f abused here */
               mpz_urandomb (sigma, randstate, 32);
               mpz_add_ui (sigma, sigma, 1);
             }
           else if (method == PP1_METHOD)
-            pp1_random_seed (p, n, randstate);
+            pp1_random_seed (p, modulus, randstate);
           else if (method == PM1_METHOD)
             pm1_random_seed (p, n, randstate);
         }
 
       if (method == PM1_METHOD)
-        result = pm1 (f, p, n, B1, B2, B1done, k, S, verbose);
+        result = pm1 (f, p, modulus, B1, B2, B1done, k, S, verbose);
       else if (method == PP1_METHOD)
-        result = pp1 (f, p, n, B1, B2, B1done, k, S, verbose);
+        result = pp1 (f, p, modulus, B1, B2, B1done, k, S, verbose);
       else
-        result = ecm (f, p, sigma, n, B1, B2, B1done, k, S, verbose);
+        result = ecm (f, p, sigma, modulus, B1, B2, B1done, k, S, verbose);
 
       if (result != 0)
 	{
@@ -339,6 +345,7 @@ main (int argc, char *argv[])
 	  fflush (stdout);
 	}
 
+#ifdef SAVEFILE
       /* Write composite cofactors to savefile if requested */
       /* If no factor was found, we consider cofactor composite and write it */
       if (savefile != NULL && (result == 0 || mpz_probab_prime_p (n, 25) == 0))
@@ -360,6 +367,10 @@ main (int argc, char *argv[])
           mpz_out_str(savefile, 10, p);
           fprintf(savefile , "\n");
         }
+#endif /* SAVEFILE */
+
+      mpres_clear (p, modulus);
+      mpmod_clear (modulus);
 
       while ((feof (stdin) == 0) && (isdigit (c = getchar ()) == 0));
 
@@ -375,7 +386,6 @@ main (int argc, char *argv[])
  end:
   NTL_clear ();
   mpz_clear (f);
-  mpz_clear (p);
   mpz_clear (n);
   if (method == EC_METHOD)
     mpz_clear (sigma);

@@ -1,15 +1,7 @@
 #define ECM_VERSION "5.0"
 
-#define mpmod_t mpz_t
-#define mpres_t mpz_t
-#define mpmod_mod mpz_mod
-#define mpres_set(a,b,n) mpz_set(a,b)
-#define mpres_mul(a,b,c,n) mpz_mul(a,b,c)
-#define mpres_sub_ui(a,b,c,n) mpz_sub_ui(a,b,c)
-#define mpres_sub(a,b,c,n) mpz_sub(a,b,c)
-#define mpres_swap(a,b,n) mpz_swap(a,b)
-#define mpres_init(a,n) mpz_init(a)
-#define mpres_clear(a,n) mpz_clear(a)
+#include <stdio.h>
+#include <gmp.h>
 
 #define mpz_mulmod(a,b,c,n) \
         { mpz_mul (a, b, c); \
@@ -23,20 +15,27 @@
 #define PM1_METHOD 1
 #define PP1_METHOD 2
 
+#define MOD_PLAIN 0
+#define MOD_BASE2 1
+#define MOD_MODMULN 2
+#define MOD_REDC 3
+
+typedef mpz_t mpres_t;
+
 typedef mpz_t* listz_t;
 
 typedef struct
 {
-  mpz_t x;
-  mpz_t y;
+  mpres_t x;
+  mpres_t y;
 } __point_struct;
 typedef __point_struct point;
 
 typedef struct
 {
-  mpz_t x;
-  mpz_t y;
-  mpz_t A;
+  mpres_t x;
+  mpres_t y;
+  mpres_t A;
 } __curve_struct;
 typedef __curve_struct curve;
 
@@ -47,6 +46,22 @@ typedef struct
   listz_t coeff;
 } __polyz_struct;
 typedef __polyz_struct polyz_t[1];
+
+typedef struct 
+{
+  int repr;           /* 0: plain modulus, possibly normalized
+                         1: base 2 number
+                         2: MODMULN
+                         3: REDC representation */
+  int bits;           /* in case of a base 2 number 2^k[+-]1, bits = [+-]k
+                         in case of REDC representation, nr. of bits */
+  mpz_t orig_modulus; /* The original modulus */
+  mpz_t aux_modulus;  /* The auxiliary modulus value (i.e. normalized
+                         modulus, or 1/N (mod 2^bits) for REDC */
+  mpz_t RmodN;        /* For REDC, (2^bits) % orig_modulus */
+  mpz_t temp1, temp2; /* Temp values used during multiplication etc. */
+} __mpmod_struct;
+typedef __mpmod_struct mpmod_t[1];
 
 #if defined (__cplusplus)
 extern "C" {
@@ -60,35 +75,54 @@ unsigned int gcd (unsigned int, unsigned int);
 void mpz_sub_si(mpz_t, mpz_t, int);
 
 /* pm1.c */
-void    pm1_random_seed (mpz_t, mpz_t, gmp_randstate_t);
-int          pm1        (mpz_t, mpz_t, mpz_t, double, double, double, 
-                         unsigned int, unsigned int, int);
+void    pm1_random_seed  (mpz_t, mpz_t, gmp_randstate_t);
+int          pm1         (mpz_t, mpz_t, mpmod_t, double, double, double, 
+                          unsigned int, unsigned int, int);
+int     pm1_rootsF       (mpz_t, listz_t, unsigned int, mpres_t, listz_t,
+                          unsigned int, mpmod_t, int);
+mpres_t *pm1_rootsG_init (mpres_t, unsigned int, unsigned int, unsigned int,
+                          mpmod_t);
+void    pm1_rootsG_clear (mpres_t *, unsigned int, mpmod_t);
+int     pm1_rootsG       (mpz_t, listz_t, unsigned int, mpres_t *, listz_t, 
+                          unsigned int, mpmod_t, int);
+
 
 
 /* ecm.c */
-int          ecm        (mpz_t, mpz_t, mpz_t, mpz_t, double, double, double, 
-                         unsigned int, unsigned int, int);
+int          ecm        (mpz_t, mpres_t, mpz_t, mpmod_t, double, double, 
+                         double, unsigned int, unsigned int, int);
 unsigned int phi        (unsigned int);
 unsigned int bestD      (double);
 double       block_size (unsigned int);
 int          cputime    (void);
 
 /* ecm2.c */
-int multiplyW2 (mpz_t, mpz_t, mpz_t, mpz_t, mpz_t, mpz_t, mpz_t, mpz_t, mpz_t,
-                mpz_t);
-int addWn      (mpz_t, point *, mpz_t, long);
+int     ecm_rootsF       (mpz_t, listz_t, unsigned int, curve, listz_t, 
+                          unsigned int, mpmod_t, int);
+point * ecm_rootsG_init  (mpz_t, curve *, unsigned int, unsigned int, 
+                          unsigned int, mpmod_t);
+void    ecm_rootsG_clear (point *, unsigned int, mpmod_t);
+int     ecm_rootsG       (mpz_t, listz_t, unsigned int, point *, listz_t, 
+                          unsigned int, mpmod_t, int);
 
 /* pp1.c */
-int          pp1_mul    (mpz_t, mpz_t, mpz_t, mpz_t, mpz_t, mpz_t);
+int          pp1_mul     (mpres_t, mpres_t, mpz_t, mpmod_t, mpres_t, mpres_t);
 int          pp1_mul_prac(mpres_t, unsigned long, mpmod_t, mpres_t, mpres_t,
                           mpres_t, mpres_t, mpres_t);
-void    pp1_random_seed (mpz_t, mpz_t, gmp_randstate_t);
-int          pp1        (mpz_t, mpz_t, mpz_t, double, double, double, 
-                         unsigned int, unsigned int, int);
+void    pp1_random_seed  (mpres_t, mpmod_t, gmp_randstate_t);
+int          pp1         (mpz_t, mpres_t, mpmod_t, double, double, double, 
+                          unsigned int, unsigned int, int);
+int   pp1_rootsF         (listz_t, unsigned int, mpres_t, listz_t,
+                          mpmod_t, int);
+mpres_t *pp1_rootsG_init (mpres_t, unsigned int, unsigned int, mpmod_t);
+void  pp1_rootsG_clear   (mpres_t *, mpmod_t);
+int   pp1_rootsG         (listz_t, unsigned int, mpres_t *, mpmod_t, int);
 
 /* stage2.c */
-int          stage2     (mpz_t, curve *, mpz_t, double, unsigned int, 
+int          stage2     (mpz_t, curve *, mpmod_t, double, unsigned int, 
                          unsigned int, int, int, double);
+void  fin_diff_coeff    (listz_t coeffs, unsigned int s, unsigned int D, 
+                         unsigned int E, int dickson_a);
 
 /* listz.c */
 int          list_mul_mem (unsigned int);
@@ -142,6 +176,29 @@ int ntl_poly_gcd   (mpz_t, polyz_t, polyz_t, mpz_t);
 void NTL_init (void);
 void NTL_clear (void);
 void NTL_get_factor (mpz_t);
+
+/* mpmod.c */
+void mpmod_init(mpmod_t, mpz_t);
+void mpmod_clear (mpmod_t);
+void mpres_pow(mpres_t, mpres_t, mpres_t, mpmod_t);
+void mpres_mul(mpres_t, mpres_t, mpres_t, mpmod_t);
+void mpres_div_2exp(mpres_t, mpres_t, unsigned int, mpmod_t);
+void mpres_add_ui (mpres_t, mpres_t, unsigned int, mpmod_t);
+void mpres_add (mpres_t, mpres_t, mpres_t, mpmod_t);
+void mpres_sub_ui (mpres_t, mpres_t, unsigned int, mpmod_t);
+void mpres_sub (mpres_t, mpres_t, mpres_t, mpmod_t);
+void mpres_set_z (mpres_t, mpz_t, mpmod_t);
+void mpres_get_z (mpz_t, mpres_t, mpmod_t);
+void mpres_set_ui (mpres_t, unsigned int, mpmod_t);
+void mpres_init (mpres_t R, mpmod_t modulus);
+void mpres_clear (mpres_t R, mpmod_t modulus);
+void mpres_set (mpres_t R, mpres_t S, mpmod_t modulus);
+void mpres_swap (mpres_t R, mpres_t S, mpmod_t modulus);
+void mpres_mul_ui (mpres_t, mpres_t, unsigned int, mpmod_t);
+void mpres_neg (mpres_t, mpres_t, mpmod_t);
+int  mpres_invert (mpres_t, mpres_t, mpmod_t);
+void mpres_gcd(mpz_t, mpres_t, mpmod_t);
+void mpres_out_str (FILE *, unsigned int, mpres_t, mpmod_t);
 
 void __gmp_default_free (void *, size_t);
 #ifdef MEMORY_DEBUG

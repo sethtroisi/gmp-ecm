@@ -190,4 +190,16 @@ tests_memory_end (void)
     }
 }
 
+#else
+
+/* Stop compiler complaining about empty file */
+
+void memory_dummy (void);
+
+void 
+memory_dummy (void)
+{
+  return;
+}
+
 #endif

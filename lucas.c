@@ -48,7 +48,6 @@ duplicate (mpres_t P, mpres_t Q, mpmod_t n)
 {
   mpres_mul (P, Q, Q, n);
   mpres_sub_ui (P, P, 2, n);
-  mpmod_mod (P, P, n);
 }
 
 /* P <- V_{m+n} where Q = V_m, R = V_n, S = V_{m-n}.
@@ -59,8 +58,7 @@ static void
 add3 (mpres_t P, mpres_t Q, mpres_t R, mpres_t S, mpmod_t n, mpres_t t)
 {
   mpres_mul (t, Q, R, n);
-  mpres_sub (t, t, S, n);
-  mpmod_mod (P, t, n);
+  mpres_sub (P, t, S, n);
 }
 
 /* returns the number of modular multiplications for computing
