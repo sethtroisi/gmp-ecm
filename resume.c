@@ -27,7 +27,7 @@
 #include "ecm.h"
 
 #if defined (_MSC_VER) || defined (__MINGW32__)
-// needed to declare GetComputerName() in resume function
+/* needed to declare GetComputerName() in resume function */
 #include <windows.h>
 #endif
 
