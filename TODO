@@ -28,4 +28,4 @@ Long term:
 - need sigma >= 5 for ECM?
 - when resuming, print the *initial* x0 for P-1/P+1?
 - option -base2 to force base2 when res/lo > threshold?
-- why use Dickson(6), then x^12 in P-1?
+- extend maximal B1 in P+1 and ECM
