@@ -591,7 +591,9 @@ Options for prp testing using extern proces
              cmd part, there are these escape sequences:  %n will be replaced
              with the decimal number needing checked for prp,  %l will be 
              replaced by the "file" part of -prplog, and %t will be replaced
-             with the "file" part of -prptmp
+             with the "file" part of -prptmp.  Also any character possible
+			 can be output using the escape %x[0-9a-f][0-9a-f], thus special
+			 chars that some broken shells do not like to allow, can be used.
              All other characters within the cmd will be replaced verbetim,
              and the system call will be made to exectute the cmd.  NOTE in
              PFGW, only a Fermat test is dome (with a default of Fermat-3).
@@ -599,7 +601,7 @@ Options for prp testing using extern proces
              or any other number form where Fermat-3 failes, be SURE to add
              a -bn (replace n with a number from 2 to 255), and a Fermat-n
              test will be performed.  
-             Example"  -prp "pfgw -q%n %O/dev/nul 2%O/dev/nul -b139"
+             Example"  -prp "pfgw -q%n >/dev/nul 2>/dev/nul -b139"
 -prplen n    The external prp tester (PFGW) will be called only when 
              candidate numbers are longer (decimal length) than this number 
              of digits.  The "default" is 800 decimal digits.
