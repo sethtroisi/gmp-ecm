@@ -27,8 +27,6 @@
 #include "gmp-mparam.h"
 #include "ecm.h"
 
-#define DEBUG
-
 typedef struct {
   unsigned int size;
   mpz_t val[1];
@@ -177,7 +175,6 @@ pm1_stage1 (mpz_t f, mpres_t a, mpmod_t n, double B1, double B1done)
       smallbase = mpz_get_ui (g);
     }
 
-#ifdef EXPONENTIATE_BY_N_MINUS_1
   /* suggestion from Peter Montgomery: start with exponent n-1,
      since any prime divisor of b^m-1 which does not divide any
      algebraic factor of b^m-1 must be of the form km+1 [Williams82].
@@ -189,7 +186,6 @@ pm1_stage1 (mpz_t f, mpres_t a, mpmod_t n, double B1, double B1done)
       mpres_pow (a, a, g, n);
     }
   else
-#endif
     mpz_set_ui (g, 1);
 
   /* TODO set dynamically depending on size of N */
@@ -493,16 +489,16 @@ pm1_rootsG (mpz_t f, listz_t G, unsigned int d, mpres_t *fd,
   
   if (invtrick)
     {
-      if (list_invert (t, G, i, t[i], modulus->orig_modulus)) 
+      if (list_invert (t, G, d, t[d], modulus->orig_modulus)) 
         {
-          mpz_set (f, t[i]);
+          mpz_set (f, t[d]);
           return 1;
         }
     
-      for (j = 0; j < i; j++) 
+      for (i = 0; i < d; i++) 
         {
-          mpz_add (G[j], G[j], t[j]);
-          mpz_mod (G[j], G[j], modulus->orig_modulus);
+          mpz_add (G[i], G[i], t[i]);
+          mpz_mod (G[i], G[i], modulus->orig_modulus);
         }
     }
   

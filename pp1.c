@@ -161,7 +161,7 @@ pp1_stage1 (mpz_t f, mpres_t P0, mpmod_t n, double B1, double B1done,
      algebraic factor of b^m-1 must be of the form km+1 [Williams82].
      Do this only when n is composite, otherwise all tests with prime
      n factor of a Cunningham number will succeed in stage 1. */
-  if (0 && mpz_probab_prime_p (n->orig_modulus, 1) == 0)
+  if (mpz_probab_prime_p (n->orig_modulus, 1) == 0)
     {
       mpz_sub_ui (g, n->orig_modulus, 1);
       *muls += pp1_mul (P0, P0, g, n, P, Q);

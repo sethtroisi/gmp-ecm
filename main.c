@@ -315,8 +315,7 @@ main (int argc, char *argv[])
           else if (method == PP1_METHOD)
             pp1_random_seed (p, n, randstate);
           else if (method == PM1_METHOD)
-            mpz_set_ui (p, 2);
-/*            pm1_random_seed (p, n, randstate); */
+            pm1_random_seed (p, n, randstate);
         }
 
       if (method == PM1_METHOD)
