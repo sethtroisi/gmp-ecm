@@ -248,7 +248,7 @@ init_roots_state (ecm_roots_state *state, int S, unsigned int d1,
            S is the exponent for Brent-Suyama's extension
            verbose is the verbose level
            invtrick is non-zero iff one uses x+1/x instead of x.
-           method: EC_METHOD, PM1_METHOD or PP1_METHOD
+           method: ECM_ECM, ECM_PM1 or ECM_PP1
            Cf "Speeding the Pollard and Elliptic Curve Methods
                of Factorization", Peter Montgomery, Math. of Comp., 1987,
                page 257: using x^(i^e)+1/x^(i^e) instead of x^(i^(2e))
@@ -337,7 +337,7 @@ stage2 (mpz_t f, void *X, mpmod_t modulus, double B2min, double B2,
   outputf (OUTPUT_VERBOSE, "B2'=%1.0f k=%u b2=%1.0f d=%u d2=%u dF=%u, "
            "i0=%.0f\n", B2, k, b2, d, d2, dF, i0);
 
-  if (method == EC_METHOD && test_verbose (OUTPUT_VERBOSE))
+  if (method == ECM_ECM && test_verbose (OUTPUT_VERBOSE))
     {
       double nrcurves;
       rhoinit (256, 10);
@@ -375,9 +375,9 @@ stage2 (mpz_t f, void *X, mpmod_t modulus, double B2min, double B2,
   H = T;
 
   /* needs dF+1 cells in T */
-  if (method == PM1_METHOD)
+  if (method == ECM_PM1)
     youpi = pm1_rootsF (f, F, d, d2, dF, (mpres_t*) X, T, S, modulus, verbose);
-  else if (method == PP1_METHOD)
+  else if (method == ECM_PP1)
     youpi = pp1_rootsF (F, d, d2, dF, (mpres_t*) X, T, modulus, verbose);
   else 
     youpi = ecm_rootsF (f, F, d, d2, dF, (curve*) X, S, modulus, verbose);
@@ -470,11 +470,11 @@ stage2 (mpz_t f, void *X, mpmod_t modulus, double B2min, double B2,
     }
 
   st = cputime ();
-  if (method == PM1_METHOD)
+  if (method == ECM_PM1)
     rootsG_state = pm1_rootsG_init ((mpres_t *) X, i0 * (double) d, d, d2, S, verbose, modulus);
-  else if (method == PP1_METHOD)
+  else if (method == ECM_PP1)
     rootsG_state = pp1_rootsG_init ((mpres_t *) X, i0 * (double) d, d, d2, modulus);
-  else /* EC_METHOD */
+  else /* ECM_ECM */
     rootsG_state = ecm_rootsG_init (f, (curve *) X, i0 * (double) d, d, d2,
 				    dF, k, S, modulus, verbose);
 
@@ -482,11 +482,11 @@ stage2 (mpz_t f, void *X, mpmod_t modulus, double B2min, double B2,
   if (rootsG_state == NULL)
     {
       /* ecm: f = -1 if an error occurred */
-      youpi = (method == EC_METHOD && mpz_cmp_si (f, -1)) ? 2 : ECM_ERROR;
+      youpi = (method == ECM_ECM && mpz_cmp_si (f, -1)) ? 2 : ECM_ERROR;
       goto clear_G;
     }
 
-  if (method != EC_METHOD) /* ecm_rootsG_init prints itself */
+  if (method != ECM_ECM) /* ecm_rootsG_init prints itself */
     outputf (OUTPUT_VERBOSE, "Initializing table of differences for G "
              "took %dms\n", cputime () - st);
 
@@ -495,10 +495,10 @@ stage2 (mpz_t f, void *X, mpmod_t modulus, double B2min, double B2,
       st = cputime ();
       
       /* needs dF+1 cells in T+dF */
-      if (method == PM1_METHOD)
+      if (method == ECM_PM1)
 	youpi = pm1_rootsG (f, G, dF, (pm1_roots_state *) rootsG_state, T + dF,
 			    modulus, verbose);
-      else if (method == PP1_METHOD)
+      else if (method == ECM_PP1)
         youpi = pp1_rootsG (G, dF, (pp1_roots_state *) rootsG_state, modulus,
                             verbose);
       else
@@ -602,11 +602,11 @@ stage2 (mpz_t f, void *X, mpmod_t modulus, double B2min, double B2,
   outputf (OUTPUT_DEVVERBOSE, "Product of G(f_i) = %Zd\n", T[0]);
 
  clear_fd:
-  if (method == PM1_METHOD)
+  if (method == ECM_PM1)
     pm1_rootsG_clear ((pm1_roots_state *) rootsG_state, modulus);
-  else if (method == PP1_METHOD)
+  else if (method == ECM_PP1)
     pp1_rootsG_clear ((pp1_roots_state *) rootsG_state, modulus);
-  else /* EC_METHOD */
+  else /* ECM_ECM */
     ecm_rootsG_clear ((ecm_roots_state *) rootsG_state, S, modulus);
 
 clear_G:
@@ -629,7 +629,7 @@ clear_G:
 
   outputf (OUTPUT_NORMAL, "Step 2 took %dms\n", st0);
 
-  if (method == EC_METHOD && test_verbose (OUTPUT_VERBOSE))
+  if (method == ECM_ECM && test_verbose (OUTPUT_VERBOSE))
     {
       double prob, tottime, exptime;
       rhoinit (256, 10);

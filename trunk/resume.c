@@ -149,17 +149,17 @@ read_resumefile_line (int *method, mpz_t x, mpcandi_t *n, mpz_t sigma, mpz_t A,
             {
               if (facceptstr (fd, "ECM") == 3)
                 {
-                  *method = EC_METHOD;
+                  *method = ECM_ECM;
                 }
               else if (facceptstr (fd, "P"))
                 {
                   if ((a = facceptstr (fd, "-1") == 2))
                     {
-                      *method = PM1_METHOD;
+                      *method = ECM_PM1;
                     }
                   else if (a == 0 && facceptstr (fd, "+1") == 2)
                     {
-                      *method = PP1_METHOD;
+                      *method = ECM_PP1;
                     }
                   else 
                     goto error;
@@ -250,7 +250,7 @@ read_resumefile_line (int *method, mpz_t x, mpcandi_t *n, mpz_t sigma, mpz_t A,
         {
           if (have_n && have_sigma)
             {
-              *method = EC_METHOD;
+              *method = ECM_ECM;
               *b1 = 1.0;
               strcpy (program, "Prime95");
               mpz_mod (x, x, n->n);
@@ -260,7 +260,7 @@ read_resumefile_line (int *method, mpz_t x, mpcandi_t *n, mpz_t sigma, mpz_t A,
         }
 
 #ifdef DEBUG
-      if (*method != EC_METHOD && (have_sigma || have_a))
+      if (*method != ECM_ECM && (have_sigma || have_a))
         {
           printf ("Save file line has ");
           if (have_sigma)
@@ -280,7 +280,7 @@ read_resumefile_line (int *method, mpz_t x, mpcandi_t *n, mpz_t sigma, mpz_t A,
 #endif
       
       if (!have_method || !have_x || !have_n || !have_b1 ||
-          (method == EC_METHOD && !have_sigma && !have_a))
+          (method == ECM_ECM && !have_sigma && !have_a))
         {
           fprintf (stderr, "Save file line lacks fields\n");
           continue;
@@ -376,9 +376,9 @@ write_resumefile_line (FILE *fd, int method, double B1, mpz_t sigma, mpz_t A,
   mpz_init (checksum);
   mpz_set_d (checksum, B1);
   fprintf (fd, "METHOD=");
-  if (method == PM1_METHOD)
+  if (method == ECM_PM1)
     fprintf (fd, "P-1");
-  else if (method == PP1_METHOD)
+  else if (method == ECM_PP1)
     fprintf (fd, "P+1");
   else 
     {

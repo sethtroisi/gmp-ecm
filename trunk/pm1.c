@@ -914,7 +914,7 @@ pm1 (mpz_t f, mpz_t p, mpz_t N, mpz_t go, double B1done, double B1,
   if (youpi != ECM_NO_FACTOR_FOUND) /* factor found, or an error occurred */
     goto clear_and_exit;
 
-  youpi = stage2 (f, &x, modulus, B2min, B2, k, S, verbose, PM1_METHOD, st);
+  youpi = stage2 (f, &x, modulus, B2min, B2, k, S, verbose, ECM_PM1, st);
 
 clear_and_exit:
   mpres_get_z (p, x, modulus);
