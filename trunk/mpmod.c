@@ -719,16 +719,13 @@ mpres_add_ui (mpres_t R, mpres_t S, unsigned int n, mpmod_t modulus)
 }
 
 /* R <- S1 + S2 mod modulus.
-   Remark: don't need 0 <= R < modulus, since mpres_mul can deal with
-   extra bits. */
+   TODO: do we really need 0 <= R < modulus? */
 void 
 mpres_add (mpres_t R, mpres_t S1, mpres_t S2, mpmod_t modulus)
 {
   mpz_add (R, S1, S2);
-#if 0
   if (mpz_cmp (R, modulus->orig_modulus) > 0)
     mpz_sub (R, R, modulus->orig_modulus);
-#endif
 }
 
 void
@@ -756,16 +753,13 @@ mpres_sub_ui (mpres_t R, mpres_t S, unsigned int n, mpmod_t modulus)
 }
 
 /* R <- S1 - S2 mod modulus.
-   Remark: don't need 0 <= R < modulus, since mpres_mul can deal with
-   extra bits. */
+   TODO: do we really need 0 <= R < modulus? */
 void 
 mpres_sub (mpres_t R, mpres_t S1, mpres_t S2, mpmod_t modulus)
 {
   mpz_sub (R, S1, S2);
-#if 0
   if (mpz_sgn (R) < 0)
     mpz_add (R, R, modulus->orig_modulus);
-#endif
 }
 
 void 
