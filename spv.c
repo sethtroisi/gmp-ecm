@@ -317,7 +317,7 @@ void spv_mul (spv_t r, spv_t x, spv_size_t x_len, spv_t y,
   ASSERT (x_len > 0);
   ASSERT (y_len > 0);
   ASSERT (monic == 0 || monic == 1);
-  ASSERT (k > l);
+  ASSERT (k < l);
   ASSERT (l <= x_len + y_len - 1 + monic);
   
   x_len = MIN (l, x_len);

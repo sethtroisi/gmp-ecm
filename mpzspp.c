@@ -31,6 +31,7 @@ mpzspp_init (mpzspm_t mpzspm)
   mpzspp_t mpzspp = (mpzspp_t) malloc (sizeof (__mpzspp_struct));
   mpzspp->alloc_len = 0;
   mpzspp->len = 0;
+  mpzspp->monic_pos = 0;
   mpzspp->spv = (spv_t *) malloc (mpzspm->sp_num * sizeof (spv_t *));
   mpzspp->mpzspm = mpzspm;
   
@@ -101,12 +102,12 @@ mpzspp_set_mpzp (mpzspp_t mpzspp, mpzp_t mpzp, spv_size_t len,
     }
 
   mpzspp->len = MAX(len + offset, mpzspp->len);
-}
-
-void
-mpzspp_set_zero (mpzspp_t mpzspp, spv_size_t len, spv_size_t offset)
-{
-  spv_size_t i;
+  
+  /* For some combinations of offset/len we don't overwrite all the coeffs
+   * so strictly speaking, the normalised and ntt flags are undefined */
+  mpzspp->normalised = 1;
+  mpzspp->ntt = 0;
+  mpzspp->monic_pos = 0;
 }
 
 /* B&S: ecrt mod m.
@@ -120,6 +121,9 @@ mpzspp_get_mpzp (mpzspp_t mpzspp, mpzp_t mpzp, spv_size_t len,
   unsigned int sp_num = mpzspp->mpzspm->sp_num;
   float *f = (float *) malloc (len * sizeof (float));
   float prime_recip;
+  
+  if (mpzspp->ntt)
+    mpzspp_from_ntt (mpzspp);
   
   for (j = 0; j < len; j++)
     {
@@ -148,37 +152,15 @@ mpzspp_get_mpzp (mpzspp_t mpzspp, mpzp_t mpzp, spv_size_t len,
       mpz_add (mpzp[j], mpzp[j], mpzspp->mpzspm->crt2[(unsigned int) f[j]]);
   
   free (f);
+
+  /* coeffs are clobbered so no point setting normalised or ntt flags */
 }  
-
-void
-mpzspp_sqr (mpzspp_t r, mpzspp_t x, int monic)
-{
-  unsigned int i;
-
-  ASSERT (monic == 0 || monic == 1);
-
-  r->mpzspm = x->mpzspm;
-
-  if (x->len == 0)
-    {
-      r->len = 0;
-      return;
-    }
-
-  MPZSPP_REALLOC (r, 1 << ceil_log_2 (2 * x->len - 1 + monic));
-  
-  for (i = 0; i < x->mpzspm->sp_num; i++)
-    spv_mul (r->spv[i], x->spv[i], x->len, x->spv[i], x->len,
-	monic, 0, 0, x->mpzspm->spm + i);
-
-  r->len = 2 * x->len - 1 + monic;
-}
-  
 
 void
 mpzspp_mul (mpzspp_t r, mpzspp_t x, mpzspp_t y, int monic)
 {
   unsigned int i;
+  spv_size_t r_len;
   
   ASSERT (x->mpzspm == y->mpzspm);
   ASSERT (monic == 0 || monic == 1);
@@ -191,13 +173,32 @@ mpzspp_mul (mpzspp_t r, mpzspp_t x, mpzspp_t y, int monic)
       return;
     }
   
-  MPZSPP_REALLOC (r, 1 << ceil_log_2 (x->len + y->len - 1 + monic));
+  r_len = x->len + y->len - 1 + monic;
+  spv_size_t ntt_size = 1 << ceil_log_2 (r_len);
+
+  MPZSPP_REALLOC (r, ntt_size);
   
-  for (i = 0; i < x->mpzspm->sp_num; i++)
-    spv_mul (r->spv[i], x->spv[i], x->len, y->spv[i], y->len,
-	0, 0, monic, x->mpzspm->spm + i);
+  if (x->ntt || y->ntt || ntt_size >= 2 * MUL_NTT_THRESHOLD)
+    {
+      mpzspp_to_ntt (x, ntt_size, monic);
+      mpzspp_to_ntt (y, ntt_size, monic);
+      mpzspp_pwmul (r, x, y);
+      mpzspp_from_ntt (r);
+    }
+  else
+    {
+      mpzspp_from_ntt (x);
+      mpzspp_from_ntt (y);
+      
+      for (i = 0; i < x->mpzspm->sp_num; i++)
+        spv_mul (r->spv[i], x->spv[i], x->len, y->spv[i], y->len,
+	    0, 0, monic, x->mpzspm->spm + i);
+
+      r->normalised = 0;
+      r->ntt = 0;
+    }
   
-  r->len = x->len + y->len - 1 + monic;
+  r->len = r_len;
 }
 
 void
@@ -224,6 +225,8 @@ mpzspp_mul_partial (mpzspp_t r, mpzspp_t x, mpzspp_t y,
 	monic, x->mpzspm->spm + i);
   
   r->len = l;
+  r->ntt = 0;
+  r->normalised = 0;
 }
 
 void
@@ -231,18 +234,25 @@ mpzspp_pwmul (mpzspp_t r, mpzspp_t x, mpzspp_t y)
 {
   unsigned int i;
 
+  MPZSPP_REALLOC (r, x->len);
+  
   for (i = 0; i < x->mpzspm->sp_num; i++)
     spv_pwmul (r->spv[i], x->spv[i], y->spv[i], x->len, x->mpzspm->spm[i].sp,
 	x->mpzspm->spm[i].mul_c);
 
   r->len = x->len;
+  r->normalised = 0;
+  r->ntt = x->ntt;
+  
+  if (x->monic_pos && y->monic_pos)
+    r->monic_pos = x->monic_pos + y->monic_pos;
 }
 
 #define STRIDE MIN(256,len)
 
 /* B&S: ecrt mod m mod p_j. */
 void
-mpzspp_normalize (mpzspp_t x, spv_size_t len, spv_size_t offset)
+mpzspp_normalise (mpzspp_t x, spv_size_t len, spv_size_t offset)
 {
 #if 0
   spv_size_t i;
@@ -259,6 +269,12 @@ mpzspp_normalize (mpzspp_t x, spv_size_t len, spv_size_t offset)
   
 #else
     
+  if (x->normalised)
+    return;
+  
+  if (x->ntt)
+    mpzspp_from_ntt (x);
+  
   unsigned long i, j, k, l;
   unsigned int sp_num = x->mpzspm->sp_num;
   sp_t v;
@@ -342,72 +358,85 @@ mpzspp_normalize (mpzspp_t x, spv_size_t len, spv_size_t offset)
   free (f);
 
 #endif
-}  
+  x->normalised = 1;
+}
 
-/* Convert the mpzp to a mpzspp and do a fixed-length ntt on
- * the coefficients */
 void
-mpzspp_set_mpzp_ntt (mpzspp_t mpzspp, mpzp_t mpzp, spv_size_t mpzp_len,
-    int monic, spv_size_t ntt_len)
+mpzspp_to_ntt (mpzspp_t x, spv_size_t ntt_size, int monic)
 {
-  MPZSPP_REALLOC (mpzspp, MAX (mpzp_len, ntt_len));
-  mpzspp_set_mpzp (mpzspp, mpzp, mpzp_len, 0);
+  if (!x->normalised)
+    mpzspp_normalise (x, x->len, 0);
 
+  if (x->ntt)
+    {
+      /* FIXME: add the easy ntt_size < x->len case */
+      if (ntt_size != x->len)
+	mpzspp_from_ntt (x);
+      else
+	return;
+    }
+
+  MPZSPP_REALLOC (x, ntt_size);
+  
   unsigned int i;
   spv_size_t j;
-  sp_t root;
   spm_t spm;
+  sp_t root;
   
-  if (ntt_len > mpzp_len)
+  for (i = 0; i < x->mpzspm->sp_num; i++)
     {
-      for (i = 0; i < mpzspp->mpzspm->sp_num; i++)
+      spm = x->mpzspm->spm + i;
+      root = sp_pow (spm->prim_root, (spm->sp - 1) / ntt_size,
+	  spm->sp, spm->mul_c);
+      
+      if (ntt_size < x->len)
         {
-	  spv_set_zero (mpzspp->spv[i] + mpzp_len, ntt_len - mpzp_len);
-	  if (monic)
-	    mpzspp->spv[i][mpzp_len] = 1;
-
-	  spm = mpzspp->mpzspm->spm + i;
-	  root = sp_pow (spm->prim_root, (spm->sp - 1) / ntt_len,
-	      spm->sp, spm->mul_c);
-	  spv_ntt_gfp_dif (mpzspp->spv[i], ntt_len, spm->sp, spm->mul_c, root);
+	  for (j = ntt_size; j < x->len; j += ntt_size)
+	    spv_add (x->spv[i], x->spv[i], x->spv[i] + j, ntt_size, spm->sp);
 	}
-    }
-  else
-    {
-      for (i = 0; i < mpzspp->mpzspm->sp_num; i++)
-        {
-	  for (j = ntt_len; j < mpzp_len; j += ntt_len)
-	    spv_add (mpzspp->spv[i], mpzspp->spv[i], mpzspp->spv[i] + j,
-	        ntt_len, mpzspp->mpzspm->spm[i].sp);
-	  if (monic)
-	    mpzspp->spv[i][0] = 1;
+      if (ntt_size > x->len)
+	spv_set_zero (x->spv[i] + x->len, ntt_size - x->len);
 
-	  spm = mpzspp->mpzspm->spm + i;
-	  root = sp_pow (spm->prim_root, (spm->sp - 1) / ntt_len,
-	      spm->sp, spm->mul_c);
-	  spv_ntt_gfp_dif (mpzspp->spv[i], ntt_len, spm->sp, spm->mul_c, root);
-	}
+      if (monic)
+	x->spv[i][x->len % ntt_size] = sp_add (x->spv[i][x->len % ntt_size],
+	    1, spm->sp);
+      
+      spv_ntt_gfp_dif (x->spv[i], ntt_size, spm->sp, spm->mul_c, root);
     }
-  mpzspp->len = ntt_len;
+
+  x->monic_pos = monic ? x->len : 0;
+  x->len = ntt_size;
+  x->ntt = 1;
 }
 
-void mpzspp_get_mpzp_ntt (mpzspp_t mpzspp, mpzp_t mpzp, spv_size_t len)
+void mpzspp_from_ntt (mpzspp_t x)
 {
+  if (!x->ntt)
+    return;
+
   unsigned int i;
-  spv_size_t j;
-  sp_t root;
   spm_t spm;
+  sp_t root;
+  spv_size_t monic_pos = x->monic_pos % x->len;
   
-  for (i = 0; i < mpzspp->mpzspm->sp_num; i++)
+  for (i = 0; i < x->mpzspm->sp_num; i++)
     {
-      spm = mpzspp->mpzspm->spm + i;
-      root = sp_pow (spm->prim_root, (spm->sp - 1) - (spm->sp - 1) / len,
+      spm = x->mpzspm->spm + i;
+      root = sp_pow (spm->prim_root, spm->sp - 1 - (spm->sp - 1) / x->len,
 	  spm->sp, spm->mul_c);
-      spv_ntt_gfp_dit (mpzspp->spv[i], mpzspp->len, spm->sp, spm->mul_c, root);
-      root = sp_inv (mpzspp->len, spm->sp, spm->mul_c);
-      spv_mul_sp (mpzspp->spv[i], mpzspp->spv[i], root, len,
-	  spm->sp, spm->mul_c);
+      
+      spv_ntt_gfp_dit (x->spv[i], x->len, spm->sp, spm->mul_c, root);
+
+      /* spm->sp - (spm->sp - 1) / x->len is the inverse of x->len */
+      spv_mul_sp (x->spv[i], x->spv[i], spm->sp - (spm->sp - 1) / x->len,
+	  x->len, spm->sp, spm->mul_c);
+      
+      if (x->monic_pos)
+	x->spv[i][monic_pos] = sp_sub (x->spv[i][monic_pos], 1, spm->sp);
     }
-  
-  mpzspp_get_mpzp_ntt (mpzspp, mpzp, len);
+
+  x->ntt = 0;
 }
+
+
+  
