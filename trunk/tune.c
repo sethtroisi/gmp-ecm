@@ -29,12 +29,12 @@
 /* performs k computations of p*q mod N using representation 'repr'
    and return the total time.
 */
-static int
+static unsigned int
 test (mpz_t N, mpz_t p, mpz_t q, int repr, int k)
 {
   mpmod_t modulus;
   mpres_t x, y, z;
-  int st;
+  unsigned int st;
 
   if (repr == 1)
     mpmod_init_MPZ (modulus, N);
@@ -55,7 +55,7 @@ test (mpz_t N, mpz_t p, mpz_t q, int repr, int k)
   while (k--)
     mpres_mul (z, x, y, modulus);
 
-  st = cputime () - st;
+  st = elltime (st, cputime ());
 
   mpres_clear (x, modulus);
   mpres_clear (y, modulus);
@@ -70,7 +70,8 @@ main (int argc, char *argv[])
 {
   mp_size_t n, n0;
   mpz_t N, p, q;
-  int k, st[3];
+  int k;
+  unsigned int st[3];
   int mpzmod_threshold = 0;
   int redc_threshold = 0;
 

@@ -424,7 +424,7 @@ ecm_rootsF (mpz_t f, listz_t F, unsigned int d1, unsigned int d2,
 {
   unsigned int i;
   unsigned long muls = 0, gcds = 0;
-  int st;
+  unsigned int st;
   int youpi = ECM_NO_FACTOR_FOUND;
   listz_t coeffs;
   ecm_roots_state state;
@@ -510,10 +510,10 @@ ecm_rootsF (mpz_t f, listz_t F, unsigned int d1, unsigned int d2,
 
   if (test_verbose (OUTPUT_VERBOSE))
     {
-      int st1 = cputime ();
+      unsigned int st1 = cputime ();
       outputf (OUTPUT_VERBOSE,
-	       "Initializing tables of differences for F took %dms",
-	       st1 - st);
+	       "Initializing tables of differences for F took %ums",
+	       elltime (st, st1));
       outputf (OUTPUT_DEVVERBOSE, ", %lu muls and %lu extgcds", muls, gcds);
       outputf (OUTPUT_VERBOSE, "\n");
       st = st1;
@@ -568,7 +568,8 @@ ecm_rootsF (mpz_t f, listz_t F, unsigned int d1, unsigned int d2,
   if (youpi)
     return youpi; /* error or factor found */
   
-  outputf (OUTPUT_VERBOSE, "Computing roots of F took %dms", cputime () - st);
+  outputf (OUTPUT_VERBOSE, "Computing roots of F took %ums",
+	   elltime (st, cputime ()));
   outputf (OUTPUT_DEVVERBOSE, ", %ld muls and %ld extgcds", muls, gcds);
   outputf (OUTPUT_VERBOSE, "\n");
 
@@ -597,8 +598,7 @@ ecm_rootsG_init (mpz_t f, curve *X, mpz_t s, unsigned int d1, unsigned int d2,
   int dickson_a;
   unsigned int T_inv;
   double bestnr;
-  int st = 0;
-  mpz_t t;
+  unsigned int st = 0;
 
   ASSERT (gcd (d1, d2) == 1);
 
@@ -727,9 +727,9 @@ ecm_rootsG_init (mpz_t f, curve *X, mpz_t s, unsigned int d1, unsigned int d2,
     {
       if (test_verbose (OUTPUT_VERBOSE))
         {
-          st = cputime () - st;
+          st = elltime (st, cputime ());
           outputf (OUTPUT_VERBOSE,
-		   "Initializing table of differences for G took %dms", st);
+		   "Initializing table of differences for G took %ums", st);
 	  outputf (OUTPUT_DEVVERBOSE, ", %lu muls and %lu extgcds",
 		   muls, gcds);
           outputf (OUTPUT_VERBOSE, "\n");
@@ -778,7 +778,8 @@ ecm_rootsG (mpz_t f, listz_t G, unsigned int dF, ecm_roots_state *state,
 {
   unsigned int i;
   unsigned long muls = 0, gcds = 0;
-  int youpi = ECM_NO_FACTOR_FOUND, st;
+  int youpi = ECM_NO_FACTOR_FOUND;
+  unsigned int st;
   
   st = cputime ();
   
@@ -809,7 +810,8 @@ ecm_rootsG (mpz_t f, listz_t G, unsigned int dF, ecm_roots_state *state,
       state->rsieve ++;
     }
   
-  outputf (OUTPUT_VERBOSE, "Computing roots of G took %dms", cputime () - st);
+  outputf (OUTPUT_VERBOSE, "Computing roots of G took %ums",
+	   elltime (st, cputime ()));
   outputf (OUTPUT_DEVVERBOSE, ", %lu muls and %lu extgcds", muls, gcds);
   outputf (OUTPUT_VERBOSE, "\n");
   

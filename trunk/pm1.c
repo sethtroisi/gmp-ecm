@@ -408,7 +408,7 @@ pm1_rootsF (mpz_t f, listz_t F, unsigned int d1, unsigned int d2,
 {
   unsigned int i;
   unsigned long muls = 0, gcds = 0;
-  int st, st1;
+  unsigned int st, st1;
   pm1_roots_state state;
   listz_t coeffs;
   mpz_t ts;
@@ -472,7 +472,8 @@ pm1_rootsF (mpz_t f, listz_t F, unsigned int d1, unsigned int d2,
   
   st1 = cputime ();
   outputf (OUTPUT_VERBOSE,
-	   "Initializing table of differences for F took %dms\n", st1 - st);
+	   "Initializing table of differences for F took %ums\n",
+	   elltime (st, st1));
   st = st1;
 
   /* Now for the actual calculation of the roots. */
@@ -522,7 +523,8 @@ pm1_rootsF (mpz_t f, listz_t F, unsigned int d1, unsigned int d2,
         }
     }
   
-  outputf (OUTPUT_VERBOSE, "Computing roots of F took %dms", cputime () - st);
+  outputf (OUTPUT_VERBOSE, "Computing roots of F took %ums",
+	   elltime (st, cputime ()));
   outputf (OUTPUT_DEVVERBOSE, ", %lu muls and %lu extgcds", muls, gcds);
   outputf (OUTPUT_VERBOSE, "\n");
   
@@ -652,7 +654,7 @@ pm1_rootsG (mpz_t f, listz_t G, unsigned int dF, pm1_roots_state *state,
 {
   unsigned int i;
   unsigned long muls = 0, gcds = 0;
-  int st;
+  unsigned int st;
   
   outputf (OUTPUT_TRACE,
 	   "pm1_rootsG: dF = %d, state: size_fd = %d, nr = %d, S = %d\n",
@@ -708,7 +710,8 @@ pm1_rootsG (mpz_t f, listz_t G, unsigned int dF, pm1_roots_state *state,
         }
     }
   
-  outputf (OUTPUT_VERBOSE, "Computing roots of G took %dms", cputime () - st);
+  outputf (OUTPUT_VERBOSE, "Computing roots of G took %ums",
+	   elltime (st, cputime ()));
   outputf (OUTPUT_DEVVERBOSE, ", %lu muls and %lu extgcds", muls, gcds);
   outputf (OUTPUT_VERBOSE, "\n");
   
@@ -740,7 +743,8 @@ pm1 (mpz_t f, mpz_t p, mpz_t N, mpz_t go, double B1done, double B1,
 {
   mpmod_t modulus;
   mpres_t x;
-  int youpi = 0, st, base2, Nbits, smallbase;
+  int youpi = 0, base2, Nbits, smallbase;
+  unsigned int st;
 
   set_verbose (verbose);
   ECM_STDOUT = (os == NULL) ? stdout : os;
@@ -882,9 +886,9 @@ pm1 (mpz_t f, mpz_t p, mpz_t N, mpz_t go, double B1done, double B1,
   if (B1 > B1done)
     youpi = pm1_stage1 (f, x, modulus, B1, B1done, go);
 
-  st = cputime() - st;
+  st = elltime (st, cputime ());
 
-  outputf (OUTPUT_NORMAL, "Step 1 took %dms\n", st);
+  outputf (OUTPUT_NORMAL, "Step 1 took %ums\n", st);
   if (test_verbose (OUTPUT_RESVERBOSE))
     {
       mpz_t tx;

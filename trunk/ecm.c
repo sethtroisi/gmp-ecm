@@ -620,7 +620,8 @@ ecm (mpz_t f, mpz_t x, mpz_t sigma, mpz_t n, mpz_t go, double B1done,
      int S, int verbose, int repr, int sigma_is_A, FILE *os, FILE* es, 
      char *TreeFilename)
 {
-  int youpi = ECM_NO_FACTOR_FOUND, st;
+  int youpi = ECM_NO_FACTOR_FOUND;
+  unsigned int st;
   mpmod_t modulus;
   curve P;
 
@@ -768,9 +769,9 @@ ecm (mpz_t f, mpz_t x, mpz_t sigma, mpz_t n, mpz_t go, double B1done,
   if (B1 > B1done)
     youpi = ecm_stage1 (f, P.x, P.A, modulus, B1, B1done, go);
   
-  st = cputime () - st;
+  st = elltime (st, cputime ());
   
-  outputf (OUTPUT_NORMAL, "Step 1 took %dms\n", st);
+  outputf (OUTPUT_NORMAL, "Step 1 took %ums\n", st);
 
   /* Store end-of-stage-1 residue in x in case we write it to a save file, 
      before P.x is converted to Weierstrass form */

@@ -278,7 +278,8 @@ stage2 (mpz_t f, void *X, mpmod_t modulus, mpz_t B2min, mpz_t B2,
   unsigned int i, d, d2, dF, sizeT;
   mpz_t n, i0, s, effB2; /* s = i0 * d */
   listz_t F, G, H, T;
-  int youpi = 0, st, st0;
+  int youpi = 0;
+  unsigned int st, st0;
   void *rootsG_state = NULL;
   listz_t *Tree = NULL; /* stores the product tree for F */
   unsigned int lgk; /* ceil(log(k)/log(2)) */
@@ -329,9 +330,6 @@ stage2 (mpz_t f, void *X, mpmod_t modulus, mpz_t B2min, mpz_t B2,
   
   mpz_mul_ui (s, i0, d); /* s = i0 * d */
   b2 = (double) dF * (double) d * (double) d2 / (double) phi (d2);
-
-  /* compute real B2. bestD() does it now */
-  // B2 = mpz_get_d (s) + floor ((double) k * b2 / d) * d;
 
   outputf (OUTPUT_VERBOSE, "B2'=%Zd k=%u b2=%1.0f d=%u d2=%u dF=%u, "
            "i0=%Zd\n", effB2, k, b2, d, d2, dF, i0);
@@ -460,7 +458,7 @@ stage2 (mpz_t f, void *X, mpmod_t modulus, mpz_t B2min, mpz_t B2,
     PolyFromRoots_Tree (F, F, dF, T, -1, n, Tree, NULL, 0);
   
   outputf (OUTPUT_VERBOSE, "Building F from its roots took %ums\n", 
-           cputime() - st);
+           elltime (st, cputime ()));
 
   /* needs dF+list_mul_mem(dF/2) cells in T */
 
@@ -489,7 +487,8 @@ stage2 (mpz_t f, void *X, mpmod_t modulus, mpz_t B2min, mpz_t B2,
       PolyInvert (invF, F + 1, dF, T, n);
 
       /* now invF[0..dF-1] = Quo(x^(2dF-1), F) */
-      outputf (OUTPUT_VERBOSE, "Computing 1/F took %ums\n", cputime () - st);
+      outputf (OUTPUT_VERBOSE, "Computing 1/F took %ums\n",
+	       elltime (st, cputime ()));
       
       /* ----------------------------------------------
          |   F    |  invF  |   G   |         T        |
@@ -526,7 +525,7 @@ stage2 (mpz_t f, void *X, mpmod_t modulus, mpz_t B2min, mpz_t B2,
 
   if (method != ECM_ECM) /* ecm_rootsG_init prints itself */
     outputf (OUTPUT_VERBOSE, "Initializing table of differences for G "
-             "took %dms\n", cputime () - st);
+             "took %ums\n", elltime (st, cputime ()));
 
   for (i = 0; i < k; i++)
     {
@@ -558,7 +557,7 @@ stage2 (mpz_t f, void *X, mpmod_t modulus, mpz_t B2min, mpz_t B2,
       PolyFromRoots (G, G, dF, T + dF, n);
       /* needs 2*dF+list_mul_mem(dF/2) cells in T */
       outputf (OUTPUT_VERBOSE, "Building G from its roots took %ums\n", 
-               cputime() - st);
+               elltime (st, cputime ()));
 
   /* -----------------------------------------------
      |   F    |  invF  |   G    |         T        |
@@ -595,7 +594,7 @@ stage2 (mpz_t f, void *X, mpmod_t modulus, mpz_t B2min, mpz_t B2,
 	  list_mulmod (H, T + dF, G, H, dF, T + 3 * dF, n);
 
           outputf (OUTPUT_VERBOSE, "Computing G * H took %ums\n", 
-                   cputime () - st);
+                   elltime (st, cputime ()));
 
           /* ------------------------------------------------
              |   F    |  invF  |    G    |         T        |
@@ -611,7 +610,7 @@ stage2 (mpz_t f, void *X, mpmod_t modulus, mpz_t B2min, mpz_t B2,
 	    }
 
           outputf (OUTPUT_VERBOSE, "Reducing  G * H mod F took %ums\n", 
-                   cputime () - st);
+                   elltime (st, cputime ()));
 	}
     }
 
@@ -635,7 +634,7 @@ stage2 (mpz_t f, void *X, mpmod_t modulus, mpz_t B2min, mpz_t B2,
 #endif
 
   outputf (OUTPUT_VERBOSE, "Computing polyeval(F,G) took %ums\n", 
-           cputime () - st);
+           elltime (st, cputime ()));
 
   youpi = list_gcd (f, T, dF, n) ? 2 : 0;
   outputf (OUTPUT_RESVERBOSE, "Product of G(f_i) = %Zd\n", T[0]);
@@ -672,9 +671,9 @@ clear_s_i0:
   mpz_clear (i0);
   mpz_clear (s);
 
-  st0 = cputime () - st0;
+  st0 = elltime (st0, cputime ());
 
-  outputf (OUTPUT_NORMAL, "Step 2 took %dms\n", st0);
+  outputf (OUTPUT_NORMAL, "Step 2 took %ums\n", st0);
 
   if (method == ECM_ECM && test_verbose (OUTPUT_VERBOSE) && youpi != ECM_ERROR)
     {
