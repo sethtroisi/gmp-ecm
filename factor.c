@@ -11,7 +11,7 @@ ecm_factor (mpz_t f, mpz_t n, double B1, ecm_params p)
   int p_is_null;
   ecm_params q;
 
-  if (p_is_null = (p == NULL))
+  if ((p_is_null = (p == NULL)))
     {
       p = q;
       q->method = ECM_ECM; /* default method */

@@ -118,7 +118,7 @@ dickson_ui (mpz_t r, double x, unsigned int n, int a)
 
 static int
 fin_diff_coeff (listz_t coeffs, double s, double D,
-                unsigned int E, int dickson_a, FILE *ECM_STDERR)
+                unsigned int E, int dickson_a)
 {
   unsigned int i, k;
 
@@ -178,8 +178,8 @@ init_progression_coeffs (double s, unsigned int d, unsigned int e,
     {
       if (gcd (i, d) == 1)
         {
-          if (fin_diff_coeff (fd + j, s + de * i, de * k * d, E, dickson_a,
-			      ECM_STDERR) == ECM_ERROR)
+          if (fin_diff_coeff (fd + j, s + de * i, de * k * d, E, dickson_a)
+	      == ECM_ERROR)
 	    {
 	      for (i = 0; i < size_fd; i++)
 		mpz_clear (fd[i]);
@@ -250,7 +250,6 @@ init_roots_state (ecm_roots_state *state, int S, unsigned int d1,
            B2min-B2 is the stage 2 range (we consider B2min is done)
            k0 is the number of blocks (if 0, use default)
            S is the exponent for Brent-Suyama's extension
-           verbose is the verbose level
            invtrick is non-zero iff one uses x+1/x instead of x.
            method: ECM_ECM, ECM_PM1 or ECM_PP1
            Cf "Speeding the Pollard and Elliptic Curve Methods
@@ -264,7 +263,7 @@ init_roots_state (ecm_roots_state *state, int S, unsigned int d1,
 */
 int
 stage2 (mpz_t f, void *X, mpmod_t modulus, double B2min, double B2,
-        unsigned int k0, int S, int verbose, int method, int stage1time)
+        unsigned int k0, int S, int method, int stage1time)
 {
   double b2, b2min, i0;
   unsigned int k;
@@ -380,11 +379,11 @@ stage2 (mpz_t f, void *X, mpmod_t modulus, double B2min, double B2,
 
   /* needs dF+1 cells in T */
   if (method == ECM_PM1)
-    youpi = pm1_rootsF (f, F, d, d2, dF, (mpres_t*) X, T, S, modulus, verbose);
+    youpi = pm1_rootsF (f, F, d, d2, dF, (mpres_t*) X, T, S, modulus);
   else if (method == ECM_PP1)
-    youpi = pp1_rootsF (F, d, d2, dF, (mpres_t*) X, T, modulus, verbose);
+    youpi = pp1_rootsF (F, d, d2, dF, (mpres_t*) X, T, modulus);
   else 
-    youpi = ecm_rootsF (f, F, d, d2, dF, (curve*) X, S, modulus, verbose);
+    youpi = ecm_rootsF (f, F, d, d2, dF, (curve*) X, S, modulus);
 
   if (youpi != ECM_NO_FACTOR_FOUND)
     {
@@ -426,7 +425,7 @@ stage2 (mpz_t f, void *X, mpmod_t modulus, double B2min, double B2,
   print_list (os, F, dF);
 #endif
   mpz_init_set (n, modulus->orig_modulus);
-  PolyFromRoots (F, F, dF, T, verbose | 1, n, 'F', Tree, 0);
+  PolyFromRoots (F, F, dF, T, 0, n, 'F', Tree, 0);
 
   /* needs dF+list_mul_mem(dF/2) cells in T */
 
@@ -475,12 +474,12 @@ stage2 (mpz_t f, void *X, mpmod_t modulus, double B2min, double B2,
 
   st = cputime ();
   if (method == ECM_PM1)
-    rootsG_state = pm1_rootsG_init ((mpres_t *) X, i0 * (double) d, d, d2, S, verbose, modulus);
+    rootsG_state = pm1_rootsG_init ((mpres_t *) X, i0 * (double) d, d, d2, S, modulus);
   else if (method == ECM_PP1)
     rootsG_state = pp1_rootsG_init ((mpres_t *) X, i0 * (double) d, d, d2, modulus);
   else /* ECM_ECM */
     rootsG_state = ecm_rootsG_init (f, (curve *) X, i0 * (double) d, d, d2,
-				    dF, k, S, modulus, verbose);
+				    dF, k, S, modulus);
 
   /* rootsG_state=NULL if an error occurred or (ecm only) a factor was found */
   if (rootsG_state == NULL)
@@ -501,13 +500,12 @@ stage2 (mpz_t f, void *X, mpmod_t modulus, double B2min, double B2,
       /* needs dF+1 cells in T+dF */
       if (method == ECM_PM1)
 	youpi = pm1_rootsG (f, G, dF, (pm1_roots_state *) rootsG_state, T + dF,
-			    modulus, verbose);
+			    modulus);
       else if (method == ECM_PP1)
-        youpi = pp1_rootsG (G, dF, (pp1_roots_state *) rootsG_state, modulus,
-                            verbose);
+        youpi = pp1_rootsG (G, dF, (pp1_roots_state *) rootsG_state, modulus);
       else
 	youpi = ecm_rootsG (f, G, dF, (ecm_roots_state *) rootsG_state, 
-			    modulus, verbose);
+			    modulus);
 
       ASSERT(youpi != ECM_ERROR); /* xxx_rootsG cannot fail */
       if (youpi) /* factor found */
@@ -522,7 +520,7 @@ stage2 (mpz_t f, void *X, mpmod_t modulus, double B2min, double B2,
      |  F(x)  | 1/F(x) | rootsG |      ???         |
      ----------------------------------------------- */
 
-      PolyFromRoots (G, G, dF, T + dF, verbose, n, 'G', NULL, 0);
+      PolyFromRoots (G, G, dF, T + dF, 0, n, 'G', NULL, 0);
       /* needs 2*dF+list_mul_mem(dF/2) cells in T */
 
   /* -----------------------------------------------

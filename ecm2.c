@@ -421,7 +421,7 @@ addWnm (mpz_t p, point *X, curve *S, mpmod_t modulus, unsigned int m,
 
 int
 ecm_rootsF (mpz_t f, listz_t F, unsigned int d1, unsigned int d2, 
-            unsigned int dF, curve *s, int S, mpmod_t modulus, int verbose)
+            unsigned int dF, curve *s, int S, mpmod_t modulus)
 {
   unsigned int i;
   unsigned long muls = 0, gcds = 0;
@@ -433,16 +433,16 @@ ecm_rootsF (mpz_t f, listz_t F, unsigned int d1, unsigned int d2,
   if (dF == 0)
     return ECM_NO_FACTOR_FOUND;
 
-  if (verbose >= 2)
+  if (test_verbose (OUTPUT_VERBOSE))
     st = cputime ();
 
   /* Relative cost of point add during init and computing roots assumed =1 */
   init_roots_state (&state, S, d1, d2, 1.0);
 
-  if (verbose >= 3)
-     fprintf (ECM_STDOUT, "ecm_rootsF: state: nr = %d, dsieve = %d, size_fd = %d, S = %d, "
-              "dickson_a = %d\n", state.nr, state.dsieve, state.size_fd, 
-              state.S, state.dickson_a);
+  outputf (OUTPUT_DEVVERBOSE,
+	   "ecm_rootsF: state: nr = %d, dsieve = %d, size_fd = %d, S = %d, "
+	   "dickson_a = %d\n", state.nr, state.dsieve, state.size_fd, 
+	   state.S, state.dickson_a);
 
   /* Init finite differences tables */
   coeffs = init_progression_coeffs (0.0, state.dsieve, d2, 1, 6, state.S, 
@@ -469,8 +469,7 @@ ecm_rootsF (mpz_t f, listz_t F, unsigned int d1, unsigned int d2,
     }
   for (i = 0; i < state.size_fd; i++)
     {
-     if (verbose >= 4)
-       gmp_fprintf (ECM_STDOUT, "ecm_rootsF: coeffs[%d] = %Zd\n", i, coeffs[i]);
+      outputf (OUTPUT_TRACE, "ecm_rootsF: coeffs[%d] = %Zd\n", i, coeffs[i]);
       mpres_init (state.fd[i].x, modulus);
       mpres_init (state.fd[i].y, modulus);
     }
@@ -488,8 +487,8 @@ ecm_rootsF (mpz_t f, listz_t F, unsigned int d1, unsigned int d2,
 
   youpi = multiplyW2n (f, state.fd, s, coeffs, state.size_fd, modulus, 
                        state.T[0], state.T[1], state.T + 2, &muls, &gcds, ECM_STDERR);
-  if (youpi == ECM_FACTOR_FOUND_STEP2 && verbose >= 2)
-    fprintf (ECM_STDOUT, "Found factor while computing coeff[] * X\n");  
+  if (youpi == ECM_FACTOR_FOUND_STEP2)
+    outputf (OUTPUT_VERBOSE, "Found factor while computing coeff[] * X\n");  
 
   if (youpi == ECM_ERROR)
     goto clear;
@@ -505,14 +504,14 @@ ecm_rootsF (mpz_t f, listz_t F, unsigned int d1, unsigned int d2,
   clear_list (coeffs, state.size_fd);
   coeffs = NULL;
 
-  if (verbose >= 2)
+  if (test_verbose (OUTPUT_VERBOSE))
     {
       int st1 = cputime ();
-      fprintf (ECM_STDOUT, "Initializing tables of differences for F took %dms",
+      outputf (OUTPUT_VERBOSE,
+	       "Initializing tables of differences for F took %dms",
 	       st1 - st);
-      if (verbose > 2)
-        fprintf (ECM_STDOUT, ", %lu muls and %lu extgcds", muls, gcds);
-      fprintf (ECM_STDOUT, "\n");
+      outputf (OUTPUT_DEVVERBOSE, ", %lu muls and %lu extgcds", muls, gcds);
+      outputf (OUTPUT_VERBOSE, "\n");
       st = st1;
       muls = 0;
       gcds = 0;
@@ -533,8 +532,9 @@ ecm_rootsF (mpz_t f, listz_t F, unsigned int d1, unsigned int d2,
                               state.T, &muls, &gcds);
 	      ASSERT(youpi != ECM_ERROR); /* no error can occur in addWnm */
               state.next = 0;
-              if (youpi == ECM_FACTOR_FOUND_STEP2 && verbose >= 2)
-                fprintf (ECM_STDOUT, "Found factor while computing roots of F\n");
+              if (youpi == ECM_FACTOR_FOUND_STEP2)
+                outputf (OUTPUT_VERBOSE,
+			 "Found factor while computing roots of F\n");
             }
           
           /* Is this a j value where we want Dickson(j * d2) * X as a root? */
@@ -564,13 +564,9 @@ ecm_rootsF (mpz_t f, listz_t F, unsigned int d1, unsigned int d2,
   if (youpi)
     return youpi; /* error or factor found */
   
-  if (verbose >= 2)
-    {
-      fprintf (ECM_STDOUT, "Computing roots of F took %dms", cputime () - st);
-      if (verbose > 2)
-        fprintf (ECM_STDOUT, ", %ld muls and %ld extgcds", muls, gcds);
-      fprintf (ECM_STDOUT, "\n");
-    }
+  outputf (OUTPUT_VERBOSE, "Computing roots of F took %dms", cputime () - st);
+  outputf (OUTPUT_DEVVERBOSE, ", %ld muls and %ld extgcds", muls, gcds);
+  outputf (OUTPUT_VERBOSE, "\n");
 
   return ECM_NO_FACTOR_FOUND;
 }
@@ -587,8 +583,7 @@ ecm_rootsF (mpz_t f, listz_t F, unsigned int d1, unsigned int d2,
 */
 ecm_roots_state *
 ecm_rootsG_init (mpz_t f, curve *X, double s, unsigned int d1, unsigned int d2,
-                 unsigned int dF, unsigned int blocks, int S, mpmod_t modulus, 
-                 int verbose)
+                 unsigned int dF, unsigned int blocks, int S, mpmod_t modulus)
 {
   unsigned int k, lenT, phid2;
   unsigned long muls = 0, gcds = 0;
@@ -602,7 +597,7 @@ ecm_rootsG_init (mpz_t f, curve *X, double s, unsigned int d1, unsigned int d2,
 
   ASSERT (gcd (d1, d2) == 1);
 
-  if (verbose >= 2)
+  if (test_verbose (OUTPUT_VERBOSE))
     st = cputime ();
   
   /* If S < 0, use degree |S| Dickson poly, otherwise use x^S */
@@ -621,8 +616,7 @@ ecm_rootsG_init (mpz_t f, curve *X, double s, unsigned int d1, unsigned int d2,
         (T_inv - 3.) * log (2. * d1) / log (2.) - (4. + T_inv) * (4. + T_inv));
   bestnr /= 6. * (double) S * log (2. * d1) / log (2);
   
-  if (verbose >= 4)
-    fprintf (ECM_STDOUT, "ecm_rootsG_init: bestnr = %f\n", bestnr);
+  outputf (OUTPUT_TRACE, "ecm_rootsG_init: bestnr = %f\n", bestnr);
   
   state = (ecm_roots_state *) malloc (sizeof (ecm_roots_state));
   if (state == NULL)
@@ -642,9 +636,8 @@ ecm_rootsG_init (mpz_t f, curve *X, double s, unsigned int d1, unsigned int d2,
   state->S = S;
   state->size_fd = state->nr * (state->S + 1);
 
-  if (verbose >= 3)
-    fprintf (ECM_STDOUT, "ecm_rootsG_init: s=%f, d1=%u, d2=%d, dF=%d, blocks=%d, S=%u, T_inv = %d, nr=%d\n", 
-	     s, d1, d2, dF, blocks, S, T_inv, state->nr);
+  outputf (OUTPUT_DEVVERBOSE, "ecm_rootsG_init: s=%f, d1=%u, d2=%d, dF=%d, blocks=%d, S=%u, T_inv = %d, nr=%d\n", 
+	   s, d1, d2, dF, blocks, S, T_inv, state->nr);
   
   state->X = X;
   state->next = 0;
@@ -696,7 +689,7 @@ ecm_rootsG_init (mpz_t f, curve *X, double s, unsigned int d1, unsigned int d2,
   for (k = S + 1; k < state->size_fd; k += S + 1)
      mpz_set_ui (coeffs[k + S], 1);
 
-  if (verbose >= 4)
+  if (test_verbose (OUTPUT_TRACE))
     for (k = 0; k < state->size_fd; k++)
       gmp_fprintf (ECM_STDOUT, "ecm_rootsG_init: coeffs[%d] == %Zd\n", k, coeffs[k]);
 
@@ -716,8 +709,8 @@ ecm_rootsG_init (mpz_t f, curve *X, double s, unsigned int d1, unsigned int d2,
   
   if (youpi != ECM_NO_FACTOR_FOUND) /* factor found or error */
     {
-      if (youpi == ECM_FACTOR_FOUND_STEP2 && verbose >= 2)
-        fprintf (ECM_STDOUT, "Found factor while computing fd[]\n");
+      if (youpi == ECM_FACTOR_FOUND_STEP2)
+        outputf (OUTPUT_VERBOSE, "Found factor while computing fd[]\n");
 
       ecm_rootsG_clear (state, S, modulus);
       
@@ -726,13 +719,14 @@ ecm_rootsG_init (mpz_t f, curve *X, double s, unsigned int d1, unsigned int d2,
     }
   else
     {
-      if (verbose >= 2)
+      if (test_verbose (OUTPUT_VERBOSE))
         {
           st = cputime () - st;
-          fprintf (ECM_STDOUT, "Initializing table of differences for G took %dms", st);
-          if (verbose > 2)
-            fprintf (ECM_STDOUT, ", %lu muls and %lu extgcds", muls, gcds);
-          fprintf (ECM_STDOUT, "\n");
+          outputf (OUTPUT_VERBOSE,
+		   "Initializing table of differences for G took %dms", st);
+	  outputf (OUTPUT_DEVVERBOSE, ", %lu muls and %lu extgcds",
+		   muls, gcds);
+          outputf (OUTPUT_VERBOSE, "\n");
         }
     }
   
@@ -774,7 +768,7 @@ ecm_rootsG_clear (ecm_roots_state *state, ATTRIBUTE_UNUSED int S,
 
 int 
 ecm_rootsG (mpz_t f, listz_t G, unsigned int dF, ecm_roots_state *state, 
-            mpmod_t modulus, int verbose)
+            mpmod_t modulus)
 {
   unsigned int i;
   unsigned long muls = 0, gcds = 0;
@@ -795,8 +789,7 @@ ecm_rootsG (mpz_t f, listz_t G, unsigned int dF, ecm_roots_state *state,
           
           if (youpi == ECM_FACTOR_FOUND_STEP2)
             {
-              if (verbose >= 2)
-                fprintf (ECM_STDOUT, "Found factor while computing G[]\n");
+	      outputf (OUTPUT_VERBOSE, "Found factor while computing G[]\n");
               break;
             }
         }
@@ -810,13 +803,9 @@ ecm_rootsG (mpz_t f, listz_t G, unsigned int dF, ecm_roots_state *state,
       state->rsieve ++;
     }
   
-  if (verbose >= 2)
-    {
-      fprintf (ECM_STDOUT, "Computing roots of G took %dms", cputime () - st);
-      if (verbose > 2)
-        fprintf (ECM_STDOUT, ", %lu muls and %lu extgcds", muls, gcds);
-      fprintf (ECM_STDOUT, "\n");
-    }
+  outputf (OUTPUT_VERBOSE, "Computing roots of G took %dms", cputime () - st);
+  outputf (OUTPUT_DEVVERBOSE, ", %lu muls and %lu extgcds", muls, gcds);
+  outputf (OUTPUT_VERBOSE, "\n");
   
   return youpi;
 }
