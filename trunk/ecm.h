@@ -217,7 +217,8 @@ unsigned long   phi (unsigned long);
 double   block_size (unsigned long);
 unsigned long bestD (double, unsigned int, unsigned int *, unsigned int,
                      unsigned long *);
-unsigned long bestD_po2 (double, unsigned int, unsigned int *, unsigned long *);
+unsigned long bestD_po2 (double, double, unsigned int, unsigned int *, 
+                         unsigned long *);
 
 /* trial.c */
 int trial_factor (mpcandi_t *n, double maxfact, int deep);

@@ -45,6 +45,12 @@
 int multiplyW2n (mpz_t, point *, curve *, mpz_t *, unsigned int, mpmod_t, 
                  mpres_t, mpres_t, mpres_t *, unsigned long *, unsigned long *);
 
+#if 0
+
+/* The original point addition and doubling functions in Weierstrass
+   coordinates. Not needed now as everything is done via
+   addWnm() and multiplyW2n */
+
 /*
   (x1:y1) <- 2*(x:y) where (x:y) can be identical to (x1:y1).
   a is the Weierstrass curve parameter, u and v are auxiliary variables.
@@ -104,6 +110,7 @@ addW (mpz_t p, mpres_t x, mpres_t y, mpres_t x1, mpres_t y1, mpres_t x2,
   return 0;
 }
 
+#endif
 
 /* R_i <- q_i * S, 0 <= i < n, where q_i are large positive integers, S 
    is a point on an elliptic curve. Uses max(bits in q_i) modular 
