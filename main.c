@@ -248,7 +248,7 @@ main (int argc, char *argv[])
   /* loop for number in standard input or file */
   while (feof (stdin) == 0)
     {
-      char c = 0;
+      int c = 0;
 
       /* skip comment lines beginning with # */
       while ((feof (stdin) == 0) && (isdigit (c = getchar ()) == 0))
