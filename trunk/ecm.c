@@ -523,6 +523,7 @@ ecm (mpz_t f, mpz_t p, mpz_t sigma, mpz_t n, double B1, double B2,
           printf ("Using sigma=");
           mpz_out_str (stdout, 10, sigma);
           printf("\n");
+          fflush (stdout);
         }
       get_curve_from_sigma (A, p, sigma, n);
     }

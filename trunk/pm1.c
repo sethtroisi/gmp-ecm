@@ -155,6 +155,7 @@ pm1 (mpz_t f, mpz_t p, mpz_t n, double B1, double B2, double B1done,
       printf ("Using seed=");
       mpz_out_str (stdout, 10, p);
       printf ("\n");
+      fflush (stdout);
     }
 
   if (B1 > B1done)
