@@ -31,25 +31,6 @@
 *                                                                             *
 ******************************************************************************/
 
-/* a <- b * c where a and b are mpz, c is a double, and t an auxiliary mpz */
-#if (BITS_PER_MP_LIMB >= 53)
-#define mpz_mul_d(a, b, c, t) \
-   mpz_mul_ui (a, b, (unsigned long int) c);
-#else
-#if (BITS_PER_MP_LIMB >= 32)
-#define mpz_mul_d(a, b, c, t) \
-   if (c < 4294967296.0) \
-      mpz_mul_ui (a, b, (unsigned long int) c); \
-   else { \
-   mpz_set_d (t, c); \
-   mpz_mul (a, b, t); }
-#else
-#define mpz_mul_d(a, b, c, t) \
-   mpz_set_d (t, c); \
-   mpz_mul (a, b, t);
-#endif
-#endif
-
 /* prime powers are accumulated up to about n^L1 */
 #define L1 16
 
@@ -60,14 +41,14 @@
    Return value: non-zero iff a factor was found.
 */
 int
-stage1 (mpz_t a, mpz_t n, double B1)
+pm1_stage1 (mpz_t a, mpz_t n, double B1)
 {
   double B0, p, q, r;
   mpz_t g, d;
   int youpi;
   unsigned int max_size;
 
-  mpz_init_set_ui (g, 1);
+  mpz_init (g);
   mpz_init (d);
 
   B0 = sqrt (B1);
@@ -84,6 +65,8 @@ stage1 (mpz_t a, mpz_t n, double B1)
       mpz_sub_ui (g, n, 1);
       mpz_powm (a, a, g, n);
     }
+  else
+    mpz_set_ui (g, 1);
 
   /* first loop through small primes <= sqrt(B1) */
   for (p = 2.0; p <= B0; p = getprime(p))
@@ -146,7 +129,7 @@ pm1 (mpz_t p, mpz_t n, double B1, double B2, unsigned int k, unsigned int S,
   int youpi, st;
 
   st = cputime ();
-  youpi = stage1 (p, n, B1);
+  youpi = pm1_stage1 (p, n, B1);
   if (verbose >= 1)
     {
       printf ("Stage 1 took %dms\n", cputime() - st);
@@ -156,5 +139,5 @@ pm1 (mpz_t p, mpz_t n, double B1, double B2, unsigned int k, unsigned int S,
   if (youpi != 0) /* a factor was found */
     return 1;
 
-  return (B2 > B1) ? stage2 (p, n, B2, k, S, verbose, 1) : 0;
+  return (B2 > B1) ? stage2 (p, n, B2, k, S, verbose, 1, PM1_METHOD) : 0;
 }
