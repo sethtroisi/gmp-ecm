@@ -431,7 +431,7 @@ stage2 (mpz_t f, curve *X, mpz_t n, double B2, unsigned int k, unsigned int S,
         int verbose, int method, double B1)
 {
   int invtrick = method == PM1_METHOD;
-//  int use_dickson = !invtrick;
+  /*  int use_dickson = !invtrick; */
   int use_dickson = 0;
   double b2;
   unsigned int i, d, dF, sizeT;
