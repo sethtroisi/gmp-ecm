@@ -133,8 +133,8 @@ od:
 
   if (dmin == 0)
     {
-      fprintf (ECM_STDERR, "Error, too large step 2 bound, increase -k\n");
-      return 1;
+      outputf (OUTPUT_ERROR, "Error, too large step 2 bound, increase -k\n");
+      return ECM_ERROR;
     }
 
   *k = jmin;
@@ -190,8 +190,8 @@ bestD_po2 (double B2min, double B2, unsigned int *finald,
 
   if (i == Npo2)
     {
-      fprintf (ECM_STDERR, "Error, too large step 2 bound, increase -k\n");
-      return 1;
+      outputf (OUTPUT_ERROR, "Error, too large step 2 bound, increase -k\n");
+      return ECM_ERROR;
     }
   
   /* If the user specified a number of blocks, we'll use that no matter what.

@@ -309,14 +309,14 @@ stage2 (mpz_t f, void *X, mpmod_t modulus, double B2min, double B2,
           outputf (OUTPUT_DEVVERBOSE, "Choosing power of 2 poly length "
                    "for 2^%d+1 (%d blocks)\n", Fermat, k0);
           k = k0;
-          if (bestD_po2 (B2min, B2, &d, &d2, &k))
+          if (bestD_po2 (B2min, B2, &d, &d2, &k) == ECM_ERROR)
             return ECM_ERROR;
           dF = 1 << ceil_log2 (phi (d) / 2);
         }
     }
   if (d == 0)
     {
-      if (bestD (B2min, B2, k0, &d, &d2, &k))
+      if (bestD (B2min, B2, k0, &d, &d2, &k) == ECM_ERROR)
         return ECM_ERROR;
       dF = phi (d) / 2;
     }

@@ -15,6 +15,7 @@ ToDo's:
 - perform PolyFromRoots/Polyeval level by level (add one parameter i which
 	says which level has to be performed, and save/restore the
 	corresponding data to/from file)
+        Mostly done.
 - implement assembly code (redc.asm) for other architectures
   (rename it to redc.s, add AM_PROG_AS in configure.in, add an option
 	--want_asm or similar)
@@ -28,10 +29,12 @@ ToDo's:
   from the Magma group on Fri, 4 Feb 2005:
   (a) user control of "verbose" messages (pass a pointer to a function to
 	replace printf, or pass a stream to replace stdout)
+        Have outputf() now which apps can replace. Solved?
   (b) error control: don't call exit/abort but return an error value
       Proposal: 1=factor found, 0=no factor found, -1=error.
-	remains to do: rho.c bestd.c auxlib.c random.c
+      remains to do: none?
   (c) have polygcd in stage 2 (to use less memory)
+        Does the treefile idea solve this?
   (d) get rid of the mpz_ layer (Magma only uses mpn currently)
 - proposal from Karim Belabas <Karim.BELABAS@math.u-psud.fr>: define an
 	abstract interface for the parameters, to be able to modify it
