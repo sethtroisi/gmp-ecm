@@ -44,8 +44,9 @@ main (int argc, char *argv[])
   mpz_t sigma, n, p;
   double B1, B2;
   int result = 1;
-  int quiet = 0;
-  int (*factor) _PROTO((mpz_t, mpz_t, double, double, unsigned int)) = ecm;
+  int verbose = 1; /* verbose level */
+  int (*factor) _PROTO((mpz_t, mpz_t, double, double, unsigned int, int)) 
+    = ecm;
   int k = 3;
 
   /* first look for options */
@@ -59,7 +60,13 @@ main (int argc, char *argv[])
 	}
       else if (strcmp (argv[1], "-q") == 0)
 	{
-	  quiet = 1;
+	  verbose = 0;
+	  argv ++;
+	  argc --;
+	}
+      else if (strcmp (argv[1], "-v") == 0)
+	{
+	  verbose = 2;
 	  argv ++;
 	  argc --;
 	}
@@ -87,10 +94,15 @@ main (int argc, char *argv[])
       fprintf (stderr, "  -k n       perform n steps in stage 2\n");
       fprintf (stderr, "  -pm1       runs Pollard P-1 instead of ECM\n");
       fprintf (stderr, "  -q         quiet mode\n");
+      fprintf (stderr, "  -v         verbose mode\n");
       exit (1);
     }
 
-  fprintf (stderr, "GMP-ECM, version 5.0, by P. Zimmermann, LORIA/Inria Lorraine\n");
+  if (verbose >= 1)
+    printf ("GMP-ECM 5.0 [powered by GMP %u.%u.%u and NTL %u.%u]\n",
+            __GNU_MP_VERSION, __GNU_MP_VERSION_MINOR,
+            __GNU_MP_VERSION_PATCHLEVEL, NTL_major_version (),
+            NTL_minor_version ());
 
   /* set first stage bound B1 */
   B1 = atof (argv[1]);
@@ -102,15 +114,26 @@ main (int argc, char *argv[])
       exit (1);
     }
 
+  NTL_init ();
+
   /* set initial seed sigma */
   mpz_init (sigma);
   if (argc >= 3)
     mpz_set_str (sigma, argv[2], 10);
   if (mpz_cmp_ui (sigma, 0) == 0)
-    mpz_set_ui (sigma, 2); /* default is 2 */
+    mpz_set_ui (sigma, 17); /* default is 17 */
 
   /* set second stage bound B2 */
   B2 = (argc >= 4) ? atof (argv[3]) : 100.0 * (double) B1;
+
+  if (verbose >= 1)
+    {
+      if (factor == pm1)
+        printf ("Pollard P-1");
+      else
+        printf ("Elliptic Curve");
+      printf (" method with B1=%1.0f, B2=%1.0f\n", B1, B2);
+    }
 
   mpz_init (n); /* number(s) to factor */
   mpz_init (p); /* found prime */
@@ -130,7 +153,7 @@ main (int argc, char *argv[])
 
       mpz_inp_str (n, stdin, 0);
 
-      if (quiet == 0)
+      if (verbose > 0)
 	{
 	  if (mpz_sizeinbase (n, 10) < 1000)
 	    {
@@ -146,41 +169,47 @@ main (int argc, char *argv[])
 		    mpz_sizeinbase (n, 10));
 	}
 
-      printf ("Using B1=%1.0f, B2=%1.0f, sigma=", B1, B2);
-      mpz_out_str (stdout, 10, sigma);
-      printf ("\n");
+      if (verbose >= 1)
+        {
+          printf ("Using sigma=");
+          mpz_out_str (stdout, 10, sigma);
+          printf ("\n");
+        }
 
       mpz_set (p, sigma);
-      if ((result = factor (p, n, B1, B2, k)))
+      if ((result = factor (p, n, B1, B2, k, verbose)))
 	{
+          printf ("********** Factor found in step %u: ", result);
+          mpz_out_str (stdout, 10, p);
+          printf ("\n");
 	  if (mpz_cmp (p, n))
 	    {
 	      /* prints factor found and cofactor on standard error. */
 	      if (mpz_probab_prime_p (p, 25))
-		fprintf (stderr, "Found probable prime factor");
-	      else fprintf (stderr, "Found composite factor");
-	      fprintf (stderr, " of %u digits: ", nb_digits (p));
-	      mpz_out_str (stderr, 10, p);
-	      fprintf (stderr, "\n");
+		printf ("Found probable prime factor");
+	      else printf ("Found composite factor");
+	      printf (" of %u digits: ", nb_digits (p));
+	      mpz_out_str (stdout, 10, p);
+	      printf ("\n");
 
 	      mpz_divexact (n, n, p);
 	      if (mpz_probab_prime_p (n, 25) == 0)
-		fprintf (stderr, "Composite");
+		printf ("Composite");
 	      else
-		fprintf (stderr, "*** Probable prime");
-	      fprintf (stderr, " cofactor ");
-	      if (quiet == 0)
-		mpz_out_str (stderr, 10, n);
-	      fprintf (stderr, " has %u digits", nb_digits(n));
+		printf ("Probable prime");
+	      printf (" cofactor ");
+	      if (verbose > 0)
+		mpz_out_str (stdout, 10, n);
+	      printf (" has %u digits", nb_digits(n));
 	    }
 	  else
-	    fprintf (stderr, "Found input number N");
-	  fprintf (stderr, "\n");
-	  fflush (stderr);
+	    printf ("Found input number N");
+	  printf ("\n");
+	  fflush (stdout);
 	}
       
       /* if quiet, prints composite cofactors on standard output. */
-      if ((quiet != 0) && (mpz_probab_prime_p (n, 25) == 0))
+      if ((verbose == 0) && (mpz_probab_prime_p (n, 25) == 0))
 	{
 	  mpz_out_str (stdout, 10, n);
 	  putchar ('\n');
@@ -199,6 +228,7 @@ main (int argc, char *argv[])
     }
 
  end:
+  NTL_clear ();
   mpz_clear (p);
   mpz_clear (n);
   mpz_clear (sigma);
