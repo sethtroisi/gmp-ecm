@@ -32,7 +32,6 @@
 #if defined (CANDI_DEBUG)
 static void Candi_Validate(const char *FunctionStr, const mpcandi_t *n)
 {
-//  return;
   int abrt = 0;
   if (!FunctionStr)
     {
