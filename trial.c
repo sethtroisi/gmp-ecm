@@ -53,9 +53,11 @@ trial_factor (mpcandi_t *n, double maxfact, int deep)
 	      ++cnt_this_fact;
 	  printf ("********** Factor found trial div: %s\n", numbuf);
 	  if (cnt_this_fact > 1)
-	    printf("Found Proven Prime   factor of %2u digits: %s^%d\n", strlen(numbuf), numbuf, cnt_this_fact);
+	    printf("Found Proven Prime   factor of %2u digits: %s^%d\n",
+                   (unsigned int) strlen(numbuf), numbuf, cnt_this_fact);
 	  else
-	    printf("Found Proven Prime   factor of %2u digits: %s\n", strlen(numbuf), numbuf); 
+	    printf("Found Proven Prime   factor of %2u digits: %s\n",
+                   (unsigned int) strlen(numbuf), numbuf); 
 	  factors += cnt_this_fact;
 	  if (!deep)
 	    /* We only want the first factor if not in "deep" mode */
