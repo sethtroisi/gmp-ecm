@@ -39,6 +39,54 @@ char *champion_url[3] =
  "http://www.loria.fr/~zimmerma/records/Pminus1.html",
  "http://www.loria.fr/~zimmerma/records/Pplus1.html"};
 
+int read_number (mpz_t, FILE *);
+
+/* Tries to read a number from a line from fd and stores it in r.
+   Keeps reading lines until a number is found. Lines beginning with "#"
+     are skipped.
+   Returns 1 if a number was successfully read, 0 if no number can be read 
+     (i.e. at EOF)
+*/
+int 
+read_number (mpz_t r, FILE *fd)
+{
+  int c;
+  
+new_line:
+  c = fgetc (fd);
+  
+  /* Skip comment lines beginning with '#' */
+  if (c == '#')
+    {
+      do
+        c = fgetc (fd);
+      while (c != EOF && c != '\n');
+      if (c == '\n')
+        goto new_line;
+    }
+  else
+    { /* Look for a digit character */
+      while (c != EOF && c != '\n' && ! isdigit (c))
+        c = fgetc (fd);
+      if (c == '\n')
+        goto new_line;
+    }  
+  
+  if (c == EOF)
+    return 0;
+  
+  ungetc (c, fd);
+
+  mpz_inp_str (r, fd, 0);
+  
+  /* Consume remainder of the line */
+  do
+    c = fgetc (fd);
+  while (c != EOF && c != '\n');
+
+  return 1;
+}
+
 /******************************************************************************
 *                                                                             *
 *                                Main program                                 *
@@ -48,29 +96,36 @@ char *champion_url[3] =
 int
 main (int argc, char *argv[])
 {
-  mpz_t sigma, n, seed, f;
-  mpq_t rat_seed;
-  mpres_t p;
-  double B1, B1done, B1cost, B2, B2min;
-  int result = 1;
+  mpz_t x, sigma, A, n, f, orig_x0;
+  mpq_t rat_x0;
+  double B1, B1done, B2, B2min;
+  int result = 0;
   int verbose = 1; /* verbose level */
   int method = EC_METHOD;
+  int specific_x0 = 0; /* 1=starting point supplied by user, 0=random or */
+                       /* compute from sigma */
+  int factor_is_prime, cofactor_is_prime;
+        /* If a factor was found, indicate whether factor, cofactor are */
+        /* prime. If no factor was found, both are zero. */
   int repr = 0;
   int k = 8; /* default number of blocks in stage 2 */
-  int specific_sigma = 0; /* 1=sigma supplied by user, 0=random */
-  int factor_is_prime, cofactor_is_prime;
-        /* If a factor is found, indicates whether factor, cofactor are prime. 
-           If no factor was found, both are zero. */
-  int S = 0, use_dickson = 0;
-        /* Degree for Brent-Suyama extension requested by user */
+  int S = 0; /* Degree for Brent-Suyama extension requested by user */
+             /* Positive value: use S-th power, */
+             /* negative: use degree |S| Dickson poly */
   gmp_randstate_t randstate;
-  char *savefilename = NULL;
+  char *savefilename = NULL, *resumefilename = NULL;
   char *endptr[1]; /* to parse B2 or B2min-B2max */
-  FILE *savefile = NULL;
+  char rtime[256], who[256], comment[256], program[256];
+  FILE *savefile = NULL, *resumefile = NULL;
 
 #ifdef MEMORY_DEBUG
   tests_memory_start ();
 #endif
+
+  /* Init variables we might need to store options */
+  mpz_init (sigma);
+  mpz_init (A);
+  mpq_init (rat_x0);
 
   /* first look for options */
   while ((argc > 1) && (argv[1][0] == '-'))
@@ -117,29 +172,56 @@ main (int argc, char *argv[])
 	  argv++;
 	  argc--;
         }
-      else if (strcmp (argv[1], "-power") == 0)
+      else if ((argc > 2) && (strcmp (argv[1], "-x0")) == 0)
         {
-          use_dickson = 0;
-          S = atoi(argv[2]);
+          if (mpq_set_str (rat_x0, argv[2], 0))
+            {
+              fprintf (stderr, "Error, invalid starting point: %s\n", argv[2]);
+              exit (1);
+            }
+          specific_x0 = 1;
 	  argv += 2;
 	  argc -= 2;
         }
-      else if (strcmp (argv[1], "-dickson") == 0)
+      else if ((argc > 2) && (strcmp (argv[1], "-sigma")) == 0)
         {
-          use_dickson = 1;
-          S = atoi(argv[2]);
+          mpz_set_str (sigma, argv[2], 0);
+	  argv += 2;
+	  argc -= 2;
+        }
+      else if ((argc > 2) && (strcmp (argv[1], "-A")) == 0)
+        {
+          mpz_set_str (A, argv[2], 0);
+	  argv += 2;
+	  argc -= 2;
+        }
+      else if ((argc > 2) && (strcmp (argv[1], "-power")) == 0)
+        {
+          S = abs (atoi (argv[2]));
+	  argv += 2;
+	  argc -= 2;
+        }
+      else if ((argc > 2) && (strcmp (argv[1], "-dickson") == 0))
+        {
+          S = - abs( atoi (argv[2]));
 	  argv += 2;
 	  argc -= 2;
         }
       else if ((argc > 2) && (strcmp (argv[1], "-k") == 0))
 	{
-	  k = atoi(argv[2]);
+	  k = atoi (argv[2]);
 	  argv += 2;
 	  argc -= 2;
 	}
       else if ((argc > 2) && (strcmp (argv[1], "-save") == 0))
 	{
 	  savefilename = argv[2];
+	  argv += 2;
+	  argc -= 2;
+	}
+      else if ((argc > 2) && (strcmp (argv[1], "-resume") == 0))
+	{
+	  resumefilename = argv[2];
 	  argv += 2;
 	  argc -= 2;
 	}
@@ -209,67 +291,14 @@ main (int argc, char *argv[])
   NTL_init ();
 #endif
 
-  mpz_init (seed); /* starting point */
-  mpq_init (rat_seed);
-  if (method == EC_METHOD)
-    mpz_init (sigma);
-
-  /* set initial point/sigma. If none specified, we'll set default 
-     values later */
+  B2 = 0.0;
+  /* parse B2 or B2min-B2max */
   if (argc >= 3)
     {
-       /* For P-1, this is the initial seed. For ECM, it's the
-          sigma or A parameter */
-       if (method == PM1_METHOD || method == PP1_METHOD)
-         {
-           if (mpq_set_str (rat_seed, argv[2], 10))
-             {
-               fprintf (stderr, "Error, invalid seed: %s\n", argv[2]);
-               exit (1);
-             }
-           specific_sigma = mpq_sgn (rat_seed) != 0;
-         }
-       else
-         {
-           if (mpz_set_str (sigma, argv[2], 10))
-             {
-               fprintf (stderr, "Error, invalid sigma: %s\n", argv[2]);
-               exit (1);
-             }
-           specific_sigma = mpz_sgn (sigma) != 0; /* zero sigma => random */
-         }
-    }
-
-  /* We need random numbers without user-specified sigma */
-  if (!specific_sigma)
-    {
-      gmp_randinit_default (randstate);
-      gmp_randseed_ui (randstate, time (NULL) + getpid ());
-      /* todo: need higher resolution */
-    }
-
-  /* set second stage bound B2: when using polynomial multiplication of
-     complexity n^alpha, stage 2 has complexity about B2^(alpha/2), and
-     we want stage 2 to take about half of stage 1, thus we choose
-     B2 = (c*B1)^(2/alpha). Experimentally, c=1/4 seems to work well.
-     For Toom-Cook 3, this gives alpha=log(5)/log(3), and B2 ~ (c*B1)^1.365.
-     For Toom-Cook 4, this gives alpha=log(7)/log(4), and B2 ~ (c*B1)^1.424. */
-  B1cost = (double) B1 / 6.0; /* default for P-1 */
-  /* Since nai"ve P+1 and ECM cost respectively 2 and 11 multiplies per
-     addition and duplicate, and both are optimized with PRAC, we can
-     assume the ratio remains about 11/2. */
-  if (method == PP1_METHOD)
-    B1cost *= 2.0;
-  else if (method == EC_METHOD)
-    B1cost *= 11.0;
-
-  /* parse B2 or B2min-B2max */
-  if (argc >= 4)
-    {
-      B2 = strtod (argv[3], endptr);
-      if (*endptr == argv[3])
+      B2 = strtod (argv[2], endptr);
+      if (*endptr == argv[2])
         {
-          fprintf (stderr, "Error: B2 or B2min-B2max expected: %s\n", argv[3]);
+          fprintf (stderr, "Error: B2 or B2min-B2max expected: %s\n", argv[2]);
           exit (1);
         }
       if (**endptr == '-')
@@ -278,43 +307,9 @@ main (int argc, char *argv[])
           B2 = atof (*endptr + 1);
         }
     }
-  else
-    B2 = pow (B1cost, 1.424828748);
-
-  /* set initial starting point for ECM */
-  if (argc >= 5 && method == EC_METHOD)
-    mpz_set_str (seed, argv[4], 10);
-  
-  /* set default Brent-Suyama's exponent */
-  if (S == 0)
-    S = 1;
-  if (use_dickson) /* Stage 2 interprets negative degree as Dickson poly */
-    S = - abs (S);
-  
-  if (verbose >= 1)
-    {
-      if (method == PM1_METHOD)
-        printf ("Pollard P-1");
-      else if (method == PP1_METHOD)
-        printf ("Williams P+1");
-      else
-        printf ("Elliptic Curve");
-      printf (" Method with ");
-      if (B1done == 1.0)
-        printf("B1=%1.0f", B1);
-      else
-        printf("B1=%1.0f-%1.0f", B1done, B1);
-      if (B2min <= B1)
-        printf(", B2=%1.0f, ", B2);
-      else
-        printf(", B2=%1.0f-%1.0f, ", B2min, B2);
-      if (S > 0)
-        printf("x^%u\n", S);
-      else
-        printf("Dickson(%u)\n", -S);
-    }
 
   /* Open save file for writing, if saving is requested */
+  /* FIXME: append by default ? */
   if (savefilename != NULL)
     {
       savefile = fopen (savefilename, "w");
@@ -325,23 +320,111 @@ main (int argc, char *argv[])
         }
     }
 
+  /* Open resume file for reading, if resuming is requested */
+  if (resumefilename != NULL)
+    {
+      if (strcmp (resumefilename, "-") == 0)
+        resumefile = stdin;
+      else
+        resumefile = fopen (resumefilename, "r");
+      
+      if (resumefile == NULL)
+        {
+          fprintf (stderr, "Could not open file %s for reading\n", 
+                   resumefilename);
+          exit (EXIT_FAILURE);
+        }
+    }
+
+  if (resumefile && (mpz_sgn (sigma) != 0 || mpz_sgn (A) || specific_x0))
+    {
+      printf ("Waning: -sigma, -A and -x0 parameters are ignored when resuming from\nsave files.\n");
+      mpz_set_ui (sigma, 0);
+      mpz_set_ui (A, 0);
+      specific_x0 = 0;
+    }
+
   mpz_init (n); /* number(s) to factor */
   mpz_init (f); /* factor found */
+  mpz_init (x); /* stage 1 residue */
+  mpz_init (orig_x0); /* starting point, for save file */
+
+  /* We may need random numbers for sigma/starting point */
+  /* todo: seed needs higher resolution */
+  gmp_randinit_default (randstate);
+  gmp_randseed_ui (randstate, time (NULL) + getpid ());
+
   /* loop for number in standard input or file */
   while (feof (stdin) == 0)
     {
-      int c = 0;
+      if (resumefile != NULL)
+        {
+          if (!read_resumefile_line (&method, x, n, sigma, A, orig_x0, 
+                &B1done, program, who, rtime, comment, resumefile))
+            break;
+          
+          if (verbose > 0)
+            {
+              printf ("Resuming ");
+              if (method == EC_METHOD)
+                printf ("ECM");
+              else if (method == PM1_METHOD)
+                printf ("P-1");
+              else if (method == PP1_METHOD)
+                printf ("P+1");
+              printf (" residue ");
+              if (program[0] || who[0] || rtime[0])
+                printf ("saved ");
+              if (who[0])
+                printf ("by %s ", who);
+              if (program[0])
+                printf ("with %s ", program);
+              if (rtime[0])
+                printf ("on %s ", rtime);
+              if (comment[0])
+                printf ("(%s)", comment);
+              printf("\n");
+            }
+        }
+      else
+        {
+          if (!read_number (n, stdin))
+            break;
 
-      /* skip comment lines beginning with # */
-      while ((feof (stdin) == 0) && (isdigit (c = getchar ()) == 0))
-	{
-	  if (c == '#') /* skip end of line */
-	    while ((feof (stdin) == 0) && ((c = getchar ()) != '\n'));
-	}
+          /* Set effective seed for factoring attempt on this number */
 
-      ungetc (c, stdin);
+          if (specific_x0) /* convert rational value to integer */
+            {
+              mpz_t inv;
 
-      mpz_inp_str (n, stdin, 0);
+              mpz_init (inv);
+              mpz_invert (inv, mpq_denref (rat_x0), n);
+              mpz_mul (inv, mpq_numref (rat_x0), inv);
+              mpz_mod (x, inv, n);
+              mpz_clear (inv);
+            }
+          else /* Make a random starting point for P-1 and P+1. ECM will */
+               /* compute a suitable value from sigma or A if x is zero */
+            {
+              if (method == EC_METHOD)
+                mpz_set_ui (x, 0);
+              if (method == PP1_METHOD)
+                pp1_random_seed (x, n, randstate);
+              if (method == PM1_METHOD)
+                pm1_random_seed (x, n, randstate);
+            }
+         
+          if (B1done <= 1.0)
+            mpz_set (orig_x0, x);
+          
+          /* Make a random sigma if we have neither sigma nor A given */
+          if (method == EC_METHOD && !mpz_sgn (sigma) && !mpz_sgn (A))
+            {
+              /* Make random sigma, 0 < sigma <= 2^32 */
+              mpz_urandomb (sigma, randstate, 32);
+              mpz_add_ui (sigma, sigma, 1);
+            }
+        }
 
       if (verbose > 0)
 	{
@@ -359,41 +442,17 @@ main (int argc, char *argv[])
 		    mpz_sizeinbase (n, 10));
 	}
 
-      mpz_init (p); /* seed/stage 1 residue */
       factor_is_prime = cofactor_is_prime = 0;
 
-      /* Set effective seed/sigma for factoring attempt on this number */
-      if (method != EC_METHOD) /* convert rational seed to integer */
-        {
-          mpz_t inv;
-
-          mpz_init (inv);
-          mpz_invert (inv, mpq_denref (rat_seed), n);
-          mpz_mul (inv, mpq_numref (rat_seed), inv);
-          mpz_mod (seed, inv, n);
-          mpz_clear (inv);
-        }
-      mpz_set (p, seed);
-      if (!specific_sigma)
-        {
-          if (method == EC_METHOD)
-            {
-              /* Make random sigma, 0 < sigma <= 2^32 */
-              mpz_urandomb (sigma, randstate, 32);
-              mpz_add_ui (sigma, sigma, 1);
-            }
-          else if (method == PP1_METHOD)
-            pp1_random_seed (p, n, randstate);
-          else if (method == PM1_METHOD)
-            pm1_random_seed (p, n, randstate);
-        }
-
       if (method == PM1_METHOD)
-        result = pm1 (f, p, n, B1done, B1, B2min, B2, k, S, verbose, repr);
+        result = pm1 (f, x, n, B1done, B1, B2min, B2, k, S, verbose, repr);
       else if (method == PP1_METHOD)
-        result = pp1 (f, p, n, B1done, B1, B2min, B2, k, S, verbose, repr);
-      else
-        result = ecm (f, p, sigma, n, B1done, B1, B2min, B2, k, S, verbose, repr);
+        result = pp1 (f, x, n, B1done, B1, B2min, B2, k, S, verbose, repr);
+      else /* ECM */
+        if (mpz_sgn (sigma) == 0) /* If sigma is zero, then we use the A value instead */
+          result = ecm (f, x, A, n, B1done, B1, B2min, B2, k, S, verbose, repr, 1);
+        else
+          result = ecm (f, x, sigma, n, B1done, B1, B2min, B2, k, S, verbose, repr, 0);
 
       if (result != 0)
 	{
@@ -439,73 +498,35 @@ main (int argc, char *argv[])
 	  fflush (stdout);
 	}
 
-#define SAVEFILE
-#ifdef SAVEFILE
       /* Write composite cofactors to savefile if requested */
       /* If no factor was found, we consider cofactor composite and write it */
       if (savefile != NULL && !cofactor_is_prime)
         {
-          mpz_t checksum;
-          mpz_init (checksum);
-          mpz_set_d (checksum, B1);
-          mpz_mod (p, p, n); /* Reduce stage 1 residue wrt new cofactor, in
-                                case a factor was found */
-          fprintf (savefile, "METHOD=");
-          if (method == PM1_METHOD)
-            fprintf (savefile, "PM1");
-          else if (method == PP1_METHOD)
-            fprintf (savefile, "PP1");
-          else 
-            {
-              fprintf (savefile, "ECM; SIGMA=");
-              mpz_out_str (savefile, 10, sigma);
-              mpz_mul_ui (checksum, checksum, mpz_fdiv_ui (sigma, CHKSUMMOD));
-            }
-          
-          fprintf (savefile, "; B1=%.0f; N=", B1);
-          mpz_out_str (savefile, 10, n);
-          fprintf (savefile, "; X=0x");
-          mpz_out_str (savefile, 16, p);
-          mpz_mul_ui (checksum, checksum, mpz_fdiv_ui (n, CHKSUMMOD));
-          mpz_mul_ui (checksum, checksum, mpz_fdiv_ui (p, CHKSUMMOD));
-          fprintf (savefile, "; CHECKSUM=%lu; PROGRAM=GMP-ECM %s;\n",
-                   mpz_fdiv_ui (checksum, CHKSUMMOD), ECM_VERSION);
-          mpz_clear (checksum);
-          
+          mpz_mod (x, x, n); /* Reduce stage 1 residue wrt new cofactor, in
+                               case a factor was found */
+          write_resumefile_line (savefile, method, B1, sigma, A, x, n, 
+                                 orig_x0, comment);
         }
-#endif /* SAVEFILE */
-
-      mpz_clear (p);
-
-      while ((feof (stdin) == 0) && (isdigit (c = getchar ()) == 0));
-
-      if (feof (stdin) != 0)
-	{
-	  result = (result) ? 0 : 1;
-	  goto end;
-	}
-
-      ungetc (c, stdin);
     }
 
- end:
 #ifndef POLYEVAL
   NTL_clear ();
 #endif
+
+  gmp_randclear (randstate);
+
+  mpz_clear (orig_x0);
+  mpz_clear (x);
   mpz_clear (f);
   mpz_clear (n);
-  if (method == EC_METHOD)
-    mpz_clear (sigma);
-  mpz_clear (seed);
-  mpq_clear (rat_seed);
-
-  if (!specific_sigma)
-    gmp_randclear (randstate);
+  mpz_clear (sigma);
+  mpz_clear (A);
+  mpq_clear (rat_x0);
 
 #ifdef MEMORY_DEBUG
   tests_memory_end ();
 #endif
 
   /* exit 0 iff a factor was found for the last input */
-  return result;
+  return result ? 0 : 1;
 }

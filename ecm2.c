@@ -363,6 +363,7 @@ ecm_rootsG_init (mpz_t f, curve *X, unsigned int s, unsigned int d,
           mpres_clear (fd[k].x, modulus);
           mpres_clear (fd[k].y, modulus);
         }
+      free (fd);
       
       /* Signal that a factor was found */
       return NULL;

@@ -399,8 +399,33 @@ pp1 (mpz_t f, mpz_t p, mpz_t n, double B1done, double B1, double B2min,
 
   st = cputime ();
 
+  /* Set default B2. See ecm.c for comments */
+  if (B2 == 0.0)
+    B2 = pow (2.0 * B1 / 6.0, 1.424828748);
+
+  /* Set default degree for Brent-Suyama extension */
+
+  if (S == 0)
+    S = 1;
+
+  if (S != 1)
+    {
+      printf ("Warning: Brent-Suyama's extension does not work with P+1, using x^1\n");
+      S = 1;
+    }
+  
   if (verbose >= 1)
     {
+      printf ("Williams P+1 Method with ");   
+      if (B1done == 1.0)
+        printf("B1=%1.0f", B1);
+      else
+        printf("B1=%1.0f-%1.0f", B1done, B1);
+      if (B2min <= B1)
+        printf(", B2=%1.0f\n", B2);
+      else
+        printf(", B2=%1.0f-%1.0f\n", B2min, B2);
+
       printf ("Using seed=");
       mpz_out_str (stdout, 10, p);
       printf ("\n");
@@ -441,17 +466,6 @@ pp1 (mpz_t f, mpz_t p, mpz_t n, double B1done, double B1, double B2min,
   if (youpi != 0) /* a factor was found */
     goto end;
 
-  /* Set default degree for Brent-Suyama extension */
-
-  if (S == 0)
-    S = 1;
-
-  if (S < 0 || S > 1)
-    {
-      printf ("Warning: Brent-Suyama's extension does not work with P+1, using x^1\n");
-      S = 1;
-    }
-  
   youpi = stage2 (f, &a, modulus, B2min, B2, k, S, verbose, PP1_METHOD);
 
  end:
