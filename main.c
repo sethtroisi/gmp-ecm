@@ -128,6 +128,14 @@ main (int argc, char *argv[])
   unsigned int count = 1; /* number of curves for each number */
   unsigned int cnt = 0;   /* number of remaining curves for current number */
 
+  /* check ecm is linked with a compatible librayr */
+  if (mp_bits_per_limb != GMP_NUMB_BITS)
+    {
+      fprintf (stderr, "Error, mp_bits_per_limb and GMP_NUMB_BITS differ\n");
+      fprintf (stderr, "Please check your LD_LIBRARY_PATH variable\n");
+      exit (1);
+    }
+
 #ifdef MEMORY_DEBUG
   tests_memory_start ();
 #endif
