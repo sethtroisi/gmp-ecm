@@ -1,8 +1,6 @@
 /* Auxiliary functions for GMP-ECM.
 
-  Copyright (C) 2001 Paul Zimmermann,
-  LORIA/INRIA Lorraine, zimmerma@loria.fr
-  See http://www.loria.fr/~zimmerma/records/ecmnet.html
+  Copyright 2001, 2002, 2003 Alexander Kruppa and Paul Zimmermann.
 
   This program is free software; you can redistribute it and/or modify it
   under the terms of the GNU General Public License as published by the
@@ -79,3 +77,26 @@ ceil_log2 (unsigned int n)
   for (k=0; n>1; n = (n + 1) / 2, k++);
   return k;
 }
+
+/* Return user CPU time measured in milliseconds. Thanks to Torbjorn. */
+#if defined (ANSIONLY) || defined (USG) || defined (__SVR4) || defined (_UNICOS) || defined(__hpux)
+#include <time.h>
+
+int
+cputime ()
+{
+  return (int) ((double) clock () * 1000 / CLOCKS_PER_SEC);
+}
+#else
+#include <sys/types.h>
+#include <sys/resource.h>
+
+int
+cputime ()
+{
+  struct rusage rus;
+
+  getrusage (0, &rus);
+  return rus.ru_utime.tv_sec * 1000 + rus.ru_utime.tv_usec / 1000;
+}
+#endif
