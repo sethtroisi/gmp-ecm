@@ -499,8 +499,6 @@ prac (mpres_t xA, mpres_t zA, unsigned long k, mpmod_t n, mpres_t b,
           n is the number to factor
 	  B1 is the stage 1 bound
 	  B2 is the stage 2 bound
-          verbose is verbosity level: 0 no output, 1 normal output,
-            2 diagnostic output
    Output: If a factor is found, it is returned in x.
            Otherwise, x contains the x-coordinate of the point computed
            in stage 1 (with z coordinate normalized to 1).
@@ -681,23 +679,19 @@ ecm (mpz_t f, mpz_t x, mpz_t sigma, mpz_t n, mpz_t go, double B1done,
   if (sigma_is_A == 0)
     {
       /* sigma contains sigma value, A value must be computed */
-      if (verbose >= 1)
-        {
-          fprintf (os, "Using B1=%1.0f, B2=", B1);
-	  if (B2min <= B1)
-	    fprintf (os, "%1.0f", B2);
-	  else
-	    fprintf (os, "%1.0f-%1.0f", B2min, B2);
-	  fprintf (os, ", polynomial ");
-	  if (S > 0)
-	    fprintf (os, "x^%u", S);
-	  else
-	    fprintf (os, "Dickson(%u)", -S);
-	  fprintf (os, ", sigma=");
-          mpz_out_str (os, 10, sigma);
-          fprintf (os, "\n");
-          fflush (os);
-        }
+
+      outputf (OUTPUT_NORMAL, "Using B1=%1.0f, B2=", B1);
+      if (B2min <= B1)
+        outputf (OUTPUT_NORMAL, "%1.0f", B2);
+      else
+        outputf (OUTPUT_NORMAL, "%1.0f-%1.0f", B2min, B2);
+      outputf (OUTPUT_NORMAL, ", polynomial ");
+      if (S > 0)
+        outputf (OUTPUT_NORMAL, "x^%u", S);
+      else
+        outputf (OUTPUT_NORMAL, "Dickson(%u)", -S);
+      outputf (OUTPUT_NORMAL, ", sigma=%Zd\n", sigma);
+
       if ((youpi = get_curve_from_sigma (f, P.A, P.x, sigma, modulus)))
         goto end_of_ecm;
     }
@@ -709,7 +703,8 @@ ecm (mpz_t f, mpz_t x, mpz_t sigma, mpz_t n, mpz_t go, double B1done,
       /* For now, we'll just chicken out. */
       if (mpz_sgn (x) == 0)
         {
-          fprintf (es, "Error, -A requires a starting point (-x0 x).\n");
+          outputf (OUTPUT_ERROR, 
+                   "Error, -A requires a starting point (-x0 x).\n");
 	  youpi = ECM_ERROR;
 	  goto end_of_ecm;
         }
@@ -719,25 +714,26 @@ ecm (mpz_t f, mpz_t x, mpz_t sigma, mpz_t n, mpz_t go, double B1done,
   if (mpz_sgn (x) != 0)
       mpres_set_z (P.x, x, modulus);
   
-  if (verbose >= 2)
+  if (test_verbose (OUTPUT_VERBOSE))
     {
-      fprintf (os, "a=");
-      mpres_out_str (os, 10, P.A, modulus);
-      fprintf (os, "\nstarting point: x=");
-      mpres_out_str (os, 10, P.x, modulus);
-      fprintf (os, "\n");
+      mpz_t t;
+      
+      mpz_init (t);
+      mpres_get_z (t, P.A, modulus);
+      outputf (OUTPUT_VERBOSE, "a=%Zd\n", t);
+      mpres_get_z (t, P.x, modulus);
+      outputf (OUTPUT_VERBOSE, "starting point: x=%Zd\n", t);
+      mpz_clear (t);
+      
       if (go != NULL && mpz_cmp_ui (go, 1) > 0)
-        {
-          fprintf (os, "initial group order: ");
-          mpz_out_str (os, 10, go);
-          fprintf (os, "\n");
-        }
+        outputf (OUTPUT_VERBOSE, "initial group order: %Zd\n", go);
     }
 
   /* check that B1 is not too large */
   if (B1 > (double) ULONG_MAX)
     {
-      fprintf (es, "Error, maximal step1 bound for ECM is %lu.\n", ULONG_MAX);
+      outputf (OUTPUT_ERROR, "Error, maximal step1 bound for ECM is %lu.\n", 
+               ULONG_MAX);
       youpi = ECM_ERROR;
       goto end_of_ecm;
     }
@@ -747,11 +743,7 @@ ecm (mpz_t f, mpz_t x, mpz_t sigma, mpz_t n, mpz_t go, double B1done,
   
   st = cputime () - st;
   
-  if (verbose >= 1)
-    {
-      fprintf (os, "Step 1 took %dms\n", st);
-      fflush (os);
-    }
+  outputf (OUTPUT_NORMAL, "Step 1 took %dms\n", st);
 
   /* Store end-of-stage-1 residue in x in case we write it to a save file, 
      before P.x is converted to Weierstrass form */
@@ -761,12 +753,14 @@ ecm (mpz_t f, mpz_t x, mpz_t sigma, mpz_t n, mpz_t go, double B1done,
   if (youpi != 0) /* a factor was found */
     goto end_of_ecm;
 
-  if (verbose >= 2) 
+  if (test_verbose (OUTPUT_VERBOSE)) 
     {
-      fprintf (os, "x=");
-      mpres_out_str (os, 10, P.x, modulus);
-      fprintf (os, "\n");
-      fflush (os);
+      mpz_t t;
+      
+      mpz_init (t);
+      mpres_get_z (t, P.x, modulus);
+      outputf (OUTPUT_VERBOSE, "x=%Zd\n", t);
+      mpz_clear (t);
     }
 
   mpres_init (P.y, modulus);

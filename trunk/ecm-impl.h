@@ -155,6 +155,20 @@
 #define MOD_MODMULN 2
 #define MOD_REDC 3
 
+/* Various logging levels */
+/* OUTPUT_ALWAYS means print always, regardless of verbose value */
+#define OUTPUT_ALWAYS 0
+/* OUTPUT_NORMAL means print during normal program execution */
+#define OUTPUT_NORMAL 1
+/* OUTPUT_VERBOSE means print if the user requested more verbosity */
+#define OUTPUT_VERBOSE 2
+/* OUTPUT_DEVVERBOSE is for printing internal parameters (for developers) */
+#define OUTPUT_DEVVERBOSE 3
+/* OUTPUT_TRACE is for printing trace data, produces lots of output */
+#define OUTPUT_TRACE 4
+/* OUTPUT_ERROR is for printing error messages */
+#define OUTPUT_ERROR -1
+
 typedef mpz_t mpres_t;
 
 typedef mpz_t* listz_t;
@@ -492,6 +506,12 @@ unsigned int ceil_log2  (unsigned int);
 void *       xmalloc    (size_t);
 #define cputime __ECM(cputime)
 int          cputime    (void);
+int          test_verbose (int);
+int          get_verbose ();
+void         set_verbose (int);
+int          inc_verbose ();
+#define outputf __ECM(outputf)
+int          outputf (int, char *, ...);
 
 /* random.c */
 #define pp1_random_seed __ECM(pp1_random_seed)

@@ -183,7 +183,7 @@ main (int argc, char *argv[])
   mpq_t rat_x0;
   double B1, B1done, B2, B2min, startingB2min;
   int result = 0;
-  int verbose = 1; /* verbose level */
+  int verbose = OUTPUT_NORMAL; /* verbose level */
   int method = EC_METHOD, method1;
   int specific_x0 = 0, /* 1=starting point supplied by user, 0=random or */
                        /* compute from sigma */
@@ -256,12 +256,14 @@ main (int argc, char *argv[])
       else if (strcmp (argv[1], "-q") == 0)
 	{
 	  verbose = 0;
+	  set_verbose (0);
 	  argv++;
 	  argc--;
 	}
       else if (strcmp (argv[1], "-v") == 0)
 	{
 	  verbose++;
+	  inc_verbose ();
 	  argv++;
 	  argc--;
 	}

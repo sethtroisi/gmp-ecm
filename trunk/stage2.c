@@ -122,8 +122,8 @@ fin_diff_coeff (listz_t coeffs, double s, double D,
   /* check maximal value of s + i * D does not overflow */
   if (s + (double) E * D > TWO53) /* 2^53 */
     {
-      fprintf (es, "Error, overflow in fin_diff_coeff\n");
-      fprintf (es, "Please use a smaller B1 or B2min\n");
+      outputf (OUTPUT_ERROR, "Error, overflow in fin_diff_coeff\n");
+      outputf (OUTPUT_ERROR, "Please use a smaller B1 or B2min\n");
       return ECM_ERROR;
     }
   for (i = 0; i <= E; i++)
@@ -158,7 +158,7 @@ init_progression_coeffs (double s, unsigned int d, unsigned int e,
   double de;
 
   if (d % m)
-    printf ("d=%u e=%u m=%u\n", d, e, m);
+    outputf (OUTPUT_ALWAYS, "d=%u e=%u m=%u\n", d, e, m);
   assert (d % m == 0);
 
   size_fd = k * phi(d) / phi(m) * (E + 1);
@@ -284,7 +284,8 @@ stage2 (mpz_t f, void *X, mpmod_t modulus, double B2min, double B2,
 
   if (k0 == 0)
     {
-      fprintf (es, "Error: number of blocks in step 2 should be positive\n");
+      outputf (OUTPUT_ERROR, 
+               "Error: number of blocks in step 2 should be positive\n");
       return ECM_ERROR;
     }
 
@@ -301,9 +302,8 @@ stage2 (mpz_t f, void *X, mpmod_t modulus, double B2min, double B2,
       if (1 && i == 1)
         {
           Fermat = modulus->bits;
-          if (verbose >= 3)
-            fprintf (os, "Choosing power of 2 poly length for 2^%d+1 (%d blocks)\n", 
-		     Fermat, k0);
+          outputf (OUTPUT_DEVVERBOSE, "Choosing power of 2 poly length "
+                   "for 2^%d+1 (%d blocks)\n", Fermat, k0);
           k = k0;
           bestD_po2 (B2min, B2, &d, &d2, &k);
           dF = 1 << ceil_log2 (phi (d) / 2);
@@ -320,8 +320,8 @@ stage2 (mpz_t f, void *X, mpmod_t modulus, double B2min, double B2,
   /* check that i0 * d does not overflow */
   if (i0 * (double) d > TWO53) /* 2^53 */
     {
-      fprintf (es, "Error, overflow in stage 2\n");
-      fprintf (es, "Please use a smaller B1 or B2min\n");
+      outputf (OUTPUT_ERROR, "Error, overflow in stage 2\n"
+               "Please use a smaller B1 or B2min\n");
       return ECM_ERROR;
     }
 
@@ -333,24 +333,25 @@ stage2 (mpz_t f, void *X, mpmod_t modulus, double B2min, double B2,
   /* compute real B2 */
   B2 = b2min + floor ((double) k * b2 / d / d2) * d * d2;
 
-  if (verbose >= 2)
-    fprintf (os, "B2'=%1.0f k=%u b2=%1.0f d=%u d2=%u dF=%u, i0=%.0f\n", 
-	     B2, k, b2, d, d2, dF, i0);
+  outputf (OUTPUT_VERBOSE, "B2'=%1.0f k=%u b2=%1.0f d=%u d2=%u dF=%u, "
+           "i0=%.0f\n", B2, k, b2, d, d2, dF, i0);
 
-  if (method == EC_METHOD && verbose >= 2)
+  if (method == EC_METHOD && test_verbose (OUTPUT_VERBOSE))
     {
       double nrcurves;
       rhoinit (256, 10);
-      fprintf (os, "Expected number of curves to find a factor of n digits:\n"
-	       "20\t25\t30\t35\t40\t45\t50\t55\t60\t65\n");
-      for (i = 20; i <= 65; i+=5)
+      outputf (OUTPUT_VERBOSE, "Expected number of curves to find a factor "
+               "of n digits:\n20\t25\t30\t35\t40\t45\t50\t55\t60\t65\n");
+      for (i = 20; i <= 65; i += 5)
         {
           nrcurves = 1. / ecmprob (B2min, B2, pow (10., i - .5), 
                                  (double)dF * (double)dF * k, S); 
           if (nrcurves < 10000000)
-            fprintf (os, "%.0f%c", floor (nrcurves + .5), i < 65 ? '\t' : '\n');
+            outputf (OUTPUT_VERBOSE, "%.0f%c", 
+                     floor (nrcurves + .5), i < 65 ? '\t' : '\n');
           else
-            fprintf (os, "%.2g%c", floor (nrcurves + .5), i < 65 ? '\t' : '\n');
+            outputf (OUTPUT_VERBOSE, "%.2g%c", 
+                    floor (nrcurves + .5), i < 65 ? '\t' : '\n');
         }
     }
     
@@ -397,7 +398,7 @@ stage2 (mpz_t f, void *X, mpmod_t modulus, double B2min, double B2,
   Tree = (listz_t*) malloc (lgk * sizeof (listz_t));
   if (Tree == NULL)
     {
-      fprintf (es, "Error: not enough memory\n");
+      outputf (OUTPUT_ERROR, "Error: not enough memory\n");
       youpi = ECM_ERROR;
       goto clear_T;
     }
@@ -416,7 +417,7 @@ stage2 (mpz_t f, void *X, mpmod_t modulus, double B2min, double B2,
   list_set (Tree[lgk - 1], F, dF);
 
 #ifdef TELLEGEN_DEBUG
-  fprintf (os, "Roots = ");
+  outputf (OUTPUT_ALWAYS, "Roots = ");
   print_list (os, F, dF);
 #endif
   mpz_init_set (n, modulus->orig_modulus);
@@ -449,8 +450,7 @@ stage2 (mpz_t f, void *X, mpmod_t modulus, double B2min, double B2,
       PolyInvert (invF, F + 1, dF, T, n, es);
 
       /* now invF[0..dF-1] = Quo(x^(2dF-1), F) */
-      if (verbose >= 2)
-        fprintf (os, "Computing 1/F took %ums\n", cputime() - st);
+      outputf (OUTPUT_VERBOSE, "Computing 1/F took %ums\n", cputime () - st);
       
       /* ----------------------------------------------
          |   F    |  invF  |   G   |         T        |
@@ -486,9 +486,9 @@ stage2 (mpz_t f, void *X, mpmod_t modulus, double B2min, double B2,
       goto clear_G;
     }
 
-  if (verbose >= 2 && method != EC_METHOD) /* ecm_rootsG_init prints itself */
-    fprintf (os, "Initializing table of differences for G took %dms\n",
-	     cputime () - st);
+  if (method != EC_METHOD) /* ecm_rootsG_init prints itself */
+    outputf (OUTPUT_VERBOSE, "Initializing table of differences for G "
+             "took %dms\n", cputime () - st);
 
   for (i = 0; i < k; i++)
     {
@@ -555,8 +555,8 @@ stage2 (mpz_t f, void *X, mpmod_t modulus, double B2min, double B2,
 	     requires 3dF-1+list_mul_mem(dF) cells in T */
 	  list_mulmod (H, T + dF, G, H, dF, T + 3 * dF, n, es);
 
-          if (verbose >= 2)
-            fprintf (os, "Computing G * H took %ums\n", cputime() - st);
+          outputf (OUTPUT_VERBOSE, "Computing G * H took %ums\n", 
+                   cputime () - st);
 
           /* ------------------------------------------------
              |   F    |  invF  |    G    |         T        |
@@ -571,8 +571,8 @@ stage2 (mpz_t f, void *X, mpmod_t modulus, double B2min, double B2,
 	      goto clear_fd;
 	    }
 
-          if (verbose >= 2)
-            fprintf (os, "Reducing  G * H mod F took %ums\n", cputime() - st);
+          outputf (OUTPUT_VERBOSE, "Reducing  G * H mod F took %ums\n", 
+                   cputime () - st);
 	}
     }
 
@@ -586,7 +586,7 @@ stage2 (mpz_t f, void *X, mpmod_t modulus, double B2min, double B2,
 			     n, 0, es);
   if (youpi)
     {
-      fprintf (es, "Error, not enough memory\n");
+      outputf (OUTPUT_ERROR, "Error, not enough memory\n");
       goto clear_fd;
     }
 #else
@@ -595,12 +595,11 @@ stage2 (mpz_t f, void *X, mpmod_t modulus, double B2min, double B2,
   polyeval (T, dF, Tree, T + dF + 1, n, 0, es);
 #endif
 
-  if (verbose >= 2)
-    fprintf (os, "Computing polyeval(F,G) took %ums\n", cputime() - st);
+  outputf (OUTPUT_VERBOSE, "Computing polyeval(F,G) took %ums\n", 
+           cputime () - st);
 
   youpi = list_gcd (f, T, dF, n) ? 2 : 0;
-  if (verbose >= 3)
-    gmp_fprintf (os, "Product of G(f_i) = %Zd\n", T[0]);
+  outputf (OUTPUT_DEVVERBOSE, "Product of G(f_i) = %Zd\n", T[0]);
 
  clear_fd:
   if (method == PM1_METHOD)
@@ -626,45 +625,42 @@ clear_G:
  clear_F:
   clear_list (F, dF + 1);
 
-  st0 = cputime() - st0;
+  st0 = cputime () - st0;
 
-  if (verbose >= 1)
-    {
-      fprintf (os, "Step 2 took %dms\n", st0);
-      fflush (os);
-    }
+  outputf (OUTPUT_NORMAL, "Step 2 took %dms\n", st0);
 
-  if (method == EC_METHOD && verbose >= 2)
+  if (method == EC_METHOD && test_verbose (OUTPUT_VERBOSE))
     {
       double prob, tottime, exptime;
       rhoinit (256, 10);
-      fprintf (os, "Expected time to find a factor of n digits:\n"
+      outputf (OUTPUT_VERBOSE, "Expected time to find a factor of n digits:\n"
 	       "20\t25\t30\t35\t40\t45\t50\t55\t60\t65\n");
       tottime = (double) stage1time + (double) st0;
-      for (i = 20; i <= 65; i+=5)
+      for (i = 20; i <= 65; i += 5)
         {
+          const char sep = (i < 65) ? '\t' : '\n';
           prob = ecmprob (B2min, B2, pow (10., i - .5), 
                           (double)dF * (double)dF * k, S);
           exptime = tottime / prob;
-          /* fprintf (os, "Total time: %.0f, probability: %f, expected time: %.0f\n", tottime, prob, exptime); */
+          /* outputf (OUTPUT_VERBOSE, "Total time: %.0f, probability: %f, expected time: %.0f\n", tottime, prob, exptime); */
           if (exptime < 1000.)
-            fprintf (os, "%.0fms%c", exptime, i < 65 ? '\t' : '\n');
+            outputf (OUTPUT_VERBOSE, "%.0fms%c", exptime, sep);
           else if (exptime < 60000.) /* One minute */
-            fprintf (os, "%.2fs%c", exptime / 1000., i < 65 ? '\t' : '\n');
+            outputf (OUTPUT_VERBOSE, "%.2fs%c", exptime / 1000., sep);
           else if (exptime < 3600000.) /* One hour */
-            fprintf (os, "%.2fm%c", exptime / 60000., i < 65 ? '\t' : '\n');
+            outputf (OUTPUT_VERBOSE, "%.2fm%c", exptime / 60000., sep);
           else if (exptime < 86400000.) /* One day */
-            fprintf (os, "%.2fh%c", exptime / 3600000., i < 65 ? '\t' : '\n');
+            outputf (OUTPUT_VERBOSE, "%.2fh%c", exptime / 3600000., sep);
           else if (exptime < 31536000000.) /* One year */
-            fprintf (os, "%.2fd%c", exptime / 86400000., i < 65 ? '\t' : '\n');
+            outputf (OUTPUT_VERBOSE, "%.2fd%c", exptime / 86400000., sep);
           else if (exptime < 31536000000000.) /* One thousand years */
-            fprintf (os, "%.2fy%c", exptime / 31536000000., i < 65 ? '\t' : '\n');
+            outputf (OUTPUT_VERBOSE, "%.2fy%c", exptime / 31536000000., sep);
           else if (exptime < 31536000000000000.) /* One million years */
-            fprintf (os, "%.0fy%c", exptime / 31536000000., i < 65 ? '\t' : '\n');
+            outputf (OUTPUT_VERBOSE, "%.0fy%c", exptime / 31536000000., sep);
           else if (prob > 0.)
-            fprintf (os, "%.1gy%c", exptime / 31536000000., i < 65 ? '\t' : '\n');
+            outputf (OUTPUT_VERBOSE, "%.1gy%c", exptime / 31536000000., sep);
           else 
-            fprintf (os, "Inf%c", i < 65 ? '\t' : '\n');
+            outputf (OUTPUT_VERBOSE, "Inf%c", sep);
         }
     }
 
