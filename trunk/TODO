@@ -4,10 +4,6 @@ ToDo's:
   where c3456 is the remaining composite from 2^22176+1.
 - with -resume, print %time for THIS RUN instead of total run?
 	[suggested by SleepHound <sleephound@yahoo.com>]
-- check if return value of malloc() is zero or not, and print appropriate
-	error message when it is zero
-- implement semi-normalized residues in mpmod.c: instead of ensuring
-  0 <= r < n, just require limbs(r) <= limbs(n)
 - use mpres in step 2
 - Add a -qq switch that is "really" screen IO quiet (no stderr printing, etc).
   This would be for the ECM C/S project.
@@ -16,10 +12,6 @@ ToDo's:
 - document how to use the ecm(), pm1(), pp1() functions from a C program
   (may need changes to give parameters or options)
 - add a configure file (check if alloca.h is needed, cf FreeBSD)
-- tune stage 2 values of 'd' to optimize toomcook4(d)/(d*phi(d/2)):
-  for each value of d, compute k = ceil(B2/(d*phi(d)/2), then
-  compute cost(d,k) = (k+1)*PolyFromRoots(dF)+PolyInvert(dF-1)+(k-1)*toomcook4(dF)
-  +(k-1)*Reduce(dF)+polyeval(dF) where dF=Phi(d)/2
 - implement Brent-Suyama's extension for p+1 (how to do it efficiently?
   Could "Powers of 2^(k/2) and 3^k", Montgomery dissertation, 5.5, work?)
 - get rid of NTL for polygcd, and allow runtime choice between polyeval/polygcd
@@ -37,18 +29,22 @@ ToDo's:
 - extend maximal B1 in P+1 and ECM
 - check number of multiplies in step 2, compute it for step 1
 - get rid of __gmp_free_func (no longer declared in gmp.h)
-- implement high/low products in step 2
 - fix efficiency problem with P-1 (default is slower than -mpzmod for B1=1e7)
-- for some values of len, toomcook3 shoud use toomcook4 for the
+- for some values of len, toomcook3 should use toomcook4 for the
   recursive calls (for example len=26, where for len'=8, tc4 uses only
   21 multiplies instead of 23)
+  -> PZ: tried but it slows things for "small" numbers (e.g. c155),
+  where karatsuba is faster than toomcook4 for n=4, despite 9 muls
+  instead of 7.
+  It would be better to determine dynamically the best method to use
+  depending on the input number size.  
 - write a mpn version of add3 and duplicate  
 - use/implement a mpn_mul_hi_n routine for use in mpn_REDC
 - use mpn_addmul_2, mpn_addmul_4 in the basecase REDC [for machines
   where it exists]
 - add a modular trial factoring mode (this was done in OpenPFGW). This is highly useful
   for certain types of searches where factors can only be of a certain modular form
-  (Merscenes and Fermats are idea for this type of trial factoring).
+  (Mersenne and Fermats are idea for this type of trial factoring).
 
 Partially Done's:
 * print progress (80 dots in step 1/2) [Jay Berg]
