@@ -23,9 +23,15 @@ mpn_mul_lo_n_tune (mp_ptr rp, mp_srcptr np, mp_srcptr mp, mp_size_t n)
   switch (k)
     {
     case 0:
-      return mpn_mul_n (rp, np, mp, n);
+      {
+        mpn_mul_n (rp, np, mp, n);
+        return;
+      }
     case 1:
-      return mpn_mul_lo_basecase (rp, np, mp, n);
+      {
+        mpn_mul_lo_basecase (rp, np, mp, n);
+        return;
+      }
     default:
       mpn_mul_n (rp, np, mp, k);
       rp += k;
