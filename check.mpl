@@ -1,3 +1,14 @@
+# memory used by toomcook3
+M := proc(len) local l;
+option remember;
+   l := iquo(len + 2, 3);
+   4 * l + max (M(l), 1)
+end:
+M(0):=0:
+M(1):=0:
+M(2):=1:
+M(4):=5:
+
 pm1_stage1 := proc(n, a0, B1)
 local p, a, q;
    p := 2;
