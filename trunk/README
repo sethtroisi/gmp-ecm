@@ -456,6 +456,18 @@ Miscellaneous options:
    ECM?"). This option is incompatible with -resume, -sigma, -x0.
    Giving -c 0 will emulate an infinite loop until a factor is found.
 
+Options beyond ECM 5.0  (i.e. specific to ECM 5.0c\n");
+-i n         increment B1 by this constant on each run\n");
+-I f         increment B1 by this constant on each run\n");
+-inp file    Use file as input (instead of redirecting stdin)\n");
+-b           Use breadth-first mode of file processing (recommended)\n");
+-d           Use depth-first mode of file processing\n");
+-one         Stop processing a candidate when a factor is found (looping mode)\n");
+-n           run ecm in \"nice\" mode (below normal priority)\n");
+-nn          run ecm in \"very nice\" mode (idle priority)\n");
+-t n         Trial divide candidates before P-1, P+1 or ECM up to n\n");
+-ve n        Verbosely show short (< n character) expressions on each loop\n");
+
 ##############################################################################
 	
 9. Known problems.
