@@ -66,7 +66,7 @@ list_add_wrapper (listz_t p, listz_t q, listz_t r, unsigned int n,
 {
     list_add (p, q, r, MIN (n, max_r));
     if (n > max_r) 
-        list_set (p + max_r, q + max_r, n - max_r);
+      list_set (p + max_r, q + max_r, n - max_r);
 }
 
 static void
@@ -205,9 +205,9 @@ TKarMul (listz_t b, unsigned int n,
   
   s1 = MIN (l + 1, n + mu);
   if (l + 1 > nu)
-        list_sub_wrapper (t, c, c + nu, s1, l - nu + 1);
-      else
-        list_set (t, c, s1);
+    list_sub_wrapper (t, c, c + nu, s1, l - nu + 1);
+  else
+    list_set (t, c, s1);
 #ifdef TKARMULDEBUG
       printf ("DEBUG c - c[nu].\n");
       print_list (t, s1);
