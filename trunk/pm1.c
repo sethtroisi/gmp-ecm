@@ -402,14 +402,7 @@ pm1_stage1 (mpz_t f, mpres_t a, mpmod_t n, double B1, double B1done,
 	    mpz_clear (A);
 	    mpz_clear (sigma);
 */		
-	    /* Reset our "timeout" value, so we save again in 15 minutes */
 	  }
-	  /*  This "testing" code is here to see just how often this ++Counter loop is entered.
-	  {
-	    static int x;
-  	    fprintf (stderr, "1:%02d  p=%.0f\r", ++x, p);
-	  }
-	  */
       }
   }
 
