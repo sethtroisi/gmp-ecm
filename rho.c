@@ -286,8 +286,12 @@ dickmanmu (double alpha, double beta, double x)
   double a, b, sum;
   int ai, bi, i;
   ai = ceil ((alpha - beta) * invh);
+  if (ai > tablemax * invh)
+    ai = tablemax * invh;
   a = (double) ai * h;
   bi = floor ((alpha - 1.) * invh);
+  if (bi > tablemax * invh)
+    bi = tablemax * invh;
   b = (double) bi * h;
   sum = 0.;
   for (i = ai + 1; i < bi; i++)
@@ -309,6 +313,8 @@ brentsuyama (double B1, double B2, double N, double nr)
   alpha = log (N) / log (B1);
   beta = log (B2) / log (B1);
   ai = floor ((alpha - beta) * invh);
+  if (ai > tablemax * invh)
+    ai = tablemax * invh;
   a = (double) ai * h;
   sum = 0.;
   for (i = 1; i < ai; i++)
