@@ -23,6 +23,8 @@
 #include "gmp.h"
 #include "ecm.h"
 
+#define DEBUG
+
 int duplicateW (mpz_t, mpres_t, mpres_t, mpres_t, mpres_t, mpmod_t, 
                 mpres_t, mpres_t, mpres_t);
 int addW (mpz_t, mpres_t, mpres_t, mpres_t, mpres_t, mpres_t, mpres_t, 
@@ -282,16 +284,20 @@ int subW(p,x,y,x1,y1,x2,y2,n,u,v) mpz_t p,x,y,x1,y1,x2,y2,n,u,v;
 
 int
 ecm_rootsF (mpz_t f, listz_t F, unsigned int d, curve *s, listz_t t,
-        unsigned int S, mpmod_t modulus, int verbose)
+        int S, mpmod_t modulus, int verbose)
 {
   unsigned int i, j;
   int st, st2;
   point *fd;
-  int youpi = 0, dickson_a = -1;
+  int youpi = 0, dickson_a;
   listz_t coeffs;
   mpres_t u, v;
   
   st = cputime ();
+
+  /* If S < 0, use degree |S| Dickson poly, otherwise use x^S */
+  dickson_a = (S < 0) ? -1 : 0;
+  S = abs(S);
 
   mpres_get_z (F[0], s->x, modulus); /* (1*P)=P for ECM */
   i = 1;
@@ -367,16 +373,32 @@ ecm_rootsF (mpz_t f, listz_t F, unsigned int d, curve *s, listz_t t,
   return 0;
 }
 
+/* Perform the neccessary initialisation to allow computation of
+   
+     Dickson_{S, a}(s+n*d) * P , where P is a point on the elliptic curve
+   
+   for successive n, where Dickson_{S, a} is the degree S Dickson
+   polynomial with parameter a. For a == 0, Dickson_{S, a} (x) = x^S.
+   
+   If a factor is found during the initialisation, NULL is returned and the
+     factor in f.
+*/
+
+
 point *
 ecm_rootsG_init (mpz_t f, curve *X, unsigned int s, unsigned int d, 
-                 unsigned int S, mpmod_t modulus)
+                 int S, mpmod_t modulus)
 {
   unsigned int k;
   mpres_t u, v;
   listz_t coeffs;
   point *fd;
   int youpi = 0;
-  int dickson_a = -1;
+  int dickson_a;
+  
+  /* If S < 0, use degree |S| Dickson poly, otherwise use x^S */
+  dickson_a = (S < 0) ? -1 : 0;
+  S = abs(S);
   
   coeffs = init_list (S + 1);
   
@@ -393,12 +415,30 @@ ecm_rootsG_init (mpz_t f, curve *X, unsigned int s, unsigned int d,
       mpres_init (fd[k].y, modulus);
       youpi = multiplyW2 (f, fd[k].x, fd[k].y, X->x, X->y, coeffs[k], modulus, 
                           X->A, u, v);
-#ifdef DEBUG
-      if (youpi)
-        printf("ecm_rootsG_init: found factor while computing fd[%d]\n", k);
-#endif
     }
   
+  clear_list (coeffs, S + 1);
+  mpres_clear (v, modulus);
+  mpres_clear (u, modulus);
+  
+  if (youpi) 
+    {
+      int i;
+#ifdef DEBUG
+      printf("ecm_rootsG_init: found factor while computing fd[%d]\n", k);
+#endif
+      /* fd[0 .. k-1] have been initialized */
+
+      for (i = 0; i < k; i++)
+        {
+          mpres_clear (fd[k].x, modulus);
+          mpres_clear (fd[k].y, modulus);
+        }
+      
+      /* Signal that a factor was found */
+      return NULL;
+    }
+    
   /* Allocate workspace for addWn */
   for ( ; k < 2 * S + 2; k++)
     {
@@ -406,25 +446,15 @@ ecm_rootsG_init (mpz_t f, curve *X, unsigned int s, unsigned int d,
       mpres_init (fd[k].y, modulus);
     }
   
-  clear_list (coeffs, S + 1);
-  
-  mpres_clear (v, modulus);
-  mpres_clear (u, modulus);
-  
-  if (youpi) 
-    {
-      /* Todo: signal if factor was found */
-      return fd;
-    }
-  
   return fd;
 }
 
 void 
-ecm_rootsG_clear (point *fd, unsigned int S, mpmod_t modulus)
+ecm_rootsG_clear (point *fd, int S, mpmod_t modulus)
 {
   unsigned int k;
   
+  S = abs(S);
   for (k = 0; k < 2*S + 2; k++)
     {
       mpres_clear (fd[k].x, modulus);
@@ -448,17 +478,21 @@ ecm_rootsG_clear (point *fd, unsigned int S, mpmod_t modulus)
 
 int 
 ecm_rootsG (mpz_t f, listz_t G, unsigned int d, point *fd, listz_t t, 
-            unsigned int S, mpmod_t modulus, int verbose)
+            int S, mpmod_t modulus, int verbose)
 {
   unsigned int i;
   int youpi = 0;
   
+  S = abs(S);
   for (i = 0; i < d && youpi == 0; i++)
     {
       mpres_get_z (G[i], fd[0].x, modulus);
       youpi = addWn (f, fd, modulus, S);
+#ifdef DEBUG
+      if (youpi)
+        printf("ecm_rootsG: found factor while computing G[%d]\n", i);
+#endif
     }
   
   return youpi;
 }
-
