@@ -104,7 +104,8 @@ isbase2 (mpz_t n, double threshold)
 void
 base2mod (mpres_t R, mpres_t S, mpres_t t, mpmod_t modulus)
 {
-  unsigned long absbits = abs (modulus->bits);
+  /* modulus->bits is always positive */
+  unsigned long absbits = modulus->bits;
 
   mpz_tdiv_q_2exp (R, S, absbits);
   mpz_tdiv_r_2exp (t, S, absbits);
