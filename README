@@ -388,7 +388,7 @@ of modular arithmetic:
     Each division has only linear time, but the multiplication are
     more expensive since they are done on larger numbers.
 
-The ecm program automatically selects what he thinks is the best
+The ecm program automatically selects what it thinks is the best
 arithmetic for the given input number. If that choice is not optimal, you may 
 force the use of a certain arithmetic by trying options -modmulm, -mpzmod, 
 -redc. (The best choice should depend on B1 and B2 only very little, so long 
@@ -444,9 +444,11 @@ requires a degree much larger than this (dF is printed with the -v
 parameter), try increasing the number of blocks with -k and see if
 performance improves.
 The Brent-Suyama extension should not be used when factoring Fermat numbers,
-it is more efficient to simply increase B2. You should use parameters 
--power 1 for ECM, or -power 2 for P-1 (except possibly for P-1 runs with
-smaller Fermat numbers and extremely large B2.)
+it is more efficient to simply increase B2. Therefore, -power 1 for P+1 and 
+ECM, and -power 2 for P-1 are the default for Fermat numbers. (Larger
+degrees for Brent-Suyama may possibly become worthwhile for P-1 runs on
+smaller Fermat numbers and extremely large B2, when Karatsuba and Toom-Cook
+are used extensively.)
 Factoring Fermat numbers uses a lot of memory, depending on the size of the
 Fermat number and on dF. The amount of data kept in memory in stage 2 is
 approximately dF*(log_2(dF)+6) residues. For dF=65536 and F_12, this means
