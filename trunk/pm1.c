@@ -40,7 +40,7 @@ typedef struct {
   mpz_t *val;
 } mul_casc;
 
-int      pm1_stage1     (mpz_t, mpres_t, mpmod_t, double, double, int);
+int      pm1_stage1     (mpz_t, mpres_t, mpmod_t, double, double, int, mpz_t);
 mul_casc *mulcascade_init (void);
 void     mulcascade_free (mul_casc *);
 mul_casc *mulcascade_mul_d (mul_casc *c, const double n, mpz_t t);
@@ -168,16 +168,18 @@ mulcascade_get_z (mpz_t r, mul_casc *c)
    Output: f is the factor found, a is the value at end of stage 1
    Return value: non-zero iff a factor was found.
 */
+
 int
 pm1_stage1 (mpz_t f, mpres_t a, mpmod_t n, double B1, double B1done,
-	    int verbose)
+	    int verbose, mpz_t orig_n)
 {
-  double B0, p, q, r, cascade_limit;
+  double B0, p, q, r, cascade_limit, percentage;
   mpz_t g, d;
   int youpi;
   unsigned int size_n, max_size;
   unsigned int smallbase = 0;
   mul_casc *cascade;
+  int Counter = 0, st, st_save;
 
   mpz_init (g);
   mpz_init (d);
@@ -233,6 +235,7 @@ pm1_stage1 (mpz_t f, mpres_t a, mpmod_t n, double B1, double B1done,
      For sizeinbase(n,2) > CASCADE_MAX/3000, this means B1 > CASCADE_MAX^2,
      i.e. B1 > 25e14 for CASCADE_MAX=5e7.
 */
+
   if (B0 <= cascade_limit)
     {
       /* first loop through small primes <= sqrt(B1) */
@@ -248,7 +251,7 @@ pm1_stage1 (mpz_t f, mpres_t a, mpmod_t n, double B1, double B1done,
       for ( ; p <= cascade_limit; p = getprime (p))
         if (p > B1done)
           cascade = mulcascade_mul_d (cascade, p, d);
-      
+   
       mulcascade_get_z (g, cascade);
       mulcascade_free (cascade);
 #ifdef DEBUG
@@ -305,9 +308,17 @@ pm1_stage1 (mpz_t f, mpres_t a, mpmod_t n, double B1, double B1done,
         }
     }
   
+  /* update the screen mode after the cascade work is done */
+  percentage = p;
+  st_save = st = cputime ();
+  percentage /= B1;
+  percentage *= 100;
+  fprintf (stderr, "1:%03d\r", (int)percentage);
+
   /* then remaining primes > max(sqrt(B1), cascade_limit) and taken 
      with exponent 1 */
   for (; p <= B1; p = getprime(p))
+  {
     if (p > B1done)
       {
         mpz_mul_d (g, g, p, d);
@@ -317,6 +328,47 @@ pm1_stage1 (mpz_t f, mpres_t a, mpmod_t n, double B1, double B1done,
 	    mpz_set_ui (g, 1);
 	  }
       }
+    if (++Counter == 1500)
+      {
+	int st_now = cputime();
+	if (st_now - st > 30000)
+	  {
+	    /* Check to see if we should update our screen "percentage counter" */
+	    percentage = p;
+	    st = st_now;
+	    percentage /= B1;
+	    percentage *= 100;
+	    fprintf (stderr, "1:%03d\r", (int)percentage);
+  	  }
+	Counter=0;
+	  /* should we save the current "ecm_wip.sav" file??? It is saved every 15 minutes */
+	  /* NOTE this saving DOES NOT save the expression.  It is just a "fail-safe" measure */
+#if defined (DEBUG_AUTO_SAVE)
+        if (st_now - st_save > 2000)
+#else
+        if (st_now - st_save > 15 * 60 * 1000)
+#endif
+	  {
+	    /* PAUL!  This code does not work. I don't yet know what I am doing with
+	       your modular form items.  Can you please help get this working, as I 
+	       think this was a very "good" item from the todo list, and when this 
+	       gets operational, then incremental saving should work */
+	    st_save = st_now;
+	    /* Figure out how to save here */
+	    /* sigma is not needed */
+	    /* A is not needed */
+
+	    /******** THIS NEEDS TO BE MADE TO SAVE *****************/
+	    /* write_temp_resumefile (PM1_METHOD, p+1, sigma, A, x, orig_n, verbose); */
+	  }
+	  /*  This "testing" code is here to see just how often this ++Counter loop is entered.
+	  {
+	    static int x;
+  	    fprintf (stderr, "1:%03d  p=%.0f\r", ++x, p);
+	  }
+	  */
+      }
+  }
 
   getprime (0.0); /* free the prime tables, and reinitialize */
 
@@ -716,7 +768,7 @@ pm1 (mpz_t f, mpz_t p, mpz_t N, double B1done, double B1, double B2min,
   mpres_set_z (x, p, modulus);
 
   if (B1 > B1done)
-    youpi = pm1_stage1 (f, x, modulus, B1, B1done, verbose);
+    youpi = pm1_stage1 (f, x, modulus, B1, B1done, verbose, N);
 
   if (verbose >= 1)
     {

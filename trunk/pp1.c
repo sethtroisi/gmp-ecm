@@ -37,7 +37,7 @@ void             pp1_mul_ui (mpres_t, mpres_t, unsigned long, mpmod_t,
 int  count_significant_bits (mp_limb_t);
 void pp1_check_factor       (mpz_t, mpz_t);
 int          pp1_stage1     (mpz_t, mpres_t, mpmod_t, double, double,
-                             unsigned long *);
+                             unsigned long *, mpz_t);
 
 /******************************************************************************
 *                                                                             *
@@ -136,14 +136,15 @@ count_significant_bits (mp_limb_t e)
 */
 int
 pp1_stage1 (mpz_t f, mpres_t P0, mpmod_t n, double B1, double B1done,
-            unsigned long *muls)
+            unsigned long *muls, mpz_t orig_n)
 {
-  double B0, p, q, r;
+  double B0, p, q, r, percentage;
   mpz_t g;
   mpres_t P, Q;
   mpres_t R, S, T;
   int youpi;
   unsigned int max_size, size_n;
+  int Counter = 0, st, st_save;
 
   mpz_init (g);
   mpres_init (P, n);
@@ -186,14 +187,60 @@ pp1_stage1 (mpz_t f, mpres_t P0, mpmod_t n, double B1, double B1done,
 	  *muls += pp1_mul (P0, P0, g, n, P, Q);
 	  mpz_set_ui (g, 1);
 	}
+      /* No need to save incrementals here, or to show screen output, since this happens pretty quickly */
     }
 
   *muls += pp1_mul (P0, P0, g, n, P, Q);
 
+  /* update the screen mode after the cascade work is done */
+  percentage = p;
+  st_save = st = cputime ();
+  percentage /= B1;
+  percentage *= 100;
+  fprintf (stderr, "1:%03d\r", (int)percentage);
+
   /* then all primes > sqrt(B1) and taken with exponent 1 */
   for (; p <= B1; p = getprime(p))
-    if (p > B1done)
-      *muls += pp1_mul_prac (P0, (unsigned long) p, n, P, Q, R, S, T);
+    {
+      if (p > B1done)
+        *muls += pp1_mul_prac (P0, (unsigned long) p, n, P, Q, R, S, T);
+      if (++Counter == 3000)
+	{
+	  int st_now = cputime();
+	  if (st_now - st > 30000)
+	    {
+	      /* Check to see if we should update our screen "percentage counter" */
+	      percentage = p;
+	      st = st_now;
+	      percentage /= B1;
+	      percentage *= 100;
+	      fprintf (stderr, "1:%03d\r", (int)percentage);
+  	    }
+	  Counter=0;
+	    /* should we save the current "ecm_wip.sav" file??? It is saved every 15 minutes */
+	    /* NOTE this saving DOES NOT save the expression.  It is just a "fail-safe" measure */
+  #if defined (DEBUG_AUTO_SAVE)
+	  if (st_now - st_save > 2000)
+  #else
+	  if (st_now - st_save > 15 * 60 * 1000)
+  #endif
+	    {
+	      st_save = st_now;
+	      /* Figure out how to save here */
+	      /* sigma is not needed */
+	      /* A is not needed */
+
+	      /******** THIS NEEDS TO BE MADE TO SAVE *****************/
+	      /* write_temp_resumefile (PM1_METHOD, p+1, sigma, A, x, orig_n, verbose); */
+	    }
+	    /*  This "testing" code is here to see just how often this ++Counter loop is entered.
+	    {
+	      static int x;
+  	      fprintf (stderr, "1:%03d  p=%.0f\r", ++x, p);
+	    }
+	    */
+	}
+    }
 
   getprime (0.0); /* free the prime tables, and reinitialize */
 
@@ -465,7 +512,7 @@ pp1 (mpz_t f, mpz_t p, mpz_t n, double B1done, double B1, double B2min,
   mpres_set_z (a, p, modulus);
 
   if (B1 > B1done)
-    youpi = pp1_stage1 (f, a, modulus, B1, B1done, &muls);
+    youpi = pp1_stage1 (f, a, modulus, B1, B1done, &muls, n);
 
   if (verbose >= 1)
     {
