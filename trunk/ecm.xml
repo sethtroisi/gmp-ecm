@@ -437,8 +437,10 @@ external programs (e.g. OpenPFGW).</para>
   <term><option>-primetest</option></term>
   <listitem>
 <para>Perform a primality test on the input number.
-This is not done by default since the primality
-test may be expensive, especially for large input.</para>
+If the input number is probable prime, no further computation is done,
+and the program skips to the next number, or exits if this was the last one.
+The primality test is not done by default since it
+may be expensive, especially for large input.</para>
   </listitem>
   </varlistentry>
 
