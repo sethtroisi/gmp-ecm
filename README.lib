@@ -70,8 +70,8 @@ Detailed description of parameters (ecm_params):
 	Other values (including 0) mean the representation will be chosen
 	automatically (hopefully in some optimal way).
 * p->verbose is the verbosity level: 0 for no output, 1 for normal output
-	(like default for gmp-ecm), 2 for diagnostic output (like -v in
-	gmp-ecm), 3 for high diagnostic output (-v -v), and 4 for trace
+	(like default for GMP-ECM), 2 for diagnostic output (like -v in
+	GMP-ECM), 3 for high diagnostic output (-v -v), and 4 for trace
 	output (-v -v -v).
 * p->os is the output stream used for verbose output. Default is stdout.
 * p->es is the output stream used for errors. Default is stderr.

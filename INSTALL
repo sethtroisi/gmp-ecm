@@ -1,4 +1,4 @@
-Instructions to install gmp-ecm:
+Instructions to install GMP-ECM:
 
 0) you first need to install the GNU MP (GMP) library.
    GNU MP is available from <http://www.swox.com/gmp/>.
@@ -22,7 +22,7 @@ Instructions to install gmp-ecm:
    contains the static or dynamic libraries (libgmp.a, libgmp.so, libgmp.lib).
  
    Note: the configure script will first search for a static GMP library, which
-   makes gmp-ecm more efficient. When only a dynamic library is available, make
+   makes GMP-ECM more efficient. When only a dynamic library is available, make
    sure to correctly set your dynamic libraries search path (LD_LIBRARY_PATH
    on Unix systems), otherwise the configure script may fail.
 
@@ -33,7 +33,7 @@ Instructions to install gmp-ecm:
    $ egrep -w '(CC|CFLAGS)' config.log
 
    to see which compiler and options were used to build GMP. For example
-   on a Sparc v9 you may want to type:
+   on a Sparc v9 you may have to type:
    
    $ ./configure CC=cc CFLAGS="-fast -fns=no -fsimple=1 -xarch=v9" 
 
@@ -67,7 +67,7 @@ Instructions to install gmp-ecm:
 
    You can also do "make uninstall" to remove those files.
 
-5) If you like gmp-ecm, please help us factoring Cunningham numbers. First
+5) If you like GMP-ECM, please help us factoring Cunningham numbers. First
    download "cunningham.in" on <http://www.loria.fr/~zimmerma/ecmnet/>, then
    perform one ecm test with B1=11e6 on each number of this file:
 

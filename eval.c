@@ -297,7 +297,8 @@ void eval_power (mpz_t prior_n, mpz_t n,char op)
       /*printf ("Reduced-primorial  %ld#%ld\n", nMax, nStart);*/
       for (; p <= nMax; p = getprime (p))
 	{
-	  /* Unfortunately, the SoE within gmp-ecm does not always start correctly, so we have to skip the low end stuff by hand */
+	  /* Unfortunately, the SoE within GMP-ECM does not always start
+	     correctly, so we have to skip the low end stuff by hand */
 	  if (p >= nStart)
 	    /* This could be done much more efficiently (bunching mults using smaller "built-ins"), but I am not going to bother for now */
 	    mpz_mul_ui(n,n,(unsigned)p);

@@ -193,7 +193,7 @@ TUpTree (listz_t b, listz_t *Tree, unsigned int k, listz_t tmp, int dolvl,
         fprintf (ECM_STDOUT, "\n");
 #endif
 
-        /* gmp-ecm specific: leading coefficients in the product tree
+        /* GMP-ECM specific: leading coefficients in the product tree
         * are implicit ones, so we need some extra work here.
         */
 
