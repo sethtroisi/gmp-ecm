@@ -121,8 +121,9 @@ ChompLine:;
 
       if (nCurSize == nMaxSize)
       {
-	char *cp = realloc (expr, nMaxSize+1);
+	char *cp;
 	nMaxSize += 5000;
+	cp = realloc (expr, nMaxSize+1);
 	if (!cp)
 	{
 	  free(expr);
@@ -191,8 +192,9 @@ JoinLinesLoop:;
 	expr[nCurSize++] = *c;
       if (nCurSize == nMaxSize)
       {
-	char *cp = realloc (expr, nMaxSize + 1);
+	char *cp;
 	nMaxSize += 5000;
+	cp = realloc (expr, nMaxSize + 1);
 	if (!cp)
 	{
 	  free(expr);
