@@ -113,9 +113,11 @@ dilog_series (const double x)
 static double
 dilog (double x)
 {
+  ASSERT(x <= -1.0); /* dilog(1-x) is called from rhoexact for 2 < x <= 3 */
+
   if (x <= -2.0)
     return -dilog_series (1./x) - M_PI_SQR_6 - 0.5 * log(-1./x) * log(-1./x);
-  else if (x <= -1.0)
+  else /* x <= -1.0 */
     {
       /* L2(z) = -L2(1 - z) + 1/6 * Pi^2 - ln(1 - z)*ln(z) 
          L2(z) = -L2(1/z) - 1/6 * Pi^2 - 0.5*ln^2(-1/z)
@@ -127,11 +129,6 @@ dilog (double x)
       double log1x = log (1. - x);
       return dilog_series (1. / (1. - x)) 
              - M_PI_SQR_6 + log1x * (0.5 * log1x - log (-x));
-    }
-  else
-    {
-      fprintf (ECM_STDERR, "dilog: not implemented for argument %f > -1.0", x);
-      exit (EXIT_FAILURE);
     }
 }
 
@@ -152,7 +149,7 @@ rhoexact (double x)
     return 1.;
   if (x <= 2.)
     return 1. - log (x);
-  if (x <= 3.)
+  if (x <= 3.) /* 2 < x <= 3 thus -2 <= 1-x < -1 */
     return 1. - log (x) * (1. - log (x - 1.)) + dilog (1. - x) + 0.5 * M_PI_SQR_6;
 
   fprintf (ECM_STDERR, "rhoexact: not implemented for argument %f > 3.0", x);
