@@ -36,7 +36,7 @@ algorithms.</para>
 
 </refsect1>
 
-<refsect1 id='step_1_parameters'><title>STEP 1 PARAMETERS</title>
+<refsect1 id='bounds'><title>STEP 1 AND STEP 2 BOUND PARAMETERS</title>
 <variablelist remap='TP'>
   <varlistentry>
   <term><emphasis remap='B'><replaceable>B1</replaceable></emphasis></term>
@@ -149,7 +149,7 @@ curve parameter. If omitted, is it generated from the sigma value.
 <replaceable>val</replaceable>, which can any valid expression,
 possibly containing the special character N as place holder for the current
 input number. Example:
-<programlisting>ecm -pp1 -x0 "N^2-1" 1e6 &lt; composite2000</programlisting>
+<programlisting>ecm -pp1 -go "N^2-1" 1e6 &lt; composite2000</programlisting>
 </para>
   </listitem>
   </varlistentry>
@@ -160,11 +160,11 @@ input number. Example:
 <refsect1 id='step_2_parameters'><title>STEP 2 PARAMETERS</title>
 <variablelist remap='TP'>
   <varlistentry>
-  <term><option>-k <replaceable>n</replaceable></option></term>
+  <term><option>-k <replaceable>k</replaceable></option></term>
   <listitem>
-<para>[ECM, P-1, P+1] Perform <replaceable>n</replaceable> blocks in step 2.
+<para>[ECM, P-1, P+1] Perform <replaceable>k</replaceable> blocks in step 2.
 For a given <replaceable>B2</replaceable> value, increasing 
-<replaceable>n</replaceable> decreases the memory usage of step 2, at the 
+<replaceable>k</replaceable> decreases the memory usage of step 2, at the 
 expense of more cpu time.</para>
   </listitem>
   </varlistentry>
@@ -195,7 +195,7 @@ For P-1, <replaceable>n</replaceable> must be even.</para>
   <listitem>
 <para>[ECM, P-1]
 Use degree-<replaceable>n</replaceable> Dickson's polynomial for Brent-Suyama's extension.
-Like for <option>-power</option>, <replaceable>n</replaceable>, must be 
+Like for <option>-power</option>, <replaceable>n</replaceable> must be 
 even for P-1.</para>
 
   </listitem>
@@ -618,7 +618,7 @@ Alexander Kruppa &lt;firstname.lastname@mytum.de&gt; contributed the
 Toom-Cook multiplication code, the special code for Fermat numbers, and many 
 other nice things;
 Dave Newman &lt;firstname.lastname@jesus.ox.ac.uk&gt;
-contributed the Kronecker-Schönhage multiplication code;
+contributed the Kronecker-Schoenhage multiplication code;
 Paul Zimmermann &lt;zimmerma at loria dot fr&gt; is the author of the first 
 version of the program.
 Note: email addresses have been obscured, the required substitutions should
