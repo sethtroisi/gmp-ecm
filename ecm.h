@@ -18,8 +18,6 @@
   02111-1307, USA.
 */
 
-#define ECM_VERSION "5.2.0"
-
 /* Warnings about unused parameters by gcc can be suppressed by prefixing 
    parameter with UNUSED when parameter can't be removed, i.e. for
    interface consistency reasons */
