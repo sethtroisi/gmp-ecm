@@ -1,3 +1,20 @@
+Changes between ecm-5.1.1 and ecm-5.1.2
+
+- Added a set of -prp* command line switches which will use an external
+    program to perform prp testing of candidate and factors.  When the
+	numbers get large, GMP becomes very non-optimal in PRP testing.
+	An external program, such as OpenPFGW, can be much faster than
+	the GMP.  (New code from Phil Carmody)
+
+Changes between ecm-5.1 and ecm-5.1.1
+
+- Added hex number input into the expression parser.  This was needed 
+    due to save files from Prime95 being output in hex.  ecm was not
+	resuming these.
+- Added some porting code so ecm builds under VC6.  VC6 builds an ecm
+    that is is about 1% to 3% faster than the MinGW build (which is
+	about 1% to 3% faster than a Cygwin build)
+
 Changes between ecm-5.0 and ecm-5.1:
 
 - quiet mode (-q) now prints on stdout all factors found on the same line:
