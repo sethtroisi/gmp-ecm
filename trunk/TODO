@@ -24,6 +24,9 @@ ToDo's:
 - with -resume, print %time for THIS RUN instead of total run?
 	[suggested by SleepHound <sleephound@yahoo.com>]
 - when resuming, print the *initial* x0 for P-1/P+1?
+- [from Jakub Pawlewicz <pan@mimuw.edu.pl>] add an option -stage1time t
+  to tell the step 1 time, when done by another program. PZ: or better
+  have it in resume file?
 
 3) documentation
 - check README is up-to-date wrt tune/tune2 (and merge tune/tune2)
