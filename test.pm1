@@ -96,5 +96,16 @@ endif
 
 ### stage 2 less than 10^13 ###
 echo 1000215069936448424297877519565769 | $ECM -pm1 1698311 0 1898999006273
+if ($status != 0) then
+   echo "############### ERROR ###############";
+   exit 1;
+endif
+
+### Try a factor found by Suyama's powers
+echo 1207946164033269799036708918081 | $ECM -e 6 -k 2 -pm1 286493 0 2500000
+if ($status != 0) then
+   echo "############### ERROR ###############";
+   exit 1;
+endif
 
 echo "All tests are ok."
