@@ -168,14 +168,17 @@ list_sub (listz_t p, listz_t q, listz_t r, unsigned int n)
     mpz_sub (p[i], q[i], r[i]);
 }
 
-/* p <- q * r */
+/* p[i] <- q[i] * r mod m */
 void
-list_mul_z (listz_t p, listz_t q, mpz_t r, unsigned int n)
+list_mul_z (listz_t p, listz_t q, mpz_t r, unsigned int n, mpz_t m)
 {
   unsigned int i;
 
   for (i = 0; i < n; i++)
-    mpz_mul (p[i], q[i], r);
+    {
+      mpz_mul (p[i], q[i], r);
+      mpz_mod (p[i], p[i], m);
+    }
 }
 
 /* p <- gcd(n, l[0]*l[1]*...*l[k-1],
