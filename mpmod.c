@@ -471,7 +471,7 @@ mpres_ui_pow (mpres_t R, unsigned int BASE, mpres_t EXP, mpmod_t modulus)
 
       expidx = mpz_size (EXP) -1;           /* point at most significant limb */
       expbits = mpz_getlimbn (EXP, expidx); /* get most significant limb */
-      bitmask = 1 << (__GMP_BITS_PER_MP_LIMB - 1);
+      bitmask = (mp_limb_t) 1 << (__GMP_BITS_PER_MP_LIMB - 1);
 
       while ((bitmask & expbits) == 0)
         {
@@ -485,7 +485,7 @@ mpres_ui_pow (mpres_t R, unsigned int BASE, mpres_t EXP, mpmod_t modulus)
                 }
               expidx--;
               expbits = mpz_getlimbn (EXP, expidx);
-              bitmask = 1 << (__GMP_BITS_PER_MP_LIMB - 1);
+              bitmask = (mp_limb_t) 1 << (__GMP_BITS_PER_MP_LIMB - 1);
             }
         }
 
@@ -535,7 +535,7 @@ mpres_ui_pow (mpres_t R, unsigned int BASE, mpres_t EXP, mpmod_t modulus)
             break;				/* significant limb, we are done */
           expidx--;
           expbits = mpz_getlimbn (EXP, expidx);
-          bitmask = 1 << (__GMP_BITS_PER_MP_LIMB - 1);
+          bitmask = (mp_limb_t) 1 << (__GMP_BITS_PER_MP_LIMB - 1);
         }
       mpz_set (R, modulus->temp2);
     } /* if (modulus->repr == MOD_BASE2) */
