@@ -32,3 +32,21 @@ Documentation:
 
 - to generate pdf:
   $ xmlto pdf ecm.xml
+
+##############################################################################
+
+To make a new release:
+
+  1) Check the version (configure.in).
+  2) Update the NEWS file.
+  3) Update the ChangeLog file (using a recent version of rcs2log,
+     directly or with emacs), e.g. rcs2log > ChangeLog.2 and edit
+     ChangeLog to insert ChangeLog.2 at the beginning and remove
+     the duplicated lines.
+  4) Check the file permissions (may have been broken by CVS).
+  5) Generate the release version with "make dist".
+  6) Test the release version with "make distcheck".
+  7) If there is no problem, add a tag to the CVS corresponding to the
+     release, e.g. ecm-6-0-release for ecm 6.0 (note that the periods
+     are replaced by dashes): cvs tag ecm-6-0-release
+
