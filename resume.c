@@ -384,7 +384,7 @@ write_resumefile_line (FILE *fd, int method, double B1, mpz_t sigma, mpz_t A,
   
   if (uname[0] != 0 || mname[0] != 0)
     {
-      fprintf (fd, "WHO=%.233s@%.32s;", uname, mname);
+      fprintf (fd, " WHO=%.233s@%.32s;", uname, mname);
     }
 
   if (comment[0] != 0)
