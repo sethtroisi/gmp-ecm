@@ -763,11 +763,11 @@ BreadthFirstDoAgain:;
             }
         }
       if (count == cnt)
-	fprintf (stderr, "\rLine=%u B1=%.0f Factors=%u                 \r", linenum, B1, factsfound);
+	fprintf (stderr, "\r      Line=%u B1=%.0f factors=%u           \r", linenum, B1, factsfound);
       if (count != cnt)
-	fprintf (stderr, "\rLine=%u Curves=%u/%u B1=%.0f Factors=%u    \r", linenum, count-cnt+1, count, B1, factsfound);
-      if (breadthfirst && breadthfirst_cnt > 1)
-	fprintf (stderr, "\rLine=%u Curves=%u/%u B1=%.0f Factors=%u    \r", linenum, breadthfirst_cnt, breadthfirst_maxcnt, B1, factsfound);
+	fprintf (stderr, "\r      Line=%u Curves=%u/%u B1=%.0f factors=%u\r", linenum, count-cnt+1, count, B1, factsfound);
+      if (breadthfirst && nCandidates > 1)
+	fprintf (stderr, "\r      Line=%u/%u Curves=%u/%u B1=%.0f factors=%u\r", linenum, nCandidates, breadthfirst_cnt, breadthfirst_maxcnt, B1, factsfound);
       if (verbose > 0)
 	{
 	  if ((!breadthfirst && cnt == count) || (breadthfirst && 1 == breadthfirst_cnt))
@@ -790,9 +790,9 @@ BreadthFirstDoAgain:;
 	  else
 	    {
 	      if (breadthfirst)
-		printf ("Line=%u Curves=%u/%u B1=%.0f Factors=%u\n", linenum, breadthfirst_cnt, breadthfirst_maxcnt, B1, factsfound);
+		printf ("Line=%u/%u Curves=%u/%u B1=%.0f factors=%u      \n", linenum, nCandidates, breadthfirst_cnt, breadthfirst_maxcnt, B1, factsfound);
 	      else
-	        printf ("Line=%u Curves=%u/%u B1=%.0f Factors=%u\n", linenum, count-cnt+1, count, B1, factsfound);
+	        printf ("Line=%u Curves=%u/%u B1=%.0f factors=%u      \n", linenum, count-cnt+1, count, B1, factsfound);
 	      /* Since the expression is usally "so" short, why not just drop it out for ALL loops? */
 	      if (displayexpr)
 		{
@@ -822,6 +822,7 @@ BreadthFirstDoAgain:;
       if ((!breadthfirst && cnt == count) || (breadthfirst && 1 == breadthfirst_cnt))
 	{
 	  /*  Note, if a factors are found, then n will be adjusted "down" */
+	  fprintf (stderr, "T:000 \r");
 	  int SomeFactor = trial_factor (&n, maxtrialdiv);
 	  if (SomeFactor)
 	    {
@@ -849,23 +850,30 @@ BreadthFirstDoAgain:;
 
       cnt --; /* one more curve performed */
 
+      fprintf (stderr, "1:000 \r");
       if (method == PM1_METHOD)
         result = pm1 (f, x, n.n, B1done, B1, B2min, B2, k, S, verbose, repr);
       else if (method == PP1_METHOD)
         result = pp1 (f, x, n.n, B1done, B1, B2min, B2, k, S, verbose, repr);
       else /* ECM */
-        if (mpz_sgn (sigma) == 0) /* If sigma is zero, then we use the A value instead */
-          result = ecm (f, x, A, n.n, B1done, B1, B2min, B2, k, S, verbose, repr, 1);
-        else
-          result = ecm (f, x, sigma, n.n, B1done, B1, B2min, B2, k, S, verbose, repr, 0);
-
-      if (result == 0 && trial_factor_found)
 	{
-	  factor_is_prime = 1;
-	  mpz_set_ui(f,1);
-	  goto OutputFactorStuff;
-	}
+	  if (mpz_sgn (sigma) == 0) /* If sigma is zero, then we use the A value instead */
+	    result = ecm (f, x, A, n.n, B1done, B1, B2min, B2, k, S, verbose, repr, 1);
+	  else
+	    result = ecm (f, x, sigma, n.n, B1done, B1, B2min, B2, k, S, verbose, repr, 0);
+        }
 
+      if (result == 0)
+	{
+	  if (!trial_factor_found)
+            fprintf (stderr, "2:100\r");
+	  else
+	  {
+	    factor_is_prime = 1;
+	    mpz_set_ui(f,1);
+	    goto OutputFactorStuff;
+	  }
+	}
       if (result != 0)
 	{
 	  factsfound++;
@@ -972,9 +980,9 @@ OutputFactorStuff:;
      wrong count of factors (missing the just found factor.  Update the screen to at least specify the 
      current count */
   if (breadthfirst_maxcnt)
-    fprintf (stderr, "\rLine=%u Curves=%u/%u B1=%.0f Factors=%u\n", linenum, breadthfirst_cnt, breadthfirst_maxcnt, B1, factsfound);
+    fprintf (stderr, "\rLine=%u Curves=%u/%u B1=%.0f factors=%u      \n", linenum, breadthfirst_cnt, breadthfirst_maxcnt, B1, factsfound);
   else if (count != 1)
-    fprintf (stderr, "Line=%u Curves=%u/%u B1=%.0f Factors=%u\n", linenum, count-cnt+1, count, B1, factsfound);
+    fprintf (stderr, "Line=%u Curves=%u/%u B1=%.0f factors=%u      \n", linenum, count-cnt+1, count, B1, factsfound);
   
 
 
