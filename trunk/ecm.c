@@ -173,7 +173,11 @@ duplicate (mpz_t x2, mpz_t z2, mpz_t x1, mpz_t z1, mpz_t n, mpz_t b,
 
 #define START(d,v) ((d)/1.6180339887498948482-128.0+(v))
 
-/* returns the number of modular multiplications */
+/* returns the number of modular multiplications for computing
+   V_n from V_r * V_{n-r} - V_{n-2r}.
+   ADD is the cost of an addition
+   DUP is the cost of a duplicate
+*/
 unsigned int
 lucas_cost (unsigned n, double v)
 {
@@ -261,7 +265,7 @@ prac (mpz_t xA, mpz_t zA, unsigned int k, mpz_t n, mpz_t b, mpz_t t, mpz_t u,
 {
   unsigned int d, e, r, i = 0;
   __mpz_struct *tmp;
-  static double val[10] =
+  static double val[NV] =
     { 1.61803398875, 1.72360679775, 1.618347119656, 1.617914406529,
       1.612429949509, 1.632839806089, 1.620181980807, 1.580178728295,
       1.617214616534, 1.38196601125 };
@@ -383,7 +387,7 @@ prac (mpz_t xA, mpz_t zA, unsigned int k, mpz_t n, mpz_t b, mpz_t t, mpz_t u,
         }
       else
         {
-          printf ("no condition qualifies for d=%u e=%u\n", d, e);
+          fprintf (stderr, "no condition qualifies for d=%u e=%u\n", d, e);
           exit (EXIT_FAILURE);
         }
     }
@@ -393,7 +397,7 @@ prac (mpz_t xA, mpz_t zA, unsigned int k, mpz_t n, mpz_t b, mpz_t t, mpz_t u,
 #ifdef DEBUG
   if (d != 1)
     {
-      printf ("d!=1 at the end of PRAC\n");
+      fprintf (stderr, "d!=1 at the end of PRAC\n");
       exit (EXIT_FAILURE);
     }
 #endif
