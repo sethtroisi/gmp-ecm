@@ -22,7 +22,9 @@
 #include <stdlib.h>
 #include <time.h>
 #include <string.h>
+#if !defined (_MSC_VER)
 #include <unistd.h>
+#endif
 #include "gmp.h"
 #include "ecm.h"
 
