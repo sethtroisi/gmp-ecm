@@ -36,7 +36,6 @@ ToDo's:
   Chapter 10 of README needs a better description.  I started one, but it's not done.
 - with -resume, print %time for THIS RUN instead of total run?
 	[suggested by SleepHound <sleephound@yahoo.com>]
-- option -kill when user on console?
 - when resuming, print the *initial* x0 for P-1/P+1?
 - option -base2 to force base2 when res/lo > threshold?
 
@@ -49,41 +48,3 @@ ToDo's:
 - implement Brent-Suyama's extension for p+1 (how to do it efficiently?
   Could "Powers of 2^(k/2) and 3^k", Montgomery dissertation, 5.5, work?)
 
-##############################################################################
-
-Done's:
-+ print progress (80 dots in step 1/2) [Jay Berg]
-  Now it is a pair of functions, and CAN be turned off (using -ticdelay -1).  
-  Also the time between updates is controlled by -ticdelay n where n is in ms.
-  Default is 3000.
-+ option -nice when user on console?
-+ parser for input number in symbolic form, i.e. (2^(2^12)/(7*2^14+1)...)
-  (Jay Berg)  (There is still more functions to add, but the parser is done)
-+ changed the "default" search mode to -deep (continues to find factors after the 
-  first factor is found).
-+ added a new -one mode, that quits searching a canidate as soon as a factor is found.
-+ created a -ve n to "verbosely" output expressions less than n chars long each time
-  a loop is performed.
-+ added a trial div mode (run on the first loop prior to running ECM, P+1, P-1 code)
-  the syntax is -t n where trial division is done up to n
-+ implement file input modes (other than < file redirection).  Added
-  -i file (-i is breadth-first by default, stdin redirection is depth-first by
-  default)
-+ added -b to allow breadth-first processing of a stdin redirection or file input
-+ added -d to allow depth-first processing of input files
-+ added -i n for B1 adjustment (auto incrementation of B1 during looping)
-+ added -I f for auto B1 adjustment (calculated and multiplied by the f constant), 
-  This version computes the "optimal" B1 adjustment (depends upon current size of B1).
-  There is then a "scaling" factor argument (f) that is multiplied by this computed
-  value.  So -I 1 would be the "ideal", -I 10 would be 10x the ideal (to allow
-  running the same number on 10 CPU's in parallel), a -I .25 would be 1/4 of ideal
-  (if someone thinks the ideal is too much incrementation).  These "ideals" were
-  created by looking at the "table of expected curves", and computing how much to
-  "adjust B1" to get it to the next level with the "ideal" expected curves being
-  run.  One range is 30 curves at B1=2000 and the next range starts at B1=11000.
-  So there is a B1 range of 9000 for 30 curves, and we compute the "Optimal" B1
-  increment at 300.
-+ change [j*d, i] in stage2 with gcd(i,d)=1, i=1 mod 6
-  to [j*d+1, i] with gcd(i+1,d)=1, i=0 mod 6 ?
-  (Avoids i0=0 or 1 i.e. d + d -> 2d, or i0=0, i.e. 0 + d -> d, d + d -> 2d.)
-  Not neccessary anymore as ECM now handles the neutral element in stage 2.
