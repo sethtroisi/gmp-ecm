@@ -67,7 +67,7 @@ phi (unsigned long n)
   Return non-zero iff an error occurred (too large step 2 bound).
  */
 int
-bestD (double B2min, double B2, int po2, unsigned int *finald, 
+bestD (mpz_t B2min, mpz_t B2, int po2, unsigned int *finald, 
        unsigned int *finald2, unsigned int *k, unsigned int *finaldF,
        mpz_t finali0)
 {
@@ -115,14 +115,15 @@ od:
           if (d % d2 > 0)
             break;
         }
-      if (d2 >= 25 || d2 - 1 > dF || B2min <= (d - 1) * d2 - d)
+      if (d2 >= 25 || d2 - 1 > dF || (d2 > 1 &&
+          mpz_cmp_ui (B2min, (d - 1) * d2 - d) <= 0)) /* Would make i0 < 0 */
         d2 = 1;
       
       mpz_set_ui (i0, d - 1);
       mpz_mul_ui (i0, i0, d2);
-      mpz_set_d (j, B2);
+      mpz_set (j, B2);
       mpz_add (i1, j, i0); /* i1 = B2 + (d - 1) * d2 */
-      mpz_set_d (j, B2min);
+      mpz_set (j, B2min);
       mpz_sub (i0, j, i0); /* i0 = B2min - (d - 1) * d2 */
       mpz_cdiv_q_ui (i0, i0, d); /* i0 = ceil ((B2min - (d - 1) * d2) / d) */
       mpz_fdiv_q_ui (i1, i1, d); /* i1 = floor ((B2 + (d - 1) * d2) / d) */

@@ -12,8 +12,8 @@ ecm_init (ecm_params q)
   q->sigma_is_A = 0;
   mpz_init_set_ui (q->go, 1);
   q->B1done = ECM_DEFAULT_B1_DONE;
-  q->B2min = -1.0; /* default: B2min will be set to B1 */
-  q->B2 = ECM_DEFAULT_B2;
+  mpz_init_set_si (q->B2min, -1.0); /* default: B2min will be set to B1 */
+  mpz_init_set_si (q->B2, ECM_DEFAULT_B2);
   q->k = ECM_DEFAULT_K;
   q->S = ECM_DEFAULT_S; /* automatic choice of polynomial */
   q->repr = ECM_DEFAULT_REPR; /* automatic choice of representation */
