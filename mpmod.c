@@ -677,9 +677,14 @@ mpres_mul (mpres_t R, mpres_t S1, mpres_t S2, mpmod_t modulus)
 
       _mpz_realloc (R, n + 1);
       k = mpn_fft_best_k (n, S1 == S2);
+      if (ABSIZ(S1) > n)
+        mpz_mod (S1, S1, modulus->orig_modulus);
+      if (ABSIZ(S2) > n)
+        mpz_mod (S2, S2, modulus->orig_modulus);
       mpn_mul_fft (PTR(R), n, PTR(S1), ABSIZ(S1), PTR(S2), ABSIZ(S2), k);
+      n++;
       MPN_NORMALIZE(PTR(R), n);
-      SIZ(R) = ((SIZ(S1) ^ SIZ(S2)) > 0) ? n : -n;
+      SIZ(R) = ((SIZ(S1) ^ SIZ(S2)) >= 0) ? n : -n;
       return;
     }
 #endif
