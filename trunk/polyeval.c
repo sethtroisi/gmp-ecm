@@ -239,6 +239,7 @@ polyeval_tellegen (listz_t b, unsigned int k, listz_t *Tree, listz_t tmp,
     unsigned int i;
     unsigned int tupspace;
     unsigned int tkspace;
+    unsigned int totmuls = 0;
     int allocated = 0;
     listz_t T;
     
@@ -263,7 +264,7 @@ polyeval_tellegen (listz_t b, unsigned int k, listz_t *Tree, listz_t tmp,
     printf ("Espace requis : %d.\n", 
             TMulGen_space (k - 1, k - 1, k - 1));
 #endif
-    TMulGen (T, k - 1, invF, k - 1, b, k - 1, T + k);
+    totmuls += TMulGen (T, k - 1, invF, k - 1, b, k - 1, T + k);
 #ifdef TELLEGEN_DEBUG
     printf ("\nalpha = ");
     print_list (invF, k);
@@ -276,7 +277,7 @@ polyeval_tellegen (listz_t b, unsigned int k, listz_t *Tree, listz_t tmp,
     printf ("s = ");
     print_list (T, k);
 #endif
-    TUpTree (T, Tree, k, T + k, sh, n);
+    totmuls += TUpTree (T, Tree, k, T + k, sh, n);
     for (i = 0; i < k; i++)
     {
         mpz_set (b[i], T[i]);
@@ -284,7 +285,7 @@ polyeval_tellegen (listz_t b, unsigned int k, listz_t *Tree, listz_t tmp,
 
     if (allocated)
         clear_list (T, tupspace);
-    return 0;
+    return totmuls;
 }
 
 unsigned int muls_tuptree (unsigned int k)
