@@ -38,6 +38,11 @@ The main changes wrt gmp-ecm 4c are the following:
 	 Eratosthenes sieve (see file getprime.c).
 - stage 2 uses Toom-Cook 3 and Toom-Cook 4, instead of only Karatsuba
 	in gmp-ecm 4c.
+- an option -save enables one to save the state at the end of stage 1,
+  to continue it afterwards, or on a different computer
+- it is now possible to specify a range B2min-B2max for stage 2. This
+  enables one to perform a huge stage 2 (for a given stage 1) using several 
+  computers: the first one checks B1-B2, the second one B2-B3, ...
 
 ##############################################################################
 
@@ -205,5 +210,45 @@ The format used is the following:
   SIGMA and X0 would be optional, and would be mainly be used in case of a
   factor is found, to be able to reproduce the factorization. 
 
+##############################################################################
+
+How to get the best of gmp-ecm?
+
+Choice of modular multiplication. The ecm program may choose between 4 kinds
+of modular arithmetic:
+
+(1) Montgomery's REDC algorithm at the word level (option -modmuln).
+    It is quite fast for small numbers, but has quadratic asymptotic
+    complexity.
+(2) classical GMP arithmetic (option -mpzmod).
+    Has some overhead with respect to (1) for small sizes, but wins
+    over (1) for larger sizes since it has quasi-linear asymptotic
+    complexity.
+(3) Montgomery's REDC algorithm at high level (option -redc).
+    This essentially replaces each division by two multiplications.
+    Slower than (1) and (2) for small inputs, but better for large
+    or very large inputs.
+(4) base-2 arithmetic for numbers dividing 2^n+1 or 2^n-1.
+    Each division has only linear time, but the multiplication are
+    most expensive since they are done on larger numbers.
+
+The ecm program automatically selects what he thinks is the best
+arithmetic for the given input number. You may choose the best
+arithmetic for a given number by trying options -modmulm, -mpzmod, -redc.
+(The best choice should not depend on B1 and B2.)
+
+
+Number of stage 2 blocks. The stage 2 range [B1,B2] is divided into k 
+"big blocks". The default value of k is chosen to be near to optimal.
+However, it may be that for a given (B1,B2) pair, another value of k
+may be better. Try for this to give the option -k <value> to ecm,
+where <value> is 1, 2, 3, ... Below we give the experimental best
+value for a 155-digit number, for some values of B1 and the
+corresponding default value of B2.
+
+      B1      optimal k
+     1e6         4
+     3e6         5
+    11e6         5
 
 
