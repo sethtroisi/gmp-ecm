@@ -48,7 +48,21 @@ Instructions to install gmp-ecm:
    This will run several tests for P+1, P-1, ECM. These tests take a few
    minutes. It should normally end with "All ECM tests are ok."
 
-4) If you like gmp-ecm, please help us factoring Cunningham numbers. First
+4) (optional) you can then install the ecm binary and its man page:
+
+   $ make install
+
+   By default, installation will be done in /usr/local.
+   You can change with the --prefix option of configure at step 1:
+   
+   $ ./configure --prefix=<my_installation_directory>
+
+   The ecm binary will go in <my_installation_directory>/bin, and its
+   man page in <my_installation_directory>/man/man1.
+
+   You can also do "make uninstall" to remove those files.
+
+5) If you like gmp-ecm, please help us factoring Cunningham numbers. First
    download "cunningham.in" on <http://www.loria.fr/~zimmerma/ecmnet/>, then
    perform one ecm test with B1=11e6 on each number of this file:
 
@@ -71,4 +85,4 @@ In case of problem, report it to us, with:
 
 - the output you get.
 
-Then send your report to us at <ecm-dev@lists.fousse.info>.
+Then send your bug report at <ecm-dev@lists.fousse.info>.
