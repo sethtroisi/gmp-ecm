@@ -454,8 +454,8 @@ specify by hand a different seed using the -sigma or -x0 options.
 In all cases, when running several curves on the same number, it is
 safe to check that the sigma/x0 values are different for each run.
 
-(b) Under some operating systems (for example SunOS), you may have
-to enable the #include <alloca.h> line in ecm-gmp.h. If that still
+(b) Under some operating systems (for example FreeBSD), you may have
+to comment the #include <alloca.h> line in ecm-gmp.h. If that still
 does not work, then you need the GMP build file gmp-impl.h, and add
 -DWANT_GMP_IMPL to CFLAGS.
 	
