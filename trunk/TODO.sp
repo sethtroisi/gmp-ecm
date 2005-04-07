@@ -40,11 +40,6 @@ SPV level:
 2) Better thresholds for when to start using ntt, especially for the "generic"
    poly mul routine.
 
-3) If multiplying a poly of length n by one of length 2n (this happens), maybe
-   do two separate n x n muls. This needs 5 transforms of length 2n instead of
-   2 transforms of length 6n. (Note if n is a power of two then length 6n gets
-   rounded up to 8n). Maybe extend to n x kn poly muls for small k.
-
 4) Try out the NTT over GP(p^2). Old code doing this exists (DN), I'll see if
    I can get it to work at some point. This is why the function is called
    spv_ntt_gfp_dif, not just spv_ntt_dif.
@@ -72,11 +67,11 @@ Code up the following for power-of-two poly lengths only - much easier.
 
 2) Poly_Invert (DONE - DN)
 
-3) Recursive_Division
+3) Recursive_Division (not needed as ntt_polyeval isn't required)
 
 4) Prerevert_Division with cached transforms (DONE - DN)
 
-5) transposed Polyeval functions with cached transforms
+5) transposed Polyeval functions with cached transforms (DONE - DN)
 
 Sticking to power-of-two poly lengths isn't as much of a cop-out as it sounds
 - one of the ways we can speed up the transposed polyeval is by saving the

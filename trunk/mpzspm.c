@@ -1,5 +1,5 @@
 /* mpzspm.c - "mpz small prime moduli" - pick a set of small primes large
-   enough to represent a mpzp
+   enough to represent a mpzv
 
   Copyright 2005 Dave Newman.
 
@@ -25,7 +25,7 @@
 #include "sp.h"
 
 mpzspm_t
-mpzspm_init (mpz_t modulus, spv_size_t max_len)
+mpzspm_init (spv_size_t max_len, mpz_t modulus)
 {
   unsigned int ub, i, j;
   mpz_t P, S, T;
@@ -34,14 +34,24 @@ mpzspm_init (mpz_t modulus, spv_size_t max_len)
   
   mpzspm = (mpzspm_t) malloc (sizeof (__mpzspm_struct));
   
-  /* upper bound for the number of primes we need
-   * = ceil((log_2(modulus^2) + log_2(max_len)) / log_2(p)),
-   * where p is the minimum admissible prime */
+  /* Upper bound for the number of primes we need.
+   * Let minp, maxp denote the min, max permissible prime,
+   * S the sum of p_1, p_2, ..., p_ub,
+   * P the product of p_1, p_2, ..., p_ub/
+   * 
+   * Choose ub s.t.
+   *
+   *     ub * log(minp) >= log(4 * max_len * modulus^2 * maxp^4)
+   * 
+   * =>  P >= minp ^ ub >= 4 * max_len * modulus^2 * maxp^4
+   *                    >= 4 * max_len * modulus^2 * (ub * maxp)^2
+   *                    >= 4 * max_len * modulus^2 * S^2
+   * 
+   * So we need at most ub primes to satisfy this condition. */
   
-  /* FIXME: bound broken */
-  ub = /*3*/ 5 + (1 + 2 * mpz_sizeinbase (modulus, 2) + ceil_log_2 (max_len))
-         / (GMP_NUMB_BITS - 1);
-
+  ub = (2 + 2 * mpz_sizeinbase (modulus, 2) + ceil_log_2 (max_len) + \
+      4 * SP_NUMB_BITS) / (SP_NUMB_BITS - 1);
+  
   mpzspm->spm = (spm_t) malloc (ub * sizeof (__spm_struct));
   mpzspm->sp_num = 0;
 
@@ -85,12 +95,12 @@ mpzspm_init (mpz_t modulus, spv_size_t max_len)
     }
   while (mpz_cmp (P, T) <= 0);
 
-//  printf ("ub=%d, %d primes chosen\n", ub, mpzspm->sp_num);
-  
   mpz_init_set (mpzspm->modulus, modulus);
   
-  mpzspm->crt1 = (mpzp_t) malloc (mpzspm->sp_num * sizeof (mpz_t));
-  mpzspm->crt2 = (mpzp_t) malloc ((mpzspm->sp_num + 2) * sizeof (mpz_t));
+  mpzspm->max_ntt_size = max_len;
+  
+  mpzspm->crt1 = (mpzv_t) malloc (mpzspm->sp_num * sizeof (mpz_t));
+  mpzspm->crt2 = (mpzv_t) malloc ((mpzspm->sp_num + 2) * sizeof (mpz_t));
   mpzspm->crt3 = (spv_t) malloc (mpzspm->sp_num * sizeof (sp_t));
   mpzspm->crt4 = (spv_t *) malloc (mpzspm->sp_num * sizeof (sp_t *));
   mpzspm->crt5 = (spv_t) malloc (mpzspm->sp_num * sizeof (sp_t));
@@ -108,15 +118,9 @@ mpzspm_init (mpz_t modulus, spv_size_t max_len)
       /* find a quadratic nonresidue mod p */
       for (a = 2; sp_pow (a, (p - 1) / 2, p, d) == 1; a++);
 
-      /* we used to save only a primitive max_len'th root of unity
-       * but just save the primitive root as it for now */
-      
-      mpzspm->spm[i].prim_root = a;
-
-#if 0	  
       /* turn this into a primitive max_len'th root of unity mod p */
       mpzspm->spm[i].prim_root = sp_pow (a, (p - 1) / max_len, p, d);
-#endif      
+      mpzspm->spm[i].inv_prim_root = sp_inv (mpzspm->spm[i].prim_root, p, d);
 
       /* crt3[i] = (P / p)^{-1} mod p */
       mpz_fdiv_q_ui (T, P, p);
