@@ -51,7 +51,7 @@ spv_ntt_gfp_dif (spv_t x, spv_size_t len, sp_t p, sp_t d, sp_t root)
   sp_t a = 1, t;
   spv_size_t i, j, m;
 	
-  if (4 * len <= CACHE_SIZE)
+  if (len * sizeof (sp_t) <= CACHE_SIZE)
     { 
       /* unrolled version for data that
          fits in the L1 cache */

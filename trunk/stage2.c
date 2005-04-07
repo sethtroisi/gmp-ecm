@@ -340,15 +340,26 @@ stage2 (mpz_t f, void *X, mpmod_t modulus, mpz_t B2min, mpz_t B2,
         }
     }
 #if defined HAVE_NTT
-  mpzspm_t mpzspm = mpzspm_init (modulus->orig_modulus, 2 * dF);
-  mpzspp_t sp_invF;
+  mpzspm_t mpzspm = mpzspm_init (2 * dF, modulus->orig_modulus);
+  
+  if (mpzspm == NULL)
+    {
+      youpi = ECM_ERROR;
+      goto clear_s_i0;
+    }
+  
+  mpzspv_t sp_invF;
 #endif
   
   mpz_mul_ui (s, i0, d); /* s = i0 * d */
   b2 = (double) dF * (double) d * (double) d2 / (double) phi (d2);
 
   outputf (OUTPUT_VERBOSE, "B2'=%Zd k=%u b2=%1.0f d=%u d2=%u dF=%u, "
-           "i0=%Zd\n", effB2, k, b2, d, d2, dF, i0);
+           "i0=%Zd", effB2, k, b2, d, d2, dF, i0);
+#ifdef HAVE_NTT
+  outputf (OUTPUT_VERBOSE, ", sp_num=%u", mpzspm->sp_num);
+#endif
+  outputf (OUTPUT_VERBOSE, "\n");
 
   lgk = ceil_log2 (dF);
   mem = 9.0 + (double) lgk;
@@ -532,9 +543,9 @@ stage2 (mpz_t f, void *X, mpmod_t modulus, mpz_t B2min, mpz_t B2,
       st = cputime ();
 #ifdef HAVE_NTT
       ntt_PolyInvert (invF, F + 1, dF, T, mpzspm);
-      sp_invF = mpzspp_init2 (mpzspm, 2 * dF);
-      mpzspp_set_mpzp (sp_invF, invF, dF, 0);
-      mpzspp_to_ntt (sp_invF, 2 * dF, 0);
+      sp_invF = mpzspv_init (2 * dF, mpzspm);
+      mpzspv_from_mpzv (sp_invF, 0, invF, dF, mpzspm);
+      mpzspv_to_ntt (sp_invF, 0, dF, 2 * dF, 0, mpzspm);
 #else
       PolyInvert (invF, F + 1, dF, T, n);
 #endif
@@ -742,7 +753,7 @@ clear_s_i0:
   mpz_clear (s);
 
 #ifdef HAVE_NTT
-  mpzspp_clear (sp_invF);
+  mpzspv_clear (sp_invF, mpzspm);
   mpzspm_clear (mpzspm);
 #endif
   
