@@ -28,14 +28,19 @@
  * 
  * These are low-overhead routines that don't do memory allocation,
  * other than for temporary variables. Unless otherwise specified, any
- * of the input pointers can be equal - but under no circumstances do
- * we allow vectors to overlap nontrivially. */
+ * of the input pointers can be equal.
+ *
+ * Functions may assume that, where appropriate, the coeffs of r are
+ * evaluated in left-to-right order. Assertions permit nontrivial such
+ * nontrivial overlapping. */
 
 
 /* r = x */
 void
 spv_set (spv_t r, spv_t x, spv_size_t len)
 {
+  ASSERT (r >= x + len || x >= r);
+  
   spv_size_t i;
 
   for (i = 0; i < len; i++)
@@ -74,6 +79,9 @@ spv_cmp (spv_t x, spv_t y, spv_size_t len)
 void
 spv_add (spv_t r, spv_t x, spv_t y, spv_size_t len, sp_t m)
 {
+  ASSERT (r >= x + len || x >= r);
+  ASSERT (r >= y + len || y >= r);
+  
   spv_size_t i;
 
   for (i = 0; i < len; i++)
@@ -94,6 +102,9 @@ spv_add_sp (spv_t r, spv_t x, sp_t c, spv_size_t len, sp_t m)
 void
 spv_sub (spv_t r, spv_t x, spv_t y, spv_size_t len, sp_t m)
 {
+  ASSERT (r >= x + len || x >= r);
+  ASSERT (r >= y + len || y >= r);
+  
   spv_size_t i;
 
   for (i = 0; i < len; i++)
@@ -125,6 +136,9 @@ spv_neg (spv_t r, spv_t x, spv_size_t len, sp_t m)
 void
 spv_pwmul (spv_t r, spv_t x, spv_t y, spv_size_t len, sp_t m, sp_t d)
 {
+  ASSERT (r >= x + len || x >= r);
+  ASSERT (r >= y + len || y >= r);
+  
   spv_size_t i;
 
   for (i = 0; i < len; i++)
@@ -135,6 +149,8 @@ spv_pwmul (spv_t r, spv_t x, spv_t y, spv_size_t len, sp_t m, sp_t d)
 void
 spv_mul_sp (spv_t r, spv_t x, sp_t c, spv_size_t len, sp_t m, sp_t d)
 {
+  ASSERT (r >= x + len || x >= r);
+  
   spv_size_t i;
   
   for (i = 0; i < len; i++)
@@ -145,6 +161,8 @@ spv_mul_sp (spv_t r, spv_t x, sp_t c, spv_size_t len, sp_t m, sp_t d)
 void
 spv_addmul_sp (spv_t r, spv_t x, sp_t c, spv_size_t len, sp_t m, sp_t d)
 {
+  ASSERT (r >= x + len || x >= r);
+  
   spv_size_t i;
   sp_t t;
   
@@ -159,6 +177,8 @@ spv_addmul_sp (spv_t r, spv_t x, sp_t c, spv_size_t len, sp_t m, sp_t d)
 void
 spv_submul_sp (spv_t r, spv_t x, sp_t c, spv_size_t len, sp_t m, sp_t d)
 {
+  ASSERT (r >= x + len || x >= r);
+  
   spv_size_t i;
   sp_t t;
 
@@ -169,31 +189,36 @@ spv_submul_sp (spv_t r, spv_t x, sp_t c, spv_size_t len, sp_t m, sp_t d)
   }
 }
 
-/* dst = src1 * src2 by grammar-school polynomial multiplication
+/* r = x * y by grammar-school polynomial multiplication
  * 
- * dst must be distinct from both src1 and src2
- * len1 > 0, len2 > 0 */
+ * r must be distinct from both x and y
+ * x_len > 0, y_len > 0 */
 void
-spv_mul_basecase (spv_t r, spv_t x, spv_t y, spv_size_t len1, spv_size_t len2,
-    sp_t m, sp_t d)
+spv_mul_basecase (spv_t r, spv_t x, spv_t y, spv_size_t x_len,
+    spv_size_t y_len, sp_t m, sp_t d)
 {
+  ASSERT (r >= x + x_len || x >= r + x_len + y_len - 1);
+  ASSERT (r >= y + y_len || y >= r + x_len + y_len - 1);
+  ASSERT (x_len > 0);
+  ASSERT (y_len > 0);
+  
   spv_size_t i;
   
-  if (len1 > len2)
+  if (x_len > y_len)
   {
-    spv_mul_sp (r, x, y[0], len1, m, d);
-    spv_set_sp (r + len1, 0, len2 - 1);
+    spv_mul_sp (r, x, y[0], x_len, m, d);
+    spv_set_sp (r + x_len, 0, y_len - 1);
     
-    for (i = 1; i < len2; i++)
-      spv_addmul_sp (r + i, x, y[i], len1, m, d);
+    for (i = 1; i < y_len; i++)
+      spv_addmul_sp (r + i, x, y[i], x_len, m, d);
   }
   else
   {
-    spv_mul_sp (r, y, x[0], len2, m, d);
-    spv_set_sp (r + len2, 0, len1 - 1);
+    spv_mul_sp (r, y, x[0], y_len, m, d);
+    spv_set_sp (r + y_len, 0, x_len - 1);
     
-    for (i = 1; i < len1; i++)
-      spv_addmul_sp (r + i, y, x[i], len2, m, d);
+    for (i = 1; i < x_len; i++)
+      spv_addmul_sp (r + i, y, x[i], y_len, m, d);
   }
 }
 
@@ -215,6 +240,11 @@ void
 spv_mul_karatsuba (spv_t r, spv_t x, spv_t y, spv_t t, spv_size_t len,
     sp_t m, sp_t d)
 {
+  ASSERT (r >= x + len || x >= r + 2 * len - 1);
+  ASSERT (r >= y + len || y >= r + 2 * len - 1);
+  ASSERT (len > 0);
+  /* FIXME: add assertions for t */
+  
   if (len == 1)
     {
       r[0] = sp_mul (x[0], y[0], m, d);
@@ -311,6 +341,8 @@ spv_mul_karatsuba (spv_t r, spv_t x, spv_t y, spv_t t, spv_size_t len,
 void spv_mul (spv_t r, spv_t x, spv_size_t x_len, spv_t y,
     spv_size_t y_len, spv_size_t k, spv_size_t l, int monic, spm_t spm)
 {
+  /* FIXME: add assertions */
+  
   if (l == 0)
     l = x_len + y_len - 1 + monic;
   
