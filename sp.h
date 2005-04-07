@@ -150,6 +150,9 @@ mp_limb_t mpn_invert_limb _PROTO ((mp_limb_t)) ATTRIBUTE_CONST;
  *  - for a residue x modulo a sp p, we require 0 <= x < p */
 typedef UWtype sp_t;
 
+#define SP_NUMB_BITS (8 * sizeof (sp_t))
+#define SP_MAX ULONG_MAX
+#define SP_MIN (ULONG_MAX >> 1)
 
 /* SPM */
 
@@ -159,7 +162,8 @@ typedef struct
 {
   sp_t sp;		/* value of the sp */
   sp_t mul_c;		/* constant used for reduction mod sp */
-  sp_t prim_root;    /* primitive root */
+  sp_t prim_root;       /* primitive root */
+  sp_t inv_prim_root;	/* inverse of prim_root */
 } __spm_struct;
 
 typedef __spm_struct *spm_t;
@@ -174,36 +178,15 @@ typedef sp_t * spv_t;
 typedef unsigned long spv_size_t;
 
 
-/* SPP */
-
-/* small prime polynomial */
-typedef struct
-  {
-    /* allocated length of the polynomial */
-    spv_size_t alloc_len;
-    
-    /* current length of the polynomial
-     * this is an upper bound on the number of nonzero coeffs and is
-     * the value used for all computations */
-    spv_size_t len;
-
-    /* location of the coefficients (constant term first) */
-    spv_t spv;
-    
-    /* modulus */
-    spm_t spm;
-  } __spp_struct;
-
-typedef __spp_struct spp_t[1];
-
 /* MPZSPM */
 
-typedef mpz_t * mpzp_t;
+typedef mpz_t * mpzv_t;
 
 typedef struct
   {
     /* number of small primes needed to represent each coeff */
     unsigned int sp_num;
+    spv_size_t max_ntt_size;
     
     mpz_t modulus;
     
@@ -211,38 +194,17 @@ typedef struct
     __spm_struct *spm;
     
     /* precomputed crt constants, see mpzspm.c */
-    mpzp_t crt1, crt2;
+    mpzv_t crt1, crt2;
     sp_t *crt3, **crt4, *crt5;
   } __mpzspm_struct;
 
 typedef __mpzspm_struct * mpzspm_t;
 
-/* MPZSPP */
+/* MPZSPV */
 
 /* sp representation of a mpz polynomial */
-typedef struct
-  {
-    /* allocated length of each polynomial */
-    spv_size_t alloc_len;   
-    
-    /* current length of each polynomial
-     * this is an upper bound on the number of nonzero coeffs and is
-     * the value used for all computations */
-    spv_size_t len;
 
-    /* pointers to the location of the coefficients
-     * of each polynomial (constant term first) */
-    spv_t *spv;
-    
-    /* is there an implied monic monomial? if so then store its position,
-     * otherwise monic_pos = 0 */
-    spv_size_t monic_pos;
-    
-    /* prime and crt info */
-    mpzspm_t mpzspm;
-  } __mpzspp_struct;
-
-typedef __mpzspp_struct * mpzspp_t;
+typedef spv_t * mpzspv_t;
 
 
 /*************
@@ -451,41 +413,6 @@ void spv_sqr (spv_t, spv_t, spv_size_t, int, spm_t);
 void spv_random (spv_t, spv_size_t, sp_t);
 int spv_cmp (spv_t, spv_t, spv_size_t);
 
-#if 0
-/* spp */
-
-/* INITIALISATION */
-
-void spp_init (spp_t x, spm_t spm);
-void spp_init2 (spp_t x, spv_size_t len, spm_t spm);
-void spp_realloc (spp_t x, spv_size_t len);
-void spp_clear (spp_t x);
-
-/* ASSIGNMENT */
-
-void spp_set (spp_t r, spp_t x);
-void spp_swap (spp_t x, spp_t y);
-
-void spp_random (spp_t x, spv_size_t len);
-
-/* ARITHMETIC */
-
-/* add */
-void spp_add (spp_t r, spp_t x, spp_t y);
-
-/* subtract */
-void spp_sub (spp_t r, spp_t x, spp_t y);
-
-/* polynomial product */
-void spp_mul (spp_t r, spp_t x, spp_t y, int monic);
-void spp_sqr (spp_t r, spp_t x, int monic);
-
-void spp_mul_sp (spp_t r, spp_t x, sp_t c);
-
-/* COMPARISONS */
-int spp_cmp (spp_t x, spp_t y);
-#endif
-
 /* ntt_gfp */
 
 void spv_ntt_scramble (spv_t, spv_size_t);
@@ -496,29 +423,26 @@ void spv_sqr_ntt_gfp (spv_t, spv_t, spv_size_t, spm_t);
 
 /* mpzspm */
 
-mpzspm_t mpzspm_init (mpz_t, spv_size_t);
+mpzspm_t mpzspm_init (spv_size_t, mpz_t);
 void mpzspm_clear (mpzspm_t);
 
-/* mpzspp */
+/* mpzspv */
 
-#define MPZSPP_REALLOC(x,n) do{if((x)->alloc_len<n)mpzspp_realloc(x,n);}while(0)
-
-mpzspp_t mpzspp_init (mpzspm_t);
-mpzspp_t mpzspp_init2 (mpzspm_t, spv_size_t);
-void mpzspp_clear (mpzspp_t);
-void mpzspp_realloc (mpzspp_t, spv_size_t);
-void mpzspp_set (mpzspp_t, mpzspp_t, spv_size_t, spv_size_t, spv_size_t);
-void mpzspp_set_sp (mpzspp_t, sp_t, spv_size_t, spv_size_t);
-void mpzspp_set_mpzp (mpzspp_t, mpzp_t, spv_size_t, spv_size_t);
-void mpzspp_reverse (mpzspp_t, spv_size_t);
-void mpzspp_neg (mpzspp_t, mpzspp_t, spv_size_t, spv_size_t);
-void mpzspp_get_mpzp (mpzspp_t, mpzp_t, spv_size_t, spv_size_t);
-void mpzspp_mul (mpzspp_t, mpzspp_t, mpzspp_t, int);
-void mpzspp_mul_partial (mpzspp_t, mpzspp_t, mpzspp_t, spv_size_t, spv_size_t,
-    int);
-void mpzspp_normalise (mpzspp_t, spv_size_t, spv_size_t);
-void mpzspp_pwmul (mpzspp_t, mpzspp_t, mpzspp_t);
-void mpzspp_to_ntt (mpzspp_t, spv_size_t, int);
-void mpzspp_from_ntt (mpzspp_t);
-
+mpzspv_t mpzspv_init (spv_size_t, mpzspm_t);
+void mpzspv_clear (mpzspv_t, mpzspm_t);
+int mpzspv_verify (mpzspv_t, spv_size_t, spv_size_t, mpzspm_t);
+void mpzspv_set (mpzspv_t, spv_size_t, mpzspv_t, spv_size_t, spv_size_t,
+    mpzspm_t);
+void mpzspv_set_sp (mpzspv_t, spv_size_t, sp_t, spv_size_t, mpzspm_t);
+void mpzspv_from_mpzv (mpzspv_t, spv_size_t, mpzv_t, spv_size_t, mpzspm_t);
+void mpzspv_reverse (mpzspv_t, spv_size_t, spv_size_t, mpzspm_t);
+void mpzspv_neg (mpzspv_t, spv_size_t, mpzspv_t, spv_size_t, spv_size_t,
+    mpzspm_t);
+void mpzspv_to_mpzv (mpzspv_t, spv_size_t, mpzv_t, spv_size_t, mpzspm_t);
+void mpzspv_normalise (mpzspv_t, spv_size_t, spv_size_t, mpzspm_t);
+void mpzspv_pwmul (mpzspv_t, spv_size_t, mpzspv_t, spv_size_t, mpzspv_t, 
+    spv_size_t, spv_size_t, mpzspm_t);
+void mpzspv_to_ntt (mpzspv_t, spv_size_t, spv_size_t, spv_size_t, int,
+    mpzspm_t);
+void mpzspv_from_ntt (mpzspv_t, spv_size_t, spv_size_t, spv_size_t, mpzspm_t);
 #endif /* __HAVE_SP_H */
