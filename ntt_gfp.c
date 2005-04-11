@@ -97,7 +97,7 @@ spv_ntt_gfp_dit (spv_t x, spv_size_t len, sp_t p, sp_t d, sp_t root)
 
   /* not cache-friendly at all, for large len it's 
    * quicker to use scramble + dif + scramble */
-  if (len >= DIT_DIF_THRESHOLD)
+  if (0 && len >= DIT_DIF_THRESHOLD)
     {
       ntt_scramble (x, len);
       spv_ntt_gfp_dif (x, len, p, d, root);
@@ -105,22 +105,41 @@ spv_ntt_gfp_dit (spv_t x, spv_size_t len, sp_t p, sp_t d, sp_t root)
       return;
     }
   
-  for (m = 1; m < len; m <<= 1)
+  if (len * sizeof (sp_t) <= CACHE_SIZE)
     {
+      for (m = 1; m < len; m <<= 1)
+        {
+          a = 1;
+          b = sp_pow (root, len / (2 * m), p, d);
+      
+          for (j = 0; j < m; j++)
+            {
+	      for (i = j; i < len; i += 2 * m)
+	        {
+	          t = sp_mul (a, x[i + m], p, d);
+	          x[i + m] = sp_sub (x[i], t, p);
+	          x[i] = sp_add (x[i], t, p);
+	        }
+	  
+	      a = sp_mul (a, b, p, d);
+            }
+        }
+    }
+  else
+    {
+      m = len / 2;
+      sp_t root2 = sp_sqr (root, p, d);
+      spv_ntt_gfp_dit (x, m, p, d, root2);
+      spv_ntt_gfp_dit (x + m, m, p, d, root2);
       a = 1;
-      b = sp_pow (root, len / (2 * m), p, d);
       
       for (j = 0; j < m; j++)
         {
-	  for (i = j; i < len; i += 2 * m)
-	    {
-	      t = sp_mul (a, x[i + m], p, d);
-	      x[i + m] = sp_sub (x[i], t, p);
-	      x[i] = sp_add (x[i], t, p);
-	    }
-	  
-	  a = sp_mul (a, b, p, d);
-        }
+	  t = sp_mul (a, x[j + m], p, d);
+	  x[j + m] = sp_sub (x[j], t, p);
+	  x[j] = sp_add (x[j], t, p);
+	  a = sp_mul (a, root, p, d);
+	}
     }
 }
 
