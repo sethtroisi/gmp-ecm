@@ -70,8 +70,17 @@ getprime (double pp)
       moduli = NULL;
       return pp;
     }
-
-  while ((++current < len) && (sieve[current] == 0));
+  
+  /* the following complex block is equivalent to:
+     while ((++current < len) && (sieve[current] == 0));
+     but is faster.
+  */
+  {
+    unsigned char *ptr = sieve + current;
+    unsigned char *end = sieve + len;
+    while ((++ptr < end) && (*ptr == 0));
+    current += ptr - (sieve + current);
+  }
 
   if (current < len) /* most calls will end here */
     return offset + 2.0 * (double) current;
