@@ -80,8 +80,11 @@ mpzspv_verify (mpzspv_t x, spv_size_t offset, spv_size_t len, mpzspm_t mpzspm)
   
   for (i = 0; i < mpzspm->sp_num; i++)
     {
+
+#ifdef HAVE_malloc_usable_size
       if (malloc_usable_size (x[i]) < (offset + len) * sizeof (sp_t))
         return 0;
+#endif
 
       for (j = offset; j < offset + len; j++)
 	if (x[i][j] >= mpzspm->spm[i].sp)
