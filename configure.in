@@ -98,6 +98,7 @@ AC_CHECK_FUNC(__gmpn_add_nc, AC_DEFINE(HAVE_NATIVE_mpn_add_nc))
 AC_CHECK_FUNC(__gmpn_mod_34lsub1, AC_DEFINE(HAVE_NATIVE_mpn_mod_34lsub1))
 
 AC_CHECK_FUNC(snprintf, AC_DEFINE(HAVE_snprintf))
+AC_CHECK_FUNC(malloc_usable_size, AC_DEFINE(HAVE_malloc_usable_size))
 
 dnl If user wants GWNUM, check if the file exists (either as .a or .lib)
 if test "x$with_gwnum" = x; then :; else
