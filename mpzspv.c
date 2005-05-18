@@ -72,8 +72,10 @@ mpzspv_clear (mpzspv_t x, mpzspm_t mpzspm)
 int
 mpzspv_verify (mpzspv_t x, spv_size_t offset, spv_size_t len, mpzspm_t mpzspm)
 {
+#ifdef HAVE_malloc_usable_size
   if (malloc_usable_size (x) < mpzspm->sp_num * sizeof (spv_t))
     return 0;
+#endif
 
   unsigned int i;
   spv_size_t j;
