@@ -18,6 +18,9 @@
   02111-1307, USA.
 */
 
+/* Needed for "FILE *" */
+#include <stdio.h>
+
 #if  defined (__STDC__)                                 \
   || defined (__cplusplus)                              \
   || defined (_AIX)                                     \
@@ -290,7 +293,9 @@ int     bestD (mpz_t, mpz_t, int, unsigned int *, unsigned int *,
 
 /* ecm.c */
 #define choose_S __ECM(choose_S)
-int choose_S (mpz_t);
+int  choose_S (mpz_t);
+#define ecm_mul __ECM(ecm_mul)
+void ecm_mul (mpres_t, mpres_t, mpz_t, mpmod_t, mpres_t);
 
 /* ecm2.c */
 #define ecm_rootsF __ECM(ecm_rootsF)
@@ -458,6 +463,10 @@ void mpmod_init_MODMULN (mpmod_t, mpz_t);
 void mpmod_init_REDC (mpmod_t, mpz_t);
 #define mpmod_clear __ECM(mpmod_clear)
 void mpmod_clear (mpmod_t);
+#define mpmod_pausegw __ECM(mpmod_pausegw)
+void mpmod_pausegw (mpmod_t modulus);
+#define mpmod_contgw __ECM(mpmod_contgw)
+void mpmod_contgw (mpmod_t modulus);
 #define mpres_pow __ECM(mpres_pow)
 void mpres_pow (mpres_t, mpres_t, mpres_t, mpmod_t);
 #define mpres_ui_pow __ECM(mpres_ui_pow)
@@ -566,6 +575,7 @@ unsigned int get_random_ui (void);
 void Fgwinit (int);
 void Fgwclear (void);
 void Fgwmul (mpz_t, mpz_t, mpz_t);
+int  gw_ecm_stage1 (mpz_t, curve *, mpmod_t, double, double *, mpz_t);
 #endif
 
 
