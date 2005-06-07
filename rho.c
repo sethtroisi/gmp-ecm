@@ -21,7 +21,9 @@
 */
 
 #include <stdlib.h>
+#if defined(DEBUG_NUMINTEGRATE) || defined(TESTDRIVE)
 #include <stdio.h>
+#endif
 #include <math.h>
 #include "gmp.h"
 #include "ecm-impl.h"
@@ -34,14 +36,13 @@
 #define M_PI_SQR_6 1.644934066848226436 /* Pi^2/6 */
 #define M_EULER    0.577215664901532861
 #define M_EULER_1   0.422784335098467139 /* 1 - Euler */
-#define GSL_DBL_EPSILON 2.2204460492503131e-16
 
 void rhoinit (int, int); /* used in stage2.c */
 
 static double *rhotable = NULL;
 static int invh = 0;
 static double h = 0.;
-static int tablemax = 0.;
+static int tablemax = 0;
 
 #ifdef TESTDRIVE
 static unsigned int
@@ -169,7 +170,7 @@ rhoinit (int parm_invh, int parm_tablemax)
   
   invh = parm_invh;
   h = 1. / (double) invh;
-  tablemax = (double) parm_tablemax;
+  tablemax = parm_tablemax;
   
   if (parm_tablemax == 0)
     return;
@@ -213,7 +214,7 @@ dickmanrho (double alpha)
       int a = floor (alpha * invh);
       double rho1 = rhotable[a];
       double rho2 = (a + 1) < tablemax * invh ? rhotable[a + 1] : 0;
-      return rho1 + (rho2 - rho1) * (alpha / h - (double)a);
+      return rho1 + (rho2 - rho1) * (alpha * invh - (double)a);
     }
   
   return 0.;
