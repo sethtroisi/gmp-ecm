@@ -100,6 +100,9 @@ isbase2 (mpz_t n, double threshold)
   if (abs (res) > (int) (threshold * (double) lo)) 
     res = 0;
 
+  if (abs (res) < 16)
+    res = 0;
+
   return res;
 }
 
@@ -147,6 +150,7 @@ base2mod_1 (mpres_t RS, mpres_t t, mpmod_t modulus)
     }
 }
 
+#ifdef HAVE_FFT
 /* Fermat-mod */
 static void
 base2mod_2 (mpres_t RS, mp_size_t n, mpz_t modulus)
@@ -169,6 +173,7 @@ base2mod_2 (mpres_t RS, mp_size_t n, mpz_t modulus)
         mpz_mod (RS, RS, modulus);
     }
 }
+#endif
 
 /* subquadratic REDC, at mpn level.
    {orig,n} is the original modulus.
@@ -521,6 +526,24 @@ mpmod_clear (mpmod_t modulus)
 }
 
 void 
+mpmod_pausegw (mpmod_t modulus)
+{
+#ifdef HAVE_GWNUM
+  if (modulus->Fermat >= GWTHRESHOLD)
+    Fgwclear ();
+#endif
+}
+
+void 
+mpmod_contgw (mpmod_t modulus)
+{
+#ifdef HAVE_GWNUM
+  if (modulus->Fermat >= GWTHRESHOLD)
+    Fgwinit (modulus->Fermat);
+#endif
+}
+
+void 
 mpres_init (mpres_t R, mpmod_t modulus)
 {
   /* use mpz_sizeinbase since modulus->bits may not be initialized yet */
@@ -736,13 +759,31 @@ mpres_mul (mpres_t R, mpres_t S1, mpres_t S2, mpmod_t modulus)
   ASSERT_NORMALIZED (S2);
 
 #ifdef HAVE_GWNUM
-  if (modulus->repr == MOD_BASE2 && modulus->Fermat >= 1024)
+  if (modulus->repr == MOD_BASE2 && modulus->Fermat >= GWTHRESHOLD)
     {
       base2mod_1 (S1, modulus->temp1, modulus);
       base2mod_1 (S2, modulus->temp1, modulus);
+
+#ifdef DEBUG
+      mpz_mul (modulus->temp1, S1, S2);
+      base2mod_1 (modulus->temp1, modulus->temp2, modulus);
+      mpz_mod (modulus->temp2, modulus->temp1, modulus->orig_modulus);
+#endif
+
       ASSERT (mpz_sizeinbase (S1, 2) <= (unsigned) abs(modulus->bits));
       ASSERT (mpz_sizeinbase (S2, 2) <= (unsigned) abs(modulus->bits));
       Fgwmul (R, S1, S2);
+
+#ifdef DEBUG
+      mpz_mod (modulus->temp1, R, modulus->orig_modulus);
+      if (mpz_cmp (modulus->temp1, modulus->temp2) != 0)
+        {
+          fprintf (stderr, "mpres_mul: results of gwmul and mpz_mul differ\n");
+          gmp_fprintf (stderr, "GMP result   : %Zd\nGWNUM result : %Zd\n", 
+                       modulus->temp2, modulus->temp1);
+        }
+#endif
+
       return;
     }
 #elif defined(HAVE_FFT)

@@ -208,17 +208,32 @@ duplicate (mpres_t x2, mpres_t z2, mpres_t x1, mpres_t z1, mpmod_t n,
   mpres_mul (z2, w, u, n);  /* z2 = ((4*x1*z1)*((x1-z1)^2+(A+2)/4*(4*x1*z1))) mod n */
 }
 
-/* multiply P=(x:z) by e and puts the result in (x:z).
-   Assumes e >= 1.
-*/
-static void
+/* multiply P=(x:z) by e and puts the result in (x:z). */
+void
 ecm_mul (mpres_t x, mpres_t z, mpz_t e, mpmod_t n, mpres_t b)
 {
   size_t l;
+  int negated = 0;
   mpres_t x0, z0, x1, z1, u, v, w;
 
+  /* In Montgomery coordinates, the point at infinity is (0::0) */
+  if (mpz_sgn (e) == 0)
+    {
+      mpz_set_ui (x, 0);
+      mpz_set_ui (z, 0);
+      return;
+    }
+
+  /* The negative of a point (x:y:z) is (x:-y:u). Since we do not compute
+     y, e*(x::z) == (-e)*(x::z). */
+  if (mpz_sgn (e) < 0)
+    {
+      negated = 1;
+      mpz_neg (e, e);
+    }
+
   if (mpz_cmp_ui (e, 1) == 0)
-    return;
+    goto ecm_mul_end;
 
   mpres_init (x0, n);
   mpres_init (z0, n);
@@ -260,6 +275,12 @@ ecm_mul (mpres_t x, mpres_t z, mpz_t e, mpmod_t n, mpres_t b)
   mpres_clear (u, n);
   mpres_clear (v, n);
   mpres_clear (w, n);
+
+ecm_mul_end:
+
+  /* Undo negation to avoid changing the caller's e value */
+  if (negated)
+    mpz_neg (e, e);
 }
 
 #define ADD 6.0 /* number of multiplications in an addition */
@@ -626,6 +647,8 @@ ecm (mpz_t f, mpz_t x, mpz_t sigma, mpz_t n, mpz_t go, double B1done,
      FILE *os, FILE* es, char *TreeFilename)
 {
   int youpi = ECM_NO_FACTOR_FOUND;
+  int base2 = 0; /* If n is of form 2^n[+-]1, set base to [+-]n */
+  int Fermat = 0; /* If base2 > 0 is a power of 2, set Fermat to base2 */
   unsigned int st;
   mpmod_t modulus;
   curve P;
@@ -642,10 +665,52 @@ ecm (mpz_t f, mpz_t x, mpz_t sigma, mpz_t n, mpz_t go, double B1done,
       return ECM_FACTOR_FOUND_STEP1;
     }
 
+  /* check that B1 is not too large */
+  if (B1 > (double) ULONG_MAX)
+    {
+      outputf (OUTPUT_ERROR, "Error, maximal step 1 bound for ECM is %lu.\n", 
+               ULONG_MAX);
+      return ECM_ERROR;
+    }
+
   /* now n is odd */
 
   st = cputime ();
 
+  /* See what kind of number we have as that may influence optimal parameter 
+     selection. Test for base 2 number */
+
+  if (repr != -1)
+    base2 = (abs (repr) >= 16) ? repr : isbase2 (n, BASE2_THRESHOLD);
+
+  /* For for a Fermat number (base2 a positive power of 2) */
+  for (Fermat = base2; Fermat > 0 && (Fermat & 1) == 0; Fermat >>= 1);
+  if (Fermat == 1) 
+      Fermat = base2;
+  else
+      Fermat = 0;
+
+  if (base2)
+    {
+      if (mpmod_init_BASE2 (modulus, base2, n) == ECM_ERROR)
+        return ECM_ERROR;
+    }
+  else if (repr == 1)
+    mpmod_init_MPZ (modulus, n);
+  else if (repr == MOD_MODMULN)
+    mpmod_init_MODMULN (modulus, n);
+  else if (repr == MOD_REDC)
+    mpmod_init_REDC (modulus, n);
+  else /* automatic choice of general reduction method */
+    mpmod_init (modulus, n, -1);
+
+  mpres_init (P.x, modulus);
+  mpres_init (P.y, modulus);
+  mpres_init (P.A, modulus);
+
+  mpres_set_z (P.x, x, modulus);
+  mpres_set_ui (P.y, 1, modulus);
+  
   mpz_init_set (B2min, B2min_parm);
   mpz_init_set (B2, B2_parm);
 
@@ -670,20 +735,6 @@ ecm (mpz_t f, mpz_t x, mpz_t sigma, mpz_t n, mpz_t go, double B1done,
   if (mpz_sgn (B2min) < 0)
     mpz_set_d (B2min, B1);
 
-  if (repr == 1)
-    mpmod_init_MPZ (modulus, n);
-  else if (repr == MOD_MODMULN)
-    mpmod_init_MODMULN (modulus, n);
-  else if (repr == MOD_REDC)
-    mpmod_init_REDC (modulus, n);
-  else if (abs (repr) > 16)
-    {
-      if (mpmod_init_BASE2 (modulus, repr, n) == ECM_ERROR)
-        return ECM_ERROR;
-    }
-  else /* automatic choice, avoiding base2 if repr=-1 */
-    mpmod_init (modulus, n, repr);
-
   /* Set default degree for Brent-Suyama extension */
   /* We try to keep the time used by the Brent-Suyama extension
      at about 10% of the stage 2 time */
@@ -693,8 +744,7 @@ ecm (mpz_t f, mpz_t x, mpz_t sigma, mpz_t n, mpz_t go, double B1done,
 
   if (S == ECM_DEFAULT_S)
     {
-      /* This requires that modulus is already inited */
-      if (modulus->repr == MOD_BASE2 && modulus->Fermat > 0)
+      if (Fermat > 0)
         {
           /* For Fermat numbers, default is 1 (no Brent-Suyama) */
           S = 1;
@@ -709,43 +759,32 @@ ecm (mpz_t f, mpz_t x, mpz_t sigma, mpz_t n, mpz_t go, double B1done,
         }
     }
   
-  mpres_init (P.x, modulus);
-  mpres_init (P.A, modulus);
-
   if (sigma_is_A == 0)
     {
       /* if sigma=0, generate it at random */
-      if (mpz_cmp_ui (sigma, 0) == 0)
+      if (mpz_sgn (sigma) == 0)
         {
           gmp_randstate_t state;
           gmp_randinit_default (state);
-          gmp_randseed_ui (state, get_random_ui ());
+          gmp_randseed_ui (state, get_random_ui ()); /* FIXME */
           mpz_urandomb (sigma, state, 32);
           mpz_add_ui (sigma, sigma, 6);
           gmp_randclear (state);
         }
 
-      /* sigma contains sigma value, A value must be computed */
-      outputf (OUTPUT_NORMAL, "Using B1=%1.0f, B2=", B1);
-      if (mpz_cmp_d (B2min, B1) == 0)
-        outputf (OUTPUT_NORMAL, "%Zd", B2);
-      else
-        outputf (OUTPUT_NORMAL, "%Zd-%Zd", B2min, B2);
-      outputf (OUTPUT_NORMAL, ", polynomial ");
-      if (S > 0)
-        outputf (OUTPUT_NORMAL, "x^%u", S);
-      else
-        outputf (OUTPUT_NORMAL, "Dickson(%u)", -S);
-      outputf (OUTPUT_NORMAL, ", sigma=%Zd\n", sigma);
-
-      if ((youpi = get_curve_from_sigma (f, P.A, P.x, sigma, modulus)))
-        goto end_of_ecm;
+      /* sigma contains sigma value, A and x values must be computed */
+      /* If x is specified by user, keep that value */
+      youpi = get_curve_from_sigma (f, P.A, P.x, sigma, modulus);
+      if (youpi != ECM_NO_FACTOR_FOUND)
+	  goto end_of_ecm;
     }
   else
     {
       /* sigma contains the A value */
       mpres_set_z (P.A, sigma, modulus);
       /* TODO: make a valid, random starting point in case none was given */
+      /* Problem: this may be as hard as factoring as we'd need to determine
+         whether x^3 + a*x^2 + x is a quadratic residue or not */
       /* For now, we'll just chicken out. */
       if (mpz_sgn (x) == 0)
         {
@@ -759,11 +798,25 @@ ecm (mpz_t f, mpz_t x, mpz_t sigma, mpz_t n, mpz_t go, double B1done,
   /* If a nonzero value is given in x, then we use it as the starting point */
   if (mpz_sgn (x) != 0)
       mpres_set_z (P.x, x, modulus);
-  
+
+  /* Now that the parameters are decided, print info */
+
+  outputf (OUTPUT_NORMAL, "Using B1=%1.0f, B2=", B1);
+  if (mpz_cmp_d (B2min, B1) == 0)
+      outputf (OUTPUT_NORMAL, "%Zd", B2);
+  else
+      outputf (OUTPUT_NORMAL, "%Zd-%Zd", B2min, B2);
+  outputf (OUTPUT_NORMAL, ", polynomial ");
+  if (S > 0)
+      outputf (OUTPUT_NORMAL, "x^%u", S);
+  else
+      outputf (OUTPUT_NORMAL, "Dickson(%u)", -S);
+  outputf (OUTPUT_NORMAL, ", sigma=%Zd\n", sigma);
+
   if (test_verbose (OUTPUT_RESVERBOSE))
     {
       mpz_t t;
-      
+
       mpz_init (t);
       mpres_get_z (t, P.A, modulus);
       outputf (OUTPUT_RESVERBOSE, "a=%Zd\n", t);
@@ -775,14 +828,14 @@ ecm (mpz_t f, mpz_t x, mpz_t sigma, mpz_t n, mpz_t go, double B1done,
   if (go != NULL && mpz_cmp_ui (go, 1) > 0)
     outputf (OUTPUT_VERBOSE, "initial group order: %Zd\n", go);
 
-  /* check that B1 is not too large */
-  if (B1 > (double) ULONG_MAX)
-    {
-      outputf (OUTPUT_ERROR, "Error, maximal step1 bound for ECM is %lu.\n", 
-               ULONG_MAX);
-      youpi = ECM_ERROR;
-      goto end_of_ecm;
-    }
+#ifdef HAVE_GWNUM
+  /* Right now, we only do base 2 numbers with GWNUM */
+
+  if (base2 != 0 && B1 >= B1done)
+      youpi = gw_ecm_stage1 (f, &P, modulus, B1, &B1done, go);
+
+  /* At this point B1 == B1done unless interrupted */
+#endif
 
   if (B1 > B1done)
     youpi = ecm_stage1 (f, P.x, P.A, modulus, B1, B1done, go);
@@ -796,7 +849,7 @@ ecm (mpz_t f, mpz_t x, mpz_t sigma, mpz_t n, mpz_t go, double B1done,
   
   mpres_get_z (x, P.x, modulus);
 
-  if (youpi != ECM_NO_FACTOR_FOUND) /* a factor was found */
+  if (youpi != ECM_NO_FACTOR_FOUND)
     goto end_of_ecm;
 
   if (test_verbose (OUTPUT_RESVERBOSE)) 
@@ -809,7 +862,6 @@ ecm (mpz_t f, mpz_t x, mpz_t sigma, mpz_t n, mpz_t go, double B1done,
       mpz_clear (t);
     }
 
-  mpres_init (P.y, modulus);
 
   youpi = montgomery_to_weierstrass (f, P.x, P.y, P.A, modulus);
 
@@ -817,11 +869,10 @@ ecm (mpz_t f, mpz_t x, mpz_t sigma, mpz_t n, mpz_t go, double B1done,
     youpi = stage2 (f, &P, modulus, B2min, B2, k, S, ECM_ECM, st, 
                     TreeFilename);
   
-  mpres_clear (P.y, modulus);
-
 end_of_ecm:
-  mpres_clear (P.x, modulus);
   mpres_clear (P.A, modulus);
+  mpres_clear (P.y, modulus);
+  mpres_clear (P.x, modulus);
   mpmod_clear (modulus);
   mpz_clear (B2);
   mpz_clear (B2min);
