@@ -252,7 +252,7 @@ void ntt_PolyInvert (mpzv_t q, mpzv_t b, spv_size_t len, mpzv_t t,
       if (2 * k < len)
 	mpzspv_normalise (x, k, k, mpzspm);
       mpzspv_set (x, 1, x, k, k, mpzspm); /* legal overlap */
-      mpzspv_set (x, k + 1, w, 0, MIN(k, len / 2), mpzspm);
+      mpzspv_set (x, k + 1, w, 0, MIN(k, len / 2 - 1), mpzspm);
     }
 
   mpzspv_to_mpzv (x, 1, q, len - POLYINVERT_NTT_THRESHOLD / 2, mpzspm);
