@@ -405,8 +405,8 @@ void spv_submul_sp (spv_t, spv_t, sp_t, spv_size_t, sp_t, sp_t);
 void spv_mul_basecase (spv_t, spv_t, spv_t, spv_size_t, spv_size_t,
     sp_t, sp_t);
 void spv_mul_karatsuba (spv_t, spv_t, spv_t, spv_t, spv_size_t, sp_t, sp_t);
-// void spv_mul_toomcook3 (spv_t, spv_t, spv_t, spv_t, spv_size_t, spm_t);
-// void spv_mul_toomcook4 (spv_t, spv_t, spv_t, spv_t, spv_size_t, spm_t);
+/* void spv_mul_toomcook3 (spv_t, spv_t, spv_t, spv_t, spv_size_t, spm_t); */
+/* void spv_mul_toomcook4 (spv_t, spv_t, spv_t, spv_t, spv_size_t, spm_t); */
 void spv_mul (spv_t, spv_t, spv_size_t, spv_t, spv_size_t, spv_size_t,
     spv_size_t, int, spm_t);
 void spv_sqr (spv_t, spv_t, spv_size_t, int, spm_t);
