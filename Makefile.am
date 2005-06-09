@@ -20,7 +20,7 @@ tune2_SOURCES = tune2.c
 LDADD = libecm.a
 
 include_HEADERS = ecm.h
-noinst_HEADERS = ecm-impl.h ecm-gmp.h ecm-ecm.h sp.h
+noinst_HEADERS = ecm-impl.h ecm-gmp.h ecm-ecm.h sp.h longlong.h
 
 EXTRA_DIST = test.pm1 test.pp1 test.ecm ecm.1 README.lib ecm.xml
 
