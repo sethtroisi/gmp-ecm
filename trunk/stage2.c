@@ -488,9 +488,9 @@ stage2 (mpz_t f, void *X, mpmod_t modulus, mpz_t B2min, mpz_t B2,
               youpi = ECM_ERROR;
               goto free_Tree_i;
             }
-#if 0 && defined HAVE_NTT
+#if defined HAVE_NTT
 	  /* FIXME: Tree == NULL breaks ntt_PolyFromRoots_Tree */
-	  if (ntt_PolyFromRoots_Tree (F, F, dF, T, mpzspm, NULL, TreeFile)
+	  if (ntt_PolyFromRoots_Tree (F, F, dF, T, i - 1, mpzspm, NULL, TreeFile)
 #else
 	  if (PolyFromRoots_Tree (F, F, dF, T, i - 1, n, NULL, TreeFile, 0)
 #endif
@@ -509,7 +509,7 @@ stage2 (mpz_t f, void *X, mpmod_t modulus, mpz_t B2min, mpz_t B2,
     }
   else
 #ifdef HAVE_NTT
-    ntt_PolyFromRoots_Tree (F, F, dF, T, mpzspm, Tree, NULL);
+    ntt_PolyFromRoots_Tree (F, F, dF, T, -1, mpzspm, Tree, NULL);
 #else
     PolyFromRoots_Tree (F, F, dF, T, -1, n, Tree, NULL, 0);
 #endif
@@ -697,7 +697,7 @@ stage2 (mpz_t f, void *X, mpmod_t modulus, mpz_t B2min, mpz_t B2,
   st = cputime ();
 #ifdef POLYEVALTELLEGEN
 #if defined HAVE_NTT
-  ntt_polyevalT (T, dF, Tree, T + dF + 1, sp_invF, mpzspm, TreeFilename);
+  youpi = ntt_polyevalT (T, dF, Tree, T + dF + 1, sp_invF, mpzspm, TreeFilename);
 #else
   youpi = polyeval_tellegen (T, dF, Tree, T + dF + 1, sizeT - dF - 1, invF,
 		  n, TreeFilename);

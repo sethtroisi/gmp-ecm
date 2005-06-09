@@ -393,7 +393,7 @@ void	  ntt_PolyFromRoots (listz_t, listz_t, unsigned long, listz_t,
 
 #define ntt_PolyFromRoots_Tree __ECM(ntt_PolyFromRoots_Tree)
 int       ntt_PolyFromRoots_Tree (listz_t, listz_t, unsigned long, listz_t,
-                         mpzspm_t, listz_t *, FILE *);
+                         int, mpzspm_t, listz_t *, FILE *);
 
 #define PrerevertDivision __ECM(PrerevertDivision)
 int   PrerevertDivision (listz_t, listz_t, listz_t, unsigned int, listz_t,
@@ -414,7 +414,7 @@ void  RecursiveDivision (listz_t, listz_t, listz_t, unsigned int,
                          listz_t, mpz_t, int);
 
 #define ntt_polyevalT __ECM(ntt_polyevalT)
-void  ntt_polyevalT (mpzv_t, spv_size_t, mpzv_t *, mpzv_t, mpzspv_t,
+int  ntt_polyevalT (mpzv_t, spv_size_t, mpzv_t *, mpzv_t, mpzspv_t,
 		mpzspm_t, char *);
 
 #define ntt_mul __ECM(ntt_mul)
