@@ -40,7 +40,7 @@
 #include "cpuid.h"
 
 #define USE_FCONV
-//#define DEBUG
+/* #define DEBUG */
 
 /* This prototype should be in gwnum.h */
 int gwnum_ecmStage1 (
@@ -273,13 +273,13 @@ Fdwordstogw (
 #endif
 	
 	*(double *) nextoff = (double) value;
-//	printf ("Fdwordstogw: next-to-last value written: %d\n", value);
+/*	printf ("Fdwordstogw: next-to-last value written: %d\n", value); */
 	nextoff += *op++;
 	
 	/* This is the last value written. Don't generate a carry out */
 	*(double *) nextoff = (double) binval;
-//	printf ("Fdwordstogw: Last value %d written to offset %d\n", 
-//		binval, nextoff - (unsigned long) g);
+/*	printf ("Fdwordstogw: Last value %d written to offset %d\n", 
+		binval, nextoff - (unsigned long) g); */
 
 	((long *) g)[-1] = 0;	/* Clear needs-normalize counter */
 	((long *) g)[-7] = 0;	/* Clear has been FFTed flag */
@@ -473,7 +473,7 @@ Fgwmul (mpz_t R, mpz_t S1, mpz_t S2)
                   "is not identity for S2 = %Zd\nResult: %Zd\ng = ", S2, t);
       gwdump (g1);
     }
-//  printf ("Identitiy test passed\n");
+/*  printf ("Identitiy test passed\n"); */
   mpz_clear (t);
 #endif
 
