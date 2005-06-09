@@ -291,7 +291,9 @@ stage2 (mpz_t f, void *X, mpmod_t modulus, mpz_t B2min, mpz_t B2,
   unsigned int lgk; /* ceil(log(k)/log(2)) */
   listz_t invF = NULL;
   double mem;
-
+  mpzspm_t mpzspm;
+  mpzspv_t sp_invF;
+  
   /* check alloc. size of f */
   mpres_realloc (f, modulus);
 
@@ -340,15 +342,13 @@ stage2 (mpz_t f, void *X, mpmod_t modulus, mpz_t B2min, mpz_t B2,
         }
     }
 #if defined HAVE_NTT
-  mpzspm_t mpzspm = mpzspm_init (2 * dF, modulus->orig_modulus);
+  mpzspm = mpzspm_init (2 * dF, modulus->orig_modulus);
   
   if (mpzspm == NULL)
     {
       youpi = ECM_ERROR;
       goto clear_s_i0;
     }
-  
-  mpzspv_t sp_invF;
 #endif
   
   mpz_mul_ui (s, i0, d); /* s = i0 * d */

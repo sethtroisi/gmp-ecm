@@ -127,8 +127,8 @@ spv_ntt_gfp_dit (spv_t x, spv_size_t len, sp_t p, sp_t d, sp_t root)
     }
   else
     {
-      m = len / 2;
       sp_t root2 = sp_sqr (root, p, d);
+      m = len / 2;
       spv_ntt_gfp_dit (x, m, p, d, root2);
       spv_ntt_gfp_dit (x + m, m, p, d, root2);
       a = 1;

@@ -52,9 +52,9 @@ mpzspv_init (spv_size_t len, mpzspm_t mpzspm)
 void
 mpzspv_clear (mpzspv_t x, mpzspm_t mpzspm)
 {
-  ASSERT (mpzspv_verify (x, 0, 0, mpzspm));
-  
   unsigned int i;
+	
+  ASSERT (mpzspv_verify (x, 0, 0, mpzspm));
   
   for (i = 0; i < mpzspm->sp_num; i++)
     free (x[i]);
@@ -72,14 +72,14 @@ mpzspv_clear (mpzspv_t x, mpzspm_t mpzspm)
 int
 mpzspv_verify (mpzspv_t x, spv_size_t offset, spv_size_t len, mpzspm_t mpzspm)
 {
+  unsigned int i;
+  spv_size_t j;
+  
 #ifdef HAVE_malloc_usable_size
   if (malloc_usable_size (x) < mpzspm->sp_num * sizeof (spv_t))
     return 0;
 #endif
 
-  unsigned int i;
-  spv_size_t j;
-  
   for (i = 0; i < mpzspm->sp_num; i++)
     {
 
@@ -100,10 +100,10 @@ void
 mpzspv_set (mpzspv_t r, spv_size_t r_offset, mpzspv_t x, spv_size_t x_offset,
     spv_size_t len, mpzspm_t mpzspm)
 {
+  unsigned int i;
+  
   ASSERT (mpzspv_verify (r, r_offset + len, 0, mpzspm));
   ASSERT (mpzspv_verify (x, x_offset, len, mpzspm));
-  
-  unsigned int i;
   
   for (i = 0; i < mpzspm->sp_num; i++)
     spv_set (r[i] + r_offset, x[i] + x_offset, len);
@@ -113,11 +113,11 @@ void
 mpzspv_set_sp (mpzspv_t r, spv_size_t offset, sp_t c, spv_size_t len,
     mpzspm_t mpzspm)
 {
+  unsigned int i;
+  
   ASSERT (mpzspv_verify (r, offset + len, 0, mpzspm));
   ASSERT (c < SP_MIN); /* not strictly necessary but avoids mod functions */
   
-  unsigned int i;
-
   for (i = 0; i < mpzspm->sp_num; i++)
     spv_set_sp (r[i] + offset, c, len);
 }
@@ -126,10 +126,10 @@ void
 mpzspv_neg (mpzspv_t r, spv_size_t r_offset, mpzspv_t x, spv_size_t x_offset,
     spv_size_t len, mpzspm_t mpzspm)
 {
+  unsigned int i;
+  
   ASSERT (mpzspv_verify (r, r_offset + len, 0, mpzspm));
   ASSERT (mpzspv_verify (x, x_offset, len, mpzspm));
-  
-  unsigned int i;
   
   for (i = 0; i < mpzspm->sp_num; i++)
     spv_neg (r[i] + r_offset, x[i] + x_offset, len, mpzspm->spm[i].sp);
@@ -138,12 +138,12 @@ mpzspv_neg (mpzspv_t r, spv_size_t r_offset, mpzspv_t x, spv_size_t x_offset,
 void
 mpzspv_reverse (mpzspv_t x, spv_size_t offset, spv_size_t len, mpzspm_t mpzspm)
 {
-  ASSERT (mpzspv_verify (x, offset, len, mpzspm));
-  
   unsigned int i;
   spv_size_t j;
   sp_t t;
   spv_t spv;
+  
+  ASSERT (mpzspv_verify (x, offset, len, mpzspm));
   
   for (i = 0; i < mpzspm->sp_num; i++)
     {
@@ -161,10 +161,10 @@ void
 mpzspv_from_mpzv (mpzspv_t x, spv_size_t offset, mpzv_t mpzv,
     spv_size_t len, mpzspm_t mpzspm)
 {
-  ASSERT (mpzspv_verify (x, offset + len, 0, mpzspm));
-  
   unsigned int i, sp_num;
   spv_size_t j;
+  
+  ASSERT (mpzspv_verify (x, offset + len, 0, mpzspm));
   
   sp_num = mpzspm->sp_num;
   
@@ -199,14 +199,14 @@ void
 mpzspv_to_mpzv (mpzspv_t x, spv_size_t offset, mpzv_t mpzv,
     spv_size_t len, mpzspm_t mpzspm)
 {
-  ASSERT (mpzspv_verify (x, offset, len, mpzspm));
-  
   unsigned int i;
   spv_size_t j;
   float *f = (float *) valloc (len * sizeof (float));
   float prime_recip;
   sp_t t;
   spm_t spm;
+  
+  ASSERT (mpzspv_verify (x, offset, len, mpzspm));
   
   for (j = 0; j < len; j++)
     {
@@ -239,12 +239,12 @@ void
 mpzspv_pwmul (mpzspv_t r, spv_size_t r_offset, mpzspv_t x, spv_size_t x_offset,
     mpzspv_t y, spv_size_t y_offset, spv_size_t len, mpzspm_t mpzspm)
 {
+  unsigned int i;
+  
   ASSERT (mpzspv_verify (r, r_offset + len, 0, mpzspm));
   ASSERT (mpzspv_verify (x, x_offset, len, mpzspm));
   ASSERT (mpzspv_verify (y, y_offset, len, mpzspm));
   
-  unsigned int i;
-
   for (i = 0; i < mpzspm->sp_num; i++)
     spv_pwmul (r[i] + r_offset, x[i] + x_offset, y[i] + y_offset,
 	len, mpzspm->spm[i].sp, mpzspm->spm[i].mul_c);
@@ -257,21 +257,23 @@ void
 mpzspv_normalise (mpzspv_t x, spv_size_t offset, spv_size_t len,
     mpzspm_t mpzspm)
 {
-  ASSERT (mpzspv_verify (x, offset, len, mpzspm));
-  
   unsigned long i, j, k, l;
   unsigned int sp_num = mpzspm->sp_num;
   sp_t v;
-  spv_t w;
+  spv_t s, d, w;
   spm_t spm = mpzspm->spm;
   
   float prime_recip;
-  float *f = (float *) valloc (len * sizeof (float));
-
-  mpzspv_t t = mpzspv_init (STRIDE, mpzspm);
+  float *f;
+  mpzspv_t t;
   
-  spv_t s = (spv_t) valloc (3 * len * sizeof (sp_t));
-  spv_t d = (spv_t) valloc (3 * len * sizeof (sp_t));
+  ASSERT (mpzspv_verify (x, offset, len, mpzspm)); 
+  
+  f = (float *) valloc (len * sizeof (float));
+  t = mpzspv_init (STRIDE, mpzspm);
+  
+  s = (spv_t) valloc (3 * len * sizeof (sp_t));
+  d = (spv_t) valloc (3 * len * sizeof (sp_t));
   memset (s, 0, 3 * len * sizeof (sp_t));
 
   for (i = 0; i < len; i++)
@@ -332,14 +334,14 @@ void
 mpzspv_to_ntt (mpzspv_t x, spv_size_t offset, spv_size_t len,
     spv_size_t ntt_size, int monic, mpzspm_t mpzspm)
 {
-  ASSERT (mpzspv_verify (x, offset, len, mpzspm));
-  ASSERT (mpzspv_verify (x, offset + ntt_size, 0, mpzspm));
-  
   unsigned int i;
   spv_size_t j;
   spm_t spm;
   sp_t root;
   spv_t spv;
+  
+  ASSERT (mpzspv_verify (x, offset, len, mpzspm));
+  ASSERT (mpzspv_verify (x, offset + ntt_size, 0, mpzspm));
   
   for (i = 0; i < mpzspm->sp_num; i++)
     {
@@ -367,12 +369,12 @@ mpzspv_to_ntt (mpzspv_t x, spv_size_t offset, spv_size_t len,
 void mpzspv_from_ntt (mpzspv_t x, spv_size_t offset, spv_size_t ntt_size,
     spv_size_t monic_pos, mpzspm_t mpzspm)
 {
-  ASSERT (mpzspv_verify (x, offset, ntt_size, mpzspm));
-  
   unsigned int i;
   spm_t spm;
   sp_t root;
   spv_t spv;
+  
+  ASSERT (mpzspv_verify (x, offset, ntt_size, mpzspm));
   
   for (i = 0; i < mpzspm->sp_num; i++)
     {
