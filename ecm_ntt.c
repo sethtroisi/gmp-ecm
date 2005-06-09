@@ -30,14 +30,16 @@ void
 ntt_mul (mpzv_t r, mpzv_t x, mpzv_t y, spv_size_t len, mpzv_t t,
     int monic, mpzspm_t mpzspm)
 {
+  mpzspv_t u, v;
+	
   if (len < MUL_NTT_THRESHOLD)
-  {
-    list_mul (r, x, len, monic, y, len, monic, t);
-    return;
-  }
+    {
+      list_mul (r, x, len, monic, y, len, monic, t);
+      return;
+    }
 
-  mpzspv_t u = mpzspv_init (2 * len, mpzspm);
-  mpzspv_t v = mpzspv_init (2 * len, mpzspm);
+  u = mpzspv_init (2 * len, mpzspm);
+  v = mpzspv_init (2 * len, mpzspm);
   
   mpzspv_from_mpzv (u, 0, x, len, mpzspm);
   mpzspv_to_ntt (u, 0, len, 2 * len, monic, mpzspm);
@@ -56,6 +58,9 @@ void
 ntt_PolyFromRoots (mpzv_t r, mpzv_t a, spv_size_t len, mpzv_t t,
     mpzspm_t mpzspm)
 {
+  mpzspv_t x;
+  spv_size_t i, m;
+  
   ASSERT (len == 1 << ceil_log_2 (len));
 
   if (len <= MUL_NTT_THRESHOLD)
@@ -64,9 +69,8 @@ ntt_PolyFromRoots (mpzv_t r, mpzv_t a, spv_size_t len, mpzv_t t,
     return;
   }
   
-  mpzspv_t x = mpzspv_init (2 * len, mpzspm);
-  spv_size_t i, m;
-   
+  x = mpzspv_init (2 * len, mpzspm);
+  
   for (i = 0; i < len; i += MUL_NTT_THRESHOLD)
     {
       PolyFromRoots (r, a + i, MUL_NTT_THRESHOLD, t, mpzspm->modulus);
@@ -97,12 +101,14 @@ int
 ntt_PolyFromRoots_Tree (mpzv_t r, mpzv_t a, spv_size_t len, mpzv_t t,
     int dolvl, mpzspm_t mpzspm, mpzv_t *Tree, FILE *TreeFile)
 {
-  ASSERT (len == 1 << ceil_log_2 (len));
-  
-  mpzspv_t x = mpzspv_init (2 * len, mpzspm);
+  mpzspv_t x;
   spv_size_t i, m, m_max;
   mpzv_t src = a;
   mpzv_t *dst = Tree + ceil_log_2 (len) - 1;
+
+  ASSERT (len == 1 << ceil_log_2 (len));
+  
+  x = mpzspv_init (2 * len, mpzspm);
   
   if (dolvl >= 0)
     dst = &r;
@@ -172,14 +178,16 @@ void
 ntt_PrerevertDivision (mpzv_t a, mpzv_t b, mpzv_t invb, mpzspv_t sp_invb,
     spv_size_t len, mpzv_t t, mpzspm_t mpzspm)
 {
+  mpzspv_t x, y;
+  
   if (len < PREREVERT_DIVISION_NTT_THRESHOLD)
     {
       PrerevertDivision (a, b, invb, len, t, mpzspm->modulus);
       return;
     }
   
-  mpzspv_t x = mpzspv_init (2 * len, mpzspm);
-  mpzspv_t y = mpzspv_init (2 * len, mpzspm);
+  x = mpzspv_init (2 * len, mpzspm);
+  y = mpzspv_init (2 * len, mpzspm);
 
   /* y = TOP (TOP (a) * invb) */
   mpzspv_set_sp (x, 0, 0, len + 1, mpzspm);
@@ -208,20 +216,21 @@ ntt_PrerevertDivision (mpzv_t a, mpzv_t b, mpzv_t invb, mpzspv_t sp_invb,
 void ntt_PolyInvert (mpzv_t q, mpzv_t b, spv_size_t len, mpzv_t t,
     mpzspm_t mpzspm)
 {
+  spv_size_t k = POLYINVERT_NTT_THRESHOLD / 2;
+  mpzspv_t w, x, y, z;
+  
   if (len < POLYINVERT_NTT_THRESHOLD)
     {
       PolyInvert (q, b, len, t, mpzspm->modulus);
       return;
     }
 
-  spv_size_t k = POLYINVERT_NTT_THRESHOLD / 2;
-  
   PolyInvert (q + len - k, b + len - k, k, t, mpzspm->modulus);
   
-  mpzspv_t w = mpzspv_init (len / 2, mpzspm);
-  mpzspv_t x = mpzspv_init (len, mpzspm);
-  mpzspv_t y = mpzspv_init (len, mpzspm);
-  mpzspv_t z = mpzspv_init (len, mpzspm);
+  w = mpzspv_init (len / 2, mpzspm);
+  x = mpzspv_init (len, mpzspm);
+  y = mpzspv_init (len, mpzspm);
+  z = mpzspv_init (len, mpzspm);
   
   mpzspv_from_mpzv (x, 0, q + len - k - 1, k + 1, mpzspm);
   mpzspv_from_mpzv (y, 0, b, len - 1, mpzspm);

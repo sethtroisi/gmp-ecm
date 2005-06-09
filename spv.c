@@ -39,10 +39,10 @@
 void
 spv_set (spv_t r, spv_t x, spv_size_t len)
 {
-  ASSERT (r >= x + len || x >= r);
-  
   spv_size_t i;
 
+  ASSERT (r >= x + len || x >= r);
+  
   for (i = 0; i < len; i++)
     r[i] = x[i];
 }
@@ -79,11 +79,11 @@ spv_cmp (spv_t x, spv_t y, spv_size_t len)
 void
 spv_add (spv_t r, spv_t x, spv_t y, spv_size_t len, sp_t m)
 {
+  spv_size_t i;
+  
   ASSERT (r >= x + len || x >= r);
   ASSERT (r >= y + len || y >= r);
   
-  spv_size_t i;
-
   for (i = 0; i < len; i++)
     r[i] = sp_add (x[i], y[i], m);
 }
@@ -102,11 +102,11 @@ spv_add_sp (spv_t r, spv_t x, sp_t c, spv_size_t len, sp_t m)
 void
 spv_sub (spv_t r, spv_t x, spv_t y, spv_size_t len, sp_t m)
 {
+  spv_size_t i;
+  
   ASSERT (r >= x + len || x >= r);
   ASSERT (r >= y + len || y >= r);
   
-  spv_size_t i;
-
   for (i = 0; i < len; i++)
     r[i] = sp_sub (x[i], y[i], m);
 }
@@ -136,10 +136,10 @@ spv_neg (spv_t r, spv_t x, spv_size_t len, sp_t m)
 void
 spv_pwmul (spv_t r, spv_t x, spv_t y, spv_size_t len, sp_t m, sp_t d)
 {
+  spv_size_t i;
+  
   ASSERT (r >= x + len || x >= r);
   ASSERT (r >= y + len || y >= r);
-  
-  spv_size_t i;
 
   for (i = 0; i < len; i++)
     r[i] = sp_mul (x[i], y[i], m, d);
@@ -149,9 +149,9 @@ spv_pwmul (spv_t r, spv_t x, spv_t y, spv_size_t len, sp_t m, sp_t d)
 void
 spv_mul_sp (spv_t r, spv_t x, sp_t c, spv_size_t len, sp_t m, sp_t d)
 {
-  ASSERT (r >= x + len || x >= r);
-  
   spv_size_t i;
+  
+  ASSERT (r >= x + len || x >= r);
   
   for (i = 0; i < len; i++)
     r[i] = sp_mul (x[i], c, m, d);
@@ -161,10 +161,10 @@ spv_mul_sp (spv_t r, spv_t x, sp_t c, spv_size_t len, sp_t m, sp_t d)
 void
 spv_addmul_sp (spv_t r, spv_t x, sp_t c, spv_size_t len, sp_t m, sp_t d)
 {
-  ASSERT (r >= x + len || x >= r);
-  
   spv_size_t i;
   sp_t t;
+	
+  ASSERT (r >= x + len || x >= r);
   
   for (i = 0; i < len; i++)
   {
@@ -177,11 +177,11 @@ spv_addmul_sp (spv_t r, spv_t x, sp_t c, spv_size_t len, sp_t m, sp_t d)
 void
 spv_submul_sp (spv_t r, spv_t x, sp_t c, spv_size_t len, sp_t m, sp_t d)
 {
-  ASSERT (r >= x + len || x >= r);
-  
   spv_size_t i;
   sp_t t;
-
+  
+  ASSERT (r >= x + len || x >= r);
+  
   for (i = 0; i < len; i++)
   {
     t = sp_mul (x[i], c, m, d);
@@ -197,12 +197,12 @@ void
 spv_mul_basecase (spv_t r, spv_t x, spv_t y, spv_size_t x_len,
     spv_size_t y_len, sp_t m, sp_t d)
 {
+  spv_size_t i;
+  
   ASSERT (r >= x + x_len || x >= r + x_len + y_len - 1);
   ASSERT (r >= y + y_len || y >= r + x_len + y_len - 1);
   ASSERT (x_len > 0);
   ASSERT (y_len > 0);
-  
-  spv_size_t i;
   
   if (x_len > y_len)
   {
@@ -240,6 +240,9 @@ void
 spv_mul_karatsuba (spv_t r, spv_t x, spv_t y, spv_t t, spv_size_t len,
     sp_t m, sp_t d)
 {
+  spv_size_t i, k, l;
+  spv_t z;
+  
   ASSERT (r >= x + len || x >= r + 2 * len - 1);
   ASSERT (r >= y + len || y >= r + 2 * len - 1);
   ASSERT (len > 0);
@@ -285,9 +288,6 @@ spv_mul_karatsuba (spv_t r, spv_t x, spv_t y, spv_t t, spv_size_t len,
       return;
     }
   
-  spv_size_t i, k, l;
-  spv_t z;
-
   k = len / 2;
   l = len - k;
 
@@ -332,7 +332,7 @@ spv_mul_karatsuba (spv_t r, spv_t x, spv_t y, spv_t t, spv_size_t len,
   spv_sub (r + l, r + l, t, 2 * l - 1, m);
 }
 
-
+#if 0
 /* calculate r[k], ..., r[l - 1] of the product r = x * y
  *
  * other coeffs in r are undefined
@@ -517,6 +517,7 @@ void spv_mul (spv_t r, spv_t x, spv_size_t x_len, spv_t y,
      * have wrapped round */
     r[prod_len % ntt_size] = sp_sub (r[prod_len % ntt_size], 1, spm->sp);
 }
+#endif
 
 void
 spv_random (spv_t x, spv_size_t len, sp_t m)
