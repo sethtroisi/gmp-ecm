@@ -95,70 +95,69 @@ ntt_PolyFromRoots (mpzv_t r, mpzv_t a, spv_size_t len, mpzv_t t,
   
 int
 ntt_PolyFromRoots_Tree (mpzv_t r, mpzv_t a, spv_size_t len, mpzv_t t,
-    mpzspm_t mpzspm, mpzv_t *Tree, FILE *TreeFile)
+    int dolvl, mpzspm_t mpzspm, mpzv_t *Tree, FILE *TreeFile)
 {
   ASSERT (len == 1 << ceil_log_2 (len));
-
-  if (len <= MUL_NTT_THRESHOLD)
-    {
-      return PolyFromRoots_Tree
-        (r, a, len, t, -1, mpzspm->modulus, Tree, TreeFile, 0);
-    }
   
   mpzspv_t x = mpzspv_init (2 * len, mpzspm);
-  spv_size_t i, m;
-  mpzv_t src;
+  spv_size_t i, m, m_max;
+  mpzv_t src = a;
   mpzv_t *dst = Tree + ceil_log_2 (len) - 1;
   
-  list_set (*dst, a, len);
+  if (dolvl >= 0)
+    dst = &r;
+  else  
+    list_set (*dst--, a, len);
   
-  if (TreeFile && list_out_raw (TreeFile, *dst, len) == ECM_ERROR)
-    {
-      outputf (OUTPUT_ERROR, "Error writing product tree of F\n");
-      return ECM_ERROR;
-    }
+  m = (dolvl == -1) ? 1 : 1 << (ceil_log_2 (len) - 1 - dolvl);
+  m_max = (dolvl == -1) ? len : 2 * m;
   
-  for (m = 1; m < MUL_NTT_THRESHOLD; m *= 2)
+  for (; m < m_max && m < MUL_NTT_THRESHOLD; m *= 2)
     {
-      src = *dst--;
+      /* dst = &r anyway for dolvl != -1 */
+      if (m == len / 2)
+	dst = &r;
       
-      for (i = 0; i < len; i += 2 * m)
-	list_mul (*dst + i, src + i, m, 1, src + i + m, m, 1, t);
-      list_mod (*dst, *dst, len, mpzspm->modulus);
-
-      if (TreeFile && list_out_raw (TreeFile, *dst, len) == ECM_ERROR)
+      if (TreeFile && list_out_raw (TreeFile, src, len) == ECM_ERROR)
         {
           outputf (OUTPUT_ERROR, "Error writing product tree of F\n");
           return ECM_ERROR;
         }
+
+      for (i = 0; i < len; i += 2 * m)
+        list_mul (t + i, src + i, m, 1, src + i + m, m, 1, t + len);
+
+      list_mod (*dst, t, len, mpzspm->modulus);
+      
+      src = *dst--;
     }
   
-  for (m = MUL_NTT_THRESHOLD; m < len; m *= 2)
+  for (; m < m_max; m *= 2)
     {
-      src = *dst--;
-
+      /* dst = &r anyway for dolvl != -1 */
       if (m == len / 2)
-	dst = &r;
+        dst = &r;
       
       for (i = 0; i < 2 * len; i += 4 * m)
         {
+ 	  if (TreeFile &&
+	      list_out_raw (TreeFile, src + i / 2, 2 * m) == ECM_ERROR)
+	    return ECM_ERROR;
+	  
 	  mpzspv_from_mpzv (x, i, src + i / 2, m, mpzspm);
 	  mpzspv_to_ntt (x, i, m, 2 * m, 1, mpzspm);
 	  mpzspv_from_mpzv (x, i + 2 * m, src + i / 2 + m, m, mpzspm);
 	  mpzspv_to_ntt (x, i + 2 * m, m, 2 * m, 1, mpzspm);
 	  mpzspv_pwmul (x, i, x, i, x, i + 2 * m, 2 * m, mpzspm);
 	  mpzspv_from_ntt (x, i, 2 * m, 2 * m, mpzspm);
-	  
           mpzspv_to_mpzv (x, i, *dst + i / 2, 2 * m, mpzspm);
 
-          /* this line can probably be commented out without causing
-	   * overflow; will things slow down though? */
-#if 0          
-	  list_mod (*dst + i / 2, *dst + i / 2, 2 * m, mpzspm->modulus);
-#endif
-	  if (TreeFile && mpz_out_raw (TreeFile, dst[0][i / 2]) == 0)
-	    return ECM_ERROR;
+          /* we only do the mod reduction to reduce the file size a bit */
+	  if (TreeFile)
+	    list_mod (*dst + i / 2, *dst + i / 2, 2 * m, mpzspm->modulus);
 	}
+    
+      src = *dst--;
     }
 
   mpzspv_clear (x, mpzspm);
@@ -267,12 +266,17 @@ void ntt_PolyInvert (mpzv_t q, mpzv_t b, spv_size_t len, mpzv_t t,
   mpzspv_clear (z, mpzspm);
 }
 
-void
+int
 ntt_polyevalT (mpzv_t b, spv_size_t len, mpzv_t *Tree, mpzv_t T,
-                   mpzspv_t sp_invF, mpzspm_t mpzspm, char *TreeFilename)
+                   mpzspv_t sp_invF, mpzspm_t mpzspm, char *TreeFilenameStem)
 {
   spv_size_t m, i;
-    
+  mpzv_t r;
+  FILE *TreeFile = NULL;
+  char TreeFilename[256];
+  mpzv_t *Tree_orig = Tree;
+  int level = 0; /* = ceil_log_2 (len / m) - 1 */
+  
   mpzspv_t x = mpzspv_init (2 * len, mpzspm);
   mpzspv_t y = mpzspv_init (2 * len, mpzspm);
 
@@ -286,6 +290,32 @@ ntt_polyevalT (mpzv_t b, spv_size_t len, mpzv_t *Tree, mpzv_t T,
     
   for (m = len / 2; m >= POLYEVALT_NTT_THRESHOLD; m /= 2)
     {
+      if (TreeFilenameStem)
+        {
+          Tree = &T;
+	  
+#ifdef HAVE_snprintf
+          snprintf (TreeFilename, 256, "%.252s.%d", TreeFilenameStem, level);
+#else
+          sprintf (TreeFilename, "%.252s.%d", TreeFilenameStem, level);
+#endif
+          TreeFile = fopen (TreeFilename, "rb");
+          if (TreeFile == NULL)
+            {
+              outputf (OUTPUT_ERROR,
+		  "Error opening file %s for product tree of F\n",
+                        TreeFilename);
+              mpzspv_clear (x, mpzspm);
+	      mpzspv_clear (y, mpzspm);
+	      return ECM_ERROR;
+            }
+
+	  list_inp_raw (*Tree, TreeFile, len);
+
+	  fclose (TreeFile);
+	  unlink (TreeFilename);
+	}
+
       for (i = 0; i < len; i += 2 * m)
         {
        	  mpzspv_to_ntt (y, i, 2 * m, 2 * m, 0, mpzspm);
@@ -312,15 +342,44 @@ ntt_polyevalT (mpzv_t b, spv_size_t len, mpzv_t *Tree, mpzv_t T,
 	  mpzspv_set (y, i, x, 3 * m, m, mpzspm);
 	  mpzspv_set (y, i + m, x, m, m, mpzspm);
         }
+      
       Tree++;
+      level++;
     }
     
   mpzspv_clear (x, mpzspm);
   mpzspv_to_mpzv (y, 0, T, len, mpzspm);
   mpzspv_clear (y, mpzspm);
     
-  for (i = 0; i < len; i += 2 * m)
-    TUpTree (T + i, Tree, 2 * m, T + len, -1, i, mpzspm->modulus, NULL);
-    
+  for (; m >= 1; m /= 2)
+    {
+      if (TreeFilenameStem)
+        {
+#ifdef HAVE_snprintf
+          snprintf (TreeFilename, 256, "%.252s.%d", TreeFilenameStem, level);
+#else
+          sprintf (TreeFilename, "%.252s.%d", TreeFilenameStem, level);
+#endif
+          TreeFile = fopen (TreeFilename, "rb");
+          if (TreeFile == NULL)
+            {
+              outputf (OUTPUT_ERROR,
+		  "Error opening file %s for product tree of F\n",
+                        TreeFilename);
+	      return ECM_ERROR;
+            }
+	}
+      
+      TUpTree (T, Tree_orig, len, T + len, level++, 0,
+	  mpzspm->modulus, TreeFile);
+
+      if (TreeFilenameStem)
+        {
+	  fclose (TreeFile);
+	  unlink (TreeFilename);
+	}
+    }
+  
   list_swap (b, T, len);
+  return 0;
 }
