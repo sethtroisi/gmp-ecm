@@ -35,7 +35,7 @@
 #include "ecm.h"
 #include "ecm-impl.h"
 
-//#undef HAVE_NTT
+/* #undef HAVE_NTT */
 
 extern unsigned int Fermat;
 
