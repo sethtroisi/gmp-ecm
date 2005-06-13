@@ -20,8 +20,8 @@
 */
 
 #include <malloc.h>
+#include <string.h> /* for memset */
 #include "sp.h"
-#include <time.h> /*FIXME*/
 
 mpzspv_t
 mpzspv_init (spv_size_t len, mpzspm_t mpzspm)

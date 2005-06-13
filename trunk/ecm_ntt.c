@@ -21,6 +21,7 @@
 */
 
 #include <stdio.h>
+#include <unistd.h> /* for unlink */
 #include "sp.h"
 #include "ecm.h"
 #include "ecm-impl.h"
@@ -280,7 +281,6 @@ ntt_polyevalT (mpzv_t b, spv_size_t len, mpzv_t *Tree, mpzv_t T,
                    mpzspv_t sp_invF, mpzspm_t mpzspm, char *TreeFilenameStem)
 {
   spv_size_t m, i;
-  mpzv_t r;
   FILE *TreeFile = NULL;
   char TreeFilename[256];
   mpzv_t *Tree_orig = Tree;
