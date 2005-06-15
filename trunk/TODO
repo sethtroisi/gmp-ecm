@@ -24,6 +24,7 @@ ToDo's:
 - init mpz_t's with correct amount of memory allocated to avoid reallocs.
   Check for reallocs with GMP's memory interface routines. (Target: 6.1? 7.0?)
 - try sliding window multipliation for ECM stage 1
+- choose Brent/Suyama polynomial according to B2/k and not B2!
 
 2) interface
 - with -resume, print %time for THIS RUN instead of total run?
