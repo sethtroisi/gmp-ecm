@@ -69,7 +69,7 @@ __gmpn_mod_34lsub1 (mp_limb_t *src, mp_size_t size)
 
 /* RS -> RS (mod 2^n+1). If input |RS| < 2^(2*n), result |RS| < 2^(n+1) */
 
-static INLINE void 
+static inline void 
 F_mod_1 (mpz_t RS, unsigned int n)
 {
   mp_size_t size;
@@ -100,7 +100,7 @@ F_mod_1 (mpz_t RS, unsigned int n)
 
 /* R = gt (mod 2^n+1) */
 
-static INLINE void 
+static inline void 
 F_mod_gt (mpz_t R, unsigned int n)
 {
   mp_size_t size;

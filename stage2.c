@@ -27,15 +27,13 @@
 #include <math.h>
 #include <limits.h>
 #include <math.h> /* for floor */
-#include "sp.h"
 #if defined (_MSC_VER)
 #define snprintf _snprintf
 #endif
 #include "gmp.h"
 #include "ecm.h"
 #include "ecm-impl.h"
-
-/* #undef HAVE_NTT */
+#include "sp.h"
 
 extern unsigned int Fermat;
 
@@ -291,8 +289,10 @@ stage2 (mpz_t f, void *X, mpmod_t modulus, mpz_t B2min, mpz_t B2,
   unsigned int lgk; /* ceil(log(k)/log(2)) */
   listz_t invF = NULL;
   double mem;
+#ifdef HAVE_NTT
   mpzspm_t mpzspm;
   mpzspv_t sp_invF;
+#endif
   
   /* check alloc. size of f */
   mpres_realloc (f, modulus);

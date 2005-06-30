@@ -2,6 +2,10 @@ ToDo's:
 
 0) configure
 - check getrusage in configure, update cputime (auxlib.c)
+- add --enable-ntt or similar so that ecm_ntt.c, mpzspm.c, mpzspv.c, spm.c,
+  spv.c are conditionally compiled. Similarly make --with-gwnum conditionally
+  compile Fgw.c instead of making it conditionally nonempty, as ISO C rejects
+  empty source files.
 
 1) efficiency/memory
 - use mpres in step 2 (Target: 7.0)
