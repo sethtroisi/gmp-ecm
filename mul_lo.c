@@ -34,7 +34,7 @@
    MPN_COPY (rp, tp, n);
    TMP_FREE(marker);
  */
-static INLINE void
+static inline void
 ecm_mul_lo_basecase (mp_ptr rp, mp_srcptr np, mp_srcptr mp, mp_size_t n)
 {
   mpn_mul_1 (rp, np, n, mp[0]);

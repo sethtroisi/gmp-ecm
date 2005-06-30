@@ -25,17 +25,9 @@
 
 #include <gmp.h>
 
-#define HAVE_NTT
-
 /**************
  * GMP_IMPL.H *
  **************/
-
-#ifdef __GNUC__
-#define INLINE inline
-#else
-#define INLINE
-#endif
 
 #if WANT_ASSERT
 #include <assert.h>
@@ -248,7 +240,7 @@ typedef spv_t * mpzspv_t;
 
 /* general */
 
-static INLINE unsigned int
+static inline unsigned int
 ceil_log_2 (spv_size_t x)
 {
   unsigned int a = 0;
@@ -281,7 +273,7 @@ ceil_log_2 (spv_size_t x)
 
 
 /* x*y mod m */
-static INLINE sp_t
+static inline sp_t
 sp_mul (sp_t x, sp_t y, sp_t m, sp_t d)
 {
   sp_t z, u, v, w;
@@ -292,7 +284,7 @@ sp_mul (sp_t x, sp_t y, sp_t m, sp_t d)
 }
 
 /* x*y mod m */
-static INLINE sp_t
+static inline sp_t
 sp_sqr (sp_t x, sp_t m, sp_t d)
 {
   sp_t z, u, v, w;
@@ -303,7 +295,7 @@ sp_sqr (sp_t x, sp_t m, sp_t d)
 }
 
 #if 0
-static INLINE sp_t
+static inline sp_t
 sp_montmul (sp_t x, sp_t y, sp_t p, sp_t d)
 {
   sp_t a, b, u, v, m;
@@ -314,7 +306,7 @@ sp_montmul (sp_t x, sp_t y, sp_t p, sp_t d)
   return (u < p) ? u : u - p;
 }
 
-static INLINE sp_t
+static inline sp_t
 sp_montsqr (sp_t x, sp_t p, sp_t d)
 {
   sp_t a, b, u, v, m;
@@ -329,7 +321,7 @@ sp_montsqr (sp_t x, sp_t p, sp_t d)
 #define sp_add(x,y,m) (((x)<(m)-(y)) ? ((x)+(y)) : ((x)+(y)-(m)))
 #define sp_sub(x,y,m) (((x)>=(y)) ? ((x)-(y)) : ((x)-(y)+(m)))
 
-static INLINE sp_t
+static inline sp_t
 sp_pow (sp_t x, sp_t a, sp_t m, sp_t d)
 {
   sp_t partial = 1;
@@ -356,7 +348,7 @@ sp_pow (sp_t x, sp_t a, sp_t m, sp_t d)
   
 /* x * 2 ^ a mod m */
 #if 1
-static INLINE sp_t
+static inline sp_t
 sp_mul_2exp (sp_t x, sp_t a, sp_t m, sp_t d)
 {
   while (a--)
@@ -445,4 +437,5 @@ void mpzspv_pwmul (mpzspv_t, spv_size_t, mpzspv_t, spv_size_t, mpzspv_t,
 void mpzspv_to_ntt (mpzspv_t, spv_size_t, spv_size_t, spv_size_t, int,
     mpzspm_t);
 void mpzspv_from_ntt (mpzspv_t, spv_size_t, spv_size_t, spv_size_t, mpzspm_t);
+
 #endif /* __HAVE_SP_H */
