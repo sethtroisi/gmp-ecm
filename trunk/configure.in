@@ -34,6 +34,7 @@ fi
 
 AC_C_CONST
 AC_C_VOLATILE
+AC_C_INLINE
 
 dnl Check for GMP
 AC_MSG_CHECKING(for gmp.h)

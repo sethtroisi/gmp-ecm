@@ -30,7 +30,7 @@ FILE *ECM_STDOUT, *ECM_STDERR; /* define them since declared in ecm-impl.h */
 /* to avoid conflict with that of libecm */
 #define ecm_mul_lo_basecase tune_ecm_mul_lo_basecase
 
-static INLINE void
+static inline void
 ecm_mul_lo_basecase (mp_ptr rp, mp_srcptr np, mp_srcptr mp, mp_size_t n)
 {
   mpn_mul_1 (rp, np, n, mp[0]);
