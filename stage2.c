@@ -381,20 +381,22 @@ stage2 (mpz_t f, void *X, mpmod_t modulus, mpz_t B2min, mpz_t B2,
 
   if (method == ECM_ECM && test_verbose (OUTPUT_VERBOSE))
     {
-      double nrcurves;
+      double prob;
       rhoinit (256, 10);
       outputf (OUTPUT_VERBOSE, "Expected number of curves to find a factor "
                "of n digits:\n20\t25\t30\t35\t40\t45\t50\t55\t60\t65\n");
       for (i = 20; i <= 65; i += 5)
         {
-          nrcurves = 1. / ecmprob (mpz_get_d (B2min), mpz_get_d (effB2), 
-                                 pow (10., i - .5), (double) dF * dF * k, S); 
-          if (nrcurves < 10000000)
+          prob = ecmprob (mpz_get_d (B2min), mpz_get_d (effB2),
+                          pow (10., i - .5), (double) dF * dF * k, S);
+          if (prob > 1. / 10000000)
             outputf (OUTPUT_VERBOSE, "%.0f%c", 
-                     floor (nrcurves + .5), i < 65 ? '\t' : '\n');
-          else
+                     floor (1. / prob + .5), i < 65 ? '\t' : '\n');
+          else if (prob > 0.)
             outputf (OUTPUT_VERBOSE, "%.2g%c", 
-                    floor (nrcurves + .5), i < 65 ? '\t' : '\n');
+                    floor (1. / prob + .5), i < 65 ? '\t' : '\n');
+          else
+            outputf (OUTPUT_VERBOSE, "%Inf%c", i < 65 ? '\t' : '\n');
         }
     }
     
@@ -773,8 +775,9 @@ clear_s_i0:
           const char sep = (i < 65) ? '\t' : '\n';
           prob = ecmprob (mpz_get_d (B2min), mpz_get_d (effB2), 
                           pow (10., i - .5), (double) dF * dF * k, S);
-          exptime = tottime / prob;
-          /* outputf (OUTPUT_VERBOSE, "Total time: %.0f, probability: %f, expected time: %.0f\n", tottime, prob, exptime); */
+          exptime = (prob > 0.) ? tottime / prob : HUGE_VAL;
+          outputf (OUTPUT_TRACE, "Digits: %d, Total time: %.0f, probability: "
+                   "%g, expected time: %.0f\n", i, tottime, prob, exptime);
           if (exptime < 1000.)
             outputf (OUTPUT_VERBOSE, "%.0fms%c", exptime, sep);
           else if (exptime < 60000.) /* One minute */
