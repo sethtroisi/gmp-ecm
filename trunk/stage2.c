@@ -396,7 +396,7 @@ stage2 (mpz_t f, void *X, mpmod_t modulus, mpz_t B2min, mpz_t B2,
             outputf (OUTPUT_VERBOSE, "%.2g%c", 
                     floor (1. / prob + .5), i < 65 ? '\t' : '\n');
           else
-            outputf (OUTPUT_VERBOSE, "%Inf%c", i < 65 ? '\t' : '\n');
+            outputf (OUTPUT_VERBOSE, "Inf%c", i < 65 ? '\t' : '\n');
         }
     }
     
