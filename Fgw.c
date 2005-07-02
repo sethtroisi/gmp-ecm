@@ -25,6 +25,11 @@
 #ifndef HAVE_GWNUM
 
 /* This file does nothing at all if HAVE_GWNUM is not defined */
+int
+Fgw_dummy ()
+{
+  return 0;
+}
 
 #else
 
@@ -79,6 +84,11 @@ extern int ZERO_PADDED_FFT;
 
 static gwnum g1 = NULL, g2 = NULL;
 static gwconvplan_t *gwplan = NULL;
+
+void __gxx_personality_v0()
+{
+  exit (EXIT_FAILURE);
+}
 
 static int 
 sgn (int i)
