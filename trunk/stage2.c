@@ -137,8 +137,8 @@ fin_diff_coeff (listz_t coeffs, mpz_t s, mpz_t D, unsigned int E,
 
 /* Init several disjoint progressions for the computation of 
 
-   Dickson_{E,a} (s + e * (i + d * n * k)), 0 <= i < k * d, gcd(s+e*i, d) == 1,
-                                            i == 1 (mod m)
+   Dickson_{E,a} (e * (i0 + i + d * n * k)), for 0 <= i < k * d 
+                  with gcd(e * (i0 + i), d) == 1, i == 1 (mod m)
    
    for successive n. m must divide d, e must divide s (d need not).
    
@@ -150,7 +150,7 @@ fin_diff_coeff (listz_t coeffs, mpz_t s, mpz_t D, unsigned int E,
 */
 
 listz_t
-init_progression_coeffs (mpz_t s, unsigned int d, unsigned int e, 
+init_progression_coeffs (mpz_t i0, unsigned int d, unsigned int e, 
                          unsigned int k, unsigned int m, unsigned int E, 
                          int dickson_a)
 {
@@ -159,12 +159,11 @@ init_progression_coeffs (mpz_t s, unsigned int d, unsigned int e,
   listz_t fd;
 
   ASSERT (d % m == 0);
-  ASSERT (mpz_fdiv_ui (s, e) == 0);
 
   size_fd = k * phi(d) / phi(m) * (E + 1);
-  outputf (OUTPUT_TRACE, "init_progression_coeffs: s = %Zd, d = %u, e = %u, "
+  outputf (OUTPUT_TRACE, "init_progression_coeffs: i0 = %Zd, d = %u, e = %u, "
            "k = %u, m = %u, E = %u, a = %d, size_fd = %u\n", 
-           s, d, e, k, m, E, dickson_a, size_fd);
+           i0, d, e, k, m, E, dickson_a, size_fd);
 
   fd = (listz_t) malloc (size_fd * sizeof (mpz_t));
   if (fd == NULL)
@@ -172,8 +171,8 @@ init_progression_coeffs (mpz_t s, unsigned int d, unsigned int e,
   for (i = 0; i < size_fd; i++)
     mpz_init (fd[i]);
   mpz_init (t);
-  mpz_set_ui (t, e * (1 % m));
-  mpz_add (t, t, s);
+  mpz_mul_ui (t, i0, e);
+  mpz_add_ui (t, t, e * (1 % m));
   
   /* dke = d * k * e */
   mpz_init (dke);
@@ -280,9 +279,9 @@ stage2 (mpz_t f, void *X, mpmod_t modulus, mpz_t B2min, mpz_t B2,
   double b2;
   unsigned int k;
   unsigned int i, d, d2, dF, sizeT;
-  mpz_t n, i0, s, effB2; /* s = i0 * d */
+  mpz_t n, i0, effB2;
   listz_t F, G, H, T;
-  int youpi = 0;
+  int po2 = 0, youpi = 0;
   unsigned int st, st0;
   void *rootsG_state = NULL;
   listz_t *Tree = NULL; /* stores the product tree for F */
@@ -306,52 +305,45 @@ stage2 (mpz_t f, void *X, mpmod_t modulus, mpz_t B2min, mpz_t B2,
      (d multiple of 6), each interval [i*d,(i+1)*d] covers partially itself
      and [(i-1)*d,i*d]. Thus to cover [B2min, B2] with all intervals 
      [i*d,(i+1)*d] for i0 <= i < i1 , we should  have i0*d <= B2min and 
-     B2 <= (i1-1)*d */
+     B2 <= (i1-1)*d. COMMENT OBSOLETE, see bestd.c. To be removed */
   d = d2 = dF = 0;
   Fermat = 0;
   k = k0;
   mpz_init_set (effB2, B2);
   mpz_init (i0);
-  mpz_init (s);
-  if (modulus->repr == 1 && modulus->bits > 0)
+
+  /* The Sch\"onhage-Strassen multiplication requires power-of-two degrees */
+  if (modulus->repr == 1 && modulus->Fermat > 0)
     {
-      for (i = modulus->bits; (i & 1) == 0; i >>= 1);
-      if (1 && i == 1)
-        {
-          Fermat = modulus->bits;
-          outputf (OUTPUT_DEVVERBOSE, "Choosing power of 2 poly length "
-                   "for 2^%d+1 (%d blocks)\n", Fermat, k0);
-          if (bestD (B2min, effB2, 1, &d, &d2, &k, &dF, i0) == ECM_ERROR)
-            {
-              youpi = ECM_ERROR;
-              goto clear_s_i0;
-            }
-        }
+      po2 = 1;
+      Fermat = modulus->Fermat;
+      outputf (OUTPUT_DEVVERBOSE, "Choosing power of 2 poly length "
+               "for 2^%d+1 (%d blocks)\n", Fermat, k0);
     }
-  if (d == 0)
-    {
+  else
+    Fermat = 0;
+
 #if defined HAVE_NTT
-      /* choose power-of-two dF */
-      if (bestD (B2min, effB2, 1, &d, &d2, &k, &dF, i0) == ECM_ERROR)
-#else
-      if (bestD (B2min, effB2, 0, &d, &d2, &k, &dF, i0) == ECM_ERROR)
+  /* The NTT code requires power-of-two degrees */
+  po2 = 1;
 #endif
-        {
-          youpi = ECM_ERROR;
-          goto clear_s_i0;
-        }
+
+  if (bestD (B2min, effB2, po2, &d, &d2, &k, &dF, i0) == ECM_ERROR)
+    {
+      youpi = ECM_ERROR;
+      goto clear_i0;
     }
+
 #if defined HAVE_NTT
   mpzspm = mpzspm_init (2 * dF, modulus->orig_modulus);
   
   if (mpzspm == NULL)
     {
       youpi = ECM_ERROR;
-      goto clear_s_i0;
+      goto clear_i0;
     }
 #endif
   
-  mpz_mul_ui (s, i0, d); /* s = i0 * d */
   b2 = (double) dF * (double) d * (double) d2 / (double) phi (d2);
 
   outputf (OUTPUT_VERBOSE, "B2'=%Zd k=%u b2=%1.0f d=%u d2=%u dF=%u, "
@@ -404,7 +396,7 @@ stage2 (mpz_t f, void *X, mpmod_t modulus, mpz_t B2min, mpz_t B2,
   if (F == NULL)
     {
       youpi = ECM_ERROR;
-      goto clear_s_i0;
+      goto clear_i0;
     }
 
   sizeT = 3 * dF + list_mul_mem (dF);
@@ -573,11 +565,11 @@ stage2 (mpz_t f, void *X, mpmod_t modulus, mpz_t B2min, mpz_t B2,
 
   st = cputime ();
   if (method == ECM_PM1)
-    rootsG_state = pm1_rootsG_init ((mpres_t *) X, s, d, d2, S, modulus);
+    rootsG_state = pm1_rootsG_init ((mpres_t *) X, i0, d, d2, S, modulus);
   else if (method == ECM_PP1)
-    rootsG_state = pp1_rootsG_init ((mpres_t *) X, s, d, d2, S, modulus);
+    rootsG_state = pp1_rootsG_init ((mpres_t *) X, i0, d, d2, S, modulus);
   else /* ECM_ECM */
-    rootsG_state = ecm_rootsG_init (f, (curve *) X, s, d, d2, dF, k, S, 
+    rootsG_state = ecm_rootsG_init (f, (curve *) X, i0, d, d2, dF, k, S, 
                                     modulus);
 
   /* rootsG_state=NULL if an error occurred or (ecm only) a factor was found */
@@ -750,9 +742,8 @@ clear_T:
 clear_F:
   clear_list (F, dF + 1);
 
-clear_s_i0:
+clear_i0:
   mpz_clear (i0);
-  mpz_clear (s);
 
 #ifdef HAVE_NTT
   mpzspv_clear (sp_invF, mpzspm);
