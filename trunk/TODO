@@ -23,12 +23,12 @@ ToDo's:
 - implement assembly code (redc.asm) for other architectures
   (rename it to redc.s, add AM_PROG_AS in configure.in, add an option
 	--want_asm or similar)
-- allow negative i0 to enable d2 > 1 even for small B2min (Target: 6.1)
 - allow composite d2 (Target: perhaps 6.1)
 - init mpz_t's with correct amount of memory allocated to avoid reallocs.
   Check for reallocs with GMP's memory interface routines. (Target: 6.1? 7.0?)
-- try sliding window multipliation for ECM stage 1
+- try sliding window multipliation for ECM stage 1 (Target: 7.0)
 - choose Brent/Suyama polynomial according to B2/k and not B2!
+- Compute roots of F/G in Montgomery coordinates if S==1 (Target: 6.1)
 
 2) interface
 - with -resume, print %time for THIS RUN instead of total run?
@@ -42,10 +42,9 @@ ToDo's:
 
 3) documentation
 - check README is up-to-date wrt tune/tune2 (and merge tune/tune2)
+- add examples for typical use to README 
+  (see http://www.mersenneforum.org/showthread.php?t=3922)
 
 4) others
-- the B2' value is wrong in ecm-6.0: for example with B1=1e6 and the default
-  B2=839549779, we get B2'=975441390. But asking for B2=975441390 doesn't
-  give B2'=975441390, but B2'=1306905600. (Fix available, target: 6.0.1)
 - add an option to execute a shell command (such as sending an email) 
   when something interesting happens (factor found, program finished) ?
