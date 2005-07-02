@@ -34,15 +34,14 @@
 #define ASSERT(expr)   do {} while (0)
 #endif
 
-/* R_i <- q_i * S, 0 <= i < n, where q_i are large positive integers, S 
-   is a point on an elliptic curve. Uses max(bits in q_i) modular 
-   inversions (one less if max(q_i) is a power of 2).
-   Needs up to n+2 cells in T.
-   Returns factor found, not found, error.
+/* R_i <- q_i * S, 0 <= i < n, where q_i are large integers, S is a point on
+   an elliptic curve. Uses max(bits in q_i) modular inversions (one less if 
+   max(q_i) is a power of 2). Needs up to n+2 cells in T.
+   Returns factor found or not found. No error can occur.
 */
 
 static int
-multiplyW2n (mpz_t p, point *R, curve *S, mpz_t *q, unsigned int n, 
+multiplyW2n (mpz_t p, point *R, curve *S, mpz_t *q, const unsigned int n, 
               mpmod_t modulus, mpres_t u, mpres_t v, mpres_t *T,
               unsigned long *tot_muls, unsigned long *tot_gcds)
 {
@@ -54,6 +53,7 @@ multiplyW2n (mpz_t p, point *R, curve *S, mpz_t *q, unsigned int n,
   int youpi = ECM_NO_FACTOR_FOUND;
   mpz_t flag; /* Used as bit field, keeps track of which R[i] contain partial results */
   point s;    /* 2^t * S */
+  int signs[n];
 
   if (n == 0)
     return ECM_NO_FACTOR_FOUND;
@@ -80,14 +80,12 @@ multiplyW2n (mpz_t p, point *R, curve *S, mpz_t *q, unsigned int n,
   maxbit = 0;
   for (i = 0; i < n; i++)
     {
-      if (mpz_sgn (q[i]) < 0)
-        {
-          outputf (OUTPUT_ERROR, "multiplyW2n: multiplicand q[%d] < 0, negatives not supported\n", i);
-	  youpi = ECM_ERROR;
-	  goto clear_w2;
-        }
+      /* We'll first compute positive multiples and change signs later */
+      signs[i] = mpz_sgn (q[i]);
+      mpz_abs (q[i], q[i]);
+
       /* Multiplier == 0? Then set result to neutral element */
-      if (mpz_sgn (q[i]) == 0)
+      if (signs[i] == 0)
         {
            mpres_set_ui (R[i].x, 0, modulus);
            mpres_set_ui (R[i].y, 0, modulus);
@@ -227,7 +225,6 @@ multiplyW2n (mpz_t p, point *R, curve *S, mpz_t *q, unsigned int n,
         }
     }
 
- clear_w2:
   mpres_clear (s.y, modulus);
   mpres_clear (s.x, modulus);
   mpz_clear (flag);
@@ -237,6 +234,14 @@ multiplyW2n (mpz_t p, point *R, curve *S, mpz_t *q, unsigned int n,
   if (tot_gcds != NULL)
     *tot_gcds += gcds;
   
+  /* Now take inverse points (negative y-coordinate) where q[i] was < 0 */
+  for (i = 0; i < n; i++)
+    if (signs[i] == -1)
+      {
+        mpz_neg (R[i].y, R[i].y);
+        mpz_neg (q[i], q[i]);
+      }
+
   return youpi;
 }
 
@@ -249,7 +254,8 @@ multiplyW2n (mpz_t p, point *R, curve *S, mpz_t *q, unsigned int n,
      for (j=0;j<n;j++)
          (x[j+(n+1)*i] : y[j+(n+1)*i]) += (x[j+1+(n+1)*i] : y[j+1+(n+1)*i])
 
-   Uses one inversion and 6*n*m-3 multiplications for n*m > 0
+   Uses one inversion and 6*n*m-3 multiplications for n*m > 0.
+   Processes neutral (zero), identical and negative points correctly.
 
    Return factor found or not (no error can occur here).
 */
@@ -282,15 +288,22 @@ addWnm (mpz_t p, point *X, curve *S, mpmod_t modulus, unsigned int m,
 
         if (mpres_is_zero (T[k], modulus))  /* If both x-cordinates are identical */
           {
-            /* Are the points identical? */
+            /* Are the points identical? Compare y coordinates: */
             mpres_sub (T[k], X2->y, X1->y, modulus);
             if (mpres_is_zero (T[k], modulus))
               {
                 /* Yes, we need to double. Schedule 2*X[...].y */
                 mpres_add (T[k], X1->y, X1->y, modulus); 
               }
-            else
-              continue; /* No, they are inverses. Nothing tbd here */
+            else /* No, they are inverses. Nothing tbd here */
+              {
+#ifdef WANT_ASSERT
+                /* Check that the y coordinates are mutual negatives */
+                mpres_add (T[k], X2->y, X1->y, modulus);
+                ASSERT (mpres_is_zero (T[k], modulus));
+#endif
+                continue; 
+              }
           }
 
         if (k > 0)
