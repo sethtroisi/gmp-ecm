@@ -585,7 +585,7 @@ ecm_rootsF (mpz_t f, listz_t F, unsigned int d1, unsigned int d2,
    factor in f. If an error occurred, NULL is returned and f is -1.
 */
 ecm_roots_state *
-ecm_rootsG_init (mpz_t f, curve *X, mpz_t s, unsigned int d1, unsigned int d2,
+ecm_rootsG_init (mpz_t f, curve *X, mpz_t i0, unsigned int d1, unsigned int d2,
                  unsigned int dF, unsigned int blocks, int S, mpmod_t modulus)
 {
   unsigned int k, lenT, phid2;
@@ -639,15 +639,15 @@ ecm_rootsG_init (mpz_t f, curve *X, mpz_t s, unsigned int d1, unsigned int d2,
   state->S = S;
   state->size_fd = state->nr * (state->S + 1);
 
-  outputf (OUTPUT_DEVVERBOSE, "ecm_rootsG_init: s=%Zd, d1=%u, d2=%d, dF=%d, blocks=%d, S=%u, T_inv = %d, nr=%d\n", 
-	   s, d1, d2, dF, blocks, S, T_inv, state->nr);
+  outputf (OUTPUT_DEVVERBOSE, "ecm_rootsG_init: i0=%Zd, d1=%u, d2=%d, dF=%d, blocks=%d, S=%u, T_inv = %d, nr=%d\n", 
+	   i0, d1, d2, dF, blocks, S, T_inv, state->nr);
   
   state->X = X;
   state->next = 0;
   state->dsieve = 1; /* We only init progressions coprime to d2, so nothing to be skipped */
   state->rsieve = 1;
 
-  coeffs = init_progression_coeffs (s, d2, d1, state->nr / phid2, 1, S, 
+  coeffs = init_progression_coeffs (i0, d2, d1, state->nr / phid2, 1, S, 
                                     dickson_a);
 
   if (coeffs == NULL) /* error */
