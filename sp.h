@@ -39,6 +39,8 @@
 typedef unsigned long UWtype;
 typedef unsigned int UHWtype;
 typedef unsigned long USItype;
+typedef unsigned long UDItype;
+
 #ifndef BITS_PER_MP_LIMB
 #define BITS_PER_MP_LIMB __GMP_BITS_PER_MP_LIMB
 #endif
