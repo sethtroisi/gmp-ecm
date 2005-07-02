@@ -66,6 +66,65 @@ phi (unsigned long n)
   (5) if parameter po2 is != 0, rounds dF up to a power of 2
   Return non-zero iff an error occurred (too large step 2 bound).
  */
+
+/* How we test whether given d,d2,dF,k,i0 parameters cover the desired 
+   B2min-B2 range:
+
+   In stage 2 we generate all values  p = f(i * d) +- f(j * d2)  with 
+
+     1. gcd (i, d2) == 1, 
+     2. gcd (j, d) == 1,
+     3. j == 1 (mod 6),
+     4. 6|d
+     5. 1 <= j <= d - 5, (it's -5, not just -1, because of 3. and 4.)
+     6. i0 <= i <= i1
+     7. gcd (d, d2) == 1
+   
+   where f(x) is x^S or the S-th Dickson polynomial g_{S,-1}(x). Extra 
+   factors included by S>1 are not considered in this analysis, we assume 
+   S=1, f(x)=x so that  p = i * d +- j * d2.
+
+   (Note: i values greater than stated in 3. may be generated if we have 
+    to round up dF, for example to a power of 2. However, the root generation
+    code can put anything it likes in those extra roots, so we make no 
+    assumption here that this will extend the range of the i values.)
+   
+   Hence the values at the high end of the stage 2 range that are not 
+   generated are
+   
+     p = (i1 + n) * d +- j * d2, n > 0
+
+   and the smallest one of those is
+   
+     p = (i1 + 1) * d - (d - 5) * d2
+       = d * (i1 - d2 + 1) + 5 * d2
+   
+   At the low end of stage 2, values not generated are
+   
+     p = (i0 - n) * d +- j * d2, n > 0   
+
+   the largest one being
+   
+     p = (i0 - 1) * d + (d - 5) * d2
+       = d * (i0 + d2 - 1) - 5*d2
+
+   Thus, values p that are coprime do d*d2 and 
+     d * (i0 + d2 - 1) - 5*d2 + 1 <= p <= d * (i1 - d2 + 1) + 5 * d2 - 1 
+   are included in stage 2.
+
+   
+   The number of roots of G we compute is k * dF. For d2 == 1, this means 
+   i1 = i0 + k * dF - 1  (-1 because both i0 and i1 are included).
+
+   For d2 > 1, values j not coprime to d2 are skipped (see condition 1).
+   The number of values in [1, i0] that are not coprime to d2 (with d2 prime) 
+   is floor (i0 / d2); in [1, i1] it is floor (i1 / d2). 
+   So we require that
+   k * dF >= i1 - i0 + 1 - (floor (i1 / d2) - floor (i0 / d2))
+   
+   
+*/
+
 int
 bestD (mpz_t B2min, mpz_t B2, int po2, unsigned int *finald, 
        unsigned int *finald2, unsigned int *k, unsigned int *finaldF,
@@ -115,9 +174,15 @@ od:
           if (d % d2 > 0)
             break;
         }
-      if (d2 >= 25 || d2 - 1 > dF || (d2 > 1 &&
-          mpz_cmp_ui (B2min, (d - 1) * d2 - d) <= 0)) /* Would make i0 < 0 */
+
+      if (d2 >= 25 || d2 - 1 > dF)
         d2 = 1;
+
+#if 0
+      /* The code to init roots of G can handle negative i0 now. */
+      if (d2 > 1 && mpz_cmp_ui (B2min, (d - 1) * d2 - d) <= 0) 
+        d2 = 1; /* Would make i0 < 0 */
+#endif
       
       mpz_set_ui (i0, d - 1);
       mpz_mul_ui (i0, i0, d2);
@@ -189,7 +254,10 @@ od:
   mpz_set_ui (j, *k);
   mpz_mul_ui (j, j, dF);
   if (d2 == 1)
-    mpz_add (i1, i0, j);
+    {
+      mpz_add (i1, i0, j);
+      mpz_sub_ui (i1, i1, 1);
+    }
   else
     {
       mpz_add (j, j, i0);
@@ -204,7 +272,20 @@ od:
   *finald2 = d2;
   *finaldF = dF;
   mpz_set (finali0, i0);
+
+  /* We want B2' the largest integer that satisfies 
+     i1 = floor ((B2' + (d - 1) * d2) / d)
+        = floor ((B2'-d2)/d) + d2
+     i1 - d2 = floor ((B2'-d2)/d)
+     (B2'-d2)/d < i1-d2+1
+     B2'-d2 < (i1-d2+1) * d
+     B2' < (i1-d2+1) * d + d2
+     B2' = (i1-d2+1) * d + d2 - 1
+  */
+  
+  mpz_sub_ui (i1, i1, d2 - 1);
   mpz_mul_ui (B2, i1, d);
+  mpz_add_ui (B2, B2, d2 - 1);
   
 clear_and_exit:
   mpz_clear (t);

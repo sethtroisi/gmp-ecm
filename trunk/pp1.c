@@ -54,19 +54,22 @@
 static void
 pp1_mul (mpres_t P1, mpres_t P0, mpz_t e, mpmod_t n, mpres_t P, mpres_t Q)
 {
-  unsigned long i;
   mp_size_t size_e;
+  unsigned long i;
+  int sign;
 
-  if (mpz_cmp_ui (e, 0) == 0)
+  sign = mpz_sgn (e);
+  mpz_abs (e, e);
+  if (sign == 0)
     {
       mpres_set_ui (P1, 2, n);
-      return;
+      goto unnegate;
     }
 
   if (mpz_cmp_ui (e, 1) == 0)
     {
       mpres_set (P1, P0, n);
-      return;
+      goto unnegate;
     }
   
   /* now e >= 2 */
@@ -101,8 +104,13 @@ pp1_mul (mpres_t P1, mpres_t P0, mpz_t e, mpmod_t n, mpres_t P, mpres_t Q)
         }
     }
 
-  mpz_add_ui (e, e, 1); /* recover original value of e */
   mpres_set (P1, P, n);
+  mpz_add_ui (e, e, 1); /* recover original value of e */
+unnegate:
+  if (sign == -1)
+    mpz_neg (e, e);
+  
+  return;
 }
 
 /* Input:  P0 is the initial point (sigma)
