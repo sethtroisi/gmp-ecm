@@ -543,7 +543,7 @@ pm1_rootsF (mpz_t f, listz_t F, unsigned int d1, unsigned int d2,
 */
 
 pm1_roots_state *
-pm1_rootsG_init (mpres_t *x, mpz_t s, unsigned int d1, unsigned int d2, 
+pm1_rootsG_init (mpres_t *x, mpz_t i0, unsigned int d1, unsigned int d2, 
                  int S, mpmod_t modulus)
 {
   unsigned int i;
@@ -577,8 +577,8 @@ pm1_rootsG_init (mpres_t *x, mpz_t s, unsigned int d1, unsigned int d2,
       return NULL;
     }
 
-  /* Init for Dickson_{E,a} (s + d1 * n) */
-  coeffs = init_progression_coeffs (s, d2, d1, 1, 1, state->S, dickson_a);
+  /* Init for Dickson_{E,a} (i0 * d + d1 * n) */
+  coeffs = init_progression_coeffs (i0, d2, d1, 1, 1, state->S, dickson_a);
 
   if (coeffs == NULL)
     {
