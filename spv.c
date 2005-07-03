@@ -157,6 +157,7 @@ spv_mul_sp (spv_t r, spv_t x, sp_t c, spv_size_t len, sp_t m, sp_t d)
     r[i] = sp_mul (x[i], c, m, d);
 }
 
+#if 0
 /* r += x * y */
 void
 spv_addmul_sp (spv_t r, spv_t x, sp_t c, spv_size_t len, sp_t m, sp_t d)
@@ -332,7 +333,6 @@ spv_mul_karatsuba (spv_t r, spv_t x, spv_t y, spv_t t, spv_size_t len,
   spv_sub (r + l, r + l, t, 2 * l - 1, m);
 }
 
-#if 0
 /* calculate r[k], ..., r[l - 1] of the product r = x * y
  *
  * other coeffs in r are undefined

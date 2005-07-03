@@ -23,7 +23,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #if !defined (_MSC_VER)
-#include <unistd.h>
+#include <unistd.h> /* getpid */
 #include <sys/time.h> /* gettimeofday */
 #endif
 #include <time.h>

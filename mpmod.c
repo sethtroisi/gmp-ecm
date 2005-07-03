@@ -150,7 +150,7 @@ base2mod_1 (mpres_t RS, mpres_t t, mpmod_t modulus)
     }
 }
 
-#ifdef HAVE_FFT
+#ifdef HAVE___GMPN_MUL_FFT
 /* Fermat-mod */
 static void
 base2mod_2 (mpres_t RS, mp_size_t n, mpz_t modulus)
@@ -195,7 +195,7 @@ ecm_redc_n (mp_ptr rp, mp_srcptr xp, mp_srcptr orig, mp_srcptr aux, mp_size_t n)
   mpn_mul_n (tp, up, orig, n);
   /* add {x, 2n} and {tp, 2n}. We know that {tp, n} + {xp, n} will give
      either 0, or a carry out. If xp[n-1] <> 0, then there is a carry. */
-#ifdef HAVE_NATIVE_mpn_add_nc
+#ifdef HAVE___GMPN_ADD_NC
   cy = __gmpn_add_nc (rp, tp + n, xp + n, n, (mp_limb_t) ((xp[n - 1]) ? 1 : 0));
 #else
   cy = mpn_add_n (rp, tp + n, xp + n, n);
@@ -786,7 +786,7 @@ mpres_mul (mpres_t R, mpres_t S1, mpres_t S2, mpmod_t modulus)
 
       return;
     }
-#elif defined(HAVE_FFT)
+#elif defined(HAVE___GMPN_MUL_FFT)
   if (modulus->repr == MOD_BASE2 && modulus->Fermat >= 32768)
     {
       mp_size_t n = modulus->Fermat / __GMP_BITS_PER_MP_LIMB;

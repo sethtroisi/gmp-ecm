@@ -392,18 +392,19 @@ void spv_neg (spv_t, spv_t, spv_size_t, sp_t);
 /* pointwise multiplication */
 void spv_pwmul (spv_t, spv_t, spv_t, spv_size_t, sp_t, sp_t);
 void spv_mul_sp (spv_t, spv_t, sp_t, spv_size_t, sp_t, sp_t);
-void spv_addmul_sp (spv_t, spv_t, sp_t, spv_size_t, sp_t, sp_t);
-void spv_submul_sp (spv_t, spv_t, sp_t, spv_size_t, sp_t, sp_t);
+/* void spv_addmul_sp (spv_t, spv_t, sp_t, spv_size_t, sp_t, sp_t); */
+/* void spv_submul_sp (spv_t, spv_t, sp_t, spv_size_t, sp_t, sp_t); */
 
 /* polynomial multiplication */
-void spv_mul_basecase (spv_t, spv_t, spv_t, spv_size_t, spv_size_t,
-    sp_t, sp_t);
-void spv_mul_karatsuba (spv_t, spv_t, spv_t, spv_t, spv_size_t, sp_t, sp_t);
+/* void spv_mul_basecase (spv_t, spv_t, spv_t, spv_size_t, spv_size_t,
+    sp_t, sp_t); */
+/* void spv_mul_karatsuba (spv_t, spv_t, spv_t, spv_t, spv_size_t,
+    sp_t, sp_t); */
 /* void spv_mul_toomcook3 (spv_t, spv_t, spv_t, spv_t, spv_size_t, spm_t); */
 /* void spv_mul_toomcook4 (spv_t, spv_t, spv_t, spv_t, spv_size_t, spm_t); */
-void spv_mul (spv_t, spv_t, spv_size_t, spv_t, spv_size_t, spv_size_t,
-    spv_size_t, int, spm_t);
-void spv_sqr (spv_t, spv_t, spv_size_t, int, spm_t);
+/* void spv_mul (spv_t, spv_t, spv_size_t, spv_t, spv_size_t, spv_size_t,
+    spv_size_t, int, spm_t); */
+/* void spv_sqr (spv_t, spv_t, spv_size_t, int, spm_t); */
 void spv_random (spv_t, spv_size_t, sp_t);
 int spv_cmp (spv_t, spv_t, spv_size_t);
 
