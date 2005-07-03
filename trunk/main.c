@@ -49,16 +49,16 @@
 /* #define DEBUG */
 
 /* people keeping track of champions and corresponding url's: ECM, P-1, P+1 */
-char *champion_keeper[3] =
+static char *champion_keeper[3] =
 { "Richard Brent <rpb@comlab.ox.ac.uk>",
   "Paul Zimmermann <zimmerma@loria.fr>",
   "Paul Zimmermann <zimmerma@loria.fr>"};
-char *champion_url[3] =
+static char *champion_url[3] =
 {"ftp://ftp.comlab.ox.ac.uk/pub/Documents/techpapers/Richard.Brent/champs.txt",
  "http://www.loria.fr/~zimmerma/records/Pminus1.html",
  "http://www.loria.fr/~zimmerma/records/Pplus1.html"};
 /* minimal number of digits to enter the champions table for ECM, P-1, P+1 */
-unsigned int champion_digits[3] = { 53, 43, 37 };
+static unsigned int champion_digits[3] = { 53, 43, 37 };
 
 /* Tries to read a number from a line from fd and stores it in r.
    Keeps reading lines until a number is found. Lines beginning with "#"
@@ -119,7 +119,8 @@ new_line:
   return 1;
 }
 
-void usage (void)
+static void 
+usage (void)
 {
     printf ("Usage: ecm [options] B1 [[B2min-]B2] < file\n");
     printf ("\nParameters:\n");
@@ -207,7 +208,7 @@ main (int argc, char *argv[])
         /* If a factor was found, indicate whether factor, cofactor are */
         /* prime. If no factor was found, both are zero. */
   int repr = ECM_DEFAULT_REPR; /* automatic choice */
-  int k = ECM_DEFAULT_K; /* default number of blocks in stage 2 */
+  unsigned long k = ECM_DEFAULT_K; /* default number of blocks in stage 2 */
   int S = ECM_DEFAULT_S;
              /* Degree for Brent-Suyama extension requested by user.
                 Positive value: use S-th power,
@@ -451,7 +452,7 @@ main (int argc, char *argv[])
         }
       else if ((argc > 2) && (strcmp (argv[1], "-k") == 0))
 	{
-	  k = atoi (argv[2]);
+	  k = atol (argv[2]);
 	  /* should this be validated? and a error/abort issued if 0 ??? */
 	  argv += 2;
 	  argc -= 2;
@@ -686,8 +687,9 @@ main (int argc, char *argv[])
 	}
       printf ("]\n");
 #ifdef HAVE_GWNUM
-      printf ("Due to incompatible licenses, this binary file must not "
-              "be distributed.\n");
+      if (! gwnum_is_gpl())
+        printf ("Due to incompatible licenses, this binary file must not "
+                "be distributed.\n");
 #endif
     }
 

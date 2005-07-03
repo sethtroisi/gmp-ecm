@@ -185,6 +185,15 @@ typedef __curve_struct curve;
 
 typedef struct
 {
+  unsigned long d1;
+  unsigned long d2;
+  mpz_t i0;
+  int S;
+} __root_params_t;
+typedef __root_params_t root_params_t;
+
+typedef struct
+{
   unsigned int size_fd; /* How many entries .fd has, always nr * (S+1) */
   unsigned int nr;     /* How many separate progressions there are */
   unsigned int next;   /* From which progression to take the next root */
@@ -225,6 +234,7 @@ typedef struct
   point *fd;           /* for S != 1 */
   mpres_t tmp[4];      /* for S=1 */
   unsigned int d;      /* Step size for computing roots of G */
+  int dickson_a;       /* Parameter for Dickson polynomials */
 } __pp1_roots_state;
 typedef __pp1_roots_state pp1_roots_state;
 
@@ -271,13 +281,12 @@ double   getprime       (double);
 
 /* pm1.c */
 #define pm1_rootsF __ECM(pm1_rootsF)
-int     pm1_rootsF       (mpz_t, listz_t, unsigned int, unsigned int,
-			  unsigned int, mpres_t *, listz_t, int, mpmod_t);
+int     pm1_rootsF       (mpz_t, listz_t, root_params_t *, unsigned long, 
+                          mpres_t *, listz_t, mpmod_t);
 #define pm1_rootsG_init __ECM(pm1_rootsG_init)
-pm1_roots_state* pm1_rootsG_init  (mpres_t *, mpz_t, unsigned int,
-				   unsigned int, int, mpmod_t);
+pm1_roots_state* pm1_rootsG_init  (mpres_t *, root_params_t *, mpmod_t);
 #define pm1_rootsG __ECM(pm1_rootsG)
-int     pm1_rootsG       (mpz_t, listz_t, unsigned int, pm1_roots_state *, 
+int     pm1_rootsG       (mpz_t, listz_t, unsigned long, pm1_roots_state *, 
                           listz_t, mpmod_t);
 #define pm1_rootsG_clear __ECM(pm1_rootsG_clear)
 void    pm1_rootsG_clear (pm1_roots_state *, mpmod_t);
@@ -286,8 +295,8 @@ void    pm1_rootsG_clear (pm1_roots_state *, mpmod_t);
 #define phi __ECM(phi)
 unsigned long phi (unsigned long);
 #define bestD __ECM(bestD)
-int     bestD (mpz_t, mpz_t, int, unsigned int *, unsigned int *, 
-               unsigned int *, unsigned int *, mpz_t);
+int     bestD (root_params_t *, unsigned long *, unsigned long *, mpz_t, 
+               mpz_t, int);
 
 /* ecm.c */
 #define choose_S __ECM(choose_S)
@@ -297,17 +306,17 @@ void ecm_mul (mpres_t, mpres_t, mpz_t, mpmod_t, mpres_t);
 
 /* ecm2.c */
 #define ecm_rootsF __ECM(ecm_rootsF)
-int     ecm_rootsF       (mpz_t, listz_t, unsigned int, unsigned int,
-			  unsigned int, curve *, int, mpmod_t);
+int     ecm_rootsF       (mpz_t, listz_t, root_params_t *, unsigned long, 
+                          curve *, mpmod_t);
 #define ecm_rootsG_init __ECM(ecm_rootsG_init)
-ecm_roots_state* ecm_rootsG_init (mpz_t, curve *, mpz_t, unsigned int,
-		  unsigned int, unsigned int, unsigned int, int, mpmod_t);
+ecm_roots_state* ecm_rootsG_init (mpz_t, curve *, root_params_t *, 
+                                  unsigned long, unsigned long, mpmod_t);
 #define ecm_rootsG __ECM(ecm_rootsG)
-int     ecm_rootsG       (mpz_t, listz_t, unsigned int, ecm_roots_state *, 
+int     ecm_rootsG       (mpz_t, listz_t, unsigned long, ecm_roots_state *, 
                           mpmod_t);
 #define ecm_rootsG_clear __ECM(ecm_rootsG_clear)
-void    ecm_rootsG_clear (ecm_roots_state *, int, mpmod_t);
-void init_roots_state   (ecm_roots_state *, int, unsigned int, unsigned int, 
+void    ecm_rootsG_clear (ecm_roots_state *, mpmod_t);
+void init_roots_state   (ecm_roots_state *, int, unsigned long, unsigned long, 
                          double);
 
 /* lucas.c */
@@ -317,20 +326,20 @@ void  pp1_mul_prac     (mpres_t, unsigned long, mpmod_t, mpres_t, mpres_t,
 
 /* pp1.c */
 #define pp1_rootsF __ECM(pp1_rootsF)
-int   pp1_rootsF       (listz_t, unsigned int, unsigned int, unsigned int,
-                        mpres_t *, listz_t, int, mpmod_t);
+int   pp1_rootsF       (listz_t, root_params_t *, unsigned long, mpres_t *, 
+                        listz_t, mpmod_t);
 #define pp1_rootsG __ECM(pp1_rootsG)
-int   pp1_rootsG   (listz_t, unsigned int, pp1_roots_state *, mpmod_t, mpres_t*);
+int   pp1_rootsG   (listz_t, unsigned long, pp1_roots_state *, mpmod_t, 
+                    mpres_t*);
 #define pp1_rootsG_init __ECM(pp1_rootsG_init)
-pp1_roots_state* pp1_rootsG_init (mpres_t*, mpz_t, unsigned int,
-                                  unsigned int, int, mpmod_t);
+pp1_roots_state* pp1_rootsG_init (mpres_t*, root_params_t *, mpmod_t);
 #define pp1_rootsG_clear __ECM(pp1_rootsG_clear)
 void  pp1_rootsG_clear (pp1_roots_state *, mpmod_t);
 
 /* stage2.c */
 #define stage2 __ECM(stage2)
-int          stage2     (mpz_t, void *, mpmod_t, mpz_t, mpz_t, unsigned int,
-                         int, int, int, char *);
+int          stage2     (mpz_t, void *, mpmod_t, unsigned long, unsigned long,
+                         root_params_t *, int, char *);
 #define init_progression_coeffs __ECM(init_progression_coeffs)
 listz_t init_progression_coeffs (mpz_t, unsigned int, unsigned int,
                          unsigned int, unsigned int, unsigned int, int);
@@ -379,7 +388,7 @@ void         karatsuba  (listz_t, listz_t, listz_t, unsigned int, listz_t);
 void        list_mulmod (listz_t, listz_t, listz_t, listz_t, unsigned int,
                          listz_t, mpz_t);
 #define list_invert __ECM(list_invert)
-int         list_invert (listz_t, listz_t, unsigned int, mpz_t, mpmod_t);
+int         list_invert (listz_t, listz_t, unsigned long, mpz_t, mpmod_t);
 #define PolyFromRoots __ECM(PolyFromRoots)
 void      PolyFromRoots (listz_t, listz_t, unsigned int, listz_t, mpz_t);
 #define PolyFromRoots_Tree __ECM(PolyFromRoots_Tree)
@@ -540,7 +549,7 @@ void         mpz_sub_si (mpz_t, mpz_t, int);
 #define mpz_divby3_1op __ECM(mpz_divby3_1op)
 void         mpz_divby3_1op (mpz_t);
 #define ceil_log2 __ECM(ceil_log2)
-unsigned int ceil_log2  (unsigned int);
+unsigned int ceil_log2  (unsigned long);
 #define cputime __ECM(cputime)
 unsigned int cputime    (void);
 #define elltime __ECM(elltime)
