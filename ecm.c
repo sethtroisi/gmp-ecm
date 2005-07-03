@@ -622,6 +622,83 @@ choose_S (mpz_t B2len)
     return -30; /* Dickson(30) */
 }
 
+static void
+print_expcurves (mpz_t B2min, mpz_t effB2, unsigned long dF, unsigned long k, 
+                 int S, int clear)
+{
+  double prob;
+  int i;
+  char sep;
+
+  if (!test_verbose (OUTPUT_VERBOSE))
+    return;
+
+  rhoinit (256, 10);
+  outputf (OUTPUT_VERBOSE, "Expected number of curves to find a factor "
+           "of n digits:\n20\t25\t30\t35\t40\t45\t50\t55\t60\t65\n");
+  for (i = 20; i <= 65; i += 5)
+    {
+      sep = (i < 65) ? '\t' : '\n';
+      prob = ecmprob (mpz_get_d (B2min), mpz_get_d (effB2),
+                      pow (10., i - .5), (double) dF * dF * k, S);
+      if (prob > 1. / 10000000)
+        outputf (OUTPUT_VERBOSE, "%.0f%c", floor (1. / prob + .5), sep);
+      else if (prob > 0.)
+        outputf (OUTPUT_VERBOSE, "%.2g%c", floor (1. / prob + .5), sep);
+      else
+        outputf (OUTPUT_VERBOSE, "Inf%c", sep);
+    }
+
+  if (clear)
+    rhoinit (1, 0); /* Free memory of rhotable */
+}
+
+static void
+print_exptime (mpz_t B2min, mpz_t effB2, unsigned long dF, unsigned long k, 
+               int S, double tottime, int clear)
+{
+  double prob, exptime;
+  int i;
+  char sep;
+  
+  if (!test_verbose (OUTPUT_VERBOSE))
+    return;
+  
+  rhoinit (256, 10);
+  outputf (OUTPUT_VERBOSE, "Expected time to find a factor of n digits:\n"
+    "20\t25\t30\t35\t40\t45\t50\t55\t60\t65\n");
+  for (i = 20; i <= 65; i += 5)
+    {
+      sep = (i < 65) ? '\t' : '\n';
+      prob = ecmprob (mpz_get_d (B2min), mpz_get_d (effB2), 
+                      pow (10., i - .5), (double) dF * dF * k, S);
+      exptime = (prob > 0.) ? tottime / prob : HUGE_VAL;
+      outputf (OUTPUT_TRACE, "Digits: %d, Total time: %.0f, probability: "
+               "%g, expected time: %.0f\n", i, tottime, prob, exptime);
+      if (exptime < 1000.)
+        outputf (OUTPUT_VERBOSE, "%.0fms%c", exptime, sep);
+      else if (exptime < 60000.) /* One minute */
+        outputf (OUTPUT_VERBOSE, "%.2fs%c", exptime / 1000., sep);
+      else if (exptime < 3600000.) /* One hour */
+        outputf (OUTPUT_VERBOSE, "%.2fm%c", exptime / 60000., sep);
+      else if (exptime < 86400000.) /* One day */
+        outputf (OUTPUT_VERBOSE, "%.2fh%c", exptime / 3600000., sep);
+      else if (exptime < 31536000000.) /* One year */
+        outputf (OUTPUT_VERBOSE, "%.2fd%c", exptime / 86400000., sep);
+      else if (exptime < 31536000000000.) /* One thousand years */
+        outputf (OUTPUT_VERBOSE, "%.2fy%c", exptime / 31536000000., sep);
+      else if (exptime < 31536000000000000.) /* One million years */
+        outputf (OUTPUT_VERBOSE, "%.0fy%c", exptime / 31536000000., sep);
+      else if (prob > 0.)
+        outputf (OUTPUT_VERBOSE, "%.1gy%c", exptime / 31536000000., sep);
+      else 
+        outputf (OUTPUT_VERBOSE, "Inf%c", sep);
+    }
+
+  if (clear)
+    rhoinit (1, 0); /* Free memory of rhotable */
+}
+
 /* Input: x is starting point or zero
           sigma is sigma value (if x is set to zero) or 
             A parameter (if x is non-zero) of curve
@@ -643,16 +720,19 @@ choose_S (mpz_t B2len)
 int
 ecm (mpz_t f, mpz_t x, mpz_t sigma, mpz_t n, mpz_t go, double B1done,
      double B1, mpz_t B2min_parm, mpz_t B2_parm, double B2scale, 
-     unsigned int k, int S, int verbose, int repr, int sigma_is_A, 
+     unsigned long k, const int S, int verbose, int repr, int sigma_is_A, 
      FILE *os, FILE* es, char *TreeFilename)
 {
   int youpi = ECM_NO_FACTOR_FOUND;
-  int base2 = 0; /* If n is of form 2^n[+-]1, set base to [+-]n */
+  int base2 = 0;  /* If n is of form 2^n[+-]1, set base to [+-]n */
   int Fermat = 0; /* If base2 > 0 is a power of 2, set Fermat to base2 */
+  int po2 = 0;    /* Whether we should use power-of-2 poly degree */
   unsigned int st;
   mpmod_t modulus;
   curve P;
   mpz_t B2min, B2; /* Local B2, B2min to avoid changing caller's values */
+  unsigned long dF;
+  root_params_t root_params;
 
   set_verbose (verbose);
   ECM_STDOUT = (os == NULL) ? stdout : os;
@@ -665,6 +745,8 @@ ecm (mpz_t f, mpz_t x, mpz_t sigma, mpz_t n, mpz_t go, double B1done,
       return ECM_FACTOR_FOUND_STEP1;
     }
 
+  /* now n is odd */
+
   /* check that B1 is not too large */
   if (B1 > (double) ULONG_MAX)
     {
@@ -672,8 +754,6 @@ ecm (mpz_t f, mpz_t x, mpz_t sigma, mpz_t n, mpz_t go, double B1done,
                ULONG_MAX);
       return ECM_ERROR;
     }
-
-  /* now n is odd */
 
   st = cputime ();
 
@@ -686,7 +766,10 @@ ecm (mpz_t f, mpz_t x, mpz_t sigma, mpz_t n, mpz_t go, double B1done,
   /* For for a Fermat number (base2 a positive power of 2) */
   for (Fermat = base2; Fermat > 0 && (Fermat & 1) == 0; Fermat >>= 1);
   if (Fermat == 1) 
+    {
       Fermat = base2;
+      po2 = 1;
+    }
   else
       Fermat = 0;
 
@@ -713,6 +796,8 @@ ecm (mpz_t f, mpz_t x, mpz_t sigma, mpz_t n, mpz_t go, double B1done,
   
   mpz_init_set (B2min, B2min_parm);
   mpz_init_set (B2, B2_parm);
+  
+  mpz_init (root_params.i0);
 
   /* set second stage bound B2: when using polynomial multiplication of
      complexity n^alpha, stage 2 has complexity about B2^(alpha/2), and
@@ -735,6 +820,19 @@ ecm (mpz_t f, mpz_t x, mpz_t sigma, mpz_t n, mpz_t go, double B1done,
   if (mpz_sgn (B2min) < 0)
     mpz_set_d (B2min, B1);
 
+  /* Let bestD determine parameters for root generation and the 
+     effective B2 */
+
+#ifdef HAVE_NTT
+  po2 = 1;
+#endif
+
+  if (bestD (&root_params, &k, &dF, B2min, B2, po2) == ECM_ERROR)
+    {
+      youpi = ECM_ERROR;
+      goto end_of_ecm;
+    }
+
   /* Set default degree for Brent-Suyama extension */
   /* We try to keep the time used by the Brent-Suyama extension
      at about 10% of the stage 2 time */
@@ -742,19 +840,20 @@ ecm (mpz_t f, mpz_t x, mpz_t sigma, mpz_t n, mpz_t go, double B1done,
      the better Dickson polys whenever possible. For S == 1, 2, they behave
      identically. */
 
-  if (S == ECM_DEFAULT_S)
+  root_params.S = S;
+  if (root_params.S == ECM_DEFAULT_S)
     {
       if (Fermat > 0)
         {
           /* For Fermat numbers, default is 1 (no Brent-Suyama) */
-          S = 1;
+          root_params.S = 1;
         }
       else
         {
           mpz_t t;
           mpz_init (t);
           mpz_sub (t, B2, B2min);
-          S = choose_S (t);
+          root_params.S = choose_S (t);
           mpz_clear (t);
         }
     }
@@ -807,11 +906,19 @@ ecm (mpz_t f, mpz_t x, mpz_t sigma, mpz_t n, mpz_t go, double B1done,
   else
       outputf (OUTPUT_NORMAL, "%Zd-%Zd", B2min, B2);
   outputf (OUTPUT_NORMAL, ", polynomial ");
-  if (S > 0)
-      outputf (OUTPUT_NORMAL, "x^%u", S);
+  if (root_params.S > 0)
+      outputf (OUTPUT_NORMAL, "x^%u", root_params.S);
   else
-      outputf (OUTPUT_NORMAL, "Dickson(%u)", -S);
+      outputf (OUTPUT_NORMAL, "Dickson(%u)", -root_params.S);
   outputf (OUTPUT_NORMAL, ", sigma=%Zd\n", sigma);
+
+#if 0
+  outputf (OUTPUT_VERBOSE, "b2=%1.0f, dF=%lu, k=%lu, d=%lu, d2=%lu, i0=%Zd\n", 
+           b2, dF, k, root_params.d1, root_params.d2, root_params.i0);
+#else
+  outputf (OUTPUT_VERBOSE, "dF=%lu, k=%lu, d=%lu, d2=%lu, i0=%Zd\n", 
+           dF, k, root_params.d1, root_params.d2, root_params.i0);
+#endif
 
   if (test_verbose (OUTPUT_RESVERBOSE))
     {
@@ -828,6 +935,8 @@ ecm (mpz_t f, mpz_t x, mpz_t sigma, mpz_t n, mpz_t go, double B1done,
   if (go != NULL && mpz_cmp_ui (go, 1) > 0)
     outputf (OUTPUT_VERBOSE, "initial group order: %Zd\n", go);
 
+  print_expcurves (B2min, B2, dF, k, root_params.S, 0);
+
 #ifdef HAVE_GWNUM
   /* Right now, we only do base 2 numbers with GWNUM */
 
@@ -840,9 +949,7 @@ ecm (mpz_t f, mpz_t x, mpz_t sigma, mpz_t n, mpz_t go, double B1done,
   if (B1 > B1done)
     youpi = ecm_stage1 (f, P.x, P.A, modulus, B1, B1done, go);
   
-  st = elltime (st, cputime ());
-  
-  outputf (OUTPUT_NORMAL, "Step 1 took %ums\n", st);
+  outputf (OUTPUT_NORMAL, "Step 1 took %ums\n", elltime (st, cputime ()));
 
   /* Store end-of-stage-1 residue in x in case we write it to a save file, 
      before P.x is converted to Weierstrass form */
@@ -862,18 +969,22 @@ ecm (mpz_t f, mpz_t x, mpz_t sigma, mpz_t n, mpz_t go, double B1done,
       mpz_clear (t);
     }
 
-
   youpi = montgomery_to_weierstrass (f, P.x, P.y, P.A, modulus);
 
   if (youpi == ECM_NO_FACTOR_FOUND)
-    youpi = stage2 (f, &P, modulus, B2min, B2, k, S, ECM_ECM, st, 
+    youpi = stage2 (f, &P, modulus, dF, k, &root_params, ECM_ECM, 
                     TreeFilename);
   
+  if (youpi == ECM_NO_FACTOR_FOUND)
+    print_exptime (B2min, B2, dF, k, root_params.S, 
+                   elltime (st, cputime ()), 1);
+
 end_of_ecm:
   mpres_clear (P.A, modulus);
   mpres_clear (P.y, modulus);
   mpres_clear (P.x, modulus);
   mpmod_clear (modulus);
+  mpz_clear (root_params.i0);
   mpz_clear (B2);
   mpz_clear (B2min);
 

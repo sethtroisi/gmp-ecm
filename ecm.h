@@ -28,7 +28,7 @@ typedef struct
   double B1done;  /* step 1 was already done up to B1done */
   mpz_t B2min;    /* lower bound for stage 2 (default is B1) */
   mpz_t B2;       /* step 2 bound (chosen automatically if < 0.0) */
-  unsigned int k; /* number of blocks in stage 2 */
+  unsigned long k;/* number of blocks in stage 2 */
   int S;          /* degree of the Brent-Suyama's extension for stage 2 */
   int repr;       /* representation for modular arithmetic: 1=mpz,         
 		     2=modmuln (Montgomery's quadratic multiplication),
@@ -49,11 +49,13 @@ void ecm_clear (ecm_params);
 
 /* the following interface is not supported */
 int ecm (mpz_t, mpz_t, mpz_t, mpz_t, mpz_t, double, double, mpz_t, mpz_t,
-         double, unsigned int, int, int, int, int, FILE*, FILE*, char*);
+         double, unsigned long, const int, int, int, int, FILE*, FILE*, 
+         char*);
 int pp1 (mpz_t, mpz_t, mpz_t, mpz_t, double, double, mpz_t, mpz_t, 
-         double, unsigned int, int, int, int, FILE*, FILE*, char*);
+         double, unsigned long, const int, int, int, FILE*, FILE*, char*);
 int pm1 (mpz_t, mpz_t, mpz_t, mpz_t, double, double, mpz_t, 
-          mpz_t, double, unsigned int, int, int, int, FILE*, FILE*, char*);
+          mpz_t, double, unsigned long, const int, int, int, FILE*, FILE*, 
+          char*);
 
 /* different methods implemented */
 #define ECM_ECM 0
