@@ -28,7 +28,7 @@
 #include "ecm-gmp.h" /* for MPZ_REALLOC and MPN_COPY */
 #include "ecm-impl.h"
 
-#ifdef HAVE_FFT
+#ifdef HAVE___GMPN_MUL_FFT
 #define FFT_WRAP
 #endif
 

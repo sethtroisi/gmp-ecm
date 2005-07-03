@@ -329,12 +329,9 @@ polyeval_tellegen (listz_t b, unsigned int k, listz_t *Tree, listz_t tmp,
         lgk = ceil_log2 (k);
         for (i = 0; i < lgk; i++)
           {
-#ifdef HAVE_snprintf
             snprintf (fullname, 256, "%.252s.%d", TreeFilename, i);
-#else
-            sprintf (fullname, "%.252s.%d", TreeFilename, i);
-#endif
-            TreeFile = fopen (fullname, "rb");
+            
+	    TreeFile = fopen (fullname, "rb");
             if (TreeFile == NULL)
               {
                 outputf (OUTPUT_ERROR, 

@@ -303,12 +303,9 @@ ntt_polyevalT (mpzv_t b, spv_size_t len, mpzv_t *Tree, mpzv_t T,
         {
           Tree = &T;
 	  
-#ifdef HAVE_snprintf
           snprintf (TreeFilename, 256, "%.252s.%d", TreeFilenameStem, level);
-#else
-          sprintf (TreeFilename, "%.252s.%d", TreeFilenameStem, level);
-#endif
-          TreeFile = fopen (TreeFilename, "rb");
+          
+	  TreeFile = fopen (TreeFilename, "rb");
           if (TreeFile == NULL)
             {
               outputf (OUTPUT_ERROR,
@@ -364,11 +361,8 @@ ntt_polyevalT (mpzv_t b, spv_size_t len, mpzv_t *Tree, mpzv_t T,
     {
       if (TreeFilenameStem)
         {
-#ifdef HAVE_snprintf
           snprintf (TreeFilename, 256, "%.252s.%d", TreeFilenameStem, level);
-#else
-          sprintf (TreeFilename, "%.252s.%d", TreeFilenameStem, level);
-#endif
+
           TreeFile = fopen (TreeFilename, "rb");
           if (TreeFile == NULL)
             {

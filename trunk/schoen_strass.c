@@ -186,7 +186,7 @@ F_mulmod (mpz_t R, mpz_t S1, mpz_t S2, unsigned int n)
 #endif
       return;
     }
-#elif defined(HAVE_FFT)
+#elif defined(HAVE___GMPN_MUL_FFT)
   if (n >= 32768)
     {
       unsigned long k;
