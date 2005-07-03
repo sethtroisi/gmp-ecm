@@ -403,10 +403,10 @@ update_fd (mpres_t *fd, unsigned int nr, unsigned int S, mpmod_t modulus,
 */
 
 int
-pm1_rootsF (mpz_t f, listz_t F, unsigned int d1, unsigned int d2, 
-            unsigned int dF, mpres_t *x, listz_t t, int S, mpmod_t modulus)
+pm1_rootsF (mpz_t f, listz_t F, root_params_t *root_params, 
+            unsigned long dF, mpres_t *x, listz_t t, mpmod_t modulus)
 {
-  unsigned int i;
+  unsigned long i;
   unsigned long muls = 0, gcds = 0;
   unsigned int st, st1;
   pm1_roots_state state;
@@ -422,10 +422,11 @@ pm1_rootsF (mpz_t f, listz_t F, unsigned int d1, unsigned int d2,
   /* The typecast from hell: the relevant fields of ecm_roots_state and
      pm1_roots_state match in position so init_roots_state() can init a
      pm1_roots_state as well. UGLY. OOP would really help here */
-  init_roots_state ((ecm_roots_state *) &state, S, d1, d2, 1.0);
+  init_roots_state ((ecm_roots_state *) &state, root_params->S, 
+                    root_params->d1, root_params->d2, 1.0);
 
   /* The invtrick is profitable for x^S, S even and > 6 */
-  if (S > 6 && (S & 1) == 0)
+  if (root_params->S > 6 && (root_params->S & 1) == 0)
     {
       state.invtrick = 1;
       state.S /= 2;
@@ -441,8 +442,8 @@ pm1_rootsF (mpz_t f, listz_t F, unsigned int d1, unsigned int d2,
 
   /* Init finite differences tables */
   mpz_init (ts); /* ts = 0 */
-  coeffs = init_progression_coeffs (ts, state.dsieve, d2, 1, 6, state.S, 
-                                    state.dickson_a);
+  coeffs = init_progression_coeffs (ts, state.dsieve, root_params->d2, 1, 6, 
+                                    state.S, state.dickson_a);
   mpz_clear (ts);
 
   if (coeffs == NULL)
@@ -492,7 +493,7 @@ pm1_rootsF (mpz_t f, listz_t F, unsigned int d1, unsigned int d2,
             }
           
           /* Is this a j value where we want x^Dickson(j * d2) as a root? */
-          if (gcd (state.rsieve, d1) == 1)
+          if (gcd (state.rsieve, root_params->d1) == 1)
             mpres_get_z (F[i++], state.fd[state.next * (state.S + 1)], modulus);
           state.next ++;
         }
@@ -543,11 +544,9 @@ pm1_rootsF (mpz_t f, listz_t F, unsigned int d1, unsigned int d2,
 */
 
 pm1_roots_state *
-pm1_rootsG_init (mpres_t *x, mpz_t i0, unsigned int d1, unsigned int d2, 
-                 int S, mpmod_t modulus)
+pm1_rootsG_init (mpres_t *x, root_params_t *root_params, mpmod_t modulus)
 {
   unsigned int i;
-  int dickson_a;
   listz_t coeffs;
   pm1_roots_state *state;
 
@@ -555,20 +554,21 @@ pm1_rootsG_init (mpres_t *x, mpz_t i0, unsigned int d1, unsigned int d2,
   if (state == NULL)
     return NULL;
   
-  dickson_a = (S < 0) ? -1 : 0;
-  
-  state->nr = (d2 > 1) ? d2 - 1 : 1;
+  state->dickson_a = (root_params->S < 0) ? -1 : 0;
+  state->nr = (root_params->d2 > 1) ? root_params->d2 - 1 : 1;
   state->next = 0;
-  state->invtrick = (S > 6 && (S & 1) == 0);
-  state->S = (state->invtrick) ? abs (S) / 2 : abs (S);
+  state->invtrick = (root_params->S > 6 && (root_params->S & 1) == 0);
+  state->S = (state->invtrick) ? abs (root_params->S) / 2 : 
+                                 abs (root_params->S);
   state->size_fd = state->nr * (state->S + 1);
   state->dsieve = 1;
   state->rsieve = 1;
   
   outputf (OUTPUT_DEVVERBOSE,
-	   "pm1_rootsG_init: d1 = %d, d2 = %d, state: dsieve = %d, nr = %d, "
-	   "size_fd = %d, S = %d, invtrick = %d\n", d1, d2, state->dsieve, 
-	   state->nr, state->size_fd, state->S, state->invtrick);
+	   "pm1_rootsG_init: d1 = %lu, d2 = %lu, state: dsieve = %d, "
+	   "nr = %d, size_fd = %d, S = %d, invtrick = %d\n", 
+	   root_params->d1, root_params->d2, state->dsieve, state->nr, 
+	   state->size_fd, state->S, state->invtrick);
   
   state->fd = (mpres_t *) malloc (state->size_fd * sizeof (mpres_t));
   if (state->fd == NULL)
@@ -578,7 +578,8 @@ pm1_rootsG_init (mpres_t *x, mpz_t i0, unsigned int d1, unsigned int d2,
     }
 
   /* Init for Dickson_{E,a} (i0 * d + d1 * n) */
-  coeffs = init_progression_coeffs (i0, d2, d1, 1, 1, state->S, dickson_a);
+  coeffs = init_progression_coeffs (root_params->i0, root_params->d2, 
+             root_params->d1, 1, 1, state->S, state->dickson_a);
 
   if (coeffs == NULL)
     {
@@ -649,10 +650,10 @@ pm1_rootsG_clear (pm1_roots_state *state, ATTRIBUTE_UNUSED mpmod_t modulus)
 */
 
 int
-pm1_rootsG (mpz_t f, listz_t G, unsigned int dF, pm1_roots_state *state, 
+pm1_rootsG (mpz_t f, listz_t G, unsigned long dF, pm1_roots_state *state, 
             listz_t t, mpmod_t modulus)
 {
-  unsigned int i;
+  unsigned long i;
   unsigned long muls = 0, gcds = 0;
   unsigned int st;
   
@@ -738,14 +739,20 @@ pm1_rootsG (mpz_t f, listz_t G, unsigned int dF, pm1_roots_state *state,
 */
 int
 pm1 (mpz_t f, mpz_t p, mpz_t N, mpz_t go, double B1done, double B1,
-     mpz_t B2min_parm, mpz_t B2_parm, double B2scale, unsigned int k, int S,
-     int verbose, int repr, FILE *os, FILE *es, char *TreeFilename)
+     mpz_t B2min_parm, mpz_t B2_parm, double B2scale, unsigned long k, 
+     const int S, int verbose, int repr, FILE *os, FILE *es, 
+     char *TreeFilename)
 {
+  int youpi = ECM_NO_FACTOR_FOUND;
+  int base2 = 0;
+  int Nbits, smallbase;
+  int po2 = 0;    /* Whether we should use power-of-2 poly degree */
+  unsigned int st;
   mpmod_t modulus;
   mpres_t x;
-  int youpi = 0, base2, Nbits, smallbase;
-  unsigned int st;
   mpz_t B2min, B2; /* Local B2, B2min to avoid changing caller's values */
+  unsigned long dF;
+  root_params_t root_params;
 
   set_verbose (verbose);
   ECM_STDOUT = (os == NULL) ? stdout : os;
@@ -770,6 +777,7 @@ pm1 (mpz_t f, mpz_t p, mpz_t N, mpz_t go, double B1done, double B1,
   
   mpz_init_set (B2min, B2min_parm);
   mpz_init_set (B2, B2_parm);
+  mpz_init (root_params.i0);
   
   /* Set default B2. See ecm.c for comments */
   if (ECM_IS_DEFAULT_B2(B2))
@@ -830,13 +838,26 @@ pm1 (mpz_t f, mpz_t p, mpz_t N, mpz_t go, double B1done, double B1,
         }
     }
   
+  if (modulus->repr == MOD_BASE2 && modulus->Fermat > 0)
+    po2 = 1;
+#ifdef HAVE_NTT
+  po2 = 1;
+#endif
+  
+  if (bestD (&root_params, &k, &dF, B2min, B2, po2) == ECM_ERROR)
+    {
+      youpi = ECM_ERROR;
+      goto clear_and_exit;
+    }
+  
+  root_params.S = S;
   /* Set default degree for Brent-Suyama extension */
-  if (S == ECM_DEFAULT_S)
+  if (root_params.S == ECM_DEFAULT_S)
     {
       if (modulus->repr == MOD_BASE2 && modulus->Fermat > 0)
         {
           /* For Fermat numbers, default is 2 (no Brent-Suyama) */
-          S = 2;
+          root_params.S = 2;
         }
       else
         {
@@ -844,30 +865,30 @@ pm1 (mpz_t f, mpz_t p, mpz_t N, mpz_t go, double B1done, double B1,
           mpz_init (t);
           mpz_sub (t, B2, B2min);
           if (mpz_cmp_d (t, 3.5e5) < 0) /* B1 < 50000 */
-            S = -4; /* Dickson polys give a slightly better chance of success */
+            root_params.S = -4; /* Dickson polys give a slightly better chance of success */
           else if (mpz_cmp_d (t, 1.1e7) < 0) /* B1 < 500000 */
-            S = -6;
+            root_params.S = -6;
           else if (mpz_cmp_d (t, 1.25e8) < 0) /* B1 < 3000000 */
-            S = 12; /* but for S>6, S-th powers are faster thanks to invtrick */
+            root_params.S = 12; /* but for S>6, S-th powers are faster thanks to invtrick */
           else if (mpz_cmp_d (t, 7.e9) < 0) /* B1 < 50000000 */
-            S = 24;
+            root_params.S = 24;
           else if (mpz_cmp_d (t, 1.9e10) < 0) /* B1 < 100000000 */
-            S = 48;
+            root_params.S = 48;
           else if (mpz_cmp_d (t, 5.e11) < 0) /* B1 < 1000000000 */
-            S = 60;
+            root_params.S = 60;
           else
-            S = 120;
+            root_params.S = 120;
           mpz_clear (t);
         }
     }
 
   /* We need Suyama's power even and at least 2 for P-1 stage 2 to work 
      correctly */
-  if (abs(S) < 2)
-    S = 2;
+  if (abs (root_params.S) < 2)
+    root_params.S = 2;
 
-  if (S & 1)
-    S *= 2; /* FIXME: Is this what the user would expect? */
+  if (root_params.S & 1)
+    root_params.S *= 2; /* FIXME: Is this what the user would expect? */
   
   if (test_verbose (OUTPUT_NORMAL))
     {
@@ -880,8 +901,8 @@ pm1 (mpz_t f, mpz_t p, mpz_t N, mpz_t go, double B1done, double B1,
         outputf (OUTPUT_NORMAL, ", B2=%Zd, ", B2);
       else
         outputf (OUTPUT_NORMAL, ", B2=%Zd-%Zd, ", B2min, B2);
-      if (S > 0)
-        outputf (OUTPUT_NORMAL, "polynomial x^%u", S);
+      if (root_params.S > 0)
+        outputf (OUTPUT_NORMAL, "polynomial x^%u", root_params.S);
       else
         outputf (OUTPUT_NORMAL, "polynomial Dickson(%u)", -S);
 
@@ -891,6 +912,9 @@ pm1 (mpz_t f, mpz_t p, mpz_t N, mpz_t go, double B1done, double B1,
 
       outputf (OUTPUT_NORMAL, "\n");
     }
+
+  outputf (OUTPUT_VERBOSE, "dF=%lu, k=%lu, d=%lu, d2=%lu, i0=%Zd\n", 
+           dF, k, root_params.d1, root_params.d2, root_params.i0);
 
   mpres_init (x, modulus);
   mpres_set_z (x, p, modulus);
@@ -910,15 +934,15 @@ pm1 (mpz_t f, mpz_t p, mpz_t N, mpz_t go, double B1done, double B1,
       mpz_clear (tx);
     }
 
-  if (youpi != ECM_NO_FACTOR_FOUND) /* factor found, or an error occurred */
-    goto clear_and_exit;
-
-  youpi = stage2 (f, &x, modulus, B2min, B2, k, S, ECM_PM1, st, TreeFilename);
+  if (youpi == ECM_NO_FACTOR_FOUND) /* no factor found, no error */
+    youpi = stage2 (f, &x, modulus, dF, k, &root_params, ECM_PM1, 
+                    TreeFilename);
 
 clear_and_exit:
   mpres_get_z (p, x, modulus);
   mpres_clear (x, modulus);
   mpmod_clear (modulus);
+  mpz_clear (root_params.i0);
   mpz_clear (B2);
   mpz_clear (B2min);
 

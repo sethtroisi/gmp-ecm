@@ -430,10 +430,10 @@ addWnm (mpz_t p, point *X, curve *S, mpmod_t modulus, unsigned int m,
 */
 
 int
-ecm_rootsF (mpz_t f, listz_t F, unsigned int d1, unsigned int d2, 
-            unsigned int dF, curve *s, int S, mpmod_t modulus)
+ecm_rootsF (mpz_t f, listz_t F, root_params_t *root_params, 
+            unsigned long dF, curve *s, mpmod_t modulus)
 {
-  unsigned int i;
+  unsigned long i;
   unsigned long muls = 0, gcds = 0;
   unsigned int st;
   int youpi = ECM_NO_FACTOR_FOUND;
@@ -447,7 +447,8 @@ ecm_rootsF (mpz_t f, listz_t F, unsigned int d1, unsigned int d2,
   st = cputime ();
 
   /* Relative cost of point add during init and computing roots assumed =1 */
-  init_roots_state (&state, S, d1, d2, 1.0);
+  init_roots_state (&state, root_params->S, root_params->d1, root_params->d2, 
+                    1.0);
 
   outputf (OUTPUT_DEVVERBOSE,
 	   "ecm_rootsF: state: nr = %d, dsieve = %d, size_fd = %d, S = %d, "
@@ -456,8 +457,8 @@ ecm_rootsF (mpz_t f, listz_t F, unsigned int d1, unsigned int d2,
 
   /* Init finite differences tables */
   mpz_init (t); /* t = 0 */
-  coeffs = init_progression_coeffs (t, state.dsieve, d2, 1, 6, state.S, 
-                                    state.dickson_a);
+  coeffs = init_progression_coeffs (t, state.dsieve, root_params->d2, 1, 6, 
+                                    state.S, state.dickson_a);
   mpz_clear (t);
 
   if (coeffs == NULL) /* error */
@@ -553,7 +554,7 @@ ecm_rootsF (mpz_t f, listz_t F, unsigned int d1, unsigned int d2,
             }
           
           /* Is this a j value where we want Dickson(j * d2) * X as a root? */
-          if (gcd (state.rsieve, d1) == 1) 
+          if (gcd (state.rsieve, root_params->d1) == 1) 
             mpres_get_z (F[i++], state.fd[state.next * (state.S + 1)].x, 
                          modulus);
 
@@ -598,8 +599,8 @@ ecm_rootsF (mpz_t f, listz_t F, unsigned int d1, unsigned int d2,
    factor in f. If an error occurred, NULL is returned and f is -1.
 */
 ecm_roots_state *
-ecm_rootsG_init (mpz_t f, curve *X, mpz_t i0, unsigned int d1, unsigned int d2,
-                 unsigned int dF, unsigned int blocks, int S, mpmod_t modulus)
+ecm_rootsG_init (mpz_t f, curve *X, root_params_t *root_params, 
+                 unsigned long dF, unsigned long blocks, mpmod_t modulus)
 {
   unsigned int k, lenT, phid2;
   unsigned long muls = 0, gcds = 0;
@@ -611,14 +612,21 @@ ecm_rootsG_init (mpz_t f, curve *X, mpz_t i0, unsigned int d1, unsigned int d2,
   double bestnr;
   unsigned int st = 0;
 
-  ASSERT (gcd (d1, d2) == 1);
+  ASSERT (gcd (root_params->d1, root_params->d2) == 1);
 
   if (test_verbose (OUTPUT_VERBOSE))
     st = cputime ();
   
+  state = (ecm_roots_state *) malloc (sizeof (ecm_roots_state));
+  if (state == NULL)
+    {
+      mpz_set_si (f, -1);
+      return NULL;
+    }
+
   /* If S < 0, use degree |S| Dickson poly, otherwise use x^S */
-  dickson_a = (S < 0) ? -1 : 0;
-  S = abs (S);
+  dickson_a = (root_params->S < 0) ? -1 : 0;
+  state->S = abs (root_params->S);
 
   /* Estimate the cost of a modular inversion (in unit of time per 
      modular multiplication) */
@@ -629,44 +637,41 @@ ecm_rootsG_init (mpz_t f, curve *X, mpz_t i0, unsigned int d1, unsigned int d2,
   
   /* Guesstimate a value for the number of disjoint progressions to use */
   bestnr = -(4. + T_inv) + sqrt(12. * (double) dF * (double) blocks * 
-        (T_inv - 3.) * log (2. * d1) / log (2.) - (4. + T_inv) * (4. + T_inv));
-  bestnr /= 6. * (double) S * log (2. * d1) / log (2.0);
+        (T_inv - 3.) * log (2. * root_params->d1) / log (2.) - (4. + T_inv) * 
+        (4. + T_inv));
+  bestnr /= 6. * (double) (state->S) * log (2. * root_params->d1) / log (2.0);
   
   outputf (OUTPUT_TRACE, "ecm_rootsG_init: bestnr = %f\n", bestnr);
   
-  state = (ecm_roots_state *) malloc (sizeof (ecm_roots_state));
-  if (state == NULL)
-    goto exit_error;
-
   if (bestnr < 1.)
     state->nr = 1;
   else
     state->nr = (unsigned int) (bestnr + .5);
 
-  phid2 = phi (d2);
+  phid2 = phi (root_params->d2);
 
   /* Round up state->nr to multiple of phi(d2) */
   if (phid2 > 1)
     state->nr = ((state->nr + (phid2 - 1)) / phid2) * phid2;
 
-  state->S = S;
   state->size_fd = state->nr * (state->S + 1);
 
-  outputf (OUTPUT_DEVVERBOSE, "ecm_rootsG_init: i0=%Zd, d1=%u, d2=%d, dF=%d, blocks=%d, S=%u, T_inv = %d, nr=%d\n", 
-	   i0, d1, d2, dF, blocks, S, T_inv, state->nr);
+  outputf (OUTPUT_DEVVERBOSE, "ecm_rootsG_init: i0=%Zd, d1=%lu, d2=%lu, "
+           "dF=%lu, blocks=%lu, S=%u, T_inv = %d, nr=%d\n", root_params->i0, 
+           root_params->d1, root_params->d2, dF, blocks, state->S, T_inv, 
+           state->nr);
   
   state->X = X;
   state->next = 0;
   state->dsieve = 1; /* We only init progressions coprime to d2, so nothing to be skipped */
   state->rsieve = 1;
 
-  coeffs = init_progression_coeffs (i0, d2, d1, state->nr / phid2, 1, S, 
-                                    dickson_a);
+  coeffs = init_progression_coeffs (root_params->i0, root_params->d2, 
+           root_params->d1, state->nr / phid2, 1, state->S, dickson_a);
 
   if (coeffs == NULL) /* error */
     {
       free (state);
-    exit_error:
       mpz_set_si (f, -1);
       return NULL;
     }
@@ -702,8 +707,8 @@ ecm_rootsG_init (mpz_t f, curve *X, mpz_t i0, unsigned int d1, unsigned int d2,
   for (k = 0; k < lenT; k++)
     mpres_init (state->T[k], modulus);
 
-  for (k = S + 1; k < state->size_fd; k += S + 1)
-     mpz_set_ui (coeffs[k + S], 1);
+  for (k = state->S + 1; k < state->size_fd; k += state->S + 1)
+     mpz_set_ui (coeffs[k + state->S], 1);
 
   if (test_verbose (OUTPUT_TRACE))
     for (k = 0; k < state->size_fd; k++)
@@ -715,10 +720,10 @@ ecm_rootsG_init (mpz_t f, curve *X, mpz_t i0, unsigned int d1, unsigned int d2,
   if (youpi == ECM_ERROR)
     mpz_set_si (f, -1); /* fall through */
 
-  for (k = S + 1; k < state->size_fd; k += S + 1)
+  for (k = state->S + 1; k < state->size_fd; k += state->S + 1)
     {
-      mpres_set (state->fd[k + S].x, state->fd[S].x, modulus);
-      mpres_set (state->fd[k + S].y, state->fd[S].y, modulus);
+      mpres_set (state->fd[k + state->S].x, state->fd[state->S].x, modulus);
+      mpres_set (state->fd[k + state->S].y, state->fd[state->S].y, modulus);
     }
   
   clear_list (coeffs, state->size_fd);
@@ -729,7 +734,7 @@ ecm_rootsG_init (mpz_t f, curve *X, mpz_t i0, unsigned int d1, unsigned int d2,
       if (youpi == ECM_FACTOR_FOUND_STEP2)
         outputf (OUTPUT_VERBOSE, "Found factor while computing fd[]\n");
 
-      ecm_rootsG_clear (state, S, modulus);
+      ecm_rootsG_clear (state, modulus);
       
       /* Signal that a factor was found, or an error occurred (f=-1) */
       state = NULL;
@@ -751,8 +756,7 @@ ecm_rootsG_init (mpz_t f, curve *X, mpz_t i0, unsigned int d1, unsigned int d2,
 }
 
 void 
-ecm_rootsG_clear (ecm_roots_state *state, ATTRIBUTE_UNUSED int S, 
-                  ATTRIBUTE_UNUSED mpmod_t modulus)
+ecm_rootsG_clear (ecm_roots_state *state, ATTRIBUTE_UNUSED mpmod_t modulus)
 {
   unsigned int k;
   
@@ -784,10 +788,10 @@ ecm_rootsG_clear (ecm_roots_state *state, ATTRIBUTE_UNUSED int S,
 */
 
 int 
-ecm_rootsG (mpz_t f, listz_t G, unsigned int dF, ecm_roots_state *state, 
+ecm_rootsG (mpz_t f, listz_t G, unsigned long dF, ecm_roots_state *state, 
             mpmod_t modulus)
 {
-  unsigned int i;
+  unsigned long i;
   unsigned long muls = 0, gcds = 0;
   int youpi = ECM_NO_FACTOR_FOUND;
   unsigned int st;

@@ -204,8 +204,8 @@ init_progression_coeffs (mpz_t i0, unsigned int d, unsigned int e,
 }
 
 void 
-init_roots_state (ecm_roots_state *state, int S, unsigned int d1, 
-                  unsigned int d2, double cost)
+init_roots_state (ecm_roots_state *state, int S, unsigned long d1, 
+                  unsigned long d2, double cost)
 {
   ASSERT (gcd (d1, d2) == 1);
   /* If S < 0, use degree |S| Dickson poly, otherwise use x^S */
@@ -272,16 +272,13 @@ init_roots_state (ecm_roots_state *state, int S, unsigned int d1,
                  or ECM_ERROR if an error occurred.
 */
 int
-stage2 (mpz_t f, void *X, mpmod_t modulus, mpz_t B2min, mpz_t B2,
-        unsigned int k0, int S, int method, int stage1time, 
-        char *TreeFilename)
+stage2 (mpz_t f, void *X, mpmod_t modulus, unsigned long dF, unsigned long k, 
+        root_params_t *root_params, int method, char *TreeFilename)
 {
-  double b2;
-  unsigned int k;
-  unsigned int i, d, d2, dF, sizeT;
-  mpz_t n, i0, effB2;
+  unsigned long i, sizeT;
+  mpz_t n;
   listz_t F, G, H, T;
-  int po2 = 0, youpi = 0;
+  int youpi = 0;
   unsigned int st, st0;
   void *rootsG_state = NULL;
   listz_t *Tree = NULL; /* stores the product tree for F */
@@ -296,42 +293,15 @@ stage2 (mpz_t f, void *X, mpmod_t modulus, mpz_t B2min, mpz_t B2,
   /* check alloc. size of f */
   mpres_realloc (f, modulus);
 
-  if (mpz_cmp(B2, B2min) < 0)
-    return 0;
-
   st0 = cputime ();
 
-  /* since we consider only residues = 1 mod 6 in intervals of length d
-     (d multiple of 6), each interval [i*d,(i+1)*d] covers partially itself
-     and [(i-1)*d,i*d]. Thus to cover [B2min, B2] with all intervals 
-     [i*d,(i+1)*d] for i0 <= i < i1 , we should  have i0*d <= B2min and 
-     B2 <= (i1-1)*d. COMMENT OBSOLETE, see bestd.c. To be removed */
-  d = d2 = dF = 0;
-  Fermat = 0;
-  k = k0;
-  mpz_init_set (effB2, B2);
-  mpz_init (i0);
-
   /* The Sch\"onhage-Strassen multiplication requires power-of-two degrees */
+  Fermat = 0;
   if (modulus->repr == 1 && modulus->Fermat > 0)
     {
-      po2 = 1;
       Fermat = modulus->Fermat;
       outputf (OUTPUT_DEVVERBOSE, "Choosing power of 2 poly length "
-               "for 2^%d+1 (%d blocks)\n", Fermat, k0);
-    }
-  else
-    Fermat = 0;
-
-#if defined HAVE_NTT
-  /* The NTT code requires power-of-two degrees */
-  po2 = 1;
-#endif
-
-  if (bestD (B2min, effB2, po2, &d, &d2, &k, &dF, i0) == ECM_ERROR)
-    {
-      youpi = ECM_ERROR;
-      goto clear_i0;
+               "for 2^%d+1 (%d blocks)\n", Fermat);
     }
 
 #if defined HAVE_NTT
@@ -344,14 +314,14 @@ stage2 (mpz_t f, void *X, mpmod_t modulus, mpz_t B2min, mpz_t B2,
     }
 #endif
   
-  b2 = (double) dF * (double) d * (double) d2 / (double) phi (d2);
+/*
+  b2 = (double) dF * (double) root_params->d1 * (double) root_params->d2 / 
+       (double) phi (root_params->d2);
+*/
 
-  outputf (OUTPUT_VERBOSE, "B2'=%Zd k=%u b2=%1.0f d=%u d2=%u dF=%u, "
-           "i0=%Zd", effB2, k, b2, d, d2, dF, i0);
 #ifdef HAVE_NTT
-  outputf (OUTPUT_VERBOSE, ", sp_num=%u", mpzspm->sp_num);
+  outputf (OUTPUT_VERBOSE, ", sp_num=%u\n", mpzspm->sp_num);
 #endif
-  outputf (OUTPUT_VERBOSE, "\n");
 
   lgk = ceil_log2 (dF);
   mem = 9.0 + (double) lgk;
@@ -371,27 +341,6 @@ stage2 (mpz_t f, void *X, mpmod_t modulus, mpz_t B2min, mpz_t B2,
   else
     outputf (OUTPUT_VERBOSE, "Estimated memory usage: %1.0fG\n", mem / 1e9);
 
-  if (method == ECM_ECM && test_verbose (OUTPUT_VERBOSE))
-    {
-      double prob;
-      rhoinit (256, 10);
-      outputf (OUTPUT_VERBOSE, "Expected number of curves to find a factor "
-               "of n digits:\n20\t25\t30\t35\t40\t45\t50\t55\t60\t65\n");
-      for (i = 20; i <= 65; i += 5)
-        {
-          prob = ecmprob (mpz_get_d (B2min), mpz_get_d (effB2),
-                          pow (10., i - .5), (double) dF * dF * k, S);
-          if (prob > 1. / 10000000)
-            outputf (OUTPUT_VERBOSE, "%.0f%c", 
-                     floor (1. / prob + .5), i < 65 ? '\t' : '\n');
-          else if (prob > 0.)
-            outputf (OUTPUT_VERBOSE, "%.2g%c", 
-                    floor (1. / prob + .5), i < 65 ? '\t' : '\n');
-          else
-            outputf (OUTPUT_VERBOSE, "Inf%c", i < 65 ? '\t' : '\n');
-        }
-    }
-    
   F = init_list (dF + 1);
   if (F == NULL)
     {
@@ -412,11 +361,11 @@ stage2 (mpz_t f, void *X, mpmod_t modulus, mpz_t B2min, mpz_t B2,
 
   /* needs dF+1 cells in T */
   if (method == ECM_PM1)
-    youpi = pm1_rootsF (f, F, d, d2, dF, (mpres_t*) X, T, S, modulus);
+    youpi = pm1_rootsF (f, F, root_params, dF, (mpres_t*) X, T, modulus);
   else if (method == ECM_PP1)
-    youpi = pp1_rootsF (F, d, d2, dF, (mpres_t*) X, T, S, modulus);
+    youpi = pp1_rootsF (F, root_params, dF, (mpres_t*) X, T, modulus);
   else 
-    youpi = ecm_rootsF (f, F, d, d2, dF, (curve*) X, S, modulus);
+    youpi = ecm_rootsF (f, F, root_params, dF, (curve*) X, modulus);
 
   if (youpi != ECM_NO_FACTOR_FOUND)
     {
@@ -467,7 +416,8 @@ stage2 (mpz_t f, void *X, mpmod_t modulus, mpz_t B2min, mpz_t B2,
   if (TreeFilename != NULL)
     {
       FILE *TreeFile;
-      char fullname[256];
+      const int bufsize = 256;
+      char fullname[bufsize];
       for (i = lgk; i > 0; i--)
         {
           snprintf (fullname, 256, "%.252s.%d", TreeFilename, i - 1);
@@ -562,11 +512,11 @@ stage2 (mpz_t f, void *X, mpmod_t modulus, mpz_t B2min, mpz_t B2,
 
   st = cputime ();
   if (method == ECM_PM1)
-    rootsG_state = pm1_rootsG_init ((mpres_t *) X, i0, d, d2, S, modulus);
+    rootsG_state = pm1_rootsG_init ((mpres_t *) X, root_params, modulus);
   else if (method == ECM_PP1)
-    rootsG_state = pp1_rootsG_init ((mpres_t *) X, i0, d, d2, S, modulus);
+    rootsG_state = pp1_rootsG_init ((mpres_t *) X, root_params, modulus);
   else /* ECM_ECM */
-    rootsG_state = ecm_rootsG_init (f, (curve *) X, i0, d, d2, dF, k, S, 
+    rootsG_state = ecm_rootsG_init (f, (curve *) X, root_params, dF, k, 
                                     modulus);
 
   /* rootsG_state=NULL if an error occurred or (ecm only) a factor was found */
@@ -717,7 +667,7 @@ stage2 (mpz_t f, void *X, mpmod_t modulus, mpz_t B2min, mpz_t B2,
   else if (method == ECM_PP1)
     pp1_rootsG_clear ((pp1_roots_state *) rootsG_state, modulus);
   else /* ECM_ECM */
-    ecm_rootsG_clear ((ecm_roots_state *) rootsG_state, S, modulus);
+    ecm_rootsG_clear ((ecm_roots_state *) rootsG_state, modulus);
 
 clear_G:
   clear_list (G, dF);
@@ -740,7 +690,6 @@ clear_F:
   clear_list (F, dF + 1);
 
 clear_i0:
-  mpz_clear (i0);
 
 #ifdef HAVE_NTT
   mpzspv_clear (sp_invF, mpzspm);
@@ -750,44 +699,6 @@ clear_i0:
   st0 = elltime (st0, cputime ());
 
   outputf (OUTPUT_NORMAL, "Step 2 took %ums\n", st0);
-
-  if (method == ECM_ECM && test_verbose (OUTPUT_VERBOSE) && youpi != ECM_ERROR)
-    {
-      double prob, tottime, exptime;
-      rhoinit (256, 10);
-      outputf (OUTPUT_VERBOSE, "Expected time to find a factor of n digits:\n"
-	       "20\t25\t30\t35\t40\t45\t50\t55\t60\t65\n");
-      tottime = (double) stage1time + (double) st0;
-      for (i = 20; i <= 65; i += 5)
-        {
-          const char sep = (i < 65) ? '\t' : '\n';
-          prob = ecmprob (mpz_get_d (B2min), mpz_get_d (effB2), 
-                          pow (10., i - .5), (double) dF * dF * k, S);
-          exptime = (prob > 0.) ? tottime / prob : HUGE_VAL;
-          outputf (OUTPUT_TRACE, "Digits: %d, Total time: %.0f, probability: "
-                   "%g, expected time: %.0f\n", i, tottime, prob, exptime);
-          if (exptime < 1000.)
-            outputf (OUTPUT_VERBOSE, "%.0fms%c", exptime, sep);
-          else if (exptime < 60000.) /* One minute */
-            outputf (OUTPUT_VERBOSE, "%.2fs%c", exptime / 1000., sep);
-          else if (exptime < 3600000.) /* One hour */
-            outputf (OUTPUT_VERBOSE, "%.2fm%c", exptime / 60000., sep);
-          else if (exptime < 86400000.) /* One day */
-            outputf (OUTPUT_VERBOSE, "%.2fh%c", exptime / 3600000., sep);
-          else if (exptime < 31536000000.) /* One year */
-            outputf (OUTPUT_VERBOSE, "%.2fd%c", exptime / 86400000., sep);
-          else if (exptime < 31536000000000.) /* One thousand years */
-            outputf (OUTPUT_VERBOSE, "%.2fy%c", exptime / 31536000000., sep);
-          else if (exptime < 31536000000000000.) /* One million years */
-            outputf (OUTPUT_VERBOSE, "%.0fy%c", exptime / 31536000000., sep);
-          else if (prob > 0.)
-            outputf (OUTPUT_VERBOSE, "%.1gy%c", exptime / 31536000000., sep);
-          else 
-            outputf (OUTPUT_VERBOSE, "Inf%c", sep);
-        }
-      rhoinit (1, 0); /* Free memory of rhotable */
-    }
-  mpz_clear (effB2);
 
   return youpi;
 }

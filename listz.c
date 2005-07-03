@@ -959,9 +959,9 @@ PrerevertDivision (listz_t a, listz_t b, listz_t invb,
    Returns 1 if a factor was found (stored in t), 0 otherwise.
 */
 int
-list_invert (listz_t inv, listz_t a, unsigned int l, mpz_t t, mpmod_t modulus)
+list_invert (listz_t inv, listz_t a, unsigned long l, mpz_t t, mpmod_t modulus)
 {
-  unsigned int i;
+  unsigned long i;
   
   if (l == 0)
     return 0;
