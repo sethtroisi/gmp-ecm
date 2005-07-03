@@ -18,6 +18,8 @@
   02111-1307, USA.
 */
 
+#include "config.h"
+
 /* Needed for "FILE *" */
 #include <stdio.h>
 
@@ -54,6 +56,10 @@ extern FILE *ECM_STDOUT, *ECM_STDERR;
 #else
 #define ATTRIBUTE_UNUSED
 #define ATTRIBUTE_CONST
+#endif
+
+#ifndef HAVE_SNPRINTF
+#define snprintf(x,n,...) sprintf(x, __VA_ARGS__)
 #endif
 
 /* residues are fully reduced (i.e. in canonical mpz form) */

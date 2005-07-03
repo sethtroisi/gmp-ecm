@@ -470,12 +470,9 @@ stage2 (mpz_t f, void *X, mpmod_t modulus, mpz_t B2min, mpz_t B2,
       char fullname[256];
       for (i = lgk; i > 0; i--)
         {
-#ifdef HAVE_snprintf
           snprintf (fullname, 256, "%.252s.%d", TreeFilename, i - 1);
-#else
-          sprintf (fullname, "%.252s.%d", TreeFilename, i - 1);
-#endif
-          TreeFile = fopen (fullname, "wb");
+          
+	  TreeFile = fopen (fullname, "wb");
           if (TreeFile == NULL)
             {
               outputf (OUTPUT_ERROR, "Error opening file for product tree of F\n");

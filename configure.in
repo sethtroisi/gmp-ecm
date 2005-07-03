@@ -1,8 +1,9 @@
 
 m4_define([ECM_VERSION], [6.1])
 
+AC_PREREQ(2.59)
 AC_INIT(ecm, ECM_VERSION, [ecm-dev@lists.fousse.info])
-
+AC_CONFIG_HEADER([config.h])
 AM_INIT_AUTOMAKE(ecm, ECM_VERSION)
 
 AC_ARG_WITH(gmp_include, [  --with-gmp-include=DIR  GMP include directory ], with_gmp_include=$withval)
@@ -24,6 +25,11 @@ AC_PROG_CC
 AC_PROG_RANLIB
 AC_CANONICAL_HOST
 
+# Checks for header files.
+AC_FUNC_ALLOCA
+AC_HEADER_STDC
+AC_CHECK_HEADERS([math.h limits.h malloc.h strings.h sys/time.h unistd.h])
+
 dnl Don't use -ansi, since it forbids inline
 dnl Tests concerning the include directories.
 if test -d "$with_gmp_include"; then
@@ -32,21 +38,24 @@ else
   with_gmp_include=
 fi
 
+# Checks for typedefs, structures, and compiler characteristics.
 AC_C_CONST
 AC_C_VOLATILE
 AC_C_INLINE
+AC_TYPE_SIZE_T
+AC_HEADER_TIME
 
 dnl Check for GMP
 AC_MSG_CHECKING(for gmp.h)
 AC_COMPILE_IFELSE([AC_LANG_PROGRAM([[
-#include "gmp.h"
+#include <gmp.h>
 ]], [[]])],[AC_MSG_RESULT(yes)],[AC_MSG_RESULT(no)
      AC_MSG_ERROR([gmp.h may be missing ${with_gmp_include:+in $with_gmp_include}])
 ])
 
 AC_MSG_CHECKING(for recent GMP)
 AC_COMPILE_IFELSE([AC_LANG_PROGRAM([[
-#include "gmp.h"
+#include <gmp.h>
 #if (__GNU_MP_VERSION*100+__GNU_MP_VERSION_MINOR*10 < 410)
 # error "min GMP version is 4.1.0"
 #endif
@@ -93,23 +102,15 @@ int main()
     AC_MSG_RESULT([can't test])
 )
 
-dnl Check if GMP has mpn_mul_fft
-AC_CHECK_FUNC(__gmpn_mul_fft, AC_DEFINE(HAVE_FFT))
-AC_CHECK_FUNC(__gmpn_add_nc, AC_DEFINE(HAVE_NATIVE_mpn_add_nc))
-AC_CHECK_FUNC(__gmpn_mod_34lsub1, AC_DEFINE(HAVE_NATIVE_mpn_mod_34lsub1))
-
-AC_CHECK_FUNC(snprintf, AC_DEFINE(HAVE_snprintf))
-AC_CHECK_FUNC(malloc_usable_size, AC_DEFINE(HAVE_malloc_usable_size))
-
 dnl If user wants GWNUM, check if the file exists (either as .a or .lib)
 if test "x$with_gwnum" = x; then :; else
   AC_CHECK_FILE($with_gwnum/gwnum.a, [
-    AC_DEFINE(HAVE_GWNUM)
+    AC_DEFINE(HAVE_GWNUM, [], [Define if gwnum.a or gwnum.lib exist])
     LIBS="$LIBS $with_gwnum/gwnum.a"
     CPPFLAGS="$CPPFLAGS -I$with_gwnum"
   ],[
     AC_CHECK_FILE($with_gwnum/gwnum.lib, [
-      AC_DEFINE(HAVE_GWNUM)
+      AC_DEFINE(HAVE_GWNUM, [], [Define if gwnum.a or gwnum.lib exist])
       LIBS="$LIBS $with_gwnum/gwnum.lib"
       CPPFLAGS="$CPPFLAGS -I$with_gwnum"
     ],[
@@ -118,6 +119,16 @@ if test "x$with_gwnum" = x; then :; else
     ])
   ])
 fi
+
+# Checks for library functions.
+AC_FUNC_MALLOC
+AC_FUNC_REALLOC
+AC_FUNC_STRTOD
+AC_CHECK_LIB(m, floor)
+AC_CHECK_FUNCS([floor sqrt pow], [], AC_ERROR)
+AC_CHECK_FUNCS([gethostname gettimeofday isascii memset strchr strncasecmp strstr], [], AC_ERROR)
+AC_CHECK_FUNCS([__gmpn_add_nc __gmpn_mul_fft __gmpn_mod_34lsub1])
+AC_CHECK_FUNCS([snprintf malloc_usable_size])
 
 AC_CONFIG_FILES(Makefile)
 
