@@ -29,6 +29,7 @@ ToDo's:
 - try sliding window multipliation for ECM stage 1 (Target: 7.0)
 - choose Brent/Suyama polynomial according to B2/k and not B2!
 - Compute roots of F/G in Montgomery coordinates if S==1 (Target: 6.1)
+- Adjust estimated memory to take into account -treefile and NTT (Target: 6.1)
 
 2) interface
 - with -resume, print %time for THIS RUN instead of total run?
