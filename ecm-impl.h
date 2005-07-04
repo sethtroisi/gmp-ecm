@@ -58,10 +58,6 @@ extern FILE *ECM_STDOUT, *ECM_STDERR;
 #define ATTRIBUTE_CONST
 #endif
 
-#ifndef HAVE_SNPRINTF
-#define snprintf(x,n,...) sprintf(x, __VA_ARGS__)
-#endif
-
 /* residues are fully reduced (i.e. in canonical mpz form) */
 #define FULL_REDUCTION
 

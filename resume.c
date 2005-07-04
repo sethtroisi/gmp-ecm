@@ -25,7 +25,7 @@
 #if !defined (_MSC_VER)
 #include <unistd.h>
 #endif
-#include "gmp.h"
+#include <gmp.h>
 #include "ecm.h"
 #include "ecm-ecm.h"
 

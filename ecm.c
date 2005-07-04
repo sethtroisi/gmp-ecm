@@ -24,7 +24,7 @@
 #include <stdlib.h>
 #include <math.h>
 #include <limits.h> /* for ULONG_MAX */
-#include "gmp.h"
+#include <gmp.h>
 #include "ecm.h"
 #include "ecm-impl.h"
 

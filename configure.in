@@ -128,7 +128,7 @@ AC_CHECK_LIB(m, floor)
 AC_CHECK_FUNCS([floor sqrt pow], [], AC_ERROR)
 AC_CHECK_FUNCS([gethostname gettimeofday isascii memset strchr strncasecmp strstr], [], AC_ERROR)
 AC_CHECK_FUNCS([__gmpn_add_nc __gmpn_mul_fft __gmpn_mod_34lsub1])
-AC_CHECK_FUNCS([snprintf malloc_usable_size])
+AC_CHECK_FUNCS([malloc_usable_size])
 
 AC_CONFIG_FILES(Makefile)
 

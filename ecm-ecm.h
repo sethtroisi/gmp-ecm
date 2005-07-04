@@ -119,7 +119,6 @@ void kill_temp_resume_file (void);
 
 /* main.c */
 int read_number (mpcandi_t *n, FILE *, int primetest);
-void usage (void);
 
 /* eval.c */
 int eval (mpcandi_t *n, FILE *fd, int bPrp);

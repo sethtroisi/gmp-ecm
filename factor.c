@@ -21,7 +21,7 @@
 */
 
 #include <stdio.h>
-#include "gmp.h"
+#include <gmp.h>
 #include "ecm.h"
 #include "ecm-impl.h"
 

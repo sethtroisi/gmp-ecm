@@ -24,7 +24,7 @@
 #include <stdlib.h>
 #include <assert.h>
 
-#include "gmp.h"
+#include <gmp.h>
 #include "ecm-gmp.h" /* for MPZ_REALLOC and MPN_COPY */
 #include "ecm-impl.h"
 

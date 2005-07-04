@@ -27,7 +27,7 @@
 #endif
 #include <ctype.h>
 #include <time.h>
-#include "gmp.h"
+#include <gmp.h>
 #include "ecm.h"
 #include "ecm-ecm.h"
 

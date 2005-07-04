@@ -27,10 +27,7 @@
 #include <math.h>
 #include <limits.h>
 #include <math.h> /* for floor */
-#if defined (_MSC_VER)
-#define snprintf _snprintf
-#endif
-#include "gmp.h"
+#include <gmp.h>
 #include "ecm.h"
 #include "ecm-impl.h"
 #include "sp.h"
@@ -416,11 +413,12 @@ stage2 (mpz_t f, void *X, mpmod_t modulus, unsigned long dF, unsigned long k,
   if (TreeFilename != NULL)
     {
       FILE *TreeFile;
-      const int bufsize = 256;
-      char fullname[bufsize];
+      /* assume this "small" malloc will not fail in normal usage */
+      char *fullname = (char *) malloc (strlen (TreeFilename) + 1 + 2 + 1);
+      
       for (i = lgk; i > 0; i--)
         {
-          snprintf (fullname, 256, "%.252s.%d", TreeFilename, i - 1);
+          sprintf (fullname, "%s.%d", TreeFilename, i - 1);
           
 	  TreeFile = fopen (fullname, "wb");
           if (TreeFile == NULL)
@@ -447,6 +445,7 @@ stage2 (mpz_t f, void *X, mpmod_t modulus, unsigned long dF, unsigned long k,
               goto free_Tree_i;
             }
         }
+      free (fullname);
     }
   else
 #ifdef HAVE_NTT

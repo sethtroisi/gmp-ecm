@@ -53,7 +53,7 @@ MA 02111-1307, USA. */
    same pointers).  */
 
 #include <stdio.h>
-#include "gmp.h"
+#include <gmp.h>
 #include "gmp-impl.h"
 
 #ifdef WANT_ADDSUB
