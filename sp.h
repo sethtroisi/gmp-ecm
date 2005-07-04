@@ -23,6 +23,7 @@
 #ifndef __HAVE_SP_H
 #define __HAVE_SP_H
 
+#include "config.h"
 #include <gmp.h>
 
 /**************
@@ -234,6 +235,11 @@ typedef spv_t * mpzspv_t;
 /* poly length at which to start using ntts for PolyEvalT */
 #ifndef POLYEVALT_NTT_THRESHOLD
 #define POLYEVALT_NTT_THRESHOLD 512
+#endif
+
+/* number of coeffs to normalise concurrently in mpzspv_normalise */
+#ifndef MPZSPV_NORMALISE_STRIDE
+#define MPZSPV_NORMALISE_STRIDE 256
 #endif
 
 /*************

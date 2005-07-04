@@ -26,7 +26,8 @@
 #include "ecm.h"
 #include "ecm-impl.h"
 
-#if 1
+
+/* memory: 4 * len mpspv coeffs */
 void
 ntt_mul (mpzv_t r, mpzv_t x, mpzv_t y, spv_size_t len, mpzv_t t,
     int monic, mpzspm_t mpzspm)
@@ -53,8 +54,8 @@ ntt_mul (mpzv_t r, mpzv_t x, mpzv_t y, spv_size_t len, mpzv_t t,
   mpzspv_clear (u, mpzspm);
   mpzspv_clear (v, mpzspm);
 }
-#endif
 
+/* memory: 2 * len mpzspv coeffs */
 void
 ntt_PolyFromRoots (mpzv_t r, mpzv_t a, spv_size_t len, mpzv_t t,
     mpzspm_t mpzspm)
@@ -98,6 +99,7 @@ ntt_PolyFromRoots (mpzv_t r, mpzv_t a, spv_size_t len, mpzv_t t,
 }
 
   
+/* memory: 2 * len mpzspv coeffs */
 int
 ntt_PolyFromRoots_Tree (mpzv_t r, mpzv_t a, spv_size_t len, mpzv_t t,
     int dolvl, mpzspm_t mpzspm, mpzv_t *Tree, FILE *TreeFile)
@@ -174,7 +176,9 @@ ntt_PolyFromRoots_Tree (mpzv_t r, mpzv_t a, spv_size_t len, mpzv_t t,
 
 
 /* 2 NTTs of size 2 * len
- * 3 NTTs of size len */
+ * 3 NTTs of size len
+ *
+ * memory: 4 * len mpzspv coeffs */
 void
 ntt_PrerevertDivision (mpzv_t a, mpzv_t b, mpzv_t invb, mpzspv_t sp_invb,
     spv_size_t len, mpzv_t t, mpzspm_t mpzspm)
@@ -214,6 +218,7 @@ ntt_PrerevertDivision (mpzv_t a, mpzv_t b, mpzv_t invb, mpzspv_t sp_invb,
   list_mod (a, a, len, mpzspm->modulus);
 }
 
+/* memory: 7/2 * len mpzspv coeffs */
 void ntt_PolyInvert (mpzv_t q, mpzv_t b, spv_size_t len, mpzv_t t,
     mpzspm_t mpzspm)
 {
@@ -276,6 +281,8 @@ void ntt_PolyInvert (mpzv_t q, mpzv_t b, spv_size_t len, mpzv_t t,
   mpzspv_clear (z, mpzspm);
 }
 
+
+/* memory: 4 * len mpzspv coeffs */
 int
 ntt_polyevalT (mpzv_t b, spv_size_t len, mpzv_t *Tree, mpzv_t T,
                    mpzspv_t sp_invF, mpzspm_t mpzspm, char *TreeFilenameStem)
