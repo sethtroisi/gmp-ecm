@@ -53,7 +53,7 @@ multiplyW2n (mpz_t p, point *R, curve *S, mpz_t *q, const unsigned int n,
   int youpi = ECM_NO_FACTOR_FOUND;
   mpz_t flag; /* Used as bit field, keeps track of which R[i] contain partial results */
   point s;    /* 2^t * S */
-  int signs[n];
+  mpz_t signs; /* Used as bit field, i-th bit is set iff q[i]<0 */
 
   if (n == 0)
     return ECM_NO_FACTOR_FOUND;
@@ -69,7 +69,8 @@ multiplyW2n (mpz_t p, point *R, curve *S, mpz_t *q, const unsigned int n,
       return ECM_NO_FACTOR_FOUND;
     }
   
-  mpz_init (flag);
+  mpz_init2 (flag, n);
+  mpz_init2 (signs, n);
   mpres_init (s.x, modulus);
   mpres_init (s.y, modulus);
   mpres_set (s.x, S->x, modulus);
@@ -81,11 +82,14 @@ multiplyW2n (mpz_t p, point *R, curve *S, mpz_t *q, const unsigned int n,
   for (i = 0; i < n; i++)
     {
       /* We'll first compute positive multiples and change signs later */
-      signs[i] = mpz_sgn (q[i]);
-      mpz_abs (q[i], q[i]);
+      if (mpz_sgn (q[i]) < 0)
+        {
+          mpz_setbit (signs, i);;
+          mpz_neg (q[i], q[i]);
+        }
 
       /* Multiplier == 0? Then set result to neutral element */
-      if (signs[i] == 0)
+      if (mpz_sgn (q[i]) == 0)
         {
            mpres_set_ui (R[i].x, 0, modulus);
            mpres_set_ui (R[i].y, 0, modulus);
@@ -236,7 +240,7 @@ multiplyW2n (mpz_t p, point *R, curve *S, mpz_t *q, const unsigned int n,
   
   /* Now take inverse points (negative y-coordinate) where q[i] was < 0 */
   for (i = 0; i < n; i++)
-    if (signs[i] == -1)
+    if (mpz_tstbit (signs, i))
       {
         mpz_neg (R[i].y, R[i].y);
         mpz_neg (q[i], q[i]);
