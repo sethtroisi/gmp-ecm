@@ -318,7 +318,7 @@ stage2 (mpz_t f, void *X, mpmod_t modulus, unsigned long dF, unsigned long k,
 */
 
 #ifdef HAVE_NTT
-  outputf (OUTPUT_VERBOSE, ", sp_num=%u\n", mpzspm->sp_num);
+  outputf (OUTPUT_VERBOSE, "Using %u small primes for NTT\n", mpzspm->sp_num);
 #endif
 
   lgk = ceil_log2 (dF);
