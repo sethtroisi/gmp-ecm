@@ -166,15 +166,19 @@ rhoinit (int parm_invh, int parm_tablemax)
     {
       free (rhotable);
       rhotable = NULL;
+      invh = 0;
+      h = 0.;
+      tablemax = 0;
     }
   
+  /* The integration below expects 3 * invh > 4 */
+  if (parm_tablemax == 0 || parm_invh < 2)
+    return;
+    
   invh = parm_invh;
   h = 1. / (double) invh;
   tablemax = parm_tablemax;
   
-  if (parm_tablemax == 0)
-    return;
-    
   rhotable = (double *) malloc (parm_invh * parm_tablemax * sizeof (double));
   
   for (i = 0; i < (3 < parm_tablemax ? 3 : parm_tablemax) * invh; i++)
@@ -367,16 +371,24 @@ ecmprob (double B1, double B2, double N, double nr, int S)
   if (rhotable == NULL)
     return 0.;
 
+  if (B1 < 2. || N <= 1.)
+    return 0.;
+  
+  if (N / ECM_EXTRA_SMOOTHNESS <= B1)
+    return 1.;
+
 #ifdef TESTDRIVE
   printf ("B1 = %f, B2 = %f, N = %.0f, nr = %f, S = %d\n", B1, B2, N, nr, S);
 #endif
   
   alpha = log (N / ECM_EXTRA_SMOOTHNESS) / log (B1);
-  beta = log (B2) / log (B1);
   stage1 = dickmanlocal (alpha, N / ECM_EXTRA_SMOOTHNESS);
   stage2 = 0.;
   if (B2 > B1)
-    stage2 = dickmanmu (alpha, beta, N / ECM_EXTRA_SMOOTHNESS);
+    {
+      beta = log (B2) / log (B1);
+      stage2 = dickmanmu (alpha, beta, N / ECM_EXTRA_SMOOTHNESS);
+    }
   brsu = 0.;
   if (S < -1)
     brsu = brsudickson (B1, B2, N / ECM_EXTRA_SMOOTHNESS, nr, -S * 2);

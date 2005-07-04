@@ -28,6 +28,7 @@
 #include <limits.h>
 #include <math.h> /* for floor */
 #include <gmp.h>
+#include <string.h> /* for strlen */
 #include "ecm.h"
 #include "ecm-impl.h"
 #include "sp.h"
@@ -284,7 +285,7 @@ stage2 (mpz_t f, void *X, mpmod_t modulus, unsigned long dF, unsigned long k,
   double mem;
 #ifdef HAVE_NTT
   mpzspm_t mpzspm;
-  mpzspv_t sp_invF;
+  mpzspv_t sp_invF = 0;
 #endif
   
   /* check alloc. size of f */
@@ -418,7 +419,7 @@ stage2 (mpz_t f, void *X, mpmod_t modulus, unsigned long dF, unsigned long k,
       
       for (i = lgk; i > 0; i--)
         {
-          sprintf (fullname, "%s.%d", TreeFilename, i - 1);
+          sprintf (fullname, "%s.%lu", TreeFilename, i - 1);
           
 	  TreeFile = fopen (fullname, "wb");
           if (TreeFile == NULL)

@@ -38,7 +38,7 @@
    Returns the number of matching characters that were read. 
 */
 
-int 
+static int 
 facceptstr (FILE *fd, char *s)
 {
   int c;
@@ -64,7 +64,7 @@ facceptstr (FILE *fd, char *s)
    Returns the number of characters read.
 */
 
-int 
+static int 
 freadstrn (FILE *fd, char *s, char delim, unsigned int len)
 {
   unsigned int i = 0;
@@ -78,7 +78,7 @@ freadstrn (FILE *fd, char *s, char delim, unsigned int len)
       }
     else
       if (s != NULL)
-        s[i++] = c;
+        s[i++] = (char) c;
   
   if (i < len && s != NULL)
     s[i++] = 0;
@@ -153,7 +153,8 @@ read_resumefile_line (int *method, mpz_t x, mpcandi_t *n, mpz_t sigma, mpz_t A,
                 }
               else if (facceptstr (fd, "P"))
                 {
-                  if ((a = facceptstr (fd, "-1") == 2))
+                  a = facceptstr (fd, "-1");
+                  if (a == 2)
                     {
                       *method = ECM_PM1;
                     }

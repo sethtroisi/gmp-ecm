@@ -108,8 +108,6 @@ int smart_probab_prime_p (mpz_t const n, int c);
 int trial_factor (mpcandi_t *n, double maxfact, int deep);
 
 /* resume.c */
-int  facceptstr (FILE *, char *);
-int  freadstrn (FILE *, char *, char, unsigned int);
 int  read_resumefile_line (int *, mpz_t, mpcandi_t *, mpz_t, mpz_t, mpz_t, double *,
                            char *, char *, char *, char *, FILE *);
 void write_resumefile_line (FILE *, int, double, mpz_t, mpz_t, mpz_t, mpcandi_t *, 

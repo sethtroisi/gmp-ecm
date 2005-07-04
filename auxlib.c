@@ -75,10 +75,17 @@ mpz_divby3_1op (mpz_t RS)
 unsigned int
 ceil_log2 (unsigned long n)
 {
-  unsigned int k;
+  unsigned int k = 0;
 
-  /* f(1)=0, f(n)=1+f((n+1)/2) */
-  for (k = 0; n > 1; n = (n + 1) / 2, k++);
+  ASSERT (n > 0);
+
+  n--;
+  while (n)
+    {
+      k++;
+      n >>= 1;
+    }
+
   return k;
 }
 
