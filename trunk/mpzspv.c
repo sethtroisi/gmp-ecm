@@ -195,7 +195,11 @@ mpzspv_from_mpzv (mpzspv_t x, spv_size_t offset, mpzv_t mpzv,
     }
 }
 
-/* B&S: ecrt mod m */
+/* B&S: ecrt mod m
+ *
+ * TODO: mimic MPZSPV_NORMALISE_STRIDE usage to make memory use constant.
+ *
+ * memory: len floats */
 void
 mpzspv_to_mpzv (mpzspv_t x, spv_size_t offset, mpzv_t mpzv,
     spv_size_t len, mpzspm_t mpzspm)
@@ -251,15 +255,17 @@ mpzspv_pwmul (mpzspv_t r, spv_size_t r_offset, mpzspv_t x, spv_size_t x_offset,
 	len, mpzspm->spm[i].sp, mpzspm->spm[i].mul_c);
 }
 
-#define STRIDE MIN(256,len)
-
-/* B&S: ecrt mod m mod p_j. */
+/* B&S: ecrt mod m mod p_j.
+ *
+ * memory: MPZSPV_NORMALISE_STRIDE mpzspv coeffs
+ *         6 * MPZSPV_NORMALISE_STRIDE sp's
+ *         MPZSPV_NORMALISE_STRIDE floats */
 void
 mpzspv_normalise (mpzspv_t x, spv_size_t offset, spv_size_t len,
     mpzspm_t mpzspm)
 {
-  unsigned long i, j, k, l;
-  unsigned int sp_num = mpzspm->sp_num;
+  unsigned int i, j, sp_num = mpzspm->sp_num;
+  spv_size_t k, l;
   sp_t v;
   spv_t s, d, w;
   spm_t spm = mpzspm->spm;
@@ -270,38 +276,40 @@ mpzspv_normalise (mpzspv_t x, spv_size_t offset, spv_size_t len,
   
   ASSERT (mpzspv_verify (x, offset, len, mpzspm)); 
   
-  f = (float *) valloc (len * sizeof (float));
-  t = mpzspv_init (STRIDE, mpzspm);
+  f = (float *) valloc (MPZSPV_NORMALISE_STRIDE * sizeof (float));
+  t = mpzspv_init (MPZSPV_NORMALISE_STRIDE, mpzspm);
   
-  s = (spv_t) valloc (3 * len * sizeof (sp_t));
-  d = (spv_t) valloc (3 * len * sizeof (sp_t));
-  memset (s, 0, 3 * len * sizeof (sp_t));
+  s = (spv_t) valloc (3 * MPZSPV_NORMALISE_STRIDE * sizeof (sp_t));
+  d = (spv_t) valloc (3 * MPZSPV_NORMALISE_STRIDE * sizeof (sp_t));
+  memset (s, 0, 3 * MPZSPV_NORMALISE_STRIDE * sizeof (sp_t));
 
-  for (i = 0; i < len; i++)
-    f[i] = 0.5;
-  
-  /* FIXME: use B&S Theorem 2.2 */
-  for (i = 0; i < sp_num; i++)
+  for (l = 0; l < len; l += MPZSPV_NORMALISE_STRIDE)
     {
-      prime_recip = 1.0 / (float) spm[i].sp;
+      spv_size_t stride = MIN (MPZSPV_NORMALISE_STRIDE, len - l);
       
-      for (j = 0; j < len; j++)
-	{
-	  x[i][j + offset] = sp_mul (x[i][j + offset],
-	      mpzspm->crt3[i], spm[i].sp, spm[i].mul_c);
-	  f[j] += (float) x[i][j + offset] * prime_recip;
-	}
-    }
-  
-  for (l = 0; l < len; l += STRIDE)
-    {
+      /* FIXME: use B&S Theorem 2.2 */
+      for (i = 0; i < stride; i++)
+	f[i] = 0.5;
+      
       for (i = 0; i < sp_num; i++)
         {
-          for (j = 0; j < STRIDE; j++)
+          prime_recip = 1.0 / (float) spm[i].sp;
+      
+          for (k = 0; k < stride; k++)
 	    {
-	      umul_ppmm (d[3 * j + 1], d[3 * j], mpzspm->crt5[i],
-		  (unsigned int) f[j + l]);
-              d[3 * j + 2] = 0;
+	      x[i][l + k + offset] = sp_mul (x[i][l + k + offset],
+	          mpzspm->crt3[i], spm[i].sp, spm[i].mul_c);
+	      f[k] += (float) x[i][l + k + offset] * prime_recip;
+	    }
+        }
+      
+      for (i = 0; i < sp_num; i++)
+        {
+	  for (k = 0; k < stride; k++)
+	    {
+	      umul_ppmm (d[3 * k + 1], d[3 * k], mpzspm->crt5[i],
+		  (sp_t) f[k]);
+              d[3 * k + 2] = 0;
 	    }
 	
           for (j = 0; j < sp_num; j++)
@@ -309,19 +317,19 @@ mpzspv_normalise (mpzspv_t x, spv_size_t offset, spv_size_t len,
 	      w = x[j] + offset;
 	      v = mpzspm->crt4[i][j];
 	    
-	      for (k = 0; k < STRIDE; k++)
+	      for (k = 0; k < stride; k++)
 	        umul_ppmm (s[3 * k + 1], s[3 * k], w[k + l], v);
  	      
 	      /* this mpn_add_n accounts for about a third of the function's
 	       * runtime */
-	      mpn_add_n (d, d, s, 3 * STRIDE);
+	      mpn_add_n (d, d, s, 3 * stride);
             }      
 
           /* FIXME: do we need to account for dividend == 0? */
-          for (j = 0; j < STRIDE; j++)
-	    t[i][j] = mpn_preinv_mod_1 (d + 3 * j, 3, spm[i].sp, spm[i].mul_c);
+          for (k = 0; k < stride; k++)
+	    t[i][k] = mpn_preinv_mod_1 (d + 3 * k, 3, spm[i].sp, spm[i].mul_c);
         }	  
-      mpzspv_set (x, l + offset, t, 0, STRIDE, mpzspm);
+      mpzspv_set (x, l + offset, t, 0, stride, mpzspm);
     }
   
   mpzspv_clear (t, mpzspm);
