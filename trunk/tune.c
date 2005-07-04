@@ -20,7 +20,7 @@
 
 #include <stdio.h>
 #include <stdlib.h>
-#include "gmp.h"
+#include <gmp.h>
 #include "ecm-gmp.h"
 #include "ecm-impl.h"
 

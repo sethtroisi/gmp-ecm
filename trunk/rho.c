@@ -25,7 +25,7 @@
 #include <stdio.h>
 #endif
 #include <math.h>
-#include "gmp.h"
+#include <gmp.h>
 #include "ecm-impl.h"
 
 #ifndef ECM_EXTRA_SMOOTHNESS

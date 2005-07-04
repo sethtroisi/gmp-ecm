@@ -30,7 +30,7 @@
 int isascii(int a) {return __isascii(a); }
 #endif
 
-#include "gmp.h"
+#include <gmp.h>
 #include "ecm.h"
 #include "ecm-ecm.h"
 

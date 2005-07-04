@@ -33,7 +33,7 @@
 #include <io.h>		/* for access() */
 #define F_OK 0
 #endif
-#include "gmp.h"
+#include <gmp.h>
 #include "ecm.h"
 #include "ecm-ecm.h"
 #ifdef HAVE_GWNUM

@@ -22,7 +22,7 @@
 */
 
 #include <stdio.h> /* to avoid #undef all prototypes with FILE in ecm-impl.h */
-#include "gmp.h"
+#include <gmp.h>
 #include "ecm-impl.h"
 
 #define A0 A[i]

@@ -282,13 +282,16 @@ ntt_polyevalT (mpzv_t b, spv_size_t len, mpzv_t *Tree, mpzv_t T,
 {
   spv_size_t m, i;
   FILE *TreeFile = NULL;
-  char TreeFilename[256];
+  /* assume this "small" malloc will not fail in normal usage */
+  char *TreeFilename;
   mpzv_t *Tree_orig = Tree;
   int level = 0; /* = ceil_log_2 (len / m) - 1 */
-  
   mpzspv_t x = mpzspv_init (2 * len, mpzspm);
   mpzspv_t y = mpzspv_init (2 * len, mpzspm);
 
+  if (TreeFilenameStem)
+    TreeFilename = (char *) malloc (strlen (TreeFilenameStem) + 1 + 2 + 1);
+  
   mpzspv_from_mpzv (x, 0, b, len, mpzspm);
   mpzspv_to_ntt (x, 0, len, 2 * len, 0, mpzspm);
   mpzspv_pwmul (x, 0, x, 0, sp_invF, 0, 2 * len, mpzspm);
@@ -303,7 +306,7 @@ ntt_polyevalT (mpzv_t b, spv_size_t len, mpzv_t *Tree, mpzv_t T,
         {
           Tree = &T;
 	  
-          snprintf (TreeFilename, 256, "%.252s.%d", TreeFilenameStem, level);
+          sprintf (TreeFilename, "%s.%d", TreeFilenameStem, level);
           
 	  TreeFile = fopen (TreeFilename, "rb");
           if (TreeFile == NULL)
@@ -361,7 +364,7 @@ ntt_polyevalT (mpzv_t b, spv_size_t len, mpzv_t *Tree, mpzv_t T,
     {
       if (TreeFilenameStem)
         {
-          snprintf (TreeFilename, 256, "%.252s.%d", TreeFilenameStem, level);
+          sprintf (TreeFilename, "%s.%d", TreeFilenameStem, level);
 
           TreeFile = fopen (TreeFilename, "rb");
           if (TreeFile == NULL)
@@ -383,6 +386,8 @@ ntt_polyevalT (mpzv_t b, spv_size_t len, mpzv_t *Tree, mpzv_t T,
 	}
     }
   
+  if (TreeFilenameStem)
+    free (TreeFilename);
   list_swap (b, T, len);
   return 0;
 }

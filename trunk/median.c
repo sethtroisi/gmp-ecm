@@ -26,7 +26,7 @@ Proc. of ISSAC'03, Philadelphia, 2003.
 
 #include <stdio.h>
 #include <stdlib.h>
-#include "gmp.h"
+#include <gmp.h>
 #include "ecm-impl.h"
 
 #if !defined (_MSC_VER)
