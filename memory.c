@@ -23,7 +23,7 @@ MA 02111-1307, USA. */
 
 #include <stdio.h>
 #include <stdlib.h>  /* for abort */
-#include "gmp.h"
+#include <gmp.h>
 #include "ecm.h"
 
 void *__gmp_default_allocate (size_t);

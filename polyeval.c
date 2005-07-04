@@ -24,10 +24,8 @@
 #include <stdlib.h>
 #if !defined (_MSC_VER)
 #include <unistd.h>
-#else
-#define snprintf _snprintf
 #endif
-#include "gmp.h"
+#include <gmp.h>
 #include "ecm.h"
 #include "ecm-impl.h"
 
@@ -324,12 +322,13 @@ polyeval_tellegen (listz_t b, unsigned int k, listz_t *Tree, listz_t tmp,
       {
         unsigned int lgk, i;
         FILE *TreeFile;
-        char fullname[256];
+        /* assume this "small" malloc will not fail in normal usage */
+	char *fullname = (char *) malloc (strlen (TreeFilename) + 1 + 2 + 1);
 
-        lgk = ceil_log2 (k);
+	lgk = ceil_log2 (k);
         for (i = 0; i < lgk; i++)
           {
-            snprintf (fullname, 256, "%.252s.%d", TreeFilename, i);
+            sprintf (fullname, "%s.%d", TreeFilename, i);
             
 	    TreeFile = fopen (fullname, "rb");
             if (TreeFile == NULL)
@@ -344,6 +343,7 @@ polyeval_tellegen (listz_t b, unsigned int k, listz_t *Tree, listz_t tmp,
             fclose (TreeFile);
             unlink (fullname);
           }
+        free (fullname);
       }
     else
       TUpTree (T, Tree, k, T + k, -1, 0, n, NULL);

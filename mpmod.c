@@ -22,7 +22,7 @@
 
 #include <stdlib.h>
 #include <stdio.h>
-#include "gmp.h"
+#include <gmp.h>
 
 /* For ECM_ERROR */
 #include "ecm.h"

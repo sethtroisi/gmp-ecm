@@ -20,7 +20,7 @@
 
 #include <stdio.h>
 #include <limits.h>
-#include "gmp.h"
+#include <gmp.h>
 #include "ecm-impl.h"
 
 FILE *ECM_STDOUT, *ECM_STDERR; /* define them since declared in ecm-impl.h */

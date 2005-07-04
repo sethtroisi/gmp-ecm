@@ -24,7 +24,7 @@
 #include <stdlib.h>
 #include <time.h>
 #include <stdarg.h>
-#include "gmp.h"
+#include <gmp.h>
 #include "ecm-impl.h"
 
 #define VERBOSE __ECM(verbose)
@@ -73,7 +73,7 @@ mpz_divby3_1op (mpz_t RS)
 
 /* returns ceil(log(n)/log(2)) */
 unsigned int
-ceil_log2 (unsigned int n)
+ceil_log2 (unsigned long n)
 {
   unsigned int k;
 
