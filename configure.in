@@ -121,8 +121,6 @@ if test "x$with_gwnum" = x; then :; else
 fi
 
 # Checks for library functions.
-AC_FUNC_MALLOC
-AC_FUNC_REALLOC
 AC_FUNC_STRTOD
 AC_CHECK_LIB(m, floor)
 AC_CHECK_FUNCS([floor sqrt pow], [], AC_ERROR)
