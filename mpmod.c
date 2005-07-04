@@ -526,7 +526,7 @@ mpmod_clear (mpmod_t modulus)
 }
 
 void 
-mpmod_pausegw (mpmod_t modulus)
+mpmod_pausegw (ATTRIBUTE_UNUSED mpmod_t modulus)
 {
 #ifdef HAVE_GWNUM
   if (modulus->Fermat >= GWTHRESHOLD)
@@ -535,7 +535,7 @@ mpmod_pausegw (mpmod_t modulus)
 }
 
 void 
-mpmod_contgw (mpmod_t modulus)
+mpmod_contgw (ATTRIBUTE_UNUSED mpmod_t modulus)
 {
 #ifdef HAVE_GWNUM
   if (modulus->Fermat >= GWTHRESHOLD)

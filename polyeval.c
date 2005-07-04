@@ -26,6 +26,7 @@
 #include <unistd.h>
 #endif
 #include <gmp.h>
+#include <string.h> /* for strlen() */
 #include "ecm.h"
 #include "ecm-impl.h"
 

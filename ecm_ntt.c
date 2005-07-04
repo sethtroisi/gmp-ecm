@@ -20,8 +20,10 @@
   MA 02111-1307, USA.
 */
 
+#include <stdlib.h>
 #include <stdio.h>
 #include <unistd.h> /* for unlink */
+#include <string.h>
 #include "sp.h"
 #include "ecm.h"
 #include "ecm-impl.h"
@@ -63,7 +65,7 @@ ntt_PolyFromRoots (mpzv_t r, mpzv_t a, spv_size_t len, mpzv_t t,
   mpzspv_t x;
   spv_size_t i, m;
   
-  ASSERT (len == 1 << ceil_log_2 (len));
+  ASSERT (len == 1 << ceil_log2 (len));
 
   if (len <= MUL_NTT_THRESHOLD)
   {
@@ -107,9 +109,9 @@ ntt_PolyFromRoots_Tree (mpzv_t r, mpzv_t a, spv_size_t len, mpzv_t t,
   mpzspv_t x;
   spv_size_t i, m, m_max;
   mpzv_t src = a;
-  mpzv_t *dst = Tree + ceil_log_2 (len) - 1;
+  mpzv_t *dst = Tree + ceil_log2 (len) - 1;
 
-  ASSERT (len == 1 << ceil_log_2 (len));
+  ASSERT (len == 1 << ceil_log2 (len));
   
   x = mpzspv_init (2 * len, mpzspm);
   
@@ -118,7 +120,7 @@ ntt_PolyFromRoots_Tree (mpzv_t r, mpzv_t a, spv_size_t len, mpzv_t t,
   else  
     list_set (*dst--, a, len);
   
-  m = (dolvl == -1) ? 1 : 1 << (ceil_log_2 (len) - 1 - dolvl);
+  m = (dolvl == -1) ? 1 : 1 << (ceil_log2 (len) - 1 - dolvl);
   m_max = (dolvl == -1) ? len : 2 * m;
   
   for (; m < m_max && m < MUL_NTT_THRESHOLD; m *= 2)
@@ -290,9 +292,9 @@ ntt_polyevalT (mpzv_t b, spv_size_t len, mpzv_t *Tree, mpzv_t T,
   spv_size_t m, i;
   FILE *TreeFile = NULL;
   /* assume this "small" malloc will not fail in normal usage */
-  char *TreeFilename;
+  char *TreeFilename = NULL;
   mpzv_t *Tree_orig = Tree;
-  int level = 0; /* = ceil_log_2 (len / m) - 1 */
+  int level = 0; /* = ceil_log2 (len / m) - 1 */
   mpzspv_t x = mpzspv_init (2 * len, mpzspm);
   mpzspv_t y = mpzspv_init (2 * len, mpzspm);
 

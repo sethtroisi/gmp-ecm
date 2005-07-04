@@ -148,7 +148,7 @@ od:
                                  324870, 690690, 1345890, 2852850, 5705700, 
                                  11741730, 23130030, 48498450, 96996900};
 
-  unsigned long i, d, d2, dF, phid, k;
+  unsigned long i, d1 = 0, d2 = 0, dF = 0, phid, k;
   mpz_t j, t, i0, i1;
   int r = 0;
   
@@ -160,18 +160,18 @@ od:
   
   for (i = 0; i < ((po2) ? Npo2 : N); i++)
     {
-      d = (po2) ? lpo2[i] : l[i];
-      phid = phi (d) / 2;
+      d1 = (po2) ? lpo2[i] : l[i];
+      phid = phi (d1) / 2;
       if (po2)
-        for (dF = 1; dF < phid; dF <<= 1); /* dF = 2^ceil(log_2(phi(d))) */
+        for (dF = 1; dF < phid; dF <<= 1); /* dF = 2^ceil(log_2(phi(d1))) */
       else
         dF = phid;
-      /* Look for smallest prime < 25 that does not divide d */
+      /* Look for smallest prime < 25 that does not divide d1 */
       for (d2 = 5; d2 < 25; d2 += 2)
         {
           if (d2 % 3 == 0)
             continue;
-          if (d % d2 > 0)
+          if (d1 % d2 > 0)
             break;
         }
 
@@ -180,18 +180,18 @@ od:
 
 #if 0
       /* The code to init roots of G can handle negative i0 now. */
-      if (d2 > 1 && mpz_cmp_ui (B2min, (d - 1) * d2 - d) <= 0) 
+      if (d2 > 1 && mpz_cmp_ui (B2min, (d1 - 1) * d2 - d1) <= 0) 
         d2 = 1; /* Would make i0 < 0 */
 #endif
       
-      mpz_set_ui (i0, d - 1);
+      mpz_set_ui (i0, d1 - 1);
       mpz_mul_ui (i0, i0, d2);
       mpz_set (j, B2);
-      mpz_add (i1, j, i0); /* i1 = B2 + (d - 1) * d2 */
+      mpz_add (i1, j, i0); /* i1 = B2 + (d1 - 1) * d2 */
       mpz_set (j, B2min);
-      mpz_sub (i0, j, i0); /* i0 = B2min - (d - 1) * d2 */
-      mpz_cdiv_q_ui (i0, i0, d); /* i0 = ceil ((B2min - (d - 1) * d2) / d) */
-      mpz_fdiv_q_ui (i1, i1, d); /* i1 = floor ((B2 + (d - 1) * d2) / d) */
+      mpz_sub (i0, j, i0); /* i0 = B2min - (d1 - 1) * d2 */
+      mpz_cdiv_q_ui (i0, i0, d1); /* i0 = ceil ((B2min - (d1 - 1) * d2) / d1) */
+      mpz_fdiv_q_ui (i1, i1, d1); /* i1 = floor ((B2 + (d1 - 1) * d2) / d1) */
       
       /* How many roots of G will we need ? */
       mpz_sub (j, i1, i0);
@@ -268,24 +268,24 @@ od:
       mpz_add (i1, j, t);
     }
 
-  root_params->d1 = d;
+  root_params->d1 = d1;
   root_params->d2 = d2;
   mpz_set (root_params->i0, i0);
   *finaldF = dF;
   *finalk = k;
 
   /* We want B2' the largest integer that satisfies 
-     i1 = floor ((B2' + (d - 1) * d2) / d)
-        = floor ((B2'-d2)/d) + d2
-     i1 - d2 = floor ((B2'-d2)/d)
-     (B2'-d2)/d < i1-d2+1
-     B2'-d2 < (i1-d2+1) * d
-     B2' < (i1-d2+1) * d + d2
-     B2' = (i1-d2+1) * d + d2 - 1
+     i1 = floor ((B2' + (d1 - 1) * d2) / d1)
+        = floor ((B2'-d2)/d1) + d2
+     i1 - d2 = floor ((B2'-d2)/d1)
+     (B2'-d2)/d1 < i1-d2+1
+     B2'-d2 < (i1-d2+1) * d1
+     B2' < (i1-d2+1) * d1 + d2
+     B2' = (i1-d2+1) * d1 + d2 - 1
   */
   
   mpz_sub_ui (i1, i1, d2 - 1);
-  mpz_mul_ui (B2, i1, d);
+  mpz_mul_ui (B2, i1, d1);
   mpz_add_ui (B2, B2, d2 - 1);
   
 clear_and_exit:
