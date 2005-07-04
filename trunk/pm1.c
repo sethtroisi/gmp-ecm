@@ -85,7 +85,7 @@ mulcascade_free (mul_casc *c)
 }
 
 static mul_casc * 
-mulcascade_mul_d (mul_casc *c, const double n, mpz_t t)
+mulcascade_mul_d (mul_casc *c, const double n, ATTRIBUTE_UNUSED mpz_t t)
 {
   unsigned int i;
 

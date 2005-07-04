@@ -50,7 +50,7 @@ unsigned int Fermat;
 mp_limb_t __gmpn_mod_34lsub1 (mp_limb_t*, mp_size_t);
 
 /* compute remainder modulo 2^(mp_bits_per_limb*3/4)-1 */
-#ifndef HAVE_NATIVE_mpn_mod_34lsub1
+#ifndef HAVE___GMPN_MOD_34LSUB1
 mp_limb_t
 __gmpn_mod_34lsub1 (mp_limb_t *src, mp_size_t size)
 {
@@ -58,7 +58,7 @@ __gmpn_mod_34lsub1 (mp_limb_t *src, mp_size_t size)
   mp_limb_t r, d;
 
   ASSERT(BITS_PER_MP_LIMB % 4 == 0);
-  tp = malloc (size * sizeof(mp_limb_t));
+  tp = malloc (size * sizeof (mp_limb_t));
   MPN_COPY (tp, src, size);
   d = (mp_limb_t) 1 << (3 * (mp_bits_per_limb / 4)) - (mp_limb_t) 1;
   mpn_divmod_1 (&r, tp, size, d);
