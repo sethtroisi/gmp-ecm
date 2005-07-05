@@ -22,17 +22,6 @@
   02111-1307, USA.
 */
 
-#ifndef HAVE_GWNUM
-
-/* This file does nothing at all if HAVE_GWNUM is not defined */
-int
-Fgw_dummy ()
-{
-  return 0;
-}
-
-#else
-
 #include <stdlib.h>
 #include <stdio.h>
 #include <gmp.h>
@@ -643,4 +632,3 @@ end_of_gwecm:
   return youpi;
 }
 
-#endif /* endelse of #ifndef HAVE_GWNUM */

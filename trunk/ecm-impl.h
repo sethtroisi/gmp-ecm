@@ -75,7 +75,6 @@ extern FILE *ECM_STDOUT, *ECM_STDERR;
 #define KS 5
 #define NTT 6
 
-#define HAVE_NTT
 #include "sp.h"
 
 /* compile with -DMULT=2 to override default */

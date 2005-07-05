@@ -6,24 +6,54 @@ AC_INIT(ecm, ECM_VERSION, [ecm-dev@lists.fousse.info])
 AC_CONFIG_HEADER([config.h])
 AM_INIT_AUTOMAKE(ecm, ECM_VERSION)
 
+dnl Checks for programs.
+AC_PROG_CC
+AC_PROG_RANLIB
+AC_CANONICAL_HOST
+
+
 AC_ARG_WITH(gmp_include, [  --with-gmp-include=DIR  GMP include directory ], with_gmp_include=$withval)
 AC_ARG_WITH(gmp_lib,     [  --with-gmp-lib=DIR      GMP lib directory ], with_gmp_lib=$withval)
 AC_ARG_WITH(gmp_build,   [  --with-gmp-build=DIR    GMP source directory], with_gmp_include=$withval/ with_gmp_lib=$withval/.libs)
 AC_ARG_WITH(gmp,         [  --with-gmp=DIR          GMP install directory ], with_gmp_include=$withval/include with_gmp_lib=$withval/lib)
 AC_ARG_WITH(gwnum,       [  --with-gwnum=DIR        GWNUM source directory ], with_gwnum=$withval)
 
-AC_ARG_ENABLE(assert,
-   [  --enable-assert         enable ASSERT checking [[default=no]]],
-   [ case $enableval in
-      yes) AC_DEFINE([WANT_ASSERT],1,[Want assertion]) ;;
-      no)  ;;
-      *) AC_MSG_ERROR([bad value for --enable-assert: yes, or no]) ;;
-     esac])
+AC_ARG_ENABLE(assert, [  --enable-assert         enable ASSERT checking [[default=no]]])
+if test "x$enable_assert" = "xyes"; then
+  AC_DEFINE(WANT_ASSERT,1,[Define to 1 if you want assertions enabled])
+fi
 
-dnl Checks for programs.
-AC_PROG_CC
-AC_PROG_RANLIB
-AC_CANONICAL_HOST
+AC_ARG_ENABLE(asm-redc, [  --enable-asm-redc       use an asm REDC on 32-bit x86s [[default=no]]])
+if test "x$enable_asm_redc" = "xyes"; then
+  AC_DEFINE(NATIVE_REDC,1,[Define to 1 to use asm redc on 32-bit x86s]) 
+  AM_PROG_AS
+fi
+AM_CONDITIONAL(ENABLE_ASM_REDC, test "x$enable_asm_redc" = "xyes")
+
+AC_ARG_ENABLE(ntt,      [  --enable-ntt            use NTT polynomial arithmetic [[default=no]]])
+if test "x$enable_ntt" = "xyes"; then
+  AC_DEFINE(HAVE_NTT,1,[Define to 1 to compile NTT functions])
+fi
+AM_CONDITIONAL(ENABLE_NTT, test "x$enable_ntt" = "xyes")
+
+dnl If user wants GWNUM, check if the file exists (either as .a or .lib)
+if test "x$with_gwnum" != "x"; then
+  AC_CHECK_FILE($with_gwnum/gwnum.a, [
+    AC_DEFINE(HAVE_GWNUM, 1, [Define to 1 if gwnum.a or gwnum.lib exist])
+    LIBS="$LIBS $with_gwnum/gwnum.a"
+    CPPFLAGS="$CPPFLAGS -I$with_gwnum"
+  ],[
+    AC_CHECK_FILE($with_gwnum/gwnum.lib, [
+      AC_DEFINE(HAVE_GWNUM, 1, [Define to 1 if gwnum.a or gwnum.lib exist])
+      LIBS="$LIBS $with_gwnum/gwnum.lib"
+      CPPFLAGS="$CPPFLAGS -I$with_gwnum"
+    ],[
+      with_gwnum=
+      AC_MSG_WARN([Woltman's GWNUM library not found, have you compiled it?])
+    ])
+  ])
+fi
+AM_CONDITIONAL(WITH_GWNUM, test "x$with_gwnum" != "x")
 
 # Checks for header files.
 AC_FUNC_ALLOCA
@@ -102,23 +132,7 @@ int main()
     AC_MSG_RESULT([can't test])
 )
 
-dnl If user wants GWNUM, check if the file exists (either as .a or .lib)
-if test "x$with_gwnum" = x; then :; else
-  AC_CHECK_FILE($with_gwnum/gwnum.a, [
-    AC_DEFINE(HAVE_GWNUM, [], [Define if gwnum.a or gwnum.lib exist])
-    LIBS="$LIBS $with_gwnum/gwnum.a"
-    CPPFLAGS="$CPPFLAGS -I$with_gwnum"
-  ],[
-    AC_CHECK_FILE($with_gwnum/gwnum.lib, [
-      AC_DEFINE(HAVE_GWNUM, [], [Define if gwnum.a or gwnum.lib exist])
-      LIBS="$LIBS $with_gwnum/gwnum.lib"
-      CPPFLAGS="$CPPFLAGS -I$with_gwnum"
-    ],[
-      with_gwnum=
-      AC_MSG_WARN([Woltman's GWNUM library not found, have you compiled it?])
-    ])
-  ])
-fi
+
 
 # Checks for library functions.
 AC_FUNC_STRTOD
