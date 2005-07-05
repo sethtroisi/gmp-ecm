@@ -2,10 +2,8 @@ ToDo's:
 
 0) configure
 - check getrusage in configure, update cputime (auxlib.c)
-- add --enable-ntt or similar so that ecm_ntt.c, mpzspm.c, mpzspv.c, spm.c,
-  spv.c are conditionally compiled. Similarly make --with-gwnum conditionally
-  compile Fgw.c instead of making it conditionally nonempty, as ISO C rejects
-  empty source files.
+- Rewrite test.* to ensure that each test successfully 'splits' the input
+  number (avoids "Found input number N" being accepted erroneously)
 
 1) efficiency/memory
 - use mpres in step 2 (Target: 7.0)
@@ -21,8 +19,6 @@ ToDo's:
   k*a^n+b, where k*a*b is highly composite. May belong to GMP rather than
   GMP-ECM.
 - implement assembly code (redc.asm) for other architectures
-  (rename it to redc.s, add AM_PROG_AS in configure.in, add an option
-	--want_asm or similar)
 - allow composite d2 (Target: perhaps 6.1)
 - init mpz_t's with correct amount of memory allocated to avoid reallocs.
   Check for reallocs with GMP's memory interface routines. (Target: 6.1? 7.0?)
