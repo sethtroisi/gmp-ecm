@@ -228,7 +228,6 @@ typedef struct
   unsigned int rsieve; /* Which residue mod dsieve current .next belongs to */
   point *fd;           /* for S != 1 */
   mpres_t tmp[4];      /* for S=1 */
-  unsigned int d;      /* Step size for computing roots of G */
   int dickson_a;       /* Parameter for Dickson polynomials */
 } __pp1_roots_state;
 typedef __pp1_roots_state pp1_roots_state;
@@ -311,8 +310,8 @@ int     ecm_rootsG       (mpz_t, listz_t, unsigned long, ecm_roots_state *,
                           mpmod_t);
 #define ecm_rootsG_clear __ECM(ecm_rootsG_clear)
 void    ecm_rootsG_clear (ecm_roots_state *, mpmod_t);
-void init_roots_state   (ecm_roots_state *, int, unsigned long, unsigned long, 
-                         double);
+void init_roots_state   (ecm_roots_state *, const int, const unsigned long, 
+			 const unsigned long, const double);
 
 /* lucas.c */
 #define pp1_mul_prac __ECM(pp1_mul_prac)
@@ -336,8 +335,9 @@ void  pp1_rootsG_clear (pp1_roots_state *, mpmod_t);
 int          stage2     (mpz_t, void *, mpmod_t, unsigned long, unsigned long,
                          root_params_t *, int, char *);
 #define init_progression_coeffs __ECM(init_progression_coeffs)
-listz_t init_progression_coeffs (mpz_t, unsigned int, unsigned int,
-                         unsigned int, unsigned int, unsigned int, int);
+listz_t init_progression_coeffs (mpz_t, const unsigned long, const unsigned long, 
+				 const unsigned int, const unsigned int, 
+				 const unsigned int, const int);
 
 /* listz.c */
 #define list_mul_mem __ECM(list_mul_mem)

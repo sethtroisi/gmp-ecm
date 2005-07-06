@@ -500,16 +500,16 @@ pp1_rootsG_init (mpres_t *x, root_params_t *root_params, mpmod_t modulus)
       for (i = 0; i < 4; i++)
         mpres_init (state->tmp[i], modulus);
 
-      state->d = root_params->d1; /* needed in pp1_rootsG */
       state->dsieve = root_params->d2; /* needed in pp1_rootsG */
       /* We want to skip values where gcd((i0 + i) * d1, d2) != 1.
-         Since gcd (d1, d2) == 1, gcd((i0 + i) * d1, d2) = gcd(i0 + i, d2) */
+	 We can test for gcd(i0 + i, d2) instead and let pp1_rootsG()
+	 advance state->rsieve in steps of 1 */
       /* state->rsieve = i0 % d2 */
       state->rsieve = mpz_fdiv_ui (root_params->i0, root_params->d2);
       
-      outputf (OUTPUT_DEVVERBOSE, "pp1_rootsG_init: i0 = %Zd, state: d = %d, "
+      outputf (OUTPUT_DEVVERBOSE, "pp1_rootsG_init: i0 = %Zd, state: "
                "dsieve = %d, rsieve = %d, S = %d\n", root_params->i0, 
-               state->d, state->dsieve, state->rsieve, state->S);
+               state->dsieve, state->rsieve, state->S);
       
       mpz_set_ui (t, root_params->d1);
       pp1_mul (state->tmp[1], *x, t, modulus, state->tmp[3], P);
@@ -526,7 +526,6 @@ pp1_rootsG_init (mpres_t *x, root_params_t *root_params, mpmod_t modulus)
   else
     {
       listz_t coeffs;
-      
       
       state->dickson_a = (root_params->S < 0) ? -1 : 0;
       state->nr = (root_params->d2 > 1) ? root_params->d2 - 1 : 1;
@@ -627,7 +626,7 @@ pp1_rootsG (listz_t G, unsigned long dF, pp1_roots_state *state, mpmod_t modulus
           mpres_swap (state->tmp[0], state->tmp[2], modulus);
           mpres_mul (state->tmp[3], state->tmp[2], state->tmp[1], modulus);
           mpres_sub (state->tmp[0], state->tmp[3], state->tmp[0], modulus);
-          state->rsieve = (state->rsieve + state->d) % state->dsieve;
+          state->rsieve++;
         }
     }
   else
@@ -794,7 +793,8 @@ pp1 (mpz_t f, mpz_t p, mpz_t n, mpz_t go, double B1done, double B1,
       if (root_params.S > 0)
         outputf (OUTPUT_NORMAL, ", polynomial x^%u", root_params.S);
       else
-        outputf (OUTPUT_NORMAL, ", polynomial Dickson(%u)", -S);
+        outputf (OUTPUT_NORMAL, ", polynomial Dickson(%u)", 
+		 -root_params.S);
        /* don't print x0 in resume case */
       if (ECM_IS_DEFAULT_B1_DONE(B1done)) 
         outputf (OUTPUT_NORMAL, ", x0=%Zd", p);
