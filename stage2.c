@@ -148,9 +148,9 @@ fin_diff_coeff (listz_t coeffs, mpz_t s, mpz_t D, unsigned int E,
 */
 
 listz_t
-init_progression_coeffs (mpz_t i0, unsigned int d, unsigned int e, 
-                         unsigned int k, unsigned int m, unsigned int E, 
-                         int dickson_a)
+init_progression_coeffs (mpz_t i0, const unsigned long d, const unsigned long e, const unsigned int k, 
+			 const unsigned int m, const unsigned int E, 
+			 const int dickson_a)
 {
   unsigned int i, j, size_fd;
   mpz_t t, dke;
@@ -202,8 +202,8 @@ init_progression_coeffs (mpz_t i0, unsigned int d, unsigned int e,
 }
 
 void 
-init_roots_state (ecm_roots_state *state, int S, unsigned long d1, 
-                  unsigned long d2, double cost)
+init_roots_state (ecm_roots_state *state, const int S, const unsigned long d1, 
+                  const unsigned long d2, const double cost)
 {
   ASSERT (gcd (d1, d2) == 1);
   /* If S < 0, use degree |S| Dickson poly, otherwise use x^S */
@@ -212,7 +212,7 @@ init_roots_state (ecm_roots_state *state, int S, unsigned long d1,
 
   /* We only calculate Dickson_{S, a}(j * d2) * s where
      gcd (j, dsieve) == 1 and j == 1 (mod 6)
-     by doing nr = eulerphi(dsieve / 6) separate progressions. */
+     by doing nr = eulerphi(dsieve)/2 separate progressions. */
   /* Now choose a value for dsieve. */
   state->dsieve = 6;
   state->nr = 1;
