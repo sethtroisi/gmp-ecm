@@ -5,15 +5,15 @@ libecm_a_SOURCES = ecm.c ecm2.c pm1.c pp1.c getprime.c listz.c lucas.c\
 		   schoen_strass.c ks-multiply.c rho.c bestd.c auxlib.c\
 		   random.c factor.c
 if ENABLE_ASM_REDC
-libecm_a_SOURCES += redc.s
+  libecm_a_SOURCES += redc.s
 endif
 
 if ENABLE_NTT
-libecm_a_SOURCES += sp.c spv.c spm.c mpzspm.c mpzspv.c ntt_gfp.c ecm_ntt.c
+  libecm_a_SOURCES += sp.c spv.c spm.c mpzspm.c mpzspv.c ntt_gfp.c ecm_ntt.c
 endif
 
 if WITH_GWNUM
-libecm_a_SOURCES += Fgw.c
+  libecm_a_SOURCES += Fgw.c
 endif
 
 bin_PROGRAMS = ecm
@@ -34,7 +34,10 @@ noinst_HEADERS = ecm-impl.h ecm-gmp.h ecm-ecm.h sp.h longlong.h
 
 EXTRA_DIST = test.pm1 test.pp1 test.ecm ecm.1 README.lib ecm.xml
 
-man_MANS = ecm.1
+man_MANS =
+if MAKE_MANPAGE
+  man_MANS += ecm.1
+endif
 
 check: ecm
 	$(srcdir)/test.pp1 ./ecm

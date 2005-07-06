@@ -11,7 +11,6 @@ AC_PROG_CC
 AC_PROG_RANLIB
 AC_CANONICAL_HOST
 
-
 AC_ARG_WITH(gmp_include, [  --with-gmp-include=DIR  GMP include directory ], with_gmp_include=$withval)
 AC_ARG_WITH(gmp_lib,     [  --with-gmp-lib=DIR      GMP lib directory ], with_gmp_lib=$withval)
 AC_ARG_WITH(gmp_build,   [  --with-gmp-build=DIR    GMP source directory], with_gmp_include=$withval/ with_gmp_lib=$withval/.libs)
@@ -25,12 +24,15 @@ fi
 
 AC_ARG_ENABLE(asm-redc, [  --enable-asm-redc       use an asm REDC on 32-bit x86s [[default=no]]])
 if test "x$enable_asm_redc" = "xyes"; then
-  AC_DEFINE(NATIVE_REDC,1,[Define to 1 to use asm redc on 32-bit x86s]) 
-  AM_PROG_AS
+  case $host in
+    X86_PATTERN) AC_DEFINE(NATIVE_REDC,1,[Define to 1 to use asm redc on 32-bit x86s])
+                 AM_PROG_AS ;;
+    *)           AC_MSG_ERROR(asm redc only exists for 32-bit x86s) ;;
+  esac
 fi
 AM_CONDITIONAL(ENABLE_ASM_REDC, test "x$enable_asm_redc" = "xyes")
 
-AC_ARG_ENABLE(ntt,      [  --enable-ntt            use NTT polynomial arithmetic [[default=no]]])
+AC_ARG_ENABLE(ntt, [  --enable-ntt            use NTT polynomial arithmetic [[default=no]]])
 if test "x$enable_ntt" = "xyes"; then
   AC_DEFINE(HAVE_NTT,1,[Define to 1 to compile NTT functions])
 fi
@@ -55,43 +57,38 @@ if test "x$with_gwnum" != "x"; then
 fi
 AM_CONDITIONAL(WITH_GWNUM, test "x$with_gwnum" != "x")
 
-# Checks for header files.
+dnl Checks for header files.
 AC_FUNC_ALLOCA
 AC_HEADER_STDC
 AC_CHECK_HEADERS([math.h limits.h malloc.h strings.h sys/time.h unistd.h])
 
-dnl Don't use -ansi, since it forbids inline
 dnl Tests concerning the include directories.
 if test -d "$with_gmp_include"; then
-  CPPFLAGS="$CPPFLAGS -I$with_gmp_include"
+  dnl AC_CHECK_HEADERS and AC_PREPROC_IFELSE uses CPPFLAGS but not CFLAGS
+  CPPFLAGS="-I$with_gmp_include $CPPFLAGS"
 else
   with_gmp_include=
 fi
 
-# Checks for typedefs, structures, and compiler characteristics.
+dnl Checks for typedefs, structures, and compiler characteristics.
 AC_C_CONST
-AC_C_VOLATILE
 AC_C_INLINE
 AC_TYPE_SIZE_T
 AC_HEADER_TIME
 
-dnl Check for GMP
-AC_MSG_CHECKING(for gmp.h)
-AC_COMPILE_IFELSE([AC_LANG_PROGRAM([[
-#include <gmp.h>
-]], [[]])],[AC_MSG_RESULT(yes)],[AC_MSG_RESULT(no)
-     AC_MSG_ERROR([gmp.h may be missing ${with_gmp_include:+in $with_gmp_include}])
-])
+AC_CHECK_HEADERS([gmp.h], [], AC_MSG_ERROR([required header file missing]))
 
 AC_MSG_CHECKING(for recent GMP)
-AC_COMPILE_IFELSE([AC_LANG_PROGRAM([[
+AC_PREPROC_IFELSE([AC_LANG_SOURCE([[
 #include <gmp.h>
-#if (__GNU_MP_VERSION*100+__GNU_MP_VERSION_MINOR*10 < 410)
-# error "min GMP version is 4.1.0"
+#if (__GNU_MP_VERSION < 4 || (__GNU_MP_VERSION == 4 && __GNU_MP_VERSION_MINOR < 1))
+#error
 #endif
-]], [[]])],[AC_MSG_RESULT(yes)],[AC_MSG_RESULT(no)
-     AC_MSG_ERROR([GMP 4.1.0 min required])
-])
+]])],
+  [AC_MSG_RESULT(yes)],
+  [AC_MSG_RESULT(no)
+   AC_MSG_ERROR([GMP 4.1.0 or newer is required])]
+)
 
 dnl AC_CHECK_LIB doesn't do what we want
 if test -r "$with_gmp_lib/libgmp.a"; then
@@ -111,36 +108,50 @@ LIBS="$LIBS -lm"
 
 dnl Check for corresponding 'gmp.h' and libgmp.a
 AC_MSG_CHECKING(if gmp.h version and libgmp version are the same)
-AC_RUN_IFELSE([AC_LANG_SOURCE([[
+AC_RUN_IFELSE([AC_LANG_PROGRAM([[
 #include <stdio.h>
-#include <string.h>
-#include "gmp.h"
-int main()
-{
-  char buffer[100];
-  if (__GNU_MP_VERSION_PATCHLEVEL != 0)
-    sprintf (buffer, "%d.%d.%d", __GNU_MP_VERSION, __GNU_MP_VERSION_MINOR,
-	    __GNU_MP_VERSION_PATCHLEVEL);
-  else
-    sprintf (buffer, "%d.%d", __GNU_MP_VERSION, __GNU_MP_VERSION_MINOR);
-  printf ("(%s/%s) ", buffer, gmp_version);
-  return (strcmp (buffer, gmp_version) != 0) ? 1 : 0;
-}
+#ifdef HAVE_STRING_H
+#  include <string.h>
+#endif
+#include <gmp.h>
+]],[[
+char buffer[100];
+if (__GNU_MP_VERSION_PATCHLEVEL != 0)
+  sprintf (buffer, "%d.%d.%d", __GNU_MP_VERSION, __GNU_MP_VERSION_MINOR,
+   __GNU_MP_VERSION_PATCHLEVEL);
+else
+  sprintf (buffer, "%d.%d", __GNU_MP_VERSION, __GNU_MP_VERSION_MINOR);
+printf ("(%s/%s) ", buffer, gmp_version);
+return strcmp (buffer, gmp_version);
 ]])], AC_MSG_RESULT(yes),
    [AC_MSG_RESULT(no)
     AC_MSG_ERROR(['gmp.h' and 'libgmp' have different versions! you have to properly reinstall GMP.])],
-    AC_MSG_RESULT([can't test])
+    AC_MSG_RESULT([cross-compiling: cannot test])
 )
 
-
-
-# Checks for library functions.
+dnl Checks for library functions.
 AC_FUNC_STRTOD
 AC_CHECK_LIB(m, floor)
-AC_CHECK_FUNCS([floor sqrt pow], [], AC_ERROR)
-AC_CHECK_FUNCS([gethostname gettimeofday isascii memset strchr strncasecmp strstr], [], AC_ERROR)
+AC_CHECK_FUNCS([floor sqrt pow], [], AC_MSG_ERROR([required function missing]))
+AC_CHECK_FUNCS([gethostname gettimeofday isascii memset strchr strncasecmp strstr], [], AC_MSG_ERROR([required function missing]))
 AC_CHECK_FUNCS([__gmpn_add_nc __gmpn_mul_fft __gmpn_mod_34lsub1])
 AC_CHECK_FUNCS([malloc_usable_size])
+
+dnl Check for xsltproc
+AC_CHECK_PROG(XSLTPROC,xsltproc,xsltproc,)
+if test "x$XSLTPROC" != "x"; then
+  AC_MSG_CHECKING(for docbook.xsl)
+  if test "x$XSLDIR" = "x"; then
+    XSLDIR="/usr/share/sgml/docbook/xsl-stylesheets"
+  fi
+  if test -e "$XSLDIR/manpages/docbook.xsl"; then
+    AC_MSG_RESULT(yes)
+    make_manpage="yes"
+  else
+    AC_MSG_RESULT(no)
+  fi
+fi  
+AM_CONDITIONAL(MAKE_MANPAGE, test "x$make_manpage" = "xyes")
 
 AC_CONFIG_FILES(Makefile)
 
@@ -148,4 +159,5 @@ AC_SUBST(INCLUDES)
 AC_SUBST(LDADD)
 AC_SUBST(LDFLAGS)
 AC_SUBST(CFLAGS)
+AC_SUBST(XSLDIR)
 AC_OUTPUT
