@@ -17,11 +17,7 @@ be appropriate if some kind soul were willing to write them.
 
    Useful in mpzspp_normalize.
 
-2) spv_sum. Given spv a, compute a[0] + ... + a[n-1] mod p
-
-   Useful nowhere I can think of but nice to have about.
-
-3) spv_ntt_gfp_dif, spv_ntt_gfp_dit. Most of stage 2 is spent on these
+2) spv_ntt_gfp_dif, spv_ntt_gfp_dit. Most of stage 2 is spent on these
    functions; maybe a hand-written version will outperform gcc's efforts.
 
 
@@ -30,6 +26,10 @@ SP level:
 1) Maybe use 64->32 bit Montgomery reduction instead of GMP's
    udiv_qrnnd_preinv2norm. Preliminary tests indicate this gives a 10% speedup
    in ntt_gfp_dif. See sp_montmul in sp.h.
+
+   UPDATE: This code has been written (but is not in cvs). It turns out that
+           sp_montmul as presented is incorrect as we have to check for
+	   overflows. Unfortunately this cancels out the 10% speedup.
 
 SPV level:
 
@@ -55,27 +55,4 @@ MPZSPP level:
 2) Use a division tree for mpzspp_set_mpzp. Note however that these aren't
    too time-critical if we rewrite the high-level poly functions (see below)
    so they don't convert to/from mpzspps for every poly mul.
- 
-
-MPZP (=listz) level.
-
-1) Fix memory thrashing in ntt_PolyFromRoots
-
-Code up the following for power-of-two poly lengths only - much easier.
-
-1) ntt_PolyFromRoots (DONE - DN), ntt_PolyFromRoots_Tree (DONE - DN)
-
-2) Poly_Invert (DONE - DN)
-
-3) Recursive_Division (not needed as ntt_polyeval isn't required)
-
-4) Prerevert_Division with cached transforms (DONE - DN)
-
-5) transposed Polyeval functions with cached transforms (DONE - DN)
-
-Sticking to power-of-two poly lengths isn't as much of a cop-out as it sounds
-- one of the ways we can speed up the transposed polyeval is by saving the
-transforms of some polys. If spv_mul ever calls karatsuba then we (maybe) lose
-some of this speedup.
-
 

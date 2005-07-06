@@ -197,45 +197,47 @@ mpzspv_from_mpzv (mpzspv_t x, spv_size_t offset, mpzv_t mpzv,
 
 /* B&S: ecrt mod m
  *
- * TODO: mimic MPZSPV_NORMALISE_STRIDE usage to make memory use constant.
- *
- * memory: len floats */
+ * memory: MPZSPV_NORMALIZE_STRIDE floats */
 void
 mpzspv_to_mpzv (mpzspv_t x, spv_size_t offset, mpzv_t mpzv,
     spv_size_t len, mpzspm_t mpzspm)
 {
   unsigned int i;
-  spv_size_t j;
-  float *f = (float *) valloc (len * sizeof (float));
+  spv_size_t k, l;
+  float *f = (float *) valloc (MPZSPV_NORMALISE_STRIDE * sizeof (float));
   float prime_recip;
   sp_t t;
-  spm_t spm;
+  spm_t spm = mpzspm->spm;
   
   ASSERT (mpzspv_verify (x, offset, len, mpzspm));
   
-  for (j = 0; j < len; j++)
+  for (l = 0; l < len; l += MPZSPV_NORMALISE_STRIDE)
     {
-      f[j] = 0.5;
-      mpz_set_ui (mpzv[j], 0);
-    }
-  
-  for (i = 0; i < mpzspm->sp_num; i++)
-    {
-      prime_recip = 1.0 / (float) mpzspm->spm[i].sp;
-      spm = mpzspm->spm + i;
-      
-      for (j = 0; j < len; j++)
+      spv_size_t stride = MIN (MPZSPV_NORMALISE_STRIDE, len - l);
+
+      for (k = 0; k < stride; k++)
         {
-	  t = sp_mul (x[i][j + offset], mpzspm->crt3[i], spm->sp, spm->mul_c);
-          
-	  mpz_addmul_ui (mpzv[j], mpzspm->crt1[i], t);
-
-	  f[j] += (float) t * prime_recip;
+          f[k] = 0.5;
+          mpz_set_ui (mpzv[k + l], 0);
         }
-    }
+  
+    for (i = 0; i < mpzspm->sp_num; i++)
+      {
+        prime_recip = 1.0 / (float) spm[i].sp;
+      
+        for (k = 0; k < stride; k++)
+          {
+  	    t = sp_mul (x[i][l + k + offset], mpzspm->crt3[i], spm[i].sp, spm[i].mul_c);
+          
+	    mpz_addmul_ui (mpzv[l + k], mpzspm->crt1[i], t);
 
-  for (j = 0; j < len; j++)
-    mpz_add (mpzv[j], mpzv[j], mpzspm->crt2[(unsigned int) f[j]]);
+	    f[k] += (float) t * prime_recip;
+          }
+      }
+
+    for (k = 0; k < stride; k++)
+      mpz_add (mpzv[l + k], mpzv[l + k], mpzspm->crt2[(unsigned int) f[k]]);
+  }
   
   free (f);
 }  
@@ -288,8 +290,8 @@ mpzspv_normalise (mpzspv_t x, spv_size_t offset, spv_size_t len,
       spv_size_t stride = MIN (MPZSPV_NORMALISE_STRIDE, len - l);
       
       /* FIXME: use B&S Theorem 2.2 */
-      for (i = 0; i < stride; i++)
-	f[i] = 0.5;
+      for (k = 0; k < stride; k++)
+	f[k] = 0.5;
       
       for (i = 0; i < sp_num; i++)
         {
