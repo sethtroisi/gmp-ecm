@@ -385,7 +385,8 @@ update_fd (mpres_t *fd, unsigned int nr, unsigned int S, mpmod_t modulus,
     for (k = 0; k < S; k++)
       mpres_mul (fd[j + k], fd[j + k], fd[j + k + 1], modulus);
 
-  *muls += nr * S;
+  if (muls != NULL)
+    *muls += (unsigned long) nr * S;
 }
 
 /* Puts in F[0..dF-1] the successive values of 
@@ -421,11 +422,12 @@ pm1_rootsF (mpz_t f, listz_t F, root_params_t *root_params,
   /* Relative cost of point add during init and computing roots assumed =1 */
   /* The typecast from hell: the relevant fields of ecm_roots_state and
      pm1_roots_state match in position so init_roots_state() can init a
-     pm1_roots_state as well. UGLY. OOP would really help here */
+     pm1_roots_state as well. UGLY. OOP would really help here. FIXME! */
   init_roots_state ((ecm_roots_state *) &state, root_params->S, 
                     root_params->d1, root_params->d2, 1.0);
 
-  /* The invtrick is profitable for x^S, S even and > 6 */
+  /* The invtrick is profitable for x^S, S even and > 6. Does not work for 
+     Dickson polynomials (root_params->S < 0)! */
   if (root_params->S > 6 && (root_params->S & 1) == 0)
     {
       state.invtrick = 1;
@@ -463,7 +465,10 @@ pm1_rootsF (mpz_t f, listz_t F, root_params_t *root_params,
       mpres_init (state.fd[i], modulus);
       /* The highest coefficient of all progressions is identical */
       if (i > state.S + 1 && i % (state.S + 1) == state.S)
-        mpres_set (state.fd[i], state.fd[state.S], modulus);
+	{
+	  ASSERT (mpz_cmp (coeffs[i], coeffs[state.S]) == 0);
+	  mpres_set (state.fd[i], state.fd[state.S], modulus);
+	}
       else
         mpres_pow (state.fd[i], *x, coeffs[i], modulus);
     }
@@ -488,7 +493,6 @@ pm1_rootsF (mpz_t f, listz_t F, root_params_t *root_params,
             {
               /* Yes, time to update again */
               update_fd (state.fd, state.nr, state.S, modulus, &muls);
-              
               state.next = 0;
             }
           
@@ -509,7 +513,8 @@ pm1_rootsF (mpz_t f, listz_t F, root_params_t *root_params,
     {
       if (list_invert (t, F, dF, t[dF], modulus)) 
         {
-	  outputf (OUTPUT_VERBOSE, "Found factor while inverting F[0]*..*F[d]\n");
+          /* Should never happen */
+	  outputf (OUTPUT_ERROR, "Found factor unexpectedly while inverting F[0]*..*F[dF]\n");
           mpz_set (f, t[dF]);
           return ECM_FACTOR_FOUND_STEP2;
         }
@@ -538,8 +543,7 @@ pm1_rootsF (mpz_t f, listz_t F, root_params_t *root_params,
    
      for successive n, where Dickson_{S, a} is the degree S Dickson
      polynomial with parameter a. For a == 0, Dickson_{S, a} (x) = x^S.
-   Uses the x+1/x trick whenever S > 6 and even, then the Dickson
-     parameter a must be 0.
+   Uses the x+1/x trick whenever S > 6 and even.
    Return NULL if an error occurred.
 */
 
@@ -596,23 +600,24 @@ pm1_rootsG_init (mpres_t *x, root_params_t *root_params, mpmod_t modulus)
       /* The S-th coeff of all progressions is identical */
       if (i > state->S && i % (state->S + 1) == state->S) 
         {
-#ifdef WANT_ASSERT
-          if (mpz_cmp (coeffs[i], coeffs[state->S]) != 0)
-            {
-              outputf (OUTPUT_ERROR, "pm1_rootsG_init: coeffs[%d] != "
-                       "coeffs[%d]\n", i, state->S);
-              do
-                mpres_clear (state->fd[i], modulus);
-              while (i-- > 0);
-              clear_list (coeffs, state->size_fd);
-              return NULL;
-            }
-#endif
+          ASSERT (mpz_cmp (coeffs[i], coeffs[state->S]) == 0);
           /* Simply copy from the first progression */
           mpres_set (state->fd[i], state->fd[state->S], modulus); 
         }
       else
-        mpres_pow (state->fd[i], *x, coeffs[i], modulus);
+        {
+          if (mpz_sgn (coeffs[i]) < 0)
+            {
+              mpz_neg (coeffs[i], coeffs[i]);
+              mpres_pow (state->fd[i], *x, coeffs[i], modulus);
+              mpres_invert (state->fd[i],  state->fd[i],  modulus);
+              mpz_neg (coeffs[i], coeffs[i]);
+            }
+          else
+            {
+              mpres_pow (state->fd[i], *x, coeffs[i], modulus);
+            }
+        }
     }
 
   clear_list (coeffs, state->size_fd);
@@ -889,7 +894,7 @@ pm1 (mpz_t f, mpz_t p, mpz_t N, mpz_t go, double B1done, double B1,
 
   if (root_params.S & 1)
     root_params.S *= 2; /* FIXME: Is this what the user would expect? */
-  
+
   if (test_verbose (OUTPUT_NORMAL))
     {
       outputf (OUTPUT_NORMAL, "Using ");
@@ -904,7 +909,7 @@ pm1 (mpz_t f, mpz_t p, mpz_t N, mpz_t go, double B1done, double B1,
       if (root_params.S > 0)
         outputf (OUTPUT_NORMAL, "polynomial x^%u", root_params.S);
       else
-        outputf (OUTPUT_NORMAL, "polynomial Dickson(%u)", -S);
+        outputf (OUTPUT_NORMAL, "polynomial Dickson(%u)", -root_params.S);
 
       if (ECM_IS_DEFAULT_B1_DONE(B1done))
 	/* don't print in resume case, since x0 is saved in resume file */

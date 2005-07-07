@@ -466,7 +466,7 @@ void mpmod_pausegw (mpmod_t modulus);
 #define mpmod_contgw __ECM(mpmod_contgw)
 void mpmod_contgw (mpmod_t modulus);
 #define mpres_pow __ECM(mpres_pow)
-void mpres_pow (mpres_t, mpres_t, mpres_t, mpmod_t);
+void mpres_pow (mpres_t, mpres_t, mpz_t, mpmod_t);
 #define mpres_ui_pow __ECM(mpres_ui_pow)
 void mpres_ui_pow (mpres_t, unsigned int, mpres_t, mpmod_t);
 #define mpres_mul __ECM(mpres_mul)

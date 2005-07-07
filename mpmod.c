@@ -167,7 +167,7 @@ base2mod_2 (mpres_t RS, mp_size_t n, mpz_t modulus)
           if ((rp[n] = mpn_sub_1 (rp, rp, n, rp[n])))
             rp[n] = mpn_add_1 (rp, rp, n, rp[n]);
           MPN_NORMALIZE(rp, s);
-          SIZ(RS) = (SIZ(RS) > 0) ? s : -s;
+          SIZ(RS) = (SIZ(RS) > 0) ? (int) s : (int) -s;
         }
       else /* should happen rarely */
         mpz_mod (RS, RS, modulus);
@@ -224,7 +224,7 @@ REDC (mpres_t r, mpres_t x, mpz_t t, mpmod_t modulus)
       ecm_redc_n (rp, PTR(x), PTR(modulus->orig_modulus), 
 		PTR(modulus->aux_modulus), n);
       MPN_NORMALIZE(rp, n);
-      SIZ(r) = (SIZ(x) > 0) ? n : -n;
+      SIZ(r) = (SIZ(x) > 0) ? (int) n : (int) -n;
       MPZ_NORMALIZED (r);
     }
   else
@@ -304,7 +304,7 @@ ecm_redc_basecase (mpz_ptr r, mpz_ptr c, mpmod_t modulus)
   if (cy != 0)
     mpn_sub_n (rp, rp, np, nn); /* a borrow should always occur here */
   MPN_NORMALIZE (rp, nn);
-  SIZ(r) = SIZ(c) < 0 ? -nn : nn;
+  SIZ(r) = SIZ(c) < 0 ? (int) -nn : (int) nn;
 }
 
 /* don't use base2 if repr == -1, i.e. -nobase2 */
@@ -562,9 +562,10 @@ mpres_realloc (mpres_t R, mpmod_t modulus)
    Assume EXP >= 0.
  */
 void 
-mpres_pow (mpres_t R, mpres_t BASE, mpres_t EXP, mpmod_t modulus)
+mpres_pow (mpres_t R, mpres_t BASE, mpz_t EXP, mpmod_t modulus)
 {
   ASSERT_NORMALIZED (BASE);
+  ASSERT (mpz_sgn (EXP) >= 0);
   if (modulus->repr == MOD_PLAIN)
     {
       mpz_powm (R, BASE, EXP, modulus->orig_modulus);
@@ -800,7 +801,7 @@ mpres_mul (mpres_t R, mpres_t S1, mpres_t S2, mpmod_t modulus)
       mpn_mul_fft (PTR(R), n, PTR(S1), ABSIZ(S1), PTR(S2), ABSIZ(S2), k);
       n ++;
       MPN_NORMALIZE(PTR(R), n);
-      SIZ(R) = ((SIZ(S1) ^ SIZ(S2)) >= 0) ? n : -n;
+      SIZ(R) = ((SIZ(S1) ^ SIZ(S2)) >= 0) ? (int) n : (int) -n;
       return;
     }
 #endif
