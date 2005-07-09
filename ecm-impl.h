@@ -90,6 +90,10 @@ extern FILE *ECM_STDOUT, *ECM_STDERR;
 #define USE_SHORT_PRODUCT
 #endif
 
+/* If defined, ECM stage 2 uses Montgomery form for computing roots of F,G
+   if S == 1. Very slow right now, as we need an inversion per root */
+/* #define MONT_ROOTS */
+
 /* Use George Woltman's GWNUM library */
 /* Should be defined via -DHAVE_GWNUM by Makefile
 #define HAVE_GWNUM
@@ -187,6 +191,9 @@ typedef struct
 } __root_params_t;
 typedef __root_params_t root_params_t;
 
+#define EC_MONTGOMERY_FORM 0
+#define EC_WEIERSTRASS_FORM 1
+
 typedef struct
 {
   unsigned int size_fd; /* How many entries .fd has, always nr * (S+1) */
@@ -197,6 +204,11 @@ typedef struct
   unsigned int rsieve; /* Which residue mod dsieve current .next belongs to */
   int dickson_a;       /* Parameter for Dickson polynomials */
   point *fd;
+#ifdef MONT_ROOTS
+  int form;            /* Montgomery or Weierstrass form */
+  long int i0;         /* i0 as a long int (if it fits) */
+#endif
+  unsigned int size_T; /* How many entries T has */
   mpres_t *T;          /* For temp values. FIXME: should go! */
   curve *X;            /* The curve the points are on */
 } __ecm_roots_state;
@@ -295,6 +307,12 @@ int     bestD (root_params_t *, unsigned long *, unsigned long *, mpz_t,
 /* ecm.c */
 #define choose_S __ECM(choose_S)
 int  choose_S (mpz_t);
+#define add3 __ECM(add3)
+void add3 (mpres_t, mpres_t, mpres_t, mpres_t, mpres_t, mpres_t, mpres_t, 
+           mpres_t, mpmod_t, mpres_t, mpres_t, mpres_t);
+void duplicate (mpres_t, mpres_t, mpres_t, mpres_t, mpmod_t, mpres_t, mpres_t,
+                mpres_t, mpres_t);
+
 #define ecm_mul __ECM(ecm_mul)
 void ecm_mul (mpres_t, mpres_t, mpz_t, mpmod_t, mpres_t);
 
