@@ -151,7 +151,7 @@ montgomery_to_weierstrass (mpz_t f, mpres_t x, mpres_t y, mpres_t A, mpmod_t n)
    Modifies: x3, z3, u, v, w.
    (x3,z3) may be identical to (x2,z2) and to (x,z)
 */
-static void
+void
 add3 (mpres_t x3, mpres_t z3, mpres_t x2, mpres_t z2, mpres_t x1, mpres_t z1, 
       mpres_t x, mpres_t z, mpmod_t n, mpres_t u, mpres_t v, mpres_t w)
 {
@@ -193,7 +193,7 @@ add3 (mpres_t x3, mpres_t z3, mpres_t x2, mpres_t z2, mpres_t x1, mpres_t z1,
      - b : (a+2)/4 mod n
      - t, u, v, w : auxiliary variables
 */
-static void
+void
 duplicate (mpres_t x2, mpres_t z2, mpres_t x1, mpres_t z1, mpmod_t n, 
            mpres_t b, mpres_t u, mpres_t v, mpres_t w)
 {
@@ -969,7 +969,27 @@ ecm (mpz_t f, mpz_t x, mpz_t sigma, mpz_t n, mpz_t go, double B1done,
       mpz_clear (t);
     }
 
+#ifdef MONT_ROOTS
+  /* If we want to use Montgomery form for generating the roots for stage 2, 
+     convert to Weierstrass form only if S != 1 */
+  if (root_params.S != 1)
+    {
+      mpz_t t;
+      outputf (OUTPUT_DEVVERBOSE, "ecm: Converting to Weierstrass form\n");
+      youpi = montgomery_to_weierstrass (f, P.x, P.y, P.A, modulus);
+      if (test_verbose (OUTPUT_TRACE))
+        {
+          mpz_init (t);
+          mpres_get_z (t, P.x, modulus);
+          outputf (OUTPUT_TRACE, "P = (%Zd, ", t);
+          mpres_get_z (t, P.y, modulus);
+          outputf (OUTPUT_TRACE, "%Zd)\n", t);
+          mpz_clear (t);
+        }
+    }
+#else
   youpi = montgomery_to_weierstrass (f, P.x, P.y, P.A, modulus);
+#endif
 
   if (youpi == ECM_NO_FACTOR_FOUND)
     youpi = stage2 (f, &P, modulus, dF, k, &root_params, ECM_ECM, 
