@@ -24,7 +24,6 @@ ToDo's:
   Check for reallocs with GMP's memory interface routines. (Target: 6.1? 7.0?)
 - try sliding window multipliation for ECM stage 1 (Target: 7.0)
 - choose Brent/Suyama polynomial according to B2/k and not B2!
-- Compute roots of F/G in Montgomery coordinates if S==1 (Target: 6.1)
 - Adjust estimated memory to take into account -treefile and NTT (Target: 6.1)
 
 2) interface
@@ -34,8 +33,6 @@ ToDo's:
 - [from Jakub Pawlewicz <pan@mimuw.edu.pl>] add an option -stage1time t
   to tell the step 1 time, when done by another program. PZ: or better
   have it in resume file? (Target: 6.1)
-- move parameter selection (d,d2,dF,k) into pm1(), pp1(), ecm() so 
-  expected curves and actual B2 can be printed immediately. (Target: 6.1)
 
 3) documentation
 - check README is up-to-date wrt tune/tune2 (and merge tune/tune2)
@@ -45,3 +42,5 @@ ToDo's:
 4) others
 - add an option to execute a shell command (such as sending an email) 
   when something interesting happens (factor found, program finished) ?
+- fix cputime under Windows (currently returns elapsed time, says Mystwalker)
+- use better source of entropy under windows (CryptGenRandom() ?)
