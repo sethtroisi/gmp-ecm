@@ -327,7 +327,7 @@ mpmod_init (mpmod_t modulus, mpz_t N, int repr)
       outputf (OUTPUT_VERBOSE, "Using MODMULN\n");
       mpmod_init_MODMULN (modulus, N);
     }
-  else if (mpz_sizeinbase (N, 2) < REDC_THRESHOLD)
+  else if (mpz_size (N) < REDC_THRESHOLD)
     {
       outputf (OUTPUT_VERBOSE, "Using mpz_mod\n");
       mpmod_init_MPZ (modulus, N);
