@@ -792,11 +792,11 @@ pm1 (mpz_t f, mpz_t p, mpz_t N, mpz_t go, double B1done, double B1,
   if (mpz_sgn (B2min) < 0)
     mpz_set_ui (B2min, B1);
 
-  if (repr > 0) /* repr = 0 is the default, -1 means nobase2 */
+  if (repr != ECM_MOD_DEFAULT && repr != ECM_MOD_NOBASE2)
     {
-      if (repr == MOD_MODMULN)
+      if (repr == ECM_MOD_MODMULN)
         mpmod_init_MODMULN (modulus, N);
-      else if (repr == MOD_REDC)
+      else if (repr == ECM_MOD_REDC)
         mpmod_init_REDC (modulus, N);
       else if (abs (repr) > 16)
         {
@@ -843,7 +843,7 @@ pm1 (mpz_t f, mpz_t p, mpz_t N, mpz_t go, double B1done, double B1,
         }
     }
   
-  if (modulus->repr == MOD_BASE2 && modulus->Fermat > 0)
+  if (modulus->repr == ECM_MOD_BASE2 && modulus->Fermat > 0)
     po2 = 1;
 #ifdef HAVE_NTT
   po2 = 1;
@@ -859,7 +859,7 @@ pm1 (mpz_t f, mpz_t p, mpz_t N, mpz_t go, double B1done, double B1,
   /* Set default degree for Brent-Suyama extension */
   if (root_params.S == ECM_DEFAULT_S)
     {
-      if (modulus->repr == MOD_BASE2 && modulus->Fermat > 0)
+      if (modulus->repr == ECM_MOD_BASE2 && modulus->Fermat > 0)
         {
           /* For Fermat numbers, default is 2 (no Brent-Suyama) */
           root_params.S = 2;

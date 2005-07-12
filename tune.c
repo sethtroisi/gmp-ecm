@@ -21,6 +21,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <gmp.h>
+#include "ecm.h"
 #include "ecm-gmp.h"
 #include "ecm-impl.h"
 
@@ -36,11 +37,11 @@ test (mpz_t N, mpz_t p, mpz_t q, int repr, int k)
   mpres_t x, y, z;
   unsigned int st;
 
-  if (repr == 1)
+  if (repr == ECM_MOD_MPZ)
     mpmod_init_MPZ (modulus, N);
-  else if (repr == 2)
+  else if (repr == ECM_MOD_MODMULN)
     mpmod_init_MODMULN (modulus, N);
-  else if (repr == 3)
+  else if (repr == ECM_MOD_REDC)
     mpmod_init_REDC (modulus, N);
 
   mpres_init (x, modulus);
@@ -110,13 +111,13 @@ main (int argc, char *argv[])
       mpz_mod (q, q, N);
 
       /* first calibrate */
-      for (k = 1; (st[0] = test (N, p, q, 1, k)) < MINTIME; k *= 2);
+      for (k = 1; (st[0] = test (N, p, q, ECM_MOD_MPZ, k)) < MINTIME; k *= 2);
 
       k = (int) (((double) k * (double) MINTIME) / (double) st[0]);
 
-      printf ("%u\t", st[0] = test (N, p, q, 1, k)); /* mpzmod */
-      printf ("%u\t", st[1] = test (N, p, q, 2, k)); /* modmuln */
-      printf ("%u\t", st[2] = test (N, p, q, 3, k)); /* redc */
+      printf ("%u\t", st[0] = test (N, p, q, ECM_MOD_MPZ, k));
+      printf ("%u\t", st[1] = test (N, p, q, ECM_MOD_MODMULN, k));
+      printf ("%u\t", st[2] = test (N, p, q, ECM_MOD_REDC, k));
 
       /* since modmuln is O(n^2), we should have asymptotically
          mpzmod faster than modmuln.

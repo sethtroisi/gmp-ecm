@@ -760,7 +760,7 @@ ecm (mpz_t f, mpz_t x, mpz_t sigma, mpz_t n, mpz_t go, double B1done,
   /* See what kind of number we have as that may influence optimal parameter 
      selection. Test for base 2 number */
 
-  if (repr != -1)
+  if (repr != ECM_MOD_NOBASE2)
     base2 = (abs (repr) >= 16) ? repr : isbase2 (n, BASE2_THRESHOLD);
 
   /* For for a Fermat number (base2 a positive power of 2) */
@@ -778,11 +778,11 @@ ecm (mpz_t f, mpz_t x, mpz_t sigma, mpz_t n, mpz_t go, double B1done,
       if (mpmod_init_BASE2 (modulus, base2, n) == ECM_ERROR)
         return ECM_ERROR;
     }
-  else if (repr == 1)
+  else if (repr == ECM_MOD_MPZ)
     mpmod_init_MPZ (modulus, n);
-  else if (repr == MOD_MODMULN)
+  else if (repr == ECM_MOD_MODMULN)
     mpmod_init_MODMULN (modulus, n);
-  else if (repr == MOD_REDC)
+  else if (repr == ECM_MOD_REDC)
     mpmod_init_REDC (modulus, n);
   else /* automatic choice of general reduction method */
     mpmod_init (modulus, n, -1);

@@ -197,7 +197,7 @@ main (int argc, char *argv[])
   mpgocandi_t go;
   mpq_t rat_x0;
   double B1, B1done;
-  int result = 0;
+  int result = 0, returncode = 0;
   int verbose = OUTPUT_NORMAL; /* verbose level */
   int timestamp = 0;
   int method = ECM_ECM, method1;
@@ -207,7 +207,7 @@ main (int argc, char *argv[])
   int factor_is_prime;
         /* If a factor was found, indicate whether factor, cofactor are */
         /* prime. If no factor was found, both are zero. */
-  int repr = ECM_DEFAULT_REPR; /* automatic choice */
+  int repr = ECM_MOD_DEFAULT; /* automatic choice */
   unsigned long k = ECM_DEFAULT_K; /* default number of blocks in stage 2 */
   int S = ECM_DEFAULT_S;
              /* Degree for Brent-Suyama extension requested by user.
@@ -299,25 +299,25 @@ main (int argc, char *argv[])
 	}
       else if (strcmp (argv[1], "-mpzmod") == 0)
         {
-          repr = 1;
+          repr = ECM_MOD_MPZ;
 	  argv++;
 	  argc--;
         }
       else if (strcmp (argv[1], "-modmuln") == 0)
         {
-          repr = 2;
+          repr = ECM_MOD_MODMULN;
 	  argv++;
 	  argc--;
         }
       else if (strcmp (argv[1], "-redc") == 0)
         {
-          repr = 3;
+          repr = ECM_MOD_REDC;
 	  argv++;
 	  argc--;
         }
       else if (strcmp (argv[1], "-nobase2") == 0)
         {
-          repr = -1;
+          repr = ECM_MOD_NOBASE2;
 	  argv++;
 	  argc--;
         }
@@ -1157,16 +1157,17 @@ BreadthFirstDoAgain:;
           exit (EXIT_FAILURE);
         }
 
-      if (result == 0)
+      if (result == ECM_NO_FACTOR_FOUND)
 	{
 	  if (trial_factor_found)
 	  {
 	    factor_is_prime = 1;
 	    mpz_set_ui (f, 1);
+	    returncode = ECM_NO_FACTOR_FOUND;
 	    goto OutputFactorStuff;
 	  }
 	}
-      if (result != 0)
+      if (result != ECM_NO_FACTOR_FOUND)
 	{
 	  factsfound++;
 	  if (verbose > 0)
@@ -1192,15 +1193,17 @@ BreadthFirstDoAgain:;
 	        }
 	    }
 #endif
-	  if (mpz_cmp (f, n.n))
+          if (mpz_cmp_ui (f, 1) == 0)
+            {
+              fprintf (stderr, "Error: factor found is 1\n");
+              fprintf (stderr, "Please report internal errors at <%s>.\n",
+                       PACKAGE_BUGREPORT);
+              exit (EXIT_FAILURE);
+            }
+
+	  if (mpz_cmp (f, n.n) != 0)
 	    {
-              if (mpz_cmp_ui (f, 1) == 0)
-                {
-                  fprintf (stderr, "Error: factor found is 1\n");
-                  /* THIS SHOULD NOT BE HERE!!! */
-                  exit (1);
-                }
-	      /* prints factor found and cofactor on standard error. */
+	      /* prints factor found and cofactor on standard output. */
 	      factor_is_prime = smart_probab_prime_p (f, PROBAB_PRIME_TESTS);
 
               if (verbose >= 1)
@@ -1213,6 +1216,13 @@ BreadthFirstDoAgain:;
                 }
 
 	      mpcandi_t_addfoundfactor (&n, f, 1); /* 1 for display warning if factor does not divide the current candidate */
+
+              if (factor_is_prime)
+                returncode = (n.isPrp) ? ECM_PRIME_FAC_PRIME_COFAC : 
+		                         ECM_PRIME_FAC_COMP_COFAC;
+              else
+                returncode = (n.isPrp) ? ECM_COMP_FAC_PRIME_COFAC :
+		                         ECM_COMP_FAC_COMP_COFAC;
 
 OutputFactorStuff:;
 	      if (verbose >= 1)
@@ -1257,13 +1267,14 @@ OutputFactorStuff:;
 	  else
 	    {
 	      if (breadthfirst)
-		/* I know it may not be prp, but setting this will cause all future loops to NOT 
-		   check this candidate again */
+		/* I know it may not be prp, but setting this will cause all 
+		   future loops to NOT check this candidate again */
 		pCandidates[linenum-1].isPrp = 1;
 	      cnt = 0; /* no more curve to perform */
               if (verbose > 0)
                 printf ("Found input number N");
               printf ("\n");
+              returncode = ECM_INPUT_NUMBER_FOUND;
 	    }
 	  fflush (stdout);
 	}
@@ -1352,5 +1363,5 @@ OutputFactorStuff:;
 #endif
 
   /* exit 0 iff a factor was found for the last input */
-  return result ? 0 : 1;
+  return returncode;
 }

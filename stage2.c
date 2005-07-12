@@ -159,17 +159,20 @@ init_progression_coeffs (mpz_t i0, const unsigned long d, const unsigned long e,
   ASSERT (d % m == 0);
 
   size_fd = k * phi(d) / phi(m) * (E + 1);
-  outputf (OUTPUT_TRACE, "init_progression_coeffs: i0 = %Zd, d = %u, e = %u, "
-           "k = %u, m = %u, E = %u, a = %d, size_fd = %u\n", 
-           i0, d, e, k, m, E, dickson_a, size_fd);
-
   fd = (listz_t) malloc (size_fd * sizeof (mpz_t));
   if (fd == NULL)
     return NULL;
   for (i = 0; i < size_fd; i++)
     mpz_init (fd[i]);
+
   mpz_init (t);
-  mpz_mul_ui (t, i0, e);
+  outputf (OUTPUT_TRACE, "init_progression_coeffs: i0 = %Zd, d = %u, e = %u, "
+           "k = %u, m = %u, E = %u, a = %d, size_fd = %u\n", 
+           i0 ? i0 : t, d, e, k, m, E, dickson_a, size_fd);
+
+  if (i0 != NULL)
+    mpz_set (t, i0);
+  mpz_mul_ui (t, t, e);
   mpz_add_ui (t, t, e * (1 % m));
   
   /* dke = d * k * e */
@@ -293,14 +296,9 @@ stage2 (mpz_t f, void *X, mpmod_t modulus, unsigned long dF, unsigned long k,
 
   st0 = cputime ();
 
-  /* The Sch\"onhage-Strassen multiplication requires power-of-two degrees */
   Fermat = 0;
-  if (modulus->repr == 1 && modulus->Fermat > 0)
-    {
-      Fermat = modulus->Fermat;
-      outputf (OUTPUT_DEVVERBOSE, "Choosing power of 2 poly length "
-               "for 2^%d+1 (%d blocks)\n", Fermat);
-    }
+  if (modulus->repr == ECM_MOD_BASE2 && modulus->Fermat > 0)
+    Fermat = modulus->Fermat;
 
 #if defined HAVE_NTT
   mpzspm = mpzspm_init (2 * dF, modulus->orig_modulus);
