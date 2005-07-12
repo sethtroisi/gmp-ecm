@@ -850,7 +850,7 @@ ecm_rootsG_init (mpz_t f, curve *X, root_params_t *root_params,
 
   /* Estimate the cost of a modular inversion (in unit of time per 
      modular multiplication) */
-  if (modulus->repr == MOD_BASE2)
+  if (modulus->repr == ECM_MOD_BASE2)
     T_inv = 18;
   else
     T_inv = 6;

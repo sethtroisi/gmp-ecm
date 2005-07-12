@@ -39,12 +39,9 @@
 #define ADD 3 /* cost of add3:      one modular multiply */
 #define DUP 2 /* cost of duplicate: one square */
 
-#define duplicate pp1_duplicate
-#define add3      pp1_add3
-
 /* P <- V_2(Q) */
 static void
-duplicate (mpres_t P, mpres_t Q, mpmod_t n)
+pp1_duplicate (mpres_t P, mpres_t Q, mpmod_t n)
 {
   mpres_mul (P, Q, Q, n);
   mpres_sub_ui (P, P, 2, n);
@@ -55,7 +52,7 @@ duplicate (mpres_t P, mpres_t Q, mpmod_t n)
    Warning: P may equal Q, R or S.
 */
 static void
-add3 (mpres_t P, mpres_t Q, mpres_t R, mpres_t S, mpmod_t n, mpres_t t)
+pp1_add3 (mpres_t P, mpres_t Q, mpres_t R, mpres_t S, mpmod_t n, mpres_t t)
 {
   mpres_mul (t, Q, R, n);
   mpres_sub (P, t, S, n);
@@ -174,7 +171,7 @@ pp1_mul_prac (mpres_t A, unsigned long k, mpmod_t n, mpres_t t, mpres_t B,
   e = 2 * r - k;
   mpres_set (B, A, n); /* B=A */
   mpres_set (C, A, n); /* C=A */
-  duplicate (A, A, n); /* A = 2*A */
+  pp1_duplicate (A, A, n); /* A = 2*A */
   while (d != e)
     {
       if (d < e)
@@ -189,72 +186,72 @@ pp1_mul_prac (mpres_t A, unsigned long k, mpmod_t n, mpres_t t, mpres_t B,
         { /* condition 1 */
           d = (2 * d - e) / 3;
           e = (e - d) / 2;
-          add3 (T,  A, B, C, n, t); /* T = f(A,B,C) */
-          add3 (T2, T, A, B, n, t); /* T2 = f(T,A,B) */
-          add3 (B,  B, T, A, n, t); /* B = f(B,T,A) */
+          pp1_add3 (T,  A, B, C, n, t); /* T = f(A,B,C) */
+          pp1_add3 (T2, T, A, B, n, t); /* T2 = f(T,A,B) */
+          pp1_add3 (B,  B, T, A, n, t); /* B = f(B,T,A) */
           mpres_swap (A, T2, n);    /* swap A and T2 */
         }
       else if (4 * d <= 5 * e && (d - e) % 6 == 0)
         { /* condition 2 */
           d = (d - e) / 2;
-          add3 (B, A, B, C, n, t); /* B = f(A,B,C) */
-          duplicate (A, A, n);     /* A = 2*A */
+          pp1_add3 (B, A, B, C, n, t); /* B = f(A,B,C) */
+          pp1_duplicate (A, A, n);     /* A = 2*A */
         }
       else if (d <= (4 * e))
         { /* condition 3 */
           d -= e;
-          add3 (C, B, A, C, n, t); /* C = f(B,A,C) */
+          pp1_add3 (C, B, A, C, n, t); /* C = f(B,A,C) */
           SWAP (B, C, n);
         }
       else if ((d + e) % 2 == 0)
         { /* condition 4 */
           d = (d - e) / 2;
-          add3 (B, B, A, C, n, t); /* B = f(B,A,C) */
-          duplicate (A, A, n);     /* A = 2*A */
+          pp1_add3 (B, B, A, C, n, t); /* B = f(B,A,C) */
+          pp1_duplicate (A, A, n);     /* A = 2*A */
         }
       /* d+e is now odd */
       else if (d % 2 == 0)
         { /* condition 5 */
           d /= 2;
-          add3 (C, C, A, B, n, t); /* C = f(C,A,B) */
-          duplicate (A, A, n);     /* A = 2*A */
+          pp1_add3 (C, C, A, B, n, t); /* C = f(C,A,B) */
+          pp1_duplicate (A, A, n);     /* A = 2*A */
         }
       /* d is odd, e even */
       else if (d % 3 == 0)
         { /* condition 6 */
           d = d / 3 - e;
-          duplicate (T, A, n);       /* T = 2*A */
-          add3 (T2, A, B, C, n, t);  /* T2 = f(A,B,C) */
-          add3 (A,  T, A, A, n, t);  /* A = f(T,A,A) */
-          add3 (C,  T, T2, C, n, t); /* C = f(T,T2,C) */
+          pp1_duplicate (T, A, n);       /* T = 2*A */
+          pp1_add3 (T2, A, B, C, n, t);  /* T2 = f(A,B,C) */
+          pp1_add3 (A,  T, A, A, n, t);  /* A = f(T,A,A) */
+          pp1_add3 (C,  T, T2, C, n, t); /* C = f(T,T2,C) */
           SWAP (B, C, n);
         }
       else if ((d + e) % 3 == 0)
         { /* condition 7 */
           d = (d - 2 * e) / 3;
-          add3 (T, A, B, C, n, t); /* T1 = f(A,B,C) */
-          add3 (B, T, A, B, n, t); /* B = f(T1,A,B) */
-          duplicate (T, A, n);
-          add3 (A, A, T, A, n, t); /* A = 3*A */
+          pp1_add3 (T, A, B, C, n, t); /* T1 = f(A,B,C) */
+          pp1_add3 (B, T, A, B, n, t); /* B = f(T1,A,B) */
+          pp1_duplicate (T, A, n);
+          pp1_add3 (A, A, T, A, n, t); /* A = 3*A */
         }
       else if ((d - e) % 3 == 0)
         { /* condition 8: never happens? */
           d = (d - e) / 3;
-          add3 (T, A, B, C, n, t); /* T1 = f(A,B,C) */
-          add3 (C, C, A, B, n, t); /* C = f(A,C,B) */
+          pp1_add3 (T, A, B, C, n, t); /* T1 = f(A,B,C) */
+          pp1_add3 (C, C, A, B, n, t); /* C = f(A,C,B) */
           SWAP (B, T, n);          /* swap B and T */
-          duplicate (T, A, n);
-          add3 (A, A, T, A, n, t); /* A = 3*A */
+          pp1_duplicate (T, A, n);
+          pp1_add3 (A, A, T, A, n, t); /* A = 3*A */
         }
       else /* necessarily e is even */
         { /* condition 9: never happens? */
           e /= 2;
-          add3 (C, C, B, A, n, t); /* C = f(C,B,A) */
-          duplicate (B, B, n);     /* B = 2*B */
+          pp1_add3 (C, C, B, A, n, t); /* C = f(C,B,A) */
+          pp1_duplicate (B, B, n);     /* B = 2*B */
         }
     }
   
-  add3 (A, A, B, C, n, t);
+  pp1_add3 (A, A, B, C, n, t);
 
   ASSERT(d == 1);
 }

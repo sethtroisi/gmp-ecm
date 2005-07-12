@@ -114,7 +114,7 @@ ChompLine:;
 
       /* strip space and tabs out here, and then we DON'T have to mess with them in the rest of the parser */
       if (!isspace (c))
-	expr[nCurSize++] = c;
+	expr[nCurSize++] = (char) c;
 
       if (nCurSize == nMaxSize)
       {
@@ -349,7 +349,7 @@ int eval_Phi (mpz_t b, mpz_t n, int ParamCnt)
 {
   int factors[200];
   unsigned dwFactors=0, dw;
-  int N, B;
+  int B;
   double p;
   mpz_t D, T, org_n;
 
@@ -391,7 +391,6 @@ int eval_Phi (mpz_t b, mpz_t n, int ParamCnt)
 
   /* Ok, do the real h_primative work, since we are not one of the trivial case */
 
-  N = mpz_get_si(n);
   B = mpz_get_si(b);
 
   if (mpz_cmp_ui(b, B))

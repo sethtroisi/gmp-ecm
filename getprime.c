@@ -79,7 +79,7 @@ getprime (double pp)
     unsigned char *ptr = sieve + current;
     unsigned char *end = sieve + len;
     while ((++ptr < end) && (*ptr == 0));
-    current += ptr - (sieve + current);
+    current = ptr - sieve;
   }
 
   if (current < len) /* most calls will end here */
@@ -125,7 +125,7 @@ getprime (double pp)
 	  }
 	else
 	  {
-	    unsigned long int i, p, j, ok;
+	    unsigned int i, p, j, ok;
 
 	    i = nprimes;
 	    nprimes *= 2;

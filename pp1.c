@@ -735,11 +735,11 @@ pp1 (mpz_t f, mpz_t p, mpz_t n, mpz_t go, double B1done, double B1,
   if (mpz_sgn (B2min) < 0)
     mpz_set_d (B2min, B1);
 
-  if (repr == 1)
+  if (repr == ECM_MOD_MPZ)
     mpmod_init_MPZ (modulus, n);
-  else   if (repr == MOD_MODMULN)
+  else   if (repr == ECM_MOD_MODMULN)
     mpmod_init_MODMULN (modulus, n);
-  else if (repr == MOD_REDC)
+  else if (repr == ECM_MOD_REDC)
     mpmod_init_REDC (modulus, n);
   else if (abs (repr) > 16)
     {
@@ -763,7 +763,7 @@ pp1 (mpz_t f, mpz_t p, mpz_t n, mpz_t go, double B1done, double B1,
   root_params.S = S;
   if (root_params.S == ECM_DEFAULT_S)
     {
-      if (modulus->repr == MOD_BASE2 && modulus->Fermat > 0)
+      if (modulus->repr == ECM_MOD_BASE2 && modulus->Fermat > 0)
         {
           /* For Fermat numbers, default is 1 (no Brent-Suyama) */
           root_params.S = 1;

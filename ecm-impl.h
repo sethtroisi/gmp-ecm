@@ -142,10 +142,8 @@ extern FILE *ECM_STDOUT, *ECM_STDERR;
 #define WANT_FREE_PRIME_TABLE(p) (p < 0.0)
 #define FREE_PRIME_TABLE -1.0
 
-#define MOD_PLAIN 0
-#define MOD_BASE2 1
-#define MOD_MODMULN 2
-#define MOD_REDC 3
+/* 2^n+-1 with n < MOD_MINBASE2 cannot use base-2 reduction */
+#define MOD_MINBASE2 16
 
 /* Various logging levels */
 /* OUTPUT_ALWAYS means print always, regardless of verbose value */

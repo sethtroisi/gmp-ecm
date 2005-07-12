@@ -36,8 +36,8 @@ FILE *ECM_STDOUT, *ECM_STDERR; /* define them here since needed in tune.c */
 /* #define WANT_ASSERT 1 */
 /* #define DEBUG */
 
-#define ASSERT_NORMALIZED(x) ASSERT ((modulus->repr != MOD_MODMULN && \
-				      modulus->repr != MOD_REDC) || \
+#define ASSERT_NORMALIZED(x) ASSERT ((modulus->repr != ECM_MOD_MODMULN && \
+				      modulus->repr != ECM_MOD_REDC) || \
 			     mpz_size (x) <= mpz_size (modulus->orig_modulus))
 #define MPZ_NORMALIZED(x)    ASSERT (PTR(x)[ABSIZ(x)-1] != 0)
 
@@ -347,7 +347,7 @@ mpmod_init_MPZ (mpmod_t modulus, mpz_t N)
   int Nbits;
   
   mpz_init_set (modulus->orig_modulus, N);
-  modulus->repr = MOD_PLAIN;
+  modulus->repr = ECM_MOD_MPZ;
   
   Nbits = mpz_size (N) * __GMP_BITS_PER_MP_LIMB; /* Number of bits, rounded
                                                     up to full limb */
@@ -363,7 +363,7 @@ mpmod_init_BASE2 (mpmod_t modulus, int base2, mpz_t N)
   int Nbits;
   
   mpz_init_set (modulus->orig_modulus, N);
-  modulus->repr = MOD_BASE2;
+  modulus->repr = ECM_MOD_BASE2;
   modulus->bits = base2;
 
   Nbits = mpz_size (N) * __GMP_BITS_PER_MP_LIMB; /* Number of bits, rounded
@@ -412,7 +412,7 @@ mpmod_init_MODMULN (mpmod_t modulus, mpz_t N)
 
   mpz_init_set (modulus->orig_modulus, N);
   
-  modulus->repr = MOD_MODMULN;
+  modulus->repr = ECM_MOD_MODMULN;
   Nbits = mpz_size (N) * __GMP_BITS_PER_MP_LIMB; /* Number of bits, rounded
                                                     up to full limb */
   modulus->bits = Nbits;
@@ -459,7 +459,7 @@ mpmod_init_REDC (mpmod_t modulus, mpz_t N)
   mpz_init_set (modulus->orig_modulus, N);
   
   n = mpz_size (N);
-  modulus->repr = MOD_REDC;
+  modulus->repr = ECM_MOD_REDC;
   Nbits = n * __GMP_BITS_PER_MP_LIMB; /* Number of bits, rounded
                                                     up to full limb */
   modulus->bits = Nbits;
@@ -509,12 +509,12 @@ mpmod_clear (mpmod_t modulus)
   mpz_clear (modulus->orig_modulus);
   mpz_clear (modulus->temp1);
   mpz_clear (modulus->temp2);
-  if (modulus->repr == MOD_MODMULN || modulus->repr == MOD_REDC)
+  if (modulus->repr == ECM_MOD_MODMULN || modulus->repr == ECM_MOD_REDC)
     {
       mpz_clear (modulus->R2);
       mpz_clear (modulus->R3);
       mpz_clear (modulus->multiple);
-      if (modulus->repr == MOD_REDC)
+      if (modulus->repr == ECM_MOD_REDC)
         mpz_clear (modulus->aux_modulus);
     }
 #ifdef HAVE_GWNUM
@@ -554,7 +554,7 @@ mpres_init (mpres_t R, mpmod_t modulus)
 void
 mpres_realloc (mpres_t R, mpmod_t modulus)
 {
-  if (modulus->repr == MOD_MODMULN)
+  if (modulus->repr == ECM_MOD_MODMULN)
     _mpz_realloc (R, modulus->bits / GMP_NUMB_BITS);
 }
 
@@ -566,12 +566,12 @@ mpres_pow (mpres_t R, mpres_t BASE, mpz_t EXP, mpmod_t modulus)
 {
   ASSERT_NORMALIZED (BASE);
   ASSERT (mpz_sgn (EXP) >= 0);
-  if (modulus->repr == MOD_PLAIN)
+  if (modulus->repr == ECM_MOD_MPZ)
     {
       mpz_powm (R, BASE, EXP, modulus->orig_modulus);
     }
-  else if (modulus->repr == MOD_BASE2 || modulus->repr == MOD_MODMULN ||
-           modulus->repr == MOD_REDC)
+  else if (modulus->repr == ECM_MOD_BASE2 || modulus->repr == ECM_MOD_MODMULN ||
+           modulus->repr == ECM_MOD_REDC)
     {
       unsigned int expidx;
       mp_limb_t bitmask, expbits;
@@ -617,9 +617,9 @@ mpres_pow (mpres_t R, mpres_t BASE, mpz_t EXP, mpmod_t modulus)
             {
               mpz_mul (modulus->temp1, modulus->temp2, modulus->temp2); /* r = r^2 */
 
-              if (modulus->repr == MOD_BASE2)
+              if (modulus->repr == ECM_MOD_BASE2)
                 base2mod (modulus->temp2 , modulus->temp1, modulus->temp1, modulus);
-              else if (modulus->repr == MOD_MODMULN)
+              else if (modulus->repr == ECM_MOD_MODMULN)
                 {
                   ecm_redc_basecase (modulus->temp2, modulus->temp1, modulus);
                 }
@@ -629,9 +629,9 @@ mpres_pow (mpres_t R, mpres_t BASE, mpz_t EXP, mpmod_t modulus)
               if (expbits & bitmask)
                 { 
                   mpz_mul (modulus->temp1, modulus->temp2, BASE);
-                  if (modulus->repr == MOD_BASE2)
+                  if (modulus->repr == ECM_MOD_BASE2)
                     base2mod (modulus->temp2, modulus->temp1, modulus->temp1, modulus);
-                  else if (modulus->repr == MOD_MODMULN)
+                  else if (modulus->repr == ECM_MOD_MODMULN)
                     {
                       ecm_redc_basecase (modulus->temp2, modulus->temp1, modulus);
                     }
@@ -648,7 +648,7 @@ mpres_pow (mpres_t R, mpres_t BASE, mpz_t EXP, mpmod_t modulus)
       mpz_set (R, modulus->temp2); /* TODO: isn't it possible to use R instead
 				      of modulus->temp2 above to avoid this
 				      copy? */
-    } /* if (modulus->repr == MOD_BASE2 || ... ) */
+    } /* if (modulus->repr == ECM_MOD_BASE2 || ... ) */
   ASSERT_NORMALIZED (R);
 }
 
@@ -668,13 +668,13 @@ mpres_is_zero (mpres_t S, mpmod_t modulus)
 void 
 mpres_ui_pow (mpres_t R, unsigned int BASE, mpres_t EXP, mpmod_t modulus)
 {
-  if (modulus->repr == MOD_PLAIN)
+  if (modulus->repr == ECM_MOD_MPZ)
     {
       mpz_set_ui (modulus->temp1, BASE);
       mpz_powm (R, modulus->temp1, EXP, modulus->orig_modulus);
     }
-  else if (modulus->repr == MOD_BASE2 || modulus->repr == MOD_MODMULN ||
-           modulus->repr == MOD_REDC)
+  else if (modulus->repr == ECM_MOD_BASE2 || modulus->repr == ECM_MOD_MODMULN ||
+           modulus->repr == ECM_MOD_REDC)
     {
       unsigned int expidx;
       mp_limb_t bitmask, expbits;
@@ -704,7 +704,7 @@ mpres_ui_pow (mpres_t R, unsigned int BASE, mpres_t EXP, mpmod_t modulus)
     /* bitmask is set to mask in the msb of expbits */
     
       mpz_set_ui (modulus->temp2, BASE); /* temp2 = BASE */
-      if (modulus->repr == MOD_MODMULN || modulus->repr == MOD_REDC)
+      if (modulus->repr == ECM_MOD_MODMULN || modulus->repr == ECM_MOD_REDC)
         {
           mpz_mul_2exp (modulus->temp1, modulus->temp2, modulus->bits);
           mpz_mod (modulus->temp2, modulus->temp1, modulus->orig_modulus);
@@ -717,9 +717,9 @@ mpres_ui_pow (mpres_t R, unsigned int BASE, mpres_t EXP, mpmod_t modulus)
             {
               mpz_mul (modulus->temp1, modulus->temp2, modulus->temp2); /* r = r^2 */
 
-              if (modulus->repr == MOD_BASE2)
+              if (modulus->repr == ECM_MOD_BASE2)
                 base2mod (modulus->temp2 , modulus->temp1, modulus->temp1, modulus);
-              else if (modulus->repr == MOD_MODMULN)
+              else if (modulus->repr == ECM_MOD_MODMULN)
                 {
                   ecm_redc_basecase (modulus->temp2, modulus->temp1, modulus);
                 }
@@ -749,7 +749,7 @@ mpres_ui_pow (mpres_t R, unsigned int BASE, mpres_t EXP, mpmod_t modulus)
         }
       mpz_set (R, modulus->temp2); /* TODO: use R instead of modulus->temp2
 				      above to avoid this copy? */
-    } /* if (modulus->repr == MOD_BASE2 || ... ) */
+    } /* if (modulus->repr == ECM_MOD_BASE2 || ... ) */
   ASSERT_NORMALIZED (R);
 }
 
@@ -760,7 +760,7 @@ mpres_mul (mpres_t R, mpres_t S1, mpres_t S2, mpmod_t modulus)
   ASSERT_NORMALIZED (S2);
 
 #ifdef HAVE_GWNUM
-  if (modulus->repr == MOD_BASE2 && modulus->Fermat >= GWTHRESHOLD)
+  if (modulus->repr == ECM_MOD_BASE2 && modulus->Fermat >= GWTHRESHOLD)
     {
       base2mod_1 (S1, modulus->temp1, modulus);
       base2mod_1 (S2, modulus->temp1, modulus);
@@ -788,7 +788,7 @@ mpres_mul (mpres_t R, mpres_t S1, mpres_t S2, mpmod_t modulus)
       return;
     }
 #elif defined(HAVE___GMPN_MUL_FFT)
-  if (modulus->repr == MOD_BASE2 && modulus->Fermat >= 32768)
+  if (modulus->repr == ECM_MOD_BASE2 && modulus->Fermat >= 32768)
     {
       mp_size_t n = modulus->Fermat / __GMP_BITS_PER_MP_LIMB;
       unsigned long k;
@@ -810,13 +810,13 @@ mpres_mul (mpres_t R, mpres_t S1, mpres_t S2, mpmod_t modulus)
 
   switch (modulus->repr)
     {
-    case MOD_BASE2:
+    case ECM_MOD_BASE2:
       base2mod (R, modulus->temp1, modulus->temp1, modulus);
       break;
-    case MOD_MODMULN:
+    case ECM_MOD_MODMULN:
       ecm_redc_basecase (R, modulus->temp1, modulus);
       break;
-    case MOD_REDC:
+    case ECM_MOD_REDC:
       REDC (R, modulus->temp1, modulus->temp2, modulus);
       break;
     default:
@@ -872,13 +872,13 @@ void
 mpres_add_ui (mpres_t R, mpres_t S, unsigned int n, mpmod_t modulus)
 {
   ASSERT_NORMALIZED (S);
-  if (modulus->repr == MOD_PLAIN || modulus->repr == MOD_BASE2)
+  if (modulus->repr == ECM_MOD_MPZ || modulus->repr == ECM_MOD_BASE2)
     {
       mpz_add_ui (R, S, n);
       if (mpz_cmp (R, modulus->orig_modulus) > 0)
         mpz_sub (R, R, modulus->orig_modulus);
     }
-  else if (modulus->repr == MOD_MODMULN || modulus->repr == MOD_REDC)
+  else if (modulus->repr == ECM_MOD_MODMULN || modulus->repr == ECM_MOD_REDC)
     {
       mpz_set_ui (modulus->temp1, n);
       mpz_mul_2exp (modulus->temp1, modulus->temp1, modulus->bits);
@@ -895,7 +895,7 @@ mpres_add (mpres_t R, mpres_t S1, mpres_t S2, mpmod_t modulus)
   ASSERT_NORMALIZED (S1);
   ASSERT_NORMALIZED (S2);
   mpz_add (R, S1, S2);
-  if ((modulus->repr == MOD_MODMULN || modulus->repr == MOD_REDC) &&
+  if ((modulus->repr == ECM_MOD_MODMULN || modulus->repr == ECM_MOD_REDC) &&
       ABSIZ(R) > ABSIZ(modulus->orig_modulus))
     {
       if (SIZ(R) > 0)
@@ -911,13 +911,13 @@ void
 mpres_sub_ui (mpres_t R, mpres_t S, unsigned int n, mpmod_t modulus)
 {
   ASSERT_NORMALIZED (S);
-  if (modulus->repr == MOD_PLAIN || modulus->repr == MOD_BASE2)
+  if (modulus->repr == ECM_MOD_MPZ || modulus->repr == ECM_MOD_BASE2)
     {
       mpz_sub_ui (R, S, n);
       if (mpz_sgn (R) < 0)
         mpz_add (R, R, modulus->orig_modulus);
     }
-  else if (modulus->repr == MOD_MODMULN || modulus->repr == MOD_REDC)
+  else if (modulus->repr == ECM_MOD_MODMULN || modulus->repr == ECM_MOD_REDC)
     {
       mpz_set_ui (modulus->temp1, n);
       mpz_mul_2exp (modulus->temp1, modulus->temp1, modulus->bits);
@@ -934,7 +934,7 @@ mpres_sub (mpres_t R, mpres_t S1, mpres_t S2, mpmod_t modulus)
   ASSERT_NORMALIZED (S1);
   ASSERT_NORMALIZED (S2);
   mpz_sub (R, S1, S2);
-  if ((modulus->repr == MOD_MODMULN || modulus->repr == MOD_REDC) &&
+  if ((modulus->repr == ECM_MOD_MODMULN || modulus->repr == ECM_MOD_REDC) &&
       ABSIZ(R) > ABSIZ(modulus->orig_modulus))
     {
       if (SIZ(R) > 0)
@@ -949,17 +949,17 @@ mpres_sub (mpres_t R, mpres_t S1, mpres_t S2, mpmod_t modulus)
 void 
 mpres_set_z (mpres_t R, mpz_t S, mpmod_t modulus)
 {
-  if (modulus->repr == MOD_PLAIN || modulus->repr == MOD_BASE2)
+  if (modulus->repr == ECM_MOD_MPZ || modulus->repr == ECM_MOD_BASE2)
     {
       mpz_mod (R, S, modulus->orig_modulus);
     }
-  else if (modulus->repr == MOD_MODMULN)
+  else if (modulus->repr == ECM_MOD_MODMULN)
     {
       mpz_mod (modulus->temp2, S, modulus->orig_modulus);
       mpz_mul (modulus->temp1, modulus->temp2, modulus->R2);
       ecm_redc_basecase (R, modulus->temp1, modulus);
     }
-  else if (modulus->repr == MOD_REDC)
+  else if (modulus->repr == ECM_MOD_REDC)
     {
       mpz_mod (modulus->temp2, S, modulus->orig_modulus);
       mpz_mul (modulus->temp1, modulus->temp2, modulus->R2);
@@ -973,17 +973,17 @@ void
 mpres_get_z (mpz_t R, mpres_t S, mpmod_t modulus)
 {
   ASSERT_NORMALIZED (S);
-  if (modulus->repr == MOD_PLAIN || modulus->repr == MOD_BASE2)
+  if (modulus->repr == ECM_MOD_MPZ || modulus->repr == ECM_MOD_BASE2)
     {
       mpz_mod (R, S, modulus->orig_modulus);
     }
-  else if (modulus->repr == MOD_MODMULN)
+  else if (modulus->repr == ECM_MOD_MODMULN)
     {
       mpz_set (modulus->temp1, S);
       _mpz_realloc (R, modulus->bits / GMP_NUMB_BITS);
       ecm_redc_basecase (R, modulus->temp1, modulus);
     }
-  else if (modulus->repr == MOD_REDC)
+  else if (modulus->repr == ECM_MOD_REDC)
     {
       REDC (R, S, modulus->temp1, modulus);
     }
@@ -1000,12 +1000,12 @@ mpres_get_z (mpz_t R, mpres_t S, mpmod_t modulus)
 void 
 mpres_set_ui (mpres_t R, unsigned int n, mpmod_t modulus)
 {
-  if (modulus->repr == MOD_PLAIN || modulus->repr == MOD_BASE2)
+  if (modulus->repr == ECM_MOD_MPZ || modulus->repr == ECM_MOD_BASE2)
     {
       mpz_set_ui (R, n);
       mpz_mod (R, R, modulus->orig_modulus);
     }
-  else if (modulus->repr == MOD_MODMULN || modulus->repr == MOD_REDC)
+  else if (modulus->repr == ECM_MOD_MODMULN || modulus->repr == ECM_MOD_REDC)
     {
       mpz_set_ui (modulus->temp1, n);
       mpz_mul_2exp (modulus->temp1, modulus->temp1, modulus->bits);
@@ -1027,13 +1027,13 @@ int
 mpres_invert (mpres_t R, mpres_t S, mpmod_t modulus)
 {
   ASSERT_NORMALIZED (S);
-  if (modulus->repr == MOD_PLAIN || modulus->repr == MOD_BASE2)
+  if (modulus->repr == ECM_MOD_MPZ || modulus->repr == ECM_MOD_BASE2)
     {
       int res = mpz_invert (R, S, modulus->orig_modulus);
       ASSERT_NORMALIZED (R);
       return res;
     }
-  else if (modulus->repr == MOD_MODMULN)
+  else if (modulus->repr == ECM_MOD_MODMULN)
     {
       if (mpz_invert (modulus->temp2, S, modulus->orig_modulus))
         {
@@ -1045,7 +1045,7 @@ mpres_invert (mpres_t R, mpres_t S, mpmod_t modulus)
       else
         return 0;
     }
-  else if (modulus->repr == MOD_REDC)
+  else if (modulus->repr == ECM_MOD_REDC)
     {
       MPZ_NORMALIZED (S);
       if (mpz_invert (modulus->temp2, S, modulus->orig_modulus))
