@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 
 # test file for P-1 method
 #
@@ -21,65 +21,62 @@
 
 PM1="$1 -pm1"
 
+# Call with "checkcode $? n" to check that return code is n
+
+function checkcode {
+  if [[ $1 != $2 ]]
+  then
+    echo "############### ERROR ###############"
+    echo "Expected return code $2 but got $1"
+    exit 1
+  fi
+}
+
 ### bug in ecm-5.0 found by Jay Berg (overflow in i0*d)
-(echo 441995541378330835457 | $PM1 157080 7e9-72e8)||
-   (echo "############### ERROR ###############"; exit 1) || exit
+echo 441995541378330835457 | $PM1 157080 7e9-72e8; checkcode $? 8
 
 ### stage 2 less than 10^9 ###
-(echo 335203548019575991076297 | $PM1 -x0 2 23 31)||
-   (echo "############### ERROR ###############"; exit 1) || exit
+echo 335203548019575991076297 | $PM1 -x0 2 23 31; checkcode $? 8
 
 # try primes < d in stage 2
-(echo 2050449353925555290706354283 | $PM1 -k 1 20 0-1e6)||
-   (echo "############### ERROR ###############"; exit 1) || exit
+echo 2050449353925555290706354283 | $PM1 -k 1 20 0-1e6; checkcode $? 14
 
 # This factor was missed by an early development version of stage 2
-(echo 67872792749091946529 | $PM1 -x0 3 8467 11004397)||
-   (echo "############### ERROR ###############"; exit 1) || exit
+echo 67872792749091946529 | $PM1 -x0 3 8467 11004397; checkcode $? 8
 
-(echo 5735039483399104015346944564789 | $PM1 1277209 9247741)||
-   (echo "############### ERROR ###############"; exit 1) || exit
+echo 5735039483399104015346944564789 | $PM1 1277209 9247741; checkcode $? 8
 
-(echo 620224739362954187513 | $PM1 -x0 3 668093 65087177)||
-   (echo "############### ERROR ###############"; exit 1) || exit
+echo 620224739362954187513 | $PM1 -x0 3 668093 65087177; checkcode $? 8
 
-(echo 1405929742229533753 | $PM1 1123483 75240667)||
-   (echo "############### ERROR ###############"; exit 1) || exit
+echo 1405929742229533753 | $PM1 1123483 75240667; checkcode $? 8
 
-(echo 16811052664235873 | $PM1 -x0 3 19110 178253039)||
-   (echo "############### ERROR ###############"; exit 1) || exit
+echo 16811052664235873 | $PM1 -x0 3 19110 178253039; checkcode $? 8
 
-(echo 9110965748024759967611 | $PM1 1193119 316014211)||
-   (echo "############### ERROR ###############"; exit 1) || exit
+echo 9110965748024759967611 | $PM1 1193119 316014211; checkcode $? 8
 
-(echo 563796628294674772855559264041716715663 | $PM1 4031563 14334623)||
-   (echo "############### ERROR ###############"; exit 1) || exit
+echo 563796628294674772855559264041716715663 | $PM1 4031563 14334623; checkcode $? 8
 
-(echo 188879386195169498836498369376071664143 | $PM1 3026227 99836987)||
-   (echo "############### ERROR ###############"; exit 1) || exit
+echo 188879386195169498836498369376071664143 | $PM1 3026227 99836987; checkcode $? 8
 
 # factor of 909*9^909+1 found by Paul Leyland on 15 Nov 2002
-(echo 474476178924594486566271953891 | $PM1 9594209 519569569)||
-   (echo "############### ERROR ###############"; exit 1) || exit
+echo 474476178924594486566271953891 | $PM1 9594209 519569569; checkcode $? 8
 
 ### stage 2 less than 10^10 ###
-(echo 2124306045220073929294177 | $PM1 290021 1193749003)||
-   (echo "############### ERROR ###############"; exit 1) || exit
+echo 2124306045220073929294177 | $PM1 290021 1193749003; checkcode $? 8
 
 ### Try saving and resuming
 echo 25591172394760497166702530699464321 | $PM1 -save test.pm1.save 100000
-($PM1 -resume test.pm1.save 120557 2007301)||
-   (echo "############### ERROR ###############"; /bin/rm -f test.pm1.save;
-   exit 1) || exit
+checkcode $? 0
+$PM1 -resume test.pm1.save 120557 2007301
+C=$?
 /bin/rm -f test.pm1.save
+checkcode $C 8
 
 # bug in ecm-5.0 (overflow in fin_diff_coeff)
-(echo 504403158265489337 | $PM1 -k 4 8 9007199254740700-9007199254740900)||
-   (echo "############### ERROR ###############"; exit 1) || exit
+echo 504403158265489337 | $PM1 -k 4 8 9007199254740700-9007199254740900; checkcode $? 8
 
 # check that primes near B2min are covered
-(echo 6857 | $PM1 840 857) ||
-   (echo "############### ERROR ###############"; exit 1) || exit
+echo 6857 | $PM1 840 857; checkcode $? 8
 
 echo "All P-1 tests are ok."
 echo ""

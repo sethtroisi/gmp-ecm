@@ -38,7 +38,7 @@ ecm_init (ecm_params q)
   mpz_init_set_si (q->B2, ECM_DEFAULT_B2);
   q->k = ECM_DEFAULT_K;
   q->S = ECM_DEFAULT_S; /* automatic choice of polynomial */
-  q->repr = ECM_DEFAULT_REPR; /* automatic choice of representation */
+  q->repr = ECM_MOD_DEFAULT; /* automatic choice of representation */
   q->verbose = 0; /* no output (default in library mode) */
   q->os = stdout; /* standard output */
   q->es = stderr; /* error output */

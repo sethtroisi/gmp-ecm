@@ -138,7 +138,7 @@ F_mod_gt (mpz_t R, unsigned int n)
 static void 
 F_mulmod (mpz_t R, mpz_t S1, mpz_t S2, unsigned int n)
 {
-  mp_size_t n2 = n / __GMP_BITS_PER_MP_LIMB;
+  int n2 = n / __GMP_BITS_PER_MP_LIMB; /* type of _mp_size is int */
   F_mod_1 (S1, n);
   F_mod_1 (S2, n);
   while (mpz_size (S1) > (unsigned) n2)

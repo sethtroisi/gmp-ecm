@@ -81,6 +81,15 @@ int  inc_verbose ();
 #define ECM_PM1 1
 #define ECM_PP1 2
 
+/* Return codes */
+/* Bit coded values: 1: error, 2: proper factor found, 4: factor is prime, 
+   8: cofactor is prime or 1 */
+#define ECM_COMP_FAC_COMP_COFAC 2
+#define ECM_PRIME_FAC_COMP_COFAC (2+4)
+#define ECM_INPUT_NUMBER_FOUND 8
+#define ECM_COMP_FAC_PRIME_COFAC (2+8)
+#define ECM_PRIME_FAC_PRIME_COFAC (2+4+8)
+
 /* getprime2.c */
 double getprime (double);
 #define WANT_FREE_PRIME_TABLE(p) (p < 0.0)

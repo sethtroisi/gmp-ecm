@@ -30,11 +30,12 @@ typedef struct
   mpz_t B2;       /* step 2 bound (chosen automatically if < 0.0) */
   unsigned long k;/* number of blocks in stage 2 */
   int S;          /* degree of the Brent-Suyama's extension for stage 2 */
-  int repr;       /* representation for modular arithmetic: 1=mpz,         
-		     2=modmuln (Montgomery's quadratic multiplication),
-		     3=redc (Montgomery's subquadratic multiplication),
+  int repr;       /* representation for modular arithmetic: ECM_MOD_MPZ=mpz,         
+		     ECM_MOD_MODMULN=modmuln (Montgomery's quadratic multiplication),
+		     ECM_MOD_REDC=redc (Montgomery's subquadratic multiplication),
+		     ECM_MOD_GWNUM=Woltman's gwnum routines (tbd),
 		     > 16 : special base-2 representation        
-		     otherwise: automatic choice */
+		     MOD_DEFAULT: automatic choice */
   int verbose;    /* verbosity level: 0 no output, 1 normal output,   
 		     2 diagnostic output */
   FILE *os;       /* output stream (for verbose messages) */
@@ -42,6 +43,13 @@ typedef struct
   char *TreeFilename; /* Base filename for storing product tree of F */
 } __ecm_param_struct;
 typedef __ecm_param_struct ecm_params[1];
+
+#define ECM_MOD_NOBASE2 -1
+#define ECM_MOD_DEFAULT 0
+#define ECM_MOD_MPZ 1
+#define ECM_MOD_BASE2 2
+#define ECM_MOD_MODMULN 3
+#define ECM_MOD_REDC 4
 
 int ecm_factor (mpz_t, mpz_t, double, ecm_params);
 void ecm_init (ecm_params);
@@ -80,7 +88,6 @@ int pm1 (mpz_t, mpz_t, mpz_t, mpz_t, double, double, mpz_t,
 #define ECM_DEFAULT_K 0 /* default number of blocks in stage 2. 0 = automatic
                            choice */
 #define ECM_DEFAULT_S 0 /* polynomial is chosen automatically */
-#define ECM_DEFAULT_REPR 0 /* automatic choice */
 
 /* Apple uses '\r' for newlines */
 #define IS_NEWLINE(c) (((c) == '\n') || ((c) == '\r'))
