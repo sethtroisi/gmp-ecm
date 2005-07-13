@@ -24,6 +24,11 @@
 #include <string.h> /* for memset */
 #include "sp.h"
 
+#ifdef TUNE
+#undef MPZSPV_NORMALISE_STRIDE
+size_t MPZSPV_NORMALISE_STRIDE = 256;
+#endif
+
 mpzspv_t
 mpzspv_init (spv_size_t len, mpzspm_t mpzspm)
 {
@@ -406,4 +411,16 @@ void mpzspv_from_ntt (mpzspv_t x, spv_size_t offset, spv_size_t ntt_size,
 	    1, spm->sp);
     }
 }
+
+void
+mpzspv_random (mpzspv_t x, spv_size_t offset, spv_size_t len, mpzspm_t mpzspm)
+{
+  unsigned int i;
+
+  ASSERT (mpzspv_verify (x, offset, len, mpzspm));
+
+  for (i = 0; i < mpzspm->sp_num; i++)
+    spv_random (x[i] + offset, len, mpzspm->spm[i].sp);
+}
+
 

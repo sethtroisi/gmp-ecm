@@ -22,6 +22,13 @@
 #define X0 x[i]
 #define X1 x[i + m]
 
+#ifdef TUNE
+#undef SPV_NTT_GFP_DIF_RECURSIVE_THRESHOLD
+#undef SPV_NTT_GFP_DIT_RECURSIVE_THRESHOLD
+spv_size_t SPV_NTT_GFP_DIF_RECURSIVE_THRESHOLD = 1;
+spv_size_t SPV_NTT_GFP_DIT_RECURSIVE_THRESHOLD = 1;
+#endif
+
 void
 ntt_scramble (spv_t x, spv_size_t len)
 {
@@ -51,7 +58,7 @@ spv_ntt_gfp_dif (spv_t x, spv_size_t len, sp_t p, sp_t d, sp_t root)
   sp_t a = 1, t;
   spv_size_t i, j, m;
 	
-  if (len * sizeof (sp_t) <= CACHE_SIZE)
+  if (len < SPV_NTT_GFP_DIF_RECURSIVE_THRESHOLD)
     { 
       /* unrolled version for data that
          fits in the L1 cache */
@@ -73,7 +80,7 @@ spv_ntt_gfp_dif (spv_t x, spv_size_t len, sp_t p, sp_t d, sp_t root)
     }
   else
     {
-      /* iterative version for data that
+      /* recursive version for data that
          doesn't fit in the L1 cache */
       m = len / 2;
       for (j = 0; j < m; j++)
@@ -95,17 +102,7 @@ spv_ntt_gfp_dit (spv_t x, spv_size_t len, sp_t p, sp_t d, sp_t root)
   sp_t a, b, t;
   spv_size_t i, j, m;
 
-  /* not cache-friendly at all, for large len it's 
-   * quicker to use scramble + dif + scramble */
-  if (0 && len >= DIT_DIF_THRESHOLD)
-    {
-      ntt_scramble (x, len);
-      spv_ntt_gfp_dif (x, len, p, d, root);
-      ntt_scramble (x, len);
-      return;
-    }
-  
-  if (len * sizeof (sp_t) <= CACHE_SIZE)
+  if (len < SPV_NTT_GFP_DIT_RECURSIVE_THRESHOLD)
     {
       for (m = 1; m < len; m <<= 1)
         {
