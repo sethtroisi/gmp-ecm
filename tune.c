@@ -1,6 +1,6 @@
 /* Tune program.
 
-  Copyright 2003, 2005 Paul Zimmermann and Alexander Kruppa.
+  Copyright 2003, 2005 Paul Zimmermann, Alexander Kruppa, Dave Newman.
 
   This program is free software; you can redistribute it and/or modify it
   under the terms of the GNU General Public License as published by the
@@ -25,25 +25,57 @@
 #include "ecm-gmp.h"
 #include "ecm-impl.h"
 
-#define MINTIME 1000 /* one second */
 
-/* performs k computations of p*q mod N using representation 'repr'
-   and return the total time.
-*/
-static unsigned int
-test (mpz_t N, mpz_t p, mpz_t q, int repr, int k)
+/* we don't need any more precision */
+#define GRANULARITY 1e2
+
+/* Throughout, each function pointer points to a function
+ * 
+ *   double f0 (size_t limbs, unsigned int mintime);
+ *
+ * that runs for at least mintime ms and then returns the number of iterations
+ * performed per ms. */
+
+double
+tune_mpres_mul (size_t limbs, unsigned int mintime, int repr)
 {
   mpmod_t modulus;
   mpres_t x, y, z;
-  unsigned int st;
+  mpz_t N, p, q;
+  unsigned int st, k = 0;
 
-  if (repr == ECM_MOD_MPZ)
-    mpmod_init_MPZ (modulus, N);
-  else if (repr == ECM_MOD_MODMULN)
-    mpmod_init_MODMULN (modulus, N);
-  else if (repr == ECM_MOD_REDC)
-    mpmod_init_REDC (modulus, N);
+  mpz_init (N);
+  mpz_init (p);
+  mpz_init (q);
+  
+  /* No need to generate a probable prime, just ensure N is not
+     divisible by 2 or 3 */
+  do
+    {
+      mpz_random (N, limbs);
+      while (mpz_gcd_ui (NULL, N, 6) != 1)
+        mpz_add_ui (N, N, 1);
+    }
+  while ((mp_size_t) mpz_size (N) != limbs);
+  
+  switch (repr)
+  {
+    case ECM_MOD_MPZ:
+      mpmod_init_MPZ (modulus, N);
+      break;
+    case ECM_MOD_MODMULN:
+      mpmod_init_MODMULN (modulus, N);
+      break;
+    case ECM_MOD_REDC:
+      mpmod_init_REDC (modulus, N);
+      break;
+  }
 
+  mpz_random (p, limbs);
+  mpz_random (q, limbs);
+  mpz_mod (p, p, N);
+  mpz_mod (q, q, N);
+  
   mpres_init (x, modulus);
   mpres_init (y, modulus);
   mpres_init (z, modulus);
@@ -53,104 +85,103 @@ test (mpz_t N, mpz_t p, mpz_t q, int repr, int k)
 
   st = cputime ();
 
-  while (k--)
-    mpres_mul (z, x, y, modulus);
+  do
+    {
+      mpres_mul (z, x, y, modulus);
+      k++;
+    }
+  while (cputime () - st < mintime);
 
-  st = elltime (st, cputime ());
+  st = cputime () - st;
 
   mpres_clear (x, modulus);
   mpres_clear (y, modulus);
   mpres_clear (z, modulus);
   mpmod_clear (modulus);
+  mpz_clear (N);
+  mpz_clear (p);
+  mpz_clear (q);
 
-  return st;
+  return (double) k / (double) st;
 }
 
-int
-main (int argc, char *argv[])
+double
+tune_mpres_mul_mpz (size_t n, unsigned int mintime)
 {
-  mp_size_t n, n0;
-  mpz_t N, p, q;
-  int k;
-  unsigned int st[3];
-  int mpzmod_threshold = 0;
-  int redc_threshold = 0;
+  return tune_mpres_mul (n, mintime, ECM_MOD_MPZ);
+}
 
-  printf ("MUL_KARATSUBA_THRESHOLD=%u\n", MUL_KARATSUBA_THRESHOLD);
-  printf ("DIV_DC_THRESHOLD=%u\n", DIV_DC_THRESHOLD);
-  printf ("MPZMOD_THRESHOLD_DEFAULT=%u\n", MPZMOD_THRESHOLD_DEFAULT);
-  printf ("REDC_THRESHOLD_DEFAULT=%u\n", REDC_THRESHOLD_DEFAULT);
+double
+tune_mpres_mul_modmuln (size_t n, unsigned int mintime)
+{
+  return tune_mpres_mul (n, mintime, ECM_MOD_MODMULN);
+}
 
-  n0 = (argc > 1) ? atoi (argv[1]) : 1;
+double
+tune_mpres_mul_redc (size_t n, unsigned int mintime)
+{
+  return tune_mpres_mul (n, mintime, ECM_MOD_REDC);
+}
 
-  mpz_init (N);
-  mpz_init (p);
-  mpz_init (q);
 
-  printf ("n\tmpzmod\tmodmuln\tredc\n");
+/* Assume f0 and f1 are monotone decreasing. Return the first n in the range
+ * [min_n, max_n) for which f1(n) > f0(n), or return max_n if no such n
+ * exists. */
+size_t
+crossover (double (*f0)(size_t, unsigned int),
+    double (*f1)(size_t, unsigned int), size_t min_n, size_t max_n)
+{
+  size_t mid_n;
+  
+  if (min_n == max_n)
+    return min_n;
 
-  for (n = n0; ; n++)
+  mid_n = (max_n + min_n) / 2;
+  return ((f0)(mid_n, GRANULARITY) >= (f1)(mid_n, GRANULARITY))
+    ? crossover (f0, f1, mid_n + 1, max_n)
+    : crossover (f0, f1, min_n, mid_n);
+}
+
+/* Return the lowest n with min_n <= n < max_n such that
+ * f1(t) > f0(t) for all t in [n, n + k)
+ *
+ * Return max_n if no such n exists. */
+size_t
+crossover2 (double (*f0)(size_t, unsigned int),
+    double (*f1)(size_t, unsigned int), size_t min_n, size_t max_n, size_t k)
+{
+  size_t n = min_n;
+  size_t t;
+  
+  while (n < max_n)
     {
+      for (t = n + k - 1; t > n; t--)
+	if ((f0)(t, GRANULARITY) >= (f1)(t, GRANULARITY))
+	  break;
 
-      printf ("%lu\t", n);
+      if (t == n)
+	return n;
 
-      /* no need to generate a probable prime, just ensure N is not
-         divisible by 2 or 3 */
-      do
-        {
-          mpz_random (N, n);
-          while (mpz_gcd_ui (NULL, N, 6) != 1)
-            mpz_add_ui (N, N, 1);
-        }
-      while ((mp_size_t) mpz_size (N) != n);
+      n = t + 1;
+    };
 
-      mpz_random (p, n);
-      mpz_mod (p, p, N);
+  return max_n;
+}
 
-      mpz_random (q, n);
-      mpz_mod (q, q, N);
 
-      /* first calibrate */
-      for (k = 1; (st[0] = test (N, p, q, ECM_MOD_MPZ, k)) < MINTIME; k *= 2);
-
-      k = (int) (((double) k * (double) MINTIME) / (double) st[0]);
-
-      printf ("%u\t", st[0] = test (N, p, q, ECM_MOD_MPZ, k));
-      printf ("%u\t", st[1] = test (N, p, q, ECM_MOD_MODMULN, k));
-      printf ("%u\t", st[2] = test (N, p, q, ECM_MOD_REDC, k));
-
-      /* since modmuln is O(n^2), we should have asymptotically
-         mpzmod faster than modmuln.
-         Also, mpzmod uses plain division which is asymptotically
-         about k multiplications with k > 2 (k=2 in the Karatsuba range),
-         whereas redc is equivalent to two multiplications, thus
-         asymptotically redc is faster than mpzmod.
-      */
-
-      if (st[0] < st[1] && st[0] <= st[2])
-        printf ("\tmpzmod\n");
-      else if (st[1] <= st[0] && st[1] <= st[2])
-        printf ("\tmodmuln\n");
-      else
-        printf ("\tredc\n");
-
-      if (st[0] >= st[1])
-        mpzmod_threshold = n + 1;
-
-      if (st[2] >= st[0])
-        redc_threshold = n + 1;
-
-      /* stop when order did not change for past 10 sizes */
-      if (n > n0 + 10 && mpzmod_threshold + 10 < n && redc_threshold + 10 < n)
-        break;
-    }
-
+int main ()
+{
+  size_t mpzmod_threshold, redc_threshold;
+  
+  mpzmod_threshold = crossover2 (tune_mpres_mul_modmuln, tune_mpres_mul_mpz,
+      1, 512, 10);
+  redc_threshold = crossover2 (tune_mpres_mul_mpz, tune_mpres_mul_redc,
+      mpzmod_threshold, 512, 10);
+  
   printf ("#define MPZMOD_THRESHOLD %u\n", mpzmod_threshold);
   printf ("#define REDC_THRESHOLD %u\n", redc_threshold);
 
-  mpz_clear (p);
-  mpz_clear (q);
-  mpz_clear (N);
-  
   return 0;
 }
+
+  
