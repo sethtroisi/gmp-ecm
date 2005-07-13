@@ -28,6 +28,18 @@
 #include "ecm.h"
 #include "ecm-impl.h"
 
+#ifdef TUNE
+#undef MUL_NTT_THRESHOLD
+#undef PREREVERTDIVISION_NTT_THRESHOLD
+#undef POLYINVERT_NTT_THRESHOLD
+#undef POLYEVALT_NTT_THRESHOLD
+#undef MPZSPV_NORMALISE_STRIDE
+size_t MUL_NTT_THRESHOLD;
+size_t PREREVERTDIVISION_NTT_THRESHOLD;
+size_t POLYINVERT_NTT_THRESHOLD;
+size_t POLYEVALT_NTT_THRESHOLD;
+size_t MPZSPV_NORMALISE_STRIDE;
+#endif
 
 /* memory: 4 * len mpspv coeffs */
 void
@@ -187,7 +199,7 @@ ntt_PrerevertDivision (mpzv_t a, mpzv_t b, mpzv_t invb, mpzspv_t sp_invb,
 {
   mpzspv_t x, y;
   
-  if (len < PREREVERT_DIVISION_NTT_THRESHOLD)
+  if (len < PREREVERTDIVISION_NTT_THRESHOLD)
     {
       PrerevertDivision (a, b, invb, len, t, mpzspm->modulus);
       return;

@@ -24,25 +24,35 @@ ecm_SOURCES = auxi.c b1_ainc.c candi.c eval.c random2.c main.c trial.c \
 
 ecmfactor_SOURCES = ecmfactor.c
 
-tune_SOURCES = mpmod.c tune.c mul_lo.c
+tune_SOURCES = tune-mpmod.c tune.c mul_lo.c listz.c auxlib.c ks-multiply.c \
+               toomcook.c schoen_strass.c polyeval.c median.c
+
+if ENABLE_NTT
+  tune_SOURCES += tune-ecm_ntt.c tune-ntt_gfp.c tune-mpzspv.c mpzspm.c sp.c \
+                  spv.c spm.c
+endif
+
 tune2_SOURCES = tune2.c
 
-LDADD = libecm.a
-
 include_HEADERS = ecm.h
-noinst_HEADERS = ecm-impl.h ecm-gmp.h ecm-ecm.h sp.h longlong.h
+noinst_HEADERS = ecm-impl.h ecm-gmp.h ecm-ecm.h sp.h longlong.h ecm-params.h
 
 EXTRA_DIST = test.pm1 test.pp1 test.ecm ecm.1 README.lib ecm.xml
 
-man_MANS =
-if MAKE_MANPAGE
-  man_MANS += ecm.1
-endif
+ecm-params:	tune
+		./tune > ecm-params.h
+
+LDADD = libecm.a
 
 check: ecm
 	$(srcdir)/test.pp1 ./ecm
 	$(srcdir)/test.pm1 ./ecm
 	$(srcdir)/test.ecm ./ecm
+
+man_MANS =
+if MAKE_MANPAGE
+  man_MANS += ecm.1
+endif
 
 ecm.1: ecm.xml
 	xsltproc -o ecm.1 $(XSLDIR)/manpages/docbook.xsl ecm.xml

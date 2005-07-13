@@ -24,6 +24,7 @@
 #define __HAVE_SP_H
 
 #include "config.h"
+#include "ecm-params.h"
 #include <gmp.h>
 
 /**************
@@ -201,46 +202,6 @@ typedef __mpzspm_struct * mpzspm_t;
 
 typedef spv_t * mpzspv_t;
 
-
-/*************
- * CONSTANTS *
- *************/
-
-/* poly length at which to start using scramble + ntt_dif + scramble instead
- * of ntt_dit */
-#ifndef DIT_DIF_THRESHOLD
-#define DIT_DIF_THRESHOLD 32768
-#endif
-
-/* size of the CPU's L1 cache */
-#ifndef CACHE_SIZE
-#define CACHE_SIZE (64 * 1024)
-#endif
-
-/* poly length at which to start using ntts for mul */
-#ifndef MUL_NTT_THRESHOLD
-#define MUL_NTT_THRESHOLD 1024
-#endif
-
-/* poly length at which to start using ntts for PrerevertDivision */
-#ifndef PREREVERT_DIVISION_NTT_THRESHOLD
-#define PREREVERT_DIVISION_NTT_THRESHOLD 1024
-#endif
-
-/* poly length at which to start using ntts for PolyInvert */
-#ifndef POLYINVERT_NTT_THRESHOLD
-#define POLYINVERT_NTT_THRESHOLD 1024
-#endif
-
-/* poly length at which to start using ntts for PolyEvalT */
-#ifndef POLYEVALT_NTT_THRESHOLD
-#define POLYEVALT_NTT_THRESHOLD 512
-#endif
-
-/* number of coeffs to normalise concurrently in mpzspv_normalise */
-#ifndef MPZSPV_NORMALISE_STRIDE
-#define MPZSPV_NORMALISE_STRIDE 256
-#endif
 
 /*************
  * FUNCTIONS *
@@ -446,5 +407,6 @@ void mpzspv_pwmul (mpzspv_t, spv_size_t, mpzspv_t, spv_size_t, mpzspv_t,
 void mpzspv_to_ntt (mpzspv_t, spv_size_t, spv_size_t, spv_size_t, int,
     mpzspm_t);
 void mpzspv_from_ntt (mpzspv_t, spv_size_t, spv_size_t, spv_size_t, mpzspm_t);
+void mpzspv_random (mpzspv_t, spv_size_t, spv_size_t, mpzspm_t);
 
 #endif /* __HAVE_SP_H */
