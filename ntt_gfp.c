@@ -143,6 +143,7 @@ spv_ntt_gfp_dit (spv_t x, spv_size_t len, sp_t p, sp_t d, sp_t root)
     }
 }
 
+#if 0
 void
 spv_mul_ntt_gfp (spv_t r, spv_t x, spv_t y, spv_size_t len, spm_t spm)
 {
@@ -180,4 +181,4 @@ spv_sqr_ntt_gfp (spv_t r, spv_t x, spv_size_t len, spm_t spm)
   len_inv = sp_inv (len, p, d);
   spv_mul_sp (r, r, len_inv, len, p, d);
 }
-
+#endif

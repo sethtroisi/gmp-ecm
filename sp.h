@@ -224,7 +224,7 @@ typedef spv_t * mpzspv_t;
 
 /* poly length at which to start using ntts for PrerevertDivision */
 #ifndef PREREVERT_DIVISION_NTT_THRESHOLD
-#define PREREVERT_DIVISION_NTT_THRESHOLD 512
+#define PREREVERT_DIVISION_NTT_THRESHOLD 1024
 #endif
 
 /* poly length at which to start using ntts for PolyInvert */
@@ -419,8 +419,8 @@ int spv_cmp (spv_t, spv_t, spv_size_t);
 void spv_ntt_scramble (spv_t, spv_size_t);
 void spv_ntt_gfp_dif (spv_t, spv_size_t, sp_t, sp_t, sp_t);
 void spv_ntt_gfp_dit (spv_t, spv_size_t, sp_t, sp_t, sp_t);
-void spv_mul_ntt_gfp (spv_t, spv_t, spv_t, spv_size_t, spm_t);
-void spv_sqr_ntt_gfp (spv_t, spv_t, spv_size_t, spm_t);
+/* void spv_mul_ntt_gfp (spv_t, spv_t, spv_t, spv_size_t, spm_t); */
+/* void spv_sqr_ntt_gfp (spv_t, spv_t, spv_size_t, spm_t); */
 
 /* mpzspm */
 
