@@ -19,6 +19,7 @@
 */
 
 #include "config.h"
+#include "ecm-params.h"
 
 /* Needed for "FILE *" */
 #include <stdio.h>
@@ -113,16 +114,7 @@ extern FILE *ECM_STDOUT, *ECM_STDERR;
 #endif
 
 /* thresholds */
-#ifndef MUL_KARATSUBA_THRESHOLD
-#define MUL_KARATSUBA_THRESHOLD 32
-#endif
-
-#ifndef DIV_DC_THRESHOLD
-#define DIV_DC_THRESHOLD    (3 * MUL_KARATSUBA_THRESHOLD)
-#endif
-
-#define MPZMOD_THRESHOLD_DEFAULT (3 * DIV_DC_THRESHOLD / 2)
-#define REDC_THRESHOLD_DEFAULT   (2 * DIV_DC_THRESHOLD)
+#define REDC_THRESHOLD_DEFAULT   (3 * 64)
 
 /* base2mod is used when size(2^n+/-1) <= BASE2_THRESHOLD * size(cofactor) */
 #define BASE2_THRESHOLD 1.4

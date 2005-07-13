@@ -41,17 +41,15 @@ FILE *ECM_STDOUT, *ECM_STDERR; /* define them here since needed in tune.c */
 			     mpz_size (x) <= mpz_size (modulus->orig_modulus))
 #define MPZ_NORMALIZED(x)    ASSERT (PTR(x)[ABSIZ(x)-1] != 0)
 
-#ifndef MPZMOD_THRESHOLD
-#define MPZMOD_THRESHOLD MPZMOD_THRESHOLD_DEFAULT
-#endif
-
-#ifndef REDC_THRESHOLD
-#define REDC_THRESHOLD REDC_THRESHOLD_DEFAULT
-#endif
-
-
 #ifndef GMP_NUMB_BITS
 #define GMP_NUMB_BITS __GMP_BITS_PER_MP_LIMB
+#endif
+
+#ifdef TUNE
+#undef MPZMOD_THRESHOLD
+#undef REDC_THRESHOLD
+size_t MPZMOD_THRESHOLD;
+size_t REDC_THRESHOLD;
 #endif
 
 void base2mod (mpres_t, mpres_t, mpres_t, mpmod_t);
