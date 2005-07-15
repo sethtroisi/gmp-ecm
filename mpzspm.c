@@ -19,8 +19,8 @@
   MA 02111-1307, USA.
 */
 
-#include <malloc.h>
 #include <stdio.h> /* for printf */
+#include <stdlib.h>
 #include <time.h> /* FIXME  */
 #include "sp.h"
 
