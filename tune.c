@@ -461,8 +461,9 @@ int main ()
 {
   spv_size_t i;
 
-#ifdef HAVE_NTT 
   gmp_randinit_default (gmp_randstate);
+
+#ifdef HAVE_NTT
   mpz_init_set_str (M, M_str, 10);
   
   x = init_list (MPZSPV_MAX_LEN);
