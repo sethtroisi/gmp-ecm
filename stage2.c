@@ -320,14 +320,34 @@ stage2 (mpz_t f, void *X, mpmod_t modulus, unsigned long dF, unsigned long k,
 #endif
 
   lgk = ceil_log2 (dF);
-  mem = 9.0 + (double) lgk;
-#if (MULT == KS)
-  mem += 24.0; /* estimated memory for kronecker_schonhage */
-  mem += 1.0;  /* for the wrap-case in PrerevertDivision   */
-#endif
+  mem = (double) 9.0;
+  mem += (double) (TreeFilename ? 0 : lgk);
   mem *= (double) dF;
+#if (MULT == KS)
+   /* estimated memory for kronecker_schonhage /
+      wrap-case in PrerevertDivision respectively */
+  mem += (double) (24.0 + 1.0) *
+#ifdef HAVE_NTT
+         (double) MUL_NTT_THRESHOLD;
+#else
+         (double) dF;
+#endif
+#endif
   mem *= (double) mpz_size (modulus->orig_modulus);
   mem *= (double) mp_bits_per_limb / 8.0;
+  
+#ifdef HAVE_NTT
+  mem += /* peak malloc in ecm_ntt.c */
+         (double) (4 * dF * mpzspm->sp_num * sizeof (sp_t))
+	 
+	 /* mpzspv_normalise */
+	 + (double) (MPZSPV_NORMALISE_STRIDE * (mpzspm->sp_num *
+	       sizeof (sp_t) + 6 * sizeof (sp_t) + sizeof (float)))
+
+	 /* sp_invF */
+	 + (double) (2 * dF * mpzspm->sp_num * sizeof (sp_t));
+#endif
+
   if (mem < 1e4)
     outputf (OUTPUT_VERBOSE, "Estimated memory usage: %1.0f\n", mem);
   else if (mem < 1e7)
