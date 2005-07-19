@@ -151,7 +151,19 @@ if test "x$XSLTPROC" != "x"; then
 fi  
 AM_CONDITIONAL(MAKE_MANPAGE, test "x$make_manpage" = "xyes")
 
+case $host in
+  dnl TODO: import GMP's finer-grained cpu detection
+  x86_64*-*-*) config_arch="athlon64" ;;
+  alphaev6*-*-*) config_arch="alpha-ev6" ;;
+  alphaev5*-*-*) config_arch="alpha-ev5" ;;
+  athlon*-*-*-*) config_arch="athlonxp" ;;
+  powerpc-*-*) config_arch="power4" ;;
+  pentium4-*-*) config_arch="pentium4" ;;
+  *) config_arch="default" ;;
+esac
+
 AC_CONFIG_FILES(Makefile)
+AC_CONFIG_LINKS(ecm-params.h:ecm-params.h.$config_arch)
 
 AC_SUBST(INCLUDES)
 AC_SUBST(LDADD)
