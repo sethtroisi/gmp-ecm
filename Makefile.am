@@ -19,16 +19,19 @@ endif
 bin_PROGRAMS = ecm
 noinst_PROGRAMS = tune tune2 ecmfactor
 
+LDADD = libecm.a
+
 ecm_SOURCES = auxi.c b1_ainc.c candi.c eval.c random2.c main.c trial.c \
               memory.c resume.c smartprp.c getprime2.c
 
 ecmfactor_SOURCES = ecmfactor.c
 
-tune_SOURCES = tune-mpmod.c tune.c mul_lo.c listz.c auxlib.c ks-multiply.c \
+tune_CPPFLAGS = -DTUNE $(AM_CPPFLAGS)
+tune_LDADD =
+tune_SOURCES = mpmod.c tune.c mul_lo.c listz.c auxlib.c ks-multiply.c \
                toomcook.c schoen_strass.c polyeval.c median.c
-
 if ENABLE_NTT
-  tune_SOURCES += tune-ecm_ntt.c tune-ntt_gfp.c tune-mpzspv.c mpzspm.c sp.c \
+  tune_SOURCES += ecm_ntt.c ntt_gfp.c mpzspv.c mpzspm.c sp.c \
                   spv.c spm.c
 endif
 
@@ -41,8 +44,6 @@ EXTRA_DIST = test.pm1 test.pp1 test.ecm ecm.1 README.lib ecm.xml
 
 ecm-params:	tune
 		./tune > ecm-params.h
-
-LDADD = libecm.a
 
 check: ecm
 	$(srcdir)/test.pp1 ./ecm
