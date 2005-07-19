@@ -37,9 +37,6 @@ SPV level:
    very slow. Try lowering the operation count (i.e. increase the number of
    muls) and see if we can fit a toom3/4 in-between karatsuba and ntt.
 
-2) Better thresholds for when to start using ntt, especially for the "generic"
-   poly mul routine.
-
 4) Try out the NTT over GP(p^2). Old code doing this exists (DN), I'll see if
    I can get it to work at some point. This is why the function is called
    spv_ntt_gfp_dif, not just spv_ntt_dif.
