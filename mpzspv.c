@@ -19,8 +19,18 @@
   MA 02111-1307, USA.
 */
 
+#include "config.h"
 #include <stdlib.h>
 #include <string.h> /* for memset */
+
+#ifdef HAVE_MALLOC_H
+#include <malloc.h>
+#endif
+
+#if !HAVE_VALLOC
+#define valloc malloc
+#endif
+
 #include "sp.h"
 
 #ifdef TUNE
@@ -421,5 +431,4 @@ mpzspv_random (mpzspv_t x, spv_size_t offset, spv_size_t len, mpzspm_t mpzspm)
   for (i = 0; i < mpzspm->sp_num; i++)
     spv_random (x[i] + offset, len, mpzspm->spm[i].sp);
 }
-
 

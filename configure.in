@@ -1,7 +1,7 @@
 
 m4_define([ECM_VERSION], [6.1])
 
-AC_PREREQ(2.59)
+AC_PREREQ(2.57)
 AC_INIT(ecm, ECM_VERSION, [ecm-dev@lists.fousse.info])
 AC_CONFIG_HEADER([config.h])
 AM_INIT_AUTOMAKE(ecm, ECM_VERSION)
@@ -61,6 +61,8 @@ dnl Checks for header files.
 AC_FUNC_ALLOCA
 AC_HEADER_STDC
 AC_CHECK_HEADERS([math.h limits.h malloc.h strings.h sys/time.h unistd.h])
+AC_CHECK_HEADERS([windows.h])
+AC_CHECK_HEADERS([sys/types.h sys/resource.h])
 
 dnl Tests concerning the include directories.
 if test -d "$with_gmp_include"; then
@@ -131,9 +133,17 @@ dnl Checks for library functions.
 AC_FUNC_STRTOD
 AC_CHECK_LIB(m, floor)
 AC_CHECK_FUNCS([floor sqrt pow], [], AC_MSG_ERROR([required function missing]))
-AC_CHECK_FUNCS([gethostname gettimeofday isascii memset strchr strncasecmp strstr], [], AC_MSG_ERROR([required function missing]))
+AC_CHECK_FUNCS([isascii memset strchr strncasecmp strstr], [], AC_MSG_ERROR([required function missing]))
+AC_CHECK_FUNCS([gethostname gettimeofday getrusage random])
+
+dnl FIXME: which win32 library contains these functions?
+dnl AC_CHECK_FUNCS([GetCurrentProcess GetProcessTimes])
 AC_CHECK_FUNCS([__gmpn_add_nc __gmpn_mul_fft __gmpn_mod_34lsub1])
-AC_CHECK_FUNCS([malloc_usable_size])
+AC_CHECK_FUNCS([malloc_usable_size, valloc])
+
+if test "x$_WIN32" != "x"; then
+AC_MSG_ERROR([moo])
+fi
 
 dnl Check for xsltproc
 AC_CHECK_PROG(XSLTPROC,xsltproc,xsltproc,)
