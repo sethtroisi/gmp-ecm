@@ -20,12 +20,23 @@
   MA 02111-1307, USA.
 */
 
+#include "ecm-impl.h"
 #include <stdio.h>
 #include <stdlib.h>
-#include <time.h>
+
+#if TIME_WITH_SYS_TIME
+# include <sys/time.h>
+# include <time.h>
+#else
+# if HAVE_SYS_TIME_H
+#  include <sys/time.h>
+# else
+#  include <time.h>
+# endif
+#endif
+
 #include <stdarg.h>
 #include <gmp.h>
-#include "ecm-impl.h"
 
 #define VERBOSE __ECM(verbose)
 static int VERBOSE = OUTPUT_NORMAL;
@@ -89,62 +100,40 @@ ceil_log2 (unsigned long n)
   return k;
 }
 
-/* cputime() gives the CPU time in microseconds */
-#if defined (ANSIONLY) || defined (USG) || defined (__SVR4) || defined (_UNICOS) || defined(__hpux)
+/* Define TICK s.t. TICK * cputime () gives the elapsed time in milliseconds */
 
-/* multiplier to get time in milliseconds */
-#define TICK (1000.0 / (double) CLOCKS_PER_SEC)
+#if defined (_WIN32)
+/* First case - GetProcessTimes () is the only known way of getting process
+ * time (as opposed to calendar time) under mingw32 */
 
-unsigned int
-cputime ()
-{
-  return (unsigned int) clock ();
-}
-
-#else	/* ANSIONLY and others */
-
-#if defined (__MINGW32__) || defined (_MSC_VER)
-
-#define TICK (1000.0 / (double) CLOCKS_PER_SEC)
-
-static unsigned int
-cputime_x (void)
-{
-  return (unsigned int) clock ();
-}
+#define TICK (1.0 / 1000.0)
 
 #include <windows.h>
 
 unsigned int
 cputime ()
 {
-  static int First = 1;
-  static LARGE_INTEGER PF;
-  LARGE_INTEGER i;
-  double d;
+  __int64 lpCreationTime, lpExitTime, lpKernelTime, lpUserTime;
+  HANDLE hProcess = GetCurrentProcess();
+  
+  GetProcessTimes (hProcess, (LPFILETIME) &lpCreationTime,
+      (LPFILETIME) &lpExitTime, (LPFILETIME) &lpKernelTime,
+      (LPFILETIME) &lpUserTime);
 
-  if (First == 1)
-  {
-    First = 0;
-    if (!QueryPerformanceFrequency (&PF))
-        First = -1;
-  }
-  if (First == -1)
-    return cputime_x ();
-
-  QueryPerformanceCounter (&i);
-  d = (double)*(__int64*)&i;
-  d /= *(__int64*)&PF;
-  d *= (double) CLOCKS_PER_SEC;
-
-  return (unsigned int) d;
+  /* return time in microseconds */
+  return (unsigned int) (lpUserTime / 10);  
 }
 
-#else /* __MINGW32___ or VC */
+#elif defined (HAVE_GETRUSAGE)
+/* Next case: getrusage () has higher resolution than clock () and so is
+ * preferred. */
 
+#ifdef HAVE_SYS_TYPES_H
 #include <sys/types.h>
-#include <sys/time.h>
+#endif
+#ifdef HAVE_SYS_RESOURCE_H
 #include <sys/resource.h>
+#endif
 
 #define TICK 1.0
 
@@ -156,9 +145,19 @@ cputime ()
   getrusage (RUSAGE_SELF, &rus);
   return rus.ru_utime.tv_sec * 1000 + rus.ru_utime.tv_usec / 1000;
 }
-#endif  /* __MINGW32___ or VC */
 
-#endif /* ANSIONLY and others */
+#else
+/* Resort to clock (), which on some systems may return calendar time. */
+
+#define TICK (1000.0 / (double) CLOCKS_PER_SEC)
+
+unsigned int
+cputime ()
+{
+  return (unsigned int) clock ();
+}
+
+#endif /* defining cputime () */
 
 /* ellapsed time (in milliseconds) between st0 and st1 (values of cputime) */
 unsigned int

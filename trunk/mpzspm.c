@@ -64,10 +64,8 @@ mpzspm_init (spv_size_t max_len, mpz_t modulus)
   mpz_mul_ui (T, T, max_len);
   
   /* find primes congruent to 1 mod max_len so we can do
-   * a ntt of size max_len
-   * 
-   * '+ max_len' cancels the first p -= max_len */
-  p = ULONG_MAX - (ULONG_MAX % max_len) + max_len + 1;
+   * a ntt of size max_len */
+  p = 1;
   do
     {
       do

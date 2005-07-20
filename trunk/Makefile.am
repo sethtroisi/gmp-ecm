@@ -32,7 +32,7 @@ tune_SOURCES = mpmod.c tune.c mul_lo.c listz.c auxlib.c ks-multiply.c \
                toomcook.c schoen_strass.c polyeval.c median.c
 if ENABLE_NTT
   tune_SOURCES += ecm_ntt.c ntt_gfp.c mpzspv.c mpzspm.c sp.c \
-                  spv.c spm.c
+                  spv.c spm.c random.c
 endif
 
 tune2_SOURCES = tune2.c

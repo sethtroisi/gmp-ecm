@@ -21,7 +21,7 @@
 
 #include <stdlib.h> /* for random */
 #include <string.h> /* for memset */
-#include "sp.h"
+#include "ecm-impl.h" /* for get_random_ui */
 
 /* Routines for vectors of integers modulo r common small prime
  * 
@@ -32,6 +32,14 @@
  * Functions may assume that, where appropriate, the coeffs of r are
  * evaluated in left-to-right order. Assertions permit nontrivial such
  * nontrivial overlapping. */
+
+
+/* We only need random () for testing and tuning so we have only very weak
+ * requirements of randomness. If random () is present then it is preferred
+ * to get_random_ui as it is faster. */
+#if (HAVE_RANDOM == 0)
+#define random get_random_ui
+#endif
 
 
 /* r = x */
@@ -525,5 +533,5 @@ spv_random (spv_t x, spv_size_t len, sp_t m)
 
   /* note this isn't uniformly random */
   for (i = 0; i < len; i++)
-    x[i] = random () % m;
+    x[i] = (sp_t) random () % m;
 }
