@@ -25,10 +25,13 @@
 #include "ecm-gmp.h"
 #include "ecm-impl.h"
 
-/* we don't need any more precision */
+/* 100ms, we don't need any more precision */
 #define GRANULARITY 1e2
-#define MPZSPV_MAX_LOG2_LEN 18 /* 2 * 131072 */
-#define MPZSPV_MAX_LEN (1 << MPZSPV_MAX_LOG2_LEN)
+#define ELAPSED elltime (st, cputime () )
+
+
+#define MAX_LOG2_LEN 18 /* 2 * 131072 */
+#define MAX_LEN (1 << MAX_LOG2_LEN)
 
 /* Throughout, each function pointer points to a function
  * 
@@ -124,9 +127,9 @@ tune_mpres_mul (size_t limbs, unsigned int mintime, int repr)
       mpres_mul (z, x, y, modulus);
       k++;
     }
-  while (cputime () - st < mintime);
+  while (ELAPSED < mintime);
 
-  st = cputime () - st;
+  st = ELAPSED;
 
   mpres_clear (x, modulus);
   mpres_clear (y, modulus);
@@ -170,9 +173,9 @@ tune_spv_ntt_gfp_dif_recursive (size_t log2_len, unsigned int mintime)
 	  spm->prim_root);
       k++;
     }
-  while (cputime () - st < mintime);
+  while (ELAPSED < mintime);
   
-  return (double) k / (double) (cputime () - st);
+  return (double) k / (double) ELAPSED;
 }
 
 double
@@ -187,9 +190,9 @@ tune_spv_ntt_gfp_dif_unrolled (size_t log2_len, unsigned int mintime)
 	  spm->prim_root);
       k++;
     }
-  while (cputime () - st < mintime);
+  while (ELAPSED < mintime);
   
-  return (double) k / (double) (cputime () - st);
+  return (double) k / (double) ELAPSED;
 }
 
 
@@ -205,9 +208,9 @@ tune_spv_ntt_gfp_dit_recursive (size_t log2_len, unsigned int mintime)
 	  spm->prim_root);
       k++;
     }
-  while (cputime () - st < mintime);
+  while (ELAPSED < mintime);
   
-  return (double) k / (double) (cputime () - st);
+  return (double) k / (double) ELAPSED;
 }
 
 double
@@ -222,9 +225,9 @@ tune_spv_ntt_gfp_dit_unrolled (size_t log2_len, unsigned int mintime)
 	  spm->prim_root);
       k++;
     }
-  while (cputime () - st < mintime);
+  while (ELAPSED < mintime);
   
-  return (double) k / (double) (cputime () - st);
+  return (double) k / (double) ELAPSED;
 }
 
 
@@ -239,9 +242,9 @@ tune_ntt_mul (size_t log2_len, unsigned int mintime)
       ntt_mul (z, x, y, 1 << log2_len, NULL, 1, mpzspm);
       k++;
     }
-  while (cputime () - st < mintime);
+  while (ELAPSED < mintime);
 
-  return (double) k / (double) (cputime () - st);
+  return (double) k / (double) ELAPSED;
 }
 
 double
@@ -254,9 +257,9 @@ tune_list_mul (size_t log2_len, unsigned int mintime)
       list_mul (z, x, 1 << log2_len, 1, y, 1 << log2_len, 1, t);
       k++;
     }
-  while (cputime () - st < mintime);
+  while (ELAPSED < mintime);
 
-  return (double) k / (double) (cputime () - st);
+  return (double) k / (double) ELAPSED;
 }
 
 
@@ -272,9 +275,9 @@ tune_ntt_PrerevertDivision (size_t log2_len, unsigned int mintime)
       ntt_PrerevertDivision (z, x, y, mpzspv, 1 << log2_len, t, mpzspm);
       k++;
     }
-  while (cputime () - st < mintime);
+  while (ELAPSED < mintime);
 
-  return (double) k / (double) (cputime () - st);
+  return (double) k / (double) ELAPSED;
 }
 
 double
@@ -287,9 +290,9 @@ tune_PrerevertDivision (size_t log2_len, unsigned int mintime)
       PrerevertDivision (z, x, y, 1 << log2_len, t, mpzspm->modulus);
       k++;
     }
-  while (cputime () - st < mintime);
+  while (ELAPSED < mintime);
 
-  return (double) k / (double) (cputime () - st);
+  return (double) k / (double) ELAPSED;
 }
 
 double
@@ -304,9 +307,9 @@ tune_ntt_PolyInvert (size_t log2_len, unsigned int mintime)
       ntt_PolyInvert (z, x, 1 << log2_len, t, mpzspm);
       k++;
     }
-  while (cputime () - st < mintime);
+  while (ELAPSED < mintime);
 
-  return (double) k / (double) (cputime () - st);
+  return (double) k / (double) ELAPSED;
 }
 
 double
@@ -319,9 +322,9 @@ tune_PolyInvert (size_t log2_len, unsigned int mintime)
       PolyInvert (z, x, 1 << log2_len, t, mpzspm->modulus);
       k++;
     }
-  while (cputime () - st < mintime);
+  while (ELAPSED < mintime);
 
-  return (double) k / (double) (cputime () - st);
+  return (double) k / (double) ELAPSED;
 }
   
 
@@ -343,11 +346,11 @@ tune_ntt_polyevalT (size_t log2_len, unsigned int mintime)
       ntt_polyevalT (z, 1 << log2_len, Tree, t, mpzspv, mpzspm, NULL);
       k++;
     }
-  while (cputime () - st < mintime);
+  while (ELAPSED < mintime);
 
   free (Tree);
   
-  return (double) k / (double) (cputime () - st);
+  return (double) k / (double) ELAPSED;
 }
 
 double
@@ -367,11 +370,11 @@ tune_polyevalT (size_t log2_len, unsigned int mintime)
 	  x, mpzspm->modulus, NULL);
       k++;
     }
-  while (cputime () - st < mintime);
+  while (ELAPSED < mintime);
 
   free (Tree);
   
-  return (double) k / (double) (cputime () - st);
+  return (double) k / (double) ELAPSED;
 }
 
 double
@@ -383,12 +386,12 @@ tune_mpzspv_normalise (size_t log2_len, unsigned int mintime)
   
   do
     {
-      mpzspv_normalise (mpzspv, 0, MPZSPV_MAX_LEN, mpzspm);
+      mpzspv_normalise (mpzspv, 0, MAX_LEN, mpzspm);
       k++;
     }
-  while (cputime () - st < mintime);
+  while (ELAPSED < mintime);
 
-  return (double) k / (double) (cputime () - st);
+  return (double) k / (double) ELAPSED;
 } 
 #endif
 
@@ -466,26 +469,26 @@ int main ()
 #ifdef HAVE_NTT
   mpz_init_set_str (M, M_str, 10);
   
-  x = init_list (MPZSPV_MAX_LEN);
-  y = init_list (MPZSPV_MAX_LEN);
-  z = init_list (MPZSPV_MAX_LEN);
-  t = init_list (list_mul_mem (MPZSPV_MAX_LEN / 2) + 3 * MPZSPV_MAX_LEN / 2);
+  x = init_list (MAX_LEN);
+  y = init_list (MAX_LEN);
+  z = init_list (MAX_LEN);
+  t = init_list (list_mul_mem (MAX_LEN / 2) + 3 * MAX_LEN / 2);
   
-  for (i = 0; i < MPZSPV_MAX_LEN; i++)
+  for (i = 0; i < MAX_LEN; i++)
     mpz_urandomm (x[i], gmp_randstate, M);
-  for (i = 0; i < MPZSPV_MAX_LEN; i++)
+  for (i = 0; i < MAX_LEN; i++)
     mpz_urandomm (y[i], gmp_randstate, M); 
-  for (i = 0; i < MPZSPV_MAX_LEN; i++)
+  for (i = 0; i < MAX_LEN; i++)
     mpz_urandomm (z[i], gmp_randstate, M);
-
-  mpzspm = mpzspm_init (MPZSPV_MAX_LEN, M);
+  
+  mpzspm = mpzspm_init (MAX_LEN, M);
 
   spm = spm_init (mpzspm->spm[0].sp);
   
-  spv = (spv_t) malloc (MPZSPV_MAX_LEN * sizeof (sp_t));
-  spv_random (spv, MPZSPV_MAX_LEN, spm->sp);
-  mpzspv = mpzspv_init (MPZSPV_MAX_LEN, mpzspm);
-  mpzspv_random (mpzspv, 0, MPZSPV_MAX_LEN, mpzspm);
+  spv = (spv_t) malloc (MAX_LEN * sizeof (sp_t));
+  spv_random (spv, MAX_LEN, spm->sp);
+  mpzspv = mpzspv_init (MAX_LEN, mpzspm);
+  mpzspv_random (mpzspv, 0, MAX_LEN, mpzspm);
 #endif
   
   MPZMOD_THRESHOLD = crossover2 (tune_mpres_mul_modmuln, tune_mpres_mul_mpz,
@@ -501,41 +504,41 @@ int main ()
 #ifdef HAVE_NTT
   SPV_NTT_GFP_DIF_RECURSIVE_THRESHOLD = 1 << crossover
     (tune_spv_ntt_gfp_dif_unrolled, tune_spv_ntt_gfp_dif_recursive, 1,
-     MPZSPV_MAX_LOG2_LEN);
+     MAX_LOG2_LEN);
 
   printf ("#define SPV_NTT_GFP_DIF_RECURSIVE_THRESHOLD %u\n",
       SPV_NTT_GFP_DIF_RECURSIVE_THRESHOLD);
   
   SPV_NTT_GFP_DIT_RECURSIVE_THRESHOLD = 1 << crossover
     (tune_spv_ntt_gfp_dit_unrolled, tune_spv_ntt_gfp_dit_recursive, 1,
-     MPZSPV_MAX_LOG2_LEN);
+     MAX_LOG2_LEN);
 
   printf ("#define SPV_NTT_GFP_DIT_RECURSIVE_THRESHOLD %u\n",
       SPV_NTT_GFP_DIT_RECURSIVE_THRESHOLD);
   
   MUL_NTT_THRESHOLD = 1 << crossover2 (tune_list_mul, tune_ntt_mul, 1,
-      MPZSPV_MAX_LOG2_LEN - 1, 1);
+      MAX_LOG2_LEN - 1, 1);
 
   printf ("#define MUL_NTT_THRESHOLD %u\n", MUL_NTT_THRESHOLD);
 
   PREREVERTDIVISION_NTT_THRESHOLD = 1 << crossover2 (tune_PrerevertDivision,
-      tune_ntt_PrerevertDivision, 1, MPZSPV_MAX_LOG2_LEN - 1, 1);
+      tune_ntt_PrerevertDivision, 1, MAX_LOG2_LEN - 1, 1);
 
   printf ("#define PREREVERTDIVISION_NTT_THRESHOLD %u\n",
       PREREVERTDIVISION_NTT_THRESHOLD);
 
   POLYINVERT_NTT_THRESHOLD = 1 << crossover (tune_PolyInvert,
-      tune_ntt_PolyInvert, 1, MPZSPV_MAX_LOG2_LEN);
+      tune_ntt_PolyInvert, 1, MAX_LOG2_LEN);
 
   printf ("#define POLYINVERT_NTT_THRESHOLD %u\n", POLYINVERT_NTT_THRESHOLD);
   
   POLYEVALT_NTT_THRESHOLD = 1 << crossover (tune_polyevalT,
-      tune_ntt_polyevalT, 1, MPZSPV_MAX_LOG2_LEN / 2);
+      tune_ntt_polyevalT, 1, MAX_LOG2_LEN / 2);
 
   printf ("#define POLYEVALT_NTT_THRESHOLD %u\n", POLYEVALT_NTT_THRESHOLD);
   
   MPZSPV_NORMALISE_STRIDE = 1 << maximise (tune_mpzspv_normalise,
-      7, MIN (MPZSPV_MAX_LOG2_LEN, 10));
+      7, MIN (MAX_LOG2_LEN, 10));
   
   printf ("#define MPZSPV_NORMALISE_STRIDE %u\n", MPZSPV_NORMALISE_STRIDE);
 
@@ -544,14 +547,15 @@ int main ()
   spm_clear (spm);
   mpzspm_clear (mpzspm);
   
-  clear_list (x, MPZSPV_MAX_LEN);
-  clear_list (y, MPZSPV_MAX_LEN);
-  clear_list (z, MPZSPV_MAX_LEN);
-  clear_list (t, list_mul_mem (MPZSPV_MAX_LEN / 2) + 3 * MPZSPV_MAX_LEN / 2);
+  clear_list (x, MAX_LEN);
+  clear_list (y, MAX_LEN);
+  clear_list (z, MAX_LEN);
+  clear_list (t, list_mul_mem (MAX_LEN / 2) + 3 * MAX_LEN / 2);
 
   mpz_clear (M);
-  gmp_randclear (gmp_randstate);
 #endif
+  
+  gmp_randclear (gmp_randstate);
   
   return 0;
 }

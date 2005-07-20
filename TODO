@@ -2,8 +2,6 @@ ToDo's:
 
 0) configure
 - check getrusage in configure, update cputime (auxlib.c)
-- Rewrite test.* to ensure that each test successfully 'splits' the input
-  number (avoids "Found input number N" being accepted erroneously)
 
 1) efficiency/memory
 - use mpres in step 2 (Target: 7.0)
@@ -43,5 +41,4 @@ ToDo's:
 4) others
 - add an option to execute a shell command (such as sending an email) 
   when something interesting happens (factor found, program finished) ?
-- fix cputime under Windows (currently returns elapsed time, says Mystwalker)
 - use better source of entropy under windows (CryptGenRandom() ?)
