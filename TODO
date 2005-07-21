@@ -1,8 +1,5 @@
 ToDo's:
 
-0) configure
-- check getrusage in configure, update cputime (auxlib.c)
-
 1) efficiency/memory
 - use mpres in step 2 (Target: 7.0)
 - [suggested by Torbjo"rn Granlund] add an option -maxmem nnn that
@@ -34,7 +31,7 @@ ToDo's:
   have it in resume file? (Target: 6.1)
 
 3) documentation
-- check README is up-to-date wrt tune/tune2 (and merge tune/tune2)
+- check README is up-to-date wrt tune
 - add examples for typical use to README 
   (see http://www.mersenneforum.org/showthread.php?t=3922)
 

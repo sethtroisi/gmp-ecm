@@ -34,7 +34,7 @@
    MPN_COPY (rp, tp, n);
    TMP_FREE(marker);
  */
-static inline void
+void
 ecm_mul_lo_basecase (mp_ptr rp, mp_srcptr np, mp_srcptr mp, mp_size_t n)
 {
   mpn_mul_1 (rp, np, n, mp[0]);
@@ -42,10 +42,11 @@ ecm_mul_lo_basecase (mp_ptr rp, mp_srcptr np, mp_srcptr mp, mp_size_t n)
     mpn_addmul_1 (++rp, np, n, (++mp)[0]);
 }
 
-#define MPN_MUL_LO_THRESHOLD 32
-static mp_size_t threshold[MPN_MUL_LO_THRESHOLD] =
-/* {0,0,1,1,1,1,1,1,1,0,1,1,1,1,1,11,11,11,13,13,13,13,15,15,17,17,15,16,17,17,17,1}; */
-{0,0,0,0,0,1,1,0,0,1,1,1,10,9,1,1,12,1,1,1,1,15,16,14,18,19,17,18,19,20,21,22};
+#ifdef MPN_MUL_LO_THRESHOLD_TABLE
+size_t mpn_mul_lo_threshold[MPN_MUL_LO_THRESHOLD] = MPN_MUL_LO_THRESHOLD_TABLE;
+#else
+size_t mpn_mul_lo_threshold[MPN_MUL_LO_THRESHOLD];
+#endif
 
 
 void
@@ -55,7 +56,7 @@ ecm_mul_lo_n (mp_ptr rp, mp_srcptr np, mp_srcptr mp, mp_size_t n)
 
   if (n < MPN_MUL_LO_THRESHOLD)
     {
-      switch (k = threshold[n])
+      switch (k = mpn_mul_lo_threshold[n])
         {
         case 0:
           {
