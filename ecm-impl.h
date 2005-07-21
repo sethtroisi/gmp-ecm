@@ -19,10 +19,20 @@
 */
 
 #include "config.h"
-#include "ecm-params.h"
 
-/* Needed for "FILE *" */
-#include <stdio.h>
+#ifdef HAVE_SYS_TYPES_H
+#include <sys/types.h> /* needed for size_t */
+#endif
+
+#ifndef TUNE
+#include "ecm-params.h"
+#else
+extern size_t MPZMOD_THRESHOLD;
+extern size_t REDC_THRESHOLD;
+#endif
+extern size_t mpn_mul_lo_threshold[];
+
+#include <stdio.h> /* needed for "FILE *" */
 
 #if  defined (__STDC__)                                 \
   || defined (__cplusplus)                              \
@@ -114,7 +124,7 @@ extern FILE *ECM_STDOUT, *ECM_STDERR;
 #endif
 
 /* thresholds */
-#define REDC_THRESHOLD_DEFAULT   (3 * 64)
+#define MPN_MUL_LO_THRESHOLD 32
 
 /* base2mod is used when size(2^n+/-1) <= BASE2_THRESHOLD * size(cofactor) */
 #define BASE2_THRESHOLD 1.4
@@ -518,7 +528,9 @@ int  mpres_is_zero (mpres_t, mpmod_t);
 /* mul_lo.c */
 #define ecm_mul_lo_n __ECM(ecm_mul_lo_n)
 void ecm_mul_lo_n (mp_ptr, mp_srcptr, mp_srcptr, mp_size_t);
-
+#define ecm_mul_lo_basecase __ECM(ecm_mul_lo_basecase)
+void ecm_mul_lo_basecase (mp_ptr, mp_srcptr, mp_srcptr, mp_size_t);
+	
 /* median.c */
 #define TMulGen __ECM(TMulGen)
 unsigned int

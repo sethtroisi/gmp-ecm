@@ -17,7 +17,7 @@ if WITH_GWNUM
 endif
 
 bin_PROGRAMS = ecm
-noinst_PROGRAMS = tune tune2 ecmfactor
+noinst_PROGRAMS = tune ecmfactor
 
 LDADD = libecm.a
 
@@ -35,14 +35,14 @@ if ENABLE_NTT
                   spv.c spm.c random.c
 endif
 
-tune2_SOURCES = tune2.c
-
 include_HEADERS = ecm.h
 noinst_HEADERS = ecm-impl.h ecm-gmp.h ecm-ecm.h sp.h longlong.h ecm-params.h
 
 EXTRA_DIST = test.pm1 test.pp1 test.ecm ecm.1 README.lib ecm.xml
 
 ecm-params:	tune
+		@echo Optimising parameters for your system, please be patient.
+		test -z "ecm-params.h" || rm -f ecm-params.h
 		./tune > ecm-params.h
 
 check: ecm

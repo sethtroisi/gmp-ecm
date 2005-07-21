@@ -33,10 +33,6 @@
 
 #include "sp.h"
 
-#ifdef TUNE
-#undef MPZSPV_NORMALISE_STRIDE
-size_t MPZSPV_NORMALISE_STRIDE = 256;
-#endif
 
 mpzspv_t
 mpzspv_init (spv_size_t len, mpzspm_t mpzspm)

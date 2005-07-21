@@ -27,28 +27,32 @@
 
 /* 100ms, we don't need any more precision */
 #define GRANULARITY 1e2
-#define ELAPSED elltime (st, cputime () )
-
-
 #define MAX_LOG2_LEN 18 /* 2 * 131072 */
 #define MAX_LEN (1 << MAX_LOG2_LEN)
+#define M_str "95209938255048826235189575712705128366296557149606415206280987204268594538412191641776798249266895999715600261737863698825644292938050707507901970225804581"
+
+#define ELAPSED elltime (st, cputime () )
+#define TUNE_FUNC_START(x) double x (size_t n) \
+  { unsigned int k = 0, st;
+#define TUNE_FUNC_LOOP(x) do { st = cputime (); do { x; k++; } \
+    while (ELAPSED < GRANULARITY); st = ELAPSED; } while (0)
+#define TUNE_FUNC_END return (double) k / (double) st; }
+
 
 /* Throughout, each function pointer points to a function
  * 
- *   double f0 (size_t limbs, unsigned int mintime);
+ *   double f0 (size_t n);
  *
- * that runs for at least mintime ms and then returns the number of iterations
- * performed per ms. */
+ * that runs for at least GRANULARITY ms and then returns the number of
+ * iterations performed per ms. */
 
-#define M_str "95209938255048826235189575712705128366296557149606415206280987204268594538412191641776798249266895999715600261737863698825644292938050707507901970225804581"
 
 mpz_t M; /* yes, global variables */
 gmp_randstate_t gmp_randstate;
+size_t mp_size;
 
-#undef MPZMOD_THRESHOLD
-#undef REDC_THRESHOLD
-extern size_t MPZMOD_THRESHOLD;
-extern size_t REDC_THRESHOLD;
+size_t MPZMOD_THRESHOLD;
+size_t REDC_THRESHOLD;
 
 #ifdef HAVE_NTT
 mpzspm_t mpzspm;
@@ -57,26 +61,19 @@ spm_t spm;
 spv_t spv;
 mpzspv_t mpzspv;
 
-#undef SPV_NTT_GFP_DIF_RECURSIVE_THRESHOLD
-#undef SPV_NTT_GFP_DIT_RECURSIVE_THRESHOLD
-#undef MUL_NTT_THRESHOLD
-#undef PREREVERTDIVISION_NTT_THRESHOLD
-#undef POLYINVERT_NTT_THRESHOLD
-#undef POLYEVALT_NTT_THRESHOLD
-#undef MPZSPV_NORMALISE_STRIDE
-extern size_t SPV_NTT_GFP_DIF_RECURSIVE_THRESHOLD;
-extern size_t SPV_NTT_GFP_DIT_RECURSIVE_THRESHOLD;
-extern size_t MUL_NTT_THRESHOLD;
-extern size_t PREREVERTDIVISION_NTT_THRESHOLD;
-extern size_t POLYINVERT_NTT_THRESHOLD;
-extern size_t POLYEVALT_NTT_THRESHOLD;
-extern size_t MPZSPV_NORMALISE_STRIDE;
+size_t SPV_NTT_GFP_DIF_RECURSIVE_THRESHOLD;
+size_t SPV_NTT_GFP_DIT_RECURSIVE_THRESHOLD;
+size_t MUL_NTT_THRESHOLD;
+size_t PREREVERTDIVISION_NTT_THRESHOLD;
+size_t POLYINVERT_NTT_THRESHOLD;
+size_t POLYEVALT_NTT_THRESHOLD;
+size_t MPZSPV_NORMALISE_STRIDE = 256;
 #endif
 
 
 
 double
-tune_mpres_mul (size_t limbs, unsigned int mintime, int repr)
+tune_mpres_mul (size_t limbs, int repr)
 {
   mpmod_t modulus;
   mpres_t x, y, z;
@@ -97,18 +94,12 @@ tune_mpres_mul (size_t limbs, unsigned int mintime, int repr)
     }
   while ((mp_size_t) mpz_size (N) != limbs);
   
-  switch (repr)
-  {
-    case ECM_MOD_MPZ:
-      mpmod_init_MPZ (modulus, N);
-      break;
-    case ECM_MOD_MODMULN:
-      mpmod_init_MODMULN (modulus, N);
-      break;
-    case ECM_MOD_REDC:
-      mpmod_init_REDC (modulus, N);
-      break;
-  }
+  if (repr == ECM_MOD_MPZ)
+    mpmod_init_MPZ (modulus, N);
+  else if (repr == ECM_MOD_MODMULN)
+    mpmod_init_MODMULN (modulus, N);
+  else if (repr == ECM_MOD_REDC)
+    mpmod_init_REDC (modulus, N);
 
   mpz_urandomm (p, gmp_randstate, N);
   mpz_urandomm (q, gmp_randstate, N);
@@ -120,16 +111,7 @@ tune_mpres_mul (size_t limbs, unsigned int mintime, int repr)
   mpres_set_z (x, p, modulus);
   mpres_set_z (y, q, modulus);
 
-  st = cputime ();
-
-  do
-    {
-      mpres_mul (z, x, y, modulus);
-      k++;
-    }
-  while (ELAPSED < mintime);
-
-  st = ELAPSED;
+  TUNE_FUNC_LOOP (mpres_mul (z, x, y, modulus));
 
   mpres_clear (x, modulus);
   mpres_clear (y, modulus);
@@ -143,265 +125,154 @@ tune_mpres_mul (size_t limbs, unsigned int mintime, int repr)
 }
 
 double
-tune_mpres_mul_mpz (size_t n, unsigned int mintime)
+tune_mpres_mul_mpz (size_t n)
 {
-  return tune_mpres_mul (n, mintime, ECM_MOD_MPZ);
+  return tune_mpres_mul (n, ECM_MOD_MPZ);
 }
 
 double
-tune_mpres_mul_modmuln (size_t n, unsigned int mintime)
+tune_mpres_mul_modmuln (size_t n)
 {
-  return tune_mpres_mul (n, mintime, ECM_MOD_MODMULN);
+  return tune_mpres_mul (n, ECM_MOD_MODMULN);
 }
 
 double
-tune_mpres_mul_redc (size_t n, unsigned int mintime)
+tune_mpres_mul_redc (size_t n)
 {
-  return tune_mpres_mul (n, mintime, ECM_MOD_REDC);
+  return tune_mpres_mul (n, ECM_MOD_REDC);
 }
 
 #ifdef HAVE_NTT
-double
-tune_spv_ntt_gfp_dif_recursive (size_t log2_len, unsigned int mintime)
-{
-  unsigned int k = 0, st = cputime ();
-  SPV_NTT_GFP_DIF_RECURSIVE_THRESHOLD = 1 << log2_len;
+TUNE_FUNC_START (tune_spv_ntt_gfp_dif_recursive)
+  SPV_NTT_GFP_DIF_RECURSIVE_THRESHOLD = 1 << n;
+  TUNE_FUNC_LOOP (spv_ntt_gfp_dif (spv, 1 << n, spm->sp, spm->mul_c,
+	spm->prim_root));
+TUNE_FUNC_END
 
-  do
-    {
-      spv_ntt_gfp_dif (spv, 1 << log2_len, spm->sp, spm->mul_c,
-	  spm->prim_root);
-      k++;
-    }
-  while (ELAPSED < mintime);
-  
-  return (double) k / (double) ELAPSED;
-}
 
-double
-tune_spv_ntt_gfp_dif_unrolled (size_t log2_len, unsigned int mintime)
-{
-  unsigned int k = 0, st = cputime ();
+TUNE_FUNC_START (tune_spv_ntt_gfp_dif_unrolled)
   SPV_NTT_GFP_DIF_RECURSIVE_THRESHOLD = ULONG_MAX;
-
-  do
-    {
-      spv_ntt_gfp_dif (spv, 1 << log2_len, spm->sp, spm->mul_c,
-	  spm->prim_root);
-      k++;
-    }
-  while (ELAPSED < mintime);
-  
-  return (double) k / (double) ELAPSED;
-}
+  TUNE_FUNC_LOOP (spv_ntt_gfp_dif (spv, 1 << n, spm->sp, spm->mul_c,
+	spm->prim_root));
+TUNE_FUNC_END
 
 
-double
-tune_spv_ntt_gfp_dit_recursive (size_t log2_len, unsigned int mintime)
-{
-  unsigned int k = 0, st = cputime ();
-  SPV_NTT_GFP_DIT_RECURSIVE_THRESHOLD = 1 << log2_len;
+TUNE_FUNC_START (tune_spv_ntt_gfp_dit_recursive)
+  SPV_NTT_GFP_DIT_RECURSIVE_THRESHOLD = 1 << n;
 
-  do
-    {
-      spv_ntt_gfp_dit (spv, 1 << log2_len, spm->sp, spm->mul_c,
-	  spm->prim_root);
-      k++;
-    }
-  while (ELAPSED < mintime);
-  
-  return (double) k / (double) ELAPSED;
-}
+  TUNE_FUNC_LOOP (spv_ntt_gfp_dit (spv, 1 << n, spm->sp, spm->mul_c,
+	spm->prim_root));
+TUNE_FUNC_END
 
-double
-tune_spv_ntt_gfp_dit_unrolled (size_t log2_len, unsigned int mintime)
-{
-  unsigned int k = 0, st = cputime ();
+
+TUNE_FUNC_START (tune_spv_ntt_gfp_dit_unrolled)
   SPV_NTT_GFP_DIT_RECURSIVE_THRESHOLD = ULONG_MAX;
 
-  do
-    {
-      spv_ntt_gfp_dit (spv, 1 << log2_len, spm->sp, spm->mul_c,
-	  spm->prim_root);
-      k++;
-    }
-  while (ELAPSED < mintime);
-  
-  return (double) k / (double) ELAPSED;
-}
+  TUNE_FUNC_LOOP (spv_ntt_gfp_dit (spv, 1 << n, spm->sp, spm->mul_c,
+	spm->prim_root));
+TUNE_FUNC_END
 
 
-double
-tune_ntt_mul (size_t log2_len, unsigned int mintime)
-{
-  unsigned int k = 0, st = cputime ();
+TUNE_FUNC_START (tune_ntt_mul)
   MUL_NTT_THRESHOLD = 0;
 
-  do
-    {
-      ntt_mul (z, x, y, 1 << log2_len, NULL, 1, mpzspm);
-      k++;
-    }
-  while (ELAPSED < mintime);
-
-  return (double) k / (double) ELAPSED;
-}
-
-double
-tune_list_mul (size_t log2_len, unsigned int mintime)
-{
-  unsigned int k = 0, st = cputime ();
-
-  do
-    {
-      list_mul (z, x, 1 << log2_len, 1, y, 1 << log2_len, 1, t);
-      k++;
-    }
-  while (ELAPSED < mintime);
-
-  return (double) k / (double) ELAPSED;
-}
+  TUNE_FUNC_LOOP (ntt_mul (z, x, y, 1 << n, NULL, 1, mpzspm));
+TUNE_FUNC_END
 
 
-double
-tune_ntt_PrerevertDivision (size_t log2_len, unsigned int mintime)
-{
-  unsigned int k = 0, st = cputime ();
+TUNE_FUNC_START (tune_list_mul)
 
+  TUNE_FUNC_LOOP (list_mul (z, x, 1 << n, 1, y, 1 << n, 1, t));
+TUNE_FUNC_END
+
+
+TUNE_FUNC_START (tune_ntt_PrerevertDivision)
   PREREVERTDIVISION_NTT_THRESHOLD = 0;
 
-  do
-    {
-      ntt_PrerevertDivision (z, x, y, mpzspv, 1 << log2_len, t, mpzspm);
-      k++;
-    }
-  while (ELAPSED < mintime);
+  TUNE_FUNC_LOOP (ntt_PrerevertDivision (z, x, y, mpzspv, 1 << n, t, mpzspm));
+TUNE_FUNC_END
 
-  return (double) k / (double) ELAPSED;
-}
 
-double
-tune_PrerevertDivision (size_t log2_len, unsigned int mintime)
-{
-  unsigned int k = 0, st = cputime ();
-
-  do
-    {
-      PrerevertDivision (z, x, y, 1 << log2_len, t, mpzspm->modulus);
-      k++;
-    }
-  while (ELAPSED < mintime);
-
-  return (double) k / (double) ELAPSED;
-}
-
-double
-tune_ntt_PolyInvert (size_t log2_len, unsigned int mintime)
-{
-  unsigned int k = 0, st = cputime ();
-
-  POLYINVERT_NTT_THRESHOLD = 1 << log2_len;
+TUNE_FUNC_START (tune_PrerevertDivision)
   
-  do
-    {
-      ntt_PolyInvert (z, x, 1 << log2_len, t, mpzspm);
-      k++;
-    }
-  while (ELAPSED < mintime);
+  TUNE_FUNC_LOOP (PrerevertDivision (z, x, y, 1 << n, t, mpzspm->modulus));
+TUNE_FUNC_END
 
-  return (double) k / (double) ELAPSED;
-}
 
-double
-tune_PolyInvert (size_t log2_len, unsigned int mintime)
-{
-  unsigned int k = 0, st = cputime ();
+TUNE_FUNC_START (tune_ntt_PolyInvert)
+  POLYINVERT_NTT_THRESHOLD = 1 << n;
+  
+  TUNE_FUNC_LOOP (ntt_PolyInvert (z, x, 1 << n, t, mpzspm));
+TUNE_FUNC_END
 
-  do
-    {
-      PolyInvert (z, x, 1 << log2_len, t, mpzspm->modulus);
-      k++;
-    }
-  while (ELAPSED < mintime);
 
-  return (double) k / (double) ELAPSED;
-}
+TUNE_FUNC_START (tune_PolyInvert)
+  
+  TUNE_FUNC_LOOP (PolyInvert (z, x, 1 << n, t, mpzspm->modulus));
+TUNE_FUNC_END
   
 
-double
-tune_ntt_polyevalT (size_t log2_len, unsigned int mintime)
-{
-  unsigned int i, k = 0, st;
-  mpzv_t *Tree = (mpzv_t *) malloc ((log2_len + 1) * sizeof (mpzv_t));
+TUNE_FUNC_START (tune_ntt_polyevalT)
+  unsigned int i;
+  mpzv_t *Tree = (mpzv_t *) malloc ((n + 1) * sizeof (mpzv_t));
   
-  for (i = 0; i <= log2_len; i++)
+  for (i = 0; i <= n; i++)
     Tree[i] = x;
 
-  POLYEVALT_NTT_THRESHOLD = 1 << log2_len;
+  POLYEVALT_NTT_THRESHOLD = 1 << n;
 
-  st = cputime ();
-  
-  do
-    {
-      ntt_polyevalT (z, 1 << log2_len, Tree, t, mpzspv, mpzspm, NULL);
-      k++;
-    }
-  while (ELAPSED < mintime);
+  TUNE_FUNC_LOOP (ntt_polyevalT (z, 1 << n, Tree, t, mpzspv, mpzspm, NULL));
 
   free (Tree);
-  
-  return (double) k / (double) ELAPSED;
-}
+TUNE_FUNC_END  
 
-double
-tune_polyevalT (size_t log2_len, unsigned int mintime)
-{
-  unsigned int i, k = 0, st;
-  mpzv_t *Tree = (mpzv_t *) malloc ((log2_len + 1) * sizeof (mpzv_t));
 
-  for (i = 0; i <= log2_len; i++)
+TUNE_FUNC_START (tune_polyevalT)
+  unsigned int i;
+  mpzv_t *Tree = (mpzv_t *) malloc ((n + 1) * sizeof (mpzv_t));
+
+  for (i = 0; i <= n; i++)
     Tree[i] = x;
 
-  st = cputime ();
-  
-  do
-    {
-      polyeval_tellegen (z, 1 << log2_len, Tree, t, 3 * (1 << log2_len),
-	  x, mpzspm->modulus, NULL);
-      k++;
-    }
-  while (ELAPSED < mintime);
+  TUNE_FUNC_LOOP (polyeval_tellegen (z, 1 << n, Tree, t, 3 * (1 << n),
+	  x, mpzspm->modulus, NULL));
 
   free (Tree);
+TUNE_FUNC_END
+
+
+TUNE_FUNC_START (tune_mpzspv_normalise)
+  MPZSPV_NORMALISE_STRIDE = 1 << n;
   
-  return (double) k / (double) ELAPSED;
-}
+  TUNE_FUNC_LOOP (mpzspv_normalise (mpzspv, 0, MAX_LEN, mpzspm));
+TUNE_FUNC_END
 
-double
-tune_mpzspv_normalise (size_t log2_len, unsigned int mintime)
-{
-  unsigned int k = 0, st = cputime ();
+#endif /* NTT functions */
 
-  MPZSPV_NORMALISE_STRIDE = 1 << log2_len;
+
+TUNE_FUNC_START (tune_ecm_mul_lo_n)
+  mp_limb_t rp[2 * MPN_MUL_LO_THRESHOLD];
+  mp_limb_t xp[MPN_MUL_LO_THRESHOLD];
+  mp_limb_t yp[MPN_MUL_LO_THRESHOLD];
+
+  if (n > 1 && n < (mp_size + 1) / 2)
+    return 0.0;
   
-  do
-    {
-      mpzspv_normalise (mpzspv, 0, MAX_LEN, mpzspm);
-      k++;
-    }
-  while (ELAPSED < mintime);
+  mpn_random (xp, n);
+  mpn_random (yp, n);
+  
+  mpn_mul_lo_threshold[mp_size] = n;
 
-  return (double) k / (double) ELAPSED;
-} 
-#endif
+  TUNE_FUNC_LOOP (ecm_mul_lo_n (rp, xp, yp, mp_size));
+TUNE_FUNC_END
 
 
 /* Assume f0 and f1 are monotone decreasing. Return the first n in the range
  * [min_n, max_n) for which f1(n) > f0(n), or return max_n if no such n
  * exists. */
 size_t
-crossover (double (*f0)(size_t, unsigned int),
-    double (*f1)(size_t, unsigned int), size_t min_n, size_t max_n)
+crossover (double (*f0)(size_t), double (*f1)(size_t),
+    size_t min_n, size_t max_n)
 {
   size_t mid_n;
   
@@ -409,7 +280,7 @@ crossover (double (*f0)(size_t, unsigned int),
     return min_n;
 
   mid_n = (max_n + min_n) / 2;
-  return ((f0)(mid_n, GRANULARITY) >= (f1)(mid_n, GRANULARITY))
+  return ((f0)(mid_n) >= (f1)(mid_n))
     ? crossover (f0, f1, mid_n + 1, max_n)
     : crossover (f0, f1, min_n, mid_n);
 }
@@ -419,8 +290,8 @@ crossover (double (*f0)(size_t, unsigned int),
  *
  * Return max_n if no such n exists. */
 size_t
-crossover2 (double (*f0)(size_t, unsigned int),
-    double (*f1)(size_t, unsigned int), size_t min_n, size_t max_n, size_t k)
+crossover2 (double (*f0)(size_t), double (*f1)(size_t),
+    size_t min_n, size_t max_n, size_t k)
 {
   size_t n = min_n;
   size_t t;
@@ -428,7 +299,7 @@ crossover2 (double (*f0)(size_t, unsigned int),
   while (n < max_n)
     {
       for (t = n + k; t > n; t--)
-	if ((f0)(t - 1, GRANULARITY) >= (f1)(t - 1, GRANULARITY))
+	if ((f0)(t - 1) >= (f1)(t - 1))
 	  break;
 
       if (t == n)
@@ -442,14 +313,14 @@ crossover2 (double (*f0)(size_t, unsigned int),
 
 /* Return the n in the range [min_n, max_n) that maximises f(n) */
 size_t
-maximise (double (*f)(size_t, unsigned int), size_t min_n, size_t max_n)
+maximise (double (*f)(size_t), size_t min_n, size_t max_n)
 {
   size_t n, best_n = 0;
   double f_n, f_best_n = -1.0;
 
   for (n = min_n; n < max_n; n++)
     {
-      f_n = f (n, GRANULARITY);
+      f_n = f (n);
       if (f_n > f_best_n)
         {
 	  f_best_n = f_n;
@@ -500,6 +371,18 @@ int main ()
       MPZMOD_THRESHOLD, 512, 10);
   
   printf ("#define REDC_THRESHOLD %u\n", REDC_THRESHOLD);
+
+  mpn_mul_lo_threshold[0] = 0;
+  mpn_mul_lo_threshold[1] = 0;
+
+  for (mp_size = 2; mp_size < MPN_MUL_LO_THRESHOLD; mp_size++)
+    mpn_mul_lo_threshold[mp_size] = maximise (tune_ecm_mul_lo_n, 0, mp_size);
+  
+  printf ("#define MPN_MUL_LO_THRESHOLD_TABLE {");
+
+  for (mp_size = 0; mp_size < MPN_MUL_LO_THRESHOLD - 1; mp_size++)
+    printf ("%u, ", mpn_mul_lo_threshold[mp_size]);
+  printf ("%u}\n", mpn_mul_lo_threshold[MPN_MUL_LO_THRESHOLD - 1]);
 
 #ifdef HAVE_NTT
   SPV_NTT_GFP_DIF_RECURSIVE_THRESHOLD = 1 << crossover

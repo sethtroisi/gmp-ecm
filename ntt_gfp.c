@@ -22,12 +22,6 @@
 #define X0 x[i]
 #define X1 x[i + m]
 
-#ifdef TUNE
-#undef SPV_NTT_GFP_DIF_RECURSIVE_THRESHOLD
-#undef SPV_NTT_GFP_DIT_RECURSIVE_THRESHOLD
-spv_size_t SPV_NTT_GFP_DIF_RECURSIVE_THRESHOLD = 1;
-spv_size_t SPV_NTT_GFP_DIT_RECURSIVE_THRESHOLD = 1;
-#endif
 
 void
 ntt_scramble (spv_t x, spv_size_t len)
