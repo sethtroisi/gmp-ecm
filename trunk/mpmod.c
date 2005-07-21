@@ -45,12 +45,6 @@ FILE *ECM_STDOUT, *ECM_STDERR; /* define them here since needed in tune.c */
 #define GMP_NUMB_BITS __GMP_BITS_PER_MP_LIMB
 #endif
 
-#ifdef TUNE
-#undef MPZMOD_THRESHOLD
-#undef REDC_THRESHOLD
-size_t MPZMOD_THRESHOLD;
-size_t REDC_THRESHOLD;
-#endif
 
 void base2mod (mpres_t, mpres_t, mpres_t, mpmod_t);
 void base2mod_1 (mpres_t, mpres_t, mpmod_t);

@@ -24,7 +24,23 @@
 #define __HAVE_SP_H
 
 #include "config.h"
+
+#ifdef HAVE_SYS_TYPES_H
+#include <sys/types.h> /* needed for size_t */
+#endif
+
+#ifndef TUNE
 #include "ecm-params.h"
+#else
+extern size_t SPV_NTT_GFP_DIF_RECURSIVE_THRESHOLD;
+extern size_t SPV_NTT_GFP_DIT_RECURSIVE_THRESHOLD;
+extern size_t MUL_NTT_THRESHOLD;
+extern size_t PREREVERTDIVISION_NTT_THRESHOLD;
+extern size_t POLYINVERT_NTT_THRESHOLD;
+extern size_t POLYEVALT_NTT_THRESHOLD;
+extern size_t MPZSPV_NORMALISE_STRIDE;
+#endif
+
 #include <gmp.h>
 
 /**************
