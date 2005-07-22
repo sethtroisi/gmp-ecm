@@ -14,6 +14,8 @@ endif
 
 if WITH_GWNUM
   libecm_a_SOURCES += Fgw.c
+  Fgwtest : Fgw.c
+	$(CC) $(CFLAGS) $(CPPFLAGS) -g -DTESTDRIVE -o Fgwtest Fgw.c libecm.a $(LIBS)
 endif
 
 bin_PROGRAMS = ecm
