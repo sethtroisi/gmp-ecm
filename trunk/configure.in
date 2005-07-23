@@ -43,15 +43,15 @@ if test "x$with_gwnum" != "x"; then
   AC_CHECK_FILE($with_gwnum/gwnum.a, [
     AC_DEFINE(HAVE_GWNUM, 1, [Define to 1 if gwnum.a or gwnum.lib exist])
     LIBS="$LIBS $with_gwnum/gwnum.a"
-    CPPFLAGS="$CPPFLAGS -I$with_gwnum"
+    CFLAGS="$CFLAGS -I$with_gwnum"
   ],[
     AC_CHECK_FILE($with_gwnum/gwnum.lib, [
       AC_DEFINE(HAVE_GWNUM, 1, [Define to 1 if gwnum.a or gwnum.lib exist])
       LIBS="$LIBS $with_gwnum/gwnum.lib"
-      CPPFLAGS="$CPPFLAGS -I$with_gwnum"
+      CFLAGS="$CFLAGS -I$with_gwnum"
     ],[
       with_gwnum=
-      AC_MSG_WARN([Woltman's GWNUM library not found, have you compiled it?])
+      AC_MSG_WARN([Woltman's GWNUM library not found])
     ])
   ])
 fi
