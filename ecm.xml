@@ -599,6 +599,75 @@ means 15*12*9*6*3.</para>
 <replaceable>Phi(x,n)</replaceable>.</para>
 </refsect1>
 
+<refsect1 id='exitstatus'><title>EXIT STATUS</title>
+<para>
+The exit status reflects the result of the last ECM curve or P-1/P+1 attempt
+the program performed. Individual bits signify particular events,
+specifically:
+<variablelist remap='TP'>
+  <varlistentry>
+  <term>Bit 0</term>
+  <listitem>0 if normal program termination, 1 if error occured</listitem>
+  </varlistentry>
+
+  <varlistentry>
+  <term>Bit 1</term>
+  <listitem>0 if no proper factor was found, 1 otherwise</listitem>
+  </varlistentry>
+
+  <varlistentry>
+  <term>Bit 2</term>
+  <listitem>0 if factor is composite, 1 if factor is a probable prime</listitem>
+  </varlistentry>
+
+  <varlistentry>
+  <term>Bit 3</term>
+  <listitem>0 if cofactor is composite, 1 if cofactor is a probable prime</listitem>
+  </varlistentry>
+</variablelist>
+</para><para>
+Thus, the following exit status values may occur:
+
+<variablelist remap='TP'>
+  <varlistentry>
+  <term>0</term>
+  <listitem>Normal program termination, no factor found</listitem>
+  </varlistentry>
+
+  <varlistentry>
+  <term>1</term>
+  <listitem>Error</listitem>
+  </varlistentry>
+
+  <varlistentry>
+  <term>2</term>
+  <listitem>Composite factor found, cofactor is composite</listitem>
+  </varlistentry>
+
+  <varlistentry>
+  <term>6</term>
+  <listitem>Probable prime factor found, cofactor is composite</listitem>
+  </varlistentry>
+
+  <varlistentry>
+  <term>8</term>
+  <listitem>Input number found</listitem>
+  </varlistentry>
+
+  <varlistentry>
+  <term>10</term>
+  <listitem>Composite factor found, cofactor is a probable prime</listitem>
+  </varlistentry>
+
+  <varlistentry>
+  <term>14</term>
+  <listitem>Probable prime factor found, cofactor is a probable prime</listitem>
+  </varlistentry>
+</variablelist>
+
+</para>
+</refsect1>
+
 <refsect1 id='bugs'><title>BUGS</title>
 <para>
 Report bugs to &lt;ecm-dev@lists.fousse.info&gt;, after checking
