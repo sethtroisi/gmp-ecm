@@ -155,7 +155,7 @@ F_mulmod (mpz_t R, mpz_t S1, mpz_t S2, unsigned int n)
                "Trying again\n", n, (unsigned long) mpz_sizeinbase (S2, 2));
       F_mod_1 (S2, n);
     }
-#if defined(HAVE_GWNUM)
+#if defined(HAVE_GWNUM) && !defined (TUNE)
   if (n >= GWTHRESHOLD)
     {
 #ifdef DEBUG

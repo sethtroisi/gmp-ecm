@@ -387,7 +387,7 @@ mpmod_init_BASE2 (mpmod_t modulus, int base2, mpz_t N)
       if (i == 1)
         {
           modulus->Fermat = base2;
-#ifdef HAVE_GWNUM
+#if defined(HAVE_GWNUM) && !defined (TUNE)
           if (modulus->Fermat >= GWTHRESHOLD)
             Fgwinit (modulus->Fermat);
 #endif
@@ -509,7 +509,7 @@ mpmod_clear (mpmod_t modulus)
       if (modulus->repr == ECM_MOD_REDC)
         mpz_clear (modulus->aux_modulus);
     }
-#ifdef HAVE_GWNUM
+#if defined(HAVE_GWNUM) && !defined (TUNE)
   if (modulus->Fermat >= GWTHRESHOLD)
     Fgwclear ();
 #endif
@@ -520,7 +520,7 @@ mpmod_clear (mpmod_t modulus)
 void 
 mpmod_pausegw (ATTRIBUTE_UNUSED mpmod_t modulus)
 {
-#ifdef HAVE_GWNUM
+#if defined(HAVE_GWNUM) && !defined (TUNE)
   if (modulus->Fermat >= GWTHRESHOLD)
     Fgwclear ();
 #endif
@@ -529,7 +529,7 @@ mpmod_pausegw (ATTRIBUTE_UNUSED mpmod_t modulus)
 void 
 mpmod_contgw (ATTRIBUTE_UNUSED mpmod_t modulus)
 {
-#ifdef HAVE_GWNUM
+#if defined(HAVE_GWNUM) && !defined (TUNE)
   if (modulus->Fermat >= GWTHRESHOLD)
     Fgwinit (modulus->Fermat);
 #endif
@@ -751,7 +751,7 @@ mpres_mul (mpres_t R, mpres_t S1, mpres_t S2, mpmod_t modulus)
   ASSERT_NORMALIZED (S1);
   ASSERT_NORMALIZED (S2);
 
-#ifdef HAVE_GWNUM
+#if defined(HAVE_GWNUM) && !defined (TUNE)
   if (modulus->repr == ECM_MOD_BASE2 && modulus->Fermat >= GWTHRESHOLD)
     {
       base2mod_1 (S1, modulus->temp1, modulus);

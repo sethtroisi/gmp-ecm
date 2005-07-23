@@ -1,3 +1,5 @@
+## Process this file with automake to produce Makefile.in
+
 lib_LIBRARIES = libecm.a
 
 libecm_a_SOURCES = ecm.c ecm2.c pm1.c pp1.c getprime.c listz.c lucas.c\
@@ -12,12 +14,6 @@ if ENABLE_NTT
   libecm_a_SOURCES += sp.c spv.c spm.c mpzspm.c mpzspv.c ntt_gfp.c ecm_ntt.c
 endif
 
-if WITH_GWNUM
-  libecm_a_SOURCES += Fgw.c
-  Fgwtest : Fgw.c
-	$(CC) $(CFLAGS) $(CPPFLAGS) -g -DTESTDRIVE -o Fgwtest Fgw.c libecm.a $(LIBS)
-endif
-
 bin_PROGRAMS = ecm
 noinst_PROGRAMS = tune ecmfactor
 
@@ -25,8 +21,6 @@ LDADD = libecm.a
 
 ecm_SOURCES = auxi.c b1_ainc.c candi.c eval.c random2.c main.c trial.c \
               memory.c resume.c smartprp.c getprime2.c
-
-ecmfactor_SOURCES = ecmfactor.c
 
 tune_CPPFLAGS = -DTUNE $(AM_CPPFLAGS)
 tune_LDADD =
@@ -37,10 +31,27 @@ if ENABLE_NTT
                   spv.c spm.c random.c
 endif
 
+if WITH_GWNUM
+  gwdata.ld :
+	echo "SECTIONS { .data : { . = ALIGN(0x20); *(_GWDATA) } }" >gwdata.ld
+  
+  libecm_a_SOURCES += Fgw.c
+  ecm_DEPENDENCIES = $(LDADD) gwdata.ld
+  ecm_LDFLAGS = -Wl,gwdata.ld
+  Fgwtest : Fgw.c gwdata.ld
+	$(CC) $(CFLAGS) $(CPPFLAGS) -g -DTESTDRIVE -Wl,gwdata.ld -o Fgwtest Fgw.c libecm.a $(LIBS)
+endif
+
+ecmfactor_SOURCES = ecmfactor.c
+
 include_HEADERS = ecm.h
 noinst_HEADERS = ecm-impl.h ecm-gmp.h ecm-ecm.h sp.h longlong.h ecm-params.h
 
-EXTRA_DIST = test.pm1 test.pp1 test.ecm ecm.1 README.lib ecm.xml
+EXTRA_DIST = test.pm1 test.pp1 test.ecm ecm.1 README.lib ecm.xml \
+             ecm-params.h.alpha-ev5 ecm-params.h.athlon64 \
+             ecm-params.h.default ecm-params.h.alpha-ev6 \
+             ecm-params.h.athlonxp ecm-params.h.power4
+
 
 ecm-params:	tune
 		@echo Optimising parameters for your system, please be patient.
