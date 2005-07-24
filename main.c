@@ -687,7 +687,9 @@ main (int argc, char *argv[])
 	}
       printf ("]\n");
 #ifdef HAVE_GWNUM
+#ifdef gwnum_is_gpl
       if (! gwnum_is_gpl())
+#endif
         printf ("Due to incompatible licenses, this binary file must not "
                 "be distributed.\n");
 #endif
