@@ -943,7 +943,8 @@ ecm (mpz_t f, mpz_t x, mpz_t sigma, mpz_t n, mpz_t go, double B1done,
   if (base2 != 0 && B1 >= B1done)
       youpi = gw_ecm_stage1 (f, &P, modulus, B1, &B1done, go);
 
-  /* At this point B1 == B1done unless interrupted */
+  /* At this point B1 == B1done unless interrupted, or no GWNUM ecm_stage1
+     is available */
 #endif
 
   if (B1 > B1done)
