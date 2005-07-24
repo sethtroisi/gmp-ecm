@@ -833,7 +833,7 @@ pp1 (mpz_t f, mpz_t p, mpz_t n, mpz_t go, double B1done, double B1,
       mpz_clear (t);
     }
 
-  if (youpi == ECM_NO_FACTOR_FOUND) /* no factor found, no error */
+  if (youpi == ECM_NO_FACTOR_FOUND && mpz_cmp (B2, B2min) >= 0)
     youpi = stage2 (f, &a, modulus, dF, k, &root_params, ECM_PP1, 
                     TreeFilename);
 

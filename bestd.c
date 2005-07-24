@@ -151,6 +151,14 @@ od:
   unsigned long i, d1 = 0, d2 = 0, dF = 0, phid, k;
   mpz_t j, t, i0, i1;
   int r = 0;
+
+  if (mpz_cmp (B2, B2min) < 0)
+    {
+      /* No stage 2. Set relevant parameters to 0. Leave B2, B2min the same */
+      *finalk = 0;
+      *finaldF = 0;
+      return 0;
+    }
   
   mpz_init (i0);
   mpz_init (i1);

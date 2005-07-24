@@ -308,14 +308,7 @@ stage2 (mpz_t f, void *X, mpmod_t modulus, unsigned long dF, unsigned long k,
       youpi = ECM_ERROR;
       goto clear_i0;
     }
-#endif
-  
-/*
-  b2 = (double) dF * (double) root_params->d1 * (double) root_params->d2 / 
-       (double) phi (root_params->d2);
-*/
 
-#ifdef HAVE_NTT
   outputf (OUTPUT_VERBOSE, "Using %u small primes for NTT\n", mpzspm->sp_num);
 #endif
 
