@@ -113,6 +113,7 @@ make_conv_plan ()
   unsigned int i;
   long int offset, lastoff;
   const int stride = 2; /* We only store every stride-th offset */
+  const char *nosimplemsg = "Fgw.c, make_conv_plan(): No simple layout";
 
   plan = (gwconvplan_t *) malloc (sizeof (gwconvplan_t));
   if (plan == NULL)
@@ -122,18 +123,24 @@ make_conv_plan ()
       return NULL;
     }
   
+  /* One extra or preloading values in loop runs off end of array */
   plan->offsets = (unsigned long *) valloc ((FFTLEN / stride + 1) 
 					    * sizeof (long));
-  /* One extra or preloading values in loop runs off end of array */
+  if (plan->offsets == NULL)
+    {
+      outputf (OUTPUT_ERROR, 
+	       "make_conv_plan: could not allocate memory for offsets\n");
+      return NULL;
+    }
 
   plan->offset1 = addr_offset (FFTLEN, 1);
-  printf ("make_conv_plan: offset1 = %ld\n", plan->offset1);
 
   lastoff = 0;
   for (i = 0; i < FFTLEN / stride; i++)
     {
       offset = addr_offset (FFTLEN, stride * i);
-/*      printf ("make_conv_plan: offset[%u] = %ld\n", i, offset); */
+      outputf (OUTPUT_TRACE, "Fgw.c, make_conv_plan(): offset[%u] = %ld\n", 
+	       i, offset);
       plan->offsets[i] = offset - lastoff;
       lastoff = offset;
     }
@@ -142,33 +149,43 @@ make_conv_plan ()
 
   plan->layout = 2; /* Standard layout, uses the offsets table */
 
-  if (plan->offset1 != 16 || (lastoff = plan->offsets[0]) != 0)
+  /* See if this is a simple layout */
+
+  if (plan->offset1 != 16)
   {
-      printf ("No simple plan, plan->offset1 = %ld, plan->offsets[0] = %ld\n",
-	      plan->offset1, plan->offsets[0]);
+      outputf (OUTPUT_DEVVERBOSE, "%s, plan->offset1 = %ld != 16\n", 
+	       nosimplemsg, plan->offset1);
+      goto exitplan;
+  }
+
+  lastoff = plan->offsets[0];
+  if (plan->offsets[0] != 0)
+  {
+      outputf (OUTPUT_DEVVERBOSE, "%s, plan->offsets[0] = %ld != 0\n", 
+	       nosimplemsg, plan->offsets[0]);
       goto exitplan;
   }
 
   for (i = 1; i < FFTLEN / stride / 2; i++)
       if (plan->offsets[i] != 16 * stride)
       {
-	  printf ("No simple plan, plan->offsets[%d] = %ld\n", 
-		  i, plan->offsets[i]);
+	  outputf (OUTPUT_DEVVERBOSE, "%s, plan->offsets[%d] = %ld\n", 
+		   nosimplemsg, i, plan->offsets[i]);
 	  goto exitplan;
       }
 
   if ((lastoff = addr_offset (FFTLEN, stride * i)) != 8)
   {
-      printf ("No simple plan, addr_offset (%d) = %ld != 8\n", 
-	      i, lastoff);
+      outputf (OUTPUT_DEVVERBOSE, "%s, addr_offset (%d) = %ld != 8\n", 
+	       nosimplemsg, i, lastoff);
       goto exitplan;
   }
 
   for (i = FFTLEN / stride / 2 + 1; i < FFTLEN / stride; i++)
       if (plan->offsets[i] != 16 * stride)
       {
-	  printf ("No simple plan, plan->offsets[%d] = %ld\n", 
-		  i, plan->offsets[i]);
+	  outputf (OUTPUT_DEVVERBOSE, "%s, plan->offsets[%d] = %ld\n", 
+		   nosimplemsg, i, plan->offsets[i]);
 	  goto exitplan;
       }
 
@@ -177,13 +194,10 @@ make_conv_plan ()
                         8 + 16 * (i - FFTLEN / 2) */
   plan->layout = 1;
   free (plan->offsets);
+  outputf (OUTPUT_DEVVERBOSE, 
+	   "Fgw.c, make_conv_plan(): Using simple layout\n");
 
  exitplan:
-
-#ifdef DEBUG
-  if (plan->layout == 1)
-      printf ("Using simplified layout\n");
-#endif
 
   return plan;
 }
@@ -425,9 +439,9 @@ Fgwtodwords_simple (
 #ifdef HAVE_SSE2
 	long long lldummy;
 
-	asm ("cvtpd2pi %2, %1 \n"
+	asm ("cvtpd2pi (%2), %1 \n"
 	     "paddd %0, %1 \n"
-             "movq %1, %0" : "+m" (vals), "=y" (lldummy) : "m" (*nextoff));
+             "movq %1, %0" : "+m" (vals[0]), "=y" (lldummy) : "r" (nextoff));
 	nextoff += 2;
 #else
 	dval1 = *(nextoff++);
@@ -444,7 +458,7 @@ Fgwtodwords_simple (
 #ifdef HAVE_SSE2
 	asm ("cvtpd2pi %2, %1 \n"
 	     "paddd %0, %1 \n"
-             "movq %1, %0" : "+m" (vals), "=y" (lldummy) : "m" (*nextoff));
+             "movq %1, %0" : "+m" (vals[0]), "=y" (lldummy) : "m" (*nextoff));
 	nextoff += 2;
 #else
 	dval1 = *(nextoff++);
@@ -694,7 +708,7 @@ Fgwmul (mpz_t R, mpz_t S1, mpz_t S2)
 
   /* Test identity for S1 */
 
-  Fmpztogw (g1, t, gwplan);
+  Fmpztogw (g1, S1, gwplan);
   Fgwtompz (t, g1, gwplan);
 
   if (mpz_cmp (S1, t) != 0)
@@ -726,26 +740,32 @@ Fgwmul (mpz_t R, mpz_t S1, mpz_t S2)
   if (S1 == S2)
   {
 #ifdef DEBUG
-      gwdump ("Fgwmul: before gwsquare, g1 = ", g1);
+      if (test_verbose (OUTPUT_TRACE))
+	  gwdump ("Fgwmul: before gwsquare, g1 = ", g1);
 #endif
       
       gwsquare (g1);
       
 #ifdef DEBUG
-      gwdump ("Fgwmul: after gwsquare, g1 = ", g1);
+      if (test_verbose (OUTPUT_TRACE))
+	  gwdump ("Fgwmul: after gwsquare, g1 = ", g1);
 #endif
   } else {
       Fmpztogw (g2, S2, gwplan);
 
 #ifdef DEBUG
-      gwdump ("Fgwmul: before gwmul,\ng1 = ", g1);
-      gwdump ("g2 = ", g2);
+      if (test_verbose (OUTPUT_TRACE))
+      {
+	  gwdump ("Fgwmul: before gwmul,\ng1 = ", g1);
+	  gwdump ("g2 = ", g2);
+      }
 #endif
 
       gwmul (g2, g1); /* g1 = g1 * g2, g2 left FFT'd */
 
 #ifdef DEBUG
-      gwdump ("Fgwmul: after gwmul, g1 = ", g1);
+      if (test_verbose (OUTPUT_TRACE))
+	  gwdump ("Fgwmul: after gwmul, g1 = ", g1);
 #endif
     }
   if (gw_test_for_error () != 0)
@@ -759,10 +779,7 @@ Fgwmul (mpz_t R, mpz_t S1, mpz_t S2)
 
 #ifdef DEBUG
   if (mpz_sgn (R) < 0)
-  {
-      printf ("Fgwmul: R is negative\n");
-      fflush (stdout);
-  }
+      outputf (OUTPUT_DEVVERBOSE, "Fgwmul: R is negative\n");
 #endif
 
   /* Undo sign change */
@@ -783,6 +800,14 @@ int
 gw_ecm_stage1 (mpz_t f, curve *P, mpmod_t modulus, 
 	       double B1, double *B1done, mpz_t go)
 {
+#if !defined(GW_ECM_STAGE1)
+  /* If there is no gwnum_ecmStage1() in the GWNUM library,
+     this function will simply return. The caller should notice that
+     B1done is unchanged. */
+
+  return ECM_NO_FACTOR_FOUND;
+#else
+
   const double gw_k = 1.;
   const unsigned long gw_b = 2;
   unsigned long gw_n = abs (modulus->bits);
@@ -887,6 +912,7 @@ gw_ecm_stage1 (mpz_t f, curve *P, mpmod_t modulus,
 end_of_gwecm:
 
   return youpi;
+#endif
 }
 
 #ifdef TESTDRIVE
@@ -899,9 +925,17 @@ main (int argc, char **argv)
   unsigned long long tsc1, tsc2;
   unsigned long besttime1, besttime2, besttime3;
 
-  if (argc > 1 && strcmp (argv[1], "-d") == 0)
+  ECM_STDOUT = stdout;
+
+  while (argc > 1)
   {
-      debug = 1;
+      if (strcmp (argv[1], "-d") == 0)
+	  debug = 1;      
+      else if (strcmp (argv[1], "-v") == 0)
+	  set_verbose (get_verbose () + 1);
+      else
+	  break;
+
       argc--;
       argv++;
   }
@@ -963,12 +997,12 @@ main (int argc, char **argv)
       mpz_set (t1, t3);
   }
   
-  /* Do timing test. We'll take the best of 1000 runs  */
+  /* Do timing test. We'll take the best of 100 runs  */
   mpz_set (t1, t2);
   besttime1 = -1;
   besttime2 = -1;
   besttime3 = -1;
-  for (i = 0; i < 1000; i++)
+  for (i = 0; i < 100; i++)
   {
       rdtscll (tsc1);
       Fmpztogw (g1, t1, gwplan);
@@ -990,6 +1024,8 @@ main (int argc, char **argv)
       tsc2 -= tsc1;
       if ((unsigned long) tsc2 < besttime2)
 	  besttime2 = (unsigned long) tsc2;
+
+      mpz_mod (t1, t1, Fm);
   }
 
   printf ("Best time Fmpztogw() for 2^%d+1: %lu ticks, "
