@@ -992,7 +992,7 @@ ecm (mpz_t f, mpz_t x, mpz_t sigma, mpz_t n, mpz_t go, double B1done,
   youpi = montgomery_to_weierstrass (f, P.x, P.y, P.A, modulus);
 #endif
 
-  if (youpi == ECM_NO_FACTOR_FOUND)
+  if (youpi == ECM_NO_FACTOR_FOUND && mpz_cmp (B2, B2min) >= 0)
     youpi = stage2 (f, &P, modulus, dF, k, &root_params, ECM_ECM, 
                     TreeFilename);
   
