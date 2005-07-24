@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 
 # test file for ECM
 #
@@ -35,6 +35,9 @@ function checkcode {
 # try primes < d in stage 2. Curve with sigma=7, mod 30210181 has order
 # 2^4 * 3^3 * 29 * 2411
 echo 2050449353925555290706354283 | $ECM -sigma 7 -k 1 30 0-1e6; checkcode $? 14
+
+# Check a stage 2 of length 1. g1=1822795201 g2=968809 g3=567947
+echo 212252637915375215854013140804296246361 | $ECM -sigma 781683988 -go 550232165123 63421 1822795201-1822795201; checkcode $? 8
 
 # tests from Torbjo"rn Granlund
 echo 137703491 | $ECM -sigma 6 84 1000; checkcode $? 8
