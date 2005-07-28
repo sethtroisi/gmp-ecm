@@ -76,10 +76,30 @@ pp1_random_seed (mpz_t seed, mpz_t n, gmp_randstate_t randstate)
 /* Produces a random unsigned int value */
 #if defined (_MSC_VER) || defined (__MINGW32__)
 #include <windows.h>
+#include <wincrypt.h>
 unsigned int 
 get_random_ui (void)
 {
   SYSTEMTIME tv;
+
+  HCRYPTPROV Prov;
+
+  if (CryptAcquireContext(&Prov, NULL, NULL, PROV_RSA_FULL, 0))
+  {
+    int r;
+    unsigned int rnd;
+    
+    r = CryptGenRandom(Prov, 4, (void *) &rnd);
+    CryptReleaseContext(Prov, 0);
+    if (r)
+    {
+      printf ("Got random bytes from CryptGenRandom()\n");
+      return rnd;
+    }
+  }
+  
+  printf ("Got random bytes from GetSystemTime()\n");
+
   GetSystemTime(&tv);
   /* This gets us 27 bits of somewhat "random" data based on the time clock.
      It would probably do the program justice if a better random mixing was done
