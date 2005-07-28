@@ -721,7 +721,8 @@ int
 ecm (mpz_t f, mpz_t x, mpz_t sigma, mpz_t n, mpz_t go, double B1done,
      double B1, mpz_t B2min_parm, mpz_t B2_parm, double B2scale, 
      unsigned long k, const int S, int verbose, int repr, int sigma_is_A, 
-     FILE *os, FILE* es, char *TreeFilename, double maxmem)
+     FILE *os, FILE* es, char *TreeFilename, double maxmem, 
+     gmp_randstate_t rng)
 {
   int youpi = ECM_NO_FACTOR_FOUND;
   int base2 = 0;  /* If n is of form 2^n[+-]1, set base to [+-]n */
@@ -864,12 +865,8 @@ ecm (mpz_t f, mpz_t x, mpz_t sigma, mpz_t n, mpz_t go, double B1done,
       /* if sigma=0, generate it at random */
       if (mpz_sgn (sigma) == 0)
         {
-          gmp_randstate_t state;
-          gmp_randinit_default (state);
-          gmp_randseed_ui (state, get_random_ui ()); /* FIXME */
-          mpz_urandomb (sigma, state, 32);
+          mpz_urandomb (sigma, rng, 32);
           mpz_add_ui (sigma, sigma, 6);
-          gmp_randclear (state);
         }
 
       /* sigma contains sigma value, A and x values must be computed */

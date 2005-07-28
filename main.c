@@ -235,7 +235,7 @@ main (int argc, char *argv[])
   unsigned int decimal_cofactor = 0;
   double maxtrialdiv = 0.0;
   double B2scale = 1.0;
-  double maxmem;
+  double maxmem = 0.;
   ecm_params params;
 #if defined(WANT_FACCMD) && defined(unix)
   char *faccmd = NULL;
