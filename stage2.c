@@ -158,7 +158,7 @@ init_progression_coeffs (mpz_t i0, const unsigned long d, const unsigned long e,
 
   ASSERT (d % m == 0);
 
-  size_fd = k * phi(d) / phi(m) * (E + 1);
+  size_fd = k * eulerphi(d) / eulerphi(m) * (E + 1);
   fd = (listz_t) malloc (size_fd * sizeof (mpz_t));
   if (fd == NULL)
     return NULL;
@@ -256,6 +256,45 @@ init_roots_state (ecm_roots_state *state, const int S, const unsigned long d1,
   state->rsieve = 1;
 }
 
+double 
+memory_use (unsigned long dF, unsigned int sp_num, unsigned int Ftreelvl,
+            mpmod_t modulus)
+{
+  double mem;
+  
+  /* printf ("memory_use (%lu, %d, %d, )\n", dF, sp_num, Ftreelvl); */
+
+  mem = 9.0;
+  mem += (double) Ftreelvl;
+  mem *= (double) dF;
+#if (MULT == KS)
+   /* estimated memory for kronecker_schonhage /
+      wrap-case in PrerevertDivision respectively */
+  mem += (24.0 + 1.0) *
+#ifdef HAVE_NTT
+         (double) MUL_NTT_THRESHOLD;
+#else
+         (double) dF;
+#endif
+#endif
+  mem *= (double) mpz_size (modulus->orig_modulus) * (mp_bits_per_limb / 8.0)
+         + sizeof (mpz_t);
+  
+#ifdef HAVE_NTT
+  mem += /* peak malloc in ecm_ntt.c */
+         (4.0 * dF * sp_num * sizeof (sp_t))
+	 
+	 /* mpzspv_normalise */
+	 + (MPZSPV_NORMALISE_STRIDE * ((double) sp_num * 
+	 	sizeof (sp_t) + 6.0 * sizeof (sp_t) + sizeof (float)))
+
+	 /* sp_invF */
+	 + (2.0 * dF * sp_num * sizeof (sp_t));
+#endif
+
+  return mem;
+}
+
 /* Input:  X is the point at end of stage 1
            n is the number to factor
            B2min-B2 is the stage 2 range (we consider B2min is done)
@@ -313,42 +352,24 @@ stage2 (mpz_t f, void *X, mpmod_t modulus, unsigned long dF, unsigned long k,
 #endif
 
   lgk = ceil_log2 (dF);
-  mem = (double) 9.0;
-  mem += (double) (TreeFilename ? 0 : lgk);
-  mem *= (double) dF;
-#if (MULT == KS)
-   /* estimated memory for kronecker_schonhage /
-      wrap-case in PrerevertDivision respectively */
-  mem += (double) (24.0 + 1.0) *
-#ifdef HAVE_NTT
-         (double) MUL_NTT_THRESHOLD;
-#else
-         (double) dF;
-#endif
-#endif
-  mem *= (double) mpz_size (modulus->orig_modulus);
-  mem *= (double) mp_bits_per_limb / 8.0;
-  
-#ifdef HAVE_NTT
-  mem += /* peak malloc in ecm_ntt.c */
-         (double) (4 * dF * mpzspm->sp_num * sizeof (sp_t))
-	 
-	 /* mpzspv_normalise */
-	 + (double) (MPZSPV_NORMALISE_STRIDE * (mpzspm->sp_num *
-	       sizeof (sp_t) + 6 * sizeof (sp_t) + sizeof (float)))
 
-	 /* sp_invF */
-	 + (double) (2 * dF * mpzspm->sp_num * sizeof (sp_t));
+#if defined HAVE_NTT
+  mem = memory_use (dF, mpzspm->sp_num, (TreeFilename == NULL) ? lgk : 0, 
+                    modulus);
+#else
+  mem = memory_use (dF, 0, (TreeFilename == NULL) ? lgk : 0, modulus);
 #endif
 
   if (mem < 1e4)
     outputf (OUTPUT_VERBOSE, "Estimated memory usage: %1.0f\n", mem);
   else if (mem < 1e7)
-    outputf (OUTPUT_VERBOSE, "Estimated memory usage: %1.0fK\n", mem / 1e3);
+    outputf (OUTPUT_VERBOSE, "Estimated memory usage: %1.0fK\n", mem / 1024.);
   else if (mem < 1e10)
-    outputf (OUTPUT_VERBOSE, "Estimated memory usage: %1.0fM\n", mem / 1e6);
+    outputf (OUTPUT_VERBOSE, "Estimated memory usage: %1.0fM\n", 
+             mem / 1048576.);
   else
-    outputf (OUTPUT_VERBOSE, "Estimated memory usage: %1.0fG\n", mem / 1e9);
+    outputf (OUTPUT_VERBOSE, "Estimated memory usage: %1.0fG\n", 
+             mem / 1073741824.);
 
   F = init_list (dF + 1);
   if (F == NULL)
