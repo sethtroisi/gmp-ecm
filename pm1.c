@@ -746,7 +746,7 @@ int
 pm1 (mpz_t f, mpz_t p, mpz_t N, mpz_t go, double B1done, double B1,
      mpz_t B2min_parm, mpz_t B2_parm, double B2scale, unsigned long k, 
      const int S, int verbose, int repr, FILE *os, FILE *es, 
-     char *TreeFilename)
+     char *TreeFilename, double maxmem)
 {
   int youpi = ECM_NO_FACTOR_FOUND;
   int base2 = 0;
@@ -849,7 +849,8 @@ pm1 (mpz_t f, mpz_t p, mpz_t N, mpz_t go, double B1done, double B1,
   po2 = 1;
 #endif
   
-  if (bestD (&root_params, &k, &dF, B2min, B2, po2) == ECM_ERROR)
+  if (bestD (&root_params, &k, &dF, B2min, B2, po2, maxmem,
+             (TreeFilename != NULL), modulus) == ECM_ERROR)
     {
       youpi = ECM_ERROR;
       goto clear_and_exit;

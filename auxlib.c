@@ -56,6 +56,34 @@ gcd (unsigned int a, unsigned int b)
   return a;
 }
 
+/* returns Euler's totient phi function */
+unsigned long
+eulerphi (unsigned long n)
+{
+  unsigned long phi = 1, p;
+
+  for (p = 2; p * p <= n; p += 2)
+    {
+      if (n % p == 0)
+	{
+	  phi *= p - 1;
+	  n /= p;
+	  while (n % p == 0)
+	    {
+	      phi *= p;
+	      n /= p;
+	    }
+	}
+
+      if (p == 2)
+	p--;
+    }
+
+  /* now n is prime or 1 */
+
+  return (n == 1) ? phi : phi * (n - 1);
+}
+
 void 
 mpz_sub_si (mpz_t r, mpz_t s, int i)
 {
