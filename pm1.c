@@ -746,7 +746,7 @@ int
 pm1 (mpz_t f, mpz_t p, mpz_t N, mpz_t go, double B1done, double B1,
      mpz_t B2min_parm, mpz_t B2_parm, double B2scale, unsigned long k, 
      const int S, int verbose, int repr, FILE *os, FILE *es, 
-     char *TreeFilename, double maxmem)
+     char *TreeFilename, double maxmem, gmp_randstate_t rng)
 {
   int youpi = ECM_NO_FACTOR_FOUND;
   int base2 = 0;
@@ -773,12 +773,7 @@ pm1 (mpz_t f, mpz_t p, mpz_t N, mpz_t go, double B1done, double B1,
   st = cputime ();
 
   if (mpz_cmp_ui (p, 0) == 0)
-    {
-      gmp_randstate_t state;
-      gmp_randinit_default (state);
-      pm1_random_seed (p, N, state);
-      gmp_randclear (state);
-    }
+    pm1_random_seed (p, N, rng);
   
   mpz_init_set (B2min, B2min_parm);
   mpz_init_set (B2, B2_parm);
