@@ -868,9 +868,9 @@ ecm_rootsG_init (mpz_t f, curve *X, root_params_t *root_params,
   else
     state->nr = (unsigned int) (bestnr + .5);
 
-  phid2 = phi (root_params->d2);
+  phid2 = eulerphi (root_params->d2);
 
-  /* Round up state->nr to multiple of phi(d2) */
+  /* Round up state->nr to multiple of eulerphi(d2) */
   if (phid2 > 1)
     state->nr = ((state->nr + (phid2 - 1)) / phid2) * phid2;
 

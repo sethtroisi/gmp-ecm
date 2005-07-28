@@ -149,6 +149,7 @@ usage (void)
     printf ("  -resume file resume residues from file, reads from stdin if file is \"-\"\n");
     printf ("  -primetest   perform a primality test on input\n");
     printf ("  -treefile f  store product tree of F in files f.0 f.1 ... \n");
+    printf ("  -maxmem n    use at most n MB of memory in stage 2\n");
 #if defined(WANT_FACCMD) && defined(unix)
     printf ("  -faccmd cmd  execute cmd when factor is found. Input number, factor\n"
             "               and cofactor are given to cmd via stdin, each on a line\n");
@@ -234,6 +235,7 @@ main (int argc, char *argv[])
   unsigned int decimal_cofactor = 0;
   double maxtrialdiv = 0.0;
   double B2scale = 1.0;
+  double maxmem;
   ecm_params params;
 #if defined(WANT_FACCMD) && defined(unix)
   char *faccmd = NULL;
@@ -566,6 +568,12 @@ main (int argc, char *argv[])
 	  argv += 2;
 	  argc -= 2;
 	}
+      else if ((argc > 2) && (strcmp (argv[1], "-maxmem") == 0))
+	{
+	  maxmem = atof (argv[2]) * 1048576.;
+	  argv += 2;
+	  argc -= 2;
+	}
       else if ((argc > 2) && (strcmp (argv[1], "-go") == 0))
 	{
 	  if (go.cpOrigExpr)
@@ -798,6 +806,7 @@ main (int argc, char *argv[])
   params->S = S;
   params->repr = repr;
   params->TreeFilename = TreeFilename;
+  params->maxmem = maxmem;
 
   /* Open resume file for reading, if resuming is requested */
   if (resumefilename != NULL)

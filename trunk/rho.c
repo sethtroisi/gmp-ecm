@@ -61,7 +61,7 @@ gcd (unsigned int a, unsigned int b)
 }
 
 static unsigned long
-phi (unsigned long n)
+eulerphi (unsigned long n)
 {
   unsigned long phi = 1, p;
 
@@ -337,7 +337,7 @@ brsudickson (double B1, double B2, double N, double nr, int S)
   int i, f;
   double sum;
   sum = 0;
-  f = phi (S) / 2;
+  f = eulerphi (S) / 2;
   for (i = 1; i <= S / 2; i++)
       if (gcd (i, S) == 1)
         sum += brentsuyama (B1, B2, N, nr * (gcd (i - 1, S) + gcd (i + 1, S) - 4) / 2);
@@ -351,7 +351,7 @@ brsupower (double B1, double B2, double N, double nr, int S)
   int i, f;
   double sum;
   sum = 0;
-  f = phi (S);
+  f = eulerphi (S);
   for (i = 1; i < S; i++)
       if (gcd (i, S) == 1)
         sum += brentsuyama (B1, B2, N, nr * (gcd (i - 1, S) - 2));

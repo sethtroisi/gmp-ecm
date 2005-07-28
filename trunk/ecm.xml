@@ -187,9 +187,9 @@ Use x^<replaceable>n</replaceable> for Brent-Suyama's extension
 (<option>-power 1</option> disables Brent-Suyama's extension).
 The default polynomial is chosen depending on the method and B2.
 For P-1, <replaceable>n</replaceable> must be even.</para>
-
   </listitem>
   </varlistentry>
+
   <varlistentry>
   <term><option>-dickson <replaceable>n</replaceable></option></term>
   <listitem>
@@ -197,7 +197,14 @@ For P-1, <replaceable>n</replaceable> must be even.</para>
 Use degree-<replaceable>n</replaceable> Dickson's polynomial for Brent-Suyama's extension.
 Like for <option>-power</option>, <replaceable>n</replaceable> must be 
 even for P-1.</para>
+  </listitem>
+  </varlistentry>
 
+  <varlistentry>
+  <term><option>-maxmem <replaceable>n</replaceable></option></term>
+  <listitem>
+<para>Use at most <replaceable>n</replaceable> megabytes of memory in 
+      stage 2.</para>
   </listitem>
   </varlistentry>
 </variablelist>
