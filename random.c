@@ -92,14 +92,9 @@ get_random_ui (void)
     r = CryptGenRandom(Prov, 4, (void *) &rnd);
     CryptReleaseContext(Prov, 0);
     if (r)
-    {
-      printf ("Got random bytes from CryptGenRandom()\n");
       return rnd;
-    }
   }
   
-  printf ("Got random bytes from GetSystemTime()\n");
-
   GetSystemTime(&tv);
   /* This gets us 27 bits of somewhat "random" data based on the time clock.
      It would probably do the program justice if a better random mixing was done
