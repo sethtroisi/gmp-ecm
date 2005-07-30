@@ -385,7 +385,6 @@ TToomCookMul (listz_t b, unsigned int n,
     unsigned int nu, mu, h;
     unsigned int i;
     unsigned int btmp;
-    mpz_t comp_tmp;
     unsigned int tot_muls = 0;
 
     nu = n / 3 + 1;
@@ -463,8 +462,6 @@ TToomCookMul (listz_t b, unsigned int n,
     h = MAX(nu, mu);
     nu = mu = h;
 
-    mpz_init (comp_tmp);
-
     list_sub_safe (tmp, c + 3 * h, c + h,
                    (l + 1 > 3 * h ? l + 1 - 3 * h : 0), 
                    (l + 1 > h ? l + 1 - h : 0), 2 * h - 1);
@@ -525,8 +522,8 @@ TToomCookMul (listz_t b, unsigned int n,
     btmp = MIN(btmp, 2 * h - 1);
     for (i = 0; i < btmp; i++)
       {
-        mpz_mul_2exp (comp_tmp, c[h + i], 1);
-        mpz_add (tmp[5 * h - 2 + i], comp_tmp, tmp[3 * h - 1 + i]);
+        mpz_mul_2exp (tmp[5 * h - 2 + i], c[h + i], 1);
+        mpz_add (tmp[5 * h - 2 + i], tmp[5 * h - 2 + i], tmp[3 * h - 1 + i]);
       }
     while (i < 2 * h - 1)
       {
@@ -662,8 +659,6 @@ TToomCookMul (listz_t b, unsigned int n,
 
     list_add (b + 2 * h, b + 2 * h, tmp + h, n + 1 - 2 * h);
     /* b_{high} should be correct */
-
-    mpz_clear (comp_tmp);
 
     return tot_muls;
 }

@@ -288,7 +288,9 @@ polyeval_tellegen (listz_t b, unsigned int k, listz_t *Tree, listz_t tmp,
       {
         outputf (OUTPUT_DEVVERBOSE, "polyeval_tellegen: allocating extra temp"
                  " space, want %d but T has only %d\n", tupspace, sizeT);
+        MEMORY_TAG;
         T = init_list (tupspace);
+        MEMORY_UNTAG;
 	if (T == NULL)
 	  return ECM_ERROR;
         allocated = 1;

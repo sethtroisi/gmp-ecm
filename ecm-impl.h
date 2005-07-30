@@ -123,6 +123,24 @@ extern FILE *ECM_STDOUT, *ECM_STDERR;
 #define ASSERT(expr)   do {} while (0)
 #endif
 
+#ifdef MEMORY_DEBUG
+void tests_free (void *, size_t);
+void tests_memory_set_location (char *, unsigned int);
+#define FREE(ptr,size) tests_free(ptr,size)
+#define MEMORY_TAG tests_memory_set_location(__FILE__,__LINE__)
+#define MEMORY_UNTAG tests_memory_set_location("",0)
+#define MPZ_INIT(x)    {MEMORY_TAG;mpz_init(x);MEMORY_UNTAG;}
+#define MPZ_INIT2(x,n) {MEMORY_TAG;mpz_init2(x,n);MEMORY_UNTAG;}
+#else
+#define FREE(ptr,size) free(ptr)
+#define MEMORY_TAG do{}while(0)
+#define MEMORY_UNTAG do{}while(0)
+#define MPZ_INIT(x) mpz_init(x)
+#define MPZ_INIT2(x,n) mpz_init2(x,n)
+#endif
+
+
+
 /* thresholds */
 #define MPN_MUL_LO_THRESHOLD 32
 
@@ -364,6 +382,8 @@ double memory_use (unsigned long, unsigned int, unsigned int, mpmod_t);
 int          list_mul_mem (unsigned int);
 #define init_list __ECM(init_list)
 listz_t      init_list  (unsigned int);
+#define init_list2 __ECM(init_list2)
+listz_t      init_list2  (unsigned int, unsigned int);
 #define clear_list __ECM(clear_list)
 void         clear_list (listz_t, unsigned int);
 #define list_inp_raw __ECM(list_inp_raw)
