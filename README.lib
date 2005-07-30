@@ -4,7 +4,7 @@ To use the library, you need to add the following line in your source file:
 
 #include "ecm.h"
 
-and to link with -lecm.
+and link with -lecm.
 
 The public interface is defined in the "ecm.h" file. It contains the following
 functions:
@@ -76,9 +76,6 @@ Detailed description of parameters (ecm_params):
         and 5 for trace output (-v -v -v -v).
 * p->os is the output stream used for verbose output. Default is stdout.
 * p->es is the output stream used for errors. Default is stderr.
-
-
-
-
-
-
+* p->maxmem is the maximum amount of memory in bytes that should be used in
+        stage 2. Setting this value too low (< 10MB, say) will cause stage 2 
+        to perform very poorly, or return with an error code.
