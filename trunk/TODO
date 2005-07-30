@@ -15,7 +15,8 @@ ToDo's:
 - implement assembly code (redc.asm) for other architectures
 - allow composite d2 (Target: perhaps 6.1)
 - init mpz_t's with correct amount of memory allocated to avoid reallocs.
-  Check for reallocs with GMP's memory interface routines. (Target: 6.1? 7.0?)
+  Check for reallocs with GMP's memory interface routines. 
+  (Target: 6.1? 7.0? Partly done.)
 - try sliding window multipliation for ECM stage 1 (Target: 7.0)
 - choose Brent/Suyama polynomial according to B2/k and not B2!
 - Adjust estimated memory to take into account -treefile and NTT (Target: 6.1)
@@ -37,4 +38,3 @@ ToDo's:
 4) others
 - add an option to execute a shell command (such as sending an email) 
   when something interesting happens (factor found, program finished) ?
-- use better source of entropy under windows (CryptGenRandom() ?)

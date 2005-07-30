@@ -40,13 +40,21 @@ void __gmp_default_free (void *, size_t);
    when tests_memory_end() is called.  Test programs must be sure to have
    "clear"s for all temporary variables used.  */
 
+#define NAME_LEN 8
+
 struct header {
   void           *ptr;
   size_t         size;
+  char           name[NAME_LEN];
+  unsigned int   line;
   struct header  *next;
 };
 
 struct header  *tests_memory_list = NULL;
+
+static unsigned long nr_realloc = 0, nr_realloc_move = 0;
+static char cur_name[NAME_LEN];
+static unsigned int cur_line;
 
 /* Return a pointer to a pointer to the found block (so it can be updated
    when unlinking). */
@@ -74,6 +82,7 @@ static void *
 tests_allocate (size_t size)
 {
   struct header  *h;
+  int i;
 
   if (size == 0)
     {
@@ -87,6 +96,9 @@ tests_allocate (size_t size)
 
   h->size = size;
   h->ptr = (struct header*) __gmp_default_allocate (size);
+  for (i = 0; i < NAME_LEN; i++)
+    h->name[i] = cur_name[i];
+  h->line = cur_line;
   return h->ptr;
 }
 
@@ -118,8 +130,17 @@ tests_reallocate (void *ptr, size_t old_size, size_t new_size)
       abort ();
     }
 
+#if 0
+  printf ("Reallocating %p, first allocated in %s, line %d, from %d to %d\n",
+          ptr, h->name, h->line, h->size, new_size);
+  if (new_size <= h->size)
+    printf ("Unnecessary realloc!\n");
+#endif
+  nr_realloc++;
   h->size = new_size;
   h->ptr = (struct header*) __gmp_default_reallocate (ptr, old_size, new_size);
+  if (h->ptr != ptr)
+    nr_realloc_move++;
   return h->ptr;
 }
 
@@ -167,6 +188,8 @@ void
 tests_memory_start (void)
 {
   mp_set_memory_functions (tests_allocate, tests_reallocate, tests_free);
+  cur_name[0] = 0;
+  cur_line = 0;
 }
 
 void
@@ -188,11 +211,17 @@ tests_memory_end (void)
 
       count = 0;
       for (h = tests_memory_list; h != NULL; h = h->next)
-	count++;
+        {
+	  count++;
+	  printf ("Memory at %p, allocated by %s, line %d\n", 
+	          h->ptr, h->name, h->line);
+	}
 
       printf ("    %u block(s) remaining\n", count);
       abort ();
     }
+  printf ("%d reallocates, %d reallocates with move\n", 
+          nr_realloc, nr_realloc_move);
 }
 
 void
@@ -213,6 +242,15 @@ tests_memory_status (void)
     }
 
   printf ("    %u blocks remaining, total size %u\n", count, size);
+}
+
+void tests_memory_set_location (char *name, unsigned int line)
+{
+  unsigned int i;
+
+  for (i = 0; i < NAME_LEN; i++)
+    cur_name[i] = name[i];
+  cur_line = line;
 }
 
 #else
