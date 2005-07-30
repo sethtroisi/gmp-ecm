@@ -83,6 +83,22 @@ init_list (unsigned int n)
   return p;
 }
 
+/* creates a list of n integers, return NULL if error. Allocates each
+   mpz_t to the size of n */
+listz_t
+init_list2 (unsigned int n, unsigned int N)
+{
+  listz_t p;
+  unsigned int i;
+
+  p = (mpz_t*) malloc (n * sizeof (mpz_t));
+  if (p == NULL)
+    return NULL;
+  for (i = 0; i < n; i++)
+    mpz_init2 (p[i], N);
+  return p;
+}
+
 /* clears a list of n integers */
 void
 clear_list (listz_t p, unsigned int n)
@@ -894,7 +910,9 @@ PrerevertDivision (listz_t a, listz_t b, listz_t invb,
       /* the high part of A * INVB is now in {t+K-2, K-1} */
       if (wrap)
 	{
+	  MEMORY_TAG;
 	  t2 = init_list (K - 1);
+	  MEMORY_UNTAG;
 	  if (t2 == NULL)
 	    {
 	      fprintf (ECM_STDERR, "Error, not enough memory\n");

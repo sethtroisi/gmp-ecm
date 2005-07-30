@@ -547,7 +547,7 @@ void
 mpres_realloc (mpres_t R, mpmod_t modulus)
 {
   if (modulus->repr == ECM_MOD_MODMULN)
-    _mpz_realloc (R, modulus->bits / GMP_NUMB_BITS);
+    MPZ_REALLOC (R, modulus->bits / GMP_NUMB_BITS);
 }
 
 /* R <- BASE^EXP mod modulus.
@@ -785,7 +785,7 @@ mpres_mul (mpres_t R, mpres_t S1, mpres_t S2, mpmod_t modulus)
       mp_size_t n = modulus->Fermat / __GMP_BITS_PER_MP_LIMB;
       unsigned long k;
       
-      _mpz_realloc (R, n + 1);
+      MPZ_REALLOC (R, n + 1);
       k = mpn_fft_best_k (n, S1 == S2);
       ASSERT(mpn_fft_next_size (n, k) == n);
       base2mod_2 (S1, n, modulus->orig_modulus);
@@ -972,7 +972,7 @@ mpres_get_z (mpz_t R, mpres_t S, mpmod_t modulus)
   else if (modulus->repr == ECM_MOD_MODMULN)
     {
       mpz_set (modulus->temp1, S);
-      _mpz_realloc (R, modulus->bits / GMP_NUMB_BITS);
+      MPZ_REALLOC (R, modulus->bits / GMP_NUMB_BITS);
       ecm_redc_basecase (R, modulus->temp1, modulus);
     }
   else if (modulus->repr == ECM_MOD_REDC)

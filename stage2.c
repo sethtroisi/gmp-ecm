@@ -163,7 +163,7 @@ init_progression_coeffs (mpz_t i0, const unsigned long d, const unsigned long e,
   if (fd == NULL)
     return NULL;
   for (i = 0; i < size_fd; i++)
-    mpz_init (fd[i]);
+    MPZ_INIT (fd[i]);
 
   mpz_init (t);
   outputf (OUTPUT_TRACE, "init_progression_coeffs: i0 = %Zd, d = %u, e = %u, "
@@ -277,7 +277,8 @@ memory_use (unsigned long dF, unsigned int sp_num, unsigned int Ftreelvl,
          (double) dF;
 #endif
 #endif
-  mem *= (double) mpz_size (modulus->orig_modulus) * (mp_bits_per_limb / 8.0)
+  mem *= (double) (mpz_size (modulus->orig_modulus) + 1)
+                  * (mp_bits_per_limb / 8.0)
          + sizeof (mpz_t);
   
 #ifdef HAVE_NTT
@@ -371,7 +372,10 @@ stage2 (mpz_t f, void *X, mpmod_t modulus, unsigned long dF, unsigned long k,
     outputf (OUTPUT_VERBOSE, "Estimated memory usage: %1.0fG\n", 
              mem / 1073741824.);
 
-  F = init_list (dF + 1);
+  MEMORY_TAG;
+  F = init_list2 (dF + 1, mpz_sizeinbase (modulus->orig_modulus, 2) + 
+                          mp_bits_per_limb);
+  MEMORY_UNTAG;
   if (F == NULL)
     {
       youpi = ECM_ERROR;
@@ -381,7 +385,10 @@ stage2 (mpz_t f, void *X, mpmod_t modulus, unsigned long dF, unsigned long k,
   sizeT = 3 * dF + list_mul_mem (dF);
   if (dF > 3)
     sizeT += dF;
-  T = init_list (sizeT);
+  MEMORY_TAG;
+  T = init_list2 (sizeT, mpz_sizeinbase (modulus->orig_modulus, 2) + 
+                         mp_bits_per_limb);
+  MEMORY_UNTAG;
   if (T == NULL)
     {
       youpi = ECM_ERROR;
@@ -421,7 +428,10 @@ stage2 (mpz_t f, void *X, mpmod_t modulus, unsigned long dF, unsigned long k,
         }
       for (i = 0; i < lgk; i++)
         {
-          Tree[i] = init_list (dF);
+          MEMORY_TAG;
+          Tree[i] = init_list2 (dF, mpz_sizeinbase (modulus->orig_modulus, 2) 
+                                    + mp_bits_per_limb);
+          MEMORY_UNTAG;
           if (Tree[i] == NULL)
             {
               /* clear already allocated Tree[i] */
@@ -507,7 +517,10 @@ stage2 (mpz_t f, void *X, mpmod_t modulus, unsigned long dF, unsigned long k,
     {
       /* only dF-1 coefficients of 1/F are needed to reduce G*H,
          but we need one more for TUpTree */
-      invF = init_list (dF + 1);
+      MEMORY_TAG;
+      invF = init_list2 (dF + 1, mpz_sizeinbase (modulus->orig_modulus, 2) + 
+                                 mp_bits_per_limb);
+      MEMORY_UNTAG;
       if (invF == NULL)
 	{
 	  youpi = ECM_ERROR;
@@ -535,7 +548,10 @@ stage2 (mpz_t f, void *X, mpmod_t modulus, unsigned long dF, unsigned long k,
 
   /* start computing G with roots at i0*d, (i0+1)*d, (i0+2)*d, ... 
      where i0*d <= B2min < (i0+1)*d */
-  G = init_list (dF);
+  MEMORY_TAG;
+  G = init_list2 (dF, mpz_sizeinbase (modulus->orig_modulus, 2) + 
+                      mp_bits_per_limb);
+  MEMORY_UNTAG;
   if (G == NULL)
     {
       youpi = ECM_ERROR;
