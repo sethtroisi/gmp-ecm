@@ -150,9 +150,17 @@ AC_CHECK_PROG(XSLTPROC,xsltproc,xsltproc,)
 if test "x$XSLTPROC" != "x"; then
   AC_MSG_CHECKING(for docbook.xsl)
   if test "x$XSLDIR" = "x"; then
-    XSLDIR="/usr/share/sgml/docbook/xsl-stylesheets"
+    if test -d "/usr/local/share/sgml/docbook/xsl-stylesheets"; then
+      XSLDIR="/usr/local/share/sgml/docbook/xsl-stylesheets"
+    elif test -d "/usr/share/sgml/docbook/xsl-stylesheets"; then
+      XSLDIR="/usr/share/sgml/docbook/xsl-stylesheets"
+    elif test -d "/usr/local/share/docbook/"; then
+      XSLDIR="/usr/local/share/docbook/"
+    elif test -d "/usr/share/docbook/"; then
+      XSLDIR="/usr/share/docbook/"
+    fi
   fi
-  if test -e "$XSLDIR/manpages/docbook.xsl"; then
+  if test -r "$XSLDIR/manpages/docbook.xsl"; then
     AC_MSG_RESULT(yes)
     make_manpage="yes"
   else
