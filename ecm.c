@@ -46,11 +46,17 @@ get_curve_from_sigma (mpz_t f, mpres_t A, mpres_t x, mpz_t sigma, mpmod_t n)
 {
   mpres_t t, u, v, b, z;
   
+  MEMORY_TAG;
   mpres_init (t, n);
+  MEMORY_TAG;
   mpres_init (u, n);
+  MEMORY_TAG;
   mpres_init (v, n);
+  MEMORY_TAG;
   mpres_init (b, n);
+  MEMORY_TAG;
   mpres_init (z, n);
+  MEMORY_UNTAG;
 
   mpres_set_z  (u, sigma, n);
   mpres_mul_ui (v, u, 4, n);   /* v = (4*sigma) mod n */
@@ -109,7 +115,9 @@ montgomery_to_weierstrass (mpz_t f, mpres_t x, mpres_t y, mpres_t A, mpmod_t n)
 {
   mpres_t g;
   
+  MEMORY_TAG;
   mpres_init (g, n);
+  MEMORY_UNTAG;
   mpres_add (g, x, A, n);
   mpres_mul (g, g, x, n);
   mpres_add_ui (g, g, 1, n);
@@ -235,13 +243,21 @@ ecm_mul (mpres_t x, mpres_t z, mpz_t e, mpmod_t n, mpres_t b)
   if (mpz_cmp_ui (e, 1) == 0)
     goto ecm_mul_end;
 
+  MEMORY_TAG;
   mpres_init (x0, n);
+  MEMORY_TAG;
   mpres_init (z0, n);
+  MEMORY_TAG;
   mpres_init (x1, n);
+  MEMORY_TAG;
   mpres_init (z1, n);
+  MEMORY_TAG;
   mpres_init (u, n);
+  MEMORY_TAG;
   mpres_init (v, n);
+  MEMORY_TAG;
   mpres_init (w, n);
+  MEMORY_UNTAG;
 
   l = mpz_sizeinbase (e, 2) - 1; /* l >= 1 */
 
@@ -526,19 +542,33 @@ ecm_stage1 (mpz_t f, mpres_t x, mpres_t A, mpmod_t n, double B1, double B1done,
   double q, r;
   int ret = 0;
 
+  MEMORY_TAG;
   mpres_init (b, n);
+  MEMORY_TAG;
   mpres_init (z, n);
+  MEMORY_TAG;
   mpres_init (u, n);
+  MEMORY_TAG;
   mpres_init (v, n);
+  MEMORY_TAG;
   mpres_init (w, n);
+  MEMORY_TAG;
   mpres_init (xB, n);
+  MEMORY_TAG;
   mpres_init (zB, n);
+  MEMORY_TAG;
   mpres_init (xC, n);
+  MEMORY_TAG;
   mpres_init (zC, n);
+  MEMORY_TAG;
   mpres_init (xT, n);
+  MEMORY_TAG;
   mpres_init (zT, n);
+  MEMORY_TAG;
   mpres_init (xT2, n);
+  MEMORY_TAG;
   mpres_init (zT2, n);
+  MEMORY_UNTAG;
 
   mpres_set_ui (z, 1, n);
 
@@ -788,17 +818,24 @@ ecm (mpz_t f, mpz_t x, mpz_t sigma, mpz_t n, mpz_t go, double B1done,
   else /* automatic choice of general reduction method */
     mpmod_init (modulus, n, -1);
 
+  MEMORY_TAG;
   mpres_init (P.x, modulus);
+  MEMORY_TAG;
   mpres_init (P.y, modulus);
+  MEMORY_TAG;
   mpres_init (P.A, modulus);
 
   mpres_set_z (P.x, x, modulus);
   mpres_set_ui (P.y, 1, modulus);
   
+  MEMORY_TAG;
   mpz_init_set (B2min, B2min_parm);
+  MEMORY_TAG;
   mpz_init_set (B2, B2_parm);
   
+  MEMORY_TAG;
   mpz_init (root_params.i0);
+  MEMORY_UNTAG;
 
   /* set second stage bound B2: when using polynomial multiplication of
      complexity n^alpha, stage 2 has complexity about B2^(alpha/2), and
@@ -853,7 +890,9 @@ ecm (mpz_t f, mpz_t x, mpz_t sigma, mpz_t n, mpz_t go, double B1done,
       else
         {
           mpz_t t;
+          MEMORY_TAG;
           mpz_init (t);
+          MEMORY_UNTAG;
           mpz_sub (t, B2, B2min);
           root_params.S = choose_S (t);
           mpz_clear (t);
@@ -922,7 +961,9 @@ ecm (mpz_t f, mpz_t x, mpz_t sigma, mpz_t n, mpz_t go, double B1done,
     {
       mpz_t t;
 
+      MEMORY_TAG;
       mpz_init (t);
+      MEMORY_UNTAG;
       mpres_get_z (t, P.A, modulus);
       outputf (OUTPUT_RESVERBOSE, "a=%Zd\n", t);
       mpres_get_z (t, P.x, modulus);
@@ -962,7 +1003,9 @@ ecm (mpz_t f, mpz_t x, mpz_t sigma, mpz_t n, mpz_t go, double B1done,
     {
       mpz_t t;
       
+      MEMORY_TAG;
       mpz_init (t);
+      MEMORY_UNTAG;
       mpres_get_z (t, P.x, modulus);
       outputf (OUTPUT_RESVERBOSE, "x=%Zd\n", t);
       mpz_clear (t);
@@ -978,7 +1021,9 @@ ecm (mpz_t f, mpz_t x, mpz_t sigma, mpz_t n, mpz_t go, double B1done,
       youpi = montgomery_to_weierstrass (f, P.x, P.y, P.A, modulus);
       if (test_verbose (OUTPUT_TRACE))
         {
+          MEMORY_TAG;
           mpz_init (t);
+          MEMORY_UNTAG;
           mpres_get_z (t, P.x, modulus);
           outputf (OUTPUT_TRACE, "P = (%Zd, ", t);
           mpres_get_z (t, P.y, modulus);

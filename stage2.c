@@ -56,8 +56,8 @@ dickson (mpz_t r, mpz_t x, unsigned int n, int a)
   
   mpz_set (r, x);
   
-  mpz_init (t);
-  mpz_init (u);
+  MPZ_INIT (t);
+  MPZ_INIT (u);
 
   if (n > 1)
     {
@@ -114,7 +114,8 @@ fin_diff_coeff (listz_t coeffs, mpz_t s, mpz_t D, unsigned int E,
   unsigned int i, k;
   mpz_t t;
   
-  mpz_init_set (t, s);
+  MPZ_INIT (t);
+  mpz_set (t, s);
   
   for (i = 0; i <= E; i++)
     {
@@ -165,7 +166,7 @@ init_progression_coeffs (mpz_t i0, const unsigned long d, const unsigned long e,
   for (i = 0; i < size_fd; i++)
     MPZ_INIT (fd[i]);
 
-  mpz_init (t);
+  MPZ_INIT (t);
   outputf (OUTPUT_TRACE, "init_progression_coeffs: i0 = %Zd, d = %u, e = %u, "
            "k = %u, m = %u, E = %u, a = %d, size_fd = %u\n", 
            i0 ? i0 : t, d, e, k, m, E, dickson_a, size_fd);
@@ -176,7 +177,7 @@ init_progression_coeffs (mpz_t i0, const unsigned long d, const unsigned long e,
   mpz_add_ui (t, t, e * (1 % m));
   
   /* dke = d * k * e */
-  mpz_init (dke);
+  MPZ_INIT (dke);
   mpz_set_ui (dke, d);
   mpz_mul_ui (dke, dke, k);
   mpz_mul_ui (dke, dke, e);
@@ -264,7 +265,7 @@ memory_use (unsigned long dF, unsigned int sp_num, unsigned int Ftreelvl,
   
   /* printf ("memory_use (%lu, %d, %d, )\n", dF, sp_num, Ftreelvl); */
 
-  mem = 9.0;
+  mem = 9.0 * 1.5; /* Some of the T[] entries contain unreduced products. */
   mem += (double) Ftreelvl;
   mem *= (double) dF;
 #if (MULT == KS)
@@ -277,7 +278,7 @@ memory_use (unsigned long dF, unsigned int sp_num, unsigned int Ftreelvl,
          (double) dF;
 #endif
 #endif
-  mem *= (double) (mpz_size (modulus->orig_modulus) + 1)
+  mem *= (double) (mpz_size (modulus->orig_modulus) + 3)
                   * (mp_bits_per_limb / 8.0)
          + sizeof (mpz_t);
   
@@ -344,10 +345,7 @@ stage2 (mpz_t f, void *X, mpmod_t modulus, unsigned long dF, unsigned long k,
   mpzspm = mpzspm_init (2 * dF, modulus->orig_modulus);
   
   if (mpzspm == NULL)
-    {
-      youpi = ECM_ERROR;
-      goto clear_i0;
-    }
+    return ECM_ERROR;
 
   outputf (OUTPUT_VERBOSE, "Using %u small primes for NTT\n", mpzspm->sp_num);
 #endif
@@ -374,7 +372,7 @@ stage2 (mpz_t f, void *X, mpmod_t modulus, unsigned long dF, unsigned long k,
 
   MEMORY_TAG;
   F = init_list2 (dF + 1, mpz_sizeinbase (modulus->orig_modulus, 2) + 
-                          mp_bits_per_limb);
+                          3 * mp_bits_per_limb);
   MEMORY_UNTAG;
   if (F == NULL)
     {
@@ -386,8 +384,8 @@ stage2 (mpz_t f, void *X, mpmod_t modulus, unsigned long dF, unsigned long k,
   if (dF > 3)
     sizeT += dF;
   MEMORY_TAG;
-  T = init_list2 (sizeT, mpz_sizeinbase (modulus->orig_modulus, 2) + 
-                         mp_bits_per_limb);
+  T = init_list2 (sizeT, 2 * mpz_sizeinbase (modulus->orig_modulus, 2) + 
+                         3 * mp_bits_per_limb);
   MEMORY_UNTAG;
   if (T == NULL)
     {
@@ -519,7 +517,7 @@ stage2 (mpz_t f, void *X, mpmod_t modulus, unsigned long dF, unsigned long k,
          but we need one more for TUpTree */
       MEMORY_TAG;
       invF = init_list2 (dF + 1, mpz_sizeinbase (modulus->orig_modulus, 2) + 
-                                 mp_bits_per_limb);
+                                 2 * mp_bits_per_limb);
       MEMORY_UNTAG;
       if (invF == NULL)
 	{
@@ -550,7 +548,7 @@ stage2 (mpz_t f, void *X, mpmod_t modulus, unsigned long dF, unsigned long k,
      where i0*d <= B2min < (i0+1)*d */
   MEMORY_TAG;
   G = init_list2 (dF, mpz_sizeinbase (modulus->orig_modulus, 2) + 
-                      mp_bits_per_limb);
+                      3 * mp_bits_per_limb);
   MEMORY_UNTAG;
   if (G == NULL)
     {
@@ -719,8 +717,11 @@ stage2 (mpz_t f, void *X, mpmod_t modulus, unsigned long dF, unsigned long k,
 
 clear_G:
   clear_list (G, dF);
- clear_invF:
+clear_invF:
   clear_list (invF, dF + 1);
+#ifdef HAVE_NTT
+  mpzspv_clear (sp_invF, mpzspm);
+#endif
 
 free_Tree_i:
   if (Tree != NULL)
@@ -740,7 +741,6 @@ clear_F:
 clear_i0:
 
 #ifdef HAVE_NTT
-  mpzspv_clear (sp_invF, mpzspm);
   mpzspm_clear (mpzspm);
 #endif
   
