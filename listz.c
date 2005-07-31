@@ -615,8 +615,8 @@ PolyFromRoots (listz_t G, listz_t a, unsigned int k, listz_t T, mpz_t n)
    if (k == 2)
      {
        mpz_mul (T[0], a[0], a[1]);
-       mpz_add (G[1], a[1], a[0]);
-       mpz_mod (G[1], G[1], n);
+       mpz_add (T[1], a[1], a[0]); /* mpz_add may allocate extra limb */
+       mpz_mod (G[1], T[1], n);
        mpz_mod (G[0], T[0], n);
        return;
      }
@@ -911,7 +911,7 @@ PrerevertDivision (listz_t a, listz_t b, listz_t invb,
       if (wrap)
 	{
 	  MEMORY_TAG;
-	  t2 = init_list (K - 1);
+	  t2 = init_list2 (K - 1, mpz_sizeinbase (n, 2));
 	  MEMORY_UNTAG;
 	  if (t2 == NULL)
 	    {

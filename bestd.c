@@ -133,10 +133,10 @@ od:
       return 0;
     }
   
-  mpz_init (i0);
-  mpz_init (i1);
-  mpz_init (j);
-  mpz_init (t);
+  MPZ_INIT (i0);
+  MPZ_INIT (i1);
+  MPZ_INIT (j);
+  MPZ_INIT (t);
   k = *finalk; /* User specified k value passed in via finalk */
 
   /* Look for largest dF we can use while satisfying the maxmem parameter */
@@ -154,7 +154,7 @@ od:
         lg_dF = ceil_log2 (dF);
 #ifdef HAVE_NTT
         sp_num = (2 * mpz_sizeinbase (modulus->orig_modulus, 2) + lg_dF) / 
-                 __GMP_BITS_PER_MP_LIMB + 1;
+                 __GMP_BITS_PER_MP_LIMB + 4;
 #endif
         memory = memory_use (dF, sp_num, (treefile) ? 0 : lg_dF, modulus);
         outputf (OUTPUT_DEVVERBOSE, 

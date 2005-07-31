@@ -231,6 +231,7 @@ outputf (int loglevel, char *format, ...)
   
   va_start (ap, format);
 
+  MEMORY_TAG; /* For gmp_*printf's temp allocs */
   if (loglevel != OUTPUT_ERROR && loglevel <= VERBOSE)
     {
       n = gmp_vfprintf (ECM_STDOUT, format, ap);
@@ -238,6 +239,8 @@ outputf (int loglevel, char *format, ...)
     }
   else if (loglevel == OUTPUT_ERROR)
     n = gmp_vfprintf (ECM_STDERR, format, ap);
+  MEMORY_UNTAG;
+  
   
   va_end (ap);
   
