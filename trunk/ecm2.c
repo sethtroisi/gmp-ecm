@@ -599,8 +599,11 @@ ecm_rootsF (mpz_t f, listz_t F, root_params_t *root_params,
   for (i = 0; i < state.size_fd; i++)
     {
       outputf (OUTPUT_TRACE, "ecm_rootsF: coeffs[%d] = %Zd\n", i, coeffs[i]);
+      MEMORY_TAG;
       mpres_init (state.fd[i].x, modulus);
+      MEMORY_TAG;
       mpres_init (state.fd[i].y, modulus);
+      MEMORY_UNTAG;
     }
 
   state.T = (mpres_t *) malloc ((state.size_fd + 4) * sizeof (mpres_t));
@@ -610,7 +613,11 @@ ecm_rootsF (mpz_t f, listz_t F, root_params_t *root_params,
       goto ecm_rootsF_clearfdi;
     }
   for (i = 0 ; i < state.size_fd + 4; i++)
-    mpres_init (state.T[i], modulus);
+    {
+      MEMORY_TAG;
+      mpres_init (state.T[i], modulus);
+      MEMORY_UNTAG;
+    }
 
   /* Multiply fd[] = s * coeffs[] */
 
@@ -764,12 +771,19 @@ ecm_rootsG_Mont_init (curve *X, root_params_t *root_params,
   
   for (i = 0; i < state->size_fd; i++)
     {
+      MEMORY_TAG;
       mpres_init (state->fd[i].x, modulus);
+      MEMORY_TAG;
       mpres_init (state->fd[i].y, modulus);
+      MEMORY_UNTAG;
     }
 
   for (i = 0; i < state->size_T; i++)
-    mpres_init (state->T[i], modulus);
+    {
+      MEMORY_TAG;
+      mpres_init (state->T[i], modulus);
+      MEMORY_UNTAG;
+    }
 
   MPZ_INIT (t);
   
@@ -910,8 +924,11 @@ ecm_rootsG_init (mpz_t f, curve *X, root_params_t *root_params,
     }
   for (k = 0; k < state->size_fd; k++)
     {
+      MEMORY_TAG;
       mpres_init (state->fd[k].x, modulus);
+      MEMORY_TAG;
       mpres_init (state->fd[k].y, modulus);
+      MEMORY_UNTAG;
     }
   
   state->size_T = state->size_fd + 4;
@@ -929,7 +946,11 @@ ecm_rootsG_init (mpz_t f, curve *X, root_params_t *root_params,
       return NULL;
     }
   for (k = 0; k < state->size_T; k++)
-    mpres_init (state->T[k], modulus);
+    {
+      MEMORY_TAG;
+      mpres_init (state->T[k], modulus);
+      MEMORY_UNTAG;
+    }
 
   for (k = state->S + 1; k < state->size_fd; k += state->S + 1)
      mpz_set_ui (coeffs[k + state->S], 1);

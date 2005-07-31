@@ -259,11 +259,11 @@ main (int argc, char *argv[])
   mpgocandi_t_init (&go);
 
   /* Init variables we might need to store options */
-  mpz_init (sigma);
-  mpz_init (A);
-  mpz_init (B2);
-  mpz_init (B2min);
-  mpz_init (startingB2min);
+  MPZ_INIT (sigma);
+  MPZ_INIT (A);
+  MPZ_INIT (B2);
+  MPZ_INIT (B2min);
+  MPZ_INIT (startingB2min);
   mpq_init (rat_x0);
 
   /* first look for options */
@@ -851,9 +851,9 @@ main (int argc, char *argv[])
     }
 
   mpcandi_t_init (&n); /* number(s) to factor */
-  mpz_init (f); /* factor found */
-  mpz_init (x); /* stage 1 residue */
-  mpz_init (orig_x0); /* starting point, for save file */
+  MPZ_INIT (f); /* factor found */
+  MPZ_INIT (x); /* stage 1 residue */
+  MPZ_INIT (orig_x0); /* starting point, for save file */
 
   /* We may need random numbers for sigma/starting point */
   gmp_randinit_default (randstate);
@@ -1022,7 +1022,7 @@ BreadthFirstDoAgain:;
 		  exit (EXIT_FAILURE);
 		}
 
-              mpz_init (inv);
+              MPZ_INIT (inv);
               mpz_invert (inv, mpq_denref (rat_x0), n.n);
               mpz_mul (inv, mpq_numref (rat_x0), inv);
               mpz_mod (x, inv, n.n);
