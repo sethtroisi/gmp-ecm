@@ -55,6 +55,7 @@ struct header  *tests_memory_list = NULL;
 static unsigned long nr_realloc = 0, nr_realloc_move = 0;
 static char cur_name[NAME_LEN];
 static unsigned int cur_line;
+static unsigned long cur_mem, peak_mem;
 
 /* Return a pointer to a pointer to the found block (so it can be updated
    when unlinking). */
@@ -90,6 +91,9 @@ tests_allocate (size_t size)
       abort ();
     }
 
+  if (cur_name[0] == 0)
+    cur_name[1] = 0; /* Set breakpoint here to find untagged allocs */
+
   h = (struct header *) __gmp_default_allocate (sizeof (*h));
   h->next = tests_memory_list;
   tests_memory_list = h;
@@ -99,6 +103,9 @@ tests_allocate (size_t size)
   for (i = 0; i < NAME_LEN; i++)
     h->name[i] = cur_name[i];
   h->line = cur_line;
+  cur_mem += size;
+  if (cur_mem > peak_mem)
+    peak_mem = cur_mem;
   return h->ptr;
 }
 
@@ -130,7 +137,18 @@ tests_reallocate (void *ptr, size_t old_size, size_t new_size)
       abort ();
     }
 
-#if 0
+  if (h->size > cur_mem)
+    {
+      printf ("tests_reallocate(): h->size = %d but cur_mem = %d\n",
+              h->size, cur_mem);
+      abort();
+    }
+
+  cur_mem = cur_mem - h->size + new_size;
+  if (cur_mem > peak_mem)
+    peak_mem = cur_mem;
+
+#if 1
   printf ("Reallocating %p, first allocated in %s, line %d, from %d to %d\n",
           ptr, h->name, h->line, h->size, new_size);
   if (new_size <= h->size)
@@ -163,6 +181,15 @@ tests_free_nosize (void *ptr)
   struct header  **hp = tests_free_find (ptr);
   struct header  *h = *hp;
 
+  if (h->size > cur_mem)
+    {
+      printf ("tests_free_nosize(): h->size = %d but cur_mem = %d\n",
+              h->size, cur_mem);
+      abort();
+    }
+
+  cur_mem -= h->size;
+
   *hp = h->next;  /* unlink */
 
   __gmp_default_free (ptr, h->size);
@@ -190,6 +217,8 @@ tests_memory_start (void)
   mp_set_memory_functions (tests_allocate, tests_reallocate, tests_free);
   cur_name[0] = 0;
   cur_line = 0;
+  cur_mem = 0L;
+  peak_mem = 0L;
 }
 
 void
@@ -220,8 +249,16 @@ tests_memory_end (void)
       printf ("    %u block(s) remaining\n", count);
       abort ();
     }
-  printf ("%d reallocates, %d reallocates with move\n", 
-          nr_realloc, nr_realloc_move);
+  
+  if (cur_mem != 0)
+    {
+      printf ("tests_memory_end(): cur_mem = %d but list of allocated "
+              "memory empty\n", cur_mem);
+      abort ();
+    }
+  
+  printf ("%d reallocates, %d reallocates with move, peak_mem = %d\n", 
+          nr_realloc, nr_realloc_move, peak_mem);
 }
 
 void
@@ -239,6 +276,13 @@ tests_memory_status (void)
           size += h->size;
         }
 
+    }
+
+  if (size != cur_mem)
+    {
+      printf ("tests_memory_status(): size = %d but cur_mem = %d", 
+              size, cur_mem);
+      abort();
     }
 
   printf ("    %u blocks remaining, total size %u\n", count, size);
