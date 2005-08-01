@@ -60,6 +60,11 @@ static char *champion_url[3] =
 /* minimal number of digits to enter the champions table for ECM, P-1, P+1 */
 static unsigned int champion_digits[3] = { 53, 43, 37 };
 
+/* probab_prime_p() can get called from other modules. Instead of passing
+   prpcmd to those functions, we make it static here - this variable will
+   be set only in main, and read only in probab_prime_p() */
+static  char *prpcmd = NULL;
+
 /* Tries to read a number from a line from fd and stores it in r.
    Keeps reading lines until a number is found. Lines beginning with "#"
      are skipped.
@@ -119,6 +124,32 @@ new_line:
   return 1;
 }
 
+int 
+probab_prime_p (mpz_t N, int reps)
+{
+#if defined(WANT_SHELLCMD) && defined(unix)
+  if (prpcmd != NULL)
+    {
+      FILE *fc;
+      int r;
+      fc = popen (prpcmd, "w");
+      if (fc != NULL)
+        {
+          gmp_fprintf (fc, "%Zd\n", N);
+          r = pclose (fc);
+          if (r == 0) /* Exit status of 0 means success = is a PRP */
+            return 1;
+          else
+            return 0;
+        } else {
+          fprintf (stderr, "Error executing the PRP command\n");
+          exit (EXIT_FAILURE);
+        }
+    } else
+#endif
+      mpz_probab_prime_p (N, reps);
+}
+
 static void 
 usage (void)
 {
@@ -150,9 +181,11 @@ usage (void)
     printf ("  -primetest   perform a primality test on input\n");
     printf ("  -treefile f  store product tree of F in files f.0 f.1 ... \n");
     printf ("  -maxmem n    use at most n MB of memory in stage 2\n");
-#if defined(WANT_FACCMD) && defined(unix)
+    printf ("  -stage1time n add n seconds to ECM stage 1 time (for expected time est.)\n");
+#if defined(WANT_SHELLCMD) && defined(unix)
     printf ("  -faccmd cmd  execute cmd when factor is found. Input number, factor\n"
             "               and cofactor are given to cmd via stdin, each on a line\n");
+    printf ("  -prpcmd cmd  use shell command cmd to do prp tests (number via stdin)\n");
 #endif
 
     /*printf ("  -extra functions added by JimF\n"); */
@@ -171,14 +204,7 @@ usage (void)
     printf ("  -go val      Preload with group order val, which can be a simple expression,\n");
     printf ("               or can use N as a placeholder for the number being factored.\n");
 
-    /*printf ("  -extra functions added by PhilC\n"); */
-    printf ("  -prp cmd     use shell command cmd to do large primality tests\n");
-    printf ("  -prplen n    only candidates longer than this number of digits are 'large'\n");
-    printf ("  -prpval n    value>=0 which indicates the prp command foundnumber to be PRP.\n");
-    printf ("  -prptmp file outputs n value to temp file prior to running (NB. gets deleted)\n");
-    printf ("  -prplog file otherwise get PRP results from this file (NB. gets deleted)\n");
-    printf ("  -prpyes str  literal string found in prplog file when number is PRP\n");
-    printf ("  -prpno str   literal string found in prplog file when number is composite\n");
+
     printf ("  -h, --help   Prints this help and exit.\n");
 }
 
@@ -238,7 +264,7 @@ main (int argc, char *argv[])
   double maxmem = 0.;
   double stage1time = 0.;
   ecm_params params;
-#if defined(WANT_FACCMD) && defined(unix)
+#if defined(WANT_SHELLCMD) && defined(unix)
   char *faccmd = NULL;
 #endif
 
@@ -604,50 +630,13 @@ main (int argc, char *argv[])
 	  argv += 2;
 	  argc -= 2;
 	}
-
-     else if ((argc > 2) && (strcmp (argv[1], "-prp") == 0))
+#if defined(WANT_SHELLCMD) && defined(unix)
+     else if ((argc > 2) && (strcmp (argv[1], "-prpcmd") == 0))
        {
-         externalprp = argv[2];
+         prpcmd = argv[2];
          argv += 2;
          argc -= 2;
        }
-     else if ((argc > 2) && (strcmp (argv[1], "-prptmp") == 0))
-       {
-         externalinputprpfile = argv[2];
-         argv += 2;
-         argc -= 2;
-       }
-     else if ((argc > 2) && (strcmp (argv[1], "-prplog") == 0))
-       {
-         externallog = argv[2];
-         argv += 2;
-         argc -= 2;
-       }
-     else if ((argc > 2) && (strcmp (argv[1], "-prpyes") == 0))
-       {
-         externalisprp = argv[2];
-         argv += 2;
-         argc -= 2;
-       }
-     else if ((argc > 2) && (strcmp (argv[1], "-prpno") == 0))
-       {
-         externaliscomposite = argv[2];
-         argv += 2;
-         argc -= 2;
-       }
-     else if ((argc > 2) && (strcmp (argv[1], "-prplen") == 0))
-       {
-         externalprplen = atoi (argv[2]);
-         argv += 2;
-         argc -= 2;
-       }
-     else if ((argc > 2) && (strcmp (argv[1], "-prpval") == 0))
-       {
-         externalprpval = atoi (argv[2]);
-         argv += 2;
-         argc -= 2;
-       }
-#if defined(WANT_FACCMD) && defined(unix)
      else if ((argc > 2) && (strcmp (argv[1], "-faccmd") == 0))
        {
          faccmd = argv[2];
@@ -655,7 +644,6 @@ main (int argc, char *argv[])
          argc -= 2;
        }
 #endif
-
       else
 	{
 	  fprintf (stderr, "Unknown option: %s\n", argv[1]);
@@ -1194,7 +1182,7 @@ BreadthFirstDoAgain:;
           mpz_out_str (stdout, 10, f);
 	  if (verbose > 0)
             printf ("\n");
-#if defined(WANT_FACCMD) && defined(unix)
+#if defined(WANT_SHELLCMD) && defined(unix)
 	  if (faccmd != NULL)
 	    {
 	      FILE *fc;
@@ -1223,7 +1211,7 @@ BreadthFirstDoAgain:;
 	  if (mpz_cmp (f, n.n) != 0)
 	    {
 	      /* prints factor found and cofactor on standard output. */
-	      factor_is_prime = smart_probab_prime_p (f, PROBAB_PRIME_TESTS);
+	      factor_is_prime = probab_prime_p (f, PROBAB_PRIME_TESTS);
 
               if (verbose >= 1)
                 {
