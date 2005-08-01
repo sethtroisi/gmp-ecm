@@ -20,7 +20,7 @@ noinst_PROGRAMS = tune ecmfactor
 LDADD = libecm.a
 
 ecm_SOURCES = auxi.c b1_ainc.c candi.c eval.c random2.c main.c trial.c \
-              memory.c resume.c smartprp.c getprime2.c
+              memory.c resume.c getprime2.c
 
 tune_CPPFLAGS = -DTUNE $(AM_CPPFLAGS)
 tune_LDADD =

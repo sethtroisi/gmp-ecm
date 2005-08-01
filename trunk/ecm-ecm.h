@@ -111,9 +111,6 @@ void tests_memory_status (void);
 void tests_memory_set_location (char *, unsigned int);
 #endif
 
-/* smartprp.c */
-int smart_probab_prime_p (mpz_t const n, int c);
-
 /* trial.c */
 int trial_factor (mpcandi_t *n, double maxfact, int deep);
 
@@ -127,6 +124,7 @@ void kill_temp_resume_file (void);
 
 /* main.c */
 int read_number (mpcandi_t *n, FILE *, int primetest);
+int probab_prime_p (mpz_t, int);
 
 /* eval.c */
 int eval (mpcandi_t *n, FILE *fd, int bPrp);
@@ -152,15 +150,6 @@ void pm1_random_seed  (mpz_t, mpz_t, gmp_randstate_t);
 
 /* default number of probable prime tests */
 #define PROBAB_PRIME_TESTS 1
-
-/* Options for using an external PRPer rather than internal GMP */
-extern char *externalprp; /* call out to external program  */  
-extern char *externallog; /* where to find output */
-extern char *externalinputprpfile; /* Used to place the n value (a temp file). Is deleted after system */
-extern char *externalisprp; /* what to match output against */
-extern char *externaliscomposite; /* ditto */
-extern int externalprplen; /* length where we go external */
-extern int externalprpval; /* exit value meaning it's prp, -1 is impossible */
 
 /* maximal stage 1 bound = 2^53 + 4, the next prime being 2^53 + 5 */
 #define MAX_B1 9007199254740996.0
