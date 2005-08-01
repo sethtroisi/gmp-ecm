@@ -751,14 +751,14 @@ int
 ecm (mpz_t f, mpz_t x, mpz_t sigma, mpz_t n, mpz_t go, double B1done,
      double B1, mpz_t B2min_parm, mpz_t B2_parm, double B2scale, 
      unsigned long k, const int S, int verbose, int repr, int sigma_is_A, 
-     FILE *os, FILE* es, char *TreeFilename, double maxmem, 
+     FILE *os, FILE* es, char *TreeFilename, double maxmem, double stage1time,
      gmp_randstate_t rng)
 {
   int youpi = ECM_NO_FACTOR_FOUND;
   int base2 = 0;  /* If n is of form 2^n[+-]1, set base to [+-]n */
   int Fermat = 0; /* If base2 > 0 is a power of 2, set Fermat to base2 */
   int po2 = 0;    /* Whether we should use power-of-2 poly degree */
-  unsigned int st;
+  long st;
   mpmod_t modulus;
   curve P;
   mpz_t B2min, B2; /* Local B2, B2min to avoid changing caller's values */
@@ -989,7 +989,16 @@ ecm (mpz_t f, mpz_t x, mpz_t sigma, mpz_t n, mpz_t go, double B1done,
   if (B1 > B1done)
     youpi = ecm_stage1 (f, P.x, P.A, modulus, B1, B1done, go);
   
-  outputf (OUTPUT_NORMAL, "Step 1 took %ums\n", elltime (st, cputime ()));
+  if (stage1time > 0.)
+    {
+      const long st2 = elltime (st, cputime ());
+      const long s1t = (long) (stage1time * 1000.);
+      outputf (OUTPUT_NORMAL, 
+               "Step 1 took %ldms (%ld in this run, %ld from previous runs)\n", 
+               st2 + s1t, st2, s1t);
+    }
+  else
+    outputf (OUTPUT_NORMAL, "Step 1 took %ldms\n", elltime (st, cputime ()));
 
   /* Store end-of-stage-1 residue in x in case we write it to a save file, 
      before P.x is converted to Weierstrass form */
@@ -1041,6 +1050,7 @@ ecm (mpz_t f, mpz_t x, mpz_t sigma, mpz_t n, mpz_t go, double B1done,
   
   if (youpi == ECM_NO_FACTOR_FOUND)
     print_exptime (B2min, B2, dF, k, root_params.S, 
+                   (long) (stage1time * 1000.) + 
                    elltime (st, cputime ()), 1);
 
 end_of_ecm:

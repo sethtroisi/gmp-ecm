@@ -321,7 +321,7 @@ stage2 (mpz_t f, void *X, mpmod_t modulus, unsigned long dF, unsigned long k,
   mpz_t n;
   listz_t F, G, H, T;
   int youpi = 0;
-  unsigned int st, st0;
+  long st, st0;
   void *rootsG_state = NULL;
   listz_t *Tree = NULL; /* stores the product tree for F */
   unsigned int lgk; /* ceil(log(k)/log(2)) */
@@ -495,7 +495,7 @@ stage2 (mpz_t f, void *X, mpmod_t modulus, unsigned long dF, unsigned long k,
     PolyFromRoots_Tree (F, F, dF, T, -1, n, Tree, NULL, 0);
 #endif
   
-  outputf (OUTPUT_VERBOSE, "Building F from its roots took %ums\n", 
+  outputf (OUTPUT_VERBOSE, "Building F from its roots took %ldms\n", 
            elltime (st, cputime ()));
 
   /* needs dF+list_mul_mem(dF/2) cells in T */
@@ -534,7 +534,7 @@ stage2 (mpz_t f, void *X, mpmod_t modulus, unsigned long dF, unsigned long k,
       PolyInvert (invF, F + 1, dF, T, n);
 #endif
       /* now invF[0..dF-1] = Quo(x^(2dF-1), F) */
-      outputf (OUTPUT_VERBOSE, "Computing 1/F took %ums\n",
+      outputf (OUTPUT_VERBOSE, "Computing 1/F took %ldms\n",
 	       elltime (st, cputime ()));
       
       /* ----------------------------------------------
@@ -575,7 +575,7 @@ stage2 (mpz_t f, void *X, mpmod_t modulus, unsigned long dF, unsigned long k,
 
   if (method != ECM_ECM) /* ecm_rootsG_init prints itself */
     outputf (OUTPUT_VERBOSE, "Initializing table of differences for G "
-             "took %ums\n", elltime (st, cputime ()));
+             "took %ldms\n", elltime (st, cputime ()));
 
   for (i = 0; i < k; i++)
     {
@@ -611,7 +611,7 @@ stage2 (mpz_t f, void *X, mpmod_t modulus, unsigned long dF, unsigned long k,
 #endif
 
       /* needs 2*dF+list_mul_mem(dF/2) cells in T */
-      outputf (OUTPUT_VERBOSE, "Building G from its roots took %ums\n", 
+      outputf (OUTPUT_VERBOSE, "Building G from its roots took %ldms\n", 
                elltime (st, cputime ()));
 
   /* -----------------------------------------------
@@ -653,7 +653,7 @@ stage2 (mpz_t f, void *X, mpmod_t modulus, unsigned long dF, unsigned long k,
 	  list_mulmod (H, T + dF, G, H, dF, T + 3 * dF, n);
 #endif
 
-          outputf (OUTPUT_VERBOSE, "Computing G * H took %ums\n", 
+          outputf (OUTPUT_VERBOSE, "Computing G * H took %ldms\n", 
                    elltime (st, cputime ()));
 
           /* ------------------------------------------------
@@ -672,7 +672,7 @@ stage2 (mpz_t f, void *X, mpmod_t modulus, unsigned long dF, unsigned long k,
 	      goto clear_fd;
 	    }
 #endif
-          outputf (OUTPUT_VERBOSE, "Reducing  G * H mod F took %ums\n", 
+          outputf (OUTPUT_VERBOSE, "Reducing  G * H mod F took %ldms\n", 
                    elltime (st, cputime ()));
 	}
     }
@@ -701,7 +701,7 @@ stage2 (mpz_t f, void *X, mpmod_t modulus, unsigned long dF, unsigned long k,
   polyeval (T, dF, Tree, T + dF + 1, n, 0, ECM_STDERR);
 #endif
 
-  outputf (OUTPUT_VERBOSE, "Computing polyeval(F,G) took %ums\n", 
+  outputf (OUTPUT_VERBOSE, "Computing polyeval(F,G) took %ldms\n", 
            elltime (st, cputime ()));
 
   youpi = list_gcd (f, T, dF, n) ? 2 : 0;
@@ -746,7 +746,7 @@ clear_i0:
   
   st0 = elltime (st0, cputime ());
 
-  outputf (OUTPUT_NORMAL, "Step 2 took %ums\n", st0);
+  outputf (OUTPUT_NORMAL, "Step 2 took %ldms\n", st0);
 
   return youpi;
 }

@@ -20,7 +20,6 @@
   MA 02111-1307, USA.
 */
 
-#include "ecm-impl.h"
 #include <stdio.h>
 #include <stdlib.h>
 
@@ -36,7 +35,9 @@
 #endif
 
 #include <stdarg.h>
+#include <limits.h>
 #include <gmp.h>
+#include "ecm-impl.h"
 
 #define VERBOSE __ECM(verbose)
 static int VERBOSE = OUTPUT_NORMAL;
@@ -128,17 +129,15 @@ ceil_log2 (unsigned long n)
   return k;
 }
 
-/* Define TICK s.t. TICK * cputime () gives the elapsed time in milliseconds */
+/* cputime () gives the elapsed time in milliseconds */
 
 #if defined (_WIN32)
 /* First case - GetProcessTimes () is the only known way of getting process
  * time (as opposed to calendar time) under mingw32 */
 
-#define TICK (1.0 / 1000.0)
-
 #include <windows.h>
 
-unsigned int
+long
 cputime ()
 {
   __int64 lpCreationTime, lpExitTime, lpKernelTime, lpUserTime;
@@ -148,13 +147,13 @@ cputime ()
       (LPFILETIME) &lpExitTime, (LPFILETIME) &lpKernelTime,
       (LPFILETIME) &lpUserTime);
 
-  /* return time in microseconds */
-  return (unsigned int) (lpUserTime / 10);  
+  /* lpUserTime is in units of 100 ns. Return time in milliseconds */
+  return (long) (lpUserTime / 10000);
 }
 
 #elif defined (HAVE_GETRUSAGE)
 /* Next case: getrusage () has higher resolution than clock () and so is
- * preferred. */
+   preferred. */
 
 #ifdef HAVE_SYS_TYPES_H
 #include <sys/types.h>
@@ -163,37 +162,43 @@ cputime ()
 #include <sys/resource.h>
 #endif
 
-#define TICK 1.0
-
-unsigned int
+long
 cputime ()
 {
   struct rusage rus;
 
   getrusage (RUSAGE_SELF, &rus);
-  return rus.ru_utime.tv_sec * 1000 + rus.ru_utime.tv_usec / 1000;
+  /* This overflows a 32 bit signed int after 2147483s = 24.85 days */
+  return rus.ru_utime.tv_sec * 1000L + rus.ru_utime.tv_usec / 1000L;
 }
 
 #else
 /* Resort to clock (), which on some systems may return calendar time. */
 
-#define TICK (1000.0 / (double) CLOCKS_PER_SEC)
-
-unsigned int
+long
 cputime ()
 {
-  return (unsigned int) clock ();
+  /* Return time in milliseconds */
+  return (long) (clock () * (1000. / (double) CLOCKS_PER_SEC));
 }
 
 #endif /* defining cputime () */
 
 /* ellapsed time (in milliseconds) between st0 and st1 (values of cputime) */
-unsigned int
-elltime (unsigned int st0, unsigned int st1)
+long
+elltime (long st0, long st1)
 {
-  st1 = st1 - st0; /* correct even if wrap around, as long as the time
-		      difference is less than UINT_MAX */
-  return (unsigned int) ((double) st1 * TICK);
+  if (st1 >= st0)
+    return st1 - st0;
+  else
+    {
+      /* A wrap around can only really happen on a system where long int is 
+         32 bit and where we use clock(). So we assume that there was exactly 
+         one wrap-around which "swallowed" 
+         LONG_MAX * (1000. / (double) CLOCKS_PER_SEC) milliseconds. */
+      
+      return st1 - st0 + (long)(LONG_MAX * (1000. / (double) CLOCKS_PER_SEC));
+    }
 }
 
 int 

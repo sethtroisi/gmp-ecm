@@ -148,7 +148,7 @@ tests_reallocate (void *ptr, size_t old_size, size_t new_size)
   if (cur_mem > peak_mem)
     peak_mem = cur_mem;
 
-#if 1
+#if 0
   printf ("Reallocating %p, first allocated in %s, line %d, from %d to %d\n",
           ptr, h->name, h->line, h->size, new_size);
   if (new_size <= h->size)
