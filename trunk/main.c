@@ -147,7 +147,7 @@ probab_prime_p (mpz_t N, int reps)
         }
     } else
 #endif
-      mpz_probab_prime_p (N, reps);
+      return mpz_probab_prime_p (N, reps);
 }
 
 static void 
