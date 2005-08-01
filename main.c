@@ -236,6 +236,7 @@ main (int argc, char *argv[])
   double maxtrialdiv = 0.0;
   double B2scale = 1.0;
   double maxmem = 0.;
+  double stage1time = 0.;
   ecm_params params;
 #if defined(WANT_FACCMD) && defined(unix)
   char *faccmd = NULL;
@@ -574,6 +575,12 @@ main (int argc, char *argv[])
 	  argv += 2;
 	  argc -= 2;
 	}
+      else if ((argc > 2) && (strcmp (argv[1], "-stage1time") == 0))
+	{
+	  stage1time = atof (argv[2]);
+	  argv += 2;
+	  argc -= 2;
+	}
       else if ((argc > 2) && (strcmp (argv[1], "-go") == 0))
 	{
 	  if (go.cpOrigExpr)
@@ -807,6 +814,7 @@ main (int argc, char *argv[])
   params->repr = repr;
   params->TreeFilename = TreeFilename;
   params->maxmem = maxmem;
+  params->stage1time = stage1time;
 
   /* Open resume file for reading, if resuming is requested */
   if (resumefilename != NULL)

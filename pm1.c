@@ -409,7 +409,7 @@ pm1_rootsF (mpz_t f, listz_t F, root_params_t *root_params,
 {
   unsigned long i;
   unsigned long muls = 0, gcds = 0;
-  unsigned int st, st1;
+  long st, st1;
   pm1_roots_state state;
   listz_t coeffs;
   mpz_t ts;
@@ -478,7 +478,7 @@ pm1_rootsF (mpz_t f, listz_t F, root_params_t *root_params,
   
   st1 = cputime ();
   outputf (OUTPUT_VERBOSE,
-	   "Initializing table of differences for F took %ums\n",
+	   "Initializing table of differences for F took %ldms\n",
 	   elltime (st, st1));
   st = st1;
 
@@ -529,7 +529,7 @@ pm1_rootsF (mpz_t f, listz_t F, root_params_t *root_params,
         }
     }
   
-  outputf (OUTPUT_VERBOSE, "Computing roots of F took %ums",
+  outputf (OUTPUT_VERBOSE, "Computing roots of F took %ldms",
 	   elltime (st, cputime ()));
   outputf (OUTPUT_DEVVERBOSE, ", %lu muls and %lu extgcds", muls, gcds);
   outputf (OUTPUT_VERBOSE, "\n");
@@ -716,7 +716,7 @@ pm1_rootsG (mpz_t f, listz_t G, unsigned long dF, pm1_roots_state *state,
         }
     }
   
-  outputf (OUTPUT_VERBOSE, "Computing roots of G took %ums",
+  outputf (OUTPUT_VERBOSE, "Computing roots of G took %ldms",
 	   elltime (st, cputime ()));
   outputf (OUTPUT_DEVVERBOSE, ", %lu muls and %lu extgcds", muls, gcds);
   outputf (OUTPUT_VERBOSE, "\n");
@@ -752,7 +752,7 @@ pm1 (mpz_t f, mpz_t p, mpz_t N, mpz_t go, double B1done, double B1,
   int base2 = 0;
   int Nbits, smallbase;
   int po2 = 0;    /* Whether we should use power-of-2 poly degree */
-  unsigned int st;
+  long st;
   mpmod_t modulus;
   mpres_t x;
   mpz_t B2min, B2; /* Local B2, B2min to avoid changing caller's values */
@@ -925,7 +925,7 @@ pm1 (mpz_t f, mpz_t p, mpz_t N, mpz_t go, double B1done, double B1,
 
   st = elltime (st, cputime ());
 
-  outputf (OUTPUT_NORMAL, "Step 1 took %ums\n", st);
+  outputf (OUTPUT_NORMAL, "Step 1 took %ldms\n", st);
   if (test_verbose (OUTPUT_RESVERBOSE))
     {
       mpz_t tx;

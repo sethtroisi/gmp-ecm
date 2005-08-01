@@ -89,7 +89,7 @@ get_random_ui (void)
     int r;
     unsigned int rnd;
     
-    r = CryptGenRandom(Prov, 4, (void *) &rnd);
+    r = CryptGenRandom(Prov, sizeof(unsigned int), (void *) &rnd);
     CryptReleaseContext(Prov, 0);
     if (r)
       return rnd;
@@ -137,7 +137,8 @@ get_random_ui (void)
   outputf (OUTPUT_DEVVERBOSE, "Got seed for RNG from time()+getpid()\n");
 #endif
 
-  return time (NULL) + getpid ();
+  /* Multiply one value by a large prime to get a bit of avalance effect */
+  return time (NULL) + getpid () * 2147483629;
 }
 #endif
 
