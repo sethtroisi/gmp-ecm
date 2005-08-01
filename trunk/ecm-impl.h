@@ -588,9 +588,9 @@ void         mpz_divby3_1op (mpz_t);
 #define ceil_log2 __ECM(ceil_log2)
 unsigned int ceil_log2  (unsigned long);
 #define cputime __ECM(cputime)
-unsigned int cputime    (void);
+long         cputime    (void);
 #define elltime __ECM(elltime)
-unsigned int elltime    (unsigned int, unsigned int);
+long         elltime    (long, long);
 #define test_verbose __ECM(test_verbose)
 int          test_verbose (int);
 #define get_verbose __ECM(get_verbose)

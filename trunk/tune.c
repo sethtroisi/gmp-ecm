@@ -33,7 +33,7 @@
 
 #define ELAPSED elltime (st, cputime () )
 #define TUNE_FUNC_START(x) double x (size_t n) \
-  { unsigned int k = 0, st;
+  { unsigned int k = 0; long st;
 #define TUNE_FUNC_LOOP(x) do { st = cputime (); do { x; k++; } \
     while (ELAPSED < GRANULARITY); st = ELAPSED; } while (0)
 #define TUNE_FUNC_END return (double) k / (double) st; }
@@ -78,7 +78,8 @@ tune_mpres_mul (size_t limbs, int repr)
   mpmod_t modulus;
   mpres_t x, y, z;
   mpz_t N, p, q;
-  unsigned int st, k = 0;
+  unsigned int k = 0;
+  long st;
 
   mpz_init (N);
   mpz_init (p);
