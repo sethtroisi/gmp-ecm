@@ -750,9 +750,9 @@ print_exptime (mpz_t B2min, mpz_t effB2, unsigned long dF, unsigned long k,
 int
 ecm (mpz_t f, mpz_t x, mpz_t sigma, mpz_t n, mpz_t go, double B1done,
      double B1, mpz_t B2min_parm, mpz_t B2_parm, double B2scale, 
-     unsigned long k, const int S, int verbose, int repr, int sigma_is_A, 
-     FILE *os, FILE* es, char *TreeFilename, double maxmem, double stage1time,
-     gmp_randstate_t rng)
+     unsigned long k, const int S, int verbose, int repr, int use_ntt,
+     int sigma_is_A, FILE *os, FILE* es, char *TreeFilename, double maxmem,
+     double stage1time, gmp_randstate_t rng)
 {
   int youpi = ECM_NO_FACTOR_FOUND;
   int base2 = 0;  /* If n is of form 2^n[+-]1, set base to [+-]n */
@@ -861,11 +861,10 @@ ecm (mpz_t f, mpz_t x, mpz_t sigma, mpz_t n, mpz_t go, double B1done,
   /* Let bestD determine parameters for root generation and the 
      effective B2 */
 
-#ifdef HAVE_NTT
-  po2 = 1;
-#endif
+  if (use_ntt)
+    po2 = 1;
 
-  if (bestD (&root_params, &k, &dF, B2min, B2, po2, maxmem, 
+  if (bestD (&root_params, &k, &dF, B2min, B2, po2, use_ntt, maxmem, 
              (TreeFilename != NULL), modulus) == ECM_ERROR)
     {
       youpi = ECM_ERROR;
@@ -1046,7 +1045,7 @@ ecm (mpz_t f, mpz_t x, mpz_t sigma, mpz_t n, mpz_t go, double B1done,
 
   if (youpi == ECM_NO_FACTOR_FOUND && mpz_cmp (B2, B2min) >= 0)
     youpi = stage2 (f, &P, modulus, dF, k, &root_params, ECM_ECM, 
-                    TreeFilename);
+                    use_ntt, TreeFilename);
   
   if (youpi == ECM_NO_FACTOR_FOUND)
     print_exptime (B2min, B2, dF, k, root_params.S, 

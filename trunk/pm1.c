@@ -745,7 +745,7 @@ pm1_rootsG (mpz_t f, listz_t G, unsigned long dF, pm1_roots_state *state,
 int
 pm1 (mpz_t f, mpz_t p, mpz_t N, mpz_t go, double B1done, double B1,
      mpz_t B2min_parm, mpz_t B2_parm, double B2scale, unsigned long k, 
-     const int S, int verbose, int repr, FILE *os, FILE *es, 
+     const int S, int verbose, int repr, int use_ntt, FILE *os, FILE *es, 
      char *TreeFilename, double maxmem, gmp_randstate_t rng)
 {
   int youpi = ECM_NO_FACTOR_FOUND;
@@ -838,13 +838,10 @@ pm1 (mpz_t f, mpz_t p, mpz_t N, mpz_t go, double B1done, double B1,
         }
     }
   
-  if (modulus->repr == ECM_MOD_BASE2 && modulus->Fermat > 0)
+  if (use_ntt || (modulus->repr == ECM_MOD_BASE2 && modulus->Fermat > 0))
     po2 = 1;
-#ifdef HAVE_NTT
-  po2 = 1;
-#endif
   
-  if (bestD (&root_params, &k, &dF, B2min, B2, po2, maxmem,
+  if (bestD (&root_params, &k, &dF, B2min, B2, po2, use_ntt, maxmem,
              (TreeFilename != NULL), modulus) == ECM_ERROR)
     {
       youpi = ECM_ERROR;
@@ -937,7 +934,7 @@ pm1 (mpz_t f, mpz_t p, mpz_t N, mpz_t go, double B1done, double B1,
 
   if (youpi == ECM_NO_FACTOR_FOUND && mpz_cmp (B2, B2min) >= 0)
     youpi = stage2 (f, &x, modulus, dF, k, &root_params, ECM_PM1, 
-                    TreeFilename);
+                    use_ntt, TreeFilename);
 
 clear_and_exit:
   mpres_get_z (p, x, modulus);

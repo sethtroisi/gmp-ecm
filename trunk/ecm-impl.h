@@ -320,7 +320,7 @@ void    pm1_rootsG_clear (pm1_roots_state *, mpmod_t);
 unsigned long eulerphi (unsigned long);
 #define bestD __ECM(bestD)
 int     bestD (root_params_t *, unsigned long *, unsigned long *, mpz_t, 
-               mpz_t, int, double, int, mpmod_t);
+               mpz_t, int, int, double, int, mpmod_t);
 
 /* ecm.c */
 #define choose_S __ECM(choose_S)
@@ -369,7 +369,7 @@ void  pp1_rootsG_clear (pp1_roots_state *, mpmod_t);
 /* stage2.c */
 #define stage2 __ECM(stage2)
 int          stage2     (mpz_t, void *, mpmod_t, unsigned long, unsigned long,
-                         root_params_t *, int, char *);
+                         root_params_t *, int, int, char *);
 #define init_progression_coeffs __ECM(init_progression_coeffs)
 listz_t init_progression_coeffs (mpz_t, const unsigned long, const unsigned long, 
 				 const unsigned int, const unsigned int, 

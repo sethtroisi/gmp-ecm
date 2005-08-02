@@ -2,16 +2,14 @@
 
 lib_LIBRARIES = libecm.a
 
-libecm_a_SOURCES = ecm.c ecm2.c pm1.c pp1.c getprime.c listz.c lucas.c\
-		   stage2.c toomcook.c mpmod.c mul_lo.c polyeval.c median.c\
-		   schoen_strass.c ks-multiply.c rho.c bestd.c auxlib.c\
-		   random.c factor.c
+libecm_a_SOURCES = ecm.c ecm2.c pm1.c pp1.c getprime.c listz.c lucas.c \
+		   stage2.c toomcook.c mpmod.c mul_lo.c polyeval.c median.c \
+		   schoen_strass.c ks-multiply.c rho.c bestd.c auxlib.c \
+		   random.c factor.c sp.c spv.c spm.c mpzspm.c mpzspv.c \
+		   ntt_gfp.c ecm_ntt.c
+
 if ENABLE_ASM_REDC
   libecm_a_SOURCES += redc.s
-endif
-
-if ENABLE_NTT
-  libecm_a_SOURCES += sp.c spv.c spm.c mpzspm.c mpzspv.c ntt_gfp.c ecm_ntt.c
 endif
 
 bin_PROGRAMS = ecm
@@ -26,11 +24,8 @@ ecm_SOURCES = auxi.c b1_ainc.c candi.c eval.c random.c main.c trial.c \
 tune_CPPFLAGS = -DTUNE $(AM_CPPFLAGS)
 tune_LDADD =
 tune_SOURCES = mpmod.c tune.c mul_lo.c listz.c auxlib.c ks-multiply.c \
-               toomcook.c schoen_strass.c polyeval.c median.c
-if ENABLE_NTT
-  tune_SOURCES += ecm_ntt.c ntt_gfp.c mpzspv.c mpzspm.c sp.c \
-                  spv.c spm.c random.c
-endif
+               toomcook.c schoen_strass.c polyeval.c median.c ecm_ntt.c \
+	       ntt_gfp.c mpzspv.c mpzspm.c sp.c spv.c spm.c random.c
 
 if WITH_GWNUM
   gwdata.ld :
