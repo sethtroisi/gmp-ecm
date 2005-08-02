@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/bin/sh
 # test file for P+1 method
 #
 # Copyright 2002, 2003 Paul Zimmermann and Alexander Kruppa.
