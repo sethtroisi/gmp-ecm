@@ -690,7 +690,7 @@ pp1_rootsG (listz_t G, unsigned long dF, pp1_roots_state *state, mpmod_t modulus
 int
 pp1 (mpz_t f, mpz_t p, mpz_t n, mpz_t go, double B1done, double B1,
      mpz_t B2min_parm, mpz_t B2_parm, double B2scale, unsigned long k, 
-     const int S, int verbose, int repr, FILE *os, FILE *es, 
+     const int S, int verbose, int repr, int use_ntt, FILE *os, FILE *es, 
      char *TreeFilename, double maxmem, gmp_randstate_t rng)
 {
   int youpi = ECM_NO_FACTOR_FOUND;
@@ -744,11 +744,10 @@ pp1 (mpz_t f, mpz_t p, mpz_t n, mpz_t go, double B1done, double B1,
   else /* automatic choice */
     mpmod_init (modulus, n, repr);
 
-#ifdef HAVE_NTT
-  po2 = 1;
-#endif
+  if (use_ntt)
+    po2 = 1;
   
-  if (bestD (&root_params, &k, &dF, B2min, B2, po2, maxmem,
+  if (bestD (&root_params, &k, &dF, B2min, B2, po2, use_ntt, maxmem,
              (TreeFilename != NULL), modulus) == ECM_ERROR)
     {
       youpi = ECM_ERROR;
@@ -829,7 +828,7 @@ pp1 (mpz_t f, mpz_t p, mpz_t n, mpz_t go, double B1done, double B1,
 
   if (youpi == ECM_NO_FACTOR_FOUND && mpz_cmp (B2, B2min) >= 0)
     youpi = stage2 (f, &a, modulus, dF, k, &root_params, ECM_PP1, 
-                    TreeFilename);
+                    use_ntt, TreeFilename);
 
   if (youpi > 0 && test_verbose (OUTPUT_NORMAL))
     pp1_check_factor (p, f); /* tell user if factor was found by P-1 */

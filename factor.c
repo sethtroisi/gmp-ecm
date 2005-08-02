@@ -79,15 +79,15 @@ ecm_factor (mpz_t f, mpz_t n, double B1, ecm_params p)
 
   if (p->method == ECM_ECM)
     res = ecm (f, p->x, p->sigma, n, p->go, p->B1done, B1, p->B2min, p->B2, 1.0,
-               p->k, p->S, p->verbose, p->repr, p->sigma_is_A, p->os, p->es,
-               p->TreeFilename, p->maxmem, p->stage1time, p->rng);
+               p->k, p->S, p->verbose, p->repr, p->use_ntt, p->sigma_is_A,
+	       p->os, p->es, p->TreeFilename, p->maxmem, p->stage1time, p->rng);
   else if (p->method == ECM_PM1)
     res = pm1 (f, p->x, n, p->go, p->B1done, B1, p->B2min, p->B2, 1.0,
-               p->k, p->S, p->verbose, p->repr, p->os, p->es,
+               p->k, p->S, p->verbose, p->repr, p->use_ntt, p->os, p->es,
                p->TreeFilename, p->maxmem, p->rng);
   else if (p->method == ECM_PP1)
     res = pp1 (f, p->x, n, p->go, p->B1done, B1, p->B2min, p->B2, 1.0,
-               p->k, p->S, p->verbose, p->repr, p->os, p->es,
+               p->k, p->S, p->verbose, p->repr, p->use_ntt, p->os, p->es,
                p->TreeFilename, p->maxmem, p->rng);
   else
     {

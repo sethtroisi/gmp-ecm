@@ -31,9 +31,10 @@ ToDo's:
   have it in resume file? (Target: 6.1)
 
 3) documentation
-- check README is up-to-date wrt tune
+- check README is up-to-date wrt tune (BLOCKING: 6.1)
 - add examples for typical use to README 
   (see http://www.mersenneforum.org/showthread.php?t=3922)
+- document -no-ntt (BLOCKING: 6.1)
 
 4) others
 - add an option to execute a shell command (such as sending an email) 
