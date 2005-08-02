@@ -50,17 +50,14 @@
 mpz_t M; /* yes, global variables */
 gmp_randstate_t gmp_randstate;
 size_t mp_size;
-
-size_t MPZMOD_THRESHOLD;
-size_t REDC_THRESHOLD;
-
-#ifdef HAVE_NTT
 mpzspm_t mpzspm;
 mpzv_t x, y, z, t;
 spm_t spm;
 spv_t spv;
 mpzspv_t mpzspv;
 
+size_t MPZMOD_THRESHOLD;
+size_t REDC_THRESHOLD;
 size_t SPV_NTT_GFP_DIF_RECURSIVE_THRESHOLD;
 size_t SPV_NTT_GFP_DIT_RECURSIVE_THRESHOLD;
 size_t MUL_NTT_THRESHOLD;
@@ -68,11 +65,9 @@ size_t PREREVERTDIVISION_NTT_THRESHOLD;
 size_t POLYINVERT_NTT_THRESHOLD;
 size_t POLYEVALT_NTT_THRESHOLD;
 size_t MPZSPV_NORMALISE_STRIDE = 256;
-#endif
 
 
-
-double
+	double
 tune_mpres_mul (mp_size_t limbs, int repr)
 {
   mpmod_t modulus;
@@ -143,7 +138,6 @@ tune_mpres_mul_redc (size_t n)
   return tune_mpres_mul (n, ECM_MOD_REDC);
 }
 
-#ifdef HAVE_NTT
 TUNE_FUNC_START (tune_spv_ntt_gfp_dif_recursive)
   SPV_NTT_GFP_DIF_RECURSIVE_THRESHOLD = 1 << n;
   TUNE_FUNC_LOOP (spv_ntt_gfp_dif (spv, 1 << n, spm->sp, spm->mul_c,
@@ -248,8 +242,6 @@ TUNE_FUNC_START (tune_mpzspv_normalise)
   TUNE_FUNC_LOOP (mpzspv_normalise (mpzspv, 0, MAX_LEN, mpzspm));
 TUNE_FUNC_END
 
-#endif /* NTT functions */
-
 
 TUNE_FUNC_START (tune_ecm_mul_lo_n)
   mp_limb_t rp[2 * MPN_MUL_LO_THRESHOLD];
@@ -337,8 +329,6 @@ int main ()
   spv_size_t i;
 
   gmp_randinit_default (gmp_randstate);
-
-#ifdef HAVE_NTT
   mpz_init_set_str (M, M_str, 10);
   
   x = init_list (MAX_LEN);
@@ -361,7 +351,6 @@ int main ()
   spv_random (spv, MAX_LEN, spm->sp);
   mpzspv = mpzspv_init (MAX_LEN, mpzspm);
   mpzspv_random (mpzspv, 0, MAX_LEN, mpzspm);
-#endif
   
   MPZMOD_THRESHOLD = crossover2 (tune_mpres_mul_modmuln, tune_mpres_mul_mpz,
       1, 512, 10);
@@ -386,7 +375,6 @@ int main ()
   printf ("%lu}\n", 
       (unsigned long) mpn_mul_lo_threshold[MPN_MUL_LO_THRESHOLD - 1]);
 
-#ifdef HAVE_NTT
   SPV_NTT_GFP_DIF_RECURSIVE_THRESHOLD = 1 << crossover
     (tune_spv_ntt_gfp_dif_unrolled, tune_spv_ntt_gfp_dif_recursive, 1,
      MAX_LOG2_LEN);
@@ -441,7 +429,6 @@ int main ()
   clear_list (t, list_mul_mem (MAX_LEN / 2) + 3 * MAX_LEN / 2);
 
   mpz_clear (M);
-#endif
   
   gmp_randclear (gmp_randstate);
   

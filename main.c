@@ -175,6 +175,7 @@ usage (void)
     printf ("  -redc        use Montgomery's REDC for mod reduction\n");
     printf ("  -nobase2     disable special base-2 code\n");
     printf ("  -base2 n     force base 2 mode with 2^n+1 (n>0) or 2^|n|-1 (n<0)\n");
+    printf ("  -no-ntt      disable NTT polynomial routines in stage 2\n");
     printf ("  -save file   save residues at end of stage 1 to file\n");
     printf ("  -savea file  like -save, appends to existing files\n");
     printf ("  -resume file resume residues from file, reads from stdin if file is \"-\"\n");
@@ -228,6 +229,7 @@ main (int argc, char *argv[])
   int verbose = OUTPUT_NORMAL; /* verbose level */
   int timestamp = 0;
   int method = ECM_ECM, method1;
+  int use_ntt = 1;
   int specific_x0 = 0, /* 1=starting point supplied by user, 0=random or */
                        /* compute from sigma */
       specific_sigma = 0;  /* 1=sigma from command line, 0=make random */
@@ -350,6 +352,12 @@ main (int argc, char *argv[])
 	  argv++;
 	  argc--;
         }
+      else if (strcmp (argv[1], "-no-ntt") == 0)
+	{
+	  use_ntt = 0;
+	  argv++;
+	  argc--;
+	}
       else if (strcmp (argv[1], "-primetest") == 0)
         {
           primetest = 1;
@@ -803,6 +811,7 @@ main (int argc, char *argv[])
   params->TreeFilename = TreeFilename;
   params->maxmem = maxmem;
   params->stage1time = stage1time;
+  params->use_ntt = use_ntt;
 
   /* Open resume file for reading, if resuming is requested */
   if (resumefilename != NULL)

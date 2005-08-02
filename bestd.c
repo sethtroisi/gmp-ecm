@@ -99,7 +99,7 @@
 
 int
 bestD (root_params_t *root_params, unsigned long *finalk, 
-       unsigned long *finaldF, mpz_t B2min, mpz_t B2, int po2, 
+       unsigned long *finaldF, mpz_t B2min, mpz_t B2, int po2, int use_ntt, 
        double maxmem, int treefile, mpmod_t modulus)
 {
 /* the following list contains successive values of b with
@@ -152,11 +152,12 @@ od:
         phid = eulerphi (d1) / 2;
         dF = (po2) ? 1U << ceil_log2 (phid) : phid;
         lg_dF = ceil_log2 (dF);
-#ifdef HAVE_NTT
-        sp_num = (2 * mpz_sizeinbase (modulus->orig_modulus, 2) + lg_dF) / 
+        
+        if (use_ntt)
+          sp_num = (2 * mpz_sizeinbase (modulus->orig_modulus, 2) + lg_dF) / 
                  __GMP_BITS_PER_MP_LIMB + 4;
-#endif
-        memory = memory_use (dF, sp_num, (treefile) ? 0 : lg_dF, modulus);
+        
+	memory = memory_use (dF, sp_num, (treefile) ? 0 : lg_dF, modulus);
         outputf (OUTPUT_DEVVERBOSE, 
                  "Estimated mem for dF = %.0d, sp_num = %d: %.0f\n", 
                  dF, sp_num, memory);
