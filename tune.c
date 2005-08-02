@@ -73,7 +73,7 @@ size_t MPZSPV_NORMALISE_STRIDE = 256;
 
 
 double
-tune_mpres_mul (size_t limbs, int repr)
+tune_mpres_mul (mp_size_t limbs, int repr)
 {
   mpmod_t modulus;
   mpres_t x, y, z;
@@ -366,12 +366,12 @@ int main ()
   MPZMOD_THRESHOLD = crossover2 (tune_mpres_mul_modmuln, tune_mpres_mul_mpz,
       1, 512, 10);
   
-  printf ("#define MPZMOD_THRESHOLD %u\n", MPZMOD_THRESHOLD);
+  printf ("#define MPZMOD_THRESHOLD %lu\n", (unsigned long) MPZMOD_THRESHOLD);
   
   REDC_THRESHOLD = crossover2 (tune_mpres_mul_mpz, tune_mpres_mul_redc,
       MPZMOD_THRESHOLD, 512, 10);
   
-  printf ("#define REDC_THRESHOLD %u\n", REDC_THRESHOLD);
+  printf ("#define REDC_THRESHOLD %lu\n", (unsigned long) REDC_THRESHOLD);
 
   mpn_mul_lo_threshold[0] = 0;
   mpn_mul_lo_threshold[1] = 0;
@@ -382,49 +382,53 @@ int main ()
   printf ("#define MPN_MUL_LO_THRESHOLD_TABLE {");
 
   for (mp_size = 0; mp_size < MPN_MUL_LO_THRESHOLD - 1; mp_size++)
-    printf ("%u, ", mpn_mul_lo_threshold[mp_size]);
-  printf ("%u}\n", mpn_mul_lo_threshold[MPN_MUL_LO_THRESHOLD - 1]);
+    printf ("%lu, ", (unsigned long) mpn_mul_lo_threshold[mp_size]);
+  printf ("%lu}\n", 
+      (unsigned long) mpn_mul_lo_threshold[MPN_MUL_LO_THRESHOLD - 1]);
 
 #ifdef HAVE_NTT
   SPV_NTT_GFP_DIF_RECURSIVE_THRESHOLD = 1 << crossover
     (tune_spv_ntt_gfp_dif_unrolled, tune_spv_ntt_gfp_dif_recursive, 1,
      MAX_LOG2_LEN);
 
-  printf ("#define SPV_NTT_GFP_DIF_RECURSIVE_THRESHOLD %u\n",
-      SPV_NTT_GFP_DIF_RECURSIVE_THRESHOLD);
+  printf ("#define SPV_NTT_GFP_DIF_RECURSIVE_THRESHOLD %lu\n",
+      (unsigned long) SPV_NTT_GFP_DIF_RECURSIVE_THRESHOLD);
   
   SPV_NTT_GFP_DIT_RECURSIVE_THRESHOLD = 1 << crossover
     (tune_spv_ntt_gfp_dit_unrolled, tune_spv_ntt_gfp_dit_recursive, 1,
      MAX_LOG2_LEN);
 
-  printf ("#define SPV_NTT_GFP_DIT_RECURSIVE_THRESHOLD %u\n",
-      SPV_NTT_GFP_DIT_RECURSIVE_THRESHOLD);
+  printf ("#define SPV_NTT_GFP_DIT_RECURSIVE_THRESHOLD %lu\n",
+      (unsigned long) SPV_NTT_GFP_DIT_RECURSIVE_THRESHOLD);
   
   MUL_NTT_THRESHOLD = 1 << crossover2 (tune_list_mul, tune_ntt_mul, 1,
       MAX_LOG2_LEN - 1, 1);
 
-  printf ("#define MUL_NTT_THRESHOLD %u\n", MUL_NTT_THRESHOLD);
+  printf ("#define MUL_NTT_THRESHOLD %lu\n", (unsigned long) MUL_NTT_THRESHOLD);
 
   PREREVERTDIVISION_NTT_THRESHOLD = 1 << crossover2 (tune_PrerevertDivision,
       tune_ntt_PrerevertDivision, 1, MAX_LOG2_LEN - 1, 1);
 
-  printf ("#define PREREVERTDIVISION_NTT_THRESHOLD %u\n",
-      PREREVERTDIVISION_NTT_THRESHOLD);
+  printf ("#define PREREVERTDIVISION_NTT_THRESHOLD %lu\n",
+      (unsigned long) PREREVERTDIVISION_NTT_THRESHOLD);
 
   POLYINVERT_NTT_THRESHOLD = 1 << crossover (tune_PolyInvert,
       tune_ntt_PolyInvert, 1, MAX_LOG2_LEN);
 
-  printf ("#define POLYINVERT_NTT_THRESHOLD %u\n", POLYINVERT_NTT_THRESHOLD);
+  printf ("#define POLYINVERT_NTT_THRESHOLD %lu\n", 
+      (unsigned long) POLYINVERT_NTT_THRESHOLD);
   
   POLYEVALT_NTT_THRESHOLD = 1 << crossover (tune_polyevalT,
       tune_ntt_polyevalT, 1, MAX_LOG2_LEN / 2);
 
-  printf ("#define POLYEVALT_NTT_THRESHOLD %u\n", POLYEVALT_NTT_THRESHOLD);
+  printf ("#define POLYEVALT_NTT_THRESHOLD %lu\n", 
+      (unsigned long) POLYEVALT_NTT_THRESHOLD);
   
   MPZSPV_NORMALISE_STRIDE = 1 << maximise (tune_mpzspv_normalise,
       7, MIN (MAX_LOG2_LEN, 10));
   
-  printf ("#define MPZSPV_NORMALISE_STRIDE %u\n", MPZSPV_NORMALISE_STRIDE);
+  printf ("#define MPZSPV_NORMALISE_STRIDE %lu\n", 
+      (unsigned long) MPZSPV_NORMALISE_STRIDE);
 
   mpzspv_clear (mpzspv, mpzspm);
   free (spv);
