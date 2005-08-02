@@ -435,103 +435,38 @@ simultaneously on 10 identical machines.
 </variablelist>
 </refsect1>
 
-<refsect1 id='prp'><title>PRIMALITY TESTING</title>
-<para>The following options are useful for primality testing using
-external programs (e.g. OpenPFGW).</para>
+<refsect1 id='shellcmd'><title>SHELL COMMAND EXECUTION</title>
+<para>These optins allow for executing shell commands to supplement 
+functionality to GMP-ECM.</para>
 <variablelist remap='TP'>
 
   <varlistentry>
-  <term><option>-primetest</option></term>
+  <term><option>-prpcmd <replaceable>cmd</replaceable></option></term>
   <listitem>
-<para>Perform a primality test on the input number.
-If the input number is probable prime, no further computation is done,
-and the program skips to the next number, or exits if this was the last one.
-The primality test is not done by default since it
-may be expensive, especially for large input.</para>
+    <para>
+      Execute command <replaceable>cmd</replaceable> to test primality
+      if factors and cofactors instead of GMP-ECM's own functions. The 
+      number to test is passed via stdin. An exit code of 0 is interpreted
+      as <quote>probably prime</quote>, a non-zero exit code as 
+      <quote>composite</quote>.
+    </para>
   </listitem>
   </varlistentry>
 
   <varlistentry>
-  <term><option>-prp <replaceable>cmd</replaceable></option></term>
+  <term><option>-faccmd <replaceable>cmd</replaceable></option></term>
   <listitem>
-<para>Use the shell command <replaceable>cmd</replaceable> for primality tests.
-Within <replaceable>cmd</replaceable>,
-<replaceable>%n</replaceable> will be replaced by the decimal number
-to be checked,
-<replaceable>%l</replaceable> will be replaced by the file name corresponding
-to <option>-prplog</option>,
-and <replaceable>%t</replaceable> will be replaced by the file name corresponding
-to <option>-prplog</option>.
-Also any possible character
-             can be output using the escape command
-<replaceable>%x[0-9a-f][0-9a-f]</replaceable>, thus special
-            characters that some broken shells do not allow can be used.
-             All other characters within <replaceable>cmd</replaceable>
-will be replaced verbatim,
-and a system call will be made to execute the command.
-Example:  
-<programlisting>-prp "pfgw -q%n &gt; /dev/null 2&gt; /dev/null -b139"</programlisting>
-</para>
+    <para>
+      Executes command <replaceable>cmd</replaceable> whenever a factor
+      is found by P-1, P+1 or ECM. The input number, factor and cofactor
+      are passed via stdin, each on a line. This could be used i.e. to
+      automatically mail new factors:
+<programlisting>ecm -faccmd 'mail -s <quote>$HOSTNAME found a factor</quote>
+                me@myaddress.com' 11e6 &lt; cunningham.in
+</programlisting>
+    </para>
   </listitem>
   </varlistentry>
-
-  <varlistentry>
-  <term><option>-prplen <replaceable>n</replaceable></option></term>
-  <listitem>
-<para>The external primality-test will be called only when
-       candidate numbers are longer than this number
-       of digits.  The default is 800 digits.
-</para>
-  </listitem>
-  </varlistentry>
-
-  <varlistentry>
-  <term><option>-prpval <replaceable>n</replaceable></option></term>
-  <listitem>
-<para>Return code which indicates the primality-test command found the number 
-to be pseudo-prime. If this option is not used, the <option>prplog</option>
-and <option>prpyes/prpno</option> values will be used instead.
-</para>
-  </listitem>
-  </varlistentry>
-
-  <varlistentry>
-  <term><option>-prplog <replaceable>file</replaceable></option></term>
-  <listitem>
-<para>If not using <option>prpval</option>, get primality results from
-<replaceable>file</replaceable>, which is deleted after the test.
-</para>
-  </listitem>
-  </varlistentry>
-
-  <varlistentry>
-  <term><option>-prptmp <replaceable>file</replaceable></option></term>
-  <listitem>
-<para>Write the number to be tested to <replaceable>file</replaceable>
-before running the primality test (useful for numbers larger than what
-the command line can support).
-</para>
-  </listitem>
-  </varlistentry>
-
-  <varlistentry>
-  <term><option>-prpyes <replaceable>str</replaceable></option></term>
-  <listitem>
-<para>Indicate the string to be found in <option>prplog</option> file when
-the number is probably prime.  Default is <replaceable>"-PRP!"</replaceable>.
-</para>
-  </listitem>
-  </varlistentry>
-
-  <varlistentry>
-  <term><option>-prpno <replaceable>str</replaceable></option></term>
-  <listitem>
-<para>Indicate the string to be found in <option>prplog</option> file when
-the number is composite.  Default is <replaceable>"is composite"</replaceable>.
-</para>
-  </listitem>
-  </varlistentry>
-
 </variablelist>
 </refsect1>
 
@@ -611,68 +546,90 @@ means 15*12*9*6*3.</para>
 The exit status reflects the result of the last ECM curve or P-1/P+1 attempt
 the program performed. Individual bits signify particular events,
 specifically:
+</para>
 <variablelist remap='TP'>
   <varlistentry>
   <term>Bit 0</term>
-  <listitem>0 if normal program termination, 1 if error occured</listitem>
+  <listitem>
+    <simpara>0 if normal program termination, 1 if error occured</simpara>
+  </listitem>
   </varlistentry>
 
   <varlistentry>
   <term>Bit 1</term>
-  <listitem>0 if no proper factor was found, 1 otherwise</listitem>
+  <listitem>
+    <simpara>0 if no proper factor was found, 1 otherwise</simpara>
+  </listitem>
   </varlistentry>
 
   <varlistentry>
   <term>Bit 2</term>
-  <listitem>0 if factor is composite, 1 if factor is a probable prime</listitem>
+  <listitem>
+    <simpara>0 if factor is composite, 1 if factor is a probable prime</simpara>
+  </listitem>
   </varlistentry>
 
   <varlistentry>
   <term>Bit 3</term>
-  <listitem>0 if cofactor is composite, 1 if cofactor is a probable prime</listitem>
+  <listitem>
+    <simpara>0 if cofactor is composite, 1 if cofactor is a probable prime</simpara>
+  </listitem>
   </varlistentry>
 </variablelist>
-</para><para>
-Thus, the following exit status values may occur:
 
-<variablelist remap='TP'>
+<para>Thus, the following exit status values may occur:</para>
+
+<variablelist>
   <varlistentry>
-  <term>0</term>
-  <listitem>Normal program termination, no factor found</listitem>
+    <term>0</term>
+    <listitem>
+      <simpara>Normal program termination, no factor found</simpara>
+    </listitem>
   </varlistentry>
 
   <varlistentry>
-  <term>1</term>
-  <listitem>Error</listitem>
+    <term>1</term>
+    <listitem>
+      <simpara>Error</simpara>
+    </listitem>
   </varlistentry>
 
   <varlistentry>
   <term>2</term>
-  <listitem>Composite factor found, cofactor is composite</listitem>
+  <listitem>
+    <simpara>Composite factor found, cofactor is composite</simpara>
+  </listitem>
   </varlistentry>
 
   <varlistentry>
   <term>6</term>
-  <listitem>Probable prime factor found, cofactor is composite</listitem>
+  <listitem>
+    <simpara>Probable prime factor found, cofactor is composite</simpara>
+  </listitem>
   </varlistentry>
 
   <varlistentry>
   <term>8</term>
-  <listitem>Input number found</listitem>
+  <listitem>
+    <simpara>Input number found</simpara>
+  </listitem>
   </varlistentry>
 
   <varlistentry>
   <term>10</term>
-  <listitem>Composite factor found, cofactor is a probable prime</listitem>
+  <listitem>
+    <simpara>Composite factor found, cofactor is a probable prime</simpara>
+  </listitem>
   </varlistentry>
 
   <varlistentry>
   <term>14</term>
-  <listitem>Probable prime factor found, cofactor is a probable prime</listitem>
+  <listitem>
+    <simpara>Probable prime factor found, cofactor is a probable prime</simpara>
+  </listitem>
   </varlistentry>
 </variablelist>
 
-</para>
 </refsect1>
 
 <refsect1 id='bugs'><title>BUGS</title>
