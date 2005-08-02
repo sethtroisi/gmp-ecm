@@ -22,7 +22,7 @@ PP1="$1 -pp1"
 
 # Call with "checkcode $? n" to check that return code is n
 
-function checkcode {
+checkcode () {
   if [ $1 != $2 ]
   then
     echo "############### ERROR ###############"
