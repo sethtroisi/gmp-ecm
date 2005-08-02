@@ -20,6 +20,8 @@
 
 #include <stdio.h>
 #include <gmp.h>
+/* For log() */
+#include <math.h>
 #include "ecm.h"
 #include "ecm-ecm.h"
 
@@ -37,12 +39,12 @@ trial_factor (mpcandi_t *n, double maxfact, int deep)
       
       if (exponent)
 	{
-	  printf ("********** Factor found trial div: %u\n", (unsigned long) p);
-	  printf ("Found proven prime factor of %2u digits: %u",
+	  printf ("********** Factor found trial div: %lu\n", (unsigned long) p);
+	  printf ("Found proven prime factor of %2lu digits: %lu",
 	    (unsigned long) (log (p) / log (10.0)) + 1, (unsigned long) p);
 	  
 	  if (exponent > 1)
-	    printf ("^%u", exponent);
+	    printf ("^%lu", exponent);
 	  printf ("\n");
 	  
 	  factors += exponent;

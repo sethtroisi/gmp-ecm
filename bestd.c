@@ -150,7 +150,7 @@ od:
         
         d1 = (po2) ? lpo2[i] : l[i];
         phid = eulerphi (d1) / 2;
-        dF = (po2) ? 1 << ceil_log2 (phid) : phid;
+        dF = (po2) ? 1U << ceil_log2 (phid) : phid;
         lg_dF = ceil_log2 (dF);
 #ifdef HAVE_NTT
         sp_num = (2 * mpz_sizeinbase (modulus->orig_modulus, 2) + lg_dF) / 
@@ -170,7 +170,7 @@ od:
     {
       d1 = (po2) ? lpo2[i] : l[i];
       phid = eulerphi (d1) / 2;
-      dF = (po2) ? 1 << ceil_log2 (phid) : phid;
+      dF = (po2) ? 1U << ceil_log2 (phid) : phid;
       /* Look for smallest prime < 25 that does not divide d1 */
       for (d2 = 5; d2 < 25; d2 += 2)
         {

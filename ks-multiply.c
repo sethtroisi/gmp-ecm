@@ -245,7 +245,7 @@ TMulKS (listz_t b, unsigned int n, listz_t a, unsigned int m,
     {
       t = s;
       MPN_NORMALIZE(bp, t);
-      MPZ_REALLOC (b[i], t);
+      MPZ_REALLOC (b[i], (mp_size_t) t);
       if (t)
         MPN_COPY (PTR(b[i]), bp, t);
       SIZ(b[i]) = t;
