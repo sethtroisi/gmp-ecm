@@ -8,10 +8,6 @@ libecm_a_SOURCES = ecm.c ecm2.c pm1.c pp1.c getprime.c listz.c lucas.c \
 		   random.c factor.c sp.c spv.c spm.c mpzspm.c mpzspv.c \
 		   ntt_gfp.c ecm_ntt.c
 
-if ENABLE_ASM_REDC
-  libecm_a_SOURCES += redc.s
-endif
-
 bin_PROGRAMS = ecm
 noinst_PROGRAMS = tune ecmfactor
 
@@ -26,6 +22,11 @@ tune_LDADD =
 tune_SOURCES = mpmod.c tune.c mul_lo.c listz.c auxlib.c ks-multiply.c \
                toomcook.c schoen_strass.c polyeval.c median.c ecm_ntt.c \
 	       ntt_gfp.c mpzspv.c mpzspm.c sp.c spv.c spm.c random.c
+
+if ENABLE_ASM_REDC
+  libecm_a_SOURCES += redc.asm
+  tune_SOURCES += redc.asm
+endif
 
 if WITH_GWNUM
   gwdata.ld :
@@ -58,6 +59,12 @@ check: ecm
 	$(srcdir)/test.pp1 ./ecm
 	$(srcdir)/test.pm1 ./ecm
 	$(srcdir)/test.ecm ./ecm
+
+.asm.o:
+	$(M4) -DOPERATION_$* `test -f $< || echo '$(srcdir)/'`$< >tmp-$*.s
+	$(CCAS) $(COMPILE_FLAGS) tmp-$*.s -o $@
+	rm -f tmp-$*.s
+
 
 man_MANS =
 if MAKE_MANPAGE
