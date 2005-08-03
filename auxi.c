@@ -18,10 +18,8 @@
   02111-1307, USA.
 */
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
 #include <gmp.h>
+#include <stdio.h>
 #include "ecm.h"
 #include "ecm-ecm.h"
 
@@ -35,13 +33,16 @@
 unsigned int
 nb_digits (const mpz_t n)
 {
+   mpz_t x;
    unsigned int size;
-   char *str;
- 
-   str = mpz_get_str (NULL, 10, n);
-   size = strlen (str);
-   FREE (str, size + 1); /* FIXME: use GMP's own free function
-			    if/when available, alloc size is size+1 */
+   
+   mpz_init_set (x, n);
+   
+   for (size = 0; mpz_size (x); size++)
+     mpz_tdiv_q_ui (x, x, 10);
+
+   mpz_clear (x);
+
    return size;
 }
 
