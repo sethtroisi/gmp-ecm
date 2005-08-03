@@ -169,13 +169,12 @@ fi
 AM_CONDITIONAL(MAKE_MANPAGE, test "x$make_manpage" = "xyes")
 
 case $host in
-  dnl TODO: import GMP's finer-grained cpu detection
+  athlon*-*-*-*) config_arch="athlon" ;;
   x86_64*-*-*) config_arch="athlon64" ;;
+dnl  pentium4-*-*) config_arch="pentium4" ;;
   alphaev6*-*-*) config_arch="alpha-ev6" ;;
   alphaev5*-*-*) config_arch="alpha-ev5" ;;
-  athlon*-*-*-*) config_arch="athlonxp" ;;
-  powerpc-*-*) config_arch="power4" ;;
-  pentium4-*-*) config_arch="pentium4" ;;
+  powerpc7450-*-*) config_arch="powerpc7450" ;;
   *) config_arch="default" ;;
 esac
 
