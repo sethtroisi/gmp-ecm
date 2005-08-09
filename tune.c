@@ -25,10 +25,11 @@
 #include "ecm-gmp.h"
 #include "ecm-impl.h"
 
-/* 100ms, we don't need any more precision */
-#define GRANULARITY 1e2
-#define MAX_LOG2_LEN 18 /* 2 * 131072 */
+/* 250ms, we (probably) don't need any more precision */
+#define GRANULARITY 250
+#define MAX_LOG2_LEN 18 /* 2 * 131072 */ 
 #define MAX_LEN (1 << MAX_LOG2_LEN)
+#define MAX_LOG2_MPZSPV_NORMALISE_STRIDE (MIN (12, MAX_LOG2_LEN))
 #define M_str "95209938255048826235189575712705128366296557149606415206280987204268594538412191641776798249266895999715600261737863698825644292938050707507901970225804581"
 
 #define ELAPSED elltime (st, cputime () )
@@ -36,15 +37,18 @@
   { unsigned int k = 0; long st;
 #define TUNE_FUNC_LOOP(x) do { st = cputime (); do { x; k++; } \
     while (ELAPSED < GRANULARITY); st = ELAPSED; } while (0)
-#define TUNE_FUNC_END return (double) k / (double) st; }
-
+#define TUNE_FUNC_END(x) if (tune_verbose) \
+  fprintf (stderr, #x "(%2u) = %f\n", n, (double) k / (double) st); \
+  return (double) k / (double) st; }
 
 /* Throughout, each function pointer points to a function
  * 
  *   double f0 (size_t n);
  *
  * that runs for at least GRANULARITY ms and then returns the number of
- * iterations performed per ms. */
+ * iterations performed per ms.
+ *
+ * X_Y_THRESHOLD denotes the threshold at which to start using Y for X. */
 
 
 mpz_t M; /* yes, global variables */
@@ -55,6 +59,7 @@ mpzv_t x, y, z, t;
 spm_t spm;
 spv_t spv;
 mpzspv_t mpzspv;
+int tune_verbose;
 
 size_t MPZMOD_THRESHOLD;
 size_t REDC_THRESHOLD;
@@ -67,7 +72,7 @@ size_t POLYEVALT_NTT_THRESHOLD;
 size_t MPZSPV_NORMALISE_STRIDE = 256;
 
 
-	double
+double
 tune_mpres_mul (mp_size_t limbs, int repr)
 {
   mpmod_t modulus;
@@ -142,14 +147,14 @@ TUNE_FUNC_START (tune_spv_ntt_gfp_dif_recursive)
   SPV_NTT_GFP_DIF_RECURSIVE_THRESHOLD = 1 << n;
   TUNE_FUNC_LOOP (spv_ntt_gfp_dif (spv, 1 << n, spm->sp, spm->mul_c,
 	spm->prim_root));
-TUNE_FUNC_END
+TUNE_FUNC_END (tune_spv_ntt_gfp_dif_recursive)
 
 
 TUNE_FUNC_START (tune_spv_ntt_gfp_dif_unrolled)
   SPV_NTT_GFP_DIF_RECURSIVE_THRESHOLD = ULONG_MAX;
   TUNE_FUNC_LOOP (spv_ntt_gfp_dif (spv, 1 << n, spm->sp, spm->mul_c,
 	spm->prim_root));
-TUNE_FUNC_END
+TUNE_FUNC_END (tune_spv_ntt_gfp_dif_unrolled)
 
 
 TUNE_FUNC_START (tune_spv_ntt_gfp_dit_recursive)
@@ -157,7 +162,7 @@ TUNE_FUNC_START (tune_spv_ntt_gfp_dit_recursive)
 
   TUNE_FUNC_LOOP (spv_ntt_gfp_dit (spv, 1 << n, spm->sp, spm->mul_c,
 	spm->prim_root));
-TUNE_FUNC_END
+TUNE_FUNC_END (tune_spv_ntt_gfp_dit_recursive)
 
 
 TUNE_FUNC_START (tune_spv_ntt_gfp_dit_unrolled)
@@ -165,46 +170,46 @@ TUNE_FUNC_START (tune_spv_ntt_gfp_dit_unrolled)
 
   TUNE_FUNC_LOOP (spv_ntt_gfp_dit (spv, 1 << n, spm->sp, spm->mul_c,
 	spm->prim_root));
-TUNE_FUNC_END
+TUNE_FUNC_END (tune_spv_ntt_gfp_dit_unrolled)
 
 
 TUNE_FUNC_START (tune_ntt_mul)
   MUL_NTT_THRESHOLD = 0;
 
   TUNE_FUNC_LOOP (ntt_mul (z, x, y, 1 << n, NULL, 1, mpzspm));
-TUNE_FUNC_END
+TUNE_FUNC_END (tune_ntt_mul)
 
 
 TUNE_FUNC_START (tune_list_mul)
 
   TUNE_FUNC_LOOP (list_mul (z, x, 1 << n, 1, y, 1 << n, 1, t));
-TUNE_FUNC_END
+TUNE_FUNC_END (tune_list_mul)
 
 
 TUNE_FUNC_START (tune_ntt_PrerevertDivision)
   PREREVERTDIVISION_NTT_THRESHOLD = 0;
 
   TUNE_FUNC_LOOP (ntt_PrerevertDivision (z, x, y, mpzspv, 1 << n, t, mpzspm));
-TUNE_FUNC_END
+TUNE_FUNC_END (tune_ntt_PrerevertDivision)
 
 
 TUNE_FUNC_START (tune_PrerevertDivision)
   
   TUNE_FUNC_LOOP (PrerevertDivision (z, x, y, 1 << n, t, mpzspm->modulus));
-TUNE_FUNC_END
+TUNE_FUNC_END (tune_PrerevertDivision)
 
 
 TUNE_FUNC_START (tune_ntt_PolyInvert)
   POLYINVERT_NTT_THRESHOLD = 1 << n;
   
   TUNE_FUNC_LOOP (ntt_PolyInvert (z, x, 1 << n, t, mpzspm));
-TUNE_FUNC_END
+TUNE_FUNC_END (tune_ntt_PolyInvert)
 
 
 TUNE_FUNC_START (tune_PolyInvert)
   
   TUNE_FUNC_LOOP (PolyInvert (z, x, 1 << n, t, mpzspm->modulus));
-TUNE_FUNC_END
+TUNE_FUNC_END (tune_PolyInvert)
   
 
 TUNE_FUNC_START (tune_ntt_polyevalT)
@@ -219,7 +224,7 @@ TUNE_FUNC_START (tune_ntt_polyevalT)
   TUNE_FUNC_LOOP (ntt_polyevalT (z, 1 << n, Tree, t, mpzspv, mpzspm, NULL));
 
   free (Tree);
-TUNE_FUNC_END  
+TUNE_FUNC_END (tune_ntt_polyevalT) 
 
 
 TUNE_FUNC_START (tune_polyevalT)
@@ -233,14 +238,15 @@ TUNE_FUNC_START (tune_polyevalT)
 	  x, mpzspm->modulus, NULL));
 
   free (Tree);
-TUNE_FUNC_END
+TUNE_FUNC_END (tune_polyevalT)
 
 
 TUNE_FUNC_START (tune_mpzspv_normalise)
   MPZSPV_NORMALISE_STRIDE = 1 << n;
   
-  TUNE_FUNC_LOOP (mpzspv_normalise (mpzspv, 0, MAX_LEN, mpzspm));
-TUNE_FUNC_END
+  TUNE_FUNC_LOOP (mpzspv_normalise (mpzspv, 0,
+    1 << MAX_LOG2_MPZSPV_NORMALISE_STRIDE, mpzspm));
+TUNE_FUNC_END (tune_mpzspv_normalise)
 
 
 TUNE_FUNC_START (tune_ecm_mul_lo_n)
@@ -257,31 +263,13 @@ TUNE_FUNC_START (tune_ecm_mul_lo_n)
   mpn_mul_lo_threshold[mp_size] = n;
 
   TUNE_FUNC_LOOP (ecm_mul_lo_n (rp, xp, yp, mp_size));
-TUNE_FUNC_END
+TUNE_FUNC_END (tune_ecm_mul_lo_n)
 
-
-/* Assume f0 and f1 are monotone decreasing. Return the first n in the range
- * [min_n, max_n) for which f1(n) > f0(n), or return max_n if no such n
- * exists. */
-size_t
-crossover (double (*f0)(size_t), double (*f1)(size_t),
-    size_t min_n, size_t max_n)
-{
-  size_t mid_n;
-  
-  if (min_n == max_n)
-    return min_n;
-
-  mid_n = (max_n + min_n) / 2;
-  return ((f0)(mid_n) >= (f1)(mid_n))
-    ? crossover (f0, f1, mid_n + 1, max_n)
-    : crossover (f0, f1, min_n, mid_n);
-}
 
 /* Return the lowest n with min_n <= n < max_n such that
- * f1(t) > f0(t) for all t in [n, n + k)
- *
- * Return max_n if no such n exists. */
+ * f1(t) >= f0(t) for all t in [n, n + k), or return max_n if no such
+ * n exists. This function will typically return high values if there
+ * is no 'clean' threshold between f0(n) and f1(n). */
 size_t
 crossover2 (double (*f0)(size_t), double (*f1)(size_t),
     size_t min_n, size_t max_n, size_t k)
@@ -291,12 +279,14 @@ crossover2 (double (*f0)(size_t), double (*f1)(size_t),
   
   while (n < max_n)
     {
-      for (t = n + k; t > n; t--)
-	if ((f0)(t - 1) >= (f1)(t - 1))
-	  break;
+      for (t = MIN (max_n, n + k); t > n; t--)
+	    {
+		  if ((f0)(t - 1) > (f1)(t - 1))
+	        break;
+		}
 
       if (t == n)
-	return n;
+	    return n;
 
       n = t;
     };
@@ -304,7 +294,34 @@ crossover2 (double (*f0)(size_t), double (*f1)(size_t),
   return max_n;
 }
 
-/* Return the n in the range [min_n, max_n) that maximises f(n) */
+
+/* Assume f0 and f1 are monotone decreasing. Return the first n in the range
+ * [min_n, max_n) for which f1(n) >= f0(n), or return max_n if no such n
+ * exists. We use a bisection algorithm so the function is fast but
+ * may give slightly varied results. */
+size_t
+crossover (double (*f0)(size_t), double (*f1)(size_t),
+    size_t min_n, size_t max_n)
+{
+  size_t mid_n;
+  
+#ifdef TUNE_SLOW
+  return crossover2 (f0, f1, min_n, max_n, 1);
+#endif
+    
+  if (min_n == max_n)
+    return min_n;
+
+  mid_n = (max_n + min_n) / 2;
+  return ((f0)(mid_n) > (f1)(mid_n))
+    ? crossover (f0, f1, mid_n + 1, max_n)
+    : crossover (f0, f1, min_n, mid_n);
+}
+
+
+/* Return the n in the range [min_n, max_n) that maximises f(n).
+ * We make no assumptions about the shape of f(n) and so evaluate
+ * f at every point. */
 size_t
 maximise (double (*f)(size_t), size_t min_n, size_t max_n)
 {
@@ -324,10 +341,30 @@ maximise (double (*f)(size_t), size_t min_n, size_t max_n)
   return best_n;
 }
 
-int main ()
+/* Debugging. Print the value of f0(n) and f1(n) and which is fastest. */
+void
+print_timings (double (*f0)(size_t), double (*f1)(size_t),
+  size_t min_n, size_t max_n)
+{
+  size_t n;
+  double f0_n, f1_n;
+  
+  for (n = min_n; n < max_n; n++)
+    {
+	  f0_n = (f0)(n);
+	  f1_n = (f1)(n);
+	  printf ("n=%2u: %8.2f %8.2f (f%d)\n",
+	    n, f0_n, f1_n, (f0_n <= f1_n) ? 1 : 0);
+    }
+}
+
+int main (int argc, char **argv)
 {
   spv_size_t i;
 
+  if (argc > 1 && argv[1][0] == '-' && argv[1][1] == 'v')
+    tune_verbose = 1;
+  
   gmp_randinit_default (gmp_randstate);
   mpz_init_set_str (M, M_str, 10);
   
@@ -351,7 +388,7 @@ int main ()
   spv_random (spv, MAX_LEN, spm->sp);
   mpzspv = mpzspv_init (MAX_LEN, mpzspm);
   mpzspv_random (mpzspv, 0, MAX_LEN, mpzspm);
-  
+
   MPZMOD_THRESHOLD = crossover2 (tune_mpres_mul_modmuln, tune_mpres_mul_mpz,
       1, 512, 10);
   
@@ -365,37 +402,40 @@ int main ()
   mpn_mul_lo_threshold[0] = 0;
   mpn_mul_lo_threshold[1] = 0;
 
-  for (mp_size = 2; mp_size < MPN_MUL_LO_THRESHOLD; mp_size++)
-    mpn_mul_lo_threshold[mp_size] = maximise (tune_ecm_mul_lo_n, 0, mp_size);
-  
-  printf ("#define MPN_MUL_LO_THRESHOLD_TABLE {");
+  printf ("#define MPN_MUL_LO_THRESHOLD_TABLE {0, 0, ");
 
-  for (mp_size = 0; mp_size < MPN_MUL_LO_THRESHOLD - 1; mp_size++)
-    printf ("%lu, ", (unsigned long) mpn_mul_lo_threshold[mp_size]);
-  printf ("%lu}\n", 
-      (unsigned long) mpn_mul_lo_threshold[MPN_MUL_LO_THRESHOLD - 1]);
+  for (mp_size = 2; mp_size < MPN_MUL_LO_THRESHOLD - 1; mp_size++)
+    {
+      mpn_mul_lo_threshold[mp_size] = maximise (tune_ecm_mul_lo_n, 0, mp_size);
+      printf ("%lu, ", (unsigned long) mpn_mul_lo_threshold[mp_size]);
+      fflush (stdout);
+    }
 
+  /* mp_size == MPN_MUL_LO_THRESHOLD - 1 */
+  mpn_mul_lo_threshold[mp_size] = maximise (tune_ecm_mul_lo_n, 0, mp_size);
+  printf ("%lu}\n", (unsigned long) mpn_mul_lo_threshold[mp_size]);
+	  
   SPV_NTT_GFP_DIF_RECURSIVE_THRESHOLD = 1 << crossover
-    (tune_spv_ntt_gfp_dif_unrolled, tune_spv_ntt_gfp_dif_recursive, 1,
-     MAX_LOG2_LEN);
+    (tune_spv_ntt_gfp_dif_unrolled, tune_spv_ntt_gfp_dif_recursive,
+	 1, MAX_LOG2_LEN);
 
   printf ("#define SPV_NTT_GFP_DIF_RECURSIVE_THRESHOLD %lu\n",
       (unsigned long) SPV_NTT_GFP_DIF_RECURSIVE_THRESHOLD);
-  
+   
   SPV_NTT_GFP_DIT_RECURSIVE_THRESHOLD = 1 << crossover
-    (tune_spv_ntt_gfp_dit_unrolled, tune_spv_ntt_gfp_dit_recursive, 1,
-     MAX_LOG2_LEN);
+    (tune_spv_ntt_gfp_dit_unrolled, tune_spv_ntt_gfp_dit_recursive,
+	 1, MAX_LOG2_LEN);
 
   printf ("#define SPV_NTT_GFP_DIT_RECURSIVE_THRESHOLD %lu\n",
       (unsigned long) SPV_NTT_GFP_DIT_RECURSIVE_THRESHOLD);
   
   MUL_NTT_THRESHOLD = 1 << crossover2 (tune_list_mul, tune_ntt_mul, 1,
-      MAX_LOG2_LEN - 1, 1);
+      MAX_LOG2_LEN, 2);
 
   printf ("#define MUL_NTT_THRESHOLD %lu\n", (unsigned long) MUL_NTT_THRESHOLD);
 
   PREREVERTDIVISION_NTT_THRESHOLD = 1 << crossover2 (tune_PrerevertDivision,
-      tune_ntt_PrerevertDivision, 1, MAX_LOG2_LEN - 1, 1);
+      tune_ntt_PrerevertDivision, 1, MAX_LOG2_LEN, 2);
 
   printf ("#define PREREVERTDIVISION_NTT_THRESHOLD %lu\n",
       (unsigned long) PREREVERTDIVISION_NTT_THRESHOLD);
@@ -407,14 +447,14 @@ int main ()
       (unsigned long) POLYINVERT_NTT_THRESHOLD);
   
   POLYEVALT_NTT_THRESHOLD = 1 << crossover (tune_polyevalT,
-      tune_ntt_polyevalT, 1, MAX_LOG2_LEN / 2);
+      tune_ntt_polyevalT, 1, MAX_LOG2_LEN);
 
   printf ("#define POLYEVALT_NTT_THRESHOLD %lu\n", 
       (unsigned long) POLYEVALT_NTT_THRESHOLD);
   
   MPZSPV_NORMALISE_STRIDE = 1 << maximise (tune_mpzspv_normalise,
-      7, MIN (MAX_LOG2_LEN, 10));
-  
+      1, MAX_LOG2_MPZSPV_NORMALISE_STRIDE);
+	  
   printf ("#define MPZSPV_NORMALISE_STRIDE %lu\n", 
       (unsigned long) MPZSPV_NORMALISE_STRIDE);
 
