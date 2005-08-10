@@ -350,7 +350,7 @@ int sp_prime (sp_t);
 
 /* spm */
 
-spm_t spm_init (sp_t);
+spm_t spm_init (spv_size_t, sp_t);
 void spm_clear (spm_t);
 
 /* spv */

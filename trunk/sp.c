@@ -47,7 +47,8 @@ sp_spp (sp_t a, sp_t m, sp_t d)
 }
 
 /* note this only works on sp's, i.e. we need the top bit of x set */
-int sp_prime (sp_t x)
+int
+sp_prime (sp_t x)
 {
   sp_t d;
 
