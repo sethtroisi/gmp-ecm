@@ -382,7 +382,7 @@ int main (int argc, char **argv)
   
   mpzspm = mpzspm_init (MAX_LEN, M);
 
-  spm = spm_init (mpzspm->spm[0].sp);
+  spm = spm_init (MAX_LEN, mpzspm->spm[0].sp);
   
   spv = (spv_t) malloc (MAX_LEN * sizeof (sp_t));
   spv_random (spv, MAX_LEN, spm->sp);

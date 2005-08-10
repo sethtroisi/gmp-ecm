@@ -22,8 +22,10 @@
 #include <stdlib.h>
 #include "sp.h"
 
+/* Compute some constants, including a primitive n'th root of unity.
+ * At present we only cater for n being a power of 2. */
 spm_t
-spm_init (sp_t sp)
+spm_init (spv_size_t n, sp_t sp)
 {
   sp_t a;
   spm_t spm = (spm_t) malloc (sizeof (__spm_struct));
@@ -31,11 +33,12 @@ spm_init (sp_t sp)
   spm->sp = sp;
   invert_limb (spm->mul_c, sp);
 
-  /* find generator */
+  /* find a quadratic nonresidue mod p */
   for (a = 2; sp_pow (a, (sp - 1) / 2, sp, spm->mul_c) == 1; a++);
   
-  spm->prim_root = a;
-  spm->inv_prim_root = sp_inv (a, sp, spm->mul_c);
+  /* turn this into a primitive n'th root of unity mod p */
+  spm->prim_root = sp_pow (a, (sp - 1) / n, sp, spm->mul_c);
+  spm->inv_prim_root = sp_inv (spm->prim_root, sp, spm->mul_c);
 
   return spm;
 }
