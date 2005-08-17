@@ -41,6 +41,7 @@
   fprintf (stderr, #x "(%2u) = %f\n", n, (double) k / (double) st); \
   return (double) k / (double) st; }
 
+
 /* Throughout, each function pointer points to a function
  * 
  *   double f0 (size_t n);
@@ -70,6 +71,14 @@ size_t PREREVERTDIVISION_NTT_THRESHOLD;
 size_t POLYINVERT_NTT_THRESHOLD;
 size_t POLYEVALT_NTT_THRESHOLD;
 size_t MPZSPV_NORMALISE_STRIDE = 256;
+
+void
+mpz_quick_random (mpz_t x, mpz_t M, unsigned long b)
+{
+  mpz_urandomb (x, gmp_randstate, b);
+  if (mpz_cmp (x, M) >= 0)
+    mpz_sub (x, x, M);
+}
 
 
 double
@@ -361,12 +370,14 @@ print_timings (double (*f0)(size_t), double (*f1)(size_t),
 int main (int argc, char **argv)
 {
   spv_size_t i;
+  unsigned long b;
 
   if (argc > 1 && argv[1][0] == '-' && argv[1][1] == 'v')
     tune_verbose = 1;
   
   gmp_randinit_default (gmp_randstate);
   mpz_init_set_str (M, M_str, 10);
+  b = (unsigned long) mpz_sizeinbase (M, 2);
   
   x = init_list (MAX_LEN);
   y = init_list (MAX_LEN);
@@ -374,11 +385,11 @@ int main (int argc, char **argv)
   t = init_list (list_mul_mem (MAX_LEN / 2) + 3 * MAX_LEN / 2);
   
   for (i = 0; i < MAX_LEN; i++)
-    mpz_urandomm (x[i], gmp_randstate, M);
+    mpz_quick_random (x[i], M, b);
   for (i = 0; i < MAX_LEN; i++)
-    mpz_urandomm (y[i], gmp_randstate, M); 
+    mpz_quick_random (y[i], M, b);
   for (i = 0; i < MAX_LEN; i++)
-    mpz_urandomm (z[i], gmp_randstate, M);
+    mpz_quick_random (z[i], M, b);    
   
   mpzspm = mpzspm_init (MAX_LEN, M);
 
@@ -388,7 +399,7 @@ int main (int argc, char **argv)
   spv_random (spv, MAX_LEN, spm->sp);
   mpzspv = mpzspv_init (MAX_LEN, mpzspm);
   mpzspv_random (mpzspv, 0, MAX_LEN, mpzspm);
-
+  
   MPZMOD_THRESHOLD = crossover2 (tune_mpres_mul_modmuln, tune_mpres_mul_mpz,
       1, 512, 10);
   
