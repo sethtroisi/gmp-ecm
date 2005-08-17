@@ -289,13 +289,13 @@ crossover2 (double (*f0)(size_t), double (*f1)(size_t),
   while (n < max_n)
     {
       for (t = MIN (max_n, n + k); t > n; t--)
-	    {
-		  if ((f0)(t - 1) > (f1)(t - 1))
-	        break;
-		}
+        {
+	  if ((f0)(t - 1) > (f1)(t - 1))
+            break;
+	}
 
       if (t == n)
-	    return n;
+        return n;
 
       n = t;
     };
@@ -360,10 +360,10 @@ print_timings (double (*f0)(size_t), double (*f1)(size_t),
   
   for (n = min_n; n < max_n; n++)
     {
-	  f0_n = (f0)(n);
-	  f1_n = (f1)(n);
-	  printf ("n=%2u: %8.2f %8.2f (f%d)\n",
-	    n, f0_n, f1_n, (f0_n <= f1_n) ? 1 : 0);
+      f0_n = (f0)(n);
+      f1_n = (f1)(n);
+      printf ("n=%2u: %8.2f %8.2f (f%d)\n",
+          n, f0_n, f1_n, (f0_n <= f1_n) ? 1 : 0);
     }
 }
 
@@ -392,13 +392,12 @@ int main (int argc, char **argv)
     mpz_quick_random (z[i], M, b);    
   
   mpzspm = mpzspm_init (MAX_LEN, M);
-
-  spm = spm_init (MAX_LEN, mpzspm->spm[0].sp);
-  
-  spv = (spv_t) malloc (MAX_LEN * sizeof (sp_t));
-  spv_random (spv, MAX_LEN, spm->sp);
   mpzspv = mpzspv_init (MAX_LEN, mpzspm);
   mpzspv_random (mpzspv, 0, MAX_LEN, mpzspm);
+  
+ 
+  spm = mpzspm->spm[0];
+  spv = mpzspv[0];
   
   MPZMOD_THRESHOLD = crossover2 (tune_mpres_mul_modmuln, tune_mpres_mul_mpz,
       1, 512, 10);
@@ -427,15 +426,15 @@ int main (int argc, char **argv)
   printf ("%lu}\n", (unsigned long) mpn_mul_lo_threshold[mp_size]);
 	  
   SPV_NTT_GFP_DIF_RECURSIVE_THRESHOLD = 1 << crossover
-    (tune_spv_ntt_gfp_dif_unrolled, tune_spv_ntt_gfp_dif_recursive,
-	 1, MAX_LOG2_LEN);
+      (tune_spv_ntt_gfp_dif_unrolled, tune_spv_ntt_gfp_dif_recursive,
+	  1, MAX_LOG2_LEN);
 
   printf ("#define SPV_NTT_GFP_DIF_RECURSIVE_THRESHOLD %lu\n",
       (unsigned long) SPV_NTT_GFP_DIF_RECURSIVE_THRESHOLD);
    
   SPV_NTT_GFP_DIT_RECURSIVE_THRESHOLD = 1 << crossover
-    (tune_spv_ntt_gfp_dit_unrolled, tune_spv_ntt_gfp_dit_recursive,
-	 1, MAX_LOG2_LEN);
+      (tune_spv_ntt_gfp_dit_unrolled, tune_spv_ntt_gfp_dit_recursive,
+	  1, MAX_LOG2_LEN);
 
   printf ("#define SPV_NTT_GFP_DIT_RECURSIVE_THRESHOLD %lu\n",
       (unsigned long) SPV_NTT_GFP_DIT_RECURSIVE_THRESHOLD);
@@ -470,8 +469,6 @@ int main (int argc, char **argv)
       (unsigned long) MPZSPV_NORMALISE_STRIDE);
 
   mpzspv_clear (mpzspv, mpzspm);
-  free (spv);
-  spm_clear (spm);
   mpzspm_clear (mpzspm);
   
   clear_list (x, MAX_LEN);

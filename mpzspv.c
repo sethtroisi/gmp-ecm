@@ -100,7 +100,7 @@ mpzspv_verify (mpzspv_t x, spv_size_t offset, spv_size_t len, mpzspm_t mpzspm)
 #endif
 
       for (j = offset; j < offset + len; j++)
-	if (x[i][j] >= mpzspm->spm[i].sp)
+	if (x[i][j] >= mpzspm->spm[i]->sp)
 	  return 0;
     }
 
@@ -143,7 +143,7 @@ mpzspv_neg (mpzspv_t r, spv_size_t r_offset, mpzspv_t x, spv_size_t x_offset,
   ASSERT (mpzspv_verify (x, x_offset, len, mpzspm));
   
   for (i = 0; i < mpzspm->sp_num; i++)
-    spv_neg (r[i] + r_offset, x[i] + x_offset, len, mpzspm->spm[i].sp);
+    spv_neg (r[i] + r_offset, x[i] + x_offset, len, mpzspm->spm[i]->sp);
 }
 
 void
@@ -200,7 +200,7 @@ mpzspv_from_mpzv (mpzspv_t x, spv_size_t offset, mpzv_t mpzv,
 	  for (j = 0; j < sp_num; j++)
             x[j][i + offset] =
               mpn_preinv_mod_1 (PTR(mpzv[i]), SIZ(mpzv[i]),
-                mpzspm->spm[j].sp, mpzspm->spm[j].mul_c);
+                mpzspm->spm[j]->sp, mpzspm->spm[j]->mul_c);
 	}
     }
 }
@@ -217,7 +217,7 @@ mpzspv_to_mpzv (mpzspv_t x, spv_size_t offset, mpzv_t mpzv,
   float *f = (float *) valloc (MPZSPV_NORMALISE_STRIDE * sizeof (float));
   float prime_recip;
   sp_t t;
-  spm_t spm = mpzspm->spm;
+  spm_t *spm = mpzspm->spm;
   
   ASSERT (mpzspv_verify (x, offset, len, mpzspm));
   
@@ -233,11 +233,12 @@ mpzspv_to_mpzv (mpzspv_t x, spv_size_t offset, mpzv_t mpzv,
   
     for (i = 0; i < mpzspm->sp_num; i++)
       {
-        prime_recip = 1.0 / (float) spm[i].sp;
+        prime_recip = 1.0 / (float) spm[i]->sp;
       
         for (k = 0; k < stride; k++)
           {
-  	    t = sp_mul (x[i][l + k + offset], mpzspm->crt3[i], spm[i].sp, spm[i].mul_c);
+  	    t = sp_mul (x[i][l + k + offset], mpzspm->crt3[i], spm[i]->sp,
+                  spm[i]->mul_c);
           
 	    mpz_addmul_ui (mpzv[l + k], mpzspm->crt1[i], t);
 
@@ -264,7 +265,7 @@ mpzspv_pwmul (mpzspv_t r, spv_size_t r_offset, mpzspv_t x, spv_size_t x_offset,
   
   for (i = 0; i < mpzspm->sp_num; i++)
     spv_pwmul (r[i] + r_offset, x[i] + x_offset, y[i] + y_offset,
-	len, mpzspm->spm[i].sp, mpzspm->spm[i].mul_c);
+	len, mpzspm->spm[i]->sp, mpzspm->spm[i]->mul_c);
 }
 
 /* B&S: ecrt mod m mod p_j.
@@ -280,7 +281,7 @@ mpzspv_normalise (mpzspv_t x, spv_size_t offset, spv_size_t len,
   spv_size_t k, l;
   sp_t v;
   spv_t s, d, w;
-  spm_t spm = mpzspm->spm;
+  spm_t *spm = mpzspm->spm;
   
   float prime_recip;
   float *f;
@@ -305,12 +306,12 @@ mpzspv_normalise (mpzspv_t x, spv_size_t offset, spv_size_t len,
       
       for (i = 0; i < sp_num; i++)
         {
-          prime_recip = 1.0 / (float) spm[i].sp;
+          prime_recip = 1.0 / (float) spm[i]->sp;
       
           for (k = 0; k < stride; k++)
 	    {
 	      x[i][l + k + offset] = sp_mul (x[i][l + k + offset],
-	          mpzspm->crt3[i], spm[i].sp, spm[i].mul_c);
+	          mpzspm->crt3[i], spm[i]->sp, spm[i]->mul_c);
 	      f[k] += (float) x[i][l + k + offset] * prime_recip;
 	    }
         }
@@ -339,7 +340,8 @@ mpzspv_normalise (mpzspv_t x, spv_size_t offset, spv_size_t len,
 
           /* FIXME: do we need to account for dividend == 0? */
           for (k = 0; k < stride; k++)
-	    t[i][k] = mpn_preinv_mod_1 (d + 3 * k, 3, spm[i].sp, spm[i].mul_c);
+	    t[i][k] = mpn_preinv_mod_1 (d + 3 * k, 3, spm[i]->sp,
+		spm[i]->mul_c);
         }	  
       mpzspv_set (x, l + offset, t, 0, stride, mpzspm);
     }
@@ -366,7 +368,7 @@ mpzspv_to_ntt (mpzspv_t x, spv_size_t offset, spv_size_t len,
   
   for (i = 0; i < mpzspm->sp_num; i++)
     {
-      spm = mpzspm->spm + i;
+      spm = mpzspm->spm[i];
       root = sp_pow (spm->prim_root, mpzspm->max_ntt_size / ntt_size,
 	  spm->sp, spm->mul_c);
       
@@ -399,7 +401,7 @@ void mpzspv_from_ntt (mpzspv_t x, spv_size_t offset, spv_size_t ntt_size,
   
   for (i = 0; i < mpzspm->sp_num; i++)
     {
-      spm = mpzspm->spm + i;
+      spm = mpzspm->spm[i];
       root = sp_pow (spm->inv_prim_root, mpzspm->max_ntt_size / ntt_size,
 	  spm->sp, spm->mul_c);
       
@@ -425,6 +427,6 @@ mpzspv_random (mpzspv_t x, spv_size_t offset, spv_size_t len, mpzspm_t mpzspm)
   ASSERT (mpzspv_verify (x, offset, len, mpzspm));
 
   for (i = 0; i < mpzspm->sp_num; i++)
-    spv_random (x[i] + offset, len, mpzspm->spm[i].sp);
+    spv_random (x[i] + offset, len, mpzspm->spm[i]->sp);
 }
 

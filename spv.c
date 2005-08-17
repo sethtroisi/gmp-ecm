@@ -19,9 +19,8 @@
   MA 02111-1307, USA.
 */
 
-#include <stdlib.h> /* for random */
 #include <string.h> /* for memset */
-#include "ecm-impl.h" /* for get_random_ui */
+#include "sp.h"
 
 /* Routines for vectors of integers modulo r common small prime
  * 
@@ -34,14 +33,6 @@
  * nontrivial overlapping. */
 
 
-/* We only need random () for testing and tuning so we have only very weak
- * requirements of randomness. If random () is present then it is preferred
- * to get_random_ui as it is faster. */
-#if (HAVE_RANDOM == 0)
-#define random get_random_ui
-#endif
-
-
 /* r = x */
 void
 spv_set (spv_t r, spv_t x, spv_size_t len)
@@ -49,9 +40,13 @@ spv_set (spv_t r, spv_t x, spv_size_t len)
   spv_size_t i;
 
   ASSERT (r >= x + len || x >= r);
-  
+
+#ifdef HAVE_MEMMOVE  
+  memmove (r, x, len * sizeof (sp_t));
+#else
   for (i = 0; i < len; i++)
     r[i] = x[i];
+#endif
 }
 
 /* r = [y, y, ... ] */
