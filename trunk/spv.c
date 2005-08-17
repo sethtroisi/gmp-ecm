@@ -530,8 +530,9 @@ void
 spv_random (spv_t x, spv_size_t len, sp_t m)
 {
   spv_size_t i;
-
-  /* note this isn't uniformly random */
+  mpn_random (x, len);
+  
   for (i = 0; i < len; i++)
-    x[i] = (sp_t) random () % m;
+    if (x[i] >= m)
+      x[i] -= m;
 }

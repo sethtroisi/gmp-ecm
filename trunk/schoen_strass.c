@@ -47,7 +47,7 @@ unsigned int Fermat;
   F_mod_gt (b, n);    \
   F_mod_1 (a, n);
 
-mp_limb_t __gmpn_mod_34lsub1 (mp_limb_t*, mp_size_t);
+__GMP_DECLSPEC mp_limb_t __gmpn_mod_34lsub1 (mp_limb_t*, mp_size_t);
 
 /* compute remainder modulo 2^(mp_bits_per_limb*3/4)-1 */
 #ifndef HAVE___GMPN_MOD_34LSUB1
