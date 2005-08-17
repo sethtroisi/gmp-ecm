@@ -140,16 +140,12 @@ AC_FUNC_STRTOD
 AC_CHECK_LIB(m, floor)
 AC_CHECK_FUNCS([floor sqrt pow], [], AC_MSG_ERROR([required function missing]))
 AC_CHECK_FUNCS([isascii memset strchr strncasecmp strstr], [], AC_MSG_ERROR([required function missing]))
-AC_CHECK_FUNCS([gethostname gettimeofday getrusage random])
+AC_CHECK_FUNCS([gethostname gettimeofday getrusage memmove random])
 
 dnl FIXME: which win32 library contains these functions?
 dnl AC_CHECK_FUNCS([GetCurrentProcess GetProcessTimes])
 AC_CHECK_FUNCS([__gmpn_add_nc __gmpn_mul_fft __gmpn_mod_34lsub1])
 AC_CHECK_FUNCS([malloc_usable_size valloc])
-
-if test "x$_WIN32" != "x"; then
-AC_MSG_ERROR([moo])
-fi
 
 dnl Check for xsltproc
 AC_CHECK_PROG(XSLTPROC,xsltproc,xsltproc,)

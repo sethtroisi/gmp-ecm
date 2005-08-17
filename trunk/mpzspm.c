@@ -21,7 +21,6 @@
 
 #include <stdio.h> /* for printf */
 #include <stdlib.h>
-#include <time.h> /* FIXME  */
 #include "sp.h"
 
 mpzspm_t
@@ -52,7 +51,7 @@ mpzspm_init (spv_size_t max_len, mpz_t modulus)
   ub = (2 + 2 * mpz_sizeinbase (modulus, 2) + ceil_log_2 (max_len) + \
       4 * SP_NUMB_BITS) / (SP_NUMB_BITS - 1);
   
-  mpzspm->spm = (spm_t) malloc (ub * sizeof (__spm_struct));
+  mpzspm->spm = (spm_t *) malloc (ub * sizeof (spm_t));
   mpzspm->sp_num = 0;
 
   /* product of primes selected so far */
@@ -79,7 +78,7 @@ mpzspm_init (spv_size_t max_len, mpz_t modulus)
 	  return NULL;
 	}
       
-      mpzspm->spm[mpzspm->sp_num++].sp = p;
+      mpzspm->spm[mpzspm->sp_num++] = spm_init (max_len, p);
       
       mpz_mul_ui (P, P, p);
       mpz_add_ui (S, S, p);
@@ -100,7 +99,7 @@ mpzspm_init (spv_size_t max_len, mpz_t modulus)
   mpzspm->crt1 = (mpzv_t) malloc (mpzspm->sp_num * sizeof (mpz_t));
   mpzspm->crt2 = (mpzv_t) malloc ((mpzspm->sp_num + 2) * sizeof (mpz_t));
   mpzspm->crt3 = (spv_t) malloc (mpzspm->sp_num * sizeof (sp_t));
-  mpzspm->crt4 = (spv_t *) malloc (mpzspm->sp_num * sizeof (sp_t *));
+  mpzspm->crt4 = (spv_t *) malloc (mpzspm->sp_num * sizeof (spv_t));
   mpzspm->crt5 = (spv_t) malloc (mpzspm->sp_num * sizeof (sp_t));
 
   for (i = 0; i < mpzspm->sp_num; i++)
@@ -108,23 +107,12 @@ mpzspm_init (spv_size_t max_len, mpz_t modulus)
   
   for (i = 0; i < mpzspm->sp_num; i++)
     {
-      p = mpzspm->spm[i].sp;
+      p = mpzspm->spm[i]->sp;
       
-      invert_limb (mpzspm->spm[i].mul_c, p);
-      d = mpzspm->spm[i].mul_c;
-      
-      /* find a quadratic nonresidue mod p */
-      for (a = 2; sp_pow (a, (p - 1) / 2, p, d) == 1; a++);
-
-      /* turn this into a primitive max_len'th root of unity mod p */
-      mpzspm->spm[i].prim_root = sp_pow (a, (p - 1) / max_len, p, d);
-      mpzspm->spm[i].inv_prim_root = sp_inv (mpzspm->spm[i].prim_root, p, d);
-
       /* crt3[i] = (P / p)^{-1} mod p */
       mpz_fdiv_q_ui (T, P, p);
       a = mpz_fdiv_ui (T, p);
-      a = sp_inv (a, p, d);
-      mpzspm->crt3[i] = a;
+      mpzspm->crt3[i] = sp_inv (a, p, mpzspm->spm[i]->mul_c);
      
       /* crt1[i] = (P / p) mod modulus */
       mpz_init (mpzspm->crt1[i]);
@@ -132,7 +120,7 @@ mpzspm_init (spv_size_t max_len, mpz_t modulus)
 
       /* crt4[i][j] = ((P / p[i]) mod modulus) mod p[j] */
       for (j = 0; j < mpzspm->sp_num; j++)
-	mpzspm->crt4[j][i] = mpz_fdiv_ui (mpzspm->crt1[i], mpzspm->spm[j].sp);
+	mpzspm->crt4[j][i] = mpz_fdiv_ui (mpzspm->crt1[i], mpzspm->spm[j]->sp);
       
       /* crt5[i] = (-P mod modulus) mod p */
       mpz_mod (T, P, modulus);
@@ -164,6 +152,7 @@ void mpzspm_clear (mpzspm_t mpzspm)
     {
       mpz_clear (mpzspm->crt1[i]);
       free (mpzspm->crt4[i]);
+      spm_clear (mpzspm->spm[i]);
     }
 
   for (i = 0; i < mpzspm->sp_num + 2; i++)

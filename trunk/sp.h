@@ -178,7 +178,7 @@ typedef struct
   sp_t inv_prim_root;	/* inverse of prim_root */
 } __spm_struct;
 
-typedef __spm_struct *spm_t;
+typedef __spm_struct * spm_t;
 
 
 /* SPV */
@@ -203,7 +203,7 @@ typedef struct
     mpz_t modulus;
     
     /* spm data */
-    __spm_struct *spm;
+    spm_t *spm;
     
     /* precomputed crt constants, see mpzspm.c */
     mpzv_t crt1, crt2;
