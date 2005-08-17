@@ -115,7 +115,8 @@ MA 02111-1307, USA. */
 
 #ifdef HAVE___GMPN_ADD_NC
 #ifndef __gmpn_add_nc
-mp_limb_t __gmpn_add_nc (mp_ptr, mp_srcptr, mp_srcptr, mp_size_t, mp_limb_t);
+__GMP_DECLSPEC mp_limb_t __gmpn_add_nc (mp_ptr, mp_srcptr, mp_srcptr,
+    mp_size_t, mp_limb_t);
 #endif
 #endif
 
