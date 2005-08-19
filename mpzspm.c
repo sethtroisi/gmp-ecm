@@ -28,7 +28,7 @@ mpzspm_init (spv_size_t max_len, mpz_t modulus)
 {
   unsigned int ub, i, j;
   mpz_t P, S, T;
-  sp_t p, a, d;
+  sp_t p, a;
   mpzspm_t mpzspm;
   
   mpzspm = (mpzspm_t) malloc (sizeof (__mpzspm_struct));
@@ -72,7 +72,7 @@ mpzspm_init (spv_size_t max_len, mpz_t modulus)
       while (!sp_prime(p));
       
       /* all primes must have top bit set */
-      if (p < (ULONG_MAX >> 1))
+      if (p < SP_MIN)
         {
 	  printf ("not enough primes in interval\n");
 	  return NULL;

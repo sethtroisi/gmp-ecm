@@ -19,9 +19,9 @@
   MA 02111-1307, USA.
 */
 
-#include "config.h"
 #include <stdlib.h>
 #include <string.h> /* for memset */
+#include "sp.h"
 
 #ifdef HAVE_MALLOC_H
 #include <malloc.h>
@@ -30,9 +30,6 @@
 #if !HAVE_VALLOC
 #define valloc malloc
 #endif
-
-#include "sp.h"
-
 
 mpzspv_t
 mpzspv_init (spv_size_t len, mpzspm_t mpzspm)

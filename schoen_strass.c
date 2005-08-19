@@ -20,12 +20,18 @@
   MA 02111-1307, USA.
 */
 
-#include <stdlib.h>
 #include <stdio.h>
-#include <limits.h> /* for UINT_MAX */
-#include <gmp.h>
+#include <stdlib.h> /* for abs if assertions enabled */
 #include "ecm-impl.h"
 #include "ecm-gmp.h"
+
+#if HAVE_LIMITS_H
+# include <limits.h>
+#else
+# ifndef UINT_MAX
+#  define UINT_MAX (~(unsigned int) 0)
+# endif
+#endif
 
 /*
 #define DEBUG 1

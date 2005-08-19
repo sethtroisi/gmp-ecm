@@ -25,17 +25,7 @@ Proc. of ISSAC'03, Philadelphia, 2003.
 */
 
 #include <stdio.h>
-#include <stdlib.h>
-#include <gmp.h>
 #include "ecm-impl.h"
-
-#if !defined (_MSC_VER)
-#include <sys/time.h>
-#include <unistd.h>
-#if !defined (__MINGW32__)
-#include <sys/resource.h>
-#endif
-#endif
 
 #ifndef MAX
 #define MAX(a,b) (((a) > (b)) ? (a) : (b))

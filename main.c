@@ -18,32 +18,24 @@
   02111-1307, USA.
 */
 
-#include "config.h"
-#include <ctype.h>
-#include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <time.h>
-#if !defined (_MSC_VER) && !defined (__MINGW32__)
-#include <unistd.h>
-#include <sys/time.h>
-#include <sys/resource.h> /* for setpriority */
-#else
-#include <io.h>		/* for access() */
-#define F_OK 0
-#endif
-#include <gmp.h>
-#include "ecm.h"
 #include "ecm-ecm.h"
+
+#if HAVE_UNISTD_H /* for access() */
+# include <unistd.h>
+#else
+# define F_OK 0
+# if HAVE_IO_H
+#  include <io.h>
+# endif
+#endif
+
 #ifdef HAVE_GWNUM
 /* For GWNUM_VERSION */
 #include "gwnum.h"
-#endif
-
-#if defined (__MINGW32__) || defined (_MSC_VER) /* || defined (__CYGWIN__) */
-/* needed for priority setting */               /* not sure about CyGwin and windows.h and Win32 API functions */
-#include <windows.h>
 #endif
 
 /* #define DEBUG */
@@ -63,7 +55,9 @@ static unsigned int champion_digits[3] = { 53, 43, 37 };
 /* probab_prime_p() can get called from other modules. Instead of passing
    prpcmd to those functions, we make it static here - this variable will
    be set only in main, and read only in probab_prime_p() */
+#if WANT_SHELLCMD && defined (unix)
 static  char *prpcmd = NULL;
+#endif
 
 /* Tries to read a number from a line from fd and stores it in r.
    Keeps reading lines until a number is found. Lines beginning with "#"
@@ -395,52 +389,18 @@ main (int argc, char *argv[])
 	  argv++;
 	  argc--;
         }
-#if defined (__MINGW32__) || (_MSC_VER)
       else if (strcmp (argv[1], "-n") == 0)
         {
-/*	  fprintf (stderr, "Executing at lower priority\n"); */
-	  SetPriorityClass (GetCurrentProcess (), IDLE_PRIORITY_CLASS);
-	  SetThreadPriority (GetCurrentThread (), THREAD_PRIORITY_BELOW_NORMAL);
+          NICE10;
 	  argv++;
 	  argc--;
         }
       else if (strcmp (argv[1], "-nn") == 0)
         {
-/*	  fprintf (stderr, "Executing at idle priority\n"); */
-	  SetPriorityClass (GetCurrentProcess (), IDLE_PRIORITY_CLASS);
-	  SetThreadPriority (GetCurrentThread (), THREAD_PRIORITY_IDLE);
+          NICE20;
 	  argv++;
 	  argc--;
         }
-#elif __CYGWIN__
-      else if (strcmp (argv[1], "-n") == 0)
-        {
-	  /* Increase niceness by 10 */
-	  nice (10);
-	  argv++;
-	  argc--;
-        }
-      else if (strcmp (argv[1], "-nn") == 0)
-        {
-	  /* Increase niceness by 20 */
-	  nice (20);
-	  argv++;
-	  argc--;
-        }
-#else
-      else if (strcmp (argv[1], "-n") == 0)
-        {
-          setpriority (PRIO_PROCESS, 0, 10);
-	  argv++;
-	  argc--;
-        }
-      else if (strcmp (argv[1], "-nn") == 0)
-        {
-          setpriority (PRIO_PROCESS, 0, 20);
-	  argv++;
-	  argc--;
-        }
-#endif
       else if ((argc > 2) && (strcmp (argv[1], "-x0")) == 0)
         {
           if (mpq_set_str (rat_x0, argv[2], 0))

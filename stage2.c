@@ -21,15 +21,10 @@
   MA 02111-1307, USA.
 */
 
-#include <assert.h>
-#include <stdlib.h>
 #include <stdio.h>
-#include <math.h>
-#include <limits.h>
+#include <stdlib.h>
 #include <math.h> /* for floor */
-#include <gmp.h>
 #include <string.h> /* for strlen */
-#include "ecm.h"
 #include "ecm-impl.h"
 #include "sp.h"
 

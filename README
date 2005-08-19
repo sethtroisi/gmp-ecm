@@ -397,13 +397,11 @@ force the use of a certain arithmetic by trying options -modmulm, -mpzmod,
 -redc. (The best choice should depend on B1 and B2 only very little, so long 
 as B1 is not too small, say >= 1000.)
 
-The "tune" program helps you to determine the optimal threshold for
-your computer. After compiling it with "make tune", type "./tune"
-and it will display timings for each method (mpzmod, modmuln, redc)
-for numbers of limbs equal to 1, 2, 3, ... When the best thresholds
-can be determined, the program stops and displays their values. Then
-simply (re)compile ecm, adding -DMPZMOD_THRESHOLD=xxx -DREDC_THRESHOLD=yyy
-in CFLAGS.
+The thresholds for the algorithms used in ecm are defined in ecm-params.h.
+Several ecm-params.h.* files are included in the distribution and the configure
+script will select one matching your machine if it exists.  If there is no
+ecm-params.h.* for your machine then you can either compile with default
+values or you can generate ecm-params.h first with "make ecm-params; make". 
 
 Number of step 2 blocks. The step 2 range [B1,B2] is divided into k 
 "big blocks". The default value of k is chosen to be near to optimal.
@@ -419,21 +417,22 @@ increase the time spent in Step 2 (when less or greater than the
 optimal value), and modify the memory used by Step 2 (see the section 
 "Memory usage").
 
-Optimal GMP thresholds. One may improve the performance of GMP-ECM
-by telling the thresholds used by GMP for Karatsuba's multiplication
-and divide-and-conquer division, which you can get by doing "make tune"
-in GMP's build 'tune' subdirectory.
+Optimal thresholds. The thresholds for the algorithms used in ecm are defined
+in ecm-params.h. Several ecm-params.h.* files are included in the distribution
+and the configure script will select one matching your machine if it exists. If
+there is no ecm-params.h.* for your machine then you can either compile with
+default values (not recommended) or you can generate ecm-params.h first with
+"make ecm-params; make".
 
-$ make tune | egrep 'MUL_KARATSUBA_THRESHOLD|DIV_DC_THRESHOLD'
+Stage 2 now uses Number-Theoretic Transforms for polynomial arithmetic by
+default. The NTT code forces dF to be a power of 2; it can be disabled by
+passing the command-line option -no-ntt. Performance of NTT is dependent on:
+- Architecture. NTT seems to give the greatest improvement on Athlon machines,
+  and the least improvement on Pentiums.
+- Thresholds. It is vital to have ecm-params.h properly tuned for your machine.
+- C compiler. The code relies on heavy compiler optimisations. At the time of
+  writing, gcc 3.4.x seems to generate faster code than gcc 4.x. 
 
-You can override the default values (32 for MUL_KARATSUBA_THRESHOLD,
-and 96 for DIV_DC_THRESHOLD) by adding 
--DMUL_KARATSUBA_THRESHOLD=... -DDIV_DC_THRESHOLD=... to the CFLAGS.
-These thresholds are only used to guess the optimal ecm thresholds
-(MPZMOD_THRESHOLD and REDC_THRESHOLD, see above). If you optimized
-them directly using the "tune" program in the GMP-ECM build directory,
-and add -DMPZMOD_THRESHOLD=xxx -DREDC_THRESHOLD=yyy to CFLAGS, you
-don't need MUL_KARATSUBA_THRESHOLD/DIV_DC_THRESHOLD anymore.
 
 Note on factoring Fermat numbers:
 GMP-ECM features Sch"onhage-Strassen multiplication for polynomials in 

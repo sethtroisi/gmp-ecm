@@ -21,8 +21,6 @@
   MA 02111-1307, USA.
 */
 
-#include <stdio.h> /* to avoid #undef all prototypes with FILE in ecm-impl.h */
-#include <gmp.h>
 #include "ecm-impl.h"
 
 #define A0 A[i]

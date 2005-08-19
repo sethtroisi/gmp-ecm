@@ -17,11 +17,12 @@
   the Free Software Foundation, Inc., 59 Temple Place - Suite 330, Boston,
   MA 02111-1307, USA.
 */
+
 #include "sp.h"
+
 
 #define X0 x[i]
 #define X1 x[i + m]
-
 
 void
 ntt_scramble (spv_t x, spv_size_t len)

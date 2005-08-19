@@ -28,9 +28,6 @@
   Lucas chains, Peter L. Montgomery, December 1983, revised January 1992.
 */
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <gmp.h>
 #include "ecm-impl.h"
 
 /* the following constant were tested experimentally: in theory, we should

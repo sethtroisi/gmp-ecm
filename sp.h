@@ -20,8 +20,8 @@
   MA 02111-1307, USA.
 */
 
-#ifndef __HAVE_SP_H
-#define __HAVE_SP_H
+#ifndef _SP_H
+#define _SP_H
 
 #include "config.h"
 
@@ -425,4 +425,4 @@ void mpzspv_to_ntt (mpzspv_t, spv_size_t, spv_size_t, spv_size_t, int,
 void mpzspv_from_ntt (mpzspv_t, spv_size_t, spv_size_t, spv_size_t, mpzspm_t);
 void mpzspv_random (mpzspv_t, spv_size_t, spv_size_t, mpzspm_t);
 
-#endif /* __HAVE_SP_H */
+#endif /* _SP_H */

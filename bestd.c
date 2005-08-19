@@ -21,11 +21,7 @@
 */
 
 #include <stdio.h>
-#include <stdlib.h>
-#include <math.h>
-#include <limits.h> /* for UINT_MAX */
 #include <gmp.h>
-#include "ecm.h"
 #include "ecm-impl.h"
 
 /*
