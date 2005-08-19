@@ -18,6 +18,12 @@
   02111-1307, USA.
 */
 
+#ifndef _ECM_H
+#define _ECM_H 1
+
+#include <stdio.h> /* for FILE */
+#include <gmp.h>
+
 typedef struct
 {
   int method;     /* factorization method, default is ecm */
@@ -97,4 +103,6 @@ int pm1 (mpz_t, mpz_t, mpz_t, mpz_t, double, double, mpz_t,
 
 /* Apple uses '\r' for newlines */
 #define IS_NEWLINE(c) (((c) == '\n') || ((c) == '\r'))
+
+#endif /* _ECM_H */
 

@@ -20,8 +20,6 @@
   MA 02111-1307, USA.
 */
 
-#include <stdio.h>
-#include <gmp.h>
 #include "ecm-impl.h"
 
 /* puts in {rp, n} the low part of {np, n} times {mp, n}, i.e. equivalent to:

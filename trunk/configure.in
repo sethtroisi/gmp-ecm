@@ -63,12 +63,18 @@ if test "x$with_gwnum" != "x"; then
 fi
 AM_CONDITIONAL(WITH_GWNUM, test "x$with_gwnum" != "x")
 
+AC_ARG_ENABLE(memory-debug, [  --enable-memory-debug   enable memory debugging [[default=no]]])
+if test "x$enable_memory_debug" = "xyes"; then
+  AC_DEFINE(MEMORY_DEBUG, 1, [Define to 1 if you want memory debugging])
+fi
+AM_CONDITIONAL(MEMORY_DEBUG, test "x$enable_memory_debug" = "xyes")
+
 dnl Checks for header files.
 AC_FUNC_ALLOCA
 AC_HEADER_STDC
-AC_CHECK_HEADERS([math.h limits.h malloc.h strings.h sys/time.h unistd.h])
+AC_CHECK_HEADERS([math.h limits.h malloc.h strings.h sys/time.h unistd.h io.h])
 AC_CHECK_HEADERS([windows.h])
-AC_CHECK_HEADERS([sys/types.h sys/resource.h])
+AC_CHECK_HEADERS([ctype.h sys/types.h sys/resource.h])
 
 dnl Tests concerning the include directories.
 if test -d "$with_gmp_include"; then
@@ -116,9 +122,7 @@ dnl Check for corresponding 'gmp.h' and libgmp.a
 AC_MSG_CHECKING(if gmp.h version and libgmp version are the same)
 AC_RUN_IFELSE([AC_LANG_PROGRAM([[
 #include <stdio.h>
-#ifdef HAVE_STRING_H
-#  include <string.h>
-#endif
+#include <string.h>
 #include <gmp.h>
 ]],[[
 char buffer[100];
@@ -138,9 +142,12 @@ return strcmp (buffer, gmp_version);
 dnl Checks for library functions.
 AC_FUNC_STRTOD
 AC_CHECK_LIB(m, floor)
-AC_CHECK_FUNCS([floor sqrt pow], [], AC_MSG_ERROR([required function missing]))
-AC_CHECK_FUNCS([isascii memset strchr strncasecmp strstr], [], AC_MSG_ERROR([required function missing]))
-AC_CHECK_FUNCS([gethostname gettimeofday getrusage memmove random])
+AC_CHECK_FUNCS([floor sqrt pow fmod], [], AC_MSG_ERROR([required function missing]))
+AC_CHECK_FUNCS([isascii memset strchr strlen strncasecmp strstr], [], AC_MSG_ERROR([required function missing]))
+AC_CHECK_FUNCS([access unlink], [], AC_MSG_ERROR([required function missing]))
+AC_CHECK_FUNCS([isspace isdigit isxdigit], [], AC_MSG_ERROR([required function missing]))
+AC_CHECK_FUNCS([time ctime], [], AC_MSG_ERROR([required function missing]))
+AC_CHECK_FUNCS([nice gethostname gettimeofday getrusage memmove])
 
 dnl FIXME: which win32 library contains these functions?
 dnl AC_CHECK_FUNCS([GetCurrentProcess GetProcessTimes])

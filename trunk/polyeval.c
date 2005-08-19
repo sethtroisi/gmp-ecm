@@ -20,15 +20,14 @@
   MA 02111-1307, USA.
 */
 
-#include <stdio.h>
 #include <stdlib.h>
-#if !defined (_MSC_VER)
-#include <unistd.h>
-#endif
-#include <gmp.h>
-#include <string.h> /* for strlen() */
-#include "ecm.h"
+#include <string.h> /* for strlen */
 #include "ecm-impl.h"
+
+#if HAVE_UNISTD_H
+# include <unistd.h> /* for unlink */
+#endif
+
 
 #ifndef MAX
 #define MAX(a,b) (((a) > (b)) ? (a) : (b))

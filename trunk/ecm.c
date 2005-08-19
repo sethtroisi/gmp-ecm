@@ -22,11 +22,14 @@
 
 #include <stdio.h>
 #include <stdlib.h>
-#include <math.h>
-#include <limits.h> /* for ULONG_MAX */
-#include <gmp.h>
-#include "ecm.h"
 #include "ecm-impl.h"
+#include <math.h>
+
+#if HAVE_LIMITS_H
+# include <limits.h>
+#else
+# define ULONG_MAX __GMP_ULONG_MAX
+#endif
 
 /******************************************************************************
 *                                                                             *

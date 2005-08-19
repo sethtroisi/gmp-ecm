@@ -19,8 +19,7 @@ along with the GNU MP Library; see the file COPYING.LIB.  If not, write to
 the Free Software Foundation, Inc., 59 Temple Place - Suite 330, Boston,
 MA 02111-1307, USA. */
 
-#ifdef MEMORY_DEBUG
-
+#include "config.h"
 #include <stdio.h>
 #include <stdlib.h>  /* for abort */
 #include <gmp.h>
@@ -132,14 +131,14 @@ tests_reallocate (void *ptr, size_t old_size, size_t new_size)
 
   if (h->size != old_size)
     {
-      printf ("tests_reallocate(): bad old size %u, should be %u\n",
+      printf ("tests_reallocate(): bad old size %zd, should be %zd\n",
               old_size, h->size);
       abort ();
     }
 
   if (h->size > cur_mem)
     {
-      printf ("tests_reallocate(): h->size = %d but cur_mem = %d\n",
+      printf ("tests_reallocate(): h->size = %zd but cur_mem = %lu\n",
               h->size, cur_mem);
       abort();
     }
@@ -183,7 +182,7 @@ tests_free_nosize (void *ptr)
 
   if (h->size > cur_mem)
     {
-      printf ("tests_free_nosize(): h->size = %d but cur_mem = %d\n",
+      printf ("tests_free_nosize(): h->size = %zd but cur_mem = %lu\n",
               h->size, cur_mem);
       abort();
     }
@@ -204,7 +203,7 @@ tests_free (void *ptr, size_t size)
 
   if (h->size != size)
     {
-      printf ("tests_free(): bad size %u, should be %u\n", size, h->size);
+      printf ("tests_free(): bad size %zd, should be %zd\n", size, h->size);
       abort ();
     }
 
@@ -252,12 +251,12 @@ tests_memory_end (void)
   
   if (cur_mem != 0)
     {
-      printf ("tests_memory_end(): cur_mem = %d but list of allocated "
+      printf ("tests_memory_end(): cur_mem = %lu but list of allocated "
               "memory empty\n", cur_mem);
       abort ();
     }
   
-  printf ("%d reallocates, %d reallocates with move, peak_mem = %d\n", 
+  printf ("%lu reallocates, %lu reallocates with move, peak_mem = %lu\n", 
           nr_realloc, nr_realloc_move, peak_mem);
 }
 
@@ -280,7 +279,7 @@ tests_memory_status (void)
 
   if (size != cur_mem)
     {
-      printf ("tests_memory_status(): size = %d but cur_mem = %d", 
+      printf ("tests_memory_status(): size = %d but cur_mem = %lu", 
               size, cur_mem);
       abort();
     }
@@ -297,16 +296,3 @@ void tests_memory_set_location (char *name, unsigned int line)
   cur_line = line;
 }
 
-#else
-
-/* Stop compiler complaining about empty file */
-
-void memory_dummy (void);
-
-void 
-memory_dummy (void)
-{
-  return;
-}
-
-#endif

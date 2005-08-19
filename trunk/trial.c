@@ -19,10 +19,7 @@
 */
 
 #include <stdio.h>
-#include <gmp.h>
-/* For log() */
-#include <math.h>
-#include "ecm.h"
+#include <math.h> /* log */
 #include "ecm-ecm.h"
 
 int

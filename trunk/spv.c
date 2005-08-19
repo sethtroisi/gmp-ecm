@@ -26,24 +26,20 @@
  * 
  * These are low-overhead routines that don't do memory allocation,
  * other than for temporary variables. Unless otherwise specified, any
- * of the input pointers can be equal.
- *
- * Functions may assume that, where appropriate, the coeffs of r are
- * evaluated in left-to-right order. Assertions permit nontrivial such
- * nontrivial overlapping. */
-
+ * of the input pointers can be equal. */
 
 /* r = x */
 void
 spv_set (spv_t r, spv_t x, spv_size_t len)
 {
+#ifdef HAVE_MEMMOVE  
+  /* memmove doesn't rely on the assertion below */
+  memmove (r, x, len * sizeof (sp_t));
+#else
   spv_size_t i;
 
   ASSERT (r >= x + len || x >= r);
 
-#ifdef HAVE_MEMMOVE  
-  memmove (r, x, len * sizeof (sp_t));
-#else
   for (i = 0; i < len; i++)
     r[i] = x[i];
 #endif

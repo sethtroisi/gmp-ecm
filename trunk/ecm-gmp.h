@@ -20,7 +20,11 @@ along with the GNU MP Library; see the file COPYING.LIB.  If not, write to
 the Free Software Foundation, Inc., 59 Temple Place - Suite 330, Boston,
 MA 02111-1307, USA. */
 
+#ifndef _ECM_GMP_H
+#define _ECM_GMP_H 1
+
 #include "config.h"
+#include <gmp.h>
 
 #ifndef alloca
 #ifdef __GNUC__
@@ -136,3 +140,5 @@ mp_size_t mpn_fft_next_size (mp_size_t, int);
 void    mpn_mul_fft (mp_ptr, mp_size_t, mp_srcptr, mp_size_t, mp_srcptr,
                      mp_size_t, int);
 #endif
+
+#endif /* _ECM_GMP_H */

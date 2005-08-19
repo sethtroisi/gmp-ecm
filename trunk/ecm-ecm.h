@@ -18,6 +18,9 @@
   02111-1307, USA.
 */
 
+#ifndef _ECM_ECM_H
+#define _ECM_ECM_H 1
+
 #include "config.h"
 
 #if WANT_ASSERT
@@ -26,6 +29,8 @@
 #else
 #define ASSERT(expr)   do {} while (0)
 #endif
+
+#include "ecm.h"
 
 /* Structure for candidate usage.  This is much more powerful than using a
    simple mpz_t to hold the candidate.  This structure also houses the 
@@ -174,4 +179,38 @@ void pm1_random_seed  (mpz_t, mpz_t, gmp_randstate_t);
 
 #define ABS(x) ((x) >= 0 ? (x) : -(x))
 
+/* could go in auxi.c as a function */
+#if HAVE_SETPRIORITY
+# include <sys/time.h>
+# if HAVE_SYS_RESOURCE_H
+#  include <sys/resource.h>
+# endif
+# define NICE10 setpriority (PRIO_PROCESS, 0, 10)
+# define NICE20 setpriority (PRIO_PROCESS, 0, 20)
 
+#elif HAVE_NICE
+# if HAVE_UNISTD_H
+#  include <unistd.h>
+# endif
+# define NICE10 nice (10)
+# define NICE20 nice (20)
+
+#elif HAVE_WINDOWS_H
+# include <windows.h>
+# define NICE10 do { \
+   SetPriorityClass (GetCurrentProcess (), BELOW_NORMAL_PRIORITY_CLASS); \
+   SetThreadPriority (GetCurrentThread (), THREAD_PRIORITY_BELOW_NORMAL); \
+   } while (0)
+# define NICE20 do { \
+   SetPriorityClass (GetCurrentProcess (), IDLE_PRIORITY_CLASS); \
+   SetThreadPriority (GetCurrentThread (), THREAD_PRIORITY_IDLE); \
+   } while (0)
+
+#else
+# warning "Can't find a way to change priority"
+# define NICE10 do {} while (0)
+# define NICE20 do {} while (0)
+#endif
+
+
+#endif /* _ECM_ECM_H */

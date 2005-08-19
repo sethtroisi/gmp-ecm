@@ -15,13 +15,18 @@ LDADD = libecm.a
 
 ecm_CPPFLAGS = -DOUTSIDE_LIBECM $(AM_CPPFLAGS)
 ecm_SOURCES = auxi.c b1_ainc.c candi.c eval.c random.c main.c trial.c \
-              memory.c resume.c getprime.c
+              resume.c getprime.c
 
 tune_CPPFLAGS = -DTUNE $(AM_CPPFLAGS)
 tune_LDADD =
 tune_SOURCES = mpmod.c tune.c mul_lo.c listz.c auxlib.c ks-multiply.c \
                toomcook.c schoen_strass.c polyeval.c median.c ecm_ntt.c \
 	       ntt_gfp.c mpzspv.c mpzspm.c sp.c spv.c spm.c random.c
+
+if MEMORY_DEBUG
+  libecm_a_SOURCES += memory.c
+  tune_SOURCES += memory.c
+endif
 
 if ENABLE_ASM_REDC
   libecm_a_SOURCES += redc.asm
