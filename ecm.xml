@@ -207,6 +207,14 @@ even for P-1.</para>
       stage 2.</para>
   </listitem>
   </varlistentry>
+
+  <varlistentry>
+  <term><option>-no-ntt</option></term>
+  <listitem>
+<para>Disable the Number-Theoretic Transform code for polynomial arithmetic and
+allow free choice of dF.</para>
+  </listitem>
+  </varlistentry>
 </variablelist>
 </refsect1>
 

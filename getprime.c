@@ -21,14 +21,12 @@
 */
 
 #include <math.h>
-#include <stdio.h>
 #include <stdlib.h>
-#include <gmp.h>
-#include "ecm.h"
+
 #ifdef OUTSIDE_LIBECM
-#include "ecm-ecm.h"
+# include "ecm-ecm.h"
 #else
-#include "ecm-impl.h"
+# include "ecm-impl.h"
 #endif
 
 /* This function returns successive odd primes, starting with 3.

@@ -20,8 +20,11 @@
   MA 02111-1307, USA.
 */
 
+/* need stdio.h and stdarg.h for gmp.h to declare gmp_vfprintf */
 #include <stdio.h>
-#include <stdlib.h>
+#include <stdarg.h>
+#include <gmp.h>
+#include "ecm-impl.h"
 
 #if TIME_WITH_SYS_TIME
 # include <sys/time.h>
@@ -34,10 +37,13 @@
 # endif
 #endif
 
-#include <stdarg.h>
-#include <limits.h>
-#include <gmp.h>
-#include "ecm-impl.h"
+#if HAVE_LIMITS_H
+# include <limits.h>
+#else
+# ifndef ULONG_MAX
+#  define LONG_MAX (__GMP_ULONG_MAX / 2)
+# endif
+#endif
 
 #define VERBOSE __ECM(verbose)
 static int VERBOSE = OUTPUT_NORMAL;
@@ -105,7 +111,7 @@ mpz_divby3_1op (mpz_t RS)
     return;
   
   r = mpn_divexact_by3 (RS->_mp_d, RS->_mp_d, abssize);
-  ASSERT(r == 0);
+  ASSERT (r == 0);
 
   if (RS->_mp_d[abssize - 1] == 0)
     RS->_mp_size -= mpz_sgn (RS);
@@ -140,15 +146,20 @@ ceil_log2 (unsigned long n)
 long
 cputime ()
 {
-  __int64 lpCreationTime, lpExitTime, lpKernelTime, lpUserTime;
+  FILETIME lpCreationTime, lpExitTime, lpKernelTime, lpUserTime;
+  ULARGE_INTEGER n;
+
   HANDLE hProcess = GetCurrentProcess();
   
-  GetProcessTimes (hProcess, (LPFILETIME) &lpCreationTime,
-      (LPFILETIME) &lpExitTime, (LPFILETIME) &lpKernelTime,
-      (LPFILETIME) &lpUserTime);
+  GetProcessTimes (hProcess, &lpCreationTime, &lpExitTime, &lpKernelTime,
+      &lpUserTime);
+
+  /* copy FILETIME to a ULARGE_INTEGER as recommended by MSDN docs */
+  n.u.LowPart = lpUserTime.dwLowDateTime;
+  n.u.HighPart = lpUserTime.dwHighDateTime;
 
   /* lpUserTime is in units of 100 ns. Return time in milliseconds */
-  return (long) (lpUserTime / 10000);
+  return (long) (n.QuadPart / 10000);
 }
 
 #elif defined (HAVE_GETRUSAGE)
@@ -156,10 +167,10 @@ cputime ()
    preferred. */
 
 #ifdef HAVE_SYS_TYPES_H
-#include <sys/types.h>
+# include <sys/types.h>
 #endif
 #ifdef HAVE_SYS_RESOURCE_H
-#include <sys/resource.h>
+# include <sys/resource.h>
 #endif
 
 long

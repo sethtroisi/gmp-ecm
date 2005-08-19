@@ -55,7 +55,7 @@ sp_prime (sp_t x)
   if (!(x & 1))
     return 0;
   
-  if (x < (ULONG_MAX >> 1))
+  if (x < SP_MIN)
     return 1;
   
   invert_limb (d, x);

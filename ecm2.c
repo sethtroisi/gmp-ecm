@@ -20,19 +20,9 @@
   MA 02111-1307, USA.
 */
 
-#include <stdio.h>
 #include <stdlib.h>
 #include <math.h>
-#include <gmp.h>
-#include "ecm.h"
 #include "ecm-impl.h"
-
-#if WANT_ASSERT
-#include <assert.h>
-#define ASSERT(expr)   assert (expr)
-#else
-#define ASSERT(expr)   do {} while (0)
-#endif
 
 /* R_i <- q_i * S, 0 <= i < n, where q_i are large integers, S is a point on
    an elliptic curve. Uses max(bits in q_i) modular inversions (one less if 

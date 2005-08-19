@@ -30,11 +30,16 @@
 
 #include <math.h>
 #include <stdlib.h>
-#include <stdio.h>
-#include <limits.h> /* for ULONG_MAX */
-#include <gmp.h>
-#include "ecm.h"
 #include "ecm-impl.h"
+
+#if HAVE_LIMITS_H
+# include <limits.h>
+#else
+# ifndef ULONG_MAX
+#  define ULONG_MAX __GMP_ULONG_MAX
+# endif
+#endif
+
 
 /******************************************************************************
 *                                                                             *

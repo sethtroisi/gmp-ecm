@@ -21,15 +21,17 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#if !defined (_MSC_VER)
-#include <strings.h> /* for strncasecmp */
-#include <unistd.h>
-#endif
-#include <ctype.h>
 #include <time.h>
-#include <gmp.h>
-#include "ecm.h"
 #include "ecm-ecm.h"
+
+#if HAVE_STRINGS_H
+# include <strings.h> /* for strncasecmp */
+#endif
+
+#if HAVE_CTYPE_H
+# include <ctype.h>
+#endif
+
 
 /*****************************************************************
  *   Syntax for this VERY simple recursive expression parser:	 *
@@ -63,8 +65,10 @@ static void eval_sum (mpz_t prior_n, mpz_t n,char op);
 static int  eval_Phi (mpz_t prior_n, mpz_t n, int ParamCnt);
 static int  eval_2 (int bInFuncParams);
 
+#if 0 /* strncasecmp is a required function in configure.in */
 #if defined (_MSC_VER) || defined (__MINGW32__)
 #define strncasecmp strnicmp
+#endif
 #endif
 
 /**************************************/

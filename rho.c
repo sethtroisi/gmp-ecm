@@ -20,12 +20,11 @@
   MA 02111-1307, USA.
 */
 
-#include <stdlib.h>
 #if defined(DEBUG_NUMINTEGRATE) || defined(TESTDRIVE)
-#include <stdio.h>
+# include <stdio.h>
 #endif
+#include <stdlib.h>
 #include <math.h>
-#include <gmp.h>
 #include "ecm-impl.h"
 
 #ifndef ECM_EXTRA_SMOOTHNESS

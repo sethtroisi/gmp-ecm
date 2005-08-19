@@ -22,11 +22,6 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#if !defined (_MSC_VER)
-#include <unistd.h>
-#endif
-#include <gmp.h>
-#include "ecm.h"
 #include "ecm-ecm.h"
 
 #define VALID_MAGIC 0x24837BF5

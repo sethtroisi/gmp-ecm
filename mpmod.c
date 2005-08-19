@@ -20,13 +20,8 @@
   MA 02111-1307, USA.
 */
 
-#include <stdlib.h>
 #include <stdio.h>
-#include <gmp.h>
-
-/* For ECM_ERROR */
-#include "ecm.h"
-
+#include <stdlib.h>
 #include "ecm-gmp.h"
 #include "ecm-impl.h"
 

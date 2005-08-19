@@ -20,13 +20,15 @@
   MA 02111-1307, USA.
 */
 
-#include <stdlib.h>
 #include <stdio.h>
-#include <unistd.h> /* for unlink */
+#include <stdlib.h>
 #include <string.h>
 #include "sp.h"
-#include "ecm.h"
 #include "ecm-impl.h"
+
+#if HAVE_UNISTD_H
+#include <unistd.h> /* for unlink */
+#endif
 
 
 /* memory: 4 * len mpspv coeffs */
