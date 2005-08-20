@@ -29,12 +29,10 @@ ToDo's:
 - when resuming, print the *initial* x0 for P-1/P+1?
 - [from Jakub Pawlewicz <pan@mimuw.edu.pl>] add an option -stage1time t
   to tell the step 1 time, when done by another program. PZ: or better
-  have it in resume file? (Target: 6.1)
+  have it in resume file? (Target: 6.1. Command line option done)
 
 3) documentation
 - add examples for typical use to README 
   (see http://www.mersenneforum.org/showthread.php?t=3922)
 
 4) others
-- add an option to execute a shell command (such as sending an email) 
-  when something interesting happens (factor found, program finished) ?
