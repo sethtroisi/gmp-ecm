@@ -800,14 +800,6 @@ int
 gw_ecm_stage1 (mpz_t f, curve *P, mpmod_t modulus, 
 	       double B1, double *B1done, mpz_t go)
 {
-#if !defined(GW_ECM_STAGE1)
-  /* If there is no gwnum_ecmStage1() in the GWNUM library,
-     this function will simply return. The caller should notice that
-     B1done is unchanged. */
-
-  return ECM_NO_FACTOR_FOUND;
-#else
-
   const double gw_k = 1.;
   const unsigned long gw_b = 2;
   unsigned long gw_n = abs (modulus->bits);
@@ -912,7 +904,6 @@ gw_ecm_stage1 (mpz_t f, curve *P, mpmod_t modulus,
 end_of_gwecm:
 
   return youpi;
-#endif
 }
 
 #ifdef TESTDRIVE

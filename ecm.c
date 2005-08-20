@@ -986,6 +986,10 @@ ecm (mpz_t f, mpz_t x, mpz_t sigma, mpz_t n, mpz_t go, double B1done,
 
   /* At this point B1 == B1done unless interrupted, or no GWNUM ecm_stage1
      is available */
+
+  if (youpi != ECM_NO_FACTOR_FOUND)
+    goto end_of_ecm;
+
 #endif
 
   if (B1 > B1done)
