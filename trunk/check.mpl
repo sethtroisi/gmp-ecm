@@ -523,6 +523,37 @@ montgomery_to_weierstrass := proc(x, a, p) local g;
    [(3*x+a)/(3*g) mod p, 1/g mod p, (3-a^2)/(3*g^2) mod p]
 end:
 
+# return 2*(x1:z1)
+dup := proc(x1, z1, b, n) local u, v, w, x2, z2;
+   u := x1+z1 mod n;
+   u := u^2 mod n;
+   v := x1-z1 mod n;
+   v := v^2 mod n;
+   x2 := u*v mod n;
+   w := u-v mod n;
+   u := w*b mod n;
+   u := u+v mod n;
+   z2 := w*u mod n;
+   return x2, z2;
+end:
+
+# return (x1:z1) + (x2:z2), where (x:z) = (x1:z1) - (x2:z2)
+add3 := proc(x1, z1, x2, z2, x, z, n) local u, v, w, x3, z3;
+   u := x2-z2 mod n;
+   v := x1+z1 mod n;
+   u := u*v mod n;
+   w := x2+z2 mod n;
+   v := x1-z1 mod n;
+   v := w*v mod n;
+   w := u+v mod n;
+   v := u-v mod n;
+   w := w*w mod n;
+   v := v*v mod n;
+   x3 := w*z mod n;
+   z3 := x*v mod n;
+   return x3, z3;
+end:
+
 addW := proc(x1, y1, x2, y2, n) local u, v, p;
    u := x2-x1;
    v := 1/u mod n; # 1/(x2-x1)
