@@ -317,7 +317,7 @@ stage2 (mpz_t f, void *X, mpmod_t modulus, unsigned long dF, unsigned long k,
   listz_t invF = NULL;
   double mem;
   mpzspm_t mpzspm;
-  mpzspv_t sp_invF = 0;
+  mpzspv_t sp_F = NULL, sp_invF = NULL;
   
   /* check alloc. size of f */
   mpres_realloc (f, modulus);
@@ -524,6 +524,10 @@ stage2 (mpz_t f, void *X, mpmod_t modulus, unsigned long dF, unsigned long k,
       
       if (use_ntt)
         {
+	  sp_F = mpzspv_init (dF, mpzspm);
+	  mpzspv_from_mpzv (sp_F, 0, F, dF, mpzspm);
+	  mpzspv_to_ntt (sp_F, 0, dF, dF, 1, mpzspm);
+	  
 	  ntt_PolyInvert (invF, F + 1, dF, T, mpzspm);
 	  sp_invF = mpzspv_init (2 * dF, mpzspm);
 	  mpzspv_from_mpzv (sp_invF, 0, invF, dF, mpzspm);
@@ -666,7 +670,7 @@ stage2 (mpz_t f, void *X, mpmod_t modulus, unsigned long dF, unsigned long k,
 
           if (use_ntt)
 	    {
-	      ntt_PrerevertDivision (H, F, invF + 1, sp_invF, dF,
+	      ntt_PrerevertDivision (H, F, invF + 1, sp_F, sp_invF, dF,
 		  T + 2 * dF, mpzspm);
 	    }
 	  else
@@ -727,7 +731,10 @@ clear_invF:
   clear_list (invF, dF + 1);
 
   if (use_ntt)
-    mpzspv_clear (sp_invF, mpzspm);
+    {
+      mpzspv_clear (sp_F, mpzspm);
+      mpzspv_clear (sp_invF, mpzspm);
+    }
 
 free_Tree_i:
   if (Tree != NULL)
