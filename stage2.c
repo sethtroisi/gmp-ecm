@@ -280,8 +280,8 @@ memory_use (unsigned long dF, unsigned int sp_num, unsigned int Ftreelvl,
 	 + (MPZSPV_NORMALISE_STRIDE * ((double) sp_num * 
 	 	sizeof (sp_t) + 6.0 * sizeof (sp_t) + sizeof (float)))
 
-	 /* sp_invF */
-	 + (2.0 * dF * sp_num * sizeof (sp_t));
+	 /* sp_F, sp_invF */
+	 + ((1.0 + 2.0) * dF * sp_num * sizeof (sp_t));
 
   return mem;
 }
