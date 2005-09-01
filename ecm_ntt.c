@@ -180,14 +180,14 @@ ntt_PolyFromRoots_Tree (mpzv_t r, mpzv_t a, spv_size_t len, mpzv_t t,
 
 
 /* 2 NTTs of size 2 * len
- * 3 NTTs of size len
+ * 2 NTTs of size len
  *
- * memory: 4 * len mpzspv coeffs */
+ * memory: 2 * len mpzspv coeffs */
 void
-ntt_PrerevertDivision (mpzv_t a, mpzv_t b, mpzv_t invb, mpzspv_t sp_invb,
-    spv_size_t len, mpzv_t t, mpzspm_t mpzspm)
+ntt_PrerevertDivision (mpzv_t a, mpzv_t b, mpzv_t invb, mpzspv_t sp_b,
+    mpzspv_t sp_invb, spv_size_t len, mpzv_t t, mpzspm_t mpzspm)
 {
-  mpzspv_t x, y;
+  mpzspv_t x;
   
   if (len < PREREVERTDIVISION_NTT_THRESHOLD)
     {
@@ -196,7 +196,6 @@ ntt_PrerevertDivision (mpzv_t a, mpzv_t b, mpzv_t invb, mpzspv_t sp_invb,
     }
   
   x = mpzspv_init (2 * len, mpzspm);
-  y = mpzspv_init (2 * len, mpzspm);
 
   /* y = TOP (TOP (a) * invb) */
   mpzspv_set_sp (x, 0, 0, len + 1, mpzspm);
@@ -207,14 +206,11 @@ ntt_PrerevertDivision (mpzv_t a, mpzv_t b, mpzv_t invb, mpzspv_t sp_invb,
   mpzspv_normalise (x, 0, len, mpzspm);
   
   mpzspv_to_ntt (x, 0, len, len, 0, mpzspm);
-  mpzspv_from_mpzv (y, 0, b, len, mpzspm);
-  mpzspv_to_ntt (y, 0, len, len, 1, mpzspm); /* b has leading monomial */
-  mpzspv_pwmul (x, 0, x, 0, y, 0, len, mpzspm);
+  mpzspv_pwmul (x, 0, x, 0, sp_b, 0, len, mpzspm);
   mpzspv_from_ntt (x, 0, len, 0, mpzspm);
   mpzspv_to_mpzv (x, 0, t, len, mpzspm);
   
   mpzspv_clear (x, mpzspm);
-  mpzspv_clear (y, mpzspm);
  
   list_sub (t, t, a + len, len - 1);
   list_sub (a, a, t, len);
