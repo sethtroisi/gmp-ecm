@@ -30,6 +30,7 @@ ToDo's:
 - [from Jakub Pawlewicz <pan@mimuw.edu.pl>] add an option -stage1time t
   to tell the step 1 time, when done by another program. PZ: or better
   have it in resume file? (Target: 6.1. Command line option done)
+- forbid -one with -resume?
 
 3) documentation
 - add examples for typical use to README 
