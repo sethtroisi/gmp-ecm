@@ -242,6 +242,9 @@ main (int argc, char *argv[])
   char *TreeFilename = NULL;
   char rtime[256] = "", who[256] = "", comment[256] = "", program[256] = "";
   FILE *savefile = NULL, *resumefile = NULL, *infile = NULL;
+  mpz_t resume_lastN, resume_lastfac; /* When resuming residues from a file,
+        store the last number processed and the factors found for this it */
+  int resume_wasPrp = 0; /* 1 if resume_lastN/resume_lastfac is a PRP */
   int primetest = 0, saveappend = 0;
   double autoincrementB1 = 0.0, startingB1;
   unsigned int autoincrementB1_calc = 0;
@@ -787,6 +790,9 @@ main (int argc, char *argv[])
                    resumefilename);
           exit (EXIT_FAILURE);
         }
+      mpz_init (resume_lastN);
+      mpz_init (resume_lastfac);
+      mpz_set_ui (resume_lastfac, 1);
     }
 
   /* Open save file for writing, if saving is requested */
@@ -917,6 +923,27 @@ BreadthFirstDoAgain:;
           if (!read_resumefile_line (&method, x, &n, sigma, A, orig_x0, 
                 &B1done, program, who, rtime, comment, resumefile))
             break;
+          
+          if (mpz_cmp (n.n, resume_lastN) == 0)
+            {
+              /* Aha, we're trying the same number again. */
+              /* We skip this attempt if: 1. the remaining cofactor after
+                 the last attempt was a probable prime, or 2. if a factor
+                 was found and the user gave the -one option */
+              if (resume_wasPrp || 
+                  deep == 0 && mpz_cmp_ui (resume_lastfac, 1) != 0)
+                  continue;
+              
+              /* If we found a factor in an earlier attempt, divide it out */
+              if (mpz_cmp_ui (resume_lastfac, 1) > 0)
+                mpcandi_t_addfoundfactor (&n, resume_lastfac, 1);
+            } else {
+              /* It's a different number. Set resume_lastN and 
+                 resume_lastfac */
+              mpz_set (resume_lastN, n.n);
+              mpz_set_ui (resume_lastfac, 1);
+              resume_wasPrp = n.isPrp;
+            }
 
 	  cnt = count; /* i.e. 1 */
 
@@ -1061,18 +1088,22 @@ BreadthFirstDoAgain:;
 	    }
 	  fflush (stdout);
 	}
-      /* Even in verbose=0 we should primality check if told to do so, however,
-         we will print to stderr to keep stdout "clean"
+      /* Even in verbose=0 we should primality check if told to do so, 
+         however, we will print to stderr to keep stdout "clean"
          for verbose=0 like behavior */
-      else if (((!breadthfirst && cnt == count) || (breadthfirst && breadthfirst_cnt==1)) && n.isPrp)
+      else if (((!breadthfirst && cnt == count) || 
+                (breadthfirst && breadthfirst_cnt==1)) && n.isPrp)
 	{
 	  char *s;
 	  s = mpz_get_str (NULL, 10, n.n);
-	  fprintf (stderr, "Input number is %s (%u digits)\n****** Warning: input is probably prime ******\n", s, n.ndigits);
+	  fprintf (stderr, "Input number is %s (%u digits)\n"
+	           "****** Warning: input is probably prime ******\n", 
+	           s, n.ndigits);
 	  FREE (s, n.ndigits + 1);
 	}
 
-      if ((!breadthfirst && cnt == count) || (breadthfirst && 1 == breadthfirst_cnt))
+      if ((!breadthfirst && cnt == count) || 
+          (breadthfirst && 1 == breadthfirst_cnt))
 	{
 	  int SomeFactor;
 	  /*  Note, if a factors are found, then n will be adjusted "down" */
@@ -1098,7 +1129,8 @@ BreadthFirstDoAgain:;
 	      fflush (stdout);
 	      if (!deep)
 		{
-		  /* Note, if we are not in deep mode, then there is no need to continue if a factor was found */
+		  /* Note, if we are not in deep mode, then there is no need 
+		     to continue if a factor was found */
   		  factor_is_prime = 1;
   		  mpz_set_ui (f,1);
 		  goto OutputFactorStuff;
@@ -1113,7 +1145,7 @@ BreadthFirstDoAgain:;
 
       mpgocandi_fixup_with_N (&go, &n);
 
-      /* set parameters that mau change from one curve to another */
+      /* set parameters that may change from one curve to another */
       params->method = method; /* may change with resume */
       mpz_set (params->x, x); /* may change with resume */
       /* if sigma is zero, then we use the A value instead */
@@ -1142,16 +1174,25 @@ BreadthFirstDoAgain:;
 	    returncode = ECM_NO_FACTOR_FOUND;
 	    goto OutputFactorStuff;
 	  }
-	}
-      if (result != ECM_NO_FACTOR_FOUND)
-	{
+	} else {
 	  factsfound++;
 	  if (verbose > 0)
 	    printf ("********** Factor found in step %u: ", ABS (result));
           mpz_out_str (stdout, 10, f);
 	  if (verbose > 0)
             printf ("\n");
-#if defined(WANT_SHELLCMD) && defined(unix)
+
+          /* Complain about non-proper factors (1, 0, negative) */
+          if (mpz_cmp_ui (f, 2) < 0)
+            {
+              fprintf (stderr, "Error: factor found is ");
+              mpz_out_str (stderr, 10, f);
+              fprintf (stderr, "\nPlease report internal errors at <%s>.\n",
+                       PACKAGE_BUGREPORT);
+              exit (EXIT_FAILURE);
+            }
+          
+#if defined(WANT_SHELLCMD)
 	  if (faccmd != NULL)
 	    {
 	      FILE *fc;
@@ -1169,13 +1210,6 @@ BreadthFirstDoAgain:;
 	        }
 	    }
 #endif
-          if (mpz_cmp_ui (f, 1) == 0)
-            {
-              fprintf (stderr, "Error: factor found is 1\n");
-              fprintf (stderr, "Please report internal errors at <%s>.\n",
-                       PACKAGE_BUGREPORT);
-              exit (EXIT_FAILURE);
-            }
 
 	  if (mpz_cmp (f, n.n) != 0)
 	    {
@@ -1192,6 +1226,14 @@ BreadthFirstDoAgain:;
                 }
 
 	      mpcandi_t_addfoundfactor (&n, f, 1); /* 1 for display warning if factor does not divide the current candidate */
+
+              if (resumefile != NULL)
+                {
+                  /* If we are resuming from a save file, add factor to the
+                     discovered factors for the current number */
+                  mpz_mul (resume_lastfac, resume_lastfac, f);
+                  resume_wasPrp = n.isPrp;
+                }
 
               if (factor_is_prime)
                 returncode = (n.isPrp) ? ECM_PRIME_FAC_PRIME_COFAC : 
@@ -1276,10 +1318,11 @@ OutputFactorStuff:;
                                  orig_x0, comment);
         }
 
-      /* Clean up any temp file left over.  At this time, we "assume" that if the user wants
-         to resume the run, then they used -save file.  The temp save was ONLY to help in case
-         of a power outage (or similar) for a long run.  It would allow finishing the current
-         candidate, keeping the existing work done.   Now, we assume we "are" done. */
+      /* Clean up any temp file left over.  At this time, we assume that if 
+         the user wants to resume the run, then they used -save file.  The 
+         temp save was ONLY to help in case of a power outage (or similar) 
+         for a long run.  It would allow finishing the current candidate, 
+         keeping the existing work done.   Now, we assume we are done. */
 #if !defined (DEBUG_AUTO_SAVE)
       kill_temp_resume_file ();
 #endif
@@ -1308,7 +1351,11 @@ OutputFactorStuff:;
   if (savefile)
     fclose (savefile);
   if (resumefile)
-    fclose (resumefile);
+    {
+      fclose (resumefile);
+      mpz_clear (resume_lastN);
+      mpz_clear (resume_lastfac);
+    }
   if (nCandidates)
     {
       while (nCandidates--)
