@@ -191,24 +191,22 @@ mpcandi_t_addfoundfactor (mpcandi_t *n, mpz_t f, int displaywarning)
 #if defined (CANDI_DEBUG)
   Candi_Validate("Pre mpcandi_t_addfoundfactor_d", n);
 #endif
-  mpz_t t;
   char *cp, *cp1;
 
-  mpz_init(t);
-  mpz_mod(t, n->n, f);
-  if (mpz_cmp_ui(t, 0))
+  if (!mpz_divisible_p (n->n, f))
     {
-      /* ERROR was not a factor NOTE however, that this is "valid" for the ui() function to call. When trial dividing, it 
-         is VERY frequent to be divisible by 2^3, and we try to remove factors UNTIL */
-      mpz_clear(t);
+      /* ERROR was not a factor NOTE however, that this is "valid" for the 
+         ui() function to call. When trial dividing, it is VERY frequent to 
+         be divisible by 2^3, and we try to remove factors UNTIL */
       if (displaywarning)
-        fprintf (stderr, "\nECM logic ERROR.  Trying to remove a non-factor\n");
+        gmp_fprintf (stderr, "ECM logic ERROR. Trying to remove a "
+                     "non-factor %Zd\n", f);
 #if defined (CANDI_DEBUG)
       Candi_Validate("Post (no factor removed) mpcandi_t_addfoundfactor_d", n);
 #endif
       return 0;
     }
-  mpz_clear(t);
+
   /* remove f from n->n */
   mpz_divexact (n->n, n->n, f);
   n->ndigits = nb_digits (n->n);
