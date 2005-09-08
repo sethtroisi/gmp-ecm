@@ -334,6 +334,15 @@ The format used is the following:
   factor is found, to be able to reproduce the factorization.
   For ECM, one of the SIGMA or A values must be present, so that the
   computation can be continued on the correct curve.
+  The B1 and X values satisfy the condition that X is a lcm(1,2,...,B1)-th
+  power in the (multiplicativly written) group.
+
+If consecutive lines in a save file being resumed contain the same number to
+be factored, say when many ECM curves on one number have been saved, factors
+discovered by GMP-ECM are carried over from one attempt to the next so that
+factors will be reported only once. If the cofactor is a probable prime, or
+if the -one option was given and a factor was found, the remaining 
+consecutive lines for that number will be skipped.
 
 Note: it is allowed to have both -save f1 and -resume f2 for the same run,
 however the files f1 and f2 should be different.
