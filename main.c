@@ -55,7 +55,7 @@ static unsigned int champion_digits[3] = { 53, 43, 37 };
 /* probab_prime_p() can get called from other modules. Instead of passing
    prpcmd to those functions, we make it static here - this variable will
    be set only in main, and read only in probab_prime_p() */
-#if WANT_SHELLCMD && defined (unix)
+#ifdef WANT_SHELLCMD
 static  char *prpcmd = NULL;
 #endif
 
@@ -121,7 +121,7 @@ new_line:
 int 
 probab_prime_p (mpz_t N, int reps)
 {
-#if defined(WANT_SHELLCMD) && defined(unix)
+#ifdef WANT_SHELLCMD
   if (prpcmd != NULL)
     {
       FILE *fc;
@@ -177,7 +177,7 @@ usage (void)
     printf ("  -treefile f  store product tree of F in files f.0 f.1 ... \n");
     printf ("  -maxmem n    use at most n MB of memory in stage 2\n");
     printf ("  -stage1time n add n seconds to ECM stage 1 time (for expected time est.)\n");
-#if defined(WANT_SHELLCMD) && defined(unix)
+#ifdef WANT_SHELLCMD
     printf ("  -faccmd cmd  execute cmd when factor is found. Input number, factor\n"
             "               and cofactor are given to cmd via stdin, each on a line\n");
     printf ("  -prpcmd cmd  use shell command cmd to do prp tests (number via stdin)\n");
@@ -263,7 +263,7 @@ main (int argc, char *argv[])
   double maxmem = 0.;
   double stage1time = 0.;
   ecm_params params;
-#if defined(WANT_SHELLCMD) && defined(unix)
+#ifdef WANT_SHELLCMD
   char *faccmd = NULL;
 #endif
 
@@ -601,7 +601,7 @@ main (int argc, char *argv[])
 	  argv += 2;
 	  argc -= 2;
 	}
-#if defined(WANT_SHELLCMD) && defined(unix)
+#ifdef WANT_SHELLCMD
      else if ((argc > 2) && (strcmp (argv[1], "-prpcmd") == 0))
        {
          prpcmd = argv[2];
@@ -1192,7 +1192,7 @@ BreadthFirstDoAgain:;
               exit (EXIT_FAILURE);
             }
           
-#if defined(WANT_SHELLCMD)
+#ifdef WANT_SHELLCMD
 	  if (faccmd != NULL)
 	    {
 	      FILE *fc;
