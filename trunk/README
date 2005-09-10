@@ -368,15 +368,32 @@ computations. Options -save/-resume is useful in the following cases:
 
 ##############################################################################
 
-7. Working with very large numbers (the -prp* options)
+7. Executing shell commands
 
-When working with very large numbers, probable-primality testing becomes
-very slow when using GMP.  A faster program is available: OpenPFGW (pfgw).
-pfgw only does a simple Fermat test, but is much faster, due to it's highly 
-optimized FFT multiplication code.  The difference at 15k digits is about 10
-minutes for GMP, and about 20s for PFGW (and the advantage increases for
-larger numbers).  A limitation of OpenPFGW is that it will only run on 
-Intel 32 bit CPU's, as the FFT code is written in assembler for those systems.
+You can tell GMP-ECM to execute shell commands when a factor is found or 
+to run an external program for PRP testing. This feature is not compiled 
+in by default, it must be enabled by the parameter --enable-shellcmd
+when running "configure".
+
+If you specify -faccmd <cmd> on the commandline, <cmd> will be executed
+whenever a factor is found by P-1, P+1 or ECM (not by trial divison). The
+original number, the factor found and the cofactor are passed to <cmd> via
+stdin, each number on a line. You may use this for example to automatically
+have factors sent to you by email:
+
+  ecm -faccmd 'mail -s "$HOSTNAME found a factor" myemail@myplace.org' \
+  -c 900 1e6 <candidates.txt
+
+The parameter -prpcmd <cmd> lets you specify a program to perform a probable
+primality test instead of the GMP built-in function. The number to test is
+passed on one line to <cmd> via stdin. The result of the test is expected as
+the exit code of <cmd>, where exit code 0 (true) means "is probably prime"
+and a non-zero code (false) means "is composite". Example:
+
+  ecm -prpcmd "pfgw --" -c 900 1e6 <hugecandidates.txt
+
+where pfgw is an OpenPFGW binary, available (only for Intel x86 and 
+compatible cpus) at <http://groups.yahoo.com/group/openpfgw/>.
 
 ##############################################################################
 
@@ -421,8 +438,8 @@ in at least <value> blocks.
 
 Changing the value of the number of blocks will not modify the chance
 of finding a factor (except for extra factors, but some will be lost,
-and some will be won, so the balance should be even). However it will
-increase the time spent in Step 2 (when less or greater than the
+and some will be won, so the balance should be nearly even). However it 
+will increase the time spent in Step 2 (when less or greater than the
 optimal value), and modify the memory used by Step 2 (see the section 
 "Memory usage").
 
