@@ -387,7 +387,17 @@ lucas_cost (unsigned long n, double v)
 }
 
 
-/* computes kP from P=(xA:zA) and puts the result in (xA:zA). Assumes k>2. */
+/* computes kP from P=(xA:zA) and puts the result in (xA:zA). Assumes k>2. 
+   WARNING! The calls to add3() assume that the two input points are distinct,
+   which is not neccessarily satisfied. The result can be that in rare cases
+   the point at infinity (z==0) results when it shouldn't. A test case is 
+   echo 33554520197234177 | ./ecm -sigma 2046841451 373 1
+   which finds the prime even though it shouldn't (23^2=529 divides order).
+   This is not a problem for ECM since at worst we'll find a factor we 
+   shouldn't have found. For other purposes (i.e. primality proving) this 
+   would have to be fixed first.
+*/
+
 static void
 prac (mpres_t xA, mpres_t zA, unsigned long k, mpmod_t n, mpres_t b,
       mpres_t u, mpres_t v, mpres_t w, mpres_t xB, mpres_t zB, mpres_t xC, 
