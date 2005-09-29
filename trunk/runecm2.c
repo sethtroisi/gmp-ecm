@@ -98,7 +98,7 @@ pathfind (const char *command)
   if (path == NULL)
     abort ();
 
-  buf = malloc (strlen (path) + 1);
+  buf = malloc (strlen (path) + clen + 2);
 
   for (;;)
     {
