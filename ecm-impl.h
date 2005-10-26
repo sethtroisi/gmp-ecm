@@ -66,7 +66,11 @@ extern FILE *ECM_STDOUT, *ECM_STDERR;
    parameter with ATTRIBUTE_UNUSED when parameter can't be removed, i.e. 
    for interface consistency reasons */
 #ifdef __GNUC__
+#if    __GNUC__ >= 3
 #define ATTRIBUTE_UNUSED __attribute__ ((unused))
+#else
+#define ATTRIBUTE_UNUSED
+#endif
 #define ATTRIBUTE_CONST __attribute__ ((const))
 #else
 #define ATTRIBUTE_UNUSED
