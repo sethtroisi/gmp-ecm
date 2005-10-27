@@ -7,6 +7,13 @@ $ configure --with-gmp=<directory_where_gmp_is_installed>
 $ make
 $ make check
 
+Alternatively, you can simply type:
+
+$ autoreconf -i
+$ configure --with-gmp=<directory_where_gmp_is_installed>
+$ make
+$ make check
+
 Warning: only configure.in and Makefile.am should be in cvs
 	(the other files are automatically generated)
 
