@@ -25,8 +25,6 @@ ecm \- integer factorization using ECM, P-1 or P+1
 .hy 0
 .HP 4
 \fBecm\fR [\fBoptions\fR] \fIB1\fR [\fB\fIB2min\fR\-\fIB2max\fR\fR | \fB\fIB2\fR\fR]
-.br
-
 .ad
 .hy
 
@@ -38,15 +36,15 @@ ecm is an integer factoring program using the Elliptic Curve Method (ECM), the P
 .SH "STEP 1 AND STEP 2 BOUND PARAMETERS"
 
 .TP
-\fI\fIB1\fR\fR
+\fIB1\fR
 \fIB1\fR is the step 1 bound\&. It is a mandatory parameter\&. It can be given either in integer format (for example 3000000) or in floating\-point format (3000000\&.0 or 3e6)\&. The largest possible \fIB1\fR value is 9007199254740996 for P\-1, ULONG_MAX for ECM and P+1\&. All primes 2 <= p <= \fIB1\fR are processed in step 1\&.
 
 .TP
-\fI\fIB2\fR\fR
+\fIB2\fR
 \fIB2\fR is the step 2 bound\&. It is optional: if omitted, a default value is computed from \fIB1\fR, which should be close to optimal\&. Like \fIB1\fR, it can be given either in integer or in floating\-point format\&. The largest possible value of \fIB2\fR is approximately 9e23, but depends on the number of blocks \fIk\fR if you specify the \fB\-k\fR option\&. All primes \fIB1\fR <= p <= \fIB2\fR are processed in step 2\&. If \fIB2\fR < \fIB1\fR, no step 2 is performed\&.
 
 .TP
-\fI\fIB2min\fR\-\fIB2max\fR\fR
+\fIB2min\fR\-\fIB2max\fR
 alternatively one may use the \fIB2min\fR\-\fIB2max\fR form, which means that all primes \fIB2min\fR <= p <= \fIB2max\fR should be processed\&. Thus specifying \fIB2\fR only corresponds to \fIB1\fR\-\fIB2\fR\&. The values of \fIB2min\fR and \fIB2max\fR may be arbitrarily large, but their difference must not exceed approximately 9e23, subject to the number of blocks \fIk\fR\&.
 
 .SH "FACTORING METHOD"
@@ -349,5 +347,15 @@ Report bugs to <ecm\-dev@lists\&.fousse\&.info>, after checking <http://www\&.lo
 .SH "AUTHORS"
 
 .PP
-Jim Fougeron <jfoug at cox dot net> contributed the expression parser and several command\-line options; Laurent Fousse <laurent at komite dot net> contributed the middle product code, the autoconf/automake tools, and is the maintainer of the Debian package; Alexander Kruppa <firstname\&.lastname@mytum\&.de> contributed the Toom\-Cook multiplication code, the special code for Fermat numbers, and many other nice things; Dave Newman <david\&.lastname@jesus\&.ox\&.ac\&.uk> contributed the Kronecker\-Schoenhage multiplication code; Paul Zimmermann <zimmerma at loria dot fr> is the author of the first version of the program\&. Note: email addresses have been obscured, the required substitutions should be obvious\&.
+Jim Fougeron <jfoug at cox dot net> contributed the expression parser and several command\-line options;
+.PP
+Laurent Fousse <laurent at komite dot net> contributed the middle product code, the autoconf/automake tools, and is the maintainer of the Debian package;
+.PP
+Alexander Kruppa <firstname\&.lastname@mytum\&.de> contributed the Toom\-Cook multiplication code, the special code for Fermat numbers, and many other nice things;
+.PP
+Dave Newman <david\&.lastname@jesus\&.ox\&.ac\&.uk> contributed the Kronecker\-Schoenhage multiplication code;
+.PP
+Paul Zimmermann <zimmerma at loria dot fr> is the author of the first version of the program\&.
+.PP
+Note: email addresses have been obscured, the required substitutions should be obvious\&.
 
