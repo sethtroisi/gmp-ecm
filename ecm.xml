@@ -649,21 +649,20 @@ or new versions.
 </refsect1>
 
 <refsect1 id='author'><title>AUTHORS</title>
-<para>
-Jim Fougeron &lt;jfoug at cox dot net&gt; contributed the expression parser 
-and several command-line options;
-Laurent Fousse &lt;laurent at komite dot net&gt; contributed the middle 
+<para>Jim Fougeron &lt;jfoug at cox dot net&gt; contributed the expression
+parser and several command-line options;</para>
+<para>Laurent Fousse &lt;laurent at komite dot net&gt; contributed the middle 
 product code, the autoconf/automake tools, and is the maintainer of the 
-Debian package;
-Alexander Kruppa &lt;firstname.lastname@mytum.de&gt; contributed the 
+Debian package;</para>
+<para>Alexander Kruppa &lt;firstname.lastname@mytum.de&gt; contributed the 
 Toom-Cook multiplication code, the special code for Fermat numbers, and many 
-other nice things;
-Dave Newman &lt;david.lastname@jesus.ox.ac.uk&gt;
-contributed the Kronecker-Schoenhage multiplication code;
-Paul Zimmermann &lt;zimmerma at loria dot fr&gt; is the author of the first 
-version of the program.
-Note: email addresses have been obscured, the required substitutions should
-be obvious.
+other nice things;</para>
+<para>Dave Newman &lt;david.lastname@jesus.ox.ac.uk&gt;
+contributed the Kronecker-Schoenhage multiplication code;</para>
+<para>Paul Zimmermann &lt;zimmerma at loria dot fr&gt; is the author of the
+first version of the program.</para>
+<para>Note: email addresses have been obscured, the required substitutions
+should be obvious.
 </para>
 </refsect1>
 </refentry>
