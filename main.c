@@ -42,15 +42,15 @@
 
 /* people keeping track of champions and corresponding url's: ECM, P-1, P+1 */
 static char *champion_keeper[3] =
-{ "Richard Brent <rpb@comlab.ox.ac.uk>",
+{ "Richard Brent <champs@rpbrent.com>",
   "Paul Zimmermann <zimmerma@loria.fr>",
   "Paul Zimmermann <zimmerma@loria.fr>"};
 static char *champion_url[3] =
-{"ftp://ftp.comlab.ox.ac.uk/pub/Documents/techpapers/Richard.Brent/champs.txt",
+{"http://wwwmaths.anu.edu.au/~brent/ftp/champs.txt",
  "http://www.loria.fr/~zimmerma/records/Pminus1.html",
  "http://www.loria.fr/~zimmerma/records/Pplus1.html"};
 /* minimal number of digits to enter the champions table for ECM, P-1, P+1 */
-static unsigned int champion_digits[3] = { 53, 43, 37 };
+static unsigned int champion_digits[3] = { 56, 45, 37 };
 
 /* probab_prime_p() can get called from other modules. Instead of passing
    prpcmd to those functions, we make it static here - this variable will
