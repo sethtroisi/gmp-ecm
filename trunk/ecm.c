@@ -616,6 +616,12 @@ ecm_stage1 (mpz_t f, mpres_t x, mpres_t A, mpmod_t n, double B1, double B1done,
 	if (r > B1done)
 	  prac (x, z, (unsigned long) q, n, b, u, v, w, xB, zB, xC, zC, xT,
 		zT, xT2, zT2);
+        if (mpres_is_zero (z, n))
+          {
+            outputf (OUTPUT_VERBOSE, "Reached point at infinity, %.0f divides "
+                     "group order\n", q);
+            break;
+          }
     }
   getprime (FREE_PRIME_TABLE); /* free the prime tables, and reinitialize */
 
