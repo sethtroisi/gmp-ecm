@@ -181,6 +181,7 @@ usage (void)
     printf ("  -faccmd cmd  execute cmd when factor is found. Input number, factor\n"
             "               and cofactor are given to cmd via stdin, each on a line\n");
     printf ("  -prpcmd cmd  use shell command cmd to do prp tests (number via stdin)\n");
+    printf ("  -idlecmd cmd before each curve run cmd and terminate if exit code >0\n");
 #endif
 
     /*printf ("  -extra functions added by JimF\n"); */
@@ -265,6 +266,7 @@ main (int argc, char *argv[])
   ecm_params params;
 #ifdef WANT_SHELLCMD
   char *faccmd = NULL;
+  char *idlecmd = NULL;
 #endif
 
   /* check ecm is linked with a compatible library */
@@ -611,6 +613,12 @@ main (int argc, char *argv[])
      else if ((argc > 2) && (strcmp (argv[1], "-faccmd") == 0))
        {
          faccmd = argv[2];
+         argv += 2;
+         argc -= 2;
+       }
+     else if ((argc > 2) && (strcmp (argv[1], "-idlecmd") == 0))
+       {
+         idlecmd = argv[2];
          argv += 2;
          argc -= 2;
        }
@@ -1155,6 +1163,29 @@ BreadthFirstDoAgain:;
       params->B1done = B1done; /* may change with resume */
       mpz_set (params->B2min, B2min); /* may change with -c */
 
+#ifdef WANT_SHELLCMD
+      /* See if the system is currently idle, if -idlecmd was given */
+      if (idlecmd != NULL)
+        {
+          int r;
+          FILE *fc;
+          fc = popen (idlecmd, "r");
+          if (fc == NULL)
+            {
+              fprintf (stderr, "Error executing idle command: %d\n",
+                       idlecmd);
+              exit (EXIT_FAILURE);
+            }
+          r = pclose (fc);
+          if (r != 0) /* If exit status of idle command is non-zero */
+            {
+              printf ("Idle command returned %d, exiting\n", r);
+              breadthfirst = 0; /* Avoid looping due to goto (ugly, FIXME!) */
+              break;
+            }
+        }
+#endif /* WANT_SHELLCMD */
+
       /* now call the ecm library */
       result = ecm_factor (f, n.n, B1, params);
 
@@ -1342,11 +1373,11 @@ OutputFactorStuff:;
   if (breadthfirst == 1)
     goto BreadthFirstDoAgain;
 
-  /* NOTE finding a factor may have caused the loop to exit, but what is left on screen is the 
-     wrong count of factors (missing the just found factor.  Update the screen to at least specify the 
-     current count */
+  /* NOTE finding a factor may have caused the loop to exit, but what is left 
+     on screen is the wrong count of factors (missing the just found factor.  
+     Update the screen to at least specify the current count */
 
-  if (infilename)	/* note infile "might" be stdin, and don't fclose that! */
+  if (infilename)	/* infile might be stdin, don't fclose that! */
     fclose (infile);
   if (savefile)
     fclose (savefile);

@@ -395,6 +395,14 @@ and a non-zero code (false) means "is composite". Example:
 where pfgw is an OpenPFGW binary, available (only for Intel x86 and 
 compatible cpus) at <http://groups.yahoo.com/group/openpfgw/>.
 
+The parameter -idlecmd <cmd> will make GMP-ECM run <cmd> before each ECM,
+P-1 or P+1 attempt on a number. If the exit status of <cmd> is non-zero,
+GMP-ECM terminates immediately, otherwise it continues normally. GMP-ECM
+resumes only after <cmd> has terminated, so this is a way for letting
+GMP-ECM sleep i.e. while the system is busy - just let <cmd> sleep until the
+system is idle again. A future version will include finer-grained idle checks 
+than on a per-curve basis.
+
 ##############################################################################
 
 8. How to get the best of GMP-ECM?
