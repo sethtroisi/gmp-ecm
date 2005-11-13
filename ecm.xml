@@ -475,6 +475,20 @@ functionality to GMP-ECM.</para>
     </para>
   </listitem>
   </varlistentry>
+
+  <varlistentry>
+  <term><option>-idlecmd <replaceable>cmd</replaceable></option></term>
+  <listitem>
+    <para>
+      Executes command <replaceable>cmd</replaceable> before each ECM curve,
+      P-1 or P+1 attempt on a number is started. If the exit status of 
+      <replaceable>cmd</replaceable> is non-zero, GMP-ECM terminates 
+      immediately, otherwise it continues normally. GMP-ECM is stopped while
+      <replaceable>cmd</replaceable> runs, offering a way for letting GMP-ECM
+      sleep for example while the system is otherwise busy.
+    </para>
+  </listitem>
+  </varlistentry>
 </variablelist>
 </refsect1>
 
