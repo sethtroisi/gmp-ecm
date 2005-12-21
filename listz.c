@@ -258,13 +258,14 @@ list_mul_z (listz_t p, listz_t q, mpz_t r, unsigned int n, mpz_t m)
 }
 
 /* p <- gcd(n, l[0]*l[1]*...*l[k-1],
-   returns non-zero iff p is non trivial */
+   returns non-zero iff p is non trivial.
+   Clobbers l[0] */
 int
 list_gcd (mpz_t p, listz_t l, unsigned int k, mpz_t n)
 {
   unsigned int i;
   
-  for (i=1; i<k; i++)
+  for (i = 1; i < k; i++)
     {
       mpz_mul (l[0], l[0], l[i]);
       mpz_mod (l[0], l[0], n);
@@ -272,6 +273,22 @@ list_gcd (mpz_t p, listz_t l, unsigned int k, mpz_t n)
   mpz_gcd (p, l[0], n);
 
   return mpz_cmp_ui (p, 1);
+}
+
+
+/* Multiply up the integers in l, modulo n. Each entry becomes the
+   product (mod n) of itself and all previous entries */
+   
+void 
+list_mulup (mpz_t p, listz_t l, unsigned int k, mpz_t n, mpz_t t)
+{
+  unsigned int i;
+  
+  for (i = 1; i < k; i++)
+    {
+      mpz_mul (t, l[i - 1], l[i]);
+      mpz_mod (l[i], t, n);
+    }
 }
 
 /* p <- 0 */

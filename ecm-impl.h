@@ -354,8 +354,9 @@ int     ecm_rootsG       (mpz_t, listz_t, unsigned long, ecm_roots_state *,
                           mpmod_t);
 #define ecm_rootsG_clear __ECM(ecm_rootsG_clear)
 void    ecm_rootsG_clear (ecm_roots_state *, mpmod_t);
-void init_roots_state   (ecm_roots_state *, const int, const unsigned long, 
-			 const unsigned long, const double);
+#define ecm_findmatch __ECM(ecm_findmatch)
+long    ecm_findmatch (const unsigned long, root_params_t *, curve *, 
+                       mpmod_t, mpz_t);
 
 /* lucas.c */
 #define pp1_mul_prac __ECM(pp1_mul_prac)
@@ -382,6 +383,9 @@ int          stage2     (mpz_t, void *, mpmod_t, unsigned long, unsigned long,
 listz_t init_progression_coeffs (mpz_t, const unsigned long, const unsigned long, 
 				 const unsigned int, const unsigned int, 
 				 const unsigned int, const int);
+#define init_roots_state __ECM(init_roots_state)
+void init_roots_state   (ecm_roots_state *, const int, const unsigned long, 
+			 const unsigned long, const double);
 #define memory_use __ECM(memory_use)
 double memory_use (unsigned long, unsigned int, unsigned int, mpmod_t);
 
@@ -418,6 +422,8 @@ void         list_sub   (listz_t, listz_t, listz_t, unsigned int);
 void         list_mul_z (listz_t, listz_t, mpz_t, unsigned int, mpz_t);
 #define list_gcd __ECM(list_gcd)
 int          list_gcd   (mpz_t, listz_t, unsigned int, mpz_t);
+#define list_mulup __ECM(list_mulup)
+void          list_mulup (mpz_t, listz_t, unsigned int, mpz_t, mpz_t);
 #define list_zero __ECM(list_zero)
 void         list_zero  (listz_t, unsigned int);
 #define list_mul __ECM(list_mul)

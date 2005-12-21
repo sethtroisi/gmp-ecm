@@ -975,6 +975,7 @@ mpres_get_z (mpz_t R, mpres_t S, mpmod_t modulus)
       mpz_set (modulus->temp1, S);
       MPZ_REALLOC (R, modulus->bits / GMP_NUMB_BITS);
       ecm_redc_basecase (R, modulus->temp1, modulus);
+      mpz_mod (R, R, modulus->orig_modulus); /* FIXME: can we avoid this? */
     }
   else if (modulus->repr == ECM_MOD_REDC)
     {
