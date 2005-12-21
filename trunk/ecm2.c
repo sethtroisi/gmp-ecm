@@ -27,7 +27,8 @@
 /* R_i <- q_i * S, 0 <= i < n, where q_i are large integers, S is a point on
    an elliptic curve. Uses max(bits in q_i) modular inversions (one less if 
    max(q_i) is a power of 2). Needs up to n+2 cells in T.
-   Returns factor found or not found. No error can occur.
+   Returns whether factor was found or not found, factor goes into p. 
+   No error can occur.
 */
 
 static int
@@ -889,7 +890,7 @@ ecm_rootsG_init (mpz_t f, curve *X, root_params_t *root_params,
   state->X = X;
   state->next = 0;
   state->dsieve = 1; /* We only init progressions coprime to d2, so nothing to be skipped */
-  state->rsieve = 1;
+  state->rsieve = 0;
 #ifdef MONT_ROOTS
   state->form = EC_WEIERSTRASS_FORM;
 #endif
@@ -1156,4 +1157,170 @@ ecm_rootsG (mpz_t f, listz_t G, unsigned long dF, ecm_roots_state *state,
   outputf (OUTPUT_VERBOSE, "\n");
   
   return youpi;
+}
+
+
+/* Find smallest i >= 0 so that 
+   f(j * d2) X = f((i0 + i)= * d1) X over GF(p) */
+long 
+ecm_findmatch (const unsigned long j, root_params_t *root_params, 
+               curve *X, mpmod_t n, mpz_t p)
+{
+  const int dickson_a = root_params->S < 0 ? -1 : 0;
+  const unsigned int S = abs (root_params->S);
+  const int sizeT = S + 3;
+  long i = 0, k;
+  point iX, jX;
+  curve Xp; /* The point and curve over GP(p) */
+  mpmod_t modulus;
+  mpz_t s, t; /* temp vars */
+  mpres_t u, v; /* temp vars */
+  listz_t coeffs;
+  point *fd;
+  mpres_t *T;
+  
+  outputf (OUTPUT_RESVERBOSE, "Looking for i so that "
+           "f(i*%lu)*X = f(%lu*%lu)*X\n", root_params->d1, 
+           j, root_params->d2);
+  
+  mpmod_init (modulus, p, 0);
+  mpz_init (s);
+  mpz_init (t);
+  mpres_init (u, modulus);
+  mpres_init (v, modulus);
+  mpres_init (Xp.x, modulus);
+  mpres_init (Xp.y, modulus);
+  mpres_init (Xp.A, modulus);
+  mpres_init (iX.x, modulus);
+  mpres_init (iX.y, modulus);
+  mpres_init (jX.x, modulus);
+  mpres_init (jX.y, modulus);
+  T = malloc (sizeT * sizeof (mpres_t));
+  if (T == NULL)
+    goto clear_and_exit;
+  for (k = 0; k < sizeT; k++)
+    mpres_init (T[k], modulus);
+  fd = malloc ((S + 1) * sizeof (point));
+  if (fd == NULL)
+    goto clear_T_and_exit;
+  for (k = 0; k < S + 1; k++)
+    {
+      mpres_init (fd[k].x, modulus);
+      mpres_init (fd[k].y, modulus);
+    }
+
+  /* Copy the parameters of the curve over Z/ZN to the curve over GF(p) */
+  mpres_get_z (t, X->x, n);
+  mpres_set_z (Xp.x, t, modulus);
+  mpres_get_z (t, X->y, n);
+  mpres_set_z (Xp.y, t, modulus);
+  mpres_get_z (t, X->A, n);
+  mpres_set_z (Xp.A, t, modulus);
+  
+  /* We use init_progression_coeffs() to compute f(j * d2) */
+  mpz_set_ui (t, j);
+  coeffs = init_progression_coeffs (t, 1UL, root_params->d2, 1U, 1U, S, dickson_a);
+  if (coeffs == NULL)
+    goto clear_fd_and_exit;
+  
+  /* Now compute f(j * d2) X */
+  multiplyW2n (NULL, &jX, &Xp, coeffs, 1U, modulus, u, v, T, NULL, NULL);
+
+  clear_list (coeffs, S + 1);
+  free (coeffs);
+
+  /* We'll keep {f(j * d2) X}_x in s */
+  mpres_get_z (s, jX.x, modulus);
+  outputf (OUTPUT_DEVVERBOSE, "ecm_findmatch: (f(j * d2) X)_x = %Zd\n", s);
+
+  /* Now compute {f((i0 + i) d1) X}_x one at a time and put them in t, 
+     until s == t */
+  
+  /* Init the progression */
+  coeffs = init_progression_coeffs (root_params->i0, 1UL, root_params->d1, 
+                                    1U, 1U, S, dickson_a);
+  if (coeffs == NULL)
+    goto clear_fd_and_exit;
+  multiplyW2n (NULL, fd, &Xp, coeffs, S + 1, modulus, u, v, T, NULL, NULL);
+  clear_list (coeffs, S + 1);
+  free (coeffs);
+  
+  i = 0;
+  mpres_get_z (t, fd[0].x, modulus);
+  while (mpz_cmp (s, t) != 0)
+    {
+      addWnm (NULL, fd, &Xp, modulus, 1, S, T, NULL, NULL);
+      mpres_get_z (t, fd[0].x, modulus);
+      i++;
+    }
+
+  outputf (OUTPUT_DEVVERBOSE, "ecm_findmatch: i - i0 = %ld, "
+           "{f(i * d1) X}_x = %Zd\n", i, t);
+
+  /* We'll compute f(i * d1) and compare it to f(j * d2) to verify 
+     correctness of the result, and to determine whether it was
+     f(i * d1)-f(j * d2) or f(i * d1)+f(j * d2) that found the factor */
+  /* We use init_progression_coeffs() to compute f(i * d1) */
+  mpz_add_ui (t, root_params->i0, i);
+  coeffs = init_progression_coeffs (t, 1UL, root_params->d1, 1U, 1U, S, 
+                                    dickson_a);
+  if (coeffs == NULL)
+    goto clear_fd_and_exit;
+  
+  /* Now compute iX = f(i * d1) X */
+  multiplyW2n (NULL, &iX, &Xp, coeffs, 1U, modulus, u, v, T, NULL, NULL);
+  
+  clear_list (coeffs, S + 1);
+  free (coeffs);
+
+  mpres_get_z (t, iX.x, modulus);
+  if (mpz_cmp (s, t) != 0)
+    {
+      outputf (OUTPUT_DEVVERBOSE, "ecm_findmatch: ERROR, (f(i*d1) X)_x != "
+               "(f(j*d2) X)_x\n(f(i*d1) X)_x = %Zd\n", t);
+      i = 0;
+    }
+
+  mpres_get_z (s, jX.y, modulus);
+  mpres_get_z (t, iX.y, modulus);
+  if (mpz_cmp (s, t) != 0)
+    {
+      mpz_sub (t, p, t);
+      if (mpz_cmp (s, t) != 0)
+        {
+          mpz_sub (t, p, t);
+          outputf (OUTPUT_DEVVERBOSE, "ecm_findmatch: ERROR, (f(i*d1) X)_y != "
+                   "+-(f(j*d2) X)_y\n");
+          outputf (OUTPUT_DEVVERBOSE, "(f(i*d1) X)_y = %Zd\n", t);
+          outputf (OUTPUT_DEVVERBOSE, "(f(j*d2) X)_y = %Zd\n", s);
+        }
+      else
+        i = -i;
+    }
+
+clear_fd_and_exit:
+  for (k = 0; k < S + 1; k++)
+    {
+      mpres_clear (fd[k].x, modulus);
+      mpres_clear (fd[k].y, modulus);
+    }
+clear_T_and_exit:
+  for (k = 0; k < sizeT; k++)
+    mpres_clear (T[k], modulus);
+  free (T);
+clear_and_exit:
+  mpz_clear (s);
+  mpz_clear (t);
+  mpres_clear (u, modulus);
+  mpres_clear (v, modulus);
+  mpres_clear (Xp.x, modulus);
+  mpres_clear (Xp.y, modulus);
+  mpres_clear (Xp.A, modulus);
+  mpres_clear (iX.x, modulus);
+  mpres_clear (iX.y, modulus);
+  mpres_clear (jX.x, modulus);
+  mpres_clear (jX.y, modulus);
+  mpmod_clear (modulus);
+  
+  return i;
 }
