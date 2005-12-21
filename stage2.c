@@ -804,6 +804,9 @@ clear_i0:
   if (use_ntt)
     mpzspm_clear (mpzspm);
   
+  if (Fermat)
+    F_clear ();
+  
   st0 = elltime (st0, cputime ());
 
   outputf (OUTPUT_NORMAL, "Step 2 took %ldms\n", st0);

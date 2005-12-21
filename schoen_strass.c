@@ -1446,3 +1446,9 @@ F_mul_trans (mpz_t *R, mpz_t *A, mpz_t *B, unsigned int len, unsigned int n,
   
   return r;
 }
+
+void F_clear ()
+{
+  if (gt_inited)
+    mpz_clear (gt);
+}
