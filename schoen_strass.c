@@ -1451,4 +1451,5 @@ void F_clear ()
 {
   if (gt_inited)
     mpz_clear (gt);
+  gt_inited = 0;
 }
