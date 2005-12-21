@@ -144,9 +144,9 @@ fin_diff_coeff (listz_t coeffs, mpz_t s, mpz_t D, unsigned int E,
 */
 
 listz_t
-init_progression_coeffs (mpz_t i0, const unsigned long d, const unsigned long e, const unsigned int k, 
-			 const unsigned int m, const unsigned int E, 
-			 const int dickson_a)
+init_progression_coeffs (mpz_t i0, const unsigned long d, const unsigned long e, 
+                         const unsigned int k, const unsigned int m, 
+                         const unsigned int E, const int dickson_a)
 {
   unsigned int i, j, size_fd;
   mpz_t t, dke;
@@ -714,8 +714,56 @@ stage2 (mpz_t f, void *X, mpmod_t modulus, unsigned long dF, unsigned long k,
   outputf (OUTPUT_VERBOSE, "Computing polyeval(F,G) took %ldms\n", 
            elltime (st, cputime ()));
 
-  youpi = list_gcd (f, T, dF, n) ? 2 : 0;
-  outputf (OUTPUT_RESVERBOSE, "Product of G(f_i) = %Zd\n", T[0]);
+  list_mulup (f, T, dF, n, T[dF]);
+  mpz_gcd (f, T[dF - 1], n);
+  if (mpz_cmp_ui (f, 1) > 0)
+    {
+      youpi = 2;
+      if (test_verbose (OUTPUT_RESVERBOSE))
+        {
+          /* Find out for which i*X, (i,d)==1, a factor was found */
+          /* Note that the factor we found may be composite */
+          /* TBD: use binary search */
+          unsigned long j, k;
+          mpz_set (T[dF], f);
+          for (k = 0, j = 1; k < dF; j += 6)
+            {
+              if (gcd (j, root_params->d1) > 1)
+                continue;
+              mpz_gcd (T[dF + 1], T[k], T[dF]);
+              if (mpz_cmp_ui (T[dF + 1], 1) > 0)
+                {
+                  long i; /* We need it as a signed type here */
+                  /* Find i so that $f(i d1) X = f(j d2) X$ over GF(f) */
+                  i = ecm_findmatch (j, root_params, (curve *)X, modulus, f);
+                  
+                  mpz_add_ui (T[dF + 2], root_params->i0, abs (i));
+                  outputf (OUTPUT_RESVERBOSE, 
+                           "Divisor %Zd first occurs in T[%lu] = "
+                           "((f(%Zd*%lu)%cf(%lu*%lu))*X)_x\n", T[dF + 1], k, 
+                           T[dF + 2], root_params->d1, i < 0 ? '+' : '-',
+                           j, root_params->d2);
+                  
+                  mpz_mul_ui (T[dF + 2], T[dF + 2], root_params->d1);
+                  if (i < 0)
+                    mpz_add_ui (T[dF + 2], T[dF + 2], j * root_params->d2);
+                  else
+                    mpz_sub_ui (T[dF + 2], T[dF + 2], j * root_params->d2);
+                  mpz_abs (T[dF + 2], T[dF + 2]);
+                  
+                  outputf (OUTPUT_RESVERBOSE, "Maybe largest group order "
+                           "factor is or divides %Zd\n", T[dF + 2]);
+                  
+                  /* Don't report this divisor again */
+                  mpz_divexact (T[dF], T[dF], T[dF + 1]);
+                }
+              k++;
+            }
+        }
+    } else {
+      /* Here, mpz_cmp_ui (f, 1) == 0, i.e. no factor was found */
+      outputf (OUTPUT_RESVERBOSE, "Product of G(f_i) = %Zd\n", T[0]);
+    }
 
  clear_fd:
   if (method == ECM_PM1)

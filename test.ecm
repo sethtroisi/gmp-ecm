@@ -60,29 +60,28 @@ echo 145152979917007299777325725119 | $ECM -sigma 711387948 924 117751; checkcod
 # Test a 2^n-1 number, factor found in stage 1. Order mod 33554520197234177
 # with sigma=262763035 is 2^3*3*5*47*59*241*601*743*937
 
-echo "2^919-1" | ./ecm -sigma 262763035 937 1; checkcode $? 6
+echo "2^919-1" | $ECM -sigma 262763035 937 1; checkcode $? 6
 
 # Test a 2^n-1 number, factor found in stage 2. Order mod 33554520197234177
 # with sigma=1691973485 is 2^6*3*11*29*59*73*263*283*1709
 
-echo "2^919-1" | ./ecm -sigma 1691973485 283 1709; checkcode $? 6
+echo "2^919-1" | $ECM -sigma 1691973485 283 1709; checkcode $? 6
 
 # Test a 2^n+1 number, factor found in stage 1. Order mod 24651922299337
 # with sigma=2301432245 is 2^3*3^3*5^2*7^2*17*67*157*521
-echo "(2^1033+1)/3" | ./ecm -sigma 2301432245 521 1; checkcode $? 6
+echo "(2^1033+1)/3" | $ECM -sigma 2301432245 521 1; checkcode $? 6
 
 # Test a 2^n+1 number, factor found in stage 2. Order mod 24651922299337
 # with sigma=2394040080 is 2^2*3^2*13*19*53*127*223*1847
-echo "(2^1033+1)/3" | ./ecm -sigma 2301432245 223 1847; checkcode $? 6
+echo "(2^1033+1)/3" | $ECM -sigma 2301432245 223 1847; checkcode $? 6
 
 # Test another 2^n+1 number, with a larger known factor divided out.
 # Factor found in stage 1, order mod 114584129081 with sigma=2399424618
 # is 2^9*3^2*5^2*7^2*53*383
-echo "(2^1063+1)/3/26210488518118323164267329859" | ./ecm -sigma 2399424618 383 1 ; checkcode $? 6
+echo "(2^1063+1)/3/26210488518118323164267329859" | $ECM -sigma 2399424618 383 1 ; checkcode $? 6
 
-# Like last one, but factor found in stage 2, order mod 114584129081 
-# with sigma=48188527 is 2^5*3^2*7^2*13*19*71*463
-echo "(2^1063+1)/3/26210488518118323164267329859" | ./ecm -sigma 2399424618 71 500; checkcode $? 6
+# Like last one, but factor found in stage 2
+echo "(2^1063+1)/3/26210488518118323164267329859" | $ECM -sigma 2399424618 71 500; checkcode $? 6
 
 echo 242668358425701966181147598421249782519178289604307455138484425562807899 | $ECM -sigma 1417477358 28560 8e7-85507063; checkcode $? 14
 
