@@ -188,11 +188,12 @@ mulcascade_get_z (mpz_t r, mul_casc *c)
 */
 
 static int
-pm1_stage1 (mpz_t f, mpres_t a, mpmod_t n, double B1, double B1done, mpz_t go)
+pm1_stage1 (mpz_t f, mpres_t a, mpmod_t n, double B1, double *B1done, 
+            mpz_t go, int (*stop_asap)(void))
 {
   double B0, p, q, r, cascade_limit;
   mpz_t g, d;
-  int youpi;
+  int youpi = ECM_NO_FACTOR_FOUND;
   unsigned int size_n, max_size;
   unsigned int smallbase = 0;
   mul_casc *cascade;
@@ -257,7 +258,7 @@ pm1_stage1 (mpz_t f, mpres_t a, mpmod_t n, double B1, double B1done, mpz_t go)
      i.e. B1 > 25e14 for CASCADE_MAX=5e7.
 */
 
-  /* if the user "knows" that P-1 has a given, he/she can "enter" it */
+  /* if the user knows that P-1 has a given divisor, he can supply it */
   if (mpz_cmp_ui (go, 1) > 0)
     cascade = mulcascade_mul (cascade, go);
 
@@ -267,14 +268,14 @@ pm1_stage1 (mpz_t f, mpres_t a, mpmod_t n, double B1, double B1done, mpz_t go)
       for (p = 2.0; p <= B0; p = getprime (p))
         {
           for (q = 1, r = p; r <= B1; r *= p)
-            if (r > B1done) q *= p;
+            if (r > *B1done) q *= p;
           cascade = mulcascade_mul_d (cascade, q, d);
         }
 
       /* then all sqrt(B1) < primes < cascade_limit and taken with 
          exponent 1 */
       for ( ; p <= cascade_limit; p = getprime (p))
-        if (p > B1done)
+        if (p > *B1done)
           cascade = mulcascade_mul_d (cascade, p, d);
    
       mulcascade_get_z (g, cascade);
@@ -299,7 +300,7 @@ pm1_stage1 (mpz_t f, mpres_t a, mpmod_t n, double B1, double B1done, mpz_t go)
       for (p = 2.0; p <= cascade_limit; p = getprime (p))
         {
           for (q = 1.0, r = p; r <= B1; r *= p)
-            if (r > B1done) q *= p;
+            if (r > *B1done) q *= p;
           cascade = mulcascade_mul_d (cascade, q, d);
         }
       
@@ -323,12 +324,18 @@ pm1_stage1 (mpz_t f, mpres_t a, mpmod_t n, double B1, double B1done, mpz_t go)
       for ( ; p <= B0; p = getprime (p))
         {
           for (q = 1, r = p; r <= B1; r *= p)
-            if (r > B1done) q *= p;
+            if (r > *B1done) q *= p;
           mpz_mul_d (g, g, q, d);
           if (mpz_sizeinbase (g, 2) >= max_size)
             {
               mpres_pow (a, a, g, n);
               mpz_set_ui (g, 1);
+            if (stop_asap != NULL && (*stop_asap) ())
+              {
+                outputf (OUTPUT_NORMAL, "Interrupted at prime %.0f\n", p);
+                *B1done = p;
+                goto clear_pm1_stage1;
+              }
             }
         }
     }
@@ -337,19 +344,24 @@ pm1_stage1 (mpz_t f, mpres_t a, mpmod_t n, double B1, double B1done, mpz_t go)
      with exponent 1 */
   for (; p <= B1; p = getprime (p))
   {
-    if (p > B1done)
+    if (p > *B1done)
       {
         mpz_mul_d (g, g, p, d);
         if (mpz_sizeinbase (g, 2) >= max_size)
 	  {
 	    mpres_pow (a, a, g, n);
 	    mpz_set_ui (g, 1);
+            if (stop_asap != NULL && (*stop_asap) ())
+              {
+                outputf (OUTPUT_NORMAL, "Interrupted at prime %.0f\n", p);
+                *B1done = p;
+                goto clear_pm1_stage1;
+              }
 	  }
       }
   }
 
-  getprime (FREE_PRIME_TABLE); /* free the prime tables, and reinitialize */
-
+  *B1done = B1;
   mpres_pow (a, a, g, n);
   
   mpres_sub_ui (a, a, 1, n);
@@ -358,6 +370,7 @@ pm1_stage1 (mpz_t f, mpres_t a, mpmod_t n, double B1, double B1done, mpz_t go)
   mpres_add_ui (a, a, 1, n);
 
  clear_pm1_stage1:
+  getprime (FREE_PRIME_TABLE); /* free the prime tables, and reinitialize */
   mpz_clear (d);
   mpz_clear (g);
 
@@ -743,7 +756,8 @@ int
 pm1 (mpz_t f, mpz_t p, mpz_t N, mpz_t go, double B1done, double B1,
      mpz_t B2min_parm, mpz_t B2_parm, double B2scale, unsigned long k, 
      const int S, int verbose, int repr, int use_ntt, FILE *os, FILE *es, 
-     char *TreeFilename, double maxmem, gmp_randstate_t rng)
+     char *TreeFilename, double maxmem, gmp_randstate_t rng, 
+     int (*stop_asap)(void))
 {
   int youpi = ECM_NO_FACTOR_FOUND;
   int base2 = 0;
@@ -915,7 +929,7 @@ pm1 (mpz_t f, mpz_t p, mpz_t N, mpz_t go, double B1done, double B1,
   mpres_set_z (x, p, modulus);
 
   if (B1 > B1done)
-    youpi = pm1_stage1 (f, x, modulus, B1, B1done, go);
+    youpi = pm1_stage1 (f, x, modulus, B1, &B1done, go, stop_asap);
 
   st = elltime (st, cputime ());
 
@@ -928,6 +942,9 @@ pm1 (mpz_t f, mpz_t p, mpz_t N, mpz_t go, double B1done, double B1,
       outputf (OUTPUT_RESVERBOSE, "x=%Zd\n", tx);
       mpz_clear (tx);
     }
+
+  if (stop_asap != NULL && (*stop_asap) ())
+    goto clear_and_exit;
 
   if (youpi == ECM_NO_FACTOR_FOUND && mpz_cmp (B2, B2min) >= 0)
     youpi = stage2 (f, &x, modulus, dF, k, &root_params, ECM_PM1, 
