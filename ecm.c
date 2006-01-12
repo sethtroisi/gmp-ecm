@@ -548,8 +548,8 @@ prac (mpres_t xA, mpres_t zA, unsigned long k, mpmod_t n, mpres_t b,
    Return value: non-zero iff a factor is found
 */
 static int
-ecm_stage1 (mpz_t f, mpres_t x, mpres_t A, mpmod_t n, double B1, double B1done,
-	    mpz_t go)
+ecm_stage1 (mpz_t f, mpres_t x, mpres_t A, mpmod_t n, double B1, 
+            double *B1done, mpz_t go, int (*stop_asap)(void))
 {
   mpres_t b, z, u, v, w, xB, zB, xC, zC, xT, zT, xT2, zT2;
   double q, r;
@@ -598,12 +598,12 @@ ecm_stage1 (mpz_t f, mpres_t x, mpres_t A, mpmod_t n, double B1, double B1done,
 
   /* prac() wants multiplicands > 2 */
   for (r = 2.0; r <= B1; r *= 2.0)
-    if (r > B1done)
+    if (r > *B1done)
       duplicate (x, z, x, z, n, b, u, v, w);
   
   /* We'll do 3 manually, too (that's what ecm4 did..) */
   for (r = 3.0; r <= B1; r *= 3.0)
-    if (r > B1done)
+    if (r > *B1done)
       {
         duplicate (xB, zB, x, z, n, b, u, v, w);
         add3 (x, z, x, z, xB, zB, x, z, n, u, v, w);
@@ -613,17 +613,26 @@ ecm_stage1 (mpz_t f, mpres_t x, mpres_t A, mpmod_t n, double B1, double B1done,
   for (q = getprime (q); q <= B1; q = getprime (q))
     {
       for (r = q; r <= B1; r *= q)
-	if (r > B1done)
+	if (r > *B1done)
 	  prac (x, z, (unsigned long) q, n, b, u, v, w, xB, zB, xC, zC, xT,
 		zT, xT2, zT2);
-        if (mpres_is_zero (z, n))
-          {
-            outputf (OUTPUT_VERBOSE, "Reached point at infinity, %.0f divides "
-                     "group order\n", q);
-            break;
-          }
+
+      if (mpres_is_zero (z, n))
+        {
+          outputf (OUTPUT_VERBOSE, "Reached point at infinity, %.0f divides "
+                   "group order\n", q);
+          break;
+        }
+
+      if (stop_asap != NULL && (*stop_asap) ())
+        {
+          outputf (OUTPUT_NORMAL, "Interrupted at prime %.0f\n", q);
+          break;
+        }
     }
+  
   getprime (FREE_PRIME_TABLE); /* free the prime tables, and reinitialize */
+  *B1done = (q < B1) ? q : B1;
 
   /* Normalize z to 1 */
 #ifndef FULL_REDUCTION
@@ -771,7 +780,7 @@ ecm (mpz_t f, mpz_t x, mpz_t sigma, mpz_t n, mpz_t go, double B1done,
      double B1, mpz_t B2min_parm, mpz_t B2_parm, double B2scale, 
      unsigned long k, const int S, int verbose, int repr, int use_ntt,
      int sigma_is_A, FILE *os, FILE* es, char *TreeFilename, double maxmem,
-     double stage1time, gmp_randstate_t rng)
+     double stage1time, gmp_randstate_t rng, int (*stop_asap)(void))
 {
   int youpi = ECM_NO_FACTOR_FOUND;
   int base2 = 0;  /* If n is of form 2^n[+-]1, set base to [+-]n */
@@ -1011,7 +1020,7 @@ ecm (mpz_t f, mpz_t x, mpz_t sigma, mpz_t n, mpz_t go, double B1done,
 #endif
 
   if (B1 > B1done)
-    youpi = ecm_stage1 (f, P.x, P.A, modulus, B1, B1done, go);
+    youpi = ecm_stage1 (f, P.x, P.A, modulus, B1, &B1done, go, stop_asap);
   
   if (stage1time > 0.)
     {
@@ -1043,6 +1052,11 @@ ecm (mpz_t f, mpz_t x, mpz_t sigma, mpz_t n, mpz_t go, double B1done,
       outputf (OUTPUT_RESVERBOSE, "x=%Zd\n", t);
       mpz_clear (t);
     }
+
+  /* In case of a signal, we'll exit after the residue is printed. If no save
+     file is specified, the user may still resume from the residue */
+  if (stop_asap != NULL && (*stop_asap) ())
+    goto end_of_ecm;
 
 #ifdef MONT_ROOTS
   /* If we want to use Montgomery form for generating the roots for stage 2, 

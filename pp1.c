@@ -696,7 +696,8 @@ int
 pp1 (mpz_t f, mpz_t p, mpz_t n, mpz_t go, double B1done, double B1,
      mpz_t B2min_parm, mpz_t B2_parm, double B2scale, unsigned long k, 
      const int S, int verbose, int repr, int use_ntt, FILE *os, FILE *es, 
-     char *TreeFilename, double maxmem, gmp_randstate_t rng)
+     char *TreeFilename, double maxmem, gmp_randstate_t rng, 
+     int (*stop_asap)(void))
 {
   int youpi = ECM_NO_FACTOR_FOUND;
   int po2 = 0;    /* Whether we should use power-of-2 poly degree */
