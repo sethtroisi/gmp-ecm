@@ -33,6 +33,10 @@
 # endif
 #endif
 
+#if HAVE_SIGNAL_H
+# include <signal.h>
+#endif
+
 #ifdef HAVE_GWNUM
 /* For GWNUM_VERSION */
 #include "gwnum.h"
@@ -58,6 +62,8 @@ static unsigned int champion_digits[3] = { 56, 45, 37 };
 #ifdef WANT_SHELLCMD
 static  char *prpcmd = NULL;
 #endif
+
+static int exit_asap_value = 0;
 
 /* Tries to read a number from a line from fd and stores it in r.
    Keeps reading lines until a number is found. Lines beginning with "#"
@@ -143,6 +149,31 @@ probab_prime_p (mpz_t N, int reps)
 #endif
       return mpz_probab_prime_p (N, reps);
 }
+
+void 
+signal_handler (int sig)
+{
+  if (sig == SIGINT || sig == SIGTERM)
+    {
+      exit_asap_value = 1;
+      /* If one of these two signals arrives again, we'll let the default 
+         handler take over,  which will usually terminate the process 
+         immediately. */
+      signal (SIGINT, SIG_DFL);
+      signal (SIGTERM, SIG_DFL);
+    }
+  else
+    {
+      /* How did this happen? Let's ignore it for now, abort instead? */
+    }
+}
+
+int
+stop_asap_test ()
+{
+  return exit_asap_value;
+}
+
 
 static void 
 usage (void)
@@ -637,7 +668,8 @@ main (int argc, char *argv[])
       exit (EXIT_FAILURE);
     }
 
-  /* Ok, now we can "reset" the breadthfirst switch so that we do depthfirst as requested */
+  /* Ok, now we can "reset" the breadthfirst switch so that we do depthfirst 
+     as requested */
   if (breadthfirst == -1)
     breadthfirst = 0;
 
@@ -837,6 +869,14 @@ main (int argc, char *argv[])
   /* We may need random numbers for sigma/starting point */
   gmp_randinit_default (randstate);
   gmp_randseed_ui (randstate, get_random_ui ());
+
+
+  /* Install signal handlers */
+#ifdef HAVE_SIGNAL
+  signal (SIGINT, &signal_handler);
+  signal (SIGTERM, &signal_handler);
+  params->stop_asap = &stop_asap_test;
+#endif
 
   /* loop for number in standard input or file */
 

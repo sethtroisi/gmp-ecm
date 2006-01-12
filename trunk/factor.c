@@ -48,6 +48,7 @@ ecm_init (ecm_params q)
   MEMORY_TAG;
   gmp_randseed_ui (q->rng, get_random_ui ());
   MEMORY_UNTAG;
+  q->stop_asap = NULL;
 }
 
 void
@@ -78,15 +79,16 @@ ecm_factor (mpz_t f, mpz_t n, double B1, ecm_params p)
   if (p->method == ECM_ECM)
     res = ecm (f, p->x, p->sigma, n, p->go, p->B1done, B1, p->B2min, p->B2, 1.0,
                p->k, p->S, p->verbose, p->repr, p->use_ntt, p->sigma_is_A,
-	       p->os, p->es, p->TreeFilename, p->maxmem, p->stage1time, p->rng);
+	       p->os, p->es, p->TreeFilename, p->maxmem, p->stage1time, p->rng,
+	       p->stop_asap);
   else if (p->method == ECM_PM1)
     res = pm1 (f, p->x, n, p->go, p->B1done, B1, p->B2min, p->B2, 1.0,
                p->k, p->S, p->verbose, p->repr, p->use_ntt, p->os, p->es,
-               p->TreeFilename, p->maxmem, p->rng);
+               p->TreeFilename, p->maxmem, p->rng, p->stop_asap);
   else if (p->method == ECM_PP1)
     res = pp1 (f, p->x, n, p->go, p->B1done, B1, p->B2min, p->B2, 1.0,
                p->k, p->S, p->verbose, p->repr, p->use_ntt, p->os, p->es,
-               p->TreeFilename, p->maxmem, p->rng);
+               p->TreeFilename, p->maxmem, p->rng, p->stop_asap);
   else
     {
       fprintf (p->es, "Error, unknown method: %d\n", p->method);

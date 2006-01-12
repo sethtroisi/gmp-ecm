@@ -52,6 +52,8 @@ typedef struct
   double stage1time; /* Time to add for estimating expected time to find fac.*/
   gmp_randstate_t rng; /* State of random number generator */
   int use_ntt;     /* set to 1 to use ntt poly code in stage 2 */
+  int (*stop_asap) (void); /* Pointer to function, if it returns 0, contine 
+                      normally, otherwise exit asap. May be NULL */
 } __ecm_param_struct;
 typedef __ecm_param_struct ecm_params[1];
 
@@ -69,13 +71,13 @@ void ecm_clear (ecm_params);
 /* the following interface is not supported */
 int ecm (mpz_t, mpz_t, mpz_t, mpz_t, mpz_t, double, double, mpz_t, mpz_t,
          double, unsigned long, const int, int, int, int, int, FILE*, FILE*, 
-         char*, double, double, gmp_randstate_t);
+         char*, double, double, gmp_randstate_t, int (*)(void));
 int pp1 (mpz_t, mpz_t, mpz_t, mpz_t, double, double, mpz_t, mpz_t, 
          double, unsigned long, const int, int, int, int, FILE*, FILE*, char*,
-         double, gmp_randstate_t);
+         double, gmp_randstate_t, int (*)(void));
 int pm1 (mpz_t, mpz_t, mpz_t, mpz_t, double, double, mpz_t, 
           mpz_t, double, unsigned long, const int, int, int, int, FILE*, FILE*, 
-          char*, double, gmp_randstate_t);
+          char*, double, gmp_randstate_t, int (*)(void));
 
 /* different methods implemented */
 #define ECM_ECM 0
