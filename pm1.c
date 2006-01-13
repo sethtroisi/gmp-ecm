@@ -366,7 +366,8 @@ pm1_stage1 (mpz_t f, mpres_t a, mpmod_t n, double B1, double *B1done,
   
   mpres_sub_ui (a, a, 1, n);
   mpres_gcd (f, a, n);
-  youpi = mpz_cmp_ui (f, 1) ? ECM_FACTOR_FOUND_STEP1 : ECM_NO_FACTOR_FOUND;
+  if (mpz_cmp_ui (f, 1) > 0)
+    youpi = ECM_FACTOR_FOUND_STEP1;
   mpres_add_ui (a, a, 1, n);
 
  clear_pm1_stage1:
@@ -753,7 +754,7 @@ pm1_rootsG (mpz_t f, listz_t G, unsigned long dF, pm1_roots_state *state,
    Return value: non-zero iff a factor is found (1 for stage 1, 2 for stage 2)
 */
 int
-pm1 (mpz_t f, mpz_t p, mpz_t N, mpz_t go, double B1done, double B1,
+pm1 (mpz_t f, mpz_t p, mpz_t N, mpz_t go, double *B1done, double B1,
      mpz_t B2min_parm, mpz_t B2_parm, double B2scale, unsigned long k, 
      const int S, int verbose, int repr, int use_ntt, FILE *os, FILE *es, 
      char *TreeFilename, double maxmem, gmp_randstate_t rng, 
@@ -902,10 +903,10 @@ pm1 (mpz_t f, mpz_t p, mpz_t N, mpz_t go, double B1done, double B1,
   if (test_verbose (OUTPUT_NORMAL))
     {
       outputf (OUTPUT_NORMAL, "Using ");
-      if (ECM_IS_DEFAULT_B1_DONE(B1done))
+      if (ECM_IS_DEFAULT_B1_DONE(*B1done))
         outputf (OUTPUT_NORMAL, "B1=%1.0f", B1);
       else
-        outputf (OUTPUT_NORMAL, "B1=%1.0f-%1.0f", B1done, B1);
+        outputf (OUTPUT_NORMAL, "B1=%1.0f-%1.0f", *B1done, B1);
       if (mpz_cmp_d (B2min, B1) == 0)
         outputf (OUTPUT_NORMAL, ", B2=%Zd, ", B2);
       else
@@ -915,7 +916,7 @@ pm1 (mpz_t f, mpz_t p, mpz_t N, mpz_t go, double B1done, double B1,
       else
         outputf (OUTPUT_NORMAL, "polynomial Dickson(%u)", -root_params.S);
 
-      if (ECM_IS_DEFAULT_B1_DONE(B1done))
+      if (ECM_IS_DEFAULT_B1_DONE(*B1done))
 	/* don't print in resume case, since x0 is saved in resume file */
          outputf (OUTPUT_NORMAL, ", x0=%Zd", p);
 
@@ -928,8 +929,8 @@ pm1 (mpz_t f, mpz_t p, mpz_t N, mpz_t go, double B1done, double B1,
   mpres_init (x, modulus);
   mpres_set_z (x, p, modulus);
 
-  if (B1 > B1done)
-    youpi = pm1_stage1 (f, x, modulus, B1, &B1done, go, stop_asap);
+  if (B1 > *B1done)
+    youpi = pm1_stage1 (f, x, modulus, B1, B1done, go, stop_asap);
 
   st = elltime (st, cputime ());
 

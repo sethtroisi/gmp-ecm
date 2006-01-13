@@ -957,7 +957,8 @@ BreadthFirstDoAgain:;
 	}
     }
 
-  while ((breadthfirst && linenum < nCandidates) || feof (infile) == 0)
+  while (((breadthfirst && linenum < nCandidates) || feof (infile) == 0)
+         && !exit_asap_value)
     {
       trial_factor_found = 0;
       if (resumefile != NULL) /* resume case */
@@ -1383,10 +1384,12 @@ OutputFactorStuff:;
       /* If no factor was found, we consider cofactor composite and write it */
       if (savefile != NULL && !n.isPrp)
         {
-          mpz_mod (x, params->x, n.n); /* Reduce stage 1 residue wrt new
-                                          cofactor, in case a factor was found */
-          write_resumefile_line (savefile, method, B1, sigma, A, x, &n, 
-                                 orig_x0, comment);
+          mpz_mod (x, params->x, n.n); /* Reduce stage 1 residue wrt new co-
+                                          factor, in case a factor was found */
+          /* We write the B1done value to the safe file. This requires that
+             a correct B1done is returned by the factoring functions */
+          write_resumefile_line (savefile, method, params->B1done, sigma, 
+                                 A, x, &n, orig_x0, comment);
         }
 
       /* Clean up any temp file left over.  At this time, we assume that if 
@@ -1410,7 +1413,7 @@ OutputFactorStuff:;
     }
 
   /* Allow our "breadthfirst" search to re-run the file again if enough curves have not yet been run */
-  if (breadthfirst == 1)
+  if (breadthfirst == 1 && !exit_asap_value)
     goto BreadthFirstDoAgain;
 
   /* NOTE finding a factor may have caused the loop to exit, but what is left 

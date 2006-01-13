@@ -69,13 +69,13 @@ void ecm_init (ecm_params);
 void ecm_clear (ecm_params);
 
 /* the following interface is not supported */
-int ecm (mpz_t, mpz_t, mpz_t, mpz_t, mpz_t, double, double, mpz_t, mpz_t,
+int ecm (mpz_t, mpz_t, mpz_t, mpz_t, mpz_t, double *, double, mpz_t, mpz_t,
          double, unsigned long, const int, int, int, int, int, FILE*, FILE*, 
          char*, double, double, gmp_randstate_t, int (*)(void));
-int pp1 (mpz_t, mpz_t, mpz_t, mpz_t, double, double, mpz_t, mpz_t, 
+int pp1 (mpz_t, mpz_t, mpz_t, mpz_t, double *, double, mpz_t, mpz_t, 
          double, unsigned long, const int, int, int, int, FILE*, FILE*, char*,
          double, gmp_randstate_t, int (*)(void));
-int pm1 (mpz_t, mpz_t, mpz_t, mpz_t, double, double, mpz_t, 
+int pm1 (mpz_t, mpz_t, mpz_t, mpz_t, double *, double, mpz_t, 
           mpz_t, double, unsigned long, const int, int, int, int, FILE*, FILE*, 
           char*, double, gmp_randstate_t, int (*)(void));
 
