@@ -776,7 +776,7 @@ print_exptime (mpz_t B2min, mpz_t effB2, unsigned long dF, unsigned long k,
 		 ECM_ERROR in case of error.
 */
 int
-ecm (mpz_t f, mpz_t x, mpz_t sigma, mpz_t n, mpz_t go, double B1done,
+ecm (mpz_t f, mpz_t x, mpz_t sigma, mpz_t n, mpz_t go, double *B1done,
      double B1, mpz_t B2min_parm, mpz_t B2_parm, double B2scale, 
      unsigned long k, const int S, int verbose, int repr, int use_ntt,
      int sigma_is_A, FILE *os, FILE* es, char *TreeFilename, double maxmem,
@@ -1008,10 +1008,10 @@ ecm (mpz_t f, mpz_t x, mpz_t sigma, mpz_t n, mpz_t go, double B1done,
 #ifdef HAVE_GWNUM
   /* Right now, we only do base 2 numbers with GWNUM */
 
-  if (base2 != 0 && B1 >= B1done)
-      youpi = gw_ecm_stage1 (f, &P, modulus, B1, &B1done, go);
+  if (base2 != 0 && B1 >= *B1done)
+      youpi = gw_ecm_stage1 (f, &P, modulus, B1, B1done, go);
 
-  /* At this point B1 == B1done unless interrupted, or no GWNUM ecm_stage1
+  /* At this point B1 == *B1done unless interrupted, or no GWNUM ecm_stage1
      is available */
 
   if (youpi != ECM_NO_FACTOR_FOUND)
@@ -1019,8 +1019,8 @@ ecm (mpz_t f, mpz_t x, mpz_t sigma, mpz_t n, mpz_t go, double B1done,
 
 #endif
 
-  if (B1 > B1done)
-    youpi = ecm_stage1 (f, P.x, P.A, modulus, B1, &B1done, go, stop_asap);
+  if (B1 > *B1done)
+    youpi = ecm_stage1 (f, P.x, P.A, modulus, B1, B1done, go, stop_asap);
   
   if (stage1time > 0.)
     {

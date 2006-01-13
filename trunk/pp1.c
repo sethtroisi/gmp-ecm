@@ -127,13 +127,14 @@ unnegate:
    Return value: non-zero iff a factor was found.
 */
 static int
-pp1_stage1 (mpz_t f, mpres_t P0, mpmod_t n, double B1, double B1done, mpz_t go)
+pp1_stage1 (mpz_t f, mpres_t P0, mpmod_t n, double B1, double *B1done, 
+            mpz_t go, int (*stop_asap)(void))
 {
   double B0, p, q, r;
   mpz_t g;
   mpres_t P, Q;
   mpres_t R, S, T;
-  int youpi;
+  int youpi = ECM_NO_FACTOR_FOUND;
   unsigned int max_size, size_n;
 
   mpz_init (g);
@@ -174,12 +175,18 @@ pp1_stage1 (mpz_t f, mpres_t P0, mpmod_t n, double B1, double B1done, mpz_t go)
   for (p = 2.0; p <= B0; p = getprime (p))
     {
       for (q = 1, r = p; r <= B1; r *= p)
-        if (r > B1done) q *= p;
+        if (r > *B1done) q *= p;
       mpz_mul_d (g, g, q, Q);
       if (mpz_sizeinbase (g, 2) >= max_size)
 	{
 	  pp1_mul (P0, P0, g, n, P, Q);
 	  mpz_set_ui (g, 1);
+          if (stop_asap != NULL && (*stop_asap) ())
+            {
+              outputf (OUTPUT_NORMAL, "Interrupted at prime %.0f\n", p);
+              *B1done = p;
+              goto clear_and_exit;
+            }
 	}
     }
 
@@ -188,18 +195,18 @@ pp1_stage1 (mpz_t f, mpres_t P0, mpmod_t n, double B1, double B1done, mpz_t go)
   /* then all primes > sqrt(B1) and taken with exponent 1 */
   for (; p <= B1; p = getprime (p))
     {
-      if (p > B1done)
+      if (p > *B1done)
         pp1_mul_prac (P0, (unsigned long) p, n, P, Q, R, S, T);
+  
+      if (stop_asap != NULL && (*stop_asap) ())
+        {
+          outputf (OUTPUT_NORMAL, "Interrupted at prime %.0f\n", p);
+          *B1done = p;
+          goto clear_and_exit;
+        }
     }
 
-  getprime (FREE_PRIME_TABLE); /* free the prime tables, and reinitialize */
-
-  mpres_clear (Q, n);
-  mpres_clear (R, n);
-  mpres_clear (S, n);
-  mpres_clear (T, n);
-  mpz_clear (g);
-
+  *B1done = B1;
   mpres_sub_ui (P, P0, 2, n);
 #ifndef FULL_REDUCTION
   mpres_normalize (P); /* needed for gcd */
@@ -207,6 +214,13 @@ pp1_stage1 (mpz_t f, mpres_t P0, mpmod_t n, double B1, double B1done, mpz_t go)
   mpres_gcd (f, P, n);
   youpi = mpz_cmp_ui (f, 1);
 
+clear_and_exit:
+  getprime (FREE_PRIME_TABLE); /* free the prime tables, and reinitialize */
+  mpres_clear (Q, n);
+  mpres_clear (R, n);
+  mpres_clear (S, n);
+  mpres_clear (T, n);
+  mpz_clear (g);
   mpres_clear (P, n);
   
   return youpi;
@@ -693,7 +707,7 @@ pp1_rootsG (listz_t G, unsigned long dF, pp1_roots_state *state, mpmod_t modulus
    Return value: non-zero iff a factor is found (1 for stage 1, 2 for stage 2)
 */
 int
-pp1 (mpz_t f, mpz_t p, mpz_t n, mpz_t go, double B1done, double B1,
+pp1 (mpz_t f, mpz_t p, mpz_t n, mpz_t go, double *B1done, double B1,
      mpz_t B2min_parm, mpz_t B2_parm, double B2scale, unsigned long k, 
      const int S, int verbose, int repr, int use_ntt, FILE *os, FILE *es, 
      char *TreeFilename, double maxmem, gmp_randstate_t rng, 
@@ -782,10 +796,10 @@ pp1 (mpz_t f, mpz_t p, mpz_t n, mpz_t go, double B1done, double B1,
   if (test_verbose (OUTPUT_NORMAL))
     {
       outputf (OUTPUT_NORMAL, "Using ");
-      if (ECM_IS_DEFAULT_B1_DONE(B1done))
+      if (ECM_IS_DEFAULT_B1_DONE(*B1done))
         outputf (OUTPUT_NORMAL, "B1=%1.0f", B1);
       else
-        outputf (OUTPUT_NORMAL, "B1=%1.0f-%1.0f", B1done, B1);
+        outputf (OUTPUT_NORMAL, "B1=%1.0f-%1.0f", *B1done, B1);
       if (mpz_cmp_d (B2min, B1) == 0)
         outputf (OUTPUT_NORMAL, ", B2=%Zd", B2);
       else
@@ -797,7 +811,7 @@ pp1 (mpz_t f, mpz_t p, mpz_t n, mpz_t go, double B1done, double B1,
         outputf (OUTPUT_NORMAL, ", polynomial Dickson(%u)", 
 		 -root_params.S);
        /* don't print x0 in resume case */
-      if (ECM_IS_DEFAULT_B1_DONE(B1done)) 
+      if (ECM_IS_DEFAULT_B1_DONE(*B1done)) 
         outputf (OUTPUT_NORMAL, ", x0=%Zd", p);
       outputf (OUTPUT_NORMAL, "\n");
     }
@@ -818,8 +832,8 @@ pp1 (mpz_t f, mpz_t p, mpz_t n, mpz_t go, double B1done, double B1,
       goto clear_and_exit;
     }
 
-  if (B1 > B1done)
-    youpi = pp1_stage1 (f, a, modulus, B1, B1done, go);
+  if (B1 > *B1done)
+    youpi = pp1_stage1 (f, a, modulus, B1, B1done, go, stop_asap);
 
   outputf (OUTPUT_NORMAL, "Step 1 took %ldms\n", elltime (st, cputime ()));
   if (test_verbose (OUTPUT_RESVERBOSE))
@@ -832,14 +846,17 @@ pp1 (mpz_t f, mpz_t p, mpz_t n, mpz_t go, double B1done, double B1,
       mpz_clear (t);
     }
 
+  mpres_get_z (p, a, modulus);
+
+  if (stop_asap != NULL && (*stop_asap) ())
+    goto clear_and_exit;
+      
   if (youpi == ECM_NO_FACTOR_FOUND && mpz_cmp (B2, B2min) >= 0)
     youpi = stage2 (f, &a, modulus, dF, k, &root_params, ECM_PP1, 
                     use_ntt, TreeFilename);
 
   if (youpi > 0 && test_verbose (OUTPUT_NORMAL))
     pp1_check_factor (p, f); /* tell user if factor was found by P-1 */
-
-  mpres_get_z (p, a, modulus);
 
  clear_and_exit:
   mpres_clear (a, modulus);

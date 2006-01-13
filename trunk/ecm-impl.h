@@ -585,6 +585,8 @@ unsigned int F_mul (mpz_t *, mpz_t *, mpz_t *, unsigned int, int,
 #define F_mul_trans __ECM(F_mul_trans)
 unsigned int F_mul_trans (mpz_t *, mpz_t *, mpz_t *, unsigned int,
                           unsigned int, mpz_t *);
+#define F_clear __ECM(F_clear)
+void F_clear ();
 
 /* rho.c */
 #define rhoinit __ECM(rhoinit)
