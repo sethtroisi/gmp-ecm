@@ -26,6 +26,9 @@ ToDo's:
 2) interface
 - with -resume, print %time for THIS RUN instead of total run?
 	[suggested by SleepHound <sleephound@yahoo.com>]
+  Add CPUTIME=... in the save file, to take into account the total cpu time
+  spend so far (in seconds). George Woltman agrees for that change. It won't
+  hurt prime95/mprime -> will be added for his next version.
 - when resuming, print the *initial* x0 for P-1/P+1?
 - [from Jakub Pawlewicz <pan@mimuw.edu.pl>] add an option -stage1time t
   to tell the step 1 time, when done by another program. PZ: or better
