@@ -1084,9 +1084,9 @@ ecm (mpz_t f, mpz_t x, mpz_t sigma, mpz_t n, mpz_t go, double *B1done,
 
   if (youpi == ECM_NO_FACTOR_FOUND && mpz_cmp (B2, B2min) >= 0)
     youpi = stage2 (f, &P, modulus, dF, k, &root_params, ECM_ECM, 
-                    use_ntt, TreeFilename);
+                    use_ntt, TreeFilename, stop_asap);
   
-  if (youpi == ECM_NO_FACTOR_FOUND)
+  if (youpi == ECM_NO_FACTOR_FOUND && (stop_asap == NULL || !(*stop_asap)()))
     print_exptime (B2min, B2, dF, k, root_params.S, 
                    (long) (stage1time * 1000.) + 
                    elltime (st, cputime ()), 1);
