@@ -304,15 +304,17 @@ memory_use (unsigned long dF, unsigned int sp_num, unsigned int Ftreelvl,
 */
 int
 stage2 (mpz_t f, void *X, mpmod_t modulus, unsigned long dF, unsigned long k, 
-        root_params_t *root_params, int method, int use_ntt, char *TreeFilename)
+        root_params_t *root_params, int method, int use_ntt, 
+        char *TreeFilename, int (*stop_asap)(void))
 {
   unsigned long i, sizeT;
   mpz_t n;
   listz_t F, G, H, T;
-  int youpi = 0;
+  int youpi = ECM_NO_FACTOR_FOUND;
   long st, st0;
   void *rootsG_state = NULL;
   listz_t *Tree = NULL; /* stores the product tree for F */
+  unsigned int treefiles_used = 0; /* Number of tree files currently in use */
   unsigned int lgk; /* ceil(log(k)/log(2)) */
   listz_t invF = NULL;
   double mem;
@@ -390,9 +392,12 @@ stage2 (mpz_t f, void *X, mpmod_t modulus, unsigned long dF, unsigned long k,
   if (youpi != ECM_NO_FACTOR_FOUND)
     {
       if (youpi != ECM_ERROR)
-	youpi = 2;
+	youpi = ECM_FACTOR_FOUND_STEP2;
       goto clear_T;
     }
+  if (stop_asap != NULL && (*stop_asap)())
+    goto clear_T;
+
 
   /* ----------------------------------------------
      |   F    |  invF  |   G   |         T        |
@@ -444,15 +449,19 @@ stage2 (mpz_t f, void *X, mpmod_t modulus, unsigned long dF, unsigned long k,
       
       for (i = lgk; i > 0; i--)
         {
+          if (stop_asap != NULL && (*stop_asap)())
+            goto free_Tree_i;
           sprintf (fullname, "%s.%lu", TreeFilename, i - 1);
           
 	  TreeFile = fopen (fullname, "wb");
           if (TreeFile == NULL)
             {
-              outputf (OUTPUT_ERROR, "Error opening file for product tree of F\n");
+              outputf (OUTPUT_ERROR, 
+                       "Error opening file for product tree of F\n");
               youpi = ECM_ERROR;
               goto free_Tree_i;
             }
+	  treefiles_used++;
 	  
 	  if (use_ntt)
 	    {
@@ -485,6 +494,7 @@ stage2 (mpz_t f, void *X, mpmod_t modulus, unsigned long dF, unsigned long k,
     }
   else
     {
+      /* TODO: how to check for stop_asap() here? */
       if (use_ntt)
         ntt_PolyFromRoots_Tree (F, F, dF, T, -1, mpzspm, Tree, NULL);
       else
@@ -493,6 +503,10 @@ stage2 (mpz_t f, void *X, mpmod_t modulus, unsigned long dF, unsigned long k,
       
   outputf (OUTPUT_VERBOSE, "Building F from its roots took %ldms\n", 
            elltime (st, cputime ()));
+
+  if (stop_asap != NULL && (*stop_asap)())
+    goto free_Tree_i;
+
 
   /* needs dF+list_mul_mem(dF/2) cells in T */
 
@@ -547,6 +561,10 @@ stage2 (mpz_t f, void *X, mpmod_t modulus, unsigned long dF, unsigned long k,
          ---------------------------------------------- */
     }
 
+  if (stop_asap != NULL && (*stop_asap)())
+    goto clear_invF;
+
+
   /* start computing G with roots at i0*d, (i0+1)*d, (i0+2)*d, ... 
      where i0*d <= B2min < (i0+1)*d */
   MEMORY_TAG;
@@ -572,13 +590,17 @@ stage2 (mpz_t f, void *X, mpmod_t modulus, unsigned long dF, unsigned long k,
   if (rootsG_state == NULL)
     {
       /* ecm: f = -1 if an error occurred */
-      youpi = (method == ECM_ECM && mpz_cmp_si (f, -1)) ? 2 : ECM_ERROR;
+      youpi = (method == ECM_ECM && mpz_cmp_si (f, -1)) ? 
+              ECM_FACTOR_FOUND_STEP2 : ECM_ERROR;
       goto clear_G;
     }
 
   if (method != ECM_ECM) /* ecm_rootsG_init prints itself */
     outputf (OUTPUT_VERBOSE, "Initializing table of differences for G "
              "took %ldms\n", elltime (st, cputime ()));
+
+  if (stop_asap != NULL && (*stop_asap)())
+    goto clear_fd;
 
   for (i = 0; i < k; i++)
     {
@@ -596,9 +618,12 @@ stage2 (mpz_t f, void *X, mpmod_t modulus, unsigned long dF, unsigned long k,
       ASSERT(youpi != ECM_ERROR); /* xxx_rootsG cannot fail */
       if (youpi) /* factor found */
         {
-          youpi = 2;
+          youpi = ECM_FACTOR_FOUND_STEP2;
           goto clear_fd;
         }
+
+    if (stop_asap != NULL && (*stop_asap)())
+      goto clear_fd;
 
   /* -----------------------------------------------
      |   F    |  invF  |   G    |         T        |
@@ -616,6 +641,9 @@ stage2 (mpz_t f, void *X, mpmod_t modulus, unsigned long dF, unsigned long k,
       /* needs 2*dF+list_mul_mem(dF/2) cells in T */
       outputf (OUTPUT_VERBOSE, "Building G from its roots took %ldms\n", 
                elltime (st, cputime ()));
+
+    if (stop_asap != NULL && (*stop_asap)())
+      goto clear_fd;
 
   /* -----------------------------------------------
      |   F    |  invF  |   G    |         T        |
@@ -660,6 +688,9 @@ stage2 (mpz_t f, void *X, mpmod_t modulus, unsigned long dF, unsigned long k,
           outputf (OUTPUT_VERBOSE, "Computing G * H took %ldms\n", 
                    elltime (st, cputime ()));
 
+          if (stop_asap != NULL && (*stop_asap)())
+            goto clear_fd;
+
           /* ------------------------------------------------
              |   F    |  invF  |    G    |         T        |
              ------------------------------------------------
@@ -684,6 +715,9 @@ stage2 (mpz_t f, void *X, mpmod_t modulus, unsigned long dF, unsigned long k,
           
 	  outputf (OUTPUT_VERBOSE, "Reducing  G * H mod F took %ldms\n", 
                    elltime (st, cputime ()));
+
+          if (stop_asap != NULL && (*stop_asap)())
+            goto clear_fd;
 	}
     }
   
@@ -710,6 +744,7 @@ stage2 (mpz_t f, void *X, mpmod_t modulus, unsigned long dF, unsigned long k,
   invF = NULL;
   polyeval (T, dF, Tree, T + dF + 1, n, 0, ECM_STDERR);
 #endif
+  treefiles_used = 0; /* Polyeval deletes treefiles by itself */
 
   outputf (OUTPUT_VERBOSE, "Computing polyeval(F,G) took %ldms\n", 
            elltime (st, cputime ()));
@@ -718,7 +753,7 @@ stage2 (mpz_t f, void *X, mpmod_t modulus, unsigned long dF, unsigned long k,
   mpz_gcd (f, T[dF - 1], n);
   if (mpz_cmp_ui (f, 1) > 0)
     {
-      youpi = 2;
+      youpi = ECM_FACTOR_FOUND_STEP2;
       if (test_verbose (OUTPUT_RESVERBOSE))
         {
           /* Find out for which i*X, (i,d)==1, a factor was found */
@@ -765,7 +800,7 @@ stage2 (mpz_t f, void *X, mpmod_t modulus, unsigned long dF, unsigned long k,
       outputf (OUTPUT_RESVERBOSE, "Product of G(f_i) = %Zd\n", T[0]);
     }
 
- clear_fd:
+clear_fd:
   if (method == ECM_PM1)
     pm1_rootsG_clear ((pm1_roots_state *) rootsG_state, modulus);
   else if (method == ECM_PP1)
@@ -791,7 +826,19 @@ free_Tree_i:
         clear_list (Tree[i], dF);
       free (Tree);
     }
-
+  if (TreeFilename != NULL && treefiles_used > 0)
+    {
+      /* Unlink any treefiles still in use */
+      char *fullname = (char *) malloc (strlen (TreeFilename) + 1 + 2 + 1);
+      for (i = 0; i < treefiles_used; i++)
+        {
+          sprintf (fullname, "%s.%lu", TreeFilename, i - 1);
+          outputf (OUTPUT_DEVVERBOSE, "Unlinking %s\n", fullname);
+          if (unlink (fullname) != 0)
+            outputf (OUTPUT_ERROR, "Could not delete %s\n", fullname);
+        }
+      free (fullname);
+    }
   mpz_clear (n);
 
 clear_T:
@@ -807,9 +854,12 @@ clear_i0:
   if (Fermat)
     F_clear ();
   
-  st0 = elltime (st0, cputime ());
 
-  outputf (OUTPUT_NORMAL, "Step 2 took %ldms\n", st0);
+  if (stop_asap == NULL || !(*stop_asap)())
+    {
+      st0 = elltime (st0, cputime ());
+      outputf (OUTPUT_NORMAL, "Step 2 took %ldms\n", st0);
+    }
 
   return youpi;
 }
