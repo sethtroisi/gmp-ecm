@@ -378,7 +378,7 @@ void  pp1_rootsG_clear (pp1_roots_state *, mpmod_t);
 /* stage2.c */
 #define stage2 __ECM(stage2)
 int          stage2     (mpz_t, void *, mpmod_t, unsigned long, unsigned long,
-                         root_params_t *, int, int, char *);
+                         root_params_t *, int, int, char *, int (*)(void));
 #define init_progression_coeffs __ECM(init_progression_coeffs)
 listz_t init_progression_coeffs (mpz_t, const unsigned long, const unsigned long, 
 				 const unsigned int, const unsigned int, 

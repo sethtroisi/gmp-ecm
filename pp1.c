@@ -853,7 +853,7 @@ pp1 (mpz_t f, mpz_t p, mpz_t n, mpz_t go, double *B1done, double B1,
       
   if (youpi == ECM_NO_FACTOR_FOUND && mpz_cmp (B2, B2min) >= 0)
     youpi = stage2 (f, &a, modulus, dF, k, &root_params, ECM_PP1, 
-                    use_ntt, TreeFilename);
+                    use_ntt, TreeFilename, stop_asap);
 
   if (youpi > 0 && test_verbose (OUTPUT_NORMAL))
     pp1_check_factor (p, f); /* tell user if factor was found by P-1 */
