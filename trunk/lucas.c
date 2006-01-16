@@ -148,7 +148,8 @@ pp1_mul_prac (mpres_t A, unsigned long k, mpmod_t n, mpres_t t, mpres_t B,
 {
   unsigned int d, e, r, i = 0;
   static double val[NV] =
-  {1.61803398875, 1.72360679775, 1.618347119656, 1.617914406529};
+  {1.6180339887498948, 1.7236067977499790, 1.6183471196562281,
+   1.6179144065288179};
 
   /* chooses the best value of v */
   for (d = 0, r = ADD * k; d < NV; d++)

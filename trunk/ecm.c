@@ -305,8 +305,6 @@ ecm_mul_end:
 #define ADD 6.0 /* number of multiplications in an addition */
 #define DUP 5.0 /* number of multiplications in a duplicate */
 
-#define START(d,v) ((d)/1.6180339887498948482-128.0+(v))
-
 /* returns the number of modular multiplications for computing
    V_n from V_r * V_{n-r} - V_{n-2r}.
    ADD is the cost of an addition
@@ -408,9 +406,10 @@ prac (mpres_t xA, mpres_t zA, unsigned long k, mpmod_t n, mpres_t b,
   __mpz_struct *tmp;
 #define NV 10  
   static double val[NV] =
-    { 1.61803398875, 1.72360679775, 1.618347119656, 1.617914406529,
-      1.612429949509, 1.632839806089, 1.620181980807, 1.580178728295,
-      1.617214616534, 1.38196601125 };
+    { 1.6180339887498948, 1.7236067977499790, 1.6183471196562281,
+      1.6179144065288179, 1.6124299495094950, 1.6328398060887063,
+      1.6201819808074158, 1.5801787282954641, 1.6172146165344039,
+      1.3819660112501052 };
   
   /* chooses the best value of v */
   for (d = 0, cmin = ADD * (double) k; d < NV; d++)
