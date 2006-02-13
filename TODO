@@ -44,3 +44,7 @@ ToDo's:
 4) others
 - produce dynamic binary/library with --enable-shared
   [reported by Thomas M.Ott, thmo-13@gmx.de, 25 Oct 2005]
+
+5) bugs
+- with 6.0 on Opteron, ecm -sigma 3282338991 3000000 < F16 finds the
+  input number
