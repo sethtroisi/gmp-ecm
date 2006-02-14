@@ -47,4 +47,5 @@ ToDo's:
 
 5) bugs
 - with 6.0 on Opteron, ecm -sigma 3282338991 3000000 < F16 finds the
-  input number
+  input number (ok with 6.0.1). Idem with ecm -sigma 792327798 3000000 < F17
+  (this time with 6.0.1).
