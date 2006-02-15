@@ -51,3 +51,5 @@ ToDo's:
   (this time with 6.0.1, but not in first run).
   F16: ecm -sigma 648260350 3000000 (6.0.1, after several runs, but not
 	reproducible for 1st run).
+- "not enough primes in interval" with NTT for large numbers (e.g. F17
+  with B1=3000000, B2=11414255590)
