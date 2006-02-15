@@ -328,7 +328,10 @@ stage2 (mpz_t f, void *X, mpmod_t modulus, unsigned long dF, unsigned long k,
 
   Fermat = 0;
   if (modulus->repr == ECM_MOD_BASE2 && modulus->Fermat > 0)
-    Fermat = modulus->Fermat;
+    {
+      Fermat = modulus->Fermat;
+      use_ntt = 0; /* don't use NTT for Fermat numbers */
+    }
 
   if (use_ntt)
     {
