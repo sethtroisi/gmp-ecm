@@ -45,6 +45,7 @@ multiplyW2n (mpz_t p, point *R, curve *S, mpz_t *q, const unsigned int n,
   mpz_t flag; /* Used as bit field, keeps track of which R[i] contain partial results */
   point s;    /* 2^t * S */
   mpz_t signs; /* Used as bit field, i-th bit is set iff q[i]<0 */
+  mpz_t __dummy; /* used for local computations */
 
   if (n == 0)
     return ECM_NO_FACTOR_FOUND;
@@ -165,11 +166,13 @@ multiplyW2n (mpz_t p, point *R, curve *S, mpz_t *q, const unsigned int n,
 #ifdef WANT_ASSERT
                 mpres_sub (u, s.x, R[i].x, modulus);
                 mpres_mul (u, u, T[l], modulus);
-                mpres_get_z (p, u, modulus);
-                mpz_mod (p, p, modulus->orig_modulus);
-                if (mpz_cmp_ui (p, 1) != 0) 
+		mpz_init(__dummy);
+                mpres_get_z (__dummy, u, modulus);
+                mpz_mod (__dummy, __dummy, modulus->orig_modulus);
+                if (mpz_cmp_ui (__dummy, 1) != 0) 
                   outputf (OUTPUT_ERROR, "Error, (s.x - R[%d].x) * T[%d] == "
-                           "%Zd\n", i, l, p);
+                           "%Zd\n", i, l, __dummy);
+		mpz_clear(__dummy);
 #endif
                 
                 mpres_sub (u, s.y, R[i].y, modulus);   /* U    = y2 - y1 */
@@ -197,11 +200,13 @@ multiplyW2n (mpz_t p, point *R, curve *S, mpz_t *q, const unsigned int n,
 #ifdef WANT_ASSERT
           mpres_add (u, s.y, s.y, modulus);
           mpres_mul (u, u, T[k], modulus);
-          mpres_get_z (p, u, modulus);
-          mpz_mod (p, p, modulus->orig_modulus);
-          if (mpz_cmp_ui (p, 1) != 0)
+	  mpz_init(__dummy);
+          mpres_get_z (__dummy, u, modulus);
+          mpz_mod (__dummy, __dummy, modulus->orig_modulus);
+          if (mpz_cmp_ui (__dummy, 1) != 0)
             outputf (OUTPUT_ERROR, "Error, at t==%d, 2*s.y / (2*s.y) == %Zd\n", 
-                     t, p);
+                     t, __dummy);
+	  mpz_clear(__dummy);
 #endif          
 
                                                /* 1/(2*s.y) is in T[k] */
@@ -1227,7 +1232,6 @@ ecm_findmatch (const unsigned long j, root_params_t *root_params,
   multiplyW2n (NULL, &jX, &Xp, coeffs, 1U, modulus, u, v, T, NULL, NULL);
 
   clear_list (coeffs, S + 1);
-  free (coeffs);
 
   /* We'll keep {f(j * d2) X}_x in s */
   mpres_get_z (s, jX.x, modulus);
@@ -1243,7 +1247,6 @@ ecm_findmatch (const unsigned long j, root_params_t *root_params,
     goto clear_fd_and_exit;
   multiplyW2n (NULL, fd, &Xp, coeffs, S + 1, modulus, u, v, T, NULL, NULL);
   clear_list (coeffs, S + 1);
-  free (coeffs);
   
   i = 0;
   mpres_get_z (t, fd[0].x, modulus);
@@ -1271,7 +1274,6 @@ ecm_findmatch (const unsigned long j, root_params_t *root_params,
   multiplyW2n (NULL, &iX, &Xp, coeffs, 1U, modulus, u, v, T, NULL, NULL);
   
   clear_list (coeffs, S + 1);
-  free (coeffs);
 
   mpres_get_z (t, iX.x, modulus);
   if (mpz_cmp (s, t) != 0)
@@ -1304,6 +1306,7 @@ clear_fd_and_exit:
       mpres_clear (fd[k].x, modulus);
       mpres_clear (fd[k].y, modulus);
     }
+  free(fd);
 clear_T_and_exit:
   for (k = 0; k < sizeT; k++)
     mpres_clear (T[k], modulus);
