@@ -46,10 +46,10 @@ ToDo's:
   [reported by Thomas M.Ott, thmo-13@gmx.de, 25 Oct 2005]
 
 5) bugs
-- with 6.0 on Opteron, ecm -sigma 3282338991 3000000 < F16 finds the
-  input number (ok with 6.0.1). Idem with ecm -sigma 792327798 3000000 < F17
-  (this time with 6.0.1, but not in first run).
-  F16: ecm -sigma 648260350 3000000 (6.0.1, after several runs, but not
-	reproducible for 1st run).
+- F15: B1=99000, B2=150577181, sigma=3039152787 with ecm-6.0.1 [Bruce]
+  finds the input number. Seems to be fixed in r846, by the 3 changes
+  _mpz_realloc -> MPZ_REALLOC in mpmod.c.
+- potential bug: _mpz_realloc changes the value to 0 when it does not fit
+	(mpmod.c)
 - "not enough primes in interval" with NTT for large numbers (e.g. F17
   with B1=3000000, B2=11414255590)
