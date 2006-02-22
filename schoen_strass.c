@@ -196,6 +196,8 @@ F_mulmod (mpz_t R, mpz_t S1, mpz_t S2, unsigned int n)
   if (n >= 32768)
     {
       unsigned long k;
+      
+      /* WARNING: _mpz_realloc does not keep the value!!! */
       _mpz_realloc (gt, n2 + 1);
       k = mpn_fft_best_k (n2, S1 == S2);
       mpn_mul_fft (PTR(gt), n2, PTR(S1), ABSIZ(S1), PTR(S2), ABSIZ(S2), k);
@@ -225,6 +227,7 @@ mpz_absadd_2exp (mpz_t RS, unsigned int e)
   sgn = (mpz_sgn (RS) >= 0) ? 1 : -1;
   
   if (limb_idx >= RS->_mp_alloc)
+    /* WARNING: mpz_realloc2 does not keep the value!!! */
     mpz_realloc2 (RS, (limb_idx + 1) * GMP_NUMB_BITS);
   
   /* Now RS->_mp_alloc > limb_idx) */
@@ -242,6 +245,7 @@ mpz_absadd_2exp (mpz_t RS, unsigned int e)
   if (cy)
     {
       if (RS->_mp_alloc <= siz)
+        /* WARNING: mpz_realloc2 does not keep the value!!! */
         mpz_realloc2 (RS, (siz + 1) * GMP_NUMB_BITS);
 
       RS->_mp_d[siz] = 1;

@@ -728,11 +728,11 @@ Fgwmul (mpz_t R, mpz_t S1, mpz_t S2)
 		  "S2 = %ZX\nResult: %ZX\n", S2, t);
       gwdump ("g1 = ", g1);
     }
-/*  printf ("Identitiy test passed\n"); */
   mpz_clear (t);
 #endif /* DEBUG */
 
   if (ALLOC(R) < (signed) FFTLEN / 2 + 1)
+    /* WARNING: _mpz_realloc does not keep the value!!! */
     _mpz_realloc (R, FFTLEN / 2 + 1);
 
   Fmpztogw (g1, S1, gwplan);
