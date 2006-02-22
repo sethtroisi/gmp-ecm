@@ -209,8 +209,7 @@ REDC (mpres_t r, mpres_t x, mpz_t t, mpmod_t modulus)
   if (ABSIZ(x) == 2 * n)
     {
       mp_ptr rp;
-      if (ALLOC(r) < n)
-	_mpz_realloc (r, n);
+      MPZ_REALLOC (r, n);
       rp = PTR(r);
       ecm_redc_n (rp, PTR(x), PTR(modulus->orig_modulus), 
 		PTR(modulus->aux_modulus), n);
@@ -471,6 +470,7 @@ mpmod_init_REDC (mpmod_t modulus, mpz_t N)
   /* ensure aux_modulus has n allocated limbs, for ecm_redc_n */
   if (ABSIZ(modulus->aux_modulus) < n)
     {
+      /* WARNING: _mpz_realloc does not keep the value!!! */
       _mpz_realloc (modulus->aux_modulus, n);
       MPN_ZERO (PTR(modulus->aux_modulus) + ABSIZ(modulus->aux_modulus),
 		n - ABSIZ(modulus->aux_modulus));
