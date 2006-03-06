@@ -42,7 +42,7 @@
 /* Computes curve parameter A and a starting point (x:1) from a given 
    sigma value.
    If a factor of n was found during the process, returns 1 (and factor 
-   in A), 0 otherwise.
+   in f), 0 otherwise.
 */
 static int
 get_curve_from_sigma (mpz_t f, mpres_t A, mpres_t x, mpz_t sigma, mpmod_t n)
