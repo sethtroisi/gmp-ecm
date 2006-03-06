@@ -25,6 +25,10 @@
 #include "ecm-gmp.h"
 #include "ecm-impl.h"
 
+#ifdef NATIVE_REDC
+  #include "asmredc.h"
+#endif
+
 FILE *ECM_STDOUT, *ECM_STDERR; /* define them here since needed in tune.c */
 
 /* define WANT_ASSERT to check normalization of residues */
@@ -252,7 +256,6 @@ mod_div2exp (mpz_t c, unsigned int k, mpmod_t modulus)
   mpz_mul (modulus->temp1, modulus->temp2, c);
   mpz_mod (c, modulus->temp1, modulus->orig_modulus);
 }
-
 /* r <- c/R^nn mod n, where n has nn limbs, and R=2^GMP_NUMB_BITS.
    n must be odd.
    c must have space for at least 2*nn limbs.
@@ -296,6 +299,126 @@ ecm_redc_basecase (mpz_ptr r, mpz_ptr c, mpmod_t modulus)
   MPN_NORMALIZE (rp, nn);
   SIZ(r) = SIZ(c) < 0 ? (int) -nn : (int) nn;
 }
+
+#ifdef NATIVE_REDC
+static mp_limb_t
+mulredc(mp_limb_t *z, const mp_limb_t *x, const mp_limb_t *y,
+    const mp_limb_t *m, mp_size_t N, mp_limb_t invm, mp_limb_t *tmp)
+{
+  mp_limb_t cy;
+
+  switch (N) {
+   case 1:
+    cy = mulredc1(z, x[0], y[0], m[0], invm);
+    break;
+   case 2:
+    cy = mulredc2(z, x, y, m, invm);
+    break;
+   case 3:
+    cy = mulredc3(z, x, y, m, invm);
+    break;
+   case 4:
+    cy = mulredc4(z, x, y, m, invm);
+    break;
+   case 5: 
+    cy = mulredc5(z, x, y, m, invm);
+    break;
+   case 6: 
+    cy = mulredc6(z, x, y, m, invm);
+    break;
+   case 7: 
+    cy = mulredc7(z, x, y, m, invm);
+    break;
+   case 8:
+    cy = mulredc8(z, x, y, m, invm);
+    break;
+   case 9:
+    cy = mulredc9(z, x, y, m, invm);
+    break;
+   case 10:
+    cy = mulredc10(z, x, y, m, invm);
+    break;
+   case 11:
+    cy = mulredc11(z, x, y, m, invm);
+    break;
+   case 12:
+    cy = mulredc12(z, x, y, m, invm);
+    break;
+   case 13:
+    cy = mulredc13(z, x, y, m, invm);
+    break;
+   case 14:
+    cy = mulredc14(z, x, y, m, invm);
+    break;
+   case 15:
+    cy = mulredc15(z, x, y, m, invm);
+    break;
+   case 16:
+    cy = mulredc16(z, x, y, m, invm);
+    break;
+   case 17:
+    cy = mulredc17(z, x, y, m, invm);
+    break;
+   case 18:
+    cy = mulredc18(z, x, y, m, invm);
+    break;
+   case 19:
+    cy = mulredc19(z, x, y, m, invm);
+    break;
+   case 20:
+    cy = mulredc20(z, x, y, m, invm);
+    break;
+   default:
+    {
+      mpn_mul_n(tmp, x, y, N);
+      ecm_redc3(tmp, m, N, invm);
+      cy = mpn_add_n (z, tmp + N, tmp, N);
+    }
+  }
+  return cy;
+}
+#endif
+
+
+/* 
+ * Same as previous, but combined with mul (if in asm)
+ */
+static void 
+ecm_mulredc_basecase (mpres_t R, mpres_t S1, mpres_t S2, mpmod_t modulus)
+{
+#ifndef NATIVE_REDC
+  mpz_mul (modulus->temp1, S1, S2);
+  ecm_redc_basecase(R, modulus->temp1, modulus);
+#else
+  mp_ptr rp;
+  mp_ptr s1p, s2p;
+  mp_srcptr np;
+  mp_limb_t cy;
+  mp_size_t j, nn = modulus->bits / __GMP_BITS_PER_MP_LIMB;
+
+  ASSERT(ALLOC(R) >= nn);
+  ASSERT(ALLOC(S1) >= nn);
+  ASSERT(ALLOC(S2) >= nn);
+  rp = PTR(R);
+  s1p = PTR(S1);
+  s2p = PTR(S2);
+  np = PTR(modulus->orig_modulus);
+  for (j = ABSIZ(S1); j < nn; j++) 
+    s1p[j] = 0;
+  for (j = ABSIZ(S2); j < nn; j++) 
+    s2p[j] = 0;
+
+  cy = mulredc(rp, s1p, s2p, np, nn, modulus->Nprim, PTR(modulus->temp1));
+
+  /* the result of Montgomery's REDC is less than 2^Nbits + N,
+     thus at most one correction is enough */
+  if (cy != 0)
+    mpn_sub_n (rp, rp, np, nn); /* a borrow should always occur here */
+  MPN_NORMALIZE (rp, nn);
+  SIZ(R) = (SIZ(S1)*SIZ(S2)) < 0 ? (int) -nn : (int) nn;
+#endif
+}
+
 
 /* don't use base2 if repr == -1, i.e. -nobase2 */
 void 
@@ -439,7 +562,7 @@ mpmod_init_MODMULN (mpmod_t modulus, mpz_t N)
   /* compute ceil(2^bits / N) */
   mpz_cdiv_q (modulus->temp1, modulus->temp1, modulus->orig_modulus);
   mpz_mul (modulus->multiple, modulus->temp1, modulus->orig_modulus);
-  /* Now multiple is the largest multiple of N >= 2^bits */
+  /* Now multiple is the smallest multiple of N >= 2^bits */
 }
 
 void 
@@ -799,7 +922,8 @@ mpres_mul (mpres_t R, mpres_t S1, mpres_t S2, mpmod_t modulus)
     }
 #endif
 
-  mpz_mul (modulus->temp1, S1, S2);
+  if (modulus->repr != ECM_MOD_MODMULN)
+    mpz_mul (modulus->temp1, S1, S2);
 
   switch (modulus->repr)
     {
@@ -807,7 +931,7 @@ mpres_mul (mpres_t R, mpres_t S1, mpres_t S2, mpmod_t modulus)
       base2mod (R, modulus->temp1, modulus->temp1, modulus);
       break;
     case ECM_MOD_MODMULN:
-      ecm_redc_basecase (R, modulus->temp1, modulus);
+      ecm_mulredc_basecase (R, S1, S2, modulus);
       break;
     case ECM_MOD_REDC:
       REDC (R, modulus->temp1, modulus->temp2, modulus);
