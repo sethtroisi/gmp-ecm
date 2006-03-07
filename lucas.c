@@ -61,12 +61,13 @@ pp1_add3 (mpres_t P, mpres_t Q, mpres_t R, mpres_t S, mpmod_t n, mpres_t t)
    DUP is the cost of a duplicate
 */
 static unsigned int
-lucas_cost_pp1 (unsigned n, double v)
+lucas_cost_pp1 (unsigned long n, double v)
 {
-  unsigned int c, d, e, r;
+  unsigned int c;
+  unsigned long d, e, r;
 
   d = n;
-  r = (unsigned int) ((double) d / v + 0.5);
+  r = (unsigned long) ((double) d / v + 0.5);
   if (r >= n)
     return (ADD * n);
   d = n - r;
@@ -146,7 +147,7 @@ void
 pp1_mul_prac (mpres_t A, unsigned long k, mpmod_t n, mpres_t t, mpres_t B,
               mpres_t C, mpres_t T, mpres_t T2)
 {
-  unsigned int d, e, r, i = 0;
+  unsigned long d, e, r, i = 0;
   static double val[NV] =
   {1.6180339887498948, 1.7236067977499790, 1.6183471196562281,
    1.6179144065288179};
@@ -162,7 +163,7 @@ pp1_mul_prac (mpres_t A, unsigned long k, mpmod_t n, mpres_t t, mpres_t B,
         }
     }
   d = k;
-  r = (int) ((double) d / val[i] + 0.5);
+  r = (unsigned long) ((double) d / val[i] + 0.5);
   
   /* first iteration always begins by Condition 3, then a swap */
   d = k - r;
