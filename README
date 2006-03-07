@@ -74,8 +74,8 @@ Step 2 took 1776ms
 ********** Factor found in step 2: 4190453151940208656715582382315221647
 Found input number N
 
-However not all seeds will succeed: only half of the seeds 's' work for P+1
-(namely those where the Jacobi symbol of s^2-4 and P is -1.) Unfortunately, 
+However not all seeds will succeed: only half of the seeds 'x0' work for P+1
+(namely those where the Jacobi symbol of x0^2-4 and P is -1.) Unfortunately, 
 since P is usually not known in advance, there is no way to ensure that this 
 holds. However, if the seed is chosen randomly, there is a probability of 
 about 1/2 that it will give a Jacobi symbol of -1 (i.e. the factor P will 
