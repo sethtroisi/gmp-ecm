@@ -36,6 +36,10 @@ ToDo's:
 - [from Jakub Pawlewicz <pan@mimuw.edu.pl>] add an option -stage1time t
   to tell the step 1 time, when done by another program. PZ: or better
   have it in resume file? (Target: 6.1. Command line option done)
+- from Dan Bernstein <djb@cr.yp.to> 7 Mar 2006: use the curve
+  (16b+18)y^2 = x^3 + (4b+2)x^2 + x with starting point (x=2,y=1).
+  Caveat: with Montgomery multiplication, even if b is small (the argument
+  used in duplicate), we still have to divide by R^l.
 
 3) documentation
 - add examples for typical use to README 
