@@ -82,8 +82,11 @@ echo 409100738617 | $PP1 -x0 3 19 19; checkcode $? 8
 echo 2277189375098448170118558775447117254551111605543304035536750762506158547102293199086726265869065639109 | $PP1 -x0 3 2337233 132554351
 checkcode $? 14
 
-# bug in ecm-5.0 overflow in fin_diff_coeff)
+# bug in ecm-5.0 (overflow in fin_diff_coeff)
 echo 630503947831861669 | $PP1 -x0 5 7 9007199254740000-9007199254741000; checkcode $? 8
+
+# bug in ecm-6.0.1 on 64-bit machines
+echo 8589934621 | $PP1 -x0 10 4294967310-4294967311 1; checkcode $? 8
 
 echo "All P+1 tests are ok."
 echo ""
