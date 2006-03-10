@@ -31,6 +31,18 @@ checkcode () {
   fi
 }
 
+checkcode2 () {
+  if [ $1 != $2 ]
+  then
+    if [ $1 != $3 ]
+    then
+      echo "############### ERROR ###############"
+      echo "Expected return code $2 or $3 but got $1"
+      exit 1
+    fi
+  fi
+}
+
 # P+1 requires that sigma^2-4 is a quadratic non-residue mod p
 
 echo 328006342451 | $PP1 -x0 5 120 7043; checkcode $? 8
@@ -86,7 +98,7 @@ checkcode $? 14
 echo 630503947831861669 | $PP1 -x0 5 7 9007199254740000-9007199254741000; checkcode $? 8
 
 # bug in ecm-6.0.1 on 64-bit machines
-echo 8589934621 | $PP1 -x0 10 4294967310-4294967311 1; checkcode $? 8
+echo 8589934621 | $PP1 -x0 10 4294967310-4294967311 1; checkcode2 $? 1 8
 
 echo "All P+1 tests are ok."
 echo ""
