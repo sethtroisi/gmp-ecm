@@ -67,9 +67,15 @@ isbase2 (mpz_t n, double threshold)
   mpz_set_ui (u, 1);
   mpz_mul_2exp (u, u, 2 * lo);
   mpz_mod (w, u, n); /* 2^(2lo) mod n = -/+2^(2lo-l) if m*n = 2^l+/-1 */
-  if (mpz_cmp_ui (w, 1) == 0) /* if 2^(2lo) mod n = 1, then n divides 2^lo+1, 
-				 since n has lo+1 bits. */
+  if (mpz_cmp_ui (w, 1) == 0) /* if 2^(2lo) mod n = 1, then n divides
+                                 2^(2lo)-1. If algebraic factors have been
+                                 removed, n divides either 2^lo+1 or 2^lo-1.
+                                 But since n has lo+1 bits, n can only divide
+                                 2^lo+1. More precisely, n must be 2^lo+1. */
     {
+      /* check that n equals 2^lo+1. Since n divides 2^(2lo)-1, n is odd. */
+      if (mpz_scan1 (n, 1) != lo)
+        lo = 0;
       mpz_clear (w);
       mpz_clear (u);
       return lo;
