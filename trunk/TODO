@@ -1,4 +1,4 @@
-ToDo's:
+ToDo's (see also TODO.sp):
 
 1) efficiency/memory
 - why restrict the use of mpn_mul_fft to Fermat numbers? We could use it
