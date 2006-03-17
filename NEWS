@@ -1,4 +1,22 @@
-Changes between ecm-6.0 and ecm-6.0.1
+Changes between ecm-6.0.1 and ecm-6.1:
+* new assembly code contributed by Pierrick Gaudry for combined mul/redc
+* new Number Theoretic Transform code contributed by Dave Newman for step 2
+* new signal handling and corresponding save files for step 1
+* now prints peak memory allocation with -v
+* improved and simplified tuning
+* command-line options: added -idlecmd -no-ntt -prpcmd -stage1time -maxmem,
+	removed -prp*
+* new configure options --enable-asm-redc, --with-gwnum
+* new exit status codes of ecm program
+* new interface to George Woltman's GWNUM library (see INSTALL)
+* chosen stage 2 bound is now printed right away
+* fixed minor memory leak in mpmod.c/isbase2
+* fixed invalid Found input number N reported on some numbers
+* fixed serious P+1 bug on 64-bit architectures with B1 > 2^32
+* fixed wrong detection of divisors of 2^n+1 or 2^n-1 
+* fixed memory leaks
+
+Changes between ecm-6.0 and ecm-6.0.1:
 
 * now checks for availability of snprintf() during configure
 * fixed linking problems with tune and tune2 on PowerPC G5

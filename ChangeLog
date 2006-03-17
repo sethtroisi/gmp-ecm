@@ -1,3 +1,984 @@
+Tue Mar 14 2006 15:45:26 zimmerma -- r915
+	* trunk/mpmod.c, trunk/test.ecm: modified
+	fixed bug reported by Allan Steel
+
+Fri Mar 10 2006 15:42:07 zimmerma -- r914
+	* trunk/test.pp1: modified
+	fixed new test to work on 32-bit machine too
+
+Fri Mar 10 2006 15:11:54 zimmerma -- r913
+	* trunk/test.pp1: modified
+	added test case for P+1 bug
+
+Fri Mar 10 2006 14:45:29 zimmerma -- r912
+	* trunk/TODO: modified
+	added workaround
+
+Fri Mar 10 2006 14:11:26 zimmerma -- r911
+	* trunk/TODO: modified
+	added suggestion from Bernstein
+
+Tue Mar 07 2006 16:15:54 zimmerma -- r910
+	* trunk/lucas.c: modified
+	fixed overflow bug in P+1 (unsigned int -> unsigned long)
+	P+1 was probably not working for B1>2^32 on 64-bit machines
+
+Tue Mar 07 2006 15:59:57 zimmerma -- r909
+	* trunk/README: modified
+	changed s into x0
+
+Mon Mar 06 2006 13:49:35 gaudry -- r908
+	* (MANY FILES) : added
+	* trunk/redc.asm: deleted
+	* trunk/mpmod.c, trunk/ecm.c, trunk/configure.in, trunk/Makefile.am:
+	  modified
+	Redc and combined Mul/Redc in asm for different archi (p4, athlon,
+	amd64)
+	Configure.in and Makefile.am modified accordingly.
+
+Wed Feb 22 2006 15:58:39 zimmerma -- r907
+	* trunk/mpmod.c, trunk/schoen_strass.c, trunk/Fgw.c: modified
+	added warnings for uses of _mpz_realloc
+
+Wed Feb 22 2006 15:05:45 zimmerma -- r906
+	* trunk/TODO: modified
+	modified one bug item
+
+Thu Feb 16 2006 13:40:16 gaudry -- r905
+	* trunk/ecm2.c: modified
+	Fixed some memory bugs in multiplyW2n(), that occured in -v -v and/or
+	WANT_ASSERT mode, because it is called with NULL as first arguments.
+	Fixed a double free of variables "coeffs" and a missing free for fd.
+
+Wed Feb 15 2006 14:08:12 zimmerma -- r904
+	* trunk/TODO, trunk/INSTALL: modified
+	modified instructions for gwnum
+
+Wed Feb 15 2006 13:50:49 zimmerma -- r903
+	* trunk/TODO, trunk/stage2.c: modified
+	disable NTT for Fermat numbers
+
+Tue Feb 14 2006 10:49:15 zimmerma -- r902
+	* trunk/TODO: modified
+	added more examples of problems with Fermat numbers
+
+Mon Feb 13 2006 13:06:33 zimmerma -- r901
+	* trunk/TODO: modified
+	added item
+
+Thu Jan 19 2006 17:40:59 zimmerma -- r900
+	* trunk/TODO: modified
+	added item in TODO
+
+Mon Jan 16 2006 21:47:11 zimmerma -- r899
+	* trunk/ecm.c, trunk/lucas.c: modified
+	improved to 17-digit values of decimal constants used in PRAC
+
+Sun Jan 15 2006 21:31:16 kruppa -- r898
+	* trunk/pm1.c, trunk/pp1.c, trunk/ecm.c, trunk/stage2.c, trunk/ecm-
+	  impl.h: modified
+	Added some stop_asap() checks to stage 2.
+
+Sun Jan 15 2006 09:13:20 zimmerma -- r897
+	* trunk/TODO: modified
+	added item in TODO (CPUTIME)
+
+Fri Jan 13 2006 21:22:14 kruppa -- r896
+	* trunk/pm1.c, trunk/factor.c, trunk/pp1.c, trunk/ecm.c,
+	  trunk/main.c, trunk/ecm-impl.h, trunk/ecm.h: modified
+	Signal handling for P+1 added, save files contain correct B1done
+	value.
+	Stage 2 and cleanup TBD.
+
+Thu Jan 12 2006 23:08:21 kruppa -- r895
+	* trunk/pm1.c, trunk/factor.c, trunk/pp1.c, trunk/ecm.c,
+	  trunk/main.c, trunk/configure.in, trunk/ecm.h: modified
+	Add signal handler to exit gracefully. ECM and P-1 stage 1 mostly
+	done, rest
+	TBD.
+
+Wed Dec 21 2005 08:36:30 kruppa -- r894
+	* trunk/schoen_strass.c: modified
+	Bugfix: static mpz_t gt might be used after being mpz_clear()'ed
+
+Wed Dec 21 2005 00:38:10 kruppa -- r893
+	* trunk/schoen_strass.c, trunk/stage2.c: modified
+	Mem leak fix: clear static mpz_t in schoen_strass.c at end of stage 2.
+
+Wed Dec 21 2005 00:31:33 kruppa -- r892
+	* trunk/mpmod.c, trunk/test.ecm, trunk/listz.c, trunk/stage2.c,
+	  trunk/ecm2.c, trunk/ecm-impl.h: modified
+	Print stage 2 prime of group order if factor was found and -v -v.
+	Needs more polishing and not tested as much as I'd like yet.
+
+Sun Nov 13 2005 09:29:37 kruppa -- r891
+	* trunk/README, trunk/ecm.1, trunk/ecm.xml, trunk/main.c: modified
+	Added -idlecmd option to pause or quit GMP-ECM when system is busy
+
+Sat Nov 12 2005 07:40:08 kruppa -- r890
+	* trunk/ecm.c: modified
+	Tests in stage 1 if point at infinity is reached and prints message in
+	verbose mode. Nice for finding group order of curves.
+
+Fri Nov 11 2005 07:18:51 zimmerma -- r889
+	* trunk/main.c: modified
+	changed champs information, and updated minimal digit size to get
+	champions
+
+Thu Oct 27 2005 11:11:19 zimmerma -- r888
+	* trunk/ecm.1: modified
+	file generated from ecm.xml, with empty lines manually removed in
+	the last paragraph
+
+Thu Oct 27 2005 11:01:53 zimmerma -- r887
+	* trunk/ecm.xml: modified
+	added line-breaks in AUTHORS section
+
+Thu Oct 27 2005 07:54:42 zimmerma -- r886
+	* trunk/README.dev: modified
+	add hint for autoreconf
+
+Wed Oct 26 2005 07:51:56 zimmerma -- r885
+	* trunk/ecm-impl.h: modified
+	patch for old gcc versions
+
+Wed Oct 26 2005 07:01:04 zimmerma -- r884
+	* trunk/TODO: modified
+	added item
+
+Mon Oct 24 2005 17:13:15 zimmerma -- r883
+	* trunk/ecm.c: modified
+	changed default B2 for ecm
+
+Sat Oct 22 2005 15:45:43 zimmerma -- r882
+	* trunk/AUTHORS: modified
+	added pointer to gforge
+
+Thu Sep 29 2005 19:26:35 zimmerma -- r881
+	* trunk/runecm2.c: modified
+	fixed potential buffer overrun
+
+Thu Sep 29 2005 12:08:52 zimmerma -- r880
+	* trunk/runecm2.c: added
+	contribution from Torbjo"rn
+
+Wed Sep 28 2005 13:30:51 kruppa -- r879
+	* trunk/ecm.c: modified
+	Added warning about prac() bug (calling add3() with identical
+	points)
+
+Sat Sep 10 2005 19:56:55 kruppa -- r878
+	* trunk/README, trunk/main.c: modified
+	Slight cleanup of shell command code, replaced "-prp*" section of
+	README by shellcmd section.
+
+Thu Sep 08 2005 19:51:02 kruppa -- r877
+	* trunk/README, trunk/candi.c, trunk/main.c, trunk/TODO: modified
+	Made -one work better when used with -resume
+
+Tue Sep 06 2005 14:02:20 zimmerma -- r876
+	* trunk/TODO: modified
+	added item
+
+Mon Sep 05 2005 12:09:53 zimmerma -- r875
+	* trunk/Makefile.am: modified
+	added missing entries for "make dist"
+
+Thu Sep 01 2005 15:17:44 dnewman -- r874
+	* trunk/stage2.c: modified
+	Make memory_use take into account sp_F.
+
+Thu Sep 01 2005 13:15:42 dnewman -- r873
+	* trunk/stage2.c, trunk/ecm-impl.h, trunk/ecm_ntt.c, trunk/tune.c:
+	  modified
+	Precompute transform of F for use in ntt_PrerevertDivision.
+
+Wed Aug 24 2005 13:55:52 zimmerma -- r872
+	* trunk/check.mpl: modified
+	added add3/duplicate code in Montgomery's coordinates
+
+Sat Aug 20 2005 18:41:19 kruppa -- r871
+	* trunk/TODO: modified
+	Marked -stage1time done, removed shell commands entry (also done)
+
+Sat Aug 20 2005 18:37:59 kruppa -- r870
+	* trunk/Fgw.c, trunk/ecm.c: modified
+	Assume ecm stage 1 always available in GWNUM library, pass error
+	codes from gw_stage_1() back correctly
+
+Sat Aug 20 2005 18:16:24 kruppa -- r869
+	* trunk/test.ecm: modified
+	Some more tests for base 2 numbers, for testing the GWNUM stage 1
+
+Fri Aug 19 2005 21:00:35 kruppa -- r868
+	* trunk/Makefile.am: modified
+	Fixed filenames in EXTRA_DIST
+
+Fri Aug 19 2005 14:23:03 dnewman -- r867
+	* (MANY FILES) : modified
+	Comprehensive header cleanup; in particular, headers now satisfy
+	their dependencies on other headers. Moved the -n / -nn renicing code
+	from main.c to macros NICE10 / NICE20 in ecm-ecm.h. Added the
+	configure option --enable-memory-debug to conditionally compile
+	memory.c. Fixed some printf format/argument mismatches in tune.c and
+	memory.c. Added some info on NTT and tune to README and documented
+	-no-ntt in ecm.xml.
+
+Wed Aug 17 2005 22:47:58 dnewman -- r866
+	* trunk/mpzspv.c, trunk/TODO, trunk/configure.in, trunk/mpzspm.c,
+	  trunk/sp.h, trunk/spv.c, trunk/tune.c: modified
+	Changed mpzspm_t to use spm's instead of __spm_struct's. Added code
+	to use memmove in spv_set. Removed all bovine activity in configure.in.
+	Minor update to TODO.
+
+Wed Aug 17 2005 16:11:28 dnewman -- r865
+	* trunk/schoen_strass.c, trunk/spv.c, trunk/ecm-gmp.h, trunk/tune.c:
+	  modified
+	Changed RNG in tune.c to avoid using get_random_ui() as on some
+	platforms (MinGW) it's too slow to be called many times. Fixed
+	declarations of __gmpn_add_nc and __gmpn_mod_34lsub1 which were
+	causing segfaults under Cygwin.
+
+Wed Aug 10 2005 12:22:34 dnewman -- r864
+	* trunk/spm.c, trunk/sp.c, trunk/sp.h, trunk/tune.c: modified
+	Fixed potential problem with spm_init's generation of primitive roots.
+
+Tue Aug 09 2005 16:31:34 dnewman -- r863
+	* trunk/tune.c: modified
+	Changed GRANULARITY to 250ms for more precision. Added a '-v' cmdline
+	option that prints every function evaluation to stderr; also added a
+	TUNE_SLOW define to give possibly more consistent results.
+
+Wed Aug 03 2005 20:45:24 dnewman -- r862
+	* trunk/nbdigits.c: deleted
+	* trunk/auxi.c: modified
+	Rewrote nb_digits() to remove dependency on string.h and FREE(). 
+	Deleted an empty file.
+
+Wed Aug 03 2005 20:13:48 dnewman -- r861
+	* trunk/redc.asm: added
+	* trunk/redc.s: deleted
+	* trunk/acinclude.m4, trunk/configure.in, trunk/Makefile.am: modified
+	Imported some more routines from GMP's acinclude.m4 to fix problem
+	with --enable-asm-redc under windows. Renamed redc.s back to redc.asm
+	as it now goes through m4 before the assembler. Fixed a minor issue
+	with architecture detection in configure.in.
+
+Wed Aug 03 2005 09:14:19 dnewman -- r860
+	* trunk/ecm-params.h.athlon, trunk/ecm-params.h.powerpc7450: added
+	* trunk/ecm-params.h.athlonxp, trunk/ecm-params.h.power4: deleted
+	* trunk/configure.in: modified
+	Some tweaks to ecm-params detection.
+
+Wed Aug 03 2005 08:42:27 dnewman -- r859
+	* trunk/config.sub, trunk/configfsf.guess, trunk/config.guess,
+	  trunk/configfsf.sub: added
+	Added GMP's finer-grained CPU detection (useful for selecting the right
+	ecm-params.h)
+
+Tue Aug 02 2005 18:47:24 kruppa -- r858
+	* trunk/ecm.1: added
+	Adding man page ecm.1 to CVS (xsltproc/docbook not available
+	everywhere)
+
+Tue Aug 02 2005 17:46:09 dnewman -- r857
+	* trunk/pm1.c, trunk/factor.c, trunk/pp1.c, trunk/bestd.c,
+	  trunk/TODO, trunk/ecm.c, trunk/main.c, trunk/configure.in,
+	  trunk/stage2.c, trunk/Makefile.am, trunk/ecm-impl.h, trunk/ecm.h,
+	  trunk/tune.c: modified
+	Removed the configure option --enable-ntt. Now ntt code is used by
+	default but can be disabled with the command-line option -no-ntt.
+	Lots of changes to function prototypes to accommodate this.
+
+Tue Aug 02 2005 16:58:46 kruppa -- r856
+	* trunk/test.pp1, trunk/test.ecm, trunk/test.pm1: modified
+	Changed syntax of function to sh (Bourne shell) instead of bash
+
+Tue Aug 02 2005 16:30:21 dnewman -- r855
+	* trunk/getprime2.c, trunk/random2.c: deleted
+	* trunk/test.pp1, trunk/random.c, trunk/test.ecm, trunk/Makefile.am,
+	  trunk/test.pm1: modified
+	Changed test script shell to /bin/sh as MinGW doesn't have bash.
+	Makefile.am now replaces the getprime2.c and random2.c hacks. Fixed
+	CryptGenRandom() in random.c (maybe) and cleaned up the #includes a
+	bit.
+
+Tue Aug 02 2005 15:14:30 kruppa -- r854
+	* trunk/bestd.c, trunk/ks-multiply.c, trunk/tune.c, trunk/trial.c:
+	  modified
+	Fixed compiler warnings with gcc -Wall -W
+
+Tue Aug 02 2005 10:06:02 kruppa -- r853
+	* trunk/ecm.xml: modified
+	Removed -prp* section, added shell commands section. Fixed exit
+	code tables.
+
+Mon Aug 01 2005 22:52:06 dnewman -- r852
+	* trunk/main.c, trunk/trial.c: modified
+	Cleanups to trial.c. Bugfix to probab_prime_p.
+
+Mon Aug 01 2005 22:00:03 kruppa -- r851
+	* trunk/smartprp.c: deleted
+	* trunk/candi.c, trunk/main.c, trunk/configure.in, trunk/Makefile.am,
+	  trunk/ecm-ecm.h: modified
+	Removed -prp* options and smartprp.c, added -prpcmd option
+
+Mon Aug 01 2005 20:13:11 kruppa -- r850
+	* trunk/pm1.c, trunk/factor.c, trunk/pp1.c, trunk/random.c,
+	  trunk/auxlib.c, trunk/main.c, trunk/ecm.c, trunk/stage2.c,
+	  trunk/ecm2.c, trunk/ecm-impl.h, trunk/memory.c, trunk/ecm.h, trunk
+	  /ks-multiply.c, trunk/tune.c: modified
+	Added -stage1time option. All time-keeping variables are of type
+	long now.
+
+Mon Aug 01 2005 16:45:56 kruppa -- r849
+	* trunk/mul_fft.c: deleted
+	Not needed for GMP-ECM (part of GMP)
+
+Sun Jul 31 2005 18:10:36 kruppa -- r848
+	* trunk/mpmod.c, trunk/factor.c, trunk/bestd.c, trunk/auxlib.c,
+	  trunk/TODO, trunk/main.c, trunk/ecm.c, trunk/listz.c,
+	  trunk/stage2.c, trunk/ecm2.c: modified
+	Allocate more memory to mpz_t's in stage 2 to avoid reallocs. More
+	allocation locations tagged for mem leak/realloc debugging. Fixed
+	segfault in stage 2 (if factor found in roots of F)
+
+Sun Jul 31 2005 18:00:32 kruppa -- r847
+	* trunk/memory.c: modified
+	Prints peak memory allocation
+
+Sat Jul 30 2005 15:24:49 kruppa -- r846
+	* trunk/mpmod.c, trunk/median.c, trunk/TODO, trunk/listz.c,
+	  trunk/stage2.c, trunk/ecm2.c, trunk/ecm-impl.h, trunk/memory.c,
+	  trunk/ks-multiply.c, trunk/ecm-ecm.h, trunk/polyeval.c: modified
+	Some changes to avoid unnecessary reallocs. memory.c can print
+	location of mpz_init() that led to mem leak/realloc (if tagged)
+
+Sat Jul 30 2005 15:08:14 kruppa -- r845
+	* trunk/configure.in: modified
+	Looks for DocBook stylesheets in several directories
+
+Sat Jul 30 2005 15:07:08 kruppa -- r844
+	* trunk/README.lib: modified
+	Added maxmem entry
+
+Fri Jul 29 2005 13:50:56 kruppa -- r843
+	* trunk/random.c: modified
+	Removed leftover debug output
+
+Thu Jul 28 2005 23:17:58 kruppa -- r842
+	* trunk/pm1.c, trunk/factor.c, trunk/random.c, trunk/pp1.c,
+	  trunk/ecm.c, trunk/main.c, trunk/ecm.h: modified
+	Seed RNG only once per program invocation. Use GetRandCrypt() under
+	Windows, but untested yet: Wine lacks required dlls.
+
+Thu Jul 28 2005 20:55:16 kruppa -- r841
+	* trunk/pm1.c, trunk/factor.c, trunk/pp1.c, trunk/bestd.c,
+	  trunk/ecm.xml, trunk/TODO, trunk/auxlib.c, trunk/ecm.c,
+	  trunk/main.c, trunk/stage2.c, trunk/ecm2.c, trunk/ecm-impl.h,
+	  trunk/rho.c, trunk/ecm.h: modified
+	Added -maxmem option. Memory estimate not perfectly accurate yet.
+
+Sun Jul 24 2005 21:40:14 kruppa -- r840
+	* trunk/pm1.c, trunk/test.pp1, trunk/pp1.c, trunk/bestd.c,
+	  trunk/test.ecm, trunk/ecm.c, trunk/stage2.c, trunk/test.pm1:
+	  modified
+	Fixed bug that occurred when B2 < B2min (did a stage 2, but shouldn't)
+
+Sun Jul 24 2005 19:51:36 kruppa -- r839
+	* trunk/Fgw.c, trunk/ecm.c, trunk/main.c: modified
+	Cleanups in Fgw.c
+
+Sat Jul 23 2005 23:00:51 kruppa -- r838
+	* trunk/ecm.xml: modified
+	Added chapter for exit status values
+
+Sat Jul 23 2005 21:51:24 kruppa -- r837
+	* trunk/mpmod.c, trunk/schoen_strass.c, trunk/configure.in,
+	  trunk/Makefile.am: modified
+	Correctly aligns GWDATA segment when GWNUM libaray is used. Fixed
+	compilation of tune when using GWNUM.
+
+Fri Jul 22 2005 21:14:45 kruppa -- r836
+	* trunk/Fgw.c, trunk/Makefile.am: modified
+	Speedup for mpz_t <-> gwnum conversion. An elusive bug remains.
+
+Thu Jul 21 2005 13:22:12 dnewman -- r835
+	* trunk/tune2.c: deleted
+	* trunk/ecm-params.h.alpha-ev6, trunk/mpmod.c, trunk/ecm-
+	  params.h.default, trunk/TODO, trunk/ecm-params.h.athlonxp,
+	  trunk/mul_lo.c, trunk/sp.h, trunk/Makefile.am, trunk/ecm-
+	  params.h.athlon64, trunk/ecm_ntt.c, trunk/mpzspv.c,
+	  trunk/ntt_gfp.c, trunk/configure.in, trunk/ecm-impl.h, trunk/ecm-
+	  params.h.power4, trunk/ecm-params.h.alpha-ev5, trunk/tune.c:
+	  modified
+	Added mpn_mul_n tuning to tune.c and erased tune2.c. Moved all the
+	'#ifdef TUNE' blocks to sp.h and ecm-impl.h. Updated ecm-params.*.
+	Fixed minor bug in configure.in. Updated TODO.
+
+Wed Jul 20 2005 23:37:17 dnewman -- r834
+	* trunk/test.pp1, trunk/mpzspv.c, trunk/test.ecm, trunk/auxlib.c,
+	  trunk/TODO, trunk/configure.in, trunk/mpzspm.c, trunk/spv.c,
+	  trunk/Makefile.am, trunk/test.pm1, trunk/tune.c: modified
+	Complete overhaul of cputime () in auxlib.c, including changes to
+	configure.in. This fixes the mingw issue of cputime () giving
+	calendar time instead of process time. Tested on cygwin, mingw, athlon,
+	athlon 64, alpha.
+	
+	Fixed tune.c to use elltime (). Some portability fixes in spv.c,
+	mpzspv.c. Changed /bin/bash to /bin/sh in the test scripts.
+	Shortened an unnecessarily long expression in mpzspm.c. Updated TODO.
+
+Tue Jul 19 2005 16:13:28 dnewman -- r833
+	* trunk/TODO, trunk/TODO.sp, trunk/stage2.c: modified
+	Adjusted the expected memory calculation to take into account -treefile
+	and NTT memory. Removed some items from TODO, TODO.sp
+
+Tue Jul 19 2005 13:49:33 dnewman -- r832
+	* trunk/tune-ecm_ntt.c, trunk/tune-mpmod.c, trunk/tune-mpzspv.c,
+	  trunk/tune-ntt_gfp.c: deleted
+	* trunk/configure.in, trunk/Makefile.am, trunk/tune.c: modified
+	Removed the dirty hack used to compile tune separately from the main
+	code. Fixed a segfault bug in tune.c. Now configure links ecm-
+	params.h.xxx to ecm-params.h (but see the TODO in configure.in)
+
+Fri Jul 15 2005 14:59:11 dnewman -- r831
+	* trunk/ecm-params.h.power4: added
+	* trunk/mpzspv.c, trunk/mpzspm.c, trunk/spv.c: modified
+	Corrected header for malloc() to fix compilation problem on OS X.
+	Added ecm-params.h for the power4 line of cpus.
+
+Wed Jul 13 2005 20:53:53 dnewman -- r830
+	* trunk/ecm-params.h.alpha-ev6, trunk/ecm-params.h.default, trunk
+	  /tune-mpmod.c, trunk/ecm-params.h.athlonxp, trunk/ecm-
+	  params.h.athlon64, trunk/tune-ecm_ntt.c, trunk/tune-mpzspv.c, trunk
+	  /tune-ntt_gfp.c, trunk/ecm-params.h.alpha-ev5: added
+	* trunk/mpmod.c, trunk/sp.h, trunk/Makefile.am, trunk/ecm_ntt.c,
+	  trunk/test.pm1, trunk/test.pp1, trunk/mpzspv.c, trunk/ntt_gfp.c,
+	  trunk/test.ecm, trunk/ecm-impl.h, trunk/tune.c: modified
+	Added computation of NTT thresholds to tune.c by means of tune-*.c.
+	Added ecm-params target to Makefile.am and ecm-params.h for some
+	architectures. Fixed minor problem in test.* that was causing
+	script errors on alphas.
+
+Wed Jul 13 2005 10:35:28 dnewman -- r829
+	* trunk/ntt_gfp.c, trunk/configure.in, trunk/sp.h, trunk/tune.c:
+	  modified
+	Rewrote tune.c to use a function pointer framework for computing
+	thresholds.
+	Removed a redundant line from configure.in. Commented out unused
+	functions in ntt_gfp.c.
+
+Tue Jul 12 2005 17:19:19 kruppa -- r828
+	* trunk/getprime.c, trunk/mpmod.c, trunk/factor.c,
+	  trunk/schoen_strass.c, trunk/main.c, trunk/stage2.c, trunk/ecm2.c,
+	  trunk/eval.c, trunk/test.pm1, trunk/test.pp1, trunk/pm1.c,
+	  trunk/pp1.c, trunk/test.ecm, trunk/ecm.c, trunk/lucas.c, trunk/ecm-
+	  impl.h, trunk/ecm.h, trunk/ecm-ecm.h, trunk/tune.c: modified
+	Return code of ecm reflects primality of factor (if any) and
+	cofactor. Renamed MOD_* macros to ECM_MOD_* and moved to ecm.h
+
+Mon Jul 11 2005 22:19:32 kruppa -- r827
+	* trunk/TODO: modified
+	Removed entries for Montgomery roots, moving param selection out of
+	stage 2. Added entries for fixing cputime and RNG seeding under Windows
+
+Mon Jul 11 2005 09:48:56 zimmerma -- r826
+	* trunk/mpmod.c: modified
+	fixed bug in mpmod_init (use of mpz_sizeinbase instead of mpz_size)
+
+Sat Jul 09 2005 22:05:42 kruppa -- r825
+	* trunk/ecm.c, trunk/ecm2.c, trunk/ecm-impl.h: modified
+	Added code for generating roots of F,G for ECM in Montgomery
+	coordinates if S==1. Does now work yet and will probably never be
+	fast. Disabled by default
+
+Thu Jul 07 2005 13:07:58 kruppa -- r824
+	* trunk/mpmod.c, trunk/pm1.c, trunk/ecm-impl.h: modified
+	Fixes bug introduced with negative i0
+
+Wed Jul 06 2005 15:29:12 kruppa -- r823
+	* trunk/pp1.c, trunk/stage2.c, trunk/ecm-impl.h: modified
+	Fixes bug in P+1 introduced in last update
+
+Wed Jul 06 2005 07:34:04 dnewman -- r822
+	* trunk/mpzspv.c, trunk/TODO.sp: modified
+	Rewrote mpzspv_to_mpzv to use a constant amount of memory, with a
+	small resulting speedup. Updated TODO.sp.
+
+Wed Jul 06 2005 06:37:19 dnewman -- r821
+	* trunk/acinclude.m4: added
+	* trunk/configure.in, trunk/Makefile.am: modified
+	Some improvements to configure.in. Now --enable-redc verifies that
+	the cpu really is a 32-bit x86 (with the help of a macro in
+	acinclude.m4), and the manpage is only compiled if xsltproc and
+	docbook.xsl are present.
+
+Tue Jul 05 2005 22:00:03 dnewman -- r820
+	* trunk/Fgw.c, trunk/TODO, trunk/configure.in, trunk/Makefile.am,
+	  trunk/ecm-impl.h: modified
+	Added options --enable-asm-redc and --enable-ntt - now the gwnum,
+	redc.s and ntt code compiles conditionally. Removed corresponding items
+	from TODO, added one more.
+
+Tue Jul 05 2005 21:05:43 dnewman -- r819
+	* trunk/redc.s: added
+	* trunk/redc.asm: deleted
+	Renamed redc.asm to redc.s
+
+Mon Jul 04 2005 22:24:06 dnewman -- r818
+	* trunk/stage2.c: modified
+	Changed how sp_num is displayed when using -v
+
+Mon Jul 04 2005 21:13:00 kruppa -- r817
+	* trunk/mpmod.c, trunk/pm1.c, trunk/schoen_strass.c, trunk/resume.c,
+	  trunk/bestd.c, trunk/auxlib.c, trunk/stage2.c, trunk/rho.c,
+	  trunk/ecm_ntt.c, trunk/ecm-gmp.h, trunk/ecm-ecm.h,
+	  trunk/polyeval.c: modified
+	Some cleanups to avoid compiler warnings
+
+Mon Jul 04 2005 20:20:52 dnewman -- r816
+	* trunk/configure.in: modified
+	Removed AC_FUNC_MALLOC and AC_FUNC_REALLOC from configure.in, see
+	http://lists.gnu.org/archive/html/bug-autoconf/2002-10/msg00075.html
+
+Mon Jul 04 2005 19:49:38 dnewman -- r815
+	* trunk/mpzspv.c, trunk/sp.h, trunk/ecm_ntt.c: modified
+	Added missing config.h include to sp.h. Commented memory usage in
+	many of the ntt functions. Reduced memory usage of mpzspv_normalise,
+	resulting in a speedup.
+
+Mon Jul 04 2005 19:43:14 kruppa -- r814
+	* trunk/ecm2.c: modified
+	Replaced variable length array in multiplyW2n with an mpz_t
+
+Mon Jul 04 2005 18:45:57 dnewman -- r813
+	* trunk/TODO: modified
+	Added estimated memory item to TODO.
+
+Mon Jul 04 2005 06:39:03 dnewman -- r812
+	* (MANY FILES) : modified
+	Replaced snprintf with malloc + sprintf throughout. Fixed incorrect
+	prototype for ceil_log2(). Removed prototype for (static) usage().
+	Changed #include "gmp.h" to #include <gmp.h> throughout.
+
+Sun Jul 03 2005 21:33:49 kruppa -- r811
+	* trunk/pm1.c, trunk/pp1.c, trunk/bestd.c, trunk/ecm.c, trunk/main.c,
+	  trunk/listz.c, trunk/stage2.c, trunk/ecm2.c, trunk/ecm-impl.h,
+	  trunk/ecm.h: modified
+	Moved selection of dF, k, d1, d2 out of stage 2 so correct
+	parameters can be printed immediately. Print expected number of 
+	curves before stage 1. Made dF and k unsigned long throughout.
+
+Sun Jul 03 2005 21:12:34 dnewman -- r810
+	* trunk/mpmod.c, trunk/schoen_strass.c, trunk/mpzspv.c,
+	  trunk/random.c, trunk/main.c, trunk/listz.c, trunk/configure.in,
+	  trunk/stage2.c, trunk/sp.h, trunk/spv.c, trunk/ecm-impl.h,
+	  trunk/ecm_ntt.c, trunk/ks-multiply.c, trunk/ecm-ecm.h,
+	  trunk/polyeval.c: modified
+	Preliminary changes to configure script, now configure.in generates
+	config.h. Added some autoconf checks. Renamed some #defines for
+	standardisation purposes. Commented out some unused functions in spv.c.
+
+Sat Jul 02 2005 19:47:25 kruppa -- r809
+	* trunk/TODO: modified
+	Some updates
+
+Sat Jul 02 2005 19:35:30 kruppa -- r808
+	* trunk/pp1.c, trunk/bestd.c, trunk/ecm2.c: modified
+	Code to init roots of G can deal with negative i0 now
+
+Sat Jul 02 2005 16:18:28 dnewman -- r807
+	* trunk/sp.c, trunk/sp.h: modified
+	Added 64-bit primality test for 64-bit machines. Defined UDItype in
+	sp.h for longlong.h (fixes compilation on Athlon 64).
+
+Sat Jul 02 2005 15:26:32 kruppa -- r806
+	* trunk/pm1.c, trunk/pp1.c, trunk/stage2.c, trunk/ecm2.c: modified
+	Cleanup. Removed redundant variable "s", using "i0" instead
+
+Sat Jul 02 2005 10:21:56 kruppa -- r805
+	* trunk/Fgw.c: modified
+	Added dummy function to avoid "empty file" warning. To be fixed, use
+	conditional compilation instead
+
+Sat Jul 02 2005 10:09:01 kruppa -- r804
+	* trunk/stage2.c: modified
+	Removed stray "%" (caused segfault)
+
+Sat Jul 02 2005 09:40:34 kruppa -- r803
+	* trunk/mpzspv.c: modified
+	Added <stdlib.h> for valloc() etc. Fixes crash on Sparc v9
+
+Fri Jul 01 2005 20:08:28 kruppa -- r802
+	* trunk/stage2.c: modified
+	Avoid floating point division by 0. when printing expected nr. of
+	curves
+
+Thu Jun 30 2005 22:41:30 dnewman -- r801
+	* trunk/tune2.c, trunk/schoen_strass.c, trunk/TODO,
+	  trunk/configure.in, trunk/stage2.c, trunk/mul_lo.c, trunk/sp.h,
+	  trunk/ecm-impl.h: modified
+	Added item to TODO. Fixed compilation for when HAVE_NTT not defined.
+	Added AC_C_INLINE to configure.in and changed INLINE to inline
+	everywhere.
+
+Wed Jun 15 2005 12:28:17 zimmerma -- r800
+	* trunk/TODO: modified
+	added new item
+
+Mon Jun 13 2005 12:31:58 dnewman -- r799
+	* trunk/mpzspv.c, trunk/ecm_ntt.c: modified
+	Minor fixes to header inclusion.
+
+Thu Jun 09 2005 14:35:21 dnewman -- r798
+	* trunk/ecm_ntt.c: modified
+	Fixed potential segfault
+
+Thu Jun 09 2005 14:00:38 dnewman -- r797
+	* trunk/mpzspv.c, trunk/ntt_gfp.c, trunk/Fgw.c, trunk/stage2.c,
+	  trunk/spv.c, trunk/ecm_ntt.c: modified
+	Removed declaration-within-code ISO-C unorthodoxy
+
+Thu Jun 09 2005 13:17:57 zimmerma -- r796
+	* trunk/stage2.c: modified
+	// -> /* ... */
+
+Thu Jun 09 2005 13:13:49 zimmerma -- r795
+	* trunk/sp.h: modified
+	removed C++-style comments
+
+Thu Jun 09 2005 13:12:34 zimmerma -- r794
+	* trunk/Makefile.am: modified
+	added longlong.h in noinst_HEADERS
+
+Thu Jun 09 2005 12:05:05 dnewman -- r793
+	* trunk/stage2.c, trunk/ecm-impl.h, trunk/ecm_ntt.c: modified
+	Added -treefile support to ntt_PolyFromRoots_Tree and ntt_polyevalT
+
+Tue Jun 07 2005 19:34:46 kruppa -- r792
+	* trunk/rho.c: modified
+	Minor cleanups (no change in functionality)
+
+Tue Jun 07 2005 19:32:43 kruppa -- r791
+	* trunk/mpmod.c, trunk/Fgw.c, trunk/ecm.c, trunk/ecm-impl.h: modified
+	Interface to Woltman's GWNUM stage 1 for ECM
+
+Wed May 18 2005 11:56:07 kruppa -- r790
+	* trunk/mpzspv.c: modified
+	#ifdef'd an malloc_usable_size()
+
+Sun Apr 24 2005 13:40:50 dnewman -- r789
+	* trunk/mpzspv.c, trunk/configure.in: modified
+	Check for malloc_usable_size in autoconf as not all libc's have it.
+
+Sat Apr 23 2005 04:57:32 zimmerma -- r788
+	* trunk/getprime.c: modified
+	improved getprime main loop
+
+Mon Apr 11 2005 16:12:23 dnewman -- r787
+	* trunk/ntt_gfp.c: modified
+	Changed large length DIT's to use a recursive algorithm, rather
+	than scramble + DIF + scramble.
+
+Sun Apr 10 2005 14:50:51 kruppa -- r786
+	* trunk/TODO: modified
+	Added sliding window multiplication for ECM entry
+
+Thu Apr 07 2005 16:07:06 dnewman -- r785
+	* trunk/mpzspv.c: added
+	* trunk/spm.c, trunk/ntt_gfp.c, trunk/stage2.c, trunk/sp.h,
+	  trunk/spv.c: modified
+	Changed mpzspp to mpzspv and mpzp to mpzv.
+	Added mpzspv_verify and lots of mpzspv assertions.
+	Minor speedup by using valloc rather than malloc for sp coeff
+	alignment. Speedup for ntt_PolyFromRoots.
+	Memory reduction and speedup for ntt_polyevalT, also fixed a memory
+	leak.
+	mpzspv_to_mpzv no longer clobbers the input.
+	Minor cosmetic changes.
+	Fixed (probably) and documented the upper bound on sp_num in
+	mpzspm_init.
+	Check for some malloc errors.
+
+Thu Apr 07 2005 15:48:30 dnewman -- r784
+	* trunk/mpzspp.c: deleted
+	* trunk/TODO.sp, trunk/mpzspm.c, trunk/Makefile.am, trunk/ecm-impl.h,
+	  trunk/ecm_ntt.c: modified
+	Renamed mpzspp.c to mpzspv.c
+
+Tue Apr 05 2005 17:43:10 kruppa -- r783
+	* trunk/main.c: modified
+	Added -faccmd option, compiled in only if WANT_FACCMD is defined
+
+Sat Apr 02 2005 00:40:57 dnewman -- r782
+	* trunk/stage2.c, trunk/sp.h, trunk/ecm-impl.h, trunk/mpzspp.c,
+	  trunk/ecm_ntt.c, trunk/polyeval.c: modified
+	Added a preliminary version of ntt_polyevalT (without treefile
+	support) and a couple of helper routines in mpzspp.c. Minor change to
+	alignment of sp_invF.
+	Un-static'd TUpTree in polyeval.c so ntt_polyevalT can use it.
+	Minor change to thresholds in sp.h.
+
+Fri Apr 01 2005 08:15:57 kruppa -- r781
+	* trunk/NEWS: modified
+	Added news entries for 6.0.1
+
+Thu Mar 31 2005 21:57:41 dnewman -- r780
+	* trunk/TODO.sp, trunk/stage2.c, trunk/sp.h, trunk/ecm-impl.h,
+	  trunk/mpzspp.c, trunk/ecm_ntt.c: modified
+	Adjusted functions in ecm_ntt.c so mpzspm_init is now only
+	called once (ever). Abandoned the "automatic transform" idea.
+	Rewrote ntt_PolyInvert and saved a transform per level. Rewrote
+	ntt_PrerevertDivision to use a cached transform of 1/F. Fixed
+	potential bug in mpzspp_normalise.
+	Updated TODO.sp
+
+Thu Mar 31 2005 21:50:35 kruppa -- r779
+	* trunk/INSTALL: modified
+	Added detail to, removed typo from Win install instruction
+
+Thu Mar 31 2005 19:35:36 fousse -- r778
+	* trunk/INSTALL: modified
+	Typo.
+
+Thu Mar 31 2005 19:22:16 kruppa -- r777
+	* trunk/INSTALL: modified
+	Added install instructions for Windows/MinGW
+
+Wed Mar 30 2005 15:53:29 kruppa -- r776
+	* trunk/README: modified
+	Updated Note on ECM extra smoothness
+
+Wed Mar 30 2005 15:34:47 kruppa -- r775
+	* trunk/rho.c: modified
+	Remove GSL dilog_series code (is GPL, not LGPL). Changed
+	EXTRA_SMOOTHNESS
+	to 23.4 (Montgomery's value)
+
+Mon Mar 28 2005 18:07:54 kruppa -- r774
+	* trunk/TODO: modified
+	Added shell command on event entry
+
+Mon Mar 28 2005 18:05:52 kruppa -- r773
+	* trunk/main.c: modified
+	Fix segfault when parsing B2, work around MinGW scanf() bug
+
+Mon Mar 28 2005 18:04:57 kruppa -- r772
+	* trunk/stage2.c, trunk/rho.c: modified
+	Free rhotable memory at end of stage 2
+
+Wed Mar 23 2005 19:45:30 zimmerma -- r771
+	* trunk/ecm-impl.h: modified
+	added missing macro
+
+Wed Mar 23 2005 19:36:35 zimmerma -- r770
+	* trunk/pp1.c, trunk/ecm.c, trunk/mul_lo.c: modified
+	added comments and normalization when FULL_REDUCTION is not defined
+
+Wed Mar 23 2005 17:07:25 kruppa -- r769
+	* trunk/TODO: modified
+	Added negative i0, composite d2, avoiding reallocs, getting bestD()
+	out of stage 2. Added release targets for some entries.
+
+Tue Mar 22 2005 15:02:43 zimmerma -- r768
+	* trunk/bestd.c, trunk/TODO: modified
+	added one TODO item
+	added one dF value (600600)
+
+Mon Mar 14 2005 01:24:18 dnewman -- r767
+	* trunk/ntt_gfp.c, trunk/sp.h, trunk/spv.c, trunk/mpzspp.c,
+	  trunk/ecm_ntt.c: modified
+	Started work on a framework for transform caching - now mpzspp's
+	should automatically cache transforms and normalise. Added
+	mpzspp_[to/from]_ntt functions to facilitate this and help simplify
+	ntt_PrerevertDivision. Fixed an incorrect assertion in spv_mul.
+
+Sat Mar 12 2005 19:24:44 dnewman -- r766
+	* trunk/sp.h, trunk/mpzspp.c, trunk/ecm_ntt.c: modified
+	mpzspp_t's are now passed by reference instead of by value.
+
+Tue Mar 08 2005 17:22:18 dnewman -- r765
+	* trunk/listz.c: modified
+	Fixed a bug in list_neg
+
+Tue Mar 08 2005 13:50:34 zimmerma -- r764
+	* trunk/listz.c: modified
+	fixed potential bug in list_neg
+
+Tue Mar 08 2005 13:35:27 dnewman -- r763
+	* trunk/ecm.xml: modified
+	Corrected Dave Newman's email address from firstname.lastname@...
+	to david.lastname@...
+
+Tue Mar 08 2005 01:21:37 dnewman -- r762
+	* trunk/sp.h, trunk/ecm_ntt.c: modified
+	Unrolled recursion in ntt_PolyInvert and added a DEBUG block to
+	verify it gives the right answer. Adjusted NTT_POLYINVERT_THRESHOLD in
+	sp.h
+
+Mon Mar 07 2005 11:57:47 dnewman -- r761
+	* trunk/sp.h, trunk/ecm_ntt.c: modified
+	Rewrote ntt_PolyInvert. This seems to stop the "Found input number
+	N" errors. Adjusted POLYINVERT_NTT_THRESHOLD accordingly.
+
+Sun Mar 06 2005 19:21:41 kruppa -- r760
+	* trunk/ecm.xml: modified
+	Small corrections, Sch"onhage now spelled with oe.
+
+Sun Mar 06 2005 13:29:07 zimmerma -- r759
+	* trunk/TODO, trunk/configure.in: modified
+	changed version to 6.1
+	added item in TODO
+
+Sat Mar 05 2005 21:29:25 zimmerma -- r758
+	* trunk/resume.c, trunk/main.c, trunk/eval.c, trunk/ecm.h: modified
+	patch for Apple ('\r' instead of '\n' for newline)
+
+Fri Mar 04 2005 20:46:07 kruppa -- r757
+	* trunk/README.lib, trunk/main.c, trunk/INSTALL: modified
+	Small correction to --help output (missing abs bars in -base2 option)
+
+Fri Mar 04 2005 13:05:24 kruppa -- r756
+	* trunk/Fgw.c: modified
+	Added copyright notice for GWNUM based code
+
+Fri Mar 04 2005 12:33:06 dnewman -- r755
+	* trunk/spm.c, trunk/ntt_gfp.c, trunk/sp.c, trunk/longlong.h,
+	  trunk/mpzspm.c, trunk/sp.h, trunk/spv.c, trunk/ecm_ntt.c,
+	  trunk/mpzspp.c: modified
+	added licence headers
+
+Fri Mar 04 2005 12:07:47 dnewman -- r754
+	* trunk/ecm-impl.h: modified
+	added ecm-specific ntt functions
+
+Fri Mar 04 2005 11:51:38 dnewman -- r753
+	* trunk/stage2.c: modified
+	added HAVE_NTT option to enable sp code, changed dF to be always a
+	power-of-two
+
+Fri Mar 04 2005 11:49:40 dnewman -- r752
+	* trunk/spv.c: added
+	added spv.c
+
+Fri Mar 04 2005 11:49:29 dnewman -- r751
+	* trunk/spm.c: added
+	added spm.c
+
+Fri Mar 04 2005 11:49:04 dnewman -- r750
+	* trunk/ntt_gfp.c: added
+	added ntt_gfp.c
+
+Fri Mar 04 2005 11:48:47 dnewman -- r749
+	* trunk/mpzspp.c: added
+	added mpzspp.c
+
+Fri Mar 04 2005 11:48:29 dnewman -- r748
+	* trunk/mpzspm.c: added
+	added mpzspm.c
+
+Fri Mar 04 2005 11:48:08 dnewman -- r747
+	* trunk/longlong.h: added
+	added longlong.h (copy from gmp-4.1.4)
+
+Fri Mar 04 2005 11:47:33 dnewman -- r746
+	* trunk/listz.c: modified
+	removed static from list_mul and list_neg so the sp code can use them
+
+Fri Mar 04 2005 11:46:23 dnewman -- r745
+	* trunk/ecm_ntt.c: added
+	added ecm_ntt.c
+
+Fri Mar 04 2005 11:46:02 dnewman -- r744
+	* trunk/TODO.sp: added
+	added TODO.sp
+
+Fri Mar 04 2005 11:45:34 dnewman -- r743
+	* trunk/Makefile.am: modified
+	added sp sources
+
+Fri Mar 04 2005 10:39:30 dnewman -- r742
+	* trunk/sp.c: added
+	added sp.c
+
+Fri Mar 04 2005 10:39:12 dnewman -- r741
+	* trunk/sp.h: added
+	added sp.h
+
+Fri Mar 04 2005 09:11:07 zimmerma -- r740
+	* trunk/README: modified
+	added note about GMP thresholds
+
+Wed Mar 02 2005 22:46:58 zimmerma -- r739
+	* trunk/tune2.c: modified
+	added ECM_STDOUT, ECM_STDERR
+
+Wed Mar 02 2005 22:06:00 zimmerma -- r738
+	* trunk/schoen_strass.c, trunk/random.c, trunk/main.c, trunk/listz.c,
+	  trunk/stage2.c, trunk/ecm2.c, trunk/eval.c, trunk/ks-multiply.c,
+	  trunk/polyeval.c: modified
+	small changes for _MSC_VER
+	prints memory usage (with -v)
+	prints argv[0] instead of "ecm" in case of error
+
+Wed Mar 02 2005 22:02:34 zimmerma -- r737
+	* trunk/TODO: modified
+	added item (-maxmem)
+
+Wed Mar 02 2005 22:02:06 zimmerma -- r736
+	* trunk/README: modified
+	added "10. Known problems"
+
+Wed Mar 02 2005 22:01:17 zimmerma -- r735
+	* trunk/AUTHORS: modified
+	added beta-testers
+
+Wed Mar 02 2005 21:30:08 kruppa -- r734
+	* trunk/README: modified
+	Mention default S for Fermat numbers (S=1 or 2). "he thinks" -> "it
+	thinks".
+
+Wed Mar 02 2005 12:37:53 zimmerma -- r733
+	* trunk/main.c: modified
+	put back "Run xxx out of yyy" in loop mode
+
+Wed Mar 02 2005 12:24:42 zimmerma -- r732
+	* trunk/TODO: modified
+	added new item
+
+Tue Mar 01 2005 21:52:27 kruppa -- r731
+	* trunk/rho.c: modified
+	Fixed array out-of-bounds access, reported by Jon Becker
+
+Tue Mar 01 2005 21:51:31 kruppa -- r730
+	* trunk/b1_ainc.c, trunk/pm1.c, trunk/pp1.c, trunk/ecm.c: modified
+	Calculation of default B2 in ecm(), pm1() or pp1() would overwrite
+	caller's
+	B2min, B2 (mpz_t), using local copies now. Auto-increment returns
+	rounded B1.
+	Fixes bug reported by "Phil MjX" on mersenneforum.org
+
+Tue Mar 01 2005 10:19:55 zimmerma -- r729
+	* trunk/test.ecm: modified
+	simplified test so that it takes less time (overall gain of about 3)
+
+Tue Mar 01 2005 08:30:01 zimmerma -- r728
+	* trunk/mpmod.c, trunk/ecm.c, trunk/tune.c: modified
+	fix to link problem for "tune"
+
+Mon Feb 28 2005 16:07:28 kruppa -- r727
+	* trunk/stage2.c, trunk/configure.in, trunk/polyeval.c: modified
+	Checks for snprintf(), if not available falls back to sprintf()
+
+Mon Feb 28 2005 13:11:10 kruppa -- r726
+	* trunk/Fgw.c: modified
+	Removed original gwnum dword->fft conversion code
+
+Mon Feb 28 2005 11:40:55 zimmerma -- r724
+	* trunk/ChangeLog, trunk/README.dev: modified
+	updated ChangeLog/README.dev
+
 2005-02-28  paul  <zimmerma>
 
 	* release version 6.0

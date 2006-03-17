@@ -521,6 +521,16 @@ divides the default <replaceable>B2</replaceable> by 2.</para>
   </varlistentry>
 
   <varlistentry>
+  <term><option>-stage1time <replaceable>n</replaceable></option></term>
+  <listitem>
+<para>Add <replaceable>n</replaceable> seconds to stage 1 time.
+This is useful to get correct expected time with
+<replaceable>-v</replaceable> if part of stage 1 was done in another run.
+</para>
+  </listitem>
+  </varlistentry>
+
+  <varlistentry>
   <term><option>-cofdec</option></term>
   <listitem>
   <para>Force cofactor output in decimal (even if expressions are used).
@@ -663,6 +673,8 @@ or new versions.
 </refsect1>
 
 <refsect1 id='author'><title>AUTHORS</title>
+<para>Pierrick Gaudry &lt;gaudry at lix dot polytechnique dot fr&gt;
+contributed efficient assembly code for combined mul/redc;</para>
 <para>Jim Fougeron &lt;jfoug at cox dot net&gt; contributed the expression
 parser and several command-line options;</para>
 <para>Laurent Fousse &lt;laurent at komite dot net&gt; contributed the middle 

@@ -1,6 +1,8 @@
 In the following email addresses, please replace "at" by "@" and "dot" by ".".
 For example, <xxx dot yyy at zzz dot to> should read <xxx.yyy@xxx.to>.
 
+Pierrick Gaudry <gaudry at lix dot polytechnique dot fr>
+	contributed efficient assembly code for combined mul/redc
 Jim Fougeron <jfoug at cox dot net>
 	contributed the expression parser, the primality testing tools,
 	and several command-line options.
