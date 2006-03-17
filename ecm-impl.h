@@ -77,6 +77,12 @@ extern FILE *ECM_STDOUT, *ECM_STDERR;
 #define ATTRIBUTE_CONST
 #endif
 
+/* default B2 choice: pow (B1 * METHOD_COST / 6.0, DEFAULT_B2_EXPONENT) */
+#define DEFAULT_B2_EXPONENT 1.43
+#define PM1_COST 1.0 / 6.0
+#define PP1_COST 2.0 / 6.0
+#define ECM_COST 11.0 / 6.0
+
 /* residues are fully reduced (i.e. in canonical mpz form) */
 #define FULL_REDUCTION
 
