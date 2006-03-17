@@ -879,9 +879,7 @@ ecm (mpz_t f, mpz_t x, mpz_t sigma, mpz_t n, mpz_t go, double *B1done,
   /* Also scale B2 by what the user said (or by the default scaling of 1.0) */
 
   if (ECM_IS_DEFAULT_B2(B2))
-    mpz_set_d (B2, B2scale * 2.0 * pow (B1, 1.5));
-  /* the formula B2 = 2*B1^1.5 was determined from experiments with B1=1e9,
-     for which B2=6.7e13 gives a stage 2 of about half the time of stage 1 */
+    mpz_set_d (B2, B2scale * pow (ECM_COST * B1, DEFAULT_B2_EXPONENT));
 
   /* set B2min */
   if (mpz_sgn (B2min) < 0)
