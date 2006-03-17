@@ -50,7 +50,7 @@ To make a new release:
      directly or with emacs), e.g. rcs2log > ChangeLog.2 and edit
      ChangeLog to insert ChangeLog.2 at the beginning and remove
      the duplicated lines.
-  4) Check the file permissions (may have been broken by CVS).
+  4) Check the file permissions (may have been broken).
   5) Generate the release version with "make dist".
   6) Test the release version with "make distcheck".
   7) If there is no problem, add a tag to the CVS corresponding to the
