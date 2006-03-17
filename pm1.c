@@ -793,7 +793,7 @@ pm1 (mpz_t f, mpz_t p, mpz_t N, mpz_t go, double *B1done, double B1,
   
   /* Set default B2. See ecm.c for comments */
   if (ECM_IS_DEFAULT_B2(B2))
-    mpz_set_d (B2, B2scale * pow (B1 / 6.0, 1.424828748));
+    mpz_set_d (B2, B2scale * pow (B1 * PM1_COST, DEFAULT_B2_EXPONENT));
 
   /* set B2min */
   if (mpz_sgn (B2min) < 0)
