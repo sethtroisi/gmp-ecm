@@ -60,3 +60,5 @@ ToDo's (see also TODO.sp):
 	(mpmod.c)
 - "not enough primes in interval" with NTT for large numbers (e.g. F17
   with B1=3000000, B2=11414255590)
+- ecm -v 1e6 3-2 < c155 prints wrong expected number of curves (should be
+  the same as ecm -v 1e6 2). Reported by Peter Montgomery, 30 Mar 2006.
