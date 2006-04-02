@@ -6,7 +6,7 @@ Instructions to install GMP-ECM:
    Remark: GNU MP is already installed in most Linux distributions.
    However it is often an old version, moreover without processor-specific
    optimizations. If you care about efficiency, be sure to install the
-   latest version of GNU MP (4.1.4 as of January 2005), and to compile it
+   latest version of GNU MP (4.2 as of March 2006), and to compile it
    for your particular processor.
 
 1) check your configuration with:
@@ -113,27 +113,27 @@ Step-by-step instructions, courtesy of Jes Hansen:
    this, because is creates your home folder. Then exit it again.
 
 4) Download the latest version of GMP (at the time of writing the latest 
-   version is 4.1.4, this will be assumed for the rest of this document) 
+   version is 4.2, this will be assumed for the rest of this document) 
    in .tar.gz format from http://www.swox.com/gmp/ and place it in your 
    newly created home folder. The home folder is in C:\GNU\msys\home and 
    has the same name as your Windows login name.
 
 5) Download GMP-ECM (if you do not have it already) from
    http://www.loria.fr/~zimmerma/records/ecmnet.html (check the News section
-   for the latest release, at the time of writing 6.0.1) and place it in your 
+   for the latest release, at the time of writing 6.1) and place it in your
    home folder as well. You won't need an internet connection from now on, 
    feel free to disconnect.
 
 6) Start the MinSys up again from the desktop and type 
-   tar -xvzf gmp-4.1.4.tar.gz
-   cd gmp-4.1.4/
+   tar -xvzf gmp-4.2.tar.gz
+   cd gmp-4.2/
    ./configure
    make install
    cd ~
 
 7) You are back in your home directory. Now type
-  tar -xvzf ecm-6.0.1.tar.gz
-  cd ecm-6.0.1
+  tar -xvzf ecm-6.1.tar.gz
+  cd ecm-6.1
   ./configure --with-gmp=/usr/local
   make
 
@@ -148,7 +148,7 @@ In case of a problem, report it to us, with:
 
 - the versions of GMP-ECM and GMP used (first output line), for example:
   
-  GMP-ECM 6.0 [powered by GMP 4.1.4, fft] [P+1]
+  GMP-ECM 6.1 [powered by GMP 4.2, fft] [P+1]
 
 - the detailed input enabling us to reproduce the problem, for example:
 
