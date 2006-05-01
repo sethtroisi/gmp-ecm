@@ -362,7 +362,7 @@ double
 ecmprob (double B1, double B2, double N, double nr, int S)
 {
   double alpha, beta, stage1, stage2, brsu;
-  
+
   ASSERT(rhotable != NULL);
   
   /* What to do if rhotable is not initialised and asserting is not enabled?
