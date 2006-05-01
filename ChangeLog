@@ -1,3 +1,6 @@
+Mon May 01 2006 22:49:07 zimmerma -- r927
+	Released version 6.1.
+
 Mon May 01 2006 13:01:15 kruppa -- r923
 	* trunk/Fgw.c, trunk/main.c, trunk/ecm2.c: modified
 	Small cleanups. Added exit code 143 when exiting due to signal.
