@@ -1,7 +1,7 @@
 /* 
   Interface code for George Woltman's gwnum library
   
-  Copyright 2004 Paul Zimmermann and Alexander Kruppa.
+  Copyright 2004-2006 Paul Zimmermann and Alexander Kruppa.
   
   Contains code based on the GWNUM library, 
     copyright 2002-2005 George Woltman, Just For Fun Software, Inc.
@@ -313,10 +313,9 @@ Fdwordstogw_simple (
 	}
 
 	/* Fill any rest with 0. */
-	dval1 = 0.;
 	for ( ; i < FFTLEN / 2; i++) 
 	{
-	    *(nextoff++) = dval1;
+	    *(nextoff++) = dval2;
 	    *(nextoff++) = dval2;
 	}
 
@@ -331,7 +330,6 @@ Fdwordstogw_simple (
 			i, dval1, i, ival);
 	}
 #endif
-
 }
 
 static void 
@@ -419,7 +417,7 @@ Fgwtodwords_simple (
     
     if ((signed) FFTLEN / 2 > outalloc)
     {
-	fprintf (stderr, "Fgwtodwords_simple: output array has only %d "
+	outputf (OUTPUT_ERROR, "Fgwtodwords_simple: output array has only %d "
 		 "dwords allocated, but needs %ld\n", outalloc, FFTLEN / 2);
 	return ECM_ERROR;
     }
@@ -501,8 +499,8 @@ Fgwtodwords_simple (
     {
 	if ((*outlen) + 1 > outalloc) 
 	{
-	    fprintf (stderr, "Fgwtodwords_simple: carry = %lu, but out of "
-		     "allocated space (%d allocated)\n", vals[1], outalloc);
+	    outputf (OUTPUT_ERROR, "Fgwtodwords_simple: carry = %lu, but out "
+	             "of allocated space (%d allocated)\n", vals[1], outalloc);
 	    return ECM_ERROR;
 	}
 	*outptr2++ = vals[1];
@@ -562,7 +560,8 @@ Fgwtodwords2 (
 	
 	if ((signed) FFTLEN / 2 > outalloc)
 	  {
-	    fprintf (stderr, "Fgwtodwords: output array has only %d dwords allocated, but needs %ld\n",
+	    outputf (OUTPUT_ERROR, "Fgwtodwords: output array has only %d "
+	             "dwords allocated, but needs %ld\n", 
 	             outalloc, FFTLEN / 2);
 	    exit (EXIT_FAILURE);
 	  }
@@ -592,7 +591,8 @@ Fgwtodwords2 (
 	/* Output carry */
 	if (val != 0 && val != -1) {
 		if ((*outlen) + 1 > outalloc) {
-			fprintf (stderr, "Fgwtodwords: carry, but out of allocated space\n");
+			outputf (OUTPUT_ERROR, "Fgwtodwords: carry, but out "
+			         "of allocated space\n");
 			exit (EXIT_FAILURE);
 		}
 		*outptr++ = val;
@@ -658,12 +658,12 @@ Fgwinit (int Fermat)
   /* Init GW routines with 16 bits per FFT element */
   guessCpuType ();
   guessCpuSpeed ();
-  gwsetup (1., 2, Fermat, 1, Fermat / 16);
+  gwsetup (1., 2, Fermat, 1, (Fermat + 15) / 16);
   gwfft_description (buf);
-  printf ("Using %s\n", buf);
-  printf ("Modulus is %s\n", gwmodulo_as_string());
-  g1 = gwalloc();
-  g2 = gwalloc();
+  outputf (OUTPUT_VERBOSE, "Using %s\n", buf);
+  outputf (OUTPUT_VERBOSE, "Modulus is %s\n", gwmodulo_as_string ());
+  g1 = gwalloc ();
+  g2 = gwalloc ();
   gwplan = make_conv_plan ();
 }
 
@@ -678,6 +678,9 @@ Fgwclear ()
   g1 = NULL;
   gwdone ();
 }
+
+/* Compute R = S1 * S2 (mod F_m) using George Woltman's GWNUM code
+   R == S1 || R == S2 is permissible */
 
 void
 Fgwmul (mpz_t R, mpz_t S1, mpz_t S2)
@@ -732,8 +735,11 @@ Fgwmul (mpz_t R, mpz_t S1, mpz_t S2)
 #endif /* DEBUG */
 
   if (ALLOC(R) < (signed) FFTLEN / 2 + 1)
-    /* WARNING: _mpz_realloc does not keep the value!!! */
-    _mpz_realloc (R, FFTLEN / 2 + 1);
+    {
+      /* WARNING: _mpz_realloc() does not keep the value! Since we allow 
+         R == S1 || R == S2, we cannot use _mpz_realloc() here */
+      mpz_realloc2 (R, (FFTLEN * 16) + mp_bits_per_limb);
+    }
 
   Fmpztogw (g1, S1, gwplan);
   
@@ -802,12 +808,12 @@ gw_ecm_stage1 (mpz_t f, curve *P, mpmod_t modulus,
 {
   const double gw_k = 1.;
   const unsigned long gw_b = 2;
-  unsigned long gw_n = abs (modulus->bits);
-  signed long gw_c = sgn (modulus->bits);
+  const unsigned long gw_n = abs (modulus->bits);
+  const signed long gw_c = sgn (modulus->bits);
   unsigned long gw_B1done = *B1done;
   unsigned long siz_x, siz_z; /* Size of gw_x and gw_y as longs */
   mpz_t gw_x, gw_z, gw_A;
-  int youpi = ECM_NO_FACTOR_FOUND;
+  int youpi;
 
   if (mpz_cmp_ui (go, 1) > 0)
     {
