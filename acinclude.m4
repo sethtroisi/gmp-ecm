@@ -11,7 +11,7 @@ dnl
 dnl  FIXME: The generated config.m4 doesn't get recreated by config.status.
 dnl  Maybe the relevant "echo"s should go through AC_CONFIG_COMMANDS.
 
-AC_DEFUN(GMP_INIT,
+AC_DEFUN([GMP_INIT],
 [ifelse([$1], , gmp_configm4=config.m4, gmp_configm4="[$1]")
 gmp_tmpconfigm4=cnfm4.tmp
 gmp_tmpconfigm4i=cnfm4i.tmp
@@ -37,7 +37,7 @@ dnl  work, since it'd interpret parentheses and quotes in dnl comments, and
 dnl  having a whole file as a macro argument would overflow the string space
 dnl  on BSD m4.
 
-AC_DEFUN(GMP_FINISH,
+AC_DEFUN([GMP_FINISH],
 [AC_REQUIRE([GMP_INIT])
 echo "creating $gmp_configm4"
 echo ["d""nl $gmp_configm4.  Generated automatically by configure."] > $gmp_configm4
@@ -73,7 +73,7 @@ dnl  good enough.
 dnl 
 dnl  See mpn/asm-defs.m4 for details on the known bad m4s.
 
-AC_DEFUN(GMP_PROG_M4,
+AC_DEFUN([GMP_PROG_M4],
 [AC_ARG_VAR(M4,[m4 macro processor])
 AC_CACHE_CHECK([for suitable m4],
                 gmp_cv_prog_m4,
@@ -135,7 +135,7 @@ dnl  variables will get expanded.  Don't forget to invoke GMP_FINISH to
 dnl  create file config.m4.  config.m4 uses `<' and '>' as quote characters
 dnl  for all defines.
 
-AC_DEFUN(GMP_DEFINE, 
+AC_DEFUN([GMP_DEFINE],
 [AC_REQUIRE([GMP_INIT])
 echo ['define(<$1>, <$2>)'] >>ifelse([$3], [POST],
                               $gmp_tmpconfigm4p, $gmp_tmpconfigm4)
@@ -154,7 +154,7 @@ dnl
 dnl  This is not unlike AC_TRY_COMPILE, but there's no default includes or
 dnl  anything in "asm-code", everything wanted must be given explicitly.
 
-AC_DEFUN(GMP_TRY_ASSEMBLE,
+AC_DEFUN([GMP_TRY_ASSEMBLE],
 [cat >conftest.s <<EOF
 [$1]
 EOF
@@ -191,7 +191,7 @@ dnl  routines), and in those circumstances a missing .type isn't fatal,
 dnl  letting the problem go unnoticed.  tests/mpn/t-asmtype.c aims to check
 dnl  for it.
 
-AC_DEFUN(GMP_ASM_TYPE,
+AC_DEFUN([GMP_ASM_TYPE],
 [AC_CACHE_CHECK([for assembler .type directive],
                 gmp_cv_asm_type,
 [gmp_cv_asm_type=
@@ -213,7 +213,7 @@ dnl  GMP_ASM_GLOBL
 dnl  -------------
 dnl  Can we say `.global'?
 
-AC_DEFUN(GMP_ASM_GLOBL,
+AC_DEFUN([GMP_ASM_GLOBL],
 [AC_CACHE_CHECK([how to export a symbol],
                 gmp_cv_asm_globl,
 [case $host in
@@ -228,7 +228,7 @@ echo ["define(<GLOBL>, <$gmp_cv_asm_globl>)"] >> $gmp_tmpconfigm4
 dnl  GMP_ASM_TEXT
 dnl  ------------
 
-AC_DEFUN(GMP_ASM_TEXT,
+AC_DEFUN([GMP_ASM_TEXT],
 [AC_CACHE_CHECK([how to switch to text section],
                 gmp_cv_asm_text,
 [case $host in
@@ -245,7 +245,7 @@ dnl  GMP_ASM_LABEL_SUFFIX
 dnl  --------------------
 dnl  Should a label have a colon or not?
 
-AC_DEFUN(GMP_ASM_LABEL_SUFFIX,
+AC_DEFUN([GMP_ASM_LABEL_SUFFIX],
 [AC_CACHE_CHECK([what assembly label suffix to use],
                 gmp_cv_asm_label_suffix,
 [case $host in 
@@ -269,7 +269,7 @@ dnl  nm, since it corresponds to what a real program is going to do.  Note
 dnl  in particular that grepping doesn't work with SunOS 4 native grep since
 dnl  that grep seems to have trouble with '\0's in files.
 
-AC_DEFUN(GMP_ASM_UNDERSCORE,
+AC_DEFUN([GMP_ASM_UNDERSCORE],
 [AC_REQUIRE([GMP_ASM_TEXT])
 AC_REQUIRE([GMP_ASM_GLOBL])
 AC_REQUIRE([GMP_ASM_LABEL_SUFFIX])

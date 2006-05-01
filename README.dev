@@ -49,10 +49,8 @@ To make a new release:
   3) Update the ChangeLog file, e.g. svn -v log > ChangeLog.2 and edit
      ChangeLog to insert ChangeLog.2 at the beginning and remove
      the duplicated lines.
-  4) Check the file permissions (may have been broken).
+  4) Check the required sizes of P-1, P+1, ECM champions (main.c).
   5) Generate the release version with "make dist".
   6) Test the release version with "make distcheck".
   7) If there is no problem, add a tag to the CVS corresponding to the
-     release, e.g. ecm-6-0-release for ecm 6.0 (note that the periods
-     are replaced by dashes): cvs tag ecm-6-0-release
-
+     release, e.g. release-6.0 for ecm-6.0.

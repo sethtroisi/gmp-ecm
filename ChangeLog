@@ -1,3 +1,40 @@
+Mon May 01 2006 13:01:15 kruppa -- r923
+	* trunk/Fgw.c, trunk/main.c, trunk/ecm2.c: modified
+	Small cleanups. Added exit code 143 when exiting due to signal.
+
+Sun Apr 02 2006 18:38:08 zimmerma -- r922
+	* trunk/INSTALL: modified
+	updated to gmp-4.2 and ecm-6.1
+
+Fri Mar 31 2006 13:36:34 zimmerma -- r921
+	* trunk/TODO: modified
+	added item
+
+Wed Mar 22 2006 11:46:18 gaudry -- r920
+	* trunk/configure.in: modified
+	When asm-redc is enabled, check whether the computer is not too hold,
+	because the default asm code needs at least a PPro or a k7.
+
+Fri Mar 17 2006 15:31:58 zimmerma -- r919
+	* trunk/TODO, trunk/configure.in, trunk/Makefile.am: modified
+	added missing sources in Makefile.am
+	added suggestion from James Wanless
+
+Fri Mar 17 2006 14:18:39 zimmerma -- r918
+	* trunk/README.dev: modified
+	updated ChangeLog instructions
+
+Fri Mar 17 2006 13:55:41 zimmerma -- r917
+	* trunk/ecm.1, trunk/ecm.xml, trunk/AUTHORS, trunk/TODO,
+	  trunk/configure.in, trunk/ChangeLog, trunk/README.dev, trunk/NEWS:
+	  modified
+	updated NEWS/ChangeLog for 6.0.1 release
+
+Fri Mar 17 2006 08:51:14 zimmerma -- r916
+	* trunk/pm1.c, trunk/pp1.c, trunk/ecm.c, trunk/ecm-impl.h: modified
+	default B2 is less aggressive (exponent 1.43 instead of 1.5)
+	put exponent and costs as macros in ecm-impl.h
+
 Tue Mar 14 2006 15:45:26 zimmerma -- r915
 	* trunk/mpmod.c, trunk/test.ecm: modified
 	fixed bug reported by Allan Steel

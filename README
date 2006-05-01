@@ -16,25 +16,21 @@ Table of contents of this file:
 
 1. Files included in this distribution.
 
-aclocal.m4   - configuration file
+(this is a non-exhaustive list)
+
 AUTHORS      - program authors
 *.c          - C source files
 COPYING      - GNU General Public License
 COPYING.LIB  - GNU Lesser General Public License
 ChangeLog    - detailed development log messages
-config*      - configuration files
-depcomp      - configuration file
 ecm.1        - documentation (man format)
 ecm.xml      - documentation (XML format)
 *.h          - header files
 INSTALL      - instructions to compile and install GMP-ECM
-install-sh   - installation file
 Makefile*    - to build the binary files and the library
-missing      - configuration file
 NEWS         - changes between different versions
 README       - this file
 README.lib   - documentation for the ecm library
-test.*       - test files
 TODO         - to-do list
 
 ##############################################################################
@@ -49,11 +45,11 @@ bound B2. For P=67872792749091946529, we have P-1 = 2^5 * 11 * 17 * 19 *
 and B2 >= 11004397:
 
 $ echo 67872792749091946529 | ./ecm -pm1 -x0 2809890345 8467 11004397
-GMP-ECM 6.0 [powered by GMP 4.1.4] [P-1]
+GMP-ECM 6.1 [powered by GMP 4.2] [P-1]
 Input number is 67872792749091946529 (20 digits)
-Using B1=8467, B2=11004397, polynomial Dickson(6), x0=2809890345
-Step 1 took 5ms
-Step 2 took 278ms
+Using B1=8467, B2=12700392, polynomial x^12, x0=2809890345
+Step 1 took 8ms
+Step 2 took 288ms
 ********** Factor found in step 2: 67872792749091946529
 Found input number N
 
@@ -66,11 +62,11 @@ P+1 = 2^4 * 283 * 2423 * 21881 * 39839 * 1414261 * 2337233 * 132554351, so
 this factor will be found as long as B1 >= 2337233 and B2 >= 132554351:
 
 $ echo 4190453151940208656715582382315221647 | ./ecm -pp1 -x0 2284918860 2337233 132554351
-GMP-ECM 6.0 [powered by GMP 4.1.4] [P+1]
+GMP-ECM 6.1 [powered by GMP 4.2] [P+1]
 Input number is 4190453151940208656715582382315221647 (37 digits)
-Using B1=2337233, B2=132554351, polynomial x^1, x0=2284918860
-Step 1 took 2912ms
-Step 2 took 1776ms
+Using B1=2337233, B2=174130330, polynomial Dickson(3), x0=2284918860
+Step 1 took 3600ms
+Step 2 took 1932ms
 ********** Factor found in step 2: 4190453151940208656715582382315221647
 Found input number N
 
@@ -97,16 +93,16 @@ nomial used by default: D(n) means Dickson's polynomial of degree n):
        digits D  optimal B1   default B2           expected curves
                                                        N(B1,B2,D)
                                               -power 1         default poly
-          20       11e3         1.6e6             77               77 [x^1]
-          25        5e4         1.4e7            214              206 [x^2]
-          30       25e4         1.7e8            422              401 [D(3)]
-          35        1e6         9.8e8            993              948 [D(3)]
-          40        3e6         4.6e9           2639             2440 [D(6)]
-          45       11e6        3.0e10           5070             4590 [D(12)]
-          50       43e6        2.0e11           8510             7771 [D(12)]
-          55       11e7        7.3e11          20291            17899 [D(30)]
-          60       26e7        2.4e12          49107            43670 [D(30)]
-          65       85e7        1.6e13          77516            69351 [D(30)]
+          20       11e3         1.9e6             74               74 [x^1]
+          25        5e4         1.3e7            221              214 [x^2]
+          30       25e4         1.3e8            453              430 [D(3)]
+          35        1e6         1.0e9            984              904 [D(6)]
+          40        3e6         5.7e9           2541             2350 [D(6)]
+          45       11e6        3.5e10           4949             4480 [D(12)]
+          50       43e6        2.4e11           8266             7553 [D(12)]
+          55       11e7        7.8e11          20158            17769 [D(30)]
+          60       26e7        3.2e12          47173            42017 [D(30)]
+          65       85e7        1.6e13          77666            69408 [D(30)]
 
           Table 1: optimal B1 and expected number of curves to find a
           factor of D digits with GMP-ECM.
@@ -116,8 +112,8 @@ probability that a factor of D digits was missed is exp(-1), i.e.
 about 37%. After twice the expected number of curves, it is exp(-2),
 i.e. about 14%, and so on.
 
-Example: after performing 8510 curves with B1=43e6 and B2=2.0e11
-(or 7771 curves with -dickson 12), the probability to miss a 50-digit
+Example: after performing 8266 curves with B1=43e6 and B2=2.4e11
+(or 7553 curves with -dickson 12), the probability to miss a 50-digit
 factor is about 37%.
 
 Up from version 6.0, GMP-ECM prints the expected number of curves and expected
@@ -171,11 +167,11 @@ corresponds to f(x)=x^1]. Then P will be found whenever all but one of the
 factors of P-1 are <= B1, and one factor divides some f(j*d) - f(i):
 
 $ echo 1207946164033269799036708918081 | ./ecm -pm1 -k 3 -power 12 286493 25e6
-GMP-ECM 6.0 [powered by GMP 4.1.4] [P-1]
+GMP-ECM 6.1 [powered by GMP 4.2] [P-1]
 Input number is 1207946164033269799036708918081 (31 digits)
-Using B1=286493, B2=25000000, polynomial x^12, x0=2645739889
-Step 1 took 238ms
-Step 2 took 461ms
+Using B1=286493, B2=30806172, polynomial x^12, x0=1548711558
+Step 1 took 320ms
+Step 2 took 564ms
 ********** Factor found in step 2: 1207946164033269799036708918081
 Found input number N
 
@@ -202,8 +198,8 @@ efficient algorithms use some large tables. To reduce the memory usage of
 step 2, you may increase the 'k' parameter, which controls the number of
 "blocks" performed in step 2. Multiplying the default value of k by 4 will
 decrease the memory usage by a factor of 2. For example with  B2=1e10 and
-a 155-digit number, step 2 requires about 96MB with the default k=2, but
-only 42MB with k=8. Increasing k does, however, slightly increase the time
+a 155-digit number, step 2 requires about 58MB with the default k=4, but
+only 29MB with k=16. Increasing k does, however, slightly increase the time
 required for step 2 (see section "How to get the best of GMP-ECM?"). 
 
 Another way is to use the -treefile paramater, which causes some of the 
@@ -216,6 +212,13 @@ typical value is that memory use is reduced by a factor of between 2 and 3.
 Increasing the number of blocks with -k also reduces the amount of data that 
 needs to get written to disk, thus reducing disk I/O time. Combining these 
 parameters is a very effective way of reducing memory use.
+
+Up from version 6.1, there is still another (better) possibility, with the
+-maxmem option. The command-line -maxmem nnn option tells GMP-ECM to use at
+most nnn MB in stage 2. It is better than -k because it takes into account
+the size of the number to be factored, and automatically adjusts the block
+size. Note also that the -v option prints the estimated memory usage for
+stage 2.
 
 NOTE that in -b "breadth-first" mode, GMP-ECM reads all candidate numbers in 
 the input stream and keeps them in memory, so if there are many large numbers
@@ -264,11 +267,11 @@ decimal number). When a factor is found, the cofactor expression is of the
 form (original_expression)/factor_found (see however option -cofdec):
 
 $ echo "3*2^210+1" | ./ecm -sigma 4007218240 2500
-GMP-ECM 6.0 [powered by GMP 4.1.4] [ECM]
+GMP-ECM 6.1 [powered by GMP 4.2] [ECM]
 Input number is 3*2^210+1 (64 digits)
-Using B1=2500, B2=164648, polynomial x^1, sigma=4007218240
-Step 1 took 23ms
-Step 2 took 20ms
+Using B1=2500, B2=186156, polynomial x^1, sigma=4007218240
+Step 1 took 16ms
+Step 2 took 16ms
 ********** Factor found in step 2: 1358437
 Found probable prime factor of  7 digits: 1358437
 Probable prime cofactor (3*2^210+1)/1358437 has 58 digits
@@ -286,28 +289,28 @@ Here is an example how to reuse some P-1 computation:
 $ cat c71
 13155161912808540373988986448257115022677318870175067553764004308210487
 $ ./ecm -save toto -pm1 -mpzmod -x0 2 5000000 < c71
-GMP-ECM 6.0 [powered by GMP 4.1.4] [P-1]
+GMP-ECM 6.1 [powered by GMP 4.2] [P-1]
 Input number is 13155161912808540373988986448257115022677318870175067553764004308210487 (71 digits)
-Using B1=5000000, B2=272993793, polynomial x^24, x0=2
-Step 1 took 5149ms
-Step 2 took 3523ms
+Using B1=5000000, B2=352526802, polynomial x^24, x0=2
+Step 1 took 3116ms
+Step 2 took 2316ms
 
 The file "toto" now contains some information about the method used, the step
 1 bound, the number to factor, the value X at the end of step 1 (in hexa-
 decimal), and a checksum to verify that no data was corrupted:
 
 $ cat toto
-METHOD=P-1; B1=5000000; N=13155161912808540373988986448257115022677318870175067553764004308210487; X=0x12530157ae22ae14d54d6a5bc404ae9458e54032c1bb2ab269837d1519f; CHECKSUM=2287710189; PROGRAM=GMP-ECM 6.0; X0=0x2; WHO=zimmerma@localhost.localdomain; TIME=Wed Jan 26 21:09:49 2005;
+METHOD=P-1; B1=5000000; N=13155161912808540373988986448257115022677318870175067553764004308210487; X=0x12530157ae22ae14d54d6a5bc404ae9458e54032c1bb2ab269837d1519f; CHECKSUM=2287710189; PROGRAM=GMP-ECM 6.1; X0=0x2; WHO=zimmerma@macaron.loria.fr; TIME=Mon May  1 21:31:13 2006;
 
 Then one can resume the computation with larger B1 and/or B2 as follows:
 
 $ ./ecm -resume toto 1e7
-GMP-ECM 6.0 [powered by GMP 4.1.4] [ECM]
-Resuming P-1 residue saved by zimmerma@localhost.localdomain with GMP-ECM 6.0 on Wed Jan 26 21:09:49 2005 
+GMP-ECM 6.1 [powered by GMP 4.2] [ECM]
+Resuming P-1 residue saved by zimmerma@macaron.loria.fr with GMP-ECM 6.1 on Mon May  1 21:31:13 2006 
 Input number is 13155161912808540373988986448257115022677318870175067553764004308210487 (71 digits)
-Using B1=5000000-10000000, B2=732940912, polynomial x^24
-Step 1 took 5091ms
-Step 2 took 5805ms
+Using B1=5000000-10000000, B2=880276332, polynomial x^24
+Step 1 took 3076ms
+Step 2 took 4304ms
 ********** Factor found in step 2: 1448595612076564044790098185437
 Found probable prime factor of 31 digits: 1448595612076564044790098185437
 Probable prime cofactor 9081321110693270343633073697474256143651 has 40 digits
@@ -431,12 +434,6 @@ force the use of a certain arithmetic by trying options -modmulm, -mpzmod,
 -redc. (The best choice should depend on B1 and B2 only very little, so long 
 as B1 is not too small, say >= 1000.)
 
-The thresholds for the algorithms used in ecm are defined in ecm-params.h.
-Several ecm-params.h.* files are included in the distribution and the configure
-script will select one matching your machine if it exists.  If there is no
-ecm-params.h.* for your machine then you can either compile with default
-values or you can generate ecm-params.h first with "make ecm-params; make". 
-
 Number of step 2 blocks. The step 2 range [B1,B2] is divided into k 
 "big blocks". The default value of k is chosen to be near to optimal.
 However, it may be that for a given (B1,B2) pair, another value of k
@@ -469,7 +466,7 @@ passing the command-line option -no-ntt. Performance of NTT is dependent on:
 
 
 Note on factoring Fermat numbers:
-GMP-ECM features Sch"onhage-Strassen multiplication for polynomials in 
+GMP-ECM features Schönhage-Strassen multiplication for polynomials in 
 stage 2 when factoring Fermat numbers. This greatly reduces the number of 
 modular multiplications required, thus improving speed. It does, however, 
 restrict the length of the polynomials to powers of two, so that for a given 
