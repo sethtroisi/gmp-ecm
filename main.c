@@ -64,6 +64,7 @@ static  char *prpcmd = NULL;
 #endif
 
 static int exit_asap_value = 0;
+static int exit_asap_signalnr = 0; /* Remembers which signal we received */
 
 /* Tries to read a number from a line from fd and stores it in r.
    Keeps reading lines until a number is found. Lines beginning with "#"
@@ -156,6 +157,7 @@ signal_handler (int sig)
   if (sig == SIGINT || sig == SIGTERM)
     {
       exit_asap_value = 1;
+      exit_asap_signalnr = sig;
       /* If one of these two signals arrives again, we'll let the default 
          handler take over,  which will usually terminate the process 
          immediately. */
@@ -1459,6 +1461,12 @@ OutputFactorStuff:;
   tests_memory_end ();
 #endif
 
-  /* exit 0 iff a factor was found for the last input */
+  /* exit 0 if a factor was found for the last input, except if we exit due
+     to a signal */
+#ifdef HAVE_SIGNAL
+  if (returncode == 0 && exit_asap_value != 0)
+    returncode = 143;
+#endif
+
   return returncode;
 }
