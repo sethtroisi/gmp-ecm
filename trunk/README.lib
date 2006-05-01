@@ -15,7 +15,7 @@ int ecm_factor (mpz_t f, mpz_t n, double B1, ecm_params p)
    B1 is the stage 1 bound, and p contains auxiliary parameters (see below).
    When p is NULL, default values for those parameters are chosen.
 
-   The ecm_factor() function returns :
+   The ecm_factor() function returns:
 
    * a positive value if a factor was found (1 for step 1, 2 for step 2),
    * zero when no factor was found,
@@ -76,6 +76,14 @@ Detailed description of parameters (ecm_params):
         and 5 for trace output (-v -v -v -v).
 * p->os is the output stream used for verbose output. Default is stdout.
 * p->es is the output stream used for errors. Default is stderr.
+* p->TreeFilename if non NULL, is the file name to store the product tree
+	of F (option -treefile f).
 * p->maxmem is the maximum amount of memory in bytes that should be used in
         stage 2. Setting this value too low (< 10MB, say) will cause stage 2 
         to perform very poorly, or return with an error code.
+* p->stage1time is the time already spent in stage 1 (useful to get a correct
+	estimation of the expected time to find factors).
+* p->rng is a random number generator state.
+* p->use_ntt if equal to 1, use NTT in stage 2.
+* p->(*stop_asap) pointer to function: if the function returns zero, continue
+	normally, otherwise exit as soon as possible. May be NULL.
