@@ -1166,7 +1166,7 @@ ecm_rootsG (mpz_t f, listz_t G, unsigned long dF, ecm_roots_state *state,
 
 
 /* Find smallest i >= 0 so that 
-   f(j * d2) X = f((i0 + i)= * d1) X over GF(p) */
+   f(j * d2) X = f((i0 + i) * d1) X over GF(p) */
 long 
 ecm_findmatch (const unsigned long j, root_params_t *root_params, 
                curve *X, mpmod_t n, mpz_t p)
@@ -1176,7 +1176,7 @@ ecm_findmatch (const unsigned long j, root_params_t *root_params,
   const int sizeT = S + 3;
   long i = 0, k;
   point iX, jX;
-  curve Xp; /* The point and curve over GP(p) */
+  curve Xp; /* The point and curve over GF(p) */
   mpmod_t modulus;
   mpz_t s, t; /* temp vars */
   mpres_t u, v; /* temp vars */
@@ -1224,7 +1224,8 @@ ecm_findmatch (const unsigned long j, root_params_t *root_params,
   
   /* We use init_progression_coeffs() to compute f(j * d2) */
   mpz_set_ui (t, j);
-  coeffs = init_progression_coeffs (t, 1UL, root_params->d2, 1U, 1U, S, dickson_a);
+  coeffs = init_progression_coeffs (t, 1UL, root_params->d2, 1U, 1U, S, 
+                                    dickson_a);
   if (coeffs == NULL)
     goto clear_fd_and_exit;
   
@@ -1278,7 +1279,7 @@ ecm_findmatch (const unsigned long j, root_params_t *root_params,
   mpres_get_z (t, iX.x, modulus);
   if (mpz_cmp (s, t) != 0)
     {
-      outputf (OUTPUT_DEVVERBOSE, "ecm_findmatch: ERROR, (f(i*d1) X)_x != "
+      outputf (OUTPUT_ERROR, "ecm_findmatch: ERROR, (f(i*d1) X)_x != "
                "(f(j*d2) X)_x\n(f(i*d1) X)_x = %Zd\n", t);
       i = 0;
     }
@@ -1291,10 +1292,10 @@ ecm_findmatch (const unsigned long j, root_params_t *root_params,
       if (mpz_cmp (s, t) != 0)
         {
           mpz_sub (t, p, t);
-          outputf (OUTPUT_DEVVERBOSE, "ecm_findmatch: ERROR, (f(i*d1) X)_y != "
+          outputf (OUTPUT_ERROR, "ecm_findmatch: ERROR, (f(i*d1) X)_y != "
                    "+-(f(j*d2) X)_y\n");
-          outputf (OUTPUT_DEVVERBOSE, "(f(i*d1) X)_y = %Zd\n", t);
-          outputf (OUTPUT_DEVVERBOSE, "(f(j*d2) X)_y = %Zd\n", s);
+          outputf (OUTPUT_ERROR, "(f(i*d1) X)_y = %Zd\n", t);
+          outputf (OUTPUT_ERROR, "(f(j*d2) X)_y = %Zd\n", s);
         }
       else
         i = -i;
