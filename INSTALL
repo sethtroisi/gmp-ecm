@@ -55,8 +55,8 @@ Instructions to install GMP-ECM:
    $ make
 
    This will create the 'libecm.a' library, the 'ecm' binary file,
-   the 'ecmfactor' binary file (sample use of libecm.a), and 'tune'
-   and 'tune2', two tuning files.
+   the 'ecmfactor' binary file (sample use of libecm.a), and 'tune',
+   a tuning program.
 
 3) to check that the program works correctly, type:
 
@@ -65,7 +65,13 @@ Instructions to install GMP-ECM:
    This will run several tests for P+1, P-1, ECM. These tests take a few
    minutes. It should normally end with "All ECM tests are ok."
 
-4) (optional) you can then install the ecm binary and its man page:
+4) (optional) to tune GMP-ECM, simply type:
+
+   $ make ecm-params; make
+
+   See also README ("How to get the best of GMP-ECM?").
+
+5) (optional) you can then install the ecm binary and its man page:
 
    $ make install
 
@@ -75,16 +81,17 @@ Instructions to install GMP-ECM:
    $ ./configure --prefix=<my_installation_directory>
 
    The ecm binary will go in <my_installation_directory>/bin,
-   its man page in <my_installation_directory>/man/man1, and the
-   ecm library in <my_installation_directory>/lib.
+   its man page in <my_installation_directory>/man/man1,
+   the ecm library in <my_installation_directory>/lib,
+   and the corresponding header file in <my_installation_directory>/include.
 
    You can also do "make uninstall" to remove those files.
 
-5) If you like GMP-ECM, please help us factoring Cunningham numbers. First
+6) If you like GMP-ECM, please help us factoring Cunningham numbers. First
    download "cunningham.in" on <http://www.loria.fr/~zimmerma/ecmnet/>, then
-   perform one ecm test with B1=11e6 on each number of this file:
+   perform one ecm test with B1=43e6 on each number of this file:
 
-   $ ./ecm 11e6 < cunningham.in > cunningham.out &
+   $ ./ecm 43e6 < cunningham.in > cunningham.out &
 
    If you find any factor (grep found cunningham.out), please submit it
    using the report form on <http://www.loria.fr/~zimmerma/ecmnet/>.
@@ -148,7 +155,7 @@ In case of a problem, report it to us, with:
 
 - the versions of GMP-ECM and GMP used (first output line), for example:
   
-  GMP-ECM 6.1 [powered by GMP 4.2, fft] [P+1]
+  GMP-ECM 6.1 [powered by GMP 4.2] [P+1]
 
 - the detailed input enabling us to reproduce the problem, for example:
 
