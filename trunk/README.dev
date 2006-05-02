@@ -53,4 +53,9 @@ To make a new release:
   5) Generate the release version with "make dist".
   6) Test the release version with "make distcheck".
   7) If there is no problem, add a tag to the CVS corresponding to the
-     release, e.g. release-6.0 for ecm-6.0.
+     release, for example:
+     $ svn cp . svn+ssh://zimmerma@scm.gforge.inria.fr/svn/ecm/tags/6.1
+     or more detailed:
+     $ svn cp -r928 svn+ssh://zimmerma@scm.gforge.inria.fr/svn/ecm/trunk \
+             svn+ssh://zimmerma@scm.gforge.inria.fr/svn/ecm/tags/ecm/6.1 \
+             -m "Tagging r928 as version 6.1"
