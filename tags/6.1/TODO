@@ -1,0 +1,64 @@
+ToDo's (see also TODO.sp):
+
+1) efficiency/memory
+- why restrict the use of mpn_mul_fft to Fermat numbers? We could use it
+  for any cofactor of 2^(n*BITS_PER_MP_LIMB)+1, as long as
+  mpn_fft_next_size (n, mpn_fft_best_k (n, S1 == S2)) == n.
+- use mpres in step 2 (Target: 7.0)
+- write a mpn version of add3 and duplicate  
+- take relative speed of multiplying/squaring into account in PRAC
+  (DN: couldn't get any significant speed increase)
+- use/implement a mpn_mul_hi_n routine for use in mpn_REDC
+- use mpn_addmul_2, mpn_addmul_4 in the basecase REDC [for machines
+  where it exists]
+- try McLaughlin's algorithm for Montgomery's modular multiplication
+  (http://www.ams.org/mcom/0000-000-00/S0025-5718-03-01543-6/home.html)
+- consider Colin Percival's generalized DWT for multiplication modulo
+  k*a^n+b, where k*a*b is highly composite. May belong to GMP rather than
+  GMP-ECM.
+- implement assembly code (redc.asm) for other architectures
+- allow composite d2 (Target: perhaps 6.1? Postponed.)
+- init mpz_t's with correct amount of memory allocated to avoid reallocs.
+  Check for reallocs with GMP's memory interface routines. 
+  (Target: 6.1? 7.0? Partly done.)
+- try sliding window multipliation for ECM stage 1 (Target: 7.0)
+- choose Brent/Suyama polynomial according to B2/k and not B2!
+- Adjust estimated memory to take into account -treefile and NTT (Target: 6.1)
+  (done but improvement possible)
+- when GWNUM is used, lower the default B2 (James Wanless, 17 Mar 2006,
+	james at grok.ltd.uk)
+
+2) interface
+- with -resume, print %time for THIS RUN instead of total run?
+	[suggested by SleepHound <sleephound@yahoo.com>]
+  Add CPUTIME=... in the save file, to take into account the total cpu time
+  spend so far (in seconds). George Woltman agrees for that change. It won't
+  hurt prime95/mprime -> will be added for his next version.
+- when resuming, print the *initial* x0 for P-1/P+1?
+- [from Jakub Pawlewicz <pan@mimuw.edu.pl>] add an option -stage1time t
+  to tell the step 1 time, when done by another program. PZ: or better
+  have it in resume file? (Target: 6.1. Command line option done)
+- from Dan Bernstein <djb@cr.yp.to> 7 Mar 2006: use the curve
+  (16b+18)y^2 = x^3 + (4b+2)x^2 + x with starting point (x=2,y=1).
+  Caveat: with Montgomery multiplication, even if b is small (the argument
+  used in duplicate), we still have to divide by R^l. Workaround: replace
+  the mpres_mul call by a mpres_mul_ui call (b is not transformed).
+
+3) documentation
+- add examples for typical use to README 
+  (see http://www.mersenneforum.org/showthread.php?t=3922)
+
+4) others
+- produce dynamic binary/library with --enable-shared
+  [reported by Thomas M.Ott, thmo-13@gmx.de, 25 Oct 2005]
+
+5) bugs
+- F15: B1=99000, B2=150577181, sigma=3039152787 with ecm-6.0.1 [Bruce]
+  finds the input number. Seems to be fixed in r846, by the 3 changes
+  _mpz_realloc -> MPZ_REALLOC in mpmod.c.
+- potential bug: _mpz_realloc changes the value to 0 when it does not fit
+	(mpmod.c)
+- "not enough primes in interval" with NTT for large numbers (e.g. F17
+  with B1=3000000, B2=11414255590)
+- ecm -v 1e6 3-2 < c155 prints wrong expected number of curves (should be
+  the same as ecm -v 1e6 2). Reported by Peter Montgomery, 30 Mar 2006.

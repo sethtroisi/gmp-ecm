@@ -1,0 +1,225 @@
+
+m4_define([ECM_VERSION], [6.1])
+
+AC_PREREQ(2.57)
+AC_INIT(ecm, ECM_VERSION, [ecm-dev@lists.fousse.info])
+AC_CONFIG_HEADER([config.h])
+GMP_INIT(config.m4)
+AM_INIT_AUTOMAKE(ecm, ECM_VERSION)
+
+dnl Checks for programs.
+AC_PROG_CC
+AC_PROG_RANLIB
+AC_CANONICAL_HOST
+
+AC_ARG_WITH(gmp_include, [  --with-gmp-include=DIR  GMP include directory ], with_gmp_include=$withval)
+AC_ARG_WITH(gmp_lib,     [  --with-gmp-lib=DIR      GMP lib directory ], with_gmp_lib=$withval)
+AC_ARG_WITH(gmp_build,   [  --with-gmp-build=DIR    GMP source directory], with_gmp_include=$withval/ with_gmp_lib=$withval/.libs)
+AC_ARG_WITH(gmp,         [  --with-gmp=DIR          GMP install directory ], with_gmp_include=$withval/include with_gmp_lib=$withval/lib)
+AC_ARG_WITH(gwnum,       [  --with-gwnum=DIR        GWNUM source directory ], with_gwnum=$withval)
+
+AC_ARG_ENABLE(assert, [  --enable-assert         enable ASSERT checking [[default=no]]])
+if test "x$enable_assert" = "xyes"; then
+  AC_DEFINE(WANT_ASSERT,1,[Define to 1 if you want assertions enabled])
+fi
+
+AC_ARG_ENABLE(assert, [  --enable-shellcmd       enable shell command execution [[default=no]]])
+if test "x$enable_shellcmd" = "xyes"; then
+  AC_DEFINE(WANT_SHELLCMD,1,[Define to 1 if you want shell command execution])
+fi
+
+AC_ARG_ENABLE(asm-redc, [  --enable-asm-redc       use an asm REDC on x86 or x86_64 [[default=yes]]])
+if test "x$enable_asm_redc" = "xyes"; then
+  case $host in
+    k[7-8]*-*-* | athlon*-*-* | pentiumpro-*-* | pentium2-*-* | pentium3-*-* | pentium4-*-* | viac3*-*-* | x86_64-*-*)
+          AC_DEFINE(NATIVE_REDC,1,[Define to 1 to use asm redc on x86 or x86_64])
+                 test -n "$CCAS" || CCAS="$CC -c"
+		 AC_SUBST(CCAS)
+		 GMP_PROG_M4
+		 GMP_ASM_UNDERSCORE
+		 GMP_ASM_TEXT
+		 GMP_ASM_GLOBL
+		 GMP_ASM_TYPE ;;
+     *) AC_MSG_ERROR(asm redc does not exist for old x86 and x86_64) ;;
+  esac
+fi
+if test "x$enable_asm_redc" = "xyes"; then
+  case $host in
+    pentium4-*-* | pentium3-*-* | i786-*-*) asmpath=pentium4;;
+    athlon-*-*) asmpath=athlon;;
+    x86_64-*-*)  asmpath=x86_64;; 
+    *)
+      # Since athlon code is pure penitumpro, we take it as default.
+      asmpath=athlon;;
+  esac
+  AC_CONFIG_LINKS(redc.asm:$asmpath/redc.asm)
+  for i in 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20; do
+    AC_CONFIG_LINKS(mulredc$i.asm:$asmpath/mulredc$i.asm)
+  done
+  case $host in
+    pentium3-*-*)
+      echo "WARNING: Your processor is recognized as Pentium3."
+      echo "         The asm code uses SSE2, and therefore it might"
+      echo "         fail if your proc is indeed a P3, and not a"
+      echo "         Pentium M. If you have compilation problems,"
+      echo "         consider using --disable-asm-redc." ;;
+    *)
+      echo "Prepare links to asm subdir..." ;;
+  esac
+fi
+AM_CONDITIONAL(ENABLE_ASM_REDC, test "x$enable_asm_redc" = "xyes")
+
+dnl If user wants GWNUM, check if the file exists (either as .a or .lib)
+if test "x$with_gwnum" != "x"; then
+  AC_CHECK_FILE($with_gwnum/gwnum.a, [
+    AC_DEFINE(HAVE_GWNUM, 1, [Define to 1 if gwnum.a or gwnum.lib exist])
+    LIBS="$LIBS $with_gwnum/gwnum.a"
+    CFLAGS="$CFLAGS -I$with_gwnum"
+  ],[
+    AC_CHECK_FILE($with_gwnum/gwnum.lib, [
+      AC_DEFINE(HAVE_GWNUM, 1, [Define to 1 if gwnum.a or gwnum.lib exist])
+      LIBS="$LIBS $with_gwnum/gwnum.lib"
+      CFLAGS="$CFLAGS -I$with_gwnum"
+    ],[
+      with_gwnum=
+      AC_MSG_WARN([Woltman's GWNUM library not found])
+    ])
+  ])
+fi
+AM_CONDITIONAL(WITH_GWNUM, test "x$with_gwnum" != "x")
+
+AC_ARG_ENABLE(memory-debug, [  --enable-memory-debug   enable memory debugging [[default=no]]])
+if test "x$enable_memory_debug" = "xyes"; then
+  AC_DEFINE(MEMORY_DEBUG, 1, [Define to 1 if you want memory debugging])
+fi
+AM_CONDITIONAL(MEMORY_DEBUG, test "x$enable_memory_debug" = "xyes")
+
+dnl Checks for header files.
+AC_FUNC_ALLOCA
+AC_HEADER_STDC
+AC_CHECK_HEADERS([math.h limits.h malloc.h strings.h sys/time.h unistd.h io.h signal.h])
+AC_CHECK_HEADERS([windows.h])
+AC_CHECK_HEADERS([ctype.h sys/types.h sys/resource.h])
+
+dnl Tests concerning the include directories.
+if test -d "$with_gmp_include"; then
+  dnl AC_CHECK_HEADERS and AC_PREPROC_IFELSE uses CPPFLAGS but not CFLAGS
+  CPPFLAGS="-I$with_gmp_include $CPPFLAGS"
+else
+  with_gmp_include=
+fi
+
+dnl Checks for typedefs, structures, and compiler characteristics.
+AC_C_CONST
+AC_C_INLINE
+AC_TYPE_SIZE_T
+AC_HEADER_TIME
+
+AC_CHECK_HEADERS([gmp.h], [], AC_MSG_ERROR([required header file missing]))
+
+AC_MSG_CHECKING(for recent GMP)
+AC_PREPROC_IFELSE([AC_LANG_SOURCE([[
+#include <gmp.h>
+#if (__GNU_MP_VERSION < 4 || (__GNU_MP_VERSION == 4 && __GNU_MP_VERSION_MINOR < 1))
+#error
+#endif
+]])],
+  [AC_MSG_RESULT(yes)],
+  [AC_MSG_RESULT(no)
+   AC_MSG_ERROR([GMP 4.1.0 or newer is required])]
+)
+
+dnl AC_CHECK_LIB doesn't do what we want
+if test -r "$with_gmp_lib/libgmp.a"; then
+  LIBS="$LIBS $with_gmp_lib/libgmp.a"
+elif test -r "$with_gmp_lib/libgmp.so"; then
+  LIBS="$LIBS $with_gmp_lib/libgmp.so"
+elif test -r "$with_gmp_lib/libgmp.lib"; then
+  LIBS="$LIBS $with_gmp_lib/libgmp.lib"
+else
+  if test -d "$with_gmp_lib"; then
+    LDFLAGS="-L$with_gmp_lib $LDFLAGS"
+  fi  
+  LIBS="$LIBS -lgmp"
+fi
+
+dnl Check for corresponding 'gmp.h' and libgmp.a
+AC_MSG_CHECKING(if gmp.h version and libgmp version are the same)
+AC_RUN_IFELSE([AC_LANG_PROGRAM([[
+#include <stdio.h>
+#include <string.h>
+#include <gmp.h>
+]],[[
+char buffer[100];
+if (__GNU_MP_VERSION_PATCHLEVEL != 0)
+  sprintf (buffer, "%d.%d.%d", __GNU_MP_VERSION, __GNU_MP_VERSION_MINOR,
+   __GNU_MP_VERSION_PATCHLEVEL);
+else
+  sprintf (buffer, "%d.%d", __GNU_MP_VERSION, __GNU_MP_VERSION_MINOR);
+printf ("(%s/%s) ", buffer, gmp_version);
+return strcmp (buffer, gmp_version);
+]])], AC_MSG_RESULT(yes),
+   [AC_MSG_RESULT(no)
+    AC_MSG_ERROR(['gmp.h' and 'libgmp' have different versions! you have to properly reinstall GMP.])],
+    AC_MSG_RESULT([cross-compiling: cannot test])
+)
+
+dnl Checks for library functions.
+AC_FUNC_STRTOD
+AC_CHECK_LIB(m, floor)
+AC_CHECK_FUNCS([floor sqrt pow fmod], [], AC_MSG_ERROR([required function missing]))
+AC_CHECK_FUNCS([isascii memset strchr strlen strncasecmp strstr], [], AC_MSG_ERROR([required function missing]))
+AC_CHECK_FUNCS([access unlink], [], AC_MSG_ERROR([required function missing]))
+AC_CHECK_FUNCS([isspace isdigit isxdigit], [], AC_MSG_ERROR([required function missing]))
+AC_CHECK_FUNCS([time ctime], [], AC_MSG_ERROR([required function missing]))
+AC_CHECK_FUNCS([nice gethostname gettimeofday getrusage memmove signal])
+
+dnl FIXME: which win32 library contains these functions?
+dnl AC_CHECK_FUNCS([GetCurrentProcess GetProcessTimes])
+AC_CHECK_FUNCS([__gmpn_add_nc __gmpn_mul_fft __gmpn_mod_34lsub1])
+AC_CHECK_FUNCS([malloc_usable_size valloc])
+
+dnl Check for xsltproc
+AC_CHECK_PROG(XSLTPROC,xsltproc,xsltproc,)
+if test "x$XSLTPROC" != "x"; then
+  AC_MSG_CHECKING(for docbook.xsl)
+  if test "x$XSLDIR" = "x"; then
+    if test -d "/usr/local/share/sgml/docbook/xsl-stylesheets"; then
+      XSLDIR="/usr/local/share/sgml/docbook/xsl-stylesheets"
+    elif test -d "/usr/share/sgml/docbook/xsl-stylesheets"; then
+      XSLDIR="/usr/share/sgml/docbook/xsl-stylesheets"
+    elif test -d "/usr/local/share/docbook/"; then
+      XSLDIR="/usr/local/share/docbook/"
+    elif test -d "/usr/share/docbook/"; then
+      XSLDIR="/usr/share/docbook/"
+    fi
+  fi
+  if test -r "$XSLDIR/manpages/docbook.xsl"; then
+    AC_MSG_RESULT(yes)
+    make_manpage="yes"
+  else
+    AC_MSG_RESULT(no)
+  fi
+fi  
+AM_CONDITIONAL(MAKE_MANPAGE, test "x$make_manpage" = "xyes")
+
+case $host in
+  athlon*-*-*) config_arch="athlon" ;;
+  x86_64*-*-*) config_arch="athlon64" ;;
+dnl  pentium4-*-*) config_arch="pentium4" ;;
+  alphaev6*-*-*) config_arch="alpha-ev6" ;;
+  alphaev5*-*-*) config_arch="alpha-ev5" ;;
+  powerpc7450-*-*) config_arch="powerpc7450" ;;
+  *) config_arch="default" ;;
+esac
+
+GMP_FINISH
+AC_CONFIG_FILES(Makefile)
+AC_CONFIG_LINKS(ecm-params.h:ecm-params.h.$config_arch)
+
+AC_SUBST(INCLUDES)
+AC_SUBST(LDADD)
+AC_SUBST(LDFLAGS)
+AC_SUBST(CFLAGS)
+AC_SUBST(XSLDIR)
+AC_OUTPUT
