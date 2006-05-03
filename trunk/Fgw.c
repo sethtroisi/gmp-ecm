@@ -124,7 +124,7 @@ make_conv_plan ()
     }
   
   /* One extra or preloading values in loop runs off end of array */
-  plan->offsets = (unsigned long *) valloc ((FFTLEN / stride + 1) 
+  plan->offsets = (unsigned long *) malloc ((FFTLEN / stride + 1) 
 					    * sizeof (long));
   if (plan->offsets == NULL)
     {
