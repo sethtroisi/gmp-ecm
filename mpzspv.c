@@ -27,10 +27,6 @@
 #include <malloc.h>
 #endif
 
-#if !HAVE_VALLOC
-#define valloc malloc
-#endif
-
 mpzspv_t
 mpzspv_init (spv_size_t len, mpzspm_t mpzspm)
 {
@@ -42,7 +38,7 @@ mpzspv_init (spv_size_t len, mpzspm_t mpzspm)
   
   for (i = 0; i < mpzspm->sp_num; i++)
     {
-      x[i] = (spv_t) valloc (len * sizeof (sp_t));
+      x[i] = (spv_t) malloc (len * sizeof (sp_t));
       
       if (x[i] == NULL)
 	{
@@ -211,7 +207,7 @@ mpzspv_to_mpzv (mpzspv_t x, spv_size_t offset, mpzv_t mpzv,
 {
   unsigned int i;
   spv_size_t k, l;
-  float *f = (float *) valloc (MPZSPV_NORMALISE_STRIDE * sizeof (float));
+  float *f = (float *) malloc (MPZSPV_NORMALISE_STRIDE * sizeof (float));
   float prime_recip;
   sp_t t;
   spm_t *spm = mpzspm->spm;
@@ -286,11 +282,11 @@ mpzspv_normalise (mpzspv_t x, spv_size_t offset, spv_size_t len,
   
   ASSERT (mpzspv_verify (x, offset, len, mpzspm)); 
   
-  f = (float *) valloc (MPZSPV_NORMALISE_STRIDE * sizeof (float));
+  f = (float *) malloc (MPZSPV_NORMALISE_STRIDE * sizeof (float));
   t = mpzspv_init (MPZSPV_NORMALISE_STRIDE, mpzspm);
   
-  s = (spv_t) valloc (3 * MPZSPV_NORMALISE_STRIDE * sizeof (sp_t));
-  d = (spv_t) valloc (3 * MPZSPV_NORMALISE_STRIDE * sizeof (sp_t));
+  s = (spv_t) malloc (3 * MPZSPV_NORMALISE_STRIDE * sizeof (sp_t));
+  d = (spv_t) malloc (3 * MPZSPV_NORMALISE_STRIDE * sizeof (sp_t));
   memset (s, 0, 3 * MPZSPV_NORMALISE_STRIDE * sizeof (sp_t));
 
   for (l = 0; l < len; l += MPZSPV_NORMALISE_STRIDE)
