@@ -62,7 +62,9 @@ EXTRA_DIST = test.pm1 test.pp1 test.ecm ecm.1 README.lib ecm.xml \
              ecm-params.h.alpha-ev5 ecm-params.h.athlon64 \
              ecm-params.h.default ecm-params.h.alpha-ev6 \
              ecm-params.h.athlon ecm-params.h.powerpc7450 \
-             configfsf.sub configfsf.guess athlon pentium4 x86_64
+             configfsf.sub configfsf.guess
+
+DIST_SUBDIRS = athlon pentium4 x86_64
 
 ecm-params:	tune
 		@echo Optimising parameters for your system, please be patient.
