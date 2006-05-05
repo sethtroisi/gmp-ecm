@@ -18,12 +18,14 @@ AC_ARG_WITH(gmp_build,   [  --with-gmp-build=DIR    GMP source directory], with_
 AC_ARG_WITH(gmp,         [  --with-gmp=DIR          GMP install directory ], with_gmp_include=$withval/include with_gmp_lib=$withval/lib)
 AC_ARG_WITH(gwnum,       [  --with-gwnum=DIR        GWNUM source directory ], with_gwnum=$withval)
 
-AC_ARG_ENABLE(assert, [  --enable-assert         enable ASSERT checking [[default=no]]])
+AC_ARG_ENABLE(assert,
+AS_HELP_STRING([--enable-assert], [enable ASSERT checking [[default=no]]]),[],[enable_assert=no])
 if test "x$enable_assert" = "xyes"; then
   AC_DEFINE(WANT_ASSERT,1,[Define to 1 if you want assertions enabled])
 fi
 
-AC_ARG_ENABLE(assert, [  --enable-shellcmd       enable shell command execution [[default=no]]])
+AC_ARG_ENABLE(assert,
+AS_HELP_STRING([--enable-shellcmd], [enable shell command execution [[default=no]]]),[],[enable_shellcmd=no])
 if test "x$enable_shellcmd" = "xyes"; then
   AC_DEFINE(WANT_SHELLCMD,1,[Define to 1 if you want shell command execution])
 fi
@@ -90,7 +92,8 @@ if test "x$with_gwnum" != "x"; then
 fi
 AM_CONDITIONAL(WITH_GWNUM, test "x$with_gwnum" != "x")
 
-AC_ARG_ENABLE(memory-debug, [  --enable-memory-debug   enable memory debugging [[default=no]]])
+AC_ARG_ENABLE(memory-debug,
+AS_HELP_STRING([--enable-memory-debug], [enable memory debugging [[default=no]]]),[],[enable_memory_debug=no])
 if test "x$enable_memory_debug" = "xyes"; then
   AC_DEFINE(MEMORY_DEBUG, 1, [Define to 1 if you want memory debugging])
 fi
