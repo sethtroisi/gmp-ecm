@@ -214,7 +214,7 @@ dnl  pentium4-*-*) config_arch="pentium4" ;;
 esac
 
 GMP_FINISH
-AC_CONFIG_FILES(Makefile)
+AC_CONFIG_FILES(Makefile athlon/Makefile pentium4/Makefile x86_64/Makefile)
 AC_CONFIG_LINKS(ecm-params.h:ecm-params.h.$config_arch)
 
 AC_SUBST(INCLUDES)
