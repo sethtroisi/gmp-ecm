@@ -340,7 +340,7 @@ main (int argc, char *argv[], char *envp[])
       if (WEXITSTATUS (wstat) == 0)
 	{
 	  FILE *fs;
-	  fs = popen ("mail -s \"NEW FACTOR\" tg@swox.se", "w");
+	  fs = popen ("mail -s \"NEW FACTOR\" toto@tata.com", "w");
 	  fwrite (buf, nread, 1, fs);
 	  pclose (fs);
 	}
