@@ -42,12 +42,14 @@ ecm_init (ecm_params q)
   q->os = stdout; /* standard output */
   q->es = stderr; /* error output */
   q->TreeFilename = NULL;
-  q->maxmem = 0.;
+  q->maxmem = 0.0;
+  q->stage1time = 0.0;
   MEMORY_TAG;
   gmp_randinit_default (q->rng);
   MEMORY_TAG;
   gmp_randseed_ui (q->rng, get_random_ui ());
   MEMORY_UNTAG;
+  q->use_ntt = 1;
   q->stop_asap = NULL;
 }
 
