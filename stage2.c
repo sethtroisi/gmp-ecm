@@ -25,6 +25,11 @@
 #include <stdlib.h>
 #include <math.h> /* for floor */
 #include <string.h> /* for strlen */
+
+#if HAVE_UNISTD_H
+#include <unistd.h> /* for unlink */
+#endif
+
 #include "ecm-impl.h"
 #include "sp.h"
 
