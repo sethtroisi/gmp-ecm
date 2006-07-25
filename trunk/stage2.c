@@ -757,7 +757,11 @@ stage2 (mpz_t f, void *X, mpmod_t modulus, unsigned long dF, unsigned long k,
   outputf (OUTPUT_VERBOSE, "Computing polyeval(F,G) took %ldms\n", 
            elltime (st, cputime ()));
 
+  st = cputime ();
   list_mulup (f, T, dF, n, T[dF]);
+  outputf (OUTPUT_VERBOSE, "Computing product of all F(g_i) took %ldms\n", 
+           elltime (st, cputime ()));
+
   mpz_gcd (f, T[dF - 1], n);
   if (mpz_cmp_ui (f, 1) > 0)
     {
