@@ -45,7 +45,9 @@ multiplyW2n (mpz_t p, point *R, curve *S, mpz_t *q, const unsigned int n,
   mpz_t flag; /* Used as bit field, keeps track of which R[i] contain partial results */
   point s;    /* 2^t * S */
   mpz_t signs; /* Used as bit field, i-th bit is set iff q[i]<0 */
+#ifdef WANT_ASSERT
   mpz_t __dummy; /* used for local computations */
+#endif
 
   if (n == 0)
     return ECM_NO_FACTOR_FOUND;
