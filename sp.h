@@ -1,6 +1,8 @@
 /* sp.h - header file for the sp library
 
   Copyright 2005 Dave Newman.
+  Copyright 1991, 1993, 1994, 1995, 1996, 1997, 1999, 2000, 2001, 2002, 2003,
+  2004, 2005 Free Software Foundation, Inc. (for parts from gmp-impl.h).
 
   This file is part of the SP library.
   
@@ -54,6 +56,7 @@ extern size_t MPZSPV_NORMALISE_STRIDE;
 #define ASSERT(expr)   do {} while (0)
 #endif
 
+/* the following was inspired by longlong.h and gmp-impl.h */
 typedef unsigned long UWtype;
 typedef unsigned int UHWtype;
 typedef unsigned long USItype;
@@ -80,6 +83,7 @@ mp_limb_t mpn_invert_limb _PROTO ((mp_limb_t)) ATTRIBUTE_CONST;
 #define invert_limb(invxl,xl)  (invxl = mpn_invert_limb (xl))
 #endif
 
+/* this was inspired by gmp-impl.h */
 #ifndef invert_limb
 #define invert_limb(invxl,xl)                   \
   do {                                          \
@@ -92,6 +96,7 @@ mp_limb_t mpn_invert_limb _PROTO ((mp_limb_t)) ATTRIBUTE_CONST;
   } while (0)
 #endif
 
+/* this was inspired by gmp-impl.h */
 /* Divide the two-limb number in (NH,,NL) by D, with DI being the largest
    limb not larger than (2**(2*BITS_PER_MP_LIMB))/D - (2**BITS_PER_MP_LIMB).
    If this would yield overflow, DI should be the largest possible number
