@@ -982,7 +982,7 @@ BreadthFirstDoAgain:;
                  the last attempt was a probable prime, or 2. if a factor
                  was found and the user gave the -one option */
               if (resume_wasPrp || 
-                  deep == 0 && mpz_cmp_ui (resume_lastfac, 1) != 0)
+                  (deep == 0 && mpz_cmp_ui (resume_lastfac, 1) != 0))
                   continue;
               
               /* If we found a factor in an earlier attempt, divide it out */

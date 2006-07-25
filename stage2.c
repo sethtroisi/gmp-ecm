@@ -323,7 +323,7 @@ stage2 (mpz_t f, void *X, mpmod_t modulus, unsigned long dF, unsigned long k,
   unsigned int lgk; /* ceil(log(k)/log(2)) */
   listz_t invF = NULL;
   double mem;
-  mpzspm_t mpzspm;
+  mpzspm_t mpzspm = NULL;
   mpzspv_t sp_F = NULL, sp_invF = NULL;
   
   /* check alloc. size of f */
