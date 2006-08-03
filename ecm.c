@@ -548,11 +548,13 @@ prac (mpres_t xA, mpres_t zA, unsigned long k, mpmod_t n, mpres_t b,
 */
 static int
 ecm_stage1 (mpz_t f, mpres_t x, mpres_t A, mpmod_t n, double B1, 
-            double *B1done, mpz_t go, int (*stop_asap)(void))
+            double *B1done, mpz_t go, int (*stop_asap)(void), 
+            char *chkfilename)
 {
   mpres_t b, z, u, v, w, xB, zB, xC, zC, xT, zT, xT2, zT2;
-  double q, r;
+  double p, r;
   int ret = 0;
+  int last_chkpnt_time, last_chkpnt_p;
 
   MEMORY_TAG;
   mpres_init (b, n);
@@ -581,6 +583,8 @@ ecm_stage1 (mpz_t f, mpres_t x, mpres_t A, mpmod_t n, double B1,
   MEMORY_TAG;
   mpres_init (zT2, n);
   MEMORY_UNTAG;
+  
+  last_chkpnt_time = cputime ();
 
   mpres_set_ui (z, 1, n);
 
@@ -608,30 +612,41 @@ ecm_stage1 (mpz_t f, mpres_t x, mpres_t A, mpmod_t n, double B1,
         add3 (x, z, x, z, xB, zB, x, z, n, u, v, w);
       }
   
-  q = getprime (2.0); /* Puts 3.0 into q. Next call gives 5.0 */
-  for (q = getprime (q); q <= B1; q = getprime (q))
+  last_chkpnt_p = 3;
+  p = getprime (2.0); /* Puts 3.0 into p. Next call gives 5.0 */
+  for (p = getprime (p); p <= B1; p = getprime (p))
     {
-      for (r = q; r <= B1; r *= q)
+      for (r = p; r <= B1; r *= p)
 	if (r > *B1done)
-	  prac (x, z, (unsigned long) q, n, b, u, v, w, xB, zB, xC, zC, xT,
+	  prac (x, z, (unsigned long) p, n, b, u, v, w, xB, zB, xC, zC, xT,
 		zT, xT2, zT2);
 
       if (mpres_is_zero (z, n))
         {
           outputf (OUTPUT_VERBOSE, "Reached point at infinity, %.0f divides "
-                   "group order\n", q);
+                   "group order\n", p);
           break;
         }
 
       if (stop_asap != NULL && (*stop_asap) ())
         {
-          outputf (OUTPUT_NORMAL, "Interrupted at prime %.0f\n", q);
+          outputf (OUTPUT_NORMAL, "Interrupted at prime %.0f\n", p);
           break;
+        }
+
+      if (chkfilename != NULL && p > last_chkpnt_p + 10000 && 
+          elltime (last_chkpnt_time, cputime ()) > CHKPNT_PERIOD)
+        {
+          writechkfile (chkfilename, ECM_ECM, p, n, A, x, z);
+          last_chkpnt_p = p;
+          last_chkpnt_time = cputime ();
         }
     }
   
+  *B1done = (p < B1) ? p : B1;
+  if (chkfilename != NULL)
+    writechkfile (chkfilename, ECM_ECM, *B1done, n, A, x, z);
   getprime (FREE_PRIME_TABLE); /* free the prime tables, and reinitialize */
-  *B1done = (q < B1) ? q : B1;
 
   /* Normalize z to 1 */
 #ifndef FULL_REDUCTION
@@ -778,8 +793,9 @@ int
 ecm (mpz_t f, mpz_t x, mpz_t sigma, mpz_t n, mpz_t go, double *B1done,
      double B1, mpz_t B2min_parm, mpz_t B2_parm, double B2scale, 
      unsigned long k, const int S, int verbose, int repr, int use_ntt,
-     int sigma_is_A, FILE *os, FILE* es, char *TreeFilename, double maxmem,
-     double stage1time, gmp_randstate_t rng, int (*stop_asap)(void))
+     int sigma_is_A, FILE *os, FILE* es, char *chkfilename,
+     char *TreeFilename, double maxmem, double stage1time, 
+     gmp_randstate_t rng, int (*stop_asap)(void))
 {
   int youpi = ECM_NO_FACTOR_FOUND;
   int base2 = 0;  /* If n is of form 2^n[+-]1, set base to [+-]n */
@@ -1017,7 +1033,8 @@ ecm (mpz_t f, mpz_t x, mpz_t sigma, mpz_t n, mpz_t go, double *B1done,
 #endif
 
   if (B1 > *B1done)
-    youpi = ecm_stage1 (f, P.x, P.A, modulus, B1, B1done, go, stop_asap);
+    youpi = ecm_stage1 (f, P.x, P.A, modulus, B1, B1done, go, stop_asap,
+                        chkfilename);
   
   if (stage1time > 0.)
     {

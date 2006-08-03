@@ -189,7 +189,7 @@ mulcascade_get_z (mpz_t r, mul_casc *c)
 
 static int
 pm1_stage1 (mpz_t f, mpres_t a, mpmod_t n, double B1, double *B1done, 
-            mpz_t go, int (*stop_asap)(void))
+            mpz_t go, int (*stop_asap)(void), char *chkfilename)
 {
   double B0, p, q, r, cascade_limit;
   mpz_t g, d;
@@ -197,6 +197,7 @@ pm1_stage1 (mpz_t f, mpres_t a, mpmod_t n, double B1, double *B1done,
   unsigned int size_n, max_size;
   unsigned int smallbase = 0;
   mul_casc *cascade;
+  int last_chkpnt_time, last_chkpnt_p;
 
   mpz_init (g);
   mpz_init (d);
@@ -262,6 +263,8 @@ pm1_stage1 (mpz_t f, mpres_t a, mpmod_t n, double B1, double *B1done,
   if (mpz_cmp_ui (go, 1) > 0)
     cascade = mulcascade_mul (cascade, go);
 
+  last_chkpnt_time = cputime ();
+  last_chkpnt_p = 2;
   if (B0 <= cascade_limit)
     {
       /* first loop through small primes <= sqrt(B1) */
@@ -357,6 +360,13 @@ pm1_stage1 (mpz_t f, mpres_t a, mpmod_t n, double B1, double *B1done,
                 *B1done = p;
                 goto clear_pm1_stage1;
               }
+	    if (chkfilename != NULL && p > last_chkpnt_p + 10000 &&
+		elltime (last_chkpnt_time, cputime ()) > CHKPNT_PERIOD)
+	      {
+		writechkfile (chkfilename, ECM_PM1, p, n, NULL, a, NULL);
+		last_chkpnt_p = p;
+		last_chkpnt_time = cputime ();
+	      }
 	  }
       }
   }
@@ -371,6 +381,8 @@ pm1_stage1 (mpz_t f, mpres_t a, mpmod_t n, double B1, double *B1done,
   mpres_add_ui (a, a, 1, n);
 
  clear_pm1_stage1:
+  if (chkfilename != NULL)
+    writechkfile (chkfilename, ECM_PM1, *B1done, n, NULL, a, NULL);
   getprime (FREE_PRIME_TABLE); /* free the prime tables, and reinitialize */
   mpz_clear (d);
   mpz_clear (g);
@@ -757,8 +769,8 @@ int
 pm1 (mpz_t f, mpz_t p, mpz_t N, mpz_t go, double *B1done, double B1,
      mpz_t B2min_parm, mpz_t B2_parm, double B2scale, unsigned long k, 
      const int S, int verbose, int repr, int use_ntt, FILE *os, FILE *es, 
-     char *TreeFilename, double maxmem, gmp_randstate_t rng, 
-     int (*stop_asap)(void))
+     char *chkfilename, char *TreeFilename, double maxmem, 
+     gmp_randstate_t rng, int (*stop_asap)(void))
 {
   int youpi = ECM_NO_FACTOR_FOUND;
   int base2 = 0;
@@ -823,8 +835,9 @@ pm1 (mpz_t f, mpz_t p, mpz_t N, mpz_t go, double *B1done, double B1,
       /* TODO: make dependent on Nbits and base2 */
       if (base2)
         {
-	  outputf (OUTPUT_VERBOSE, "Using special division for factor of 2^%d%c1\n", 
-		     abs (base2), (base2 > 0) ? '+' : '-');
+	  outputf (OUTPUT_VERBOSE, 
+		   "Using special division for factor of 2^%d%c1\n", 
+		   abs (base2), (base2 > 0) ? '+' : '-');
           mpmod_init_BASE2 (modulus, base2, N);
         }
 
@@ -930,7 +943,7 @@ pm1 (mpz_t f, mpz_t p, mpz_t N, mpz_t go, double *B1done, double B1,
   mpres_set_z (x, p, modulus);
 
   if (B1 > *B1done)
-    youpi = pm1_stage1 (f, x, modulus, B1, B1done, go, stop_asap);
+    youpi = pm1_stage1 (f, x, modulus, B1, B1done, go, stop_asap, chkfilename);
 
   st = elltime (st, cputime ());
 

@@ -128,7 +128,7 @@ unnegate:
 */
 static int
 pp1_stage1 (mpz_t f, mpres_t P0, mpmod_t n, double B1, double *B1done, 
-            mpz_t go, int (*stop_asap)(void))
+            mpz_t go, int (*stop_asap)(void), char *chkfilename)
 {
   double B0, p, q, r;
   mpz_t g;
@@ -136,6 +136,7 @@ pp1_stage1 (mpz_t f, mpres_t P0, mpmod_t n, double B1, double *B1done,
   mpres_t R, S, T;
   int youpi = ECM_NO_FACTOR_FOUND;
   unsigned int max_size, size_n;
+  int last_chkpnt_p, last_chkpnt_time;
 
   mpz_init (g);
   mpres_init (P, n);
@@ -171,6 +172,8 @@ pp1_stage1 (mpz_t f, mpres_t P0, mpmod_t n, double B1, double *B1done,
 
   mpz_set_ui (g, 1);
 
+  last_chkpnt_p = 2;
+  last_chkpnt_time = cputime ();
   /* first loop through small primes <= sqrt(B1) */
   for (p = 2.0; p <= B0; p = getprime (p))
     {
@@ -204,6 +207,13 @@ pp1_stage1 (mpz_t f, mpres_t P0, mpmod_t n, double B1, double *B1done,
           *B1done = p;
           goto clear_and_exit;
         }
+      if (chkfilename != NULL && p > last_chkpnt_p + 10000 &&
+          elltime (last_chkpnt_time, cputime ()) > CHKPNT_PERIOD)
+        {
+          writechkfile (chkfilename, ECM_PP1, p, n, NULL, P0, NULL);
+          last_chkpnt_p = p;
+          last_chkpnt_time = cputime ();
+        }
     }
 
   *B1done = B1;
@@ -215,6 +225,8 @@ pp1_stage1 (mpz_t f, mpres_t P0, mpmod_t n, double B1, double *B1done,
   youpi = mpz_cmp_ui (f, 1);
 
 clear_and_exit:
+  if (chkfilename != NULL)
+    writechkfile (chkfilename, ECM_PP1, p, n, NULL, P0, NULL);
   getprime (FREE_PRIME_TABLE); /* free the prime tables, and reinitialize */
   mpres_clear (Q, n);
   mpres_clear (R, n);
@@ -710,8 +722,8 @@ int
 pp1 (mpz_t f, mpz_t p, mpz_t n, mpz_t go, double *B1done, double B1,
      mpz_t B2min_parm, mpz_t B2_parm, double B2scale, unsigned long k, 
      const int S, int verbose, int repr, int use_ntt, FILE *os, FILE *es, 
-     char *TreeFilename, double maxmem, gmp_randstate_t rng, 
-     int (*stop_asap)(void))
+     char *chkfilename, char *TreeFilename, double maxmem, 
+     gmp_randstate_t rng, int (*stop_asap)(void))
 {
   int youpi = ECM_NO_FACTOR_FOUND;
   int po2 = 0;    /* Whether we should use power-of-2 poly degree */
@@ -833,7 +845,8 @@ pp1 (mpz_t f, mpz_t p, mpz_t n, mpz_t go, double *B1done, double B1,
     }
 
   if (B1 > *B1done)
-    youpi = pp1_stage1 (f, a, modulus, B1, B1done, go, stop_asap);
+    youpi = pp1_stage1 (f, a, modulus, B1, B1done, go, stop_asap, 
+                        chkfilename);
 
   outputf (OUTPUT_NORMAL, "Step 1 took %ldms\n", elltime (st, cputime ()));
   if (test_verbose (OUTPUT_RESVERBOSE))

@@ -351,9 +351,21 @@ standard input if <replaceable>file</replaceable> is  "-".
 Example: to perform step 2 following the above step 1 computation, use
 <programlisting>ecm -resume foo 1e6</programlisting>
 </para>
-
   </listitem>
   </varlistentry>
+
+  <varlistentry>
+  <term><option>-chkpoint <replaceable>file</replaceable></option></term>
+  <listitem>
+<para>Periodically write the current residue in stage 1 to 
+<replaceable>file</replaceable>. In case of a power failure, etc., the
+computation can be continued with the <option>-resume</option> option.
+<programlisting>ecm -chkpnt foo -pm1 1e10 &lt; largenumber.txt 
+</programlisting>
+</para>
+  </listitem>
+  </varlistentry>
+
 </variablelist>
 </refsect1>
 

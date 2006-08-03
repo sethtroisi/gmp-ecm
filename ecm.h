@@ -46,6 +46,7 @@ typedef struct
 		     2 diagnostic output */
   FILE *os;       /* output stream (for verbose messages) */
   FILE *es;       /* error  stream (for error   messages) */
+  char *chkfilename; /* Filename to write stage 1 checkpoints to */
   char *TreeFilename; /* Base filename for storing product tree of F */
   double maxmem;  /* Maximal amount of memory to use in stage 2, in bytes.
                      0. means no limit (optimise only for speed) */
@@ -71,13 +72,13 @@ void ecm_clear (ecm_params);
 /* the following interface is not supported */
 int ecm (mpz_t, mpz_t, mpz_t, mpz_t, mpz_t, double *, double, mpz_t, mpz_t,
          double, unsigned long, const int, int, int, int, int, FILE*, FILE*, 
-         char*, double, double, gmp_randstate_t, int (*)(void));
+         char*, char *, double, double, gmp_randstate_t, int (*)(void));
 int pp1 (mpz_t, mpz_t, mpz_t, mpz_t, double *, double, mpz_t, mpz_t, 
          double, unsigned long, const int, int, int, int, FILE*, FILE*, char*,
-         double, gmp_randstate_t, int (*)(void));
+         char *, double, gmp_randstate_t, int (*)(void));
 int pm1 (mpz_t, mpz_t, mpz_t, mpz_t, double *, double, mpz_t, 
-          mpz_t, double, unsigned long, const int, int, int, int, FILE*, FILE*, 
-          char*, double, gmp_randstate_t, int (*)(void));
+         mpz_t, double, unsigned long, const int, int, int, int, FILE*, 
+	 FILE*, char *, char*, double, gmp_randstate_t, int (*)(void));
 
 /* different methods implemented */
 #define ECM_ECM 0

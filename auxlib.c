@@ -262,3 +262,51 @@ outputf (int loglevel, char *format, ...)
   
   return n;
 }
+
+void
+writechkfile (char *chkfilename, int method, double p, mpmod_t modulus, 
+              mpres_t A, mpres_t x, mpres_t z)
+{
+  FILE *chkfile;
+  char *methodname;
+  mpz_t t;
+
+  outputf (OUTPUT_DEVVERBOSE, "Writing checkpoint to %s at p = %.0f\n",
+           chkfilename, p);
+
+  switch (method)
+    {
+    case ECM_ECM : methodname = "ECM"; break;
+    case ECM_PM1 : methodname = "P-1"; break;
+    case ECM_PP1 : methodname = "P+1"; break;
+    default: 
+      outputf (OUTPUT_ERROR, "writechkfile: Invalid method\n");
+      return;
+    }
+
+  chkfile = fopen (chkfilename, "w");
+  if (chkfile == NULL)
+    {
+      outputf (OUTPUT_ERROR, "Error opening checkpoint file\n", 
+	       chkfilename);
+      return;
+    }
+
+  mpz_init (t);
+
+  gmp_fprintf (chkfile, "METHOD=%s; B1=%.0f; N=0x%Zx;", 
+	       p, methodname, modulus->orig_modulus);
+  mpres_get_z (t, x, modulus);
+  gmp_fprintf (chkfile, " X=0x%Zx;", t);
+  if (method == ECM_ECM)
+    {
+      mpres_get_z (t, z, modulus);
+      gmp_fprintf (chkfile, " Z=0x%Zx;", t);
+      mpres_get_z (t, A, modulus);
+      gmp_fprintf (chkfile, " A=0x%Zx;", t);
+    }
+  fprintf (chkfile, "\n");
+  mpz_clear (t);
+  fflush (chkfile);
+  fclose (chkfile);
+}

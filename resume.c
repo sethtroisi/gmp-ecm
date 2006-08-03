@@ -96,10 +96,11 @@ read_resumefile_line (int *method, mpz_t x, mpcandi_t *n, mpz_t sigma, mpz_t A,
         char *comment, FILE *fd)
 {
   int a, c;
-  int have_method, have_x, have_n, have_sigma, have_a, have_b1, have_checksum, 
-      have_qx;
+  int have_method, have_x, have_z, have_n, have_sigma, have_a, have_b1, 
+      have_checksum, have_qx;
   unsigned int saved_checksum;
   char tag[16];
+  mpz_t z;
   
   while (!feof (fd))
     {
@@ -119,8 +120,8 @@ read_resumefile_line (int *method, mpz_t x, mpcandi_t *n, mpz_t sigma, mpz_t A,
       if (feof (fd))
         break;
       
-      have_method = have_x = have_n = have_sigma = have_a = have_b1 = 
-                    have_qx = 0;
+      have_method = have_x = have_z = have_n = have_sigma = have_a = 
+                    have_b1 = have_qx = 0;
       have_checksum = 0;
 
       /* Set optional fields to zero */
@@ -174,6 +175,12 @@ read_resumefile_line (int *method, mpz_t x, mpcandi_t *n, mpz_t sigma, mpz_t A,
             {
               mpz_inp_str (x, fd, 0);
               have_x = 1;
+            }
+          else if (strcmp (tag, "Z") == 0)
+            {
+              mpz_init (z);
+              mpz_inp_str (z, fd, 0);
+              have_z = 1;
             }
           else if (strcmp (tag, "QX") == 0)
             {
@@ -261,20 +268,31 @@ read_resumefile_line (int *method, mpz_t x, mpcandi_t *n, mpz_t sigma, mpz_t A,
         }
 
 #ifdef DEBUG
-      if (*method != ECM_ECM && (have_sigma || have_a))
+      if (*method != ECM_ECM && (have_sigma || have_a || have_z))
         {
-          printf ("Save file line has ");
+          int count = have_sigma + have_a + have_z;
+          printf ("Warning: Save file line has");
           if (have_sigma)
             {
-              printf ("SIGMA");
+              printf (" SIGMA");
               mpz_set_ui (sigma, 0);
+              if (--count > 1)
+                printf (",");
+              else if (count > 0)
+                printf (" and");
             }
-          if (have_sigma && have_a)
-            printf (" and ");
           if (have_a)
             {
-              printf ("A");
+              printf (" A");
               mpz_set_ui (A, 0);
+              if (--count > 0)
+                printf (" and");
+            }
+          if (have_z)
+            {
+              printf (" Z");
+              mpz_clear (Z);
+              have_z = 0;
             }
           printf (" value for method other than ECM.\n");
         }
@@ -299,6 +317,8 @@ read_resumefile_line (int *method, mpz_t x, mpcandi_t *n, mpz_t sigma, mpz_t A,
             mpz_mul_ui (checksum, checksum, mpz_fdiv_ui (A, CHKSUMMOD));
           mpz_mul_ui (checksum, checksum, mpz_fdiv_ui (n->n, CHKSUMMOD));
           mpz_mul_ui (checksum, checksum, mpz_fdiv_ui (x, CHKSUMMOD));
+          if (have_z)
+            mpz_mul_ui (checksum, checksum, mpz_fdiv_ui (z, CHKSUMMOD));
           if (mpz_fdiv_ui (checksum, CHKSUMMOD) != saved_checksum)
             {
               fprintf (stderr, "Resume file line has bad checksum %u, expected %lu\n", 
@@ -310,6 +330,18 @@ read_resumefile_line (int *method, mpz_t x, mpcandi_t *n, mpz_t sigma, mpz_t A,
         }
 
       mpz_mod (x, x, n->n);
+      if (have_z)	/* Must normalize */
+        {
+          if (!mpz_invert (z, z, n->n)) /* Factor found? */
+            {
+              /* Oh great. What do we do with it now? */
+              /* mpres_gcd (f, z, n); */
+              printf ("Oops, factor found while reading from save file.\n");
+            }
+          mpz_mul (z, z, x);
+          mpz_mod (x, z, n->n);
+        }
+        
       return 1;
       
 error:
@@ -324,7 +356,8 @@ error:
 }
 
 void 
-write_temp_resumefile (int method, double B1, mpz_t sigma, mpz_t A, mpz_t x, mpz_t n, mpz_t orig_x0, int verbose)
+write_temp_resumefile (int method, double B1, mpz_t sigma, mpz_t A, mpz_t x, 
+                       mpz_t n, mpz_t orig_x0, int verbose)
 {
   FILE *fd;
   mpcandi_t data;
