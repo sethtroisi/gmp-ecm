@@ -767,7 +767,7 @@ stage2 (mpz_t f, void *X, mpmod_t modulus, unsigned long dF, unsigned long k,
   if (mpz_cmp_ui (f, 1) > 0)
     {
       youpi = ECM_FACTOR_FOUND_STEP2;
-      if (test_verbose (OUTPUT_RESVERBOSE))
+      if (method == ECM_ECM && test_verbose (OUTPUT_RESVERBOSE))
         {
           /* Find out for which i*X, (i,d)==1, a factor was found */
           /* Note that the factor we found may be composite */

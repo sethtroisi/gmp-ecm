@@ -206,6 +206,7 @@ usage (void)
     printf ("  -save file   save residues at end of stage 1 to file\n");
     printf ("  -savea file  like -save, appends to existing files\n");
     printf ("  -resume file resume residues from file, reads from stdin if file is \"-\"\n");
+    printf ("  -chkpnt file save periodic checkpoints during stage 1 to file\n");
     printf ("  -primetest   perform a primality test on input\n");
     printf ("  -treefile f  store product tree of F in files f.0 f.1 ... \n");
     printf ("  -maxmem n    use at most n MB of memory in stage 2\n");
@@ -273,7 +274,7 @@ main (int argc, char *argv[])
                 default (0): automatic choice. */
   gmp_randstate_t randstate;
   char *savefilename = NULL, *resumefilename = NULL, *infilename = NULL;
-  char *TreeFilename = NULL;
+  char *TreeFilename = NULL, *chkfilename = NULL;
   char rtime[256] = "", who[256] = "", comment[256] = "", program[256] = "";
   FILE *savefile = NULL, *resumefile = NULL, *infile = NULL;
   mpz_t resume_lastN, resume_lastfac; /* When resuming residues from a file,
@@ -516,6 +517,12 @@ main (int argc, char *argv[])
       else if ((argc > 2) && (strcmp (argv[1], "-resume") == 0))
 	{
 	  resumefilename = argv[2];
+	  argv += 2;
+	  argc -= 2;
+	}
+      else if ((argc > 2) && (strcmp (argv[1], "-chkpnt") == 0))
+	{
+	  chkfilename = argv[2];
 	  argv += 2;
 	  argc -= 2;
 	}
@@ -813,6 +820,7 @@ main (int argc, char *argv[])
   params->k = k;
   params->S = S;
   params->repr = repr;
+  params->chkfilename = chkfilename;
   params->TreeFilename = TreeFilename;
   params->maxmem = maxmem;
   params->stage1time = stage1time;
@@ -1215,7 +1223,7 @@ BreadthFirstDoAgain:;
           fc = popen (idlecmd, "r");
           if (fc == NULL)
             {
-              fprintf (stderr, "Error executing idle command: %d\n",
+              fprintf (stderr, "Error executing idle command: %s\n",
                        idlecmd);
               exit (EXIT_FAILURE);
             }
