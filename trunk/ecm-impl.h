@@ -153,6 +153,10 @@ void tests_memory_set_location (char *, unsigned int);
 #define MPZ_INIT2(x,n) mpz_init2(x,n)
 #endif
 
+/* Default value for how often to write checkpoints in stage 1, 
+   in milliseconds */
+#define CHKPNT_PERIOD 10000
+
 
 
 /* thresholds */
@@ -194,6 +198,9 @@ void tests_memory_set_location (char *, unsigned int);
 #define OUTPUT_TRACE 5
 /* OUTPUT_ERROR is for printing error messages */
 #define OUTPUT_ERROR -1
+
+/* Interval length for writing checkpoints in stage 1, in milliseconds */
+#define CHKPNT_PERIOD 10000
 
 typedef mpz_t mpres_t;
 
@@ -621,8 +628,9 @@ int          get_verbose (void);
 void         set_verbose (int);
 #define inc_verbose __ECM(inc_verbose)
 int          inc_verbose (void);
-#define outputf __ECM(outputf)
 int          outputf (int, char *, ...);
+#define writechkfile __ECM(writechkfile)
+void writechkfile (char *, int, double, mpmod_t, mpres_t, mpres_t, mpres_t);
 
 /* random.c */
 #define pp1_random_seed __ECM(pp1_random_seed)

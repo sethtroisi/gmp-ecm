@@ -6,7 +6,7 @@ Table of contents of this file:
 3. Extra factors and Brent-Suyama's extension.
 4. Memory usage.
 5. Expression syntax reference for GMP-ECM's syntax parser.
-6. Options -save and -resume.
+6. Options -save, -resume and -chkpnt.
 7. Working with very large numbers (the -prp* options).
 8. How to get the best of GMP-ECM?
 9. Record factors.
@@ -278,11 +278,12 @@ Probable prime cofactor (3*2^210+1)/1358437 has 58 digits
 
 ##############################################################################
 
-6. Options -save and -resume.
+6. Options -save, -resume and -chkpnt.
 
-These options are useful to save the current state of the computation after
-step 1, or to exchange data with other software. It allows to perform
-step 1 with GMP-ECM, and step 2 with another software (or vice-versa).
+These -save and -resume options are useful to save the current state of the 
+computation after step 1, or to exchange data with other software. It allows 
+to perform step 1 with GMP-ECM, and step 2 with another software (or 
+vice-versa).
 
 Here is an example how to reuse some P-1 computation:
 
@@ -368,6 +369,30 @@ computations. Options -save/-resume is useful in the following cases:
     2 tests B2_2-B2_3, ... This also decreases the memory usage for
     each machine, which is function of the range width B2min-B2max.
     For the same reason as (b), this does not apply to ECM. 
+
+The -chkpnt option causes GMP-ECM to write the current residue periodically
+during the stage 1 computation. This is useful as a safeguard in case the
+GMP-ECM process is terminated, or the computer loses power, etc. The 
+checkpoint is written every ten minutes, when a signal (SIGINT, SIGTERM) is
+received, and at the end of stage 1. The format of the checkpoint file is 
+very similar to that of regular save files, and checkpoints can be resumed 
+with the -resume option.
+
+For example:
+
+$ ecm -chkpoint pm1chkpoint -pm1 1e10 1 <largenumber.txt
+
+[Computer crashes during computation]
+
+$ ecm -resume pm1chkpoint 1e10 1
+
+Note: if an existing file is specified as the checkpoint file, it will be
+silently overwritten! 
+Note 2: When resuming a checkpoint file, additional small primes may be 
+processed in stage 1 when the checkpoint file is resumed, so the 
+end-of-stage 1 residues of an uninterrupted run and a checkpointed run 
+may not match. The extra primes do not reduce the probability of finding 
+factors, however.
 
 ##############################################################################
 
