@@ -280,7 +280,7 @@ list_gcd (mpz_t p, listz_t l, unsigned int k, mpz_t n)
    product (mod n) of itself and all previous entries */
    
 void 
-list_mulup (mpz_t p, listz_t l, unsigned int k, mpz_t n, mpz_t t)
+list_mulup (listz_t l, unsigned int k, mpz_t n, mpz_t t)
 {
   unsigned int i;
   

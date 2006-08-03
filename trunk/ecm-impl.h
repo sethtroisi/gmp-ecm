@@ -429,7 +429,7 @@ void         list_mul_z (listz_t, listz_t, mpz_t, unsigned int, mpz_t);
 #define list_gcd __ECM(list_gcd)
 int          list_gcd   (mpz_t, listz_t, unsigned int, mpz_t);
 #define list_mulup __ECM(list_mulup)
-void          list_mulup (mpz_t, listz_t, unsigned int, mpz_t, mpz_t);
+void          list_mulup (listz_t, unsigned int, mpz_t, mpz_t);
 #define list_zero __ECM(list_zero)
 void         list_zero  (listz_t, unsigned int);
 #define list_mul __ECM(list_mul)
