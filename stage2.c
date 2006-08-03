@@ -21,6 +21,7 @@
   MA 02111-1307, USA.
 */
 
+#include "config.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <math.h> /* for floor */
@@ -758,7 +759,7 @@ stage2 (mpz_t f, void *X, mpmod_t modulus, unsigned long dF, unsigned long k,
            elltime (st, cputime ()));
 
   st = cputime ();
-  list_mulup (f, T, dF, n, T[dF]);
+  list_mulup (T, dF, n, T[dF]);
   outputf (OUTPUT_VERBOSE, "Computing product of all F(g_i) took %ldms\n", 
            elltime (st, cputime ()));
 
