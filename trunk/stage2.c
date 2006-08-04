@@ -845,7 +845,7 @@ free_Tree_i:
       char *fullname = (char *) malloc (strlen (TreeFilename) + 1 + 2 + 1);
       for (i = 0; i < treefiles_used; i++)
         {
-          sprintf (fullname, "%s.%lu", TreeFilename, i - 1);
+          sprintf (fullname, "%s.%lu", TreeFilename, i);
           outputf (OUTPUT_DEVVERBOSE, "Unlinking %s\n", fullname);
           if (unlink (fullname) != 0)
             outputf (OUTPUT_ERROR, "Could not delete %s\n", fullname);

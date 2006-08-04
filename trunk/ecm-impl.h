@@ -153,12 +153,6 @@ void tests_memory_set_location (char *, unsigned int);
 #define MPZ_INIT2(x,n) mpz_init2(x,n)
 #endif
 
-/* Default value for how often to write checkpoints in stage 1, 
-   in milliseconds */
-#define CHKPNT_PERIOD 10000
-
-
-
 /* thresholds */
 #define MPN_MUL_LO_THRESHOLD 32
 
@@ -200,7 +194,7 @@ void tests_memory_set_location (char *, unsigned int);
 #define OUTPUT_ERROR -1
 
 /* Interval length for writing checkpoints in stage 1, in milliseconds */
-#define CHKPNT_PERIOD 10000
+#define CHKPNT_PERIOD 600000
 
 typedef mpz_t mpres_t;
 
