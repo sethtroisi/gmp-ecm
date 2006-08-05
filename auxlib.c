@@ -287,7 +287,7 @@ writechkfile (char *chkfilename, int method, double p, mpmod_t modulus,
   chkfile = fopen (chkfilename, "w");
   if (chkfile == NULL)
     {
-      outputf (OUTPUT_ERROR, "Error opening checkpoint file\n", 
+      outputf (OUTPUT_ERROR, "Error opening checkpoint file %s\n", 
 	       chkfilename);
       return;
     }
