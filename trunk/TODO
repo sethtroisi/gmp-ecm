@@ -10,7 +10,7 @@ ToDo's (see also TODO.sp):
   (DN: couldn't get any significant speed increase)
 - use/implement a mpn_mul_hi_n routine for use in mpn_REDC
 - use mpn_addmul_2, mpn_addmul_4 in the basecase REDC [for machines
-  where it exists]
+  where it exists]. ASM code should perhaps be moved into GMP.
 - try McLaughlin's algorithm for Montgomery's modular multiplication
   (http://www.ams.org/mcom/0000-000-00/S0025-5718-03-01543-6/home.html)
 - consider Colin Percival's generalized DWT for multiplication modulo
@@ -27,6 +27,10 @@ ToDo's (see also TODO.sp):
   (done but improvement possible)
 - when GWNUM is used, lower the default B2 (James Wanless, 17 Mar 2006,
 	james at grok.ltd.uk)
+- implement enhanced standard continuation? With graph cover algorithm?
+- parallel/distributed stage 2?
+- add curve selection for torsion group of order 8 or 16, see Montgomery's
+  thesis. (request of Peter-Lawrence Montgomery)
 
 2) interface
 - with -resume, print %time for THIS RUN instead of total run?
@@ -38,11 +42,8 @@ ToDo's (see also TODO.sp):
 - [from Jakub Pawlewicz <pan@mimuw.edu.pl>] add an option -stage1time t
   to tell the step 1 time, when done by another program. PZ: or better
   have it in resume file? (Target: 6.1. Command line option done)
-- from Dan Bernstein <djb@cr.yp.to> 7 Mar 2006: use the curve
-  (16b+18)y^2 = x^3 + (4b+2)x^2 + x with starting point (x=2,y=1).
-  Caveat: with Montgomery multiplication, even if b is small (the argument
-  used in duplicate), we still have to divide by R^l. Workaround: replace
-  the mpres_mul call by a mpres_mul_ui call (b is not transformed).
+- add proper file locking for save files, so several processes can safely
+  write to the same file.
 
 3) documentation
 - add examples for typical use to README 
@@ -51,6 +52,19 @@ ToDo's (see also TODO.sp):
 4) others
 - produce dynamic binary/library with --enable-shared
   [reported by Thomas M.Ott, thmo-13@gmx.de, 25 Oct 2005]
+- from Dan Bernstein <djb@cr.yp.to> 7 Mar 2006: use the curve
+  (16b+18)y^2 = x^3 + (4b+2)x^2 + x with starting point (x=2,y=1).
+  Caveat: with Montgomery multiplication, even if b is small (the argument
+  used in duplicate), we still have to divide by R^l. Workaround: replace
+  the mpres_mul call by a mpres_mul_ui call (b is not transformed).
+- add primality proving of factors/cofactors? Maybe link Pari for this?
+- add point counting algorithm? SEA implementation exists for Pari/GP,
+   use that?
+- let user specify previous factoring work, compute distribution of
+  candidate factors, compute probability of/est. time to finding a factor 
+  with given parameters.
+- re-write in C++? Lots of work, but would make parts of the code much
+  cleaner.
 
 5) bugs
 - F15: B1=99000, B2=150577181, sigma=3039152787 with ecm-6.0.1 [Bruce]
