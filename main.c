@@ -1115,9 +1115,9 @@ BreadthFirstDoAgain:;
                   printf ("[%.24s]\n", ctime (&t));
                 }
 	      /* first time this candidate has been run (if looping more than once */
-	      if (n.cpExpr && n.nexprlen < 1000)
+	      if (n.cpExpr && n.nexprlen < MAX_NUMBER_PRINT_LEN)
 		printf ("Input number is %s (%u digits)\n", n.cpExpr, n.ndigits);
-	      else if (n.ndigits < 1000)
+	      else if (n.ndigits < MAX_NUMBER_PRINT_LEN)
 		{
                   char *s;
                   s = mpz_get_str (NULL, 10, n.n);
@@ -1125,7 +1125,22 @@ BreadthFirstDoAgain:;
                   FREE (s, n.ndigits + 1);
 		}
 	      else
-		printf ("Input number has %u digits\n", n.ndigits);
+	        {
+	          /* Print only first and last ten digits of the number */
+	          mpz_t t, u;
+	          mpz_init (t);
+	          mpz_init (u);
+	          mpz_ui_pow_ui (u, 5, n.ndigits - 10);
+	          mpz_tdiv_q_2exp (t, n.n, n.ndigits - 10);
+	          mpz_tdiv_q (t, t, u);
+		  gmp_printf ("Input number is %Zd...", t);
+		  mpz_ui_pow_ui (u, 10, 10);
+		  mpz_tdiv_r (t, n.n, u);
+		  gmp_printf ("%Zd (%u digits)\n", t, n.ndigits);
+		  mpz_clear (u);
+		  mpz_clear (t);
+                }
+              
 	      if (n.isPrp)
 		printf ("****** Warning: input is probably prime ******\n");
 	    }

@@ -76,15 +76,12 @@ unsigned int get_random_ui (void);
 #define OUTPUT_TRACE 4
 #define OUTPUT_ERROR -1
 
+#define MAX_NUMBER_PRINT_LEN 1000
+
 /* auxlib.c */
 int  test_verbose (int);
 void set_verbose (int);
 int  inc_verbose ();
-
-/* different methods implemented */
-#define ECM_ECM 0
-#define ECM_PM1 1
-#define ECM_PP1 2
 
 /* Return codes */
 /* Bit coded values: 1: error, 2: proper factor found, 4: factor is prime, 
