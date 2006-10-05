@@ -69,7 +69,9 @@ Instructions to install GMP-ECM:
 
    $ make ecm-params; make
 
-   See also README ("How to get the best of GMP-ECM?").
+   See also README ("How to get the best of GMP-ECM?"). Note: if your machine
+   has not enough memory for the tune program, you can run it manually with
+   ./tune -max_log2_len 16 for example (the default is 18).
 
 5) (optional) you can then install the ecm binary and its man page:
 
