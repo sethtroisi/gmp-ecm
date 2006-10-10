@@ -22,11 +22,17 @@
 #include <math.h> /* log */
 #include "ecm-ecm.h"
 
+/* Does trial division of n by the primes 1 < p <= maxfact.
+   Returns the number of factors found (counting multiplicity) */
+
 int
 trial_factor (mpcandi_t *n, double maxfact, int deep)
 {
   unsigned long factors = 0, exponent;
   double p;
+
+  if (mpz_sgn (n->n) == 0)
+    return 0;
 
   getprime (FREE_PRIME_TABLE);  /* free the prime tables, and reinitialize */
   /* brain dead trial factor'r but it works */
