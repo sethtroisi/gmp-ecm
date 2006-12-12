@@ -431,13 +431,10 @@ void
 mpmod_init (mpmod_t modulus, mpz_t N, int repr)
 {
   int base2;
-  
+
   if ((repr != -1) && (base2 = isbase2 (N, BASE2_THRESHOLD)))
     {
       int r;
-      outputf (OUTPUT_VERBOSE,
-	       "Using special division for factor of 2^%d%c1\n",
-	       abs (base2), (base2 < 0) ? '-' : '+');
       r = mpmod_init_BASE2 (modulus, base2, N);
       ASSERT (r == 0); /* error should not happen if isbase2 is correct */
     }
@@ -481,6 +478,9 @@ mpmod_init_BASE2 (mpmod_t modulus, int base2, mpz_t N)
 {
   int Nbits;
   
+  outputf (OUTPUT_VERBOSE,
+           "Using special division for factor of 2^%d%c1\n",
+           abs (base2), (base2 < 0) ? '-' : '+');
   mpz_init_set (modulus->orig_modulus, N);
   modulus->repr = ECM_MOD_BASE2;
   modulus->bits = base2;
