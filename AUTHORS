@@ -14,7 +14,8 @@ Alexander Kruppa <firstname.lastname@mytum.de> (substitute appropriately)
 	multiplication code, the special code for Fermat numbers, and
 	many other nice things.
 Dave Newman <david dot newman at jesus dot ox dot ac dot uk>
-	contributed the Kronecker-Schönhage multiplication code.
+	contributed the Kronecker-Schönhage multiplication code,
+	and the NTT code.
 Paul Zimmermann <zimmerma at loria dot fr>
 	author of the first version of the program.
 
