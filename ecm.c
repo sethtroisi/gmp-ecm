@@ -1095,7 +1095,24 @@ ecm (mpz_t f, mpz_t x, mpz_t sigma, mpz_t n, mpz_t go, double *B1done,
 #else
   youpi = montgomery_to_weierstrass (f, P.x, P.y, P.A, modulus);
 #endif
+  
+  if (test_verbose (OUTPUT_RESVERBOSE))
+    {
+      mpz_t t;
 
+      MEMORY_TAG;
+      mpz_init (t);
+      MEMORY_UNTAG;
+      mpres_get_z (t, P.x, modulus);
+      outputf (OUTPUT_RESVERBOSE, "After switch to Weierstrass form, "
+      "P=(%Zd", t);
+      mpres_get_z (t, P.y, modulus);
+      outputf (OUTPUT_RESVERBOSE, ", %Zd)\n", t);
+      mpres_get_z (t, P.A, modulus);
+      outputf (OUTPUT_RESVERBOSE, "on curve Y^2 = X^3 + %Zd * X + b\n", t);
+      mpz_clear (t);
+    }
+  
   if (youpi == ECM_NO_FACTOR_FOUND && mpz_cmp (B2, B2min) >= 0)
     youpi = stage2 (f, &P, modulus, dF, k, &root_params, ECM_ECM, 
                     use_ntt, TreeFilename, stop_asap);
