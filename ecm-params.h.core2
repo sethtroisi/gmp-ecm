@@ -18,5 +18,4 @@
 #define SPV_NTT_GFP_DIF_RECURSIVE_THRESHOLD 4096
 
 /* the table (individual modes) */
-#define MPN_MUL_LO_THRESHOLD_TABLE
-{0,0,1,0,0,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1}
+#define MPN_MUL_LO_THRESHOLD_TABLE {0,0,1,0,0,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1}
