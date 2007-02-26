@@ -110,7 +110,7 @@ ntt_PolyFromRoots_Tree (mpzv_t r, mpzv_t a, spv_size_t len, mpzv_t t,
 {
   mpzspv_t x;
   spv_size_t i, m, m_max;
-  mpzv_t src = a;
+  mpzv_t src;
   mpzv_t *dst = Tree + ceil_log2 (len) - 1;
 
   ASSERT (len == 1 << ceil_log2 (len));
@@ -118,9 +118,23 @@ ntt_PolyFromRoots_Tree (mpzv_t r, mpzv_t a, spv_size_t len, mpzv_t t,
   x = mpzspv_init (2 * len, mpzspm);
   
   if (dolvl >= 0)
-    dst = &r;
+    {
+      src = a;
+      dst = &r;
+    }
   else  
-    list_set (*dst--, a, len);
+    {
+      /* Copy the roots into the destination level of the tree (negating
+	 if so desired), set the source to this level (which now contains 
+	 the possibly negated roots), and advance the destination level 
+	 of the tree to the next level */
+      src = *dst;
+#if NEGATED_ROOTS == 1
+      list_set (*dst--, a, len);
+#else
+      list_neg (*dst--, a, len, mpzspm->modulus);
+#endif
+    }
   
   m = (dolvl == -1) ? 1 : 1 << (ceil_log2 (len) - 1 - dolvl);
   m_max = (dolvl == -1) ? len : 2 * m;
@@ -138,7 +152,7 @@ ntt_PolyFromRoots_Tree (mpzv_t r, mpzv_t a, spv_size_t len, mpzv_t t,
         }
 
       for (i = 0; i < len; i += 2 * m)
-        list_mul (t + i, src + i, m, 1, src + i + m, m, 1, t + len);
+	list_mul (t + i, src + i, m, 1, src + i + m, m, 1, t + len);
 
       list_mod (*dst, t, len, mpzspm->modulus);
       
@@ -147,6 +161,9 @@ ntt_PolyFromRoots_Tree (mpzv_t r, mpzv_t a, spv_size_t len, mpzv_t t,
   
   for (; m < m_max; m *= 2)
     {
+      ASSERT (m > 1); /* This code does not do the sign change. Let's assume
+			 MUL_NTT_THRESHOLD is always large enough that the
+			 degree 1 product are done in the above loop */
       /* dst = &r anyway for dolvl != -1 */
       if (m == len / 2)
         dst = &r;
@@ -301,11 +318,11 @@ ntt_polyevalT (mpzv_t b, spv_size_t len, mpzv_t *Tree, mpzv_t T,
   
   mpzspv_from_mpzv (x, 0, b, len, mpzspm);
   mpzspv_to_ntt (x, 0, len, 2 * len, 0, mpzspm);
-  mpzspv_pwmul (x, 0, x, 0, sp_invF, 0, 2 * len, mpzspm);
+  mpzspv_pwmul (x, 0, x, 0, sp_invF, 0, 2 * len, mpzspm); /* x = b * invF */
   mpzspv_from_ntt (x, 0, 2 * len, 0, mpzspm);
   mpzspv_normalise (x, len - 1, len, mpzspm);
-  mpzspv_set (y, 0, x, len - 1, len, mpzspm);
-  mpzspv_reverse (y, 0, len, mpzspm);
+  mpzspv_set (y, 0, x, len - 1, len, mpzspm); /* y = high (b * invF) */
+  mpzspv_reverse (y, 0, len, mpzspm); /* y = rev (high (b * invF)) */
     
   for (m = len / 2; m >= POLYEVALT_NTT_THRESHOLD; m /= 2)
     {
@@ -364,9 +381,11 @@ ntt_polyevalT (mpzv_t b, spv_size_t len, mpzv_t *Tree, mpzv_t T,
     }
     
   mpzspv_clear (x, mpzspm);
-  mpzspv_to_mpzv (y, 0, T, len, mpzspm);
+  mpzspv_to_mpzv (y, 0, T, len, mpzspm); /* T = rev (high (b * invF)) */
   mpzspv_clear (y, mpzspm);
-    
+  for (i = 0; i < len; i++)
+    mpz_mod (T[i], T[i], mpzspm->modulus);
+
   for (; m >= 1; m /= 2)
     {
       if (TreeFilenameStem)
