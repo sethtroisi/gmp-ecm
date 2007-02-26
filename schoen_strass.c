@@ -147,14 +147,14 @@ F_mulmod (mpz_t R, mpz_t S1, mpz_t S2, unsigned int n)
   int n2 = n / __GMP_BITS_PER_MP_LIMB; /* type of _mp_size is int */
   F_mod_1 (S1, n);
   F_mod_1 (S2, n);
-  while (mpz_size (S1) > (unsigned) n2)
+  if (mpz_size (S1) > (unsigned) n2)
     {
       outputf (OUTPUT_ERROR, 
                "Warning: S1 >= 2^%d after reduction, has %lu bits. "
                "Trying again\n", n, (unsigned long) mpz_sizeinbase (S1, 2));
       F_mod_1 (S1, n);
     }
-  while (mpz_size (S2) > (unsigned) n2)
+  if (mpz_size (S2) > (unsigned) n2)
     {
       outputf (OUTPUT_ERROR, 
                "Warning: S2 >= 2^%d after reduction, has %lu bits. "
@@ -1304,8 +1304,8 @@ F_mul (mpz_t *R, mpz_t *A, mpz_t *B, unsigned int len, int parameter,
 
 /* Transposed multiply of two polynomials with coefficients 
    modulo 2^(2^m)+1.
-   len is length of polynomial B and must be a power of 2,
-   the length of polynomial A is len / 2. 
+   lenB is the length of polynomial B and must be a power of 2,
+   lenA is the length of polynomial A and must be lenB / 2 or lenB / 2 + 1. 
    n=2^m
    t must have space for 2*len coefficients 
    Only the product coefficients [len / 2 - 1 ... len - 2] will go into 
@@ -1313,71 +1313,76 @@ F_mul (mpz_t *R, mpz_t *A, mpz_t *B, unsigned int len, int parameter,
    Return value: number of multiplies performed, UINT_MAX in error case. */
 
 unsigned int 
-F_mul_trans (mpz_t *R, mpz_t *A, mpz_t *B, unsigned int len, unsigned int n, 
-             mpz_t *t)
+F_mul_trans (mpz_t *R, mpz_t *A, mpz_t *B, unsigned int lenA, 
+             unsigned int lenB, unsigned int n, mpz_t *t)
 {
   unsigned int i, r = 0, len2;
 
   /* Handle trivial cases */
-  if (len < 2)
+  if (lenB < 2)
     return 0;
   
+  ASSERT(lenA == lenB / 2 || lenA == lenB / 2 + 1);
+
   if (!gt_inited)
     {
       mpz_init2 (gt, 2 * n);
       gt_inited = 1;
     }
   
-  if (len == 2)
+  if (lenB == 2)
     {
       F_mulmod (R[0], A[0], B[0], n);
       return 1;
     }
 
-  if (len <= 4 * n)
+  if (lenB <= 4 * n)
     {
-      /* len2 = log_2(len) */
-      for (i = len, len2 = 0; i > 1 && (i&1) == 0; i >>= 1, len2++);
+      /* len2 = log_2(lenB) */
+      for (i = lenB, len2 = 0; i > 1 && (i&1) == 0; i >>= 1, len2++);
       
       if (i != 1) 
         {
           outputf (OUTPUT_ERROR, "F_mul_trans: polynomial length must be power of 2, "
-                           "but is %d\n", len);
+                           "but is %d\n", lenB);
           return UINT_MAX;
         }
       
       /* Put transform of B into t */
-      for (i = 0; i < len; i++)
+      for (i = 0; i < lenB; i++)
         mpz_set (t[i], B[i]);
 
-      F_fft_dif (t, len, 0, n);
+      F_fft_dif (t, lenB, 0, n);
 
-      /* Put transform of reversed A into t + len */
-      for (i = 0; i < len / 2; i++) 
-        mpz_set (t[i + len], A[len / 2 - 1 - i]);
-      for (i = len / 2; i < len; i++)
-        mpz_set_ui (t[i + len], 0);
+      /* Put transform of reversed A into t + lenB */
+      for (i = 0; i < lenA; i++) 
+        mpz_set (t[i + lenB], A[lenA - 1 - i]);
+      for (i = lenA; i < lenB; i++)
+        mpz_set_ui (t[i + lenB], 0);
 
-      F_fft_dif (t + len, len, 0, n);
+      F_fft_dif (t + lenB, lenB, 0, n);
 
-      for (i = 0; i < len; i++) 
+      for (i = 0; i < lenB; i++) 
         {
-          F_mulmod (t[i], t[i], t[i + len], n);
+          F_mulmod (t[i], t[i], t[i + lenB], n);
           /* Do the div-by-length. Transform length was len, so divide by
              2^len2 = sqrt(2)^(2*len2) */
           F_mul_sqrt2exp (t[i], t[i], - 2 * len2, n);
         }
 
-      r += len;
+      r += lenB;
 
-      F_fft_dit (t, len, 0, n);
+      F_fft_dit (t, lenB, 0, n);
       
-      for (i = 0; i < len / 2; i++)
-        mpz_set (R[i], t[i + len / 2 - 1]);
+      for (i = 0; i < lenB / 2; i++)
+        mpz_set (R[i], t[i + lenB / 2 - 1]);
 
     } else { /* Only Karatsuba, no Toom-Cook here */
-      unsigned int h = len / 4;
-      
+      unsigned int h = lenB / 4;
+
+      if (lenA != lenB / 2)
+	  abort(); /* separate lenA, lenB not done yet! */
+
       /* A = a1 * x^h + a0
          B = b3 * x^3h + b2 * x^2h + b1 * x^h + b0
          mul^T(A, B) = mul^T(a0,b3) * x^4h + 
@@ -1396,7 +1401,7 @@ F_mul_trans (mpz_t *R, mpz_t *A, mpz_t *B, unsigned int len, unsigned int n,
       /* t */
       for (i = 0; i < h; i++)
         mpz_add (t[i], A[i], A[i + h]);
-      F_mul_trans (t, t, B + h, 2 * h, n, t + h); /* t[0 ... h-1] = t */
+      F_mul_trans (t, t, B + h, h, 2 * h, n, t + h); /* t[0 ... h-1] = t */
                                                   /* Uses t[h ... 5h-1] as temp */
 
       /* t[i] = \sum_{j=0}^{h-1} (A[j]+A[j+h]) * B[j+i+h], 0 <= i < h */
@@ -1404,7 +1409,7 @@ F_mul_trans (mpz_t *R, mpz_t *A, mpz_t *B, unsigned int len, unsigned int n,
       /* r */
       for (i = 0; i < 2 * h; i++)
         mpz_sub (t[i + h], B[i], B[h + i]);
-      F_mul_trans (t + h, A, t + h, 2 * h, n, t + 3 * h); /* t[h ... 2h-1] = r */
+      F_mul_trans (t + h, A, t + h, h, 2 * h, n, t + 3 * h); /* t[h ... 2h-1] = r */
                                                           /* Uses t[3h ... 7h-1] as temp */
       /* t[i + h] = \sum_{j=0}^{h-1} A[j] * (B[j+i] - B[j+i+h]), 0 <= i < h */
       
@@ -1425,7 +1430,7 @@ F_mul_trans (mpz_t *R, mpz_t *A, mpz_t *B, unsigned int len, unsigned int n,
       /* s */
       for (i = 0; i < 2 * h; i++)
         mpz_sub (t[i + h], B[i + 2 * h], B[i + h]);
-      F_mul_trans (t + h, A + h, t + h, 2 * h, n, t + 3 * h); /* t[h ... 2h-1] = s */
+      F_mul_trans (t + h, A + h, t + h, h, 2 * h, n, t + 3 * h); /* t[h ... 2h-1] = s */
                                                               /* Uses t[3h ... 7h - 1] as temp */
 
       /* t[i + h] = \sum_{j=0}^{h} A[j+h] * (B[j+i+2*h]-B[j+i+h]), 0 <= i < h */

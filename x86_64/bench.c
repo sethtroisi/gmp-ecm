@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <assert.h>
+#include <time.h>
 # include <sys/time.h>
 # include <sys/times.h>
 # include <sys/param.h>
@@ -15,6 +16,7 @@
 #  endif
 # endif
 
+#define LOOPCOUNT 100000000
 
 #include <gmp.h>
 
@@ -34,12 +36,19 @@ extern void ecm_redc3(mp_limb_t * z, const mp_limb_t * x, size_t n, mp_limb_t m)
 
 double CPUTime()
 {
-  struct tms t;
   double ret;
+#ifndef USE_CLOCK
+  struct tms t; 
 
   times(&t);
-  ret=t.tms_utime*1./HZ;
-  return(ret);
+  ret = t.tms_utime * 1. / HZ;
+#else
+  clock_t t;
+
+  t = clock();
+  ret = (double)t / (double)CLOCKS_PER_SEC;
+#endif
+  return ret;
 }
 
 void mp_print(mp_limb_t *x, int N) {
@@ -79,7 +88,7 @@ void bench(mp_size_t N)
 
   // Mul followed by ecm_redc3
   t1 = CPUTime();
-  for (i=0; i<10000000/N; ++i) {
+  for (i=0; i<LOOPCOUNT/N; ++i) {
     mpn_mul_n(tmp, x, y, N);
     ecm_redc3(tmp, m, N, invm);
     cy2 = mpn_add_n (tmp, tmp + N, tmp, N);
@@ -89,80 +98,139 @@ void bench(mp_size_t N)
   
   // Mixed mul and redc
   t2 = CPUTime();
-  for (i=0; i<10000000/N; ++i) {
     // Mixed mul and redc
-    switch (N) {
-     case 1:
-      cy = mulredc1(z, x[0], y[0], m[0], invm);
-      break;
-     case 2:
-      cy = mulredc2(z, x, y, m, invm);
-      break;
-     case 3:
-      cy = mulredc3(z, x, y, m, invm);
-      break;
-     case 4:
-      cy = mulredc4(z, x, y, m, invm);
-      break;
-     case 5:
-      cy = mulredc5(z, x, y, m, invm);
-      break;
-     case 6:
-      cy = mulredc6(z, x, y, m, invm);
-      break;
-     case 7:
-      cy = mulredc7(z, x, y, m, invm);
-      break;
-     case 8:
-      cy = mulredc8(z, x, y, m, invm);
-      break;
-     case 9:
-      cy = mulredc9(z, x, y, m, invm);
-      break;
-     case 10:
-      cy = mulredc10(z, x, y, m, invm);
-      break;
-     case 11:
-      cy = mulredc11(z, x, y, m, invm);
-      break;
-     case 12:
-      cy = mulredc12(z, x, y, m, invm);
-      break;
-     case 13:
-      cy = mulredc13(z, x, y, m, invm);
-      break;
-     case 14:
-      cy = mulredc14(z, x, y, m, invm);
-      break;
-     case 15:
-      cy = mulredc15(z, x, y, m, invm);
-      break;
-     case 16:
-      cy = mulredc16(z, x, y, m, invm);
-      break;
-     case 17:
-      cy = mulredc17(z, x, y, m, invm);
-      break;
-     case 18:
-      cy = mulredc18(z, x, y, m, invm);
-      break;
-     case 19:
-      cy = mulredc19(z, x, y, m, invm);
-      break;
-     case 20:
-      cy = mulredc20(z, x, y, m, invm);
-      break;
-     default:
-      cy = mulredc20(z, x, y, m,  invm);
+  switch (N) {
+   case 1:
+    for (i=0; i<LOOPCOUNT/N; ++i) {
+      cy += mulredc1(z, x[0], y[0], m[0], invm);
+      x[0] += tmp[0];
     }
-
-    x[0] += tmp[0];
+    break;
+   case 2:
+    for (i=0; i<LOOPCOUNT/N; ++i) {
+      cy += mulredc2(z, x, y, m, invm);
+      x[0] += tmp[0];
+    }
+    break;
+   case 3:
+    for (i=0; i<LOOPCOUNT/N; ++i) {
+      cy += mulredc3(z, x, y, m, invm);
+      x[0] += tmp[0];
+    }
+    break;
+   case 4:
+    for (i=0; i<LOOPCOUNT/N; ++i) {
+      cy += mulredc4(z, x, y, m, invm);
+      x[0] += tmp[0];
+    }
+    break;
+   case 5:
+    for (i=0; i<LOOPCOUNT/N; ++i) {
+      cy += mulredc5(z, x, y, m, invm);
+      x[0] += tmp[0];
+    }
+    break;
+   case 6:
+    for (i=0; i<LOOPCOUNT/N; ++i) {
+      cy += mulredc6(z, x, y, m, invm);
+      x[0] += tmp[0];
+    }
+    break;
+   case 7:
+    for (i=0; i<LOOPCOUNT/N; ++i) {
+      cy += mulredc7(z, x, y, m, invm);
+      x[0] += tmp[0];
+    }
+    break;
+   case 8:
+    for (i=0; i<LOOPCOUNT/N; ++i) {
+      cy += mulredc8(z, x, y, m, invm);
+      x[0] += tmp[0];
+    }
+    break;
+   case 9:
+    for (i=0; i<LOOPCOUNT/N; ++i) {
+      cy += mulredc9(z, x, y, m, invm);
+      x[0] += tmp[0];
+    }
+    break;
+   case 10:
+    for (i=0; i<LOOPCOUNT/N; ++i) {
+      cy += mulredc10(z, x, y, m, invm);
+      x[0] += tmp[0];
+    }
+    break;
+   case 11:
+    for (i=0; i<LOOPCOUNT/N; ++i) {
+      cy += mulredc11(z, x, y, m, invm);
+      x[0] += tmp[0];
+    }
+    break;
+   case 12:
+    for (i=0; i<LOOPCOUNT/N; ++i) {
+      cy += mulredc12(z, x, y, m, invm);
+      x[0] += tmp[0];
+    }
+    break;
+   case 13:
+    for (i=0; i<LOOPCOUNT/N; ++i) {
+      cy += mulredc13(z, x, y, m, invm);
+      x[0] += tmp[0];
+    }
+    break;
+   case 14:
+    for (i=0; i<LOOPCOUNT/N; ++i) {
+      cy += mulredc14(z, x, y, m, invm);
+      x[0] += tmp[0];
+    }
+    break;
+   case 15:
+    for (i=0; i<LOOPCOUNT/N; ++i) {
+      cy += mulredc15(z, x, y, m, invm);
+      x[0] += tmp[0];
+    }
+    break;
+   case 16:
+    for (i=0; i<LOOPCOUNT/N; ++i) {
+      cy += mulredc16(z, x, y, m, invm);
+      x[0] += tmp[0];
+    }
+    break;
+   case 17:
+    for (i=0; i<LOOPCOUNT/N; ++i) {
+      cy += mulredc17(z, x, y, m, invm);
+      x[0] += tmp[0];
+    }
+    break;
+   case 18:
+    for (i=0; i<LOOPCOUNT/N; ++i) {
+      cy += mulredc18(z, x, y, m, invm);
+      x[0] += tmp[0];
+    }
+    break;
+   case 19:
+    for (i=0; i<LOOPCOUNT/N; ++i) {
+      cy += mulredc19(z, x, y, m, invm);
+      x[0] += tmp[0];
+    }
+    break;
+   case 20:
+    for (i=0; i<LOOPCOUNT/N; ++i) {
+      cy += mulredc20(z, x, y, m, invm);
+      x[0] += tmp[0];
+    }
+    break;
+   default:
+    for (i=0; i<LOOPCOUNT/N; ++i) {
+      cy += mulredc20(z, x, y, m,  invm);
+      x[0] += tmp[0];
+    }
   }
   t2 = CPUTime()-t2;
   
   printf("******************\nN=%d\n",N);
   printf("mul+redc = %f\nmulredc  = %f\n", t1, t2);
-  printf("Normalized time=%f\n", t1/N);
+  printf("Ratio %f, Normalized time=%f\n", t1/t2, t1/N);
 
   
   free(tmp);
@@ -174,11 +242,17 @@ int main(int argc, char** argv)
 {
   mp_limb_t x[3], y[3], z[3], m[3], invm, carry;
   int nn, i;
+  int minsize = 1, maxsize = 20;
 
   nn = 7;
   
+  if (argc > 1)
+    minsize = atoi (argv[1]);
+  if (argc > 2)
+    maxsize = atoi (argv[2]);
+  
 //  for (;;) {
-    for (i = 1; i <= 20; ++i) {
+    for (i = minsize; i <= maxsize; ++i) {
       bench(i);
     }
 #if 0

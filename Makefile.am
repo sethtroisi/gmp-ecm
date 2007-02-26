@@ -6,7 +6,7 @@ libecm_a_SOURCES = ecm.c ecm2.c pm1.c pp1.c getprime.c listz.c lucas.c \
 		   stage2.c toomcook.c mpmod.c mul_lo.c polyeval.c median.c \
 		   schoen_strass.c ks-multiply.c rho.c bestd.c auxlib.c \
 		   random.c factor.c sp.c spv.c spm.c mpzspm.c mpzspv.c \
-		   ntt_gfp.c ecm_ntt.c
+		   ntt_gfp.c ecm_ntt.c pm1fs2.c
 
 bin_PROGRAMS = ecm
 noinst_PROGRAMS = tune ecmfactor
