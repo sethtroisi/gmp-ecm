@@ -457,6 +457,13 @@ mpmod_init (mpmod_t modulus, mpz_t N, int repr)
   return;
 }
 
+void
+mpres_clear (mpres_t a, ATTRIBUTE_UNUSED mpmod_t modulus) 
+{
+  mpz_clear (a);
+  PTR(a) = NULL; /* Make sure we segfault if we access it again */
+}
+
 void 
 mpmod_init_MPZ (mpmod_t modulus, mpz_t N)
 {

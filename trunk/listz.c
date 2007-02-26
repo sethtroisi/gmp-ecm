@@ -607,40 +607,81 @@ list_mulmod (listz_t a2, listz_t a, listz_t b, listz_t c, unsigned int k,
 /* puts in G[0]..G[k-1] the coefficients from (x-a[0])...(x-a[k-1])
    Warning: doesn't fill the coefficient 1 of G[k], which is implicit.
    Needs k + list_mul_mem(k/2) cells in T.
+   G == a is permissible. T must not overlap with anything else
 */
 void
 PolyFromRoots (listz_t G, listz_t a, unsigned int k, listz_t T, mpz_t n)
 {
   unsigned int l, m;
 
-   if (k <= 1)
-     {
-       mpz_mod (G[0], a[0], n);
-       return;
-     }
+  ASSERT (T != G && T != a);
 
-    /* (x-a[0]) * (x-a[1]) = x^2 - (a[0]+a[1]) * x + a[0]*a[1]
-       however we construct (x+a[0]) * (x+a[1]) instead, i.e. the
-       polynomial with the opposite roots. This has no consequence if
-       we do it for all polynomials: if F(x) and G(x) have a common root,
-       then so do F(-x) and G(-x). This saves one negation.
-     */
-   if (k == 2)
-     {
-       mpz_mul (T[0], a[0], a[1]);
-       mpz_add (T[1], a[1], a[0]); /* mpz_add may allocate extra limb */
-       mpz_mod (G[1], T[1], n);
-       mpz_mod (G[0], T[0], n);
-       return;
-     }
+  if (k <= 1)
+    {
+      if (k == 1)
+	{
+#if NEGATED_ROOTS == 1
+	  mpz_mod (G[0], a[0], n);
+#else
+	  mpz_neg (T[0], a[0]);
+	  mpz_mod (G[0], T[0], n);
+#endif
+	}
+      return;
+    }
 
-   m = k / 2;
-   l = k - m;
-
-   PolyFromRoots (G, a, l, T, n);
-   PolyFromRoots (G + l, a + l, m, T, n);
-   list_mul (T, G, l, 1, G + l, m, 1, T + k);
-   list_mod (G, T, k, n);
+#if 0
+  /* (x-a[0]) * (x-a[1]) = x^2 - (a[0]+a[1]) * x + a[0]*a[1]
+     however we construct (x+a[0]) * (x+a[1]) instead, i.e. the
+     polynomial with the opposite roots. This has no consequence if
+     we do it for all polynomials: if F(x) and G(x) have a common root,
+     then so do F(-x) and G(-x). This saves one negation.
+     
+     NOT ANY MORE! We added the mpz_neg()'s  so building the poly from
+     its roots works as one would expect in the FastPM1Stage2 algorithm!
+  */
+  if (k == 2)
+    {
+      mpz_mul (T[0], a[0], a[1]);
+      mpz_add (T[1], a[1], a[0]); /* mpz_add may allocate extra limb */
+#if NEGATED_ROOTS == 0
+      mpz_neg (T[1], T[1]);
+#endif
+      mpz_mod (G[1], T[1], n);
+      mpz_mod (G[0], T[0], n);
+      return;
+    }
+#endif
+  
+  m = k / 2; /* m == 1 */
+  l = k - m; /* l == 2 */
+  
+  PolyFromRoots (G, a, l, T, n);
+  PolyFromRoots (G + l, a + l, m, T, n);
+#if 0
+  {
+    unsigned int i;
+    outputf (OUTPUT_RESVERBOSE, "N=%Zd;", n);
+    outputf (OUTPUT_RESVERBOSE, "(x^%u ", l);
+    for (i = 0; i < l; i++)
+      outputf (OUTPUT_RESVERBOSE, "+ (Mod(%Zd, N) * x^%u) ", G[i], i);
+    outputf (OUTPUT_RESVERBOSE, ") * ( x^%u", m);
+    for (i = 0; i < m; i++)
+      outputf (OUTPUT_RESVERBOSE, "+ (Mod(%Zd, N) * x^%u) ", G[i + l], i);
+    outputf (OUTPUT_RESVERBOSE, ")  ");
+  }
+#endif
+  list_mul (T, G, l, 1, G + l, m, 1, T + k);
+  list_mod (G, T, k, n);
+#if 0
+  {
+    unsigned int i;
+    outputf (OUTPUT_RESVERBOSE, " == ( x^%u ", k);
+    for (i = 0; i < k; i++)
+      outputf (OUTPUT_RESVERBOSE, "+ (Mod(%Zd, N) * x^%u) ", G[i], i);
+    outputf (OUTPUT_RESVERBOSE, ")\n");
+  } 
+#endif
 }
 
 /* puts in G[0]..G[k-1] the coefficients from (x-a[0])...(x-a[k-1])
@@ -667,7 +708,15 @@ PolyFromRoots_Tree (listz_t G, listz_t a, unsigned int k, listz_t T,
   if (k <= 1)
     {
       if (k == 1)
-        mpz_set (G[0], a[0]);
+        {
+#if NEGATED_ROOTS == 1
+	  mpz_mod (G[0], a[0], n);
+#else
+	  mpz_neg (a[0], a[0]);
+	  mpz_mod (G[0], a[0], n);
+          mpz_neg (a[0], a[0]);
+#endif
+        }
       return 0;
     }
 
@@ -688,6 +737,9 @@ PolyFromRoots_Tree (listz_t G, listz_t a, unsigned int k, listz_t T,
      polynomial with the opposite roots. This has no consequence if
      we do it for all polynomials: if F(x) and G(x) have a common root,
      then so do F(-x) and G(-x). This saves one negation.
+       
+       NOT ANY MORE! We added the mpz_neg() below so building the poly from
+       its roots works as one would expect in the FastPM1Stage2 algorithm!
   */
   if (k == 2)
     {
@@ -695,6 +747,9 @@ PolyFromRoots_Tree (listz_t G, listz_t a, unsigned int k, listz_t T,
       mpz_set (H1[1], a[1]);
       mpz_mul (T[0], a[0], a[1]);
       mpz_add (G[1], a[1], a[0]);
+#if NEGATED_ROOTS == 0
+      mpz_neg (G[1], G[1]);
+#endif
       mpz_mod (G[1], G[1], n);
       mpz_mod (G[0], T[0], n);
       return 0;
@@ -770,7 +825,7 @@ PolyInvert (listz_t q, listz_t b, unsigned int K, listz_t t, mpz_t n)
         {
           list_revert (q + k, l - 1);
           /* This expects the leading monomials explicitly in q[2k-1] and b[k+l-1] */
-          F_mul_trans (t, q + k, b, K, Fermat, t + k);
+          F_mul_trans (t, q + k, b, K / 2, K, Fermat, t + k);
           list_revert (q + k, l - 1);
           list_neg (t, t, k, n);
         }

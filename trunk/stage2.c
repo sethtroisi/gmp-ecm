@@ -407,6 +407,12 @@ stage2 (mpz_t f, void *X, mpmod_t modulus, unsigned long dF, unsigned long k,
   if (stop_asap != NULL && (*stop_asap)())
     goto clear_T;
 
+  if (test_verbose (OUTPUT_TRACE))
+    {
+      unsigned long j;
+      for (j = 0; j < dF; j++)
+	outputf (OUTPUT_TRACE, "f_%lu = %Zd\n", j, F[j]);
+    }
 
   /* ----------------------------------------------
      |   F    |  invF  |   G   |         T        |
@@ -509,7 +515,14 @@ stage2 (mpz_t f, void *X, mpmod_t modulus, unsigned long dF, unsigned long k,
       else
 	PolyFromRoots_Tree (F, F, dF, T, -1, n, Tree, NULL, 0);
     }
-      
+  
+  
+  if (test_verbose (OUTPUT_TRACE))
+    {
+      unsigned long j;
+      for (j = 0; j < dF; j++)
+	outputf (OUTPUT_TRACE, "F[%lu] = %Zd\n", j, F[j]);
+    }
   outputf (OUTPUT_VERBOSE, "Building F from its roots took %ldms\n", 
            elltime (st, cputime ()));
 
@@ -624,6 +637,13 @@ stage2 (mpz_t f, void *X, mpmod_t modulus, unsigned long dF, unsigned long k,
 	youpi = ecm_rootsG (f, G, dF, (ecm_roots_state *) rootsG_state, 
 			    modulus);
 
+      if (test_verbose (OUTPUT_TRACE))
+	{
+	  unsigned long j;
+	  for (j = 0; j < dF; j++)
+	    outputf (OUTPUT_TRACE, "g_%lu = %Zd\n", j, G[j]);
+	}
+
       ASSERT(youpi != ECM_ERROR); /* xxx_rootsG cannot fail */
       if (youpi) /* factor found */
         {
@@ -646,6 +666,15 @@ stage2 (mpz_t f, void *X, mpmod_t modulus, unsigned long dF, unsigned long k,
         ntt_PolyFromRoots (G, G, dF, T + dF, mpzspm);
       else
         PolyFromRoots (G, G, dF, T + dF, n);
+
+      if (test_verbose (OUTPUT_TRACE))
+	{
+	  unsigned long j;
+	  outputf (OUTPUT_TRACE, "G(x) = x^%lu ", dF);
+	  for (j = 0; j < dF; j++)
+	    outputf (OUTPUT_TRACE, "+ (%Zd * x^%lu)", G[j], j);
+	  outputf (OUTPUT_TRACE, "\n");
+	}
 
       /* needs 2*dF+list_mul_mem(dF/2) cells in T */
       outputf (OUTPUT_VERBOSE, "Building G from its roots took %ldms\n", 
@@ -754,6 +783,13 @@ stage2 (mpz_t f, void *X, mpmod_t modulus, unsigned long dF, unsigned long k,
   polyeval (T, dF, Tree, T + dF + 1, n, 0, ECM_STDERR);
 #endif
   treefiles_used = 0; /* Polyeval deletes treefiles by itself */
+
+  if (test_verbose (OUTPUT_TRACE))
+    {
+      unsigned long j;
+      for (j = 0; j < dF; j++)
+	outputf (OUTPUT_TRACE, "G(x_%lu) = %Zd\n", j, T[j]);
+    }
 
   outputf (OUTPUT_VERBOSE, "Computing polyeval(F,G) took %ldms\n", 
            elltime (st, cputime ()));

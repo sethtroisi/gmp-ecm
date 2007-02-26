@@ -77,6 +77,11 @@ extern FILE *ECM_STDOUT, *ECM_STDERR;
 #define ATTRIBUTE_CONST
 #endif
 
+/* Whether we build the polynomials in stage 2 as described in the literature 
+   as products of (x - x_i) (NEGATED_ROOTS 0), or as 
+   (x + x_i) (NEGATED_ROOTS 1) */
+#define NEGATED_ROOTS 0
+
 /* default B2 choice: pow (B1 * METHOD_COST / 6.0, DEFAULT_B2_EXPONENT) */
 #define DEFAULT_B2_EXPONENT 1.43
 #define PM1_COST 1.0 / 6.0
@@ -330,6 +335,9 @@ int     pm1_rootsG       (mpz_t, listz_t, unsigned long, pm1_roots_state *,
 #define pm1_rootsG_clear __ECM(pm1_rootsG_clear)
 void    pm1_rootsG_clear (pm1_roots_state *, mpmod_t);
 
+/* pm1fs2.c */
+int	pm1fs2 (mpz_t, mpres_t, mpmod_t, unsigned long, unsigned long);
+
 /* bestd.c */
 #define eulerphi __ECM(eulerphi)
 unsigned long eulerphi (unsigned long);
@@ -550,6 +558,8 @@ void mpres_get_z (mpz_t, mpres_t, mpmod_t);
 void mpres_set_ui (mpres_t, unsigned int, mpmod_t);
 #define mpres_init __ECM(mpres_init)
 void mpres_init (mpres_t, mpmod_t);
+#define mpres_clear __ECM(mpres_clear)
+void mpres_clear (mpres_t, mpmod_t);
 #define mpres_realloc __ECM(mpres_realloc)
 void mpres_realloc (mpres_t, mpmod_t);
 #define mpres_mul_ui __ECM(mpres_mul_ui)
@@ -564,7 +574,6 @@ void mpres_gcd (mpz_t, mpres_t, mpmod_t);
 void mpres_out_str (FILE *, unsigned int, mpres_t, mpmod_t);
 #define mpres_is_zero __ECM(mpres_is_zero)
 int  mpres_is_zero (mpres_t, mpmod_t);
-#define mpres_clear(a,n) mpz_clear (a)
 #define mpres_set(a,b,n) mpz_set (a, b)
 #define mpres_swap(a,b,n) mpz_swap (a, b)
 
@@ -591,7 +600,7 @@ unsigned int F_mul (mpz_t *, mpz_t *, mpz_t *, unsigned int, int,
                     unsigned int, mpz_t *);
 #define F_mul_trans __ECM(F_mul_trans)
 unsigned int F_mul_trans (mpz_t *, mpz_t *, mpz_t *, unsigned int,
-                          unsigned int, mpz_t *);
+                          unsigned int, unsigned int, mpz_t *);
 #define F_clear __ECM(F_clear)
 void F_clear ();
 

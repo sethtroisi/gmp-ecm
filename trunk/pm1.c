@@ -905,6 +905,7 @@ pm1 (mpz_t f, mpz_t p, mpz_t N, mpz_t go, double *B1done, double B1,
         }
     }
 
+#ifndef FASTPM1STAGE2
   /* We need Suyama's power even and at least 2 for P-1 stage 2 to work 
      correctly */
   if (abs (root_params.S) < 2)
@@ -912,6 +913,7 @@ pm1 (mpz_t f, mpz_t p, mpz_t N, mpz_t go, double *B1done, double B1,
 
   if (root_params.S & 1)
     root_params.S *= 2; /* FIXME: Is this what the user would expect? */
+#endif
 
   if (test_verbose (OUTPUT_NORMAL))
     {
@@ -961,8 +963,15 @@ pm1 (mpz_t f, mpz_t p, mpz_t N, mpz_t go, double *B1done, double B1,
     goto clear_and_exit;
 
   if (youpi == ECM_NO_FACTOR_FOUND && mpz_cmp (B2, B2min) >= 0)
-    youpi = stage2 (f, &x, modulus, dF, k, &root_params, ECM_PM1, 
-                    use_ntt, TreeFilename, stop_asap);
+    {
+#ifdef FASTPM1STAGE2
+      if (root_params.S == 1)
+        youpi = pm1fs2 (f, x, modulus, root_params.d1, k);
+      else
+#endif
+        youpi = stage2 (f, &x, modulus, dF, k, &root_params, ECM_PM1, 
+                        use_ntt, TreeFilename, stop_asap);
+    }
 
 clear_and_exit:
   mpres_get_z (p, x, modulus);

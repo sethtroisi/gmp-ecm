@@ -742,7 +742,7 @@ TMulGen (listz_t b, unsigned int n, listz_t a, unsigned int m,
     if (Fermat)
       {
         if (i == 1 && m + n + 1 == l)
-          return F_mul_trans (b, a, c, l + 1, Fermat, tmp);
+          return F_mul_trans (b, a, c, (l + 1) / 2, l + 1, Fermat, tmp);
         else
           fprintf (ECM_STDERR, "TMulGen: Fermat = %d, but m+1 = %d, n+1 = %d, l+1 = %d\n", 
                    Fermat, m+1, n+1, l+1);
