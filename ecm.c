@@ -907,6 +907,7 @@ ecm (mpz_t f, mpz_t x, mpz_t sigma, mpz_t n, mpz_t go, double *B1done,
   if (use_ntt)
     po2 = 1;
 
+  root_params.d2 = 0; /* Enable automatic choice of d2 */
   if (bestD (&root_params, &k, &dF, B2min, B2, po2, use_ntt, maxmem, 
              (TreeFilename != NULL), modulus) == ECM_ERROR)
     {

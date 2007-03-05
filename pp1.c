@@ -779,6 +779,7 @@ pp1 (mpz_t f, mpz_t p, mpz_t n, mpz_t go, double *B1done, double B1,
   if (use_ntt)
     po2 = 1;
   
+  root_params.d2 = 0; /* Enable automatic choice of d2 */
   if (bestD (&root_params, &k, &dF, B2min, B2, po2, use_ntt, maxmem,
              (TreeFilename != NULL), modulus) == ECM_ERROR)
     {

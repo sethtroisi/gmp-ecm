@@ -169,13 +169,16 @@ od:
       phid = eulerphi (d1) / 2;
       dF = (po2) ? 1U << ceil_log2 (phid) : phid;
       /* Look for smallest prime < 25 that does not divide d1 */
-      for (d2 = 5; d2 < 25; d2 += 2)
-        {
-          if (d2 % 3 == 0)
-            continue;
-          if (d1 % d2 > 0)
-            break;
-        }
+      /* The caller can force d2 = 1 by setting root_params->d2 != 0 */
+      d2 = 1;
+      if (root_params->d2 == 0)
+        for (d2 = 5; d2 < 25; d2 += 2)
+          {
+            if (d2 % 3 == 0)
+              continue;
+            if (d1 % d2 > 0)
+              break;
+          }
 
       if (d2 >= 25 || d2 - 1 > dF)
         d2 = 1;
