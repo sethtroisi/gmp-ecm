@@ -80,7 +80,7 @@ init_list (unsigned int n)
 }
 
 /* creates a list of n integers, return NULL if error. Allocates each
-   mpz_t to the size of n */
+   mpz_t to the size of N bits */
 listz_t
 init_list2 (unsigned int n, unsigned int N)
 {
@@ -312,6 +312,7 @@ list_mul_low (listz_t a, listz_t b, listz_t c, unsigned int K, listz_t t,
 {
   unsigned int p, q;
 
+  ASSERT(K > 0);
   switch (K)
     {
     case 1:
@@ -356,6 +357,7 @@ list_mul_high (listz_t a, listz_t b, listz_t c, unsigned int K, listz_t t)
 #else
   unsigned int p, q;
 
+  ASSERT(K > 0);
   switch (K)
     {
     case 1:
@@ -525,7 +527,7 @@ list_mul (listz_t a, listz_t b, unsigned int k, int monic_b,
 {
   unsigned int i, po2;
 
-  ASSERTD (k >= l);
+  ASSERT(k == l || k == l + 1);
   
   for (po2 = l; (po2 & 1) == 0; po2 >>= 1);
   po2 = (po2 == 1);
