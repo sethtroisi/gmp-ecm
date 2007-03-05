@@ -336,7 +336,8 @@ int     pm1_rootsG       (mpz_t, listz_t, unsigned long, pm1_roots_state *,
 void    pm1_rootsG_clear (pm1_roots_state *, mpmod_t);
 
 /* pm1fs2.c */
-int	pm1fs2 (mpz_t, mpres_t, mpmod_t, unsigned long, unsigned long);
+int	pm1fs2 (mpz_t, mpres_t, mpmod_t, root_params_t *, unsigned long,
+                unsigned long);
 
 /* bestd.c */
 #define eulerphi __ECM(eulerphi)
@@ -540,6 +541,8 @@ void mpres_pow (mpres_t, mpres_t, mpz_t, mpmod_t);
 void mpres_ui_pow (mpres_t, unsigned int, mpres_t, mpmod_t);
 #define mpres_mul __ECM(mpres_mul)
 void mpres_mul (mpres_t, mpres_t, mpres_t, mpmod_t);
+#define mpres_set_z_for_gcd __ECM(mpres_set_z_for_gcd)
+void mpres_set_z_for_gcd (mpres_t, mpz_t, mpmod_t);
 #define mpres_div_2exp __ECM(mpres_div_2exp)
 void mpres_div_2exp (mpres_t, mpres_t, unsigned int, mpmod_t);
 #define mpres_add_ui __ECM(mpres_add_ui)

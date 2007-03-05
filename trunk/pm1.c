@@ -865,7 +865,16 @@ pm1 (mpz_t f, mpz_t p, mpz_t N, mpz_t go, double *B1done, double B1,
   
   if (use_ntt || (modulus->repr == ECM_MOD_BASE2 && modulus->Fermat > 0))
     po2 = 1;
-  
+
+  root_params.d2 = 0; /* Enable automatic choice of d2 */
+#ifdef FASTPM1STAGE2
+  if (S == 1)
+    {
+      root_params.d2 = 1; /* Disable automatic choice of d2 */
+      po2 = 1;
+    }
+#endif
+
   if (bestD (&root_params, &k, &dF, B2min, B2, po2, use_ntt, maxmem,
              (TreeFilename != NULL), modulus) == ECM_ERROR)
     {
@@ -966,7 +975,7 @@ pm1 (mpz_t f, mpz_t p, mpz_t N, mpz_t go, double *B1done, double B1,
     {
 #ifdef FASTPM1STAGE2
       if (root_params.S == 1)
-        youpi = pm1fs2 (f, x, modulus, root_params.d1, k);
+        youpi = pm1fs2 (f, x, modulus, &root_params, dF, k);
       else
 #endif
         youpi = stage2 (f, &x, modulus, dF, k, &root_params, ECM_PM1, 
