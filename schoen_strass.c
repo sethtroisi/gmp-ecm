@@ -144,7 +144,7 @@ F_mod_gt (mpz_t R, unsigned int n)
 static void 
 F_mulmod (mpz_t R, mpz_t S1, mpz_t S2, unsigned int n)
 {
-  int n2 = n / __GMP_BITS_PER_MP_LIMB; /* type of _mp_size is int */
+  int n2 = (n - 1) / __GMP_BITS_PER_MP_LIMB + 1; /* type of _mp_size is int */
   F_mod_1 (S1, n);
   F_mod_1 (S2, n);
   if (mpz_size (S1) > (unsigned) n2)
@@ -1307,9 +1307,9 @@ F_mul (mpz_t *R, mpz_t *A, mpz_t *B, unsigned int len, int parameter,
    lenB is the length of polynomial B and must be a power of 2,
    lenA is the length of polynomial A and must be lenB / 2 or lenB / 2 + 1. 
    n=2^m
-   t must have space for 2*len coefficients 
-   Only the product coefficients [len / 2 - 1 ... len - 2] will go into 
-   R[0 ... len / 2 - 1] 
+   t must have space for 2*lenB coefficients 
+   Only the product coefficients [lenA - 1 ... lenA + lenB/2 - 2] will go into 
+   R[0 ... lenB / 2 - 1] 
    Return value: number of multiplies performed, UINT_MAX in error case. */
 
 unsigned int 
@@ -1375,13 +1375,14 @@ F_mul_trans (mpz_t *R, mpz_t *A, mpz_t *B, unsigned int lenA,
       F_fft_dit (t, lenB, 0, n);
       
       for (i = 0; i < lenB / 2; i++)
-        mpz_set (R[i], t[i + lenB / 2 - 1]);
+        mpz_set (R[i], t[i + lenA - 1]);
 
     } else { /* Only Karatsuba, no Toom-Cook here */
       unsigned int h = lenB / 4;
+      const unsigned int lenA0 = h, lenA1 = lenA - h;
 
-      if (lenA != lenB / 2)
-	  abort(); /* separate lenA, lenB not done yet! */
+      outputf (OUTPUT_DEVVERBOSE, "schoen_strass.c: Transposed Karatsuba, "
+	       "lenA = %lu, lenB = %lu\n", lenA, lenB);
 
       /* A = a1 * x^h + a0
          B = b3 * x^3h + b2 * x^2h + b1 * x^h + b0
@@ -1395,62 +1396,35 @@ F_mul_trans (mpz_t *R, mpz_t *A, mpz_t *B, unsigned int lenA,
          mul^T(a1,b2) + mul^T(a0,b1)
          mul^T(a1,b3) + mul^T(a0,b2)
 
-         Specifically, we want R[i] = \sum_{j=0}^{len/2} A[j] * B[j+i], 0<=i<len/2
+         Specifically, we want 
+	 R[i] = \sum_{j=0}^{lenA} A[j] * B[j+i], 0 <= i < 2h
       */
       
-      /* t */
+      /* T */
       for (i = 0; i < h; i++)
         mpz_add (t[i], A[i], A[i + h]);
-      F_mul_trans (t, t, B + h, h, 2 * h, n, t + h); /* t[0 ... h-1] = t */
-                                                  /* Uses t[h ... 5h-1] as temp */
+      if (lenA1 == h + 1)
+	mpz_set (t[h], A[2*h]);
+      F_mul_trans (t, t, B + h, lenA1, 2 * h, n, t + lenA1);
+      /* Uses t[h ... 5h-1] as temp */
 
-      /* t[i] = \sum_{j=0}^{h-1} (A[j]+A[j+h]) * B[j+i+h], 0 <= i < h */
-      
-      /* r */
+      /* U */
       for (i = 0; i < 2 * h; i++)
         mpz_sub (t[i + h], B[i], B[h + i]);
-      F_mul_trans (t + h, A, t + h, h, 2 * h, n, t + 3 * h); /* t[h ... 2h-1] = r */
-                                                          /* Uses t[3h ... 7h-1] as temp */
-      /* t[i + h] = \sum_{j=0}^{h-1} A[j] * (B[j+i] - B[j+i+h]), 0 <= i < h */
+      F_mul_trans (t + h, A, t + h, lenA0, 2 * h, n, t + 3 * h);
+      /* Uses t[3h ... 7h-1] as temp */
       
       for (i = 0; i < h; i++)
         mpz_add (R[i], t[i], t[i + h]); /* R[0 ... h-1] = t + r */
-                                        /* r not needed anymore */
       
-      /* R[i] = \sum_{j=0}^{h-1} (A[j]+A[j+h]) * B[j+i+h] +  \sum_{j=0}^{h-1} A[j] * (B[j+i] - B[j+i+h]) =
-                \sum_{j=0}^{h-1} (A[j]+A[j+h]) * B[j+i+h] + A[j] * (B[j+i] - B[j+i+h]) = 
-                \sum_{j=0}^{h-1} A[j]*B[j+i+h] + A[j+h]*B[j+i+h] + A[j]*B[j+i] - A[j]*B[j+i+h] =
-                \sum_{j=0}^{h-1} A[j+h]*B[j+i+h] + A[j]*B[j+i] =
-                \sum_{j=0}^{h-1} A[j]*B[j+i] + \sum_{j=0}^{h-1} A[j+h]*B[j+i+h] =
-                \sum_{j=0}^{h-1} A[j]*B[j+i] + \sum_{j=h}^{2h-1} A[j]*B[j+i] =
-
-                \sum_{j=0}^{2h-1} A[j]*B[j+i], 0 <= i < h   (1)
-      */
-      
-      /* s */
+      /* V */
       for (i = 0; i < 2 * h; i++)
         mpz_sub (t[i + h], B[i + 2 * h], B[i + h]);
-      F_mul_trans (t + h, A + h, t + h, h, 2 * h, n, t + 3 * h); /* t[h ... 2h-1] = s */
-                                                              /* Uses t[3h ... 7h - 1] as temp */
-
-      /* t[i + h] = \sum_{j=0}^{h} A[j+h] * (B[j+i+2*h]-B[j+i+h]), 0 <= i < h */
+      F_mul_trans (t + h, A + h, t + h, lenA1, 2 * h, n, t + 3 * h);
+      /* Uses t[3h ... 7h - 1] as temp */
       
       for (i = 0; i < h; i++)
         mpz_add (R[i + h], t[i], t[i + h]);
-      
-      /* R[i + h] = \sum_{j=0}^{h-1} (A[j]+A[j+h]) * B[j+i+h] + \sum_{j=0}^{h} A[j+h] * (B[j+i+2*h]-B[j+i+h]) =
-                    \sum_{j=0}^{h-1} (A[j]+A[j+h]) * B[j+i+h] + A[j+h] * (B[j+i+2*h]-B[j+i+h]) =
-                    \sum_{j=0}^{h-1} A[j]*B[j+i+h] + A[j+h]*B[j+i+h] + A[j+h]*B[j+i+2*h] - A[j+h]*B[j+i+h] =
-                    \sum_{j=0}^{h-1} A[j]*B[j+i+h] + A[j+h]*B[j+i+2*h] =
-                    \sum_{j=0}^{h-1} A[j]*B[j+i+h] + \sum_{j=0}^{h-1} A[j+h]*B[j+i+2*h] =
-                    \sum_{j=0}^{h-1} A[j]*B[j+i+h] + \sum_{j=h}^{2h-1} A[j]*B[j+i+h] =
-                    \sum_{j=0}^{2h-1} A[j]*B[j+i+h], 0 <= i < h
-
-        R[i] = \sum_{j=0}^{2h-1} A[j]*B[j+i], h <= i < 2*h   (2)
-        
-        (1) and (2) : R[i] = \sum_{j=0}^{2h-1} A[j]*B[j+i], 0 <= i < 2*h
-      */
-          
     }
   
   return r;
