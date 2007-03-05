@@ -737,15 +737,15 @@ TMulGen (listz_t b, unsigned int n, listz_t a, unsigned int m,
 {
     unsigned int i, muls = 0;
 
+    ASSERT (n <= l);
     for (i = l + 1; i > 1 && (i&1) == 0; i >>= 1);
     
     if (Fermat)
       {
-        if (i == 1 && m + n + 1 == l)
-          return F_mul_trans (b, a, c, (l + 1) / 2, l + 1, Fermat, tmp);
-        else
-          fprintf (ECM_STDERR, "TMulGen: Fermat = %d, but m+1 = %d, n+1 = %d, l+1 = %d\n", 
-                   Fermat, m+1, n+1, l+1);
+        ASSERT(i == 1);
+        ASSERT(n + 1 == (l + 1) / 2);
+        ASSERT(m == l - n || m + 1 == l - n);
+        return F_mul_trans (b, a, c, m + 1, l + 1, Fermat, tmp);
       }
 
 #ifdef KS_MULTIPLY
