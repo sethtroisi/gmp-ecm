@@ -941,6 +941,15 @@ mpres_mul (mpres_t R, mpres_t S1, mpres_t S2, mpmod_t modulus)
   switch (modulus->repr)
     {
     case ECM_MOD_BASE2:
+#if 0
+      /* Check that the inputs are properly reduced */
+      if  (mpz_sizeinbase (S1, 2) > labs(modulus->bits))
+        outputf (OUTPUT_ERROR, "mpers_mul: S1 has %ld bits\n", 
+                 (long) mpz_sizeinbase (S1, 2));
+      if  (mpz_sizeinbase (S2, 2) > labs(modulus->bits))
+        outputf (OUTPUT_ERROR, "mpers_mul: S2 has %ld bits\n", 
+                 (long) mpz_sizeinbase (S2, 2));
+#endif
       base2mod (R, modulus->temp1, modulus->temp1, modulus);
       break;
     case ECM_MOD_MODMULN:
@@ -964,6 +973,18 @@ mpres_mul_ui (mpres_t R, mpres_t S, unsigned int n, mpmod_t modulus)
   /* This is the same for all methods: just reduce with original modulus */
   mpz_mod (R, modulus->temp1, modulus->orig_modulus);
   ASSERT_NORMALIZED (R);
+}
+
+/* Sets R = S * c, for some constant c that is coprime to modulus.
+   This is primalily useful for multiplying numbers together for a gcd with
+   modulus. The advantage is that we don't need to convert the mpz_t 
+   to Montgomery representation before applying REDC. */
+
+void 
+mpres_set_z_for_gcd (mpres_t R, mpz_t S, mpmod_t modulus)
+{
+  mpz_mod (R, S, modulus->orig_modulus);
+  ASSERT_NORMALIZED (R);  
 }
 
 /* R <- S / 2^n mod modulus. Does not need to be fast. */
