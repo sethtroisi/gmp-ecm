@@ -1405,13 +1405,13 @@ F_mul_trans (mpz_t *R, mpz_t *A, mpz_t *B, unsigned int lenA,
         mpz_add (t[i], A[i], A[i + h]);
       if (lenA1 == h + 1)
 	mpz_set (t[h], A[2*h]);
-      F_mul_trans (t, t, B + h, lenA1, 2 * h, n, t + lenA1);
+      r = F_mul_trans (t, t, B + h, lenA1, 2 * h, n, t + lenA1);
       /* Uses t[h ... 5h-1] as temp */
 
       /* U */
       for (i = 0; i < 2 * h; i++)
         mpz_sub (t[i + h], B[i], B[h + i]);
-      F_mul_trans (t + h, A, t + h, lenA0, 2 * h, n, t + 3 * h);
+      r += F_mul_trans (t + h, A, t + h, lenA0, 2 * h, n, t + 3 * h);
       /* Uses t[3h ... 7h-1] as temp */
       
       for (i = 0; i < h; i++)
@@ -1420,7 +1420,7 @@ F_mul_trans (mpz_t *R, mpz_t *A, mpz_t *B, unsigned int lenA,
       /* V */
       for (i = 0; i < 2 * h; i++)
         mpz_sub (t[i + h], B[i + 2 * h], B[i + h]);
-      F_mul_trans (t + h, A + h, t + h, lenA1, 2 * h, n, t + 3 * h);
+      r += F_mul_trans (t + h, A + h, t + h, lenA1, 2 * h, n, t + 3 * h);
       /* Uses t[3h ... 7h - 1] as temp */
       
       for (i = 0; i < h; i++)
