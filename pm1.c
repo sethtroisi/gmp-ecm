@@ -835,9 +835,6 @@ pm1 (mpz_t f, mpz_t p, mpz_t N, mpz_t go, double *B1done, double B1,
       /* TODO: make dependent on Nbits and base2 */
       if (base2)
         {
-	  outputf (OUTPUT_VERBOSE, 
-		   "Using special division for factor of 2^%d%c1\n", 
-		   abs (base2), (base2 > 0) ? '+' : '-');
           mpmod_init_BASE2 (modulus, base2, N);
         }
 
