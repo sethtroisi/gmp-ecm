@@ -16,7 +16,7 @@ pm1fs2(mpz_t f, mpres_t X, mpmod_t modulus, root_params_t *root_params,
   mpz_t mt;
   int youpi = 0;
   extern unsigned int Fermat;
-  long timestart, timestop, muls;
+  long timetotalstart, timestart, timestop, muls;
   long pariline = 0;
 
   ASSERT  (root_params->d1 % 2 == 0);
@@ -24,6 +24,8 @@ pm1fs2(mpz_t f, mpres_t X, mpmod_t modulus, root_params_t *root_params,
 
   if (modulus->repr == ECM_MOD_BASE2 && modulus->Fermat > 0)
     Fermat = modulus->Fermat;
+
+  timetotalstart = cputime ();
 
   outputf (OUTPUT_VERBOSE, "P = %lu; d = %lu; /* PARI %ld */\n", 
 	   P, d, pariline++);
@@ -37,10 +39,10 @@ pm1fs2(mpz_t f, mpres_t X, mpmod_t modulus, root_params_t *root_params,
   /* Allocate the correct amount of space for each mpz_t or the 
      reallocations will up to double the time for stage 2! */
   mpz_init (mt);    /* All-purpose temp mpz_t */
-  F = init_list2 (d, modulus->bits);
-  B = init_list2 (2 * d, modulus->bits);
-  C = init_list2 (d + 1, modulus->bits);
-  R = init_list2 (3 * d + 1, modulus->bits);    
+  F = init_list2 (d, labs (modulus->bits));
+  B = init_list2 (2 * d, labs (modulus->bits));
+  C = init_list2 (d + 1, labs (modulus->bits));
+  R = init_list2 (3 * d + 1, labs (modulus->bits));    
   tmplen = 2 * d + list_mul_mem (d / 2);
   outputf (OUTPUT_DEVVERBOSE, "tmplen = %lu\n", tmplen);
   if (TMulGen_space (d - 1, d, 2 * d - 1) > tmplen)
@@ -329,6 +331,10 @@ pm1fs2(mpz_t f, mpres_t X, mpmod_t modulus, root_params_t *root_params,
   mpres_clear (findiff[0], modulus);
   mpres_clear (findiff[1], modulus);
   mpres_clear (findiff[2], modulus);
+
+  timestop = cputime ();
+  outputf (OUTPUT_VERBOSE, "Step 2 took %ld ms\n", 
+           timestop - timetotalstart);
   
   return youpi;
 }
