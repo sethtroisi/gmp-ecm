@@ -333,7 +333,7 @@ pm1fs2(mpz_t f, mpres_t X, mpmod_t modulus, root_params_t *root_params,
   mpres_clear (findiff[2], modulus);
 
   timestop = cputime ();
-  outputf (OUTPUT_VERBOSE, "Step 2 took %ld ms\n", 
+  outputf (OUTPUT_NORMAL, "Step 2 took %ld ms\n", 
            timestop - timetotalstart);
   
   return youpi;
