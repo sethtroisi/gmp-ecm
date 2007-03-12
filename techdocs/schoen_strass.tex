@@ -22,9 +22,10 @@ B_k = \sum_{i=0}^{h-1} b_{i+kh} x^i, \textrm{for } k = 0, 1, 2, 3,
 that is, cut $B$ into four equal-size pieces. 
 Assume $\len(A) = 2h$ or $\len(A) = 2h+1$ and set
 \begin{eqnarray*}
-A_0 & = & \sum_{i=0}^{h-1} b_{i} x^i, \\
-A_1 & = & \sum_{i=0}^{\len(A)-h-1} b_{i+h} x^i.
+A_0 & = & \sum_{i=0}^{h-1} a_{i} x^i, \\
+A_1 & = & \sum_{i=0}^{\len(A)-h-1} a_{i+h} x^i.
 \end{eqnarray*}
+with $a_{2h} = 0$ if $\len(A) = 2h$.
 
 Let $R = \mult(A, B)$ where $R$ is a polynomial of degree $\deg(R)$, i.e.
 %
@@ -43,7 +44,7 @@ so that
 \begin{eqnarray*}
 t_i & = & \sum_{j=0}^{h-1} (a_j + a_{j+h}) b_{j+i+h} + a_{2h} b_{i+2h} \\
     & = & \sum_{j=0}^{h-1} (a_j b_{j+i+h} + a_{j+h} b_{j+i+h}) + a_{2h} b_{i+2h} \\
-& & \textrm{for } 0\leq i < h
+& & \textrm{for } 0\leq i < h.
 \end{eqnarray*}
 
 Set $U(x) = \mult(A_0, (B_0 - B_1) + (B_1 - B_2) x^h)$
@@ -51,7 +52,7 @@ so that
 \begin{eqnarray*}
 u_i & = & \sum_{j=0}^{h-1} a_j (b_{j+i} - b_{j+i+h}) \\
     & = & \sum_{j=0}^{h-1} (a_j b_{j+i} - a_j b_{j+i+h}) \\
-& & \textrm{for } 0\leq i < h
+& & \textrm{for } 0\leq i < h.
 \end{eqnarray*}
 
 Set $V(x) = \mult(A_1, (B_2 - B_1) + (B_3 - B_2) x^h)$ 
@@ -59,7 +60,7 @@ so that
 \begin{eqnarray*}
 v_i & = & \sum_{j=0}^{h-1} a_{j+h} (b_{j+i+2h} - b_{j+i+h}) + a_{2h}(b_{i+3h} - b_{i+2h})\\
     & = & \sum_{j=0}^{h-1} (a_{j+h} b_{j+i+2h} - a_{j+h} b_{j+i+h}) + a_{2h} b_{i+3h} - a_{2h} b_{i+2h}\\
-& & \textrm{for } 0\leq i < h
+& & \textrm{for } 0\leq i < h.
 \end{eqnarray*}
 
 Let $R(x) = T(x) + U(x)$ so that
@@ -76,6 +77,9 @@ s_i & = & \sum_{j=0}^{h-1} (a_j b_{j+i+h} + a_{j+h} b_{j+i+h} + a_{j+h} b_{j+i+2
     &   &+ a_{2h} b_{i+2h} + a_{2h} b_{i+3h} - a_{2h} b_{i+2h}\\
     & = & \sum_{j=0}^{h-1} (a_j b_{j+i+h} + a_{j+h} b_{j+i+2h}) + a_{2h} b_{i+3h} \\
     & = & \sum_{j=0}^{2h-1} a_j b_{j+i+h} + a_{2h} b_{i+3h} \\
-    & = & \sum_{j=0}^{\len(A)-1} a_j b_{j+i+h}
+    & = & \sum_{j=0}^{\len(A)-1} a_j b_{j+i+h}.
 \end{eqnarray*}
+
+Now set $r_{i+h} = s_i$ for $0 \leq i < h$. This way, 
+$r_i = \sum_{j=0}^{len(A)-1} a_j b_{j+i}$ for $0 \leq i < 2h$, as desired.
 \end{document}
