@@ -1,0 +1,53 @@
+\documentclass{article}
+\usepackage{amsmath}
+\begin{document}
+
+\title{Building polynomials with roots $r^k$, $k\perp n$}
+\author{A. Kruppa}
+\maketitle
+
+
+\section{The set of integers coprime to $n$}
+Let $S_n = {1 \leq i < n, i \perp n}$ be the set of positive integers coprime 
+to and less than $n$, i.e. the smallest positive representatives of the units 
+of $Z/Zn$.
+
+Let $A + B$ denote the set of sums, $A + B = \{a+b, a\in A, b\in B\}$.
+
+We now have, for $n = lm$, $l \perp m$, 
+\begin{displaymath}
+S_n = lS_m + mS_l. \textrm{\bf (Add proof!)}
+\end{displaymath}
+Or more generally, if $n = \prod_{i=1}^{k} l_i$, $l_j \perp l_i$ for 
+$j \neq i$, then $S_n = \sum_{i=1}^{k} n/l_jS_{l_j}$.
+
+By definition of the Euler totient function $\varphi$, $|S_n| = \varphi(n)$.
+
+\section{A polynomial with roots $r^k$, $k\perp n$}
+Let
+\begin{displaymath}
+F_n(x) = \prod_{k \in S_n} (x-r^k).
+\end{displaymath}
+
+Then
+\begin{eqnarray*}
+F_{pn,r}(x) & = & \prod_{k \in S_{pn}} \left(x-r^k\right) \\
+            & = & \prod_{k \in pS_n + nS_p} \left(x-r^k\right) \\
+            & = & \prod_{i \in nS_p} \prod_{j \in pS_n} \left(x-r^{j+i}\right) \\
+            & = & \prod_{i \in nS_p} \prod_{j \in S_n} \left(x-r^{pj+i}\right) \\
+            & = & \prod_{i \in nS_p} \prod_{j \in S_n} \left(r^i \left(\frac{x}{r^i}-r^{pj}\right)\right) \\
+            & = & \prod_{i \in nS_p} r^{i\varphi(n)} \prod_{j \in S_n} \left(\frac{x}{r^i}-r^{pj}\right) \\
+            & = & \prod_{i \in nS_p} r^{i\varphi(n)} F_{n,r^p}\left(\frac{x}{r^i}\right)
+\end{eqnarray*}
+
+If $F_{n,r}(x) = \sum_{k=0}^{\varphi(n)} f_k x^k$, then 
+\begin{eqnarray*}
+r^{i\varphi(n)} F_{n,r}\left(\frac{x}{r^i}\right) & = &\\
+\sum_{k=0}^{\varphi(n)} r^{i\varphi(n)} f_k x^k r^{-ik} & = & \\
+\sum_{k=0}^{\varphi(n)} f_k x^k r^{i(\varphi(n)-k)} &&
+\end{eqnarray*}
+so we can generate $r^{i\varphi(n)} F_{n,r}\left(\frac{x}{r^i}\right)$ from 
+$F_{n,r}(x)$ by multiplying the coefficients from highest to lowest by powers 
+of $r$ in an increasing geometric progression, using $2$ multiplications 
+per coefficient.
+\end{document}
