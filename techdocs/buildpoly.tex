@@ -7,34 +7,46 @@
 \maketitle
 
 
+\begin{abstract}
+This note presents some of the basic ideas underlying the scheme for building 
+a reciprocal Laurent polynomial from its roots as described by Montgomery 
+\cite{Montgomery2007}
+\end{abstract}
+
 \section{The set of integers coprime to $n$}
-Let $S_n = {1 \leq i < n, i \perp n}$ be the set of positive integers coprime 
-to and less than $n$, i.e. the smallest positive representatives of the units 
-of $Z/Zn$.
+Let $S_n = \{1 \leq k < n, k \perp n\}$ be the set of positive integers 
+coprime to and less than $n$, i.e. the smallest positive representatives of 
+the units of $Z/Zn$.
 
 Let $A + B$ denote the set of sums, $A + B = \{a+b, a\in A, b\in B\}$.
 
-We now have, for $n = lm$, $l \perp m$, 
+We now have, for $l \perp m$, 
 \begin{displaymath}
-S_n = lS_m + mS_l. \textrm{\bf (Add proof!)}
+S_{lm} \equiv lS_m + mS_l.
 \end{displaymath}
-Or more generally, if $n = \prod_{i=1}^{k} l_i$, $l_j \perp l_i$ for 
-$j \neq i$, then $S_n = \sum_{i=1}^{k} n/l_jS_{l_j}$.
+The sets $S_{lm}$ and $lS_m + mS_l$ are not identical as $lS_m + mS_l$ does 
+generally not contain only integers $<n$. However, each residue class coprime
+to $n$ is represented by exactly one integer in $lS_m + mS_l$. 
+Since $n-1 \in S_n$, 
+$a \in lS_m + mS_l \Rightarrow 0 < a \leq 2lm - l - m$.
+
+%Or more generally, if $n = \prod_{i=1}^{k} l_i$, $l_j \perp l_i$ for 
+%$j \neq i$, then $S_n = \sum_{i=1}^{k} n/l_jS_{l_j}$.
 
 By definition of the Euler totient function $\varphi$, $|S_n| = \varphi(n)$.
 
 \section{A polynomial with roots $r^k$, $k\perp n$}
 Let
 \begin{displaymath}
-F_n(x) = \prod_{k \in S_n} (x-r^k).
+F_{n,r}(x) = \prod_{k \in S_n} (x-r^k).
 \end{displaymath}
 
-Then
+Then, with $p \perp n$,
 \begin{eqnarray*}
 F_{pn,r}(x) & = & \prod_{k \in S_{pn}} \left(x-r^k\right) \\
             & = & \prod_{k \in pS_n + nS_p} \left(x-r^k\right) \\
-            & = & \prod_{i \in nS_p} \prod_{j \in pS_n} \left(x-r^{j+i}\right) \\
-            & = & \prod_{i \in nS_p} \prod_{j \in S_n} \left(x-r^{pj+i}\right) \\
+            & = & \prod_{i \in nS_p} \prod_{j \in pS_n} \left(x-r^{i+j}\right) \\
+            & = & \prod_{i \in nS_p} \prod_{j \in S_n} \left(x-r^{i+pj}\right) \\
             & = & \prod_{i \in nS_p} \prod_{j \in S_n} \left(r^i \left(\frac{x}{r^i}-r^{pj}\right)\right) \\
             & = & \prod_{i \in nS_p} r^{i\varphi(n)} \prod_{j \in S_n} \left(\frac{x}{r^i}-r^{pj}\right) \\
             & = & \prod_{i \in nS_p} r^{i\varphi(n)} F_{n,r^p}\left(\frac{x}{r^i}\right)
@@ -49,5 +61,14 @@ r^{i\varphi(n)} F_{n,r}\left(\frac{x}{r^i}\right) & = &\\
 so we can generate $r^{i\varphi(n)} F_{n,r}\left(\frac{x}{r^i}\right)$ from 
 $F_{n,r}(x)$ by multiplying the coefficients from highest to lowest by powers 
 of $r$ in an increasing geometric progression, using $2$ multiplications 
-per coefficient.
+per coefficient. This means that to produce $F_{pn,r}(x)$, we need to compute 
+$F_{n,r^p}(x)$ only once.
+
+\begin{thebibliography}{}
+\bibitem{Montgomery2007} Peter-Lawrence Montgomery: 
+{\it Record Factorizations (I Hope!) Using P-1/FFT. Draft February 8, 2007}. 
+Unpublished manuscript.
+\end{thebibliography}
+
 \end{document}
+
