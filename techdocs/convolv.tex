@@ -21,7 +21,7 @@ C(x) & = & \sum_{j=0}^d c_j x^j \\
 \end{eqnarray*}
 and get the product
 \begin{displaymath}
-B(x)C(x) = \sum_{i=0}^{d+n-1} g_i x^i
+B(x)C(x) = \sum_{i=0}^{2d+n-1} g_i x^i
 \end{displaymath}
 with
 \begin{displaymath}
@@ -105,6 +105,23 @@ due to the $\alpha$ term in $g(x - 1) - g(x) = -\beta x + \beta/2 - \alpha$,
 we cannot reuse the $b'_{j'}$ sequence as before and computing the $c_j$ values
 requires $3$ multiplies each, for a total cost for the multipoint evaluation
 of $5d + o(d)$ multiplications and a convolution of length $d+n$.
+
+
+\subsection{Progression in Montgomery's fast P-1 stage 2}
+Montgomery wants to evaluate, in his notation, $f(X)$ with 
+$X=b_1^{2k_2 + (2m+1)P}$, for $m_1 \leq m \leq m_2$. In our notation, 
+this means $\alpha = 2k_2 + (2m_1+1)P$ and $\beta = 2P$. Further, he requires 
+that the sequences $b_j$ and $c_j$ are symmetric so that by suitable shifting 
+by $s, t$ we have $b_{j+s} = b_{-(j+s)}$ and $c_{j+t} = c_{-(j+t)}$. 
+Let $l = n + d$.
+
+He sets $f(x)=\alpha (n-1+d/2-x)+\beta(n-1+d/2-x)^2/2$ and 
+$g(x)=-\beta(x-d/2)^2/2$ and $h(x) = -\beta x^2/2$.
+This way, 
+\begin{eqnarray*}
+g_{2d-1-i} & = & \sum_{0\leq j\leq d} b_{i-j} c_j \\
+           & = & \sum_{0\leq j\leq d} q^{f(i-j)} q^{g(j)} f_j
+\end{eqnarray*}
 
 
 \subsection{What about exponents that are powers}

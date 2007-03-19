@@ -1,5 +1,5 @@
 \documentclass{article}
-\usepackage{amsmath}
+\usepackage{amsmath,amssymb}
 \begin{document}
 
 \title{Building polynomials with roots $r^k$, $k\perp n$}
@@ -10,32 +10,84 @@
 \begin{abstract}
 This note presents some of the basic ideas underlying the scheme for building 
 a reciprocal Laurent polynomial from its roots as described by Montgomery 
-\cite{Montgomery2007}
+\cite{Montgomery2007}.
 \end{abstract}
 
+
 \section{The set of integers coprime to $n$}
-Let $S_n = \{1 \leq k < n, k \perp n\}$ be the set of positive integers 
-coprime to and less than $n$, i.e. the smallest positive representatives of 
-the units of $Z/Zn$.
+Let $S_n = \{k + n\mathbb{Z}, k \perp n\}$
+\footnote{The notation $a\perp b$ for ``$a$ is relatively prime to $b$''
+          follows the suggestion in \cite[4.5]{Graham_Knuth_Patashnik}} 
+be the set of residue classes coprime to $n$.
 
 Let $A + B$ denote the set of sums, $A + B = \{a+b, a\in A, b\in B\}$.
 
-We now have, for $l \perp m$, 
-\begin{displaymath}
-S_{lm} \equiv lS_m + mS_l.
-\end{displaymath}
-The sets $S_{lm}$ and $lS_m + mS_l$ are not identical as $lS_m + mS_l$ does 
-generally not contain only integers $<n$. However, each residue class coprime
-to $n$ is represented by exactly one integer in $lS_m + mS_l$. 
-Since $n-1 \in S_n$, 
-$a \in lS_m + mS_l \Rightarrow 0 < a \leq 2lm - l - m$.
-
-%Or more generally, if $n = \prod_{i=1}^{k} l_i$, $l_j \perp l_i$ for 
-%$j \neq i$, then $S_n = \sum_{i=1}^{k} n/l_jS_{l_j}$.
+Then we have, for $l \perp m$, 
+\begin{equation}\label{S_sum}
+S_{lm} = lS_m + mS_l.
+\end{equation}
 
 By definition of the Euler totient function $\varphi$, $|S_n| = \varphi(n)$.
 
+\subsection{Positive representatives}
+Let $\bar{S}_n = \{1 \leq k < n, k \perp n\}$ be the set of smallest 
+positive integers coprime to $n$ and less than $n$, i.e. the smallest 
+positive representatives of the units of $\mathbb{Z}/\mathbb{Z}n$. 
+Unfortunately, (\ref{S_sum}) does not immediately carry over to 
+$\bar{S}_{lm}$, as $l\bar{S}_m + m\bar{S}_l$ contains integers $> lm$.
+Since $n-1 \in \bar{S}_n$, we get
+$l(m-1) + m(l-1) = 2lm-l-m > lm-1$ for $l,m > 1$. For example, 
+$\bar{S}_2 = \{1\}$, $\bar{S}_3 = \{1,2\}$, and 
+$3\bar{S}_2 + 2\bar{S}_3 = \{5, 7\} \neq \{1, 5\} = \bar{S}_6$. With 
+$1, n-1 \in \bar{S}_n$, we have 
+$a \in l\bar{S}_m + m\bar{S}_l \Rightarrow l+m \leq a \leq 2lm - l - m$. 
+Hence, $l\bar{S}_m + m\bar{S}_l$ lies on an interval of length 
+$2(lm - l - m)$.
+
+\subsection{Representatives symmetric around $0$}
+Let $\hat{S}_n = \{|k| \leq (n-1)/2, k \perp n\}$ be the 
+set of integers of smallest absolute value that are coprime to $n$, 
+for $n > 2$. As for $\bar{S}_n$, (\ref{S_sum}) does not carry over, 
+as for example $3\hat{S}_2 + 2\hat{S}_3 = \{-1,7\} \neq \{-1,1\}$.
+For odd $l,m,n$, since $-\frac{n-1}{2},\frac{n-1}{2} \in \hat{S}_n$,
+$a \in l\hat{S}_m + m\hat{S}_l \Rightarrow |a| \leq lm-\frac{l+m}{2}$, 
+covering an interval of length $2lm - l - m$.
+
+\pagebreak[1]
+For $n \equiv 3 \pmod{4}$, $\hat{S}_n$ can be factored by 
+$r=\frac{n+1}{4}$, $\hat{S}_n = \{ -r, r\} + \{-r+1, \ldots, r-1\}.$
+The elements of the second set form an arithmetic progression and 
+so it can be factored again if its cardinality is composite.
+
+Montgomery suggests sets with elements symmetric around $0$ and odd, 
+i.e. $\tilde{S}_n = \{2i-n, 1\leq i \leq n-1 \}$. The advantage is 
+that the elements of these sets form arithmetic progressions which 
+can always be factored as a set of sums, if the cardinality of the 
+set is composite. The factors are again arithmetic progressions, so
+$\tilde{S}_n$ can always be factored into sets of prime cardinality.
+The disadvantage is that $\tilde{S}_n$ covers an interval of length 
+$2n-4$, noticably larger than $n-2$ for $\bar{S}_n$ or $n-1$ for 
+$\hat{S}_n$.
+
+\subsection{Combining several sets of sums}
+
+For composite $n$, we can write
+\begin{equation}\label{S_longsum}
+S_n \equiv \sum_{p\mid n} \frac{n}{p}S_p.
+\end{equation}
+If the absolute values of the elements of $S_p$ are bounded by $cp$, 
+we clearly have absolute values of the elements of the RHS of 
+(\ref{S_longsum}) bounded by $cn\nu(n)$, where $\nu(n)$ is the 
+number of prime divisors in $n$. 
+This bound grows only linearly in $c$, so choosing, i.e., $\hat{S}_n$ 
+over $\tilde{S}_n$ has only a relatively small impact on the length 
+of the interval covered by the set of sums.
+
 \section{A polynomial with roots $r^k$, $k\perp n$}
+In the following, $S_n$ represents any of $\bar{S}_n$, $\hat{S}_n$, 
+$\tilde{S}_n$ or similar choice of particular representatives of
+residue classes coprime to $n$.
+
 Let
 \begin{displaymath}
 F_{n,r}(x) = \prod_{k \in S_n} (x-r^k).
@@ -68,6 +120,8 @@ $F_{n,r^p}(x)$ only once.
 \bibitem{Montgomery2007} Peter-Lawrence Montgomery: 
 {\it Record Factorizations (I Hope!) Using P-1/FFT. Draft February 8, 2007}. 
 Unpublished manuscript.
+\bibitem{Graham_Knuth_Patashnik}Graham, Knuth, and Patashnik: 
+{\it Concrete Mathematics}. Second edition. 1989. Addison Wesley
 \end{thebibliography}
 
 \end{document}
