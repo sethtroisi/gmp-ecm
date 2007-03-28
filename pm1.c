@@ -864,13 +864,11 @@ pm1 (mpz_t f, mpz_t p, mpz_t N, mpz_t go, double *B1done, double B1,
     po2 = 1;
 
   root_params.d2 = 0; /* Enable automatic choice of d2 */
-#ifdef FASTPM1STAGE2
   if (S == 1)
     {
       root_params.d2 = 1; /* Disable automatic choice of d2 */
       po2 = 1;
     }
-#endif
 
   if (bestD (&root_params, &k, &dF, B2min, B2, po2, use_ntt, maxmem,
              (TreeFilename != NULL), modulus) == ECM_ERROR)
@@ -911,7 +909,8 @@ pm1 (mpz_t f, mpz_t p, mpz_t N, mpz_t go, double *B1done, double B1,
         }
     }
 
-#ifndef FASTPM1STAGE2
+#if 0
+  /* For fast P-1 stage 2, we need S = 1 */
   /* We need Suyama's power even and at least 2 for P-1 stage 2 to work 
      correctly */
   if (abs (root_params.S) < 2)
@@ -970,11 +969,9 @@ pm1 (mpz_t f, mpz_t p, mpz_t N, mpz_t go, double *B1done, double B1,
 
   if (youpi == ECM_NO_FACTOR_FOUND && mpz_cmp (B2, B2min) >= 0)
     {
-#ifdef FASTPM1STAGE2
       if (root_params.S == 1)
         youpi = pm1fs2 (f, x, modulus, &root_params, dF, k);
       else
-#endif
         youpi = stage2 (f, &x, modulus, dF, k, &root_params, ECM_PM1, 
                         use_ntt, TreeFilename, stop_asap);
     }
