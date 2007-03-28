@@ -670,7 +670,8 @@ main (int argc, char *argv[])
 	}
     }
 
-#ifndef FASTPM1STAGE2
+#if 0
+  /* For fast P-1 stage 2, odd S is required! */
   /* check that S is even for P-1 */
   if ((method == ECM_PM1) && (S % 2 != 0))
     {

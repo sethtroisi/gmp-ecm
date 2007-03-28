@@ -691,7 +691,7 @@ mpres_realloc (mpres_t R, mpmod_t modulus)
    Assume EXP >= 0.
  */
 void 
-mpres_pow (mpres_t R, mpres_t BASE, mpz_t EXP, mpmod_t modulus)
+mpres_pow (mpres_t R, const mpres_t BASE, const mpz_t EXP, mpmod_t modulus)
 {
   ASSERT_NORMALIZED (BASE);
   ASSERT (mpz_sgn (EXP) >= 0);

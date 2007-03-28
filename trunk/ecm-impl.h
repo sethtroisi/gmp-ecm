@@ -536,7 +536,7 @@ void mpmod_pausegw (mpmod_t modulus);
 #define mpmod_contgw __ECM(mpmod_contgw)
 void mpmod_contgw (mpmod_t modulus);
 #define mpres_pow __ECM(mpres_pow)
-void mpres_pow (mpres_t, mpres_t, mpz_t, mpmod_t);
+void mpres_pow (mpres_t, const mpres_t, const mpz_t, mpmod_t);
 #define mpres_ui_pow __ECM(mpres_ui_pow)
 void mpres_ui_pow (mpres_t, unsigned int, mpres_t, mpmod_t);
 #define mpres_mul __ECM(mpres_mul)
@@ -616,8 +616,10 @@ double ecmprob (double, double, double, double, int);
 /* auxlib.c */
 #define gcd __ECM(gcd)
 unsigned int gcd (unsigned int, unsigned int);
+#define mpz_add_si __ECM(mpz_add_si)
+void         mpz_add_si (mpz_t, mpz_t, long);
 #define mpz_sub_si __ECM(mpz_sub_si)
-void         mpz_sub_si (mpz_t, mpz_t, int);
+void         mpz_sub_si (mpz_t, mpz_t, long);
 #define mpz_divby3_1op __ECM(mpz_divby3_1op)
 void         mpz_divby3_1op (mpz_t);
 #define ceil_log2 __ECM(ceil_log2)
