@@ -92,12 +92,21 @@ eulerphi (unsigned long n)
 }
 
 void 
-mpz_sub_si (mpz_t r, mpz_t s, int i)
+mpz_add_si (mpz_t r, mpz_t s, long i)
 {
   if (i >= 0)
-    mpz_sub_ui (r, s, (unsigned int) i);
+    mpz_add_ui (r, s, (unsigned long) i);
   else
-    mpz_add_ui (r, s, (unsigned int) (-i));
+    mpz_sub_ui (r, s, (unsigned long) (-i));
+}
+
+void 
+mpz_sub_si (mpz_t r, mpz_t s, long i)
+{
+  if (i >= 0)
+    mpz_sub_ui (r, s, (unsigned long) i);
+  else
+    mpz_add_ui (r, s, (unsigned long) (-i));
 }
 
 /* Divide RS by 3 */

@@ -78,7 +78,7 @@ check: ecm
 
 .asm.o:
 	$(M4) -DOPERATION_$* `test -f $< || echo '$(srcdir)/'`$< >tmp-$*.s
-	$(CCAS) $(COMPILE_FLAGS) tmp-$*.s -o $@
+	$(CCAS) $(CFLAGS) tmp-$*.s -o $@
 	rm -f tmp-$*.s
 
 man_MANS =
