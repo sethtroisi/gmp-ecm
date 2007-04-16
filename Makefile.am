@@ -88,3 +88,6 @@ endif
 
 ecm.1: ecm.xml
 	xsltproc -o ecm.1 $(XSLDIR)/manpages/docbook.xsl ecm.xml
+
+pm1fs2: pm1fs2.c libecm.a
+	gcc -Wall -Wextra -DTESTDRIVE -g -O0 -o pm1fs2 pm1fs2.c libecm.a -lm -lgmp
