@@ -683,13 +683,11 @@ TToomCookMul_space (unsigned int n, unsigned int m, unsigned int l)
     if (m <= 2 * nu)
     {
         stmp1 = TToomCookMul_space (nu - 1, m, l);
-        if (l >= nu)
-            stmp2 = TToomCookMul_space (nu - 1, m, l - nu);
-        stmp1 = MAX(stmp1, stmp2);
         if (l >= 2 * nu)
-            stmp2 = TToomCookMul_space (n - 2 * nu, m, l - 2 * nu);
-        stmp1 = MAX(stmp1, stmp2);
-        return stmp1;
+	  stmp2 = TToomCookMul_space (n - 2 * nu, m, l - 2 * nu);
+        else if (l >= nu)
+	  stmp2 = TToomCookMul_space (nu - 1, m, l - nu);
+        return MAX(stmp1, stmp2);
     }
                   
     /* Second degenerate case. We want 2 * mu < n.
@@ -698,23 +696,18 @@ TToomCookMul_space (unsigned int n, unsigned int m, unsigned int l)
     if (n <= 2 * mu)
     {
         stmp1 += TToomCookMul_space (n, mu - 1, l);
-        if (l >= mu)
-        {
-            stmp2 = TToomCookMul_space (n, mu - 1, l - mu) + n + 1;
-            stmp1 = MAX(stmp1, stmp2);
-        }
         if (l >= 2 * mu)
-        {
-            stmp2 = TToomCookMul_space (n, m - 2 * mu, l - 2 * mu) + n + 1;
-            stmp1 = MAX(stmp1, stmp2);
-        }
-        return stmp1;
+	  stmp2 = TToomCookMul_space (n, m - 2 * mu, l - 2 * mu) + n + 1;
+        else if (l >= mu)
+	  stmp2 = TToomCookMul_space (n, mu - 1, l - mu) + n + 1;
+        return MAX(stmp1, stmp2);
     }
 
     h = MAX(nu, mu);
 
-    stmp2 = TToomCookMul_space (h - 1, h - 1, 2 * h - 2) + 7 * h - 2;
-    stmp1 = TToomCookMul_space (h - 1, h - 1, 2 * h - 2) + 6 * h - 2;
+    stmp1 = TToomCookMul_space (h - 1, h - 1, 2 * h - 2);
+    stmp2 = stmp1 + 7 * h - 2;
+    stmp1 = stmp1 + 6 * h - 2;
     stmp1 = MAX(stmp1, stmp2);
     stmp2 = TToomCookMul_space (n - 2 * h, m - 2 * h, 2 * h - 1) + 7*h-2;
     return MAX(stmp1, stmp2);
