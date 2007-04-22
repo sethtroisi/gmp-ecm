@@ -503,6 +503,9 @@ list_mul_symmetric (listz_t R, const listz_t S1, const unsigned long l1,
 
   ASSERT (tmplen >= 8 * lmax - 2 + list_mul_mem (2 * lmax - 1));
 
+  printf ("list_mul_symmetric: Multiplying polynomials of length %lu and %lu\n",
+	  l1, l2);
+
   if (l1 == 0 || l2 == 0)
     return;
 
@@ -528,22 +531,40 @@ list_mul_symmetric (listz_t R, const listz_t S1, const unsigned long l1,
   for (i = 2 * l2 - 1; i <= 2 * lmax - 2; i++)
     mpz_set_ui (t2[i], 0);
   
-  list_mul (r, t1, 2 * lmax - 1, 0, t2, 2 * lmax - 1, 0, tmp + 8 * lmax - 2);
+  if (l1 == l2)
+    {
+      /* Simple case, the two polynomials are the same length. We can use
+	 list_mul_high () */
 
-  /* Now r/x^(dsum) is the product polynomial. It has degree 2*dsum and so
-     has 2 * dsum + 1 coefficients in monomial basis, which reside in
-     r[0 ... 2 * sum] */
+      list_mul_high (r, t1, t2, 2 * lmax - 1, tmp + 8 * lmax - 2);
+    }
+  else
+    {
+      /* More difficult case, the lengths are different. We just do a full
+	 multiply and take the coefficients we want from that. This is not
+	 very efficient, but it'll only happen during building the polynomial
+	 and for sets of odd cardinality, i.e. when the polynomials to be
+	 multiplied are still quite small. The inefficiency of the code here 
+	 does not realy matter too much. */
+
+      list_mul (r, t1, 2 * lmax - 1, 0, t2, 2 * lmax - 1, 0, 
+		tmp + 8 * lmax - 2);
+
+      /* Now r/x^(dsum) is the product polynomial. It has degree 2*dsum and 
+	 so has 2 * dsum + 1 coefficients in monomial basis, which reside in
+	 r[0 ... 2 * sum] */
 
 #ifdef WANT_ASSERT
-  /* Check the lower terms are symmetric */
-  for (i = 1; i <= dsum; i++)
-    ASSERT (mpz_cmp (r[dsum - i], r[dsum + i]) == 0);
-  
-  /* Check the high terms are zero */
-  for (i = 2 * dsum + 1; i <= 2 * lmax - 2; i++)
-    ASSERT (mpz_sgn (r[i]) == 0);
+      /* Check the lower terms are symmetric */
+      for (i = 1; i <= dsum; i++)
+	ASSERT (mpz_cmp (r[dsum - i], r[dsum + i]) == 0);
+      
+      /* Check the high terms are zero */
+      for (i = 2 * dsum + 1; i <= 2 * lmax - 2; i++)
+	ASSERT (mpz_sgn (r[i]) == 0);
 #endif
-
+    }
+      
   for (i = 0; i <= dsum; i++)
     mpz_set (R[i], r[dsum + i]);
 }
@@ -674,6 +695,7 @@ list_scale_V (listz_t R, listz_t F, mpres_t Q, unsigned long deg,
   mpres_t Vi_1, Vi, Vt;
   unsigned long i;
   const listz_t G = tmp, H = tmp + 2 * deg + 1, newtmp = tmp + 4 * deg + 2;
+  listz_t H_U;
   const unsigned long newtmplen = tmplen - 4 * deg - 2;
 #ifdef WANT_ASSERT
   mpz_t leading;
@@ -711,9 +733,7 @@ list_scale_V (listz_t R, listz_t F, mpres_t Q, unsigned long deg,
   for (i = 1; i <= deg; i++)
     {
       /* Here, Vi = V_i(Q)/2, Vi_1 = V_{i-1}(Q)/2. */
-      mpres_get_z (G[i], Vi, modulus); /* FIXME: write mpres_mul_z_to_z */
-      mpz_mul (G[i], G[i], F[i]);
-      mpz_mod (G[i], G[i], modulus->orig_modulus); /* G[i] = S_i * V_i(Q)/2 */
+      mpres_mul_z_to_z (G[i], Vi, F[i], modulus); /* G[i] = S_i * V_i(Q)/2 */
       outputf (OUTPUT_TRACE, 
 	       "list_scale_V: G_%lu = F_%lu * V_%lu(Q)/2 = %Zd * %Zd = %Zd\n", 
 	       i, i, i, F[i], Vi, G[i]);
@@ -728,6 +748,16 @@ list_scale_V (listz_t R, listz_t F, mpres_t Q, unsigned long deg,
 
   /* Now square the G polynomial in G[0 .. deg], put result in
      G[0 .. 2*deg] */
+
+  /* Bugfix: ks_multiply() does not like negative coefficients. */
+
+  for (i = 0; i <= deg; i++)
+    if (mpz_sgn (G[i]) < 0)
+      {
+	mpz_add (G[i], G[i], modulus->orig_modulus);
+	ASSERT(mpz_sgn (G[i]) >= 0);
+      }
+
   list_mul_symmetric (G, G, deg + 1, G, deg + 1, newtmp, newtmplen);
   
   list_output_poly (G, 2 * deg + 1, 0, 1, "list_scale_V: G(x)^2 == ", 
@@ -743,18 +773,21 @@ list_scale_V (listz_t R, listz_t F, mpres_t Q, unsigned long deg,
   mpres_set_ui (Vi, 1UL, modulus);
   mpres_div_2exp (Vi, Vi, 1, modulus); /* V_i = U_1(Q) / 2 = 1/2 */
 
-  mpz_set_ui (H[0], 0); /* Actually, h_0 is undefined, but we set it zero */
-  /* H[i] = h_i =  F[i] * U_i(Q) / 2, for 1 <= i <= deg */
+  /* We later want to convert H in U_i basis to monomial basis. To do so,
+     we'll need one list element below H_U[0], so H_U gets stored shifted
+     up by one index */
+  H_U = H - 1;
+
+  /* H_U[i] = h_i =  F[i] * U_i(Q) / 2, for 1 <= i <= deg. H[0] is undefined
+     and has no storage allocated (H_U[0] = H[-1]) */
   for (i = 1; i <= deg; i++)
     {
       /* Here, Vi = U_i(Q) / 2, Vi_1 = U_{i-1}(Q) / 2. */
       /* h_i = S_i * U_i(Q)/2 */
-      mpres_get_z (H[i], Vi, modulus);
-      mpz_mul (H[i], H[i], F[i]);
-      mpz_mod (H[i], H[i], modulus->orig_modulus);
+      mpres_mul_z_to_z (H_U[i], Vi, F[i], modulus);
       outputf (OUTPUT_TRACE, 
 	       "list_scale_V: H_%lu (in U_i basis) = F_%lu * U_%lu(Q)/2 = %Zd * %Zd = %Zd\n", 
-	       i, i, i, F[i], Vi, H[i]);
+	       i, i, i, F[i], Vi, H_U[i]);
       
       mpres_mul (Vt, Vi, Q, modulus);
       mpres_sub (Vt, Vt, Vi_1, modulus);
@@ -762,39 +795,37 @@ list_scale_V (listz_t R, listz_t F, mpres_t Q, unsigned long deg,
       mpres_set (Vi, Vt, modulus); /* Could be a swap */
     }
 
-  /* Convert H to standard basis */
-  /* FIXME: Should be done in-place, once it is tested */
+  /* Convert H_U to standard basis */
 
-  /* newtmp[deg-1 ... 0] = H[deg ... 1], so there are the deg coefficients
-     of the degree 2*deg-1 symmetric polynomial H(x) */
-
-  ASSERT(newtmplen >= deg);
+  /* We can do it in-place with H - 1 = H_U. */
 
   for (i = deg; i >= 3; i--)
     {
-      mpz_set (newtmp[i - 1], H[i]);
-      mpz_add (H[i - 2], H[i - 2], H[i]);
-      mpz_set_ui (H[i], 0);
+      mpz_add (H_U[i - 2], H_U[i - 2], H_U[i]);
+      /* mpz_set (H[i - 1], H_U[i]); A no-op, since H - 1 = H_U. */
     }
   
   /* U_2(X+1/X) = (X^2 - 1/X^2)/(X-1/X) = X+1/X = V_1(X+1/X),
      so no addition occures here */
-  if (deg >= 2)
-    mpz_set (newtmp[1], H[2]);
+  /* if (deg >= 2)
+     mpz_set (H[1], H_U[2]); Again, a no-op. */
   
   /* U_1(X+1/X) = 1, so this goes to coefficient of index 0 in std. basis */
-  mpz_set (newtmp[0], H[1]);
+  /* mpz_set (H[0], H_U[1]); Another no-op. */
   
-  /* Now newtmp[0 ... deg-1] contains the deg coefficients in standard basis
-     of symmetric H(X) of degree 2*deg-2. Put them in H[0 ... deg-1] */
+  /* Now H[0 ... deg-1] contains the deg coefficients in standard basis
+     of symmetric H(X) of degree 2*deg-2. */
   
-  for (i = 0; i <= deg - 1; i++)
-    mpz_set (H[i], newtmp[i]);
-
   list_output_poly (H, deg, 0, 1, "list_scale_V: H(x) = ", OUTPUT_TRACE);
 
   /* Square the symmetric H polynomial of degree 2*deg-2 (i.e. with deg 
      coefficents in standard basis in H[0 ... deg-1]) */
+
+  /* Bugfix: ks_multiply() does not like negative coefficients. */
+
+  for (i = 0; i <= deg; i++)
+    if (mpz_sgn (H[i]) < 0)
+      mpz_mod (H[i], H[i], modulus->orig_modulus);
 
   list_mul_symmetric (H, H, deg, H, deg, newtmp, newtmplen);
 
@@ -805,18 +836,11 @@ list_scale_V (listz_t R, listz_t F, mpres_t Q, unsigned long deg,
 		    OUTPUT_TRACE);
 
   /* Multiply by Q^2-4 */
-  /* Fixme: Write mpres_mul_z_to_z */
   ASSERT (newtmplen >= 2);
-  mpres_get_z (newtmp[0], Q, modulus);
-  mpz_mul (newtmp[1], newtmp[0], newtmp[0]);
-  mpz_sub_ui (newtmp[1], newtmp[1], 4);
-  mpz_mod (newtmp[0], newtmp[1], modulus->orig_modulus);
+  mpres_mul (Vt, Q, Q, modulus);
+  mpres_sub_ui (Vt, Vt, 4, modulus);
   for (i = 0; i <= 2 * deg - 2; i++)
-    {
-      mpz_mul (newtmp[1], H[i], newtmp[0]);
-      mpz_mod (H[i], newtmp[1], modulus->orig_modulus);
-    }
-
+    mpres_mul_z_to_z (H[i], Vt, H[i], modulus);
   list_output_poly (H, 2 * deg - 1, 0, 1, "list_scale_V: H(x)^2*(Q^2-4) == ", 
 		    OUTPUT_TRACE);
 
@@ -1075,7 +1099,7 @@ poly_from_sets (mpz_t *F, mpz_t r, long *sets, unsigned long setsize,
    the first set in sets has cardinality 2. */
 
 static int
-poly_from_sets_V (listz_t F, mpz_t r, long *sets, unsigned long setsize,
+poly_from_sets_V (listz_t F, mpres_t r, long *sets, unsigned long setsize,
 		  listz_t tmp, unsigned long tmplen, mpmod_t modulus)
 {
   unsigned long c, deg, lastidx, i;
@@ -1088,7 +1112,7 @@ poly_from_sets_V (listz_t F, mpz_t r, long *sets, unsigned long setsize,
   mpres_init (Q, modulus);
   mpres_init (Qt, modulus);
   
-  mpres_set_z (Q, r, modulus);
+  mpres_set (Q, r, modulus);
   if (mpres_invert (Qt, Q, modulus) == 0)
     {
       mpres_clear (Qt, modulus);
@@ -1113,7 +1137,7 @@ poly_from_sets_V (listz_t F, mpz_t r, long *sets, unsigned long setsize,
 	 back-to-front, so the sets of cardinality 2 are processed last. */
       for (lastidx = 0; 
 	   lastidx + sets[lastidx] < setsize; /* More sets after this one? */
-	   lastidx += sets[lastidx]); /* Skip this one */
+	   lastidx += sets[lastidx]); /* If yes, skip this one */
       
       /* Process this set. We assume it is either of cardinality 2, or of 
 	 odd cardinality */
@@ -1124,7 +1148,6 @@ poly_from_sets_V (listz_t F, mpz_t r, long *sets, unsigned long setsize,
 	{
 	  ASSERT (curset[0] == -curset[1]); /* Check it's symmetric */
 	  V (Qt, Q, curset[0], modulus);
-	  ASSERT (mpz_cmp_ui (F[deg], 1UL) == 0); /* Check it's monic */
 	  list_scale_V (F, F, Qt, deg, modulus, tmp, tmplen);
 	  deg *= 2;
 	  ASSERT (mpz_cmp_ui (F[deg], 1UL) == 0); /* Check it's monic */
@@ -1520,7 +1543,7 @@ pm1fs2(mpz_t f, mpres_t X, mpmod_t modulus, root_params_t *root_params,
   C = init_list2 (lenC, labs (modulus->bits));
   lenR = nr;
   R = init_list2 (lenR, labs (modulus->bits));    
-  lentmp = len + list_mul_mem (len / 2);
+  lentmp = 4 * len + list_mul_mem (len / 2);
   outputf (OUTPUT_DEVVERBOSE, "lentmp = %lu\n", lentmp);
   if (TMulGen_space (lenC - 1, lenB - 1, lenR) + 12 > lentmp)
     lentmp = TMulGen_space (lenC - 1, lenB - 1, lenR) + 12;
@@ -1560,36 +1583,69 @@ pm1fs2(mpz_t f, mpres_t X, mpmod_t modulus, root_params_t *root_params,
   mpz_sub_si (mt, mt, sum_sets_minmax (sets, setsize, -1));
   outputf (OUTPUT_VERBOSE, "Effective B2max = %Zd\n", mt);
 
-  outputf (OUTPUT_VERBOSE, "Computing F from factored set of units mod %lu",
-	   beta);
-  if (test_verbose (OUTPUT_DEVVERBOSE))
-      outputf (OUTPUT_VERBOSE, "\n");
-
   mpres_get_z (mt, X, modulus);
-  i = poly_from_sets (F, mt, sets, setsize, tmp, lentmp, 
-		      modulus->orig_modulus);
-  ASSERT (i == dF);
+
+  if (sets[0] == 2)
+    {
+      /* poly_from_sets_V () can't handle set of cardinality 1, so use 
+	 poly_from_sets () */
+
+      outputf (OUTPUT_VERBOSE, 
+	       "Computing F from factored set of units mod %lu", beta);
+      if (test_verbose (OUTPUT_DEVVERBOSE))
+	outputf (OUTPUT_VERBOSE, "\n");
+
+      i = poly_from_sets (F, mt, sets, setsize, tmp, lentmp, 
+			modulus->orig_modulus);
+      ASSERT (i == dF);
 
 #if defined(WANT_ASSERT)
-  if (sets[0] != 2) /* Unless the first set has one element, 
-		       the polynomial should be symmetric */
-    {
-      long i = list_is_symmetric (F, dF, 1, 1, modulus->orig_modulus, mt);
-      if (i != -1)
+      if (sets[0] != 2) /* Unless the first set has one element, 
+			   the polynomial should be symmetric */
 	{
-
-	  outputf (OUTPUT_ERROR, 
-		   "Polynomial not symmetric! F[%ld] != F[%ld]\n", i, dF - i);
-	  list_output_poly (F, dF, 1, 0, "F(x) = ", OUTPUT_ERROR);
-	  outputf (OUTPUT_ERROR, "Factored sets: ");
-	  print_sets (OUTPUT_ERROR, sets, setsize);
-	  abort ();
+	  long i = list_is_symmetric (F, dF, 1, 1, modulus->orig_modulus, mt);
+	  if (i != -1)
+	    {
+	      
+	      outputf (OUTPUT_ERROR, 
+		       "Polynomial not symmetric! F[%ld] != F[%ld]\n", i, dF - i);
+	      list_output_poly (F, dF, 1, 0, "F(x) = ", OUTPUT_ERROR);
+	      outputf (OUTPUT_ERROR, "Factored sets: ");
+	      print_sets (OUTPUT_ERROR, sets, setsize);
+	      abort ();
+	    }
+	  else
+	    outputf (OUTPUT_DEVVERBOSE, "Polynomial is symmetric\n");
 	}
-      else
-	outputf (OUTPUT_DEVVERBOSE, "Polynomial is symmetric\n");
-    }
 #endif
-  
+    }
+  else
+    {
+      /* Use poly_from_sets_V () */
+      
+      outputf (OUTPUT_VERBOSE, "Computing F from symmetric factored set "
+	       "of units mod %lu", beta);
+      if (test_verbose (OUTPUT_DEVVERBOSE))
+	outputf (OUTPUT_VERBOSE, "\n");
+
+      i = poly_from_sets_V (F, X, sets, setsize, tmp, lentmp, 
+			    modulus);
+      
+      ASSERT(2 * i == dF);
+      ASSERT(mpz_cmp_ui (F[i], 1UL) == 0);
+      
+      /* Make symmetric copy. The leading 1 monomial will not get stored,
+         but will be implicit from here on. */
+
+      for (i = 0; i < dF / 2; i++)
+	mpz_set (F[dF / 2 + i], F[i]); /* F[dF/2]:=f_0, F[dF-1]:=f_{dF/2-1} */
+      
+      for (i = 1; i < dF / 2; i++)
+	mpz_set (F[i], F[dF - i]); /* F[1] := F[dF - 1] = f_{dF / 2 - 1}, 
+				      F[dF / 2 - 1] := F[dF / 2 + 1] = f_1 */
+      mpz_set_ui (F[0], 1UL);
+    }
+
   free (sets);
   sets = NULL;
 
