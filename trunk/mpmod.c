@@ -925,8 +925,8 @@ mpres_mul (mpres_t R, mpres_t S1, mpres_t S2, mpmod_t modulus)
       MPZ_REALLOC (R, n + 1);
       k = mpn_fft_best_k (n, S1 == S2);
       ASSERT(mpn_fft_next_size (n, k) == n);
-      base2mod_2 (S1, n, modulus->orig_modulus);
-      base2mod_2 (S2, n, modulus->orig_modulus);
+      base2mod_2 (S1, n, modulus->orig_modulus); /* FIXME:base2mod_2 must go */
+      base2mod_2 (S2, n, modulus->orig_modulus); /* FIXME:base2mod_2 must go */
       mpn_mul_fft (PTR(R), n, PTR(S1), ABSIZ(S1), PTR(S2), ABSIZ(S2), k);
       n ++;
       MPN_NORMALIZE(PTR(R), n);
@@ -943,10 +943,10 @@ mpres_mul (mpres_t R, mpres_t S1, mpres_t S2, mpmod_t modulus)
     case ECM_MOD_BASE2:
 #if 0
       /* Check that the inputs are properly reduced */
-      if  (mpz_sizeinbase (S1, 2) > labs(modulus->bits))
+      if  (mpz_sizeinbase (S1, 2) > abs(modulus->bits))
         outputf (OUTPUT_ERROR, "mpers_mul: S1 has %ld bits\n", 
                  (long) mpz_sizeinbase (S1, 2));
-      if  (mpz_sizeinbase (S2, 2) > labs(modulus->bits))
+      if  (mpz_sizeinbase (S2, 2) > abs(modulus->bits))
         outputf (OUTPUT_ERROR, "mpers_mul: S2 has %ld bits\n", 
                  (long) mpz_sizeinbase (S2, 2));
 #endif
@@ -974,6 +974,94 @@ mpres_mul_ui (mpres_t R, mpres_t S, unsigned int n, mpmod_t modulus)
   mpz_mod (R, modulus->temp1, modulus->orig_modulus);
   ASSERT_NORMALIZED (R);
 }
+
+
+/* This funtion multiplies an integer in mpres_t form with an intgeger in
+   mpz_t form, and stores the output in mpz_t form. The advantage is that
+   one REDC suffices to reduce the product and convert it to non-Montgomery
+   represenataion */
+
+void 
+mpres_mul_z_to_z (mpz_t R, mpres_t S1, mpz_t S2, mpmod_t modulus)
+{
+  ASSERT_NORMALIZED (S1);
+
+#if defined(HAVE_GWNUM) && !defined (TUNE)
+  if (modulus->repr == ECM_MOD_BASE2 && modulus->Fermat >= GWTHRESHOLD)
+    {
+      base2mod_1 (S1, modulus->temp1, modulus);
+      base2mod_1 (S2, modulus->temp1, modulus);
+
+      ASSERT (mpz_sizeinbase (S1, 2) <= (unsigned) abs(modulus->bits));
+      ASSERT (mpz_sizeinbase (S2, 2) <= (unsigned) abs(modulus->bits));
+      Fgwmul (R, S1, S2);
+
+      return;
+    }
+#elif defined(HAVE___GMPN_MUL_FFT)
+  if (modulus->repr == ECM_MOD_BASE2 && modulus->Fermat >= 32768)
+    {
+      mp_size_t n = modulus->Fermat / __GMP_BITS_PER_MP_LIMB;
+      unsigned long k;
+      
+      MPZ_REALLOC (R, n + 1);
+      k = mpn_fft_best_k (n, S1 == S2);
+      ASSERT(mpn_fft_next_size (n, k) == n);
+      base2mod_2 (S1, n, modulus->orig_modulus); /* FIXME:base2mod_2 must go */
+      base2mod_2 (S2, n, modulus->orig_modulus); /* FIXME:base2mod_2 must go */
+      mpn_mul_fft (PTR(R), n, PTR(S1), ABSIZ(S1), PTR(S2), ABSIZ(S2), k);
+      n ++;
+      MPN_NORMALIZE(PTR(R), n);
+      SIZ(R) = ((SIZ(S1) ^ SIZ(S2)) >= 0) ? (int) n : (int) -n;
+      return;
+    }
+#endif
+
+  switch (modulus->repr)
+    {
+    case ECM_MOD_BASE2:
+      if (mpz_sizeinbase (S2, 2) > abs (modulus->bits))
+	{
+	  base2mod (modulus->temp2, S2, modulus->temp1, modulus);
+	  mpz_mul (modulus->temp1, S1, modulus->temp2);
+	}
+      else
+	mpz_mul (modulus->temp1, S1, S2);
+      base2mod (R, modulus->temp1, modulus->temp1, modulus);
+      break;
+    case ECM_MOD_MODMULN:
+      if (mpz_cmp (S2, modulus->orig_modulus) >= 0)
+	{
+	  mpz_mod (modulus->temp2, S2, modulus->orig_modulus);
+	  ecm_mulredc_basecase (R, S1, modulus->temp2, modulus);
+	}
+      else
+	ecm_mulredc_basecase (R, S1, S2, modulus);
+      break;
+    case ECM_MOD_REDC:
+      if (mpz_cmp (S2, modulus->orig_modulus) >= 0)
+	{
+	  mpz_mod (modulus->temp2, S2, modulus->orig_modulus);
+	  mpz_mul (modulus->temp1, S1, modulus->temp2);
+	}
+      else
+	mpz_mul (modulus->temp1, S1, S2);
+      REDC (R, modulus->temp1, modulus->temp2, modulus);
+      break;
+    default:
+      if (mpz_cmp (S2, modulus->orig_modulus) >= 0)
+	{
+	  mpz_mod (modulus->temp2, S2, modulus->orig_modulus);
+	  mpz_mul (modulus->temp1, S1, modulus->temp2);
+	}
+      else
+	mpz_mul (modulus->temp1, S1, S2);
+      mpz_mod (R, modulus->temp1, modulus->orig_modulus);
+      break;
+    }
+  ASSERT_NORMALIZED (R);
+}
+
 
 /* Sets R = S * c, for some constant c that is coprime to modulus.
    This is primalily useful for multiplying numbers together for a gcd with
