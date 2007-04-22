@@ -541,6 +541,8 @@ void mpres_pow (mpres_t, const mpres_t, const mpz_t, mpmod_t);
 void mpres_ui_pow (mpres_t, unsigned int, mpres_t, mpmod_t);
 #define mpres_mul __ECM(mpres_mul)
 void mpres_mul (mpres_t, mpres_t, mpres_t, mpmod_t);
+#define mpres_mul_z_to_z __ECM(mpres_mul_z_to_z)
+void mpres_mul_z_to_z (mpz_t, mpres_t, mpz_t, mpmod_t);
 #define mpres_set_z_for_gcd __ECM(mpres_set_z_for_gcd)
 void mpres_set_z_for_gcd (mpres_t, mpz_t, mpmod_t);
 #define mpres_div_2exp __ECM(mpres_div_2exp)
