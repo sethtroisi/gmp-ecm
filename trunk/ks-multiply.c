@@ -84,8 +84,10 @@ kronecker_schonhage (listz_t R, listz_t A, listz_t B, unsigned int l,
 
   for (i = 0; i < l; i++)
     {
+      ASSERT(SIZ(A[i]) >= 0);
       if (SIZ(A[i]))
         MPN_COPY (t0_ptr + i * s, PTR(A[i]), SIZ(A[i]));
+      ASSERT(SIZ(B[i]) >= 0);
       if (SIZ(B[i]))
         MPN_COPY (t1_ptr + i * s, PTR(B[i]), SIZ(B[i]));
     }
