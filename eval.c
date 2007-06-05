@@ -310,7 +310,8 @@ void eval_power (mpz_t prior_n, mpz_t n,char op)
     }
 }
 
-void eval_product (mpz_t prior_n, mpz_t n,char op)
+void
+eval_product (mpz_t prior_n, mpz_t n, char op)
 {
 #if defined (DEBUG_EVALUATOR)
   if ('*'==op || '.'==op || '/'==op || '%'==op)
@@ -322,12 +323,22 @@ void eval_product (mpz_t prior_n, mpz_t n,char op)
       fprintf (stderr, "\n");
     }
 #endif
-  if ('*'==op || '.'==op)
-    mpz_mul(n,prior_n,n);
-  else if ('/'==op)
-    mpz_tdiv_q(n,prior_n,n);
-  else if ('%'==op)
-    mpz_tdiv_r(n,prior_n,n);
+  if ('*' == op || '.' == op)
+    mpz_mul (n, prior_n, n);
+  else if ('/' == op)
+    {
+      mpz_t r;
+      mpz_init (r);
+      mpz_tdiv_qr (n, r, prior_n, n);
+      if (mpz_cmp_ui (r, 0) != 0)
+        {
+          fprintf (stderr, "Parsing Error: inexact division\n");
+          exit (EXIT_FAILURE);
+        }
+      mpz_clear (r);
+    }
+  else if ('%' == op)
+    mpz_tdiv_r (n, prior_n, n);
 }
 
 void eval_sum (mpz_t prior_n, mpz_t n,char op)
