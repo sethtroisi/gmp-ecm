@@ -249,6 +249,7 @@ usage (void)
 int
 main (int argc, char *argv[])
 {
+  char **argv0 = argv;
   mpz_t x, sigma, A, f, orig_x0, B2, B2min, startingB2min;
   mpcandi_t n;
   mpgocandi_t go;
@@ -687,7 +688,7 @@ main (int argc, char *argv[])
 
   if (argc < 2)
     {
-      fprintf (stderr, "Invalid arguments. See %s --help.\n", argv[0]);
+      fprintf (stderr, "Invalid arguments. See %s --help.\n", argv0[0]);
       exit (EXIT_FAILURE);
     }
 
@@ -720,7 +721,7 @@ main (int argc, char *argv[])
                 "be distributed.\n");
 #endif
     }
-
+  
   /* set first stage bound B1 */
   B1 = strtod (argv[1], &argv[1]);
   if (*argv[1] == '-')
@@ -765,7 +766,19 @@ main (int argc, char *argv[])
         endptr = NULL;
       
       c = -1;
-      gmp_sscanf (argv[2], "%Zd%n", B2, &c); /* Try parsing as integer */
+      {
+	int r;
+
+	r = gmp_sscanf (argv[2], "%Zd%n", B2, &c); /* Try parsing as integer */
+	if (r <= 0)
+	  {
+	    /* restore original value */
+	    if (endptr != NULL)
+	      *(--endptr) = '-';
+	    fprintf (stderr, "Invalid B2 value: %s\n", argv[2]);
+	    exit (EXIT_FAILURE);
+	  }
+      }
 #ifdef __MINGW32__
       /* MinGW scanf() returns a value 1 too high for %n */
       /* Reported to MinGW as bug number 1163607 */
