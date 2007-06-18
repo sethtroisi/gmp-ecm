@@ -266,15 +266,16 @@ memory_use (unsigned long dF, unsigned int sp_num, unsigned int Ftreelvl,
   
   /* printf ("memory_use (%lu, %d, %d, )\n", dF, sp_num, Ftreelvl); */
 
-  mem = 9.0 * 1.5; /* Some of the T[] entries contain unreduced products. */
+  mem = 9.0; /* F:1, T:3*2, invF:1, G:1 */
   mem += (double) Ftreelvl;
   mem *= (double) dF;
+  mem += 2. * list_mul_mem (dF); /* Also in T */
 #if (MULT == KS)
    /* estimated memory for kronecker_schonhage /
       wrap-case in PrerevertDivision respectively */
-  mem += (24.0 + 1.0) * (double) (sp_num ? MUL_NTT_THRESHOLD : dF);
+  mem += (24.0 + 1.0) * (double) (sp_num ? MIN(MUL_NTT_THRESHOLD, dF) : dF);
 #endif
-  mem *= (double) (mpz_size (modulus->orig_modulus) + 3)
+  mem *= (double) (mpz_size (modulus->orig_modulus))
                   * (mp_bits_per_limb / 8.0)
          + sizeof (mpz_t);
   
