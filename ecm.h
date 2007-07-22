@@ -24,6 +24,10 @@
 #include <stdio.h> /* for FILE */
 #include <gmp.h>
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 typedef struct
 {
   int method;     /* factorization method, default is ecm */
@@ -106,6 +110,10 @@ int pm1 (mpz_t, mpz_t, mpz_t, mpz_t, double *, double, mpz_t,
 
 /* Apple uses '\r' for newlines */
 #define IS_NEWLINE(c) (((c) == '\n') || ((c) == '\r'))
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif /* _ECM_H */
 
