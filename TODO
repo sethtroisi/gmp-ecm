@@ -1,6 +1,14 @@
 ToDo's (see also TODO.sp):
 
 1) efficiency/memory
+- in Brent-Suyama's extension, the evaluation of a polynomial of degree k
+  over N consecutive values is currently done using a O(k N) algorithm
+  [table of differences]. One can do O(N/k M(k)), cf Section 3 from 
+  "Linear recurrences with polynomial coefficients and application to
+   integer factorization and Cartier-Manin operator", by Alin Bostan,
+   Pierrick Gaudry and Eric Schost, Proceedings of Fq7, LNCS 2948, 2004.
+   It is not clear if this result also applies to ECM, but at least it
+   should word for P-1 and P+1.
 - why restrict the use of mpn_mul_fft to Fermat numbers? We could use it
   for any cofactor of 2^(n*BITS_PER_MP_LIMB)+1, as long as
   mpn_fft_next_size (n, mpn_fft_best_k (n, S1 == S2)) == n.
