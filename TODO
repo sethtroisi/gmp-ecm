@@ -6,7 +6,8 @@ ToDo's (see also TODO.sp):
   [table of differences]. One can do O(N/k M(k)), cf Section 3 from 
   "Linear recurrences with polynomial coefficients and application to
    integer factorization and Cartier-Manin operator", by Alin Bostan,
-   Pierrick Gaudry and Eric Schost, Proceedings of Fq7, LNCS 2948, 2004.
+   Pierrick Gaudry and Eric Schost, SIAM journal on computing, 
+   vol. 36, no. 6, pp. 1777 - 1806, 2007.
    It is not clear if this result also applies to ECM, but at least it
    should word for P-1 and P+1.
 - why restrict the use of mpn_mul_fft to Fermat numbers? We could use it
