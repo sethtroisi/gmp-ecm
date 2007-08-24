@@ -809,7 +809,7 @@ pm1 (mpz_t f, mpz_t p, mpz_t N, mpz_t go, double *B1done, double B1,
 
   /* set B2min */
   if (mpz_sgn (B2min) < 0)
-    mpz_set_ui (B2min, B1);
+    mpz_set_d (B2min, B1);
 
   if (repr != ECM_MOD_DEFAULT && repr != ECM_MOD_NOBASE2)
     {
