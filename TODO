@@ -1,6 +1,12 @@
 ToDo's (see also TODO.sp):
 
 1) efficiency/memory
+- regression in stage 2 between 6.0.1 and 6.1.1:
+  echo "(2003663613*2^195000-2)/(2*23*173*3863)" | ecm -c 25 3000
+  (on Opteron, stage 2 takes 55279ms with 6.0.1, and 1410350ms with 6.1.1)
+  This seems to be due to the default -ntt, which might require too many
+  primes in that case. Maybe revert to -no-ntt by default, or when the input
+  number is larger than some bound.
 - in Brent-Suyama's extension, the evaluation of a polynomial of degree k
   over N consecutive values is currently done using a O(k N) algorithm
   [table of differences]. One can do O(N/k M(k)), cf Section 3 from 

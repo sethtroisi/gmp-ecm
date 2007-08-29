@@ -336,20 +336,6 @@ sp_pow (sp_t x, sp_t a, sp_t m, sp_t d)
 /* x / 2 mod m */
 #define sp_div_2(x,m) (((x) & 1) ? (m) - (((m) - (x)) >> 1) : ((x) >> 1))
   
-/* x * 2 ^ a mod m */
-#if 1
-static inline sp_t
-sp_mul_2exp (sp_t x, sp_t a, sp_t m, sp_t d)
-{
-  while (a--)
-    x = sp_add (x, x, m);
-  
-  return x;
-}
-#else
-#define sp_mul_2exp(x,a,m,d) sp_mul(x,1<<(a),m,d)
-#endif
-
 int sp_spp (sp_t, sp_t, sp_t);
 int sp_prime (sp_t);
 
