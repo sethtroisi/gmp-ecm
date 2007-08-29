@@ -1175,8 +1175,9 @@ ecm_findmatch (const unsigned long j, root_params_t *root_params,
 {
   const int dickson_a = root_params->S < 0 ? -1 : 0;
   const unsigned int S = abs (root_params->S);
-  const int sizeT = S + 3;
-  long i = 0, k;
+  const unsigned int sizeT = S + 3;
+  unsigned int k;
+  long i = 0;
   point iX, jX;
   curve Xp; /* The point and curve over GF(p) */
   mpmod_t modulus;
