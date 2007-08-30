@@ -135,8 +135,9 @@ extern FILE *ECM_STDOUT, *ECM_STDERR;
 #define GWTHRESHOLD 1024
 #endif
 
-#if WANT_ASSERT
 #include <assert.h>
+#define ASSERT_ALWAYS(expr)   assert (expr)
+#if WANT_ASSERT
 #define ASSERT(expr)   assert (expr)
 #else
 #define ASSERT(expr)   do {} while (0)
@@ -540,7 +541,7 @@ void mpres_pow (mpres_t, const mpres_t, const mpz_t, mpmod_t);
 #define mpres_ui_pow __ECM(mpres_ui_pow)
 void mpres_ui_pow (mpres_t, unsigned int, mpres_t, mpmod_t);
 #define mpres_mul __ECM(mpres_mul)
-void mpres_mul (mpres_t, mpres_t, mpres_t, mpmod_t);
+void mpres_mul (mpres_t, const mpres_t, const mpres_t, mpmod_t);
 #define mpres_mul_z_to_z __ECM(mpres_mul_z_to_z)
 void mpres_mul_z_to_z (mpz_t, mpres_t, mpz_t, mpmod_t);
 #define mpres_set_z_for_gcd __ECM(mpres_set_z_for_gcd)
@@ -550,15 +551,15 @@ void mpres_div_2exp (mpres_t, mpres_t, unsigned int, mpmod_t);
 #define mpres_add_ui __ECM(mpres_add_ui)
 void mpres_add_ui (mpres_t, mpres_t, unsigned int, mpmod_t);
 #define mpres_add __ECM(mpres_add)
-void mpres_add (mpres_t, mpres_t, mpres_t, mpmod_t);
+void mpres_add (mpres_t, const mpres_t, const mpres_t, mpmod_t);
 #define mpres_sub_ui __ECM(mpres_sub_ui)
-void mpres_sub_ui (mpres_t, mpres_t, unsigned int, mpmod_t);
+void mpres_sub_ui (mpres_t, mpres_t, const unsigned int, mpmod_t);
 #define mpres_sub __ECM(mpres_sub)
-void mpres_sub (mpres_t, mpres_t, mpres_t, mpmod_t);
+void mpres_sub (mpres_t, const mpres_t, const mpres_t, mpmod_t);
 #define mpres_set_z __ECM(mpres_set_z)
 void mpres_set_z (mpres_t, mpz_t, mpmod_t);
 #define mpres_get_z __ECM(mpres_get_z)
-void mpres_get_z (mpz_t, mpres_t, mpmod_t);
+void mpres_get_z (mpz_t, const mpres_t, mpmod_t);
 #define mpres_set_ui __ECM(mpres_set_ui)
 void mpres_set_ui (mpres_t, unsigned int, mpmod_t);
 #define mpres_init __ECM(mpres_init)

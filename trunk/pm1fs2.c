@@ -19,67 +19,6 @@ static int verbose = 0;
 
 static int pariline = 0;
 
-static inline void
-swap_long (long *a, long *b, long *t)
-{
-  *t = *a;
-  *a = *b;
-  *b = *t;
-}
-
-static inline void 
-swapsort_long (long *a, long *b, long *t)
-{
-  if (*a > *b)
-    swap_long (a, b, t);
-}
-
-static void 
-quicksort_long (long *a, unsigned long l)
-{
-  unsigned long i, j;
-  long pivot, t;
-
-  if (l < 2)
-    return;
-
-  swapsort_long (a, a+l-1, &t);
-  if (l == 2)
-    return;
-
-  i = (l-1) / 2;
-  swapsort_long (a, a+i, &t);
-  swapsort_long (a+i, a+l-1, &t);
-  if (l == 3)
-    return;
-
-  pivot = a[i]; /* Median of three */
-
-  /* Stuff <= pivot goes in first list */
-  swap_long (a+1, a+i, &t); /* a[i] == pivot, so swap to start */
-
-  /* Invariant: a[0 ... i-1] <= pivot, a[j+1 ... l-1] > pivot */
-  for (i = 2, j = l - 1; i < j;)
-    if (a[i] > pivot)
-      {
-	for (; a[j] > pivot; j--);
-	if (i < j)
-	  swap_long (a+(i++), a+j, &t);
-      }
-    else
-      i++;
-
-  ASSERT(a[i-1] <= pivot);
-  ASSERT(a[i] > pivot);
-
-  swap_long (a+1, a+i-1, &t); /* Now a[i-1] == pivot */
-
-  quicksort_long (a, i - 1);
-  quicksort_long (a + i, l - i);
-
-  for (i = 1; i < l; i++)
-    ASSERT (a[i - 1] <= a[i]);
-}
 
 /*****************************************************************
 
@@ -87,19 +26,20 @@ quicksort_long (long *a, unsigned long l)
 
   A set is an array of long ints. The first element of the array 
   is the length of the set including the length value itself, i.e.
-  equal to cardinality + 1. It is followed by length - 1 elements 
-  of the set.
+  equal to cardinality + 1. It is followed by the length - 1 
+  elements of the set.
   A set of sets is an array that has several sets stored 
   back-to-back.
 
 *****************************************************************/
 
 
-/* Compute the set of sums over the sets in "*sets". The value of "add"
-   is added to each element of the set of sums, it is used mostly for the
-   recursion. "*sum" will have have {\prod_{S \in "*sets"} #S} entries
-   and must have enough memory allocated. This number of elements in the
-   set of sums is the return value. */
+/* Compute the set of sums over the sets in "*sets", whose total memory is
+   "setsize" words. The value of "add" is added to each element of the set 
+   of sums, it is used mostly for the recursion. "*sum" will have 
+   {\prod_{S \in "*sets"} #S} entries and must have enough memory allocated. 
+   This number of elements in the set of sums is the return value. In case 
+   of setsize == 0, nothing is written to *sets and 0 is returned. */
 
 static unsigned long 
 sum_sets (long *sum, long *sets, unsigned long setsize, long add)
@@ -123,6 +63,7 @@ sum_sets (long *sum, long *sets, unsigned long setsize, long add)
 
   return j;
 }
+
 
 /* Returns the minimal (if minmax == -1) or maximal (minmax == 1) value
    in the set of sums over the sets in "*sets". */
@@ -156,6 +97,7 @@ sum_sets_minmax (long *sets, unsigned long setsize, int minmax)
   return sum;
 }
 
+
 /* Return a set L of sets M_i so that M_1 + ... + M_k is congruent to 
    (Z/nZ)*, which is the set of residue classes coprime to n. The M_i all
    have prime cardinality.
@@ -167,7 +109,7 @@ sum_sets_minmax (long *sets, unsigned long setsize, int minmax)
    If L is the NULL pointer, nothing will be stored in L. The correct
    return value (amount of space needed in L) will still be computed, for
    example so that the correct amount of space can be allocated and 
-   factor_coprimeset() called again.
+   factor_coprimeset() be called again.
 */
 
 static int 
@@ -404,6 +346,39 @@ print_sets (int verbosity, long *sets, unsigned long setsize)
   outputf (verbosity, "\n");
 }
 
+static long *
+get_factored_sorted_sets (unsigned long *setsize, const unsigned long beta)
+{
+  long *sets;
+  unsigned long size, i;
+
+  size = factor_coprimeset (NULL, beta);
+  sets = malloc (size * sizeof (long));
+  ASSERT_ALWAYS (sets != NULL); /* FIXME, do error handling */
+  i = factor_coprimeset (sets, beta);
+  ASSERT_ALWAYS (i == size);
+  
+  if (test_verbose (OUTPUT_TRACE))
+    {
+      outputf (OUTPUT_TRACE, "Factored sets before sorting are ");
+      print_sets (OUTPUT_TRACE, sets, size);
+    }
+  
+  sort_sets (sets, size);
+  
+  if (test_verbose (OUTPUT_DEVVERBOSE))
+  {
+    outputf (OUTPUT_DEVVERBOSE, "The fully factored, sorted sets are for "
+	     "beta = %lu are ", beta);
+      print_sets (OUTPUT_DEVVERBOSE, sets, size);
+  }
+  
+  if (setsize != NULL)
+    *setsize = size;
+  
+  return sets;
+}
+
 
 static void
 list_output_poly (listz_t l, unsigned long len, int monic, int symmetric,
@@ -440,14 +415,16 @@ list_output_poly (listz_t l, unsigned long len, int monic, int symmetric,
 
 
 /* Multiply P[i] by r^{k(deg-i)}, for 0 <= i <= deg. Needs 3 entries in tmp. */
-/* I.e., let P(x) = \sum_{i=0}^{deg} P[i] * x^i. The output is 
-   R(x) = r^(k deg) P(r^{-k} x). */
+/* I.e., let P(x) = x^deg + \sum_{i=0}^{deg - 1} P[i] * x^i. The output is 
+   R(x) = x^deg + \sum_{i=0}^{deg - 1} R[i] * x^i = r^(k deg) P(r^{-k} x). */
+/* The input and output polynomials are monic and have the leading monomial
+   implicit, i.e. not actually stored in the array of coefficients. */
 /* Returns 0 if a modular inversion failed (in which case R is left 
    unchanged), 1 otherwise */
 
 static int
 list_scale_rev (listz_t R, listz_t S, mpz_t r, long k, unsigned long deg, 
-		mpz_t modulus, listz_t tmp, unsigned long tmplen)
+		mpz_t modulus, listz_t tmp, const unsigned long tmplen)
 {
   unsigned long i;
 
@@ -466,8 +443,8 @@ list_scale_rev (listz_t R, listz_t S, mpz_t r, long k, unsigned long deg,
       /* Here, tmp[1] = r^(ki) */
       mpz_mul (tmp[2], S[deg-i], tmp[1]);
       mpz_mod (R[deg-i], tmp[2], modulus);
-      mpz_mul (tmp[2], tmp[1], tmp[0]);
-      mpz_mod (tmp[1], tmp[2], modulus);
+      mpz_mul (tmp[2], tmp[1], tmp[0]);  /* FIXME, avoid unnecessary mul */
+      mpz_mod (tmp[1], tmp[2], modulus); /* at end of loop */
     }
   if (i <= deg)
     {
@@ -502,9 +479,6 @@ list_mul_symmetric (listz_t R, const listz_t S1, const unsigned long l1,
   lmax = (l1 > l2) ? l1 : l2;
 
   ASSERT (tmplen >= 8 * lmax - 2 + list_mul_mem (2 * lmax - 1));
-
-  printf ("list_mul_symmetric: Multiplying polynomials of length %lu and %lu\n",
-	  l1, l2);
 
   if (l1 == 0 || l2 == 0)
     return;
@@ -609,7 +583,7 @@ list_mul_blocks (listz_t R, const listz_t A, int monicA, const listz_t B,
 /* compute V_k(S), where V(x) is defined by V_k(X + 1/X) = X^k + 1/X^k */
 
 static void
-V (mpres_t R, mpres_t S, const long k, mpmod_t modulus)
+V (mpres_t R, const mpres_t S, const long k, mpmod_t modulus)
 {
   mpres_t Vi, Vi1;
   unsigned long i, j, uk;
@@ -690,7 +664,7 @@ V (mpres_t R, mpres_t S, const long k, mpmod_t modulus)
 
 static void
 list_scale_V (listz_t R, listz_t F, mpres_t Q, unsigned long deg,
-	      mpmod_t modulus, listz_t tmp, unsigned long tmplen)
+	      mpmod_t modulus, listz_t tmp, const unsigned long tmplen)
 {
   mpres_t Vi_1, Vi, Vt;
   unsigned long i;
@@ -1023,7 +997,7 @@ list_eval_poly (mpz_t r, const listz_t F, const mpz_t x,
 
 static int
 poly_from_sets (mpz_t *F, mpz_t r, long *sets, unsigned long setsize,
-		mpz_t *tmp, unsigned long tmplen, mpz_t modulus)
+		mpz_t *tmp, const unsigned long tmplen, mpz_t modulus)
 {
 
   unsigned long l, c; /* Cardinality of this set */
@@ -1095,33 +1069,39 @@ poly_from_sets (mpz_t *F, mpz_t r, long *sets, unsigned long setsize,
   return c * deg;
 }
 
-/* Same, but uses the fact that the polynomials are symmertic. Requires that
-   the first set in sets has cardinality 2. */
+/* Build a polynomial with roots r^i, i in the sumset of the sets in "sets".
+   The parameter Q = r + 1/r. This code uses the fact that the polynomials 
+   are symmetric. Requires that the first set in sets has cardinality 2,
+   all sets must be symmetric around 0. */
 
 static int
-poly_from_sets_V (listz_t F, mpres_t r, long *sets, unsigned long setsize,
-		  listz_t tmp, unsigned long tmplen, mpmod_t modulus)
+poly_from_sets_V (listz_t F, const mpres_t Q, const long *sets, 
+		  unsigned long setsize, listz_t tmp, 
+		  const unsigned long tmplen, mpmod_t modulus)
 {
   unsigned long c, deg, lastidx, i;
-  long *curset;
-  mpres_t Q, Qt;
+  const long *curset;
+  mpres_t Qt;
   
-  ASSERT (sets[0] == 3); /* Check that the cardinality is 2 */
-  ASSERT (sets[1] == -sets[2]); /* Check that the set is symmetric around 0 */
+  ASSERT_ALWAYS (sets[0] == 3); /* Check that the cardinality of first set 
+				   is 2 */
+  ASSERT_ALWAYS (sets[1] == -sets[2]); /* Check that first set is symmetric 
+					  around 0 */
 
-  mpres_init (Q, modulus);
-  mpres_init (Qt, modulus);
-  
-  mpres_set (Q, r, modulus);
-  if (mpres_invert (Qt, Q, modulus) == 0)
+  if (test_verbose (OUTPUT_DEVVERBOSE))
     {
-      mpres_clear (Qt, modulus);
-      mpres_clear (Q, modulus);
-      return 0;
+      mpz_t t;
+      mpz_init (t);
+      mpres_get_z (t, Q, modulus);
+      outputf (OUTPUT_DEVVERBOSE, 
+	       "poly_from_sets_V (F, Q = %Zd, sets, setsize = %lu)\n", 
+	       t, setsize);
+      mpz_clear (t);
     }
 
-  mpres_add (Q, Q, Qt, modulus); /* Q = r + 1/r */
-  V (Qt, Q, sets[1], modulus); /* Q = r^k + 1/r^k FIXME: write mpres_pow_ui */
+  mpres_init (Qt, modulus);
+  
+  V (Qt, Q, sets[1], modulus); /* Qt = V_k(Q) */
 
   mpres_get_z (F[0], Qt, modulus);
   mpz_neg (F[0], F[0]);
@@ -1143,10 +1123,9 @@ poly_from_sets_V (listz_t F, mpres_t r, long *sets, unsigned long setsize,
 	 odd cardinality */
       c = sets[lastidx] - 1;
       curset = sets + lastidx + 1;
-      ASSERT (c == 2 || c % 2 == 1);
       if (c == 2)
 	{
-	  ASSERT (curset[0] == -curset[1]); /* Check it's symmetric */
+	  ASSERT_ALWAYS (curset[0] == -curset[1]); /* Check it's symmetric */
 	  V (Qt, Q, curset[0], modulus);
 	  list_scale_V (F, F, Qt, deg, modulus, tmp, tmplen);
 	  deg *= 2;
@@ -1154,6 +1133,7 @@ poly_from_sets_V (listz_t F, mpres_t r, long *sets, unsigned long setsize,
 	}
       else
 	{
+	  ASSERT_ALWAYS (c % 2 == 1);
 	  /* Generate the F(Q^{k_i} * X)*F(Q^{-k_i} * X) polynomials.
 	     Each is symmetric of degree 2*deg, so each has deg+1 coeffients
 	     in standard basis. */
@@ -1198,117 +1178,8 @@ poly_from_sets_V (listz_t F, mpres_t r, long *sets, unsigned long setsize,
     }
 
   mpres_clear (Qt, modulus);
-  mpres_clear (Q, modulus);
 
   return deg;
-}
-
-/* Build polynomial F(x) = \prod_{0<k<n, (k,n)=1} (x - r^k). Returns
-   the number of multiplications used */
-
-/* For Pari: F(n,r)=prod(k=1,n-1,if(gcd(k,n)==1,(x-r^k),1)) */
-
-static int
-poly_from_roots_coprime (mpz_t *F, mpz_t r, const unsigned long pn, 
-			 mpz_t *tmp, unsigned long tmplen, mpz_t modulus)
-{
-  unsigned long p = 1, n, i, k, muls = 0, deg;
-
-  if (pn == 1)
-    {
-#if NEGATED_ROOTS == 0
-      mpz_set_si (F[0], -1L);
-#else
-      mpz_set_ui (F[0], 1UL);
-#endif
-      return 0;
-    }
-
-  /* Find smallest prime factor p of pn */
-  for (p = 2; pn % p != 0; p++);
-  n = pn / p;
-
-  deg = eulerphi(n);
-
-  ASSERT(tmplen > 0);
-  mpz_powm_ui (tmp[0], r, p, modulus);
-#ifdef TESTDRIVE
-  if (verbose > 1)
-    gmp_printf ("Calling poly_from_roots_coprime(F, %Zd, %lu, tmp, %Zd)\n",
-		tmp[0], n, modulus);
-#endif
-  poly_from_roots_coprime (F, tmp[0], n, tmp + 1, tmplen - 1, modulus);
-#if defined(TESTDRIVE)
-  for (i = 0; verbose > 1 && i < deg; i++)
-    gmp_printf ("poly_from_roots_coprime(F, %Zd, %lu, tmp, %Zd) returned"
-		" f_%ld = %Zd\n", tmp[0], n, modulus, i, F[i]);
-#endif
-  for (i = p - 1; i >= 1; i--)
-    {
-      ASSERT(tmplen > 2);
-      mpz_powm_ui (tmp[0], r, i*n, modulus);
-      mpz_set (tmp[1], tmp[0]); /* tmp[1] = r^(i*n*k) */
-      for (k = 1; k <= deg; k++)
-	{
-#ifdef TESTDRIVE
-	  if (verbose > 1)
-	    gmp_printf ("Setting f_%lu = f_%lu * r^%lu = %Zd * %Zd = ", 
-			i * deg - k, deg - k, i*n*k, F[deg - k], tmp[1]);
-#endif
-	  mpz_mul (tmp[2], F[deg - k], tmp[1]);
-	  mpz_mod (F[i * deg - k], tmp[2], modulus);
-#ifdef TESTDRIVE
-	  if (verbose > 1)
-	    gmp_printf ("%Zd\n", F[i * deg - k]);
-#endif
-	  mpz_mul (tmp[2], tmp[1], tmp[0]);
-	  mpz_mod (tmp[1], tmp[2], modulus);
-	  muls += 2;
-	}
-    }
-
-#ifdef TESTDRIVE
-  for (i = 1; verbose > 1 && i < p; i++)
-    {
-      gmp_printf ("%Zd^(%lu*%lu) * F_{%lu, %Zd}(x/%Zd^%lu) = ", 
-		  r, i, deg, n, r, r, i);
-      for (k = 0; k < deg; k++)
-	gmp_printf ("+ %Zd *x^%lu", F[(i - 1)*deg + k], k);
-      printf ("\n");
-    }
-#endif
-
-  i = eulerphi(p); /* The number of pieces we have, hopefully a power of 2 */
-  while (i > 1)
-    {
-      ASSERT (i % 2 == 0);
-      for (k = 0; k < i; k += 2) /* Multiply pieces in pairs */
-	{
-	  ASSERT(tmplen > 2 * deg + list_mul_mem (deg));
-	  list_mul (tmp, F + deg * k, deg, 1, 
-		         F + deg * (k + 1), deg, 1,
-		    tmp + 2 * deg);
-	  list_mod (F + deg * k, tmp, 2 * deg, modulus);
-	}
-      /* Now there are half as many pieces, each twice as long */
-      i /= 2;
-      deg *= 2;
-    }
-
-#ifdef TESTDRIVE
-  if (verbose > 1)
-    printf ("Final polynomial at this stage is ");
-  for (i = 0; verbose > 1 && i < eulerphi(p) * eulerphi(n); i++)
-    gmp_printf ("f_%lu = %Zd\n", i, F[i]);
-#endif
-
-#ifdef TESTDRIVE
-  if (verbose > 1)
-    gmp_printf ("Leaving poly_from_roots_coprime(F, %Zd, %lu, tmp, %Zd)\n", 
-		r, pn, modulus);
-#endif
-
-  return muls;
 }
 
 
@@ -1483,9 +1354,195 @@ sequence_C (mpz_t *C, mpz_t *F, const mpres_t X, long d, const mpz_t alpha,
   return 0;
 }
 
+
+/* Build polynomial F(x) with roots X^i for i covering all the residue classes
+   coprime to beta. F must have space for eulerphi(beta) coefficients.
+   method can be 0, 1 or 2, which mean: 0 = old way of computing all the 
+   roots and doing a product tree, 1 = using recursive expansion of polynomial
+   *without* Chebychev polynomials to utilize symmetry, 2 = using recursive 
+   expansion of polynomial *with* Chebychev polynomials */
+
+static void 
+pm1_build_poly_F (mpz_t *F, const mpres_t X, mpmod_t modulus, 
+		  const unsigned long beta, const int method, 
+		  const mpz_t i0, const unsigned long nr, 
+		  const unsigned long blocks, const unsigned long tmplen, 
+		  mpz_t *tmp)
+{
+  long timestart, timestop;
+  long *sets = NULL;
+  unsigned long setsize = 0UL, i;
+  mpz_t mt;
+  const unsigned long dF = eulerphi (beta);
+  
+  ASSERT (0 <= method && method <= 2);
+  
+  mpz_init (mt);
+  
+  if (method == 1 || method == 2)
+    {
+      sets = get_factored_sorted_sets (&setsize, beta);
+      
+      mpz_mul_ui (mt, i0, beta);
+      mpz_add_si (mt, mt, sum_sets_minmax (sets, setsize, 1));
+      outputf (OUTPUT_VERBOSE, "Effective B2min = %Zd\n", mt);
+      mpz_add_ui (mt, i0, blocks * nr);
+      mpz_mul_ui (mt, mt, beta);
+      mpz_sub_si (mt, mt, sum_sets_minmax (sets, setsize, -1));
+      outputf (OUTPUT_VERBOSE, "Effective B2max = %Zd\n", mt);
+    }
+  else
+    {
+      mpz_mul_ui (mt, i0, beta);
+      outputf (OUTPUT_VERBOSE, "Effective B2min ~= %Zd\n", mt);
+      mpz_add_ui (mt, i0, blocks * nr);
+      mpz_mul_ui (mt, mt, beta);
+      outputf (OUTPUT_VERBOSE, "Effective B2max ~= %Zd\n", mt);
+    }
+
+  if (method == 1 || (method == 2 && sets[0] == 2))
+    {
+      /* poly_from_sets_V () can't handle set of cardinality 1, so use 
+	 poly_from_sets () in that case */
+      
+      outputf (OUTPUT_VERBOSE, 
+	       "Computing F from factored set of units mod %lu", beta);
+      if (test_verbose (OUTPUT_DEVVERBOSE))
+	outputf (OUTPUT_VERBOSE, "\n");
+      
+      timestart = cputime ();
+      
+      mpres_get_z (mt, X, modulus); /* poly_from_sets() expects mpz_t atm */
+      i = poly_from_sets (F, mt, sets, setsize, tmp, tmplen, 
+			modulus->orig_modulus);
+      ASSERT_ALWAYS (i == dF);
+
+      timestop = cputime ();
+      outputf (OUTPUT_VERBOSE, " took %lu ms\n", timestop - timestart);
+
+#if defined(WANT_ASSERT)
+      if (sets[0] != 2) /* Unless the first set has one element, 
+			   the polynomial should be symmetric */
+	{
+	  long i = list_is_symmetric (F, dF, 1, 1, modulus->orig_modulus, mt);
+	  if (i != -1)
+	    {
+	      outputf (OUTPUT_ERROR, 
+		       "Polynomial not symmetric! F[%ld] != F[%ld]\n", 
+		       i, dF - i);
+	      list_output_poly (F, dF, 1, 0, "F(x) = ", OUTPUT_ERROR);
+	      outputf (OUTPUT_ERROR, "Factored sets: ");
+	      print_sets (OUTPUT_ERROR, sets, setsize);
+	      abort ();
+	    }
+	}
+#endif
+    }
+  else if (method == 2)
+    {
+      /* Use poly_from_sets_V () */
+      mpres_t X1X;
+
+      outputf (OUTPUT_VERBOSE, "Computing F from symmetric factored set "
+	       "of units mod %lu", beta);
+      if (test_verbose (OUTPUT_DEVVERBOSE))
+	outputf (OUTPUT_VERBOSE, "\n");
+
+      timestart = cputime ();
+
+      /* First compute X + 1/X */
+      mpres_init (X1X, modulus);
+      mpres_invert (X1X, X, modulus);
+      mpres_add (X1X, X1X, X, modulus);
+
+      i = poly_from_sets_V (F, X1X, sets, setsize, tmp, tmplen, 
+			    modulus);
+      ASSERT(2 * i == dF);
+      ASSERT(mpz_cmp_ui (F[i], 1UL) == 0);
+      
+      mpres_clear (X1X, modulus);
+
+      /* Make symmetric copy. The leading 1 monomial will not get stored,
+         but will be implicit from here on. */
+
+      for (i = 0; i < dF / 2; i++)
+	mpz_set (F[dF / 2 + i], F[i]); /* F[dF/2]:=f_0, F[dF-1]:=f_{dF/2-1} */
+      
+      for (i = 1; i < dF / 2; i++)
+	mpz_set (F[i], F[dF - i]); /* F[1] := F[dF - 1] = f_{dF / 2 - 1}, 
+				      F[dF / 2 - 1] := F[dF / 2 + 1] = f_1 */
+      mpz_set_ui (F[0], 1UL);
+      
+      timestop = cputime ();
+      outputf (OUTPUT_VERBOSE, " took %lu ms\n", timestop - timestart);
+    }
+  else /* method == 0 */
+    {
+      /* Build F the old way, computing all the roots and doing a 
+	 product tree */
+
+      mpres_t Xs, Xi;
+      const unsigned long s = 2 - beta % 2; /* 2 if beta is even, 1 if odd */
+      unsigned long j;
+
+      outputf (OUTPUT_VERBOSE, "Computing roots of F");
+      outputf (OUTPUT_TRACE, "\n"); /* So the "Computing" does not interfere */
+      
+      timestart = cputime ();
+      mpres_init (Xs, modulus);
+      mpres_init (Xi, modulus);
+
+      if (s == 1) /* Xs = X^s */
+	mpres_set (Xs, X, modulus);
+      else
+	mpres_mul (Xs, X, X, modulus);
+
+      mpres_set (Xi, X, modulus);    /* Xi = X^i for i = 1 */
+
+      /* Prepare polynomial F(x), which is monic of degree dF. The leading
+	 monomial is not stored. */
+      /* Put in F[0 .. dF-1] the values of X^i, 1<=i<beta, gcd(i, beta) == 1 */
+      for (i = 1, j = 0; i < beta; i += s)
+	{
+	  if (gcd (i, beta) == 1)
+	    mpres_get_z (F[j++], Xi, modulus);
+	  mpres_mul (Xi, Xi, Xs, modulus);
+	}
+      
+      ASSERT_ALWAYS (j == dF);
+      mpres_clear (Xs, modulus);
+      mpres_clear (Xi, modulus);
+      timestop = cputime ();
+      outputf (OUTPUT_VERBOSE, " took %lu ms\n", timestop - timestart);
+      
+      /* Print the polynomial in linear factors form */
+      outputf (OUTPUT_TRACE, "F(x) = ");
+      for (j = 0; j < dF - 1; j++)
+	outputf (OUTPUT_TRACE, "(x - %Zd) * ", F[j]);
+      outputf (OUTPUT_TRACE, "(x - %Zd); /* PARI %ld */\n", F[dF - 1], 
+	       pariline++);
+      
+      /* Multiply all the (x - f_i) to form F(x) in monomial basis */
+      outputf (OUTPUT_VERBOSE, "Building F from its roots");
+      timestart = cputime ();
+      PolyFromRoots (F, F, dF, tmp, modulus->orig_modulus);
+      timestop = cputime ();
+      outputf (OUTPUT_VERBOSE, " took %lu ms\n", timestop - timestart);
+    }
+
+  mpz_clear (mt);
+  if (method == 1 || method == 2)
+    free (sets);
+
+  /* Print the final polynomial in monomial form */
+  if (test_verbose (OUTPUT_TRACE))
+    list_output_poly (F, dF, 1, 0, "F(x) == ", OUTPUT_TRACE);
+}
+
+
 int 
-pm1fs2(mpz_t f, mpres_t X, mpmod_t modulus, root_params_t *root_params, 
-       unsigned long dF_param, unsigned long blocks)
+pm1fs2 (mpz_t f, mpres_t X, mpmod_t modulus, root_params_t *root_params, 
+        unsigned long dF_param, unsigned long blocks)
 {
   /* Polynomial F has roots X^i for one i from each class coprime to 
      root_params->d1, so has degree dF = eulerphi(d1) */
@@ -1509,14 +1566,12 @@ pm1fs2(mpz_t f, mpres_t X, mpmod_t modulus, root_params_t *root_params,
   const unsigned long nr = len - dF;
 #endif
 
-  unsigned long i, j, l, lenF, lenB, lenC, lenR, lentmp, setsize;
+  unsigned long i, j, l, lenF, lenB, lenC, lenR, tmplen;
   listz_t F, B, C, tmp, R;
-  mpres_t Xi, X2;
   mpz_t mt;
   int youpi = 0;
   extern unsigned int Fermat;
   long timetotalstart, timestart, timestop, muls;
-  long *sets;
 
   ASSERT (dF <= len / 2);
   ASSERT  (beta % 2 == 0);
@@ -1543,177 +1598,24 @@ pm1fs2(mpz_t f, mpres_t X, mpmod_t modulus, root_params_t *root_params,
   C = init_list2 (lenC, labs (modulus->bits));
   lenR = nr;
   R = init_list2 (lenR, labs (modulus->bits));    
-  lentmp = 4 * len + list_mul_mem (len / 2);
-  outputf (OUTPUT_DEVVERBOSE, "lentmp = %lu\n", lentmp);
-  if (TMulGen_space (lenC - 1, lenB - 1, lenR) + 12 > lentmp)
-    lentmp = TMulGen_space (lenC - 1, lenB - 1, lenR) + 12;
-  /* FIXME: It appears TMulGen_space() returns a too small value! */
-  outputf (OUTPUT_DEVVERBOSE, "lentmp = %lu\n", lentmp);
-  tmp = init_list2 (lentmp, labs (modulus->bits));
+  tmplen = 4 * len + list_mul_mem (len / 2);
+  outputf (OUTPUT_DEVVERBOSE, "tmplen = %lu\n", tmplen);
+  if (TMulGen_space (lenC - 1, lenB - 1, lenR) + 12 > tmplen)
+    {
+      tmplen = TMulGen_space (lenC - 1, lenB - 1, lenR) + 12;
+      /* FIXME: It appears TMulGen_space() returns a too small value! */
+      outputf (OUTPUT_DEVVERBOSE, "With TMulGen_space, tmplen = %lu\n", 
+	       tmplen);
+    }
+  tmp = init_list2 (tmplen, labs (modulus->bits));
   
   mpres_get_z (mt, X, modulus); /* mpz_t copy of X for printing */
   outputf (OUTPUT_RESVERBOSE, 
 	   "N = %Zd; X = Mod(%Zd, N); XP=X^P; /* PARI %ld */\n", 
 	   modulus->orig_modulus, mt, pariline++);
   
-#if 1
-  /* Build polynomial for fully factored set of residues coprime to beta */
-  outputf (OUTPUT_VERBOSE, "Factoring and sorting sets");
-  timestart = cputime ();
-  setsize = factor_coprimeset (NULL, beta);
-  sets = malloc (setsize * sizeof (long));
-  ASSERT(sets != NULL); /* FIXME, error handling */
-  i = factor_coprimeset (sets, beta);
-  ASSERT(i == setsize);
-  sort_sets (sets, setsize);
-  timestop = cputime ();
-  outputf (OUTPUT_VERBOSE, " took %lu ms\n", timestop - timestart);
-  
-  if (test_verbose (OUTPUT_DEVVERBOSE))
-  {
-      outputf (OUTPUT_DEVVERBOSE, "The fully factored, sorted sets are ");
-      print_sets (OUTPUT_DEVVERBOSE, sets, setsize);
-  }
-
-  mpz_mul_ui (mt, root_params->i0, beta);
-  mpz_add_si (mt, mt, sum_sets_minmax (sets, setsize, 1));
-  outputf (OUTPUT_VERBOSE, "Effective B2min = %Zd\n", mt);
-  mpz_add_ui (mt, root_params->i0, blocks * nr);
-  mpz_mul_ui (mt, mt, beta);
-  mpz_sub_si (mt, mt, sum_sets_minmax (sets, setsize, -1));
-  outputf (OUTPUT_VERBOSE, "Effective B2max = %Zd\n", mt);
-
-  mpres_get_z (mt, X, modulus);
-
-  if (sets[0] == 2)
-    {
-      /* poly_from_sets_V () can't handle set of cardinality 1, so use 
-	 poly_from_sets () */
-
-      outputf (OUTPUT_VERBOSE, 
-	       "Computing F from factored set of units mod %lu", beta);
-      if (test_verbose (OUTPUT_DEVVERBOSE))
-	outputf (OUTPUT_VERBOSE, "\n");
-
-      i = poly_from_sets (F, mt, sets, setsize, tmp, lentmp, 
-			modulus->orig_modulus);
-      ASSERT (i == dF);
-
-#if defined(WANT_ASSERT)
-      if (sets[0] != 2) /* Unless the first set has one element, 
-			   the polynomial should be symmetric */
-	{
-	  long i = list_is_symmetric (F, dF, 1, 1, modulus->orig_modulus, mt);
-	  if (i != -1)
-	    {
-	      
-	      outputf (OUTPUT_ERROR, 
-		       "Polynomial not symmetric! F[%ld] != F[%ld]\n", i, dF - i);
-	      list_output_poly (F, dF, 1, 0, "F(x) = ", OUTPUT_ERROR);
-	      outputf (OUTPUT_ERROR, "Factored sets: ");
-	      print_sets (OUTPUT_ERROR, sets, setsize);
-	      abort ();
-	    }
-	  else
-	    outputf (OUTPUT_DEVVERBOSE, "Polynomial is symmetric\n");
-	}
-#endif
-    }
-  else
-    {
-      /* Use poly_from_sets_V () */
-      
-      outputf (OUTPUT_VERBOSE, "Computing F from symmetric factored set "
-	       "of units mod %lu", beta);
-      if (test_verbose (OUTPUT_DEVVERBOSE))
-	outputf (OUTPUT_VERBOSE, "\n");
-
-      i = poly_from_sets_V (F, X, sets, setsize, tmp, lentmp, 
-			    modulus);
-      
-      ASSERT(2 * i == dF);
-      ASSERT(mpz_cmp_ui (F[i], 1UL) == 0);
-      
-      /* Make symmetric copy. The leading 1 monomial will not get stored,
-         but will be implicit from here on. */
-
-      for (i = 0; i < dF / 2; i++)
-	mpz_set (F[dF / 2 + i], F[i]); /* F[dF/2]:=f_0, F[dF-1]:=f_{dF/2-1} */
-      
-      for (i = 1; i < dF / 2; i++)
-	mpz_set (F[i], F[dF - i]); /* F[1] := F[dF - 1] = f_{dF / 2 - 1}, 
-				      F[dF / 2 - 1] := F[dF / 2 + 1] = f_1 */
-      mpz_set_ui (F[0], 1UL);
-    }
-
-  free (sets);
-  sets = NULL;
-
-  timestop = cputime ();
-  outputf (OUTPUT_VERBOSE, " took %lu ms\n", timestop - timestart);
-
-  /*
-    outputf (OUTPUT_VERBOSE, "Computing F via product of coprime sets");
-    timestart = cputime ();
-
-    poly_from_roots_coprime (F, X, beta, tmp, lentmp, modulus->orig_modulus);
-    
-    timestop = cputime ();
-    outputf (OUTPUT_VERBOSE, " took %lu ms\n", timestop - timestart);
-  */
-
-#else
-  /* Build F the old way, computing all the roots and doing a product tree */
-  mpz_mul_ui (mt, root_params->i0, beta);
-  outputf (OUTPUT_VERBOSE, "Effective B2min ~= %Zd\n", mt);
-  mpz_add_ui (mt, root_params->i0, blocks * nr);
-  mpz_mul_ui (mt, mt, beta);
-  outputf (OUTPUT_VERBOSE, "Effective B2max ~= %Zd\n", mt);
-
-  outputf (OUTPUT_VERBOSE, "Computing roots of F");
-  outputf (OUTPUT_TRACE, "\n"); /* So the "Computing" does not interfere */
-  timestart = cputime ();
-  mpres_init (X2, modulus);
-  mpres_init (Xi, modulus);
-  mpres_mul (X2, X, X, modulus); /* X2 = X^2 */
-  mpres_set (Xi, X, modulus);    /* Xi = X^i */
-  /* Prepare polynomial F(x), which is monic of degree dF. The leading
-     monomial is not stored. */
-  /* Put in F[0 .. dF-1] the values of X^i, 1<=i<beta, gcd(i, beta) == 1 */
-  for (i = 1, j = 0; i < beta; i += 2) /* "+= 2" assumes beta is even */
-    {
-      if (gcd (i, beta) == 1)
-	{
-	  mpres_get_z (F[j], Xi, modulus);
-	  outputf (OUTPUT_TRACE, "f_%lu = X^%lu;"
-		   "compare(f_%lu, Mod(%Zd, N), %ld); /* PARI %ld */\n", 
-		   j, i, j, F[j], pariline, pariline); pariline++;
-	  j++;
-	}
-      mpres_mul (Xi, Xi, X2, modulus);
-    }
-  
-  ASSERT(j == dF);
-  mpres_clear (X2, modulus);
-  mpres_clear (Xi, modulus);
-  timestop = cputime ();
-  outputf (OUTPUT_VERBOSE, " took %lu ms\n", timestop - timestart);
-
-  outputf (OUTPUT_TRACE, "F(x) = ");
-  for (j = 0; j < dF - 1; j++)
-    outputf (OUTPUT_TRACE, "(x - f_%lu) * ", j);
-  outputf (OUTPUT_TRACE, "(x - f_%lu); /* PARI %ld */\n", dF - 1, pariline++);
-  
-  /* Multiply all the (x - f_i) to form F(x) in monomial basis */
-  outputf (OUTPUT_VERBOSE, "Building F from its roots");
-  timestart = cputime ();
-  PolyFromRoots (F, F, dF, tmp, modulus->orig_modulus);
-  timestop = cputime ();
-  outputf (OUTPUT_VERBOSE, " took %lu ms\n", timestop - timestart);
-#endif
-  
-  if (test_verbose (OUTPUT_TRACE))
-    list_output_poly (F, dF, 1, 0, "F(x) == ", OUTPUT_TRACE);
+  pm1_build_poly_F (F, X, modulus, beta, 0, root_params->i0, nr, 
+		    blocks, tmplen, tmp);
   
   sequence_B (B, X, len / 2, beta, modulus);
   
@@ -1740,7 +1642,8 @@ pm1fs2(mpz_t f, mpres_t X, mpmod_t modulus, root_params_t *root_params,
 	mpres_swap (C[j], C[lenC - 1 - j], modulus);
 
       outputf (OUTPUT_VERBOSE, "TMulGen of B and C");
-      ASSERT(lentmp >= TMulGen_space (nr - 1, lenC - 1, lenB - 1));
+      timestart = cputime ();
+      ASSERT(tmplen >= TMulGen_space (nr - 1, lenC - 1, lenB - 1));
       muls = TMulGen (R, nr - 1, C, lenC - 1, B, lenB - 1, tmp, 
 		      modulus->orig_modulus);
       list_mod (R, R, nr, modulus->orig_modulus);
@@ -1865,7 +1768,7 @@ pm1fs2(mpz_t f, mpres_t X, mpmod_t modulus, root_params_t *root_params,
   clear_list (B, lenB);
   clear_list (C, lenC);
   clear_list (R, lenR);    
-  clear_list (tmp, lentmp);
+  clear_list (tmp, tmplen);
 
   timestop = cputime ();
   outputf (OUTPUT_NORMAL, "Step 2 took %ld ms\n", 
@@ -1874,7 +1777,182 @@ pm1fs2(mpz_t f, mpres_t X, mpmod_t modulus, root_params_t *root_params,
   return youpi;
 }
 
+
+/* Multiplies (a0 + a1*sqrt(Delta)) * (b0 + b1*sqrt(Delta))
+   using four multiplications. Result goes is (r0 + r1*sqrt(Delta)). 
+   a0, a1, b0, b1, r0, r1 may overlap arbitrarily. t[0], t[1], t[2] and Delta
+   must not overlap with anything. */
+/* FIXME: is there a faster multiplication routine if both inputs have 
+   norm 1? */
+
+static void 
+gfp_ext_mul (mpz_t r0, mpz_t r1, const mpz_t a0, const mpz_t a1,
+	     const mpz_t b0, const mpz_t b1, const mpz_t Delta, 
+	     const mpz_t N, const unsigned long tmplen, mpz_t *t)
+{
+  ASSERT (tmplen >= 3);
+  mpz_add (t[0], a0, a1);
+  mpz_add (t[1], b0, b1);
+  mpz_mul (t[2], t[0], t[1]); /* t2 = (a0 + a1) * (b0 + b1) = a0*b0 + a0*b1 + 
+				 a1*b0 + a1*b1 */
+
+  mpz_mul (t[0], a0, b0);     /* t[0] = a0*b0. We don't need a0 or b0 now */
+  mpz_sub (t[2], t[2], t[0]); /* r1 = a0*b1 + a1*b0 + a1*b1 */
+  
+  mpz_mul (t[1], a1, b1);     /* t[1] = a1*b1. We don't need a1 or b1 now */
+  mpz_sub (t[2], t[2], t[1]);
+  mpz_mod (r1, t[2], N);      /* r1 == a0*b1 + a1*b0 */
+
+  mpz_mod (t[2], t[1], N);    /* t[2] = a1*b1 % N */
+  mpz_mul (t[1], t[2], Delta); /* t[1] = a1*b1*Delta */
+  mpz_add (t[0], t[0], t[1]);  /* t[0] = a0*b0 + a1*b1*Delta */
+  mpz_mod (r0, t[0], N);       /* r0 = (a0*b0 + a1*b1*Delta) % N */
+}
+
+static void
+gfp_ext_sqr_norm1 (mpz_t r0, mpz_t r1, const mpz_t a0, const mpz_t a1,
+		   const mpz_t N, const unsigned long tmplen, mpz_t *t)
+{
+  ASSERT (tmplen >= 1);
+  mpz_mul (t[0], a0, a1);
+  mpz_mod (r1, t[0], N);
+  mpz_mul_2exp (r1, r1, 1);
+  
+  mpz_mul (t[0], a0, a0);
+  mpz_mod (r0, t[0], N);
+  mpz_mul_2exp (r0, r0, 1);
+  mpz_sub_ui (r0, r0, 1);
+}
+
+
+/* Raise (a0 + a1*sqrt(Delta)) to the power e. (a0 + a1*sqrt(Delta)) is 
+   assumed to have norm 1, i.e. a0^2 - a1^2*Delta == 1. The result is 
+   (r0 * r1*sqrt(Delta)). */
+
+static void 
+gfp_ext_pow_norm1 (mpz_t r0, mpz_t r1, const mpz_t a0, const mpz_t a1, 
+		   const mpz_t Delta, const long e, const mpz_t N, 
+		   unsigned long tmplen, mpz_t *tmp)
+{
+  const unsigned long abs_e = labs (e);
+  unsigned long mask = ~0UL - (~0UL >> 1);
+
+  if (e == 0)
+    {
+      mpz_set_ui (r0, 1UL);
+      mpz_set_ui (r1, 0UL);
+      return;
+    }
+
+  /* If e < 0, we want 1/(a0 + a1*sqrt(Delta)). By extending with 
+     a0 - a1*sqrt(Delta), we get 
+     (a0 - a1*sqrt(Delta)) / (a0^2 - a1^2 * Delta), but that denomiator
+     is the norm which is known to be 1, so the result is 
+     a0 - a1*sqrt(Delta). */
+
+  while ((abs_e & mask) == 0UL)
+    mask >>= 1;
+
+  mpz_set (r0, a0);
+  mpz_set (r1, a1);
+  if (e < 0)
+    mpz_neg (r1, r1);
+
+  while (mask > 1UL)
+    {
+      gfp_ext_sqr_norm1 (r0, r1, r0, r1, N, tmplen, tmp);
+      mask >>= 1;
+      if (abs_e & mask)
+	{
+	  if (e < 0)
+	    mpz_neg (r1, r1); /* We compute 1/(1/r * a) for r*1/a */
+	  gfp_ext_mul (r0, r1, r0, r1, a0, a1, Delta, N, tmplen, tmp);
+	  if (e < 0)
+	    mpz_neg (r1, r1);
+	}
+    }
+}
+
+
+
+int 
+pp1fs2 ()
+{
+  return 0;
+}
+
+
+
 #ifdef TESTDRIVE
+
+static inline void
+swap_long (long *a, long *b, long *t)
+{
+  *t = *a;
+  *a = *b;
+  *b = *t;
+}
+
+static inline void 
+swapsort_long (long *a, long *b, long *t)
+{
+  if (*a > *b)
+    swap_long (a, b, t);
+}
+
+static void 
+quicksort_long (long *a, unsigned long l)
+{
+  unsigned long i, j;
+  long pivot, t;
+
+  if (l < 2)
+    return;
+
+  j = l - 1;
+  swapsort_long (a, a+j, &t);
+  if (l == 2)
+    return;
+
+  i = j / 2;
+  swapsort_long (a, a+i, &t);
+  swapsort_long (a+i, a+j, &t);
+  if (a[i] > a[j])
+    swap_long (a+i, a+j, &t);
+  if (l == 3)
+    return;
+
+  pivot = a[i]; /* Median of three */
+
+  /* Stuff <= pivot goes in first list */
+
+  /* Invariant: a[0 ... i-1] <= pivot, a[j+1 ... l-1] > pivot */
+  for (i = 1; i < j;)
+    if (a[i] > pivot)
+      {
+	for (; a[j] > pivot; j--);
+	if (i < j)
+	  swap_long (a+(i++), a+j, &t);
+      }
+    else
+      i++;
+
+#ifdef WANT_ASSERT
+  for (j = 0; j < i; j++)
+    ASSERT (a[j] <= pivot);
+  for (j = i; j < l; j++)
+    ASSERT(a[j] > pivot);
+#endif
+
+  quicksort_long (a, i);
+  quicksort_long (a + i, l - i);
+
+#ifdef WANT_ASSERT
+  for (j = 0; i < l - 1; i++)
+    ASSERT (a[j] <= a[j + 1]);
+#endif
+}
+
 int main (int argc, char **argv)
 {
   unsigned long pn, d, i, j, tmplen, setsize;
@@ -1919,26 +1997,7 @@ int main (int argc, char **argv)
 
   d = eulerphi (pn);
 
-  setsize = factor_coprimeset (NULL, pn);
-  L = malloc (setsize * sizeof (long));
-  i = factor_coprimeset (L, pn);
-  ASSERT (i == setsize);
-  
-#if 1
-  if (verbose)
-    {
-      printf ("Factored sets before sorting\n");
-      print_sets (OUTPUT_DEVVERBOSE, L, setsize);
-    }
-#endif
-
-  sort_sets (L, setsize);
-
-  if (verbose)
-    {
-      printf ("Factored sets after sorting\n");
-      print_sets (OUTPUT_DEVVERBOSE, L, setsize);
-    }
+  L = get_factored_sorted_sets (&setsize, pn);
 
   F = init_list (d);
   tmplen = 10*d+10;
@@ -2041,11 +2100,7 @@ int main (int argc, char **argv)
 
   /* Build the polynomial */
   
-#if 0
-  poly_from_roots_coprime (F, r, pn, tmp, tmplen, modulus->orig_modulus);
-#else
   poly_from_sets (F, r, L, setsize, tmp, tmplen, modulus->orig_modulus);
-#endif
 
   if (pn % 4 != 2)
     {
@@ -2071,7 +2126,17 @@ int main (int argc, char **argv)
       gmp_printf(" + %Zd\n", F[0]);
     }
 
-  poly_from_sets_V (tmp, r, L, setsize, tmp + d, tmplen - d, modulus);
+  {
+    mpres_t Q, mr;
+    mpres_init (Q, modulus);
+    mpres_init (mr, modulus);
+    mpres_set_z (mr, r, modulus);
+    mpres_invert (Q, mr, modulus);
+    mpres_add (Q, Q, mr, modulus);
+    poly_from_sets_V (tmp, Q, L, setsize, tmp + d, tmplen - d, modulus);
+    mpres_clear (Q, modulus);
+    mpres_clear (mr, modulus);
+  }
   list_mod (tmp, tmp, d/2, modulus->orig_modulus);
   /* Check that the polynomials produced by poly_from_sets() and by 
      poly_from_sets_V() are identical */
