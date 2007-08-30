@@ -67,7 +67,7 @@ ntt_PolyFromRoots (mpzv_t r, mpzv_t a, spv_size_t len, mpzv_t t,
   mpzspv_t x;
   spv_size_t i, m;
   
-  ASSERT (len == 1 << ceil_log2 (len));
+  ASSERT (len == 1U << ceil_log2 (len));
 
   if (len <= MUL_NTT_THRESHOLD)
   {
@@ -113,7 +113,7 @@ ntt_PolyFromRoots_Tree (mpzv_t r, mpzv_t a, spv_size_t len, mpzv_t t,
   mpzv_t src;
   mpzv_t *dst = Tree + ceil_log2 (len) - 1;
 
-  ASSERT (len == 1 << ceil_log2 (len));
+  ASSERT (len == 1U << ceil_log2 (len));
   
   x = mpzspv_init (2 * len, mpzspm);
   
