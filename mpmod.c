@@ -47,7 +47,7 @@ FILE *ECM_STDOUT, *ECM_STDERR; /* define them here since needed in tune.c */
 
 void base2mod (mpres_t, mpres_t, mpres_t, mpmod_t);
 void base2mod_1 (mpres_t, mpres_t, mpmod_t);
-void REDC (mpres_t, mpres_t, mpz_t, mpmod_t);
+void REDC (mpres_t, const mpres_t, mpz_t, mpmod_t);
 void mod_mul2exp (mpz_t, unsigned int, mpmod_t);
 void mod_div2exp (mpz_t, unsigned int, mpmod_t);
 
@@ -211,7 +211,7 @@ ecm_redc_n (mp_ptr rp, mp_srcptr xp, mp_srcptr orig, mp_srcptr aux, mp_size_t n)
 /* REDC. x and t must not be identical, t has limb growth */
 /* subquadratic REDC, at mpz level */
 void 
-REDC (mpres_t r, mpres_t x, mpz_t t, mpmod_t modulus)
+REDC (mpres_t r, const mpres_t x, mpz_t t, mpmod_t modulus)
 {
   mp_size_t n = modulus->bits / GMP_NUMB_BITS;
 
@@ -883,7 +883,7 @@ mpres_ui_pow (mpres_t R, unsigned int BASE, mpres_t EXP, mpmod_t modulus)
 }
 
 void 
-mpres_mul (mpres_t R, mpres_t S1, mpres_t S2, mpmod_t modulus)
+mpres_mul (mpres_t R, const mpres_t S1, const mpres_t S2, mpmod_t modulus)
 {
   ASSERT_NORMALIZED (S1);
   ASSERT_NORMALIZED (S2);
@@ -1129,7 +1129,7 @@ mpres_add_ui (mpres_t R, mpres_t S, unsigned int n, mpmod_t modulus)
 
 /* R <- S1 + S2 mod modulus */
 void 
-mpres_add (mpres_t R, mpres_t S1, mpres_t S2, mpmod_t modulus)
+mpres_add (mpres_t R, const mpres_t S1, const mpres_t S2, mpmod_t modulus)
 {
   ASSERT_NORMALIZED (S1);
   ASSERT_NORMALIZED (S2);
@@ -1147,7 +1147,7 @@ mpres_add (mpres_t R, mpres_t S1, mpres_t S2, mpmod_t modulus)
 }
 
 void
-mpres_sub_ui (mpres_t R, mpres_t S, unsigned int n, mpmod_t modulus)
+mpres_sub_ui (mpres_t R, mpres_t S, const unsigned int n, mpmod_t modulus)
 {
   ASSERT_NORMALIZED (S);
   if (modulus->repr == ECM_MOD_MPZ || modulus->repr == ECM_MOD_BASE2)
@@ -1168,7 +1168,7 @@ mpres_sub_ui (mpres_t R, mpres_t S, unsigned int n, mpmod_t modulus)
 
 /* R <- S1 - S2 mod modulus */
 void 
-mpres_sub (mpres_t R, mpres_t S1, mpres_t S2, mpmod_t modulus)
+mpres_sub (mpres_t R, const mpres_t S1, const mpres_t S2, mpmod_t modulus)
 {
   ASSERT_NORMALIZED (S1);
   ASSERT_NORMALIZED (S2);
@@ -1209,7 +1209,7 @@ mpres_set_z (mpres_t R, mpz_t S, mpmod_t modulus)
 
 /* R and S must not be modulus->temp1 */
 void 
-mpres_get_z (mpz_t R, mpres_t S, mpmod_t modulus)
+mpres_get_z (mpz_t R, const mpres_t S, mpmod_t modulus)
 {
   ASSERT_NORMALIZED (S);
   if (modulus->repr == ECM_MOD_MPZ || modulus->repr == ECM_MOD_BASE2)

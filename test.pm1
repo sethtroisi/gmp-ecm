@@ -33,9 +33,9 @@ checkcode () {
 }
 
 ### bug in ecm-5.0 found by Jay Berg (overflow in i0*d)
-echo 441995541378330835457 | $PM1 157080 7e9-72e8; checkcode $? 8
+echo 441995541378330835457 | $PM1 -x0 3 157080 7e9-72e8; checkcode $? 8
 
-### stage 2 less than 10^9 ###
+### stage 2 less than 10^9. Input is prime factor of 2^731-1  ###
 echo 335203548019575991076297 | $PM1 -x0 2 23 31; checkcode $? 8
 
 ### stage 2 of length 1 ###
