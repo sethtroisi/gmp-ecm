@@ -519,67 +519,67 @@ unsigned int ks_wrapmul (listz_t, unsigned int, listz_t, unsigned int,
 
 /* mpmod.c */
 #define isbase2 __ECM(isbase2)
-int isbase2 (mpz_t, double);
+int isbase2 (const mpz_t, const double);
 #define mpmod_init __ECM(mpmod_init)
-void mpmod_init (mpmod_t, mpz_t, int);
+void mpmod_init (mpmod_t, const mpz_t, const int);
 #define mpmod_init_MPZ __ECM(mpmod_init_MPZ)
-void mpmod_init_MPZ (mpmod_t, mpz_t);
+void mpmod_init_MPZ (mpmod_t, const mpz_t);
 #define mpmod_init_BASE2 __ECM(mpmod_init_BASE2)
-int mpmod_init_BASE2 (mpmod_t, int, mpz_t);
+int mpmod_init_BASE2 (mpmod_t, const int, const mpz_t);
 #define mpmod_init_MODMULN __ECM(mpmod_init_MODMULN)
-void mpmod_init_MODMULN (mpmod_t, mpz_t);
+void mpmod_init_MODMULN (mpmod_t, const mpz_t);
 #define mpmod_init_REDC __ECM(mpmod_init_REDC)
-void mpmod_init_REDC (mpmod_t, mpz_t);
+void mpmod_init_REDC (mpmod_t, const mpz_t);
 #define mpmod_clear __ECM(mpmod_clear)
 void mpmod_clear (mpmod_t);
 #define mpmod_pausegw __ECM(mpmod_pausegw)
-void mpmod_pausegw (mpmod_t modulus);
+void mpmod_pausegw (const mpmod_t modulus);
 #define mpmod_contgw __ECM(mpmod_contgw)
-void mpmod_contgw (mpmod_t modulus);
+void mpmod_contgw (const mpmod_t modulus);
 #define mpres_pow __ECM(mpres_pow)
 void mpres_pow (mpres_t, const mpres_t, const mpz_t, mpmod_t);
 #define mpres_ui_pow __ECM(mpres_ui_pow)
-void mpres_ui_pow (mpres_t, unsigned int, mpres_t, mpmod_t);
+void mpres_ui_pow (mpres_t, const unsigned int, const mpres_t, mpmod_t);
 #define mpres_mul __ECM(mpres_mul)
 void mpres_mul (mpres_t, const mpres_t, const mpres_t, mpmod_t);
 #define mpres_mul_z_to_z __ECM(mpres_mul_z_to_z)
-void mpres_mul_z_to_z (mpz_t, mpres_t, mpz_t, mpmod_t);
+void mpres_mul_z_to_z (mpz_t, const mpres_t, const mpz_t, mpmod_t);
 #define mpres_set_z_for_gcd __ECM(mpres_set_z_for_gcd)
-void mpres_set_z_for_gcd (mpres_t, mpz_t, mpmod_t);
+void mpres_set_z_for_gcd (mpres_t, const mpz_t, mpmod_t);
 #define mpres_div_2exp __ECM(mpres_div_2exp)
-void mpres_div_2exp (mpres_t, mpres_t, unsigned int, mpmod_t);
+void mpres_div_2exp (mpres_t, const mpres_t, const unsigned int, mpmod_t);
 #define mpres_add_ui __ECM(mpres_add_ui)
-void mpres_add_ui (mpres_t, mpres_t, unsigned int, mpmod_t);
+void mpres_add_ui (mpres_t, const mpres_t, const unsigned int, mpmod_t);
 #define mpres_add __ECM(mpres_add)
 void mpres_add (mpres_t, const mpres_t, const mpres_t, mpmod_t);
 #define mpres_sub_ui __ECM(mpres_sub_ui)
-void mpres_sub_ui (mpres_t, mpres_t, const unsigned int, mpmod_t);
+void mpres_sub_ui (mpres_t, const mpres_t, const unsigned int, mpmod_t);
 #define mpres_sub __ECM(mpres_sub)
 void mpres_sub (mpres_t, const mpres_t, const mpres_t, mpmod_t);
 #define mpres_set_z __ECM(mpres_set_z)
-void mpres_set_z (mpres_t, mpz_t, mpmod_t);
+void mpres_set_z (mpres_t, const mpz_t, mpmod_t);
 #define mpres_get_z __ECM(mpres_get_z)
 void mpres_get_z (mpz_t, const mpres_t, mpmod_t);
 #define mpres_set_ui __ECM(mpres_set_ui)
-void mpres_set_ui (mpres_t, unsigned int, mpmod_t);
+void mpres_set_ui (mpres_t, const unsigned int, mpmod_t);
 #define mpres_init __ECM(mpres_init)
-void mpres_init (mpres_t, mpmod_t);
+void mpres_init (mpres_t, const mpmod_t);
 #define mpres_clear __ECM(mpres_clear)
-void mpres_clear (mpres_t, mpmod_t);
+void mpres_clear (mpres_t, const mpmod_t);
 #define mpres_realloc __ECM(mpres_realloc)
-void mpres_realloc (mpres_t, mpmod_t);
+void mpres_realloc (mpres_t, const mpmod_t);
 #define mpres_mul_ui __ECM(mpres_mul_ui)
-void mpres_mul_ui (mpres_t, mpres_t, unsigned int, mpmod_t);
+void mpres_mul_ui (mpres_t, const mpres_t, const unsigned int, mpmod_t);
 #define mpres_neg __ECM(mpres_neg)
-void mpres_neg (mpres_t, mpres_t, mpmod_t);
+void mpres_neg (mpres_t, const mpres_t, mpmod_t);
 #define mpres_invert __ECM(mpres_invert)
-int  mpres_invert (mpres_t, mpres_t, mpmod_t);
+int  mpres_invert (mpres_t, const mpres_t, mpmod_t);
 #define mpres_gcd __ECM(mpres_gcd)
-void mpres_gcd (mpz_t, mpres_t, mpmod_t);
+void mpres_gcd (mpz_t, const mpres_t, const mpmod_t);
 #define mpres_out_str __ECM(mpres_out_str)
-void mpres_out_str (FILE *, unsigned int, mpres_t, mpmod_t);
+void mpres_out_str (FILE *, const unsigned int, const mpres_t, mpmod_t);
 #define mpres_is_zero __ECM(mpres_is_zero)
-int  mpres_is_zero (mpres_t, mpmod_t);
+int  mpres_is_zero (const mpres_t, mpmod_t);
 #define mpres_set(a,b,n) mpz_set (a, b)
 #define mpres_swap(a,b,n) mpz_swap (a, b)
 
