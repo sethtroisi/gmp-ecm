@@ -45,7 +45,7 @@ FILE *ECM_STDOUT, *ECM_STDERR; /* define them here since needed in tune.c */
 #endif
 
 
-void base2mod (mpres_t, mpres_t, mpres_t, mpmod_t);
+static void base2mod (mpres_t, const mpres_t, mpres_t, mpmod_t);
 void base2mod_1 (mpres_t, mpres_t, mpmod_t);
 void REDC (mpres_t, const mpres_t, mpz_t, mpmod_t);
 void mod_mul2exp (mpz_t, unsigned int, mpmod_t);
@@ -55,7 +55,7 @@ void mod_div2exp (mpz_t, unsigned int, mpmod_t);
    0 otherwise.
 */
 int 
-isbase2 (mpz_t n, double threshold)
+isbase2 (const mpz_t n, const double threshold)
 {
   unsigned int k, lo; 
   int res = 0; 
@@ -108,8 +108,8 @@ isbase2 (mpz_t n, double threshold)
 }
 
 /* Do base-2 reduction. R must not equal S or t. */
-void
-base2mod (mpres_t R, mpres_t S, mpres_t t, mpmod_t modulus)
+static void
+base2mod (mpres_t R, const mpres_t S, mpres_t t, mpmod_t modulus)
 {
   unsigned long absbits = abs (modulus->bits);
 
@@ -152,27 +152,40 @@ base2mod_1 (mpres_t RS, mpres_t t, mpmod_t modulus)
 }
 
 #ifdef HAVE___GMPN_MUL_FFT
-/* Fermat-mod */
-static void
-base2mod_2 (mpres_t RS, mp_size_t n, mpz_t modulus)
+/* Modular reduction modulo the Fermat number 2^m+1. 
+   n = m / GMP_BITS_PER_LIMB. Result is < 2^m+1.
+   Only copies the data to R if reduction is needed and returns 1 in that 
+   case. If the value in S is reduced already, nothing is done and 0 is 
+   returned. Yes, this is ugly. */
+static int
+base2mod_2 (mpres_t R, const mpres_t S, mp_size_t n, mpz_t modulus)
 {
   mp_size_t s;
 
-  s = ABSIZ(RS);
+  s = ABSIZ(S);
   if (s > n)
     {
       if (s == n + 1)
         {
-          mp_ptr rp = PTR(RS);
+          mp_srcptr sp = PTR(S);
+          mp_ptr rp;
+          
+          MPZ_REALLOC (R, s);
+          rp = PTR(R);
 
-          if ((rp[n] = mpn_sub_1 (rp, rp, n, rp[n])))
+          if ((rp[n] = mpn_sub_1 (rp, sp, n, sp[n])))
             rp[n] = mpn_add_1 (rp, rp, n, rp[n]);
           MPN_NORMALIZE(rp, s);
-          SIZ(RS) = (SIZ(RS) > 0) ? (int) s : (int) -s;
+          ASSERT (s <= n || (s == n && rp[n] == 1));
+          SIZ(R) = (SIZ(S) > 0) ? (int) s : (int) -s;
         }
       else /* should happen rarely */
-        mpz_mod (RS, RS, modulus);
+        mpz_mod (R, S, modulus);
+
+      return 1;
     }
+  
+  return 0;
 }
 #endif
 
@@ -244,7 +257,7 @@ REDC (mpres_t r, const mpres_t x, mpz_t t, mpmod_t modulus)
 /* multiplies c by R^k modulo n where R=2^mp_bits_per_limb 
    n is supposed odd. Does not need to be efficient. */
 void 
-mod_mul2exp (mpz_t c, unsigned int k, mpmod_t modulus)
+mod_mul2exp (mpz_t c, const unsigned int k, mpmod_t modulus)
 {
   mpz_mul_2exp (modulus->temp1, c, k * __GMP_BITS_PER_MP_LIMB);
   mpz_mod (c, modulus->temp1, modulus->orig_modulus);
@@ -253,7 +266,7 @@ mod_mul2exp (mpz_t c, unsigned int k, mpmod_t modulus)
 /* divides c by R^k modulo n where R=2^mp_bits_per_limb
    n is supposed odd. Does not need to be efficient. */
 void 
-mod_div2exp (mpz_t c, unsigned int k, mpmod_t modulus)
+mod_div2exp (mpz_t c, const unsigned int k, mpmod_t modulus)
 {
   mpz_set_ui (modulus->temp2, 1);
   mpz_mul_2exp (modulus->temp1, modulus->temp2, k * __GMP_BITS_PER_MP_LIMB);
@@ -262,6 +275,7 @@ mod_div2exp (mpz_t c, unsigned int k, mpmod_t modulus)
   mpz_mul (modulus->temp1, modulus->temp2, c);
   mpz_mod (c, modulus->temp1, modulus->orig_modulus);
 }
+
 /* r <- c/R^nn mod n, where n has nn limbs, and R=2^GMP_NUMB_BITS.
    n must be odd.
    c must have space for at least 2*nn limbs.
@@ -308,8 +322,8 @@ ecm_redc_basecase (mpz_ptr r, mpz_ptr c, mpmod_t modulus)
 
 #ifdef NATIVE_REDC
 static mp_limb_t
-mulredc(mp_limb_t *z, const mp_limb_t *x, const mp_limb_t *y,
-    const mp_limb_t *m, mp_size_t N, mp_limb_t invm, mp_limb_t *tmp)
+mulredc (mp_limb_t *z, const mp_limb_t *x, const mp_limb_t *y,
+         const mp_limb_t *m, mp_size_t N, const mp_limb_t invm, mp_limb_t *tmp)
 {
   mp_limb_t cy;
 
@@ -390,7 +404,8 @@ mulredc(mp_limb_t *z, const mp_limb_t *x, const mp_limb_t *y,
  * Same as previous, but combined with mul (if in asm)
  */
 static void 
-ecm_mulredc_basecase (mpres_t R, mpres_t S1, mpres_t S2, mpmod_t modulus)
+ecm_mulredc_basecase (mpres_t R, const mpres_t S1, const mpres_t S2, 
+                      mpmod_t modulus)
 {
 #ifndef NATIVE_REDC
   mpz_mul (modulus->temp1, S1, S2);
@@ -428,7 +443,7 @@ ecm_mulredc_basecase (mpres_t R, mpres_t S1, mpres_t S2, mpmod_t modulus)
 
 /* don't use base2 if repr == -1, i.e. -nobase2 */
 void 
-mpmod_init (mpmod_t modulus, mpz_t N, int repr)
+mpmod_init (mpmod_t modulus, const mpz_t N, const int repr)
 {
   int base2;
 
@@ -458,14 +473,14 @@ mpmod_init (mpmod_t modulus, mpz_t N, int repr)
 }
 
 void
-mpres_clear (mpres_t a, ATTRIBUTE_UNUSED mpmod_t modulus) 
+mpres_clear (mpres_t a, ATTRIBUTE_UNUSED const mpmod_t modulus) 
 {
   mpz_clear (a);
   PTR(a) = NULL; /* Make sure we segfault if we access it again */
 }
 
 void 
-mpmod_init_MPZ (mpmod_t modulus, mpz_t N)
+mpmod_init_MPZ (mpmod_t modulus, const mpz_t N)
 {
   int Nbits;
   
@@ -481,7 +496,7 @@ mpmod_init_MPZ (mpmod_t modulus, mpz_t N)
 }
 
 int 
-mpmod_init_BASE2 (mpmod_t modulus, int base2, mpz_t N)
+mpmod_init_BASE2 (mpmod_t modulus, const int base2, const mpz_t N)
 {
   int Nbits;
   
@@ -532,7 +547,7 @@ mpmod_init_BASE2 (mpmod_t modulus, int base2, mpz_t N)
 }
 
 void
-mpmod_init_MODMULN (mpmod_t modulus, mpz_t N)
+mpmod_init_MODMULN (mpmod_t modulus, const mpz_t N)
 {
   int Nbits;
 
@@ -579,7 +594,7 @@ mpmod_init_MODMULN (mpmod_t modulus, mpz_t N)
 }
 
 void 
-mpmod_init_REDC (mpmod_t modulus, mpz_t N)
+mpmod_init_REDC (mpmod_t modulus, const mpz_t N)
 {
   mp_size_t n;
   int Nbits;
@@ -655,7 +670,7 @@ mpmod_clear (mpmod_t modulus)
 }
 
 void 
-mpmod_pausegw (ATTRIBUTE_UNUSED mpmod_t modulus)
+mpmod_pausegw (ATTRIBUTE_UNUSED const mpmod_t modulus)
 {
 #if defined(HAVE_GWNUM) && !defined (TUNE)
   if (modulus->Fermat >= GWTHRESHOLD)
@@ -664,7 +679,7 @@ mpmod_pausegw (ATTRIBUTE_UNUSED mpmod_t modulus)
 }
 
 void 
-mpmod_contgw (ATTRIBUTE_UNUSED mpmod_t modulus)
+mpmod_contgw (ATTRIBUTE_UNUSED const mpmod_t modulus)
 {
 #if defined(HAVE_GWNUM) && !defined (TUNE)
   if (modulus->Fermat >= GWTHRESHOLD)
@@ -673,7 +688,7 @@ mpmod_contgw (ATTRIBUTE_UNUSED mpmod_t modulus)
 }
 
 void 
-mpres_init (mpres_t R, mpmod_t modulus)
+mpres_init (mpres_t R, const mpmod_t modulus)
 {
   /* use mpz_sizeinbase since modulus->bits may not be initialized yet */
   mpz_init2 (R, mpz_sizeinbase (modulus->orig_modulus, 2) + GMP_NUMB_BITS);
@@ -681,7 +696,7 @@ mpres_init (mpres_t R, mpmod_t modulus)
 
 /* realloc R so that it has at least the same number of limbs as modulus */
 void
-mpres_realloc (mpres_t R, mpmod_t modulus)
+mpres_realloc (mpres_t R, const mpmod_t modulus)
 {
   if (modulus->repr == ECM_MOD_MODMULN)
     MPZ_REALLOC (R, modulus->bits / GMP_NUMB_BITS);
@@ -785,7 +800,7 @@ mpres_pow (mpres_t R, const mpres_t BASE, const mpz_t EXP, mpmod_t modulus)
 /* Returns 1 if S == 0 (mod modulus), 0 otherwise */
 
 int
-mpres_is_zero (mpres_t S, mpmod_t modulus)
+mpres_is_zero (const mpres_t S, mpmod_t modulus)
 {
   mpz_mod (modulus->temp1, S, modulus->orig_modulus);
   /* For all currently implemented representations, a zero residue has zero
@@ -795,7 +810,8 @@ mpres_is_zero (mpres_t S, mpmod_t modulus)
 
 /* R <- BASE^EXP mod modulus */ 
 void 
-mpres_ui_pow (mpres_t R, unsigned int BASE, mpres_t EXP, mpmod_t modulus)
+mpres_ui_pow (mpres_t R, const unsigned int BASE, const mpres_t EXP, 
+              mpmod_t modulus)
 {
   if (modulus->repr == ECM_MOD_MPZ)
     {
@@ -921,16 +937,35 @@ mpres_mul (mpres_t R, const mpres_t S1, const mpres_t S2, mpmod_t modulus)
     {
       mp_size_t n = modulus->Fermat / __GMP_BITS_PER_MP_LIMB;
       unsigned long k;
+      mp_srcptr s1p = PTR(S1), s2p = PTR(S2);
+      mp_size_t s1s = SIZ(S1), s2s = SIZ(S2);
       
       MPZ_REALLOC (R, n + 1);
       k = mpn_fft_best_k (n, S1 == S2);
       ASSERT(mpn_fft_next_size (n, k) == n);
-      base2mod_2 (S1, n, modulus->orig_modulus); /* FIXME:base2mod_2 must go */
-      base2mod_2 (S2, n, modulus->orig_modulus); /* FIXME:base2mod_2 must go */
-      mpn_mul_fft (PTR(R), n, PTR(S1), ABSIZ(S1), PTR(S2), ABSIZ(S2), k);
+
+      if (base2mod_2 (modulus->temp1, S1, n, modulus->orig_modulus))
+        {
+          s1p = PTR(modulus->temp1);
+          s1s = SIZ(modulus->temp1);
+        }
+      if (S1 == S2)
+        {
+          s2p = s1p;
+          s2s = s1s;
+        }
+      else if (base2mod_2 (modulus->temp2, S2, n, modulus->orig_modulus))
+        {
+          s2p = PTR(modulus->temp2);
+          s2s = SIZ(modulus->temp2);
+        }
+
+      PTR(R)[n] = (mp_limb_t) 0;
+      mpn_mul_fft (PTR(R), n, s1p, ABS(s1s), s2p, ABS(s2s), k);
       n ++;
       MPN_NORMALIZE(PTR(R), n);
-      SIZ(R) = ((SIZ(S1) ^ SIZ(S2)) >= 0) ? (int) n : (int) -n;
+      SIZ(R) = ((s1s ^ s2s) >= 0) ? (int) n : (int) -n;
+
       return;
     }
 #endif
@@ -966,7 +1001,8 @@ mpres_mul (mpres_t R, const mpres_t S1, const mpres_t S2, mpmod_t modulus)
 }
 
 void 
-mpres_mul_ui (mpres_t R, mpres_t S, unsigned int n, mpmod_t modulus)
+mpres_mul_ui (mpres_t R, const mpres_t S, const unsigned int n, 
+              mpmod_t modulus)
 {
   ASSERT_NORMALIZED (S);
   mpz_mul_ui (modulus->temp1, S, n);
@@ -982,7 +1018,7 @@ mpres_mul_ui (mpres_t R, mpres_t S, unsigned int n, mpmod_t modulus)
    represenataion */
 
 void 
-mpres_mul_z_to_z (mpz_t R, mpres_t S1, mpz_t S2, mpmod_t modulus)
+mpres_mul_z_to_z (mpz_t R, const mpres_t S1, const mpz_t S2, mpmod_t modulus)
 {
   ASSERT_NORMALIZED (S1);
 
@@ -1003,16 +1039,28 @@ mpres_mul_z_to_z (mpz_t R, mpres_t S1, mpz_t S2, mpmod_t modulus)
     {
       mp_size_t n = modulus->Fermat / __GMP_BITS_PER_MP_LIMB;
       unsigned long k;
+      mp_srcptr s1p = PTR(S1), s2p = PTR(S2);
+      mp_size_t s1s = SIZ(S1), s2s = SIZ(S2);
       
       MPZ_REALLOC (R, n + 1);
       k = mpn_fft_best_k (n, S1 == S2);
       ASSERT(mpn_fft_next_size (n, k) == n);
-      base2mod_2 (S1, n, modulus->orig_modulus); /* FIXME:base2mod_2 must go */
-      base2mod_2 (S2, n, modulus->orig_modulus); /* FIXME:base2mod_2 must go */
-      mpn_mul_fft (PTR(R), n, PTR(S1), ABSIZ(S1), PTR(S2), ABSIZ(S2), k);
+
+      if (base2mod_2 (modulus->temp1, S1, n, modulus->orig_modulus))
+        {
+          s1p = PTR(modulus->temp1);
+          s1s = SIZ(modulus->temp1);
+        }
+      if (base2mod_2 (modulus->temp2, S2, n, modulus->orig_modulus))
+        {
+          s2p = PTR(modulus->temp2);
+          s2s = SIZ(modulus->temp2);
+        }
+
+      mpn_mul_fft (PTR(R), n, s1p, ABS(s1s), s2p, ABS(s2s), k);
       n ++;
       MPN_NORMALIZE(PTR(R), n);
-      SIZ(R) = ((SIZ(S1) ^ SIZ(S2)) >= 0) ? (int) n : (int) -n;
+      SIZ(R) = ((s1s ^ s2s) >= 0) ? (int) n : (int) -n;
       return;
     }
 #endif
@@ -1020,7 +1068,7 @@ mpres_mul_z_to_z (mpz_t R, mpres_t S1, mpz_t S2, mpmod_t modulus)
   switch (modulus->repr)
     {
     case ECM_MOD_BASE2:
-      if (mpz_sizeinbase (S2, 2) > abs (modulus->bits))
+      if (mpz_sizeinbase (S2, 2) > (unsigned int) abs (modulus->bits))
 	{
 	  base2mod (modulus->temp2, S2, modulus->temp1, modulus);
 	  mpz_mul (modulus->temp1, S1, modulus->temp2);
@@ -1069,7 +1117,7 @@ mpres_mul_z_to_z (mpz_t R, mpres_t S1, mpz_t S2, mpmod_t modulus)
    to Montgomery representation before applying REDC. */
 
 void 
-mpres_set_z_for_gcd (mpres_t R, mpz_t S, mpmod_t modulus)
+mpres_set_z_for_gcd (mpres_t R, const mpz_t S, mpmod_t modulus)
 {
   mpz_mod (R, S, modulus->orig_modulus);
   ASSERT_NORMALIZED (R);  
@@ -1077,9 +1125,12 @@ mpres_set_z_for_gcd (mpres_t R, mpz_t S, mpmod_t modulus)
 
 /* R <- S / 2^n mod modulus. Does not need to be fast. */
 void 
-mpres_div_2exp (mpres_t R, mpres_t S, unsigned int n, mpmod_t modulus)
+mpres_div_2exp (mpres_t R, const mpres_t S, const unsigned int n, 
+                mpmod_t modulus)
 {
+  int i;
   ASSERT_NORMALIZED (S);
+
   if (n == 0)
     {
       mpres_set (R, S, modulus);
@@ -1089,26 +1140,29 @@ mpres_div_2exp (mpres_t R, mpres_t S, unsigned int n, mpmod_t modulus)
 
     if (mpz_odd_p (S))
       {
+        ASSERT (mpz_odd_p (modulus->orig_modulus));
         mpz_add (R, S, modulus->orig_modulus);
         mpz_tdiv_q_2exp (R, R, 1);
       }
     else
       mpz_tdiv_q_2exp (R, S, 1);
 
-    for ( ; n > 1; n--)
-      if (mpz_odd_p (R))
-        {
-          mpz_add (R, R, modulus->orig_modulus);
-          mpz_tdiv_q_2exp (R, R, 1);
-        }
-      else
+    for (i = n ; i > 1; i--)
+      {
+        if (mpz_odd_p (R))
+          {
+            ASSERT (mpz_odd_p (modulus->orig_modulus));
+            mpz_add (R, R, modulus->orig_modulus);
+          }
         mpz_tdiv_q_2exp (R, R, 1);
+      }
 
     ASSERT_NORMALIZED (R);
 }
 
 void
-mpres_add_ui (mpres_t R, mpres_t S, unsigned int n, mpmod_t modulus)
+mpres_add_ui (mpres_t R, const mpres_t S, const unsigned int n, 
+              mpmod_t modulus)
 {
   ASSERT_NORMALIZED (S);
   if (modulus->repr == ECM_MOD_MPZ || modulus->repr == ECM_MOD_BASE2)
@@ -1147,7 +1201,8 @@ mpres_add (mpres_t R, const mpres_t S1, const mpres_t S2, mpmod_t modulus)
 }
 
 void
-mpres_sub_ui (mpres_t R, mpres_t S, const unsigned int n, mpmod_t modulus)
+mpres_sub_ui (mpres_t R, const mpres_t S, const unsigned int n, 
+              mpmod_t modulus)
 {
   ASSERT_NORMALIZED (S);
   if (modulus->repr == ECM_MOD_MPZ || modulus->repr == ECM_MOD_BASE2)
@@ -1186,7 +1241,7 @@ mpres_sub (mpres_t R, const mpres_t S1, const mpres_t S2, mpmod_t modulus)
 }
 
 void 
-mpres_set_z (mpres_t R, mpz_t S, mpmod_t modulus)
+mpres_set_z (mpres_t R, const mpz_t S, mpmod_t modulus)
 {
   if (modulus->repr == ECM_MOD_MPZ || modulus->repr == ECM_MOD_BASE2)
     {
@@ -1226,6 +1281,7 @@ mpres_get_z (mpz_t R, const mpres_t S, mpmod_t modulus)
   else if (modulus->repr == ECM_MOD_REDC)
     {
       REDC (R, S, modulus->temp1, modulus);
+      mpz_mod (R, R, modulus->orig_modulus); /* FIXME: can we avoid this? */
     }
 #ifdef DEBUG
   else
@@ -1238,7 +1294,7 @@ mpres_get_z (mpz_t R, const mpres_t S, mpmod_t modulus)
 }
 
 void 
-mpres_set_ui (mpres_t R, unsigned int n, mpmod_t modulus)
+mpres_set_ui (mpres_t R, const unsigned int n, mpmod_t modulus)
 {
   if (modulus->repr == ECM_MOD_MPZ || modulus->repr == ECM_MOD_BASE2)
     {
@@ -1256,7 +1312,7 @@ mpres_set_ui (mpres_t R, unsigned int n, mpmod_t modulus)
 
 /* R <- -S mod modulus. Does not need to be efficient. */
 void
-mpres_neg (mpres_t R, mpres_t S, ATTRIBUTE_UNUSED mpmod_t modulus)
+mpres_neg (mpres_t R, const mpres_t S, ATTRIBUTE_UNUSED mpmod_t modulus)
 {
   ASSERT_NORMALIZED (S);
   mpz_neg (R, S);
@@ -1264,7 +1320,7 @@ mpres_neg (mpres_t R, mpres_t S, ATTRIBUTE_UNUSED mpmod_t modulus)
 }
 
 int 
-mpres_invert (mpres_t R, mpres_t S, mpmod_t modulus)
+mpres_invert (mpres_t R, const mpres_t S, mpmod_t modulus)
 {
   ASSERT_NORMALIZED (S);
   if (modulus->repr == ECM_MOD_MPZ || modulus->repr == ECM_MOD_BASE2)
@@ -1310,7 +1366,7 @@ mpres_invert (mpres_t R, mpres_t S, mpmod_t modulus)
 }
 
 void 
-mpres_gcd (mpz_t R, mpres_t S, mpmod_t modulus)
+mpres_gcd (mpz_t R, const mpres_t S, const mpmod_t modulus)
 {
   /* In MODMULN and REDC form, M(x) = x*R with gcd(R, modulus) = 1 .
      Therefore gcd(M(x), modulus) = gcd(x, modulus) and we need not bother
@@ -1320,7 +1376,8 @@ mpres_gcd (mpz_t R, mpres_t S, mpmod_t modulus)
 }
 
 void 
-mpres_out_str (FILE *fd, unsigned int base, mpres_t S, mpmod_t modulus)
+mpres_out_str (FILE *fd, const unsigned int base, const mpres_t S, 
+               mpmod_t modulus)
 {
   mpres_get_z (modulus->temp2, S, modulus);
   mpz_out_str (fd, base, modulus->temp2);
