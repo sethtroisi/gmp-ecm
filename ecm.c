@@ -41,8 +41,9 @@
 
 /* Computes curve parameter A and a starting point (x:1) from a given 
    sigma value.
-   If a factor of n was found during the process, returns 1 (and factor 
-   in f), 0 otherwise.
+   If a factor of n was found during the process, returns 
+   ECM_FACTOR_FOUND_STEP1 (and factor in f), returns ECM_NO_FACTOR_FOUND 
+   otherwise.
 */
 static int
 get_curve_from_sigma (mpz_t f, mpres_t A, mpres_t x, mpz_t sigma, mpmod_t n)
@@ -89,7 +90,7 @@ get_curve_from_sigma (mpz_t f, mpres_t A, mpres_t x, mpz_t sigma, mpmod_t n)
       mpres_clear (v, n);
       mpres_clear (b, n);
       mpres_clear (z, n);
-      return 1;
+      return ECM_FACTOR_FOUND_STEP1;
     }
   
   mpres_mul (v, u, b, n);   /* v = z^(-1) (mod n) */
@@ -105,13 +106,16 @@ get_curve_from_sigma (mpz_t f, mpres_t A, mpres_t x, mpz_t sigma, mpmod_t n)
   mpres_clear (b, n);
   mpres_clear (z, n);
 
-  return 0;
+  return ECM_NO_FACTOR_FOUND;
 }
 
 /* switch from Montgomery's form g*y^2 = x^3 + a*x^2 + x
    to Weierstrass' form          Y^2 = X^3 + A*X + B
    by change of variables x -> g*X-a/3, y -> g*Y.
    We have A = (3-a^2)/(3g^2), X = (3x+a)/(3g), Y = y/g.
+   If a factor is found during the modular inverse, returns 
+   ECM_FACTOR_FOUND_STEP1 and the factor in f, otherwise returns
+   ECM_NO_FACTOR_FOUND.
 */
 static int 
 montgomery_to_weierstrass (mpz_t f, mpres_t x, mpres_t y, mpres_t A, mpmod_t n)
@@ -131,7 +135,7 @@ montgomery_to_weierstrass (mpz_t f, mpres_t x, mpres_t y, mpres_t A, mpmod_t n)
     {
       mpres_gcd (f, y, n);
       mpres_clear (g, n);
-      return 1;
+      return ECM_FACTOR_FOUND_STEP1;
     }
   
   /* update x */
@@ -151,7 +155,7 @@ montgomery_to_weierstrass (mpz_t f, mpres_t x, mpres_t y, mpres_t A, mpmod_t n)
   mpres_mul (y, y, g, n);    /* (3g)/(3g^2) = 1/g */
   
   mpres_clear (g, n);
-  return 0;
+  return ECM_NO_FACTOR_FOUND;
 }
 
 /* adds Q=(x2:z2) and R=(x1:z1) and puts the result in (x3:z3),
@@ -544,7 +548,8 @@ prac (mpres_t xA, mpres_t zA, unsigned long k, mpmod_t n, mpres_t b,
    Output: If a factor is found, it is returned in x.
            Otherwise, x contains the x-coordinate of the point computed
            in stage 1 (with z coordinate normalized to 1).
-   Return value: non-zero iff a factor is found
+   Return value: ECM_FACTOR_FOUND_STEP1 if a factor, otherwise 
+           ECM_NO_FACTOR_FOUND
 */
 static int
 ecm_stage1 (mpz_t f, mpres_t x, mpres_t A, mpmod_t n, double B1, 
@@ -553,7 +558,7 @@ ecm_stage1 (mpz_t f, mpres_t x, mpres_t A, mpmod_t n, double B1,
 {
   mpres_t b, z, u, v, w, xB, zB, xC, zC, xT, zT, xT2, zT2;
   double p, r;
-  int ret = 0;
+  int ret = ECM_NO_FACTOR_FOUND;
   int last_chkpnt_time, last_chkpnt_p;
 
   MEMORY_TAG;
@@ -655,7 +660,7 @@ ecm_stage1 (mpz_t f, mpres_t x, mpres_t A, mpmod_t n, double B1,
   if (!mpres_invert (u, z, n)) /* Factor found? */
     {
       mpres_gcd (f, z, n);
-      ret = 1;
+      ret = ECM_FACTOR_FOUND_STEP1;
     }
   mpres_mul (x, x, u, n);
 
