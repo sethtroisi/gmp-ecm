@@ -424,7 +424,8 @@ list_output_poly (listz_t l, unsigned long len, int monic, int symmetric,
 
 static int
 list_scale_rev (listz_t R, listz_t S, mpz_t r, long k, unsigned long deg, 
-		mpz_t modulus, listz_t tmp, const unsigned long tmplen)
+		mpz_t modulus, listz_t tmp, 
+		ATTRIBUTE_UNUSED const unsigned long tmplen)
 {
   unsigned long i;
 
@@ -470,7 +471,7 @@ list_scale_rev (listz_t R, listz_t S, mpz_t r, long k, unsigned long deg,
 static void
 list_mul_symmetric (listz_t R, const listz_t S1, const unsigned long l1, 
 		    const listz_t S2, const unsigned long l2,
-		    listz_t tmp, const unsigned long tmplen)
+		    listz_t tmp, ATTRIBUTE_UNUSED const unsigned long tmplen)
 {
   unsigned long i, lmax;
   const unsigned long dsum = l1 + l2 - 2; /* Half the degree of product */
@@ -550,7 +551,7 @@ list_mul_symmetric (listz_t R, const listz_t S1, const unsigned long l1,
 static void
 list_mul_blocks (listz_t R, const listz_t A, int monicA, const listz_t B, 
 		 int monicB, const unsigned long len, const unsigned int k,
-		 listz_t tmp, const unsigned long tmplen)
+		 listz_t tmp, ATTRIBUTE_UNUSED const unsigned long tmplen)
 {
   unsigned int j;
   
@@ -910,11 +911,13 @@ list_scale_V (listz_t R, listz_t F, mpres_t Q, unsigned long deg,
 }
 
 
+#ifdef WANT_ASSERT
 /* Check if l is an (anti-)symmetric, possibly monic, polynomial. 
    Returns -1 if it is (anti-)symmetric, or the smallest index i where 
    l[i] != l[len - 1 + monic - i])
    If anti == 1, the list is checked for symmetry, if it is -1, for
    antisymmetry.
+   This function is used only if assertions are enabled.
 */
 
 static long int
@@ -959,12 +962,13 @@ list_is_symmetric (listz_t l, unsigned long len, int monic, int anti,
 
     return -1L;
 }
+#endif
 
 /* Evaluate a polynomial of degree n-1 with all coefficients given in F[],
    or of degree n with an implicit leading 1 monomial not stored in F[],
    at x modulo modulus. Result goes in r. tmp needs 2 entries. */
 
-static void 
+ATTRIBUTE_UNUSED static void 
 list_eval_poly (mpz_t r, const listz_t F, const mpz_t x, 
 		const unsigned long n, const int monic, const mpz_t modulus, 
 		listz_t tmp)
@@ -1788,7 +1792,8 @@ pm1fs2 (mpz_t f, mpres_t X, mpmod_t modulus, root_params_t *root_params,
 static void 
 gfp_ext_mul (mpz_t r0, mpz_t r1, const mpz_t a0, const mpz_t a1,
 	     const mpz_t b0, const mpz_t b1, const mpz_t Delta, 
-	     const mpz_t N, const unsigned long tmplen, mpz_t *t)
+	     const mpz_t N, ATTRIBUTE_UNUSED const unsigned long tmplen, 
+	     mpz_t *t)
 {
   ASSERT (tmplen >= 3);
   mpz_add (t[0], a0, a1);
@@ -1811,7 +1816,8 @@ gfp_ext_mul (mpz_t r0, mpz_t r1, const mpz_t a0, const mpz_t a1,
 
 static void
 gfp_ext_sqr_norm1 (mpz_t r0, mpz_t r1, const mpz_t a0, const mpz_t a1,
-		   const mpz_t N, const unsigned long tmplen, mpz_t *t)
+		   const mpz_t N, ATTRIBUTE_UNUSED const unsigned long tmplen, 
+		   mpz_t *t)
 {
   ASSERT (tmplen >= 1);
   mpz_mul (t[0], a0, a1);
