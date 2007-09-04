@@ -960,8 +960,12 @@ mpres_mul (mpres_t R, const mpres_t S1, const mpres_t S2, mpmod_t modulus)
           s2s = SIZ(modulus->temp2);
         }
 
-      PTR(R)[n] = (mp_limb_t) 0;
-      mpn_mul_fft (PTR(R), n, s1p, ABS(s1s), s2p, ABS(s2s), k);
+      /* mpn_mul_fft() computes the product modulo B^n + 1, where 
+         B = 2^(machine word size in bits). So the result can be = B^n, 
+         in that case R is set to zero and 1 is returned as carry-out.
+         In all other cases 0 is returned. Hence the complete result is 
+         R + cy * B^n, where cy is the value returned by mpn_mul_fft(). */
+      PTR(R)[n] = mpn_mul_fft (PTR(R), n, s1p, ABS(s1s), s2p, ABS(s2s), k);
       n ++;
       MPN_NORMALIZE(PTR(R), n);
       SIZ(R) = ((s1s ^ s2s) >= 0) ? (int) n : (int) -n;
@@ -1051,16 +1055,27 @@ mpres_mul_z_to_z (mpz_t R, const mpres_t S1, const mpz_t S2, mpmod_t modulus)
           s1p = PTR(modulus->temp1);
           s1s = SIZ(modulus->temp1);
         }
-      if (base2mod_2 (modulus->temp2, S2, n, modulus->orig_modulus))
+      if (S1 == S2)
+        {
+          s2p = s1p;
+          s2s = s1s;
+        }
+      else if (base2mod_2 (modulus->temp2, S2, n, modulus->orig_modulus))
         {
           s2p = PTR(modulus->temp2);
           s2s = SIZ(modulus->temp2);
         }
 
-      mpn_mul_fft (PTR(R), n, s1p, ABS(s1s), s2p, ABS(s2s), k);
+      /* mpn_mul_fft() computes the product modulo B^n + 1, where 
+         B = 2^(machine word size in bits). So the result can be = B^n, 
+         in that case R is set to zero and 1 is returned as carry-out.
+         In all other cases 0 is returned. Hence the complete result is 
+         R + cy * B^n, where cy is the value returned by mpn_mul_fft(). */
+      PTR(R)[n] = mpn_mul_fft (PTR(R), n, s1p, ABS(s1s), s2p, ABS(s2s), k);
       n ++;
       MPN_NORMALIZE(PTR(R), n);
       SIZ(R) = ((s1s ^ s2s) >= 0) ? (int) n : (int) -n;
+
       return;
     }
 #endif
