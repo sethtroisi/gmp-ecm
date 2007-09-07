@@ -192,18 +192,27 @@ base2mod_2 (mpres_t R, const mpres_t S, mp_size_t n, mpz_t modulus)
 /* subquadratic REDC, at mpn level.
    {orig,n} is the original modulus.
    {aux,n} is the auxiliary modulus.
-   Requires ABSIZ(x) = 2n and ABSIZ(orig_modulus)=ABSIZ(aux_modulus)=n.
+   Requires xn = 2n or 2n-1 and ABSIZ(orig_modulus)=ABSIZ(aux_modulus)=n.
  */
 static void
-ecm_redc_n (mp_ptr rp, mp_srcptr xp, mp_srcptr orig, mp_srcptr aux, mp_size_t n)
+ecm_redc_n (mp_ptr rp, mp_srcptr x0p, mp_size_t xn,
+            mp_srcptr orig, mp_srcptr aux, mp_size_t n)
 {
-  mp_ptr tp, up;
+  mp_ptr tp, up, xp;
   mp_size_t nn = n + n;
   mp_limb_t cy;
   TMP_DECL(marker);
 
   TMP_MARK(marker);
   up = TMP_ALLOC_LIMBS(nn + nn);
+  if (xn < nn)
+    {
+      xp = TMP_ALLOC_LIMBS(nn);
+      MPN_COPY (xp, x0p, xn);
+      xp[nn - 1] = 0;
+    }
+  else
+    xp = (mp_ptr) x0p;
   ecm_mul_lo_n (up, xp, aux, n);
   tp = up + nn;
   mpn_mul_n (tp, up, orig, n);
@@ -227,14 +236,15 @@ void
 REDC (mpres_t r, const mpres_t x, mpz_t t, mpmod_t modulus)
 {
   mp_size_t n = modulus->bits / GMP_NUMB_BITS;
+  mp_size_t xn = ABSIZ(x);
 
-  ASSERT (ABSIZ(x) <= 2 * n);
-  if (ABSIZ(x) == 2 * n)
+  ASSERT (xn <= 2 * n);
+  if (xn >= 2 * n - 1) /* ecm_redc_n also accepts xn=2n-1 */
     {
       mp_ptr rp;
       MPZ_REALLOC (r, n);
       rp = PTR(r);
-      ecm_redc_n (rp, PTR(x), PTR(modulus->orig_modulus), 
+      ecm_redc_n (rp, PTR(x), xn, PTR(modulus->orig_modulus),
 		PTR(modulus->aux_modulus), n);
       MPN_NORMALIZE(rp, n);
       SIZ(r) = (SIZ(x) > 0) ? (int) n : (int) -n;
