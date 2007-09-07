@@ -7,6 +7,19 @@ ToDo's (see also TODO.sp):
   This seems to be due to the default -ntt, which might require too many
   primes in that case. Maybe revert to -no-ntt by default, or when the input
   number is larger than some bound.
+- slowdown in stage 1 with REDC between a 58672-digit number and a
+  58688-digit number [reported by Christophe.CLAVIER@gemalto.com, 29 Aug 2007]
+  (((2003663613*2^195000-2)/(2*23*173*3863))/1954173900202379)/3612632846010637
+  ((2003663613*2^195000-2)/(2*23*173*3863))/1954173900202379
+  with B1=1000 on an Opteron (44.2s for c58672, 67.5s for c58688).
+  The culprit seems to be the REDC routine in mpmod.c: indeed, in case the 
+  modulus has n limbs, but the most significant one has only a few bits,
+  the product (called x in REDC) has only 2n-1 limbs, and we never call
+  Mulders's short product in ecm_redc_n (however the else-code using full
+  products seem faster in that case).
+  For c58672, if one replaces if (xn == 2 * n) in mpmod.c/REDC by
+  if (xn >= 2 * n - 1), the time of stage 1 grows from 44s to 64s, whereas
+  ecm_redc_n should be faster...
 - in Brent-Suyama's extension, the evaluation of a polynomial of degree k
   over N consecutive values is currently done using a O(k N) algorithm
   [table of differences]. One can do O(N/k M(k)), cf Section 3 from 
