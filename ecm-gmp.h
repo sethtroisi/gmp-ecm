@@ -137,7 +137,7 @@ mp_size_t mpn_fft_next_size (mp_size_t, int);
 
 #ifndef mpn_mul_fft
 #define mpn_mul_fft  __MPN(mul_fft)
-/* return value of mpn_mul_fft was changed from void to int in gmp-4.2.1 */
+/* return value of mpn_mul_fft was changed from void to int in gmp-4.2 */
 int     mpn_mul_fft (mp_ptr, mp_size_t, mp_srcptr, mp_size_t, mp_srcptr,
                      mp_size_t, int);
 #endif
