@@ -239,7 +239,8 @@ REDC (mpres_t r, const mpres_t x, mpz_t t, mpmod_t modulus)
   mp_size_t xn = ABSIZ(x);
 
   ASSERT (xn <= 2 * n);
-  if (xn >= 2 * n - 1) /* ecm_redc_n also accepts xn=2n-1 */
+  if (xn == 2 * n) /* ecm_redc_n also accepts xn=2n-1, but this seems slower
+                    for now (see remark in TODO) */
     {
       mp_ptr rp;
       MPZ_REALLOC (r, n);
