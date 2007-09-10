@@ -493,16 +493,14 @@ mpres_clear (mpres_t a, ATTRIBUTE_UNUSED const mpmod_t modulus)
 void 
 mpmod_init_MPZ (mpmod_t modulus, const mpz_t N)
 {
-  int Nbits;
-  
   mpz_init_set (modulus->orig_modulus, N);
   modulus->repr = ECM_MOD_MPZ;
   
-  Nbits = mpz_size (N) * __GMP_BITS_PER_MP_LIMB; /* Number of bits, rounded
-                                                    up to full limb */
-  MPZ_INIT2 (modulus->temp1, 2 * Nbits + __GMP_BITS_PER_MP_LIMB);
-  MPZ_INIT2 (modulus->temp2, Nbits);
-  
+  modulus->bits = mpz_size (N) * __GMP_BITS_PER_MP_LIMB; /* Number of bits,
+                                                     rounded up to full limb */
+  MPZ_INIT2 (modulus->temp1, 2 * modulus->bits + __GMP_BITS_PER_MP_LIMB);
+  MPZ_INIT2 (modulus->temp2, modulus->bits);
+
   return;
 }
 

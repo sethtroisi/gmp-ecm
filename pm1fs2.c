@@ -1617,8 +1617,13 @@ pm1fs2 (mpz_t f, mpres_t X, mpmod_t modulus, root_params_t *root_params,
   outputf (OUTPUT_RESVERBOSE, 
 	   "N = %Zd; X = Mod(%Zd, N); XP=X^P; /* PARI %ld */\n", 
 	   modulus->orig_modulus, mt, pariline++);
-  
-  pm1_build_poly_F (F, X, modulus, beta, 0, root_params->i0, nr, 
+
+  /* method=0: old way of computing all the roots
+     method=1: using recursive expansion without Chebychev polynomials
+     method=2: using recursive expansion with Chebychev polynomials
+     (see pm1_build_poly_F)
+  */
+     pm1_build_poly_F (F, X, modulus, beta, /*method=*/1, root_params->i0, nr, 
 		    blocks, tmplen, tmp);
   
   sequence_B (B, X, len / 2, beta, modulus);
