@@ -6,6 +6,9 @@
 #ifdef TESTDRIVE
 #include <string.h>
 static int verbose = 0;
+static int pari = 0;
+#else
+const int pari = 0;
 #endif
 
 /* Some useful PARI functions:
@@ -1787,58 +1790,82 @@ pm1fs2 (mpz_t f, mpres_t X, mpmod_t modulus, root_params_t *root_params,
 }
 
 
-/* Multiplies (a0 + a1*sqrt(Delta)) * (b0 + b1*sqrt(Delta))
-   using four multiplications. Result goes is (r0 + r1*sqrt(Delta)). 
-   a0, a1, b0, b1, r0, r1 may overlap arbitrarily. t[0], t[1], t[2] and Delta
-   must not overlap with anything. */
+/* Multiplies (a_0 + a_1*sqrt(Delta)) * (b_0 + b_1*sqrt(Delta))
+   using four multiplications. Result goes in (r_0 + r_1*sqrt(Delta)). 
+   a_0, a_1, b_0, b_1, r_0, r_1 may overlap arbitrarily. t[0], t[1], t[2] and 
+   Delta must not overlap with anything. */
 /* FIXME: is there a faster multiplication routine if both inputs have 
    norm 1? */
 
 static void 
-gfp_ext_mul (mpz_t r0, mpz_t r1, const mpz_t a0, const mpz_t a1,
-	     const mpz_t b0, const mpz_t b1, const mpz_t Delta, 
+gfp_ext_mul (mpz_t r_0, mpz_t r_1, const mpz_t a_0, const mpz_t a_1,
+	     const mpz_t b_0, const mpz_t b_1, const mpz_t Delta, 
 	     const mpz_t N, ATTRIBUTE_UNUSED const unsigned long tmplen, 
 	     mpz_t *t)
 {
   ASSERT (tmplen >= 3);
-  mpz_add (t[0], a0, a1);
-  mpz_add (t[1], b0, b1);
-  mpz_mul (t[2], t[0], t[1]); /* t2 = (a0 + a1) * (b0 + b1) = a0*b0 + a0*b1 + 
-				 a1*b0 + a1*b1 */
+  if (pari)
+    gmp_printf ("/* gfp_ext_mul */ (%Zd + %Zd * w) * (%Zd + %Zd * w) % N == ",
+		a_0, a_1, b_0, b_1);
+  mpz_add (t[0], a_0, a_1);
+  mpz_add (t[1], b_0, b_1);
+  mpz_mul (t[2], t[0], t[1]);  /* t2 = (a_0 + a_1) * (b_0 + b_1) = 
+				  a_0*b_0 + a_0*b_1 + a_1*b_0 + a_1*b_1 */
 
-  mpz_mul (t[0], a0, b0);     /* t[0] = a0*b0. We don't need a0 or b0 now */
-  mpz_sub (t[2], t[2], t[0]); /* r1 = a0*b1 + a1*b0 + a1*b1 */
+  mpz_mul (t[0], a_0, b_0);    /* t[0] = a_0*b_0. We don't need a_0 or b_0 
+				  any more now */
+  mpz_sub (t[2], t[2], t[0]);  /* r_1 = a_0*b_1 + a_1*b_0 + a_1*b_1 */
   
-  mpz_mul (t[1], a1, b1);     /* t[1] = a1*b1. We don't need a1 or b1 now */
+  mpz_mul (t[1], a_1, b_1);    /* t[1] = a_1*b_1. We don't need a_1 or b_1 
+				  any more now */
   mpz_sub (t[2], t[2], t[1]);
-  mpz_mod (r1, t[2], N);      /* r1 == a0*b1 + a1*b0 */
+  mpz_mod (r_1, t[2], N);      /* r_1 == a_0*b_1 + a_1*b_0 */
 
-  mpz_mod (t[2], t[1], N);    /* t[2] = a1*b1 % N */
-  mpz_mul (t[1], t[2], Delta); /* t[1] = a1*b1*Delta */
-  mpz_add (t[0], t[0], t[1]);  /* t[0] = a0*b0 + a1*b1*Delta */
-  mpz_mod (r0, t[0], N);       /* r0 = (a0*b0 + a1*b1*Delta) % N */
+  mpz_mod (t[2], t[1], N);     /* t[2] = a_1*b_1 % N */
+  mpz_mul (t[1], t[2], Delta); /* t[1] = a_1*b_1*Delta */
+  mpz_add (t[0], t[0], t[1]);  /* t[0] = a_0*b_0 + a_1*b_1*Delta */
+  mpz_mod (r_0, t[0], N);      /* r0 = (a_0*b_0 + a_1*b_1*Delta) % N */
+
+  if (pari)
+    gmp_printf ("%Zd + %Zd * w /* PARI */\n", r_0, r_1);
 }
 
+
+/* Computes (a_0 + a_1 * sqrt(Delta))^2, where the norm 
+   (a_0^2 - a_1^2*Delta) is assumed to be equal to 1. Hence 
+   (a_0 + a_1 * sqrt(Delta))^2 = a_0^2 + 2*a_0*a_1*sqrt(Delta) + a_1^2*Delta
+   and a_0^2 + a_1^2*Delta = a_0^2 + a_1^2*Delta + norm - 1 = 2*a_0^2 - 1.
+   a_0 and r_0, as well as a_1 and r_1 may overlap */
+
 static void
-gfp_ext_sqr_norm1 (mpz_t r0, mpz_t r1, const mpz_t a0, const mpz_t a1,
+gfp_ext_sqr_norm1 (mpz_t r_0, mpz_t r_1, const mpz_t a_0, const mpz_t a_1,
 		   const mpz_t N, ATTRIBUTE_UNUSED const unsigned long tmplen, 
 		   mpz_t *t)
 {
   ASSERT (tmplen >= 1);
-  mpz_mul (t[0], a0, a1);
-  mpz_mod (r1, t[0], N);
-  mpz_mul_2exp (r1, r1, 1);
+  ASSERT (a_0 != r_1);  /* a_0 is read after r_1 is written */
+  ASSERT (t[0] != a_0 && t[0] != r_0 && t[0] != r_1);
+
+  if (pari)
+    gmp_printf ("/* gfp_ext_sqr_norm1 */ (%Zd + %Zd * w)^2 % N == ", a_0, a_1);
   
-  mpz_mul (t[0], a0, a0);
-  mpz_mod (r0, t[0], N);
-  mpz_mul_2exp (r0, r0, 1);
-  mpz_sub_ui (r0, r0, 1);
+  mpz_mul (t[0], a_0, a_1);
+  mpz_mul_2exp (t[0], t[0], 1);
+  mpz_mod (r_1, t[0], N);       /* r_1 = 2*a_0*a_1 */
+  
+  mpz_mul (t[0], a_0, a_0);
+  mpz_mul_2exp (t[0], t[0], 1);
+  mpz_sub_ui (t[0], t[0], 1);
+  mpz_mod (r_0, t[0], N);      /* r_0 = 2*a_0^2 - 1 */
+
+  if (pari)
+    gmp_printf ("%Zd + %Zd * w /* PARI */\n", r_0, r_1);
 }
 
 
 /* Raise (a0 + a1*sqrt(Delta)) to the power e. (a0 + a1*sqrt(Delta)) is 
    assumed to have norm 1, i.e. a0^2 - a1^2*Delta == 1. The result is 
-   (r0 * r1*sqrt(Delta)). */
+   (r0 * r1*sqrt(Delta)). a0, a1, r0 and r1 must not overlap */
 
 static void 
 gfp_ext_pow_norm1 (mpz_t r0, mpz_t r1, const mpz_t a0, const mpz_t a1, 
@@ -1847,6 +1874,8 @@ gfp_ext_pow_norm1 (mpz_t r0, mpz_t r1, const mpz_t a0, const mpz_t a1,
 {
   const unsigned long abs_e = labs (e);
   unsigned long mask = ~0UL - (~0UL >> 1);
+
+  ASSERT (a0 != r0 && a1 != r0 && a0 != r1 && a1 != r1);
 
   if (e == 0)
     {
@@ -1866,24 +1895,98 @@ gfp_ext_pow_norm1 (mpz_t r0, mpz_t r1, const mpz_t a0, const mpz_t a1,
 
   mpz_set (r0, a0);
   mpz_set (r1, a1);
-  if (e < 0)
-    mpz_neg (r1, r1);
 
   while (mask > 1UL)
     {
       gfp_ext_sqr_norm1 (r0, r1, r0, r1, N, tmplen, tmp);
       mask >>= 1;
       if (abs_e & mask)
-	{
-	  if (e < 0)
-	    mpz_neg (r1, r1); /* We compute 1/(1/r * a) for r*1/a */
-	  gfp_ext_mul (r0, r1, r0, r1, a0, a1, Delta, N, tmplen, tmp);
-	  if (e < 0)
-	    mpz_neg (r1, r1);
-	}
+	gfp_ext_mul (r0, r1, r0, r1, a0, a1, Delta, N, tmplen, tmp);
     }
+
+  if (e < 0)
+    mpz_neg (r1, r1);
+
+  if (pari)
+    gmp_printf ("/* gfp_ext_pow_norm1 */ (%Zd + %Zd * w)^%ld % N == "
+		"%Zd + %Zd * w /* PARI */\n", a0, a1, e, r0, r1);
 }
 
+
+/* Compute r[i] = a^((k+i)^2) for i = 0, 1, ..., l-1, where "a" is an 
+   element of norm 1 in the quadratic extension ring */
+void
+gfp_ext_rn2 (mpz_t *r_0, mpz_t *r_1, const mpz_t a_0, const mpz_t a_1,
+	     const long k, const long l, const mpz_t Delta, const mpz_t N,
+	     const unsigned long origtmplen, mpz_t *origtmp)
+{
+  mpz_t *r2_0 = origtmp, *r2_1 = origtmp + 2, *v = origtmp + 4, 
+    *V2 = origtmp + 6;
+  const unsigned long newtmplen = origtmplen - 7;
+  mpz_t *newtmp = origtmp + 7;
+  long i;
+
+  if (l <= 0)
+    return;
+
+  /* Compute a^(k^2). We do it by two exponentiations by k and use the 
+     v[0] and v[1] as temp storage */
+  gfp_ext_pow_norm1 (v[0], v[1], a_0, a_1, Delta, k, N, newtmplen, newtmp);
+  gfp_ext_pow_norm1 (r_0[0], r_1[0], v[0], v[1], Delta, k, N, 
+		     newtmplen, newtmp);
+
+  /* Compute a^((k+1)^2) */
+  if (l > 1)
+    {
+      /* v[0] and v[1] still contains a^k */
+      gfp_ext_mul (v[0], v[1], v[0], v[1], a_0, a_1, Delta, N, 
+		   newtmplen, newtmp);
+      /* Now v[0] + v[1]*sqrt(Delta) = a^(k+1) */
+      gfp_ext_pow_norm1 (r_0[1], r_1[1], v[0], v[1], Delta, k + 1, N,
+			 newtmplen, newtmp);
+    }
+
+  /* Compute a^(k^2+2) = a^(k^2) * a^2 . Set v[0] + v[1]*sqrt(Delta) to a^2 */
+  gfp_ext_sqr_norm1 (v[0], v[1], a_0, a_1, N, newtmplen, newtmp);
+  gfp_ext_mul (r2_0[0], r2_1[0], r_0[0], r_1[0], v[0], v[1], Delta, N, 
+	       newtmplen, newtmp);
+  /* Compute a^((k+1)^2+2) = a^((k+1)^2) * a^2 */
+  gfp_ext_mul (r2_0[1], r2_1[1], r_0[1], r_1[1], v[0], v[1], Delta, N, 
+	       newtmplen, newtmp);
+ 
+  /* Compute V_2(a + 1/a). Since 1/a = a_0 - a_1, we have a+1/a = 2*a_0.
+     V_2(x) = x^2 - 2, so we want 4*a_0^2 - 2. */
+  mpz_mul (*V2, a_0, a_0);
+  mpz_mul_2exp (*V2, *V2, 2);
+  mpz_sub_ui (*V2, *V2, 2UL);
+  mpz_mod (*V2, *V2, N);
+  
+  /* Compute the remaining a^((k+i)^2) values according to Peter's 
+     recurrence */
+  for (i = 2; i < l; i++)
+    {
+      /* r[i] = r2[i-1] * v[i-2] - r2[i-2] */
+      mpz_mul (newtmp[0], r2_0[1 - i % 2], v[i % 2]);
+      mpz_sub (newtmp[0], newtmp[0], r2_0[i]);
+      mpz_mod (r_0[i], newtmp[0], N);
+      mpz_mul (newtmp[0], r2_1[1 - i % 2], v[i % 2]);
+      mpz_sub (newtmp[0], newtmp[0], r2_1[i]);
+      mpz_mod (r_1[i], newtmp[0], N);
+
+      /* r2[i] = r2[i-1] * v[i-1] - r[i-2] */
+      mpz_mul (newtmp[0], r2_0[1 - i % 2], v[1 - i % 2]);
+      mpz_sub (newtmp[0], newtmp[0], r_0[i - 2]);
+      mpz_mod (r2_0[i % 2], newtmp[0], N);
+      mpz_mul (newtmp[0], r2_1[1 - i % 2], v[1 - i % 2]);
+      mpz_sub (newtmp[0], newtmp[0], r_1[i - 2]);
+      mpz_mod (r2_1[i % 2], newtmp[0], N);
+      
+      /* v[i] = v[i - 1] * V_2(a + 1/a) - v[i - 2] */
+      mpz_mul (newtmp[0], v[1 - i % 2], *V2);
+      mpz_sub (newtmp[0], newtmp[0], v[i % 2]);
+      mpz_mod (v[i % 2], newtmp[0], N);
+    }
+}
 
 
 int 
@@ -1970,7 +2073,7 @@ int main (int argc, char **argv)
   listz_t F, tmp;
   mpz_t r, N;
   long *L;
-  int selftest = 0, pari = 0;
+  int selftest = 0;
   mpmod_t modulus;
   
 
@@ -2028,7 +2131,8 @@ int main (int argc, char **argv)
   /* We don't need N anymore now */
   mpz_clear (N);
   if (pari)
-    gmp_printf ("N = %Zd; r = Mod(%Zd, N);\n", modulus->orig_modulus, r);
+    gmp_printf ("N = %Zd; r = Mod(%Zd, N); /* PARI */\n", 
+		modulus->orig_modulus, r);
 
   /************************************************************
       Simple check of list_mul_symmetric() 
@@ -2134,7 +2238,7 @@ int main (int argc, char **argv)
       for (i = d - 1; i > 0; i--)
 	if (mpz_sgn (F[i]) != 0)
 	  gmp_printf (" + %Zd * x^%lu", F[i], i);
-      gmp_printf(" + %Zd\n", F[0]);
+      gmp_printf(" + %Zd /* PARI */\n", F[0]);
     }
 
   {
@@ -2163,6 +2267,43 @@ int main (int argc, char **argv)
     outputf (OUTPUT_DEVVERBOSE, "Polynomials produced by poly_from_sets() "
 	     "and poly_from_sets_V() agree.\n");
   
+  /* Test gfp_ext_pow () */
+
+
+  /* Test gfp_ext_rn2() */
+
+  {
+    mpz_t a_0, a_1, Delta;
+    const long k = 3;
+
+    mpz_init (a_0);
+    mpz_init (a_1);
+    mpz_init (Delta);
+
+    mpz_set_ui (a_0, 9UL);
+    mpz_set_ui (a_1, 4UL);
+    mpz_set_ui (Delta, 5UL); /* norm = 9^2 - 4^2*5 = 1 */
+    printf ("w = quadgen(20); /* PARI */\n");
+
+    gfp_ext_rn2 (tmp, tmp+d, a_0, a_1, k, d, Delta, modulus->orig_modulus,
+		 tmplen - 2*d, tmp + 2*d);
+
+    for (i = 0; i < d; i++)
+      {
+	gmp_printf ("(%Zd + %Zd*w)^%d % N == %Zd + %Zd*w\n",
+		    a_0, a_1, (k+i)*(k+i), tmp[i], tmp[d+i]);
+	gfp_ext_pow_norm1 (tmp[i], tmp[d+i], a_0, a_1, Delta, (k+i)*(k+i), 
+			   modulus->orig_modulus, tmplen - 2*d, tmp + 2*d);
+	gmp_printf ("(%Zd + %Zd*w)^%d % N == %Zd + %Zd*w\n",
+		    a_0, a_1, (k+i)*(k+i), tmp[i], tmp[d+i]);
+      }
+
+    mpz_clear (a_0);
+    mpz_clear (a_1);
+    mpz_clear (Delta);
+  }
+
+
   if (selftest) /* Do some self-tests */
     {
       long *sumset = malloc (d *sizeof (long));
@@ -2176,15 +2317,17 @@ int main (int argc, char **argv)
 	  printf ("exponents = [");
 	  for (i = 0; i < d - 1; i++)
 	    printf ("%ld, ", sumset[i]);
-	  printf ("%ld];\n", sumset[d - 1]);
+	  printf ("%ld]; /* PARI */\n", sumset[d - 1]);
 	  printf ("lift(prod(k=1,length(exponents),(x-r^exponents[k]))) "
-		  "== F(x)\n");
+		  "== F(x) /* PARI */\n");
 	}
       
       mpz_invert (tmp[0], r, modulus->orig_modulus);
       
       /* Check that all the elements in the sumset are really exponents of the
 	 roots of F */
+      gmp_printf ("Selftest: checking that %Zd^((Z/%luZ)*) are roots of F(x)\n", 
+	      r, pn);
       for (i = 0; i < d; i++)
 	{
 	  if (sumset[i] < 0)
@@ -2199,6 +2342,10 @@ int main (int argc, char **argv)
       
       /* Check that the set of sums is really a complete set of representatives
 	 of residue classes coprime to pn */
+
+      printf ("Selftest: checking that set of sums is congruent to (Z/%luZ)*\n",
+	      pn);
+
       for (i = 0; i < d; i++)
 	if (sumset[i] >= 0)
 	  sumset[i] = sumset[i] % pn;
@@ -2213,6 +2360,8 @@ int main (int argc, char **argv)
 	  }
       
       free (sumset);
+
+      printf ("Selftest finished\n");
     }
 
   mpz_clear (r);
