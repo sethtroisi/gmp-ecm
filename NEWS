@@ -1,3 +1,18 @@
+Changes between ecm-6.1.2 and ecm-6.1.3:
+* fixed incorrect computation of memory use in stage 2, especially for
+  machines that use Kronecker-Schoenhage multiplication even for large
+  degrees, such as Core 2.
+* fixed -B2scale option whose value hadn't been passed to the factoring
+  routines
+* fixed default B2min for P-1, which could be truncated on 32 bit machines,
+  causing stage 2 to take a little longer than necessary
+* fixed bug for modular multiplication modulo Fermat numbers 2^2^n+1, where 
+  a result of 2^2^n would be truncated to 0.
+
+Changes between ecm-6.1.1 and ecm-6.1.2:
+* changed copyright header from sp.h, to recognize the FSF for parts inspired
+  or taken from gmp-impl.h.
+
 Changes between ecm-6.0.1 and ecm-6.1:
 * new assembly code contributed by Pierrick Gaudry for combined mul/redc
 * new Number Theoretic Transform code contributed by Dave Newman for step 2
