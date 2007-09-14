@@ -58,7 +58,7 @@ include_HEADERS = ecm.h
 noinst_HEADERS = ecm-impl.h ecm-gmp.h ecm-ecm.h sp.h longlong.h ecm-params.h \
                  asmredc.h
 
-EXTRA_DIST = test.pm1 test.pp1 test.ecm ecm.1 README.lib ecm.xml \
+EXTRA_DIST = test.pm1 test.pp1 test.ecm README.lib ecm.xml \
              ecm-params.h.alpha-ev5 ecm-params.h.athlon64 \
              ecm-params.h.default ecm-params.h.alpha-ev6 \
              ecm-params.h.athlon ecm-params.h.powerpc7450 \
@@ -80,6 +80,10 @@ check: ecm
 	$(M4) -DOPERATION_$* `test -f $< || echo '$(srcdir)/'`$< >tmp-$*.s
 	$(CCAS) $(CFLAGS) tmp-$*.s -o $@
 	rm -f tmp-$*.s
+
+## to be sure ecm.1 is considered as source
+## (cf section "Man pages" in the automake manual)
+dist_man_MANS = ecm.1
 
 man_MANS =
 if MAKE_MANPAGE

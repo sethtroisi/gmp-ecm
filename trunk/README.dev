@@ -51,7 +51,8 @@ To make a new release:
      the duplicated lines.
   4) Check the required sizes of P-1, P+1, ECM champions (main.c).
   5) Generate the release version with "make dist".
-  6) Test the release version with "make distcheck".
+  6) Test the release version with "make distcheck" (in particular, check
+     the man page is correctly installed).
   7) If there is no problem, add a tag to the CVS corresponding to the
      release, for example:
      $ svn cp . svn+ssh://zimmerma@scm.gforge.inria.fr/svn/ecm/tags/6.1
