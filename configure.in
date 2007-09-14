@@ -1,5 +1,5 @@
 
-m4_define([ECM_VERSION], [6.2])
+m4_define([ECM_VERSION], [20070914])
 
 AC_PREREQ(2.57)
 AC_INIT(ecm, ECM_VERSION, [ecm-discuss@lists.gforge.inria.fr])
@@ -9,6 +9,8 @@ AM_INIT_AUTOMAKE(ecm, ECM_VERSION)
 
 dnl Checks for programs.
 AC_PROG_CC
+dnl the following is required to compile auxi.c according to autoconf 2.61
+AM_PROG_CC_C_O
 AC_PROG_RANLIB
 AC_CANONICAL_HOST
 

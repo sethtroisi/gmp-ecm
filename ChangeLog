@@ -1,3 +1,746 @@
+------------------------------------------------------------------------
+r1013 | kruppa | 2007-09-10 14:15:00 +0200 (Mon, 10 Sep 2007) | 2 lines
+Changed paths:
+   M /trunk/pm1fs2.c
+
+Added code for computing r^(n^2) over quadratic extension ring
+
+------------------------------------------------------------------------
+r1012 | kruppa | 2007-09-10 14:13:47 +0200 (Mon, 10 Sep 2007) | 2 lines
+Changed paths:
+   M /trunk/NEWS
+
+Changes for 6.1.2 and 6.1.3
+
+------------------------------------------------------------------------
+r1011 | zimmerma | 2007-09-10 09:16:45 +0200 (Mon, 10 Sep 2007) | 3 lines
+Changed paths:
+   M /trunk/mpmod.c
+   M /trunk/pm1fs2.c
+
+mpmod.c: patch from Alex (wrong initialization in mpmod_init_MPZ)
+pm1fs2.c: default is now method=1 instead of method=0
+
+------------------------------------------------------------------------
+r1010 | zimmerma | 2007-09-07 17:05:31 +0200 (Fri, 07 Sep 2007) | 2 lines
+Changed paths:
+   M /trunk/mpmod.c
+
+use Mulder's algorithm (ecm_redc_n) in REDC only when xn=2n
+
+------------------------------------------------------------------------
+r1009 | zimmerma | 2007-09-07 16:44:56 +0200 (Fri, 07 Sep 2007) | 2 lines
+Changed paths:
+   M /trunk/TODO
+
+added analysis of slowdown reported by Ch. Clavier
+
+------------------------------------------------------------------------
+r1008 | zimmerma | 2007-09-07 16:42:20 +0200 (Fri, 07 Sep 2007) | 4 lines
+Changed paths:
+   M /trunk/mpmod.c
+
+modified ecm_redc_n to allow xn = 2n-1 too (happens often when the high limb
+of the modulus has few bits); unfortunately for large inputs (e.g. the c58672
+in TODO) this seems to be slower than the else-branch in REDC
+
+------------------------------------------------------------------------
+r1007 | zimmerma | 2007-09-07 14:24:17 +0200 (Fri, 07 Sep 2007) | 3 lines
+Changed paths:
+   M /trunk/configure.in
+
+changed version number of development version to 6.2
+(6.1.1 was already an existing release)
+
+------------------------------------------------------------------------
+r1006 | zimmerma | 2007-09-07 14:15:55 +0200 (Fri, 07 Sep 2007) | 2 lines
+Changed paths:
+   M /trunk/ecm-gmp.h
+
+fixed incorrect comment
+
+------------------------------------------------------------------------
+r1005 | zimmerma | 2007-09-07 14:10:00 +0200 (Fri, 07 Sep 2007) | 3 lines
+Changed paths:
+   M /trunk/INSTALL
+   M /trunk/ecm-gmp.h
+
+INSTALL: updated GMP web page and version
+ecm-gmp.h: mpn_mul_fft now returns int (>= GMP 4.2.1)
+
+------------------------------------------------------------------------
+r1004 | kruppa | 2007-09-04 16:44:51 +0200 (Tue, 04 Sep 2007) | 2 lines
+Changed paths:
+   M /trunk/mpmod.c
+
+Corrected bugfix for using mpn_mul_fft().
+
+------------------------------------------------------------------------
+r1003 | kruppa | 2007-09-03 12:22:00 +0200 (Mon, 03 Sep 2007) | 2 lines
+Changed paths:
+   M /trunk/pm1fs2.c
+
+Fixed some compiler warnings about unused variables and functions.
+
+------------------------------------------------------------------------
+r1002 | kruppa | 2007-08-31 19:35:28 +0200 (Fri, 31 Aug 2007) | 2 lines
+Changed paths:
+   M /trunk/ecm-impl.h
+   M /trunk/mpmod.c
+
+Marked input arguments of funcions "const".
+
+------------------------------------------------------------------------
+r1001 | kruppa | 2007-08-31 19:34:40 +0200 (Fri, 31 Aug 2007) | 2 lines
+Changed paths:
+   M /trunk/ecm_ntt.c
+
+Fixed warning the right way this time
+
+------------------------------------------------------------------------
+r1000 | kruppa | 2007-08-31 19:33:54 +0200 (Fri, 31 Aug 2007) | 2 lines
+Changed paths:
+   M /trunk/ecm.c
+
+Made return values use the FACTOR_FOUND defines
+
+------------------------------------------------------------------------
+r999 | kruppa | 2007-08-30 22:34:36 +0200 (Thu, 30 Aug 2007) | 2 lines
+Changed paths:
+   M /trunk/ecm_ntt.c
+
+Circumvent compiler warnings
+
+------------------------------------------------------------------------
+r998 | kruppa | 2007-08-30 16:42:49 +0200 (Thu, 30 Aug 2007) | 2 lines
+Changed paths:
+   M /trunk/ecm-impl.h
+   M /trunk/mpmod.c
+   M /trunk/pm1fs2.c
+   M /trunk/test.pm1
+
+Some code rearrangements in preparation for fast P+1 stage 2
+
+------------------------------------------------------------------------
+r997 | zimmerma | 2007-08-29 16:46:17 +0200 (Wed, 29 Aug 2007) | 3 lines
+Changed paths:
+   M /trunk/TODO
+   M /trunk/ecm2.c
+   M /trunk/sp.h
+   M /trunk/tune.c
+
+TODO: added item (efficiency regression)
+tune.c, ecm2.c, sp.h: fixed compiler warnings with -W -Wall
+
+------------------------------------------------------------------------
+r996 | kruppa | 2007-08-24 15:48:33 +0200 (Fri, 24 Aug 2007) | 3 lines
+Changed paths:
+   M /trunk/pm1.c
+
+Fixes bug reported by P.L.Montgomery: B1 was converted from double to 
+unsigned long before assigning it to B2min, causing truncation.
+
+------------------------------------------------------------------------
+r995 | zimmerma | 2007-08-01 17:57:38 +0200 (Wed, 01 Aug 2007) | 2 lines
+Changed paths:
+   M /trunk/TODO
+
+updated reference
+
+------------------------------------------------------------------------
+r994 | zimmerma | 2007-07-31 13:52:59 +0200 (Tue, 31 Jul 2007) | 2 lines
+Changed paths:
+   M /trunk/TODO
+
+added pointer to new algorithm
+
+------------------------------------------------------------------------
+r993 | zimmerma | 2007-07-22 13:24:41 +0200 (Sun, 22 Jul 2007) | 2 lines
+Changed paths:
+   M /trunk/ecm.h
+
+applied patch from Emmanuel Thome to use the library mode from a C++ program
+
+------------------------------------------------------------------------
+r992 | zimmerma | 2007-07-15 10:22:57 +0200 (Sun, 15 Jul 2007) | 2 lines
+Changed paths:
+   M /trunk/main.c
+
+updated P-1 champion size
+
+------------------------------------------------------------------------
+r991 | kruppa | 2007-06-18 13:01:29 +0200 (Mon, 18 Jun 2007) | 2 lines
+Changed paths:
+   M /trunk/stage2.c
+
+Fixes incorrect memory estimate for stage 2
+
+------------------------------------------------------------------------
+r990 | zimmerma | 2007-06-16 21:19:05 +0200 (Sat, 16 Jun 2007) | 2 lines
+Changed paths:
+   M /trunk/main.c
+
+fixed bug #3448: better check for invalid B2
+
+------------------------------------------------------------------------
+r989 | zimmerma | 2007-06-05 18:33:29 +0200 (Tue, 05 Jun 2007) | 2 lines
+Changed paths:
+   M /trunk/eval.c
+
+fixed bug #3363 (Expression parser needs to check for remainder in division)
+
+------------------------------------------------------------------------
+r988 | kruppa | 2007-04-22 17:06:41 +0200 (Sun, 22 Apr 2007) | 2 lines
+Changed paths:
+   M /trunk/ecm-impl.h
+   M /trunk/mpmod.c
+   M /trunk/pm1fs2.c
+
+Speedups and cleanups for fast stage 2 code.
+
+------------------------------------------------------------------------
+r987 | kruppa | 2007-04-22 17:05:54 +0200 (Sun, 22 Apr 2007) | 3 lines
+Changed paths:
+   M /trunk/median.c
+
+Removed unneccesary recursive calls in TToomCookMul_space() which could 
+inflate run-time considerably for degenerate cases.
+
+------------------------------------------------------------------------
+r986 | kruppa | 2007-04-22 17:04:23 +0200 (Sun, 22 Apr 2007) | 2 lines
+Changed paths:
+   M /trunk/ks-multiply.c
+
+Added ASSERTS to check that input coefficients are non-negative.
+
+------------------------------------------------------------------------
+r985 | kruppa | 2007-04-16 12:57:28 +0200 (Mon, 16 Apr 2007) | 3 lines
+Changed paths:
+   M /trunk/Makefile.am
+   M /trunk/pm1fs2.c
+
+Building symmetric polynomial as in draft 8.1 implemented. Some clean up 
+work left to be done yet. Added Makefile target for pm1fs2 test drive binary.
+
+------------------------------------------------------------------------
+r984 | kruppa | 2007-03-30 14:43:19 +0200 (Fri, 30 Mar 2007) | 2 lines
+Changed paths:
+   M /trunk/techdocs/buildpoly.tex
+
+Fixes. Added case p^k | n, i.e. n not squarefree.
+
+------------------------------------------------------------------------
+r983 | kruppa | 2007-03-28 19:05:08 +0200 (Wed, 28 Mar 2007) | 2 lines
+Changed paths:
+   M /trunk/Makefile.am
+   M /trunk/auxlib.c
+   M /trunk/ecm-impl.h
+   M /trunk/main.c
+   M /trunk/mpmod.c
+   M /trunk/pm1.c
+   M /trunk/pm1fs2.c
+
+Implemented building F from arithmetic progressions of prime length.
+
+------------------------------------------------------------------------
+r982 | kruppa | 2007-03-19 18:25:05 +0100 (Mon, 19 Mar 2007) | 3 lines
+Changed paths:
+   M /trunk/techdocs/buildpoly.tex
+   M /trunk/techdocs/convolv.tex
+
+More details on sets of coprime residues in buildpoly.tex.
+Small corrections and additions in convolv.tex.
+
+------------------------------------------------------------------------
+r981 | zimmerma | 2007-03-19 08:23:00 +0100 (Mon, 19 Mar 2007) | 2 lines
+Changed paths:
+   M /trunk/main.c
+
+updated champion sizes
+
+------------------------------------------------------------------------
+r980 | kruppa | 2007-03-16 15:28:44 +0100 (Fri, 16 Mar 2007) | 2 lines
+Changed paths:
+   M /trunk/techdocs/buildpoly.tex
+
+Small corrections, additions
+
+------------------------------------------------------------------------
+r979 | kruppa | 2007-03-15 21:06:05 +0100 (Thu, 15 Mar 2007) | 2 lines
+Changed paths:
+   A /trunk/techdocs/buildpoly.tex
+
+A note on Montgomery's idea for fast building F from its roots
+
+------------------------------------------------------------------------
+r978 | kruppa | 2007-03-12 18:35:54 +0100 (Mon, 12 Mar 2007) | 2 lines
+Changed paths:
+   M /trunk/techdocs/schoen_strass.tex
+
+Small fixes.
+
+------------------------------------------------------------------------
+r977 | kruppa | 2007-03-07 23:36:31 +0100 (Wed, 07 Mar 2007) | 2 lines
+Changed paths:
+   M /trunk/pm1.c
+
+Removed duplicated "special division for 2^n+-1" message in P-1.
+
+------------------------------------------------------------------------
+r976 | zimmerma | 2007-03-07 18:56:25 +0100 (Wed, 07 Mar 2007) | 2 lines
+Changed paths:
+   M /trunk/pm1fs2.c
+
+Output "Step 2 took ..." in normal mode (as in stage2.c)
+
+------------------------------------------------------------------------
+r975 | kruppa | 2007-03-07 10:41:57 +0100 (Wed, 07 Mar 2007) | 3 lines
+Changed paths:
+   M /trunk/pm1fs2.c
+
+Print total stage 2 time. Fix memory allocation bug when modulus->bits < 0,
+i.e. for 2^n-1 numbers.
+
+------------------------------------------------------------------------
+r974 | kruppa | 2007-03-06 11:25:22 +0100 (Tue, 06 Mar 2007) | 2 lines
+Changed paths:
+   M /trunk/schoen_strass.c
+
+Make transposed Karatsuba return the number of multiplications used
+
+------------------------------------------------------------------------
+r973 | kruppa | 2007-03-06 10:43:51 +0100 (Tue, 06 Mar 2007) | 2 lines
+Changed paths:
+   A /trunk/techdocs
+   A /trunk/techdocs/convolv.tex
+   A /trunk/techdocs/curve_convert.tex
+   A /trunk/techdocs/schoen_strass.tex
+
+Notes on some of the math and algoritms used in GMP-ECM
+
+------------------------------------------------------------------------
+r972 | kruppa | 2007-03-05 18:37:11 +0100 (Mon, 05 Mar 2007) | 2 lines
+Changed paths:
+   M /trunk/bestd.c
+   M /trunk/ecm-impl.h
+   M /trunk/ecm.c
+   M /trunk/mpmod.c
+   M /trunk/pm1.c
+   M /trunk/pm1fs2.c
+   M /trunk/pp1.c
+
+Debugging and speedups for Fast P-1 stage 2
+
+------------------------------------------------------------------------
+r971 | kruppa | 2007-03-05 18:35:38 +0100 (Mon, 05 Mar 2007) | 2 lines
+Changed paths:
+   M /trunk/schoen_strass.c
+
+Debugging for lenA == lenB/2+1 case
+
+------------------------------------------------------------------------
+r970 | kruppa | 2007-03-05 18:33:07 +0100 (Mon, 05 Mar 2007) | 2 lines
+Changed paths:
+   M /trunk/median.c
+
+Added some ASSERT()s
+
+------------------------------------------------------------------------
+r969 | kruppa | 2007-03-05 18:31:58 +0100 (Mon, 05 Mar 2007) | 2 lines
+Changed paths:
+   M /trunk/listz.c
+
+Added/corrected some ASSERT()s
+
+------------------------------------------------------------------------
+r968 | kruppa | 2007-02-26 11:21:33 +0100 (Mon, 26 Feb 2007) | 2 lines
+Changed paths:
+   M /trunk/x86_64/mulredc2.asm
+
+Reverting this file to revision 908
+
+------------------------------------------------------------------------
+r967 | kruppa | 2007-02-26 03:08:58 +0100 (Mon, 26 Feb 2007) | 3 lines
+Changed paths:
+   M /trunk/Makefile.am
+   M /trunk/ecm-impl.h
+   M /trunk/ecm_ntt.c
+   M /trunk/listz.c
+   M /trunk/main.c
+   M /trunk/median.c
+   M /trunk/mpmod.c
+   M /trunk/pm1.c
+   A /trunk/pm1fs2.c
+   M /trunk/schoen_strass.c
+   M /trunk/stage2.c
+   M /trunk/x86_64/bench.c
+   M /trunk/x86_64/mulredc1.asm
+   M /trunk/x86_64/mulredc2.asm
+
+Changes in preparation of a fast P-1 stage 2.
+Crude and incomplete implementation of fast P-1 stage 2.
+
+------------------------------------------------------------------------
+r966 | zimmerma | 2007-02-15 22:48:33 +0100 (Thu, 15 Feb 2007) | 2 lines
+Changed paths:
+   M /trunk/ecm-params.h.core2
+
+removed extra line break
+
+------------------------------------------------------------------------
+r965 | zimmerma | 2007-02-15 22:39:06 +0100 (Thu, 15 Feb 2007) | 2 lines
+Changed paths:
+   A /trunk/ecm-params.h.core2
+
+tuned parameters contributed by tom@womack.net
+
+------------------------------------------------------------------------
+r964 | zimmerma | 2007-02-05 18:15:21 +0100 (Mon, 05 Feb 2007) | 2 lines
+Changed paths:
+   M /trunk/bestd.c
+
+extended again the d-table with good phi(d)
+
+------------------------------------------------------------------------
+r963 | zimmerma | 2007-02-05 18:01:21 +0100 (Mon, 05 Feb 2007) | 2 lines
+Changed paths:
+   M /trunk/bestd.c
+
+extended table for d values with good phi(d)
+
+------------------------------------------------------------------------
+r962 | kruppa | 2007-02-04 00:17:46 +0100 (Sun, 04 Feb 2007) | 2 lines
+Changed paths:
+   M /trunk/ecm.c
+
+Print point and curve in Weierstrass form at beginning of stage 2 with -v -v
+
+------------------------------------------------------------------------
+r961 | zimmerma | 2007-01-02 16:58:44 +0100 (Tue, 02 Jan 2007) | 2 lines
+Changed paths:
+   A /trunk/c200
+
+new test number (from 10^284+1)
+
+------------------------------------------------------------------------
+r960 | zimmerma | 2006-12-18 10:45:08 +0100 (Mon, 18 Dec 2006) | 2 lines
+Changed paths:
+   M /trunk/AUTHORS
+
+added NTT contribution for Dave
+
+------------------------------------------------------------------------
+r959 | zimmerma | 2006-12-18 09:44:03 +0100 (Mon, 18 Dec 2006) | 2 lines
+Changed paths:
+   M /trunk/COPYING
+   M /trunk/COPYING.LIB
+   M /trunk/Fgw.c
+   M /trunk/auxi.c
+   M /trunk/auxlib.c
+   M /trunk/b1_ainc.c
+   M /trunk/bestd.c
+   M /trunk/bestdaux.c
+   M /trunk/candi.c
+   M /trunk/config.guess
+   M /trunk/config.sub
+   M /trunk/configfsf.guess
+   M /trunk/configfsf.sub
+   M /trunk/countsmooth.c
+   M /trunk/ecm-ecm.h
+   M /trunk/ecm-gmp.h
+   M /trunk/ecm-impl.h
+   M /trunk/ecm.c
+   M /trunk/ecm.h
+   M /trunk/ecm2.c
+   M /trunk/ecm_ntt.c
+   M /trunk/ecmfactor.c
+   M /trunk/eval.c
+   M /trunk/factor.c
+   M /trunk/getprime.c
+   M /trunk/ks-multiply.c
+   M /trunk/listz.c
+   M /trunk/longlong.h
+   M /trunk/lucas.c
+   M /trunk/main.c
+   M /trunk/median.c
+   M /trunk/memory.c
+   M /trunk/mpmod.c
+   M /trunk/mpzspm.c
+   M /trunk/mpzspv.c
+   M /trunk/mul_lo.c
+   M /trunk/ntt_gfp.c
+   M /trunk/pm1.c
+   M /trunk/polyeval.c
+   M /trunk/pp1.c
+   M /trunk/random.c
+   M /trunk/resume.c
+   M /trunk/rho.c
+   M /trunk/runecm2.c
+   M /trunk/schoen_strass.c
+   M /trunk/sp.c
+   M /trunk/sp.h
+   M /trunk/spm.c
+   M /trunk/spv.c
+   M /trunk/stage2.c
+   M /trunk/test.ecm
+   M /trunk/test.pm1
+   M /trunk/test.pp1
+   M /trunk/toomcook.c
+   M /trunk/trial.c
+   M /trunk/tune.c
+
+changed address of FSF to new one
+
+------------------------------------------------------------------------
+r958 | zimmerma | 2006-12-12 13:32:34 +0100 (Tue, 12 Dec 2006) | 4 lines
+Changed paths:
+   M /trunk/mpmod.c
+
+moved "using special division" from mpmod_init to mpmod_init_base2
+(the latter is called directly from ecm.c, thus the message was not
+displayed, as noticed by Peter Montgomery)
+
+------------------------------------------------------------------------
+r957 | kruppa | 2006-10-10 12:45:57 +0200 (Tue, 10 Oct 2006) | 2 lines
+Changed paths:
+   M /trunk/trial.c
+
+Avoid infinite loop in trial division with zero as input number.
+
+------------------------------------------------------------------------
+r956 | zimmerma | 2006-10-05 09:18:21 +0200 (Thu, 05 Oct 2006) | 2 lines
+Changed paths:
+   M /trunk/INSTALL
+
+added hint about -max_log2_len option for tune
+
+------------------------------------------------------------------------
+r955 | zimmerma | 2006-10-05 09:14:30 +0200 (Thu, 05 Oct 2006) | 3 lines
+Changed paths:
+   M /trunk/tune.c
+
+max_log2_len is now a command-line parameter in tune.c
+(suggestion from Thomas M.Ott)
+
+------------------------------------------------------------------------
+r954 | kruppa | 2006-08-22 12:34:55 +0200 (Tue, 22 Aug 2006) | 3 lines
+Changed paths:
+   M /trunk/ecm-ecm.h
+   M /trunk/main.c
+
+Print first and last ten digits of numbers >1000 digits. 
+Small cleanup in ecm-ecm.h (duplicated #define's).
+
+------------------------------------------------------------------------
+r953 | kruppa | 2006-08-06 14:46:56 +0200 (Sun, 06 Aug 2006) | 2 lines
+Changed paths:
+   M /trunk/TODO
+
+Added several ideas
+
+------------------------------------------------------------------------
+r952 | kruppa | 2006-08-05 08:56:44 +0200 (Sat, 05 Aug 2006) | 2 lines
+Changed paths:
+   M /trunk/auxlib.c
+   M /trunk/ecm-impl.h
+
+More cleanups of -chkpnt code
+
+------------------------------------------------------------------------
+r951 | kruppa | 2006-08-04 17:16:17 +0200 (Fri, 04 Aug 2006) | 4 lines
+Changed paths:
+   M /trunk/auxlib.c
+   M /trunk/ecm-impl.h
+   M /trunk/stage2.c
+
+Fixed stupid segfault in chkpnt code. Changed checkpoint interval to 10 min.
+Fixed bug when cleaning up treefiles after receiving signal.
+
+
+------------------------------------------------------------------------
+r950 | kruppa | 2006-08-03 21:10:44 +0200 (Thu, 03 Aug 2006) | 3 lines
+Changed paths:
+   M /trunk/README
+   M /trunk/auxlib.c
+   M /trunk/ecm-impl.h
+   M /trunk/ecm.1
+   M /trunk/ecm.c
+   M /trunk/ecm.h
+   M /trunk/ecm.xml
+   M /trunk/factor.c
+   M /trunk/main.c
+   M /trunk/pm1.c
+   M /trunk/pp1.c
+   M /trunk/resume.c
+   M /trunk/stage2.c
+
+By popular request: added option to write checkpoints periodically during
+stage 1.
+
+------------------------------------------------------------------------
+r949 | kruppa | 2006-08-03 18:54:47 +0200 (Thu, 03 Aug 2006) | 2 lines
+Changed paths:
+   M /trunk/ecm-impl.h
+   M /trunk/listz.c
+   M /trunk/stage2.c
+
+stage2.c did not #include config.h, so unistd.h was not included either.
+
+------------------------------------------------------------------------
+r948 | zimmerma | 2006-07-27 14:16:43 +0200 (Thu, 27 Jul 2006) | 2 lines
+Changed paths:
+   M /trunk/main.c
+
+new size for P-1 champion
+
+------------------------------------------------------------------------
+r947 | zimmerma | 2006-07-25 14:10:22 +0200 (Tue, 25 Jul 2006) | 2 lines
+Changed paths:
+   M /trunk/sp.h
+
+added copyright information
+
+------------------------------------------------------------------------
+r946 | zimmerma | 2006-07-25 13:29:42 +0200 (Tue, 25 Jul 2006) | 2 lines
+Changed paths:
+   M /trunk/ecm2.c
+   M /trunk/main.c
+   M /trunk/stage2.c
+
+fixed some compiler warnings
+
+------------------------------------------------------------------------
+r945 | kruppa | 2006-07-25 12:09:07 +0200 (Tue, 25 Jul 2006) | 4 lines
+Changed paths:
+   M /trunk/stage2.c
+
+Following a comment of P.L.Montgomery, added message when computing product 
+of the F(g_i) at end of stage 2 to avoid unexplained delay for large input 
+numbers.
+
+------------------------------------------------------------------------
+r944 | lfousse | 2006-07-19 22:30:59 +0200 (Wed, 19 Jul 2006) | 2 lines
+Changed paths:
+   M /trunk/stage2.c
+
+Include header for `unlink' in stage2.c.
+
+------------------------------------------------------------------------
+r943 | zimmerma | 2006-07-17 10:10:51 +0200 (Mon, 17 Jul 2006) | 2 lines
+Changed paths:
+   M /trunk/main.c
+
+new size for P+1 champion
+
+------------------------------------------------------------------------
+r942 | zimmerma | 2006-07-07 10:59:37 +0200 (Fri, 07 Jul 2006) | 2 lines
+Changed paths:
+   M /trunk/factor.c
+
+stage1time and use_ntt were not initialized in ecm_init()
+
+------------------------------------------------------------------------
+r941 | zimmerma | 2006-05-30 08:56:15 +0200 (Tue, 30 May 2006) | 2 lines
+Changed paths:
+   M /trunk/main.c
+
+changed mininum size of ecm champions
+
+------------------------------------------------------------------------
+r940 | lfousse | 2006-05-24 13:28:47 +0200 (Wed, 24 May 2006) | 2 lines
+Changed paths:
+   M /trunk/runecm2.c
+
+Use a *real* dummy domain instead of an existing one for the example email.
+
+------------------------------------------------------------------------
+r939 | zimmerma | 2006-05-13 08:19:37 +0200 (Sat, 13 May 2006) | 2 lines
+Changed paths:
+   M /trunk/runecm2.c
+
+changed email
+
+------------------------------------------------------------------------
+r938 | zimmerma | 2006-05-05 17:20:28 +0200 (Fri, 05 May 2006) | 2 lines
+Changed paths:
+   M /trunk/configure.in
+
+fixed calls to AC_ARG_ENABLE()
+
+------------------------------------------------------------------------
+r937 | lfousse | 2006-05-05 17:08:43 +0200 (Fri, 05 May 2006) | 2 lines
+Changed paths:
+   M /trunk/configure.in
+
+Use proper invocation of AC_ARG_ENABLE for asm-redc.
+
+------------------------------------------------------------------------
+r936 | zimmerma | 2006-05-05 17:05:37 +0200 (Fri, 05 May 2006) | 2 lines
+Changed paths:
+   M /trunk/configure.in
+   M /trunk/ecm.1
+   M /trunk/ecm.xml
+
+changed mailing-list address
+
+------------------------------------------------------------------------
+r935 | gaudry | 2006-05-05 16:34:32 +0200 (Fri, 05 May 2006) | 1 line
+Changed paths:
+   M /trunk/configure.in
+
+fixed error message for --enable-asm-redc
+------------------------------------------------------------------------
+r934 | lfousse | 2006-05-05 16:01:31 +0200 (Fri, 05 May 2006) | 2 lines
+Changed paths:
+   M /trunk/Makefile.am
+   A /trunk/athlon/Makefile.am
+   M /trunk/configure.in
+   A /trunk/pentium4/Makefile.am
+   A /trunk/x86_64/Makefile.am
+
+Use automake's DIST_DIRS feature for a cleaner `dist' target.
+
+------------------------------------------------------------------------
+r933 | lfousse | 2006-05-05 15:49:15 +0200 (Fri, 05 May 2006) | 2 lines
+Changed paths:
+   M /trunk/Makefile.am
+
+redc assembly files in toplevel dir are symlinks and should not be part of `dist'.
+
+------------------------------------------------------------------------
+r932 | zimmerma | 2006-05-03 12:08:07 +0200 (Wed, 03 May 2006) | 2 lines
+Changed paths:
+   M /trunk/INSTALL
+
+added url of mailing-list archive
+
+------------------------------------------------------------------------
+r931 | zimmerma | 2006-05-03 09:36:15 +0200 (Wed, 03 May 2006) | 2 lines
+Changed paths:
+   M /trunk/Fgw.c
+   M /trunk/configure.in
+   M /trunk/mpzspv.c
+
+get rid of valloc
+
+------------------------------------------------------------------------
+r930 | zimmerma | 2006-05-02 17:50:04 +0200 (Tue, 02 May 2006) | 2 lines
+Changed paths:
+   M /trunk/AUTHORS
+   M /trunk/INSTALL
+   M /trunk/Makefile.am
+   M /trunk/README.dev
+   M /trunk/configure.in
+
+fixed stupid removal in Makefile.am, prepared for release 6.1.1
+
+------------------------------------------------------------------------
+r928 | zimmerma | 2006-05-01 22:51:53 +0200 (Mon, 01 May 2006) | 2 lines
+Changed paths:
+   M /trunk/ChangeLog
+
+added 'tag' for release 6.1 in ChangeLog
+
 Mon May 01 2006 22:49:07 zimmerma -- r927
 	Released version 6.1.
 
