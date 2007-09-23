@@ -337,8 +337,8 @@ int     pm1_rootsG       (mpz_t, listz_t, unsigned long, pm1_roots_state *,
 void    pm1_rootsG_clear (pm1_roots_state *, mpmod_t);
 
 /* pm1fs2.c */
-int	pm1fs2 (mpz_t, mpres_t, mpmod_t, root_params_t *, unsigned long,
-                unsigned long);
+int	pm1fs2 (mpz_t, mpres_t, mpmod_t, const mpz_t, const mpz_t, 
+                const unsigned long);
 
 /* bestd.c */
 #define eulerphi __ECM(eulerphi)
@@ -561,7 +561,7 @@ void mpres_set_z (mpres_t, const mpz_t, mpmod_t);
 #define mpres_get_z __ECM(mpres_get_z)
 void mpres_get_z (mpz_t, const mpres_t, mpmod_t);
 #define mpres_set_ui __ECM(mpres_set_ui)
-void mpres_set_ui (mpres_t, const unsigned int, mpmod_t);
+void mpres_set_ui (mpres_t, const unsigned long, mpmod_t);
 #define mpres_init __ECM(mpres_init)
 void mpres_init (mpres_t, const mpmod_t);
 #define mpres_clear __ECM(mpres_clear)
@@ -619,6 +619,8 @@ double ecmprob (double, double, double, double, int);
 /* auxlib.c */
 #define gcd __ECM(gcd)
 unsigned int gcd (unsigned int, unsigned int);
+#define lgcd __ECM(lgcd)
+unsigned long lgcd (unsigned long, unsigned long);
 #define mpz_add_si __ECM(mpz_add_si)
 void         mpz_add_si (mpz_t, mpz_t, long);
 #define mpz_sub_si __ECM(mpz_sub_si)

@@ -353,7 +353,7 @@ ntt_polyevalT (mpzv_t b, spv_size_t len, mpzv_t *Tree, mpzv_t T,
         {
        	  mpzspv_to_ntt (y, i, 2 * m, 2 * m, 0, mpzspm);
 	  
-	  list_revert (*Tree + i, m - 1);
+	  list_revert (*Tree + i, m);
           mpzspv_set_sp (x, 0, 1, 1, mpzspm);
           mpzspv_from_mpzv (x, 1, *Tree + i, m, mpzspm);
 	  /* x contains reversed monic poly */
@@ -363,7 +363,7 @@ ntt_polyevalT (mpzv_t b, spv_size_t len, mpzv_t *Tree, mpzv_t T,
           if (m > POLYEVALT_NTT_THRESHOLD)
 	    mpzspv_normalise (x, m, m, mpzspm);
 	    
-	  list_revert (*Tree + i + m, m - 1);
+	  list_revert (*Tree + i + m, m);
 	  mpzspv_set_sp (x, 2 * m, 1, 1, mpzspm);
 	  mpzspv_from_mpzv (x, 2 * m + 1, *Tree + i + m, m, mpzspm);
 	  mpzspv_to_ntt (x, 2 * m, m + 1, 2 * m, 0, mpzspm);

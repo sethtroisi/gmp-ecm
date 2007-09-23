@@ -180,14 +180,14 @@ list_set (listz_t p, listz_t q, unsigned int n)
     mpz_set (p[i], q[i]);
 }
 
-/* p[0] <-> p[n], p[1] <-> p[n-1], ... */
+/* p[0] <-> p[n-1], p[1] <-> p[n-2], ... */
 void
 list_revert (listz_t p, unsigned int n)
 {
   unsigned int i;
 
-  for (i = 0; i < n - i; i++)
-    mpz_swap (p[i], p[n - i]);
+  for (i = 0; i < n - 1 - i; i++)
+    mpz_swap (p[i], p[n - 1 - i]);
 }
 
 void
@@ -825,10 +825,10 @@ PolyInvert (listz_t q, listz_t b, unsigned int K, listz_t t, mpz_t n)
         }
       else if (po2)
         {
-          list_revert (q + k, l - 1);
+          list_revert (q + k, l);
           /* This expects the leading monomials explicitly in q[2k-1] and b[k+l-1] */
           F_mul_trans (t, q + k, b, K / 2, K, Fermat, t + k);
-          list_revert (q + k, l - 1);
+          list_revert (q + k, l);
           list_neg (t, t, k, n);
         }
       else

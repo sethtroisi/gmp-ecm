@@ -315,11 +315,11 @@ polyeval_tellegen (listz_t b, unsigned int k, listz_t *Tree, listz_t tmp,
         list_mod (T, T + k - 1, k, n);
 #else
         /* revert invF for call to TMulGen below */
-        list_revert (invF, k - 1);
+        list_revert (invF, k);
         TMulGen (T, k - 1, invF, k - 1, b, k - 1, T + k, n);
 #endif
       }
-    list_revert (T, k - 1);
+    list_revert (T, k);
     if (TreeFilename != NULL)
       {
         unsigned int lgk, i;
