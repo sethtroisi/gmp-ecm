@@ -63,6 +63,21 @@ gcd (unsigned int a, unsigned int b)
   return a;
 }
 
+unsigned long
+lgcd (unsigned long a, unsigned long b)
+{
+  unsigned long t;
+
+  while (b != 0)
+    {
+      t = a % b;
+      a = b;
+      b = t;
+    }
+
+  return a;
+}
+
 /* returns Euler's totient phi function */
 unsigned long
 eulerphi (unsigned long n)

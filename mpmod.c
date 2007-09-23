@@ -64,7 +64,7 @@ isbase2 (const mpz_t n, const double threshold)
   MPZ_INIT (u);
   MPZ_INIT (w);
   lo = mpz_sizeinbase (n, 2) - 1; /* 2^lo <= n < 2^(lo+1) */  
-  mpz_set_ui (u, 1);
+  mpz_set_ui (u, 1UL);
   mpz_mul_2exp (u, u, 2 * lo);
   mpz_mod (w, u, n); /* 2^(2lo) mod n = -/+2^(2lo-l) if m*n = 2^l+/-1 */
   if (mpz_cmp_ui (w, 1) == 0) /* if 2^(2lo) mod n = 1, then n divides
@@ -82,7 +82,7 @@ isbase2 (const mpz_t n, const double threshold)
     }
   k = mpz_sizeinbase (w, 2) - 1;
   /* if w = 2^k then n divides 2^(2*lo-k)-1 */
-  mpz_set_ui (u, 1);
+  mpz_set_ui (u, 1UL);
   mpz_mul_2exp (u, u, k);
   if (mpz_cmp(w, u) == 0) 
     res = k - 2 * lo;
@@ -91,7 +91,7 @@ isbase2 (const mpz_t n, const double threshold)
       mpz_neg (w, w);
       mpz_mod (w, w, n);
       k = mpz_sizeinbase (w, 2) - 1;
-      mpz_set_ui (u, 1);
+      mpz_set_ui (u, 1UL);
       mpz_mul_2exp (u, u, k);
       if (mpz_cmp (w, u) == 0) 
         res = 2 * lo - k;
@@ -279,7 +279,7 @@ mod_mul2exp (mpz_t c, const unsigned int k, mpmod_t modulus)
 void 
 mod_div2exp (mpz_t c, const unsigned int k, mpmod_t modulus)
 {
-  mpz_set_ui (modulus->temp2, 1);
+  mpz_set_ui (modulus->temp2, 1UL);
   mpz_mul_2exp (modulus->temp1, modulus->temp2, k * __GMP_BITS_PER_MP_LIMB);
   mpz_invert (modulus->temp2, modulus->temp1, modulus->orig_modulus); 
     /* temp2 = 2^(-k) (mod n) */
@@ -521,7 +521,7 @@ mpmod_init_BASE2 (mpmod_t modulus, const int base2, const mpz_t N)
   MPZ_INIT2 (modulus->temp1, 2 * Nbits + __GMP_BITS_PER_MP_LIMB);
   MPZ_INIT2 (modulus->temp2, Nbits);
   
-  mpz_set_ui (modulus->temp1, 1);
+  mpz_set_ui (modulus->temp1, 1UL);
   mpz_mul_2exp (modulus->temp1, modulus->temp1, abs (base2));
   if (base2 < 0)
     mpz_sub_ui (modulus->temp1, modulus->temp1, 1);
@@ -572,7 +572,7 @@ mpmod_init_MODMULN (mpmod_t modulus, const mpz_t N)
   MPZ_INIT2 (modulus->temp1, 2 * Nbits + __GMP_BITS_PER_MP_LIMB);
   MPZ_INIT2 (modulus->temp2, Nbits);
 
-  mpz_set_ui (modulus->temp1, 1);
+  mpz_set_ui (modulus->temp1, 1UL);
   mpz_mul_2exp (modulus->temp1, modulus->temp1, __GMP_BITS_PER_MP_LIMB);
   mpz_tdiv_r_2exp (modulus->temp2, modulus->orig_modulus, 
                    __GMP_BITS_PER_MP_LIMB);
@@ -583,7 +583,7 @@ mpmod_init_MODMULN (mpmod_t modulus, const mpz_t N)
     /* Now Nprim = -1/n (mod 2^bits_per_limb) */
 
   MPZ_INIT (modulus->R2);
-  mpz_set_ui (modulus->temp1, 1);
+  mpz_set_ui (modulus->temp1, 1UL);
   mpz_mul_2exp (modulus->temp1, modulus->temp1, 2 * Nbits);
   mpz_mod (modulus->R2, modulus->temp1, modulus->orig_modulus);
   /* Now R2 = (2^bits)^2 (mod N) */
@@ -594,7 +594,7 @@ mpmod_init_MODMULN (mpmod_t modulus, const mpz_t N)
   /* Now R3 = (2^bits)^3 (mod N) */
 
   MPZ_INIT (modulus->multiple);
-  mpz_set_ui (modulus->temp1, 1);
+  mpz_set_ui (modulus->temp1, 1UL);
   mpz_mul_2exp (modulus->temp1, modulus->temp1, Nbits);
   /* compute ceil(2^bits / N) */
   mpz_cdiv_q (modulus->temp1, modulus->temp1, modulus->orig_modulus);
@@ -620,7 +620,7 @@ mpmod_init_REDC (mpmod_t modulus, const mpz_t N)
   mpz_init2 (modulus->temp2, Nbits);
   MPZ_INIT (modulus->aux_modulus);
 
-  mpz_set_ui (modulus->temp1, 1);
+  mpz_set_ui (modulus->temp1, 1UL);
   mpz_mul_2exp (modulus->temp1, modulus->temp1, Nbits);
   /* since we directly check even modulus in ecm/pm1/pp1,
      N is odd here, thus 1/N mod 2^Nbits always exist */
@@ -637,7 +637,7 @@ mpmod_init_REDC (mpmod_t modulus, const mpz_t N)
     }
 
   MPZ_INIT (modulus->R2);
-  mpz_set_ui (modulus->temp1, 1);
+  mpz_set_ui (modulus->temp1, 1UL);
   mpz_mul_2exp (modulus->temp1, modulus->temp1, 2 * Nbits);
   mpz_mod (modulus->R2, modulus->temp1, modulus->orig_modulus);
   /* Now R2 = (2^bits)^2 (mod N) */
@@ -648,7 +648,7 @@ mpmod_init_REDC (mpmod_t modulus, const mpz_t N)
   /* Now R3 = (2^bits)^3 (mod N) */
   
   MPZ_INIT (modulus->multiple);
-  mpz_set_ui (modulus->temp1, 1);
+  mpz_set_ui (modulus->temp1, 1UL);
   mpz_mul_2exp (modulus->temp1, modulus->temp1, Nbits);
   /* compute ceil(2^bits / N) */
   mpz_cdiv_q (modulus->temp1, modulus->temp1, modulus->orig_modulus);
@@ -718,7 +718,7 @@ void
 mpres_pow (mpres_t R, const mpres_t BASE, const mpz_t EXP, mpmod_t modulus)
 {
   ASSERT_NORMALIZED (BASE);
-  ASSERT (mpz_sgn (EXP) >= 0);
+
   if (modulus->repr == ECM_MOD_MPZ)
     {
       mpz_powm (R, BASE, EXP, modulus->orig_modulus);
@@ -732,7 +732,7 @@ mpres_pow (mpres_t R, const mpres_t BASE, const mpz_t EXP, mpmod_t modulus)
       /* case EXP=0 */
       if (mpz_cmp_ui (EXP, 0) == 0)
         {
-          mpres_set_ui (R, 1, modulus); /* set result to 1 */
+          mpres_set_ui (R, 1UL, modulus); /* set result to 1 */
           ASSERT_NORMALIZED (R);
           return;
         }
@@ -748,7 +748,7 @@ mpres_pow (mpres_t R, const mpres_t BASE, const mpz_t EXP, mpmod_t modulus)
             {
               if (expidx == 0)              /* no more limbs -> exp was 0 */
                 {
-                  mpres_set_ui (R, 1, modulus); /* set result to 1 */
+                  mpres_set_ui (R, 1UL, modulus); /* set result to 1 */
 		  ASSERT_NORMALIZED (R);
                   return;
                 }
@@ -801,6 +801,10 @@ mpres_pow (mpres_t R, const mpres_t BASE, const mpz_t EXP, mpmod_t modulus)
       mpz_set (R, modulus->temp2); /* TODO: isn't it possible to use R instead
 				      of modulus->temp2 above to avoid this
 				      copy? */
+      if (mpz_sgn (EXP) < 0)
+        {
+          mpres_invert (R, R, modulus);
+        }
     } /* if (modulus->repr == ECM_MOD_BASE2 || ... ) */
   ASSERT_NORMALIZED (R);
 }
@@ -844,7 +848,7 @@ mpres_ui_pow (mpres_t R, const unsigned int BASE, const mpres_t EXP,
             {
               if (expidx == 0)              /* no more limbs -> exp was 0 */
                 {
-                  mpres_set_ui (R, 1, modulus); /* set result to 1 */
+                  mpres_set_ui (R, 1UL, modulus); /* set result to 1 */
 		  ASSERT_NORMALIZED (R);
                   return;
                 }
@@ -1318,7 +1322,7 @@ mpres_get_z (mpz_t R, const mpres_t S, mpmod_t modulus)
 }
 
 void 
-mpres_set_ui (mpres_t R, const unsigned int n, mpmod_t modulus)
+mpres_set_ui (mpres_t R, const unsigned long n, mpmod_t modulus)
 {
   if (modulus->repr == ECM_MOD_MPZ || modulus->repr == ECM_MOD_BASE2)
     {
