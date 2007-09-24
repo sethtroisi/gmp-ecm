@@ -575,9 +575,9 @@ maxS (unsigned long P)
     }
 
   if (p % 4 == 1)
-    return ((pk + p) / 2 - 2 + maxS(P));
+    return (P * ((pk + p) / 2 - 2) + pk * maxS(P));
   if (p % 4 == 3)
-    return ((pk - 1) / 2 + maxS(P));
+    return (P * ((pk - 1) / 2) + pk * maxS(P));
 
   abort();
 }
@@ -2102,6 +2102,7 @@ pm1fs2 (mpz_t f, mpres_t X, mpmod_t modulus, const mpz_t B2min,
 	   "/* PARI %ld */\n", pariline++);
 
   S_1 = get_factored_sorted_sets (&S_1_size, P);
+  ASSERT (sum_sets_minmax (S_1, S_1_size, 1) == maxS(P));
   S_2 = malloc ((s_2 + 1) * sizeof (long));
   if (s_2 == 1)
   {
