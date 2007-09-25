@@ -780,8 +780,9 @@ pm1 (mpz_t f, mpz_t p, mpz_t N, mpz_t go, double *B1done, double B1,
   mpmod_t modulus;
   mpres_t x;
   mpz_t B2min, B2; /* Local B2, B2min to avoid changing caller's values */
-  unsigned long dF;
+  unsigned long dF, lmax = 1UL<<21;
   root_params_t root_params;
+  faststage2_param_t faststage2_params;
 
   set_verbose (verbose);
   ECM_STDOUT = (os == NULL) ? stdout : os;
@@ -801,7 +802,6 @@ pm1 (mpz_t f, mpz_t p, mpz_t N, mpz_t go, double *B1done, double B1,
   
   mpz_init_set (B2min, B2min_parm);
   mpz_init_set (B2, B2_parm);
-  mpz_init (root_params.i0);
   
   /* Set default B2. See ecm.c for comments */
   if (ECM_IS_DEFAULT_B2(B2))
@@ -863,88 +863,99 @@ pm1 (mpz_t f, mpz_t p, mpz_t N, mpz_t go, double *B1done, double B1,
   if (use_ntt || (modulus->repr == ECM_MOD_BASE2 && modulus->Fermat > 0))
     po2 = 1;
 
-  root_params.d2 = 0; /* Enable automatic choice of d2 */
+  /* If we use the old stage 2, we print the parameters here. The fast 
+     stage 2 prints it by itself at the moment */
+
   if (S == 1)
     {
-      root_params.d2 = 1; /* Disable automatic choice of d2 */
-      po2 = 1;
+      mpz_init (faststage2_params.m_1);
+      choose_P (B2min, B2, lmax, &faststage2_params, B2min, B2);
     }
-
-  if (bestD (&root_params, &k, &dF, B2min, B2, po2, use_ntt, maxmem,
-             (TreeFilename != NULL), modulus) == ECM_ERROR)
+  else
     {
-      youpi = ECM_ERROR;
-      goto clear_and_exit;
+      mpz_init (root_params.i0);
+      root_params.d2 = 0; /* Enable automatic choice of d2 */
+      
+      if (bestD (&root_params, &k, &dF, B2min, B2, po2, use_ntt, maxmem,
+                 (TreeFilename != NULL), modulus) == ECM_ERROR)
+	{
+	  youpi = ECM_ERROR;
+	  goto clear_and_exit;
+	}
+  
+      root_params.S = S;
+      /* Set default degree for Brent-Suyama extension */
+      if (root_params.S == ECM_DEFAULT_S)
+	{
+	  if (modulus->repr == ECM_MOD_BASE2 && modulus->Fermat > 0)
+	    {
+	      /* For Fermat numbers, default is 2 (no Brent-Suyama) */
+	      root_params.S = 2;
+	    }
+	  else
+	    {
+	      mpz_t t;
+	      mpz_init (t);
+	      mpz_sub (t, B2, B2min);
+	      if (mpz_cmp_d (t, 3.5e5) < 0) /* B1 < 50000 */
+		root_params.S = -4; /* Dickson polys give a slightly better chance of success */
+	      else if (mpz_cmp_d (t, 1.1e7) < 0) /* B1 < 500000 */
+		root_params.S = -6;
+	      else if (mpz_cmp_d (t, 1.25e8) < 0) /* B1 < 3000000 */
+		root_params.S = 12; /* but for S>6, S-th powers are faster thanks to invtrick */
+	      else if (mpz_cmp_d (t, 7.e9) < 0) /* B1 < 50000000 */
+		root_params.S = 24;
+	      else if (mpz_cmp_d (t, 1.9e10) < 0) /* B1 < 100000000 */
+		root_params.S = 48;
+	      else if (mpz_cmp_d (t, 5.e11) < 0) /* B1 < 1000000000 */
+		root_params.S = 60;
+	      else
+		root_params.S = 120;
+	      mpz_clear (t);
+	    }
+	}
+
+      /* We need Suyama's power even and at least 2 for P-1 stage 2 to work 
+	 correctly */
+
+      if (root_params.S & 1)
+	root_params.S *= 2; /* FIXME: Is this what the user would expect? */
     }
   
-  root_params.S = S;
-  /* Set default degree for Brent-Suyama extension */
-  if (root_params.S == ECM_DEFAULT_S)
-    {
-      if (modulus->repr == ECM_MOD_BASE2 && modulus->Fermat > 0)
-        {
-          /* For Fermat numbers, default is 2 (no Brent-Suyama) */
-          root_params.S = 2;
-        }
-      else
-        {
-          mpz_t t;
-          mpz_init (t);
-          mpz_sub (t, B2, B2min);
-          if (mpz_cmp_d (t, 3.5e5) < 0) /* B1 < 50000 */
-            root_params.S = -4; /* Dickson polys give a slightly better chance of success */
-          else if (mpz_cmp_d (t, 1.1e7) < 0) /* B1 < 500000 */
-            root_params.S = -6;
-          else if (mpz_cmp_d (t, 1.25e8) < 0) /* B1 < 3000000 */
-            root_params.S = 12; /* but for S>6, S-th powers are faster thanks to invtrick */
-          else if (mpz_cmp_d (t, 7.e9) < 0) /* B1 < 50000000 */
-            root_params.S = 24;
-          else if (mpz_cmp_d (t, 1.9e10) < 0) /* B1 < 100000000 */
-            root_params.S = 48;
-          else if (mpz_cmp_d (t, 5.e11) < 0) /* B1 < 1000000000 */
-            root_params.S = 60;
-          else
-            root_params.S = 120;
-          mpz_clear (t);
-        }
-    }
-
-#if 0
-  /* For fast P-1 stage 2, we need S = 1 */
-  /* We need Suyama's power even and at least 2 for P-1 stage 2 to work 
-     correctly */
-  if (abs (root_params.S) < 2)
-    root_params.S = 2;
-
-  if (root_params.S & 1)
-    root_params.S *= 2; /* FIXME: Is this what the user would expect? */
-#endif
-
   if (test_verbose (OUTPUT_NORMAL))
     {
       outputf (OUTPUT_NORMAL, "Using ");
       if (ECM_IS_DEFAULT_B1_DONE(*B1done))
-        outputf (OUTPUT_NORMAL, "B1=%1.0f", B1);
+	outputf (OUTPUT_NORMAL, "B1=%1.0f, ", B1);
       else
-        outputf (OUTPUT_NORMAL, "B1=%1.0f-%1.0f", *B1done, B1);
+	outputf (OUTPUT_NORMAL, "B1=%1.0f-%1.0f, ", *B1done, B1);
       if (mpz_cmp_d (B2min, B1) == 0)
-        outputf (OUTPUT_NORMAL, ", B2=%Zd, ", B2);
+	outputf (OUTPUT_NORMAL, "B2=%Zd, ", B2);
       else
-        outputf (OUTPUT_NORMAL, ", B2=%Zd-%Zd, ", B2min, B2);
-      if (root_params.S > 0)
-        outputf (OUTPUT_NORMAL, "polynomial x^%u", root_params.S);
-      else
-        outputf (OUTPUT_NORMAL, "polynomial Dickson(%u)", -root_params.S);
-
+	outputf (OUTPUT_NORMAL, "B2=%Zd-%Zd, ", B2min, B2);
+      if (S != 1)
+	{
+	  if (root_params.S > 1)
+	    outputf (OUTPUT_NORMAL, "polynomial x^%u, ", root_params.S);
+	  else
+	    outputf (OUTPUT_NORMAL, "polynomial Dickson(%u), ", -root_params.S);
+	}
+      
       if (ECM_IS_DEFAULT_B1_DONE(*B1done))
 	/* don't print in resume case, since x0 is saved in resume file */
-         outputf (OUTPUT_NORMAL, ", x0=%Zd", p);
-
+	outputf (OUTPUT_NORMAL, "x0=%Zd", p);
+      
       outputf (OUTPUT_NORMAL, "\n");
     }
 
-  outputf (OUTPUT_VERBOSE, "dF=%lu, k=%lu, d=%lu, d2=%lu, i0=%Zd\n", 
-           dF, k, root_params.d1, root_params.d2, root_params.i0);
+  if (S == 1)
+    outputf (OUTPUT_VERBOSE, "P = %lu, l = %lu, s_1 = %lu, s_2 = %lu, "
+	     "m_1 = %Zd\n", faststage2_params.P, faststage2_params.l,
+	     faststage2_params.s_1,faststage2_params.s_2,
+	     faststage2_params.m_1);
+  else
+    outputf (OUTPUT_VERBOSE, "dF=%lu, k=%lu, d=%lu, d2=%lu, i0=%Zd\n", 
+	     dF, k, root_params.d1, root_params.d2, root_params.i0);
 
   mpres_init (x, modulus);
   mpres_set_z (x, p, modulus);
@@ -969,8 +980,8 @@ pm1 (mpz_t f, mpz_t p, mpz_t N, mpz_t go, double *B1done, double B1,
 
   if (youpi == ECM_NO_FACTOR_FOUND && mpz_cmp (B2, B2min) >= 0)
     {
-      if (root_params.S == 1)
-        youpi = pm1fs2 (f, x, modulus, B2min, B2, 1UL<<21);
+      if (S == 1)
+        youpi = pm1fs2 (f, x, modulus, &faststage2_params);
       else
         youpi = stage2 (f, &x, modulus, dF, k, &root_params, ECM_PM1, 
                         use_ntt, TreeFilename, stop_asap);
@@ -980,7 +991,10 @@ clear_and_exit:
   mpres_get_z (p, x, modulus);
   mpres_clear (x, modulus);
   mpmod_clear (modulus);
-  mpz_clear (root_params.i0);
+  if (S == 1)
+    mpz_clear (faststage2_params.m_1);
+  else
+    mpz_clear (root_params.i0);
   mpz_clear (B2);
   mpz_clear (B2min);
 
