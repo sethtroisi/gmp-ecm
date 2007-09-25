@@ -428,9 +428,9 @@ ecm_mulredc_basecase (mpres_t R, const mpres_t S1, const mpres_t S2,
   mp_limb_t cy;
   mp_size_t j, nn = modulus->bits / __GMP_BITS_PER_MP_LIMB;
 
+  ASSERT(ALLOC(R) >= nn);
   ASSERT(ALLOC(S1) >= nn);
   ASSERT(ALLOC(S2) >= nn);
-  MPZ_REALLOC (R, nn);
   rp = PTR(R);
   s1p = PTR(S1);
   s2p = PTR(S2);
@@ -1005,6 +1005,7 @@ mpres_mul (mpres_t R, const mpres_t S1, const mpres_t S2, mpmod_t modulus)
       base2mod (R, modulus->temp1, modulus->temp1, modulus);
       break;
     case ECM_MOD_MODMULN:
+      MPZ_REALLOC (R, modulus->bits / __GMP_BITS_PER_MP_LIMB);
       ecm_mulredc_basecase (R, S1, S2, modulus);
       break;
     case ECM_MOD_REDC:
@@ -1109,10 +1110,14 @@ mpres_mul_z_to_z (mpz_t R, const mpres_t S1, const mpz_t S2, mpmod_t modulus)
       if (mpz_cmp (S2, modulus->orig_modulus) >= 0)
 	{
 	  mpz_mod (modulus->temp2, S2, modulus->orig_modulus);
+          MPZ_REALLOC (R, modulus->bits / __GMP_BITS_PER_MP_LIMB);
 	  ecm_mulredc_basecase (R, S1, modulus->temp2, modulus);
 	}
       else
-	ecm_mulredc_basecase (R, S1, S2, modulus);
+ 	{
+	  MPZ_REALLOC (R, modulus->bits / __GMP_BITS_PER_MP_LIMB);
+	  ecm_mulredc_basecase (R, S1, S2, modulus);
+ 	}
       break;
     case ECM_MOD_REDC:
       if (mpz_cmp (S2, modulus->orig_modulus) >= 0)
