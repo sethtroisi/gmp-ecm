@@ -428,9 +428,9 @@ ecm_mulredc_basecase (mpres_t R, const mpres_t S1, const mpres_t S2,
   mp_limb_t cy;
   mp_size_t j, nn = modulus->bits / __GMP_BITS_PER_MP_LIMB;
 
-  ASSERT(ALLOC(R) >= nn);
   ASSERT(ALLOC(S1) >= nn);
   ASSERT(ALLOC(S2) >= nn);
+  MPZ_REALLOC (R, nn);
   rp = PTR(R);
   s1p = PTR(S1);
   s2p = PTR(S2);
