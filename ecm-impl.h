@@ -230,6 +230,13 @@ typedef struct
 } __root_params_t;
 typedef __root_params_t root_params_t;
 
+typedef struct
+{
+  unsigned long P, s_1, s_2, l;
+  mpz_t m_1;
+} __faststage2_param_t;
+typedef __faststage2_param_t faststage2_param_t;
+
 #define EC_MONTGOMERY_FORM 0
 #define EC_WEIERSTRASS_FORM 1
 
@@ -337,8 +344,7 @@ int     pm1_rootsG       (mpz_t, listz_t, unsigned long, pm1_roots_state *,
 void    pm1_rootsG_clear (pm1_roots_state *, mpmod_t);
 
 /* pm1fs2.c */
-int	pm1fs2 (mpz_t, mpres_t, mpmod_t, const mpz_t, const mpz_t, 
-                const unsigned long);
+int	pm1fs2 (mpz_t, const mpres_t, mpmod_t, const faststage2_param_t *);
 
 /* bestd.c */
 #define eulerphi __ECM(eulerphi)
