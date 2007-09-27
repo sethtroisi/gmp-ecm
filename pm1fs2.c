@@ -55,15 +55,18 @@ const unsigned long Pvalues[] = {
     150225075UL, 155450295UL, 158333175UL, 170255085UL, 179444265UL, 
     190285095UL, 198843645UL, 203408205UL, 206831625UL, 217222005UL, 
     229474245UL, 240705465UL, 252447195UL, 254999745UL, 269023755UL, 
-    282146865UL, 287672385UL};
+    282146865UL, 287672385UL, 294076965UL, 306110805UL, 318302985UL, 
+    334639305UL, 344338995UL, 354038685UL, 363738375UL, 373438065UL,
+    387221835UL, 400254855UL, 421936515UL, 431636205UL, 451035585UL,
+    451035585UL, 470434965UL, 480134655UL};
 
 
 /* Some useful PARI functions:
    sumset(a,b) = {local(i, j, l); l = listcreate (length(a) * length(b)); for (i = 1, length(a), for (j = 1, length(b), listput(l, a[i] + b[j]))); listsort (l, 1); l}
 
-   V(i,X)={ if (i==0, return(2)); if (i==1, return(X)); if(i%2 == 0, return (V (i/2, X)^2-2)); return (V ((i+1)/2, X) * V ((i-1)/2, X) - X)}
+   V(i,X) = { if (i==0, return(2)); if (i==1, return(X)); if(i%2 == 0, return (V (i/2, X)^2-2)); return (V ((i+1)/2, X) * V ((i-1)/2, X) - X)}
 
-   U(i,X)={if(i==0,return(0));if(i==1,return(1));if(i%2==0,return(U(i/2,X)*V(i/2,X)));return(V((i+1)/2,X)*U((i-1)/2,X)+1)}
+   U(i,X) = { if (i==0, return(0)); if (i==1, return(1)); if(i%2 == 0, return (U (i/2, X) * V(i/2,X))); return (V ((i+1)/2, X)  *U( (i-1)/2, X) + 1)}
 
 */
 
@@ -460,13 +463,6 @@ get_factored_sorted_sets (unsigned long *setsize, const unsigned long beta)
   
   sort_sets (sets, size);
   
-  if (test_verbose (OUTPUT_DEVVERBOSE))
-  {
-    outputf (OUTPUT_DEVVERBOSE, "The fully factored, sorted sets are for "
-	     "beta = %lu are ", beta);
-      print_sets (OUTPUT_DEVVERBOSE, sets, size);
-  }
-  
   if (setsize != NULL)
     *setsize = size;
   
@@ -563,7 +559,7 @@ maxS (unsigned long P)
   unsigned int k;
 
   if (P == 1UL)
-    return 0UL;
+    return 0L;
 
   p = find_factor_ul (P);
   k = 1; pk = p; P /= p;
@@ -574,10 +570,10 @@ maxS (unsigned long P)
       P /= p;
     }
 
-  if (p % 4 == 1)
-    return (P * ((pk + p) / 2 - 2) + pk * maxS(P));
-  if (p % 4 == 3)
-    return (P * ((pk - 1) / 2) + pk * maxS(P));
+  if (p % 4UL == 1UL)
+    return (P * ((pk + p) / 2UL - 2UL) + pk * maxS(P));
+  if (p % 4UL == 3UL)
+    return (P * ((pk - 1UL) / 2UL) + pk * maxS(P));
 
   abort();
 }
@@ -1548,6 +1544,8 @@ poly_from_sets_V (listz_t F, const mpres_t Q, const long *sets,
   sets += 3;
   setsize -= 3;
 
+  outputf (OUTPUT_DEVVERBOSE, " processing set of size");
+
   while (setsize > 0)
     {
       /* Assuming the sets are sorted in ascending order, we process them
@@ -1560,6 +1558,8 @@ poly_from_sets_V (listz_t F, const mpres_t Q, const long *sets,
 	 odd cardinality */
       c = sets[lastidx] - 1;
       curset = sets + lastidx + 1;
+      outputf (OUTPUT_DEVVERBOSE, " %lu", c);
+
       if (c == 2)
 	{
 	  ASSERT_ALWAYS (curset[0] == -curset[1]); /* Check it's symmetric */
@@ -1624,9 +1624,9 @@ poly_from_sets_V (listz_t F, const mpres_t Q, const long *sets,
    x_0 = b_1^{2*k_2 + (2*m_1 + 1) * P}. r = b_1^P. */
 
 static void
-sequence_g (mpz_t *g, const mpres_t b_1, const unsigned long P, 
-	    const long M, const unsigned long l, const mpz_t m_1, 
-	    const long k_2, mpmod_t modulus)
+pm1_sequence_g (mpz_t *g, const mpres_t b_1, const unsigned long P, 
+		const long M, const unsigned long l, const mpz_t m_1, 
+		const long k_2, mpmod_t modulus)
 {
   mpres_t r[3], x_0, x_Mi, r_Mi;
   mpz_t t;
@@ -1738,8 +1738,8 @@ sequence_g (mpz_t *g, const mpres_t b_1, const unsigned long P,
    of the paper. h == f is ok. */
 
 static int 
-sequence_h (mpz_t *h, mpz_t *f, const mpres_t r, const unsigned long d, 
-	    mpmod_t modulus)
+pm1_sequence_h (mpz_t *h, mpz_t *f, const mpres_t r, const unsigned long d, 
+		mpmod_t modulus)
 {
   mpres_t invr;  /* r^{-1} */
   mpres_t fd[3]; /* finite differences table for r^{-i^2}*/
@@ -1812,80 +1812,6 @@ sequence_h (mpz_t *h, mpz_t *f, const mpres_t r, const unsigned long d,
   return 0;
 }
 
-
-
-static int 
-sequence_C (mpz_t *C, mpz_t *F, const mpres_t X, long d, const mpz_t alpha, 
-	    const unsigned long beta, const long l, mpmod_t modulus)
-{
-      /* Prepare polynomial C. We want 
-	 c_j = f_j * X^(beta * j^2/2 + alpha * j), j = 0 ... d
-	 
-	 We have beta*j + alpha + beta/2 and beta for the finite differences 
-	 of the exponents of X.
-      */
-
-  mpres_t findiff[3];
-  mpz_t tmp;
-  long j, timestart, timestop;
-
-  ASSERT (beta % 2 == 0);
-
-  mpz_init (tmp);
-  mpres_init (findiff[0], modulus);
-  mpres_init (findiff[1], modulus);
-  mpres_init (findiff[2], modulus);
-
-  outputf (OUTPUT_VERBOSE, "Computing coefficients of C, block %lu", l);
-  timestart = cputime ();
-  mpz_set_ui (tmp, beta);
-  mpres_pow (findiff[0], X, tmp, modulus); /* fd[0] = X^beta */
-  mpz_add_ui (tmp, alpha, beta / 2);
-  mpres_pow (findiff[1], X, tmp, modulus); /* fd[1] = X^(alpha + beta/2) */
-  mpres_set_ui (findiff[2], 1UL, modulus); /* j=0, X^(beta*j^2/2 + alpha*j)=1 */
-  /* Can we just init this once and let the findiff stuff continue
-     over all the blocks? */
-  
-  mpz_set (C[0], F[0]); /* fd[2] = 1, so c_0 = f_0 */
-  
-  for (j = 1; j < d; j++)
-    {
-      mpres_mul (findiff[2], findiff[2], findiff[1], modulus);
-      mpres_mul (findiff[1], findiff[1], findiff[0], modulus);
-      mpres_get_z (tmp, findiff[2], modulus);
-      mpz_mul (tmp, tmp, F[j]);
-      mpz_mod (C[j], tmp, modulus->orig_modulus);
-    }
-  /* F[d] = 1 is not actually stored anywhere. Treat it separately */
-  mpres_mul (findiff[2], findiff[2], findiff[1], modulus);
-  mpres_get_z (C[j], findiff[2], modulus);
-  timestop = cputime ();
-  outputf (OUTPUT_VERBOSE, " took %lu ms\n", timestop - timestart);
-  
-  if (test_verbose (OUTPUT_TRACE))
-    {
-      for (j = 0; j <= d; j++)
-	{
-	  outputf (OUTPUT_TRACE, 
-		   "C_%lu = F_%lu * XP^(%lu^2 + 2*(%lu*d+%Zd)*%lu); ", 
-		   j, j, j, l, alpha, j);
-	  outputf (OUTPUT_TRACE, "compare(C_%lu, %Zd, %ld); /* PARI %ld */\n", 
-		   j, C[j], pariline, pariline); pariline++;
-	}
-      
-      outputf (OUTPUT_TRACE, "C(x) = ");
-      for (j = 0; j <= d; j++)
-	outputf (OUTPUT_TRACE, " + C_%lu*x^%lu", j, j);
-      outputf (OUTPUT_TRACE, "; /* PARI %ld */\n", pariline++);
-    }
-
-  mpres_init (findiff[2], modulus);
-  mpres_init (findiff[1], modulus);
-  mpres_init (findiff[0], modulus);
-  mpz_clear (tmp);
-
-  return 0;
-}
 
 
 /* Build polynomial F(x) with roots X^i for i covering all the residue classes
@@ -2072,12 +1998,72 @@ pm1_build_poly_F (mpz_t *F, const mpres_t X, mpmod_t modulus,
 }
 
 
+static int 
+make_S_1_S_2 (long **S_1, unsigned long *S_1_size, long **S_2, 
+	      const faststage2_param_t *params)
+{
+  unsigned long i;
+
+  *S_1 = get_factored_sorted_sets (S_1_size, params->P);
+  if (*S_1 == NULL)
+    return ECM_ERROR;
+  ASSERT (sum_sets_minmax (*S_1, *S_1_size, 1) == (long) maxS (params->P));
+  *S_2 = malloc ((params->s_2 + 1) * sizeof (long));
+  if (*S_2 == NULL)
+    {
+      free (*S_1);
+      return ECM_ERROR;
+    }
+  if (params->s_2 == 1)
+    {
+      (*S_2)[0] = 2L;
+      (*S_2)[1] = 0L; /* A set containing only 0 */
+    }
+  else
+    {
+      /* Expand the sum of sets for S_2 into a single set */
+      long *factored_S_2;
+      unsigned long factored_S_2_size;
+      
+      factored_S_2_size = extract_sets (NULL, *S_1, *S_1_size, params->s_2);
+      factored_S_2 = malloc (factored_S_2_size * sizeof (long));
+      if (factored_S_2 == NULL)
+	{
+	  free (*S_1);
+	  free (*S_2);
+	  return ECM_ERROR;
+	}
+      extract_sets (factored_S_2, *S_1, *S_1_size, params->s_2);
+      *S_1_size -= factored_S_2_size;
+      (*S_2)[0] = params->s_2 + 1;
+      sum_sets ((*S_2) + 1, factored_S_2, factored_S_2_size, 0L);
+      free (factored_S_2);
+    }
+  
+  /* Print the sets in devverbose mode */
+  if (test_verbose (OUTPUT_DEVVERBOSE))
+    {
+      outputf (OUTPUT_DEVVERBOSE, "S_1 = ");
+      print_sets (OUTPUT_DEVVERBOSE, *S_1, *S_1_size);
+      
+      outputf (OUTPUT_DEVVERBOSE, "S_2 = {");
+      for (i = 0UL; i + 1UL < params->s_2; i++)
+	outputf (OUTPUT_DEVVERBOSE, "%ld, ", (*S_2)[i + 1UL]);
+      if (i < params->s_2)
+	outputf (OUTPUT_DEVVERBOSE, "%ld", (*S_2)[i + 1UL]); 
+      outputf (OUTPUT_DEVVERBOSE, "}\n");
+    }
+
+  return 0;
+}
+
+
 int 
 pm1fs2 (mpz_t f, const mpres_t X, mpmod_t modulus, 
 	const faststage2_param_t *params)
 {
   unsigned long phiP, nr;
-  unsigned long i, j, l, lenF, lenG, lenR, tmplen;
+  unsigned long i, l, lenF, lenG, lenR, tmplen;
   long *S_1; /* This is stored as a set of sets (arithmetic progressions of
 		prime length */
   long *S_2; /* This is stored as a regular set */
@@ -2092,11 +2078,7 @@ pm1fs2 (mpz_t f, const mpres_t X, mpmod_t modulus,
   mpz_t mt;   /* All-purpose temp mpz_t */
   mpres_t mr; /* All-purpose temp mpres_t */
   int youpi = 0;
-  extern unsigned int Fermat;
-  long timetotalstart, timestart, timestop, muls;
-
-  if (modulus->repr == ECM_MOD_BASE2 && modulus->Fermat > 0)
-    Fermat = modulus->Fermat;
+  long timetotalstart, timestart, timestop;
 
   timetotalstart = cputime ();
 
@@ -2107,42 +2089,7 @@ pm1fs2 (mpz_t f, const mpres_t X, mpmod_t modulus,
 
   outputf (OUTPUT_TRACE, "compare(a, b, n) = if (a != b,print(\"In PARI \", n, \" line, \", a \" != \" b)); /* PARI %ld */\n", pariline++);
 
-  S_1 = get_factored_sorted_sets (&S_1_size, params->P);
-  ASSERT (sum_sets_minmax (S_1, S_1_size, 1) == maxS (params->P));
-  S_2 = malloc ((params->s_2 + 1) * sizeof (long));
-  if (params->s_2 == 1)
-  {
-      S_2[0] = 2L;
-      S_2[1] = 0L; /* A set containing only 0 */
-  }
-  else
-  {
-      /* Expand the sum of sets for S_2 into a single set */
-      long *factored_S_2;
-      unsigned long factored_S_2_size;
-      
-      factored_S_2_size = extract_sets (NULL, S_1, S_1_size, params->s_2);
-      factored_S_2 = malloc (factored_S_2_size * sizeof (long));
-      extract_sets (factored_S_2, S_1, S_1_size, params->s_2);
-      S_1_size -= factored_S_2_size;
-      S_2[0] = params->s_2 + 1;
-      sum_sets (S_2 + 1, factored_S_2, factored_S_2_size, 0L);
-      free (factored_S_2);
-  }
-  /* Print the sets in devverbose mode */
-  if (test_verbose (OUTPUT_DEVVERBOSE))
-  {
-      unsigned long i;
-      outputf (OUTPUT_DEVVERBOSE, "S_1 = ");
-      print_sets (OUTPUT_DEVVERBOSE, S_1, S_1_size);
-      
-      outputf (OUTPUT_DEVVERBOSE, "S_2 = {");
-      for (i = 0UL; i + 1UL < params->s_2; i++)
-	  outputf (OUTPUT_DEVVERBOSE, "%ld, ", S_2[i + 1UL]);
-      if (i < params->s_2)
-	  outputf (OUTPUT_DEVVERBOSE, "%ld", S_2[i + 1UL]); 
-      outputf (OUTPUT_DEVVERBOSE, "}\n");
-  }
+  make_S_1_S_2 (&S_1, &S_1_size, &S_2, params);
 
   /* Allocate all the memory we'll need */
   /* Allocate the correct amount of space for each mpz_t or the 
@@ -2207,8 +2154,8 @@ pm1fs2 (mpz_t f, const mpres_t X, mpmod_t modulus,
   
   mpz_set_ui (mt, params->P);
   mpres_pow (mr, X, mt, modulus); /* mr = X^P */
-  sequence_h (F, F, mr, params->s_1 / 2 + 1, modulus); /* F now contains the 
-							  h_i sequence */
+  pm1_sequence_h (F, F, mr, params->s_1 / 2 + 1, modulus); 
+
   /* Make a symmetric copy of F in h. It will have length 
      s_1 + 1 = 2*lenF - 1 */
   /* I.e. with F = [3, 2, 1], s_1 = 4, we want h = [1, 2, 3, 2, 1] */
@@ -2229,8 +2176,8 @@ pm1fs2 (mpz_t f, const mpres_t X, mpmod_t modulus,
 
   for (l = 0; l < params->s_2; l++)
     {
-      sequence_g (g, X, params->P, params->l - 1 - params->s_1 / 2, params->l, 
-		  params->m_1, S_2[l + 1], modulus);
+      pm1_sequence_g (g, X, params->P, params->l - 1 - params->s_1 / 2, 
+		      params->l, params->m_1, S_2[l + 1], modulus);
 
       /* Do the convolution */
 #if 1
@@ -2244,15 +2191,15 @@ pm1fs2 (mpz_t f, const mpres_t X, mpmod_t modulus,
 
       /* Computes rev(h)*g, stores coefficients of x^(s_1) to 
 	 x^(s_1+nr-1) = x^(len-1) */
-      muls = TMulGen (R, nr - 1, h, params->s_1, g, params->l - 1, tmp, 
-		      modulus->orig_modulus);
+      TMulGen (R, nr - 1, h, params->s_1, g, params->l - 1, tmp, 
+	       modulus->orig_modulus);
       list_mod (R, R, nr, modulus->orig_modulus);
 
       timestop = cputime ();
-      outputf (OUTPUT_VERBOSE, " took %lu muls, %lu ms\n", 
-	       muls, timestop - timestart);
+      outputf (OUTPUT_VERBOSE, " took %lu ms\n", timestop - timestart);
 #else
-      THIS DOESN'T WORK AT THE MOMENT
+      /* THIS DOESN'T WORK AT THE MOMENT */
+      abort ();
 
       /* Use two non-transposed multiplications */
       outputf (OUTPUT_VERBOSE, "Computing B * g");
@@ -2375,42 +2322,41 @@ pm1fs2 (mpz_t f, const mpres_t X, mpmod_t modulus,
 
 /* Multiplies (a_0 + a_1*sqrt(Delta)) * (b_0 + b_1*sqrt(Delta))
    using four multiplications. Result goes in (r_0 + r_1*sqrt(Delta)). 
-   a_0, a_1, b_0, b_1, r_0, r_1 may overlap arbitrarily. t[0], t[1], t[2] and 
-   Delta must not overlap with anything. */
+   a_0, b_0, r_0 as well as a_1, b_1, r_1 may overlap arbitrarily. t[0], t[1], 
+   t[2] and Delta must not overlap with anything. */
 /* FIXME: is there a faster multiplication routine if both inputs have 
    norm 1? */
 
 static void 
-gfp_ext_mul (mpz_t r_0, mpz_t r_1, const mpz_t a_0, const mpz_t a_1,
-	     const mpz_t b_0, const mpz_t b_1, const mpz_t Delta, 
-	     const mpz_t N, ATTRIBUTE_UNUSED const unsigned long tmplen, 
+gfp_ext_mul (mpres_t r_0, mpres_t r_1, const mpres_t a_0, const mpres_t a_1,
+	     const mpres_t b_0, const mpres_t b_1, const mpres_t Delta, 
+	     mpmod_t modulus, ATTRIBUTE_UNUSED const unsigned long tmplen, 
 	     mpz_t *t)
 {
-  ASSERT (tmplen >= 3);
-  if (pari)
-    gmp_printf ("/* gfp_ext_mul */ (%Zd + %Zd * w) * (%Zd + %Zd * w) % N == ",
+  ASSERT (tmplen >= 2);
+  if (0 && pari)
+    gmp_printf ("/* gfp_ext_mul */ ((%Zd + %Zd * w) * (%Zd + %Zd * w)) % N == ",
 		a_0, a_1, b_0, b_1);
-  mpz_add (t[0], a_0, a_1);
-  mpz_add (t[1], b_0, b_1);
-  mpz_mul (t[2], t[0], t[1]);  /* t2 = (a_0 + a_1) * (b_0 + b_1) = 
-				  a_0*b_0 + a_0*b_1 + a_1*b_0 + a_1*b_1 */
+  mpres_add (t[0], a_0, a_1, modulus);
+  mpres_add (t[1], b_0, b_1, modulus);
+  mpres_mul (t[1], t[0], t[1], modulus); /* t[1] = (a_0 + a_1) * (b_0 + b_1) = 
+					    a_0*b_0 + a_0*b_1 + a_1*b_0 + 
+					    a_1*b_1 */
 
-  mpz_mul (t[0], a_0, b_0);    /* t[0] = a_0*b_0. We don't need a_0 or b_0 
-				  any more now */
-  mpz_sub (t[2], t[2], t[0]);  /* r_1 = a_0*b_1 + a_1*b_0 + a_1*b_1 */
+  mpres_mul (r_0, a_0, b_0, modulus);    /* r_0 = a_0*b_0. We don't need a_0 
+					    or b_0 any more now */
+  mpres_sub (t[1], t[1], r_0, modulus);  /* t[1] = a_0*b_1 + a_1*b_0 + 
+					    a_1*b_1 */
   
-  mpz_mul (t[1], a_1, b_1);    /* t[1] = a_1*b_1. We don't need a_1 or b_1 
-				  any more now */
-  mpz_sub (t[2], t[2], t[1]);
-  mpz_mod (r_1, t[2], N);      /* r_1 == a_0*b_1 + a_1*b_0 */
+  mpres_mul (t[0], a_1, b_1, modulus);   /* t[0] = a_1*b_1. We don't need a_1 
+					    or b_1 any more now */
+  mpres_sub (r_1, t[1], t[0], modulus);  /* r_1 == a_0*b_1 + a_1*b_0 */
+  
+  mpres_mul (t[0], t[0], Delta, modulus); /* t[0] = a_1*b_1*Delta */
+  mpres_add (r_0, r_0, t[0], modulus);   /* r_0 = a_0*b_0 + a_1*b_1*Delta */
 
-  mpz_mod (t[2], t[1], N);     /* t[2] = a_1*b_1 % N */
-  mpz_mul (t[1], t[2], Delta); /* t[1] = a_1*b_1*Delta */
-  mpz_add (t[0], t[0], t[1]);  /* t[0] = a_0*b_0 + a_1*b_1*Delta */
-  mpz_mod (r_0, t[0], N);      /* r0 = (a_0*b_0 + a_1*b_1*Delta) % N */
-
-  if (pari)
-    gmp_printf ("%Zd + %Zd * w /* PARI C */\n", r_0, r_1);
+  if (0 && pari)
+    gmp_printf ("(%Zd + %Zd * w) % N /* PARI C */\n", r_0, r_1);
 }
 
 
@@ -2421,28 +2367,23 @@ gfp_ext_mul (mpz_t r_0, mpz_t r_1, const mpz_t a_0, const mpz_t a_1,
    a_0 and r_0, as well as a_1 and r_1 may overlap */
 
 static void
-gfp_ext_sqr_norm1 (mpz_t r_0, mpz_t r_1, const mpz_t a_0, const mpz_t a_1,
-		   const mpz_t N, ATTRIBUTE_UNUSED const unsigned long tmplen, 
-		   mpz_t *t)
+gfp_ext_sqr_norm1 (mpres_t r_0, mpres_t r_1, const mpres_t a_0, 
+		   const mpres_t a_1, mpmod_t modulus)
 {
-  ASSERT (tmplen >= 1);
   ASSERT (a_0 != r_1);  /* a_0 is read after r_1 is written */
-  ASSERT (t[0] != a_0 && t[0] != r_0 && t[0] != r_1);
-
-  if (pari)
+  
+  if (0 && pari)
     gmp_printf ("/* gfp_ext_sqr_norm1 */ (%Zd + %Zd * w)^2 % N == ", a_0, a_1);
   
-  mpz_mul (t[0], a_0, a_1);
-  mpz_mul_2exp (t[0], t[0], 1UL);
-  mpz_mod (r_1, t[0], N);       /* r_1 = 2*a_0*a_1 */
+  mpres_mul (r_1, a_0, a_1, modulus);
+  mpres_add (r_1, r_1, r_1, modulus);       /* r_1 = 2*a_0*a_1 */
   
-  mpz_mul (t[0], a_0, a_0);
-  mpz_mul_2exp (t[0], t[0], 1UL);
-  mpz_sub_ui (t[0], t[0], 1UL);
-  mpz_mod (r_0, t[0], N);      /* r_0 = 2*a_0^2 - 1 */
+  mpres_mul (r_0, a_0, a_0, modulus);
+  mpres_add (r_0, r_0, r_0, modulus);
+  mpres_sub_ui (r_0, r_0, 1UL, modulus);    /* r_0 = 2*a_0^2 - 1 */
 
-  if (pari)
-    gmp_printf ("%Zd + %Zd * w /* PARI C */\n", r_0, r_1);
+  if (0 && pari)
+    gmp_printf ("(%Zd + %Zd * w) % N /* PARI C */\n", r_0, r_1);
 }
 
 
@@ -2451,9 +2392,9 @@ gfp_ext_sqr_norm1 (mpz_t r_0, mpz_t r_1, const mpz_t a_0, const mpz_t a_1,
    (r0 * r1*sqrt(Delta)). a0, a1, r0 and r1 must not overlap */
 
 static void 
-gfp_ext_pow_norm1 (mpz_t r0, mpz_t r1, const mpz_t a0, const mpz_t a1, 
-		   const mpz_t Delta, const long e, const mpz_t N, 
-		   unsigned long tmplen, mpz_t *tmp)
+gfp_ext_pow_norm1 (mpres_t r0, mpres_t r1, const mpres_t a0, const mpres_t a1, 
+		   const long e, const mpres_t Delta, mpmod_t modulus, 
+		   unsigned long tmplen, mpres_t *tmp)
 {
   const unsigned long abs_e = labs (e);
   unsigned long mask = ~0UL - (~0UL >> 1);
@@ -2462,8 +2403,8 @@ gfp_ext_pow_norm1 (mpz_t r0, mpz_t r1, const mpz_t a0, const mpz_t a1,
 
   if (e == 0)
     {
-      mpz_set_ui (r0, 1UL);
-      mpz_set_ui (r1, 0UL);
+      mpres_set_ui (r0, 1UL, modulus);
+      mpres_set_ui (r1, 0UL, modulus);
       return;
     }
 
@@ -2476,98 +2417,132 @@ gfp_ext_pow_norm1 (mpz_t r0, mpz_t r1, const mpz_t a0, const mpz_t a1,
   while ((abs_e & mask) == 0UL)
     mask >>= 1;
 
-  mpz_set (r0, a0);
-  mpz_set (r1, a1);
+  mpres_set (r0, a0, modulus);
+  mpres_set (r1, a1, modulus);
 
   while (mask > 1UL)
     {
-      gfp_ext_sqr_norm1 (r0, r1, r0, r1, N, tmplen, tmp);
+      gfp_ext_sqr_norm1 (r0, r1, r0, r1, modulus);
       mask >>= 1;
       if (abs_e & mask)
-	gfp_ext_mul (r0, r1, r0, r1, a0, a1, Delta, N, tmplen, tmp);
+	gfp_ext_mul (r0, r1, r0, r1, a0, a1, Delta, modulus, tmplen, tmp);
     }
 
   if (e < 0)
-    mpz_neg (r1, r1);
+    mpres_neg (r1, r1, modulus);
 
   if (pari)
     gmp_printf ("/* gfp_ext_pow_norm1 */ (%Zd + %Zd * w)^%ld % N == "
-		"%Zd + %Zd * w /* PARI C */\n", a0, a1, e, r0, r1);
+		"(%Zd + %Zd * w) % N /* PARI C */\n", a0, a1, e, r0, r1);
 }
 
 
 /* Compute r[i] = a^((k+i)^2) for i = 0, 1, ..., l-1, where "a" is an 
    element of norm 1 in the quadratic extension ring */
-void
-gfp_ext_rn2 (mpz_t *r_0, mpz_t *r_1, const mpz_t a_0, const mpz_t a_1,
-	     const long k, const unsigned long l, const mpz_t Delta, 
-	     const mpz_t N, const unsigned long origtmplen, mpz_t *origtmp)
+/* FIXME: This assumes mpz_t and mpres_t are typecast-compatible. */
+
+static void
+gfp_ext_rn2 (mpres_t *r_x, mpres_t *r_y, const mpres_t a_x, const mpres_t a_y,
+	     const long k, const unsigned long l, const mpres_t Delta, 
+	     mpmod_t modulus, const unsigned long origtmplen, mpres_t *origtmp)
 {
-  mpz_t *r2_0 = origtmp, *r2_1 = origtmp + 2, *v = origtmp + 4, 
+  mpres_t *r2_x = origtmp, *r2_y = origtmp + 2, *v = origtmp + 4, 
     *V2 = origtmp + 6;
   const unsigned long newtmplen = origtmplen - 7;
-  mpz_t *newtmp = origtmp + 7;
+  mpres_t *newtmp = origtmp + 7;
   unsigned long i;
 
-  if (l <= 0)
+  if (l == 0UL)
     return;
 
-  /* Compute a^(k^2). We do it by two exponentiations by k and use the 
-     v[0] and v[1] as temp storage */
-  gfp_ext_pow_norm1 (v[0], v[1], a_0, a_1, Delta, k, N, newtmplen, newtmp);
-  gfp_ext_pow_norm1 (r_0[0], r_1[0], v[0], v[1], Delta, k, N, 
-		     newtmplen, newtmp);
+  ASSERT (origtmplen >= 8UL);
 
-  /* Compute a^((k+1)^2) */
+  if (pari)
+    gmp_printf ("/* In gfp_ext_rn2 */ ; a = %Zd + %Zd * w; /* PARI */\n",
+		a_x, a_y, modulus->orig_modulus);
+
+  /* Compute r[0] = a^(k^2). We do it by two exponentiations by k and use 
+     v[0] and v[1] as temp storage */
+  gfp_ext_pow_norm1 (v[0], v[1], a_x, a_y, k, Delta, modulus, newtmplen, 
+		     newtmp);
+  gfp_ext_pow_norm1 (r_x[0], r_y[0], v[0], v[1], k, Delta, modulus, 
+		     newtmplen, newtmp);
+  if (pari)
+    gmp_printf ("/* In gfp_ext_rn2 */ a^(%ld^2) % N == (%Zd + %Zd * w) % N "
+		"/* PARI C */\n", k, r_x[0], r_y[0]);
+
+  /* Compute r[1] = a^((k+1)^2) = a^(k^2 + 2k + 1)*/
   if (l > 1)
     {
-      /* v[0] and v[1] still contains a^k */
-      gfp_ext_mul (v[0], v[1], v[0], v[1], a_0, a_1, Delta, N, 
+      /* v[0] + v[1]*sqrt(Delta) still contains a^k */
+      gfp_ext_sqr_norm1 (r_x[1], r_y[1], v[0], v[1], modulus);
+      /* Now r[1] = a^(2k) */
+      gfp_ext_mul (r_x[1], r_y[1], r_x[1], r_y[1], r_x[0], r_y[0], Delta, 
+		   modulus, newtmplen, newtmp);
+      /* Now r[1] = a^(k^2 + 2k) */
+      gfp_ext_mul (r_x[1], r_y[1], r_x[1], r_y[1], a_x, a_y, Delta, modulus, 
 		   newtmplen, newtmp);
-      /* Now v[0] + v[1]*sqrt(Delta) = a^(k+1) */
-      gfp_ext_pow_norm1 (r_0[1], r_1[1], v[0], v[1], Delta, k + 1, N,
-			 newtmplen, newtmp);
+      /* Now r[1] = a^(k^2 + 2k + 1) = a^((k+1)^2) */
     }
-
-  /* Compute a^(k^2+2) = a^(k^2) * a^2 . Set v[0] + v[1]*sqrt(Delta) to a^2 */
-  gfp_ext_sqr_norm1 (v[0], v[1], a_0, a_1, N, newtmplen, newtmp);
-  gfp_ext_mul (r2_0[0], r2_1[0], r_0[0], r_1[0], v[0], v[1], Delta, N, 
+  if (pari)
+    gmp_printf ("/* In gfp_ext_rn2 */ a^(%ld^2) % N == (%Zd + %Zd * w) % N "
+		"/* PARI C */\n", k + 1, r_x[1], r_y[1]);
+  
+  /* Compute r2[0] = a^(k^2+2) = a^(k^2) * a^2 */
+  gfp_ext_sqr_norm1 (v[0], v[1], a_x, a_y, modulus);
+  gfp_ext_mul (r2_x[0], r2_y[0], r_x[0], r_y[0], v[0], v[1], Delta, modulus, 
 	       newtmplen, newtmp);
+  if (pari)
+    gmp_printf ("/* In gfp_ext_rn2 */ a^(%ld^2+2) % N == (%Zd + %Zd * w) % N "
+		"/* PARI C */\n", k, r2_x[0], r2_y[0]);
   /* Compute a^((k+1)^2+2) = a^((k+1)^2) * a^2 */
-  gfp_ext_mul (r2_0[1], r2_1[1], r_0[1], r_1[1], v[0], v[1], Delta, N, 
+  gfp_ext_mul (r2_x[1], r2_y[1], r_x[1], r_y[1], v[0], v[1], Delta, modulus, 
 	       newtmplen, newtmp);
- 
-  /* Compute V_2(a + 1/a). Since 1/a = a_0 - a_1, we have a+1/a = 2*a_0.
-     V_2(x) = x^2 - 2, so we want 4*a_0^2 - 2. */
-  mpz_mul (*V2, a_0, a_0);
-  mpz_mul_2exp (*V2, *V2, 2UL);
-  mpz_sub_ui (*V2, *V2, 2UL);
-  mpz_mod (*V2, *V2, N);
+  if (pari)
+    gmp_printf ("/* In gfp_ext_rn2 */ a^(%ld^2+2) % N == (%Zd + %Zd * w) % N "
+		"/* PARI C */\n", k + 1, r2_x[1], r2_y[1]);
+  
+  /* Compute V_2(a + 1/a). Since 1/a = a_x - a_y, we have a+1/a = 2*a_x.
+     V_2(x) = x^2 - 2, so we want 4*a_x^2 - 2. */
+  mpres_add (*V2, a_x, a_x, modulus); /* V2 = a + 1/a  = 2*a_x*/
+  V (v[0], *V2, 2 * k + 1, modulus);  /* v[0] = V_{2k+1} (a + 1/a) */
+  V (v[1], *V2, 2 * k + 3, modulus);  /* v[0] = V_{2k+3} (a + 1/a) */
+  mpres_mul (*V2, *V2, *V2, modulus); /* V2 = 4*a_x^2 */
+  mpres_sub_ui (*V2, *V2, 2UL, modulus); /* V2 = 4*a_x^2 - 2 */
+  if (pari)
+    {
+      gmp_printf ("/* In gfp_ext_rn2 */ ((a + 1/a)^2 - 2) % N == "
+		  "%Zd % N /* PARI C */\n", *V2);
+      gmp_printf ("/* In gfp_ext_rn2 */ V(%lu, a + 1/a) % N == %Zd % N "
+		  "/* PARI C */\n", 2 * k + 1, v[0]);
+      gmp_printf ("/* In gfp_ext_rn2 */ V(%lu, a + 1/a) % N == %Zd % N "
+		  "/* PARI C */\n", 2 * k + 3, v[1]);
+    }
   
   /* Compute the remaining a^((k+i)^2) values according to Peter's 
      recurrence */
+  
   for (i = 2; i < l; i++)
     {
-      /* r[i] = r2[i-1] * v[i-2] - r2[i-2] */
-      mpz_mul (newtmp[0], r2_0[1 - i % 2], v[i % 2]);
-      mpz_sub (newtmp[0], newtmp[0], r2_0[i]);
-      mpz_mod (r_0[i], newtmp[0], N);
-      mpz_mul (newtmp[0], r2_1[1 - i % 2], v[i % 2]);
-      mpz_sub (newtmp[0], newtmp[0], r2_1[i]);
-      mpz_mod (r_1[i], newtmp[0], N);
-
+      /* r[i] = r2[i-1] * v[i-2] - r2[i-2], with indices of r2 and i taken
+	 modulo 2 */
+      mpres_mul (r_x[i], r2_x[1 - i % 2], v[i % 2], modulus);
+      mpres_sub (r_x[i], r_x[i], r2_x[i % 2], modulus);
+      mpres_mul (r_y[i], r2_y[1 - i % 2], v[i % 2], modulus);
+      mpres_sub (r_y[i], r_y[i], r2_y[i % 2], modulus);
+      
       /* r2[i] = r2[i-1] * v[i-1] - r[i-2] */
-      mpz_mul (newtmp[0], r2_0[1 - i % 2], v[1 - i % 2]);
-      mpz_sub (newtmp[0], newtmp[0], r_0[i - 2]);
-      mpz_mod (r2_0[i % 2], newtmp[0], N);
-      mpz_mul (newtmp[0], r2_1[1 - i % 2], v[1 - i % 2]);
-      mpz_sub (newtmp[0], newtmp[0], r_1[i - 2]);
-      mpz_mod (r2_1[i % 2], newtmp[0], N);
+      mpres_mul (r2_x[i % 2], r2_x[1 - i % 2], v[1 - i % 2], modulus);
+      mpres_sub (r2_x[i % 2], r2_x[i % 2], r_x[i - 2], modulus);
+      mpres_mul (r2_y[i % 2], r2_y[1 - i % 2], v[1 - i % 2], modulus);
+      mpres_sub (r2_y[i % 2], r2_y[i % 2], r_y[i - 2], modulus);
       
       /* v[i] = v[i - 1] * V_2(a + 1/a) - v[i - 2] */
-      mpz_mul (newtmp[0], v[1 - i % 2], *V2);
-      mpz_sub (newtmp[0], newtmp[0], v[i % 2]);
-      mpz_mod (v[i % 2], newtmp[0], N);
+      mpres_mul (newtmp[0], v[1 - i % 2], *V2, modulus);
+      mpres_sub (v[i % 2], newtmp[0], v[i % 2], modulus);
+      if (0 && pari)
+	gmp_printf ("/* In gfp_ext_rn2 */ V(%lu, a + 1/a) % N == %Zd % N "
+		    "/* PARI C */\n", 2 * (k + i) + 1, v[i % 2]);
     }
 }
 
@@ -2576,7 +2551,91 @@ gfp_ext_rn2 (mpz_t *r_0, mpz_t *r_1, const mpz_t a_0, const mpz_t a_1,
 int 
 pp1fs2 ()
 {
-  mpz_t F; /* Polynomials whose roots are \alpha_1^k_1, k_1 \in S_1 */
+  unsigned long phiP, nr;
+  unsigned long i, j, l, lenF, lenG, lenR, tmplen;
+  long *S_1; /* This is stored as a set of sets (arithmetic progressions of
+		prime length */
+  long *S_2; /* This is stored as a regular set */
+  unsigned long S_1_size; /* The size in longs of S_1 */
+  listz_t F;   /* Polynomial F has roots X^{k_1} for k_1 \in S_1, so has 
+		  degree s_1. It is symmetric, so has only s_1 / 2 + 1 
+		  distinct coefficients. The sequence h_j will be stored in 
+		  the same memory and won't be a monic polynomial, so the 
+		  leading 1 monomial of F will be stored explicitly. Hence we 
+		  need s_1 / 2 + 1 entries. */
+  listz_t g_1, g_2, h, tmp, R_1, R_2; /* g and R are in extension ring,
+					 g = g_1 + g_2 * sqrt(Delta) 
+					 (likewise for R) */
+  mpz_t mt;   /* All-purpose temp mpz_t */
+  mpres_t mr; /* All-purpose temp mpres_t */
+  int youpi = 0;
+  long timetotalstart, timestart, timestop;
+
+  timetotalstart = cputime ();
+
+  phiP = eulerphi (params->P);
+  ASSERT_ALWAYS (phiP == params->s_1 * params->s_2);
+  ASSERT_ALWAYS (params->s_1 < params->l);
+  nr = params->l - params->s_1; /* Number of points we evaluate */
+
+  outputf (OUTPUT_TRACE, "compare(a, b, n) = if (a != b,print(\"In PARI \", n, \" line, \", a \" != \" b)); /* PARI %ld */\n", pariline++);
+
+  make_S_1_S_2 (&S_1, &S_1_size, &S_2, params);
+
+  /* Allocate all the memory we'll need */
+  /* Allocate the correct amount of space for each mpz_t or the 
+     reallocations will up to double the time for stage 2! */
+  mpz_init (mt);
+  mpres_init (mr, modulus);
+  lenF = params->s_1 / 2 + 1 + 1; /* Another +1 because poly_from_sets_V stores
+				     the leading 1 monomial for each factor */
+  F = init_list2 (lenF, abs (modulus->bits));
+  h = malloc ((params->s_1 + 1) * sizeof (mpz_t));
+  lenG = params->l;
+  g = init_list2 (lenG, abs (modulus->bits));
+  lenR = nr;
+  R = init_list2 (lenR, abs (modulus->bits));    
+  tmplen = 3UL * params->l + list_mul_mem (params->l / 2);
+  outputf (OUTPUT_DEVVERBOSE, "tmplen = %lu\n", tmplen);
+  if (TMulGen_space (params->l - 1, params->s_1, lenR) + 12 > tmplen)
+    {
+      tmplen = TMulGen_space (params->l - 1, params->s_1 - 1, lenR) + 12;
+      /* FIXME: It appears TMulGen_space() returns a too small value! */
+      outputf (OUTPUT_DEVVERBOSE, "With TMulGen_space, tmplen = %lu\n", 
+	       tmplen);
+    }
+#ifdef SHOW_TMP_USAGE
+  tmp = init_list (tmplen);
+#else
+  tmp = init_list2 (tmplen, abs (modulus->bits));
+#endif
+
+  mpres_get_z (mt, X, modulus); /* mpz_t copy of X for printing */
+  outputf (OUTPUT_TRACE, 
+	   "N = %Zd; X = Mod(%Zd, N); /* PARI */\n", 
+	   modulus->orig_modulus, mt);
+
+  /* Compute the polynomial f(x) = \prod_{k_1 in S_1} (x - X^{2k_1}) */
+  outputf (OUTPUT_VERBOSE, "Computing F from factored S_1");
+  
+  timestart = cputime ();
+  V (mr, X, 2UL, modulus);
+  i = poly_from_sets_V (F, mr, S_1, S_1_size, tmp, tmplen, modulus);
+  ASSERT(2 * i == params->s_1);
+  ASSERT(mpz_cmp_ui (F[i], 1UL) == 0);
+  timestop = cputime ();
+  outputf (OUTPUT_VERBOSE, " took %lu ms\n", timestop - timestart);
+  if (test_verbose (OUTPUT_TRACE))
+    {
+      for (i = 0; i < params->s_1 / 2 + 1; i++)
+	outputf (OUTPUT_TRACE, "f_%lu = %Zd; /* PARI */\n", i, F[i]);
+      outputf (OUTPUT_TRACE, "f(x) = f_0");
+      for (i = 1; i < params->s_1 / 2 + 1; i++)
+	outputf (OUTPUT_TRACE, "+ f_%lu * (x^%lu + x^(-%lu))", i, i, i);
+      outputf (OUTPUT_TRACE, "/* PARI */ \n");
+    }
+
+  /* Compute the h sequence h_j = r^(-j^2) * f_j */
 
 
   return 0;
@@ -2662,7 +2721,7 @@ int main (int argc, char **argv)
   long *L;
   int selftest = 0;
   mpmod_t modulus;
-  
+  faststage2_param_t params;
 
   ECM_STDOUT = stdout;
   ECM_STDERR = stderr;
@@ -2713,8 +2772,10 @@ int main (int argc, char **argv)
   gmp_printf ("B2min = %Zd, B2 = %Zd\n", B2min, B2);
 
   if (mpz_cmp (B2, B2min) > 0)
-    pn = choose_P (B2min, B2, lmax, NULL, NULL, NULL, NULL);
-  exit(0);
+    {
+      mpz_init (params.m_1);
+      pn = choose_P (B2min, B2, lmax, &params, NULL, NULL);
+    }
 
   d = eulerphi (pn);
 
@@ -2880,34 +2941,34 @@ int main (int argc, char **argv)
   /* Test gfp_ext_rn2() */
 
   {
-    mpz_t a_0, a_1, Delta;
+    mpres_t a_x, a_y, Delta;
     const long k = 3;
 
-    mpz_init (a_0);
-    mpz_init (a_1);
-    mpz_init (Delta);
+    mpres_init (a_x, modulus);
+    mpres_init (a_y, modulus);
+    mpres_init (Delta, modulus);
 
-    mpz_set_ui (a_0, 9UL);
-    mpz_set_ui (a_1, 4UL);
-    mpz_set_ui (Delta, 5UL); /* norm = 9^2 - 4^2*5 = 1 */
+    mpres_set_ui (a_x, 9UL, modulus);
+    mpres_set_ui (a_y, 4UL, modulus);
+    mpres_set_ui (Delta, 5UL, modulus); /* norm = 9^2 - 4^2*5 = 1 */
     printf ("w = quadgen(20); /* PARI */\n");
 
-    gfp_ext_rn2 (tmp, tmp+d, a_0, a_1, k, d, Delta, modulus->orig_modulus,
+    gfp_ext_rn2 (tmp, tmp+d, a_x, a_y, k, d, Delta, modulus,
 		 tmplen - 2*d, tmp + 2*d);
 
     for (i = 0; i < d; i++)
       {
-	gmp_printf ("(%Zd + %Zd*w)^%d % N == %Zd + %Zd*w\n",
-		    a_0, a_1, (k+i)*(k+i), tmp[i], tmp[d+i]);
-	gfp_ext_pow_norm1 (tmp[i], tmp[d+i], a_0, a_1, Delta, 
-			   (k+(long)i)*(k+(long)i), modulus->orig_modulus, 
+	gmp_printf ("(%Zd + %Zd*w)^%d % N == (%Zd + %Zd*w) % N /* PARI from gfp_ext_rn2 */\n",
+		    a_x, a_y, (k+i)*(k+i), tmp[i], tmp[d+i]);
+	gfp_ext_pow_norm1 (tmp[i], tmp[d+i], a_x, a_y, 
+			   (k+(long)i)*(k+(long)i), Delta, modulus, 
 			   tmplen - 2*d, tmp + 2*d);
-	gmp_printf ("(%Zd + %Zd*w)^%d % N == %Zd + %Zd*w\n",
-		    a_0, a_1, (k+i)*(k+i), tmp[i], tmp[d+i]);
+	gmp_printf ("(%Zd + %Zd*w)^%d % N == (%Zd + %Zd*w) % N /* PARI from gfp_ext_pow_norm1 */\n",
+		    a_x, a_y, (k+i)*(k+i), tmp[i], tmp[d+i]);
       }
 
-    mpz_clear (a_0);
-    mpz_clear (a_1);
+    mpz_clear (a_x);
+    mpz_clear (a_y);
     mpz_clear (Delta);
   }
 
