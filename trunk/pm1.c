@@ -868,8 +868,11 @@ pm1 (mpz_t f, mpz_t p, mpz_t N, mpz_t go, double *B1done, double B1,
 
   if (S == 1)
     {
+      long P;
       mpz_init (faststage2_params.m_1);
       choose_P (B2min, B2, lmax, &faststage2_params, B2min, B2);
+      if (P == ECM_ERROR)
+	return ECM_ERROR;
     }
   else
     {
