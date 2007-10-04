@@ -731,8 +731,9 @@ pp1 (mpz_t f, mpz_t p, mpz_t n, mpz_t go, double *B1done, double B1,
   mpres_t a;
   mpmod_t modulus;
   mpz_t B2min, B2; /* Local B2, B2min to avoid changing caller's values */
-  unsigned long dF;
+  unsigned long dF, lmax = 1UL<<21;
   root_params_t root_params;
+  faststage2_param_t faststage2_params;
 
   set_verbose (verbose);
   ECM_STDOUT = (os == NULL) ? stdout : os;
@@ -752,7 +753,6 @@ pp1 (mpz_t f, mpz_t p, mpz_t n, mpz_t go, double *B1done, double B1,
 
   mpz_init_set (B2min, B2min_parm);
   mpz_init_set (B2, B2_parm);
-  mpz_init (root_params.i0);
 
   /* Set default B2. See ecm.c for comments */
   if (ECM_IS_DEFAULT_B2(B2))
@@ -779,31 +779,44 @@ pp1 (mpz_t f, mpz_t p, mpz_t n, mpz_t go, double *B1done, double B1,
   if (use_ntt)
     po2 = 1;
   
-  root_params.d2 = 0; /* Enable automatic choice of d2 */
-  if (bestD (&root_params, &k, &dF, B2min, B2, po2, use_ntt, maxmem,
-             (TreeFilename != NULL), modulus) == ECM_ERROR)
+  if (S == 1)
     {
-      youpi = ECM_ERROR;
-      goto clear_and_exit;
-    }
-  
-  /* Set default degree for Brent-Suyama extension */
-  root_params.S = S;
-  if (root_params.S == ECM_DEFAULT_S)
+      /* If S == 1, we use the new, faster stage 2 */
+      long P;
+      mpz_init (faststage2_params.m_1);
+      choose_P (B2min, B2, lmax, &faststage2_params, B2min, B2);
+      if (P == ECM_ERROR)
+	return ECM_ERROR;
+    } 
+  else 
     {
-      if (modulus->repr == ECM_MOD_BASE2 && modulus->Fermat > 0)
-        {
-          /* For Fermat numbers, default is 1 (no Brent-Suyama) */
-          root_params.S = 1;
-        }
-      else
-        {
-          mpz_t t;
-          mpz_init (t);
-          mpz_sub (t, B2, B2min);
-          root_params.S = choose_S (t);
-          mpz_clear (t);
-        }
+      mpz_init (root_params.i0);
+      root_params.d2 = 0; /* Enable automatic choice of d2 */
+      if (bestD (&root_params, &k, &dF, B2min, B2, po2, use_ntt, maxmem,
+		 (TreeFilename != NULL), modulus) == ECM_ERROR)
+	{
+	  youpi = ECM_ERROR;
+	  goto clear_and_exit;
+	}
+      
+      /* Set default degree for Brent-Suyama extension */
+      root_params.S = S;
+      if (root_params.S == ECM_DEFAULT_S)
+	{
+	  if (modulus->repr == ECM_MOD_BASE2 && modulus->Fermat > 0)
+	    {
+	      /* For Fermat numbers, default is 1 (no Brent-Suyama) */
+	      root_params.S = 1;
+	    }
+	  else
+	    {
+	      mpz_t t;
+	      mpz_init (t);
+	      mpz_sub (t, B2, B2min);
+	      root_params.S = choose_S (t);
+	      mpz_clear (t);
+	    }
+	}
     }
 
   if (test_verbose (OUTPUT_NORMAL))
@@ -830,7 +843,8 @@ pp1 (mpz_t f, mpz_t p, mpz_t n, mpz_t go, double *B1done, double B1,
     }
 
   outputf (OUTPUT_VERBOSE, "dF=%lu, k=%lu, d=%lu, d2=%lu, i0=%Zd\n", 
-           dF, k, root_params.d1, root_params.d2, root_params.i0);
+           dF, k, root_params.d1, root_params.d2, 
+	   S == 1 ? faststage2_params.m_1 : root_params.i0);
 
   mpres_init (a, modulus);
   mpres_set_z (a, p, modulus);
@@ -866,8 +880,13 @@ pp1 (mpz_t f, mpz_t p, mpz_t n, mpz_t go, double *B1done, double B1,
     goto clear_and_exit;
       
   if (youpi == ECM_NO_FACTOR_FOUND && mpz_cmp (B2, B2min) >= 0)
-    youpi = stage2 (f, &a, modulus, dF, k, &root_params, ECM_PP1, 
-                    use_ntt, TreeFilename, stop_asap);
+    {
+      if (S == 1)
+	youpi = pp1fs2 (f, a, modulus, &faststage2_params);
+      else
+	youpi = stage2 (f, &a, modulus, dF, k, &root_params, ECM_PP1, 
+			use_ntt, TreeFilename, stop_asap);
+    }
 
   if (youpi > 0 && test_verbose (OUTPUT_NORMAL))
     pp1_check_factor (p, f); /* tell user if factor was found by P-1 */
@@ -875,7 +894,10 @@ pp1 (mpz_t f, mpz_t p, mpz_t n, mpz_t go, double *B1done, double B1,
  clear_and_exit:
   mpres_clear (a, modulus);
   mpmod_clear (modulus);
-  mpz_clear (root_params.i0);
+  if (S == 1)
+    mpz_clear (faststage2_params.m_1);
+  else
+    mpz_clear (root_params.i0);
   mpz_clear (B2);
   mpz_clear (B2min);
 
