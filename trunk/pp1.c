@@ -731,7 +731,7 @@ pp1 (mpz_t f, mpz_t p, mpz_t n, mpz_t go, double *B1done, double B1,
   mpres_t a;
   mpmod_t modulus;
   mpz_t B2min, B2; /* Local B2, B2min to avoid changing caller's values */
-  unsigned long dF, lmax = 16;
+  unsigned long dF, lmax = 1UL<<20;
   root_params_t root_params;
   faststage2_param_t faststage2_params;
 
