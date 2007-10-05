@@ -51,7 +51,7 @@ echo 328006342451 | $PP1 -x0 5 120 7043; checkcode $? 8
 echo 328006342451 | $PP1 -x0 1/5 120 7043; checkcode $? 8
 
 # try primes < d in stage 2
-echo 2050449218179969792522461197 | $PP1 -x0 3 -k 1 20 0-1e6; checkcode $? 14
+echo 2050449218179969792522461197 | $PP1 -x0 6 -k 1 20 0-1e6; checkcode $? 14
 
 echo 6215074747201 | $PP1 -x0 5 630 199729; checkcode $? 8
 
