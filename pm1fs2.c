@@ -2548,9 +2548,14 @@ gfp_ext_pow_norm1 (mpres_t r0, mpres_t r1, const mpres_t a0, const mpres_t a1,
   if (e < 0)
     mpres_neg (r1, r1, modulus);
 
-  if (pari)
-    gmp_printf ("/* gfp_ext_pow_norm1 */ (%Zd + %Zd * w)^%ld %% N == "
-		"(%Zd + %Zd * w) %% N /* PARI C */\n", a0, a1, e, r0, r1);
+  if (test_verbose (OUTPUT_TRACE))
+    {
+      outputf (OUTPUT_TRACE, "/* gfp_ext_pow_norm1 */ (");
+      gfp_ext_print (a0, a1, modulus, OUTPUT_TRACE);
+      outputf (OUTPUT_TRACE, ")^(%ld) == ", e);
+      gfp_ext_print (r0, r1, modulus, OUTPUT_TRACE);
+      outputf (OUTPUT_TRACE, " /* PARI C */\n");
+    }
 }
 
 
@@ -2725,6 +2730,8 @@ pp1_sequence_g (listz_t g_x, listz_t g_y, const mpres_t b1_x,
   mpz_add_si (tmp[0], tmp[0], k_2); /* tmp[0] = 2*k_2 + (2*m_1 + 1) * P */
   ASSERT_ALWAYS (mpz_fits_slong_p (tmp[0])); /* FIXME: write gfp_ext_pow_norm1 
 						with mpz_t argument */
+  outputf (OUTPUT_TRACE, "/* pp1_sequence_g */ 2*k_2 + (2*m_1 + 1) * P == "
+           "%Zd /* PARI C */\n", tmp[0]);
   gfp_ext_pow_norm1 (x0_x, x0_y, b1_x, b1_y, mpz_get_si (tmp[0]), Delta, 
 		     modulus, tmplen, tmp);
   if (test_verbose (OUTPUT_TRACE))
@@ -3088,9 +3095,15 @@ pp1fs2 (mpz_t f, const mpres_t X, mpmod_t modulus,
         mpres_t tmpres, tmpprod;
         mpres_init (tmpres, modulus);
         mpres_init (tmpprod, modulus);
+        mpz_mod (R_x[0], R_x[0], modulus->orig_modulus);
+        if (mpz_sgn (R_x[0]) == 0)
+          outputf (OUTPUT_VERBOSE, "R[0] == 0\n");
         mpres_set_z_for_gcd (tmpprod, R_x[0], modulus);
-        for (i = 1; i < nr; i++)
+        for (i = 1; i < nr - 1; i++) /* FIXME: why the -1 ? */
           {
+            mpz_mod (R_x[i], R_x[i], modulus->orig_modulus);
+            if (mpz_sgn (R_x[i]) == 0)
+              outputf (OUTPUT_VERBOSE, "R[%lu] == 0\n", i);
             mpres_set_z_for_gcd (tmpres, R_x[i], modulus);
             mpres_mul (tmpprod, tmpprod, tmpres, modulus); 
           }
