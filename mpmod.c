@@ -1105,18 +1105,21 @@ mpres_mul_z_to_z (mpz_t R, const mpres_t S1, const mpz_t S2, mpmod_t modulus)
       else
 	mpz_mul (modulus->temp1, S1, S2);
       base2mod (R, modulus->temp1, modulus->temp1, modulus);
+      mpz_mod (R, R, modulus->orig_modulus);
       break;
     case ECM_MOD_MODMULN:
       if (mpz_cmp (S2, modulus->orig_modulus) >= 0)
 	{
 	  mpz_mod (modulus->temp2, S2, modulus->orig_modulus);
           MPZ_REALLOC (R, modulus->bits / __GMP_BITS_PER_MP_LIMB);
-	  ecm_mulredc_basecase (R, S1, modulus->temp2, modulus);
+ 	  ecm_mulredc_basecase (R, S1, modulus->temp2, modulus);
+          mpz_mod (R, R, modulus->orig_modulus);
 	}
       else
  	{
 	  MPZ_REALLOC (R, modulus->bits / __GMP_BITS_PER_MP_LIMB);
 	  ecm_mulredc_basecase (R, S1, S2, modulus);
+          mpz_mod (R, R, modulus->orig_modulus);
  	}
       break;
     case ECM_MOD_REDC:
@@ -1128,6 +1131,7 @@ mpres_mul_z_to_z (mpz_t R, const mpres_t S1, const mpz_t S2, mpmod_t modulus)
       else
 	mpz_mul (modulus->temp1, S1, S2);
       REDC (R, modulus->temp1, modulus->temp2, modulus);
+      mpz_mod (R, R, modulus->orig_modulus);
       break;
     default:
       if (mpz_cmp (S2, modulus->orig_modulus) >= 0)
