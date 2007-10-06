@@ -1030,10 +1030,10 @@ mpres_mul_ui (mpres_t R, const mpres_t S, const unsigned int n,
 }
 
 
-/* This funtion multiplies an integer in mpres_t form with an intgeger in
+/* This function multiplies an integer in mpres_t form with an integer in
    mpz_t form, and stores the output in mpz_t form. The advantage is that
    one REDC suffices to reduce the product and convert it to non-Montgomery
-   represenataion */
+   representation. */
 
 void 
 mpres_mul_z_to_z (mpz_t R, const mpres_t S1, const mpz_t S2, mpmod_t modulus)
@@ -1149,7 +1149,7 @@ mpres_mul_z_to_z (mpz_t R, const mpres_t S1, const mpz_t S2, mpmod_t modulus)
 
 
 /* Sets R = S * c, for some constant c that is coprime to modulus.
-   This is primalily useful for multiplying numbers together for a gcd with
+   This is primarily useful for multiplying numbers together for a gcd with
    modulus. The advantage is that we don't need to convert the mpz_t 
    to Montgomery representation before applying REDC. */
 
