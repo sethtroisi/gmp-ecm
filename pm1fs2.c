@@ -2956,6 +2956,12 @@ pp1fs2 (mpz_t f, const mpres_t X, mpmod_t modulus,
   phiP = eulerphi (params->P);
   ASSERT_ALWAYS (phiP == params->s_1 * params->s_2);
   ASSERT_ALWAYS (params->s_1 < params->l);
+  if (mpz_sgn (params->m_1) < 0)
+  {
+    outputf (OUTPUT_ERROR, "m_1 is negative, this currently causes N to be "
+      "found as factor. To be fixed.\n");
+      return (ECM_ERROR);
+  }
   nr = params->l - params->s_1; /* Number of points we evaluate */
 
   outputf (OUTPUT_TRACE, "compare(a, b, n) = if (a != b,print(\"In PARI \", n, \" line, \", a \" != \" b)); /* PARI %ld */\n", pariline++);
