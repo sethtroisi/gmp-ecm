@@ -731,7 +731,7 @@ pp1 (mpz_t f, mpz_t p, mpz_t n, mpz_t go, double *B1done, double B1,
   mpres_t a;
   mpmod_t modulus;
   mpz_t B2min, B2; /* Local B2, B2min to avoid changing caller's values */
-  unsigned long dF, lmax = 1UL<<20;
+  unsigned long dF, lmax = 1UL<<18;
   root_params_t root_params;
   faststage2_param_t faststage2_params;
 
@@ -831,20 +831,29 @@ pp1 (mpz_t f, mpz_t p, mpz_t n, mpz_t go, double *B1done, double B1,
       else
         outputf (OUTPUT_NORMAL, ", B2=%Zd-%Zd", B2min, B2);
 
-      if (root_params.S > 0)
-        outputf (OUTPUT_NORMAL, ", polynomial x^%u", root_params.S);
-      else
-        outputf (OUTPUT_NORMAL, ", polynomial Dickson(%u)", 
-		 -root_params.S);
+      if (S != 1)
+        {
+          if (root_params.S > 0)
+            outputf (OUTPUT_NORMAL, ", polynomial x^%u", root_params.S);
+          else
+            outputf (OUTPUT_NORMAL, ", polynomial Dickson(%u)", 
+                     -root_params.S);
+        }
        /* don't print x0 in resume case */
       if (ECM_IS_DEFAULT_B1_DONE(*B1done)) 
         outputf (OUTPUT_NORMAL, ", x0=%Zd", p);
       outputf (OUTPUT_NORMAL, "\n");
     }
 
-  outputf (OUTPUT_VERBOSE, "dF=%lu, k=%lu, d=%lu, d2=%lu, i0=%Zd\n", 
-           dF, k, root_params.d1, root_params.d2, 
-	   S == 1 ? faststage2_params.m_1 : root_params.i0);
+  if (S == 1)
+    outputf (OUTPUT_VERBOSE, "P = %lu, l = %lu, s_1 = %lu, s_2 = %lu, "
+	     "m_1 = %Zd\n", faststage2_params.P, faststage2_params.l,
+	     faststage2_params.s_1,faststage2_params.s_2,
+	     faststage2_params.m_1);
+  else
+    outputf (OUTPUT_VERBOSE, "dF=%lu, k=%lu, d=%lu, d2=%lu, i0=%Zd\n", 
+             dF, k, root_params.d1, root_params.d2, 
+             S == 1 ? faststage2_params.m_1 : root_params.i0);
 
   mpres_init (a, modulus);
   mpres_set_z (a, p, modulus);
