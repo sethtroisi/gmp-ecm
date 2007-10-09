@@ -61,9 +61,12 @@ kronecker_schonhage (listz_t R, listz_t A, listz_t B, unsigned int l,
       if ((s = mpz_sizeinbase (B[i], 2)) > t)
         t = s;
     }
+  /* For n > 0, s = sizeinbase (n, 2)  <==>  2^(s-1) <= n < 2^s. 
+     For n = 0, s = sizeinbase (n, 2) = 1 ==> n < 2^s.
+     Hence all A[i], B[i] < 2^t */
   
-  /* max number of bits in a coeff of T[0] * T[1] will be
-     2 * t + ceil(log_2(l)) */
+  /* Each coeff of A(x)*B(x) < l * 2^(2*t), so max number of bits in a 
+     coeff of T[0] * T[1] will be 2 * t + ceil(log_2(l)) */
   s = t * 2;
   for (i = l - 1; i; s++, i >>= 1); /* ceil(log_2(l)) = 1+floor(log_2(l-1)) */
   
@@ -135,6 +138,9 @@ kronecker_schonhage (listz_t R, listz_t A, listz_t B, unsigned int l,
 
    Return non-zero if an error occurred.
 */
+
+#undef TEST_OLD_S
+
 int
 TMulKS (listz_t b, unsigned int n, listz_t a, unsigned int m,
         listz_t c, unsigned int l, mpz_t modulus, int rev)
@@ -143,6 +149,10 @@ TMulKS (listz_t b, unsigned int n, listz_t a, unsigned int m,
   mp_ptr ap, bp, cp;
   mp_size_t an, bn, cn;
   int ret = 0; /* default return value */
+#ifdef TEST_OLD_S
+  unsigned long s_old = 0, k_old;
+  mp_size_t bn_old;
+#endif
 #ifdef DEBUG
   long st = cputime ();
   fprintf (ECM_STDOUT, "n=%u m=%u l=%u bits=%u n*bits=%u: ", n, m, l,
@@ -173,12 +183,21 @@ TMulKS (listz_t b, unsigned int n, listz_t a, unsigned int m,
   s ++; /* need one extra bit to determine sign of low(b) - high(b) */
 #endif
 
-  /* max coeff has 2*s+ceil(log2(max(m+1,l+1))) bits,
-   i.e. 2*s + 1 + floor(log2(max(m,l))) */
-  for (s = 2 * s, i = (m > l) ? m : l; i; s++, i >>= 1);
+#ifdef TEST_OLD_S
+  /* We used max(m,l) before. We compute the corresponding s for 
+     comparison. */
+  for (s_old = 2 * s, i = (m > l) ? m : l; i; s_old++, i >>= 1);
+#endif
+
+  /* max coeff has 2*s+ceil(log2(min(m+1,l+1))) bits,
+   i.e. 2*s + 1 + floor(log2(min(m,l))) */
+  for (s = 2 * s, i = (m < l) ? m : l; i; s++, i >>= 1);
 
   /* corresponding number of limbs */
   s = 1 + (s - 1) / GMP_NUMB_BITS;
+#ifdef TEST_OLD_S
+  s_old = 1 + (s_old - 1) / GMP_NUMB_BITS;
+#endif
 
   an = (m + 1) * s;
   cn = (l + 1) * s;
@@ -215,6 +234,18 @@ TMulKS (listz_t b, unsigned int n, listz_t a, unsigned int m,
      If we compute mod (m+n+1) * s limbs, we are ok */
   k = mpn_fft_best_k ((m + n + 1) * s, 0);
   bn = mpn_fft_next_size ((m + n + 1) * s, k);
+#ifdef TEST_OLD_S
+  k_old = mpn_fft_best_k ((m + n + 1) * s_old, 0);
+  if (k != k_old)
+    outputf (OUTPUT_ERROR, 
+             "Got different FFT transform length, k = %lu, k_old : %lu\n",
+             k, k_old);    
+  bn_old = mpn_fft_next_size ((m + n + 1) * s_old, k_old);
+  if (bn != bn_old)
+    outputf (OUTPUT_ERROR, "Got different FFT size, bn = %d, bn_old : %d\n",
+             (int) bn, (int) bn_old);
+#endif
+  
   bp = (mp_ptr) malloc ((bn + 1) * sizeof (mp_limb_t));
   if (bp == NULL)
     {
