@@ -585,6 +585,10 @@ find_nearby_divisor (const unsigned long n, const unsigned long l)
   unsigned long i;
 
   ASSERT_ALWAYS (l > 0);
+  
+  if (n <= l)
+    return n;
+  
   for (i = 0UL; i <= l - 1UL; i++)
     {
       if (n % (l - i) == 0UL)
@@ -599,14 +603,19 @@ find_nearby_divisor (const unsigned long n, const unsigned long l)
 }
 
 
-/* Find a divisor of n close to l. FIXME: should find only even divisors
-   to ensure that s_1 is even */
+/* Find an even divisor of n close to l. */
+
 unsigned long
 find_nearby_even_divisor (const unsigned long n, const unsigned long l)
 {
   unsigned long i;
 
   ASSERT_ALWAYS (l > 0);
+  ASSERT (n % 2 == 0);
+  
+  if (n <= l)
+    return n;
+  
   for (i = l % 2UL; i <= l - 1UL; i += 2UL)
     {
       if (n % (l - i) == 0UL)
@@ -2680,7 +2689,11 @@ pp1_sequence_g (listz_t g_x, listz_t g_y, const mpres_t b1_x,
 {
   mpres_t r_x, r_y, x0_x, x0_y;
   unsigned long i;
+  long timestart, timestop;
 
+  outputf (OUTPUT_VERBOSE, "Computing g_i");
+  timestart = cputime ();
+  
   mpres_init (r_x, modulus);
   mpres_init (r_y, modulus);
   mpres_init (x0_x, modulus);
@@ -2694,7 +2707,7 @@ pp1_sequence_g (listz_t g_x, listz_t g_y, const mpres_t b1_x,
       mpz_init (t);
       mpres_get_z (t, Delta, modulus);
       outputf (OUTPUT_TRACE, 
-	       "/* pp1_sequence_g */ w = quadgen (4*%Zd); P = %lu; M = %ld; "
+	       "\n/* pp1_sequence_g */ w = quadgen (4*%Zd); P = %lu; M = %ld; "
 	       "k_2 = %ld; m_1 = %Zd; N = %Zd; /* PARI */\n", 
 	       t, P, M, k_2, m_1, modulus->orig_modulus);
       
@@ -2771,6 +2784,9 @@ pp1_sequence_g (listz_t g_x, listz_t g_y, const mpres_t b1_x,
   mpres_clear (r_y, modulus);
   mpres_clear (x0_x, modulus);
   mpres_clear (x0_y, modulus);
+  
+  timestop = cputime ();
+  outputf (OUTPUT_VERBOSE, " took %lu ms\n", timestop - timestart);
 }
 
 
@@ -2789,6 +2805,7 @@ pp1_sequence_h (listz_t h_x, listz_t h_y, const listz_t f, const mpres_t b1_x,
   mpres_t *newtmp = origtmp + 13;
   mpres_t rn_x, rn_y;
   unsigned long i;
+  long timestart, timestop;
 
   if (l == 0UL)
     return;
@@ -2796,6 +2813,9 @@ pp1_sequence_h (listz_t h_x, listz_t h_y, const listz_t f, const mpres_t b1_x,
   ASSERT (origtmplen >= 13);
   ASSERT (f != h_x);
   ASSERT (f != h_y);
+
+  outputf (OUTPUT_VERBOSE, "Computing h_i");
+  timestart = cputime ();
 
   mpres_init (rn_x, modulus);
   mpres_init (rn_y, modulus);
@@ -2805,7 +2825,7 @@ pp1_sequence_h (listz_t h_x, listz_t h_y, const listz_t f, const mpres_t b1_x,
       mpz_t t;
       mpz_init (t);
       mpres_get_z (t, Delta, modulus);
-      outputf (OUTPUT_TRACE, "/* pp1_sequence_h */ w = quadgen (4*%Zd); "
+      outputf (OUTPUT_TRACE, "\n/* pp1_sequence_h */ w = quadgen (4*%Zd); "
 	       "k = %ld; P = %lu; N = %Zd; /* PARI */\n", 
 	       t, k, P, modulus->orig_modulus);
       outputf (OUTPUT_TRACE, "/* pp1_sequence_h */ b_1 = ");
@@ -2923,6 +2943,9 @@ pp1_sequence_h (listz_t h_x, listz_t h_y, const listz_t f, const mpres_t b1_x,
 	gmp_printf ("/* pp1_sequence_h */ (rn^((k+%lu)^2) * f_%lu) == (%Zd"
 		    " + %Zd * w) /* PARI C */\n", i, i, h_x[i], h_y[i]);
     }
+
+  timestop = cputime ();
+  outputf (OUTPUT_VERBOSE, " took %lu ms\n", timestop - timestart);
 }
 
 
