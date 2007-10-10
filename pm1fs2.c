@@ -1732,7 +1732,7 @@ pm1_sequence_g (mpz_t *g, const mpres_t b_1, const unsigned long P,
 		const long M, const unsigned long l, const mpz_t m_1, 
 		const long k_2, mpmod_t modulus)
 {
-  mpres_t r[3], x_0, x_Mi, r_Mi;
+  mpres_t r[3], x_0, x_Mi;
   mpz_t t;
   unsigned long i;
   long timestart, timestop;
@@ -1743,7 +1743,6 @@ pm1_sequence_g (mpz_t *g, const mpres_t b_1, const unsigned long P,
   mpres_init (r[2], modulus);
   mpres_init (x_0, modulus);
   mpres_init (x_Mi, modulus);
-  mpres_init (r_Mi, modulus);
 
   outputf (OUTPUT_DEVVERBOSE, "sequence_g (g, b_1, P = %lu, M = %ld, l = %lu, "
 	   "m_1 = %Zd, k_2 = %ld, modulus)\n", P, M, l, m_1, k_2);
@@ -1768,6 +1767,8 @@ pm1_sequence_g (mpz_t *g, const mpres_t b_1, const unsigned long P,
       outputf (OUTPUT_TRACE, "r == %Zd /* PARI C */\n", t);
     }
   
+  /* FIXME: This is a huge mess, clean up some time */
+
   mpz_set_ui (t, M);
   mpz_neg (t, t);
   mpz_mul_2exp (t, t, 1UL);
@@ -1795,19 +1796,17 @@ pm1_sequence_g (mpz_t *g, const mpres_t b_1, const unsigned long P,
   
   mpz_set_ui (t, M);
   mpres_pow (x_Mi, x_0, t, modulus); /* x_Mi = x_0^{M-i}, i = 0 */
+
   mpres_invert (x_0, x_0, modulus);  /* x_0 := x_0^{-1} now */
+  mpres_mul (r[1], r[1], x_0, modulus);
   
-  for (i = 0; i < l; i++)
+  mpres_mul (r[2], r[2], x_Mi, modulus);
+  mpres_get_z (g[0], r[2], modulus);
+
+  for (i = 1; i < l; i++)
     {
-      mpres_mul (r_Mi, x_Mi, r[2], modulus); /* r_Mi = x_0^{M-i} r^{(M-i)^2} */
-      mpres_get_z (g[i], r_Mi, modulus);
-      mpres_mul (r[2], r[2], r[1], modulus); /* r[2] = r^{(M-i)^2} * 
-						         r^{2(-M+i)+1} = 
-						       r^{(M-(i+1))^2} */
-      mpres_mul (r[1], r[1], r[0], modulus); /* r[1] = r^{2(-M+i)+1} + r^2 =
-					               r^{2(-M+i+1)+1}*/
-      mpres_mul (x_Mi, x_Mi, x_0, modulus);  /* x_Mi = x_0^{M-i} + x_0^{-1} =
-						       x_0^{M-(i+1)} */
+      mpres_mul (r[1], r[1], r[0], modulus);
+      mpres_mul_z_to_z (g[i], r[1], g[i-1],modulus);
     }
 
   mpres_clear (r[0], modulus);
@@ -1815,7 +1814,6 @@ pm1_sequence_g (mpz_t *g, const mpres_t b_1, const unsigned long P,
   mpres_clear (r[2], modulus);
   mpres_clear (x_0, modulus);
   mpres_clear (x_Mi, modulus);
-  mpres_clear (r_Mi, modulus);
   mpz_clear (t);
 
   timestop = cputime ();
