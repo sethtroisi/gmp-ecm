@@ -31,16 +31,24 @@
 unsigned int
 nb_digits (const mpz_t n)
 {
-   mpz_t x;
-   unsigned int size;
-   
-   mpz_init_set (x, n);
-   
-   for (size = 0; mpz_size (x); size++)
-     mpz_tdiv_q_ui (x, x, 10);
+  mpz_t x;
+  unsigned int size;
 
-   mpz_clear (x);
+  size = mpz_sizeinbase (n, 10);
 
-   return size;
+  /* the GMP documentation says mpz_sizeinbase returns the exact value,
+     or one too big, thus:
+     (a) either n < 10^(size-1), and n has size-1 digits
+     (b) or n >= size-1, and n has size digits
+     Note: mpz_sizeinbase returns 1 for n=0, thus we always have size >= 1.
+  */
+				    
+  mpz_init (x);
+  mpz_ui_pow_ui (x, 10, size - 1);
+  if (mpz_cmp (n, x) < 0)
+    size --;
+  mpz_clear (x);
+
+  return size;
 }
 
