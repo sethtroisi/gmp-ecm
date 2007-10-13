@@ -123,7 +123,7 @@ ChompLine:;
       if (nCurSize == nMaxSize)
       {
 	char *cp;
-	nMaxSize += 5000;
+	nMaxSize += nMaxSize / 2;
 	cp = (char *) realloc (expr, nMaxSize + 1);
 	if (!cp)
 	{
