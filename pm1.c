@@ -963,6 +963,12 @@ pm1 (mpz_t f, mpz_t p, mpz_t N, mpz_t go, double *B1done, double B1,
   mpres_init (x, modulus);
   mpres_set_z (x, p, modulus);
 
+  st = elltime (st, cputime ());
+
+  outputf (OUTPUT_VERBOSE, "Initialization took %ldms\n", st);
+
+  st = cputime ();
+
   if (B1 > *B1done)
     youpi = pm1_stage1 (f, x, modulus, B1, B1done, go, stop_asap, chkfilename);
 
