@@ -767,7 +767,8 @@ choose_P (const mpz_t B2min, const mpz_t B2, const unsigned long lmax,
   unsigned int i;
   const unsigned int Pvalues_len = sizeof (Pvalues) / sizeof (unsigned long);
 
-  ASSERT (mpz_cmp (B2, B2min) >= 0);
+  if (mpz_cmp (B2, B2min) < 0)
+    return;
 
   mpz_init (m_1);
   mpz_init (t);
@@ -853,6 +854,7 @@ choose_P (const mpz_t B2min, const mpz_t B2, const unsigned long lmax,
 	      P = tryP;
 	      phiP = tryphiP;
 	      s_1 = trys_1;
+	      s_2 = tryphiP / trys_1; /* In rare cases, s_2 can be reduced! */
 	      mpz_set (effB2, t);
 	      while (l / 2 > s_1 && 
 		     test_P (B2min, B2, m_1, P, l / 2 - s_1, effB2min, t))
@@ -2977,15 +2979,10 @@ pp1fs2 (mpz_t f, const mpres_t X, mpmod_t modulus,
   phiP = eulerphi (params->P);
   ASSERT_ALWAYS (phiP == params->s_1 * params->s_2);
   ASSERT_ALWAYS (params->s_1 < params->l);
-  if (mpz_sgn (params->m_1) < 0)
-  {
-    outputf (OUTPUT_ERROR, "m_1 is negative, this currently causes N to be "
-      "found as factor. To be fixed.\n");
-      return (ECM_ERROR);
-  }
   nr = params->l - params->s_1; /* Number of points we evaluate */
 
-  outputf (OUTPUT_TRACE, "compare(a, b, n) = if (a != b,print(\"In PARI \", n, \" line, \", a \" != \" b)); /* PARI %ld */\n", pariline++);
+  outputf (OUTPUT_TRACE, "compare(a, b, n) = if (a != b,print(\"In PARI \", "
+	   "n, \" line, \", a \" != \" b)); /* PARI %ld */\n", pariline++);
 
   make_S_1_S_2 (&S_1, &S_1_size, &S_2, params);
 
@@ -3102,44 +3099,57 @@ pp1fs2 (mpz_t f, const mpres_t X, mpmod_t modulus,
 		      params->m_1, S_2[l + 1], modulus, tmplen, tmp);
       
       /* Do the two convolution products */
-      outputf (OUTPUT_VERBOSE, "TMulGen of g_x and h_y");
+      outputf (OUTPUT_VERBOSE, "TMulGen of g_x and h_x");
       timestart = cputime ();
-      TMulGen (R_x, nr - 1, h_x, params->s_1, g_y, params->l - 1, tmp,
+      TMulGen (R_x, nr - 1, h_x, params->s_1, g_x, params->l - 1, tmp,
 	       modulus->orig_modulus);
       timestop = cputime ();
       outputf (OUTPUT_VERBOSE, " took %lu ms\n", timestop - timestart);
-      outputf (OUTPUT_VERBOSE, "TMulGen of g_x and h_y");
+      outputf (OUTPUT_VERBOSE, "TMulGen of g_y and h_y");
       timestart = cputime ();
-      TMulGen (R_y, nr - 1, h_y, params->s_1, g_x, params->l - 1, tmp,
+      TMulGen (R_y, nr - 1, h_y, params->s_1, g_y, params->l - 1, tmp,
 	       modulus->orig_modulus);
       timestop = cputime ();
       outputf (OUTPUT_VERBOSE, " took %lu ms\n", timestop - timestart);
+      for (i = 0; i < nr; i++)
+	mpres_mul_z_to_z (R_y[i], Delta, R_y[i], modulus);
       list_add (R_x, R_x, R_y, nr);
 
-      outputf (OUTPUT_VERBOSE, "Computing product of F(g_i)^(1)");
       timestart = cputime ();
       {
         mpres_t tmpres, tmpprod;
         mpres_init (tmpres, modulus);
         mpres_init (tmpprod, modulus);
+#define TEST_ZERO_RESULT
+#ifdef TEST_ZERO_RESULT
         mpz_mod (R_x[0], R_x[0], modulus->orig_modulus);
         if (mpz_sgn (R_x[0]) == 0)
           outputf (OUTPUT_VERBOSE, "R[0] == 0\n");
+#endif
         mpres_set_z_for_gcd (tmpprod, R_x[0], modulus);
-        for (i = 1; i < nr - 1; i++) /* FIXME: why the -1 ? */
+        for (i = 1; i < nr; i++)
           {
+#ifdef TEST_ZERO_RESULT
             mpz_mod (R_x[i], R_x[i], modulus->orig_modulus);
             if (mpz_sgn (R_x[i]) == 0)
               outputf (OUTPUT_VERBOSE, "R[%lu] == 0\n", i);
+#endif
             mpres_set_z_for_gcd (tmpres, R_x[i], modulus);
             mpres_mul (tmpprod, tmpprod, tmpres, modulus); 
+          }
+        if (test_verbose(OUTPUT_RESVERBOSE))
+          {
+            mpres_get_z (tmp[0], tmpprod, modulus);
+            outputf (OUTPUT_RESVERBOSE, "Product of R[i] = %Zd (times some "
+                     "power of 2 if REDC was used! Try -mpzmod)\n", tmp[0]);
           }
         mpres_gcd (tmp[0], tmpprod, modulus);
         mpres_clear (tmpprod, modulus);
         mpres_clear (tmpres, modulus);
       }
       timestop = cputime ();
-      outputf (OUTPUT_VERBOSE, " took %lu ms\n", timestop - timestart);
+      outputf (OUTPUT_VERBOSE, "Computing product of F(g_i)^(1) took %lu ms\n", 
+	       timestop - timestart);
       
       if (mpz_cmp_ui (tmp[0], 1UL) > 0)
 	{
