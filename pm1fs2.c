@@ -768,7 +768,7 @@ choose_P (const mpz_t B2min, const mpz_t B2, const unsigned long lmax,
   const unsigned int Pvalues_len = sizeof (Pvalues) / sizeof (unsigned long);
 
   if (mpz_cmp (B2, B2min) < 0)
-    return;
+    return 0L;
 
   mpz_init (m_1);
   mpz_init (t);
@@ -2460,9 +2460,16 @@ gfp_ext_mul (mpres_t r_0, mpres_t r_1, const mpres_t a_0, const mpres_t a_1,
 	     mpz_t *t)
 {
   ASSERT (tmplen >= 2);
-  if (0 && pari)
-    gmp_printf ("/* gfp_ext_mul */ ((%Zd + %Zd * w) * (%Zd + %Zd * w)) %% N == ",
-		a_0, a_1, b_0, b_1);
+  if (test_verbose (OUTPUT_TRACE))
+    {
+      outputf (OUTPUT_TRACE, "/* gfp_ext_mul */ w = quadgen (4*%Zd); "
+               "N = %Zd; /* PARI */\n", Delta, modulus->orig_modulus);
+      outputf (OUTPUT_TRACE, "/* gfp_ext_mul */ (");
+      gfp_ext_print (a_0, a_1, modulus, OUTPUT_TRACE);
+      outputf (OUTPUT_TRACE, ") * (");
+      gfp_ext_print (b_0, b_1, modulus, OUTPUT_TRACE);
+    }
+  
   mpres_add (t[0], a_0, a_1, modulus);
   mpres_add (t[1], b_0, b_1, modulus);
   mpres_mul (t[1], t[0], t[1], modulus); /* t[1] = (a_0 + a_1) * (b_0 + b_1) = 
@@ -2481,8 +2488,12 @@ gfp_ext_mul (mpres_t r_0, mpres_t r_1, const mpres_t a_0, const mpres_t a_1,
   mpres_mul (t[0], t[0], Delta, modulus); /* t[0] = a_1*b_1*Delta */
   mpres_add (r_0, r_0, t[0], modulus);   /* r_0 = a_0*b_0 + a_1*b_1*Delta */
 
-  if (0 && pari)
-    gmp_printf ("(%Zd + %Zd * w) %% N /* PARI C */\n", r_0, r_1);
+  if (test_verbose (OUTPUT_TRACE))
+    {
+      outputf (OUTPUT_TRACE, ") == ");
+      gfp_ext_print (r_0, r_1, modulus, OUTPUT_TRACE);
+      outputf (OUTPUT_TRACE, " /* PARI C */\n");
+    }
 }
 
 
@@ -2518,9 +2529,9 @@ gfp_ext_sqr_norm1 (mpres_t r_0, mpres_t r_1, const mpres_t a_0,
    (r0 * r1*sqrt(Delta)). a0, a1, r0 and r1 must not overlap */
 
 static void 
-gfp_ext_pow_norm1 (mpres_t r0, mpres_t r1, const mpres_t a0, const mpres_t a1, 
-		   const long e, const mpres_t Delta, mpmod_t modulus, 
-		   unsigned long tmplen, mpres_t *tmp)
+gfp_ext_pow_norm1_ul (mpres_t r0, mpres_t r1, const mpres_t a0, 
+                      const mpres_t a1, const long e, const mpres_t Delta, 
+                      mpmod_t modulus, unsigned long tmplen, mpres_t *tmp)
 {
   const unsigned long abs_e = labs (e);
   unsigned long mask = ~0UL - (~0UL >> 1);
@@ -2559,9 +2570,62 @@ gfp_ext_pow_norm1 (mpres_t r0, mpres_t r1, const mpres_t a0, const mpres_t a1,
 
   if (test_verbose (OUTPUT_TRACE))
     {
-      outputf (OUTPUT_TRACE, "/* gfp_ext_pow_norm1 */ (");
+      outputf (OUTPUT_TRACE, "/* gfp_ext_pow_norm1_ul */ (");
       gfp_ext_print (a0, a1, modulus, OUTPUT_TRACE);
       outputf (OUTPUT_TRACE, ")^(%ld) == ", e);
+      gfp_ext_print (r0, r1, modulus, OUTPUT_TRACE);
+      outputf (OUTPUT_TRACE, " /* PARI C */\n");
+    }
+}
+
+
+/* Same, but taking an mpz_t argument for the exponent */
+
+static void 
+gfp_ext_pow_norm1 (mpres_t r0, mpres_t r1, const mpres_t a0, 
+                   const mpres_t a1, mpz_t e, const mpres_t Delta, 
+                   mpmod_t modulus, unsigned long tmplen, mpres_t *tmp)
+{
+  mpz_t abs_e;
+  unsigned long idx;
+
+  ASSERT (a0 != r0 && a1 != r0 && a0 != r1 && a1 != r1);
+
+  if (mpz_sgn (e) == 0)
+    {
+      mpres_set_ui (r0, 1UL, modulus);
+      mpres_set_ui (r1, 0UL, modulus);
+      return;
+    }
+
+  mpz_init (abs_e);
+  mpz_abs (abs_e, e);
+  idx = mpz_sizeinbase (abs_e, 2) - 1; /* Thus mpz_tstbit (abs_e, idx) == 1 */
+  ASSERT (mpz_tstbit (abs_e, idx) == 1);
+
+  mpres_set (r0, a0, modulus);
+  mpres_set (r1, a1, modulus);
+
+  while (idx > 0UL)
+    {
+      gfp_ext_sqr_norm1 (r0, r1, r0, r1, modulus);
+      idx--;
+      if (mpz_tstbit (abs_e, idx))
+	gfp_ext_mul (r0, r1, r0, r1, a0, a1, Delta, modulus, tmplen, tmp);
+    }
+
+  if (mpz_sgn (e) < 0)
+    mpres_neg (r1, r1, modulus);
+
+  mpz_clear (abs_e);
+
+  if (test_verbose (OUTPUT_TRACE))
+    {
+      outputf (OUTPUT_TRACE, "/* gfp_ext_pow_norm1 */ w = quadgen (4*%Zd); "
+               "N = %Zd; /* PARI */\n", Delta, modulus->orig_modulus);
+      outputf (OUTPUT_TRACE, "/* gfp_ext_pow_norm1 */ (");
+      gfp_ext_print (a0, a1, modulus, OUTPUT_TRACE);
+      outputf (OUTPUT_TRACE, ")^(%Zd) == ", e);
       gfp_ext_print (r0, r1, modulus, OUTPUT_TRACE);
       outputf (OUTPUT_TRACE, " /* PARI C */\n");
     }
@@ -2593,9 +2657,9 @@ gfp_ext_rn2 (mpres_t *r_x, mpres_t *r_y, const mpres_t a_x, const mpres_t a_y,
 
   /* Compute r[0] = a^(k^2). We do it by two exponentiations by k and use 
      v[0] and v[1] as temp storage */
-  gfp_ext_pow_norm1 (v[0], v[1], a_x, a_y, k, Delta, modulus, newtmplen, 
+  gfp_ext_pow_norm1_ul (v[0], v[1], a_x, a_y, k, Delta, modulus, newtmplen, 
 		     newtmp);
-  gfp_ext_pow_norm1 (r_x[0], r_y[0], v[0], v[1], k, Delta, modulus, 
+  gfp_ext_pow_norm1_ul (r_x[0], r_y[0], v[0], v[1], k, Delta, modulus, 
 		     newtmplen, newtmp);
   if (pari)
     gmp_printf ("/* In gfp_ext_rn2 */ a^(%ld^2) %% N == (%Zd + %Zd * w) %% N "
@@ -2721,7 +2785,7 @@ pp1_sequence_g (listz_t g_x, listz_t g_y, const mpres_t b1_x,
       mpz_clear (t);
     }
 
-  gfp_ext_pow_norm1 (r_x, r_y, b1_x, b1_y, P, Delta, modulus, tmplen, tmp);
+  gfp_ext_pow_norm1_ul (r_x, r_y, b1_x, b1_y, P, Delta, modulus, tmplen, tmp);
   if (test_verbose (OUTPUT_TRACE))
     {
       outputf (OUTPUT_TRACE, "/* pp1_sequence_g */ r == ");
@@ -2741,12 +2805,11 @@ pp1_sequence_g (listz_t g_x, listz_t g_y, const mpres_t b1_x,
   mpz_mul_ui (tmp[0], tmp[0], P);
   mpz_add_si (tmp[0], tmp[0], k_2);
   mpz_add_si (tmp[0], tmp[0], k_2); /* tmp[0] = 2*k_2 + (2*m_1 + 1) * P */
-  ASSERT_ALWAYS (mpz_fits_slong_p (tmp[0])); /* FIXME: write gfp_ext_pow_norm1 
-						with mpz_t argument */
+
   outputf (OUTPUT_TRACE, "/* pp1_sequence_g */ 2*k_2 + (2*m_1 + 1) * P == "
            "%Zd /* PARI C */\n", tmp[0]);
-  gfp_ext_pow_norm1 (x0_x, x0_y, b1_x, b1_y, mpz_get_si (tmp[0]), Delta, 
-		     modulus, tmplen, tmp);
+  gfp_ext_pow_norm1 (x0_x, x0_y, b1_x, b1_y, tmp[0], Delta, modulus, 
+                     tmplen - 1, tmp + 1);
   if (test_verbose (OUTPUT_TRACE))
     {
       outputf (OUTPUT_TRACE, "/* pp1_sequence_g */ x_0 == ");
@@ -2755,7 +2818,7 @@ pp1_sequence_g (listz_t g_x, listz_t g_y, const mpres_t b1_x,
     }
 
   /* Set r = x_0^M */
-  gfp_ext_pow_norm1 (r_x, r_y, x0_x, x0_y, M, Delta, modulus, tmplen, tmp);
+  gfp_ext_pow_norm1_ul (r_x, r_y, x0_x, x0_y, M, Delta, modulus, tmplen, tmp);
   if (test_verbose (OUTPUT_TRACE))
     {
       outputf (OUTPUT_TRACE, "/* pp1_sequence_g */ x_0^M == ");
@@ -2840,15 +2903,15 @@ pp1_sequence_h (listz_t h_x, listz_t h_y, const listz_t f, const mpres_t b1_x,
   ASSERT (origtmplen >= 13UL);
 
   /* Compute r = b_1^P */
-  gfp_ext_pow_norm1 (rn_x, rn_y, b1_x, b1_y, P, Delta, modulus, newtmplen,
+  gfp_ext_pow_norm1_ul (rn_x, rn_y, b1_x, b1_y, P, Delta, modulus, newtmplen,
 		     newtmp);
   mpres_neg (rn_y, rn_y, modulus);
 
   /* Compute s[0] = r^(k^2). We do it by two exponentiations by k and use 
      v[0] and v[1] as temp storage */
-  gfp_ext_pow_norm1 (v[0], v[1], rn_x, rn_y, k, Delta, modulus, newtmplen, 
+  gfp_ext_pow_norm1_ul (v[0], v[1], rn_x, rn_y, k, Delta, modulus, newtmplen, 
 		     newtmp);
-  gfp_ext_pow_norm1 (s_x[0], s_y[0], v[0], v[1], k, Delta, modulus, 
+  gfp_ext_pow_norm1_ul (s_x[0], s_y[0], v[0], v[1], k, Delta, modulus, 
 		     newtmplen, newtmp);
   mpres_mul_z_to_z (h_x[0], s_x[0], f[0], modulus);
   mpres_mul_z_to_z (h_y[0], s_y[0], f[0], modulus);
@@ -3434,11 +3497,11 @@ int main (int argc, char **argv)
 	gmp_printf ("(%Zd + %Zd*w)^%d %% N == (%Zd + %Zd*w) %% N "
 		    "/* PARI from gfp_ext_rn2 */\n",
 		    a_x, a_y, (k+i)*(k+i), tmp[i], tmp[d+i]);
-	gfp_ext_pow_norm1 (tmp[i], tmp[d+i], a_x, a_y, 
+	gfp_ext_pow_norm1_ul (tmp[i], tmp[d+i], a_x, a_y, 
 			   (k+(long)i)*(k+(long)i), Delta, modulus, 
 			   tmplen - 2*d, tmp + 2*d);
 	gmp_printf ("(%Zd + %Zd*w)^%d %% N == (%Zd + %Zd*w) %% N "
-		    "/* PARI from gfp_ext_pow_norm1 */\n",
+		    "/* PARI from gfp_ext_pow_norm1_ul */\n",
 		    a_x, a_y, (k+i)*(k+i), tmp[i], tmp[d+i]);
       }
 
