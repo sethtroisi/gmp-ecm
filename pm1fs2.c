@@ -718,6 +718,29 @@ test_P (const mpz_t B2min, const mpz_t B2, mpz_t m_1, const unsigned long P,
   return (mpz_cmp (B2, effB2) <= 0);
 }
 
+
+/* Choose s_1 so that s_1 * s_2 = phiP, s_1 is positive and even, 
+   s_2 > min_s2 and s_2 is minimal under those conditions. 
+   Returns 0 if no such choice is possible */
+
+unsigned long 
+choose_s_1 (const unsigned long phiP, const unsigned long min_s2,
+	    const unsigned long lmax)
+{
+  unsigned long s_1, s_2;
+
+  s_2 = MAX(1UL, min_s2);
+  if (s_2 > phiP / 2) /* s_1 >= 2, so s_1 *  min_s2 > phiP */
+    return 0;
+
+  for (; s_2 < phiP / 2 && phiP % s_2 != 0UL && (phiP / s_2) % 2 == 0 ; s_2++);
+  if (phiP % s_2 != 0 || (phiP / s_2) % 2 != 0)
+    return 0;
+  s_1 = find_nearby_even_divisor (phiP / s_2, lmax / 2);
+  ASSERT (s_1 % 2 == 0);
+  return s_1;
+}
+
 /* Choose P so that a stage 2 range of length B2len can be covered with
    multipoint evaluations, each using a convolution of length lmax. 
    The parameters for stage 2 are stored in finalparams, the final effective
@@ -727,7 +750,8 @@ test_P (const mpz_t B2min, const mpz_t B2, mpz_t m_1, const unsigned long P,
 
 long
 choose_P (const mpz_t B2min, const mpz_t B2, const unsigned long lmax,
-	  faststage2_param_t *finalparams, mpz_t final_B2min, mpz_t final_B2)
+	  const unsigned long min_s2, faststage2_param_t *finalparams, 
+	  mpz_t final_B2min, mpz_t final_B2)
 {
   /* Let S_1 + S_2 == (Z/PZ)* (mod P).
 
@@ -763,7 +787,7 @@ choose_P (const mpz_t B2min, const mpz_t B2, const unsigned long lmax,
   */
 
   mpz_t m_1, t, B2l, effB2min, effB2;
-  unsigned long P, phiP, s_1, s_2, l;
+  unsigned long P = 0, s_1 = 0, s_2 = 0, l;
   unsigned int i;
   const unsigned int Pvalues_len = sizeof (Pvalues) / sizeof (unsigned long);
 
@@ -777,41 +801,40 @@ choose_P (const mpz_t B2min, const mpz_t B2, const unsigned long lmax,
   mpz_init (effB2);
 
   /* Find the smallest P that can cover the B2 - B2min interval */
-  /* We assume nr = lmax / 2, so we want 2*P*(lmax/2 - 3) > B2l,
-     or P >= B2l / (lmax - 6) */
+  /* We have nr < lmax, so we want 2*P*(lmax - 3) > B2l,
+     or P >= B2l / (2*lmax - 6) */
   mpz_sub (B2l, B2, B2min);
-  mpz_tdiv_q_ui (t, B2l, lmax - 0UL); /* FIXME: 6 is too high */
+  mpz_tdiv_q_ui (t, B2l, 2*lmax - 6UL);
   outputf (OUTPUT_DEVVERBOSE, "choose_P: We need P >= %Zd\n", t);
   for (i = 0; i < Pvalues_len; i++)
     if (mpz_cmp_ui (t, Pvalues[i]) <= 0)
       break;
-  if (i == Pvalues_len)
-    return ECM_ERROR; /* Could not find suitable P */
 
-  i = 0;
-  P = Pvalues[i];
-  do 
-  {
+  for ( ; i <  Pvalues_len; i++)
+    {
+      unsigned long phiP;
       /* Now a careful check to see if this P is large enough */
+      P = Pvalues[i];
       phiP = eulerphi (P);
-
-      /* We want a divisor of phiP close to lmax / 2 */
-      s_1 = find_nearby_even_divisor (phiP, lmax / 2);
+      s_1 = choose_s_1 (phiP, min_s2, lmax);
+      if (s_1 == 0)
+	continue;
       s_2 = phiP / s_1;
-      outputf (OUTPUT_DEVVERBOSE, "P = %lu, phiP = %lu, s_1 = %lu, s_2 = %lu, "
-	       "nr = %lu\n", P, phiP, s_1, s_2, lmax - s_1);
+      outputf (OUTPUT_DEVVERBOSE, 
+	       "Testing P = %lu, phiP = %lu, s_1 = %lu, s_2 = %lu, nr = %lu\n", 
+	       P, phiP, s_1, s_2, lmax - s_1);
       if (test_P (B2min, B2, m_1, P, lmax - s_1, effB2min, effB2))
 	{
 	    outputf (OUTPUT_DEVVERBOSE, 
 		     "This P is acceptable, B2 = %Zd\n", effB2);
 	    break;
 	}
-
-      if (++i == Pvalues_len)
-	  return ECM_ERROR; /* Could not find suitable P */
-      outputf (OUTPUT_DEVVERBOSE, "Not good enough, trying next P\n");
-      P = Pvalues[i]; /* Try next P */
-  } while (1);
+      else
+	outputf (OUTPUT_DEVVERBOSE, "Not good enough, trying next P\n");
+  }
+  
+  if (i == Pvalues_len)
+    return ECM_ERROR; /* Could not find suitable P */
 
   /* s_2 cannot be reduced further, but the transform length l could. */
   l = lmax;
@@ -825,20 +848,23 @@ choose_P (const mpz_t B2min, const mpz_t B2, const unsigned long lmax,
 
   for ( ; i + 1 < Pvalues_len; i++)
     {
-      unsigned long tryP, tryphiP, trys_1;
+      unsigned long tryP, tryphiP, trys_1, trys_2;
 
       /* We only found the smallest P that works so far. Maybe a larger one
-	 works as well */
+	 works as well, and better */
       tryP = Pvalues[i + 1];
       tryphiP = eulerphi (tryP);
-      trys_1 = find_nearby_even_divisor (tryphiP, l / 2);
-      outputf (OUTPUT_DEVVERBOSE, "Trying if P = %lu, phiP = %lu, s_1 = %lu "
-	       "works as well\n", tryP, tryphiP, trys_1);
-      if (tryphiP / trys_1 > s_2) /* We want to keep the minimal number */
-      {                         /* of multipoint evaluations */
-	  outputf (OUTPUT_DEVVERBOSE, "No, s_2 would become %lu\n", 
-		   tryphiP / trys_1);
-	  break;
+      trys_1 = choose_s_1 (tryphiP, min_s2, l);
+      if (trys_1 == 0)
+	continue;
+      trys_2 = tryphiP / trys_1;
+      outputf (OUTPUT_DEVVERBOSE, "Trying if P = %lu, phiP = %lu, s_1 = %lu, "
+	       "s_2 = %lu works as well\n", tryP, tryphiP, trys_1, trys_2);
+      if (trys_2 > s_2) /* We want to keep the minimal */
+      {                 /* number of multipoint evaluations */
+	  outputf (OUTPUT_DEVVERBOSE, "No, s_2 would become %lu\n", trys_2);
+	  /* break; */
+	  continue;
       }
       if (!test_P (B2min, B2, m_1, tryP, l - trys_1, effB2min, t))
       {
@@ -850,11 +876,10 @@ choose_P (const mpz_t B2min, const mpz_t B2, const unsigned long lmax,
 	  if (mpz_cmp (t, effB2) >= 0)
 	  {
 	      outputf (OUTPUT_DEVVERBOSE, 
-		       "Yes, works and gives higher B2 t = %Zd\n", t);
+		       "Yes, works and gives higher B2 = %Zd\n", t);
 	      P = tryP;
-	      phiP = tryphiP;
 	      s_1 = trys_1;
-	      s_2 = tryphiP / trys_1; /* In rare cases, s_2 can be reduced! */
+	      s_2 = trys_2;
 	      mpz_set (effB2, t);
 	      while (l / 2 > s_1 && 
 		     test_P (B2min, B2, m_1, P, l / 2 - s_1, effB2min, t))
@@ -1925,7 +1950,7 @@ pm1_sequence_h (mpz_t *h, mpz_t *f, const mpres_t r, const unsigned long d,
    *without* Chebychev polynomials to utilize symmetry, 2 = using recursive 
    expansion of polynomial *with* Chebychev polynomials */
 
-static void 
+ATTRIBUTE_UNUSED static void 
 pm1_build_poly_F (mpz_t *F, const mpres_t X, mpmod_t modulus, 
 		  const unsigned long beta, const int method, 
 		  const mpz_t i0, const unsigned long nr, 
@@ -3017,7 +3042,7 @@ pp1fs2 (mpz_t f, const mpres_t X, mpmod_t modulus,
 	const faststage2_param_t *params)
 {
   unsigned long phiP, nr;
-  unsigned long i, j, l, lenF, lenH, lenG, lenR, tmplen;
+  unsigned long i, l, lenF, lenH, lenG, lenR, tmplen;
   long *S_1; /* This is stored as a set of sets (arithmetic progressions of
 		prime length */
   long *S_2; /* This is stored as a regular set */
