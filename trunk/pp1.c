@@ -195,6 +195,16 @@ pp1_stage1 (mpz_t f, mpres_t P0, mpmod_t n, double B1, double *B1done,
 
   pp1_mul (P0, P0, g, n, P, Q);
 
+#if 0
+  /* getprime() can't skip forward yet */
+  /* All primes sqrt(B1) < p <= B1 appear in exponent 1. All primes <B1done
+     are already included in exponent of at least 1, so it's save to skip 
+     ahead to B1done */
+  
+  if (*B1done > p)
+    p = getprime (*B1done);
+#endif
+
   /* then all primes > sqrt(B1) and taken with exponent 1 */
   for (; p <= B1; p = getprime (p))
     {
@@ -731,7 +741,7 @@ pp1 (mpz_t f, mpz_t p, mpz_t n, mpz_t go, double *B1done, double B1,
   mpres_t a;
   mpmod_t modulus;
   mpz_t B2min, B2; /* Local B2, B2min to avoid changing caller's values */
-  unsigned long dF, lmax = 1UL<<18;
+  unsigned long dF;
   root_params_t root_params;
   faststage2_param_t faststage2_params;
 
@@ -783,8 +793,9 @@ pp1 (mpz_t f, mpz_t p, mpz_t n, mpz_t go, double *B1done, double B1,
     {
       /* If S == 1, we use the new, faster stage 2 */
       long P;
+      unsigned long lmax = 1UL<<21;
       mpz_init (faststage2_params.m_1);
-      choose_P (B2min, B2, lmax, &faststage2_params, B2min, B2);
+      P = choose_P (B2min, B2, lmax, k, &faststage2_params, B2min, B2);
       if (P == ECM_ERROR)
 	return ECM_ERROR;
     } 
