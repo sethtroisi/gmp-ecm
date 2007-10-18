@@ -713,6 +713,19 @@ main (int argc, char *argv[])
 	  printf ("ECM");
 	}
       printf ("]\n");
+#if HAVE_GETHOSTNAME == 1
+  if (verbose >= 2)
+    {
+      const int mnamesize = 64;
+      char mname[mnamesize];
+      if (gethostname (mname, mnamesize) == 0)
+        {
+          mname[mnamesize - 1] = 0; /* gethostname() may omit trailing 0 */
+          printf ("Running on %s\n", mname);
+        }
+    }
+#endif
+
 #ifdef HAVE_GWNUM
 #ifdef gwnum_is_gpl
       if (! gwnum_is_gpl())
