@@ -854,6 +854,10 @@ choose_P (const mpz_t B2min, const mpz_t B2, const unsigned long lmax,
 	 works as well, and better */
       tryP = Pvalues[i + 1];
       tryphiP = eulerphi (tryP);
+      /* tryphiP is strictly increasing and trys_2 >= tryphiP / l. Stop if
+	 we can't possibly find a trys_2 <= s_2 any more */
+      if (s_2 < tryphiP / l)
+	break;
       trys_1 = choose_s_1 (tryphiP, min_s2, l);
       if (trys_1 == 0)
 	continue;
@@ -2487,8 +2491,12 @@ gfp_ext_mul (mpres_t r_0, mpres_t r_1, const mpres_t a_0, const mpres_t a_1,
   ASSERT (tmplen >= 2);
   if (test_verbose (OUTPUT_TRACE))
     {
+      mpz_t t;
+      mpz_init (t);
+      mpres_get_z (t, Delta, modulus);
       outputf (OUTPUT_TRACE, "/* gfp_ext_mul */ w = quadgen (4*%Zd); "
-               "N = %Zd; /* PARI */\n", Delta, modulus->orig_modulus);
+               "N = %Zd; /* PARI */\n", t, modulus->orig_modulus);
+      mpz_clear (t);
       outputf (OUTPUT_TRACE, "/* gfp_ext_mul */ (");
       gfp_ext_print (a_0, a_1, modulus, OUTPUT_TRACE);
       outputf (OUTPUT_TRACE, ") * (");
@@ -2595,6 +2603,12 @@ gfp_ext_pow_norm1_ul (mpres_t r0, mpres_t r1, const mpres_t a0,
 
   if (test_verbose (OUTPUT_TRACE))
     {
+      mpz_t t;
+      mpz_init (t);
+      mpres_get_z (t, Delta, modulus);
+      outputf (OUTPUT_TRACE, "/* gfp_ext_pow_norm1_ul */ w = quadgen (4*%Zd); "
+               "N = %Zd; /* PARI */\n", t, modulus->orig_modulus);
+      mpz_clear (t);
       outputf (OUTPUT_TRACE, "/* gfp_ext_pow_norm1_ul */ (");
       gfp_ext_print (a0, a1, modulus, OUTPUT_TRACE);
       outputf (OUTPUT_TRACE, ")^(%ld) == ", e);
@@ -2646,8 +2660,12 @@ gfp_ext_pow_norm1 (mpres_t r0, mpres_t r1, const mpres_t a0,
 
   if (test_verbose (OUTPUT_TRACE))
     {
+      mpz_t t;
+      mpz_init (t);
+      mpres_get_z (t, Delta, modulus);
       outputf (OUTPUT_TRACE, "/* gfp_ext_pow_norm1 */ w = quadgen (4*%Zd); "
-               "N = %Zd; /* PARI */\n", Delta, modulus->orig_modulus);
+               "N = %Zd; /* PARI */\n", t, modulus->orig_modulus);
+      mpz_clear (t);
       outputf (OUTPUT_TRACE, "/* gfp_ext_pow_norm1 */ (");
       gfp_ext_print (a0, a1, modulus, OUTPUT_TRACE);
       outputf (OUTPUT_TRACE, ")^(%Zd) == ", e);
@@ -2660,7 +2678,7 @@ gfp_ext_pow_norm1 (mpres_t r0, mpres_t r1, const mpres_t a0,
 /* Compute r[i] = a^((k+i)^2) for i = 0, 1, ..., l-1, where "a" is an 
    element of norm 1 in the quadratic extension ring */
 
-static void
+ATTRIBUTE_UNUSED static void
 gfp_ext_rn2 (mpres_t *r_x, mpres_t *r_y, const mpres_t a_x, const mpres_t a_y,
 	     const long k, const unsigned long l, const mpres_t Delta, 
 	     mpmod_t modulus, const unsigned long origtmplen, mpres_t *origtmp)
@@ -2776,7 +2794,7 @@ pp1_sequence_g (listz_t g_x, listz_t g_y, const mpres_t b1_x,
 		const mpz_t m_1, const long k_2, mpmod_t modulus, 
 		const unsigned long tmplen, mpz_t *tmp)
 {
-  mpres_t r_x, r_y, x0_x, x0_y;
+  mpres_t r_x, r_y, x0_x, x0_y, r1_x[2], r1_y[2], r2_x[2], r2_y[2], v2, v[2];
   unsigned long i;
   long timestart, timestop;
 
@@ -2787,6 +2805,17 @@ pp1_sequence_g (listz_t g_x, listz_t g_y, const mpres_t b1_x,
   mpres_init (r_y, modulus);
   mpres_init (x0_x, modulus);
   mpres_init (x0_y, modulus);
+  mpres_init (r1_x[0], modulus);
+  mpres_init (r1_y[0], modulus);
+  mpres_init (r1_x[1], modulus);
+  mpres_init (r1_y[1], modulus);
+  mpres_init (r2_x[0], modulus);
+  mpres_init (r2_y[0], modulus);
+  mpres_init (r2_x[1], modulus);
+  mpres_init (r2_y[1], modulus);
+  mpres_init (v2, modulus);
+  mpres_init (v[0], modulus);
+  mpres_init (v[1], modulus);
 
   ASSERT (tmplen >= 1);
 
@@ -2807,9 +2836,12 @@ pp1_sequence_g (listz_t g_x, listz_t g_y, const mpres_t b1_x,
 	       "/* pp1_sequence_g */ r = b_1^P; /* PARI */\n");
       outputf (OUTPUT_TRACE, "/* pp1_sequence_g */ "
 	       "x_0 = b_1^(2*k_2 + (2*m_1 + 1) * P); /* PARI */\n");
+      outputf (OUTPUT_TRACE, 
+	       "/* pp1_sequence_g */ addrec(x) = x + 1/x; /* PARI */\n");
       mpz_clear (t);
     }
 
+  /* Compute r */
   gfp_ext_pow_norm1_ul (r_x, r_y, b1_x, b1_y, P, Delta, modulus, tmplen, tmp);
   if (test_verbose (OUTPUT_TRACE))
     {
@@ -2818,19 +2850,12 @@ pp1_sequence_g (listz_t g_x, listz_t g_y, const mpres_t b1_x,
       outputf (OUTPUT_TRACE, " /* PARI C */\n");
     }
   
-  /* Compute r^{(M-i)^2} = r^{(-M+i)^2} for 0 <= i < l. 
-     FIXME: Multiplication by x0 can be merged for better speed.
-     FIXME: Compute only for 0 <= i <= M, and copy the rest */
-  gfp_ext_rn2 (g_x, g_y, r_x, r_y, -M, l, Delta, modulus, tmplen, tmp);
-  
-  
-  /* Compute x_0 */
+  /* Compute x0 = x_0 */
   mpz_mul_2exp (tmp[0], m_1, 1UL);
   mpz_add_ui (tmp[0], tmp[0], 1UL);
   mpz_mul_ui (tmp[0], tmp[0], P);
   mpz_add_si (tmp[0], tmp[0], k_2);
   mpz_add_si (tmp[0], tmp[0], k_2); /* tmp[0] = 2*k_2 + (2*m_1 + 1) * P */
-
   outputf (OUTPUT_TRACE, "/* pp1_sequence_g */ 2*k_2 + (2*m_1 + 1) * P == "
            "%Zd /* PARI C */\n", tmp[0]);
   gfp_ext_pow_norm1 (x0_x, x0_y, b1_x, b1_y, tmp[0], Delta, modulus, 
@@ -2842,36 +2867,115 @@ pp1_sequence_g (listz_t g_x, listz_t g_y, const mpres_t b1_x,
       outputf (OUTPUT_TRACE, " /* PARI C */\n");
     }
 
-  /* Set r = x_0^M */
-  gfp_ext_pow_norm1_ul (r_x, r_y, x0_x, x0_y, M, Delta, modulus, tmplen, tmp);
-  if (test_verbose (OUTPUT_TRACE))
-    {
-      outputf (OUTPUT_TRACE, "/* pp1_sequence_g */ x_0^M == ");
-      gfp_ext_print (r_x, r_y, modulus, OUTPUT_TRACE);
-      outputf (OUTPUT_TRACE, " /* PARI C */\n");
-    }
-  
-  /* Invert x_0 */
-  mpres_neg (x0_y, x0_y, modulus);
+  /* Compute g[1] = r1[0] = x0^M * r^(M^2) = (x0 * r^M)^M.
+     We use v[0,1] as temporary storage */
+  gfp_ext_pow_norm1_ul (v[0], v[1], r_x, r_y, M, Delta, modulus, 
+			tmplen, tmp); /* v[0,1] = r^M */
+  gfp_ext_mul (v[0], v[1], v[0], v[1], x0_x, x0_y, Delta, modulus, 
+	       tmplen, tmp); /* v[0,1] = r^M * x_0 */
+  gfp_ext_pow_norm1_ul (r1_x[0], r1_y[0], v[0], v[1], M, Delta, modulus, 
+			tmplen, tmp); /* r1[0] = (r^M * x_0)^M */
+  mpres_get_z (g_x[0], r1_x[0], modulus);
+  mpres_get_z (g_y[0], r1_y[0], modulus);
+  outputf (OUTPUT_TRACE, 
+	   "/* pp1_sequence_g */ g_0 = x_0^M * r^(M^2); /* PARI */\n");
+  outputf (OUTPUT_TRACE, 
+	   "/* pp1_sequence_g */ g_0 == %Zd + %Zd*w /* PARI C */\n", 
+	   g_x[0], g_y[0]);
 
-  for (i = 0; i < l; i++)
+  /* Compute g[1] = r1[1] = x0^(M-1) * r^((M-1)^2) = (x0 * r^(M-1))^(M-1). 
+     We use v[0,1] as temporary storage. FIXME: simplify, reusing g_0 */
+  gfp_ext_pow_norm1_ul (v[0], v[1], r_x, r_y, M - 1, Delta, modulus, 
+			tmplen, tmp);
+  gfp_ext_mul (v[0], v[1], v[0], v[1], x0_x, x0_y, Delta, modulus, 
+	       tmplen, tmp);
+  gfp_ext_pow_norm1_ul (r1_x[1], r1_y[1], v[0], v[1], M - 1, Delta, 
+			modulus, tmplen, tmp);
+  mpres_get_z (g_x[1], r1_x[1], modulus);
+  mpres_get_z (g_y[1], r1_y[1], modulus);
+  outputf (OUTPUT_TRACE, 
+	   "/* pp1_sequence_g */ g_1 = x_0^(M-1) * r^((M-1)^2); /* PARI */\n");
+  outputf (OUTPUT_TRACE, 
+	   "/* pp1_sequence_g */ g_1 == %Zd + %Zd*w /* PARI C */\n", 
+	   g_x[1], g_y[1]);
+
+  /* x0 := $x_0 * r^{2M - 3}$ */
+  /* We don't need x0 after this so we overwrite it. We use v[0,1] as 
+     temp storage for $r^{2M - 3}$. */
+  gfp_ext_pow_norm1_ul (v[0], v[1], r_x, r_y, 2UL*M - 3UL, Delta, modulus,
+			tmplen, tmp);
+  gfp_ext_mul (x0_x, x0_y, x0_x, x0_y, v[0], v[1], Delta, modulus,
+	       tmplen, tmp);
+
+  /* Compute r2[0] = r1[0] * r^2 and r2[1] = r1[1] * r^2. */
+  /* We only need $r^2$ from here on, so we set r = $r^2$ */
+  gfp_ext_sqr_norm1 (r_x, r_y, r_x, r_y, modulus);  
+  gfp_ext_mul (r2_x[0], r2_y[0], r1_x[0], r1_y[0], r_x, r_y, Delta, 
+	       modulus, tmplen, tmp);
+  gfp_ext_mul (r2_x[1], r2_y[1], r1_x[1], r1_y[1], r_x, r_y, Delta, 
+	       modulus, tmplen, tmp);
+
+  /* v[1] := $x_0 * r^{2*M - 3} + 1/(x_0 * r^{2M - 3}) */
+  mpres_add (v[1], x0_x, x0_x, modulus);
+  /* x0 := x0 * r = $x_0 * r^{2M - 1}$ */
+  gfp_ext_mul (x0_x, x0_y, x0_x, x0_y, r_x, r_y, Delta, modulus,
+	       tmplen, tmp);
+  /* v[0] := $x_0 * r^{2M - 1} + 1/(x_0 * r^{2M - 1}) */
+  mpres_add (v[0], x0_x, x0_x, modulus);
+
+  /* v2 = V_2 (r + 1/r) = r^2 + 1/r^2 */
+  mpres_add (v2, r_x, r_x, modulus);
+
+  /* We don't need the contents of r any more and use it as a temp var */
+
+  for (i = 2; i < l; i++)
     {
-      gfp_ext_mul (g_x[i], g_y[i], g_x[i], g_y[i], r_x, r_y, Delta, modulus, 
-		   tmplen, tmp);
-      mpres_get_z (g_x[i], g_x[i], modulus);
-      mpres_get_z (g_y[i], g_y[i], modulus);
-      gfp_ext_mul (r_x, r_y, r_x, r_y, x0_x, x0_y, Delta, modulus, tmplen, tmp);
-      outputf (OUTPUT_TRACE, "/* pp1_sequence_g */ g_%lu = x_0^(M-%lu) * "
-	       "r^((M-%lu)^2); /* PARI */\n", i, i, i);
-      outputf (OUTPUT_TRACE, "/* pp1_sequence_g */ g_%lu == %Zd + %Zd * w "
-	       "/* PARI C */\n", 
-	       i, g_x[i], g_y[i]);
+      /* r1[i] = r2[i-1] * v[i-2] - r2[i-2], with indices of r2 and i taken
+	 modulo 2. We store the new r1[i] in r for now */
+      mpres_mul (r_x, r2_x[1 - i % 2], v[i % 2], modulus);
+      mpres_sub (r_x, r_x,             r2_x[i % 2], modulus);
+      mpres_mul (r_y, r2_y[1 - i % 2], v[i % 2], modulus);
+      mpres_sub (r_y, r_y,             r2_y[i % 2], modulus);
+      
+      /* r2[i] = r2[i-1] * v[i-1] - r1[i-2] */
+      mpres_mul (r2_x[i % 2], r2_x[1 - i % 2], v[1 - i % 2], modulus);
+      mpres_sub (r2_x[i % 2], r2_x[i % 2],     r1_x[i % 2], modulus);
+      mpres_mul (r2_y[i % 2], r2_y[1 - i % 2], v[1 - i % 2], modulus);
+      mpres_sub (r2_y[i % 2], r2_y[i % 2],     r1_y[i % 2], modulus);
+      mpres_set (r1_x[i % 2], r_x, modulus); /* FIXME, avoid this copy */
+      mpres_set (r1_y[i % 2], r_y, modulus);
+      mpres_get_z (g_x[i], r_x, modulus); /* FIXME, avoid these REDC */
+      mpres_get_z (g_y[i], r_y, modulus); /* Keep r1, r2 in mpz_t ? */
+      outputf (OUTPUT_TRACE, "/* pp1_sequence_g */ "
+	       "x_0^(M-%lu) * r^((M-%lu)^2) == %Zd + %Zd*w /* PARI C */\n", 
+	       i, i, g_x[i], g_y[i]);
+     
+      /* v[i] = v[i - 1] * V_2(a + 1/a) - v[i - 2] */
+      mpres_mul (r_x, v[1 - i % 2], v2, modulus);
+      mpres_sub (v[i % 2], r_x, v[i % 2], modulus);
+      if (test_verbose (OUTPUT_TRACE))
+	{
+	  mpz_t t;
+	  mpz_init (t);
+	  mpres_get_z (t, v[i % 2], modulus);
+	  outputf (OUTPUT_TRACE, "/* pp1_sequence_g */ "
+		   "addrec(x_0 * r^(2*(M-%lu) - 1)) == %Zd /* PARI C */\n", 
+		   i, t);
+	  mpz_clear (t);
+	}
     }
 
   mpres_clear (r_x, modulus);
   mpres_clear (r_y, modulus);
   mpres_clear (x0_x, modulus);
   mpres_clear (x0_y, modulus);
+  mpres_clear (r2_x[0], modulus);
+  mpres_clear (r2_y[0], modulus);
+  mpres_clear (r2_x[1], modulus);
+  mpres_clear (r2_y[1], modulus);
+  mpres_clear (v2, modulus);
+  mpres_clear (v[0], modulus);
+  mpres_clear (v[1], modulus);
   
   timestop = cputime ();
   outputf (OUTPUT_VERBOSE, " took %lu ms\n", timestop - timestart);
