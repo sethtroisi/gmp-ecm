@@ -114,6 +114,19 @@ mpzspv_set (mpzspv_t r, spv_size_t r_offset, mpzspv_t x, spv_size_t x_offset,
 }
 
 void
+mpzspv_revcopy (mpzspv_t r, spv_size_t r_offset, mpzspv_t x, 
+    spv_size_t x_offset, spv_size_t len, mpzspm_t mpzspm)
+{
+  unsigned int i;
+  
+  ASSERT (mpzspv_verify (r, r_offset + len, 0, mpzspm));
+  ASSERT (mpzspv_verify (x, x_offset, len, mpzspm));
+  
+  for (i = 0; i < mpzspm->sp_num; i++)
+    spv_rev (r[i] + r_offset, x[i] + x_offset, len);
+}
+
+void
 mpzspv_set_sp (mpzspv_t r, spv_size_t offset, sp_t c, spv_size_t len,
     mpzspm_t mpzspm)
 {
