@@ -45,6 +45,18 @@ spv_set (spv_t r, spv_t x, spv_size_t len)
 #endif
 }
 
+/* r[0 ... len - 1] = x[len - 1 ... 0]  */
+void
+spv_rev (spv_t r, spv_t x, spv_size_t len)
+{
+  spv_size_t i;
+  
+  ASSERT (r >= x + len || x >= r + len);
+
+  for (i = 0; i < len; i++)
+    r[i] = x[len - 1 - i];
+}
+
 /* r = [y, y, ... ] */
 void
 spv_set_sp (spv_t r, sp_t y, spv_size_t len)
@@ -141,6 +153,20 @@ spv_pwmul (spv_t r, spv_t x, spv_t y, spv_size_t len, sp_t m, sp_t d)
 
   for (i = 0; i < len; i++)
     r[i] = sp_mul (x[i], y[i], m, d);
+}
+
+/* Pointwise multiplication, second input is read in reverse
+ * r = [x[0] * y[len - 1], x[1] * y[len - 2], ... x[len - 1] * y[0]] */
+void
+spv_pwmul_rev (spv_t r, spv_t x, spv_t y, spv_size_t len, sp_t m, sp_t d)
+{
+  spv_size_t i;
+  
+  ASSERT (r >= x + len || x >= r);
+  ASSERT (r >= y + len || y >= r);
+
+  for (i = 0; i < len; i++)
+    r[i] = sp_mul (x[i], y[len - 1 - i], m, d);
 }
 
 /* dst = src * y */

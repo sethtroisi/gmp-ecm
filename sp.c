@@ -20,6 +20,9 @@
 
 #include "sp.h"
 
+
+/* Test if m is a base "a" strong probable prime */
+
 int
 sp_spp (sp_t a, sp_t m, sp_t d)
 {
@@ -28,6 +31,7 @@ sp_spp (sp_t a, sp_t m, sp_t d)
   if (m == a)
     return 1;
 	
+  /* Set e * 2^s = m-1, e odd */
   for (s = 0, e = m - 1; !(e & 1); s++, e >>= 1);
 
   t = sp_pow (a, e, m, d);
@@ -46,7 +50,8 @@ sp_spp (sp_t a, sp_t m, sp_t d)
   return 0;
 }
 
-/* note this only works on sp's, i.e. we need the top bit of x set */
+/* Test if x is a prime, return 1 if it is. Note this only works on sp's, 
+   i.e. we need the top bit of x set */
 int
 sp_prime (sp_t x)
 {
