@@ -311,6 +311,8 @@ sp_montsqr (sp_t x, sp_t p, sp_t d)
 #define sp_add(x,y,m) (((x)<(m)-(y)) ? ((x)+(y)) : ((x)+(y)-(m)))
 #define sp_sub(x,y,m) (((x)>=(y)) ? ((x)-(y)) : ((x)-(y)+(m)))
 
+/* Returns x^a % m, uses a right-to-left powering ladder */
+
 static inline sp_t
 sp_pow (sp_t x, sp_t a, sp_t m, sp_t d)
 {
@@ -349,6 +351,7 @@ void spm_clear (spm_t);
 /* ASSIGNMENT */
 
 void spv_set (spv_t, spv_t, spv_size_t);
+void spv_rev (spv_t, spv_t, spv_size_t);
 void spv_set_sp (spv_t, sp_t, spv_size_t);
 void spv_set_zero (spv_t, spv_size_t);
 
@@ -365,6 +368,7 @@ void spv_neg (spv_t, spv_t, spv_size_t, sp_t);
 
 /* pointwise multiplication */
 void spv_pwmul (spv_t, spv_t, spv_t, spv_size_t, sp_t, sp_t);
+void spv_pwmul_rev (spv_t, spv_t, spv_t, spv_size_t, sp_t, sp_t);
 void spv_mul_sp (spv_t, spv_t, sp_t, spv_size_t, sp_t, sp_t);
 /* void spv_addmul_sp (spv_t, spv_t, sp_t, spv_size_t, sp_t, sp_t); */
 /* void spv_submul_sp (spv_t, spv_t, sp_t, spv_size_t, sp_t, sp_t); */
@@ -401,6 +405,8 @@ mpzspv_t mpzspv_init (spv_size_t, mpzspm_t);
 void mpzspv_clear (mpzspv_t, mpzspm_t);
 int mpzspv_verify (mpzspv_t, spv_size_t, spv_size_t, mpzspm_t);
 void mpzspv_set (mpzspv_t, spv_size_t, mpzspv_t, spv_size_t, spv_size_t,
+    mpzspm_t);
+void mpzspv_revcopy (mpzspv_t, spv_size_t, mpzspv_t, spv_size_t, spv_size_t,
     mpzspm_t);
 void mpzspv_set_sp (mpzspv_t, spv_size_t, sp_t, spv_size_t, mpzspm_t);
 void mpzspv_from_mpzv (mpzspv_t, spv_size_t, mpzv_t, spv_size_t, mpzspm_t);
