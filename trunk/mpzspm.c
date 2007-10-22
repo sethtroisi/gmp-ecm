@@ -23,6 +23,11 @@
 #include <stdlib.h>
 #include "sp.h"
 
+/* This function initializes a mpzspm_t structure which contains the number
+   of small primes, the small primes with associated primitive roots and 
+   precomputed data for the CRT to allow convolution products of length up 
+   to "len" with modulus "modulus". */
+
 mpzspm_t
 mpzspm_init (spv_size_t max_len, mpz_t modulus)
 {
