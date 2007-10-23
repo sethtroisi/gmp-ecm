@@ -2233,7 +2233,7 @@ pm1fs2 (mpz_t f, const mpres_t X, mpmod_t modulus,
 	const faststage2_param_t *params)
 {
   unsigned long nr;
-  unsigned long i, l, lenF, tmplen;
+  unsigned long i, j, l, lenF, tmplen;
   long *S_1; /* This is stored as a set of sets (arithmetic progressions of
 		prime length */
   long *S_2; /* This is stored as a regular set */
@@ -2281,7 +2281,7 @@ pm1fs2 (mpz_t f, const mpres_t X, mpmod_t modulus,
   /* Allocate memory for h_ntt. We allocate it before the memory for f 
      because that will get freed again, and we want to avoid heap 
      fragmentation. */
-  h_ntt = mpzspv_init (params->l, ntt_context);
+  h_ntt = mpzspv_init (params->l / 2 + 1, ntt_context);
 
   make_S_1_S_2 (&S_1, &S_1_size, &S_2, params);
 
@@ -2338,23 +2338,64 @@ pm1fs2 (mpz_t f, const mpres_t X, mpmod_t modulus,
   clear_list (F, lenF);
   g_ntt = mpzspv_init (params->l, ntt_context);
 
-  /* Make a symmetric copy of h in h_ntt. It will have length s_1 + 1 */
-  /* I.e. with h = [3, 2, 1], s_1 = 4, we want [1, 2, 3, 2, 1] */
-  mpzspv_set (h_ntt, params->s_1 / 2, h_ntt, 0, params->s_1 / 2 + 1, 
-	      ntt_context);
-  /* Now we have [?, ?, 3, 2, 1] */
-  mpzspv_revcopy (h_ntt, 0, h_ntt, params->s_1 / 2 + 1, params->s_1 / 2,
-	      ntt_context);
-  /* Now we have [1, 2, 3, 2, 1]. Fill the rest with zeros. */
-  mpzspv_set_sp (h_ntt, params->s_1 + 1, 0, params->l - params->s_1 - 1,
+  /* Make a symmetric copy of h in g_ntt. I.e. with h = [3, 2, 1], s_1 = 4, 
+     l = 8, we want g_ntt = [3, 2, 1, 0, 0, 0, 1, 2] */
+  mpzspv_set (g_ntt, 0, h_ntt, 0, params->s_1 / 2 + 1, ntt_context);
+  mpzspv_revcopy (g_ntt, params->l - params->s_1 / 2, h_ntt, 1, 
+		  params->s_1 / 2, ntt_context);
+  /* Now we have [3, 2, 1, ?, ?, ?, 1, 2]. Fill the ?'s with zeros. */
+  mpzspv_set_sp (g_ntt, params->s_1 / 2 + 1, 0, params->l - params->s_1 - 1,
 		 ntt_context);
+#if 0
+  for (i = 0; i < params->l; i++)
+      printf ("%lu ", g_ntt[0][i]);
+  printf ("\n");
+#endif
   /* Compute forward transform */
   outputf (OUTPUT_VERBOSE, "Computing forward NTT of h");
   timestart = cputime ();
-  mpzspv_to_ntt (h_ntt, 0, params->l, params->l, 0, ntt_context);
+  mpzspv_to_ntt (g_ntt, 0, params->l, params->l, 0, ntt_context);
   timestop = cputime ();
   outputf (OUTPUT_VERBOSE, " took %lu ms\n", timestop - timestart);
 
+#if 0
+  for (i = 0; i < params->l; i++)
+      printf ("%lu ", g_ntt[0][i]);
+  printf ("\n");
+#endif
+  /* The forward transform is scrambled. We want elements [0 ... l/2]
+     of the unscrabled data, that is all the coefficients with the most 
+     significant bit in the index (in log2(l) word size) unset, plus the 
+     element at index l/2. By scrambling, these map to the elements with 
+     even index, plus the element at index 1. 
+     The elements with scrambled index 2*i are stored in h[i], the
+     element with scrambled index 1 is stored in h[params->l] */
+  
+#ifdef WANT_ASSERT
+  /* Test that the coefficients are symmetic (if they were unscambled) and 
+     that our algorithm for finding identical coefficients in the scrambled 
+     data works */
+  l = 5;
+  for (i = 2; i < params->l; i += 2)
+  {
+      unsigned long t;
+      /* This works, but why? */
+      if (i + i / 2 > l)
+	  l = l * 2 + 1;
+
+      t = l - i;
+
+      for (j = 0; j < ntt_context->sp_num; j++)
+	  ASSERT (g_ntt[j][i] == g_ntt[j][t]);
+  }
+#endif
+  /* Copy coefficients to h_ntt */
+  for (j = 0; j < ntt_context->sp_num; j++)
+  {
+      for (i = 0; i < params->l / 2; i++)
+	  h_ntt[j][i] = g_ntt[j][i * 2];
+      h_ntt[j][params->l / 2] = g_ntt[j][1];
+  }
 
   for (l = 0; l < params->s_2; l++)
     {
@@ -2371,7 +2412,30 @@ pm1fs2 (mpz_t f, const mpres_t X, mpmod_t modulus,
       
       outputf (OUTPUT_VERBOSE, "Computing point-wise product");
       timestart = cputime ();
-      mpzspv_pwmul (g_ntt, 0, g_ntt, 0, h_ntt, 0, params->l, ntt_context);
+      for (j = 0; j < ntt_context->sp_num; j++)
+      {
+	  unsigned long m = 5UL;
+	  const sp_t sp = ntt_context->spm[j]->sp; 
+	  const sp_t mul_c = ntt_context->spm[j]->mul_c;
+	  
+	  g_ntt[j][0] = sp_mul (g_ntt[j][0], h_ntt[j][0], sp, mul_c);
+
+	  for (i = 2; i < params->l; i += 2)
+	  {
+	      unsigned long t;
+
+	      /* This works, but why? */
+	      if (i + i / 2 > m)
+		  m = m * 2 + 1;
+	      
+	      t = m - i;
+	      ASSERT (t < params->l);
+	      g_ntt[j][i] = sp_mul (g_ntt[j][i], h_ntt[j][i / 2], sp, mul_c);
+	      g_ntt[j][t] = sp_mul (g_ntt[j][t], h_ntt[j][i / 2], sp, mul_c);
+	  }
+	  g_ntt[j][1] = sp_mul (g_ntt[j][1], h_ntt[j][params->l / 2], sp, 
+				mul_c);
+      }
       timestop = cputime ();
       outputf (OUTPUT_VERBOSE, " took %lu ms\n", timestop - timestart);
 
@@ -2388,7 +2452,7 @@ pm1fs2 (mpz_t f, const mpres_t X, mpmod_t modulus,
       for (i = 0; i < nr; i++)
       {
           /* FIXME: do in pieces of MPZSPV_NORMALISE_STRIDE length */
-	  mpzspv_to_mpzv (g_ntt, params->s_1 + i, &mt, 1, ntt_context);
+	  mpzspv_to_mpzv (g_ntt, params->s_1 / 2  + i, &mt, 1, ntt_context);
 	  outputf (OUTPUT_TRACE, "r_%lu = %Zd; /* PARI */\n", i, mt);
 	  if (mpz_sgn (mt) == 0)
 	      outputf (OUTPUT_VERBOSE, "r_%lu = 0\n", i);
