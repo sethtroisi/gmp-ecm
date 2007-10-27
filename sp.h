@@ -413,6 +413,8 @@ void mpzspv_from_mpzv (mpzspv_t, spv_size_t, mpzv_t, spv_size_t, mpzspm_t);
 void mpzspv_reverse (mpzspv_t, spv_size_t, spv_size_t, mpzspm_t);
 void mpzspv_neg (mpzspv_t, spv_size_t, mpzspv_t, spv_size_t, spv_size_t,
     mpzspm_t);
+void mpzspv_add (mpzspv_t, spv_size_t, mpzspv_t, spv_size_t, mpzspv_t,
+    spv_size_t, spv_size_t, mpzspm_t);
 void mpzspv_to_mpzv (mpzspv_t, spv_size_t, mpzv_t, spv_size_t, mpzspm_t);
 void mpzspv_normalise (mpzspv_t, spv_size_t, spv_size_t, mpzspm_t);
 void mpzspv_pwmul (mpzspv_t, spv_size_t, mpzspv_t, spv_size_t, mpzspv_t, 
