@@ -153,6 +153,20 @@ mpzspv_neg (mpzspv_t r, spv_size_t r_offset, mpzspv_t x, spv_size_t x_offset,
 }
 
 void
+mpzspv_add (mpzspv_t r, spv_size_t r_offset, mpzspv_t x, spv_size_t x_offset,
+            mpzspv_t y, spv_size_t y_offset, spv_size_t len, mpzspm_t mpzspm)
+{
+  unsigned int i;
+  
+  ASSERT (mpzspv_verify (r, r_offset + len, 0, mpzspm));
+  ASSERT (mpzspv_verify (x, x_offset, len, mpzspm));
+  
+  for (i = 0; i < mpzspm->sp_num; i++)
+    spv_add (r[i] + r_offset, x[i] + x_offset, y[i] + y_offset, len, 
+             mpzspm->spm[i]->sp);
+}
+
+void
 mpzspv_reverse (mpzspv_t x, spv_size_t offset, spv_size_t len, mpzspm_t mpzspm)
 {
   unsigned int i;
@@ -211,7 +225,8 @@ mpzspv_from_mpzv (mpzspv_t x, spv_size_t offset, mpzv_t mpzv,
     }
 }
 
-/* B&S: ecrt mod m
+/* See: Daniel J. Bernstein and Jonathan P. Sorenson,
+ * Modular Exponentiation via the explicit Chinese Remainder Theorem
  *
  * memory: MPZSPV_NORMALIZE_STRIDE floats */
 void
