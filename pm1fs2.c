@@ -5,6 +5,8 @@
 #include "sp.h"
 #include <math.h>
 
+#define TEST_ZERO_RESULT
+
 #ifdef TESTDRIVE
 #include <string.h>
 static int verbose = 0;
@@ -453,7 +455,8 @@ get_factored_sorted_sets (unsigned long *setsize, const unsigned long beta)
 
   size = factor_coprimeset (NULL, beta);
   sets = malloc (size * sizeof (long));
-  ASSERT_ALWAYS (sets != NULL); /* FIXME, do error handling */
+  if (sets == NULL)
+      return NULL;
   i = factor_coprimeset (sets, beta);
   ASSERT_ALWAYS (i == size);
   
@@ -579,35 +582,9 @@ next_prime_ul (const unsigned long n)
 }
 
 
-/* Find a divisor of n close to l. FIXME: should find only even divisors
-   to ensure that s_1 is even */
-unsigned long
-find_nearby_divisor (const unsigned long n, const unsigned long l)
-{
-  unsigned long i;
-
-  ASSERT_ALWAYS (l > 0);
-  
-  if (n <= l)
-    return n;
-  
-  for (i = 0UL; i <= l - 1UL; i++)
-    {
-      if (n % (l - i) == 0UL)
-	return l - i;
-      if (n % (l + i) == 0UL)
-	return l + i;
-    }
-
-  /* Unreachable, because we had l - (l - 1) = 1 as candidate divisor */
-  abort ();
-  return 0;
-}
-
-
 /* Find an even divisor of n close to l. */
 
-unsigned long
+static unsigned long
 find_nearby_even_divisor (const unsigned long n, const unsigned long l)
 {
   unsigned long i;
@@ -1840,6 +1817,46 @@ poly_from_sets_V (listz_t F, const mpres_t Q, const long *sets,
   return deg;
 }
 
+static void
+ntt_gcd (mpz_t f, mpzspv_t g_x_ntt, const unsigned long offset, 
+	 const unsigned long len, mpzspm_t ntt_context, listz_t R, 
+	 const unsigned long Rlen, mpres_t *tmpres, mpmod_t modulus)
+{
+    unsigned long i, j;
+
+    /* Accumulate product in tmpres[1] */
+    mpres_set_ui (tmpres[1], 1UL, modulus);
+
+    for (i = 0UL; i < len; i += Rlen)
+    {
+	const unsigned long blocklen = MIN(len - i, Rlen);
+
+	mpzspv_to_mpzv (g_x_ntt, offset + i, R, blocklen, ntt_context);
+	for (j = 0UL; j < blocklen; j++)
+	{
+	    outputf (OUTPUT_TRACE, "r_%lu = %Zd; /* PARI */\n", i, R[j]);
+	    mpres_set_z_for_gcd (tmpres[0], R[j], modulus);
+#define TEST_ZERO_RESULT
+#ifdef TEST_ZERO_RESULT
+	    if (mpres_is_zero (tmpres[0], modulus))
+		outputf (OUTPUT_VERBOSE, "R_[%lu] = 0\n", i);
+#endif
+	    mpres_mul (tmpres[1], tmpres[1], tmpres[0], modulus); 
+	}
+        if (test_verbose(OUTPUT_RESVERBOSE))
+	{
+	    mpz_t t;
+	    mpz_init (t);
+            mpres_get_z (t, tmpres[1], modulus);
+            outputf (OUTPUT_RESVERBOSE, "Product of R[i] = %Zd (times some "
+                     "power of 2 if REDC was used! Try -mpzmod)\n", t);
+	    mpz_clear (t);
+	}
+        mpres_gcd (f, tmpres[1], modulus);
+    }
+}
+
+
 
 /* Compute g_i = x_0^{M-i} * r^{(M-i)^2} for 0 <= i < l. 
    x_0 = b_1^{2*k_2 + (2*m_1 + 1) * P}. r = b_1^P. */
@@ -2093,7 +2110,7 @@ pm1_sequence_h (listz_t h, mpzspv_t h_ntt, mpz_t *f, const mpres_t r,
    *without* Chebychev polynomials to utilize symmetry, 2 = using recursive 
    expansion of polynomial *with* Chebychev polynomials */
 
-ATTRIBUTE_UNUSED static void 
+ATTRIBUTE_UNUSED static int 
 pm1_build_poly_F (mpz_t *F, const mpres_t X, mpmod_t modulus, 
 		  const unsigned long beta, const int method, 
 		  const mpz_t i0, const unsigned long nr, 
@@ -2113,7 +2130,8 @@ pm1_build_poly_F (mpz_t *F, const mpres_t X, mpmod_t modulus,
   if (method == 1 || method == 2)
     {
       sets = get_factored_sorted_sets (&setsize, beta);
-      
+      if (sets == NULL)
+	  return ECM_ERROR;
       mpz_mul_ui (mt, i0, beta);
       mpz_add_si (mt, mt, sum_sets_minmax (sets, setsize, 1));
       outputf (OUTPUT_VERBOSE, "Effective B2min = %Zd\n", mt);
@@ -2267,6 +2285,8 @@ pm1_build_poly_F (mpz_t *F, const mpres_t X, mpmod_t modulus,
   /* Print the final polynomial in monomial form */
   if (test_verbose (OUTPUT_TRACE))
     list_output_poly (F, dF, 1, 0, "F(x) == ", "\n", OUTPUT_TRACE);
+
+  return 0;
 }
 
 
@@ -2388,9 +2408,9 @@ ntt_dft_mul_dct (mpzspv_t dft, mpzspv_t dct, unsigned long len,
   
   for (j = 0; j < ntt_context->sp_num; j++)
   {
-      m = 5UL;
       const sp_t sp = ntt_context->spm[j]->sp; 
       const sp_t mul_c = ntt_context->spm[j]->mul_c;
+      m = 5UL;
       
       dft[j][0] = sp_mul (dft[j][0], dct[j][0], sp, mul_c);
       
@@ -2439,7 +2459,8 @@ pm1fs2 (mpz_t f, const mpres_t X, mpmod_t modulus,
 
   outputf (OUTPUT_TRACE, "compare(a, b, n) = if (a != b,print(\"In PARI \", n, \" line, \", a \" != \" b)); /* PARI %ld */\n", pariline++);
 
-  make_S_1_S_2 (&S_1, &S_1_size, &S_2, params);
+  if (make_S_1_S_2 (&S_1, &S_1_size, &S_2, params) == ECM_ERROR)
+      return ECM_ERROR;
 
   /* Allocate all the memory we'll need */
   /* Allocate the correct amount of space for each mpz_t or the 
@@ -2613,8 +2634,7 @@ pm1fs2 (mpz_t f, const mpres_t X, mpmod_t modulus,
 
       outputf (OUTPUT_VERBOSE, "Computing product of F(g_i)");
       timestart = cputime ();
-#if 1
-      /* Try a faster way of multiplying up the R[i] for the gcd */
+
       {
 	mpres_t tmpres, tmpprod;
 	mpres_init (tmpres, modulus);
@@ -2629,17 +2649,12 @@ pm1fs2 (mpz_t f, const mpres_t X, mpmod_t modulus,
 	mpres_clear (tmpprod, modulus);
 	mpres_clear (tmpres, modulus);
       }
-#else
-      list_mulup (R, nr, modulus->orig_modulus, tmp[0]); 
-      mpz_gcd (tmp[0], R[nr - 1], modulus->orig_modulus);
-      outputf (OUTPUT_RESVERBOSE, "Product of F(g_i) = %Zd\n", R[nr - 1]);
-#endif
+
       timestop = cputime ();
       outputf (OUTPUT_VERBOSE, " took %lu ms\n", timestop - timestart);
 
       if (mpz_cmp_ui (tmp[0], 1UL) > 0)
 	{
-	  outputf (OUTPUT_NORMAL, "Found factor in stage 2\n");
 	  mpz_set (f, tmp[0]);
 	  youpi = ECM_FACTOR_FOUND_STEP2;
 	  break;
@@ -2675,7 +2690,7 @@ pm1fs2_ntt (mpz_t f, const mpres_t X, mpmod_t modulus,
 	const faststage2_param_t *params)
 {
   unsigned long nr;
-  unsigned long i, l, lenF, tmplen;
+  unsigned long i, l, lenF, tmplen, Rlen;
   long *S_1; /* This is stored as a set of sets (arithmetic progressions of
 		prime length */
   long *S_2; /* This is stored as a regular set */
@@ -2686,11 +2701,12 @@ pm1fs2_ntt (mpz_t f, const mpres_t X, mpmod_t modulus,
 		  the same memory and won't be a monic polynomial, so the 
 		  leading 1 monomial of F will be stored explicitly. Hence we 
 		  need s_1 / 2 + 1 entries. */
-  listz_t tmp;
+  listz_t tmp, R;
   mpzspm_t ntt_context;
   mpzspv_t g_ntt, h_ntt;
   mpz_t mt;   /* All-purpose temp mpz_t */
-  mpres_t mr, product; /* All-purpose temp mpres_t */
+  const unsigned long tmpreslen = 2UL;
+  mpres_t tmpres[tmpreslen]; /* All-purpose temp mpres_t */
   int youpi = ECM_NO_FACTOR_FOUND;
   long timetotalstart, timestart, timestop;
 
@@ -2701,6 +2717,9 @@ pm1fs2_ntt (mpz_t f, const mpres_t X, mpmod_t modulus,
   nr = params->l - params->s_1; /* Number of points we evaluate */
 
   outputf (OUTPUT_TRACE, "compare(a, b, n) = if (a != b,print(\"In PARI \", n, \" line, \", a \" != \" b)); /* PARI %ld */\n", pariline++);
+
+  if (make_S_1_S_2 (&S_1, &S_1_size, &S_2, params) == ECM_ERROR)
+      return ECM_ERROR;
 
   /* Precompute the small primes, primitive roots and inverses etc. for 
      the NTT. mpzspm_init() chooses the NTT primes large enough for 
@@ -2719,17 +2738,16 @@ pm1fs2_ntt (mpz_t f, const mpres_t X, mpmod_t modulus,
       outputf (OUTPUT_DEVVERBOSE, ", has %f bits\n", modbits / log (2.));
     }
 
-  make_S_1_S_2 (&S_1, &S_1_size, &S_2, params);
-
   /* Allocate all the memory we'll need */
   /* Allocate the correct amount of space for each mpz_t or the 
      reallocations will up to double the time for stage 2! */
   mpz_init (mt);
-  mpres_init (mr, modulus);
-  mpres_init (product, modulus);
+  for (i = 0; i < tmpreslen; i++)
+      mpres_init (tmpres[i], modulus);
   lenF = params->s_1 / 2 + 1 + 1; /* Another +1 because poly_from_sets_V stores
 				     the leading 1 monomial for each factor */
   tmplen = 3 * params->s_1 + 1000;
+  Rlen = MPZSPV_NORMALISE_STRIDE;
   F = init_list2 (lenF, abs (modulus->bits));
   tmp = init_list2 (tmplen, abs (modulus->bits));
 
@@ -2745,12 +2763,11 @@ pm1fs2_ntt (mpz_t f, const mpres_t X, mpmod_t modulus,
   timestart = cputime ();
   
   /* First compute X^2 + 1/X^2 */
-  mpres_init (mr, modulus);
-  mpres_invert (mr, X, modulus);
-  mpres_add (mr, mr, X, modulus);
-  V (mr, mr, 2UL, modulus);
+  mpres_invert (tmpres[0], X, modulus);
+  mpres_add (tmpres[0], tmpres[0], X, modulus);
+  V (tmpres[0], tmpres[0], 2UL, modulus);
   
-  i = poly_from_sets_V (F, mr, S_1, S_1_size, tmp, tmplen, modulus);
+  i = poly_from_sets_V (F, tmpres[0], S_1, S_1_size, tmp, tmplen, modulus);
   ASSERT(2 * i == params->s_1);
   ASSERT(mpz_cmp_ui (F[i], 1UL) == 0);
   
@@ -2770,8 +2787,8 @@ pm1fs2_ntt (mpz_t f, const mpres_t X, mpmod_t modulus,
   h_ntt = mpzspv_init (params->l / 2 + 1, ntt_context);
 
   mpz_set_ui (mt, params->P);
-  mpres_pow (mr, X, mt, modulus); /* mr = X^P */
-  pm1_sequence_h (NULL, h_ntt, F, mr, params->s_1 / 2 + 1, modulus, 
+  mpres_pow (tmpres[0], X, mt, modulus); /* mr = X^P */
+  pm1_sequence_h (NULL, h_ntt, F, tmpres[0], params->s_1 / 2 + 1, modulus, 
 		  ntt_context);
 
   clear_list (tmp, tmplen);
@@ -2807,6 +2824,8 @@ pm1fs2_ntt (mpz_t f, const mpres_t X, mpmod_t modulus,
   /* Store the params->l/2 + 1 distinct coefficients of the DFT in h_ntt */
   ntt_dft_to_dct (h_ntt, g_ntt, params->l, ntt_context);
 
+  R = init_list (Rlen);
+
   for (l = 0; l < params->s_2; l++)
     {
       const long M = params->l - 1 - params->s_1 / 2;
@@ -2833,39 +2852,25 @@ pm1fs2_ntt (mpz_t f, const mpres_t X, mpmod_t modulus,
       outputf (OUTPUT_VERBOSE, " took %lu ms\n", timestop - timestart);
      
       outputf (OUTPUT_VERBOSE, "Computing product of g*h coefficients");
-      outputf (OUTPUT_TRACE, "\n");
       timestart = cputime ();
-      mpres_set_ui (product, 1UL, modulus);
-      for (i = 0; i < nr; i++)
-      {
-          /* FIXME: do in pieces of MPZSPV_NORMALISE_STRIDE length */
-	  mpzspv_to_mpzv (g_ntt, params->s_1 / 2  + i, &mt, 1, ntt_context);
-	  outputf (OUTPUT_TRACE, "r_%lu = %Zd; /* PARI */\n", i, mt);
-	  if (mpz_sgn (mt) == 0)
-	      outputf (OUTPUT_VERBOSE, "r_%lu = 0\n", i);
-	  mpres_set_z_for_gcd (mr, mt, modulus);
-	  mpres_mul (product, product, mr, modulus);
-      }
+      ntt_gcd (mt, g_ntt, params->s_1 / 2, nr, ntt_context, R, Rlen, 
+	       tmpres, modulus);
       timestop = cputime ();
       outputf (OUTPUT_VERBOSE, " took %lu ms\n", timestop - timestart);
 
-      mpres_gcd (mt, product, modulus);
       if (mpz_cmp_ui (mt, 1UL) > 0)
 	{
-	  outputf (OUTPUT_NORMAL, "Found factor in stage 2\n");
 	  mpz_set (f, mt);
 	  youpi = ECM_FACTOR_FOUND_STEP2;
 	  break;
 	}
     }
 
-  
+  clear_list (R, Rlen);
   mpzspv_clear (g_ntt, ntt_context);
   mpzspv_clear (h_ntt, ntt_context);
   mpzspm_clear (ntt_context);
   mpz_clear (mt);
-  mpres_clear (mr, modulus);
-  mpres_clear (product, modulus);
 
   timestop = cputime ();
   outputf (OUTPUT_NORMAL, "Step 2 took %ld ms\n", 
@@ -3633,10 +3638,9 @@ pp1fs2 (mpz_t f, const mpres_t X, mpmod_t modulus,
 		  need s_1 / 2 + 1 entries. */
 
   listz_t g_x, g_y, fh_x, fh_y, h_x, h_y, tmp, R_x, R_y; 
-  const unsigned long tmpreslen = 20;
+  const unsigned long tmpreslen = 20UL;
   mpres_t b1_x, b1_y, Delta, tmpres[tmpreslen];
   mpz_t mt;   /* All-purpose temp mpz_t */
-  mpres_t mr; /* All-purpose temp mpres_t */
   int youpi = ECM_NO_FACTOR_FOUND;
   long timetotalstart, timestart, timestop;
 
@@ -3649,13 +3653,13 @@ pp1fs2 (mpz_t f, const mpres_t X, mpmod_t modulus,
   outputf (OUTPUT_TRACE, "compare(a, b, n) = if (a != b,print(\"In PARI \", "
 	   "n, \" line, \", a \" != \" b)); /* PARI %ld */\n", pariline++);
 
-  make_S_1_S_2 (&S_1, &S_1_size, &S_2, params);
+  if (make_S_1_S_2 (&S_1, &S_1_size, &S_2, params) == ECM_ERROR)
+      return ECM_ERROR;
 
   /* Allocate all the memory we'll need */
   /* Allocate the correct amount of space for each mpz_t or the 
      reallocations will up to double the time for stage 2! */
   mpz_init (mt);
-  mpres_init (mr, modulus);
   mpres_init (b1_x, modulus);
   mpres_init (b1_y, modulus);
   mpres_init (Delta, modulus);
@@ -3699,8 +3703,8 @@ pp1fs2 (mpz_t f, const mpres_t X, mpmod_t modulus,
   outputf (OUTPUT_VERBOSE, "Computing F from factored S_1");
   
   timestart = cputime ();
-  V (mr, X, 2UL, modulus);
-  i = poly_from_sets_V (F, mr, S_1, S_1_size, tmp, tmplen, modulus);
+  V (tmpres[0], X, 2UL, modulus);
+  i = poly_from_sets_V (F, tmpres[0], S_1, S_1_size, tmp, tmplen, modulus);
   ASSERT(2 * i == params->s_1);
   ASSERT(mpz_cmp_ui (F[i], 1UL) == 0);
   timestop = cputime ();
@@ -3777,42 +3781,35 @@ pp1fs2 (mpz_t f, const mpres_t X, mpmod_t modulus,
       timestop = cputime ();
       outputf (OUTPUT_VERBOSE, " took %lu ms\n", timestop - timestart);
       for (i = 0; i < nr; i++)
-	{
-	    /* mpres_mul_z_to_z (R_y[i], Delta, R_y[i], modulus); */
 	  mpz_add (R_x[i], R_x[i], R_y[i]);
-	}
       
       timestart = cputime ();
+      mpres_set_ui (tmpres[1], 1UL, modulus); /* Accumulate product in 
+						 tmpres[1] */
+      for (i = 0; i < nr; i++)
       {
-	mpres_t tmpres;
-	mpres_init (tmpres, modulus);
-	mpres_set_ui (mr, 1UL, modulus);
-	for (i = 0; i < nr; i++)
-	  {
-            mpres_set_z_for_gcd (tmpres, R_x[i], modulus);
+	  mpres_set_z_for_gcd (tmpres[0], R_x[i], modulus);
 #define TEST_ZERO_RESULT
 #ifdef TEST_ZERO_RESULT
-	    if (mpres_is_zero (tmpres, modulus))
+	  if (mpres_is_zero (tmpres[0], modulus))
 	      outputf (OUTPUT_VERBOSE, "R_[%lu] = 0\n", i);
 #endif
-            mpres_mul (mr, mr, tmpres, modulus); 
-          }
-        if (test_verbose(OUTPUT_RESVERBOSE))
-          {
-            mpres_get_z (mt, mr, modulus);
-            outputf (OUTPUT_RESVERBOSE, "Product of R[i] = %Zd (times some "
-                     "power of 2 if REDC was used! Try -mpzmod)\n", mt);
-          }
-        mpres_gcd (mt, mr, modulus);
-        mpres_clear (tmpres, modulus);
+	  mpres_mul (tmpres[1], tmpres[1], tmpres[0], modulus); 
       }
+      if (test_verbose(OUTPUT_RESVERBOSE))
+      {
+	  mpres_get_z (mt, tmpres[1], modulus);
+	  outputf (OUTPUT_RESVERBOSE, "Product of R[i] = %Zd (times some "
+		   "power of 2 if REDC was used! Try -mpzmod)\n", mt);
+      }
+      mpres_gcd (mt, tmpres[1], modulus);
+
       timestop = cputime ();
       outputf (OUTPUT_VERBOSE, "Computing product of F(g_i)^(1) took %lu ms\n", 
 	       timestop - timestart);
       
       if (mpz_cmp_ui (mt, 1UL) > 0)
 	{
-	  outputf (OUTPUT_NORMAL, "Found factor in stage 2\n");
 	  mpz_set (f, mt);
 	  youpi = ECM_FACTOR_FOUND_STEP2;
 	  break;
@@ -3820,7 +3817,6 @@ pp1fs2 (mpz_t f, const mpres_t X, mpmod_t modulus,
     }
 
   mpz_clear (mt);
-  mpres_clear (mr, modulus);
   mpres_clear (b1_x, modulus);
   mpres_clear (b1_y, modulus);
   mpres_clear (Delta, modulus);
@@ -3849,7 +3845,7 @@ pp1fs2_ntt (mpz_t f, const mpres_t X, mpmod_t modulus,
 	    const faststage2_param_t *params)
 {
   unsigned long nr;
-  unsigned long i, l, lenF, tmplen;
+  unsigned long i, l, lenF, tmplen, Rlen;
   long *S_1; /* This is stored as a set of sets (arithmetic progressions of
 		prime length */
   long *S_2; /* This is stored as a regular set */
@@ -3860,13 +3856,12 @@ pp1fs2_ntt (mpz_t f, const mpres_t X, mpmod_t modulus,
 		  the same memory and won't be a monic polynomial, so the 
 		  leading 1 monomial of F will be stored explicitly. Hence we 
 		  need s_1 / 2 + 1 entries. */
-  listz_t tmp;
+  listz_t tmp, R;
   mpzspm_t ntt_context;
   mpzspv_t g_x_ntt, g_y_ntt, h_x_ntt, h_y_ntt;
   const unsigned long tmpreslen = 20;
   mpres_t b1_x, b1_y, Delta, tmpres[tmpreslen];
   mpz_t mt;   /* All-purpose temp mpz_t */
-  mpres_t mr; /* All-purpose temp mpres_t */
   int youpi = ECM_NO_FACTOR_FOUND;
   long timetotalstart, timestart, timestop;
 
@@ -3879,13 +3874,13 @@ pp1fs2_ntt (mpz_t f, const mpres_t X, mpmod_t modulus,
   outputf (OUTPUT_TRACE, "compare(a, b, n) = if (a != b,print(\"In PARI \", "
 	   "n, \" line, \", a \" != \" b)); /* PARI %ld */\n", pariline++);
 
-  make_S_1_S_2 (&S_1, &S_1_size, &S_2, params);
+  if (make_S_1_S_2 (&S_1, &S_1_size, &S_2, params) == ECM_ERROR)
+      return ECM_ERROR;
 
   /* Allocate all the memory we'll need */
   /* Allocate the correct amount of space for each mpz_t or the 
      reallocations will up to double the time for stage 2! */
   mpz_init (mt);
-  mpres_init (mr, modulus);
   mpres_init (b1_x, modulus);
   mpres_init (b1_y, modulus);
   mpres_init (Delta, modulus);
@@ -3897,6 +3892,7 @@ pp1fs2_ntt (mpz_t f, const mpres_t X, mpmod_t modulus,
   tmplen = 3UL * params->l + list_mul_mem (params->l / 2) + 20;
   outputf (OUTPUT_DEVVERBOSE, "tmplen = %lu\n", tmplen);
   tmp = init_list2 (tmplen, abs (modulus->bits));
+  Rlen = MPZSPV_NORMALISE_STRIDE;
 
   if (test_verbose (OUTPUT_TRACE))
     {
@@ -3909,8 +3905,8 @@ pp1fs2_ntt (mpz_t f, const mpres_t X, mpmod_t modulus,
   outputf (OUTPUT_VERBOSE, "Computing F from factored S_1");
   
   timestart = cputime ();
-  V (mr, X, 2UL, modulus);
-  i = poly_from_sets_V (F, mr, S_1, S_1_size, tmp, tmplen, modulus);
+  V (tmpres[0], X, 2UL, modulus);
+  i = poly_from_sets_V (F, tmpres[0], S_1, S_1_size, tmp, tmplen, modulus);
   ASSERT(2 * i == params->s_1);
   ASSERT(mpz_cmp_ui (F[i], 1UL) == 0);
   timestop = cputime ();
@@ -3989,6 +3985,8 @@ pp1fs2_ntt (mpz_t f, const mpres_t X, mpmod_t modulus,
   /* Store the params->l/2 + 1 distinct coeffs of the DFT in h_y_ntt */
   ntt_dft_to_dct (h_y_ntt, g_y_ntt, params->l, ntt_context);
 
+  R = init_list (Rlen);
+
   for (l = 0; l < params->s_2; l++)
     {
       const long M = params->l - 1 - params->s_1 / 2;
@@ -4028,38 +4026,14 @@ pp1fs2_ntt (mpz_t f, const mpres_t X, mpmod_t modulus,
       outputf (OUTPUT_VERBOSE, " took %lu ms\n", timestop - timestart);
       
       timestart = cputime ();
-      {
-	mpres_t tmpprod;
-	mpres_init (tmpprod, modulus);
-	mpres_set_ui (tmpprod, 1UL, modulus);
-	for (i = 0; i < nr; i++)
-	{
-	    mpzspv_to_mpzv (g_x_ntt, params->s_1 / 2  + i, &mt, 1, 
-			    ntt_context);
-            mpres_set_z_for_gcd (mr, mt, modulus);
-#define TEST_ZERO_RESULT
-#ifdef TEST_ZERO_RESULT
-	    if (mpres_is_zero (mr, modulus))
-	      outputf (OUTPUT_VERBOSE, "R_[%lu] = 0\n", i);
-#endif
-            mpres_mul (tmpprod, tmpprod, mr, modulus); 
-	}
-        if (test_verbose(OUTPUT_RESVERBOSE))
-          {
-            mpres_get_z (mt, tmpprod, modulus);
-            outputf (OUTPUT_RESVERBOSE, "Product of R[i] = %Zd (times some "
-                     "power of 2 if REDC was used! Try -mpzmod)\n", mt);
-          }
-        mpres_gcd (mt, tmpprod, modulus);
-        mpres_clear (tmpprod, modulus);
-      }
+      ntt_gcd (mt, g_x_ntt, params->s_1 / 2, nr, ntt_context, R, Rlen, 
+	       tmpres, modulus);
       timestop = cputime ();
       outputf (OUTPUT_VERBOSE, "Computing product of F(g_i)^(1) took %lu ms\n", 
 	       timestop - timestart);
       
       if (mpz_cmp_ui (mt, 1UL) > 0)
 	{
-	  outputf (OUTPUT_NORMAL, "Found factor in stage 2\n");
 	  mpz_set (f, mt);
 	  youpi = ECM_FACTOR_FOUND_STEP2;
 	  break;
@@ -4072,7 +4046,6 @@ pp1fs2_ntt (mpz_t f, const mpres_t X, mpmod_t modulus,
   mpzspv_clear (h_y_ntt, ntt_context);
   mpzspm_clear (ntt_context);
   mpz_clear (mt);
-  mpres_clear (mr, modulus);
   mpres_clear (b1_x, modulus);
   mpres_clear (b1_y, modulus);
   mpres_clear (Delta, modulus);
@@ -4156,6 +4129,11 @@ int main (int argc, char **argv)
   d = eulerphi (pn);
 
   L = get_factored_sorted_sets (&setsize, pn);
+  if (L == NULL)
+  {
+      printf ("Error, get_factored_sorted_sets() returned NULL pointer\n");
+      exit (EXIT_FAILURE);
+  }
 
   F = init_list (d);
   tmplen = 10*d+10;
