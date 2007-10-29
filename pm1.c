@@ -990,7 +990,12 @@ pm1 (mpz_t f, mpz_t p, mpz_t N, mpz_t go, double *B1done, double B1,
   if (youpi == ECM_NO_FACTOR_FOUND && mpz_cmp (B2, B2min) >= 0)
     {
       if (S == 1)
-        youpi = pm1fs2 (f, x, modulus, &faststage2_params);
+        {
+          if (use_ntt)
+            youpi = pm1fs2_ntt (f, x, modulus, &faststage2_params);
+          else
+            youpi = pm1fs2 (f, x, modulus, &faststage2_params);
+        }
       else
         youpi = stage2 (f, &x, modulus, dF, k, &root_params, ECM_PM1, 
                         use_ntt, TreeFilename, stop_asap);
