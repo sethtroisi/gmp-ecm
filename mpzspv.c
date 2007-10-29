@@ -217,6 +217,7 @@ mpzspv_from_mpzv (mpzspv_t x, spv_size_t offset, mpzv_t mpzv,
 	}
       else
         {
+	  ASSERT(mpz_sgn (mpzv[i]) > 0);
 	  for (j = 0; j < sp_num; j++)
             x[j][i + offset] =
               mpn_preinv_mod_1 (PTR(mpzv[i]), SIZ(mpzv[i]),
