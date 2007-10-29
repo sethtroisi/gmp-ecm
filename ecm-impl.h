@@ -347,6 +347,7 @@ void    pm1_rootsG_clear (pm1_roots_state *, mpmod_t);
 long    choose_P (const mpz_t, const mpz_t, const unsigned long,
                   const unsigned long, faststage2_param_t *, mpz_t, mpz_t);
 int	pm1fs2 (mpz_t, const mpres_t, mpmod_t, const faststage2_param_t *);
+int	pm1fs2_ntt (mpz_t, const mpres_t, mpmod_t, const faststage2_param_t *);
 int     pp1fs2 (mpz_t, const mpres_t, mpmod_t, const faststage2_param_t *);
 int     pp1fs2_ntt (mpz_t, const mpres_t, mpmod_t, const faststage2_param_t *);
   
