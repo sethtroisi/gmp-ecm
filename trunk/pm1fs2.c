@@ -2026,11 +2026,12 @@ pm1_sequence_h (listz_t h, mpzspv_t h_ntt, mpz_t *f, const mpres_t r,
   /* For j = 0, we have h_j = f_j */
   if (d > 0)
     {
-      outputf (OUTPUT_TRACE, "/* pm1_sequence_h */ h_0 = f_0; /* PARI */\n");
+      mpz_mod (t, f[0], modulus->orig_modulus);
+      outputf (OUTPUT_TRACE, "/* pm1_sequence_h */ h_0 = %Zd; /* PARI */\n", t);
       if (h != NULL)
-	  mpz_set (h[0], f[0]);
+	mpz_set (h[0], t);
       if (h_ntt != NULL)
-	  mpzspv_from_mpzv (h_ntt, 0UL, f, 1UL, ntt_context);
+	mpzspv_from_mpzv (h_ntt, 0UL, &t, 1UL, ntt_context);
     }
 
   /* Do j = 1 */
