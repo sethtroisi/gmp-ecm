@@ -229,7 +229,7 @@ mpzspv_from_mpzv (mpzspv_t x, spv_size_t offset, mpzv_t mpzv,
 /* See: Daniel J. Bernstein and Jonathan P. Sorenson,
  * Modular Exponentiation via the explicit Chinese Remainder Theorem
  *
- * memory: MPZSPV_NORMALIZE_STRIDE floats */
+ * memory: MPZSPV_NORMALISE_STRIDE floats */
 void
 mpzspv_to_mpzv (mpzspv_t x, spv_size_t offset, mpzv_t mpzv,
     spv_size_t len, mpzspm_t mpzspm)
