@@ -708,13 +708,15 @@ choose_s_1 (const unsigned long phiP, const unsigned long min_s2,
 {
   unsigned long s_1, s_2;
 
-  s_2 = MAX(1UL, min_s2);
-  if (s_2 > phiP / 2) /* s_1 >= 2, so s_1 *  min_s2 > phiP */
-    return 0;
+  /* Find the smallest s_2 >= min_s2, s_2 <= phiP / 2 so that s_2 | phiP and 
+     phiP / s_2 is even */
+  for (s_2 = MAX(1UL, min_s2); phiP % s_2 != 0UL || (phiP / s_2) % 2UL != 0UL; 
+       s_2++)
+    if (s_2 > phiP / 2) /* s_1 >= 2, so s_1 *  min_s2 > phiP */
+      return 0;
 
-  for (; s_2 < phiP / 2 && phiP % s_2 != 0UL && (phiP / s_2) % 2 == 0 ; s_2++);
-  if (phiP % s_2 != 0 || (phiP / s_2) % 2 != 0)
-    return 0;
+  /* Find an even divisor of phiP / s_2 which is close to lmax / 2 */
+  /* FIXME: Do we actually need this? */
   s_1 = find_nearby_even_divisor (phiP / s_2, lmax / 2);
   ASSERT (s_1 % 2 == 0);
   return s_1;
