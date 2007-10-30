@@ -64,6 +64,9 @@ const unsigned long Pvalues[] = {
     387221835UL, 400254855UL, 421936515UL, 431636205UL, 451035585UL,
     451035585UL, 470434965UL, 480134655UL};
 
+/* All the prime factors that can appear in eulerphi(P) */
+const unsigned long phiPfactors[] = {2UL, 3UL, 5UL, 7UL, 11UL, 13UL};
+
 
 /* Some useful PARI functions:
    sumset(a,b) = {local(i, j, l); l = listcreate (length(a) * length(b)); for (i = 1, length(a), for (j = 1, length(b), listput(l, a[i] + b[j]))); listsort (l, 1); l}
@@ -582,34 +585,6 @@ next_prime_ul (const unsigned long n)
 }
 
 
-/* Find an even divisor of n close to l. */
-
-static unsigned long
-find_nearby_even_divisor (const unsigned long n, const unsigned long l)
-{
-  unsigned long i;
-
-  ASSERT_ALWAYS (l > 0);
-  ASSERT (n % 2 == 0);
-  
-  if (n <= l)
-    return n;
-  
-  for (i = l % 2UL; i <= l - 1UL; i += 2UL)
-    {
-      if (n % (l - i) == 0UL)
-	return l - i;
-      if (n % (l + i) == 0UL)
-	return l + i;
-    }
-
-  /* Unreachable, because if l is odd, we had l - (l - 1) = 1 as candidate 
-     divisor, and if l is even, we had 2 as candidate divisor */
-  abort ();
-  return 0;
-}
-
-
 /* Find the smallest prime factor of N. If N == 1, return 1. */
 
 static unsigned long
@@ -698,27 +673,92 @@ test_P (const mpz_t B2min, const mpz_t B2, mpz_t m_1, const unsigned long P,
 }
 
 
+static void
+factor_phiP (int *exponents, const unsigned long phiP)
+{
+    const int nrprimes = sizeof (phiPfactors) / sizeof (unsigned long);
+    unsigned long cofactor = phiP;
+    int i;
+    
+    ASSERT_ALWAYS (phiP > 0UL);
+
+    for (i = 0; i < nrprimes; i++)
+	for (exponents[i] = 0; cofactor % phiPfactors[i] == 0UL; exponents[i]++)
+	    cofactor /= phiPfactors[i];
+
+    ASSERT_ALWAYS (cofactor == 1UL);
+}
+
+
+static unsigned long 
+pow_ul (const unsigned long b, unsigned int e)
+{
+    unsigned long r = 1UL;
+    unsigned int i;
+
+    for (i = 0; i < e; i++)
+	r *= b;
+
+    return r;
+}
+
+static unsigned long
+absdiff_ul (unsigned long a, unsigned long b)
+{
+    if (a > b)
+	return a - b;
+    else
+	return b - a;
+}
+
 /* Choose s_1 so that s_1 * s_2 = phiP, s_1 is positive and even, 
-   s_2 > min_s2 and s_2 is minimal under those conditions. 
+   s_2 >= min_s2 and s_2 is minimal and abs(s_1 - l) is minimal 
+   under those conditions. 
    Returns 0 if no such choice is possible */
 
-unsigned long 
+static unsigned long 
 choose_s_1 (const unsigned long phiP, const unsigned long min_s2,
-	    const unsigned long lmax)
+	    const unsigned long l)
 {
-  unsigned long s_1, s_2;
+  const int nrprimes = sizeof (phiPfactors) / sizeof (unsigned long);
+  int phiPexponents[nrprimes], exponents[nrprimes];
+  unsigned long s_1 = 0UL, s_2 = 0UL, trys_1;
+  int i;
 
-  /* Find the smallest s_2 >= min_s2, s_2 <= phiP / 2 so that s_2 | phiP and 
-     phiP / s_2 is even */
-  for (s_2 = MAX(1UL, min_s2); phiP % s_2 != 0UL || (phiP / s_2) % 2UL != 0UL; 
-       s_2++)
-    if (s_2 > phiP / 2) /* s_1 >= 2, so s_1 *  min_s2 > phiP */
-      return 0;
+  ASSERT_ALWAYS (phiP > 0 && phiP % 2 == 0);
 
-  /* Find an even divisor of phiP / s_2 which is close to lmax / 2 */
-  /* FIXME: Do we actually need this? */
-  s_1 = find_nearby_even_divisor (phiP / s_2, lmax / 2);
-  ASSERT (s_1 % 2 == 0);
+  /* We want only even s_1. We divide one 2 out of phiP here... */
+  factor_phiP (phiPexponents, phiP / 2);
+  for (i = 0; i < nrprimes; i++)
+      exponents[i] = 0;
+
+  do {
+      trys_1 = 2; /* ... and add a 2 here */
+      for (i = 0; i < nrprimes; i++)
+	  trys_1 *= pow_ul (phiPfactors[i], exponents[i]);
+#if 0
+      printf ("choose_s_1: Trying trys_1 = %lu\n", trys_1);
+#endif
+      /* See if it satisfies all the required conditions and is an 
+	 improvement over the previous choice */
+      if (phiP / trys_1 >= min_s2 && 
+	  (s_2 == 0UL || phiP / trys_1 < s_2) && 
+	  absdiff_ul (trys_1, l) < absdiff_ul (s_1, l))
+      {
+#if 0
+	  printf ("choose_s_1: New best s_1 for phiP = %lu, min_s2 = %lu, "
+		  "l = %lu : %lu\n", phiP, min_s2, l, trys_1);
+#endif
+	  s_1 = trys_1;
+      }
+      for (i = 0; i < nrprimes; i++)
+      {
+	  if (++(exponents[i]) <= phiPexponents[i])
+	      break;
+	  exponents[i] = 0;
+      }
+  } while (i < nrprimes);
+
   return s_1;
 }
 
@@ -797,7 +837,7 @@ choose_P (const mpz_t B2min, const mpz_t B2, const unsigned long lmax,
       /* Now a careful check to see if this P is large enough */
       P = Pvalues[i];
       phiP = eulerphi (P);
-      s_1 = choose_s_1 (phiP, min_s2, lmax);
+      s_1 = choose_s_1 (phiP, min_s2, lmax / 2);
       if (s_1 == 0)
 	continue;
       s_2 = phiP / s_1;
@@ -839,7 +879,7 @@ choose_P (const mpz_t B2min, const mpz_t B2, const unsigned long lmax,
 	 we can't possibly find a trys_2 <= s_2 any more */
       if (s_2 < tryphiP / l)
 	break;
-      trys_1 = choose_s_1 (tryphiP, min_s2, l);
+      trys_1 = choose_s_1 (tryphiP, min_s2, l / 2);
       if (trys_1 == 0)
 	continue;
       trys_2 = tryphiP / trys_1;
