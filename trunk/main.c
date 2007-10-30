@@ -912,9 +912,16 @@ main (int argc, char *argv[])
 
   /* Install signal handlers */
 #ifdef HAVE_SIGNAL
-  signal (SIGINT, &signal_handler);
-  signal (SIGTERM, &signal_handler);
-  params->stop_asap = &stop_asap_test;
+  /* We catch signals only if there is a savefile. Otherwise there's nothing
+     we could save by exiting cleanly, but the waiting for the code to check
+     for signals may delay program end unacceptably */
+
+  if (savefile)
+    {
+      signal (SIGINT, &signal_handler);
+      signal (SIGTERM, &signal_handler);
+      params->stop_asap = &stop_asap_test;
+    }
 #endif
 
   /* loop for number in standard input or file */
