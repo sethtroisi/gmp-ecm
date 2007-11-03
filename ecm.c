@@ -548,6 +548,9 @@ prac (mpres_t xA, mpres_t zA, unsigned long k, mpmod_t n, mpres_t b,
    Output: If a factor is found, it is returned in x.
            Otherwise, x contains the x-coordinate of the point computed
            in stage 1 (with z coordinate normalized to 1).
+	   B1done is set to B1 if stage 1 completed normally,
+	   or to the largest prime processed if interrupted, but never
+	   to a smaller value than B1done was upon function entry.
    Return value: ECM_FACTOR_FOUND_STEP1 if a factor, otherwise 
            ECM_NO_FACTOR_FOUND
 */
@@ -557,9 +560,9 @@ ecm_stage1 (mpz_t f, mpres_t x, mpres_t A, mpmod_t n, double B1,
             char *chkfilename)
 {
   mpres_t b, z, u, v, w, xB, zB, xC, zC, xT, zT, xT2, zT2;
-  double p, r;
+  double p, r, last_chkpnt_p;
   int ret = ECM_NO_FACTOR_FOUND;
-  int last_chkpnt_time, last_chkpnt_p;
+  long last_chkpnt_time;
 
   MEMORY_TAG;
   mpres_init (b, n);
@@ -617,7 +620,7 @@ ecm_stage1 (mpz_t f, mpres_t x, mpres_t A, mpmod_t n, double B1,
         add3 (x, z, x, z, xB, zB, x, z, n, u, v, w);
       }
   
-  last_chkpnt_p = 3;
+  last_chkpnt_p = 3.;
   p = getprime (2.0); /* Puts 3.0 into p. Next call gives 5.0 */
   for (p = getprime (p); p <= B1; p = getprime (p))
     {
@@ -639,16 +642,23 @@ ecm_stage1 (mpz_t f, mpres_t x, mpres_t A, mpmod_t n, double B1,
           break;
         }
 
-      if (chkfilename != NULL && p > last_chkpnt_p + 10000 && 
+      if (chkfilename != NULL && p > last_chkpnt_p + 10000. && 
           elltime (last_chkpnt_time, cputime ()) > CHKPNT_PERIOD)
         {
-          writechkfile (chkfilename, ECM_ECM, p, n, A, x, z);
+          writechkfile (chkfilename, ECM_ECM, MAX(p, *B1done), n, A, x, z);
           last_chkpnt_p = p;
           last_chkpnt_time = cputime ();
         }
     }
   
-  *B1done = (p < B1) ? p : B1;
+  /* If stage 1 finished normally, p is the smallest prime >B1 here.
+     In that case, set to B1 */
+  if (p > B1)
+      p = B1;
+  
+  if (p > *B1done)
+      *B1done = p;
+
   if (chkfilename != NULL)
     writechkfile (chkfilename, ECM_ECM, *B1done, n, A, x, z);
   getprime (FREE_PRIME_TABLE); /* free the prime tables, and reinitialize */
