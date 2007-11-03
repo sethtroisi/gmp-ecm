@@ -124,19 +124,22 @@ unnegate:
 	   B1done: stage 1 was already done up to that limit
 	   go: if <> 1, group order to preload
    Output: a is the factor found, or the value at end of stage 1
+	   B1done is set to B1 if stage 1 completed normally,
+	   or to the largest prime processed if interrupted, but never
+	   to a smaller value than B1done was upon function entry.
    Return value: non-zero iff a factor was found.
 */
 static int
 pp1_stage1 (mpz_t f, mpres_t P0, mpmod_t n, double B1, double *B1done, 
             mpz_t go, int (*stop_asap)(void), char *chkfilename)
 {
-  double B0, p, q, r;
+  double B0, p, q, r, last_chkpnt_p;
   mpz_t g;
   mpres_t P, Q;
   mpres_t R, S, T;
   int youpi = ECM_NO_FACTOR_FOUND;
   unsigned int max_size, size_n;
-  int last_chkpnt_p, last_chkpnt_time;
+  long last_chkpnt_time;
 
   mpz_init (g);
   mpres_init (P, n);
@@ -172,7 +175,7 @@ pp1_stage1 (mpz_t f, mpres_t P0, mpmod_t n, double B1, double *B1done,
 
   mpz_set_ui (g, 1);
 
-  last_chkpnt_p = 2;
+  last_chkpnt_p = 2.;
   last_chkpnt_time = cputime ();
   /* first loop through small primes <= sqrt(B1) */
   for (p = 2.0; p <= B0; p = getprime (p))
@@ -187,7 +190,8 @@ pp1_stage1 (mpz_t f, mpres_t P0, mpmod_t n, double B1, double *B1done,
           if (stop_asap != NULL && (*stop_asap) ())
             {
               outputf (OUTPUT_NORMAL, "Interrupted at prime %.0f\n", p);
-              *B1done = p;
+	      if (p > *B1done)
+		  *B1done = p;
               goto clear_and_exit;
             }
 	}
@@ -214,10 +218,11 @@ pp1_stage1 (mpz_t f, mpres_t P0, mpmod_t n, double B1, double *B1done,
       if (stop_asap != NULL && (*stop_asap) ())
         {
           outputf (OUTPUT_NORMAL, "Interrupted at prime %.0f\n", p);
-          *B1done = p;
+	  if (p > *B1done)
+	      *B1done = p;
           goto clear_and_exit;
         }
-      if (chkfilename != NULL && p > last_chkpnt_p + 10000 &&
+      if (chkfilename != NULL && p > last_chkpnt_p + 10000. &&
           elltime (last_chkpnt_time, cputime ()) > CHKPNT_PERIOD)
         {
           writechkfile (chkfilename, ECM_PP1, p, n, NULL, P0, NULL);
@@ -226,7 +231,14 @@ pp1_stage1 (mpz_t f, mpres_t P0, mpmod_t n, double B1, double *B1done,
         }
     }
 
-  *B1done = B1;
+  /* If stage 1 finished normally, p is the smallest prime >B1 here.
+     In that case, set to B1 */
+  if (p > B1)
+    p = B1;
+  
+  if (p > *B1done)
+    *B1done = p;
+  
   mpres_sub_ui (P, P0, 2, n);
 #ifndef FULL_REDUCTION
   mpres_normalize (P); /* needed for gcd */

@@ -184,6 +184,9 @@ mulcascade_get_z (mpz_t r, mul_casc *c)
 	   B1done: stage 1 was already done up to that limit
 	   go is the group order to preload
    Output: f is the factor found, a is the value at end of stage 1
+	   B1done is set to B1 if stage 1 completed normally,
+	   or to the largest prime processed if interrupted, but never
+	   to a smaller value than B1done was upon function entry.
    Return value: non-zero iff a factor was found (or an error occurred).
 */
 
@@ -191,13 +194,13 @@ static int
 pm1_stage1 (mpz_t f, mpres_t a, mpmod_t n, double B1, double *B1done, 
             mpz_t go, int (*stop_asap)(void), char *chkfilename)
 {
-  double B0, p, q, r, cascade_limit;
+  double B0, p, q, r, cascade_limit, last_chkpnt_p;
   mpz_t g, d;
   int youpi = ECM_NO_FACTOR_FOUND;
   unsigned int size_n, max_size;
   unsigned int smallbase = 0;
   mul_casc *cascade;
-  int last_chkpnt_time, last_chkpnt_p;
+  long last_chkpnt_time;
 
   mpz_init (g);
   mpz_init (d);
@@ -264,7 +267,7 @@ pm1_stage1 (mpz_t f, mpres_t a, mpmod_t n, double B1, double *B1done,
     cascade = mulcascade_mul (cascade, go);
 
   last_chkpnt_time = cputime ();
-  last_chkpnt_p = 2;
+  last_chkpnt_p = 2.;
   if (B0 <= cascade_limit)
     {
       /* first loop through small primes <= sqrt(B1) */
@@ -336,7 +339,8 @@ pm1_stage1 (mpz_t f, mpres_t a, mpmod_t n, double B1, double *B1done,
             if (stop_asap != NULL && (*stop_asap) ())
               {
                 outputf (OUTPUT_NORMAL, "Interrupted at prime %.0f\n", p);
-                *B1done = p;
+                if (p > *B1done)
+                  *B1done = p;
                 goto clear_pm1_stage1;
               }
             }
@@ -357,10 +361,11 @@ pm1_stage1 (mpz_t f, mpres_t a, mpmod_t n, double B1, double *B1done,
             if (stop_asap != NULL && (*stop_asap) ())
               {
                 outputf (OUTPUT_NORMAL, "Interrupted at prime %.0f\n", p);
-                *B1done = p;
+                 if (p > *B1done)
+                  *B1done = p;
                 goto clear_pm1_stage1;
               }
-	    if (chkfilename != NULL && p > last_chkpnt_p + 10000 &&
+	    if (chkfilename != NULL && p > last_chkpnt_p + 10000. &&
 		elltime (last_chkpnt_time, cputime ()) > CHKPNT_PERIOD)
 	      {
 		writechkfile (chkfilename, ECM_PM1, p, n, NULL, a, NULL);
@@ -371,8 +376,15 @@ pm1_stage1 (mpz_t f, mpres_t a, mpmod_t n, double B1, double *B1done,
       }
   }
 
-  *B1done = B1;
   mpres_pow (a, a, g, n);
+  
+  /* If stage 1 finished normally, p is the smallest prime >B1 here.
+     In that case, set to B1 */
+  if (p > B1)
+      p = B1;
+  
+  if (p > *B1done)
+    *B1done = p;
   
   mpres_sub_ui (a, a, 1, n);
   mpres_gcd (f, a, n);
