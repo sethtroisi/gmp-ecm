@@ -1859,43 +1859,65 @@ poly_from_sets_V (listz_t F, const mpres_t Q, const long *sets,
   return deg;
 }
 
+
+/* Computes gcd(\prod_{0 <= i < len} (g_x_ntt[i + offset] + add[i]), N), 
+   the NTT residues are converted to integer residues (mod N) first.
+   If add == NULL, add[i] is assumed to be 0. */
+
 static void
 ntt_gcd (mpz_t f, mpzspv_t g_x_ntt, const unsigned long offset, 
-	 const unsigned long len, mpzspm_t ntt_context, listz_t R, 
-	 const unsigned long Rlen, mpres_t *tmpres, mpmod_t modulus)
+	 const listz_t add, const unsigned long len, mpzspm_t ntt_context, 
+	 mpmod_t modulus)
 {
     unsigned long i, j;
+    const unsigned long Rlen = MPZSPV_NORMALISE_STRIDE;
+    listz_t R;
+    mpres_t tmpresidue, tmpprod;
+
+    /* In a multi-threaded environment, these must be private */
+    R = init_list (Rlen);
+    mpres_init (tmpresidue, modulus);
+    mpres_init (tmpprod, modulus);
 
     /* Accumulate product in tmpres[1] */
-    mpres_set_ui (tmpres[1], 1UL, modulus);
+    mpres_set_ui (tmpprod, 1UL, modulus);
 
     for (i = 0UL; i < len; i += Rlen)
     {
 	const unsigned long blocklen = MIN(len - i, Rlen);
 
+	/* Convert blocklen residues from NTT to integer representatives
+	   and store them in R */
 	mpzspv_to_mpzv (g_x_ntt, offset + i, R, blocklen, ntt_context);
+
 	for (j = 0UL; j < blocklen; j++)
 	{
 	    outputf (OUTPUT_TRACE, "r_%lu = %Zd; /* PARI */\n", i, R[j]);
-	    mpres_set_z_for_gcd (tmpres[0], R[j], modulus);
+	    if (add != NULL)
+	      mpz_add (R[j], R[j], add[i + j]);
+	    mpres_set_z_for_gcd (tmpresidue, R[j], modulus);
 #define TEST_ZERO_RESULT
 #ifdef TEST_ZERO_RESULT
-	    if (mpres_is_zero (tmpres[0], modulus))
+	    if (mpres_is_zero (tmpresidue, modulus))
 		outputf (OUTPUT_VERBOSE, "R_[%lu] = 0\n", i);
 #endif
-	    mpres_mul (tmpres[1], tmpres[1], tmpres[0], modulus); 
+	    mpres_mul (tmpprod, tmpprod, tmpresidue, modulus); 
 	}
         if (test_verbose(OUTPUT_RESVERBOSE))
 	{
 	    mpz_t t;
 	    mpz_init (t);
-            mpres_get_z (t, tmpres[1], modulus);
+            mpres_get_z (t, tmpprod, modulus);
             outputf (OUTPUT_RESVERBOSE, "Product of R[i] = %Zd (times some "
                      "power of 2 if REDC was used! Try -mpzmod)\n", t);
 	    mpz_clear (t);
 	}
-        mpres_gcd (f, tmpres[1], modulus);
+        mpres_gcd (f, tmpprod, modulus);
     }
+
+    mpres_clear (tmpresidue, modulus);
+    mpres_clear (tmpprod, modulus);
+    clear_list (R, Rlen);
 }
 
 
@@ -1904,10 +1926,10 @@ ntt_gcd (mpz_t f, mpzspv_t g_x_ntt, const unsigned long offset,
    x_0 = b_1^{2*k_2 + (2*m_1 + 1) * P}. r = b_1^P. */
 
 static void
-pm1_sequence_g (listz_t g, mpzspv_t g_ntt, const mpres_t b_1, 
-		const unsigned long P, const long M, const unsigned long l, 
-		const mpz_t m_1, const long k_2, mpmod_t modulus, 
-		mpzspm_t ntt_context)
+pm1_sequence_g (listz_t g, mpzspv_t g_ntt, 
+		const mpres_t b_1, const unsigned long P, const long M, 
+		const unsigned long l, const mpz_t m_1, const long k_2, 
+		mpmod_t modulus, mpzspm_t ntt_context)
 {
   mpres_t r[3], x_0, x_Mi;
   mpz_t t;
@@ -2054,7 +2076,7 @@ pm1_sequence_h (listz_t h, mpzspv_t h_ntt, mpz_t *f, const mpres_t r,
   unsigned long j;
   long timestart, timestop;
 
-  outputf (OUTPUT_VERBOSE, "Computing h_i");
+  outputf (OUTPUT_VERBOSE, "Computing h");
 
   timestart = cputime ();
 
@@ -2732,7 +2754,7 @@ pm1fs2_ntt (mpz_t f, const mpres_t X, mpmod_t modulus,
 	const faststage2_param_t *params)
 {
   unsigned long nr;
-  unsigned long i, l, lenF, tmplen, Rlen;
+  unsigned long i, l, lenF, tmplen;
   long *S_1; /* This is stored as a set of sets (arithmetic progressions of
 		prime length */
   long *S_2; /* This is stored as a regular set */
@@ -2743,7 +2765,7 @@ pm1fs2_ntt (mpz_t f, const mpres_t X, mpmod_t modulus,
 		  the same memory and won't be a monic polynomial, so the 
 		  leading 1 monomial of F will be stored explicitly. Hence we 
 		  need s_1 / 2 + 1 entries. */
-  listz_t tmp, R;
+  listz_t tmp;
   mpzspm_t ntt_context;
   mpzspv_t g_ntt, h_ntt;
   mpz_t mt;   /* All-purpose temp mpz_t */
@@ -2789,7 +2811,6 @@ pm1fs2_ntt (mpz_t f, const mpres_t X, mpmod_t modulus,
   lenF = params->s_1 / 2 + 1 + 1; /* Another +1 because poly_from_sets_V stores
 				     the leading 1 monomial for each factor */
   tmplen = 3 * params->s_1 + 1000;
-  Rlen = MPZSPV_NORMALISE_STRIDE;
   F = init_list2 (lenF, abs (modulus->bits));
   tmp = init_list2 (tmplen, abs (modulus->bits));
 
@@ -2866,7 +2887,6 @@ pm1fs2_ntt (mpz_t f, const mpres_t X, mpmod_t modulus,
   /* Store the params->l/2 + 1 distinct coefficients of the DFT in h_ntt */
   ntt_dft_to_dct (h_ntt, g_ntt, params->l, ntt_context);
 
-  R = init_list (Rlen);
 
   for (l = 0; l < params->s_2; l++)
     {
@@ -2895,8 +2915,7 @@ pm1fs2_ntt (mpz_t f, const mpres_t X, mpmod_t modulus,
      
       outputf (OUTPUT_VERBOSE, "Computing product of g*h coefficients");
       timestart = cputime ();
-      ntt_gcd (mt, g_ntt, params->s_1 / 2, nr, ntt_context, R, Rlen, 
-	       tmpres, modulus);
+      ntt_gcd (mt, g_ntt, params->s_1 / 2, NULL, nr, ntt_context, modulus);
       timestop = cputime ();
       outputf (OUTPUT_VERBOSE, " took %lu ms\n", timestop - timestart);
 
@@ -2908,7 +2927,6 @@ pm1fs2_ntt (mpz_t f, const mpres_t X, mpmod_t modulus,
 	}
     }
 
-  clear_list (R, Rlen);
   mpzspv_clear (g_ntt, ntt_context);
   mpzspv_clear (h_ntt, ntt_context);
   mpzspm_clear (ntt_context);
@@ -3273,10 +3291,15 @@ pp1_sequence_g (listz_t g_x, listz_t g_y, mpzspv_t g_x_ntt, mpzspv_t g_y_ntt,
   mpz_t mt;
   unsigned long i;
   long timestart, timestop;
+  const int want_x = (g_x != NULL || g_x_ntt != NULL);
+  const int want_y = (g_y != NULL || g_y_ntt != NULL);
 
   ASSERT (origtmplen >= 15UL);
 
-  outputf (OUTPUT_VERBOSE, "Computing g_i");
+  outputf (OUTPUT_VERBOSE, "Computing %s%s%s", 
+	   (want_x) ? "g_x" : "", 
+	   (want_x && want_y) ? " and " : "",
+	   (want_y) ? "g_y" : "");
   timestart = cputime ();
   
   mpz_init (mt);
@@ -3405,34 +3428,40 @@ pp1_sequence_g (listz_t g_x, listz_t g_y, mpzspv_t g_x_ntt, mpzspv_t g_y_ntt,
 
   for (i = 2; i < l; i++)
     {
-      /* r1[i] = r2[i-1] * v[i-2] - r2[i-2], with indices of r2 and i taken
-	 modulo 2. We store the new r1_x[i] in r_x for now */
-      mpres_mul (*r_x, r2_x[1 - i % 2], v[i % 2], modulus);
-      mpres_sub (*r_x, *r_x,            r2_x[i % 2], modulus);
-      /* r2[i] = r2[i-1] * v[i-1] - r1[i-2] */
-      mpres_mul (r2_x[i % 2], r2_x[1 - i % 2], v[1 - i % 2], modulus);
-      mpres_sub (r2_x[i % 2], r2_x[i % 2],     r1_x[i % 2], modulus);
-      mpres_set (r1_x[i % 2], *r_x, modulus); /* FIXME, avoid this copy */
-      if (g_x != NULL)
-	mpres_get_z (g_x[i], *r_x, modulus); /* FIXME, avoid these REDC */
-      if (g_x_ntt != NULL)
+      if (want_x)
 	{
-	  mpres_get_z (mt, *r_x, modulus);
-	  mpzspv_from_mpzv (g_x_ntt, i, &mt, 1UL, ntt_context);
+	  /* r1[i] = r2[i-1] * v[i-2] - r2[i-2], with indices of r2 and i taken
+	     modulo 2. We store the new r1_x[i] in r_x for now */
+	  mpres_mul (*r_x, r2_x[1 - i % 2], v[i % 2], modulus);
+	  mpres_sub (*r_x, *r_x,            r2_x[i % 2], modulus);
+	  /* r2[i] = r2[i-1] * v[i-1] - r1[i-2] */
+	  mpres_mul (r2_x[i % 2], r2_x[1 - i % 2], v[1 - i % 2], modulus);
+	  mpres_sub (r2_x[i % 2], r2_x[i % 2],     r1_x[i % 2], modulus);
+	  mpres_set (r1_x[i % 2], *r_x, modulus); /* FIXME, avoid this copy */
+	  if (g_x != NULL)
+	    mpres_get_z (g_x[i], *r_x, modulus); /* FIXME, avoid these REDC */
+	  if (g_x_ntt != NULL)
+	    {
+	      mpres_get_z (mt, *r_x, modulus);
+	      mpzspv_from_mpzv (g_x_ntt, i, &mt, 1UL, ntt_context);
+	    }
 	}
 
-      /* Same for y coordinate */
-      mpres_mul (*r_y, r2_y[1 - i % 2], v[i % 2], modulus);
-      mpres_sub (*r_y, *r_y,             r2_y[i % 2], modulus);
-      mpres_mul (r2_y[i % 2], r2_y[1 - i % 2], v[1 - i % 2], modulus);
-      mpres_sub (r2_y[i % 2], r2_y[i % 2],     r1_y[i % 2], modulus);
-      mpres_set (r1_y[i % 2], *r_y, modulus);
-      if (g_y != NULL)
-	mpres_get_z (g_y[i], *r_y, modulus); /* Keep r1, r2 in mpz_t ? */
-      if (g_y_ntt != NULL)
+      if (want_y)
 	{
-	  mpres_get_z (mt, *r_y, modulus);
-	  mpzspv_from_mpzv (g_y_ntt, i, &mt, 1UL, ntt_context);
+	  /* Same for y coordinate */
+	  mpres_mul (*r_y, r2_y[1 - i % 2], v[i % 2], modulus);
+	  mpres_sub (*r_y, *r_y,             r2_y[i % 2], modulus);
+	  mpres_mul (r2_y[i % 2], r2_y[1 - i % 2], v[1 - i % 2], modulus);
+	  mpres_sub (r2_y[i % 2], r2_y[i % 2],     r1_y[i % 2], modulus);
+	  mpres_set (r1_y[i % 2], *r_y, modulus);
+	  if (g_y != NULL)
+	    mpres_get_z (g_y[i], *r_y, modulus); /* Keep r1, r2 in mpz_t ? */
+	  if (g_y_ntt != NULL)
+	    {
+	      mpres_get_z (mt, *r_y, modulus);
+	      mpzspv_from_mpzv (g_y_ntt, i, &mt, 1UL, ntt_context);
+	    }
 	}
      
       /* v[i] = v[i - 1] * V_2(a + 1/a) - v[i - 2] */
@@ -3494,7 +3523,7 @@ pp1_sequence_h (listz_t h_x, listz_t h_y, mpzspv_t h_x_ntt, mpzspv_t h_y_ntt,
   ASSERT (f != h_x);
   ASSERT (f != h_y);
 
-  outputf (OUTPUT_VERBOSE, "Computing h_i");
+  outputf (OUTPUT_VERBOSE, "Computing h_x and h_y");
   timestart = cputime ();
 
   mpz_init (mt);
@@ -3883,11 +3912,11 @@ pp1fs2 (mpz_t f, const mpres_t X, mpmod_t modulus,
 
 
 int 
-pp1fs2_ntt (mpz_t f, const mpres_t X, mpmod_t modulus, 
-	    const faststage2_param_t *params)
+pp1fs2_ntt (mpz_t f, const mpres_t X, mpmod_t modulus,
+	    const faststage2_param_t *params, const int twopass)
 {
   unsigned long nr;
-  unsigned long i, l, lenF, tmplen, Rlen;
+  unsigned long i, l, lenF, tmplen;
   long *S_1; /* This is stored as a set of sets (arithmetic progressions of
 		prime length */
   long *S_2; /* This is stored as a regular set */
@@ -3898,7 +3927,11 @@ pp1fs2_ntt (mpz_t f, const mpres_t X, mpmod_t modulus,
 		  the same memory and won't be a monic polynomial, so the 
 		  leading 1 monomial of F will be stored explicitly. Hence we 
 		  need s_1 / 2 + 1 entries. */
-  listz_t tmp, R;
+  listz_t R = NULL;  /* Is used only for two-pass convolution, has nr 
+			entries. R is only ever referenced if twopass == 1,
+			but gcc does not realize that and complains about
+			uninitialized value, so we set it to NULL. */
+  listz_t tmp;
   mpzspm_t ntt_context;
   mpzspv_t g_x_ntt, g_y_ntt, h_x_ntt, h_y_ntt;
   const unsigned long tmpreslen = 20;
@@ -3934,7 +3967,6 @@ pp1fs2_ntt (mpz_t f, const mpres_t X, mpmod_t modulus,
   tmplen = 3UL * params->l + list_mul_mem (params->l / 2) + 20;
   outputf (OUTPUT_DEVVERBOSE, "tmplen = %lu\n", tmplen);
   tmp = init_list2 (tmplen, abs (modulus->bits));
-  Rlen = MPZSPV_NORMALISE_STRIDE;
 
   if (test_verbose (OUTPUT_TRACE))
     {
@@ -3997,7 +4029,13 @@ pp1fs2_ntt (mpz_t f, const mpres_t X, mpmod_t modulus,
 
   /* Compute forward transform of h */
   g_x_ntt = mpzspv_init (params->l, ntt_context);
-  g_y_ntt = mpzspv_init (params->l, ntt_context);
+  if (twopass)
+    {
+      g_y_ntt = g_x_ntt;
+      R = init_list (nr);
+    }
+  else
+    g_y_ntt = mpzspv_init (params->l, ntt_context);
   
   /* Make a symmetric copy of h in g_ntt */
   mpzspv_set (g_x_ntt, 0, h_x_ntt, 0, params->s_1 / 2 + 1, ntt_context);
@@ -4014,27 +4052,26 @@ pp1fs2_ntt (mpz_t f, const mpres_t X, mpmod_t modulus,
   ntt_dft_to_dct (h_x_ntt, g_x_ntt, params->l, ntt_context);
   
   /* Same thing for y coordinate */
-  mpzspv_set (g_y_ntt, 0, h_y_ntt, 0, params->s_1 / 2 + 1, ntt_context);
-  mpzspv_revcopy (g_y_ntt, params->l - params->s_1 / 2, h_y_ntt, 1, 
+  mpzspv_set (g_x_ntt, 0, h_y_ntt, 0, params->s_1 / 2 + 1, ntt_context);
+  mpzspv_revcopy (g_x_ntt, params->l - params->s_1 / 2, h_y_ntt, 1, 
 		  params->s_1 / 2, ntt_context);
-  mpzspv_set_sp (g_y_ntt, params->s_1 / 2 + 1, 0, 
+  mpzspv_set_sp (g_x_ntt, params->s_1 / 2 + 1, 0, 
 		 params->l - params->s_1 - 1, ntt_context);
   outputf (OUTPUT_VERBOSE, "Computing forward NTT of h_y");
   timestart = cputime ();
-  mpzspv_to_ntt (g_y_ntt, 0, params->l, params->l, 0, ntt_context);
+  mpzspv_to_ntt (g_x_ntt, 0, params->l, params->l, 0, ntt_context);
   timestop = cputime ();
   outputf (OUTPUT_VERBOSE, " took %lu ms\n", timestop - timestart);
   /* Store the params->l/2 + 1 distinct coeffs of the DFT in h_y_ntt */
-  ntt_dft_to_dct (h_y_ntt, g_y_ntt, params->l, ntt_context);
+  ntt_dft_to_dct (h_y_ntt, g_x_ntt, params->l, ntt_context);
 
-  R = init_list (Rlen);
 
   for (l = 0; l < params->s_2; l++)
     {
       const long M = params->l - 1 - params->s_1 / 2;
-      pp1_sequence_g (NULL, NULL, g_x_ntt, g_y_ntt, b1_x, b1_y, params->P, 
-		      Delta, M, params->l, params->m_1, S_2[l + 1], modulus, 
-		      ntt_context, tmpreslen, tmpres);
+      pp1_sequence_g (NULL, NULL, g_x_ntt, twopass ? NULL : g_y_ntt, 
+		      b1_x, b1_y, params->P, Delta, M, params->l, params->m_1, 
+		      S_2[l + 1], modulus, ntt_context, tmpreslen, tmpres);
 
       outputf (OUTPUT_VERBOSE, "Computing forward NTT of g_x");
       timestart = cputime ();
@@ -4048,6 +4085,22 @@ pp1fs2_ntt (mpz_t f, const mpres_t X, mpmod_t modulus,
       timestop = cputime ();
       outputf (OUTPUT_VERBOSE, " took %lu ms\n", timestop - timestart);
 
+      if (twopass)
+	{
+	  /* Do inverse transform and store result in R */
+	  outputf (OUTPUT_VERBOSE, "Computing inverse NTT of h_x * g_x");
+	  timestart = cputime ();
+	  mpzspv_from_ntt (g_x_ntt, 0, params->l, 0, ntt_context);
+	  mpzspv_to_mpzv (g_x_ntt, params->s_1 / 2, R, nr, ntt_context);
+	  timestop = cputime ();
+	  outputf (OUTPUT_VERBOSE, " took %lu ms\n", timestop - timestart);
+
+	  /* Compute g_y sequence */
+	  pp1_sequence_g (NULL, NULL, NULL, g_y_ntt, b1_x, b1_y, params->P, 
+			  Delta, M, params->l, params->m_1, S_2[l + 1], 
+			  modulus, ntt_context, tmpreslen, tmpres);
+	}
+      
       outputf (OUTPUT_VERBOSE, "Computing forward NTT of g_y");
       timestart = cputime ();
       mpzspv_to_ntt (g_y_ntt, 0, params->l, params->l, 0, ntt_context);
@@ -4060,16 +4113,28 @@ pp1fs2_ntt (mpz_t f, const mpres_t X, mpmod_t modulus,
       timestop = cputime ();
       outputf (OUTPUT_VERBOSE, " took %lu ms\n", timestop - timestart);
 
-      outputf (OUTPUT_VERBOSE, "Adding and computing inverse NTT of sum");
+      if (twopass)
+	{
+	  outputf (OUTPUT_VERBOSE, "Computing inverse NTT of h_y * g_y");
+	  timestart = cputime ();
+	  mpzspv_from_ntt (g_y_ntt, 0, params->l, 0, ntt_context);
+	  timestop = cputime ();
+	  outputf (OUTPUT_VERBOSE, " took %lu ms\n", timestop - timestart);
+	}
+      else
+	{
+	  outputf (OUTPUT_VERBOSE, "Adding and computing inverse NTT of sum");
+	  timestart = cputime ();
+	  mpzspv_add (g_x_ntt, 0, g_x_ntt, 0, g_y_ntt, 0, params->l, 
+		      ntt_context);
+	  mpzspv_from_ntt (g_x_ntt, 0, params->l, 0, ntt_context);
+	  timestop = cputime ();
+	  outputf (OUTPUT_VERBOSE, " took %lu ms\n", timestop - timestart);
+	}
+
       timestart = cputime ();
-      mpzspv_add (g_x_ntt, 0, g_x_ntt, 0, g_y_ntt, 0, params->l, ntt_context);
-      mpzspv_from_ntt (g_x_ntt, 0, params->l, 0, ntt_context);
-      timestop = cputime ();
-      outputf (OUTPUT_VERBOSE, " took %lu ms\n", timestop - timestart);
-      
-      timestart = cputime ();
-      ntt_gcd (mt, g_x_ntt, params->s_1 / 2, nr, ntt_context, R, Rlen, 
-	       tmpres, modulus);
+      ntt_gcd (mt, g_x_ntt, params->s_1 / 2, twopass ? R : NULL, nr, 
+	       ntt_context, modulus);
       timestop = cputime ();
       outputf (OUTPUT_VERBOSE, "Computing product of F(g_i)^(1) took %lu ms\n", 
 	       timestop - timestart);
@@ -4083,7 +4148,10 @@ pp1fs2_ntt (mpz_t f, const mpres_t X, mpmod_t modulus,
     }
 
   mpzspv_clear (g_x_ntt, ntt_context);
-  mpzspv_clear (g_y_ntt, ntt_context);
+  if (twopass)
+    clear_list (R, nr);
+  else
+    mpzspv_clear (g_y_ntt, ntt_context);
   mpzspv_clear (h_x_ntt, ntt_context);
   mpzspv_clear (h_y_ntt, ntt_context);
   mpzspm_clear (ntt_context);
