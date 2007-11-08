@@ -916,7 +916,7 @@ pp1 (mpz_t f, mpz_t p, mpz_t n, mpz_t go, double *B1done, double B1,
       if (S == 1)
         {
           if (use_ntt)
-            youpi = pp1fs2_ntt (f, a, modulus, &faststage2_params);
+            youpi = pp1fs2_ntt (f, a, modulus, &faststage2_params, 1);
           else 
             youpi = pp1fs2 (f, a, modulus, &faststage2_params);
         }

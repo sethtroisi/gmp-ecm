@@ -349,7 +349,8 @@ long    choose_P (const mpz_t, const mpz_t, const unsigned long,
 int	pm1fs2 (mpz_t, const mpres_t, mpmod_t, const faststage2_param_t *);
 int	pm1fs2_ntt (mpz_t, const mpres_t, mpmod_t, const faststage2_param_t *);
 int     pp1fs2 (mpz_t, const mpres_t, mpmod_t, const faststage2_param_t *);
-int     pp1fs2_ntt (mpz_t, const mpres_t, mpmod_t, const faststage2_param_t *);
+int     pp1fs2_ntt (mpz_t, const mpres_t, mpmod_t, const faststage2_param_t *,
+                    const int);
   
 /* bestd.c */
 #define eulerphi __ECM(eulerphi)
