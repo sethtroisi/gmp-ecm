@@ -544,6 +544,8 @@ void mpmod_init_MODMULN (mpmod_t, const mpz_t);
 void mpmod_init_REDC (mpmod_t, const mpz_t);
 #define mpmod_clear __ECM(mpmod_clear)
 void mpmod_clear (mpmod_t);
+#define mpmod_copy __ECM(mpmod_copy)
+void mpmod_copy (mpmod_t, const mpmod_t);
 #define mpmod_pausegw __ECM(mpmod_pausegw)
 void mpmod_pausegw (const mpmod_t modulus);
 #define mpmod_contgw __ECM(mpmod_contgw)
