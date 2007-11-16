@@ -687,12 +687,16 @@ mpmod_copy (mpmod_t r, const mpmod_t modulus)
   r->Fermat = modulus->Fermat;
   r->Nprim = modulus->Nprim;
   mpz_init_set (r->orig_modulus, modulus->orig_modulus);
-  mpz_init_set (r->aux_modulus, modulus->aux_modulus);
-  mpz_init_set (r->multiple, modulus->multiple);
-  mpz_init_set (r->R2, modulus->R2);
-  mpz_init_set (r->R3, modulus->R3);
   mpz_init2 (r->temp1, 2 * r->bits + __GMP_BITS_PER_MP_LIMB);
   mpz_init2 (r->temp2, r->bits + __GMP_BITS_PER_MP_LIMB);
+  if (modulus->repr == ECM_MOD_MODMULN || modulus->repr == ECM_MOD_REDC)
+    {
+      mpz_init_set (r->multiple, modulus->multiple);
+      mpz_init_set (r->R2, modulus->R2);
+      mpz_init_set (r->R3, modulus->R3);
+    }
+  if (modulus->repr == ECM_MOD_REDC)
+    mpz_init_set (r->aux_modulus, modulus->aux_modulus);
 }
 
 
