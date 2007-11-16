@@ -2028,7 +2028,7 @@ pm1_sequence_g (listz_t g_mpz, mpzspv_t g_ntt,
 #endif
 
   timestop = cputime ();
-  outputf (OUTPUT_VERBOSE, " took %lu ms\n", timestop - timestart);
+  outputf (OUTPUT_VERBOSE, " took %lums\n", timestop - timestart);
   
   if (test_verbose (OUTPUT_TRACE))
     {
@@ -2127,7 +2127,7 @@ pm1_sequence_h (listz_t h, mpzspv_t h_ntt, mpz_t *f, const mpres_t r,
     }
   
   timestop = cputime ();
-  outputf (OUTPUT_VERBOSE, " took %lu ms\n", timestop - timestart);
+  outputf (OUTPUT_VERBOSE, " took %lums\n", timestop - timestart);
   
   mpres_clear (fd[2], modulus);
   mpres_clear (fd[1], modulus);
@@ -2212,7 +2212,7 @@ pm1_build_poly_F (mpz_t *F, const mpres_t X, mpmod_t modulus,
       ASSERT_ALWAYS (i == dF);
 
       timestop = cputime ();
-      outputf (OUTPUT_VERBOSE, " took %lu ms\n", timestop - timestart);
+      outputf (OUTPUT_VERBOSE, " took %lums\n", timestop - timestart);
 
 #if defined(WANT_ASSERT)
       if (sets[0] != 2) /* Unless the first set has one element, 
@@ -2268,7 +2268,7 @@ pm1_build_poly_F (mpz_t *F, const mpres_t X, mpmod_t modulus,
       mpz_set_ui (F[0], 1UL);
       
       timestop = cputime ();
-      outputf (OUTPUT_VERBOSE, " took %lu ms\n", timestop - timestart);
+      outputf (OUTPUT_VERBOSE, " took %lums\n", timestop - timestart);
     }
   else /* method == 0 */
     {
@@ -2307,7 +2307,7 @@ pm1_build_poly_F (mpz_t *F, const mpres_t X, mpmod_t modulus,
       mpres_clear (Xs, modulus);
       mpres_clear (Xi, modulus);
       timestop = cputime ();
-      outputf (OUTPUT_VERBOSE, " took %lu ms\n", timestop - timestart);
+      outputf (OUTPUT_VERBOSE, " took %lums\n", timestop - timestart);
       
       /* Print the polynomial in linear factors form */
       outputf (OUTPUT_TRACE, "F(x) = ");
@@ -2321,7 +2321,7 @@ pm1_build_poly_F (mpz_t *F, const mpres_t X, mpmod_t modulus,
       timestart = cputime ();
       PolyFromRoots (F, F, dF, tmp, modulus->orig_modulus);
       timestop = cputime ();
-      outputf (OUTPUT_VERBOSE, " took %lu ms\n", timestop - timestart);
+      outputf (OUTPUT_VERBOSE, " took %lums\n", timestop - timestart);
     }
 
   mpz_clear (mt);
@@ -2734,7 +2734,7 @@ ntt_gcd (mpz_t f, mpzspv_t ntt, const unsigned int ntt_offset,
   mpres_clear (totalprod, modulus_param);
 
   timestop = cputime ();
-  outputf (OUTPUT_VERBOSE, " took %lu ms\n", timestop - timestart);
+  outputf (OUTPUT_VERBOSE, " took %lums\n", timestop - timestart);
 }
 
 
@@ -2823,7 +2823,7 @@ pm1fs2 (mpz_t f, const mpres_t X, mpmod_t modulus,
   ASSERT(mpz_cmp_ui (F[i], 1UL) == 0);
   
   timestop = cputime ();
-  outputf (OUTPUT_VERBOSE, " took %lu ms\n", timestop - timestart);
+  outputf (OUTPUT_VERBOSE, " took %lums\n", timestop - timestart);
   if (test_verbose (OUTPUT_TRACE))
     {
       for (i = 0; i < params->s_1 / 2 + 1; i++)
@@ -2878,7 +2878,7 @@ pm1fs2 (mpz_t f, const mpres_t X, mpmod_t modulus,
       list_mod (R, R, nr, modulus->orig_modulus);
 
       timestop = cputime ();
-      outputf (OUTPUT_VERBOSE, " took %lu ms\n", timestop - timestart);
+      outputf (OUTPUT_VERBOSE, " took %lums\n", timestop - timestart);
 
 #if 0 && defined(WANT_ASSERT)
 
@@ -2941,7 +2941,7 @@ pm1fs2 (mpz_t f, const mpres_t X, mpmod_t modulus,
       }
 
       timestop = cputime ();
-      outputf (OUTPUT_VERBOSE, " took %lu ms\n", timestop - timestart);
+      outputf (OUTPUT_VERBOSE, " took %lums\n", timestop - timestart);
 
       if (mpz_cmp_ui (tmp[0], 1UL) > 0)
 	{
@@ -2968,7 +2968,7 @@ pm1fs2 (mpz_t f, const mpres_t X, mpmod_t modulus,
   mpres_clear (mr, modulus);
 
   timestop = cputime ();
-  outputf (OUTPUT_NORMAL, "Step 2 took %ld ms\n", 
+  outputf (OUTPUT_NORMAL, "Step 2 took %ldms\n", 
            timestop - timetotalstart);
   
   return youpi;
@@ -3057,7 +3057,7 @@ pm1fs2_ntt (mpz_t f, const mpres_t X, mpmod_t modulus,
   ASSERT(mpz_cmp_ui (F[i], 1UL) == 0);
   
   timestop = cputime ();
-  outputf (OUTPUT_VERBOSE, " took %lu ms\n", timestop - timestart);
+  outputf (OUTPUT_VERBOSE, " took %lums\n", timestop - timestart);
   if (test_verbose (OUTPUT_TRACE))
     {
       for (i = 0; i < params->s_1 / 2 + 1; i++)
@@ -3087,7 +3087,7 @@ pm1fs2_ntt (mpz_t f, const mpres_t X, mpmod_t modulus,
   ntt_spv_to_dct (h_ntt, h_ntt, params->s_1 / 2 + 1, params->l / 2 + 1, 
                   g_ntt, ntt_context);
   timestop = cputime ();
-  outputf (OUTPUT_VERBOSE, " took %lu ms\n", timestop - timestart);
+  outputf (OUTPUT_VERBOSE, " took %lums\n", timestop - timestart);
                 
   for (l = 0; l < params->s_2; l++)
     {
@@ -3102,7 +3102,7 @@ pm1fs2_ntt (mpz_t f, const mpres_t X, mpmod_t modulus,
       timestart = cputime ();
       ntt_mul_by_dct (g_ntt, h_ntt, params->l, ntt_context);
       timestop = cputime ();
-      outputf (OUTPUT_VERBOSE, " took %lu ms\n", timestop - timestart);      
+      outputf (OUTPUT_VERBOSE, " took %lums\n", timestop - timestart);      
       
       /* Compute GCD of N and coefficients of product polynomial */
       ntt_gcd (mt, g_ntt, params->s_1 / 2, NULL, nr, ntt_context, modulus);
@@ -3123,7 +3123,7 @@ pm1fs2_ntt (mpz_t f, const mpres_t X, mpmod_t modulus,
   mpz_clear (mt);
 
   timestop = cputime ();
-  outputf (OUTPUT_NORMAL, "Step 2 took %ld ms\n", 
+  outputf (OUTPUT_NORMAL, "Step 2 took %ldms\n", 
            timestop - timetotalstart);
   
   return youpi;
@@ -3672,7 +3672,7 @@ pp1_sequence_g (listz_t g_x, listz_t g_y, mpzspv_t g_x_ntt, mpzspv_t g_y_ntt,
   mpz_clear (mt);
   
   timestop = cputime ();
-  outputf (OUTPUT_VERBOSE, " took %lu ms\n", timestop - timestart);
+  outputf (OUTPUT_VERBOSE, " took %lums\n", timestop - timestart);
 
   if (g_x != NULL && g_y != NULL && test_verbose(OUTPUT_TRACE))
     {
@@ -3869,7 +3869,7 @@ pp1_sequence_h (listz_t h_x, listz_t h_y, mpzspv_t h_x_ntt, mpzspv_t h_y_ntt,
     }
 
   timestop = cputime ();
-  outputf (OUTPUT_VERBOSE, " took %lu ms\n", timestop - timestart);
+  outputf (OUTPUT_VERBOSE, " took %lums\n", timestop - timestart);
 
   if (h_x != NULL && h_y != NULL && test_verbose (OUTPUT_TRACE))
     {
@@ -3970,7 +3970,7 @@ pp1fs2 (mpz_t f, const mpres_t X, mpmod_t modulus,
   ASSERT(2 * i == params->s_1);
   ASSERT(mpz_cmp_ui (F[i], 1UL) == 0);
   timestop = cputime ();
-  outputf (OUTPUT_VERBOSE, " took %lu ms\n", timestop - timestart);
+  outputf (OUTPUT_VERBOSE, " took %lums\n", timestop - timestart);
   if (test_verbose (OUTPUT_TRACE))
     {
       for (i = 0; i < params->s_1 / 2 + 1; i++)
@@ -4035,13 +4035,13 @@ pp1fs2 (mpz_t f, const mpres_t X, mpmod_t modulus,
       TMulGen (R_x, nr - 1, h_x, params->s_1, g_x, params->l - 1, tmp,
 	       modulus->orig_modulus);
       timestop = cputime ();
-      outputf (OUTPUT_VERBOSE, " took %lu ms\n", timestop - timestart);
+      outputf (OUTPUT_VERBOSE, " took %lums\n", timestop - timestart);
       outputf (OUTPUT_VERBOSE, "TMulGen of g_y and h_y");
       timestart = cputime ();
       TMulGen (R_y, nr - 1, h_y, params->s_1, g_y, params->l - 1, tmp,
 	       modulus->orig_modulus);
       timestop = cputime ();
-      outputf (OUTPUT_VERBOSE, " took %lu ms\n", timestop - timestart);
+      outputf (OUTPUT_VERBOSE, " took %lums\n", timestop - timestart);
       for (i = 0; i < nr; i++)
 	  mpz_add (R_x[i], R_x[i], R_y[i]);
       
@@ -4067,7 +4067,7 @@ pp1fs2 (mpz_t f, const mpres_t X, mpmod_t modulus,
       mpres_gcd (mt, tmpres[1], modulus);
 
       timestop = cputime ();
-      outputf (OUTPUT_VERBOSE, "Computing product of F(g_i)^(1) took %lu ms\n", 
+      outputf (OUTPUT_VERBOSE, "Computing product of F(g_i)^(1) took %lums\n", 
 	       timestop - timestart);
       
       if (mpz_cmp_ui (mt, 1UL) > 0)
@@ -4095,7 +4095,7 @@ pp1fs2 (mpz_t f, const mpres_t X, mpmod_t modulus,
   clear_list (tmp, tmplen);
  
   timestop = cputime ();
-  outputf (OUTPUT_NORMAL, "Step 2 took %ld ms\n", 
+  outputf (OUTPUT_NORMAL, "Step 2 took %ldms\n", 
            timestop - timetotalstart);
 
   return youpi;
@@ -4175,7 +4175,7 @@ pp1fs2_ntt (mpz_t f, const mpres_t X, mpmod_t modulus,
   ASSERT(2 * i == params->s_1);
   ASSERT(mpz_cmp_ui (F[i], 1UL) == 0);
   timestop = cputime ();
-  outputf (OUTPUT_VERBOSE, " took %lu ms\n", timestop - timestart);
+  outputf (OUTPUT_VERBOSE, " took %lums\n", timestop - timestart);
   if (test_verbose (OUTPUT_TRACE))
     {
       for (i = 0; i < params->s_1 / 2 + 1; i++)
@@ -4238,7 +4238,7 @@ pp1fs2_ntt (mpz_t f, const mpres_t X, mpmod_t modulus,
   timestart = cputime ();
   mpzspv_to_ntt (g_x_ntt, 0, params->l, params->l, 0, ntt_context);
   timestop = cputime ();
-  outputf (OUTPUT_VERBOSE, " took %lu ms\n", timestop - timestart);
+  outputf (OUTPUT_VERBOSE, " took %lums\n", timestop - timestart);
   /* Store the params->l/2 + 1 distinct coeffs of the DFT in h_x_ntt */
   ntt_dft_to_dct (h_x_ntt, g_x_ntt, params->l, ntt_context);
   
@@ -4252,7 +4252,7 @@ pp1fs2_ntt (mpz_t f, const mpres_t X, mpmod_t modulus,
   timestart = cputime ();
   mpzspv_to_ntt (g_x_ntt, 0, params->l, params->l, 0, ntt_context);
   timestop = cputime ();
-  outputf (OUTPUT_VERBOSE, " took %lu ms\n", timestop - timestart);
+  outputf (OUTPUT_VERBOSE, " took %lums\n", timestop - timestart);
   /* Store the params->l/2 + 1 distinct coeffs of the DFT in h_y_ntt */
   ntt_dft_to_dct (h_y_ntt, g_x_ntt, params->l, ntt_context);
 
@@ -4274,7 +4274,7 @@ pp1fs2_ntt (mpz_t f, const mpres_t X, mpmod_t modulus,
 	  /* Store the product coefficients we want in R */
 	  mpzspv_to_mpzv (g_x_ntt, params->s_1 / 2, R, nr, ntt_context);
 	  timestop = cputime ();
-	  outputf (OUTPUT_VERBOSE, " took %lu ms\n", timestop - timestart);
+	  outputf (OUTPUT_VERBOSE, " took %lums\n", timestop - timestart);
 
 	  /* Compute g_y sequence */
 	  pp1_sequence_g (NULL, NULL, NULL, g_y_ntt, b1_x, b1_y, params->P, 
@@ -4286,7 +4286,7 @@ pp1fs2_ntt (mpz_t f, const mpres_t X, mpmod_t modulus,
 	  timestart = cputime ();
 	  ntt_mul_by_dct (g_y_ntt, h_y_ntt, params->l, ntt_context);
 	  timestop = cputime ();
-	  outputf (OUTPUT_VERBOSE, " took %lu ms\n", timestop - timestart);
+	  outputf (OUTPUT_VERBOSE, " took %lums\n", timestop - timestart);
 	  
 	  /* Compute product of sum of coefficients and gcd with N */
 	  ntt_gcd (mt, g_y_ntt, params->s_1 / 2, R, nr, ntt_context, modulus);
@@ -4305,25 +4305,25 @@ pp1fs2_ntt (mpz_t f, const mpres_t X, mpmod_t modulus,
 	  timestart = cputime ();
 	  mpzspv_to_ntt (g_x_ntt, 0, params->l, params->l, 0, ntt_context);
 	  timestop = cputime ();
-	  outputf (OUTPUT_VERBOSE, " took %lu ms\n", timestop - timestart);
+	  outputf (OUTPUT_VERBOSE, " took %lums\n", timestop - timestart);
 	  
 	  outputf (OUTPUT_VERBOSE, "Computing point-wise product of g_x and h_x");
 	  timestart = cputime ();
 	  ntt_dft_mul_dct (g_x_ntt, h_x_ntt, params->l, ntt_context);
 	  timestop = cputime ();
-	  outputf (OUTPUT_VERBOSE, " took %lu ms\n", timestop - timestart);
+	  outputf (OUTPUT_VERBOSE, " took %lums\n", timestop - timestart);
 	  
 	  outputf (OUTPUT_VERBOSE, "Computing forward NTT of g_y");
 	  timestart = cputime ();
 	  mpzspv_to_ntt (g_y_ntt, 0, params->l, params->l, 0, ntt_context);
 	  timestop = cputime ();
-	  outputf (OUTPUT_VERBOSE, " took %lu ms\n", timestop - timestart);
+	  outputf (OUTPUT_VERBOSE, " took %lums\n", timestop - timestart);
 	  
 	  outputf (OUTPUT_VERBOSE, "Computing point-wise product of g_y and h_y");
 	  timestart = cputime ();
 	  ntt_dft_mul_dct (g_y_ntt, h_y_ntt, params->l, ntt_context);
 	  timestop = cputime ();
-	  outputf (OUTPUT_VERBOSE, " took %lu ms\n", timestop - timestart);
+	  outputf (OUTPUT_VERBOSE, " took %lums\n", timestop - timestart);
 	  
 	  outputf (OUTPUT_VERBOSE, "Adding and computing inverse NTT of sum");
 	  timestart = cputime ();
@@ -4331,7 +4331,7 @@ pp1fs2_ntt (mpz_t f, const mpres_t X, mpmod_t modulus,
 		      ntt_context);
 	  mpzspv_from_ntt (g_x_ntt, 0, params->l, 0, ntt_context);
 	  timestop = cputime ();
-	  outputf (OUTPUT_VERBOSE, " took %lu ms\n", timestop - timestart);
+	  outputf (OUTPUT_VERBOSE, " took %lums\n", timestop - timestart);
 	  
 	  ntt_gcd (mt, g_x_ntt, params->s_1 / 2, twopass ? R : NULL, nr, 
 		   ntt_context, modulus);
@@ -4361,7 +4361,7 @@ pp1fs2_ntt (mpz_t f, const mpres_t X, mpmod_t modulus,
       mpres_clear (tmpres[i], modulus);
  
   timestop = cputime ();
-  outputf (OUTPUT_NORMAL, "Step 2 took %ld ms\n", 
+  outputf (OUTPUT_NORMAL, "Step 2 took %ldms\n", 
            timestop - timetotalstart);
 
   return youpi;
