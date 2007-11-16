@@ -1,9 +1,13 @@
+
 #include "config.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include "ecm-impl.h"
 #include "sp.h"
 #include <math.h>
+#ifdef _OPENMP
+#include <omp.h>
+#endif
 
 #define TEST_ZERO_RESULT
 
@@ -1860,81 +1864,50 @@ poly_from_sets_V (listz_t F, const mpres_t Q, const long *sets,
 }
 
 
-/* Computes gcd(\prod_{0 <= i < len} (g_x_ntt[i + offset] + add[i]), N), 
-   the NTT residues are converted to integer residues (mod N) first.
-   If add == NULL, add[i] is assumed to be 0. */
-
-static void
-ntt_gcd (mpz_t f, mpzspv_t g_x_ntt, const unsigned long offset, 
-	 const listz_t add, const unsigned long len, mpzspm_t ntt_context, 
-	 mpmod_t modulus)
-{
-    unsigned long i, j;
-    const unsigned long Rlen = MPZSPV_NORMALISE_STRIDE;
-    listz_t R;
-    mpres_t tmpresidue, tmpprod;
-
-    /* In a multi-threaded environment, these must be private */
-    R = init_list (Rlen);
-    mpres_init (tmpresidue, modulus);
-    mpres_init (tmpprod, modulus);
-
-    /* Accumulate product in tmpres[1] */
-    mpres_set_ui (tmpprod, 1UL, modulus);
-
-    for (i = 0UL; i < len; i += Rlen)
-    {
-	const unsigned long blocklen = MIN(len - i, Rlen);
-
-	/* Convert blocklen residues from NTT to integer representatives
-	   and store them in R */
-	mpzspv_to_mpzv (g_x_ntt, offset + i, R, blocklen, ntt_context);
-
-	for (j = 0UL; j < blocklen; j++)
-	{
-	    outputf (OUTPUT_TRACE, "r_%lu = %Zd; /* PARI */\n", i, R[j]);
-	    if (add != NULL)
-	      mpz_add (R[j], R[j], add[i + j]);
-	    mpres_set_z_for_gcd (tmpresidue, R[j], modulus);
-#define TEST_ZERO_RESULT
-#ifdef TEST_ZERO_RESULT
-	    if (mpres_is_zero (tmpresidue, modulus))
-		outputf (OUTPUT_VERBOSE, "R_[%lu] = 0\n", i);
-#endif
-	    mpres_mul (tmpprod, tmpprod, tmpresidue, modulus); 
-	}
-        if (test_verbose(OUTPUT_RESVERBOSE))
-	{
-	    mpz_t t;
-	    mpz_init (t);
-            mpres_get_z (t, tmpprod, modulus);
-            outputf (OUTPUT_RESVERBOSE, "Product of R[i] = %Zd (times some "
-                     "power of 2 if REDC was used! Try -mpzmod)\n", t);
-	    mpz_clear (t);
-	}
-        mpres_gcd (f, tmpprod, modulus);
-    }
-
-    mpres_clear (tmpresidue, modulus);
-    mpres_clear (tmpprod, modulus);
-    clear_list (R, Rlen);
-}
-
-
 
 /* Compute g_i = x_0^{M-i} * r^{(M-i)^2} for 0 <= i < l. 
-   x_0 = b_1^{2*k_2 + (2*m_1 + 1) * P}. r = b_1^P. */
+   x_0 = b_1^{2*k_2 + (2*m_1 + 1) * P}. r = b_1^P. 
+   Stores the result in g[0 ... l] and/or in g_ntt[offset ... offset + l] */
 
 static void
-pm1_sequence_g (listz_t g, mpzspv_t g_ntt, 
-		const mpres_t b_1, const unsigned long P, const long M, 
-		const unsigned long l, const mpz_t m_1, const long k_2, 
-		mpmod_t modulus, mpzspm_t ntt_context)
+pm1_sequence_g (listz_t g_mpz, mpzspv_t g_ntt, 
+		const mpres_t b_1, const unsigned long P, const long M_param, 
+		const unsigned long l_param, const mpz_t m_1, const long k_2, 
+		mpmod_t modulus_param, const mpzspm_t ntt_context)
 {
   mpres_t r[3], x_0, x_Mi;
   mpz_t t;
   unsigned long i;
   long timestart, timestop;
+  long M = M_param;
+  unsigned long l = l_param, offset = 0UL;
+  mpmod_t modulus;
+  int want_output = 1;
+
+  outputf (OUTPUT_VERBOSE, "Computing g_i");
+
+#ifdef _OPENMP
+#pragma omp parallel private(r, x_0, x_Mi, t, i, M, l, offset, modulus, want_output) shared(timestart, timestop)
+  {
+    /* When multi-threading, we adjust the parameters for each thread */
+
+    const int nr_chunks = omp_get_num_threads();
+    const int thread_nr = omp_get_thread_num();
+    
+    l = (l_param - 1) / nr_chunks + 1;
+    offset = thread_nr * l;
+    l = MIN(l, l_param - offset);
+    M = M_param - (long) offset;
+    
+    /* Let only the master thread print stuff */
+    want_output = (omp_get_thread_num() == 0);
+
+    if (want_output)
+      outputf (OUTPUT_VERBOSE, " using %d threads", nr_chunks);
+#endif
+
+  /* Make a private copy of the mpmod_t struct */
+  mpmod_copy (modulus, modulus_param);
 
   mpz_init (t);
   mpres_init (r[0], modulus);
@@ -1943,22 +1916,24 @@ pm1_sequence_g (listz_t g, mpzspv_t g_ntt,
   mpres_init (x_0, modulus);
   mpres_init (x_Mi, modulus);
 
-  outputf (OUTPUT_DEVVERBOSE, "sequence_g (g, b_1, P = %lu, M = %ld, l = %lu, "
-	   "m_1 = %Zd, k_2 = %ld, modulus)\n", P, M, l, m_1, k_2);
-  outputf (OUTPUT_VERBOSE, "Computing g_i");
-  if (test_verbose (OUTPUT_TRACE))
-    { 
-      mpres_get_z (t, b_1, modulus);
-      outputf (OUTPUT_TRACE, "\n/* pm1_sequence_g */ N = %Zd; "
-	       "b_1 = Mod(%Zd, N); /* PARI */\n", modulus->orig_modulus, t);
-      outputf (OUTPUT_TRACE, "/* pm1_sequence_g */ P = %lu; M = %lu; "
-	       "m_1 = %Zd; /* PARI */\n", P, M, m_1);
-      outputf (OUTPUT_TRACE, 
-	       "/* pm1_sequence_g */ r = b_1^P; /* PARI */\n");
-      outputf (OUTPUT_TRACE, "/* pm1_sequence_g */ x_0 = "
-	       "b_1^(2*%ld + (2*m_1 + 1)*P); /* PARI */\n", k_2);
+  if (want_output)
+    {
+      outputf (OUTPUT_DEVVERBOSE, "sequence_g (g, b_1, P = %lu, M = %ld, "
+	       "l = %lu, m_1 = %Zd, k_2 = %ld, modulus)\n", P, M, l, m_1, k_2);
+      if (test_verbose (OUTPUT_TRACE))
+	{ 
+	  mpres_get_z (t, b_1, modulus);
+	  outputf (OUTPUT_TRACE, "\n/* pm1_sequence_g */ N = %Zd; "
+		   "b_1 = Mod(%Zd, N); /* PARI */\n", modulus->orig_modulus, t);
+	  outputf (OUTPUT_TRACE, "/* pm1_sequence_g */ P = %lu; M = %lu; "
+		   "m_1 = %Zd; /* PARI */\n", P, M, m_1);
+	  outputf (OUTPUT_TRACE, 
+		   "/* pm1_sequence_g */ r = b_1^P; /* PARI */\n");
+	  outputf (OUTPUT_TRACE, "/* pm1_sequence_g */ x_0 = "
+		   "b_1^(2*%ld + (2*m_1 + 1)*P); /* PARI */\n", k_2);
+	}
+      timestart = cputime ();
     }
-  timestart = cputime ();
 
   /* We use (M-(i+1))^2 = (M-i)^2 + 2*(-M+i) + 1 */
   mpz_set_ui (t, P);
@@ -1986,12 +1961,12 @@ pm1_sequence_g (listz_t g, mpzspv_t g_ntt,
   mpz_mul_ui (t, t, P);
   mpz_add_si (t, t, k_2);
   mpz_add_si (t, t, k_2);
-  outputf (OUTPUT_TRACE, 
-	   "/* pm1_sequence_g */ 2*%ld + (2*%Zd + 1)*P == %Zd /* PARI C */\n", 
-           k_2, m_1, t);
+  if (want_output)
+    outputf (OUTPUT_TRACE, "/* pm1_sequence_g */ 2*%ld + (2*%Zd + 1)*P == "
+	     "%Zd /* PARI C */\n", k_2, m_1, t);
 
   mpres_pow (x_0, b_1, t, modulus);  /* x_0 = b_1^{2*k_2 + (2*m_1 + 1)*P} */
-  if (test_verbose (OUTPUT_TRACE))
+  if (want_output && test_verbose (OUTPUT_TRACE))
     {
       mpres_get_z (t, x_0, modulus);
       outputf (OUTPUT_TRACE, "/* pm1_sequence_g */ x_0 == %Zd /* PARI C */\n", 
@@ -2006,11 +1981,12 @@ pm1_sequence_g (listz_t g, mpzspv_t g_ntt,
   
   mpres_mul (r[2], r[2], x_Mi, modulus); /* r[2] = x_0^M * r^{M^2} */
   mpres_get_z (t, r[2], modulus);
-  outputf (OUTPUT_TRACE, "/* pm1_sequence_g */ g_0 = %Zd; /* PARI */\n", t);
-  if (g != NULL)
-    mpz_set (g[0], t);
+  outputf (OUTPUT_TRACE, "/* pm1_sequence_g */ g_%lu = %Zd; /* PARI */\n", 
+	   offset, t);
+  if (g_mpz != NULL)
+    mpz_set (g_mpz[offset], t);
   if (g_ntt != NULL)
-    mpzspv_from_mpzv (g_ntt, 0UL, &t, 1UL, ntt_context);
+    mpzspv_from_mpzv (g_ntt, offset, &t, 1UL, ntt_context);
 
   /* So here we have for i = 0
      r[2] = x_0^(M-i) * r^{(M-i)^2}
@@ -2021,19 +1997,20 @@ pm1_sequence_g (listz_t g, mpzspv_t g_ntt,
 
   for (i = 1; i < l; i++)
     {
-      if (g != NULL)
+      if (g_mpz != NULL)
         {
-	  mpres_mul_z_to_z (g[i], r[1], g[i - 1], modulus);
+	  mpres_mul_z_to_z (g_mpz[offset + i], r[1], g_mpz[offset + i - 1], 
+			    modulus);
 	  outputf (OUTPUT_TRACE, "/* pm1_sequence_g */ g_%lu = %Zd;"
-		   " /* PARI */\n", i, g[i]);
+		   " /* PARI */\n", offset + i, g_mpz[offset + i]);
         }
       if (g_ntt != NULL)
       {
 	  mpres_mul_z_to_z (t, r[1], t, modulus);
-	  if (g == NULL) /* Only one should be non-NULL, but we test anyway */
+	  if (g_mpz == NULL) /* Only one should be non-NULL... */
 	      outputf (OUTPUT_TRACE, "/* pm1_sequence_g */ g_%lu = %Zd;"
-		       " /* PARI */\n", i, t);
-	  mpzspv_from_mpzv (g_ntt, i, &t, 1UL, ntt_context);
+		       " /* PARI */\n", offset + i, t);
+	  mpzspv_from_mpzv (g_ntt, offset + i, &t, 1UL, ntt_context);
       }
       mpres_mul (r[1], r[1], r[0], modulus);
     }
@@ -2044,20 +2021,25 @@ pm1_sequence_g (listz_t g, mpzspv_t g_ntt,
   mpres_clear (x_0, modulus);
   mpres_clear (x_Mi, modulus);
   mpz_clear (t);
+  mpmod_clear (modulus); /* Clear our private copy of modulus */
+
+#ifdef _OPENMP
+  }
+#endif
 
   timestop = cputime ();
   outputf (OUTPUT_VERBOSE, " took %lu ms\n", timestop - timestart);
   
   if (test_verbose (OUTPUT_TRACE))
     {
-      for (i = 0; i < l; i++)
-        {
-          outputf (OUTPUT_TRACE, "/* pm1_sequence_g */ g_%lu == "
-		   "x_0^(M - %lu) * r^((M - %lu)^2) /* PARI C */\n", i, i, i);
-        }
+      for (i = 0; i < l_param; i++)
+	{
+	  outputf (OUTPUT_TRACE, "/* pm1_sequence_g */ g_%lu == x_0^"
+		   "(M - %lu) * r^((M - %lu)^2) /* PARI C */\n", i, i, i);
+	}
       outputf (OUTPUT_TRACE, "/* pm1_sequence_g */ g(x) = g_0");
       for (i = 1; i < l; i++)
-        outputf (OUTPUT_TRACE, " + g_%lu * x^%lu", i, i);
+	outputf (OUTPUT_TRACE, " + g_%lu * x^%lu", i, i);
       outputf (OUTPUT_TRACE, " /* PARI */\n");
     }
 }
@@ -2068,7 +2050,8 @@ pm1_sequence_g (listz_t g, mpzspv_t g_ntt,
 
 static void 
 pm1_sequence_h (listz_t h, mpzspv_t h_ntt, mpz_t *f, const mpres_t r, 
-		const unsigned long d, mpmod_t modulus, mpzspm_t ntt_context)
+		const unsigned long d, mpmod_t modulus, 
+		const mpzspm_t ntt_context)
 {
   mpres_t invr;  /* r^{-1} */
   mpres_t fd[3]; /* finite differences table for r^{-i^2}*/
@@ -2077,7 +2060,6 @@ pm1_sequence_h (listz_t h, mpzspv_t h_ntt, mpz_t *f, const mpres_t r,
   long timestart, timestop;
 
   outputf (OUTPUT_VERBOSE, "Computing h");
-
   timestart = cputime ();
 
   mpres_init (invr, modulus);
@@ -2422,7 +2404,7 @@ make_S_1_S_2 (long **S_1, unsigned long *S_1_size, long **S_2,
 
 static void
 ntt_dft_to_dct (mpzspv_t dct, mpzspv_t dft, unsigned long len, 
-		mpzspm_t ntt_context)
+		const mpzspm_t ntt_context)
 {
   unsigned long i, j, m;
 
@@ -2446,7 +2428,11 @@ ntt_dft_to_dct (mpzspv_t dct, mpzspv_t dft, unsigned long len,
 	  m = 2UL * m + 1;
 
       for (j = 0; j < ntt_context->sp_num; j++)
+	{
 	  ASSERT (dft[j][i] == dft[j][m - i]);
+	}
+      outputf (OUTPUT_TRACE, "ntt_dft_to_dct: DFT[%lu] == DFT[%lu]\n",
+	       i, m - i);
     }
 #endif
   /* Copy coefficients to dct buffer */
@@ -2459,14 +2445,103 @@ ntt_dft_to_dct (mpzspv_t dct, mpzspv_t dft, unsigned long len,
 }
 
 
+/* Computes a DCT-I of the length dctlen. Input is the spvlen coefficients
+   in spv. tmp is temp space and must have space for 2*dctlen-2 sp_t's */
+
+static void
+ntt_spv_to_dct (mpzspv_t dct, const mpzspv_t spv, const spv_size_t spvlen, 
+                const spv_size_t dctlen, mpzspv_t tmp, 
+		const mpzspm_t ntt_context)
+{
+  const spv_size_t l = 2 * (dctlen - 1); /* Length for the DFT */
+  int j;
+
+#ifdef _OPENMP
+#pragma omp parallel private(j)
+  {
+#pragma omp master 
+    outputf (OUTPUT_VERBOSE, " using %d threads", omp_get_num_threads());
+#pragma omp for
+#endif
+  for (j = 0; j < (int) ntt_context->sp_num; j++)
+    {
+      const spm_t spm = ntt_context->spm[j];
+      const sp_t root = sp_pow (spm->prim_root, ntt_context->max_ntt_size / l,
+                                spm->sp, spm->mul_c);
+      spv_size_t i;
+      
+      /* Make a symmetric copy of spv in tmp. I.e. with spv = [3, 2, 1], 
+         spvlen = 3, dctlen = 5 (hence l = 8), we want 
+         tmp = [3, 2, 1, 0, 0, 0, 1, 2] */
+      spv_set (tmp[j], spv[j], spvlen);
+      spv_rev (tmp[j] + l - spvlen + 1, spv[j] + 1, spvlen - 1);
+      /* Now we have [3, 2, 1, ?, ?, ?, 1, 2]. Fill the ?'s with zeros. */
+      spv_set_sp (tmp[j] + spvlen, (sp_t) 0, l - 2 * spvlen + 1);
+
+#if 0
+      printf ("ntt_spv_to_dct: tmp[%d] = [", j);
+      for (i = 0; i < l; i++)
+          printf ("%lu, ", tmp[j][i]);
+      printf ("]\n");
+#endif
+      
+      spv_ntt_gfp_dif (tmp[j], l, spm->sp, spm->mul_c, root);
+
+#if 0
+      printf ("ntt_spv_to_dct: tmp[%d] = [", j);
+      for (i = 0; i < l; i++)
+          printf ("%lu, ", tmp[j][i]);
+      printf ("]\n");
+#endif
+
+      /* The forward transform is scrambled. We want elements [0 ... l/2]
+         of the unscrabled data, that is all the coefficients with the most 
+         significant bit in the index (in log2(l) word size) unset, plus the 
+         element at index l/2. By scrambling, these map to the elements with 
+         even index, plus the element at index 1. 
+         The elements with scrambled index 2*i are stored in h[i], the
+         element with scrambled index 1 is stored in h[params->l] */
+  
+#ifdef WANT_ASSERT
+      /* Test that the coefficients are symmetic (if they were unscambled) and 
+         that our algorithm for finding identical coefficients in the scrambled 
+         data works */
+      {
+        spv_size_t m = 5;
+        for (i = 2; i < l; i += 2L)
+          {
+            /* This works, but why? */
+            if (i + i / 2L > m)
+                m = 2L * m + 1L;
+
+            ASSERT (tmp[j][i] == tmp[j][m - i]);
+#if 0
+            outputf (OUTPUT_TRACE, "ntt_spv_to_dct: DFT[%lu] == DFT[%lu]\n",
+                     i, m - i);
+#endif
+          }
+      }
+#endif
+
+      /* Copy coefficients to dct buffer */
+      for (i = 0; i < l / 2; i++)
+        dct[j][i] = tmp[j][i * 2];
+      dct[j][l / 2] = tmp[j][1];
+    }
+#ifdef _OPENMP
+  }
+#endif
+}
+
+
 /* Multiply the NTT coefficients in dft, assumed to be a scrambled DFT,
    by the coefficients in dct, assume to be in for layout produced by 
    ntt_dft_to_dct();
  */
 
 static void
-ntt_dft_mul_dct (mpzspv_t dft, mpzspv_t dct, unsigned long len, 
-		 mpzspm_t ntt_context)
+ntt_dft_mul_dct (mpzspv_t dft, const mpzspv_t dct, const unsigned long len, 
+		 const mpzspm_t ntt_context)
 {
   unsigned long i, j, m;
   
@@ -2490,6 +2565,178 @@ ntt_dft_mul_dct (mpzspv_t dft, mpzspv_t dct, unsigned long len,
       dft[j][1] = sp_mul (dft[j][1], dct[j][len / 2UL], sp, mul_c);
   }
 }
+
+
+/* Multiply the polynomial in "dft" by the RLP in "dct", where "dft" 
+   contains the polynomial coefficients (not FFT'd yet) and "dct" 
+   contains the DCT-I coefficients of the RLP. The latter are 
+   assumed to be in the layout produced by ntt_dft_to_dct().
+   Output are the coefficients of the product polynomial, stored in dft. */
+
+static void
+ntt_mul_by_dct (mpzspv_t dft, const mpzspv_t dct, const unsigned long len, 
+		const mpzspm_t ntt_context)
+{
+  int j;
+  
+#ifdef _OPENMP
+#pragma omp parallel private(j)
+  {
+#pragma omp master 
+    {
+      outputf (OUTPUT_VERBOSE, " using %d threads", omp_get_num_threads());
+    }
+#pragma omp for
+#endif
+    for (j = 0; j < (int) (ntt_context->sp_num); j++)
+      {
+	const spm_t spm = ntt_context->spm[j];
+	const spv_t spv = dft[j];
+	sp_t root;
+	unsigned long i, m;
+	
+	root = sp_pow (spm->prim_root, ntt_context->max_ntt_size / len,
+		       spm->sp, spm->mul_c);
+	
+	/* Forward DFT of dft[j] */
+	spv_ntt_gfp_dif (spv, len, spm->sp, spm->mul_c, root);
+	
+	m = 5UL;
+	
+	/* Point-wise product */
+	spv[0] = sp_mul (spv[0], dct[j][0], spm->sp, spm->mul_c);
+	spv[1] = sp_mul (spv[1], dct[j][len / 2UL], spm->sp, spm->mul_c);
+	
+	for (i = 2UL; i < len; i += 2UL)
+	  {
+	    /* This works, but why? */
+	    if (i + i / 2UL > m)
+	      m = 2UL * m + 1;
+	    
+	    spv[i] = sp_mul (spv[i], dct[j][i / 2UL], spm->sp, spm->mul_c);
+	    spv[m - i] = sp_mul (spv[m - i], dct[j][i / 2UL], spm->sp, 
+				 spm->mul_c);
+	  }
+	
+	root = sp_pow (spm->inv_prim_root, ntt_context->max_ntt_size / len,
+		       spm->sp, spm->mul_c);
+	
+	/* Inverse transform of dft[j] */
+	spv_ntt_gfp_dit (spv, len, spm->sp, spm->mul_c, root);
+	
+	/* Divide by transform length. FIXME: scale the DCT of h instead */
+	spv_mul_sp (spv, spv, spm->sp - (spm->sp - 1) / len, len, spm->sp, 
+		    spm->mul_c);
+      }
+#ifdef _OPENMP
+  }
+#endif
+}
+
+
+/* Computes gcd(\prod_{0 <= i < len} (ntt[i + offset] + add[i]), N), 
+   the NTT residues are converted to integer residues (mod N) first.
+   If add == NULL, add[i] is assumed to be 0. */
+
+static void
+ntt_gcd (mpz_t f, mpzspv_t ntt, const unsigned int ntt_offset,
+	 const listz_t add, const unsigned long len_param, 
+	 const mpzspm_t ntt_context, mpmod_t modulus_param)
+{
+  unsigned long i, j;
+  const unsigned long Rlen = MPZSPV_NORMALISE_STRIDE;
+  listz_t R;
+  unsigned long len = len_param, thread_offset = 0;
+  mpres_t tmpres, tmpprod, totalprod;
+  mpmod_t modulus;
+  long timestart, timestop;
+  
+  outputf (OUTPUT_VERBOSE, "Computing gcd of coefficients and N");
+  timestart = cputime ();
+
+  /* All the threads will multiply their partial products to this one. */
+  mpres_init (totalprod, modulus_param);
+  mpres_set_ui (totalprod, 1UL, modulus_param);
+
+#ifdef _OPENMP
+#pragma omp parallel private(i, j, R, len, thread_offset, tmpres, tmpprod, modulus) shared(totalprod)
+  {
+    const int nr_chunks = omp_get_num_threads();
+    const int thread_nr = omp_get_thread_num();
+    len = (len_param - 1) / nr_chunks + 1;
+    thread_offset = thread_nr * len;
+    len = MIN(len, len_param - thread_offset);
+#pragma omp master
+    {
+      outputf (OUTPUT_VERBOSE, " using %d threads", nr_chunks);
+    }
+#endif
+
+    /* Make a private copy of the mpmod_t struct */
+    mpmod_copy (modulus, modulus_param);
+
+    R = init_list (Rlen);
+    mpres_init (tmpres, modulus);
+    mpres_init (tmpprod, modulus);
+    mpres_set_ui (tmpprod, 1UL, modulus);
+    
+    for (i = 0; i < len; i += Rlen)
+      {
+	const unsigned long blocklen = MIN(len - i, Rlen);
+
+	/* Convert blocklen residues from NTT to integer representatives
+	   and store them in R */
+	mpzspv_to_mpzv (ntt, ntt_offset + thread_offset + i, R, blocklen, 
+			ntt_context);
+
+	/* Accumulate product in tmpprod */
+	for (j = 0; j < blocklen; j++)
+	  {
+	    outputf (OUTPUT_TRACE, "r_%lu = %Zd; /* PARI */\n", i, R[j]);
+	    if (add != NULL)
+	      mpz_add (R[j], R[j], add[i + thread_offset + j]);
+	    mpres_set_z_for_gcd (tmpres, R[j], modulus);
+#define TEST_ZERO_RESULT
+#ifdef TEST_ZERO_RESULT
+	    if (mpres_is_zero (tmpres, modulus))
+	      outputf (OUTPUT_VERBOSE, "R_[%lu] = 0\n", i);
+#endif
+	    mpres_mul (tmpprod, tmpprod, tmpres, modulus); 
+	  }
+      }
+#ifdef _OPENMP
+#pragma omp critical
+    {
+      mpres_mul (totalprod, totalprod, tmpprod, modulus);
+    }
+#else
+    mpres_set (totalprod, tmpprod, modulus);
+#endif
+    mpres_clear (tmpres, modulus);
+    mpres_clear (tmpprod, modulus);
+    mpmod_clear (modulus);
+    clear_list (R, Rlen);
+#ifdef _OPENMP
+  }
+#endif
+
+  if (test_verbose(OUTPUT_RESVERBOSE))
+    {
+      mpres_t t;
+      mpres_init (t, modulus_param);
+      mpres_get_z (t, totalprod, modulus_param);
+      outputf (OUTPUT_RESVERBOSE, "Product of R[i] = %Zd (times some "
+	       "power of 2 if REDC was used! Try -mpzmod)\n", t);
+      mpres_clear (t, modulus_param);
+    }
+
+  mpres_gcd (f, totalprod, modulus_param);
+  mpres_clear (totalprod, modulus_param);
+
+  timestop = cputime ();
+  outputf (OUTPUT_VERBOSE, " took %lu ms\n", timestop - timestart);
+}
+
 
 
 int 
@@ -2611,11 +2858,11 @@ pm1fs2 (mpz_t f, const mpres_t X, mpmod_t modulus,
 
   for (l = 0; l < params->s_2; l++)
     {
-      pm1_sequence_g (g, NULL, X, params->P, params->l - 1 - params->s_1 / 2, 
-		      params->l, params->m_1, S_2[l + 1], modulus, NULL);
+      const long M = params->l - 1L - params->s_1 / 2L;
+      pm1_sequence_g (g, NULL, X, params->P, M, params->l, 
+		      params->m_1, S_2[l + 1], modulus, NULL);
 
       /* Do the convolution */
-#if 1
       /* Use the transposed "Middle Product" algorithm */
       /* TMulGen reverses the first input sequence, but that doesn't matter
 	 since h is symmetric. */
@@ -2632,27 +2879,6 @@ pm1fs2 (mpz_t f, const mpres_t X, mpmod_t modulus,
 
       timestop = cputime ();
       outputf (OUTPUT_VERBOSE, " took %lu ms\n", timestop - timestart);
-#else
-      /* THIS DOESN'T WORK AT THE MOMENT */
-      abort ();
-
-      /* Use two non-transposed multiplications */
-      outputf (OUTPUT_VERBOSE, "Computing B * g");
-      timestart = cputime ();
-      list_mul (tmp, g, params->s_1 + 1, 0, B, params->l / 2, 0, 
-		tmp + params->s_1 + 1 + params->l / 2);
-      list_set (R, tmp + params->l / 2, nr);
-      
-      /* l / 2 is enough for the length of g here, as the coefficient in
-	 g[l/2] will only affect R[i], i >= l, which we don't need */
-      list_mul (tmp, g, params->s_1, 0, B + params->l / 2, params->l / 2, 0, 
-		tmp + params->s_1 + params->l / 2);
-      list_add (R, R, tmp, nr);
-      list_mod (R, R, nr, modulus->orig_modulus);
-      timestop = cputime ();
-      outputf (OUTPUT_VERBOSE, " took %lu ms\n", timestop - timestart);
-#endif
-
 
 #if 0 && defined(WANT_ASSERT)
 
@@ -2769,8 +2995,7 @@ pm1fs2_ntt (mpz_t f, const mpres_t X, mpmod_t modulus,
   mpzspm_t ntt_context;
   mpzspv_t g_ntt, h_ntt;
   mpz_t mt;   /* All-purpose temp mpz_t */
-  const unsigned long tmpreslen = 2UL;
-  mpres_t tmpres[tmpreslen]; /* All-purpose temp mpres_t */
+  mpres_t tmpres; /* All-purpose temp mpres_t */
   int youpi = ECM_NO_FACTOR_FOUND;
   long timetotalstart, timestart, timestop;
 
@@ -2802,12 +3027,9 @@ pm1fs2_ntt (mpz_t f, const mpres_t X, mpmod_t modulus,
       outputf (OUTPUT_DEVVERBOSE, ", has %f bits\n", modbits / log (2.));
     }
 
-  /* Allocate all the memory we'll need */
-  /* Allocate the correct amount of space for each mpz_t or the 
-     reallocations will up to double the time for stage 2! */
+  /* Allocate all the memory we'll need for building f */
   mpz_init (mt);
-  for (i = 0; i < tmpreslen; i++)
-      mpres_init (tmpres[i], modulus);
+  mpres_init (tmpres, modulus);
   lenF = params->s_1 / 2 + 1 + 1; /* Another +1 because poly_from_sets_V stores
 				     the leading 1 monomial for each factor */
   tmplen = 3 * params->s_1 + 1000;
@@ -2826,11 +3048,11 @@ pm1fs2_ntt (mpz_t f, const mpres_t X, mpmod_t modulus,
   timestart = cputime ();
   
   /* First compute X^2 + 1/X^2 */
-  mpres_invert (tmpres[0], X, modulus);
-  mpres_add (tmpres[0], tmpres[0], X, modulus);
-  V (tmpres[0], tmpres[0], 2UL, modulus);
+  mpres_invert (tmpres, X, modulus);
+  mpres_add (tmpres, tmpres, X, modulus);
+  V (tmpres, tmpres, 2UL, modulus);
   
-  i = poly_from_sets_V (F, tmpres[0], S_1, S_1_size, tmp, tmplen, modulus);
+  i = poly_from_sets_V (F, tmpres, S_1, S_1_size, tmp, tmplen, modulus);
   ASSERT(2 * i == params->s_1);
   ASSERT(mpz_cmp_ui (F[i], 1UL) == 0);
   
@@ -2846,79 +3068,46 @@ pm1fs2_ntt (mpz_t f, const mpres_t X, mpmod_t modulus,
       outputf (OUTPUT_TRACE, "/* PARI */ \n");
     }
   
+  clear_list (tmp, tmplen);
+
   /* Allocate memory for h_ntt */
   h_ntt = mpzspv_init (params->l / 2 + 1, ntt_context);
 
   mpz_set_ui (mt, params->P);
-  mpres_pow (tmpres[0], X, mt, modulus); /* mr = X^P */
-  pm1_sequence_h (NULL, h_ntt, F, tmpres[0], params->s_1 / 2 + 1, modulus, 
+  mpres_pow (tmpres, X, mt, modulus); /* tmpres = X^P */
+  pm1_sequence_h (NULL, h_ntt, F, tmpres, params->s_1 / 2 + 1, modulus, 
 		  ntt_context);
 
-  clear_list (tmp, tmplen);
   clear_list (F, lenF);
   g_ntt = mpzspv_init (params->l, ntt_context);
 
-  /* Make a symmetric copy of h in g_ntt. I.e. with h = [3, 2, 1], s_1 = 4, 
-     l = 8, we want g_ntt = [3, 2, 1, 0, 0, 0, 1, 2] */
-  mpzspv_set (g_ntt, 0, h_ntt, 0, params->s_1 / 2 + 1, ntt_context);
-  mpzspv_revcopy (g_ntt, params->l - params->s_1 / 2, h_ntt, 1, 
-		  params->s_1 / 2, ntt_context);
-  /* Now we have [3, 2, 1, ?, ?, ?, 1, 2]. Fill the ?'s with zeros. */
-  mpzspv_set_sp (g_ntt, params->s_1 / 2 + 1, 0, params->l - params->s_1 - 1,
-		 ntt_context);
-#if 0
-  for (i = 0; i < params->l; i++)
-      printf ("%lu ", g_ntt[0][i]);
-  printf ("\n");
-#endif
-  /* Compute forward transform */
-  outputf (OUTPUT_VERBOSE, "Computing forward NTT of h");
+  /* Compute the DCT-I of h */
+  outputf (OUTPUT_VERBOSE, "Computing DCT-I of h");
   timestart = cputime ();
-  mpzspv_to_ntt (g_ntt, 0, params->l, params->l, 0, ntt_context);
+  ntt_spv_to_dct (h_ntt, h_ntt, params->s_1 / 2 + 1, params->l / 2 + 1, 
+                  g_ntt, ntt_context);
   timestop = cputime ();
   outputf (OUTPUT_VERBOSE, " took %lu ms\n", timestop - timestart);
-
-#if 0
-  for (i = 0; i < params->l; i++)
-      printf ("%lu ", g_ntt[0][i]);
-  printf ("\n");
-#endif
-
-  /* Store the params->l/2 + 1 distinct coefficients of the DFT in h_ntt */
-  ntt_dft_to_dct (h_ntt, g_ntt, params->l, ntt_context);
-
-
+                
   for (l = 0; l < params->s_2; l++)
     {
-      const long M = params->l - 1 - params->s_1 / 2;
-      pm1_sequence_g (NULL, g_ntt, X, params->P, M, params->l, params->m_1, 
-		      S_2[l + 1], modulus, ntt_context);
+      const long M = params->l - 1L - params->s_1 / 2L;
+
+      /* Compute the coefficients of the polynomial g(x) */
+      pm1_sequence_g (NULL, g_ntt, X, params->P, M, params->l, 
+		      params->m_1, S_2[l + 1], modulus, ntt_context);
 
       /* Do the convolution */
-      outputf (OUTPUT_VERBOSE, "Computing forward NTT of g");
+      outputf (OUTPUT_VERBOSE, "Computing g*h");
       timestart = cputime ();
-      mpzspv_to_ntt (g_ntt, 0, params->l, params->l, 0, ntt_context);
+      ntt_mul_by_dct (g_ntt, h_ntt, params->l, ntt_context);
       timestop = cputime ();
-      outputf (OUTPUT_VERBOSE, " took %lu ms\n", timestop - timestart);
+      outputf (OUTPUT_VERBOSE, " took %lu ms\n", timestop - timestart);      
       
-      outputf (OUTPUT_VERBOSE, "Computing point-wise product");
-      timestart = cputime ();
-      ntt_dft_mul_dct (g_ntt, h_ntt, params->l, ntt_context);
-      timestop = cputime ();
-      outputf (OUTPUT_VERBOSE, " took %lu ms\n", timestop - timestart);
-
-      outputf (OUTPUT_VERBOSE, "Computing inverse NTT of g*h");
-      timestart = cputime ();
-      mpzspv_from_ntt (g_ntt, 0, params->l, 0, ntt_context);
-      timestop = cputime ();
-      outputf (OUTPUT_VERBOSE, " took %lu ms\n", timestop - timestart);
-     
-      outputf (OUTPUT_VERBOSE, "Computing product of g*h coefficients");
-      timestart = cputime ();
+      /* Compute GCD of N and coefficients of product polynomial */
       ntt_gcd (mt, g_ntt, params->s_1 / 2, NULL, nr, ntt_context, modulus);
-      timestop = cputime ();
-      outputf (OUTPUT_VERBOSE, " took %lu ms\n", timestop - timestart);
 
+      /* If we found a factor, stop */
       if (mpz_cmp_ui (mt, 1UL) > 0)
 	{
 	  mpz_set (f, mt);
@@ -2930,6 +3119,7 @@ pm1fs2_ntt (mpz_t f, const mpres_t X, mpmod_t modulus,
   mpzspv_clear (g_ntt, ntt_context);
   mpzspv_clear (h_ntt, ntt_context);
   mpzspm_clear (ntt_context);
+  mpres_clear (tmpres, modulus);
   mpz_clear (mt);
 
   timestop = cputime ();
@@ -3278,7 +3468,7 @@ pp1_sequence_g (listz_t g_x, listz_t g_y, mpzspv_t g_x_ntt, mpzspv_t g_y_ntt,
 		const mpres_t b1_x, const mpres_t b1_y, const unsigned long P, 
 		const mpres_t Delta, const long M, const unsigned long l, 
 		const mpz_t m_1, const long k_2, mpmod_t modulus, 
-		mpzspm_t ntt_context, const unsigned long origtmplen, 
+		const mpzspm_t ntt_context, const unsigned long origtmplen, 
 		mpres_t *origtmp)
 {
   const unsigned long tmplen = origtmplen - 15UL;
@@ -3504,8 +3694,9 @@ static void
 pp1_sequence_h (listz_t h_x, listz_t h_y, mpzspv_t h_x_ntt, mpzspv_t h_y_ntt,
 		const listz_t f, const mpres_t b1_x, const mpres_t b1_y, 
 		const long k, const unsigned long l, const unsigned long P, 
-		const mpres_t Delta, mpmod_t modulus, mpzspm_t ntt_context, 
-		const unsigned long origtmplen, mpres_t *origtmp)
+		const mpres_t Delta, mpmod_t modulus, 
+		const mpzspm_t ntt_context, const unsigned long origtmplen, 
+		mpres_t *origtmp)
 {
   mpres_t *s_x = origtmp, *s_y = origtmp + 3, *s2_x = origtmp + 6, 
     *s2_y = origtmp + 8, *v = origtmp + 10, *V2 = origtmp + 12,
@@ -4069,28 +4260,18 @@ pp1fs2_ntt (mpz_t f, const mpres_t X, mpmod_t modulus,
   for (l = 0; l < params->s_2; l++)
     {
       const long M = params->l - 1 - params->s_1 / 2;
-      pp1_sequence_g (NULL, NULL, g_x_ntt, twopass ? NULL : g_y_ntt, 
-		      b1_x, b1_y, params->P, Delta, M, params->l, params->m_1, 
-		      S_2[l + 1], modulus, ntt_context, tmpreslen, tmpres);
-
-      outputf (OUTPUT_VERBOSE, "Computing forward NTT of g_x");
-      timestart = cputime ();
-      mpzspv_to_ntt (g_x_ntt, 0, params->l, params->l, 0, ntt_context);
-      timestop = cputime ();
-      outputf (OUTPUT_VERBOSE, " took %lu ms\n", timestop - timestart);
-
-      outputf (OUTPUT_VERBOSE, "Computing point-wise product of g_x and h_x");
-      timestart = cputime ();
-      ntt_dft_mul_dct (g_x_ntt, h_x_ntt, params->l, ntt_context);
-      timestop = cputime ();
-      outputf (OUTPUT_VERBOSE, " took %lu ms\n", timestop - timestart);
 
       if (twopass)
 	{
-	  /* Do inverse transform and store result in R */
-	  outputf (OUTPUT_VERBOSE, "Computing inverse NTT of h_x * g_x");
+	  pp1_sequence_g (NULL, NULL, g_x_ntt, NULL, b1_x, b1_y, params->P, 
+			  Delta, M, params->l, params->m_1, S_2[l + 1], 
+			  modulus, ntt_context, tmpreslen, tmpres);
+
+	  /* Do the convolution product of g_x * h_x */
+	  outputf (OUTPUT_VERBOSE, "Computing g_x*h_x");
 	  timestart = cputime ();
-	  mpzspv_from_ntt (g_x_ntt, 0, params->l, 0, ntt_context);
+	  ntt_mul_by_dct (g_x_ntt, h_x_ntt, params->l, ntt_context);
+	  /* Store the product coefficients we want in R */
 	  mpzspv_to_mpzv (g_x_ntt, params->s_1 / 2, R, nr, ntt_context);
 	  timestop = cputime ();
 	  outputf (OUTPUT_VERBOSE, " took %lu ms\n", timestop - timestart);
@@ -4099,30 +4280,51 @@ pp1fs2_ntt (mpz_t f, const mpres_t X, mpmod_t modulus,
 	  pp1_sequence_g (NULL, NULL, NULL, g_y_ntt, b1_x, b1_y, params->P, 
 			  Delta, M, params->l, params->m_1, S_2[l + 1], 
 			  modulus, ntt_context, tmpreslen, tmpres);
-	}
-      
-      outputf (OUTPUT_VERBOSE, "Computing forward NTT of g_y");
-      timestart = cputime ();
-      mpzspv_to_ntt (g_y_ntt, 0, params->l, params->l, 0, ntt_context);
-      timestop = cputime ();
-      outputf (OUTPUT_VERBOSE, " took %lu ms\n", timestop - timestart);
-
-      outputf (OUTPUT_VERBOSE, "Computing point-wise product of g_y and h_y");
-      timestart = cputime ();
-      ntt_dft_mul_dct (g_y_ntt, h_y_ntt, params->l, ntt_context);
-      timestop = cputime ();
-      outputf (OUTPUT_VERBOSE, " took %lu ms\n", timestop - timestart);
-
-      if (twopass)
-	{
-	  outputf (OUTPUT_VERBOSE, "Computing inverse NTT of h_y * g_y");
+	  
+	  /* Do the convolution product of g_y * (Delta * h_y) */
+	  outputf (OUTPUT_VERBOSE, "Computing g_y*h_y");
 	  timestart = cputime ();
-	  mpzspv_from_ntt (g_y_ntt, 0, params->l, 0, ntt_context);
+	  ntt_mul_by_dct (g_y_ntt, h_y_ntt, params->l, ntt_context);
 	  timestop = cputime ();
 	  outputf (OUTPUT_VERBOSE, " took %lu ms\n", timestop - timestart);
+	  
+	  /* Compute product of sum of coefficients and gcd with N */
+	  ntt_gcd (mt, g_y_ntt, params->s_1 / 2, R, nr, ntt_context, modulus);
 	}
       else
 	{
+	  /* Currently does not work */
+	  abort();
+	  
+	  pp1_sequence_g (NULL, NULL, g_x_ntt, g_y_ntt, b1_x, b1_y, params->P, 
+			  Delta, M, params->l, params->m_1, S_2[l + 1], 
+			  modulus, ntt_context, tmpreslen, tmpres);
+
+	  
+	  outputf (OUTPUT_VERBOSE, "Computing forward NTT of g_x");
+	  timestart = cputime ();
+	  mpzspv_to_ntt (g_x_ntt, 0, params->l, params->l, 0, ntt_context);
+	  timestop = cputime ();
+	  outputf (OUTPUT_VERBOSE, " took %lu ms\n", timestop - timestart);
+	  
+	  outputf (OUTPUT_VERBOSE, "Computing point-wise product of g_x and h_x");
+	  timestart = cputime ();
+	  ntt_dft_mul_dct (g_x_ntt, h_x_ntt, params->l, ntt_context);
+	  timestop = cputime ();
+	  outputf (OUTPUT_VERBOSE, " took %lu ms\n", timestop - timestart);
+	  
+	  outputf (OUTPUT_VERBOSE, "Computing forward NTT of g_y");
+	  timestart = cputime ();
+	  mpzspv_to_ntt (g_y_ntt, 0, params->l, params->l, 0, ntt_context);
+	  timestop = cputime ();
+	  outputf (OUTPUT_VERBOSE, " took %lu ms\n", timestop - timestart);
+	  
+	  outputf (OUTPUT_VERBOSE, "Computing point-wise product of g_y and h_y");
+	  timestart = cputime ();
+	  ntt_dft_mul_dct (g_y_ntt, h_y_ntt, params->l, ntt_context);
+	  timestop = cputime ();
+	  outputf (OUTPUT_VERBOSE, " took %lu ms\n", timestop - timestart);
+	  
 	  outputf (OUTPUT_VERBOSE, "Adding and computing inverse NTT of sum");
 	  timestart = cputime ();
 	  mpzspv_add (g_x_ntt, 0, g_x_ntt, 0, g_y_ntt, 0, params->l, 
@@ -4130,14 +4332,10 @@ pp1fs2_ntt (mpz_t f, const mpres_t X, mpmod_t modulus,
 	  mpzspv_from_ntt (g_x_ntt, 0, params->l, 0, ntt_context);
 	  timestop = cputime ();
 	  outputf (OUTPUT_VERBOSE, " took %lu ms\n", timestop - timestart);
+	  
+	  ntt_gcd (mt, g_x_ntt, params->s_1 / 2, twopass ? R : NULL, nr, 
+		   ntt_context, modulus);
 	}
-
-      timestart = cputime ();
-      ntt_gcd (mt, g_x_ntt, params->s_1 / 2, twopass ? R : NULL, nr, 
-	       ntt_context, modulus);
-      timestop = cputime ();
-      outputf (OUTPUT_VERBOSE, "Computing product of F(g_i)^(1) took %lu ms\n", 
-	       timestop - timestart);
       
       if (mpz_cmp_ui (mt, 1UL) > 0)
 	{
