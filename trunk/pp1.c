@@ -178,7 +178,7 @@ pp1_stage1 (mpz_t f, mpres_t P0, mpmod_t n, double B1, double *B1done,
   last_chkpnt_p = 2.;
   last_chkpnt_time = cputime ();
   /* first loop through small primes <= sqrt(B1) */
-  for (p = 2.0; p <= B0; p = getprime (p))
+  for (p = 2.0; p <= B0; p = getprime ())
     {
       for (q = 1, r = p; r <= B1; r *= p)
         if (r > *B1done) q *= p;
@@ -199,21 +199,22 @@ pp1_stage1 (mpz_t f, mpres_t P0, mpmod_t n, double B1, double *B1done,
 
   pp1_mul (P0, P0, g, n, P, Q);
 
-#if 0
-  /* getprime() can't skip forward yet */
-  /* All primes sqrt(B1) < p <= B1 appear in exponent 1. All primes <B1done
+#if 1
+  /* All primes sqrt(B1) < p <= B1 appear in exponent 1. All primes <= B1done
      are already included in exponent of at least 1, so it's save to skip 
-     ahead to B1done */
+     ahead to B1done+1 */
   
   if (*B1done > p)
-    p = getprime (*B1done);
+    {
+      getprime_seek ((*B1done) + 1);
+      p = getprime ();
+    }
 #endif
 
   /* then all primes > sqrt(B1) and taken with exponent 1 */
-  for (; p <= B1; p = getprime (p))
+  for (; p <= B1; p = getprime ())
     {
-      if (p > *B1done)
-        pp1_mul_prac (P0, (unsigned long) p, n, P, Q, R, S, T);
+      pp1_mul_prac (P0, (unsigned long) p, n, P, Q, R, S, T);
   
       if (stop_asap != NULL && (*stop_asap) ())
         {
@@ -249,7 +250,7 @@ pp1_stage1 (mpz_t f, mpres_t P0, mpmod_t n, double B1, double *B1done,
 clear_and_exit:
   if (chkfilename != NULL)
     writechkfile (chkfilename, ECM_PP1, p, n, NULL, P0, NULL);
-  getprime (FREE_PRIME_TABLE); /* free the prime tables, and reinitialize */
+  getprime_clear (); /* free the prime tables, and reinitialize */
   mpres_clear (Q, n);
   mpres_clear (R, n);
   mpres_clear (S, n);

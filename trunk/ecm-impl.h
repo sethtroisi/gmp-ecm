@@ -329,7 +329,11 @@ extern "C" {
 
 /* getprime.c */
 #define getprime __ECM(getprime)
-double   getprime       (double);
+double   getprime       ();
+#define getprime_clear __ECM(getprime_clear)
+void     getprime_clear ();
+#define getprime_seek __ECM(getprime_seek)
+void getprime_seek (double);
 
 /* pm1.c */
 #define pm1_rootsF __ECM(pm1_rootsF)
