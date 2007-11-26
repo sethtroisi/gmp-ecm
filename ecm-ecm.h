@@ -23,8 +23,9 @@
 
 #include "config.h"
 
-#if WANT_ASSERT
 #include <assert.h>
+#define ASSERT_ALWAYS(expr)   assert (expr)
+#if WANT_ASSERT
 #define ASSERT(expr)   assert (expr)
 #else
 #define ASSERT(expr)   do {} while (0)
@@ -93,7 +94,9 @@ int  inc_verbose ();
 #define ECM_PRIME_FAC_PRIME_COFAC (2+4+8)
 
 /* getprime2.c */
-double getprime (double);
+double getprime ();
+void getprime_clear ();
+void getprime_seek (double);
 #define WANT_FREE_PRIME_TABLE(p) (p < 0.0)
 #define FREE_PRIME_TABLE -1.0
 
