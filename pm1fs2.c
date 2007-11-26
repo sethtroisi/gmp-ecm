@@ -2,6 +2,7 @@
 #include "config.h"
 #include <stdio.h>
 #include <stdlib.h>
+#include <limits.h>
 #include "ecm-impl.h"
 #include "sp.h"
 #include <math.h>
@@ -66,7 +67,27 @@ const unsigned long Pvalues[] = {
     282146865UL, 287672385UL, 294076965UL, 306110805UL, 318302985UL, 
     334639305UL, 344338995UL, 354038685UL, 363738375UL, 373438065UL,
     387221835UL, 400254855UL, 421936515UL, 431636205UL, 451035585UL,
-    451035585UL, 470434965UL, 480134655UL};
+    453888435UL, 470434965UL, 480134655UL, 510765255UL, 522506985UL,
+    557732175UL, 570855285UL, 596530935UL, 610224615UL, 627912285UL,
+    654729075UL, 703227525UL, 722116395UL, 751725975UL, 780825045UL,
+    790524735UL, 821665845UL, 851275425UL, 863017155UL, 909984075UL,
+    936020085UL, 984518535UL, 1017041025UL, 1052416365UL, 1086110025UL,
+    1120314195UL, 1191785595UL, 1213887675UL, 1265809545UL, 1282356075UL,
+    1331995665UL, 1391905515UL, 1423857435UL, 1479202725UL, 1547100555UL,
+    1567520955UL, 1673196525UL, 1712565855UL, 1767130365UL, 1830673845UL,
+    1883166285UL, 1973886915UL, 2001274275UL, 2109682575UL, 2187280095UL,
+    2255177925UL, 2342475135UL, 2389442055UL, 2449171725UL, 2553826275UL,
+    2647760115UL, 2788660875UL, 2808060255UL, 2953555605UL, 3234846615UL,
+    3457939485UL, 3516137625UL, 3681032355UL, 3758629875UL, 3904125225UL,
+    4127218095UL
+#if (ULONG_MAX > 4294967295)
+  , 4360010655UL, 4573403835UL, 4796496705UL, 4844995155UL,
+    5019589575UL, 5203883685UL, 5262081825UL, 5465775315UL, 5766465705UL,
+    5898837945UL, 6164152995UL, 6464843385UL, 6804332535UL, 6980458485UL,
+    7320968655UL, 7526103585UL, 7919796885UL, 8142889755UL, 8589075495UL,
+    8906102205UL, 9171056895UL, 9704539845UL, 9927632715UL, 10373818455UL
+#endif
+};
 
 /* All the prime factors that can appear in eulerphi(P) */
 const unsigned long phiPfactors[] = {2UL, 3UL, 5UL, 7UL, 11UL, 13UL};
@@ -1038,12 +1059,13 @@ list_scale_rev (listz_t R, listz_t S, mpz_t r, long k, unsigned long deg,
 }
 
 
-/* Multiply two reciprocal polynomials with coefficients in standard basis
+/* Multiply two reciprocal polynomials of degree 2*l1-2 and 2*l2-2, resp., 
+   with coefficients in standard basis
 
    S_1(x) = S1[0] + sum_{1 \leq i \leq l1 - 1} S1[i] (x^i + x^{-i})
    S_2(x) = S2[0] + sum_{1 \leq i \leq l2 - 1} S2[i] (x^i + x^{-i})
 
-   to the reciprocal polynomial
+   to the reciprocal polynomial of degree 2*(l1 + l2) - 4
 
    R(x) = R[0] + sum_{1 \leq i \leq l1 + l2 - 2} R[i] (x^i + x^{-i}) 
         = S_1(x) * S_2(x)
@@ -1152,7 +1174,7 @@ list_mul_symmetric (listz_t R, listz_t S1, const unsigned long l1,
 	 very efficient, but it'll only happen during building the polynomial
 	 and for sets of odd cardinality, i.e. when the polynomials to be
 	 multiplied are still quite small. The inefficiency of the code here 
-	 does not realy matter too much. */
+	 does not really matter too much. */
       const unsigned long dsum = l1 + l2 - 2; /* Half the degree of prod. */
       listz_t t1, t2, r;
 
@@ -1382,7 +1404,7 @@ list_scale_V (listz_t R, listz_t F, mpres_t Q, unsigned long deg,
   /* Now square the G polynomial in G[0 .. deg], put result in
      G[0 .. 2*deg] */
 
-  /* Bugfix: ks_multiply() does not like negative coefficients. */
+  /* Bugfix: ks_multiply() does not like negative coefficients. FIXME */
 
   for (i = 0; i <= deg; i++)
     if (mpz_sgn (G[i]) < 0)
@@ -1415,7 +1437,7 @@ list_scale_V (listz_t R, listz_t F, mpres_t Q, unsigned long deg,
   /* We later want to convert H in U_i basis to monomial basis. To do so,
      we'll need one list element below H_U[0], so H_U gets stored shifted
      up by one index */
-  H_U = H - 1;
+  H_U = H - 1; /* H_U[0] is undefined, no need to store it */
 
   /* H_U[i] = h_i =  F[i] * U_i(Q) / 2, for 1 <= i <= deg. H[0] is undefined
      and has no storage allocated (H_U[0] = H[-1]) */
@@ -1465,7 +1487,15 @@ list_scale_V (listz_t R, listz_t F, mpres_t Q, unsigned long deg,
 
   for (i = 0; i <= deg; i++)
     if (mpz_sgn (H[i]) < 0)
-      mpz_mod (H[i], H[i], modulus->orig_modulus);
+      {
+	mpz_add (H[i], H[i], modulus->orig_modulus);
+	if (mpz_sgn (H[i]) < 0)
+	  {
+	    outputf (OUTPUT_ERROR, "list_scale_V: H[%lu] still negative\n", i);
+	    mpz_mod (H[i], H[i], modulus->orig_modulus);
+	  }
+      }
+
 
   list_mul_symmetric (H, H, deg, H, deg, modulus->orig_modulus, 
 		      newtmp, newtmplen);
@@ -1485,7 +1515,7 @@ list_scale_V (listz_t R, listz_t F, mpres_t Q, unsigned long deg,
   list_output_poly (H, 2 * deg - 1, 0, 1, "/* list_scale_V */ "
 		    "H(x)^2*(Q^2-4) == ", "\n", OUTPUT_TRACE);
 
-  /* Multiplying by (X - 1/X)^2 = X^2 - 2 + 1/X^2 */
+  /* Multiply by (X - 1/X)^2 = X^2 - 2 + 1/X^2 */
 
   if (deg == 1)
     {
@@ -1741,7 +1771,7 @@ poly_from_sets (mpz_t *F, mpz_t r, long *sets, unsigned long setsize,
 
 /* Build a polynomial with roots r^i, i in the sumset of the sets in "sets".
    The parameter Q = r + 1/r. This code uses the fact that the polynomials 
-   are symmetric. Requires that the first set in sets has cardinality 2,
+   are symmetric. Requires that the first set in "sets" has cardinality 2,
    all sets must be symmetric around 0. The resulting polynomial of degree 
    2*d is F(x) = f_0 + \sum_{1 <= i <= d} f_i (x^i + 1/x^i). The coefficient
    f_i is stored in F[i], which therefore needs d+1 elements. */
@@ -1773,7 +1803,7 @@ poly_from_sets_V (listz_t F, const mpres_t Q, const long *sets,
 
   mpres_init (Qt, modulus);
   
-  V (Qt, Q, sets[1], modulus); /* Qt = V_k(Q) */
+  V (Qt, Q, sets[1], modulus); /* First set in sets is {-k, k}, Qt = V_k(Q) */
 
   mpres_get_z (F[0], Qt, modulus);
   mpz_neg (F[0], F[0]);
@@ -2394,6 +2424,47 @@ make_S_1_S_2 (long **S_1, unsigned long *S_1_size, long **S_2,
     }
 
   return 0;
+}
+
+
+
+static mpzspv_t
+mpzspv_init_mt (spv_size_t len, mpzspm_t mpzspm)
+{
+  int i;
+  mpzspv_t x = (mpzspv_t) malloc (mpzspm->sp_num * sizeof (spv_t));
+  
+  if (x == NULL)
+    return NULL;
+
+  for (i = 0; i < mpzspm->sp_num; i++)
+    x[i] = NULL;
+  
+#ifdef _OPENMP
+#pragma omp parallel private(i) shared(x)
+  {
+#pragma omp for
+#endif
+    for (i = 0; i < mpzspm->sp_num; i++)
+      x[i] = (spv_t) malloc (len * sizeof (sp_t));
+	
+#ifdef _OPENMP
+  }
+#endif
+
+  for (i = 0; i < mpzspm->sp_num; i++)
+    if (x[i] == NULL)
+      break;
+
+  if (i != mpzspm->sp_num) /* There is a NULL pointer */
+    {
+      for (i = 0; i < mpzspm->sp_num; i++)
+	if (x[i] != NULL)
+	  free(x[i]);
+      return NULL;
+    }
+  else
+    return x;
 }
 
 
@@ -3071,7 +3142,7 @@ pm1fs2_ntt (mpz_t f, const mpres_t X, mpmod_t modulus,
   clear_list (tmp, tmplen);
 
   /* Allocate memory for h_ntt */
-  h_ntt = mpzspv_init (params->l / 2 + 1, ntt_context);
+  h_ntt = mpzspv_init_mt (params->l / 2 + 1, ntt_context);
 
   mpz_set_ui (mt, params->P);
   mpres_pow (tmpres, X, mt, modulus); /* tmpres = X^P */
@@ -3079,7 +3150,7 @@ pm1fs2_ntt (mpz_t f, const mpres_t X, mpmod_t modulus,
 		  ntt_context);
 
   clear_list (F, lenF);
-  g_ntt = mpzspv_init (params->l, ntt_context);
+  g_ntt = mpzspv_init_mt (params->l, ntt_context);
 
   /* Compute the DCT-I of h */
   outputf (OUTPUT_VERBOSE, "Computing DCT-I of h");
@@ -4255,8 +4326,8 @@ pp1fs2_ntt (mpz_t f, const mpres_t X, mpmod_t modulus,
   /* Init the NTT context */
   ntt_context = mpzspm_init (params->l, modulus->orig_modulus);
   /* Allocate memory for h_ntt */
-  h_x_ntt = mpzspv_init (params->l / 2 + 1, ntt_context);
-  h_y_ntt = mpzspv_init (params->l / 2 + 1, ntt_context);
+  h_x_ntt = mpzspv_init_mt (params->l / 2 + 1, ntt_context);
+  h_y_ntt = mpzspv_init_mt (params->l / 2 + 1, ntt_context);
   /* Compute the h_j sequence */
   pp1_sequence_h (NULL, NULL, h_x_ntt, h_y_ntt, F, b1_x, b1_y, 0L, 
 		  params->s_1 / 2 + 1, params->P, Delta, modulus, 
@@ -4268,14 +4339,14 @@ pp1fs2_ntt (mpz_t f, const mpres_t X, mpmod_t modulus,
      coefficients in h_ntt */
 
   /* Compute forward transform of h */
-  g_x_ntt = mpzspv_init (params->l, ntt_context);
+  g_x_ntt = mpzspv_init_mt (params->l, ntt_context);
   if (twopass)
     {
       g_y_ntt = g_x_ntt;
       R = init_list (nr);
     }
   else
-    g_y_ntt = mpzspv_init (params->l, ntt_context);
+    g_y_ntt = mpzspv_init_mt (params->l, ntt_context);
   
   /* Compute DCT-I of h_x and h_y */
   outputf (OUTPUT_VERBOSE, "Computing DCT-I of h_x");
