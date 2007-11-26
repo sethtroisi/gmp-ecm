@@ -194,18 +194,17 @@ static int
 pm1_stage1 (mpz_t f, mpres_t a, mpmod_t n, double B1, double *B1done, 
             mpz_t go, int (*stop_asap)(void), char *chkfilename)
 {
-  double B0, p, q, r, cascade_limit, last_chkpnt_p;
+  double p, q, r, cascade_limit, last_chkpnt_p;
   mpz_t g, d;
   int youpi = ECM_NO_FACTOR_FOUND;
   unsigned int size_n, max_size;
   unsigned int smallbase = 0;
   mul_casc *cascade;
   long last_chkpnt_time;
+  const double B0 = sqrt (B1);
 
   mpz_init (g);
   mpz_init (d);
-
-  B0 = sqrt (B1);
 
   size_n = mpz_sizeinbase (n->orig_modulus, 2);
   max_size = L1 * size_n;
@@ -271,7 +270,7 @@ pm1_stage1 (mpz_t f, mpres_t a, mpmod_t n, double B1, double *B1done,
   if (B0 <= cascade_limit)
     {
       /* first loop through small primes <= sqrt(B1) */
-      for (p = 2.0; p <= B0; p = getprime (p))
+      for (p = 2.0; p <= B0; p = getprime ())
         {
           for (q = 1, r = p; r <= B1; r *= p)
             if (r > *B1done) q *= p;
@@ -280,7 +279,7 @@ pm1_stage1 (mpz_t f, mpres_t a, mpmod_t n, double B1, double *B1done,
 
       /* then all sqrt(B1) < primes < cascade_limit and taken with 
          exponent 1 */
-      for ( ; p <= cascade_limit; p = getprime (p))
+      for ( ; p <= cascade_limit; p = getprime ())
         if (p > *B1done)
           cascade = mulcascade_mul_d (cascade, p, d);
    
@@ -303,7 +302,7 @@ pm1_stage1 (mpz_t f, mpres_t a, mpmod_t n, double B1, double *B1done,
     }
   else
     {
-      for (p = 2.0; p <= cascade_limit; p = getprime (p))
+      for (p = 2.0; p <= cascade_limit; p = getprime ())
         {
           for (q = 1.0, r = p; r <= B1; r *= p)
             if (r > *B1done) q *= p;
@@ -327,7 +326,7 @@ pm1_stage1 (mpz_t f, mpres_t a, mpmod_t n, double B1, double *B1done,
         }
       mpz_set_ui (g, 1);
       
-      for ( ; p <= B0; p = getprime (p))
+      for ( ; p <= B0; p = getprime ())
         {
           for (q = 1, r = p; r <= B1; r *= p)
             if (r > *B1done) q *= p;
@@ -347,32 +346,39 @@ pm1_stage1 (mpz_t f, mpres_t a, mpmod_t n, double B1, double *B1done,
         }
     }
   
+  /* All primes sqrt(B1) < p <= B1 appear in exponent 1. All primes <= B1done
+     are already included in exponent of at least 1, so it's save to skip  
+     ahead to B1done+1 */
+     
+  if (*B1done > p)
+    {
+      getprime_seek ((*B1done) + 1);
+      p = getprime ();
+    }
+
   /* then remaining primes > max(sqrt(B1), cascade_limit) and taken 
      with exponent 1 */
-  for (; p <= B1; p = getprime (p))
+  for (; p <= B1; p = getprime ())
   {
-    if (p > *B1done)
+    mpz_mul_d (g, g, p, d);
+    if (mpz_sizeinbase (g, 2) >= max_size)
       {
-        mpz_mul_d (g, g, p, d);
-        if (mpz_sizeinbase (g, 2) >= max_size)
-	  {
-	    mpres_pow (a, a, g, n);
-	    mpz_set_ui (g, 1);
-            if (stop_asap != NULL && (*stop_asap) ())
-              {
-                outputf (OUTPUT_NORMAL, "Interrupted at prime %.0f\n", p);
-                 if (p > *B1done)
-                  *B1done = p;
-                goto clear_pm1_stage1;
-              }
-	    if (chkfilename != NULL && p > last_chkpnt_p + 10000. &&
-		elltime (last_chkpnt_time, cputime ()) > CHKPNT_PERIOD)
-	      {
-		writechkfile (chkfilename, ECM_PM1, p, n, NULL, a, NULL);
-		last_chkpnt_p = p;
-		last_chkpnt_time = cputime ();
-	      }
-	  }
+        mpres_pow (a, a, g, n);
+        mpz_set_ui (g, 1);
+        if (stop_asap != NULL && (*stop_asap) ())
+          {
+            outputf (OUTPUT_NORMAL, "Interrupted at prime %.0f\n", p);
+             if (p > *B1done)
+              *B1done = p;
+            goto clear_pm1_stage1;
+          }
+        if (chkfilename != NULL && p > last_chkpnt_p + 10000. &&
+            elltime (last_chkpnt_time, cputime ()) > CHKPNT_PERIOD)
+          {
+            writechkfile (chkfilename, ECM_PM1, p, n, NULL, a, NULL);
+            last_chkpnt_p = p;
+            last_chkpnt_time = cputime ();
+          }
       }
   }
 
@@ -395,7 +401,7 @@ pm1_stage1 (mpz_t f, mpres_t a, mpmod_t n, double B1, double *B1done,
  clear_pm1_stage1:
   if (chkfilename != NULL)
     writechkfile (chkfilename, ECM_PM1, *B1done, n, NULL, a, NULL);
-  getprime (FREE_PRIME_TABLE); /* free the prime tables, and reinitialize */
+  getprime_clear (); /* free the prime tables, and reinitialize */
   mpz_clear (d);
   mpz_clear (g);
 

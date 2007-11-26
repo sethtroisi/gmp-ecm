@@ -621,8 +621,8 @@ ecm_stage1 (mpz_t f, mpres_t x, mpres_t A, mpmod_t n, double B1,
       }
   
   last_chkpnt_p = 3.;
-  p = getprime (2.0); /* Puts 3.0 into p. Next call gives 5.0 */
-  for (p = getprime (p); p <= B1; p = getprime (p))
+  p = getprime (); /* Puts 3.0 into p. Next call gives 5.0 */
+  for (p = getprime (); p <= B1; p = getprime ())
     {
       for (r = p; r <= B1; r *= p)
 	if (r > *B1done)
@@ -661,7 +661,7 @@ ecm_stage1 (mpz_t f, mpres_t x, mpres_t A, mpmod_t n, double B1,
 
   if (chkfilename != NULL)
     writechkfile (chkfilename, ECM_ECM, *B1done, n, A, x, z);
-  getprime (FREE_PRIME_TABLE); /* free the prime tables, and reinitialize */
+  getprime_clear (); /* free the prime tables, and reinitialize */
 
   /* Normalize z to 1 */
 #ifndef FULL_REDUCTION

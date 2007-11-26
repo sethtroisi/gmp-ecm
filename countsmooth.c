@@ -669,7 +669,7 @@ main(int argc, char **argv)
       primegen_init (pg);
       for (p = primegen_next (pg); p <= B1; p = primegen_next (pg))
 #else
-      for (p = 2; p <= B1; p = getprime (p))
+      for (p = 2; p <= B1; p = getprime ())
 #endif
         {
           /* Compute first sieve location where p divides */
@@ -778,7 +778,7 @@ main(int argc, char **argv)
       blockstart += blocklen;
       mpz_add_ui (N, N, blocklen);
 #ifndef PRIMEGEN
-      p = getprime (FREE_PRIME_TABLE);
+      p = getprime_clear ();
 #endif
     }
   
