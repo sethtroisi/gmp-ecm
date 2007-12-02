@@ -1,6 +1,12 @@
 ToDo's (see also TODO.sp):
 
 1) efficiency/memory
+- the "Reducing  G * H" step can be improved as follows: first compute
+  D = GH*I mod (x^d+1) where d = deg(F), and I = 1/F mod (x^d+1); then
+  compute E = D*F mod (x^d-1); finally compute T = (GH-E)/2 mod (x^d+1).
+  T equals the Montgomery product GH/(x^d+1) mod F.
+  See the paper "Fast convolution meets Montgomery" by Preda Mihailescu
+  (Mathematics of Computation).
 - regression in stage 2 between 6.0.1 and 6.1.1:
   echo "(2003663613*2^195000-2)/(2*23*173*3863)" | ecm -c 25 3000
   (on Opteron, stage 2 takes 55279ms with 6.0.1, and 1410350ms with 6.1.1)
