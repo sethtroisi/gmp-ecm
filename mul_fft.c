@@ -72,6 +72,30 @@ MA 02110-1301, USA. */
 #define mpn_mul_fft      ecm_mpn_mul_fft
 #define mpn_mul_fft_full ecm_mpn_mul_fft_full
 
+#ifndef MUL_FFT_TABLE2
+#define MUL_FFT_TABLE2 {{1, 4}, {897, 5}, {2305, 6}, {4865, 7}, {11777, 8}, {31745, 9}, {98305, 10}, {1040385, 11}, {LONG_MAX, 0}}
+#endif
+
+#ifndef MUL_FFTM_TABLE2
+#define MUL_FFTM_TABLE2 {{1, 4}, {833, 5}, {2049, 6}, {4609, 7}, {9217, 8}, {23553, 9}, {63489, 10}, {196609, 11}, {778241, 12}, {1032193, 13}, {LONG_MAX, 0}}
+#endif
+
+#ifndef SQR_FFT_TABLE2
+#define SQR_FFT_TABLE2 MUL_FFT_TABLE2
+#endif
+
+#ifndef SQR_FFTM_TABLE2
+#define SQR_FFTM_TABLE2 MUL_FFTM_TABLE2
+#endif
+
+#ifndef MUL_FFT_MODF_THRESHOLD
+#define MUL_FFT_MODF_THRESHOLD 300
+#endif
+
+#ifndef SQR_FFT_MODF_THRESHOLD
+#define SQR_FFT_MODF_THRESHOLD 568
+#endif
+
 #ifndef ASSERT
 #define ASSERT(x)
 #endif
@@ -90,10 +114,6 @@ MA 02110-1301, USA. */
 
 #ifndef GMP_LIMB_HIGHBIT
 #define GMP_LIMB_HIGHBIT (MP_LIMB_T_MAX ^ (MP_LIMB_T_MAX >> 1))
-#endif
-
-#ifndef MPN_FFT_TABLE_SIZE
-#define MPN_FFT_TABLE_SIZE  16
 #endif
 
 #ifndef TMP_DECL
@@ -358,12 +378,6 @@ static inline unsigned int mpn_mul_fft_lcm (unsigned int, unsigned int);
 #endif
 
 #define ONE ((mp_limb_t) 1)
-
-static const mp_size_t mpn_fft_table[2][MPN_FFT_TABLE_SIZE] =
-{
-  MUL_FFT_TABLE,
-  SQR_FFT_TABLE
-};
 
 static int mpn_mul_fft_internal
 _PROTO ((mp_ptr, mp_size_t, mp_srcptr, mp_size_t, mp_srcptr, mp_size_t, int,
