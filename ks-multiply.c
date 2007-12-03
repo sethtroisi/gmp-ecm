@@ -83,7 +83,7 @@ kronecker_schonhage (listz_t R, listz_t A, listz_t B, unsigned int l,
     return 1;
   t1_ptr = t0_ptr + size_t0;
     
-  MPN_ZERO (t0_ptr, size_t0 + size_t0);
+  MPN_ZERO (t0_ptr, 2 * size_t0);
 
   for (i = 0; i < l; i++)
     {
@@ -102,11 +102,11 @@ kronecker_schonhage (listz_t R, listz_t A, listz_t B, unsigned int l,
       return 1;
     }
   
-  /* mpn_mul_fft (a, b, c, n) allocates auxiliary memory of about 8n limbs,
+  /* mpn_mul_fft_full () allocates auxiliary memory of about 8n limbs,
      thus the total memory allocated by this function is about 12*size_t0.
      Since size_t0 is about 2*dF*limbs(modulus), this is about
      24*dF*limbs(modulus). */
-  mpn_mul_n (t2_ptr, t0_ptr, t1_ptr, size_t0);
+  ecm_mpn_mul_fft_full (t2_ptr, t0_ptr, size_t0, t1_ptr, size_t0);
   
   for (i = 0; i < 2 * l - 1; i++)
     {
@@ -252,7 +252,7 @@ TMulKS (listz_t b, unsigned int n, listz_t a, unsigned int m,
       ret = 1;
       goto TMulKS_free_cp;
     }
-  mpn_mul_fft (bp, bn, ap, an, cp, cn, k);
+  ecm_mpn_mul_fft (bp, bn, ap, an, cp, cn, k);
   if (m && bp[m * s - 1] >> (GMP_NUMB_BITS - 1)) /* lo(b)-hi(b) is negative */
     mpn_add_1 (bp + m * s, bp + m * s, (n + 1) * s, (mp_limb_t) 1);
 #else
@@ -399,7 +399,7 @@ ks_wrapmul (listz_t R, unsigned int m0,
       return 0;
     }
 
-  mpn_mul_fft (t2_ptr, i, t0_ptr, size_t0, t1_ptr, size_t1, fft_k);
+  ecm_mpn_mul_fft (t2_ptr, i, t0_ptr, size_t0, t1_ptr, size_t1, fft_k);
   
   for (i = 0, tp = t2_ptr, negative = 0; i < m; i++)
     {
