@@ -55,7 +55,7 @@ if test "x$enable_asm_redc" = "xyes"; then
     athlon-*-*) asmpath=athlon;;
     x86_64-*-*)  asmpath=x86_64;; 
     *)
-      # Since athlon code is pure penitumpro, we take it as default.
+      # Since athlon code is pure pentiumpro, we take it as default.
       asmpath=athlon;;
   esac
   AC_CONFIG_LINKS(redc.asm:$asmpath/redc.asm)
@@ -219,6 +219,7 @@ AM_CONDITIONAL(MAKE_MANPAGE, test "x$make_manpage" = "xyes")
 case $host in
   athlon*-*-*) config_arch="athlon" ;;
   x86_64*-*-*) config_arch="athlon64" ;;
+  pentium3-*-*) config_arch="pentium3" ;;
 dnl  pentium4-*-*) config_arch="pentium4" ;;
   alphaev6*-*-*) config_arch="alpha-ev6" ;;
   alphaev5*-*-*) config_arch="alpha-ev5" ;;
