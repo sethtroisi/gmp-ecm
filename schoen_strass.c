@@ -1,3 +1,4 @@
+
 /* Arithmetic modulo Fermat numbers.
 
   Copyright 2004, 2005 Alexander Kruppa.
@@ -145,6 +146,7 @@ static void
 F_mulmod (mpz_t R, mpz_t S1, mpz_t S2, unsigned int n)
 {
   int n2 = (n - 1) / __GMP_BITS_PER_MP_LIMB + 1; /* type of _mp_size is int */
+
   F_mod_1 (S1, n);
   F_mod_1 (S2, n);
   if (mpz_size (S1) > (unsigned) n2)
@@ -192,7 +194,7 @@ F_mulmod (mpz_t R, mpz_t S1, mpz_t S2, unsigned int n)
 #endif
       return;
     }
-#elif defined(HAVE___GMPN_MUL_FFT)
+#else /* defined(HAVE_GWNUM) && !defined (TUNE) */
   if (n >= 32768)
     {
       unsigned long k;
@@ -200,13 +202,13 @@ F_mulmod (mpz_t R, mpz_t S1, mpz_t S2, unsigned int n)
       /* WARNING: _mpz_realloc does not keep the value!!! */
       _mpz_realloc (gt, n2 + 1);
       k = mpn_fft_best_k (n2, S1 == S2);
-      mpn_mul_fft (PTR(gt), n2, PTR(S1), ABSIZ(S1), PTR(S2), ABSIZ(S2), k);
+      ecm_mpn_mul_fft (PTR(gt), n2, PTR(S1), ABSIZ(S1), PTR(S2), ABSIZ(S2), k);
       MPN_NORMALIZE(PTR(gt), n2);
       SIZ(gt) = ((SIZ(S1) ^ SIZ(S2)) >= 0) ? n2 : -n2;
       F_mod_gt (R, n);
       return;
     }
-#endif
+#endif /* defined(HAVE_GWNUM) && !defined (TUNE) */
   mpz_mul (gt, S1, S2);
   F_mod_gt (R, n);
   return;
