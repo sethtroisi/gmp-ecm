@@ -189,7 +189,7 @@ AC_CHECK_FUNCS([nice gethostname gettimeofday getrusage memmove signal])
 
 dnl FIXME: which win32 library contains these functions?
 dnl AC_CHECK_FUNCS([GetCurrentProcess GetProcessTimes])
-AC_CHECK_FUNCS([__gmpn_add_nc __gmpn_mul_fft __gmpn_mod_34lsub1])
+AC_CHECK_FUNCS([__gmpn_add_nc __gmpn_mod_34lsub1])
 AC_CHECK_FUNCS([malloc_usable_size])
 
 dnl Check for xsltproc
