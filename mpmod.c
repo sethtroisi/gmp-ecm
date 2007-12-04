@@ -151,7 +151,6 @@ base2mod_1 (mpres_t RS, mpres_t t, mpmod_t modulus)
     }
 }
 
-#ifdef HAVE___GMPN_MUL_FFT
 /* Modular reduction modulo the Fermat number 2^m+1. 
    n = m / GMP_BITS_PER_LIMB. Result is < 2^m+1.
    Only copies the data to R if reduction is needed and returns 1 in that 
@@ -187,7 +186,6 @@ base2mod_2 (mpres_t R, const mpres_t S, mp_size_t n, mpz_t modulus)
   
   return 0;
 }
-#endif
 
 /* subquadratic REDC, at mpn level.
    {orig,n} is the original modulus.
@@ -967,7 +965,7 @@ mpres_mul (mpres_t R, const mpres_t S1, const mpres_t S2, mpmod_t modulus)
 
       return;
     }
-#elif defined(HAVE___GMPN_MUL_FFT)
+#else /* defined(HAVE_GWNUM) && !defined (TUNE) */
   if (modulus->repr == ECM_MOD_BASE2 && modulus->Fermat >= 32768)
     {
       mp_size_t n = modulus->Fermat / __GMP_BITS_PER_MP_LIMB;
@@ -995,19 +993,19 @@ mpres_mul (mpres_t R, const mpres_t S1, const mpres_t S2, mpmod_t modulus)
           s2s = SIZ(modulus->temp2);
         }
 
-      /* mpn_mul_fft() computes the product modulo B^n + 1, where 
+      /* ecm_mpn_mul_fft() computes the product modulo B^n + 1, where 
          B = 2^(machine word size in bits). So the result can be = B^n, 
          in that case R is set to zero and 1 is returned as carry-out.
          In all other cases 0 is returned. Hence the complete result is 
-         R + cy * B^n, where cy is the value returned by mpn_mul_fft(). */
-      PTR(R)[n] = mpn_mul_fft (PTR(R), n, s1p, ABS(s1s), s2p, ABS(s2s), k);
+         R + cy * B^n, where cy is the value returned by ecm_mpn_mul_fft(). */
+      PTR(R)[n] = ecm_mpn_mul_fft (PTR(R), n, s1p, ABS(s1s), s2p, ABS(s2s), k);
       n ++;
       MPN_NORMALIZE(PTR(R), n);
       SIZ(R) = ((s1s ^ s2s) >= 0) ? (int) n : (int) -n;
 
       return;
     }
-#endif
+#endif /* defined(HAVE_GWNUM) && !defined (TUNE) */
 
   if (modulus->repr != ECM_MOD_MODMULN)
     mpz_mul (modulus->temp1, S1, S2);
@@ -1074,7 +1072,7 @@ mpres_mul_z_to_z (mpz_t R, const mpres_t S1, const mpz_t S2, mpmod_t modulus)
 
       return;
     }
-#elif defined(HAVE___GMPN_MUL_FFT)
+#else /* defined(HAVE_GWNUM) && !defined (TUNE) */
   if (modulus->repr == ECM_MOD_BASE2 && modulus->Fermat >= 32768)
     {
       mp_size_t n = modulus->Fermat / __GMP_BITS_PER_MP_LIMB;
@@ -1102,19 +1100,19 @@ mpres_mul_z_to_z (mpz_t R, const mpres_t S1, const mpz_t S2, mpmod_t modulus)
           s2s = SIZ(modulus->temp2);
         }
 
-      /* mpn_mul_fft() computes the product modulo B^n + 1, where 
+      /* ecm_mpn_mul_fft() computes the product modulo B^n + 1, where 
          B = 2^(machine word size in bits). So the result can be = B^n, 
          in that case R is set to zero and 1 is returned as carry-out.
          In all other cases 0 is returned. Hence the complete result is 
-         R + cy * B^n, where cy is the value returned by mpn_mul_fft(). */
-      PTR(R)[n] = mpn_mul_fft (PTR(R), n, s1p, ABS(s1s), s2p, ABS(s2s), k);
+         R + cy * B^n, where cy is the value returned by ecm_mpn_mul_fft(). */
+      PTR(R)[n] = ecm_mpn_mul_fft (PTR(R), n, s1p, ABS(s1s), s2p, ABS(s2s), k);
       n ++;
       MPN_NORMALIZE(PTR(R), n);
       SIZ(R) = ((s1s ^ s2s) >= 0) ? (int) n : (int) -n;
 
       return;
     }
-#endif
+#endif /* defined(HAVE_GWNUM) && !defined (TUNE) */
 
   switch (modulus->repr)
     {

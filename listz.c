@@ -30,18 +30,16 @@
 #endif
 
 #if (MULT == KS)
-#define LIST_MULT_N kronecker_schonhage
-#ifdef HAVE___GMPN_MUL_FFT
-#define WRAP /* use wrap-around multiplication for low short product */
-#endif
+  #define LIST_MULT_N kronecker_schonhage
+  #define WRAP /* use wrap-around multiplication for low short product */
 #elif (MULT == TOOM4)
-#define LIST_MULT_N toomcook4
+  #define LIST_MULT_N toomcook4
 #elif (MULT == TOOM3)
-#define LIST_MULT_N toomcook3
+  #define LIST_MULT_N toomcook3
 #elif (MULT == KARA)
-#define LIST_MULT_N karatsuba
+  #define LIST_MULT_N karatsuba
 #else
-#error "MULT is neither KS, TOOM4, nor TOOM3, nor KARA"
+  #error "MULT is neither KS, TOOM4, nor TOOM3, nor KARA"
 #endif
 
 extern unsigned int Fermat;
