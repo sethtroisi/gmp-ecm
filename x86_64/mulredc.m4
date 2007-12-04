@@ -41,7 +41,7 @@ include(`forloop.m4')dnl
 # In the inner loop (over j), tmp + i, x[i], y, m, and u are constant.
 # tmp[i+j], tmp[i+j+1], tmp[i+j+2] are updated frequently. These 8 values
 # stay in registers and are referenced as
-# TIP = tmp + i, YP = y, MP = m, 
+# TP = tmp, YP = y, MP = m, 
 # XI = x[i], T0 = tmp[i+j], T1 = tmp[i+j+1], CY = carry
 
 define(`T0', `rsi')dnl
@@ -53,23 +53,22 @@ define(`U', `r11')dnl
 define(`YP', `r9')dnl		# register that points to the y array
 define(`MP', `r10')dnl		# register that points to the m array
 define(`XP', `r13')dnl		# register that points to the x arraz
-define(`TIP', `rbp')dnl		# register that points to t + i
+define(`TP', `rbp')dnl		# register that points to t + i
 define(`I', `r12')dnl		# register that holds loop counter i
 define(`INVM', `r8')		# register that holds invm. Same as passed in
 define(`ZP', `rdi')		# register that holds z. Same as passed in
 
 dnl Put overview of register allocation into generated code
 `#' Register vars: `T0' = T0, `T1' = T1, `CY' = CY, `XI' = XI, `U' = U
-`#'                `YP' = YP, `MP' = MP, `TIP' = TIP
+`#'                `YP' = YP, `MP' = MP, `TP' = TP
 
 # The tmp array need 2*LENGTH+1 entries, the last one is so that we can 
 # store CY at tmp[i+j+2] for i == j == len-1
 
-# local variables: z and the tmp[0 ... 2*LENGTH] array
-# means 2 + 2*LENGTH 8-byte words in total.
+# local variables: tmp[0 ... LENGTH] array, having LENGTH+1 8-byte words
 
-define(`LOCALSPACE', `eval(8*(2*LENGTH + 2))')dnl
-define(`LOCALTMP', `8(%rsp)')dnl
+define(`LOCALSPACE', `eval(8*(LENGTH + 1))')dnl
+define(`LOCALTMP', `(%rsp)')dnl
 
 GSYM_PREFIX`'mulredc`'LENGTH:
 	pushq	%rbx
@@ -85,18 +84,18 @@ GSYM_PREFIX`'mulredc`'LENGTH:
 	movq	%rax, %CY		# Set CY to 0
 
 # Clear tmp memory
-	lea	LOCALTMP, %TIP		# store addr of tmp array in TIP
+	lea	LOCALTMP, %TP		# store addr of tmp array in TP
 	movq	%rax, %I 		# set I to 0
 forloop(`UNROLL', 0, LENGTH, `dnl	# tmp[0 ... 2*len] = 0
 ifelse(UNROLL, `0', dnl
-`	movq	%rax, (%TIP)', dnl
-`	movq	%rax, eval(UNROLL * 8)(%TIP)')
+`	movq	%rax, (%TP)', dnl
+`	movq	%rax, eval(UNROLL * 8)(%TP)')
 ')
 
-.align 16
+.align 32
 1:
 
-# register values at loop entry: %TIP = tmp + i, %I = i, %YP = y, %MP = m
+# register values at loop entry: %TP = tmp + i, %I = i, %YP = y, %MP = m
 
 # Pass for j = 0. We need to fetch x[i], tmp[i] and tmp[i+1] from memory
 # and compute the new u
@@ -104,10 +103,11 @@ ifelse(UNROLL, `0', dnl
 	movq	(%XP,%I,8), %XI		# XI = x[i]
 	movq	(%YP), %rax		# rax = y[0]
 #init the register tmp ring buffer
-        movq	(%TIP), %T0		# Load tmp[i] into T0
-	movq	8(%TIP), %T1		# Load tmp[i+1] into T1
+        movq	(%TP), %T0		# Load tmp[i] into T0
+	movq	8(%TP), %T1		# Load tmp[i+1] into T1
 
 	mulq	%XI			# rdx:rax = y[0] * x[i]
+	addq	$1, %I
 
 	addq	%T0, %rax		# Add T0 to low word
 	adcq	%rdx, %T1		# Add high word with carry to T1
@@ -123,7 +123,6 @@ ifelse(UNROLL, `0', dnl
 
 	movq	8(%YP), %rax		# Fetch y[1]
 
-`#'	movq	%T0, (%TIP)		# this is zero, no need to store
 ifdef(`WANT_ASSERT', `
         pushf
 	testq	%T0, %T0
@@ -143,15 +142,16 @@ undefine(`TTl')dnl
 forloop(`UNROLL', 1, eval(LENGTH - 2), `dnl
 define(`J', `eval(8 * UNROLL)')dnl
 define(`J8', `eval(J + 8)')dnl
+define(`JM8', `eval(J - 8)')dnl
 
 `#' Pass for j = UNROLL
 `#' Register values at entry: 
 `#' %rax = y[j], %XI = x[i], %U = u
-`#' %TIP = tmp + i, %T0 = value to store in tmp[i+j], %T1 value to store in 
+`#' %TP = tmp + i, %T0 = value to store in tmp[i+j], %T1 value to store in 
 `#' tmp[i+j+1], %CY = carry into T1, carry flag: also carry into T1
 
 	movq	%CY, %T1	# T1 = CY
-	adcq	J8`'(%TIP), %T1	# T1 += tmp[j+1]
+	adcq	J8`'(%TP), %T1	# T1 += tmp[j+1]
 	setc	%CYb		# %CY <= 1
 
 	mulq	%XI		# y[j] * x[i]
@@ -162,7 +162,7 @@ define(`J8', `eval(J + 8)')dnl
 	
 	mulq	%U		`#' m[UNROLL]*u
 	addq	%T0, %rax	# Add T0 to low word
-	movq	%rax, J`'(%TIP)	`#' Store T0 in tmp[i+UNROLL]
+	movq	%rax, JM8`'(%TP)	`#' Store T0 in tmp[UNROLL-1]
 	adcq	%rdx, %T1	# Add high word with carry to T1
 	movq	J8`'(%YP), %rax	`#' Fetch y[j+1] = y[eval(UNROLL+1)]
 
@@ -179,12 +179,10 @@ undefine(`TTl')dnl
 `#' Pass for j = eval(LENGTH - 1). Don't fetch new data from y[j+1].
 define(`J', `eval(8*LENGTH - 8)')dnl
 define(`J8', `eval(J + 8)')dnl
-
-dnl # this is the highest tmp element that needs to be inited to 0
-dnl
+define(`JM8', `eval(J - 8)')dnl
 
 	movq	%CY, %T1	# T1 = CY
-	adcq	J8`'(%TIP), %T1	# T1 += tmp[j + 1]
+	adcq	J8`'(%TP), %T1	# T1 += tmp[j + 1]
 	setc	%CYb	    	# %CY <= 1
 	
 	mulq	%XI		# y[j] * x[i]
@@ -194,16 +192,13 @@ dnl
 	adcb	$0, %CYb	# %CY <= 2
 	mulq    %U		`#' m[eval(LENGTH-1)]*u
 	addq	%rax, %T0	# Add low word to T0
-	movq	%T0, J`'(%TIP)	`#' Store `T0' in tmp[i+eval(LENGTH-1)]
+	movq	%T0, JM8`'(%TP)	`#' Store `T0' in tmp[i+eval(LENGTH-1)-1]
 	adcq	%rdx, %T1	# Add high word with carry to T1
-	movq	%T1, J8`'(%TIP)	`#' Store `T1' in tmp[i+LENGTH]
+	movq	%T1, J`'(%TP)	`#' Store `T1' in tmp[i+LENGTH]
 	adcb	$0, %CYb	# %CY <= 3
-	movq	%CY, eval(J + 16)(%TIP)
+	movq	%CY, J8`'(%TP)
 
-# increase i by 1, adjust pointers that use i as index
-	addq	$1, %I
-	addq	$8, %TIP
-	cmpq	$LENGTH, %I
+	cmpq	$LENGTH, %I	# increase i by 1
 	jb	1b
 
 # Copy result from tmp memory to z
@@ -212,9 +207,9 @@ forloop(`UNROLL', 0, eval(LENGTH / 2 - 1), `dnl
 define(`J', `eval(2 * UNROLL * 8)')dnl
 define(`J8', `eval(J + 8)')dnl
 ifelse(J, `0', dnl
-`	movq	(%TIP), %rax', dnl
-`	movq	J`'(%TIP), %rax')
-	movq	J8`'(%TIP), %rdx
+`	movq	(%TP), %rax', dnl
+`	movq	J`'(%TP), %rax')
+	movq	J8`'(%TP), %rdx
 ifelse(J, `0', dnl
 `	movq	%rax, (%ZP)', dnl
 `	movq	%rax, J`'(%ZP)')
@@ -222,7 +217,7 @@ ifelse(J, `0', dnl
 ')dnl
 ifelse(eval(LENGTH % 2), 1, `dnl
 define(`J', `eval(LENGTH * 8 - 8)')dnl
-	movq	J`'(%TIP), %rax
+	movq	J`'(%TP), %rax
 	movq	%rax, J`'(%ZP)
 ')dnl
 
