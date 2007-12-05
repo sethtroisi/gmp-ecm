@@ -16,7 +16,7 @@
 #  endif
 # endif
 
-#define LOOPCOUNT 100000000
+#define LOOPCOUNT 1000000000
 
 #include <gmp.h>
 
