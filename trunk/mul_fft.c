@@ -439,7 +439,7 @@ static struct nk mpn_fft_full_table2[4][MPN_FFT_FULL_TABLE2_SIZE] =
     SQR_FFT_FULL_TABLE2
   };
 
-int
+static int
 mpn_fft_best_a (mp_size_t pl, int sqr)
 {
   struct nk *tab;
@@ -2163,7 +2163,7 @@ mpn_mul_fft_lcm (unsigned int a, unsigned int k)
   return a << l;
 }
 
-int
+static int
 mpn_mul_fft_aux (mp_ptr, mp_size_t, mp_srcptr, mp_size_t, mp_srcptr,
                      mp_size_t, int, int);
 
@@ -2183,7 +2183,7 @@ mpn_mul_fft (mp_ptr op, mp_size_t pl,
 
 /* put in {op, pl} the product of {n, nl} * {m, ml} mod (B^pl-1)
    where B = 2^GMP_NUMB_BITS. */
-int
+static int
 mpn_mul_fft_mersenne (mp_ptr op, mp_size_t pl,
                       mp_srcptr n, mp_size_t nl,
                       mp_srcptr m, mp_size_t ml,
@@ -2311,7 +2311,7 @@ mpn_mul_fft_aux (mp_ptr op, mp_size_t pl,
 /* multiply {n, nl} by {m, ml}, and put the result in {op, nl+ml},
    using one modular product mod 2^N-1 and one mod 2^(aN)+1,
    with a >= 1. */
-void
+static void
 mpn_mul_fft_full_a (mp_ptr op,
 		    mp_srcptr n, mp_size_t nl,
 		    mp_srcptr m, mp_size_t ml, int a)
