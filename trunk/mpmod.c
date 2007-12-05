@@ -324,7 +324,11 @@ ecm_redc_basecase (mpz_ptr r, mpz_ptr c, mpmod_t modulus)
   /* the result of Montgomery's REDC is less than 2^Nbits + N,
      thus at most one correction is enough */
   if (cy != 0)
-    mpn_sub_n (rp, rp, np, nn); /* a borrow should always occur here */
+    {
+      mp_limb_t t;
+      t = mpn_sub_n (rp, rp, np, nn); /* a borrow should always occur here */
+      ASSERT (t == 1);
+    }
   MPN_NORMALIZE (rp, nn);
   SIZ(r) = SIZ(c) < 0 ? (int) -nn : (int) nn;
 }
@@ -426,6 +430,11 @@ ecm_mulredc_basecase (mpres_t R, const mpres_t S1, const mpres_t S2,
   mp_limb_t cy;
   mp_size_t j, nn = modulus->bits / __GMP_BITS_PER_MP_LIMB;
 
+#ifdef WANT_ASSERT_EXPENSIVE
+  mpz_mul (modulus->temp1, S1, S2);
+  ecm_redc_basecase (modulus->temp2, modulus->temp1, modulus);
+#endif
+
   ASSERT(ALLOC(R) >= nn);
   ASSERT(ALLOC(S1) >= nn);
   ASSERT(ALLOC(S2) >= nn);
@@ -443,9 +452,24 @@ ecm_mulredc_basecase (mpres_t R, const mpres_t S1, const mpres_t S2,
   /* the result of Montgomery's REDC is less than 2^Nbits + N,
      thus at most one correction is enough */
   if (cy != 0)
-    mpn_sub_n (rp, rp, np, nn); /* a borrow should always occur here */
+    {
+      mp_limb_t t;
+      t = mpn_sub_n (rp, rp, np, nn); /* a borrow should always occur here */
+      ASSERT (t == 1);
+    }
   MPN_NORMALIZE (rp, nn);
   SIZ(R) = (SIZ(S1)*SIZ(S2)) < 0 ? (int) -nn : (int) nn;
+
+#ifdef WANT_ASSERT_EXPENSIVE
+  if (mpz_cmp (modulus->temp2, R) != 0)
+    {
+      printf ("mulredc and mpz_mul/ecm_redc_basecase produced different results.\n");
+      gmp_printf ("mulredc:                   %Zd\n", R);
+      gmp_printf ("mpz_mul/ecm_redc_basecase: %Zd\n", modulus->temp2);
+      abort ();
+    }
+#endif
+
 #endif
 }
 
