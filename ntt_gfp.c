@@ -19,7 +19,7 @@
 */
 
 #include "sp.h"
-
+#include "ecm-impl.h"
 
 #define X0 x[i]
 #define X1 x[i + m]
@@ -134,6 +134,109 @@ spv_ntt_gfp_dit (spv_t x, spv_size_t len, sp_t p, sp_t d, sp_t root)
 	}
     }
 }
+
+/* Take the r-bit integer in "a" and return its bit-reversal. If
+   a >= 2^r, only the r lower bits are considered */
+
+static unsigned long ATTRIBUTE_CONST
+bitrev (const unsigned int r, unsigned long a)
+{
+  unsigned long t = 0;
+  unsigned int i;
+
+  for (i = 0; i < r; i++)
+    {
+      t += a & 1UL;
+      a >>= 1;
+    }
+  return t;
+}
+
+static unsigned long ATTRIBUTE_CONST
+aloc (const unsigned int r, const unsigned long a)
+{
+  return bitrev (r, (a >> 2) ^ (a >> 1));
+}
+
+static sp_t ATTRIBUTE_CONST
+sp_V2 (const sp_t a, const sp_t p, const sp_t d)
+{
+  sp_t r;
+  r = sp_mul (a, a, p, d);
+  r = sp_sub (r, 2, p);
+  return r;
+}
+
+void 
+spv_ntt_dct2 (spv_t q, spv_size_t len, sp_t p, sp_t d, sp_t root,
+		   sp_t invroot)
+{
+  const unsigned int r = ceil_log2 (len);
+  unsigned int s;
+  unsigned long a;
+  sp_t gamma, v, v_1, vn, t1, t2, t3, t4;
+  unsigned long i;
+
+  /* Check that root and invroot are each a 4*len-th primitive root of unity */
+  ASSERT (sp_pow (root, 2*len, p, d) == p - 1);
+  ASSERT (sp_pow (invroot, 2*len, p, d) == p - 1);
+  /* Check that they are inverses of each other */
+  ASSERT (sp_mul (root, invroot, p, d) == 1);
+  /* Check that transform length is a power of 2 */
+  ASSERT (len = 1<<r);
+  
+  gamma = sp_add (root, invroot, p);
+    printf ("/* spv_ntt_dct2 */ p = %lu;\n", p);
+  printf ("/* spv_ntt_dct2 */ gam = Mod(%lu, p);\n", gamma);
+  
+  for (s = 1; s <= r; s++)
+    {
+      const unsigned long n = 1UL << (r - s);
+      /* We have 2^(s-1) pieces, each of length 2n. These will be split into
+         2^s pieces, each of length n */
+
+      /* Compute vn = V_n(gamma), v = V_{an}(gamma), v_1 = V_{(a-1)n}(gamma)
+	 for a = 1 */
+      vn = gamma;
+      for (i = 0; i < r - s; i++)
+	vn = sp_V2 (vn, p, d);
+      v_1 = 2;
+      v = vn;
+      for (a = 1UL; a < (1UL << s); a += 2)
+	{
+	  const unsigned long k = aloc (r, a);
+	  const spv_t A = q + k, B = A, C = A + n;
+
+	  /* b[0 ... n-1] is at a[0 ... n-1], 
+	     c[0 ... n-1] is at a[n ... 2n-1] */
+	  
+	  t1 = sp_mul (v, A[n], p, d);
+	  A[n] = sp_sub (A[0], t1, p); /* c_0 = a_0 - v*a_n */
+	  A[0] = sp_add (A[0], t1, p); /* b_0 = a_0 + v*a_n */
+
+	  for (i = 1; i <= n / 2; i++)
+	  {
+	      t1 = sp_mul (v, A[n + i], p, d);
+	      t2 = sp_mul (v, A[2 * n - i], p, d);
+	      t3 = sp_sub (A[i], A[2 * n - i], p);
+	      t4 = sp_sub (A[n - i], A[n + i], p);
+	      B[i] = sp_add (t3, t1, p);
+	      B[n - i] = sp_add (t4, t2, p);
+	      C[i] = sp_sub (t3, t1, p);
+	      C[n - i] = sp_sub (t4, t2, p);
+	  }
+
+	  /* Update v_1 and v. V_{n+1} = V_n * V_1 - V_{n-1} */
+	  {
+	    sp_t t = v;
+	    v = sp_mul (v, vn, p, d);
+	    v = sp_sub (v, v_1, p);
+	    v_1 = t;
+	  }
+	}
+    }
+}
+
 
 #if 0
 void
