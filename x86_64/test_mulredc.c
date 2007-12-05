@@ -4,6 +4,7 @@
 
 #include <gmp.h>
 
+#include "asmredc.h"
 
 void mp_print(mp_limb_t *x, int N) {
   int i;
@@ -15,42 +16,14 @@ void mp_print(mp_limb_t *x, int N) {
   printf("\n");
 }
 
-void test(mp_size_t N, int k)
+static mp_limb_t
+call_mulredc (int N, mp_limb_t *z, mp_limb_t *x, mp_limb_t *y, mp_limb_t *m,
+              mp_limb_t invm)
 {
-  mp_limb_t *x, *y, *z, *m, invm, cy, cy2, *tmp, *tmp2, *tmp3;
-  int i, j;
-  
-  x = (mp_limb_t *) malloc(N*sizeof(mp_limb_t));
-  y = (mp_limb_t *) malloc(N*sizeof(mp_limb_t));
-  z = (mp_limb_t *) malloc((N+1)*sizeof(mp_limb_t));
-  m = (mp_limb_t *) malloc(N*sizeof(mp_limb_t));
-  tmp = (mp_limb_t *) malloc((2*N+2)*sizeof(mp_limb_t));
-  tmp2 = (mp_limb_t *) malloc((2*N+2)*sizeof(mp_limb_t));
-  tmp3 = (mp_limb_t *) malloc((2*N+2)*sizeof(mp_limb_t));
- 
-  mpn_random2(m, N);
-  m[0] |= 1UL;
-  if (m[N-1] == 0) 
-    m[N-1] = 1UL;
+  mp_limb_t cy;
 
-  invm = 1UL;
-  for (i = 0; i < 10; ++i)
-    invm = (2*invm-m[0]*invm*invm);
-  invm = -invm;
-
-  assert( (invm*m[0] +1UL) == 0UL);
-    
-  for (i=0; i < k; ++i) {
-    mpn_random2(x, N);
-    mpn_random2(y, N);
-    
-    // Mul followed by ecm_redc3
-    mpn_mul_n(tmp, x, y, N);
-    ecm_redc3(tmp, m, N, invm);
-    cy2 = mpn_add_n (tmp2, tmp + N, tmp, N);
-
-    // Mixed mul and redc
-    switch (N) {
+  switch (N) 
+    {
      case 1:
       cy = mulredc1(z, x[0], y[0], m[0], invm);
       break;
@@ -114,10 +87,96 @@ void test(mp_size_t N, int k)
      default:
       cy = mulredc20(z, x, y, m, invm);
     }
+  return cy;
+}
+
+void test(mp_size_t N, int k)
+{
+  mp_limb_t *x, *y, *yp, *z, *m, invm, cy, cy2, *tmp, *tmp2, *tmp3;
+  int i, j;
+  
+  x = (mp_limb_t *) malloc(N*sizeof(mp_limb_t));
+  y = (mp_limb_t *) malloc(N*sizeof(mp_limb_t));
+  z = (mp_limb_t *) malloc((N+1)*sizeof(mp_limb_t));
+  m = (mp_limb_t *) malloc(N*sizeof(mp_limb_t));
+  tmp = (mp_limb_t *) malloc((2*N+2)*sizeof(mp_limb_t));
+  tmp2 = (mp_limb_t *) malloc((2*N+2)*sizeof(mp_limb_t));
+  tmp3 = (mp_limb_t *) malloc((2*N+2)*sizeof(mp_limb_t));
+ 
+  mpn_random2(m, N);
+  m[0] |= 1UL;
+  if (m[N-1] == 0) 
+    m[N-1] = 1UL;
+
+  invm = 1UL;
+  for (i = 0; i < 10; ++i)
+    invm = (2*invm-m[0]*invm*invm);
+  invm = -invm;
+
+  assert( (invm*m[0] +1UL) == 0UL);
+  
+  yp = y;
+  for (i=0; i < k; ++i) {
+    /* Try a few special cases */
+    if (i == 0)
+    {
+      /* Try all 0, product should be 0 */
+      for (j = 0; j < N; j++)
+        x[j] = y[j] = 0;
+    }
+    else if (i == 1)
+    {
+      /* Try all 1 */
+      for (j = 0; j < N; j++)
+        x[j] = y[j] = 1;
+    }
+    else if (i == 2)
+    {
+      /* Try all 2^wordsize - 1 */
+      for (j = 0; j < N; j++)
+        x[j] = y[j] = ~(0UL);
+    } 
+    else 
+    {
+      /* In the other cases, try random data */
+      if (i % 2 == 0)
+        {
+          /* Try squaring */
+          mpn_random2(x, N);
+          yp = x;
+        }
+      else
+        {
+          /* Try multiplication */
+          mpn_random2(x, N);
+          mpn_random2(y, N);
+        }
+    }
     
+    // Mul followed by ecm_redc3
+    mpn_mul_n(tmp, x, yp, N);
+    ecm_redc3(tmp, m, N, invm);
+    cy2 = mpn_add_n (tmp2, tmp + N, tmp, N);
+
+    // Mixed mul and redc
+    cy = call_mulredc (N, z, x, yp, m, invm);
+    
+    if (cy != cy2)
+      printf ("i = %d: mulredc cy = %ld, mpn_mul_n/ecm_redc3 cy = %ld\n", 
+              i, (long) cy, (long) cy2);
     assert (cy == cy2);
-    assert (mpn_cmp(z,tmp2, N) == 0);
-    
+    if (mpn_cmp(z,tmp2, N) != 0)
+      {
+        printf ("i = %d\nmulredc               = ", i);
+        for (j = N - 1; j >= 0; j--)
+          printf ("%lx ", z[j]);
+        printf ("\nmpn_mul_n/ecm_redc3 = ");
+        for (j = N - 1; j >= 0; j--)
+          printf ("%lx ", tmp2[j]);
+        printf ("\n");
+        assert (mpn_cmp(z,tmp2, N) == 0);
+      }
+
     if (cy)
       printf("!");
     z[N] = cy;
@@ -131,10 +190,10 @@ void test(mp_size_t N, int k)
     for (j=0; j < N; ++j)
       z[j] = tmp3[j]; 
 
-    mpn_mul_n(tmp, x, y, N);
+    mpn_mul_n(tmp, x, yp, N);
     mpn_tdiv_qr(tmp2, tmp3, 0, tmp, 2*N, m, N);
     
-    assert(mpn_cmp(z,tmp3, N) == 0);
+    assert(mpn_cmp(z, tmp3, N) == 0);
   }
   
   free(tmp); free(tmp2); free(tmp3);
@@ -145,7 +204,14 @@ void test(mp_size_t N, int k)
 
 int main(int argc, char** argv)
 {
-  int i;
+  int i, len;
+
+  if (argc > 1) /* Test a specific length */
+  {
+    len = atoi (argv[1]);
+    test (len, 10000);
+    return 0;
+  }
 
   for (;;) {
     for (i = 1; i <= 20; ++i) {
