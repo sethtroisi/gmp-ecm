@@ -4,13 +4,19 @@
 # z: %rdi, x: %rsi, y: %rdx, m: %rcx, inv_m: %r8
 
 divert(-1)
-include(`../config.m4')dnl
-divert`'dnl
-include(`forloop.m4')dnl
+# forloop(i, from, to, stmt)
+
+define(`forloop', `pushdef(`$1', `$2')_forloop(`$1', `$2', `$3', `$4')popdef(`$1')')
+define(`_forloop',
+       `$4`'ifelse($1, `$3', ,
+                         `define(`$1', incr($1))_forloop(`$1', `$2', `$3', `$4')')')
+divert
+
+`include(`config.m4')'
 
 	TEXT
-	GLOBL GSYM_PREFIX`'mulredc`'LENGTH
-	TYPE(GSYM_PREFIX`'mulredc`'LENGTH,`function')
+	GLOBL GSYM_PREFIX``''mulredc`'LENGTH
+	TYPE(GSYM_PREFIX``''mulredc``''LENGTH,``function'')
 
 /* Implements multiplication and REDC for two input numbers of LENGTH words */
 
@@ -70,7 +76,7 @@ dnl Put overview of register allocation into generated code
 define(`LOCALSPACE', `eval(8*(LENGTH + 1))')dnl
 define(`LOCALTMP', `(%rsp)')dnl
 
-GSYM_PREFIX`'mulredc`'LENGTH:
+GSYM_PREFIX``''mulredc`'LENGTH:
 	pushq	%rbx
 	pushq	%rbp
 	pushq	%r12
