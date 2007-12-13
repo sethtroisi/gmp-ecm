@@ -85,19 +85,121 @@ GSYM_PREFIX``''mulredc`'LENGTH:
 	movq	%rsi, %XP		# store x in XP
 	movq	%rdx, %YP		# store y in YP
 	movq	%rcx, %MP		# store m in MP
-	xorq	%rax, %rax		# set %rax to 0
-	movq	%rax, %CY		# Set CY to 0
 
-# Clear tmp memory
+
+#########################################################################
+# i = 0 pass
+#########################################################################
+
+# register values at loop entry: %TP = tmp, %I = i, %YP = y, %MP = m
+# %CY < 255 (i.e. only low byte may be != 0)
+
+# Pass for j = 0. We need to fetch x[i] from memory and compute the new u
+
+	movq	(%XP), %XI		# XI = x[0]
+	movq	(%YP), %rax		# rax = y[0]
+
+	xorq	%CY, %CY		# set %CY to 0
 	lea	LOCALTMP, %TP		# store addr of tmp array in TP
-	movq	%rax, %I 		# set I to 0
-forloop(`UNROLL', 0, LENGTH, `dnl	# tmp[0 ... 2*len] = 0
-ifelse(UNROLL, `0', dnl
-`	movq	%rax, (%TP)', dnl
-`	movq	%rax, eval(UNROLL * 8)(%TP)')
-')
+	movq	%CY, %I			# Set %I to 0
 
-.align 32
+	mulq	%XI			# rdx:rax = y[0] * x[i]
+	addq	$1, %I
+
+	movq 	%rax, %T0		# Move low word of product to T0
+	movq	%rdx, %T1		# Move high word of procuve to T1
+
+	imulq	%INVM, %rax		# %rax = ((x[i]*y[0]+tmp[0])*invm)%2^64
+	movq	%rax, %U		# this is the new u value
+
+	mulq	(%MP)			# multipy u*m[0]
+	addq	%rax, %T0		# Now %T0 = 0, need not be stored
+	movq	8(%YP), %rax		# Fetch y[1]
+	adcq	%rdx, %T1		# 
+	setc	%CYb
+	# CY:T1:T0 <= 2*(2^64-1)^2 <= 2^2*128 - 4*2^64 + 2, hence
+	# CY:T1 <= 2*2^64 - 4
+
+ifdef(`WANT_ASSERT', `
+        pushf
+	testq	%T0, %T0
+	jz	assert1
+	call	abort
+assert1:
+	popf
+',`')
+dnl Cycle ring buffer. Only mappings of T0 and T1 to regs change, no MOVs!
+define(`TT', defn(`T0'))dnl
+define(`T0', defn(`T1'))dnl
+define(`T1', defn(`TT'))dnl
+undefine(`TT')dnl
+`#' Now `T0' = T0, `T1' = T1
+
+forloop(`UNROLL', 1, eval(LENGTH - 2), `dnl
+define(`J', `eval(8 * UNROLL)')dnl
+define(`J8', `eval(J + 8)')dnl
+define(`JM8', `eval(J - 8)')dnl
+
+`#' Pass for j = UNROLL
+`#' Register values at entry: 
+`#' %rax = y[j], %XI = x[i], %U = u
+`#' %TP = tmp, %T0 = value to store in tmp[j], %T1 undefined 
+`#' %CY = carry into T1 (is <= 2)
+# We have %CY:%T1 <= 2 * 2^64 - 2
+
+	movq	%CY, %T1	# T1 = CY <= 1
+
+	# Here, T1:T0 <= 2*2^64 - 2
+	mulq	%XI		# y[j] * x[i]
+	# rdx:rax <= (2^64-1)^2 <= 2^128 - 2*2^64 + 1
+	addq	%rax, %T0	# Add low word to T0
+	movq	J`'(%MP), %rax	# Fetch m[j] into %rax
+	adcq	%rdx, %T1	# Add high word with carry to T1
+	# T1:T0 <= 2^128 - 2*2^64 + 1 + 2*2^64 - 2 <= 2^128 - 1, no carry!
+	
+	mulq	%U		# m[j]*u
+	# rdx:rax <= 2^128 - 2*2^64 + 1, T1:T0 <= 2^128 - 1
+	addq	%T0, %rax	# Add T0 and low word
+	movq	%rax, JM8`'(%TP)	`#' Store T0 in tmp[UNROLL-1]
+	movq	J8`'(%YP), %rax	`#' Fetch y[j+1] = y[eval(UNROLL+1)] into %rax
+	adcq	%rdx, %T1	# Add high word with carry to T1
+	setc	%CYb		# %CY <= 1
+	# CY:T1:T0 <= 2^128 - 1 + 2^128 - 2*2^64 + 1 <=
+	#             2 * 2^128 - 2*2^64 ==> CY:T1 <= 2 * 2^64 - 2
+
+dnl Cycle ring buffer. Only mappings of T0 and T1 to regs change, no MOVs!
+define(`TT', defn(`T0'))dnl
+define(`T0', defn(`T1'))dnl
+define(`T1', defn(`TT'))dnl
+undefine(`TT')dnl
+`#' Now `T0' = T0, `T1' = T1
+
+')dnl # end forloop
+
+`#' Pass for j = eval(LENGTH - 1). Don't fetch new data from y[j+1].
+define(`J', `eval(8*LENGTH - 8)')dnl
+define(`J8', `eval(J + 8)')dnl
+define(`JM8', `eval(J - 8)')dnl
+
+	movq	%CY, %T1	# T1 = CY <= 1
+	
+	mulq	%XI		# y[j] * x[i]
+	addq	%rax, %T0	# Add low word to T0
+	movq	J`'(%MP), %rax	# Fetch m[j] into %rax
+	adcq	%rdx, %T1 	# Add high word with carry to T1
+	mulq    %U		# m[j]*u
+	addq	%rax, %T0	# Add low word to T0
+	movq	%T0, JM8`'(%TP)	# Store T0 in tmp[j-1]
+	adcq	%rdx, %T1	# Add high word with carry to T1
+	movq	%T1, J`'(%TP)	# Store T1 in tmp[j]
+	setc	%CYb		# %CY <= 1
+	movq	%CY, J8`'(%TP)	# Store CY in tmp[j+1]
+
+#########################################################################
+# i > 0 passes
+#########################################################################
+
+.align 32,,16
 1:
 
 # register values at loop entry: %TP = tmp, %I = i, %YP = y, %MP = m
