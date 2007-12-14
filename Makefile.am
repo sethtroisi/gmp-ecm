@@ -95,3 +95,8 @@ ecm.1: ecm.xml
 
 pm1fs2: pm1fs2.c libecm.a
 	gcc -Wall -Wextra -DTESTDRIVE -g -O0 -o pm1fs2 pm1fs2.c libecm.a -lm -lgmp
+
+## this binary should be faster, with all speed critical GMP routines close
+## together in the object file, so that they don't compete for cache lines
+ecm2:
+	gcc -g -O2 -o ecm2 mpmod.o $(GMP)/lib/libgmp.a ecm-auxi.o ecm-b1_ainc.o ecm-candi.o ecm-eval.o ecm-random.o ecm-main.o ecm-trial.o ecm-resume.o ecm-getprime.o libecm.a -lm $(GMP)/lib/libgmp.a
