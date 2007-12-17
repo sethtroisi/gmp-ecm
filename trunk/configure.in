@@ -142,19 +142,31 @@ AC_PREPROC_IFELSE([AC_LANG_SOURCE([[
    AC_MSG_ERROR([GMP 4.1.0 or newer is required])]
 )
 
+dnl If GMP is linked statically, we add its path/filename to LIBS 
+dnl and, together with mpmod.o, to ECM_FASTOBJ. This will let the make 
+dnl process specify GMP several times on the command line for the linking, 
+dnl to put time critical functions close together in the resulting 
+dnl binary to avoid cache collisions.
+dnl If GMP is linked dynamically, -lgmp is added to LIBS but ECM_FASTOBJ
+dnl remains empty.
+   
 dnl AC_CHECK_LIB doesn't do what we want
 if test -r "$with_gmp_lib/libgmp.a"; then
-  LIBS="$LIBS $with_gmp_lib/libgmp.a"
+  GMPLIB="$with_gmp_lib/libgmp.a"
+  ECM_FASTOBJ="mpmod.o $GMPLIB"
 elif test -r "$with_gmp_lib/libgmp.so"; then
-  LIBS="$LIBS $with_gmp_lib/libgmp.so"
+  GMPLIB="$with_gmp_lib/libgmp.so"
+  ECM_FASTOBJ="mpmod.o $GMPLIB"
 elif test -r "$with_gmp_lib/libgmp.lib"; then
-  LIBS="$LIBS $with_gmp_lib/libgmp.lib"
+  GMPLIB="$with_gmp_lib/libgmp.lib"
+  ECM_FASTOBJ="mpmod.o $GMPLIB"
 else
   if test -d "$with_gmp_lib"; then
     LDFLAGS="-L$with_gmp_lib $LDFLAGS"
   fi  
   LIBS="$LIBS -lgmp"
 fi
+LIBS="$LIBS $GMPLIB"
 
 dnl Check for corresponding 'gmp.h' and libgmp.a
 AC_MSG_CHECKING(if gmp.h version and libgmp version are the same)
@@ -236,4 +248,5 @@ AC_SUBST(LDADD)
 AC_SUBST(LDFLAGS)
 AC_SUBST(CFLAGS)
 AC_SUBST(XSLDIR)
+AC_SUBST(ECM_FASTOBJ)
 AC_OUTPUT

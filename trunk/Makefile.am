@@ -16,6 +16,12 @@ LDADD = libecm.a
 ecm_CPPFLAGS = -DOUTSIDE_LIBECM $(AM_CPPFLAGS)
 ecm_SOURCES = auxi.c b1_ainc.c candi.c eval.c random.c main.c trial.c \
               resume.c getprime.c
+ecm_LDFLAGS = 
+# We add the list of speed critical object files to the ecm linker flags 
+# which isn't very clean, but it seems to be the only way of getting them
+# in front of the full list of input object files. Automake does not allow
+# modifying the ecm_OBJECTS variable directly.
+ecm_LDFLAGS += $(ECM_FASTOBJ)
 
 tune_CPPFLAGS = -DTUNE $(AM_CPPFLAGS)
 tune_LDADD =
@@ -47,7 +53,7 @@ if WITH_GWNUM
   
   libecm_a_SOURCES += Fgw.c
   ecm_DEPENDENCIES = $(LDADD) gwdata.ld
-  ecm_LDFLAGS = -Wl,gwdata.ld
+  ecm_LDFLAGS += -Wl,gwdata.ld
   Fgwtest : Fgw.c gwdata.ld
 	$(CC) $(CFLAGS) $(CPPFLAGS) -g -DTESTDRIVE -Wl,gwdata.ld -o Fgwtest Fgw.c libecm.a $(LIBS)
 endif
@@ -96,7 +102,3 @@ ecm.1: ecm.xml
 pm1fs2: pm1fs2.c libecm.a
 	gcc -Wall -Wextra -DTESTDRIVE -g -O0 -o pm1fs2 pm1fs2.c libecm.a -lm -lgmp
 
-## this binary should be faster, with all speed critical GMP routines close
-## together in the object file, so that they don't compete for cache lines
-ecm2:
-	gcc -g -O2 -o ecm2 mpmod.o $(GMP)/lib/libgmp.a ecm-auxi.o ecm-b1_ainc.o ecm-candi.o ecm-eval.o ecm-random.o ecm-main.o ecm-trial.o ecm-resume.o ecm-getprime.o libecm.a -lm $(GMP)/lib/libgmp.a
