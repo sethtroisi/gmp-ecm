@@ -8,6 +8,7 @@
 include(`config.m4')
 
 	TEXT
+.align 64 # Opteron L1 code cache line is 64 bytes long
 	GLOBL GSYM_PREFIX`'mulredc7
 	TYPE(GSYM_PREFIX`'mulredc`'7,`function')
 
