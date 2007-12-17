@@ -1,5 +1,13 @@
 ToDo's (see also TODO.sp):
 
+Table of contents:
+1) efficiency/memory
+2) interface
+3) documentation
+4) installation
+5) bugs
+6) others
+
 1) efficiency/memory
 - the "Reducing  G * H" step can be improved as follows: first compute
   D = GH*I mod (x^d+1) where d = deg(F), and I = 1/F mod (x^d+1); then
@@ -83,7 +91,22 @@ ToDo's (see also TODO.sp):
 - add examples for typical use to README 
   (see http://www.mersenneforum.org/showthread.php?t=3922)
 
-4) others
+4) installation
+- add a configure option --enable-shared --disable-static to link GMP
+  dynamically
+
+5) bugs
+- F15: B1=99000, B2=150577181, sigma=3039152787 with ecm-6.0.1 [Bruce]
+  finds the input number. Seems to be fixed in r846, by the 3 changes
+  _mpz_realloc -> MPZ_REALLOC in mpmod.c.
+- potential bug: _mpz_realloc changes the value to 0 when it does not fit
+	(mpmod.c)
+- "not enough primes in interval" with NTT for large numbers (e.g. F17
+  with B1=3000000, B2=11414255590)
+- ecm -v 1e6 3-2 < c155 prints wrong expected number of curves (should be
+  the same as ecm -v 1e6 2). Reported by Peter Montgomery, 30 Mar 2006.
+
+6) others
 - produce dynamic binary/library with --enable-shared
   [reported by Thomas M.Ott, thmo-13@gmx.de, 25 Oct 2005]
 - from Dan Bernstein <djb@cr.yp.to> 7 Mar 2006: use the curve
@@ -100,13 +123,3 @@ ToDo's (see also TODO.sp):
 - re-write in C++? Lots of work, but would make parts of the code much
   cleaner.
 
-5) bugs
-- F15: B1=99000, B2=150577181, sigma=3039152787 with ecm-6.0.1 [Bruce]
-  finds the input number. Seems to be fixed in r846, by the 3 changes
-  _mpz_realloc -> MPZ_REALLOC in mpmod.c.
-- potential bug: _mpz_realloc changes the value to 0 when it does not fit
-	(mpmod.c)
-- "not enough primes in interval" with NTT for large numbers (e.g. F17
-  with B1=3000000, B2=11414255590)
-- ecm -v 1e6 3-2 < c155 prints wrong expected number of curves (should be
-  the same as ecm -v 1e6 2). Reported by Peter Montgomery, 30 Mar 2006.
