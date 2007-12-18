@@ -22,6 +22,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <time.h>
+#include <math.h>
 #include "ecm-ecm.h"
 
 #if HAVE_UNISTD_H /* for access() */
@@ -1264,6 +1265,9 @@ BreadthFirstDoAgain:;
       mpz_set (params->go, go.Candi.n); /* may change if contains N */
       params->B1done = B1done; /* may change with resume */
       mpz_set (params->B2min, B2min); /* may change with -c */
+      /* Here's an ugly hack to pass B2scale to the library somehow.
+         It gets piggy-backed onto B1done */
+      params->B1done = B1done + floor (B2scale * 128.) / 134217728.; 
 
 #ifdef WANT_SHELLCMD
       /* See if the system is currently idle, if -idlecmd was given */
