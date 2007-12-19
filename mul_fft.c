@@ -141,7 +141,7 @@ MA 02110-1301, USA. */
 #endif
 
 #ifndef __GMP_ALLOCATE_FUNC_LIMBS
-#define __GMP_ALLOCATE_FUNC_LIMBS(n) malloc(n * sizeof(mp_limb_t))
+#define __GMP_ALLOCATE_FUNC_LIMBS(n) malloc((n) * sizeof(mp_limb_t))
 #endif
 
 #ifndef __GMP_FREE_FUNC_LIMBS
@@ -801,6 +801,7 @@ mpn_fft_mul_sqrt2exp_modF (mp_ptr r, mp_srcptr a, unsigned int d, mp_size_t n)
     e -= 2 * N; /* 0 <= e < 2N */
   TMP_MARK;
   tmp = TMP_ALLOC_LIMBS(n + 1);
+  ASSERT(tmp != NULL);
   /* the following variant avoids the -H-L computation, which
      requires a call to mpn_com_n(). */
   if (e != 0)
@@ -920,6 +921,7 @@ mpn_mul_fft_decompose (mp_ptr A, mp_ptr *Ap, int K, int offset,
          stride > 0 ! */
       TRACE(printf ("mpn_mul_fft_decompose: This takes too long!\n");)
       tmp = TMP_ALLOC_LIMBS(Kl + 1);
+      ASSERT(tmp != NULL);
       mpn_mul_fft_reduce (tmp, /* A, */ n, nl, Kl, /* l, */ b);
       n = tmp;
       nl = Kl + 1;
@@ -1516,12 +1518,15 @@ mpn_fft_fft_bailey_decompose (mp_ptr A, mp_ptr *Ap, mp_size_t k,
   TMP_MARK; 
   
   BufA = TMP_ALLOC_MP_PTRS (K1);
+  ASSERT(BufA != NULL);
 
   T = TMP_ALLOC_LIMBS(nprime + 1);
+  ASSERT(T != NULL);
 
   if (nl > Kl)
     {
       tmp = TMP_ALLOC_LIMBS(Kl + 1);
+      ASSERT(tmp != NULL);
       mpn_mul_fft_reduce (tmp, /* A, */ n, nl, Kl, /* l, */ b);
       n = tmp;
       nl = Kl + 1;
@@ -1594,13 +1599,21 @@ mpn_fft_mul_modF_K (mp_ptr *ap, mp_ptr *bp, mp_size_t n, int K)
       ASSERT_ALWAYS(nprime2 < n); /* otherwise we'll loop */
 
       Ap = TMP_ALLOC_MP_PTRS (K2);
+      ASSERT(Ap != NULL);
       Bp = TMP_ALLOC_MP_PTRS (K2);
+      ASSERT(Bp != NULL);
       A = TMP_ALLOC_LIMBS (2 * K2 * (nprime2 + 1));
+      ASSERT(A != NULL);
       T = TMP_ALLOC_LIMBS (2 * (nprime2 + 1));
+      ASSERT(T != NULL);
       B = A + K2 * (nprime2 + 1);
       _fft_l = TMP_ALLOC_TYPE (k + 1, int *);
+      ASSERT(_fft_l != NULL);
       for (i = 0; i <= k; i++)
-	_fft_l[i] = TMP_ALLOC_TYPE (1<<i, int);
+	{
+	  _fft_l[i] = TMP_ALLOC_TYPE (1<<i, int);
+	  ASSERT(_fft_l[i] != NULL);
+	}
       mpn_fft_initl (_fft_l, k);
 
       TRACE (printf ("recurse: %dx%d limbs -> %d times %dx%d (%1.2f)\n", n,
@@ -1620,6 +1633,7 @@ mpn_fft_mul_modF_K (mp_ptr *ap, mp_ptr *bp, mp_size_t n, int K)
       mp_limb_t cc;
       int n2 = 2 * n;
       tp = TMP_ALLOC_LIMBS (n2);
+      ASSERT(tp != NULL);
       tpn = tp + n;
       TRACE (printf ("mpn_fft_mul_modF_K:  mpn_mul_n %d of %d limbs\n", K, n));
       /* FIXME: write a special loop for the square case, to put the test
@@ -1713,13 +1727,21 @@ mpn_fft_mul_modF_K_fftInv (mp_ptr *ap, mp_ptr *bp, mp_size_t n, mp_size_t Mp, in
       ASSERT_ALWAYS(nprime2 < n); /* otherwise we'll loop */
 
       Ap = TMP_ALLOC_MP_PTRS (K2);
+      ASSERT(Ap != NULL);
       Bp = TMP_ALLOC_MP_PTRS (K2);
+      ASSERT(Bp != NULL);
       A = TMP_ALLOC_LIMBS (2 * K2 * (nprime2 + 1));
+      ASSERT(A != NULL);
       T = TMP_ALLOC_LIMBS (2 * (nprime2 + 1));
+      ASSERT(T != NULL);
       B = A + K2 * (nprime2 + 1);
       _fft_l = TMP_ALLOC_TYPE (k + 1, int *);
+      ASSERT(_fft_l != NULL);
       for (i = 0; i <= k; i++)
-	_fft_l[i] = TMP_ALLOC_TYPE (1<<i, int);
+	{
+	  _fft_l[i] = TMP_ALLOC_TYPE (1<<i, int);
+	  ASSERT(_fft_l[i] != NULL);
+	}
       mpn_fft_initl (_fft_l, k);
 
       TRACE (printf ("recurse: %dx%d limbs -> %d times %dx%d (%1.2f)\n", n,
@@ -1729,6 +1751,7 @@ mpn_fft_mul_modF_K_fftInv (mp_ptr *ap, mp_ptr *bp, mp_size_t n, mp_size_t Mp, in
 	mp_ptr tp, tpn;
 	int n2 = n << 1;
 	tp = TMP_ALLOC_LIMBS (n2);
+	ASSERT(tp != NULL);
 	tpn = tp + n;
 
 	mp_size_t k1 = old_k >> 1;
@@ -1746,6 +1769,7 @@ mpn_fft_mul_modF_K_fftInv (mp_ptr *ap, mp_ptr *bp, mp_size_t n, mp_size_t Mp, in
 	mp_ptr *BufA; 
 
 	BufA = TMP_ALLOC_MP_PTRS (K1);
+	ASSERT(BufA != NULL);
 
 	for (i = 0; i < K2; ++i) {
 	  // copy the i-th column of Ap into BufA (pointers... no real copy)
@@ -1803,6 +1827,7 @@ mpn_fft_mul_modF_K_fftInv (mp_ptr *ap, mp_ptr *bp, mp_size_t n, mp_size_t Mp, in
       mp_limb_t cc;
       int n2 = 2 * n;
       tp = TMP_ALLOC_LIMBS (n2);
+      ASSERT(tp != NULL);
       tpn = tp + n;
       
       mp_size_t k1 = old_k / 2;
@@ -1817,7 +1842,7 @@ mpn_fft_mul_modF_K_fftInv (mp_ptr *ap, mp_ptr *bp, mp_size_t n, mp_size_t Mp, in
       mp_ptr *BufA; 
 
       BufA = TMP_ALLOC_MP_PTRS (K1);
-
+      ASSERT(BufA != NULL);
       
       for (i = 0; i < K2; ++i) {
 	// copy the i-th column of Ap into BufA (pointers... no real copy)
@@ -2020,7 +2045,9 @@ mpn_mul_fft_internal (mp_ptr op, mp_size_t pl,
   TMP_MARK;
 
   rotbufA[0] = TMP_ALLOC_LIMBS(nprime+1);
+  ASSERT(rotbufA[0] != NULL);
   rotbufB[0] = TMP_ALLOC_LIMBS(nprime+1);
+  ASSERT(rotbufB[0] != NULL);
 
   ASSERT(b == 1 || b == -1);
 
@@ -2195,18 +2222,18 @@ mpn_mul_fft_mersenne (mp_ptr op, mp_size_t pl,
 /* put in {op, pl} + carry out the product {n, nl} * {m, ml}
    modulo 2^(pl*GMP_NUMB_BITS) + b, where b = 1 or b = -1.
 */
-int
-mpn_mul_fft_aux (mp_ptr op, mp_size_t pl,
+static int
+mpn_mul_fft_aux (mp_ptr op, const mp_size_t pl,
 		 mp_srcptr n, mp_size_t nl,
 		 mp_srcptr m, mp_size_t ml,
-		 int k, int b)
+		 int k, const int b)
 {
   int maxLK, i, c;
   const int K = 1 << k;
   mp_size_t N, Nprime, nprime, M, l;
   mp_ptr *Ap, *Bp, A, T, B;
   int **_fft_l;
-  int sqr = (n == m && nl == ml);
+  int sqr = (n == m && nl == ml), use_tmp_n, use_tmp_m;
   TMP_DECL;
 
   TRACE (printf ("\nmpn_mul_fft_aux: mpn_mul_fft pl=%ld nl=%ld ml=%ld k=%d "
@@ -2216,17 +2243,19 @@ mpn_mul_fft_aux (mp_ptr op, mp_size_t pl,
   TMP_MARK;
   
   /* first reduce {n, nl} or {m, ml} if nl > pl or ml > pl */
-  if (nl > pl)
+  if ((use_tmp_n = nl > pl))
     {
-      mp_ptr nn = TMP_ALLOC_LIMBS(pl + (b == 1));
+      mp_ptr nn = __GMP_ALLOCATE_FUNC_LIMBS(pl + (b == 1));
+      ASSERT(nn != NULL);
       if ((i = mpn_fft_norm_modF (nn, pl, n, nl, b)))
 	nn[pl] = 1;
       n = nn;
       nl = pl + i;
     }
-  if (ml > pl)
+  if ((use_tmp_m = ml > pl))
     {
-      mp_ptr mm = TMP_ALLOC_LIMBS(pl + (b == 1));
+      mp_ptr mm = __GMP_ALLOCATE_FUNC_LIMBS(pl + (b == 1));
+      ASSERT(mm != NULL);
       if ((i = mpn_fft_norm_modF (mm, pl, m, ml, b)))
 	mm[pl] = 1;
       m = mm;
@@ -2236,8 +2265,12 @@ mpn_mul_fft_aux (mp_ptr op, mp_size_t pl,
 
   N = MUL_GMP_NUMB_BITS(pl); /* The entire integer product will be mod 2^N+b */
   _fft_l = TMP_ALLOC_TYPE (k + 1, int *);
+  ASSERT(_fft_l != NULL);
   for (i = 0; i <= k; i++)
-    _fft_l[i] = TMP_ALLOC_TYPE (1 << i, int);
+    {
+      _fft_l[i] = TMP_ALLOC_TYPE (1 << i, int);
+      ASSERT(_fft_l[i] != NULL);
+    }
   mpn_fft_initl (_fft_l, k);
   M = N >> k;	/* The number of bits we need to be able to store in each 
                    of the 2^k pieces */
@@ -2289,6 +2322,7 @@ mpn_mul_fft_aux (mp_ptr op, mp_size_t pl,
   ASSERT_ALWAYS (nprime < pl); /* otherwise we'll loop */
 
   T = TMP_ALLOC_LIMBS (2 * (nprime + 1));
+  ASSERT(T != NULL);
 
   TRACE (printf ("mpn_mul_fft_aux: %dx%d limbs -> %d times %dx%d limbs (%1.2f)\n",
 		pl, pl, K, nprime, nprime, 2.0 * (double) N / Nprime / K);
@@ -2297,13 +2331,19 @@ mpn_mul_fft_aux (mp_ptr op, mp_size_t pl,
   A = __GMP_ALLOCATE_FUNC_LIMBS (2 * K * (nprime + 1));
   B = A + K * (nprime + 1);
   Ap = TMP_ALLOC_MP_PTRS (K);
+  ASSERT(Ap != NULL);
   Bp = TMP_ALLOC_MP_PTRS (K);
+  ASSERT(Bp != NULL);
 
   i = mpn_mul_fft_internal (op, pl, n, nl, m, ml, k, Ap, Bp, A, B, nprime,
                             l, _fft_l, T, 0, b);
 
   TMP_FREE;
   __GMP_FREE_FUNC_LIMBS (A, 2 * K * (nprime + 1));
+  if (use_tmp_n)
+    __GMP_FREE_FUNC_LIMBS ((mp_ptr) n, pl + (b == 1));
+  if (use_tmp_m)
+    __GMP_FREE_FUNC_LIMBS ((mp_ptr) m, pl + (b == 1));
 
   return i;
 }
