@@ -685,6 +685,23 @@ int  gw_ecm_stage1 (mpz_t, curve *, mpmod_t, double, double *, mpz_t);
 void ecm_redc3 (mp_ptr, mp_srcptr, mp_size_t, mp_limb_t);
 #endif
 
+/* sets_long.c */
+/* A set of long ints */
+typedef struct {
+  unsigned long card;
+  long elem[0];
+} set_long_t;
+
+#define sets_print __ECM(sets_print)
+void          sets_print (const int, set_long_t *, const unsigned long);
+#define set_of_sums_minmax __ECM(set_of_sums_minmax)
+long          sets_sumset_minmax (const set_long_t *, unsigned long, 
+                                  const int);
+#define extract_sets __ECM(extract_sets)
+unsigned long sets_extract (set_long_t *, set_long_t *, 
+                            const unsigned long, const unsigned long);
+#define sets_get_factored_sorted __ECM(sets_get_factored_sorted)
+set_long_t *  sets_get_factored_sorted (unsigned long *, const unsigned long);
 
 #if defined (__cplusplus)
 }
