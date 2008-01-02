@@ -692,16 +692,40 @@ typedef struct {
   long elem[0];
 } set_long_t;
 
+#define quicksort_long __ECM(quicksort_long)
+void          quicksort_long (long *, unsigned long);
 #define sets_print __ECM(sets_print)
 void          sets_print (const int, set_long_t *, const unsigned long);
-#define set_of_sums_minmax __ECM(set_of_sums_minmax)
-long          sets_sumset_minmax (const set_long_t *, unsigned long, 
+#define sets_sumset __ECM(sets_sumset)
+unsigned long sets_sumset (set_long_t *, const set_long_t *, 
+                           const unsigned long nr_sets);
+#define sets_sumset_minmax __ECM(sets_sumset_minmax)
+long          sets_sumset_minmax (const set_long_t *, const unsigned long, 
                                   const int);
-#define extract_sets __ECM(extract_sets)
-unsigned long sets_extract (set_long_t *, set_long_t *, 
-                            const unsigned long, const unsigned long);
+#define sets_extract __ECM(sets_extract)
+unsigned long sets_extract (set_long_t *, size_t *, set_long_t *, 
+                            unsigned long *, const unsigned long);
 #define sets_get_factored_sorted __ECM(sets_get_factored_sorted)
 set_long_t *  sets_get_factored_sorted (unsigned long *, const unsigned long);
+
+/* Return the size in bytes of a set of cardinality c */
+#define set_sizeof __ECM(set_sizeof)
+ATTRIBUTE_UNUSED
+static size_t 
+set_sizeof (const unsigned long c)
+{
+  return sizeof (long) + (size_t) c * sizeof (unsigned long);
+}
+
+
+/* Return pointer to the next set in "*sets" */
+static set_long_t *
+sets_nextset (const set_long_t *sets)
+{
+  return (set_long_t *) ((void *)sets + sizeof(unsigned long) + 
+                         sets->card * sizeof(long));
+}
+
 
 #if defined (__cplusplus)
 }
