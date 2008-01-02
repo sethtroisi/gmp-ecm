@@ -10,29 +10,13 @@ FILE *ECM_STDOUT, *ECM_STDERR;
 
           Functions for processing sets
 
-  A set is a cardinality and an array of long ints. 
+  A set is a cardinality of unsigned long type and an array of 
+  long ints. 
   A set of sets is an array that has several sets stored 
   back-to-back. The number of sets in the set is not stored but
-  must be supplied separately.
+  must be supplied separately (fixme... maybe).
 
 *****************************************************************/
-
-/* Return the size in bytes of a set of cardinality c */
-
-static unsigned long 
-set_sizeof (const unsigned long c)
-{
-  return sizeof (long) + c * sizeof (unsigned long);
-}
-
-/* Return pointer to the next set in "*sets" */
-
-static set_long_t *
-set_nextset (const set_long_t *sets)
-{
-  return (set_long_t *) ((void *)sets + sizeof(unsigned long) + 
-                         sets->card * sizeof(long));
-}
 
 
 /* Copy a set from "*S" to "*T" */
@@ -41,9 +25,10 @@ static void
 set_copy (set_long_t *T, set_long_t *S)
 {
   unsigned long i;
+  const unsigned long c = S->card;
   
-  T->card = S->card;
-  for (i = 0UL; i < S->card; i++)
+  T->card = c;
+  for (i = 0UL; i < c; i++)
     T->elem[i] = S->elem[i];
 }
 
@@ -55,51 +40,50 @@ set_swap (set_long_t *T)
 {
   set_long_t *next, *tmp;
   
-  next = set_nextset (T);
+  next = sets_nextset (T);
   tmp = alloca (set_sizeof (T->card));
   ASSERT(tmp != NULL);
   set_copy (tmp, T);
   set_copy (T, next);
-  set_copy (set_nextset(T), tmp);  
+  set_copy (sets_nextset(T), tmp);  
 }
 
 
 /* Functions for sorting an array of longs */
 
 static inline void
-swap_long (long *a, long *b, long *t)
+swap_long (long *a, long *b)
 {
-  *t = *a;
+  long t;
+  t = *a;
   *a = *b;
-  *b = *t;
+  *b = t;
 }
 
 static inline void 
-swapsort_long (long *a, long *b, long *t)
+swapsort_long (long *a, long *b)
 {
   if (*a > *b)
-    swap_long (a, b, t);
+    swap_long (a, b);
 }
 
-static void 
+void 
 quicksort_long (long *a, unsigned long l)
 {
   unsigned long i, j;
-  long pivot, t;
+  long pivot;
 
   if (l < 2)
     return;
 
   j = l - 1;
-  swapsort_long (a, a+j, &t);
+  swapsort_long (a, a+j);
   if (l == 2)
     return;
 
   i = j / 2;
-  swapsort_long (a, a+i, &t);
-  swapsort_long (a+i, a+j, &t);
-  if (a[i] > a[j])
-    swap_long (a+i, a+j, &t);
+  swapsort_long (a, a+i);
+  swapsort_long (a+i, a+j);
   if (l == 3)
     return;
 
@@ -113,7 +97,7 @@ quicksort_long (long *a, unsigned long l)
       {
 	for (; a[j] > pivot; j--);
 	if (i < j)
-	  swap_long (a+(i++), a+j, &t);
+	  swap_long (a+(i++), a+j);
       }
     else
       i++;
@@ -136,11 +120,10 @@ quicksort_long (long *a, unsigned long l)
 
 
 /* Compute the set of sums over the "nr_sets" different sets in "*sets".
-   The value of "add" is added to each element of the set of sums, it is
-   used mostly for the recursion (i.e. the top level call should use 
-   add = 0). "*sum" will have {\prod_{S \in "*sets"} #S} entries and must 
-   have enough memory allocated. This number of elements in the set of sums 
-   is the return value. In case of nr_sets == 0, "add" written to *sets 
+   The value of "add" is added to each element of the set of sums. 
+   "*sum" will have {\prod_{S \in "*sets"} #S} entries and must have
+   enough memory allocated. This number of elements in the set of sums 
+   is the return value. In case of nr_sets == 0, "add" is written to *sets 
    and 1 is returned. The sets in "*sets" are assumed to be non-empty. */
 
 static unsigned long 
@@ -156,9 +139,9 @@ sets_sumset_recurse (long *sum, const set_long_t *sets,
       return 1UL;
     }
 
-  ASSERT (sets->card > 0);
+  ASSERT (sets->card > 0UL);
   for (i = 0UL; i < sets->card; i++)
-    j += sets_sumset_recurse (sum + j, set_nextset(sets), nr_sets - 1UL, 
+    j += sets_sumset_recurse (sum + j, sets_nextset(sets), nr_sets - 1UL, 
 	              add + sets->elem[i]);
 
   return j;
@@ -167,12 +150,10 @@ sets_sumset_recurse (long *sum, const set_long_t *sets,
 
 unsigned long 
 sets_sumset (set_long_t *sum, const set_long_t *sets, 
-                    const unsigned long nr_sets)
+             const unsigned long nr_sets)
 {
-  unsigned long c;
-  c = sets_sumset_recurse (sum->elem, sets, nr_sets, 0L);
-  sum->card = c;
-  return c;                      
+  sum->card = sets_sumset_recurse (sum->elem, sets, nr_sets, 0L);
+  return sum->card;
 }
 
 
@@ -180,27 +161,27 @@ sets_sumset (set_long_t *sum, const set_long_t *sets,
    in the set of sums over the sets in "*sets". */
 
 long 
-sets_sumset_minmax (const set_long_t *sets, unsigned long nr_sets, 
+sets_sumset_minmax (const set_long_t *sets, const unsigned long nr_sets, 
                     const int minmax)
 {
-  unsigned long i;
-  long sum = 0, extremum;
+  unsigned long i, nr = nr_sets;
+  long sum = 0L, extremum;
 
   ASSERT (minmax == 1 || minmax == -1);
 
-  while (nr_sets > 0UL)
+  while (nr > 0UL)
     {
       ASSERT (sets->card > 0UL);
       extremum = sets->elem[0];
 
-      for (i = 1; i < sets->card; i++)
+      for (i = 1UL; i < sets->card; i++)
 	if ((minmax == -1 && sets->elem[i] < extremum) ||
 	    (minmax == 1 && sets->elem[i] > extremum))
 	  extremum = sets->elem[i];
       
       sum += extremum;
-      sets = set_nextset(sets);
-      nr_sets--;
+      sets = sets_nextset(sets);
+      nr--;
     }
 
   return sum;
@@ -219,92 +200,92 @@ sets_sumset_minmax (const set_long_t *sets, unsigned long nr_sets,
 */
 
 static unsigned long
-sets_factored_Rn2 (set_long_t **L, unsigned long *nr_sets, 
-                   const unsigned long n, const unsigned long k)
+sets_factored_Rn2 (set_long_t **L, size_t *sets_size, const long n, 
+                   const long k)
 {
-  unsigned long q, m, size = 0UL, r, nr = 0;
-  long i;
+  unsigned long nr = 0UL;
+  long i, m, q, r;
+  size_t size = 0;
 
-  ASSERT_ALWAYS(n % 2 == 1 || k % 2 == 0); /* n must be odd, or both even */
+  /* n must be odd, or n and k both even */
+  ASSERT_ALWAYS(n % 2L == 1L || k % 2L == 0L);
   ASSERT(L != NULL);
   m = k; /* The multiplier accumulated so far, init to k */
   r = n;
-  for (q = 2UL; r > 1UL; q = (q + 1UL) | 1UL) /* Find prime factors of n */
+  for (q = 2L; r > 1L; q = (q + 1L) | 1L) /* Find prime factors of n */
     {
       ASSERT (q <= r);
-      while (r % q == 0UL)
+      while (r % q == 0L)
 	{
 	  if (*L != NULL)
 	    {
 	      /* Add m*R_q/2 to list */
 	      (*L)->card = q;
-	      for (i = 0L; (unsigned long) i < q; i++)
+	      for (i = 0L; i < q; i++)
 	        {
-	          long t = (signed long) m * (2L * i - (signed long) q + 1L);
+	          const long t = m * (2L * i - q + 1L);
 	          ASSERT(t % 2L == 0L);
 		  (*L)->elem[i] = t / 2L;
 		}
-	      *L = set_nextset (*L);
+	      *L = sets_nextset (*L);
 	      nr++;
 	    }
-	  size += set_sizeof (q);
+	  size += set_sizeof ((unsigned long) q);
 	  /* Multiply this t to multiplier and treat remaining
 	     factors of the set */
 	  m *= q;
 	  r /= q;
 	}
     }
-  if (nr_sets != NULL)
-    *nr_sets = nr;
-  return size;
+  if (sets_size != NULL)
+    *sets_size += size;
+  return nr;
 }
 
 
 /* Return a set L of sets M_i so that M_1 + ... + M_k is congruent to 
    (Z/nZ)*, which is the set of residue classes coprime to n. The M_i all
    have prime cardinality.
-   L is stored as #M_1, M_1, #M_2, M_2, ..., #M_k, M_k. I.e. for n=15,
-   S_n = 5*S_3 + 3*S_5 = 5*{-1,1} + 3*{-3,-1,1,3} = 
-         5*{-1,1} + 3*{-2, 2} + 3*{-1,1}
-   L = [2, -5, 5, 2, -6, 6, 2, -3, 3]
-   Return the space (in longs) needed in L. 
+   The size of the set of sets "*L" in bytes is computed and added to 
+   "*sets_size" unless "*sets_size" is NULL.
+   Return the number of sets in L. 
    If L is the NULL pointer, nothing will be stored in L. The correct
-   return value (amount of space needed in L) will still be computed, for
-   example so that the correct amount of space can be allocated and 
-   factor_coprimeset() be called again.
+   return value (number of set in L) and "*sets_size" value will still 
+   be computed, for example so that the correct amount of space can be 
+   allocated and factor_coprimeset() be called again.
 */
 
-static int 
-sets_factor_coprime (set_long_t *L, unsigned long *nr_sets,
-                     const unsigned long n)
+static unsigned long 
+sets_factor_coprime (set_long_t *L, size_t *sets_size, const unsigned long n)
 {
-  unsigned long r, k, size = 0, nr = 0, Rn2nr;
+  unsigned long r, k, nr = 0UL;
   long p, q, np;
+  size_t size = 0;
   
   ASSERT (n > 0UL);
 
   r = n;
   while (r > 1UL)
     {
-      for (p = 2; r % p > 0; p++); /* Find smallest prime p that divides r */
-      for (k = 0; r % p == 0; k++, r /= p); /* Find p^k || r */
+      for (p = 2L; r % p > 0L; p++); /* Find smallest prime p that divides r */
+      for (k = 0UL; r % p == 0UL; k++, r /= p); /* Find p^k || r */
       np = n/p;
       /* Choose \hat{S}_p or \tilde{S}_p */
-      if (p == 2)
+      if (p == 2L)
 	{
-	  if (k == 1) /* Case 2^1 */
+	  if (k == 1UL) /* Case 2^1 */
 	    {
 	      if (L != NULL)
 		{
 		  L->card = 1UL;
 		  L->elem[0] = np;
-		  L = set_nextset (L);
+		  L = sets_nextset (L);
 		}
 	      size += set_sizeof (1UL);
 	      nr++;
 	    }
 	  else /* Case 2^k, k > 1 */
-	    while (k-- > 1)
+	    while (k-- > 1UL)
 	      {
 		np /= 2L;
 		if (L != NULL)
@@ -312,7 +293,7 @@ sets_factor_coprime (set_long_t *L, unsigned long *nr_sets,
 		    L->card = 2UL;
 		    L->elem[0] = -np;
 		    L->elem[1] = np;
-		    L = set_nextset (L);
+		    L = sets_nextset (L);
 		  }
 		size += set_sizeof (2UL);
 		nr++;
@@ -326,16 +307,16 @@ sets_factor_coprime (set_long_t *L, unsigned long *nr_sets,
 	     (Z/pZ) is represented by an arithmetic progression of
 	     common difference 1 and length p which is prime, so it
 	     can't be factored any further. */
-	  while (k-- > 1)
+	  while (k-- > 1UL)
 	    {
 	      if (L != NULL)
 		{
 		  L->card = p;
-		  for (q = 0; q <= p - 1; q++)
+		  for (q = 0L; q <= p - 1L; q++)
 		    L->elem[q] = (q - (p-1UL)/2UL) * np;
-                  L = set_nextset (L);
+                  L = sets_nextset (L);
 		}
-	      size += set_sizeof (p);
+	      size += set_sizeof ((unsigned long) p);
 	      nr++;
 	      np /= p;
 	    }
@@ -344,16 +325,15 @@ sets_factor_coprime (set_long_t *L, unsigned long *nr_sets,
 	  if (L != NULL)
 	    {
 	      L->card = 2UL;
-	      L->elem[0] = -((p+1UL)/4L) * np;
-	      L->elem[1] = (p+1UL)/4L * np;
-	      L = set_nextset (L);
+	      L->elem[0] = -((p + 1L) / 4L) * np;
+	      L->elem[1] = (p + 1L) / 4L * np;
+	      L = sets_nextset (L);
 	    }
 	  size += set_sizeof (2UL);
 	  nr++;
 
 	  /* Add np / 2 * R_{(p-1)/2}/2 = np / 2 * {-(p-3)/4, ..., (p-3)/4}.*/
-	  size += sets_factored_Rn2 (&L, &Rn2nr, (p - 1UL) / 2UL, np);
-	  nr += Rn2nr;
+	  nr += sets_factored_Rn2 (&L, &size, (p - 1L) / 2L, np);
 	}
       else /* case p%4 == 1 */
 	{
@@ -366,30 +346,29 @@ sets_factor_coprime (set_long_t *L, unsigned long *nr_sets,
 	     (Z/pZ) is represented by an arithmetic progression of
 	     common difference 1 and length p which is prime, so it
 	     can't be factored any further. */
-	  while (k-- > 1)
+	  while (k-- > 1UL)
 	    {
 	      if (L != NULL)
 		{
 		  L->card = p;
-		  for (q = 0; q <= p - 1; q++)
-		    L->elem[q] = (q - (p-1UL)/2UL) * np;
-		  L = set_nextset (L);
+		  for (q = 0L; q <= p - 1L; q++)
+		    L->elem[q] = (q - (p - 1L) / 2L) * np;
+		  L = sets_nextset (L);
 		}
-	      size += set_sizeof (p);
+	      size += set_sizeof ((unsigned long) p);
 	      nr++;
 	      np /= p;
 	    }
 
 	  /* Add np * R_{p-1} */
-	  size += sets_factored_Rn2 (&L, &Rn2nr, p - 1UL, 2UL * np);
-	  nr += Rn2nr;
+	  nr += sets_factored_Rn2 (&L, &size, p - 1L, 2L * np);
 	}
     }
   
-  if (nr_sets != NULL)
-    *nr_sets = nr;
+  if (sets_size != NULL)
+    *sets_size = size;
 
-  return size;
+  return nr;
 }
 
 
@@ -408,19 +387,33 @@ sets_sort (set_long_t *sets, unsigned long nr_sets)
   nr_unsorted = nr_sets;
   while (nr_unsorted > 1UL)
     {
+      outputf (OUTPUT_TRACE, "nr_unsorted = %lu. ", nr_unsorted);
+      sets_print (OUTPUT_TRACE, sets, nr_sets);
       this = sets;
+      highest_swap = 1UL;
       for (i = 1UL; i < nr_unsorted; i++)
 	{
-	  highest_swap = 1UL;
-	  if (this->card > set_nextset(this)->card)
+	  if (this->card > sets_nextset(this)->card)
 	    {
+	      outputf (OUTPUT_TRACE, "sets_sort: swapping %lu and %lu\n", 
+                      i - 1, i);
 	      set_swap (this);
 	      highest_swap = i;
 	    }
-          this = set_nextset (this);
+          this = sets_nextset (this);
 	}
       nr_unsorted = highest_swap;
     }
+
+#ifdef WANT_ASSERT
+  this = sets;
+  for (i = 0UL; i + 1UL < nr_sets; i++)
+    {
+      ASSERT(this->card <= sets_nextset (this)->card);
+      this = sets_nextset (this);
+    }
+#endif
+
 }
 
 /* Print all the sets in "*sets", formatted as a sum of sets */
@@ -442,72 +435,106 @@ sets_print (const int verbosity, set_long_t *sets,
       for (j = 1UL; j < sets->card; j++)
         outputf (verbosity, ", %ld", sets->elem[j]);
       outputf (verbosity, "}");
-      sets = set_nextset (sets);
+      sets = sets_nextset (sets);
   }
   outputf (verbosity, "\n");
 }
 
 
-/* Extract sets whose set of sums has cardinality d. We expect that
-   d divides the cardinality of the set of sums of "sets" and that
+/* Extract sets whose set of sums has cardinality "d". We expect that
+   "d" divides the cardinality of the set of sums of "sets" and that
    the cardinalities of the sets in "sets" are all prime. 
+   The amount of memory in bytes needed to store the extracted sets in 
+   "*extracted" is stored at "*extr_size". The number of sets extracted
+   is returned. (If d = p_1 * ... * p_k, the return value is k and 
+   "*extr_size" is set_sizeof(p_1) + ... + set_sizeof(p_k).)
    If "*extracted" is NULL, nothing is written and no sets are removed
-   from "*sets".
-   Returns the amount of memory needed in "*extracted" in bytes. */
+   from "*sets", but "*extr_size" and return value are computed as if
+   they were.  */
 
 unsigned long
-sets_extract (set_long_t *extracted, set_long_t *sets, 
-              const unsigned long nr_sets, const unsigned long d)
+sets_extract (set_long_t *extracted, size_t *extr_size, set_long_t *sets, 
+              unsigned long *nr_sets, const unsigned long d)
 {
-  unsigned long i, s, extracted_size = 0UL, remaining_d = d;
-  set_long_t *readfrom, *moveto;
+  unsigned long i, s, remaining_d = d, nr_extracted = 0UL;
+  set_long_t *readfrom, *readnext, *moveto;
+  size_t extracted_size = 0;
+
+  ASSERT_ALWAYS (d > 0UL);
+
+  if (d == 1UL)
+    {
+      /* d == 1 means we need to extract a set of cardinality 1, which we
+         most likely don't have in "*sets". (FIXME: check for set of 
+         cardinality 1?) We return the set containing only zero, which
+         can be added to any set of sets without changing the set of sums */
+      if (extracted != NULL)
+        {
+          extracted->card = 1UL;
+          extracted->elem[0] = 0L;
+        }
+      if (extr_size != NULL)
+        *extr_size = set_sizeof (1UL);
+      return 1UL;
+    }
 
   /* All sets from *sets are read via *readfrom, and (assuming we actually
      extract them) are either copied to *extracted to *moveto */
   readfrom = moveto = sets;
-  for (i = 0UL; i < nr_sets; i++)
+  s = 0;
+  for (i = 0UL; i < *nr_sets; i++)
     {
       s = readfrom->card;
-      if (remaining_d % s == 0)
+      readnext = sets_nextset (readfrom); /* readfrom->card may get garbled */
+      if (remaining_d % s == 0UL)
         {
           if (extracted != NULL)
             {
               /* Copy this set to extracted */
               set_copy (extracted, readfrom);
-              extracted = set_nextset (extracted);
+              extracted = sets_nextset (extracted);
             }
           remaining_d /= s;
+          nr_extracted++;
           extracted_size += set_sizeof (s);
         } else {
           if (extracted != NULL)
             {
+              /* Move this set within "*sets", filling the gaps left by 
+                 extracted sets */
               set_copy (moveto, readfrom);
-              moveto = set_nextset (moveto);
+              moveto = sets_nextset (moveto);
             }
         }
-      readfrom = set_nextset (readfrom);
+      readfrom = readnext;
     }
 
-  ASSERT_ALWAYS (remaining_d == 1);
-  return extracted_size;
+  ASSERT_ALWAYS (remaining_d == 1UL);
+  if (extr_size != NULL)
+    *extr_size = extracted_size;
+  if (extracted != NULL)
+    *nr_sets -= nr_extracted;
+  return nr_extracted;
 }
 
 set_long_t *
 sets_get_factored_sorted (unsigned long *nr_sets, const unsigned long beta)
 {
   set_long_t *sets;
-  unsigned long size, i, nr;
+  unsigned long nr;
+  size_t size;
 
-  size = sets_factor_coprime (NULL, &nr, beta);
+  size = 0;
+  sets_factor_coprime (NULL, &size, beta);
   sets = malloc (size);
   if (sets == NULL)
     return NULL;
-  i = sets_factor_coprime (sets, &nr, beta);
-  ASSERT_ALWAYS (i == size);
+  nr = sets_factor_coprime (sets, NULL, beta);
   
   if (test_verbose (OUTPUT_TRACE))
     {
-      outputf (OUTPUT_TRACE, "Factored sets before sorting are ");
+      outputf (OUTPUT_TRACE, 
+              "sets_get_factored_sorted: Factored sets before sorting are ");
       sets_print (OUTPUT_TRACE, sets, nr);
     }
   
@@ -533,7 +560,7 @@ selftest (const unsigned long beta)
   unsigned long i, j, nr_sets, phibeta;
 
   sets = sets_get_factored_sorted (&nr_sets, beta);
-
+  
   /* Test that the sumset % beta is equal to (Z/betaZ)* % beta */
   phibeta = eulerphi (beta);
   sumset = malloc (set_sizeof (phibeta));
@@ -564,7 +591,7 @@ selftest (const unsigned long beta)
   j = 0;
   for (i = 1; i < beta; i++)
     {
-      if (gcd (i, beta) == 1)
+      if (lgcd (i, beta) == 1)
         {
           if (sumset->elem[j] != (long) i)
             {
@@ -583,6 +610,7 @@ int
 main (int argc, char **argv)
 {
   unsigned long beta;
+  const unsigned long selftest_max = 1000;
   int loop = 1;
 
   ECM_STDOUT = stdout;
@@ -601,8 +629,8 @@ main (int argc, char **argv)
     selftest (beta);
   else
     {
-      printf ("Testing beta = 1, ..., 10000\n");
-      for (beta = 1; beta < 10000; beta++)
+      printf ("Testing beta = 1, ..., %lu\n", selftest_max);
+      for (beta = 1; beta < selftest_max; beta++)
         selftest (beta);
     }
 
