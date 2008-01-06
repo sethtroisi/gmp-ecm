@@ -167,7 +167,7 @@ void test(mp_size_t N, int k)
     assert (cy == cy2);
     if (mpn_cmp(z,tmp2, N) != 0)
       {
-        printf ("i = %d\nmulredc               = ", i);
+        printf ("i = %d\nmulredc             = ", i);
         for (j = N - 1; j >= 0; j--)
           printf ("%lx ", z[j]);
         printf ("\nmpn_mul_n/ecm_redc3 = ");
@@ -209,7 +209,8 @@ int main(int argc, char** argv)
   if (argc > 1) /* Test a specific length */
   {
     len = atoi (argv[1]);
-    test (len, 10000);
+    for (i = 0; i < 1; i++)
+      test (len, 1000000);
     return 0;
   }
 

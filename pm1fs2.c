@@ -1319,26 +1319,25 @@ poly_from_sets (mpz_t *F, mpz_t r, long *sets, unsigned long setsize,
    f_i is stored in F[i], which therefore needs d+1 elements. */
 
 static int
-poly_from_sets_V (listz_t F, const mpres_t Q, set_long_t *sets, 
-		  const unsigned long set_nr, listz_t tmp, 
-		  const unsigned long tmplen, mpmod_t modulus)
+poly_from_sets_V (listz_t F, const mpres_t Q, sets_long_t *sets, 
+		  listz_t tmp, const unsigned long tmplen, mpmod_t modulus)
 {
   unsigned long c, deg, i, nr;
+  set_long_t *set = sets->sets;
   mpres_t Qt;
   
-  ASSERT_ALWAYS (sets->card == 2UL); /* Check that the cardinality of 
-                                           first set is 2 */
-  ASSERT_ALWAYS (sets->elem[0] == -sets->elem[1]); /* Check that first set 
-                                           is symmetric around 0 */
+  ASSERT_ALWAYS (sets->nr > 0UL);
+  ASSERT_ALWAYS (set->card == 2UL); /* Check that the cardinality of 
+                                       first set is 2 */
+  /* Check that first set is symmetric around 0 */
+  ASSERT_ALWAYS (set->elem[0] == -set->elem[1]);
 
   if (test_verbose (OUTPUT_TRACE))
     {
       mpz_t t;
       mpz_init (t);
       mpres_get_z (t, Q, modulus);
-      outputf (OUTPUT_TRACE, 
-	       "poly_from_sets_V (F, Q = %Zd, sets, set_nr = %lu)\n", 
-	       t, set_nr);
+      outputf (OUTPUT_TRACE, "poly_from_sets_V (F, Q = %Zd, sets)\n", t);
       mpz_clear (t);
     }
 
@@ -1346,8 +1345,8 @@ poly_from_sets_V (listz_t F, const mpres_t Q, set_long_t *sets,
   
   outputf (OUTPUT_DEVVERBOSE, " (processing set of size 2");
 
-  V (Qt, Q, sets->elem[0], modulus); /* First set in sets is {-k, k}, 
-                                          Qt = V_k(Q) */
+  V (Qt, Q, set->elem[0], modulus); /* First set in sets is {-k, k}, 
+                                       Qt = V_k(Q) */
   mpres_neg (Qt, Qt, modulus);
   mpres_get_z (F[0], Qt, modulus);
   mpz_set_ui (F[1], 1UL);
@@ -1356,28 +1355,27 @@ poly_from_sets_V (listz_t F, const mpres_t Q, set_long_t *sets,
                   (x^2 - x (r^{k_1} + r^{-k_1}) + 1) / x =
 		  (x + 1/x) - V_{k_1}(r + 1/r) */
 
-  for (nr = set_nr - 1UL; nr > 0UL; nr--)
+  for (nr = sets->nr - 1UL; nr > 0UL; nr--)
     {
-      set_long_t *setptr;
       /* Assuming the sets are sorted in order of ascending cardinality, 
          we process them back-to-front so the sets of cardinality 2 are 
          processed last, but skipping the first set which we processed 
          already. */
       
-      setptr = sets_nextset (sets); /* Skip first set */
+      set = sets_nextset (sets->sets); /* Skip first set */
       for (i = 1UL; i < nr; i++) /* Skip over remaining sets but one */
-        setptr = sets_nextset (setptr);
+        set = sets_nextset (set);
         
       /* Process this set. We assume it is either of cardinality 2, or of 
 	 odd cardinality */
-      c = setptr->card;
+      c = set->card;
       outputf (OUTPUT_DEVVERBOSE, " %lu", c);
 
       if (c == 2UL)
 	{
 	  /* Check it's symmetric */
-	  ASSERT_ALWAYS (setptr->elem[0] == -setptr->elem[1]);
-	  V (Qt, Q, setptr->elem[0], modulus);
+	  ASSERT_ALWAYS (set->elem[0] == -set->elem[1]);
+	  V (Qt, Q, set->elem[0], modulus);
 	  list_scale_V (F, F, Qt, deg, modulus, tmp, tmplen);
 	  deg *= 2UL;
 	  ASSERT (mpz_cmp_ui (F[deg], 1UL) == 0); /* Check it's monic */
@@ -1391,8 +1389,8 @@ poly_from_sets_V (listz_t F, const mpres_t Q, set_long_t *sets,
 	  for (i = 0UL; i < (c - 1UL) / 2UL; i++)
 	    {
               /* Check it's symmetric */
-	      ASSERT (setptr->elem[i] == -setptr->elem[c-1L-i]);
-	      V (Qt, Q, setptr->elem[i], modulus);
+	      ASSERT (set->elem[i] == -set->elem[c - 1L - i]);
+	      V (Qt, Q, set->elem[i], modulus);
 	      ASSERT (mpz_cmp_ui (F[deg], 1UL) == 0); /* Check it's monic */
 	      list_scale_V (F + (2UL * i + 1UL) * (deg + 1UL), F, Qt, deg, 
 	                    modulus, tmp, tmplen);
@@ -1444,8 +1442,8 @@ poly_from_sets_V (listz_t F, const mpres_t Q, set_long_t *sets,
    Stores the result in g[0 ... l] and/or in g_ntt[offset ... offset + l] */
 
 static void
-pm1_sequence_g (listz_t g_mpz, mpzspv_t g_ntt, 
-		const mpres_t b_1, const unsigned long P, const long M_param, 
+pm1_sequence_g (listz_t g_mpz, mpzspv_t g_ntt, const mpres_t b_1, 
+                const unsigned long P, const unsigned long M_param, 
 		const unsigned long l_param, const mpz_t m_1, const long k_2, 
 		mpmod_t modulus_param, const mpzspm_t ntt_context)
 {
@@ -1453,7 +1451,7 @@ pm1_sequence_g (listz_t g_mpz, mpzspv_t g_ntt,
   mpz_t t;
   unsigned long i;
   long timestart, timestop;
-  long M = M_param;
+  unsigned long M = M_param;
   unsigned long l = l_param, offset = 0UL;
   mpmod_t modulus;
   int want_output = 1;
@@ -1471,7 +1469,8 @@ pm1_sequence_g (listz_t g_mpz, mpzspv_t g_ntt,
     l = (l_param - 1) / nr_chunks + 1;
     offset = thread_nr * l;
     l = MIN(l, l_param - offset);
-    M = M_param - (long) offset;
+    ASSERT_ALWAYS (M_param >= offset);
+    M = M_param - (unsigned long) offset;
     
     /* Let only the master thread print stuff */
     want_output = (omp_get_thread_num() == 0);
@@ -1492,7 +1491,7 @@ pm1_sequence_g (listz_t g_mpz, mpzspv_t g_ntt,
 
   if (want_output)
     {
-      outputf (OUTPUT_DEVVERBOSE, "sequence_g (g, b_1, P = %lu, M = %ld, "
+      outputf (OUTPUT_DEVVERBOSE, "sequence_g (g, b_1, P = %lu, M = %lu, "
 	       "l = %lu, m_1 = %Zd, k_2 = %ld, modulus)\n", P, M, l, m_1, k_2);
       if (test_verbose (OUTPUT_TRACE))
 	{ 
@@ -1911,17 +1910,18 @@ pm1_build_poly_F (mpz_t *F, const mpres_t X, mpmod_t modulus,
 #endif
 
 static int 
-make_S_1_S_2 (set_long_t **S_1, unsigned long *S_1_nr, set_long_t **S_2, 
-	      const faststage2_param_t *params)
+make_S_1_S_2 (sets_long_t **S_1, set_long_t **S_2, 
+              const faststage2_param_t *params)
 {
-  unsigned long i, facS_2_nr;
-  set_long_t *facS_2;
+  unsigned long i;
+  sets_long_t *facS_2;
   size_t facS_2_size;
 
-  *S_1 = sets_get_factored_sorted (S_1_nr, params->P);
+  *S_1 = sets_get_factored_sorted (params->P);
   if (*S_1 == NULL)
     return ECM_ERROR;
-  ASSERT (sets_sumset_minmax (*S_1, *S_1_nr, 1) == (long) maxS (params->P));
+  ASSERT (sets_sumset_minmax (*S_1, 1) == (long) maxS (params->P));
+
   *S_2 = malloc (set_sizeof(params->s_2));
   if (*S_2 == NULL)
     {
@@ -1929,9 +1929,9 @@ make_S_1_S_2 (set_long_t **S_1, unsigned long *S_1_nr, set_long_t **S_2,
       return ECM_ERROR;
     }
 
-  /* Expand the sum of sets for S_2 into a single set */
+  /* Extract sets for S_2 and compute the set of sums */
   
-  sets_extract (NULL, &facS_2_size, *S_1, S_1_nr, params->s_2);
+  sets_extract (NULL, &facS_2_size, *S_1, params->s_2);
   facS_2 = malloc (facS_2_size);
   if (facS_2 == NULL)
     {
@@ -1939,9 +1939,9 @@ make_S_1_S_2 (set_long_t **S_1, unsigned long *S_1_nr, set_long_t **S_2,
       free (*S_2);
       return ECM_ERROR;
     }
-  facS_2_nr = sets_extract (facS_2, NULL, *S_1, S_1_nr, params->s_2);
-  i = sets_sumset (*S_2, facS_2, facS_2_nr);
-  ASSERT_ALWAYS (i == params->s_2);
+  sets_extract (facS_2, NULL, *S_1, params->s_2);
+  sets_sumset (*S_2, facS_2);
+  ASSERT_ALWAYS ((*S_2)->card == params->s_2);
   free (facS_2);
   quicksort_long ((*S_2)->elem, (*S_2)->card);
   
@@ -1949,7 +1949,7 @@ make_S_1_S_2 (set_long_t **S_1, unsigned long *S_1_nr, set_long_t **S_2,
   if (test_verbose (OUTPUT_DEVVERBOSE))
     {
       outputf (OUTPUT_DEVVERBOSE, "S_1 = ");
-      sets_print (OUTPUT_DEVVERBOSE, *S_1, *S_1_nr);
+      sets_print (OUTPUT_DEVVERBOSE, *S_1);
       
       outputf (OUTPUT_DEVVERBOSE, "S_2 = {");
       for (i = 0UL; i + 1UL < params->s_2; i++)
@@ -2247,7 +2247,7 @@ ntt_mul_by_dct (mpzspv_t dft, const mpzspv_t dct, const unsigned long len,
    If add == NULL, add[i] is assumed to be 0. */
 
 static void
-ntt_gcd (mpz_t f, mpzspv_t ntt, const unsigned int ntt_offset,
+ntt_gcd (mpz_t f, mpzspv_t ntt, const unsigned long ntt_offset,
 	 const listz_t add, const unsigned long len_param, 
 	 const mpzspm_t ntt_context, mpmod_t modulus_param)
 {
@@ -2353,10 +2353,9 @@ pm1fs2 (mpz_t f, const mpres_t X, mpmod_t modulus,
 {
   unsigned long phiP, nr;
   unsigned long i, l, lenF, lenG, lenR, tmplen;
-  set_long_t *S_1; /* This is stored as a set of sets (arithmetic 
-                      progressions of prime length */
+  sets_long_t *S_1; /* This is stored as a set of sets (arithmetic 
+                       progressions of prime length */
   set_long_t *S_2; /* This is stored as a regular set */
-  unsigned long S_1_nr; /* Number of sets in S_1 */
   listz_t F;   /* Polynomial F has roots X^{k_1} for k_1 \in S_1, so has 
 		  degree s_1. It is symmetric, so has only s_1 / 2 + 1 
 		  distinct coefficients. The sequence h_j will be stored in 
@@ -2378,7 +2377,7 @@ pm1fs2 (mpz_t f, const mpres_t X, mpmod_t modulus,
 
   outputf (OUTPUT_TRACE, "compare(a, b, n) = if (a != b,print(\"In PARI \", n, \" line, \", a \" != \" b)); /* PARI %ld */\n", pariline++);
 
-  if (make_S_1_S_2 (&S_1, &S_1_nr, &S_2, params) == ECM_ERROR)
+  if (make_S_1_S_2 (&S_1, &S_2, params) == ECM_ERROR)
       return ECM_ERROR;
 
   /* Allocate all the memory we'll need */
@@ -2388,12 +2387,12 @@ pm1fs2 (mpz_t f, const mpres_t X, mpmod_t modulus,
   mpres_init (mr, modulus);
   lenF = params->s_1 / 2 + 1 + 1; /* Another +1 because poly_from_sets_V stores
 				     the leading 1 monomial for each factor */
-  F = init_list2 (lenF, abs (modulus->bits));
+  F = init_list2 (lenF, (unsigned int) abs (modulus->bits));
   h = malloc ((params->s_1 + 1) * sizeof (mpz_t));
   lenG = params->l;
-  g = init_list2 (lenG, abs (modulus->bits));
+  g = init_list2 (lenG, (unsigned int) abs (modulus->bits));
   lenR = nr;
-  R = init_list2 (lenR, abs (modulus->bits));    
+  R = init_list2 (lenR, (unsigned int) abs (modulus->bits));    
   tmplen = 3UL * params->l + list_mul_mem (params->l / 2);
   outputf (OUTPUT_DEVVERBOSE, "tmplen = %lu\n", tmplen);
   if (TMulGen_space (params->l - 1, params->s_1, lenR) + 12 > tmplen)
@@ -2406,7 +2405,7 @@ pm1fs2 (mpz_t f, const mpres_t X, mpmod_t modulus,
 #ifdef SHOW_TMP_USAGE
   tmp = init_list (tmplen);
 #else
-  tmp = init_list2 (tmplen, abs (modulus->bits));
+  tmp = init_list2 (tmplen, (unsigned int) abs (modulus->bits));
 #endif
   
   mpres_get_z (mt, X, modulus); /* mpz_t copy of X for printing */
@@ -2426,7 +2425,7 @@ pm1fs2 (mpz_t f, const mpres_t X, mpmod_t modulus,
   mpres_add (mr, mr, X, modulus);
   V (mr, mr, 2UL, modulus);
   
-  i = poly_from_sets_V (F, mr, S_1, S_1_nr, tmp, tmplen, modulus);
+  i = poly_from_sets_V (F, mr, S_1, tmp, tmplen, modulus);
   ASSERT_ALWAYS(2 * i == params->s_1);
   ASSERT(mpz_cmp_ui (F[i], 1UL) == 0);
   free (S_1);
@@ -2468,7 +2467,7 @@ pm1fs2 (mpz_t f, const mpres_t X, mpmod_t modulus,
 
   for (l = 0; l < params->s_2; l++)
     {
-      const long M = params->l - 1L - params->s_1 / 2L;
+      const unsigned long M = params->l - 1L - params->s_1 / 2L;
       pm1_sequence_g (g, NULL, X, params->P, M, params->l, 
 		      params->m_1, S_2->elem[l], modulus, NULL);
 
@@ -2591,10 +2590,9 @@ pm1fs2_ntt (mpz_t f, const mpres_t X, mpmod_t modulus,
 {
   unsigned long nr;
   unsigned long i, l, lenF, tmplen;
-  set_long_t *S_1; /* This is stored as a set of sets (arithmetic 
-		      progressions of prime length */
+  sets_long_t *S_1; /* This is stored as a set of sets (arithmetic 
+                       progressions of prime length */
   set_long_t *S_2; /* This is stored as a regular set */
-  unsigned long S_1_nr; /* The number of sets in S_1 */
   listz_t F;   /* Polynomial F has roots X^{k_1} for k_1 \in S_1, so has 
 		  degree s_1. It is symmetric, so has only s_1 / 2 + 1 
 		  distinct coefficients. The sequence h_j will be stored in 
@@ -2617,7 +2615,7 @@ pm1fs2_ntt (mpz_t f, const mpres_t X, mpmod_t modulus,
 
   outputf (OUTPUT_TRACE, "compare(a, b, n) = if (a != b,print(\"In PARI \", n, \" line, \", a \" != \" b)); /* PARI %ld */\n", pariline++);
 
-  if (make_S_1_S_2 (&S_1, &S_1_nr, &S_2, params) == ECM_ERROR)
+  if (make_S_1_S_2 (&S_1, &S_2, params) == ECM_ERROR)
       return ECM_ERROR;
 
   /* Precompute the small primes, primitive roots and inverses etc. for 
@@ -2628,11 +2626,11 @@ pm1fs2_ntt (mpz_t f, const mpres_t X, mpmod_t modulus,
     {
       double modbits = 0.;
       outputf (OUTPUT_DEVVERBOSE, "CRT modulus = %lu", ntt_context->spm[0]->sp);
-      modbits += log (ntt_context->spm[0]->sp);
+      modbits += log ((double) ntt_context->spm[0]->sp);
       for (i = 1; i < ntt_context->sp_num; i++)
 	{
 	  outputf (OUTPUT_DEVVERBOSE, " * %lu", ntt_context->spm[i]->sp);
-	  modbits += log (ntt_context->spm[i]->sp);
+	  modbits += log ((double) ntt_context->spm[i]->sp);
 	}
       outputf (OUTPUT_DEVVERBOSE, ", has %f bits\n", modbits / log (2.));
     }
@@ -2643,8 +2641,8 @@ pm1fs2_ntt (mpz_t f, const mpres_t X, mpmod_t modulus,
   lenF = params->s_1 / 2 + 1 + 1; /* Another +1 because poly_from_sets_V stores
 				     the leading 1 monomial for each factor */
   tmplen = 3 * params->s_1 + 1000;
-  F = init_list2 (lenF, abs (modulus->bits));
-  tmp = init_list2 (tmplen, abs (modulus->bits));
+  F = init_list2 (lenF, (unsigned int) abs (modulus->bits));
+  tmp = init_list2 (tmplen, (unsigned int) abs (modulus->bits));
 
   mpres_get_z (mt, X, modulus); /* mpz_t copy of X for printing */
   outputf (OUTPUT_TRACE, 
@@ -2662,7 +2660,7 @@ pm1fs2_ntt (mpz_t f, const mpres_t X, mpmod_t modulus,
   mpres_add (tmpres, tmpres, X, modulus);
   V (tmpres, tmpres, 2UL, modulus);
   
-  i = poly_from_sets_V (F, tmpres, S_1, S_1_nr, tmp, tmplen, modulus);
+  i = poly_from_sets_V (F, tmpres, S_1, tmp, tmplen, modulus);
   ASSERT_ALWAYS(2 * i == params->s_1);
   ASSERT(mpz_cmp_ui (F[i], 1UL) == 0);
   free (S_1);
@@ -2703,7 +2701,7 @@ pm1fs2_ntt (mpz_t f, const mpres_t X, mpmod_t modulus,
                 
   for (l = 0; l < params->s_2; l++)
     {
-      const long M = params->l - 1L - params->s_1 / 2L;
+      const unsigned long M = params->l - 1L - params->s_1 / 2L;
 
       /* Compute the coefficients of the polynomial g(x) */
       pm1_sequence_g (NULL, g_ntt, X, params->P, M, params->l, 
@@ -3082,7 +3080,7 @@ pp1_sequence_g (listz_t g_x, listz_t g_y, mpzspv_t g_x_ntt, mpzspv_t g_y_ntt,
 		const unsigned long l_param, const mpz_t m_1, const long k_2, 
 		const mpmod_t modulus_param, const mpzspm_t ntt_context)
 {
-  const unsigned int tmplen = 3;
+  const unsigned long tmplen = 3;
   const int want_x = (g_x != NULL || g_x_ntt != NULL);
   const int want_y = (g_y != NULL || g_y_ntt != NULL);
   mpres_t r_x, r_y, x0_x, x0_y, v2,
@@ -3549,10 +3547,9 @@ pp1fs2 (mpz_t f, const mpres_t X, mpmod_t modulus,
 {
   unsigned long nr;
   unsigned long i, l, lenF, lenH, lenG, lenR, tmplen;
-  set_long_t *S_1; /* This is stored as a set of sets (arithmetic 
-                      progressions of prime length */
+  sets_long_t *S_1; /* This is stored as a set of sets (arithmetic 
+                       progressions of prime length */
   set_long_t *S_2; /* This is stored as a regular set */
-  unsigned long S_1_nr; /* The size in longs of S_1 */
   listz_t F;   /* Polynomial F has roots X^{k_1} for k_1 \in S_1, so has 
 		  degree s_1. It is symmetric, so has only s_1 / 2 + 1 
 		  distinct coefficients. The sequence h_j will be stored in 
@@ -3576,7 +3573,7 @@ pp1fs2 (mpz_t f, const mpres_t X, mpmod_t modulus,
   outputf (OUTPUT_TRACE, "compare(a, b, n) = if (a != b,print(\"In PARI \", "
 	   "n, \" line, \", a \" != \" b)); /* PARI %ld */\n", pariline++);
 
-  if (make_S_1_S_2 (&S_1, &S_1_nr, &S_2, params) == ECM_ERROR)
+  if (make_S_1_S_2 (&S_1, &S_2, params) == ECM_ERROR)
       return ECM_ERROR;
 
   /* Allocate all the memory we'll need */
@@ -3593,15 +3590,15 @@ pp1fs2 (mpz_t f, const mpres_t X, mpmod_t modulus,
   lenH = params->s_1 + 1;
   lenG = params->l;
   lenR = nr;
-  F = init_list2 (lenF, abs (modulus->bits));
-  fh_x = init_list2 (lenF, abs (modulus->bits));
-  fh_y = init_list2 (lenF, abs (modulus->bits));
+  F = init_list2 (lenF, (unsigned int) abs (modulus->bits));
+  fh_x = init_list2 (lenF, (unsigned int) abs (modulus->bits));
+  fh_y = init_list2 (lenF, (unsigned int) abs (modulus->bits));
   h_x = malloc (lenH * sizeof (mpz_t));
   h_y = malloc (lenH * sizeof (mpz_t));
-  g_x = init_list2 (lenG, abs (modulus->bits));
-  g_y = init_list2 (lenG, abs (modulus->bits));
-  R_x = init_list2 (lenR, abs (modulus->bits));
-  R_y = init_list2 (lenR, abs (modulus->bits));
+  g_x = init_list2 (lenG, (unsigned int) abs (modulus->bits));
+  g_y = init_list2 (lenG, (unsigned int) abs (modulus->bits));
+  R_x = init_list2 (lenR, (unsigned int) abs (modulus->bits));
+  R_y = init_list2 (lenR, (unsigned int) abs (modulus->bits));
   tmplen = 3UL * params->l + list_mul_mem (params->l / 2) + 20;
   outputf (OUTPUT_DEVVERBOSE, "tmplen = %lu\n", tmplen);
   if (TMulGen_space (params->l - 1, params->s_1, lenR) + 12 > tmplen)
@@ -3612,7 +3609,7 @@ pp1fs2 (mpz_t f, const mpres_t X, mpmod_t modulus,
 	       tmplen);
     }
 
-  tmp = init_list2 (tmplen, abs (modulus->bits));
+  tmp = init_list2 (tmplen, (unsigned int) abs (modulus->bits));
 
   if (test_verbose (OUTPUT_TRACE))
     {
@@ -3627,7 +3624,7 @@ pp1fs2 (mpz_t f, const mpres_t X, mpmod_t modulus,
   
   timestart = cputime ();
   V (tmpres[0], X, 2UL, modulus);
-  i = poly_from_sets_V (F, tmpres[0], S_1, S_1_nr, tmp, tmplen, modulus);
+  i = poly_from_sets_V (F, tmpres[0], S_1, tmp, tmplen, modulus);
   ASSERT_ALWAYS(2 * i == params->s_1);
   ASSERT(mpz_cmp_ui (F[i], 1UL) == 0);
   free (S_1);
@@ -3772,10 +3769,9 @@ pp1fs2_ntt (mpz_t f, const mpres_t X, mpmod_t modulus,
 {
   unsigned long nr;
   unsigned long i, l, lenF, tmplen;
-  set_long_t *S_1; /* This is stored as a set of sets (arithmetic 
-                      progressions of prime length */
+  sets_long_t *S_1; /* This is stored as a set of sets (arithmetic 
+                       progressions of prime length */
   set_long_t *S_2; /* This is stored as a regular set */
-  unsigned long S_1_nr; /* The size in longs of S_1 */
   listz_t F;   /* Polynomial F has roots X^{k_1} for k_1 \in S_1, so has 
 		  degree s_1. It is symmetric, so has only s_1 / 2 + 1 
 		  distinct coefficients. The sequence h_j will be stored in 
@@ -3804,7 +3800,7 @@ pp1fs2_ntt (mpz_t f, const mpres_t X, mpmod_t modulus,
   outputf (OUTPUT_TRACE, "compare(a, b, n) = if (a != b,print(\"In PARI \", "
 	   "n, \" line, \", a \" != \" b)); /* PARI %ld */\n", pariline++);
 
-  if (make_S_1_S_2 (&S_1, &S_1_nr, &S_2, params) == ECM_ERROR)
+  if (make_S_1_S_2 (&S_1, &S_2, params) == ECM_ERROR)
       return ECM_ERROR;
 
   /* Allocate all the memory we'll need */
@@ -3818,10 +3814,10 @@ pp1fs2_ntt (mpz_t f, const mpres_t X, mpmod_t modulus,
       mpres_init (tmpres[i], modulus);
   lenF = params->s_1 / 2 + 1 + 1; /* Another +1 because poly_from_sets_V stores
 				     the leading 1 monomial for each factor */
-  F = init_list2 (lenF, abs (modulus->bits));
+  F = init_list2 (lenF, (unsigned int) abs (modulus->bits));
   tmplen = 3UL * params->l + list_mul_mem (params->l / 2) + 20;
   outputf (OUTPUT_DEVVERBOSE, "tmplen = %lu\n", tmplen);
-  tmp = init_list2 (tmplen, abs (modulus->bits));
+  tmp = init_list2 (tmplen, (unsigned int) abs (modulus->bits));
 
   if (test_verbose (OUTPUT_TRACE))
     {
@@ -3835,7 +3831,7 @@ pp1fs2_ntt (mpz_t f, const mpres_t X, mpmod_t modulus,
   
   timestart = cputime ();
   V (tmpres[0], X, 2UL, modulus);
-  i = poly_from_sets_V (F, tmpres[0], S_1, S_1_nr, tmp, tmplen, modulus);
+  i = poly_from_sets_V (F, tmpres[0], S_1, tmp, tmplen, modulus);
   ASSERT_ALWAYS(2 * i == params->s_1);
   ASSERT(mpz_cmp_ui (F[i], 1UL) == 0);
   free (S_1);
@@ -3957,7 +3953,8 @@ pp1fs2_ntt (mpz_t f, const mpres_t X, mpmod_t modulus,
 	  
 	  outputf (OUTPUT_VERBOSE, "Computing forward NTT of g_x");
 	  timestart = cputime ();
-	  mpzspv_to_ntt (g_x_ntt, 0, params->l, params->l, 0, ntt_context);
+	  mpzspv_to_ntt (g_x_ntt, (spv_size_t) 0, (spv_size_t) params->l, 
+	                 (spv_size_t) params->l, 0, ntt_context);
 	  timestop = cputime ();
 	  outputf (OUTPUT_VERBOSE, " took %lums\n", timestop - timestart);
 	  
@@ -3969,7 +3966,8 @@ pp1fs2_ntt (mpz_t f, const mpres_t X, mpmod_t modulus,
 	  
 	  outputf (OUTPUT_VERBOSE, "Computing forward NTT of g_y");
 	  timestart = cputime ();
-	  mpzspv_to_ntt (g_y_ntt, 0, params->l, params->l, 0, ntt_context);
+	  mpzspv_to_ntt (g_y_ntt, (spv_size_t) 0, (spv_size_t) params->l, 
+	                 (spv_size_t) params->l, 0, ntt_context);
 	  timestop = cputime ();
 	  outputf (OUTPUT_VERBOSE, " took %lums\n", timestop - timestart);
 	  
@@ -3981,9 +3979,10 @@ pp1fs2_ntt (mpz_t f, const mpres_t X, mpmod_t modulus,
 	  
 	  outputf (OUTPUT_VERBOSE, "Adding and computing inverse NTT of sum");
 	  timestart = cputime ();
-	  mpzspv_add (g_x_ntt, 0, g_x_ntt, 0, g_y_ntt, 0, params->l, 
-		      ntt_context);
-	  mpzspv_from_ntt (g_x_ntt, 0, params->l, 0, ntt_context);
+	  mpzspv_add (g_x_ntt, (spv_size_t) 0, g_x_ntt, (spv_size_t) 0, 
+	              g_y_ntt, (spv_size_t) 0, params->l, ntt_context);
+	  mpzspv_from_ntt (g_x_ntt, (spv_size_t) 0, params->l, (spv_size_t) 0,
+	                   ntt_context);
 	  timestop = cputime ();
 	  outputf (OUTPUT_VERBOSE, " took %lums\n", timestop - timestart);
 	  
