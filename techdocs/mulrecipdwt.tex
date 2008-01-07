@@ -32,12 +32,12 @@ Suppose we compute $\tilde{h}(x) = f(x) \cdot g(x) \bmod (x^n - 1/a)$, then
                & = & h_0 + h_1 x + \sum_{i=2}^{n-2} (h_i + ah_{n-i}) x^i + ah_1 x^{n-1}
 \end{eqnarray*}
 
-For $2 \leq i < n/2$, the values of $h_i + ah_{n-i}$ and $ah_i + h_{n-i}$ 
-appear as coefficients
-of $x^i$ and $x^{n-i}$, respectively. With $a=1$ as in an unweighted DFT,
-$h_i$ and $h_{n-i}$ cannot be separated as the two values are equal. With
-$a=-1$, they cannot be separated either, as the values are each others'
-negatives. With, e.g., $a=\sqrt{-1}$, we have
+For $2 \leq i < n/2$, d $\tilde{h}_i = h_i + ah_{n-i}$ and 
+$\tilde{h}_{n-i} = ah_i + h_{n-i}$. With $a=1$ as in an unweighted DFT,
+$h_i$ and $h_{n-i}$ cannot be separated as $\tilde{h}_i = \tilde{h}_{n-i}$. 
+With $a=-1$, they cannot be separated either, as 
+$\tilde{h}_i = - \tilde{h}_{n-i}$. 
+With, e.g., $a=\sqrt{-1}$, we have
 \begin{eqnarray*}
  &   & a (h_i + ah_{n-i}) - (ah_i + h_{n-i}) \\
  & = & (a^2-1) h_{n-i} \\
