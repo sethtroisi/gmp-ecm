@@ -392,7 +392,7 @@ choose_P (const mpz_t B2min, const mpz_t B2, const unsigned long lmax,
   /* We have nr < lmax, so we want 2*P*(lmax - 3) > B2l,
      or P >= B2l / (2*lmax - 6) */
   mpz_sub (B2l, B2, B2min);
-  mpz_tdiv_q_ui (t, B2l, 2*lmax - 6UL);
+  mpz_tdiv_q_ui (t, B2l, (lmax > 3UL) ? 2UL * lmax - 6UL : 1UL);
   outputf (OUTPUT_DEVVERBOSE, "choose_P: We need P >= %Zd\n", t);
   for (i = 0; i < Pvalues_len; i++)
     if (mpz_cmp_ui (t, Pvalues[i]) <= 0)
