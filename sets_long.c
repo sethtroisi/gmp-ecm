@@ -12,20 +12,20 @@ FILE *ECM_STDOUT, *ECM_STDERR;
 
   A set is a cardinality of unsigned long type and an array of 
   long ints. 
-  A set of sets is an array that has several sets stored 
-  back-to-back. The number of sets in the set is not stored but
-  must be supplied separately (fixme... maybe).
+  A set of sets is an unsigned long telling the number of sets,
+  an array that has several sets stored back-to-back.
 
 *****************************************************************/
 
 
-/* Copy a set from "*S" to "*T" */
+/* Copy a set from "*S" to "*T". Assumes that the sets do not overlap,
+   or that T < S. */
 
 static void
 set_copy (set_long_t *T, set_long_t *S)
 {
   unsigned long i;
-  const unsigned long c = S->card;
+  const unsigned long c = S->card; /* We might overwrite S->card */
   
   T->card = c;
   for (i = 0UL; i < c; i++)
@@ -124,7 +124,9 @@ quicksort_long (long *a, unsigned long l)
    "*sum" will have {\prod_{S \in "*sets"} #S} entries and must have
    enough memory allocated. This number of elements in the set of sums 
    is the return value. In case of nr_sets == 0, "add" is written to *sets 
-   and 1 is returned. The sets in "*sets" are assumed to be non-empty. */
+   and 1 is returned. The sets in "*sets" are assumed to be non-empty.
+   If "*sum" is NULL, nothing is written, but the return value is computed
+   correctly. */
 
 static unsigned long 
 sets_sumset_recurse (long *sum, const set_long_t *sets, 
@@ -209,7 +211,7 @@ sets_factored_Rn2 (set_long_t **L, size_t *sets_size, const long n,
   ASSERT_ALWAYS(n % 2L == 1L || k % 2L == 0L);
   ASSERT(L != NULL);
   m = k; /* The multiplier accumulated so far, init to k */
-  r = n;
+  r = n; /* The remaining cofactor of n */
   for (q = 2L; r > 1L; q = (q + 1L) | 1L) /* Find prime factors of n */
     {
       ASSERT (q <= r);
@@ -244,7 +246,7 @@ sets_factored_Rn2 (set_long_t **L, size_t *sets_size, const long n,
 /* Return a set L of sets M_i so that M_1 + ... + M_k is congruent to 
    (Z/nZ)*, which is the set of residue classes coprime to n. The M_i all
    have prime cardinality.
-   The size of the set of sets "*L" in bytes is computed and added to 
+   The size of the set of sets "*L" in bytes is computed and stored in  
    "*sets_size" unless "*sets_size" is NULL.
    Return the number of sets in L. 
    If L is the NULL pointer, nothing will be stored in L. The correct
@@ -258,7 +260,7 @@ sets_factor_coprime (sets_long_t *sets, size_t *sets_size,
                      const unsigned long n)
 {
   unsigned long r, k, nr = 0UL;
-  long p, q, np;
+  long p, np;
   size_t size = sizeof (unsigned long);
   set_long_t *set = NULL;
   
@@ -272,99 +274,49 @@ sets_factor_coprime (sets_long_t *sets, size_t *sets_size,
       for (p = 2L; r % p > 0L; p++); /* Find smallest prime p that divides r */
       for (k = 0UL; r % p == 0UL; k++, r /= p); /* Find p^k || r */
       np = n/p;
-      /* Choose \hat{S}_p or \tilde{S}_p */
-      if (p == 2L)
-	{
-	  if (k == 1UL) /* Case 2^1 */
-	    {
-	      if (set != NULL)
-		{
-		  set->card = 1UL;
-		  set->elem[0] = np;
-		  set = sets_nextset (set);
-		}
-	      size += set_sizeof (1UL);
-	      nr++;
-	    }
-	  else /* Case 2^k, k > 1 */
-	    while (k-- > 1UL)
-	      {
-		np /= 2L;
-		if (set != NULL)
-		  {
-		    set->card = 2UL;
-		    set->elem[0] = -np;
-		    set->elem[1] = np;
-		    set = sets_nextset (set);
-		  }
-		size += set_sizeof (2UL);
-		nr++;
-	      }
-	}
-      else if (p % 4L == 3L)
-	{
-	  /* Can use \hat{S}_p. Factor as {(p+1)/4, (p+1)/4} + C_{(p-1)/2} */
-	  
-	  /* If k > 1, so the \sum_{i=1}^{k-1} p^i (Z/pZ) part here.
-	     (Z/pZ) is represented by an arithmetic progression of
-	     common difference 1 and length p which is prime, so it
-	     can't be factored any further. */
-	  while (k-- > 1UL)
-	    {
-	      if (set != NULL)
-		{
-		  set->card = p;
-		  for (q = 0L; q <= p - 1L; q++)
-		    set->elem[q] = (q - (p - 1L) / 2L) * np;
-                  set = sets_nextset (set);
-		}
-	      size += set_sizeof ((unsigned long) p);
-	      nr++;
-	      np /= p;
-	    }
 
-	  /* Add the {(p+1)/4, (p+1)/4} set to L */
+      if (p == 2L && k == 1UL) /* Case 2^1. Deal with it before the */
+        {		       /* while loop below decreases k. */
 	  if (set != NULL)
 	    {
-	      set->card = 2UL;
-	      set->elem[0] = -((p + 1L) / 4L) * np;
-	      set->elem[1] = (p + 1L) / 4L * np;
+	      set->card = 1UL;
+	      set->elem[0] = np;
 	      set = sets_nextset (set);
 	    }
-	  size += set_sizeof (2UL);
+	  size += set_sizeof (1UL);
 	  nr++;
+        }
 
-	  /* Add np / 2 * R_{(p-1)/2}/2 = np / 2 * {-(p-3)/4, ..., (p-3)/4}.*/
+      /* If k > 1, do the \sum_{i=1}^{k-1} p^i (Z/pZ) part here.
+	 (Z/pZ) is represented by an arithmetic progression of
+	 common difference 1 and length p. */
+		
+      while (k-- > 1UL)
+        {
+	  nr += sets_factored_Rn2 (&set, &size, p, np);
+	  np /= p;
+        }
+
+      if (p % 4L == 3L)
+        {
+	  /* We can use \hat{S}_p. Factor as 
+	     {-(p+1)/4, (p+1)/4} + C_{(p-1)/2} */
+	  
+	  /* Add the {-(p+1)/4, (p+1)/4} set to L */
+	  nr += sets_factored_Rn2 (&set, &size, 2L, (p + 1L) / 2L * np);
+
+	  /* Add the np / 2 * R_{(p-1)/2} set to L */
 	  nr += sets_factored_Rn2 (&set, &size, (p - 1L) / 2L, np);
-	}
-      else /* case p%4 == 1 */
-	{
+        }
+      else if (p % 4L == 1L)
+        {
 	  /* Factor into arithmetic progressions of prime length.
 	     R_{p} = {-p+1, -p+3, ..., p-3, p+1}, i.e.
 	     R_2 = {-1, 1}, R_3 = {-2, 0, 2}, R_4 = {-3, -1, 1, 3}
 	     We have R_{sq} = R_q + q*R_s */
-
-	  /* If k > 1, so the \sum_{i=1}^{k-1} p^i (Z/pZ) part here.
-	     (Z/pZ) is represented by an arithmetic progression of
-	     common difference 1 and length p which is prime, so it
-	     can't be factored any further. */
-	  while (k-- > 1UL)
-	    {
-	      if (set != NULL)
-		{
-		  set->card = p;
-		  for (q = 0L; q <= p - 1L; q++)
-		    set->elem[q] = (q - (p - 1L) / 2L) * np;
-		  set = sets_nextset (set);
-		}
-	      size += set_sizeof ((unsigned long) p);
-	      nr++;
-	      np /= p;
-	    }
-
-	  /* Add np * R_{p-1} */
+	  
 	  nr += sets_factored_Rn2 (&set, &size, p - 1L, 2L * np);
-	}
+        }
     }
   
   if (sets_size != NULL)
@@ -401,7 +353,7 @@ sets_sort (sets_long_t *sets)
 	  if (set->card > sets_nextset(set)->card)
 	    {
 	      outputf (OUTPUT_TRACE, "sets_sort: swapping %lu and %lu\n", 
-                      i - 1, i);
+                       i - 1, i);
 	      set_swap (set);
 	      highest_swap = i;
 	    }
@@ -418,7 +370,6 @@ sets_sort (sets_long_t *sets)
       set = sets_nextset (set);
     }
 #endif
-
 }
 
 /* Print all the sets in "*sets", formatted as a sum of sets */
@@ -462,7 +413,7 @@ void
 sets_extract (sets_long_t *extracted, size_t *extr_size, sets_long_t *sets, 
               const unsigned long d)
 {
-  unsigned long i, s, remaining_d = d;
+  unsigned long i, c, remaining_d = d;
   set_long_t *readfrom, *readnext, *moveto, *extractto = NULL;
   size_t extracted_size = sizeof (unsigned long);
 
@@ -496,9 +447,9 @@ sets_extract (sets_long_t *extracted, size_t *extr_size, sets_long_t *sets,
   readfrom = moveto = sets->sets;
   for (i = 0UL; i < sets->nr; i++)
     {
-      s = readfrom->card;
-      readnext = sets_nextset (readfrom); /* readfrom->card may get garbled */
-      if (remaining_d % s == 0UL)
+      c = readfrom->card; /* readfrom->card may get garbled */
+      readnext = sets_nextset (readfrom);
+      if (remaining_d % c == 0UL)
         {
           if (extracted != NULL)
             {
@@ -507,8 +458,8 @@ sets_extract (sets_long_t *extracted, size_t *extr_size, sets_long_t *sets,
               extractto = sets_nextset (extractto);
               extracted->nr++;
             }
-          remaining_d /= s;
-          extracted_size += set_sizeof (s);
+          remaining_d /= c;
+          extracted_size += set_sizeof (c);
         } else {
           if (extracted != NULL)
             {
