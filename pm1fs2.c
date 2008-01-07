@@ -616,16 +616,16 @@ list_scale_rev (listz_t R, listz_t S, mpz_t r, long k, unsigned long deg,
 */
 
 static void
-list_mul_symmetric (listz_t R, listz_t S1, const unsigned long l1, 
-		    listz_t S2, const unsigned long l2,
-		    mpz_t modulus, listz_t tmp, 
-		    ATTRIBUTE_UNUSED const unsigned long tmplen)
+list_mul_reciprocal (listz_t R, listz_t S1, const unsigned long l1, 
+		     listz_t S2, const unsigned long l2,
+		     mpz_t modulus, listz_t tmp, 
+		     ATTRIBUTE_UNUSED const unsigned long tmplen)
 {
   unsigned long i, lmax;
 
   lmax = (l1 > l2) ? l1 : l2;
 
-  if (l1 == 0 || l2 == 0)
+  if (l1 == 0UL || l2 == 0UL)
     return;
 
   if (l1 == l2)
@@ -642,37 +642,37 @@ list_mul_symmetric (listz_t R, listz_t S1, const unsigned long l1,
 	ASSERT (tmplen >= 4 * lmax - 2 + list_mul_mem (lmax));
 
 #if 0
-	gmp_printf ("/* list_mul_symmetric */ S1(x) = %Zd", S1[0]);
+	gmp_printf ("/* list_mul_reciprocal */ S1(x) = %Zd", S1[0]);
 	for (i = 1; i < l1; i++)
 	    gmp_printf (" + %Zd * (x^%lu + 1/x^%lu)", S1[i], i, i);
 	gmp_printf ("\n");
-	gmp_printf ("/* list_mul_symmetric */ S2(x) = %Zd", S2[0]);
+	gmp_printf ("/* list_mul_reciprocal */ S2(x) = %Zd", S2[0]);
 	for (i = 1; i < l2; i++)
 	    gmp_printf (" + %Zd * (x^%lu + 1/x^%lu)", S2[i], i, i);
 	gmp_printf ("\n");
 #endif
 
 	if (mpz_odd_p (S1[0]))
-	{
+	  {
 	    ASSERT_ALWAYS (mpz_odd_p (modulus));
 	    mpz_add (S1[0], S1[0], modulus);
-	}
+	  }
 	mpz_tdiv_q_2exp (S1[0], S1[0], 1UL);
-	if (!(S1 == S2))
-	{
+	if (S1 != S2)
+	  {
 	    if (mpz_odd_p (S2[0]))
-	    {
+	      {
 		ASSERT_ALWAYS (mpz_odd_p (modulus));
 		mpz_add (S2[0], S2[0], modulus);
-	    }
+	      }
 	    mpz_tdiv_q_2exp (S2[0], S2[0], 1UL);
-	}
+	  }
 	
 	list_mul (r1, S1, l1, 0, S2, l2, 0, t);
 	/* r1 = f0*g0/4 + (f0*g1 + f1*g0)/2 * x + f1*g1 * x^2 */
 #if 0
 	for (i = 0; i < 2 * l1 - 1; i++)
-	    gmp_printf ("list_mul_symmetric: r1[%lu] = %Zd\n", i, r1[i]);
+	    gmp_printf ("list_mul_reciprocal: r1[%lu] = %Zd\n", i, r1[i]);
 #endif
 
 	/* Remember that S1 == S2 is possible */
@@ -685,7 +685,7 @@ list_mul_symmetric (listz_t R, listz_t S1, const unsigned long l1,
 	/* r2 = g1*f0/2 + (g0*f0/4 + g1*f1) * x + g0*f1/2 * x^2 */
 #if 0
 	for (i = 0; i < 2 * l1 - 1; i++)
-	    gmp_printf ("list_mul_symmetric: r2[%lu] = %Zd\n", i, r2[i]);
+	    gmp_printf ("list_mul_reciprocal: r2[%lu] = %Zd\n", i, r2[i]);
 #endif
 
 	mpz_mul_2exp (r1[0], r1[0], 1UL);
@@ -706,7 +706,7 @@ list_mul_symmetric (listz_t R, listz_t S1, const unsigned long l1,
 	
 #if 0
 	for (i = 0; i < 2*l1; i++)
-	    gmp_printf ("list_mul_symmetric: R[%lu] = %Zd\n", i, R[i]);
+	    gmp_printf ("list_mul_reciprocal: R[%lu] = %Zd\n", i, R[i]);
 #endif
     }
   else
@@ -764,6 +764,88 @@ list_mul_symmetric (listz_t R, listz_t S1, const unsigned long l1,
       for (i = 0; i <= dsum; i++)
 	  mpz_set (R[i], r[dsum + i]);
     }
+}
+
+
+/* Same, but does squaring which makes things easier */
+
+static void
+list_sqr_reciprocal (listz_t R, listz_t S, const unsigned long l, 
+		     mpz_t modulus, listz_t tmp, 
+		     ATTRIBUTE_UNUSED const unsigned long tmplen)
+{
+  unsigned long i;
+  listz_t Srev, r1 = tmp, r2 = tmp + 2 * l - 1, t = tmp + 4 * l - 2;
+
+  if (l == 0UL)
+    return;
+
+  /* FIXME: This modifies the input arguments. */
+  /* We have to divide S[0] by 2 */
+
+  ASSERT (tmplen >= 4 * l - 2 + list_mul_mem (l));
+
+#if 0
+  gmp_printf ("/* list_sqr_reciprocal */ S(x) = %Zd", S[0]);
+  for (i = 1; i < l1; i++)
+    gmp_printf (" + %Zd * (x^%lu + 1/x^%lu)", S[i], i, i);
+  gmp_printf ("\n");
+#endif
+
+  if (mpz_odd_p (S[0]))
+    {
+      ASSERT_ALWAYS (mpz_odd_p (modulus));
+      mpz_add (S[0], S[0], modulus);
+    }
+  mpz_tdiv_q_2exp (S[0], S[0], 1UL);
+  
+  list_mul (r1, S, l, 0, S, l, 0, t);
+  /* r1 = f0*g0/4 + (f0*g1 + f1*g0)/2 * x + f1*g1 * x^2 */
+#if 0
+  for (i = 0; i < 2UL * l - 1UL; i++)
+    gmp_printf ("list_sqr_reciprocal: r1[%lu] = %Zd\n", i, r1[i]);
+#endif
+
+  Srev = (listz_t) malloc (l * sizeof (mpz_t));
+  ASSERT_ALWAYS (Srev != NULL);
+  for (i = 0UL; i < l; i++)
+      (*Srev)[i] = (*S)[l - 1UL - i];
+  list_mul (r2, S, l, 0, Srev, l, 0, t);
+  /* r2 is symmetric, r2[i] = r2[2*l - 2 - i]. Check this */
+#if 0
+  for (i = 0; 0 && i < 2UL * l - 1UL; i++)
+    gmp_printf ("list_sqr_reciprocal: r2[%lu] = %Zd\n", i, r2[i]);
+#endif
+#ifdef WANT_ASSERT
+  for (i = 0UL; i < l; i++)
+    ASSERT (mpz_cmp (r2[i], r2[2UL * l - 2UL - i]) == 0);
+#endif
+  free (Srev);
+  /* r2 = g1*f0/2 + (g0*f0/4 + g1*f1) * x + g0*f1/2 * x^2 */
+#if 0
+  for (i = 0; i < 2UL * l - 1UL; i++)
+    gmp_printf ("list_sqr_reciprocal: r2[%lu] = %Zd\n", i, r2[i]);
+#endif
+
+  mpz_mul_2exp (r1[0], r1[0], 1UL);
+  /* r1 = f0*g0/2 + (f0*g1 + f1*g0)/2 * x + f1*g1 * x^2 */
+  for (i = 0UL; i < l; i++)
+    {
+      mpz_mul_2exp (r2[l - i - 1UL], r2[l - i - 1UL], 1UL);
+      mpz_add (R[i], r1[i], r2[l - i - 1UL]);
+    }
+  /* r1 = 3/4*f0*g0 + g1*f1 + (f0*g1 + 2*f1*g0)/2 * x + f1*g1 * x^2 */
+  /* r1 = f0*g0 + 2*g1*f1 + (f0*g1 + f1*g0) * x + f1*g1 * x^2 */
+  for (i = l; i < 2UL * l - 1UL; i++)
+      mpz_set (R[i], r1[i]);
+
+  if (R != S)
+    mpz_mul_2exp (S[0], S[0], 1UL);
+	
+#if 0
+  for (i = 0; i < 2UL * l; i++)
+    gmp_printf ("list_sqr_reciprocal: R[%lu] = %Zd\n", i, R[i]);
+#endif
 }
 
 
@@ -960,8 +1042,8 @@ list_scale_V (listz_t R, listz_t F, mpres_t Q, unsigned long deg,
 	  }
       }
 
-  list_mul_symmetric (G, G, deg + 1, G, deg + 1, modulus->orig_modulus, 
-		      newtmp, newtmplen);
+  list_sqr_reciprocal (G, G, deg + 1, modulus->orig_modulus, 
+                       newtmp, newtmplen);
   
   list_output_poly (G, 2 * deg + 1, 0, 1, "/* list_scale_V */ G(x)^2 == ", 
 		    "\n", OUTPUT_TRACE);
@@ -1039,8 +1121,8 @@ list_scale_V (listz_t R, listz_t F, mpres_t Q, unsigned long deg,
       }
 
 
-  list_mul_symmetric (H, H, deg, H, deg, modulus->orig_modulus, 
-		      newtmp, newtmplen);
+  list_sqr_reciprocal (H, H, deg, modulus->orig_modulus, 
+		       newtmp, newtmplen);
 
   /* Now there are the 2*deg-1 coefficients in standard basis of a 
      symmetric polynomial of degree 4*deg - 4 in H[0 ... 2*deg-2] */
@@ -1414,11 +1496,11 @@ poly_from_sets_V (listz_t F, const mpres_t Q, sets_long_t *sets,
 	      list_output_poly (F + (2UL * i + 1UL) * (deg + 1UL), 
 	                        2UL * deg + 1UL, 0, 1, " and ", "\n", 
 	                        OUTPUT_TRACE);
-	      list_mul_symmetric (F, 
-				  F, (2UL * i + 1UL) * deg + 1UL, 
-				  F + (2UL * i + 1UL) * (deg + 1UL), 
-				  2UL * deg + 1UL, modulus->orig_modulus,
-				  tmp, tmplen);
+	      list_mul_reciprocal (F, 
+		                   F, (2UL * i + 1UL) * deg + 1UL, 
+			 	   F + (2UL * i + 1UL) * (deg + 1UL), 
+				   2UL * deg + 1UL, modulus->orig_modulus,
+				   tmp, tmplen);
 	      list_mod (F, F, (2UL * i + 3UL) * deg + 1UL, 
 	                modulus->orig_modulus);
 	      list_output_poly (F, (2UL * i + 3UL) * deg + 1UL, 0, 1, 
@@ -3087,7 +3169,7 @@ pp1_sequence_g (listz_t g_x, listz_t g_y, mpzspv_t g_x_ntt, mpzspv_t g_y_ntt,
       r1_x[2], r1_y[2], r2_x[2], r2_y[2], 
       v[2], tmp[tmplen];
   mpz_t mt;
-  mpmod_t modulus;
+  mpmod_t modulus; /* Thread-local copy of modulus_param */
   unsigned long i, l = l_param, offset = 0;
   long M = M_param;
   long timestart, timestop;
@@ -4118,7 +4200,7 @@ int main (int argc, char **argv)
 		modulus->orig_modulus, r);
 
   /************************************************************
-      Simple check of list_mul_symmetric() 
+      Simple check of list_mul_reciprocal() 
   ************************************************************/
 
   for (i = 0; i < 4; i++)
@@ -4129,15 +4211,15 @@ int main (int argc, char **argv)
      25*(x^6+x^{-6}) + 40*(x^5+x^{-5}) + 46*(x^4+x^{-4}) + 44*(x^3+x^{-3}) + 
      55*(x^2+x^{-2}) + 76*(x+x^{-1}) + 104, so we expect in 
      tmp[0 .. 6] = [104, 76, 55, 44, 46, 40, 25] */
-  list_mul_symmetric (tmp, tmp, 4, tmp, 4, modulus->orig_modulus, 
-		      tmp + 7, tmplen - 7);
+  list_mul_reciprocal (tmp, tmp, 4, tmp, 4, modulus->orig_modulus, 
+		       tmp + 7, tmplen - 7);
 
   if (mpz_cmp_ui (tmp[6], 25UL) != 0 || mpz_cmp_ui (tmp[5], 40UL) != 0 ||
       mpz_cmp_ui (tmp[4], 46UL) != 0 || mpz_cmp_ui (tmp[3], 44UL) != 0 ||
       mpz_cmp_ui (tmp[2], 55UL) != 0 || mpz_cmp_ui (tmp[1], 76UL) != 0 ||
       mpz_cmp_ui (tmp[0], 104UL) != 0)
     {
-      list_output_poly (tmp, 7, 0, 0, "Error, list_mul_symmetric produced ", 
+      list_output_poly (tmp, 7, 0, 0, "Error, list_mul_reciprocal produced ", 
 			"\n", OUTPUT_ERROR);
       abort ();
     }
@@ -4149,14 +4231,14 @@ int main (int argc, char **argv)
   /* Compute (4*(x^3+x^{-3}) + 3*(x^2+x^{-2}) + 2*(x+x^{-1}) + 1) *
      (3*(x^2+x^-2) + 2*(x+x^-1) + 1), so we expect in 
      tmp[0 .. 5] = [27, 28, 18, 16, 17, 12] */
-  list_mul_symmetric (tmp, tmp, 4, tmp, 3, modulus->orig_modulus, 
-		      tmp + 6, tmplen - 6);
+  list_mul_reciprocal (tmp, tmp, 4, tmp, 3, modulus->orig_modulus, 
+		       tmp + 6, tmplen - 6);
 
   if (mpz_cmp_ui (tmp[0], 27UL) != 0 || mpz_cmp_ui (tmp[1], 28UL) != 0 ||
       mpz_cmp_ui (tmp[2], 18UL) != 0 || mpz_cmp_ui (tmp[3], 16UL) != 0 ||
       mpz_cmp_ui (tmp[4], 17UL) != 0 || mpz_cmp_ui (tmp[5], 12UL) != 0)
     {
-      list_output_poly (tmp, 6, 0, 0, "Error, list_mul_symmetric produced ", 
+      list_output_poly (tmp, 6, 0, 0, "Error, list_mul_reciprocal produced ", 
 			"\n", OUTPUT_ERROR);
       abort ();
     }
@@ -4187,8 +4269,8 @@ int main (int argc, char **argv)
 	
 	/* With Q = 2 = 1 + 1/1, gamma = 1 and F(gamma*X)*F(1/gamma *X) =F(X)^2
 	   Compare with a simple symmetic multiply */
-	list_mul_symmetric (tmp + 3 * len, tmp, len, tmp, len, 
-			    modulus->orig_modulus, tmp + 5*len, tmplen - 5*len);
+	list_mul_reciprocal (tmp + 3 * len, tmp, len, tmp, len, 
+		             modulus->orig_modulus, tmp + 5*len, tmplen - 5*len);
 	
 	list_mod (tmp + 3*len, tmp + 3*len, 2*len - 1, modulus->orig_modulus);
 	
