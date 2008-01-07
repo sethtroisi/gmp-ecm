@@ -1,0 +1,50 @@
+\documentclass{article}
+\usepackage{amsmath,amssymb}
+\begin{document}
+\newcommand{\Z}{\mathbb{Z}}
+\newcommand{\Zn}[1]{(\Z/{#1}\Z)^{*}}
+
+\title{Multiplication of reciprocal Laurent polynomials with a discrete 
+       weighted transform}
+\author{A. Kruppa}
+\maketitle
+
+\begin{abstract}
+This note attempts to develop a method for multiplying two reciprocal
+Laurent polynomials of degrees $\leq n - 2$ with a weighted DFT of 
+length $n$.
+\end{abstract}
+
+Let $f(x) = f_0 + \sum_{i=1}^{n/2-1} f_i (x^i + x^{-i})$ and likewise 
+$g(x)$ be reciprocal Laurent polynomials of degrees each at most $n-2$, 
+$n$ even.
+Their product $h(x) = f(x) \cdot g(x)$ is a reciprocal Laurent polynomial 
+of degree at most $2n-4$, 
+$h(x) = h_0 + \sum_{i=1}^{n-2} h_i (x^i + x^{-i})$. We aim to find the
+$n-1$ coefficients in standard basis of $h(x)$ with a convolution product
+of length $n$.
+
+Suppose we compute $\tilde{h}(x) = f(x) \cdot g(x) \bmod (x^n - 1/a)$, then
+\begin{eqnarray*}
+  \tilde{h}(x) & = & h_0 + \sum_{i=1}^{n-2} h_i (x^i + ax^{n-i}) \\
+               & = & h_0 + \sum_{i=1}^{n-2} h_i x^i + \sum_{i=1}^{n-2} ah_i x^{n-i} \\
+               & = & h_0 + \sum_{i=1}^{n-2} h_i x^i + \sum_{i=2}^{n-1} ah_{n-i} x^i \\
+               & = & h_0 + h_1 x + \sum_{i=2}^{n-2} (h_i + ah_{n-i}) x^i + ah_1 x^{n-1}
+\end{eqnarray*}
+
+For $2 \leq i < n/2$, the values of $h_i + ah_{n-i}$ and $ah_i + h_{n-i}$ 
+appear as coefficients
+of $x^i$ and $x^{n-i}$, respectively. With $a=1$ as in an unweighted DFT,
+$h_i$ and $h_{n-i}$ cannot be separated as the two values are equal. With
+$a=-1$, they cannot be separated either, as the values are each others'
+negatives. With, e.g., $a=\sqrt{-1}$, we have
+\begin{eqnarray*}
+ &   & a (h_i + ah_{n-i}) - (ah_i + h_{n-i}) \\
+ & = & (a^2-1) h_{n-i} \\
+ & = & -2 h_{n-i}
+\end{eqnarray*}
+so we can separate $h_i$ and $h_{n-i}$.
+
+
+
+\end{document}
