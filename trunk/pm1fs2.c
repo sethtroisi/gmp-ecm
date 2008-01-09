@@ -110,70 +110,9 @@ const unsigned long phiPfactors[] = {2UL, 3UL, 5UL, 7UL, 11UL, 13UL};
    U(i,X) = { if (i==0, return(0)); if (i==1, return(1)); if(i%2 == 0, return (U (i/2, X) * V(i/2,X))); return (V ((i+1)/2, X)  *U( (i-1)/2, X) + 1)}
 */
 
-static int pariline = 0;
-
-
-
-/* Simple, slow methods for testing / finding primes */
-int 
-is_prime_ul (unsigned long n)
-{
-  unsigned long i;
-
-  if (n < 2UL)
-    return 0;
-
-  if (n % 2UL == 0UL)
-    return n == 2UL;
-
-  for (i = 3UL; i*i <= n; i += 2UL)
-    if (n % i == 0UL)
-      return 0;
-  
-  return 1;
-}
-
-unsigned long
-next_prime_ul (const unsigned long n)
-{
-  unsigned long m;
-
-  if (n < 2UL)
-    return 2UL;
-  
-  if (n == 2UL)
-    return 3UL;
-
-  m = n + 2;
-  while (! is_prime_ul (m))
-    m += 2UL;
-
-  return m;
-}
-
-
-/* Find the smallest prime factor of N. If N == 1, return 1. */
-
-static unsigned long
-find_factor_ul (unsigned long N)
-{
-  unsigned long i;
-
-  ASSERT_ALWAYS (N != 0UL);
-
-  if (N == 1UL)
-    return 1UL;
-
-  if (N % 2UL == 0)
-    return 2UL;
-
-  for (i = 3; i*i <= N; i += 2)
-    if (N % i == 0)
-      return i;
-
-  return N;
-}
-
+void 
+ntt_sqr_recip (mpzv_t, const mpzv_t, mpzspv_t, const spv_size_t, 
+               const mpzspm_t);
 
 static unsigned long
 maxS (unsigned long P)
@@ -184,7 +123,7 @@ maxS (unsigned long P)
   if (P == 1UL)
     return 0L;
 
-  p = find_factor_ul (P);
+  p = find_factor (P);
   k = 1; pk = p; P /= p;
   while (P % p == 0)
     {
@@ -258,7 +197,7 @@ factor_phiP (int *exponents, const unsigned long phiP)
 
 
 static unsigned long 
-pow_ul (const unsigned long b, unsigned int e)
+pow_ul (const unsigned long b, const unsigned int e)
 {
     unsigned long r = 1UL;
     unsigned int i;
@@ -272,10 +211,7 @@ pow_ul (const unsigned long b, unsigned int e)
 static unsigned long
 absdiff_ul (unsigned long a, unsigned long b)
 {
-    if (a > b)
-	return a - b;
-    else
-	return b - a;
+    return (a > b) ? a - b : b - a;
 }
 
 /* Choose s_1 so that s_1 * s_2 = phiP, s_1 is positive and even, 
@@ -893,7 +829,7 @@ V (mpres_t R, const mpres_t S, const long k, mpmod_t modulus)
   mpres_t Vi, Vi1;
   unsigned long i, j, uk;
 
-  if (k == 0)
+  if (k == 0L)
     {
       mpres_set_ui (R, 2UL, modulus);
       return;
@@ -901,7 +837,7 @@ V (mpres_t R, const mpres_t S, const long k, mpmod_t modulus)
 
   uk = labs (k);
 
-  if (uk == 1)
+  if (uk == 1UL)
     {
       mpres_set (R, S, modulus);
       return;
@@ -910,18 +846,18 @@ V (mpres_t R, const mpres_t S, const long k, mpmod_t modulus)
   mpres_init (Vi, modulus);
   mpres_init (Vi1, modulus);
 
-  for (j = 1; j <= uk / 2; j <<= 1);
-  ASSERT ((uk & j) > 0);
+  for (j = 1UL; j <= uk / 2UL; j <<= 1);
+  ASSERT ((uk & j) > 0UL);
 
   j >>= 1;
-  i = 1;
+  i = 1UL;
   mpres_set (Vi, S, modulus);
   mpres_mul (Vi1, S, S, modulus);
   mpres_sub_ui (Vi1, Vi1, 2, modulus);
 
   while (j)
     {
-      if ((uk & j) != 0)
+      if ((uk & j) != 0UL)
 	{
 	  /* i' = 2i + 1.
 	     V_{i'} = V_{2i + 1} = V_{i+1 + i} = V_{i+1} * V_{i} - V_1
@@ -930,7 +866,7 @@ V (mpres_t R, const mpres_t S, const long k, mpmod_t modulus)
 	  mpres_sub (Vi, Vi, S, modulus);
 	  mpres_mul (Vi1, Vi1, Vi1, modulus);
 	  mpres_sub_ui (Vi1, Vi1, 2, modulus);
-	  i = 2*i + 1;
+	  i = 2UL*i + 1UL;
 	}
       else
 	{
@@ -941,7 +877,7 @@ V (mpres_t R, const mpres_t S, const long k, mpmod_t modulus)
 	  mpres_sub (Vi1, Vi1, S, modulus);
 	  mpres_mul (Vi, Vi, Vi, modulus);
 	  mpres_sub_ui (Vi, Vi, 2, modulus);
-	  i = 2*i;
+	  i = 2UL*i;
 	}
       j >>= 1;
     }
@@ -968,7 +904,8 @@ V (mpres_t R, const mpres_t S, const long k, mpmod_t modulus)
 
 static void
 list_scale_V (listz_t R, listz_t F, mpres_t Q, unsigned long deg,
-	      mpmod_t modulus, listz_t tmp, const unsigned long tmplen)
+	      mpmod_t modulus, listz_t tmp, const unsigned long tmplen,
+	      mpzspv_t dct, const mpzspm_t ntt_context)
 {
   mpres_t Vi_1, Vi, Vt;
   unsigned long i;
@@ -987,6 +924,7 @@ list_scale_V (listz_t R, listz_t F, mpres_t Q, unsigned long deg,
       return;
     }
   
+  ASSERT (tmplen >= 4 * deg + 2); /* Make sure newtmplen does not underflow */
 #ifdef WANT_ASSERT
   mpz_init (leading);
   mpz_mul (leading, F[deg], F[deg]);
@@ -1042,9 +980,12 @@ list_scale_V (listz_t R, listz_t F, mpres_t Q, unsigned long deg,
 	  }
       }
 
-  list_sqr_reciprocal (G, G, deg + 1, modulus->orig_modulus, 
-                       newtmp, newtmplen);
-  
+  if (dct != NULL && ntt_context != NULL)
+    ntt_sqr_recip (G, G, dct, deg + 1, ntt_context);
+  else
+    list_sqr_reciprocal (G, G, deg + 1, modulus->orig_modulus, 
+                         newtmp + 2*(deg+2), newtmplen - 2*(deg+2));
+
   list_output_poly (G, 2 * deg + 1, 0, 1, "/* list_scale_V */ G(x)^2 == ", 
 		    "\n", OUTPUT_TRACE);
 
@@ -1120,9 +1061,11 @@ list_scale_V (listz_t R, listz_t F, mpres_t Q, unsigned long deg,
 	  }
       }
 
-
-  list_sqr_reciprocal (H, H, deg, modulus->orig_modulus, 
-		       newtmp, newtmplen);
+  if (dct != NULL && ntt_context != NULL)
+    ntt_sqr_recip (H, H, dct, deg, ntt_context);
+  else
+    list_sqr_reciprocal (H, H, deg, modulus->orig_modulus, 
+  		         newtmp, newtmplen);
 
   /* Now there are the 2*deg-1 coefficients in standard basis of a 
      symmetric polynomial of degree 4*deg - 4 in H[0 ... 2*deg-2] */
@@ -1145,6 +1088,7 @@ list_scale_V (listz_t R, listz_t F, mpres_t Q, unsigned long deg,
     {
       /* H(X) has degree 2*deg-2 = 0, so H(X) = h_0
 	 H(X) * (X - 1/X)^2 = -2 h_0 + h_0 V_2(Y)  */
+      ASSERT (newtmplen > 2UL);
       mpz_mul_2exp (newtmp[0], H[0], 1UL);
       mpz_neg (newtmp[0], newtmp[0]);
       mpz_set_ui (newtmp[1], 0UL);
@@ -1159,6 +1103,7 @@ list_scale_V (listz_t R, listz_t F, mpres_t Q, unsigned long deg,
 	 2*(h_2 - h_0) - h_1 * V_1(Y) + (h_0 - 2*h_2) * V_2(Y) + 
 	 h_1 * V_3(Y) + h_2 * V_4(Y)
       */
+      ASSERT (newtmplen > 4UL);
       mpz_sub (newtmp[0], H[2], H[0]);
       mpz_mul_2exp (newtmp[0], newtmp[0], 1UL); /* 2*(h_2 - h_0) */
       mpz_neg (newtmp[1], H[1]);                /* -h_1 */
@@ -1181,6 +1126,7 @@ list_scale_V (listz_t R, listz_t F, mpres_t Q, unsigned long deg,
 	 
 	 In our case, n = 2 * deg - 2
       */
+      ASSERT (newtmplen > 2 * deg);
       mpz_sub (newtmp[0], H[2], H[0]);
       mpz_mul_2exp (newtmp[0], newtmp[0], 1UL); /* t[0] = 2*(h_0 + h_2) */
       
@@ -1323,7 +1269,6 @@ static int
 poly_from_sets (mpz_t *F, mpz_t r, long *sets, unsigned long setsize,
 		mpz_t *tmp, const unsigned long tmplen, mpz_t modulus)
 {
-
   unsigned long l, c; /* Cardinality of this set */
   unsigned long i, j, deg;
   long k;
@@ -1402,7 +1347,8 @@ poly_from_sets (mpz_t *F, mpz_t r, long *sets, unsigned long setsize,
 
 static int
 poly_from_sets_V (listz_t F, const mpres_t Q, sets_long_t *sets, 
-		  listz_t tmp, const unsigned long tmplen, mpmod_t modulus)
+		  listz_t tmp, const unsigned long tmplen, mpmod_t modulus,
+		  mpzspv_t dct, const mpzspm_t ntt_context)
 {
   unsigned long c, deg, i, nr;
   set_long_t *set = sets->sets;
@@ -1458,7 +1404,8 @@ poly_from_sets_V (listz_t F, const mpres_t Q, sets_long_t *sets,
 	  /* Check it's symmetric */
 	  ASSERT_ALWAYS (set->elem[0] == -set->elem[1]);
 	  V (Qt, Q, set->elem[0], modulus);
-	  list_scale_V (F, F, Qt, deg, modulus, tmp, tmplen);
+	  list_scale_V (F, F, Qt, deg, modulus, tmp, tmplen, dct, 
+	                ntt_context);
 	  deg *= 2UL;
 	  ASSERT (mpz_cmp_ui (F[deg], 1UL) == 0); /* Check it's monic */
 	}
@@ -1475,7 +1422,7 @@ poly_from_sets_V (listz_t F, const mpres_t Q, sets_long_t *sets,
 	      V (Qt, Q, set->elem[i], modulus);
 	      ASSERT (mpz_cmp_ui (F[deg], 1UL) == 0); /* Check it's monic */
 	      list_scale_V (F + (2UL * i + 1UL) * (deg + 1UL), F, Qt, deg, 
-	                    modulus, tmp, tmplen);
+	                    modulus, tmp, tmplen, dct, ntt_context);
 	      ASSERT (mpz_cmp_ui (F[(2UL * i + 1UL) * (deg + 1UL) + 2UL * deg], 
 	              1UL) == 0); /* Check it's monic */
 	    }
@@ -1516,7 +1463,6 @@ poly_from_sets_V (listz_t F, const mpres_t Q, sets_long_t *sets,
 
   return deg;
 }
-
 
 
 /* Compute g_i = x_0^{M-i} * r^{(M-i)^2} for 0 <= i < l. 
@@ -1953,7 +1899,7 @@ pm1_build_poly_F (mpz_t *F, const mpres_t X, mpmod_t modulus,
       /* Put in F[0 .. dF-1] the values of X^i, 1<=i<beta, gcd(i, beta) == 1 */
       for (i = 1, j = 0; i < beta; i += s)
 	{
-	  if (lgcd (i, beta) == 1)
+	  if (gcd (i, beta) == 1UL)
 	    mpres_get_z (F[j++], Xi, modulus);
 	  mpres_mul (Xi, Xi, Xs, modulus);
 	}
@@ -1968,8 +1914,7 @@ pm1_build_poly_F (mpz_t *F, const mpres_t X, mpmod_t modulus,
       outputf (OUTPUT_TRACE, "F(x) = ");
       for (j = 0; j < dF - 1; j++)
 	outputf (OUTPUT_TRACE, "(x - %Zd) * ", F[j]);
-      outputf (OUTPUT_TRACE, "(x - %Zd); /* PARI %ld */\n", F[dF - 1], 
-	       pariline++);
+      outputf (OUTPUT_TRACE, "(x - %Zd); /* PARI */\n", F[dF - 1]);
       
       /* Multiply all the (x - f_i) to form F(x) in monomial basis */
       outputf (OUTPUT_VERBOSE, "Building F from its roots");
@@ -2087,7 +2032,7 @@ mpzspv_init_mt (spv_size_t len, mpzspm_t mpzspm)
 
 
 /* Copy the len/2 + 1 distinct coefficients of the DFT of a symmetric signal,
-   kinda as if if a DCT had been used. The coefficients in the DFT are 
+   kinda as if a DCT had been used. The coefficients in the DFT are 
    assumed to be scrambled. The output is not arranged like a regular 
    scrambled DCT would be. */
 
@@ -2096,7 +2041,10 @@ static void
 ntt_dft_to_dct (mpzspv_t dct, mpzspv_t dft, unsigned long len, 
 		const mpzspm_t ntt_context)
 {
-  unsigned long i, j, m;
+  unsigned long i, j;
+#ifdef WANT_ASSERT
+  unsigned long m;
+#endif
 
   /* The forward transform is scrambled. We want elements [0 ... l/2]
      of the unscrabled data, that is all the coefficients with the most 
@@ -2115,9 +2063,9 @@ ntt_dft_to_dct (mpzspv_t dct, mpzspv_t dft, unsigned long len,
     {
       /* This works, but why? */
       if (i + i / 2UL > m)
-	  m = 2UL * m + 1;
+	  m = 2UL * m + 1UL;
 
-      for (j = 0; j < ntt_context->sp_num; j++)
+      for (j = 0UL; j < ntt_context->sp_num; j++)
 	{
 	  ASSERT (dft[j][i] == dft[j][m - i]);
 	}
@@ -2126,10 +2074,10 @@ ntt_dft_to_dct (mpzspv_t dct, mpzspv_t dft, unsigned long len,
     }
 #endif
   /* Copy coefficients to dct buffer */
-  for (j = 0; j < ntt_context->sp_num; j++)
+  for (j = 0UL; j < ntt_context->sp_num; j++)
     {
-      for (i = 0; i < len / 2UL; i++)
-	  dct[j][i] = dft[j][i * 2];
+      for (i = 0UL; i < len / 2UL; i++)
+	  dct[j][i] = dft[j][i * 2UL];
       dct[j][len / 2UL] = dft[j][1];
     }
 }
@@ -2225,9 +2173,8 @@ ntt_spv_to_dct (mpzspv_t dct, const mpzspv_t spv, const spv_size_t spvlen,
 
 
 /* Multiply the NTT coefficients in dft, assumed to be a scrambled DFT,
-   by the coefficients in dct, assume to be in for layout produced by 
-   ntt_dft_to_dct();
- */
+   by the coefficients in dct, assumed to be in for layout produced by 
+   ntt_dft_to_dct(); */
 
 static void
 ntt_dft_mul_dct (mpzspv_t dft, const mpzspv_t dct, const unsigned long len, 
@@ -2247,7 +2194,7 @@ ntt_dft_mul_dct (mpzspv_t dft, const mpzspv_t dct, const unsigned long len,
       {
 	  /* This works, but why? */
 	  if (i + i / 2UL > m)
-	      m = 2UL * m + 1;
+	      m = 2UL * m + 1UL;
 	  
 	  dft[j][i] = sp_mul (dft[j][i], dct[j][i / 2UL], sp, mul_c);
 	  dft[j][m - i] = sp_mul (dft[j][m - i], dct[j][i / 2UL], sp, mul_c);
@@ -2320,6 +2267,267 @@ ntt_mul_by_dct (mpzspv_t dft, const mpzspv_t dct, const unsigned long len,
       }
 #ifdef _OPENMP
   }
+#endif
+}
+
+
+
+/* Square the reciprocal Laurent polynomial S(x) of degree 2*n-2.
+   S(x) = s_0 + \sum_{i=1}^{n-1} s_i (x^i + x^{-1}).
+   S[i] contains the n coefficients s_i, 0 <= i <= n-1.
+   R[i] will contain the 2n-1 coefficients r_i, 0 <= i <= 2*n-2, where 
+   R(x) = S(x)^2 = r_0 + \sum_{i=1}^{2n-2} r_i (x^i + x^{-1}).
+   dft must have power of 2 length len >= 2n.
+   The NTT primes must be == 1 (mod 4*len).
+*/
+#undef TRACE_ntt_sqr_recip
+void
+ntt_sqr_recip (mpzv_t R, const mpzv_t S, mpzspv_t dft, 
+               const spv_size_t n, const mpzspm_t ntt_context)
+{
+  const spv_size_t len = ((spv_size_t) 2) << ceil_log2 (n);
+  const spv_size_t d_h = 4*n - 4;
+  int j;
+  
+  outputf (OUTPUT_DEVVERBOSE, 
+           "ntt_sqr_recip: called with n = %lu. len = %lu, d_h = %lu\n",
+           n, len, d_h);
+  
+  if (n == 1)
+    {
+      mpz_mul (R[0], S[0], S[0]);
+      return;
+    }
+
+  /* We choose an 4*len-th primitive root of unity w.
+     Let a = 1/w^len, so that a^2 = -1.
+     We want the convolution product (mod x^len - 1/a) = (mod x^len - w^len)
+     So we weight input vectors with 1, w, w^2, ... so that wrap around
+     leaves excess of w^len = 1/a. */
+
+  ASSERT_ALWAYS (len > 0);
+#ifdef TRACE_ntt_sqr_recip
+  printf ("ntt_sqr_recip: n %lu, length %lu, d_h %lu\n", n, len, d_h);
+  gmp_printf ("Input polynomial is %Zd", S[0]);
+  for (j = 1; (spv_size_t) j < n; j++)
+    gmp_printf (" + %Zd * (x^%lu + x^(-%lu))", S[j], j, j);
+  printf ("\n");
+#endif
+  
+  ASSERT_ALWAYS (ntt_context->max_ntt_size % (4 * len) == 0UL);
+  /* Fill NTT elements [n-1 .. 2n-2] with coefficients */
+  mpzspv_from_mpzv (dft, n - 1, S, (spv_size_t) n, ntt_context);
+  /* Fill NTT elements [0 .. n-2] with coefficients */
+  mpzspv_revcopy (dft, 0, dft, n, n - 1, ntt_context);
+  /* Zero out NTT elements [2n-1 .. len-1] */
+  mpzspv_set_sp (dft, 2*n - 1, (sp_t) 0, len - 2*n + 1, ntt_context);
+
+  for (j = 0UL; j < (int) (ntt_context->sp_num); j++)
+    {
+      const spm_t spm = ntt_context->spm[j];
+      const spv_t spv = dft[j];
+      sp_t root, iw, w, weight;
+      const sp_t sp = spm->sp, mul_c = spm->mul_c;
+      spv_size_t i;
+
+#ifdef TRACE_ntt_sqr_recip
+      if (j == 0UL)
+        {
+	  printf ("ntt_sqr_recip: NTT vector mod %lu\n", sp);
+	  printf ("ntt_sqr_recip: before weighting: [%lu", spv[0]);
+	  for (i = 1; i < len; i++)
+	    printf (", %lu", spv[i]);
+	  printf ("]\n");
+        }
+#endif
+
+      /* Compute the root for the weight signal, a 4*len-th primitive root 
+	 of unity */
+      w = sp_pow (spm->prim_root, ntt_context->max_ntt_size / (4 * len), 
+                  sp, mul_c);
+      /* Compute the root for the un-weight signal, the reciprocal of
+         the previous w */
+      iw = sp_pow (spm->inv_prim_root, ntt_context->max_ntt_size / (4 * len), 
+                   sp, mul_c);
+#ifdef TRACE_ntt_sqr_recip
+      if (j == 0)
+        printf ("w = %lu ,iw = %lu\n", w, iw);
+#endif
+      ASSERT(sp_mul(w, iw, sp, mul_c) == (sp_t) 1);
+
+      /* Apply weight signal */
+      weight = w;
+      for (i = 1; i < len; i++)
+        {
+          spv[i] = sp_mul (spv[i], weight, sp, mul_c);
+          weight = sp_mul (weight, w, sp, mul_c);
+        }
+#ifdef TRACE_ntt_sqr_recip
+      if (j == 0UL)
+        {
+	  printf ("ntt_sqr_recip: after weighting: [%lu", spv[0]);
+	  for (i = 1; i < len; i++)
+	    printf (", %lu", spv[i]);
+	  printf ("]\n");
+        }
+#endif
+
+      /* Compute root for the transform */
+      root = sp_pow (w, (sp_t) 4, sp, mul_c);
+
+      /* Forward DFT of dft[j] */
+      spv_ntt_gfp_dif (spv, len, sp, mul_c, root);
+
+#if 0 && defined(TRACE_ntt_sqr_recip)
+      if (j == 0UL)
+        {
+	  printf ("ntt_sqr_recip: after forward transform: [%lu", spv[0]);
+	  for (i = 1; i < len; i++)
+	    printf (", %lu", spv[i]);
+	  printf ("]\n");
+        }
+#endif
+
+      /* Square the transformed vector point-wise */
+      spv_pwmul (spv, spv, spv, len, sp, mul_c);
+      
+#if 0 && defined(TRACE_ntt_sqr_recip)
+      if (j == 0UL)
+        {
+	  printf ("ntt_sqr_recip: after point-wise squaring: [%lu", spv[0]);
+	  for (i = 1; i < len; i++)
+	    printf (", %lu", spv[i]);
+	  printf ("]\n");
+        }
+#endif
+
+      /* Compute root for inverse transform */
+      root = sp_pow (iw, (sp_t) 4, sp, mul_c);
+
+      /* Inverse transform of dft[j] */
+      spv_ntt_gfp_dit (spv, len, sp, mul_c, root);
+      
+#if 0 && defined(TRACE_ntt_sqr_recip)
+      if (j == 0UL)
+        {
+	  printf ("ntt_sqr_recip: after inverse transform: [%lu", spv[0]);
+	  for (i = 1; i < len; i++)
+	    printf (", %lu", spv[i]);
+	  printf ("]\n");
+        }
+#endif
+
+      /* Divide by transform length */
+      weight = sp - (sp - (sp_t) 1) / len; /* weight = 1/len (mod sp) */
+      for (i = 0; i < len; i++)
+	spv[i] = sp_mul (spv[i], weight, sp, mul_c);
+#ifdef TRACE_ntt_sqr_recip
+      if (j == 0UL)
+        {
+	  printf ("ntt_sqr_recip: after dividing by transform length: [%lu", 
+		  spv[0]);
+	  for (i = 1; i < len; i++)
+	    printf (", %lu", spv[i]);
+	  printf ("]\n");
+        }
+#endif
+
+      /* Un-weight */
+      weight = iw;
+      for (i = 1; i < len; i++)
+        {
+          spv[i] = sp_mul (spv[i], weight, sp, mul_c);
+          weight = sp_mul (weight, iw, sp, mul_c);
+        }
+#ifdef TRACE_ntt_sqr_recip
+      if (j == 0UL)
+        {
+      printf ("ntt_sqr_recip: after un-weighting: [%lu", spv[0]);
+      for (i = 1; i < len; i++)
+        printf (", %lu", spv[i]);
+      printf ("]\n");
+        }
+#endif
+
+      /* Separate the coefficients of R in the wrapped-around product. */
+      /* The product h(x) = \sum_{i=0}^{d_h} h_i x^i % (x^len - a)
+	 has h_i + a*h_{i + len} at position 0 <= i <= d_h - len
+	 and h_i at position d_h - len < i < len.
+	 The coefficients h_i and h_{d_h - i} are identical.
+	 
+	 Hence for 0 <= i <= d_h - len we have 
+	 at position i:             h_i + a*h_{d_h - len - i}
+	 at position d_h - len - i: a*h_i + h_{d_h - len - i}
+	 This implies at position i = (d_h - len) / 2: (A+1) * h_i
+      */
+
+      /* Put a = w^len = sqrt(-1) in weight */
+      weight = sp_pow (w, len, sp, mul_c);
+      
+      for (i = 0; i <= (d_h - len) / 2; i++)
+        {
+          sp_t t, u;
+	  const spv_size_t i2 = d_h - len - i;
+          t = sp_mul (spv[i], weight, sp, mul_c); 
+          /* t = a*(h_i + a*h_{d_h-len-i}) */
+          t = sp_sub (t, spv[i2], sp);
+          /* t = a*(h_i + a*h_{d_h-len-i}) - (a*h_i + h_{d_h-len-i}) = 
+                 (a^2-1) h_{d_h-len-i} = -2*h_{d_h-len-i} */
+          if (t & (sp_t) 1)
+            t = (sp - t) >> 1;
+          else
+            {
+              if ((t >>= 1) != (sp_t) 0)
+                t = sp - t;
+            }
+          /* t = h_{d_h-len-i} */
+          u = t;
+          t = sp_mul (t, weight, sp, mul_c);
+          /* t = a*h_{d_h-len-i} */
+          t = sp_sub (spv[i], t, sp);
+	  /* t = h_i + a*h_{d_h-len- i} - a*h_{d_h-len-i} = h_i */
+          spv[i] = t;
+          spv[i2] = u;
+        }
+
+#ifdef TRACE_ntt_sqr_recip
+      if (j == 0UL)
+        {
+      printf ("ntt_sqr_recip: after un-wrapping: [%lu", spv[0]);
+      for (i = 1; i < len; i++)
+        printf (", %lu", spv[i]);
+      printf ("]\n");
+        }
+#endif
+
+      /* Revert the entries in spv[0 ... d_h / 2 + 1] */
+      for (i = 0; i < d_h / 4; i++)
+	{
+	  sp_t t, u;
+	  t = spv[i];
+	  u = spv[d_h / 2 - i];
+	  spv[i] = u;
+	  spv[d_h / 2 - i] = t;
+	}
+#ifdef TRACE_ntt_sqr_recip
+      if (j == 0UL)
+        {
+      printf ("ntt_sqr_recip: after mirroring: [%lu", spv[0]);
+      for (i = 1; i < len; i++)
+        printf (", %lu", spv[i]);
+      printf ("]\n");
+        }
+#endif
+    }
+
+  mpzspv_to_mpzv (dft, (spv_size_t) 0, R, d_h / 2 + 1, ntt_context);
+  for (j = 0; (spv_size_t) j < d_h / 2 + 1; j++)
+    mpz_mod (R[j], R[j], ntt_context->modulus);
+#ifdef TRACE_ntt_sqr_recip
+  gmp_printf ("ntt_sqr_recip: Output polynomial is %Zd", R[0]);
+  for (j = 1; (spv_size_t) j < d_h / 2 + 1; j++)
+    gmp_printf (" + %Zd * (x^%lu + x^(-%lu))", R[j], j, j);
+  printf ("\n");
 #endif
 }
 
@@ -2457,7 +2665,7 @@ pm1fs2 (mpz_t f, const mpres_t X, mpmod_t modulus,
   ASSERT_ALWAYS (params->s_1 < params->l);
   nr = params->l - params->s_1; /* Number of points we evaluate */
 
-  outputf (OUTPUT_TRACE, "compare(a, b, n) = if (a != b,print(\"In PARI \", n, \" line, \", a \" != \" b)); /* PARI %ld */\n", pariline++);
+  outputf (OUTPUT_TRACE, "compare(a, b, n) = if (a != b,print(\"In PARI \", n, \" line, \", a \" != \" b)); /* PARI */\n");
 
   if (make_S_1_S_2 (&S_1, &S_2, params) == ECM_ERROR)
       return ECM_ERROR;
@@ -2507,7 +2715,7 @@ pm1fs2 (mpz_t f, const mpres_t X, mpmod_t modulus,
   mpres_add (mr, mr, X, modulus);
   V (mr, mr, 2UL, modulus);
   
-  i = poly_from_sets_V (F, mr, S_1, tmp, tmplen, modulus);
+  i = poly_from_sets_V (F, mr, S_1, tmp, tmplen, modulus, NULL, NULL);
   ASSERT_ALWAYS(2 * i == params->s_1);
   ASSERT(mpz_cmp_ui (F[i], 1UL) == 0);
   free (S_1);
@@ -2626,6 +2834,7 @@ pm1fs2 (mpz_t f, const mpres_t X, mpmod_t modulus,
 	    mpres_set_z_for_gcd (tmpres, R[i], modulus);
 	    mpres_mul (tmpprod, tmpprod, tmpres, modulus); 
 	  }
+        mpres_get_z (tmp[1], tmpprod, modulus); /* For printing */
 	mpres_gcd (tmp[0], tmpprod, modulus);
 	mpres_clear (tmpprod, modulus);
 	mpres_clear (tmpres, modulus);
@@ -2633,6 +2842,8 @@ pm1fs2 (mpz_t f, const mpres_t X, mpmod_t modulus,
 
       timestop = cputime ();
       outputf (OUTPUT_VERBOSE, " took %lums\n", timestop - timestart);
+      outputf (OUTPUT_RESVERBOSE, "Product of R[i] = %Zd (times some "
+	       "power of 2 if REDC was used! Try -mpzmod)\n", tmp[1]);
 
       if (mpz_cmp_ui (tmp[0], 1UL) > 0)
 	{
@@ -2695,15 +2906,18 @@ pm1fs2_ntt (mpz_t f, const mpres_t X, mpmod_t modulus,
   ASSERT_ALWAYS (params->s_1 < params->l);
   nr = params->l - params->s_1; /* Number of points we evaluate */
 
-  outputf (OUTPUT_TRACE, "compare(a, b, n) = if (a != b,print(\"In PARI \", n, \" line, \", a \" != \" b)); /* PARI %ld */\n", pariline++);
+  outputf (OUTPUT_TRACE, "compare(a, b, n) = if (a != b,print(\"In PARI \", n, \" line, \", a \" != \" b)); /* PARI */\n");
 
   if (make_S_1_S_2 (&S_1, &S_2, params) == ECM_ERROR)
       return ECM_ERROR;
 
   /* Precompute the small primes, primitive roots and inverses etc. for 
      the NTT. mpzspm_init() chooses the NTT primes large enough for 
-     residues up to 4*l*modulus^2, so adding in Fourier space is ok. */
-  ntt_context = mpzspm_init (params->l, modulus->orig_modulus);
+     residues up to 4*l*modulus^2, so adding in Fourier space is ok. 
+     The code to multiply wants a 4*len-th root of unity, where len is
+     the smallest power of 2 > s_1 */
+  ntt_context = mpzspm_init (MAX(params->l, 2UL << ceil_log2 (params->s_1)), 
+                             modulus->orig_modulus);
   if (test_verbose (OUTPUT_DEVVERBOSE))
     {
       double modbits = 0.;
@@ -2725,6 +2939,8 @@ pm1fs2_ntt (mpz_t f, const mpres_t X, mpmod_t modulus,
   tmplen = 3 * params->s_1 + 1000;
   F = init_list2 (lenF, (unsigned int) abs (modulus->bits));
   tmp = init_list2 (tmplen, (unsigned int) abs (modulus->bits));
+  /* Allocate memory for h_ntt */
+  h_ntt = mpzspv_init_mt (params->l / 2 + 1, ntt_context);
 
   mpres_get_z (mt, X, modulus); /* mpz_t copy of X for printing */
   outputf (OUTPUT_TRACE, 
@@ -2742,7 +2958,8 @@ pm1fs2_ntt (mpz_t f, const mpres_t X, mpmod_t modulus,
   mpres_add (tmpres, tmpres, X, modulus);
   V (tmpres, tmpres, 2UL, modulus);
   
-  i = poly_from_sets_V (F, tmpres, S_1, tmp, tmplen, modulus);
+  i = poly_from_sets_V (F, tmpres, S_1, tmp, tmplen, modulus, h_ntt, 
+                        ntt_context);
   ASSERT_ALWAYS(2 * i == params->s_1);
   ASSERT(mpz_cmp_ui (F[i], 1UL) == 0);
   free (S_1);
@@ -2761,9 +2978,6 @@ pm1fs2_ntt (mpz_t f, const mpres_t X, mpmod_t modulus,
     }
   
   clear_list (tmp, tmplen);
-
-  /* Allocate memory for h_ntt */
-  h_ntt = mpzspv_init_mt (params->l / 2 + 1, ntt_context);
 
   mpz_set_ui (mt, params->P);
   mpres_pow (tmpres, X, mt, modulus); /* tmpres = X^P */
@@ -3653,7 +3867,7 @@ pp1fs2 (mpz_t f, const mpres_t X, mpmod_t modulus,
   nr = params->l - params->s_1; /* Number of points we evaluate */
 
   outputf (OUTPUT_TRACE, "compare(a, b, n) = if (a != b,print(\"In PARI \", "
-	   "n, \" line, \", a \" != \" b)); /* PARI %ld */\n", pariline++);
+	   "n, \" line, \", a \" != \" b)); /* PARI */\n");
 
   if (make_S_1_S_2 (&S_1, &S_2, params) == ECM_ERROR)
       return ECM_ERROR;
@@ -3706,7 +3920,7 @@ pp1fs2 (mpz_t f, const mpres_t X, mpmod_t modulus,
   
   timestart = cputime ();
   V (tmpres[0], X, 2UL, modulus);
-  i = poly_from_sets_V (F, tmpres[0], S_1, tmp, tmplen, modulus);
+  i = poly_from_sets_V (F, tmpres[0], S_1, tmp, tmplen, modulus, NULL, NULL);
   ASSERT_ALWAYS(2 * i == params->s_1);
   ASSERT(mpz_cmp_ui (F[i], 1UL) == 0);
   free (S_1);
@@ -3880,10 +4094,14 @@ pp1fs2_ntt (mpz_t f, const mpres_t X, mpmod_t modulus,
   nr = params->l - params->s_1; /* Number of points we evaluate */
 
   outputf (OUTPUT_TRACE, "compare(a, b, n) = if (a != b,print(\"In PARI \", "
-	   "n, \" line, \", a \" != \" b)); /* PARI %ld */\n", pariline++);
+	   "n, \" line, \", a \" != \" b)); /* PARI */\n");
 
   if (make_S_1_S_2 (&S_1, &S_2, params) == ECM_ERROR)
       return ECM_ERROR;
+
+  /* Init the NTT context */
+  ntt_context = mpzspm_init (MAX(params->l, 2 << ceil_log2 (params->s_1)), 
+                             modulus->orig_modulus);
 
   /* Allocate all the memory we'll need */
   /* Allocate the correct amount of space for each mpz_t or the 
@@ -3900,6 +4118,8 @@ pp1fs2_ntt (mpz_t f, const mpres_t X, mpmod_t modulus,
   tmplen = 3UL * params->l + list_mul_mem (params->l / 2) + 20;
   outputf (OUTPUT_DEVVERBOSE, "tmplen = %lu\n", tmplen);
   tmp = init_list2 (tmplen, (unsigned int) abs (modulus->bits));
+  /* Allocate memory for h_ntt */
+  h_x_ntt = mpzspv_init_mt (params->l / 2 + 1, ntt_context);
 
   if (test_verbose (OUTPUT_TRACE))
     {
@@ -3913,7 +4133,8 @@ pp1fs2_ntt (mpz_t f, const mpres_t X, mpmod_t modulus,
   
   timestart = cputime ();
   V (tmpres[0], X, 2UL, modulus);
-  i = poly_from_sets_V (F, tmpres[0], S_1, tmp, tmplen, modulus);
+  i = poly_from_sets_V (F, tmpres[0], S_1, tmp, tmplen, modulus, h_x_ntt,
+                        ntt_context);
   ASSERT_ALWAYS(2 * i == params->s_1);
   ASSERT(mpz_cmp_ui (F[i], 1UL) == 0);
   free (S_1);
@@ -3948,10 +4169,7 @@ pp1fs2_ntt (mpz_t f, const mpres_t X, mpmod_t modulus,
       outputf (OUTPUT_TRACE, "X == b_1 + 1/b_1 /* PARI C */\n");
     }
 
-  /* Init the NTT context */
-  ntt_context = mpzspm_init (params->l, modulus->orig_modulus);
-  /* Allocate memory for h_ntt */
-  h_x_ntt = mpzspv_init_mt (params->l / 2 + 1, ntt_context);
+  /* Allocate remaining memory for h_ntt */
   h_y_ntt = mpzspv_init_mt (params->l / 2 + 1, ntt_context);
   /* Compute the h_j sequence */
   pp1_sequence_h (NULL, NULL, h_x_ntt, h_y_ntt, F, b1_x, b1_y, 0L, 
@@ -4425,7 +4643,7 @@ int main (int argc, char **argv)
 	  sumset[i] = pn - (-sumset[i]) % pn;
       quicksort_long (sumset, d);
       for (i = 1, j = 0; i < pn; i++)
-	if (lgcd (i, pn) == 1)
+	if (gcd (i, pn) == 1UL)
 	  {
 	    ASSERT((unsigned long) sumset[j] == i);
 	    j++;

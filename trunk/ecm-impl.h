@@ -357,8 +357,6 @@ int     pp1fs2_ntt (mpz_t, const mpres_t, mpmod_t, const faststage2_param_t *,
                     const int);
   
 /* bestd.c */
-#define eulerphi __ECM(eulerphi)
-unsigned long eulerphi (unsigned long);
 #define bestD __ECM(bestD)
 int     bestD (root_params_t *, unsigned long *, unsigned long *, mpz_t, 
                mpz_t, int, int, double, int, mpmod_t);
@@ -635,18 +633,12 @@ void   rhoinit (int, int);
 double ecmprob (double, double, double, double, int);
 
 /* auxlib.c */
-#define gcd __ECM(gcd)
-unsigned int gcd (unsigned int, unsigned int);
-#define lgcd __ECM(lgcd)
-unsigned long lgcd (unsigned long, unsigned long);
 #define mpz_add_si __ECM(mpz_add_si)
 void         mpz_add_si (mpz_t, mpz_t, long);
 #define mpz_sub_si __ECM(mpz_sub_si)
 void         mpz_sub_si (mpz_t, mpz_t, long);
 #define mpz_divby3_1op __ECM(mpz_divby3_1op)
 void         mpz_divby3_1op (mpz_t);
-#define ceil_log2 __ECM(ceil_log2)
-unsigned int ceil_log2  (unsigned long);
 #define cputime __ECM(cputime)
 long         cputime    (void);
 #define elltime __ECM(elltime)
@@ -663,6 +655,20 @@ int          inc_verbose (void);
 int          outputf (int, char *, ...);
 #define writechkfile __ECM(writechkfile)
 void writechkfile (char *, int, double, mpmod_t, mpres_t, mpres_t, mpres_t);
+
+/* auxarith.c */
+#define gcd __ECM(gcd)
+unsigned long gcd (unsigned long, unsigned long);
+#define eulerphi __ECM(eulerphi)
+unsigned long eulerphi (unsigned long);
+#define ceil_log2 __ECM(ceil_log2)
+unsigned int  ceil_log2  (unsigned long);
+#define is_prime __ECM(is_prime)
+int           is_prime (const unsigned long);
+#define next_prime __ECM(next_prime)
+unsigned long next_prime (const unsigned long);
+#define find_factor __ECM(find_factor)
+unsigned long find_factor (const unsigned long);
 
 /* random.c */
 #define pp1_random_seed __ECM(pp1_random_seed)
