@@ -492,7 +492,7 @@ ecm_rootsF_Mont (listz_t F, root_params_t *root_params,
 
   for (i = 1; i < dF; )
     {
-      if (gcd (n, root_params->d1) == 1)
+      if (gcd (n, root_params->d1) == 1UL)
 	{
 	  outputf (OUTPUT_TRACE, 
 		   "ecm_rootsF_Mont: storing d2*%lu*X in F[%lu]\n",
@@ -656,7 +656,8 @@ ecm_rootsF (mpz_t f, listz_t F, root_params_t *root_params,
   for (i = 0; i < dF && !youpi;)
     {
       /* Is this a rsieve value where we computed Dickson(j * d2) * X? */
-      if (gcd (state.rsieve, state.dsieve) == 1) 
+      if (gcd ((unsigned long) state.rsieve, 
+               (unsigned long) state.dsieve) == 1UL) 
         {
           /* Did we use every progression since the last update? */
           if (state.next == state.nr)
@@ -672,7 +673,7 @@ ecm_rootsF (mpz_t f, listz_t F, root_params_t *root_params,
             }
           
           /* Is this a j value where we want Dickson(j * d2) * X as a root? */
-          if (gcd (state.rsieve, root_params->d1) == 1) 
+          if (gcd ((unsigned long) state.rsieve, root_params->d1) == 1UL) 
             mpres_get_z (F[i++], state.fd[state.next * (state.S + 1)].x, 
                          modulus);
 
@@ -840,7 +841,7 @@ ecm_rootsG_init (mpz_t f, curve *X, root_params_t *root_params,
   double bestnr;
   long st = 0;
 
-  ASSERT (gcd (root_params->d1, root_params->d2) == 1);
+  ASSERT (gcd (root_params->d1, root_params->d2) == 1UL);
 
 #ifdef MONT_ROOTS
   if (root_params->S == 1)
@@ -1121,7 +1122,8 @@ ecm_rootsG (mpz_t f, listz_t G, unsigned long dF, ecm_roots_state *state,
         }
       
       /* Is this a root we should skip? (Take only if gcd == 1) */
-      if (gcd (state->rsieve, state->dsieve) == 1)
+      if (gcd ((unsigned long) state->rsieve,  
+               (unsigned long) state->dsieve) == 1UL)
 	{
 #ifdef MONT_ROOTS
 	  if (state->form == EC_MONTGOMERY_FORM)
