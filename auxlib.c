@@ -48,64 +48,6 @@
 #define VERBOSE __ECM(verbose)
 static int VERBOSE = OUTPUT_NORMAL;
 
-unsigned int
-gcd (unsigned int a, unsigned int b)
-{
-  unsigned int t;
-
-  while (b != 0)
-    {
-      t = a % b;
-      a = b;
-      b = t;
-    }
-
-  return a;
-}
-
-unsigned long
-lgcd (unsigned long a, unsigned long b)
-{
-  unsigned long t;
-
-  while (b != 0)
-    {
-      t = a % b;
-      a = b;
-      b = t;
-    }
-
-  return a;
-}
-
-/* returns Euler's totient phi function */
-unsigned long
-eulerphi (unsigned long n)
-{
-  unsigned long phi = 1, p;
-
-  for (p = 2; p * p <= n; p += 2)
-    {
-      if (n % p == 0)
-	{
-	  phi *= p - 1;
-	  n /= p;
-	  while (n % p == 0)
-	    {
-	      phi *= p;
-	      n /= p;
-	    }
-	}
-
-      if (p == 2)
-	p--;
-    }
-
-  /* now n is prime or 1 */
-
-  return (n == 1) ? phi : phi * (n - 1);
-}
-
 void 
 mpz_add_si (mpz_t r, mpz_t s, long i)
 {
@@ -139,24 +81,6 @@ mpz_divby3_1op (mpz_t RS)
 
   if (RS->_mp_d[abssize - 1] == 0)
     RS->_mp_size -= mpz_sgn (RS);
-}
-
-/* returns ceil(log(n)/log(2)) */
-unsigned int
-ceil_log2 (unsigned long n)
-{
-  unsigned int k = 0;
-
-  ASSERT (n > 0);
-
-  n--;
-  while (n)
-    {
-      k++;
-      n >>= 1;
-    }
-
-  return k;
 }
 
 /* cputime () gives the elapsed time in milliseconds */

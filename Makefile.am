@@ -6,7 +6,8 @@ libecm_a_SOURCES = ecm.c ecm2.c pm1.c pp1.c getprime.c listz.c lucas.c \
 		   stage2.c toomcook.c mpmod.c mul_lo.c polyeval.c median.c \
 		   schoen_strass.c ks-multiply.c rho.c bestd.c auxlib.c \
 		   random.c factor.c sp.c spv.c spm.c mpzspm.c mpzspv.c \
-		   ntt_gfp.c ecm_ntt.c pm1fs2.c mul_fft.c sets_long.c
+		   ntt_gfp.c ecm_ntt.c pm1fs2.c mul_fft.c sets_long.c \
+		   auxarith.c
 
 bin_PROGRAMS = ecm
 noinst_PROGRAMS = tune ecmfactor
@@ -27,7 +28,8 @@ tune_CPPFLAGS = -DTUNE $(AM_CPPFLAGS)
 tune_LDADD =
 tune_SOURCES = mpmod.c tune.c mul_lo.c listz.c auxlib.c ks-multiply.c \
                toomcook.c schoen_strass.c polyeval.c median.c ecm_ntt.c \
-	       ntt_gfp.c mpzspv.c mpzspm.c sp.c spv.c spm.c random.c mul_fft.c
+	       ntt_gfp.c mpzspv.c mpzspm.c sp.c spv.c spm.c random.c \
+	       mul_fft.c auxarith.c
 
 if MEMORY_DEBUG
   libecm_a_SOURCES += memory.c
