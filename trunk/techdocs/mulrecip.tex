@@ -3,6 +3,9 @@
 \begin{document}
 \newcommand{\Z}{\mathbb{Z}}
 \newcommand{\Zn}[1]{(\Z/{#1}\Z)^{*}}
+\newcommand{\tf}{\tilde{f}}
+\newcommand{\tg}{\tilde{g}}
+\newcommand{\rev}{\textrm{rev}}
 
 \title{Multiplication of reciprocal Laurent polynomials with a discrete 
        weighted transform}
@@ -15,6 +18,41 @@ Laurent polynomials of degrees $\leq n - 2$ with a weighted DFT of
 length $n$.
 \end{abstract}
 
+\section{Without DWT}
+
+Let $f(x)$ be a reciprocal Laurent polynomial
+\begin{displaymath}
+f(x) = f_0 + \sum_{i=1}^{d_f} f_i (x^i + x^{-i})
+\end{displaymath}
+of degree $2d_f$ and $\tf(x) = \tf_0 + \sum_{i=1}^{d_f} \tf_i x^i$ with
+$\tf_0 = f_0 / 2, \tf_i = f_i \textrm{ for } i>0$ a polynomial so that
+$f(x) = \tf(x) + \tf(1/x)$. Likewise for $g(x)$ and $\tg(x)$.
+Let $\rev(\tf(x)) = x^{d_f} \tf(1/x)$ denote the polynomial with 
+reversed sequence of coefficients. We have $\rev(\rev(\tf(x))) = \tf(x)$ and
+$\rev(\tf(x) \tg(x)) = \rev(\tf(x)) \rev(\tg(x))$.
+Let $\lfloor f(x) \rfloor$ denote a 
+polynomial whose coefficients at non-negative exponents of $x$ are equal to 
+those in $f(x)$, and the coefficients at negative exponents of $x$ are 
+set to $0$. We have 
+$\lfloor f(x) + g(x) \rfloor = \lfloor f(x) \rfloor + \lfloor g(x) \rfloor$.
+
+Now we can compute the prouct
+\begin{eqnarray*}
+   &   & f(x)g(x) \\
+   & = & (\tf(x) + \tf(1/x)) (\tg(x) + \tg(1/x)) \\
+   & = & \tf(x) \tg(x) + \tf(x) \tg(1/x) + \tf(1/x)\tg(x) + \tf(1/x)\tg(1/x) \\
+   & = & \tf(x) \tg(x) + x^{-d_g} \tf(x) \rev(\tg(x)) + x^{-d_f} \rev(\tf(x))\tg(x) + \tf(1/x)\tg(1/x) \\
+   & = & \tf(x) \tg(x) + x^{-d_g} \tf(x) \rev(\tg(x)) + x^{-d_f} \rev(\tf(x) \rev(\tg(x))) + \tf(1/x)\tg(1/x)
+\end{eqnarray*}
+but we only want to store the coefficients at non-negative exponents in the 
+product, so
+\begin{eqnarray*}
+   &   & \lfloor f(x)g(x) \rfloor \\
+   & = & \tf(x) \tg(x) + \lfloor x^{-d_g} \tf(x) \rev(\tg(x)) \rfloor + \lfloor x^{-d_f} \rev(\tf(x) \rev(\tg(x))) \rfloor + \tf_0 \tg_0.
+\end{eqnarray*}
+
+
+\section{With DWT}
 Let $f(x) = f_0 + \sum_{i=1}^{n/2-1} f_i (x^i + x^{-i})$ and likewise 
 $g(x)$ be reciprocal Laurent polynomials of degrees each at most $n-2$, 
 $n$ even.
