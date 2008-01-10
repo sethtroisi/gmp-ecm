@@ -537,172 +537,6 @@ list_scale_rev (listz_t R, listz_t S, mpz_t r, long k, unsigned long deg,
 }
 
 
-/* Multiply two reciprocal polynomials of degree 2*l1-2 and 2*l2-2, resp., 
-   with coefficients in standard basis
-
-   S_1(x) = S1[0] + sum_{1 \leq i \leq l1 - 1} S1[i] (x^i + x^{-i})
-   S_2(x) = S2[0] + sum_{1 \leq i \leq l2 - 1} S2[i] (x^i + x^{-i})
-
-   to the reciprocal polynomial of degree 2*(l1 + l2) - 4
-
-   R(x) = R[0] + sum_{1 \leq i \leq l1 + l2 - 2} R[i] (x^i + x^{-i}) 
-        = S_1(x) * S_2(x)
-
-   R == S1 == S2 is permissible.
-*/
-
-static void
-list_mul_reciprocal (listz_t R, listz_t S1, const unsigned long l1, 
-		     listz_t S2, const unsigned long l2,
-		     mpz_t modulus, listz_t tmp, 
-		     ATTRIBUTE_UNUSED const unsigned long tmplen)
-{
-  unsigned long i, lmax;
-
-  lmax = (l1 > l2) ? l1 : l2;
-
-  if (l1 == 0UL || l2 == 0UL)
-    return;
-
-  if (l1 == l2)
-    {
-	/* FIXME: This modifies the input arguments. */
-	/* We have to divide S1[0] and S2[0] by 2 */
-
-	/* Assume l1 = l2 = 2, S1 = f0 + f1 * x, S2 = g0 + g1 * x */
-	/* We want the coefficients at non-negative powers of x in 
-	   (f0 + f1 * (x + 1/x)) * (g0 + g1 * (x + 1/x)), that means
-	   (g0*f0 + 2*g1*f1) + (g1*f0 + g0*f1) * x + g1*f1 * x^2 */
-	listz_t S2rev, r1 = tmp, r2 = tmp + 2 * l1 - 1, t = tmp + 4 * l1 - 2;
-
-	ASSERT (tmplen >= 4 * lmax - 2 + list_mul_mem (lmax));
-
-#if 0
-	gmp_printf ("/* list_mul_reciprocal */ S1(x) = %Zd", S1[0]);
-	for (i = 1; i < l1; i++)
-	    gmp_printf (" + %Zd * (x^%lu + 1/x^%lu)", S1[i], i, i);
-	gmp_printf ("\n");
-	gmp_printf ("/* list_mul_reciprocal */ S2(x) = %Zd", S2[0]);
-	for (i = 1; i < l2; i++)
-	    gmp_printf (" + %Zd * (x^%lu + 1/x^%lu)", S2[i], i, i);
-	gmp_printf ("\n");
-#endif
-
-	if (mpz_odd_p (S1[0]))
-	  {
-	    ASSERT_ALWAYS (mpz_odd_p (modulus));
-	    mpz_add (S1[0], S1[0], modulus);
-	  }
-	mpz_tdiv_q_2exp (S1[0], S1[0], 1UL);
-	if (S1 != S2)
-	  {
-	    if (mpz_odd_p (S2[0]))
-	      {
-		ASSERT_ALWAYS (mpz_odd_p (modulus));
-		mpz_add (S2[0], S2[0], modulus);
-	      }
-	    mpz_tdiv_q_2exp (S2[0], S2[0], 1UL);
-	  }
-	
-	list_mul (r1, S1, l1, 0, S2, l2, 0, t);
-	/* r1 = f0*g0/4 + (f0*g1 + f1*g0)/2 * x + f1*g1 * x^2 */
-#if 0
-	for (i = 0; i < 2 * l1 - 1; i++)
-	    gmp_printf ("list_mul_reciprocal: r1[%lu] = %Zd\n", i, r1[i]);
-#endif
-
-	/* Remember that S1 == S2 is possible */
-	S2rev = (listz_t) malloc (l2 * sizeof (mpz_t));
-	ASSERT_ALWAYS (S2rev != NULL);
-	for (i = 0UL; i < l2; i++)
-	    (*S2rev)[i] = (*S2)[l2 - 1UL - i];
-	list_mul (r2, S1, l1, 0, S2rev, l2, 0, t);
-	free (S2rev);
-	/* r2 = g1*f0/2 + (g0*f0/4 + g1*f1) * x + g0*f1/2 * x^2 */
-#if 0
-	for (i = 0; i < 2 * l1 - 1; i++)
-	    gmp_printf ("list_mul_reciprocal: r2[%lu] = %Zd\n", i, r2[i]);
-#endif
-
-	mpz_mul_2exp (r1[0], r1[0], 1UL);
-	/* r1 = f0*g0/2 + (f0*g1 + f1*g0)/2 * x + f1*g1 * x^2 */
-	for (i = 0; i < l1; i++)
-	    mpz_add (r1[i], r1[i], r2[i + l1 - 1]);
-	/* r1 = 3/4*f0*g0 + g1*f1 + (f0*g1 + 2*f1*g0)/2 * x + f1*g1 * x^2 */
-	for (i = 0; i < l1; i++)
-	    mpz_add (r1[i], r1[i], r2[l1 - i - 1]);
-	/* r1 = f0*g0 + 2*g1*f1 + (f0*g1 + f1*g0) * x + f1*g1 * x^2 */
-	for (i = 0; i < 2*l1 - 1; i++)
-	    mpz_set (R[i], r1[i]);
-
-	if (R != S1)
-	    mpz_mul_2exp (S1[0], S1[0], 1UL);
-	if (S1 != S2 && R != S2)
-	    mpz_mul_2exp (S2[0], S2[0], 1UL);
-	
-#if 0
-	for (i = 0; i < 2*l1; i++)
-	    gmp_printf ("list_mul_reciprocal: R[%lu] = %Zd\n", i, R[i]);
-#endif
-    }
-  else
-    {
-      /* More difficult case, the lengths are different. We just do a full
-	 multiply and take the coefficients we want from that. This is not
-	 very efficient, but it'll only happen during building the polynomial
-	 and for sets of odd cardinality, i.e. when the polynomials to be
-	 multiplied are still quite small. The inefficiency of the code here 
-	 does not really matter too much. */
-      const unsigned long dsum = l1 + l2 - 2; /* Half the degree of prod. */
-      listz_t t1, t2, r;
-
-      ASSERT (tmplen >= 8 * lmax - 2 + list_mul_mem (2 * lmax - 1));
-
-      t1 = tmp;
-      t2 = tmp + 2 * lmax - 1;
-      r = tmp + 4 * lmax - 2;
-      
-      /* Full copy of S_1(x). S1 = [1,2,3,4] => t1 = [4,3,2,1,2,3,4]
-	 There are 2*l1 - 1 coefficients in monomial basis, which go in 
-	 t1[0 ... 2*l1-2]. We pad the high end with zeros up to t1[2*lmax-2] */
-      for (i = 0; i < l1; i++)
-	  mpz_set (t1[i], S1[l1 - 1 - i]); /* S[l1-1 ... 0] -> t1[0 ... l1-1] */
-      for (i = 1; i < l1; i++)
-	  mpz_set (t1[l1 - 1 + i], S1[i]); /* S[1 ... l1-1] -> t1[l1 ... 2*l1-2] */
-      for (i = 2 * l1 - 1; i <= 2 * lmax - 2; i++)
-	  mpz_set_ui (t1[i], 0UL);         /* t1[2*l1-1 ... 2*lmax-2] = 0 */
-      
-      /* Same for S_2(x) */
-      for (i = 0; i < l2; i++)
-	  mpz_set (t2[i], S2[l2 - 1 - i]);
-      for (i = 1; i < l2; i++)
-	  mpz_set (t2[l2 - 1 + i], S2[i]);
-      for (i = 2 * l2 - 1; i <= 2 * lmax - 2; i++)
-	  mpz_set_ui (t2[i], 0UL);
-      
-      list_mul (r, t1, 2 * lmax - 1, 0, t2, 2 * lmax - 1, 0, 
-		tmp + 8 * lmax - 2);
-
-      /* Now r/x^(dsum) is the product polynomial. It has degree 2*dsum and 
-	 so has 2 * dsum + 1 coefficients in monomial basis, which reside in
-	 r[0 ... 2 * sum] */
-
-#ifdef WANT_ASSERT
-      /* Check the lower terms are symmetric */
-      for (i = 1; i <= dsum; i++)
-	ASSERT (mpz_cmp (r[dsum - i], r[dsum + i]) == 0);
-      
-      /* Check the high terms are zero */
-      for (i = 2 * dsum + 1; i <= 2 * lmax - 2; i++)
-	ASSERT (mpz_sgn (r[i]) == 0);
-#endif
-      
-      for (i = 0; i <= dsum; i++)
-	  mpz_set (R[i], r[dsum + i]);
-    }
-}
-
-
 /* Same, but does squaring which makes things easier */
 
 static void
@@ -781,6 +615,177 @@ list_sqr_reciprocal (listz_t R, listz_t S, const unsigned long l,
 #if 0
   for (i = 0; i < 2UL * l; i++)
     gmp_printf ("list_sqr_reciprocal: R[%lu] = %Zd\n", i, R[i]);
+#endif
+}
+
+static void
+list_recip_eval1 (mpz_t R, const listz_t S, const unsigned long l)
+{
+  unsigned long i;
+
+  mpz_set (R, S[0]);
+  for (i = 1; i < l; i++)
+    {
+      mpz_add (R, R, S[i]);
+      mpz_add (R, R, S[i]);
+    }
+}
+
+/* Multiply two reciprocal polynomials of degree 2*l1-2 and 2*l2-2, resp., 
+   with coefficients in standard basis
+
+   S_1(x) = S1[0] + sum_{1 \leq i \leq l1 - 1} S1[i] (x^i + x^{-i})
+   S_2(x) = S2[0] + sum_{1 \leq i \leq l2 - 1} S2[i] (x^i + x^{-i})
+
+   to the reciprocal polynomial of degree 2*(l1 + l2) - 4
+
+   R(x) = R[0] + sum_{1 \leq i \leq l1 + l2 - 2} R[i] (x^i + x^{-i}) 
+        = S_1(x) * S_2(x)
+
+   R == S1 == S2 is permissible, however if S1 == S2, l1 must be equal 
+   to l2 (i.e. the multiplication must be a squaring)
+*/
+  /* FIXME: This modifies the input arguments. */
+  /* We have to divide S1[0] and S2[0] by 2 */
+
+static void
+list_mul_reciprocal (listz_t R, listz_t S1, unsigned long l1, 
+		     listz_t S2, unsigned long l2,
+		     mpz_t modulus, listz_t tmp, 
+		     ATTRIBUTE_UNUSED const unsigned long tmplen)
+{
+  unsigned long i;
+  const unsigned long lmax = MAX(l1, l2);
+  listz_t r1 = tmp, r2 = tmp + 2*lmax - 1, rev = tmp + 4*lmax - 2,
+    t = tmp + 6*lmax - 3;
+#ifdef WANT_ASSERT
+  mpz_t sum1, sum2, prod;
+#endif
+
+  ASSERT (S1 < tmp || S1 >= tmp + tmplen);
+  ASSERT (S2 < tmp || S2 >= tmp + tmplen);
+  ASSERT (R < tmp || R >= tmp + tmplen);
+
+  if (l1 == 0UL || l2 == 0UL)
+    return;
+
+  if (S1 == S2)
+    {
+      ASSERT_ALWAYS (l1 == l2);
+      list_sqr_reciprocal (R, S1, l1, modulus, tmp, tmplen);
+      return;
+    }
+
+  ASSERT (tmplen >= 6*lmax - 3 + list_mul_mem (lmax));
+#ifdef WANT_ASSERT
+  mpz_init (sum1);
+  mpz_init (sum2);
+  mpz_init (prod);
+  list_recip_eval1 (sum1, S1, l1);
+  list_recip_eval1 (sum2, S2, l2);
+  mpz_mul (prod, sum1, sum2);
+  mpz_mod (prod, prod, modulus);
+#endif
+
+
+  /* Make S1 the longer of the two, i.e. l1 >= l2 */
+  if (l2 > l1)
+    {
+      listz_t St = S1;
+      unsigned long lt = l1;
+      S1 = S2;
+      S2 = St;
+      l1 = l2;
+      l2 = lt;
+    }
+  
+#if 0
+  gmp_printf ("/* list_mul_reciprocal */ S1(x) = %Zd", S1[0]);
+  for (i = 1; i < l1; i++)
+    gmp_printf (" + %Zd * (x^%lu + 1/x^%lu)", S1[i], i, i);
+  gmp_printf ("\n");
+  gmp_printf ("/* list_mul_reciprocal */ S2(x) = %Zd", S2[0]);
+  for (i = 1; i < l1; i++)
+    gmp_printf (" + %Zd * (x^%lu + 1/x^%lu)", S2[i], i, i);
+  gmp_printf ("\n");
+#endif
+  
+  /* Divide S1[0] and S2[0] by 2 */
+  if (mpz_odd_p (S1[0]))
+    {
+      ASSERT_ALWAYS (mpz_odd_p (modulus));
+      mpz_add (S1[0], S1[0], modulus);
+    }
+  mpz_tdiv_q_2exp (S1[0], S1[0], 1UL);
+  
+  if (mpz_odd_p (S2[0]))
+    {
+      ASSERT_ALWAYS (mpz_odd_p (modulus));
+      mpz_add (S2[0], S2[0], modulus);
+    }
+  mpz_tdiv_q_2exp (S2[0], S2[0], 1UL);
+
+  /* Pad rev with zeros */
+  for (i = l2; i < lmax; i++)
+    mpz_set_ui (rev[i], 0UL);
+  
+  for (i = 0UL; i < l2; i++)
+    mpz_set (rev[i], S2[l2 - 1UL - i]);
+  list_mul (r1, S1, lmax, 0, rev, lmax, 0, t);
+  /* r1 = \tilde{f}(x) \rev(\tilde{g}(x)) and has degree l1 + l2 - 2,
+     i.e. l1 + l2 - 1 entries. */
+#if 0
+  for (i = 0; i < 2 * lmax - 1; i++)
+    gmp_printf ("list_mul_reciprocal: r1[%lu] = %Zd\n", i, r1[i]);
+#endif
+  
+  for (i = 0UL; i < l2; i++)
+    mpz_set(rev[i], S2[i]);
+  list_mul (r2, S1, lmax, 0, rev, lmax, 0, t);
+  /* \tilde{f}(x) \tilde{g}(x) */
+  
+#if 0
+  for (i = 0; i < 2 * lmax - 1; i++)
+    gmp_printf ("list_mul_reciprocal: r2[%lu] = %Zd\n", i, r2[i]);
+#endif
+  
+  /* Add f_0*g_0 by doubling the f_0*g_0 term in r2 */
+  mpz_mul_2exp (r2[0], r2[0], 1UL);
+  
+  /* Add \flloor x^{-d_g} \tilde{f}(x) \rev(\tilde{g}(x)) \rfloor.
+     d_g = l2 - 1. */
+  for (i = 0; i < l1; i++)
+    mpz_add (r2[i], r2[i], r1[i + l2 - 1]);
+  
+  /* Add \floor x^{-d_f} rev(\tilde{f}(x) \rev(\tilde{g}(x))) \rfloor.
+     d_f = l1 - 1. rev(r2)[i] = r2[l1 + l2 - 2 - i]. We want
+     rev(r2)[l1 - 1 ... l1 + l2 - 2], hence 
+     r2[l2 - 1 ... 0] */
+  for (i = 0; i < l2; i++)
+    mpz_add (r2[i], r2[i], r1[l2 - 1 - i]);
+  
+#if 0
+  for (i = 0; i < l1 + l2 - 1; i++)
+    gmp_printf ("list_mul_reciprocal: r2[%lu] = %Zd\n", i, r2[i]);
+#endif
+  
+  mpz_mul_2exp (S1[0], S1[0], 1UL);
+  mpz_mul_2exp (S2[0], S2[0], 1UL);
+  
+  for (i = 0; i < l1 + l2 - 1; i++)
+    mpz_set (R[i], r2[i]);
+  
+#if 0
+  for (i = 0; i < l1 + l2 - 1; i++)
+    gmp_printf ("list_mul_reciprocal: R[%lu] = %Zd\n", i, R[i]);
+#endif
+#ifdef WANT_ASSERT
+  list_recip_eval1 (sum1, R, l1 + l2 - 1);
+  mpz_mod (sum1, sum1, modulus);
+  ASSERT (mpz_cmp (prod, sum1) == 0);
+  mpz_clear (sum1);
+  mpz_clear (sum2);
+  mpz_clear (prod);
 #endif
 }
 
@@ -900,6 +905,9 @@ V (mpres_t R, const mpres_t S, const long k, mpmod_t modulus)
      f_i * gamma^-deg * x^-deg * f_i * 1/gamma^-deg * x^-deg
    = f_i * x^deg * f_i * x^deg + ... + f_i * x^-deg * f_i * x^-deg
    = f_i^2 * x^(2*deg) + ... + f_i^2 * x^(-2*deg)
+
+   If NTT is used, needs 4 * deg + 3 entries in tmp.
+   If no NTT is used, needs 4 * deg + 2 + (memory use of list_sqr_reciprocal)
 */
 
 static void
@@ -924,7 +932,8 @@ list_scale_V (listz_t R, listz_t F, mpres_t Q, unsigned long deg,
       return;
     }
   
-  ASSERT (tmplen >= 4 * deg + 2); /* Make sure newtmplen does not underflow */
+  /* Make sure newtmplen does not underflow */
+  ASSERT_ALWAYS (tmplen >= 4 * deg + 2);
 #ifdef WANT_ASSERT
   mpz_init (leading);
   mpz_mul (leading, F[deg], F[deg]);
@@ -984,7 +993,7 @@ list_scale_V (listz_t R, listz_t F, mpres_t Q, unsigned long deg,
     ntt_sqr_recip (G, G, dct, deg + 1, ntt_context);
   else
     list_sqr_reciprocal (G, G, deg + 1, modulus->orig_modulus, 
-                         newtmp + 2*(deg+2), newtmplen - 2*(deg+2));
+                         newtmp, newtmplen);
 
   list_output_poly (G, 2 * deg + 1, 0, 1, "/* list_scale_V */ G(x)^2 == ", 
 		    "\n", OUTPUT_TRACE);
@@ -1074,7 +1083,6 @@ list_scale_V (listz_t R, listz_t F, mpres_t Q, unsigned long deg,
 		    OUTPUT_TRACE);
 
   /* Multiply by Q^2-4 */
-  ASSERT (newtmplen >= 2);
   mpres_mul (Vt, Q, Q, modulus);
   mpres_sub_ui (Vt, Vt, 4, modulus);
   for (i = 0; i <= 2 * deg - 2; i++)
@@ -1082,17 +1090,15 @@ list_scale_V (listz_t R, listz_t F, mpres_t Q, unsigned long deg,
   list_output_poly (H, 2 * deg - 1, 0, 1, "/* list_scale_V */ "
 		    "H(x)^2*(Q^2-4) == ", "\n", OUTPUT_TRACE);
 
-  /* Multiply by (X - 1/X)^2 = X^2 - 2 + 1/X^2 */
-
+  /* Multiply by (X - 1/X)^2 = X^2 - 2 + 1/X^2 and subtract from G*/
+  ASSERT (newtmplen > 0UL);
   if (deg == 1)
     {
       /* H(X) has degree 2*deg-2 = 0, so H(X) = h_0
 	 H(X) * (X - 1/X)^2 = -2 h_0 + h_0 V_2(Y)  */
-      ASSERT (newtmplen > 2UL);
       mpz_mul_2exp (newtmp[0], H[0], 1UL);
-      mpz_neg (newtmp[0], newtmp[0]);
-      mpz_set_ui (newtmp[1], 0UL);
-      mpz_set (newtmp[2], H[0]);
+      mpz_add (G[0], G[0], newtmp[0]); /* G[0] -= -2*H[0] */
+      mpz_sub (G[2], G[2], H[0]);
     }
   else if (deg == 2)
     {
@@ -1100,23 +1106,24 @@ list_scale_V (listz_t R, listz_t F, mpres_t Q, unsigned long deg,
 	 H(X) = h_0 + h_1 (X+1/X) + h_2 (X^2+1/X^2)
 
 	 H(X) * (X - 1/X)^2 =
-	 2*(h_2 - h_0) - h_1 * V_1(Y) + (h_0 - 2*h_2) * V_2(Y) + 
+	 -2*(h_0 - h_2) - h_1 * V_1(Y) + (h_0 - 2*h_2) * V_2(Y) + 
 	 h_1 * V_3(Y) + h_2 * V_4(Y)
       */
-      ASSERT (newtmplen > 4UL);
-      mpz_sub (newtmp[0], H[2], H[0]);
-      mpz_mul_2exp (newtmp[0], newtmp[0], 1UL); /* 2*(h_2 - h_0) */
-      mpz_neg (newtmp[1], H[1]);                /* -h_1 */
-      mpz_mul_2exp (newtmp[2], H[2], 1UL);
-      mpz_sub (newtmp[2], H[0], newtmp[2]);     /* h_0 - 2*h_2 */
-      mpz_set (newtmp[3], H[1]);
-      mpz_set (newtmp[4], H[2]);
+      mpz_sub (newtmp[0], H[0], H[2]);          /* h_0 - h_2 */
+      mpz_mul_2exp (newtmp[0], newtmp[0], 1UL); /* 2*(h_0 - h_2) */
+      mpz_add (G[0], G[0], newtmp[0]);          /* G[0] -= -2*(h_0 - h_2) */
+
+      mpz_add (G[1], G[1], H[1]);               /* G[1] -= -h_1 */
+      mpz_sub (newtmp[0], newtmp[0], H[0]);     /* h_0 - 2*h_2 */
+      mpz_sub (G[2], G[2], newtmp[0]);          /* G[2] -= h_0 - 2*h_2 */
+      mpz_sub (G[3], G[3], H[1]);               /* G[3] -= h_1 */
+      mpz_sub (G[4], G[4], H[2]);               /* G[3] -= h_2 */
     }
   else
     {
       /* Let H(X) = h_0 + \sum_{i=1}^{n} h_i V_i(Y), Y = X+1/X. Then
 	 (x - 1/x)^2 H(X) = 
-	 2(-h_0 + h_2) +
+	 -2(h_0 - h_2) +
 	 (- h_1 + h_3) V_1(Y) +
 	 \sum_{i=2}^{n-2} (h_{i-2} - 2h_i + h_{i+2}) V_i(Y) +
 	 (h_{n-3} - 2h_{n-1}) V_{n-1}(Y) +
@@ -1126,44 +1133,38 @@ list_scale_V (listz_t R, listz_t F, mpres_t Q, unsigned long deg,
 	 
 	 In our case, n = 2 * deg - 2
       */
-      ASSERT (newtmplen > 2 * deg);
-      mpz_sub (newtmp[0], H[2], H[0]);
-      mpz_mul_2exp (newtmp[0], newtmp[0], 1UL); /* t[0] = 2*(h_0 + h_2) */
+      mpz_sub (newtmp[0], H[0], H[2]);
+      mpz_mul_2exp (newtmp[0], newtmp[0], 1UL); /* t[0] = 2*(h_0 - h_2) */
+      mpz_add (G[0], G[0], newtmp[0]);          /* G[0] -= -2*(h_0 - h_2) */
       
-      mpz_sub (newtmp[1], H[3], H[1]); /* t[1] = -h_1 + h_3 */
+      mpz_add (G[1], G[1], H[1]);
+      mpz_sub (G[1], G[1], H[3]); /* G[1] -= -h_1 + h_3 */
       
       for (i = 2; i <= 2 * deg - 4; i++)
 	{
-	  mpz_add (newtmp[i], H[i-2], H[i+2]);
-	  mpz_sub (newtmp[i], newtmp[i], H[i]); /* t[i] = h_{i-2}-2h_i+h_{i+2} */
-	  mpz_sub (newtmp[i], newtmp[i], H[i]); /* for 2 <= i <= n-2 */
+	  mpz_mul_2exp (newtmp[0], H[i], 1);
+	  mpz_sub (newtmp[0], newtmp[0], H[i - 2]);
+	  mpz_sub (newtmp[0], newtmp[0], H[i + 2]); /* 2h_i-h_{i-2}-h_{i+2} */
+	  mpz_add (G[i], G[i], newtmp[0]); /* G[i] -= -2h_i+h_{i-2}+h_{i+2} */
 	}
       
-      mpz_mul_2exp (newtmp[2 * deg - 3], H[2 * deg - 3], 1UL);
-      mpz_sub (newtmp[2 * deg - 3], H[2 * deg - 5], newtmp[2 * deg - 3]); 
-      /* t[n-1] = h_{n-3} - 2h_{n-1} */
+      for ( ; i <= 2 * deg - 2; i++)
+	{
+	  mpz_mul_2exp (newtmp[0], H[i], 1UL);
+	  mpz_sub (newtmp[0], H[i - 2], newtmp[0]); /* h_{n-3} - 2h_{n-1} */
+	  mpz_sub (G[i], G[i], newtmp[0]);
+	}
       
-      mpz_mul_2exp (newtmp[2 * deg - 2], H[2 * deg - 2], 1UL);
-      mpz_sub (newtmp[2 * deg - 2], H[2 * deg - 4], newtmp[2 * deg - 2]);
-      /* t[n] = h_{n-2} - 2h_n */
-      
-      mpz_set (newtmp[2 * deg - 1], H[2 * deg - 3]); /* t[n+1] = h_{n-1} */
-      mpz_set (newtmp[2 * deg], H[2 * deg - 2]);  /* t[n+2] = h_n */
+      mpz_sub (G[i], G[i], H[i - 2]);
+      mpz_sub (G[i + 1], G[i + 1], H[i - 1]);
     }
-  
-  for (i = 0; i <= 2 * deg; i++)
-    mpz_set (H[i], newtmp[i]);
-
-  /* Now H[0 ... 2*deg] contains the 2*deg+1 coefficients in standard basis
-     of a degree 4*deg symmetric polynomial */
-
-  /* Subtract the two polynomials, reduce mod modulus and store in R */
 
   for (i = 0; i <= 2 * deg; i++)
-    {
-      mpz_sub (G[i], G[i], H[i]);
-      mpz_mod (R[i], G[i], modulus->orig_modulus);
-    }
+    mpz_mod (R[i], G[i], modulus->orig_modulus);
+
+  if (test_verbose (OUTPUT_TRACE))
+    for (i = 0; i <= 2 * deg; i++)
+      outputf (OUTPUT_TRACE, "list_scale_V: R[%lu] = %Zd\n", i, R[i]);
 
 #ifdef WANT_ASSERT
   mpz_mod (R[2 * deg], R[2 * deg], modulus->orig_modulus);
@@ -2916,7 +2917,8 @@ pm1fs2_ntt (mpz_t f, const mpres_t X, mpmod_t modulus,
      residues up to 4*l*modulus^2, so adding in Fourier space is ok. 
      The code to multiply wants a 4*len-th root of unity, where len is
      the smallest power of 2 > s_1 */
-  ntt_context = mpzspm_init (MAX(params->l, 2UL << ceil_log2 (params->s_1)), 
+  ntt_context = mpzspm_init (MAX(params->l, 
+				 4UL << ceil_log2 (params->s_1 / 2 + 1)), 
                              modulus->orig_modulus);
   if (test_verbose (OUTPUT_DEVVERBOSE))
     {
@@ -2936,7 +2938,7 @@ pm1fs2_ntt (mpz_t f, const mpres_t X, mpmod_t modulus,
   mpres_init (tmpres, modulus);
   lenF = params->s_1 / 2 + 1 + 1; /* Another +1 because poly_from_sets_V stores
 				     the leading 1 monomial for each factor */
-  tmplen = 3 * params->s_1 + 1000;
+  tmplen = params->s_1 + 100;
   F = init_list2 (lenF, (unsigned int) abs (modulus->bits));
   tmp = init_list2 (tmplen, (unsigned int) abs (modulus->bits));
   /* Allocate memory for h_ntt */
@@ -4100,7 +4102,8 @@ pp1fs2_ntt (mpz_t f, const mpres_t X, mpmod_t modulus,
       return ECM_ERROR;
 
   /* Init the NTT context */
-  ntt_context = mpzspm_init (MAX(params->l, 2 << ceil_log2 (params->s_1)), 
+  ntt_context = mpzspm_init (MAX(params->l, 
+				 4UL << ceil_log2 (params->s_1 / 2 + 1)), 
                              modulus->orig_modulus);
 
   /* Allocate all the memory we'll need */
@@ -4115,7 +4118,7 @@ pp1fs2_ntt (mpz_t f, const mpres_t X, mpmod_t modulus,
   lenF = params->s_1 / 2 + 1 + 1; /* Another +1 because poly_from_sets_V stores
 				     the leading 1 monomial for each factor */
   F = init_list2 (lenF, (unsigned int) abs (modulus->bits));
-  tmplen = 3UL * params->l + list_mul_mem (params->l / 2) + 20;
+  tmplen = 2UL * params->l + 20;
   outputf (OUTPUT_DEVVERBOSE, "tmplen = %lu\n", tmplen);
   tmp = init_list2 (tmplen, (unsigned int) abs (modulus->bits));
   /* Allocate memory for h_ntt */
