@@ -21,13 +21,7 @@
    happening might indicate a problem in the evalutaion code */
 #define TEST_ZERO_RESULT
 
-#ifdef TESTDRIVE
-#include <string.h>
-static int verbose = 0;
-static int pari = 0;
-#else
 const int pari = 0;
-#endif
 
 const unsigned long Pvalues[] = {
     3UL, 5UL, 9UL, 15UL, 21UL, 17UL, 27UL, 33UL, 45UL, 51UL, 63UL, 75UL, 
@@ -216,12 +210,12 @@ absdiff_ul (unsigned long a, unsigned long b)
 
 /* Choose s_1 so that s_1 * s_2 = phiP, s_1 is positive and even, 
    s_2 >= min_s2 and s_2 is minimal and abs(s_1 - l) is minimal 
-   under those conditions. 
+   under those conditions. If use_ntt == 1, we require s_1 < l.
    Returns 0 if no such choice is possible */
 
 static unsigned long 
 choose_s_1 (const unsigned long phiP, const unsigned long min_s2,
-	    const unsigned long l)
+	    const unsigned long l, const int use_ntt)
 {
   const int nrprimes = sizeof (phiPfactors) / sizeof (unsigned long);
   int phiPexponents[nrprimes], exponents[nrprimes];
@@ -246,7 +240,8 @@ choose_s_1 (const unsigned long phiP, const unsigned long min_s2,
 	 improvement over the previous choice */
       if (phiP / trys_1 >= min_s2 && 
 	  (s_2 == 0UL || phiP / trys_1 < s_2) && 
-	  absdiff_ul (trys_1, l) < absdiff_ul (s_1, l))
+	  absdiff_ul (trys_1, l) < absdiff_ul (s_1, l) &&
+	  (use_ntt == 0 || trys_1 < l))
       {
 #if 0
 	  printf ("choose_s_1: New best s_1 for phiP = %lu, min_s2 = %lu, "
@@ -275,7 +270,7 @@ choose_s_1 (const unsigned long phiP, const unsigned long min_s2,
 long
 choose_P (const mpz_t B2min, const mpz_t B2, const unsigned long lmax,
 	  const unsigned long min_s2, faststage2_param_t *finalparams, 
-	  mpz_t final_B2min, mpz_t final_B2)
+	  mpz_t final_B2min, mpz_t final_B2, const int use_ntt)
 {
   /* Let S_1 + S_2 == (Z/PZ)* (mod P).
 
@@ -340,7 +335,7 @@ choose_P (const mpz_t B2min, const mpz_t B2, const unsigned long lmax,
       /* Now a careful check to see if this P is large enough */
       P = Pvalues[i];
       phiP = eulerphi (P);
-      s_1 = choose_s_1 (phiP, min_s2, lmax / 2);
+      s_1 = choose_s_1 (phiP, min_s2, lmax / 2, use_ntt);
       if (s_1 == 0)
 	continue;
       s_2 = phiP / s_1;
@@ -382,7 +377,7 @@ choose_P (const mpz_t B2min, const mpz_t B2, const unsigned long lmax,
 	 we can't possibly find a trys_2 <= s_2 any more */
       if (s_2 < tryphiP / l)
 	break;
-      trys_1 = choose_s_1 (tryphiP, min_s2, l / 2);
+      trys_1 = choose_s_1 (tryphiP, min_s2, l / 2, use_ntt);
       if (trys_1 == 0)
 	continue;
       trys_2 = tryphiP / trys_1;
@@ -918,7 +913,6 @@ list_scale_V (listz_t R, listz_t F, mpres_t Q, unsigned long deg,
   mpres_t Vi_1, Vi, Vt;
   unsigned long i;
   const listz_t G = tmp, H = tmp + 2 * deg + 1, newtmp = tmp + 4 * deg + 2;
-  listz_t H_U;
   const unsigned long newtmplen = tmplen - 4 * deg - 2;
 #ifdef WANT_ASSERT
   mpz_t leading;
@@ -953,7 +947,7 @@ list_scale_V (listz_t R, listz_t F, mpres_t Q, unsigned long deg,
   mpres_set_ui (Vi_1, 1UL, modulus); /* Vi_1 = V_0(Q) / 2 = 1*/
   mpres_div_2exp (Vi, Q, 1, modulus); /* Vi = V_1(Q) = Q/2 */
 
-  mpz_set (G[0], F[0]); /* G_0 = S_0 * V_0(Q)/2 = S_0 * 1 */
+  mpz_mod (G[0], F[0], modulus->orig_modulus); /* G_0 = S_0 * V_0(Q)/2 = S_0 * 1 */
   outputf (OUTPUT_TRACE, "list_scale_V: G_%lu = %Zd\n", 0, G[0]);
   for (i = 1; i <= deg; i++)
     {
@@ -1011,18 +1005,17 @@ list_scale_V (listz_t R, listz_t F, mpres_t Q, unsigned long deg,
   /* We later want to convert H in U_i basis to monomial basis. To do so,
      we'll need one list element below H_U[0], so H_U gets stored shifted
      up by one index */
-  H_U = H - 1; /* H_U[0] is undefined, no need to store it */
 
-  /* H_U[i] = h_i =  F[i] * U_i(Q) / 2, for 1 <= i <= deg. H[0] is undefined
-     and has no storage allocated (H_U[0] = H[-1]) */
+  /* H[i-1] = h_i =  F[i] * U_i(Q) / 2, for 1 <= i <= deg. h_0 is undefined
+     and has no storage allocated */
   for (i = 1; i <= deg; i++)
     {
       /* Here, Vi = U_i(Q) / 2, Vi_1 = U_{i-1}(Q) / 2. */
       /* h_i = S_i * U_i(Q)/2 */
-      mpres_mul_z_to_z (H_U[i], Vi, F[i], modulus);
+      mpres_mul_z_to_z (H[i - 1], Vi, F[i], modulus);
       outputf (OUTPUT_TRACE, 
 	       "list_scale_V: H_%lu (in U_i basis) = F_%lu * U_%lu(Q)/2 = %Zd * %Zd = %Zd\n", 
-	       i, i, i, F[i], Vi, H_U[i]);
+	       i, i, i, F[i], Vi, H[i - 1]);
       
       mpres_mul (Vt, Vi, Q, modulus);
       mpres_sub (Vt, Vt, Vi_1, modulus);
@@ -1030,23 +1023,19 @@ list_scale_V (listz_t R, listz_t F, mpres_t Q, unsigned long deg,
       mpres_set (Vi, Vt, modulus); /* Could be a swap */
     }
 
-  /* Convert H_U to standard basis */
-
+  /* Convert H to standard basis */
   /* We can do it in-place with H - 1 = H_U. */
 
   for (i = deg; i >= 3; i--)
-    {
-      mpz_add (H_U[i - 2], H_U[i - 2], H_U[i]);
-      /* mpz_set (H[i - 1], H_U[i]); A no-op, since H - 1 = H_U. */
-    }
+    mpz_add (H[i - 3], H[i - 3], H[i - 1]);
   
   /* U_2(X+1/X) = (X^2 - 1/X^2)/(X-1/X) = X+1/X = V_1(X+1/X),
      so no addition occures here */
   /* if (deg >= 2)
-     mpz_set (H[1], H_U[2]); Again, a no-op. */
+     mpz_set (H[1], H[1]); Again, a no-op. */
   
   /* U_1(X+1/X) = 1, so this goes to coefficient of index 0 in std. basis */
-  /* mpz_set (H[0], H_U[1]); Another no-op. */
+  /* mpz_set (H[0], H[0]); Another no-op. */
   
   /* Now H[0 ... deg-1] contains the deg coefficients in standard basis
      of symmetric H(X) of degree 2*deg-2. */
@@ -3126,7 +3115,7 @@ gfp_ext_sqr_norm1 (mpres_t r_0, mpres_t r_1, const mpres_t a_0,
 {
   ASSERT (a_0 != r_1);  /* a_0 is read after r_1 is written */
   
-  if (0 && pari)
+  if (pari)
     gmp_printf ("/* gfp_ext_sqr_norm1 */ (%Zd + %Zd * w)^2 %% N == ", a_0, a_1);
   
   mpres_mul (r_1, a_0, a_1, modulus);
@@ -3136,7 +3125,7 @@ gfp_ext_sqr_norm1 (mpres_t r_0, mpres_t r_1, const mpres_t a_0,
   mpres_add (r_0, r_0, r_0, modulus);
   mpres_sub_ui (r_0, r_0, 1UL, modulus);    /* r_0 = 2*a_0^2 - 1 */
 
-  if (0 && pari)
+  if (pari)
     gmp_printf ("(%Zd + %Zd * w) %% N /* PARI C */\n", r_0, r_1);
 }
 
@@ -3361,7 +3350,7 @@ gfp_ext_rn2 (mpres_t *r_x, mpres_t *r_y, const mpres_t a_x, const mpres_t a_y,
       /* v[i] = v[i - 1] * V_2(a + 1/a) - v[i - 2] */
       mpres_mul (newtmp[0], v[1 - i % 2], *V2, modulus);
       mpres_sub (v[i % 2], newtmp[0], v[i % 2], modulus);
-      if (0 && pari)
+      if (pari)
 	gmp_printf ("/* In gfp_ext_rn2 */ V(%lu, a + 1/a) %% N == %Zd %% N "
 		    "/* PARI C */\n", 2 * (k + i) + 1, v[i % 2]);
     }
@@ -4323,342 +4312,3 @@ pp1fs2_ntt (mpz_t f, const mpres_t X, mpmod_t modulus,
   return youpi;
 }
 
-
-#ifdef TESTDRIVE
-
-int main (int argc, char **argv)
-{
-  unsigned long pn, d, i, j, tmplen, setsize, lmax = 1024;
-  listz_t F, tmp;
-  mpz_t r, N, B2min, B2;
-  long *L;
-  int selftest = 0;
-  mpmod_t modulus;
-  faststage2_param_t params;
-
-  ECM_STDOUT = stdout;
-  ECM_STDERR = stderr;
-  set_verbose (OUTPUT_DEVVERBOSE);
-
-  mpz_init (N);
-  mpz_init (B2min);
-  mpz_init (B2);
-
-  pn = 1;
-  while (argc > 1)
-    {
-      if (strcmp (argv[1], "-v") == 0)
-	{
-	  verbose++;
-	  inc_verbose ();
-	}
-      else if (strcmp (argv[1], "-p") == 0)
-	pari = 1;
-      else if (strcmp (argv[1], "-t") == 0)
-	selftest = 1;
-      else if (argc > 2 && strcmp (argv[1], "-N") == 0)
-	{
-	  mpz_set_str (N, argv[2], 0);
-	  argc--;
-	  argv++;
-	}
-      else if (argc > 2 && strcmp (argv[1], "-l") == 0)
-        {
-	  lmax = strtoul (argv[2], NULL, 10);
-	  argc--;
-	  argv++;
-        }
-      else
-	break;
-      argc--;
-      argv++;
-    }
-  if (argc > 1)
-    pn = strtoul (argv[1], NULL, 10);
-  if (argc > 2)
-    mpz_set_str (B2, argv[2], 0);
-  if (argc > 3)
-  {
-      mpz_set (B2min, B2);
-      mpz_set_str (B2, argv[3], 0);
-  }
-  gmp_printf ("B2min = %Zd, B2 = %Zd\n", B2min, B2);
-
-  if (mpz_cmp (B2, B2min) > 0)
-    {
-      mpz_init (params.m_1);
-      pn = choose_P (B2min, B2, lmax, 1UL, &params, NULL, NULL);
-    }
-
-  d = eulerphi (pn);
-
-  L = get_factored_sorted_sets (&setsize, pn);
-  if (L == NULL)
-  {
-      printf ("Error, get_factored_sorted_sets() returned NULL pointer\n");
-      exit (EXIT_FAILURE);
-  }
-
-  F = init_list (d);
-  tmplen = 10*d+10;
-  if (tmplen < 2000)
-    tmplen = 2000;
-  tmp = init_list (tmplen);
-  mpz_init (r);
-  mpz_set_ui (r, 3UL);
-  if (mpz_sgn (N) == 0)
-    {
-      /* By default, use the Mersenne prime 2^31-1 as the modulus */
-      mpz_set_ui (N, 1UL);
-      mpz_mul_2exp (N, N, 31UL);
-      mpz_sub_ui (N, N, 1UL);
-    }
-  mpmod_init (modulus, N, 0);
-  /* We don't need N anymore now */
-  mpz_clear (N);
-  if (pari)
-    gmp_printf ("N = %Zd; r = Mod(%Zd, N); /* PARI */\n", 
-		modulus->orig_modulus, r);
-
-  /************************************************************
-      Simple check of list_mul_reciprocal() 
-  ************************************************************/
-
-  for (i = 0; i < 4; i++)
-    mpz_set_ui (tmp[i], i + 2);
-  /* tmp[0 .. 3] = [2, 3, 4, 5] */
-
-  /* Compute (5*(x^3+x^{-3}) + 4*(x^2+x^{-2}) + 3*(x+x^{-1}) + 2)^2 =
-     25*(x^6+x^{-6}) + 40*(x^5+x^{-5}) + 46*(x^4+x^{-4}) + 44*(x^3+x^{-3}) + 
-     55*(x^2+x^{-2}) + 76*(x+x^{-1}) + 104, so we expect in 
-     tmp[0 .. 6] = [104, 76, 55, 44, 46, 40, 25] */
-  list_mul_reciprocal (tmp, tmp, 4, tmp, 4, modulus->orig_modulus, 
-		       tmp + 7, tmplen - 7);
-
-  if (mpz_cmp_ui (tmp[6], 25UL) != 0 || mpz_cmp_ui (tmp[5], 40UL) != 0 ||
-      mpz_cmp_ui (tmp[4], 46UL) != 0 || mpz_cmp_ui (tmp[3], 44UL) != 0 ||
-      mpz_cmp_ui (tmp[2], 55UL) != 0 || mpz_cmp_ui (tmp[1], 76UL) != 0 ||
-      mpz_cmp_ui (tmp[0], 104UL) != 0)
-    {
-      list_output_poly (tmp, 7, 0, 0, "Error, list_mul_reciprocal produced ", 
-			"\n", OUTPUT_ERROR);
-      abort ();
-    }
-
-  for (i = 0; i < 4; i++)
-    mpz_set_ui (tmp[i], i + 1);
-  /* tmp[0 .. 3] = [1, 2, 3, 4] = 4*x^3 + 3*x^2 + 2*x + 1 */
-
-  /* Compute (4*(x^3+x^{-3}) + 3*(x^2+x^{-2}) + 2*(x+x^{-1}) + 1) *
-     (3*(x^2+x^-2) + 2*(x+x^-1) + 1), so we expect in 
-     tmp[0 .. 5] = [27, 28, 18, 16, 17, 12] */
-  list_mul_reciprocal (tmp, tmp, 4, tmp, 3, modulus->orig_modulus, 
-		       tmp + 6, tmplen - 6);
-
-  if (mpz_cmp_ui (tmp[0], 27UL) != 0 || mpz_cmp_ui (tmp[1], 28UL) != 0 ||
-      mpz_cmp_ui (tmp[2], 18UL) != 0 || mpz_cmp_ui (tmp[3], 16UL) != 0 ||
-      mpz_cmp_ui (tmp[4], 17UL) != 0 || mpz_cmp_ui (tmp[5], 12UL) != 0)
-    {
-      list_output_poly (tmp, 6, 0, 0, "Error, list_mul_reciprocal produced ", 
-			"\n", OUTPUT_ERROR);
-      abort ();
-    }
-
-  /* Simple test of list_scale_V(). Set F(x) = \sum_{i=0}^{7} (i+1) x^i
-     Compute F(2 x) F(1/2 x) */
-
-  {
-    mpres_t Q;
-    unsigned long len;
-
-    mpres_init (Q, modulus);
-    mpres_set_ui (Q, 2UL, modulus); /* This corresponds to Q = 1 + 1/1, 
-				       or gamma = 1 */
-    for (len = 1; len <= 100; len++)
-      {
-	for (i = 0; i < len; i++)
-	  mpz_set_ui (tmp[i], i + 1);
-	list_output_poly (tmp, len, 0, 1, "Input to list_scale_V: ", "\n", 
-			  OUTPUT_TRACE);
-	
-	list_scale_V (tmp + len, tmp, Q, len - 1, modulus, tmp + 3*len, 
-		      tmplen - 3*len);
-	
-	list_mod (tmp + len, tmp + len, 2 * len - 1, modulus->orig_modulus);
-	list_output_poly (tmp + len, 2*len-1, 0, 1, 
-			  "Output of list_scale_V: ", "\n", OUTPUT_TRACE);
-	
-	/* With Q = 2 = 1 + 1/1, gamma = 1 and F(gamma*X)*F(1/gamma *X) =F(X)^2
-	   Compare with a simple symmetic multiply */
-	list_mul_reciprocal (tmp + 3 * len, tmp, len, tmp, len, 
-		             modulus->orig_modulus, tmp + 5*len, tmplen - 5*len);
-	
-	list_mod (tmp + 3*len, tmp + 3*len, 2*len - 1, modulus->orig_modulus);
-	
-	for (i = 0; i <= 2 * len - 2; i++)
-	  ASSERT(mpz_cmp (tmp[len + i], tmp[3*len + i]) == 0);
-      }
-    mpres_clear (Q, modulus);
-  }
-
-  /* Build the polynomial */
-  
-  poly_from_sets (F, r, L, setsize, tmp, tmplen, modulus->orig_modulus);
-
-  if (pn % 4 != 2)
-    {
-      /* The leading monomial of F in implicit */
-      if (mpz_cmp_ui (F[0], 1UL) != 0)
-	printf ("Error, F[0] != 1, F is not symmetric!\n");
-      for (i = 1; i < d / 2; i++)
-	{
-	  if (mpz_cmp (F[i], F[d - i]) != 0)
-	    {
-	      printf ("Error, F[%lu] != F[%lu - %lu], F is not symmetric!\n",
-		      i, d, i);
-	    }
-	}
-    }
-  
-  if (pari)
-    {
-      printf ("F(x) = x^%lu", d);
-      for (i = d - 1; i > 0; i--)
-	if (mpz_sgn (F[i]) != 0)
-	  gmp_printf (" + %Zd * x^%lu", F[i], i);
-      gmp_printf(" + %Zd /* PARI */\n", F[0]);
-    }
-
-  {
-    mpres_t Q, mr;
-    mpres_init (Q, modulus);
-    mpres_init (mr, modulus);
-    mpres_set_z (mr, r, modulus);
-    mpres_invert (Q, mr, modulus);
-    mpres_add (Q, Q, mr, modulus);
-    poly_from_sets_V (tmp, Q, L, setsize, tmp + d, tmplen - d, modulus);
-    mpres_clear (Q, modulus);
-    mpres_clear (mr, modulus);
-  }
-  list_mod (tmp, tmp, d/2, modulus->orig_modulus);
-  /* Check that the polynomials produced by poly_from_sets() and by 
-     poly_from_sets_V() are identical */
-
-  for (i = 0; i < d / 2; i++)
-    {
-      ASSERT(mpz_cmp (tmp[i], F[i + d / 2]) == 0);
-      if (mpz_cmp (tmp[i], F[i + d / 2]) != 0)
-	break; /* In case we don't have ASSERT on */
-    }
-
-  if (i == d / 2)
-    outputf (OUTPUT_DEVVERBOSE, "Polynomials produced by poly_from_sets() "
-	     "and poly_from_sets_V() agree.\n");
-  
-  /* Test gfp_ext_pow () */
-
-
-  /* Test gfp_ext_rn2() */
-
-  {
-    mpres_t a_x, a_y, Delta;
-    const long k = 3;
-
-    mpres_init (a_x, modulus);
-    mpres_init (a_y, modulus);
-    mpres_init (Delta, modulus);
-
-    mpres_set_ui (a_x, 9UL, modulus);
-    mpres_set_ui (a_y, 4UL, modulus);
-    mpres_set_ui (Delta, 5UL, modulus); /* norm = 9^2 - 4^2*5 = 1 */
-    printf ("w = quadgen(20); /* PARI */\n");
-
-    gfp_ext_rn2 (tmp, tmp+d, a_x, a_y, k, d, Delta, modulus,
-		 tmplen - 2*d, tmp + 2*d);
-
-    for (i = 0; i < d; i++)
-      {
-	gmp_printf ("(%Zd + %Zd*w)^%d %% N == (%Zd + %Zd*w) %% N "
-		    "/* PARI from gfp_ext_rn2 */\n",
-		    a_x, a_y, (k+i)*(k+i), tmp[i], tmp[d+i]);
-	gfp_ext_pow_norm1_ul (tmp[i], tmp[d+i], a_x, a_y, 
-			   (k+(long)i)*(k+(long)i), Delta, modulus, 
-			   tmplen - 2*d, tmp + 2*d);
-	gmp_printf ("(%Zd + %Zd*w)^%d %% N == (%Zd + %Zd*w) %% N "
-		    "/* PARI from gfp_ext_pow_norm1_ul */\n",
-		    a_x, a_y, (k+i)*(k+i), tmp[i], tmp[d+i]);
-      }
-
-    mpz_clear (a_x);
-    mpz_clear (a_y);
-    mpz_clear (Delta);
-  }
-
-
-  if (selftest) /* Do some self-tests */
-    {
-      long *sumset = malloc (d *sizeof (long));
-      unsigned long t;
-      
-      t = set_of_sums (sumset, L, setsize, 0L);
-      ASSERT (t == d);
-      
-      if (pari)
-	{
-	  printf ("exponents = [");
-	  for (i = 0; i < d - 1; i++)
-	    printf ("%ld, ", sumset[i]);
-	  printf ("%ld]; /* PARI */\n", sumset[d - 1]);
-	  printf ("lift(prod(k=1,length(exponents),(x-r^exponents[k]))) "
-		  "== F(x) /* PARI C */\n");
-	}
-      
-      mpz_invert (tmp[0], r, modulus->orig_modulus);
-      
-      /* Check that all the elements in the sumset are really exponents of the
-	 roots of F */
-      gmp_printf ("Selftest: checking that %Zd^((Z/%luZ)*) are roots of F(x)\n", 
-	      r, pn);
-      for (i = 0; i < d; i++)
-	{
-	  if (sumset[i] < 0)
-	    mpz_powm_ui (tmp[1], tmp[0], (unsigned long) (-sumset[i]), 
-			 modulus->orig_modulus);
-	  else
-	    mpz_powm_ui (tmp[1], r, (unsigned long) sumset[i], 
-			 modulus->orig_modulus);
-	  list_eval_poly (tmp[2], F, tmp[1], d, 1, modulus->orig_modulus, 
-			  tmp + 3);
-	  if (mpz_sgn (tmp[2]) != 0)
-	    printf ("Error, r^%ld is not a root of F\n", sumset[i]);
-	}
-      
-      /* Check that the set of sums is really a complete set of representatives
-	 of residue classes coprime to pn */
-
-      printf ("Selftest: checking that set of sums is congruent to (Z/%luZ)*\n",
-	      pn);
-
-      for (i = 0; i < d; i++)
-	if (sumset[i] >= 0)
-	  sumset[i] = sumset[i] % pn;
-	else
-	  sumset[i] = pn - (-sumset[i]) % pn;
-      quicksort_long (sumset, d);
-      for (i = 1, j = 0; i < pn; i++)
-	if (gcd (i, pn) == 1UL)
-	  {
-	    ASSERT((unsigned long) sumset[j] == i);
-	    j++;
-	  }
-      
-      free (sumset);
-
-      printf ("Selftest finished\n");
-    }
-
-  mpz_clear (r);
-  
-  return 0;
-}
-#endif
