@@ -2087,8 +2087,10 @@ ntt_spv_to_dct (mpzspv_t dct, const mpzspv_t spv, const spv_size_t spvlen,
 #ifdef _OPENMP
 #pragma omp parallel private(j)
   {
-#pragma omp master 
-    outputf (OUTPUT_VERBOSE, " using %d threads", omp_get_num_threads());
+#pragma omp master
+    {
+      outputf (OUTPUT_VERBOSE, " using %d threads", omp_get_num_threads());
+    }
 #pragma omp for
 #endif
   for (j = 0; j < (int) ntt_context->sp_num; j++)
@@ -2260,7 +2262,16 @@ ntt_mul_by_dct (mpzspv_t dft, const mpzspv_t dct, const unsigned long len,
 #endif
 }
 
-
+ATTRIBUTE_UNUSED
+static void
+ntt_print_vec (const char *msg, const spv_t spv, const spv_size_t l)
+{
+  spv_size_t i;
+  printf ("%s [%lu", msg, spv[0]);
+  for (i = 1; i < l; i++)
+    printf (", %lu", spv[i]);
+  printf ("]\n");
+}
 
 /* Square the reciprocal Laurent polynomial S(x) of degree 2*n-2.
    S(x) = s_0 + \sum_{i=1}^{n-1} s_i (x^i + x^{-1}).
@@ -2276,246 +2287,172 @@ ntt_sqr_recip (mpzv_t R, const mpzv_t S, mpzspv_t dft,
                const spv_size_t n, const mpzspm_t ntt_context)
 {
   const spv_size_t len = ((spv_size_t) 2) << ceil_log2 (n);
-  const spv_size_t d_h = 4*n - 4;
   int j;
   
   outputf (OUTPUT_DEVVERBOSE, 
-           "ntt_sqr_recip: called with n = %lu. len = %lu, d_h = %lu\n",
-           n, len, d_h);
+           "ntt_sqr_recip: called with n = %lu. len = %lu\n",
+           n, len);
   
+  if (n == 0)
+    return;
+
   if (n == 1)
     {
       mpz_mul (R[0], S[0], S[0]);
+      mpz_mod (R[0], R[0], ntt_context->modulus);
       return;
     }
 
-  /* We choose an 4*len-th primitive root of unity w.
-     Let a = 1/w^len, so that a^2 = -1.
-     We want the convolution product (mod x^len - 1/a) = (mod x^len - w^len)
-     So we weight input vectors with 1, w, w^2, ... so that wrap around
-     leaves excess of w^len = 1/a. */
-
-  ASSERT_ALWAYS (len > 0);
 #ifdef TRACE_ntt_sqr_recip
-  printf ("ntt_sqr_recip: n %lu, length %lu, d_h %lu\n", n, len, d_h);
+  printf ("ntt_sqr_recip: n %lu, length %lu\n", n, len);
   gmp_printf ("Input polynomial is %Zd", S[0]);
   for (j = 1; (spv_size_t) j < n; j++)
     gmp_printf (" + %Zd * (x^%lu + x^(-%lu))", S[j], j, j);
   printf ("\n");
 #endif
   
-  ASSERT_ALWAYS (ntt_context->max_ntt_size % (4 * len) == 0UL);
-  /* Fill NTT elements [n-1 .. 2n-2] with coefficients */
-  mpzspv_from_mpzv (dft, n - 1, S, (spv_size_t) n, ntt_context);
-  /* Fill NTT elements [0 .. n-2] with coefficients */
-  mpzspv_revcopy (dft, 0, dft, n, n - 1, ntt_context);
-  /* Zero out NTT elements [2n-1 .. len-1] */
-  mpzspv_set_sp (dft, 2*n - 1, (sp_t) 0, len - 2*n + 1, ntt_context);
+  ASSERT (ntt_context->max_ntt_size % (4 * len) == 0UL);
+  /* Fill NTT elements [0 .. n-1] with coefficients */
+  mpzspv_from_mpzv (dft, (spv_size_t) 0, S, (spv_size_t) n, ntt_context);
 
-  for (j = 0UL; j < (int) (ntt_context->sp_num); j++)
-    {
-      const spm_t spm = ntt_context->spm[j];
-      const spv_t spv = dft[j];
-      sp_t root, iw, w, weight;
-      const sp_t sp = spm->sp, mul_c = spm->mul_c;
-      spv_size_t i;
+#ifdef _OPENMP
+#pragma omp parallel
+  {
+#pragma omp for
+#endif
+    for (j = 0UL; j < (int) (ntt_context->sp_num); j++)
+      {
+        const spm_t spm = ntt_context->spm[j];
+        const spv_t spv = dft[j];
+        sp_t root, iw, w, weight;
+        const sp_t sp = spm->sp, mul_c = spm->mul_c;
+        spv_size_t i;
 
+        /* Fill NTT elements [len-n+1 .. len-1] with coefficients */
+        spv_rev (spv + len - n + 1, spv + 1, n - 1);
+        /* Zero out NTT elements [n .. len-n] */
+        spv_set_sp (spv + n, (sp_t) 0, len - 2*n + 1);
+
+#ifdef TRACE_ntt_sqr_recip
+        if (j == 0UL)
+          {
+            printf ("ntt_sqr_recip: NTT vector mod %lu\n", sp);
+            ntt_print_vec ("ntt_sqr_recip: before weighting:", spv, len);
+          }
+#endif
+
+        /* Compute the root for the weight signal, a 4*len-th primitive root 
+           of unity */
+        w = sp_pow (spm->prim_root, ntt_context->max_ntt_size / (4 * len), 
+                    sp, mul_c);
+        /* Compute iw= 1/w */
+        iw = sp_pow (spm->inv_prim_root, ntt_context->max_ntt_size / (4 * len), 
+                     sp, mul_c);
+#ifdef TRACE_ntt_sqr_recip
+        if (j == 0)
+          printf ("w = %lu ,iw = %lu\n", w, iw);
+#endif
+        ASSERT(sp_mul(w, iw, sp, mul_c) == (sp_t) 1);
+
+        /* Apply weight signal */
+        weight = w;
+        for (i = 1; i < n; i++)
+          {
+            spv[i] = sp_mul (spv[i], weight, sp, mul_c);
+            weight = sp_mul (weight, w, sp, mul_c);
+          }
+        weight = iw;
+        for (i = len - 1; i > len - n; i--)
+          {
+            spv[i] = sp_mul (spv[i], weight, sp, mul_c);
+            weight = sp_mul (weight, iw, sp, mul_c);
+          }
 #ifdef TRACE_ntt_sqr_recip
       if (j == 0UL)
-        {
-	  printf ("ntt_sqr_recip: NTT vector mod %lu\n", sp);
-	  printf ("ntt_sqr_recip: before weighting: [%lu", spv[0]);
-	  for (i = 1; i < len; i++)
-	    printf (", %lu", spv[i]);
-	  printf ("]\n");
-        }
+        ntt_print_vec ("ntt_sqr_recip: after weighting:", spv, len);
 #endif
 
-      /* Compute the root for the weight signal, a 4*len-th primitive root 
-	 of unity */
-      w = sp_pow (spm->prim_root, ntt_context->max_ntt_size / (4 * len), 
-                  sp, mul_c);
-      /* Compute the root for the un-weight signal, the reciprocal of
-         the previous w */
-      iw = sp_pow (spm->inv_prim_root, ntt_context->max_ntt_size / (4 * len), 
-                   sp, mul_c);
-#ifdef TRACE_ntt_sqr_recip
-      if (j == 0)
-        printf ("w = %lu ,iw = %lu\n", w, iw);
-#endif
-      ASSERT(sp_mul(w, iw, sp, mul_c) == (sp_t) 1);
+        /* Compute root for the transform */
+        root = sp_pow (w, (sp_t) 4, sp, mul_c);
 
-      /* Apply weight signal */
-      weight = w;
-      for (i = 1; i < len; i++)
-        {
-          spv[i] = sp_mul (spv[i], weight, sp, mul_c);
-          weight = sp_mul (weight, w, sp, mul_c);
-        }
-#ifdef TRACE_ntt_sqr_recip
-      if (j == 0UL)
-        {
-	  printf ("ntt_sqr_recip: after weighting: [%lu", spv[0]);
-	  for (i = 1; i < len; i++)
-	    printf (", %lu", spv[i]);
-	  printf ("]\n");
-        }
-#endif
-
-      /* Compute root for the transform */
-      root = sp_pow (w, (sp_t) 4, sp, mul_c);
-
-      /* Forward DFT of dft[j] */
-      spv_ntt_gfp_dif (spv, len, sp, mul_c, root);
+        /* Forward DFT of dft[j] */
+        spv_ntt_gfp_dif (spv, len, sp, mul_c, root);
 
 #if 0 && defined(TRACE_ntt_sqr_recip)
-      if (j == 0UL)
-        {
-	  printf ("ntt_sqr_recip: after forward transform: [%lu", spv[0]);
-	  for (i = 1; i < len; i++)
-	    printf (", %lu", spv[i]);
-	  printf ("]\n");
-        }
+        if (j == 0UL)
+          ntt_print_vec ("ntt_sqr_recip: after forward transform:", spv, len);
 #endif
 
-      /* Square the transformed vector point-wise */
-      spv_pwmul (spv, spv, spv, len, sp, mul_c);
+        /* Square the transformed vector point-wise */
+        spv_pwmul (spv, spv, spv, len, sp, mul_c);
       
 #if 0 && defined(TRACE_ntt_sqr_recip)
-      if (j == 0UL)
-        {
-	  printf ("ntt_sqr_recip: after point-wise squaring: [%lu", spv[0]);
-	  for (i = 1; i < len; i++)
-	    printf (", %lu", spv[i]);
-	  printf ("]\n");
-        }
+        if (j == 0UL)
+          ntt_print_vec ("ntt_sqr_recip: after point-wise squaring:", spv, len);
 #endif
 
-      /* Compute root for inverse transform */
-      root = sp_pow (iw, (sp_t) 4, sp, mul_c);
+        /* Compute root for inverse transform */
+        root = sp_pow (iw, (sp_t) 4, sp, mul_c);
 
-      /* Inverse transform of dft[j] */
-      spv_ntt_gfp_dit (spv, len, sp, mul_c, root);
+        /* Inverse transform of dft[j] */
+        spv_ntt_gfp_dit (spv, len, sp, mul_c, root);
       
 #if 0 && defined(TRACE_ntt_sqr_recip)
-      if (j == 0UL)
-        {
-	  printf ("ntt_sqr_recip: after inverse transform: [%lu", spv[0]);
-	  for (i = 1; i < len; i++)
-	    printf (", %lu", spv[i]);
-	  printf ("]\n");
-        }
+        if (j == 0UL)
+          ntt_print_vec ("ntt_sqr_recip: after inverse transform:", spv, len);
 #endif
 
-      /* Divide by transform length */
-      weight = sp - (sp - (sp_t) 1) / len; /* weight = 1/len (mod sp) */
-      for (i = 0; i < len; i++)
-	spv[i] = sp_mul (spv[i], weight, sp, mul_c);
+        /* Un-weight and divide by transform length */
+        weight = sp - (sp - (sp_t) 1) / len; /* weight = 1/len (mod sp) */
+        for (i = 0; i < 2*n-1; i++)
+          {
+            spv[i] = sp_mul (spv[i], weight, sp, mul_c);
+            weight = sp_mul (weight, iw, sp, mul_c);
+          }
 #ifdef TRACE_ntt_sqr_recip
-      if (j == 0UL)
-        {
-	  printf ("ntt_sqr_recip: after dividing by transform length: [%lu", 
-		  spv[0]);
-	  for (i = 1; i < len; i++)
-	    printf (", %lu", spv[i]);
-	  printf ("]\n");
-        }
+        if (j == 0UL)
+          ntt_print_vec ("ntt_sqr_recip: after un-weighting:", spv, len);
 #endif
 
-      /* Un-weight */
-      weight = iw;
-      for (i = 1; i < len; i++)
-        {
-          spv[i] = sp_mul (spv[i], weight, sp, mul_c);
-          weight = sp_mul (weight, iw, sp, mul_c);
-        }
-#ifdef TRACE_ntt_sqr_recip
-      if (j == 0UL)
-        {
-      printf ("ntt_sqr_recip: after un-weighting: [%lu", spv[0]);
-      for (i = 1; i < len; i++)
-        printf (", %lu", spv[i]);
-      printf ("]\n");
-        }
-#endif
+        /* Separate the coefficients of R in the wrapped-around product. */
 
-      /* Separate the coefficients of R in the wrapped-around product. */
-      /* The product h(x) = \sum_{i=0}^{d_h} h_i x^i % (x^len - a)
-	 has h_i + a*h_{i + len} at position 0 <= i <= d_h - len
-	 and h_i at position d_h - len < i < len.
-	 The coefficients h_i and h_{d_h - i} are identical.
-	 
-	 Hence for 0 <= i <= d_h - len we have 
-	 at position i:             h_i + a*h_{d_h - len - i}
-	 at position d_h - len - i: a*h_i + h_{d_h - len - i}
-	 This implies at position i = (d_h - len) / 2: (A+1) * h_i
-      */
-
-      /* Put a = w^len = sqrt(-1) in weight */
-      weight = sp_pow (w, len, sp, mul_c);
-      
-      for (i = 0; i <= (d_h - len) / 2; i++)
-        {
-          sp_t t, u;
-	  const spv_size_t i2 = d_h - len - i;
-          t = sp_mul (spv[i], weight, sp, mul_c); 
-          /* t = a*(h_i + a*h_{d_h-len-i}) */
-          t = sp_sub (t, spv[i2], sp);
-          /* t = a*(h_i + a*h_{d_h-len-i}) - (a*h_i + h_{d_h-len-i}) = 
-                 (a^2-1) h_{d_h-len-i} = -2*h_{d_h-len-i} */
-          if (t & (sp_t) 1)
-            t = (sp - t) >> 1;
-          else
-            {
-              if ((t >>= 1) != (sp_t) 0)
-                t = sp - t;
-            }
-          /* t = h_{d_h-len-i} */
-          u = t;
-          t = sp_mul (t, weight, sp, mul_c);
-          /* t = a*h_{d_h-len-i} */
-          t = sp_sub (spv[i], t, sp);
-	  /* t = h_i + a*h_{d_h-len- i} - a*h_{d_h-len-i} = h_i */
-          spv[i] = t;
-          spv[i2] = u;
-        }
+        /* Put a = w^len = sqrt(-1) in weight */
+        weight = sp_pow (iw, len, sp, mul_c);
+        
+        for (i = len - (2*n - 2); i <= len / 2; i++)
+          {
+            sp_t t, u;
+            t = sp_mul (spv[i], weight, sp, mul_c); 
+            t = sp_sub (t, spv[len - i], sp);
+            if (t & (sp_t) 1)
+              t = (sp - t) >> 1;
+            else
+              {
+                if ((t >>= 1) != (sp_t) 0)
+                  t = sp - t;
+              }
+            u = t;
+            t = sp_mul (t, weight, sp, mul_c);
+            t = sp_sub (spv[i], t, sp);
+            spv[i] = t;
+            spv[len - i] = u;
+            ASSERT(i < len / 2 || t == u);
+          }
 
 #ifdef TRACE_ntt_sqr_recip
-      if (j == 0UL)
-        {
-      printf ("ntt_sqr_recip: after un-wrapping: [%lu", spv[0]);
-      for (i = 1; i < len; i++)
-        printf (", %lu", spv[i]);
-      printf ("]\n");
-        }
+        if (j == 0UL)
+          ntt_print_vec ("ntt_sqr_recip: after un-wrapping:", spv, len);
 #endif
-
-      /* Revert the entries in spv[0 ... d_h / 2 + 1] */
-      for (i = 0; i < d_h / 4; i++)
-	{
-	  sp_t t, u;
-	  t = spv[i];
-	  u = spv[d_h / 2 - i];
-	  spv[i] = u;
-	  spv[d_h / 2 - i] = t;
-	}
-#ifdef TRACE_ntt_sqr_recip
-      if (j == 0UL)
-        {
-      printf ("ntt_sqr_recip: after mirroring: [%lu", spv[0]);
-      for (i = 1; i < len; i++)
-        printf (", %lu", spv[i]);
-      printf ("]\n");
-        }
-#endif
+      }
+#ifdef _OPENMP
     }
-
-  mpzspv_to_mpzv (dft, (spv_size_t) 0, R, d_h / 2 + 1, ntt_context);
-  for (j = 0; (spv_size_t) j < d_h / 2 + 1; j++)
+#endif
+  mpzspv_to_mpzv (dft, (spv_size_t) 0, R, 2*n - 1, ntt_context);
+  for (j = 0; (spv_size_t) j < 2*n - 1; j++)
     mpz_mod (R[j], R[j], ntt_context->modulus);
 #ifdef TRACE_ntt_sqr_recip
   gmp_printf ("ntt_sqr_recip: Output polynomial is %Zd", R[0]);
-  for (j = 1; (spv_size_t) j < d_h / 2 + 1; j++)
+  for (j = 1; (spv_size_t) j < 2*n - 1; j++)
     gmp_printf (" + %Zd * (x^%lu + x^(-%lu))", R[j], j, j);
   printf ("\n");
 #endif
