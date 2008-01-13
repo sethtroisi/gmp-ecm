@@ -94,6 +94,9 @@ Table of contents:
 4) installation
 - add a configure option --enable-shared --disable-static to link GMP
   dynamically
+- [suggested by Peter Montgomery] add the possibility to compile a "fat"
+  binary, which automatically selects the best mulredc assembly code
+  depending on the cpuid [see TODO.fat]
 
 5) bugs
 - F15: B1=99000, B2=150577181, sigma=3039152787 with ecm-6.0.1 [Bruce]
