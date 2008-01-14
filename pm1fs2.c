@@ -16,6 +16,15 @@
 #include <omp.h>
 #endif
 
+/* TODO:
+   - fix parameter selection
+   - allow choosing parameters according to -maxmem
+   - check one pass P+1 stage 2 carefully
+   - parallelize conversion mpz_t <-> NTT
+   - move functions into their proper files (i.e. NTT functions etc.)
+   - later: allow storing NTT vectors on disk
+*/
+
 /* Define TEST_ZERO_RESULT to test if any result of the multipoint
    evaluation is equal to zero. If the modulus is composite, this
    happening might indicate a problem in the evalutaion code */
@@ -1461,7 +1470,7 @@ poly_from_sets_V (listz_t F, const mpres_t Q, sets_long_t *sets,
 
 static void
 pm1_sequence_g (listz_t g_mpz, mpzspv_t g_ntt, const mpres_t b_1, 
-                const unsigned long P, const unsigned long M_param, 
+                const unsigned long P, const long M_param, 
 		const unsigned long l_param, const mpz_t m_1, const long k_2, 
 		mpmod_t modulus_param, const mpzspm_t ntt_context)
 {
@@ -1469,12 +1478,14 @@ pm1_sequence_g (listz_t g_mpz, mpzspv_t g_ntt, const mpres_t b_1,
   mpz_t t;
   unsigned long i;
   long timestart, timestop;
-  unsigned long M = M_param;
+  long M = M_param;
   unsigned long l = l_param, offset = 0UL;
   mpmod_t modulus;
   int want_output = 1;
 
   outputf (OUTPUT_VERBOSE, "Computing g_i");
+  outputf (OUTPUT_DEVVERBOSE, "\npm1_sequence_g: P = %lu, M_param = %lu, "
+           "l_param = %lu, k_2 = %lu\n", P, M_param, l_param, k_2);
 
 #ifdef _OPENMP
 #pragma omp parallel private(r, x_0, x_Mi, t, i, M, l, offset, modulus, want_output) shared(timestart, timestop)
@@ -1484,14 +1495,19 @@ pm1_sequence_g (listz_t g_mpz, mpzspv_t g_ntt, const mpres_t b_1,
     const int nr_chunks = omp_get_num_threads();
     const int thread_nr = omp_get_thread_num();
     
-    l = (l_param - 1) / nr_chunks + 1;
+    ASSERT_ALWAYS (0 <= thread_nr);
+    ASSERT_ALWAYS (thread_nr < nr_chunks);
+    l = (l_param - 1) / nr_chunks + 1; /* = ceil(l_param / nr_chunks) */
     offset = thread_nr * l;
+    outputf (OUTPUT_DEVVERBOSE, 
+             "pm1_sequence_g: thread %d has l = %lu, offset = %lu.\n", 
+             thread_nr, l, offset);
+    ASSERT_ALWAYS (l_param >= offset);
     l = MIN(l, l_param - offset);
-    ASSERT_ALWAYS (M_param >= offset);
-    M = M_param - (unsigned long) offset;
+    M = M_param - (long) offset;
     
     /* Let only the master thread print stuff */
-    want_output = (omp_get_thread_num() == 0);
+    want_output = (thread_nr == 0);
 
     if (want_output)
       outputf (OUTPUT_VERBOSE, " using %d threads", nr_chunks);
@@ -1509,14 +1525,14 @@ pm1_sequence_g (listz_t g_mpz, mpzspv_t g_ntt, const mpres_t b_1,
 
   if (want_output)
     {
-      outputf (OUTPUT_DEVVERBOSE, "sequence_g (g, b_1, P = %lu, M = %lu, "
+      outputf (OUTPUT_DEVVERBOSE, "sequence_g (g, b_1, P = %lu, M = %ld, "
 	       "l = %lu, m_1 = %Zd, k_2 = %ld, modulus)\n", P, M, l, m_1, k_2);
       if (test_verbose (OUTPUT_TRACE))
 	{ 
 	  mpres_get_z (t, b_1, modulus);
 	  outputf (OUTPUT_TRACE, "\n/* pm1_sequence_g */ N = %Zd; "
 		   "b_1 = Mod(%Zd, N); /* PARI */\n", modulus->orig_modulus, t);
-	  outputf (OUTPUT_TRACE, "/* pm1_sequence_g */ P = %lu; M = %lu; "
+	  outputf (OUTPUT_TRACE, "/* pm1_sequence_g */ P = %lu; M = %ld; "
 		   "m_1 = %Zd; /* PARI */\n", P, M, m_1);
 	  outputf (OUTPUT_TRACE, 
 		   "/* pm1_sequence_g */ r = b_1^P; /* PARI */\n");
@@ -1537,13 +1553,13 @@ pm1_sequence_g (listz_t g_mpz, mpzspv_t g_ntt, const mpres_t b_1,
   
   /* FIXME: This is a huge mess, clean up some time */
 
-  mpz_set_ui (t, M);
+  mpz_set_si (t, M);
   mpz_neg (t, t);
   mpz_mul_2exp (t, t, 1UL);
   mpz_add_ui (t, t, 1UL);
   mpres_pow (r[1], r[0], t, modulus);    /* r[1] = r^{2(-M+i)+1}, i = 0 */
-  mpz_set_ui (t, M);
-  mpz_mul_ui (t, t, M);
+  mpz_set_si (t, M);
+  mpz_mul (t, t, t);                     /* t = M^2 */
   mpres_pow (r[2], r[0], t, modulus);    /* r[2] = r^{(M-i)^2}, i = 0 */
   mpres_mul (r[0], r[0], r[0], modulus); /* r[0] = r^2 */
 
@@ -1564,7 +1580,7 @@ pm1_sequence_g (listz_t g_mpz, mpzspv_t g_ntt, const mpres_t b_1,
 	       t);
     }
   
-  mpz_set_ui (t, M);
+  mpz_set_si (t, M);
   mpres_pow (x_Mi, x_0, t, modulus); /* x_Mi = x_0^{M-i}, i = 0 */
 
   mpres_invert (x_0, x_0, modulus);  /* x_0 := x_0^{-1} now */
@@ -2289,10 +2305,6 @@ ntt_sqr_recip (mpzv_t R, const mpzv_t S, mpzspv_t dft,
   const spv_size_t len = ((spv_size_t) 2) << ceil_log2 (n);
   int j;
   
-  outputf (OUTPUT_DEVVERBOSE, 
-           "ntt_sqr_recip: called with n = %lu. len = %lu\n",
-           n, len);
-  
   if (n == 0)
     return;
 
@@ -2488,6 +2500,9 @@ ntt_gcd (mpz_t f, mpzspv_t ntt, const unsigned long ntt_offset,
   {
     const int nr_chunks = omp_get_num_threads();
     const int thread_nr = omp_get_thread_num();
+
+    ASSERT_ALWAYS (0 <= thread_nr);
+    ASSERT_ALWAYS (thread_nr < nr_chunks);
     len = (len_param - 1) / nr_chunks + 1;
     thread_offset = thread_nr * len;
     len = MIN(len, len_param - thread_offset);
@@ -2591,8 +2606,6 @@ pm1fs2 (mpz_t f, const mpres_t X, mpmod_t modulus,
   ASSERT_ALWAYS (phiP == params->s_1 * params->s_2);
   ASSERT_ALWAYS (params->s_1 < params->l);
   nr = params->l - params->s_1; /* Number of points we evaluate */
-
-  outputf (OUTPUT_TRACE, "compare(a, b, n) = if (a != b,print(\"In PARI \", n, \" line, \", a \" != \" b)); /* PARI */\n");
 
   if (make_S_1_S_2 (&S_1, &S_2, params) == ECM_ERROR)
       return ECM_ERROR;
@@ -2833,8 +2846,6 @@ pm1fs2_ntt (mpz_t f, const mpres_t X, mpmod_t modulus,
   ASSERT_ALWAYS (params->s_1 < params->l);
   nr = params->l - params->s_1; /* Number of points we evaluate */
 
-  outputf (OUTPUT_TRACE, "compare(a, b, n) = if (a != b,print(\"In PARI \", n, \" line, \", a \" != \" b)); /* PARI */\n");
-
   if (make_S_1_S_2 (&S_1, &S_2, params) == ECM_ERROR)
       return ECM_ERROR;
 
@@ -2867,7 +2878,7 @@ pm1fs2_ntt (mpz_t f, const mpres_t X, mpmod_t modulus,
   tmplen = params->s_1 + 100;
   F = init_list2 (lenF, (unsigned int) abs (modulus->bits));
   tmp = init_list2 (tmplen, (unsigned int) abs (modulus->bits));
-  /* Allocate memory for h_ntt */
+  /* Allocate memory for h_ntt. Will be used for building F */
   h_ntt = mpzspv_init_mt (params->l / 2 + 1, ntt_context);
 
   mpres_get_z (mt, X, modulus); /* mpz_t copy of X for printing */
@@ -3067,12 +3078,13 @@ gfp_ext_sqr_norm1 (mpres_t r_0, mpres_t r_1, const mpres_t a_0,
 }
 
 
-/* Raise (a0 + a1*sqrt(Delta)) to the power e. (a0 + a1*sqrt(Delta)) is 
-   assumed to have norm 1, i.e. a0^2 - a1^2*Delta == 1. The result is 
-   (r0 * r1*sqrt(Delta)). a0, a1, r0 and r1 must not overlap */
+/* Raise (a0 + a1*sqrt(Delta)) to the power e which is a signed long int. 
+   (a0 + a1*sqrt(Delta)) is assumed to have norm 1, i.e. 
+   a0^2 - a1^2*Delta == 1. The result is (r0 * r1*sqrt(Delta)). 
+   a0, a1, r0 and r1 must not overlap */
 
 static void 
-gfp_ext_pow_norm1_ul (mpres_t r0, mpres_t r1, const mpres_t a0, 
+gfp_ext_pow_norm1_sl (mpres_t r0, mpres_t r1, const mpres_t a0, 
                       const mpres_t a1, const long e, const mpres_t Delta, 
                       mpmod_t modulus, unsigned long tmplen, mpres_t *tmp)
 {
@@ -3116,10 +3128,10 @@ gfp_ext_pow_norm1_ul (mpres_t r0, mpres_t r1, const mpres_t a0,
       mpz_t t;
       mpz_init (t);
       mpres_get_z (t, Delta, modulus);
-      outputf (OUTPUT_TRACE, "/* gfp_ext_pow_norm1_ul */ w = quadgen (4*%Zd); "
+      outputf (OUTPUT_TRACE, "/* gfp_ext_pow_norm1_sl */ w = quadgen (4*%Zd); "
                "N = %Zd; /* PARI */\n", t, modulus->orig_modulus);
       mpz_clear (t);
-      outputf (OUTPUT_TRACE, "/* gfp_ext_pow_norm1_ul */ (");
+      outputf (OUTPUT_TRACE, "/* gfp_ext_pow_norm1_sl */ (");
       gfp_ext_print (a0, a1, modulus, OUTPUT_TRACE);
       outputf (OUTPUT_TRACE, ")^(%ld) == ", e);
       gfp_ext_print (r0, r1, modulus, OUTPUT_TRACE);
@@ -3210,9 +3222,9 @@ gfp_ext_rn2 (mpres_t *r_x, mpres_t *r_y, const mpres_t a_x, const mpres_t a_y,
 
   /* Compute r[0] = a^(k^2). We do it by two exponentiations by k and use 
      v[0] and v[1] as temp storage */
-  gfp_ext_pow_norm1_ul (v[0], v[1], a_x, a_y, k, Delta, modulus, newtmplen, 
+  gfp_ext_pow_norm1_sl (v[0], v[1], a_x, a_y, k, Delta, modulus, newtmplen, 
 		     newtmp);
-  gfp_ext_pow_norm1_ul (r_x[0], r_y[0], v[0], v[1], k, Delta, modulus, 
+  gfp_ext_pow_norm1_sl (r_x[0], r_y[0], v[0], v[1], k, Delta, modulus, 
 		     newtmplen, newtmp);
   if (pari)
     gmp_printf ("/* In gfp_ext_rn2 */ a^(%ld^2) %% N == (%Zd + %Zd * w) %% N "
@@ -3331,8 +3343,11 @@ pp1_sequence_g (listz_t g_x, listz_t g_y, mpzspv_t g_x_ntt, mpzspv_t g_y_ntt,
     const int nr_chunks = omp_get_num_threads();
     const int thread_nr = omp_get_thread_num();
 
+    ASSERT_ALWAYS (0 <= thread_nr);
+    ASSERT_ALWAYS (thread_nr < nr_chunks);
     l = (l_param - 1) / nr_chunks + 1;
     offset = thread_nr * l;
+    ASSERT_ALWAYS (M_param >= (long) offset);
     l = MIN(l, l_param - offset);
     M = M_param - (long) offset;
 
@@ -3378,7 +3393,7 @@ pp1_sequence_g (listz_t g_x, listz_t g_y, mpzspv_t g_x_ntt, mpzspv_t g_y_ntt,
       }
     
     /* Compute r */
-    gfp_ext_pow_norm1_ul (r_x, r_y, b1_x, b1_y, P, Delta, modulus, 
+    gfp_ext_pow_norm1_sl (r_x, r_y, b1_x, b1_y, P, Delta, modulus, 
 			  tmplen, tmp);
     if (want_output && test_verbose (OUTPUT_TRACE))
       {
@@ -3405,11 +3420,11 @@ pp1_sequence_g (listz_t g_x, listz_t g_y, mpzspv_t g_x_ntt, mpzspv_t g_y_ntt,
     
     /* Compute g[1] = r1[0] = x0^M * r^(M^2) = (x0 * r^M)^M.
        We use v[0,1] as temporary storage */
-    gfp_ext_pow_norm1_ul (v[0], v[1], r_x, r_y, M, Delta, modulus, 
+    gfp_ext_pow_norm1_sl (v[0], v[1], r_x, r_y, M, Delta, modulus, 
 			  tmplen, tmp); /* v[0,1] = r^M */
     gfp_ext_mul (v[0], v[1], v[0], v[1], x0_x, x0_y, Delta, modulus, 
 		 tmplen, tmp); /* v[0,1] = r^M * x_0 */
-    gfp_ext_pow_norm1_ul (r1_x[0], r1_y[0], v[0], v[1], M, Delta, modulus, 
+    gfp_ext_pow_norm1_sl (r1_x[0], r1_y[0], v[0], v[1], M, Delta, modulus, 
 			  tmplen, tmp); /* r1[0] = (r^M * x_0)^M */
     if (g_x != NULL)
       mpres_get_z (g_x[offset], r1_x[0], modulus);
@@ -3429,11 +3444,11 @@ pp1_sequence_g (listz_t g_x, listz_t g_y, mpzspv_t g_x_ntt, mpzspv_t g_y_ntt,
     
     /* Compute g[1] = r1[1] = x0^(M-1) * r^((M-1)^2) = (x0 * r^(M-1))^(M-1). 
        We use v[0,1] as temporary storage. FIXME: simplify, reusing g_0 */
-    gfp_ext_pow_norm1_ul (v[0], v[1], r_x, r_y, M - 1, Delta, modulus, 
+    gfp_ext_pow_norm1_sl (v[0], v[1], r_x, r_y, M - 1, Delta, modulus, 
 			  tmplen, tmp);
     gfp_ext_mul (v[0], v[1], v[0], v[1], x0_x, x0_y, Delta, modulus, 
 		 tmplen, tmp);
-    gfp_ext_pow_norm1_ul (r1_x[1], r1_y[1], v[0], v[1], M - 1, Delta, 
+    gfp_ext_pow_norm1_sl (r1_x[1], r1_y[1], v[0], v[1], M - 1, Delta, 
 			  modulus, tmplen, tmp);
     if (g_x != NULL)
       mpres_get_z (g_x[offset + 1], r1_x[1], modulus);
@@ -3454,7 +3469,7 @@ pp1_sequence_g (listz_t g_x, listz_t g_y, mpzspv_t g_x_ntt, mpzspv_t g_y_ntt,
     /* x0 := $x_0 * r^{2M - 3}$ */
     /* We don't need x0 after this so we overwrite it. We use v[0,1] as 
        temp storage for $r^{2M - 3}$. */
-    gfp_ext_pow_norm1_ul (v[0], v[1], r_x, r_y, 2UL*M - 3UL, Delta, modulus,
+    gfp_ext_pow_norm1_sl (v[0], v[1], r_x, r_y, 2UL*M - 3UL, Delta, modulus,
 			  tmplen, tmp);
     gfp_ext_mul (x0_x, x0_y, x0_x, x0_y, v[0], v[1], Delta, modulus,
 		 tmplen, tmp);
@@ -3619,15 +3634,15 @@ pp1_sequence_h (listz_t h_x, listz_t h_y, mpzspv_t h_x_ntt, mpzspv_t h_y_ntt,
   ASSERT (origtmplen >= 13UL);
 
   /* Compute rn = b_1^{-P} */
-  gfp_ext_pow_norm1_ul (*rn_x, *rn_y, b1_x, b1_y, P, Delta, modulus, newtmplen,
+  gfp_ext_pow_norm1_sl (*rn_x, *rn_y, b1_x, b1_y, P, Delta, modulus, newtmplen,
 			newtmp);
   mpres_neg (*rn_y, *rn_y, modulus);
 
   /* Compute s[0] = rn^(k^2) = r^(-k^2). We do it by two exponentiations by 
      k and use v[0] and v[1] as temp storage */
-  gfp_ext_pow_norm1_ul (v[0], v[1], *rn_x, *rn_y, k, Delta, modulus, 
+  gfp_ext_pow_norm1_sl (v[0], v[1], *rn_x, *rn_y, k, Delta, modulus, 
 			newtmplen, newtmp);
-  gfp_ext_pow_norm1_ul (s_x[0], s_y[0], v[0], v[1], k, Delta, modulus, 
+  gfp_ext_pow_norm1_sl (s_x[0], s_y[0], v[0], v[1], k, Delta, modulus, 
 			newtmplen, newtmp);
   if (test_verbose (OUTPUT_TRACE))
     {
@@ -3793,9 +3808,6 @@ pp1fs2 (mpz_t f, const mpres_t X, mpmod_t modulus,
   ASSERT_ALWAYS (eulerphi (params->P) == params->s_1 * params->s_2);
   ASSERT_ALWAYS (params->s_1 < params->l);
   nr = params->l - params->s_1; /* Number of points we evaluate */
-
-  outputf (OUTPUT_TRACE, "compare(a, b, n) = if (a != b,print(\"In PARI \", "
-	   "n, \" line, \", a \" != \" b)); /* PARI */\n");
 
   if (make_S_1_S_2 (&S_1, &S_2, params) == ECM_ERROR)
       return ECM_ERROR;
@@ -4021,9 +4033,6 @@ pp1fs2_ntt (mpz_t f, const mpres_t X, mpmod_t modulus,
   ASSERT_ALWAYS (params->s_1 < params->l);
   nr = params->l - params->s_1; /* Number of points we evaluate */
 
-  outputf (OUTPUT_TRACE, "compare(a, b, n) = if (a != b,print(\"In PARI \", "
-	   "n, \" line, \", a \" != \" b)); /* PARI */\n");
-
   if (make_S_1_S_2 (&S_1, &S_2, params) == ECM_ERROR)
       return ECM_ERROR;
 
@@ -4047,7 +4056,7 @@ pp1fs2_ntt (mpz_t f, const mpres_t X, mpmod_t modulus,
   tmplen = 2UL * params->l + 20;
   outputf (OUTPUT_DEVVERBOSE, "tmplen = %lu\n", tmplen);
   tmp = init_list2 (tmplen, (unsigned int) abs (modulus->bits));
-  /* Allocate memory for h_ntt */
+  /* Allocate memory for h_ntt. Will be used for building F */
   h_x_ntt = mpzspv_init_mt (params->l / 2 + 1, ntt_context);
 
   if (test_verbose (OUTPUT_TRACE))
@@ -4107,10 +4116,8 @@ pp1fs2_ntt (mpz_t f, const mpres_t X, mpmod_t modulus,
   /* We don't need F(x) any more */
   clear_list (F, lenF);
 
-  /* If we use NTT, compute the forward transform of h and store the distinct
-     coefficients in h_ntt */
-
-  /* Compute forward transform of h */
+  /* compute the forward transform of h and store the distinct coefficients 
+     in h_ntt */
   g_x_ntt = mpzspv_init_mt (params->l, ntt_context);
   if (twopass)
     {
@@ -4172,14 +4179,10 @@ pp1fs2_ntt (mpz_t f, const mpres_t X, mpmod_t modulus,
 	}
       else
 	{
-	  /* Currently does not work */
-	  abort();
-	  
 	  pp1_sequence_g (NULL, NULL, g_x_ntt, g_y_ntt, b1_x, b1_y, params->P, 
 			  Delta, M, params->l, params->m_1, S_2->elem[l], 
 			  modulus, ntt_context);
 
-	  
 	  outputf (OUTPUT_VERBOSE, "Computing forward NTT of g_x");
 	  timestart = cputime ();
 	  mpzspv_to_ntt (g_x_ntt, (spv_size_t) 0, (spv_size_t) params->l, 
