@@ -69,7 +69,7 @@ mpzspm_init (spv_size_t max_len, mpz_t modulus)
   
   /* find primes congruent to 1 mod max_len so we can do
    * a ntt of size max_len */
-  p = 1;
+  p = (SP_MAX / (sp_t) max_len) * (sp_t) max_len + (sp_t) 1;
   do
     {
       do
