@@ -991,7 +991,7 @@ mpres_ui_pow (mpres_t R, const unsigned int BASE, const mpres_t EXP,
 
 /* We use here the algorithm described in "Fast Modular Reduction" from
    Hasenplaugh, Gaubatz and Gobal, Arith'18, 2007: assuming N has n limbs,
-   we have precomputed C = B^(n + ceil(n/2)) mod N */
+   we have precomputed C = B^(n + ceil(n/2)) mod N. */
 void
 mpres_mpz_mod (mpres_t R, mpz_t T, mpz_t N, mpz_t C)
 {
@@ -1002,19 +1002,29 @@ mpres_mpz_mod (mpres_t R, mpz_t T, mpz_t N, mpz_t C)
   if (t > m)
     {
       size_t c = mpz_size (C);
+      size_t h, l;
       mp_ptr rp;
       mp_ptr tp = PTR(T);
 
-      mpz_realloc (R, c + (t - m));
+      /* Warning: we might have t > 2n. In that case we reduce
+	 {tp+l+m, t-(m+l)} where l = t-2n. */
+      l = (t > 2 * n) ? t - 2 * n : 0;
+
+      tp += l;
+      h = t - (m + l); /* since t-l <= 2n and m = n + ceil(n/2),
+			  we have h <= n - ceil(n/2) = floor(n/2) */
+      mpz_realloc (R, c + h);
       rp = PTR(R);
-      if (c > t - m)
-	mpn_mul (rp, PTR(C), c, tp + m, t - m);
+      if (c > h)
+	mpn_mul (rp, PTR(C), c, tp + m, h);
       else
-	mpn_mul (rp, tp + m, t - m, PTR(C), c);
-      /* now add to {tp, m}: we should have c <= n and t - m <= n/2,
-	 thus c + (t - m) <= m */
-      tp[m] = mpn_add (tp, tp, m, rp, c + (t - m));
-      m += tp[m];
+	mpn_mul (rp, tp + m, h, PTR(C), c);
+      /* now add {rp, c+h} to {tp, m}: we have c <= n and h <= n/2,
+	 thus c + h <= m */
+      if (c + h > m) abort();
+      tp[m] = mpn_add (tp, tp, m, rp, c + h);
+      m += l + tp[m];
+      tp -= l; /* put back the low l limbs */
       MPN_NORMALIZE(tp, m);
       SIZ(T) = (SIZ(T) > 0) ? m : -m;
     }
