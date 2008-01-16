@@ -1193,7 +1193,7 @@ ecm_findmatch (const unsigned long j, root_params_t *root_params,
            "f(i*%lu)*X = f(%lu*%lu)*X\n", root_params->d1, 
            j, root_params->d2);
   
-  mpmod_init (modulus, p, 0);
+  mpmod_init (modulus, p, ECM_MOD_DEFAULT);
   mpz_init (s);
   mpz_init (t);
   mpres_init (u, modulus);

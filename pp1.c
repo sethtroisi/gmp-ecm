@@ -785,19 +785,7 @@ pp1 (mpz_t f, mpz_t p, mpz_t n, mpz_t go, double *B1done, double B1,
   if (mpz_sgn (B2min) < 0)
     mpz_set_d (B2min, B1);
 
-  if (repr == ECM_MOD_MPZ)
-    mpmod_init_MPZ (modulus, n);
-  else   if (repr == ECM_MOD_MODMULN)
-    mpmod_init_MODMULN (modulus, n);
-  else if (repr == ECM_MOD_REDC)
-    mpmod_init_REDC (modulus, n);
-  else if (abs (repr) > 16)
-    {
-      if (mpmod_init_BASE2 (modulus, repr, n) == ECM_ERROR)
-        return ECM_ERROR;
-    }
-  else /* automatic choice */
-    mpmod_init (modulus, n, repr);
+  mpmod_init (modulus, n, repr);
 
   if (use_ntt)
     po2 = 1;
