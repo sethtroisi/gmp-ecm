@@ -852,7 +852,7 @@ ecm (mpz_t f, mpz_t x, mpz_t sigma, mpz_t n, mpz_t go, double *B1done,
   if (repr != ECM_MOD_NOBASE2)
     base2 = (abs (repr) >= 16) ? repr : isbase2 (n, BASE2_THRESHOLD);
 
-  /* For for a Fermat number (base2 a positive power of 2) */
+  /* For a Fermat number (base2 a positive power of 2) */
   for (Fermat = base2; Fermat > 0 && (Fermat & 1) == 0; Fermat >>= 1);
   if (Fermat == 1) 
     {
@@ -862,19 +862,8 @@ ecm (mpz_t f, mpz_t x, mpz_t sigma, mpz_t n, mpz_t go, double *B1done,
   else
       Fermat = 0;
 
-  if (base2)
-    {
-      if (mpmod_init_BASE2 (modulus, base2, n) == ECM_ERROR)
-        return ECM_ERROR;
-    }
-  else if (repr == ECM_MOD_MPZ)
-    mpmod_init_MPZ (modulus, n);
-  else if (repr == ECM_MOD_MODMULN)
-    mpmod_init_MODMULN (modulus, n);
-  else if (repr == ECM_MOD_REDC)
-    mpmod_init_REDC (modulus, n);
-  else /* automatic choice of general reduction method */
-    mpmod_init (modulus, n, -1);
+  if (mpmod_init (modulus, n, repr) != 0)
+    return ECM_ERROR;
 
   MEMORY_TAG;
   mpres_init (P.x, modulus);

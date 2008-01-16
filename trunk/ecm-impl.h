@@ -300,10 +300,10 @@ typedef __polyz_struct polyz_t[1];
 
 typedef struct 
 {
-  int repr;           /* 0: plain modulus, possibly normalized
-                         1: base 2 number
-                         2: MODMULN
-                         3: REDC representation */
+  int repr;           /* ECM_MOD_MPZ: plain modulus, possibly normalized
+                         ECM_MOD_BASE2: base 2 number
+                         ECM_MOD_MODMULN: MODMULN
+                         ECM_MOD_REDC: REDC representation */
   int bits;           /* in case of a base 2 number, 2^k[+-]1, bits = [+-]k
                          in case of MODMULN or REDC representation, nr. of 
                          bits b so that 2^b > orig_modulus and 
@@ -313,8 +313,11 @@ typedef struct
                          If repr != 1, undefined */
   mp_limb_t Nprim;    /* For MODMULN */
   mpz_t orig_modulus; /* The original modulus */
-  mpz_t aux_modulus;  /* The auxiliary modulus value (i.e. normalized 
-                         modulus, or -1/N (mod 2^bits) for REDC */
+  mpz_t aux_modulus;  /* Used only for MPZ and REDC:
+			 - the auxiliary modulus value (i.e. normalized 
+                           modulus, or -1/N (mod 2^bits) for REDC,
+                         - B^(n + ceil(n/2)) mod N for MPZ,
+  			   where B = 2^GMP_NUMB_BITS */
   mpz_t multiple;     /* The smallest multiple of N that is larger or
 			 equal to 2^bits for REDC/MODMULN */
   mpz_t R2, R3;       /* For MODMULN and REDC, R^2 and R^3 (mod orig_modulus), 
@@ -536,7 +539,7 @@ unsigned int ks_wrapmul (listz_t, unsigned int, listz_t, unsigned int,
 #define isbase2 __ECM(isbase2)
 int isbase2 (const mpz_t, const double);
 #define mpmod_init __ECM(mpmod_init)
-void mpmod_init (mpmod_t, const mpz_t, const int);
+int mpmod_init (mpmod_t, const mpz_t, int);
 #define mpmod_init_MPZ __ECM(mpmod_init_MPZ)
 void mpmod_init_MPZ (mpmod_t, const mpz_t);
 #define mpmod_init_BASE2 __ECM(mpmod_init_BASE2)
