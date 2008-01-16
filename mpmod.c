@@ -474,35 +474,61 @@ ecm_mulredc_basecase (mpres_t R, const mpres_t S1, const mpres_t S2,
 }
 
 
-/* don't use base2 if repr == -1, i.e. -nobase2 */
-void 
-mpmod_init (mpmod_t modulus, const mpz_t N, const int repr)
+/* If the user asked for a particular representation, always use it.
+   If repr = ECM_MOD_DEFAULT, use the thresholds.
+   Don't use base2 if repr = ECM_MOD_NOBASE2.
+   If a value is <= -16 or >= 16, it is a base2 exponent.
+   Return a non-zero value if an error occurred.
+*/
+int
+mpmod_init (mpmod_t modulus, const mpz_t N, int repr)
 {
-  int base2;
+  int base2, r = 0;
 
-  if ((repr != -1) && (base2 = isbase2 (N, BASE2_THRESHOLD)))
+  switch (repr)
     {
-      int r;
-      r = mpmod_init_BASE2 (modulus, base2, N);
-      ASSERT (r == 0); /* error should not happen if isbase2 is correct */
+    case ECM_MOD_DEFAULT:
+      if (base2 = isbase2 (N, BASE2_THRESHOLD))
+	{
+	  repr = ECM_MOD_BASE2;
+	  break;
+	}
+      /* else go through */
+    case ECM_MOD_NOBASE2:
+      if (mpz_size (N) < MPZMOD_THRESHOLD)
+	repr = ECM_MOD_MODMULN;
+      else if (mpz_size (N) < REDC_THRESHOLD)
+        repr = ECM_MOD_MPZ;
+      else
+	repr = ECM_MOD_REDC;
     }
-  else if (mpz_size (N) < MPZMOD_THRESHOLD)
+
+  /* now repr is {ECM_MOD_BASE2, ECM_MOD_MODMULN, ECM_MOD_MPZ, ECM_MOD_REDC} */
+
+  switch (repr)
     {
-      outputf (OUTPUT_VERBOSE, "Using MODMULN\n");
-      mpmod_init_MODMULN (modulus, N);
-    }
-  else if (mpz_size (N) < REDC_THRESHOLD)
-    {
+    case ECM_MOD_MPZ:
       outputf (OUTPUT_VERBOSE, "Using mpz_mod\n");
       mpmod_init_MPZ (modulus, N);
-    }
-  else
-    {
+      break;
+    case ECM_MOD_MODMULN:
+      outputf (OUTPUT_VERBOSE, "Using MODMULN\n");
+      mpmod_init_MODMULN (modulus, N);
+      break;
+    case ECM_MOD_REDC:
       outputf (OUTPUT_VERBOSE, "Using REDC\n");
       mpmod_init_REDC (modulus, N);
+      break;
+    default: /* base2 case: either repr=ECM_MOD_BASE2, and base2 was
+		determined above, or |repr| >= 16, and base2 = repr */
+      if (repr != ECM_MOD_BASE2)
+	base2 = repr;
+      r = mpmod_init_BASE2 (modulus, base2, N);
+      ASSERT (r == 0); /* error should not happen if isbase2 is correct */
+      break;
     }
   
-  return;
+  return r;
 }
 
 void
@@ -515,13 +541,21 @@ mpres_clear (mpres_t a, ATTRIBUTE_UNUSED const mpmod_t modulus)
 void 
 mpmod_init_MPZ (mpmod_t modulus, const mpz_t N)
 {
+  size_t n;
+
   mpz_init_set (modulus->orig_modulus, N);
   modulus->repr = ECM_MOD_MPZ;
   
-  modulus->bits = mpz_size (N) * __GMP_BITS_PER_MP_LIMB; /* Number of bits,
-                                                     rounded up to full limb */
+  n = mpz_size (N); /* number of limbs of N */
+  modulus->bits = n * __GMP_BITS_PER_MP_LIMB; /* Number of bits, 
+						 rounded up to full limb */
   MPZ_INIT2 (modulus->temp1, 2 * modulus->bits + __GMP_BITS_PER_MP_LIMB);
   MPZ_INIT2 (modulus->temp2, modulus->bits);
+  mpz_init_set_ui (modulus->aux_modulus, 1);
+  /* we precompute B^(n + ceil(n/2)) mod N, where B=2^GMP_NUMB_BITS */
+  mpz_mul_2exp (modulus->aux_modulus, modulus->aux_modulus,
+		(n + (n + 1) / 2) * GMP_NUMB_BITS);
+  mpz_mod (modulus->aux_modulus, modulus->aux_modulus, N);
 
   return;
 }
@@ -684,13 +718,13 @@ mpmod_clear (mpmod_t modulus)
   mpz_clear (modulus->orig_modulus);
   mpz_clear (modulus->temp1);
   mpz_clear (modulus->temp2);
+  if (modulus->repr == ECM_MOD_REDC || modulus->repr == ECM_MOD_MPZ)
+    mpz_clear (modulus->aux_modulus);
   if (modulus->repr == ECM_MOD_MODMULN || modulus->repr == ECM_MOD_REDC)
     {
       mpz_clear (modulus->R2);
       mpz_clear (modulus->R3);
       mpz_clear (modulus->multiple);
-      if (modulus->repr == ECM_MOD_REDC)
-        mpz_clear (modulus->aux_modulus);
     }
 #if defined(HAVE_GWNUM) && !defined (TUNE)
   if (modulus->Fermat >= GWTHRESHOLD)
@@ -955,6 +989,39 @@ mpres_ui_pow (mpres_t R, const unsigned int BASE, const mpres_t EXP,
   ASSERT_NORMALIZED (R);
 }
 
+/* We use here the algorithm described in "Fast Modular Reduction" from
+   Hasenplaugh, Gaubatz and Gobal, Arith'18, 2007: assuming N has n limbs,
+   we have precomputed C = B^(n + ceil(n/2)) mod N */
+void
+mpres_mpz_mod (mpres_t R, mpz_t T, mpz_t N, mpz_t C)
+{
+  size_t n = mpz_size (N);
+  size_t t = mpz_size (T);
+  size_t m = n + (n + 1) / 2; /* n + ceil(n/2) */
+
+  if (t > m)
+    {
+      size_t c = mpz_size (C);
+      mp_ptr rp;
+      mp_ptr tp = PTR(T);
+
+      mpz_realloc (R, c + (t - m));
+      rp = PTR(R);
+      if (c > t - m)
+	mpn_mul (rp, PTR(C), c, tp + m, t - m);
+      else
+	mpn_mul (rp, tp + m, t - m, PTR(C), c);
+      /* now add to {tp, m}: we should have c <= n and t - m <= n/2,
+	 thus c + (t - m) <= m */
+      tp[m] = mpn_add (tp, tp, m, rp, c + (t - m));
+      m += tp[m];
+      MPN_NORMALIZE(tp, m);
+      SIZ(T) = (SIZ(T) > 0) ? m : -m;
+    }
+  
+  mpz_mod (R, T, N);
+}
+
 void 
 mpres_mul (mpres_t R, const mpres_t S1, const mpres_t S2, mpmod_t modulus)
 {
@@ -1037,15 +1104,6 @@ mpres_mul (mpres_t R, const mpres_t S1, const mpres_t S2, mpmod_t modulus)
   switch (modulus->repr)
     {
     case ECM_MOD_BASE2:
-#if 0
-      /* Check that the inputs are properly reduced */
-      if  (mpz_sizeinbase (S1, 2) > abs(modulus->bits))
-        outputf (OUTPUT_ERROR, "mpers_mul: S1 has %ld bits\n", 
-                 (long) mpz_sizeinbase (S1, 2));
-      if  (mpz_sizeinbase (S2, 2) > abs(modulus->bits))
-        outputf (OUTPUT_ERROR, "mpers_mul: S2 has %ld bits\n", 
-                 (long) mpz_sizeinbase (S2, 2));
-#endif
       base2mod (R, modulus->temp1, modulus->temp1, modulus);
       break;
     case ECM_MOD_MODMULN:
@@ -1055,8 +1113,9 @@ mpres_mul (mpres_t R, const mpres_t S1, const mpres_t S2, mpmod_t modulus)
     case ECM_MOD_REDC:
       REDC (R, modulus->temp1, modulus->temp2, modulus);
       break;
-    default:
-      mpz_mod (R, modulus->temp1, modulus->orig_modulus);
+    default: /* case ECM_MOD_MPZ */
+      mpres_mpz_mod (R, modulus->temp1, modulus->orig_modulus,
+		     modulus->aux_modulus);
       break;
     }
   ASSERT_NORMALIZED (R);

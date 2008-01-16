@@ -68,6 +68,7 @@ typedef __ecm_param_struct ecm_params[1];
 #define ECM_MOD_BASE2 2
 #define ECM_MOD_MODMULN 3
 #define ECM_MOD_REDC 4
+/* values <= -16 or >= 16 have a special meaning */
 
 int ecm_factor (mpz_t, mpz_t, double, ecm_params);
 void ecm_init (ecm_params);

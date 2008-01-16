@@ -198,9 +198,9 @@ usage (void)
     printf ("  -q           quiet mode\n");
     printf ("  -v           verbose mode\n");
     printf ("  -timestamp   print a time stamp with each number\n");
-    printf ("  -mpzmod      use GMP's mpz_mod for mod reduction\n");
-    printf ("  -modmuln     use Montgomery's MODMULN for mod reduction\n");
-    printf ("  -redc        use Montgomery's REDC for mod reduction\n");
+    printf ("  -mpzmod      use GMP's mpz_mod for modular reduction\n");
+    printf ("  -modmuln     use Montgomery's MODMULN for modular reduction\n");
+    printf ("  -redc        use Montgomery's REDC for modular reduction\n");
     printf ("  -nobase2     disable special base-2 code\n");
     printf ("  -base2 n     force base 2 mode with 2^n+1 (n>0) or 2^|n|-1 (n<0)\n");
     printf ("  -no-ntt      disable NTT polynomial routines in stage 2\n");
