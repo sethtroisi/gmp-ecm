@@ -999,7 +999,7 @@ mpres_mpz_mod (mpres_t R, mpz_t T, mpz_t N, mpz_t C)
   size_t t = mpz_size (T);
   size_t m = n + (n + 1) / 2; /* n + ceil(n/2) */
 
-  if (t > m)
+  if (t > m && n > 1) /* if n=1, then m=2, thus h=0 */
     {
       size_t c = mpz_size (C);
       size_t h, l;
@@ -1012,7 +1012,10 @@ mpres_mpz_mod (mpres_t R, mpz_t T, mpz_t N, mpz_t C)
 
       tp += l;
       h = t - (m + l); /* since t-l <= 2n and m = n + ceil(n/2),
-			  we have h <= n - ceil(n/2) = floor(n/2) */
+			  we have h <= n - ceil(n/2) = floor(n/2).
+                          On the other hand, if l=0 we have h = t-m > 0;
+                          if l>0, then l=t-2n, thus h=2n-m = floor(n/2) > 0
+                          since n > 1. */
       mpz_realloc (R, c + h);
       rp = PTR(R);
       if (c > h)
