@@ -19,7 +19,7 @@
 /* TODO:
    - fix parameter selection
    - allow choosing parameters according to -maxmem
-   - check one pass P+1 stage 2 carefully
+   - check one pass P+1 stage 2 carefully, allow its use
    - parallelize conversion mpz_t <-> NTT
    - move functions into their proper files (i.e. NTT functions etc.)
    - later: allow storing NTT vectors on disk
@@ -147,7 +147,7 @@ int
 test_P (const mpz_t B2min, const mpz_t B2, mpz_t m_1, const unsigned long P, 
 	const unsigned long nr, mpz_t effB2min, mpz_t effB2)
 {
-  unsigned long m = maxS(P);
+  unsigned long m = maxS (P);
   /* We need B2min >= 2 * max(S_1 + S_2) + (2*m_1 - 1)*P + 1, or
      B2min - 2 * max(S_1 + S_2) - 1 >= (2*m_1)*P - P, or
      (B2min - 2*max(S_1 + S_2) + P - 1)/(2P) >= m_1
@@ -291,23 +291,29 @@ choose_P (const mpz_t B2min, const mpz_t B2, const unsigned long lmax,
        2*max(S_2) + (2*m_1 - 1)*P - 2*min(S_1).
      The smallest value at the high end not covered will be
        2*min(S_2) + (2*m_1 + 2*nr + 1)*P - 2*max(S_1).
-     Assume S_1 and S_2 are symmetric around 0, so i.e. max(S_1) = -min(S_1).
+     Assume S_1 and S_2 are symmetric around 0, so that max(S_1) = -min(S_1).
      Then the largest ... is:
        2*(max(S_1) + max(S_2)) + (2*m_1 - 1)*P
      The smallest ... is:
        -2*(max(S_1) + max(S_2)) + (2*m_1 + 2*nr + 1)*P
+     The effective B2min = 2*(max(S_1) + max(S_2)) + (2*m_1 - 1)*P + 1
+     The effective B2max = -2*(max(S_1) + max(S_2)) + (2*m_1 + 2*nr + 1)*P - 1
 
-     Then the difference is
-       -4*(max(S_1) + max(S_2)) + 2P*(nr + 1)
+     Then the difference effB2max - effB2min =
+       -4*(max(S_1) + max(S_2)) + 2P*(nr + 1) - 2
 
-     max(S_1) + max(S_2) = max(S_1 + S_2) <= P-1, let's use P tho.
-     Then highest not covered is at least P*(2*m_1 +3), so we need
-     P*(2*m_1 +3) < B2min.
-     Smallest not covered is at most P*(2*m_1 + 2*nr - 3), so we need
-     B2 < P*(2*m_1 + 2*nr - 3).
-     Subtracting both yields
-     2*P*(nr - 3) > B2 - B2min
-     
+     max(S_1) + max(S_2) = max(S_1 + S_2) >= (P-1)/2.
+     Since we allow only primes <= 13 in P, there are at most 5 distinct 
+     primes so max(S_1) + max(S_2) = max(S_1 + S_2) <= 5(P-1).
+
+     Thus
+     2*m_1*P <= effB2min <= (2*m_1 + 9)*P
+     (2*m_1 + 2*nr)*P >= effB2max >= (2*m_1 + 2*nr - 9)*P
+
+     We obviously require B2max - B2min <= 2*nr*P
+     Since nr < lmax, so B2max - B2min <= 2*lmax*P or
+     P >= ceil((B2max - B2min)/(2*lmax))
+
      Hence we are looking for an odd P with s_1 * s_2 = eulerphi(P) so that
      s_1 ~= lmax / 2 and the whole stage 2 interval is covered. s_2 should 
      be small, as long as s_1 is small enough.
@@ -329,10 +335,8 @@ choose_P (const mpz_t B2min, const mpz_t B2, const unsigned long lmax,
   mpz_init (effB2);
 
   /* Find the smallest P that can cover the B2 - B2min interval */
-  /* We have nr < lmax, so we want 2*P*(lmax - 3) > B2l,
-     or P >= B2l / (2*lmax - 6) */
   mpz_sub (B2l, B2, B2min);
-  mpz_tdiv_q_ui (t, B2l, (lmax > 3UL) ? 2UL * lmax - 6UL : 1UL);
+  mpz_cdiv_q_ui (t, B2l, 2UL*lmax);
   outputf (OUTPUT_DEVVERBOSE, "choose_P: We need P >= %Zd\n", t);
   for (i = 0; i < Pvalues_len; i++)
     if (mpz_cmp_ui (t, Pvalues[i]) <= 0)
@@ -2323,7 +2327,9 @@ ntt_sqr_recip (mpzv_t R, const mpzv_t S, mpzspv_t dft,
   printf ("\n");
 #endif
   
-  ASSERT (ntt_context->max_ntt_size % (4 * len) == 0UL);
+  ASSERT(ntt_context->max_ntt_size % 3UL == 0UL);
+  ASSERT(len % 3UL != 0UL);
+  ASSERT(ntt_context->max_ntt_size % len == 0UL);
   /* Fill NTT elements [0 .. n-1] with coefficients */
   mpzspv_from_mpzv (dft, (spv_size_t) 0, S, (spv_size_t) n, ntt_context);
 
@@ -2336,12 +2342,10 @@ ntt_sqr_recip (mpzv_t R, const mpzv_t S, mpzspv_t dft,
       {
         const spm_t spm = ntt_context->spm[j];
         const spv_t spv = dft[j];
-        sp_t root, iw, w, weight;
+        sp_t root, w1, w2, invlen;
         const sp_t sp = spm->sp, mul_c = spm->mul_c;
         spv_size_t i;
 
-        /* Fill NTT elements [len-n+1 .. len-1] with coefficients */
-        spv_rev (spv + len - n + 1, spv + 1, n - 1);
         /* Zero out NTT elements [n .. len-n] */
         spv_set_sp (spv + n, (sp_t) 0, len - 2*n + 1);
 
@@ -2353,39 +2357,63 @@ ntt_sqr_recip (mpzv_t R, const mpzv_t S, mpzspv_t dft,
           }
 #endif
 
-        /* Compute the root for the weight signal, a 4*len-th primitive root 
+        /* Compute the root for the weight signal, a 3rd primitive root 
            of unity */
-        w = sp_pow (spm->prim_root, ntt_context->max_ntt_size / (4 * len), 
-                    sp, mul_c);
+        w1 = sp_pow (spm->prim_root, ntt_context->max_ntt_size / 3UL, sp, 
+                     mul_c);
         /* Compute iw= 1/w */
-        iw = sp_pow (spm->inv_prim_root, ntt_context->max_ntt_size / (4 * len), 
-                     sp, mul_c);
+        w2 = sp_pow (spm->inv_prim_root, ntt_context->max_ntt_size / 3UL, sp, 
+                     mul_c);
 #ifdef TRACE_ntt_sqr_recip
         if (j == 0)
-          printf ("w = %lu ,iw = %lu\n", w, iw);
+          printf ("w1 = %lu ,w2 = %lu\n", w1, w2);
 #endif
-        ASSERT(sp_mul(w, iw, sp, mul_c) == (sp_t) 1);
+        ASSERT(sp_mul(w1, w2, sp, mul_c) == (sp_t) 1);
+        ASSERT(w1 != (sp_t) 1);
+        ASSERT(sp_pow (w1, 3UL, sp, mul_c) == (sp_t) 1);
+        ASSERT(w2 != (sp_t) 1);
+        ASSERT(sp_pow (w2, 3UL, sp, mul_c) == (sp_t) 1);
 
-        /* Apply weight signal */
-        weight = w;
-        for (i = 1; i < n; i++)
+        /* Fill NTT elements spv[len-n+1 .. len-1] with coefficients and
+           apply weight signal to spv[i] and spv[l-i] for 0 <= i < n
+           Use the fact that w^i + w^{-i} = -1 if i != 0 (mod 3). */
+        for (i = 0; i < n - 2UL; i += 3)
           {
-            spv[i] = sp_mul (spv[i], weight, sp, mul_c);
-            weight = sp_mul (weight, w, sp, mul_c);
+            sp_t t, u;
+            
+            spv[len - i] = spv[i];
+            
+            t = spv[i + 1];
+            u = sp_mul (t, w1, sp, mul_c);
+            spv[i + 1] = u;
+            spv[len - i - 1] = sp_neg (sp_add (t, u, sp), sp);
+
+            t = spv[i + 2];
+            u = sp_mul (t, w2, sp, mul_c);
+            spv[i + 2] = u;
+            spv[len - i - 2] = sp_neg (sp_add (t, u, sp), sp);
           }
-        weight = iw;
-        for (i = len - 1; i > len - n; i--)
+        if (i < n)
           {
-            spv[i] = sp_mul (spv[i], weight, sp, mul_c);
-            weight = sp_mul (weight, iw, sp, mul_c);
+            spv[len - i] = spv[i];
           }
+        if (i < n - 1UL)
+          {
+            sp_t t, u;
+            t = spv[i + 1];
+            u = sp_mul (t, w1, sp, mul_c);
+            spv[i + 1] = u;
+            spv[len - i - 1] = sp_neg (sp_add (t, u, sp), sp);
+          }
+
 #ifdef TRACE_ntt_sqr_recip
       if (j == 0UL)
         ntt_print_vec ("ntt_sqr_recip: after weighting:", spv, len);
 #endif
 
         /* Compute root for the transform */
-        root = sp_pow (w, (sp_t) 4, sp, mul_c);
+        root = sp_pow (spm->prim_root, ntt_context->max_ntt_size / len, sp, 
+                       mul_c);
 
         /* Forward DFT of dft[j] */
         spv_ntt_gfp_dif (spv, len, sp, mul_c, root);
@@ -2404,7 +2432,8 @@ ntt_sqr_recip (mpzv_t R, const mpzv_t S, mpzspv_t dft,
 #endif
 
         /* Compute root for inverse transform */
-        root = sp_pow (iw, (sp_t) 4, sp, mul_c);
+        root = sp_pow (spm->inv_prim_root, ntt_context->max_ntt_size / len, 
+                       sp, mul_c);
 
         /* Inverse transform of dft[j] */
         spv_ntt_gfp_dit (spv, len, sp, mul_c, root);
@@ -2415,12 +2444,20 @@ ntt_sqr_recip (mpzv_t R, const mpzv_t S, mpzspv_t dft,
 #endif
 
         /* Un-weight and divide by transform length */
-        weight = sp - (sp - (sp_t) 1) / len; /* weight = 1/len (mod sp) */
-        for (i = 0; i < 2*n-1; i++)
+        invlen = sp - (sp - (sp_t) 1) / len; /* weight = 1/len (mod sp) */
+        w1 = sp_mul (invlen, w1, sp, mul_c);
+        w2 = sp_mul (invlen, w2, sp, mul_c);
+        for (i = 0; i < 2 * n - 3; i += 3)
           {
-            spv[i] = sp_mul (spv[i], weight, sp, mul_c);
-            weight = sp_mul (weight, iw, sp, mul_c);
+            spv[i] = sp_mul (spv[i], invlen, sp, mul_c);
+            spv[i + 1] = sp_mul (spv[i + 1], w2, sp, mul_c);
+            spv[i + 2] = sp_mul (spv[i + 2], w1, sp, mul_c);
           }
+        if (i < 2 * n - 1)
+          spv[i] = sp_mul (spv[i], invlen, sp, mul_c);
+        if (i < 2 * n - 2)
+          spv[i + 1] = sp_mul (spv[i + 1], w2, sp, mul_c);
+        
 #ifdef TRACE_ntt_sqr_recip
         if (j == 0UL)
           ntt_print_vec ("ntt_sqr_recip: after un-weighting:", spv, len);
@@ -2428,24 +2465,32 @@ ntt_sqr_recip (mpzv_t R, const mpzv_t S, mpzspv_t dft,
 
         /* Separate the coefficients of R in the wrapped-around product. */
 
-        /* Put a = w^len = sqrt(-1) in weight */
-        weight = sp_pow (iw, len, sp, mul_c);
+        /* Set w1 = cuberoot(1)^l where cuberoot(1) is the same primitive
+           3rd root of unity we used for the weight signal */
+        w1 = sp_pow (spm->prim_root, ntt_context->max_ntt_size / 3UL, sp, 
+                     mul_c);
+        w1 = sp_pow (w1, len % 3UL, sp, mul_c);
+        
+        /* Set w2 = 1/(w1 - 1/w1). Incidentally, w2 = 1/sqrt(-3) */
+        w2 = sp_inv (w1, sp, mul_c);
+        w2 = sp_sub (w1, w2, sp);
+        w2 = sp_inv (w2, sp, mul_c);
+#ifdef TRACE_ntt_sqr_recip
+        if (j == 0UL)
+          printf ("For separating: w1 = %lu, w2 = %lu\n", w1, w2);
+#endif
         
         for (i = len - (2*n - 2); i <= len / 2; i++)
           {
             sp_t t, u;
-            t = sp_mul (spv[i], weight, sp, mul_c); 
-            t = sp_sub (t, spv[len - i], sp);
-            if (t & (sp_t) 1)
-              t = (sp - t) >> 1;
-            else
-              {
-                if ((t >>= 1) != (sp_t) 0)
-                  t = sp - t;
-              }
-            u = t;
-            t = sp_mul (t, weight, sp, mul_c);
-            t = sp_sub (spv[i], t, sp);
+            /* spv[i] = s_i + w^{-l} s_{l-i}. 
+               spv[l-i] = s_{l-i} + w^{-l} s_i */
+            t = sp_mul (spv[i], w1, sp, mul_c); /* t = w^l s_i + s_{l-i} */
+            t = sp_sub (t, spv[len - i], sp);   /* t = w^l s_i + w^{-l} s_i */
+            t = sp_mul (t, w2, sp, mul_c);      /* t = s_1 */
+
+            u = sp_sub (spv[i], t, sp);         /* u = w^{-l} s_{l-i} */
+            u = sp_mul (u, w1, sp, mul_c);      /* u = s_{l-i} */
             spv[i] = t;
             spv[len - i] = u;
             ASSERT(i < len / 2 || t == u);
@@ -2505,6 +2550,7 @@ ntt_gcd (mpz_t f, mpzspv_t ntt, const unsigned long ntt_offset,
     ASSERT_ALWAYS (thread_nr < nr_chunks);
     len = (len_param - 1) / nr_chunks + 1;
     thread_offset = thread_nr * len;
+    ASSERT (len_param >= thread_offset);
     len = MIN(len, len_param - thread_offset);
 #pragma omp master
     {
@@ -2854,8 +2900,8 @@ pm1fs2_ntt (mpz_t f, const mpres_t X, mpmod_t modulus,
      residues up to 4*l*modulus^2, so adding in Fourier space is ok. 
      The code to multiply wants a 4*len-th root of unity, where len is
      the smallest power of 2 > s_1 */
-  ntt_context = mpzspm_init (MAX(params->l, 
-				 4UL << ceil_log2 (params->s_1 / 2 + 1)), 
+  ntt_context = mpzspm_init (MAX(3UL * params->l, 
+				 3UL << ceil_log2 (params->s_1 / 2 + 1)), 
                              modulus->orig_modulus);
   if (test_verbose (OUTPUT_DEVVERBOSE))
     {
@@ -2885,6 +2931,32 @@ pm1fs2_ntt (mpz_t f, const mpres_t X, mpmod_t modulus,
   outputf (OUTPUT_TRACE, 
 	   "N = %Zd; X = Mod(%Zd, N); /* PARI */\n", 
 	   modulus->orig_modulus, mt);
+
+#if 0 && defined (WANT_ASSERT)
+  /* For this self test run with a large enough B2 so that enough memory
+     is allocated for tmp and h_ntt, otherwise it segfaults. */
+  {
+    int testlen = 255;
+    int i, j;
+    /* A test of ntt_sqr_recip() */
+    for (j = 1; j <= testlen; j++)
+      {
+        outputf (OUTPUT_VERBOSE, 
+                 "Testing ntt_sqr_recip() for input degree %d\n", 
+                 j - 1);
+        for (i = 0; i < j; i++)
+          mpz_set_ui (tmp[i], 1UL);
+        ntt_sqr_recip (tmp, tmp, h_ntt, (spv_size_t) j, ntt_context);
+        for (i = 0; i < 2 * j - 1; i++)
+          {
+            ASSERT (mpz_cmp_ui (tmp[i], 2 * j - 1 - i) == 0);
+          }
+      }
+    outputf (OUTPUT_VERBOSE, 
+             "Test of ntt_sqr_recip() for input degree 2 ... %d passed\n", 
+             testlen - 1);
+  }
+#endif
 
 
   /* Compute the polynomial f(x) = \prod_{k_1 in S_1} (x - X^{2k_1}) */
@@ -3347,7 +3419,7 @@ pp1_sequence_g (listz_t g_x, listz_t g_y, mpzspv_t g_x_ntt, mpzspv_t g_y_ntt,
     ASSERT_ALWAYS (thread_nr < nr_chunks);
     l = (l_param - 1) / nr_chunks + 1;
     offset = thread_nr * l;
-    ASSERT_ALWAYS (M_param >= (long) offset);
+    ASSERT_ALWAYS (l_param >= (long) offset);
     l = MIN(l, l_param - offset);
     M = M_param - (long) offset;
 
@@ -4037,8 +4109,8 @@ pp1fs2_ntt (mpz_t f, const mpres_t X, mpmod_t modulus,
       return ECM_ERROR;
 
   /* Init the NTT context */
-  ntt_context = mpzspm_init (MAX(params->l, 
-				 4UL << ceil_log2 (params->s_1 / 2 + 1)), 
+  ntt_context = mpzspm_init (MAX(3UL * params->l, 
+				 3UL << ceil_log2 (params->s_1 / 2 + 1)), 
                              modulus->orig_modulus);
 
   /* Allocate all the memory we'll need */
