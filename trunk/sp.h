@@ -310,6 +310,7 @@ sp_montsqr (sp_t x, sp_t p, sp_t d)
 
 #define sp_add(x,y,m) (((x)<(m)-(y)) ? ((x)+(y)) : ((x)+(y)-(m)))
 #define sp_sub(x,y,m) (((x)>=(y)) ? ((x)-(y)) : ((x)-(y)+(m)))
+#define sp_neg(x,m) ((x) == (sp_t) 0 ? (sp_t) 0 : (m) - (x))
 
 /* Returns x^a % m, uses a right-to-left powering ladder */
 
