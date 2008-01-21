@@ -2536,9 +2536,32 @@ ntt_sqr_recip (mpzv_t R, const mpzv_t S, mpzspv_t dft,
 #ifdef _OPENMP
     }
 #endif
-  mpzspv_to_mpzv (dft, (spv_size_t) 0, R, 2*n - 1, ntt_context);
-  for (j = 0; (spv_size_t) j < 2*n - 1; j++)
-    mpz_mod (R[j], R[j], ntt_context->modulus);
+
+#if defined(_OPENMP)
+#pragma omp parallel if (n > 50)
+#endif
+  {
+    spv_size_t i, offset = 0, chunklen = 2*n - 1;
+
+#if defined(_OPENMP)
+    {
+      const int nr_chunks = omp_get_num_threads();
+      const int thread_nr = omp_get_thread_num();
+      
+      chunklen = (chunklen - 1) / (spv_size_t) nr_chunks + 1;
+      offset = (spv_size_t) thread_nr * chunklen;
+      if (2*n - 1 > offset)
+        chunklen = MIN(chunklen, (2*n - 1) - offset);
+      else
+        chunklen = 0UL;
+    }
+#endif
+    
+    mpzspv_to_mpzv (dft, offset, R + offset, chunklen, ntt_context);
+    for (i = offset; i < offset + chunklen; i++)
+      mpz_mod (R[i], R[i], ntt_context->modulus);
+  }
+
 #ifdef TRACE_ntt_sqr_recip
   gmp_printf ("ntt_sqr_recip: Output polynomial is %Zd", R[0]);
   for (j = 1; (spv_size_t) j < 2*n - 1; j++)
