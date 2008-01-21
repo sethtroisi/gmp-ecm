@@ -645,6 +645,8 @@ void         mpz_sub_si (mpz_t, mpz_t, long);
 void         mpz_divby3_1op (mpz_t);
 #define cputime __ECM(cputime)
 long         cputime    (void);
+#define realtime __ECM(realtime)
+long         realtime    (void);
 #define elltime __ECM(elltime)
 long         elltime    (long, long);
 #define test_verbose __ECM(test_verbose)

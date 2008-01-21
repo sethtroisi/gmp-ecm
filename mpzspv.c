@@ -189,15 +189,13 @@ mpzspv_reverse (mpzspv_t x, spv_size_t offset, spv_size_t len, mpzspm_t mpzspm)
 }
 
 void
-mpzspv_from_mpzv (mpzspv_t x, spv_size_t offset, mpzv_t mpzv,
-    spv_size_t len, mpzspm_t mpzspm)
+mpzspv_from_mpzv (mpzspv_t x, const spv_size_t offset, const mpzv_t mpzv,
+    const spv_size_t len, mpzspm_t mpzspm)
 {
-  unsigned int i, sp_num;
-  spv_size_t j;
+  const unsigned int sp_num = mpzspm->sp_num;
+  long i;
   
   ASSERT (mpzspv_verify (x, offset + len, 0, mpzspm));
-  
-  sp_num = mpzspm->sp_num;
   
   /* GMP's comments on mpn_preinv_mod_1:
    *
@@ -208,22 +206,32 @@ mpzspv_from_mpzv (mpzspv_t x, spv_size_t offset, mpzv_t mpzv,
    * It doesn't accept 0 as the dividend so we have to treat this case
    * separately */
   
-  for (i = 0; i < len; i++)
+#if 0 && defined(_OPENMP)
+#pragma omp parallel private(i)
+  {
+    /* Multi-threading this slows things down a lot. Why? */
+#pragma omp for
+#endif
+    for (i = 0; i < (long) len; i++)
     {
-      if (SIZ(mpzv[i]) == 0)
+      int j;
+      if (mpz_sgn (mpzv[i]) == 0)
 	{
 	  for (j = 0; j < sp_num; j++)
 	    x[j][i + offset] = 0;
 	}
       else
         {
-	  ASSERT(mpz_sgn (mpzv[i]) > 0);
+	  ASSERT(mpz_sgn (mpzv[i]) > 0); /* We can't handle negative values */
 	  for (j = 0; j < sp_num; j++)
             x[j][i + offset] =
               mpn_preinv_mod_1 (PTR(mpzv[i]), SIZ(mpzv[i]),
                 mpzspm->spm[j]->sp, mpzspm->spm[j]->mul_c);
 	}
     }
+#if 0 && defined(_OPENMP)
+  }
+#endif
 }
 
 /* See: Daniel J. Bernstein and Jonathan P. Sorenson,
