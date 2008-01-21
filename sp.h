@@ -410,7 +410,8 @@ void mpzspv_set (mpzspv_t, spv_size_t, mpzspv_t, spv_size_t, spv_size_t,
 void mpzspv_revcopy (mpzspv_t, spv_size_t, mpzspv_t, spv_size_t, spv_size_t,
     mpzspm_t);
 void mpzspv_set_sp (mpzspv_t, spv_size_t, sp_t, spv_size_t, mpzspm_t);
-void mpzspv_from_mpzv (mpzspv_t, spv_size_t, mpzv_t, spv_size_t, mpzspm_t);
+void mpzspv_from_mpzv (mpzspv_t, const spv_size_t, const mpzv_t, 
+		       const spv_size_t, mpzspm_t);
 void mpzspv_reverse (mpzspv_t, spv_size_t, spv_size_t, mpzspm_t);
 void mpzspv_neg (mpzspv_t, spv_size_t, mpzspv_t, spv_size_t, spv_size_t,
     mpzspm_t);
