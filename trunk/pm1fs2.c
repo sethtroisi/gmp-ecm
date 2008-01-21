@@ -1481,7 +1481,7 @@ pm1_sequence_g (listz_t g_mpz, mpzspv_t g_ntt, const mpres_t b_1,
   mpres_t r[3], x_0, x_Mi;
   mpz_t t;
   unsigned long i;
-  long timestart, timestop;
+  long timestart, timestop, realstart = 0L, realstop = 0L;
   long M = M_param;
   unsigned long l = l_param, offset = 0UL;
   mpmod_t modulus;
@@ -1490,17 +1490,17 @@ pm1_sequence_g (listz_t g_mpz, mpzspv_t g_ntt, const mpres_t b_1,
   outputf (OUTPUT_VERBOSE, "Computing g_i");
   outputf (OUTPUT_DEVVERBOSE, "\npm1_sequence_g: P = %lu, M_param = %lu, "
            "l_param = %lu, k_2 = %lu\n", P, M_param, l_param, k_2);
+  timestart = cputime ();
 
 #ifdef _OPENMP
-#pragma omp parallel private(r, x_0, x_Mi, t, i, M, l, offset, modulus, want_output) shared(timestart, timestop)
+  realstart = realtime ();
+#pragma omp parallel if (l > 100) private(r, x_0, x_Mi, t, i, M, l, offset, modulus, want_output)
   {
     /* When multi-threading, we adjust the parameters for each thread */
 
     const int nr_chunks = omp_get_num_threads();
     const int thread_nr = omp_get_thread_num();
     
-    ASSERT_ALWAYS (0 <= thread_nr);
-    ASSERT_ALWAYS (thread_nr < nr_chunks);
     l = (l_param - 1) / nr_chunks + 1; /* = ceil(l_param / nr_chunks) */
     offset = thread_nr * l;
     outputf (OUTPUT_DEVVERBOSE, 
@@ -1543,7 +1543,6 @@ pm1_sequence_g (listz_t g_mpz, mpzspv_t g_ntt, const mpres_t b_1,
 	  outputf (OUTPUT_TRACE, "/* pm1_sequence_g */ x_0 = "
 		   "b_1^(2*%ld + (2*m_1 + 1)*P); /* PARI */\n", k_2);
 	}
-      timestart = cputime ();
     }
 
   /* We use (M-(i+1))^2 = (M-i)^2 + 2*(-M+i) + 1 */
@@ -1639,7 +1638,14 @@ pm1_sequence_g (listz_t g_mpz, mpzspv_t g_ntt, const mpres_t b_1,
 #endif
 
   timestop = cputime ();
-  outputf (OUTPUT_VERBOSE, " took %lums\n", timestop - timestart);
+#ifdef _OPENMP
+  realstop = realtime ();
+#endif
+  if (realstop - realstart != 0L)
+    outputf (OUTPUT_VERBOSE, " took %lums (%lums real)\n", 
+	     timestop - timestart, realstop - realstart);
+  else
+    outputf (OUTPUT_VERBOSE, " took %lums\n", timestop - timestart);
   
   if (test_verbose (OUTPUT_TRACE))
     {
@@ -1661,93 +1667,119 @@ pm1_sequence_g (listz_t g_mpz, mpzspv_t g_ntt, const mpres_t b_1,
 
 static void 
 pm1_sequence_h (listz_t h, mpzspv_t h_ntt, mpz_t *f, const mpres_t r, 
-		const unsigned long d, mpmod_t modulus, 
+		const unsigned long d, mpmod_t modulus_parm, 
 		const mpzspm_t ntt_context)
 {
-  mpres_t invr;  /* r^{-1} */
-  mpres_t fd[3]; /* finite differences table for r^{-i^2}*/
-  mpz_t t;       /* the h_j value as an mpz_t */
-  unsigned long j;
-  long timestart, timestop;
+  mpres_t invr;  /* r^{-1}. Can be shared between threads */
+  long timestart, timestop, realstart = 0L, realstop = 0L;
+
+  mpres_init (invr, modulus_parm);
+  mpres_invert (invr, r, modulus_parm); /* invr = r^{-1}. FIXME: test for 
+					   failure, even if theoretically 
+					   impossible */
+
+  if (test_verbose (OUTPUT_TRACE))
+    {
+      mpz_t t;
+      mpz_init (t);
+      mpres_get_z (t, r, modulus_parm);
+      outputf (OUTPUT_TRACE, "\n/* pm1_sequence_h */ N = %Zd; "
+	       "r = Mod(%Zd, N); /* PARI */\n", 
+	       modulus_parm->orig_modulus, t);
+      mpz_clear (t);
+    }
 
   outputf (OUTPUT_VERBOSE, "Computing h");
   timestart = cputime ();
 
-  mpres_init (invr, modulus);
-  mpres_init (fd[0], modulus);
-  mpres_init (fd[1], modulus);
-  mpres_init (fd[2], modulus);
-  mpz_init (t);
 
-  if (test_verbose (OUTPUT_TRACE))
+#ifdef _OPENMP
+  realstart = realtime ();
+#pragma omp parallel if (d > 100)
+#endif
+  {
+    mpres_t fd[3]; /* finite differences table for r^{-i^2}*/
+    mpz_t t;       /* the h_j value as an mpz_t */
+    unsigned long j;
+    unsigned long offset = 0UL, len = d;
+    mpmod_t modulus;
+
+    /* Adjust offset and length for this thread */
+#ifdef _OPENMP
     {
-      mpres_get_z (t, r, modulus);
-      outputf (OUTPUT_TRACE, "\n/* pm1_sequence_h */ N = %Zd; "
-	       "r = Mod(%Zd, N); /* PARI */\n", 
-	       modulus->orig_modulus, t);
+      const int nr_chunks = omp_get_num_threads();
+      const int thread_nr = omp_get_thread_num();
+      unsigned long chunklen;
+      
+      if (thread_nr == 0)
+	outputf (OUTPUT_VERBOSE, " using %d threads", nr_chunks);
+
+      chunklen = (len - 1UL) / (unsigned long) nr_chunks + 1UL;
+      offset = chunklen * (unsigned long) thread_nr;
+      len = MIN(chunklen, len - offset);
     }
+#endif
+    
+    mpmod_copy (modulus, modulus_parm);
+    mpres_init (fd[0], modulus);
+    mpres_init (fd[1], modulus);
+    mpres_init (fd[2], modulus);
+    mpz_init (t);
+    
+    /* We have (n + 1)^2 = n^2 + 2n + 1. For the finite differences we'll 
+       need r^{-2}, r^{-(2n+1)}, r^{-n^2}. Init for n = 0. */
+    
+    /* r^{-2} in fd[0] is constant and could be shared. Computing it 
+       separately in each thread has the advantage of putting it in
+       local memory. May not make much difference overall */
 
-  mpres_invert (invr, r, modulus); /* invr = r^{-1}. FIXME: test for failure,
-				      even if it is theoretically impossible */
+    mpres_mul (fd[0], invr, invr, modulus); /* fd[0] = r^{-2} */
+    mpz_set_ui (t, offset);
+    mpz_mul_2exp (t, t, 1UL);
+    mpz_add_ui (t, t, 1UL);                 /* t = 2 * offset + 1 */
+    mpres_pow (fd[1], invr, t, modulus);    /* fd[1] = r^{-(2*offset+1)} */
+    mpz_set_ui (t, offset);
+    mpz_mul (t, t, t);                      /* t = offset^2 */
+    mpres_pow (fd[2], invr, t, modulus);    /* fd[2] = r^{-offset^2} */
+    
+    /* Generate the sequence */
+    for (j = offset; j < offset + len; j++)
+      {
+	mpres_mul_z_to_z (t, fd[2], f[j], modulus);
+	outputf (OUTPUT_TRACE, 
+		 "/* pm1_sequence_h */ h_%lu = %Zd; /* PARI */\n", j, t);
+	
+	if (h != NULL)
+	  mpz_set (h[j], t);
+	if (h_ntt != NULL)
+	  mpzspv_from_mpzv (h_ntt, j, &t, 1UL, ntt_context);
+	
+	mpres_mul (fd[2], fd[2], fd[1], modulus); /* fd[2] = r^{-j^2} */
+	mpres_mul (fd[1], fd[1], fd[0], modulus); /* fd[1] = r^{-2*j-1} */
+      }
+    
+    mpres_clear (fd[2], modulus);
+    mpres_clear (fd[1], modulus);
+    mpres_clear (fd[0], modulus);
+    mpz_clear (t);
+    mpmod_clear (modulus);
+  }
 
-  /* We have (n + 1)^2 = n^2 + 2n + 1. For the finite differences we'll need
-     2, 2n+1, n^2. Init for n = 0. */
+  mpres_clear (invr, modulus_parm);
 
-  mpres_mul (fd[0], invr, invr, modulus); /* fd[0] = r^{-2} */
-  mpres_set (fd[1], invr, modulus);       /* fd[1] = r^{-1} */
-  /* mpres_set_ui (fd[2], 1UL, modulus); fd[2] = r^0. We set fd[2] below */
-
-  /* For j = 0, we have h_j = f_j */
-  if (d > 0)
-    {
-      mpz_mod (t, f[0], modulus->orig_modulus);
-      outputf (OUTPUT_TRACE, "/* pm1_sequence_h */ h_0 = %Zd; /* PARI */\n", t);
-      if (h != NULL)
-	mpz_set (h[0], t);
-      if (h_ntt != NULL)
-	mpzspv_from_mpzv (h_ntt, 0UL, &t, 1UL, ntt_context);
-    }
-
-  /* Do j = 1 */
-  if (d > 1)
-    {
-      mpres_set (fd[2], fd[1], modulus);        /* fd[2] = r^{-1} */
-      mpres_mul (fd[1], fd[1], fd[0], modulus); /* fd[1] = r^{-3} */
-      mpres_mul_z_to_z (t, fd[2], f[1], modulus);
-      outputf (OUTPUT_TRACE,
-	       "/* pm1_sequence_h */ h_1 = %Zd; /* PARI */\n", t);
-      if (h != NULL)
-	  mpz_set (h[1], t);
-      if (h_ntt != NULL)
-	  mpzspv_from_mpzv (h_ntt, 1UL, &t, 1UL, ntt_context);
-    }
-  
-  /* Do the rest */
-  for (j = 2; j < d; j++)
-    {
-      mpres_mul (fd[2], fd[2], fd[1], modulus); /* fd[2] = r^{-j^2} */
-      mpres_mul (fd[1], fd[1], fd[0], modulus); /* fd[1] = r^{-2*j-1} */
-      mpres_mul_z_to_z (t, fd[2], f[j], modulus);
-      outputf (OUTPUT_TRACE, "/* pm1_sequence_h */ h_%lu = %Zd; /* PARI */\n", 
-	       j, t);
-
-      if (h != NULL)
-	mpz_set (h[j], t);
-      if (h_ntt != NULL)
-	mpzspv_from_mpzv (h_ntt, j, &t, 1UL, ntt_context);
-    }
-  
   timestop = cputime ();
-  outputf (OUTPUT_VERBOSE, " took %lums\n", timestop - timestart);
-  
-  mpres_clear (fd[2], modulus);
-  mpres_clear (fd[1], modulus);
-  mpres_clear (fd[0], modulus);
-  mpres_clear (invr, modulus);
-  mpz_clear (t);
+#ifdef _OPENMP
+  realstop = realtime ();
+#endif    
+  if (realstop - realstart != 0L)
+    outputf (OUTPUT_VERBOSE, " took %lums (%lums real)\n", 
+	     timestop - timestart, realstop - realstart);
+  else
+    outputf (OUTPUT_VERBOSE, " took %lums\n", timestop - timestart);
 
   if (test_verbose (OUTPUT_TRACE))
     {
+      unsigned long j;
       for (j = 0; j < d; j++)
 	outputf (OUTPUT_TRACE, "/* pm1_sequence_h */ h_%lu == "
 		   "f_%lu * r^(-%lu^2) /* PARI C */\n", j, j, j);
@@ -2531,23 +2563,24 @@ ntt_gcd (mpz_t f, mpzspv_t ntt, const unsigned long ntt_offset,
   unsigned long len = len_param, thread_offset = 0;
   mpres_t tmpres, tmpprod, totalprod;
   mpmod_t modulus;
-  long timestart, timestop;
+  long timestart, timestop, realstart = 0L, realstop = 0L;
   
   outputf (OUTPUT_VERBOSE, "Computing gcd of coefficients and N");
   timestart = cputime ();
+#ifdef _OPENMP
+  realstart = realtime ();
+#endif
 
   /* All the threads will multiply their partial products to this one. */
   mpres_init (totalprod, modulus_param);
   mpres_set_ui (totalprod, 1UL, modulus_param);
 
 #ifdef _OPENMP
-#pragma omp parallel private(i, j, R, len, thread_offset, tmpres, tmpprod, modulus) shared(totalprod)
+#pragma omp parallel if (len > 100) private(i, j, R, len, thread_offset, tmpres, tmpprod, modulus) shared(totalprod)
   {
     const int nr_chunks = omp_get_num_threads();
     const int thread_nr = omp_get_thread_num();
 
-    ASSERT_ALWAYS (0 <= thread_nr);
-    ASSERT_ALWAYS (thread_nr < nr_chunks);
     len = (len_param - 1) / nr_chunks + 1;
     thread_offset = thread_nr * len;
     ASSERT (len_param >= thread_offset);
@@ -2620,7 +2653,14 @@ ntt_gcd (mpz_t f, mpzspv_t ntt, const unsigned long ntt_offset,
   mpres_clear (totalprod, modulus_param);
 
   timestop = cputime ();
-  outputf (OUTPUT_VERBOSE, " took %lums\n", timestop - timestart);
+#ifdef _OPENMP
+  realstop = realtime ();
+#endif
+  if (realstop - realstart != 0L)
+    outputf (OUTPUT_VERBOSE, " took %lums (%lums real)\n", 
+	     timestop - timestart, realstop - realstart);
+  else
+    outputf (OUTPUT_VERBOSE, " took %lums\n", timestop - timestart);
 }
 
 
@@ -2770,6 +2810,7 @@ pm1fs2 (mpz_t f, const mpres_t X, mpmod_t modulus,
       /* See if R[i] is correct, with a test that works even if i0 != 0 */
       /* More expensive self-test */
       /* alpha = beta*(i0 + l*nr) */
+      /* This code is old and probably does not work. */
 
       outputf (OUTPUT_VERBOSE, "Verifying all results (slow)");
       for (i = 0; i < nr; i++)
@@ -2884,7 +2925,7 @@ pm1fs2_ntt (mpz_t f, const mpres_t X, mpmod_t modulus,
   mpz_t mt;   /* All-purpose temp mpz_t */
   mpres_t tmpres; /* All-purpose temp mpres_t */
   int youpi = ECM_NO_FACTOR_FOUND;
-  long timetotalstart, timestart, timestop;
+  long timetotalstart, timestart, timestop, realstart = 0L, realstop = 0L;
 
   timetotalstart = cputime ();
 
@@ -2963,6 +3004,9 @@ pm1fs2_ntt (mpz_t f, const mpres_t X, mpmod_t modulus,
   outputf (OUTPUT_VERBOSE, "Computing F from factored S_1");
   
   timestart = cputime ();
+#ifdef _OPENMP
+  realstart = realtime ();
+#endif
   
   /* First compute X^2 + 1/X^2 */
   mpres_invert (tmpres, X, modulus);
@@ -2977,7 +3021,14 @@ pm1fs2_ntt (mpz_t f, const mpres_t X, mpmod_t modulus,
   S_1 = NULL;
   
   timestop = cputime ();
-  outputf (OUTPUT_VERBOSE, " took %lums\n", timestop - timestart);
+#ifdef _OPENMP
+  realstop = realtime ();
+#endif
+  if (realstop - realstart != 0L)
+    outputf (OUTPUT_VERBOSE, " took %lums (%lums real)\n", 
+	     timestop - timestart, realstop - realstart);
+  else
+    outputf (OUTPUT_VERBOSE, " took %lums\n", timestop - timestart);
   if (test_verbose (OUTPUT_TRACE))
     {
       for (i = 0; i < params->s_1 / 2 + 1; i++)
@@ -3001,10 +3052,20 @@ pm1fs2_ntt (mpz_t f, const mpres_t X, mpmod_t modulus,
   /* Compute the DCT-I of h */
   outputf (OUTPUT_VERBOSE, "Computing DCT-I of h");
   timestart = cputime ();
+#ifdef _OPENMP
+  realstart = realtime ();
+#endif
   ntt_spv_to_dct (h_ntt, h_ntt, params->s_1 / 2 + 1, params->l / 2 + 1, 
                   g_ntt, ntt_context);
   timestop = cputime ();
-  outputf (OUTPUT_VERBOSE, " took %lums\n", timestop - timestart);
+#ifdef _OPENMP
+  realstop = realtime ();
+#endif
+  if (realstop - realstart != 0L)
+    outputf (OUTPUT_VERBOSE, " took %lums (%lums real)\n", 
+	     timestop - timestart, realstop - realstart);
+  else
+    outputf (OUTPUT_VERBOSE, " took %lums\n", timestop - timestart);
                 
   for (l = 0; l < params->s_2; l++)
     {
@@ -3017,9 +3078,19 @@ pm1fs2_ntt (mpz_t f, const mpres_t X, mpmod_t modulus,
       /* Do the convolution */
       outputf (OUTPUT_VERBOSE, "Computing g*h");
       timestart = cputime ();
+#ifdef _OPENMP
+      realstart = realtime ();
+#endif
       ntt_mul_by_dct (g_ntt, h_ntt, params->l, ntt_context);
       timestop = cputime ();
-      outputf (OUTPUT_VERBOSE, " took %lums\n", timestop - timestart);      
+#ifdef _OPENMP
+      realstop = realtime ();
+#endif
+      if (realstop - realstart != 0)
+	outputf (OUTPUT_VERBOSE, " took %lums (%lums real)\n", 
+		 timestop - timestart, realstop - realstart);
+      else
+	outputf (OUTPUT_VERBOSE, " took %lums\n", timestop - timestart);      
       
       /* Compute GCD of N and coefficients of product polynomial */
       ntt_gcd (mt, g_ntt, params->s_1 / 2, NULL, nr, ntt_context, modulus);
@@ -3408,15 +3479,13 @@ pp1_sequence_g (listz_t g_x, listz_t g_y, mpzspv_t g_x_ntt, mpzspv_t g_y_ntt,
   timestart = cputime ();
   
 #ifdef _OPENMP
-#pragma omp parallel private(r_x, r_y, x0_x, x0_y, v2, r1_x, r1_y, r2_x, r2_y, v, tmp, mt, modulus, i, l, offset, M, want_output)
+#pragma omp parallel if (l > 100) private(r_x, r_y, x0_x, x0_y, v2, r1_x, r1_y, r2_x, r2_y, v, tmp, mt, modulus, i, l, offset, M, want_output)
   {
     /* When multi-threading, we adjust the parameters for each thread */
 
     const int nr_chunks = omp_get_num_threads();
     const int thread_nr = omp_get_thread_num();
 
-    ASSERT_ALWAYS (0 <= thread_nr);
-    ASSERT_ALWAYS (thread_nr < nr_chunks);
     l = (l_param - 1) / nr_chunks + 1;
     offset = thread_nr * l;
     ASSERT_ALWAYS (l_param >= (long) offset);

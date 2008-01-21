@@ -160,6 +160,20 @@ elltime (long st0, long st1)
     }
 }
 
+/* Get real (wall-clock) time in milliseconds */
+long
+realtime ()
+{
+#ifdef HAVE_GETTIMEOFDAY
+  struct timeval tv;
+  if (gettimeofday(&tv, NULL) != 0)
+    return 0L;
+  return (long) tv.tv_sec * 1000L + (long) tv.tv_usec / 1000;
+#else
+  return 0L;
+#endif
+}
+
 int 
 get_verbose ()
 {
