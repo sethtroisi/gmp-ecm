@@ -794,7 +794,7 @@ pp1 (mpz_t f, mpz_t p, mpz_t n, mpz_t go, double *B1done, double B1,
     {
       /* If S == 1, we use the new, faster stage 2 */
       long P;
-      unsigned long lmax = 1UL<<25;
+      unsigned long lmax = 1UL<<26;
       mpz_init (faststage2_params.m_1);
       P = choose_P (B2min, B2, lmax, k, &faststage2_params, B2min, B2,
                     use_ntt);
