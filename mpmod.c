@@ -751,7 +751,7 @@ mpmod_copy (mpmod_t r, const mpmod_t modulus)
       mpz_init_set (r->R2, modulus->R2);
       mpz_init_set (r->R3, modulus->R3);
     }
-  if (modulus->repr == ECM_MOD_REDC)
+  if (modulus->repr == ECM_MOD_REDC || modulus->repr == ECM_MOD_MPZ)
     mpz_init_set (r->aux_modulus, modulus->aux_modulus);
 }
 
