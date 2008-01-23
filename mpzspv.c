@@ -206,11 +206,11 @@ mpzspv_from_mpzv (mpzspv_t x, const spv_size_t offset, const mpzv_t mpzv,
    * It doesn't accept 0 as the dividend so we have to treat this case
    * separately */
   
-#if 0 && defined(_OPENMP)
-#pragma omp parallel private(i)
+#if defined(_OPENMP)
+#pragma omp parallel private(i) if (len > 100)
   {
-    /* Multi-threading this slows things down a lot. Why? */
-#pragma omp for
+    /* Multi-threading with dynamic scheduling slows things down */
+#pragma omp for schedule(static)
 #endif
     for (i = 0; i < (long) len; i++)
     {
@@ -229,7 +229,7 @@ mpzspv_from_mpzv (mpzspv_t x, const spv_size_t offset, const mpzv_t mpzv,
                 mpzspm->spm[j]->sp, mpzspm->spm[j]->mul_c);
 	}
     }
-#if 0 && defined(_OPENMP)
+#if defined(_OPENMP)
   }
 #endif
 }
