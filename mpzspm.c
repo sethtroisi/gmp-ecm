@@ -60,9 +60,11 @@ mpzspm_init (spv_size_t max_len, mpz_t modulus)
   mpzspm->sp_num = 0;
 
   /* product of primes selected so far */
-  mpz_init_set_ui (P, 1);
+  mpz_init_set_ui (P, 1UL);
   /* sum of primes selected so far */
   mpz_init (S);
+  /* T is len*modulus^2, the upper bound on output coefficients of a 
+     convolution */
   mpz_init (T); 
   mpz_mul (T, modulus, modulus);
   mpz_mul_ui (T, T, max_len);
@@ -88,12 +90,12 @@ mpzspm_init (spv_size_t max_len, mpz_t modulus)
       mpz_mul_ui (P, P, p);
       mpz_add_ui (S, S, p);
 
-      /* we want P > 4 * max_len * (modulus * S)^2 */
+      /* we want P > 4 * max_len * (modulus * S)^2. The S^2 term is due to 
+         theorem 3.1 in Bernstein and Sorenson's paper */
       mpz_mul (T, S, modulus);
       mpz_mul (T, T, T);
       mpz_mul_ui (T, T, max_len);
-      mpz_add (T, T, T);
-      mpz_add (T, T, T);
+      mpz_mul_2exp (T, T, 2UL);
     }
   while (mpz_cmp (P, T) <= 0);
 
