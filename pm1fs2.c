@@ -20,7 +20,6 @@
    - fix parameter selection
    - allow choosing parameters according to -maxmem
    - check one pass P+1 stage 2 carefully, allow its use
-   - parallelize conversion mpz_t <-> NTT
    - move functions into their proper files (i.e. NTT functions etc.)
    - later: allow storing NTT vectors on disk
 */
@@ -334,7 +333,7 @@ choose_P (const mpz_t B2min, const mpz_t B2, const unsigned long lmax,
   mpz_init (effB2min);
   mpz_init (effB2);
 
-  /* Find the smallest P that can cover the B2 - B2min interval */
+  /* Find the smallest P that can cover an interval of length B2 - B2min */
   mpz_sub (B2l, B2, B2min);
   mpz_cdiv_q_ui (t, B2l, 2UL*lmax);
   outputf (OUTPUT_DEVVERBOSE, "choose_P: We need P >= %Zd\n", t);
@@ -626,6 +625,7 @@ list_sqr_reciprocal (listz_t R, listz_t S, const unsigned long l,
 #endif
 }
 
+ATTRIBUTE_UNUSED
 static void
 list_recip_eval1 (mpz_t R, const listz_t S, const unsigned long l)
 {
@@ -2032,12 +2032,12 @@ make_S_1_S_2 (sets_long_t **S_1, set_long_t **S_2,
 }
 
 
-
-static mpzspv_t
+ATTRIBUTE_UNUSED
+static mpzspv_t *
 mpzspv_init_mt (spv_size_t len, mpzspm_t mpzspm)
 {
   int i; /* OpenMP wants the iteration variable a signed type */
-  mpzspv_t x = (mpzspv_t) malloc (mpzspm->sp_num * sizeof (spv_t));
+  mpzspv_t *x = (mpzspv_t *) malloc (mpzspm->sp_num * sizeof (spv_t *));
   
   if (x == NULL)
     return NULL;
@@ -2051,7 +2051,7 @@ mpzspv_init_mt (spv_size_t len, mpzspm_t mpzspm)
 #pragma omp for
 #endif
     for (i = 0; i < (int) mpzspm->sp_num; i++)
-      x[i] = (spv_t) malloc (len * sizeof (sp_t));
+      x[i] = (spv_t *) malloc (len * sizeof (sp_t));
 	
 #ifdef _OPENMP
   }
@@ -2068,8 +2068,19 @@ mpzspv_init_mt (spv_size_t len, mpzspm_t mpzspm)
 	  free(x[i]);
       return NULL;
     }
-  else
-    return x;
+
+#if 0
+  if (test_verbose (OUTPUT_DEVVERBOSE))
+    {
+      spv_t * last = x[0];
+      printf ("mpzspv_init_mt: x[0] = %p\n", x[0]);
+      for (i = 1; i < (int) mpzspm->sp_num; i++)
+        printf ("mpzspv_init_mt: x[%d] = %p, distance = %ld\n", 
+                i, x[i], (long) (x[i] - x[i-1]));
+    }
+#endif
+
+  return x;
 }
 
 
@@ -2617,7 +2628,10 @@ ntt_gcd (mpz_t f, mpzspv_t ntt, const unsigned long ntt_offset,
     /* Make a private copy of the mpmod_t struct */
     mpmod_copy (modulus, modulus_param);
 
-    R = init_list (Rlen);
+    MEMORY_TAG;
+    R = init_list2 (Rlen, (mpz_size (modulus->orig_modulus) + 2) * 
+                           mp_bits_per_limb);
+    MEMORY_UNTAG;
     mpres_init (tmpres, modulus);
     mpres_init (tmpprod, modulus);
     mpres_set_ui (tmpprod, 1UL, modulus);
@@ -2910,6 +2924,7 @@ pm1fs2 (mpz_t f, const mpres_t X, mpmod_t modulus,
   outputf (OUTPUT_DEVVERBOSE, "Highest used temp element is tmp[%lu]\n", i);
 #endif
   
+  free (S_2);
   free (h);
   clear_list (F, lenF);
   clear_list (g, lenG);
@@ -2960,10 +2975,8 @@ pm1fs2_ntt (mpz_t f, const mpres_t X, mpmod_t modulus,
       return ECM_ERROR;
 
   /* Precompute the small primes, primitive roots and inverses etc. for 
-     the NTT. mpzspm_init() chooses the NTT primes large enough for 
-     residues up to 4*l*modulus^2, so adding in Fourier space is ok. 
-     The code to multiply wants a 4*len-th root of unity, where len is
-     the smallest power of 2 > s_1 */
+     the NTT. The code to multiply wants a 4*len-th root of unity, where 
+     len is the smallest power of 2 > s_1 */
   ntt_context = mpzspm_init (MAX(3UL * params->l, 
 				 3UL << ceil_log2 (params->s_1 / 2 + 1)), 
                              modulus->orig_modulus);
@@ -2977,7 +2990,8 @@ pm1fs2_ntt (mpz_t f, const mpres_t X, mpmod_t modulus,
 	  outputf (OUTPUT_DEVVERBOSE, " * %lu", ntt_context->spm[i]->sp);
 	  modbits += log ((double) ntt_context->spm[i]->sp);
 	}
-      outputf (OUTPUT_DEVVERBOSE, ", has %f bits\n", modbits / log (2.));
+      outputf (OUTPUT_DEVVERBOSE, ", has %d primes, %f bits\n", 
+               ntt_context->sp_num, modbits / log (2.));
     }
 
   /* Allocate all the memory we'll need for building f */
@@ -2989,7 +3003,7 @@ pm1fs2_ntt (mpz_t f, const mpres_t X, mpmod_t modulus,
   F = init_list2 (lenF, (unsigned int) abs (modulus->bits));
   tmp = init_list2 (tmplen, (unsigned int) abs (modulus->bits));
   /* Allocate memory for h_ntt. Will be used for building F */
-  h_ntt = mpzspv_init_mt (params->l / 2 + 1, ntt_context);
+  h_ntt = mpzspv_init (params->l / 2 + 1, ntt_context);
 
   mpres_get_z (mt, X, modulus); /* mpz_t copy of X for printing */
   outputf (OUTPUT_TRACE, 
@@ -3070,7 +3084,7 @@ pm1fs2_ntt (mpz_t f, const mpres_t X, mpmod_t modulus,
 		  ntt_context);
 
   clear_list (F, lenF);
-  g_ntt = mpzspv_init_mt (params->l, ntt_context);
+  g_ntt = mpzspv_init (params->l, ntt_context);
 
   /* Compute the DCT-I of h */
   outputf (OUTPUT_VERBOSE, "Computing DCT-I of h");
@@ -3132,6 +3146,7 @@ pm1fs2_ntt (mpz_t f, const mpres_t X, mpmod_t modulus,
   mpzspm_clear (ntt_context);
   mpres_clear (tmpres, modulus);
   mpz_clear (mt);
+  free (S_2);
 
   timestop = cputime ();
   outputf (OUTPUT_NORMAL, "Step 2 took %ldms\n", 
@@ -3511,7 +3526,7 @@ pp1_sequence_g (listz_t g_x, listz_t g_y, mpzspv_t g_x_ntt, mpzspv_t g_y_ntt,
 
     l = (l_param - 1) / nr_chunks + 1;
     offset = thread_nr * l;
-    ASSERT_ALWAYS (l_param >= (long) offset);
+    ASSERT_ALWAYS (l_param >= offset);
     l = MIN(l, l_param - offset);
     M = M_param - (long) offset;
 
@@ -4154,6 +4169,7 @@ pp1fs2 (mpz_t f, const mpres_t X, mpmod_t modulus,
   clear_list (R_x, lenR);
   clear_list (R_y, lenR);
   clear_list (tmp, tmplen);
+  free (S_2);
  
   timestop = cputime ();
   outputf (OUTPUT_NORMAL, "Step 2 took %ldms\n", 
@@ -4200,29 +4216,61 @@ pp1fs2_ntt (mpz_t f, const mpres_t X, mpmod_t modulus,
   if (make_S_1_S_2 (&S_1, &S_2, params) == ECM_ERROR)
       return ECM_ERROR;
 
-  /* Init the NTT context */
-  ntt_context = mpzspm_init (MAX(3UL * params->l, 
-				 3UL << ceil_log2 (params->s_1 / 2 + 1)), 
-                             modulus->orig_modulus);
+  mpz_init (mt);
+
+  /* Init the NTT context. If we want to add transformed vectors, we need 
+     to double the modulus. */
+  if (twopass)
+    {
+      /* No adding transformed vectors in the two-pass variant */
+      ntt_context = mpzspm_init (MAX(3UL * params->l, 
+				     3UL << ceil_log2 (params->s_1 / 2 + 1)), 
+				 modulus->orig_modulus);
+    }
+  else
+    {
+      /* We add transformed vectors in the one-pass variant */
+      mpz_mul_2exp (mt, modulus->orig_modulus, 1UL);
+      ntt_context = mpzspm_init (MAX(3UL * params->l, 
+				 3UL << ceil_log2 (params->s_1 / 2 + 1)), mt);
+    }
+  if (test_verbose (OUTPUT_DEVVERBOSE))
+    {
+      double modbits = 0.;
+      outputf (OUTPUT_DEVVERBOSE, "CRT modulus = %lu", ntt_context->spm[0]->sp);
+      modbits += log ((double) ntt_context->spm[0]->sp);
+      for (i = 1; i < ntt_context->sp_num; i++)
+	{
+	  outputf (OUTPUT_DEVVERBOSE, " * %lu", ntt_context->spm[i]->sp);
+	  modbits += log ((double) ntt_context->spm[i]->sp);
+	}
+      outputf (OUTPUT_DEVVERBOSE, ", has %d primes, %f bits\n", 
+               ntt_context->sp_num, modbits / log (2.));
+    }
 
   /* Allocate all the memory we'll need */
-  /* Allocate the correct amount of space for each mpz_t or the 
-     reallocations will up to double the time for stage 2! */
-  mpz_init (mt);
+  /* Allocate the correct amount of space for each mpz_t */
   mpres_init (b1_x, modulus);
   mpres_init (b1_y, modulus);
   mpres_init (Delta, modulus);
+  MEMORY_TAG;
   for (i = 0; i < tmpreslen; i++)
       mpres_init (tmpres[i], modulus);
+  MEMORY_UNTAG;
   lenF = params->s_1 / 2 + 1 + 1; /* Another +1 because poly_from_sets_V stores
 				     the leading 1 monomial for each factor */
-  F = init_list2 (lenF, (unsigned int) abs (modulus->bits));
+
+  /* Allocate memory for h_ntt. Will be used for building F */
+  h_x_ntt = mpzspv_init (params->l / 2 + 1, ntt_context);
+  MEMORY_TAG;
+  F = init_list2 (lenF, (unsigned int) abs (modulus->bits) + mp_bits_per_limb);
+  MEMORY_UNTAG;
   tmplen = 2UL * params->l + 20;
   outputf (OUTPUT_DEVVERBOSE, "tmplen = %lu\n", tmplen);
-  tmp = init_list2 (tmplen, (unsigned int) abs (modulus->bits));
-  /* Allocate memory for h_ntt. Will be used for building F */
-  h_x_ntt = mpzspv_init_mt (params->l / 2 + 1, ntt_context);
-
+  MEMORY_TAG;
+  tmp = init_list2 (tmplen, (unsigned int) abs (modulus->bits) + 
+                    2 * mp_bits_per_limb);
+  MEMORY_UNTAG;
   if (test_verbose (OUTPUT_TRACE))
     {
       mpres_get_z (mt, X, modulus); /* mpz_t copy of X for printing */
@@ -4272,7 +4320,7 @@ pp1fs2_ntt (mpz_t f, const mpres_t X, mpmod_t modulus,
     }
 
   /* Allocate remaining memory for h_ntt */
-  h_y_ntt = mpzspv_init_mt (params->l / 2 + 1, ntt_context);
+  h_y_ntt = mpzspv_init (params->l / 2 + 1, ntt_context);
   /* Compute the h_j sequence */
   pp1_sequence_h (NULL, NULL, h_x_ntt, h_y_ntt, F, b1_x, b1_y, 0L, 
 		  params->s_1 / 2 + 1, params->P, Delta, modulus, 
@@ -4282,14 +4330,17 @@ pp1fs2_ntt (mpz_t f, const mpres_t X, mpmod_t modulus,
 
   /* compute the forward transform of h and store the distinct coefficients 
      in h_ntt */
-  g_x_ntt = mpzspv_init_mt (params->l, ntt_context);
+  g_x_ntt = mpzspv_init (params->l, ntt_context);
   if (twopass)
     {
       g_y_ntt = g_x_ntt;
-      R = init_list (nr);
+      MEMORY_TAG;
+      R = init_list2 (nr, (mpz_size (modulus->orig_modulus) + 2) *  
+                          mp_bits_per_limb);
+      MEMORY_UNTAG;
     }
   else
-    g_y_ntt = mpzspv_init_mt (params->l, ntt_context);
+    g_y_ntt = mpzspv_init (params->l, ntt_context);
   
   /* Compute DCT-I of h_x and h_y */
   outputf (OUTPUT_VERBOSE, "Computing DCT-I of h_x");
@@ -4382,8 +4433,8 @@ pp1fs2_ntt (mpz_t f, const mpres_t X, mpmod_t modulus,
 	  timestop = cputime ();
 	  outputf (OUTPUT_VERBOSE, " took %lums\n", timestop - timestart);
 	  
-	  ntt_gcd (mt, g_x_ntt, params->s_1 / 2, twopass ? R : NULL, nr, 
-		   ntt_context, modulus);
+	  ntt_gcd (mt, g_x_ntt, params->s_1 / 2, NULL, nr, ntt_context, 
+	           modulus);
 	}
       
       if (mpz_cmp_ui (mt, 1UL) > 0)
@@ -4408,6 +4459,7 @@ pp1fs2_ntt (mpz_t f, const mpres_t X, mpmod_t modulus,
   mpres_clear (Delta, modulus);
   for (i = 0; i < tmpreslen; i++)
       mpres_clear (tmpres[i], modulus);
+  free (S_2);
  
   timestop = cputime ();
   outputf (OUTPUT_NORMAL, "Step 2 took %ldms\n", 
