@@ -488,7 +488,7 @@ mpmod_init (mpmod_t modulus, const mpz_t N, int repr)
   switch (repr)
     {
     case ECM_MOD_DEFAULT:
-      if (base2 = isbase2 (N, BASE2_THRESHOLD))
+      if ((base2 = isbase2 (N, BASE2_THRESHOLD)))
 	{
 	  repr = ECM_MOD_BASE2;
 	  break;
