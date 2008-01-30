@@ -74,15 +74,15 @@ EXTRA_DIST = test.pm1 test.pp1 test.ecm README.lib ecm.xml \
 
 DIST_SUBDIRS = athlon pentium4 x86_64
 
-ecm-params:	tune
+ecm-params:	tune$(EXEEXT)
 		@echo Optimising parameters for your system, please be patient.
 		test -z "ecm-params.h" || rm -f ecm-params.h
 		./tune > ecm-params.h
 
-check: ecm
-	$(srcdir)/test.pp1 ./ecm
-	$(srcdir)/test.pm1 ./ecm
-	$(srcdir)/test.ecm ./ecm
+check: ecm$(EXEEXT)
+	$(srcdir)/test.pp1 ./ecm$(EXEEXT)
+	$(srcdir)/test.pm1 ./ecm$(EXEEXT)
+	$(srcdir)/test.ecm ./ecm$(EXEEXT)
 
 .asm.o:
 	$(M4) -DOPERATION_$* `test -f $< || echo '$(srcdir)/'`$< >tmp-$*.s
