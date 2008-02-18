@@ -127,6 +127,55 @@ of $r$ in an increasing geometric progression, using $2$ multiplications
 per coefficient. This means that to produce $F_{pn,r}(x)$, we need to compute 
 $F_{n,r^p}(x)$ only once.
 
+\pagebreak[4]
+
+\section {Converting a polynomial from base $U_i(Y)$ to $V_i(Y)$}
+
+In section 8.1, Montgomery proposes building a polynomial 
+$H(Y)=\sum_{j=1}^{n} h_j U_j(Y)$, 
+$Y=X+1/X$, in the $U_j(Y) = (X^j - 1/X^j)/(X - 1/X)$ basis and converting it
+to $\hat{H}(Y)=\hat{h}_0 + \sum_{j=1}^{n} \hat{h}_j V_j(Y)$ 
+in the $V_j(Y) = X^j + 1/X^j$ 
+basis in a separate step, using the identity 
+$U_j(Y) = V_{j-1}(Y) + U_{j-2}(Y)$, $j\geq 2$, as well as $U_0(Y) = 0$, 
+$U_1(Y) = 1$. 
+Hence we have
+\begin{eqnarray*}
+  H(Y) & = & \sum_{j=1}^{n} h_j U_j(Y) \\
+  & = & h_1 + \sum_{j=2}^{n} h_j U_j(Y) \\
+  & = & h_1 + \sum_{j=2}^{n} h_j (V_{j-1}(Y) + U_{j-2}(Y)) \\
+%  & = & h_1 + \sum_{j=1}^{n-1} h_{j+1} V_{j}(Y) + \sum_{j=0}^{n-2} h_{j+2} U_{j}(Y) \\
+\end{eqnarray*}
+so we can initialise $\hat{H}(Y) = 0$ and compute 
+\begin{eqnarray*}
+\hat{H}(Y) & := & \hat{H}(Y) + h_i V_{i-1}(Y) \\
+H(Y) & := & H(Y) + h_i U_{i-2}(Y) \\
+H(Y) & := & H(Y) - h_i U_i(Y),
+\end{eqnarray*}
+which leaves $H(Y) + \hat{H}(Y)$ invariant, for $i = d, \ldots, 2$. Then we
+have $H(Y) = h_1 V_1(Y) = h_1$ left and can set 
+\begin{eqnarray*}
+\hat{h}_0 & := & \hat{h}_0 + h_1 \\
+h_1 & := & 0
+\end{eqnarray*}
+which again leaves $H(Y) + \hat{H}(Y)$ invariant. We now have $H(Y) = 0$, so
+$\hat{H}(Y)$ is equal to the original $H(Y)$, but is represented in standard 
+basis.
+
+Since both $h_i$ and $\hat{h_i}$ are accessed in descending order, they can 
+overlap. We can have $h_i$ and $\hat{h}_{i-1}$ in the same memory, so the 
+update simplifies from
+\begin{eqnarray*}
+  \hat{h}_{i-1} & := & h_{i} \\
+  h_{i-2} & := & h_{i-2} + h_i \\
+  h_i & := & h_i - h_i
+\end{eqnarray*}
+to
+\begin{displaymath}
+  h_{i-2} := h_{i-2} + h_i,
+\end{displaymath}
+for $i = d, \ldots, 2$, and the assignment $\hat{h}_0 := h_1$ becomes a no-op.
+
 \begin{thebibliography}{}
 \bibitem{Montgomery2007} Peter-Lawrence Montgomery: 
 {\it Record Factorizations (I Hope!) Using P-1/FFT. Draft February 8, 2007}. 
