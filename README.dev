@@ -44,6 +44,7 @@ Documentation:
 
 To make a new release:
 
+  0) Check all tests pass (test.ecm, test.pm1, test.pp1, testlong.pp1).
   1) Check the version (configure.in).
   2) Update the NEWS file.
   3) Update the ChangeLog file, e.g. svn -v log > ChangeLog.2 and edit
