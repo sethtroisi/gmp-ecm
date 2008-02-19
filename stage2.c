@@ -137,30 +137,37 @@ fin_diff_coeff (listz_t coeffs, mpz_t s, mpz_t D, unsigned int E,
 
 /* Init several disjoint progressions for the computation of 
 
-   Dickson_{E,a} (e * (i0 + i + d * n * k)), for 0 <= i < k * d 
-                  with gcd(e * (i0 + i), d) == 1, i == 1 (mod m)
+   Dickson_{E,a} (e * (i0 + i + n * d * k)), for 0 <= i < d * k   (1)
+                  with gcd(e * (i0 + i), d) == 1, i == 1 (mod m),
+		  where m divides d
    
-   for successive n. m must divide d, e must divide s (d need not).
+   for successive n (the variable n does not appear here, it is the 
+   application that called this function that wants to evaluate (1)
+   for n = 0, 1, 2, ...
    
    This means there will be k sets of progressions, where each set contains
-   eulerphi(d) progressions that generate the values coprime to d and with
-   i == 1 (mod m).
-   
+   eulerphi(d) progressions that generate the values of Dickson_{E,a} (x)
+   with x coprime to d and 
+   with i == 1 (mod m), where x == e * (i0 + i) (mod m).
+
+   i0 may be a NULL pointer, in this case i0 = 0 is assumed.
+
    Return NULL if an error occurred.
 */
 
 listz_t
-init_progression_coeffs (mpz_t i0, const unsigned long d, const unsigned long e, 
-                         const unsigned int k, const unsigned int m, 
-                         const unsigned int E, const int dickson_a)
+init_progression_coeffs (mpz_t i0, const unsigned long d, 
+			 const unsigned long e, const unsigned int k, 
+			 const unsigned int m, const unsigned int E, 
+			 const int dickson_a)
 {
   unsigned int i, j, size_fd;
-  mpz_t t, dke;
+  mpz_t t, dke, em;
   listz_t fd;
 
   ASSERT (d % m == 0);
 
-  size_fd = k * eulerphi(d) / eulerphi(m) * (E + 1);
+  size_fd = k * (eulerphi(d) / eulerphi(m)) * (E + 1);
   fd = (listz_t) malloc (size_fd * sizeof (mpz_t));
   if (fd == NULL)
     return NULL;
@@ -168,28 +175,40 @@ init_progression_coeffs (mpz_t i0, const unsigned long d, const unsigned long e,
     MPZ_INIT (fd[i]);
 
   MPZ_INIT (t);
-  outputf (OUTPUT_TRACE, "init_progression_coeffs: i0 = %Zd, d = %u, e = %u, "
-           "k = %u, m = %u, E = %u, a = %d, size_fd = %u\n", 
-           i0 ? i0 : t, d, e, k, m, E, dickson_a, size_fd);
-
   if (i0 != NULL)
     mpz_set (t, i0);
-  mpz_mul_ui (t, t, e);
-  mpz_add_ui (t, t, e * (1 % m));
   
-  /* dke = d * k * e */
+  outputf (OUTPUT_TRACE, "init_progression_coeffs: i0 = %Zd, d = %u, e = %u, "
+           "k = %u, m = %u, E = %u, a = %d, size_fd = %u\n", 
+           t, d, e, k, m, E, dickson_a, size_fd);
+
+  /* Due to the condition i == 1 (mod m) we start at i = 1 or i = 0,
+     depending on whether m > 1 or m == 1 */
+  i = (m > 1) ? 1 : 0;
+  mpz_add_ui (t, t, (unsigned long) i);
+  mpz_mul_ui (t, t, e);
+  /* Now t = e * (i0 + i + n * d * k), for n = 0 */
+  
+  /* dke = d * k * e, the common difference of the arithmetic progressions
+     (it is the same for all arithmetic progressions we initialise) */
   MPZ_INIT (dke);
   mpz_set_ui (dke, d);
   mpz_mul_ui (dke, dke, k);
   mpz_mul_ui (dke, dke, e);
+  /* em = e * m, the value by which t advances if we increase i by m */
+  MPZ_INIT (em);
+  mpz_set_ui (em, e);
+  mpz_mul_ui (em, em, (unsigned long) m);
   
-  for (i = 1 % m, j = 0; i < k * d; i += m)
+  for (j = 0; i < k * d; i += m)
     {
       if (mpz_gcd_ui (NULL, t, d) == 1)
         {
           outputf (OUTPUT_TRACE, "init_progression_coeffs: initing a "
                    "progression for Dickson_{%d,%d}(%Zd + n * %Zd)\n", 
                    E, dickson_a, t, dke);
+	  /* Initialise for the evaluation of Dickson_{E,a} (t + n*dke)
+	     for n = 0, 1, 2, ... */
           fin_diff_coeff (fd + j, t, dke, E, dickson_a);
           j += E + 1;
         } else
@@ -198,9 +217,11 @@ init_progression_coeffs (mpz_t i0, const unsigned long d, const unsigned long e,
                      "progression for Dickson_{%d,%d}(%Zd + n * %Zd), "
                      "gcd (%Zd, %u) == %u)\n", E, dickson_a, t, dke, t, d,
                      mpz_gcd_ui (NULL, t, d));
-      mpz_add_ui (t, t, e * m); /* t = s + i * e */
+      /* We increase i by m, so we increase t by e*m */
+      mpz_add (t, t, em);
     }
 
+  mpz_clear (em);
   mpz_clear (dke);
   mpz_clear (t);
   return fd;
