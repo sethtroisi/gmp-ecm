@@ -801,6 +801,8 @@ pm1 (mpz_t f, mpz_t p, mpz_t N, mpz_t go, double *B1done, double B1,
   unsigned long dF, lmax = 1UL<<26;
   root_params_t root_params;
   faststage2_param_t faststage2_params;
+  /* If stage2_variant != 0, we use the new fast stage 2 */
+  const int stage2_variant = (S == 1 || S == ECM_DEFAULT_S);
 
   set_verbose (verbose);
   ECM_STDOUT = (os == NULL) ? stdout : os;
@@ -884,14 +886,17 @@ pm1 (mpz_t f, mpz_t p, mpz_t N, mpz_t go, double *B1done, double B1,
   /* If we use the old stage 2, we print the parameters here. The fast 
      stage 2 prints it by itself at the moment */
 
-  if (S == 1)
+  if (stage2_variant != 0)
     {
       long P;
       mpz_init (faststage2_params.m_1);
       P = choose_P (B2min, B2, lmax, k, &faststage2_params, B2min, B2, 
                     use_ntt);
       if (P == ECM_ERROR)
-	return ECM_ERROR;
+        {
+          mpz_clear (faststage2_params.m_1);
+          return ECM_ERROR;
+        }
     }
   else
     {
@@ -936,7 +941,7 @@ pm1 (mpz_t f, mpz_t p, mpz_t N, mpz_t go, double *B1done, double B1,
 	      mpz_clear (t);
 	    }
 	}
-
+      
       /* We need Suyama's power even and at least 2 for P-1 stage 2 to work 
 	 correctly */
 
@@ -955,7 +960,7 @@ pm1 (mpz_t f, mpz_t p, mpz_t N, mpz_t go, double *B1done, double B1,
 	outputf (OUTPUT_NORMAL, "B2=%Zd, ", B2);
       else
 	outputf (OUTPUT_NORMAL, "B2=%Zd-%Zd, ", B2min, B2);
-      if (S != 1)
+      if (stage2_variant == 0)
 	{
 	  if (root_params.S > 1)
 	    outputf (OUTPUT_NORMAL, "polynomial x^%u, ", root_params.S);
@@ -970,7 +975,7 @@ pm1 (mpz_t f, mpz_t p, mpz_t N, mpz_t go, double *B1done, double B1,
       outputf (OUTPUT_NORMAL, "\n");
     }
 
-  if (S == 1)
+  if (stage2_variant != 0)
     outputf (OUTPUT_VERBOSE, "P = %lu, l = %lu, s_1 = %lu, s_2 = %lu, "
 	     "m_1 = %Zd\n", faststage2_params.P, faststage2_params.l,
 	     faststage2_params.s_1,faststage2_params.s_2,
@@ -981,10 +986,6 @@ pm1 (mpz_t f, mpz_t p, mpz_t N, mpz_t go, double *B1done, double B1,
 
   mpres_init (x, modulus);
   mpres_set_z (x, p, modulus);
-
-  st = elltime (st, cputime ());
-
-  outputf (OUTPUT_VERBOSE, "Initialization took %ldms\n", st);
 
   st = cputime ();
 
@@ -1008,7 +1009,7 @@ pm1 (mpz_t f, mpz_t p, mpz_t N, mpz_t go, double *B1done, double B1,
 
   if (youpi == ECM_NO_FACTOR_FOUND && mpz_cmp (B2, B2min) >= 0)
     {
-      if (S == 1)
+      if (stage2_variant != 0)
         {
           if (use_ntt)
             youpi = pm1fs2_ntt (f, x, modulus, &faststage2_params);
@@ -1024,7 +1025,7 @@ clear_and_exit:
   mpres_get_z (p, x, modulus);
   mpres_clear (x, modulus);
   mpmod_clear (modulus);
-  if (S == 1)
+  if (stage2_variant != 0)
     mpz_clear (faststage2_params.m_1);
   else
     mpz_clear (root_params.i0);
