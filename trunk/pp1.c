@@ -284,28 +284,47 @@ pp1_check_factor (mpz_t a, mpz_t p)
 
 /* let alpha, beta be the roots of x^2-Px+1=0
    set a, b such that alpha^e = a*alpha+b (idem for beta),
-   i.e. a*x+b = rem(x^e, x^2-Px+1) */
+   i.e. a*x+b = rem(x^e, x^2-Px+1).
+   Since (x-alpha)*(x-beta) = x^2-Px+1, we have alpha*beta = 1
+   and alpha+beta = P, i.e. 1/alpha = beta = -alpha + P.
+   It seems that if x^e % (x^2-Px+1) = a*x+b, then
+   x^{-e+1} % (x^2-Px+1) = b*x+a. Proof?
+*/
+
 static void
 pp1_mul2 (mpres_t a, mpres_t b, mpres_t P, mpz_t e, mpmod_t n)
 {
   unsigned long l;
   mpres_t t;
+  mpz_t abs_e;
+  const int positive_e = (mpz_sgn (e) > 0);
 
-  if (mpz_cmp_ui (e, 0) == 0) /* x^0 = 1 */
+  if (mpz_cmp_ui (e, 0UL) == 0) /* x^0 = 1 */
     {
       mpres_set_ui (a, 0, n);
       mpres_set_ui (b, 1, n);
       return;
     }
-
-  /* now e >= 1 */
-  mpres_set_ui (a, 1, n);
-  mpres_set_ui (b, 0, n);
-
-  l = mpz_sizeinbase (e, 2) - 1; /* number of bits of e (minus 1) */
-
+  
   mpres_init (t, n);
+  mpz_init (abs_e);
+  mpz_abs (abs_e, e);
 
+  if (positive_e)
+    {
+      mpres_set_ui (a, 1, n);
+      mpres_set_ui (b, 0, n);
+    }
+  else
+    {
+      /* Set to -x+P */
+      mpres_set_ui (a, 1, n);
+      mpres_neg (a, a, n);
+      mpres_set (b, P, n);
+    }
+
+  l = mpz_sizeinbase (abs_e, 2) - 1; /* number of bits of e (minus 1) */
+  
   while (l--)
     {
       /* square: (ax+b)^2 = (a^2P+2ab) x + (b^2-a^2) */
@@ -316,16 +335,31 @@ pp1_mul2 (mpres_t a, mpres_t b, mpres_t P, mpz_t e, mpmod_t n)
       mpres_sub (b, b, t, n); /* b^2-a^2 */
       mpres_mul (t, t, P, n); /* a^2P */
       mpres_add (a, t, a, n); /* a^2P+2ab */
-
-      if (mpz_tstbit (e, l)) /* multiply: (ax+b)*x = (aP+b) x - a */
-        {
-          mpres_mul (t, a, P, n);
-          mpres_add (t, t, b, n);
-          mpres_neg (b, a, n);
-          mpz_swap (a, t);
-        }
+      
+      if (mpz_tstbit (abs_e, l))
+	{
+	  if (positive_e)
+	    {
+	      /* multiply: (ax+b)*x = (aP+b) x - a */
+	      mpres_mul (t, a, P, n);
+	      mpres_add (t, t, b, n);
+	      mpres_neg (b, a, n);
+	      mpres_set (a, t, n);
+	    }
+	  else
+	    {
+	      /* multiply: (ax+b)*(-x+P) = 
+                           -ax^2+(aP-b)x+b*P == 
+			   -bx + (bP + a) (mod x^2-P*x+1) */
+	      mpres_mul (t, b, P, n);
+	      mpres_add (t, t, a, n);
+	      mpres_neg (a, b, n);
+	      mpres_set (b, t, n);
+	    }
+	}
     }
 
+  mpz_clear (abs_e);
   mpres_clear (t, n);
 }
 
@@ -390,8 +424,9 @@ pp1_rootsF (listz_t F, root_params_t *root_params, unsigned long dF,
 
   st1 = st = cputime ();
 
-  outputf (OUTPUT_DEVVERBOSE, "pp1_rootsF: d1 = %lu, d2 = %lu, dF = %lu\n",
-	   root_params->d1, root_params->d2, dF);
+  outputf (OUTPUT_DEVVERBOSE, 
+	   "pp1_rootsF: d1 = %lu, d2 = %lu, S = %d, dF = %lu\n",
+	   root_params->d1, root_params->d2, root_params->S, dF);
 
   mpres_init (u, modulus);
   mpres_init (v, modulus);
@@ -406,10 +441,10 @@ pp1_rootsF (listz_t F, root_params_t *root_params, unsigned long dF,
       pp1_mul (fd[2], *x, *t, modulus, u, v);
       mpres_get_z (F[0], fd[2], modulus);
   
-      mpz_set_ui (*t, 7);
+      mpz_set_ui (*t, 7UL);
       pp1_mul (fd[0], fd[2], *t, modulus, u, v);
 
-      mpz_set_ui (*t, 6);
+      mpz_set_ui (*t, 6UL);
       pp1_mul (fd[1], fd[2], *t, modulus, u, v);
 
       /* fd[0] = V_{7*d2}(P), fd[1] = V_{6*d2}(P), fd[2] = V_{d2}(P) */
@@ -428,8 +463,11 @@ pp1_rootsF (listz_t F, root_params_t *root_params, unsigned long dF,
 	  /* V_{m+n} = V_m * V_n - V_{m-n} */
 	  /* fd[0] = V_m, fd[1] = V_n, fd[2] = V_{m-n} */
 	  mpres_swap (fd[0], fd[2], modulus);
+	  /* fd[0] = V_{m-n}, fd[1] = V_n, fd[2] = V_m */
 	  mpres_mul (u, fd[2], fd[1], modulus);
+	  /* u = V_n * V_m */
 	  mpres_sub (fd[0], u, fd[0], modulus);
+	  /* fd[0] = V_n * V_m - V_{m-n} = V_{m+n}, hence */
 	  /* fd[0] = V_{m+n}, fd[1] = V_n, fd[2] = V_m */
 	  j += 6;
 	  muls ++;
@@ -444,7 +482,7 @@ pp1_rootsF (listz_t F, root_params_t *root_params, unsigned long dF,
     {
       init_roots_state (&state, root_params->S, root_params->d1, 
                         root_params->d2, 1.0);
-      mpz_set_ui (*t, 0);
+      mpz_set_ui (*t, 0UL);
       coeffs = init_progression_coeffs (*t, state.dsieve, root_params->d2, 1, 
                                         6, state.S, state.dickson_a);
       
@@ -757,6 +795,7 @@ pp1 (mpz_t f, mpz_t p, mpz_t n, mpz_t go, double *B1done, double B1,
   unsigned long dF;
   root_params_t root_params;
   faststage2_param_t faststage2_params;
+  const int stage2_variant = (S == 1 || S == ECM_DEFAULT_S);
 
   set_verbose (verbose);
   ECM_STDOUT = (os == NULL) ? stdout : os;
@@ -790,7 +829,7 @@ pp1 (mpz_t f, mpz_t p, mpz_t n, mpz_t go, double *B1done, double B1,
   if (use_ntt)
     po2 = 1;
   
-  if (S == 1)
+  if (stage2_variant != 0)
     {
       /* If S == 1, we use the new, faster stage 2 */
       long P;
@@ -799,7 +838,10 @@ pp1 (mpz_t f, mpz_t p, mpz_t n, mpz_t go, double *B1done, double B1,
       P = choose_P (B2min, B2, lmax, k, &faststage2_params, B2min, B2,
                     use_ntt);
       if (P == ECM_ERROR)
-	return ECM_ERROR;
+	{
+	  mpz_clear (faststage2_params.m_1);
+	  return ECM_ERROR;
+	}
     } 
   else 
     {
@@ -844,7 +886,7 @@ pp1 (mpz_t f, mpz_t p, mpz_t n, mpz_t go, double *B1done, double B1,
       else
         outputf (OUTPUT_NORMAL, ", B2=%Zd-%Zd", B2min, B2);
 
-      if (S != 1)
+      if (stage2_variant == 0)
         {
           if (root_params.S > 0)
             outputf (OUTPUT_NORMAL, ", polynomial x^%u", root_params.S);
@@ -858,7 +900,7 @@ pp1 (mpz_t f, mpz_t p, mpz_t n, mpz_t go, double *B1done, double B1,
       outputf (OUTPUT_NORMAL, "\n");
     }
 
-  if (S == 1)
+  if (stage2_variant != 0)
     outputf (OUTPUT_VERBOSE, "P = %lu, l = %lu, s_1 = %lu, s_2 = %lu, "
 	     "m_1 = %Zd\n", faststage2_params.P, faststage2_params.l,
 	     faststage2_params.s_1,faststage2_params.s_2,
@@ -903,7 +945,7 @@ pp1 (mpz_t f, mpz_t p, mpz_t n, mpz_t go, double *B1done, double B1,
       
   if (youpi == ECM_NO_FACTOR_FOUND && mpz_cmp (B2, B2min) >= 0)
     {
-      if (S == 1)
+      if (stage2_variant != 0)
         {
           if (use_ntt)
             youpi = pp1fs2_ntt (f, a, modulus, &faststage2_params, 1);
@@ -921,7 +963,7 @@ pp1 (mpz_t f, mpz_t p, mpz_t n, mpz_t go, double *B1done, double B1,
  clear_and_exit:
   mpres_clear (a, modulus);
   mpmod_clear (modulus);
-  if (S == 1)
+  if (stage2_variant != 0)
     mpz_clear (faststage2_params.m_1);
   else
     mpz_clear (root_params.i0);
