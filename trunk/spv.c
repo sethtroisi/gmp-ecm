@@ -116,7 +116,7 @@ spv_sub (spv_t r, spv_t x, spv_t y, spv_size_t len, sp_t m)
   
   ASSERT (r >= x + len || x >= r);
   ASSERT (r >= y + len || y >= r);
-  
+   
   for (i = 0; i < len; i++)
     r[i] = sp_sub (x[i], y[i], m);
 }
@@ -146,12 +146,65 @@ spv_neg (spv_t r, spv_t x, spv_size_t len, sp_t m)
 void
 spv_pwmul (spv_t r, spv_t x, spv_t y, spv_size_t len, sp_t m, sp_t d)
 {
-  spv_size_t i;
+  spv_size_t i = 0;
   
   ASSERT (r >= x + len || x >= r);
   ASSERT (r >= y + len || y >= r);
 
-  for (i = 0; i < len; i++)
+#if (defined(__GNUC__) || defined(__ICL)) && \
+  	defined(__i386__) && defined(HAS_SSE2)
+
+  asm volatile (
+       "movd %6, %%xmm6            \n\t"
+       "pshufd $0, %%xmm6, %%xmm6  \n\t"
+       "movd %7, %%xmm7            \n\t"
+       "pshufd $0, %%xmm7, %%xmm7  \n\t"
+
+       "0:                         \n\t"
+       "movdqa (%1,%4,4), %%xmm0   \n\t"
+       "movdqa (%2,%4,4), %%xmm2   \n\t"
+       "pshufd $0x31, %%xmm0, %%xmm1\n\t"
+       "pshufd $0x31, %%xmm2, %%xmm3\n\t"
+       "pmuludq %%xmm2, %%xmm0     \n\t"
+       "pmuludq %%xmm3, %%xmm1     \n\t"
+
+       "movdqa %%xmm0, %%xmm2      \n\t"
+       "movdqa %%xmm1, %%xmm3      \n\t"
+       "psrlq $" STRING((2*SP_NUMB_BITS - W_TYPE_SIZE)) ", %%xmm2  \n\t"
+       "pmuludq %%xmm7, %%xmm2     \n\t"
+       "psrlq $" STRING((2*SP_NUMB_BITS - W_TYPE_SIZE)) ", %%xmm3  \n\t"
+       "pmuludq %%xmm7, %%xmm3     \n\t"
+
+       "psrlq $33, %%xmm2          \n\t"
+       "pmuludq %%xmm6, %%xmm2     \n\t"
+       "psrlq $33, %%xmm3          \n\t"
+       "pmuludq %%xmm6, %%xmm3     \n\t"
+
+       "psubq %%xmm2, %%xmm0       \n\t"
+       "psubq %%xmm3, %%xmm1       \n\t"
+       "pshufd $0b00001000, %%xmm0, %%xmm0 \n\t"
+       "pshufd $0b00001000, %%xmm1, %%xmm1 \n\t"
+       "punpckldq %%xmm1, %%xmm0   \n\t"
+       "psubd %%xmm6, %%xmm0       \n\t"
+
+       "pxor %%xmm1, %%xmm1        \n\t"
+       "pcmpgtd %%xmm0, %%xmm1     \n\t"
+       "pand %%xmm6, %%xmm1        \n\t"
+       "paddd %%xmm1, %%xmm0       \n\t"
+       "movdqa %%xmm0, (%3,%4,4)   \n\t"
+
+       "addl $4, %4                \n\t"  /* INC */
+       "cmpl %5, %4                \n\t"
+       "jne 0b                     \n\t"
+
+       :"=r"(i)
+       :"r"(x), "r"(y), "r"(r), "0"(i), 
+	"g"(len & (spv_size_t)(~3)), "g"(m), "g"(d)
+       :"%xmm0", "%xmm1", "%xmm2", "%xmm3",
+        "%xmm6", "%xmm7", "cc", "memory");
+#endif
+
+  for (; i < len; i++)
     r[i] = sp_mul (x[i], y[i], m, d);
 }
 
@@ -173,375 +226,67 @@ spv_pwmul_rev (spv_t r, spv_t x, spv_t y, spv_size_t len, sp_t m, sp_t d)
 void
 spv_mul_sp (spv_t r, spv_t x, sp_t c, spv_size_t len, sp_t m, sp_t d)
 {
-  spv_size_t i;
+  spv_size_t i = 0;
   
   ASSERT (r >= x + len || x >= r);
   
-  for (i = 0; i < len; i++)
+#if (defined(__GNUC__) || defined(__ICL)) && \
+  	defined(__i386__) && defined(HAS_SSE2)
+
+  asm volatile (
+       "movd %2, %%xmm5            \n\t"
+       "pshufd $0, %%xmm5, %%xmm5  \n\t"
+       "movd %6, %%xmm6            \n\t"
+       "pshufd $0, %%xmm6, %%xmm6  \n\t"
+       "movd %7, %%xmm7            \n\t"
+       "pshufd $0, %%xmm7, %%xmm7  \n\t"
+
+       "0:                         \n\t"
+       "movdqa (%1,%4,4), %%xmm0   \n\t"
+       "pshufd $0x31, %%xmm0, %%xmm1\n\t"
+       "pshufd $0x31, %%xmm5, %%xmm3\n\t"
+       "pmuludq %%xmm5, %%xmm0     \n\t"
+       "pmuludq %%xmm3, %%xmm1     \n\t"
+
+       "movdqa %%xmm0, %%xmm2      \n\t"
+       "movdqa %%xmm1, %%xmm3      \n\t"
+       "psrlq $" STRING((2*SP_NUMB_BITS - W_TYPE_SIZE)) ", %%xmm2  \n\t"
+       "pmuludq %%xmm7, %%xmm2     \n\t"
+       "psrlq $" STRING((2*SP_NUMB_BITS - W_TYPE_SIZE)) ", %%xmm3  \n\t"
+       "pmuludq %%xmm7, %%xmm3     \n\t"
+
+       "psrlq $33, %%xmm2          \n\t"
+       "pmuludq %%xmm6, %%xmm2     \n\t"
+       "psrlq $33, %%xmm3          \n\t"
+       "pmuludq %%xmm6, %%xmm3     \n\t"
+
+       "psubq %%xmm2, %%xmm0       \n\t"
+       "psubq %%xmm3, %%xmm1       \n\t"
+       "pshufd $0b00001000, %%xmm0, %%xmm0 \n\t"
+       "pshufd $0b00001000, %%xmm1, %%xmm1 \n\t"
+       "punpckldq %%xmm1, %%xmm0   \n\t"
+       "psubd %%xmm6, %%xmm0       \n\t"
+
+       "pxor %%xmm1, %%xmm1        \n\t"
+       "pcmpgtd %%xmm0, %%xmm1     \n\t"
+       "pand %%xmm6, %%xmm1        \n\t"
+       "paddd %%xmm1, %%xmm0       \n\t"
+       "movdqa %%xmm0, (%3,%4,4)   \n\t"
+
+       "addl $4, %4                \n\t"  /* INC */
+       "cmpl %5, %4                \n\t"
+       "jne 0b                     \n\t"
+
+       :"=r"(i)
+       :"r"(x), "g"(c), "r"(r), "0"(i), 
+	"g"(len & (spv_size_t)(~3)), "g"(m), "g"(d)
+       :"%xmm0", "%xmm1", "%xmm2", "%xmm3",
+        "%xmm5", "%xmm6", "%xmm7", "cc", "memory");
+#endif
+
+  for (; i < len; i++)
     r[i] = sp_mul (x[i], c, m, d);
 }
-
-#if 0
-/* r += x * y */
-void
-spv_addmul_sp (spv_t r, spv_t x, sp_t c, spv_size_t len, sp_t m, sp_t d)
-{
-  spv_size_t i;
-  sp_t t;
-	
-  ASSERT (r >= x + len || x >= r);
-  
-  for (i = 0; i < len; i++)
-  {
-    t = sp_mul (x[i], c, m, d);
-    r[i] = sp_add (r[i], t, m);
-  }
-}
-
-/* r -= x * y */
-void
-spv_submul_sp (spv_t r, spv_t x, sp_t c, spv_size_t len, sp_t m, sp_t d)
-{
-  spv_size_t i;
-  sp_t t;
-  
-  ASSERT (r >= x + len || x >= r);
-  
-  for (i = 0; i < len; i++)
-  {
-    t = sp_mul (x[i], c, m, d);
-    r[i] = sp_sub (x[i], t, m);
-  }
-}
-
-/* r = x * y by grammar-school polynomial multiplication
- * 
- * r must be distinct from both x and y
- * x_len > 0, y_len > 0 */
-void
-spv_mul_basecase (spv_t r, spv_t x, spv_t y, spv_size_t x_len,
-    spv_size_t y_len, sp_t m, sp_t d)
-{
-  spv_size_t i;
-  
-  ASSERT (r >= x + x_len || x >= r + x_len + y_len - 1);
-  ASSERT (r >= y + y_len || y >= r + x_len + y_len - 1);
-  ASSERT (x_len > 0);
-  ASSERT (y_len > 0);
-  
-  if (x_len > y_len)
-  {
-    spv_mul_sp (r, x, y[0], x_len, m, d);
-    spv_set_sp (r + x_len, 0, y_len - 1);
-    
-    for (i = 1; i < y_len; i++)
-      spv_addmul_sp (r + i, x, y[i], x_len, m, d);
-  }
-  else
-  {
-    spv_mul_sp (r, y, x[0], y_len, m, d);
-    spv_set_sp (r + y_len, 0, x_len - 1);
-    
-    for (i = 1; i < x_len; i++)
-      spv_addmul_sp (r + i, y, x[i], y_len, m, d);
-  }
-}
-
-/* dst = src1 * src2 by karatsuba multiplication
- * 
- * dst must be distinct from both src1 and src2
- * src1 and src2 have the same len > 0 
- * t is a temporary array which must be at least M(len) large, where
- *
- * M(1)=0, M(K) = max(3*l-1,2*l-2+M(l)) <= 2*K-1 where l = ceil(K/2).
- * 
- * Code adapted from the mpz_t karatsuba in gmp-ecm, in which multiplies
- * are substantially more expensive than additions. This is also true for
- * sp's, but to a lesser extent, so it might be the case that minimising the
- * total number of operations is more important than minimising the number
- * of muls. */
-
-void
-spv_mul_karatsuba (spv_t r, spv_t x, spv_t y, spv_t t, spv_size_t len,
-    sp_t m, sp_t d)
-{
-  spv_size_t i, k, l;
-  spv_t z;
-  
-  ASSERT (r >= x + len || x >= r + 2 * len - 1);
-  ASSERT (r >= y + len || y >= r + 2 * len - 1);
-  ASSERT (len > 0);
-  /* FIXME: add assertions for t */
-  
-  if (len == 1)
-    {
-      r[0] = sp_mul (x[0], y[0], m, d);
-      return;
-    }
-  if (len == 2)
-    {
-      t[0] = sp_add (x[0], x[1], m);
-      r[1] = sp_add (y[0], y[1], m);
-      r[1] = sp_mul (r[1], t[0], m, d);
-      r[0] = sp_mul (x[0], y[0], m, d);
-      r[2] = sp_mul (x[1], y[1], m, d);
-      r[1] = sp_sub (r[1], r[0], m);
-      r[1] = sp_sub (r[1], r[2], m);
-      return;
-    }
-  if (len == 3)
-    {
-      r[0] = sp_mul (x[0], y[0], m, d);
-      r[2] = sp_mul (x[1], y[1], m, d);
-      r[4] = sp_mul (x[2], y[2], m, d);
-      t[0] = sp_add (x[0], x[1], m);
-      t[1] = sp_add (y[0], y[1], m);
-      r[1] = sp_mul (t[0], t[1], m, d);
-      r[1] = sp_sub (r[1], r[0], m);
-      r[1] = sp_sub (r[1], r[2], m);
-      t[0] = sp_add (x[1], x[2], m);
-      t[1] = sp_add (y[1], y[2], m);
-      r[3] = sp_mul (t[0], t[1], m, d);
-      r[3] = sp_sub (r[3], r[2], m);
-      r[3] = sp_sub (r[3], r[4], m);
-      t[0] = sp_add (x[0], x[2], m);
-      t[1] = sp_add (y[0], y[2], m);
-      t[2] = sp_mul (t[0], t[1], m, d);
-      t[2] = sp_sub (t[2], r[0], m);
-      t[2] = sp_sub (t[2], r[4], m);
-      r[2] = sp_add (r[2], t[2], m);
-      return;
-    }
-  
-  k = len / 2;
-  l = len - k;
-
-  z = t + 2 * l - 1;
-  
-  for (i = 0; i < k; i++)
-    {
-      z[i] = sp_sub (x[i], x[l + i], m);
-      r[i] = sp_sub (y[i], y[l + i], m);
-    }
-
-  if (l > k)
-    {
-      z[k] = x[k];
-      r[k] = y[k];
-    }
-
-  spv_mul_karatsuba (t, z, r, r + l, l, m, d);
-       
-  z = t + 2 * l - 2;
-  r[2 * l - 1] = t[2 * l - 2];
-
-  spv_mul_karatsuba (r, x, y, z, l, m, d);
-  spv_mul_karatsuba (r + 2 * l, x + l, y + l, z, k, m, d);
-
-  t[2 * l - 2] = r[2 * l - 1];
-  r[2 * l - 1] = 0;
-
-  spv_add (r + 2 * l, r + 2 * l, r + l, l - 1, m);
-  if (k > 1)
-    {
-      spv_add (r + l, r + 2 * l, r, l, m);
-      spv_add (r + 2 * l, r + 2 * l, r + 3 * l, 2 * k - 1 - l, m);
-    }
-  else
-    {
-      r[l] = sp_add (r[2 * l], r[0], m);
-      if (len == 3)
-        r[l + 1] = r[1];
-    }
-
-  spv_sub (r + l, r + l, t, 2 * l - 1, m);
-}
-
-/* calculate r[k], ..., r[l - 1] of the product r = x * y
- *
- * other coeffs in r are undefined
- * r has size at least the next power of two >= prod_len
- * allow l == 0 if the full product is required */
-void spv_mul (spv_t r, spv_t x, spv_size_t x_len, spv_t y,
-    spv_size_t y_len, spv_size_t k, spv_size_t l, int monic, spm_t spm)
-{
-  /* FIXME: add assertions */
-  
-  if (l == 0)
-    l = x_len + y_len - 1 + monic;
-  
-  ASSERT (x_len > 0);
-  ASSERT (y_len > 0);
-  ASSERT (monic == 0 || monic == 1);
-  ASSERT (k < l);
-  ASSERT (l <= x_len + y_len - 1 + monic);
-  
-  x_len = MIN (l, x_len);
-  y_len = MIN (l, y_len);
-  
-  int square = (x == y && x_len == y_len);
-  int equal_op;
-  spv_size_t prod_len = x_len + y_len - 1 + monic;
-  spv_size_t max_len = MAX (x_len, y_len);
-  
-  /* ensure either x != r != y or r == x */
-  if (r == y && r != x)
-    {
-      spv_t t = y;
-      spv_size_t t_len = y_len;
-      
-      y = x; y_len = x_len;
-      x = t; x_len = t_len;
-    }
-  
-  equal_op = (r == x);
-  
-  if (prod_len < MUL_NTT_THRESHOLD)
-    {
-      spv_t t = (spv_t) malloc (2 * max_len * sizeof (sp_t));
-      
-      /* the original contents of x, y, these are respectively
-       * either x, y themselves or copies */
-      spv_t x0, y0;
-      
-      /* we cannot rely on x or y being large enough to allow us
-       * to zero-pad them to max_len so if x_len != y_len then
-       * we copy the smaller vector */
-      
-      if (equal_op || x_len < y_len)
-        {
-	  /* karatsuba implementation requires r != x, r != y */
-	  x0 = (spv_t) malloc (max_len * sizeof (sp_t));
-	  
-	  spv_set (x0, x, x_len);
-	  spv_set_zero (x0 + x_len, max_len - x_len);
-	}
-      else
-        x0 = x;
-      
-      if (y_len < x_len)
-        {
-	  y0 = (spv_t) malloc (max_len * sizeof (sp_t));
-
-	  spv_set (y0, y, y_len);
-	  spv_set_zero (y0 + y_len, max_len - y_len);
-	}
-      else
-	y0 = square ? x0 : y;
-	  
-      spv_mul_karatsuba (r, x0, y0, t, max_len, spm->sp, spm->mul_c);
-      
-      free (t);
-
-      if (monic)
-        {
-	  /* FIXME crop to range [k, l) */
-	  r[prod_len - 1] = 0;
-	  spv_add (r + x_len, r + x_len, y0, y_len, spm->sp);
-	  spv_add (r + y_len, r + y_len, x0, x_len, spm->sp);
-	}
-      if (equal_op || x_len < y_len)
-	free (x0);
-      if (y_len < x_len)
-	free (y0);
-      return;
-    }
-  
-  spv_t x_ntt, y_ntt;
-  spv_size_t i, ntt_size;
-  
-  ntt_size = 1 << ceil_log_2 (prod_len);
-  
-  /* threshold seems to give reasonably
-   * good results but needs fine-tuning properly */
-  if (prod_len < 3 * ntt_size / 4 /* && ntt_size / 2 >= x_len && ntt_size / 2 >= y_len */)
-    {
-      ntt_size >>= 1;
-      
-      if (prod_len - ntt_size > k)
-	/* high/middle coeffs overflow into
-	 * middle/low coeffs */
-	spv_mul (r + ntt_size,
-	    x, prod_len - ntt_size,
-	    y, prod_len - ntt_size,
-	    0, prod_len - ntt_size, 0, spm);
-      else if (l > ntt_size)
-	/* high/middle coeffs overflow into low coeffs */
-	spv_mul (r + ntt_size,
-	  x, l - ntt_size,
-	  y, l - ntt_size,
-	  0, l - ntt_size, 0, spm);
-      /* else */
-	/* high coeffs overflow into low coeffs */
-    }
-  
-  /*  printf ("x_len = %u, y_len = %u, k = %u, l = %u, monic = %u, prod_len = %u, ntt_size = %u\n",
-    x_len, y_len, k, l, monic, prod_len, ntt_size); */
-  
-  /* variable x_ntt only exists to help readability */
-  x_ntt = r;
-  
-  if (!equal_op)
-    spv_set (x_ntt, x, x_len);
-  
-  spv_set_zero (x_ntt + x_len, ntt_size - x_len);
-  
-  if (square)
-    {
-      if (monic)
-	x_ntt[x_len] = 1;
-      spv_sqr_ntt_gfp (r, x_ntt, ntt_size, spm);
-    }
-  else
-    {
-      y_ntt = (spv_t) malloc (ntt_size * sizeof (sp_t));
-      spv_set (y_ntt, y, y_len);
-      spv_set_zero (y_ntt + y_len, ntt_size - y_len);
-    
-      if (monic)
-        x_ntt[x_len] = y_ntt[y_len] = 1;
-      
-      spv_mul_ntt_gfp (r, x_ntt, y_ntt, ntt_size, spm);
-      free (y_ntt);
-    }
-  
-  if (prod_len > k + ntt_size)
-    {
-      /* FIXME maybe deal with these cases separately */
-      
-      /* ####............
-       *         ######## */
-
-      /* ############....
-       *     ....######## */
-
-      /* ########........
-       *     ........#### */
-
-      /* ....########....
-       *         ........ */
-      
-      for (i = 0; i < prod_len - ntt_size; i++)
-        {
-	  sp_t u = r[ntt_size + i];
-	  r[ntt_size + i] = sp_sub (r[i], u, spm->sp);
-	  r[i] = u;
-	}
-    }
-  else if (l > ntt_size)
-    {
-      /* ########........
-       *             #### */
-      for (i = 0; i < l - ntt_size; i++)
-        r[ntt_size + i] = sp_sub (r[i], r[ntt_size + i], spm->sp);
-    }
-  
-  if (monic)
-    /* everything is correct except for the x^{prod_len} term which may
-     * have wrapped round */
-    r[prod_len % ntt_size] = sp_sub (r[prod_len % ntt_size], 1, spm->sp);
-}
-#endif
 
 void
 spv_random (spv_t x, spv_size_t len, sp_t m)

@@ -2051,7 +2051,7 @@ mpzspv_init_mt (spv_size_t len, mpzspm_t mpzspm)
 #pragma omp for
 #endif
     for (i = 0; i < (int) mpzspm->sp_num; i++)
-      x[i] = (spv_t *) malloc (len * sizeof (sp_t));
+      x[i] = (spv_t *) sp_aligned_malloc (len * sizeof (sp_t));
 	
 #ifdef _OPENMP
   }
@@ -2065,7 +2065,7 @@ mpzspv_init_mt (spv_size_t len, mpzspm_t mpzspm)
     {
       for (i = 0; i < (int) mpzspm->sp_num; i++)
 	if (x[i] != NULL)
-	  free(x[i]);
+	  sp_aligned_free(x[i]);
       return NULL;
     }
 
@@ -2145,6 +2145,7 @@ ntt_spv_to_dct (mpzspv_t dct, const mpzspv_t spv, const spv_size_t spvlen,
 		const mpzspm_t ntt_context)
 {
   const spv_size_t l = 2 * (dctlen - 1); /* Length for the DFT */
+  const spv_size_t log2_l = ceil_log_2 (l);
   int j;
 
 #ifdef _OPENMP
@@ -2159,8 +2160,6 @@ ntt_spv_to_dct (mpzspv_t dct, const mpzspv_t spv, const spv_size_t spvlen,
   for (j = 0; j < (int) ntt_context->sp_num; j++)
     {
       const spm_t spm = ntt_context->spm[j];
-      const sp_t root = sp_pow (spm->prim_root, ntt_context->max_ntt_size / l,
-                                spm->sp, spm->mul_c);
       spv_size_t i;
       
       /* Make a symmetric copy of spv in tmp. I.e. with spv = [3, 2, 1], 
@@ -2178,7 +2177,7 @@ ntt_spv_to_dct (mpzspv_t dct, const mpzspv_t spv, const spv_size_t spvlen,
       printf ("]\n");
 #endif
       
-      spv_ntt_gfp_dif (tmp[j], l, spm->sp, spm->mul_c, root);
+      spv_ntt_gfp_dif (tmp[j], log2_l, spm);
 
 #if 0
       printf ("ntt_spv_to_dct: tmp[%d] = [", j);
@@ -2270,6 +2269,7 @@ ntt_mul_by_dct (mpzspv_t dft, const mpzspv_t dct, const unsigned long len,
 		const mpzspm_t ntt_context)
 {
   int j;
+  spv_size_t log2_len = ceil_log_2 (len);
   
 #ifdef _OPENMP
 #pragma omp parallel private(j)
@@ -2284,14 +2284,10 @@ ntt_mul_by_dct (mpzspv_t dft, const mpzspv_t dct, const unsigned long len,
       {
 	const spm_t spm = ntt_context->spm[j];
 	const spv_t spv = dft[j];
-	sp_t root;
 	unsigned long i, m;
 	
-	root = sp_pow (spm->prim_root, ntt_context->max_ntt_size / len,
-		       spm->sp, spm->mul_c);
-	
 	/* Forward DFT of dft[j] */
-	spv_ntt_gfp_dif (spv, len, spm->sp, spm->mul_c, root);
+	spv_ntt_gfp_dif (spv, log2_len, spm);
 	
 	m = 5UL;
 	
@@ -2310,11 +2306,8 @@ ntt_mul_by_dct (mpzspv_t dft, const mpzspv_t dct, const unsigned long len,
 				 spm->mul_c);
 	  }
 	
-	root = sp_pow (spm->inv_prim_root, ntt_context->max_ntt_size / len,
-		       spm->sp, spm->mul_c);
-	
 	/* Inverse transform of dft[j] */
-	spv_ntt_gfp_dit (spv, len, spm->sp, spm->mul_c, root);
+	spv_ntt_gfp_dit (spv, log2_len, spm);
 	
 	/* Divide by transform length. FIXME: scale the DCT of h instead */
 	spv_mul_sp (spv, spv, spm->sp - (spm->sp - 1) / len, len, spm->sp, 
@@ -2349,7 +2342,9 @@ void
 ntt_sqr_recip (mpzv_t R, const mpzv_t S, mpzspv_t dft, 
                const spv_size_t n, const mpzspm_t ntt_context)
 {
-  const spv_size_t len = ((spv_size_t) 2) << ceil_log2 (n);
+  const spv_size_t log2_n = ceil_log2 (n);
+  const spv_size_t len = ((spv_size_t) 2) << log2_n;
+  const spv_size_t log2_len = 1 + log2_n;
   int j;
   
   if (n == 0)
@@ -2385,7 +2380,7 @@ ntt_sqr_recip (mpzv_t R, const mpzv_t S, mpzspv_t dft,
       {
         const spm_t spm = ntt_context->spm[j];
         const spv_t spv = dft[j];
-        sp_t root, w1, w2, invlen;
+        sp_t w1, w2, invlen;
         const sp_t sp = spm->sp, mul_c = spm->mul_c;
         spv_size_t i;
 
@@ -2454,12 +2449,8 @@ ntt_sqr_recip (mpzv_t R, const mpzv_t S, mpzspv_t dft,
         ntt_print_vec ("ntt_sqr_recip: after weighting:", spv, len);
 #endif
 
-        /* Compute root for the transform */
-        root = sp_pow (spm->prim_root, ntt_context->max_ntt_size / len, sp, 
-                       mul_c);
-
         /* Forward DFT of dft[j] */
-        spv_ntt_gfp_dif (spv, len, sp, mul_c, root);
+        spv_ntt_gfp_dif (spv, log2_len, spm);
 
 #if 0 && defined(TRACE_ntt_sqr_recip)
         if (j == 0UL)
@@ -2474,12 +2465,8 @@ ntt_sqr_recip (mpzv_t R, const mpzv_t S, mpzspv_t dft,
           ntt_print_vec ("ntt_sqr_recip: after point-wise squaring:", spv, len);
 #endif
 
-        /* Compute root for inverse transform */
-        root = sp_pow (spm->inv_prim_root, ntt_context->max_ntt_size / len, 
-                       sp, mul_c);
-
         /* Inverse transform of dft[j] */
-        spv_ntt_gfp_dit (spv, len, sp, mul_c, root);
+        spv_ntt_gfp_dit (spv, log2_len, spm);
       
 #if 0 && defined(TRACE_ntt_sqr_recip)
         if (j == 0UL)
@@ -2587,7 +2574,7 @@ ntt_sqr_recip (mpzv_t R, const mpzv_t S, mpzspv_t dft,
    If add == NULL, add[i] is assumed to be 0. */
 
 static void
-ntt_gcd (mpz_t f, mpz_t product, mpzspv_t ntt, const unsigned long ntt_offset,
+ntt_gcd (mpz_t f, mpz_t *product, mpzspv_t ntt, const unsigned long ntt_offset,
 	 const listz_t add, const unsigned long len_param, 
 	 const mpzspm_t ntt_context, mpmod_t modulus_param)
 {
@@ -2677,7 +2664,7 @@ ntt_gcd (mpz_t f, mpz_t product, mpzspv_t ntt, const unsigned long ntt_offset,
 #endif
 
   if (product != NULL)
-    mpres_get_z (product, totalprod, modulus_param);
+    mpres_get_z (*product, totalprod, modulus_param);
 
   mpres_gcd (f, totalprod, modulus_param);
   mpres_clear (totalprod, modulus_param);
