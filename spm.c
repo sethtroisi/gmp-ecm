@@ -41,18 +41,56 @@ ordpow (const sp_t q, sp_t a, const sp_t sp, const sp_t mul_c)
   return i;
 }
 
+/* initialize roots of unity and twiddle factors for one NTT */
+static void
+nttdata_init (const sp_t sp, const sp_t mul_c, 
+		const sp_t prim_root, const spv_size_t log2_len,
+		sp_nttdata_t data)
+{
+  spv_t r, t;
+  spv_size_t i, j, k;
+
+  r = data->ntt_roots = 
+             (spv_t) sp_aligned_malloc (log2_len * sizeof(sp_t));
+
+  i = log2_len - 1;
+  r[i] = prim_root;
+  for (i--; (int)i >= 0; i--)
+    r[i] = sp_sqr (r[i+1], sp, mul_c);
+
+  k = MIN(log2_len, NTT_GFP_TWIDDLE_BREAKOVER);
+  t = data->twiddle = (spv_t) sp_aligned_malloc (sizeof(sp_t) << k);
+  data->twiddle_size = 1 << k;
+
+  for (i = k; i; i--) 
+    {
+      sp_t w = r[i];
+      for (j = t[0] = 1; j < ((spv_size_t) 1 << (i-1)); j++) 
+      	t[j] = sp_mul (t[j-1], w, sp, mul_c);
+
+      t += j;
+    }
+}
+
+static void
+nttdata_clear(sp_nttdata_t data)
+{
+  sp_aligned_free(data->ntt_roots);
+  sp_aligned_free(data->twiddle);
+}
+
 /* Compute some constants, including a primitive n'th root of unity. */
 spm_t
 spm_init (spv_size_t n, sp_t sp)
 {
   sp_t a, b, bd, sc;
-  spv_size_t q, nc, d;
+  spv_size_t q, nc, d, ntt_power;
   spm_t spm = (spm_t) malloc (sizeof (__spm_struct));
 
   ASSERT (sp % (sp_t) n == (sp_t) 1);
 
   spm->sp = sp;
-  invert_limb (spm->mul_c, sp);
+  sp_reciprocal (spm->mul_c, sp);
 
   /* find an $n$-th primitive root $a$ of unity $(mod sp)$. */
 
@@ -130,13 +168,32 @@ spm_init (spv_size_t n, sp_t sp)
 
   /* turn this into a primitive n'th root of unity mod p */
   spm->prim_root = b;
-  spm->inv_prim_root = sp_inv (spm->prim_root, sp, spm->mul_c);
+  spm->inv_prim_root = sp_inv (b, sp, spm->mul_c);
 
+  /* initialize auxiliary data for all supported power-of-2 NTT sizes */
+  ntt_power = 1;
+  while (1)
+    {
+      if (n & ((1 << ntt_power) - 1))
+        break;
+      ntt_power++;
+    }
+
+  nttdata_init (sp, spm->mul_c, 
+		sp_pow (spm->prim_root, 
+			n >> (ntt_power - 1), sp, spm->mul_c),
+		ntt_power, spm->nttdata);
+  nttdata_init (sp, spm->mul_c, 
+		sp_pow (spm->inv_prim_root, 
+			n >> (ntt_power - 1), sp, spm->mul_c),
+		ntt_power, spm->inttdata);
   return spm;
 }
 
 void
 spm_clear (spm_t spm)
 {
+  nttdata_clear (spm->nttdata);
+  nttdata_clear (spm->inttdata);
   free (spm);
 }

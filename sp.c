@@ -18,6 +18,7 @@
   MA 02110-1301, USA.
 */
 
+#include <stdlib.h>
 #include "sp.h"
 
 
@@ -63,9 +64,9 @@ sp_prime (sp_t x)
   if (x < SP_MIN)
     return 1;
   
-  invert_limb (d, x);
+  sp_reciprocal (d, x);
   
-  if (SP_NUMB_BITS == 32)
+  if (SP_NUMB_BITS <= 32)
     {
       /* 32-bit primality test
        * See http://primes.utm.edu/prove/prove2_3.html */
@@ -75,7 +76,7 @@ sp_prime (sp_t x)
     }
   else
     {
-      ASSERT (SP_NUMB_BITS == 64);
+      ASSERT (SP_NUMB_BITS <= 64);
       /* 64-bit primality test
        * follows from results by Jaeschke, "On strong pseudoprimes to several
        * bases" Math. Comp. 61 (1993) p916 */
@@ -89,3 +90,33 @@ sp_prime (sp_t x)
   
   return 1;
 }
+
+#define CACHE_LINE_SIZE 64
+
+void *
+sp_aligned_malloc (size_t len)
+{
+  void *ptr, *aligned_ptr;
+  unsigned long addr;
+
+  ptr = malloc (len + CACHE_LINE_SIZE);
+
+  addr = (unsigned long)ptr;				
+  addr = CACHE_LINE_SIZE - (addr % CACHE_LINE_SIZE);
+  aligned_ptr = (void *)((char *)ptr + addr);
+
+  *( (void **)aligned_ptr - 1 ) = ptr;
+  return aligned_ptr;
+}
+
+void
+sp_aligned_free (void *newptr) 
+{
+  void *ptr;
+
+  if (newptr == NULL) 
+    return;
+  ptr = *( (void **)newptr - 1 );
+  free (ptr);
+}
+

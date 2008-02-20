@@ -76,100 +76,39 @@ typedef unsigned long UDItype;
 
 #include "longlong.h"
 
-/* Use a library function for invert_limb, if available. */
-#if ! defined (invert_limb) && HAVE_NATIVE_mpn_invert_limb
-#define mpn_invert_limb  __MPN(invert_limb)
-mp_limb_t mpn_invert_limb _PROTO ((mp_limb_t)) ATTRIBUTE_CONST;
-#define invert_limb(invxl,xl)  (invxl = mpn_invert_limb (xl))
-#endif
-
-/* this was inspired by gmp-impl.h */
-#ifndef invert_limb
-#define invert_limb(invxl,xl)                   \
-  do {                                          \
-    mp_limb_t dummy;                            \
-    ASSERT ((xl) != 0);                         \
-    if (xl << 1 == 0)                           \
-      invxl = ~(mp_limb_t) 0;                   \
-    else                                        \
-      udiv_qrnnd (invxl, dummy, -xl, 0, xl);    \
-  } while (0)
-#endif
-
-/* this was inspired by gmp-impl.h */
-/* Divide the two-limb number in (NH,,NL) by D, with DI being the largest
-   limb not larger than (2**(2*BITS_PER_MP_LIMB))/D - (2**BITS_PER_MP_LIMB).
-   If this would yield overflow, DI should be the largest possible number
-   (i.e., only ones).  For correct operation, the most significant bit of D
-   has to be set.  Put the quotient in Q and the remainder in R.  */
-#define udiv_qrnnd_preinv(q, r, nh, nl, d, di)                            \
-  do {                                                                    \
-    mp_limb_t _q, _ql, _r;                                                \
-    mp_limb_t _xh, _xl;                                                   \
-    ASSERT ((d) != 0);                                                    \
-    umul_ppmm (_q, _ql, (nh), (di));                                      \
-    _q += (nh);                 /* DI is 2**BITS_PER_MP_LIMB too small */ \
-    umul_ppmm (_xh, _xl, _q, (d));                                        \
-    sub_ddmmss (_xh, _r, (nh), (nl), _xh, _xl);                           \
-    if (_xh != 0)                                                         \
-      {                                                                   \
-	sub_ddmmss (_xh, _r, _xh, _r, 0, (d));                            \
-	_q += 1;                                                          \
-	if (_xh != 0)                                                     \
-	  {                                                               \
-	    _r -= (d);                                                    \
-	    _q += 1;                                                      \
-	  }                                                               \
-      }                                                                   \
-    if (_r >= (d))                                                        \
-      {                                                                   \
-	_r -= (d);                                                        \
-	_q += 1;                                                          \
-      }                                                                   \
-    (r) = _r;                                                             \
-    (q) = _q;                                                             \
-  } while (0)
-/* Exactly like udiv_qrnnd_preinv, but branch-free.  It is not clear which
-   version to use.  */
-#define udiv_qrnnd_preinv2norm(q, r, nh, nl, d, di) \
-  do {									\
-    mp_limb_t _n2, _n10, _n1, _nadj, _q1;				\
-    mp_limb_t _xh, _xl;							\
-    _n2 = (nh);								\
-    _n10 = (nl);							\
-    _n1 = ((mp_limb_signed_t) _n10 >> (BITS_PER_MP_LIMB - 1));		\
-    _nadj = _n10 + (_n1 & (d));						\
-    umul_ppmm (_xh, _xl, di, _n2 - _n1);				\
-    add_ssaaaa (_xh, _xl, _xh, _xl, 0, _nadj);				\
-    _q1 = ~(_n2 + _xh);							\
-    umul_ppmm (_xh, _xl, _q1, d);					\
-    add_ssaaaa (_xh, _xl, _xh, _xl, nh, nl);				\
-    _xh -= (d);								\
-    (r) = _xl + ((d) & _xh);						\
-    (q) = _xh - _q1;							\
-  } while (0)
-
-#define MAX(x,y) (((x)<(y))?(y):(x))
-#define MIN(x,y) (((x)<(y))?(x):(y))
-
-#define SIZ(x) ((x)->_mp_size)
-#define PTR(x) ((x)->_mp_d)
-
-
 /*********
  * TYPES *
  *********/
 
 /* SP */
 
-/* the type for both a small prime, and a residue modulo a small prime
- *  - for a sp, we require the top bit to be set
- *  - for a residue x modulo a sp p, we require 0 <= x < p */
+/* the type for both a small prime, and a residue modulo a small prime.
+ * Small primes must be >= 2 bits smaller than the word size
+ *
+ * For a residue x modulo a sp p, we require 0 <= x < p */
 typedef UWtype sp_t;
 
-#define SP_NUMB_BITS (8 * sizeof (sp_t))
-#define SP_MAX ULONG_MAX
-#define SP_MIN (ULONG_MAX >> 1)
+#define SP_NUMB_BITS (W_TYPE_SIZE - 2)
+
+#define SP_MIN ((sp_t)1 << (SP_NUMB_BITS - 1))
+#define SP_MAX ((sp_t)(-1) >> (W_TYPE_SIZE - SP_NUMB_BITS))
+
+/* vector of residues modulo a common small prime */
+typedef sp_t * spv_t;
+
+/* length of a spv */
+typedef unsigned long spv_size_t;
+
+typedef struct
+{
+  spv_t ntt_roots;
+  spv_size_t twiddle_size;
+  spv_t twiddle;
+} __sp_nttdata;
+
+typedef __sp_nttdata sp_nttdata_t[1];
+
+#define NTT_GFP_TWIDDLE_BREAKOVER 11
 
 /* SPM */
 
@@ -179,21 +118,13 @@ typedef struct
 {
   sp_t sp;		/* value of the sp */
   sp_t mul_c;		/* constant used for reduction mod sp */
-  sp_t prim_root;       /* primitive root */
-  sp_t inv_prim_root;	/* inverse of prim_root */
+  sp_t prim_root;
+  sp_t inv_prim_root;
+  sp_nttdata_t nttdata;
+  sp_nttdata_t inttdata;
 } __spm_struct;
 
 typedef __spm_struct * spm_t;
-
-
-/* SPV */
-
-/* vector of residues modulo a common small prime */
-typedef sp_t * spv_t;
-
-/* length of a spv */
-typedef unsigned long spv_size_t;
-
 
 /* MPZSPM */
 
@@ -223,6 +154,17 @@ typedef __mpzspm_struct * mpzspm_t;
 
 typedef spv_t * mpzspv_t;
 
+#define MAX(x,y) (((x)<(y))?(y):(x))
+#define MIN(x,y) (((x)<(y))?(x):(y))
+
+#define SIZ(x) ((x)->_mp_size)
+#define PTR(x) ((x)->_mp_d)
+
+/* expanding macros and then turning them 
+   into strings requires two levels of macro-izing */
+
+#define _(x) #x
+#define STRING(x) _(x)
 
 /*************
  * FUNCTIONS *
@@ -244,6 +186,8 @@ ceil_log_2 (spv_size_t x)
   return a;
 }
 
+void * sp_aligned_malloc (size_t len);
+void sp_aligned_free (void *newptr);
 
 /* sp */
 
@@ -254,21 +198,74 @@ ceil_log_2 (spv_size_t x)
  * The variable name of the modulus is 'p' if the input must be prime,
  *                                     'm' if we also allow composites. */
 
-#define add_sssaaaaaa(s2, s1, s0, a2, a1, a0, b2, b1, b0)		\
-  __asm__ ("addl %8,%2\n\tadcl %6,%1\n\tadcl %4,%0"			\
-	: "=r" ((USItype)(s2)), "=&r" ((USItype)(s1)), "=&r" ((USItype)(s0)) \
-	: "0" ((USItype)(a2)), "g" ((USItype)(b2)),			\
-	  "1" ((USItype)(a1)), "g" ((USItype)(b1)),			\
-          "2" ((USItype)(a0)), "g" ((USItype)(b0)))
+
+static inline sp_t sp_sub(sp_t a, sp_t b, sp_t m) 
+{
+#if (defined(__GNUC__) || defined(__ICL)) && defined(__i386__)
+  sp_t ans;
+  asm("xorl %%edx, %%edx \n\t"
+      "subl %2, %0       \n\t"
+      "cmovbl %3, %%edx  \n\t"
+      "addl %%edx, %0    \n\t"
+   : "=r"(ans)
+   : "0"(a), "g"(b), "g"(m) : "%edx", "cc");
+  return ans;
+
+#elif defined(_MSC_VER) && !defined(_WIN64)
+  uint32 ans;
+  __asm
+    {
+      mov    eax,a
+      mov    ecx,b
+      xor    edx,edx
+      sub    eax,ecx
+      cmovb    edx,m
+      add    eax,edx
+      mov    ans,eax
+    }
+  return ans;
+
+#else
+  if (a >= b)
+    return a - b;
+  else
+    return a - b + m;
+#endif
+}
+
+static inline sp_t sp_add(sp_t a, sp_t b, sp_t m) 
+{
+	return sp_sub(a, m - b, m);
+}
+
+/* functions used for modular reduction */
+
+#define sp_reciprocal(invxl,xl)              \
+  do {                                       \
+    mp_limb_t dummy;                         \
+    udiv_qrnnd (invxl, dummy,                \
+		(sp_t) 1 << (2 * SP_NUMB_BITS + 1 -	\
+		W_TYPE_SIZE), 0, xl);        \
+  } while (0)
+
+#define sp_udiv_rem(r, nh, nl, d, di)                    \
+  do {                                                   \
+    mp_limb_t q1, q2, tmp;                               \
+    q1 = (nh) << (2*(W_TYPE_SIZE - SP_NUMB_BITS)) |      \
+	    (nl) >> (2*SP_NUMB_BITS - W_TYPE_SIZE);      \
+    umul_ppmm(q2, tmp, q1, di);                          \
+    (r) = (nl) - (d) * (q2 >> 1);                        \
+    (r) = sp_sub(r, d, d);                               \
+  } while (0)
 
 
 /* x*y mod m */
 static inline sp_t
 sp_mul (sp_t x, sp_t y, sp_t m, sp_t d)
 {
-  sp_t z, u, v, w;
+  sp_t z, u, v;
   umul_ppmm (u, v, x, y);
-  udiv_qrnnd_preinv2norm (w, z, u, v, m, d);
+  sp_udiv_rem (z, u, v, m, d);
   
   return z;
 }
@@ -277,39 +274,13 @@ sp_mul (sp_t x, sp_t y, sp_t m, sp_t d)
 static inline sp_t
 sp_sqr (sp_t x, sp_t m, sp_t d)
 {
-  sp_t z, u, v, w;
+  sp_t z, u, v;
   umul_ppmm (u, v, x, x);
-  udiv_qrnnd_preinv2norm (w, z, u, v, m, d);
+  sp_udiv_rem (z, u, v, m, d);
   
   return z;
 }
 
-#if 0
-static inline sp_t
-sp_montmul (sp_t x, sp_t y, sp_t p, sp_t d)
-{
-  sp_t a, b, u, v, m;
-  umul_ppmm (u, v, x, y);
-  m = v * d;
-  umul_ppmm (a, b, m, p);
-  add_ssaaaa (u, v, u, v, a, b);
-  return (u < p) ? u : u - p;
-}
-
-static inline sp_t
-sp_montsqr (sp_t x, sp_t p, sp_t d)
-{
-  sp_t a, b, u, v, m;
-  umul_ppmm (u, v, x, x);
-  m = v * d;
-  umul_ppmm (a, b, m, p);
-  add_ssaaaa (u, v, u, v, a, b);
-  return u - (u < p) ? 0 : p;
-}
-#endif
-
-#define sp_add(x,y,m) (((x)<(m)-(y)) ? ((x)+(y)) : ((x)+(y)-(m)))
-#define sp_sub(x,y,m) (((x)>=(y)) ? ((x)-(y)) : ((x)-(y)+(m)))
 #define sp_neg(x,m) ((x) == (sp_t) 0 ? (sp_t) 0 : (m) - (x))
 
 /* Returns x^a % m, uses a right-to-left powering ladder */
@@ -371,29 +342,14 @@ void spv_neg (spv_t, spv_t, spv_size_t, sp_t);
 void spv_pwmul (spv_t, spv_t, spv_t, spv_size_t, sp_t, sp_t);
 void spv_pwmul_rev (spv_t, spv_t, spv_t, spv_size_t, sp_t, sp_t);
 void spv_mul_sp (spv_t, spv_t, sp_t, spv_size_t, sp_t, sp_t);
-/* void spv_addmul_sp (spv_t, spv_t, sp_t, spv_size_t, sp_t, sp_t); */
-/* void spv_submul_sp (spv_t, spv_t, sp_t, spv_size_t, sp_t, sp_t); */
 
-/* polynomial multiplication */
-/* void spv_mul_basecase (spv_t, spv_t, spv_t, spv_size_t, spv_size_t,
-    sp_t, sp_t); */
-/* void spv_mul_karatsuba (spv_t, spv_t, spv_t, spv_t, spv_size_t,
-    sp_t, sp_t); */
-/* void spv_mul_toomcook3 (spv_t, spv_t, spv_t, spv_t, spv_size_t, spm_t); */
-/* void spv_mul_toomcook4 (spv_t, spv_t, spv_t, spv_t, spv_size_t, spm_t); */
-/* void spv_mul (spv_t, spv_t, spv_size_t, spv_t, spv_size_t, spv_size_t,
-    spv_size_t, int, spm_t); */
-/* void spv_sqr (spv_t, spv_t, spv_size_t, int, spm_t); */
 void spv_random (spv_t, spv_size_t, sp_t);
 int spv_cmp (spv_t, spv_t, spv_size_t);
 
 /* ntt_gfp */
 
-void spv_ntt_scramble (spv_t, spv_size_t);
-void spv_ntt_gfp_dif (spv_t, spv_size_t, sp_t, sp_t, sp_t);
-void spv_ntt_gfp_dit (spv_t, spv_size_t, sp_t, sp_t, sp_t);
-/* void spv_mul_ntt_gfp (spv_t, spv_t, spv_t, spv_size_t, spm_t); */
-/* void spv_sqr_ntt_gfp (spv_t, spv_t, spv_size_t, spm_t); */
+void spv_ntt_gfp_dif (spv_t, spv_size_t, spm_t);
+void spv_ntt_gfp_dit (spv_t, spv_size_t, spm_t);
 
 /* mpzspm */
 
