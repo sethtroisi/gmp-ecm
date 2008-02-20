@@ -432,109 +432,6 @@ addWnm (mpz_t p, point *X, curve *S, mpmod_t modulus, unsigned int m,
    or an error occurred.
 */
 
-#ifdef MONT_ROOTS
-static int
-ecm_rootsF_Mont (listz_t F, root_params_t *root_params, 
-		 unsigned long dF, curve *s, mpmod_t modulus)
-{
-  unsigned long i, n;
-  unsigned long muls = 0;
-  long st;
-  mpres_t x6, z6, xn_6, zn_6, xn, zn; /* 6*d2*X, (n-6)*d2*X and n*d2*X, resp. */
-  mpres_t b, u, v, w;
-  mpz_t t;
-
-  if (dF == 0)
-    return ECM_NO_FACTOR_FOUND;
-
-  st = cputime ();
-
-  MPZ_INIT (t);
-
-  mpres_init (b, modulus);
-  mpres_add_ui (b, s->A, 2, modulus);
-  mpres_div_2exp (b, b, 2, modulus);
-
-  /* We init n to 7, so n-6 == 1 */
-  mpres_init (xn_6, modulus);
-  mpres_init (zn_6, modulus);
-  mpres_set (xn_6, s->x, modulus);
-  mpres_set (zn_6, s->y, modulus);
-  mpz_set_ui (t, root_params->d2);
-  ecm_mul (xn_6, zn_6, t, modulus, b);
-  /* (xn_6::zn_6) = d2*X */
-
-  mpres_init (x6, modulus);
-  mpres_init (z6, modulus);
-  mpres_set (x6, xn_6, modulus);
-  mpres_set (z6, zn_6, modulus);
-  mpz_set_ui (t, 6);
-  ecm_mul (x6, z6, t, modulus, b);
-  /* (x6::z6) = 6*d2*X */
-
-  mpres_init (xn, modulus);
-  mpres_init (zn, modulus);
-  mpres_set (xn, xn_6, modulus);
-  mpres_set (zn, zn_6, modulus);
-  mpz_set_ui (t, 7);
-  ecm_mul (xn, zn, t, modulus, b);
-  /* xn :: zn = 7*d2*X */
-
-  outputf (OUTPUT_TRACE, "ecm_rootsF_Mont: storing d2*X in F[0]\n");
-  mpres_get_z (F[0], xn_6, modulus);
-  /* F[0] = (d2*X)_x */
-
-  mpres_init (u, modulus);
-  mpres_init (v, modulus);
-  mpres_init (w, modulus);
-
-  n = 7;
-
-  for (i = 1; i < dF; )
-    {
-      if (gcd (n, root_params->d1) == 1UL)
-	{
-	  outputf (OUTPUT_TRACE, 
-		   "ecm_rootsF_Mont: storing d2*%lu*X in F[%lu]\n",
-		   n, i);
-	  mpres_get_z (F[i++], xn, modulus);
-	  /* Normalize coordinate to zn=1 */
-	  mpres_get_z (t, zn, modulus);
-	  mpz_invert (t, t, modulus->orig_modulus);
-	  mpz_mul (t, t, F[i++]);
-	  mpz_mod (F[i++], t, modulus->orig_modulus);
-	}
-      
-      add3 (xn_6, zn_6, xn, zn, x6, z6, xn_6, zn_6, 
-	    modulus, u, v, w);
-      mpres_swap (xn_6, xn, modulus);
-      mpres_swap (zn_6, zn, modulus);
-      n += 6; 
-      /* Now (xn::zn) = j*d2*X and (xn_6::zn_6) = (j-6)*d2*X again */
-      muls += 6;
-    }
-
-  outputf (OUTPUT_VERBOSE, "Computing roots of F took %ldms",
-	   elltime (st, cputime ()));
-  outputf (OUTPUT_DEVVERBOSE, ", and %ld muls", muls);
-  outputf (OUTPUT_VERBOSE, "\n");
-
-  mpres_clear (x6, modulus);
-  mpres_clear (z6, modulus);
-  mpres_clear (xn_6, modulus);
-  mpres_clear (zn_6, modulus);
-  mpres_clear (xn, modulus);
-  mpres_clear (zn, modulus);
-  mpres_clear (b, modulus);
-  mpres_clear (u, modulus);
-  mpres_clear (v, modulus);
-  mpres_clear (w, modulus);
-  mpz_clear (t);
-
-  return ECM_NO_FACTOR_FOUND;
-}
-#endif
-
 int
 ecm_rootsF (mpz_t f, listz_t F, root_params_t *root_params, 
             unsigned long dF, curve *s, mpmod_t modulus)
@@ -551,11 +448,6 @@ ecm_rootsF (mpz_t f, listz_t F, root_params_t *root_params,
     return ECM_NO_FACTOR_FOUND;
 
   st = cputime ();
-
-#ifdef MONT_ROOTS
-  if (root_params->S == 1)
-    return ecm_rootsF_Mont (F, root_params, dF, s, modulus);
-#endif
 
   /* Relative cost of point add during init and computing roots assumed =1 */
   init_roots_state (&state, root_params->S, root_params->d1, root_params->d2, 
@@ -718,115 +610,6 @@ ecm_rootsF (mpz_t f, listz_t F, root_params_t *root_params,
    factor in f. If an error occurred, NULL is returned and f is -1.
 */
 
-#ifdef MONT_ROOTS
-static ecm_roots_state *
-ecm_rootsG_Mont_init (curve *X, root_params_t *root_params, 
-		      unsigned long dF, unsigned long blocks, mpmod_t modulus)
-{
-  unsigned long i;
-  unsigned long muls;
-  ecm_roots_state *state;
-  long st;
-  mpz_t t;
-
-  outputf (OUTPUT_DEVVERBOSE,
-           "ecm_rootsG_Mont_init: dF = %lu, k = %lu, root_params: d1 = %lu, "
-           "d2 = %lu, S = %i, i0 = %Zd\n",
-           dF, blocks, root_params->d1, root_params->d2, root_params->S,
-           root_params->i0);
-
-  st = cputime ();
-  
-  state = (ecm_roots_state *) malloc (sizeof (ecm_roots_state));
-  if (state == NULL)
-    return NULL;
-    
-  state->size_fd = 3;
-  state->nr = 1;
-  state->next = 0;
-  state->S = 1;
-  state->dsieve = root_params->d2;
-  state->rsieve = mpz_tdiv_ui (root_params->i0, root_params->d2);
-  state->dickson_a = 0;
-  /* we'll need to know which roots are {0, 1, 2}*d2*X in ecm_rootsG() */
-  if (mpz_fits_slong_p (root_params->i0))
-    state->i0 = mpz_get_si (root_params->i0);
-  else
-    state->i0 = 2;
-#ifdef MONT_ROOTS
-  state->form = EC_MONTGOMERY_FORM;
-#endif
-  state->fd = malloc (state->size_fd * sizeof (point));
-  if (state->fd == NULL)
-    return NULL;
-  state->size_T = 4;
-  state->T = malloc (state->size_T * sizeof (mpres_t));
-  if (state->T == NULL)
-    {
-      free (state->fd);
-      return NULL;;
-    }
-  state->X = X;
-  
-  for (i = 0; i < state->size_fd; i++)
-    {
-      MEMORY_TAG;
-      mpres_init (state->fd[i].x, modulus);
-      MEMORY_TAG;
-      mpres_init (state->fd[i].y, modulus);
-      MEMORY_UNTAG;
-    }
-
-  for (i = 0; i < state->size_T; i++)
-    {
-      MEMORY_TAG;
-      mpres_init (state->T[i], modulus);
-      MEMORY_UNTAG;
-    }
-
-  MPZ_INIT (t);
-  
-  mpres_add_ui (state->T[0], X->A, 2, modulus);
-  mpres_div_2exp (state->T[0], state->T[0], 2, modulus);
-  /* state->T[0] = b, ...T[1..3] = temp space for add3() */
-  
-  outputf (OUTPUT_TRACE, "ecm_rootsG_Mont_init: X = (%Zd::%Zd)\n",
-           X->x, X->y);
-  
-  mpres_set (state->fd[2].x, X->x, modulus);
-  mpres_set (state->fd[2].y, X->y, modulus);
-  mpz_set_ui (t, root_params->d1);
-  ecm_mul (state->fd[2].x, state->fd[2].y, t, modulus, state->T[0]);
-  /* fd[2] = d1*X */
-  outputf (OUTPUT_TRACE, "ecm_rootsG_Mont_init: d1*X = (%Zd::%Zd)\n",
-           state->fd[2].x, state->fd[2].y);
-  
-  mpres_set (state->fd[0].x, state->fd[2].x, modulus);
-  mpres_set (state->fd[0].y, state->fd[2].y, modulus);
-  ecm_mul (state->fd[0].x, state->fd[0].y, root_params->i0, modulus, 
-	   state->T[0]);
-  /* fd[0] = i0*d1*X */
-  outputf (OUTPUT_TRACE, "ecm_rootsG_Mont_init: i0*d1*X = (%Zd::%Zd)\n",
-           state->fd[0].x, state->fd[0].y);
-
-  mpres_set (state->fd[1].x, state->fd[2].x, modulus);
-  mpres_set (state->fd[1].y, state->fd[2].y, modulus);
-  mpz_sub_ui (t, root_params->i0, 1);
-  ecm_mul (state->fd[1].x, state->fd[1].y, t, modulus, state->T[0]);
-  /* fd[1] = (i0-1)*d1*X */
-  outputf (OUTPUT_TRACE, "ecm_rootsG_Mont_init: (i0-1)*d1*X = (%Zd::%Zd)\n",
-           state->fd[1].x, state->fd[1].y);
-  
-  st = elltime (st, cputime ());
-  outputf (OUTPUT_VERBOSE,
-	   "Initializing table of differences for G took %ldms\n", st);
-  
-  mpz_clear (t);
-
-  return state;
-}
-#endif
-
 ecm_roots_state *
 ecm_rootsG_init (mpz_t f, curve *X, root_params_t *root_params, 
                  unsigned long dF, unsigned long blocks, mpmod_t modulus)
@@ -842,11 +625,6 @@ ecm_rootsG_init (mpz_t f, curve *X, root_params_t *root_params,
   long st = 0;
 
   ASSERT (gcd (root_params->d1, root_params->d2) == 1UL);
-
-#ifdef MONT_ROOTS
-  if (root_params->S == 1)
-    return ecm_rootsG_Mont_init (X, root_params, dF, blocks, modulus);
-#endif
 
   if (test_verbose (OUTPUT_VERBOSE))
     st = cputime ();
@@ -899,9 +677,6 @@ ecm_rootsG_init (mpz_t f, curve *X, root_params_t *root_params,
   state->next = 0;
   state->dsieve = 1; /* We only init progressions coprime to d2, so nothing to be skipped */
   state->rsieve = 0;
-#ifdef MONT_ROOTS
-  state->form = EC_WEIERSTRASS_FORM;
-#endif
 
   coeffs = init_progression_coeffs (root_params->i0, root_params->d2, 
            root_params->d1, state->nr / phid2, 1, state->S, dickson_a);
@@ -1047,11 +822,6 @@ ecm_rootsG (mpz_t f, listz_t G, unsigned long dF, ecm_roots_state *state,
            "S = %u, dsieve = %u, rsieve = %u,\n\tdickson_a = %d\n", 
            dF, state->nr, state->next, state->S, state->dsieve, 
            state->rsieve, state->dickson_a);
-#ifdef MONT_ROOTS
-  outputf (OUTPUT_TRACE, "form = %s, i0 = %ld\n", 
-           (state->form == EC_WEIERSTRASS_FORM) ? 
-           "Weierstrass" : "Montgomery", state->i0);
-#endif
   
   for (i = 0; i < dF;)
     {
@@ -1059,59 +829,9 @@ ecm_rootsG (mpz_t f, listz_t G, unsigned long dF, ecm_roots_state *state,
       if (state->next == state->nr)
         {
           /* Yes, time to update again */
-#ifdef MONT_ROOTS
-	  if (state->form == EC_MONTGOMERY_FORM) /* If in Montgomery form */
-	    {
-              mpres_swap (fd[0].x, fd[1].x, modulus);
-              mpres_swap (fd[0].y, fd[1].y, modulus);
-	      if (state->i0 == -1)
-	        {
-	          /* New point is 0*d1*X */
-	          mpres_set_ui (fd[0].x, 0, modulus);
-	          mpres_set_ui (fd[0].y, 0, modulus);
-	        }
-	      else if (state->i0 == 0)
-	        {
-	          /* Test that old point is (0::0) */
-	          ASSERT (mpres_is_zero (fd[1].x, modulus) && 
-	                  mpres_is_zero (fd[1].y, modulus));
-	          /* New point is 1*d1*X */
-	          mpres_set (fd[0].x, fd[2].x, modulus);
-	          mpres_set (fd[0].y, fd[2].y, modulus);
-	        }
-	      else if (state->i0 == 1)
-	        {
-	          /* New point is 2*d1*X */
-#if 0 && defined (WANT_ASSERT)
-                  /* Compare that fd[1] and fd[2] are identical */
-                  /* FIXME: strictly speaking, we need to normalize first! */
-                  mpres_sub (state->T[1], fd[1].x, fd[2].x, modulus);
-                  mpres_sub (state->T[2], fd[1].y, fd[2].y, modulus);
-                  ASSERT (mpres_is_zero (state->T[1], modulus) && 
-                          mpres_is_zero (state->T[2], modulus));
-#endif
-                  ASSERT (mpres_is_zero (fd[0].x, modulus));
-                  ASSERT (mpres_is_zero (fd[0].y, modulus));
-	          duplicate (fd[0].x, fd[0].y, fd[1].x, fd[1].y, modulus,
-	                     state->T[0], state->T[1], state->T[2], 
-	                     state->T[3]);
-	        }
-	      else 
-	        {
-	          add3 (fd[0].x, fd[0].y, fd[1].x, fd[1].y, fd[2].x, fd[2].y, 
-		        fd[0].x, fd[0].y, modulus, 
-		        state->T[1], state->T[2], state->T[3] );
-	        }
-	      if (state->i0 < 2)
-	        state->i0++;
-	    }
-	  else /* in Weierstrass form */
-#endif
-	    {
-	      youpi = addWnm (f, fd, state->X, modulus, state->nr, 
-			      state->S, state->T, &muls, &gcds);
-	      ASSERT(youpi != ECM_ERROR); /* no error can occur in addWnm */
-	    }
+	  youpi = addWnm (f, fd, state->X, modulus, state->nr, 
+			  state->S, state->T, &muls, &gcds);
+	  ASSERT(youpi != ECM_ERROR); /* no error can occur in addWnm */
 	  state->next = 0;
           
           if (youpi == ECM_FACTOR_FOUND_STEP2)
@@ -1125,37 +845,13 @@ ecm_rootsG (mpz_t f, listz_t G, unsigned long dF, ecm_roots_state *state,
       if (gcd ((unsigned long) state->rsieve,  
                (unsigned long) state->dsieve) == 1UL)
 	{
-#ifdef MONT_ROOTS
-	  if (state->form == EC_MONTGOMERY_FORM)
-	    {
-	      if (state->i0 != 0)
-	        {
-                  /* Normalize coordinates to z=1 */
-                  if (!mpres_invert (state->T[1], fd[0].y, modulus))
-                    {
-                      mpres_gcd (f, fd[0].y, modulus);
-	              outputf (OUTPUT_VERBOSE, 
-	                       "Found factor while computing G[%lu]\n", i);
-                      return ECM_FACTOR_FOUND_STEP2;
-                    }
-                  mpres_mul (state->T[1], state->T[1], 
-                             (fd + state->next * (state->S + 1))->x,
-                             modulus);
-                }
-              mpres_get_z (G[i++], state->T[1], modulus);
-            } 
-          else 
-#endif
-            {
-              mpres_get_z (G[i++], 
-                           (fd + state->next * (state->S + 1))->x, 
-                           modulus);
-            }
+	  mpres_get_z (G[i++], (fd + state->next * (state->S + 1))->x, 
+		       modulus);
 	  outputf (OUTPUT_TRACE, 
 	           "ecm_rootsG: storing d1*%u*X = %Zd in G[%lu]\n",
 		   state->rsieve, G[i - 1], i);
 	}
-
+      
       state->next ++;
       state->rsieve ++;
     }
