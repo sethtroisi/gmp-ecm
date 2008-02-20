@@ -11,53 +11,55 @@ Let
 F(x) = \sum_{j=0}^d f_j x^j
 \end{displaymath}
 
-To evaluate $F(1), F(q), F(q^2), \ldots ,F(q^{n-1})$, we can convolute 
+To evaluate $F$ on $n$ points in geometric progression, i.e. 
+$F(1), F(q), F(q^2), \ldots ,F(q^{n-1})$, we can do a convolution of the 
 polynomials
 \begin{eqnarray*}
-B(x) & = & \sum_{j=0}^{d + n -1} b_j x^j \\
-     &   & \textrm{with } b_j = q^{f(j)}\\
+B(x) & = & \sum_{j=0}^{l - 1} b_j x^j \\
+     &   & \textrm{with } b_j = q^{b(j)}\\
 C(x) & = & \sum_{j=0}^d c_j x^j \\
-     &   & \textrm{with } c_j = f_j q^{g(j)}
+     &   & \textrm{with } c_j = f_j q^{c(j)}
 \end{eqnarray*}
-and get the product
+where $l = n + d$ and get the product
 \begin{displaymath}
-B(x)C(x) = \sum_{i=0}^{2d+n-1} g_i x^i
+P(x) = B(x)C(x) = \sum_{i=0}^{l+d-1} p_i x^i
 \end{displaymath}
 with
-\begin{displaymath}
-g_i = \sum_{\substack{0\leq j\leq d,\\0\leq i-j < d+n}} b_{i-j} c_{j}.
-\end{displaymath}
-If $d \leq i < d+n$, $0 \leq i-j < d+n$ whenever $0\leq j\leq d$, 
+\begin{eqnarray*}
+p_i & = & \sum_{\substack{0\leq j\leq d,\\0\leq i-j < l}} b_{i-j} c_{j} \\
+    & = & \sum_{\substack{0\leq j\leq d,\\0\leq i-j < l}} f_j q^{b(i-j)} q^{c(j)}.
+\end{eqnarray*}
+If $d \leq i < l$ and $0\leq j\leq d$, $0 \leq i-j < l$, 
 so the condition on $j$ suffices for this range of $i$:
 \begin{eqnarray*}
-g_i & = & \sum_{0\leq j\leq d} b_{i-j} c_j \\
-    & = & \sum_{0\leq j\leq d} f_j q^{f(i-j)} q^{g(j)}.
+p_i & = & \sum_{0\leq j\leq d} f_j q^{b(i-j) + c(j)}, \textrm{ for } d \leq i < l.
 \end{eqnarray*}
 
-Since we only want the coefficients $g_i$ for $d\leq i < d+n$, it is
-permissible to compute $B(x)C(x) \% (x^{d+n}-1)$. This way, the coefficients
-$g_i$, $d+n \leq i < 2d + n$ will overlap with the coefficients $g_i$, 
+Since we only want the coefficients $p_i$ for $d\leq i < l$, it is
+permissible to compute $B(x)C(x) \% (x^l-1)$, i.e. by a length $l$ cyclic 
+convolution product. This way, the coefficients
+$p_i$, $l \leq i < l + d$ will overlap with the coefficients $p_i$, 
 $0 \leq i < d$, but we aren't interested in any of them.
 
 
 \subsection{Simple progression}
 Now we would like 
 \begin{displaymath}
-q^{h(i)} g_{i+d} =  \sum_{j=0}^{d} f_j q^{ji}
+q^{h(i)} p_{i+d} =  \sum_{j=0}^{d} f_j q^{ji}
 \end{displaymath}
-so that $q^{h(i)} g_{i+d} = F(q^i)$, for $0 \leq i < n$.
+so that $q^{h(i)} p_{i+d} = F(q^i)$, for $0 \leq i < n$.
 %
 Hence we can equate the exponents
 \begin{displaymath}
-  f(i+d-j) + g(j) + h(i) = ij.
+  b(i+d-j) + c(j) + h(i) = ij.
 \end{displaymath}
-If $f(x)$ is a polynomial, it must be of degree at least $2$ to produce the 
-$ij$ term. Let $f(x)=-(x-d)^2/2$. Then 
+If $b(x)$ is a polynomial, it must be of degree at least $2$ to produce the 
+$ij$ term. Let $b(x)=-(x-d)^2/2$. Then 
 \begin{eqnarray*}
-  -i^2/2 + ji - j^2/2 + g(j) + h(i) & = & ij \\
-  -i^2/2 - j^2/2 + g(j) + h(i) & = & 0
+  -i^2/2 + ji - j^2/2 + c(j) + h(i) & = & ij \\
+  -i^2/2 - j^2/2 + c(j) + h(i) & = & 0
 \end{eqnarray*}
-so with $g(x) = h(x) = x^2/2$, the equality is satisfied.
+so with $c(x) = h(x) = x^2/2$, the equality is satisfied.
 
 The values of $f(x)=-(x-d)^2/2$ are symmetric around $x=d$, so only $d+1$ of 
 the $b_j = q^{f(j)}, 0 \leq j \leq d+n$ need to be computed. For example, if
@@ -81,7 +83,8 @@ For the P-1 factoring algorithm, the $q^{h(i)}$ values need not be computed
 as $q \perp N$ ($\perp$ meaning coprime) and so 
 $q^{h(i)} \perp N$, and $\gcd(F(q^i) q^{h(i)}, N) = \gcd(F(q^i), N)$.
 Hence the total cost for the multipoint evaluation is $4d + o(d)$ 
-multiplications and a convolution of length $d+n$.
+multiplications and a convolution of length $l$.
+
 
 \subsection{More general progression}
 To evaluate $F(q^{\alpha}), F(q^{\alpha+\beta}), ..., 
@@ -104,7 +107,7 @@ $h(x) = \beta x^2/2$. The $f(x)$ values are still symmetric around $x=d$ but
 due to the $\alpha$ term in $g(x - 1) - g(x) = -\beta x + \beta/2 - \alpha$,
 we cannot reuse the $b'_{j'}$ sequence as before and computing the $c_j$ values
 requires $3$ multiplies each, for a total cost for the multipoint evaluation
-of $5d + o(d)$ multiplications and a convolution of length $d+n$.
+of $5d + o(d)$ multiplications and a convolution of length $l$.
 
 
 \subsection{Progression in Montgomery's fast P-1 stage 2}
