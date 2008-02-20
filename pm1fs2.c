@@ -2587,7 +2587,7 @@ ntt_sqr_recip (mpzv_t R, const mpzv_t S, mpzspv_t dft,
    If add == NULL, add[i] is assumed to be 0. */
 
 static void
-ntt_gcd (mpz_t f, mpzspv_t ntt, const unsigned long ntt_offset,
+ntt_gcd (mpz_t f, mpz_t product, mpzspv_t ntt, const unsigned long ntt_offset,
 	 const listz_t add, const unsigned long len_param, 
 	 const mpzspm_t ntt_context, mpmod_t modulus_param)
 {
@@ -2676,15 +2676,8 @@ ntt_gcd (mpz_t f, mpzspv_t ntt, const unsigned long ntt_offset,
   }
 #endif
 
-  if (test_verbose(OUTPUT_RESVERBOSE))
-    {
-      mpres_t t;
-      mpres_init (t, modulus_param);
-      mpres_get_z (t, totalprod, modulus_param);
-      outputf (OUTPUT_RESVERBOSE, "\nProduct of R[i] = %Zd (times some "
-	       "power of 2 if REDC was used! Try -mpzmod)\n", t);
-      mpres_clear (t, modulus_param);
-    }
+  if (product != NULL)
+    mpres_get_z (product, totalprod, modulus_param);
 
   mpres_gcd (f, totalprod, modulus_param);
   mpres_clear (totalprod, modulus_param);
@@ -2961,6 +2954,8 @@ pm1fs2_ntt (mpz_t f, const mpres_t X, mpmod_t modulus,
   mpzspm_t ntt_context;
   mpzspv_t g_ntt, h_ntt;
   mpz_t mt;   /* All-purpose temp mpz_t */
+  mpz_t product; /* Product of each multi-point evaluation */
+  mpz_t *product_ptr = NULL;
   mpres_t tmpres; /* All-purpose temp mpres_t */
   int youpi = ECM_NO_FACTOR_FOUND;
   long timetotalstart, timestart, timestop, realstart = 0L, realstop = 0L;
@@ -3103,7 +3098,13 @@ pm1fs2_ntt (mpz_t f, const mpres_t X, mpmod_t modulus,
 	     timestop - timestart, realstop - realstart);
   else
     outputf (OUTPUT_VERBOSE, " took %lums\n", timestop - timestart);
-                
+  
+  if (test_verbose (OUTPUT_RESVERBOSE))
+    {
+      mpz_init (product);
+      product_ptr = &product;
+    }
+
   for (l = 0; l < params->s_2; l++)
     {
       const unsigned long M = params->l - 1L - params->s_1 / 2L;
@@ -3130,7 +3131,11 @@ pm1fs2_ntt (mpz_t f, const mpres_t X, mpmod_t modulus,
 	outputf (OUTPUT_VERBOSE, " took %lums\n", timestop - timestart);      
       
       /* Compute GCD of N and coefficients of product polynomial */
-      ntt_gcd (mt, g_ntt, params->s_1 / 2, NULL, nr, ntt_context, modulus);
+      ntt_gcd (mt, product_ptr, g_ntt, params->s_1 / 2, NULL, nr, ntt_context, 
+	       modulus);
+
+      outputf (OUTPUT_RESVERBOSE, "Product of R[i] = %Zd (times some "
+	       "power of 2 if REDC was used! Try -mpzmod)\n", product);
 
       /* If we found a factor, stop */
       if (mpz_cmp_ui (mt, 1UL) > 0)
@@ -3141,6 +3146,11 @@ pm1fs2_ntt (mpz_t f, const mpres_t X, mpmod_t modulus,
 	}
     }
 
+  if (test_verbose (OUTPUT_RESVERBOSE))
+    {
+      product_ptr = NULL;
+      mpz_clear (product);
+    }
   mpzspv_clear (g_ntt, ntt_context);
   mpzspv_clear (h_ntt, ntt_context);
   mpzspm_clear (ntt_context);
@@ -4134,18 +4144,17 @@ pp1fs2 (mpz_t f, const mpres_t X, mpmod_t modulus,
 #endif
 	  mpres_mul (tmpres[1], tmpres[1], tmpres[0], modulus); 
       }
+      timestop = cputime ();
+      outputf (OUTPUT_VERBOSE, "Computing product of F(g_i)^(1) took %lums\n", 
+	       timestop - timestart);
       if (test_verbose(OUTPUT_RESVERBOSE))
       {
 	  mpres_get_z (mt, tmpres[1], modulus);
 	  outputf (OUTPUT_RESVERBOSE, "Product of R[i] = %Zd (times some "
 		   "power of 2 if REDC was used! Try -mpzmod)\n", mt);
       }
-      mpres_gcd (mt, tmpres[1], modulus);
-
-      timestop = cputime ();
-      outputf (OUTPUT_VERBOSE, "Computing product of F(g_i)^(1) took %lums\n", 
-	       timestop - timestart);
       
+      mpres_gcd (mt, tmpres[1], modulus);
       if (mpz_cmp_ui (mt, 1UL) > 0)
 	{
 	  mpz_set (f, mt);
@@ -4204,6 +4213,8 @@ pp1fs2_ntt (mpz_t f, const mpres_t X, mpmod_t modulus,
   const unsigned long tmpreslen = 20;
   mpres_t b1_x, b1_y, Delta, tmpres[tmpreslen];
   mpz_t mt;   /* All-purpose temp mpz_t */
+  mpz_t product;
+  mpz_t *product_ptr = NULL;
   int youpi = ECM_NO_FACTOR_FOUND;
   long timetotalstart, timestart, timestop;
 
@@ -4357,6 +4368,11 @@ pp1fs2_ntt (mpz_t f, const mpres_t X, mpmod_t modulus,
   timestop = cputime ();
   outputf (OUTPUT_VERBOSE, " took %lums\n", timestop - timestart);
 
+  if (test_verbose (OUTPUT_RESVERBOSE))
+    {
+      mpz_init (product);
+      product_ptr = &product;
+    }
 
   for (l = 0; l < params->s_2; l++)
     {
@@ -4390,7 +4406,8 @@ pp1fs2_ntt (mpz_t f, const mpres_t X, mpmod_t modulus,
 	  outputf (OUTPUT_VERBOSE, " took %lums\n", timestop - timestart);
 	  
 	  /* Compute product of sum of coefficients and gcd with N */
-	  ntt_gcd (mt, g_y_ntt, params->s_1 / 2, R, nr, ntt_context, modulus);
+	  ntt_gcd (mt, product_ptr, g_y_ntt, params->s_1 / 2, R, nr, 
+		   ntt_context, modulus);
 	}
       else
 	{
@@ -4433,10 +4450,13 @@ pp1fs2_ntt (mpz_t f, const mpres_t X, mpmod_t modulus,
 	  timestop = cputime ();
 	  outputf (OUTPUT_VERBOSE, " took %lums\n", timestop - timestart);
 	  
-	  ntt_gcd (mt, g_x_ntt, params->s_1 / 2, NULL, nr, ntt_context, 
-	           modulus);
+	  ntt_gcd (mt, product_ptr, g_x_ntt, params->s_1 / 2, NULL, nr, 
+		   ntt_context, modulus);
 	}
       
+      outputf (OUTPUT_RESVERBOSE, "Product of R[i] = %Zd (times some "
+	       "power of 2 if REDC was used! Try -mpzmod)\n", product);
+
       if (mpz_cmp_ui (mt, 1UL) > 0)
 	{
 	  mpz_set (f, mt);
@@ -4445,6 +4465,11 @@ pp1fs2_ntt (mpz_t f, const mpres_t X, mpmod_t modulus,
 	}
     }
 
+  if (test_verbose (OUTPUT_RESVERBOSE))
+    {
+      product_ptr = NULL;
+      mpz_clear (product);
+    }
   mpzspv_clear (g_x_ntt, ntt_context);
   if (twopass)
     clear_list (R, nr);
@@ -4467,4 +4492,3 @@ pp1fs2_ntt (mpz_t f, const mpres_t X, mpmod_t modulus,
 
   return youpi;
 }
-
