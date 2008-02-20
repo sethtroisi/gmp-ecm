@@ -120,10 +120,6 @@ extern FILE *ECM_STDOUT, *ECM_STDERR;
 #define USE_SHORT_PRODUCT
 #endif
 
-/* If defined, ECM stage 2 uses Montgomery form for computing roots of F,G
-   if S == 1. Very slow right now, as we need an inversion per root */
-/* #define MONT_ROOTS */
-
 /* Use George Woltman's GWNUM library */
 /* Should be defined via -DHAVE_GWNUM by Makefile
 #define HAVE_GWNUM
@@ -250,10 +246,6 @@ typedef struct
   unsigned int rsieve; /* Which residue mod dsieve current .next belongs to */
   int dickson_a;       /* Parameter for Dickson polynomials */
   point *fd;
-#ifdef MONT_ROOTS
-  int form;            /* Montgomery or Weierstrass form */
-  long int i0;         /* i0 as a long int (if it fits) */
-#endif
   unsigned int size_T; /* How many entries T has */
   mpres_t *T;          /* For temp values. FIXME: should go! */
   curve *X;            /* The curve the points are on */
