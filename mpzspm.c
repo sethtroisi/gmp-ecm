@@ -26,7 +26,7 @@
 /* This function initializes a mpzspm_t structure which contains the number
    of small primes, the small primes with associated primitive roots and 
    precomputed data for the CRT to allow convolution products of length up 
-   to "len" with modulus "modulus". */
+   to "max_len" with modulus "modulus". */
 
 mpzspm_t
 mpzspm_init (spv_size_t max_len, mpz_t modulus)
@@ -78,7 +78,7 @@ mpzspm_init (spv_size_t max_len, mpz_t modulus)
         p -= max_len;
       while (!sp_prime(p));
       
-      /* all primes must have top bit set */
+      /* all primes must be in range */
       if (p < SP_MIN)
         {
 	  printf ("not enough primes in interval\n");
@@ -175,4 +175,3 @@ void mpzspm_clear (mpzspm_t mpzspm)
   free (mpzspm->spm);
   free (mpzspm);
 }
-

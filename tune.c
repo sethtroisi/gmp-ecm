@@ -153,31 +153,27 @@ tune_mpres_mul_redc (size_t n)
 
 TUNE_FUNC_START (tune_spv_ntt_gfp_dif_recursive)
   SPV_NTT_GFP_DIF_RECURSIVE_THRESHOLD = 1 << n;
-  TUNE_FUNC_LOOP (spv_ntt_gfp_dif (spv, 1 << n, spm->sp, spm->mul_c,
-	spm->prim_root));
+  TUNE_FUNC_LOOP (spv_ntt_gfp_dif (spv, n, spm));
 TUNE_FUNC_END (tune_spv_ntt_gfp_dif_recursive)
 
 
 TUNE_FUNC_START (tune_spv_ntt_gfp_dif_unrolled)
   SPV_NTT_GFP_DIF_RECURSIVE_THRESHOLD = ULONG_MAX;
-  TUNE_FUNC_LOOP (spv_ntt_gfp_dif (spv, 1 << n, spm->sp, spm->mul_c,
-	spm->prim_root));
+  TUNE_FUNC_LOOP (spv_ntt_gfp_dif (spv, n, spm));
 TUNE_FUNC_END (tune_spv_ntt_gfp_dif_unrolled)
 
 
 TUNE_FUNC_START (tune_spv_ntt_gfp_dit_recursive)
   SPV_NTT_GFP_DIT_RECURSIVE_THRESHOLD = 1 << n;
 
-  TUNE_FUNC_LOOP (spv_ntt_gfp_dit (spv, 1 << n, spm->sp, spm->mul_c,
-	spm->prim_root));
+  TUNE_FUNC_LOOP (spv_ntt_gfp_dit (spv, n, spm));
 TUNE_FUNC_END (tune_spv_ntt_gfp_dit_recursive)
 
 
 TUNE_FUNC_START (tune_spv_ntt_gfp_dit_unrolled)
   SPV_NTT_GFP_DIT_RECURSIVE_THRESHOLD = ULONG_MAX;
 
-  TUNE_FUNC_LOOP (spv_ntt_gfp_dit (spv, 1 << n, spm->sp, spm->mul_c,
-	spm->prim_root));
+  TUNE_FUNC_LOOP (spv_ntt_gfp_dit (spv, n, spm));
 TUNE_FUNC_END (tune_spv_ntt_gfp_dit_unrolled)
 
 
