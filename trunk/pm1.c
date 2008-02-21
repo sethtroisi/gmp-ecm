@@ -451,7 +451,8 @@ pm1_rootsF (mpz_t f, listz_t F, root_params_t *root_params,
   unsigned long i;
   unsigned long muls = 0, gcds = 0;
   long st, st1;
-  pm1_roots_state state;
+  pm1_roots_state_t state;
+  progression_params_t *params = &state.params; /* for less typing */
   listz_t coeffs;
   mpz_t ts;
 
@@ -461,60 +462,57 @@ pm1_rootsF (mpz_t f, listz_t F, root_params_t *root_params,
   st = cputime ();
 
   /* Relative cost of point add during init and computing roots assumed =1 */
-  /* The typecast from hell: the relevant fields of ecm_roots_state and
-     pm1_roots_state match in position so init_roots_state() can init a
-     pm1_roots_state as well. UGLY. OOP would really help here. FIXME! */
-  init_roots_state ((ecm_roots_state *) &state, root_params->S, 
-                    root_params->d1, root_params->d2, 1.0);
+  init_roots_state (&state.params, root_params->S, root_params->d1, 
+		    root_params->d2, 1.0);
 
   /* The invtrick is profitable for x^S, S even and > 6. Does not work for 
      Dickson polynomials (root_params->S < 0)! */
   if (root_params->S > 6 && (root_params->S & 1) == 0)
     {
       state.invtrick = 1;
-      state.S /= 2;
-      state.size_fd = state.nr * (state.S + 1);
+      params->S /= 2;
+      params->size_fd = params->nr * (params->S + 1);
     }
   else
     state.invtrick = 0;
 
   outputf (OUTPUT_DEVVERBOSE, 
 	   "pm1_rootsF: state: nr = %d, dsieve = %d, size_fd = %d, S = %d, "
-	   "dickson_a = %d, invtrick = %d\n", state.nr, state.dsieve, 
-	   state.size_fd, state.S, state.dickson_a, state.invtrick);
+	   "dickson_a = %d, invtrick = %d\n", params->nr, params->dsieve, 
+	   params->size_fd, params->S, params->dickson_a, state.invtrick);
 
   /* Init finite differences tables */
   mpz_init (ts); /* ts = 0 */
-  coeffs = init_progression_coeffs (ts, state.dsieve, root_params->d2, 1, 6, 
-                                    state.S, state.dickson_a);
+  coeffs = init_progression_coeffs (ts, params->dsieve, root_params->d2, 
+				    1, 6, params->S, params->dickson_a);
   mpz_clear (ts);
 
   if (coeffs == NULL)
     return ECM_ERROR;
 
   /* Allocate memory for fd[] and compute x^coeff[]*/
-  state.fd = (mpres_t *) malloc (state.size_fd * sizeof (mpres_t));
+  state.fd = (mpres_t *) malloc (params->size_fd * sizeof (mpres_t));
   if (state.fd == NULL)
     {
-      clear_list (coeffs, state.size_fd);
+      clear_list (coeffs, params->size_fd);
       return ECM_ERROR;
     }
 
-  for (i = 0; i < state.size_fd; i++) 
+  for (i = 0; i < params->size_fd; i++) 
     {
       outputf (OUTPUT_TRACE, "pm1_rootsF: coeffs[%d] = %Zd\n", i, coeffs[i]);
       mpres_init (state.fd[i], modulus);
       /* The highest coefficient of all progressions is identical */
-      if (i > state.S + 1 && i % (state.S + 1) == state.S)
+      if (i > params->S + 1 && i % (params->S + 1) == params->S)
 	{
-	  ASSERT (mpz_cmp (coeffs[i], coeffs[state.S]) == 0);
-	  mpres_set (state.fd[i], state.fd[state.S], modulus);
+	  ASSERT (mpz_cmp (coeffs[i], coeffs[params->S]) == 0);
+	  mpres_set (state.fd[i], state.fd[params->S], modulus);
 	}
       else
         mpres_pow (state.fd[i], *x, coeffs[i], modulus);
     }
 
-  clear_list (coeffs, state.size_fd);
+  clear_list (coeffs, params->size_fd);
   coeffs = NULL;
   
   st1 = cputime ();
@@ -527,25 +525,27 @@ pm1_rootsF (mpz_t f, listz_t F, root_params_t *root_params,
   for (i = 0; i < dF;)
     {
       /* Is this a rsieve value where we computed x^Dickson(j * d2) ? */
-      if (gcd (state.rsieve, state.dsieve) == 1)
+      if (gcd (params->rsieve, params->dsieve) == 1)
         {
           /* Did we use every progression since the last update? */
-          if (state.next == state.nr)
+          if (params->next == params->nr)
             {
               /* Yes, time to update again */
-              update_fd (state.fd, state.nr, state.S, modulus, &muls);
-              state.next = 0;
+              update_fd (state.fd, params->nr, params->S, modulus, 
+			 &muls);
+              params->next = 0;
             }
           
           /* Is this a j value where we want x^Dickson(j * d2) as a root? */
-          if (gcd (state.rsieve, root_params->d1) == 1)
-            mpres_get_z (F[i++], state.fd[state.next * (state.S + 1)], modulus);
-          state.next ++;
+          if (gcd (params->rsieve, root_params->d1) == 1)
+            mpres_get_z (F[i++], state.fd[params->next * (params->S + 1)], 
+                         modulus);
+          params->next ++;
         }
-      state.rsieve += 6;
+      params->rsieve += 6;
     }
 
-  for (i = 0; i < state.size_fd; i++)
+  for (i = 0; i < params->size_fd; i++)
     mpres_clear (state.fd[i], modulus);
   free (state.fd);
   state.fd = NULL;
@@ -555,7 +555,8 @@ pm1_rootsF (mpz_t f, listz_t F, root_params_t *root_params,
       if (list_invert (t, F, dF, t[dF], modulus)) 
         {
           /* Should never happen */
-	  outputf (OUTPUT_ERROR, "Found factor unexpectedly while inverting F[0]*..*F[dF]\n");
+	  outputf (OUTPUT_ERROR, 
+		   "Found factor unexpectedly while inverting F[0]*..*F[dF]\n");
           mpz_set (f, t[dF]);
           return ECM_FACTOR_FOUND_STEP2;
         }
@@ -588,34 +589,36 @@ pm1_rootsF (mpz_t f, listz_t F, root_params_t *root_params,
    Return NULL if an error occurred.
 */
 
-pm1_roots_state *
+pm1_roots_state_t *
 pm1_rootsG_init (mpres_t *x, root_params_t *root_params, mpmod_t modulus)
 {
   unsigned int i;
   listz_t coeffs;
-  pm1_roots_state *state;
+  pm1_roots_state_t *state;
+  progression_params_t *params; /* for less typing */
 
-  state = (pm1_roots_state *) malloc (sizeof (pm1_roots_state));
+  state = (pm1_roots_state_t *) malloc (sizeof (pm1_roots_state_t));
   if (state == NULL)
     return NULL;
+  params = &(state->params);
   
-  state->dickson_a = (root_params->S < 0) ? -1 : 0;
-  state->nr = (root_params->d2 > 1) ? root_params->d2 - 1 : 1;
-  state->next = 0;
+  params->dickson_a = (root_params->S < 0) ? -1 : 0;
+  params->nr = (root_params->d2 > 1) ? root_params->d2 - 1 : 1;
+  params->next = 0;
   state->invtrick = (root_params->S > 6 && (root_params->S & 1) == 0);
-  state->S = (state->invtrick) ? abs (root_params->S) / 2 : 
+  params->S = (state->invtrick) ? abs (root_params->S) / 2 : 
                                  abs (root_params->S);
-  state->size_fd = state->nr * (state->S + 1);
-  state->dsieve = 1;
-  state->rsieve = 1;
+  params->size_fd = params->nr * (params->S + 1);
+  params->dsieve = 1;
+  params->rsieve = 1;
   
   outputf (OUTPUT_DEVVERBOSE,
 	   "pm1_rootsG_init: d1 = %lu, d2 = %lu, state: dsieve = %d, "
 	   "nr = %d, size_fd = %d, S = %d, invtrick = %d\n", 
-	   root_params->d1, root_params->d2, state->dsieve, state->nr, 
-	   state->size_fd, state->S, state->invtrick);
+	   root_params->d1, root_params->d2, params->dsieve, 
+	   params->nr, params->size_fd, params->S, state->invtrick);
   
-  state->fd = (mpres_t *) malloc (state->size_fd * sizeof (mpres_t));
+  state->fd = (mpres_t *) malloc (params->size_fd * sizeof (mpres_t));
   if (state->fd == NULL)
     {
       free (state);
@@ -624,7 +627,7 @@ pm1_rootsG_init (mpres_t *x, root_params_t *root_params, mpmod_t modulus)
 
   /* Init for Dickson_{E,a} (i0 * d + d1 * n) */
   coeffs = init_progression_coeffs (root_params->i0, root_params->d2, 
-             root_params->d1, 1, 1, state->S, state->dickson_a);
+             root_params->d1, 1, 1, params->S, params->dickson_a);
 
   if (coeffs == NULL)
     {
@@ -633,17 +636,17 @@ pm1_rootsG_init (mpres_t *x, root_params_t *root_params, mpmod_t modulus)
       return NULL;
     }
 
-  for (i = 0; i < state->size_fd; i++) 
+  for (i = 0; i < params->size_fd; i++) 
     {
       outputf (OUTPUT_TRACE, "pm1_rootsG_init: coeffs[%d] = %Zd\n", 
                i, coeffs[i]);
       mpres_init (state->fd[i], modulus);
       /* The S-th coeff of all progressions is identical */
-      if (i > state->S && i % (state->S + 1) == state->S) 
+      if (i > params->S && i % (params->S + 1) == params->S) 
         {
-          ASSERT (mpz_cmp (coeffs[i], coeffs[state->S]) == 0);
+          ASSERT (mpz_cmp (coeffs[i], coeffs[params->S]) == 0);
           /* Simply copy from the first progression */
-          mpres_set (state->fd[i], state->fd[state->S], modulus); 
+          mpres_set (state->fd[i], state->fd[params->S], modulus); 
         }
       else
         {
@@ -661,7 +664,7 @@ pm1_rootsG_init (mpres_t *x, root_params_t *root_params, mpmod_t modulus)
         }
     }
 
-  clear_list (coeffs, state->size_fd);
+  clear_list (coeffs, params->size_fd);
    
   return state;
 }
@@ -669,11 +672,11 @@ pm1_rootsG_init (mpres_t *x, root_params_t *root_params, mpmod_t modulus)
 /* Frees all the dynamic variables allocated by pm1_rootsG_init() */
 
 void 
-pm1_rootsG_clear (pm1_roots_state *state, ATTRIBUTE_UNUSED mpmod_t modulus)
+pm1_rootsG_clear (pm1_roots_state_t *state, ATTRIBUTE_UNUSED mpmod_t modulus)
 {
   unsigned int k;
   
-  for (k = 0; k < state->size_fd; k++)
+  for (k = 0; k < state->params.size_fd; k++)
     mpres_clear (state->fd[k], modulus);
 
   free (state->fd);
@@ -696,45 +699,47 @@ pm1_rootsG_clear (pm1_roots_state *state, ATTRIBUTE_UNUSED mpmod_t modulus)
 */
 
 int
-pm1_rootsG (mpz_t f, listz_t G, unsigned long dF, pm1_roots_state *state, 
+pm1_rootsG (mpz_t f, listz_t G, unsigned long dF, pm1_roots_state_t *state, 
             listz_t t, mpmod_t modulus)
 {
   unsigned long i;
   unsigned long muls = 0, gcds = 0;
   unsigned int st;
+  progression_params_t *params = &(state->params); /* for less typing */
   
   outputf (OUTPUT_TRACE,
 	   "pm1_rootsG: dF = %d, state: size_fd = %d, nr = %d, S = %d\n",
-	   dF, state->size_fd, state->nr, state->S);
+	   dF, params->size_fd, params->nr, params->S);
   
   st = cputime ();
   
   for (i = 0; i < dF;)
     {
       /* Did we use every progression since the last update? */
-      if (state->next == state->nr)
+      if (params->next == params->nr)
         {
           /* Yes, time to update again */
 	  outputf (OUTPUT_TRACE, "pm1_rootsG: Updating table at rsieve = %d\n",
-		   state->rsieve);
-          update_fd (state->fd, state->nr, state->S, modulus, &muls);
-          state->next = 0;
+		   params->rsieve);
+          update_fd (state->fd, params->nr, params->S, modulus, &muls);
+          params->next = 0;
         }
       
       /* Is this a root we should skip? (Take only if gcd == 1) */
-      if (gcd (state->rsieve, state->dsieve) == 1)
+      if (gcd (params->rsieve, params->dsieve) == 1)
         {
 	  outputf (OUTPUT_TRACE,
 		   "pm1_rootsG: Taking root G[%d] at rsieve = %d\n",
-		   i, state->rsieve);
-          mpres_get_z (G[i++], state->fd[state->next * (state->S + 1)], modulus);
+		   i, params->rsieve);
+          mpres_get_z (G[i++], state->fd[params->next * (params->S + 1)], 
+		       modulus);
         }
       else
 	outputf (OUTPUT_TRACE, "pm1_rootsG: Skipping root at rsieve = %d\n",
-		 state->rsieve);
+		 params->rsieve);
       
-      state->next ++;
-      state->rsieve ++;
+      params->next ++;
+      params->rsieve ++;
     }
   
   if (state->invtrick)
