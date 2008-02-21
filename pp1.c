@@ -417,7 +417,8 @@ pp1_rootsF (listz_t F, root_params_t *root_params, unsigned long dF,
   mpres_t fd[3];
   mpres_t u, v; /* auxiliary variables */
   listz_t coeffs;
-  ecm_roots_state state;
+  ecm_roots_state_t state;
+  progression_params_t *params = &state.params; /* for less typing */
 
   if (dF == 0)
     return youpi;
@@ -480,35 +481,35 @@ pp1_rootsF (listz_t F, root_params_t *root_params, unsigned long dF,
   else /* case |S| <> 1: this code works also for S=1, but is more
 	  expensive, since it can use up to 4*(d1/6) muls */
     {
-      init_roots_state (&state, root_params->S, root_params->d1, 
+      init_roots_state (params, root_params->S, root_params->d1, 
                         root_params->d2, 1.0);
       mpz_set_ui (*t, 0UL);
-      coeffs = init_progression_coeffs (*t, state.dsieve, root_params->d2, 1, 
-                                        6, state.S, state.dickson_a);
+      coeffs = init_progression_coeffs (*t, params->dsieve, root_params->d2, 1, 
+                                        6, params->S, params->dickson_a);
       
       if (coeffs == NULL)
         return ECM_ERROR;
 
-      state.fd = (point *) malloc (state.size_fd * sizeof (point));
+      state.fd = (point *) malloc (params->size_fd * sizeof (point));
       if (state.fd == NULL)
         {
-	  clear_list (coeffs, state.size_fd);
+	  clear_list (coeffs, params->size_fd);
 	  return ECM_ERROR;
         }
-      for (i = 0; i < state.size_fd; i++)
+      for (i = 0; i < params->size_fd; i++)
 	{
           mpres_init (state.fd[i].x, modulus);
           mpres_init (state.fd[i].y, modulus);
 	  /* if i = k*(S+1) + S for k>=1, we can copy x and y from i - (S+1) */
-	  if (i > state.S && (i % (state.S + 1) == state.S))
+	  if (i > params->S && (i % (params->S + 1) == params->S))
 	    {
-	      mpres_set (state.fd[i].x, state.fd[state.S].x, modulus);
-	      mpres_set (state.fd[i].y, state.fd[state.S].y, modulus);
+	      mpres_set (state.fd[i].x, state.fd[params->S].x, modulus);
+	      mpres_set (state.fd[i].y, state.fd[params->S].y, modulus);
 	    }
 	  else
 	    pp1_mul2 (state.fd[i].x, state.fd[i].y, x[0], coeffs[i], modulus);
 	}
-      clear_list (coeffs, state.size_fd);
+      clear_list (coeffs, params->size_fd);
 
       outputf (OUTPUT_VERBOSE,
 	       "Initializing table of differences for F took %ldms\n",
@@ -518,37 +519,37 @@ pp1_rootsF (listz_t F, root_params_t *root_params, unsigned long dF,
       for (i = 0; i < dF && !youpi;)
 	{
 	  /* Is this a rsieve value where we computed Dickson(j * d2) * X? */
-	  if (gcd (state.rsieve, state.dsieve) == 1)
+	  if (gcd (params->rsieve, params->dsieve) == 1)
 	    {
 	      /* Did we use every progression since the last update? */
-	      if (state.next == state.nr)
+	      if (params->next == params->nr)
 		{
 		  /* Yes, time to update again */
-		  addWnm (state.fd, x[0], modulus, state.nr, state.S, &muls);
-		  state.next = 0;
+		  addWnm (state.fd, x[0], modulus, params->nr, params->S, &muls);
+		  params->next = 0;
 		}
 
 	      /* Is this a j value where we want Dickson(j*d2)*X as a root? */
-	      if (gcd (state.rsieve, root_params->d1) == 1)
+	      if (gcd (params->rsieve, root_params->d1) == 1)
 		{
 		  /* we have alpha^k = x * alpha + y
 		     thus alpha^k + beta^k = x * P + 2 * y.
                      FIXME: can we avoid returning to the Lucas form?
                   */
-		  mpres_mul (u, state.fd[state.next * (state.S + 1)].x, x[0],
+		  mpres_mul (u, state.fd[params->next * (params->S + 1)].x, x[0],
 			     modulus);
-		  mpres_mul_ui (v, state.fd[state.next * (state.S + 1)].y,
+		  mpres_mul_ui (v, state.fd[params->next * (params->S + 1)].y,
 				2, modulus);
 		  mpres_add (u, u, v, modulus);
 		  mpres_get_z (F[i++], u, modulus);
 		}
 
-	      state.next ++;
+	      params->next ++;
 	    }
-	  state.rsieve += 6;
+	  params->rsieve += 6;
 	}
 
-      for (i = 0; i < state.size_fd; i++)
+      for (i = 0; i < params->size_fd; i++)
         {
           mpres_clear (state.fd[i].x, modulus);
           mpres_clear (state.fd[i].y, modulus);
@@ -568,23 +569,25 @@ pp1_rootsF (listz_t F, root_params_t *root_params, unsigned long dF,
 }
 
 /* return NULL if an error occurred */
-pp1_roots_state *
+pp1_roots_state_t *
 pp1_rootsG_init (mpres_t *x, root_params_t *root_params, mpmod_t modulus)
 {
   mpres_t P;
-  pp1_roots_state *state;
+  pp1_roots_state_t *state;
+  progression_params_t *params; /* for less typing */
   unsigned long i;
 
   ASSERT (gcd (root_params->d1, root_params->d2) == 1);
 
-  state = (pp1_roots_state *) malloc (sizeof (pp1_roots_state));
+  state = (pp1_roots_state_t *) malloc (sizeof (pp1_roots_state_t));
   if (state == NULL)
     return NULL;
+  params = &(state->params);
 
   /* we don't need the sign anymore after pp1_rootsG_init */
-  state->S = ABS(root_params->S); 
+  params->S = ABS(root_params->S); 
 
-  if (state->S == 1)
+  if (params->S == 1)
     {
       mpz_t t;
       mpz_init (t);
@@ -592,16 +595,16 @@ pp1_rootsG_init (mpres_t *x, root_params_t *root_params, mpmod_t modulus)
       for (i = 0; i < 4; i++)
         mpres_init (state->tmp[i], modulus);
 
-      state->dsieve = root_params->d2; /* needed in pp1_rootsG */
+      params->dsieve = root_params->d2; /* needed in pp1_rootsG */
       /* We want to skip values where gcd((i0 + i) * d1, d2) != 1.
 	 We can test for gcd(i0 + i, d2) instead and let pp1_rootsG()
-	 advance state->rsieve in steps of 1 */
-      /* state->rsieve = i0 % d2 */
-      state->rsieve = mpz_fdiv_ui (root_params->i0, root_params->d2);
+	 advance params->rsieve in steps of 1 */
+      /* params->rsieve = i0 % d2 */
+      params->rsieve = mpz_fdiv_ui (root_params->i0, root_params->d2);
       
       outputf (OUTPUT_DEVVERBOSE, "pp1_rootsG_init: i0 = %Zd, state: "
                "dsieve = %d, rsieve = %d, S = %d\n", root_params->i0, 
-               state->dsieve, state->rsieve, state->S);
+               params->dsieve, params->rsieve, params->S);
       
       mpz_set_ui (t, root_params->d1);
       pp1_mul (state->tmp[1], *x, t, modulus, state->tmp[3], P);
@@ -619,14 +622,14 @@ pp1_rootsG_init (mpres_t *x, root_params_t *root_params, mpmod_t modulus)
     {
       listz_t coeffs;
       
-      state->dickson_a = (root_params->S < 0) ? -1 : 0;
-      state->nr = (root_params->d2 > 1) ? root_params->d2 - 1 : 1;
-      state->size_fd = state->nr * (state->S + 1);
-      state->next = 0;
-      state->dsieve = 1;
-      state->rsieve = 1;
+      params->dickson_a = (root_params->S < 0) ? -1 : 0;
+      params->nr = (root_params->d2 > 1) ? root_params->d2 - 1 : 1;
+      params->size_fd = params->nr * (params->S + 1);
+      params->next = 0;
+      params->dsieve = 1;
+      params->rsieve = 1;
 
-      state->fd = (point *) malloc (state->size_fd * sizeof (point));
+      state->fd = (point *) malloc (params->size_fd * sizeof (point));
       if (state->fd == NULL)
         {
           free (state);
@@ -634,7 +637,7 @@ pp1_rootsG_init (mpres_t *x, root_params_t *root_params, mpmod_t modulus)
         }
       
       coeffs = init_progression_coeffs (root_params->i0, root_params->d2, 
-                 root_params->d1, 1, 1, state->S, state->dickson_a);
+                 root_params->d1, 1, 1, params->S, params->dickson_a);
       if (coeffs == NULL)
         {
           free (state->fd);
@@ -642,40 +645,40 @@ pp1_rootsG_init (mpres_t *x, root_params_t *root_params, mpmod_t modulus)
           return NULL;
         }
 
-      for (i = 0; i < state->size_fd; i++) 
+      for (i = 0; i < params->size_fd; i++) 
         {
           mpres_init (state->fd[i].x, modulus);
           mpres_init (state->fd[i].y, modulus);
           /* The S-th coeff of all progressions is identical */
-          if (i > state->S && i % (state->S + 1) == state->S) 
+          if (i > params->S && i % (params->S + 1) == params->S) 
             {
               /* Simply copy from the first progression */
-              mpres_set (state->fd[i].x, state->fd[state->S].x, modulus); 
-              mpres_set (state->fd[i].y, state->fd[state->S].y, modulus); 
+              mpres_set (state->fd[i].x, state->fd[params->S].x, modulus); 
+              mpres_set (state->fd[i].y, state->fd[params->S].y, modulus); 
             }
           else
             pp1_mul2 (state->fd[i].x, state->fd[i].y, x[0], coeffs[i], modulus);
         }
 
-      clear_list (coeffs, state->size_fd);
+      clear_list (coeffs, params->size_fd);
     }
 
   return state;
 }
 
 void 
-pp1_rootsG_clear (pp1_roots_state *state, ATTRIBUTE_UNUSED mpmod_t modulus)
+pp1_rootsG_clear (pp1_roots_state_t *state, ATTRIBUTE_UNUSED mpmod_t modulus)
 {
   unsigned long i;
 
-  if (state->S == 1)
+  if (state->params.S == 1)
     {
       for (i = 0; i < 4; i++)
         mpres_clear (state->tmp[i], modulus);
     }
   else
     {
-      for (i = 0; i < state->size_fd; i++)
+      for (i = 0; i < state->params.size_fd; i++)
         {
           mpres_clear (state->fd[i].x, modulus);
           mpres_clear (state->fd[i].y, modulus);
@@ -687,38 +690,39 @@ pp1_rootsG_clear (pp1_roots_state *state, ATTRIBUTE_UNUSED mpmod_t modulus)
 }
 
 int
-pp1_rootsG (listz_t G, unsigned long dF, pp1_roots_state *state, mpmod_t modulus,
-            mpres_t *x)
+pp1_rootsG (listz_t G, unsigned long dF, pp1_roots_state_t *state, 
+	    mpmod_t modulus, mpres_t *x)
 {
   unsigned long i;
   unsigned long muls = 0;
   long st;
+  progression_params_t *params = &(state->params); /* for less typing */
 
   st = cputime ();
 
-  /* state->S is positive: we don't need the sign anymore, since the
+  /* params->S is positive: we don't need the sign anymore, since the
      polynomial is defined by the table of differences */
 
-  if (state->S == 1)
+  if (params->S == 1)
     {
       for (i = 0; i < dF;)
         {
-          if (gcd (state->rsieve, state->dsieve) == 1)
+          if (gcd (params->rsieve, params->dsieve) == 1)
             {
               outputf (OUTPUT_TRACE, "pp1_rootsG: Taking root G[%d], rsieve = %d\n", 
-                       i, state->rsieve);
+                       i, params->rsieve);
               mpres_get_z (G[i++], state->tmp[0], modulus);
             }
           else
             {
               outputf (OUTPUT_TRACE, "pp1_rootsG: NOT taking root, rsieve = %d, gcd = %d\n", 
-                       state->rsieve, gcd (state->rsieve, state->dsieve));
+                       params->rsieve, gcd (params->rsieve, params->dsieve));
             }
 
           mpres_swap (state->tmp[0], state->tmp[2], modulus);
           mpres_mul (state->tmp[3], state->tmp[2], state->tmp[1], modulus);
           mpres_sub (state->tmp[0], state->tmp[3], state->tmp[0], modulus);
-          state->rsieve++;
+          params->rsieve++;
         }
     }
   else
@@ -730,26 +734,26 @@ pp1_rootsG (listz_t G, unsigned long dF, pp1_roots_state *state, mpmod_t modulus
       for (i = 0; i < dF;)
         {
           /* Did we use every progression since the last update? */
-          if (state->next == state->nr)
+          if (params->next == params->nr)
             {
               /* Yes, time to update again */
-              addWnm (state->fd, x[0], modulus, state->nr, state->S, &muls);
-              state->next = 0;
+              addWnm (state->fd, x[0], modulus, params->nr, params->S, &muls);
+              params->next = 0;
             }
       
           /* Is this a root we should skip? (Take only if gcd == 1) */
-          if (gcd (state->rsieve, state->dsieve) == 1)
+          if (gcd (params->rsieve, params->dsieve) == 1)
             {
-              mpres_mul (u, state->fd[state->next * (state->S + 1)].x, x[0],
+              mpres_mul (u, state->fd[params->next * (params->S + 1)].x, x[0],
                          modulus);
-              mpres_mul_ui (v, state->fd[state->next * (state->S + 1)].y,
+              mpres_mul_ui (v, state->fd[params->next * (params->S + 1)].y,
                             2, modulus);
               mpres_add (u, u, v, modulus);
               mpres_get_z (G[i++], u, modulus);
             }
       
-          state->next ++;
-          state->rsieve ++;
+          params->next ++;
+          params->rsieve ++;
         }
       mpres_clear (u, modulus);
       mpres_clear (v, modulus);
