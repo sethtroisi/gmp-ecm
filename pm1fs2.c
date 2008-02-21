@@ -116,6 +116,20 @@ void
 ntt_sqr_recip (mpzv_t, const mpzv_t, mpzspv_t, const spv_size_t, 
                const mpzspm_t);
 
+static void
+print_elapsed_time (long cpu, ATTRIBUTE_UNUSED long real)
+{
+#ifdef _OPENMP
+  if (real != 0L)
+    outputf (OUTPUT_VERBOSE, " took %lums (%lums real)\n", cpu, real);
+  else
+    outputf (OUTPUT_VERBOSE, " took %lums\n", cpu);
+#else
+  outputf (OUTPUT_VERBOSE, " took %lums\n", cpu);
+#endif
+}
+
+
 static unsigned long
 maxS (unsigned long P)
 {
@@ -1481,7 +1495,7 @@ pm1_sequence_g (listz_t g_mpz, mpzspv_t g_ntt, const mpres_t b_1,
   mpres_t r[3], x_0, x_Mi;
   mpz_t t;
   unsigned long i;
-  long timestart, timestop, realstart = 0L, realstop = 0L;
+  long timestart, realstart;
   long M = M_param;
   unsigned long l = l_param, offset = 0UL;
   mpmod_t modulus;
@@ -1491,9 +1505,9 @@ pm1_sequence_g (listz_t g_mpz, mpzspv_t g_ntt, const mpres_t b_1,
   outputf (OUTPUT_DEVVERBOSE, "\npm1_sequence_g: P = %lu, M_param = %lu, "
            "l_param = %lu, k_2 = %lu\n", P, M_param, l_param, k_2);
   timestart = cputime ();
+  realstart = realtime ();
 
 #ifdef _OPENMP
-  realstart = realtime ();
 #pragma omp parallel if (l > 100) private(r, x_0, x_Mi, t, i, M, l, offset, modulus, want_output)
   {
     /* When multi-threading, we adjust the parameters for each thread */
@@ -1637,15 +1651,7 @@ pm1_sequence_g (listz_t g_mpz, mpzspv_t g_ntt, const mpres_t b_1,
   }
 #endif
 
-  timestop = cputime ();
-#ifdef _OPENMP
-  realstop = realtime ();
-#endif
-  if (realstop - realstart != 0L)
-    outputf (OUTPUT_VERBOSE, " took %lums (%lums real)\n", 
-	     timestop - timestart, realstop - realstart);
-  else
-    outputf (OUTPUT_VERBOSE, " took %lums\n", timestop - timestart);
+  print_elapsed_time (cputime() - timestart, realtime() - realstart);
   
   if (test_verbose (OUTPUT_TRACE))
     {
@@ -1671,7 +1677,7 @@ pm1_sequence_h (listz_t h, mpzspv_t h_ntt, mpz_t *f, const mpres_t r,
 		const mpzspm_t ntt_context)
 {
   mpres_t invr;  /* r^{-1}. Can be shared between threads */
-  long timestart, timestop, realstart = 0L, realstop = 0L;
+  long timestart, realstart;
 
   mpres_init (invr, modulus_parm);
   mpres_invert (invr, r, modulus_parm); /* invr = r^{-1}. FIXME: test for 
@@ -1691,10 +1697,9 @@ pm1_sequence_h (listz_t h, mpzspv_t h_ntt, mpz_t *f, const mpres_t r,
 
   outputf (OUTPUT_VERBOSE, "Computing h");
   timestart = cputime ();
-
+  realstart = realtime ();
 
 #ifdef _OPENMP
-  realstart = realtime ();
 #pragma omp parallel if (d > 100)
 #endif
   {
@@ -1767,15 +1772,7 @@ pm1_sequence_h (listz_t h, mpzspv_t h_ntt, mpz_t *f, const mpres_t r,
 
   mpres_clear (invr, modulus_parm);
 
-  timestop = cputime ();
-#ifdef _OPENMP
-  realstop = realtime ();
-#endif    
-  if (realstop - realstart != 0L)
-    outputf (OUTPUT_VERBOSE, " took %lums (%lums real)\n", 
-	     timestop - timestart, realstop - realstart);
-  else
-    outputf (OUTPUT_VERBOSE, " took %lums\n", timestop - timestart);
+  print_elapsed_time (cputime() - timestart, realtime() - realstart);
 
   if (test_verbose (OUTPUT_TRACE))
     {
@@ -1790,193 +1787,6 @@ pm1_sequence_h (listz_t h, mpzspv_t h_ntt, mpz_t *f, const mpres_t r,
     }
 }
 
-
-#if 0
-/* Build polynomial F(x) with roots X^i for i covering all the residue classes
-   coprime to beta. F must have space for eulerphi(beta) coefficients.
-   method can be 0, 1 or 2, which mean: 0 = old way of computing all the 
-   roots and doing a product tree, 1 = using recursive expansion of polynomial
-   *without* Chebychev polynomials to utilize symmetry, 2 = using recursive 
-   expansion of polynomial *with* Chebychev polynomials */
-
-ATTRIBUTE_UNUSED static int 
-pm1_build_poly_F (mpz_t *F, const mpres_t X, mpmod_t modulus, 
-		  const unsigned long beta, const int method, 
-		  const mpz_t i0, const unsigned long nr, 
-		  const unsigned long blocks, const unsigned long tmplen, 
-		  mpz_t *tmp)
-{
-  long timestart, timestop;
-  sets_long_t *sets = NULL;
-  unsigned long setsize = 0UL, i;
-  mpz_t mt;
-  const unsigned long dF = eulerphi (beta);
-  
-  ASSERT (0 <= method && method <= 2);
-  
-  mpz_init (mt);
-  
-  if (method == 1 || method == 2)
-    {
-      sets = get_factored_sorted_sets (&setsize, beta);
-      if (sets == NULL)
-	  return ECM_ERROR;
-      mpz_mul_ui (mt, i0, beta);
-      mpz_add_si (mt, mt, set_of_sums_minmax (sets, setsize, 1));
-      outputf (OUTPUT_VERBOSE, "Effective B2min = %Zd\n", mt);
-      mpz_add_ui (mt, i0, blocks * nr);
-      mpz_mul_ui (mt, mt, beta);
-      mpz_sub_si (mt, mt, set_of_sums_minmax (sets, setsize, -1));
-      outputf (OUTPUT_VERBOSE, "Effective B2max = %Zd\n", mt);
-    }
-  else
-    {
-      mpz_mul_ui (mt, i0, beta);
-      outputf (OUTPUT_VERBOSE, "Effective B2min ~= %Zd\n", mt);
-      mpz_add_ui (mt, i0, blocks * nr);
-      mpz_mul_ui (mt, mt, beta);
-      outputf (OUTPUT_VERBOSE, "Effective B2max ~= %Zd\n", mt);
-    }
-
-  if (method == 1 || (method == 2 && sets[0] == 2))
-    {
-      /* poly_from_sets_V () can't handle set of cardinality 1, so use 
-	 poly_from_sets () in that case */
-      
-      outputf (OUTPUT_VERBOSE, 
-	       "Computing F from factored set of units mod %lu", beta);
-      outputf (OUTPUT_DEVVERBOSE, "\n");
-      
-      timestart = cputime ();
-      
-      mpres_get_z (mt, X, modulus); /* poly_from_sets() expects mpz_t atm */
-      i = poly_from_sets (F, mt, sets, setsize, tmp, tmplen, 
-			modulus->orig_modulus);
-      ASSERT_ALWAYS (i == dF);
-
-      timestop = cputime ();
-      outputf (OUTPUT_VERBOSE, " took %lums\n", timestop - timestart);
-
-#if defined(WANT_ASSERT)
-      if (sets[0] != 2) /* Unless the first set has one element, 
-			   the polynomial should be symmetric */
-	{
-	  long i = list_is_symmetric (F, dF, 1, 1, modulus->orig_modulus, mt);
-	  if (i != -1)
-	    {
-	      outputf (OUTPUT_ERROR, 
-		       "Polynomial not symmetric! F[%ld] != F[%ld]\n", 
-		       i, dF - i);
-	      list_output_poly (F, dF, 1, 0, "F(x) = ", "\n", OUTPUT_ERROR);
-	      outputf (OUTPUT_ERROR, "Factored sets: ");
-	      sets_print (OUTPUT_ERROR, sets, setsize);
-	      abort ();
-	    }
-	}
-#endif
-    }
-  else if (method == 2)
-    {
-      /* Use poly_from_sets_V () */
-      mpres_t X1X;
-
-      outputf (OUTPUT_VERBOSE, "Computing F from symmetric factored set "
-	       "of units mod %lu", beta);
-      if (test_verbose (OUTPUT_DEVVERBOSE))
-	outputf (OUTPUT_VERBOSE, "\n");
-
-      timestart = cputime ();
-
-      /* First compute X + 1/X */
-      mpres_init (X1X, modulus);
-      mpres_invert (X1X, X, modulus);
-      mpres_add (X1X, X1X, X, modulus);
-
-      i = poly_from_sets_V (F, X1X, sets, setsize, tmp, tmplen, 
-			    modulus);
-      ASSERT_ALWAYS(2 * i == dF);
-      ASSERT(mpz_cmp_ui (F[i], 1UL) == 0);
-      
-      mpres_clear (X1X, modulus);
-
-      /* Make symmetric copy. The leading 1 monomial will not get stored,
-         but will be implicit from here on. */
-
-      for (i = 0; i < dF / 2; i++)
-	mpz_set (F[dF / 2 + i], F[i]); /* F[dF/2]:=f_0, F[dF-1]:=f_{dF/2-1} */
-      
-      for (i = 1; i < dF / 2; i++)
-	mpz_set (F[i], F[dF - i]); /* F[1] := F[dF - 1] = f_{dF / 2 - 1}, 
-				      F[dF / 2 - 1] := F[dF / 2 + 1] = f_1 */
-      mpz_set_ui (F[0], 1UL);
-      
-      timestop = cputime ();
-      outputf (OUTPUT_VERBOSE, " took %lums\n", timestop - timestart);
-    }
-  else /* method == 0 */
-    {
-      /* Build F the old way, computing all the roots and doing a 
-	 product tree */
-
-      mpres_t Xs, Xi;
-      const unsigned long s = 2 - beta % 2; /* 2 if beta is even, 1 if odd */
-      unsigned long j;
-
-      outputf (OUTPUT_VERBOSE, "Computing roots of F");
-      outputf (OUTPUT_TRACE, "\n"); /* So the "Computing" does not interfere */
-      
-      timestart = cputime ();
-      mpres_init (Xs, modulus);
-      mpres_init (Xi, modulus);
-
-      if (s == 1) /* Xs = X^s */
-	mpres_set (Xs, X, modulus);
-      else
-	mpres_mul (Xs, X, X, modulus);
-
-      mpres_set (Xi, X, modulus);    /* Xi = X^i for i = 1 */
-
-      /* Prepare polynomial F(x), which is monic of degree dF. The leading
-	 monomial is not stored. */
-      /* Put in F[0 .. dF-1] the values of X^i, 1<=i<beta, gcd(i, beta) == 1 */
-      for (i = 1, j = 0; i < beta; i += s)
-	{
-	  if (gcd (i, beta) == 1UL)
-	    mpres_get_z (F[j++], Xi, modulus);
-	  mpres_mul (Xi, Xi, Xs, modulus);
-	}
-      
-      ASSERT_ALWAYS (j == dF);
-      mpres_clear (Xs, modulus);
-      mpres_clear (Xi, modulus);
-      timestop = cputime ();
-      outputf (OUTPUT_VERBOSE, " took %lums\n", timestop - timestart);
-      
-      /* Print the polynomial in linear factors form */
-      outputf (OUTPUT_TRACE, "F(x) = ");
-      for (j = 0; j < dF - 1; j++)
-	outputf (OUTPUT_TRACE, "(x - %Zd) * ", F[j]);
-      outputf (OUTPUT_TRACE, "(x - %Zd); /* PARI */\n", F[dF - 1]);
-      
-      /* Multiply all the (x - f_i) to form F(x) in monomial basis */
-      outputf (OUTPUT_VERBOSE, "Building F from its roots");
-      timestart = cputime ();
-      PolyFromRoots (F, F, dF, tmp, modulus->orig_modulus);
-      timestop = cputime ();
-      outputf (OUTPUT_VERBOSE, " took %lums\n", timestop - timestart);
-    }
-
-  mpz_clear (mt);
-  if (method == 1 || method == 2)
-    free (sets);
-
-  /* Print the final polynomial in monomial form */
-  if (test_verbose (OUTPUT_TRACE))
-    list_output_poly (F, dF, 1, 0, "F(x) == ", "\n", OUTPUT_TRACE);
-
-  return 0;
-}
-#endif
 
 static int 
 make_S_1_S_2 (sets_long_t **S_1, set_long_t **S_2, 
@@ -2584,13 +2394,11 @@ ntt_gcd (mpz_t f, mpz_t *product, mpzspv_t ntt, const unsigned long ntt_offset,
   unsigned long len = len_param, thread_offset = 0;
   mpres_t tmpres, tmpprod, totalprod;
   mpmod_t modulus;
-  long timestart, timestop, realstart = 0L, realstop = 0L;
+  long timestart, realstart;
   
   outputf (OUTPUT_VERBOSE, "Computing gcd of coefficients and N");
   timestart = cputime ();
-#ifdef _OPENMP
   realstart = realtime ();
-#endif
 
   /* All the threads will multiply their partial products to this one. */
   mpres_init (totalprod, modulus_param);
@@ -2669,17 +2477,8 @@ ntt_gcd (mpz_t f, mpz_t *product, mpzspv_t ntt, const unsigned long ntt_offset,
   mpres_gcd (f, totalprod, modulus_param);
   mpres_clear (totalprod, modulus_param);
 
-  timestop = cputime ();
-#ifdef _OPENMP
-  realstop = realtime ();
-#endif
-  if (realstop - realstart != 0L)
-    outputf (OUTPUT_VERBOSE, " took %lums (%lums real)\n", 
-	     timestop - timestart, realstop - realstart);
-  else
-    outputf (OUTPUT_VERBOSE, " took %lums\n", timestop - timestart);
+  print_elapsed_time (cputime() - timestart, realtime() - realstart);
 }
-
 
 
 int 
@@ -2701,7 +2500,7 @@ pm1fs2 (mpz_t f, const mpres_t X, mpmod_t modulus,
   mpz_t mt;   /* All-purpose temp mpz_t */
   mpres_t mr; /* All-purpose temp mpres_t */
   int youpi = ECM_NO_FACTOR_FOUND;
-  long timetotalstart, timestart, timestop;
+  long timetotalstart, timestart;
 
   timetotalstart = cputime ();
 
@@ -2764,8 +2563,7 @@ pm1fs2 (mpz_t f, const mpres_t X, mpmod_t modulus,
   free (S_1);
   S_1 = NULL;
   
-  timestop = cputime ();
-  outputf (OUTPUT_VERBOSE, " took %lums\n", timestop - timestart);
+  outputf (OUTPUT_VERBOSE, " took %lums\n", cputime () - timestart);
   if (test_verbose (OUTPUT_TRACE))
     {
       for (i = 0; i < params->s_1 / 2 + 1; i++)
@@ -2819,8 +2617,7 @@ pm1fs2 (mpz_t f, const mpres_t X, mpmod_t modulus,
 	       modulus->orig_modulus);
       list_mod (R, R, nr, modulus->orig_modulus);
 
-      timestop = cputime ();
-      outputf (OUTPUT_VERBOSE, " took %lums\n", timestop - timestart);
+      outputf (OUTPUT_VERBOSE, " took %lums\n", cputime () - timestart);
 
 #if 0 && defined(WANT_ASSERT)
 
@@ -2884,8 +2681,7 @@ pm1fs2 (mpz_t f, const mpres_t X, mpmod_t modulus,
 	mpres_clear (tmpres, modulus);
       }
 
-      timestop = cputime ();
-      outputf (OUTPUT_VERBOSE, " took %lums\n", timestop - timestart);
+      outputf (OUTPUT_VERBOSE, " took %lums\n", cputime () - timestart);
       outputf (OUTPUT_RESVERBOSE, "Product of R[i] = %Zd (times some "
 	       "power of 2 if REDC was used! Try -mpzmod)\n", tmp[1]);
 
@@ -2914,9 +2710,7 @@ pm1fs2 (mpz_t f, const mpres_t X, mpmod_t modulus,
   mpz_clear (mt);
   mpres_clear (mr, modulus);
 
-  timestop = cputime ();
-  outputf (OUTPUT_NORMAL, "Step 2 took %ldms\n", 
-           timestop - timetotalstart);
+  outputf (OUTPUT_NORMAL, "Step 2 took %ldms\n", cputime () - timetotalstart);
   
   return youpi;
 }
@@ -2945,7 +2739,7 @@ pm1fs2_ntt (mpz_t f, const mpres_t X, mpmod_t modulus,
   mpz_t *product_ptr = NULL;
   mpres_t tmpres; /* All-purpose temp mpres_t */
   int youpi = ECM_NO_FACTOR_FOUND;
-  long timetotalstart, timestart, timestop, realstart = 0L, realstop = 0L;
+  long timetotalstart, timestart, realstart;
 
   timetotalstart = cputime ();
 
@@ -3023,9 +2817,7 @@ pm1fs2_ntt (mpz_t f, const mpres_t X, mpmod_t modulus,
   outputf (OUTPUT_VERBOSE, "Computing F from factored S_1");
   
   timestart = cputime ();
-#ifdef _OPENMP
   realstart = realtime ();
-#endif
   
   /* First compute X^2 + 1/X^2 */
   mpres_invert (tmpres, X, modulus);
@@ -3039,15 +2831,7 @@ pm1fs2_ntt (mpz_t f, const mpres_t X, mpmod_t modulus,
   free (S_1);
   S_1 = NULL;
   
-  timestop = cputime ();
-#ifdef _OPENMP
-  realstop = realtime ();
-#endif
-  if (realstop - realstart != 0L)
-    outputf (OUTPUT_VERBOSE, " took %lums (%lums real)\n", 
-	     timestop - timestart, realstop - realstart);
-  else
-    outputf (OUTPUT_VERBOSE, " took %lums\n", timestop - timestart);
+  print_elapsed_time (cputime() - timestart, realtime() - realstart);
   if (test_verbose (OUTPUT_TRACE))
     {
       for (i = 0; i < params->s_1 / 2 + 1; i++)
@@ -3071,20 +2855,11 @@ pm1fs2_ntt (mpz_t f, const mpres_t X, mpmod_t modulus,
   /* Compute the DCT-I of h */
   outputf (OUTPUT_VERBOSE, "Computing DCT-I of h");
   timestart = cputime ();
-#ifdef _OPENMP
   realstart = realtime ();
-#endif
+  
   ntt_spv_to_dct (h_ntt, h_ntt, params->s_1 / 2 + 1, params->l / 2 + 1, 
                   g_ntt, ntt_context);
-  timestop = cputime ();
-#ifdef _OPENMP
-  realstop = realtime ();
-#endif
-  if (realstop - realstart != 0L)
-    outputf (OUTPUT_VERBOSE, " took %lums (%lums real)\n", 
-	     timestop - timestart, realstop - realstart);
-  else
-    outputf (OUTPUT_VERBOSE, " took %lums\n", timestop - timestart);
+  print_elapsed_time (cputime() - timestart, realtime() - realstart);
   
   if (test_verbose (OUTPUT_RESVERBOSE))
     {
@@ -3103,19 +2878,9 @@ pm1fs2_ntt (mpz_t f, const mpres_t X, mpmod_t modulus,
       /* Do the convolution */
       outputf (OUTPUT_VERBOSE, "Computing g*h");
       timestart = cputime ();
-#ifdef _OPENMP
       realstart = realtime ();
-#endif
       ntt_mul_by_dct (g_ntt, h_ntt, params->l, ntt_context);
-      timestop = cputime ();
-#ifdef _OPENMP
-      realstop = realtime ();
-#endif
-      if (realstop - realstart != 0)
-	outputf (OUTPUT_VERBOSE, " took %lums (%lums real)\n", 
-		 timestop - timestart, realstop - realstart);
-      else
-	outputf (OUTPUT_VERBOSE, " took %lums\n", timestop - timestart);      
+      print_elapsed_time (cputime() - timestart, realtime() - realstart);
       
       /* Compute GCD of N and coefficients of product polynomial */
       ntt_gcd (mt, product_ptr, g_ntt, params->s_1 / 2, NULL, nr, ntt_context, 
@@ -3145,9 +2910,7 @@ pm1fs2_ntt (mpz_t f, const mpres_t X, mpmod_t modulus,
   mpz_clear (mt);
   free (S_2);
 
-  timestop = cputime ();
-  outputf (OUTPUT_NORMAL, "Step 2 took %ldms\n", 
-           timestop - timetotalstart);
+  outputf (OUTPUT_NORMAL, "Step 2 took %ldms\n", cputime () - timetotalstart);
   
   return youpi;
 }
@@ -3504,7 +3267,7 @@ pp1_sequence_g (listz_t g_x, listz_t g_y, mpzspv_t g_x_ntt, mpzspv_t g_y_ntt,
   mpmod_t modulus; /* Thread-local copy of modulus_param */
   unsigned long i, l = l_param, offset = 0;
   long M = M_param;
-  long timestart, timestop;
+  long timestart, realstart;
   int want_output = 1;
 
   outputf (OUTPUT_VERBOSE, "Computing %s%s%s", 
@@ -3512,7 +3275,8 @@ pp1_sequence_g (listz_t g_x, listz_t g_y, mpzspv_t g_x_ntt, mpzspv_t g_y_ntt,
 	   (want_x && want_y) ? " and " : "",
 	   (want_y) ? "g_y" : "");
   timestart = cputime ();
-  
+  realstart = realtime ();
+
 #ifdef _OPENMP
 #pragma omp parallel if (l > 100) private(r_x, r_y, x0_x, x0_y, v2, r1_x, r1_y, r2_x, r2_y, v, tmp, mt, modulus, i, l, offset, M, want_output)
   {
@@ -3745,8 +3509,7 @@ pp1_sequence_g (listz_t g_x, listz_t g_y, mpzspv_t g_x_ntt, mpzspv_t g_y_ntt,
   }
 #endif
   
-  timestop = cputime ();
-  outputf (OUTPUT_VERBOSE, " took %lums\n", timestop - timestart);
+  print_elapsed_time (cputime() - timestart, realtime() - realstart);
 
   if (g_x != NULL && g_y != NULL && test_verbose(OUTPUT_TRACE))
     {
@@ -3779,7 +3542,7 @@ pp1_sequence_h (listz_t h_x, listz_t h_y, mpzspv_t h_x_ntt, mpzspv_t h_y_ntt,
   mpres_t *newtmp = origtmp + 15;
   mpz_t mt;
   unsigned long i;
-  long timestart, timestop;
+  long timestart;
 
   if (l == 0UL)
     return;
@@ -3942,8 +3705,7 @@ pp1_sequence_h (listz_t h_x, listz_t h_y, mpzspv_t h_x_ntt, mpzspv_t h_y_ntt,
       mpres_sub (v[i % 2], newtmp[0], v[i % 2], modulus);
     }
 
-  timestop = cputime ();
-  outputf (OUTPUT_VERBOSE, " took %lums\n", timestop - timestart);
+  outputf (OUTPUT_VERBOSE, " took %lums\n", cputime () - timestart);
 
   if (h_x != NULL && h_y != NULL && test_verbose (OUTPUT_TRACE))
     {
@@ -3977,7 +3739,7 @@ pp1fs2 (mpz_t f, const mpres_t X, mpmod_t modulus,
   mpres_t b1_x, b1_y, Delta, tmpres[tmpreslen];
   mpz_t mt;   /* All-purpose temp mpz_t */
   int youpi = ECM_NO_FACTOR_FOUND;
-  long timetotalstart, timestart, timestop;
+  long timetotalstart, timestart;
 
   timetotalstart = cputime ();
 
@@ -4042,8 +3804,7 @@ pp1fs2 (mpz_t f, const mpres_t X, mpmod_t modulus,
   free (S_1);
   S_1 = NULL;
   
-  timestop = cputime ();
-  outputf (OUTPUT_VERBOSE, " took %lums\n", timestop - timestart);
+  outputf (OUTPUT_VERBOSE, " took %lums\n", cputime () - timestart);
   if (test_verbose (OUTPUT_TRACE))
     {
       for (i = 0; i < params->s_1 / 2 + 1; i++)
@@ -4107,14 +3868,12 @@ pp1fs2 (mpz_t f, const mpres_t X, mpmod_t modulus,
       timestart = cputime ();
       TMulGen (R_x, nr - 1, h_x, params->s_1, g_x, params->l - 1, tmp,
 	       modulus->orig_modulus);
-      timestop = cputime ();
-      outputf (OUTPUT_VERBOSE, " took %lums\n", timestop - timestart);
+      outputf (OUTPUT_VERBOSE, " took %lums\n", cputime () - timestart);
       outputf (OUTPUT_VERBOSE, "TMulGen of g_y and h_y");
       timestart = cputime ();
       TMulGen (R_y, nr - 1, h_y, params->s_1, g_y, params->l - 1, tmp,
 	       modulus->orig_modulus);
-      timestop = cputime ();
-      outputf (OUTPUT_VERBOSE, " took %lums\n", timestop - timestart);
+      outputf (OUTPUT_VERBOSE, " took %lums\n", cputime () - timestart);
       for (i = 0; i < nr; i++)
 	  mpz_add (R_x[i], R_x[i], R_y[i]);
       
@@ -4131,9 +3890,8 @@ pp1fs2 (mpz_t f, const mpres_t X, mpmod_t modulus,
 #endif
 	  mpres_mul (tmpres[1], tmpres[1], tmpres[0], modulus); 
       }
-      timestop = cputime ();
       outputf (OUTPUT_VERBOSE, "Computing product of F(g_i)^(1) took %lums\n", 
-	       timestop - timestart);
+	       cputime () - timestart);
       if (test_verbose(OUTPUT_RESVERBOSE))
       {
 	  mpres_get_z (mt, tmpres[1], modulus);
@@ -4167,9 +3925,7 @@ pp1fs2 (mpz_t f, const mpres_t X, mpmod_t modulus,
   clear_list (tmp, tmplen);
   free (S_2);
  
-  timestop = cputime ();
-  outputf (OUTPUT_NORMAL, "Step 2 took %ldms\n", 
-           timestop - timetotalstart);
+  outputf (OUTPUT_NORMAL, "Step 2 took %ldms\n", cputime () - timetotalstart);
 
   return youpi;
 }
@@ -4203,7 +3959,7 @@ pp1fs2_ntt (mpz_t f, const mpres_t X, mpmod_t modulus,
   mpz_t product;
   mpz_t *product_ptr = NULL;
   int youpi = ECM_NO_FACTOR_FOUND;
-  long timetotalstart, timestart, timestop;
+  long timetotalstart, timestart, realstart;
 
   timetotalstart = cputime ();
 
@@ -4280,6 +4036,8 @@ pp1fs2_ntt (mpz_t f, const mpres_t X, mpmod_t modulus,
   outputf (OUTPUT_VERBOSE, "Computing F from factored S_1");
   
   timestart = cputime ();
+  realstart = realtime ();
+  
   V (tmpres[0], X, 2UL, modulus);
   i = poly_from_sets_V (F, tmpres[0], S_1, tmp, tmplen, modulus, h_x_ntt,
                         ntt_context);
@@ -4288,8 +4046,7 @@ pp1fs2_ntt (mpz_t f, const mpres_t X, mpmod_t modulus,
   free (S_1);
   S_1 = NULL;
   
-  timestop = cputime ();
-  outputf (OUTPUT_VERBOSE, " took %lums\n", timestop - timestart);
+  print_elapsed_time (cputime() - timestart, realtime() - realstart);
   if (test_verbose (OUTPUT_TRACE))
     {
       for (i = 0; i < params->s_1 / 2 + 1; i++)
@@ -4343,17 +4100,17 @@ pp1fs2_ntt (mpz_t f, const mpres_t X, mpmod_t modulus,
   /* Compute DCT-I of h_x and h_y */
   outputf (OUTPUT_VERBOSE, "Computing DCT-I of h_x");
   timestart = cputime ();
+  realstart = realtime ();
   ntt_spv_to_dct (h_x_ntt, h_x_ntt, params->s_1 / 2 + 1, params->l / 2 + 1,
 		  g_x_ntt, ntt_context);
-  timestop = cputime ();
-  outputf (OUTPUT_VERBOSE, " took %lums\n", timestop - timestart);
+  print_elapsed_time (cputime() - timestart, realtime() - realstart);
 
   outputf (OUTPUT_VERBOSE, "Computing DCT-I of h_y");
   timestart = cputime ();
+  realstart = realtime ();
   ntt_spv_to_dct (h_y_ntt, h_y_ntt, params->s_1 / 2 + 1, params->l / 2 + 1,
 		  g_x_ntt, ntt_context);
-  timestop = cputime ();
-  outputf (OUTPUT_VERBOSE, " took %lums\n", timestop - timestart);
+  print_elapsed_time (cputime() - timestart, realtime() - realstart);
 
   if (test_verbose (OUTPUT_RESVERBOSE))
     {
@@ -4374,11 +4131,11 @@ pp1fs2_ntt (mpz_t f, const mpres_t X, mpmod_t modulus,
 	  /* Do the convolution product of g_x * h_x */
 	  outputf (OUTPUT_VERBOSE, "Computing g_x*h_x");
 	  timestart = cputime ();
+	  realstart = realtime ();
 	  ntt_mul_by_dct (g_x_ntt, h_x_ntt, params->l, ntt_context);
 	  /* Store the product coefficients we want in R */
 	  mpzspv_to_mpzv (g_x_ntt, params->s_1 / 2, R, nr, ntt_context);
-	  timestop = cputime ();
-	  outputf (OUTPUT_VERBOSE, " took %lums\n", timestop - timestart);
+	  print_elapsed_time (cputime() - timestart, realtime() - realstart);
 
 	  /* Compute g_y sequence */
 	  pp1_sequence_g (NULL, NULL, NULL, g_y_ntt, b1_x, b1_y, params->P, 
@@ -4388,9 +4145,9 @@ pp1fs2_ntt (mpz_t f, const mpres_t X, mpmod_t modulus,
 	  /* Do the convolution product of g_y * (Delta * h_y) */
 	  outputf (OUTPUT_VERBOSE, "Computing g_y*h_y");
 	  timestart = cputime ();
+	  realstart = realtime ();
 	  ntt_mul_by_dct (g_y_ntt, h_y_ntt, params->l, ntt_context);
-	  timestop = cputime ();
-	  outputf (OUTPUT_VERBOSE, " took %lums\n", timestop - timestart);
+	  print_elapsed_time (cputime() - timestart, realtime() - realstart);
 	  
 	  /* Compute product of sum of coefficients and gcd with N */
 	  ntt_gcd (mt, product_ptr, g_y_ntt, params->s_1 / 2, R, nr, 
@@ -4404,38 +4161,38 @@ pp1fs2_ntt (mpz_t f, const mpres_t X, mpmod_t modulus,
 
 	  outputf (OUTPUT_VERBOSE, "Computing forward NTT of g_x");
 	  timestart = cputime ();
+	  realstart = realtime ();
 	  mpzspv_to_ntt (g_x_ntt, (spv_size_t) 0, (spv_size_t) params->l, 
 	                 (spv_size_t) params->l, 0, ntt_context);
-	  timestop = cputime ();
-	  outputf (OUTPUT_VERBOSE, " took %lums\n", timestop - timestart);
+	  print_elapsed_time (cputime() - timestart, realtime() - realstart);
 	  
 	  outputf (OUTPUT_VERBOSE, "Computing point-wise product of g_x and h_x");
 	  timestart = cputime ();
+	  realstart = realtime ();
 	  ntt_dft_mul_dct (g_x_ntt, h_x_ntt, params->l, ntt_context);
-	  timestop = cputime ();
-	  outputf (OUTPUT_VERBOSE, " took %lums\n", timestop - timestart);
+	  print_elapsed_time (cputime() - timestart, realtime() - realstart);
 	  
 	  outputf (OUTPUT_VERBOSE, "Computing forward NTT of g_y");
 	  timestart = cputime ();
+	  realstart = realtime ();
 	  mpzspv_to_ntt (g_y_ntt, (spv_size_t) 0, (spv_size_t) params->l, 
 	                 (spv_size_t) params->l, 0, ntt_context);
-	  timestop = cputime ();
-	  outputf (OUTPUT_VERBOSE, " took %lums\n", timestop - timestart);
+	  print_elapsed_time (cputime() - timestart, realtime() - realstart);
 	  
 	  outputf (OUTPUT_VERBOSE, "Computing point-wise product of g_y and h_y");
 	  timestart = cputime ();
+	  realstart = realtime ();
 	  ntt_dft_mul_dct (g_y_ntt, h_y_ntt, params->l, ntt_context);
-	  timestop = cputime ();
-	  outputf (OUTPUT_VERBOSE, " took %lums\n", timestop - timestart);
+	  print_elapsed_time (cputime() - timestart, realtime() - realstart);
 	  
 	  outputf (OUTPUT_VERBOSE, "Adding and computing inverse NTT of sum");
 	  timestart = cputime ();
+	  realstart = realtime ();
 	  mpzspv_add (g_x_ntt, (spv_size_t) 0, g_x_ntt, (spv_size_t) 0, 
 	              g_y_ntt, (spv_size_t) 0, params->l, ntt_context);
 	  mpzspv_from_ntt (g_x_ntt, (spv_size_t) 0, params->l, (spv_size_t) 0,
 	                   ntt_context);
-	  timestop = cputime ();
-	  outputf (OUTPUT_VERBOSE, " took %lums\n", timestop - timestart);
+	  print_elapsed_time (cputime() - timestart, realtime() - realstart);
 	  
 	  ntt_gcd (mt, product_ptr, g_x_ntt, params->s_1 / 2, NULL, nr, 
 		   ntt_context, modulus);
@@ -4473,9 +4230,7 @@ pp1fs2_ntt (mpz_t f, const mpres_t X, mpmod_t modulus,
       mpres_clear (tmpres[i], modulus);
   free (S_2);
  
-  timestop = cputime ();
-  outputf (OUTPUT_NORMAL, "Step 2 took %ldms\n", 
-           timestop - timetotalstart);
+  outputf (OUTPUT_NORMAL, "Step 2 took %ldms\n", cputime () - timetotalstart);
 
   return youpi;
 }
