@@ -483,7 +483,7 @@ ecm_mulredc_basecase (mpres_t R, const mpres_t S1, const mpres_t S2,
 int
 mpmod_init (mpmod_t modulus, const mpz_t N, int repr)
 {
-  int base2, r = 0;
+  int base2 = 0, r = 0;
 
   switch (repr)
     {
@@ -503,7 +503,8 @@ mpmod_init (mpmod_t modulus, const mpz_t N, int repr)
 	repr = ECM_MOD_REDC;
     }
 
-  /* now repr is {ECM_MOD_BASE2, ECM_MOD_MODMULN, ECM_MOD_MPZ, ECM_MOD_REDC} */
+  /* now repr is {ECM_MOD_BASE2, ECM_MOD_MODMULN, ECM_MOD_MPZ, ECM_MOD_REDC},
+     or |repr| >= 16. */
 
   switch (repr)
     {
@@ -520,7 +521,7 @@ mpmod_init (mpmod_t modulus, const mpz_t N, int repr)
       mpmod_init_REDC (modulus, N);
       break;
     default: /* base2 case: either repr=ECM_MOD_BASE2, and base2 was
-		determined above, or |repr| >= 16, and base2 = repr */
+		determined above, or |repr| >= 16, and we want base2 = repr */
       if (repr != ECM_MOD_BASE2)
 	base2 = repr;
       r = mpmod_init_BASE2 (modulus, base2, N);
