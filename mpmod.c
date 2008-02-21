@@ -48,8 +48,6 @@ FILE *ECM_STDOUT, *ECM_STDERR; /* define them here since needed in tune.c */
 static void base2mod (mpres_t, const mpres_t, mpres_t, mpmod_t);
 void base2mod_1 (mpres_t, mpres_t, mpmod_t);
 void REDC (mpres_t, const mpres_t, mpz_t, mpmod_t);
-void mod_mul2exp (mpz_t, unsigned int, mpmod_t);
-void mod_div2exp (mpz_t, unsigned int, mpmod_t);
 
 /* returns +/-l if n is a factor of N = 2^l +/- 1 with N <= n^threshold, 
    0 otherwise.
@@ -65,16 +63,16 @@ isbase2 (const mpz_t n, const double threshold)
   MPZ_INIT (w);
   lo = mpz_sizeinbase (n, 2) - 1; /* 2^lo <= n < 2^(lo+1) */  
   mpz_set_ui (u, 1UL);
-  mpz_mul_2exp (u, u, 2 * lo);
+  mpz_mul_2exp (u, u, 2UL * lo);
   mpz_mod (w, u, n); /* 2^(2lo) mod n = -/+2^(2lo-l) if m*n = 2^l+/-1 */
-  if (mpz_cmp_ui (w, 1) == 0) /* if 2^(2lo) mod n = 1, then n divides
+  if (mpz_cmp_ui (w, 1UL) == 0) /* if 2^(2lo) mod n = 1, then n divides
                                  2^(2lo)-1. If algebraic factors have been
                                  removed, n divides either 2^lo+1 or 2^lo-1.
                                  But since n has lo+1 bits, n can only divide
                                  2^lo+1. More precisely, n must be 2^lo+1. */
     {
       /* check that n equals 2^lo+1. Since n divides 2^(2lo)-1, n is odd. */
-      if (mpz_scan1 (n, 1) != lo)
+      if (mpz_scan1 (n, 1UL) != lo)
         lo = 0;
       mpz_clear (w);
       mpz_clear (u);
@@ -263,27 +261,6 @@ REDC (mpres_t r, const mpres_t x, mpz_t t, mpmod_t modulus)
   ASSERT (ABSIZ(r) <= n);
 }
 
-/* multiplies c by R^k modulo n where R=2^mp_bits_per_limb 
-   n is supposed odd. Does not need to be efficient. */
-void 
-mod_mul2exp (mpz_t c, const unsigned int k, mpmod_t modulus)
-{
-  mpz_mul_2exp (modulus->temp1, c, k * __GMP_BITS_PER_MP_LIMB);
-  mpz_mod (c, modulus->temp1, modulus->orig_modulus);
-}
-
-/* divides c by R^k modulo n where R=2^mp_bits_per_limb
-   n is supposed odd. Does not need to be efficient. */
-void 
-mod_div2exp (mpz_t c, const unsigned int k, mpmod_t modulus)
-{
-  mpz_set_ui (modulus->temp2, 1UL);
-  mpz_mul_2exp (modulus->temp1, modulus->temp2, k * __GMP_BITS_PER_MP_LIMB);
-  mpz_invert (modulus->temp2, modulus->temp1, modulus->orig_modulus); 
-    /* temp2 = 2^(-k) (mod n) */
-  mpz_mul (modulus->temp1, modulus->temp2, c);
-  mpz_mod (c, modulus->temp1, modulus->orig_modulus);
-}
 
 /* r <- c/R^nn mod n, where n has nn limbs, and R=2^GMP_NUMB_BITS.
    n must be odd.
@@ -550,9 +527,9 @@ mpmod_init_MPZ (mpmod_t modulus, const mpz_t N)
   n = mpz_size (N); /* number of limbs of N */
   modulus->bits = n * __GMP_BITS_PER_MP_LIMB; /* Number of bits, 
 						 rounded up to full limb */
-  MPZ_INIT2 (modulus->temp1, 2 * modulus->bits + __GMP_BITS_PER_MP_LIMB);
+  MPZ_INIT2 (modulus->temp1, 2UL * modulus->bits + __GMP_BITS_PER_MP_LIMB);
   MPZ_INIT2 (modulus->temp2, modulus->bits);
-  mpz_init_set_ui (modulus->aux_modulus, 1);
+  mpz_init_set_ui (modulus->aux_modulus, 1UL);
   /* we precompute B^(n + ceil(n/2)) mod N, where B=2^GMP_NUMB_BITS */
   mpz_mul_2exp (modulus->aux_modulus, modulus->aux_modulus,
 		(n + (n + 1) / 2) * GMP_NUMB_BITS);
@@ -575,15 +552,15 @@ mpmod_init_BASE2 (mpmod_t modulus, const int base2, const mpz_t N)
 
   Nbits = mpz_size (N) * __GMP_BITS_PER_MP_LIMB; /* Number of bits, rounded
                                                     up to full limb */
-  MPZ_INIT2 (modulus->temp1, 2 * Nbits + __GMP_BITS_PER_MP_LIMB);
+  MPZ_INIT2 (modulus->temp1, 2UL * Nbits + __GMP_BITS_PER_MP_LIMB);
   MPZ_INIT2 (modulus->temp2, Nbits);
   
   mpz_set_ui (modulus->temp1, 1UL);
   mpz_mul_2exp (modulus->temp1, modulus->temp1, abs (base2));
   if (base2 < 0)
-    mpz_sub_ui (modulus->temp1, modulus->temp1, 1);
+    mpz_sub_ui (modulus->temp1, modulus->temp1, 1UL);
   else
-    mpz_add_ui (modulus->temp1, modulus->temp1, 1);
+    mpz_add_ui (modulus->temp1, modulus->temp1, 1UL);
   if (!mpz_divisible_p (modulus->temp1, N))
     {
        outputf (OUTPUT_ERROR, "mpmod_init_BASE2: n does not divide 2^%d%c1\n",
@@ -626,7 +603,7 @@ mpmod_init_MODMULN (mpmod_t modulus, const mpz_t N)
                                                     up to full limb */
   modulus->bits = Nbits;
 
-  MPZ_INIT2 (modulus->temp1, 2 * Nbits + __GMP_BITS_PER_MP_LIMB);
+  MPZ_INIT2 (modulus->temp1, 2UL * Nbits + __GMP_BITS_PER_MP_LIMB);
   MPZ_INIT2 (modulus->temp2, Nbits);
 
   mpz_set_ui (modulus->temp1, 1UL);
@@ -902,7 +879,7 @@ mpres_is_zero (const mpres_t S, mpmod_t modulus)
 
 /* R <- BASE^EXP mod modulus */ 
 void 
-mpres_ui_pow (mpres_t R, const unsigned int BASE, const mpres_t EXP, 
+mpres_ui_pow (mpres_t R, const unsigned long BASE, const mpres_t EXP, 
               mpmod_t modulus)
 {
   if (modulus->repr == ECM_MOD_MPZ)
@@ -965,7 +942,7 @@ mpres_ui_pow (mpres_t R, const unsigned int BASE, const mpres_t EXP,
 
               if (expbits & bitmask)
                 {
-                  if (BASE == 2)
+                  if (BASE == 2UL)
                     {
                       mpz_mul_2exp (modulus->temp2, modulus->temp2, 1);
                       if (mpz_cmp (modulus->temp2, modulus->orig_modulus) >= 0)
@@ -1136,7 +1113,7 @@ mpres_mul (mpres_t R, const mpres_t S1, const mpres_t S2, mpmod_t modulus)
 }
 
 void 
-mpres_mul_ui (mpres_t R, const mpres_t S, const unsigned int n, 
+mpres_mul_ui (mpres_t R, const mpres_t S, const unsigned long n, 
               mpmod_t modulus)
 {
   ASSERT_NORMALIZED (S);
@@ -1214,7 +1191,7 @@ mpres_mul_z_to_z (mpz_t R, const mpres_t S1, const mpz_t S2, mpmod_t modulus)
   switch (modulus->repr)
     {
     case ECM_MOD_BASE2:
-      if (mpz_sizeinbase (S2, 2) > (unsigned int) abs (modulus->bits))
+      if (mpz_sizeinbase (S2, 2) > (unsigned) abs (modulus->bits))
 	{
 	  base2mod (modulus->temp2, S2, modulus->temp1, modulus);
 	  mpz_mul (modulus->temp1, S1, modulus->temp2);
@@ -1315,7 +1292,7 @@ mpres_div_2exp (mpres_t R, const mpres_t S, const unsigned int n,
 }
 
 void
-mpres_add_ui (mpres_t R, const mpres_t S, const unsigned int n, 
+mpres_add_ui (mpres_t R, const mpres_t S, const unsigned long n, 
               mpmod_t modulus)
 {
   ASSERT_NORMALIZED (S);
@@ -1323,7 +1300,7 @@ mpres_add_ui (mpres_t R, const mpres_t S, const unsigned int n,
     {
       mpz_add_ui (R, S, n);
       if (mpz_cmp (R, modulus->orig_modulus) > 0)
-        mpz_sub (R, R, modulus->orig_modulus);
+        mpz_sub (R, R, modulus->orig_modulus); /* This assumes modulus >= n */
     }
   else if (modulus->repr == ECM_MOD_MODMULN || modulus->repr == ECM_MOD_REDC)
     {
@@ -1355,7 +1332,7 @@ mpres_add (mpres_t R, const mpres_t S1, const mpres_t S2, mpmod_t modulus)
 }
 
 void
-mpres_sub_ui (mpres_t R, const mpres_t S, const unsigned int n, 
+mpres_sub_ui (mpres_t R, const mpres_t S, const unsigned long n, 
               mpmod_t modulus)
 {
   ASSERT_NORMALIZED (S);
@@ -1363,7 +1340,7 @@ mpres_sub_ui (mpres_t R, const mpres_t S, const unsigned int n,
     {
       mpz_sub_ui (R, S, n);
       if (mpz_sgn (R) < 0)
-        mpz_add (R, R, modulus->orig_modulus);
+        mpz_add (R, R, modulus->orig_modulus); /* Assumes modulus >= n */
     }
   else if (modulus->repr == ECM_MOD_MODMULN || modulus->repr == ECM_MOD_REDC)
     {
