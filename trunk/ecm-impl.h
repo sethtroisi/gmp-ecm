@@ -679,6 +679,12 @@ int  gw_ecm_stage1 (mpz_t, curve *, mpmod_t, double, double *, mpz_t);
 void ecm_redc3 (mp_ptr, mp_srcptr, mp_size_t, mp_limb_t);
 #endif
 
+/* mul_fft.h */
+int  ecm_mpn_mul_fft (mp_ptr, mp_size_t, mp_srcptr, mp_size_t, mp_srcptr, 
+                      mp_size_t, int);
+void ecm_mpn_mul_fft_full (mp_ptr, mp_srcptr, mp_size_t, mp_srcptr, mp_size_t);
+                                      
+
 /* sets_long.c */
 /* A set of long ints */
 typedef struct {

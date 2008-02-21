@@ -2162,7 +2162,9 @@ mpn_mul_fft_internal (mp_ptr op, mp_size_t pl,
 	}
     }
   else
-    ASSERT (cc == 0);
+    {
+      ASSERT (cc == 0);
+    }
 
   /* here p < 2^(2M) [K 2^(M(K-1)) + (K-1) 2^(M(K-2)) + ... ]
      < K 2^(2M) [2^(M(K-1)) + 2^(M(K-2)) + ... ]
