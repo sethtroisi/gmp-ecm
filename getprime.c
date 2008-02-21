@@ -55,8 +55,17 @@ static int len = 0; /* length of sieving table, WITHOUT sentinel */
 static unsigned int *moduli = NULL; /* offset for small primes, 
 				       moduli[i] = offset mod primes[i] */
 
-/* sieve[i] == 1 if offset+2*i is a prime, otherwise sieve[i] == 0 */
+/* sieve[i] == 1 if offset+2*i is a prime, otherwise sieve[i] == 0.
+   sieve has len + 1 bytes allocated, the last byte is always 1 (a sentinel). 
+   This allows us avoid testing for the array end in the loop that looks
+   for the next prime in sieve[]. */
 /* The last prime returned by getprime is offset + 2*current */
+/* primes[] contains small primes to needed to sieve out composites in 
+   sieve, i.e. all primes <= sqrt(offset + 2 * (len - 1)). 
+   moduli[i] contains the smallest k so that offset+2*(len+k) is divisible
+   by primes[i], i.e. after advancing the sieve array by len, 
+   sieve[moduli[i]] is divisible by primes[i].
+*/
 
 void
 getprime_clear ()
@@ -71,6 +80,21 @@ getprime_clear ()
   len = 0;
   free (moduli);
   moduli = NULL;
+}
+
+/* For p > 1, return 1 if p is prime and 0 if p is not prime.
+   Requires that all primes <= sqrt(p) are in *primes */
+
+static int
+isprime_ui (unsigned int p, unsigned int *primes)
+{
+  int i;
+  
+  for (i = 0; primes[i] * primes[i] <= p; i++)
+    if (p % primes[i] == 0)
+      return 0;
+  
+  return 1;
 }
 
 double
@@ -92,7 +116,7 @@ getprime ()
   if (current < len) /* most calls will end here */
     return offset + 2.0 * (double) current;
 
-  /* otherwise we have to sieve */
+  /* otherwise we have to advance the sieve */
   offset += 2.0 * (double) len;
 
   /* first enlarge sieving table if too small */
@@ -107,65 +131,66 @@ getprime ()
 
   /* now enlarge small prime table if too small */
   if ((nprimes == 0) || (primes[nprimes-1] < sqrt(offset + 2*len)))
-      {
-	if (nprimes == 0) /* initialization */
-	  {
-	    nprimes = 1;
-	    primes = (unsigned int *) malloc (nprimes * sizeof(unsigned int));
-	    /* assume this "small" malloc will not fail in normal usage */
-	    ASSERT(primes != NULL);
-	    moduli = (unsigned int *) malloc (nprimes * sizeof(unsigned int));
-	    /* assume this "small" malloc will not fail in normal usage */
-	    ASSERT(moduli != NULL);
-	    len = 1;
-	    sieve = (unsigned char *) malloc((len + 1) *
-                                       sizeof(unsigned char)); /* len=1 here */
-	    /* assume this "small" malloc will not fail in normal usage */
-	    ASSERT(sieve != NULL);
-	    offset = 5.0;
-	    sieve[0] = 1; /* corresponding to 5 */
-	    primes[0] = 3;
-	    moduli[0] = 1; /* next odd multiple of 3 is 7, i.e. next to 5 */
-	    current = -1;
-	    return 3.0;
-	  }
-	else
-	  {
-	    unsigned int i, p, j, ok;
-
-	    i = nprimes;
-	    nprimes *= 2;
-	    primes = (unsigned int *) realloc (primes, nprimes *
-					       sizeof(unsigned int));
-	    moduli = (unsigned int *) realloc (moduli, nprimes *
-					       sizeof(unsigned int));
-	    /* assume those "small" realloc's will not fail in normal usage */
-	    ASSERT_ALWAYS(primes != NULL && moduli != NULL);
-	    for (p = primes[i-1]; i < nprimes; i++)
-	      {
-		/* find next (odd) prime > p */
-		do
-		  {
-		    for (p += 2, ok = 1, j = 0; (ok != 0) && (j < i); j++)
-		      ok = p % primes[j];
-		  }
-		while (ok == 0);
-		primes[i] = p;
-		/* moduli[i] is the smallest m such that offset + 2*m = k*p */
-		j = (unsigned long) fmod (offset, (double) p);
-		j = (j == 0) ? j : p - j; /* -offset mod p */
-		if ((j % 2) != 0)
-		  j += p; /* ensure j is even */
-		moduli[i] = j / 2;
-	      }
-	  }
-      }
-
+    {
+      if (nprimes == 0) /* initialization */
+	{
+	  nprimes = 1;
+	  primes = (unsigned int *) malloc (nprimes * sizeof(unsigned int));
+	  /* assume this "small" malloc will not fail in normal usage */
+	  ASSERT(primes != NULL);
+	  moduli = (unsigned int *) malloc (nprimes * sizeof(unsigned int));
+	  /* assume this "small" malloc will not fail in normal usage */
+	  ASSERT(moduli != NULL);
+	  len = 1;
+	  sieve = (unsigned char *) malloc((len + 1) *
+					   sizeof(unsigned char)); /* len=1 here */
+	  /* assume this "small" malloc will not fail in normal usage */
+	  ASSERT(sieve != NULL);
+	  offset = 5.0;
+	  sieve[0] = 1; /* corresponding to 5 */
+	  sieve[1] = 1; /* place the sentinel */
+	  primes[0] = 3;
+	  moduli[0] = 1; /* After we advance sieve[], sieve[0] will 
+			    correspond to 7 and sieve[1] to 9, which is
+			    the smallest odd multiple of 3 */
+	  current = -1;
+	  return 3.0;
+	}
+      else
+	{
+	  /* extend the existing table of small primes */
+	  unsigned int i, j;
+	  
+	  i = nprimes;
+	  nprimes *= 2;
+	  primes = (unsigned int *) realloc (primes, nprimes *
+					     sizeof(unsigned int));
+	  moduli = (unsigned int *) realloc (moduli, nprimes *
+					     sizeof(unsigned int));
+	  /* assume those "small" realloc's will not fail in normal usage */
+	  ASSERT_ALWAYS(primes != NULL && moduli != NULL);
+	  for (; i < nprimes; i++)
+	    {
+	      unsigned int p;
+	      /* find next (odd) prime */
+	      for (p = primes[i - 1] + 2; !isprime_ui (p, primes); p += 2);
+	      primes[i] = p;
+	      /* moduli[i] is the smallest m such that offset + 2*m = k*p */
+	      j = (unsigned long) fmod (offset, (double) p);
+	      j = (j == 0) ? j : p - j; /* -offset mod p */
+	      if ((j % 2) != 0)
+		j += p; /* ensure j is even */
+	      moduli[i] = j / 2;
+	    }
+	}
+    }
+  
   /* now sieve for new primes */
   {
     int i, p;
     unsigned int j;
         
+    /* Set sieve (including sentinel at the end) to 1 */
     for (i = 0; i < len + 1; i++)
       sieve[i] = 1;
     for (j = 0; j < nprimes; j++)
@@ -295,6 +320,8 @@ main (int argc, char *argv[])
   for (p = getprime (); p <= B2; p = getprime (), pi++)
     printf("%1.0f\n", p);
   //  printf ("pi(%1.0f) - pi(%1.0f - 1) = %lu\n", B1, B2, pi);
+
+  getprime_clear ();
 
   return 0;
 }
