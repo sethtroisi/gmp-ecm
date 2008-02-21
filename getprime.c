@@ -83,7 +83,6 @@ getprime ()
   if (len > 0L)
   {
     unsigned char *ptr = sieve + current;
-    unsigned char *end = sieve + len;
     while (*(++ptr) == 0);
     current = ptr - sieve;
   }
@@ -164,7 +163,8 @@ getprime ()
 
   /* now sieve for new primes */
   {
-    int i, j, p;
+    int i, p;
+    unsigned int j;
         
     for (i = 0; i < len + 1; i++)
       sieve[i] = 1;
@@ -191,7 +191,8 @@ getprime ()
 void
 getprime_seek (double pp)
 {
-  int i, j, p;
+  int i, p;
+  unsigned int j;
 
   if (pp <= 3.)
     {
