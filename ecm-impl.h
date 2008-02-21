@@ -245,42 +245,31 @@ typedef struct
   unsigned int dsieve; /* Values not coprime to dsieve are skipped */
   unsigned int rsieve; /* Which residue mod dsieve current .next belongs to */
   int dickson_a;       /* Parameter for Dickson polynomials */
+} progression_params_t;
+
+typedef struct
+{
+  progression_params_t params;
   point *fd;
   unsigned int size_T; /* How many entries T has */
   mpres_t *T;          /* For temp values. FIXME: should go! */
   curve *X;            /* The curve the points are on */
-} __ecm_roots_state;
-typedef __ecm_roots_state ecm_roots_state;
+} ecm_roots_state_t;
 
-/* WARNING: it is important that the order of fields matches that
-   of ecm_roots_state. See comment in pm1.c:pm1_rootsF. */
+
 typedef struct
 {
-  unsigned int size_fd; /* How many entries .fd has, always nr * (S+1) */
-  unsigned int nr;     /* How many separate progressions there are */
-  unsigned int next;   /* From which progression to take the next root */
-  unsigned int S;      /* Degree of the polynomials */
-  unsigned int dsieve; /* Values not coprime to dsieve are skipped */
-  unsigned int rsieve; /* Which residue mod dsieve current .next belongs to */
-  int dickson_a;       /* Parameter for Dickson polynomials */
+  progression_params_t params;
   mpres_t *fd;
   int invtrick;
-} __pm1_roots_state;
-typedef __pm1_roots_state pm1_roots_state;
+} pm1_roots_state_t;
 
 typedef struct
 {
-  unsigned int size_fd; /* How many entries .fd has, always nr * (S+1) */
-  unsigned int nr;     /* How many separate progressions there are */
-  unsigned int next;   /* From which progression to take the next root */
-  unsigned int S;      /* Degree of the polynomials */
-  unsigned int dsieve; /* Values not coprime to dsieve are skipped */
-  unsigned int rsieve; /* Which residue mod dsieve current .next belongs to */
+  progression_params_t params;
   point *fd;           /* for S != 1 */
   mpres_t tmp[4];      /* for S=1 */
-  int dickson_a;       /* Parameter for Dickson polynomials */
-} __pp1_roots_state;
-typedef __pp1_roots_state pp1_roots_state;
+} pp1_roots_state_t;
 
 typedef struct
 {
@@ -335,12 +324,12 @@ void getprime_seek (double);
 int     pm1_rootsF       (mpz_t, listz_t, root_params_t *, unsigned long, 
                           mpres_t *, listz_t, mpmod_t);
 #define pm1_rootsG_init __ECM(pm1_rootsG_init)
-pm1_roots_state* pm1_rootsG_init  (mpres_t *, root_params_t *, mpmod_t);
+pm1_roots_state_t* pm1_rootsG_init  (mpres_t *, root_params_t *, mpmod_t);
 #define pm1_rootsG __ECM(pm1_rootsG)
-int     pm1_rootsG       (mpz_t, listz_t, unsigned long, pm1_roots_state *, 
+int     pm1_rootsG       (mpz_t, listz_t, unsigned long, pm1_roots_state_t *, 
                           listz_t, mpmod_t);
 #define pm1_rootsG_clear __ECM(pm1_rootsG_clear)
-void    pm1_rootsG_clear (pm1_roots_state *, mpmod_t);
+void    pm1_rootsG_clear (pm1_roots_state_t *, mpmod_t);
 
 /* pm1fs2.c */
 long    choose_P (const mpz_t, const mpz_t, const unsigned long,
@@ -374,13 +363,13 @@ void ecm_mul (mpres_t, mpres_t, mpz_t, mpmod_t, mpres_t);
 int     ecm_rootsF       (mpz_t, listz_t, root_params_t *, unsigned long, 
                           curve *, mpmod_t);
 #define ecm_rootsG_init __ECM(ecm_rootsG_init)
-ecm_roots_state* ecm_rootsG_init (mpz_t, curve *, root_params_t *, 
-                                  unsigned long, unsigned long, mpmod_t);
+ecm_roots_state_t* ecm_rootsG_init (mpz_t, curve *, root_params_t *, 
+                                    unsigned long, unsigned long, mpmod_t);
 #define ecm_rootsG __ECM(ecm_rootsG)
-int     ecm_rootsG       (mpz_t, listz_t, unsigned long, ecm_roots_state *, 
+int     ecm_rootsG       (mpz_t, listz_t, unsigned long, ecm_roots_state_t *, 
                           mpmod_t);
 #define ecm_rootsG_clear __ECM(ecm_rootsG_clear)
-void    ecm_rootsG_clear (ecm_roots_state *, mpmod_t);
+void    ecm_rootsG_clear (ecm_roots_state_t *, mpmod_t);
 #define ecm_findmatch __ECM(ecm_findmatch)
 long    ecm_findmatch (const unsigned long, root_params_t *, curve *, 
                        mpmod_t, mpz_t);
@@ -395,12 +384,12 @@ void  pp1_mul_prac     (mpres_t, unsigned long, mpmod_t, mpres_t, mpres_t,
 int   pp1_rootsF       (listz_t, root_params_t *, unsigned long, mpres_t *, 
                         listz_t, mpmod_t);
 #define pp1_rootsG __ECM(pp1_rootsG)
-int   pp1_rootsG   (listz_t, unsigned long, pp1_roots_state *, mpmod_t, 
+int   pp1_rootsG   (listz_t, unsigned long, pp1_roots_state_t *, mpmod_t, 
                     mpres_t*);
 #define pp1_rootsG_init __ECM(pp1_rootsG_init)
-pp1_roots_state* pp1_rootsG_init (mpres_t*, root_params_t *, mpmod_t);
+pp1_roots_state_t* pp1_rootsG_init (mpres_t*, root_params_t *, mpmod_t);
 #define pp1_rootsG_clear __ECM(pp1_rootsG_clear)
-void  pp1_rootsG_clear (pp1_roots_state *, mpmod_t);
+void  pp1_rootsG_clear (pp1_roots_state_t *, mpmod_t);
 
 /* stage2.c */
 #define stage2 __ECM(stage2)
@@ -411,8 +400,9 @@ listz_t init_progression_coeffs (mpz_t, const unsigned long, const unsigned long
 				 const unsigned int, const unsigned int, 
 				 const unsigned int, const int);
 #define init_roots_state __ECM(init_roots_state)
-void init_roots_state   (ecm_roots_state *, const int, const unsigned long, 
-			 const unsigned long, const double);
+void init_roots_state   (progression_params_t *, const int, 
+			 const unsigned long, const unsigned long, 
+			 const double);
 #define memory_use __ECM(memory_use)
 double memory_use (unsigned long, unsigned int, unsigned int, mpmod_t);
 

@@ -228,8 +228,9 @@ init_progression_coeffs (mpz_t i0, const unsigned long d,
 }
 
 void 
-init_roots_state (ecm_roots_state *state, const int S, const unsigned long d1, 
-                  const unsigned long d2, const double cost)
+init_roots_state (progression_params_t *state, const int S, 
+		  const unsigned long d1, const unsigned long d2, 
+		  const double cost)
 {
   ASSERT (gcd (d1, d2) == 1);
   /* If S < 0, use degree |S| Dickson poly, otherwise use x^S */
@@ -650,13 +651,13 @@ stage2 (mpz_t f, void *X, mpmod_t modulus, unsigned long dF, unsigned long k,
     {
       /* needs dF+1 cells in T+dF */
       if (method == ECM_PM1)
-	youpi = pm1_rootsG (f, G, dF, (pm1_roots_state *) rootsG_state, T + dF,
-			    modulus);
+	youpi = pm1_rootsG (f, G, dF, (pm1_roots_state_t *) rootsG_state, 
+			    T + dF, modulus);
       else if (method == ECM_PP1)
-        youpi = pp1_rootsG (G, dF, (pp1_roots_state *) rootsG_state, modulus,
+        youpi = pp1_rootsG (G, dF, (pp1_roots_state_t *) rootsG_state, modulus,
                             (mpres_t *) X);
       else
-	youpi = ecm_rootsG (f, G, dF, (ecm_roots_state *) rootsG_state, 
+	youpi = ecm_rootsG (f, G, dF, (ecm_roots_state_t *) rootsG_state, 
 			    modulus);
 
       if (test_verbose (OUTPUT_TRACE))
@@ -873,11 +874,11 @@ stage2 (mpz_t f, void *X, mpmod_t modulus, unsigned long dF, unsigned long k,
 
 clear_fd:
   if (method == ECM_PM1)
-    pm1_rootsG_clear ((pm1_roots_state *) rootsG_state, modulus);
+    pm1_rootsG_clear ((pm1_roots_state_t *) rootsG_state, modulus);
   else if (method == ECM_PP1)
-    pp1_rootsG_clear ((pp1_roots_state *) rootsG_state, modulus);
+    pp1_rootsG_clear ((pp1_roots_state_t *) rootsG_state, modulus);
   else /* ECM_ECM */
-    ecm_rootsG_clear ((ecm_roots_state *) rootsG_state, modulus);
+    ecm_rootsG_clear ((ecm_roots_state_t *) rootsG_state, modulus);
 
 clear_G:
   clear_list (G, dF);

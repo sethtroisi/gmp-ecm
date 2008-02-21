@@ -441,7 +441,8 @@ ecm_rootsF (mpz_t f, listz_t F, root_params_t *root_params,
   long st;
   int youpi = ECM_NO_FACTOR_FOUND;
   listz_t coeffs;
-  ecm_roots_state state;
+  ecm_roots_state_t state;
+  progression_params_t *params = &state.params; /* for less typing */
   mpz_t t;
   
   if (dF == 0)
@@ -450,18 +451,18 @@ ecm_rootsF (mpz_t f, listz_t F, root_params_t *root_params,
   st = cputime ();
 
   /* Relative cost of point add during init and computing roots assumed =1 */
-  init_roots_state (&state, root_params->S, root_params->d1, root_params->d2, 
-                    1.0);
+  init_roots_state (params, root_params->S, root_params->d1, root_params->d2, 
+		    1.0);
 
-  outputf (OUTPUT_DEVVERBOSE,
-	   "ecm_rootsF: state: nr = %d, dsieve = %d, size_fd = %d, S = %d, "
-	   "dickson_a = %d\n", state.nr, state.dsieve, state.size_fd, 
-	   state.S, state.dickson_a);
+  outputf (OUTPUT_DEVVERBOSE, "ecm_rootsF: state: nr = %d, dsieve = %d, "
+	   "size_fd = %d, S = %d, dickson_a = %d\n", 
+	   params->nr, params->dsieve, params->size_fd, params->S, 
+	   params->dickson_a);
 
   /* Init finite differences tables */
   MPZ_INIT (t); /* t = 0 */
-  coeffs = init_progression_coeffs (t, state.dsieve, root_params->d2, 1, 6, 
-                                    state.S, state.dickson_a);
+  coeffs = init_progression_coeffs (t, params->dsieve, root_params->d2, 
+				    1, 6, params->S, params->dickson_a);
   mpz_clear (t);
 
   if (coeffs == NULL) /* error */
@@ -475,18 +476,18 @@ ecm_rootsF (mpz_t f, listz_t F, root_params_t *root_params,
      FIXME: can we avoid the multiplication of those points in multiplyW2n()
      below?
   */
-  for (i = state.S + 1; i < state.size_fd; i += state.S + 1)
-    mpz_set_ui (coeffs[i + state.S], 1);
+  for (i = params->S + 1; i < params->size_fd; i += params->S + 1)
+    mpz_set_ui (coeffs[i + params->S], 1);
 
   /* Allocate memory for fd[] and T[] */
 
-  state.fd = (point *) malloc (state.size_fd * sizeof (point));
+  state.fd = (point *) malloc (params->size_fd * sizeof (point));
   if (state.fd == NULL)
     {
       youpi = ECM_ERROR;
       goto exit_ecm_rootsF;
     }
-  for (i = 0; i < state.size_fd; i++)
+  for (i = 0; i < params->size_fd; i++)
     {
       outputf (OUTPUT_TRACE, "ecm_rootsF: coeffs[%d] = %Zd\n", i, coeffs[i]);
       MEMORY_TAG;
@@ -496,13 +497,13 @@ ecm_rootsF (mpz_t f, listz_t F, root_params_t *root_params,
       MEMORY_UNTAG;
     }
 
-  state.T = (mpres_t *) malloc ((state.size_fd + 4) * sizeof (mpres_t));
+  state.T = (mpres_t *) malloc ((params->size_fd + 4) * sizeof (mpres_t));
   if (state.T == NULL)
     {
       youpi = ECM_ERROR;
       goto ecm_rootsF_clearfdi;
     }
-  for (i = 0 ; i < state.size_fd + 4; i++)
+  for (i = 0 ; i < params->size_fd + 4; i++)
     {
       MEMORY_TAG;
       mpres_init (state.T[i], modulus);
@@ -511,7 +512,7 @@ ecm_rootsF (mpz_t f, listz_t F, root_params_t *root_params,
 
   /* Multiply fd[] = s * coeffs[] */
 
-  youpi = multiplyW2n (f, state.fd, s, coeffs, state.size_fd, modulus,
+  youpi = multiplyW2n (f, state.fd, s, coeffs, params->size_fd, modulus,
                        state.T[0], state.T[1], state.T + 2, &muls, &gcds);
   if (youpi == ECM_FACTOR_FOUND_STEP2)
     outputf (OUTPUT_VERBOSE, "Found factor while computing coeff[] * X\n");  
@@ -521,13 +522,13 @@ ecm_rootsF (mpz_t f, listz_t F, root_params_t *root_params,
 
   /* Copy the point corresponding to the highest coefficient of the first 
      progression to the other progressions */
-  for (i = state.S + 1; i < state.size_fd; i += state.S + 1)
+  for (i = params->S + 1; i < params->size_fd; i += params->S + 1)
     {
-      mpres_set (state.fd[i + state.S].x, state.fd[state.S].x, modulus);
-      mpres_set (state.fd[i + state.S].y, state.fd[state.S].y, modulus);
+      mpres_set (state.fd[i + params->S].x, state.fd[params->S].x, modulus);
+      mpres_set (state.fd[i + params->S].y, state.fd[params->S].y, modulus);
     }
 
-  clear_list (coeffs, state.size_fd);
+  clear_list (coeffs, params->size_fd);
   coeffs = NULL;
 
   if (test_verbose (OUTPUT_VERBOSE))
@@ -548,39 +549,40 @@ ecm_rootsF (mpz_t f, listz_t F, root_params_t *root_params,
   for (i = 0; i < dF && !youpi;)
     {
       /* Is this a rsieve value where we computed Dickson(j * d2) * X? */
-      if (gcd ((unsigned long) state.rsieve, 
-               (unsigned long) state.dsieve) == 1UL) 
+      if (gcd ((unsigned long) params->rsieve, 
+	       (unsigned long) params->dsieve) == 1UL) 
         {
           /* Did we use every progression since the last update? */
-          if (state.next == state.nr)
+          if (params->next == params->nr)
             {
               /* Yes, time to update again */
-              youpi = addWnm (f, state.fd, s, modulus, state.nr, state.S, 
+              youpi = addWnm (f, state.fd, s, modulus, params->nr, params->S, 
                               state.T, &muls, &gcds);
 	      ASSERT(youpi != ECM_ERROR); /* no error can occur in addWnm */
-              state.next = 0;
+              params->next = 0;
               if (youpi == ECM_FACTOR_FOUND_STEP2)
                 outputf (OUTPUT_VERBOSE,
 			 "Found factor while computing roots of F\n");
             }
           
           /* Is this a j value where we want Dickson(j * d2) * X as a root? */
-          if (gcd ((unsigned long) state.rsieve, root_params->d1) == 1UL) 
-            mpres_get_z (F[i++], state.fd[state.next * (state.S + 1)].x, 
-                         modulus);
+          if (gcd ((unsigned long) params->rsieve, root_params->d1) 
+	      == 1UL) 
+            mpres_get_z (F[i++], 
+			 state.fd[params->next * (params->S + 1)].x, modulus);
 
-          state.next ++;
+          params->next ++;
         }
-      state.rsieve += 6;
+      params->rsieve += 6;
     }
 
  clear:
-  for (i = 0 ; i < state.size_fd + 4; i++)
+  for (i = 0 ; i < params->size_fd + 4; i++)
     mpres_clear (state.T[i], modulus);
   free (state.T);
 
  ecm_rootsF_clearfdi:
-  for (i = 0; i < state.size_fd; i++)
+  for (i = 0; i < params->size_fd; i++)
     {
       mpres_clear (state.fd[i].x, modulus);
       mpres_clear (state.fd[i].y, modulus);
@@ -610,14 +612,15 @@ ecm_rootsF (mpz_t f, listz_t F, root_params_t *root_params,
    factor in f. If an error occurred, NULL is returned and f is -1.
 */
 
-ecm_roots_state *
+ecm_roots_state_t *
 ecm_rootsG_init (mpz_t f, curve *X, root_params_t *root_params, 
                  unsigned long dF, unsigned long blocks, mpmod_t modulus)
 {
   unsigned int k, phid2;
   unsigned long muls = 0, gcds = 0;
   listz_t coeffs;
-  ecm_roots_state *state;
+  ecm_roots_state_t *state;
+  progression_params_t *params; /* for less typing */
   int youpi = 0;
   int dickson_a;
   unsigned int T_inv;
@@ -629,16 +632,17 @@ ecm_rootsG_init (mpz_t f, curve *X, root_params_t *root_params,
   if (test_verbose (OUTPUT_VERBOSE))
     st = cputime ();
   
-  state = (ecm_roots_state *) malloc (sizeof (ecm_roots_state));
+  state = (ecm_roots_state_t *) malloc (sizeof (ecm_roots_state_t));
   if (state == NULL)
     {
       mpz_set_si (f, -1);
       return NULL;
     }
+  params = &(state->params);
 
   /* If S < 0, use degree |S| Dickson poly, otherwise use x^S */
   dickson_a = (root_params->S < 0) ? -1 : 0;
-  state->S = abs (root_params->S);
+  params->S = abs (root_params->S);
 
   /* Estimate the cost of a modular inversion (in unit of time per 
      modular multiplication) */
@@ -651,35 +655,37 @@ ecm_rootsG_init (mpz_t f, curve *X, root_params_t *root_params,
   bestnr = -(4. + T_inv) + sqrt(12. * (double) dF * (double) blocks * 
         (T_inv - 3.) * log (2. * root_params->d1) / log (2.) - (4. + T_inv) * 
         (4. + T_inv));
-  bestnr /= 6. * (double) (state->S) * log (2. * root_params->d1) / log (2.0);
+  bestnr /= 6. * (double) (params->S) * log (2. * root_params->d1) / log (2.0);
   
   outputf (OUTPUT_TRACE, "ecm_rootsG_init: bestnr = %f\n", bestnr);
   
   if (bestnr < 1.)
-    state->nr = 1;
+    params->nr = 1;
   else
-    state->nr = (unsigned int) (bestnr + .5);
+    params->nr = (unsigned int) (bestnr + .5);
 
   phid2 = eulerphi (root_params->d2);
 
-  /* Round up state->nr to multiple of eulerphi(d2) */
+  /* Round up params->nr to multiple of eulerphi(d2) */
   if (phid2 > 1)
-    state->nr = ((state->nr + (phid2 - 1)) / phid2) * phid2;
+    params->nr = ((params->nr + (phid2 - 1)) / phid2) * phid2;
 
-  state->size_fd = state->nr * (state->S + 1);
+  params->size_fd = params->nr * (params->S + 1);
 
   outputf (OUTPUT_DEVVERBOSE, "ecm_rootsG_init: i0=%Zd, d1=%lu, d2=%lu, "
            "dF=%lu, blocks=%lu, S=%u, T_inv = %d, nr=%d\n", root_params->i0, 
-           root_params->d1, root_params->d2, dF, blocks, state->S, T_inv, 
-           state->nr);
+           root_params->d1, root_params->d2, dF, blocks, params->S, 
+	   T_inv, params->nr);
   
   state->X = X;
-  state->next = 0;
-  state->dsieve = 1; /* We only init progressions coprime to d2, so nothing to be skipped */
-  state->rsieve = 0;
+  params->next = 0;
+  params->dsieve = 1; /* We only init progressions coprime to d2, 
+			       so nothing to be skipped */
+  params->rsieve = 0;
 
   coeffs = init_progression_coeffs (root_params->i0, root_params->d2, 
-           root_params->d1, state->nr / phid2, 1, state->S, dickson_a);
+				    root_params->d1, params->nr / phid2, 
+				    1, params->S, dickson_a);
 
   if (coeffs == NULL) /* error */
     {
@@ -688,15 +694,15 @@ ecm_rootsG_init (mpz_t f, curve *X, root_params_t *root_params,
       return NULL;
     }
 
-  state->fd = (point *) malloc (state->size_fd * sizeof (point));
+  state->fd = (point *) malloc (params->size_fd * sizeof (point));
   if (state->fd == NULL)
     {
-      clear_list (coeffs, state->size_fd);
+      clear_list (coeffs, params->size_fd);
       free (state);
       mpz_set_si (f, -1);
       return NULL;
     }
-  for (k = 0; k < state->size_fd; k++)
+  for (k = 0; k < params->size_fd; k++)
     {
       MEMORY_TAG;
       mpres_init (state->fd[k].x, modulus);
@@ -705,16 +711,16 @@ ecm_rootsG_init (mpz_t f, curve *X, root_params_t *root_params,
       MEMORY_UNTAG;
     }
   
-  state->size_T = state->size_fd + 4;
+  state->size_T = params->size_fd + 4;
   state->T = (mpres_t *) malloc (state->size_T * sizeof (mpres_t));
   if (state->T == NULL)
     {
-      for (k = 0; k < state->size_fd; k++)
+      for (k = 0; k < params->size_fd; k++)
         {
           mpres_clear (state->fd[k].x, modulus);
           mpres_clear (state->fd[k].y, modulus);
         }
-      clear_list (coeffs, state->size_fd);
+      clear_list (coeffs, params->size_fd);
       free (state);
       mpz_set_si (f, -1);
       return NULL;
@@ -726,26 +732,26 @@ ecm_rootsG_init (mpz_t f, curve *X, root_params_t *root_params,
       MEMORY_UNTAG;
     }
 
-  for (k = state->S + 1; k < state->size_fd; k += state->S + 1)
-     mpz_set_ui (coeffs[k + state->S], 1);
+  for (k = params->S + 1; k < params->size_fd; k += params->S + 1)
+     mpz_set_ui (coeffs[k + params->S], 1);
 
   if (test_verbose (OUTPUT_TRACE))
-    for (k = 0; k < state->size_fd; k++)
+    for (k = 0; k < params->size_fd; k++)
       outputf (OUTPUT_TRACE, "ecm_rootsG_init: coeffs[%d] == %Zd\n", 
                k, coeffs[k]);
 
-  youpi = multiplyW2n (f, state->fd, X, coeffs, state->size_fd, modulus, 
+  youpi = multiplyW2n (f, state->fd, X, coeffs, params->size_fd, modulus, 
                      state->T[0], state->T[1], state->T + 2, &muls, &gcds);
   if (youpi == ECM_ERROR)
     mpz_set_si (f, -1); /* fall through */
 
-  for (k = state->S + 1; k < state->size_fd; k += state->S + 1)
+  for (k = params->S + 1; k < params->size_fd; k += params->S + 1)
     {
-      mpres_set (state->fd[k + state->S].x, state->fd[state->S].x, modulus);
-      mpres_set (state->fd[k + state->S].y, state->fd[state->S].y, modulus);
+      mpres_set (state->fd[k + params->S].x, state->fd[params->S].x, modulus);
+      mpres_set (state->fd[k + params->S].y, state->fd[params->S].y, modulus);
     }
   
-  clear_list (coeffs, state->size_fd);
+  clear_list (coeffs, params->size_fd);
   coeffs = NULL;
   
   if (youpi != ECM_NO_FACTOR_FOUND) /* factor found or error */
@@ -775,11 +781,11 @@ ecm_rootsG_init (mpz_t f, curve *X, root_params_t *root_params,
 }
 
 void 
-ecm_rootsG_clear (ecm_roots_state *state, ATTRIBUTE_UNUSED mpmod_t modulus)
+ecm_rootsG_clear (ecm_roots_state_t *state, ATTRIBUTE_UNUSED mpmod_t modulus)
 {
   unsigned int k;
   
-  for (k = 0; k < state->size_fd; k++)
+  for (k = 0; k < state->params.size_fd; k++)
     {
       mpres_clear (state->fd[k].x, modulus);
       mpres_clear (state->fd[k].y, modulus);
@@ -807,7 +813,7 @@ ecm_rootsG_clear (ecm_roots_state *state, ATTRIBUTE_UNUSED mpmod_t modulus)
 */
 
 int 
-ecm_rootsG (mpz_t f, listz_t G, unsigned long dF, ecm_roots_state *state, 
+ecm_rootsG (mpz_t f, listz_t G, unsigned long dF, ecm_roots_state_t *state, 
             mpmod_t modulus)
 {
   unsigned long i;
@@ -815,24 +821,25 @@ ecm_rootsG (mpz_t f, listz_t G, unsigned long dF, ecm_roots_state *state,
   int youpi = ECM_NO_FACTOR_FOUND;
   long st;
   point *fd = state->fd; /* to save typing */
+  progression_params_t *params = &(state->params); /* for less typing */
   
   st = cputime ();
 
   outputf (OUTPUT_TRACE, "ecm_rootsG: dF = %lu, state: nr = %u, next = %u, "
            "S = %u, dsieve = %u, rsieve = %u,\n\tdickson_a = %d\n", 
-           dF, state->nr, state->next, state->S, state->dsieve, 
-           state->rsieve, state->dickson_a);
+           dF, params->nr, params->next, params->S, params->dsieve, 
+	   params->rsieve, params->dickson_a);
   
   for (i = 0; i < dF;)
     {
       /* Did we use every progression since the last update? */
-      if (state->next == state->nr)
+      if (params->next == params->nr)
         {
           /* Yes, time to update again */
-	  youpi = addWnm (f, fd, state->X, modulus, state->nr, 
-			  state->S, state->T, &muls, &gcds);
+	  youpi = addWnm (f, fd, state->X, modulus, params->nr, params->S, 
+			  state->T, &muls, &gcds);
 	  ASSERT(youpi != ECM_ERROR); /* no error can occur in addWnm */
-	  state->next = 0;
+	  params->next = 0;
           
           if (youpi == ECM_FACTOR_FOUND_STEP2)
             {
@@ -842,18 +849,18 @@ ecm_rootsG (mpz_t f, listz_t G, unsigned long dF, ecm_roots_state *state,
         }
       
       /* Is this a root we should skip? (Take only if gcd == 1) */
-      if (gcd ((unsigned long) state->rsieve,  
-               (unsigned long) state->dsieve) == 1UL)
+      if (gcd ((unsigned long) params->rsieve,  
+               (unsigned long) params->dsieve) == 1UL)
 	{
-	  mpres_get_z (G[i++], (fd + state->next * (state->S + 1))->x, 
+	  mpres_get_z (G[i++], (fd + params->next * (params->S + 1))->x, 
 		       modulus);
 	  outputf (OUTPUT_TRACE, 
-	           "ecm_rootsG: storing d1*%u*X = %Zd in G[%lu]\n",
-		   state->rsieve, G[i - 1], i);
+		   "ecm_rootsG: storing d1*%u*X = %Zd in G[%lu]\n",
+		   params->rsieve, G[i - 1], i);
 	}
       
-      state->next ++;
-      state->rsieve ++;
+      params->next ++;
+      params->rsieve ++;
     }
   
   outputf (OUTPUT_VERBOSE, "Computing roots of G took %ldms",
