@@ -1,6 +1,7 @@
 /* Tune program.
 
-  Copyright 2003, 2005, 2006 Paul Zimmermann, Alexander Kruppa, Dave Newman.
+  Copyright 2003, 2005, 2006, 2008 Paul Zimmermann, Alexander Kruppa, 
+  Dave Newman and Jason Papadopoulos.
 
   This program is free software; you can redistribute it and/or modify it
   under the terms of the GNU General Public License as published by the
