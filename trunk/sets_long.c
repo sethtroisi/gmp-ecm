@@ -1,7 +1,8 @@
 /* 
   Functions for sets of long ints, to factor (Z/NZ)* into a set of sums
-  as described insection 5 of "Improved Stage 2 to $P\pm{}1$ Factoring 
-  Algorithms" by Peter L. Montgomery and Alexander Kruppa, ANTS 2008.
+  as described in section 5 of "Improved Stage 2 to $P\pm{}1$ Factoring 
+  Algorithms" by Peter L. Montgomery and Alexander Kruppa, ANTS 2008
+  (8th Algorithmic Number Theory Symposium).
   
   Copyright 2007, 2008 Alexander Kruppa.
 

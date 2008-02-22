@@ -1,7 +1,8 @@
 /* 
   Implementation of fast stage 2 for P-1 and P+1 as described in
   "Improved Stage 2 to $P\pm{}1$ Factoring Algorithms" by
-  Peter L. Montgomery and Alexander Kruppa, ANTS 2008.
+  Peter L. Montgomery and Alexander Kruppa, ANTS 2008 (8th Algorithmic 
+  Number Theory Symposium).
    
   Copyright 2007, 2008 Alexander Kruppa.
   NTT functions are based on code Copyright 2005 Dave Newman.
