@@ -1,7 +1,7 @@
 /* spv.c - "small prime vector" functions for arithmetic on vectors of
    residues modulo a single small prime
 
-  Copyright 2005 Dave Newman.
+  Copyright 2005, 2008 Dave Newman and Jason Papadopoulos.
 
   The SP Library is free software; you can redistribute it and/or modify
   it under the terms of the GNU Lesser General Public License as published by
@@ -295,6 +295,6 @@ spv_random (spv_t x, spv_size_t len, sp_t m)
   mpn_random (x, len);
   
   for (i = 0; i < len; i++)
-    if (x[i] >= m)
+    while (x[i] >= m)
       x[i] -= m;
 }

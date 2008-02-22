@@ -1,7 +1,7 @@
 /* mpzspm.c - "mpz small prime moduli" - pick a set of small primes large
    enough to represent a mpzv
 
-  Copyright 2005 Dave Newman.
+  Copyright 2005, 2008 Dave Newman and Jason Papadopoulos.
 
   The SP Library is free software; you can redistribute it and/or modify
   it under the terms of the GNU Lesser General Public License as published by

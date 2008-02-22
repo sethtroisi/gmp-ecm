@@ -168,7 +168,7 @@ realtime ()
   struct timeval tv;
   if (gettimeofday(&tv, NULL) != 0)
     return 0L;
-  return (long) tv.tv_sec * 1000L + (long) tv.tv_usec / 1000;
+  return (long) tv.tv_sec * 1000L + (long) tv.tv_usec / 1000L;
 #else
   return 0L;
 #endif
