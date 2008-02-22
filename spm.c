@@ -1,7 +1,7 @@
 /* spm.c - "small prime modulus" functions to precompute an inverse and a
    primitive root for a small prime
 
-  Copyright 2005 Dave Newman.
+  Copyright 2005, 2008 Dave Newman and Jason Papadopoulos.
 
   The SP Library is free software; you can redistribute it and/or modify
   it under the terms of the GNU Lesser General Public License as published by
@@ -51,9 +51,9 @@ nttdata_init (const sp_t sp, const sp_t mul_c,
   spv_size_t i, j, k;
 
   r = data->ntt_roots = 
-             (spv_t) sp_aligned_malloc (log2_len * sizeof(sp_t));
+	  (spv_t) sp_aligned_malloc ((log2_len + 1) * sizeof(sp_t));
 
-  i = log2_len - 1;
+  i = log2_len;
   r[i] = prim_root;
   for (i--; (int)i >= 0; i--)
     r[i] = sp_sqr (r[i+1], sp, mul_c);
@@ -171,21 +171,19 @@ spm_init (spv_size_t n, sp_t sp)
   spm->inv_prim_root = sp_inv (b, sp, spm->mul_c);
 
   /* initialize auxiliary data for all supported power-of-2 NTT sizes */
-  ntt_power = 1;
+  ntt_power = 0;
   while (1)
     {
-      if (n & ((1 << ntt_power) - 1))
+      if (n & (1 << ntt_power))
         break;
       ntt_power++;
     }
 
   nttdata_init (sp, spm->mul_c, 
-		sp_pow (spm->prim_root, 
-			n >> (ntt_power - 1), sp, spm->mul_c),
+		sp_pow (spm->prim_root, n >> ntt_power, sp, spm->mul_c),
 		ntt_power, spm->nttdata);
   nttdata_init (sp, spm->mul_c, 
-		sp_pow (spm->inv_prim_root, 
-			n >> (ntt_power - 1), sp, spm->mul_c),
+		sp_pow (spm->inv_prim_root, n >> ntt_power, sp, spm->mul_c),
 		ntt_power, spm->inttdata);
   return spm;
 }

@@ -1,6 +1,6 @@
 /* sp.c - "small prime" functions that don't need to be inlined
 
-  Copyright 2005 Dave Newman.
+  Copyright 2005, 2008 Dave Newman and Jason Papadopoulos.
 
   The SP Library is free software; you can redistribute it and/or modify
   it under the terms of the GNU Lesser General Public License as published by

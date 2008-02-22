@@ -1,6 +1,6 @@
 /* sp.h - header file for the sp library
 
-  Copyright 2005 Dave Newman.
+  Copyright 2005, 2008 Dave Newman and Jason Papadopoulos.
   Copyright 1991, 1993, 1994, 1995, 1996, 1997, 1999, 2000, 2001, 2002, 2003,
   2004, 2005 Free Software Foundation, Inc. (for parts from gmp-impl.h).
 
