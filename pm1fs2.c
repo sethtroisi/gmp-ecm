@@ -2165,6 +2165,7 @@ ntt_print_vec (const char *msg, const spv_t spv, const spv_size_t l)
   printf ("]\n");
 }
 
+
 /* Square the reciprocal Laurent polynomial S(x) of degree 2*n-2.
    S(x) = s_0 + \sum_{i=1}^{n-1} s_i (x^i + x^{-1}).
    S[i] contains the n coefficients s_i, 0 <= i <= n-1.
@@ -2173,6 +2174,7 @@ ntt_print_vec (const char *msg, const spv_t spv, const spv_size_t l)
    dft must have power of 2 length len >= 2n.
    The NTT primes must be == 1 (mod 4*len).
 */
+
 #undef TRACE_ntt_sqr_recip
 void
 ntt_sqr_recip (mpzv_t R, const mpzv_t S, mpzspv_t dft, 
@@ -2977,7 +2979,7 @@ gfp_ext_mul (mpres_t r_0, mpres_t r_1, const mpres_t a_0, const mpres_t a_1,
 	     mpres_t *tmp)
 {
   ASSERT (tmplen >= 2);
-  if (test_verbose (OUTPUT_TRACE))
+  if (0 && test_verbose (OUTPUT_TRACE))
     {
       mpz_t t;
       mpz_init (t);
@@ -3009,7 +3011,7 @@ gfp_ext_mul (mpres_t r_0, mpres_t r_1, const mpres_t a_0, const mpres_t a_1,
   mpres_mul (tmp[0], tmp[0], Delta, modulus); /* t[0] = a_1*b_1*Delta */
   mpres_add (r_0, r_0, tmp[0], modulus);   /* r_0 = a_0*b_0 + a_1*b_1*Delta */
 
-  if (test_verbose (OUTPUT_TRACE))
+  if (0 && test_verbose (OUTPUT_TRACE))
     {
       outputf (OUTPUT_TRACE, ") == ");
       gfp_ext_print (r_0, r_1, modulus, OUTPUT_TRACE);
@@ -3090,7 +3092,7 @@ gfp_ext_pow_norm1_sl (mpres_t r0, mpres_t r1, const mpres_t a0,
   if (e < 0)
     mpres_neg (r1, r1, modulus);
 
-  if (test_verbose (OUTPUT_TRACE))
+  if (0 && test_verbose (OUTPUT_TRACE))
     {
       mpz_t t;
       mpz_init (t);
@@ -3556,191 +3558,296 @@ pp1_sequence_g (listz_t g_x, listz_t g_y, mpzspv_t g_x_ntt, mpzspv_t g_y_ntt,
 static void
 pp1_sequence_h (listz_t h_x, listz_t h_y, mpzspv_t h_x_ntt, mpzspv_t h_y_ntt,
 		const listz_t f, const mpres_t b1_x, const mpres_t b1_y, 
-		const long k, const unsigned long l, const unsigned long P, 
-		const mpres_t Delta, mpmod_t modulus, 
-		const mpzspm_t ntt_context, const unsigned long origtmplen, 
-		mpres_t *origtmp)
+		const long k_param, const unsigned long l_param, 
+		const unsigned long P, const mpres_t Delta, 
+		mpmod_t modulus_param, const mpzspm_t ntt_context)
 {
-  mpres_t *s_x = origtmp, *s_y = origtmp + 3, *s2_x = origtmp + 6, 
-    *s2_y = origtmp + 8, *v = origtmp + 10, *V2 = origtmp + 12,
-    *rn_x = origtmp + 13, *rn_y = origtmp + 14;
-  const unsigned long newtmplen = origtmplen - 15;
-  mpres_t *newtmp = origtmp + 15;
-  mpz_t mt;
   unsigned long i;
-  long timestart;
+  long timestart, realstart;
 
-  if (l == 0UL)
+  if (l_param == 0UL)
     return;
 
-  ASSERT (origtmplen >= 15UL);
   ASSERT (f != h_x);
   ASSERT (f != h_y);
 
   outputf (OUTPUT_VERBOSE, "Computing h_x and h_y");
   timestart = cputime ();
-
-  mpz_init (mt);
+  realstart = realtime ();
 
   if (test_verbose (OUTPUT_TRACE))
     {
-      mpres_get_z (mt, Delta, modulus);
-      outputf (OUTPUT_TRACE, "\n/* pp1_sequence_h */ w = quadgen (4*%Zd); "
-	       "k = %ld; P = %lu; N = %Zd; /* PARI */\n", 
-	       mt, k, P, modulus->orig_modulus);
+      mpz_t t;
+      mpz_init (t);
+      mpres_get_z (t, Delta, modulus_param);
+      outputf (OUTPUT_TRACE, "\n/* pp1_sequence_h */ N = %Zd; "
+	       "Delta = %Zd; w = quadgen (4*Delta); k = %ld; P = %lu; "
+	       "/* PARI */\n", modulus_param->orig_modulus, t, k_param, P);
       outputf (OUTPUT_TRACE, "/* pp1_sequence_h */ b_1 = ");
-      gfp_ext_print (b1_x, b1_y, modulus, OUTPUT_TRACE);
-      outputf (OUTPUT_TRACE, "; rn = b_1^(-P); /* PARI */\n");
-      for (i = 0; i < l; i++)
+      gfp_ext_print (b1_x, b1_y, modulus_param, OUTPUT_TRACE);
+      outputf (OUTPUT_TRACE, "; r = b_1^P; rn = b_1^(-P); /* PARI */\n");
+      for (i = 0; i < l_param; i++)
 	outputf (OUTPUT_TRACE, 
 		 "/* pp1_sequence_h */ f_%lu = %Zd; /* PARI */\n", i, f[i]);
+      mpz_clear (t);
     }
 
-  ASSERT (origtmplen >= 13UL);
+#ifdef _OPENMP
+#pragma omp parallel if (l_param > 100) private(i)
+#endif
+  {
+    const size_t tmplen = 2;
+    mpres_t s_x[3], s_y[3], s2_x[2], s2_y[2], v[2], V2, rn_x, rn_y, 
+      tmp[tmplen];
+    mpmod_t modulus; /* Thread-local copy of modulus_param */
+    mpz_t mt;
+    unsigned long l = l_param, offset = 0;
+    long k = k_param;
 
-  /* Compute rn = b_1^{-P} */
-  gfp_ext_pow_norm1_sl (*rn_x, *rn_y, b1_x, b1_y, P, Delta, modulus, newtmplen,
-			newtmp);
-  mpres_neg (*rn_y, *rn_y, modulus);
+#ifdef _OPENMP
+    /* When multi-threading, we adjust the parameters for each thread */
 
-  /* Compute s[0] = rn^(k^2) = r^(-k^2). We do it by two exponentiations by 
-     k and use v[0] and v[1] as temp storage */
-  gfp_ext_pow_norm1_sl (v[0], v[1], *rn_x, *rn_y, k, Delta, modulus, 
-			newtmplen, newtmp);
-  gfp_ext_pow_norm1_sl (s_x[0], s_y[0], v[0], v[1], k, Delta, modulus, 
-			newtmplen, newtmp);
-  if (test_verbose (OUTPUT_TRACE))
-    {
-      outputf (OUTPUT_TRACE, "/* pp1_sequence_h */ rn^(k^2) == ");
-      gfp_ext_print (s_x[0], s_y[0], modulus, OUTPUT_TRACE);
-      outputf (OUTPUT_TRACE, " /* PARI C */\n");
-    }
+    const int nr_chunks = omp_get_num_threads();
+    const int thread_nr = omp_get_thread_num();
 
-  /* Compute s[1] = r^(-(k+1)^2) = r^(-(k^2 + 2k + 1))*/
-  if (l > 1)
-    {
-      /* v[0] + v[1]*sqrt(Delta) still contains rn^k */
-      gfp_ext_sqr_norm1 (s_x[1], s_y[1], v[0], v[1], modulus);
-      /* Now s[1] = r^(-2k) */
-      gfp_ext_mul (s_x[1], s_y[1], s_x[1], s_y[1], s_x[0], s_y[0], Delta, 
-		   modulus, newtmplen, newtmp);
-      /* Now s[1] = r^(-(k^2 + 2k)) */
-      gfp_ext_mul (s_x[1], s_y[1], s_x[1], s_y[1], *rn_x, *rn_y, Delta, 
-		   modulus, newtmplen, newtmp);
-      /* Now s[1] = r^(-(k^2 + 2k + 1)) = r^(-(k+1)^2) */
-      if (test_verbose (OUTPUT_TRACE))
+    l = (l_param - 1) / nr_chunks + 1;
+    offset = thread_nr * l;
+    ASSERT_ALWAYS (l_param >= offset);
+    l = MIN(l, l_param - offset);
+
+    if (thread_nr == 0)
+      outputf (OUTPUT_VERBOSE, " using %d threads", nr_chunks);
+    outputf (OUTPUT_TRACE, "\n");
+#endif
+
+    /* Each thread computes r[i + offset] = b1^(-P*(k+i+offset)^2) * f_i 
+       for i = 0, 1, ..., l-1, where l is the adjusted length of each thread */
+
+    /* Test that k+offset does not overflow */
+    ASSERT_ALWAYS (offset <= (unsigned long) LONG_MAX && 
+		   k <= LONG_MAX - (long) offset);
+    k += (long) offset;
+
+    mpz_init (mt);
+    /* Make thread-local copy of modulus */
+    mpmod_copy (modulus, modulus_param);
+
+    /* Init the local mpres_t variables */
+    for (i = 0; i < 2; i++)
+      {
+	mpres_init (s_x[i], modulus);
+	mpres_init (s_y[i], modulus);
+	mpres_init (s2_x[i], modulus);
+	mpres_init (s2_y[i], modulus);
+	mpres_init (v[i], modulus);
+      }
+    mpres_init (s_x[2], modulus);
+    mpres_init (s_y[2], modulus);
+    mpres_init (V2, modulus);
+    mpres_init (rn_x, modulus);
+    mpres_init (rn_y, modulus);
+    for (i = 0; i < (unsigned long) tmplen; i++)
+      mpres_init (tmp[i], modulus);
+
+    /* Compute rn = b_1^{-P}. It has the same value for all threads,
+       but we make thread local copies anyway. */
+    gfp_ext_pow_norm1_sl (rn_x, rn_y, b1_x, b1_y, P, Delta, modulus, tmplen, 
+			  tmp);
+    mpres_neg (rn_y, rn_y, modulus);
+    
+    /* Compute s[0] = rn^(k^2) = r^(-k^2). We do it by two 
+       exponentiations by k and use v[0] and v[1] as temp storage */
+    gfp_ext_pow_norm1_sl (v[0], v[1], rn_x, rn_y, k, Delta, modulus, 
+			  tmplen, tmp);
+    gfp_ext_pow_norm1_sl (s_x[0], s_y[0], v[0], v[1], k, Delta, modulus, 
+			  tmplen, tmp);
+    if (test_verbose (OUTPUT_TRACE))
+      {
+#pragma omp critical
 	{
-	  outputf (OUTPUT_TRACE, "/* pp1_sequence_h */ rn^((k+1)^2) == ");
-	  gfp_ext_print (s_x[1], s_y[1], modulus, OUTPUT_TRACE);
+	  outputf (OUTPUT_TRACE, "/* pp1_sequence_h */ rn^(%ld^2) == ", k);
+	  gfp_ext_print (s_x[0], s_y[0], modulus, OUTPUT_TRACE);
 	  outputf (OUTPUT_TRACE, " /* PARI C */\n");
 	}
-    }
-
-  /* Compute s2[0] = r^(k^2+2) = r^(k^2) * r^2 */
-  gfp_ext_sqr_norm1 (v[0], v[1], *rn_x, *rn_y, modulus);
-  gfp_ext_mul (s2_x[0], s2_y[0], s_x[0], s_y[0], v[0], v[1], Delta, modulus, 
-	       newtmplen, newtmp);
-  if (test_verbose (OUTPUT_TRACE))
-    {
-      outputf (OUTPUT_TRACE, "/* pp1_sequence_h */ rn^(k^2+2) == ");
-      gfp_ext_print (s2_x[0], s2_y[0], modulus, OUTPUT_TRACE);
-      outputf (OUTPUT_TRACE, " /* PARI C */\n");
-    }
-
-  /* Compute a^((k+1)^2+2) = a^((k+1)^2) * a^2 */
-  gfp_ext_mul (s2_x[1], s2_y[1], s_x[1], s_y[1], v[0], v[1], Delta, modulus, 
-	       newtmplen, newtmp);
-  if (test_verbose (OUTPUT_TRACE))
-    {
-      outputf (OUTPUT_TRACE, "/* pp1_sequence_h */ rn^((k+1)^2+2) == ");
-      gfp_ext_print (s2_x[1], s2_y[1], modulus, OUTPUT_TRACE);
-      outputf (OUTPUT_TRACE, " /* PARI C */\n");
-    }
-  
-  /* Compute V_2(r + 1/r). Since 1/r = rn_x - rn_y, we have r+1/r = 2*rn_x.
-     V_2(x) = x^2 - 2, so we want 4*rn_x^2 - 2. */
-  mpres_add (*V2, *rn_x, *rn_x, modulus); /* V2 = r + 1/r  = 2*rn_x */
-  V (v[0], *V2, 2 * k + 1, modulus);  /* v[0] = V_{2k+1} (r + 1/r) */
-  V (v[1], *V2, 2 * k + 3, modulus);  /* v[0] = V_{2k+3} (r + 1/r) */
-  mpres_mul (*V2, *V2, *V2, modulus); /* V2 = 4*a_x^2 */
-  mpres_sub_ui (*V2, *V2, 2UL, modulus); /* V2 = 4*a_x^2 - 2 */
-
-  for (i = 0; i < 2 && i < l; i++)
-  {
-      mpres_mul (s_y[i], s_y[i], Delta, modulus);
-      mpres_mul (s2_y[i], s2_y[i], Delta, modulus);
-      if (h_x != NULL)
-	  mpres_mul_z_to_z (h_x[i], s_x[i], f[i], modulus);
-      if (h_y != NULL)
-	  mpres_mul_z_to_z (h_y[i], s_y[i], f[i], modulus);
-      if (h_x_ntt != NULL)
-      {
-	  mpres_mul_z_to_z (mt, s_x[i], f[i], modulus);
-	  mpzspv_from_mpzv (h_x_ntt, i, &mt, 1UL, ntt_context);
       }
-      if (h_y_ntt != NULL)
+    
+    /* Compute s[1] = r^(-(k+1)^2) = r^(-(k^2 + 2k + 1))*/
+    if (l > 1)
       {
-	  mpres_mul_z_to_z (mt, s_y[i], f[i], modulus);
-	  mpzspv_from_mpzv (h_y_ntt, i, &mt, 1UL, ntt_context);
+	/* v[0] + v[1]*sqrt(Delta) still contains rn^k */
+	gfp_ext_sqr_norm1 (s_x[1], s_y[1], v[0], v[1], modulus);
+	/* Now s[1] = r^(-2k) */
+	gfp_ext_mul (s_x[1], s_y[1], s_x[1], s_y[1], s_x[0], s_y[0], Delta, 
+		     modulus, tmplen, tmp);
+	/* Now s[1] = r^(-(k^2 + 2k)) */
+	gfp_ext_mul (s_x[1], s_y[1], s_x[1], s_y[1], rn_x, rn_y, Delta, 
+		     modulus, tmplen, tmp);
+	/* Now s[1] = r^(-(k^2 + 2k + 1)) = r^(-(k+1)^2) */
+	if (test_verbose (OUTPUT_TRACE))
+	  {
+#pragma omp critical
+	    {
+	      outputf (OUTPUT_TRACE, "/* pp1_sequence_h */ rn^(%ld^2) == ", 
+		       k + 1);
+	      gfp_ext_print (s_x[1], s_y[1], modulus, OUTPUT_TRACE);
+	      outputf (OUTPUT_TRACE, " /* PARI C */\n");
+	    }
+	  }
       }
+    
+    /* Compute s2[0] = r^(k^2+2) = r^(k^2) * r^2 */
+    gfp_ext_sqr_norm1 (v[0], v[1], rn_x, rn_y, modulus);
+    gfp_ext_mul (s2_x[0], s2_y[0], s_x[0], s_y[0], v[0], v[1], Delta, modulus, 
+		 tmplen, tmp);
+    if (test_verbose (OUTPUT_TRACE))
+      {
+#pragma omp critical
+	{
+	  outputf (OUTPUT_TRACE, "/* pp1_sequence_h */ rn^(%ld^2+2) == ", k);
+	  gfp_ext_print (s2_x[0], s2_y[0], modulus, OUTPUT_TRACE);
+	  outputf (OUTPUT_TRACE, " /* PARI C */\n");
+	}
+      }
+    
+    /* Compute a^((k+1)^2+2) = a^((k+1)^2) * a^2 */
+    gfp_ext_mul (s2_x[1], s2_y[1], s_x[1], s_y[1], v[0], v[1], Delta, modulus, 
+		 tmplen, tmp);
+    if (test_verbose (OUTPUT_TRACE))
+      {
+#pragma omp critical
+	{
+	  outputf (OUTPUT_TRACE, "/* pp1_sequence_h */ rn^(%ld^2+2) == ", 
+		   k + 1);
+	  gfp_ext_print (s2_x[1], s2_y[1], modulus, OUTPUT_TRACE);
+	  outputf (OUTPUT_TRACE, " /* PARI C */\n");
+	}
+      }
+    
+    /* Compute V_2(r + 1/r). Since 1/r = rn_x - rn_y, we have r+1/r = 2*rn_x.
+       V_2(x) = x^2 - 2, so we want 4*rn_x^2 - 2. */
+    mpres_add (V2, rn_x, rn_x, modulus); /* V2 = r + 1/r  = 2*rn_x */
+    V (v[0], V2, 2 * k + 1, modulus);  /* v[0] = V_{2k+1} (r + 1/r) */
+    V (v[1], V2, 2 * k + 3, modulus);  /* v[1] = V_{2k+3} (r + 1/r) */
+    mpres_mul (V2, V2, V2, modulus); /* V2 = 4*a_x^2 */
+    mpres_sub_ui (V2, V2, 2UL, modulus); /* V2 = 4*a_x^2 - 2 */
+    if (test_verbose (OUTPUT_TRACE))
+      {
+#pragma omp critical
+	{
+	  mpres_get_z (mt, V2, modulus);
+	  outputf (OUTPUT_TRACE, "/* pp1_sequence_h */ r^2 + 1/r^2 == %Zd "
+		   "/* PARI C */\n", mt);
+	  mpres_get_z (mt, v[0], modulus);
+	  outputf (OUTPUT_TRACE, "/* pp1_sequence_h */ r^(2*%ld+1) + "
+		   "1/r^(2*%ld+1) == %Zd /* PARI C */\n", k, k, mt);
+	  mpres_get_z (mt, v[1], modulus);
+	  outputf (OUTPUT_TRACE, "/* pp1_sequence_h */ r^(2*%ld+3) + "
+		   "1/r^(2*%ld+3) == %Zd /* PARI C */\n", k, k, mt);
+	}
+      }
+    
+    for (i = 0; i < 2UL && i < l; i++)
+      {
+	/* Multiply the 2nd coordinate by Delta, so that after the polynomial
+	   multipoint evaluation we get x1 + Delta*x2 */
+	mpres_mul (s_y[i], s_y[i], Delta, modulus);
+	mpres_mul (s2_y[i], s2_y[i], Delta, modulus);
+	
+	if (h_x != NULL)
+	  mpres_mul_z_to_z (h_x[i + offset], s_x[i], f[i + offset], modulus);
+	if (h_y != NULL)
+	  mpres_mul_z_to_z (h_y[i + offset], s_y[i], f[i + offset], modulus);
+	if (h_x_ntt != NULL)
+	  {
+	    mpres_mul_z_to_z (mt, s_x[i], f[i + offset], modulus);
+	    mpzspv_from_mpzv (h_x_ntt, i + offset, &mt, 1UL, ntt_context);
+	  }
+	if (h_y_ntt != NULL)
+	  {
+	    mpres_mul_z_to_z (mt, s_y[i], f[i + offset], modulus);
+	    mpzspv_from_mpzv (h_y_ntt, i + offset, &mt, 1UL, ntt_context);
+	  }
+      }
+    
+    /* Compute the remaining r^((k+i)^2) values according to Peter's 
+       recurrence */
+    
+    for (i = 2; i < l; i++)
+      {
+	if (h_x != NULL || h_x_ntt != NULL)
+	  {
+	    /* r[i] = r2[i-1] * v[i-2] - r2[i-2], with indices of r2 and i 
+	       taken modulo 2 */
+	    mpres_mul (s_x[i % 3], s2_x[1 - i % 2], v[i % 2], modulus);
+	    mpres_sub (s_x[i % 3], s_x[i % 3], s2_x[i % 2], modulus);
+	    
+	    /* r2[i] = r2[i-1] * v[i-1] - r[i-2] */
+	    mpres_mul (s2_x[i % 2], s2_x[1 - i % 2], v[1 - i % 2], modulus);
+	    mpres_sub (s2_x[i % 2], s2_x[i % 2], s_x[(i - 2) % 3], modulus);
+	    if (h_x != NULL)
+	      mpres_mul_z_to_z (h_x[i + offset], s_x[i % 3], f[i + offset], 
+				modulus);
+	    if (h_x_ntt != NULL)
+	      {
+		mpres_mul_z_to_z (mt, s_x[i % 3], f[i + offset], modulus);
+		mpzspv_from_mpzv (h_x_ntt, i + offset, &mt, 1UL, ntt_context);
+	      }
+	  }
+	
+	if (h_y != NULL || h_y_ntt != NULL)
+	  {
+	    /* Same for y coordinate */
+	    mpres_mul (s_y[i % 3], s2_y[1 - i % 2], v[i % 2], modulus);
+	    mpres_sub (s_y[i % 3], s_y[i % 3], s2_y[i % 2], modulus);
+	    mpres_mul (s2_y[i % 2], s2_y[1 - i % 2], v[1 - i % 2], modulus);
+	    mpres_sub (s2_y[i % 2], s2_y[i % 2], s_y[(i - 2) % 3], modulus);
+	    if (h_y != NULL)
+	      mpres_mul_z_to_z (h_y[i + offset], s_y[i % 3], f[i + offset], 
+				modulus);
+	    if (h_y_ntt != NULL)
+	      {
+		mpres_mul_z_to_z (mt, s_y[i % 3], f[i + offset], modulus);
+		mpzspv_from_mpzv (h_y_ntt, i + offset, &mt, 1UL, ntt_context);
+	      }
+	  }
+	
+	/* v[i] = v[i - 1] * V_2(a + 1/a) - v[i - 2] */
+	mpres_mul (tmp[0], v[1 - i % 2], V2, modulus);
+	mpres_sub (v[i % 2], tmp[0], v[i % 2], modulus);
+      }
+    
+    /* Clear the local mpres_t variables */
+    for (i = 0; i < 2; i++)
+      {
+	mpres_clear (s_x[i], modulus);
+	mpres_clear (s_y[i], modulus);
+	mpres_clear (s2_x[i], modulus);
+	mpres_clear (s2_y[i], modulus);
+	mpres_clear (v[i], modulus);
+      }
+    mpres_clear (s_x[2], modulus);
+    mpres_clear (s_y[2], modulus);
+    mpres_clear (V2, modulus);
+    mpres_clear (rn_x, modulus);
+    mpres_clear (rn_y, modulus);
+    for (i = 0; i < tmplen; i++)
+      mpres_clear (tmp[i], modulus);
+
+    /* Clear the thread-local copy of modulus */
+    mpmod_clear (modulus);
+
+    mpz_clear (mt);
   }
-  
-  
-  /* Compute the remaining r^((k+i)^2) values according to Peter's 
-     recurrence */
-  
-  for (i = 2; i < l; i++)
-    {
-      if (h_x != NULL || h_x_ntt != NULL)
-	{
-	  /* r[i] = r2[i-1] * v[i-2] - r2[i-2], with indices of r2 and i taken
-	     modulo 2 */
-	  mpres_mul (s_x[i % 3], s2_x[1 - i % 2], v[i % 2], modulus);
-	  mpres_sub (s_x[i % 3], s_x[i % 3], s2_x[i % 2], modulus);
-	  
-	  /* r2[i] = r2[i-1] * v[i-1] - r[i-2] */
-	  mpres_mul (s2_x[i % 2], s2_x[1 - i % 2], v[1 - i % 2], modulus);
-	  mpres_sub (s2_x[i % 2], s2_x[i % 2], s_x[(i - 2) % 3], modulus);
-	  if (h_x != NULL)
-	    mpres_mul_z_to_z (h_x[i], s_x[i % 3], f[i], modulus);
-	  if (h_x_ntt != NULL)
-	    {
-	      mpres_mul_z_to_z (mt, s_x[i % 3], f[i], modulus);
-	      mpzspv_from_mpzv (h_x_ntt, i, &mt, 1UL, ntt_context);
-	    }
-	}
 
-      if (h_y != NULL || h_y_ntt != NULL)
-	{
-	  /* Same for y coordinate */
-	  mpres_mul (s_y[i % 3], s2_y[1 - i % 2], v[i % 2], modulus);
-	  mpres_sub (s_y[i % 3], s_y[i % 3], s2_y[i % 2], modulus);
-	  mpres_mul (s2_y[i % 2], s2_y[1 - i % 2], v[1 - i % 2], modulus);
-	  mpres_sub (s2_y[i % 2], s2_y[i % 2], s_y[(i - 2) % 3], modulus);
-	  if (h_y != NULL)
-	    mpres_mul_z_to_z (h_y[i], s_y[i % 3], f[i], modulus);
-	  if (h_y_ntt != NULL)
-	    {
-	      mpres_mul_z_to_z (mt, s_y[i % 3], f[i], modulus);
-	      mpzspv_from_mpzv (h_y_ntt, i, &mt, 1UL, ntt_context);
-	    }
-	}
-      
-      /* v[i] = v[i - 1] * V_2(a + 1/a) - v[i - 2] */
-      mpres_mul (newtmp[0], v[1 - i % 2], *V2, modulus);
-      mpres_sub (v[i % 2], newtmp[0], v[i % 2], modulus);
-    }
-
-  outputf (OUTPUT_VERBOSE, " took %lums\n", cputime () - timestart);
+  print_elapsed_time (cputime() - timestart, realtime() - realstart);
 
   if (h_x != NULL && h_y != NULL && test_verbose (OUTPUT_TRACE))
     {
-      for (i = 0; i < l; i++)
-	gmp_printf ("/* pp1_sequence_h */ (rn^((k+%lu)^2) * f_%lu) == (%Zd"
-		    " + %Zd * w) /* PARI C */\n", i, i, h_x[i], h_y[i]);
+      for (i = 0; i < l_param; i++)
+	gmp_printf ("/* pp1_sequence_h */ (rn^((k+%lu)^2) * f_%lu) == "
+		    "(%Zd + Mod(%Zd / Delta, N) * w) /* PARI C */\n", 
+		    i, i, h_x[i], h_y[i]);
     }
-
-  mpz_clear (mt);
 }
 
 
@@ -3761,7 +3868,7 @@ pp1fs2 (mpz_t f, const mpres_t X, mpmod_t modulus,
 		  need s_1 / 2 + 1 entries. */
 
   listz_t g_x, g_y, fh_x, fh_y, h_x, h_y, tmp, R_x, R_y; 
-  const unsigned long tmpreslen = 20UL;
+  const unsigned long tmpreslen = 2UL;
   mpres_t b1_x, b1_y, Delta, tmpres[tmpreslen];
   mpz_t mt;   /* All-purpose temp mpz_t */
   int youpi = ECM_NO_FACTOR_FOUND;
@@ -3859,8 +3966,7 @@ pp1fs2 (mpz_t f, const mpres_t X, mpmod_t modulus,
 
   /* Compute the h sequence h_j = b1^(P*-j^2) * f_j for 0 <= j <= s_1 */
   pp1_sequence_h (fh_x, fh_y, NULL, NULL, F, b1_x, b1_y, 0L, 
-		  params->s_1 / 2 + 1, params->P, Delta, modulus, 
-		  NULL, tmpreslen, tmpres);
+		  params->s_1 / 2 + 1, params->P, Delta, modulus, NULL);
   /* We don't need F(x) any more */
   clear_list (F, lenF);
 
@@ -3979,8 +4085,7 @@ pp1fs2_ntt (mpz_t f, const mpres_t X, mpmod_t modulus,
   listz_t tmp;
   mpzspm_t ntt_context;
   mpzspv_t g_x_ntt, g_y_ntt, h_x_ntt, h_y_ntt;
-  const unsigned long tmpreslen = 20;
-  mpres_t b1_x, b1_y, Delta, tmpres[tmpreslen];
+  mpres_t b1_x, b1_y, Delta, tmpres;
   mpz_t mt;   /* All-purpose temp mpz_t */
   mpz_t product;
   mpz_t *product_ptr = NULL;
@@ -4033,10 +4138,6 @@ pp1fs2_ntt (mpz_t f, const mpres_t X, mpmod_t modulus,
   mpres_init (b1_x, modulus);
   mpres_init (b1_y, modulus);
   mpres_init (Delta, modulus);
-  MEMORY_TAG;
-  for (i = 0; i < tmpreslen; i++)
-      mpres_init (tmpres[i], modulus);
-  MEMORY_UNTAG;
   lenF = params->s_1 / 2 + 1 + 1; /* Another +1 because poly_from_sets_V stores
 				     the leading 1 monomial for each factor */
 
@@ -4064,9 +4165,11 @@ pp1fs2_ntt (mpz_t f, const mpres_t X, mpmod_t modulus,
   timestart = cputime ();
   realstart = realtime ();
   
-  V (tmpres[0], X, 2UL, modulus);
-  i = poly_from_sets_V (F, tmpres[0], S_1, tmp, tmplen, modulus, h_x_ntt,
+  mpres_init (tmpres, modulus);
+  V (tmpres, X, 2UL, modulus);
+  i = poly_from_sets_V (F, tmpres, S_1, tmp, tmplen, modulus, h_x_ntt,
                         ntt_context);
+  mpres_clear (tmpres, modulus);
   ASSERT_ALWAYS(2 * i == params->s_1);
   ASSERT(mpz_cmp_ui (F[i], 1UL) == 0);
   free (S_1);
@@ -4105,7 +4208,7 @@ pp1fs2_ntt (mpz_t f, const mpres_t X, mpmod_t modulus,
   /* Compute the h_j sequence */
   pp1_sequence_h (NULL, NULL, h_x_ntt, h_y_ntt, F, b1_x, b1_y, 0L, 
 		  params->s_1 / 2 + 1, params->P, Delta, modulus, 
-		  ntt_context, tmpreslen, tmpres);
+		  ntt_context);
   /* We don't need F(x) any more */
   clear_list (F, lenF);
 
@@ -4252,8 +4355,6 @@ pp1fs2_ntt (mpz_t f, const mpres_t X, mpmod_t modulus,
   mpres_clear (b1_x, modulus);
   mpres_clear (b1_y, modulus);
   mpres_clear (Delta, modulus);
-  for (i = 0; i < tmpreslen; i++)
-      mpres_clear (tmpres[i], modulus);
   free (S_2);
  
   outputf (OUTPUT_NORMAL, "Step 2 took %ldms\n", cputime () - timetotalstart);
