@@ -28,23 +28,15 @@ GSYM_PREFIX`'mulredc1:
 #     %rdx : y
 #     %rsi : x
 #     %rdi : z
-	movq	%rdx, %rax	# %rax = y
-
-	mulq	%rsi		# [rdx:rax] = x*y
-
+	movq	%rdx, %rax
+	mulq	%rsi
 	movq	%rdx, %r10
-	movq	%rax, %r9	# store xy in [r9:r10]
-
-	mulq	%r8		# compute u = (xy % 2^32) * inv_m
-
-	mulq	%rcx		# compute u*m
-
-	addq	%r9, %rax	# rax is 0 now (carry is important)
-
+	movq	%rax, %r9       # store xy in [r9:r10]
+	mulq	%r8             # compute u
+	mulq	%rcx          # compute u*m
+	addq	%r9, %rax       # rax is 0, now (carry is important)
 	adcq	%r10, %rdx
-
 	movq	%rdx, (%rdi)
-	adcq	$0, %rax	# return carry in %rax
-
+	adcq	$0, %rax
 	ret
 
