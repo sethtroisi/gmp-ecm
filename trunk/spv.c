@@ -152,7 +152,7 @@ spv_pwmul (spv_t r, spv_t x, spv_t y, spv_size_t len, sp_t m, sp_t d)
   ASSERT (r >= y + len || y >= r);
 
 #if (defined(__GNUC__) || defined(__ICL)) && \
-  	defined(__i386__) && defined(HAS_SSE2)
+  	defined(__i386__) && defined(HAVE_SSE2)
 
   asm volatile (
        "movd %6, %%xmm6            \n\t"
@@ -231,7 +231,7 @@ spv_mul_sp (spv_t r, spv_t x, sp_t c, spv_size_t len, sp_t m, sp_t d)
   ASSERT (r >= x + len || x >= r);
   
 #if (defined(__GNUC__) || defined(__ICL)) && \
-  	defined(__i386__) && defined(HAS_SSE2)
+  	defined(__i386__) && defined(HAVE_SSE2)
 
   asm volatile (
        "movd %2, %%xmm5            \n\t"

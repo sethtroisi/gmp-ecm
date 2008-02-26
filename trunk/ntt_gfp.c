@@ -31,7 +31,7 @@ static void bfly_dif(spv_t x0, spv_t x1, spv_t w,
   spv_size_t i = 0;
 
 #if (defined(__GNUC__) || defined(__ICL)) && \
-  	defined(__i386__) && defined(HAS_SSE2)
+  	defined(__i386__) && defined(HAVE_SSE2)
 
   asm volatile (
        "movd %6, %%xmm6            \n\t"
@@ -259,7 +259,7 @@ static inline void bfly_dit(spv_t x0, spv_t x1, spv_t w,
   spv_size_t i = 0;
 
 #if (defined(__GNUC__) || defined(__ICL)) && \
-  	defined(__i386__) && defined(HAS_SSE2)
+  	defined(__i386__) && defined(HAVE_SSE2)
 
   asm volatile (
        "movd %6, %%xmm6            \n\t"
