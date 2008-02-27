@@ -88,7 +88,8 @@ mpzspv_verify (mpzspv_t x, spv_size_t offset, spv_size_t len, mpzspm_t mpzspm)
     {
 
 #ifdef HAVE_MALLOC_USABLE_SIZE
-      if (malloc_usable_size (x[i]) < (offset + len) * sizeof (sp_t))
+      if (malloc_usable_size (*( (void **)x[i] - 1 )) < 
+          (offset + len) * sizeof (sp_t))
         return 0;
 #endif
 
