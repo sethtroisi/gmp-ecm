@@ -139,8 +139,8 @@ const unsigned long phiPfactors[] = {2UL, 3UL, 5UL, 7UL, 11UL, 13UL};
 */
 
 void 
-ntt_sqr_recip (mpzv_t, const mpzv_t, mpzspv_t, const spv_size_t, 
-               const mpzspm_t);
+ntt_sqr_reciprocal (mpzv_t, const mpzv_t, mpzspv_t, const spv_size_t, 
+		    const mpzspm_t);
 
 static void
 print_elapsed_time (long cpu, ATTRIBUTE_UNUSED long real)
@@ -671,12 +671,12 @@ list_recip_eval1 (mpz_t R, const listz_t S, const unsigned long l)
 {
   unsigned long i;
 
-  mpz_set (R, S[0]);
+  mpz_set_ui (R, 0UL);
   for (i = 1; i < l; i++)
-    {
-      mpz_add (R, R, S[i]);
-      mpz_add (R, R, S[i]);
-    }
+    mpz_add (R, R, S[i]);
+  mpz_mul_2exp (R, R, 1UL);
+  if (l > 0UL)
+    mpz_add (R, R, S[0]);
 }
 
 /* Multiply two reciprocal polynomials of degree 2*l1-2 and 2*l2-2, resp., 
@@ -1037,7 +1037,7 @@ list_scale_V (listz_t R, listz_t F, mpres_t Q, unsigned long deg,
       }
 
   if (dct != NULL && ntt_context != NULL)
-    ntt_sqr_recip (G, G, dct, deg + 1, ntt_context);
+    ntt_sqr_reciprocal (G, G, dct, deg + 1, ntt_context);
   else
     list_sqr_reciprocal (G, G, deg + 1, modulus->orig_modulus, 
                          newtmp, newtmplen);
@@ -1113,7 +1113,7 @@ list_scale_V (listz_t R, listz_t F, mpres_t Q, unsigned long deg,
       }
 
   if (dct != NULL && ntt_context != NULL)
-    ntt_sqr_recip (H, H, dct, deg, ntt_context);
+    ntt_sqr_reciprocal (H, H, dct, deg, ntt_context);
   else
     list_sqr_reciprocal (H, H, deg, modulus->orig_modulus, 
   		         newtmp, newtmplen);
@@ -2175,14 +2175,17 @@ ntt_print_vec (const char *msg, const spv_t spv, const spv_size_t l)
    The NTT primes must be == 1 (mod 4*len).
 */
 
-#undef TRACE_ntt_sqr_recip
+#undef TRACE_ntt_sqr_reciprocal
 void
-ntt_sqr_recip (mpzv_t R, const mpzv_t S, mpzspv_t dft, 
-               const spv_size_t n, const mpzspm_t ntt_context)
+ntt_sqr_reciprocal (mpzv_t R, const mpzv_t S, mpzspv_t dft, 
+		    const spv_size_t n, const mpzspm_t ntt_context)
 {
   const spv_size_t log2_n = ceil_log2 (n);
   const spv_size_t len = ((spv_size_t) 2) << log2_n;
   const spv_size_t log2_len = 1 + log2_n;
+#ifdef WANT_ASSERT
+  mpz_t S_eval_1, R_eval_1;
+#endif
   int j;
   
   if (n == 0)
@@ -2195,8 +2198,16 @@ ntt_sqr_recip (mpzv_t R, const mpzv_t S, mpzspv_t dft,
       return;
     }
 
-#ifdef TRACE_ntt_sqr_recip
-  printf ("ntt_sqr_recip: n %lu, length %lu\n", n, len);
+#ifdef WANT_ASSERT
+  mpz_init (S_eval_1);
+  list_recip_eval1 (S_eval_1, S, n);
+  /* Compute (S(1))^2 */
+  mpz_mul (S_eval_1, S_eval_1, S_eval_1);
+  mpz_mod (S_eval_1, S_eval_1, ntt_context->modulus);
+#endif
+
+#ifdef TRACE_ntt_sqr_reciprocal
+  printf ("ntt_sqr_reciprocal: n %lu, length %lu\n", n, len);
   gmp_printf ("Input polynomial is %Zd", S[0]);
   for (j = 1; (spv_size_t) j < n; j++)
     gmp_printf (" + %Zd * (x^%lu + x^(-%lu))", S[j], j, j);
@@ -2225,11 +2236,11 @@ ntt_sqr_recip (mpzv_t R, const mpzv_t S, mpzspv_t dft,
         /* Zero out NTT elements [n .. len-n] */
         spv_set_sp (spv + n, (sp_t) 0, len - 2*n + 1);
 
-#ifdef TRACE_ntt_sqr_recip
+#ifdef TRACE_ntt_sqr_reciprocal
         if (j == 0UL)
           {
-            printf ("ntt_sqr_recip: NTT vector mod %lu\n", sp);
-            ntt_print_vec ("ntt_sqr_recip: before weighting:", spv, len);
+            printf ("ntt_sqr_reciprocal: NTT vector mod %lu\n", sp);
+            ntt_print_vec ("ntt_sqr_reciprocal: before weighting:", spv, len);
           }
 #endif
 
@@ -2240,7 +2251,7 @@ ntt_sqr_recip (mpzv_t R, const mpzv_t S, mpzspv_t dft,
         /* Compute iw= 1/w */
         w2 = sp_pow (spm->inv_prim_root, ntt_context->max_ntt_size / 3UL, sp, 
                      mul_c);
-#ifdef TRACE_ntt_sqr_recip
+#ifdef TRACE_ntt_sqr_reciprocal
         if (j == 0)
           printf ("w1 = %lu ,w2 = %lu\n", w1, w2);
 #endif
@@ -2282,33 +2293,36 @@ ntt_sqr_recip (mpzv_t R, const mpzv_t S, mpzspv_t dft,
             spv[len - i - 1] = sp_neg (sp_add (t, u, sp), sp);
           }
 
-#ifdef TRACE_ntt_sqr_recip
+#ifdef TRACE_ntt_sqr_reciprocal
       if (j == 0UL)
-        ntt_print_vec ("ntt_sqr_recip: after weighting:", spv, len);
+        ntt_print_vec ("ntt_sqr_reciprocal: after weighting:", spv, len);
 #endif
 
         /* Forward DFT of dft[j] */
         spv_ntt_gfp_dif (spv, log2_len, spm);
 
-#if 0 && defined(TRACE_ntt_sqr_recip)
+#if 0 && defined(TRACE_ntt_sqr_reciprocal)
         if (j == 0UL)
-          ntt_print_vec ("ntt_sqr_recip: after forward transform:", spv, len);
+          ntt_print_vec ("ntt_sqr_reciprocal: after forward transform:", 
+			 spv, len);
 #endif
 
         /* Square the transformed vector point-wise */
         spv_pwmul (spv, spv, spv, len, sp, mul_c);
       
-#if 0 && defined(TRACE_ntt_sqr_recip)
+#if 0 && defined(TRACE_ntt_sqr_reciprocal)
         if (j == 0UL)
-          ntt_print_vec ("ntt_sqr_recip: after point-wise squaring:", spv, len);
+          ntt_print_vec ("ntt_sqr_reciprocal: after point-wise squaring:", 
+			 spv, len);
 #endif
 
         /* Inverse transform of dft[j] */
         spv_ntt_gfp_dit (spv, log2_len, spm);
       
-#if 0 && defined(TRACE_ntt_sqr_recip)
+#if 0 && defined(TRACE_ntt_sqr_reciprocal)
         if (j == 0UL)
-          ntt_print_vec ("ntt_sqr_recip: after inverse transform:", spv, len);
+          ntt_print_vec ("ntt_sqr_reciprocal: after inverse transform:", 
+			 spv, len);
 #endif
 
         /* Un-weight and divide by transform length */
@@ -2326,9 +2340,9 @@ ntt_sqr_recip (mpzv_t R, const mpzv_t S, mpzspv_t dft,
         if (i < 2 * n - 2)
           spv[i + 1] = sp_mul (spv[i + 1], w2, sp, mul_c);
         
-#ifdef TRACE_ntt_sqr_recip
+#ifdef TRACE_ntt_sqr_reciprocal
         if (j == 0UL)
-          ntt_print_vec ("ntt_sqr_recip: after un-weighting:", spv, len);
+          ntt_print_vec ("ntt_sqr_reciprocal: after un-weighting:", spv, len);
 #endif
 
         /* Separate the coefficients of R in the wrapped-around product. */
@@ -2343,7 +2357,7 @@ ntt_sqr_recip (mpzv_t R, const mpzv_t S, mpzspv_t dft,
         w2 = sp_inv (w1, sp, mul_c);
         w2 = sp_sub (w1, w2, sp);
         w2 = sp_inv (w2, sp, mul_c);
-#ifdef TRACE_ntt_sqr_recip
+#ifdef TRACE_ntt_sqr_reciprocal
         if (j == 0UL)
           printf ("For separating: w1 = %lu, w2 = %lu\n", w1, w2);
 #endif
@@ -2364,9 +2378,9 @@ ntt_sqr_recip (mpzv_t R, const mpzv_t S, mpzspv_t dft,
             ASSERT(i < len / 2 || t == u);
           }
 
-#ifdef TRACE_ntt_sqr_recip
+#ifdef TRACE_ntt_sqr_reciprocal
         if (j == 0UL)
-          ntt_print_vec ("ntt_sqr_recip: after un-wrapping:", spv, len);
+          ntt_print_vec ("ntt_sqr_reciprocal: after un-wrapping:", spv, len);
 #endif
       }
 #ifdef _OPENMP
@@ -2398,11 +2412,32 @@ ntt_sqr_recip (mpzv_t R, const mpzv_t S, mpzspv_t dft,
       mpz_mod (R[i], R[i], ntt_context->modulus);
   }
 
-#ifdef TRACE_ntt_sqr_recip
-  gmp_printf ("ntt_sqr_recip: Output polynomial is %Zd", R[0]);
+#ifdef TRACE_ntt_sqr_reciprocal
+  gmp_printf ("ntt_sqr_reciprocal: Output polynomial is %Zd", R[0]);
   for (j = 1; (spv_size_t) j < 2*n - 1; j++)
     gmp_printf (" + %Zd * (x^%lu + x^(-%lu))", R[j], j, j);
   printf ("\n");
+#endif
+
+#ifdef WANT_ASSERT
+  mpz_init (R_eval_1);
+  /* Compute (S^2)(1) and compare to (S(1))^2 */
+  list_recip_eval1 (R_eval_1, R, 2 * n - 1);
+  mpz_mod (R_eval_1, R_eval_1, ntt_context->modulus);
+  if (mpz_cmp (R_eval_1, S_eval_1) != 0)
+    {
+      gmp_fprintf (stderr, "ntt_sqr_reciprocal: (S(1))^2 = %Zd but "
+		   "(S^2)(1) = %Zd\n", S_eval_1, R_eval_1);
+#if 0
+      gmp_printf ("Output polynomial is %Zd", R[0]);
+      for (j = 1; (spv_size_t) j < 2*n - 1; j++)
+	gmp_printf (" + %Zd * (x^%lu + x^(-%lu))", R[j], j, j);
+      printf ("\n");
+#endif
+      abort ();
+    }
+  mpz_clear (S_eval_1);
+  mpz_clear (R_eval_1);
 #endif
 }
 
@@ -2820,22 +2855,22 @@ pm1fs2_ntt (mpz_t f, const mpres_t X, mpmod_t modulus,
   {
     int testlen = 255;
     int i, j;
-    /* A test of ntt_sqr_recip() */
+    /* A test of ntt_sqr_reciprocal() */
     for (j = 1; j <= testlen; j++)
       {
         outputf (OUTPUT_VERBOSE, 
-                 "Testing ntt_sqr_recip() for input degree %d\n", 
+                 "Testing ntt_sqr_reciprocal() for input degree %d\n", 
                  j - 1);
         for (i = 0; i < j; i++)
           mpz_set_ui (tmp[i], 1UL);
-        ntt_sqr_recip (tmp, tmp, h_ntt, (spv_size_t) j, ntt_context);
+        ntt_sqr_reciprocal (tmp, tmp, h_ntt, (spv_size_t) j, ntt_context);
         for (i = 0; i < 2 * j - 1; i++)
           {
             ASSERT (mpz_cmp_ui (tmp[i], 2 * j - 1 - i) == 0);
           }
       }
     outputf (OUTPUT_VERBOSE, 
-             "Test of ntt_sqr_recip() for input degree 2 ... %d passed\n", 
+             "Test of ntt_sqr_reciprocal() for input degree 2 ... %d passed\n", 
              testlen - 1);
   }
 #endif
