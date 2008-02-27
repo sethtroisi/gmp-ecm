@@ -579,10 +579,6 @@ mpmod_init_BASE2 (mpmod_t modulus, const int base2, const mpz_t N)
       if (i == 1)
         {
           modulus->Fermat = base2;
-#if defined(HAVE_GWNUM) && !defined (TUNE)
-          if (modulus->Fermat >= GWTHRESHOLD)
-            Fgwinit (modulus->Fermat);
-#endif
         }
     }
   
@@ -704,10 +700,6 @@ mpmod_clear (mpmod_t modulus)
       mpz_clear (modulus->R3);
       mpz_clear (modulus->multiple);
     }
-#if defined(HAVE_GWNUM) && !defined (TUNE)
-  if (modulus->Fermat >= GWTHRESHOLD)
-    Fgwclear ();
-#endif
   
   return;
 }
@@ -733,24 +725,6 @@ mpmod_copy (mpmod_t r, const mpmod_t modulus)
     mpz_init_set (r->aux_modulus, modulus->aux_modulus);
 }
 
-
-void 
-mpmod_pausegw (ATTRIBUTE_UNUSED const mpmod_t modulus)
-{
-#if defined(HAVE_GWNUM) && !defined (TUNE)
-  if (modulus->Fermat >= GWTHRESHOLD)
-    Fgwclear ();
-#endif
-}
-
-void 
-mpmod_contgw (ATTRIBUTE_UNUSED const mpmod_t modulus)
-{
-#if defined(HAVE_GWNUM) && !defined (TUNE)
-  if (modulus->Fermat >= GWTHRESHOLD)
-    Fgwinit (modulus->Fermat);
-#endif
-}
 
 void 
 mpres_init (mpres_t R, const mpmod_t modulus)
@@ -1019,35 +993,6 @@ mpres_mul (mpres_t R, const mpres_t S1, const mpres_t S2, mpmod_t modulus)
   ASSERT_NORMALIZED (S1);
   ASSERT_NORMALIZED (S2);
 
-#if defined(HAVE_GWNUM) && !defined (TUNE)
-  if (modulus->repr == ECM_MOD_BASE2 && modulus->Fermat >= GWTHRESHOLD)
-    {
-      base2mod_1 (S1, modulus->temp1, modulus);
-      base2mod_1 (S2, modulus->temp1, modulus);
-
-#ifdef DEBUG
-      mpz_mul (modulus->temp1, S1, S2);
-      base2mod_1 (modulus->temp1, modulus->temp2, modulus);
-      mpz_mod (modulus->temp2, modulus->temp1, modulus->orig_modulus);
-#endif
-
-      ASSERT (mpz_sizeinbase (S1, 2) <= (unsigned) abs(modulus->bits));
-      ASSERT (mpz_sizeinbase (S2, 2) <= (unsigned) abs(modulus->bits));
-      Fgwmul (R, S1, S2);
-
-#ifdef DEBUG
-      mpz_mod (modulus->temp1, R, modulus->orig_modulus);
-      if (mpz_cmp (modulus->temp1, modulus->temp2) != 0)
-        {
-          fprintf (stderr, "mpres_mul: results of gwmul and mpz_mul differ\n");
-          gmp_fprintf (stderr, "GMP result   : %Zd\nGWNUM result : %Zd\n", 
-                       modulus->temp2, modulus->temp1);
-        }
-#endif
-
-      return;
-    }
-#else /* defined(HAVE_GWNUM) && !defined (TUNE) */
   if (modulus->repr == ECM_MOD_BASE2 && modulus->Fermat >= 32768)
     {
       mp_size_t n = modulus->Fermat / __GMP_BITS_PER_MP_LIMB;
@@ -1087,7 +1032,6 @@ mpres_mul (mpres_t R, const mpres_t S1, const mpres_t S2, mpmod_t modulus)
 
       return;
     }
-#endif /* defined(HAVE_GWNUM) && !defined (TUNE) */
 
   if (modulus->repr != ECM_MOD_MODMULN)
     mpz_mul (modulus->temp1, S1, S2);
@@ -1134,19 +1078,6 @@ mpres_mul_z_to_z (mpz_t R, const mpres_t S1, const mpz_t S2, mpmod_t modulus)
 {
   ASSERT_NORMALIZED (S1);
 
-#if defined(HAVE_GWNUM) && !defined (TUNE)
-  if (modulus->repr == ECM_MOD_BASE2 && modulus->Fermat >= GWTHRESHOLD)
-    {
-      base2mod_1 (S1, modulus->temp1, modulus);
-      base2mod_1 (S2, modulus->temp1, modulus);
-
-      ASSERT (mpz_sizeinbase (S1, 2) <= (unsigned) abs(modulus->bits));
-      ASSERT (mpz_sizeinbase (S2, 2) <= (unsigned) abs(modulus->bits));
-      Fgwmul (R, S1, S2);
-
-      return;
-    }
-#else /* defined(HAVE_GWNUM) && !defined (TUNE) */
   if (modulus->repr == ECM_MOD_BASE2 && modulus->Fermat >= 32768)
     {
       mp_size_t n = modulus->Fermat / __GMP_BITS_PER_MP_LIMB;
@@ -1186,7 +1117,6 @@ mpres_mul_z_to_z (mpz_t R, const mpres_t S1, const mpz_t S2, mpmod_t modulus)
 
       return;
     }
-#endif /* defined(HAVE_GWNUM) && !defined (TUNE) */
 
   switch (modulus->repr)
     {

@@ -842,9 +842,6 @@ gw_ecm_stage1 (mpz_t f, curve *P, mpmod_t modulus,
   mpres_get_z (gw_z, P->y, modulus);
   mpres_get_z (gw_A, P->A, modulus);
 
-  /* Temporarily pause the use of GWNUM by mpmod.c */
-  mpmod_pausegw (modulus);
-
   /* gwnum_ecmStage1() wants long int pointers for size_x, size_z, 
      so copy them into long int vars */
   siz_x = SIZ(gw_x);
@@ -857,9 +854,6 @@ gw_ecm_stage1 (mpz_t f, curve *P, mpmod_t modulus,
   
   SIZ(gw_x) = siz_x;
   SIZ(gw_z) = siz_z;
-
-  /* Resume use of GWNUM by mpmod.c */
-  mpmod_contgw (modulus);
 
   outputf (OUTPUT_DEVVERBOSE, 
            "gw_ecm_stage1: after gwnum_ecmStage1, \n"

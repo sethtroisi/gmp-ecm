@@ -163,38 +163,7 @@ F_mulmod (mpz_t R, mpz_t S1, mpz_t S2, unsigned int n)
                "Trying again\n", n, (unsigned long) mpz_sizeinbase (S2, 2));
       F_mod_1 (S2, n);
     }
-#if defined(HAVE_GWNUM) && !defined (TUNE)
-  if (n >= GWTHRESHOLD)
-    {
-#ifdef DEBUG
-      mpz_t t, t2;
-      mpz_init (t);
-      mpz_mul (gt, S1, S2);
-      F_mod_gt (t, n);
-      F_mod_1 (t, n);
-#endif
-      Fgwmul (R, S1, S2);
-      F_mod_1 (R, n);
-#ifdef DEBUG
-      if (mpz_cmp (t, R) != 0)
-        {
-          /* Perhaps they are congruent, but of opposite sign */
-          mpz_init (t2);
-          mpz_sub (t2, t, R);
-          F_mod_1 (t2, n);
-          if (mpz_sgn (t2) != 0)
-            {
-              outputf (OUTPUT_ERROR, "F_mulmod: results of mpz_mul and "
-                       "Fgwmul differ:\n%Zd\n%Zd\n", t, R);
-              return;
-            }
-          mpz_clear (t2);
-        }
-      mpz_clear (t);
-#endif
-      return;
-    }
-#else /* defined(HAVE_GWNUM) && !defined (TUNE) */
+
   if (n >= 32768)
     {
       unsigned long k;
@@ -208,7 +177,6 @@ F_mulmod (mpz_t R, mpz_t S1, mpz_t S2, unsigned int n)
       F_mod_gt (R, n);
       return;
     }
-#endif /* defined(HAVE_GWNUM) && !defined (TUNE) */
   mpz_mul (gt, S1, S2);
   F_mod_gt (R, n);
   return;

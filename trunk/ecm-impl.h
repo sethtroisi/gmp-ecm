@@ -120,17 +120,6 @@ extern FILE *ECM_STDOUT, *ECM_STDERR;
 #define USE_SHORT_PRODUCT
 #endif
 
-/* Use George Woltman's GWNUM library */
-/* Should be defined via -DHAVE_GWNUM by Makefile
-#define HAVE_GWNUM
-*/
-
-#ifdef HAVE_GWNUM
-/* Only Fermat numbers with exponent >= GWTHRESHOLD are multiplied with 
-   Woltman's DWT */
-#define GWTHRESHOLD 1024
-#endif
-
 #include <assert.h>
 #define ASSERT_ALWAYS(expr)   assert (expr)
 #if WANT_ASSERT
@@ -668,9 +657,6 @@ unsigned int get_random_ui (void);
 
 /* Fgw.c */
 #ifdef HAVE_GWNUM
-void Fgwinit (int);
-void Fgwclear (void);
-void Fgwmul (mpz_t, mpz_t, mpz_t);
 int  gw_ecm_stage1 (mpz_t, curve *, mpmod_t, double, double *, mpz_t);
 #endif
 
