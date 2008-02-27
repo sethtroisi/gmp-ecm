@@ -1034,7 +1034,6 @@ ecm (mpz_t f, mpz_t x, mpz_t sigma, mpz_t n, mpz_t go, double *B1done,
 
   if (youpi != ECM_NO_FACTOR_FOUND)
     goto end_of_ecm;
-
 #endif
 
   if (B1 > *B1done)
