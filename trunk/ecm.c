@@ -1077,31 +1077,10 @@ ecm (mpz_t f, mpz_t x, mpz_t sigma, mpz_t n, mpz_t go, double *B1done,
   if (stop_asap != NULL && (*stop_asap) ())
     goto end_of_ecm;
 
-#ifdef MONT_ROOTS
-  /* If we want to use Montgomery form for generating the roots for stage 2, 
-     convert to Weierstrass form only if S != 1 */
-  if (root_params.S != 1)
-    {
-      mpz_t t;
-      outputf (OUTPUT_DEVVERBOSE, "ecm: Converting to Weierstrass form\n");
-      youpi = montgomery_to_weierstrass (f, P.x, P.y, P.A, modulus);
-      if (test_verbose (OUTPUT_TRACE))
-        {
-          MEMORY_TAG;
-          mpz_init (t);
-          MEMORY_UNTAG;
-          mpres_get_z (t, P.x, modulus);
-          outputf (OUTPUT_TRACE, "P = (%Zd, ", t);
-          mpres_get_z (t, P.y, modulus);
-          outputf (OUTPUT_TRACE, "%Zd)\n", t);
-          mpz_clear (t);
-        }
-    }
-#else
   youpi = montgomery_to_weierstrass (f, P.x, P.y, P.A, modulus);
-#endif
   
-  if (test_verbose (OUTPUT_RESVERBOSE))
+  if (test_verbose (OUTPUT_RESVERBOSE) && youpi == ECM_NO_FACTOR_FOUND && 
+      mpz_cmp (B2, B2min) >= 0)
     {
       mpz_t t;
 
