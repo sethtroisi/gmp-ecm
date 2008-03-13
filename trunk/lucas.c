@@ -149,8 +149,8 @@ pp1_mul_prac (mpres_t A, unsigned long k, mpmod_t n, mpres_t t, mpres_t B,
 {
   unsigned long d, e, r, i = 0;
   static double val[NV] =
-  {1.6180339887498948, 1.7236067977499790, 1.6183471196562281,
-   1.6179144065288179};
+    {0.61803398874989485, 0.5801787282954641, 0.6179144065288179 , 0.6180796684698958};
+    /* 1/GR,              5/(GR+7) (2),       1429/(GR+2311) (8),  3739/(6051-GR) (9) */
 
   /* chooses the best value of v */
   for (d = 0, r = ADD * k; d < NV; d++)
@@ -163,7 +163,7 @@ pp1_mul_prac (mpres_t A, unsigned long k, mpmod_t n, mpres_t t, mpres_t B,
         }
     }
   d = k;
-  r = (unsigned long) ((double) d / val[i] + 0.5);
+  r = (unsigned long) ((double) d * val[i] + 0.5);
   
   /* first iteration always begins by Condition 3, then a swap */
   d = k - r;

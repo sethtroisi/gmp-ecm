@@ -321,7 +321,7 @@ lucas_cost (unsigned long n, double v)
   double c; /* cost */
 
   d = n;
-  r = (unsigned long) ((double) d / v + 0.5);
+  r = (unsigned long) ((double) d * v + 0.5);
   if (r >= n)
     return (ADD * (double) n);
   d = n - r;
@@ -409,11 +409,14 @@ prac (mpres_t xA, mpres_t zA, unsigned long k, mpmod_t n, mpres_t b,
   double c, cmin;
   __mpz_struct *tmp;
 #define NV 10  
+  /* 1/val[0] = the golden ratio (1+sqrt(5))/2, and 1/val[i] for i>0
+     is the real number whose continued fraction expansion is all 1s
+     except for a 2 in i+1-st place */
   static double val[NV] =
-    { 1.6180339887498948, 1.7236067977499790, 1.6183471196562281,
-      1.6179144065288179, 1.6124299495094950, 1.6328398060887063,
-      1.6201819808074158, 1.5801787282954641, 1.6172146165344039,
-      1.3819660112501052 };
+    { 0.61803398874989485, 0.72360679774997897, 0.58017872829546410,
+      0.63283980608870629, 0.61242994950949500, 0.62018198080741576,
+      0.61721461653440386, 0.61834711965622806, 0.61791440652881789,
+      0.61807966846989581};
   
   /* chooses the best value of v */
   for (d = 0, cmin = ADD * (double) k; d < NV; d++)
@@ -426,7 +429,7 @@ prac (mpres_t xA, mpres_t zA, unsigned long k, mpmod_t n, mpres_t b,
         }
     }
   d = k;
-  r = (unsigned long) ((double) d / val[i] + 0.5);
+  r = (unsigned long) ((double) d * val[i] + 0.5);
   
   /* first iteration always begins by Condition 3, then a swap */
   d = k - r;
