@@ -201,16 +201,19 @@ void sp_aligned_free (void *newptr);
 
 static inline sp_t sp_sub(sp_t a, sp_t b, sp_t m) 
 {
-#if (defined(__GNUC__) || defined(__ICL)) && defined(__i386__)
-  sp_t ans;
-  asm("xorl %%edx, %%edx \n\t"
-      "subl %2, %0       \n\t"
-      "cmovbl %3, %%edx  \n\t"
-      "addl %%edx, %0    \n\t"
-   : "=r"(ans)
-   : "0"(a), "g"(b), "g"(m) : "%edx", "cc");
-  return ans;
+#if (defined(__GNUC__) || defined(__ICL)) && \
+    (defined(__x86_64__) || defined(__i386__))
+  sp_t t = 0, tr = a;
 
+  __asm__ (
+    "sub %2, %0   # sp_sub: tr -= b\n\t"
+    "cmovc %3, %1 # sp_sub: if (a < b) t = m\n\t"
+    : "+&r" (tr), "+r" (t)
+    : "g" (b), "g" (m)
+    : "cc"
+  );
+
+  return tr + t;
 #elif defined(_MSC_VER) && !defined(_WIN64)
   uint32 ans;
   __asm
@@ -235,7 +238,22 @@ static inline sp_t sp_sub(sp_t a, sp_t b, sp_t m)
 
 static inline sp_t sp_add(sp_t a, sp_t b, sp_t m) 
 {
-	return sp_sub(a, m - b, m);
+#if (defined(__GNUC__) || defined(__ICL)) && \
+    (defined(__x86_64__) || defined(__i386__))
+  unsigned long t = a - m, tr = a + b;
+
+  __asm__ (
+    "add %2, %1    # sp_add: tr -= b\n\t"   /* t += b */
+    "cmovc %1, %0  # sp_add: \n\t"  /* if (cy) tr = t */
+    : "+r" (tr), "+&r" (t)
+    : "g" (b)
+    : "cc"
+  );
+
+  return tr;
+#else
+  return sp_sub(a, m - b, m);
+#endif
 }
 
 /* functions used for modular reduction */
