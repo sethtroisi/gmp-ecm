@@ -796,10 +796,11 @@ pp1 (mpz_t f, mpz_t p, mpz_t n, mpz_t go, double *B1done, double B1,
   mpres_t a;
   mpmod_t modulus;
   mpz_t B2min, B2; /* Local B2, B2min to avoid changing caller's values */
-  unsigned long dF;
+  unsigned long dF, lmax = 1UL<<28;
   root_params_t root_params;
   faststage2_param_t faststage2_params;
   const int stage2_variant = (S == 1 || S == ECM_DEFAULT_S);
+  int twopass = 1;
 
   set_verbose (verbose);
   ECM_STDOUT = (os == NULL) ? stdout : os;
@@ -837,8 +838,31 @@ pp1 (mpz_t f, mpz_t p, mpz_t n, mpz_t go, double *B1done, double B1,
     {
       /* If S == 1, we use the new, faster stage 2 */
       long P;
-      unsigned long lmax = 1UL<<26;
       mpz_init (faststage2_params.m_1);
+      if (maxmem != 0.)
+        {
+          /* Find the largest lmax we can can handle with maxmem.
+             The NTT version of fast stage 2 requires s_1 < lmax, so this
+             is an upper bound we can use for the memory estimate here. */
+          unsigned long try_lmax = 4UL;
+          while (2 * try_lmax < lmax &&
+                 (double) pp1fs2_ntt_memory_use (2 * try_lmax, try_lmax, 
+                                                 twopass, n) <= maxmem)
+            try_lmax <<= 1;
+
+          lmax = try_lmax;
+
+          /* See if we can also do a one-pass stage 2 with maxmem */
+          if ((double) pp1fs2_ntt_memory_use (lmax, lmax / 2, 0, n) <= maxmem)
+            twopass = 0;
+
+          outputf (OUTPUT_VERBOSE, "%.2fMB allow for %s lmax <= %lu "
+                   "which uses approx. %.2fMB\n", maxmem / 1048576., 
+                   (twopass) ? "two pass" : "one pass", lmax, 
+                   (double) pp1fs2_ntt_memory_use (lmax, lmax / 2, twopass, n) 
+                   / 1048576.);
+        }
+
       P = choose_P (B2min, B2, lmax, k, &faststage2_params, B2min, B2,
                     use_ntt);
       if (P == ECM_ERROR)
@@ -952,7 +976,7 @@ pp1 (mpz_t f, mpz_t p, mpz_t n, mpz_t go, double *B1done, double B1,
       if (stage2_variant != 0)
         {
           if (use_ntt)
-            youpi = pp1fs2_ntt (f, a, modulus, &faststage2_params, 1);
+            youpi = pp1fs2_ntt (f, a, modulus, &faststage2_params, twopass);
           else 
             youpi = pp1fs2 (f, a, modulus, &faststage2_params);
         }
