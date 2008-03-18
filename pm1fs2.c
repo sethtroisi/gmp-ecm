@@ -156,6 +156,64 @@ print_elapsed_time (long cpu, ATTRIBUTE_UNUSED long real)
 }
 
 
+size_t
+pm1fs2_ntt_memory_use (unsigned long lmax, mpz_t modulus)
+{
+  mpz_t t;
+  size_t n;
+  
+  /* We store lmax / 2 + 1 coefficients for the DCT-I of F and lmax 
+     coefficients for G in NTT ready format. Each coefficient in 
+     NTT-ready format occupies approx. 
+     ceil(log(lmax*modulus^2)/log(bits per sp_t)) + 3 words. */
+  
+  mpz_init (t);
+  mpz_mul (t, modulus, modulus);
+  mpz_mul_ui (t, t, lmax);
+  n = (mpz_sizeinbase (t, 2) - 1) / SP_NUMB_BITS + 4;
+  mpz_clear (t);
+  n *= sizeof (sp_t); /* Number of bytes each coefficient in NTT ready form
+			 occupies */
+  
+  n = n * (size_t) (3 * lmax / 2 + 1);
+  outputf (OUTPUT_DEVVERBOSE, "Estimated memory use with lmax = %lu "
+	   "is %lu bytes\n", lmax, n);
+  
+  return n;
+}
+
+
+size_t 
+pp1fs2_ntt_memory_use (unsigned long lmax, unsigned long s_1, int twopass,
+		       mpz_t modulus)
+{
+  mpz_t t;
+  size_t n;
+  
+  /* In one pass mode, we store h_x_ntt and h_y_ntt, each of length lmax/2+1,
+     and g_x_ntt and g_y_ntt, each of length lmax, all in NTT ready format.
+     In two pass mode, we store h_x_ntt, h_y_ntt and g_x_ntt as before,
+     plus R which is lmax - s_1 mpz_t.
+  */
+
+  mpz_init (t);
+  mpz_mul (t, modulus, modulus);
+  mpz_mul_ui (t, t, lmax);
+  if (!twopass)
+    mpz_mul_2exp (t, t, 1UL);
+  n = (mpz_sizeinbase (t, 2) - 1) / SP_NUMB_BITS + 4;
+  mpz_clear (t);
+  n *= sizeof (sp_t); /* Number of bytes each coefficient in NTT ready form
+			 occupies */
+
+  if (twopass)
+    return (2 * lmax + 2) * n + (lmax - s_1) * 
+      (mpz_size (modulus) * sizeof (mp_limb_t) + sizeof (mpz_t));
+  else
+    return (3 * lmax + 2) * n;
+}
+
+
 static unsigned long
 maxS (unsigned long P)
 {
@@ -325,11 +383,12 @@ choose_P (const mpz_t B2min, const mpz_t B2, const unsigned long lmax,
      Let F(x) = \prod_{k_1 \in S_1} (x - b_1^{2 k_1}).
 
      If we evaluate F(b_1^{2 k_2 + (2m + 1)P}) for all k_2 \in S_2 with 
-     m_1 <= m < m_1+nr, the largest value coprime to P at the 
-     low end of the stage 2 interval *not* covered will be 
-       2*max(S_2) + (2*m_1 - 1)*P - 2*min(S_1).
+     m_1 <= m < m_1+nr, we test all exponents 2 k_2 + (2m + 1)P - 2 k_1.
+     The largest value coprime to P at the low end of the stage 2 interval 
+     *not* covered will be 
+       2*max(S_2) + (2*(m_1-1) + 1)*P - 2*min(S_1).
      The smallest value at the high end not covered will be
-       2*min(S_2) + (2*m_1 + 2*nr + 1)*P - 2*max(S_1).
+       2*min(S_2) + (2*(m_1 + nr) + 1)*P - 2*max(S_1).
      Assume S_1 and S_2 are symmetric around 0, so that max(S_1) = -min(S_1).
      Then the largest ... is:
        2*(max(S_1) + max(S_2)) + (2*m_1 - 1)*P
@@ -341,16 +400,8 @@ choose_P (const mpz_t B2min, const mpz_t B2, const unsigned long lmax,
      Then the difference effB2max - effB2min =
        -4*(max(S_1) + max(S_2)) + 2P*(nr + 1) - 2
 
-     max(S_1) + max(S_2) = max(S_1 + S_2) >= (P-1)/2.
-     Since we allow only primes <= 13 in P, there are at most 5 distinct 
-     primes so max(S_1) + max(S_2) = max(S_1 + S_2) <= 5(P-1).
-
-     Thus
-     2*m_1*P <= effB2min <= (2*m_1 + 9)*P
-     (2*m_1 + 2*nr)*P >= effB2max >= (2*m_1 + 2*nr - 9)*P
-
      We obviously require B2max - B2min <= 2*nr*P
-     Since nr < lmax, so B2max - B2min <= 2*lmax*P or
+     Since nr < lmax, B2max - B2min <= 2*lmax*P or
      P >= ceil((B2max - B2min)/(2*lmax))
 
      Hence we are looking for an odd P with s_1 * s_2 = eulerphi(P) so that
@@ -406,6 +457,10 @@ choose_P (const mpz_t B2min, const mpz_t B2, const unsigned long lmax,
   
   if (i == Pvalues_len)
     return ECM_ERROR; /* Could not find suitable P */
+
+  /* For each P, determine the smallest s_2 * lmax that lets us cover
+     B2min, B2max */
+
 
   /* s_2 cannot be reduced further, but the transform length l could. */
   l = lmax;
@@ -3698,7 +3753,9 @@ pp1_sequence_h (listz_t h_x, listz_t h_y, mpzspv_t h_x_ntt, mpzspv_t h_y_ntt,
 			  tmplen, tmp);
     if (test_verbose (OUTPUT_TRACE))
       {
+#ifdef _OPENMP
 #pragma omp critical
+#endif
 	{
 	  outputf (OUTPUT_TRACE, "/* pp1_sequence_h */ rn^(%ld^2) == ", k);
 	  gfp_ext_print (s_x[0], s_y[0], modulus, OUTPUT_TRACE);
@@ -3720,7 +3777,9 @@ pp1_sequence_h (listz_t h_x, listz_t h_y, mpzspv_t h_x_ntt, mpzspv_t h_y_ntt,
 	/* Now s[1] = r^(-(k^2 + 2k + 1)) = r^(-(k+1)^2) */
 	if (test_verbose (OUTPUT_TRACE))
 	  {
+#ifdef _OPENMP
 #pragma omp critical
+#endif
 	    {
 	      outputf (OUTPUT_TRACE, "/* pp1_sequence_h */ rn^(%ld^2) == ", 
 		       k + 1);
@@ -3736,7 +3795,9 @@ pp1_sequence_h (listz_t h_x, listz_t h_y, mpzspv_t h_x_ntt, mpzspv_t h_y_ntt,
 		 tmplen, tmp);
     if (test_verbose (OUTPUT_TRACE))
       {
+#ifdef _OPENMP
 #pragma omp critical
+#endif
 	{
 	  outputf (OUTPUT_TRACE, "/* pp1_sequence_h */ rn^(%ld^2+2) == ", k);
 	  gfp_ext_print (s2_x[0], s2_y[0], modulus, OUTPUT_TRACE);
@@ -3749,7 +3810,9 @@ pp1_sequence_h (listz_t h_x, listz_t h_y, mpzspv_t h_x_ntt, mpzspv_t h_y_ntt,
 		 tmplen, tmp);
     if (test_verbose (OUTPUT_TRACE))
       {
+#ifdef _OPENMP
 #pragma omp critical
+#endif
 	{
 	  outputf (OUTPUT_TRACE, "/* pp1_sequence_h */ rn^(%ld^2+2) == ", 
 		   k + 1);
@@ -3767,7 +3830,9 @@ pp1_sequence_h (listz_t h_x, listz_t h_y, mpzspv_t h_x_ntt, mpzspv_t h_y_ntt,
     mpres_sub_ui (V2, V2, 2UL, modulus); /* V2 = 4*a_x^2 - 2 */
     if (test_verbose (OUTPUT_TRACE))
       {
+#ifdef _OPENMP
 #pragma omp critical
+#endif
 	{
 	  mpres_get_z (mt, V2, modulus);
 	  outputf (OUTPUT_TRACE, "/* pp1_sequence_h */ r^2 + 1/r^2 == %Zd "
