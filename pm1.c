@@ -803,7 +803,7 @@ pm1 (mpz_t f, mpz_t p, mpz_t N, mpz_t go, double *B1done, double B1,
   mpmod_t modulus;
   mpres_t x;
   mpz_t B2min, B2; /* Local B2, B2min to avoid changing caller's values */
-  unsigned long dF, lmax = 1UL<<26;
+  unsigned long dF, lmax = 1UL<<28;
   root_params_t root_params;
   faststage2_param_t faststage2_params;
   /* If stage2_variant != 0, we use the new fast stage 2 */
@@ -895,6 +895,20 @@ pm1 (mpz_t f, mpz_t p, mpz_t N, mpz_t go, double *B1done, double B1,
     {
       long P;
       mpz_init (faststage2_params.m_1);
+      if (maxmem != 0.)
+        {
+          /* Find the largest lmax we can can handle with maxmem. */
+          unsigned long try_lmax = 4UL;
+          while (2 * try_lmax < lmax &&
+                 (double) pm1fs2_ntt_memory_use (2 * try_lmax, N) <= 
+                 maxmem)
+            try_lmax <<= 1;
+          lmax = try_lmax;
+          outputf (OUTPUT_VERBOSE, "%.2fMB allow for lmax <= %lu "
+                   "which uses approx. %.2fMB\n", maxmem / 1048576., lmax, 
+                   (double) pm1fs2_ntt_memory_use (lmax, N) / 1048576.);
+        }
+
       P = choose_P (B2min, B2, lmax, k, &faststage2_params, B2min, B2, 
                     use_ntt);
       if (P == ECM_ERROR)

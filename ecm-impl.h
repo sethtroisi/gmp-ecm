@@ -321,15 +321,24 @@ int     pm1_rootsG       (mpz_t, listz_t, unsigned long, pm1_roots_state_t *,
 void    pm1_rootsG_clear (pm1_roots_state_t *, mpmod_t);
 
 /* pm1fs2.c */
+#define pm1fs2_ntt_memory_use __ECM(pm1fs2_ntt_memory_use)
+size_t  pm1fs2_ntt_memory_use (unsigned long, mpz_t);
+#define pp1fs2_ntt_memory_use __ECM(pp1fs2_ntt_memory_use)
+size_t  pp1fs2_ntt_memory_use (unsigned long, unsigned long, int, mpz_t);
+#define choose_P __ECM(choose_P)
 long    choose_P (const mpz_t, const mpz_t, const unsigned long,
                   const unsigned long, faststage2_param_t *, mpz_t, mpz_t,
                   const int);
+#define pm1fs2 __ECM(pm1fs2)
 int	pm1fs2 (mpz_t, const mpres_t, mpmod_t, const faststage2_param_t *);
+#define pm1fs2_ntt __ECM(pm1fs2_ntt)
 int	pm1fs2_ntt (mpz_t, const mpres_t, mpmod_t, const faststage2_param_t *);
+#define pp1fs2 __ECM(pp1fs2)
 int     pp1fs2 (mpz_t, const mpres_t, mpmod_t, const faststage2_param_t *);
+#define pp1fs2_ntt __ECM(pp1fs2_ntt)
 int     pp1fs2_ntt (mpz_t, const mpres_t, mpmod_t, const faststage2_param_t *,
                     const int);
-  
+
 /* bestd.c */
 #define bestD __ECM(bestD)
 int     bestD (root_params_t *, unsigned long *, unsigned long *, mpz_t, 
