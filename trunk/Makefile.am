@@ -74,6 +74,8 @@ EXTRA_DIST = test.pm1 test.pp1 test.ecm README.lib ecm.xml \
 
 DIST_SUBDIRS = athlon pentium4 x86_64
 
+DISTCLEANFILES = config.m4
+
 ecm-params:	tune$(EXEEXT)
 		@echo Optimising parameters for your system, please be patient.
 		test -z "ecm-params.h" || rm -f ecm-params.h
@@ -100,7 +102,3 @@ endif
 
 ecm.1: ecm.xml
 	xsltproc -o ecm.1 $(XSLDIR)/manpages/docbook.xsl ecm.xml
-
-pm1fs2: pm1fs2.c libecm.a
-	gcc -Wall -Wextra -DTESTDRIVE -g -O0 -o pm1fs2 pm1fs2.c libecm.a -lm -lgmp
-
