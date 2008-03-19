@@ -1,3 +1,15 @@
+Changes between ecm-6.1.3 and ecm-6.2:
+* New stage 2 for P-1 and P+1, described in Montgomery and Kruppa,
+  Improved Stage 2 to P+-1 Factoring Algorithms, 
+  in A. J. van der Poorten and A. Stein (Eds.), ANTS-VIII 2008,
+  LNCS 5011, pp. 180-195
+* Optimizations to the NTT code by Jason S. Papadopoulos
+* Improved mulredc assembly code for Athlon64/Opteron
+* Improved modular reduction in the mpzmod range
+* Bugfix in P+1 stage 2 which caused incorrect initalisation if
+  Brent-Suyama polynomial had degree > 1 and i0 was negative (occurs only
+  with non-standard parameters)
+
 Changes between ecm-6.1.2 and ecm-6.1.3:
 * fixed incorrect computation of memory use in stage 2, especially for
   machines that use Kronecker-Schoenhage multiplication even for large
