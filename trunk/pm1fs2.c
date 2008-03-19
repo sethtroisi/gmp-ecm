@@ -176,7 +176,7 @@ pm1fs2_ntt_memory_use (unsigned long lmax, mpz_t modulus)
 			 occupies */
   
   n = n * (size_t) (3 * lmax / 2 + 1);
-  outputf (OUTPUT_DEVVERBOSE, "Estimated memory use with lmax = %lu "
+  outputf (OUTPUT_TRACE, "Estimated memory use with lmax = %lu "
 	   "is %lu bytes\n", lmax, n);
   
   return n;
@@ -427,7 +427,7 @@ choose_P (const mpz_t B2min, const mpz_t B2, const unsigned long lmax,
   /* Find the smallest P that can cover an interval of length B2 - B2min */
   mpz_sub (B2l, B2, B2min);
   mpz_cdiv_q_ui (t, B2l, 2UL*lmax);
-  outputf (OUTPUT_DEVVERBOSE, "choose_P: We need P >= %Zd\n", t);
+  outputf (OUTPUT_TRACE, "choose_P: We need P >= %Zd\n", t);
   for (i = 0; i < Pvalues_len; i++)
     if (mpz_cmp_ui (t, Pvalues[i]) <= 0)
       break;
@@ -442,17 +442,17 @@ choose_P (const mpz_t B2min, const mpz_t B2, const unsigned long lmax,
       if (s_1 == 0)
 	continue;
       s_2 = phiP / s_1;
-      outputf (OUTPUT_DEVVERBOSE, 
-	       "Testing P = %lu, phiP = %lu, s_1 = %lu, s_2 = %lu, nr = %lu\n", 
+      outputf (OUTPUT_TRACE, "choose_P: Testing P = %lu, phiP = %lu, "
+	       "s_1 = %lu, s_2 = %lu, nr = %lu\n", 
 	       P, phiP, s_1, s_2, lmax - s_1);
       if (test_P (B2min, B2, m_1, P, lmax - s_1, effB2min, effB2))
 	{
-	    outputf (OUTPUT_DEVVERBOSE, 
-		     "This P is acceptable, B2 = %Zd\n", effB2);
+	    outputf (OUTPUT_TRACE, 
+		     "choose_P: This P is acceptable, B2 = %Zd\n", effB2);
 	    break;
 	}
       else
-	outputf (OUTPUT_DEVVERBOSE, "Not good enough, trying next P\n");
+	outputf (OUTPUT_TRACE, "choose_P: Not good enough, trying next P\n");
   }
   
   if (i == Pvalues_len)
@@ -467,8 +467,8 @@ choose_P (const mpz_t B2min, const mpz_t B2, const unsigned long lmax,
   while (l / 2 > s_1 && test_P (B2min, B2, m_1, P, l / 2 - s_1, effB2min, t))
   {
       l /= 2;
-      outputf (OUTPUT_DEVVERBOSE, 
-	       "Reducing transform length to %ld, effB2 = %Zd\n", l, t);
+      outputf (OUTPUT_TRACE, "choose_P: Reducing transform length to "
+	       "%ld, effB2 = %Zd\n", l, t);
       mpz_set (effB2, t);
   }
 
@@ -488,25 +488,27 @@ choose_P (const mpz_t B2min, const mpz_t B2, const unsigned long lmax,
       if (trys_1 == 0)
 	continue;
       trys_2 = tryphiP / trys_1;
-      outputf (OUTPUT_DEVVERBOSE, "Trying if P = %lu, phiP = %lu, s_1 = %lu, "
-	       "s_2 = %lu works as well\n", tryP, tryphiP, trys_1, trys_2);
+      outputf (OUTPUT_TRACE, "choose_P: Trying if P = %lu, phiP = %lu, "
+	       "s_1 = %lu, s_2 = %lu works as well\n", 
+	       tryP, tryphiP, trys_1, trys_2);
       if (trys_2 > s_2) /* We want to keep the minimal */
       {                 /* number of multipoint evaluations */
-	  outputf (OUTPUT_DEVVERBOSE, "No, s_2 would become %lu\n", trys_2);
+	  outputf (OUTPUT_TRACE, "choose_P: No, s_2 would become %lu\n", 
+		   trys_2);
 	  /* break; */
 	  continue;
       }
       if (!test_P (B2min, B2, m_1, tryP, l - trys_1, effB2min, t))
       {
-	  outputf (OUTPUT_DEVVERBOSE, 
-		   "No, does not cover B2min - B2 range, effB2 = %Zd\n", t);
+	  outputf (OUTPUT_TRACE, "choose_P: No, does not cover B2min - B2 "
+		   "range, effB2 = %Zd\n", t);
       }
       else
       {
 	  if (mpz_cmp (t, effB2) >= 0)
 	  {
-	      outputf (OUTPUT_DEVVERBOSE, 
-		       "Yes, works and gives higher B2 = %Zd\n", t);
+	      outputf (OUTPUT_TRACE, 
+		       "choose_P: Yes, works and gives higher B2 = %Zd\n", t);
 	      P = tryP;
 	      s_1 = trys_1;
 	      s_2 = trys_2;
@@ -515,17 +517,15 @@ choose_P (const mpz_t B2min, const mpz_t B2, const unsigned long lmax,
 		     test_P (B2min, B2, m_1, P, l / 2 - s_1, effB2min, t))
 	      {
 		  l /= 2;
-		  outputf (OUTPUT_DEVVERBOSE, 
-			   "Reducing transform length to %ld, B2 = %Zd\n", 
-			   l, t);
+		  outputf (OUTPUT_TRACE, "choose_P: Reducing transform length "
+			   "to %ld, B2 = %Zd\n", l, t);
 		  mpz_set (effB2, t);
 	      }
 	  }
 	  else
 	  {
-	      outputf (OUTPUT_DEVVERBOSE, 
-		       "Works, but does not give higher B2, %Zd <= %Zd\n",
-		       t, effB2);
+	      outputf (OUTPUT_TRACE, "choose_P: Works, but does not give "
+		       "higher B2, %Zd <= %Zd\n", t, effB2);
 	  }
       }
     }
@@ -2871,9 +2871,19 @@ pm1fs2_ntt (mpz_t f, const mpres_t X, mpmod_t modulus,
   /* Precompute the small primes, primitive roots and inverses etc. for 
      the NTT. The code to multiply wants a 3*len-th root of unity, where 
      len is the smallest power of 2 > s_1 */
-  ntt_context = mpzspm_init (MAX(params->l, 
+  ntt_context = mpzspm_init (MAX(3UL * params->l, 
 				 3UL << ceil_log2 (params->s_1 / 2 + 1)), 
                              modulus->orig_modulus);
+
+  if (ntt_context == NULL)
+    {
+      free (S_1);
+      S_1 = NULL;
+      free (S_2);
+      S_2 = NULL;
+      return ECM_ERROR;
+    }
+
   if (test_verbose (OUTPUT_DEVVERBOSE))
     {
       double modbits = 0.;
@@ -4208,7 +4218,7 @@ pp1fs2_ntt (mpz_t f, const mpres_t X, mpmod_t modulus,
   if (twopass)
     {
       /* No adding transformed vectors in the two-pass variant */
-      ntt_context = mpzspm_init (MAX(params->l, 
+      ntt_context = mpzspm_init (MAX(3UL * params->l, 
 				     3UL << ceil_log2 (params->s_1 / 2 + 1)), 
 				 modulus->orig_modulus);
     }
@@ -4216,9 +4226,19 @@ pp1fs2_ntt (mpz_t f, const mpres_t X, mpmod_t modulus,
     {
       /* We add transformed vectors in the one-pass variant */
       mpz_mul_2exp (mt, modulus->orig_modulus, 1UL);
-      ntt_context = mpzspm_init (MAX(params->l, 
+      ntt_context = mpzspm_init (MAX(3UL * params->l, 
 				 3UL << ceil_log2 (params->s_1 / 2 + 1)), mt);
     }
+
+  if (ntt_context == NULL)
+    {
+      free (S_1);
+      S_1 = NULL;
+      free (S_2);
+      S_2 = NULL;
+      return ECM_ERROR;
+    }
+
   if (test_verbose (OUTPUT_DEVVERBOSE))
     {
       double modbits = 0.;
