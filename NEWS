@@ -6,7 +6,7 @@ Changes between ecm-6.1.3 and ecm-6.2:
 * Optimizations to the NTT code by Jason S. Papadopoulos
 * Improved mulredc assembly code for Athlon64/Opteron
 * Improved modular reduction in the mpzmod range
-* Bugfix in P+1 stage 2 which caused incorrect initalisation if
+* Bugfix in P+1 stage 2 which caused incorrect initialisation if
   Brent-Suyama polynomial had degree > 1 and i0 was negative (occurs only
   with non-standard parameters)
 
