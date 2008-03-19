@@ -2869,9 +2869,9 @@ pm1fs2_ntt (mpz_t f, const mpres_t X, mpmod_t modulus,
       return ECM_ERROR;
 
   /* Precompute the small primes, primitive roots and inverses etc. for 
-     the NTT. The code to multiply wants a 4*len-th root of unity, where 
+     the NTT. The code to multiply wants a 3*len-th root of unity, where 
      len is the smallest power of 2 > s_1 */
-  ntt_context = mpzspm_init (MAX(3UL * params->l, 
+  ntt_context = mpzspm_init (MAX(params->l, 
 				 3UL << ceil_log2 (params->s_1 / 2 + 1)), 
                              modulus->orig_modulus);
   if (test_verbose (OUTPUT_DEVVERBOSE))
@@ -4208,7 +4208,7 @@ pp1fs2_ntt (mpz_t f, const mpres_t X, mpmod_t modulus,
   if (twopass)
     {
       /* No adding transformed vectors in the two-pass variant */
-      ntt_context = mpzspm_init (MAX(3UL * params->l, 
+      ntt_context = mpzspm_init (MAX(params->l, 
 				     3UL << ceil_log2 (params->s_1 / 2 + 1)), 
 				 modulus->orig_modulus);
     }
@@ -4216,7 +4216,7 @@ pp1fs2_ntt (mpz_t f, const mpres_t X, mpmod_t modulus,
     {
       /* We add transformed vectors in the one-pass variant */
       mpz_mul_2exp (mt, modulus->orig_modulus, 1UL);
-      ntt_context = mpzspm_init (MAX(3UL * params->l, 
+      ntt_context = mpzspm_init (MAX(params->l, 
 				 3UL << ceil_log2 (params->s_1 / 2 + 1)), mt);
     }
   if (test_verbose (OUTPUT_DEVVERBOSE))
