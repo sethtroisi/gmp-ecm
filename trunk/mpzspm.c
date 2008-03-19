@@ -81,7 +81,8 @@ mpzspm_init (spv_size_t max_len, mpz_t modulus)
       /* all primes must be in range */
       if (p < SP_MIN)
         {
-	  printf ("not enough primes in interval\n");
+	  printf ("not enough primes == 1 (mod %lu) in interval\n", 
+	          (unsigned long) max_len);
 	  return NULL;
 	}
       
