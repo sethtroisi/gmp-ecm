@@ -21,9 +21,6 @@
 #include "sp.h"
 #include "ecm-impl.h"
 
-#define LOG2_BLOCK_SIZE 7
-#define BLOCK_SIZE (1 << LOG2_BLOCK_SIZE)
-
 /*--------------------------- FORWARD NTT --------------------------------*/
 static void bfly_dif(spv_t x0, spv_t x1, spv_t w,
 			spv_size_t len, sp_t p, sp_t d)
@@ -229,21 +226,20 @@ spv_ntt_gfp_dif (spv_t x, spv_size_t log2_len, spm_t data)
         {
           spv_size_t i;
           sp_t root = roots[log2_len];
-          sp_t scratch[BLOCK_SIZE + 16];
-	  spv_t w = (spv_t)((char *)scratch + 64 - (size_t)scratch % 64);
+	  spv_t w = data->scratch;
 
 	  w[0] = 1;
-	  for (i = 1; i < BLOCK_SIZE; i++)
+	  for (i = 1; i < NTT_TWIDDLE_BLOCK_SIZE; i++)
 	    w[i] = sp_mul (w[i-1], root, p, d);
 
-          root = sp_pow (root, BLOCK_SIZE, p, d);
+          root = sp_pow (root, NTT_TWIDDLE_BLOCK_SIZE, p, d);
 
-	  for (i = 0; i < len; i += BLOCK_SIZE)
+	  for (i = 0; i < len; i += NTT_TWIDDLE_BLOCK_SIZE)
 	    {
 	      if (i)
-	        spv_mul_sp (w, w, root, BLOCK_SIZE, p, d);
+	        spv_mul_sp (w, w, root, NTT_TWIDDLE_BLOCK_SIZE, p, d);
 
-	      bfly_dif (x0 + i, x1 + i, w, BLOCK_SIZE, p, d);
+	      bfly_dif (x0 + i, x1 + i, w, NTT_TWIDDLE_BLOCK_SIZE, p, d);
 	    }
 	}
 	
@@ -455,21 +451,20 @@ spv_ntt_gfp_dit (spv_t x, spv_size_t log2_len, spm_t data)
         {
           spv_size_t i;
           sp_t root = roots[log2_len];
-          sp_t scratch[BLOCK_SIZE + 16];
-	  spv_t w = (spv_t)((char *)scratch + 64 - (size_t)scratch % 64);
+	  spv_t w = data->scratch;
 
 	  w[0] = 1;
-	  for (i = 1; i < BLOCK_SIZE; i++)
+	  for (i = 1; i < NTT_TWIDDLE_BLOCK_SIZE; i++)
 	    w[i] = sp_mul (w[i-1], root, p, d);
 
-          root = sp_pow (root, BLOCK_SIZE, p, d);
+          root = sp_pow (root, NTT_TWIDDLE_BLOCK_SIZE, p, d);
 
-	  for (i = 0; i < len; i += BLOCK_SIZE)
+	  for (i = 0; i < len; i += NTT_TWIDDLE_BLOCK_SIZE)
 	    {
 	      if (i)
-	        spv_mul_sp (w, w, root, BLOCK_SIZE, p, d);
+	        spv_mul_sp (w, w, root, NTT_TWIDDLE_BLOCK_SIZE, p, d);
 
-	      bfly_dit (x0 + i, x1 + i, w, BLOCK_SIZE, p, d);
+	      bfly_dit (x0 + i, x1 + i, w, NTT_TWIDDLE_BLOCK_SIZE, p, d);
 	    }
 	}
     }
