@@ -1144,13 +1144,6 @@ BreadthFirstDoAgain:;
 	{
 	  if ((!breadthfirst && cnt == count) || (breadthfirst && 1 == breadthfirst_cnt))
 	    {
-              if (timestamp)
-                {
-                  time_t t;
-                  
-                  t = time (NULL);
-                  printf ("[%.24s]\n", ctime (&t));
-                }
 	      /* first time this candidate has been run (if looping more than once */
 	      if (n.cpExpr && n.nexprlen < MAX_NUMBER_PRINT_LEN)
 		printf ("Input number is %s (%u digits)\n", n.cpExpr, n.ndigits);
@@ -1291,6 +1284,14 @@ BreadthFirstDoAgain:;
             }
         }
 #endif /* WANT_SHELLCMD */
+
+      if (timestamp)
+        {
+          time_t t;
+          
+          t = time (NULL);
+          printf ("[%.24s]\n", ctime (&t));
+        }
 
       /* now call the ecm library */
       result = ecm_factor (f, n.n, B1, params);
