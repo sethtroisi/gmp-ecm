@@ -64,6 +64,7 @@ MA 02110-1301, USA. */
 #include <stdlib.h> /* for abort() */
 #include <limits.h> /* for LONG_MAX */
 #include <assert.h>
+#include "config.h"
 #include "gmp.h"
 #include "longlong.h"		/* for count_trailing_zeros */
 #include "ecm-params.h"
@@ -97,7 +98,11 @@ MA 02110-1301, USA. */
 #endif
 
 #ifndef ASSERT
+#ifdef WANT_ASSERT
+#define ASSERT(x) assert(x)
+#else
 #define ASSERT(x)
+#endif
 #endif
 
 #ifndef ASSERT_ALWAYS
