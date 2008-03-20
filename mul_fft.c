@@ -2331,6 +2331,7 @@ mpn_mul_fft_aux (mp_ptr op, const mp_size_t pl,
 	 printf ("   temp space %ld\n", 2 * K * (nprime + 1));)
 
   A = __GMP_ALLOCATE_FUNC_LIMBS (2 * K * (nprime + 1));
+  ASSERT(A != NULL);
   B = A + K * (nprime + 1);
   Ap = TMP_ALLOC_MP_PTRS (K);
   ASSERT(Ap != NULL);
@@ -2407,6 +2408,7 @@ mpn_mul_fft_full_a (mp_ptr op,
   muh = mpn_mul_fft (op, h, n, nl, m, ml, k2); /* mu = muh+{op,h} */
 
   tp = __GMP_ALLOCATE_FUNC_LIMBS (l);
+  ASSERT (tp != NULL);
   mpn_mul_fft_mersenne (tp, l, n, nl, m, ml, k1); /* B */
 
   /* now compute B-A mod 2^N-1, where B = {tp, l}, and A = cc + {op, h} */
