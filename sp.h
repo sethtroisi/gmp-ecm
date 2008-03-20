@@ -110,6 +110,9 @@ typedef __sp_nttdata sp_nttdata_t[1];
 
 #define NTT_GFP_TWIDDLE_BREAKOVER 11
 
+#define LOG2_NTT_TWIDDLE_BLOCK_SIZE 7
+#define NTT_TWIDDLE_BLOCK_SIZE (1 << LOG2_NTT_TWIDDLE_BLOCK_SIZE)
+
 /* SPM */
 
 /* small prime modulus - this contains some precomputed constants to
@@ -120,6 +123,7 @@ typedef struct
   sp_t mul_c;		/* constant used for reduction mod sp */
   sp_t prim_root;
   sp_t inv_prim_root;
+  spv_t scratch;
   sp_nttdata_t nttdata;
   sp_nttdata_t inttdata;
 } __spm_struct;

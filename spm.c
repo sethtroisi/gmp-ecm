@@ -185,6 +185,8 @@ spm_init (spv_size_t n, sp_t sp)
   nttdata_init (sp, spm->mul_c, 
 		sp_pow (spm->inv_prim_root, n >> ntt_power, sp, spm->mul_c),
 		ntt_power, spm->inttdata);
+  spm->scratch = (spv_t) sp_aligned_malloc (
+		  	NTT_TWIDDLE_BLOCK_SIZE * sizeof(sp_t));
   return spm;
 }
 
@@ -193,5 +195,6 @@ spm_clear (spm_t spm)
 {
   nttdata_clear (spm->nttdata);
   nttdata_clear (spm->inttdata);
+  sp_aligned_free (spm->scratch);
   free (spm);
 }
