@@ -836,16 +836,30 @@ pp1 (mpz_t f, mpz_t p, mpz_t n, mpz_t go, double *B1done, double B1,
   
   if (stage2_variant != 0)
     {
-      /* If S == 1, we use the new, faster stage 2 */
       long P;
+      unsigned long try_lmax;
+      
       mpz_init (faststage2_params.m_1);
+      
+      if (use_ntt)
+	{
+	  /* See what transform length that the NTT can handle */
+	  try_lmax = mpzspm_max_len (n);
+	  if (try_lmax < lmax)
+	    {
+	      lmax = try_lmax;
+	      outputf (OUTPUT_VERBOSE, "NTT can handle only lmax <= %lu\n",
+		       lmax);
+	    }
+	}
+      
       if (maxmem != 0.)
         {
           /* Find the largest lmax we can can handle with maxmem.
              The NTT version of fast stage 2 requires s_1 < lmax, so this
              is an upper bound we can use for the memory estimate here. */
-          unsigned long try_lmax = 4UL;
-          while (2 * try_lmax < lmax &&
+          try_lmax = 4UL;
+          while (2 * try_lmax <= lmax &&
                  (double) pp1fs2_ntt_memory_use (2 * try_lmax, try_lmax, 
                                                  twopass, n) <= maxmem)
             try_lmax <<= 1;
@@ -856,13 +870,13 @@ pp1 (mpz_t f, mpz_t p, mpz_t n, mpz_t go, double *B1done, double B1,
           if ((double) pp1fs2_ntt_memory_use (lmax, lmax / 2, 0, n) <= maxmem)
             twopass = 0;
 
-          outputf (OUTPUT_VERBOSE, "%.2fMB allow for %s lmax <= %lu "
+          outputf (OUTPUT_VERBOSE, "%.2fMB allow for %s lmax = %lu "
                    "which uses approx. %.2fMB\n", maxmem / 1048576., 
                    (twopass) ? "two pass" : "one pass", lmax, 
                    (double) pp1fs2_ntt_memory_use (lmax, lmax / 2, twopass, n) 
                    / 1048576.);
         }
-
+      
       P = choose_P (B2min, B2, lmax, k, &faststage2_params, B2min, B2,
                     use_ntt);
       if (P == ECM_ERROR)
