@@ -23,6 +23,85 @@
 #include <stdlib.h>
 #include "sp.h"
 
+
+/* Tables for the maximum possible modulus (in bit size) for different 
+   transform lengths l.
+   The modulus is limited by the condition that primes must be 
+   p_i == 1 (mod l), and \Prod_i p_i >= 4l (modulus * S)^2, 
+   where S=\Sum_i p_i.
+   Hence for each l=2^k, we take the product P and sum S of primes p_i,
+   SP_MIN <= p_i <= SP_MAX and p_i == 1 (mod l), and store 
+   floor (log_2 (sqrt (P / (4l S^2)))) in the table.
+   We only consider power-of-two transform lengths <= 2^31 here.
+
+   Table entries generated with
+   
+   l=2^k;p=1;P=1;S=0;while(p<=SP_MAX, if(p>=SP_MIN && isprime(p), S+=p; P*=p); \
+   p+=l);print(floor (log2 (sqrt (P / (4*l * S^2)))))
+
+   in Pari/GP for k=9 ... 24. k<9 simply were doubled and rounded down in 
+   each step.
+
+   We curently assume that SP_MIN == 2^(SP_NUMB_BITS-1) and 
+   SP_MAX == 2^(SP_NUMB_BITS).
+   
+*/
+
+#if (SP_NUMB_BITS == 30)
+static unsigned long sp_max_modulus_bits[32] = 
+  {0, 380000000, 190000000, 95000000, 48000000, 24000000, 12000000, 6000000, 
+   3000000, 1512786, 756186, 378624, 188661, 93737, 46252, 23342, 11537, 5791, 
+   3070, 1563, 782, 397, 132, 43, 0, 0, 0, 0, 0, 0, 0, 0};
+#elif (SP_NUMB_BITS == 31)
+static unsigned long sp_max_modulus_bits[32] = 
+  {0, 750000000, 380000000, 190000000, 95000000, 48000000, 24000000, 12000000, 
+   6000000, 3028766, 1512573, 756200, 379353, 190044, 94870, 47414, 23322, 
+   11620, 5891, 2910, 1340, 578, 228, 106, 60, 30, 0, 0, 0, 0, 0, 0};
+#elif (SP_NUMB_BITS == 32)
+static unsigned long sp_max_modulus_bits[32] = 
+  {0, 1520000000, 760000000, 380000000, 190000000, 95000000, 48000000, 
+   24000000, 12000000, 6041939, 3022090, 1509176, 752516, 376924, 190107, 
+   95348, 47601, 24253, 11971, 6162, 3087, 1557, 833, 345, 172, 78, 46, 15, 
+   0, 0, 0, 0};
+#elif (SP_NUMB_BITS >= 60)
+  /* There are so many primes, we can do pretty much any modulus with 
+     any transform length. I didn't bother computing the actual values. */
+static unsigned long sp_max_modulus_bits[32] =  
+  {0, ULONG_MAX, ULONG_MAX, ULONG_MAX, ULONG_MAX, ULONG_MAX, ULONG_MAX, 
+   ULONG_MAX, ULONG_MAX, ULONG_MAX, ULONG_MAX, ULONG_MAX, ULONG_MAX, ULONG_MAX, 
+   ULONG_MAX, ULONG_MAX, ULONG_MAX, ULONG_MAX, ULONG_MAX, ULONG_MAX, ULONG_MAX, 
+   ULONG_MAX, ULONG_MAX, ULONG_MAX, ULONG_MAX, ULONG_MAX, ULONG_MAX, ULONG_MAX, 
+   ULONG_MAX, ULONG_MAX, ULONG_MAX, ULONG_MAX};
+#else
+#error Table of maximal modulus for transform lengths not defined for this SP_MIN
+;
+#endif
+
+
+/* Returns the largest possible transform length we can do for modulus
+   without running out of primes */
+
+spv_size_t
+mpzspm_max_len (mpz_t modulus)
+{
+  int i;
+  size_t b;
+
+  b = mpz_sizeinbase (modulus, 2); /* b = floor (log_2 (modulus)) + 1 */
+  /* Transform length 2^k is ok if log2(modulus) <= sp_max_modulus_bits[k]
+     <==> ceil(log2(modulus)) <= sp_max_modulus_bits[k] 
+     <==> floor(log_2(modulus)) + 1 <= sp_max_modulus_bits[k] if modulus 
+     isn't a power of 2 */
+     
+  for (i = 0; i < 30; i++)
+    {
+      if (b > sp_max_modulus_bits[i + 1])
+	break;
+    }
+
+  return (spv_size_t)1 << i;
+}
+
 /* This function initializes a mpzspm_t structure which contains the number
    of small primes, the small primes with associated primitive roots and 
    precomputed data for the CRT to allow convolution products of length up 
@@ -76,7 +155,7 @@ mpzspm_init (spv_size_t max_len, mpz_t modulus)
     {
       do
         p -= max_len;
-      while (!sp_prime(p));
+      while (p >= SP_MIN && !sp_prime(p));
       
       /* all primes must be in range */
       if (p < SP_MIN)
