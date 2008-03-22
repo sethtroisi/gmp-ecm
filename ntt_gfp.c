@@ -32,6 +32,7 @@ static void bfly_dif(spv_t x0, spv_t x1, spv_t w,
 
   asm volatile (
        "movd %6, %%xmm6            \n\t"
+       "pshufd $0b01000100, %%xmm6, %%xmm5  \n\t"
        "pshufd $0, %%xmm6, %%xmm6  \n\t"
        "movd %7, %%xmm7            \n\t"
        "pshufd $0, %%xmm7, %%xmm7  \n\t"
@@ -69,18 +70,34 @@ static void bfly_dif(spv_t x0, spv_t x1, spv_t w,
        "psrlq $" STRING((2*SP_NUMB_BITS - W_TYPE_SIZE)) ", %%xmm3  \n\t"
        "pmuludq %%xmm7, %%xmm3     \n\t"
 
+#if SP_NUMB_BITS < W_TYPE_SIZE - 1
        "psrlq $33, %%xmm2          \n\t"
        "pmuludq %%xmm6, %%xmm2     \n\t"
        "psrlq $33, %%xmm3          \n\t"
        "pmuludq %%xmm6, %%xmm3     \n\t"
-
        "psubq %%xmm2, %%xmm0       \n\t"
        "psubq %%xmm3, %%xmm1       \n\t"
+#else
+       "pshufd $0b11110101, %%xmm2, %%xmm2 \n\t"
+       "pmuludq %%xmm6, %%xmm2     \n\t"
+       "pshufd $0b11110101, %%xmm3, %%xmm3 \n\t"
+       "pmuludq %%xmm6, %%xmm3     \n\t"
+       "psubq %%xmm2, %%xmm0       \n\t"
+       "psubq %%xmm3, %%xmm1       \n\t"
+
+       "psubq %%xmm5, %%xmm0       \n\t"
+       "psubq %%xmm5, %%xmm1       \n\t"
+       "pshufd $0b11110101, %%xmm0, %%xmm2 \n\t"
+       "pshufd $0b11110101, %%xmm1, %%xmm3 \n\t"
+       "pand %%xmm5, %%xmm2        \n\t"
+       "pand %%xmm5, %%xmm3        \n\t"
+       "paddq %%xmm2, %%xmm0       \n\t"
+       "paddq %%xmm3, %%xmm1       \n\t"
+#endif
        "pshufd $0b00001000, %%xmm0, %%xmm0 \n\t"
        "pshufd $0b00001000, %%xmm1, %%xmm1 \n\t"
        "punpckldq %%xmm1, %%xmm0   \n\t"
        "psubd %%xmm6, %%xmm0       \n\t"
-
        "pxor %%xmm1, %%xmm1        \n\t"
        "pcmpgtd %%xmm0, %%xmm1     \n\t"
        "pand %%xmm6, %%xmm1        \n\t"
@@ -93,7 +110,7 @@ static void bfly_dif(spv_t x0, spv_t x1, spv_t w,
        :"=r"(i)
        :"r"(x0), "r"(x1), "r"(w), "0"(i), "g"(len), "g"(p), "g"(d)
        :"%xmm0", "%xmm1", "%xmm2", "%xmm3",
-        "%xmm6", "%xmm7", "cc", "memory");
+        "%xmm5", "%xmm6", "%xmm7", "cc", "memory");
 #else
   for (i = 0; i < len; i++)
     {
@@ -259,6 +276,7 @@ static inline void bfly_dit(spv_t x0, spv_t x1, spv_t w,
 
   asm volatile (
        "movd %6, %%xmm6            \n\t"
+       "pshufd $0b01000100, %%xmm6, %%xmm5  \n\t"
        "pshufd $0, %%xmm6, %%xmm6  \n\t"
        "movd %7, %%xmm7            \n\t"
        "pshufd $0, %%xmm7, %%xmm7  \n\t"
@@ -278,18 +296,34 @@ static inline void bfly_dit(spv_t x0, spv_t x1, spv_t w,
        "psrlq $" STRING((2*SP_NUMB_BITS - W_TYPE_SIZE)) ", %%xmm3  \n\t"
        "pmuludq %%xmm7, %%xmm3     \n\t"
 
+#if SP_NUMB_BITS < W_TYPE_SIZE - 1
        "psrlq $33, %%xmm2          \n\t"
        "pmuludq %%xmm6, %%xmm2     \n\t"
        "psrlq $33, %%xmm3          \n\t"
        "pmuludq %%xmm6, %%xmm3     \n\t"
-
        "psubq %%xmm2, %%xmm0       \n\t"
        "psubq %%xmm3, %%xmm1       \n\t"
+#else
+       "pshufd $0b11110101, %%xmm2, %%xmm2 \n\t"
+       "pmuludq %%xmm6, %%xmm2     \n\t"
+       "pshufd $0b11110101, %%xmm3, %%xmm3 \n\t"
+       "pmuludq %%xmm6, %%xmm3     \n\t"
+       "psubq %%xmm2, %%xmm0       \n\t"
+       "psubq %%xmm3, %%xmm1       \n\t"
+
+       "psubq %%xmm5, %%xmm0       \n\t"
+       "psubq %%xmm5, %%xmm1       \n\t"
+       "pshufd $0b11110101, %%xmm0, %%xmm2 \n\t"
+       "pshufd $0b11110101, %%xmm1, %%xmm3 \n\t"
+       "pand %%xmm5, %%xmm2        \n\t"
+       "pand %%xmm5, %%xmm3        \n\t"
+       "paddq %%xmm2, %%xmm0       \n\t"
+       "paddq %%xmm3, %%xmm1       \n\t"
+#endif
        "pshufd $0b00001000, %%xmm0, %%xmm0 \n\t"
        "pshufd $0b00001000, %%xmm1, %%xmm1 \n\t"
        "punpckldq %%xmm1, %%xmm0   \n\t"
        "psubd %%xmm6, %%xmm0       \n\t"
-
        "pxor %%xmm1, %%xmm1        \n\t"
        "pcmpgtd %%xmm0, %%xmm1     \n\t"
        "pand %%xmm6, %%xmm1        \n\t"
@@ -320,7 +354,7 @@ static inline void bfly_dit(spv_t x0, spv_t x1, spv_t w,
        :"=r"(i)
        :"r"(x0), "r"(x1), "r"(w), "0"(i), "g"(len), "g"(p), "g"(d)
        :"%xmm0", "%xmm1", "%xmm2", "%xmm3",
-        "%xmm6", "%xmm7", "cc", "memory");
+        "%xmm5", "%xmm6", "%xmm7", "cc", "memory");
 #else
   for (i = 0; i < len; i++)
     {
