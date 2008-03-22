@@ -83,12 +83,19 @@ typedef unsigned long UDItype;
 /* SP */
 
 /* the type for both a small prime, and a residue modulo a small prime.
- * Small primes must be >= 2 bits smaller than the word size
+ * Small primes must be 1 bit smaller than the word size for 32-bit
+ * systems (otherwise there may not be enough suitable primes), but 
+ * may be 2+ bits smaller when the word size exceeds 32 bits (and this
+ * simplifies modular reductions)
  *
  * For a residue x modulo a sp p, we require 0 <= x < p */
 typedef UWtype sp_t;
 
+#if W_TYPE_BITS <= 32
+#define SP_NUMB_BITS (W_TYPE_SIZE - 1)
+#else
 #define SP_NUMB_BITS (W_TYPE_SIZE - 2)
+#endif
 
 #define SP_MIN ((sp_t)1 << (SP_NUMB_BITS - 1))
 #define SP_MAX ((sp_t)(-1) >> (W_TYPE_SIZE - SP_NUMB_BITS))
@@ -123,9 +130,9 @@ typedef struct
   sp_t mul_c;		/* constant used for reduction mod sp */
   sp_t prim_root;
   sp_t inv_prim_root;
-  spv_t scratch;
   sp_nttdata_t nttdata;
   sp_nttdata_t inttdata;
+  spv_t scratch;
 } __spm_struct;
 
 typedef __spm_struct * spm_t;
@@ -262,6 +269,13 @@ static inline sp_t sp_add(sp_t a, sp_t b, sp_t m)
 
 /* functions used for modular reduction */
 
+#if SP_NUMB_BITS <= W_TYPE_SIZE - 2
+
+	/* having a small modulus allows the reciprocal
+	 * to be one bit larger, which guarantees that the
+	 * initial remainder fits in a word and also that at
+	 * most one correction is necessary */
+
 #define sp_reciprocal(invxl,xl)              \
   do {                                       \
     mp_limb_t dummy;                         \
@@ -270,16 +284,45 @@ static inline sp_t sp_add(sp_t a, sp_t b, sp_t m)
 		W_TYPE_SIZE), 0, xl);        \
   } while (0)
 
-#define sp_udiv_rem(r, nh, nl, d, di)                    \
-  do {                                                   \
-    mp_limb_t q1, q2, tmp;                               \
-    q1 = (nh) << (2*(W_TYPE_SIZE - SP_NUMB_BITS)) |      \
-	    (nl) >> (2*SP_NUMB_BITS - W_TYPE_SIZE);      \
-    umul_ppmm(q2, tmp, q1, di);                          \
-    (r) = (nl) - (d) * (q2 >> 1);                        \
-    (r) = sp_sub(r, d, d);                               \
+static inline sp_t sp_udiv_rem(sp_t nh, sp_t nl, sp_t d, sp_t di)
+{
+  sp_t r;
+  mp_limb_t q1, q2, tmp;
+  q1 = nh << (2*(W_TYPE_SIZE - SP_NUMB_BITS)) |
+	    nl >> (2*SP_NUMB_BITS - W_TYPE_SIZE);
+  umul_ppmm (q2, tmp, q1, di);
+  r = nl - d * (q2 >> 1);
+  return sp_sub(r, d, d);
+}
+
+#else    /* big modulus; no shortcuts allowed */
+
+#define sp_reciprocal(invxl,xl)              \
+  do {                                       \
+    mp_limb_t dummy;                         \
+    udiv_qrnnd (invxl, dummy,                \
+		(sp_t) 1 << (2 * SP_NUMB_BITS -	\
+		W_TYPE_SIZE), 0, xl);        \
   } while (0)
 
+static inline sp_t sp_udiv_rem(sp_t nh, sp_t nl, sp_t d, sp_t di)
+{
+  mp_limb_t q1, q2, tmp, dqh, dql;
+  q1 = nh << (2*(W_TYPE_SIZE - SP_NUMB_BITS)) |
+	    nl >> (2*SP_NUMB_BITS - W_TYPE_SIZE);
+  umul_ppmm (q2, tmp, q1, di);
+  umul_ppmm (dqh, dql, q2, d);
+
+  tmp = nl;
+  nl = tmp - dql;
+  nh = nh - dqh - (nl > tmp);
+  if (nh)
+	  nl -= d;
+  nl = sp_sub(nl, d, d);
+  return sp_sub(nl, d, d);
+}
+
+#endif
 
 /* x*y mod m */
 static inline sp_t
@@ -287,9 +330,7 @@ sp_mul (sp_t x, sp_t y, sp_t m, sp_t d)
 {
   sp_t z, u, v;
   umul_ppmm (u, v, x, y);
-  sp_udiv_rem (z, u, v, m, d);
-  
-  return z;
+  return sp_udiv_rem (u, v, m, d);
 }
 
 /* x*y mod m */
@@ -298,9 +339,7 @@ sp_sqr (sp_t x, sp_t m, sp_t d)
 {
   sp_t z, u, v;
   umul_ppmm (u, v, x, x);
-  sp_udiv_rem (z, u, v, m, d);
-  
-  return z;
+  return sp_udiv_rem (u, v, m, d);
 }
 
 #define sp_neg(x,m) ((x) == (sp_t) 0 ? (sp_t) 0 : (m) - (x))

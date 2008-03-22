@@ -156,6 +156,7 @@ spv_pwmul (spv_t r, spv_t x, spv_t y, spv_size_t len, sp_t m, sp_t d)
 
   asm volatile (
        "movd %6, %%xmm6            \n\t"
+       "pshufd $0b01000100, %%xmm6, %%xmm5  \n\t"
        "pshufd $0, %%xmm6, %%xmm6  \n\t"
        "movd %7, %%xmm7            \n\t"
        "pshufd $0, %%xmm7, %%xmm7  \n\t"
@@ -175,13 +176,30 @@ spv_pwmul (spv_t r, spv_t x, spv_t y, spv_size_t len, sp_t m, sp_t d)
        "psrlq $" STRING((2*SP_NUMB_BITS - W_TYPE_SIZE)) ", %%xmm3  \n\t"
        "pmuludq %%xmm7, %%xmm3     \n\t"
 
+#if SP_NUMB_BITS < W_TYPE_SIZE - 1
        "psrlq $33, %%xmm2          \n\t"
        "pmuludq %%xmm6, %%xmm2     \n\t"
        "psrlq $33, %%xmm3          \n\t"
        "pmuludq %%xmm6, %%xmm3     \n\t"
-
        "psubq %%xmm2, %%xmm0       \n\t"
        "psubq %%xmm3, %%xmm1       \n\t"
+#else
+       "pshufd $0b11110101, %%xmm2, %%xmm2 \n\t"
+       "pmuludq %%xmm6, %%xmm2     \n\t"
+       "pshufd $0b11110101, %%xmm3, %%xmm3 \n\t"
+       "pmuludq %%xmm6, %%xmm3     \n\t"
+       "psubq %%xmm2, %%xmm0       \n\t"
+       "psubq %%xmm3, %%xmm1       \n\t"
+
+       "psubq %%xmm5, %%xmm0       \n\t"
+       "psubq %%xmm5, %%xmm1       \n\t"
+       "pshufd $0b11110101, %%xmm0, %%xmm2 \n\t"
+       "pshufd $0b11110101, %%xmm1, %%xmm3 \n\t"
+       "pand %%xmm5, %%xmm2        \n\t"
+       "pand %%xmm5, %%xmm3        \n\t"
+       "paddq %%xmm2, %%xmm0       \n\t"
+       "paddq %%xmm3, %%xmm1       \n\t"
+#endif
        "pshufd $0b00001000, %%xmm0, %%xmm0 \n\t"
        "pshufd $0b00001000, %%xmm1, %%xmm1 \n\t"
        "punpckldq %%xmm1, %%xmm0   \n\t"
@@ -201,7 +219,7 @@ spv_pwmul (spv_t r, spv_t x, spv_t y, spv_size_t len, sp_t m, sp_t d)
        :"r"(x), "r"(y), "r"(r), "0"(i), 
 	"g"(len & (spv_size_t)(~3)), "g"(m), "g"(d)
        :"%xmm0", "%xmm1", "%xmm2", "%xmm3",
-        "%xmm6", "%xmm7", "cc", "memory");
+        "%xmm5", "%xmm6", "%xmm7", "cc", "memory");
 #endif
 
   for (; i < len; i++)
@@ -234,9 +252,10 @@ spv_mul_sp (spv_t r, spv_t x, sp_t c, spv_size_t len, sp_t m, sp_t d)
   	defined(__i386__) && defined(HAVE_SSE2)
 
   asm volatile (
-       "movd %2, %%xmm5            \n\t"
-       "pshufd $0, %%xmm5, %%xmm5  \n\t"
+       "movd %2, %%xmm4            \n\t"
+       "pshufd $0, %%xmm4, %%xmm4  \n\t"
        "movd %6, %%xmm6            \n\t"
+       "pshufd $0b01000100, %%xmm6, %%xmm5  \n\t"
        "pshufd $0, %%xmm6, %%xmm6  \n\t"
        "movd %7, %%xmm7            \n\t"
        "pshufd $0, %%xmm7, %%xmm7  \n\t"
@@ -244,8 +263,8 @@ spv_mul_sp (spv_t r, spv_t x, sp_t c, spv_size_t len, sp_t m, sp_t d)
        "0:                         \n\t"
        "movdqa (%1,%4,4), %%xmm0   \n\t"
        "pshufd $0x31, %%xmm0, %%xmm1\n\t"
-       "pshufd $0x31, %%xmm5, %%xmm3\n\t"
-       "pmuludq %%xmm5, %%xmm0     \n\t"
+       "pshufd $0x31, %%xmm4, %%xmm3\n\t"
+       "pmuludq %%xmm4, %%xmm0     \n\t"
        "pmuludq %%xmm3, %%xmm1     \n\t"
 
        "movdqa %%xmm0, %%xmm2      \n\t"
@@ -255,13 +274,30 @@ spv_mul_sp (spv_t r, spv_t x, sp_t c, spv_size_t len, sp_t m, sp_t d)
        "psrlq $" STRING((2*SP_NUMB_BITS - W_TYPE_SIZE)) ", %%xmm3  \n\t"
        "pmuludq %%xmm7, %%xmm3     \n\t"
 
+#if SP_NUMB_BITS < W_TYPE_SIZE - 1
        "psrlq $33, %%xmm2          \n\t"
        "pmuludq %%xmm6, %%xmm2     \n\t"
        "psrlq $33, %%xmm3          \n\t"
        "pmuludq %%xmm6, %%xmm3     \n\t"
-
        "psubq %%xmm2, %%xmm0       \n\t"
        "psubq %%xmm3, %%xmm1       \n\t"
+#else
+       "pshufd $0b11110101, %%xmm2, %%xmm2 \n\t"
+       "pmuludq %%xmm6, %%xmm2     \n\t"
+       "pshufd $0b11110101, %%xmm3, %%xmm3 \n\t"
+       "pmuludq %%xmm6, %%xmm3     \n\t"
+       "psubq %%xmm2, %%xmm0       \n\t"
+       "psubq %%xmm3, %%xmm1       \n\t"
+
+       "psubq %%xmm5, %%xmm0       \n\t"
+       "psubq %%xmm5, %%xmm1       \n\t"
+       "pshufd $0b11110101, %%xmm0, %%xmm2 \n\t"
+       "pshufd $0b11110101, %%xmm1, %%xmm3 \n\t"
+       "pand %%xmm5, %%xmm2        \n\t"
+       "pand %%xmm5, %%xmm3        \n\t"
+       "paddq %%xmm2, %%xmm0       \n\t"
+       "paddq %%xmm3, %%xmm1       \n\t"
+#endif
        "pshufd $0b00001000, %%xmm0, %%xmm0 \n\t"
        "pshufd $0b00001000, %%xmm1, %%xmm1 \n\t"
        "punpckldq %%xmm1, %%xmm0   \n\t"
@@ -281,7 +317,7 @@ spv_mul_sp (spv_t r, spv_t x, sp_t c, spv_size_t len, sp_t m, sp_t d)
        :"r"(x), "g"(c), "r"(r), "0"(i), 
 	"g"(len & (spv_size_t)(~3)), "g"(m), "g"(d)
        :"%xmm0", "%xmm1", "%xmm2", "%xmm3",
-        "%xmm5", "%xmm6", "%xmm7", "cc", "memory");
+        "%xmm4", "%xmm5", "%xmm6", "%xmm7", "cc", "memory");
 #endif
 
   for (; i < len; i++)
