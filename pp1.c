@@ -837,8 +837,8 @@ pp1 (mpz_t f, mpz_t p, mpz_t n, mpz_t go, double *B1done, double B1,
   if (stage2_variant != 0)
     {
       long P;
-      unsigned long lmax = 1UL<<28; /* An upper bound */
-      unsigned long lmax_NTT, lmax_noNTT;;
+      const unsigned long lmax = 1UL<<28; /* An upper bound */
+      unsigned long lmax_NTT, lmax_noNTT;
       
       mpz_init (faststage2_params.m_1);
       
@@ -875,7 +875,7 @@ pp1 (mpz_t f, mpz_t p, mpz_t n, mpz_t go, double *B1done, double B1,
       if (maxmem != 0.)
 	{
 	  unsigned long t;
-	  t = pp1fs2_maxlen ((size_t) maxmem, n, 0);
+	  t = pp1fs2_maxlen ((size_t) maxmem, n, 0, 0);
 	  lmax_noNTT = MIN (lmax_noNTT, t);
 	  outputf (OUTPUT_DEVVERBOSE, "non-NTT can handle lmax <= %lu\n", 
 		   lmax_noNTT);

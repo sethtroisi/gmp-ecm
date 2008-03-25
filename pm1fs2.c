@@ -315,7 +315,7 @@ pp1fs2_memory_use (const unsigned long lmax, const mpz_t modulus,
     }
 }
 
-size_t 
+unsigned long 
 pp1fs2_maxlen (const size_t memory, const mpz_t modulus, const int use_ntt, 
 	       const int twopass)
 {
