@@ -177,61 +177,164 @@ print_CRT_primes (const int verbosity, const char *prefix,
     }
 }
 
-size_t
-pm1fs2_ntt_memory_use (unsigned long lmax, mpz_t modulus)
+/* Approximate amount of memory in bytes each coefficient in an NTT takes 
+   so that NTT can do transforms up to length lmax with modulus, or
+   with 2*modulus if twice != 0 */
+static size_t
+ntt_coeff_mem (const unsigned long lmax, const mpz_t modulus, const int twice)
 {
   mpz_t t;
   size_t n;
   
-  /* We store lmax / 2 + 1 coefficients for the DCT-I of F and lmax 
-     coefficients for G in NTT ready format. Each coefficient in 
-     NTT-ready format occupies approx. 
-     ceil(log(lmax*modulus^2)/log(bits per sp_t)) + 3 words. */
-  
   mpz_init (t);
   mpz_mul (t, modulus, modulus);
   mpz_mul_ui (t, t, lmax);
+  if (twice)
+    mpz_mul_2exp (t, t, 1UL);
+  /* +4: +1 for rounding up, +3 for extra words due to ECRT */
   n = (mpz_sizeinbase (t, 2) - 1) / SP_NUMB_BITS + 4;
   mpz_clear (t);
-  n *= sizeof (sp_t); /* Number of bytes each coefficient in NTT ready form
-			 occupies */
-  
-  n = n * (size_t) (3 * lmax / 2 + 1);
-  outputf (OUTPUT_TRACE, "Estimated memory use with lmax = %lu "
-	   "is %lu bytes\n", lmax, n);
-  
-  return n;
+  return n * sizeof (sp_t);
 }
 
+size_t
+pm1fs2_memory_use (const unsigned long lmax, const mpz_t modulus, 
+		   const int use_ntt)
+{
+  if (use_ntt)
+    {
+      /* We store lmax / 2 + 1 coefficients for the DCT-I of F and lmax 
+	 coefficients for G in NTT ready format. Each coefficient in 
+	 NTT-ready format occupies approx. 
+	 ceil(log(lmax*modulus^2)/log(bits per sp_t)) + 3 words. */
+      
+      size_t n;
+  
+      
+      n = ntt_coeff_mem (lmax, modulus, 0) * (size_t) (3 * lmax / 2 + 1);
+      outputf (OUTPUT_DEVVERBOSE, "pm1fs2_memory_use: Estimated memory use "
+	       "with lmax = %lu NTT is %lu bytes\n", lmax, n);
+      return n;
+    }
+  else
+    {
+      /* F stores s_1/2 residues,
+	 h stores s_1 mpz_t structs (residues get cloned from F)
+	 g stores lmax residues, 
+	 R stores lmax-s_1 residues, 
+	 and tmp stores 3*lmax+list_mul_mem (lmax / 2) residues.
+	 Assume s_1 is close to lmax/2.
+	 Then we have 
+	 lmax/4 + lmax/2 + lmax + lmax/2 + 3*lmax + list_mul_mem (lmax / 2)
+	 = (5+1/4)*lmax + list_mul_mem (lmax / 2) residues, plus s_1 mpz_t.
+      */
+      
+      size_t n;
+      
+      n = mpz_size (modulus) * sizeof (mp_limb_t) + sizeof (mpz_t);
+      n *= 5 * lmax + lmax / 4 + list_mul_mem (lmax / 2);
+      n += lmax / 2 * sizeof (mpz_t);
+      /* Memory use due to temp space allocation in TMulKS appears to 
+	 approximately triple the estimated memory use. This is hard to
+	 estimate precisely, so let's got with the fudge factor of 3 here */
+      n *= 3;
+      outputf (OUTPUT_DEVVERBOSE, "pm1fs2_memory_use: Estimated memory use "
+	       "with lmax = %lu is %lu bytes\n", lmax, n);
+      return n;
+    }
+}
+
+/* return the possible lmax for given memory use and modulus */
+
+unsigned long
+pm1fs2_maxlen (const size_t memory, const mpz_t modulus, const int use_ntt)
+{
+  if (use_ntt)
+    {
+      size_t n, lmax = 1;
+  
+      n = ntt_coeff_mem (lmax, modulus, 0);
+      lmax = 1UL << (ceil_log2 (2 * memory / n / 3) - 1);
+      return lmax;
+    }
+  else
+    {
+      size_t lmax, n;
+      
+      n = mpz_size (modulus) * sizeof (mp_limb_t) + sizeof (mpz_t);
+
+      /* Guess an initial value of lmax for list_mul_mem (lmax / 2) */
+      /* memory = n * 25/4 * lmax + lmax / 2 * sizeof (mpz_t); */
+      /* Fudge factor of 3 for TMulKS as above */
+      lmax = memory / (3 * n * 25 / 4 + 1 / 2 * sizeof (mpz_t));
+      return lmax;
+    }
+}
 
 size_t 
-pp1fs2_ntt_memory_use (unsigned long lmax, unsigned long s_1, int twopass,
-		       mpz_t modulus)
+pp1fs2_memory_use (const unsigned long lmax, const mpz_t modulus, 
+		   const int use_ntt, const int twopass)
 {
-  mpz_t t;
-  size_t n;
+  size_t n, m;
   
-  /* In one pass mode, we store h_x_ntt and h_y_ntt, each of length lmax/2+1,
-     and g_x_ntt and g_y_ntt, each of length lmax, all in NTT ready format.
-     In two pass mode, we store h_x_ntt, h_y_ntt and g_x_ntt as before,
-     plus R which is lmax - s_1 mpz_t.
-  */
+  m = mpz_size (modulus) * sizeof (mp_limb_t) + sizeof (mpz_t);
+  if (use_ntt)
+    {
+      /* In one pass mode, we store h_x_ntt and h_y_ntt, each of length 
+	 lmax/2(+1), and g_x_ntt and g_y_ntt, each of length lmax, all in 
+	 NTT ready format. In two pass mode, we store h_x_ntt, h_y_ntt and 
+	 g_x_ntt as before, plus R which is lmax - s_1 mpz_t. 
+	 We assume s_1 ~= lmax/2.
+      */
 
-  mpz_init (t);
-  mpz_mul (t, modulus, modulus);
-  mpz_mul_ui (t, t, lmax);
-  if (!twopass)
-    mpz_mul_2exp (t, t, 1UL);
-  n = (mpz_sizeinbase (t, 2) - 1) / SP_NUMB_BITS + 4;
-  mpz_clear (t);
-  n *= sizeof (sp_t); /* Number of bytes each coefficient in NTT ready form
-			 occupies */
-
-  if (twopass)
-    return (2 * lmax + 2) * n + (lmax - s_1) * 
-      (mpz_size (modulus) * sizeof (mp_limb_t) + sizeof (mpz_t));
+      n = ntt_coeff_mem (lmax, modulus, !twopass);
+      if (twopass)
+	return lmax * (2 * n + m / 2);
+      else
+	return lmax * 3 * n;
+    }
   else
-    return (3 * lmax + 2) * n;
+    {
+      /* We allocate:
+	 F: s_1/2 coefficients
+	 fh_x, fh_y: s_1/2 coefficients
+	 h_x, h_y: s_1 mpz_t's (cloned from fh_x and fh_y)
+	 g_x, g_y: lmax coefficients
+	 R_x, R_y: lmax - s_1 coefficients
+	 tmp: 3UL * lmax + list_mul_mem (lmax / 2)
+	 Assuming s_1 ~ lmax/2, that's
+	 lmax/2 + 2*lmax/4 + 2*lmax + 2*lmax/2 * 3*lmax + 
+           list_mul_mem (lmax / 2) =
+	 7 + list_mul_mem (lmax / 2) coefficients and lmax mpz_t.
+       */
+      
+      n = m * (7 * lmax + list_mul_mem (lmax / 2));
+      n += lmax * sizeof (mpz_t);
+      n = 5 * n / 2; /* A fudge factor again */
+      return n;
+    }
+}
+
+size_t 
+pp1fs2_maxlen (const size_t memory, const mpz_t modulus, const int use_ntt, 
+	       const int twopass)
+{
+  size_t n, m;
+  
+  m = mpz_size (modulus) * sizeof (mp_limb_t) + sizeof (mpz_t);
+  if (use_ntt)
+    {
+      n = ntt_coeff_mem (1, modulus, !twopass);
+      if (twopass)
+	n = memory / (2 * n + m / 2);
+      else
+	n = memory / (3 * n);
+      return 1UL << (ceil_log2 (n) - 1); /* Rounded down to power of 2 */
+    }
+  else
+    {
+      return 2 * memory / 5 / (m * 8 + sizeof (mpz_t));
+    }
 }
 
 
@@ -1522,8 +1625,6 @@ build_F_ntt (listz_t F, const mpres_t P_1, sets_long_t *S_1,
   long timestart, realstart;
   int i;
 
-  outputf (OUTPUT_VERBOSE, "Computing F from factored S_1");
-  
   timestart = cputime ();
   realstart = realtime ();
   
@@ -1538,6 +1639,8 @@ build_F_ntt (listz_t F, const mpres_t P_1, sets_long_t *S_1,
   
   print_CRT_primes (OUTPUT_DEVVERBOSE, "CRT modulus for building F = ",
 		    F_ntt_context);
+  
+  outputf (OUTPUT_VERBOSE, "Computing F from factored S_1");
   
   tmplen = params->s_1 + 100;
   tmp = init_list2 (tmplen, (unsigned int) abs (modulus->bits));
@@ -2705,8 +2808,7 @@ pm1fs2 (mpz_t f, const mpres_t X, mpmod_t modulus,
      s_1 + 1 = 2*lenF - 1 */
   /* I.e. with F = [3, 2, 1], s_1 = 4, we want h = [1, 2, 3, 2, 1] */
   for (i = 0; i < params->s_1 / 2 + 1; i++)
-    *(h[i]) = *(F[params->s_1 / 2 - i]); /* Clone the mpz_t. 
-					    Don't tell Torbjorn */
+    *(h[i]) = *(F[params->s_1 / 2 - i]); /* Clone the mpz_t. */
   for (i = 0; i < params->s_1 / 2; i++)
     *(h[i + params->s_1 / 2 + 1]) = *(F[i + 1]);
   if (test_verbose (OUTPUT_TRACE))
@@ -2736,8 +2838,14 @@ pm1fs2 (mpz_t f, const mpres_t X, mpmod_t modulus,
 
       /* Computes rev(h)*g, stores coefficients of x^(s_1) to 
 	 x^(s_1+nr-1) = x^(len-1) */
-      TMulGen (R, nr - 1, h, params->s_1, g, params->l - 1, tmp, 
-	       modulus->orig_modulus);
+      if (TMulGen (R, nr - 1, h, params->s_1, g, params->l - 1, tmp, 
+		   modulus->orig_modulus) < 0)
+	{
+	  outputf (OUTPUT_ERROR, "TMulGen returned error code (probably out "
+		   "of memory)\n");
+	  youpi = ECM_ERROR;
+	  break;
+	}
       list_mod (R, R, nr, modulus->orig_modulus);
 
       outputf (OUTPUT_VERBOSE, " took %lums\n", cputime () - timestart);
@@ -2833,7 +2941,9 @@ pm1fs2 (mpz_t f, const mpres_t X, mpmod_t modulus,
   mpz_clear (mt);
   mpres_clear (mr, modulus);
 
-  outputf (OUTPUT_NORMAL, "Step 2 took %ldms\n", cputime () - timetotalstart);
+  if (youpi == ECM_NO_FACTOR_FOUND)
+    outputf (OUTPUT_NORMAL, "Step 2 took %ldms\n", 
+	     cputime () - timetotalstart);
   
   return youpi;
 }
@@ -4078,13 +4188,25 @@ pp1fs2 (mpz_t f, const mpres_t X, mpmod_t modulus,
       /* Do the two convolution products */
       outputf (OUTPUT_VERBOSE, "TMulGen of g_x and h_x");
       timestart = cputime ();
-      TMulGen (R_x, nr - 1, h_x, params->s_1, g_x, params->l - 1, tmp,
-	       modulus->orig_modulus);
+      if (TMulGen (R_x, nr - 1, h_x, params->s_1, g_x, params->l - 1, tmp,
+		   modulus->orig_modulus) < 0)
+	{
+	  outputf (OUTPUT_ERROR, "TMulGen returned error code (probably out "
+		   "of memory)\n");
+	  youpi == ECM_ERROR;
+	  break;
+	}
       outputf (OUTPUT_VERBOSE, " took %lums\n", cputime () - timestart);
       outputf (OUTPUT_VERBOSE, "TMulGen of g_y and h_y");
       timestart = cputime ();
-      TMulGen (R_y, nr - 1, h_y, params->s_1, g_y, params->l - 1, tmp,
-	       modulus->orig_modulus);
+      if (TMulGen (R_y, nr - 1, h_y, params->s_1, g_y, params->l - 1, tmp,
+		   modulus->orig_modulus) < 0)
+	{
+	  outputf (OUTPUT_ERROR, "TMulGen returned error code (probably out "
+		   "of memory)\n");
+	  youpi == ECM_ERROR;
+	  break;
+	}
       outputf (OUTPUT_VERBOSE, " took %lums\n", cputime () - timestart);
       for (i = 0; i < nr; i++)
 	  mpz_add (R_x[i], R_x[i], R_y[i]);

@@ -722,33 +722,37 @@ TToomCookMul_space (unsigned int n, unsigned int m, unsigned int l)
    b[n] = a[0]*c[n] + ... + a[i]*c[i+n] with i = min(m, l-n) [=l-n].
    Using auxiliary memory in tmp.
 
-   Assumes n <= l.
+   Assumes n <= l. 
+
+   Returns number of multiplications if known, 0 if not known, 
+   and -1 for error.
 */
-unsigned int
+int
 TMulGen (listz_t b, unsigned int n, listz_t a, unsigned int m,
          listz_t c, unsigned int l, listz_t tmp, mpz_t modulus)
 {
-    unsigned int i, muls = 0;
-
-    ASSERT (n <= l);
-    for (i = l + 1; i > 1 && (i&1) == 0; i >>= 1);
+  ASSERT (n <= l);
     
-    if (Fermat)
-      {
-        ASSERT(i == 1);
-        ASSERT(n + 1 == (l + 1) / 2);
-        ASSERT(m == l - n || m + 1 == l - n);
-        return F_mul_trans (b, a, c, m + 1, l + 1, Fermat, tmp);
-      }
-
+  if (Fermat)
+    {
+      unsigned int i;
+      for (i = l + 1; i > 1 && (i&1) == 0; i >>= 1);
+      ASSERT(i == 1);
+      ASSERT(n + 1 == (l + 1) / 2);
+      ASSERT(m == l - n || m + 1 == l - n);
+      return F_mul_trans (b, a, c, m + 1, l + 1, Fermat, tmp);
+    }
+  
 #ifdef KS_MULTIPLY
-    if ((double) n * (double) mpz_sizeinbase (modulus, 2) >= KS_TMUL_THRESHOLD)
-      TMulKS (b, n, a, m, c, l, modulus, 1); /* does no muls count */
-    else
+  if ((double) n * (double) mpz_sizeinbase (modulus, 2) >= KS_TMUL_THRESHOLD)
+    {
+      if (TMulKS (b, n, a, m, c, l, modulus, 1)) /* Non-zero means error */
+	return -1;
+      return 0; /* We have no mul count so we return 0 */
+    }
 #endif
-      muls = TToomCookMul (b, n, a, m, c, l, tmp);
 
-  return muls;
+  return TToomCookMul (b, n, a, m, c, l, tmp);
 }
 
 
