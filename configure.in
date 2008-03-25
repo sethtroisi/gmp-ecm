@@ -1,5 +1,5 @@
 
-m4_define([ECM_VERSION], 6.2_beta2)
+m4_define([ECM_VERSION], 6.2_beta4)
 
 AC_PREREQ(2.57)
 AC_INIT(ecm, ECM_VERSION, [ecm-discuss@lists.gforge.inria.fr])

@@ -321,10 +321,15 @@ int     pm1_rootsG       (mpz_t, listz_t, unsigned long, pm1_roots_state_t *,
 void    pm1_rootsG_clear (pm1_roots_state_t *, mpmod_t);
 
 /* pm1fs2.c */
-#define pm1fs2_ntt_memory_use __ECM(pm1fs2_ntt_memory_use)
-size_t  pm1fs2_ntt_memory_use (unsigned long, mpz_t);
-#define pp1fs2_ntt_memory_use __ECM(pp1fs2_ntt_memory_use)
-size_t  pp1fs2_ntt_memory_use (unsigned long, unsigned long, int, mpz_t);
+#define pm1fs2_memory_use __ECM(pm1fs2_ntt_memory_use)
+size_t  pm1fs2_memory_use (const unsigned long, const mpz_t, const int);
+#define pm1fs2_maxlen __ECM(pm1fs2_maxlen)
+unsigned long pm1fs2_maxlen (const size_t, const mpz_t, const int);
+#define pp1fs2_memory_use __ECM(pp1fs2_ntt_memory_use)
+size_t  pp1fs2_memory_use (const unsigned long, const mpz_t, const int, 
+                           const int);
+#define pp1fs2_maxlen __ECM(pp1fs2_maxlen)
+unsigned long pp1fs2_maxlen (const size_t, const mpz_t, const int, const int);
 #define choose_P __ECM(choose_P)
 long    choose_P (const mpz_t, const mpz_t, const unsigned long,
                   const unsigned long, faststage2_param_t *, mpz_t, mpz_t,
@@ -591,7 +596,7 @@ void ecm_mul_lo_basecase (mp_ptr, mp_srcptr, mp_srcptr, mp_size_t);
 	
 /* median.c */
 #define TMulGen __ECM(TMulGen)
-unsigned int
+int
 TMulGen (listz_t, unsigned int, listz_t, unsigned int, listz_t, 
          unsigned int, listz_t, mpz_t);
 #define TMulGen_space __ECM(TMulGen_space)

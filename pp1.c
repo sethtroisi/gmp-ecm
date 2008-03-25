@@ -796,11 +796,11 @@ pp1 (mpz_t f, mpz_t p, mpz_t n, mpz_t go, double *B1done, double B1,
   mpres_t a;
   mpmod_t modulus;
   mpz_t B2min, B2; /* Local B2, B2min to avoid changing caller's values */
-  unsigned long dF, lmax = 1UL<<28;
+  unsigned long dF;
   root_params_t root_params;
   faststage2_param_t faststage2_params;
   const int stage2_variant = (S == 1 || S == ECM_DEFAULT_S);
-  int twopass = 1;
+  int twopass = 0;
 
   set_verbose (verbose);
   ECM_STDOUT = (os == NULL) ? stdout : os;
@@ -837,54 +837,79 @@ pp1 (mpz_t f, mpz_t p, mpz_t n, mpz_t go, double *B1done, double B1,
   if (stage2_variant != 0)
     {
       long P;
-      unsigned long try_lmax;
+      unsigned long lmax = 1UL<<28; /* An upper bound */
+      unsigned long lmax_NTT, lmax_noNTT;;
       
       mpz_init (faststage2_params.m_1);
       
+      /* Find out what the longest transform length is we can do at all.
+	 If no maxmem is given, the non-NTT can theoretically do any length. */
+
+      lmax_NTT = 0;
       if (use_ntt)
 	{
-	  /* See what transform length that the NTT can handle */
-	  try_lmax = mpzspm_max_len (n);
-	  if (try_lmax < lmax)
+	  unsigned long t, t2 = 0;
+	  /* See what transform length that the NTT can handle (due to limited 
+	     primes and limited memory) */
+	  t = mpzspm_max_len (n);
+	  lmax_NTT = MIN (lmax, t);
+	  if (maxmem != 0.)
 	    {
-	      lmax = try_lmax;
-	      outputf (OUTPUT_VERBOSE, "NTT can handle only lmax <= %lu\n",
-		       lmax);
+	      t = pp1fs2_maxlen ((size_t) maxmem, n, use_ntt, 0);
+	      t = MIN (t, lmax_NTT);
+	      /* Maybe the two pass variant lets us use a longer transform */
+	      t2 = pp1fs2_maxlen ((size_t) maxmem, n, use_ntt, 1);
+	      t2 = MIN (t2, lmax_NTT);
+	      if (t2 > t)
+		{
+		  t = t2;
+		  twopass = 1;
+		}
+	      lmax_NTT = t;
 	    }
+	  outputf (OUTPUT_DEVVERBOSE, "NTT can handle lmax <= %lu\n", lmax_NTT);
 	}
-      
+
+      /* See what transform length that the non-NTT code can handle */
+      lmax_noNTT = lmax;
       if (maxmem != 0.)
-        {
-          /* Find the largest lmax we can can handle with maxmem.
-             The NTT version of fast stage 2 requires s_1 < lmax, so this
-             is an upper bound we can use for the memory estimate here. */
-          try_lmax = 4UL;
-          while (2 * try_lmax <= lmax &&
-                 (double) pp1fs2_ntt_memory_use (2 * try_lmax, try_lmax, 
-                                                 twopass, n) <= maxmem)
-            try_lmax <<= 1;
+	{
+	  unsigned long t;
+	  t = pp1fs2_maxlen ((size_t) maxmem, n, 0);
+	  lmax_noNTT = MIN (lmax_noNTT, t);
+	  outputf (OUTPUT_DEVVERBOSE, "non-NTT can handle lmax <= %lu\n", 
+		   lmax_noNTT);
+	}
 
-          lmax = try_lmax;
-
-          /* See if we can also do a one-pass stage 2 with maxmem */
-          if ((double) pp1fs2_ntt_memory_use (lmax, lmax / 2, 0, n) <= maxmem)
-            twopass = 0;
-
-          outputf (OUTPUT_VERBOSE, "%.2fMB allow for %s lmax = %lu "
-                   "which uses approx. %.2fMB\n", maxmem / 1048576., 
-                   (twopass) ? "two pass" : "one pass", lmax, 
-                   (double) pp1fs2_ntt_memory_use (lmax, lmax / 2, twopass, n) 
-                   / 1048576.);
-        }
-      
-      P = choose_P (B2min, B2, lmax, k, &faststage2_params, B2min, B2,
-                    use_ntt);
+      P = choose_P (B2min, B2, MAX(lmax_noNTT, lmax_NTT), k, 
+		    &faststage2_params, B2min, B2, use_ntt);
       if (P == ECM_ERROR)
 	{
 	  mpz_clear (faststage2_params.m_1);
 	  return ECM_ERROR;
 	}
-    } 
+
+      /* See if the selected parameters let us use NTT or not */
+      if (faststage2_params.l > lmax_NTT)
+	use_ntt = 0;
+      
+      if (maxmem != 0.)
+	{
+	  unsigned long MB;
+	  char *s;
+	  if (!use_ntt)
+	    s = "out";
+	  else if (twopass)
+	    s = " two pass";
+	  else
+	    s = " one pass";
+
+	  MB = pp1fs2_memory_use (faststage2_params.l, n, use_ntt, twopass)
+	    / 1048576;
+	  outputf (OUTPUT_VERBOSE, "Using lmax = %lu with%s NTT which takes "
+		   "about %luMB of memory\n", faststage2_params.l, s, MB);
+	}
+    }
   else 
     {
       mpz_init (root_params.i0);

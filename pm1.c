@@ -803,7 +803,7 @@ pm1 (mpz_t f, mpz_t p, mpz_t N, mpz_t go, double *B1done, double B1,
   mpmod_t modulus;
   mpres_t x;
   mpz_t B2min, B2; /* Local B2, B2min to avoid changing caller's values */
-  unsigned long dF, lmax = 1UL<<28;
+  unsigned long dF;
   root_params_t root_params;
   faststage2_param_t faststage2_params;
   /* If stage2_variant != 0, we use the new fast stage 2 */
@@ -885,60 +885,73 @@ pm1 (mpz_t f, mpz_t p, mpz_t N, mpz_t go, double *B1done, double B1,
         }
     }
   
-  if (use_ntt || (modulus->repr == ECM_MOD_BASE2 && modulus->Fermat > 0))
-    po2 = 1;
-
   /* If we use the old stage 2, we print the parameters here. The fast 
      stage 2 prints it by itself at the moment */
 
   if (stage2_variant != 0)
     {
       long P;
-      unsigned long try_lmax;
+      const unsigned long lmax = 1UL<<28; /* An upper bound */
+      unsigned long lmax_NTT, lmax_noNTT;
 
       mpz_init (faststage2_params.m_1);
 
+      /* Find out what the longest transform length is we can do at all.
+	 If no maxmem is given, the non-NTT can theoretically do any length. */
+
+      lmax_NTT = 0;
       if (use_ntt)
 	{
-	  /* See what transform length that the NTT can handle */
-	  try_lmax = mpzspm_max_len (N);
-	  if (try_lmax < lmax)
+	  unsigned long t;
+	  /* See what transform length that the NTT can handle (due to limited 
+	     primes and limited memory) */
+	  t = mpzspm_max_len (N);
+	  lmax_NTT = MIN (lmax, t);
+	  if (maxmem != 0.)
 	    {
-	      lmax = try_lmax;
-	      outputf (OUTPUT_VERBOSE, "NTT can handle only lmax <= %lu\n",
-		       lmax);
+	      t = pm1fs2_maxlen ((size_t) maxmem, N, use_ntt);
+	      lmax_NTT = MIN (lmax_NTT, t);
 	    }
+	  outputf (OUTPUT_DEVVERBOSE, "NTT can handle lmax <= %lu\n", lmax_NTT);
 	}
       
+      /* See what transform length that the non-NTT code can handle */
+      lmax_noNTT = lmax;
       if (maxmem != 0.)
-        {
-          /* Find the largest lmax we can can handle with maxmem.
-             The NTT version of fast stage 2 requires s_1 < lmax, so this
-             is an upper bound we can use for the memory estimate here. */
-	  try_lmax = 4UL;
-          while (2 * try_lmax <= lmax &&
-                 (double) pm1fs2_ntt_memory_use (2 * try_lmax, N) <= 
-                 maxmem)
-            try_lmax <<= 1;
-          lmax = try_lmax;
-          outputf (OUTPUT_VERBOSE, "%.2fMB allow for lmax = %lu "
-                   "which uses approx. %.2fMB\n", maxmem / 1048576., lmax, 
-                   (double) pm1fs2_ntt_memory_use (lmax, N) / 1048576.);
-        }
+	{
+	  unsigned long t;
+	  t = pm1fs2_maxlen ((size_t) maxmem, N, 0);
+	  lmax_noNTT = MIN (lmax_noNTT, t);
+	  outputf (OUTPUT_DEVVERBOSE, "non-NTT can handle lmax <= %lu\n", 
+		   lmax_noNTT);
+	}
       
-      P = choose_P (B2min, B2, lmax, k, &faststage2_params, B2min, B2, 
-                    use_ntt);
+      P = choose_P (B2min, B2, MAX (lmax_NTT, lmax_noNTT), k, 
+		    &faststage2_params, B2min, B2, use_ntt);
       if (P == ECM_ERROR)
         {
           mpz_clear (faststage2_params.m_1);
           return ECM_ERROR;
         }
+      
+      /* See if the selected parameters let us use NTT or not */
+      if (faststage2_params.l > lmax_NTT)
+	use_ntt = 0;
+      
+      if (maxmem != 0.)
+	  outputf (OUTPUT_VERBOSE, "Using lmax = %lu with%s NTT which takes "
+		   "about %luMB of memory\n", faststage2_params.l, 
+		   (use_ntt) ? "" : "out", 
+		   pm1fs2_memory_use (faststage2_params.l, N, use_ntt)/1048576);
     }
   else
     {
       mpz_init (root_params.i0);
       root_params.d2 = 0; /* Enable automatic choice of d2 */
       
+      if (use_ntt || (modulus->repr == ECM_MOD_BASE2 && modulus->Fermat > 0))
+	po2 = 1;
+
       if (bestD (&root_params, &k, &dF, B2min, B2, po2, use_ntt, maxmem,
                  (TreeFilename != NULL), modulus) == ECM_ERROR)
 	{
