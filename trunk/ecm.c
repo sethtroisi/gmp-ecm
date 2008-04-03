@@ -405,7 +405,7 @@ prac (mpres_t xA, mpres_t zA, unsigned long k, mpmod_t n, mpres_t b,
       mpres_t u, mpres_t v, mpres_t w, mpres_t xB, mpres_t zB, mpres_t xC, 
       mpres_t zC, mpres_t xT, mpres_t zT, mpres_t xT2, mpres_t zT2)
 {
-  unsigned long d, e, r, i = 0;
+  unsigned long d, e, r, i = 0, nv;
   double c, cmin;
   __mpz_struct *tmp;
 #define NV 10  
@@ -417,17 +417,26 @@ prac (mpres_t xA, mpres_t zA, unsigned long k, mpmod_t n, mpres_t b,
       0.63283980608870629, 0.61242994950949500, 0.62018198080741576,
       0.61721461653440386, 0.61834711965622806, 0.61791440652881789,
       0.61807966846989581};
-  
-  /* chooses the best value of v */
-  for (d = 0, cmin = ADD * (double) k; d < NV; d++)
+
+  /* for small n, it makes no sense to try 10 different Lucas chains */
+  nv = mpz_size ((mpz_ptr) n);
+  if (nv > NV)
+    nv = NV;
+
+  if (nv > 1)
     {
-      c = lucas_cost (k, val[d]);
-      if (c < cmin)
+      /* chooses the best value of v */
+      for (d = 0, cmin = ADD * (double) k; d < nv; d++)
         {
-          cmin = c;
-          i = d;
+          c = lucas_cost (k, val[d]);
+          if (c < cmin)
+            {
+              cmin = c;
+              i = d;
+            }
         }
     }
+
   d = k;
   r = (unsigned long) ((double) d * val[i] + 0.5);
   
