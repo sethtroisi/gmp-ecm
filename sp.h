@@ -56,11 +56,12 @@ extern size_t MPZSPV_NORMALISE_STRIDE;
 #define ASSERT(expr)   do {} while (0)
 #endif
 
-/* the following was inspired by longlong.h and gmp-impl.h */
-typedef unsigned long UWtype;
+/* the following was inspired by longlong.h and gmp-impl.h;
+ * note that a small prime must be the size of a GMP limb */
+typedef mp_limb_t UWtype;
 typedef unsigned int UHWtype;
-typedef unsigned long USItype;
-typedef unsigned long UDItype;
+typedef mp_limb_t USItype;
+typedef mp_limb_t UDItype;
 
 #ifndef BITS_PER_MP_LIMB
 #define BITS_PER_MP_LIMB __GMP_BITS_PER_MP_LIMB
