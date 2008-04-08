@@ -228,56 +228,56 @@ init_progression_coeffs (mpz_t i0, const unsigned long d,
 }
 
 void 
-init_roots_state (progression_params_t *state, const int S, 
-		  const unsigned long d1, const unsigned long d2, 
-		  const double cost)
+init_roots_params (progression_params_t *params, const int S, 
+		   const unsigned long d1, const unsigned long d2, 
+		   const double cost)
 {
   ASSERT (gcd (d1, d2) == 1);
   /* If S < 0, use degree |S| Dickson poly, otherwise use x^S */
-  state->S = abs (S);
-  state->dickson_a = (S < 0) ? -1 : 0;
+  params->S = abs (S);
+  params->dickson_a = (S < 0) ? -1 : 0;
 
   /* We only calculate Dickson_{S, a}(j * d2) * s where
      gcd (j, dsieve) == 1 and j == 1 (mod 6)
      by doing nr = eulerphi(dsieve)/2 separate progressions. */
   /* Now choose a value for dsieve. */
-  state->dsieve = 6;
-  state->nr = 1;
+  params->dsieve = 6;
+  params->nr = 1;
 
   /* Prospective saving by sieving out multiples of 5:
-     d1 / state->dsieve * state->nr / 5 roots, each one costs S point adds
+     d1 / params->dsieve * params->nr / 5 roots, each one costs S point adds
      Prospective cost increase:
-     4 times as many progressions to init (that is, 3 * state->nr more),
+     4 times as many progressions to init (that is, 3 * params->nr more),
      each costs ~ S * S * log_2(5 * dsieve * d2) / 2 point adds
-     The state->nr and one S cancel.
+     The params->nr and one S cancel.
   */
   if (d1 % 5 == 0 &&
-      d1 / state->dsieve / 5. * cost > 
-      3. * state->S * log (5. * state->dsieve * d2) / 2.)
+      d1 / params->dsieve / 5. * cost > 
+      3. * params->S * log (5. * params->dsieve * d2) / 2.)
     {
-      state->dsieve *= 5;
-      state->nr *= 4;
+      params->dsieve *= 5;
+      params->nr *= 4;
     }
 
   if (d1 % 7 == 0 &&
-      d1 / state->dsieve / 7. * cost > 
-      5. * state->S * log (7. * state->dsieve * d2) / 2.)
+      d1 / params->dsieve / 7. * cost > 
+      5. * params->S * log (7. * params->dsieve * d2) / 2.)
     {
-      state->dsieve *= 7;
-      state->nr *= 6;
+      params->dsieve *= 7;
+      params->nr *= 6;
     }
 
   if (d1 % 11 == 0 &&
-      d1 / state->dsieve / 11. * cost > 
-      9. * state->S * log (11. * state->dsieve * d2) / 2.)
+      d1 / params->dsieve / 11. * cost > 
+      9. * params->S * log (11. * params->dsieve * d2) / 2.)
     {
-      state->dsieve *= 11;
-      state->nr *= 10;
+      params->dsieve *= 11;
+      params->nr *= 10;
     }
 
-  state->size_fd = state->nr * (state->S + 1);
-  state->next = 0;
-  state->rsieve = 1;
+  params->size_fd = params->nr * (params->S + 1);
+  params->next = 0;
+  params->rsieve = 1;
 }
 
 double 

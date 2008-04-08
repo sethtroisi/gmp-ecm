@@ -402,8 +402,8 @@ int          stage2     (mpz_t, void *, mpmod_t, unsigned long, unsigned long,
 listz_t init_progression_coeffs (mpz_t, const unsigned long, const unsigned long, 
 				 const unsigned int, const unsigned int, 
 				 const unsigned int, const int);
-#define init_roots_state __ECM(init_roots_state)
-void init_roots_state   (progression_params_t *, const int, 
+#define init_roots_params __ECM(init_roots_params)
+void init_roots_params  (progression_params_t *, const int, 
 			 const unsigned long, const unsigned long, 
 			 const double);
 #define memory_use __ECM(memory_use)

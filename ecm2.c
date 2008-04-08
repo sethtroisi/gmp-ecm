@@ -451,8 +451,8 @@ ecm_rootsF (mpz_t f, listz_t F, root_params_t *root_params,
   st = cputime ();
 
   /* Relative cost of point add during init and computing roots assumed =1 */
-  init_roots_state (params, root_params->S, root_params->d1, root_params->d2, 
-		    1.0);
+  init_roots_params (params, root_params->S, root_params->d1, root_params->d2, 
+		     1.0);
 
   outputf (OUTPUT_DEVVERBOSE, "ecm_rootsF: state: nr = %d, dsieve = %d, "
 	   "size_fd = %d, S = %d, dickson_a = %d\n", 
@@ -622,7 +622,6 @@ ecm_rootsG_init (mpz_t f, curve *X, root_params_t *root_params,
   ecm_roots_state_t *state;
   progression_params_t *params; /* for less typing */
   int youpi = 0;
-  int dickson_a;
   unsigned int T_inv;
   double bestnr;
   long st = 0;
@@ -641,7 +640,7 @@ ecm_rootsG_init (mpz_t f, curve *X, root_params_t *root_params,
   params = &(state->params);
 
   /* If S < 0, use degree |S| Dickson poly, otherwise use x^S */
-  dickson_a = (root_params->S < 0) ? -1 : 0;
+  params->dickson_a = (root_params->S < 0) ? -1 : 0;
   params->S = abs (root_params->S);
 
   /* Estimate the cost of a modular inversion (in unit of time per 
@@ -685,7 +684,7 @@ ecm_rootsG_init (mpz_t f, curve *X, root_params_t *root_params,
 
   coeffs = init_progression_coeffs (root_params->i0, root_params->d2, 
 				    root_params->d1, params->nr / phid2, 
-				    1, params->S, dickson_a);
+				    1, params->S, params->dickson_a);
 
   if (coeffs == NULL) /* error */
     {
