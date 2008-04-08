@@ -92,7 +92,7 @@ typedef mp_limb_t UDItype;
  * For a residue x modulo a sp p, we require 0 <= x < p */
 typedef UWtype sp_t;
 
-#if W_TYPE_BITS <= 32
+#if W_TYPE_SIZE <= 32
 #define SP_NUMB_BITS (W_TYPE_SIZE - 1)
 #else
 #define SP_NUMB_BITS (W_TYPE_SIZE - 2)
