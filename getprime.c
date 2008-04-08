@@ -319,7 +319,7 @@ main (int argc, char *argv[])
   
   for (p = getprime (); p <= B2; p = getprime (), pi++)
     printf("%1.0f\n", p);
-  //  printf ("pi(%1.0f) - pi(%1.0f - 1) = %lu\n", B1, B2, pi);
+  /* printf ("pi(%1.0f) - pi(%1.0f - 1) = %lu\n", B1, B2, pi); */
 
   getprime_clear ();
 
