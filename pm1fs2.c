@@ -3474,7 +3474,7 @@ pp1_sequence_g (listz_t g_x, listz_t g_y, mpzspv_t g_x_ntt, mpzspv_t g_y_ntt,
   const int want_y = (g_y != NULL || g_y_ntt != NULL);
   mpres_t r_x, r_y, x0_x, x0_y, v2,
       r1_x[2], r1_y[2], r2_x[2], r2_y[2], 
-      v[2], tmp[tmplen];
+      v[2], tmp[3];
   mpz_t mt;
   mpmod_t modulus; /* Thread-local copy of modulus_param */
   unsigned long i, l = l_param, offset = 0;
@@ -3782,7 +3782,7 @@ pp1_sequence_h (listz_t h_x, listz_t h_y, mpzspv_t h_x_ntt, mpzspv_t h_y_ntt,
   {
     const size_t tmplen = 2;
     mpres_t s_x[3], s_y[3], s2_x[2], s2_y[2], v[2], V2, rn_x, rn_y, 
-      tmp[tmplen];
+      tmp[2];
     mpmod_t modulus; /* Thread-local copy of modulus_param */
     mpz_t mt;
     unsigned long l = l_param, offset = 0;
@@ -4063,7 +4063,7 @@ pp1fs2 (mpz_t f, const mpres_t X, mpmod_t modulus,
 
   listz_t g_x, g_y, fh_x, fh_y, h_x, h_y, tmp, R_x, R_y; 
   const unsigned long tmpreslen = 2UL;
-  mpres_t b1_x, b1_y, Delta, tmpres[tmpreslen];
+  mpres_t b1_x, b1_y, Delta, tmpres[2];
   mpz_t mt;   /* All-purpose temp mpz_t */
   int youpi = ECM_NO_FACTOR_FOUND;
   long timetotalstart, timestart;
