@@ -161,6 +161,22 @@ MA 02110-1301, USA. */
 #define __builtin_constant_p(x) 0
 #endif
 
+#ifndef MPN_ZERO
+/* from gmp-impl.h */
+#define MPN_ZERO(dst, n)			\
+  do {						\
+    ASSERT ((n) >= 0);				\
+    if ((n) != 0)				\
+      {						\
+	mp_ptr __dst = (dst);			\
+	mp_size_t __n = (n);			\
+	do					\
+	  *__dst++ = 0;				\
+	while (--__n);				\
+      }						\
+  } while (0)
+#endif
+
 #ifndef MPN_DECR_U
 /* copied from gmp-4.2.1/gmp-impl.h */
 #define MPN_DECR_U(p,size,incr)                         \
