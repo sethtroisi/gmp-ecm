@@ -6,7 +6,7 @@
 extern void ecm_redc3(mp_limb_t *cp, const mp_limb_t *np, mp_size_t nn, mp_limb_t Nprim);
 
 
-// WARNING: the size-1 version doesn't take pointers in input
+/* WARNING: the size-1 version doesn't take pointers in input */
 extern mp_limb_t mulredc1(mp_limb_t *z, mp_limb_t x, mp_limb_t y, mp_limb_t m, mp_limb_t inv_m);
 
 extern mp_limb_t mulredc2(mp_limb_t *z, const mp_limb_t *x, const mp_limb_t *y, const mp_limb_t *m, mp_limb_t inv_m);

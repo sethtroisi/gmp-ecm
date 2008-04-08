@@ -1141,9 +1141,11 @@ static inline void
 mpn_fft_butterfly_rotbuf0 (mp_ptr *A, mp_size_t i0, mp_size_t i1,
 			   mp_ptr *rotbuf, mp_size_t n)
 {
+  mp_ptr tmp;
+
   mpn_fft_sub_modF (rotbuf[0], A[i0], A[i1], n);
   mpn_fft_add_modF (A[i0], A[i0], A[i1], n);
-  mp_ptr tmp = rotbuf[0];
+  tmp = rotbuf[0];
   rotbuf[0] = A[i1];
   A[i1] = tmp;
 }
@@ -1543,13 +1545,13 @@ mpn_fft_fft_bailey_decompose (mp_ptr A, mp_ptr *Ap, mp_size_t k,
     mpn_mul_fft_decompose (A, Ap, 1<<k, i, k2, nprime, n, nl, l, 
 			   omega, T, b);
 
-    // copy the i-th column of Ap into BufA (pointers... no real copy)
+    /* copy the i-th column of Ap into BufA (pointers... no real copy) */
     for (j = 0; j < K1; ++j)
       BufA[j] = Ap[i+K2*j];
-    // do the level k1 transform
+    /* do the level k1 transform */
     mpn_fft_fftR4_twisted(BufA, i, k1, k, omega, nprime, rotbuf);
-    // copy back (since with the rotating buffer, the pointers have been
-    // moved around.
+    /* copy back (since with the rotating buffer, the pointers have been
+       moved around. */
     for (j = 0; j < K1; ++j)
       Ap[i+K2*j] = BufA[j];
   }
@@ -1755,33 +1757,34 @@ mpn_fft_mul_modF_K_fftInv (mp_ptr *ap, mp_ptr *bp, mp_size_t n, mp_size_t Mp, in
       {
 	mp_ptr tp, tpn;
 	int n2 = n << 1;
+        mp_size_t k1, k2, K1, omega, omegai;
+        mp_ptr *BufA;
+
 	tp = TMP_ALLOC_LIMBS (n2);
 	ASSERT(tp != NULL);
 	tpn = tp + n;
 
-	mp_size_t k1 = old_k >> 1;
-	mp_size_t k2 = old_k - k1;
+	k1 = old_k >> 1;
+	k2 = old_k - k1;
 #if 0 /* unused variables */
         mp_ptr a, b;
 	mp_limb_t cc;
 	mp_size_t N = MUL_4GMP_NUMB_BITS(n); /* 4 * n * GMP_NUMB_BITS */
 #endif
-	mp_size_t K1 = 1 << k1;
+	K1 = 1 << k1;
 	K2 = 1 << k2; /* we overwrite the previous variable, here,
 			 but it is no longer used */
-	mp_size_t omega = Mp;
-	mp_size_t omegai;
-	mp_ptr *BufA; 
+	omega = Mp;
 
 	BufA = TMP_ALLOC_MP_PTRS (K1);
 	ASSERT(BufA != NULL);
 
 	for (i = 0; i < K2; ++i) {
-	  // copy the i-th column of Ap into BufA (pointers... no real copy)
+	  /* copy the i-th column of Ap into BufA (pointers... no real copy) */
 	  for (j = 0; j < K1; ++j) {
-	    // Do the point-wise multiplication, the bitreverse and the
-	    // column selection at once. Should help locality (not
-	    // readibility).
+	    /* Do the point-wise multiplication, the bitreverse and the
+               column selection at once. Should help locality (not
+               readibility). */
 	    int ind = ll[old_k][i+K2*j];
 
 	    mpn_fft_normalize (ap[ind], n);
@@ -1792,10 +1795,10 @@ mpn_fft_mul_modF_K_fftInv (mp_ptr *ap, mp_ptr *bp, mp_size_t n, mp_size_t Mp, in
 
 	    BufA[j] = ap[ind];
 	  }
-	  // do the level k1 transform
+	  /* do the level k1 transform */
 	  mpn_fft_fftR4_twistedNeg(BufA, i, k1, old_k, omega, n, rotbuf);
-	  // copy back (since with the rotating buffer, the pointers have been
-	  // moved around.
+	  /* copy back (since with the rotating buffer, the pointers have been
+             moved around. */
 	  for (j = 0; j < K1; ++j)
 	    ap[ll[old_k][i+K2*j]] = BufA[j];
 	}
@@ -1814,7 +1817,7 @@ mpn_fft_mul_modF_K_fftInv (mp_ptr *ap, mp_ptr *bp, mp_size_t n, mp_size_t Mp, in
 	for (j = 0; j < K1; ++j)
 	  mpn_fft_fft_radix4Neg(ap+j*K2, k2, omegai, n, rotbuf);
 
-	// Bit-reverse table Ap (again...)
+	/* Bit-reverse table Ap (again...) */
 	for (i = 0; i < 1<<old_k; ++i) {
 	  mp_ptr tmp;
 	  int j = ll[old_k][i];
@@ -1831,30 +1834,31 @@ mpn_fft_mul_modF_K_fftInv (mp_ptr *ap, mp_ptr *bp, mp_size_t n, mp_size_t Mp, in
       mp_ptr a, b, tp, tpn;
       mp_limb_t cc;
       int n2 = 2 * n;
+      mp_size_t k1, k2, K1, K2, omega, omegai;
+      mp_ptr *BufA;
+
       tp = TMP_ALLOC_LIMBS (n2);
       ASSERT(tp != NULL);
       tpn = tp + n;
       
-      mp_size_t k1 = old_k / 2;
-      mp_size_t k2 = old_k-k1;
+      k1 = old_k / 2;
+      k2 = old_k-k1;
 #if 0
       mp_size_t N = MUL_4GMP_NUMB_BITS(n); /* 4 * n * GMP_NUMB_BITS */
 #endif
-      mp_size_t K1 = 1<<k1;
-      mp_size_t K2 = 1<<k2;
-      mp_size_t omega = Mp;
-      mp_size_t omegai;
-      mp_ptr *BufA; 
+      K1 = 1<<k1;
+      K2 = 1<<k2;
+      omega = Mp;
 
       BufA = TMP_ALLOC_MP_PTRS (K1);
       ASSERT(BufA != NULL);
       
       for (i = 0; i < K2; ++i) {
-	// copy the i-th column of Ap into BufA (pointers... no real copy)
+	/* copy the i-th column of Ap into BufA (pointers... no real copy) */
 	for (j = 0; j < K1; ++j) {
-	  // Do the point-wise multiplication, the bitreverse and the
-	  // column selection at once. Should help locality (not
-	  // readibility).
+	  /* Do the point-wise multiplication, the bitreverse and the
+             column selection at once. Should help locality (not
+             readibility). */
 	  int ind = ll[old_k][i+K2*j];
 	  
 	  a = ap[ind]; b = bp[ind];
@@ -1878,10 +1882,10 @@ mpn_fft_mul_modF_K_fftInv (mp_ptr *ap, mp_ptr *bp, mp_size_t n, mp_size_t Mp, in
 	
 	  BufA[j] = ap[ind];
 	}
-	// do the level k1 transform
+	/* do the level k1 transform */
 	mpn_fft_fftR4_twistedNeg(BufA, i, k1, old_k, omega, n, rotbuf);
-	// copy back (since with the rotating buffer, the pointers have been
-	// moved around.
+	/* copy back (since with the rotating buffer, the pointers have been
+           moved around. */
 	for (j = 0; j < K1; ++j)
 	  ap[ll[old_k][i+K2*j]] = BufA[j];
       }
@@ -1900,7 +1904,7 @@ mpn_fft_mul_modF_K_fftInv (mp_ptr *ap, mp_ptr *bp, mp_size_t n, mp_size_t Mp, in
       for (j = 0; j < K1; ++j)
 	mpn_fft_fft_radix4Neg(ap+j*K2, k2, omegai, n, rotbuf);
 
-      // Bit-reverse table Ap (again...)
+      /* Bit-reverse table Ap (again...) */
       for (i = 0; i < 1<<old_k; ++i) {
 	mp_ptr tmp;
 	int j = ll[old_k][i];
