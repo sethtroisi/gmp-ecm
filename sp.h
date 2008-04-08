@@ -227,7 +227,7 @@ static inline sp_t sp_sub(sp_t a, sp_t b, sp_t m)
 
   return tr + t;
 #elif defined(_MSC_VER) && !defined(_WIN64)
-  uint32 ans;
+  unsigned __int32 ans;
   __asm
     {
       mov    eax,a

@@ -327,7 +327,7 @@ MPN_FFT_STORE (void *dst, long int n, long int d)
 {
     ASSERT(n >= 0);
     for (; n > 0; n--)
-	*dst++ = d;
+	*((char*)dst)++ = d;
 }
 #endif
 
