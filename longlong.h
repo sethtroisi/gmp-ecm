@@ -20,6 +20,11 @@ along with this file; see the file COPYING.LIB.  If not, write to
 the Free Software Foundation, Inc., 51 Franklin St, Fifth Floor, Boston,
 MA 02110-1301, USA. */
 
+/* added for compatibility with other compilers than gcc */
+#if !defined(__GNUC__)
+#define __builtin_constant_p(x) 0
+#endif
+
 /* You have to define the following before including this file:
 
    UWtype -- An unsigned type, default type for operations (typically a "word")
