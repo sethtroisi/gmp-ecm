@@ -689,13 +689,13 @@ void ecm_mpn_mul_fft_full (mp_ptr, mp_srcptr, mp_size_t, mp_srcptr, mp_size_t);
 /* A set of long ints */
 typedef struct {
   unsigned long card;
-  long elem[0];
+  long elem[1];
 } set_long_t;
 
 /* A set of sets of long ints */
 typedef struct {
   unsigned long nr;
-  set_long_t sets[0];
+  set_long_t sets[1];
 } sets_long_t;
 
 #define quicksort_long __ECM(quicksort_long)
@@ -727,7 +727,7 @@ ATTRIBUTE_UNUSED
 static set_long_t *
 sets_nextset (const set_long_t *sets)
 {
-  return (set_long_t *) ((void *)sets + sizeof(unsigned long) + 
+  return (set_long_t *) ((char *)sets + sizeof(unsigned long) + 
                          sets->card * sizeof(long));
 }
 

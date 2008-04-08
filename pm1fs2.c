@@ -448,7 +448,10 @@ choose_s_1 (const unsigned long phiP, const unsigned long min_s2,
 	    const unsigned long l, const int use_ntt)
 {
   const int nrprimes = sizeof (phiPfactors) / sizeof (unsigned long);
-  int phiPexponents[nrprimes], exponents[nrprimes];
+  /* Using [nrprimes] here makes the compiler complain about variable-sized
+     arrays */
+  int phiPexponents[sizeof (phiPfactors) / sizeof (unsigned long)], 
+    exponents[sizeof (phiPfactors) / sizeof (unsigned long)];
   unsigned long s_1 = 0UL, s_2 = 0UL, trys_1;
   int i;
 
