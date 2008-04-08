@@ -23,6 +23,9 @@
 #include <string.h>
 #include <time.h>
 #include <math.h>
+#ifdef _MSC_VER
+#  include <winsock2.h>
+#endif
 #include "ecm-ecm.h"
 
 #if HAVE_UNISTD_H /* for access() */
@@ -717,11 +720,11 @@ main (int argc, char *argv[])
 #if HAVE_GETHOSTNAME == 1
   if (verbose >= 2)
     {
-      const int mnamesize = 64;
-      char mname[mnamesize];
-      if (gethostname (mname, mnamesize) == 0)
+#define MNAMESIZE  64
+      char mname[MNAMESIZE];
+      if (gethostname (mname, MNAMESIZE) == 0)
         {
-          mname[mnamesize - 1] = 0; /* gethostname() may omit trailing 0 */
+          mname[MNAMESIZE - 1] = 0; /* gethostname() may omit trailing 0 */
           printf ("Running on %s\n", mname);
         }
     }
