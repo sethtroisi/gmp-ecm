@@ -110,7 +110,11 @@ MA 02110-1301, USA. */
 #endif
 
 #ifndef LIKELY
+#if defined(__GNUC__)
 #define LIKELY(x) __builtin_expect ((x) != 0, 1)
+#else
+#define LIKELY(x) x
+#endif
 #endif
 
 #ifndef MP_LIMB_T_MAX
@@ -151,6 +155,10 @@ MA 02110-1301, USA. */
 
 #ifndef __GMP_FREE_FUNC_LIMBS
 #define __GMP_FREE_FUNC_LIMBS(a,n) free(a)
+#endif
+
+#if !defined(__GNUC__)
+#define __builtin_constant_p(x) 0
 #endif
 
 #ifndef MPN_DECR_U
