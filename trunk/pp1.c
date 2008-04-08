@@ -481,8 +481,8 @@ pp1_rootsF (listz_t F, root_params_t *root_params, unsigned long dF,
   else /* case |S| <> 1: this code works also for S=1, but is more
 	  expensive, since it can use up to 4*(d1/6) muls */
     {
-      init_roots_state (params, root_params->S, root_params->d1, 
-                        root_params->d2, 1.0);
+      init_roots_params (params, root_params->S, root_params->d1, 
+                         root_params->d2, 1.0);
       mpz_set_ui (*t, 0UL);
       coeffs = init_progression_coeffs (*t, params->dsieve, root_params->d2, 1, 
                                         6, params->S, params->dickson_a);
