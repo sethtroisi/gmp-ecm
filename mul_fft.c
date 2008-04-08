@@ -296,19 +296,18 @@ MA 02110-1301, USA. */
 
 #if defined(__x86_64__) && defined(__GNUC__) && defined(OWN_MPN_FFT_ZERO)
 static inline void
-MPN_FFT_ZERO (void *dst, long int n)
+MPN_FFT_ZERO (mp_ptr dst, mp_size_t n)
 {
     __asm__ __volatile__ ("rep stosq": "+c" (n), "+D" (dst): "a" (0L) :
 			  "memory");
     /* Put n in %rcx, which will also be written (decreased to 0) by the 
        instruction and put dst in %rdi which will also be written 
        (increased by 8*n).
-       Put 0 in %rax.
-       FIXME: should "memory" go in the clobbered list? */
+       Put 0 in %rax. */
 }
 #elif defined(__i386__) && defined(__GNUC__) && defined(OWN_MPN_FFT_ZERO)
 void static inline
-MPN_FFT_ZERO (void *dst, long int n)
+MPN_FFT_ZERO (mp_ptr dst, mp_size_t n)
 {
     __asm__ __volatile__ ("rep stosl" : "+c" (n), "+D" (dst) : "a" (0) : 
 			  "memory");
@@ -320,36 +319,35 @@ MPN_FFT_ZERO (void *dst, long int n)
 
 #if defined(__x86_64__) && defined(__GNUC__) && defined(OWN_MPN_FFT_ZERO)
 static inline void
-MPN_FFT_STORE (void *dst, long int n, long int d)
+MPN_FFT_STORE (mp_ptr dst, mp_size_t n, mp_limb_t d)
 {
     __asm__ __volatile__ ("rep stosq": "+c" (n), "+D" (dst): "a" (d) :
 			  "memory");
     /* Put n in %rcx, which will also be written (decreased to 0) by the 
        instruction and put dst in %rdi which will also be written 
        (increased by 8*n).
-       Put 0 in %rax.
-       FIXME: should "memory" go in the clobbered list? */
+       Put 0 in %rax. */
 }
 #elif defined(__i386__) && defined(__GNUC__) && defined(OWN_MPN_FFT_ZERO)
 void static inline
-MPN_FFT_STORE (void *dst, long int n, long int d)
+MPN_FFT_STORE (mp_ptr dst, mp_size_t n, mp_limb_t d)
 {
     __asm__ __volatile__ ("rep stosl" : "+c" (n), "+D" (dst) : "a" (d) :
 			  "memory");
 }
 #else
 void static inline
-MPN_FFT_STORE (void *dst, long int n, long int d)
+MPN_FFT_STORE (mp_ptr dst, mp_size_t n, mp_limb_t d)
 {
     ASSERT(n >= 0);
     for (; n > 0; n--)
-	*((char*)dst)++ = d;
+	*dst++ = d;
 }
 #endif
 
 #if defined(__x86_64__) && defined(__GNUC__) && defined(OWN_MPN_FFT_COPY)
 void static inline 
-MPN_FFT_COPY (void *dst, const void *src, long int n)
+MPN_FFT_COPY (mp_ptr dst, const mp_srcptr src, mp_size_t n)
 {
     __asm__ __volatile__ ("rep movsq": "+c" (n), "+S" (src), "+D" (dst) :
 			  "memory");
@@ -360,7 +358,7 @@ MPN_FFT_COPY (void *dst, const void *src, long int n)
 }
 #elif defined(__i386__) && defined(__GNUC__) && defined(OWN_MPN_FFT_COPY)
 void static inline
-MPN_FFT_COPY (void *dst, const void *src, long int n)
+MPN_FFT_COPY (mp_ptr dst, const mp_srcptr src, mp_size_t n)
 {
     __asm__ __volatile__ ("rep movsl" : "+c" (n), "+S" (src), "+D" (dst) :
 			  "memory");
