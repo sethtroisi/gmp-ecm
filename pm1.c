@@ -462,8 +462,8 @@ pm1_rootsF (mpz_t f, listz_t F, root_params_t *root_params,
   st = cputime ();
 
   /* Relative cost of point add during init and computing roots assumed =1 */
-  init_roots_state (&state.params, root_params->S, root_params->d1, 
-		    root_params->d2, 1.0);
+  init_roots_params (&state.params, root_params->S, root_params->d1, 
+		     root_params->d2, 1.0);
 
   /* The invtrick is profitable for x^S, S even and > 6. Does not work for 
      Dickson polynomials (root_params->S < 0)! */
