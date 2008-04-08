@@ -92,6 +92,7 @@ Table of contents:
   (see http://www.mersenneforum.org/showthread.php?t=3922)
 
 4) installation
+- check for __builtin_constant_p and __builtin_expect at configure time
 - add a configure option --enable-shared --disable-static to link GMP
   dynamically
 - [suggested by Peter Montgomery] add the possibility to compile a "fat"
