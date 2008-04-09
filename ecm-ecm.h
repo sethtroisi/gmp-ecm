@@ -25,7 +25,7 @@
 
 #include <assert.h>
 #define ASSERT_ALWAYS(expr)   assert (expr)
-#if WANT_ASSERT
+#ifdef WANT_ASSERT
 #define ASSERT(expr)   assert (expr)
 #else
 #define ASSERT(expr)   do {} while (0)
@@ -180,22 +180,22 @@ void pm1_random_seed  (mpz_t, mpz_t, gmp_randstate_t);
 #define ABS(x) ((x) >= 0 ? (x) : -(x))
 
 /* could go in auxi.c as a function */
-#if HAVE_SETPRIORITY
+#ifdef HAVE_SETPRIORITY
 # include <sys/time.h>
-# if HAVE_SYS_RESOURCE_H
+# ifdef HAVE_SYS_RESOURCE_H
 #  include <sys/resource.h>
 # endif
 # define NICE10 setpriority (PRIO_PROCESS, 0, 10)
 # define NICE20 setpriority (PRIO_PROCESS, 0, 20)
 
-#elif HAVE_NICE
-# if HAVE_UNISTD_H
+#elif defined(HAVE_NICE)
+# ifdef HAVE_UNISTD_H
 #  include <unistd.h>
 # endif
 # define NICE10 nice (10)
 # define NICE20 nice (20)
 
-#elif HAVE_WINDOWS_H
+#elif defined(HAVE_WINDOWS_H)
 # include <windows.h>
 # define NICE10 do { \
    SetPriorityClass (GetCurrentProcess (), BELOW_NORMAL_PRIORITY_CLASS); \
