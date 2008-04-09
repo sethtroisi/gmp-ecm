@@ -723,16 +723,12 @@ choose_S (mpz_t B2len)
 
 static void
 print_expcurves (mpz_t B2min, mpz_t effB2, unsigned long dF, unsigned long k, 
-                 int S, int clear)
+                 int S)
 {
   double prob;
   int i;
   char sep;
 
-  if (!test_verbose (OUTPUT_VERBOSE))
-    return;
-
-  rhoinit (256, 10);
   outputf (OUTPUT_VERBOSE, "Expected number of curves to find a factor "
            "of n digits:\n20\t25\t30\t35\t40\t45\t50\t55\t60\t65\n");
   for (i = 20; i <= 65; i += 5)
@@ -747,23 +743,16 @@ print_expcurves (mpz_t B2min, mpz_t effB2, unsigned long dF, unsigned long k,
       else
         outputf (OUTPUT_VERBOSE, "Inf%c", sep);
     }
-
-  if (clear)
-    rhoinit (1, 0); /* Free memory of rhotable */
 }
 
 static void
 print_exptime (mpz_t B2min, mpz_t effB2, unsigned long dF, unsigned long k, 
-               int S, double tottime, int clear)
+               int S, double tottime)
 {
   double prob, exptime;
   int i;
   char sep;
   
-  if (!test_verbose (OUTPUT_VERBOSE))
-    return;
-  
-  rhoinit (256, 10);
   outputf (OUTPUT_VERBOSE, "Expected time to find a factor of n digits:\n"
     "20\t25\t30\t35\t40\t45\t50\t55\t60\t65\n");
   for (i = 20; i <= 65; i += 5)
@@ -793,9 +782,6 @@ print_exptime (mpz_t B2min, mpz_t effB2, unsigned long dF, unsigned long k,
       else 
         outputf (OUTPUT_VERBOSE, "Inf%c", sep);
     }
-
-  if (clear)
-    rhoinit (1, 0); /* Free memory of rhotable */
 }
 
 /* Input: x is starting point or zero
@@ -1033,7 +1019,11 @@ ecm (mpz_t f, mpz_t x, mpz_t sigma, mpz_t n, mpz_t go, double *B1done,
   if (go != NULL && mpz_cmp_ui (go, 1) > 0)
     outputf (OUTPUT_VERBOSE, "initial group order: %Zd\n", go);
 
-  print_expcurves (B2min, B2, dF, k, root_params.S, 0);
+  if (test_verbose (OUTPUT_VERBOSE))
+    {
+      rhoinit (256, 10);
+      print_expcurves (B2min, B2, dF, k, root_params.S);
+    }
 
 #ifdef HAVE_GWNUM
   /* Right now, we only do base 2 numbers with GWNUM */
@@ -1112,10 +1102,15 @@ ecm (mpz_t f, mpz_t x, mpz_t sigma, mpz_t n, mpz_t go, double *B1done,
     youpi = stage2 (f, &P, modulus, dF, k, &root_params, ECM_ECM, 
                     use_ntt, TreeFilename, stop_asap);
   
-  if (youpi == ECM_NO_FACTOR_FOUND && (stop_asap == NULL || !(*stop_asap)()))
-    print_exptime (B2min, B2, dF, k, root_params.S, 
-                   (long) (stage1time * 1000.) + 
-                   elltime (st, cputime ()), 1);
+  if (test_verbose (OUTPUT_VERBOSE))
+    {
+      if (youpi == ECM_NO_FACTOR_FOUND && 
+          (stop_asap == NULL || !(*stop_asap)()))
+        print_exptime (B2min, B2, dF, k, root_params.S, 
+                       (long) (stage1time * 1000.) + 
+                       elltime (st, cputime ()));
+      rhoinit (1, 0); /* Free memory of rhotable */
+    }
 
 end_of_ecm:
   mpres_clear (P.A, modulus);
