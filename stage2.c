@@ -803,7 +803,7 @@ stage2 (mpz_t f, void *X, mpmod_t modulus, unsigned long dF, unsigned long k,
 #else
   clear_list (invF, dF + 1);
   invF = NULL;
-  polyeval (T, dF, Tree, T + dF + 1, n, 0, ECM_STDERR);
+  polyeval (T, dF, Tree, T + dF + 1, n, 0);
 #endif
   treefiles_used = 0; /* Polyeval deletes treefiles by itself */
 

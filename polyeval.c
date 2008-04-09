@@ -37,7 +37,6 @@
 
 extern unsigned int Fermat;
 
-#ifndef POLYEVALTELLEGEN
 /* algorithm polyeval from section 3.7 of Peter Montgomery's dissertation.
 Input: 
    G - an array of k elements of R, G[i], 0 <= i < k
@@ -112,7 +111,6 @@ polyeval (listz_t G, unsigned int k, listz_t *Tree, listz_t T, mpz_t n,
   list_set (G + l, T, m);
   polyeval (G + l, m, Tree + 1, T, n, sh + l);
 }
-#endif
 
 #if defined(DEBUG) || defined(DEBUG_TREEDATA)
 void
@@ -252,7 +250,6 @@ TUpTree_space (unsigned int k)
     return r1;
 }
 
-#ifdef POLYEVALTELLEGEN
 /* Same as polyeval. Needs invF as extra argument.
    Return non-zero iff an error occurred.
 */
@@ -358,4 +355,3 @@ clear_T:
 
     return r;
 }
-#endif
