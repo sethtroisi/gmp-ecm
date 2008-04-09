@@ -252,7 +252,7 @@ static inline sp_t sp_add(sp_t a, sp_t b, sp_t m)
 {
 #if (defined(__GNUC__) || defined(__ICL)) && \
     (defined(__x86_64__) || defined(__i386__))
-  unsigned long t = a - m, tr = a + b;
+  sp_t t = a - m, tr = a + b;
 
   __asm__ (
     "add %2, %1    # sp_add: tr -= b\n\t"   /* t += b */
@@ -329,7 +329,7 @@ static inline sp_t sp_udiv_rem(sp_t nh, sp_t nl, sp_t d, sp_t di)
 static inline sp_t
 sp_mul (sp_t x, sp_t y, sp_t m, sp_t d)
 {
-  sp_t z, u, v;
+  sp_t u, v;
   umul_ppmm (u, v, x, y);
   return sp_udiv_rem (u, v, m, d);
 }
@@ -338,7 +338,7 @@ sp_mul (sp_t x, sp_t y, sp_t m, sp_t d)
 static inline sp_t
 sp_sqr (sp_t x, sp_t m, sp_t d)
 {
-  sp_t z, u, v;
+  sp_t u, v;
   umul_ppmm (u, v, x, x);
   return sp_udiv_rem (u, v, m, d);
 }
