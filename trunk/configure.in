@@ -215,7 +215,7 @@ AC_CHECK_FUNCS([isascii memset strchr strlen strncasecmp strstr], [], AC_MSG_ERR
 AC_CHECK_FUNCS([access unlink], [], AC_MSG_ERROR([required function missing]))
 AC_CHECK_FUNCS([isspace isdigit isxdigit], [], AC_MSG_ERROR([required function missing]))
 AC_CHECK_FUNCS([time ctime], [], AC_MSG_ERROR([required function missing]))
-AC_CHECK_FUNCS([nice gethostname gettimeofday getrusage memmove signal])
+AC_CHECK_FUNCS([setpriority nice gethostname gettimeofday getrusage memmove signal])
 
 dnl FIXME: which win32 library contains these functions?
 dnl AC_CHECK_FUNCS([GetCurrentProcess GetProcessTimes])
