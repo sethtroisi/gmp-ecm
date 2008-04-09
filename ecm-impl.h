@@ -465,22 +465,20 @@ int       PolyFromRoots_Tree (listz_t, listz_t, unsigned int, listz_t, int,
                          mpz_t, listz_t*, FILE*, unsigned int);
 
 #define ntt_PolyFromRoots __ECM(ntt_PolyFromRoots)
-void	  ntt_PolyFromRoots (listz_t, listz_t, unsigned long, listz_t,
-		mpzspm_t);
+void	  ntt_PolyFromRoots (mpzv_t, mpzv_t, spv_size_t, mpzv_t, mpzspm_t);
 #define ntt_PolyFromRoots_Tree __ECM(ntt_PolyFromRoots_Tree)
-int       ntt_PolyFromRoots_Tree (listz_t, listz_t, unsigned long, listz_t,
-                         int, mpzspm_t, listz_t *, FILE *);
+int       ntt_PolyFromRoots_Tree (mpzv_t, mpzv_t, spv_size_t, mpzv_t,
+                         int, mpzspm_t, mpzv_t *, FILE *);
 #define ntt_polyevalT __ECM(ntt_polyevalT)
 int  ntt_polyevalT (mpzv_t, spv_size_t, mpzv_t *, mpzv_t, mpzspv_t,
 		mpzspm_t, char *);
 #define ntt_mul __ECM(ntt_mul)
 void  ntt_mul (mpzv_t, mpzv_t, mpzv_t, spv_size_t, mpzv_t, int, mpzspm_t);
 #define ntt_PrerevertDivision __ECM(ntt_PrerevertDivision)
-void  ntt_PrerevertDivision (listz_t, listz_t, listz_t, mpzspv_t, mpzspv_t,
-		unsigned long, listz_t, mpzspm_t);
+void  ntt_PrerevertDivision (mpzv_t, mpzv_t, mpzv_t, mpzspv_t, mpzspv_t,
+		spv_size_t, mpzv_t, mpzspm_t);
 #define ntt_PolyInvert __ECM(ntt_PolyInvert)
-void	     ntt_PolyInvert (listz_t, listz_t, unsigned long, listz_t,
-		mpzspm_t);
+void	     ntt_PolyInvert (mpzv_t, mpzv_t, spv_size_t, mpzv_t, mpzspm_t);
 
 #define PrerevertDivision __ECM(PrerevertDivision)
 int   PrerevertDivision (listz_t, listz_t, listz_t, unsigned int, listz_t,
