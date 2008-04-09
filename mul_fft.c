@@ -65,8 +65,10 @@ MA 02110-1301, USA. */
 #include <limits.h> /* for LONG_MAX */
 #include <assert.h>
 #include "config.h"
+#ifdef HAVE_ALLOCA_H
+#include <alloca.h>
+#endif
 #include "gmp.h"
-#include "longlong.h"		/* for count_trailing_zeros */
 #include "ecm-params.h"
 
 /* to avoid conflicts with GMP's functions */
@@ -114,6 +116,15 @@ MA 02110-1301, USA. */
 #define LIKELY(x) __builtin_expect ((x) != 0, 1)
 #else
 #define LIKELY(x) x
+#endif
+#endif
+
+/* _PROTO macro is copied from longlong.h of GMP */
+#ifndef _PROTO
+#if (__STDC__-0) || defined (__cplusplus)
+#define _PROTO(x) x
+#else
+#define _PROTO(x) ()
 #endif
 #endif
 
@@ -230,13 +241,13 @@ MA 02110-1301, USA. */
 /* copied from gmp-4.2.1/gmp-impl.h */
 #define MPN_COPY(dst, src, n)                           \
   do {                                                  \
-    ASSERT ((n) >= 0);                                  \
     if ((n) != 0)                                       \
       {                                                 \
         mp_size_t __n = (n) - 1;                        \
         mp_ptr __dst = (dst);                           \
         mp_srcptr __src = (src);                        \
         mp_limb_t __x;                                  \
+	ASSERT ((n) > 0);				\
         __x = *__src++;                                 \
         if (__n != 0)                                   \
           {                                             \
@@ -743,7 +754,7 @@ static inline void
 mpn_fft_lshsub_modF (mp_ptr r, mp_srcptr a, mp_srcptr b, unsigned int d,
 		     mp_size_t n)
 {
-  ASSERT (0 <= d && d < 2 * n);
+  ASSERT (d < 2 * n);
 
   if (d >= n) /* (a-b)*B^d = (b-a)*B^(d-n) */
     {
