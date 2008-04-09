@@ -323,6 +323,21 @@ MPN_FFT_ZERO (mp_ptr dst, mp_size_t n)
     __asm__ __volatile__ ("rep stosl" : "+c" (n), "+D" (dst) : "a" (0) : 
 			  "memory");
 }
+#elif defined(_MSC_VER) && !defined(_WIN64)
+void static inline
+MPN_FFT_ZERO (mp_ptr dst, mp_size_t n)
+{
+    ASSERT(n >= 0);
+    __asm
+    {
+        push    edi
+        mov     edi,dst
+        xor     eax,eax
+        mov     ecx,n
+        rep     stosd
+        pop     edi
+    }
+}
 #else
   /* Fall back to GMP's MPN_ZERO() macro */
   #define MPN_FFT_ZERO(dst, n) MPN_ZERO(dst,n)
@@ -345,6 +360,21 @@ MPN_FFT_STORE (mp_ptr dst, mp_size_t n, mp_limb_t d)
 {
     __asm__ __volatile__ ("rep stosl" : "+c" (n), "+D" (dst) : "a" (d) :
 			  "memory");
+}
+#elif defined(_MSC_VER) && !defined(_WIN64)
+void static inline
+MPN_FFT_STORE (mp_ptr dst, mp_size_t n, mp_limb_t d)
+{
+    ASSERT(n >= 0);
+    __asm
+    {
+        push    edi
+        mov     edi,dst
+        mov     eax,d
+        mov     ecx,n
+        rep     stosd
+        pop     edi
+    }
 }
 #else
 void static inline
@@ -373,6 +403,22 @@ MPN_FFT_COPY (mp_ptr dst, const mp_srcptr src, mp_size_t n)
 {
     __asm__ __volatile__ ("rep movsl" : "+c" (n), "+S" (src), "+D" (dst) :
 			  "memory");
+}
+#elif defined(_MSC_VER) && !defined(_WIN64)
+void static inline
+MPN_FFT_COPY (mp_ptr dst, const mp_srcptr src, mp_size_t n)
+{
+    __asm
+    {
+        push    esi
+        push    edi
+        mov     edi,dst
+        mov     esi,src
+        mov     ecx,n
+        rep     movsd
+        pop     edi
+        pop     esi
+    }
 }
 #else
   /* Fall back to GMP's MPN_COPY() macro */
@@ -744,6 +790,9 @@ mpn_fft_sub_modF (mp_ptr r, mp_srcptr a, mp_srcptr b, mp_size_t n)
   MPN_INCR_U (r, n + 1, r[n] - c);
 }
 
+#ifdef _MSC_VER /* optimisation bug on VC++ v9 */
+#  pragma optimize( "", off )
+#endif
 /* r <- (a-b)*B^d mod B^n+1, where B=2^GMP_NUMB_BITS.
    Assumes a and b are semi-normalized.
    It is equivalent to:
@@ -795,6 +844,9 @@ mpn_fft_lshsub_modF (mp_ptr r, mp_srcptr a, mp_srcptr b, unsigned int d,
       r[n] = cc >> (GMP_NUMB_BITS - 1);
       MPN_INCR_U (r, n + 1, cc + r[n]);
     }
+#ifdef _MSC_VER /* optimisation bug on VC++ v9 */
+#  pragma optimize( "", on )
+#endif
 }
 
 /* r <- a*sqrt(2)^d mod 2^(n*GMP_NUMB_BITS)+1 with a = {a, n+1}
