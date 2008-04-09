@@ -84,7 +84,7 @@ spm_t
 spm_init (spv_size_t n, sp_t sp)
 {
   sp_t a, b, bd, sc;
-  spv_size_t q, nc, d, ntt_power;
+  spv_size_t q, nc, ntt_power;
   spm_t spm = (spm_t) malloc (sizeof (__spm_struct));
 
   ASSERT (sp % (sp_t) n == (sp_t) 1);
@@ -116,6 +116,7 @@ spm_init (spv_size_t n, sp_t sp)
       if (nc % q == (spv_size_t) 0)
         {
 	  const int k = exponent (q, n); /* q^k || n */
+	  sp_t d;
 	  int l;
 #ifdef PARI
 	  printf ("exponent(%lu, n) == %d /* PARI */\n", q, k);
