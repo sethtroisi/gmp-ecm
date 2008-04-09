@@ -731,7 +731,7 @@ list_output_poly (listz_t l, unsigned long len, int monic, int symmetric,
 /* Returns 0 if a modular inversion failed (in which case R is left 
    unchanged), 1 otherwise */
 
-static int
+static int ATTRIBUTE_UNUSED
 list_scale_rev (listz_t R, listz_t S, mpz_t r, long k, unsigned long deg, 
 		mpz_t modulus, listz_t tmp, 
 		ATTRIBUTE_UNUSED const unsigned long tmplen)
@@ -1023,7 +1023,7 @@ list_mul_reciprocal (listz_t R, listz_t S1, unsigned long l1,
 /* Multiply a (possibly monic) polynomial A of length k * len with a 
    (possibly monic) polynomial B of length len. R may be identical to A. */
 
-static void
+static void ATTRIBUTE_UNUSED
 list_mul_blocks (listz_t R, const listz_t A, int monicA, const listz_t B, 
 		 int monicB, const unsigned long len, const unsigned int k,
 		 listz_t tmp, ATTRIBUTE_UNUSED const unsigned long tmplen)
@@ -1411,7 +1411,7 @@ list_scale_V (listz_t R, listz_t F, mpres_t Q, unsigned long deg,
    This function is used only if assertions are enabled.
 */
 
-static long int
+static long int ATTRIBUTE_UNUSED
 list_is_symmetric (listz_t l, unsigned long len, int monic, int anti, 
 		   mpz_t modulus, mpz_t tmp)
 {
@@ -1494,7 +1494,7 @@ list_eval_poly (mpz_t r, const listz_t F, const mpz_t x,
    2*d is F(x) = f_0 + \sum_{1 <= i <= d} f_i (x^i + 1/x^i). The coefficient
    f_i is stored in F[i], which therefore needs d+1 elements. */
 
-static int
+static unsigned long
 poly_from_sets_V (listz_t F, const mpres_t Q, sets_long_t *sets, 
 		  listz_t tmp, const unsigned long tmplen, mpmod_t modulus,
 		  mpzspv_t dct, const mpzspm_t ntt_context)
@@ -1626,7 +1626,7 @@ build_F_ntt (listz_t F, const mpres_t P_1, sets_long_t *S_1,
   unsigned long tmplen;
   listz_t tmp;
   long timestart, realstart;
-  int i;
+  unsigned long i;
 
   timestart = cputime ();
   realstart = realtime ();
@@ -2957,7 +2957,7 @@ pm1fs2_ntt (mpz_t f, const mpres_t X, mpmod_t modulus,
 	const faststage2_param_t *params)
 {
   unsigned long nr;
-  unsigned long i, l, lenF;
+  unsigned long l, lenF;
   sets_long_t *S_1; /* This is stored as a set of sets (arithmetic 
                        progressions of prime length */
   set_long_t *S_2; /* This is stored as a regular set */
@@ -4196,7 +4196,7 @@ pp1fs2 (mpz_t f, const mpres_t X, mpmod_t modulus,
 	{
 	  outputf (OUTPUT_ERROR, "TMulGen returned error code (probably out "
 		   "of memory)\n");
-	  youpi == ECM_ERROR;
+	  youpi = ECM_ERROR;
 	  break;
 	}
       outputf (OUTPUT_VERBOSE, " took %lums\n", cputime () - timestart);
@@ -4207,7 +4207,7 @@ pp1fs2 (mpz_t f, const mpres_t X, mpmod_t modulus,
 	{
 	  outputf (OUTPUT_ERROR, "TMulGen returned error code (probably out "
 		   "of memory)\n");
-	  youpi == ECM_ERROR;
+	  youpi = ECM_ERROR;
 	  break;
 	}
       outputf (OUTPUT_VERBOSE, " took %lums\n", cputime () - timestart);
@@ -4273,7 +4273,7 @@ pp1fs2_ntt (mpz_t f, const mpres_t X, mpmod_t modulus,
 	    const faststage2_param_t *params, const int twopass)
 {
   unsigned long nr;
-  unsigned long i, l, lenF;
+  unsigned long l, lenF;
   sets_long_t *S_1; /* This is stored as a set of sets (arithmetic 
                        progressions of prime length */
   set_long_t *S_2; /* This is stored as a regular set */
