@@ -197,6 +197,7 @@ mpzspv_from_mpzv (mpzspv_t x, const spv_size_t offset, const mpzv_t mpzv,
   long i;
   
   ASSERT (mpzspv_verify (x, offset + len, 0, mpzspm));
+  ASSERT (sizeof (mp_limb_t) >= sizeof (sp_t));
   
   /* GMP's comments on mpn_preinv_mod_1:
    *
@@ -226,7 +227,10 @@ mpzspv_from_mpzv (mpzspv_t x, const spv_size_t offset, const mpzv_t mpzv,
 	  ASSERT(mpz_sgn (mpzv[i]) > 0); /* We can't handle negative values */
 	  for (j = 0; j < sp_num; j++)
             x[j][i + offset] = 
-              mpn_mod_1 (PTR(mpzv[i]), SIZ(mpzv[i]), mpzspm->spm[j]->sp);
+              mpn_mod_1 (PTR(mpzv[i]), SIZ(mpzv[i]), 
+                (mp_limb_t) mpzspm->spm[j]->sp);
+              /* The typecast to mp_limb_t assumes that mp_limb_t is at least
+                 as wide as sp_t */
 	}
     }
 #if defined(_OPENMP)
@@ -248,9 +252,11 @@ mpzspv_to_mpzv (mpzspv_t x, spv_size_t offset, mpzv_t mpzv,
   float prime_recip;
   sp_t t;
   spm_t *spm = mpzspm->spm;
+  mpz_t mt;
   
   ASSERT (mpzspv_verify (x, offset, len, mpzspm));
   
+  mpz_init (mt);
   for (l = 0; l < len; l += MPZSPV_NORMALISE_STRIDE)
     {
       spv_size_t stride = MIN (MPZSPV_NORMALISE_STRIDE, len - l);
@@ -270,7 +276,15 @@ mpzspv_to_mpzv (mpzspv_t x, spv_size_t offset, mpzv_t mpzv,
   	    t = sp_mul (x[i][l + k + offset], mpzspm->crt3[i], spm[i]->sp,
                   spm[i]->mul_c);
           
-	    mpz_addmul_ui (mpzv[l + k], mpzspm->crt1[i], t);
+            if (sizeof (sp_t) > sizeof (unsigned long))
+              {
+                mpz_set_sp (mt, t);
+                mpz_addmul (mpzv[l + k], mpzspm->crt1[i], mt);
+              }
+            else
+              {
+      	        mpz_addmul_ui (mpzv[l + k], mpzspm->crt1[i], t);
+              }
 
 	    f[k] += (float) t * prime_recip;
           }
@@ -280,6 +294,7 @@ mpzspv_to_mpzv (mpzspv_t x, spv_size_t offset, mpzv_t mpzv,
       mpz_add (mpzv[l + k], mpzv[l + k], mpzspm->crt2[(unsigned int) f[k]]);
   }
   
+  mpz_clear (mt);
   free (f);
 }  
 
