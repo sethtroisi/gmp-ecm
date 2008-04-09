@@ -37,7 +37,7 @@
 #define TUNE_FUNC_LOOP(x) do { st = cputime (); do { x; k++; } \
     while (ELAPSED < GRANULARITY); st = ELAPSED; } while (0)
 #define TUNE_FUNC_END(x) if (tune_verbose) \
-  fprintf (stderr, #x "(%2zd) = %f\n", n, (double) k / (double) st); \
+  fprintf (stderr, #x "(%2ld) = %f\n", (long)n, (double) k / (double) st); \
   return (double) k / (double) st; }
 
 
@@ -359,8 +359,8 @@ print_timings (double (*f0)(size_t), double (*f1)(size_t),
     {
       f0_n = (f0)(n);
       f1_n = (f1)(n);
-      printf ("n=%2zd: %8.2f %8.2f (f%d)\n",
-          n, f0_n, f1_n, (f0_n <= f1_n) ? 1 : 0);
+      printf ("n=%2ld: %8.2f %8.2f (f%d)\n",
+          (long) n, f0_n, f1_n, (f0_n <= f1_n) ? 1 : 0);
     }
 }
 
