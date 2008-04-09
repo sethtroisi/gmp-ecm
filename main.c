@@ -28,16 +28,16 @@
 #endif
 #include "ecm-ecm.h"
 
-#if HAVE_UNISTD_H /* for access() */
+#ifdef HAVE_UNISTD_H /* for access() */
 # include <unistd.h>
 #else
 # define F_OK 0
-# if HAVE_IO_H
+# ifdef HAVE_IO_H
 #  include <io.h>
 # endif
 #endif
 
-#if HAVE_SIGNAL_H
+#ifdef HAVE_SIGNAL_H
 # include <signal.h>
 #endif
 

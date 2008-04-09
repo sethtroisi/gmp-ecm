@@ -27,6 +27,9 @@
 #include "config.h"
 #include "ecm-impl.h"
 #include <stdlib.h>
+#ifdef HAVE_ALLOCA_H
+#include <alloca.h>
+#endif
 #ifdef TESTDRIVE
 #include <stdio.h>
 FILE *ECM_STDOUT, *ECM_STDERR;
