@@ -26,6 +26,7 @@
 #define _SP_H
 
 #include "config.h"
+#include <stdlib.h>
 
 #ifdef HAVE_SYS_TYPES_H
 #include <sys/types.h> /* needed for size_t */
@@ -197,6 +198,57 @@ ceil_log_2 (spv_size_t x)
     }
   return a;
 }
+
+/* Conversion functions sp_t <-> mpz_t. Using mpz_*_ui() functions is not
+   portable as those take unsigned long's, but on some systems 
+   (e.g. 64 bit Windows with Visual C), unsigned long has 32 bits while
+   sp_t should use 64 */
+
+static inline void 
+mpz_set_sp (mpz_t m, const sp_t n)
+{
+  /* Is sizeof() a safe way of determining whether the conversion 
+     is lossless? */
+  if (sizeof (sp_t) <= sizeof (unsigned long))
+    {
+      mpz_set_ui (m, (unsigned long) n);
+    }
+  else if (sizeof (sp_t) == 8 && sizeof (unsigned long) == 4)
+    {
+      mpz_set_ui (m, (unsigned long) (n >> 32));
+      mpz_mul_2exp (m, m, 32UL);
+      mpz_add_ui (m, m, (unsigned long int) (n & 4294967295UL));
+    }
+  else
+    {
+      abort ();
+    }
+}
+
+static inline sp_t 
+mpz_get_sp (const mpz_t n)
+{
+  if (sizeof (sp_t) == sizeof (unsigned long))
+    {
+      return (sp_t) mpz_get_ui (n);
+    }
+  else if (sizeof (sp_t) == sizeof (mp_limb_t))
+    {
+      /* mpz_get_ui() returns the least significant bits of the absolute 
+         value of its arguments that fit in an unsigned long.
+         In the current GMP implementation with sign/magnitude 
+         representation, mpz_getlimbn() also returns the least sigificant
+         bits of the absolute value. To allow for a future
+         change to 2's-complement representation in GMP, we should explicitly
+         use mpz_abs() to a temp var here. */
+      return (sp_t) mpz_getlimbn (n, 0);
+    }
+  else
+    {
+      abort ();
+    }
+}
+
 
 void * sp_aligned_malloc (size_t len);
 void sp_aligned_free (void *newptr);

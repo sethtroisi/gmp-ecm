@@ -111,7 +111,7 @@ mpzspm_t
 mpzspm_init (spv_size_t max_len, mpz_t modulus)
 {
   unsigned int ub, i, j;
-  mpz_t P, S, T;
+  mpz_t P, S, T, mp, mt; /* mp is p as mpz_t, mt is a temp mpz_t */
   sp_t p, a;
   mpzspm_t mpzspm;
   
@@ -147,6 +147,8 @@ mpzspm_init (spv_size_t max_len, mpz_t modulus)
   mpz_init (T); 
   mpz_mul (T, modulus, modulus);
   mpz_mul_ui (T, T, max_len);
+  mpz_init (mp);
+  mpz_init (mt);
   
   /* find primes congruent to 1 mod max_len so we can do
    * a ntt of size max_len */
@@ -167,8 +169,9 @@ mpzspm_init (spv_size_t max_len, mpz_t modulus)
       
       mpzspm->spm[mpzspm->sp_num++] = spm_init (max_len, p);
       
-      mpz_mul_ui (P, P, p);
-      mpz_add_ui (S, S, p);
+      mpz_set_sp (mp, p);
+      mpz_mul (P, P, mp);
+      mpz_add (S, S, mp);
 
       /* we want P > 4 * max_len * (modulus * S)^2. The S^2 term is due to 
          theorem 3.1 in Bernstein and Sorenson's paper */
@@ -195,10 +198,12 @@ mpzspm_init (spv_size_t max_len, mpz_t modulus)
   for (i = 0; i < mpzspm->sp_num; i++)
     {
       p = mpzspm->spm[i]->sp;
+      mpz_set_sp (mp, p);
       
       /* crt3[i] = (P / p)^{-1} mod p */
-      mpz_fdiv_q_ui (T, P, p);
-      a = mpz_fdiv_ui (T, p);
+      mpz_fdiv_q (T, P, mp);
+      mpz_fdiv_r (mt, T, mp);
+      a = mpz_get_sp (mt);
       mpzspm->crt3[i] = sp_inv (a, p, mpzspm->spm[i]->mul_c);
      
       /* crt1[i] = (P / p) mod modulus */
@@ -207,12 +212,18 @@ mpzspm_init (spv_size_t max_len, mpz_t modulus)
 
       /* crt4[i][j] = ((P / p[i]) mod modulus) mod p[j] */
       for (j = 0; j < mpzspm->sp_num; j++)
-	mpzspm->crt4[j][i] = mpz_fdiv_ui (mpzspm->crt1[i], mpzspm->spm[j]->sp);
+        {
+          mpz_set_sp (mp, mpzspm->spm[j]->sp);
+          mpz_fdiv_r (mt, mpzspm->crt1[i], mp);
+	  mpzspm->crt4[j][i] = mpz_get_sp (mt);
+        }
       
       /* crt5[i] = (-P mod modulus) mod p */
       mpz_mod (T, P, modulus);
       mpz_sub (T, modulus, T);
-      mpzspm->crt5[i] = mpz_fdiv_ui (T, p);
+      mpz_set_sp (mp, p);
+      mpz_fdiv_r (mt, T, mp);
+      mpzspm->crt5[i] = mpz_get_sp (mt);
     }
   
   mpz_set_ui (T, 0);
@@ -224,6 +235,8 @@ mpzspm_init (spv_size_t max_len, mpz_t modulus)
       mpz_sub (T, T, P);
     }
   
+  mpz_clear (mp);
+  mpz_clear (mt);
   mpz_clear (P);
   mpz_clear (S);
   mpz_clear (T);
