@@ -844,10 +844,10 @@ mpn_fft_lshsub_modF (mp_ptr r, mp_srcptr a, mp_srcptr b, unsigned int d,
       r[n] = cc >> (GMP_NUMB_BITS - 1);
       MPN_INCR_U (r, n + 1, cc + r[n]);
     }
+}
 #ifdef _MSC_VER /* optimisation bug on VC++ v9 */
 #  pragma optimize( "", on )
 #endif
-}
 
 /* r <- a*sqrt(2)^d mod 2^(n*GMP_NUMB_BITS)+1 with a = {a, n+1}
    Assumes a is semi-normalized, i.e. a[n] <= 1.
