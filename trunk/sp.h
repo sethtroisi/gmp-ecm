@@ -215,7 +215,12 @@ mpz_set_sp (mpz_t m, const sp_t n)
     }
   else if (sizeof (sp_t) == 8 && sizeof (unsigned long) == 4)
     {
-      mpz_set_ui (m, (unsigned long) (n >> 32));
+      /* We want to right-shift by 32 bits on a 64 bit system here.
+	 Putting a shift amount of 32 as a constant causes a compiler 
+	 warning on 32 bit systems. So we put sizeof (sp_t) * 4
+	 which always evaluates to 32 in this branch of the code, and 
+	 does not cause a compiler warning if sp_t is only 4 bytes wide. */
+      mpz_set_ui (m, (unsigned long) (n >> (sizeof (sp_t) * 4)));
       mpz_mul_2exp (m, m, 32UL);
       mpz_add_ui (m, m, (unsigned long int) (n & 4294967295UL));
     }
@@ -235,11 +240,11 @@ mpz_get_sp (const mpz_t n)
   else if (sizeof (sp_t) == sizeof (mp_limb_t))
     {
       /* mpz_get_ui() returns the least significant bits of the absolute 
-         value of its arguments that fit in an unsigned long.
+         value of its argument that fit in an unsigned long.
          In the current GMP implementation with sign/magnitude 
-         representation, mpz_getlimbn() also returns the least sigificant
-         bits of the absolute value. To allow for a future
-         change to 2's-complement representation in GMP, we should explicitly
+	 representation, mpz_getlimbn() also returns the least sigificant
+         bits of the absolute value. To allow for a future change to 
+	 2's-complement representation in GMP, we should explicitly
          use mpz_abs() to a temp var here. */
       return (sp_t) mpz_getlimbn (n, 0);
     }
