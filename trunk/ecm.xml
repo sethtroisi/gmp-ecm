@@ -44,7 +44,8 @@ algorithms.</para>
 <para><replaceable>B1</replaceable> is the step 1 bound. It is a mandatory parameter. It can be given
 either in integer format (for example 3000000) or in floating-point
 format (3000000.0 or 3e6). The largest possible <replaceable>B1</replaceable> value is
-9007199254740996 for P-1, ULONG_MAX for ECM and P+1.  All primes 2 &lt;=
+9007199254740996 for P-1, and ULONG_MAX or 9007199254740996 (whichever is
+smaller) for ECM and P+1.  All primes 2 &lt;=
 p &lt;= <replaceable>B1</replaceable> are processed in step 1.</para>
 
   </listitem>
@@ -175,6 +176,7 @@ expense of more cpu time.</para>
 <para>Stores some tables of data in disk files to reduce the amount of 
 memory occupied in step 2, at the expense of disk I/O. Data will be written to 
 files <replaceable>file</replaceable>.1, <replaceable>file</replaceable>.2 etc.
+Does not work with fast stage 2 for P+1 and P-1.
 </para>
   </listitem>
   </varlistentry>
@@ -186,6 +188,7 @@ files <replaceable>file</replaceable>.1, <replaceable>file</replaceable>.2 etc.
 Use x^<replaceable>n</replaceable> for Brent-Suyama's extension
 (<option>-power 1</option> disables Brent-Suyama's extension).
 The default polynomial is chosen depending on the method and B2.
+For P-1 and P+1, disables the fast stage 2.
 For P-1, <replaceable>n</replaceable> must be even.</para>
   </listitem>
   </varlistentry>
@@ -195,6 +198,7 @@ For P-1, <replaceable>n</replaceable> must be even.</para>
   <listitem>
 <para>[ECM, P-1]
 Use degree-<replaceable>n</replaceable> Dickson's polynomial for Brent-Suyama's extension.
+For P-1 and P+1, disables the fast stage 2.
 Like for <option>-power</option>, <replaceable>n</replaceable> must be 
 even for P-1.</para>
   </listitem>
@@ -211,8 +215,11 @@ even for P-1.</para>
   <varlistentry>
   <term><option>-no-ntt</option></term>
   <listitem>
-<para>Disable the Number-Theoretic Transform code for polynomial arithmetic and
-allow free choice of dF.</para>
+<para>Disable the Number-Theoretic Transform code for polynomial arithmetic 
+and allow free choice of dF. With NTT, dF is chosen to be a power of 2,
+and limited by the number suitable primes that fit in a machine word. 
+The -no-ntt variant uses more memory, however.
+</para>
   </listitem>
   </varlistentry>
 </variablelist>
@@ -247,7 +254,8 @@ and residues at the end of step 1 and step 2 are printed. More
   <varlistentry>
   <term><option>-timestamp</option></term>
   <listitem>
-<para>Print a time stamp whenever a new input number is processed.</para>
+<para>Print a time stamp whenever a new ECM curve or P+1 or P-1 run is 
+processed.</para>
   </listitem>
   </varlistentry>
 
@@ -480,7 +488,7 @@ functionality to GMP-ECM.</para>
       Executes command <replaceable>cmd</replaceable> whenever a factor
       is found by P-1, P+1 or ECM. The input number, factor and cofactor
       are passed via stdin, each on a line. This could be used i.e. to
-      automatically mail new factors:
+      mail new factors automatically:
 <programlisting>ecm -faccmd 'mail -s <quote>$HOSTNAME found a factor</quote>
                 me@myaddress.com' 11e6 &lt; cunningham.in
 </programlisting>
@@ -692,13 +700,15 @@ parser and several command-line options;</para>
 <para>Laurent Fousse &lt;laurent at komite dot net&gt; contributed the middle 
 product code, the autoconf/automake tools, and is the maintainer of the 
 Debian package;</para>
-<para>Alexander Kruppa &lt;firstname.lastname@mytum.de&gt; contributed the 
-Toom-Cook multiplication code, the special code for Fermat numbers, and many 
-other nice things;</para>
-<para>Dave Newman &lt;david.lastname@jesus.ox.ac.uk&gt;
-contributed the Kronecker-Schoenhage multiplication code;</para>
+<para>Alexander Kruppa &lt;(lastname)al@loria.fr&gt; contributed 
+estimates for probability of success for ECM, 
+the new P+1 and P-1 stage 2 (with P.-L. Montgomery), 
+new AMD64 asm mulredc code, and some other things;</para>
+<para>Dave Newman &lt;david.(lastname)@jesus.ox.ac.uk&gt;
+contributed the Kronecker-Schoenhage and NTT multiplication code;</para>
+<para>Jason S. Papadopoulos contributed a speedup of the NTT code</para>
 <para>Paul Zimmermann &lt;zimmerma at loria dot fr&gt; is the author of the
-first version of the program.</para>
+first version of the program and chief maintainer of GMP-ECM.</para>
 <para>Note: email addresses have been obscured, the required substitutions
 should be obvious.
 </para>
