@@ -35,7 +35,7 @@ TODO         - to-do list
 
 ##############################################################################
 
-2. How to efficiently use P-1, P+1 and ECM?
+2. How to use P-1, P+1 and ECM efficiently?
 
 The P-1 method works well when the input number has a prime factor P such
 that P-1 is "smooth", i.e. has all its prime factor less or equal the 
@@ -53,18 +53,19 @@ Step 2 took 288ms
 ********** Factor found in step 2: 67872792749091946529
 Found input number N
 
-There is no need to run several times P-1 with the same B1 and B2, like
-for ECM, since a factor found with one seed will be found by another one.
+There is no need to run P-1 several times with the same B1 and B2 as there
+is for ECM, since a factor found with one seed will (almost always) be found 
+by another one.
 
 The P+1 method works well when the input number has a prime factor P such
 that P+1 is "smooth". For P=4190453151940208656715582382315221647, we have
 P+1 = 2^4 * 283 * 2423 * 21881 * 39839 * 1414261 * 2337233 * 132554351, so
 this factor will be found as long as B1 >= 2337233 and B2 >= 132554351:
 
-$ echo 4190453151940208656715582382315221647 | ./ecm -pp1 -x0 2284918860 2337233 132554351
+$ echo 4190453151940208656715582382315221647 | ./ecm -pp1 -x0 7 2337233 132554351
 GMP-ECM 6.1 [powered by GMP 4.2] [P+1]
 Input number is 4190453151940208656715582382315221647 (37 digits)
-Using B1=2337233, B2=174130330, polynomial Dickson(3), x0=2284918860
+Using B1=2337233, B2=174130330, polynomial Dickson(3), x0=7
 Step 1 took 3600ms
 Step 2 took 1932ms
 ********** Factor found in step 2: 4190453151940208656715582382315221647
@@ -76,15 +77,25 @@ since P is usually not known in advance, there is no way to ensure that this
 holds. However, if the seed is chosen randomly, there is a probability of 
 about 1/2 that it will give a Jacobi symbol of -1 (i.e. the factor P will 
 be found if P+1 is smooth enough). A rule of thumb is to run 3 times P+1 
-with different random seeds. When factoring Fibonacci numbers F_n or Lucas 
+with different random seeds. The seeds 2/7 and 6/5 have a slightly higher 
+chance of success than average as they lead to a group order divisible by
+6 or 4, respectively. When factoring Fibonacci numbers F_n or Lucas 
 numbers L_n, using the seed -x0 23/11 ensures that the group order is
 divisible by 2n, making other P+1 (and probably P-1) work unneccessary.
 
+As of version 6.2, a new stage 2 for the P-1 and P+1 algorithms is 
+implemented. It uses less memory and is faster than the previous code, 
+thus allowing larger B2 values. If GMP-ECM is configured with the
+"--enable-openmp" flag and is compiled with a compiler that implements OpenMP,
+it uses multi-threading as well. Unlike the previous generic stage 2,
+is cannot use the Brent-Suyama extension (-power and -dickson parameters).
+
 The ECM method is a probabilistic method, and can be viewed in some sense
 as a generalization of the P-1 and P+1 method, where we only require that
-P+t is smooth, with t random of order P^(1/2). The optimal B1 and B2 bounds
-have to be chosen according to the (usually unknown) size of P. The following
-table gives a set of near-to-optimal B1 and B2 pairs, with the corresponding
+P+t+1 is smooth, where t depends on the curve we use and satisfies 
+|t| <= 2*P^(1/2) (Hasse's theorem). The optimal B1 and B2 bounds have 
+to be chosen according to the (usually unknown) size of P. The following
+table gives a set of nearly optimal B1 and B2 pairs, with the corresponding
 expected number of curves to find a factor of given size (column "-power 1"
 does not take into account the extra factors found by Brent-Suyama's exten-
 sion, whereas column "default poly" takes them into account, with the poly-
@@ -116,7 +127,7 @@ Example: after performing 8266 curves with B1=43e6 and B2=2.4e11
 (or 7553 curves with -dickson 12), the probability to miss a 50-digit
 factor is about 37%.
 
-Up from version 6.0, GMP-ECM prints the expected number of curves and expected
+From version 6.0 on, GMP-ECM prints the expected number of curves and expected
 time to find factors of different sizes in verbose mode (option -v). This
 makes it easy to further optimize parameters for a certain factor size if 
 desired, simply try to minimize the expected time.
@@ -145,18 +156,18 @@ In summary, we advise the following method:
     expected number of ECM curves with step 1 bound B1, step 2 bound B2,
     to find a factor of D digits (cf above table). 
 5 - if no factor is found, either increase D by 5 digits and go to 0, or use 
-    another factorization method (MPQS, GNFS)
+    another factorization method (MPQS, NFS)
 
 Note: if a factor is found in steps 2, 3 or 4, simply continue the current
       step with the remaining cofactor (if composite). There is no need
-      to start again from 0, since the cofactor got the ecm effort too.
+      to start again from 0, since the cofactor got the ecm effort, too.
 
 ##############################################################################
 
 3. Extra factors and Brent-Suyama's extension.
 
 GMP-ECM may sometimes find some "extra" factors, such that one factor of P-1, 
-P+1 or P+t exceeds the step 2 bound B2, thanks to Brent-Suyama's extension. 
+P+1 or P+t+1 exceeds the step 2 bound B2, thanks to Brent-Suyama's extension. 
 Let's explain how it works for P-1, since it's simpler. The classical step 2 
 (without Brent-Suyama's extension) considers s^(j*d) mod N and s^i mod N, 
 where N is the number to factor, and s is the residue computed in stage 1. 
@@ -180,12 +191,18 @@ Warning: these "extra" factorizations may not be reproducible from one
 version of GMP-ECM to another one, since they depend on some internal
 parameters that may change.
 
-For P-1, the degree of the Brent-Suyama polynomial should be even. Since
-i^2k - (j*d)^2k = (i^k - (j*d)^k)(i^k + (j*d)^k), this allows testing two
-values symmetric around a multiple of d simultaneously, halving the amount of
-computation required in stage 2. P+1 and ECM do this inherently.
+For P-1 with the generic stage 2, the degree of the Brent-Suyama polynomial 
+should be even. Since i^2k - (j*d)^2k = (i^k - (j*d)^k)(i^k + (j*d)^k), 
+this allows testing two values symmetric around a multiple of d 
+simultaneously, halving the amount of computation required in stage 2. 
+P+1 with the generic stage 2 and ECM do this inherently.
 
-The default polynomial used for a given B2 should be near optimal, 
+The new fast stage 2 for P-1 and P+1 does not support the Brent-Suyama 
+extension. By default, the fast stage 2 is used for P-1 and P+1; 
+giving a -power or -dickson parameter on the command line forces use of
+the previous, generic stage 2.
+
+The default polynomial used for ECM with a given B2 should be near optimal, 
 i.e. give only a marginal overhead in step 2, while enabling extra factors.
 
 ##############################################################################
@@ -216,9 +233,9 @@ parameters is a very effective way of reducing memory use.
 Up from version 6.1, there is still another (better) possibility, with the
 -maxmem option. The command-line -maxmem nnn option tells GMP-ECM to use at
 most nnn MB in stage 2. It is better than -k because it takes into account
-the size of the number to be factored, and automatically adjusts the block
-size. Note also that the -v option prints the estimated memory usage for
-stage 2.
+the size of the number to be factored, and automatically adjusts the number
+of blocks to use. Note also that the -v option prints the estimated memory 
+usage for stage 2.
 
 NOTE that in -b "breadth-first" mode, GMP-ECM reads all candidate numbers in 
 the input stream and keeps them in memory, so if there are many large numbers
@@ -406,8 +423,8 @@ when running "configure".
 If you specify -faccmd <cmd> on the commandline, <cmd> will be executed
 whenever a factor is found by P-1, P+1 or ECM (not by trial divison). The
 original number, the factor found and the cofactor are passed to <cmd> via
-stdin, each number on a line. You may use this for example to automatically
-have factors sent to you by email:
+stdin, each number on a line. You may use this for example to have factors 
+automatically sent to you by email:
 
   ecm -faccmd 'mail -s "$HOSTNAME found a factor" myemail@myplace.org' \
   -c 900 1e6 <candidates.txt
@@ -565,3 +582,12 @@ On some machines, GMP-ECM uses the clock() function to measure the cpu time
 used by step 1 and 2. Since that function returns a 32-bit integer, there
 is a possible wrap-around effect when the clock() value goes back from 2^32-1
 to 0, which may produce negative timings.
+
+The NTT code uses primes that fit in one machine word and that are 
+congruent to 1 (mod l), where l is the largest transform length required 
+for the desired stage 2 parameters. For very large B2 on 32 bit machines, 
+there may not be enough suitable primes, which may limit the possible 
+transform length to less than what available memory would permit. This 
+problem occurs mostly in the fast stage 2 for P-1 and P+1, as the generic
+stage 2 uses far more memory for a given polynomial degree, so that memory
+on a 32 bit machine will be exhausted long before suitable NTT primes are.
