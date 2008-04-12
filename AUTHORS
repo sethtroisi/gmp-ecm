@@ -3,6 +3,8 @@ For example, <xxx dot yyy at zzz dot to> should read <xxx.yyy@xxx.to>.
 
 Pierrick Gaudry <gaudry at lix dot polytechnique dot fr>
 	contributed efficient assembly code for combined mul/redc.
+Brian Gladman <brg at gladman dot plus dot com>
+        contributed the Visual C build files
 Jim Fougeron <jfoug at cox dot net>
 	contributed the expression parser, the primality testing tools,
 	and several command-line options.
