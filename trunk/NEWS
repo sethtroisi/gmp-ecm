@@ -2,13 +2,15 @@ Changes between ecm-6.1.3 and ecm-6.2:
 * New stage 2 for P-1 and P+1, described in Montgomery and Kruppa,
   Improved Stage 2 to P+-1 Factoring Algorithms, 
   in A. J. van der Poorten and A. Stein (Eds.), ANTS-VIII 2008,
-  LNCS 5011, pp. 180-195
+  LNCS 5011, pp. 180-195.
+* Parallelization in the new P+-1 stage 2 (with --enable-openmp).
 * Optimizations to the NTT code by Jason S. Papadopoulos
 * Improved mulredc assembly code for Athlon64/Opteron
 * Improved modular reduction in the mpzmod range
 * Bugfix in P+1 stage 2 which caused incorrect initialisation if
   Brent-Suyama polynomial had degree > 1 and i0 was negative (occurs only
   with non-standard parameters)
+* Added build project for VC++ by Brian Gladman
 
 Changes between ecm-6.1.2 and ecm-6.1.3:
 * fixed incorrect computation of memory use in stage 2, especially for
@@ -44,7 +46,6 @@ Changes between ecm-6.0.1 and ecm-6.1:
 * fixed memory leaks
 
 Changes between ecm-6.0 and ecm-6.0.1:
-
 * now checks for availability of snprintf() during configure
 * fixed linking problems with tune and tune2 on PowerPC G5
 * fixed segfault in rho.c
@@ -63,7 +64,6 @@ Changes between ecm-6.0 and ecm-6.0.1:
 * replaced GSL's dilog_series() in rho.c due to licensing (GPL vs. LGPL)
 
 Changes between ecm-5.0.3 and ecm-6.0:
-
 * use of the autotools (configure/make)	
 * there is now a documentation in "man" format (ecm.1)
 * added a set of -prp* command line switches which will use an external
@@ -116,7 +116,6 @@ Changes between ecm-5.0.3 and ecm-6.0:
 * generation of roots for ECM rewritten to reduce number of extgcds
 
 Changes between ecm-5.0 and ecm-5.0.1:
-
 * fixed bug when B1 or B2min is too large, and an overflow occurs in step 2,
 	making the computations incorrect. The new limit for B1 or B2min is
 	now around 2^53, and an error occurs when this limit is passed.
