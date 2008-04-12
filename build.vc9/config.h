@@ -1,5 +1,9 @@
 /* config.h.in.  Generated from configure.in by autoheader.  */
 
+#define VERSION "6.2-rc1"
+
+#define PACKAGE_BUGREPORT "ecm-discuss@lists.gforge.inria.fr"
+
 /* Define to one of `_getb67', `GETB67', `getb67' for Cray-2 and Cray-YMP
    systems. This function is required for `alloca.c' support on those systems.
    */
@@ -171,24 +175,6 @@
 /* Define to 1 if your C compiler doesn't accept -c and -o together. */
 #undef NO_MINUS_C_MINUS_O
 
-/* Name of package */
-#define PACKAGE "gmp-ecm"
-
-/* Define to the address where bug reports for this package should be sent. */
-#define PACKAGE_BUGREPORT ""
-
-/* Define to the full name of this package. */
-#define PACKAGE_NAME "gmp-ecm-6.2.b4"
-
-/* Define to the full name and version of this package. */
-#define PACKAGE_STRING "gmp-ecm-6.2.b4"
-
-/* Define to the one symbol short name of this package. */
-#undef PACKAGE_TARNAME
-
-/* Define to the version of this package. */
-#define PACKAGE_VERSION "6.2.b4"
-
 /* If using the C implementation of alloca, define if you know the
    direction of stack growth for your system; otherwise it will be
    automatically deduced at runtime.
@@ -202,9 +188,6 @@
 
 /* Define to 1 if you can safely include both <sys/time.h> and <time.h>. */
 #undef TIME_WITH_SYS_TIME
-
-/* Version number of package */
-#define VERSION "6.2.b4"
 
 /* Define to 1 if you want assertions enabled */
 #undef WANT_ASSERT
