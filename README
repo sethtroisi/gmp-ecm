@@ -38,18 +38,18 @@ TODO         - to-do list
 2. How to use P-1, P+1 and ECM efficiently?
 
 The P-1 method works well when the input number has a prime factor P such
-that P-1 is "smooth", i.e. has all its prime factor less or equal the 
+that P-1 is "smooth", i.e., has all its prime factor less or equal the 
 step 1 bound B1, except one which may be less or equal the second step
 bound B2. For P=67872792749091946529, we have P-1 = 2^5 * 11 * 17 * 19 *
 43 * 149 * 8467 * 11004397, so this factor will be found as long as B1 >= 8467
 and B2 >= 11004397:
 
 $ echo 67872792749091946529 | ./ecm -pm1 -x0 2809890345 8467 11004397
-GMP-ECM 6.1 [powered by GMP 4.2] [P-1]
+GMP-ECM ... [powered by GMP ...] [P-1]
 Input number is 67872792749091946529 (20 digits)
-Using B1=8467, B2=12700392, polynomial x^12, x0=2809890345
-Step 1 took 8ms
-Step 2 took 288ms
+Using B1=8467, B2=6710-19370830, x0=2809890345
+Step 1 took 3ms
+Step 2 took 14ms
 ********** Factor found in step 2: 67872792749091946529
 Found input number N
 
@@ -63,11 +63,11 @@ P+1 = 2^4 * 283 * 2423 * 21881 * 39839 * 1414261 * 2337233 * 132554351, so
 this factor will be found as long as B1 >= 2337233 and B2 >= 132554351:
 
 $ echo 4190453151940208656715582382315221647 | ./ecm -pp1 -x0 7 2337233 132554351
-GMP-ECM 6.1 [powered by GMP 4.2] [P+1]
+GMP-ECM ... [powered by GMP ...] [P+1]
 Input number is 4190453151940208656715582382315221647 (37 digits)
-Using B1=2337233, B2=174130330, polynomial Dickson(3), x0=7
-Step 1 took 3600ms
-Step 2 took 1932ms
+Using B1=2337233, B2=2324738-343958122, x0=7
+Step 1 took 750ms
+Step 2 took 120ms
 ********** Factor found in step 2: 4190453151940208656715582382315221647
 Found input number N
 
@@ -75,13 +75,13 @@ However not all seeds will succeed: only half of the seeds 'x0' work for P+1
 (namely those where the Jacobi symbol of x0^2-4 and P is -1.) Unfortunately, 
 since P is usually not known in advance, there is no way to ensure that this 
 holds. However, if the seed is chosen randomly, there is a probability of 
-about 1/2 that it will give a Jacobi symbol of -1 (i.e. the factor P will 
+about 1/2 that it will give a Jacobi symbol of -1 (i.e., the factor P will 
 be found if P+1 is smooth enough). A rule of thumb is to run 3 times P+1 
 with different random seeds. The seeds 2/7 and 6/5 have a slightly higher 
 chance of success than average as they lead to a group order divisible by
 6 or 4, respectively. When factoring Fibonacci numbers F_n or Lucas 
-numbers L_n, using the seed -x0 23/11 ensures that the group order is
-divisible by 2n, making other P+1 (and probably P-1) work unneccessary.
+numbers L_n, using the seed 23/11 ensures that the group order is
+divisible by 2n, making other P+1 (and probably P-1) work unnecessary.
 
 As of version 6.2, a new stage 2 for the P-1 and P+1 algorithms is 
 implemented. It uses less memory and is faster than the previous code, 
@@ -119,9 +119,9 @@ nomial used by default: D(n) means Dickson's polynomial of degree n):
           factor of D digits with GMP-ECM.
 
 After performing the expected number of curves from Table 1, the
-probability that a factor of D digits was missed is exp(-1), i.e.
+probability that a factor of D digits was missed is exp(-1), i.e.,
 about 37%. After twice the expected number of curves, it is exp(-2),
-i.e. about 14%, and so on.
+i.e., about 14%, and so on.
 
 Example: after performing 8266 curves with B1=43e6 and B2=2.4e11
 (or 7553 curves with -dickson 12), the probability to miss a 50-digit
@@ -130,7 +130,7 @@ factor is about 37%.
 From version 6.0 on, GMP-ECM prints the expected number of curves and expected
 time to find factors of different sizes in verbose mode (option -v). This
 makes it easy to further optimize parameters for a certain factor size if 
-desired, simply try to minimize the expected time.
+desired: simply try to minimize the expected time.
 
 (lengthy NOTE: The order of an elliptic curve with Montgomery parameteriza-
 tion, as used by GMP-ECM, is known to be divisible by 12. Therefore one can 
@@ -160,7 +160,7 @@ In summary, we advise the following method:
 
 Note: if a factor is found in steps 2, 3 or 4, simply continue the current
       step with the remaining cofactor (if composite). There is no need
-      to start again from 0, since the cofactor got the ecm effort, too.
+      to start again from 0, since the cofactor was already tested, too.
 
 ##############################################################################
 
@@ -178,7 +178,7 @@ corresponds to f(x)=x^1]. Then P will be found whenever all but one of the
 factors of P-1 are <= B1, and one factor divides some f(j*d) - f(i):
 
 $ echo 1207946164033269799036708918081 | ./ecm -pm1 -k 3 -power 12 286493 25e6
-GMP-ECM 6.1 [powered by GMP 4.2] [P-1]
+GMP-ECM ... [powered by GMP ...] [P-1]
 Input number is 1207946164033269799036708918081 (31 digits)
 Using B1=286493, B2=30806172, polynomial x^12, x0=1548711558
 Step 1 took 320ms
@@ -200,10 +200,13 @@ P+1 with the generic stage 2 and ECM do this inherently.
 The new fast stage 2 for P-1 and P+1 does not support the Brent-Suyama 
 extension. By default, the fast stage 2 is used for P-1 and P+1; 
 giving a -power or -dickson parameter on the command line forces use of
-the previous, generic stage 2.
+the previous, generic stage 2. It is recommended to use the new stage 2
+(from version 6.2) for P-1 and P+1, which is the default: it is so much
+faster that it largely compensates the few extra factors that are not found
+because Brent-Suyama's extension is not available.
 
 The default polynomial used for ECM with a given B2 should be near optimal, 
-i.e. give only a marginal overhead in step 2, while enabling extra factors.
+i.e., give only a marginal overhead in step 2, while enabling extra factors.
 
 ##############################################################################
 
@@ -215,17 +218,37 @@ efficient algorithms use some large tables. To reduce the memory usage of
 step 2, you may increase the 'k' parameter, which controls the number of
 "blocks" performed in step 2. Multiplying the default value of k by 4 will
 decrease the memory usage by a factor of 2. For example with  B2=1e10 and
-a 155-digit number, step 2 requires about 58MB with the default k=4, but
-only 29MB with k=16. Increasing k does, however, slightly increase the time
-required for step 2 (see section "How to get the best of GMP-ECM?"). 
+a 155-digit number, step 2 requires about 55MB with the default k=4, but
+only 27MB with k=16. Increasing k does, however, slightly increase the time
+required for step 2 (see section "How to get the best of GMP-ECM?").
+An estimation of the memory usage is given at the start of stage 2:
 
-Another way is to use the -treefile paramater, which causes some of the 
-tables to be stored on disk instead of in memory. Using the parameter
+$ ecm -v -k 4 10 1e10 < c155
+...
+Estimated memory usage: 55M
+...
+Step 2 took 18649ms
+
+$ ecm -v -k 16 10 1e10 < c155
+...
+Estimated memory usage: 27M
+...
+Step 2 took 26972ms
+
+Another way is to use the -treefile parameter, which causes some of the 
+tables to be stored on disk instead of in memory. Using the option
 "-treefile /var/tmp/ecmtree" will create the files "/var/tmp/ecmtree.1", 
-"/var/tmp/ecmtree.2" etc. The files are deleted upon completion of stage 2. 
+"/var/tmp/ecmtree.2" etc. The files are deleted upon completion of stage 2:
+
+$ ecm -v -treefile /tmp/ecmtree -k 4 10 1e10 < c155
+...
+Estimated memory usage: 36M
+...
+Step 2 took 18648ms
+
 Due to time consuming disk I/O, this will cause stage 2 to take somewhat 
 longer. How much memory is saved depends on stage 2 parameters, but a
-typical value is that memory use is reduced by a factor of between 2 and 3.
+typical value is that memory use is reduced by a factor of about 1.5.
 Increasing the number of blocks with -k also reduces the amount of data that 
 needs to get written to disk, thus reducing disk I/O time. Combining these 
 parameters is a very effective way of reducing memory use.
@@ -234,8 +257,15 @@ Up from version 6.1, there is still another (better) possibility, with the
 -maxmem option. The command-line -maxmem nnn option tells GMP-ECM to use at
 most nnn MB in stage 2. It is better than -k because it takes into account
 the size of the number to be factored, and automatically adjusts the number
-of blocks to use. Note also that the -v option prints the estimated memory 
-usage for stage 2.
+of blocks to use:
+
+$ ./ecm -v -maxmem 40 10 1e10 < c155
+...
+dF=8192, k=15, d=79170, d2=11, i0=-10
+...
+Estimated memory usage: 27M
+...
+Step 2 took 25456ms
 
 NOTE that in -b "breadth-first" mode, GMP-ECM reads all candidate numbers in 
 the input stream and keeps them in memory, so if there are many large numbers
@@ -245,10 +275,10 @@ to be tested, the memory requirement will increase noticeably.
 
 5. Expression syntax reference for GMP-ECM's syntax parser.
 
-Up from release 6.0, GMP-ECM can handle several kinds of expressions
-as input numbers. Here is the syntax that is handled:
+GMP-ECM can handle several kinds of expressions as input numbers. Here is the
+syntax that is handled:
 
-1.  Raw decimal numbers (as in previous versions) like 123456789
+1.  Raw decimal numbers like 123456789
 2.  Comments can be placed in the file.  The C++ "one line comment"  // 
     is used.  Everything after the // on a line (including the //) is ignored.
     Warning: no input number should appear on such a comment line.
@@ -260,12 +290,12 @@ as input numbers. Here is the syntax that is handled:
     1 2 3 4 5 6 7 8 9
     would be the same as processing
     123456789
-5.  "common" arithmetic expressions ( * / + - % )  period . can also be used in
-    place of * for multiply, and - can be unary minus (i.e.  -55555551).
+5.  "common" arithmetic expressions (* / + - %), the period '.' might be used
+    in place of * for multiply, and - can be unary minus (e.g., -55555551).
     Example: echo "3*5+2" | ./ecm 100
 6.  Grouping  ( [ { for start of group (which symbol is used does not matter)
     and ) ] } to end a group (again all 3 symbols mean the SAME thing).
-7.  Exponentiation with the ^ character  (i.e.  2^24 is the same as 16777216).
+7.  Exponentiation with the ^ character  (i.e., 2^24 is the same as 16777216).
     Example: echo "2^24+1" | ./ecm 100
 8.  Simple factorial using the exclamation point !  character.  Example is
     53! == 1*2*3*4...*52*53. Example: echo '53!+1' | ./ecm 1e2
@@ -279,12 +309,12 @@ as input numbers. Here is the syntax that is handled:
 Note: Expressions are maintained as much as possible (even if the expression
 becomes longer than the decimal expansion). Expressions are output as cofactors
 (if the input was an expression), and are stored into save/resume files
-(again if and only if the original input was an expression, and not a expanded
+(again if and only if the original input was an expression, and not an expanded
 decimal number). When a factor is found, the cofactor expression is of the
 form (original_expression)/factor_found (see however option -cofdec):
 
 $ echo "3*2^210+1" | ./ecm -sigma 4007218240 2500
-GMP-ECM 6.1 [powered by GMP 4.2] [ECM]
+GMP-ECM ... [powered by GMP ...] [ECM]
 Input number is 3*2^210+1 (64 digits)
 Using B1=2500, B2=186156, polynomial x^1, sigma=4007218240
 Step 1 took 16ms
@@ -307,7 +337,7 @@ Here is an example how to reuse some P-1 computation:
 $ cat c71
 13155161912808540373988986448257115022677318870175067553764004308210487
 $ ./ecm -save toto -pm1 -mpzmod -x0 2 5000000 < c71
-GMP-ECM 6.1 [powered by GMP 4.2] [P-1]
+GMP-ECM ... [powered by GMP ...] [P-1]
 Input number is 13155161912808540373988986448257115022677318870175067553764004308210487 (71 digits)
 Using B1=5000000, B2=352526802, polynomial x^24, x0=2
 Step 1 took 3116ms
@@ -318,15 +348,15 @@ The file "toto" now contains some information about the method used, the step
 decimal), and a checksum to verify that no data was corrupted:
 
 $ cat toto
-METHOD=P-1; B1=5000000; N=13155161912808540373988986448257115022677318870175067553764004308210487; X=0x12530157ae22ae14d54d6a5bc404ae9458e54032c1bb2ab269837d1519f; CHECKSUM=2287710189; PROGRAM=GMP-ECM 6.1; X0=0x2; WHO=zimmerma@macaron.loria.fr; TIME=Mon May  1 21:31:13 2006;
+METHOD=P-1; B1=5000000; N=13155161912808540373988986448257115022677318870175067553764004308210487; X=0x12530157ae22ae14d54d6a5bc404ae9458e54032c1bb2ab269837d1519f; CHECKSUM=2287710189; PROGRAM=GMP-ECM 6.2; X0=0x2; WHO=zimmerma@clafoutis.loria.fr; TIME=Sat Apr 12 13:41:01 2008;
 
 Then one can resume the computation with larger B1 and/or B2 as follows:
 
 $ ./ecm -resume toto 1e7
-GMP-ECM 6.1 [powered by GMP 4.2] [ECM]
-Resuming P-1 residue saved by zimmerma@macaron.loria.fr with GMP-ECM 6.1 on Mon May  1 21:31:13 2006 
+GMP-ECM ... [powered by GMP ...] [ECM]
+Resuming P-1 residue saved by zimmerma@clafoutis.loria.fr with GMP-ECM 6.2 on Sat Apr 12 13:41:01 2008 
 Input number is 13155161912808540373988986448257115022677318870175067553764004308210487 (71 digits)
-Using B1=5000000-10000000, B2=880276332, polynomial x^24
+Using B1=5000000-10000000, B2=9946848-1326917772, 
 Step 1 took 3076ms
 Step 2 took 4304ms
 ********** Factor found in step 2: 1448595612076564044790098185437
@@ -370,7 +400,7 @@ however the files f1 and f2 should be different.
 
 Remark: you should not perform in parallel several -resume runs on the same
 input with the same B1/B2 values, since those runs will do the same 
-computations. Options -save/-resume is useful in the following cases:
+computations. Options -save/-resume are useful in the following cases:
 
 (a) somebody did a previous step 1 computation with another software
     which is faster than GMP-ECM, and wants to perform Step 2 with
@@ -384,7 +414,7 @@ computations. Options -save/-resume is useful in the following cases:
     want to perform a huge step 2 in parallel on several
     machines. For example machine 1 tests the range B2_1-B2_2, machine
     2 tests B2_2-B2_3, ... This also decreases the memory usage for
-    each machine, which is function of the range width B2min-B2max.
+    each machine, which is function of the range width B2max-B2min.
     For the same reason as (b), this does not apply to ECM. 
 
 The -chkpnt option causes GMP-ECM to write the current residue periodically
@@ -397,7 +427,7 @@ with the -resume option.
 
 For example:
 
-$ ecm -chkpoint pm1chkpoint -pm1 1e10 1 <largenumber.txt
+$ ecm -chkpnt pm1chkpoint -pm1 1e10 1 < largenumber.txt
 
 [Computer crashes during computation]
 
@@ -427,7 +457,7 @@ stdin, each number on a line. You may use this for example to have factors
 automatically sent to you by email:
 
   ecm -faccmd 'mail -s "$HOSTNAME found a factor" myemail@myplace.org' \
-  -c 900 1e6 <candidates.txt
+  -c 900 1e6 < candidates.txt
 
 The parameter -prpcmd <cmd> lets you specify a program to perform a probable
 primality test instead of the GMP built-in function. The number to test is
@@ -444,9 +474,8 @@ The parameter -idlecmd <cmd> will make GMP-ECM run <cmd> before each ECM,
 P-1 or P+1 attempt on a number. If the exit status of <cmd> is non-zero,
 GMP-ECM terminates immediately, otherwise it continues normally. GMP-ECM
 resumes only after <cmd> has terminated, so this is a way for letting
-GMP-ECM sleep i.e. while the system is busy - just let <cmd> sleep until the
-system is idle again. A future version will include finer-grained idle checks 
-than on a per-curve basis.
+GMP-ECM sleep i.e., while the system is busy - just let <cmd> sleep until the
+system is idle again.
 
 ##############################################################################
 
@@ -486,9 +515,8 @@ in at least <value> blocks.
 Changing the value of the number of blocks will not modify the chance
 of finding a factor (except for extra factors, but some will be lost,
 and some will be won, so the balance should be nearly even). However it 
-will increase the time spent in Step 2 (when less or greater than the
-optimal value), and modify the memory used by Step 2 (see the section 
-"Memory usage").
+will change the time spent in Step 2 and modify the memory used by Step 2
+(see the section "Memory usage").
 
 Optimal thresholds. The thresholds for the algorithms used in ecm are defined
 in ecm-params.h. Several ecm-params.h.* files are included in the distribution
@@ -497,7 +525,7 @@ there is no ecm-params.h.* for your machine then you can either compile with
 default values (not recommended) or you can generate ecm-params.h first with
 "make ecm-params; make".
 
-Stage 2 now uses Number-Theoretic Transforms for polynomial arithmetic by
+Stage 2 now uses Number-Theoretic Transforms (NTT) for polynomial arithmetic by
 default. The NTT code forces dF to be a power of 2; it can be disabled by
 passing the command-line option -no-ntt. Performance of NTT is dependent on:
 - Architecture. NTT seems to give the greatest improvement on Athlon machines,
@@ -505,7 +533,6 @@ passing the command-line option -no-ntt. Performance of NTT is dependent on:
 - Thresholds. It is vital to have ecm-params.h properly tuned for your machine.
 - C compiler. The code relies on heavy compiler optimisations. At the time of
   writing, gcc 3.4.x seems to generate faster code than gcc 4.x. 
-
 
 Note on factoring Fermat numbers:
 GMP-ECM features Schönhage-Strassen multiplication for polynomials in 
@@ -517,7 +544,7 @@ approximately 4.
 For the number of blocks, choices of 2, 3 or 4 usually give best performance.
 However, if the polynomial degree becomes too large, relatively expensive
 Karatsuba or Toom-Coom methods are required to split the polynomial before
-Sch"onhage-Strassen's method can handle them. That can make a larger number 
+Schönhage-Strassen's method can handle them. That can make a larger number 
 of blocks worthwhile. When factoring the m-th Fermat number F_m = 2^(2^m)+1,
 degrees up to dF=2^(m+1) can be handled directly. If your B2 choice
 requires a degree much larger than this (dF is printed with the -v
@@ -530,9 +557,8 @@ degrees for Brent-Suyama may possibly become worthwhile for P-1 runs on
 smaller Fermat numbers and extremely large B2, when Karatsuba and Toom-Cook
 are used extensively.)
 Factoring Fermat numbers uses a lot of memory, depending on the size of the
-Fermat number and on dF. The amount of data kept in memory in stage 2 is
-approximately dF*(log_2(dF)+6) residues. For dF=65536 and F_12, this means
-704 MB. If your system does not have enough memory, you will have to use a
+Fermat number and on dF. For dF=65536 and F_12, the memory used is about
+1700MB. If your system does not have enough memory, you will have to use a
 larger number of blocks to reach the desired B2 value with a smaller poly
 degree dF, which sacrifices some performance. Additionally, you may use the
 -treefile option (see 4. Memory usage)
@@ -566,11 +592,11 @@ If you find a very large factor, the program will print a message like:
 Report your potential champion to <email address>
 (see <url for record factors>)
 
-This means that your factor might be a champion, i.e. one of the top-ten
+This means that your factor might be a champion, i.e., one of the top-ten
 largest factors ever found by the corresponding method (P-1, P+1 or ECM).
 Cf the following URLs:
 
-ECM: ftp://ftp.comlab.ox.ac.uk/pub/Documents/techpapers/Richard.Brent/champs.txt
+ECM: http://wwwmaths.anu.edu.au/~brent/ftp/champs.txt
 P-1: http://www.loria.fr/~zimmerma/records/Pminus1.html
 P+1: http://www.loria.fr/~zimmerma/records/Pplus1.html
 
@@ -585,9 +611,9 @@ to 0, which may produce negative timings.
 
 The NTT code uses primes that fit in one machine word and that are 
 congruent to 1 (mod l), where l is the largest transform length required 
-for the desired stage 2 parameters. For very large B2 on 32 bit machines, 
+for the desired stage 2 parameters. For very large B2 on 32-bit machines, 
 there may not be enough suitable primes, which may limit the possible 
 transform length to less than what available memory would permit. This 
 problem occurs mostly in the fast stage 2 for P-1 and P+1, as the generic
 stage 2 uses far more memory for a given polynomial degree, so that memory
-on a 32 bit machine will be exhausted long before suitable NTT primes are.
+on a 32-bit machine will be exhausted long before suitable NTT primes are.
