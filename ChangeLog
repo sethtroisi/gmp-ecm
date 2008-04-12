@@ -1,4 +1,1633 @@
 ------------------------------------------------------------------------
+r1194 | brian_gladman | 2008-04-11 23:06:30 +0200 (Fri, 11 Apr 2008) | 1 line
+Changed paths:
+   A /trunk/build.vc9
+   A /trunk/build.vc9/config.h
+   A /trunk/build.vc9/ecm
+   A /trunk/build.vc9/ecm/ecm.vcproj
+   A /trunk/build.vc9/ecm-params.h
+   A /trunk/build.vc9/ecm.sln
+   A /trunk/build.vc9/file_copy.bat
+   A /trunk/build.vc9/libecm
+   A /trunk/build.vc9/libecm/libecm.vcproj
+
+
+------------------------------------------------------------------------
+r1193 | kruppa | 2008-04-11 15:58:37 +0200 (Fri, 11 Apr 2008) | 3 lines
+Changed paths:
+   M /trunk/README
+
+Some updates for new release, mention new stage 2 and that it doesn't work
+with Brent-Suyama
+
+------------------------------------------------------------------------
+r1192 | kruppa | 2008-04-11 14:26:11 +0200 (Fri, 11 Apr 2008) | 2 lines
+Changed paths:
+   M /trunk/ecm.1
+   M /trunk/ecm.xml
+
+Updated man page
+
+------------------------------------------------------------------------
+r1191 | kruppa | 2008-04-10 13:47:40 +0200 (Thu, 10 Apr 2008) | 2 lines
+Changed paths:
+   M /trunk/sp.h
+
+Fixed compiler warning about shift-by-32 on 32 bit systems.
+
+------------------------------------------------------------------------
+r1190 | zimmerma | 2008-04-10 08:38:03 +0200 (Thu, 10 Apr 2008) | 2 lines
+Changed paths:
+   M /trunk/mul_fft.c
+
+pragma was ill-positioned
+
+------------------------------------------------------------------------
+r1189 | zimmerma | 2008-04-09 21:01:59 +0200 (Wed, 09 Apr 2008) | 2 lines
+Changed paths:
+   M /trunk/mul_fft.c
+
+incorporated patches for VC++ v9 from Brian Gladman
+
+------------------------------------------------------------------------
+r1188 | kruppa | 2008-04-09 18:38:23 +0200 (Wed, 09 Apr 2008) | 4 lines
+Changed paths:
+   M /trunk/mpzspm.c
+   M /trunk/mpzspv.c
+   M /trunk/sp.h
+
+Added conversion routines sp_t <-> mpz_t to overcome portability issues
+on systems where sp_t is wider than unsigned long and mpz_*_ui() functions
+can't be used.
+
+------------------------------------------------------------------------
+r1187 | kruppa | 2008-04-09 16:31:36 +0200 (Wed, 09 Apr 2008) | 3 lines
+Changed paths:
+   M /trunk/ecm.c
+
+In verbose mode if a factor was found, memory for table of Dickman rho
+values was not freed.
+
+------------------------------------------------------------------------
+r1186 | kruppa | 2008-04-09 16:17:08 +0200 (Wed, 09 Apr 2008) | 2 lines
+Changed paths:
+   M /trunk/ecm-ecm.h
+   M /trunk/main.c
+   M /trunk/sets_long.c
+
+Changed some #if <macro> to #ifdef <macro>. Include alloca.h in sets_long.c
+
+------------------------------------------------------------------------
+r1185 | kruppa | 2008-04-09 16:15:28 +0200 (Wed, 09 Apr 2008) | 3 lines
+Changed paths:
+   M /trunk/configure.in
+
+Check for setpriority() function (code tested for HAVE_SETPRIORITY, but
+configure never defined it)
+
+------------------------------------------------------------------------
+r1184 | kruppa | 2008-04-09 16:13:10 +0200 (Wed, 09 Apr 2008) | 3 lines
+Changed paths:
+   M /trunk/tune.c
+
+Replaced %zd conversion in printf() by %ld with a typecast, z modifier 
+is C99 and probably not very portable.
+
+------------------------------------------------------------------------
+r1183 | kruppa | 2008-04-09 15:33:41 +0200 (Wed, 09 Apr 2008) | 2 lines
+Changed paths:
+   M /trunk/pm1fs2.c
+
+Fixed compiler warnings, bug (had comparison instead of assignment)
+
+------------------------------------------------------------------------
+r1182 | kruppa | 2008-04-09 15:32:10 +0200 (Wed, 09 Apr 2008) | 2 lines
+Changed paths:
+   M /trunk/sp.h
+
+Fixed data type (was unsigned long instead of sp_t), removed unused variables
+
+------------------------------------------------------------------------
+r1181 | kruppa | 2008-04-09 15:30:47 +0200 (Wed, 09 Apr 2008) | 3 lines
+Changed paths:
+   M /trunk/mul_fft.c
+
+Fixed some compiler warnings. Removed inclusion of longlong.h, as it expects 
+certain data types for arithmetic on one-word integers to be defined.
+
+------------------------------------------------------------------------
+r1180 | kruppa | 2008-04-09 15:28:02 +0200 (Wed, 09 Apr 2008) | 2 lines
+Changed paths:
+   M /trunk/ecm-impl.h
+
+Made parameter types for ntt_*() functions use the typedefs from sp.h
+
+------------------------------------------------------------------------
+r1179 | zimmerma | 2008-04-09 14:23:04 +0200 (Wed, 09 Apr 2008) | 4 lines
+Changed paths:
+   M /trunk/polyeval.c
+   M /trunk/stage2.c
+
+removed extra argument of polyeval() in stage2.c
+polyeval.c: polyeval() and polyeval_tellegen() must always be compiled,
+since they are needed in tune.c.
+
+------------------------------------------------------------------------
+r1178 | kruppa | 2008-04-09 10:40:54 +0200 (Wed, 09 Apr 2008) | 3 lines
+Changed paths:
+   M /trunk/spm.c
+
+Fixed wrong type which broke arithmetic on machines where unsigned long
+has less width than sp_t.
+
+------------------------------------------------------------------------
+r1177 | kruppa | 2008-04-08 18:48:10 +0200 (Tue, 08 Apr 2008) | 2 lines
+Changed paths:
+   M /trunk/sp.h
+
+Fixed typo in precompiler condition
+
+------------------------------------------------------------------------
+r1176 | kruppa | 2008-04-08 17:46:54 +0200 (Tue, 08 Apr 2008) | 3 lines
+Changed paths:
+   M /trunk/ecm-impl.h
+   M /trunk/ecm2.c
+   M /trunk/pm1.c
+   M /trunk/pp1.c
+   M /trunk/stage2.c
+
+Renamed mis-named function. Fixed output of uninitialised "dickson_a" value
+in ECM stage 2.
+
+------------------------------------------------------------------------
+r1175 | kruppa | 2008-04-08 16:51:35 +0200 (Tue, 08 Apr 2008) | 3 lines
+Changed paths:
+   M /trunk/mul_fft.c
+
+Fixed bug in MPN_FFT_STORE: the non-asm version wrote too little data 
+due to bad pointer type.
+
+------------------------------------------------------------------------
+r1174 | zimmerma | 2008-04-08 15:55:08 +0200 (Tue, 08 Apr 2008) | 2 lines
+Changed paths:
+   M /trunk/mul_fft.c
+
+added MPN_ZERO if not defined
+
+------------------------------------------------------------------------
+r1173 | kruppa | 2008-04-08 15:02:33 +0200 (Tue, 08 Apr 2008) | 3 lines
+Changed paths:
+   M /trunk/main.c
+   M /trunk/mul_fft.c
+   M /trunk/sp.h
+
+Included some changes suggested by Brian Gladman to allow compiling under
+MS VC 9.
+
+------------------------------------------------------------------------
+r1172 | kruppa | 2008-04-08 13:03:51 +0200 (Tue, 08 Apr 2008) | 2 lines
+Changed paths:
+   M /trunk/pm1fs2.c
+
+Fixed some "variable sized arrays"
+
+------------------------------------------------------------------------
+r1171 | zimmerma | 2008-04-08 12:55:37 +0200 (Tue, 08 Apr 2008) | 2 lines
+Changed paths:
+   M /trunk/longlong.h
+   M /trunk/mul_fft.c
+
+define dummy versions of __builtin_constant_p and __builtin_expect when not gcc
+
+------------------------------------------------------------------------
+r1170 | kruppa | 2008-04-08 12:49:05 +0200 (Tue, 08 Apr 2008) | 2 lines
+Changed paths:
+   M /trunk/ecm-impl.h
+   M /trunk/pm1fs2.c
+
+Fixed some compiler warnings with -pedantic
+
+------------------------------------------------------------------------
+r1169 | zimmerma | 2008-04-08 12:00:42 +0200 (Tue, 08 Apr 2008) | 2 lines
+Changed paths:
+   M /trunk/TODO
+
+added TODO item
+
+------------------------------------------------------------------------
+r1168 | zimmerma | 2008-04-08 11:38:43 +0200 (Tue, 08 Apr 2008) | 5 lines
+Changed paths:
+   M /trunk/Makefile.am
+   M /trunk/asmredc.h
+   M /trunk/getprime.c
+   M /trunk/mul_fft.c
+
+Makefile.am: added -pedantic
+asmredc.h, mul_fft.c, getprime.c:
+- changed C++ style comments //... to C style /* ... */
+- fixed type declarations inbetween instructions
+
+------------------------------------------------------------------------
+r1167 | jasonp | 2008-04-08 04:30:45 +0200 (Tue, 08 Apr 2008) | 1 line
+Changed paths:
+   M /trunk/sp.h
+
+force the size of small prime residues to explicitly match up with a GMP word
+------------------------------------------------------------------------
+r1166 | zimmerma | 2008-04-03 21:44:25 +0200 (Thu, 03 Apr 2008) | 3 lines
+Changed paths:
+   M /trunk/ecm.c
+
+reduce the number of tried Lucas chains in PRAC for small numbers
+(thanks to Pierrick who noticed the overhead with MPFQ)
+
+------------------------------------------------------------------------
+r1165 | kruppa | 2008-03-25 19:40:32 +0100 (Tue, 25 Mar 2008) | 2 lines
+Changed paths:
+   M /trunk/pm1fs2.c
+   M /trunk/pp1.c
+
+Some unsaved edits that were missing in last commit
+
+------------------------------------------------------------------------
+r1164 | kruppa | 2008-03-25 19:33:25 +0100 (Tue, 25 Mar 2008) | 4 lines
+Changed paths:
+   M /trunk/configure.in
+   M /trunk/ecm-impl.h
+   M /trunk/median.c
+   M /trunk/pm1.c
+   M /trunk/pm1fs2.c
+   M /trunk/pp1.c
+
+Added code for automatic parameters selection for new P-1 and P+1 stage 2
+according to available memory.
+Report if there's an error (e.g. out-of-memory condition) in TMulKS().
+
+------------------------------------------------------------------------
+r1163 | jasonp | 2008-03-23 00:29:40 +0100 (Sun, 23 Mar 2008) | 4 lines
+Changed paths:
+   M /trunk/ntt_gfp.c
+   M /trunk/sp.h
+   M /trunk/spv.c
+
+Use 31-bit primes for the NTT on 32-bit systems. This is
+slightly slower than using 30-bit primes but allows arithmetic
+on larger polynomials
+
+------------------------------------------------------------------------
+r1162 | kruppa | 2008-03-21 18:49:16 +0100 (Fri, 21 Mar 2008) | 3 lines
+Changed paths:
+   M /trunk/mpzspm.c
+   M /trunk/pm1.c
+   M /trunk/pp1.c
+   M /trunk/sp.h
+
+New P+1 and P-1 stage 2 now checks maximal supported transform length for 
+NTT, reduces lmax accordingly
+
+------------------------------------------------------------------------
+r1161 | kruppa | 2008-03-20 15:39:11 +0100 (Thu, 20 Mar 2008) | 14 lines
+Changed paths:
+   M /trunk/Makefile.am
+   M /trunk/configure.in
+   M /trunk/main.c
+   M /trunk/pm1fs2.c
+
+Andreas Schickel reported a problem with new stage 2 on 32 bit: there are
+so few suitable NTT primes < 2^30 that only short transform lengths (~2^19)
+are possible. 
+Instead of requiring primes == 1 (mod 3l), code for building
+F with weighted convolutions is separate now and uses primes
+== 1 (mod 3l/4), the convolution for multipoint evaluation uses primes
+== 1 (mod l). This improves the situation a little, but the possible 
+transform lengths (~20^20) are still rather small.
+
+Also fixed out of bound array access in ntt_sqr_reciprocal().
+
+Print time stamp for each curve now instead of for each new number, 
+requested by Andreas.
+
+------------------------------------------------------------------------
+r1160 | kruppa | 2008-03-20 11:49:17 +0100 (Thu, 20 Mar 2008) | 2 lines
+Changed paths:
+   M /trunk/mul_fft.c
+
+Enable assertions if so specified in config.h (were always off!)
+
+------------------------------------------------------------------------
+r1159 | kruppa | 2008-03-20 11:39:56 +0100 (Thu, 20 Mar 2008) | 2 lines
+Changed paths:
+   M /trunk/mul_fft.c
+
+Added two missing ASSERT for NULL pointer after alloc
+
+------------------------------------------------------------------------
+r1158 | jasonp | 2008-03-20 04:16:17 +0100 (Thu, 20 Mar 2008) | 1 line
+Changed paths:
+   M /trunk/ntt_gfp.c
+   M /trunk/sp.h
+   M /trunk/spm.c
+
+do not store NTT scratch array on the stack
+------------------------------------------------------------------------
+r1157 | kruppa | 2008-03-19 19:52:40 +0100 (Wed, 19 Mar 2008) | 5 lines
+Changed paths:
+   M /trunk/pm1fs2.c
+
+Revert bug-"fix" from just before, it breaks the NTT.
+Test for NULL pointer from mpzspm_init().
+Changed diagnostic output during parameter selection to TRACE level.
+
+
+------------------------------------------------------------------------
+r1156 | kruppa | 2008-03-19 19:29:52 +0100 (Wed, 19 Mar 2008) | 3 lines
+Changed paths:
+   M /trunk/mpzspm.c
+   M /trunk/pm1fs2.c
+
+Fixed bug: required transform length overestimated, reduced possible
+transform length on 32 bit machines
+
+------------------------------------------------------------------------
+r1155 | kruppa | 2008-03-19 17:57:20 +0100 (Wed, 19 Mar 2008) | 3 lines
+Changed paths:
+   M /trunk/Makefile.am
+
+Added ecm-params.h.pentium3 and ecm-params.h.pentium4 to list of files to
+put in distribution.
+
+------------------------------------------------------------------------
+r1154 | kruppa | 2008-03-19 16:30:28 +0100 (Wed, 19 Mar 2008) | 2 lines
+Changed paths:
+   M /trunk/Makefile.am
+
+Added rule to remove config.m4 on distclean, to make distcheck work
+
+------------------------------------------------------------------------
+r1153 | zimmerma | 2008-03-19 13:51:39 +0100 (Wed, 19 Mar 2008) | 2 lines
+Changed paths:
+   A /trunk/ecm-params.h.pentiumm
+
+tuning parameters for pentium M
+
+------------------------------------------------------------------------
+r1152 | kruppa | 2008-03-19 12:36:38 +0100 (Wed, 19 Mar 2008) | 2 lines
+Changed paths:
+   M /trunk/AUTHORS
+   M /trunk/NEWS
+
+Added Jason, fixed typo
+
+------------------------------------------------------------------------
+r1151 | kruppa | 2008-03-19 11:46:37 +0100 (Wed, 19 Mar 2008) | 2 lines
+Changed paths:
+   A /trunk/ecm-params.h.pentium4
+
+Parameter file for Pentium 4
+
+------------------------------------------------------------------------
+r1150 | kruppa | 2008-03-19 11:45:55 +0100 (Wed, 19 Mar 2008) | 2 lines
+Changed paths:
+   M /trunk/ecm-params.h.athlon64
+
+Updated parameters for new NTT
+
+------------------------------------------------------------------------
+r1149 | kruppa | 2008-03-19 11:45:40 +0100 (Wed, 19 Mar 2008) | 2 lines
+Changed paths:
+   M /trunk/NEWS
+
+Updated NEWS for 6.2
+
+------------------------------------------------------------------------
+r1148 | kruppa | 2008-03-18 20:18:06 +0100 (Tue, 18 Mar 2008) | 3 lines
+Changed paths:
+   M /trunk/configure.in
+
+Added --enable-sse2 option. Default is using SSE2 on Pentium 4, not using 
+it on other architectures.
+
+------------------------------------------------------------------------
+r1147 | kruppa | 2008-03-18 20:16:59 +0100 (Tue, 18 Mar 2008) | 4 lines
+Changed paths:
+   M /trunk/ecm-impl.h
+   M /trunk/pm1.c
+   M /trunk/pm1fs2.c
+   M /trunk/pp1.c
+
+Made -maxmem work with new P+-1 stage 2, also chooses one pass evaluation 
+(computing convolutions for both coordinates, adding in transform space
+to save an inverse transform) for P+1 if memory allows.
+
+------------------------------------------------------------------------
+r1146 | kruppa | 2008-03-14 15:14:15 +0100 (Fri, 14 Mar 2008) | 4 lines
+Changed paths:
+   M /trunk/sp.h
+
+Re-wrote asm macro for sp_add, sp_sub. Fixes (I hope!) a subtle bug
+in operand constraints (edx could be used as input operand in spite of 
+being marked "clobbered") and I hope is a bit faster, too.
+
+------------------------------------------------------------------------
+r1145 | kruppa | 2008-03-13 15:19:32 +0100 (Thu, 13 Mar 2008) | 2 lines
+Changed paths:
+   M /trunk/configure.in
+
+autoconf doesn't like space in macro
+
+------------------------------------------------------------------------
+r1144 | kruppa | 2008-03-13 14:55:54 +0100 (Thu, 13 Mar 2008) | 2 lines
+Changed paths:
+   M /trunk/Fgw.c
+
+Thrown out lots of dead code
+
+------------------------------------------------------------------------
+r1143 | kruppa | 2008-03-13 14:52:22 +0100 (Thu, 13 Mar 2008) | 4 lines
+Changed paths:
+   M /trunk/ecm.c
+   M /trunk/lucas.c
+
+Replaced floating-point constants for PRAC by their reciprocals and 
+division by multiplication. Some speedup for P+1 with very small numbers,
+for other cases very little speedup.
+
+------------------------------------------------------------------------
+r1142 | kruppa | 2008-02-27 18:45:43 +0100 (Wed, 27 Feb 2008) | 3 lines
+Changed paths:
+   M /trunk/Fgw.c
+
+Added assert to GWNUM ECM stage 1 interface to test that output residue fits
+in allocated space.
+
+------------------------------------------------------------------------
+r1141 | kruppa | 2008-02-27 15:54:00 +0100 (Wed, 27 Feb 2008) | 4 lines
+Changed paths:
+   M /trunk/Fgw.c
+   M /trunk/ecm-impl.h
+   M /trunk/ecm.c
+   M /trunk/mpmod.c
+   M /trunk/schoen_strass.c
+
+Removed code to use GWNUM for individual multiplications modulo Fermat 
+numbers - I think it was broken, never got used much anyway and if we 
+really want it, will need a rewrite from scratch
+
+------------------------------------------------------------------------
+r1140 | kruppa | 2008-02-27 15:43:21 +0100 (Wed, 27 Feb 2008) | 2 lines
+Changed paths:
+   M /trunk/ecm.c
+
+Removed some remaining dead Montgomery roots code
+
+------------------------------------------------------------------------
+r1139 | kruppa | 2008-02-27 12:03:47 +0100 (Wed, 27 Feb 2008) | 3 lines
+Changed paths:
+   M /trunk/pm1fs2.c
+
+Added check of result to ntt_sqr_reciprocal(), hoping to find an elusive 
+bug that appears on my AMD Athlon
+
+------------------------------------------------------------------------
+r1138 | kruppa | 2008-02-27 01:36:13 +0100 (Wed, 27 Feb 2008) | 2 lines
+Changed paths:
+   M /trunk/mpzspv.c
+
+Fixed segfault in mpzspv_verify().
+
+------------------------------------------------------------------------
+r1137 | kruppa | 2008-02-26 23:46:13 +0100 (Tue, 26 Feb 2008) | 2 lines
+Changed paths:
+   M /trunk/x86_64/README
+
+Added comment on generating mulredc{1,2}.asm from Python script
+
+------------------------------------------------------------------------
+r1136 | kruppa | 2008-02-26 23:42:50 +0100 (Tue, 26 Feb 2008) | 2 lines
+Changed paths:
+   M /trunk/x86_64/Makefile.am
+   M /trunk/x86_64/Makefile.dev
+   M /trunk/x86_64/generate_all
+
+Updated Makefiles/scripts to make mulredc asm code from autogen.py/mulredc.m4
+
+------------------------------------------------------------------------
+r1135 | kruppa | 2008-02-26 23:24:25 +0100 (Tue, 26 Feb 2008) | 2 lines
+Changed paths:
+   M /trunk/x86_64/mulredc1.asm
+
+mulredc1.asm as generated by Python script (without my old comment edits)
+
+------------------------------------------------------------------------
+r1134 | kruppa | 2008-02-26 19:59:22 +0100 (Tue, 26 Feb 2008) | 3 lines
+Changed paths:
+   M /trunk/configure.in
+   M /trunk/ntt_gfp.c
+   M /trunk/spv.c
+
+configure now defines HAS_SSE2 if running on Pentium 4 so NTT uses
+Jason Papadopoulos' SSE2 code.
+
+------------------------------------------------------------------------
+r1133 | kruppa | 2008-02-26 19:21:56 +0100 (Tue, 26 Feb 2008) | 2 lines
+Changed paths:
+   M /trunk/pm1fs2.c
+
+Parallelized pp1_sequence_h(), last function that hadn't been done yet
+
+------------------------------------------------------------------------
+r1132 | kruppa | 2008-02-22 17:53:40 +0100 (Fri, 22 Feb 2008) | 2 lines
+Changed paths:
+   M /trunk/pm1fs2.c
+   M /trunk/sets_long.c
+
+Fixed typo, spelt out ANTS
+
+------------------------------------------------------------------------
+r1131 | kruppa | 2008-02-22 17:42:15 +0100 (Fri, 22 Feb 2008) | 4 lines
+Changed paths:
+   M /trunk/auxlib.c
+   M /trunk/mpzspm.c
+   M /trunk/mpzspv.c
+   M /trunk/ntt_gfp.c
+   M /trunk/pm1fs2.c
+   M /trunk/sets_long.c
+   M /trunk/sp.c
+   M /trunk/sp.h
+   M /trunk/spm.c
+   M /trunk/spv.c
+   M /trunk/tune.c
+
+Included patch by Jason to fix out-of-bounds array access.
+Updated copyright information.
+
+
+------------------------------------------------------------------------
+r1130 | kruppa | 2008-02-21 19:36:26 +0100 (Thu, 21 Feb 2008) | 2 lines
+Changed paths:
+   M /trunk/pm1fs2.c
+
+Removed dead code, made output of timing info more consistent
+
+------------------------------------------------------------------------
+r1129 | kruppa | 2008-02-21 17:18:34 +0100 (Thu, 21 Feb 2008) | 2 lines
+Changed paths:
+   M /trunk/ecm-impl.h
+   M /trunk/mpmod.c
+
+Changed _ui funtions to take unsigned longs, as GMP does
+
+------------------------------------------------------------------------
+r1128 | kruppa | 2008-02-21 15:07:54 +0100 (Thu, 21 Feb 2008) | 2 lines
+Changed paths:
+   M /trunk/getprime.c
+
+Fixed access to uninitialised data in getprime()
+
+------------------------------------------------------------------------
+r1127 | kruppa | 2008-02-21 12:14:35 +0100 (Thu, 21 Feb 2008) | 2 lines
+Changed paths:
+   M /trunk/ecm-impl.h
+   M /trunk/getprime.c
+   M /trunk/mpmod.c
+   M /trunk/mul_fft.c
+
+Fixed some compiler warnings.
+
+------------------------------------------------------------------------
+r1126 | kruppa | 2008-02-21 11:42:33 +0100 (Thu, 21 Feb 2008) | 2 lines
+Changed paths:
+   M /trunk/ecm-impl.h
+   M /trunk/ecm2.c
+   M /trunk/pm1.c
+   M /trunk/pp1.c
+   M /trunk/stage2.c
+
+Fixed ugly typecast
+
+------------------------------------------------------------------------
+r1125 | kruppa | 2008-02-20 15:34:07 +0100 (Wed, 20 Feb 2008) | 3 lines
+Changed paths:
+   M /trunk/ecm-impl.h
+   M /trunk/ecm2.c
+
+Removed code for ECM stage 2 roots in Montgomery form. Never worked and
+probably never will.
+
+------------------------------------------------------------------------
+r1124 | kruppa | 2008-02-20 15:19:11 +0100 (Wed, 20 Feb 2008) | 2 lines
+Changed paths:
+   M /trunk/mpzspm.c
+   M /trunk/mpzspv.c
+   M /trunk/ntt_gfp.c
+   M /trunk/pm1fs2.c
+   M /trunk/sp.c
+   M /trunk/sp.h
+   M /trunk/spm.c
+   M /trunk/spv.c
+   M /trunk/tune.c
+
+Merging Jason Papadopoulos' new SSE2 NTT code
+
+------------------------------------------------------------------------
+r1123 | kruppa | 2008-02-20 15:18:35 +0100 (Wed, 20 Feb 2008) | 2 lines
+Changed paths:
+   M /trunk/techdocs/convolv.tex
+
+Cleanups
+
+------------------------------------------------------------------------
+r1122 | kruppa | 2008-02-20 13:56:45 +0100 (Wed, 20 Feb 2008) | 2 lines
+Changed paths:
+   M /trunk/pm1fs2.c
+
+Some small cleanup of timing/residue output
+
+------------------------------------------------------------------------
+r1121 | kruppa | 2008-02-19 23:53:22 +0100 (Tue, 19 Feb 2008) | 2 lines
+Changed paths:
+   M /trunk/stage2.c
+
+Small changes (mostly comments)
+
+------------------------------------------------------------------------
+r1120 | kruppa | 2008-02-19 19:03:30 +0100 (Tue, 19 Feb 2008) | 2 lines
+Changed paths:
+   M /trunk/pm1.c
+
+Made new stage 2 the default. Fixed small memory leak.
+
+------------------------------------------------------------------------
+r1119 | kruppa | 2008-02-19 18:59:20 +0100 (Tue, 19 Feb 2008) | 3 lines
+Changed paths:
+   M /trunk/pp1.c
+
+Fixed bug in computing roots of G when i0 < -6. Made the new stage 2 
+the default. Fixed small memory leak.
+
+------------------------------------------------------------------------
+r1118 | zimmerma | 2008-02-18 18:36:44 +0100 (Mon, 18 Feb 2008) | 2 lines
+Changed paths:
+   M /trunk/README.dev
+   A /trunk/testlong.pp1
+
+added new (long) test file for P+1
+
+------------------------------------------------------------------------
+r1117 | zimmerma | 2008-02-18 14:38:34 +0100 (Mon, 18 Feb 2008) | 3 lines
+Changed paths:
+   M /trunk/test.pp1
+
+added test cases that exhibit bug in 6.1.3 with polynomials of degree > 1
+(and maybe in earlier versions)
+
+------------------------------------------------------------------------
+r1116 | kruppa | 2008-02-18 11:46:12 +0100 (Mon, 18 Feb 2008) | 2 lines
+Changed paths:
+   M /trunk/techdocs/buildpoly.tex
+
+Something about converting polynomial bases, forgot what's it about by now
+
+------------------------------------------------------------------------
+r1115 | zimmerma | 2008-02-12 23:40:53 +0100 (Tue, 12 Feb 2008) | 2 lines
+Changed paths:
+   M /trunk/main.c
+
+update P+1 top-ten bound
+
+------------------------------------------------------------------------
+r1114 | jasonp | 2008-01-30 08:04:04 +0100 (Wed, 30 Jan 2008) | 1 line
+Changed paths:
+   M /trunk/Makefile.am
+
+allow 'make check' to work in MinGW
+------------------------------------------------------------------------
+r1113 | kruppa | 2008-01-29 16:57:28 +0100 (Tue, 29 Jan 2008) | 4 lines
+Changed paths:
+   M /trunk/pm1fs2.c
+
+Fixed small memory leak (S_2). Allocate enough memory for mpz_t's to 
+avoid reallocs.
+
+
+------------------------------------------------------------------------
+r1112 | kruppa | 2008-01-29 16:54:45 +0100 (Tue, 29 Jan 2008) | 2 lines
+Changed paths:
+   M /trunk/mpmod.c
+
+Fixed compiler warning: parantheses around assignment as truth value
+
+------------------------------------------------------------------------
+r1111 | kruppa | 2008-01-29 16:53:58 +0100 (Tue, 29 Jan 2008) | 2 lines
+Changed paths:
+   M /trunk/mpzspm.c
+
+Minor changes: replace mpz_add by mpz_mul_2exp, changes to comments
+
+------------------------------------------------------------------------
+r1110 | kruppa | 2008-01-23 18:09:04 +0100 (Wed, 23 Jan 2008) | 2 lines
+Changed paths:
+   M /trunk/mpzspv.c
+
+Multi-threading pragmas for mpzspv_from_mpzv() 
+
+------------------------------------------------------------------------
+r1109 | kruppa | 2008-01-21 23:20:26 +0100 (Mon, 21 Jan 2008) | 2 lines
+Changed paths:
+   M /trunk/pm1fs2.c
+
+A little more parallelism in ntt_sqr_recip() to improve timings
+
+------------------------------------------------------------------------
+r1108 | kruppa | 2008-01-21 20:11:24 +0100 (Mon, 21 Jan 2008) | 2 lines
+Changed paths:
+   M /trunk/auxlib.c
+   M /trunk/ecm-impl.h
+   M /trunk/mpzspv.c
+   M /trunk/pm1fs2.c
+   M /trunk/sp.h
+
+Some more parallelization to get nicer timings for the final paper
+
+------------------------------------------------------------------------
+r1107 | kruppa | 2008-01-21 20:10:57 +0100 (Mon, 21 Jan 2008) | 3 lines
+Changed paths:
+   M /trunk/mpmod.c
+
+ECM_MOD_MPZ reduction uses aux_modulus now, but that was not copied by
+mpmod_copy(). Fixed.
+
+------------------------------------------------------------------------
+r1106 | kruppa | 2008-01-21 14:57:23 +0100 (Mon, 21 Jan 2008) | 2 lines
+Changed paths:
+   A /trunk/phiP.gp
+
+A pari script to make P values for new stage 2
+
+------------------------------------------------------------------------
+r1105 | kruppa | 2008-01-21 01:16:13 +0100 (Mon, 21 Jan 2008) | 4 lines
+Changed paths:
+   M /trunk/pm1.c
+   M /trunk/pm1fs2.c
+   M /trunk/pp1.c
+   M /trunk/sp.h
+
+Changed ntt_sqr_recip() to use Montgomery's idea of using a primitive 3rd
+root of unity for the weight signal. 
+
+
+------------------------------------------------------------------------
+r1104 | zimmerma | 2008-01-17 08:52:20 +0100 (Thu, 17 Jan 2008) | 2 lines
+Changed paths:
+   M /trunk/mpmod.c
+
+fixed a bug in mpres_mpz_mod when n=1
+
+------------------------------------------------------------------------
+r1103 | zimmerma | 2008-01-16 11:56:32 +0100 (Wed, 16 Jan 2008) | 2 lines
+Changed paths:
+   M /trunk/mpmod.c
+
+fixed bug in mpres_mpz_mod in case T has more than 2n limbs
+
+------------------------------------------------------------------------
+r1102 | zimmerma | 2008-01-16 10:42:19 +0100 (Wed, 16 Jan 2008) | 5 lines
+Changed paths:
+   M /trunk/ecm-impl.h
+   M /trunk/ecm.c
+   M /trunk/ecm.h
+   M /trunk/ecm2.c
+   M /trunk/main.c
+   M /trunk/mpmod.c
+   M /trunk/pp1.c
+
+mpmod_init code was duplicated: now call mpmod_init directly
+this also solved some inconsistencies in arithmetic options: in some
+	cases ECM did not use mpz_mod although -mpzmod was given
+added new algorithm which speeds up -mpzmod arithmetic
+
+------------------------------------------------------------------------
+r1101 | kruppa | 2008-01-15 18:02:11 +0100 (Tue, 15 Jan 2008) | 2 lines
+Changed paths:
+   M /trunk/mpzspm.c
+   M /trunk/spm.c
+
+Allow computation of roots of unity whose order isn't a power of 2
+
+------------------------------------------------------------------------
+r1100 | zimmerma | 2008-01-15 15:45:23 +0100 (Tue, 15 Jan 2008) | 3 lines
+Changed paths:
+   M /trunk/TODO
+   A /trunk/TODO.kunz
+
+added suggestions from Thomas Kunz, to make it easier to port GMP-ECM to
+specific architectures
+
+------------------------------------------------------------------------
+r1099 | kruppa | 2008-01-14 15:53:22 +0100 (Mon, 14 Jan 2008) | 3 lines
+Changed paths:
+   M /trunk/pm1fs2.c
+
+Fixed bug in computation of g sequence for P-1 with many threads: negative
+value could get assigned to unsigned long.
+
+------------------------------------------------------------------------
+r1098 | kruppa | 2008-01-13 11:38:53 +0100 (Sun, 13 Jan 2008) | 2 lines
+Changed paths:
+   M /trunk/pm1fs2.c
+
+Modified ntt_sqr_recip to work as described in the paper, parallelized it
+
+------------------------------------------------------------------------
+r1097 | zimmerma | 2008-01-13 10:21:21 +0100 (Sun, 13 Jan 2008) | 2 lines
+Changed paths:
+   M /trunk/TODO
+   A /trunk/TODO.fat
+
+added suggestion from Peter Montgomery
+
+------------------------------------------------------------------------
+r1096 | kruppa | 2008-01-12 15:37:28 +0100 (Sat, 12 Jan 2008) | 3 lines
+Changed paths:
+   M /trunk/ecm-impl.h
+   M /trunk/pm1.c
+   M /trunk/pm1fs2.c
+   M /trunk/pp1.c
+
+If NTT is used, ensure s_1 < lmax/2 so that poly degrees stay just below 
+a power of two while bulding F.
+
+------------------------------------------------------------------------
+r1095 | kruppa | 2008-01-11 20:37:24 +0100 (Fri, 11 Jan 2008) | 2 lines
+Changed paths:
+   M /trunk/techdocs/mulrecip.tex
+
+More details on DWT mul for RLPs
+
+------------------------------------------------------------------------
+r1094 | kruppa | 2008-01-10 19:47:02 +0100 (Thu, 10 Jan 2008) | 2 lines
+Changed paths:
+   A /trunk/techdocs/mulrecip.tex
+   D /trunk/techdocs/mulrecipdwt.tex
+
+Added something on multiplying RLP without DWT/NTT
+
+------------------------------------------------------------------------
+r1093 | kruppa | 2008-01-10 19:44:08 +0100 (Thu, 10 Jan 2008) | 2 lines
+Changed paths:
+   M /trunk/pm1fs2.c
+
+Rewrote list_mul_reciprocal() to use less temp memory.
+
+------------------------------------------------------------------------
+r1092 | kruppa | 2008-01-09 22:44:22 +0100 (Wed, 09 Jan 2008) | 4 lines
+Changed paths:
+   M /trunk/Makefile.am
+   A /trunk/auxarith.c
+   M /trunk/auxlib.c
+   M /trunk/ecm-impl.h
+   M /trunk/ecm2.c
+   M /trunk/pm1fs2.c
+
+Moved functions for simple unsigned long arithmetic to auxarith.c
+Added function for squaring an RLP with a discrete weighted NTT of 
+half length.
+
+------------------------------------------------------------------------
+r1091 | kruppa | 2008-01-07 23:04:55 +0100 (Mon, 07 Jan 2008) | 2 lines
+Changed paths:
+   M /trunk/techdocs/mulrecipdwt.tex
+
+Small changes
+
+------------------------------------------------------------------------
+r1090 | kruppa | 2008-01-07 22:45:01 +0100 (Mon, 07 Jan 2008) | 2 lines
+Changed paths:
+   A /trunk/techdocs/mulrecipdwt.tex
+
+A note on (hopefully) multiplying RLPs with a weighted FFT 
+
+------------------------------------------------------------------------
+r1089 | kruppa | 2008-01-07 22:43:23 +0100 (Mon, 07 Jan 2008) | 2 lines
+Changed paths:
+   M /trunk/pm1fs2.c
+
+New function for squaring RLPs, simpler than general multiply one
+
+------------------------------------------------------------------------
+r1088 | kruppa | 2008-01-07 22:41:13 +0100 (Mon, 07 Jan 2008) | 2 lines
+Changed paths:
+   M /trunk/pm1fs2.c
+   M /trunk/sets_long.c
+
+Some more cleanups
+
+------------------------------------------------------------------------
+r1087 | kruppa | 2008-01-06 22:12:24 +0100 (Sun, 06 Jan 2008) | 2 lines
+Changed paths:
+   M /trunk/ecm-impl.h
+   M /trunk/pm1fs2.c
+   M /trunk/sets_long.c
+   M /trunk/x86_64/README
+   M /trunk/x86_64/test_mulredc.c
+
+More cleanup and bugfixes
+
+------------------------------------------------------------------------
+r1086 | kruppa | 2008-01-02 11:22:55 +0100 (Wed, 02 Jan 2008) | 2 lines
+Changed paths:
+   M /trunk/Makefile.am
+   M /trunk/ecm-impl.h
+   M /trunk/pm1fs2.c
+   M /trunk/sets_long.c
+
+More code cleanup in sets_long.c, made pm1fs2.c use those functions
+
+------------------------------------------------------------------------
+r1085 | zimmerma | 2007-12-25 17:20:25 +0100 (Tue, 25 Dec 2007) | 2 lines
+Changed paths:
+   M /trunk/main.c
+
+updated champions thresholds
+
+------------------------------------------------------------------------
+r1084 | kruppa | 2007-12-21 16:20:41 +0100 (Fri, 21 Dec 2007) | 3 lines
+Changed paths:
+   M /trunk/ecm-impl.h
+   A /trunk/sets_long.c
+
+Rewrote most of the operations on sets of longs for clarity, moved them
+into own source file.
+
+------------------------------------------------------------------------
+r1083 | kruppa | 2007-12-20 10:37:57 +0100 (Thu, 20 Dec 2007) | 2 lines
+Changed paths:
+   M /trunk/mpmod.c
+
+Fixed bug in mpmod_copy() with 2^n-1 numbers.
+
+------------------------------------------------------------------------
+r1082 | kruppa | 2007-12-19 11:53:59 +0100 (Wed, 19 Dec 2007) | 4 lines
+Changed paths:
+   M /trunk/mul_fft.c
+
+Fixed unparenthesized parameter in __GMP_ALLOCATE_FUNC_LIMBS macro.
+Changed copy of inputs in mpn_mul_fft_aux() to use malloc instead of alloca.
+Added ASSERT != NULL to temp space allocs.
+
+------------------------------------------------------------------------
+r1081 | kruppa | 2007-12-18 11:37:01 +0100 (Tue, 18 Dec 2007) | 2 lines
+Changed paths:
+   M /trunk/factor.c
+
+Updated default parameters so ugly hack works outside of GMP-ECM
+
+------------------------------------------------------------------------
+r1080 | kruppa | 2007-12-18 11:00:28 +0100 (Tue, 18 Dec 2007) | 2 lines
+Changed paths:
+   M /trunk/factor.c
+   M /trunk/main.c
+
+Added ugly hack to pass B2scale parameter to library
+
+------------------------------------------------------------------------
+r1079 | kruppa | 2007-12-17 21:44:14 +0100 (Mon, 17 Dec 2007) | 2 lines
+Changed paths:
+   M /trunk/x86_64/README
+
+Updated README for new m4 script.
+
+------------------------------------------------------------------------
+r1078 | zimmerma | 2007-12-17 14:25:56 +0100 (Mon, 17 Dec 2007) | 2 lines
+Changed paths:
+   M /trunk/TODO
+
+reorganized, added a table of contents, and added a section "installation"
+
+------------------------------------------------------------------------
+r1077 | kruppa | 2007-12-17 13:38:13 +0100 (Mon, 17 Dec 2007) | 3 lines
+Changed paths:
+   M /trunk/Makefile.am
+   M /trunk/configure.in
+   M /trunk/x86_64/mulredc.m4
+   M /trunk/x86_64/mulredc10.asm
+   M /trunk/x86_64/mulredc11.asm
+   M /trunk/x86_64/mulredc12.asm
+   M /trunk/x86_64/mulredc13.asm
+   M /trunk/x86_64/mulredc14.asm
+   M /trunk/x86_64/mulredc15.asm
+   M /trunk/x86_64/mulredc16.asm
+   M /trunk/x86_64/mulredc17.asm
+   M /trunk/x86_64/mulredc18.asm
+   M /trunk/x86_64/mulredc19.asm
+   M /trunk/x86_64/mulredc20.asm
+   M /trunk/x86_64/mulredc3.asm
+   M /trunk/x86_64/mulredc4.asm
+   M /trunk/x86_64/mulredc5.asm
+   M /trunk/x86_64/mulredc6.asm
+   M /trunk/x86_64/mulredc7.asm
+   M /trunk/x86_64/mulredc8.asm
+   M /trunk/x86_64/mulredc9.asm
+
+If GMP is linked statically, link mpmod.o and GMP first to put speed critical
+functions close together, hoping to avoid cache collisions.
+
+------------------------------------------------------------------------
+r1076 | zimmerma | 2007-12-14 21:45:36 +0100 (Fri, 14 Dec 2007) | 4 lines
+Changed paths:
+   M /trunk/Makefile.am
+
+Hard-coded compilation line for alternate binary (ecm2) with speed-critical
+routines close together. Should be removed once somebody figures out how to
+do this properly.
+
+------------------------------------------------------------------------
+r1075 | kruppa | 2007-12-13 15:24:22 +0100 (Thu, 13 Dec 2007) | 2 lines
+Changed paths:
+   M /trunk/x86_64/mulredc.m4
+   M /trunk/x86_64/mulredc10.asm
+   M /trunk/x86_64/mulredc11.asm
+   M /trunk/x86_64/mulredc12.asm
+   M /trunk/x86_64/mulredc13.asm
+   M /trunk/x86_64/mulredc14.asm
+   M /trunk/x86_64/mulredc15.asm
+   M /trunk/x86_64/mulredc16.asm
+   M /trunk/x86_64/mulredc17.asm
+   M /trunk/x86_64/mulredc18.asm
+   M /trunk/x86_64/mulredc19.asm
+   M /trunk/x86_64/mulredc20.asm
+   M /trunk/x86_64/mulredc3.asm
+   M /trunk/x86_64/mulredc4.asm
+   M /trunk/x86_64/mulredc5.asm
+   M /trunk/x86_64/mulredc6.asm
+   M /trunk/x86_64/mulredc7.asm
+   M /trunk/x86_64/mulredc8.asm
+   M /trunk/x86_64/mulredc9.asm
+
+More optimization of mulredc, up to 4% faster
+
+------------------------------------------------------------------------
+r1074 | kruppa | 2007-12-05 16:08:00 +0100 (Wed, 05 Dec 2007) | 4 lines
+Changed paths:
+   M /trunk/mul_fft.c
+
+Some functions caused symbol conflict when linking GMP statically. Made
+those functions "static" in mul_fft.c, as they do not seem to be used
+outside of that file.
+
+------------------------------------------------------------------------
+r1073 | kruppa | 2007-12-05 15:25:20 +0100 (Wed, 05 Dec 2007) | 2 lines
+Changed paths:
+   M /trunk/x86_64/bench.c
+   M /trunk/x86_64/mulredc.m4
+   M /trunk/x86_64/mulredc10.asm
+   M /trunk/x86_64/mulredc11.asm
+   M /trunk/x86_64/mulredc12.asm
+   M /trunk/x86_64/mulredc13.asm
+   M /trunk/x86_64/mulredc14.asm
+   M /trunk/x86_64/mulredc15.asm
+   M /trunk/x86_64/mulredc16.asm
+   M /trunk/x86_64/mulredc17.asm
+   M /trunk/x86_64/mulredc18.asm
+   M /trunk/x86_64/mulredc19.asm
+   M /trunk/x86_64/mulredc20.asm
+   M /trunk/x86_64/mulredc3.asm
+   M /trunk/x86_64/mulredc4.asm
+   M /trunk/x86_64/mulredc5.asm
+   M /trunk/x86_64/mulredc6.asm
+   M /trunk/x86_64/mulredc7.asm
+   M /trunk/x86_64/mulredc8.asm
+   M /trunk/x86_64/mulredc9.asm
+   M /trunk/x86_64/test_mulredc.c
+
+Fixed comments to match code
+
+------------------------------------------------------------------------
+r1072 | kruppa | 2007-12-05 10:19:31 +0100 (Wed, 05 Dec 2007) | 3 lines
+Changed paths:
+   M /trunk/mpmod.c
+
+Added an assertion to modmul_basecase which compares results with
+redc_basecase. Enable with -DWANT_ASSERT_EXPENSIVE
+
+------------------------------------------------------------------------
+r1071 | kruppa | 2007-12-05 10:10:32 +0100 (Wed, 05 Dec 2007) | 2 lines
+Changed paths:
+   M /trunk/ntt_gfp.c
+
+Added DCT function, but does not work correctly yet - output is not a DCT-II
+
+------------------------------------------------------------------------
+r1070 | kruppa | 2007-12-05 10:09:19 +0100 (Wed, 05 Dec 2007) | 3 lines
+Changed paths:
+   M /trunk/x86_64/mulredc.m4
+
+Fixed m4 quotes to allow generation of .asm files (which get processed 
+by m4 again during compilation)
+
+------------------------------------------------------------------------
+r1069 | kruppa | 2007-12-04 18:19:36 +0100 (Tue, 04 Dec 2007) | 4 lines
+Changed paths:
+   M /trunk/x86_64/mulredc10.asm
+   M /trunk/x86_64/mulredc11.asm
+   M /trunk/x86_64/mulredc12.asm
+   M /trunk/x86_64/mulredc13.asm
+   M /trunk/x86_64/mulredc14.asm
+   M /trunk/x86_64/mulredc15.asm
+   M /trunk/x86_64/mulredc16.asm
+   M /trunk/x86_64/mulredc17.asm
+   M /trunk/x86_64/mulredc18.asm
+   M /trunk/x86_64/mulredc19.asm
+   M /trunk/x86_64/mulredc20.asm
+   M /trunk/x86_64/mulredc3.asm
+   M /trunk/x86_64/mulredc4.asm
+   M /trunk/x86_64/mulredc5.asm
+   M /trunk/x86_64/mulredc6.asm
+   M /trunk/x86_64/mulredc7.asm
+   M /trunk/x86_64/mulredc8.asm
+   M /trunk/x86_64/mulredc9.asm
+
+Assembler files generated with 
+m4 -DLENGTH=3 mulredc.m4 > mulredc3.asm
+etc.
+
+------------------------------------------------------------------------
+r1068 | kruppa | 2007-12-04 17:47:21 +0100 (Tue, 04 Dec 2007) | 2 lines
+Changed paths:
+   M /trunk/x86_64/mulredc.m4
+
+Somewhat faster. Speedup over Python script generated code is 7-10%.
+
+------------------------------------------------------------------------
+r1067 | zimmerma | 2007-12-04 09:39:32 +0100 (Tue, 04 Dec 2007) | 4 lines
+Changed paths:
+   M /trunk/configure.in
+   M /trunk/ecm-gmp.h
+   M /trunk/ks-multiply.c
+   M /trunk/listz.c
+   M /trunk/mpmod.c
+   M /trunk/schoen_strass.c
+
+do not use any more GMP's mpn_mul_fft (which was not public),
+and always use instead ecm_mpn_mul_fft (included in GMP-ECM, and faster).
+Yields small speedup for Fermat numbers.
+
+------------------------------------------------------------------------
+r1066 | zimmerma | 2007-12-03 21:07:30 +0100 (Mon, 03 Dec 2007) | 5 lines
+Changed paths:
+   M /trunk/configure.in
+   M /trunk/ecm-params.h.athlon64
+   A /trunk/ecm-params.h.pentium3
+   M /trunk/mul_fft.c
+
+configure.in: added tuning (ecm-params) for pentium3
+mul_fft.c: added default values of parameters
+ecm-params.h.pentium3: new file with tuned values for pentium M
+ecm-params.h.athlon64: removed useless values
+
+------------------------------------------------------------------------
+r1065 | kruppa | 2007-12-03 21:04:20 +0100 (Mon, 03 Dec 2007) | 4 lines
+Changed paths:
+   A /trunk/x86_64/mulredc.m4
+
+Rewrite of ASM-generating script for mulredc, this time written in m4.
+Produces slightly faster (on Opteron) code than the old one, probably can 
+be improved yet.
+
+------------------------------------------------------------------------
+r1064 | zimmerma | 2007-12-03 18:08:44 +0100 (Mon, 03 Dec 2007) | 2 lines
+Changed paths:
+   A /trunk/mul_fft.c
+
+new FFT code, adapted for GMP-ECM
+
+------------------------------------------------------------------------
+r1063 | zimmerma | 2007-12-03 18:01:36 +0100 (Mon, 03 Dec 2007) | 4 lines
+Changed paths:
+   M /trunk/Makefile.am
+   M /trunk/ecm-params.h.athlon64
+   M /trunk/ks-multiply.c
+
+incorporated new FFT code into GMP-ECM: yields nice speedup in stage 2
+with -no-ntt. Works so far only on x86_64, still remains to create parameter
+files on other architectures.
+
+------------------------------------------------------------------------
+r1062 | zimmerma | 2007-12-02 22:41:26 +0100 (Sun, 02 Dec 2007) | 2 lines
+Changed paths:
+   M /trunk/TODO
+
+added efficiency item
+
+------------------------------------------------------------------------
+r1061 | kruppa | 2007-11-26 17:25:28 +0100 (Mon, 26 Nov 2007) | 3 lines
+Changed paths:
+   M /trunk/countsmooth.c
+   M /trunk/ecm-ecm.h
+   M /trunk/ecm-impl.h
+   M /trunk/ecm.c
+   M /trunk/eval.c
+   M /trunk/getprime.c
+   M /trunk/pm1.c
+   M /trunk/pp1.c
+   M /trunk/trial.c
+
+P-1 and P+1 now skip from sqrt(B1) to B1done in stage 1 when resuming. Large
+speedup when increasing large B1 in small steps.
+
+------------------------------------------------------------------------
+r1060 | kruppa | 2007-11-26 16:57:42 +0100 (Mon, 26 Nov 2007) | 3 lines
+Changed paths:
+   M /trunk/pm1fs2.c
+
+More P values, malloc() for spv's in parallel region (cpu binding tbd), 
+some changes to comments.
+
+------------------------------------------------------------------------
+r1059 | kruppa | 2007-11-16 18:18:30 +0100 (Fri, 16 Nov 2007) | 2 lines
+Changed paths:
+   M /trunk/pm1fs2.c
+
+Parallelized P+1 sequence g and DCT of h
+
+------------------------------------------------------------------------
+r1058 | zimmerma | 2007-11-16 15:42:26 +0100 (Fri, 16 Nov 2007) | 2 lines
+Changed paths:
+   M /trunk/pm1fs2.c
+
+removed space before 'ms' to be coherent with previous versions of GMP-ECM
+
+------------------------------------------------------------------------
+r1057 | kruppa | 2007-11-16 15:04:50 +0100 (Fri, 16 Nov 2007) | 3 lines
+Changed paths:
+   M /trunk/configure.in
+   M /trunk/mpmod.c
+   M /trunk/pm1fs2.c
+
+Some parallelization in the new P+-1 stage 2. Enable with --enable-openmp.
+Building f, sequence h for P-1, and sequences g and h for P+1 are TBD.
+
+------------------------------------------------------------------------
+r1056 | kruppa | 2007-11-09 17:24:26 +0100 (Fri, 09 Nov 2007) | 2 lines
+Changed paths:
+   M /trunk/ecm-impl.h
+   M /trunk/mpmod.c
+
+Added mpmod_copy() to clone a mpmod_t, i.e. for threads
+
+------------------------------------------------------------------------
+r1055 | kruppa | 2007-11-08 18:45:59 +0100 (Thu, 08 Nov 2007) | 3 lines
+Changed paths:
+   M /trunk/ecm-impl.h
+   M /trunk/pm1fs2.c
+   M /trunk/pp1.c
+
+Added P+1 fast stage 2 variant that generates the coordinates of g one at  
+a time. This saves about 30% memory.
+
+------------------------------------------------------------------------
+r1054 | kruppa | 2007-11-03 19:42:16 +0100 (Sat, 03 Nov 2007) | 3 lines
+Changed paths:
+   M /trunk/ecm.c
+   M /trunk/pm1.c
+   M /trunk/pp1.c
+
+Fixed bug where resuming and immediately interrupting would produce a lower
+B1 value in save file than was in input file.
+
+------------------------------------------------------------------------
+r1053 | kruppa | 2007-10-30 23:53:18 +0100 (Tue, 30 Oct 2007) | 2 lines
+Changed paths:
+   M /trunk/main.c
+
+Install signal handler only if a save file was specified.
+
+------------------------------------------------------------------------
+r1052 | kruppa | 2007-10-30 23:50:18 +0100 (Tue, 30 Oct 2007) | 2 lines
+Changed paths:
+   M /trunk/pm1fs2.c
+
+Fixed parameters selection, was slow and produced suboptimal parameters.
+
+------------------------------------------------------------------------
+r1051 | kruppa | 2007-10-30 17:52:30 +0100 (Tue, 30 Oct 2007) | 2 lines
+Changed paths:
+   M /trunk/pm1fs2.c
+
+Fixes bug in parameter selection, loop condition was wrong
+
+------------------------------------------------------------------------
+r1050 | kruppa | 2007-10-30 00:15:24 +0100 (Tue, 30 Oct 2007) | 2 lines
+Changed paths:
+   M /trunk/mpzspv.c
+   M /trunk/pm1fs2.c
+
+Cleanups. Convert from NTT in MPZSPV_NORMALISE_STRIDE blocks.
+
+------------------------------------------------------------------------
+r1049 | kruppa | 2007-10-29 16:54:27 +0100 (Mon, 29 Oct 2007) | 2 lines
+Changed paths:
+   M /trunk/mpzspv.c
+   M /trunk/pm1fs2.c
+
+Fixes bug where negative value in mpz_t was passed to mpzspv_to_ntt().
+
+------------------------------------------------------------------------
+r1048 | kruppa | 2007-10-29 15:11:28 +0100 (Mon, 29 Oct 2007) | 2 lines
+Changed paths:
+   M /trunk/ecm-impl.h
+   M /trunk/pm1.c
+   M /trunk/pm1fs2.c
+
+Restored non-NTT P-1 stage 2. Small cleanups.
+
+------------------------------------------------------------------------
+r1047 | zimmerma | 2007-10-29 14:22:00 +0100 (Mon, 29 Oct 2007) | 2 lines
+Changed paths:
+   M /trunk/main.c
+
+updated champion size for P-1
+
+------------------------------------------------------------------------
+r1046 | kruppa | 2007-10-27 18:42:22 +0200 (Sat, 27 Oct 2007) | 2 lines
+Changed paths:
+   M /trunk/ecm-impl.h
+   M /trunk/mpzspv.c
+   M /trunk/pm1fs2.c
+   M /trunk/pp1.c
+   M /trunk/sp.h
+
+Added NTT variant of new P+1 stage 2
+
+------------------------------------------------------------------------
+r1045 | kruppa | 2007-10-27 18:37:50 +0200 (Sat, 27 Oct 2007) | 2 lines
+Changed paths:
+   A /trunk/makesmooth.gp
+
+PARI script for generating test numbers for P-1 and P+1
+
+------------------------------------------------------------------------
+r1044 | kruppa | 2007-10-24 18:22:57 +0200 (Wed, 24 Oct 2007) | 2 lines
+Changed paths:
+   M /trunk/pm1fs2.c
+
+Reduced temp memory use in list_mul_symmetric()
+
+------------------------------------------------------------------------
+r1043 | kruppa | 2007-10-23 15:52:20 +0200 (Tue, 23 Oct 2007) | 3 lines
+Changed paths:
+   M /trunk/pm1.c
+   M /trunk/pm1fs2.c
+   M /trunk/pp1.c
+
+In new P-1 stage 2, only the lmax/2+1 distinct coefficients of the NTT 
+of h are stored now.
+
+------------------------------------------------------------------------
+r1042 | kruppa | 2007-10-22 17:42:21 +0200 (Mon, 22 Oct 2007) | 2 lines
+Changed paths:
+   M /trunk/mpzspm.c
+   M /trunk/pm1fs2.c
+
+Small fix and cleanup of pm1_sequence_[gh].
+
+------------------------------------------------------------------------
+r1041 | kruppa | 2007-10-22 05:00:35 +0200 (Mon, 22 Oct 2007) | 3 lines
+Changed paths:
+   M /trunk/mpzspv.c
+   M /trunk/pm1fs2.c
+   M /trunk/sp.c
+   M /trunk/sp.h
+   M /trunk/spv.c
+
+New P-1 stage 2 changed to use NTT for convolution product.
+Beware: there is a bug, sometimes misses factors. To be fixed.
+
+------------------------------------------------------------------------
+r1040 | kruppa | 2007-10-19 17:25:10 +0200 (Fri, 19 Oct 2007) | 2 lines
+Changed paths:
+   M /trunk/pm1fs2.c
+
+Rewrite of pp1_sequence_g() to use only 5 multiplications per g_i
+
+------------------------------------------------------------------------
+r1039 | kruppa | 2007-10-18 15:04:15 +0200 (Thu, 18 Oct 2007) | 2 lines
+Changed paths:
+   M /trunk/ecm-impl.h
+   M /trunk/pm1.c
+   M /trunk/pm1fs2.c
+   M /trunk/pp1.c
+
+Take -k parameter into account when choosing parameters for new stage 2
+
+------------------------------------------------------------------------
+r1038 | kruppa | 2007-10-18 15:02:05 +0200 (Thu, 18 Oct 2007) | 2 lines
+Changed paths:
+   M /trunk/main.c
+
+Print hostname of machine it's running on in verbose mode
+
+------------------------------------------------------------------------
+r1037 | kruppa | 2007-10-17 02:13:16 +0200 (Wed, 17 Oct 2007) | 3 lines
+Changed paths:
+   M /trunk/pm1fs2.c
+
+Function for exponentiating in extension ring can take mpz_t now, fixes an 
+unsigned long overflow
+
+------------------------------------------------------------------------
+r1036 | kruppa | 2007-10-16 16:02:30 +0200 (Tue, 16 Oct 2007) | 4 lines
+Changed paths:
+   M /trunk/pm1.c
+   M /trunk/pm1fs2.c
+
+P+1 does gcd on first coordinate in extension ring of product polynomial now,
+this fixes the problem with getting 0 in the second coordinate in the last 
+point of evaluation and when m_1 is negative.
+
+------------------------------------------------------------------------
+r1035 | zimmerma | 2007-10-13 20:08:15 +0200 (Sat, 13 Oct 2007) | 3 lines
+Changed paths:
+   M /trunk/eval.c
+
+got rid of quadratic memory reallocation in main eval routine
+(thanks to Alban Nonymous)
+
+------------------------------------------------------------------------
+r1034 | zimmerma | 2007-10-11 22:26:05 +0200 (Thu, 11 Oct 2007) | 2 lines
+Changed paths:
+   M /trunk/auxi.c
+
+fixed copyright line
+
+------------------------------------------------------------------------
+r1033 | zimmerma | 2007-10-11 22:15:09 +0200 (Thu, 11 Oct 2007) | 2 lines
+Changed paths:
+   M /trunk/auxi.c
+
+fixed efficiency issue in nb_digits: cost was O(n^2) for n-digit input
+
+------------------------------------------------------------------------
+r1032 | kruppa | 2007-10-10 13:58:51 +0200 (Wed, 10 Oct 2007) | 2 lines
+Changed paths:
+   M /trunk/pm1fs2.c
+
+Sped up computation of g_i sequence for P-1
+
+------------------------------------------------------------------------
+r1031 | kruppa | 2007-10-09 17:39:27 +0200 (Tue, 09 Oct 2007) | 4 lines
+Changed paths:
+   M /trunk/ks-multiply.c
+
+Changed max(deg(A)+1, deg(B)+1) to min(...) in estimate of product coeff size.
+Added code to print message if resulting FFT size differs, currently disabled
+(enable by #define-ing TEST_OLD_S)
+
+------------------------------------------------------------------------
+r1030 | kruppa | 2007-10-09 12:02:13 +0200 (Tue, 09 Oct 2007) | 4 lines
+Changed paths:
+   M /trunk/pm1fs2.c
+
+Sped up finding parameters for large lmax and small s_1. Timing output 
+for h_i and g_i sequences.
+
+
+------------------------------------------------------------------------
+r1029 | zimmerma | 2007-10-06 18:13:47 +0200 (Sat, 06 Oct 2007) | 2 lines
+Changed paths:
+   M /trunk/mpmod.c
+
+fixed typos in comments
+
+------------------------------------------------------------------------
+r1028 | kruppa | 2007-10-06 15:17:58 +0200 (Sat, 06 Oct 2007) | 2 lines
+Changed paths:
+   M /trunk/mpmod.c
+
+mpres_mul_z_to_z() now always produces non-negative, fully reduced result
+
+------------------------------------------------------------------------
+r1027 | kruppa | 2007-10-06 15:17:17 +0200 (Sat, 06 Oct 2007) | 2 lines
+Changed paths:
+   M /trunk/pm1fs2.c
+
+P+1 fast stage 2 aborts if m_1 < 0 until bug is fixed
+
+------------------------------------------------------------------------
+r1026 | kruppa | 2007-10-06 14:44:11 +0200 (Sat, 06 Oct 2007) | 2 lines
+Changed paths:
+   M /trunk/pp1.c
+
+Print parameters correctly for new stage 2
+
+------------------------------------------------------------------------
+r1025 | kruppa | 2007-10-05 21:29:18 +0200 (Fri, 05 Oct 2007) | 3 lines
+Changed paths:
+   M /trunk/pm1fs2.c
+
+Fixed last step in P+1 stage 2 (accumulating product) which always has 0
+in last term, causing N to be found as factor. TODO: find out why
+
+------------------------------------------------------------------------
+r1024 | kruppa | 2007-10-05 21:08:06 +0200 (Fri, 05 Oct 2007) | 3 lines
+Changed paths:
+   M /trunk/test.pp1
+
+Fixed test where 3^2-4 was a QR so P+1 really did P-1 (which just happened  
+to work as well with the old code). Uses x0=6 now.
+
+------------------------------------------------------------------------
+r1023 | kruppa | 2007-10-05 19:32:33 +0200 (Fri, 05 Oct 2007) | 2 lines
+Changed paths:
+   M /trunk/pp1.c
+
+Changed lmax to 2^20.
+
+------------------------------------------------------------------------
+r1022 | kruppa | 2007-10-05 17:56:05 +0200 (Fri, 05 Oct 2007) | 2 lines
+Changed paths:
+   M /trunk/pm1fs2.c
+   M /trunk/pp1.c
+
+Fast P+1 stage 2 stared working. More testing and optimization needed.
+
+------------------------------------------------------------------------
+r1021 | kruppa | 2007-10-04 17:54:53 +0200 (Thu, 04 Oct 2007) | 3 lines
+Changed paths:
+   M /trunk/pm1.c
+   M /trunk/pm1fs2.c
+   M /trunk/pp1.c
+
+Generating sequences g and h for P+1 (hopefully) works now. Not well 
+optimized yet.
+
+------------------------------------------------------------------------
+r1020 | kruppa | 2007-09-27 18:35:11 +0200 (Thu, 27 Sep 2007) | 3 lines
+Changed paths:
+   M /trunk/pm1fs2.c
+
+Fixed bug in maxS(). Fixed bugs in gfp_ext_rn2(). Extended table of P values.
+Started pp1fs2() function for P+1 stage 2.
+
+------------------------------------------------------------------------
+r1019 | kruppa | 2007-09-25 16:15:26 +0200 (Tue, 25 Sep 2007) | 2 lines
+Changed paths:
+   M /trunk/ecm-impl.h
+   M /trunk/pm1.c
+   M /trunk/pm1fs2.c
+
+Choose and print parameters for new P-1 stage 2 at start of pm1().
+
+------------------------------------------------------------------------
+r1018 | kruppa | 2007-09-25 16:07:47 +0200 (Tue, 25 Sep 2007) | 2 lines
+Changed paths:
+   M /trunk/mpmod.c
+
+Moved MPZ_REALLOC from ecm_mulredc_basecase to mpres_mul* functions
+
+------------------------------------------------------------------------
+r1017 | kruppa | 2007-09-25 14:53:20 +0200 (Tue, 25 Sep 2007) | 3 lines
+Changed paths:
+   M /trunk/mpmod.c
+
+Made ecm_mulredc_basecase() reallocate space in R instead of failing
+an assertion
+
+------------------------------------------------------------------------
+r1016 | kruppa | 2007-09-24 14:53:34 +0200 (Mon, 24 Sep 2007) | 2 lines
+Changed paths:
+   M /trunk/pm1fs2.c
+
+Fixed bug in computing max(S_1 + S_2) during parameter selection.
+
+------------------------------------------------------------------------
+r1015 | kruppa | 2007-09-23 22:33:13 +0200 (Sun, 23 Sep 2007) | 2 lines
+Changed paths:
+   M /trunk/auxlib.c
+   M /trunk/ecm-impl.h
+   M /trunk/ecm_ntt.c
+   M /trunk/listz.c
+   M /trunk/mpmod.c
+   M /trunk/pm1.c
+   M /trunk/pm1fs2.c
+   M /trunk/polyeval.c
+
+Fast P-1 stage 2 now uses parameterization as in the paper.
+
+------------------------------------------------------------------------
+r1014 | zimmerma | 2007-09-14 08:48:50 +0200 (Fri, 14 Sep 2007) | 5 lines
+Changed paths:
+   M /trunk/ChangeLog
+   M /trunk/Makefile.am
+   M /trunk/README.dev
+   M /trunk/configure.in
+
+ChangeLog: added changes since release 6.1 that were missing
+README.dev: added hint about man page
+Makefile.am: ensure that ecm.1 is in the tarball
+configure.in: fixed warning from autoconf
+
+------------------------------------------------------------------------
 r1013 | kruppa | 2007-09-10 14:15:00 +0200 (Mon, 10 Sep 2007) | 2 lines
 Changed paths:
    M /trunk/pm1fs2.c
