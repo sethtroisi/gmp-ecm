@@ -39,7 +39,7 @@
 
 #define mpz_mulmod5(r,s1,s2,m,t) { mpz_mul(t,s1,s2); mpz_mod(r, t, m); }
 
-/* Computes curve parameter A and a starting point (x:1) from a given 
+/* Computes curve parameter A and a starting point (x:1) from a given
    sigma value.
    If a factor of n was found during the process, returns 
    ECM_FACTOR_FOUND_STEP1 (and factor in f), returns ECM_NO_FACTOR_FOUND 
