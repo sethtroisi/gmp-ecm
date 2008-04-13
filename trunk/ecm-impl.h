@@ -355,11 +355,16 @@ int  choose_S (mpz_t);
 #define add3 __ECM(add3)
 void add3 (mpres_t, mpres_t, mpres_t, mpres_t, mpres_t, mpres_t, mpres_t, 
            mpres_t, mpmod_t, mpres_t, mpres_t, mpres_t);
+#define duplicate __ECM(duplicate)
 void duplicate (mpres_t, mpres_t, mpres_t, mpres_t, mpmod_t, mpres_t, mpres_t,
                 mpres_t, mpres_t);
 
 #define ecm_mul __ECM(ecm_mul)
 void ecm_mul (mpres_t, mpres_t, mpz_t, mpmod_t, mpres_t);
+#define print_B1_B2_poly __ECM(print_B1_B2_poly)
+void print_B1_B2_poly (int, int, double, double, mpz_t, mpz_t, mpz_t, int S,  
+                       mpz_t, int);
+      
 
 /* ecm2.c */
 #define ecm_rootsF __ECM(ecm_rootsF)

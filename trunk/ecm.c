@@ -784,6 +784,43 @@ print_exptime (mpz_t B2min, mpz_t effB2, unsigned long dF, unsigned long k,
     }
 }
 
+void
+print_B1_B2_poly (int verbosity, int method, double B1, double B1done, 
+		  mpz_t B2min_param, mpz_t B2min, mpz_t B2, int S, mpz_t x0,
+		  int sigma_is_A)
+{
+  if (test_verbose (verbosity))
+  {
+      outputf (verbosity, "Using ");
+      if (ECM_IS_DEFAULT_B1_DONE(B1done))
+	  outputf (verbosity, "B1=%1.0f, ", B1);
+      else
+	  outputf (verbosity, "B1=%1.0f-%1.0f, ", B1done, B1);
+      if (mpz_sgn (B2min_param) < 0)
+	  outputf (verbosity, "B2=%Zd", B2);
+      else
+	  outputf (verbosity, "B2=%Zd-%Zd", B2min, B2);
+      
+      if (S > 0)
+	  outputf (verbosity, ", polynomial x^%u", S);
+      else if (S < 0)
+	  outputf (verbosity, ", polynomial Dickson(%u)", -S);
+      
+      /* don't print in resume case, since x0 is saved in resume file */
+      if (method == ECM_ECM)
+        {
+	  if (sigma_is_A)
+	    outputf (verbosity, ", A=%Zd", x0);
+	  else
+	    outputf (verbosity, ", sigma=%Zd", x0);
+        }
+      else if (ECM_IS_DEFAULT_B1_DONE(B1done))
+	  outputf (verbosity, ", x0=%Zd", x0);
+      
+      outputf (verbosity, "\n");
+  }
+}
+
 /* Input: x is starting point or zero
           sigma is sigma value (if x is set to zero) or 
             A parameter (if x is non-zero) of curve
@@ -980,19 +1017,9 @@ ecm (mpz_t f, mpz_t x, mpz_t sigma, mpz_t n, mpz_t go, double *B1done,
   if (mpz_sgn (x) != 0)
       mpres_set_z (P.x, x, modulus);
 
-  /* Now that the parameters are decided, print info */
-
-  outputf (OUTPUT_NORMAL, "Using B1=%1.0f, B2=", B1);
-  if (mpz_cmp_d (B2min, B1) == 0)
-      outputf (OUTPUT_NORMAL, "%Zd", B2);
-  else
-      outputf (OUTPUT_NORMAL, "%Zd-%Zd", B2min, B2);
-  outputf (OUTPUT_NORMAL, ", polynomial ");
-  if (root_params.S > 0)
-      outputf (OUTPUT_NORMAL, "x^%u", root_params.S);
-  else
-      outputf (OUTPUT_NORMAL, "Dickson(%u)", -root_params.S);
-  outputf (OUTPUT_NORMAL, ", sigma=%Zd\n", sigma);
+  /* Print B1, B2, polynomial and sigma */
+  print_B1_B2_poly (OUTPUT_NORMAL, ECM_ECM, B1, *B1done, B2min_parm, B2min, 
+		    B2, root_params.S, sigma, sigma_is_A);
 
 #if 0
   outputf (OUTPUT_VERBOSE, "b2=%1.0f, dF=%lu, k=%lu, d=%lu, d2=%lu, i0=%Zd\n", 
