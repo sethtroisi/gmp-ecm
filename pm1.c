@@ -885,8 +885,8 @@ pm1 (mpz_t f, mpz_t p, mpz_t N, mpz_t go, double *B1done, double B1,
         }
     }
   
-  /* If we use the old stage 2, we print the parameters here. The fast 
-     stage 2 prints it by itself at the moment */
+
+  /* Determine parameters (polynomial degree etc.) */
 
   if (stage2_variant != 0)
     {
@@ -998,31 +998,9 @@ pm1 (mpz_t f, mpz_t p, mpz_t N, mpz_t go, double *B1done, double B1,
 	root_params.S *= 2; /* FIXME: Is this what the user would expect? */
     }
   
-  if (test_verbose (OUTPUT_NORMAL))
-    {
-      outputf (OUTPUT_NORMAL, "Using ");
-      if (ECM_IS_DEFAULT_B1_DONE(*B1done))
-	outputf (OUTPUT_NORMAL, "B1=%1.0f, ", B1);
-      else
-	outputf (OUTPUT_NORMAL, "B1=%1.0f-%1.0f, ", *B1done, B1);
-      if (mpz_cmp_d (B2min, B1) == 0)
-	outputf (OUTPUT_NORMAL, "B2=%Zd, ", B2);
-      else
-	outputf (OUTPUT_NORMAL, "B2=%Zd-%Zd, ", B2min, B2);
-      if (stage2_variant == 0)
-	{
-	  if (root_params.S > 1)
-	    outputf (OUTPUT_NORMAL, "polynomial x^%u, ", root_params.S);
-	  else
-	    outputf (OUTPUT_NORMAL, "polynomial Dickson(%u), ", -root_params.S);
-	}
-      
-      if (ECM_IS_DEFAULT_B1_DONE(*B1done))
-	/* don't print in resume case, since x0 is saved in resume file */
-	outputf (OUTPUT_NORMAL, "x0=%Zd", p);
-      
-      outputf (OUTPUT_NORMAL, "\n");
-    }
+  /* Print B1, B2, polynomial and x0 */
+  print_B1_B2_poly (OUTPUT_NORMAL, ECM_PM1, B1, *B1done, B2min_parm, B2min, 
+		    B2, (stage2_variant == 0) ? root_params.S : 1, p, 0);
 
   if (stage2_variant != 0)
     outputf (OUTPUT_VERBOSE, "P = %lu, l = %lu, s_1 = %lu, s_2 = %lu, "
