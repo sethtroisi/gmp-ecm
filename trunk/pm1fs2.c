@@ -43,9 +43,6 @@
 #endif
 
 /* TODO:
-   - fix parameter selection
-   - allow choosing parameters according to -maxmem
-   - check one pass P+1 stage 2 carefully, allow its use
    - move functions into their proper files (i.e. NTT functions etc.)
    - later: allow storing NTT vectors on disk
 */
@@ -138,7 +135,7 @@ const unsigned long phiPfactors[] = {2UL, 3UL, 5UL, 7UL, 11UL, 13UL};
    U(i,X) = { if (i==0, return(0)); if (i==1, return(1)); if(i%2 == 0, return (U (i/2, X) * V(i/2,X))); return (V ((i+1)/2, X)  *U( (i-1)/2, X) + 1)}
 */
 
-void 
+static void 
 ntt_sqr_reciprocal (mpzv_t, const mpzv_t, mpzspv_t, const spv_size_t, 
 		    const mpzspm_t);
 
@@ -209,7 +206,6 @@ pm1fs2_memory_use (const unsigned long lmax, const mpz_t modulus,
 	 ceil(log(lmax*modulus^2)/log(bits per sp_t)) + 3 words. */
       
       size_t n;
-  
       
       n = ntt_coeff_mem (lmax, modulus, 0) * (size_t) (3 * lmax / 2 + 1);
       outputf (OUTPUT_DEVVERBOSE, "pm1fs2_memory_use: Estimated memory use "
@@ -254,7 +250,7 @@ pm1fs2_maxlen (const size_t memory, const mpz_t modulus, const int use_ntt)
       size_t n, lmax = 1;
   
       n = ntt_coeff_mem (lmax, modulus, 0);
-      lmax = 1UL << (ceil_log2 (2 * memory / n / 3) - 1);
+      lmax = 1UL << ceil_log2 (memory / n / 3);
       return lmax;
     }
   else
@@ -266,7 +262,7 @@ pm1fs2_maxlen (const size_t memory, const mpz_t modulus, const int use_ntt)
       /* Guess an initial value of lmax for list_mul_mem (lmax / 2) */
       /* memory = n * 25/4 * lmax + lmax / 2 * sizeof (mpz_t); */
       /* Fudge factor of 3 for TMulKS as above */
-      lmax = memory / (3 * n * 25 / 4 + 1 / 2 * sizeof (mpz_t));
+      lmax = memory / (3 * 25 * n / 4 + 3 * sizeof (mpz_t) / 2);
       return lmax;
     }
 }
@@ -329,11 +325,11 @@ pp1fs2_maxlen (const size_t memory, const mpz_t modulus, const int use_ntt,
 	n = memory / (2 * n + m / 2);
       else
 	n = memory / (3 * n);
-      return 1UL << (ceil_log2 (n) - 1); /* Rounded down to power of 2 */
+      return 1UL << (ceil_log2 (n / 2)); /* Rounded down to power of 2 */
     }
   else
     {
-      return 2 * memory / 5 / (m * 8 + sizeof (mpz_t));
+      return memory / 5 / (m * 8 + sizeof (mpz_t)) * 2;
     }
 }
 
@@ -2342,7 +2338,7 @@ ntt_print_vec (const char *msg, const spv_t spv, const spv_size_t l)
 */
 
 #undef TRACE_ntt_sqr_reciprocal
-void
+static void
 ntt_sqr_reciprocal (mpzv_t R, const mpzv_t S, mpzspv_t dft, 
 		    const spv_size_t n, const mpzspm_t ntt_context)
 {
