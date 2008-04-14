@@ -256,7 +256,7 @@ writechkfile (char *chkfilename, int method, double p, mpmod_t modulus,
 
   mpz_init (t);
 
-  gmp_fprintf (chkfile, "METHOD=%s; B1=%.0f; N=0x%Zx;", 
+  gmp_fprintf (chkfile, "METHOD=%s; B1=%.0f; N=%Zd;", 
 	       methodname, p, modulus->orig_modulus);
   mpres_get_z (t, x, modulus);
   gmp_fprintf (chkfile, " X=0x%Zx;", t);
