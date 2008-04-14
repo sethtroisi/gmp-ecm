@@ -86,9 +86,14 @@ divisible by 2n, making other P+1 (and probably P-1) work unnecessary.
 As of version 6.2, a new stage 2 for the P-1 and P+1 algorithms is 
 implemented. It uses less memory and is faster than the previous code, 
 thus allowing larger B2 values. If GMP-ECM is configured with the
-"--enable-openmp" flag and is compiled with a compiler that implements OpenMP,
-it uses multi-threading as well. Unlike the previous generic stage 2,
-is cannot use the Brent-Suyama extension (-power and -dickson parameters).
+"--enable-openmp" flag and is compiled with a compiler that implements 
+OpenMP, it uses multi-threading for computation of polynomial roots and
+NTT multiplication. When not using the NTT, it benefits from multi-threading
+only in the computation of roots phase. The number of threads to use can 
+be controlled with the OMP_NUM_THREADS environment variable. Unlike the 
+previous generic stage 2, the new stage 2 cannot use the Brent-Suyama 
+extension (-power and -dickson parameters). Specifying these options on 
+the command line forces use of the generic stage 2.
 
 The ECM method is a probabilistic method, and can be viewed in some sense
 as a generalization of the P-1 and P+1 method, where we only require that
@@ -617,3 +622,10 @@ transform length to less than what available memory would permit. This
 problem occurs mostly in the fast stage 2 for P-1 and P+1, as the generic
 stage 2 uses far more memory for a given polynomial degree, so that memory
 on a 32-bit machine will be exhausted long before suitable NTT primes are.
+The maximal transform length depends on the size of the input number. 
+For a transform length l on a 32 bit machine, N must satisfy:
+l=2^11:N<2^756200, l=2^12:N<2^379353, l=2^13:N<2^190044, l=2^14:N<2^94870, 
+l=2^15:N<2^47414,  l=2^16:N<2^23322,  l=2^17:N<2^11620,  l=2^18:N<2^5891, 
+l=2^19:N<2^2910,   l=2^20:N<2^1340,   l=2^21:N<2^578,    l=2^22:N<2^228.
+Since log(N)*l is approximately constant, this limits the amount of memory
+that can be used to about 600MB for P-1, and 1200MB for P+1.
