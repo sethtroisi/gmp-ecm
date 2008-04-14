@@ -152,15 +152,20 @@ mpzspm_init (spv_size_t max_len, mpz_t modulus)
   
   /* find primes congruent to 1 mod max_len so we can do
    * a ntt of size max_len */
-  p = (SP_MAX / (sp_t) max_len) * (sp_t) max_len + (sp_t) 1;
+  /* Find the largest p <= SP_MAX that is p == 1 (mod max_len) */
+  p = (SP_MAX / (sp_t) max_len) * (sp_t) max_len;
+  if (p == SP_MAX) /* If max_len | SP_MAX, the +1 might cause overflow */
+    p = p - (sp_t) max_len + (sp_t) 1;
+  else
+    p++;
+  
   do
     {
-      do
-        p -= max_len;
-      while (p >= SP_MIN && !sp_prime(p));
-      
+      while (p >= SP_MIN && p > (sp_t) max_len && !sp_prime(p))
+        p -= (sp_t) max_len;
+
       /* all primes must be in range */
-      if (p < SP_MIN)
+      if (p < SP_MIN || p <= (sp_t) max_len)
         {
 	  printf ("not enough primes == 1 (mod %lu) in interval\n", 
 	          (unsigned long) max_len);
@@ -179,6 +184,8 @@ mpzspm_init (spv_size_t max_len, mpz_t modulus)
       mpz_mul (T, T, T);
       mpz_mul_ui (T, T, max_len);
       mpz_mul_2exp (T, T, 2UL);
+      
+      p -= (sp_t) max_len;
     }
   while (mpz_cmp (P, T) <= 0);
 
