@@ -264,88 +264,65 @@ pm1_stage1 (mpz_t f, mpres_t a, mpmod_t n, double B1, double *B1done,
   /* if the user knows that P-1 has a given divisor, he can supply it */
   if (mpz_cmp_ui (go, 1) > 0)
     cascade = mulcascade_mul (cascade, go);
-
+  
   last_chkpnt_time = cputime ();
   last_chkpnt_p = 2.;
-  if (B0 <= cascade_limit)
+  
+  /* Fill the multiplication cascade with the product of small stage 1 
+     primes */
+  /* Add small primes <= MIN(sqrt(B1), cascade_limit) in the appropriate 
+     power to the cascade */
+  for (p = 2.; p <= MIN(B0, cascade_limit); p = getprime ())
     {
-      /* first loop through small primes <= sqrt(B1) */
-      for (p = 2.0; p <= B0; p = getprime ())
-        {
-          for (q = 1, r = p; r <= B1; r *= p)
-            if (r > *B1done) q *= p;
-          cascade = mulcascade_mul_d (cascade, q, d);
-        }
+      for (q = 1., r = p; r <= B1; r *= p)
+        if (r > *B1done) q *= p;
+      cascade = mulcascade_mul_d (cascade, q, d);
+    }
 
-      /* then all sqrt(B1) < primes < cascade_limit and taken with 
-         exponent 1 */
-      for ( ; p <= cascade_limit; p = getprime ())
-        if (p > *B1done)
-          cascade = mulcascade_mul_d (cascade, p, d);
-   
-      mulcascade_get_z (g, cascade);
-      mulcascade_free (cascade);
+  /* If B0 < cascade_limit, we can add some primes > sqrt(B1) with 
+     exponent 1 to the cascade */
+  for ( ; p <= cascade_limit; p = getprime ())
+    if (p > *B1done)
+      cascade = mulcascade_mul_d (cascade, p, d);
 
-      outputf (OUTPUT_DEVVERBOSE, "Exponent has %u bits\n", 
-               mpz_sizeinbase (g, 2));
-
-      if (smallbase)
-        {
-	  outputf (OUTPUT_VERBOSE, "Using mpres_ui_pow, base %u\n", smallbase);
-          mpres_ui_pow (a, smallbase, g, n);
-        }
-      else
-	{
-	  mpres_pow (a, a, g, n);
-	}
-      mpz_set_ui (g, 1);
+  /* Now p > cascade_limit, flush cascade and exponentiate */
+  mulcascade_get_z (g, cascade);
+  mulcascade_free (cascade);
+  outputf (OUTPUT_DEVVERBOSE, "Exponent has %u bits\n", 
+           mpz_sizeinbase (g, 2));
+  
+  if (smallbase)
+    {
+      outputf (OUTPUT_DEVVERBOSE, "Using mpres_ui_pow, base %u\n", smallbase);
+      mpres_ui_pow (a, smallbase, g, n);
     }
   else
     {
-      for (p = 2.0; p <= cascade_limit; p = getprime ())
-        {
-          for (q = 1.0, r = p; r <= B1; r *= p)
-            if (r > *B1done) q *= p;
-          cascade = mulcascade_mul_d (cascade, q, d);
-        }
-      
-      mulcascade_get_z (g, cascade);
-      mulcascade_free (cascade);
+      mpres_pow (a, a, g, n);
+    }
+  mpz_set_ui (g, 1);
 
-      outputf (OUTPUT_DEVVERBOSE, "Exponent has %u bits\n", 
-               mpz_sizeinbase (g, 2));
-
-      if (smallbase)
-        {
-	  outputf (OUTPUT_VERBOSE, "Using mpres_ui_pow, base %u\n", smallbase);
-          mpres_ui_pow (a, smallbase, g, n);
-        }
-      else
+  /* If B0 > cascade_limit, we need to process the primes 
+     cascade_limit < p < B0 in the appropriate exponent yet */
+  for ( ; p <= B0; p = getprime ())
+    {
+      for (q = 1, r = p; r <= B1; r *= p)
+        if (r > *B1done) q *= p;
+      mpz_mul_d (g, g, q, d);
+      if (mpz_sizeinbase (g, 2) >= max_size)
         {
           mpres_pow (a, a, g, n);
-        }
-      mpz_set_ui (g, 1);
-      
-      for ( ; p <= B0; p = getprime ())
-        {
-          for (q = 1, r = p; r <= B1; r *= p)
-            if (r > *B1done) q *= p;
-          mpz_mul_d (g, g, q, d);
-          if (mpz_sizeinbase (g, 2) >= max_size)
-            {
-              mpres_pow (a, a, g, n);
-              mpz_set_ui (g, 1);
-            if (stop_asap != NULL && (*stop_asap) ())
-              {
-                outputf (OUTPUT_NORMAL, "Interrupted at prime %.0f\n", p);
-                if (p > *B1done)
-                  *B1done = p;
-                goto clear_pm1_stage1;
-              }
-            }
+          mpz_set_ui (g, 1);
+        if (stop_asap != NULL && (*stop_asap) ())
+          {
+            outputf (OUTPUT_NORMAL, "Interrupted at prime %.0f\n", p);
+            if (p > *B1done)
+              *B1done = p;
+            goto clear_pm1_stage1;
+          }
         }
     }
-  
+
   /* All primes sqrt(B1) < p <= B1 appear in exponent 1. All primes <= B1done
      are already included in exponent of at least 1, so it's save to skip  
      ahead to B1done+1 */
