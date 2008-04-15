@@ -37,12 +37,19 @@
 # endif
 #endif
 
-#if HAVE_LIMITS_H
+#ifdef HAVE_LIMITS_H
 # include <limits.h>
 #else
 # ifndef ULONG_MAX
 #  define LONG_MAX (__GMP_ULONG_MAX / 2)
 # endif
+#endif
+
+#ifdef HAVE_STDINT
+#include <stdint.h>
+#else
+/* size_t is an unsigned integer so this ought to work */
+#define SIZE_MAX (~((size_t) 0))
 #endif
 
 #define VERBOSE __ECM(verbose)
@@ -82,6 +89,20 @@ mpz_divby3_1op (mpz_t RS)
   if (RS->_mp_d[abssize - 1] == 0)
     RS->_mp_size -= mpz_sgn (RS);
 }
+
+/* Convert a double d to a size_t. If d < 0., returns 0. If d > MAX_SIZE, 
+   returns MAX_SIZE. */
+
+size_t
+double_to_size (double d)
+{
+  if (d < 0.)
+    return (size_t) 0;
+  if (d > (double) SIZE_MAX)
+    return SIZE_MAX;
+  return (size_t) d;
+}
+
 
 /* cputime () gives the elapsed time in milliseconds */
 

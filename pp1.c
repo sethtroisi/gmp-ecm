@@ -855,10 +855,10 @@ pp1 (mpz_t f, mpz_t p, mpz_t n, mpz_t go, double *B1done, double B1,
 	  lmax_NTT = MIN (lmax, t);
 	  if (maxmem != 0.)
 	    {
-	      t = pp1fs2_maxlen ((size_t) maxmem, n, use_ntt, 0);
+	      t = pp1fs2_maxlen (double_to_size (maxmem), n, use_ntt, 0);
 	      t = MIN (t, lmax_NTT);
 	      /* Maybe the two pass variant lets us use a longer transform */
-	      t2 = pp1fs2_maxlen ((size_t) maxmem, n, use_ntt, 1);
+	      t2 = pp1fs2_maxlen (double_to_size (maxmem), n, use_ntt, 1);
 	      t2 = MIN (t2, lmax_NTT);
 	      if (t2 > t)
 		{
@@ -875,7 +875,7 @@ pp1 (mpz_t f, mpz_t p, mpz_t n, mpz_t go, double *B1done, double B1,
       if (maxmem != 0.)
 	{
 	  unsigned long t;
-	  t = pp1fs2_maxlen ((size_t) maxmem, n, 0, 0);
+	  t = pp1fs2_maxlen (double_to_size (maxmem), n, 0, 0);
 	  lmax_noNTT = MIN (lmax_noNTT, t);
 	  outputf (OUTPUT_DEVVERBOSE, "non-NTT can handle lmax <= %lu\n", 
 		   lmax_noNTT);
@@ -945,15 +945,19 @@ pp1 (mpz_t f, mpz_t p, mpz_t n, mpz_t go, double *B1done, double B1,
   print_B1_B2_poly (OUTPUT_NORMAL, ECM_PP1, B1, *B1done, B2min_parm, B2min, 
 		    B2, (stage2_variant == 0) ? root_params.S : 1, p, 0);
 
-  if (stage2_variant != 0)
-    outputf (OUTPUT_VERBOSE, "P = %lu, l = %lu, s_1 = %lu, s_2 = %lu, "
-	     "m_1 = %Zd\n", faststage2_params.P, faststage2_params.l,
-	     faststage2_params.s_1,faststage2_params.s_2,
-	     faststage2_params.m_1);
-  else
-    outputf (OUTPUT_VERBOSE, "dF=%lu, k=%lu, d=%lu, d2=%lu, i0=%Zd\n", 
-             dF, k, root_params.d1, root_params.d2, 
-             S == 1 ? faststage2_params.m_1 : root_params.i0);
+  /* If we do a stage 2, print its parameters */
+  if (mpz_cmp (B2, B2min) >= 0)
+    {
+      if (stage2_variant != 0)
+        outputf (OUTPUT_VERBOSE, "P = %lu, l = %lu, s_1 = %lu, s_2 = %lu, "
+                 "m_1 = %Zd\n", faststage2_params.P, faststage2_params.l,
+                 faststage2_params.s_1,faststage2_params.s_2,
+                 faststage2_params.m_1);
+      else
+        outputf (OUTPUT_VERBOSE, "dF=%lu, k=%lu, d=%lu, d2=%lu, i0=%Zd\n", 
+                 dF, k, root_params.d1, root_params.d2, 
+                 S == 1 ? faststage2_params.m_1 : root_params.i0);
+    }
 
   mpres_init (a, modulus);
   mpres_set_z (a, p, modulus);
