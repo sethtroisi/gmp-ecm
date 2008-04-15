@@ -631,6 +631,8 @@ void         mpz_add_si (mpz_t, mpz_t, long);
 void         mpz_sub_si (mpz_t, mpz_t, long);
 #define mpz_divby3_1op __ECM(mpz_divby3_1op)
 void         mpz_divby3_1op (mpz_t);
+#define double_to_size __ECM(double_to_size)
+size_t   double_to_size (double d);
 #define cputime __ECM(cputime)
 long         cputime    (void);
 #define realtime __ECM(realtime)
