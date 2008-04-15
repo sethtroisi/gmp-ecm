@@ -140,16 +140,19 @@ ntt_sqr_reciprocal (mpzv_t, const mpzv_t, mpzspv_t, const spv_size_t,
 		    const mpzspm_t);
 
 static void
-print_elapsed_time (long cpu, ATTRIBUTE_UNUSED long real)
+print_elapsed_time (int verbosity, long cpu_start, 
+		    ATTRIBUTE_UNUSED long real_start)
 {
 #ifdef _OPENMP
-  if (real != 0L)
-    outputf (OUTPUT_VERBOSE, " took %lums (%lums real)\n", cpu, real);
-  else
-    outputf (OUTPUT_VERBOSE, " took %lums\n", cpu);
-#else
-  outputf (OUTPUT_VERBOSE, " took %lums\n", cpu);
+  if (real_start != 0L)
+    {
+      outputf (verbosity, " took %lums (%lums real)\n", 
+	       elltime (cpu_start, cputime()), 
+	       elltime (real_start, realtime()));
+      return;
+    }
 #endif
+  outputf (verbosity, " took %lums\n", elltime (cpu_start, cputime()));
 }
 
 
@@ -1650,7 +1653,7 @@ build_F_ntt (listz_t F, const mpres_t P_1, sets_long_t *S_1,
   ASSERT_ALWAYS(2 * i == params->s_1);
   ASSERT_ALWAYS(mpz_cmp_ui (F[i], 1UL) == 0);
   
-  print_elapsed_time (cputime() - timestart, realtime() - realstart);
+  print_elapsed_time (OUTPUT_VERBOSE, timestart, realstart);
   if (test_verbose (OUTPUT_TRACE))
     {
       for (i = 0; i < params->s_1 / 2 + 1; i++)
@@ -1839,7 +1842,7 @@ pm1_sequence_g (listz_t g_mpz, mpzspv_t g_ntt, const mpres_t b_1,
   }
 #endif
 
-  print_elapsed_time (cputime() - timestart, realtime() - realstart);
+  print_elapsed_time (OUTPUT_VERBOSE, timestart, realstart);
   
   if (test_verbose (OUTPUT_TRACE))
     {
@@ -1960,7 +1963,7 @@ pm1_sequence_h (listz_t h, mpzspv_t h_ntt, mpz_t *f, const mpres_t r,
 
   mpres_clear (invr, modulus_parm);
 
-  print_elapsed_time (cputime() - timestart, realtime() - realstart);
+  print_elapsed_time (OUTPUT_VERBOSE, timestart, realstart);
 
   if (test_verbose (OUTPUT_TRACE))
     {
@@ -2703,7 +2706,7 @@ ntt_gcd (mpz_t f, mpz_t *product, mpzspv_t ntt, const unsigned long ntt_offset,
   mpres_gcd (f, totalprod, modulus_param);
   mpres_clear (totalprod, modulus_param);
 
-  print_elapsed_time (cputime() - timestart, realtime() - realstart);
+  print_elapsed_time (OUTPUT_VERBOSE, timestart, realstart);
 }
 
 
@@ -2726,9 +2729,10 @@ pm1fs2 (mpz_t f, const mpres_t X, mpmod_t modulus,
   mpz_t mt;   /* All-purpose temp mpz_t */
   mpres_t mr; /* All-purpose temp mpres_t */
   int youpi = ECM_NO_FACTOR_FOUND;
-  long timetotalstart, timestart;
+  long timetotalstart, realtotalstart, timestart;
 
   timetotalstart = cputime ();
+  realtotalstart = realtime ();
 
   phiP = eulerphi (params->P);
   ASSERT_ALWAYS (phiP == params->s_1 * params->s_2);
@@ -2941,8 +2945,15 @@ pm1fs2 (mpz_t f, const mpres_t X, mpmod_t modulus,
   mpres_clear (mr, modulus);
 
   if (youpi == ECM_NO_FACTOR_FOUND)
-    outputf (OUTPUT_NORMAL, "Step 2 took %ldms\n", 
-	     cputime () - timetotalstart);
+    {
+      outputf (OUTPUT_NORMAL, "Step 2");
+      /* In normal output mode, print only cpu time as we always have.
+	 In verbose mode, print real time as well if we used multi-threading */
+      if (test_verbose (OUTPUT_VERBOSE))
+	print_elapsed_time (OUTPUT_NORMAL, timetotalstart, realtotalstart);
+      else
+	print_elapsed_time (OUTPUT_NORMAL, timetotalstart, 0L);
+    }
   
   return youpi;
 }
@@ -2970,9 +2981,10 @@ pm1fs2_ntt (mpz_t f, const mpres_t X, mpmod_t modulus,
   mpz_t *product_ptr = NULL;
   mpres_t tmpres; /* All-purpose temp mpres_t */
   int youpi = ECM_NO_FACTOR_FOUND;
-  long timetotalstart, timestart, realstart;
+  long timetotalstart, realtotalstart, timestart, realstart;
 
   timetotalstart = cputime ();
+  realtotalstart = realtime ();
 
   ASSERT_ALWAYS (eulerphi (params->P) == params->s_1 * params->s_2);
   ASSERT_ALWAYS (params->s_1 < params->l);
@@ -3067,7 +3079,7 @@ pm1fs2_ntt (mpz_t f, const mpres_t X, mpmod_t modulus,
   
   ntt_spv_to_dct (h_ntt, h_ntt, params->s_1 / 2 + 1, params->l / 2 + 1, 
                   g_ntt, ntt_context);
-  print_elapsed_time (cputime() - timestart, realtime() - realstart);
+  print_elapsed_time (OUTPUT_VERBOSE, timestart, realstart);
   
   if (test_verbose (OUTPUT_RESVERBOSE))
     {
@@ -3088,7 +3100,7 @@ pm1fs2_ntt (mpz_t f, const mpres_t X, mpmod_t modulus,
       timestart = cputime ();
       realstart = realtime ();
       ntt_mul_by_dct (g_ntt, h_ntt, params->l, ntt_context);
-      print_elapsed_time (cputime() - timestart, realtime() - realstart);
+      print_elapsed_time (OUTPUT_VERBOSE, timestart, realstart);
       
       /* Compute GCD of N and coefficients of product polynomial */
       ntt_gcd (mt, product_ptr, g_ntt, params->s_1 / 2, NULL, nr, ntt_context, 
@@ -3118,7 +3130,16 @@ pm1fs2_ntt (mpz_t f, const mpres_t X, mpmod_t modulus,
   mpz_clear (mt);
   free (S_2);
 
-  outputf (OUTPUT_NORMAL, "Step 2 took %ldms\n", cputime () - timetotalstart);
+  if (youpi == ECM_NO_FACTOR_FOUND)
+    {
+      outputf (OUTPUT_NORMAL, "Step 2");
+      /* In normal output mode, print only cpu time as we always have.
+	 In verbose mode, print real time as well if we used multi-threading */
+      if (test_verbose (OUTPUT_VERBOSE))
+	print_elapsed_time (OUTPUT_NORMAL, timetotalstart, realtotalstart);
+      else
+	print_elapsed_time (OUTPUT_NORMAL, timetotalstart, 0L);
+    }
   
   return youpi;
 }
@@ -3717,7 +3738,7 @@ pp1_sequence_g (listz_t g_x, listz_t g_y, mpzspv_t g_x_ntt, mpzspv_t g_y_ntt,
   }
 #endif
   
-  print_elapsed_time (cputime() - timestart, realtime() - realstart);
+  print_elapsed_time (OUTPUT_VERBOSE, timestart, realstart);
 
   if (g_x != NULL && g_y != NULL && test_verbose(OUTPUT_TRACE))
     {
@@ -4029,7 +4050,7 @@ pp1_sequence_h (listz_t h_x, listz_t h_y, mpzspv_t h_x_ntt, mpzspv_t h_y_ntt,
     mpz_clear (mt);
   }
 
-  print_elapsed_time (cputime() - timestart, realtime() - realstart);
+  print_elapsed_time (OUTPUT_VERBOSE, timestart, realstart);
 
   if (h_x != NULL && h_y != NULL && test_verbose (OUTPUT_TRACE))
     {
@@ -4062,9 +4083,10 @@ pp1fs2 (mpz_t f, const mpres_t X, mpmod_t modulus,
   mpres_t b1_x, b1_y, Delta, tmpres[2];
   mpz_t mt;   /* All-purpose temp mpz_t */
   int youpi = ECM_NO_FACTOR_FOUND;
-  long timetotalstart, timestart;
+  long timetotalstart, realtotalstart, timestart;
 
   timetotalstart = cputime ();
+  realtotalstart = realtime ();
 
   ASSERT_ALWAYS (eulerphi (params->P) == params->s_1 * params->s_2);
   ASSERT_ALWAYS (params->s_1 < params->l);
@@ -4258,7 +4280,16 @@ pp1fs2 (mpz_t f, const mpres_t X, mpmod_t modulus,
   clear_list (tmp, tmplen);
   free (S_2);
  
-  outputf (OUTPUT_NORMAL, "Step 2 took %ldms\n", cputime () - timetotalstart);
+  if (youpi == ECM_NO_FACTOR_FOUND)
+    {
+      outputf (OUTPUT_NORMAL, "Step 2");
+      /* In normal output mode, print only cpu time as we always have.
+	 In verbose mode, print real time as well if we used multi-threading */
+      if (test_verbose (OUTPUT_VERBOSE))
+	print_elapsed_time (OUTPUT_NORMAL, timetotalstart, realtotalstart);
+      else
+	print_elapsed_time (OUTPUT_NORMAL, timetotalstart, 0L);
+    }
 
   return youpi;
 }
@@ -4290,9 +4321,10 @@ pp1fs2_ntt (mpz_t f, const mpres_t X, mpmod_t modulus,
   mpz_t product;
   mpz_t *product_ptr = NULL;
   int youpi = ECM_NO_FACTOR_FOUND;
-  long timetotalstart, timestart, realstart;
+  long timetotalstart, realtotalstart, timestart, realstart;
 
   timetotalstart = cputime ();
+  realtotalstart = realtime ();
 
   ASSERT_ALWAYS (eulerphi (params->P) == params->s_1 * params->s_2);
   ASSERT_ALWAYS (params->s_1 < params->l);
@@ -4398,14 +4430,14 @@ pp1fs2_ntt (mpz_t f, const mpres_t X, mpmod_t modulus,
   realstart = realtime ();
   ntt_spv_to_dct (h_x_ntt, h_x_ntt, params->s_1 / 2 + 1, params->l / 2 + 1,
 		  g_x_ntt, ntt_context);
-  print_elapsed_time (cputime() - timestart, realtime() - realstart);
+  print_elapsed_time (OUTPUT_VERBOSE, timestart, realstart);
 
   outputf (OUTPUT_VERBOSE, "Computing DCT-I of h_y");
   timestart = cputime ();
   realstart = realtime ();
   ntt_spv_to_dct (h_y_ntt, h_y_ntt, params->s_1 / 2 + 1, params->l / 2 + 1,
 		  g_x_ntt, ntt_context);
-  print_elapsed_time (cputime() - timestart, realtime() - realstart);
+  print_elapsed_time (OUTPUT_VERBOSE, timestart, realstart);
 
   if (test_verbose (OUTPUT_RESVERBOSE))
     {
@@ -4430,7 +4462,7 @@ pp1fs2_ntt (mpz_t f, const mpres_t X, mpmod_t modulus,
 	  ntt_mul_by_dct (g_x_ntt, h_x_ntt, params->l, ntt_context);
 	  /* Store the product coefficients we want in R */
 	  mpzspv_to_mpzv (g_x_ntt, params->s_1 / 2, R, nr, ntt_context);
-	  print_elapsed_time (cputime() - timestart, realtime() - realstart);
+	  print_elapsed_time (OUTPUT_VERBOSE, timestart, realstart);
 
 	  /* Compute g_y sequence */
 	  pp1_sequence_g (NULL, NULL, NULL, g_y_ntt, b1_x, b1_y, params->P, 
@@ -4442,7 +4474,7 @@ pp1fs2_ntt (mpz_t f, const mpres_t X, mpmod_t modulus,
 	  timestart = cputime ();
 	  realstart = realtime ();
 	  ntt_mul_by_dct (g_y_ntt, h_y_ntt, params->l, ntt_context);
-	  print_elapsed_time (cputime() - timestart, realtime() - realstart);
+	  print_elapsed_time (OUTPUT_VERBOSE, timestart, realstart);
 	  
 	  /* Compute product of sum of coefficients and gcd with N */
 	  ntt_gcd (mt, product_ptr, g_y_ntt, params->s_1 / 2, R, nr, 
@@ -4459,26 +4491,26 @@ pp1fs2_ntt (mpz_t f, const mpres_t X, mpmod_t modulus,
 	  realstart = realtime ();
 	  mpzspv_to_ntt (g_x_ntt, (spv_size_t) 0, (spv_size_t) params->l, 
 	                 (spv_size_t) params->l, 0, ntt_context);
-	  print_elapsed_time (cputime() - timestart, realtime() - realstart);
+	  print_elapsed_time (OUTPUT_VERBOSE, timestart, realstart);
 	  
 	  outputf (OUTPUT_VERBOSE, "Computing point-wise product of g_x and h_x");
 	  timestart = cputime ();
 	  realstart = realtime ();
 	  ntt_dft_mul_dct (g_x_ntt, h_x_ntt, params->l, ntt_context);
-	  print_elapsed_time (cputime() - timestart, realtime() - realstart);
+	  print_elapsed_time (OUTPUT_VERBOSE, timestart, realstart);
 	  
 	  outputf (OUTPUT_VERBOSE, "Computing forward NTT of g_y");
 	  timestart = cputime ();
 	  realstart = realtime ();
 	  mpzspv_to_ntt (g_y_ntt, (spv_size_t) 0, (spv_size_t) params->l, 
 	                 (spv_size_t) params->l, 0, ntt_context);
-	  print_elapsed_time (cputime() - timestart, realtime() - realstart);
+	  print_elapsed_time (OUTPUT_VERBOSE, timestart, realstart);
 	  
 	  outputf (OUTPUT_VERBOSE, "Computing point-wise product of g_y and h_y");
 	  timestart = cputime ();
 	  realstart = realtime ();
 	  ntt_dft_mul_dct (g_y_ntt, h_y_ntt, params->l, ntt_context);
-	  print_elapsed_time (cputime() - timestart, realtime() - realstart);
+	  print_elapsed_time (OUTPUT_VERBOSE, timestart, realstart);
 	  
 	  outputf (OUTPUT_VERBOSE, "Adding and computing inverse NTT of sum");
 	  timestart = cputime ();
@@ -4487,7 +4519,7 @@ pp1fs2_ntt (mpz_t f, const mpres_t X, mpmod_t modulus,
 	              g_y_ntt, (spv_size_t) 0, params->l, ntt_context);
 	  mpzspv_from_ntt (g_x_ntt, (spv_size_t) 0, params->l, (spv_size_t) 0,
 	                   ntt_context);
-	  print_elapsed_time (cputime() - timestart, realtime() - realstart);
+	  print_elapsed_time (OUTPUT_VERBOSE, timestart, realstart);
 	  
 	  ntt_gcd (mt, product_ptr, g_x_ntt, params->s_1 / 2, NULL, nr, 
 		   ntt_context, modulus);
@@ -4523,7 +4555,16 @@ pp1fs2_ntt (mpz_t f, const mpres_t X, mpmod_t modulus,
   mpres_clear (Delta, modulus);
   free (S_2);
  
-  outputf (OUTPUT_NORMAL, "Step 2 took %ldms\n", cputime () - timetotalstart);
+  if (youpi == ECM_NO_FACTOR_FOUND)
+    {
+      outputf (OUTPUT_NORMAL, "Step 2");
+      /* In normal output mode, print only cpu time as we always have.
+	 In verbose mode, print real time as well if we used multi-threading */
+      if (test_verbose (OUTPUT_VERBOSE))
+	print_elapsed_time (OUTPUT_NORMAL, timetotalstart, realtotalstart);
+      else
+	print_elapsed_time (OUTPUT_NORMAL, timetotalstart, 0L);
+    }
 
   return youpi;
 }
