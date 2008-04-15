@@ -337,14 +337,15 @@ pp1fs2_maxlen (const size_t memory, const mpz_t modulus, const int use_ntt,
 }
 
 
-static unsigned long
-maxS (unsigned long P)
+/* Assumes that S == 0 at recursion entry! */
+static void
+maxS (mpz_t S, unsigned long P)
 {
   unsigned long p, pk;
   unsigned int k;
 
   if (P == 1UL)
-    return 0L;
+    return;
 
   p = find_factor (P);
   k = 1; pk = p; P /= p;
@@ -352,13 +353,23 @@ maxS (unsigned long P)
     {
       k++;
       pk *= p;
-      P /= p;
+      P /= p; /* P*pk is invariant */
     }
 
   if (p % 4UL == 1UL)
-    return (P * ((pk + p) / 2UL - 2UL) + pk * maxS(P));
+    {
+      maxS (S, P);
+      mpz_mul_ui (S, S, pk);
+      mpz_add_ui (S, S, P * ((pk + p) / 2UL - 2UL));
+      return;
+    }
   if (p % 4UL == 3UL)
-    return (P * ((pk - 1UL) / 2UL) + pk * maxS(P));
+    {
+      maxS (S, P);
+      mpz_mul_ui (S, S, pk);
+      mpz_add_ui (S, S, P * ((pk - 1UL) / 2UL));
+      return;
+    }
 
   abort();
 }
@@ -367,22 +378,29 @@ int
 test_P (const mpz_t B2min, const mpz_t B2, mpz_t m_1, const unsigned long P, 
 	const unsigned long nr, mpz_t effB2min, mpz_t effB2)
 {
-  unsigned long m = maxS (P);
+  mpz_t m;
   /* We need B2min >= 2 * max(S_1 + S_2) + (2*m_1 - 1)*P + 1, or
      B2min - 2 * max(S_1 + S_2) - 1 >= (2*m_1)*P - P, or
      (B2min - 2*max(S_1 + S_2) + P - 1)/(2P) >= m_1
      Choose m_1 accordingly */
   
-  mpz_sub_ui (m_1, B2min, 2UL * m + 1UL);
+  mpz_init (m);
+  maxS (m, P);
+  mpz_mul_2exp (m, m, 1UL); /* m = 2*max(S_1 + S_2) */
+
+  mpz_sub (m_1, B2min, m);
+  mpz_sub_ui (m_1, m_1, 1UL); /* m_1 = B2min - 2*max(S_1 + S_2) - 1 */
   mpz_add_ui (m_1, m_1, P);
-  mpz_fdiv_q_ui (m_1, m_1, 2UL * P);
+  mpz_fdiv_q_2exp (m_1, m_1, 1UL);
+  mpz_fdiv_q_ui (m_1, m_1, P);    /* 2UL*P may overflow */
   
   /* Compute effB2min = 2 * max(S_1 + S_2) + (2*(m_1 - 1) + 1)*P + 1 */
   
   mpz_mul_2exp (effB2min, m_1, 1UL);
   mpz_sub_ui (effB2min, effB2min, 1UL);
   mpz_mul_ui (effB2min, effB2min, P);
-  mpz_add_ui (effB2min, effB2min, 2UL * m + 1UL);
+  mpz_add (effB2min, effB2min, m);
+  mpz_add_ui (effB2min, effB2min, 1UL);
   ASSERT_ALWAYS (mpz_cmp (effB2min, B2min) <= 0);
 
   /* Compute the smallest value coprime to P at the high end of the stage 2
@@ -393,11 +411,12 @@ test_P (const mpz_t B2min, const mpz_t B2, mpz_t m_1, const unsigned long P,
   mpz_mul_2exp (effB2, effB2, 1UL);
   mpz_add_ui (effB2, effB2, 1UL);
   mpz_mul_ui (effB2, effB2, P);
-  mpz_sub_ui (effB2, effB2, 2UL*m);
+  mpz_sub (effB2, effB2, m);
 
   /* The effective B2 values is that value, minus 1 */
   mpz_sub_ui (effB2, effB2, 1UL);
 
+  mpz_clear (m);
   return (mpz_cmp (B2, effB2) <= 0);
 }
 
@@ -552,7 +571,8 @@ choose_P (const mpz_t B2min, const mpz_t B2, const unsigned long lmax,
 
   /* Find the smallest P that can cover an interval of length B2 - B2min */
   mpz_sub (B2l, B2, B2min);
-  mpz_cdiv_q_ui (t, B2l, 2UL*lmax);
+  mpz_cdiv_q_ui (t, B2l, lmax);
+  mpz_cdiv_q_2exp (t, t, 1UL);
   outputf (OUTPUT_TRACE, "choose_P: We need P >= %Zd\n", t);
   for (i = 0; i < Pvalues_len; i++)
     if (mpz_cmp_ui (t, Pvalues[i]) <= 0)
@@ -567,6 +587,7 @@ choose_P (const mpz_t B2min, const mpz_t B2, const unsigned long lmax,
       s_1 = choose_s_1 (phiP, min_s2, lmax / 2, use_ntt);
       if (s_1 == 0)
 	continue;
+      ASSERT (phiP % s_1 == 0);
       s_2 = phiP / s_1;
       outputf (OUTPUT_TRACE, "choose_P: Testing P = %lu, phiP = %lu, "
 	       "s_1 = %lu, s_2 = %lu, nr = %lu\n", 
@@ -1990,7 +2011,20 @@ make_S_1_S_2 (sets_long_t **S_1, set_long_t **S_2,
   *S_1 = sets_get_factored_sorted (params->P);
   if (*S_1 == NULL)
     return ECM_ERROR;
-  ASSERT (sets_sumset_minmax (*S_1, 1) == (long) maxS (params->P));
+
+#ifdef WANT_ASSERT
+  {
+    mpz_t t1, t2;
+    
+    mpz_init (t1);
+    mpz_init (t2);
+    sets_sumset_minmax (t1, *S_1, 1);
+    maxS (t2, params->P);
+    ASSERT (mpz_cmp (t1, t2) == 0);
+    mpz_clear (t1);
+    mpz_clear (t2);
+  }
+#endif
 
   *S_2 = malloc (set_sizeof(params->s_2));
   if (*S_2 == NULL)
