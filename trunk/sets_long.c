@@ -189,14 +189,15 @@ sets_sumset (set_long_t *sum, const sets_long_t *sets)
 /* Returns the minimal (if minmax == -1) or maximal (minmax == 1) value
    in the set of sums over the sets in "*sets". */
 
-long 
-sets_sumset_minmax (const sets_long_t *sets, const int minmax)
+void
+sets_sumset_minmax (mpz_t sum, const sets_long_t *sets, const int minmax)
 {
   unsigned long i, nr;
   const set_long_t *set = sets->sets;
-  long sum = 0L, extremum;
+  long extremum;
 
   ASSERT (minmax == 1 || minmax == -1);
+  mpz_set_ui (sum, 0UL);
 
   for (nr = 0; nr < sets->nr; nr++)
     {
@@ -208,11 +209,14 @@ sets_sumset_minmax (const sets_long_t *sets, const int minmax)
 	    (minmax == 1 && set->elem[i] > extremum))
 	  extremum = set->elem[i];
       
-      sum += extremum;
+      if (extremum >= 0)
+	mpz_add_ui (sum, sum, extremum);
+      else
+	mpz_sub_ui (sum, sum, -extremum);
       set = sets_nextset (set);
     }
 
-  return sum;
+  return;
 }
 
 

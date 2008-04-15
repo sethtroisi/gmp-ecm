@@ -710,7 +710,7 @@ void          sets_print (const int, sets_long_t *);
 #define sets_sumset __ECM(sets_sumset)
 void          sets_sumset (set_long_t *, const sets_long_t *);
 #define sets_sumset_minmax __ECM(sets_sumset_minmax)
-long          sets_sumset_minmax (const sets_long_t *, const int);
+void          sets_sumset_minmax (mpz_t, const sets_long_t *, const int);
 #define sets_extract __ECM(sets_extract)
 void          sets_extract (sets_long_t *, size_t *, sets_long_t *, 
                             const unsigned long);
