@@ -886,7 +886,7 @@ pm1 (mpz_t f, mpz_t p, mpz_t N, mpz_t go, double *B1done, double B1,
 	  lmax_NTT = MIN (lmax, t);
 	  if (maxmem != 0.)
 	    {
-	      t = pm1fs2_maxlen ((size_t) maxmem, N, use_ntt);
+	      t = pm1fs2_maxlen (double_to_size (maxmem), N, use_ntt);
 	      lmax_NTT = MIN (lmax_NTT, t);
 	    }
 	  outputf (OUTPUT_DEVVERBOSE, "NTT can handle lmax <= %lu\n", lmax_NTT);
@@ -897,7 +897,7 @@ pm1 (mpz_t f, mpz_t p, mpz_t N, mpz_t go, double *B1done, double B1,
       if (maxmem != 0.)
 	{
 	  unsigned long t;
-	  t = pm1fs2_maxlen ((size_t) maxmem, N, 0);
+	  t = pm1fs2_maxlen (double_to_size (maxmem), N, 0);
 	  lmax_noNTT = MIN (lmax_noNTT, t);
 	  outputf (OUTPUT_DEVVERBOSE, "non-NTT can handle lmax <= %lu\n", 
 		   lmax_noNTT);
@@ -979,14 +979,18 @@ pm1 (mpz_t f, mpz_t p, mpz_t N, mpz_t go, double *B1done, double B1,
   print_B1_B2_poly (OUTPUT_NORMAL, ECM_PM1, B1, *B1done, B2min_parm, B2min, 
 		    B2, (stage2_variant == 0) ? root_params.S : 1, p, 0);
 
-  if (stage2_variant != 0)
-    outputf (OUTPUT_VERBOSE, "P = %lu, l = %lu, s_1 = %lu, s_2 = %lu, "
-	     "m_1 = %Zd\n", faststage2_params.P, faststage2_params.l,
-	     faststage2_params.s_1,faststage2_params.s_2,
-	     faststage2_params.m_1);
-  else
-    outputf (OUTPUT_VERBOSE, "dF=%lu, k=%lu, d=%lu, d2=%lu, i0=%Zd\n", 
-	     dF, k, root_params.d1, root_params.d2, root_params.i0);
+  /* If we do a stage 2, print its parameters */
+  if (mpz_cmp (B2, B2min) >= 0)
+    {
+      if (stage2_variant != 0)
+        outputf (OUTPUT_VERBOSE, "P = %lu, l = %lu, s_1 = %lu, s_2 = %lu, "
+                 "m_1 = %Zd\n", faststage2_params.P, faststage2_params.l,
+                 faststage2_params.s_1,faststage2_params.s_2,
+                 faststage2_params.m_1);
+      else
+        outputf (OUTPUT_VERBOSE, "dF=%lu, k=%lu, d=%lu, d2=%lu, i0=%Zd\n", 
+                 dF, k, root_params.d1, root_params.d2, root_params.i0);
+    }
 
   mpres_init (x, modulus);
   mpres_set_z (x, p, modulus);
