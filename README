@@ -536,8 +536,8 @@ passing the command-line option -no-ntt. Performance of NTT is dependent on:
 - Architecture. NTT seems to give the greatest improvement on Athlon machines,
   and the least improvement on Pentiums.
 - Thresholds. It is vital to have ecm-params.h properly tuned for your machine.
-- C compiler. The code relies on heavy compiler optimisations. At the time of
-  writing, gcc 3.4.x seems to generate faster code than gcc 4.x. 
+- C compiler. The SSE2 assembly code only works for 32-bit x86 using gcc or
+  Intel cc, so it is compiler dependent.
 
 Note on factoring Fermat numbers:
 GMP-ECM features Schönhage-Strassen multiplication for polynomials in 
