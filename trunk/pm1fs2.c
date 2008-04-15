@@ -162,7 +162,7 @@ print_CRT_primes (const int verbosity, const char *prefix,
   
   if (test_verbose (verbosity))
     {
-      outputf (verbosity, "%s = %lu", prefix, ntt_context->spm[0]->sp);
+      outputf (verbosity, "%s%lu", prefix, ntt_context->spm[0]->sp);
       modbits += log ((double) ntt_context->spm[0]->sp);
       for (i = 1; i < ntt_context->sp_num; i++)
 	{
