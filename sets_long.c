@@ -172,8 +172,13 @@ sets_sumset_recurse (long *sum, const set_long_t *sets,
 
   ASSERT (sets->card > 0UL);
   for (i = 0UL; i < sets->card; i++)
-    j += sets_sumset_recurse (sum + j, sets_nextset(sets), nr_sets - 1UL, 
-	              add + sets->elem[i]);
+    {
+      /* Test for overflow */
+      ASSERT_ALWAYS (add <= 0 || add + sets->elem[i] > sets->elem[i]);
+      ASSERT_ALWAYS (add >= 0 || add + sets->elem[i] < sets->elem[i]);
+      j += sets_sumset_recurse (sum + j, sets_nextset(sets), nr_sets - 1UL, 
+				add + sets->elem[i]);
+    }
 
   return j;
 }
