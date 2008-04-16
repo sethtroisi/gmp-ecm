@@ -17,6 +17,9 @@
 		/>
 	</Platforms>
 	<ToolFiles>
+		<DefaultToolFile
+			FileName="yasm.rules"
+		/>
 	</ToolFiles>
 	<Configurations>
 		<Configuration
@@ -34,6 +37,9 @@
 			/>
 			<Tool
 				Name="VCCustomBuildTool"
+			/>
+			<Tool
+				Name="YASM"
 			/>
 			<Tool
 				Name="VCXMLDataGeneratorTool"
@@ -101,6 +107,9 @@
 			/>
 			<Tool
 				Name="VCCustomBuildTool"
+			/>
+			<Tool
+				Name="YASM"
 			/>
 			<Tool
 				Name="VCXMLDataGeneratorTool"
@@ -171,6 +180,9 @@
 				Name="VCCustomBuildTool"
 			/>
 			<Tool
+				Name="YASM"
+			/>
+			<Tool
 				Name="VCXMLDataGeneratorTool"
 			/>
 			<Tool
@@ -237,6 +249,9 @@
 				Name="VCCustomBuildTool"
 			/>
 			<Tool
+				Name="YASM"
+			/>
+			<Tool
 				Name="VCXMLDataGeneratorTool"
 			/>
 			<Tool
@@ -296,6 +311,14 @@
 			Filter="cpp;c;cxx;def;odl;idl;hpj;bat;asm;asmx"
 			UniqueIdentifier="{4FC737F1-C7A5-4376-A066-2A32D752A2FF}"
 			>
+			<File
+				RelativePath="..\assembler\a_x64_mulredc.asm"
+				>
+			</File>
+			<File
+				RelativePath="..\assembler\a_x64_redc.asm"
+				>
+			</File>
 			<File
 				RelativePath="..\..\auxarith.c"
 				>
@@ -471,7 +494,7 @@
 				>
 			</File>
 			<File
-				RelativePath="..\..\config.h"
+				RelativePath="..\config.h"
 				>
 			</File>
 			<File
