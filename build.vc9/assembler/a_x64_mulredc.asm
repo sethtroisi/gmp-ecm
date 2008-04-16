@@ -95,7 +95,7 @@
 
 %assign limbs       %1
 %define f_name(x)   mulredc %+ x
-%define stack_space 8 * (limbs + 2 - (limbs & 1))
+%define stack_space 8 * (limbs + 1)
 
 	global	f_name(limbs)
 %ifdef DLL
