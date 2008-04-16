@@ -314,10 +314,78 @@
 			<File
 				RelativePath="..\assembler\a_x64_mulredc.asm"
 				>
+				<FileConfiguration
+					Name="Debug|Win32"
+					ExcludedFromBuild="true"
+					>
+					<Tool
+						Name="YASM"
+						Debug="true"
+					/>
+				</FileConfiguration>
+				<FileConfiguration
+					Name="Debug|x64"
+					>
+					<Tool
+						Name="YASM"
+						Debug="true"
+					/>
+				</FileConfiguration>
+				<FileConfiguration
+					Name="Release|Win32"
+					ExcludedFromBuild="true"
+					>
+					<Tool
+						Name="YASM"
+						Debug="true"
+					/>
+				</FileConfiguration>
+				<FileConfiguration
+					Name="Release|x64"
+					>
+					<Tool
+						Name="YASM"
+						Debug="true"
+					/>
+				</FileConfiguration>
 			</File>
 			<File
 				RelativePath="..\assembler\a_x64_redc.asm"
 				>
+				<FileConfiguration
+					Name="Debug|Win32"
+					ExcludedFromBuild="true"
+					>
+					<Tool
+						Name="YASM"
+						Debug="true"
+					/>
+				</FileConfiguration>
+				<FileConfiguration
+					Name="Debug|x64"
+					>
+					<Tool
+						Name="YASM"
+						Debug="true"
+					/>
+				</FileConfiguration>
+				<FileConfiguration
+					Name="Release|Win32"
+					ExcludedFromBuild="true"
+					>
+					<Tool
+						Name="YASM"
+						Debug="true"
+					/>
+				</FileConfiguration>
+				<FileConfiguration
+					Name="Release|x64"
+					>
+					<Tool
+						Name="YASM"
+						Debug="true"
+					/>
+				</FileConfiguration>
 			</File>
 			<File
 				RelativePath="..\..\auxarith.c"
