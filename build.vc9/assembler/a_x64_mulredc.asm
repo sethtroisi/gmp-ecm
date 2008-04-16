@@ -95,7 +95,7 @@
 
 %assign limbs       %1
 %define f_name(x)   mulredc %+ x
-%define stack_space 8 * (limbs + 1)
+%define stack_space 8 * (limbs + 1 + (limbs & 1))
 
 	global	f_name(limbs)
 %ifdef DLL
@@ -117,7 +117,7 @@ END_PROLOGUE
                                         ;   *y ->  r8
 	mov     rdi, rcx                    ;   *z -> rdi
 	mov	    r13, rdx                    ;   *x -> r13
-    mov     r10, [rsp+0x28+stack_space] ; invm -> r10
+    mov     r10, [rsp+8*12+stack_space] ; invm -> r10
                                         ;   *m in  r9    
 	mov     r14, [r13]
 	mov	    rax, [r8]
@@ -178,15 +178,15 @@ END_PROLOGUE
     store   limbs
 
 	mov	    rax, rcx
-    add     rsp, stack_space
-    pop     r14
-    pop     r13
-    pop     r12
-    pop     rdi
-    pop     rsi
-    pop     rbx
-    pop     rbp
-    ret
+	add     rsp, stack_space
+	pop     r14
+	pop     r13
+	pop     r12
+	pop     rdi
+	pop     rsi
+	pop     rbx
+	pop     rbp
+	ret
 ENDPROC_FRAME
 %endmacro
 
@@ -200,13 +200,13 @@ ENDPROC_FRAME
 
     align   64
 mulredc1:
-	mov	    rax, r10
+	mov	    rax, r8
 	mul	    rdx
-	mov	    r9, rax
+	mov	    r10, rax
 	mov	    r11, rdx
 	mul	    qword [rsp+0x28]
-	mul	    r8
-	add	    rax, r9
+	mul	    r9
+	add	    rax, r10
 	adc	    rdx, r11
 	mov	    [rcx], rdx
 	adc	    rax, 0

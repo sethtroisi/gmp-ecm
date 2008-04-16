@@ -171,7 +171,7 @@
 
 /* Define to 1 to use asm redc on x86 or x86_64 */
 #ifdef _WIN64
-#  undef NATIVE_REDC                
+#  define NATIVE_REDC   1         
 #endif
 
 /* Define to 1 if your C compiler doesn't accept -c and -o together. */
