@@ -269,7 +269,7 @@ mpzspv_to_mpzv (mpzspv_t x, spv_size_t offset, mpzv_t mpzv,
   
     for (i = 0; i < mpzspm->sp_num; i++)
       {
-        prime_recip = 1.0 / (float) spm[i]->sp;
+        prime_recip = 1.0f / (float) spm[i]->sp;
       
         for (k = 0; k < stride; k++)
           {
@@ -351,7 +351,7 @@ mpzspv_normalise (mpzspv_t x, spv_size_t offset, spv_size_t len,
       
       for (i = 0; i < sp_num; i++)
         {
-          prime_recip = 1.0 / (float) spm[i]->sp;
+          prime_recip = 1.0f / (float) spm[i]->sp;
       
           for (k = 0; k < stride; k++)
 	    {
