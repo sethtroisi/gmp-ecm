@@ -533,15 +533,16 @@ default values (not recommended) or you can generate ecm-params.h first with
 Stage 2 now uses Number-Theoretic Transforms (NTT) for polynomial arithmetic by
 default. The NTT code forces dF to be a power of 2; it can be disabled by
 passing the command-line option -no-ntt. Performance of NTT is dependent on:
-- Architecture. NTT seems to give the greatest improvement on Athlon machines,
-  and the least improvement on Pentiums.
+- Architecture. NTT seems to give the greatest improvement on Athlons,
+  and the least improvement on Pentiums without SSE2.
 - Thresholds. It is vital to have ecm-params.h properly tuned for your machine.
-- C compiler. The SSE2 assembly code only works for 32-bit x86 using gcc or
-  Intel cc, so it is compiler dependent.
+- C compiler. The SSE2 assembly code for 32 bit and the assembly code for 
+  64 bit only work for x86 using gcc or Intel cc, so it is compiler dependent.
 
 Note on factoring Fermat numbers:
 GMP-ECM features Schönhage-Strassen multiplication for polynomials in 
-stage 2 when factoring Fermat numbers. This greatly reduces the number of 
+stage 2 when factoring Fermat numbers (not in the new, fast stage 2 for
+P+1 and P-1. This is to be implemented.) This greatly reduces the number of 
 modular multiplications required, thus improving speed. It does, however, 
 restrict the length of the polynomials to powers of two, so that for a given 
 number of blocks (-k parameter), the B2 value can only increase by factors of 
@@ -570,23 +571,22 @@ degree dF, which sacrifices some performance. Additionally, you may use the
 
                 k=1             k=2             k=3             k=4
 
-dF=256          630630          1261260         1921920         2552550
-dF=512          2522520         5105100         7687680         10210200
-dF=1024         10210200        20420400        30750720        40960920
-dF=2048         42882840        85975890        129068940       172161990
-dF=4096         174083910       348167820       522762240       696846150
-dF=8192         713242530       1426485060      2139727590      2852970120
-dF=16384        2852970120      5705940240      8560652100      11413622220
-dF=32768        11707015320     23417604210     35128193100     46838781990
-dF=65536        48094126080     96188252160     144282378240    192376504320
-dF=131072       194046382530    388092765060    582139147590    776185530120
+dF=256          582132          1222002         1864182         2504052
+dF=512          2443992         5008092         7572192         10131672
+dF=1024         10016172        20263332        30519732        40766892
+dF=2048         42634420        85689250        128744080       171798910
+dF=4096         173259252       347500242       521780502       696021492
+dF=8192         711738310       1425139180      2138540050      2851940920
+dF=16384        2850278350      5703881830      8557643650      11411247130
+dF=32768        11702792020     23412731170     35122670320     46832609470
+dF=65536        48071333326     96165459406     144259585486    192353711566
+dF=131072       194020810630    388069884940    582118959250    776168033560
 
                 Table 2: Stage 2 interval length B2-B2min, for dF
                 a power of 2 and small values of k.
 
 For example, if you'd like to run stage 2 on F_12 with B2 ~= 40G, try
-parameters "-power 1 -k 1 <B1> 48e9", "-power 1 -k 3 <B1> 35e9" or 
-"-power 1 -k 4 <B1> 46e9".
+parameters "-k 1 <B1> 48e9", "-k 3 <B1> 35e9" or "-k 4 <B1> 46e9".
 
 ##############################################################################
 
