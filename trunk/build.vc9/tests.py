@@ -143,7 +143,7 @@ def run_test(exe, args, inp) :
 
 def do_tests(tests) :
     global out
-    exe  = ".\\x64\\Release\\ecm"
+    exe  = ".\\win32\\Release\\ecm"
     for tt in tests :
         rv = run_test(exe, tt[1], tt[0])
         if type(tt[2]) == int and rv[0] != tt[2] :
@@ -156,8 +156,8 @@ def do_tests(tests) :
             for i in op :
                 print i
 out = True
-# do_tests(ecm)
-do_tests(pm1)
+do_tests(ecm)
+# do_tests(pm1)
 # do_tests(pp1)
 # do_tests(pp1_2)
 # do_tests(c200)
