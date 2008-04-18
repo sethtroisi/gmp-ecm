@@ -78,14 +78,14 @@
 %assign i 0
 %rep %1
     %if i == %1 - 1 && (%1 & 1)
-	    mov	    rax, [rbp + 8 * i]
-	    mov 	[rdi + 8 * i], rax
+	    mov	    rax, [rbp+8*i]
+	    mov 	[rdi+8*i], rax
     %elif (i & 1)
-	    mov 	[rdi + 8 * (i - 1)], rax
-	    mov 	[rdi + 8 * i], rdx
+	    mov 	[rdi+8*(i-1)], rax
+	    mov 	[rdi+8*i], rdx
     %else
-	    mov	    rax, [rbp + 8 * i]
-    	mov	    rdx, [rbp + 8 * (i + 1)]
+	    mov	    rax, [rbp+8*i]
+    	mov	    rdx, [rbp+8*(i+1)]
     %endif
     %assign i i + 1
 %endrep
@@ -104,7 +104,7 @@
 
     align   64
 
-PROC_FRAME	f_name(limbs)
+PROC_FRAME	f_name(limbs)               ; SEH Frame
     push_reg    rbp
     push_reg    rbx
     push_reg    rsi
@@ -114,7 +114,7 @@ PROC_FRAME	f_name(limbs)
     push_reg    r14
     alloc_stack stack_space
 END_PROLOGUE
-                                        ;   *y ->  r8
+                                        ;   *y in  r8
 	mov     rdi, rcx                    ;   *z -> rdi
 	mov	    r13, rdx                    ;   *x -> r13
     mov     r10, [rsp+8*12+stack_space] ; invm -> r10
