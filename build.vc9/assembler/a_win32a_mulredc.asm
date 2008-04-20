@@ -17,14 +17,22 @@
 ;       mp_limb_t inv_m
 ;   )
 
-%macro mseq 1
-	movd	mm1, [esi+4*%1]
-	movd	mm2, [edi+4*%1]
-	pmuludq	mm1, mm7
-	paddq	mm2, mm1
-	paddq	mm0, mm2
-	movd	[edi+4*%1], mm0
-	psrlq   mm0, 32
+%macro mseq_1   3
+	mul	    ebp
+	add	    [edi+4*%3], %2
+	mov	    %2, 0
+	adc	    %1, eax
+	mov	    eax, [esi+4*%3+8]
+	adc	    %2, edx
+%endmacro
+
+%macro mseq_2 3
+	mul	    ebp
+	add	    [edi+3*%3], %1
+	mov     %1, 0
+	adc	    %1, eax
+	mov	    eax, [esi+4*%3+8]
+	adc	    %2, edx
 %endmacro
 
 %macro  mulredc 1
@@ -38,9 +46,9 @@
 
 f_name(limbs):
 	push    ebp
-	push    edi
-	push    esi
-	push    ebx
+	push	edi
+	push	esi
+	push	ebx
 	sub	    esp, 8*(limbs+1)
 	mov	    edi, esp
 
@@ -49,93 +57,119 @@ f_name(limbs):
 	mov	    dword [edi+4*i], 0
 	%assign i i + 1
 %endrep
+	mov     dword [esp+8*limbs+4], limbs
 
-	mov	    dword [esp+8*limbs+4], limbs
+;	align 32
 
-    align 32
-
-.1:	mov	    eax, [esp+8*limbs+32]
+.1: mov	    eax, [esp+8*limbs+32]
 	mov	    esi, [esp+8*limbs+36]
-	mov	    eax, [eax]
+	mov 	eax, [eax]
 	mul	    dword [esi]
 	add	    eax, [edi]
 	mul	    dword [esp+8*limbs+44]
 	mov     ebp, eax
 	mov	    esi, [esp+8*limbs+40]
 
-	pxor	mm0, mm0
-	movd	mm7, ebp
+	mov	    eax, [esi]
+	mul	    ebp
+	mov	    ebx, eax
+	mov 	ecx, edx
+	mov	    eax, [esi+4]
 
 %assign i 0
-%rep limbs
-    mseq i
+%rep    limbs - 2
+    %if (i & 1)
+        mseq_1 ebx, ecx,  i
+    %else
+        mseq_1 ecx, ebx,  i
+    %endif
     %assign i i + 1
 %endrep
 
-	movd	ecx, mm0
-
-	add	    [edi+4*limbs], ecx
+	mul	    ebp
+%if (limbs & 1)
+	add	    [edi+4*limbs-8], ecx
+	adc	    eax, ebx
+%else
+	add	    [edi+4*limbs-8], ebx
+	adc	    eax, ecx
+%endif
+	adc	    edx, 0
+	add	    [edi+4*limbs-4], eax
+	adc	    edx, 0
+	add	    [edi+4*limbs], edx
 	adc	    dword [edi+4*limbs+4], 0
+
 	mov	    eax, [esp+8*limbs+32]
 	mov	    ebp, [eax]
 	mov	    esi, [esp+8*limbs+36]
-
-	pxor	mm0, mm0
-	movd	mm7, ebp
+	mov	    eax, [esi]
+	mul	    ebp
+	mov	    ebx, eax
+	mov	    ecx, edx
+	mov	    eax, [esi+4]
 
 %assign i 0
-%rep limbs
-    mseq i
+%rep    limbs - 2
+    %if (i & 1)
+        mseq_1 ebx, ecx,  i
+    %else
+        mseq_1 ecx, ebx,  i
+    %endif
     %assign i i + 1
 %endrep
 
-	movd	ecx, mm0
-    add     [edi+4*limbs], ecx
+	mul 	ebp
+%if (limbs & 1)
+	add	    [edi+4*limbs-8], ecx
+	adc	    eax, ebx
+%else
+	add	    [edi+4*limbs-8], ebx
+	adc	    eax, ecx
+%endif
+	adc	    edx, 0
+	add	    [edi+4*limbs-4], eax
+	adc	    edx, 0
+    add     [edi+4*limbs],edx
     adc     dword [edi+4*limbs+4], 0
+
 	add	    dword [esp+8*limbs+32], 4
 	add	    edi, 4
 	dec	    dword [esp+8*limbs+4]
 	jnz	    .1
-
 	mov	    ebx, [esp+8*limbs+28]
 
 %assign i 0
-%rep limbs
+%rep    limbs
 	mov	    eax, [edi+4*i]
 	mov	    [ebx+4*i], eax
 	%assign i i + 1
 %endrep
+
 	mov	    eax, [edi+4*limbs]
 	add     esp, 8*(limbs+1)
-
-	pop     ebx
-	pop     esi
-	pop     edi
-	pop     ebp
-	emms
+	pop	    ebx
+	pop	    esi
+	pop	    edi
+	pop	    ebp
 	ret
 %endmacro
 
-    bits    32
-	section .text
+    text
 
-	global	_mulredc1
-%ifdef	DLL
-	export	_mulredc1
-%endif
-
+    global _mulredc1
 _mulredc1:
 	mov	    eax, [esp+12]
 	mul	    dword [esp+8]
-	mov     [esp+12], edx
-	mov     [esp+8], eax
+	mov	    [esp+12], edx
+	mov	    [esp+8], eax
 	mul	    dword [esp+20]
 	mul	    dword [esp+16]
 	add	    eax, [esp+8]
 	adc	    edx, [esp+12]
 	mov	    ecx, [esp+4]
 	mov     [ecx], edx
-	adc	    eax, 0
+	adc	    eax,0
 	ret
 
 %assign i 2
@@ -145,4 +179,3 @@ _mulredc1:
 %endrep
 
     end
-
