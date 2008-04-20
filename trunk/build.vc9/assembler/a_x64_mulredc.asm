@@ -1,5 +1,15 @@
-
-; mp_limb_t mulredc<limbs>(       MSVC
+;
+; Part of GMP-ECM
+;
+; mp_limb_t mulredc1(             MSVC    1 limb
+;       mp_limb_t       *z,        rcx
+;       const mp_limb_t  x,        rdx
+;       const mp_limb_t  y,         r8
+;       const mp_limb_t  m,         r9
+;       mp_limb_t inv_m     [rsp+0x28]
+;   )
+;
+; mp_limb_t mulredc<limbs>(       MSVC  > 1 limb
 ;       mp_limb_t       *z,        rcx
 ;       const mp_limb_t *x,        rdx
 ;       const mp_limb_t *y,         r8
@@ -118,7 +128,7 @@ END_PROLOGUE
 	mov     rdi, rcx                    ;   *z -> rdi
 	mov	    r13, rdx                    ;   *x -> r13
     mov     r10, [rsp+8*12+stack_space] ; invm -> r10
-                                        ;   *m in  r9    
+                                        ;   *m in  r9
 	mov     r14, [r13]
 	mov	    rax, [r8]
 	xor     rcx, rcx
@@ -192,7 +202,7 @@ ENDPROC_FRAME
 
 	bits    64
 	section .text
-	
+
 	global	mulredc1
 %ifdef DLL
 	export	mulredc1
@@ -211,7 +221,7 @@ mulredc1:
 	mov	    [rcx], rdx
 	adc	    rax, 0
 	ret
-	
+
 %assign i 2
 %rep    19      ; 3..20 inclusive
     mulredc i

@@ -1,3 +1,12 @@
+;
+; Part of GMP-ECM
+;
+; void ecm_redc3(
+;       mp_limb_t       *z,     rdi  r8  <- rcx
+;       const mp_limb_t *x,     rsi  r9  <- rdx
+;       size_t           n,     rdx r10  <-  r8
+;       mp_limb_t        m      rcx r11  <-  r9
+;   )
 
 %macro rloop 3
     mov    eax, [byte esi+4*%3]
