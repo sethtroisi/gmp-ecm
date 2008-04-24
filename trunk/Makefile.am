@@ -1,18 +1,20 @@
 ## Process this file with automake to produce Makefile.in
 
-lib_LIBRARIES = libecm.a
+lib_LTLIBRARIES = libecm.la
 
-libecm_a_SOURCES = ecm.c ecm2.c pm1.c pp1.c getprime.c listz.c lucas.c \
+libecm_la_SOURCES = ecm.c ecm2.c pm1.c pp1.c getprime.c listz.c lucas.c \
 		   stage2.c toomcook.c mpmod.c mul_lo.c polyeval.c median.c \
 		   schoen_strass.c ks-multiply.c rho.c bestd.c auxlib.c \
 		   random.c factor.c sp.c spv.c spm.c mpzspm.c mpzspv.c \
 		   ntt_gfp.c ecm_ntt.c pm1fs2.c mul_fft.c sets_long.c \
 		   auxarith.c
 
+libecm_la_LDFLAGS = '-version-info 0:0:0'
+
 bin_PROGRAMS = ecm
 noinst_PROGRAMS = tune ecmfactor
 
-LDADD = libecm.a
+LDADD = libecm.la
 
 AM_CPPFLAGS = -pedantic
 
@@ -34,12 +36,12 @@ tune_SOURCES = mpmod.c tune.c mul_lo.c listz.c auxlib.c ks-multiply.c \
 	       mul_fft.c auxarith.c
 
 if MEMORY_DEBUG
-  libecm_a_SOURCES += memory.c
+  libecm_la_SOURCES += memory.c
   tune_SOURCES += memory.c
 endif
 
 if ENABLE_ASM_REDC
-  nodist_libecm_a_SOURCES = redc.asm mulredc1.asm mulredc2.asm mulredc3.asm \
+  nodist_libecm_la_SOURCES = redc.asm mulredc1.asm mulredc2.asm mulredc3.asm \
     mulredc4.asm mulredc5.asm mulredc6.asm mulredc7.asm mulredc8.asm \
     mulredc9.asm mulredc10.asm mulredc11.asm mulredc12.asm mulredc13.asm \
     mulredc14.asm mulredc15.asm mulredc16.asm mulredc17.asm mulredc18.asm \
@@ -55,7 +57,7 @@ if WITH_GWNUM
   gwdata.ld :
 	echo "SECTIONS { .data : { . = ALIGN(0x20); *(_GWDATA) } }" >gwdata.ld
   
-  libecm_a_SOURCES += Fgw.c
+  libecm_la_SOURCES += Fgw.c
   ecm_DEPENDENCIES = $(LDADD) gwdata.ld
   ecm_LDFLAGS += -Wl,gwdata.ld
   Fgwtest : Fgw.c gwdata.ld
