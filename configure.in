@@ -7,11 +7,12 @@ AC_CONFIG_HEADER([config.h])
 GMP_INIT(config.m4)
 AM_INIT_AUTOMAKE(ecm, ECM_VERSION)
 
+AC_PROG_LIBTOOL
+
 dnl Checks for programs.
 AC_PROG_CC
 dnl the following is required to compile auxi.c according to autoconf 2.61
 AM_PROG_CC_C_O
-AC_PROG_RANLIB
 AC_CANONICAL_HOST
 
 AC_ARG_WITH(gmp_include, [  --with-gmp-include=DIR  GMP include directory ], with_gmp_include=$withval)
