@@ -259,7 +259,7 @@ pm1_stage1 (mpz_t f, mpres_t a, mpmod_t n, double B1, double *B1done,
      for CASCADE_MAX=5e7) this means B1 > 9e6*sizeinbase(n,2)^2.
      For sizeinbase(n,2) > CASCADE_MAX/3000, this means B1 > CASCADE_MAX^2,
      i.e. B1 > 25e14 for CASCADE_MAX=5e7.
-*/
+  */
 
   /* if the user knows that P-1 has a given divisor, he can supply it */
   if (mpz_cmp_ui (go, 1) > 0)
@@ -329,7 +329,7 @@ pm1_stage1 (mpz_t f, mpres_t a, mpmod_t n, double B1, double *B1done,
      
   if (*B1done > p)
     {
-      getprime_seek ((*B1done) + 1);
+      getprime_seek ((*B1done) + 1.);
       p = getprime ();
     }
 
