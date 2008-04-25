@@ -71,7 +71,16 @@ Unroll:
 	movq    %rdx, 16(%rsp)				# Org Cpt of 8(%rsp)
 	movq    %rcx, %rdx
 	shlq    $4, %rdx
+#ifdef PIC
+        pushq   %rax
+        call    1f
+1:      popq    %rax
+	leaq	(UnrollEntry-1b)(%rax, %rdx, 1), %rdx
+	leaq    0(%rdx, %rcx,4), %rdx
+	popq	%rax
+#else
         leaq    UnrollEntry (%rdx, %rcx,4), %rdx
+#endif
 	addq	%rcx, %rdx
 	negq    %rcx
 	movq	%rcx, %r10				# (-size)%16
