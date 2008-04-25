@@ -206,7 +206,7 @@ pp1_stage1 (mpz_t f, mpres_t P0, mpmod_t n, double B1, double *B1done,
   
   if (*B1done > p)
     {
-      getprime_seek ((*B1done) + 1);
+      getprime_seek ((*B1done) + 1.);
       p = getprime ();
     }
 #endif
