@@ -29,7 +29,7 @@ ecm_LDFLAGS =
 ecm_LDFLAGS += $(ECM_FASTOBJ)
 
 tune_CPPFLAGS = -DTUNE $(AM_CPPFLAGS)
-tune_LDADD =
+# tune_LDADD =
 tune_SOURCES = mpmod.c tune.c mul_lo.c listz.c auxlib.c ks-multiply.c \
                toomcook.c schoen_strass.c polyeval.c median.c ecm_ntt.c \
 	       ntt_gfp.c mpzspv.c mpzspm.c sp.c spv.c spm.c random.c \
@@ -41,16 +41,19 @@ if MEMORY_DEBUG
 endif
 
 if ENABLE_ASM_REDC
-  nodist_libecm_la_SOURCES = redc.asm mulredc1.asm mulredc2.asm mulredc3.asm \
-    mulredc4.asm mulredc5.asm mulredc6.asm mulredc7.asm mulredc8.asm \
-    mulredc9.asm mulredc10.asm mulredc11.asm mulredc12.asm mulredc13.asm \
-    mulredc14.asm mulredc15.asm mulredc16.asm mulredc17.asm mulredc18.asm \
-    mulredc19.asm mulredc20.asm
-  nodist_tune_SOURCES = redc.asm mulredc1.asm mulredc2.asm mulredc3.asm \
-    mulredc4.asm mulredc5.asm mulredc6.asm mulredc7.asm mulredc8.asm \
-    mulredc9.asm mulredc10.asm mulredc11.asm mulredc12.asm mulredc13.asm \
-    mulredc14.asm mulredc15.asm mulredc16.asm mulredc17.asm mulredc18.asm \
-    mulredc19.asm mulredc20.asm
+# The code in redc.S needs preprocessing by cpp, since we need different
+# addressing in PIC and non-PIC mode. Hence the upper-case .S, which
+# signifies a file that is to be run through cpp before assembly
+  nodist_libecm_la_SOURCES = redc.S mulredc1.s mulredc2.s mulredc3.s \
+    mulredc4.s mulredc5.s mulredc6.s mulredc7.s mulredc8.s \
+    mulredc9.s mulredc10.s mulredc11.s mulredc12.s mulredc13.s \
+    mulredc14.s mulredc15.s mulredc16.s mulredc17.s mulredc18.s \
+    mulredc19.s mulredc20.s
+  tune_LDADD = redc.lo mulredc1.o mulredc2.o mulredc3.o \
+    mulredc4.o mulredc5.o mulredc6.o mulredc7.o mulredc8.o \
+    mulredc9.o mulredc10.o mulredc11.o mulredc12.o mulredc13.o \
+    mulredc14.o mulredc15.o mulredc16.o mulredc17.o mulredc18.o \
+    mulredc19.o mulredc20.o
 endif
 
 if WITH_GWNUM
@@ -91,10 +94,10 @@ check: ecm$(EXEEXT)
 	$(srcdir)/test.pm1 ./ecm$(EXEEXT)
 	$(srcdir)/test.ecm ./ecm$(EXEEXT)
 
-.asm.o:
-	$(M4) -DOPERATION_$* `test -f $< || echo '$(srcdir)/'`$< >tmp-$*.s
-	$(CCAS) $(CFLAGS) tmp-$*.s -o $@
-	rm -f tmp-$*.s
+.asm.s:
+	$(M4) -DOPERATION_$* `test -f $< || echo '$(srcdir)/'`$< >$*.s
+.asm.S:
+	$(M4) -DOPERATION_$* `test -f $< || echo '$(srcdir)/'`$< >$*.S
 
 ## to be sure ecm.1 is considered as source
 ## (cf section "Man pages" in the automake manual)

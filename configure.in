@@ -11,6 +11,7 @@ AC_PROG_LIBTOOL
 
 dnl Checks for programs.
 AC_PROG_CC
+AM_PROG_AS
 dnl the following is required to compile auxi.c according to autoconf 2.61
 AM_PROG_CC_C_O
 AC_CANONICAL_HOST
