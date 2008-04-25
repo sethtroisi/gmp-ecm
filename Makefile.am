@@ -21,11 +21,11 @@ AM_CPPFLAGS = -pedantic
 ecm_CPPFLAGS = -DOUTSIDE_LIBECM $(AM_CPPFLAGS)
 ecm_SOURCES = auxi.c b1_ainc.c candi.c eval.c random.c main.c trial.c \
               resume.c getprime.c
-ecm_LDFLAGS = 
 # We add the list of speed critical object files to the ecm linker flags 
 # which isn't very clean, but it seems to be the only way of getting them
 # in front of the full list of input object files. Automake does not allow
 # modifying the ecm_OBJECTS variable directly.
+ecm_LDFLAGS = 
 ecm_LDFLAGS += $(ECM_FASTOBJ)
 
 tune_CPPFLAGS = -DTUNE $(AM_CPPFLAGS)
@@ -61,6 +61,7 @@ if WITH_GWNUM
 	echo "SECTIONS { .data : { . = ALIGN(0x20); *(_GWDATA) } }" >gwdata.ld
   
   libecm_la_SOURCES += Fgw.c
+  # Use ecm_DEPENDENCIES += gwdata.ld instead? Is that possible?
   ecm_DEPENDENCIES = $(LDADD) gwdata.ld
   ecm_LDFLAGS += -Wl,gwdata.ld
   Fgwtest : Fgw.c gwdata.ld
