@@ -102,12 +102,12 @@ dnl If user wants GWNUM, check if the file exists (either as .a or .lib)
 if test "x$with_gwnum" != "x"; then
   AC_CHECK_FILE($with_gwnum/gwnum.a, [
     AC_DEFINE(HAVE_GWNUM, 1, [Define to 1 if gwnum.a or gwnum.lib exist])
-    LIBS="$LIBS $with_gwnum/gwnum.a"
+    GWLIB="$with_gwnum/gwnum.a"
     CFLAGS="$CFLAGS -I$with_gwnum"
   ],[
     AC_CHECK_FILE($with_gwnum/gwnum.lib, [
       AC_DEFINE(HAVE_GWNUM, 1, [Define to 1 if gwnum.a or gwnum.lib exist])
-      LIBS="$LIBS $with_gwnum/gwnum.lib"
+      GWLIB="$with_gwnum/gwnum.lib"
       CFLAGS="$CFLAGS -I$with_gwnum"
     ],[
       with_gwnum=
@@ -174,7 +174,11 @@ dnl to put time critical functions close together in the resulting
 dnl binary to avoid cache collisions.
 dnl If GMP is linked dynamically, -lgmp is added to LIBS but ECM_FASTOBJ
 dnl remains empty.
-     
+dnl We do not modify LIBS directly here as libtool libraries (i.e. *.la)
+dnl interfere with the following AC_CHECK_* calls. The libraries we want
+dnl at compile time are stored in GMPLIB and GWLIB, and assigned to LIBS
+dnl at the end of this file.
+
 dnl AC_CHECK_LIB doesn't do what we want
   if test -r "$with_gmp_lib/libgmp.la"; then
     GMPLIB="$with_gmp_lib/libgmp.la"
@@ -194,16 +198,18 @@ dnl AC_CHECK_LIB doesn't do what we want
     fi  
     GMPLIB="-lgmp"
   fi
-  LIBS="$LIBS $GMPLIB"
 else
   if test -d "$with_gmp_lib"; then
     LDFLAGS="-L$with_gmp_lib $LDFLAGS"
   fi
-  LIBS="$LIBS -lgmp"
+  GMPLIB="-lgmp"
 fi
 
 dnl Check for corresponding 'gmp.h' and libgmp.a
 AC_MSG_CHECKING(if gmp.h version and libgmp version are the same)
+# Save the current LIBS value in a temp var. Is there a prettier way?
+SAVED_LIBS="$LIBS"
+LIBS="-lgmp"
 AC_RUN_IFELSE([AC_LANG_PROGRAM([[
 #include <stdio.h>
 #include <string.h>
@@ -222,6 +228,7 @@ return strcmp (buffer, gmp_version);
     AC_MSG_ERROR(['gmp.h' and 'libgmp' have different versions! you have to properly reinstall GMP.])],
     AC_MSG_RESULT([cross-compiling: cannot test])
 )
+LIBS="$SAVED_LIBS"
 
 dnl Checks for library functions.
 AC_FUNC_STRTOD
@@ -272,6 +279,9 @@ case $host in
   powerpc7450-*-*) config_arch="powerpc7450" ;;
   *) config_arch="default" ;;
 esac
+
+# Put all the libraries we need for building in LIBS
+LIBS="$LIBS $GMPLIB $GWLIB"
 
 GMP_FINISH
 AC_CONFIG_FILES(Makefile athlon/Makefile pentium4/Makefile x86_64/Makefile)
