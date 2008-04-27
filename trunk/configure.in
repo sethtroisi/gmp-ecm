@@ -9,6 +9,7 @@ AM_INIT_AUTOMAKE(ecm, ECM_VERSION)
 
 # Don't make a shared library by default. Enable building a shared library
 # by specifying "--enable-shared" on the ./configure command line
+AC_CANONICAL_HOST
 AC_DISABLE_SHARED
 AC_PROG_LIBTOOL
 
@@ -17,7 +18,6 @@ AC_PROG_CC
 AM_PROG_AS
 dnl the following is required to compile auxi.c according to autoconf 2.61
 AM_PROG_CC_C_O
-AC_CANONICAL_HOST
 
 AC_ARG_WITH(gmp,         [  --with-gmp=DIR          GMP install directory ], with_gmp_include=$withval/include with_gmp_lib=$withval/lib)
 AC_ARG_WITH(gmp_build,   [  --with-gmp-build=DIR    GMP source directory], with_gmp_include=$withval/ with_gmp_lib=$withval/.libs)
