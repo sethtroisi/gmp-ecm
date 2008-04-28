@@ -38,7 +38,7 @@ Instructions to install GMP-ECM:
    $ ./configure CC=cc CFLAGS="-fast -fns=no -fsimple=1 -xarch=v9" 
    
    Note 2: If you want to use George Woltman's GWNUM library for speeding up
-   factoring Fermat numbers, obtain the file "gwnum_gpl_linux.tgz" from
+   factoring base 2 numbers, obtain the file "gwnum_gpl_linux.tgz" from
    ftp://mersenne.org/gimps/ (or gwnum_gpl.zip or gwnum_gpl_mingw.tgz
    accordingly) and follow the instructions therein to compile
    the library. Possibly the archive contains a readily compiled library
@@ -50,11 +50,16 @@ Instructions to install GMP-ECM:
    gwnum.h and related header files. The source file of the gwnum library
    is available at <http://www.mersenne.org/source.htm>.
 
+   To compile the GMP-ECM library as a shared library, use the
+   --enable-shared parameter for ./configure. Building a shared library is
+   disabled by default.
+
 2) compile the program with:
 
    $ make
 
-   This will create the 'libecm.a' library, the 'ecm' binary file,
+   This will create the 'libecm.a' library, the 'libecm.so' shared
+   library if --enable-shared was used, the 'ecm' binary file,
    the 'ecmfactor' binary file (sample use of libecm.a), and 'tune',
    a tuning program.
 
@@ -93,7 +98,7 @@ Instructions to install GMP-ECM:
    download "cunningham.in" on <http://www.loria.fr/~zimmerma/ecmnet/>, then
    perform one ecm test with B1=43e6 on each number of this file:
 
-   $ ./ecm 43e6 < cunningham.in > cunningham.out &
+   $ ./ecm 110e6 < cunningham.in > cunningham.out &
 
    If you find any factor (grep found cunningham.out), please submit it
    using the report form on <http://www.loria.fr/~zimmerma/ecmnet/>.
@@ -129,7 +134,7 @@ Step-by-step instructions, courtesy of Jes Hansen:
 
 5) Download GMP-ECM (if you do not have it already) from
    http://www.loria.fr/~zimmerma/records/ecmnet.html (check the News section
-   for the latest release, at the time of writing 6.1) and place it in your
+   for the latest release, at the time of writing 6.2) and place it in your
    home folder as well. You won't need an internet connection from now on, 
    feel free to disconnect.
 
@@ -141,8 +146,8 @@ Step-by-step instructions, courtesy of Jes Hansen:
    cd ~
 
 7) You are back in your home directory. Now type
-  tar -xvzf ecm-6.1.tar.gz
-  cd ecm-6.1
+  tar -xvzf ecm-6.2.tar.gz
+  cd ecm-6.2
   ./configure --with-gmp=/usr/local
   make
 
@@ -157,7 +162,7 @@ In case of a problem, report it to us, with:
 
 - the versions of GMP-ECM and GMP used (first output line), for example:
   
-  GMP-ECM 6.1.3 [powered by GMP 4.2.2] [P+1]
+  GMP-ECM 6.2 [powered by GMP 4.2.2] [P+1]
 
 - the detailed input enabling us to reproduce the problem, for example:
 
