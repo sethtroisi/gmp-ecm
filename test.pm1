@@ -81,5 +81,11 @@ echo 504403158265489337 | $PM1 -k 4 8 9007199254740700-9007199254740900; checkco
 # check that primes near B2min are covered
 echo 6857 | $PM1 840 857; checkcode $? 8
 
+# A test with a larger input number to test modular arithmetic routines not
+# in mulredc*.asm. This input has 1363 bits so it has 22 64 bit words 
+# (43 32 bit words) and cannot use mulredc which handles only up to 20 limbs
+
+echo "10090030271*10^400+696212088699" | $PM1 2e3 2e6; checkcode $? 14
+
 echo "All P-1 tests are ok."
 echo ""

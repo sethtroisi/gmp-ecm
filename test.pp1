@@ -104,5 +104,11 @@ echo 630503947831861669 | $PP1 -x0 5 7 9007199254740000-9007199254741000; checkc
 # bug in ecm-6.0.1 on 64-bit machines
 echo 8589934621 | $PP1 -x0 10 4294967310-4294967311 1; checkcode2 $? 1 8
 
+# A test with a larger input number to test modular arithmetic routines not
+# in mulredc*.asm. This input has 1363 bits so it has 22 64 bit words 
+# (43 32 bit words) and cannot use mulredc which handles only up to 20 limbs
+
+echo "6054018161*10^400+417727253109" | $PP1 -x0 4 2e3 2e6; checkcode $? 14
+
 echo "All P+1 tests are ok."
 echo ""
