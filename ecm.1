@@ -1,11 +1,11 @@
 .\"     Title: ECM
 .\"    Author: 
 .\" Generator: DocBook XSL Stylesheets v1.73.2 <http://docbook.sf.net/>
-.\"      Date: 04/11/2008
+.\"      Date: 04/28/2008
 .\"    Manual: April 22, 2003
 .\"    Source: April 22, 2003
 .\"
-.TH "ECM" "1" "04/11/2008" "April 22, 2003" "April 22, 2003"
+.TH "ECM" "1" "04/28/2008" "April 22, 2003" "April 22, 2003"
 .\" disable hyphenation
 .nh
 .\" disable justification (adjust text to left margin only)
@@ -177,7 +177,7 @@ megabytes of memory in stage 2\.
 .PP
 \fB\-no\-ntt\fR
 .RS 4
-Disable the Number\-Theoretic Transform code for polynomial arithmetic and allow free choice of dF\. With NTT, dF is chosen to be a power of 2, and limited by the number suitable primes that fit in a machine word, which can be problematic on 32 bit machines with very large B2\. The \-no\-ntt variant uses more memory, however\.
+Disable the Number\-Theoretic Transform code for polynomial arithmetic and allow free choice of dF\. With NTT, dF is chosen to be a power of 2, and limited by the number suitable primes that fit in a machine word\. The \-no\-ntt variant uses more memory, however\.
 .RE
 .SH "OUTPUT"
 .PP
@@ -553,9 +553,9 @@ Jim Fougeron <jfoug at cox dot net> contributed the expression parser and severa
 .PP
 Laurent Fousse <laurent at komite dot net> contributed the middle product code, the autoconf/automake tools, and is the maintainer of the Debian package;
 .PP
-Alexander Kruppa <lastname@in\.tum\.de> contributed estimates for probability of success for ECM, the new P+1 and P\-1 stage 2 (with P\.\-L\. Montgomery), new AMD64 asm mulredc code, and some other things;
+Alexander Kruppa <(lastname)al@loria\.fr> contributed estimates for probability of success for ECM, the new P+1 and P\-1 stage 2 (with P\.\-L\. Montgomery), new AMD64 asm mulredc code, and some other things;
 .PP
-Dave Newman <david\.lastname@jesus\.ox\.ac\.uk> contributed the Kronecker\-Schoenhage and NTT multiplication code;
+Dave Newman <david\.(lastname)@jesus\.ox\.ac\.uk> contributed the Kronecker\-Schoenhage and NTT multiplication code;
 .PP
 Jason S\. Papadopoulos contributed a speedup of the NTT code
 .PP
