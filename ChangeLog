@@ -1,4 +1,291 @@
 ------------------------------------------------------------------------
+r1228 | kruppa | 2008-04-28 01:05:06 +0200 (Mon, 28 Apr 2008) | 3 lines
+Changed paths:
+   M /trunk/configure.in
+
+Fixed problem with ./configure script not cunning correctly if --with-gmp
+was given and --enable-shared was not.
+
+------------------------------------------------------------------------
+r1227 | zimmerma | 2008-04-27 13:28:14 +0200 (Sun, 27 Apr 2008) | 2 lines
+Changed paths:
+   M /trunk/configure.in
+
+fixed warning "AC_CANONICAL_HOST invoked multiple times"
+
+------------------------------------------------------------------------
+r1226 | zimmerma | 2008-04-27 10:30:00 +0200 (Sun, 27 Apr 2008) | 2 lines
+Changed paths:
+   M /trunk/README.dev
+
+we also need to check INSTALL for a new release
+
+------------------------------------------------------------------------
+r1225 | zimmerma | 2008-04-27 10:28:35 +0200 (Sun, 27 Apr 2008) | 2 lines
+Changed paths:
+   M /trunk/INSTALL
+
+update GMP latest version
+
+------------------------------------------------------------------------
+r1224 | kruppa | 2008-04-25 17:55:01 +0200 (Fri, 25 Apr 2008) | 2 lines
+Changed paths:
+   M /trunk/Makefile.am
+   M /trunk/configure.in
+
+Trying to make --enable-shared and --with-gmp work together
+
+------------------------------------------------------------------------
+r1223 | kruppa | 2008-04-25 14:59:34 +0200 (Fri, 25 Apr 2008) | 4 lines
+Changed paths:
+   M /trunk/Makefile.am
+   M /trunk/configure.in
+   M /trunk/x86_64/redc.asm
+
+Fixed problem with compiling x86_64 assembly routines for dynamic library,
+a computed jump referenced absolute address of label in .text. Now we compute
+target address relative to rip
+
+------------------------------------------------------------------------
+r1222 | kruppa | 2008-04-25 11:44:59 +0200 (Fri, 25 Apr 2008) | 3 lines
+Changed paths:
+   M /trunk/pm1.c
+   M /trunk/pp1.c
+
+Fixed implicit conversion of int constant to double which caused warning
+in Visual C
+
+------------------------------------------------------------------------
+r1221 | kruppa | 2008-04-25 11:32:24 +0200 (Fri, 25 Apr 2008) | 3 lines
+Changed paths:
+   M /trunk/makesmooth.gp
+
+Added function to produce primes where a given value is a quadratic 
+non-residue, to make testing P+1 easier
+
+------------------------------------------------------------------------
+r1220 | kruppa | 2008-04-24 17:57:18 +0200 (Thu, 24 Apr 2008) | 2 lines
+Changed paths:
+   M /trunk/acinclude.m4
+
+A missing "-c" flag in test compilation of .s files caused configure to fail
+
+------------------------------------------------------------------------
+r1219 | lfousse | 2008-04-24 15:37:07 +0200 (Thu, 24 Apr 2008) | 2 lines
+Changed paths:
+   M /trunk/Makefile.am
+   M /trunk/configure.in
+
+Produce a shared library with libtool.
+
+------------------------------------------------------------------------
+r1218 | brian_gladman | 2008-04-20 17:09:00 +0200 (Sun, 20 Apr 2008) | 1 line
+Changed paths:
+   A /trunk/build.vc9/assembler/a_win32a_mulredc.asm
+   A /trunk/build.vc9/assembler/a_win32a_redc.asm
+   M /trunk/build.vc9/assembler/a_win32p_mulredc.asm
+   M /trunk/build.vc9/assembler/a_win32p_redc.asm
+   M /trunk/build.vc9/assembler/a_x64_mulredc.asm
+   M /trunk/build.vc9/libecm/libecm.vcproj
+
+add win32 athlon assembler support for Visual C build
+------------------------------------------------------------------------
+r1217 | brian_gladman | 2008-04-18 12:33:20 +0200 (Fri, 18 Apr 2008) | 1 line
+Changed paths:
+   A /trunk/build.vc9/assembler/a_win32p_mulredc.asm
+   A /trunk/build.vc9/assembler/a_win32p_redc.asm
+   M /trunk/build.vc9/assembler/a_x64_mulredc.asm
+   M /trunk/build.vc9/config.h
+   M /trunk/build.vc9/libecm/libecm.vcproj
+   M /trunk/build.vc9/tests.py
+
+Add 32-bit pentium assembler support for VC++ build
+------------------------------------------------------------------------
+r1216 | kruppa | 2008-04-17 15:25:51 +0200 (Thu, 17 Apr 2008) | 2 lines
+Changed paths:
+   M /trunk/README
+
+Updated to NTT and SchönhageStrassen sections
+
+------------------------------------------------------------------------
+r1215 | kruppa | 2008-04-17 11:30:23 +0200 (Thu, 17 Apr 2008) | 2 lines
+Changed paths:
+   M /trunk/mpzspv.c
+
+Marked floating-point constant "float" to match other operands
+
+------------------------------------------------------------------------
+r1214 | brian_gladman | 2008-04-16 15:17:10 +0200 (Wed, 16 Apr 2008) | 1 line
+Changed paths:
+   A /trunk/build.vc9/readme.txt
+   A /trunk/build.vc9/yasm.rules
+
+Add short description of how to use YASM with VC++ for assembler support and mention Python tests file
+------------------------------------------------------------------------
+r1213 | brian_gladman | 2008-04-16 13:58:44 +0200 (Wed, 16 Apr 2008) | 1 line
+Changed paths:
+   M /trunk/build.vc9/assembler/a_x64_mulredc.asm
+   M /trunk/build.vc9/config.h
+   M /trunk/build.vc9/libecm/libecm.vcproj
+   M /trunk/build.vc9/tests.py
+
+enable assembler build with VC++
+------------------------------------------------------------------------
+r1212 | brian_gladman | 2008-04-16 12:32:11 +0200 (Wed, 16 Apr 2008) | 1 line
+Changed paths:
+   M /trunk/build.vc9/assembler/a_x64_mulredc.asm
+   M /trunk/build.vc9/config.h
+   M /trunk/build.vc9/libecm/libecm.vcproj
+
+
+------------------------------------------------------------------------
+r1211 | brian_gladman | 2008-04-16 11:56:01 +0200 (Wed, 16 Apr 2008) | 1 line
+Changed paths:
+   A /trunk/build.vc9/assembler
+   A /trunk/build.vc9/assembler/a_x64_mulredc.asm
+   A /trunk/build.vc9/assembler/a_x64_redc.asm
+   A /trunk/build.vc9/assembler/test_mulredc.c
+   M /trunk/build.vc9/config.h
+   A /trunk/build.vc9/tests.py
+
+Added YASM assembler code for AMD64 VC++ build
+------------------------------------------------------------------------
+r1210 | zimmerma | 2008-04-15 18:22:55 +0200 (Tue, 15 Apr 2008) | 2 lines
+Changed paths:
+   M /trunk/README
+
+changed comment about efficiency of NTT to match new code
+
+------------------------------------------------------------------------
+r1209 | kruppa | 2008-04-15 17:25:10 +0200 (Tue, 15 Apr 2008) | 3 lines
+Changed paths:
+   M /trunk/pm1fs2.c
+   M /trunk/sets_long.c
+
+Disabled P > 2^30 in 32 bit machines as they lead to overflow in 
+integer arithmetic in sets_long.c. This limits B2-B2min to about 10^15.
+
+------------------------------------------------------------------------
+r1208 | kruppa | 2008-04-15 16:36:06 +0200 (Tue, 15 Apr 2008) | 3 lines
+Changed paths:
+   M /trunk/ecm-impl.h
+   M /trunk/pm1fs2.c
+   M /trunk/sets_long.c
+
+There was an integer overflow problem in sets_sumset_minmax() and maxS()
+on 32 bit machines. Changed arithmetic to use GMP for these.
+
+------------------------------------------------------------------------
+r1207 | kruppa | 2008-04-15 14:40:15 +0200 (Tue, 15 Apr 2008) | 2 lines
+Changed paths:
+   M /trunk/auxlib.c
+   M /trunk/ecm-impl.h
+   M /trunk/pm1.c
+   M /trunk/pp1.c
+
+Fixed overflow when converting maxmem from double -> size_t
+
+------------------------------------------------------------------------
+r1206 | kruppa | 2008-04-15 14:25:32 +0200 (Tue, 15 Apr 2008) | 2 lines
+Changed paths:
+   M /trunk/pm1fs2.c
+
+Print elapsed real time for stage 2 in verbose mode with multi-threading
+
+------------------------------------------------------------------------
+r1205 | kruppa | 2008-04-15 11:03:21 +0200 (Tue, 15 Apr 2008) | 2 lines
+Changed paths:
+   M /trunk/pm1fs2.c
+
+Fixed small output inconsistency in devverbose mode
+
+------------------------------------------------------------------------
+r1204 | kruppa | 2008-04-14 18:46:32 +0200 (Mon, 14 Apr 2008) | 2 lines
+Changed paths:
+   M /trunk/pm1fs2.c
+
+Some changes to avoid integer overflow in memory estimation
+
+------------------------------------------------------------------------
+r1203 | kruppa | 2008-04-14 16:40:01 +0200 (Mon, 14 Apr 2008) | 3 lines
+Changed paths:
+   M /trunk/mpzspm.c
+
+mpzspm_init() could miss a prime just below SP_MAX, reducing possible input
+size for a given transform length.
+
+------------------------------------------------------------------------
+r1202 | kruppa | 2008-04-14 16:38:42 +0200 (Mon, 14 Apr 2008) | 3 lines
+Changed paths:
+   M /trunk/README
+
+Mention OMP_NUM_THREADS for OpenMP, explicit limits for input size and 
+transform length on 32 bit machines.
+
+------------------------------------------------------------------------
+r1201 | kruppa | 2008-04-14 15:40:52 +0200 (Mon, 14 Apr 2008) | 4 lines
+Changed paths:
+   M /trunk/auxlib.c
+
+Print number to be factored in decimal in checkpoint files. Conversion
+to decimal used to be slow, but is fast enough in recent GMP releases that
+this is not an issue any more
+
+------------------------------------------------------------------------
+r1200 | kruppa | 2008-04-14 14:14:19 +0200 (Mon, 14 Apr 2008) | 3 lines
+Changed paths:
+   M /trunk/pm1.c
+
+Made code more linear to avoid having two if() braches with almost 
+identical code.
+
+------------------------------------------------------------------------
+r1199 | kruppa | 2008-04-13 23:32:31 +0200 (Sun, 13 Apr 2008) | 3 lines
+Changed paths:
+   M /trunk/ecm-impl.h
+   M /trunk/ecm.c
+   M /trunk/pm1.c
+   M /trunk/pp1.c
+
+Put code to print "Using B1=..." line in function rather than having 3 
+almost identical copies in pm1.c, pp1.c and ecm.c.
+
+------------------------------------------------------------------------
+r1198 | zimmerma | 2008-04-13 10:48:25 +0200 (Sun, 13 Apr 2008) | 2 lines
+Changed paths:
+   M /trunk/ecm.c
+
+removed trailing blank
+
+------------------------------------------------------------------------
+r1197 | brian_gladman | 2008-04-12 17:09:39 +0200 (Sat, 12 Apr 2008) | 1 line
+Changed paths:
+   M /trunk/README.dev
+   M /trunk/build.vc9/config.h
+
+Update VC++ build to match configure.in version number
+------------------------------------------------------------------------
+r1196 | zimmerma | 2008-04-12 14:25:54 +0200 (Sat, 12 Apr 2008) | 2 lines
+Changed paths:
+   M /trunk/AUTHORS
+
+added Brian in author list
+
+------------------------------------------------------------------------
+r1195 | zimmerma | 2008-04-12 14:23:54 +0200 (Sat, 12 Apr 2008) | 6 lines
+Changed paths:
+   M /trunk/ChangeLog
+   M /trunk/NEWS
+   M /trunk/README
+   M /trunk/configure.in
+
+NEWS: added some important items
+configure.in: changed version to 6.2-rc1
+ChangeLog: added missing entries since 6.1
+README: changes after complete pass (several issues remain to be solved by
+	Jason and/or Alex)
+
+------------------------------------------------------------------------
 r1194 | brian_gladman | 2008-04-11 23:06:30 +0200 (Fri, 11 Apr 2008) | 1 line
 Changed paths:
    A /trunk/build.vc9
