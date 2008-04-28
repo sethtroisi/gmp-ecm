@@ -1,0 +1,564 @@
+.\"     Title: ECM
+.\"    Author: 
+.\" Generator: DocBook XSL Stylesheets v1.73.2 <http://docbook.sf.net/>
+.\"      Date: 04/11/2008
+.\"    Manual: April 22, 2003
+.\"    Source: April 22, 2003
+.\"
+.TH "ECM" "1" "04/11/2008" "April 22, 2003" "April 22, 2003"
+.\" disable hyphenation
+.nh
+.\" disable justification (adjust text to left margin only)
+.ad l
+.SH "NAME"
+ecm - integer factorization using ECM, P-1 or P+1
+.SH "SYNOPSIS"
+.HP 4
+\fBecm\fR [\fBoptions\fR] \fIB1\fR [\fIB2min\fR\-\fIB2max\fR | \fIB2\fR]
+.br
+
+.SH "DESCRIPTION"
+.PP
+ecm is an integer factoring program using the Elliptic Curve Method (ECM), the P\-1 method, or the P+1 method\. The following sections describe parameters relevant to these algorithms\.
+.SH "STEP 1 AND STEP 2 BOUND PARAMETERS"
+.PP
+\fB\fIB1\fR\fR
+.RS 4
+\fIB1\fR
+is the step 1 bound\. It is a mandatory parameter\. It can be given either in integer format (for example 3000000) or in floating\-point format (3000000\.0 or 3e6)\. The largest possible
+\fIB1\fR
+value is 9007199254740996 for P\-1, and ULONG_MAX or 9007199254740996 (whichever is smaller) for ECM and P+1\. All primes 2 <= p <=
+\fIB1\fR
+are processed in step 1\.
+.RE
+.PP
+\fB\fIB2\fR\fR
+.RS 4
+\fIB2\fR
+is the step 2 bound\. It is optional: if omitted, a default value is computed from
+\fIB1\fR, which should be close to optimal\. Like
+\fIB1\fR, it can be given either in integer or in floating\-point format\. The largest possible value of
+\fIB2\fR
+is approximately 9e23, but depends on the number of blocks
+\fIk\fR
+if you specify the
+\fB\-k\fR
+option\. All primes
+\fIB1\fR
+<= p <=
+\fIB2\fR
+are processed in step 2\. If
+\fIB2\fR
+<
+\fIB1\fR, no step 2 is performed\.
+.RE
+.PP
+\fB\fIB2min\fR\fR\fB\-\fR\fB\fIB2max\fR\fR
+.RS 4
+alternatively one may use the
+\fIB2min\fR\-\fIB2max\fR
+form, which means that all primes
+\fIB2min\fR
+<= p <=
+\fIB2max\fR
+should be processed\. Thus specifying
+\fIB2\fR
+only corresponds to
+\fIB1\fR\-\fIB2\fR\. The values of
+\fIB2min\fR
+and
+\fIB2max\fR
+may be arbitrarily large, but their difference must not exceed approximately 9e23, subject to the number of blocks
+\fIk\fR\.
+.RE
+.SH "FACTORING METHOD"
+.PP
+\fB\-pm1\fR
+.RS 4
+Perform P\-1 instead of the default method (ECM)\.
+.RE
+.PP
+\fB\-pp1\fR
+.RS 4
+Perform P+1 instead of the default method (ECM)\.
+.RE
+.PP
+\fB\-t \fR\fB\fIn\fR\fR
+.RS 4
+Perform trial division up to
+\fIn\fR, before P\-1, P+1 or ECM\. In loop mode (see option
+\fB\-c\fR), trial division is only performed in the first run\.
+.RE
+.SH "GROUP AND INITIAL POINT PARAMETERS"
+.PP
+\fB\-x0 \fR\fB\fIx\fR\fR
+.RS 4
+[ECM, P\-1, P+1] Use
+\fIx\fR
+(arbitrary\-precision integer or rational) as initial point\. For example,
+\fB\-x0 1/3\fR
+is valid\. If not given,
+\fIx\fR
+is generated from the sigma value for ECM, or at random for P\-1 and P+1\.
+.RE
+.PP
+\fB\-sigma \fR\fB\fIs\fR\fR
+.RS 4
+[ECM] Use
+\fIs\fR
+(arbitrary\-precision integer) as curve generator\. If omitted,
+\fIs\fR
+is generated at random\.
+.RE
+.PP
+\fB\-A \fR\fB\fIa\fR\fR
+.RS 4
+[ECM] Use
+\fIa\fR
+(arbitrary\-precision integer) as curve parameter\. If omitted, is it generated from the sigma value\.
+.RE
+.PP
+\fB\-go \fR\fB\fIval\fR\fR
+.RS 4
+[ECM, P\-1, P+1] Multiply the initial point by
+\fIval\fR, which can any valid expression, possibly containing the special character N as place holder for the current input number\. Example:
+.sp
+.RS 4
+.nf
+ecm \-pp1 \-go "N^2\-1" 1e6 < composite2000
+.fi
+.RE
+.sp
+.RE
+.SH "STEP 2 PARAMETERS"
+.PP
+\fB\-k \fR\fB\fIk\fR\fR
+.RS 4
+[ECM, P\-1, P+1] Perform
+\fIk\fR
+blocks in step 2\. For a given
+\fIB2\fR
+value, increasing
+\fIk\fR
+decreases the memory usage of step 2, at the expense of more cpu time\.
+.RE
+.PP
+\fB\-treefile \fR\fB\fIfile\fR\fR
+.RS 4
+Stores some tables of data in disk files to reduce the amount of memory occupied in step 2, at the expense of disk I/O\. Data will be written to files
+\fIfile\fR\.1,
+\fIfile\fR\.2 etc\. Does not work with fast stage 2 for P+1 and P\-1\.
+.RE
+.PP
+\fB\-power \fR\fB\fIn\fR\fR
+.RS 4
+[ECM, P\-1] Use x^\fIn\fR
+for Brent\-Suyama\'s extension (\fB\-power 1\fR
+disables Brent\-Suyama\'s extension)\. The default polynomial is chosen depending on the method and B2\. For P\-1 and P+1, disables the fast stage 2\. For P\-1,
+\fIn\fR
+must be even\.
+.RE
+.PP
+\fB\-dickson \fR\fB\fIn\fR\fR
+.RS 4
+[ECM, P\-1] Use degree\-\fIn\fR
+Dickson\'s polynomial for Brent\-Suyama\'s extension\. For P\-1 and P+1, disables the fast stage 2\. Like for
+\fB\-power\fR,
+\fIn\fR
+must be even for P\-1\.
+.RE
+.PP
+\fB\-maxmem \fR\fB\fIn\fR\fR
+.RS 4
+Use at most
+\fIn\fR
+megabytes of memory in stage 2\.
+.RE
+.PP
+\fB\-no\-ntt\fR
+.RS 4
+Disable the Number\-Theoretic Transform code for polynomial arithmetic and allow free choice of dF\. With NTT, dF is chosen to be a power of 2, and limited by the number suitable primes that fit in a machine word, which can be problematic on 32 bit machines with very large B2\. The \-no\-ntt variant uses more memory, however\.
+.RE
+.SH "OUTPUT"
+.PP
+\fB\-q\fR
+.RS 4
+Quiet mode\. Found factorizations are printed on standard output, with factors separated by white spaces, one line per input number (if no factor was found, the input number is simply copied)\.
+.RE
+.PP
+\fB\-v\fR
+.RS 4
+Verbose mode\. More information is printed, more
+\fB\-v\fR
+options increase verbosity\. With one
+\fB\-v\fR, the kind of modular multiplication used, initial x0 value, step 2 parameters and progress, and expected curves and time to find factors of different sizes for ECM are printed\. With
+\fB\-v \-v\fR, the A value for ECM and residues at the end of step 1 and step 2 are printed\. More
+\fB\-v\fR
+print internal data for debugging\.
+.RE
+.PP
+\fB\-timestamp\fR
+.RS 4
+Print a time stamp whenever a new ECM curve or P+1 or P\-1 run is processed\.
+.RE
+.SH "MODULAR ARITHMETIC OPTIONS"
+.PP
+Several algorithms are available for modular multiplication\. The program tries to find the best one for each input; one can force a given method with the following options\.
+.PP
+\fB\-mpzmod\fR
+.RS 4
+Use GMP\'s mpz_mod function (sub\-quadratic for large inputs, but induces some overhead for small ones)\.
+.RE
+.PP
+\fB\-modmuln\fR
+.RS 4
+Use Montgomery\'s multiplication (quadratic version)\. Usually best method for small input\.
+.RE
+.PP
+\fB\-redc\fR
+.RS 4
+Use Montgomery\'s multiplication (sub\-quadratic version)\. Theoretically optimal for large input\.
+.RE
+.PP
+\fB\-nobase2\fR
+.RS 4
+Disable special base\-2 code (which is used when the input number is a large factor of 2^n+1 or 2^n\-1, see
+\fB\-v\fR)\.
+.RE
+.PP
+\fB\-base2\fR \fIn\fR
+.RS 4
+Force use of special base\-2 code, input number must divide 2^\fIn\fR+1 if
+\fIn\fR
+> 0, or 2^|\fIn\fR|\-1 if
+\fIn\fR
+< 0\.
+.RE
+.SH "FILE I/O"
+.PP
+The following options enable one to perform step 1 and step 2 separately, either on different machines, at different times, or using different software (in particular, George Woltman\'s Prime95/mprime program can produce step 1 output suitable for resuming with GMP\-ECM)\. It can also be useful to split step 2 into several runs, using the
+\fIB2min\-B2max\fR
+option\.
+.PP
+\fB\-inp \fR\fB\fIfile\fR\fR
+.RS 4
+Take input from file
+\fIfile\fR
+instead of from standard input\.
+.RE
+.PP
+\fB\-save \fR\fB\fIfile\fR\fR
+.RS 4
+Save result of step 1 in
+\fIfile\fR\. If
+\fIfile\fR
+exists, an error is raised\. Example: to perform only step 1 with
+\fIB1\fR=1000000 on the composite number in the file "c155" and save its result in file "foo", use
+.sp
+.RS 4
+.nf
+ecm \-save foo 1e6 1 < c155
+.fi
+.RE
+.sp
+.RE
+.PP
+\fB\-savea \fR\fB\fIfile\fR\fR
+.RS 4
+Like
+\fB\-save\fR, but appends to existing files\.
+.RE
+.PP
+\fB\-resume \fR\fB\fIfile\fR\fR
+.RS 4
+Resume residues from
+\fIfile\fR, reads from standard input if
+\fIfile\fR
+is "\-"\. Example: to perform step 2 following the above step 1 computation, use
+.sp
+.RS 4
+.nf
+ecm \-resume foo 1e6
+.fi
+.RE
+.sp
+.RE
+.PP
+\fB\-chkpoint \fR\fB\fIfile\fR\fR
+.RS 4
+Periodically write the current residue in stage 1 to
+\fIfile\fR\. In case of a power failure, etc\., the computation can be continued with the
+\fB\-resume\fR
+option\.
+.sp
+.RS 4
+.nf
+ecm \-chkpnt foo \-pm1 1e10 < largenumber\.txt 
+.fi
+.RE
+.sp
+.RE
+.SH "LOOP MODE"
+.PP
+The
+\(lqloop mode\(rq
+(option
+\fB\-c \fR\fB\fIn\fR\fR) enables one to run several curves on each input number\. The following options control its behavior\.
+.PP
+\fB\-c \fR\fB\fIn\fR\fR
+.RS 4
+Perform
+\fIn\fR
+runs on each input number (default is one)\. This option is mainly useful for P+1 (for example with
+\fIn\fR=3) or for ECM, where
+\fIn\fR
+could be set to the expected number of curves to find a d\-digit factor with a given step 1 bound\. This option is incompatible with
+\fB\-resume, \-sigma, \-x0\fR\. Giving
+\fB\-c 0\fR
+produces an infinite loop until a factor is found\.
+.RE
+.PP
+\fB\-one\fR
+.RS 4
+In loop mode, stop when a factor is found; the default is to continue until the cofactor is prime or the specified number of runs are done\.
+.RE
+.PP
+\fB\-b\fR
+.RS 4
+Breadth\-first processing: in loop mode, run one curve for each input number, then a second curve for each one, and so on\. This is the default mode with
+\fB\-inp\fR\.
+.RE
+.PP
+\fB\-d\fR
+.RS 4
+Depth\-first processing: in loop mode, run
+\fIn\fR
+curves for the first number, then
+\fIn\fR
+curves for the second one and so on\. This is the default mode with standard input\.
+.RE
+.PP
+\fB\-ve \fR\fB\fIn\fR\fR
+.RS 4
+In loop mode, in the second and following runs, output only expressions that have at most
+\fIn\fR
+characters\. Default is
+\fB\-ve 0\fR\.
+.RE
+.PP
+\fB\-i \fR\fB\fIn\fR\fR
+.RS 4
+In loop mode, increment
+\fIB1\fR
+by
+\fIn\fR
+after each curve\.
+.RE
+.PP
+\fB\-I \fR\fB\fIn\fR\fR
+.RS 4
+In loop mode, multiply
+\fIB1\fR
+by a factor depending on
+\fIn\fR
+after each curve\. Default is one which should be optimal on one machine, while
+\fB\-I 10\fR
+could be used when trying to factor the same number simultaneously on 10 identical machines\.
+.RE
+.SH "SHELL COMMAND EXECUTION"
+.PP
+These optins allow for executing shell commands to supplement functionality to GMP\-ECM\.
+.PP
+\fB\-prpcmd \fR\fB\fIcmd\fR\fR
+.RS 4
+Execute command
+\fIcmd\fR
+to test primality if factors and cofactors instead of GMP\-ECM\'s own functions\. The number to test is passed via stdin\. An exit code of 0 is interpreted as
+\(lqprobably prime\(rq, a non\-zero exit code as
+\(lqcomposite\(rq\.
+.RE
+.PP
+\fB\-faccmd \fR\fB\fIcmd\fR\fR
+.RS 4
+Executes command
+\fIcmd\fR
+whenever a factor is found by P\-1, P+1 or ECM\. The input number, factor and cofactor are passed via stdin, each on a line\. This could be used i\.e\. to mail new factors automatically:
+.sp
+.RS 4
+.nf
+ecm \-faccmd \'mail \-s \(lq$HOSTNAME found a factor\(rq
+                me@myaddress\.com\' 11e6 < cunningham\.in
+.fi
+.RE
+.sp
+.RE
+.PP
+\fB\-idlecmd \fR\fB\fIcmd\fR\fR
+.RS 4
+Executes command
+\fIcmd\fR
+before each ECM curve, P\-1 or P+1 attempt on a number is started\. If the exit status of
+\fIcmd\fR
+is non\-zero, GMP\-ECM terminates immediately, otherwise it continues normally\. GMP\-ECM is stopped while
+\fIcmd\fR
+runs, offering a way for letting GMP\-ECM sleep for example while the system is otherwise busy\.
+.RE
+.SH "MISCELLANEOUS"
+.PP
+\fB\-n\fR
+.RS 4
+Run the program in
+\(lqnice\(rq
+mode (below normal priority)\.
+.RE
+.PP
+\fB\-nn\fR
+.RS 4
+Run the program in
+\(lqvery nice\(rq
+mode (idle priority)\.
+.RE
+.PP
+\fB\-B2scale \fR\fB\fIf\fR\fR
+.RS 4
+Multiply the default step 2 bound
+\fIB2\fR
+by the floating\-point value
+\fIf\fR\. Example:
+\fB\-B2scale 0\.5\fR
+divides the default
+\fIB2\fR
+by 2\.
+.RE
+.PP
+\fB\-stage1time \fR\fB\fIn\fR\fR
+.RS 4
+Add
+\fIn\fR
+seconds to stage 1 time\. This is useful to get correct expected time with
+\fI\-v\fR
+if part of stage 1 was done in another run\.
+.RE
+.PP
+\fB\-cofdec\fR
+.RS 4
+Force cofactor output in decimal (even if expressions are used)\.
+.RE
+.PP
+\fB\-h\fR, \fB\-\-help\fR
+.RS 4
+Display a short description of ecm usage, parameters and command line options\.
+.RE
+.SH "INPUT SYNTAX"
+.PP
+The input numbers can have several forms:
+.PP
+Raw decimal numbers like 123456789\.
+.PP
+Comments can be placed in the file: everything after
+\(lq//\(rq
+is ignored, up to the end of line\.
+.PP
+Line continuation\. If a line ends with a backslash character
+\(lq\e\(rq, it is considered to continue on the next line\.
+.PP
+Common arithmetic expressions can be used\. Example:
+\fI3*5+2^10\fR\.
+.PP
+Factorial: example
+\fI53!\fR\.
+.PP
+Multi\-factorial: example
+\fI15!3\fR
+means 15*12*9*6*3\.
+.PP
+Primorial: example
+\fI11#\fR
+means 2*3*5*7*11\.
+.PP
+Reduced primorial: example
+\fI17#5\fR
+means 5*7*11*13*17\.
+.PP
+Functions: currently, the only available function is
+\fIPhi(x,n)\fR\.
+.SH "EXIT STATUS"
+.PP
+The exit status reflects the result of the last ECM curve or P\-1/P+1 attempt the program performed\. Individual bits signify particular events, specifically:
+.PP
+Bit 0
+.RS 4
+0 if normal program termination, 1 if error occured
+.RE
+.PP
+Bit 1
+.RS 4
+0 if no proper factor was found, 1 otherwise
+.RE
+.PP
+Bit 2
+.RS 4
+0 if factor is composite, 1 if factor is a probable prime
+.RE
+.PP
+Bit 3
+.RS 4
+0 if cofactor is composite, 1 if cofactor is a probable prime
+.RE
+.PP
+Thus, the following exit status values may occur:
+.PP
+0
+.RS 4
+Normal program termination, no factor found
+.RE
+.PP
+1
+.RS 4
+Error
+.RE
+.PP
+2
+.RS 4
+Composite factor found, cofactor is composite
+.RE
+.PP
+6
+.RS 4
+Probable prime factor found, cofactor is composite
+.RE
+.PP
+8
+.RS 4
+Input number found
+.RE
+.PP
+10
+.RS 4
+Composite factor found, cofactor is a probable prime
+.RE
+.PP
+14
+.RS 4
+Probable prime factor found, cofactor is a probable prime
+.RE
+.SH "BUGS"
+.PP
+Report bugs to <ecm\-discuss@lists\.gforge\.inria\.fr>, after checking <http://www\.loria\.fr/~zimmerma/records/ecmnet\.html> for bug fixes or new versions\.
+.SH "AUTHORS"
+.PP
+Pierrick Gaudry <gaudry at lix dot polytechnique dot fr> contributed efficient assembly code for combined mul/redc;
+.PP
+Jim Fougeron <jfoug at cox dot net> contributed the expression parser and several command\-line options;
+.PP
+Laurent Fousse <laurent at komite dot net> contributed the middle product code, the autoconf/automake tools, and is the maintainer of the Debian package;
+.PP
+Alexander Kruppa <lastname@in\.tum\.de> contributed estimates for probability of success for ECM, the new P+1 and P\-1 stage 2 (with P\.\-L\. Montgomery), new AMD64 asm mulredc code, and some other things;
+.PP
+Dave Newman <david\.lastname@jesus\.ox\.ac\.uk> contributed the Kronecker\-Schoenhage and NTT multiplication code;
+.PP
+Jason S\. Papadopoulos contributed a speedup of the NTT code
+.PP
+Paul Zimmermann <zimmerma at loria dot fr> is the author of the first version of the program and chief maintainer of GMP\-ECM\.
+.PP
+Note: email addresses have been obscured, the required substitutions should be obvious\.

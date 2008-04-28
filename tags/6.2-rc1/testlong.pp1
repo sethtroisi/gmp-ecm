@@ -1,0 +1,107 @@
+#!/bin/sh
+# long test file for P+1 method
+#
+# Copyright 2008 Paul Zimmermann and Alexander Kruppa.
+#
+# This program is free software; you can redistribute it and/or modify it
+# under the terms of the GNU General Public License as published by the
+# Free Software Foundation; either version 2 of the License, or (at your
+# option) any later version.
+#
+# This program is distributed in the hope that it will be useful, but WITHOUT
+# ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+# FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License for
+# more details.
+#
+# You should have received a copy of the GNU General Public License along
+# with this program; see the file COPYING.  If not, write to the Free
+# Software Foundation, Inc., 51 Franklin St, Fifth Floor, Boston,
+# MA 02110-1301, USA.
+
+PP1="$1 -pp1"
+
+# Call with "checkcode $? n" to check that return code is n
+
+checkcode () {
+  if [ $1 != $2 ]
+  then
+    echo "############### ERROR ###############"
+    echo "Expected return code $2 but got $1"
+    exit 1
+  fi
+}
+
+checkcode2 () {
+  if [ $1 != $2 ]
+  then
+    if [ $1 != $3 ]
+    then
+      echo "############### ERROR ###############"
+      echo "Expected return code $2 or $3 but got $1"
+      exit 1
+    fi
+  fi
+}
+
+echo 574535754974673735383001137423881 | $PP1 -x0 5 11046559 34059214979; checkcode $? 8
+
+echo 1212493270942550395500491620526329 | $PP1 -x0 9 1322743 15132776749; checkcode $? 8
+
+echo 12949162694219360835802307 | $PP1 -x0 5 3090877 362336209; checkcode $? 8
+
+echo 2224933405617843870480157177909 | $PP1 -x0 6 568751 573379; checkcode $? 8
+
+echo 6588443517876550825940165572081 | $PP1 -x0 5 308141 4213589; checkcode $? 8
+
+echo 951513164333845779921357796547797 | $PP1 -x0 5 991961 1927816573; checkcode $? 8
+
+echo 30273798812158206865862514296968537 | $PP1 -x0 5 24039443 5071284641; checkcode $? 8
+
+echo 4745647757936790297247194404494391 | $PP1 -x0 9 34652707 4267610467; checkcode $? 8
+
+echo 1267992248510159742851354500921987 | $PP1 -x0 5 205435127 3011959669; checkcode $? 8
+
+echo 3376019969685846629149599470807382641 | $PP1 -x0 5 16221563 125604601; checkcode $? 8
+
+echo 14783171388883747638481280920502006539 | $PP1 -x0 5 5963933 549138481; checkcode $? 8
+
+echo 884764954216571039925598516362554326397028807829 | $PP1 -x0 6 80105797 2080952771; checkcode $? 8
+
+echo 5703989257175782343045829011448227 | $PP1 -x0 6 2737661 581697661; checkcode $? 8
+
+echo 36542278409946587188439197532609203387 | $PP1 -x0 5 75484441 721860287; checkcode $? 8
+
+echo 23737785720181567451870298309457943 | $PP1 -x0 7 138563 9639649; checkcode $? 8
+
+echo 9535226150337134522266549694936148673 | $PP1 -x0 7 3037709 84506953; checkcode $? 8
+
+echo 68095768294557635629913837615365499 | $PP1 -x0 5 36936017 167452427; checkcode $? 8
+
+echo 3180944478436233980230464769757467081 | $PP1 -x0 5 7373719 764097571; checkcode $? 8
+
+echo 2879563791172315088654652145680902993 | $PP1 -x0 7 29850409 34290301; checkcode $? 8
+
+echo 79382035150980920346405340690307261392830949801 | $PP1 -x0 5 12073627 32945877451; checkcode $? 8
+
+echo 514102379852404115560097604967948090456409 | $PP1 -x0 8 223061 61500567937; checkcode $? 8
+
+echo 173357946863134423299822098041421951472072119 | $PP1 -x0 5 992599901 1401995848117; checkcode $? 8
+
+echo 183707757246801094558768264908628886377124291177 | $PP1 -x0 5 382807709 1052258680511; checkcode $? 8
+
+echo 16795982678646459679787538694991838379 | $PP1 -x0 6 2957579 26509499; checkcode $? 8
+
+# this stage 2 is long; discard it for now
+# echo 7986478866035822988220162978874631335274957495008401 | $PP1 -x0 17 1632221953 843497917739
+
+# this one is huge, do not put is for now
+# echo 725516237739635905037132916171116034279215026146021770250523 | $PP1 -x0 5 51245344783 483576618980159; checkcode $? 8
+
+echo 1809864641442542950172698003347770061601055783363 | $PP1 -x0 6 21480101 12037458077389; checkcode $? 8
+
+echo 435326731374486648601801668751442584963 | $PP1 -x0 6 12002513 27231121; checkcode $? 8
+
+echo 3960666914072777038869829205072430197479 | $PP1 -x0 5 16534249 21802223243
+
+echo "All P+1 tests are ok."
+echo ""
