@@ -49,6 +49,12 @@ if ENABLE_ASM_REDC
     mulredc9.s mulredc10.s mulredc11.s mulredc12.s mulredc13.s \
     mulredc14.s mulredc15.s mulredc16.s mulredc17.s mulredc18.s \
     mulredc19.s mulredc20.s
+# .s and .S files don't get cleaned by default?
+  CLEANFILES = redc.S mulredc1.s mulredc2.s mulredc3.s \
+    mulredc4.s mulredc5.s mulredc6.s mulredc7.s mulredc8.s \
+    mulredc9.s mulredc10.s mulredc11.s mulredc12.s mulredc13.s \
+    mulredc14.s mulredc15.s mulredc16.s mulredc17.s mulredc18.s \
+    mulredc19.s mulredc20.s
   tune_LDADD = redc.lo mulredc1.o mulredc2.o mulredc3.o \
     mulredc4.o mulredc5.o mulredc6.o mulredc7.o mulredc8.o \
     mulredc9.o mulredc10.o mulredc11.o mulredc12.o mulredc13.o \
