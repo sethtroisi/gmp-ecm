@@ -130,6 +130,12 @@ if test "x$enable_openmp" = "xyes"; then
   CFLAGS="$CFLAGS -fopenmp"
 fi
 
+dnl Checks for typedefs, structures, and compiler characteristics.
+AC_C_CONST
+AC_C_INLINE
+AC_TYPE_SIZE_T
+AC_HEADER_TIME
+
 dnl Checks for header files.
 AC_FUNC_ALLOCA
 AC_HEADER_STDC
@@ -137,6 +143,61 @@ AC_CHECK_HEADERS([math.h limits.h malloc.h strings.h sys/time.h unistd.h io.h si
 AC_CHECK_HEADERS([windows.h])
 AC_CHECK_HEADERS([ctype.h sys/types.h sys/resource.h])
 
+dnl Checks for library functions that are not in GMP
+AC_FUNC_STRTOD
+AC_CHECK_LIB(m, floor)
+AC_CHECK_FUNCS([floor sqrt pow fmod], [], AC_MSG_ERROR([required function missing]))
+AC_CHECK_FUNCS([isascii memset strchr strlen strncasecmp strstr], [], AC_MSG_ERROR([required function missing]))
+AC_CHECK_FUNCS([access unlink], [], AC_MSG_ERROR([required function missing]))
+AC_CHECK_FUNCS([isspace isdigit isxdigit], [], AC_MSG_ERROR([required function missing]))
+AC_CHECK_FUNCS([time ctime], [], AC_MSG_ERROR([required function missing]))
+AC_CHECK_FUNCS([setpriority nice gethostname gettimeofday getrusage memmove signal])
+
+dnl FIXME: which win32 library contains these functions?
+dnl AC_CHECK_FUNCS([GetCurrentProcess GetProcessTimes])
+AC_CHECK_FUNCS([malloc_usable_size])
+
+
+dnl Find out what warning parameters the compiler understands
+
+AC_MSG_CHECKING(if compiler understands -Wall)
+save_CFLAGS="$CFLAGS"
+CFLAGS="$CFLAGS -Wall"
+AC_COMPILE_IFELSE([AC_LANG_PROGRAM([[]], [[]])], 
+  [AC_MSG_RESULT(yes)], 
+  [AC_MSG_RESULT(no)
+   CFLAGS="$save_CFLAGS"]
+)
+
+AC_MSG_CHECKING(if compiler understands -Wextra)
+save_CFLAGS="$CFLAGS"
+CFLAGS="$CFLAGS -Wextra"
+AC_COMPILE_IFELSE([AC_LANG_PROGRAM([[]], [[]])], 
+  [AC_MSG_RESULT(yes)], 
+  [AC_MSG_RESULT(no)
+   CFLAGS="$save_CFLAGS"]
+)
+
+AC_MSG_CHECKING(if compiler understands -Wundef)
+save_CFLAGS="$CFLAGS"
+CFLAGS="$CFLAGS -Wundef"
+AC_COMPILE_IFELSE([AC_LANG_PROGRAM([[]], [[]])], 
+  [AC_MSG_RESULT(yes)], 
+  [AC_MSG_RESULT(no)
+   CFLAGS="$save_CFLAGS"]
+)
+
+AC_MSG_CHECKING(if compiler understands -pedantic)
+save_CFLAGS="$CFLAGS"
+CFLAGS="$CFLAGS -pedantic"
+AC_COMPILE_IFELSE([AC_LANG_PROGRAM([[]], [[]])], 
+  [AC_MSG_RESULT(yes)], 
+  [AC_MSG_RESULT(no)
+   CFLAGS="$save_CFLAGS"]
+)
+
+
+dnl Find GMP and do some sanity checks
 dnl Tests concerning the include directories.
 if test -d "$with_gmp_include"; then
   dnl AC_CHECK_HEADERS and AC_PREPROC_IFELSE uses CPPFLAGS but not CFLAGS
@@ -144,15 +205,10 @@ if test -d "$with_gmp_include"; then
 else
   with_gmp_include=
 fi
-
-dnl Checks for typedefs, structures, and compiler characteristics.
-AC_C_CONST
-AC_C_INLINE
-AC_TYPE_SIZE_T
-AC_HEADER_TIME
-
 AC_CHECK_HEADERS([gmp.h], [], AC_MSG_ERROR([required header file missing]))
 
+dnl This needs to find only the header file so we can do it here, before
+dnl we start looking for libgmp.a
 AC_MSG_CHECKING(for recent GMP)
 AC_PREPROC_IFELSE([AC_LANG_SOURCE([[
 #include <gmp.h>
@@ -165,8 +221,13 @@ AC_PREPROC_IFELSE([AC_LANG_SOURCE([[
    AC_MSG_ERROR([GMP 4.1.0 or newer is required])]
 )
 
+dnl Now choose how to link the GMP library. If we can, we'd prefer to
+dnl link it statically since that makes for faster function calls. To
+dnl link it statically, we mustn't build a dynamic GMP-ECM library and
+dnl we need to find the libgmp.a file. At the moment, we only look for
+dnl it at the path specified by the user (i.e. --with-gmp) but make no
+dnl attempt to find it in the default system lib directories.
 
-if test "x$enable_shared" != "xyes"; then
 dnl If GMP is linked statically, we add its path/filename to LIBS 
 dnl and, together with mpmod.o, to ECM_FASTOBJ. This will let the make 
 dnl process specify GMP several times on the command line for the linking, 
@@ -174,42 +235,25 @@ dnl to put time critical functions close together in the resulting
 dnl binary to avoid cache collisions.
 dnl If GMP is linked dynamically, -lgmp is added to LIBS but ECM_FASTOBJ
 dnl remains empty.
-dnl We do not modify LIBS directly here as libtool libraries (i.e. *.la)
-dnl interfere with the following AC_CHECK_* calls. The libraries we want
-dnl at compile time are stored in GMPLIB and GWLIB, and assigned to LIBS
-dnl at the end of this file.
 
-dnl AC_CHECK_LIB doesn't do what we want
-  if test -r "$with_gmp_lib/libgmp.la"; then
-    GMPLIB="$with_gmp_lib/libgmp.la"
-    ECM_FASTOBJ="mpmod.o $GMPLIB"
-  elif test -r "$with_gmp_lib/libgmp.a"; then
-    GMPLIB="$with_gmp_lib/libgmp.a"
-    ECM_FASTOBJ="mpmod.o $GMPLIB"
-  elif test -r "$with_gmp_lib/libgmp.so"; then
-    GMPLIB="$with_gmp_lib/libgmp.so"
-    ECM_FASTOBJ="mpmod.o $GMPLIB"
-  elif test -r "$with_gmp_lib/libgmp.lib"; then
-    GMPLIB="$with_gmp_lib/libgmp.lib"
-    ECM_FASTOBJ="mpmod.o $GMPLIB"
-  else
-    if test -d "$with_gmp_lib"; then
-      LDFLAGS="-L$with_gmp_lib $LDFLAGS"
-    fi  
-    GMPLIB="-lgmp"
-  fi
-else
-  if test -d "$with_gmp_lib"; then
-    LDFLAGS="-L$with_gmp_lib $LDFLAGS"
-  fi
-  GMPLIB="-lgmp"
+GMPLDFLAGS=""
+if test -d "$with_gmp_lib"; then
+  GMPLDFLAGS="-L$with_gmp_lib"
 fi
+GMPLIB="-lgmp"
+if test "x$enable_shared" != "xyes"; then
+  if test -r "$with_gmp_lib/libgmp.a"; then
+    GMPLIB="$with_gmp_lib/libgmp.a"
+dnl Don't need -L flag since we give full path to libgmp.a
+    GMPLDFLAGS=""
+    ECM_FASTOBJ="mpmod.o $GMPLIB"
+  fi
+fi
+LIBS="$LIBS $GMPLIB"
+LDFLAGS="$LDFLAGS $GMPLDFLAGS"
 
 dnl Check for corresponding 'gmp.h' and libgmp.a
 AC_MSG_CHECKING(if gmp.h version and libgmp version are the same)
-# Save the current LIBS value in a temp var. Is there a prettier way?
-SAVED_LIBS="$LIBS"
-LIBS="-lgmp"
 AC_RUN_IFELSE([AC_LANG_PROGRAM([[
 #include <stdio.h>
 #include <string.h>
@@ -228,22 +272,8 @@ return strcmp (buffer, gmp_version);
     AC_MSG_ERROR(['gmp.h' and 'libgmp' have different versions! you have to properly reinstall GMP.])],
     AC_MSG_RESULT([cross-compiling: cannot test])
 )
-LIBS="$SAVED_LIBS"
 
-dnl Checks for library functions.
-AC_FUNC_STRTOD
-AC_CHECK_LIB(m, floor)
-AC_CHECK_FUNCS([floor sqrt pow fmod], [], AC_MSG_ERROR([required function missing]))
-AC_CHECK_FUNCS([isascii memset strchr strlen strncasecmp strstr], [], AC_MSG_ERROR([required function missing]))
-AC_CHECK_FUNCS([access unlink], [], AC_MSG_ERROR([required function missing]))
-AC_CHECK_FUNCS([isspace isdigit isxdigit], [], AC_MSG_ERROR([required function missing]))
-AC_CHECK_FUNCS([time ctime], [], AC_MSG_ERROR([required function missing]))
-AC_CHECK_FUNCS([setpriority nice gethostname gettimeofday getrusage memmove signal])
-
-dnl FIXME: which win32 library contains these functions?
-dnl AC_CHECK_FUNCS([GetCurrentProcess GetProcessTimes])
 AC_CHECK_FUNCS([__gmpn_add_nc __gmpn_mod_34lsub1])
-AC_CHECK_FUNCS([malloc_usable_size])
 
 dnl Check for xsltproc
 AC_CHECK_PROG(XSLTPROC,xsltproc,xsltproc,)
@@ -280,8 +310,8 @@ case $host in
   *) config_arch="default" ;;
 esac
 
-# Put all the libraries we need for building in LIBS
-LIBS="$LIBS $GMPLIB $GWLIB"
+
+LIBS="$LIBS $GWLIB"
 
 GMP_FINISH
 AC_CONFIG_FILES(Makefile athlon/Makefile pentium4/Makefile x86_64/Makefile)
@@ -289,8 +319,6 @@ AC_CONFIG_LINKS(ecm-params.h:ecm-params.h.$config_arch)
 
 AC_SUBST(INCLUDES)
 AC_SUBST(LDADD)
-AC_SUBST(LDFLAGS)
-AC_SUBST(CFLAGS)
 AC_SUBST(XSLDIR)
 AC_SUBST(ECM_FASTOBJ)
 AC_OUTPUT

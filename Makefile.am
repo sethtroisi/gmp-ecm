@@ -16,8 +16,6 @@ noinst_PROGRAMS = tune ecmfactor
 
 LDADD = libecm.la
 
-AM_CPPFLAGS = -pedantic
-
 ecm_CPPFLAGS = -DOUTSIDE_LIBECM $(AM_CPPFLAGS)
 ecm_SOURCES = auxi.c b1_ainc.c candi.c eval.c random.c main.c trial.c \
               resume.c getprime.c
