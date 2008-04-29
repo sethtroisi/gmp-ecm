@@ -317,14 +317,14 @@ MPN_FFT_ZERO (mp_ptr dst, mp_size_t n)
        Put 0 in %rax. */
 }
 #elif defined(__i386__) && defined(__GNUC__) && defined(OWN_MPN_FFT_ZERO)
-void static inline
+static inline void
 MPN_FFT_ZERO (mp_ptr dst, mp_size_t n)
 {
     __asm__ __volatile__ ("rep stosl" : "+c" (n), "+D" (dst) : "a" (0) : 
 			  "memory");
 }
 #elif defined(_MSC_VER) && !defined(_WIN64)
-void static inline
+static inline void
 MPN_FFT_ZERO (mp_ptr dst, mp_size_t n)
 {
     ASSERT(n >= 0);
@@ -355,14 +355,14 @@ MPN_FFT_STORE (mp_ptr dst, mp_size_t n, mp_limb_t d)
        Put 0 in %rax. */
 }
 #elif defined(__i386__) && defined(__GNUC__) && defined(OWN_MPN_FFT_ZERO)
-void static inline
+static inline void
 MPN_FFT_STORE (mp_ptr dst, mp_size_t n, mp_limb_t d)
 {
     __asm__ __volatile__ ("rep stosl" : "+c" (n), "+D" (dst) : "a" (d) :
 			  "memory");
 }
 #elif defined(_MSC_VER) && !defined(_WIN64)
-void static inline
+static inline void
 MPN_FFT_STORE (mp_ptr dst, mp_size_t n, mp_limb_t d)
 {
     ASSERT(n >= 0);
@@ -655,7 +655,7 @@ mpn_fft_mul_2exp_modF (mp_ptr r, mp_srcptr a, unsigned int d, mp_size_t n)
 
   sh = MOD_GMP_NUMB_BITS(d);
   d  = DIV_GMP_NUMB_BITS(d);
-  negate = d >= n;
+  negate = d >= (unsigned int) n;
 
   if (negate)
     {
@@ -805,7 +805,7 @@ mpn_fft_lshsub_modF (mp_ptr r, mp_srcptr a, mp_srcptr b, unsigned int d,
 {
   ASSERT (d < 2 * n);
 
-  if (d >= n) /* (a-b)*B^d = (b-a)*B^(d-n) */
+  if (d >= (unsigned int) n) /* (a-b)*B^d = (b-a)*B^(d-n) */
     {
       mp_srcptr t;
 
@@ -1246,7 +1246,7 @@ mpn_fft_butterfly_rotbufN (mp_ptr *A, mp_size_t i0, mp_size_t i1,
   mp_size_t N = MUL_4GMP_NUMB_BITS(n); /* 4 * n * GMP_NUMB_BITS */
   unsigned int d;
 
-  if (e0 >= N)
+  if (e0 >= (unsigned int) N)
     e0 -= N;
   DIVMOD_2GMP_NUMB_BITS (d,e0); /* 0 <= d < 2*n, 0 <= e0 < 2*GMP_NUMB_BITS */
   mpn_fft_lshsub_modF (rotbuf[0], A[i0], A[i1], d, n);
