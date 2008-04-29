@@ -377,7 +377,7 @@ MPN_FFT_STORE (mp_ptr dst, mp_size_t n, mp_limb_t d)
     }
 }
 #else
-void static inline
+static inline void
 MPN_FFT_STORE (mp_ptr dst, mp_size_t n, mp_limb_t d)
 {
     ASSERT(n >= 0);
@@ -387,7 +387,7 @@ MPN_FFT_STORE (mp_ptr dst, mp_size_t n, mp_limb_t d)
 #endif
 
 #if defined(__x86_64__) && defined(__GNUC__) && defined(OWN_MPN_FFT_COPY)
-void static inline 
+static inline void
 MPN_FFT_COPY (mp_ptr dst, const mp_srcptr src, mp_size_t n)
 {
     __asm__ __volatile__ ("rep movsq": "+c" (n), "+S" (src), "+D" (dst) :
@@ -398,14 +398,14 @@ MPN_FFT_COPY (mp_ptr dst, const mp_srcptr src, mp_size_t n)
        FIXME: should "memory" go in the clobbered list? */
 }
 #elif defined(__i386__) && defined(__GNUC__) && defined(OWN_MPN_FFT_COPY)
-void static inline
+static inline void
 MPN_FFT_COPY (mp_ptr dst, const mp_srcptr src, mp_size_t n)
 {
     __asm__ __volatile__ ("rep movsl" : "+c" (n), "+S" (src), "+D" (dst) :
 			  "memory");
 }
 #elif defined(_MSC_VER) && !defined(_WIN64)
-void static inline
+static inline void
 MPN_FFT_COPY (mp_ptr dst, const mp_srcptr src, mp_size_t n)
 {
     __asm
