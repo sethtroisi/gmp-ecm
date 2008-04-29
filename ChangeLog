@@ -1,4 +1,109 @@
 ------------------------------------------------------------------------
+r1240 | kruppa | 2008-04-29 16:16:58 +0200 (Tue, 29 Apr 2008) | 2 lines
+Changed paths:
+   M /trunk/mul_fft.c
+
+More compiler warnings fixed...
+
+------------------------------------------------------------------------
+r1239 | zimmerma | 2008-04-29 16:06:38 +0200 (Tue, 29 Apr 2008) | 2 lines
+Changed paths:
+   M /trunk/NEWS
+   M /trunk/ecm.h
+
+put ecm.h under LGPL (as it should have been from the beginning...)
+
+------------------------------------------------------------------------
+r1238 | kruppa | 2008-04-29 15:36:30 +0200 (Tue, 29 Apr 2008) | 2 lines
+Changed paths:
+   M /trunk/auxlib.c
+   M /trunk/longlong.h
+   M /trunk/mul_fft.c
+
+Fixed some more compiler warnings
+
+------------------------------------------------------------------------
+r1237 | kruppa | 2008-04-29 15:14:20 +0200 (Tue, 29 Apr 2008) | 4 lines
+Changed paths:
+   M /trunk/configure.in
+
+Probing for compiler warning flags was unreliable: with Sun CC, -pedantic
+succeeds in the test, but fails during compiling. Adding warning flags only
+if we use GCC now
+
+------------------------------------------------------------------------
+r1236 | kruppa | 2008-04-29 14:01:38 +0200 (Tue, 29 Apr 2008) | 7 lines
+Changed paths:
+   M /trunk/ecm-impl.h
+   M /trunk/ecm.c
+   M /trunk/ecm_ntt.c
+   M /trunk/eval.c
+   M /trunk/main.c
+   M /trunk/pm1fs2.c
+   M /trunk/polyeval.c
+   M /trunk/pp1.c
+   M /trunk/random.c
+   M /trunk/schoen_strass.c
+   M /trunk/sp.h
+   M /trunk/stage2.c
+
+Changed some "#if HAVE_*" to "#ifdef HAVE_*" to avoid warnings with -Wundef
+This implies that "#define HAVE_FOO 0" makes the ifdef succeed which is
+counter-intuitive. 
+A test that can properly distinguish macros that are undefined, defined 
+to empty token, defined to 0 or defined to 1 seems to require token 
+concatenation and two-level expansion which is horrible.
+
+------------------------------------------------------------------------
+r1235 | kruppa | 2008-04-28 20:38:54 +0200 (Mon, 28 Apr 2008) | 2 lines
+Changed paths:
+   M /trunk/ecm.1
+
+Man page was out of date, re-made from ecm.xml
+
+------------------------------------------------------------------------
+r1234 | kruppa | 2008-04-28 20:36:32 +0200 (Mon, 28 Apr 2008) | 5 lines
+Changed paths:
+   M /trunk/Makefile.am
+   M /trunk/configure.in
+
+Fixed bug, test for matching version in gmp.h and libgmp failed due to 
+missing include path if there was no gmp.h in a default include directory. 
+Significant rewrite that hopefully is both more correct and cleaner. 
+Added tests for compiler warning flags.
+
+------------------------------------------------------------------------
+r1232 | kruppa | 2008-04-28 16:58:54 +0200 (Mon, 28 Apr 2008) | 2 lines
+Changed paths:
+   M /trunk/ChangeLog
+
+Added recent changes to ChangeLog
+
+------------------------------------------------------------------------
+r1231 | kruppa | 2008-04-28 16:38:58 +0200 (Mon, 28 Apr 2008) | 2 lines
+Changed paths:
+   M /trunk/INSTALL
+
+Some updates for 6.2rc1
+
+------------------------------------------------------------------------
+r1230 | kruppa | 2008-04-28 16:24:21 +0200 (Mon, 28 Apr 2008) | 3 lines
+Changed paths:
+   M /trunk/Makefile.am
+
+Added .s and .S files to CLEANFILES, as they did not get cleaned up 
+by default
+
+------------------------------------------------------------------------
+r1229 | kruppa | 2008-04-28 12:14:50 +0200 (Mon, 28 Apr 2008) | 2 lines
+Changed paths:
+   M /trunk/test.ecm
+   M /trunk/test.pm1
+   M /trunk/test.pp1
+
+Added a test in each file with an input too large for mulredc*()
+
+------------------------------------------------------------------------
 r1228 | kruppa | 2008-04-28 01:05:06 +0200 (Mon, 28 Apr 2008) | 3 lines
 Changed paths:
    M /trunk/configure.in
