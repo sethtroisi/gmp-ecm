@@ -50,7 +50,7 @@ extern size_t MPZSPV_NORMALISE_STRIDE;
  * GMP_IMPL.H *
  **************/
 
-#if WANT_ASSERT
+#ifdef WANT_ASSERT
 #include <assert.h>
 #define ASSERT(expr)   assert (expr)
 #else

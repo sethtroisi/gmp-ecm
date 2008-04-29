@@ -32,7 +32,7 @@
 #include <stdlib.h>
 #include "ecm-impl.h"
 
-#if HAVE_LIMITS_H
+#ifdef HAVE_LIMITS_H
 # include <limits.h>
 #else
 # ifndef ULONG_MAX

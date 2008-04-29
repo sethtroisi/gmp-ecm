@@ -32,10 +32,10 @@
 #include "ecm-impl.h"
 #include "sp.h"
 #include <math.h>
-#if HAVE_ALLOCA_H
+#ifdef HAVE_ALLOCA_H
 #include <alloca.h>
 #endif
-#if HAVE_STRING_H
+#ifdef HAVE_STRING_H
 #include <string.h>
 #endif
 #ifdef _OPENMP

@@ -27,7 +27,7 @@
 #include <math.h> /* for floor */
 #include <string.h> /* for strlen */
 
-#if HAVE_UNISTD_H
+#ifdef HAVE_UNISTD_H
 #include <unistd.h> /* for unlink */
 #endif
 

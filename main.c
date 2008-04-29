@@ -717,7 +717,7 @@ main (int argc, char *argv[])
 	  printf ("ECM");
 	}
       printf ("]\n");
-#if HAVE_GETHOSTNAME == 1
+#ifdef HAVE_GETHOSTNAME
   if (verbose >= 2)
     {
 #define MNAMESIZE  64
