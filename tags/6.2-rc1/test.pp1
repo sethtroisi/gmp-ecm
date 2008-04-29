@@ -1,0 +1,114 @@
+#!/bin/sh
+# test file for P+1 method
+#
+# Copyright 2002, 2003 Paul Zimmermann and Alexander Kruppa.
+#
+# This program is free software; you can redistribute it and/or modify it
+# under the terms of the GNU General Public License as published by the
+# Free Software Foundation; either version 2 of the License, or (at your
+# option) any later version.
+#
+# This program is distributed in the hope that it will be useful, but WITHOUT
+# ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+# FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License for
+# more details.
+#
+# You should have received a copy of the GNU General Public License along
+# with this program; see the file COPYING.  If not, write to the Free
+# Software Foundation, Inc., 51 Franklin St, Fifth Floor, Boston,
+# MA 02110-1301, USA.
+
+PP1="$1 -pp1"
+
+# Call with "checkcode $? n" to check that return code is n
+
+checkcode () {
+  if [ $1 != $2 ]
+  then
+    echo "############### ERROR ###############"
+    echo "Expected return code $2 but got $1"
+    exit 1
+  fi
+}
+
+checkcode2 () {
+  if [ $1 != $2 ]
+  then
+    if [ $1 != $3 ]
+    then
+      echo "############### ERROR ###############"
+      echo "Expected return code $2 or $3 but got $1"
+      exit 1
+    fi
+  fi
+}
+
+# P+1 requires that sigma^2-4 is a quadratic non-residue mod p
+
+echo 328006342451 | $PP1 -x0 5 120 7043; checkcode $? 8
+
+# check rational seed
+echo 328006342451 | $PP1 -x0 1/5 120 7043; checkcode $? 8
+
+# try primes < d in stage 2
+echo 2050449218179969792522461197 | $PP1 -x0 6 -k 1 20 0-1e6; checkcode $? 14
+
+echo 6215074747201 | $PP1 -x0 5 630 199729; checkcode $? 8
+
+# bug in 6.1.3
+echo 6215074747201 | $PP1 -power 2 -x0 5 630 199729; checkcode $? 8
+echo 6215074747201 | $PP1 -dickson 3 -x0 5 630 199729; checkcode $? 8
+
+echo 8857714771093 | $PP1 -x0 3 23251 49207; checkcode $? 8
+
+echo 236344687097 | $PP1 -x0 3 619 55001; checkcode $? 8
+
+echo 87251820842149 | $PP1 -x0 5 3691 170249; checkcode $? 8
+
+echo 719571227339189 | $PP1 -x0 4 41039 57679; checkcode $? 8
+
+echo 5468575720021 | $PP1 -x0 6 1439 175759; checkcode $? 8
+
+echo 49804972211 | $PP1 -x0 5 15443 268757; checkcode $? 8
+
+echo 329573417220613 | $PP1 -x0 3 5279 101573; checkcode $? 8
+
+echo 4866979762781 | $PP1 -x0 4 7309 97609; checkcode $? 8
+
+echo 187333846633 | $PP1 -x0 3 2063 9851; checkcode $? 8
+
+echo 332526664667473 | $PP1 -x0 3 65993 111919; checkcode $? 8
+
+echo 265043186297 | $PP1 -x0 3 8761 152791; checkcode $? 8
+
+echo 207734163253 | $PP1 -x0 3 1877 4211; checkcode $? 8
+
+echo 225974065503889 | $PP1 -x0 5 -k 5 7867 8243; checkcode $? 8
+
+echo 660198074631409 | $PP1 -x0 5 22541 115679; checkcode $? 8
+
+echo 563215815517 | $PP1 -x0 3 3469 109849; checkcode $? 8
+
+# test B2min-B2
+echo 563215815517 | $PP1 -x0 3 3469 109849-109849; checkcode $? 8
+
+echo 409100738617 | $PP1 -x0 3 19 19; checkcode $? 8
+
+# p37 from 45^123+1 found by Peter Montgomery with B1=30M
+echo 2277189375098448170118558775447117254551111605543304035536750762506158547102293199086726265869065639109 | $PP1 -x0 3 2337233 132554351
+checkcode $? 14
+
+# bug in ecm-5.0 (overflow in fin_diff_coeff)
+echo 630503947831861669 | $PP1 -x0 5 7 9007199254740000-9007199254741000; checkcode $? 8
+
+# bug in ecm-6.0.1 on 64-bit machines
+echo 8589934621 | $PP1 -x0 10 4294967310-4294967311 1; checkcode2 $? 1 8
+
+# A test with a larger input number to test modular arithmetic routines not
+# in mulredc*.asm. This input has 1363 bits so it has 22 64 bit words 
+# (43 32 bit words) and cannot use mulredc which handles only up to 20 limbs
+
+echo "6054018161*10^400+417727253109" | $PP1 -x0 4 2e3 2e6; checkcode $? 14
+
+echo "All P+1 tests are ok."
+echo ""

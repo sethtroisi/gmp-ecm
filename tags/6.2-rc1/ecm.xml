@@ -1,0 +1,716 @@
+<?xml version="1.0" encoding="ISO-8859-1"?>
+<!DOCTYPE refentry PUBLIC "-//OASIS//DTD DocBook XML V4.1.2//EN"
+                   "http://www.oasis-open.org/docbook/xml/4.1.2/docbookx.dtd">
+<!-- lifted from troff+man by doclifter -->
+<refentry>
+<!--                                       Hey, EMACS: \-*\- nroff \-*\- -->
+<!--  First parameter, NAME, should be all caps -->
+<!--  Second parameter, SECTION, should be 1\-8, maybe w/ subsection -->
+<!--  other parameters are allowed: see man(7), man(1) -->
+<refmeta>
+<refentrytitle>ECM</refentrytitle>
+<manvolnum>1</manvolnum>
+<refmiscinfo class='source'>April 22, 2003</refmiscinfo>
+</refmeta>
+<refnamediv id='name'>
+<refname>ecm</refname>
+<refpurpose>integer factorization using ECM, P-1 or P+1</refpurpose>
+</refnamediv>
+<!-- body begins here -->
+<refsynopsisdiv id='synopsis'>
+<cmdsynopsis>
+  <command>ecm</command>    
+    <arg choice='opt'><option>options</option></arg>
+    <arg choice='plain'><replaceable>B1</replaceable></arg>
+    <group choice='opt'><arg choice='plain'><replaceable>B2min</replaceable>-<replaceable>B2max</replaceable></arg><arg choice='plain'><replaceable>B2</replaceable></arg></group>
+    <sbr/>
+</cmdsynopsis>
+</refsynopsisdiv>
+
+
+<refsect1 id='description'><title>DESCRIPTION</title>
+<para>ecm is an integer factoring program using the Elliptic Curve
+Method (ECM), the P-1 method, or the P+1 method.
+The following sections describe parameters relevant to these
+algorithms.</para>
+
+</refsect1>
+
+<refsect1 id='bounds'><title>STEP 1 AND STEP 2 BOUND PARAMETERS</title>
+<variablelist remap='TP'>
+  <varlistentry>
+  <term><emphasis remap='B'><replaceable>B1</replaceable></emphasis></term>
+  <listitem>
+<para><replaceable>B1</replaceable> is the step 1 bound. It is a mandatory parameter. It can be given
+either in integer format (for example 3000000) or in floating-point
+format (3000000.0 or 3e6). The largest possible <replaceable>B1</replaceable> value is
+9007199254740996 for P-1, and ULONG_MAX or 9007199254740996 (whichever is
+smaller) for ECM and P+1.  All primes 2 &lt;=
+p &lt;= <replaceable>B1</replaceable> are processed in step 1.</para>
+
+  </listitem>
+  </varlistentry>
+  <varlistentry>
+  <term><emphasis remap='B'><replaceable>B2</replaceable></emphasis></term>
+  <listitem>
+<para><replaceable>B2</replaceable> is the step 2 bound. It is optional: if 
+omitted, a default value is computed from <replaceable>B1</replaceable>, which 
+should be close to optimal. Like <replaceable>B1</replaceable>, it can be given 
+either in integer or in floating-point format. The largest possible value of 
+<replaceable>B2</replaceable> is approximately 9e23, but depends on the 
+number of blocks <replaceable>k</replaceable> if you specify the 
+<option>-k</option> option. All primes 
+<replaceable>B1</replaceable> &lt;= p &lt;= <replaceable>B2</replaceable> 
+are processed in step 2. If <replaceable>B2</replaceable> &lt;
+<replaceable>B1</replaceable>, no step 2 is performed.</para>
+
+  </listitem>
+  </varlistentry>
+  <varlistentry>
+  <term><emphasis remap='B'><replaceable>B2min</replaceable>-<replaceable>B2max</replaceable></emphasis></term>
+  <listitem>
+<para>alternatively one may use the 
+<replaceable>B2min</replaceable>-<replaceable>B2max</replaceable> 
+form, which means that all primes 
+<replaceable>B2min</replaceable> &lt;= p &lt;= <replaceable>B2max</replaceable> 
+should be processed. Thus specifying <replaceable>B2</replaceable> only corresponds to 
+<replaceable>B1</replaceable>-<replaceable>B2</replaceable>. The values of 
+<replaceable>B2min</replaceable> and <replaceable>B2max</replaceable> may be 
+arbitrarily large, but their difference must not exceed approximately 9e23, 
+subject to the number of blocks <replaceable>k</replaceable>.</para>
+  </listitem>
+  </varlistentry>
+</variablelist>
+</refsect1>
+
+<refsect1 id='factoring_method'><title>FACTORING METHOD</title>
+<variablelist remap='TP'>
+  <varlistentry>
+  <term><option>-pm1</option></term>
+  <listitem>
+<para>Perform P-1 instead of the default method (ECM).</para>
+  </listitem>
+  </varlistentry>
+
+  <varlistentry>
+  <term><option>-pp1</option></term>
+  <listitem>
+<para>Perform P+1 instead of the default method (ECM).</para>
+  </listitem>
+  </varlistentry>
+
+  <varlistentry>
+  <term><option>-t <replaceable>n</replaceable></option></term>
+  <listitem>
+<para>Perform trial division up to <replaceable>n</replaceable>,
+before P-1, P+1 or ECM.  In loop mode (see option <option>-c</option>),
+trial division is only performed in the first run.
+</para>
+  </listitem>
+  </varlistentry>
+
+</variablelist>
+</refsect1>
+
+<refsect1 id='group_and_initial_point_parameters'><title>GROUP AND INITIAL POINT PARAMETERS</title>
+<variablelist remap='TP'>
+  <varlistentry>
+  <term><option>-x0 <replaceable>x</replaceable></option></term>
+  <listitem>
+<para>[ECM, P-1, P+1] Use <replaceable>x</replaceable> 
+(arbitrary-precision integer or rational)
+as initial point. For example, <option>-x0 1/3</option> is
+valid. If not given, <replaceable>x</replaceable> is generated from the sigma
+value for ECM, or at random for P-1 and P+1.</para>
+
+  </listitem>
+  </varlistentry>
+  <varlistentry>
+  <term><option>-sigma <replaceable>s</replaceable></option></term>
+  <listitem>
+<para>[ECM] Use <replaceable>s</replaceable> (arbitrary-precision integer) as
+curve generator. If omitted, <replaceable>s</replaceable> is generated at
+random.</para>
+  </listitem>
+  </varlistentry>
+
+  <varlistentry>
+  <term><option>-A <replaceable>a</replaceable></option></term>
+  <listitem>
+<para>[ECM] Use <replaceable>a</replaceable> (arbitrary-precision integer) as
+curve parameter. If omitted, is it generated from the sigma value.
+</para>
+  </listitem>
+  </varlistentry>
+
+  <varlistentry>
+  <term><option>-go <replaceable>val</replaceable></option></term>
+  <listitem>
+<para>[ECM, P-1, P+1] Multiply the initial point by
+<replaceable>val</replaceable>, which can any valid expression,
+possibly containing the special character N as place holder for the current
+input number. Example:
+<programlisting>ecm -pp1 -go "N^2-1" 1e6 &lt; composite2000</programlisting>
+</para>
+  </listitem>
+  </varlistentry>
+
+</variablelist>
+</refsect1>
+
+<refsect1 id='step_2_parameters'><title>STEP 2 PARAMETERS</title>
+<variablelist remap='TP'>
+  <varlistentry>
+  <term><option>-k <replaceable>k</replaceable></option></term>
+  <listitem>
+<para>[ECM, P-1, P+1] Perform <replaceable>k</replaceable> blocks in step 2.
+For a given <replaceable>B2</replaceable> value, increasing 
+<replaceable>k</replaceable> decreases the memory usage of step 2, at the 
+expense of more cpu time.</para>
+  </listitem>
+  </varlistentry>
+
+  <varlistentry>
+  <term><option>-treefile <replaceable>file</replaceable></option></term>
+  <listitem>
+<para>Stores some tables of data in disk files to reduce the amount of 
+memory occupied in step 2, at the expense of disk I/O. Data will be written to 
+files <replaceable>file</replaceable>.1, <replaceable>file</replaceable>.2 etc.
+Does not work with fast stage 2 for P+1 and P-1.
+</para>
+  </listitem>
+  </varlistentry>
+
+  <varlistentry>
+  <term><option>-power <replaceable>n</replaceable></option></term>
+  <listitem>
+<para>[ECM, P-1]
+Use x^<replaceable>n</replaceable> for Brent-Suyama's extension
+(<option>-power 1</option> disables Brent-Suyama's extension).
+The default polynomial is chosen depending on the method and B2.
+For P-1 and P+1, disables the fast stage 2.
+For P-1, <replaceable>n</replaceable> must be even.</para>
+  </listitem>
+  </varlistentry>
+
+  <varlistentry>
+  <term><option>-dickson <replaceable>n</replaceable></option></term>
+  <listitem>
+<para>[ECM, P-1]
+Use degree-<replaceable>n</replaceable> Dickson's polynomial for Brent-Suyama's extension.
+For P-1 and P+1, disables the fast stage 2.
+Like for <option>-power</option>, <replaceable>n</replaceable> must be 
+even for P-1.</para>
+  </listitem>
+  </varlistentry>
+
+  <varlistentry>
+  <term><option>-maxmem <replaceable>n</replaceable></option></term>
+  <listitem>
+<para>Use at most <replaceable>n</replaceable> megabytes of memory in 
+      stage 2.</para>
+  </listitem>
+  </varlistentry>
+
+  <varlistentry>
+  <term><option>-no-ntt</option></term>
+  <listitem>
+<para>Disable the Number-Theoretic Transform code for polynomial arithmetic 
+and allow free choice of dF. With NTT, dF is chosen to be a power of 2,
+and limited by the number suitable primes that fit in a machine word. 
+The -no-ntt variant uses more memory, however.
+</para>
+  </listitem>
+  </varlistentry>
+</variablelist>
+</refsect1>
+
+<refsect1 id='output'><title>OUTPUT</title>
+<variablelist remap='TP'>
+  <varlistentry>
+  <term><option>-q</option></term>
+  <listitem>
+<para>Quiet mode. Found factorizations are printed on standard output,
+with factors separated by white spaces, one line per input number
+(if no factor was found, the input number is simply copied).
+</para>
+  </listitem>
+  </varlistentry>
+
+  <varlistentry>
+  <term><option>-v</option></term>
+  <listitem>
+<para>Verbose mode. More information is printed, more <option>-v</option> 
+options increase verbosity. With one <option>-v</option>, the kind of modular
+multiplication used, initial x0 value, step 2 parameters and progress, and 
+expected curves and time to find factors of different sizes for ECM are 
+printed. With <option>-v -v</option>, the A value for ECM 
+and residues at the end of step 1 and step 2 are printed. More 
+<option>-v</option> print internal data for debugging.
+</para>
+  </listitem>
+  </varlistentry>
+
+  <varlistentry>
+  <term><option>-timestamp</option></term>
+  <listitem>
+<para>Print a time stamp whenever a new ECM curve or P+1 or P-1 run is 
+processed.</para>
+  </listitem>
+  </varlistentry>
+
+</variablelist>
+</refsect1>
+
+<refsect1 id='modular_arithmetic_options'><title>MODULAR ARITHMETIC OPTIONS</title>
+<para>Several algorithms are available for modular multiplication.
+The program tries to find the best one for each input;
+one can force a given method with the following options.</para>
+<variablelist remap='TP'>
+  <varlistentry>
+  <term><option>-mpzmod</option></term>
+  <listitem>
+<para>Use GMP's mpz_mod function (sub-quadratic for large inputs, but induces
+some overhead for small ones).</para>
+  </listitem>
+  </varlistentry>
+
+  <varlistentry>
+  <term><option>-modmuln</option></term>
+  <listitem>
+<para>Use Montgomery's multiplication (quadratic version). Usually
+best method for small input.</para>
+  </listitem>
+  </varlistentry>
+
+  <varlistentry>
+  <term><option>-redc</option></term>
+  <listitem>
+<para>Use Montgomery's multiplication (sub-quadratic version).
+Theoretically optimal for large input.</para>
+  </listitem>
+  </varlistentry>
+
+  <varlistentry>
+  <term><option>-nobase2</option></term>
+  <listitem>
+<para>Disable special base-2 code (which is used when the input number is a
+large factor of 2^n+1 or 2^n-1, see <option>-v</option>).</para>
+  </listitem>
+  </varlistentry>
+
+  <varlistentry>
+  <term><option>-base2</option> <replaceable>n</replaceable></term>
+  <listitem>
+<para>Force use of special base-2 code, input number must divide 
+2^<replaceable>n</replaceable>+1 if <replaceable>n</replaceable> &gt; 0, 
+or 2^|<replaceable>n</replaceable>|-1 if <replaceable>n</replaceable> &lt; 0.
+</para>
+  </listitem>
+  </varlistentry>
+
+</variablelist>
+</refsect1>
+
+<refsect1 id='file_io'><title>FILE I/O</title>
+<para>The following options enable one to perform step 1 and step 2 separately,
+either on different machines, at different times, or using different
+software (in particular, George Woltman's Prime95/mprime program can produce
+step 1 output suitable for resuming with GMP-ECM).
+It can also be useful to split step 2 into several runs,
+using the <replaceable>B2min-B2max</replaceable> option.</para>
+<variablelist remap='TP'>
+
+  <varlistentry>
+  <term><option>-inp <replaceable>file</replaceable></option></term>
+  <listitem>
+<para>Take input from file <replaceable>file</replaceable> instead of from
+standard input.
+</para>
+  </listitem>
+  </varlistentry>
+
+  <varlistentry>
+  <term><option>-save <replaceable>file</replaceable></option></term>
+  <listitem>
+<para>Save result of step 1 in <replaceable>file</replaceable>. If 
+<replaceable>file</replaceable> exists, an error is raised.
+Example: to perform only step 1 with <replaceable>B1</replaceable>=1000000
+on the composite number in the file "c155" and save its result in file 
+"foo", use 
+<programlisting>ecm -save foo 1e6 1 &lt; c155</programlisting>
+</para>
+  </listitem>
+  </varlistentry>
+
+  <varlistentry>
+  <term><option>-savea <replaceable>file</replaceable></option></term>
+  <listitem>
+<para>Like <option>-save</option>, but appends to existing files.
+</para>
+  </listitem>
+  </varlistentry>
+
+  <varlistentry>
+  <term><option>-resume <replaceable>file</replaceable></option></term>
+  <listitem>
+<para>Resume residues from <replaceable>file</replaceable>, reads from
+standard input if <replaceable>file</replaceable> is  "-".
+Example: to perform step 2 following the above step 1 computation, use
+<programlisting>ecm -resume foo 1e6</programlisting>
+</para>
+  </listitem>
+  </varlistentry>
+
+  <varlistentry>
+  <term><option>-chkpoint <replaceable>file</replaceable></option></term>
+  <listitem>
+<para>Periodically write the current residue in stage 1 to 
+<replaceable>file</replaceable>. In case of a power failure, etc., the
+computation can be continued with the <option>-resume</option> option.
+<programlisting>ecm -chkpnt foo -pm1 1e10 &lt; largenumber.txt 
+</programlisting>
+</para>
+  </listitem>
+  </varlistentry>
+
+</variablelist>
+</refsect1>
+
+<refsect1 id='loop_mode'><title>LOOP MODE</title>
+<para>The <quote>loop mode</quote> (option <option>-c 
+<replaceable>n</replaceable></option>) enables one to run several curves
+on each input number. The following options control its behavior.
+</para>
+<variablelist remap='TP'>
+
+  <varlistentry>
+  <term><option>-c <replaceable>n</replaceable></option></term>
+  <listitem>
+<para>Perform <replaceable>n</replaceable> runs on each input number
+(default is one).
+This option is mainly useful for P+1 (for example with
+<replaceable>n</replaceable>=3) or for ECM, where 
+<replaceable>n</replaceable> could be set to the expected number of 
+curves to find a d-digit factor with a given step 1 bound.
+This option is incompatible with <option>-resume, -sigma, 
+-x0</option>. Giving <option>-c 0</option> produces an infinite loop until a 
+factor is found.</para>
+  </listitem>
+  </varlistentry>
+
+  <varlistentry>
+  <term><option>-one</option></term>
+  <listitem>
+<para>In loop mode, stop when a factor is found; the default is to continue
+until the cofactor is prime or the specified number of runs are done.
+</para>
+  </listitem>
+  </varlistentry>
+
+  <varlistentry>
+  <term><option>-b</option></term>
+  <listitem>
+<para>Breadth-first processing: in loop mode, run one curve for each input
+number, then a second curve for each one, and so on.
+This is the default mode with <option>-inp</option>.
+</para>
+  </listitem>
+  </varlistentry>
+
+  <varlistentry>
+  <term><option>-d</option></term>
+  <listitem>
+<para>Depth-first processing: in loop mode, run <replaceable>n</replaceable>
+curves for the first number, then <replaceable>n</replaceable> curves for the
+second one and so on.
+This is the default mode with standard input.
+</para>
+  </listitem>
+  </varlistentry>
+
+  <varlistentry>
+  <term><option>-ve <replaceable>n</replaceable></option></term>
+  <listitem>
+<para>In loop mode, in the second and following runs,
+output only expressions that have at most <replaceable>n</replaceable>
+characters. Default is <option>-ve 0</option>.
+</para>
+  </listitem>
+  </varlistentry>
+
+  <varlistentry>
+  <term><option>-i <replaceable>n</replaceable></option></term>
+  <listitem>
+<para>In loop mode, increment <replaceable>B1</replaceable>
+by <replaceable>n</replaceable> after each curve.
+</para>
+  </listitem>
+  </varlistentry>
+
+  <varlistentry>
+  <term><option>-I <replaceable>n</replaceable></option></term>
+  <listitem>
+<para>In loop mode, multiply <replaceable>B1</replaceable>
+by a factor depending on <replaceable>n</replaceable> after each curve.
+Default is one which should be optimal on one machine, while  
+<option>-I 10</option> could be used when trying to factor the same number 
+simultaneously on 10 identical machines.
+</para>
+  </listitem>
+  </varlistentry>
+
+</variablelist>
+</refsect1>
+
+<refsect1 id='shellcmd'><title>SHELL COMMAND EXECUTION</title>
+<para>These optins allow for executing shell commands to supplement 
+functionality to GMP-ECM.</para>
+<variablelist remap='TP'>
+
+  <varlistentry>
+  <term><option>-prpcmd <replaceable>cmd</replaceable></option></term>
+  <listitem>
+    <para>
+      Execute command <replaceable>cmd</replaceable> to test primality
+      if factors and cofactors instead of GMP-ECM's own functions. The 
+      number to test is passed via stdin. An exit code of 0 is interpreted
+      as <quote>probably prime</quote>, a non-zero exit code as 
+      <quote>composite</quote>.
+    </para>
+  </listitem>
+  </varlistentry>
+
+  <varlistentry>
+  <term><option>-faccmd <replaceable>cmd</replaceable></option></term>
+  <listitem>
+    <para>
+      Executes command <replaceable>cmd</replaceable> whenever a factor
+      is found by P-1, P+1 or ECM. The input number, factor and cofactor
+      are passed via stdin, each on a line. This could be used i.e. to
+      mail new factors automatically:
+<programlisting>ecm -faccmd 'mail -s <quote>$HOSTNAME found a factor</quote>
+                me@myaddress.com' 11e6 &lt; cunningham.in
+</programlisting>
+    </para>
+  </listitem>
+  </varlistentry>
+
+  <varlistentry>
+  <term><option>-idlecmd <replaceable>cmd</replaceable></option></term>
+  <listitem>
+    <para>
+      Executes command <replaceable>cmd</replaceable> before each ECM curve,
+      P-1 or P+1 attempt on a number is started. If the exit status of 
+      <replaceable>cmd</replaceable> is non-zero, GMP-ECM terminates 
+      immediately, otherwise it continues normally. GMP-ECM is stopped while
+      <replaceable>cmd</replaceable> runs, offering a way for letting GMP-ECM
+      sleep for example while the system is otherwise busy.
+    </para>
+  </listitem>
+  </varlistentry>
+</variablelist>
+</refsect1>
+
+<refsect1 id='miscellaneous'><title>MISCELLANEOUS</title>
+<variablelist remap='TP'>
+
+  <varlistentry>
+  <term><option>-n</option></term>
+  <listitem>
+  <para>Run the program in <quote>nice</quote> mode (below normal priority).
+  </para>
+  </listitem>
+  </varlistentry>
+
+  <varlistentry>
+  <term><option>-nn</option></term>
+  <listitem>
+  <para>Run the program in <quote>very nice</quote> mode (idle priority).</para>
+  </listitem>
+  </varlistentry>
+
+  <varlistentry>
+  <term><option>-B2scale <replaceable>f</replaceable></option></term>
+  <listitem>
+<para>Multiply the default step 2 bound <replaceable>B2</replaceable>
+by the floating-point value <replaceable>f</replaceable>.
+Example: <option>-B2scale 0.5</option>
+divides the default <replaceable>B2</replaceable> by 2.</para>
+  </listitem>
+  </varlistentry>
+
+  <varlistentry>
+  <term><option>-stage1time <replaceable>n</replaceable></option></term>
+  <listitem>
+<para>Add <replaceable>n</replaceable> seconds to stage 1 time.
+This is useful to get correct expected time with
+<replaceable>-v</replaceable> if part of stage 1 was done in another run.
+</para>
+  </listitem>
+  </varlistentry>
+
+  <varlistentry>
+  <term><option>-cofdec</option></term>
+  <listitem>
+  <para>Force cofactor output in decimal (even if expressions are used).
+  </para>
+  </listitem>
+  </varlistentry>
+
+  <varlistentry>
+  <term><option>-h</option>, <option>--help</option></term>
+  <listitem>
+  <para>Display a short description of ecm usage, parameters and command line
+  options.</para>
+  </listitem>
+  </varlistentry>
+
+</variablelist>
+
+<!--  TeX users may be more comfortable with the \fB&lt;whatever&gt;\fP and -->
+<!--  \fI&lt;whatever&gt;\fP escape sequences to invode bold face and italics,  -->
+<!--  respectively. -->
+</refsect1>
+
+<refsect1 id='syntax'><title>INPUT SYNTAX</title>
+<para>The input numbers can have several forms:</para>
+<para>Raw decimal numbers like 123456789.</para>
+<para>Comments can be placed in the file: everything after <quote>//</quote>
+is ignored, up to the end of line.</para>
+<para>Line continuation. If a line ends with a backslash character
+    <quote>\</quote>, it is considered to continue on the next line.</para>
+<para>Common arithmetic expressions can be used. Example:
+     <replaceable>3*5+2^10</replaceable>.</para>
+<para>Factorial: example <replaceable>53!</replaceable>.</para>
+<para>Multi-factorial: example <replaceable>15!3</replaceable>
+means 15*12*9*6*3.</para>
+<para>Primorial: example <replaceable>11#</replaceable> means
+2*3*5*7*11.</para>
+<para>Reduced primorial: example <replaceable>17#5</replaceable> means
+5*7*11*13*17.</para>
+<para>Functions: currently, the only available function is 
+<replaceable>Phi(x,n)</replaceable>.</para>
+</refsect1>
+
+<refsect1 id='exitstatus'><title>EXIT STATUS</title>
+<para>
+The exit status reflects the result of the last ECM curve or P-1/P+1 attempt
+the program performed. Individual bits signify particular events,
+specifically:
+</para>
+<variablelist remap='TP'>
+  <varlistentry>
+  <term>Bit 0</term>
+  <listitem>
+    <simpara>0 if normal program termination, 1 if error occured</simpara>
+  </listitem>
+  </varlistentry>
+
+  <varlistentry>
+  <term>Bit 1</term>
+  <listitem>
+    <simpara>0 if no proper factor was found, 1 otherwise</simpara>
+  </listitem>
+  </varlistentry>
+
+  <varlistentry>
+  <term>Bit 2</term>
+  <listitem>
+    <simpara>0 if factor is composite, 1 if factor is a probable prime</simpara>
+  </listitem>
+  </varlistentry>
+
+  <varlistentry>
+  <term>Bit 3</term>
+  <listitem>
+    <simpara>0 if cofactor is composite, 1 if cofactor is a probable prime</simpara>
+  </listitem>
+  </varlistentry>
+</variablelist>
+
+<para>Thus, the following exit status values may occur:</para>
+
+<variablelist>
+  <varlistentry>
+    <term>0</term>
+    <listitem>
+      <simpara>Normal program termination, no factor found</simpara>
+    </listitem>
+  </varlistentry>
+
+  <varlistentry>
+    <term>1</term>
+    <listitem>
+      <simpara>Error</simpara>
+    </listitem>
+  </varlistentry>
+
+  <varlistentry>
+  <term>2</term>
+  <listitem>
+    <simpara>Composite factor found, cofactor is composite</simpara>
+  </listitem>
+  </varlistentry>
+
+  <varlistentry>
+  <term>6</term>
+  <listitem>
+    <simpara>Probable prime factor found, cofactor is composite</simpara>
+  </listitem>
+  </varlistentry>
+
+  <varlistentry>
+  <term>8</term>
+  <listitem>
+    <simpara>Input number found</simpara>
+  </listitem>
+  </varlistentry>
+
+  <varlistentry>
+  <term>10</term>
+  <listitem>
+    <simpara>Composite factor found, cofactor is a probable prime</simpara>
+  </listitem>
+  </varlistentry>
+
+  <varlistentry>
+  <term>14</term>
+  <listitem>
+    <simpara>Probable prime factor found, cofactor is a probable prime</simpara>
+  </listitem>
+  </varlistentry>
+</variablelist>
+
+</refsect1>
+
+<refsect1 id='bugs'><title>BUGS</title>
+<para>
+Report bugs to &lt;ecm-discuss@lists.gforge.inria.fr&gt;, after checking
+&lt;http://www.loria.fr/~zimmerma/records/ecmnet.html&gt; for bug fixes
+or new versions.
+</para>
+</refsect1>
+
+<refsect1 id='author'><title>AUTHORS</title>
+<para>Pierrick Gaudry &lt;gaudry at lix dot polytechnique dot fr&gt;
+contributed efficient assembly code for combined mul/redc;</para>
+<para>Jim Fougeron &lt;jfoug at cox dot net&gt; contributed the expression
+parser and several command-line options;</para>
+<para>Laurent Fousse &lt;laurent at komite dot net&gt; contributed the middle 
+product code, the autoconf/automake tools, and is the maintainer of the 
+Debian package;</para>
+<para>Alexander Kruppa &lt;(lastname)al@loria.fr&gt; contributed 
+estimates for probability of success for ECM, 
+the new P+1 and P-1 stage 2 (with P.-L. Montgomery), 
+new AMD64 asm mulredc code, and some other things;</para>
+<para>Dave Newman &lt;david.(lastname)@jesus.ox.ac.uk&gt;
+contributed the Kronecker-Schoenhage and NTT multiplication code;</para>
+<para>Jason S. Papadopoulos contributed a speedup of the NTT code</para>
+<para>Paul Zimmermann &lt;zimmerma at loria dot fr&gt; is the author of the
+first version of the program and chief maintainer of GMP-ECM.</para>
+<para>Note: email addresses have been obscured, the required substitutions
+should be obvious.
+</para>
+</refsect1>
+</refentry>
