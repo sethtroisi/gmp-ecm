@@ -158,43 +158,10 @@ dnl AC_CHECK_FUNCS([GetCurrentProcess GetProcessTimes])
 AC_CHECK_FUNCS([malloc_usable_size])
 
 
-dnl Find out what warning parameters the compiler understands
-
-AC_MSG_CHECKING(if compiler understands -Wall)
-save_CFLAGS="$CFLAGS"
-CFLAGS="$CFLAGS -Wall"
-AC_COMPILE_IFELSE([AC_LANG_PROGRAM([[]], [[]])], 
-  [AC_MSG_RESULT(yes)], 
-  [AC_MSG_RESULT(no)
-   CFLAGS="$save_CFLAGS"]
-)
-
-AC_MSG_CHECKING(if compiler understands -Wextra)
-save_CFLAGS="$CFLAGS"
-CFLAGS="$CFLAGS -Wextra"
-AC_COMPILE_IFELSE([AC_LANG_PROGRAM([[]], [[]])], 
-  [AC_MSG_RESULT(yes)], 
-  [AC_MSG_RESULT(no)
-   CFLAGS="$save_CFLAGS"]
-)
-
-AC_MSG_CHECKING(if compiler understands -Wundef)
-save_CFLAGS="$CFLAGS"
-CFLAGS="$CFLAGS -Wundef"
-AC_COMPILE_IFELSE([AC_LANG_PROGRAM([[]], [[]])], 
-  [AC_MSG_RESULT(yes)], 
-  [AC_MSG_RESULT(no)
-   CFLAGS="$save_CFLAGS"]
-)
-
-AC_MSG_CHECKING(if compiler understands -pedantic)
-save_CFLAGS="$CFLAGS"
-CFLAGS="$CFLAGS -pedantic"
-AC_COMPILE_IFELSE([AC_LANG_PROGRAM([[]], [[]])], 
-  [AC_MSG_RESULT(yes)], 
-  [AC_MSG_RESULT(no)
-   CFLAGS="$save_CFLAGS"]
-)
+dnl If we use GCC, add some warning flags
+if test "x$GCC" == "xyes"; then
+  CFLAGS="-Wall -Wextra -Wundef -pedantic $CFLAGS"
+fi
 
 
 dnl Find GMP and do some sanity checks
