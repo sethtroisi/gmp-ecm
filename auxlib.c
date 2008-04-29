@@ -49,7 +49,9 @@
 #include <stdint.h>
 #else
 /* size_t is an unsigned integer so this ought to work */
+#ifndef SIZE_MAX
 #define SIZE_MAX (~((size_t) 0))
+#endif
 #endif
 
 #define VERBOSE __ECM(verbose)
