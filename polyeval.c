@@ -24,7 +24,7 @@
 #include <string.h> /* for strlen */
 #include "ecm-impl.h"
 
-#if HAVE_UNISTD_H
+#ifdef HAVE_UNISTD_H
 # include <unistd.h> /* for unlink */
 #endif
 

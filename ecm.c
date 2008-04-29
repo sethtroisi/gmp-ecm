@@ -25,7 +25,7 @@
 #include "ecm-impl.h"
 #include <math.h>
 
-#if HAVE_LIMITS_H
+#ifdef HAVE_LIMITS_H
 # include <limits.h>
 #else
 # define ULONG_MAX __GMP_ULONG_MAX

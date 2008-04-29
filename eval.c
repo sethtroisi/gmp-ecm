@@ -24,11 +24,11 @@
 #include <time.h>
 #include "ecm-ecm.h"
 
-#if HAVE_STRINGS_H
+#ifdef HAVE_STRINGS_H
 # include <strings.h> /* for strncasecmp */
 #endif
 
-#if HAVE_CTYPE_H
+#ifdef HAVE_CTYPE_H
 # include <ctype.h>
 #endif
 

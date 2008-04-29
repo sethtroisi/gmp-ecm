@@ -122,7 +122,7 @@ extern FILE *ECM_STDOUT, *ECM_STDERR;
 
 #include <assert.h>
 #define ASSERT_ALWAYS(expr)   assert (expr)
-#if WANT_ASSERT
+#ifdef WANT_ASSERT
 #define ASSERT(expr)   assert (expr)
 #else
 #define ASSERT(expr)   do {} while (0)
