@@ -85,7 +85,7 @@ EXTRA_DIST = test.pm1 test.pp1 test.ecm README.lib ecm.xml \
              ecm-params.h.pentium3 ecm-params.h.pentium4 \
              ecm-params.h.pentiumm configfsf.sub configfsf.guess
 
-DIST_SUBDIRS = athlon pentium4 x86_64
+DIST_SUBDIRS = athlon pentium4 x86_64 build.vc9
 
 DISTCLEANFILES = config.m4
 

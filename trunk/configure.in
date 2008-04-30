@@ -281,7 +281,7 @@ esac
 LIBS="$LIBS $GWLIB"
 
 GMP_FINISH
-AC_CONFIG_FILES(Makefile athlon/Makefile pentium4/Makefile x86_64/Makefile)
+AC_CONFIG_FILES(Makefile athlon/Makefile pentium4/Makefile x86_64/Makefile build.vc9/Makefile build.vc9/assembler/Makefile build.vc9/ecm/Makefile build.vc9/libecm/Makefile)
 AC_CONFIG_LINKS(ecm-params.h:ecm-params.h.$config_arch)
 
 AC_SUBST(INCLUDES)
