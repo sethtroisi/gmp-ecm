@@ -160,7 +160,7 @@ AC_CHECK_FUNCS([malloc_usable_size])
 
 dnl If we use GCC, add some warning flags
 if test "x$GCC" == "xyes"; then
-  CFLAGS="-Wall -Wextra -Wundef -pedantic $CFLAGS"
+  CFLAGS="-Wall -W -Wundef -pedantic $CFLAGS"
 fi
 
 
