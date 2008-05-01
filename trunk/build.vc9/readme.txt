@@ -42,18 +42,33 @@ are in a common parent directory as follows:
       buid.vc9	 -- ECM build files 
 
 The ECM build project includes source files for 32-bit and 64-bit assembler
-code builds.  It is set up to use these files optimised for AMD64. If you 
-want 32-bit code optimised for Intel core2 processors you will need to open 
-the build project in the Visual Studio IDE, exclude the 32-bit athlon assembler 
-files and include those for Intel core2.  
-
-If you don't want assembler support you need to change the define      
+code builds.  If you don't want assembler support you need to change the define      
 
 #define NATIVE_REDC   1         
 
 in config.h in the build.vc9 subdirectory to: 
 
 #undef NATIVE_REDC         
+
+The default for 64-bit builds is to use the assembler code proovided in the files:
+
+    a_x64_mulredc.asm
+    a_x64_redc.asm
+
+For 32-bit builds there are two alternative file sets:
+
+AMD64:
+    a_win32a_mulredc.asm
+    a_win32a_redc.asm
+
+Intel Core2:
+    a_win32p_mulredc.asm
+    a_win32p_redc.asm
+
+the first being the default. If you wish to build with 32-bit core2 assembler 
+support, you will need to open the build project in the Visual Studio IDE, 
+exclude the 32-bit athlon assembler code files and include those for Intel 
+core2.  
 
 Tests
 =====
