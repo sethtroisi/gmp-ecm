@@ -170,7 +170,7 @@
 #define HAVE_LONG_LONG		1
 
 /* Define to 1 to use asm redc on x86 or x86_64 */
-#  define NATIVE_REDC   1         
+#define NATIVE_REDC   1         
 
 /* Define to 1 if your C compiler doesn't accept -c and -o together. */
 #undef NO_MINUS_C_MINUS_O
