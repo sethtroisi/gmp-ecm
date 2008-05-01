@@ -158,9 +158,9 @@ def do_tests(tests) :
             for i in op :
                 print i
 out = True
-do_tests(ecm)
-do_tests(pm1)
-do_tests(pp1)
-do_tests(pp1_2)
+# do_tests(ecm)
+# do_tests(pm1)
+# do_tests(pp1)
+# do_tests(pp1_2)
 do_tests(c200)
-do_tests(test)
+# do_tests(test)
