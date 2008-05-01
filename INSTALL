@@ -107,6 +107,13 @@ Instructions to install GMP-ECM:
 
 For Windows users:
 
+Windows users have two options for building GMP-ECM: (a) the use of a
+number of Unix on Windows environments, or (b) the use of Microsoft
+Visual Studio C/C++ 2008.  The former is described here while the latter
+is described in the readme.txt file within the build.vc9 subdirectory.
+
+(a) For Windows users with a Unix-like environment:
+
 Before you can compile GMP-ECM, you will need a compiler. Several suitable
 compilers are freely available, for example as part of MinGW, CygWin and 
 Microsoft's Services for Unix (SFU). We recommend MinGW as it is a smaller 
