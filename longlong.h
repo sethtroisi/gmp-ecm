@@ -128,6 +128,7 @@ MA 02110-1301, USA. */
 
 /* FIXME: The macros using external routines like __MPN(count_leading_zeros)
    don't need to be under !NO_ASM */
+
 #if ! defined (NO_ASM)
 
 #if defined (__alpha) && W_TYPE_SIZE == 64
@@ -281,7 +282,6 @@ extern UWtype __MPN(udiv_qrnnd) _PROTO ((UWtype, UWtype, UWtype, UWtype *));
 #endif
 #define UDIV_TIME 220
 #endif
-
 
 #if defined (__GNUC__)
 
@@ -1478,6 +1478,46 @@ extern UWtype __MPN(udiv_qrnnd) _PROTO ((UWtype *, UWtype, UWtype, UWtype));
 
 #endif /* NO_ASM */
 
+#ifdef _MSC_VER
+#  include <intrin.h>
+
+#  if defined( _WIN64 )
+#    define count_leading_zeros(c,x)        \
+      do {                                  \
+        ASSERT ((x) != 0);                  \
+        _BitScanReverse64(&c, (x));         \
+        c = 63 - c;                         \
+      } while (0)
+#    define count_trailing_zeros(c,x)       \
+      do {                                  \
+        ASSERT ((x) != 0);                  \
+        _BitScanForward64(&c, (x));         \
+      } while (0)
+#    define umul_ppmm(xh, xl, m0, m1)       \
+      do {                                  \
+        xl = _umul128( (m0), (m1), &xh);    \
+      } while (0)
+#  else
+#    define count_leading_zeros(c,x)        \
+      do {                                  \
+        ASSERT ((x) != 0);                  \
+        _BitScanReverse(&c, (x));           \
+        c = 31 - c;                         \
+      } while (0)
+#    define count_trailing_zeros(c,x)       \
+      do {                                  \
+        ASSERT ((x) != 0);                  \
+        _BitScanForward(&c, (x));           \
+      } while (0)
+#    define umul_ppmm(xh, xl, m0, m1)       \
+      do { unsigned __int64 _t;             \
+        _t = __emulu( (m0), (m1));          \
+        xl = _t & 0xffffffff;               \
+        xh = _t >> 32;                      \
+      } while (0)
+#  endif
+
+#endif
 
 #if !defined (umul_ppmm) && defined (__umulsidi3)
 #define umul_ppmm(ph, pl, m0, m1) \
