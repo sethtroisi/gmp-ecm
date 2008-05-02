@@ -24,7 +24,7 @@
 #include "ecm-gmp.h" /* for MPZ_REALLOC and MPN_COPY */
 #include "ecm-impl.h"
 
-#define FFT_WRAP /* always defined since ecm_mpn_mul_fft is included */
+#define FFT_WRAP /* always defined since mpn_mul_fft is included */
 
 /* Puts in R[0..2l-2] the product of A[0..l-1] and B[0..l-1].
    T must have as much space as for toomcook4 (it is only used when that
@@ -104,7 +104,7 @@ kronecker_schonhage (listz_t R, listz_t A, listz_t B, unsigned int l,
      thus the total memory allocated by this function is about 12*size_t0.
      Since size_t0 is about 2*dF*limbs(modulus), this is about
      24*dF*limbs(modulus). */
-  ecm_mpn_mul_fft_full (t2_ptr, t0_ptr, size_t0, t1_ptr, size_t0);
+  mpn_mul_fft_full (t2_ptr, t0_ptr, size_t0, t1_ptr, size_t0);
   
   for (i = 0; i < 2 * l - 1; i++)
     {
@@ -250,7 +250,7 @@ TMulKS (listz_t b, unsigned int n, listz_t a, unsigned int m,
       ret = 1;
       goto TMulKS_free_cp;
     }
-  ecm_mpn_mul_fft (bp, bn, ap, an, cp, cn, k);
+  mpn_mul_fft (bp, bn, ap, an, cp, cn, k);
   if (m && bp[m * s - 1] >> (GMP_NUMB_BITS - 1)) /* lo(b)-hi(b) is negative */
     mpn_add_1 (bp + m * s, bp + m * s, (n + 1) * s, (mp_limb_t) 1);
 #else
@@ -397,7 +397,7 @@ ks_wrapmul (listz_t R, unsigned int m0,
       return 0;
     }
 
-  ecm_mpn_mul_fft (t2_ptr, i, t0_ptr, size_t0, t1_ptr, size_t1, fft_k);
+  mpn_mul_fft (t2_ptr, i, t0_ptr, size_t0, t1_ptr, size_t1, fft_k);
   
   for (i = 0, tp = t2_ptr, negative = 0; i < m; i++)
     {
