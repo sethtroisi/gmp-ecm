@@ -46,8 +46,7 @@ FILE *ECM_STDOUT, *ECM_STDERR; /* define them here since needed in tune.c */
 
 
 static void base2mod (mpres_t, const mpres_t, mpres_t, mpmod_t);
-void base2mod_1 (mpres_t, mpres_t, mpmod_t);
-void REDC (mpres_t, const mpres_t, mpz_t, mpmod_t);
+static void REDC (mpres_t, const mpres_t, mpz_t, mpmod_t);
 
 /* returns +/-l if n is a factor of N = 2^l +/- 1 with N <= n^threshold, 
    0 otherwise.
@@ -131,24 +130,6 @@ base2mod (mpres_t R, const mpres_t S, mpres_t t, mpmod_t modulus)
     }
 }
 
-/* Same, but source and result in same variable */
-void
-base2mod_1 (mpres_t RS, mpres_t t, mpmod_t modulus)
-{
-  unsigned long absbits = abs (modulus->bits);
-
-  ASSERT (RS != t);
-  while (mpz_sizeinbase (RS, 2) > absbits)
-    {
-      mpz_tdiv_q_2exp (t, RS, absbits);
-      mpz_tdiv_r_2exp (RS, RS, absbits); /* Just a truncate */
-      if (modulus->bits < 0)
-        mpz_add (RS, RS, t);
-      else
-        mpz_sub (RS, RS, t);
-    }
-}
-
 /* Modular reduction modulo the Fermat number 2^m+1. 
    n = m / GMP_BITS_PER_LIMB. Result is < 2^m+1.
    Only copies the data to R if reduction is needed and returns 1 in that 
@@ -228,7 +209,7 @@ ecm_redc_n (mp_ptr rp, mp_srcptr x0p, mp_size_t xn,
 
 /* REDC. x and t must not be identical, t has limb growth */
 /* subquadratic REDC, at mpz level */
-void 
+static void 
 REDC (mpres_t r, const mpres_t x, mpz_t t, mpmod_t modulus)
 {
   mp_size_t n = modulus->bits / GMP_NUMB_BITS;
@@ -944,7 +925,7 @@ mpres_ui_pow (mpres_t R, const unsigned long BASE, const mpres_t EXP,
 /* We use here the algorithm described in "Fast Modular Reduction" from
    Hasenplaugh, Gaubatz and Gobal, Arith'18, 2007: assuming N has n limbs,
    we have precomputed C = B^(n + ceil(n/2)) mod N. */
-void
+static void
 mpres_mpz_mod (mpres_t R, mpz_t T, mpz_t N, mpz_t C)
 {
   size_t n = mpz_size (N);
@@ -1020,12 +1001,12 @@ mpres_mul (mpres_t R, const mpres_t S1, const mpres_t S2, mpmod_t modulus)
           s2s = SIZ(modulus->temp2);
         }
 
-      /* ecm_mpn_mul_fft() computes the product modulo B^n + 1, where 
+      /* mpn_mul_fft() computes the product modulo B^n + 1, where 
          B = 2^(machine word size in bits). So the result can be = B^n, 
          in that case R is set to zero and 1 is returned as carry-out.
          In all other cases 0 is returned. Hence the complete result is 
-         R + cy * B^n, where cy is the value returned by ecm_mpn_mul_fft(). */
-      PTR(R)[n] = ecm_mpn_mul_fft (PTR(R), n, s1p, ABS(s1s), s2p, ABS(s2s), k);
+         R + cy * B^n, where cy is the value returned by mpn_mul_fft(). */
+      PTR(R)[n] = mpn_mul_fft (PTR(R), n, s1p, ABS(s1s), s2p, ABS(s2s), k);
       n ++;
       MPN_NORMALIZE(PTR(R), n);
       SIZ(R) = ((s1s ^ s2s) >= 0) ? (int) n : (int) -n;
@@ -1105,12 +1086,12 @@ mpres_mul_z_to_z (mpz_t R, const mpres_t S1, const mpz_t S2, mpmod_t modulus)
           s2s = SIZ(modulus->temp2);
         }
 
-      /* ecm_mpn_mul_fft() computes the product modulo B^n + 1, where 
+      /* mpn_mul_fft() computes the product modulo B^n + 1, where 
          B = 2^(machine word size in bits). So the result can be = B^n, 
          in that case R is set to zero and 1 is returned as carry-out.
          In all other cases 0 is returned. Hence the complete result is 
-         R + cy * B^n, where cy is the value returned by ecm_mpn_mul_fft(). */
-      PTR(R)[n] = ecm_mpn_mul_fft (PTR(R), n, s1p, ABS(s1s), s2p, ABS(s2s), k);
+         R + cy * B^n, where cy is the value returned by mpn_mul_fft(). */
+      PTR(R)[n] = mpn_mul_fft (PTR(R), n, s1p, ABS(s1s), s2p, ABS(s2s), k);
       n ++;
       MPN_NORMALIZE(PTR(R), n);
       SIZ(R) = ((s1s ^ s2s) >= 0) ? (int) n : (int) -n;

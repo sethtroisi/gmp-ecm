@@ -171,7 +171,7 @@ F_mulmod (mpz_t R, mpz_t S1, mpz_t S2, unsigned int n)
       /* WARNING: _mpz_realloc does not keep the value!!! */
       _mpz_realloc (gt, n2 + 1);
       k = mpn_fft_best_k (n2, S1 == S2);
-      ecm_mpn_mul_fft (PTR(gt), n2, PTR(S1), ABSIZ(S1), PTR(S2), ABSIZ(S2), k);
+      mpn_mul_fft (PTR(gt), n2, PTR(S1), ABSIZ(S1), PTR(S2), ABSIZ(S2), k);
       MPN_NORMALIZE(PTR(gt), n2);
       SIZ(gt) = ((SIZ(S1) ^ SIZ(S2)) >= 0) ? n2 : -n2;
       F_mod_gt (R, n);

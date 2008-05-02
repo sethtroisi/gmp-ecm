@@ -374,7 +374,7 @@ maxS (mpz_t S, unsigned long P)
   abort();
 }
 
-int
+static int
 test_P (const mpz_t B2min, const mpz_t B2, mpz_t m_1, const unsigned long P, 
 	const unsigned long nr, mpz_t effB2min, mpz_t effB2)
 {

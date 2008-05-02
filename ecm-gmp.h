@@ -124,15 +124,4 @@ __GMP_DECLSPEC mp_limb_t __gmpn_add_nc (mp_ptr, mp_srcptr, mp_srcptr,
 #endif
 #endif
 
-/* fft stuff */
-#ifndef mpn_fft_best_k
-#define mpn_fft_best_k __MPN(fft_best_k)
-int     mpn_fft_best_k (mp_size_t, int);
-#endif
-
-#ifndef   mpn_fft_next_size
-#define   mpn_fft_next_size __MPN(fft_next_size)
-mp_size_t mpn_fft_next_size (mp_size_t, int);
-#endif
-
 #endif /* _ECM_GMP_H */

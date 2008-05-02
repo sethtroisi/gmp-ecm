@@ -685,10 +685,17 @@ void ecm_redc3 (mp_ptr, mp_srcptr, mp_size_t, mp_limb_t);
 #endif
 
 /* mul_fft.h */
-int  ecm_mpn_mul_fft (mp_ptr, mp_size_t, mp_srcptr, mp_size_t, mp_srcptr, 
-                      mp_size_t, int);
-void ecm_mpn_mul_fft_full (mp_ptr, mp_srcptr, mp_size_t, mp_srcptr, mp_size_t);
-                                      
+#define mpn_mul_fft __ECM(mpn_mul_fft)
+int  mpn_mul_fft (mp_ptr, mp_size_t, mp_srcptr, mp_size_t, mp_srcptr, 
+                        mp_size_t, int);
+#define mpn_mul_fft_full __ECM(mpn_mul_fft_full)
+void mpn_mul_fft_full (mp_ptr, mp_srcptr, mp_size_t, mp_srcptr, 
+                             mp_size_t);
+#define mpn_fft_best_k __ECM(mpn_fft_best_k)
+int  mpn_fft_best_k (mp_size_t, int);
+#define mpn_fft_next_size __ECM(mpn_fft_next_size)
+mp_size_t mpn_fft_next_size (mp_size_t, int);
+
 
 /* sets_long.c */
 /* A set of long ints */
