@@ -112,6 +112,15 @@ Table of contents:
   with B1=3000000, B2=11414255590)
 - ecm -v 1e6 3-2 < c155 prints wrong expected number of curves (should be
   the same as ecm -v 1e6 2). Reported by Peter Montgomery, 30 Mar 2006.
+- [reported by James Wanless <james@grok.ltd.uk>, 2 May 2008] the following
+  should find a factor but does not (same with sigma=1101118787):
+  [james@bympy2 gmp-ecm]$ echo '(2^86243+1)/(3)' | ./ecm6.1.1gmp4.2.1gwnum 
+  -n -no-ntt -power 1 -sigma 3793703189 11e3
+  GMP-ECM 6.1.1 [powered by GMP 4.2.1 and GWNUM 24.11] [ECM]
+  Input number is (2^86243+1)/(3) (25962 digits)
+  Using B1=11000, B2=1684420, polynomial x^1, sigma=3793703189
+  Step 1 took 33023ms
+  Step 2 took 137815ms
 
 6) others
 - produce dynamic binary/library with --enable-shared
