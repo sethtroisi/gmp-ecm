@@ -71,9 +71,12 @@ MA 02110-1301, USA. */
 #include "gmp.h"
 #include "ecm-params.h"
 
-/* to avoid conflicts with GMP's functions */
-#define mpn_mul_fft      ecm_mpn_mul_fft
-#define mpn_mul_fft_full ecm_mpn_mul_fft_full
+/* All functions that are not declared static are renamed to avoid 
+   conflicts with GMP's functions. Should we include ecm-impl.h instead? */
+#define mpn_mul_fft       __ecm_mpn_mul_fft
+#define mpn_mul_fft_full  __ecm_mpn_mul_fft_full
+#define mpn_fft_best_k    __ecm_mpn_fft_best_k
+#define mpn_fft_next_size __ecm_mpn_fft_next_size
 
 #ifndef MUL_FFT_TABLE2
 #define MUL_FFT_TABLE2 {{1, 4}, {897, 5}, {2305, 6}, {4865, 7}, {11777, 8}, {31745, 9}, {98305, 10}, {1040385, 11}, {LONG_MAX, 0}}
