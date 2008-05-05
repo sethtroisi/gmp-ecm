@@ -48,6 +48,7 @@ Table of contents:
   mpn_fft_next_size (n, mpn_fft_best_k (n, S1 == S2)) == n.
 - use mpres in step 2 (Target: 7.0)
 - write a mpn version of add3 and duplicate  
+- rewrite entire mpmod.c to be based on mpn_* functions, not mpz_*
 - take relative speed of multiplying/squaring into account in PRAC
   (DN: couldn't get any significant speed increase)
 - use/implement a mpn_mul_hi_n routine for use in mpn_REDC
@@ -73,7 +74,9 @@ Table of contents:
 - parallel/distributed stage 2?
 - add curve selection for torsion group of order 8 or 16, see Montgomery's
   thesis. (request of Peter-Lawrence Montgomery)
-
+- Torbj"orn Granlund suggested faster code for mpn_mod_1(), used extensively
+  in NTT. See
+    http://lists.gforge.inria.fr/pipermail/ecm-discuss/2008-May/003365.html
 2) interface
 - with -resume, print %time for THIS RUN instead of total run?
 	[suggested by SleepHound <sleephound@yahoo.com>]
@@ -123,8 +126,6 @@ Table of contents:
   Step 2 took 137815ms
 
 6) others
-- produce dynamic binary/library with --enable-shared
-  [reported by Thomas M.Ott, thmo-13@gmx.de, 25 Oct 2005]
 - from Dan Bernstein <djb@cr.yp.to> 7 Mar 2006: use the curve
   (16b+18)y^2 = x^3 + (4b+2)x^2 + x with starting point (x=2,y=1).
   Caveat: with Montgomery multiplication, even if b is small (the argument
