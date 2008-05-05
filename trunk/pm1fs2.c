@@ -374,6 +374,11 @@ maxS (mpz_t S, unsigned long P)
   abort();
 }
 
+
+/* Test if for given P, nr, B2min and B2 we can choose an m_1 so that the 
+   stage 2 interval [B2min, B2] is covered. The effective B2min and B2
+   are stored in effB2min and effB2 */
+
 static int
 test_P (const mpz_t B2min, const mpz_t B2, mpz_t m_1, const unsigned long P, 
 	const unsigned long nr, mpz_t effB2min, mpz_t effB2)
@@ -511,8 +516,25 @@ choose_s_1 (const unsigned long phiP, const unsigned long min_s2,
   return s_1;
 }
 
-/* Choose P so that a stage 2 range of length B2len can be covered with
-   multipoint evaluations, each using a convolution of length lmax. 
+
+/* Approximate cost of stage 2. Cost with and without ntt are not 
+   comparable. We have l > s_1 and s_1 * s_2 = eulerphi(P), hence
+   s_2*l > eulerphi(P) and so cost (s_2, l) > eulerphi(P) for all P */
+static unsigned long 
+est_cost (const unsigned long s_2, const unsigned long l, const int use_ntt)
+{
+  /* The time for building f, h and DCT-I of h seems to be about 
+     7/6 of the time of computing g, h*g and gcd with NTT, and 
+     3/2 of the time of computing g, h*g and gcd without NTT */
+
+  if (use_ntt)
+    return (7 * l) / 6 + s_2 * l;
+  else
+    return (3 * l) / 2 + s_2 * l;
+}
+
+/* Choose P so that a stage 2 range from B2min to B2 can be covered with
+   multipoint evaluations, each using a convolution of length at most lmax. 
    The parameters for stage 2 are stored in finalparams, the final effective
    B2min and B2 values in final_B2min and final_B2, respecively. Each of these
    may be NULL, in which case the value is not stored. It is permissible
@@ -552,161 +574,153 @@ choose_P (const mpz_t B2min, const mpz_t B2, const unsigned long lmax,
      Hence we are looking for an odd P with s_1 * s_2 = eulerphi(P) so that
      s_1 ~= lmax / 2 and the whole stage 2 interval is covered. s_2 should 
      be small, as long as s_1 is small enough.
-
   */
 
-  mpz_t m_1, t, B2l, effB2min, effB2;
-  unsigned long P = 0, s_1 = 0, s_2 = 0, l;
+  mpz_t B2l, m_1, effB2min, tryeffB2, effB2, lmin;
+  /* The best parameters found so far, P == 0 means that no suitable P
+     has been found yet: */
+  unsigned long P = 0, s_1 = 0, s_2 = 0, l = 0, cost = 0;
   unsigned int i;
   const unsigned int Pvalues_len = sizeof (Pvalues) / sizeof (unsigned long);
+  int r;
 
   if (mpz_cmp (B2, B2min) < 0)
     return 0L;
-
-  mpz_init (m_1);
-  mpz_init (t);
-  mpz_init (B2l);
-  mpz_init (effB2min);
+  
   mpz_init (effB2);
-
-  /* Find the smallest P that can cover an interval of length B2 - B2min */
+  mpz_init (tryeffB2);
+  mpz_init (effB2min);
+  mpz_init (B2l);
+  mpz_init (m_1);
+  mpz_init (lmin);
+  
   mpz_sub (B2l, B2, B2min);
-  mpz_cdiv_q_ui (t, B2l, lmax);
-  mpz_cdiv_q_2exp (t, t, 1UL);
-  outputf (OUTPUT_TRACE, "choose_P: We need P >= %Zd\n", t);
-  for (i = 0; i < Pvalues_len; i++)
-    if (mpz_cmp_ui (t, Pvalues[i]) <= 0)
-      break;
+  mpz_add_ui (B2l, B2l, 1UL); /* +1 due to closed interval */
+  
+  /* For each candidate P, check if [B2min, B2] can be covered at all,
+     and if so, what the best parameters (minimizing the cost, maximizing 
+     effB2) are. If they are better than the best parameters for the best P 
+     so far, remember them. */
 
-  for ( ; i <  Pvalues_len; i++)
+  for (i = 0 ; i < Pvalues_len; i++)
     {
-      unsigned long phiP;
-      /* Now a careful check to see if this P is large enough */
-      P = Pvalues[i];
-      phiP = eulerphi (P);
-      s_1 = choose_s_1 (phiP, min_s2, lmax / 2, use_ntt);
-      if (s_1 == 0)
-	continue;
-      ASSERT (phiP % s_1 == 0);
-      s_2 = phiP / s_1;
-      outputf (OUTPUT_TRACE, "choose_P: Testing P = %lu, phiP = %lu, "
-	       "s_1 = %lu, s_2 = %lu, nr = %lu\n", 
-	       P, phiP, s_1, s_2, lmax - s_1);
-      if (test_P (B2min, B2, m_1, P, lmax - s_1, effB2min, effB2))
+      unsigned long tryP, tryphiP, trys_1, trys_2, tryl, trycost;
+      
+      tryP = Pvalues[i];
+      tryphiP = eulerphi (tryP);
+      
+      outputf (OUTPUT_TRACE, 
+	       "choose_P: trying P = %lu, eulerphi(P) = %lu\n", tryP, tryphiP);
+      
+      /* If we have a good P already and this tryphiP >= cost, then 
+	 there's no hope for this tryP, since cost(s_2, l) > eulerphi(P) */
+      if (P != 0 && tryphiP >= cost)
 	{
-	    outputf (OUTPUT_TRACE, 
-		     "choose_P: This P is acceptable, B2 = %Zd\n", effB2);
-	    break;
+	  outputf (OUTPUT_TRACE, 
+		   "choose_P: tryphiP > cost = %lu, this P is too large\n",
+		   cost);
+	  continue;
 	}
-      else
-	outputf (OUTPUT_TRACE, "choose_P: Not good enough, trying next P\n");
+      
+      /* We have nr < l and effB2-effB2min <= 2*nr*P. Hence we need 
+	 l >= B2l/P/2 */
+      mpz_cdiv_q_ui (lmin, B2l, tryP);
+      mpz_cdiv_q_2exp (lmin, lmin, 1UL);
+      outputf (OUTPUT_TRACE, "choose_P: lmin = %Zd for P = %lu\n", lmin, tryP);
+      if (mpz_cmp_ui (lmin, lmax) > 0)
+	{
+	  outputf (OUTPUT_TRACE, 
+		   "choose_P: lmin > lmax, this P is too small\n");
+	  continue;
+	}
+      
+      /* Try all possible transform lengths and store parameters in 
+	 P, s_1, s_2, l if they are better than the previously best ones */
+       
+      /* Keep reducing tryl to find best parameters. For NTT, we only have 
+	 power of 2 lengths so far, so we can simply divide by 2. 
+	 For non-NTT, we have arbitrary transform lengths so we can decrease 
+	 in smaller steps... let's say by, umm, 25% each time? */
+      for (tryl = lmax; mpz_cmp_ui (lmin, tryl) <= 0;
+	   tryl = (use_ntt) ? tryl / 2 : 3 * tryl / 4)
+	{
+	  trys_1 = choose_s_1 (tryphiP, min_s2, tryl / 2, use_ntt);
+	  if (trys_1 == 0)
+	    {
+	      outputf (OUTPUT_TRACE, 
+		       "choose_P: could not choose s_1 for P = %lu, l = %lu\n",
+		       tryP, tryl);
+	      continue;
+	    }
+	  ASSERT (tryphiP % trys_1 == 0UL);
+	  trys_2 = tryphiP / trys_1;
+	  outputf (OUTPUT_TRACE, "choose_P: chose s_1 = %lu, s_2 = %lu "
+		   "for P = %lu, l = %lu\n", trys_1, trys_2, tryP, tryl);
+	  
+	  if (test_P (B2min, B2, m_1, tryP, tryl - trys_1, effB2min, tryeffB2))
+	    {
+	      outputf (OUTPUT_TRACE, 
+		       "choose_P: P = %lu, l = %lu, s_1 = %lu, s_2 = %lu "
+		       "works, m_1 = %Zd, effB2min = %Zd, effB2 = %zZd\n",
+		       tryP, tryl, trys_1, trys_2, m_1, effB2min, tryeffB2);
+	      /* We use these parameters if we 
+		 1. didn't have any suitable ones yet, or 
+		 2. these cover [B2min, B2] and are cheaper than the best 
+                    ones so far, or 
+		 3. they are as expensive but reach greater effB2. */
+	      trycost = est_cost (trys_2, tryl, use_ntt);
+	      ASSERT (tryphiP < trycost);
+	      if (P == 0 || trycost < cost ||
+		  (trycost == cost && mpz_cmp (tryeffB2, effB2) > 0))
+		{
+		  outputf (OUTPUT_TRACE, 
+			   "choose_P: and is the new optimum (cost = %lu)\n",
+			   trycost);
+		  P = tryP;
+		  s_1 = trys_1;
+		  s_2 = trys_2;
+		  l = tryl;
+		  cost = trycost;
+		  mpz_set (effB2, tryeffB2);
+		}
+	    }
+	}
   }
   
-  if (i == Pvalues_len)
+  if (P != 0) /* If we found a suitable P */
+    {
+      /* Compute m_1, effB2min, effB2 again */
+      r = test_P (B2min, B2, m_1, P, l - s_1, effB2min, effB2);
+      ASSERT_ALWAYS(r != 0);
+      if (finalparams != NULL)
+	{
+	  finalparams->P = P;
+	  finalparams->s_1 = s_1;
+	  finalparams->s_2 = s_2;
+	  finalparams->l = l;
+	  mpz_set (finalparams->m_1, m_1);
+	}
+      if (final_B2min != NULL)
+	mpz_set (final_B2min, effB2min);
+      if (final_B2 != NULL)
+	mpz_set (final_B2, effB2);
+    }
+  
+  mpz_clear (effB2);
+  mpz_clear (tryeffB2);
+  mpz_clear (effB2min);
+  mpz_clear (B2l);
+  mpz_clear (m_1);
+  mpz_clear (lmin);
+
+  if (P == 0)
     {
       outputf (OUTPUT_ERROR, "Error: cannot choose suitable P value for your "
 	       "stage 2 parameters.\nTry a shorter B2min,B2 interval.\n");
       return ECM_ERROR;
     }
-
-  /* For each P, determine the smallest s_2 * lmax that lets us cover
-     B2min, B2max */
-
-
-  /* s_2 cannot be reduced further, but the transform length l could. */
-  l = lmax;
-  while (l / 2 > s_1 && test_P (B2min, B2, m_1, P, l / 2 - s_1, effB2min, t))
-  {
-      l /= 2;
-      outputf (OUTPUT_TRACE, "choose_P: Reducing transform length to "
-	       "%ld, effB2 = %Zd\n", l, t);
-      mpz_set (effB2, t);
-  }
-
-  for ( ; i + 1 < Pvalues_len; i++)
-    {
-      unsigned long tryP, tryphiP, trys_1, trys_2;
-
-      /* We only found the smallest P that works so far. Maybe a larger one
-	 works as well, and better */
-      tryP = Pvalues[i + 1];
-      tryphiP = eulerphi (tryP);
-      /* tryphiP is strictly increasing and trys_2 >= tryphiP / l. Stop if
-	 we can't possibly find a trys_2 <= s_2 any more */
-      if (s_2 < tryphiP / l)
-	break;
-      trys_1 = choose_s_1 (tryphiP, min_s2, l / 2, use_ntt);
-      if (trys_1 == 0)
-	continue;
-      trys_2 = tryphiP / trys_1;
-      outputf (OUTPUT_TRACE, "choose_P: Trying if P = %lu, phiP = %lu, "
-	       "s_1 = %lu, s_2 = %lu works as well\n", 
-	       tryP, tryphiP, trys_1, trys_2);
-      if (trys_2 > s_2) /* We want to keep the minimal */
-      {                 /* number of multipoint evaluations */
-	  outputf (OUTPUT_TRACE, "choose_P: No, s_2 would become %lu\n", 
-		   trys_2);
-	  /* break; */
-	  continue;
-      }
-      if (!test_P (B2min, B2, m_1, tryP, l - trys_1, effB2min, t))
-      {
-	  outputf (OUTPUT_TRACE, "choose_P: No, does not cover B2min - B2 "
-		   "range, effB2 = %Zd\n", t);
-      }
-      else
-      {
-	  if (mpz_cmp (t, effB2) >= 0)
-	  {
-	      outputf (OUTPUT_TRACE, 
-		       "choose_P: Yes, works and gives higher B2 = %Zd\n", t);
-	      P = tryP;
-	      s_1 = trys_1;
-	      s_2 = trys_2;
-	      mpz_set (effB2, t);
-	      while (l / 2 > s_1 && 
-		     test_P (B2min, B2, m_1, P, l / 2 - s_1, effB2min, t))
-	      {
-		  l /= 2;
-		  outputf (OUTPUT_TRACE, "choose_P: Reducing transform length "
-			   "to %ld, B2 = %Zd\n", l, t);
-		  mpz_set (effB2, t);
-	      }
-	  }
-	  else
-	  {
-	      outputf (OUTPUT_TRACE, "choose_P: Works, but does not give "
-		       "higher B2, %Zd <= %Zd\n", t, effB2);
-	  }
-      }
-    }
-
-  /* Compute the correct values again */
-  test_P (B2min, B2, m_1, P, l - s_1, effB2min, effB2);
-  outputf (OUTPUT_DEVVERBOSE, "choose_P: final choice is: P = %lu, s_1 = %lu, "
-	   "s_2 = %lu, l = %lu, m_1 = %Zd, effB2min = %Zd, effB2 = %Zd\n", 
-	   P, s_1, s_2, l, m_1, effB2min, effB2);
-
-  if (finalparams != NULL)
-    {
-      finalparams->P = P;
-      finalparams->s_1 = s_1;
-      finalparams->s_2 = s_2;
-      finalparams->l = l;
-      mpz_set (finalparams->m_1, m_1);
-    }
-  if (final_B2min != NULL)
-    mpz_set (final_B2min, effB2min);
-  if (final_B2 != NULL)
-    mpz_set (final_B2, effB2);
-
-  mpz_clear (m_1);
-  mpz_clear (t);
-  mpz_clear (B2l);
-  mpz_clear (effB2);
-  mpz_clear (effB2min);
-
-  return P;
+  else
+    return P;
 }
 
 
