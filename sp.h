@@ -312,14 +312,19 @@ static inline sp_t sp_add(sp_t a, sp_t b, sp_t m)
   sp_t t = a - m, tr = a + b;
 
   __asm__ (
-    "add %2, %1    # sp_add: tr -= b\n\t"   /* t += b */
-    "cmovc %1, %0  # sp_add: \n\t"  /* if (cy) tr = t */
+    "add %2, %1    # sp_add: t += b\n\t"
+    "cmovc %1, %0  # sp_add: if (cy) tr = t \n\t"
     : "+r" (tr), "+&r" (t)
     : "g" (b)
     : "cc"
   );
 
   return tr;
+#elif SP_NUMB_BITS <= W_TYPE_SIZE - 1
+  sp_t t = a + b;
+  if (t >= m)
+    t -= m;
+  return t;
 #else
   return sp_sub(a, m - b, m);
 #endif
