@@ -503,6 +503,10 @@ of modular arithmetic:
 (4) base-2 arithmetic for numbers dividing 2^n+1 or 2^n-1.
     Each division has only linear time, but the multiplication are
     more expensive since they are done on larger numbers.
+(5) If you have a 64 bit processor, use it. Both GMP and the NTT code
+    in GMP-ECM perform MUCH better with 64 bit arithmetic than with 32 bits. 
+    This of course requires that you use a 64 bit OS. Many Linux and BSD
+    distributions let you choose between 32 bit and 64 bit at installation.
 
 The ecm program automatically selects what it thinks is the best
 arithmetic for the given input number. If that choice is not optimal, you may 
