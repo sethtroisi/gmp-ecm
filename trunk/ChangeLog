@@ -1,4 +1,19 @@
 ------------------------------------------------------------------------
+r1268 | kruppa | 2008-05-06 14:17:43 +0200 (Tue, 06 May 2008) | 2 lines
+Changed paths:
+   M /trunk/pm1.c
+   M /trunk/pp1.c
+
+Added "k = s_2 =" to -v output for new stage 2
+
+------------------------------------------------------------------------
+r1266 | kruppa | 2008-05-06 13:59:54 +0200 (Tue, 06 May 2008) | 2 lines
+Changed paths:
+   M /trunk/ChangeLog
+
+Added lastest changes
+
+------------------------------------------------------------------------
 r1265 | kruppa | 2008-05-06 13:58:23 +0200 (Tue, 06 May 2008) | 2 lines
 Changed paths:
    M /trunk/README.dev
