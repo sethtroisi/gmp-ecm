@@ -284,19 +284,14 @@ static inline sp_t sp_sub(sp_t a, sp_t b, sp_t m)
 
   return tr + t;
 #elif defined(_MSC_VER) && !defined(_WIN64)
-  unsigned __int32 ans;
   __asm
     {
-      mov    eax,a
-      mov    ecx,b
-      xor    edx,edx
-      sub    eax,ecx
-      cmovb    edx,m
-      add    eax,edx
-      mov    ans,eax
+        mov     eax, a
+        xor     edx, edx
+        sub     eax, b
+        cmovb   edx, m
+        add     eax, edx
     }
-  return ans;
-
 #else
   if (a >= b)
     return a - b;
@@ -320,6 +315,15 @@ static inline sp_t sp_add(sp_t a, sp_t b, sp_t m)
   );
 
   return tr;
+#elif defined(_MSC_VER) && !defined(_WIN64)
+  __asm
+    {
+        mov     eax, a
+        add     eax, b
+        mov     edx, eax
+        sub     edx, m
+        cmovnc  eax, edx
+    }
 #elif SP_NUMB_BITS <= W_TYPE_SIZE - 1
   sp_t t = a + b;
   if (t >= m)
