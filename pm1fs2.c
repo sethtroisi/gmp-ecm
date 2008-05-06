@@ -654,13 +654,13 @@ choose_P (const mpz_t B2min, const mpz_t B2, const unsigned long lmax,
 	    }
 	  ASSERT (tryphiP % trys_1 == 0UL);
 	  trys_2 = tryphiP / trys_1;
-	  outputf (OUTPUT_TRACE, "choose_P: chose s_1 = %lu, s_2 = %lu "
+	  outputf (OUTPUT_TRACE, "choose_P: chose s_1 = %lu, k = s_2 = %lu "
 		   "for P = %lu, l = %lu\n", trys_1, trys_2, tryP, tryl);
 	  
 	  if (test_P (B2min, B2, m_1, tryP, tryl - trys_1, effB2min, tryeffB2))
 	    {
 	      outputf (OUTPUT_TRACE, 
-		       "choose_P: P = %lu, l = %lu, s_1 = %lu, s_2 = %lu "
+		       "choose_P: P = %lu, l = %lu, s_1 = %lu, k = s_2 = %lu "
 		       "works, m_1 = %Zd, effB2min = %Zd, effB2 = %zZd\n",
 		       tryP, tryl, trys_1, trys_2, m_1, effB2min, tryeffB2);
 	      /* We use these parameters if we 
