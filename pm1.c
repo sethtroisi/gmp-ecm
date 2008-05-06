@@ -983,7 +983,7 @@ pm1 (mpz_t f, mpz_t p, mpz_t N, mpz_t go, double *B1done, double B1,
   if (mpz_cmp (B2, B2min) >= 0)
     {
       if (stage2_variant != 0)
-        outputf (OUTPUT_VERBOSE, "P = %lu, l = %lu, s_1 = %lu, s_2 = %lu, "
+        outputf (OUTPUT_VERBOSE, "P = %lu, l = %lu, s_1 = %lu, k = s_2 = %lu, "
                  "m_1 = %Zd\n", faststage2_params.P, faststage2_params.l,
                  faststage2_params.s_1,faststage2_params.s_2,
                  faststage2_params.m_1);
