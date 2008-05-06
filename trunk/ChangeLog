@@ -1,4 +1,182 @@
 ------------------------------------------------------------------------
+r1265 | kruppa | 2008-05-06 13:58:23 +0200 (Tue, 06 May 2008) | 2 lines
+Changed paths:
+   M /trunk/README.dev
+   M /trunk/configure.in
+
+Switched assertions to on by default (change to off for official release)
+
+------------------------------------------------------------------------
+r1264 | kruppa | 2008-05-06 13:45:04 +0200 (Tue, 06 May 2008) | 2 lines
+Changed paths:
+   M /trunk/README
+
+Added remark explaining that s_2 in new stage 2 is similar to k in old one
+
+------------------------------------------------------------------------
+r1263 | kruppa | 2008-05-05 19:20:59 +0200 (Mon, 05 May 2008) | 4 lines
+Changed paths:
+   M /trunk/TODO
+
+Added Torbjorn Granlund's suggestion for faster mpn_mod_1() 
+Added item on rewriting mpmod.c to use mpn_*, not mpz_* (long term goal)
+Removed item on dynamic library, mostly done
+
+------------------------------------------------------------------------
+r1262 | kruppa | 2008-05-05 18:28:41 +0200 (Mon, 05 May 2008) | 2 lines
+Changed paths:
+   M /trunk/README
+
+Added remark about much improved performance in 64 bit mode
+
+------------------------------------------------------------------------
+r1261 | kruppa | 2008-05-05 18:10:05 +0200 (Mon, 05 May 2008) | 3 lines
+Changed paths:
+   M /trunk/sp.h
+
+Added sp_add() C code for modulus with MSB=0, fixed comments for 
+sp_add() asm macro
+
+------------------------------------------------------------------------
+r1260 | kruppa | 2008-05-05 17:26:30 +0200 (Mon, 05 May 2008) | 3 lines
+Changed paths:
+   M /trunk/pm1fs2.c
+
+Mostly rewrote parameter selection to minimize estimated cost, allow
+smaller increments of B2
+
+------------------------------------------------------------------------
+r1259 | zimmerma | 2008-05-03 00:19:56 +0200 (Sat, 03 May 2008) | 2 lines
+Changed paths:
+   M /trunk/README.dev
+
+we should look in TODO for a new release
+
+------------------------------------------------------------------------
+r1258 | zimmerma | 2008-05-03 00:18:44 +0200 (Sat, 03 May 2008) | 2 lines
+Changed paths:
+   M /trunk/TODO
+
+added bug with GWNUM interface
+
+------------------------------------------------------------------------
+r1257 | kruppa | 2008-05-02 23:52:10 +0200 (Fri, 02 May 2008) | 7 lines
+Changed paths:
+   M /trunk/configure.in
+   M /trunk/ecm-gmp.h
+   M /trunk/ecm-impl.h
+   M /trunk/ks-multiply.c
+   M /trunk/mpmod.c
+   M /trunk/mpzspv.c
+   M /trunk/mul_fft.c
+   M /trunk/pm1fs2.c
+   M /trunk/schoen_strass.c
+
+Fixed broken help string for --enable-sse2 in configure 
+Mangled names of mpn_fft_best_k() and mpn_fft_next_size(), moved prototypes
+of mpn_fft_*() functions to ecm-impl.h
+Declared some functions static that were used only locally and polluted    
+the namespace
+
+
+------------------------------------------------------------------------
+r1256 | brian_gladman | 2008-05-02 21:42:15 +0200 (Fri, 02 May 2008) | 3 lines
+Changed paths:
+   M /trunk/build.vc9/config.h
+   M /trunk/build.vc9/ecm-params.h
+   M /trunk/build.vc9/libecm/libecm.vcproj
+   M /trunk/longlong.h
+
+add add MSVC intrinsics to longlong.h
+update build files
+
+------------------------------------------------------------------------
+r1255 | brian_gladman | 2008-05-01 23:52:03 +0200 (Thu, 01 May 2008) | 1 line
+Changed paths:
+   M /trunk/build.vc9/tests.py
+
+
+------------------------------------------------------------------------
+r1254 | brian_gladman | 2008-05-01 23:45:32 +0200 (Thu, 01 May 2008) | 1 line
+Changed paths:
+   M /trunk/build.vc9/config.h
+   M /trunk/build.vc9/tests.py
+
+update version (noticed by Paul)
+------------------------------------------------------------------------
+r1253 | brian_gladman | 2008-05-01 21:43:33 +0200 (Thu, 01 May 2008) | 1 line
+Changed paths:
+   M /trunk/build.vc9/readme.txt
+
+
+------------------------------------------------------------------------
+r1252 | zimmerma | 2008-05-01 21:41:43 +0200 (Thu, 01 May 2008) | 3 lines
+Changed paths:
+   M /trunk/INSTALL
+   M /trunk/configure.in
+
+INSTALL: added pointer to build.vc9/readme.txt for Windows/VC++
+configure.in: changed version to 6.2-rc2
+
+------------------------------------------------------------------------
+r1251 | brian_gladman | 2008-05-01 21:36:11 +0200 (Thu, 01 May 2008) | 1 line
+Changed paths:
+   M /trunk/build.vc9/readme.txt
+
+further update to the VC++ readme file.
+------------------------------------------------------------------------
+r1250 | brian_gladman | 2008-05-01 20:42:25 +0200 (Thu, 01 May 2008) | 1 line
+Changed paths:
+   M /trunk/build.vc9/config.h
+   M /trunk/build.vc9/readme.txt
+
+minor non critical changes to readme.txt and config.h
+------------------------------------------------------------------------
+r1249 | brian_gladman | 2008-05-01 19:20:31 +0200 (Thu, 01 May 2008) | 1 line
+Changed paths:
+   M /trunk/build.vc9/tests.py
+
+
+------------------------------------------------------------------------
+r1248 | brian_gladman | 2008-05-01 11:38:19 +0200 (Thu, 01 May 2008) | 1 line
+Changed paths:
+   M /trunk/build.vc9/readme.txt
+   M /trunk/build.vc9/tests.py
+
+
+------------------------------------------------------------------------
+r1247 | zimmerma | 2008-05-01 01:05:46 +0200 (Thu, 01 May 2008) | 2 lines
+Changed paths:
+   M /trunk/Makefile.am
+   M /trunk/configure.in
+
+changes to have Brian's VC build files included in "make dist"
+
+------------------------------------------------------------------------
+r1246 | zimmerma | 2008-05-01 01:04:51 +0200 (Thu, 01 May 2008) | 2 lines
+Changed paths:
+   A /trunk/build.vc9/Makefile.am
+   A /trunk/build.vc9/assembler/Makefile.am
+   A /trunk/build.vc9/ecm/Makefile.am
+   A /trunk/build.vc9/libecm/Makefile.am
+
+needed makefiles to have the VC build files included in "make dist"
+
+------------------------------------------------------------------------
+r1245 | kruppa | 2008-04-30 17:34:22 +0200 (Wed, 30 Apr 2008) | 2 lines
+Changed paths:
+   M /trunk/configure.in
+
+Use -W compiler flag instead of -Wextra so it works with older gcc version
+
+------------------------------------------------------------------------
+r1241 | kruppa | 2008-04-29 19:11:41 +0200 (Tue, 29 Apr 2008) | 2 lines
+Changed paths:
+   M /trunk/ChangeLog
+
+Added the most recent changes
+
+------------------------------------------------------------------------
 r1240 | kruppa | 2008-04-29 16:16:58 +0200 (Tue, 29 Apr 2008) | 2 lines
 Changed paths:
    M /trunk/mul_fft.c
