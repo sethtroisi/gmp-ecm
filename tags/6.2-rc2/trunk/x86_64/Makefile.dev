@@ -1,0 +1,42 @@
+.PHONY: all
+
+all: test_mulredc bench
+
+CFLAGS:=-g -O2 -funroll-loops
+
+ALLMULRED:= mulredc1.o mulredc2.o mulredc3.o mulredc4.o mulredc5.o\
+            mulredc6.o mulredc7.o mulredc8.o mulredc9.o mulredc10.o\
+            mulredc11.o mulredc12.o mulredc13.o mulredc14.o\
+            mulredc15.o mulredc16.o mulredc17.o mulredc18.o\
+            mulredc19.o mulredc20.o
+	    
+
+redc.s: redc.asm
+	m4 -I../ redc.asm > redc.s
+
+redc.o: redc.s
+	gcc -c $(CFLAGS) redc.s -o redc.o
+
+mulredc%.o: mulredc%.asm
+	m4 $< > tmp-mulred.s
+	gcc -c $(CFLAGS) tmp-mulred.s -o $@
+	rm tmp-mulred.s
+
+mulredc1.asm: ./autogen.py
+	./autogen.py 1 > $@
+
+mulredc2.asm: ./autogen.py
+	./autogen.py 2 > $@
+
+mulredc%.asm: ./mulredc.m4
+	m4 -DLENGTH=$* $< > $@
+
+test_mulredc: test_mulredc.c redc.o $(ALLMULRED)
+	gcc -o test_mulredc $(CFLAGS) test_mulredc.c $(ALLMULRED) redc.o -lgmp
+
+bench: bench.c redc.o $(ALLMULRED)
+	gcc -o bench $(CFLAGS) bench.c $(ALLMULRED) redc.o -lgmp
+
+clean:
+	rm redc.s *.o mulredc[0-9]*.s mulredc[0-9]*.asm test_mulredc
+
