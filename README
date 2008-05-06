@@ -93,7 +93,10 @@ only in the computation of roots phase. The number of threads to use can
 be controlled with the OMP_NUM_THREADS environment variable. Unlike the 
 previous generic stage 2, the new stage 2 cannot use the Brent-Suyama 
 extension (-power and -dickson parameters). Specifying these options on 
-the command line forces use of the generic stage 2.
+the command line forces use of the generic stage 2. Note: the notation of
+the parameters follows that in the paper, the number of multi-point
+evaluations (similar to "blocks") is given by s_2. You can specify a lower
+limit for s_2 by the -k command line parameter.
 
 The ECM method is a probabilistic method, and can be viewed in some sense
 as a generalization of the P-1 and P+1 method, where we only require that
