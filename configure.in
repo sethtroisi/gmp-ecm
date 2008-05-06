@@ -25,8 +25,9 @@ AC_ARG_WITH(gmp_include, [  --with-gmp-include=DIR  GMP include directory ], wit
 AC_ARG_WITH(gmp_lib,     [  --with-gmp-lib=DIR      GMP lib directory ], with_gmp_lib=$withval)
 AC_ARG_WITH(gwnum,       [  --with-gwnum=DIR        GWNUM source directory ], with_gwnum=$withval)
 
+dnl Assertions are enabled by default for beta/rc releases.
 AC_ARG_ENABLE(assert,
-AS_HELP_STRING([--enable-assert], [enable ASSERT checking [[default=no]]]),[],[enable_assert=no])
+AS_HELP_STRING([--enable-assert], [enable ASSERT checking [[default=yes]]]),[],[enable_assert=yes])
 if test "x$enable_assert" = "xyes"; then
   AC_DEFINE(WANT_ASSERT,1,[Define to 1 if you want assertions enabled])
 fi
