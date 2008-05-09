@@ -904,7 +904,7 @@ pm1 (mpz_t f, mpz_t p, mpz_t N, mpz_t go, double *B1done, double B1,
 	}
       
       P = choose_P (B2min, B2, MAX (lmax_NTT, lmax_noNTT), k, 
-		    &faststage2_params, B2min, B2, use_ntt);
+		    &faststage2_params, B2min, B2, use_ntt, ECM_PM1);
       if (P == ECM_ERROR)
         {
           mpz_clear (faststage2_params.m_1);

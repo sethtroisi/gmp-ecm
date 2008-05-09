@@ -521,16 +521,35 @@ choose_s_1 (const unsigned long phiP, const unsigned long min_s2,
    comparable. We have l > s_1 and s_1 * s_2 = eulerphi(P), hence
    s_2*l > eulerphi(P) and so cost (s_2, l) > eulerphi(P) for all P */
 static unsigned long 
-est_cost (const unsigned long s_2, const unsigned long l, const int use_ntt)
+est_cost (const unsigned long s_2, const unsigned long l, const int use_ntt,
+          const int method)
 {
-  /* The time for building f, h and DCT-I of h seems to be about 
-     7/6 of the time of computing g, h*g and gcd with NTT, and 
-     3/2 of the time of computing g, h*g and gcd without NTT */
+  if (method == ECM_PM1)
+    {
+      /* The time for building f, h and DCT-I of h seems to be about 
+         7/6 of the time of computing g, h*g and gcd with NTT, and 
+         3/2 of the time of computing g, h*g and gcd without NTT */
 
-  if (use_ntt)
-    return (7 * l) / 6 + s_2 * l;
+      if (use_ntt)
+        return (7 * l) / 6 + s_2 * l;
+      else
+        return (3 * l) / 2 + s_2 * l;
+    }
+  else if (method == ECM_PP1)
+    {
+      /* Building f is the same, building h and its forward transform is
+         twice about as expensive as for P-1. Each multi-point evaluation
+         is twice as expensive as for P-1.
+         FIXME: The estimate for NTT assumes the "one-pass" variant, in 
+         "two-pass" the multipoint evaluations are slower, so the optimum 
+         shifts towards smaller s_2 some more */
+      if (use_ntt)
+        return (4 * l) / 5 + s_2 * l;
+      else
+        return (3 * l) / 4 + s_2 * l;
+    }
   else
-    return (3 * l) / 2 + s_2 * l;
+    abort (); /* Invalid value for method */
 }
 
 /* Choose P so that a stage 2 range from B2min to B2 can be covered with
@@ -543,7 +562,8 @@ est_cost (const unsigned long s_2, const unsigned long l, const int use_ntt)
 long
 choose_P (const mpz_t B2min, const mpz_t B2, const unsigned long lmax,
 	  const unsigned long min_s2, faststage2_param_t *finalparams, 
-	  mpz_t final_B2min, mpz_t final_B2, const int use_ntt)
+	  mpz_t final_B2min, mpz_t final_B2, const int use_ntt, 
+	  const int method)
 {
   /* Let S_1 + S_2 == (Z/PZ)* (mod P).
 
@@ -668,7 +688,7 @@ choose_P (const mpz_t B2min, const mpz_t B2, const unsigned long lmax,
 		 2. these cover [B2min, B2] and are cheaper than the best 
                     ones so far, or 
 		 3. they are as expensive but reach greater effB2. */
-	      trycost = est_cost (trys_2, tryl, use_ntt);
+	      trycost = est_cost (trys_2, tryl, use_ntt, method);
 	      ASSERT (tryphiP < trycost);
 	      if (P == 0 || trycost < cost ||
 		  (trycost == cost && mpz_cmp (tryeffB2, effB2) > 0))
