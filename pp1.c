@@ -882,7 +882,7 @@ pp1 (mpz_t f, mpz_t p, mpz_t n, mpz_t go, double *B1done, double B1,
 	}
 
       P = choose_P (B2min, B2, MAX(lmax_noNTT, lmax_NTT), k, 
-		    &faststage2_params, B2min, B2, use_ntt);
+		    &faststage2_params, B2min, B2, use_ntt, ECM_PP1);
       if (P == ECM_ERROR)
 	{
 	  mpz_clear (faststage2_params.m_1);

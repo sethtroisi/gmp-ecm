@@ -333,7 +333,7 @@ unsigned long pp1fs2_maxlen (const size_t, const mpz_t, const int, const int);
 #define choose_P __ECM(choose_P)
 long    choose_P (const mpz_t, const mpz_t, const unsigned long,
                   const unsigned long, faststage2_param_t *, mpz_t, mpz_t,
-                  const int);
+                  const int, const int);
 #define pm1fs2 __ECM(pm1fs2)
 int	pm1fs2 (mpz_t, const mpres_t, mpmod_t, const faststage2_param_t *);
 #define pm1fs2_ntt __ECM(pm1fs2_ntt)
