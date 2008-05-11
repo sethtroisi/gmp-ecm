@@ -81,18 +81,18 @@ lucas_cost_pp1 (unsigned long n, double v)
           d = e;
           e = r;
         }
-      if (4 * d <= 5 * e && ((d + e) % 3) == 0)
+      if (d - e <= e / 4 && ((d + e) % 3) == 0)
         { /* condition 1 */
           d = (2 * d - e) / 3;
           e = (e - d) / 2;
           c += 3 * ADD; /* 3 additions */
         }
-      else if (4 * d <= 5 * e && (d - e) % 6 == 0)
+      else if (d - e <= e / 4 && (d - e) % 6 == 0)
         { /* condition 2 */
           d = (d - e) / 2;
           c += ADD + DUP; /* one addition, one duplicate */
         }
-      else if (d <= 4 * e)
+      else if ((d + 3) / 4 <= e)
         { /* condition 3 */
           d -= e;
           c += ADD; /* one addition */
@@ -181,7 +181,7 @@ pp1_mul_prac (mpres_t A, unsigned long k, mpmod_t n, mpres_t t, mpres_t B,
           mpres_swap (A, B, n);
         }
       /* do the first line of Table 4 whose condition qualifies */
-      if (4 * d <= 5 * e && ((d + e) % 3) == 0)
+      if (d - e <= e / 4 && ((d + e) % 3) == 0)
         { /* condition 1 */
           d = (2 * d - e) / 3;
           e = (e - d) / 2;
@@ -190,13 +190,13 @@ pp1_mul_prac (mpres_t A, unsigned long k, mpmod_t n, mpres_t t, mpres_t B,
           pp1_add3 (B,  B, T, A, n, t); /* B = f(B,T,A) */
           mpres_swap (A, T2, n);    /* swap A and T2 */
         }
-      else if (4 * d <= 5 * e && (d - e) % 6 == 0)
+      else if (d - e <= e / 4 && (d - e) % 6 == 0)
         { /* condition 2 */
           d = (d - e) / 2;
           pp1_add3 (B, A, B, C, n, t); /* B = f(A,B,C) */
           pp1_duplicate (A, A, n);     /* A = 2*A */
         }
-      else if (d <= (4 * e))
+      else if ((d + 3) / 4 <= e) /* <==>  (d <= 4 * e) */
         { /* condition 3 */
           d -= e;
           pp1_add3 (C, B, A, C, n, t); /* C = f(B,A,C) */
@@ -225,7 +225,7 @@ pp1_mul_prac (mpres_t A, unsigned long k, mpmod_t n, mpres_t t, mpres_t B,
           pp1_add3 (C,  T, T2, C, n, t); /* C = f(T,T2,C) */
           SWAP (B, C, n);
         }
-      else if ((d + e) % 3 == 0)
+      else if ((d + e) % 3 == 0) /* d+e <= val[i]*k < k < 2^32 */
         { /* condition 7 */
           d = (d - 2 * e) / 3;
           pp1_add3 (T, A, B, C, n, t); /* T1 = f(A,B,C) */

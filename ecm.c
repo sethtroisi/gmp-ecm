@@ -335,18 +335,18 @@ lucas_cost (unsigned long n, double v)
           d = e;
           e = r;
         }
-      if (4 * d <= 5 * e && ((d + e) % 3) == 0)
+      if (d - e <= e / 4 && ((d + e) % 3) == 0)
         { /* condition 1 */
           d = (2 * d - e) / 3;
           e = (e - d) / 2;
           c += 3.0 * ADD; /* 3 additions */
         }
-      else if (4 * d <= 5 * e && (d - e) % 6 == 0)
+      else if (d - e <= e / 4 && (d - e) % 6 == 0)
         { /* condition 2 */
           d = (d - e) / 2;
           c += ADD + DUP; /* one addition, one duplicate */
         }
-      else if (d <= 4 * e)
+      else if ((d + 3) / 4 <= e)
         { /* condition 3 */
           d -= e;
           c += ADD; /* one addition */
@@ -459,7 +459,7 @@ prac (mpres_t xA, mpres_t zA, unsigned long k, mpmod_t n, mpres_t b,
           mpres_swap (zA, zB, n);
         }
       /* do the first line of Table 4 whose condition qualifies */
-      if (4 * d <= 5 * e && ((d + e) % 3) == 0)
+      if (d - e <= e / 4 && ((d + e) % 3) == 0)
         { /* condition 1 */
           d = (2 * d - e) / 3;
           e = (e - d) / 2;
@@ -469,13 +469,13 @@ prac (mpres_t xA, mpres_t zA, unsigned long k, mpmod_t n, mpres_t b,
           mpres_swap (xA, xT2, n);
           mpres_swap (zA, zT2, n); /* swap A and T2 */
         }
-      else if (4 * d <= 5 * e && (d - e) % 6 == 0)
+      else if (d - e <= e / 4 && (d - e) % 6 == 0)
         { /* condition 2 */
           d = (d - e) / 2;
           add3 (xB, zB, xA, zA, xB, zB, xC, zC, n, u, v, w); /* B = f(A,B,C) */
           duplicate (xA, zA, xA, zA, n, b, u, v, w); /* A = 2*A */
         }
-      else if (d <= (4 * e))
+      else if ((d + 3) / 4 <= e)
         { /* condition 3 */
           d -= e;
           add3 (xT, zT, xB, zB, xA, zA, xC, zC, n, u, v, w); /* T = f(B,A,C) */
