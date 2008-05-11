@@ -25,6 +25,6 @@ makesmooth_one (q, c) = {local(i); i = 1; while (!isprime(q*i+c), i++); return(q
 makesmooth_one_D (q, c, D) = {local(p); p=q+c; while (!isprime(p) || kronecker(D, p) != -1, p+=q); return(p)}
 
 find_x0 (p) = {local(i); i = 3; while (kronecker(i^2-4, p) == 1, i++); return(i);}
-makesmooth(B1, B2, c, n) = {local(i); forprime (q = B1, B2, p = makesmooth_one (q, c); print(p * max(n,1)))}
-makesmooth_x0(B1, B2, c, n) = {local(i); forprime (q = B1, B2, p = makesmooth_one (q, c); print(p * max(n,1), " ", find_x0(p)))}
-makesmooth_fixed_x0(B1, B2, c, x0, n) = {local(i); forprime (q = B1, B2, p = makesmooth_one_D (q, c, x0^2-4); print(p * max(n,1)))}
+makesmooth(B1, B2, c, n) = {local(i, q); q = nextprime(B1); while (q <= B2, p = makesmooth_one (q, c); print(p * max(n,1)); q = nextprime(q + 1))}
+makesmooth_x0(B1, B2, c, n) = {local(i, q); q = nextprime(B1); while (q <= B2, p = makesmooth_one (q, c); print(p * max(n,1), " ", find_x0(p)); q = nextprime(q + 1))}
+makesmooth_fixed_x0(B1, B2, c, x0, n) = {local(i, q); q = nextprime(B1); while (q <= B2, p = makesmooth_one_D (q, c, x0^2-4); print(p * max(n,1)); q = nextprime(q + 1))}
