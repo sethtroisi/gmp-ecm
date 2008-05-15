@@ -206,7 +206,8 @@ usage (void)
     printf ("  -redc        use Montgomery's REDC for modular reduction\n");
     printf ("  -nobase2     disable special base-2 code\n");
     printf ("  -base2 n     force base 2 mode with 2^n+1 (n>0) or 2^|n|-1 (n<0)\n");
-    printf ("  -no-ntt      disable NTT polynomial routines in stage 2\n");
+    printf ("  -ntt         enable NTT convolution routines in stage 2\n");
+    printf ("  -no-ntt      disable NTT convolution routines in stage 2\n");
     printf ("  -save file   save residues at end of stage 1 to file\n");
     printf ("  -savea file  like -save, appends to existing files\n");
     printf ("  -resume file resume residues from file, reads from stdin if file is \"-\"\n");
@@ -263,7 +264,7 @@ main (int argc, char *argv[])
   int verbose = OUTPUT_NORMAL; /* verbose level */
   int timestamp = 0;
   int method = ECM_ECM, method1;
-  int use_ntt = 1;
+  int use_ntt = 1;     /* Default, use NTT if input is small enough */
   int specific_x0 = 0, /* 1=starting point supplied by user, 0=random or */
                        /* compute from sigma */
       specific_sigma = 0;  /* 1=sigma from command line, 0=make random */
@@ -390,9 +391,15 @@ main (int argc, char *argv[])
 	  argv++;
 	  argc--;
         }
+      else if (strcmp (argv[1], "-ntt") == 0)
+	{
+	  use_ntt = 2; /* Use NTT, even for large input numbers */
+	  argv++;
+	  argc--;
+	}
       else if (strcmp (argv[1], "-no-ntt") == 0)
 	{
-	  use_ntt = 0;
+	  use_ntt = 0; /* Never use NTT */
 	  argv++;
 	  argc--;
 	}
@@ -675,15 +682,12 @@ main (int argc, char *argv[])
 	}
     }
 
-#if 0
-  /* For fast P-1 stage 2, odd S is required! */
-  /* check that S is even for P-1 */
-  if ((method == ECM_PM1) && (S % 2 != 0))
+  /* check that S is even for old P-1 stage 2 */
+  if ((method == ECM_PM1) && (S != ECM_DEFAULT_S) && (S % 2 != 0))
     {
       fprintf (stderr, "Error, S should be even for P-1\n");
       exit (EXIT_FAILURE);
     }
-#endif
 
   /* Ok, now we can "reset" the breadthfirst switch so that we do depthfirst 
      as requested */
@@ -857,7 +861,6 @@ main (int argc, char *argv[])
   params->TreeFilename = TreeFilename;
   params->maxmem = maxmem;
   params->stage1time = stage1time;
-  params->use_ntt = use_ntt;
 
   /* Open resume file for reading, if resuming is requested */
   if (resumefilename != NULL)
@@ -1264,6 +1267,12 @@ BreadthFirstDoAgain:;
       /* Here's an ugly hack to pass B2scale to the library somehow.
          It gets piggy-backed onto B1done */
       params->B1done = B1done + floor (B2scale * 128.) / 134217728.; 
+      /* Default, for P-1/P+1 with old stage 2 and ECM, use NTT only 
+         for small input */
+      if (use_ntt == 1 && (method == ECM_ECM || S != ECM_DEFAULT_S)) 
+        params->use_ntt = (mpz_size (n.n) <= NTT_SIZE_THRESHOLD);
+      else 
+        params->use_ntt = (use_ntt != 0);
 
 #ifdef WANT_SHELLCMD
       /* See if the system is currently idle, if -idlecmd was given */
