@@ -1,11 +1,11 @@
 .\"     Title: ECM
 .\"    Author: 
 .\" Generator: DocBook XSL Stylesheets v1.73.2 <http://docbook.sf.net/>
-.\"      Date: 04/28/2008
+.\"      Date: 05/15/2008
 .\"    Manual: April 22, 2003
 .\"    Source: April 22, 2003
 .\"
-.TH "ECM" "1" "04/28/2008" "April 22, 2003" "April 22, 2003"
+.TH "ECM" "1" "05/15/2008" "April 22, 2003" "April 22, 2003"
 .\" disable hyphenation
 .nh
 .\" disable justification (adjust text to left margin only)
@@ -175,9 +175,9 @@ Use at most
 megabytes of memory in stage 2\.
 .RE
 .PP
-\fB\-no\-ntt\fR
+\fB\-ntt\fR, \fB\-no\-ntt\fR
 .RS 4
-Disable the Number\-Theoretic Transform code for polynomial arithmetic and allow free choice of dF\. With NTT, dF is chosen to be a power of 2, and limited by the number suitable primes that fit in a machine word\. The \-no\-ntt variant uses more memory, however\.
+Enable or disable the Number\-Theoretic Transform code for polynomial arithmetic in stage 2\. With NTT, dF is chosen to be a power of 2, and is limited by the number suitable primes that fit in a machine word (which is a limitation only on 32 bit systems)\. The \-no\-ntt variant uses more memory, but is faster than NTT with large input numbers\. By default, NTT is used for P\-1, P+1 and for ECM on numbers of size at most 30 machine words\.
 .RE
 .SH "OUTPUT"
 .PP
