@@ -79,6 +79,8 @@ unsigned int get_random_ui (void);
 
 #define MAX_NUMBER_PRINT_LEN 1000
 
+#define NTT_SIZE_THRESHOLD 30
+
 /* auxlib.c */
 int  test_verbose (int);
 void set_verbose (int);
