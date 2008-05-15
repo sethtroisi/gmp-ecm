@@ -25,13 +25,12 @@ GSYM_PREFIX`'ecm_redc3:
         cmpq    $3, %rcx
         jae     Unroll		
 Loop:	
-		movq	%r11, %rax			# Read invm
+		movq	%r11, %rbp			# Read invm
 	        movq    %r9, %rsi                  # Read Source Ptr
-		mulq	(%rdi)				# Dest[0] * invm
+		imulq	(%rdi), %rbp			# Dest[0] * invm
 		movq	%rdi, %r8			# Save new Dest
 		movq	%r10, %rcx			# Read Size (2)
-		xorq	%rbx, %rbx			# Initial Carry
-		movq	%rax, %rbp			# Multiplier
+		xorl	%ebx, %ebx			# Initial Carry
 InnerLoop:
 		        # rsi:	  Source
 		        # rdi:	  Dest
@@ -87,13 +86,12 @@ Unroll:
 	movq	%rdx, 24(%rsp)				# Org PC inside	
 
 UnrollLoop:	
-                movq    %r11, %rax                  # Read invm
+                movq    %r11, %rbp                  # Read invm
                 movq    %r9, %rsi                  # Read Source Ptr
-                mulq    (%rdi)                          # Dest[0] * invm
+                imulq   (%rdi), %rbp               # Dest[0] * invm
                 movq    %rdi, %r8                  # Save new Dest
                 movq    %r10, %rcx                  # Read Size %16
 		movq    16(%rsp), %rdx			# Read InnerLoop Cpt
-	        movq    %rax, %rbp                      # Set Multiplier
 		movq	%rdx, 8(%rsp)			# Set InnerLoop Cpt
 	
 		# First mull and set initial carry
