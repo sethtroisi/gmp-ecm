@@ -107,7 +107,9 @@ Table of contents:
 	(mpmod.c)
 - ecm -v 1e6 3-2 < c155 prints wrong expected number of curves (should be
   the same as ecm -v 1e6 2). Reported by Peter Montgomery, 30 Mar 2006.
-  Still there in ecm-6.2-rc2.
+  This is because ecmprob() gets only B2min, B2 as parameters and assumes 
+  B1=B2min. Needs rewrite to integrate over interval [B2min, B2] but take 
+  B1 as smoothness bound. Target: 6.3
 - [reported by James Wanless <james@grok.ltd.uk>, 2 May 2008] the following
   should find a factor but does not (same with sigma=1101118787):
   [james@bympy2 gmp-ecm]$ echo '(2^86243+1)/(3)' | ./ecm6.1.1gmp4.2.1gwnum 
