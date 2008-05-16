@@ -15,12 +15,6 @@ Table of contents:
   T equals the Montgomery product GH/(x^d+1) mod F.
   See the paper "Fast convolution meets Montgomery" by Preda Mihailescu
   (Mathematics of Computation).
-- regression in stage 2 between 6.0.1 and 6.1.1:
-  echo "(2003663613*2^195000-2)/(2*23*173*3863)" | ecm -c 25 3000
-  (on Opteron, stage 2 takes 55279ms with 6.0.1, and 1410350ms with 6.1.1)
-  This seems to be due to the default -ntt, which might require too many
-  primes in that case. Maybe revert to -no-ntt by default, or when the input
-  number is larger than some bound.
 - slowdown in stage 1 with REDC between a 58672-digit number and a
   58688-digit number [reported by Christophe.CLAVIER@gemalto.com, 29 Aug 2007]
   (((2003663613*2^195000-2)/(2*23*173*3863))/1954173900202379)/3612632846010637
@@ -34,6 +28,8 @@ Table of contents:
   For c58672, if one replaces if (xn == 2 * n) in mpmod.c/REDC by
   if (xn >= 2 * n - 1), the time of stage 1 grows from 44s to 64s, whereas
   ecm_redc_n should be faster...
+  This problem is still present in 6.2, ecm_redc_n should be better tuned,
+  in particular the choice k=0.75*n in ecm_mul_lo_n() is far from optimal.
 - in Brent-Suyama's extension, the evaluation of a polynomial of degree k
   over N consecutive values is currently done using a O(k N) algorithm
   [table of differences]. One can do O(N/k M(k)), cf Section 3 from 
@@ -60,13 +56,13 @@ Table of contents:
   k*a^n+b, where k*a*b is highly composite. May belong to GMP rather than
   GMP-ECM.
 - implement assembly code (redc.asm) for other architectures
-- allow composite d2 (Target: perhaps 6.1? Postponed.)
+- allow composite d2, or better use the S1+S2 idea from the P+-1 algorithm
+  of Montgomery and Kruppa.
 - init mpz_t's with correct amount of memory allocated to avoid reallocs.
-  Check for reallocs with GMP's memory interface routines. 
-  (Target: 6.1? 7.0? Partly done.)
-- try sliding window multipliation for ECM stage 1 (Target: 7.0)
+  Check for reallocs with GMP's memory interface routines. (Partly done.)
+- try sliding window multiplication for ECM stage 1 (Target: 7.0)
 - choose Brent/Suyama polynomial according to B2/k and not B2!
-- Adjust estimated memory to take into account -treefile and NTT (Target: 6.1)
+- Adjust estimated memory to take into account -treefile and NTT
   (done but improvement possible)
 - when GWNUM is used, lower the default B2 (James Wanless, 17 Mar 2006,
 	james at grok.ltd.uk)
@@ -77,6 +73,7 @@ Table of contents:
 - Torbj"orn Granlund suggested faster code for mpn_mod_1(), used extensively
   in NTT. See
     http://lists.gforge.inria.fr/pipermail/ecm-discuss/2008-May/003365.html
+
 2) interface
 - with -resume, print %time for THIS RUN instead of total run?
 	[suggested by SleepHound <sleephound@yahoo.com>]
@@ -106,15 +103,11 @@ Table of contents:
   specific architectures. Cf TODO.kunz.
 
 5) bugs
-- F15: B1=99000, B2=150577181, sigma=3039152787 with ecm-6.0.1 [Bruce]
-  finds the input number. Seems to be fixed in r846, by the 3 changes
-  _mpz_realloc -> MPZ_REALLOC in mpmod.c.
 - potential bug: _mpz_realloc changes the value to 0 when it does not fit
 	(mpmod.c)
-- "not enough primes in interval" with NTT for large numbers (e.g. F17
-  with B1=3000000, B2=11414255590)
 - ecm -v 1e6 3-2 < c155 prints wrong expected number of curves (should be
   the same as ecm -v 1e6 2). Reported by Peter Montgomery, 30 Mar 2006.
+  Still there in ecm-6.2-rc2.
 - [reported by James Wanless <james@grok.ltd.uk>, 2 May 2008] the following
   should find a factor but does not (same with sigma=1101118787):
   [james@bympy2 gmp-ecm]$ echo '(2^86243+1)/(3)' | ./ecm6.1.1gmp4.2.1gwnum 
@@ -124,6 +117,7 @@ Table of contents:
   Using B1=11000, B2=1684420, polynomial x^1, sigma=3793703189
   Step 1 took 33023ms
   Step 2 took 137815ms
+  Due to GWNUM, fixed with newer version of GWNUM.
 
 6) others
 - from Dan Bernstein <djb@cr.yp.to> 7 Mar 2006: use the curve
