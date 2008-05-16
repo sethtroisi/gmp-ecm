@@ -47,13 +47,12 @@ END_PROLOGUE
     cmp     rcx, 3
     jae     .unroll
 
-.1: mov	    rax, r11
+.1: mov	    rbp, r11
 	mov     rsi, r9
-	mul	    qword [rdi]
+	imul    rbp, [rdi]
 	mov	    r8, rdi
 	mov	    rcx, r10
 	xor	    rbx, rbx
-	mov     rbp, rax
 
 .2: mov     rax, [rsi]
 	add     rdi, 8
@@ -97,13 +96,12 @@ END_PROLOGUE
 	mov	    r10, rcx
 	mov	    [rsp+24], rdx
 
-.4:	mov     rax, r11
+.4:	mov     rbp, r11
     mov     rsi, r9
-    mul     qword [rdi]
+    imul    rbp, [rdi]
     mov     r8, rdi
     mov     rcx, r10
 	mov     rdx, [rsp+16]
-    mov     rbp, rax
 	mov	    [rsp+8], rdx
 
     mov     rax, [rsi]

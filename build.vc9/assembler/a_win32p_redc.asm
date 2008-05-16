@@ -38,13 +38,12 @@ _ecm_redc3:
     cmp     ecx, 5
     jae     .unroll
 
-.1:`mov	    eax, [esp+48]
+.1: mov	    ebp, [esp+48]
     mov     esi, [esp+40]
-	mul	    dword [edi]
+	imul    ebp, [edi]
 	mov	    [esp+36], edi
 	mov	    ecx, [esp+44]
 	xor	    ebx, ebx
-	mov	    ebp, eax
 
 .2: mov     eax, [esi]
 	add     edi, 4
@@ -85,13 +84,12 @@ _ecm_redc3:
 	mov	    [esp+44], ecx
 	mov	    [esp+12], edx
 
-.4:	mov     eax, [esp+48]
+.4:	mov     ebp, [esp+48]
     mov     esi, [esp+40]
-    mul     dword [edi]
+    imul    ebp, [edi]
     mov     [esp+36], edi
     mov     ecx, [esp+44]
 	mov     edx, [esp+8]
-	mov     ebp, eax
 	mov	    [esp+4], edx
     mov     eax, [esi]
     lea     esi, [esi+ecx*4+4]
