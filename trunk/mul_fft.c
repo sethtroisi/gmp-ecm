@@ -654,7 +654,7 @@ mpn_fft_mul_2exp_modF (mp_ptr r, mp_srcptr a, unsigned int d, mp_size_t n)
   int sh, negate;
   mp_limb_t cc, rd;
 
-  ASSERT(d < 2 * n * GMP_NUMB_BITS);
+  ASSERT(d < 2 * (unsigned int) n * GMP_NUMB_BITS);
 
   sh = MOD_GMP_NUMB_BITS(d);
   d  = DIV_GMP_NUMB_BITS(d);
@@ -806,7 +806,7 @@ static inline void
 mpn_fft_lshsub_modF (mp_ptr r, mp_srcptr a, mp_srcptr b, unsigned int d,
 		     mp_size_t n)
 {
-  ASSERT (d < 2 * n);
+  ASSERT (d < 2 * (unsigned int) n);
 
   if (d >= (unsigned int) n) /* (a-b)*B^d = (b-a)*B^(d-n) */
     {
@@ -829,7 +829,7 @@ mpn_fft_lshsub_modF (mp_ptr r, mp_srcptr a, mp_srcptr b, unsigned int d,
 	 where ah, bh have d limbs + 1 bit, and al, bl have n-d limbs.
 	 Then (a-b)*B^d = (al-bl) * B^d + (bh-ah). */
 
-      ASSERT (0 < d && d < n);
+      ASSERT (0 < d && d < (unsigned int) n);
       cc = mpn_sub_n (r, b + n - d, a + n - d, d); /* bh-ah */
 #ifdef HAVE_NATIVE_mpn_sub_nc
       cc = mpn_sub_nc (r + d, a, b, n - d, cc);    /* al-bl */
@@ -2045,7 +2045,7 @@ mpn_fft_div_sqrt2exp_modF (mp_ptr r, mp_srcptr a, unsigned int k, mp_size_t n)
 #ifdef NO_SQRT_2
   ASSERT_ALWAYS (k % 2 == 0);
 #endif
-  ASSERT (0 < k && k < MUL_4GMP_NUMB_BITS(n));
+  ASSERT (0 < k && k < MUL_4GMP_NUMB_BITS((unsigned int) n));
   mpn_fft_mul_sqrt2exp_modF (r, a, MUL_4GMP_NUMB_BITS(n) - k, n);
   /* 1/2^k = 2^(2nL-k) mod 2^(n*GMP_NUMB_BITS)+1 */
   /* normalize so that R < 2^(n*GMP_NUMB_BITS)+1 */
