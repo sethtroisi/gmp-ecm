@@ -103,9 +103,8 @@ echo 630503947831861669 | $PP1 -x0 5 7 9007199254740000-9007199254741000; checkc
 
 # bug in ecm-6.0.1 on 64-bit machines. The error message "Error, maximal
 # step1 bound for P+1 is ..." on 32-bit machines is normal.
+echo "NOTE: NEXT TEST WILL FAIL ON 32BIT MACHINES, THIS IS EXPECTED."
 echo 8589934621 | $PP1 -x0 10 4294967310-4294967311 1; checkcode2 $? 1 8
-echo "NOTE: On 32-bit machines, the message 'Error, maximal step1 bound ...'"
-echo "      is ok above, as is 'Please report internal errors at ...'"
 
 # A test with a larger input number to test modular arithmetic routines not
 # in mulredc*.asm. This input has 1363 bits so it has 22 64 bit words 
