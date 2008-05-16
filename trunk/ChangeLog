@@ -1,4 +1,147 @@
 ------------------------------------------------------------------------
+r1288 | kruppa | 2008-05-16 14:38:03 +0200 (Fri, 16 May 2008) | 2 lines
+Changed paths:
+   M /trunk/configure.in
+
+Set version to 6.2, set assertions to off by default
+
+------------------------------------------------------------------------
+r1287 | kruppa | 2008-05-16 14:27:26 +0200 (Fri, 16 May 2008) | 2 lines
+Changed paths:
+   M /trunk/NEWS
+
+Added item: bugfix of Lucas chains for primes close to 3^32
+
+------------------------------------------------------------------------
+r1286 | kruppa | 2008-05-16 14:14:06 +0200 (Fri, 16 May 2008) | 2 lines
+Changed paths:
+   M /trunk/TODO
+
+Extended note telling why B2min<B2 gives weird probabilities.
+
+------------------------------------------------------------------------
+r1285 | brian_gladman | 2008-05-16 13:43:37 +0200 (Fri, 16 May 2008) | 1 line
+Changed paths:
+   M /trunk/build.vc9/assembler/a_win32a_redc.asm
+   M /trunk/build.vc9/assembler/a_win32p_redc.asm
+   M /trunk/build.vc9/assembler/a_x64_redc.asm
+
+update YASM assembler files to match main trunk changes
+------------------------------------------------------------------------
+r1284 | zimmerma | 2008-05-16 10:06:47 +0200 (Fri, 16 May 2008) | 2 lines
+Changed paths:
+   M /trunk/NEWS
+   M /trunk/TODO
+
+clean up done items in TODO
+
+------------------------------------------------------------------------
+r1283 | zimmerma | 2008-05-16 09:38:47 +0200 (Fri, 16 May 2008) | 2 lines
+Changed paths:
+   M /trunk/test.pp1
+
+better suggestion from Laurent
+
+------------------------------------------------------------------------
+r1282 | zimmerma | 2008-05-16 09:19:53 +0200 (Fri, 16 May 2008) | 2 lines
+Changed paths:
+   M /trunk/test.pp1
+
+improved comment
+
+------------------------------------------------------------------------
+r1281 | zimmerma | 2008-05-16 09:12:03 +0200 (Fri, 16 May 2008) | 2 lines
+Changed paths:
+   M /trunk/test.pp1
+
+added comment
+
+------------------------------------------------------------------------
+r1280 | zimmerma | 2008-05-16 09:09:32 +0200 (Fri, 16 May 2008) | 2 lines
+Changed paths:
+   M /trunk/mul_fft.c
+
+fixed some compiler warnings (comparison between signed and unsigned)
+
+------------------------------------------------------------------------
+r1279 | kruppa | 2008-05-16 00:23:28 +0200 (Fri, 16 May 2008) | 2 lines
+Changed paths:
+   M /trunk/athlon/redc.asm
+   M /trunk/pentium4/redc.asm
+   M /trunk/x86_64/redc.asm
+
+Slight improvement to asm code, suggested by Torbjorn
+
+------------------------------------------------------------------------
+r1278 | kruppa | 2008-05-15 19:47:04 +0200 (Thu, 15 May 2008) | 2 lines
+Changed paths:
+   M /trunk/ecm-ecm.h
+   M /trunk/ecm.1
+   M /trunk/ecm.xml
+   M /trunk/main.c
+
+For ECM, NTT is now disabled by default if input number has > 30 limbs
+
+------------------------------------------------------------------------
+r1277 | brian_gladman | 2008-05-13 21:24:37 +0200 (Tue, 13 May 2008) | 1 line
+Changed paths:
+   M /trunk/build.vc9/tests.py
+
+
+------------------------------------------------------------------------
+r1276 | kruppa | 2008-05-12 01:16:36 +0200 (Mon, 12 May 2008) | 2 lines
+Changed paths:
+   M /trunk/ecm.c
+   M /trunk/lucas.c
+
+Fixed integer overflows in PRAC
+
+------------------------------------------------------------------------
+r1275 | kruppa | 2008-05-12 01:15:36 +0200 (Mon, 12 May 2008) | 3 lines
+Changed paths:
+   M /trunk/makesmooth.gp
+
+Make it work better with larger stage 1 primes by using nextprime() instead
+of forprime()
+
+------------------------------------------------------------------------
+r1274 | kruppa | 2008-05-11 21:42:05 +0200 (Sun, 11 May 2008) | 2 lines
+Changed paths:
+   M /trunk/test.pp1
+
+Added test case for bug in PRAC code for P+1
+
+------------------------------------------------------------------------
+r1273 | kruppa | 2008-05-09 18:12:22 +0200 (Fri, 09 May 2008) | 2 lines
+Changed paths:
+   M /trunk/ecm-impl.h
+   M /trunk/pm1.c
+   M /trunk/pm1fs2.c
+   M /trunk/pp1.c
+
+Parameter selection adjusted for P+1 which prefers smaller s_2
+
+------------------------------------------------------------------------
+r1272 | brian_gladman | 2008-05-06 15:20:29 +0200 (Tue, 06 May 2008) | 1 line
+Changed paths:
+   M /trunk/sp.h
+
+improved MSVC assembler code
+------------------------------------------------------------------------
+r1271 | zimmerma | 2008-05-06 14:31:31 +0200 (Tue, 06 May 2008) | 2 lines
+Changed paths:
+   M /trunk/pm1fs2.c
+
+replaced s_2 = ... by k = s_2 = ... (continued)
+
+------------------------------------------------------------------------
+r1269 | kruppa | 2008-05-06 14:19:27 +0200 (Tue, 06 May 2008) | 2 lines
+Changed paths:
+   M /trunk/ChangeLog
+
+Added lastest changes
+
+------------------------------------------------------------------------
 r1268 | kruppa | 2008-05-06 14:17:43 +0200 (Tue, 06 May 2008) | 2 lines
 Changed paths:
    M /trunk/pm1.c
