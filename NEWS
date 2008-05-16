@@ -14,6 +14,8 @@ Changes between ecm-6.1.3 and ecm-6.2:
 * File ecm.h changed from GPL to LGPL: the fact it was under GPL was an
   unvoluntary mistake, which has the consequence that applications linking with
   libecm for version < 6.2 should be under GPL too.
+* fixed a regression introduced in 6.1.1: the default arithmetic (NTT) for
+  stage 2 was slower for large inputs.
 
 Changes between ecm-6.1.2 and ecm-6.1.3:
 * fixed incorrect computation of memory use in stage 2, especially for
