@@ -61,11 +61,12 @@ spv_t spv;
 mpzspv_t mpzspv;
 int tune_verbose;
 int max_log2_len = MAX_LOG2_LEN;
+int min_log2_len = 3;
 
 size_t MPZMOD_THRESHOLD;
 size_t REDC_THRESHOLD;
-size_t SPV_NTT_GFP_DIF_RECURSIVE_THRESHOLD;
-size_t SPV_NTT_GFP_DIT_RECURSIVE_THRESHOLD;
+size_t NTT_GFP_TWIDDLE_DIF_BREAKOVER;
+size_t NTT_GFP_TWIDDLE_DIT_BREAKOVER;
 size_t MUL_NTT_THRESHOLD;
 size_t PREREVERTDIVISION_NTT_THRESHOLD;
 size_t POLYINVERT_NTT_THRESHOLD;
@@ -153,28 +154,26 @@ tune_mpres_mul_redc (size_t n)
 }
 
 TUNE_FUNC_START (tune_spv_ntt_gfp_dif_recursive)
-  SPV_NTT_GFP_DIF_RECURSIVE_THRESHOLD = 1 << n;
-  TUNE_FUNC_LOOP (spv_ntt_gfp_dif (spv, n, spm));
+  NTT_GFP_TWIDDLE_DIF_BREAKOVER = n;
+  TUNE_FUNC_LOOP (spv_ntt_gfp_dif (spv, max_log2_len, spm));
 TUNE_FUNC_END (tune_spv_ntt_gfp_dif_recursive)
 
 
 TUNE_FUNC_START (tune_spv_ntt_gfp_dif_unrolled)
-  SPV_NTT_GFP_DIF_RECURSIVE_THRESHOLD = ULONG_MAX;
-  TUNE_FUNC_LOOP (spv_ntt_gfp_dif (spv, n, spm));
+  NTT_GFP_TWIDDLE_DIF_BREAKOVER = max_log2_len;
+  TUNE_FUNC_LOOP (spv_ntt_gfp_dif (spv, max_log2_len, spm));
 TUNE_FUNC_END (tune_spv_ntt_gfp_dif_unrolled)
 
 
 TUNE_FUNC_START (tune_spv_ntt_gfp_dit_recursive)
-  SPV_NTT_GFP_DIT_RECURSIVE_THRESHOLD = 1 << n;
-
-  TUNE_FUNC_LOOP (spv_ntt_gfp_dit (spv, n, spm));
+  NTT_GFP_TWIDDLE_DIT_BREAKOVER = n;
+  TUNE_FUNC_LOOP (spv_ntt_gfp_dit (spv, max_log2_len, spm));
 TUNE_FUNC_END (tune_spv_ntt_gfp_dit_recursive)
 
 
 TUNE_FUNC_START (tune_spv_ntt_gfp_dit_unrolled)
-  SPV_NTT_GFP_DIT_RECURSIVE_THRESHOLD = ULONG_MAX;
-
-  TUNE_FUNC_LOOP (spv_ntt_gfp_dit (spv, n, spm));
+  NTT_GFP_TWIDDLE_DIT_BREAKOVER = max_log2_len;
+  TUNE_FUNC_LOOP (spv_ntt_gfp_dit (spv, max_log2_len, spm));
 TUNE_FUNC_END (tune_spv_ntt_gfp_dit_unrolled)
 
 
@@ -381,6 +380,8 @@ main (int argc, char **argv)
       else if (argc > 2 && strcmp (argv[1], "-max_log2_len") == 0)
         {
           max_log2_len = atoi (argv[2]);
+	  if (max_log2_len < min_log2_len)
+	    max_log2_len = min_log2_len;
           argc -= 2;
           argv += 2;
         }
@@ -441,19 +442,19 @@ main (int argc, char **argv)
   mpn_mul_lo_threshold[mp_size] = maximise (tune_ecm_mul_lo_n, 0, mp_size);
   printf ("%lu}\n", (unsigned long) mpn_mul_lo_threshold[mp_size]);
 	  
-  SPV_NTT_GFP_DIF_RECURSIVE_THRESHOLD = 1 << crossover
+  NTT_GFP_TWIDDLE_DIF_BREAKOVER = 1 << crossover
       (tune_spv_ntt_gfp_dif_unrolled, tune_spv_ntt_gfp_dif_recursive,
-	  1, max_log2_len);
+	  min_log2_len, max_log2_len - 1);
 
-  printf ("#define SPV_NTT_GFP_DIF_RECURSIVE_THRESHOLD %lu\n",
-      (unsigned long) SPV_NTT_GFP_DIF_RECURSIVE_THRESHOLD);
+  printf ("#define NTT_GFP_TWIDDLE_DIF_BREAKOVER %lu\n",
+      (unsigned long) NTT_GFP_TWIDDLE_DIF_BREAKOVER);
    
-  SPV_NTT_GFP_DIT_RECURSIVE_THRESHOLD = 1 << crossover
+  NTT_GFP_TWIDDLE_DIT_BREAKOVER = 1 << crossover
       (tune_spv_ntt_gfp_dit_unrolled, tune_spv_ntt_gfp_dit_recursive,
-	  1, max_log2_len);
+	  min_log2_len, max_log2_len - 1);
 
-  printf ("#define SPV_NTT_GFP_DIT_RECURSIVE_THRESHOLD %lu\n",
-      (unsigned long) SPV_NTT_GFP_DIT_RECURSIVE_THRESHOLD);
+  printf ("#define NTT_GFP_TWIDDLE_DIT_BREAKOVER %lu\n",
+      (unsigned long) NTT_GFP_TWIDDLE_DIT_BREAKOVER);
   
   MUL_NTT_THRESHOLD = 1 << crossover2 (tune_list_mul, tune_ntt_mul, 1,
       max_log2_len, 2);
@@ -467,13 +468,13 @@ main (int argc, char **argv)
       (unsigned long) PREREVERTDIVISION_NTT_THRESHOLD);
 
   POLYINVERT_NTT_THRESHOLD = 1 << crossover (tune_PolyInvert,
-      tune_ntt_PolyInvert, 1, max_log2_len);
+      tune_ntt_PolyInvert, 5, max_log2_len);
 
   printf ("#define POLYINVERT_NTT_THRESHOLD %lu\n", 
       (unsigned long) POLYINVERT_NTT_THRESHOLD);
   
   POLYEVALT_NTT_THRESHOLD = 1 << crossover (tune_polyevalT,
-      tune_ntt_polyevalT, 1, max_log2_len);
+      tune_ntt_polyevalT, 5, max_log2_len);
 
   printf ("#define POLYEVALT_NTT_THRESHOLD %lu\n", 
       (unsigned long) POLYEVALT_NTT_THRESHOLD);

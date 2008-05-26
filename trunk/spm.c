@@ -45,7 +45,7 @@ ordpow (const sp_t q, sp_t a, const sp_t sp, const sp_t mul_c)
 static void
 nttdata_init (const sp_t sp, const sp_t mul_c, 
 		const sp_t prim_root, const spv_size_t log2_len,
-		sp_nttdata_t data)
+		sp_nttdata_t data, spv_size_t breakover)
 {
   spv_t r, t;
   spv_size_t i, j, k;
@@ -58,7 +58,7 @@ nttdata_init (const sp_t sp, const sp_t mul_c,
   for (i--; (int)i >= 0; i--)
     r[i] = sp_sqr (r[i+1], sp, mul_c);
 
-  k = MIN(log2_len, NTT_GFP_TWIDDLE_BREAKOVER);
+  k = MIN(log2_len, breakover);
   t = data->twiddle = (spv_t) sp_aligned_malloc (sizeof(sp_t) << k);
   data->twiddle_size = 1 << k;
 
@@ -181,13 +181,17 @@ spm_init (spv_size_t n, sp_t sp)
     }
 
   nttdata_init (sp, spm->mul_c, 
-		sp_pow (spm->prim_root, n >> ntt_power, sp, spm->mul_c),
-		ntt_power, spm->nttdata);
+		sp_pow (spm->prim_root, 
+			n >> ntt_power, sp, spm->mul_c),
+		ntt_power, spm->nttdata, 
+		NTT_GFP_TWIDDLE_DIF_BREAKOVER);
   nttdata_init (sp, spm->mul_c, 
-		sp_pow (spm->inv_prim_root, n >> ntt_power, sp, spm->mul_c),
-		ntt_power, spm->inttdata);
+		sp_pow (spm->inv_prim_root, 
+			n >> ntt_power, sp, spm->mul_c),
+		ntt_power, spm->inttdata, 
+		NTT_GFP_TWIDDLE_DIT_BREAKOVER);
   spm->scratch = (spv_t) sp_aligned_malloc (
-		  	NTT_TWIDDLE_BLOCK_SIZE * sizeof(sp_t));
+		  	MAX_NTT_BLOCK_SIZE * sizeof(sp_t));
   return spm;
 }
 

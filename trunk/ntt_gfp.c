@@ -225,7 +225,7 @@ spv_ntt_gfp_dif (spv_t x, spv_size_t log2_len, spm_t data)
   sp_t p = data->sp;
   sp_t d = data->mul_c;
 
-  if (log2_len <= NTT_GFP_TWIDDLE_BREAKOVER)
+  if (log2_len <= NTT_GFP_TWIDDLE_DIF_BREAKOVER)
     { 
       spv_t w = data->nttdata->twiddle + 
 	        data->nttdata->twiddle_size - (1 << log2_len);
@@ -242,21 +242,22 @@ spv_ntt_gfp_dif (spv_t x, spv_size_t log2_len, spm_t data)
 
         {
           spv_size_t i;
+	  spv_size_t block_size = MIN(len, MAX_NTT_BLOCK_SIZE);
           sp_t root = roots[log2_len];
 	  spv_t w = data->scratch;
 
 	  w[0] = 1;
-	  for (i = 1; i < NTT_TWIDDLE_BLOCK_SIZE; i++)
+	  for (i = 1; i < block_size; i++)
 	    w[i] = sp_mul (w[i-1], root, p, d);
 
-          root = sp_pow (root, NTT_TWIDDLE_BLOCK_SIZE, p, d);
+          root = sp_pow (root, block_size, p, d);
 
-	  for (i = 0; i < len; i += NTT_TWIDDLE_BLOCK_SIZE)
+	  for (i = 0; i < len; i += block_size)
 	    {
 	      if (i)
-	        spv_mul_sp (w, w, root, NTT_TWIDDLE_BLOCK_SIZE, p, d);
+	        spv_mul_sp (w, w, root, block_size, p, d);
 
-	      bfly_dif (x0 + i, x1 + i, w, NTT_TWIDDLE_BLOCK_SIZE, p, d);
+	      bfly_dif (x0 + i, x1 + i, w, block_size, p, d);
 	    }
 	}
 	
@@ -466,7 +467,7 @@ spv_ntt_gfp_dit (spv_t x, spv_size_t log2_len, spm_t data)
   sp_t p = data->sp;
   sp_t d = data->mul_c;
 
-  if (log2_len <= NTT_GFP_TWIDDLE_BREAKOVER)
+  if (log2_len <= NTT_GFP_TWIDDLE_DIT_BREAKOVER)
     {
       spv_t w = data->inttdata->twiddle + 
 	        data->inttdata->twiddle_size - (1 << log2_len);
@@ -484,21 +485,22 @@ spv_ntt_gfp_dit (spv_t x, spv_size_t log2_len, spm_t data)
 
         {
           spv_size_t i;
+	  spv_size_t block_size = MIN(len, MAX_NTT_BLOCK_SIZE);
           sp_t root = roots[log2_len];
 	  spv_t w = data->scratch;
 
 	  w[0] = 1;
-	  for (i = 1; i < NTT_TWIDDLE_BLOCK_SIZE; i++)
+	  for (i = 1; i < block_size; i++)
 	    w[i] = sp_mul (w[i-1], root, p, d);
 
-          root = sp_pow (root, NTT_TWIDDLE_BLOCK_SIZE, p, d);
+          root = sp_pow (root, block_size, p, d);
 
-	  for (i = 0; i < len; i += NTT_TWIDDLE_BLOCK_SIZE)
+	  for (i = 0; i < len; i += block_size)
 	    {
 	      if (i)
-	        spv_mul_sp (w, w, root, NTT_TWIDDLE_BLOCK_SIZE, p, d);
+	        spv_mul_sp (w, w, root, block_size, p, d);
 
-	      bfly_dit (x0 + i, x1 + i, w, NTT_TWIDDLE_BLOCK_SIZE, p, d);
+	      bfly_dit (x0 + i, x1 + i, w, block_size, p, d);
 	    }
 	}
     }
