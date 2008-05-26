@@ -1,7 +1,6 @@
 /* contributed by tom at womack dot net */
 
 /* things that were consistent */
-#define SPV_NTT_GFP_DIT_RECURSIVE_THRESHOLD 131072
 #define PREREVERTDIVISION_NTT_THRESHOLD 16
 #define POLYINVERT_NTT_THRESHOLD 256
 #define POLYEVALT_NTT_THRESHOLD 256
@@ -14,8 +13,8 @@
 /* things that broke 2-3 */
 /* this came out as 256 twice */
 #define MPZSPV_NORMALISE_STRIDE 128
-/* this came out as 2048 twice */
-#define SPV_NTT_GFP_DIF_RECURSIVE_THRESHOLD 4096
 
 /* the table (individual modes) */
 #define MPN_MUL_LO_THRESHOLD_TABLE {0,0,1,0,0,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1}
+#define NTT_GFP_TWIDDLE_DIF_BREAKOVER 11
+#define NTT_GFP_TWIDDLE_DIT_BREAKOVER 11
