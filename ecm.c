@@ -722,7 +722,7 @@ choose_S (mpz_t B2len)
 }
 
 static void
-print_expcurves (mpz_t B2min, mpz_t effB2, unsigned long dF, unsigned long k, 
+print_expcurves (double B1, const mpz_t B2, unsigned long dF, unsigned long k, 
                  int S)
 {
   double prob;
@@ -734,7 +734,7 @@ print_expcurves (mpz_t B2min, mpz_t effB2, unsigned long dF, unsigned long k,
   for (i = 20; i <= 65; i += 5)
     {
       sep = (i < 65) ? '\t' : '\n';
-      prob = ecmprob (mpz_get_d (B2min), mpz_get_d (effB2),
+      prob = ecmprob (B1, mpz_get_d (B2),
                       pow (10., i - .5), (double) dF * dF * k, S);
       if (prob > 1. / 10000000)
         outputf (OUTPUT_VERBOSE, "%.0f%c", floor (1. / prob + .5), sep);
@@ -746,7 +746,7 @@ print_expcurves (mpz_t B2min, mpz_t effB2, unsigned long dF, unsigned long k,
 }
 
 static void
-print_exptime (mpz_t B2min, mpz_t effB2, unsigned long dF, unsigned long k, 
+print_exptime (double B1, const mpz_t B2, unsigned long dF, unsigned long k, 
                int S, double tottime)
 {
   double prob, exptime;
@@ -758,7 +758,7 @@ print_exptime (mpz_t B2min, mpz_t effB2, unsigned long dF, unsigned long k,
   for (i = 20; i <= 65; i += 5)
     {
       sep = (i < 65) ? '\t' : '\n';
-      prob = ecmprob (mpz_get_d (B2min), mpz_get_d (effB2), 
+      prob = ecmprob (B1, mpz_get_d (B2), 
                       pow (10., i - .5), (double) dF * dF * k, S);
       exptime = (prob > 0.) ? tottime / prob : HUGE_VAL;
       outputf (OUTPUT_TRACE, "Digits: %d, Total time: %.0f, probability: "
@@ -1048,8 +1048,16 @@ ecm (mpz_t f, mpz_t x, mpz_t sigma, mpz_t n, mpz_t go, double *B1done,
 
   if (test_verbose (OUTPUT_VERBOSE))
     {
-      rhoinit (256, 10);
-      print_expcurves (B2min, B2, dF, k, root_params.S);
+      if (mpz_cmp_d (B2min, B1) != 0)
+        {
+          outputf (OUTPUT_VERBOSE, 
+            "Can't compute success probabilities for B1 <> B2min\n");
+        }
+      else
+        {
+          rhoinit (256, 10);
+          print_expcurves (B1, B2, dF, k, root_params.S);
+        }
     }
 
 #ifdef HAVE_GWNUM
@@ -1131,12 +1139,15 @@ ecm (mpz_t f, mpz_t x, mpz_t sigma, mpz_t n, mpz_t go, double *B1done,
   
   if (test_verbose (OUTPUT_VERBOSE))
     {
-      if (youpi == ECM_NO_FACTOR_FOUND && 
-          (stop_asap == NULL || !(*stop_asap)()))
-        print_exptime (B2min, B2, dF, k, root_params.S, 
-                       (long) (stage1time * 1000.) + 
-                       elltime (st, cputime ()));
-      rhoinit (1, 0); /* Free memory of rhotable */
+      if (mpz_cmp_d (B2min, B1) == 0)
+        {
+          if (youpi == ECM_NO_FACTOR_FOUND && 
+              (stop_asap == NULL || !(*stop_asap)()))
+            print_exptime (B1, B2, dF, k, root_params.S, 
+                           (long) (stage1time * 1000.) + 
+                           elltime (st, cputime ()));
+          rhoinit (1, 0); /* Free memory of rhotable */
+        }
     }
 
 end_of_ecm:

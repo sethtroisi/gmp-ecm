@@ -259,7 +259,7 @@ read_resumefile_line (int *method, mpz_t x, mpcandi_t *n, mpz_t sigma, mpz_t A,
           if (have_n && have_sigma)
             {
               *method = ECM_ECM;
-              *b1 = 1.0;
+              /* *b1 = 1.0; */
               strcpy (program, "Prime95");
               mpz_mod (x, x, n->n);
               return 1;
