@@ -823,7 +823,13 @@ pp1 (mpz_t f, mpz_t p, mpz_t n, mpz_t go, double *B1done, double B1,
 
   /* Set default B2. See ecm.c for comments */
   if (ECM_IS_DEFAULT_B2(B2))
-    mpz_set_d (B2, B2scale * pow (B1 * PP1_COST, DEFAULT_B2_EXPONENT));
+    {
+      if (stage2_variant == 0)
+        mpz_set_d (B2, B2scale * pow (B1 * PP1_COST, DEFAULT_B2_EXPONENT));
+      else
+        mpz_set_d (B2, B2scale * pow (B1 * PP1FS2_COST, 
+                   PM1FS2_DEFAULT_B2_EXPONENT));
+    }
 
   /* set B2min */
   if (mpz_sgn (B2min) < 0)
