@@ -76,6 +76,7 @@ typedef mp_limb_t UDItype;
 #define ULONG_MAX __GMP_ULONG_MAX
 #endif
 
+#define LONGLONG_STANDALONE
 #include "longlong.h"
 
 /*********
