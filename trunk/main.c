@@ -1014,6 +1014,8 @@ BreadthFirstDoAgain:;
          && !exit_asap_value)
     {
       trial_factor_found = 0;
+      params->B1done = B1done; /* may change with resume */
+      
       if (resumefile != NULL) /* resume case */
         {
 	  if (count != 1)
@@ -1021,9 +1023,8 @@ BreadthFirstDoAgain:;
 	      fprintf (stderr, "Error, option -c and -resume are incompatible\n");
 	      exit (EXIT_FAILURE);
 	    }
-
           if (!read_resumefile_line (&method, x, &n, sigma, A, orig_x0, 
-                &B1done, program, who, rtime, comment, resumefile))
+                &(params->B1done), program, who, rtime, comment, resumefile))
             break;
           
           if (mpz_cmp (n.n, resume_lastN) == 0)
@@ -1262,11 +1263,10 @@ BreadthFirstDoAgain:;
       params->sigma_is_A = mpz_sgn (sigma) == 0;
       mpz_set (params->sigma, (params->sigma_is_A) ? A : sigma);
       mpz_set (params->go, go.Candi.n); /* may change if contains N */
-      params->B1done = B1done; /* may change with resume */
       mpz_set (params->B2min, B2min); /* may change with -c */
       /* Here's an ugly hack to pass B2scale to the library somehow.
          It gets piggy-backed onto B1done */
-      params->B1done = B1done + floor (B2scale * 128.) / 134217728.; 
+      params->B1done = params->B1done + floor (B2scale * 128.) / 134217728.; 
       /* Default, for P-1/P+1 with old stage 2 and ECM, use NTT only 
          for small input */
       if (use_ntt == 1 && (method == ECM_ECM || S != ECM_DEFAULT_S)) 
