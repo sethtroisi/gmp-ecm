@@ -1,0 +1,293 @@
+
+m4_define([ECM_VERSION], 6.2)
+
+AC_PREREQ(2.57)
+AC_INIT(ecm, ECM_VERSION, [ecm-discuss@lists.gforge.inria.fr])
+AC_CONFIG_HEADER([config.h])
+GMP_INIT(config.m4)
+AM_INIT_AUTOMAKE(ecm, ECM_VERSION)
+
+# Don't make a shared library by default. Enable building a shared library
+# by specifying "--enable-shared" on the ./configure command line
+AC_CANONICAL_HOST
+AC_DISABLE_SHARED
+AC_PROG_LIBTOOL
+
+dnl Checks for programs.
+AC_PROG_CC
+AM_PROG_AS
+dnl the following is required to compile auxi.c according to autoconf 2.61
+AM_PROG_CC_C_O
+
+AC_ARG_WITH(gmp,         [  --with-gmp=DIR          GMP install directory ], with_gmp_include=$withval/include with_gmp_lib=$withval/lib)
+AC_ARG_WITH(gmp_build,   [  --with-gmp-build=DIR    GMP source directory], with_gmp_include=$withval/ with_gmp_lib=$withval/.libs)
+AC_ARG_WITH(gmp_include, [  --with-gmp-include=DIR  GMP include directory ], with_gmp_include=$withval)
+AC_ARG_WITH(gmp_lib,     [  --with-gmp-lib=DIR      GMP lib directory ], with_gmp_lib=$withval)
+AC_ARG_WITH(gwnum,       [  --with-gwnum=DIR        GWNUM source directory ], with_gwnum=$withval)
+
+dnl Assertions are enabled by default for beta/rc releases. The last parameter
+dnl of AC_ARG_ENABLE() sets the default value.
+AC_ARG_ENABLE(assert,
+AS_HELP_STRING([--enable-assert], [enable ASSERT checking [[default=no]]]),[],[enable_assert=no])
+if test "x$enable_assert" = "xyes"; then
+  AC_DEFINE(WANT_ASSERT,1,[Define to 1 if you want assertions enabled])
+fi
+
+AC_ARG_ENABLE(assert,
+AS_HELP_STRING([--enable-shellcmd], [enable shell command execution [[default=no]]]),[],[enable_shellcmd=no])
+if test "x$enable_shellcmd" = "xyes"; then
+  AC_DEFINE(WANT_SHELLCMD,1,[Define to 1 if you want shell command execution])
+fi
+
+AC_ARG_ENABLE(asm-redc,
+AS_HELP_STRING([--enable-asm-redc], [use an asm REDC on x86 or x86_64 [[default=no]]]),[],[enable_asm_redc=no])
+
+if test "x$enable_asm_redc" = "xyes"; then
+  case $host in
+    k[7-8]*-*-* | athlon*-*-* | pentiumpro-*-* | pentium2-*-* | pentium3-*-* | pentium4-*-* | viac3*-*-* | x86_64-*-*)
+          AC_DEFINE(NATIVE_REDC,1,[Define to 1 to use asm redc on x86 or x86_64])
+                 test -n "$CCAS" || CCAS="$CC -c"
+		 AC_SUBST(CCAS)
+		 GMP_PROG_M4
+		 GMP_ASM_UNDERSCORE
+		 GMP_ASM_TEXT
+		 GMP_ASM_GLOBL
+		 GMP_ASM_TYPE ;;
+     *) AC_MSG_ERROR(asm redc exists only for x86_64 and recent x86) ;;
+  esac
+fi
+if test "x$enable_asm_redc" = "xyes"; then
+  case $host in
+    pentium4-*-* | pentium3-*-* | i786-*-*) asmpath=pentium4;;
+    athlon-*-*) asmpath=athlon;;
+    x86_64-*-*)  asmpath=x86_64;; 
+    *)
+      # Since athlon code is pure pentiumpro, we take it as default.
+      asmpath=athlon;;
+  esac
+  AC_CONFIG_LINKS(redc.asm:$asmpath/redc.asm)
+  for i in 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20; do
+    AC_CONFIG_LINKS(mulredc$i.asm:$asmpath/mulredc$i.asm)
+  done
+  case $host in
+    pentium3-*-*)
+      echo "WARNING: Your processor is recognized as Pentium3."
+      echo "         The asm code uses SSE2, and therefore it might"
+      echo "         fail if your proc is indeed a P3, and not a"
+      echo "         Pentium M. If you have compilation problems,"
+      echo "         consider using --disable-asm-redc." ;;
+    *)
+      echo "Prepare links to asm subdir..." ;;
+  esac
+fi
+AM_CONDITIONAL(ENABLE_ASM_REDC, test "x$enable_asm_redc" = "xyes")
+
+AC_ARG_ENABLE(sse2,
+AS_HELP_STRING([--enable-sse2], [use SSE2 instructions in NTT code (default=yes for Pentium 4, no for others)]),
+[],[])
+if test "x$enable_sse2" == "xyes"; then
+  AC_DEFINE(HAVE_SSE2,1,[Define to 1 to enable SSE2 instructions in NTT code])
+  CFLAGS="$CFLAGS -msse2"
+  AC_MSG_RESULT(SSE2 in NTT enabled)
+elif test "x$enable_sse2" == "x"; then
+dnl Default: if we build for Pentium 4, enable SSE2 code for the NTT
+case $host in
+  pentium4-*-*) 
+    AC_DEFINE(HAVE_SSE2,1,[Define to 1 to enable SSE2 instructions in NTT code])
+    CFLAGS="$CFLAGS -msse2"
+    AC_MSG_RESULT(SSE2 in NTT enabled by default for Pentium 4)
+  ;;
+esac
+fi
+
+dnl If user wants GWNUM, check if the file exists (either as .a or .lib)
+if test "x$with_gwnum" != "x"; then
+  AC_CHECK_FILE($with_gwnum/gwnum.a, [
+    AC_DEFINE(HAVE_GWNUM, 1, [Define to 1 if gwnum.a or gwnum.lib exist])
+    GWLIB="$with_gwnum/gwnum.a"
+    CFLAGS="$CFLAGS -I$with_gwnum"
+  ],[
+    AC_CHECK_FILE($with_gwnum/gwnum.lib, [
+      AC_DEFINE(HAVE_GWNUM, 1, [Define to 1 if gwnum.a or gwnum.lib exist])
+      GWLIB="$with_gwnum/gwnum.lib"
+      CFLAGS="$CFLAGS -I$with_gwnum"
+    ],[
+      with_gwnum=
+      AC_MSG_WARN([Woltman's GWNUM library not found])
+    ])
+  ])
+fi
+AM_CONDITIONAL(WITH_GWNUM, test "x$with_gwnum" != "x")
+
+AC_ARG_ENABLE(memory-debug,
+AS_HELP_STRING([--enable-memory-debug], [enable memory debugging [[default=no]]]),[],[enable_memory_debug=no])
+if test "x$enable_memory_debug" = "xyes"; then
+  AC_DEFINE(MEMORY_DEBUG, 1, [Define to 1 if you want memory debugging])
+fi
+AM_CONDITIONAL(MEMORY_DEBUG, test "x$enable_memory_debug" = "xyes")
+
+AC_ARG_ENABLE(openmp,
+AS_HELP_STRING([--enable-openmp], [enable OpenMP multi-threading [[default=no]]]),[],[enable_openmp=no])
+if test "x$enable_openmp" = "xyes"; then
+  CFLAGS="$CFLAGS -fopenmp"
+fi
+
+dnl Checks for typedefs, structures, and compiler characteristics.
+AC_C_CONST
+AC_C_INLINE
+AC_TYPE_SIZE_T
+AC_HEADER_TIME
+
+dnl Checks for header files.
+AC_FUNC_ALLOCA
+AC_HEADER_STDC
+AC_CHECK_HEADERS([math.h limits.h malloc.h strings.h sys/time.h unistd.h io.h signal.h])
+AC_CHECK_HEADERS([windows.h])
+AC_CHECK_HEADERS([ctype.h sys/types.h sys/resource.h])
+
+dnl Checks for library functions that are not in GMP
+AC_FUNC_STRTOD
+AC_CHECK_LIB(m, floor)
+AC_CHECK_FUNCS([floor sqrt pow fmod], [], AC_MSG_ERROR([required function missing]))
+AC_CHECK_FUNCS([isascii memset strchr strlen strncasecmp strstr], [], AC_MSG_ERROR([required function missing]))
+AC_CHECK_FUNCS([access unlink], [], AC_MSG_ERROR([required function missing]))
+AC_CHECK_FUNCS([isspace isdigit isxdigit], [], AC_MSG_ERROR([required function missing]))
+AC_CHECK_FUNCS([time ctime], [], AC_MSG_ERROR([required function missing]))
+AC_CHECK_FUNCS([setpriority nice gethostname gettimeofday getrusage memmove signal])
+
+dnl FIXME: which win32 library contains these functions?
+dnl AC_CHECK_FUNCS([GetCurrentProcess GetProcessTimes])
+AC_CHECK_FUNCS([malloc_usable_size])
+
+
+dnl If we use GCC, add some warning flags
+if test "x$GCC" == "xyes"; then
+  CFLAGS="-Wall -W -Wundef -pedantic $CFLAGS"
+fi
+
+
+dnl Find GMP and do some sanity checks
+dnl Tests concerning the include directories.
+if test -d "$with_gmp_include"; then
+  dnl AC_CHECK_HEADERS and AC_PREPROC_IFELSE uses CPPFLAGS but not CFLAGS
+  CPPFLAGS="-I$with_gmp_include $CPPFLAGS"
+else
+  with_gmp_include=
+fi
+AC_CHECK_HEADERS([gmp.h], [], AC_MSG_ERROR([required header file missing]))
+
+dnl This needs to find only the header file so we can do it here, before
+dnl we start looking for libgmp.a
+AC_MSG_CHECKING(for recent GMP)
+AC_PREPROC_IFELSE([AC_LANG_SOURCE([[
+#include <gmp.h>
+#if (__GNU_MP_VERSION < 4 || (__GNU_MP_VERSION == 4 && __GNU_MP_VERSION_MINOR < 1))
+#error
+#endif
+]])],
+  [AC_MSG_RESULT(yes)],
+  [AC_MSG_RESULT(no)
+   AC_MSG_ERROR([GMP 4.1.0 or newer is required])]
+)
+
+dnl Now choose how to link the GMP library. If we can, we'd prefer to
+dnl link it statically since that makes for faster function calls. To
+dnl link it statically, we mustn't build a dynamic GMP-ECM library and
+dnl we need to find the libgmp.a file. At the moment, we only look for
+dnl it at the path specified by the user (i.e. --with-gmp) but make no
+dnl attempt to find it in the default system lib directories.
+
+dnl If GMP is linked statically, we add its path/filename to LIBS 
+dnl and, together with mpmod.o, to ECM_FASTOBJ. This will let the make 
+dnl process specify GMP several times on the command line for the linking, 
+dnl to put time critical functions close together in the resulting 
+dnl binary to avoid cache collisions.
+dnl If GMP is linked dynamically, -lgmp is added to LIBS but ECM_FASTOBJ
+dnl remains empty.
+
+GMPLDFLAGS=""
+if test -d "$with_gmp_lib"; then
+  GMPLDFLAGS="-L$with_gmp_lib"
+fi
+GMPLIB="-lgmp"
+if test "x$enable_shared" != "xyes"; then
+  if test -r "$with_gmp_lib/libgmp.a"; then
+    GMPLIB="$with_gmp_lib/libgmp.a"
+dnl Don't need -L flag since we give full path to libgmp.a
+    GMPLDFLAGS=""
+    ECM_FASTOBJ="mpmod.o $GMPLIB"
+  fi
+fi
+LIBS="$LIBS $GMPLIB"
+LDFLAGS="$LDFLAGS $GMPLDFLAGS"
+
+dnl Check for corresponding 'gmp.h' and libgmp.a
+AC_MSG_CHECKING(if gmp.h version and libgmp version are the same)
+AC_RUN_IFELSE([AC_LANG_PROGRAM([[
+#include <stdio.h>
+#include <string.h>
+#include <gmp.h>
+]],[[
+char buffer[100];
+if (__GNU_MP_VERSION_PATCHLEVEL != 0)
+  sprintf (buffer, "%d.%d.%d", __GNU_MP_VERSION, __GNU_MP_VERSION_MINOR,
+   __GNU_MP_VERSION_PATCHLEVEL);
+else
+  sprintf (buffer, "%d.%d", __GNU_MP_VERSION, __GNU_MP_VERSION_MINOR);
+printf ("(%s/%s) ", buffer, gmp_version);
+return strcmp (buffer, gmp_version);
+]])], AC_MSG_RESULT(yes),
+   [AC_MSG_RESULT(no)
+    AC_MSG_ERROR(['gmp.h' and 'libgmp' have different versions! you have to properly reinstall GMP.])],
+    AC_MSG_RESULT([cross-compiling: cannot test])
+)
+
+AC_CHECK_FUNCS([__gmpn_add_nc __gmpn_mod_34lsub1])
+
+dnl Check for xsltproc
+AC_CHECK_PROG(XSLTPROC,xsltproc,xsltproc,)
+if test "x$XSLTPROC" != "x"; then
+  AC_MSG_CHECKING(for docbook.xsl)
+  if test "x$XSLDIR" = "x"; then
+    if test -d "/usr/local/share/sgml/docbook/xsl-stylesheets"; then
+      XSLDIR="/usr/local/share/sgml/docbook/xsl-stylesheets"
+    elif test -d "/usr/share/sgml/docbook/xsl-stylesheets"; then
+      XSLDIR="/usr/share/sgml/docbook/xsl-stylesheets"
+    elif test -d "/usr/local/share/docbook/"; then
+      XSLDIR="/usr/local/share/docbook/"
+    elif test -d "/usr/share/docbook/"; then
+      XSLDIR="/usr/share/docbook/"
+    fi
+  fi
+  if test -r "$XSLDIR/manpages/docbook.xsl"; then
+    AC_MSG_RESULT(yes)
+    make_manpage="yes"
+  else
+    AC_MSG_RESULT(no)
+  fi
+fi  
+AM_CONDITIONAL(MAKE_MANPAGE, test "x$make_manpage" = "xyes")
+
+case $host in
+  athlon*-*-*) config_arch="athlon" ;;
+  x86_64*-*-*) config_arch="athlon64" ;;
+  pentium3-*-*) config_arch="pentium3" ;;
+  pentium4-*-*) config_arch="pentium4" ;;
+  alphaev6*-*-*) config_arch="alpha-ev6" ;;
+  alphaev5*-*-*) config_arch="alpha-ev5" ;;
+  powerpc7450-*-*) config_arch="powerpc7450" ;;
+  *) config_arch="default" ;;
+esac
+
+
+LIBS="$LIBS $GWLIB"
+
+GMP_FINISH
+AC_CONFIG_FILES(Makefile athlon/Makefile pentium4/Makefile x86_64/Makefile build.vc9/Makefile build.vc9/assembler/Makefile build.vc9/ecm/Makefile build.vc9/libecm/Makefile)
+AC_CONFIG_LINKS(ecm-params.h:ecm-params.h.$config_arch)
+
+AC_SUBST(INCLUDES)
+AC_SUBST(LDADD)
+AC_SUBST(XSLDIR)
+AC_SUBST(ECM_FASTOBJ)
+AC_OUTPUT
