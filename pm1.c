@@ -756,8 +756,11 @@ print_prob (double B1, const mpz_t B2, unsigned long dF, unsigned long k,
   int i;
   char sep;
 
-  outputf (OUTPUT_VERBOSE, "Probability of finding a factor of n digits:\n"
-           "20\t25\t30\t35\t40\t45\t50\t55\t60\t65\n");
+  outputf (OUTPUT_VERBOSE, "Probability of finding a factor of n digits:\n");
+  if (go != NULL && mpz_cmp_ui (go, 1UL) <= 0)
+    outputf (OUTPUT_VERBOSE, 
+             "(Use -go parameter to specify known factors in p-1)\n");
+  outputf (OUTPUT_VERBOSE, "20\t25\t30\t35\t40\t45\t50\t55\t60\t65\n");
   for (i = 20; i <= 65; i += 5)
     {
       sep = (i < 65) ? '\t' : '\n';

@@ -422,7 +422,7 @@ pm1prob (double B1, double B2, double N, double nr, int S, const mpz_t go)
   double smoothness = 1.2269688;
   unsigned long i;
   
-  if (go != NULL)
+  if (go != NULL && mpz_cmp_ui (go, 1UL) > 0)
     {
       mpz_init (cof);
       mpz_set (cof, go);
