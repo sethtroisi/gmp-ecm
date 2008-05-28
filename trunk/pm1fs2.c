@@ -3014,16 +3014,13 @@ pm1fs2 (mpz_t f, const mpres_t X, mpmod_t modulus,
   mpz_clear (mt);
   mpres_clear (mr, modulus);
 
-  if (youpi == ECM_NO_FACTOR_FOUND)
-    {
-      outputf (OUTPUT_NORMAL, "Step 2");
-      /* In normal output mode, print only cpu time as we always have.
-	 In verbose mode, print real time as well if we used multi-threading */
-      if (test_verbose (OUTPUT_VERBOSE))
-	print_elapsed_time (OUTPUT_NORMAL, timetotalstart, realtotalstart);
-      else
-	print_elapsed_time (OUTPUT_NORMAL, timetotalstart, 0L);
-    }
+  outputf (OUTPUT_NORMAL, "Step 2");
+  /* In normal output mode, print only cpu time as we always have.
+     In verbose mode, print real time as well if we used multi-threading */
+  if (test_verbose (OUTPUT_VERBOSE))
+    print_elapsed_time (OUTPUT_NORMAL, timetotalstart, realtotalstart);
+  else
+    print_elapsed_time (OUTPUT_NORMAL, timetotalstart, 0L);
   
   return youpi;
 }
@@ -3200,16 +3197,13 @@ pm1fs2_ntt (mpz_t f, const mpres_t X, mpmod_t modulus,
   mpz_clear (mt);
   free (S_2);
 
-  if (youpi == ECM_NO_FACTOR_FOUND)
-    {
-      outputf (OUTPUT_NORMAL, "Step 2");
-      /* In normal output mode, print only cpu time as we always have.
-	 In verbose mode, print real time as well if we used multi-threading */
-      if (test_verbose (OUTPUT_VERBOSE))
-	print_elapsed_time (OUTPUT_NORMAL, timetotalstart, realtotalstart);
-      else
-	print_elapsed_time (OUTPUT_NORMAL, timetotalstart, 0L);
-    }
+  outputf (OUTPUT_NORMAL, "Step 2");
+  /* In normal output mode, print only cpu time as we always have.
+     In verbose mode, print real time as well if we used multi-threading */
+  if (test_verbose (OUTPUT_VERBOSE))
+    print_elapsed_time (OUTPUT_NORMAL, timetotalstart, realtotalstart);
+  else
+    print_elapsed_time (OUTPUT_NORMAL, timetotalstart, 0L);
   
   return youpi;
 }
@@ -4350,16 +4344,13 @@ pp1fs2 (mpz_t f, const mpres_t X, mpmod_t modulus,
   clear_list (tmp, tmplen);
   free (S_2);
  
-  if (youpi == ECM_NO_FACTOR_FOUND)
-    {
-      outputf (OUTPUT_NORMAL, "Step 2");
-      /* In normal output mode, print only cpu time as we always have.
-	 In verbose mode, print real time as well if we used multi-threading */
-      if (test_verbose (OUTPUT_VERBOSE))
-	print_elapsed_time (OUTPUT_NORMAL, timetotalstart, realtotalstart);
-      else
-	print_elapsed_time (OUTPUT_NORMAL, timetotalstart, 0L);
-    }
+  outputf (OUTPUT_NORMAL, "Step 2");
+  /* In normal output mode, print only cpu time as we always have.
+     In verbose mode, print real time as well if we used multi-threading */
+  if (test_verbose (OUTPUT_VERBOSE))
+    print_elapsed_time (OUTPUT_NORMAL, timetotalstart, realtotalstart);
+  else
+    print_elapsed_time (OUTPUT_NORMAL, timetotalstart, 0L);
 
   return youpi;
 }
@@ -4625,16 +4616,13 @@ pp1fs2_ntt (mpz_t f, const mpres_t X, mpmod_t modulus,
   mpres_clear (Delta, modulus);
   free (S_2);
  
-  if (youpi == ECM_NO_FACTOR_FOUND)
-    {
-      outputf (OUTPUT_NORMAL, "Step 2");
-      /* In normal output mode, print only cpu time as we always have.
-	 In verbose mode, print real time as well if we used multi-threading */
-      if (test_verbose (OUTPUT_VERBOSE))
-	print_elapsed_time (OUTPUT_NORMAL, timetotalstart, realtotalstart);
-      else
-	print_elapsed_time (OUTPUT_NORMAL, timetotalstart, 0L);
-    }
+  outputf (OUTPUT_NORMAL, "Step 2");
+  /* In normal output mode, print only cpu time as we always have.
+     In verbose mode, print real time as well if we used multi-threading */
+  if (test_verbose (OUTPUT_VERBOSE))
+    print_elapsed_time (OUTPUT_NORMAL, timetotalstart, realtotalstart);
+  else
+    print_elapsed_time (OUTPUT_NORMAL, timetotalstart, 0L);
 
   return youpi;
 }
