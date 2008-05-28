@@ -748,6 +748,27 @@ pm1_rootsG (mpz_t f, listz_t G, unsigned long dF, pm1_roots_state_t *state,
 }
 
 
+static void
+print_prob (double B1, const mpz_t B2, unsigned long dF, unsigned long k, 
+            int S, const mpz_t go)
+{
+  double prob;
+  int i;
+  char sep;
+
+  outputf (OUTPUT_VERBOSE, "Probability of finding a factor of n digits:\n"
+           "20\t25\t30\t35\t40\t45\t50\t55\t60\t65\n");
+  for (i = 20; i <= 65; i += 5)
+    {
+      sep = (i < 65) ? '\t' : '\n';
+      prob = pm1prob (B1, mpz_get_d (B2),
+                      pow (10., i - .5), (double) dF * dF * k, S, go);
+      outputf (OUTPUT_VERBOSE, "%.2g%c", prob, sep);
+    }
+}
+
+
+
 /******************************************************************************
 *                                                                             *
 *                                Pollard P-1                                  *
@@ -998,6 +1019,21 @@ pm1 (mpz_t f, mpz_t p, mpz_t N, mpz_t go, double *B1done, double B1,
                  dF, k, root_params.d1, root_params.d2, root_params.i0);
     }
 
+  if (test_verbose (OUTPUT_VERBOSE))
+    {
+      if (mpz_sgn (B2min_parm) >= 0)
+        {
+          outputf (OUTPUT_VERBOSE, 
+            "Can't compute success probabilities for B1 <> B2min\n");
+        }
+      else
+        {
+          rhoinit (256, 10);
+          print_prob (B1, B2, dF, k, root_params.S, go);
+        }
+    }
+
+
   mpres_init (x, modulus);
   mpres_set_z (x, p, modulus);
 
@@ -1033,6 +1069,12 @@ pm1 (mpz_t f, mpz_t p, mpz_t N, mpz_t go, double *B1done, double B1,
       else
         youpi = stage2 (f, &x, modulus, dF, k, &root_params, ECM_PM1, 
                         use_ntt, TreeFilename, stop_asap);
+    }
+
+  if (test_verbose (OUTPUT_VERBOSE))
+    {
+      if (mpz_sgn (B2min_parm) < 0)
+        rhoinit (1, 0); /* Free memory of rhotable */
     }
 
 clear_and_exit:
