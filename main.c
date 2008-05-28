@@ -635,7 +635,10 @@ main (int argc, char *argv[])
       else if ((argc > 2) && (strcmp (argv[1], "-go") == 0))
 	{
 	  if (go.cpOrigExpr)
-	    free (go.cpOrigExpr);
+            {
+              fprintf (stderr, "Warning, for multiple -go options, only the last one is taken into account.\n");
+              free (go.cpOrigExpr);
+            }
 	  go.cpOrigExpr = malloc (strlen (argv[2]) + 1);
 	  strcpy (go.cpOrigExpr, argv[2]);
 	  if (strchr (go.cpOrigExpr, 'N'))
