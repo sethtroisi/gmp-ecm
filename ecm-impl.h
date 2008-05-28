@@ -87,10 +87,6 @@ extern FILE *ECM_STDOUT, *ECM_STDERR;
 #define PM1_COST 1.0 / 6.0
 #define PP1_COST 2.0 / 6.0
 #define ECM_COST 11.0 / 6.0
-/* For new P-/+1 stage 2: */
-#define PM1FS2_DEFAULT_B2_EXPONENT 1.7
-#define PM1FS2_COST 1.0 / 4.0
-#define PP1FS2_COST 1.0 / 4.0
 
 /* residues are fully reduced (i.e. in canonical mpz form) */
 #define FULL_REDUCTION

@@ -383,6 +383,11 @@ mpzspv_normalise (mpzspv_t x, spv_size_t offset, spv_size_t len,
 	      mpn_add_n (d, d, s, 3 * stride);
             }      
 
+          /* FIXME: do we need to account for dividend == 0? */
+          /* TG: The comment [...] can be safely removed. ...
+             The mpn functions don't worry about the actual data, 
+             only the limb count, unless the documentation exlicitly 
+             say differently. */
           for (k = 0; k < stride; k++)
 	    t[i][k] = mpn_mod_1 (d + 3 * k, 3, spm[i]->sp);
         }	  

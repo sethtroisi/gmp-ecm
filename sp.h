@@ -35,8 +35,8 @@
 #ifndef TUNE
 #include "ecm-params.h"
 #else
-extern size_t NTT_GFP_TWIDDLE_DIF_BREAKOVER;
-extern size_t NTT_GFP_TWIDDLE_DIT_BREAKOVER;
+extern size_t SPV_NTT_GFP_DIF_RECURSIVE_THRESHOLD;
+extern size_t SPV_NTT_GFP_DIT_RECURSIVE_THRESHOLD;
 extern size_t MUL_NTT_THRESHOLD;
 extern size_t PREREVERTDIVISION_NTT_THRESHOLD;
 extern size_t POLYINVERT_NTT_THRESHOLD;
@@ -76,7 +76,6 @@ typedef mp_limb_t UDItype;
 #define ULONG_MAX __GMP_ULONG_MAX
 #endif
 
-#define LONGLONG_STANDALONE
 #include "longlong.h"
 
 /*********
@@ -118,7 +117,10 @@ typedef struct
 
 typedef __sp_nttdata sp_nttdata_t[1];
 
-#define MAX_NTT_BLOCK_SIZE 128
+#define NTT_GFP_TWIDDLE_BREAKOVER 11
+
+#define LOG2_NTT_TWIDDLE_BLOCK_SIZE 7
+#define NTT_TWIDDLE_BLOCK_SIZE (1 << LOG2_NTT_TWIDDLE_BLOCK_SIZE)
 
 /* SPM */
 
