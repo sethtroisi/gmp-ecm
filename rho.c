@@ -358,10 +358,13 @@ brsupower (double B1, double B2, double N, double nr, int S)
   return sum / (double)f;
 }
 
-double
-ecmprob (double B1, double B2, double N, double nr, int S)
+/* Assume N is as likely smooth as a number around N/delta */
+
+static double
+prob (double B1, double B2, double N, double nr, int S, double delta)
 {
   double alpha, beta, stage1, stage2, brsu;
+  const double effN = N / delta;
 
   ASSERT(rhotable != NULL);
   
@@ -373,32 +376,72 @@ ecmprob (double B1, double B2, double N, double nr, int S)
   if (B1 < 2. || N <= 1.)
     return 0.;
   
-  if (N / ECM_EXTRA_SMOOTHNESS <= B1)
+  if (effN <= B1)
     return 1.;
 
 #ifdef TESTDRIVE
   printf ("B1 = %f, B2 = %f, N = %.0f, nr = %f, S = %d\n", B1, B2, N, nr, S);
 #endif
   
-  alpha = log (N / ECM_EXTRA_SMOOTHNESS) / log (B1);
-  stage1 = dickmanlocal (alpha, N / ECM_EXTRA_SMOOTHNESS);
+  alpha = log (effN) / log (B1);
+  stage1 = dickmanlocal (alpha, effN);
   stage2 = 0.;
   if (B2 > B1)
     {
       beta = log (B2) / log (B1);
-      stage2 = dickmanmu (alpha, beta, N / ECM_EXTRA_SMOOTHNESS);
+      stage2 = dickmanmu (alpha, beta, effN);
     }
   brsu = 0.;
   if (S < -1)
-    brsu = brsudickson (B1, B2, N / ECM_EXTRA_SMOOTHNESS, nr, -S * 2);
+    brsu = brsudickson (B1, B2, effN, nr, -S * 2);
   if (S > 1)
-    brsu = brsupower (B1, B2, N / ECM_EXTRA_SMOOTHNESS, nr, S * 2);
+    brsu = brsupower (B1, B2, effN, nr, S * 2);
 
 #ifdef TESTDRIVE
   printf ("stage 1 : %f, stage 2 : %f, Brent-Suyama : %f\n", stage1, stage2, brsu);
 #endif
 
   return (stage1 + stage2 + brsu) > 0. ? (stage1 + stage2 + brsu) : 0.;
+}
+
+double
+ecmprob (double B1, double B2, double N, double nr, int S)
+{
+  return prob (B1, B2, N, nr, S, ECM_EXTRA_SMOOTHNESS);
+}
+
+double
+pm1prob (double B1, double B2, double N, double nr, int S, const mpz_t go)
+{
+  mpz_t cof;
+  /* A prime power q^k divides p-1, p prime, with probability 1/(q^k-q^(k-1))
+     not with probability 1/q^k as for random numbers. This is taken into 
+     account by the "smoothness" value here; a prime p-1 is about as likely
+     smooth as a random number around (p-1)/exp(smoothness).
+     smoothness = \sum_{q in Primes} log(q)/(q-1)^2 */
+  double smoothness = 1.2269688;
+  unsigned long i;
+  
+  if (go != NULL)
+    {
+      mpz_init (cof);
+      mpz_set (cof, go);
+      for (i = 2; i < 100; i++)
+        if (mpz_divisible_ui_p (cof, i))
+          {
+            /* If we know that q divides p-1 with probability 1, we need to
+               adjust the smoothness parameter */
+            smoothness -= log ((double) i) / (double) ((i-1)*(i-1));
+            /* printf ("pm1prob: Dividing out %lu\n", i); */
+            while (mpz_divisible_ui_p (cof, i))
+              mpz_tdiv_q_ui (cof, cof, i);
+          }
+      mpz_clear (cof);
+      /* printf ("pm1prob: smoothness after dividing out go primes < 100: %f\n", 
+               smoothness); */
+    }
+
+  return prob (B1, B2, N, nr, S, exp(smoothness) * mpz_get_d (go));
 }
 
 #ifdef TESTDRIVE

@@ -627,6 +627,7 @@ void F_clear ();
 void   rhoinit (int, int);
 #define ecmprob __ECM(ecmprob)
 double ecmprob (double, double, double, double, int);
+double pm1prob (double, double, double, double, int, const mpz_t);
 
 /* auxlib.c */
 #define mpz_add_si __ECM(mpz_add_si)
