@@ -45,7 +45,7 @@
 			<Tool
 				Name="VCCLCompilerTool"
 				Optimization="0"
-				AdditionalIncludeDirectories="&quot;..\..\..\gmp-4.2.2&quot;"
+				AdditionalIncludeDirectories="&quot;..\..\..\gmp-4.2.1&quot;"
 				PreprocessorDefinitions="WIN32;_DEBUG;_CONSOLE;OUTSIDE_LIBECM"
 				MinimalRebuild="true"
 				BasicRuntimeChecks="3"
@@ -66,7 +66,7 @@
 			/>
 			<Tool
 				Name="VCLinkerTool"
-				AdditionalDependencies="ws2_32.lib ..\..\..\gmp-4.2.2\build.vc9\lib\$(IntDir)\gmp.lib"
+				AdditionalDependencies="ws2_32.lib ..\..\..\gmp-4.2.1\build.vc9\lib\$(IntDir)\gmp.lib"
 				OutputFile="$(OutDir)\ecm.exe"
 				LinkIncremental="2"
 				GenerateDebugInformation="true"
@@ -124,7 +124,7 @@
 			<Tool
 				Name="VCCLCompilerTool"
 				Optimization="0"
-				AdditionalIncludeDirectories="&quot;..\..\..\gmp-4.2.2&quot;"
+				AdditionalIncludeDirectories="&quot;..\..\..\gmp-4.2.1&quot;"
 				PreprocessorDefinitions="WIN32;_WIN64;_DEBUG;_CONSOLE;OUTSIDE_LIBECM"
 				MinimalRebuild="true"
 				BasicRuntimeChecks="3"
@@ -145,7 +145,7 @@
 			/>
 			<Tool
 				Name="VCLinkerTool"
-				AdditionalDependencies="ws2_32.lib ..\..\..\gmp-4.2.2\build.vc9\lib\$(IntDir)\gmp.lib"
+				AdditionalDependencies="ws2_32.lib ..\..\..\gmp-4.2.1\build.vc9\lib\$(IntDir)\gmp.lib"
 				OutputFile="$(OutDir)\ecm.exe"
 				LinkIncremental="2"
 				GenerateDebugInformation="true"
@@ -204,7 +204,7 @@
 				Optimization="3"
 				EnableIntrinsicFunctions="true"
 				FavorSizeOrSpeed="1"
-				AdditionalIncludeDirectories="&quot;..\..\..\gmp-4.2.2&quot;"
+				AdditionalIncludeDirectories="&quot;..\..\..\gmp-4.2.1&quot;"
 				PreprocessorDefinitions="WIN32;NDEBUG;_CONSOLE;OUTSIDE_LIBECM"
 				RuntimeLibrary="0"
 				UsePrecompiledHeader="0"
@@ -223,7 +223,7 @@
 			/>
 			<Tool
 				Name="VCLinkerTool"
-				AdditionalDependencies="ws2_32.lib ..\..\..\gmp-4.2.2\build.vc9\lib\$(IntDir)\gmp.lib"
+				AdditionalDependencies="ws2_32.lib ..\..\..\gmp-4.2.1\build.vc9\lib\$(IntDir)\gmp.lib"
 				OutputFile="$(OutDir)\ecm.exe"
 				LinkIncremental="1"
 				GenerateDebugInformation="true"
@@ -285,7 +285,7 @@
 				Optimization="3"
 				EnableIntrinsicFunctions="true"
 				FavorSizeOrSpeed="1"
-				AdditionalIncludeDirectories="&quot;..\..\..\gmp-4.2.2&quot;"
+				AdditionalIncludeDirectories="&quot;..\..\..\gmp-4.2.1&quot;"
 				PreprocessorDefinitions="WIN32;_WIN64;NDEBUG;_CONSOLE;OUTSIDE_LIBECM"
 				RuntimeLibrary="0"
 				UsePrecompiledHeader="0"
@@ -304,7 +304,7 @@
 			/>
 			<Tool
 				Name="VCLinkerTool"
-				AdditionalDependencies="ws2_32.lib ..\..\..\gmp-4.2.2\build.vc9\lib\$(IntDir)\gmp.lib"
+				AdditionalDependencies="ws2_32.lib ..\..\..\gmp-4.2.1\build.vc9\lib\$(IntDir)\gmp.lib"
 				OutputFile="$(OutDir)\ecm.exe"
 				LinkIncremental="1"
 				GenerateDebugInformation="true"
