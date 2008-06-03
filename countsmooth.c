@@ -32,7 +32,7 @@
 #ifdef PRIMEGEN
 #include <primegen.h>
 #else
-#include "ecm.h" /* for getprime() */
+#include "ecm-impl.h" /* for getprime() */
 #endif
 
 #define mulmod(r,u,v,n) mpz_mul(r,u,v);mpz_mod(r,r,n);
@@ -41,9 +41,9 @@
 
 void          dicksonmod(mpz_t, mpz_t, unsigned int, mpz_t, mpz_t);
 int           is_P_minus_i (mpz_t, unsigned int);
-unsigned int  eulerphi (unsigned int);
+unsigned long  eulerphi (unsigned long);
 unsigned int  get_lenF (unsigned int);
-unsigned int  gcd (unsigned int, unsigned int);
+unsigned long  gcd (unsigned long, unsigned long);
 void          quicksort (mpz_t *, unsigned int);
 void          quicksort_with_index (mpz_t *, unsigned int *, unsigned int);
 int           issorted (mpz_t *, unsigned int);
@@ -116,7 +116,7 @@ void dicksonmod(mpz_t r, mpz_t x, unsigned int n, mpz_t a,
 }
 
 
-/* Test if N+1 is a probable prime */
+/* Test if N+i is a probable prime */
 
 int 
 is_P_minus_i (mpz_t N, unsigned int i)
@@ -132,10 +132,10 @@ is_P_minus_i (mpz_t N, unsigned int i)
 
 
 /* Euler Phi(n) function, number of residues coprime to n */
-unsigned int 
-eulerphi (unsigned int n) 
+unsigned long 
+eulerphi (unsigned long n) 
 {
-  unsigned int i, r=1;
+  unsigned long i, r=1;
   
   for (i=2; i*i<=n; i++)
     if (n%i == 0) 
@@ -160,10 +160,10 @@ get_lenF (unsigned int D)
   return (eulerphi (D) / 2);
 }
 
-unsigned int 
-gcd (unsigned int a, unsigned int b) 
+unsigned long 
+gcd (unsigned long a, unsigned long b) 
 {
-  unsigned int t;
+  unsigned long t;
   
   while (b != 0) {
     t = a % b;
@@ -778,7 +778,7 @@ main(int argc, char **argv)
       blockstart += blocklen;
       mpz_add_ui (N, N, blocklen);
 #ifndef PRIMEGEN
-      p = getprime_clear ();
+      getprime_clear ();
 #endif
     }
   
