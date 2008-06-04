@@ -1,4 +1,149 @@
 ------------------------------------------------------------------------
+r1306 | kruppa | 2008-06-04 01:53:32 +0200 (Wed, 04 Jun 2008) | 2 lines
+Changed paths:
+   M /trunk/countsmooth.c
+
+Make countsmooth compile again
+
+------------------------------------------------------------------------
+r1305 | brian_gladman | 2008-05-30 17:11:07 +0200 (Fri, 30 May 2008) | 1 line
+Changed paths:
+   M /trunk/build.vc9/config.h
+   M /trunk/build.vc9/ecm/ecm.vcproj
+   M /trunk/build.vc9/libecm/libecm.vcproj
+   M /trunk/build.vc9/tests.py
+
+Revert Windows build to use GMP-4.2.1
+------------------------------------------------------------------------
+r1304 | kruppa | 2008-05-28 16:56:05 +0200 (Wed, 28 May 2008) | 2 lines
+Changed paths:
+   M /trunk/pm1.c
+   M /trunk/rho.c
+
+Print message about -go with P-1 probabilities
+
+------------------------------------------------------------------------
+r1303 | kruppa | 2008-05-28 16:33:34 +0200 (Wed, 28 May 2008) | 2 lines
+Changed paths:
+   M /trunk/pm1fs2.c
+
+Print stage 2 time if factor is found
+
+------------------------------------------------------------------------
+r1302 | kruppa | 2008-05-28 16:09:12 +0200 (Wed, 28 May 2008) | 2 lines
+Changed paths:
+   M /trunk/ecm-impl.h
+   M /trunk/pm1.c
+   M /trunk/rho.c
+
+Print probability of finding factors for P-1
+
+------------------------------------------------------------------------
+r1301 | zimmerma | 2008-05-28 10:56:30 +0200 (Wed, 28 May 2008) | 4 lines
+Changed paths:
+   M /trunk/main.c
+
+added warning for -go n1 -go n2 -> only n2 is taken into account
+(we could modify the code to take both into account, but we also can
+write -go "n1*n2")
+
+------------------------------------------------------------------------
+r1300 | zimmerma | 2008-05-28 09:20:57 +0200 (Wed, 28 May 2008) | 2 lines
+Changed paths:
+   M /trunk/README.dev
+   M /trunk/configure.in
+
+changed the version to 6.2.1, and added hints in README.dev
+
+------------------------------------------------------------------------
+r1298 | zimmerma | 2008-05-27 23:04:26 +0200 (Tue, 27 May 2008) | 2 lines
+Changed paths:
+   M /trunk/sp.h
+
+fixed compilation problem on IA65, EV56, ARM
+
+------------------------------------------------------------------------
+r1297 | kruppa | 2008-05-27 17:52:50 +0200 (Tue, 27 May 2008) | 2 lines
+Changed paths:
+   M /trunk/ecm.c
+   M /trunk/main.c
+   M /trunk/resume.c
+
+Print success probabilities only if B1 == B2min
+
+------------------------------------------------------------------------
+r1296 | kruppa | 2008-05-27 17:09:21 +0200 (Tue, 27 May 2008) | 2 lines
+Changed paths:
+   M /trunk/ecm-impl.h
+   M /trunk/pm1.c
+   M /trunk/pp1.c
+
+Increased default B2 for new P-/+1 stage 2
+
+------------------------------------------------------------------------
+r1295 | jasonp | 2008-05-26 18:33:19 +0200 (Mon, 26 May 2008) | 1 line
+Changed paths:
+   M /trunk/tune.c
+
+fix to previous commit
+------------------------------------------------------------------------
+r1294 | jasonp | 2008-05-26 17:46:51 +0200 (Mon, 26 May 2008) | 1 line
+Changed paths:
+   M /trunk/ecm-params.h.alpha-ev5
+   M /trunk/ecm-params.h.alpha-ev6
+   M /trunk/ecm-params.h.athlon
+   M /trunk/ecm-params.h.athlon64
+   M /trunk/ecm-params.h.core2
+   M /trunk/ecm-params.h.default
+   M /trunk/ecm-params.h.pentium-m
+   M /trunk/ecm-params.h.pentium3
+   M /trunk/ecm-params.h.pentium4
+   M /trunk/ecm-params.h.powerpc7450
+   M /trunk/ntt_gfp.c
+   M /trunk/sp.h
+   M /trunk/spm.c
+   M /trunk/tune.c
+
+allow tuning of the breakover point between recursive and iterative NTTs
+------------------------------------------------------------------------
+r1293 | kruppa | 2008-05-25 15:22:55 +0200 (Sun, 25 May 2008) | 3 lines
+Changed paths:
+   A /trunk/rho.gp
+
+Pari/GP file for estimating ECM probability of success, GMP-ECM's rho.c 
+is a port of this file.
+
+------------------------------------------------------------------------
+r1292 | brian_gladman | 2008-05-16 18:22:41 +0200 (Fri, 16 May 2008) | 1 line
+Changed paths:
+   M /trunk/build.vc9/config.h
+
+set version to 6.2 for MSVC
+------------------------------------------------------------------------
+r1291 | zimmerma | 2008-05-16 17:39:54 +0200 (Fri, 16 May 2008) | 2 lines
+Changed paths:
+   M /trunk/mpzspv.c
+
+removed useless comment (and comment on comment)
+
+------------------------------------------------------------------------
+r1290 | kruppa | 2008-05-16 16:43:57 +0200 (Fri, 16 May 2008) | 3 lines
+Changed paths:
+   M /trunk/Makefile.am
+   A /trunk/ecm-params.h.pentium-m
+   D /trunk/ecm-params.h.pentiumm
+
+Renamed parameter file from pentiumm to pentium-m, as that is what GMP uses
+for the architecture name. gcc uses parameter "-march pentium-m", too
+
+------------------------------------------------------------------------
+r1289 | kruppa | 2008-05-16 14:41:48 +0200 (Fri, 16 May 2008) | 2 lines
+Changed paths:
+   M /trunk/ChangeLog
+
+Added latest changes
+
+------------------------------------------------------------------------
 r1288 | kruppa | 2008-05-16 14:38:03 +0200 (Fri, 16 May 2008) | 2 lines
 Changed paths:
    M /trunk/configure.in
