@@ -1,3 +1,9 @@
+Changes between ecm-6.2 and ecm-6.2.1:
+* Default B2 for new P-1 and P+1 stage 2 increased
+* Probabilities for finding factors with P-1 are now printed with -v
+* Fixed compilation problem on IA64, EV56, and ARM
+* Made threshold between recursive and iterative NTT tunable
+
 Changes between ecm-6.1.3 and ecm-6.2:
 * New stage 2 for P-1 and P+1, described in Montgomery and Kruppa,
   Improved Stage 2 to P+-1 Factoring Algorithms, 
