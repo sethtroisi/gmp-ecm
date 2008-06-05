@@ -1570,12 +1570,12 @@ static void mpn_fft_fftR4_twistedNeg(mp_ptr * Ap, mp_size_t rk, mp_size_t k1, mp
 { 
   mpn_fft_fftR4_twistedRecNeg(Ap, 0, k1, omega, 1<<(k-k1), rk, n, rotbuf);
 } 
-  
+
+#if 0  
 /*
    Radix-2 version of the previous function. Obsolete, now, but more easy to 
    understand; so I let it here.
 */
-
 static void mpn_fft_fft_twistedRec(mp_ptr * Ap, mp_size_t ind, mp_size_t k,
     mp_size_t omega, mp_size_t om_curr, mp_size_t om_mult, mp_size_t n, mp_ptr *rotbuf)
 {
@@ -1592,7 +1592,7 @@ static void mpn_fft_fft_twistedRec(mp_ptr * Ap, mp_size_t ind, mp_size_t k,
   mpn_fft_fft_twistedRec(Ap, ind, k-1, omega, om_curr<<1, om_mult<<1, n, rotbuf);
   mpn_fft_fft_twistedRec(Ap, ind+stride, k-1, omega, om_curr<<1, om_mult<<1, n, rotbuf);
 }
-
+#endif
 
 static void 
 mpn_fft_fft_bailey_decompose (mp_ptr A, mp_ptr *Ap, mp_size_t k, 

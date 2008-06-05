@@ -59,13 +59,15 @@ To make a new release:
      the man page is correctly installed).
   7) If there is no problem, add a tag to the CVS corresponding to the
      release, for example:
-     $ svn cp . svn+ssh://zimmerma@scm.gforge.inria.fr/svn/ecm/tags/6.1
+     $ svn cp . svn+ssh://zimmerma@scm.gforge.inria.fr/svn/ecm/tags/6.2
      or more detailed:
-     $ svn cp -r1290 svn+ssh://zimmerma@scm.gforge.inria.fr/svn/ecm/trunk \
-             svn+ssh://zimmerma@scm.gforge.inria.fr/svn/ecm/tags/6.2 \
-             -m "Tagging r1290 as version 6.2"
+     $ svn cp -r1307 svn+ssh://zimmerma@scm.gforge.inria.fr/svn/ecm/trunk \
+             svn+ssh://zimmerma@scm.gforge.inria.fr/svn/ecm/tags/6.2.1 \
+             -m "Tagging r1307 as version 6.2.1"
+
+     Version 6.2 is r1290, 6.2.1 is r1307.
 
 To see the differences between a given tag and the current version:
 
-$ svn diff --old=svn+ssh://zimmerma@scm.gforge.inria.fr/svn/ecm/tags/6.2 \
+$ svn diff --old=svn+ssh://zimmerma@scm.gforge.inria.fr/svn/ecm/tags/6.2.1 \
            --new=svn+ssh://zimmerma@scm.gforge.inria.fr/svn/ecm/trunk
