@@ -1,0 +1,139 @@
+Changes between ecm-6.2 and ecm-6.2.1:
+* Default B2 for new P-1 and P+1 stage 2 increased
+* Probabilities for finding factors with P-1 are now printed with -v
+* Fixed compilation problem on IA64, EV56, and ARM
+* Made threshold between recursive and iterative NTT tunable
+
+Changes between ecm-6.1.3 and ecm-6.2:
+* New stage 2 for P-1 and P+1, described in Montgomery and Kruppa,
+  Improved Stage 2 to P+-1 Factoring Algorithms, 
+  in A. J. van der Poorten and A. Stein (Eds.), ANTS-VIII 2008,
+  LNCS 5011, pp. 180-195.
+* Parallelization in the new P+-1 stage 2 (with --enable-openmp).
+* Optimizations to the NTT code by Jason S. Papadopoulos
+* Improved mulredc assembly code for Athlon64/Opteron
+* Improved modular reduction in the mpzmod range
+* Bugfix in P+1 stage 2 which caused incorrect initialisation if
+  Brent-Suyama polynomial had degree > 1 and i0 was negative (occurs only
+  with non-standard parameters)
+* Bugfix in generation of Lucas chains for P+1 and ECM, causing some stage 1
+  primes close to 2^32 to be processed incorrectly on 32 bit systems
+* Added build project for VC++ by Brian Gladman
+* File ecm.h changed from GPL to LGPL: the fact it was under GPL was an
+  unvoluntary mistake, which has the consequence that applications linking with
+  libecm for version < 6.2 should be under GPL too.
+* Fixed a regression introduced in 6.1.1: the default arithmetic (NTT) for
+  stage 2 was slower for large inputs. Now defaults to -no-ntt for input
+  numbers >30 machine words.
+
+Changes between ecm-6.1.2 and ecm-6.1.3:
+* fixed incorrect computation of memory use in stage 2, especially for
+  machines that use Kronecker-Schoenhage multiplication even for large
+  degrees, such as Core 2.
+* fixed -B2scale option whose value hadn't been passed to the factoring
+  routines
+* fixed default B2min for P-1, which could be truncated on 32 bit machines,
+  causing stage 2 to take a little longer than necessary
+* fixed bug for modular multiplication modulo Fermat numbers 2^2^n+1, where 
+  a result of 2^2^n would be truncated to 0.
+
+Changes between ecm-6.1.1 and ecm-6.1.2:
+* changed copyright header from sp.h, to recognize the FSF for parts inspired
+  or taken from gmp-impl.h.
+
+Changes between ecm-6.0.1 and ecm-6.1:
+* new assembly code contributed by Pierrick Gaudry for combined mul/redc
+* new Number Theoretic Transform code contributed by Dave Newman for step 2
+* new signal handling and corresponding save files for step 1
+* now prints peak memory allocation with -v
+* improved and simplified tuning
+* command-line options: added -idlecmd -no-ntt -prpcmd -stage1time -maxmem,
+	removed -prp*
+* new configure options --enable-asm-redc, --with-gwnum
+* new exit status codes of ecm program
+* new interface to George Woltman's GWNUM library (see INSTALL)
+* chosen stage 2 bound is now printed right away
+* fixed minor memory leak in mpmod.c/isbase2
+* fixed invalid Found input number N reported on some numbers
+* fixed serious P+1 bug on 64-bit architectures with B1 > 2^32
+* fixed wrong detection of divisors of 2^n+1 or 2^n-1 
+* fixed memory leaks
+
+Changes between ecm-6.0 and ecm-6.0.1:
+* now checks for availability of snprintf() during configure
+* fixed linking problems with tune and tune2 on PowerPC G5
+* fixed segfault in rho.c
+* fixed main()'s B2 value being overwritten by callees
+* allow both \r and \n for newline (for Apple computers)
+* made files compile under Visual C
+* fixed bug in listz.c that could leave undefined data
+* fixed the -B2scale option
+* fixed small error in printed B2' value (with -v)
+* added Windows section to INSTALL
+* small corrections to ecm.xml and ecm.1
+* added curve counter in loop mode again
+* fixed segfault when a non-number was in place of B2 on command line
+* worked around problem with MinGW/Wine scanf() (value 1 too high for %n)
+* free rhotable memory at end of stage 2
+* replaced GSL's dilog_series() in rho.c due to licensing (GPL vs. LGPL)
+
+Changes between ecm-5.0.3 and ecm-6.0:
+* use of the autotools (configure/make)	
+* there is now a documentation in "man" format (ecm.1)
+* added a set of -prp* command line switches which will use an external
+    program to perform prp testing of candidate and factors.  When the
+	numbers get large, GMP becomes very non-optimal in PRP testing.
+	An external program, such as OpenPFGW, can be much faster than
+	the GMP.  (New code from Phil Carmody)
+* new parser for symbolic input
+* added hex number input into the expression parser.  This was needed 
+    due to save files from Prime95 being output in hex.  ecm was not
+    resuming these.
+* added some porting code so ecm builds under VC6.  VC6 builds an ecm
+    that is is about 1% to 3% faster than the MinGW build (which is
+    about 1% to 3% faster than a Cygwin build)
+* quiet mode (-q) now prints on stdout all factors found on the same line:
+  f1 f2 ... fk ccc
+  where ccc is the remaining composite (contributed by Laurent Fousse).
+  Example:
+  $ echo 438573459834757 | ./ecm -sigma 6 -q 1e2
+  2166151 202466707
+* special code for Fermat numbers, which improves both steps, example for F12:
+  GMP-ECM 5.0.3 [powered by GMP 4.1.4] [ECM]
+  Input number has 1187 digits
+  Using B1=100000, B2=31565866, polynomial x^2, sigma=4155936925
+  Step 1 took 27157ms
+  Step 2 took 20830ms
+  GMP-ECM 5.2.0 [powered by GMP 4.1.4] [ECM]
+  Input number has 1187 digits
+  Using B1=100000, B2=31565866, polynomial x^2, sigma=535125396
+  Step 1 took 24264ms
+  Step 2 took 6605ms
+* speed improvement in step 2, especially for large B2 (here with the c155
+  in the GMP-ECM sources), using Kronecker/Schonhage multiplication:
+  GMP-ECM 5.0.3 [powered by GMP 4.1.4] [ECM]
+  Using B1=3000000, B2=4016636514, polynomial Dickson(12), sigma=2383768044
+  Step 1 took 62305ms
+  Step 2 took 45322ms
+  GMP-ECM 5.2.0 [powered by GMP 4.1.4] [ECM]
+  Using B1=3000000, B2=4016636514, polynomial Dickson(12), sigma=3595368442
+  Step 1 took 61824ms
+  Step 2 took 32989ms
+* Brent-Suyama's extension now works for P+1 too	
+* trial division is available (option -t n)
+* new options -n (low priority) and -nn (idle priority)
+* the looping mode (-c n) now continues to try to factor the composite when
+  a factor is found (use -one to stop)
+* new option -ve n to display only inputs of <= n characters (looping mode)
+* new option -treefile which stores product tree of F on disk to save memory
+* generation of roots use double sieve idea, increases B2 for given k, dF
+* generation of roots for ECM rewritten to reduce number of extgcds
+
+Changes between ecm-5.0 and ecm-5.0.1:
+* fixed bug when B1 or B2min is too large, and an overflow occurs in step 2,
+	making the computations incorrect. The new limit for B1 or B2min is
+	now around 2^53, and an error occurs when this limit is passed.
+* fixed problem with save lines incorrectly written when both sigma and A
+	are given with -save.
+* fixed efficiency problem with -pm1: for B1 > 1e6, use -redc or -mpz_mod
+	by default.
