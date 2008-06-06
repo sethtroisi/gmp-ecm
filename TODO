@@ -9,6 +9,12 @@ Table of contents:
 6) others
 
 1) efficiency/memory
+- the conversion from mpz_t to NTT primes in function mpzspv_from_mpzv()
+  (file mpzspv.c) is quadratic. A faster conversion is possible with a
+  remainder tree (in addition since several conversions are made, the
+  cost of computing the tree would be small).
+- the "Reducing  G * H" step is faster in NTT than with KS. This is probably
+  due to the fact that some transforms are cached in the NTT mode.
 - the "Reducing  G * H" step can be improved as follows: first compute
   D = GH*I mod (x^d+1) where d = deg(F), and I = 1/F mod (x^d+1); then
   compute E = D*F mod (x^d-1); finally compute T = (GH-E)/2 mod (x^d+1).
