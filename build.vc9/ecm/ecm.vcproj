@@ -66,7 +66,7 @@
 			/>
 			<Tool
 				Name="VCLinkerTool"
-				AdditionalDependencies="ws2_32.lib ..\..\..\gmp-4.2.1\build.vc9\lib\$(IntDir)\gmp.lib"
+				AdditionalDependencies="ws2_32.lib ..\..\..\gmp-4.2.3\build.vc9\lib\$(IntDir)\gmp.lib"
 				OutputFile="$(OutDir)\ecm.exe"
 				LinkIncremental="2"
 				GenerateDebugInformation="true"
@@ -145,7 +145,7 @@
 			/>
 			<Tool
 				Name="VCLinkerTool"
-				AdditionalDependencies="ws2_32.lib ..\..\..\gmp-4.2.1\build.vc9\lib\$(IntDir)\gmp.lib"
+				AdditionalDependencies="ws2_32.lib ..\..\..\gmp-4.2.3\build.vc9\lib\$(IntDir)\gmp.lib"
 				OutputFile="$(OutDir)\ecm.exe"
 				LinkIncremental="2"
 				GenerateDebugInformation="true"
@@ -223,7 +223,7 @@
 			/>
 			<Tool
 				Name="VCLinkerTool"
-				AdditionalDependencies="ws2_32.lib ..\..\..\gmp-4.2.1\build.vc9\lib\$(IntDir)\gmp.lib"
+				AdditionalDependencies="ws2_32.lib ..\..\..\gmp-4.2.3\build.vc9\lib\$(IntDir)\gmp.lib"
 				OutputFile="$(OutDir)\ecm.exe"
 				LinkIncremental="1"
 				GenerateDebugInformation="true"
@@ -304,7 +304,7 @@
 			/>
 			<Tool
 				Name="VCLinkerTool"
-				AdditionalDependencies="ws2_32.lib ..\..\..\gmp-4.2.1\build.vc9\lib\$(IntDir)\gmp.lib"
+				AdditionalDependencies="ws2_32.lib ..\..\..\gmp-4.2.3\build.vc9\lib\$(IntDir)\gmp.lib"
 				OutputFile="$(OutDir)\ecm.exe"
 				LinkIncremental="1"
 				GenerateDebugInformation="true"
