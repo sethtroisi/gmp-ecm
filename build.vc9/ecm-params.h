@@ -19,3 +19,6 @@
 
 /* the table (individual modes) */
 #define MPN_MUL_LO_THRESHOLD_TABLE {0,0,1,0,0,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1}
+
+#define NTT_GFP_TWIDDLE_DIF_BREAKOVER 11
+#define NTT_GFP_TWIDDLE_DIT_BREAKOVER 11
