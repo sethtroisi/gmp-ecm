@@ -2,13 +2,13 @@
 Building GMP-ECM with Microsoft Visual C++ 2008 (version 9)
 ===========================================================
 
-If you wish to build the assembler code support you will need to install 
-the YASM assembler that is available at:
+If you wish to build the assembler code support you will need to 
+install the YASM assembler that is available at:
 
   http://www.tortall.net/projects/yasm/
 
-You should ensure that the binary is named yasm.exe and put it in the 
-same directory as your Visual C++ compiler, which is typically:
+You should ensure that the binary is named yasm.exe and put it in 
+the same directory as your Visual C++ compiler, which is typically:
 
 C:\Program Files (x86)\Microsoft Visual Studio 9.0\VC\bin
 
@@ -35,11 +35,16 @@ The build files for GMP-ECM assume that the GMP and ECM build directories
 are in a common parent directory as follows:
 
   Parent Directory
-    GMP-4.2.3
+    GMP
       build.vc9    -- GMP build files
       ...
-    ECM-6.2
+    GMP-ECM
       buid.vc9	 -- ECM build files 
+      
+The root directories for GMP and GMP-ECM are assumed to have these names
+irreespective of which version is being used (they used to be followed by 
+version numbers but this meant that the build projects had to be updated
+too frequently). 
 
 The ECM build project includes source files for 32-bit and 64-bit assembler
 code builds.  
@@ -79,18 +84,14 @@ Tests
 The file tests.py is a python script that runs the GMP ECM tests. It runs 
 the x64/release version by default but can be edited to test other builds.
 
-Other GMP Versions
-==================
+GMP Version
+===========
 
-ECM is currently linked with GMP-4.2.3 but you can link with other 
-versions of GMP by using the correct gmp.h and changing the GMP library 
-directory in the VC++ ecm project (not libecm).  To do this open the linker 
-property page (Linker|Input) for the ecm project and change gmp-4.2.3 in:
+The previous VC++ build project for GMP-ECM assumed that the GMP root 
+directory was GMP-4.2.x but this meant that the build project had to be
+updated as the current GMP version changed.  The VC++ build projects now
+assume that the GMP root directory is just GMP alone so GMP-ECM can be
+linked without change to any GMP version provided only that its root
+directory is named (or renamed) to 'GMP'. 
 
-..\..\..\gmp-4.2.3\build.vc9\lib\$(IntDir)\gmp.lib
-
-to the appropriate GMP directory (say gmp-4.2.x):
-
-..\..\..\gmp-4.2.x\build.vc9\lib\$(IntDir)\gmp.lib
-
-    Brian Gladman, 30th August 2008
+    Brian Gladman, 24th November 2008
