@@ -36,8 +36,12 @@ typedef struct
   int method;     /* factorization method, default is ecm */
   mpz_t x;        /* starting point (if non zero) */
   mpz_t sigma;    /* contains sigma or A (ecm only) */
-  int sigma_is_A; /* if non-zero, 'sigma' contains A */
-  mpz_t go;       /* initial group order to preload (if NULL: do nothing) */
+  int sigma_is_A; /* if  1, 'sigma' contains A (Montgomery form),
+		     if  0, 'sigma' contains sigma (Montgomery form),
+		     if -1, 'sigma' contains A, and the input curve is in
+		     Weierstrass form y^2 = x^3 + A*x + B, with y in 'go'. */
+  mpz_t go;       /* initial group order to preload (if NULL: do nothing),
+		     or y for Weierstrass form if sigma_is_A = -1. */
   double B1done;  /* step 1 was already done up to B1done */
   mpz_t B2min;    /* lower bound for stage 2 (default is B1) */
   mpz_t B2;       /* step 2 bound (chosen automatically if < 0.0) */

@@ -1,6 +1,7 @@
 /* Elliptic Curve Method: toplevel and stage 1 routines.
 
-  Copyright 2001, 2002, 2003, 2004, 2005 Paul Zimmermann and Alexander Kruppa.
+  Copyright 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008
+  Paul Zimmermann and Alexander Kruppa.
 
   This file is part of the ECM Library.
 
@@ -784,11 +785,16 @@ print_exptime (double B1, const mpz_t B2, unsigned long dF, unsigned long k,
     }
 }
 
+/* go should be NULL for P+1, and P-1, it contains the y coordinate for the
+   Weierstrass form for ECM (when sigma_is_A = -1). */
 void
 print_B1_B2_poly (int verbosity, int method, double B1, double B1done, 
 		  mpz_t B2min_param, mpz_t B2min, mpz_t B2, int S, mpz_t x0,
-		  int sigma_is_A)
+		  int sigma_is_A, mpz_t go)
 {
+  ASSERT ((method == ECM_ECM) || (go == NULL));
+  ASSERT ((-1 <= sigma_is_A) && (sigma_is_A <= 1));
+
   if (test_verbose (verbosity))
   {
       outputf (verbosity, "Using ");
@@ -809,10 +815,12 @@ print_B1_B2_poly (int verbosity, int method, double B1, double B1done,
       /* don't print in resume case, since x0 is saved in resume file */
       if (method == ECM_ECM)
         {
-	  if (sigma_is_A)
+	  if (sigma_is_A == 1)
 	    outputf (verbosity, ", A=%Zd", x0);
-	  else
+	  else if (sigma_is_A == 0)
 	    outputf (verbosity, ", sigma=%Zd", x0);
+	  else /* sigma_is_A = -1: curve was given in Weierstrass form */
+	    outputf (verbosity, ", Weierstrass(A=%Zd,y=Zd)", x0, go);
         }
       else if (ECM_IS_DEFAULT_B1_DONE(B1done))
 	  outputf (verbosity, ", x0=%Zd", x0);
@@ -857,6 +865,12 @@ ecm (mpz_t f, mpz_t x, mpz_t sigma, mpz_t n, mpz_t go, double *B1done,
   mpz_t B2min, B2; /* Local B2, B2min to avoid changing caller's values */
   unsigned long dF;
   root_params_t root_params;
+
+  /*  1: sigma contains A from Montgomery form By^2 = x^3 + Ax^2 + x
+      0: sigma contains 'sigma' from Suyama's parametrization
+     -1: sigma contains A from Weierstrass form y^2 = x^3 + Ax + B,
+         and go contains B */
+  ASSERT((-1 <= sigma_is_A) && (sigma_is_A <= 1));
 
   set_verbose (verbose);
   ECM_STDOUT = (os == NULL) ? stdout : os;
@@ -991,12 +1005,11 @@ ecm (mpz_t f, mpz_t x, mpz_t sigma, mpz_t n, mpz_t go, double *B1done,
         }
 
       /* sigma contains sigma value, A and x values must be computed */
-      /* If x is specified by user, keep that value */
       youpi = get_curve_from_sigma (f, P.A, P.x, sigma, modulus);
       if (youpi != ECM_NO_FACTOR_FOUND)
 	  goto end_of_ecm;
     }
-  else
+  else if (sigma_is_A == 1)
     {
       /* sigma contains the A value */
       mpres_set_z (P.A, sigma, modulus);
@@ -1013,13 +1026,14 @@ ecm (mpz_t f, mpz_t x, mpz_t sigma, mpz_t n, mpz_t go, double *B1done,
         }
     }
 
-  /* If a nonzero value is given in x, then we use it as the starting point */
+  /* If a nonzero value is given in x, then we use it as the starting point,
+     overwriting the one computing from sigma for sigma_is_A=0. */
   if (mpz_sgn (x) != 0)
       mpres_set_z (P.x, x, modulus);
 
   /* Print B1, B2, polynomial and sigma */
   print_B1_B2_poly (OUTPUT_NORMAL, ECM_ECM, B1, *B1done, B2min_parm, B2min, 
-		    B2, root_params.S, sigma, sigma_is_A);
+		    B2, root_params.S, sigma, sigma_is_A, go);
 
 #if 0
   outputf (OUTPUT_VERBOSE, "b2=%1.0f, dF=%lu, k=%lu, d=%lu, d2=%lu, i0=%Zd\n", 
@@ -1028,6 +1042,21 @@ ecm (mpz_t f, mpz_t x, mpz_t sigma, mpz_t n, mpz_t go, double *B1done,
   outputf (OUTPUT_VERBOSE, "dF=%lu, k=%lu, d=%lu, d2=%lu, i0=%Zd\n", 
            dF, k, root_params.d1, root_params.d2, root_params.i0);
 #endif
+
+  if (sigma_is_A == -1) /* Weierstrass form: we perform only Stage 2,
+			   since all curves in Weierstrass form do not
+			   admit a Montgomery form. */
+    {
+      mpres_set_z (P.A, sigma, modulus); /* sigma contains A */
+      mpres_set_z (P.y, go,    modulus); /* go contains y */
+      if (mpz_sgn (x) == 0 || mpz_sgn (go) == 0)
+        {
+          outputf (OUTPUT_ERROR, "Error, sigma_is_A=-1 requires x and y.\n");
+	  youpi = ECM_ERROR;
+	  goto end_of_ecm;
+        }
+      goto hecm;
+    }
 
   if (test_verbose (OUTPUT_RESVERBOSE))
     {
@@ -1114,6 +1143,7 @@ ecm (mpz_t f, mpz_t x, mpz_t sigma, mpz_t n, mpz_t go, double *B1done,
     goto end_of_ecm;
 
   youpi = montgomery_to_weierstrass (f, P.x, P.y, P.A, modulus);
+ hecm:
   
   if (test_verbose (OUTPUT_RESVERBOSE) && youpi == ECM_NO_FACTOR_FOUND && 
       mpz_cmp (B2, B2min) >= 0)

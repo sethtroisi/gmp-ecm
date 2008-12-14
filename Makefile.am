@@ -14,7 +14,7 @@ libecm_la_SOURCES = ecm.c ecm2.c pm1.c pp1.c getprime.c listz.c lucas.c \
 libecm_la_LDFLAGS = '-version-info 0:0:0'
 
 bin_PROGRAMS = ecm
-noinst_PROGRAMS = tune ecmfactor
+noinst_PROGRAMS = tune ecmfactor ecmfactor2
 
 LDADD = libecm.la
 
