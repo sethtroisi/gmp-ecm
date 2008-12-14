@@ -1263,7 +1263,7 @@ BreadthFirstDoAgain:;
       params->method = method; /* may change with resume */
       mpz_set (params->x, x); /* may change with resume */
       /* if sigma is zero, then we use the A value instead */
-      params->sigma_is_A = mpz_sgn (sigma) == 0;
+      params->sigma_is_A = (mpz_sgn (sigma) == 0) ? 1 : 0;
       mpz_set (params->sigma, (params->sigma_is_A) ? A : sigma);
       mpz_set (params->go, go.Candi.n); /* may change if contains N */
       mpz_set (params->B2min, B2min); /* may change with -c */
