@@ -48,6 +48,54 @@ FILE *ECM_STDOUT, *ECM_STDERR; /* define them here since needed in tune.c */
 static void base2mod (mpres_t, const mpres_t, mpres_t, mpmod_t);
 static void REDC (mpres_t, const mpres_t, mpz_t, mpmod_t);
 
+#if 0 /* PZ: commented out, since I don't see how to use this code.
+         Indeed, we need a large enough value of K to get significant
+         timings; however, for small B1 a too large value of K will
+         increase the total time for a curve. */
+/* return non-zero if base-2 division if better for n, with K multiplications
+ */
+static int
+mpmod_tune_base2 (const mpz_t n, int K, int base2)
+{
+  mpmod_t modulus;
+  int k;
+  long t0, t1;
+  mpres_t x;
+
+  /* try first without base-2 division */
+  mpmod_init (modulus, n, ECM_MOD_NOBASE2, 0);
+  mpres_init (x, modulus);
+
+  mpres_set_z (x, n, modulus);
+  mpres_sub_ui (x, x, 1, modulus); /* so that the initial value is dense */
+  t0 = cputime ();
+  for (k = 0; k < K; k++)
+    mpres_mul (x, x, x, modulus);
+  t0 = cputime () - t0;
+
+  mpres_clear (x, modulus);
+  mpmod_clear (modulus);
+
+  /* now with base-2 division */
+  mpmod_init (modulus, n, ECM_MOD_BASE2, base2);
+  mpres_init (x, modulus);
+
+  mpres_set_z (x, n, modulus);
+  mpres_sub_ui (x, x, 1, modulus); /* so that the initial value is dense */
+  t1 = cputime ();
+  for (k = 0; k < K; k++)
+    mpres_mul (x, x, x, modulus);
+  t1 = cputime () - t1;
+
+  fprintf (stderr, "ECM_MOD_NOBASE2:%ld ECM_MOD_BASE2:%ld\n", t0, t1);
+
+  mpres_clear (x, modulus);
+  mpmod_clear (modulus);
+
+  return (t1 < t0);
+}
+#endif
+
 /* returns +/-l if n is a factor of N = 2^l +/- 1 with N <= n^threshold, 
    0 otherwise.
 */
@@ -95,6 +143,12 @@ isbase2 (const mpz_t n, const double threshold)
     }
   mpz_clear (u);
   mpz_clear (w);
+
+#if 0
+  if (res != 0)
+    mpmod_tune_base2 (n, 1000000, res);
+#endif
+
   if (abs (res) > (int) (threshold * (double) lo)) 
     res = 0;
 
@@ -430,7 +484,6 @@ ecm_mulredc_basecase (mpres_t R, const mpres_t S1, const mpres_t S2,
 
 #endif
 }
-
 
 /* If the user asked for a particular representation, always use it.
    If repr = ECM_MOD_DEFAULT, use the thresholds.
