@@ -205,6 +205,7 @@ usage (void)
     printf ("  -modmuln     use Montgomery's MODMULN for modular reduction\n");
     printf ("  -redc        use Montgomery's REDC for modular reduction\n");
     printf ("  -nobase2     disable special base-2 code\n");
+    printf ("  -nobase2s2   disable special base-2 code in ecm stage 2 only\n");
     printf ("  -base2 n     force base 2 mode with 2^n+1 (n>0) or 2^|n|-1 (n<0)\n");
     printf ("  -ntt         enable NTT convolution routines in stage 2\n");
     printf ("  -no-ntt      disable NTT convolution routines in stage 2\n");
@@ -272,6 +273,7 @@ main (int argc, char *argv[])
         /* If a factor was found, indicate whether factor, cofactor are */
         /* prime. If no factor was found, both are zero. */
   int repr = ECM_MOD_DEFAULT; /* automatic choice */
+  int nobase2step2 = 0; /* flag to turn off base 2 arithmetic in ecm stage 2 */
   unsigned long k = ECM_DEFAULT_K; /* default number of blocks in stage 2 */
   int S = ECM_DEFAULT_S;
              /* Degree for Brent-Suyama extension requested by user.
@@ -390,6 +392,12 @@ main (int argc, char *argv[])
           repr = ECM_MOD_NOBASE2;
 	  argv++;
 	  argc--;
+        }
+      else if (strcmp (argv[1], "-nobase2s2") == 0)
+        {
+          nobase2step2 = 1;
+          argv++;
+          argc--;
         }
       else if (strcmp (argv[1], "-ntt") == 0)
 	{
@@ -860,6 +868,7 @@ main (int argc, char *argv[])
   params->k = k;
   params->S = S;
   params->repr = repr;
+  params->nobase2step2 = nobase2step2;
   params->chkfilename = chkfilename;
   params->TreeFilename = TreeFilename;
   params->maxmem = maxmem;

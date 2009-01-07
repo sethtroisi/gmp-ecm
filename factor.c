@@ -39,6 +39,7 @@ ecm_init (ecm_params q)
   q->k = ECM_DEFAULT_K;
   q->S = ECM_DEFAULT_S; /* automatic choice of polynomial */
   q->repr = ECM_MOD_DEFAULT; /* automatic choice of representation */
+  q->nobase2step2 = 0; /* continue special base 2 code in ecm step 2, if used */
   q->verbose = 0; /* no output (default in library mode) */
   q->os = stdout; /* standard output */
   q->es = stderr; /* error output */
@@ -90,7 +91,7 @@ ecm_factor (mpz_t f, mpz_t n, double B1, ecm_params p)
  
   if (p->method == ECM_ECM)
     res = ecm (f, p->x, p->sigma, n, p->go, &(p->B1done), B1, p->B2min, p->B2, 
-               B2scale, p->k, p->S, p->verbose, p->repr, p->use_ntt, p->sigma_is_A,
+               B2scale, p->k, p->S, p->verbose, p->repr, p->nobase2step2, p->use_ntt, p->sigma_is_A,
 	       p->os, p->es, p->chkfilename, p->TreeFilename, p->maxmem, 
 	       p->stage1time, p->rng, p->stop_asap);
   else if (p->method == ECM_PM1)
