@@ -850,7 +850,7 @@ print_B1_B2_poly (int verbosity, int method, double B1, double B1done,
 int
 ecm (mpz_t f, mpz_t x, mpz_t sigma, mpz_t n, mpz_t go, double *B1done,
      double B1, mpz_t B2min_parm, mpz_t B2_parm, double B2scale, 
-     unsigned long k, const int S, int verbose, int repr, int use_ntt,
+     unsigned long k, const int S, int verbose, int repr, int nobase2step2, int use_ntt,
      int sigma_is_A, FILE *os, FILE* es, char *chkfilename,
      char *TreeFilename, double maxmem, double stage1time, 
      gmp_randstate_t rng, int (*stop_asap)(void))
@@ -1142,6 +1142,42 @@ ecm (mpz_t f, mpz_t x, mpz_t sigma, mpz_t n, mpz_t go, double *B1done,
      file is specified, the user may still resume from the residue */
   if (stop_asap != NULL && (*stop_asap) ())
     goto end_of_ecm;
+
+  /* If using 2^k +/-1 modulus and 'nobase2step2' flag is set,
+     set default (-nobase2) modular method and remap P.x, P.y, and P.A */
+  if (modulus->repr == ECM_MOD_BASE2 && nobase2step2)
+    {
+      mpz_t x_t, y_t, A_t;
+
+      MEMORY_TAG;
+      mpz_init (x_t);
+      MEMORY_UNTAG;
+      MEMORY_TAG;
+      mpz_init (y_t);
+      MEMORY_UNTAG;
+      MEMORY_TAG;
+      mpz_init (A_t);
+      MEMORY_UNTAG;
+
+      mpz_mod (x_t, P.x, modulus->orig_modulus);
+      mpz_mod (y_t, P.y, modulus->orig_modulus);
+      mpz_mod (A_t, P.A, modulus->orig_modulus);
+
+      mpmod_clear (modulus);
+
+      repr = ECM_MOD_NOBASE2;
+      if (mpmod_init (modulus, n, repr) != 0) /* reset modulus for nobase2 */
+        return ECM_ERROR;
+
+      /* remap x, y, and A for new modular method */
+      mpres_set_z (P.x, x_t, modulus);
+      mpres_set_z (P.y, y_t, modulus);
+      mpres_set_z (P.A, A_t, modulus);
+
+      mpz_clear (x_t);
+      mpz_clear (y_t);
+      mpz_clear (A_t);
+    }
 
   youpi = montgomery_to_weierstrass (f, P.x, P.y, P.A, modulus);
  hecm:

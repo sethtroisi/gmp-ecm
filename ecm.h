@@ -53,6 +53,7 @@ typedef struct
 		     ECM_MOD_GWNUM=Woltman's gwnum routines (tbd),
 		     > 16 : special base-2 representation        
 		     MOD_DEFAULT: automatic choice */
+  int nobase2step2; /* disable special base-2 code in ecm stage 2 only */
   int verbose;    /* verbosity level: 0 no output, 1 normal output,   
 		     2 diagnostic output */
   FILE *os;       /* output stream (for verbose messages) */
@@ -83,7 +84,7 @@ void ecm_clear (ecm_params);
 
 /* the following interface is not supported */
 int ecm (mpz_t, mpz_t, mpz_t, mpz_t, mpz_t, double *, double, mpz_t, mpz_t,
-         double, unsigned long, const int, int, int, int, int, FILE*, FILE*, 
+         double, unsigned long, const int, int, int, int, int, int, FILE*, FILE*,
          char*, char *, double, double, gmp_randstate_t, int (*)(void));
 int pp1 (mpz_t, mpz_t, mpz_t, mpz_t, double *, double, mpz_t, mpz_t, 
          double, unsigned long, const int, int, int, int, FILE*, FILE*, char*,
