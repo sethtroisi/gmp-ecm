@@ -895,11 +895,15 @@ ecm (mpz_t f, mpz_t x, mpz_t sigma, mpz_t n, mpz_t go, double *B1done,
 
   st = cputime ();
 
-  /* See what kind of number we have as that may influence optimal parameter 
-     selection. Test for base 2 number */
+  if (mpmod_init (modulus, n, repr) != 0)
+    return ECM_ERROR;
 
-  if (repr != ECM_MOD_NOBASE2)
-    base2 = (abs (repr) >= 16) ? repr : isbase2 (n, BASE2_THRESHOLD);
+  /* See what kind of number we have as that may influence optimal parameter 
+     selection. Test for base 2 number. Note: this was already done by
+     mpmod_init. */
+
+  if (modulus->repr == ECM_MOD_BASE2)
+    base2 = modulus->bits;
 
   /* For a Fermat number (base2 a positive power of 2) */
   for (Fermat = base2; Fermat > 0 && (Fermat & 1) == 0; Fermat >>= 1);
@@ -910,9 +914,6 @@ ecm (mpz_t f, mpz_t x, mpz_t sigma, mpz_t n, mpz_t go, double *B1done,
     }
   else
       Fermat = 0;
-
-  if (mpmod_init (modulus, n, repr) != 0)
-    return ECM_ERROR;
 
   MEMORY_TAG;
   mpres_init (P.x, modulus);
