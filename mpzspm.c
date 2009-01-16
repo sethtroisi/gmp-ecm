@@ -22,6 +22,7 @@
 #include <stdio.h> /* for printf */
 #include <stdlib.h>
 #include "sp.h"
+#include "ecm-impl.h"
 
 
 /* Tables for the maximum possible modulus (in bit size) for different 
@@ -114,7 +115,10 @@ mpzspm_init (spv_size_t max_len, mpz_t modulus)
   mpz_t P, S, T, mp, mt; /* mp is p as mpz_t, mt is a temp mpz_t */
   sp_t p, a;
   mpzspm_t mpzspm;
-  
+  long st;
+
+  st = cputime ();
+
   mpzspm = (mpzspm_t) malloc (sizeof (__mpzspm_struct));
   
   /* Upper bound for the number of primes we need.
@@ -167,8 +171,9 @@ mpzspm_init (spv_size_t max_len, mpz_t modulus)
       /* all primes must be in range */
       if (p < SP_MIN || p <= (sp_t) max_len)
         {
-	  printf ("not enough primes == 1 (mod %lu) in interval\n", 
-	          (unsigned long) max_len);
+	  outputf (OUTPUT_ERROR, 
+	           "not enough primes == 1 (mod %lu) in interval\n", 
+	           (unsigned long) max_len);
 	  return NULL;
 	}
       
@@ -188,6 +193,9 @@ mpzspm_init (spv_size_t max_len, mpz_t modulus)
       p -= (sp_t) max_len;
     }
   while (mpz_cmp (P, T) <= 0);
+
+  outputf (OUTPUT_DEVVERBOSE, "mpzspm_init: finding %u primes took %lums\n", 
+           mpzspm->sp_num, cputime() - st);
 
   mpz_init_set (mpzspm->modulus, modulus);
   
@@ -222,7 +230,7 @@ mpzspm_init (spv_size_t max_len, mpz_t modulus)
         {
           mpz_set_sp (mp, mpzspm->spm[j]->sp);
           mpz_fdiv_r (mt, mpzspm->crt1[i], mp);
-	  mpzspm->crt4[j][i] = mpz_get_sp (mt);
+          mpzspm->crt4[j][i] = mpz_get_sp (mt);
         }
       
       /* crt5[i] = (-P mod modulus) mod p */
@@ -247,6 +255,8 @@ mpzspm_init (spv_size_t max_len, mpz_t modulus)
   mpz_clear (P);
   mpz_clear (S);
   mpz_clear (T);
+
+  outputf (OUTPUT_DEVVERBOSE, "mpzspm_init took %lums\n", cputime() - st);
 
   return mpzspm;
 }
