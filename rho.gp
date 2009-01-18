@@ -79,12 +79,16 @@
 
 */
 
+
+/* Returns \int_{1}^{x} 1 - rho(t-1)/t for 1 <= x <= 2.
+   This function is not actually used any more, rhoexact() needs a 
+   differece L2(x)-L2(2) which can be simplified. */
 L2 (x) =
 {
 /* \int (1 - Log(x-1))/x dx = 
    Log(x) + Log(x)*(Log(1-x) - Log(x-1)) + Dilog(x)
    Dilog(x) = Pi^2/6 - Log(x)*Log(1-x) - Dilog(1-x)
-   thus:  Log(x) - Log(x)*Log(x-1) + Pi^2/6 - Dilog(1-x)
+   thus:  L2(x) = Log(x) - Log(x)*Log(x-1) + Pi^2/6 - Dilog(1-x)
    L2(2) = Pi^2/4 + Log(2) */
 
   return (log (x) * (1 - log (x-1)) + Pi ^ 2 / 6 - real (dilog (1 - x)))
@@ -115,7 +119,8 @@ rhoexact(x) =
   if (x <= 2., 
     return (1. - log(x)));
 
-/* 1 - \int_{1}^{x} rho(t-1)/t dt =
+/* For 2 <= x <= 3, 
+   1 - \int_{1}^{x} rho(t-1)/t dt =
    1 - \int_{1}^{2} 1/t dt - \int_{2}^{x} (1-log(t-1))/t dt =
    1 - log(2) - (L2(x) - L2(2))
    simplified, see L2() function. The real() is there because Pari returns a
@@ -128,15 +133,16 @@ rhoexact(x) =
   error ("rhoexact: argument > 3");
 }
 
-/* With invh = 200, rho(8) = 0.000000032319, Knuth/Pardo say ...21,
-   rho(9) = 0.000000001015, Knuth/Pardo say ...16
-   With invh = 400, all digits match Knuth/Pardo (after rounding) */
+/* With invh = 200, rho(8) = 0.000000032319, Knuth/Trapp-Pardo say ...21,
+   rho(9) = 0.000000001015, Knuth/Trapp-Pardo say ...16
+   With invh = 400, all digits match Knuth/Trapp-Pardo (after rounding) */
 
 tablemax = 10;
 invh = 256;
 h = 1. / invh;
 rhotable = listcreate (tablemax * invh);
 for (i = 1, 3 * invh - 1, listput (rhotable, rhoexact (i * h), i))
+/* FIXME: add listput (rhotable, rhoexact (3.), 3 * invh) here? */
 /* Boole's rule. The h conveniently cancel */
 for (i = 3 * invh, tablemax * invh, \
   listput (rhotable, rhotable[i - 4] - 2. / 45. * \
@@ -150,7 +156,7 @@ for (i = 3 * invh, tablemax * invh, \
   ) \
 )
 
-/* The rho function as defined by Karl Dickman, or by Knuth/Trapp Pardo (4.1)-(4.4), 
+/* The rho function as defined by Karl Dickman, or by Knuth/Trapp-Pardo (4.1)-(4.4), 
    for alpha < tablemax. For alpha >= tablemax, returns 0. */
 dickmanrho (alpha) =
 {
@@ -162,12 +168,12 @@ dickmanrho (alpha) =
     rho1 = rhotable[a];
     rho2 = rhotable[a + 1];
     /* Linear interpolation. Should use a better model */
-    return (rho1 + (rho2 - rho1) * (alpha / h - a));
+    return (rho1 + (rho2 - rho1) * (alpha * invh - a));
   );
   return (0.);
 }
 
-/* The number of x^(1/alpha)-smooth integers below x with first 
+/* The density of x^(1/alpha)-smooth positive integers below x with first 
    correction term, (4.8), (4.15) */
 dickmanrhosigma (alpha, x) =
 {
@@ -180,7 +186,7 @@ dickmanrhosigma (alpha, x) =
 }
 
 /* Same, but ai is an index to rhotable, i.e. ai*h = alpha */
-dickmanrhosigma_i (ai,x) =
+dickmanrhosigma_i (ai, x) =
 {
   if (ai <= 0, return (0.));
   if (ai <= invh, return (1.));
@@ -195,8 +201,8 @@ dickmanlocal (alpha, x) =
 {
   if (alpha <= 0., return (0.));
   if (alpha <= 1., return (1.));
-/* Avoid case where alpha >= tablemax, but alpha - 1 < tablemax which would
-   give negative result */
+  /* Avoid case where alpha >= tablemax, but alpha - 1 < tablemax which 
+     would give negative result */
   if (alpha < tablemax,
     return (dickmanrhosigma (alpha, x) - dickmanrhosigma (alpha - 1, x) / log (x))
   );
@@ -220,8 +226,8 @@ dickmanlocal_i (ai, x) =
   return (0);
 }
 
-/* Probability that a number around x has all prime factors <=x^(1/alpha), and 
-   exactly one >x^(1/alpha), <=x^(beta/alpha) */
+/* Probability that a number around x has all prime factors <=x^(1/alpha), 
+   and exactly one >x^(1/alpha), <=x^(beta/alpha) */
 dickmanmu (alpha, beta, x) =
 {
   local (a, ai, b, bi);
