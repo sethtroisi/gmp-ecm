@@ -53,6 +53,7 @@ dnl Athlon64 and Opteron decoders read aligned 16 byte packets.
 define(`T0', `rsi')dnl
 define(`T1', `rbx')dnl
 define(`CY', `rcx')dnl
+define(`CYl', `ecx')dnl
 define(`CYb', `cl')dnl
 define(`XI', `r14')dnl		# register that holds x[i] value
 define(`U', `r11')dnl
@@ -100,7 +101,7 @@ GSYM_PREFIX``''mulredc`'LENGTH:
 	movq	(%XP), %XI		# XI = x[0]
 	movq	(%YP), %rax		# rax = y[0]
 
-	xorq	%CY, %CY		# set %CY to 0
+	xorl	%CYl, %CYl		# set %CY to 0
 	lea	LOCALTMP, %TP		# store addr of tmp array in TP
 	movq	%CY, %I			# Set %I to 0
 
@@ -157,6 +158,11 @@ define(`JM8', `eval(J - 8)')dnl
 	movq	J`'(%MP), %rax	# Fetch m[j] into %rax
 	adcq	%rdx, %T1	# Add high word with carry to T1
 	# T1:T0 <= 2^128 - 2*2^64 + 1 + 2*2^64 - 2 <= 2^128 - 1, no carry!
+ifdef(`WANT_ASSERT', `
+	jnc	assert2
+	call	abort
+assert2:
+',`')
 	
 	mulq	%U		# m[j]*u
 	# rdx:rax <= 2^128 - 2*2^64 + 1, T1:T0 <= 2^128 - 1
