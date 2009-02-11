@@ -109,7 +109,7 @@ GSYM_PREFIX``''mulredc`'LENGTH:
 	addq	$1, %I
 
 	movq 	%rax, %T0		# Move low word of product to T0
-	movq	%rdx, %T1		# Move high word of procuve to T1
+	movq	%rdx, %T1		# Move high word of product to T1
 
 	imulq	%INVM, %rax		# %rax = ((x[i]*y[0]+tmp[0])*invm)%2^64
 	movq	%rax, %U		# this is the new u value
@@ -295,20 +295,19 @@ define(`J8', `eval(J + 8)')dnl
 define(`JM8', `eval(J - 8)')dnl
 
 	movq	%CY, %T1	# T1 = CY
-	adcq	J8`'(%TP), %T1	# T1 += tmp[j + 1]
-	setc	%CYb	    	# %CY <= 1
+	adcq	J8`'(%TP), %T1	# T1 += tmp[j+1]
 	
 	mulq	%XI		# y[j] * x[i]
 	addq	%rax, %T0	# Add low word to T0
 	movq	J`'(%MP), %rax	# Fetch m[j] into %rax
 	adcq	%rdx, %T1 	# Add high word with carry to T1
-	adcb	$0, %CYb	# %CY <= 2
+	setc	%CYb	    	# %CY <= 1
 	mulq    %U		# m[j]*u
 	addq	%rax, %T0	# Add low word to T0
 	movq	%T0, JM8`'(%TP)	# Store T0 in tmp[j-1]
 	adcq	%rdx, %T1	# Add high word with carry to T1
 	movq	%T1, J`'(%TP)	# Store T1 in tmp[j]
-	adcb	$0, %CYb	# %CY <= 3
+	adcb	$0, %CYb	# %CY <= 2
 	movq	%CY, J8`'(%TP)	# Store CY in tmp[j+1]
 
 	cmpq	$LENGTH, %I
