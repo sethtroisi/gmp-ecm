@@ -1,3 +1,4 @@
+#include "../config.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <assert.h>
@@ -24,16 +25,21 @@
 double CPUTime()
 {
   double ret;
-#ifndef USE_CLOCK
-  struct tms t; 
-
-  times(&t);
-  ret = t.tms_utime * 1. / HZ;
-#else
+#if HAVE_GETRUSAGE
+  struct rusage usage;
+  getrusage(RUSAGE_SELF, &usage);
+  ret = (double) usage.ru_utime.tv_sec + 
+        (double) usage.ru_utime.tv_usec / 1000000.;
+#elif defined(USE_CLOCK)
   clock_t t;
 
   t = clock();
   ret = (double)t / (double)CLOCKS_PER_SEC;
+#else
+  struct tms t; 
+
+  times(&t);
+  ret = t.tms_utime * 1. / HZ;
 #endif
   return ret;
 }

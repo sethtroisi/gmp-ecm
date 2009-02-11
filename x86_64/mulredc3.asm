@@ -72,7 +72,7 @@ GSYM_PREFIX`'mulredc3:
 	movq	(%r13), %r14		# XI = x[0]
 	movq	(%r9), %rax		# rax = y[0]
 
-	xorq	%rcx, %rcx		# set %CY to 0
+	xorl	%ecx, %ecx		# set %CY to 0
 	lea	(%rsp), %rbp		# store addr of tmp array in TP
 	movq	%rcx, %r12			# Set %I to 0
 
@@ -80,7 +80,7 @@ GSYM_PREFIX`'mulredc3:
 	addq	$1, %r12
 
 	movq 	%rax, %rsi		# Move low word of product to T0
-	movq	%rdx, %rbx		# Move high word of procuve to T1
+	movq	%rdx, %rbx		# Move high word of product to T1
 
 	imulq	%r8, %rax		# %rax = ((x[i]*y[0]+tmp[0])*invm)%2^64
 	movq	%rax, %r11		# this is the new u value
@@ -113,6 +113,7 @@ GSYM_PREFIX`'mulredc3:
 	movq	8(%r10), %rax	# Fetch m[j] into %rax
 	adcq	%rdx, %rsi	# Add high word with carry to T1
 	# T1:T0 <= 2^128 - 2*2^64 + 1 + 2*2^64 - 2 <= 2^128 - 1, no carry!
+
 	
 	mulq	%r11		# m[j]*u
 	# rdx:rax <= 2^128 - 2*2^64 + 1, T1:T0 <= 2^128 - 1
@@ -211,20 +212,19 @@ GSYM_PREFIX`'mulredc3:
 # Pass for j = 2. Don't fetch new data from y[j+1].
 
 	movq	%rcx, %rbx	# T1 = CY
-	adcq	24(%rbp), %rbx	# T1 += tmp[j + 1]
-	setc	%cl	    	# %CY <= 1
+	adcq	24(%rbp), %rbx	# T1 += tmp[j+1]
 	
 	mulq	%r14		# y[j] * x[i]
 	addq	%rax, %rsi	# Add low word to T0
 	movq	16(%r10), %rax	# Fetch m[j] into %rax
 	adcq	%rdx, %rbx 	# Add high word with carry to T1
-	adcb	$0, %cl	# %CY <= 2
+	setc	%cl	    	# %CY <= 1
 	mulq    %r11		# m[j]*u
 	addq	%rax, %rsi	# Add low word to T0
 	movq	%rsi, 8(%rbp)	# Store T0 in tmp[j-1]
 	adcq	%rdx, %rbx	# Add high word with carry to T1
 	movq	%rbx, 16(%rbp)	# Store T1 in tmp[j]
-	adcb	$0, %cl	# %CY <= 3
+	adcb	$0, %cl	# %CY <= 2
 	movq	%rcx, 24(%rbp)	# Store CY in tmp[j+1]
 
 	cmpq	$3, %r12
