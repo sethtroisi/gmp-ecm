@@ -4,7 +4,7 @@
 
 #include <gmp.h>
 
-#include "asmredc.h"
+#include "../asmredc.h"
 
 void mp_print(mp_limb_t *x, int N) {
   int i;
@@ -153,12 +153,12 @@ void test(mp_size_t N, int k)
         }
     }
     
-    // Mul followed by ecm_redc3
+    /* Mul followed by ecm_redc3 */
     mpn_mul_n(tmp, x, yp, N);
     ecm_redc3(tmp, m, N, invm);
     cy2 = mpn_add_n (tmp2, tmp + N, tmp, N);
 
-    // Mixed mul and redc
+    /* Mixed mul and redc */
     cy = call_mulredc (N, z, x, yp, m, invm);
     
     if (cy != cy2)
@@ -180,7 +180,7 @@ void test(mp_size_t N, int k)
     if (cy)
       printf("!");
     z[N] = cy;
-    // Check with pure gmp : multiply by 2^(N*GMP_NUMB_BITS) and compare.
+    /* Check with pure gmp : multiply by 2^(N*GMP_NUMB_BITS) and compare. */
     for (j=0; j < N; ++j) {
       tmp[j] = 0;
       tmp[j+N] = z[j]; 

@@ -16,23 +16,10 @@
 #  endif
 # endif
 
-#define LOOPCOUNT 1000000000
+#define LOOPCOUNT 10000000
 
 #include <gmp.h>
-
-extern mp_limb_t mulredc(mp_limb_t *z, const mp_limb_t *x, const mp_limb_t *y,
-             const mp_limb_t *m, mp_size_t n, mp_limb_t inv_m);
-
-extern mp_limb_t mulredc1(mp_limb_t *z, const mp_limb_t *x, const mp_limb_t *y,
-             const mp_limb_t *m, mp_limb_t inv_m);
-	  
-extern mp_limb_t mulredc3(mp_limb_t *z, const mp_limb_t *x, const mp_limb_t *y,
-             const mp_limb_t *m, mp_limb_t inv_m);
-
-extern mp_limb_t mulredc7(mp_limb_t *z, const mp_limb_t *x, const mp_limb_t *y,
-             const mp_limb_t *m, mp_limb_t inv_m);
-
-extern void ecm_redc3(mp_limb_t * z, const mp_limb_t * x, size_t n, mp_limb_t m);
+#include "../asmredc.h"
 
 double CPUTime()
 {
@@ -64,7 +51,7 @@ void mp_print(mp_limb_t *x, int N) {
 void bench(mp_size_t N)
 {
   mp_limb_t *x, *y, *z, *m, invm, cy, cy2, *tmp;
-  int i, j;
+  int i;
   double t1, t2;
   
   x = (mp_limb_t *) malloc(N*sizeof(mp_limb_t));
@@ -86,7 +73,7 @@ void bench(mp_size_t N)
   mpn_random(x, N);
   mpn_random(y, N);
 
-  // Mul followed by ecm_redc3
+  /* Mul followed by ecm_redc3 */
   t1 = CPUTime();
   for (i=0; i<LOOPCOUNT/N; ++i) {
     mpn_mul_n(tmp, x, y, N);
@@ -96,9 +83,8 @@ void bench(mp_size_t N)
   }
   t1 = CPUTime()-t1;
   
-  // Mixed mul and redc
+  /* Mixed mul and redc */
   t2 = CPUTime();
-    // Mixed mul and redc
   switch (N) {
    case 1:
     for (i=0; i<LOOPCOUNT/N; ++i) {
@@ -228,7 +214,7 @@ void bench(mp_size_t N)
   }
   t2 = CPUTime()-t2;
   
-  printf("******************\nN=%d\n",N);
+  printf("******************\nN=%ld\n", (long) N);
   printf("mul+redc = %f\nmulredc  = %f\n", t1, t2);
   printf("Ratio %f, Normalized time=%f\n", t1/t2, t1/N);
 
@@ -240,7 +226,6 @@ void bench(mp_size_t N)
 
 int main(int argc, char** argv)
 {
-  mp_limb_t x[3], y[3], z[3], m[3], invm, carry;
   int nn, i;
   int minsize = 1, maxsize = 20;
 
@@ -251,7 +236,6 @@ int main(int argc, char** argv)
   if (argc > 2)
     maxsize = atoi (argv[2]);
   
-//  for (;;) {
     for (i = minsize; i <= maxsize; ++i) {
       bench(i);
     }
@@ -267,7 +251,6 @@ int main(int argc, char** argv)
     bench(nn); nn = 2*nn+3;
     bench(nn); nn = 2*nn+3;
 #endif
-//  }
   return 0;
 }
 
