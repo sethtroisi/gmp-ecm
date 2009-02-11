@@ -5,3 +5,6 @@ EXTRA_DIST = Makefile.dev README mulredc.m4 autogen.py bench.c generate_all \
              mulredc12.asm mulredc13.asm mulredc14.asm mulredc15.asm \
              mulredc16.asm mulredc17.asm mulredc18.asm mulredc19.asm \
              mulredc20.asm
+
+noinst_PROGRAMS = bench test_mulredc
+LDADD = ../mulredc*.o ../redc.o -lgmp
