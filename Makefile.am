@@ -85,7 +85,8 @@ EXTRA_DIST = test.pm1 test.pp1 test.ecm README.lib ecm.xml \
              ecm-params.h.default ecm-params.h.alpha-ev6 \
              ecm-params.h.athlon ecm-params.h.powerpc7450 \
              ecm-params.h.pentium3 ecm-params.h.pentium4 \
-             ecm-params.h.pentium-m configfsf.sub configfsf.guess
+             ecm-params.h.pentium-m ecm-params.h.powerpc970 \
+             configfsf.sub configfsf.guess
 
 DIST_SUBDIRS = athlon pentium4 x86_64 powerpc64 build.vc9
 
