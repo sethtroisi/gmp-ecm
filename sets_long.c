@@ -148,6 +148,48 @@ quicksort_long (long *a, unsigned long l)
 }
 
 
+/* Returns max(S), where S == (Z/\beta Z)* as chosen by
+   sets_get_factored_sorted() */
+/* Assumes that S == 0 at recursion entry */
+static void
+sets_max_recurse (mpz_t S, const unsigned long beta)
+{
+  unsigned long P = beta, p, pk;
+  unsigned int k;
+  
+  if (beta == 1UL)
+    return;
+  
+  p = find_factor (P);
+  k = 1; pk = p; P /= p;
+  while (P % p == 0)
+    {
+      k++;
+      pk *= p;
+      P /= p; /* P*pk=beta is invariant */
+    }
+  sets_max_recurse (S, P);
+  mpz_mul_ui (S, S, pk);
+  if (p == 2UL && k == 1)
+    mpz_add_ui (S, S, P);
+  else if (p == 2UL)
+    mpz_add_ui (S, S, P * (pk / 2UL - 1UL));
+  else if (p % 4UL == 1UL)
+    mpz_add_ui (S, S, P * ((pk + p) / 2UL - 2UL));
+  else if (p % 4UL == 3UL)
+    mpz_add_ui (S, S, P * ((pk - 1UL) / 2UL));
+  else
+    abort();
+}
+
+void
+sets_max (mpz_t S, const unsigned long beta)
+{
+  mpz_set_ui (S, 0UL);
+  sets_max_recurse (S, beta);
+}
+
+
 /* Compute the set of sums over the "nr_sets" different sets in "*sets".
    The value of "add" is added to each element of the set of sums. 
    "*sum" will have {\prod_{S \in "*sets"} #S} entries and must have
@@ -444,8 +486,7 @@ sets_print (const int verbosity, sets_long_t *sets)
    is returned. (If d = p_1 * ... * p_k, the return value is k and 
    "*extr_size" is set_sizeof(p_1) + ... + set_sizeof(p_k).)
    If "*extracted" is NULL, nothing is written and no sets are removed
-   from "*sets", but "*extr_size" and return value are computed as if
-   they were.  */
+   from "*sets", but "*extr_size" is computed as if they were.  */
 
 void
 sets_extract (sets_long_t *extracted, size_t *extr_size, sets_long_t *sets, 
@@ -554,7 +595,9 @@ selftest (const unsigned long beta)
   sets_long_t *sets;
   set_long_t *sumset;
   unsigned long i, j, phibeta;
+  mpz_t max;
 
+  ASSERT_ALWAYS (beta > 0);
   sets = sets_get_factored_sorted (beta);
   
   /* Test that the sumset % beta is equal to (Z/betaZ)* % beta */
@@ -562,6 +605,23 @@ selftest (const unsigned long beta)
   sumset = malloc (set_sizeof (phibeta));
   sets_sumset (sumset, sets);
   ASSERT_ALWAYS (sumset->card = phibeta);
+  /* Also test that max (sumset) == sets_max (beta) */
+  mpz_init (max);
+  sets_max (max, beta);
+  if (phibeta > 0)
+    {
+      long maxelem;
+      maxelem = sumset->elem[0];
+      for (i = 1; i < phibeta; i++)
+	if (maxelem < sumset->elem[i])
+	  maxelem = sumset->elem[i];
+      ASSERT_ALWAYS (mpz_cmp_si (max, maxelem) == 0);
+    }
+  else
+    {
+      ASSERT_ALWAYS (mpz_cmp_ui (max, 0UL) == 0);
+    }
+  mpz_clear (max);
 
  /*  printf ("sumset, before reduction: ");
   for (i = 0; i < phibeta; i++)
@@ -586,7 +646,7 @@ selftest (const unsigned long beta)
   j = 0;
   for (i = 1; i < beta; i++)
     {
-      if (lgcd (i, beta) == 1)
+      if (gcd (i, beta) == 1)
         {
           if (sumset->elem[j] != (long) i)
             {
