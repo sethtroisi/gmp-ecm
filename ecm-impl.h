@@ -719,6 +719,8 @@ typedef struct {
 void          quicksort_long (long *, unsigned long);
 #define sets_print __ECM(sets_print)
 void          sets_print (const int, sets_long_t *);
+#define sets_max __ECM(sets_max)
+void          sets_max (mpz_t, const unsigned long);
 #define sets_sumset __ECM(sets_sumset)
 void          sets_sumset (set_long_t *, const sets_long_t *);
 #define sets_sumset_minmax __ECM(sets_sumset_minmax)
