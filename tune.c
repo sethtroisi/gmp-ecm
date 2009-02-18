@@ -442,14 +442,14 @@ main (int argc, char **argv)
   mpn_mul_lo_threshold[mp_size] = maximise (tune_ecm_mul_lo_n, 0, mp_size);
   printf ("%lu}\n", (unsigned long) mpn_mul_lo_threshold[mp_size]);
 	  
-  NTT_GFP_TWIDDLE_DIF_BREAKOVER = 1 << crossover
+  NTT_GFP_TWIDDLE_DIF_BREAKOVER = crossover
       (tune_spv_ntt_gfp_dif_unrolled, tune_spv_ntt_gfp_dif_recursive,
 	  min_log2_len, max_log2_len - 1);
 
   printf ("#define NTT_GFP_TWIDDLE_DIF_BREAKOVER %lu\n",
       (unsigned long) NTT_GFP_TWIDDLE_DIF_BREAKOVER);
    
-  NTT_GFP_TWIDDLE_DIT_BREAKOVER = 1 << crossover
+  NTT_GFP_TWIDDLE_DIT_BREAKOVER = crossover
       (tune_spv_ntt_gfp_dit_unrolled, tune_spv_ntt_gfp_dit_recursive,
 	  min_log2_len, max_log2_len - 1);
 
