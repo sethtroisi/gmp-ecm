@@ -344,7 +344,7 @@ void bench(mp_size_t N)
       x[0] += tmp[0];
     }
     break;
-   default:
+   default: ;
   }
   t3 = CPUTime() - t3;
   
