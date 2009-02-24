@@ -5,20 +5,25 @@
 #include <gmp.h>
 
 #include "../asmredc.h"
+#include "mulredc1.h"
 
-void mp_print(mp_limb_t *x, int N) {
+void mp_print(const mp_limb_t *x, const int N) 
+{
   int i;
-  for (i = 0; i < N-1; ++i)
-    printf("%lu + W*(", x[i]);
-  printf("%lu", x[N-1]);
-  for (i = 0; i < N-1; ++i)
-    printf(")");
+  for (i = 0; i < N; ++i)
+    {
+      if (i>0) 
+        printf (" + ");
+      printf("%lu", x[i]);
+      if (i>0) 
+        printf ("*2^%d", i*GMP_NUMB_BITS); 
+    }
   printf("\n");
 }
 
 static mp_limb_t
-call_mulredc (int N, mp_limb_t *z, mp_limb_t *x, mp_limb_t *y, mp_limb_t *m,
-              mp_limb_t invm)
+call_mulredc (const int N, mp_limb_t *z, const mp_limb_t *x, const mp_limb_t *y, 
+              const mp_limb_t *m, const mp_limb_t invm)
 {
   mp_limb_t cy;
 
@@ -86,6 +91,80 @@ call_mulredc (int N, mp_limb_t *z, mp_limb_t *x, mp_limb_t *y, mp_limb_t *m,
       break;
      default:
       cy = mulredc20(z, x, y, m, invm);
+    }
+  return cy;
+}
+
+static mp_limb_t
+call_mulredc1 (const int N, mp_limb_t *z, const mp_limb_t x, const mp_limb_t *y, 
+               const mp_limb_t *m, const mp_limb_t invm)
+{
+  mp_limb_t cy;
+
+  switch (N) 
+    {
+     case 1:
+      cy = mulredc1(z, x, y[0], m[0], invm);
+      break;
+     case 2:
+      cy = mulredc1_2(z, x, y, m, invm);
+      break;
+     case 3:
+      cy = mulredc1_3(z, x, y, m, invm);
+      break;
+     case 4:
+      cy = mulredc1_4(z, x, y, m, invm);
+      break;
+     case 5:
+      cy = mulredc1_5(z, x, y, m, invm);
+      break;
+     case 6:
+      cy = mulredc1_6(z, x, y, m, invm);
+      break;
+     case 7:
+      cy = mulredc1_7(z, x, y, m, invm);
+      break;
+     case 8:
+      cy = mulredc1_8(z, x, y, m, invm);
+      break;
+     case 9:
+      cy = mulredc1_9(z, x, y, m, invm);
+      break;
+     case 10:
+      cy = mulredc1_10(z, x, y, m, invm);
+      break;
+     case 11:
+      cy = mulredc1_11(z, x, y, m, invm);
+      break;
+     case 12:
+      cy = mulredc1_12(z, x, y, m, invm);
+      break;
+     case 13:
+      cy = mulredc1_13(z, x, y, m, invm);
+      break;
+     case 14:
+      cy = mulredc1_14(z, x, y, m, invm);
+      break;
+     case 15:
+      cy = mulredc1_15(z, x, y, m, invm);
+      break;
+     case 16:
+      cy = mulredc1_16(z, x, y, m, invm);
+      break;
+     case 17:
+      cy = mulredc1_17(z, x, y, m, invm);
+      break;
+     case 18:
+      cy = mulredc1_18(z, x, y, m, invm);
+      break;
+     case 19:
+      cy = mulredc1_19(z, x, y, m, invm);
+      break;
+     case 20:
+      cy = mulredc1_20(z, x, y, m, invm);
+      break;
+     default:
+      cy = mulredc1_20(z, x, y, m, invm);
     }
   return cy;
 }
@@ -192,6 +271,21 @@ void test(mp_size_t N, int k)
 
     mpn_mul_n(tmp, x, yp, N);
     mpn_tdiv_qr(tmp2, tmp3, 0, tmp, 2*N, m, N);
+    
+    assert(mpn_cmp(z, tmp3, N) == 0);
+
+
+    /* Test mulredc1_n() */
+    z[N] = call_mulredc1 (N, z, x[0], yp, m, invm);
+    tmp[0] = 0;
+    for (j=0; j <= N; ++j) /* Multiply by 2^GMP_NUMB_BITS */
+      tmp[j+1] = z[j];
+    mpn_tdiv_qr(tmp2, tmp3, 0, tmp, N+2, m, N);
+    for (j=0; j < N; ++j)
+      z[j] = tmp3[j]; 
+
+    tmp[N] = mpn_mul_1 (tmp, yp, N, x[0]);
+    mpn_tdiv_qr(tmp2, tmp3, 0, tmp, N+1, m, N);
     
     assert(mpn_cmp(z, tmp3, N) == 0);
   }
