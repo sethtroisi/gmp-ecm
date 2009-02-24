@@ -70,6 +70,9 @@ Unroll:
 	movq    %rdx, 16(%rsp)				# Org Cpt of 8(%rsp)
 	movq    %rcx, %rdx
 	shlq    $4, %rdx
+#if 0
+        Error, this file must be pre-processed. Make a .S file, not .s
+#endif
 #ifdef PIC
         pushq   %rax
         call    1f
