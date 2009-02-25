@@ -331,7 +331,7 @@ pp1_mul2 (mpres_t a, mpres_t b, mpres_t P, mpz_t e, mpmod_t n)
       /* square: (ax+b)^2 = (a^2P+2ab) x + (b^2-a^2) */
       mpres_mul (t, a, a, n); /* a^2 */
       mpres_mul (a, a, b, n);
-      mpres_mul_ui (a, a, 2, n); /* 2ab */
+      mpres_add (a, a, a, n); /* 2ab */
       mpres_mul (b, b, b, n); /* b^2 */
       mpres_sub (b, b, t, n); /* b^2-a^2 */
       mpres_mul (t, t, P, n); /* a^2P */
@@ -539,8 +539,8 @@ pp1_rootsF (listz_t F, root_params_t *root_params, unsigned long dF,
                   */
 		  mpres_mul (u, state.fd[params->next * (params->S + 1)].x, x[0],
 			     modulus);
-		  mpres_mul_ui (v, state.fd[params->next * (params->S + 1)].y,
-				2, modulus);
+		  mpres_add (v, state.fd[params->next * (params->S + 1)].y,
+                             state.fd[params->next * (params->S + 1)].y, modulus);
 		  mpres_add (u, u, v, modulus);
 		  mpres_get_z (F[i++], u, modulus);
 		}
@@ -747,8 +747,8 @@ pp1_rootsG (listz_t G, unsigned long dF, pp1_roots_state_t *state,
             {
               mpres_mul (u, state->fd[params->next * (params->S + 1)].x, x[0],
                          modulus);
-              mpres_mul_ui (v, state->fd[params->next * (params->S + 1)].y,
-                            2, modulus);
+              mpres_add (v, state->fd[params->next * (params->S + 1)].y,
+                         state->fd[params->next * (params->S + 1)].y, modulus);
               mpres_add (u, u, v, modulus);
               mpres_get_z (G[i++], u, modulus);
             }
