@@ -61,7 +61,8 @@ if test "x$enable_asm_redc" = "xyes"; then
     pentium4-*-* | pentium3-*-* | i786-*-*) asmpath=pentium4;;
     athlon-*-*) asmpath=athlon;;
     x86_64-*-*)  asmpath=x86_64;; 
-    powerpc-apple-darwin* | powerpc64-*-*)
+    powerpc-apple-darwin*) asmpath=powerpc64;;
+    powerpc64-*-linux*)
 			  ECM_INCLUDE(powerpc64/powerpc-defs.m4)
 			  asmpath=powerpc64;;
     *)
