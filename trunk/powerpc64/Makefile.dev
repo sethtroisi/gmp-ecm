@@ -2,7 +2,7 @@
 
 all: test_mulredc bench
 
-CFLAGS:=-g -O2 -funroll-loops
+CFLAGS:=-m64 -mcpu=970 -O3
 
 ALLMULRED:= mulredc1.o mulredc2.o mulredc3.o mulredc4.o mulredc5.o\
             mulredc6.o mulredc7.o mulredc8.o mulredc9.o mulredc10.o\
