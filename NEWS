@@ -1,3 +1,6 @@
+Changes between ecm-6.2.1 and ecm-6.2.2:
+* New assembly code for 64-bit PowerPC (thanks to Philip McLaughlin)
+
 Changes between ecm-6.2 and ecm-6.2.1:
 * Default B2 for new P-1 and P+1 stage 2 increased
 * Probabilities for finding factors with P-1 are now printed with -v
