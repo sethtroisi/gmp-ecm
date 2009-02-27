@@ -268,7 +268,7 @@ dnl
 
 AC_DEFUN([ECM_INCLUDE],
 [AC_REQUIRE([GMP_INIT])
-echo ["include(\`$1')"] >> $gmp_tmpconfigm4
+echo ["include($1)"] >> $gmp_tmpconfigm4
 ])
 
 
