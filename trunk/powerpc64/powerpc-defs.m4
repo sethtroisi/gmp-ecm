@@ -1,7 +1,7 @@
 divert(-1)
 
 dnl  m4 macros for PowerPC assembler (32 and 64).
-dnl  Copied from GMP 4.1.4
+dnl  Inspired from GMP 4.1.4
 
 dnl  Copyright 2000 Free Software Foundation, Inc.
 dnl
@@ -28,10 +28,21 @@ dnl
 dnl  Registers names, either left as "r0" etc or mapped to plain 0 etc,
 dnl  according to the result of GMP_ASM_POWERPC_REGISTERS.
 
-ifelse(WANT_R_REGISTERS,no,`
-forloop(i,0,31,`deflit(`r'i,i)')
-forloop(i,0,7, `deflit(`cr'i,i)')
-')
-
+define(r0,0)
+define(r1,1)
+define(r3,3)
+define(r4,4)
+define(r5,5)
+define(r6,6)
+define(r7,7)
+define(r8,8)
+define(r9,9)
+define(r10,10)
+define(r11,11)
+define(r12,12)
+define(r13,13)
+define(r14,14)
+define(r15,15)
+define(r16,16)
 
 divert
