@@ -23,24 +23,48 @@
 #include <gmp.h> /* GMP header file */
 #include "ecm.h" /* ecm header file */
 
+/* wrapper for GMP-ECM stage2 for a curve in Weierstrass form
+
+   y^2 = x^2 + A * x + B
+
+   where B is implicitly defined by y^2 - (x^2 + A * x) mod n.
+*/
+int
+ecmfactor2 (mpz_t f, mpz_t n, mpz_t A, mpz_t x, mpz_t y, mpz_t B2)
+{
+  ecm_params q;
+  int res;
+
+  gmp_printf ("Performing one curve with B2=%Zd\n", B2);
+
+  ecm_init (q);
+
+  q->sigma_is_A = -1; /* indicates that we give a curve in Weierstrass form */
+  mpz_set (q->sigma, A);
+  mpz_set (q->x, x);
+  mpz_set (q->go, y);
+  mpz_set (q->B2, B2);
+
+  res = ecm_factor (f, n, 0.0, q);
+
+  ecm_clear (q);
+
+  return res;
+}
+
 int
 main (int argc, char *argv[])
 {
-  mpz_t n, f;
+  mpz_t n, f, A, x, y, B2;
   int res;
-  ecm_params q;
 
   if (argc != 6)
     {
       fprintf (stderr, "Usage: ecmfactor2 <number> <A> <x> <y> <B2>\n");
-      /* example: n=100000000000000000039 A=2098635068150078946
-         x=42553831306919029237 y=70495752344261309320 B2=12408991157
-	 (with B=16991832675985765075) */
+      /* example: n=100000000000000000039 A=97286259809299325273
+         x=53919461457074783540 y=67664780906038509384 B2=10000000 */
       exit (1);
     }
-
-  ecm_init (q);
-  q->sigma_is_A = -1; /* indicates that we give a curve in Weierstrass form */
 
   mpz_init (n);
   /* read number on command line */
@@ -51,27 +75,32 @@ main (int argc, char *argv[])
     }
 
   /* read A */
-  if (mpz_set_str (q->sigma, argv[2], 10))
+  mpz_init (A);
+  if (mpz_set_str (A, argv[2], 10))
     {
       fprintf (stderr, "Invalid A: %s\n", argv[2]);
       exit (1);
     }
 
   /* read x */
-  if (mpz_set_str (q->x, argv[3], 10))
+  mpz_init (x);
+  if (mpz_set_str (x, argv[3], 10))
     {
       fprintf (stderr, "Invalid x: %s\n", argv[3]);
       exit (1);
     }
 
   /* read y */
-  if (mpz_set_str (q->go, argv[4], 10))
+  mpz_init (y);
+  if (mpz_set_str (y, argv[4], 10))
     {
       fprintf (stderr, "Invalid y: %s\n", argv[4]);
       exit (1);
     }
 
-  if (mpz_set_str (q->B2, argv[5], 10))
+  /* read stage 2 bound B2 */
+  mpz_init (B2);
+  if (mpz_set_str (B2, argv[5], 10))
     {
       fprintf (stderr, "Invalid B2: %s\n", argv[5]);
       exit (1);
@@ -79,9 +108,7 @@ main (int argc, char *argv[])
 
   mpz_init (f); /* for potential factor */
 
-  gmp_printf ("Performing one curve with B2=%Zd\n", q->B2);
-
-  res = ecm_factor (f, n, 0.0, q);
+  res = ecmfactor2 (f, n, A, x, y, B2);
 
   if (res > 0)
     {
@@ -96,8 +123,10 @@ main (int argc, char *argv[])
 
   mpz_clear (f);
   mpz_clear (n);
-
-  ecm_clear (q);
+  mpz_clear (A);
+  mpz_clear (x);
+  mpz_clear (y);
+  mpz_clear (B2);
 
   return 0;
 }
