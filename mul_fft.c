@@ -69,7 +69,7 @@ MA 02110-1301, USA. */
 #include <alloca.h>
 #endif
 #include "gmp.h"
-#include "ecm-params.h"
+#include "mul_fft-params.h"
 
 /* All functions that are not declared static are renamed to avoid 
    conflicts with GMP's functions. Should we include ecm-impl.h instead? */
