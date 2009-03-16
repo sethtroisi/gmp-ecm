@@ -66,27 +66,17 @@ Unroll:
 	subq    $2, %rdx
 	negq    %rcx	
 	shrq    $4, %rdx
-	andq    $15, %rcx
-	movq    %rdx, 16(%rsp)				# Org Cpt of 8(%rsp)
-	movq    %rcx, %rdx
-	shlq    $4, %rdx
-#if 0
-        Error, this file must be pre-processed. Make a .S file, not .s
-#endif
-#ifdef PIC
-        pushq   %rax
-        call    1f
-1:      popq    %rax
-	leaq	(UnrollEntry-1b)(%rax, %rdx, 1), %rdx
-	leaq    0(%rdx, %rcx,4), %rdx
-	popq	%rax
-#else
-        leaq    UnrollEntry (%rdx, %rcx,4), %rdx
-#endif
-	addq	%rcx, %rdx
-	negq    %rcx
-	movq	%rcx, %r10				# (-size)%16
-	movq	%rdx, 24(%rsp)				# Org PC inside	
+	andq    $15, %rcx		# %rcx = count % 16  
+	movq    %rdx, 16(%rsp)		# Org Cpt of 8(%rsp)
+	movq	%rcx, %r10
+	negq	%r10
+	leaq	UnrollEntry(%rip), %rdx # %rdx is address of UnrollEntry
+	addq	%rcx, %rdx		# %rdx = UnrollEntry + (count%16)
+	shl	$2, %rcx		# %rcx = 4 * (count % 16)
+	addq	%rcx, %rdx		# %rdx = UnrollEntry + 5*(count%16)
+	shl	$2, %rcx		# %rcx = 16 * (count % 16)
+	addq	%rcx, %rdx		# %rdx = UnrollEntry + 21*(count%16)
+	movq	%rdx, 24(%rsp)		# Org PC inside	
 
 UnrollLoop:	
                 movq    %r11, %rbp                  # Read invm
