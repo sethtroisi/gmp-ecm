@@ -26,7 +26,7 @@
 #include "ecm-impl.h"
 
 #ifdef NATIVE_REDC
-  #include "asmredc.h"
+  #include "mulredc.h"
 #endif
 
 FILE *ECM_STDOUT, *ECM_STDERR; /* define them here since needed in tune.c */
