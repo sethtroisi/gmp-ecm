@@ -4,8 +4,7 @@ MULREDC = mulredc1.asm mulredc2.asm mulredc3.asm mulredc4.asm mulredc5.asm \
           mulredc15.asm mulredc16.asm mulredc17.asm mulredc18.asm \
           mulredc19.asm mulredc20.asm
 
-EXTRA_DIST = Makefile.dev README autogen.py generate_all mulredc.h redc.asm \
-             $(MULREDC)
+EXTRA_DIST = Makefile.dev README autogen.py generate_all mulredc.h
 
 noinst_LTLIBRARIES = libmulredc.la
 
