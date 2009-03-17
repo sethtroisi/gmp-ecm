@@ -74,7 +74,7 @@ GSYM_PREFIX`'mulredc11:
 
 	xorl	%ecx, %ecx		# set %CY to 0
 	lea	(%rsp), %rbp		# store addr of tmp array in TP
-	movq	%rcx, %r12			# Set %I to 0
+	movl	%ecx, %r12d		# Set %I to 0
 
 	mulq	%r14			# rdx:rax = y[0] * x[i]
 	addq	$1, %r12
@@ -104,7 +104,7 @@ GSYM_PREFIX`'mulredc11:
 # %rcx = carry into rsi (is <= 2)
 # We have %CY:%T1 <= 2 * 2^64 - 2
 
-	movq	%rcx, %rsi	# T1 = CY <= 1
+	movl	%ecx, %esi	# T1 = CY <= 1
 
 	# Here, T1:T0 <= 2*2^64 - 2
 	mulq	%r14		# y[j] * x[i]
@@ -135,7 +135,7 @@ GSYM_PREFIX`'mulredc11:
 # %rcx = carry into rbx (is <= 2)
 # We have %CY:%T1 <= 2 * 2^64 - 2
 
-	movq	%rcx, %rbx	# T1 = CY <= 1
+	movl	%ecx, %ebx	# T1 = CY <= 1
 
 	# Here, T1:T0 <= 2*2^64 - 2
 	mulq	%r14		# y[j] * x[i]
@@ -166,7 +166,7 @@ GSYM_PREFIX`'mulredc11:
 # %rcx = carry into rsi (is <= 2)
 # We have %CY:%T1 <= 2 * 2^64 - 2
 
-	movq	%rcx, %rsi	# T1 = CY <= 1
+	movl	%ecx, %esi	# T1 = CY <= 1
 
 	# Here, T1:T0 <= 2*2^64 - 2
 	mulq	%r14		# y[j] * x[i]
@@ -197,7 +197,7 @@ GSYM_PREFIX`'mulredc11:
 # %rcx = carry into rbx (is <= 2)
 # We have %CY:%T1 <= 2 * 2^64 - 2
 
-	movq	%rcx, %rbx	# T1 = CY <= 1
+	movl	%ecx, %ebx	# T1 = CY <= 1
 
 	# Here, T1:T0 <= 2*2^64 - 2
 	mulq	%r14		# y[j] * x[i]
@@ -228,7 +228,7 @@ GSYM_PREFIX`'mulredc11:
 # %rcx = carry into rsi (is <= 2)
 # We have %CY:%T1 <= 2 * 2^64 - 2
 
-	movq	%rcx, %rsi	# T1 = CY <= 1
+	movl	%ecx, %esi	# T1 = CY <= 1
 
 	# Here, T1:T0 <= 2*2^64 - 2
 	mulq	%r14		# y[j] * x[i]
@@ -259,7 +259,7 @@ GSYM_PREFIX`'mulredc11:
 # %rcx = carry into rbx (is <= 2)
 # We have %CY:%T1 <= 2 * 2^64 - 2
 
-	movq	%rcx, %rbx	# T1 = CY <= 1
+	movl	%ecx, %ebx	# T1 = CY <= 1
 
 	# Here, T1:T0 <= 2*2^64 - 2
 	mulq	%r14		# y[j] * x[i]
@@ -290,7 +290,7 @@ GSYM_PREFIX`'mulredc11:
 # %rcx = carry into rsi (is <= 2)
 # We have %CY:%T1 <= 2 * 2^64 - 2
 
-	movq	%rcx, %rsi	# T1 = CY <= 1
+	movl	%ecx, %esi	# T1 = CY <= 1
 
 	# Here, T1:T0 <= 2*2^64 - 2
 	mulq	%r14		# y[j] * x[i]
@@ -321,7 +321,7 @@ GSYM_PREFIX`'mulredc11:
 # %rcx = carry into rbx (is <= 2)
 # We have %CY:%T1 <= 2 * 2^64 - 2
 
-	movq	%rcx, %rbx	# T1 = CY <= 1
+	movl	%ecx, %ebx	# T1 = CY <= 1
 
 	# Here, T1:T0 <= 2*2^64 - 2
 	mulq	%r14		# y[j] * x[i]
@@ -352,7 +352,7 @@ GSYM_PREFIX`'mulredc11:
 # %rcx = carry into rsi (is <= 2)
 # We have %CY:%T1 <= 2 * 2^64 - 2
 
-	movq	%rcx, %rsi	# T1 = CY <= 1
+	movl	%ecx, %esi	# T1 = CY <= 1
 
 	# Here, T1:T0 <= 2*2^64 - 2
 	mulq	%r14		# y[j] * x[i]
@@ -378,7 +378,7 @@ GSYM_PREFIX`'mulredc11:
 
 # Pass for j = 10. Don't fetch new data from y[j+1].
 
-	movq	%rcx, %rbx	# T1 = CY <= 1
+	movl	%ecx, %ebx	# T1 = CY <= 1
 	
 	mulq	%r14		# y[j] * x[i]
 	addq	%rax, %rsi	# Add low word to T0
@@ -438,7 +438,7 @@ GSYM_PREFIX`'mulredc11:
 # %rbp = tmp, %rbx = value to store in tmp[j], %rsi value to store in 
 # tmp[j+1], %rcx = carry into rsi, carry flag: also carry into rsi
 
-	movq	%rcx, %rsi	# T1 = CY
+	movl	%ecx, %esi	# T1 = CY
 	adcq	16(%rbp), %rsi	# T1 += tmp[j+1]
 	setc	%cl		# %CY <= 1
 
@@ -463,7 +463,7 @@ GSYM_PREFIX`'mulredc11:
 # %rbp = tmp, %rsi = value to store in tmp[j], %rbx value to store in 
 # tmp[j+1], %rcx = carry into rbx, carry flag: also carry into rbx
 
-	movq	%rcx, %rbx	# T1 = CY
+	movl	%ecx, %ebx	# T1 = CY
 	adcq	24(%rbp), %rbx	# T1 += tmp[j+1]
 	setc	%cl		# %CY <= 1
 
@@ -488,7 +488,7 @@ GSYM_PREFIX`'mulredc11:
 # %rbp = tmp, %rbx = value to store in tmp[j], %rsi value to store in 
 # tmp[j+1], %rcx = carry into rsi, carry flag: also carry into rsi
 
-	movq	%rcx, %rsi	# T1 = CY
+	movl	%ecx, %esi	# T1 = CY
 	adcq	32(%rbp), %rsi	# T1 += tmp[j+1]
 	setc	%cl		# %CY <= 1
 
@@ -513,7 +513,7 @@ GSYM_PREFIX`'mulredc11:
 # %rbp = tmp, %rsi = value to store in tmp[j], %rbx value to store in 
 # tmp[j+1], %rcx = carry into rbx, carry flag: also carry into rbx
 
-	movq	%rcx, %rbx	# T1 = CY
+	movl	%ecx, %ebx	# T1 = CY
 	adcq	40(%rbp), %rbx	# T1 += tmp[j+1]
 	setc	%cl		# %CY <= 1
 
@@ -538,7 +538,7 @@ GSYM_PREFIX`'mulredc11:
 # %rbp = tmp, %rbx = value to store in tmp[j], %rsi value to store in 
 # tmp[j+1], %rcx = carry into rsi, carry flag: also carry into rsi
 
-	movq	%rcx, %rsi	# T1 = CY
+	movl	%ecx, %esi	# T1 = CY
 	adcq	48(%rbp), %rsi	# T1 += tmp[j+1]
 	setc	%cl		# %CY <= 1
 
@@ -563,7 +563,7 @@ GSYM_PREFIX`'mulredc11:
 # %rbp = tmp, %rsi = value to store in tmp[j], %rbx value to store in 
 # tmp[j+1], %rcx = carry into rbx, carry flag: also carry into rbx
 
-	movq	%rcx, %rbx	# T1 = CY
+	movl	%ecx, %ebx	# T1 = CY
 	adcq	56(%rbp), %rbx	# T1 += tmp[j+1]
 	setc	%cl		# %CY <= 1
 
@@ -588,7 +588,7 @@ GSYM_PREFIX`'mulredc11:
 # %rbp = tmp, %rbx = value to store in tmp[j], %rsi value to store in 
 # tmp[j+1], %rcx = carry into rsi, carry flag: also carry into rsi
 
-	movq	%rcx, %rsi	# T1 = CY
+	movl	%ecx, %esi	# T1 = CY
 	adcq	64(%rbp), %rsi	# T1 += tmp[j+1]
 	setc	%cl		# %CY <= 1
 
@@ -613,7 +613,7 @@ GSYM_PREFIX`'mulredc11:
 # %rbp = tmp, %rsi = value to store in tmp[j], %rbx value to store in 
 # tmp[j+1], %rcx = carry into rbx, carry flag: also carry into rbx
 
-	movq	%rcx, %rbx	# T1 = CY
+	movl	%ecx, %ebx	# T1 = CY
 	adcq	72(%rbp), %rbx	# T1 += tmp[j+1]
 	setc	%cl		# %CY <= 1
 
@@ -638,7 +638,7 @@ GSYM_PREFIX`'mulredc11:
 # %rbp = tmp, %rbx = value to store in tmp[j], %rsi value to store in 
 # tmp[j+1], %rcx = carry into rsi, carry flag: also carry into rsi
 
-	movq	%rcx, %rsi	# T1 = CY
+	movl	%ecx, %esi	# T1 = CY
 	adcq	80(%rbp), %rsi	# T1 += tmp[j+1]
 	setc	%cl		# %CY <= 1
 
@@ -659,7 +659,7 @@ GSYM_PREFIX`'mulredc11:
 
 # Pass for j = 10. Don't fetch new data from y[j+1].
 
-	movq	%rcx, %rbx	# T1 = CY
+	movl	%ecx, %ebx	# T1 = CY
 	adcq	88(%rbp), %rbx	# T1 += tmp[j+1]
 	
 	mulq	%r14		# y[j] * x[i]
@@ -702,7 +702,7 @@ GSYM_PREFIX`'mulredc11:
 	movq	80(%rbp), %rax
 	movq	%rax, 80(%rdi)
 
-	movq	%rcx, %rax	# use carry as return value
+	movl	%ecx, %eax	# use carry as return value
 	addq	$96, %rsp
 	popq	%r14
 	popq	%r13
