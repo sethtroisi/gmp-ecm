@@ -8,8 +8,8 @@ divert(-1)
 
 define(`forloop', `pushdef(`$1', `$2')_forloop(`$1', `$2', `$3', `$4')popdef(`$1')')
 define(`_forloop',
-       `$4`'ifelse($1, `$3', ,
-                         `define(`$1', incr($1))_forloop(`$1', `$2', `$3', `$4')')')
+       `ifelse(eval($1 <= `$3'), 1, 
+            `$4'`define(`$1', incr($1))_forloop(`$1', `$2', `$3', `$4')')')
 divert
 
 `include(`config.m4')'
@@ -51,7 +51,9 @@ dnl Athlon64 and Opteron decoders read aligned 16 byte packets.
 # XI = x[i], T0 = tmp[j], T1 = tmp[j+1], CY = carry
 
 define(`T0', `rsi')dnl
+define(`T0l', `esi')dnl
 define(`T1', `rbx')dnl
+define(`T1l', `ebx')dnl
 define(`CY', `rcx')dnl
 define(`CYl', `ecx')dnl
 define(`CYb', `cl')dnl
@@ -62,6 +64,7 @@ define(`MP', `r10')dnl		# register that points to the m array
 define(`XP', `r13')dnl		# register that points to the x arraz
 define(`TP', `rbp')dnl		# register that points to t + i
 define(`I', `r12')dnl		# register that holds loop counter i
+define(`Il', `r12d')dnl		# register that holds loop counter i
 define(`INVM', `r8')dnl		# register that holds invm. Same as passed in
 define(`ZP', `rdi')dnl		# register that holds z. Same as passed in
 
@@ -103,7 +106,7 @@ GSYM_PREFIX``''mulredc`'LENGTH:
 
 	xorl	%CYl, %CYl		# set %CY to 0
 	lea	LOCALTMP, %TP		# store addr of tmp array in TP
-	movq	%CY, %I			# Set %I to 0
+	movl	%CYl, %Il		# Set %I to 0
 
 	mulq	%XI			# rdx:rax = y[0] * x[i]
 	addq	$1, %I
@@ -132,9 +135,13 @@ assert1:
 ',`')
 dnl Cycle ring buffer. Only mappings of T0 and T1 to regs change, no MOVs!
 define(`TT', defn(`T0'))dnl
+define(`TTl', defn(`T0l'))dnl
 define(`T0', defn(`T1'))dnl
+define(`T0l', defn(`T1l'))dnl
 define(`T1', defn(`TT'))dnl
+define(`T1l', defn(`TTl'))dnl
 undefine(`TT')dnl
+undefine(`TTl')dnl
 `#' Now `T0' = T0, `T1' = T1
 
 forloop(`UNROLL', 1, eval(LENGTH - 2), `dnl
@@ -149,7 +156,7 @@ define(`JM8', `eval(J - 8)')dnl
 `#' %CY = carry into T1 (is <= 2)
 # We have %CY:%T1 <= 2 * 2^64 - 2
 
-	movq	%CY, %T1	# T1 = CY <= 1
+	movl	%CYl, %T1l	# T1 = CY <= 1
 
 	# Here, T1:T0 <= 2*2^64 - 2
 	mulq	%XI		# y[j] * x[i]
@@ -176,9 +183,13 @@ assert2:
 
 dnl Cycle ring buffer. Only mappings of T0 and T1 to regs change, no MOVs!
 define(`TT', defn(`T0'))dnl
+define(`TTl', defn(`T0l'))dnl
 define(`T0', defn(`T1'))dnl
+define(`T0l', defn(`T1l'))dnl
 define(`T1', defn(`TT'))dnl
+define(`T1l', defn(`TTl'))dnl
 undefine(`TT')dnl
+undefine(`TTl')dnl
 `#' Now `T0' = T0, `T1' = T1
 
 ')dnl # end forloop
@@ -188,7 +199,7 @@ define(`J', `eval(8*LENGTH - 8)')dnl
 define(`J8', `eval(J + 8)')dnl
 define(`JM8', `eval(J - 8)')dnl
 
-	movq	%CY, %T1	# T1 = CY <= 1
+	movl	%CYl, %T1l	# T1 = CY <= 1
 	
 	mulq	%XI		# y[j] * x[i]
 	addq	%rax, %T0	# Add low word to T0
@@ -248,9 +259,13 @@ assert1:
 ',`')
 dnl Cycle ring buffer. Only mappings of T0 and T1 to regs change, no MOVs!
 define(`TT', defn(`T0'))dnl
+define(`TTl', defn(`T0l'))dnl
 define(`T0', defn(`T1'))dnl
+define(`T0l', defn(`T1l'))dnl
 define(`T1', defn(`TT'))dnl
+define(`T1l', defn(`TTl'))dnl
 undefine(`TT')dnl
+undefine(`TTl')dnl
 `#' Now `T0' = T0, `T1' = T1
 
 forloop(`UNROLL', 1, eval(LENGTH - 2), `dnl
@@ -264,7 +279,7 @@ define(`JM8', `eval(J - 8)')dnl
 `#' %TP = tmp, %T0 = value to store in tmp[j], %T1 value to store in 
 `#' tmp[j+1], %CY = carry into T1, carry flag: also carry into T1
 
-	movq	%CY, %T1	# T1 = CY
+	movl	%CYl, %T1l	# T1 = CY
 	adcq	J8`'(%TP), %T1	# T1 += tmp[j+1]
 	setc	%CYb		# %CY <= 1
 
@@ -282,9 +297,13 @@ define(`JM8', `eval(J - 8)')dnl
 
 dnl Cycle ring buffer. Only mappings of T0 and T1 to regs change, no MOVs!
 define(`TT', defn(`T0'))dnl
+define(`TTl', defn(`T0l'))dnl
 define(`T0', defn(`T1'))dnl
+define(`T0l', defn(`T1l'))dnl
 define(`T1', defn(`TT'))dnl
+define(`T1l', defn(`TTl'))dnl
 undefine(`TT')dnl
+undefine(`TTl')dnl
 `#' Now `T0' = T0, `T1' = T1
 
 ')dnl # end forloop
@@ -294,7 +313,7 @@ define(`J', `eval(8*LENGTH - 8)')dnl
 define(`J8', `eval(J + 8)')dnl
 define(`JM8', `eval(J - 8)')dnl
 
-	movq	%CY, %T1	# T1 = CY
+	movl	%CYl, %T1l	# T1 = CY
 	adcq	J8`'(%TP), %T1	# T1 += tmp[j+1]
 	
 	mulq	%XI		# y[j] * x[i]
@@ -333,7 +352,7 @@ define(`J', `eval(LENGTH * 8 - 8)')dnl
 	movq	%rax, J`'(%ZP)
 ')dnl
 
-	movq	%CY, %rax	# use carry as return value
+	movl	%CYl, %eax	# use carry as return value
 	addq	$LOCALSPACE, %rsp
 	popq	%r14
 	popq	%r13

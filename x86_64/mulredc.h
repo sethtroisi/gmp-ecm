@@ -53,5 +53,3 @@ extern mp_limb_t mulredc1_19(mp_limb_t *, const mp_limb_t, const mp_limb_t *, co
 extern mp_limb_t mulredc1_20(mp_limb_t *, const mp_limb_t, const mp_limb_t *, const mp_limb_t *, mp_limb_t);
 
 #endif
-#include <gmp.h>
-

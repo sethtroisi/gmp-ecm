@@ -18,6 +18,8 @@ noinst_HEADERS = mulredc.h
 libmulredc_la_SOURCES = $(MULREDC) $(MULREDC1) redc.asm
 
 # There has to be a way of making this automatically
+mulredc2.asm: mulredc.m4
+	$(M4) -DLENGTH=2 $< > $@
 mulredc3.asm: mulredc.m4
 	$(M4) -DLENGTH=3 $< > $@
 mulredc4.asm: mulredc.m4
