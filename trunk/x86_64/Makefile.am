@@ -7,24 +7,14 @@ MULREDC1 = mulredc1_2.asm mulredc1_3.asm mulredc1_4.asm mulredc1_5.asm \
            mulredc1_11.asm mulredc1_12.asm mulredc1_13.asm mulredc1_14.asm \
            mulredc1_15.asm mulredc1_16.asm mulredc1_17.asm mulredc1_18.asm \
            mulredc1_19.asm mulredc1_20.asm
-EXTRA_DIST = Makefile.dev autogen.py generate_all mulredc.m4 mulredc1.m4
+EXTRA_DIST = autogen.py generate_all mulredc.m4 mulredc1.m4
 
-noinst_LIBRARIES = libmulredc.a libmulredc1.a
+noinst_LTLIBRARIES = libmulredc.la
 
-# This library definition also causes the mulredc[n].asm files and redc.asm
-# to go in the distribution - no need for having them in EXTRA_DIST
-libmulredc_a_SOURCES = $(MULREDC) redc.asm
-
-# mulredc1 isn't used in GMP-ECM so far, so we don't distribute the asm sources,
-# only the m4 script
-nodist_libmulredc1_a_SOURCES = $(MULREDC1)
-
-noinst_PROGRAMS = bench test_mulredc
-LDADD = libmulredc.a libmulredc1.a -lgmp
-
-# These appear as targets only in hard-coded rules below, so
-# automake does not clean them by default
-CLEANFILES = $(MULREDC1)
+# This library definition also causes the mulredc[n].asm, mulredc1_[n].asm, 
+# and redc.asm files to go in the distribution - no need for having 
+# them in EXTRA_DIST
+libmulredc_la_SOURCES = $(MULREDC) $(MULREDC1) redc.asm
 
 # There has to be a way of making this automatically
 mulredc3.asm: mulredc.m4
