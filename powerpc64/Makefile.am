@@ -8,6 +8,7 @@ EXTRA_DIST = Makefile.dev README mulredc_1_2.m4 mulredc.m4 generate_all \
              powerpc-defs.m4
 
 noinst_LTLIBRARIES = libmulredc.la
+noinst_HEADERS = mulredc.h
 
 # This library definition also causes the mulredc[n].asm and redc.asm files 
 # to go in the distribution - no need for having them in EXTRA_DIST

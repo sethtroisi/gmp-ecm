@@ -8,7 +8,7 @@ lib_LTLIBRARIES = libecm.la
 # and set up variables to include the mulredc library from that subdir
 if ENABLE_ASM_REDC
   SUBDIRS = $(ASMPATH)
-  MULREDCINCPATH = -I$(ASMPATH)
+  MULREDCINCPATH = -I$(srcdir)/$(ASMPATH)
   MULREDCLIBPATH = -L$(ASMPATH)
   MULREDCLIBRARY = -lmulredc
 

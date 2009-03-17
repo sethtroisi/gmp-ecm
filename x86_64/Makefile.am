@@ -7,9 +7,10 @@ MULREDC1 = mulredc1_2.asm mulredc1_3.asm mulredc1_4.asm mulredc1_5.asm \
            mulredc1_11.asm mulredc1_12.asm mulredc1_13.asm mulredc1_14.asm \
            mulredc1_15.asm mulredc1_16.asm mulredc1_17.asm mulredc1_18.asm \
            mulredc1_19.asm mulredc1_20.asm
-EXTRA_DIST = autogen.py generate_all mulredc.m4 mulredc1.m4 mulredc.h
+EXTRA_DIST = autogen.py generate_all mulredc.m4 mulredc1.m4
 
 noinst_LTLIBRARIES = libmulredc.la
+noinst_HEADERS = mulredc.h
 
 # This library definition also causes the mulredc[n].asm, mulredc1_[n].asm, 
 # and redc.asm files to go in the distribution - no need for having 
