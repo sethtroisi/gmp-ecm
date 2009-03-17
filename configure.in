@@ -44,7 +44,7 @@ AS_HELP_STRING([--enable-asm-redc], [use an asm redc if available [[default=yes]
 
 if test "x$enable_asm_redc" = "xyes"; then
   case $host in
-    k[7-8]*-*-* | athlon*-*-* | pentiumpro-*-* | pentium2-*-* | pentium3-*-* | pentium4-*-* | viac3*-*-* | x86_64-*-* | i686-apple-darwin* | powerpc-apple-darwin* | powerpc64-*-*)
+    i686-*-* | k[7-8]*-*-* | athlon*-*-* | pentiumpro-*-* | pentium2-*-* | pentium3-*-* | pentium4-*-* | viac3*-*-* | x86_64-*-* | i686-apple-darwin* | powerpc-apple-darwin* | powerpc64-*-*)
           AC_DEFINE(NATIVE_REDC,1,[Define to 1 to use asm redc])
                  test -n "$CCAS" || CCAS="$CC -c"
 		 AC_SUBST(CCAS)
@@ -69,10 +69,8 @@ if test "x$enable_asm_redc" = "xyes"; then
       # Since athlon code is pure pentiumpro, we take it as default.
       asmpath=athlon;;
   esac
-  AC_CONFIG_LINKS(redc.asm:$asmpath/redc.asm)
-  for i in 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20; do
-    AC_CONFIG_LINKS(mulredc$i.asm:$asmpath/mulredc$i.asm)
-  done
+  ASMPATH="$asmpath"
+  AC_MSG_RESULT(Using MULREDC code from directory $asmpath)
   case $host in
     pentium3-*-*)
       echo "WARNING: Your processor is recognized as Pentium3."
@@ -81,7 +79,6 @@ if test "x$enable_asm_redc" = "xyes"; then
       echo "         Pentium M. If you have compilation problems,"
       echo "         consider using --disable-asm-redc." ;;
     *)
-      echo "Prepare links to asm subdir..." ;;
   esac
 fi
 AM_CONDITIONAL(ENABLE_ASM_REDC, test "x$enable_asm_redc" = "xyes")
@@ -301,4 +298,5 @@ AC_SUBST(INCLUDES)
 AC_SUBST(LDADD)
 AC_SUBST(XSLDIR)
 AC_SUBST(ECM_FASTOBJ)
+AC_SUBST(ASMPATH)
 AC_OUTPUT
