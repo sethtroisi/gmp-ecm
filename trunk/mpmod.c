@@ -422,6 +422,83 @@ mulredc (mp_limb_t *z, const mp_limb_t *x, const mp_limb_t *y,
   }
   return cy;
 }
+
+#ifdef HAVE_NATIVE_MULREDC1_N
+static mp_limb_t
+mulredc_1 (mp_limb_t *z, const mp_limb_t x, const mp_limb_t *y,
+          const mp_limb_t *m, mp_size_t N, const mp_limb_t invm)
+{
+  mp_limb_t cy;
+
+  switch (N) {
+   case 1:
+    cy = mulredc1(z, x, y[0], m[0], invm);
+    break;
+   case 2:
+    cy = mulredc1_2(z, x, y, m, invm);
+    break;
+   case 3:
+    cy = mulredc1_3(z, x, y, m, invm);
+    break;
+   case 4:
+    cy = mulredc1_4(z, x, y, m, invm);
+    break;
+   case 5: 
+    cy = mulredc1_5(z, x, y, m, invm);
+    break;
+   case 6: 
+    cy = mulredc1_6(z, x, y, m, invm);
+    break;
+   case 7: 
+    cy = mulredc1_7(z, x, y, m, invm);
+    break;
+   case 8:
+    cy = mulredc1_8(z, x, y, m, invm);
+    break;
+   case 9:
+    cy = mulredc1_9(z, x, y, m, invm);
+    break;
+   case 10:
+    cy = mulredc1_10(z, x, y, m, invm);
+    break;
+   case 11:
+    cy = mulredc1_11(z, x, y, m, invm);
+    break;
+   case 12:
+    cy = mulredc1_12(z, x, y, m, invm);
+    break;
+   case 13:
+    cy = mulredc1_13(z, x, y, m, invm);
+    break;
+   case 14:
+    cy = mulredc1_14(z, x, y, m, invm);
+    break;
+   case 15:
+    cy = mulredc1_15(z, x, y, m, invm);
+    break;
+   case 16:
+    cy = mulredc1_16(z, x, y, m, invm);
+    break;
+   case 17:
+    cy = mulredc1_17(z, x, y, m, invm);
+    break;
+   case 18:
+    cy = mulredc1_18(z, x, y, m, invm);
+    break;
+   case 19:
+    cy = mulredc1_19(z, x, y, m, invm);
+    break;
+   case 20:
+    cy = mulredc1_20(z, x, y, m, invm);
+    break;
+   default:
+    {
+      abort();
+    }
+  }
+  return cy;
+}
+#endif /* ifdef HAVE_NATIVE_MULREDC1_N */
 #endif
 
 
@@ -484,6 +561,44 @@ ecm_mulredc_basecase (mpres_t R, const mpres_t S1, const mpres_t S2,
 
 #endif
 }
+
+static void 
+ecm_mulredc_1_basecase (mpres_t R, const mpres_t S1, const unsigned long S2, 
+                        mpmod_t modulus)
+{
+#ifdef HAVE_NATIVE_MULREDC1_N
+  mp_ptr rp;
+  mp_ptr s1p;
+  mp_srcptr np;
+  mp_limb_t cy;
+  mp_size_t j, nn = modulus->bits / __GMP_BITS_PER_MP_LIMB;
+
+  ASSERT(ALLOC(R) >= nn);
+  ASSERT(ALLOC(S1) >= nn);
+  rp = PTR(R);
+  s1p = PTR(S1);
+  np = PTR(modulus->orig_modulus);
+  for (j = ABSIZ(S1); j < nn; j++) 
+    s1p[j] = 0;
+
+  cy = mulredc_1(rp, (mp_limb_t) S2, s1p, np, nn, modulus->Nprim);
+
+  /* the result of Montgomery's REDC is less than 2^Nbits + N,
+     thus at most one correction is enough */
+  if (cy != 0)
+    {
+      mp_limb_t t;
+      t = mpn_sub_n (rp, rp, np, nn); /* a borrow should always occur here */
+      ASSERT (t == 1);
+    }
+  MPN_NORMALIZE (rp, nn);
+  SIZ(R) = (SIZ(S1)) < 0 ? (int) -nn : (int) nn;
+#else
+  mpz_mul_ui (modulus->temp1, S1, S2);
+  ecm_redc_basecase(R, modulus->temp1, modulus);
+#endif
+}
+
 
 /* If the user asked for a particular representation, always use it.
    If repr = ECM_MOD_DEFAULT, use the thresholds.
@@ -1102,6 +1217,38 @@ mpres_mul_ui (mpres_t R, const mpres_t S, const unsigned long n,
 }
 
 
+/* Multiplies S by n and possibly divides by some constant. 
+   Whether or not it divides depends on the modulus representation and
+   the modulus size. */
+void 
+mpres_muldivbysomething_si (mpres_t R, const mpres_t S, const long n, 
+			    mpmod_t modulus)
+{
+  ASSERT_NORMALIZED (S);
+  if (modulus->repr == ECM_MOD_MODMULN && 
+      modulus->bits / __GMP_BITS_PER_MP_LIMB <= 20)
+    {
+      MPZ_REALLOC (R, modulus->bits / __GMP_BITS_PER_MP_LIMB);
+      if (n < 0)
+	{
+	  ecm_mulredc_1_basecase (R, S, -n, modulus);
+	  mpres_neg (R, R, modulus);
+	}
+      else
+	{
+	  ecm_mulredc_1_basecase (R, S, n, modulus);
+	}
+    }
+  else
+    {
+      mpz_mul_si (modulus->temp1, S, n);
+      /* This is the same for all methods: just reduce with original modulus */
+      mpz_mod (R, modulus->temp1, modulus->orig_modulus);
+    }
+  ASSERT_NORMALIZED (R);
+}
+
+
 /* This function multiplies an integer in mpres_t form with an integer in
    mpz_t form, and stores the output in mpz_t form. The advantage is that
    one REDC suffices to reduce the product and convert it to non-Montgomery
@@ -1316,6 +1463,27 @@ mpres_sub_ui (mpres_t R, const mpres_t S, const unsigned long n,
   ASSERT_NORMALIZED (R);
 }
 
+void
+mpres_ui_sub (mpres_t R, const unsigned long n ,const mpres_t S, 
+              mpmod_t modulus)
+{
+  ASSERT_NORMALIZED (S);
+  if (modulus->repr == ECM_MOD_MPZ || modulus->repr == ECM_MOD_BASE2)
+    {
+      mpz_ui_sub (R, n, S);
+      if (mpz_sgn (R) < 0)
+        mpz_add (R, R, modulus->orig_modulus); /* Assumes modulus >= n */
+    }
+  else if (modulus->repr == ECM_MOD_MODMULN || modulus->repr == ECM_MOD_REDC)
+    {
+      mpz_set_ui (modulus->temp1, n);
+      mpz_mul_2exp (modulus->temp1, modulus->temp1, modulus->bits);
+      mpz_sub (modulus->temp1, modulus->temp1, S);
+      mpz_mod (R, modulus->temp1, modulus->orig_modulus);
+    }
+  ASSERT_NORMALIZED (R);
+}
+
 /* R <- S1 - S2 mod modulus */
 void 
 mpres_sub (mpres_t R, const mpres_t S1, const mpres_t S2, mpmod_t modulus)
@@ -1399,6 +1567,23 @@ mpres_set_ui (mpres_t R, const unsigned long n, mpmod_t modulus)
   else if (modulus->repr == ECM_MOD_MODMULN || modulus->repr == ECM_MOD_REDC)
     {
       mpz_set_ui (modulus->temp1, n);
+      mpz_mul_2exp (modulus->temp1, modulus->temp1, modulus->bits);
+      mpz_mod (R, modulus->temp1, modulus->orig_modulus);
+    }
+  ASSERT_NORMALIZED (R);
+}
+
+void 
+mpres_set_si (mpres_t R, const long n, mpmod_t modulus)
+{
+  if (modulus->repr == ECM_MOD_MPZ || modulus->repr == ECM_MOD_BASE2)
+    {
+      mpz_set_si (R, n);
+      mpz_mod (R, R, modulus->orig_modulus);
+    }
+  else if (modulus->repr == ECM_MOD_MODMULN || modulus->repr == ECM_MOD_REDC)
+    {
+      mpz_set_si (modulus->temp1, n);
       mpz_mul_2exp (modulus->temp1, modulus->temp1, modulus->bits);
       mpz_mod (R, modulus->temp1, modulus->orig_modulus);
     }
