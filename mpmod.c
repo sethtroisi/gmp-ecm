@@ -346,6 +346,7 @@ ecm_redc_basecase (mpz_ptr r, mpz_ptr c, mpmod_t modulus)
 }
 
 #ifdef NATIVE_REDC
+/* FIXME: add here a description of what this function does */
 static mp_limb_t
 mulredc (mp_limb_t *z, const mp_limb_t *x, const mp_limb_t *y,
          const mp_limb_t *m, mp_size_t N, const mp_limb_t invm, mp_limb_t *tmp)
@@ -424,6 +425,7 @@ mulredc (mp_limb_t *z, const mp_limb_t *x, const mp_limb_t *y,
 }
 
 #ifdef HAVE_NATIVE_MULREDC1_N
+/* FIXME: add here a description of what this function does */
 static mp_limb_t
 mulredc_1 (mp_limb_t *z, const mp_limb_t x, const mp_limb_t *y,
           const mp_limb_t *m, mp_size_t N, const mp_limb_t invm)
@@ -504,6 +506,7 @@ mulredc_1 (mp_limb_t *z, const mp_limb_t x, const mp_limb_t *y,
 
 /* 
  * Same as previous, but combined with mul (if in asm)
+ * FIXME: is "previous" still correct?
  */
 static void 
 ecm_mulredc_basecase (mpres_t R, const mpres_t S1, const mpres_t S2, 
@@ -562,6 +565,7 @@ ecm_mulredc_basecase (mpres_t R, const mpres_t S1, const mpres_t S2,
 #endif
 }
 
+/* FIXME: add here a description of what this function does */
 static void 
 ecm_mulredc_1_basecase (mpres_t R, const mpres_t S1, const unsigned long S2, 
                         mpmod_t modulus)
@@ -584,7 +588,7 @@ ecm_mulredc_1_basecase (mpres_t R, const mpres_t S1, const unsigned long S2,
   cy = mulredc_1(rp, (mp_limb_t) S2, s1p, np, nn, modulus->Nprim);
 
   /* the result of Montgomery's REDC is less than 2^Nbits + N,
-     thus at most one correction is enough */
+     thus one correction (at most) is enough */
   if (cy != 0)
     {
       mp_limb_t t;
@@ -1227,6 +1231,8 @@ mpres_muldivbysomething_si (mpres_t R, const mpres_t S, const long n,
   ASSERT_NORMALIZED (S);
   if (modulus->repr == ECM_MOD_MODMULN && 
       modulus->bits / __GMP_BITS_PER_MP_LIMB <= 20)
+    /* FIXME: is the 20 here the same constant as in mulredc1_20?
+       If so, it should be changed into a macro. */
     {
       MPZ_REALLOC (R, modulus->bits / __GMP_BITS_PER_MP_LIMB);
       if (n < 0)
@@ -1463,6 +1469,7 @@ mpres_sub_ui (mpres_t R, const mpres_t S, const unsigned long n,
   ASSERT_NORMALIZED (R);
 }
 
+/* FIXME: please document */
 void
 mpres_ui_sub (mpres_t R, const unsigned long n ,const mpres_t S, 
               mpmod_t modulus)
@@ -1573,6 +1580,7 @@ mpres_set_ui (mpres_t R, const unsigned long n, mpmod_t modulus)
   ASSERT_NORMALIZED (R);
 }
 
+/* FIXME: please document */
 void 
 mpres_set_si (mpres_t R, const long n, mpmod_t modulus)
 {
