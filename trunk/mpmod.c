@@ -504,9 +504,9 @@ mulredc_1 (mp_limb_t *z, const mp_limb_t x, const mp_limb_t *y,
 #endif
 
 
-/* 
- * Same as previous, but combined with mul (if in asm)
- * FIXME: is "previous" still correct?
+/* R <- S1 * S2 mod modulus
+   i.e. R <- S1*S2/r^nn mod n, where n has nn limbs, and r=2^GMP_NUMB_BITS.
+   Same as ecm_redc_basecase previous, but combined with mul (if in asm)
  */
 static void 
 ecm_mulredc_basecase (mpres_t R, const mpres_t S1, const mpres_t S2, 
@@ -1448,6 +1448,10 @@ mpres_add (mpres_t R, const mpres_t S1, const mpres_t S2, mpmod_t modulus)
   ASSERT_NORMALIZED (R);
 }
 
+/* R <- S - n mod modulus
+   If repr == ECM_MOD_MODMULN or ECM_MOD_REDC, we need to convert n to
+   Montgomery representation before substracting
+*/
 void
 mpres_sub_ui (mpres_t R, const mpres_t S, const unsigned long n, 
               mpmod_t modulus)
@@ -1469,7 +1473,10 @@ mpres_sub_ui (mpres_t R, const mpres_t S, const unsigned long n,
   ASSERT_NORMALIZED (R);
 }
 
-/* FIXME: please document */
+/* R <- n - S mod modulus
+   If repr == ECM_MOD_MODMULN or ECM_MOD_REDC, we need to convert n to
+   Montgomery representation before substracting
+*/
 void
 mpres_ui_sub (mpres_t R, const unsigned long n ,const mpres_t S, 
               mpmod_t modulus)
@@ -1563,6 +1570,10 @@ mpres_get_z (mpz_t R, const mpres_t S, mpmod_t modulus)
 #endif
 }
 
+/* R <- n mod modulus
+   If repr==ECM_MOD_MPZ or ECM_MOD_BASE2, we convert n to
+   Montgomery representation
+ */
 void 
 mpres_set_ui (mpres_t R, const unsigned long n, mpmod_t modulus)
 {
@@ -1580,7 +1591,7 @@ mpres_set_ui (mpres_t R, const unsigned long n, mpmod_t modulus)
   ASSERT_NORMALIZED (R);
 }
 
-/* FIXME: please document */
+/* same as previous but with signed long */
 void 
 mpres_set_si (mpres_t R, const long n, mpmod_t modulus)
 {
