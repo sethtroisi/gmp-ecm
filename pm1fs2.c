@@ -235,7 +235,7 @@ pm1fs2_memory_use (const unsigned long lmax, const mpz_t modulus,
       n += lmax / 2 * sizeof (mpz_t);
       /* Memory use due to temp space allocation in TMulKS appears to 
 	 approximately triple the estimated memory use. This is hard to
-	 estimate precisely, so let's go with the fudge factor of 3 here */
+	 estimate precisely, so let's got with the fudge factor of 3 here */
       n *= 3;
       outputf (OUTPUT_DEVVERBOSE, "pm1fs2_memory_use: Estimated memory use "
 	       "with lmax = %lu is %lu bytes\n", lmax, n);
@@ -337,6 +337,44 @@ pp1fs2_maxlen (const size_t memory, const mpz_t modulus, const int use_ntt,
 }
 
 
+/* Assumes that S == 0 at recursion entry! */
+static void
+maxS (mpz_t S, unsigned long P)
+{
+  unsigned long p, pk;
+  unsigned int k;
+
+  if (P == 1UL)
+    return;
+
+  p = find_factor (P);
+  k = 1; pk = p; P /= p;
+  while (P % p == 0)
+    {
+      k++;
+      pk *= p;
+      P /= p; /* P*pk is invariant */
+    }
+
+  if (p % 4UL == 1UL)
+    {
+      maxS (S, P);
+      mpz_mul_ui (S, S, pk);
+      mpz_add_ui (S, S, P * ((pk + p) / 2UL - 2UL));
+      return;
+    }
+  if (p % 4UL == 3UL)
+    {
+      maxS (S, P);
+      mpz_mul_ui (S, S, pk);
+      mpz_add_ui (S, S, P * ((pk - 1UL) / 2UL));
+      return;
+    }
+
+  abort();
+}
+
+
 /* Test if for given P, nr, B2min and B2 we can choose an m_1 so that the 
    stage 2 interval [B2min, B2] is covered. The effective B2min and B2
    are stored in effB2min and effB2 */
@@ -352,7 +390,7 @@ test_P (const mpz_t B2min, const mpz_t B2, mpz_t m_1, const unsigned long P,
      Choose m_1 accordingly */
   
   mpz_init (m);
-  sets_max (m, P);
+  maxS (m, P);
   mpz_mul_2exp (m, m, 1UL); /* m = 2*max(S_1 + S_2) */
 
   mpz_sub (m_1, B2min, m);
@@ -2018,7 +2056,7 @@ make_S_1_S_2 (sets_long_t **S_1, set_long_t **S_2,
     mpz_init (t1);
     mpz_init (t2);
     sets_sumset_minmax (t1, *S_1, 1);
-    sets_max (t2, params->P);
+    maxS (t2, params->P);
     ASSERT_ALWAYS (mpz_cmp (t1, t2) == 0);
     mpz_clear (t1);
     mpz_clear (t2);

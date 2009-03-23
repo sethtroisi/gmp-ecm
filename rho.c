@@ -1,6 +1,6 @@
 /* Dickman's rho function (to compute probability of success of ecm).
 
-  Copyright 2004, 2005, 2007, 2008 Alexander Kruppa.
+  Copyright 2004, 2005 Alexander Kruppa.
 
   This file is part of the ECM Library.
 
@@ -44,10 +44,10 @@ static double h = 0.;
 static int tablemax = 0;
 
 #ifdef TESTDRIVE
-unsigned long
-gcd (unsigned long a, unsigned long b)
+static unsigned int
+gcd (unsigned int a, unsigned int b)
 {
-  unsigned long t;
+  unsigned int t;
 
   while (b != 0)
     {
@@ -59,7 +59,7 @@ gcd (unsigned long a, unsigned long b)
   return a;
 }
 
-unsigned long
+static unsigned long
 eulerphi (unsigned long n)
 {
   unsigned long phi = 1, p;
@@ -445,96 +445,22 @@ pm1prob (double B1, double B2, double N, double nr, int S, const mpz_t go)
   return prob (B1, B2, N, nr, S, exp(smoothness));
 }
 
-
-/* Compute probability for primes p == r (mod m) */
-
-double
-pm1prob_rm (double B1, double B2, double N, double nr, int S, unsigned long r,
-            unsigned long m)
-{
-  unsigned long cof;
-  double smoothness = 1.2269688;
-  unsigned long p;
-  
-  cof = m;
-  
-  for (p = 2UL; p < 100UL; p++)
-    if (cof % p == 0UL) /* For each prime in m */
-      {
-        unsigned long cof_r, k, i;
-        /* Divisibility by i is determined by r and m. We need to
-           adjust the smoothness parameter. In P-1, we had estimated the 
-           expected value for the exponent of p as p/(p-1)^2. Undo that. */
-        smoothness -= (double)p / ((p-1)*(p-1)) * log ((double) p);
-        /* The expected value for the exponent of this prime is k s.t.
-           p^k || r, plus 1/(p-1) if p^k || m as well */
-        cof_r = gcd (r - 1UL, m);
-        for (k = 0UL; cof_r % p == 0UL; k++)
-          cof_r /= p;
-        smoothness += k * log ((double) p);
-
-        cof_r = m;
-        for (i = 0UL; cof_r % p == 0UL; i++)
-          cof_r /= p;
-
-        if (i == k)
-          smoothness += (1./(p - 1.) * log ((double) p));
-        
-        while (cof % p == 0UL)
-          cof /= p;
-        printf ("pm1prob_rm: p = %lu, k = %lu, i = %lu, new smoothness = %f\n", 
-                p, i, k, smoothness); 
-      }
-
-  return prob (B1, B2, N, nr, S, exp(smoothness));
-}
-
 #ifdef TESTDRIVE
 int
 main (int argc, char **argv)
 {
-  double B1, B2, N, nr, r, m;
+  double B1, B2, N, nr;
   int S;
   if (argc < 6)
-    {
-      printf ("Usage: rho <B1> <B2> <N> <nr> <S> [<r> <m>]\n");
-      return 1;
-    }
+    return 1;
   
   B1 = atof (argv[1]);
   B2 = atof (argv[2]);
   N = atof (argv[3]);
   nr = atof (argv[4]);
   S = atoi (argv[5]);
-  r = 0; m = 1;
-  if (argc > 7)
-    {
-      r = atoi (argv[6]);
-      m = atoi (argv[7]);
-    }
-
   rhoinit (256, 10);
-  if (N < 50.)
-    {
-      double sum;
-      sum = ecmprob(B1, B2, exp2 (N), nr, S);
-      sum += 4. * ecmprob(B1, B2, 3./2. * exp2 (N), nr, S);
-      sum += ecmprob(B1, B2, 2. * exp2 (N), nr, S);
-      sum *= 1./6.;
-      printf ("ECM: %.16f\n", sum);
-
-      sum = pm1prob_rm (B1, B2, exp2 (N), nr, S, r, m);
-      sum += 4. * pm1prob_rm (B1, B2, 3./2. * exp2 (N), nr, S, r, m);
-      sum += pm1prob_rm (B1, B2, 2. * exp2 (N), nr, S, r, m);
-      sum *= 1./6.;
-      printf ("P-1: %.16f\n", sum);
-    }
-  else
-    {
-      printf ("ECM: %.16f\n", ecmprob(B1, B2, N, nr, S));
-      printf ("P-1: %.16f\n", pm1prob_rm (B1, B2, N, nr, S, r, m));
-    }
-  rhoinit (0, 0);
+  printf ("%.16f\n", ecmprob(B1, B2, N, nr, S));
   return 0;
 }
 #endif

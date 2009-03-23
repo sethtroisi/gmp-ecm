@@ -8,8 +8,8 @@ divert(-1)
 
 define(`forloop', `pushdef(`$1', `$2')_forloop(`$1', `$2', `$3', `$4')popdef(`$1')')
 define(`_forloop',
-       `ifelse(eval($1 <= `$3'), 1, 
-            `$4'`define(`$1', incr($1))_forloop(`$1', `$2', `$3', `$4')')')
+       `$4`'ifelse($1, `$3', ,
+                         `define(`$1', incr($1))_forloop(`$1', `$2', `$3', `$4')')')
 divert
 
 `include(`config.m4')'

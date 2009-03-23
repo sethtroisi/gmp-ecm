@@ -258,20 +258,6 @@ echo ["define(<LABEL_SUFFIX>, <\$][1$gmp_cv_asm_label_suffix>)"] >> $gmp_tmpconf
 ])
 
 
-dnl  ECM_INCLUDE(FILE)
-dnl  ---------------------
-dnl  Add an include_mpn() to config.m4.  FILE should be a path
-dnl  relative to the main source directory, for example
-dnl
-dnl      ECM_INCLUDE(`powerpc64/defs.m4')
-dnl
-
-AC_DEFUN([ECM_INCLUDE],
-[AC_REQUIRE([GMP_INIT])
-echo ["include($1)"] >> $gmp_tmpconfigm4
-])
-
-
 dnl  GMP_ASM_UNDERSCORE
 dnl  ------------------
 dnl  Determine whether global symbols need to be prefixed with an underscore.

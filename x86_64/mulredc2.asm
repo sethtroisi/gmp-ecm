@@ -1,190 +1,104 @@
 # mp_limb_t mulredc2(mp_limb_t * z, const mp_limb_t * x, const mp_limb_t * y,
 #                 const mp_limb_t *m, mp_limb_t inv_m);
 #
-# z: %rdi, x: %rsi, y: %rdx, m: %rcx, inv_m: %r8
-
-
 
 include(`config.m4')
-
 	TEXT
-.align 64 # Opteron L1 code cache line is 64 bytes long
 	GLOBL GSYM_PREFIX`'mulredc2
-	TYPE(GSYM_PREFIX`'mulredc`'2,`function')
-
-/* Implements multiplication and REDC for two input numbers of 2 words */
-
-# tmp[0 ... len+1] = 0
-# for (i = 0; i < len; i++)
-#   {
-#     t = x[i] * y[0]; /* Keep and reuse this product */
-#     u = ((t + tmp[0]) * invm) % 2^64
-#     tmp[0] += (t + m[0]*u) / 2^64; /* put carry in cy. */
-#     for (j = 1; j < len; j++)
-#       {
-#         tmp[j-1 ... j] += x[i]*y[j] + m[j]*u + (cy << BITS_PER_WORD);
-#         /* put new carry in cy */
-#       }
-#     tmp[len] = cy;
-#   }
-# z[0 ... len-1] = tmp[0 ... len-1]
-# return (tmp[len])
-
-
-# Values that are referenced only once in the loop over j go into r8 .. r14,
-# In the inner loop (over j), tmp, x[i], y, m, and u are constant.
-# tmp[j], tmp[j+1], tmp[j+2] are updated frequently. These 8 values
-# stay in registers and are referenced as
-# TP = tmp, YP = y, MP = m, 
-# XI = x[i], T0 = tmp[j], T1 = tmp[j+1], CY = carry
-
-
-# Register vars: T0 = rsi, T1 = rbx, CY = rcx, XI = r14, U = r11
-#                YP = r9, MP = r10, TP = rbp
-
-# local variables: tmp[0 ... LENGTH] array, having LENGTH+1 8-byte words
-# The tmp array needs LENGTH+1 entries, the last one is so that we can 
-# store CY at tmp[j+1] for j == len-1
-
-
+	TYPE(GSYM_PREFIX`'mulredc2,`function')
 
 GSYM_PREFIX`'mulredc2:
+	movq	%rdx, %r11
+	movq	%rcx, %r10
 	pushq	%rbx
 	pushq	%rbp
-	pushq	%r12
-	pushq	%r13
-	pushq	%r14
-	subq	$24, %rsp	# subtract size of local vars
-	movq	%rsi, %r13		# store x in XP
-	movq	%rdx, %r9		# store y in YP
-	movq	%rcx, %r10		# store m in MP
+	subq	$40, %rsp
+#      %r8  : inv_m
+#     %r10 : m
+#     %r11 : y
+#     %rsi : x
+#     %rdi : z
+#     %rsp : tmp
+# Free registers
+#     %rax, %rbx, %rcx, %rdx, %r9
+
+### set tmp[0..2k+1[ to 0
+	movq	$0, (%rsp)
+	movq	$0, 8(%rsp)
+	movq	$0, 16(%rsp)
+	movq	$0, 24(%rsp)
+	movq	$0, 32(%rsp)
+###########################################
+	movq	$2, %rbp
+
+	.align 64
+Loop:
+	## compute u and store in %r9
+	movq	(%rsi), %rax
+	mulq	(%r11)
+	addq	(%rsp), %rax
+	mulq	%r8
+	movq    %rax, %r9
+### addmul1: src[0] is (%r10)
+###          dst[0] is (%rsp)
+###          mult is %r9
+###          k is 2
+###          kills %rax, %rbx, %rcx, %rdx
+###   dst[0,k[ += mult*src[0,k[  plus carry put in rcx or rbx
+	movq	(%r10), %rax
+	mulq	%r9
+	movq	%rax, %rbx
+	movq	%rdx, %rcx
+
+	movq	8(%r10), %rax
+	mulq	%r9
+	addq	%rbx, (%rsp)
+	adcq	%rax, %rcx
+	movq	%rdx, %rbx
+	adcq	$0, %rbx
+	addq	%rcx, 8(%rsp)
+	adcq	$0, %rbx
+### carry limb is in %rbx
+	addq	%rbx, 16(%rsp)
+	adcq	$0, 24(%rsp)
+	movq	(%rsi), %r9
+### addmul1: src[0] is (%r11)
+###          dst[0] is (%rsp)
+###          mult is %r9
+###          k is 2
+###          kills %rax, %rbx, %rcx, %rdx
+###   dst[0,k[ += mult*src[0,k[  plus carry put in rcx or rbx
+	movq	(%r11), %rax
+	mulq	%r9
+	movq	%rax, %rbx
+	movq	%rdx, %rcx
+
+	movq	8(%r11), %rax
+	mulq	%r9
+	addq	%rbx, (%rsp)
+	adcq	%rax, %rcx
+	movq	%rdx, %rbx
+	adcq	$0, %rbx
+	addq	%rcx, 8(%rsp)
+	adcq	$0, %rbx
+### carry limb is in %rbx
+   addq    %rbx, 16(%rsp)
+   adcq    $0, 24(%rsp)
 
 
-#########################################################################
-# i = 0 pass
-#########################################################################
-
-# register values at loop entry: %TP = tmp, %I = i, %YP = y, %MP = m
-# %CY < 255 (i.e. only low byte may be != 0)
-
-# Pass for j = 0. We need to fetch x[i] from memory and compute the new u
-
-	movq	(%r13), %r14		# XI = x[0]
-	movq	(%r9), %rax		# rax = y[0]
-
-	xorl	%ecx, %ecx		# set %CY to 0
-	lea	(%rsp), %rbp		# store addr of tmp array in TP
-	movl	%ecx, %r12d		# Set %I to 0
-
-	mulq	%r14			# rdx:rax = y[0] * x[i]
-	addq	$1, %r12
-
-	movq 	%rax, %rsi		# Move low word of product to T0
-	movq	%rdx, %rbx		# Move high word of product to T1
-
-	imulq	%r8, %rax		# %rax = ((x[i]*y[0]+tmp[0])*invm)%2^64
-	movq	%rax, %r11		# this is the new u value
-
-	mulq	(%r10)			# multipy u*m[0]
-	addq	%rax, %rsi		# Now %T0 = 0, need not be stored
-	movq	8(%r9), %rax		# Fetch y[1]
-	adcq	%rdx, %rbx		# 
-	setc	%cl
-	# CY:T1:T0 <= 2*(2^64-1)^2 <= 2^2*128 - 4*2^64 + 2, hence
-	# CY:T1 <= 2*2^64 - 4
-
-
-# Now T0 = rbx, T1 = rsi
-
-
-# Pass for j = 1. Don't fetch new data from y[j+1].
-
-	movl	%ecx, %esi	# T1 = CY <= 1
-	
-	mulq	%r14		# y[j] * x[i]
-	addq	%rax, %rbx	# Add low word to T0
-	movq	8(%r10), %rax	# Fetch m[j] into %rax
-	adcq	%rdx, %rsi 	# Add high word with carry to T1
-	mulq    %r11		# m[j]*u
-	addq	%rax, %rbx	# Add low word to T0
-	movq	%rbx, 0(%rbp)	# Store T0 in tmp[j-1]
-	adcq	%rdx, %rsi	# Add high word with carry to T1
-	movq	%rsi, 8(%rbp)	# Store T1 in tmp[j]
-	setc	%cl		# %CY <= 1
-	movq	%rcx, 16(%rbp)	# Store CY in tmp[j+1]
-
-#########################################################################
-# i > 0 passes
-#########################################################################
-
-.align 32,,16
-1:
-
-# register values at loop entry: %TP = tmp, %I = i, %YP = y, %MP = m
-# %CY < 255 (i.e. only low byte may be > 0)
-
-# Pass for j = 0. We need to fetch x[i], tmp[i] and tmp[i+1] from memory
-# and compute the new u
-
-	movq	(%r13,%r12,8), %r14		# XI = x[i]
-	movq	(%r9), %rax		# rax = y[0]
-#init the register tmp ring buffer
-        movq	(%rbp), %rbx		# Load tmp[0] into T0
-	movq	8(%rbp), %rsi		# Load tmp[1] into T1
-
-	mulq	%r14			# rdx:rax = y[0] * x[i]
-	addq	$1, %r12
-
-	addq	%rbx, %rax		# Add T0 to low word
-	adcq	%rdx, %rsi		# Add high word with carry to T1
-	setc	%cl			# %CY <= 1
-
-	movq 	%rax, %rbx		# Save sum of low words in T0
-	imulq	%r8, %rax		# %rax = ((x[i]*y[0]+tmp[0])*invm)%2^64
-	movq	%rax, %r11		# this is the new u value
-
-	mulq	(%r10)			# multipy u*m[0]
-	addq	%rax, %rbx		# Now %T0 = 0, need not be stored
-	adcq	%rdx, %rsi		# 
-
-	movq	8(%r9), %rax		# Fetch y[1]
-
-
-# Now T0 = rsi, T1 = rbx
-
-
-# Pass for j = 1. Don't fetch new data from y[j+1].
-
-	movl	%ecx, %ebx	# T1 = CY
-	adcq	16(%rbp), %rbx	# T1 += tmp[j+1]
-	
-	mulq	%r14		# y[j] * x[i]
-	addq	%rax, %rsi	# Add low word to T0
-	movq	8(%r10), %rax	# Fetch m[j] into %rax
-	adcq	%rdx, %rbx 	# Add high word with carry to T1
-	setc	%cl	    	# %CY <= 1
-	mulq    %r11		# m[j]*u
-	addq	%rax, %rsi	# Add low word to T0
-	movq	%rsi, 0(%rbp)	# Store T0 in tmp[j-1]
-	adcq	%rdx, %rbx	# Add high word with carry to T1
-	movq	%rbx, 8(%rbp)	# Store T1 in tmp[j]
-	adcb	$0, %cl	# %CY <= 2
-	movq	%rcx, 16(%rbp)	# Store CY in tmp[j+1]
-
-	cmpq	$2, %r12
-	jb	1b
-
-# Copy result from tmp memory to z
-	movq	(%rbp), %rax
-	movq	8(%rbp), %rdx
+	addq	$8, %rsi
+	addq	$8, %rsp
+	decq	%rbp
+	jnz	Loop
+###########################################
+### Copy result in z
+	movq	(%rsp), %rax
 	movq	%rax, (%rdi)
-	movq	%rdx, 8(%rdi)
-
-	movl	%ecx, %eax	# use carry as return value
-	addq	$24, %rsp
-	popq	%r14
-	popq	%r13
-	popq	%r12
+	movq	8(%rsp), %rax
+	movq	%rax, 8(%rdi)
+	movq	16(%rsp), %rax	# carry
+	addq    $24, %rsp
 	popq	%rbp
 	popq	%rbx
 	ret
+

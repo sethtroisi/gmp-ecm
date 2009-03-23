@@ -36,12 +36,8 @@ typedef struct
   int method;     /* factorization method, default is ecm */
   mpz_t x;        /* starting point (if non zero) */
   mpz_t sigma;    /* contains sigma or A (ecm only) */
-  int sigma_is_A; /* if  1, 'sigma' contains A (Montgomery form),
-		     if  0, 'sigma' contains sigma (Montgomery form),
-		     if -1, 'sigma' contains A, and the input curve is in
-		     Weierstrass form y^2 = x^3 + A*x + B, with y in 'go'. */
-  mpz_t go;       /* initial group order to preload (if NULL: do nothing),
-		     or y for Weierstrass form if sigma_is_A = -1. */
+  int sigma_is_A; /* if non-zero, 'sigma' contains A */
+  mpz_t go;       /* initial group order to preload (if NULL: do nothing) */
   double B1done;  /* step 1 was already done up to B1done */
   mpz_t B2min;    /* lower bound for stage 2 (default is B1) */
   mpz_t B2;       /* step 2 bound (chosen automatically if < 0.0) */
@@ -53,7 +49,6 @@ typedef struct
 		     ECM_MOD_GWNUM=Woltman's gwnum routines (tbd),
 		     > 16 : special base-2 representation        
 		     MOD_DEFAULT: automatic choice */
-  int nobase2step2; /* disable special base-2 code in ecm stage 2 only */
   int verbose;    /* verbosity level: 0 no output, 1 normal output,   
 		     2 diagnostic output */
   FILE *os;       /* output stream (for verbose messages) */
@@ -84,7 +79,7 @@ void ecm_clear (ecm_params);
 
 /* the following interface is not supported */
 int ecm (mpz_t, mpz_t, mpz_t, mpz_t, mpz_t, double *, double, mpz_t, mpz_t,
-         double, unsigned long, const int, int, int, int, int, int, FILE*, FILE*,
+         double, unsigned long, const int, int, int, int, int, FILE*, FILE*, 
          char*, char *, double, double, gmp_randstate_t, int (*)(void));
 int pp1 (mpz_t, mpz_t, mpz_t, mpz_t, double *, double, mpz_t, mpz_t, 
          double, unsigned long, const int, int, int, int, FILE*, FILE*, char*,

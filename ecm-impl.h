@@ -367,7 +367,7 @@ void duplicate (mpres_t, mpres_t, mpres_t, mpres_t, mpmod_t, mpres_t, mpres_t,
 void ecm_mul (mpres_t, mpres_t, mpz_t, mpmod_t, mpres_t);
 #define print_B1_B2_poly __ECM(print_B1_B2_poly)
 void print_B1_B2_poly (int, int, double, double, mpz_t, mpz_t, mpz_t, int S,  
-                       mpz_t, int, mpz_t);
+                       mpz_t, int);
       
 
 /* ecm2.c */
@@ -566,8 +566,6 @@ void mpres_add_ui (mpres_t, const mpres_t, const unsigned long, mpmod_t);
 void mpres_add (mpres_t, const mpres_t, const mpres_t, mpmod_t);
 #define mpres_sub_ui __ECM(mpres_sub_ui)
 void mpres_sub_ui (mpres_t, const mpres_t, const unsigned long, mpmod_t);
-#define mpres_ui_sub __ECM(mpres_ui_sub)
-void mpres_ui_sub (mpres_t, const unsigned long, const mpres_t, mpmod_t);
 #define mpres_sub __ECM(mpres_sub)
 void mpres_sub (mpres_t, const mpres_t, const mpres_t, mpmod_t);
 #define mpres_set_z __ECM(mpres_set_z)
@@ -576,8 +574,6 @@ void mpres_set_z (mpres_t, const mpz_t, mpmod_t);
 void mpres_get_z (mpz_t, const mpres_t, mpmod_t);
 #define mpres_set_ui __ECM(mpres_set_ui)
 void mpres_set_ui (mpres_t, const unsigned long, mpmod_t);
-#define mpres_set_si __ECM(mpres_set_si)
-void mpres_set_si (mpres_t, const long, mpmod_t);
 #define mpres_init __ECM(mpres_init)
 void mpres_init (mpres_t, const mpmod_t);
 #define mpres_clear __ECM(mpres_clear)
@@ -586,8 +582,6 @@ void mpres_clear (mpres_t, const mpmod_t);
 void mpres_realloc (mpres_t, const mpmod_t);
 #define mpres_mul_ui __ECM(mpres_mul_ui)
 void mpres_mul_ui (mpres_t, const mpres_t, const unsigned long, mpmod_t);
-#define mpres_muldivbysomething_si __ECM(mpres_muldivbysomething_si)
-void mpres_muldivbysomething_si (mpres_t, const mpres_t, const long, mpmod_t);
 #define mpres_neg __ECM(mpres_neg)
 void mpres_neg (mpres_t, const mpres_t, mpmod_t);
 #define mpres_invert __ECM(mpres_invert)
@@ -725,8 +719,6 @@ typedef struct {
 void          quicksort_long (long *, unsigned long);
 #define sets_print __ECM(sets_print)
 void          sets_print (const int, sets_long_t *);
-#define sets_max __ECM(sets_max)
-void          sets_max (mpz_t, const unsigned long);
 #define sets_sumset __ECM(sets_sumset)
 void          sets_sumset (set_long_t *, const sets_long_t *);
 #define sets_sumset_minmax __ECM(sets_sumset_minmax)

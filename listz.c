@@ -299,7 +299,6 @@ list_zero (listz_t p, unsigned int n)
     mpz_set_ui (p[i], 0);
 }
 
-#ifndef KS_MULTIPLY
 /* puts in a[0]..a[K-1] the K low terms of the product 
    of b[0..K-1] and c[0..K-1].
    Assumes K >= 1, and a[0..2K-2] exist.
@@ -342,7 +341,6 @@ list_mul_low (listz_t a, listz_t b, listz_t c, unsigned int K, listz_t t,
         }
     }
 }
-#endif
 
 /* puts in a[K-1]..a[2K-2] the K high terms of the product 
    of b[0..K-1] and c[0..K-1].

@@ -15,7 +15,7 @@ Alexander Kruppa <firstname.lastname@mytum.de> (substitute appropriately)
 	joined Paul Zimmermann at release 5, contributed the Toom-Cook
 	multiplication code, the special code for Fermat numbers, and
 	many other nice things.
-Dave Newman <dragonmeat at gmail dot com>
+Dave Newman <david dot newman at jesus dot ox dot ac dot uk>
 	contributed the Kronecker-Schönhage multiplication code,
 	and the NTT code.
 Jason S. Papadopoulos <jasonp at boo dot net> contributed optimizations 
