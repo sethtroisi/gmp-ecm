@@ -250,6 +250,7 @@ int main(int argc, char * argv[]) {
 
   mpz_t N;
   mpz_init_set_str (N,number,10); // number in base 10
+  gmp_printf ("Input number is %Zd\n",N);
   mpmod_init(n,N,ECM_MOD_DEFAULT);
   mpz_clear (N); 
 
@@ -407,6 +408,11 @@ int main(int argc, char * argv[]) {
   mpz_init(k);
   prodTreeCalculk(k,B1); // k=lcm(2,3,..,B1)
   getprime_clear ();
+
+
+
+
+
 
 
   if ( ECM_IS_DEFAULT_B2(B2) ) {    
