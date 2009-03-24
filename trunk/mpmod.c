@@ -248,12 +248,15 @@ ecm_redc_n (mp_ptr rp, mp_srcptr x0p, mp_size_t xn,
   tp = up + nn;
   mpn_mul_n (tp, up, orig, n);
   /* add {x, 2n} and {tp, 2n}. We know that {tp, n} + {xp, n} will give
-     either 0, or a carry out. If xp[n-1] <> 0, then there is a carry. */
+     either 0, or a carry out. If xp[n-1] <> 0 or tp[n-1] <> 0, 
+     then there is a carry. We use a binary OR, which sets the zero flag
+     if and only if both operands are zero. */
 #ifdef HAVE___GMPN_ADD_NC
-  cy = __gmpn_add_nc (rp, tp + n, xp + n, n, (mp_limb_t) ((xp[n - 1]) ? 1 : 0));
+  cy = __gmpn_add_nc (rp, tp + n, xp + n, n, 
+                      (mp_limb_t) ((xp[n - 1] | tp[n - 1]) ? 1 : 0));
 #else
   cy = mpn_add_n (rp, tp + n, xp + n, n);
-  cy += mpn_add_1 (rp, rp, n, (mp_limb_t) ((xp[n - 1]) ? 1 : 0));
+  cy += mpn_add_1 (rp, rp, n, (mp_limb_t) ((xp[n - 1] | tp[n - 1]) ? 1 : 0));
 #endif
   if (cy || mpn_cmp (rp, orig, n) > 0)
     cy -= mpn_sub_n (rp, rp, orig, n);
