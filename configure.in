@@ -198,13 +198,8 @@ dnl we need to find the libgmp.a file. At the moment, we only look for
 dnl it at the path specified by the user (i.e. --with-gmp) but make no
 dnl attempt to find it in the default system lib directories.
 
-dnl If GMP is linked statically, we add its path/filename to LIBS 
-dnl and, together with mpmod.o, to ECM_FASTOBJ. This will let the make 
-dnl process specify GMP several times on the command line for the linking, 
-dnl to put time critical functions close together in the resulting 
-dnl binary to avoid cache collisions.
-dnl If GMP is linked dynamically, -lgmp is added to LIBS but ECM_FASTOBJ
-dnl remains empty.
+dnl If GMP is linked statically, we add its path/filename to LIBS,
+dnl otherwise -lgmp is added to LIBS.
 
 GMPLDFLAGS=""
 if test -d "$with_gmp_lib"; then
@@ -216,7 +211,6 @@ if test "x$enable_shared" != "xyes"; then
     GMPLIB="$with_gmp_lib/libgmp.a"
 dnl Don't need -L flag since we give full path to libgmp.a
     GMPLDFLAGS=""
-    ECM_FASTOBJ="mpmod.o $GMPLIB"
   fi
 fi
 LIBS="$LIBS $GMPLIB"
@@ -295,6 +289,5 @@ fi
 AC_CONFIG_LINKS(mul_fft-params.h:"$MUL_FFT_PARAMS")
 
 AC_SUBST(XSLDIR)
-AC_SUBST(ECM_FASTOBJ)
 AC_SUBST(ASMPATH)
 AC_OUTPUT

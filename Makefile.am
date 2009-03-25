@@ -43,11 +43,6 @@ LDADD = libecm.la
 ecm_CPPFLAGS = -DOUTSIDE_LIBECM
 ecm_SOURCES = auxi.c b1_ainc.c candi.c eval.c random.c main.c trial.c \
               resume.c getprime.c
-# We add the list of speed critical object files to the ecm linker flags 
-# which isn't very clean, but it seems to be the only way of getting them
-# in front of the full list of input object files. Automake does not allow
-# modifying the ecm_OBJECTS variable directly.
-ecm_LDFLAGS = $(ECM_FASTOBJ)
 
 tune_SOURCES = mpmod.c tune.c mul_lo.c listz.c auxlib.c ks-multiply.c \
                toomcook.c schoen_strass.c polyeval.c median.c ecm_ntt.c \
@@ -70,7 +65,7 @@ if WITH_GWNUM
   libecm_la_SOURCES += Fgw.c
   # Use ecm_DEPENDENCIES += gwdata.ld instead? Is that possible?
   ecm_DEPENDENCIES = $(LDADD) gwdata.ld
-  ecm_LDFLAGS += -Wl,gwdata.ld
+  ecm_LDFLAGS = $(AM_LDFLAGS) -Wl,gwdata.ld
   Fgwtest : Fgw.c gwdata.ld
 	$(CC) $(CFLAGS) $(CPPFLAGS) -g -DTESTDRIVE -Wl,gwdata.ld -o Fgwtest Fgw.c libecm.a $(LIBS)
 endif
