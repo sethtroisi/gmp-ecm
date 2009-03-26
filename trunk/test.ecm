@@ -2,7 +2,7 @@
 
 # test file for ECM
 #
-# Copyright 2002, 2003, 2004, 2005 Paul Zimmermann, Alexander Kruppa, Jim Fougeron.
+# Copyright 2002, 2003, 2004, 2005, 2006, 2008, 2009 Jim Fougeron, Alexander Kruppa, Dave Newman, Paul Zimmermann.
 #
 # This program is free software; you can redistribute it and/or modify it
 # under the terms of the GNU General Public License as published by the
@@ -22,7 +22,7 @@
 ECM="$1"
 
 # Call with "checkcode $? n" to check that return code is n
-
+# (see test.pm1 for the explanation of the different return codes)              
 checkcode () {
   if [ $1 != $2 ]
   then
