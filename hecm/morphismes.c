@@ -38,9 +38,9 @@ void DivMumfordV_clear (DivMumfordV DivV, mpmod_t n ) {
     Thus we can't have the exact v polynomial of P
     Instead we obtain V=v^2
   There is 3 cases
-    if d°u=0 then we have the divisor 0
-    if d°u=1 we only need the polynomial u for the following
-    if d°u=2 we use the function DivMumfordDegree2
+    if degree u=0 then we have the divisor 0
+    if degree u=1 we only need the polynomial u for the following
+    if degree u=2 we use the function DivMumfordDegree2
 */
 int DivMumford (mpz_t f,mpmod_t n,DivMumfordU divU,DivMumfordV divV,
 		ksPoint P,thetaCst th,curveHyperEll cHEll) {
@@ -199,7 +199,7 @@ int DivMumford (mpz_t f,mpmod_t n,DivMumfordU divU,DivMumfordV divV,
 
 
 /*
-  Get the Mumford polynomial in the case of d°u=2.
+  Get the Mumford polynomial in the case of degree u=2.
   We only get V=v^2
 */
 int DivMumfordDegree2 (mpz_t f,mpmod_t n,DivMumfordU divU,DivMumfordV divV,

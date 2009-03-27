@@ -16,7 +16,7 @@ void prodTreeCalculkInter (mpz_t Pr,double B1, int n, int* pstop);
 
 /*
   We have to work in finite algebra over Z/nZ
-  The algebra is k[Y]/pol(Y) where d°pol=DEGREE_ALGEBRA
+  The algebra is k[Y]/pol(Y) where degree pol=DEGREE_ALGEBRA
   A special case is when Pol=Y^2+a
 */
 

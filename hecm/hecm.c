@@ -59,11 +59,11 @@ static void
 usage (void)
 {
   printf ("Perform ECM with hyperelliptic curves of genus 2. The hyperelliptic curves are\n");
-  printf ("(2,2)-decomposable which means that their jacobians is isogenous to the product\n");
+  printf ("(2,2)-decomposable which means that their jacobian is isogenous to the product\n");
   printf ("of two elliptic curves. Therefore one run of HECM with this kind of curves is\n");
   printf ("equivalent to two runs of ECM on the underlying curves.\n");
   printf ("Use Kummer surfaces to speed up the arithmetics in the Jacobians.\n");
-  printf ("The use of small parameters make it quicker than GMP-ECM for number of\n");
+  printf ("The use of small parameters makes it quicker than GMP-ECM for numbers of\n");
   printf ("at least 300 digits.\n");
 
 
@@ -72,14 +72,14 @@ usage (void)
   printf ("-B1          B1 in base 10\n");
   printf ("-B2          B2 in base 10\n");
   printf ("-c           Numbers of tests to do. If unspecified run only once.\n");
-  printf ("             If 0 run untill it find a factor.\n");
+  printf ("             If 0 run until it finds a factor.\n");
   printf ("-v           verbose mode\n");
 
   printf ("-not_low_param Work with normal parameters (not small)\n");
 
 
-  printf ("-spe         We try to generate the curve we this fixed parameters.\n"); 
-  printf ("             One of the following option should have been specified:\n");
+  printf ("-spe         We try to generate the curve with this fixed parameters.\n"); 
+  printf ("             One of the following options should have been specified:\n");
   printf ("              -ab if we want small parameters\n");
   printf ("              -s  if we want normal parametrization\n");
   printf ("             If the generated curve is correct we run HECM with it else we print\n");
@@ -101,7 +101,7 @@ usage (void)
   printf ("             parametrization, we take random nJacobi for each run.\n");
 
   printf ("-s s         fix the parameter s for normal parametrization\n");
-  printf ("-seed        fix the seed. Only usefull with normal parametrization\n");
+  printf ("-seed        fix the seed. Only useful with normal parametrization\n");
 
  
 
