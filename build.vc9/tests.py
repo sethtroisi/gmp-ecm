@@ -8,6 +8,11 @@ from re import match
 from subprocess import Popen, PIPE, STDOUT
 from tempfile import *
 
+test_dir = ".\\x64\\Release-AMD\\"
+# test_dir = ".\\x64\\Release-Intel\\"
+# test_dir = ".\\win32\\Release-AMD\\"
+# test_dir = ".\\win32\\Release-Intel\\"
+
 ecm = [
   ("2050449353925555290706354283", "-sigma 7 -k 1 30 0-1e6", 14),
   ("137703491", "-sigma 6 84 1000", 8),
@@ -153,7 +158,7 @@ def run_exe(exe, args, inp) :
 
 def do_tests(tests) :
     global out
-    exe  = ".\\win32\\Release\\ecm"
+    exe  = test_dir + "ecm.exe"
     for tt in tests :
         rv = run_exe(exe, tt[1], tt[0])
         if type(tt[2]) == int and rv[0] != tt[2] :
