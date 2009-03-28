@@ -1,8 +1,13 @@
 
+from __future__ import print_function
+
 import os
-from subprocess import *
-from tempfile import *
+import sys
 import string
+import platform
+from re import match
+from subprocess import Popen, PIPE, STDOUT
+from tempfile import *
 
 ecm = [
   ("2050449353925555290706354283", "-sigma 7 -k 1 30 0-1e6", 14),
@@ -25,7 +30,7 @@ ecm = [
   ("89101594496537524661600025466303491594098940711325290746374420963129505171895306244425914080753573576861992127359576789001", "-sigma 877655087 -go 325001 157721 1032299", 14),
   ("5394204444759808120647321820789847518754252780933425517607611172590240019087317088600360602042567541009369753816111824690753627535877960715703346991252857", "-sigma 805816989 -go 345551 149827", 6),
   ("3923385745693995079670229419275984584311007321932374190635656246740175165573932140787529348954892963218868359081838772941945556717", "-sigma 876329474 141667 150814537", 14),
-  ("124539923134619429718018353168641490719788526741873602224103589351798060075728544650990190016536810151633233676972068237330360238752628542584228856301923448951", "-sigma 1604840403 -go \"1260317*1179109*661883\" 96097 24289207", 14),
+  ("124539923134619429718018353168641490719788526741873602224103589351798060075728544650990190016536810151633233676972068237330360238752628542584228856301923448951", "-sigma 1604840403 -go 983591971839332299 96097 24289207", 14),
   ("5735013127104523546495917836490637235369", "-power 60 -k 2 -A 3848610099745584498259560038340842096471 -x0 2527419713481530878734189429997880136878 330000 500000000", 8),
   ("17833653493084084667826559287841287911473", "-power 6 -k 2 -A 7423036368129288563912180723909655170075 -x0 9011819881065862648414808987718432766274 389797 16e8", 8),
   ("212252637915375215854013140804296246361", "-power 15 -k 2 -sigma 781683988 1000000", 8),
@@ -138,27 +143,29 @@ test = [
   ("173357946863134423299822098041421951472072119", "-pp1 -x0 5 992599901 1401995848117", 8 ),
 ]
 
-def run_test(exe, args, inp) :
-    p = Popen(exe + ' ' + args, stdin = PIPE, stdout = PIPE, \
-              stderr = STDOUT, creationflags = 0x08000000)
-    res = p.communicate(inp)[0]
-    ret = p.poll()
-    return (ret, res)
+def run_exe(exe, args, inp) :
+  al = {'stdin' : PIPE, 'stdout' : PIPE, 'stderr' : STDOUT }
+  if sys.platform.startswith('win') :
+    al['creationflags'] = 0x08000000
+  p = Popen([exe] + args.split(' '), **al)
+  res = p.communicate(inp.encode())[0].decode()
+  ret = p.poll()
+  return (ret, res)
 
 def do_tests(tests) :
     global out
-    exe  = ".\\x64\\Release\\ecm"
+    exe  = ".\\win32\\Release\\ecm"
     for tt in tests :
-        rv = run_test(exe, tt[1], tt[0])
+        rv = run_exe(exe, tt[1], tt[0])
         if type(tt[2]) == int and rv[0] != tt[2] :
-            print "*** ERROR ***", rv[0], tt[2]
+            print("*** ERROR ***", rv[0], tt[2])
         elif type(tt[2]) == tuple and \
                  rv[0] != tt[2][0] and rv[0] != tt[2][2] :
-            print "*** ERROR ***", rv[0], tt[2]
+            print("*** ERROR ***", rv[0], tt[2])
         if out :
             op = rv[1].rsplit('\r\n')
             for i in op :
-                print i
+                print(i)
 out = True
 do_tests(ecm)
 do_tests(pm1)

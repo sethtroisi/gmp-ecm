@@ -111,6 +111,91 @@ static void bfly_dif(spv_t x0, spv_t x1, spv_t w,
        :"r"(x0), "r"(x1), "r"(w), "0"(i), "g"(len), "g"(p), "g"(d)
        :"%xmm0", "%xmm1", "%xmm2", "%xmm3",
         "%xmm5", "%xmm6", "%xmm7", "cc", "memory");
+#elif defined( _MSC_VER ) && defined( SSE2) 
+    __asm
+    {   push        esi
+        push        edi
+        mov         edi, x0
+        mov         esi, x1
+        mov         edx, w
+        xor         ecx, ecx
+        mov         eax, len
+        movd        xmm6, p
+        pshufd      xmm5, xmm6, 0x44
+        pshufd      xmm6, xmm6, 0
+        movd        xmm7, d
+        pshufd      xmm7, xmm7, 0
+
+    L0: movdqa      xmm0, [edi+ecx*4]
+        movdqa      xmm1, [esi+ecx*4]
+        movdqa      xmm2, xmm1
+        paddd       xmm1, xmm0
+        psubd       xmm0, xmm2
+        psubd       xmm1, xmm6
+
+        pxor        xmm2, xmm2
+        pcmpgtd     xmm2, xmm1
+        pand        xmm2, xmm6
+        paddd       xmm1, xmm2
+        movdqa      [edi+ecx*4], xmm1
+
+        pxor        xmm2, xmm2
+        pcmpgtd     xmm2, xmm0
+        pand        xmm2, xmm6
+        paddd       xmm0, xmm2
+
+        movdqa      xmm2, [edx+ecx*4]
+        add         ecx, 4
+        pshufd      xmm1, xmm0, 0x31
+        pshufd      xmm3, xmm2, 0x31
+        pmuludq     xmm0, xmm2
+        pmuludq     xmm1, xmm3
+
+        movdqa      xmm2, xmm0
+        movdqa      xmm3, xmm1
+        psrlq       xmm2, 2*SP_NUMB_BITS - W_TYPE_SIZE
+        pmuludq     xmm2, xmm7
+        psrlq       xmm3, 2*SP_NUMB_BITS - W_TYPE_SIZE
+        pmuludq     xmm3, xmm7
+
+#if SP_NUMB_BITS < W_TYPE_SIZE - 1
+        psrlq       xmm2, 33
+        pmuludq     xmm2, xmm6
+        psrlq       xmm3, 33
+        pmuludq     xmm3, xmm6
+        psubq       xmm0, xmm2
+        psubq       xmm1, xmm3
+#else
+        pshufd      xmm2, xmm2, 0xf5
+        pmuludq     xmm2, xmm6
+        pshufd      xmm3, xmm3, 0xf5
+        pmuludq     xmm3, xmm6
+        psubq       xmm0, xmm2
+        psubq       xmm1, xmm3
+
+        psubq       xmm0, xmm5
+        psubq       xmm1, xmm5
+        pshufd      xmm2, xmm0, 0xf5
+        pshufd      xmm3, xmm1, 0xf5
+        pand        xmm2, xmm5
+        pand        xmm3, xmm5
+        paddq       xmm0, xmm2
+        paddq       xmm1, xmm3
+#endif
+        pshufd      xmm0, xmm0, 0x8
+        pshufd      xmm1, xmm1, 0x8
+        punpckldq   xmm0, xmm1
+        psubd       xmm0, xmm6
+        pxor        xmm1, xmm1
+        pcmpgtd     xmm1, xmm0
+        pand        xmm1, xmm6
+        paddd       xmm0, xmm1
+        movdqa      [esi+ecx*4-16], xmm0
+        cmp         eax, ecx
+        jne         L0
+        pop         edi
+        pop         esi
+    }
 #else
   for (i = 0; i < len; i++)
     {
@@ -356,6 +441,91 @@ static inline void bfly_dit(spv_t x0, spv_t x1, spv_t w,
        :"r"(x0), "r"(x1), "r"(w), "0"(i), "g"(len), "g"(p), "g"(d)
        :"%xmm0", "%xmm1", "%xmm2", "%xmm3",
         "%xmm5", "%xmm6", "%xmm7", "cc", "memory");
+#elif defined( _MSC_VER ) && defined( SSE2) 
+    __asm
+    {   push        esi
+        push        edi
+        mov         edi, x0
+        mov         esi, x1
+        mov         edx, w
+        xor         ecx, ecx
+        mov         eax, len
+        movd        xmm6, p
+        pshufd      xmm5, xmm6, 0x44
+        pshufd      xmm6, xmm6, 0
+        movd        xmm7, d
+        pshufd      xmm7, xmm7, 0
+
+    L0: movdqa      xmm0, [esi+ecx*4]
+        movdqa      xmm2, [edx+ecx*4]
+        pshufd      xmm1, xmm0, 0x31
+        pshufd      xmm3, xmm2, 0x31
+        pmuludq     xmm0, xmm2
+        pmuludq     xmm1, xmm3
+
+        movdqa      xmm2, xmm0
+        movdqa      xmm3, xmm1
+        psrlq       xmm2, 2*SP_NUMB_BITS - W_TYPE_SIZE
+        pmuludq     xmm2, xmm7
+        psrlq       xmm3, 2*SP_NUMB_BITS - W_TYPE_SIZE
+        pmuludq     xmm3, xmm7
+
+#if SP_NUMB_BITS < W_TYPE_SIZE - 1
+        psrlq       xmm2, 33
+        pmuludq     xmm2, xmm6
+        psrlq       xmm3, 33
+        pmuludq     xmm3, xmm6
+        psubq       xmm0, xmm2
+        psubq       xmm1, xmm3
+#else
+        pshufd      xmm2, xmm2, 0xf5
+        pmuludq     xmm2, xmm6
+        pshufd      xmm3, xmm3, 0xf5
+        pmuludq     xmm3, xmm6
+        psubq       xmm0, xmm2
+        psubq       xmm1, xmm3
+
+        psubq       xmm0, xmm5
+        psubq       xmm1, xmm5
+        pshufd      xmm2, xmm0, 0xf5
+        pshufd      xmm3, xmm1, 0xf5
+        pand        xmm2, xmm5
+        pand        xmm3, xmm5
+        paddq       xmm0, xmm2
+        paddq       xmm1, xmm3
+#endif
+        pshufd      xmm0, xmm0, 0x8
+        pshufd      xmm1, xmm1, 0x8
+        punpckldq   xmm0, xmm1
+        psubd       xmm0, xmm6
+        pxor        xmm1, xmm1
+        pcmpgtd     xmm1, xmm0
+        pand        xmm1, xmm6
+        paddd       xmm1, xmm0
+
+        movdqa      xmm0, [edi+ecx*4]
+        movdqa      xmm2, xmm1
+        paddd       xmm1, xmm0
+        psubd       xmm0, xmm2
+        psubd       xmm1, xmm6
+
+        pxor        xmm2, xmm2
+        pcmpgtd     xmm2, xmm1
+        pand        xmm2, xmm6
+        paddd       xmm1, xmm2
+        movdqa      [edi+ecx*4], xmm1
+
+        pxor        xmm2, xmm2
+        pcmpgtd     xmm2, xmm0
+        pand        xmm2, xmm6
+        paddd       xmm0, xmm2
+        movdqa      [esi+ecx*4], xmm0
+        add        ecx, 4
+        cmp         eax, ecx
+        jne         L0
+        pop         edi
+        pop         esi
+    }
 #else
   for (i = 0; i < len; i++)
     {
