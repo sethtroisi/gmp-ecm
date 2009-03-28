@@ -1,6 +1,6 @@
 /* config.h.in.  Generated from configure.in by autoheader.  */
 
-#define VERSION "6.2.1"
+#define VERSION "6.2.2"
 
 #define PACKAGE_BUGREPORT "ecm-discuss@lists.gforge.inria.fr"
 
@@ -38,7 +38,7 @@
 #define HAVE_GETHOSTNAME 1
 
 /* Define to 1 if you have the `getrusage' function. */
-#undef HAVE_GETRUSAGE
+#define HAVE_GETRUSAGE   1
 
 /* Define to 1 if you have the `gettimeofday' function. */
 #undef HAVE_GETTIMEOFDAY

@@ -223,7 +223,7 @@ mulredc1:
 	ret
 
 %assign i 2
-%rep    19      ; 3..20 inclusive
+%rep    19      ; 2..20 inclusive
     mulredc i
     %assign i i + 1
 %endrep

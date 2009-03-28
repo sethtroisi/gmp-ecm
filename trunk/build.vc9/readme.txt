@@ -39,36 +39,32 @@ are in a common parent directory as follows:
       build.vc9    -- GMP build files
       ...
     GMP-ECM
-      buid.vc9	 -- ECM build files 
+      buid.vc9	   -- ECM build files 
       
 The root directories for GMP and GMP-ECM are assumed to have these names
 irreespective of which version is being used (they used to be followed by 
 version numbers but this meant that the build projects had to be updated
 too frequently). 
 
-The ECM build project includes source files for 32-bit and 64-bit assembler
-code builds.  
+There are three build projects in build.vc9:
 
-The default for 64-bit builds is to use the assembler code provided in the 
-files:
+    ecm     - the ECM application 
+    ecmlib  - the ECM library
+    tune    - a program for tuning 
+    
+and each of these has the following configurations:
 
-    a_x64_mulredc.asm
-    a_x64_redc.asm
+    win32\release-amd
+    win32\release-intel
+    win32\debug-amd     (not tune)
+    win32\debug-intel   (not tune)
+    x64\release-amd
+    x64\release-intel
+    x64\debug-amd       (not tune)
+    x64\debug-intel     (not tune)
 
-For 32-bit builds there are two alternative assembler file sets:
-
-AMD64:
-    a_win32a_mulredc.asm
-    a_win32a_redc.asm
-
-Intel Core2:
-    a_win32p_mulredc.asm
-    a_win32p_redc.asm
-
-the first being the default. If you wish to build with 32-bit core2 
-assembler support, you will need to open the build project in the Visual
-Studio IDE, exclude the 32-bit AMMD64 assembler code files and include 
-those for Intel core2.  
+When a version of ecm and ecmlib are built the library and the application
+are put in the directory matching the configuation that has been built.
 
 If you don't want assembler support you need to change the define:      
 
@@ -78,11 +74,16 @@ in config.h (in the build.vc9 subdirectory) to:
 
 #undef NATIVE_REDC
 
+If tune is compiled and run for a particular configuration it will output a
+file with appropriate parameters for this configuration, after which ecmlib
+and ecm can be built in a tuned form. Running tune takes some time so don't
+expect a quick response if you do compile it.  
+
 Tests
 =====
 
 The file tests.py is a python script that runs the GMP ECM tests. It runs 
-the x64/release version by default but can be edited to test other builds.
+the x64/release-amd version by default but can be edited to test other builds.
 
 GMP Version
 ===========
@@ -94,4 +95,4 @@ assume that the GMP root directory is just GMP alone so GMP-ECM can be
 linked without change to any GMP version provided only that its root
 directory is named (or renamed) to 'GMP'. 
 
-    Brian Gladman, 24th November 2008
+    Brian Gladman, 28th March 2009
