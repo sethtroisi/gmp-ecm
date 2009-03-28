@@ -93,7 +93,7 @@ if test "x$enable_sse2" == "xyes"; then
 elif test "x$enable_sse2" == "x"; then
 dnl Default: if we build for Pentium 4, enable SSE2 code for the NTT
 case $host in
-  pentium4-*-*) 
+  pentium4-*-* | i786-*-*) 
     AC_DEFINE(HAVE_SSE2,1,[Define to 1 to enable SSE2 instructions in NTT code])
     CFLAGS="$CFLAGS -msse2"
     AC_MSG_RESULT(SSE2 in NTT enabled by default for Pentium 4)
