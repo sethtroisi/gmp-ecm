@@ -23,7 +23,7 @@
 	</ToolFiles>
 	<Configurations>
 		<Configuration
-			Name="Debug|Win32"
+			Name="Release-AMD|Win32"
 			OutputDirectory="$(SolutionDir)$(PlatformName)\$(ConfigurationName)"
 			IntermediateDirectory="$(PlatformName)\$(ConfigurationName)"
 			ConfigurationType="4"
@@ -33,7 +33,285 @@
 			>
 			<Tool
 				Name="VCPreBuildEventTool"
-				CommandLine="cd $(SolutionDir)&#x0D;&#x0A;call file_copy ecm-params.h ..\ecm-params.h&#x0D;&#x0A;call file_copy config.h ..\config.h&#x0D;&#x0A;"
+				CommandLine="cd $(SolutionDir)&#x0D;&#x0A;call file_copy ecm-params.win32.amd.h ..\ecm-params.h&#x0D;&#x0A;call file_copy config.h ..\config.h&#x0D;&#x0A;"
+			/>
+			<Tool
+				Name="VCCustomBuildTool"
+			/>
+			<Tool
+				Name="YASM"
+			/>
+			<Tool
+				Name="VCXMLDataGeneratorTool"
+			/>
+			<Tool
+				Name="VCWebServiceProxyGeneratorTool"
+			/>
+			<Tool
+				Name="VCMIDLTool"
+			/>
+			<Tool
+				Name="VCCLCompilerTool"
+				Optimization="3"
+				EnableIntrinsicFunctions="true"
+				AdditionalIncludeDirectories="..\..\;..\..\..\gmp;..\assembler"
+				PreprocessorDefinitions="WIN32;NDEBUG;_LIB;SSE2"
+				RuntimeLibrary="0"
+				UsePrecompiledHeader="0"
+				WarningLevel="3"
+				DebugInformationFormat="3"
+				CompileAs="0"
+			/>
+			<Tool
+				Name="VCManagedResourceCompilerTool"
+			/>
+			<Tool
+				Name="VCResourceCompilerTool"
+			/>
+			<Tool
+				Name="VCPreLinkEventTool"
+			/>
+			<Tool
+				Name="VCLibrarianTool"
+				OutputFile="$(OutDir)\ecm.lib"
+			/>
+			<Tool
+				Name="VCALinkTool"
+			/>
+			<Tool
+				Name="VCXDCMakeTool"
+			/>
+			<Tool
+				Name="VCBscMakeTool"
+			/>
+			<Tool
+				Name="VCFxCopTool"
+			/>
+			<Tool
+				Name="VCPostBuildEventTool"
+			/>
+		</Configuration>
+		<Configuration
+			Name="Release-AMD|x64"
+			OutputDirectory="$(SolutionDir)$(PlatformName)\$(ConfigurationName)"
+			IntermediateDirectory="$(PlatformName)\$(ConfigurationName)"
+			ConfigurationType="4"
+			InheritedPropertySheets="$(VCInstallDir)VCProjectDefaults\UpgradeFromVC71.vsprops"
+			CharacterSet="2"
+			EnableManagedIncrementalBuild="0"
+			>
+			<Tool
+				Name="VCPreBuildEventTool"
+				CommandLine="cd $(SolutionDir)&#x0D;&#x0A;call file_copy ecm-params.x64.amd.h ..\ecm-params.h&#x0D;&#x0A;call file_copy config.h ..\config.h&#x0D;&#x0A;"
+			/>
+			<Tool
+				Name="VCCustomBuildTool"
+			/>
+			<Tool
+				Name="YASM"
+			/>
+			<Tool
+				Name="VCXMLDataGeneratorTool"
+			/>
+			<Tool
+				Name="VCWebServiceProxyGeneratorTool"
+			/>
+			<Tool
+				Name="VCMIDLTool"
+				TargetEnvironment="3"
+			/>
+			<Tool
+				Name="VCCLCompilerTool"
+				Optimization="3"
+				EnableIntrinsicFunctions="true"
+				AdditionalIncludeDirectories="..\..\;..\..\..\gmp;..\assembler"
+				PreprocessorDefinitions="WIN32;NDEBUG;_LIB"
+				RuntimeLibrary="0"
+				UsePrecompiledHeader="0"
+				WarningLevel="3"
+				DebugInformationFormat="3"
+				CompileAs="0"
+			/>
+			<Tool
+				Name="VCManagedResourceCompilerTool"
+			/>
+			<Tool
+				Name="VCResourceCompilerTool"
+			/>
+			<Tool
+				Name="VCPreLinkEventTool"
+			/>
+			<Tool
+				Name="VCLibrarianTool"
+				OutputFile="$(OutDir)\ecm.lib"
+			/>
+			<Tool
+				Name="VCALinkTool"
+			/>
+			<Tool
+				Name="VCXDCMakeTool"
+			/>
+			<Tool
+				Name="VCBscMakeTool"
+			/>
+			<Tool
+				Name="VCFxCopTool"
+			/>
+			<Tool
+				Name="VCPostBuildEventTool"
+			/>
+		</Configuration>
+		<Configuration
+			Name="Release-Intel|Win32"
+			OutputDirectory="$(SolutionDir)$(PlatformName)\$(ConfigurationName)"
+			IntermediateDirectory="$(PlatformName)\$(ConfigurationName)"
+			ConfigurationType="4"
+			InheritedPropertySheets="$(VCInstallDir)VCProjectDefaults\UpgradeFromVC71.vsprops"
+			CharacterSet="2"
+			EnableManagedIncrementalBuild="0"
+			>
+			<Tool
+				Name="VCPreBuildEventTool"
+				CommandLine="cd $(SolutionDir)&#x0D;&#x0A;call file_copy ecm-params.win32.intel.h ..\ecm-params.h&#x0D;&#x0A;call file_copy config.h ..\config.h&#x0D;&#x0A;"
+			/>
+			<Tool
+				Name="VCCustomBuildTool"
+			/>
+			<Tool
+				Name="YASM"
+			/>
+			<Tool
+				Name="VCXMLDataGeneratorTool"
+			/>
+			<Tool
+				Name="VCWebServiceProxyGeneratorTool"
+			/>
+			<Tool
+				Name="VCMIDLTool"
+			/>
+			<Tool
+				Name="VCCLCompilerTool"
+				Optimization="3"
+				EnableIntrinsicFunctions="true"
+				AdditionalIncludeDirectories="..\..\;..\..\..\gmp;..\assembler"
+				PreprocessorDefinitions="WIN32;NDEBUG;_LIB;SSE2"
+				RuntimeLibrary="0"
+				UsePrecompiledHeader="0"
+				WarningLevel="3"
+				DebugInformationFormat="3"
+				CompileAs="0"
+			/>
+			<Tool
+				Name="VCManagedResourceCompilerTool"
+			/>
+			<Tool
+				Name="VCResourceCompilerTool"
+			/>
+			<Tool
+				Name="VCPreLinkEventTool"
+			/>
+			<Tool
+				Name="VCLibrarianTool"
+				OutputFile="$(OutDir)\ecm.lib"
+			/>
+			<Tool
+				Name="VCALinkTool"
+			/>
+			<Tool
+				Name="VCXDCMakeTool"
+			/>
+			<Tool
+				Name="VCBscMakeTool"
+			/>
+			<Tool
+				Name="VCFxCopTool"
+			/>
+			<Tool
+				Name="VCPostBuildEventTool"
+			/>
+		</Configuration>
+		<Configuration
+			Name="Release-Intel|x64"
+			OutputDirectory="$(SolutionDir)$(PlatformName)\$(ConfigurationName)"
+			IntermediateDirectory="$(PlatformName)\$(ConfigurationName)"
+			ConfigurationType="4"
+			InheritedPropertySheets="$(VCInstallDir)VCProjectDefaults\UpgradeFromVC71.vsprops"
+			CharacterSet="2"
+			EnableManagedIncrementalBuild="0"
+			>
+			<Tool
+				Name="VCPreBuildEventTool"
+				CommandLine="cd $(SolutionDir)&#x0D;&#x0A;call file_copy ecm-params.x64.intel.h ..\ecm-params.h&#x0D;&#x0A;call file_copy config.h ..\config.h&#x0D;&#x0A;"
+			/>
+			<Tool
+				Name="VCCustomBuildTool"
+			/>
+			<Tool
+				Name="YASM"
+			/>
+			<Tool
+				Name="VCXMLDataGeneratorTool"
+			/>
+			<Tool
+				Name="VCWebServiceProxyGeneratorTool"
+			/>
+			<Tool
+				Name="VCMIDLTool"
+				TargetEnvironment="3"
+			/>
+			<Tool
+				Name="VCCLCompilerTool"
+				Optimization="3"
+				EnableIntrinsicFunctions="true"
+				AdditionalIncludeDirectories="..\..\;..\..\..\gmp;..\assembler"
+				PreprocessorDefinitions="WIN32;NDEBUG;_LIB"
+				RuntimeLibrary="0"
+				UsePrecompiledHeader="0"
+				WarningLevel="3"
+				DebugInformationFormat="3"
+				CompileAs="0"
+			/>
+			<Tool
+				Name="VCManagedResourceCompilerTool"
+			/>
+			<Tool
+				Name="VCResourceCompilerTool"
+			/>
+			<Tool
+				Name="VCPreLinkEventTool"
+			/>
+			<Tool
+				Name="VCLibrarianTool"
+				OutputFile="$(OutDir)\ecm.lib"
+			/>
+			<Tool
+				Name="VCALinkTool"
+			/>
+			<Tool
+				Name="VCXDCMakeTool"
+			/>
+			<Tool
+				Name="VCBscMakeTool"
+			/>
+			<Tool
+				Name="VCFxCopTool"
+			/>
+			<Tool
+				Name="VCPostBuildEventTool"
+			/>
+		</Configuration>
+		<Configuration
+			Name="Debug-AMD|Win32"
+			OutputDirectory="$(SolutionDir)$(PlatformName)\$(ConfigurationName)"
+			IntermediateDirectory="$(PlatformName)\$(ConfigurationName)"
+			ConfigurationType="4"
+			InheritedPropertySheets="$(VCInstallDir)VCProjectDefaults\UpgradeFromVC71.vsprops"
+			CharacterSet="2"
+			EnableManagedIncrementalBuild="0"
+			>
+			<Tool
+				Name="VCPreBuildEventTool"
+				CommandLine="cd $(SolutionDir)&#x0D;&#x0A;call file_copy ecm-params.win32.amd.h ..\ecm-params.h&#x0D;&#x0A;call file_copy config.h ..\config.h&#x0D;&#x0A;"
 			/>
 			<Tool
 				Name="VCCustomBuildTool"
@@ -53,7 +331,7 @@
 			<Tool
 				Name="VCCLCompilerTool"
 				Optimization="0"
-				AdditionalIncludeDirectories="..\..\;&quot;..\..\..\gmp&quot;"
+				AdditionalIncludeDirectories="..\..\;..\..\..\gmp;..\assembler"
 				PreprocessorDefinitions="WIN32;_DEBUG;_LIB;SSE2"
 				MinimalRebuild="true"
 				BasicRuntimeChecks="3"
@@ -93,7 +371,7 @@
 			/>
 		</Configuration>
 		<Configuration
-			Name="Debug|x64"
+			Name="Debug-AMD|x64"
 			OutputDirectory="$(SolutionDir)$(PlatformName)\$(ConfigurationName)"
 			IntermediateDirectory="$(PlatformName)\$(ConfigurationName)"
 			ConfigurationType="4"
@@ -103,7 +381,7 @@
 			>
 			<Tool
 				Name="VCPreBuildEventTool"
-				CommandLine="cd $(SolutionDir)&#x0D;&#x0A;call file_copy ecm-params.h ..\ecm-params.h&#x0D;&#x0A;call file_copy config.h ..\config.h&#x0D;&#x0A;"
+				CommandLine="cd $(SolutionDir)&#x0D;&#x0A;call file_copy ecm-params.x64.amd..h ..\ecm-params.h&#x0D;&#x0A;call file_copy config.h ..\config.h&#x0D;&#x0A;"
 			/>
 			<Tool
 				Name="VCCustomBuildTool"
@@ -124,7 +402,7 @@
 			<Tool
 				Name="VCCLCompilerTool"
 				Optimization="0"
-				AdditionalIncludeDirectories="..\..\;&quot;..\..\..\gmp&quot;"
+				AdditionalIncludeDirectories="..\..\;..\..\..\gmp;..\assembler"
 				PreprocessorDefinitions="WIN32;_DEBUG;_LIB"
 				MinimalRebuild="true"
 				BasicRuntimeChecks="3"
@@ -164,7 +442,7 @@
 			/>
 		</Configuration>
 		<Configuration
-			Name="Release|Win32"
+			Name="Debug-Intel|Win32"
 			OutputDirectory="$(SolutionDir)$(PlatformName)\$(ConfigurationName)"
 			IntermediateDirectory="$(PlatformName)\$(ConfigurationName)"
 			ConfigurationType="4"
@@ -174,7 +452,7 @@
 			>
 			<Tool
 				Name="VCPreBuildEventTool"
-				CommandLine="cd $(SolutionDir)&#x0D;&#x0A;call file_copy ecm-params.h ..\ecm-params.h&#x0D;&#x0A;call file_copy config.h ..\config.h&#x0D;&#x0A;"
+				CommandLine="cd $(SolutionDir)&#x0D;&#x0A;call file_copy ecm-params.win32.intel.h ..\ecm-params.h&#x0D;&#x0A;call file_copy config.h ..\config.h&#x0D;&#x0A;"
 			/>
 			<Tool
 				Name="VCCustomBuildTool"
@@ -193,14 +471,15 @@
 			/>
 			<Tool
 				Name="VCCLCompilerTool"
-				Optimization="3"
-				EnableIntrinsicFunctions="true"
-				AdditionalIncludeDirectories="..\..\;&quot;..\..\..\gmp&quot;"
-				PreprocessorDefinitions="WIN32;NDEBUG;_LIB;SSE2"
-				RuntimeLibrary="0"
+				Optimization="0"
+				AdditionalIncludeDirectories="..\..\;..\..\..\gmp;..\assembler"
+				PreprocessorDefinitions="WIN32;_DEBUG;_LIB;SSE2"
+				MinimalRebuild="true"
+				BasicRuntimeChecks="3"
+				RuntimeLibrary="1"
 				UsePrecompiledHeader="0"
 				WarningLevel="3"
-				DebugInformationFormat="3"
+				DebugInformationFormat="4"
 				CompileAs="0"
 			/>
 			<Tool
@@ -233,7 +512,7 @@
 			/>
 		</Configuration>
 		<Configuration
-			Name="Release|x64"
+			Name="Debug-Intel|x64"
 			OutputDirectory="$(SolutionDir)$(PlatformName)\$(ConfigurationName)"
 			IntermediateDirectory="$(PlatformName)\$(ConfigurationName)"
 			ConfigurationType="4"
@@ -243,7 +522,7 @@
 			>
 			<Tool
 				Name="VCPreBuildEventTool"
-				CommandLine="cd $(SolutionDir)&#x0D;&#x0A;call file_copy ecm-params.h ..\ecm-params.h&#x0D;&#x0A;call file_copy config.h ..\config.h&#x0D;&#x0A;"
+				CommandLine="cd $(SolutionDir)&#x0D;&#x0A;call file_copy ecm-params.x64.intel.h ..\ecm-params.h&#x0D;&#x0A;call file_copy config.h ..\config.h&#x0D;&#x0A;"
 			/>
 			<Tool
 				Name="VCCustomBuildTool"
@@ -263,11 +542,12 @@
 			/>
 			<Tool
 				Name="VCCLCompilerTool"
-				Optimization="3"
-				EnableIntrinsicFunctions="true"
-				AdditionalIncludeDirectories="..\..\;&quot;..\..\..\gmp&quot;"
-				PreprocessorDefinitions="WIN32;NDEBUG;_LIB"
-				RuntimeLibrary="0"
+				Optimization="0"
+				AdditionalIncludeDirectories="..\..\;..\..\..\gmp;..\assembler"
+				PreprocessorDefinitions="WIN32;_DEBUG;_LIB"
+				MinimalRebuild="true"
+				BasicRuntimeChecks="3"
+				RuntimeLibrary="1"
 				UsePrecompiledHeader="0"
 				WarningLevel="3"
 				DebugInformationFormat="3"
@@ -315,7 +595,7 @@
 				RelativePath="..\assembler\a_win32a_mulredc.asm"
 				>
 				<FileConfiguration
-					Name="Debug|x64"
+					Name="Release-AMD|x64"
 					ExcludedFromBuild="true"
 					>
 					<Tool
@@ -323,7 +603,39 @@
 					/>
 				</FileConfiguration>
 				<FileConfiguration
-					Name="Release|x64"
+					Name="Release-Intel|Win32"
+					ExcludedFromBuild="true"
+					>
+					<Tool
+						Name="YASM"
+					/>
+				</FileConfiguration>
+				<FileConfiguration
+					Name="Release-Intel|x64"
+					ExcludedFromBuild="true"
+					>
+					<Tool
+						Name="YASM"
+					/>
+				</FileConfiguration>
+				<FileConfiguration
+					Name="Debug-AMD|x64"
+					ExcludedFromBuild="true"
+					>
+					<Tool
+						Name="YASM"
+					/>
+				</FileConfiguration>
+				<FileConfiguration
+					Name="Debug-Intel|Win32"
+					ExcludedFromBuild="true"
+					>
+					<Tool
+						Name="YASM"
+					/>
+				</FileConfiguration>
+				<FileConfiguration
+					Name="Debug-Intel|x64"
 					ExcludedFromBuild="true"
 					>
 					<Tool
@@ -335,7 +647,7 @@
 				RelativePath="..\assembler\a_win32a_redc.asm"
 				>
 				<FileConfiguration
-					Name="Debug|x64"
+					Name="Release-AMD|x64"
 					ExcludedFromBuild="true"
 					>
 					<Tool
@@ -343,7 +655,39 @@
 					/>
 				</FileConfiguration>
 				<FileConfiguration
-					Name="Release|x64"
+					Name="Release-Intel|Win32"
+					ExcludedFromBuild="true"
+					>
+					<Tool
+						Name="YASM"
+					/>
+				</FileConfiguration>
+				<FileConfiguration
+					Name="Release-Intel|x64"
+					ExcludedFromBuild="true"
+					>
+					<Tool
+						Name="YASM"
+					/>
+				</FileConfiguration>
+				<FileConfiguration
+					Name="Debug-AMD|x64"
+					ExcludedFromBuild="true"
+					>
+					<Tool
+						Name="YASM"
+					/>
+				</FileConfiguration>
+				<FileConfiguration
+					Name="Debug-Intel|Win32"
+					ExcludedFromBuild="true"
+					>
+					<Tool
+						Name="YASM"
+					/>
+				</FileConfiguration>
+				<FileConfiguration
+					Name="Debug-Intel|x64"
 					ExcludedFromBuild="true"
 					>
 					<Tool
@@ -355,7 +699,7 @@
 				RelativePath="..\assembler\a_win32p_mulredc.asm"
 				>
 				<FileConfiguration
-					Name="Debug|Win32"
+					Name="Release-AMD|Win32"
 					ExcludedFromBuild="true"
 					>
 					<Tool
@@ -363,7 +707,7 @@
 					/>
 				</FileConfiguration>
 				<FileConfiguration
-					Name="Debug|x64"
+					Name="Release-AMD|x64"
 					ExcludedFromBuild="true"
 					>
 					<Tool
@@ -371,7 +715,7 @@
 					/>
 				</FileConfiguration>
 				<FileConfiguration
-					Name="Release|Win32"
+					Name="Release-Intel|x64"
 					ExcludedFromBuild="true"
 					>
 					<Tool
@@ -379,7 +723,23 @@
 					/>
 				</FileConfiguration>
 				<FileConfiguration
-					Name="Release|x64"
+					Name="Debug-AMD|Win32"
+					ExcludedFromBuild="true"
+					>
+					<Tool
+						Name="YASM"
+					/>
+				</FileConfiguration>
+				<FileConfiguration
+					Name="Debug-AMD|x64"
+					ExcludedFromBuild="true"
+					>
+					<Tool
+						Name="YASM"
+					/>
+				</FileConfiguration>
+				<FileConfiguration
+					Name="Debug-Intel|x64"
 					ExcludedFromBuild="true"
 					>
 					<Tool
@@ -391,7 +751,7 @@
 				RelativePath="..\assembler\a_win32p_redc.asm"
 				>
 				<FileConfiguration
-					Name="Debug|Win32"
+					Name="Release-AMD|Win32"
 					ExcludedFromBuild="true"
 					>
 					<Tool
@@ -399,7 +759,7 @@
 					/>
 				</FileConfiguration>
 				<FileConfiguration
-					Name="Debug|x64"
+					Name="Release-AMD|x64"
 					ExcludedFromBuild="true"
 					>
 					<Tool
@@ -407,7 +767,7 @@
 					/>
 				</FileConfiguration>
 				<FileConfiguration
-					Name="Release|Win32"
+					Name="Release-Intel|x64"
 					ExcludedFromBuild="true"
 					>
 					<Tool
@@ -415,7 +775,23 @@
 					/>
 				</FileConfiguration>
 				<FileConfiguration
-					Name="Release|x64"
+					Name="Debug-AMD|Win32"
+					ExcludedFromBuild="true"
+					>
+					<Tool
+						Name="YASM"
+					/>
+				</FileConfiguration>
+				<FileConfiguration
+					Name="Debug-AMD|x64"
+					ExcludedFromBuild="true"
+					>
+					<Tool
+						Name="YASM"
+					/>
+				</FileConfiguration>
+				<FileConfiguration
+					Name="Debug-Intel|x64"
 					ExcludedFromBuild="true"
 					>
 					<Tool
@@ -427,7 +803,7 @@
 				RelativePath="..\assembler\a_x64_mulredc.asm"
 				>
 				<FileConfiguration
-					Name="Debug|Win32"
+					Name="Release-AMD|Win32"
 					ExcludedFromBuild="true"
 					>
 					<Tool
@@ -436,7 +812,7 @@
 					/>
 				</FileConfiguration>
 				<FileConfiguration
-					Name="Debug|x64"
+					Name="Release-AMD|x64"
 					>
 					<Tool
 						Name="YASM"
@@ -444,7 +820,7 @@
 					/>
 				</FileConfiguration>
 				<FileConfiguration
-					Name="Release|Win32"
+					Name="Release-Intel|Win32"
 					ExcludedFromBuild="true"
 					>
 					<Tool
@@ -453,7 +829,41 @@
 					/>
 				</FileConfiguration>
 				<FileConfiguration
-					Name="Release|x64"
+					Name="Release-Intel|x64"
+					>
+					<Tool
+						Name="YASM"
+						Debug="true"
+					/>
+				</FileConfiguration>
+				<FileConfiguration
+					Name="Debug-AMD|Win32"
+					ExcludedFromBuild="true"
+					>
+					<Tool
+						Name="YASM"
+						Debug="true"
+					/>
+				</FileConfiguration>
+				<FileConfiguration
+					Name="Debug-AMD|x64"
+					>
+					<Tool
+						Name="YASM"
+						Debug="true"
+					/>
+				</FileConfiguration>
+				<FileConfiguration
+					Name="Debug-Intel|Win32"
+					ExcludedFromBuild="true"
+					>
+					<Tool
+						Name="YASM"
+						Debug="true"
+					/>
+				</FileConfiguration>
+				<FileConfiguration
+					Name="Debug-Intel|x64"
 					>
 					<Tool
 						Name="YASM"
@@ -465,7 +875,7 @@
 				RelativePath="..\assembler\a_x64_redc.asm"
 				>
 				<FileConfiguration
-					Name="Debug|Win32"
+					Name="Release-AMD|Win32"
 					ExcludedFromBuild="true"
 					>
 					<Tool
@@ -474,7 +884,7 @@
 					/>
 				</FileConfiguration>
 				<FileConfiguration
-					Name="Debug|x64"
+					Name="Release-AMD|x64"
 					>
 					<Tool
 						Name="YASM"
@@ -482,7 +892,7 @@
 					/>
 				</FileConfiguration>
 				<FileConfiguration
-					Name="Release|Win32"
+					Name="Release-Intel|Win32"
 					ExcludedFromBuild="true"
 					>
 					<Tool
@@ -491,7 +901,41 @@
 					/>
 				</FileConfiguration>
 				<FileConfiguration
-					Name="Release|x64"
+					Name="Release-Intel|x64"
+					>
+					<Tool
+						Name="YASM"
+						Debug="true"
+					/>
+				</FileConfiguration>
+				<FileConfiguration
+					Name="Debug-AMD|Win32"
+					ExcludedFromBuild="true"
+					>
+					<Tool
+						Name="YASM"
+						Debug="true"
+					/>
+				</FileConfiguration>
+				<FileConfiguration
+					Name="Debug-AMD|x64"
+					>
+					<Tool
+						Name="YASM"
+						Debug="true"
+					/>
+				</FileConfiguration>
+				<FileConfiguration
+					Name="Debug-Intel|Win32"
+					ExcludedFromBuild="true"
+					>
+					<Tool
+						Name="YASM"
+						Debug="true"
+					/>
+				</FileConfiguration>
+				<FileConfiguration
+					Name="Debug-Intel|x64"
 					>
 					<Tool
 						Name="YASM"
@@ -563,7 +1007,7 @@
 				RelativePath="..\..\mul_fft.c"
 				>
 				<FileConfiguration
-					Name="Release|Win32"
+					Name="Release-AMD|Win32"
 					>
 					<Tool
 						Name="VCCLCompilerTool"
@@ -571,7 +1015,23 @@
 					/>
 				</FileConfiguration>
 				<FileConfiguration
-					Name="Release|x64"
+					Name="Release-AMD|x64"
+					>
+					<Tool
+						Name="VCCLCompilerTool"
+						Optimization="3"
+					/>
+				</FileConfiguration>
+				<FileConfiguration
+					Name="Release-Intel|Win32"
+					>
+					<Tool
+						Name="VCCLCompilerTool"
+						Optimization="2"
+					/>
+				</FileConfiguration>
+				<FileConfiguration
+					Name="Release-Intel|x64"
 					>
 					<Tool
 						Name="VCCLCompilerTool"
@@ -623,7 +1083,15 @@
 				RelativePath="..\..\sp.c"
 				>
 				<FileConfiguration
-					Name="Release|x64"
+					Name="Release-AMD|x64"
+					>
+					<Tool
+						Name="VCCLCompilerTool"
+						Optimization="3"
+					/>
+				</FileConfiguration>
+				<FileConfiguration
+					Name="Release-Intel|x64"
 					>
 					<Tool
 						Name="VCCLCompilerTool"
@@ -635,7 +1103,15 @@
 				RelativePath="..\..\spm.c"
 				>
 				<FileConfiguration
-					Name="Release|x64"
+					Name="Release-AMD|x64"
+					>
+					<Tool
+						Name="VCCLCompilerTool"
+						Optimization="3"
+					/>
+				</FileConfiguration>
+				<FileConfiguration
+					Name="Release-Intel|x64"
 					>
 					<Tool
 						Name="VCCLCompilerTool"
@@ -647,7 +1123,15 @@
 				RelativePath="..\..\spv.c"
 				>
 				<FileConfiguration
-					Name="Release|x64"
+					Name="Release-AMD|x64"
+					>
+					<Tool
+						Name="VCCLCompilerTool"
+						Optimization="3"
+					/>
+				</FileConfiguration>
+				<FileConfiguration
+					Name="Release-Intel|x64"
 					>
 					<Tool
 						Name="VCCLCompilerTool"
@@ -669,10 +1153,6 @@
 			Filter="h;hpp;hxx;hm;inl;inc;xsd"
 			UniqueIdentifier="{93995380-89BD-4b04-88EB-625FBE52EBFB}"
 			>
-			<File
-				RelativePath="..\..\asmredc.h"
-				>
-			</File>
 			<File
 				RelativePath="..\config.h"
 				>
