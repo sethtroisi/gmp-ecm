@@ -99,7 +99,7 @@
 			/>
 			<Tool
 				Name="VCPostBuildEventTool"
-				CommandLine="&quot;$(TargetPath)&quot; &gt;..\ecm-params.win32.intel.h"
+				CommandLine="&quot;$(TargetPath)&quot; &gt;..\ecm-params.h.win32.intel.new"
 			/>
 		</Configuration>
 		<Configuration
@@ -180,7 +180,7 @@
 			/>
 			<Tool
 				Name="VCPostBuildEventTool"
-				CommandLine="&quot;$(TargetPath)&quot; &gt;..\ecm-params.x64.intel.h"
+				CommandLine="&quot;$(TargetPath)&quot; &gt;..\ecm-params..h.x64.intel.new"
 			/>
 		</Configuration>
 		<Configuration
@@ -260,7 +260,7 @@
 			/>
 			<Tool
 				Name="VCPostBuildEventTool"
-				CommandLine="&quot;$(TargetPath)&quot; &gt;..\ecm-params.win32.amd.h"
+				CommandLine="&quot;$(TargetPath)&quot; &gt;..\ecm-params.h.win32.amd.new"
 			/>
 		</Configuration>
 		<Configuration
@@ -341,7 +341,7 @@
 			/>
 			<Tool
 				Name="VCPostBuildEventTool"
-				CommandLine="&quot;$(TargetPath)&quot; &gt;..\ecm-params.x64.amd.h"
+				CommandLine="&quot;$(TargetPath)&quot; &gt;..\ecm-params.h.x64.amd.new"
 			/>
 		</Configuration>
 	</Configurations>
