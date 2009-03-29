@@ -74,10 +74,15 @@ in config.h (in the build.vc9 subdirectory) to:
 
 #undef NATIVE_REDC
 
+Tune
+====
+
 If tune is compiled and run for a particular configuration it will output a
-file with appropriate parameters for this configuration, after which ecmlib
-and ecm can be built in a tuned form. Running tune takes some time so don't
-expect a quick response if you do compile it.  
+file with appropriate parameters for this configuration with a name suuch as:
+
+    ecm-params.h.win32.amd.new
+
+To use this file when building ecm and ecmlib, remove the '.new' extension.
 
 Tests
 =====

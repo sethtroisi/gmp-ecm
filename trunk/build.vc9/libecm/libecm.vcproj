@@ -33,7 +33,7 @@
 			>
 			<Tool
 				Name="VCPreBuildEventTool"
-				CommandLine="cd $(SolutionDir)&#x0D;&#x0A;call file_copy ecm-params.win32.amd.h ..\ecm-params.h&#x0D;&#x0A;call file_copy config.h ..\config.h&#x0D;&#x0A;"
+				CommandLine="cd $(SolutionDir)&#x0D;&#x0A;call file_copy ecm-params.h.win32.amd ..\ecm-params.h&#x0D;&#x0A;call file_copy mul_fft-params.h.win32.amd ..\mul_fft-params.h&#x0D;&#x0A;call file_copy config.h ..\config.h&#x0D;&#x0A;"
 			/>
 			<Tool
 				Name="VCCustomBuildTool"
@@ -102,7 +102,7 @@
 			>
 			<Tool
 				Name="VCPreBuildEventTool"
-				CommandLine="cd $(SolutionDir)&#x0D;&#x0A;call file_copy ecm-params.x64.amd.h ..\ecm-params.h&#x0D;&#x0A;call file_copy config.h ..\config.h&#x0D;&#x0A;"
+				CommandLine="cd $(SolutionDir)&#x0D;&#x0A;call file_copy ecm-params.h.x64.amd ..\ecm-params.h&#x0D;&#x0A;call file_copy mul_fft-params.h.x64.amd ..\mul_fft-params.h&#x0D;&#x0A;call file_copy config.h ..\config.h&#x0D;&#x0A;"
 			/>
 			<Tool
 				Name="VCCustomBuildTool"
@@ -172,7 +172,7 @@
 			>
 			<Tool
 				Name="VCPreBuildEventTool"
-				CommandLine="cd $(SolutionDir)&#x0D;&#x0A;call file_copy ecm-params.win32.intel.h ..\ecm-params.h&#x0D;&#x0A;call file_copy config.h ..\config.h&#x0D;&#x0A;"
+				CommandLine="cd $(SolutionDir)&#x0D;&#x0A;call file_copy ecm-params.h.win32.intel ..\ecm-params.h&#x0D;&#x0A;call file_copy mul_fft-params.h.win32.intel ..\mul_fft-params.h&#x0D;&#x0A;call file_copy config.h ..\config.h&#x0D;&#x0A;"
 			/>
 			<Tool
 				Name="VCCustomBuildTool"
@@ -241,7 +241,7 @@
 			>
 			<Tool
 				Name="VCPreBuildEventTool"
-				CommandLine="cd $(SolutionDir)&#x0D;&#x0A;call file_copy ecm-params.x64.intel.h ..\ecm-params.h&#x0D;&#x0A;call file_copy config.h ..\config.h&#x0D;&#x0A;"
+				CommandLine="cd $(SolutionDir)&#x0D;&#x0A;call file_copy ecm-params.h.x64.intel ..\ecm-params.h&#x0D;&#x0A;call file_copy mul_fft-params.h.x64.intel ..\mul_fft-params.h&#x0D;&#x0A;call file_copy config.h ..\config.h&#x0D;&#x0A;"
 			/>
 			<Tool
 				Name="VCCustomBuildTool"
@@ -311,7 +311,7 @@
 			>
 			<Tool
 				Name="VCPreBuildEventTool"
-				CommandLine="cd $(SolutionDir)&#x0D;&#x0A;call file_copy ecm-params.win32.amd.h ..\ecm-params.h&#x0D;&#x0A;call file_copy config.h ..\config.h&#x0D;&#x0A;"
+				CommandLine="cd $(SolutionDir)&#x0D;&#x0A;call file_copy ecm-params.h.win32.amd ..\ecm-params.h&#x0D;&#x0A;call file_copy mul_fft-params.h.win32.amd ..\mul_fft-params.h&#x0D;&#x0A;call file_copy config.h ..\config.h&#x0D;&#x0A;"
 			/>
 			<Tool
 				Name="VCCustomBuildTool"
@@ -381,7 +381,7 @@
 			>
 			<Tool
 				Name="VCPreBuildEventTool"
-				CommandLine="cd $(SolutionDir)&#x0D;&#x0A;call file_copy ecm-params.x64.amd..h ..\ecm-params.h&#x0D;&#x0A;call file_copy config.h ..\config.h&#x0D;&#x0A;"
+				CommandLine="cd $(SolutionDir)&#x0D;&#x0A;call file_copy ecm-params.h.x64.amd ..\ecm-params.h&#x0D;&#x0A;call file_copy mul_fft-params.h.x64.amd ..\mul_fft-params.h&#x0D;&#x0A;call file_copy config.h ..\config.h&#x0D;&#x0A;"
 			/>
 			<Tool
 				Name="VCCustomBuildTool"
@@ -452,7 +452,7 @@
 			>
 			<Tool
 				Name="VCPreBuildEventTool"
-				CommandLine="cd $(SolutionDir)&#x0D;&#x0A;call file_copy ecm-params.win32.intel.h ..\ecm-params.h&#x0D;&#x0A;call file_copy config.h ..\config.h&#x0D;&#x0A;"
+				CommandLine="cd $(SolutionDir)&#x0D;&#x0A;call file_copy ecm-params.h.win32.intel ..\ecm-params.h&#x0D;&#x0A;call file_copy mul_fft-params.h.win32.intel ..\mul_fft-params.h&#x0D;&#x0A;call file_copy config.h ..\config.h&#x0D;&#x0A;"
 			/>
 			<Tool
 				Name="VCCustomBuildTool"
@@ -522,7 +522,7 @@
 			>
 			<Tool
 				Name="VCPreBuildEventTool"
-				CommandLine="cd $(SolutionDir)&#x0D;&#x0A;call file_copy ecm-params.x64.intel.h ..\ecm-params.h&#x0D;&#x0A;call file_copy config.h ..\config.h&#x0D;&#x0A;"
+				CommandLine="cd $(SolutionDir)&#x0D;&#x0A;call file_copy ecm-params.h.x64.intel ..\ecm-params.h&#x0D;&#x0A;call file_copy mul_fft-params.h.x64.intel ..\mul_fft-params.h&#x0D;&#x0A;call file_copy config.h ..\config.h&#x0D;&#x0A;"
 			/>
 			<Tool
 				Name="VCCustomBuildTool"
