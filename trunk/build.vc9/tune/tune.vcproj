@@ -180,7 +180,7 @@
 			/>
 			<Tool
 				Name="VCPostBuildEventTool"
-				CommandLine="&quot;$(TargetPath)&quot; &gt;..\ecm-params..h.x64.intel.new"
+				CommandLine="&quot;$(TargetPath)&quot; &gt;..\ecm-params.h.x64.intel.new"
 			/>
 		</Configuration>
 		<Configuration

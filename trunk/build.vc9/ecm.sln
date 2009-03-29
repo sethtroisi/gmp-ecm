@@ -61,8 +61,8 @@ Global
 		{80E08750-5C6C-492E-BB1E-7200978AE125}.Release-AMD|Win32.Build.0 = Release-AMD|Win32
 		{80E08750-5C6C-492E-BB1E-7200978AE125}.Release-AMD|x64.ActiveCfg = Release-AMD|x64
 		{80E08750-5C6C-492E-BB1E-7200978AE125}.Release-AMD|x64.Build.0 = Release-AMD|x64
-		{80E08750-5C6C-492E-BB1E-7200978AE125}.Release-Intel|Win32.ActiveCfg = Release-Intel|x64
-		{80E08750-5C6C-492E-BB1E-7200978AE125}.Release-Intel|Win32.Build.0 = Release-Intel|x64
+		{80E08750-5C6C-492E-BB1E-7200978AE125}.Release-Intel|Win32.ActiveCfg = Release-Intel|Win32
+		{80E08750-5C6C-492E-BB1E-7200978AE125}.Release-Intel|Win32.Build.0 = Release-Intel|Win32
 		{80E08750-5C6C-492E-BB1E-7200978AE125}.Release-Intel|x64.ActiveCfg = Release-Intel|x64
 		{80E08750-5C6C-492E-BB1E-7200978AE125}.Release-Intel|x64.Build.0 = Release-Intel|x64
 	EndGlobalSection
