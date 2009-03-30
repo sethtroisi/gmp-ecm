@@ -383,8 +383,8 @@ int     ecm_rootsG       (mpz_t, listz_t, unsigned long, ecm_roots_state_t *,
 #define ecm_rootsG_clear __ECM(ecm_rootsG_clear)
 void    ecm_rootsG_clear (ecm_roots_state_t *, mpmod_t);
 #define ecm_findmatch __ECM(ecm_findmatch)
-long    ecm_findmatch (const unsigned long, root_params_t *, curve *, 
-                       mpmod_t, mpz_t);
+int     ecm_findmatch (unsigned long *, const unsigned long, root_params_t *, 
+                       const curve *, mpmod_t, const mpz_t);
 
 /* lucas.c */
 #define pp1_mul_prac __ECM(pp1_mul_prac)
