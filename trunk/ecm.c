@@ -1100,7 +1100,7 @@ ecm (mpz_t f, mpz_t x, mpz_t sigma, mpz_t n, mpz_t go, double *B1done,
      is available */
 
   if (youpi != ECM_NO_FACTOR_FOUND)
-    goto end_of_ecm;
+    goto end_of_ecm_rhotable;
 #endif
 
   if (B1 > *B1done)
@@ -1124,7 +1124,7 @@ ecm (mpz_t f, mpz_t x, mpz_t sigma, mpz_t n, mpz_t go, double *B1done,
   mpres_get_z (x, P.x, modulus);
 
   if (youpi != ECM_NO_FACTOR_FOUND)
-    goto end_of_ecm;
+    goto end_of_ecm_rhotable;
 
   if (test_verbose (OUTPUT_RESVERBOSE)) 
     {
@@ -1141,7 +1141,7 @@ ecm (mpz_t f, mpz_t x, mpz_t sigma, mpz_t n, mpz_t go, double *B1done,
   /* In case of a signal, we'll exit after the residue is printed. If no save
      file is specified, the user may still resume from the residue */
   if (stop_asap != NULL && (*stop_asap) ())
-    goto end_of_ecm;
+    goto end_of_ecm_rhotable;
 
   /* If using 2^k +/-1 modulus and 'nobase2step2' flag is set,
      set default (-nobase2) modular method and remap P.x, P.y, and P.A */
@@ -1204,6 +1204,7 @@ ecm (mpz_t f, mpz_t x, mpz_t sigma, mpz_t n, mpz_t go, double *B1done,
     youpi = stage2 (f, &P, modulus, dF, k, &root_params, ECM_ECM, 
                     use_ntt, TreeFilename, stop_asap);
   
+end_of_ecm_rhotable:
   if (test_verbose (OUTPUT_VERBOSE))
     {
       if (mpz_cmp_d (B2min, B1) == 0)
