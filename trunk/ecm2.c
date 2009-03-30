@@ -134,7 +134,8 @@ multiplyW2n (mpz_t p, point *R, curve *S, mpz_t *q, const unsigned int n,
             {
               /* If a factor was found, put factor in p, 
                  flag success and bail out of loop */
-              mpres_gcd (p, T[k - 1], modulus);
+              if (p != NULL)
+                mpres_gcd (p, T[k - 1], modulus);
               youpi = ECM_FACTOR_FOUND_STEP2;
               break;
             }
@@ -320,9 +321,12 @@ addWnm (mpz_t p, point *X, curve *S, mpmod_t modulus, unsigned int m,
 
   if (k > 0 && !mpres_invert (T[k], T[k - 1], modulus))
     {
-      mpres_gcd (p, T[k - 1], modulus);
-      (*tot_muls) += m * n - 1;
-      (*tot_gcds) ++;
+      if (p != NULL)
+        mpres_gcd (p, T[k - 1], modulus);
+      if (tot_muls != NULL)
+        (*tot_muls) += m * n - 1;
+      if (tot_gcds != NULL)
+        (*tot_gcds) ++;
       return ECM_FACTOR_FOUND_STEP2;
     }
 
@@ -871,17 +875,22 @@ ecm_rootsG (mpz_t f, listz_t G, unsigned long dF, ecm_roots_state_t *state,
 }
 
 
-/* Find smallest i >= 0 so that 
-   f(j * d2) X = f((i0 + i) * d1) X over GF(p) */
-long 
-ecm_findmatch (const unsigned long j, root_params_t *root_params, 
-               curve *X, mpmod_t n, mpz_t p)
+/* Find smallest i >= 0 such that 
+   f(j * d2)*X = +-f((i0 + i) * d1)*X over GF(p).
+   If "+" holds, return 1, if "-" holds, return -1.
+   If the correct i could not be determined (because a non-invertible 
+   residue appeared during initialisation) return 0. */
+int 
+ecm_findmatch (unsigned long *I, const unsigned long j, 
+               root_params_t *root_params, const curve *X, mpmod_t n, 
+               const mpz_t p)
 {
   const int dickson_a = root_params->S < 0 ? -1 : 0;
   const unsigned int S = abs (root_params->S);
   const unsigned int sizeT = S + 3;
   unsigned int k;
-  long i = 0;
+  unsigned long i;
+  int r, sgn = 0;
   point iX, jX;
   curve Xp; /* The point and curve over GF(p) */
   mpmod_t modulus;
@@ -891,9 +900,9 @@ ecm_findmatch (const unsigned long j, root_params_t *root_params,
   point *fd;
   mpres_t *T;
   
-  outputf (OUTPUT_RESVERBOSE, "Looking for i so that "
-           "f(i*%lu)*X = f(%lu*%lu)*X\n", root_params->d1, 
-           j, root_params->d2);
+  outputf (OUTPUT_RESVERBOSE, "Looking for i such that "
+           "f((i+%Zd)*%lu)*X = f(%lu*%lu)*X\n", root_params->i0, 
+           root_params->d1, j, root_params->d2);
   
   mpmod_init (modulus, p, ECM_MOD_DEFAULT);
   mpz_init (s);
@@ -937,9 +946,10 @@ ecm_findmatch (const unsigned long j, root_params_t *root_params,
     goto clear_fd_and_exit;
   
   /* Now compute f(j * d2) X */
-  multiplyW2n (NULL, &jX, &Xp, coeffs, 1U, modulus, u, v, T, NULL, NULL);
-
+  r = multiplyW2n (NULL, &jX, &Xp, coeffs, 1U, modulus, u, v, T, NULL, NULL);
   clear_list (coeffs, S + 1);
+  if (r != ECM_NO_FACTOR_FOUND)
+    goto clear_fd_and_exit;
 
   /* We'll keep {f(j * d2) X}_x in s */
   mpres_get_z (s, jX.x, modulus);
@@ -953,22 +963,24 @@ ecm_findmatch (const unsigned long j, root_params_t *root_params,
                                     1U, 1U, S, dickson_a);
   if (coeffs == NULL)
     goto clear_fd_and_exit;
-  multiplyW2n (NULL, fd, &Xp, coeffs, S + 1, modulus, u, v, T, NULL, NULL);
+  r = multiplyW2n (NULL, fd, &Xp, coeffs, S + 1, modulus, u, v, T, NULL, NULL);
   clear_list (coeffs, S + 1);
+  if (r != ECM_NO_FACTOR_FOUND)
+    goto clear_fd_and_exit;
   
-  i = 0;
   mpres_get_z (t, fd[0].x, modulus);
-  while (mpz_cmp (s, t) != 0)
+  for (i = 0; mpz_cmp (s, t) != 0; i++)
     {
-      addWnm (NULL, fd, &Xp, modulus, 1, S, T, NULL, NULL);
+      r = addWnm (NULL, fd, &Xp, modulus, 1, S, T, NULL, NULL);
+      if (r != ECM_NO_FACTOR_FOUND)
+        goto clear_fd_and_exit;
       mpres_get_z (t, fd[0].x, modulus);
-      i++;
     }
 
-  outputf (OUTPUT_DEVVERBOSE, "ecm_findmatch: i - i0 = %ld, "
+  outputf (OUTPUT_DEVVERBOSE, "ecm_findmatch: i - i0 = %lu, "
            "{f(i * d1) X}_x = %Zd\n", i, t);
 
-  /* We'll compute f(i * d1) and compare it to f(j * d2) to verify 
+  /* We'll compute f(i * d1)*X and compare it to f(j * d2)*X to verify 
      correctness of the result, and to determine whether it was
      f(i * d1)-f(j * d2) or f(i * d1)+f(j * d2) that found the factor */
   /* We use init_progression_coeffs() to compute f(i * d1) */
@@ -978,25 +990,36 @@ ecm_findmatch (const unsigned long j, root_params_t *root_params,
   if (coeffs == NULL)
     goto clear_fd_and_exit;
   
-  /* Now compute iX = f(i * d1) X */
-  multiplyW2n (NULL, &iX, &Xp, coeffs, 1U, modulus, u, v, T, NULL, NULL);
-  
+  /* Now compute iX = f(i * d1)*X */
+  r = multiplyW2n (NULL, &iX, &Xp, coeffs, 1U, modulus, u, v, T, NULL, NULL);
   clear_list (coeffs, S + 1);
-
+  if (r != ECM_NO_FACTOR_FOUND)
+    goto clear_fd_and_exit;
+  
   mpres_get_z (t, iX.x, modulus);
   if (mpz_cmp (s, t) != 0)
     {
       outputf (OUTPUT_ERROR, "ecm_findmatch: ERROR, (f(i*d1) X)_x != "
                "(f(j*d2) X)_x\n(f(i*d1) X)_x = %Zd\n", t);
-      i = 0;
+      goto clear_fd_and_exit;
     }
 
   mpres_get_z (s, jX.y, modulus);
   mpres_get_z (t, iX.y, modulus);
-  if (mpz_cmp (s, t) != 0)
+  if (mpz_cmp (s, t) == 0)
+    {
+      *I = i;
+      sgn = 1;
+    }
+  else
     {
       mpz_sub (t, p, t);
-      if (mpz_cmp (s, t) != 0)
+      if (mpz_cmp (s, t) == 0)
+        {
+          *I = i;
+          sgn = -1;
+        }
+      else
         {
           mpz_sub (t, p, t);
           outputf (OUTPUT_ERROR, "ecm_findmatch: ERROR, (f(i*d1) X)_y != "
@@ -1004,8 +1027,6 @@ ecm_findmatch (const unsigned long j, root_params_t *root_params,
           outputf (OUTPUT_ERROR, "(f(i*d1) X)_y = %Zd\n", t);
           outputf (OUTPUT_ERROR, "(f(j*d2) X)_y = %Zd\n", s);
         }
-      else
-        i = -i;
     }
 
 clear_fd_and_exit:
@@ -1033,5 +1054,5 @@ clear_and_exit:
   mpres_clear (jX.y, modulus);
   mpmod_clear (modulus);
   
-  return i;
+  return sgn;
 }
