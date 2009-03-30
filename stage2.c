@@ -840,27 +840,37 @@ stage2 (mpz_t f, void *X, mpmod_t modulus, unsigned long dF, unsigned long k,
               mpz_gcd (T[dF + 1], T[k], T[dF]);
               if (mpz_cmp_ui (T[dF + 1], 1) > 0)
                 {
-                  long i; /* We need it as a signed type here */
-                  /* Find i so that $f(i d1) X = f(j d2) X$ over GF(f) */
-                  i = ecm_findmatch (j, root_params, (curve *)X, modulus, f);
+                  int sgn;
+                  /* Find i so that $f(i d1) X = +-f(j d2) X$ over GF(f) */
+                  sgn = ecm_findmatch (&i, j, root_params, (curve *)X, 
+                                       modulus, f);
                   
-                  mpz_add_ui (T[dF + 2], root_params->i0, abs (i));
-                  outputf (OUTPUT_RESVERBOSE, 
-                           "Divisor %Zd first occurs in T[%lu] = "
-                           "((f(%Zd*%lu)%cf(%lu*%lu))*X)_x\n", T[dF + 1], k, 
-                           T[dF + 2], root_params->d1, i < 0 ? '+' : '-',
-                           j, root_params->d2);
-                  
-                  mpz_mul_ui (T[dF + 2], T[dF + 2], root_params->d1);
-                  if (i < 0)
-                    mpz_add_ui (T[dF + 2], T[dF + 2], j * root_params->d2);
+                  if (sgn != 0)
+                    {
+                      mpz_add_ui (T[dF + 2], root_params->i0, i);
+                      outputf (OUTPUT_RESVERBOSE, 
+                               "Divisor %Zd first occurs in T[%lu] = "
+                               "((f(%Zd*%lu)%cf(%lu*%lu))*X)_x\n", T[dF + 1], k, 
+                               T[dF + 2], root_params->d1, sgn < 0 ? '+' : '-',
+                               j, root_params->d2);
+                      
+                      mpz_mul_ui (T[dF + 2], T[dF + 2], root_params->d1);
+                      if (sgn < 0)
+                        mpz_add_ui (T[dF + 2], T[dF + 2], j * root_params->d2);
+                      else
+                        mpz_sub_ui (T[dF + 2], T[dF + 2], j * root_params->d2);
+                      mpz_abs (T[dF + 2], T[dF + 2]);
+                      
+                      outputf (OUTPUT_RESVERBOSE, "Maybe largest group order "
+                               "factor is or divides %Zd\n", T[dF + 2]);
+                    }
                   else
-                    mpz_sub_ui (T[dF + 2], T[dF + 2], j * root_params->d2);
-                  mpz_abs (T[dF + 2], T[dF + 2]);
-                  
-                  outputf (OUTPUT_RESVERBOSE, "Maybe largest group order "
-                           "factor is or divides %Zd\n", T[dF + 2]);
-                  
+                    {
+                      outputf (OUTPUT_RESVERBOSE, 
+                               "Divisor %Zd first occurs in T[%lu], but could "
+                               "not determine associated i\n", 
+                               T[dF + 1], k);
+                    }
                   /* Don't report this divisor again */
                   mpz_divexact (T[dF], T[dF], T[dF + 1]);
                 }
