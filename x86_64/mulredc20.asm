@@ -717,18 +717,20 @@ GSYM_PREFIX`'mulredc20:
 # %rbp = tmp, %rsi = value to store in tmp[j], %rbx value to store in 
 # tmp[j+1], %rcx = carry into rbx, carry flag: also carry into rbx
 
-	movl	%ecx, %ebx	# T1 = CY
-	adcq	16(%rbp), %rbx	# T1 += tmp[j+1]
+	movq	16(%rbp), %rbx	# T1 = CY + tmp[j+1]
+	adcq	%rcx, %rbx
 	setc	%cl		# %CY <= 1
 
 	mulq	%r14		# y[j] * x[i]
 	addq	%rax, %rsi	# Add low word to T0
+
 	movq	8(%r10), %rax	# Fetch m[j] into %rax
 	adcq	%rdx, %rbx	# Add high word with carry to T1
 	adcb	$0, %cl	# %CY <= 2
 	
 	mulq	%r11		# m[j]*u
 	addq	%rsi, %rax	# Add T0 and low word
+
 	movq	%rax, 0(%rbp)	# Store rsi in tmp[1-1]
 	adcq	%rdx, %rbx	# Add high word with carry to T1
 	movq	16(%r9), %rax	# Fetch y[j+1] = y[2] into %rax
@@ -742,18 +744,20 @@ GSYM_PREFIX`'mulredc20:
 # %rbp = tmp, %rbx = value to store in tmp[j], %rsi value to store in 
 # tmp[j+1], %rcx = carry into rsi, carry flag: also carry into rsi
 
-	movl	%ecx, %esi	# T1 = CY
-	adcq	24(%rbp), %rsi	# T1 += tmp[j+1]
+	movq	24(%rbp), %rsi	# T1 = CY + tmp[j+1]
+	adcq	%rcx, %rsi
 	setc	%cl		# %CY <= 1
 
 	mulq	%r14		# y[j] * x[i]
 	addq	%rax, %rbx	# Add low word to T0
+
 	movq	16(%r10), %rax	# Fetch m[j] into %rax
 	adcq	%rdx, %rsi	# Add high word with carry to T1
 	adcb	$0, %cl	# %CY <= 2
 	
 	mulq	%r11		# m[j]*u
 	addq	%rbx, %rax	# Add T0 and low word
+
 	movq	%rax, 8(%rbp)	# Store rbx in tmp[2-1]
 	adcq	%rdx, %rsi	# Add high word with carry to T1
 	movq	24(%r9), %rax	# Fetch y[j+1] = y[3] into %rax
@@ -767,18 +771,20 @@ GSYM_PREFIX`'mulredc20:
 # %rbp = tmp, %rsi = value to store in tmp[j], %rbx value to store in 
 # tmp[j+1], %rcx = carry into rbx, carry flag: also carry into rbx
 
-	movl	%ecx, %ebx	# T1 = CY
-	adcq	32(%rbp), %rbx	# T1 += tmp[j+1]
+	movq	32(%rbp), %rbx	# T1 = CY + tmp[j+1]
+	adcq	%rcx, %rbx
 	setc	%cl		# %CY <= 1
 
 	mulq	%r14		# y[j] * x[i]
 	addq	%rax, %rsi	# Add low word to T0
+
 	movq	24(%r10), %rax	# Fetch m[j] into %rax
 	adcq	%rdx, %rbx	# Add high word with carry to T1
 	adcb	$0, %cl	# %CY <= 2
 	
 	mulq	%r11		# m[j]*u
 	addq	%rsi, %rax	# Add T0 and low word
+
 	movq	%rax, 16(%rbp)	# Store rsi in tmp[3-1]
 	adcq	%rdx, %rbx	# Add high word with carry to T1
 	movq	32(%r9), %rax	# Fetch y[j+1] = y[4] into %rax
@@ -792,18 +798,20 @@ GSYM_PREFIX`'mulredc20:
 # %rbp = tmp, %rbx = value to store in tmp[j], %rsi value to store in 
 # tmp[j+1], %rcx = carry into rsi, carry flag: also carry into rsi
 
-	movl	%ecx, %esi	# T1 = CY
-	adcq	40(%rbp), %rsi	# T1 += tmp[j+1]
+	movq	40(%rbp), %rsi	# T1 = CY + tmp[j+1]
+	adcq	%rcx, %rsi
 	setc	%cl		# %CY <= 1
 
 	mulq	%r14		# y[j] * x[i]
 	addq	%rax, %rbx	# Add low word to T0
+
 	movq	32(%r10), %rax	# Fetch m[j] into %rax
 	adcq	%rdx, %rsi	# Add high word with carry to T1
 	adcb	$0, %cl	# %CY <= 2
 	
 	mulq	%r11		# m[j]*u
 	addq	%rbx, %rax	# Add T0 and low word
+
 	movq	%rax, 24(%rbp)	# Store rbx in tmp[4-1]
 	adcq	%rdx, %rsi	# Add high word with carry to T1
 	movq	40(%r9), %rax	# Fetch y[j+1] = y[5] into %rax
@@ -817,18 +825,20 @@ GSYM_PREFIX`'mulredc20:
 # %rbp = tmp, %rsi = value to store in tmp[j], %rbx value to store in 
 # tmp[j+1], %rcx = carry into rbx, carry flag: also carry into rbx
 
-	movl	%ecx, %ebx	# T1 = CY
-	adcq	48(%rbp), %rbx	# T1 += tmp[j+1]
+	movq	48(%rbp), %rbx	# T1 = CY + tmp[j+1]
+	adcq	%rcx, %rbx
 	setc	%cl		# %CY <= 1
 
 	mulq	%r14		# y[j] * x[i]
 	addq	%rax, %rsi	# Add low word to T0
+
 	movq	40(%r10), %rax	# Fetch m[j] into %rax
 	adcq	%rdx, %rbx	# Add high word with carry to T1
 	adcb	$0, %cl	# %CY <= 2
 	
 	mulq	%r11		# m[j]*u
 	addq	%rsi, %rax	# Add T0 and low word
+
 	movq	%rax, 32(%rbp)	# Store rsi in tmp[5-1]
 	adcq	%rdx, %rbx	# Add high word with carry to T1
 	movq	48(%r9), %rax	# Fetch y[j+1] = y[6] into %rax
@@ -842,18 +852,20 @@ GSYM_PREFIX`'mulredc20:
 # %rbp = tmp, %rbx = value to store in tmp[j], %rsi value to store in 
 # tmp[j+1], %rcx = carry into rsi, carry flag: also carry into rsi
 
-	movl	%ecx, %esi	# T1 = CY
-	adcq	56(%rbp), %rsi	# T1 += tmp[j+1]
+	movq	56(%rbp), %rsi	# T1 = CY + tmp[j+1]
+	adcq	%rcx, %rsi
 	setc	%cl		# %CY <= 1
 
 	mulq	%r14		# y[j] * x[i]
 	addq	%rax, %rbx	# Add low word to T0
+
 	movq	48(%r10), %rax	# Fetch m[j] into %rax
 	adcq	%rdx, %rsi	# Add high word with carry to T1
 	adcb	$0, %cl	# %CY <= 2
 	
 	mulq	%r11		# m[j]*u
 	addq	%rbx, %rax	# Add T0 and low word
+
 	movq	%rax, 40(%rbp)	# Store rbx in tmp[6-1]
 	adcq	%rdx, %rsi	# Add high word with carry to T1
 	movq	56(%r9), %rax	# Fetch y[j+1] = y[7] into %rax
@@ -867,18 +879,20 @@ GSYM_PREFIX`'mulredc20:
 # %rbp = tmp, %rsi = value to store in tmp[j], %rbx value to store in 
 # tmp[j+1], %rcx = carry into rbx, carry flag: also carry into rbx
 
-	movl	%ecx, %ebx	# T1 = CY
-	adcq	64(%rbp), %rbx	# T1 += tmp[j+1]
+	movq	64(%rbp), %rbx	# T1 = CY + tmp[j+1]
+	adcq	%rcx, %rbx
 	setc	%cl		# %CY <= 1
 
 	mulq	%r14		# y[j] * x[i]
 	addq	%rax, %rsi	# Add low word to T0
+
 	movq	56(%r10), %rax	# Fetch m[j] into %rax
 	adcq	%rdx, %rbx	# Add high word with carry to T1
 	adcb	$0, %cl	# %CY <= 2
 	
 	mulq	%r11		# m[j]*u
 	addq	%rsi, %rax	# Add T0 and low word
+
 	movq	%rax, 48(%rbp)	# Store rsi in tmp[7-1]
 	adcq	%rdx, %rbx	# Add high word with carry to T1
 	movq	64(%r9), %rax	# Fetch y[j+1] = y[8] into %rax
@@ -892,18 +906,20 @@ GSYM_PREFIX`'mulredc20:
 # %rbp = tmp, %rbx = value to store in tmp[j], %rsi value to store in 
 # tmp[j+1], %rcx = carry into rsi, carry flag: also carry into rsi
 
-	movl	%ecx, %esi	# T1 = CY
-	adcq	72(%rbp), %rsi	# T1 += tmp[j+1]
+	movq	72(%rbp), %rsi	# T1 = CY + tmp[j+1]
+	adcq	%rcx, %rsi
 	setc	%cl		# %CY <= 1
 
 	mulq	%r14		# y[j] * x[i]
 	addq	%rax, %rbx	# Add low word to T0
+
 	movq	64(%r10), %rax	# Fetch m[j] into %rax
 	adcq	%rdx, %rsi	# Add high word with carry to T1
 	adcb	$0, %cl	# %CY <= 2
 	
 	mulq	%r11		# m[j]*u
 	addq	%rbx, %rax	# Add T0 and low word
+
 	movq	%rax, 56(%rbp)	# Store rbx in tmp[8-1]
 	adcq	%rdx, %rsi	# Add high word with carry to T1
 	movq	72(%r9), %rax	# Fetch y[j+1] = y[9] into %rax
@@ -917,18 +933,20 @@ GSYM_PREFIX`'mulredc20:
 # %rbp = tmp, %rsi = value to store in tmp[j], %rbx value to store in 
 # tmp[j+1], %rcx = carry into rbx, carry flag: also carry into rbx
 
-	movl	%ecx, %ebx	# T1 = CY
-	adcq	80(%rbp), %rbx	# T1 += tmp[j+1]
+	movq	80(%rbp), %rbx	# T1 = CY + tmp[j+1]
+	adcq	%rcx, %rbx
 	setc	%cl		# %CY <= 1
 
 	mulq	%r14		# y[j] * x[i]
 	addq	%rax, %rsi	# Add low word to T0
+
 	movq	72(%r10), %rax	# Fetch m[j] into %rax
 	adcq	%rdx, %rbx	# Add high word with carry to T1
 	adcb	$0, %cl	# %CY <= 2
 	
 	mulq	%r11		# m[j]*u
 	addq	%rsi, %rax	# Add T0 and low word
+
 	movq	%rax, 64(%rbp)	# Store rsi in tmp[9-1]
 	adcq	%rdx, %rbx	# Add high word with carry to T1
 	movq	80(%r9), %rax	# Fetch y[j+1] = y[10] into %rax
@@ -942,18 +960,20 @@ GSYM_PREFIX`'mulredc20:
 # %rbp = tmp, %rbx = value to store in tmp[j], %rsi value to store in 
 # tmp[j+1], %rcx = carry into rsi, carry flag: also carry into rsi
 
-	movl	%ecx, %esi	# T1 = CY
-	adcq	88(%rbp), %rsi	# T1 += tmp[j+1]
+	movq	88(%rbp), %rsi	# T1 = CY + tmp[j+1]
+	adcq	%rcx, %rsi
 	setc	%cl		# %CY <= 1
 
 	mulq	%r14		# y[j] * x[i]
 	addq	%rax, %rbx	# Add low word to T0
+
 	movq	80(%r10), %rax	# Fetch m[j] into %rax
 	adcq	%rdx, %rsi	# Add high word with carry to T1
 	adcb	$0, %cl	# %CY <= 2
 	
 	mulq	%r11		# m[j]*u
 	addq	%rbx, %rax	# Add T0 and low word
+
 	movq	%rax, 72(%rbp)	# Store rbx in tmp[10-1]
 	adcq	%rdx, %rsi	# Add high word with carry to T1
 	movq	88(%r9), %rax	# Fetch y[j+1] = y[11] into %rax
@@ -967,18 +987,20 @@ GSYM_PREFIX`'mulredc20:
 # %rbp = tmp, %rsi = value to store in tmp[j], %rbx value to store in 
 # tmp[j+1], %rcx = carry into rbx, carry flag: also carry into rbx
 
-	movl	%ecx, %ebx	# T1 = CY
-	adcq	96(%rbp), %rbx	# T1 += tmp[j+1]
+	movq	96(%rbp), %rbx	# T1 = CY + tmp[j+1]
+	adcq	%rcx, %rbx
 	setc	%cl		# %CY <= 1
 
 	mulq	%r14		# y[j] * x[i]
 	addq	%rax, %rsi	# Add low word to T0
+
 	movq	88(%r10), %rax	# Fetch m[j] into %rax
 	adcq	%rdx, %rbx	# Add high word with carry to T1
 	adcb	$0, %cl	# %CY <= 2
 	
 	mulq	%r11		# m[j]*u
 	addq	%rsi, %rax	# Add T0 and low word
+
 	movq	%rax, 80(%rbp)	# Store rsi in tmp[11-1]
 	adcq	%rdx, %rbx	# Add high word with carry to T1
 	movq	96(%r9), %rax	# Fetch y[j+1] = y[12] into %rax
@@ -992,18 +1014,20 @@ GSYM_PREFIX`'mulredc20:
 # %rbp = tmp, %rbx = value to store in tmp[j], %rsi value to store in 
 # tmp[j+1], %rcx = carry into rsi, carry flag: also carry into rsi
 
-	movl	%ecx, %esi	# T1 = CY
-	adcq	104(%rbp), %rsi	# T1 += tmp[j+1]
+	movq	104(%rbp), %rsi	# T1 = CY + tmp[j+1]
+	adcq	%rcx, %rsi
 	setc	%cl		# %CY <= 1
 
 	mulq	%r14		# y[j] * x[i]
 	addq	%rax, %rbx	# Add low word to T0
+
 	movq	96(%r10), %rax	# Fetch m[j] into %rax
 	adcq	%rdx, %rsi	# Add high word with carry to T1
 	adcb	$0, %cl	# %CY <= 2
 	
 	mulq	%r11		# m[j]*u
 	addq	%rbx, %rax	# Add T0 and low word
+
 	movq	%rax, 88(%rbp)	# Store rbx in tmp[12-1]
 	adcq	%rdx, %rsi	# Add high word with carry to T1
 	movq	104(%r9), %rax	# Fetch y[j+1] = y[13] into %rax
@@ -1017,18 +1041,20 @@ GSYM_PREFIX`'mulredc20:
 # %rbp = tmp, %rsi = value to store in tmp[j], %rbx value to store in 
 # tmp[j+1], %rcx = carry into rbx, carry flag: also carry into rbx
 
-	movl	%ecx, %ebx	# T1 = CY
-	adcq	112(%rbp), %rbx	# T1 += tmp[j+1]
+	movq	112(%rbp), %rbx	# T1 = CY + tmp[j+1]
+	adcq	%rcx, %rbx
 	setc	%cl		# %CY <= 1
 
 	mulq	%r14		# y[j] * x[i]
 	addq	%rax, %rsi	# Add low word to T0
+
 	movq	104(%r10), %rax	# Fetch m[j] into %rax
 	adcq	%rdx, %rbx	# Add high word with carry to T1
 	adcb	$0, %cl	# %CY <= 2
 	
 	mulq	%r11		# m[j]*u
 	addq	%rsi, %rax	# Add T0 and low word
+
 	movq	%rax, 96(%rbp)	# Store rsi in tmp[13-1]
 	adcq	%rdx, %rbx	# Add high word with carry to T1
 	movq	112(%r9), %rax	# Fetch y[j+1] = y[14] into %rax
@@ -1042,18 +1068,20 @@ GSYM_PREFIX`'mulredc20:
 # %rbp = tmp, %rbx = value to store in tmp[j], %rsi value to store in 
 # tmp[j+1], %rcx = carry into rsi, carry flag: also carry into rsi
 
-	movl	%ecx, %esi	# T1 = CY
-	adcq	120(%rbp), %rsi	# T1 += tmp[j+1]
+	movq	120(%rbp), %rsi	# T1 = CY + tmp[j+1]
+	adcq	%rcx, %rsi
 	setc	%cl		# %CY <= 1
 
 	mulq	%r14		# y[j] * x[i]
 	addq	%rax, %rbx	# Add low word to T0
+
 	movq	112(%r10), %rax	# Fetch m[j] into %rax
 	adcq	%rdx, %rsi	# Add high word with carry to T1
 	adcb	$0, %cl	# %CY <= 2
 	
 	mulq	%r11		# m[j]*u
 	addq	%rbx, %rax	# Add T0 and low word
+
 	movq	%rax, 104(%rbp)	# Store rbx in tmp[14-1]
 	adcq	%rdx, %rsi	# Add high word with carry to T1
 	movq	120(%r9), %rax	# Fetch y[j+1] = y[15] into %rax
@@ -1067,18 +1095,20 @@ GSYM_PREFIX`'mulredc20:
 # %rbp = tmp, %rsi = value to store in tmp[j], %rbx value to store in 
 # tmp[j+1], %rcx = carry into rbx, carry flag: also carry into rbx
 
-	movl	%ecx, %ebx	# T1 = CY
-	adcq	128(%rbp), %rbx	# T1 += tmp[j+1]
+	movq	128(%rbp), %rbx	# T1 = CY + tmp[j+1]
+	adcq	%rcx, %rbx
 	setc	%cl		# %CY <= 1
 
 	mulq	%r14		# y[j] * x[i]
 	addq	%rax, %rsi	# Add low word to T0
+
 	movq	120(%r10), %rax	# Fetch m[j] into %rax
 	adcq	%rdx, %rbx	# Add high word with carry to T1
 	adcb	$0, %cl	# %CY <= 2
 	
 	mulq	%r11		# m[j]*u
 	addq	%rsi, %rax	# Add T0 and low word
+
 	movq	%rax, 112(%rbp)	# Store rsi in tmp[15-1]
 	adcq	%rdx, %rbx	# Add high word with carry to T1
 	movq	128(%r9), %rax	# Fetch y[j+1] = y[16] into %rax
@@ -1092,18 +1122,20 @@ GSYM_PREFIX`'mulredc20:
 # %rbp = tmp, %rbx = value to store in tmp[j], %rsi value to store in 
 # tmp[j+1], %rcx = carry into rsi, carry flag: also carry into rsi
 
-	movl	%ecx, %esi	# T1 = CY
-	adcq	136(%rbp), %rsi	# T1 += tmp[j+1]
+	movq	136(%rbp), %rsi	# T1 = CY + tmp[j+1]
+	adcq	%rcx, %rsi
 	setc	%cl		# %CY <= 1
 
 	mulq	%r14		# y[j] * x[i]
 	addq	%rax, %rbx	# Add low word to T0
+
 	movq	128(%r10), %rax	# Fetch m[j] into %rax
 	adcq	%rdx, %rsi	# Add high word with carry to T1
 	adcb	$0, %cl	# %CY <= 2
 	
 	mulq	%r11		# m[j]*u
 	addq	%rbx, %rax	# Add T0 and low word
+
 	movq	%rax, 120(%rbp)	# Store rbx in tmp[16-1]
 	adcq	%rdx, %rsi	# Add high word with carry to T1
 	movq	136(%r9), %rax	# Fetch y[j+1] = y[17] into %rax
@@ -1117,18 +1149,20 @@ GSYM_PREFIX`'mulredc20:
 # %rbp = tmp, %rsi = value to store in tmp[j], %rbx value to store in 
 # tmp[j+1], %rcx = carry into rbx, carry flag: also carry into rbx
 
-	movl	%ecx, %ebx	# T1 = CY
-	adcq	144(%rbp), %rbx	# T1 += tmp[j+1]
+	movq	144(%rbp), %rbx	# T1 = CY + tmp[j+1]
+	adcq	%rcx, %rbx
 	setc	%cl		# %CY <= 1
 
 	mulq	%r14		# y[j] * x[i]
 	addq	%rax, %rsi	# Add low word to T0
+
 	movq	136(%r10), %rax	# Fetch m[j] into %rax
 	adcq	%rdx, %rbx	# Add high word with carry to T1
 	adcb	$0, %cl	# %CY <= 2
 	
 	mulq	%r11		# m[j]*u
 	addq	%rsi, %rax	# Add T0 and low word
+
 	movq	%rax, 128(%rbp)	# Store rsi in tmp[17-1]
 	adcq	%rdx, %rbx	# Add high word with carry to T1
 	movq	144(%r9), %rax	# Fetch y[j+1] = y[18] into %rax
@@ -1142,18 +1176,20 @@ GSYM_PREFIX`'mulredc20:
 # %rbp = tmp, %rbx = value to store in tmp[j], %rsi value to store in 
 # tmp[j+1], %rcx = carry into rsi, carry flag: also carry into rsi
 
-	movl	%ecx, %esi	# T1 = CY
-	adcq	152(%rbp), %rsi	# T1 += tmp[j+1]
+	movq	152(%rbp), %rsi	# T1 = CY + tmp[j+1]
+	adcq	%rcx, %rsi
 	setc	%cl		# %CY <= 1
 
 	mulq	%r14		# y[j] * x[i]
 	addq	%rax, %rbx	# Add low word to T0
+
 	movq	144(%r10), %rax	# Fetch m[j] into %rax
 	adcq	%rdx, %rsi	# Add high word with carry to T1
 	adcb	$0, %cl	# %CY <= 2
 	
 	mulq	%r11		# m[j]*u
 	addq	%rbx, %rax	# Add T0 and low word
+
 	movq	%rax, 136(%rbp)	# Store rbx in tmp[18-1]
 	adcq	%rdx, %rsi	# Add high word with carry to T1
 	movq	152(%r9), %rax	# Fetch y[j+1] = y[19] into %rax

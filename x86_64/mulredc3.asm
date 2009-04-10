@@ -190,18 +190,20 @@ GSYM_PREFIX`'mulredc3:
 # %rbp = tmp, %rbx = value to store in tmp[j], %rsi value to store in 
 # tmp[j+1], %rcx = carry into rsi, carry flag: also carry into rsi
 
-	movl	%ecx, %esi	# T1 = CY
-	adcq	16(%rbp), %rsi	# T1 += tmp[j+1]
+	movq	16(%rbp), %rsi	# T1 = CY + tmp[j+1]
+	adcq	%rcx, %rsi
 	setc	%cl		# %CY <= 1
 
 	mulq	%r14		# y[j] * x[i]
 	addq	%rax, %rbx	# Add low word to T0
+
 	movq	8(%r10), %rax	# Fetch m[j] into %rax
 	adcq	%rdx, %rsi	# Add high word with carry to T1
 	adcb	$0, %cl	# %CY <= 2
 	
 	mulq	%r11		# m[j]*u
 	addq	%rbx, %rax	# Add T0 and low word
+
 	movq	%rax, 0(%rbp)	# Store rbx in tmp[1-1]
 	adcq	%rdx, %rsi	# Add high word with carry to T1
 	movq	16(%r9), %rax	# Fetch y[j+1] = y[2] into %rax
