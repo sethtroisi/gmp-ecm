@@ -252,9 +252,9 @@ define(`JM8', `eval(J - 8)')dnl
 ifdef(`WANT_ASSERT', `
         pushf
 	testq	%T0, %T0
-	jz	assert1
+	jz	assert3
 	call	abort
-assert1:
+assert3:
 	popf
 ',`')
 dnl Cycle ring buffer. Only mappings of T0 and T1 to regs change, no MOVs!
@@ -279,18 +279,20 @@ define(`JM8', `eval(J - 8)')dnl
 `#' %TP = tmp, %T0 = value to store in tmp[j], %T1 value to store in 
 `#' tmp[j+1], %CY = carry into T1, carry flag: also carry into T1
 
-	movl	%CYl, %T1l	# T1 = CY
-	adcq	J8`'(%TP), %T1	# T1 += tmp[j+1]
+	movq	J8`'(%TP), %T1	# T1 = CY + tmp[j+1]
+	adcq	%CY, %T1
 	setc	%CYb		# %CY <= 1
 
 	mulq	%XI		# y[j] * x[i]
 	addq	%rax, %T0	# Add low word to T0
+
 	movq	J`'(%MP), %rax	# Fetch m[j] into %rax
 	adcq	%rdx, %T1	# Add high word with carry to T1
 	adcb	$0, %CYb	# %CY <= 2
 	
 	mulq	%U		# m[j]*u
 	addq	%T0, %rax	# Add T0 and low word
+
 	movq	%rax, JM8`'(%TP)	`#' Store T0 in tmp[UNROLL-1]
 	adcq	%rdx, %T1	# Add high word with carry to T1
 	movq	J8`'(%YP), %rax	`#' Fetch y[j+1] = y[eval(UNROLL+1)] into %rax
