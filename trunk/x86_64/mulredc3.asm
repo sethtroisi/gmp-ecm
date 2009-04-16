@@ -190,8 +190,8 @@ GSYM_PREFIX`'mulredc3:
 # %rbp = tmp, %rbx = value to store in tmp[j], %rsi value to store in 
 # tmp[j+1], %rcx = carry into rsi, carry flag: also carry into rsi
 
-	movq	16(%rbp), %rsi	# T1 = CY + tmp[j+1]
-	adcq	%rcx, %rsi
+	movq	16(%rbp), %rsi
+	adcq	%rcx, %rsi	# T1 = CY + tmp[j+1]
 	setc	%cl		# %CY <= 1
 
 	mulq	%r14		# y[j] * x[i]
@@ -213,8 +213,8 @@ GSYM_PREFIX`'mulredc3:
 
 # Pass for j = 2. Don't fetch new data from y[j+1].
 
-	movl	%ecx, %ebx	# T1 = CY
-	adcq	24(%rbp), %rbx	# T1 += tmp[j+1]
+	movq	24(%rbp), %rbx
+	adcq	%rcx, %rbx	# T1 = CY + tmp[j+1]
 	
 	mulq	%r14		# y[j] * x[i]
 	addq	%rax, %rsi	# Add low word to T0

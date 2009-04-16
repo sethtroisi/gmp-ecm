@@ -155,8 +155,8 @@ GSYM_PREFIX`'mulredc2:
 
 # Pass for j = 1. Don't fetch new data from y[j+1].
 
-	movl	%ecx, %ebx	# T1 = CY
-	adcq	16(%rbp), %rbx	# T1 += tmp[j+1]
+	movq	16(%rbp), %rbx
+	adcq	%rcx, %rbx	# T1 = CY + tmp[j+1]
 	
 	mulq	%r14		# y[j] * x[i]
 	addq	%rax, %rsi	# Add low word to T0
