@@ -6,8 +6,16 @@ Instructions to install GMP-ECM:
    Remark: GNU MP is already installed in most Linux distributions.
    However it is often an old version, moreover without processor-specific
    optimizations. If you care about efficiency, be sure to install the
-   latest version of GNU MP (4.2.4 as of March 2009), and to compile it
+   latest version of GNU MP (4.3 as of April 2009), and to compile it
    for your particular processor.
+   Warning: make sure you have only one version of GMP installed on your
+   system at a given time. Frequently, after compiling GMP from source
+   and installing it without removing the distribution's GMP package,
+   later attempts to build software that uses GMP find the GMP header 
+   file from the distribution's GMP package and the library from the 
+   newly compiled GMP (or vice versa). GMP-ECM tries to detect this by
+   comparing the version number from header and library; if this test 
+   fails, you should remove the obsolete GMP installation.
 
 1) check your configuration with:
 
@@ -47,8 +55,8 @@ Instructions to install GMP-ECM:
    some Sempron, Via C7), use of SSE2 instructions in stage 2 of P-1, P+1, 
    and ECM is enabled by default. You can enable it manually by adding the
    command line parameter "--enable-sse2" and disable it by adding 
-   "--disable-sse2" to ./configure. The SSE2 code is not used on 64-bit
-   systems, regardless of these parameters.
+   "--disable-sse2" to ./configure. The SSE2 code is not used in 64-bit
+   builds, regardless of these parameters.
 
    Note 3: If you want to use George Woltman's GWNUM library for speeding up
    factoring base 2 numbers, obtain the file "gwnum_gpl_linux.tgz" from
@@ -109,7 +117,7 @@ Instructions to install GMP-ECM:
 
 6) If you like GMP-ECM, please help us factoring Cunningham numbers. First
    download "cunningham.in" on <http://www.loria.fr/~zimmerma/ecmnet/>, then
-   perform one ecm test with B1=43e6 on each number of this file:
+   perform one ecm test with B1=110e6 on each number of this file:
 
    $ ./ecm 110e6 < cunningham.in > cunningham.out &
 
@@ -146,28 +154,28 @@ Step-by-step instructions, courtesy of Jes Hansen:
    Now you get an icon on the desktop where you can start the MinSys. Do
    this, because is creates your home folder. Then exit it again.
 
-4) Download the latest version of GMP (in March 2009 the latest
-   version is 4.2.4, this will be assumed for the rest of this document) 
+4) Download the latest version of GMP (in April 2009 the latest
+   version is 4.3, this will be assumed for the rest of this document) 
    in .tar.gz format from http://gmplib.org/ and place it in your 
    newly created home folder. The home folder is in C:\GNU\msys\home and 
    has the same name as your Windows login name.
 
 5) Download GMP-ECM (if you do not have it already) from
    http://www.loria.fr/~zimmerma/records/ecmnet.html (check the News section
-   for the latest release, at the time of writing 6.2.2) and place it in your
+   for the latest release, at the time of writing 6.2.3) and place it in your
    home folder as well. You won't need an internet connection from now on, 
    feel free to disconnect.
 
 6) Start the MinSys up again from the desktop and type 
-   tar -xvzf gmp-4.2.4.tar.gz
-   cd gmp-4.2.4
+   tar -xvzf gmp-4.3.0.tar.gz
+   cd gmp-4.3.0
    ./configure
    make install
    cd ~
 
 7) You are back in your home directory. Now type
-  tar -xvzf ecm-6.2.2.tar.gz
-  cd ecm-6.2.2
+  tar -xvzf ecm-6.2.3.tar.gz
+  cd ecm-6.2.3
   ./configure --with-gmp=/usr/local
   make
 
@@ -182,7 +190,7 @@ In case of a problem, report it to us, with:
 
 - the versions of GMP-ECM and GMP used (first output line), for example:
   
-  GMP-ECM 6.2.2 [powered by GMP 4.2.4] [P+1]
+  GMP-ECM 6.2.3 [powered by GMP 4.3.0] [P+1]
 
 - the detailed input enabling us to reproduce the problem, for example:
 
