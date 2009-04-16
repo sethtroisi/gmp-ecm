@@ -279,8 +279,8 @@ define(`JM8', `eval(J - 8)')dnl
 `#' %TP = tmp, %T0 = value to store in tmp[j], %T1 value to store in 
 `#' tmp[j+1], %CY = carry into T1, carry flag: also carry into T1
 
-	movq	J8`'(%TP), %T1	# T1 = CY + tmp[j+1]
-	adcq	%CY, %T1
+	movq	J8`'(%TP), %T1
+	adcq	%CY, %T1	# T1 = CY + tmp[j+1]
 	setc	%CYb		# %CY <= 1
 
 	mulq	%XI		# y[j] * x[i]
@@ -315,8 +315,8 @@ define(`J', `eval(8*LENGTH - 8)')dnl
 define(`J8', `eval(J + 8)')dnl
 define(`JM8', `eval(J - 8)')dnl
 
-	movl	%CYl, %T1l	# T1 = CY
-	adcq	J8`'(%TP), %T1	# T1 += tmp[j+1]
+	movq	J8`'(%TP), %T1
+	adcq	%CY, %T1	# T1 = CY + tmp[j+1]
 	
 	mulq	%XI		# y[j] * x[i]
 	addq	%rax, %T0	# Add low word to T0

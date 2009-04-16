@@ -345,8 +345,8 @@ GSYM_PREFIX`'mulredc8:
 # %rbp = tmp, %rsi = value to store in tmp[j], %rbx value to store in 
 # tmp[j+1], %rcx = carry into rbx, carry flag: also carry into rbx
 
-	movq	16(%rbp), %rbx	# T1 = CY + tmp[j+1]
-	adcq	%rcx, %rbx
+	movq	16(%rbp), %rbx
+	adcq	%rcx, %rbx	# T1 = CY + tmp[j+1]
 	setc	%cl		# %CY <= 1
 
 	mulq	%r14		# y[j] * x[i]
@@ -372,8 +372,8 @@ GSYM_PREFIX`'mulredc8:
 # %rbp = tmp, %rbx = value to store in tmp[j], %rsi value to store in 
 # tmp[j+1], %rcx = carry into rsi, carry flag: also carry into rsi
 
-	movq	24(%rbp), %rsi	# T1 = CY + tmp[j+1]
-	adcq	%rcx, %rsi
+	movq	24(%rbp), %rsi
+	adcq	%rcx, %rsi	# T1 = CY + tmp[j+1]
 	setc	%cl		# %CY <= 1
 
 	mulq	%r14		# y[j] * x[i]
@@ -399,8 +399,8 @@ GSYM_PREFIX`'mulredc8:
 # %rbp = tmp, %rsi = value to store in tmp[j], %rbx value to store in 
 # tmp[j+1], %rcx = carry into rbx, carry flag: also carry into rbx
 
-	movq	32(%rbp), %rbx	# T1 = CY + tmp[j+1]
-	adcq	%rcx, %rbx
+	movq	32(%rbp), %rbx
+	adcq	%rcx, %rbx	# T1 = CY + tmp[j+1]
 	setc	%cl		# %CY <= 1
 
 	mulq	%r14		# y[j] * x[i]
@@ -426,8 +426,8 @@ GSYM_PREFIX`'mulredc8:
 # %rbp = tmp, %rbx = value to store in tmp[j], %rsi value to store in 
 # tmp[j+1], %rcx = carry into rsi, carry flag: also carry into rsi
 
-	movq	40(%rbp), %rsi	# T1 = CY + tmp[j+1]
-	adcq	%rcx, %rsi
+	movq	40(%rbp), %rsi
+	adcq	%rcx, %rsi	# T1 = CY + tmp[j+1]
 	setc	%cl		# %CY <= 1
 
 	mulq	%r14		# y[j] * x[i]
@@ -453,8 +453,8 @@ GSYM_PREFIX`'mulredc8:
 # %rbp = tmp, %rsi = value to store in tmp[j], %rbx value to store in 
 # tmp[j+1], %rcx = carry into rbx, carry flag: also carry into rbx
 
-	movq	48(%rbp), %rbx	# T1 = CY + tmp[j+1]
-	adcq	%rcx, %rbx
+	movq	48(%rbp), %rbx
+	adcq	%rcx, %rbx	# T1 = CY + tmp[j+1]
 	setc	%cl		# %CY <= 1
 
 	mulq	%r14		# y[j] * x[i]
@@ -480,8 +480,8 @@ GSYM_PREFIX`'mulredc8:
 # %rbp = tmp, %rbx = value to store in tmp[j], %rsi value to store in 
 # tmp[j+1], %rcx = carry into rsi, carry flag: also carry into rsi
 
-	movq	56(%rbp), %rsi	# T1 = CY + tmp[j+1]
-	adcq	%rcx, %rsi
+	movq	56(%rbp), %rsi
+	adcq	%rcx, %rsi	# T1 = CY + tmp[j+1]
 	setc	%cl		# %CY <= 1
 
 	mulq	%r14		# y[j] * x[i]
@@ -503,8 +503,8 @@ GSYM_PREFIX`'mulredc8:
 
 # Pass for j = 7. Don't fetch new data from y[j+1].
 
-	movl	%ecx, %ebx	# T1 = CY
-	adcq	64(%rbp), %rbx	# T1 += tmp[j+1]
+	movq	64(%rbp), %rbx
+	adcq	%rcx, %rbx	# T1 = CY + tmp[j+1]
 	
 	mulq	%r14		# y[j] * x[i]
 	addq	%rax, %rsi	# Add low word to T0
