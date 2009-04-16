@@ -1,8 +1,8 @@
 This is the README file for GMP-ECM. (See README.lib for the ecm library.)
 
 Table of contents of this file:
-1. Files included in this distribution.
-2. How to efficiently use P-1, P+1 and ECM?
+1. Basic usage.
+2. How to use P-1, P+1, and ECM efficiently?
 3. Extra factors and Brent-Suyama's extension.
 4. Memory usage.
 5. Expression syntax reference for GMP-ECM's syntax parser.
@@ -14,28 +14,49 @@ Table of contents of this file:
 
 ##############################################################################
 
-1. Files included in this distribution.
+1. Basic usage
 
-(this is a non-exhaustive list)
+GMP-ECM reads the numbers to be factored from stdin (one number on each
+line) and requires a numerical parameter, the stage 1 bound B1. A reasonable 
+stage 2 bound B2 for the given B1 is chosen by default, but can be overridden 
+by a second numerical parameter. By default, GMP-ECM uses the ECM factoring 
+algorithm.
 
-AUTHORS      - program authors
-*.c          - C source files
-COPYING      - GNU General Public License
-COPYING.LIB  - GNU Lesser General Public License
-ChangeLog    - detailed development log messages
-ecm.1        - documentation (man format)
-ecm.xml      - documentation (XML format)
-*.h          - header files
-INSTALL      - instructions to compile and install GMP-ECM
-Makefile*    - to build the binary files and the library
-NEWS         - changes between different versions
-README       - this file
-README.lib   - documentation for the ecm library
-TODO         - to-do list
+Example: To run one curve of ECM with B1=1000000 on each number in the file
+"composites", run
+
+ecm 1000000 < composites
+
+To use a B2 value of ~5*10^8 instead of the default value of ~10^9, run
+
+ecm 1000000 5e8 < composites
+
+Scientific notation is accepted for B1 and B2 values. The actual B2 value
+used may be larger than the specified value to let parameters satisfy some 
+conditions imposed by the stage 2 algorithm.
+
+To run more than one ECM curve on each input number, use the -c parameter.
+
+Example: to run 100 curves with B1=1000000 and default B2 on each number 
+in "composites", run
+
+ecm -c 100 1000000 < composites
+
+To use the P-1 or P+1 factoring methods, use the -pm1 or -pp1 parameter,
+respectively.
+
+Example: to use the P-1 method with B1=10^9 on all numbers in the file 
+"composites", run
+
+ecm -pm1 1e9 < composites
+
+Note that, unlike for ECM, using the same B1,B2 bounds on one number is 
+quite useless for P-1, and of limited use for P+1. See "2. How to use P-1, 
+P+1, and ECM efficiently?"
 
 ##############################################################################
 
-2. How to use P-1, P+1 and ECM efficiently?
+2. How to use P-1, P+1, and ECM efficiently?
 
 The P-1 method works well when the input number has a prime factor P such
 that P-1 is "smooth", i.e., has all its prime factor less or equal the 
@@ -394,7 +415,7 @@ The format used is the following:
   For ECM, one of the SIGMA or A values must be present, so that the
   computation can be continued on the correct curve.
   The B1 and X values satisfy the condition that X is a lcm(1,2,...,B1)-th
-  power in the (multiplicativly written) group.
+  power in the (multiplicatively written) group.
 
 If consecutive lines in a save file being resumed contain the same number to
 be factored, say when many ECM curves on one number have been saved, factors
@@ -482,7 +503,7 @@ The parameter -idlecmd <cmd> will make GMP-ECM run <cmd> before each ECM,
 P-1 or P+1 attempt on a number. If the exit status of <cmd> is non-zero,
 GMP-ECM terminates immediately, otherwise it continues normally. GMP-ECM
 resumes only after <cmd> has terminated, so this is a way for letting
-GMP-ECM sleep i.e., while the system is busy - just let <cmd> sleep until the
+GMP-ECM sleep while the system is busy - just let <cmd> sleep until the
 system is idle again.
 
 ##############################################################################
@@ -537,9 +558,11 @@ there is no ecm-params.h.* for your machine then you can either compile with
 default values (not recommended) or you can generate ecm-params.h first with
 "make ecm-params; make".
 
-Stage 2 now uses Number-Theoretic Transforms (NTT) for polynomial arithmetic by
-default. The NTT code forces dF to be a power of 2; it can be disabled by
-passing the command-line option -no-ntt. Performance of NTT is dependent on:
+Stage 2 now uses Number-Theoretic Transforms (NTT) for polynomial arithmetic 
+by default for numbers of at most 30 machine words (NTT_SIZE_THRESHOLD in
+ecm-ecm.h). The NTT code forces dF to be a power of 2; it can be disabled by
+passing the command-line option -no-ntt and unconditionally enabled by -ntt. 
+Performance of NTT is dependent on:
 - Architecture. NTT seems to give the greatest improvement on Athlons,
   and the least improvement on Pentiums without SSE2.
 - Thresholds. It is vital to have ecm-params.h properly tuned for your machine.
