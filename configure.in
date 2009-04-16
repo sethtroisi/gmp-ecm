@@ -224,11 +224,12 @@ AC_RUN_IFELSE([AC_LANG_PROGRAM([[
 #include <gmp.h>
 ]],[[
 char buffer[100];
-if (__GNU_MP_VERSION_PATCHLEVEL != 0)
+if (__GNU_MP_VERSION == 4 && __GNU_MP_VERSION_MINOR <= 2 && 
+    __GNU_MP_VERSION_PATCHLEVEL == 0)
+  sprintf (buffer, "%d.%d", __GNU_MP_VERSION, __GNU_MP_VERSION_MINOR);
+else
   sprintf (buffer, "%d.%d.%d", __GNU_MP_VERSION, __GNU_MP_VERSION_MINOR,
    __GNU_MP_VERSION_PATCHLEVEL);
-else
-  sprintf (buffer, "%d.%d", __GNU_MP_VERSION, __GNU_MP_VERSION_MINOR);
 printf ("(%s/%s) ", buffer, gmp_version);
 return strcmp (buffer, gmp_version);
 ]])], AC_MSG_RESULT(yes),
