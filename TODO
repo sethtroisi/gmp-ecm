@@ -9,6 +9,7 @@ Table of contents:
 6) others
 
 1) efficiency/memory
+- try the mpn/generic/{sb,dc,mu}_bdiv_qr.c functions in GMP >= 4.3.0 for REDC
 - the conversion from mpz_t to NTT primes in function mpzspv_from_mpzv()
   (file mpzspv.c) is quadratic. A faster conversion is possible with a
   remainder tree (in addition since several conversions are made, the
