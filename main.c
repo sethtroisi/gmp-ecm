@@ -715,10 +715,20 @@ main (int argc, char *argv[])
   if (verbose >= 1)
     {
 #ifdef HAVE_GWNUM
-      printf ("GMP-ECM %s [powered by GMP %s and GWNUM %s] [", 
+#ifdef NATIVE_REDC
+      printf ("GMP-ECM %s [configured with GMP %s, GWNUM %s and --enable-asm-redc] [", 
               VERSION, gmp_version, GWNUM_VERSION);
 #else
-      printf ("GMP-ECM %s [powered by GMP %s] [", VERSION, gmp_version);
+      printf ("GMP-ECM %s [configured with GMP %s and GWNUM %s] [", 
+              VERSION, gmp_version, GWNUM_VERSION);
+#endif
+#else
+#ifdef NATIVE_REDC
+      printf ("GMP-ECM %s [configured with GMP %s and --enable-asm-redc] [",
+              VERSION, gmp_version);
+#else
+      printf ("GMP-ECM %s [configured with GMP %s] [", VERSION, gmp_version);
+#endif
 #endif
       switch (method)
 	{
