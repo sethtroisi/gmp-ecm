@@ -1102,8 +1102,8 @@ BreadthFirstDoAgain:;
 	}
     }
 
-  while (((breadthfirst && linenum < nCandidates) || feof (infile) == 0)
-         && !exit_asap_value)
+  while (((breadthfirst && linenum < nCandidates) || cnt > 0 || 
+          feof (infile) == 0) && !exit_asap_value)
     {
       trial_factor_found = 0;
       params->B1done = B1done; /* may change with resume */
