@@ -86,11 +86,11 @@ AM_CONDITIONAL(ENABLE_ASM_REDC, test "x$enable_asm_redc" = "xyes")
 AC_ARG_ENABLE(sse2,
 AS_HELP_STRING([--enable-sse2], [use SSE2 instructions in NTT code (default=yes for Pentium 4, no for others)]),
 [],[])
-if test "x$enable_sse2" == "xyes"; then
+if test "x$enable_sse2" = "xyes"; then
   AC_DEFINE(HAVE_SSE2,1,[Define to 1 to enable SSE2 instructions in NTT code])
   CFLAGS="$CFLAGS -msse2"
   AC_MSG_RESULT(SSE2 in NTT enabled)
-elif test "x$enable_sse2" == "x"; then
+elif test "x$enable_sse2" = "x"; then
 dnl Default: if we build for Pentium 4, enable SSE2 code for the NTT
 case $host in
   pentium4-*-* | i786-*-*) 
@@ -162,7 +162,7 @@ AC_CHECK_FUNCS([malloc_usable_size])
 
 
 dnl If we use GCC, add some warning flags
-if test "x$GCC" == "xyes"; then
+if test "x$GCC" = "xyes"; then
   CFLAGS="-Wall -W -Wundef -pedantic $CFLAGS"
 fi
 
