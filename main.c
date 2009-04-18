@@ -244,6 +244,67 @@ usage (void)
     printf ("  -h, --help   Prints this help and exit.\n");
 }
 
+/* Print parameters that were used to build GMP-ECM */
+static void
+print_config ()
+{
+  printf ("Compilation options:\n");
+#ifdef __GNU_MP_VERSION_PATCHLEVEL
+  printf ("Included GMP header files version %d.%d.%d\n", 
+          __GNU_MP_VERSION, __GNU_MP_VERSION_MINOR, __GNU_MP_VERSION_PATCHLEVEL);
+#else
+  printf ("Included GMP header files version %d.%d\n", 
+          __GNU_MP_VERSION, __GNU_MP_VERSION_MINOR);
+#endif
+
+#ifdef GWNUM_VERSION
+  printf ("Included GWNUM header files version %s\n", GWNUM_VERSION);
+#else
+  printf ("GWNUM_VERSION undefined\n");
+#endif
+
+#ifdef HAVE_SSE2
+  printf ("HAVE_SSE2 = %d\n$", HAVE_SSE2);
+#else
+  printf ("HAVE_SSE2 undefined\n");
+#endif
+
+#ifdef HAVE___GMPN_ADD_NC
+  printf ("HAVE___GMPN_ADD_NC = %d\n", HAVE___GMPN_ADD_NC);
+#else
+  printf ("HAVE___GMPN_ADD_NC undefined\n");
+#endif
+
+#ifdef HAVE___GMPN_MOD_34LSUB1
+  printf ("HAVE___GMPN_MOD_34LSUB1 = %d\n", HAVE___GMPN_MOD_34LSUB1);
+#else
+  printf ("HAVE___GMPN_MOD_34LSUB1 undefined\n");
+#endif
+
+#ifdef MEMORY_DEBUG
+  printf ("MEMORY_DEBUG = %d\n", MEMORY_DEBUG);
+#else
+  printf ("MEMORY_DEBUG undefined\n");
+#endif
+
+#ifdef NATIVE_REDC
+  printf ("NATIVE_REDC = %d\n", NATIVE_REDC);
+#else
+  printf ("NATIVE_REDC undefined\n");
+#endif
+
+#ifdef WANT_ASSERT
+  printf ("WANT_ASSERT = %d\n", WANT_ASSERT);
+#else
+  printf ("WANT_ASSERT undefined\n");
+#endif
+
+#ifdef WANT_SHELLCMD
+  printf ("WANT_SHELLCMD = %d\n", WANT_SHELLCMD);
+#else
+  printf ("WANT_SHELLCMD undefined\n");
+#endif
+}
 
 
 /******************************************************************************
@@ -263,6 +324,7 @@ main (int argc, char *argv[])
   double B1, B1done;
   int result = 0, returncode = 0;
   int verbose = OUTPUT_NORMAL; /* verbose level */
+  int printconfig = 0;
   int timestamp = 0;
   int method = ECM_ECM, method1;
   int use_ntt = 1;     /* Default, use NTT if input is small enough */
@@ -686,6 +748,12 @@ main (int argc, char *argv[])
          argc -= 2;
        }
 #endif
+      else if (strcmp (argv[1], "-printconfig") == 0)
+        {
+          printconfig = 1;
+          argv++;
+          argc--;
+        }
       else
 	{
 	  fprintf (stderr, "Unknown option: %s\n", argv[1]);
@@ -742,6 +810,8 @@ main (int argc, char *argv[])
 	  printf ("ECM");
 	}
       printf ("]\n");
+  if (printconfig)
+    print_config ();
 #ifdef HAVE_GETHOSTNAME
   if (verbose >= 2)
     {
