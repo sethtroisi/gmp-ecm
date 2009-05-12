@@ -120,6 +120,11 @@ mpzspm_init (spv_size_t max_len, mpz_t modulus)
   st = cputime ();
 
   mpzspm = (mpzspm_t) malloc (sizeof (__mpzspm_struct));
+  if (mpzspm == NULL)
+    {
+      fprintf (stderr, "Cannot allocate memory in mpzspm_init\n");
+      exit (1);
+    }
   
   /* Upper bound for the number of primes we need.
    * Let minp, maxp denote the min, max permissible prime,
@@ -140,6 +145,11 @@ mpzspm_init (spv_size_t max_len, mpz_t modulus)
       4 * SP_NUMB_BITS) / (SP_NUMB_BITS - 1);
   
   mpzspm->spm = (spm_t *) malloc (ub * sizeof (spm_t));
+  if (mpzspm->spm == NULL)
+    {
+      fprintf (stderr, "Cannot allocate memory in mpzspm_init\n");
+      exit (1);
+    }
   mpzspm->sp_num = 0;
 
   /* product of primes selected so far */
@@ -206,9 +216,22 @@ mpzspm_init (spv_size_t max_len, mpz_t modulus)
   mpzspm->crt3 = (spv_t) malloc (mpzspm->sp_num * sizeof (sp_t));
   mpzspm->crt4 = (spv_t *) malloc (mpzspm->sp_num * sizeof (spv_t));
   mpzspm->crt5 = (spv_t) malloc (mpzspm->sp_num * sizeof (sp_t));
+  if (mpzspm->crt1 == NULL || mpzspm->crt2 == NULL || mpzspm->crt3 == NULL ||
+      mpzspm->crt4 == NULL || mpzspm->crt5 == NULL)
+    {
+      fprintf (stderr, "Cannot allocate memory in mpzspm_init\n");
+      exit (1);
+    }
 
   for (i = 0; i < mpzspm->sp_num; i++)
-    mpzspm->crt4[i] = (spv_t) malloc (mpzspm->sp_num * sizeof (sp_t));
+    {
+      mpzspm->crt4[i] = (spv_t) malloc (mpzspm->sp_num * sizeof (sp_t));
+      if (mpzspm->crt4[i] == NULL)
+        {
+          fprintf (stderr, "Cannot allocate memory in mpzspm_init\n");
+          exit (1);
+        }
+    }
   
   for (i = 0; i < mpzspm->sp_num; i++)
     {

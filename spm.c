@@ -19,6 +19,7 @@
   MA 02110-1301, USA.
 */
 
+#include <stdio.h> /* for stderr */
 #include <stdlib.h>
 #include "sp.h"
 
@@ -52,6 +53,11 @@ nttdata_init (const sp_t sp, const sp_t mul_c,
 
   r = data->ntt_roots = 
 	  (spv_t) sp_aligned_malloc ((log2_len + 1) * sizeof(sp_t));
+  if (r == NULL)
+    {
+      fprintf (stderr, "Cannot allocate memory in nttdata_init\n");
+      exit (1);
+    }
 
   i = log2_len;
   r[i] = prim_root;
@@ -60,6 +66,11 @@ nttdata_init (const sp_t sp, const sp_t mul_c,
 
   k = MIN(log2_len, breakover);
   t = data->twiddle = (spv_t) sp_aligned_malloc (sizeof(sp_t) << k);
+  if (t == NULL)
+    {
+      fprintf (stderr, "Cannot allocate memory in nttdata_init\n");
+      exit (1);
+    }
   data->twiddle_size = 1 << k;
 
   for (i = k; i; i--) 
@@ -86,6 +97,12 @@ spm_init (spv_size_t n, sp_t sp)
   sp_t a, b, bd, sc;
   spv_size_t q, nc, ntt_power;
   spm_t spm = (spm_t) malloc (sizeof (__spm_struct));
+
+  if (spm == NULL)
+    {
+      fprintf (stderr, "Cannot allocate memory in spm_init\n");
+      exit (1);
+    }
 
   ASSERT (sp % (sp_t) n == (sp_t) 1);
 

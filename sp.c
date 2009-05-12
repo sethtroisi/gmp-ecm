@@ -18,9 +18,9 @@
   MA 02110-1301, USA.
 */
 
+#include <stdio.h> /* for stderr */
 #include <stdlib.h>
 #include "sp.h"
-
 
 /* Test if m is a base "a" strong probable prime */
 
@@ -100,6 +100,11 @@ sp_aligned_malloc (size_t len)
   unsigned long addr;
 
   ptr = malloc (len + CACHE_LINE_SIZE);
+  if (ptr == NULL)
+    {
+      fprintf (stderr, "Cannot allocate memory in sp_aligned_malloc\n");
+      exit (1);
+    }
 
   addr = (unsigned long)ptr;				
   addr = CACHE_LINE_SIZE - (addr % CACHE_LINE_SIZE);
@@ -119,4 +124,3 @@ sp_aligned_free (void *newptr)
   ptr = *( (void **)newptr - 1 );
   free (ptr);
 }
-

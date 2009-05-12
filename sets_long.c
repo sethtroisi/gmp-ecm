@@ -603,6 +603,11 @@ selftest (const unsigned long beta)
   /* Test that the sumset % beta is equal to (Z/betaZ)* % beta */
   phibeta = eulerphi (beta);
   sumset = malloc (set_sizeof (phibeta));
+  if (sumset == NULL)
+    {
+      fprintf (stderr, "Cannot allocate memory in selftest\n");
+      exit (1);
+    }
   sets_sumset (sumset, sets);
   ASSERT_ALWAYS (sumset->card = phibeta);
   /* Also test that max (sumset) == sets_max (beta) */

@@ -710,6 +710,11 @@ main (int argc, char *argv[])
               free (go.cpOrigExpr);
             }
 	  go.cpOrigExpr = malloc (strlen (argv[2]) + 1);
+          if (go.cpOrigExpr == NULL)
+            {
+              fprintf (stderr, "Cannot allocate memory in main\n");
+              exit (1);
+            }
 	  strcpy (go.cpOrigExpr, argv[2]);
 	  if (strchr (go.cpOrigExpr, 'N'))
 	    {

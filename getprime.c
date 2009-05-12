@@ -126,7 +126,11 @@ getprime ()
       len *= 2;
       sieve = (unsigned char *) malloc ((len + 1) * sizeof (unsigned char));
       /* assume this "small" malloc will not fail in normal usage */
-      ASSERT(sieve != NULL);
+      if (sieve == NULL)
+        {
+          fprintf (stderr, "Cannot allocate memory in getprime\n");
+          exit (1);
+        }
     }
 
   /* now enlarge small prime table if too small */
