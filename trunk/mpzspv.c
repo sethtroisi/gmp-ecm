@@ -19,6 +19,7 @@
   MA 02110-1301, USA.
 */
 
+#include <stdio.h> /* for stderr */
 #include <stdlib.h>
 #include <string.h> /* for memset */
 #include "sp.h"
@@ -253,6 +254,12 @@ mpzspv_to_mpzv (mpzspv_t x, spv_size_t offset, mpzv_t mpzv,
   sp_t t;
   spm_t *spm = mpzspm->spm;
   mpz_t mt;
+
+  if (f == NULL)
+    {
+      fprintf (stderr, "Cannot allocate memory in mpzspv_to_mpzv\n");
+      exit (1);
+    }
   
   ASSERT (mpzspv_verify (x, offset, len, mpzspm));
   
@@ -335,10 +342,15 @@ mpzspv_normalise (mpzspv_t x, spv_size_t offset, spv_size_t len,
   ASSERT (mpzspv_verify (x, offset, len, mpzspm)); 
   
   f = (float *) malloc (MPZSPV_NORMALISE_STRIDE * sizeof (float));
-  t = mpzspv_init (MPZSPV_NORMALISE_STRIDE, mpzspm);
-  
   s = (spv_t) malloc (3 * MPZSPV_NORMALISE_STRIDE * sizeof (sp_t));
   d = (spv_t) malloc (3 * MPZSPV_NORMALISE_STRIDE * sizeof (sp_t));
+  if (f == NULL || s == NULL || d == NULL)
+    {
+      fprintf (stderr, "Cannot allocate memory in mpzspv_normalise\n");
+      exit (1);
+    }
+  t = mpzspv_init (MPZSPV_NORMALISE_STRIDE, mpzspm);
+  
   memset (s, 0, 3 * MPZSPV_NORMALISE_STRIDE * sizeof (sp_t));
 
   for (l = 0; l < len; l += MPZSPV_NORMALISE_STRIDE)
@@ -469,4 +481,3 @@ mpzspv_random (mpzspv_t x, spv_size_t offset, spv_size_t len, mpzspm_t mpzspm)
   for (i = 0; i < mpzspm->sp_num; i++)
     spv_random (x[i] + offset, len, mpzspm->spm[i]->sp);
 }
-

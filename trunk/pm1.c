@@ -116,6 +116,11 @@ mulcascade_mul_d (mul_casc *c, const double n, ATTRIBUTE_UNUSED mpz_t t)
   
   i = c->size++;
   c->val = (mpz_t*) realloc (c->val, c->size * sizeof (mpz_t));
+  if (c->val == NULL)
+    {
+      fprintf (stderr, "Cannot allocate memory in mulcascade_mul_d\n");
+      exit (1);
+    }
   mpz_init (c->val[i]);
   mpz_swap (c->val[i], c->val[i-1]);
 
@@ -154,6 +159,11 @@ mulcascade_mul (mul_casc *c, mpz_t n)
   
   i = c->size++;
   c->val = (mpz_t*) realloc (c->val, c->size * sizeof (mpz_t));
+  if (c->val == NULL)
+    {
+      fprintf (stderr, "Cannot allocate memory in mulcascade_mul\n");
+      exit (1);
+    }
   mpz_init (c->val[i]);
   mpz_swap (c->val[i], c->val[i-1]);
 

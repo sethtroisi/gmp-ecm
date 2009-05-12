@@ -482,8 +482,12 @@ stage2 (mpz_t f, void *X, mpmod_t modulus, unsigned long dF, unsigned long k,
   if (TreeFilename != NULL)
     {
       FILE *TreeFile;
-      /* assume this "small" malloc will not fail in normal usage */
       char *fullname = (char *) malloc (strlen (TreeFilename) + 1 + 2 + 1);
+      if (fullname == NULL)
+        {
+          fprintf (stderr, "Cannot allocate memory in stage2\n");
+          exit (1);
+        }
       
       for (i = lgk; i > 0; i--)
         {
@@ -912,6 +916,11 @@ free_Tree_i:
     {
       /* Unlink any treefiles still in use */
       char *fullname = (char *) malloc (strlen (TreeFilename) + 1 + 2 + 1);
+      if (fullname == NULL)
+        {
+          fprintf (stderr, "Cannot allocate memory in stage2\n");
+          exit (1);
+        }
       for (i = 0; i < treefiles_used; i++)
         {
           sprintf (fullname, "%s.%lu", TreeFilename, i);

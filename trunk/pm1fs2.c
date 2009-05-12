@@ -2783,6 +2783,11 @@ pm1fs2 (mpz_t f, const mpres_t X, mpmod_t modulus,
 				     the leading 1 monomial for each factor */
   F = init_list2 (lenF, (unsigned int) abs (modulus->bits));
   h = malloc ((params->s_1 + 1) * sizeof (mpz_t));
+  if (h == NULL)
+    {
+      fprintf (stderr, "Cannot allocate memory in pm1fs2\n");
+      exit (1);
+    }
   lenG = params->l;
   g = init_list2 (lenG, (unsigned int) abs (modulus->bits));
   lenR = nr;
@@ -4140,6 +4145,11 @@ pp1fs2 (mpz_t f, const mpres_t X, mpmod_t modulus,
   fh_y = init_list2 (lenF, (unsigned int) abs (modulus->bits));
   h_x = malloc (lenH * sizeof (mpz_t));
   h_y = malloc (lenH * sizeof (mpz_t));
+  if (h_x == NULL || h_y == NULL)
+    {
+      fprintf (stderr, "Cannot allocate memory in pp1fs2\n");
+      exit (1);
+    }
   g_x = init_list2 (lenG, (unsigned int) abs (modulus->bits));
   g_y = init_list2 (lenG, (unsigned int) abs (modulus->bits));
   R_x = init_list2 (lenR, (unsigned int) abs (modulus->bits));

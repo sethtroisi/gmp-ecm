@@ -314,7 +314,14 @@ ntt_polyevalT (mpzv_t b, spv_size_t len, mpzv_t *Tree, mpzv_t T,
   mpzspv_t y = mpzspv_init (2 * len, mpzspm);
 
   if (TreeFilenameStem)
-    TreeFilename = (char *) malloc (strlen (TreeFilenameStem) + 1 + 2 + 1);
+    {
+      TreeFilename = (char *) malloc (strlen (TreeFilenameStem) + 1 + 2 + 1);
+      if (TreeFilename == NULL)
+        {
+          fprintf (stderr, "Cannot allocate memory in ntt_polyevalT\n");
+          exit (1);
+        }
+    }
   
   mpzspv_from_mpzv (x, 0, b, len, mpzspm);
   mpzspv_to_ntt (x, 0, len, 2 * len, 0, mpzspm);

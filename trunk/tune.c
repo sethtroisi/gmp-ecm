@@ -222,6 +222,11 @@ TUNE_FUNC_END (tune_PolyInvert)
 TUNE_FUNC_START (tune_ntt_polyevalT)
   unsigned int i;
   mpzv_t *Tree = (mpzv_t *) malloc ((n + 1) * sizeof (mpzv_t));
+  if (Tree == NULL)
+    {
+      fprintf (stderr, "Cannot allocate memory in tune_ntt_polyevalT\n");
+      exit (1);
+    }
   
   for (i = 0; i <= n; i++)
     Tree[i] = x;
@@ -237,6 +242,11 @@ TUNE_FUNC_END (tune_ntt_polyevalT)
 TUNE_FUNC_START (tune_polyevalT)
   unsigned int i;
   mpzv_t *Tree = (mpzv_t *) malloc ((n + 1) * sizeof (mpzv_t));
+  if (Tree == NULL)
+    {
+      fprintf (stderr, "Cannot allocate memory in tune_polyevalT\n");
+      exit (1);
+    }
 
   for (i = 0; i <= n; i++)
     Tree[i] = x;
