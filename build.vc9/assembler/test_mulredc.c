@@ -103,6 +103,13 @@ void test(mp_size_t N, int k)
   tmp2 = (mp_limb_t *) malloc((2*N+2)*sizeof(mp_limb_t));
   tmp3 = (mp_limb_t *) malloc((2*N+2)*sizeof(mp_limb_t));
  
+  if (x == NULL || y == NULL || z == NULL || m == NULL || tmp == NULL ||
+      tmp2 == NULL || tmp3 == NULL)
+    {
+      fprintf (stderr, "Cannot allocate memory in test_mulredc\n");
+      exit (1);
+    }
+
   mpn_random2(m, N);
   m[0] |= 1UL;
   if (m[N-1] == 0) 

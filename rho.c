@@ -179,6 +179,11 @@ rhoinit (int parm_invh, int parm_tablemax)
   tablemax = parm_tablemax;
   
   rhotable = (double *) malloc (parm_invh * parm_tablemax * sizeof (double));
+  if (rhotable == NULL)
+    {
+      fprintf (stderr, "Cannot allocate memory in rhoinit\n");
+      exit (1);
+    }
   
   for (i = 0; i < (3 < parm_tablemax ? 3 : parm_tablemax) * invh; i++)
     rhotable[i] = rhoexact (i * h);

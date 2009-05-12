@@ -321,8 +321,12 @@ polyeval_tellegen (listz_t b, unsigned int k, listz_t *Tree, listz_t tmp,
       {
         unsigned int lgk, i;
         FILE *TreeFile;
-        /* assume this "small" malloc will not fail in normal usage */
 	char *fullname = (char *) malloc (strlen (TreeFilename) + 1 + 2 + 1);
+        if (fullname == NULL)
+          {
+            fprintf (stderr, "Cannot allocate memory in polyeval_tellegen\n");
+            exit (1);
+          }
 
 	lgk = ceil_log2 (k);
         for (i = 0; i < lgk; i++)
