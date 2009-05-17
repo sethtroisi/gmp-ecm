@@ -1658,7 +1658,11 @@ build_F_ntt (listz_t F, const mpres_t P_1, sets_long_t *S_1,
   F_ntt_context = mpzspm_init (3UL << ceil_log2 (params->s_1 / 2 + 1), 
 			       modulus->orig_modulus);
   if (F_ntt_context == NULL)
-    return ECM_ERROR;
+    {
+      outputf (OUTPUT_ERROR, "Could not initialise F_ntt_context, "
+               "presumably out of memory\n");
+      return ECM_ERROR;
+    }
   
   print_CRT_primes (OUTPUT_DEVVERBOSE, "CRT modulus for building F = ",
 		    F_ntt_context);
@@ -3031,7 +3035,11 @@ pm1fs2_ntt (mpz_t f, const mpres_t X, mpmod_t modulus,
 
   ntt_context = mpzspm_init (params->l, modulus->orig_modulus);
   if (ntt_context == NULL)
-    return ECM_ERROR;
+    {
+      outputf (OUTPUT_ERROR, "Could not initialise ntt_context, "
+               "presumably out of memory\n");
+      return ECM_ERROR;
+    }
 
   print_CRT_primes (OUTPUT_DEVVERBOSE, "CRT modulus for evaluation = ", 
 		    ntt_context);
@@ -4381,6 +4389,8 @@ pp1fs2_ntt (mpz_t f, const mpres_t X, mpmod_t modulus,
 
   if (ntt_context == NULL)
     {
+      outputf (OUTPUT_ERROR, "Could not initialise ntt_context, "
+               "presumably out of memory\n");
       mpz_clear (mt);
       free (S_1);
       S_1 = NULL;

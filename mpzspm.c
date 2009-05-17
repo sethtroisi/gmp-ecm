@@ -106,7 +106,8 @@ mpzspm_max_len (mpz_t modulus)
 /* This function initializes a mpzspm_t structure which contains the number
    of small primes, the small primes with associated primitive roots and 
    precomputed data for the CRT to allow convolution products of length up 
-   to "max_len" with modulus "modulus". */
+   to "max_len" with modulus "modulus". 
+   Returns NULL in case of an error. */
 
 mpzspm_t
 mpzspm_init (spv_size_t max_len, mpz_t modulus)
@@ -121,10 +122,7 @@ mpzspm_init (spv_size_t max_len, mpz_t modulus)
 
   mpzspm = (mpzspm_t) malloc (sizeof (__mpzspm_struct));
   if (mpzspm == NULL)
-    {
-      fprintf (stderr, "Cannot allocate memory in mpzspm_init\n");
-      exit (1);
-    }
+    return NULL;
   
   /* Upper bound for the number of primes we need.
    * Let minp, maxp denote the min, max permissible prime,
@@ -146,10 +144,7 @@ mpzspm_init (spv_size_t max_len, mpz_t modulus)
   
   mpzspm->spm = (spm_t *) malloc (ub * sizeof (spm_t));
   if (mpzspm->spm == NULL)
-    {
-      fprintf (stderr, "Cannot allocate memory in mpzspm_init\n");
-      exit (1);
-    }
+    goto error_clear_mpzspm;
   mpzspm->sp_num = 0;
 
   /* product of primes selected so far */
@@ -184,10 +179,15 @@ mpzspm_init (spv_size_t max_len, mpz_t modulus)
 	  outputf (OUTPUT_ERROR, 
 	           "not enough primes == 1 (mod %lu) in interval\n", 
 	           (unsigned long) max_len);
-	  return NULL;
+	  goto error_clear_mpzspm_spm;
 	}
       
       mpzspm->spm[mpzspm->sp_num++] = spm_init (max_len, p);
+      if (mpzspm->spm[mpzspm->sp_num] == NULL)
+        {
+          outputf (OUTPUT_ERROR, "Out of memory in mpzspm_init()\n");
+          goto error_clear_mpzspm_spm;
+        }
       
       mpz_set_sp (mp, p);
       mpz_mul (P, P, mp);
@@ -219,18 +219,17 @@ mpzspm_init (spv_size_t max_len, mpz_t modulus)
   if (mpzspm->crt1 == NULL || mpzspm->crt2 == NULL || mpzspm->crt3 == NULL ||
       mpzspm->crt4 == NULL || mpzspm->crt5 == NULL)
     {
-      fprintf (stderr, "Cannot allocate memory in mpzspm_init\n");
-      exit (1);
+      outputf (OUTPUT_ERROR, "Out of memory in mpzspm_init()\n");
+      goto error_clear_crt;
     }
 
+  for (i = 0; i < mpzspm->sp_num; i++)
+    mpzspm->crt4[i] = NULL;
   for (i = 0; i < mpzspm->sp_num; i++)
     {
       mpzspm->crt4[i] = (spv_t) malloc (mpzspm->sp_num * sizeof (sp_t));
       if (mpzspm->crt4[i] == NULL)
-        {
-          fprintf (stderr, "Cannot allocate memory in mpzspm_init\n");
-          exit (1);
-        }
+        goto error_clear_crt4;
     }
   
   for (i = 0; i < mpzspm->sp_num; i++)
@@ -282,6 +281,29 @@ mpzspm_init (spv_size_t max_len, mpz_t modulus)
   outputf (OUTPUT_DEVVERBOSE, "mpzspm_init took %lums\n", cputime() - st);
 
   return mpzspm;
+  
+  /* Error cases: free memory we allocated so far */
+
+  error_clear_crt4:
+  for (i = 0; i < mpzspm->sp_num; i++)
+    free (mpzspm->crt4[i]);
+  
+  error_clear_crt:
+  free (mpzspm->crt1);
+  free (mpzspm->crt2);
+  free (mpzspm->crt3);
+  free (mpzspm->crt4);
+  free (mpzspm->crt5);
+  
+  error_clear_mpzspm_spm:
+  for (i = 0; i < mpzspm->sp_num; i++)
+    free(mpzspm->spm[i]);
+  free (mpzspm->spm);
+
+  error_clear_mpzspm:
+  free (mpzspm);
+
+  return NULL;
 }
 
 void mpzspm_clear (mpzspm_t mpzspm)

@@ -367,7 +367,11 @@ stage2 (mpz_t f, void *X, mpmod_t modulus, unsigned long dF, unsigned long k,
       mpzspm = mpzspm_init (2 * dF, modulus->orig_modulus);
   
       if (mpzspm == NULL)
-        return ECM_ERROR;
+        {
+          outputf (OUTPUT_ERROR, "Could not initialise mpzspm, "
+                   "presumably out of memory\n");
+          return ECM_ERROR;
+        }
 
       outputf (OUTPUT_VERBOSE,
 	  "Using %u small primes for NTT\n", mpzspm->sp_num);

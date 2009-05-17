@@ -101,10 +101,7 @@ sp_aligned_malloc (size_t len)
 
   ptr = malloc (len + CACHE_LINE_SIZE);
   if (ptr == NULL)
-    {
-      fprintf (stderr, "Cannot allocate memory in sp_aligned_malloc\n");
-      exit (1);
-    }
+    return NULL;
 
   addr = (unsigned long)ptr;				
   addr = CACHE_LINE_SIZE - (addr % CACHE_LINE_SIZE);
