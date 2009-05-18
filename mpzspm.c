@@ -182,12 +182,13 @@ mpzspm_init (spv_size_t max_len, mpz_t modulus)
 	  goto error_clear_mpzspm_spm;
 	}
       
-      mpzspm->spm[mpzspm->sp_num++] = spm_init (max_len, p);
+      mpzspm->spm[mpzspm->sp_num] = spm_init (max_len, p);
       if (mpzspm->spm[mpzspm->sp_num] == NULL)
         {
           outputf (OUTPUT_ERROR, "Out of memory in mpzspm_init()\n");
           goto error_clear_mpzspm_spm;
         }
+      mpzspm->sp_num++;
       
       mpz_set_sp (mp, p);
       mpz_mul (P, P, mp);
