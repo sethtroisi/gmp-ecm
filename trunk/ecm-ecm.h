@@ -87,8 +87,10 @@ void set_verbose (int);
 int  inc_verbose ();
 
 /* Return codes */
-/* Bit coded values: 1: error, 2: proper factor found, 4: factor is prime, 
+/* Bit coded values: 1: error (for example out of memory)
+   2: proper factor found, 4: factor is prime, 
    8: cofactor is prime or 1 */
+#define ECM_EXIT_ERROR 1
 #define ECM_COMP_FAC_COMP_COFAC 2
 #define ECM_PRIME_FAC_COMP_COFAC (2+4)
 #define ECM_INPUT_NUMBER_FOUND 8

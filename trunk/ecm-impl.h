@@ -517,7 +517,7 @@ void          toomcook4 (listz_t, listz_t, listz_t, unsigned int, listz_t);
 
 /* ks-multiply.c */
 #define kronecker_schonhage __ECM(kronecker_schonhage)
-int kronecker_schonhage (listz_t, listz_t, listz_t, unsigned int, listz_t);
+void kronecker_schonhage (listz_t, listz_t, listz_t, unsigned int, listz_t);
 #define TMulKS __ECM(TMulKS)
 int TMulKS     (listz_t, unsigned int, listz_t, unsigned int, listz_t,
                 unsigned int, mpz_t, int);
