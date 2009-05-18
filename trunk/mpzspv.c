@@ -24,10 +24,6 @@
 #include <string.h> /* for memset */
 #include "sp.h"
 
-#ifdef HAVE_MALLOC_H
-#include <malloc.h>
-#endif
-
 mpzspv_t
 mpzspv_init (spv_size_t len, mpzspm_t mpzspm)
 {
@@ -80,20 +76,8 @@ mpzspv_verify (mpzspv_t x, spv_size_t offset, spv_size_t len, mpzspm_t mpzspm)
   unsigned int i;
   spv_size_t j;
   
-#ifdef HAVE_MALLOC_USABLE_SIZE
-  if (malloc_usable_size (x) < mpzspm->sp_num * sizeof (spv_t))
-    return 0;
-#endif
-
   for (i = 0; i < mpzspm->sp_num; i++)
     {
-
-#ifdef HAVE_MALLOC_USABLE_SIZE
-      if (malloc_usable_size (*( (void **)x[i] - 1 )) < 
-          (offset + len) * sizeof (sp_t))
-        return 0;
-#endif
-
       for (j = offset; j < offset + len; j++)
 	if (x[i][j] >= mpzspm->spm[i]->sp)
 	  return 0;
