@@ -46,6 +46,9 @@
 #include "gwnum.h"
 #endif
 
+/* Used in print_config() */
+#include "ecm-params.h"
+
 /* #define DEBUG */
 
 /* people keeping track of champions and corresponding url's: ECM, P-1, P+1 */
@@ -239,7 +242,7 @@ usage (void)
     printf ("  -B2scale f   Multiplies the default B2 value by f \n");
     printf ("  -go val      Preload with group order val, which can be a simple expression,\n");
     printf ("               or can use N as a placeholder for the number being factored.\n");
-
+    printf ("  -printconfig Print compile-time configuration and exit.\n");
 
     printf ("  -h, --help   Prints this help and exit.\n");
 }
@@ -251,7 +254,8 @@ print_config ()
   printf ("Compilation options:\n");
 #ifdef __GNU_MP_VERSION_PATCHLEVEL
   printf ("Included GMP header files version %d.%d.%d\n", 
-          __GNU_MP_VERSION, __GNU_MP_VERSION_MINOR, __GNU_MP_VERSION_PATCHLEVEL);
+          __GNU_MP_VERSION, __GNU_MP_VERSION_MINOR, 
+          __GNU_MP_VERSION_PATCHLEVEL);
 #else
   printf ("Included GMP header files version %d.%d\n", 
           __GNU_MP_VERSION, __GNU_MP_VERSION_MINOR);
@@ -304,6 +308,63 @@ print_config ()
 #else
   printf ("WANT_SHELLCMD undefined\n");
 #endif
+
+#ifdef MPZMOD_THRESHOLD
+  printf ("MPZMOD_THRESHOLD = %d\n", MPZMOD_THRESHOLD);
+#else
+  printf ("MPZMOD_THRESHOLD undefined\n");
+#endif
+
+#ifdef REDC_THRESHOLD
+  printf ("REDC_THRESHOLD = %d\n", REDC_THRESHOLD);
+#else
+  printf ("REDC_THRESHOLD undefined\n");
+#endif
+
+#ifdef MUL_NTT_THRESHOLD
+  printf ("MUL_NTT_THRESHOLD = %d\n", MUL_NTT_THRESHOLD);
+#else
+  printf ("MUL_NTT_THRESHOLD undefined\n");
+#endif
+
+#ifdef NTT_GFP_TWIDDLE_DIF_BREAKOVER
+  printf ("NTT_GFP_TWIDDLE_DIF_BREAKOVER = %d\n", 
+	  NTT_GFP_TWIDDLE_DIF_BREAKOVER);
+#else
+  printf ("NTT_GFP_TWIDDLE_DIF_BREAKOVER undefined\n");
+#endif
+
+#ifdef NTT_GFP_TWIDDLE_DIT_BREAKOVER
+  printf ("NTT_GFP_TWIDDLE_DIT_BREAKOVER = %d\n", 
+	  NTT_GFP_TWIDDLE_DIT_BREAKOVER);
+#else
+  printf ("NTT_GFP_TWIDDLE_DIT_BREAKOVER undefined\n");
+#endif
+
+#ifdef PREREVERTDIVISION_NTT_THRESHOLD
+  printf ("PREREVERTDIVISION_NTT_THRESHOLD = %d\n", 
+          PREREVERTDIVISION_NTT_THRESHOLD);
+#else
+  printf ("PREREVERTDIVISION_NTT_THRESHOLD undefined\n");
+#endif
+
+#ifdef POLYINVERT_NTT_THRESHOLD
+  printf ("POLYINVERT_NTT_THRESHOLD = %d\n", POLYINVERT_NTT_THRESHOLD);
+#else
+  printf ("POLYINVERT_NTT_THRESHOLD undefined\n");
+#endif
+
+#ifdef POLYEVALT_NTT_THRESHOLD
+  printf ("POLYEVALT_NTT_THRESHOLD = %d\n", POLYEVALT_NTT_THRESHOLD);
+#else
+  printf ("POLYEVALT_NTT_THRESHOLD undefined\n");
+#endif
+
+#ifdef MPZSPV_NORMALISE_STRIDE
+  printf ("MPZSPV_NORMALISE_STRIDE = %d\n", MPZSPV_NORMALISE_STRIDE);
+#else
+  printf ("MPZSPV_NORMALISE_STRIDE undefined\n");
+#endif
 }
 
 
@@ -324,7 +385,6 @@ main (int argc, char *argv[])
   double B1, B1done;
   int result = 0, returncode = 0;
   int verbose = OUTPUT_NORMAL; /* verbose level */
-  int printconfig = 0;
   int timestamp = 0;
   int method = ECM_ECM, method1;
   int use_ntt = 1;     /* Default, use NTT if input is small enough */
@@ -494,7 +554,12 @@ main (int argc, char *argv[])
       else if (strcmp (argv[1], "-h") == 0 || strcmp (argv[1], "--help") == 0)
         {
           usage ();
-          exit (0);
+          exit (EXIT_SUCCESS);
+        }
+      else if (strcmp (argv[1], "-printconfig") == 0)
+        {
+          print_config ();
+          exit (EXIT_SUCCESS);
         }
       else if (strcmp (argv[1], "-d") == 0)
         {
@@ -753,12 +818,6 @@ main (int argc, char *argv[])
          argc -= 2;
        }
 #endif
-      else if (strcmp (argv[1], "-printconfig") == 0)
-        {
-          printconfig = 1;
-          argv++;
-          argc--;
-        }
       else
 	{
 	  fprintf (stderr, "Unknown option: %s\n", argv[1]);
@@ -815,8 +874,6 @@ main (int argc, char *argv[])
 	  printf ("ECM");
 	}
       printf ("]\n");
-  if (printconfig)
-    print_config ();
 #ifdef HAVE_GETHOSTNAME
   if (verbose >= 2)
     {
