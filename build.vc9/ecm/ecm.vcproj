@@ -21,10 +21,10 @@
 	<Configurations>
 		<Configuration
 			Name="Debug-AMD|Win32"
-			OutputDirectory="$(SolutionDir)$(PlatformName)\$(ConfigurationName)"
-			IntermediateDirectory="$(PlatformName)\$(ConfigurationName)"
+			OutputDirectory="$(SolutionDir)$(PlatformName)\Debug"
+			IntermediateDirectory="$(PlatformName)\Debug"
 			ConfigurationType="1"
-			InheritedPropertySheets="$(VCInstallDir)VCProjectDefaults\UpgradeFromVC71.vsprops"
+			InheritedPropertySheets="$(VCInstallDir)VCProjectDefaults\UpgradeFromVC71.vsprops;..\mp_lib.vsprops"
 			CharacterSet="2"
 			>
 			<Tool
@@ -45,7 +45,7 @@
 			<Tool
 				Name="VCCLCompilerTool"
 				Optimization="0"
-				AdditionalIncludeDirectories="&quot;..\..\..\gmp&quot;"
+				AdditionalIncludeDirectories="&quot;..\..\..\$(mp_lib)&quot;"
 				PreprocessorDefinitions="WIN32;_DEBUG;_CONSOLE;OUTSIDE_LIBECM"
 				MinimalRebuild="true"
 				BasicRuntimeChecks="3"
@@ -66,7 +66,7 @@
 			/>
 			<Tool
 				Name="VCLinkerTool"
-				AdditionalDependencies="ws2_32.lib ..\..\..\gmp\build.vc9\lib\$(PlatformName)\debug\gmp.lib"
+				AdditionalDependencies="ws2_32.lib ..\..\..\$(mp_lib)\build.vc9\lib\$(PlatformName)\debug\$(mp_lib).lib"
 				OutputFile="$(OutDir)\ecm.exe"
 				LinkIncremental="2"
 				GenerateDebugInformation="true"
@@ -99,10 +99,10 @@
 		</Configuration>
 		<Configuration
 			Name="Debug-AMD|x64"
-			OutputDirectory="$(SolutionDir)$(PlatformName)\$(ConfigurationName)"
-			IntermediateDirectory="$(PlatformName)\$(ConfigurationName)"
+			OutputDirectory="$(SolutionDir)$(PlatformName)\Debug"
+			IntermediateDirectory="$(PlatformName)\Debug"
 			ConfigurationType="1"
-			InheritedPropertySheets="$(VCInstallDir)VCProjectDefaults\UpgradeFromVC71.vsprops"
+			InheritedPropertySheets="$(VCInstallDir)VCProjectDefaults\UpgradeFromVC71.vsprops;..\mp_lib.vsprops"
 			CharacterSet="2"
 			>
 			<Tool
@@ -124,7 +124,7 @@
 			<Tool
 				Name="VCCLCompilerTool"
 				Optimization="0"
-				AdditionalIncludeDirectories="&quot;..\..\..\gmp&quot;"
+				AdditionalIncludeDirectories="&quot;..\..\..\$(mp_lib)&quot;"
 				PreprocessorDefinitions="WIN32;_WIN64;_DEBUG;_CONSOLE;OUTSIDE_LIBECM"
 				MinimalRebuild="true"
 				BasicRuntimeChecks="3"
@@ -145,7 +145,7 @@
 			/>
 			<Tool
 				Name="VCLinkerTool"
-				AdditionalDependencies="ws2_32.lib ..\..\..\gmp\build.vc9\lib\$(PlatformName)\debug\gmp.lib"
+				AdditionalDependencies="ws2_32.lib ..\..\..\$(mp_lib)\build.vc9\lib\$(PlatformName)\debug\$(mp_lib).lib"
 				OutputFile="$(OutDir)\ecm.exe"
 				LinkIncremental="2"
 				GenerateDebugInformation="true"
@@ -178,10 +178,10 @@
 		</Configuration>
 		<Configuration
 			Name="Release-AMD|Win32"
-			OutputDirectory="$(SolutionDir)$(PlatformName)\$(ConfigurationName)"
-			IntermediateDirectory="$(PlatformName)\$(ConfigurationName)"
+			OutputDirectory="$(SolutionDir)$(PlatformName)\Release"
+			IntermediateDirectory="$(PlatformName)\Release"
 			ConfigurationType="1"
-			InheritedPropertySheets="$(VCInstallDir)VCProjectDefaults\UpgradeFromVC71.vsprops"
+			InheritedPropertySheets="$(VCInstallDir)VCProjectDefaults\UpgradeFromVC71.vsprops;..\mp_lib.vsprops"
 			CharacterSet="2"
 			>
 			<Tool
@@ -204,7 +204,7 @@
 				Optimization="3"
 				EnableIntrinsicFunctions="true"
 				FavorSizeOrSpeed="1"
-				AdditionalIncludeDirectories="&quot;..\..\..\gmp&quot;"
+				AdditionalIncludeDirectories="&quot;..\..\..\$(mp_lib)&quot;"
 				PreprocessorDefinitions="WIN32;NDEBUG;_CONSOLE;OUTSIDE_LIBECM"
 				RuntimeLibrary="0"
 				UsePrecompiledHeader="0"
@@ -223,7 +223,7 @@
 			/>
 			<Tool
 				Name="VCLinkerTool"
-				AdditionalDependencies="ws2_32.lib ..\..\..\gmp\build.vc9\lib\$(PlatformName)\release\gmp.lib"
+				AdditionalDependencies="ws2_32.lib ..\..\..\$(mp_lib)\build.vc9\lib\$(PlatformName)\release\$(mp_lib).lib"
 				OutputFile="$(OutDir)\ecm.exe"
 				LinkIncremental="1"
 				GenerateDebugInformation="true"
@@ -258,10 +258,10 @@
 		</Configuration>
 		<Configuration
 			Name="Release-AMD|x64"
-			OutputDirectory="$(SolutionDir)$(PlatformName)\$(ConfigurationName)"
-			IntermediateDirectory="$(PlatformName)\$(ConfigurationName)"
+			OutputDirectory="$(SolutionDir)$(PlatformName)\Release"
+			IntermediateDirectory="$(PlatformName)\Release"
 			ConfigurationType="1"
-			InheritedPropertySheets="$(VCInstallDir)VCProjectDefaults\UpgradeFromVC71.vsprops"
+			InheritedPropertySheets="$(VCInstallDir)VCProjectDefaults\UpgradeFromVC71.vsprops;..\mp_lib.vsprops"
 			CharacterSet="2"
 			>
 			<Tool
@@ -285,7 +285,7 @@
 				Optimization="3"
 				EnableIntrinsicFunctions="true"
 				FavorSizeOrSpeed="1"
-				AdditionalIncludeDirectories="&quot;..\..\..\gmp&quot;"
+				AdditionalIncludeDirectories="&quot;..\..\..\$(mp_lib)&quot;"
 				PreprocessorDefinitions="WIN32;_WIN64;NDEBUG;_CONSOLE;OUTSIDE_LIBECM"
 				RuntimeLibrary="0"
 				UsePrecompiledHeader="0"
@@ -304,7 +304,7 @@
 			/>
 			<Tool
 				Name="VCLinkerTool"
-				AdditionalDependencies="ws2_32.lib ..\..\..\gmp\build.vc9\lib\$(PlatformName)\release\gmp.lib"
+				AdditionalDependencies="ws2_32.lib ..\..\..\$(mp_lib)\build.vc9\lib\$(PlatformName)\release\$(mp_lib).lib"
 				OutputFile="$(OutDir)\ecm.exe"
 				LinkIncremental="1"
 				GenerateDebugInformation="true"
@@ -339,10 +339,10 @@
 		</Configuration>
 		<Configuration
 			Name="Release-Intel|Win32"
-			OutputDirectory="$(SolutionDir)$(PlatformName)\$(ConfigurationName)"
-			IntermediateDirectory="$(PlatformName)\$(ConfigurationName)"
+			OutputDirectory="$(SolutionDir)$(PlatformName)\Release"
+			IntermediateDirectory="$(PlatformName)\Release"
 			ConfigurationType="1"
-			InheritedPropertySheets="$(VCInstallDir)VCProjectDefaults\UpgradeFromVC71.vsprops"
+			InheritedPropertySheets="$(VCInstallDir)VCProjectDefaults\UpgradeFromVC71.vsprops;..\mp_lib.vsprops"
 			CharacterSet="2"
 			>
 			<Tool
@@ -365,7 +365,7 @@
 				Optimization="3"
 				EnableIntrinsicFunctions="true"
 				FavorSizeOrSpeed="1"
-				AdditionalIncludeDirectories="&quot;..\..\..\gmp&quot;"
+				AdditionalIncludeDirectories="&quot;..\..\..\$(mp_lib)&quot;"
 				PreprocessorDefinitions="WIN32;NDEBUG;_CONSOLE;OUTSIDE_LIBECM"
 				RuntimeLibrary="0"
 				UsePrecompiledHeader="0"
@@ -384,7 +384,7 @@
 			/>
 			<Tool
 				Name="VCLinkerTool"
-				AdditionalDependencies="ws2_32.lib ..\..\..\gmp\build.vc9\lib\$(PlatformName)\release\gmp.lib"
+				AdditionalDependencies="ws2_32.lib ..\..\..\$(mp_lib)\build.vc9\lib\$(PlatformName)\release\$(mp_lib).lib"
 				OutputFile="$(OutDir)\ecm.exe"
 				LinkIncremental="1"
 				GenerateDebugInformation="true"
@@ -419,10 +419,10 @@
 		</Configuration>
 		<Configuration
 			Name="Release-Intel|x64"
-			OutputDirectory="$(SolutionDir)$(PlatformName)\$(ConfigurationName)"
-			IntermediateDirectory="$(PlatformName)\$(ConfigurationName)"
+			OutputDirectory="$(SolutionDir)$(PlatformName)\Release"
+			IntermediateDirectory="$(PlatformName)\Release"
 			ConfigurationType="1"
-			InheritedPropertySheets="$(VCInstallDir)VCProjectDefaults\UpgradeFromVC71.vsprops"
+			InheritedPropertySheets="$(VCInstallDir)VCProjectDefaults\UpgradeFromVC71.vsprops;..\mp_lib.vsprops"
 			CharacterSet="2"
 			>
 			<Tool
@@ -446,7 +446,7 @@
 				Optimization="3"
 				EnableIntrinsicFunctions="true"
 				FavorSizeOrSpeed="1"
-				AdditionalIncludeDirectories="&quot;..\..\..\gmp&quot;"
+				AdditionalIncludeDirectories="&quot;..\..\..\$(mp_lib)&quot;"
 				PreprocessorDefinitions="WIN32;_WIN64;NDEBUG;_CONSOLE;OUTSIDE_LIBECM"
 				RuntimeLibrary="0"
 				UsePrecompiledHeader="0"
@@ -465,7 +465,7 @@
 			/>
 			<Tool
 				Name="VCLinkerTool"
-				AdditionalDependencies="ws2_32.lib ..\..\..\gmp\build.vc9\lib\$(PlatformName)\release\gmp.lib"
+				AdditionalDependencies="ws2_32.lib ..\..\..\$(mp_lib)\build.vc9\lib\$(PlatformName)\release\$(mp_lib).lib"
 				OutputFile="$(OutDir)\ecm.exe"
 				LinkIncremental="1"
 				GenerateDebugInformation="true"
@@ -500,10 +500,10 @@
 		</Configuration>
 		<Configuration
 			Name="Debug-Intel|Win32"
-			OutputDirectory="$(SolutionDir)$(PlatformName)\$(ConfigurationName)"
-			IntermediateDirectory="$(PlatformName)\$(ConfigurationName)"
+			OutputDirectory="$(SolutionDir)$(PlatformName)\Debug"
+			IntermediateDirectory="$(PlatformName)\Debug"
 			ConfigurationType="1"
-			InheritedPropertySheets="$(VCInstallDir)VCProjectDefaults\UpgradeFromVC71.vsprops"
+			InheritedPropertySheets="$(VCInstallDir)VCProjectDefaults\UpgradeFromVC71.vsprops;..\mp_lib.vsprops"
 			CharacterSet="2"
 			>
 			<Tool
@@ -524,7 +524,7 @@
 			<Tool
 				Name="VCCLCompilerTool"
 				Optimization="0"
-				AdditionalIncludeDirectories="&quot;..\..\..\gmp&quot;"
+				AdditionalIncludeDirectories="&quot;..\..\..\$(mp_lib)&quot;"
 				PreprocessorDefinitions="WIN32;_DEBUG;_CONSOLE;OUTSIDE_LIBECM"
 				MinimalRebuild="true"
 				BasicRuntimeChecks="3"
@@ -545,7 +545,7 @@
 			/>
 			<Tool
 				Name="VCLinkerTool"
-				AdditionalDependencies="ws2_32.lib ..\..\..\gmp\build.vc9\lib\$(PlatformName)\debug\gmp.lib"
+				AdditionalDependencies="ws2_32.lib ..\..\..\$(mp_lib)\build.vc9\lib\$(PlatformName)\debug\$(mp_lib).lib"
 				OutputFile="$(OutDir)\ecm.exe"
 				LinkIncremental="2"
 				GenerateDebugInformation="true"
@@ -578,10 +578,10 @@
 		</Configuration>
 		<Configuration
 			Name="Debug-Intel|x64"
-			OutputDirectory="$(SolutionDir)$(PlatformName)\$(ConfigurationName)"
-			IntermediateDirectory="$(PlatformName)\$(ConfigurationName)"
+			OutputDirectory="$(SolutionDir)$(PlatformName)\Debug"
+			IntermediateDirectory="$(PlatformName)\Debug"
 			ConfigurationType="1"
-			InheritedPropertySheets="$(VCInstallDir)VCProjectDefaults\UpgradeFromVC71.vsprops"
+			InheritedPropertySheets="$(VCInstallDir)VCProjectDefaults\UpgradeFromVC71.vsprops;..\mp_lib.vsprops"
 			CharacterSet="2"
 			>
 			<Tool
@@ -603,7 +603,7 @@
 			<Tool
 				Name="VCCLCompilerTool"
 				Optimization="0"
-				AdditionalIncludeDirectories="&quot;..\..\..\gmp&quot;"
+				AdditionalIncludeDirectories="&quot;..\..\..\$(mp_lib)&quot;"
 				PreprocessorDefinitions="WIN32;_WIN64;_DEBUG;_CONSOLE;OUTSIDE_LIBECM"
 				MinimalRebuild="true"
 				BasicRuntimeChecks="3"
@@ -624,7 +624,7 @@
 			/>
 			<Tool
 				Name="VCLinkerTool"
-				AdditionalDependencies="ws2_32.lib ..\..\..\gmp\build.vc9\lib\$(PlatformName)\debug\gmp.lib"
+				AdditionalDependencies="ws2_32.lib ..\..\..\$(mp_lib)\build.vc9\lib\$(PlatformName)\debug\$(mp_lib).lib"
 				OutputFile="$(OutDir)\ecm.exe"
 				LinkIncremental="2"
 				GenerateDebugInformation="true"
@@ -706,6 +706,10 @@
 			Filter="h;hpp;hxx;hm;inl;inc;xsd"
 			UniqueIdentifier="{93995380-89BD-4b04-88EB-625FBE52EBFB}"
 			>
+			<File
+				RelativePath="..\..\config.h"
+				>
+			</File>
 			<File
 				RelativePath="..\..\ecm-ecm.h"
 				>

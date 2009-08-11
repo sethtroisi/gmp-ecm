@@ -8,10 +8,8 @@ from re import match
 from subprocess import Popen, PIPE, STDOUT
 from tempfile import *
 
-test_dir = ".\\x64\\Release-AMD\\"
-# test_dir = ".\\x64\\Release-Intel\\"
-# test_dir = ".\\win32\\Release-AMD\\"
-# test_dir = ".\\win32\\Release-Intel\\"
+test_dir = ".\\x64\\Release\\"
+# test_dir = ".\\win32\\Release\\"
 
 ecm = [
   ("2050449353925555290706354283", "-sigma 7 -k 1 30 0-1e6", 14),

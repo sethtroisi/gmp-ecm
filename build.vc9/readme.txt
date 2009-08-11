@@ -19,30 +19,65 @@ C:\Program Files (x86)\Microsoft Visual Studio 9.0\VC\VCProjectDefaults
 
 so that it is recognised by the Visual Studio 2008 IDE.
 
+The Multi-Precision Library - GMP and MPIR
+==========================================
+
+GMP-ECM works with either GMP or MPIR, a fork of GMP.  To build and run
+GMP-ECM using Visual Studio you first need to obtain and build either 
+GMP or MPIR.   MPIR has a fully integrated Visual Studio build system
+for Windows but GMP does not.  
+
+The VC++ build of ECM-GMP now defaults to MPIR but the property sheet 
+mp_lib.vsprops can be edited to set the macro mp_lib to 'gmp' instead 
+of 'mpir' to build ECM using GMP.
+
 GMP
 ===
 
-To build and run GMP-ECM using Visual Studio you first need to obtain 
-and build GMP. GMP is available here:
+GMP can be built from the GMP source code available here:
 
   http://gmplib.org/
-
-and the build files for GMP using Visual Studio 2008 are provided here:
+  
+using the Visual Studio build files I provide here:
 
   http://fp.gladman.plus.com/computing/gmp4win.htm 
+  
+But these are based on GMP 4.2.x and are no longer being maintained.
+
+GMP 4.3.x can be built using cygwin or mingw for win32 and it is reported 
+that the resulting libraries work with Visual Studio when appropriately 
+renamed. It may also be possible to build the generic C version of GMP for 
+64-bit Windows systems using mingw64. But this version will be fairly slow
+because it cannot use the fast assembler normally used by GMP because this
+is not available in Windows format.
+
+MPIR
+====
+
+MPIR is available here:
+
+  http://www.mpir.org
+  
+It has full support for building MPIR for 32 and 64 bit Windows systems 
+with x86 assembler support using the YASM assembler.  In particular it  
+includes fast assembler code for modern AMD and Intel architectures 
+running in 64-bit mode on Windows (not available in GMP).
+
+Building ECM-GMP
+================
 
 The build files for GMP-ECM assume that the GMP and ECM build directories
 are in a common parent directory as follows:
 
   Parent Directory
-    GMP
-      build.vc9    -- GMP build files
+    MPIR (or GMP)
+      build.vc9    -- MPIR (or GMP) build files
       ...
     GMP-ECM
       buid.vc9	   -- ECM build files 
       
 The root directories for GMP and GMP-ECM are assumed to have these names
-irreespective of which version is being used (they used to be followed by 
+irrespective of which version is being used (they used to be followed by 
 version numbers but this meant that the build projects had to be updated
 too frequently). 
 
@@ -64,7 +99,12 @@ and each of these has the following configurations:
     x64\debug-intel     (not tune)
 
 When a version of ecm and ecmlib are built the library and the application
-are put in the directory matching the configuation that has been built.
+are put in the directory matching the configuation that has been built:
+
+   build.vc9\win32\release
+   build.vc9\win32\debug
+   build.vc9\x64\release
+   build.vc9\x64\debug
 
 If you don't want assembler support you need to change the define:      
 
@@ -87,17 +127,7 @@ To use this file when building ecm and ecmlib, remove the '.new' extension.
 Tests
 =====
 
-The file tests.py is a python script that runs the GMP ECM tests. It runs 
-the x64/release-amd version by default but can be edited to test other builds.
+The file tests.py is a python script that runs the ECM tests. It runs the
+x64/release-amd version by default but can be edited to test other builds.
 
-GMP Version
-===========
-
-The previous VC++ build project for GMP-ECM assumed that the GMP root 
-directory was GMP-4.2.x but this meant that the build project had to be
-updated as the current GMP version changed.  The VC++ build projects now
-assume that the GMP root directory is just GMP alone so GMP-ECM can be
-linked without change to any GMP version provided only that its root
-directory is named (or renamed) to 'GMP'. 
-
-    Brian Gladman, 28th March 2009
+    Brian Gladman, 11th August 2009
