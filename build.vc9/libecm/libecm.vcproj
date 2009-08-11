@@ -24,10 +24,10 @@
 	<Configurations>
 		<Configuration
 			Name="Release-AMD|Win32"
-			OutputDirectory="$(SolutionDir)$(PlatformName)\$(ConfigurationName)"
-			IntermediateDirectory="$(PlatformName)\$(ConfigurationName)"
+			OutputDirectory="$(SolutionDir)$(PlatformName)\Release"
+			IntermediateDirectory="$(PlatformName)\Release"
 			ConfigurationType="4"
-			InheritedPropertySheets="$(VCInstallDir)VCProjectDefaults\UpgradeFromVC71.vsprops"
+			InheritedPropertySheets="$(VCInstallDir)VCProjectDefaults\UpgradeFromVC71.vsprops;..\mp_lib.vsprops"
 			CharacterSet="2"
 			EnableManagedIncrementalBuild="0"
 			>
@@ -54,7 +54,7 @@
 				Name="VCCLCompilerTool"
 				Optimization="3"
 				EnableIntrinsicFunctions="true"
-				AdditionalIncludeDirectories="..\..\;..\..\..\gmp;..\assembler"
+				AdditionalIncludeDirectories="..\..\;..\..\..\$(mp_lib);..\assembler"
 				PreprocessorDefinitions="WIN32;NDEBUG;_LIB;SSE2"
 				RuntimeLibrary="0"
 				UsePrecompiledHeader="0"
@@ -93,10 +93,10 @@
 		</Configuration>
 		<Configuration
 			Name="Release-AMD|x64"
-			OutputDirectory="$(SolutionDir)$(PlatformName)\$(ConfigurationName)"
-			IntermediateDirectory="$(PlatformName)\$(ConfigurationName)"
+			OutputDirectory="$(SolutionDir)$(PlatformName)\Release"
+			IntermediateDirectory="$(PlatformName)\Release"
 			ConfigurationType="4"
-			InheritedPropertySheets="$(VCInstallDir)VCProjectDefaults\UpgradeFromVC71.vsprops"
+			InheritedPropertySheets="$(VCInstallDir)VCProjectDefaults\UpgradeFromVC71.vsprops;..\mp_lib.vsprops"
 			CharacterSet="2"
 			EnableManagedIncrementalBuild="0"
 			>
@@ -124,7 +124,7 @@
 				Name="VCCLCompilerTool"
 				Optimization="3"
 				EnableIntrinsicFunctions="true"
-				AdditionalIncludeDirectories="..\..\;..\..\..\gmp;..\assembler"
+				AdditionalIncludeDirectories="..\..\;..\..\..\$(mp_lib);..\assembler"
 				PreprocessorDefinitions="WIN32;NDEBUG;_LIB"
 				RuntimeLibrary="0"
 				UsePrecompiledHeader="0"
@@ -163,10 +163,10 @@
 		</Configuration>
 		<Configuration
 			Name="Release-Intel|Win32"
-			OutputDirectory="$(SolutionDir)$(PlatformName)\$(ConfigurationName)"
-			IntermediateDirectory="$(PlatformName)\$(ConfigurationName)"
+			OutputDirectory="$(SolutionDir)$(PlatformName)\Release"
+			IntermediateDirectory="$(PlatformName)\Release"
 			ConfigurationType="4"
-			InheritedPropertySheets="$(VCInstallDir)VCProjectDefaults\UpgradeFromVC71.vsprops"
+			InheritedPropertySheets="$(VCInstallDir)VCProjectDefaults\UpgradeFromVC71.vsprops;..\mp_lib.vsprops"
 			CharacterSet="2"
 			EnableManagedIncrementalBuild="0"
 			>
@@ -193,7 +193,7 @@
 				Name="VCCLCompilerTool"
 				Optimization="3"
 				EnableIntrinsicFunctions="true"
-				AdditionalIncludeDirectories="..\..\;..\..\..\gmp;..\assembler"
+				AdditionalIncludeDirectories="..\..\;..\..\..\$(mp_lib);..\assembler"
 				PreprocessorDefinitions="WIN32;NDEBUG;_LIB;SSE2"
 				RuntimeLibrary="0"
 				UsePrecompiledHeader="0"
@@ -232,10 +232,10 @@
 		</Configuration>
 		<Configuration
 			Name="Release-Intel|x64"
-			OutputDirectory="$(SolutionDir)$(PlatformName)\$(ConfigurationName)"
-			IntermediateDirectory="$(PlatformName)\$(ConfigurationName)"
+			OutputDirectory="$(SolutionDir)$(PlatformName)\Release"
+			IntermediateDirectory="$(PlatformName)\Release"
 			ConfigurationType="4"
-			InheritedPropertySheets="$(VCInstallDir)VCProjectDefaults\UpgradeFromVC71.vsprops"
+			InheritedPropertySheets="$(VCInstallDir)VCProjectDefaults\UpgradeFromVC71.vsprops;..\mp_lib.vsprops"
 			CharacterSet="2"
 			EnableManagedIncrementalBuild="0"
 			>
@@ -263,7 +263,7 @@
 				Name="VCCLCompilerTool"
 				Optimization="3"
 				EnableIntrinsicFunctions="true"
-				AdditionalIncludeDirectories="..\..\;..\..\..\gmp;..\assembler"
+				AdditionalIncludeDirectories="..\..\;..\..\..\$(mp_lib);..\assembler"
 				PreprocessorDefinitions="WIN32;NDEBUG;_LIB"
 				RuntimeLibrary="0"
 				UsePrecompiledHeader="0"
@@ -302,10 +302,10 @@
 		</Configuration>
 		<Configuration
 			Name="Debug-AMD|Win32"
-			OutputDirectory="$(SolutionDir)$(PlatformName)\$(ConfigurationName)"
-			IntermediateDirectory="$(PlatformName)\$(ConfigurationName)"
+			OutputDirectory="$(SolutionDir)$(PlatformName)\Debug"
+			IntermediateDirectory="$(PlatformName)\Debug"
 			ConfigurationType="4"
-			InheritedPropertySheets="$(VCInstallDir)VCProjectDefaults\UpgradeFromVC71.vsprops"
+			InheritedPropertySheets="$(VCInstallDir)VCProjectDefaults\UpgradeFromVC71.vsprops;..\mp_lib.vsprops"
 			CharacterSet="2"
 			EnableManagedIncrementalBuild="0"
 			>
@@ -331,7 +331,7 @@
 			<Tool
 				Name="VCCLCompilerTool"
 				Optimization="0"
-				AdditionalIncludeDirectories="..\..\;..\..\..\gmp;..\assembler"
+				AdditionalIncludeDirectories="..\..\;..\..\..\$(mp_lib);..\assembler"
 				PreprocessorDefinitions="WIN32;_DEBUG;_LIB;SSE2"
 				MinimalRebuild="true"
 				BasicRuntimeChecks="3"
@@ -372,10 +372,10 @@
 		</Configuration>
 		<Configuration
 			Name="Debug-AMD|x64"
-			OutputDirectory="$(SolutionDir)$(PlatformName)\$(ConfigurationName)"
-			IntermediateDirectory="$(PlatformName)\$(ConfigurationName)"
+			OutputDirectory="$(SolutionDir)$(PlatformName)\Debug"
+			IntermediateDirectory="$(PlatformName)\Debug"
 			ConfigurationType="4"
-			InheritedPropertySheets="$(VCInstallDir)VCProjectDefaults\UpgradeFromVC71.vsprops"
+			InheritedPropertySheets="$(VCInstallDir)VCProjectDefaults\UpgradeFromVC71.vsprops;..\mp_lib.vsprops"
 			CharacterSet="2"
 			EnableManagedIncrementalBuild="0"
 			>
@@ -402,7 +402,7 @@
 			<Tool
 				Name="VCCLCompilerTool"
 				Optimization="0"
-				AdditionalIncludeDirectories="..\..\;..\..\..\gmp;..\assembler"
+				AdditionalIncludeDirectories="..\..\;..\..\..\$(mp_lib);..\assembler"
 				PreprocessorDefinitions="WIN32;_DEBUG;_LIB"
 				MinimalRebuild="true"
 				BasicRuntimeChecks="3"
@@ -443,10 +443,10 @@
 		</Configuration>
 		<Configuration
 			Name="Debug-Intel|Win32"
-			OutputDirectory="$(SolutionDir)$(PlatformName)\$(ConfigurationName)"
-			IntermediateDirectory="$(PlatformName)\$(ConfigurationName)"
+			OutputDirectory="$(SolutionDir)$(PlatformName)\Debug"
+			IntermediateDirectory="$(PlatformName)\Debug"
 			ConfigurationType="4"
-			InheritedPropertySheets="$(VCInstallDir)VCProjectDefaults\UpgradeFromVC71.vsprops"
+			InheritedPropertySheets="$(VCInstallDir)VCProjectDefaults\UpgradeFromVC71.vsprops;..\mp_lib.vsprops"
 			CharacterSet="2"
 			EnableManagedIncrementalBuild="0"
 			>
@@ -472,7 +472,7 @@
 			<Tool
 				Name="VCCLCompilerTool"
 				Optimization="0"
-				AdditionalIncludeDirectories="..\..\;..\..\..\gmp;..\assembler"
+				AdditionalIncludeDirectories="..\..\;..\..\..\$(mp_lib);..\assembler"
 				PreprocessorDefinitions="WIN32;_DEBUG;_LIB;SSE2"
 				MinimalRebuild="true"
 				BasicRuntimeChecks="3"
@@ -513,10 +513,10 @@
 		</Configuration>
 		<Configuration
 			Name="Debug-Intel|x64"
-			OutputDirectory="$(SolutionDir)$(PlatformName)\$(ConfigurationName)"
-			IntermediateDirectory="$(PlatformName)\$(ConfigurationName)"
+			OutputDirectory="$(SolutionDir)$(PlatformName)\Debug"
+			IntermediateDirectory="$(PlatformName)\Debug"
 			ConfigurationType="4"
-			InheritedPropertySheets="$(VCInstallDir)VCProjectDefaults\UpgradeFromVC71.vsprops"
+			InheritedPropertySheets="$(VCInstallDir)VCProjectDefaults\UpgradeFromVC71.vsprops;..\mp_lib.vsprops"
 			CharacterSet="2"
 			EnableManagedIncrementalBuild="0"
 			>
@@ -543,7 +543,7 @@
 			<Tool
 				Name="VCCLCompilerTool"
 				Optimization="0"
-				AdditionalIncludeDirectories="..\..\;..\..\..\gmp;..\assembler"
+				AdditionalIncludeDirectories="..\..\;..\..\..\$(mp_lib);..\assembler"
 				PreprocessorDefinitions="WIN32;_DEBUG;_LIB"
 				MinimalRebuild="true"
 				BasicRuntimeChecks="3"
