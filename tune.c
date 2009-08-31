@@ -113,7 +113,7 @@ tune_mpres_mul (mp_size_t limbs, int repr)
      divisible by 2 or 3 */
   do
     {
-      mpz_random (N, limbs);
+      mpz_urandomb (N, gmp_randstate, limbs * GMP_NUMB_BITS);
       while (mpz_gcd_ui (NULL, N, 6) != 1)
         mpz_add_ui (N, N, 1);
     }
