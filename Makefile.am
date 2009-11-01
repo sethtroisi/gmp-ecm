@@ -4,6 +4,8 @@ ACLOCAL_AMFLAGS = -I m4
 
 lib_LTLIBRARIES = libecm.la
 
+EXTRA_PROGRAMS = rho
+
 # If we want assembly mulredc code, recurse into the right subdirectory
 # and set up variables to include the mulredc library from that subdir
 if ENABLE_ASM_REDC
@@ -13,7 +15,7 @@ if ENABLE_ASM_REDC
   MULREDCLIBRARY = -lmulredc
 
   # Add a testing and timing program for the mulredc code
-  EXTRA_PROGRAMS = bench_mulredc test_mulredc
+  EXTRA_PROGRAMS += bench_mulredc test_mulredc
   CLEANFILES = bench_mulredc test_mulredc
   bench_mulredc_CPPFLAGS = $(MULREDCINCPATH)
   bench_mulredc_LDFLAGS = $(MULREDCLIBPATH)
@@ -52,6 +54,9 @@ tune_CPPFLAGS = -DTUNE $(MULREDCINCPATH)
 tune_LDFLAGS = $(MULREDCLIBPATH)
 tune_LDADD = $(MULREDCLIBRARY)
 
+rho_SOURCES = rho.c
+rho_CPPFLAGS = -DTESTDRIVE
+rho_LDADD = -lprimegen
 
 if MEMORY_DEBUG
   libecm_la_SOURCES += memory.c
