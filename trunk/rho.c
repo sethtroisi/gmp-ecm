@@ -20,11 +20,24 @@
   MA 02110-1301, USA.
 */
 
+#include "config.h"
+#if defined(TESTDRIVE)
+#define _ISOC99_SOURCE 1
+#endif
 #if defined(DEBUG_NUMINTEGRATE) || defined(TESTDRIVE)
 # include <stdio.h>
 #endif
 #include <stdlib.h>
 #include <math.h>
+#if defined(TESTDRIVE)
+#include <string.h>
+#include "primegen.h"
+#endif
+#ifdef HAVE_LIBGSL
+#include <gsl/gsl_math.h>
+#include <gsl/gsl_sf_expint.h>
+#include <gsl/gsl_integration.h>
+#endif
 #include "ecm-impl.h"
 
 #ifndef ECM_EXTRA_SMOOTHNESS
@@ -33,7 +46,10 @@
 
 #define M_PI_SQR   9.869604401089358619 /* Pi^2 */
 #define M_PI_SQR_6 1.644934066848226436 /* Pi^2/6 */
+/* gsl_math.h defines M_EULER */
+#ifndef M_EULER
 #define M_EULER    0.577215664901532861
+#endif
 #define M_EULER_1   0.422784335098467139 /* 1 - Euler */
 
 void rhoinit (int, int); /* used in stage2.c */
@@ -42,6 +58,13 @@ static double *rhotable = NULL;
 static int invh = 0;
 static double h = 0.;
 static int tablemax = 0;
+#if defined(TESTDRIVE)
+#define PRIME_PI_MAX 10000
+#define PRIME_PI_MAP(x) (((x)+1)/2)
+/* The number of primes up to i. Use prime_pi[PRIME_PI_MAP(i)].
+   Only correct for i >= 2. */
+static unsigned int prime_pi[PRIME_PI_MAP(PRIME_PI_MAX)+1];
+#endif
 
 #ifdef TESTDRIVE
 unsigned long
@@ -85,7 +108,87 @@ eulerphi (unsigned long n)
 
   return (n == 1) ? phi : phi * (n - 1);
 }
+
+
+/* The number of positive integers up to x that have no prime factor up to y,
+   for x >= y >= 2. Uses Buchstab's identity */
+unsigned long
+Buchstab_Phi(unsigned long x, unsigned long y) 
+{
+  unsigned long p, s;
+  primegen pg[1];
+
+  if (x < 1)
+    return 0;
+  if (x <= y)
+    return 1;
+#if 0
+  if (x < y^2)
+    return(1 + primepi(x) - primepi (y)));
+#endif
+
+  s = 1;
+  primegen_init (pg);
+  primegen_skipto (pg, y + 1);
+  for (p = primegen_next(pg); p <= x; p = primegen_next(pg))
+    s += Buchstab_Phi(x / p, p - 1);
+  return (s);
+}
+
+
+/* The number of positive integers up to x that have no prime factor
+   greter than y, for x >= y >= 2. Uses Buchstab's identity */
+unsigned long 
+Buchstab_Psi(const unsigned long x, const unsigned long y) 
+{
+  unsigned long r, p;
+  primegen pg[1];
+
+  if (x <= y)
+    return (x);
+
+  if (y == 1UL)
+    return (1);
+
+  /* If y^2 > x, then
+     Psi(x,y) = x - \sum_{y < p < x, p prime} floor(x/p)
+
+     We separate the sum into ranges where floor(x/p) = k,
+     which is x/(k+1) < p <= x/k.
+     We also need to satisfy y < p, so we need k < x/y - 1,
+     or k_max = ceil (x/y) - 2.
+     The primes y < p <= x/(k_max + 1) are summed separately. */
+  if (x <= PRIME_PI_MAX && x < y * y)
+    {
+      unsigned long kmax = x / y - 1;
+      unsigned long s1, s2, k;
+      
+        s1 = (kmax + 1) * (prime_pi [PRIME_PI_MAP(x / (kmax + 1))] - 
+                           prime_pi [PRIME_PI_MAP(y)]);
+        s2 = 0;
+        for (k = 1; k <= kmax; k++)
+          s2 += prime_pi[PRIME_PI_MAP(x / k)];
+        s2 -= kmax * prime_pi [PRIME_PI_MAP(x / (kmax+1))];
+        return (x - s1 - s2);
+    }
+
+  r = 1;
+  primegen_init (pg);
+  for (p = primegen_next(pg); p <= y; p = primegen_next(pg))
+    r += Buchstab_Psi (x / p, p);
+  return (r);
+}
+
 #endif /* TESTDRIVE */
+
+
+#ifdef HAVE_LIBGSL
+static double
+Li (const double x)
+{
+  return (- gsl_sf_expint_E1 (- log(x)));
+}
+#endif
 
 /*
   Evaluate dilogarithm via the sum 
@@ -152,6 +255,32 @@ rhoexact (double x)
   
   return 0.; /* x > 3. and asserting not enabled: bail out with 0. */
 }
+
+
+/* The Buchstab omega(x) function, exact for x <= 4 where it can be 
+   evaluated without numerical integration, and approximated by 
+   exp(gamma) for larger x. */
+
+static double
+omega (const double x)
+{
+  /* magic = dilog(-1) + 1  = Pi^2/12 + 1 */
+  const double magic = 1.82246703342411321824; 
+
+  if (x < 1.) return (0.);
+  if (x <= 2.) return (1. / x);
+  if (x <= 3.) return ((log (x - 1.) + 1.) / x);
+  if (x <= 4.)
+    return ((dilog(2. - x) + (1. + log(x - 2.)) * log(x - 1.) + magic) / x);
+
+  /* If argument is out of range, return the limiting value for 
+     $x->\infty$: e^-gamma. 
+     For x only a little larger than 4., this has relative error 2.2e-6,
+     for larger x the error rapidly drops further */
+
+  return 0.56145948356688516982;
+}
+
 
 void 
 rhoinit (int parm_invh, int parm_tablemax)
@@ -494,16 +623,139 @@ pm1prob_rm (double B1, double B2, double N, double nr, int S, unsigned long r,
   return prob (B1, B2, N, nr, S, exp(smoothness));
 }
 
+
+/* The \Phi(x,y) function gives the number of natural numbers <= x 
+   that have no prime factor <= y, see Tenenbaum, 
+   "Introduction the analytical and probabilistic number theory", III.6.
+   This function estimates the \Phi(x,y) function via eq. (48) of the 1st
+   edition resp. equation (6.49) of the 3rd edition of Tenenbaum's book. */
+
+#ifdef HAVE_LIBGSL
+
+static double 
+integrand1 (double x, void *params)
+{
+  return pow (*(double *) params, x) / x * log(x-1.);
+}
+
+
+double 
+no_small_prime (double x, double y)
+{
+  double u;
+  ASSERT (x >= 2.);
+  ASSERT (y >= 2.);
+  if (x <= y)
+    return 0.;
+  
+  u = log(x)/log(y);
+
+   /* If no prime factors <= sqrt(x), number must be a prime > y */
+  if (u <= 2)
+    return (Li(x) - Li(y));
+  
+  if (u <= 3)
+    {
+      double r, abserr;
+      size_t neval;
+      gsl_function f;
+
+      f.function = &integrand1;
+      f.params = &y;
+
+      /* intnum(v=1,u,buchstab(v)/y^(u-v)) */
+
+      /* First part: intnum(v=2, u, y^v/v*log(v-1.)) */
+      gsl_integration_qng (&f, 2., u, 0., 0.01, &r, &abserr, &neval);
+
+      /* Second part: intnum(v=1, u, y^v/v) */
+      r += -gsl_sf_expint_E1(-log(y)*u) + gsl_sf_expint_E1(-log(y));
+      
+      r *= x / pow(y,u);
+      return r;
+    }
+
+  return x * omega(u) / log(y);
+}
+#endif
+
+
 #ifdef TESTDRIVE
 int
 main (int argc, char **argv)
 {
   double B1, B2, N, nr, r, m;
   int S;
-  if (argc < 6)
+  unsigned long p, i, pi;
+  primegen pg[1];
+  
+  primegen_init (pg);
+  i = pi = 0;
+  for (p = primegen_next (pg); p <= PRIME_PI_MAX; p = primegen_next (pg))
+    {
+      for ( ; i < p; i++)
+        prime_pi[PRIME_PI_MAP(i)] = pi;
+      pi++;
+    }
+  for ( ; i < p; i++)
+    prime_pi[PRIME_PI_MAP(i)] = pi;
+  
+
+  if (argc < 2)
     {
       printf ("Usage: rho <B1> <B2> <N> <nr> <S> [<r> <m>]\n");
       return 1;
+    }
+  
+  if (strcmp (argv[1], "-Buchstab_Phi") == 0)
+    {
+      unsigned long x, y, r;
+      if (argc < 4)
+        {
+          printf ("-Buchstab_Phi needs x and y paramters\n");
+          exit (EXIT_FAILURE);
+        }
+      x = strtoul (argv[2], NULL, 10);
+      y = strtoul (argv[3], NULL, 10);
+      r = Buchstab_Phi (x, y);
+      printf ("Buchstab_Phi (%lu, %lu) = %lu\n", x, y, r);
+      exit (EXIT_SUCCESS);
+    }
+  else if (strcmp (argv[1], "-Buchstab_Psi") == 0)
+    {
+      unsigned long x, y, r;
+      if (argc < 4)
+        {
+          printf ("-Buchstab_Psi needs x and y paramters\n");
+          exit (EXIT_FAILURE);
+        }
+      x = strtoul (argv[2], NULL, 10);
+      y = strtoul (argv[3], NULL, 10);
+      r = Buchstab_Psi (x, y);
+      printf ("Buchstab_Psi (%lu, %lu) = %lu\n", x, y, r);
+      exit (EXIT_SUCCESS);
+    }
+  else if (strcmp (argv[1], "-nsp") == 0)
+    {
+      double x, y, r;
+      
+      if (argc < 4)
+        {
+          printf ("-nsp needs x and y paramters\n");
+          exit (EXIT_FAILURE);
+        }
+      x = atof (argv[2]);
+      y = atof (argv[3]);
+      r = no_small_prime (x, y);
+      printf ("no_small_prime(%f, %f) = %f\n", x, y, r);
+      exit (EXIT_SUCCESS);
+    }
+
+
+  if (argc < 6)
+    {
+      printf ("Need 5 or 7 arguments: B1 B2 N nr S [r m]\n");
+      exit (EXIT_FAILURE);
     }
   
   B1 = atof (argv[1]);
