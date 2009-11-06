@@ -41,7 +41,7 @@
 #include "ecm-impl.h"
 
 #ifndef ECM_EXTRA_SMOOTHNESS
-#define ECM_EXTRA_SMOOTHNESS 23.4
+#define ECM_EXTRA_SMOOTHNESS 3.134
 #endif
 
 #define M_PI_SQR   9.869604401089358619 /* Pi^2 */
@@ -51,6 +51,13 @@
 #define M_EULER    0.577215664901532861
 #endif
 #define M_EULER_1   0.422784335098467139 /* 1 - Euler */
+
+#ifndef MAX
+#define MAX(x,y) ((x) > (y) ? (x) : (y))
+#endif
+#ifndef MIN
+#define MIN(x,y) ((x) < (y) ? (x) : (y))
+#endif
 
 void rhoinit (int, int); /* used in stage2.c */
 
@@ -65,6 +72,49 @@ static int tablemax = 0;
    Only correct for i >= 2. */
 static unsigned int prime_pi[PRIME_PI_MAP(PRIME_PI_MAX)+1];
 #endif
+
+/* Fixme: need prime generating funcion without static state variables */
+const unsigned char primemap[667] = {
+  254, 223, 239, 126, 182, 219, 61, 249, 213, 79, 30, 243, 234, 166, 237, 158, 
+  230, 12, 211, 211, 59, 221, 89, 165, 106, 103, 146, 189, 120, 30, 166, 86, 
+  86, 227, 173, 45, 222, 42, 76, 85, 217, 163, 240, 159, 3, 84, 161, 248, 46, 
+  253, 68, 233, 102, 246, 19, 58, 184, 76, 43, 58, 69, 17, 191, 84, 140, 193, 
+  122, 179, 200, 188, 140, 79, 33, 88, 113, 113, 155, 193, 23, 239, 84, 150, 
+  26, 8, 229, 131, 140, 70, 114, 251, 174, 101, 146, 143, 88, 135, 210, 146, 
+  216, 129, 101, 38, 227, 160, 17, 56, 199, 38, 60, 129, 235, 153, 141, 81, 
+  136, 62, 36, 243, 51, 77, 90, 139, 28, 167, 42, 180, 88, 76, 78, 38, 246, 
+  25, 130, 220, 131, 195, 44, 241, 56, 2, 181, 205, 205, 2, 178, 74, 148, 12, 
+  87, 76, 122, 48, 67, 11, 241, 203, 68, 108, 36, 248, 25, 1, 149, 168, 92, 
+  115, 234, 141, 36, 150, 43, 80, 166, 34, 30, 196, 209, 72, 6, 212, 58, 47, 
+  116, 156, 7, 106, 5, 136, 191, 104, 21, 46, 96, 85, 227, 183, 81, 152, 8, 
+  20, 134, 90, 170, 69, 77, 73, 112, 39, 210, 147, 213, 202, 171, 2, 131, 97, 
+  5, 36, 206, 135, 34, 194, 169, 173, 24, 140, 77, 120, 209, 137, 22, 176, 87, 
+  199, 98, 162, 192, 52, 36, 82, 174, 90, 64, 50, 141, 33, 8, 67, 52, 182, 
+  210, 182, 217, 25, 225, 96, 103, 26, 57, 96, 208, 68, 122, 148, 154, 9, 136, 
+  131, 168, 116, 85, 16, 39, 161, 93, 104, 30, 35, 200, 50, 224, 25, 3, 68, 
+  115, 72, 177, 56, 195, 230, 42, 87, 97, 152, 181, 28, 10, 104, 197, 129, 
+  143, 172, 2, 41, 26, 71, 227, 148, 17, 78, 100, 46, 20, 203, 61, 220, 20, 
+  197, 6, 16, 233, 41, 177, 130, 233, 48, 71, 227, 52, 25, 195, 37, 10, 48, 
+  48, 180, 108, 193, 229, 70, 68, 216, 142, 76, 93, 34, 36, 112, 120, 146, 
+  137, 129, 130, 86, 38, 27, 134, 233, 8, 165, 0, 211, 195, 41, 176, 194, 74, 
+  16, 178, 89, 56, 161, 29, 66, 96, 199, 34, 39, 140, 200, 68, 26, 198, 139, 
+  130, 129, 26, 70, 16, 166, 49, 9, 240, 84, 47, 24, 210, 216, 169, 21, 6, 46, 
+  12, 246, 192, 14, 80, 145, 205, 38, 193, 24, 56, 101, 25, 195, 86, 147, 139, 
+  42, 45, 214, 132, 74, 97, 10, 165, 44, 9, 224, 118, 196, 106, 60, 216, 8, 
+  232, 20, 102, 27, 176, 164, 2, 99, 54, 16, 49, 7, 213, 146, 72, 66, 18, 195, 
+  138, 160, 159, 45, 116, 164, 130, 133, 120, 92, 13, 24, 176, 97, 20, 29, 2, 
+  232, 24, 18, 193, 1, 73, 28, 131, 48, 103, 51, 161, 136, 216, 15, 12, 244, 
+  152, 136, 88, 215, 102, 66, 71, 177, 22, 168, 150, 8, 24, 65, 89, 21, 181, 
+  68, 42, 82, 225, 179, 170, 161, 89, 69, 98, 85, 24, 17, 165, 12, 163, 60, 
+  103, 0, 190, 84, 214, 10, 32, 54, 107, 130, 12, 21, 8, 126, 86, 145, 1, 120, 
+  208, 97, 10, 132, 168, 44, 1, 87, 14, 86, 160, 80, 11, 152, 140, 71, 108, 
+  32, 99, 16, 196, 9, 228, 12, 87, 136, 11, 117, 11, 194, 82, 130, 194, 57, 
+  36, 2, 44, 86, 37, 122, 49, 41, 214, 163, 32, 225, 177, 24, 176, 12, 138, 
+  50, 193, 17, 50, 9, 197, 173, 48, 55, 8, 188, 145, 130, 207, 32, 37, 107, 
+  156, 48, 143, 68, 38, 70, 106, 7, 73, 142, 9, 88, 16, 2, 37, 197, 196, 66, 
+  90, 128, 160, 128, 60, 144, 40, 100, 20, 225, 3, 132, 81, 12, 46, 163, 138, 
+  164, 8, 192, 71, 126, 211, 43, 3, 205, 84, 42, 0, 4, 179, 146, 108, 66, 41, 
+  76, 131, 193, 146, 204, 28};
 
 #ifdef TESTDRIVE
 unsigned long
@@ -262,7 +312,7 @@ rhoexact (double x)
    exp(gamma) for larger x. */
 
 static double
-omega (const double x)
+Buchstab_omega (const double x)
 {
   /* magic = dilog(-1) + 1  = Pi^2/12 + 1 */
   const double magic = 1.82246703342411321824; 
@@ -357,6 +407,7 @@ dickmanrho (double alpha)
   return 0.;
 }
 
+#if 0
 static double 
 dickmanrhosigma (double alpha, double x)
 {
@@ -370,7 +421,6 @@ dickmanrhosigma (double alpha, double x)
   return 0.;
 }
 
-#if 0
 static double
 dickmanrhosigma_i (int ai, double x)
 {
@@ -393,8 +443,7 @@ dickmanlocal (double alpha, double x)
   if (alpha <= 1.)
     return 1.;
   if (alpha < tablemax)
-    return dickmanrhosigma (alpha, x) 
-           - dickmanrhosigma (alpha - 1., x) / log (x);
+    return dickmanrho (alpha) - M_EULER * dickmanrho (alpha - 1.) / log (x);
   return 0.;
 }
 
@@ -415,6 +464,43 @@ dickmanlocal_i (int ai, double x)
     }
 
   return 0.;
+}
+
+static int 
+isprime(unsigned long n)
+{
+  unsigned int r;
+
+  if (n % 2 == 0)
+    return (n == 2);
+  if (n % 3 == 0)
+    return (n == 3);
+  if (n % 5 == 0)
+    return (n == 5);
+
+  if (n / 30 >= sizeof (primemap))
+    abort();
+  
+  r = n % 30; /* 8 possible values: 1,7,11,13,17,19,23,29 */
+  r = (r * 16 + r) / 64; /* maps the 8 values onto 0, ..., 7 */
+
+  return ((primemap[n / 30] & (1 << r)) != 0);
+}
+
+static double
+dickmanmu_sum (const unsigned long B1, const unsigned long B2, 
+	       const double x)
+{
+  double s = 0.;
+  const double logB1 = 1. / log(B1);
+  const double logx = log(x); 
+  unsigned long p;
+
+  for (p = B1 + 1; p <= B2; p++)
+    if (isprime(p))
+      s += dickmanlocal ((logx - log(p)) * logB1, x / p) / p;
+
+  return (s);
 }
 
 static double
@@ -453,7 +539,7 @@ brentsuyama (double B1, double B2, double N, double nr)
   if (ai > tablemax * invh)
     ai = tablemax * invh;
   a = (double) ai * h;
-  sum = 0.;
+   sum = 0.;
   for (i = 1; i < ai; i++)
     sum += dickmanlocal_i (i, N) / (alpha - i * h) * (1 - exp (-nr * pow (B1, (-alpha + i * h))));
   sum += 0.5 * (1 - exp(-nr / pow (B1, alpha)));
@@ -492,13 +578,14 @@ brsupower (double B1, double B2, double N, double nr, int S)
   return sum / (double)f;
 }
 
-/* Assume N is as likely smooth as a number around N/delta */
+/* Assume N is as likely smooth as a number around N/exp(delta) */
 
 static double
 prob (double B1, double B2, double N, double nr, int S, double delta)
 {
+  const double sumthresh = 20000.;
   double alpha, beta, stage1, stage2, brsu;
-  const double effN = N / delta;
+  const double effN = N / exp(delta);
 
   ASSERT(rhotable != NULL);
   
@@ -522,8 +609,16 @@ prob (double B1, double B2, double N, double nr, int S, double delta)
   stage2 = 0.;
   if (B2 > B1)
     {
-      beta = log (B2) / log (B1);
-      stage2 = dickmanmu (alpha, beta, effN);
+      if (B1 < sumthresh)
+	{
+	  stage2 += dickmanmu_sum (B1, MIN(B2, sumthresh), effN);
+	  beta = log (B2) / log (MIN(B2, sumthresh));
+	}
+      else
+	beta = log (B2) / log (B1);
+
+      if (beta > 1.)
+	stage2 += dickmanmu (alpha, beta, effN);
     }
   brsu = 0.;
   if (S < -1)
@@ -570,13 +665,13 @@ pm1prob (double B1, double B2, double N, double nr, int S, const mpz_t go)
             while (mpz_divisible_ui_p (cof, i))
               mpz_tdiv_q_ui (cof, cof, i);
           }
-      mpz_clear (cof);
       /* printf ("pm1prob: smoothness after dividing out go primes < 100: %f\n", 
                smoothness); */
-      return prob (B1, B2, N, nr, S, exp(smoothness) * mpz_get_d (go));
+      return prob (B1, B2, N, nr, S, smoothness + log(mpz_get_d (cof)));
+      mpz_clear (cof);
     }
 
-  return prob (B1, B2, N, nr, S, exp(smoothness));
+  return prob (B1, B2, N, nr, S, smoothness);
 }
 
 
@@ -620,7 +715,7 @@ pm1prob_rm (double B1, double B2, double N, double nr, int S, unsigned long r,
                 p, i, k, smoothness); 
       }
 
-  return prob (B1, B2, N, nr, S, exp(smoothness));
+  return prob (B1, B2, N, nr, S, smoothness);
 }
 
 
@@ -633,50 +728,105 @@ pm1prob_rm (double B1, double B2, double N, double nr, int S, unsigned long r,
 #ifdef HAVE_LIBGSL
 
 static double 
-integrand1 (double x, void *params)
+integrand1 (double x, double *y)
 {
-  return pow (*(double *) params, x) / x * log(x-1.);
+  return pow (*y, x) / x * log(x-1.);
 }
 
 
-double 
-no_small_prime (double x, double y)
+static double 
+integrand2 (double v, double *y)
 {
-  double u;
-  ASSERT (x >= 2.);
-  ASSERT (y >= 2.);
-  if (x <= y)
-    return 0.;
-  
-  u = log(x)/log(y);
+  return Buchstab_omega (v) * pow (*y, v);
+}
 
-   /* If no prime factors <= sqrt(x), number must be a prime > y */
-  if (u <= 2)
-    return (Li(x) - Li(y));
+
+/* Return approximate number of integers n with x1 < n <= x2
+   that have no prime factor <= y */
+
+double 
+no_small_prime (double x1, double x2, double y)
+{
+  double u1, u2;
+  ASSERT (x1 >= 2.);
+  ASSERT (x2 >= x1);
+  ASSERT (y >= 2.);
+  if (x1 == x2 || x2 <= y)
+    return 0.;
+  if (x1 < y)
+    x1 = y;
   
-  if (u <= 3)
+  u1 = log(x1)/log(y);
+  u2 = log(x2)/log(y);
+
+   /* If no prime factors <= sqrt(x2), numbers must be a primes > y */
+  if (x2 <= y*y)
+    return (Li(x2) - Li(x1));
+  
+  if (u2 <= 3)
     {
       double r, abserr;
       size_t neval;
       gsl_function f;
 
-      f.function = &integrand1;
+      f.function = (double (*) (double, void *)) &integrand1;
       f.params = &y;
 
-      /* intnum(v=1,u,buchstab(v)/y^(u-v)) */
+      /* intnum(v=1,u,buchstab(v)*y^v) */
 
-      /* First part: intnum(v=2, u, y^v/v*log(v-1.)) */
-      gsl_integration_qng (&f, 2., u, 0., 0.01, &r, &abserr, &neval);
+      /* First part: intnum(v=u1, u, y^v/v*log(v-1.)) */
+      gsl_integration_qng (&f, MAX(u1, 2.) , u2, 0., 0.001, &r, &abserr, &neval);
 
-      /* Second part: intnum(v=1, u, y^v/v) */
-      r += -gsl_sf_expint_E1(-log(y)*u) + gsl_sf_expint_E1(-log(y));
+      /* Second part: intnum(v=u1, u2, y^v/v) = Li(x2) - Li(x1) */
+      r += Li (x2) - Li (x1);
       
-      r *= x / pow(y,u);
       return r;
     }
-
-  return x * omega(u) / log(y);
+    
+  {
+    double r, abserr;
+    size_t neval;
+    gsl_function f;
+  
+    f.function = (double (*) (double, void *)) &integrand2;
+    f.params = &y;
+    
+    gsl_integration_qng (&f, u1, u2, 0., 0.001, &r, &abserr, &neval);
+    return r;
+  }
 }
+
+
+static double 
+integrand3 (double p, double *param)
+{
+  const double x1 = param[0];
+  const double x2 = param[1];
+  const double y = param[2];
+  
+  return no_small_prime (x1 / p, x2 / p, y) / log(p);
+}
+
+
+double 
+no_small_prime_factor (const double x1, const double x2, const double y, 
+                       const double z1, const double z2)
+{
+  double r, abserr, param[3];
+  size_t neval;
+  gsl_function f;
+
+  param[0] = x1;
+  param[1] = x2;
+  param[2] = y;
+  f.function = (double (*) (double, void *)) &integrand3;
+  f.params = &param;
+  
+  gsl_integration_qng (&f, z1, z2, 0., 0.01, &r, &abserr, &neval);
+  
+  return r;
+}
+
 #endif
 
 
@@ -688,7 +838,7 @@ main (int argc, char **argv)
   int S;
   unsigned long p, i, pi;
   primegen pg[1];
-  
+
   primegen_init (pg);
   i = pi = 0;
   for (p = primegen_next (pg); p <= PRIME_PI_MAX; p = primegen_next (pg))
@@ -737,17 +887,36 @@ main (int argc, char **argv)
     }
   else if (strcmp (argv[1], "-nsp") == 0)
     {
-      double x, y, r;
+      double x1, x2, y, r;
       
-      if (argc < 4)
+      if (argc < 5)
         {
-          printf ("-nsp needs x and y paramters\n");
+          printf ("-nsp needs x1, x2, and y paramters\n");
           exit (EXIT_FAILURE);
         }
-      x = atof (argv[2]);
-      y = atof (argv[3]);
-      r = no_small_prime (x, y);
-      printf ("no_small_prime(%f, %f) = %f\n", x, y, r);
+      x1 = atof (argv[2]);
+      x2 = atof (argv[3]);
+      y = atof (argv[4]);
+      r = no_small_prime (x1, x2, y);
+      printf ("no_small_prime(%f, %f, %f) = %f\n", x1, x2, y, r);
+      exit (EXIT_SUCCESS);
+    }
+  else if (strcmp (argv[1], "-nspf") == 0)
+    {
+      double x1, x2, y, z1, z2, r;
+      
+      if (argc < 7)
+        {
+          printf ("-nspf needs x1, x2, y, z1, and z2 paramters\n");
+          exit (EXIT_FAILURE);
+        }
+      x1 = atof (argv[2]);
+      x2 = atof (argv[3]);
+      y = atof (argv[4]);
+      z1 = atof (argv[5]);
+      z2 = atof (argv[6]);
+      r = no_small_prime_factor (x1, x2, y, z1, z2);
+      printf ("no_small_prime(%f, %f, %f, %f, %f) = %f\n", x1, x2, y, z1, z2, r);
       exit (EXIT_SUCCESS);
     }
 
