@@ -1,8 +1,8 @@
 /* sp.h - header file for the sp library
 
-  Copyright 2005, 2008 Dave Newman and Jason Papadopoulos.
+  Copyright 2005, 2008 Dave Newman, Jason Papadopoulos and Paul Zimmermann.
   Copyright 1991, 1993, 1994, 1995, 1996, 1997, 1999, 2000, 2001, 2002, 2003,
-  2004, 2005 Free Software Foundation, Inc. (for parts from gmp-impl.h).
+  2004, 2005, 2010 Free Software Foundation, Inc. (for parts from gmp-impl.h).
 
   This file is part of the SP library.
   
@@ -63,6 +63,11 @@ typedef mp_limb_t UWtype;
 typedef unsigned int UHWtype;
 typedef mp_limb_t USItype;
 typedef mp_limb_t UDItype;
+
+/* __GMP_BITS_PER_MP_LIMB is no more defined in GMP 5 */
+#ifndef __GMP_BITS_PER_MP_LIMB
+#define __GMP_BITS_PER_MP_LIMB GMP_LIMB_BITS
+#endif
 
 #ifndef BITS_PER_MP_LIMB
 #define BITS_PER_MP_LIMB __GMP_BITS_PER_MP_LIMB
