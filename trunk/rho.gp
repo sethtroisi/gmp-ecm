@@ -138,7 +138,7 @@ rhoexact(x) =
    With invh = 400, all digits match Knuth/Trapp-Pardo (after rounding) */
 
 tablemax = 10;
-invh = 256;
+invh = 512;
 h = 1. / invh;
 rhotable = listcreate (tablemax * invh);
 for (i = 1, 3 * invh - 1, listput (rhotable, rhoexact (i * h), i))
@@ -177,10 +177,12 @@ dickmanrho (alpha) =
    correction term, (4.8), (4.15) */
 dickmanrhosigma (alpha, x) =
 {
+  local(r);
   if (alpha <= 0., return (0.));
   if (alpha <= 1., return (1.));
   if (alpha < tablemax, 
-    return (dickmanrho (alpha) + (1. - Euler) * dickmanrho (alpha - 1.) / log (x));
+    return (dickmanrho (alpha) + 
+            (1. - Euler) * dickmanrho (alpha - 1.) / log (x));
   );
   return (0.);
 }
@@ -203,8 +205,8 @@ dickmanlocal (alpha, x) =
   if (alpha <= 1., return (1.));
   /* Avoid case where alpha >= tablemax, but alpha - 1 < tablemax which 
      would give negative result */
-  if (alpha < tablemax,
-    return (dickmanrhosigma (alpha, x) - dickmanrhosigma (alpha - 1, x) / log (x))
+  if (alpha <= tablemax, 
+    return (dickmanrho (alpha) - Euler * dickmanrho (alpha - 1.) / log (x));
   );
   return (0);
 }
@@ -224,6 +226,21 @@ dickmanlocal_i (ai, x) =
     )
   );
   return (0);
+}
+
+/* Probability that a number around x has all prime factors <= B1, 
+   and exactly one prime p with B1 < p <=B2. 
+   Does a sum over primes p rather than an integral, which is 
+   more accurate for small B2 */
+dickmanmu_noint (B1, B2, x) =
+{
+  local (p, s);
+  s = 0.;
+  /* print ("dickmanmu_noint ", B1, ", ", B2, ", ", x); */
+  forprime(p = B1 + 1, B2, 
+    s += dickmanlocal (log(x/p) / log(B1), x / p) / p;
+  );
+  return(s);
 }
 
 /* Probability that a number around x has all prime factors <=x^(1/alpha), 
@@ -300,19 +317,21 @@ brsupower (B1, B2, N, nr, S) =
   return (n / phi);
 }
 
-/* The probability of ECM finding a factor near N with stage 1 parameter B1,
-   stage 2 parameter B2, and evaluating nr random but distinct points in 
-   stage 2 with a degree -S Dickson polynomial (if S < 0) or the 
-   S-th power (S > 0) as the Brent-Suyama function */
-ecmprob (B1, B2, N, nr, S) =
+gen_prob (B1, B2, N, nr, S, delta) =
 {
   local (alpha, beta, stage1, stage2, brsu, Nadj);
-  Nadj = N / 23.4;
+  Nadj = N / exp(delta);
   alpha = log (Nadj) / log (B1);
   beta = log (B2) / log (B1);
   stage1 = dickmanlocal (alpha, Nadj);
   stage2 = 0;
-  if (B2 > B1, stage2 = dickmanmu (alpha, beta, Nadj));
+  if (B2 > B1, 
+    if (B2 < 20000,
+      stage2 = dickmanmu_noint (B1, B2, Nadj);
+    ,
+      stage2 = dickmanmu (alpha, beta, Nadj);
+    );
+  );
   brsu = 0;
   if (S < -1,
     brsu = brsudickson (B1, B2, Nadj, nr, -S * 2)
@@ -320,32 +339,48 @@ ecmprob (B1, B2, N, nr, S) =
   if (S > 1,
     brsu = brsupower (B1, B2, Nadj, nr, S * 2)
   );
-/*  print ("ecmprob: stage 1: ", stage1, ", stage 2: ", stage2, 
+  /* print ("gen_prob: stage 1: ", stage1, ", stage 2: ", stage2, 
          ", Brent-Suyama: ", brsu); */
   return (stage1 + stage2 + brsu)
+}
+
+/* The probability of ECM finding a factor near N with stage 1 parameter B1,
+   stage 2 parameter B2, and evaluating nr random but distinct points in 
+   stage 2 with a degree -S Dickson polynomial (if S < 0) or the 
+   S-th power (S > 0) as the Brent-Suyama function */
+ecmprob (B1, B2, N, nr, S, delta) =
+{
+  local (ldelta);
+  ldelta = 3.134; /* delta value for Brent-Suyama, but not sigma=11 */
+  if (delta != 0, ldelta = delta);
+  return (gen_prob(B1, B2, N, nr, S, ldelta));
 }
 
 /* pm1prob is incomplete! */
 
 pm1prob (B1, B2, N, nr, S) =
 {
-  local (alpha, beta, stage1, stage2, brsu, divalpha);
+  local(delta);
   /* The "root properties" of a large prime minus 1 are 
      alpha = sum_{p in Primes} log(p)/(p^2-2p+1) ~= 1.2269688... */
-  divalpha = exp(1.2269688056534700059656625687457626422689456478473);
-  alpha = log (N / divalpha) / log (B1);
-  beta = log (B2) / log (B1);
-  stage1 = dickmanlocal (alpha, N / divalpha);
-  stage2 = 0;
-  if (B2 > B1, stage2 = dickmanmu (alpha, beta, N / divalpha));
-  brsu = 0;
-  if (S < -1,
-    brsu = brsudickson (B1, B2, N / divalpha, nr, -S)
-  );
-  if (S > 1,
-    brsu = brsupower (B1, B2, N / divalpha, nr, S)
-  );
- print ("pm1prob: stage 1: ", stage1, ", stage 2: ", stage2, 
-         ", Brent-Suyama: ", brsu);
-  return (stage1 + stage2 + brsu)
+  delta = 1.2269688056534700059656625687457626422689456478473;
+  return (gen_prob(B1, B2, N, nr, S, delta));
+}
+
+pp1prob4 (B1, B2, N, nr, S) =
+{
+  local(delta);
+  /* The "root properties" of a large prime minus 1 are 
+     alpha = sum_{p in Primes} log(p)/(p^2-2p+1) ~= 1.2269688... */
+  delta = 1.2269688056534700059656625687457626422689456478473 + log(2);
+  return (gen_prob(B1, B2, N, nr, S, delta));
+}
+
+pp1prob6 (B1, B2, N, nr, S) =
+{
+  local(delta);
+  /* The "root properties" of a large prime minus 1 are 
+     alpha = sum_{p in Primes} log(p)/(p^2-2p+1) ~= 1.2269688... */
+  delta = 1.2269688056534700059656625687457626422689456478473 + 3/4*log(3);
+  return (gen_prob(B1, B2, N, nr, S, delta));
 }
