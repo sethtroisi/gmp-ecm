@@ -17,7 +17,7 @@
 #  endif
 # endif
 
-#define LOOPCOUNT 10000000
+#define LOOPCOUNT 10000000UL
 
 #include <gmp.h>
 #include "mulredc.h"
@@ -57,7 +57,8 @@ void mp_print(mp_limb_t *x, int N) {
 void bench(mp_size_t N)
 {
   mp_limb_t *x, *y, *z, *m, invm, cy, cy2, *tmp;
-  int i;
+  unsigned long i;
+  const unsigned long iter = LOOPCOUNT/N;
   double t1, t2, t3 = 0.;
   
   x = (mp_limb_t *) malloc(N*sizeof(mp_limb_t));
@@ -71,8 +72,8 @@ void bench(mp_size_t N)
   if (m[N-1] == 0) 
     m[N-1] = 1UL;
 
-  invm = 1UL;
-  for (i = 0; i < 10; ++i)
+  invm = m[0];
+  for (i = 0; i < 5UL; ++i)
     invm = (2*invm-m[0]*invm*invm);
   invm = -invm;
 
@@ -81,7 +82,7 @@ void bench(mp_size_t N)
 
   /* Mul followed by ecm_redc3 */
   t1 = CPUTime();
-  for (i=0; i<LOOPCOUNT/N; ++i) {
+  for (i = 0; i < iter; ++i) {
     mpn_mul_n(tmp, x, y, N);
     ecm_redc3(tmp, m, N, invm);
     cy2 = mpn_add_n (tmp, tmp + N, tmp, N);
@@ -93,127 +94,127 @@ void bench(mp_size_t N)
   t2 = CPUTime();
   switch (N) {
    case 1:
-    for (i=0; i<LOOPCOUNT/N; ++i) {
+    for (i=0; i < iter; ++i) {
       cy += mulredc1(z, x[0], y[0], m[0], invm);
       x[0] += tmp[0];
     }
     break;
    case 2:
-    for (i=0; i<LOOPCOUNT/N; ++i) {
+    for (i=0; i < iter; ++i) {
       cy += mulredc2(z, x, y, m, invm);
       x[0] += tmp[0];
     }
     break;
    case 3:
-    for (i=0; i<LOOPCOUNT/N; ++i) {
+    for (i=0; i < iter; ++i) {
       cy += mulredc3(z, x, y, m, invm);
       x[0] += tmp[0];
     }
     break;
    case 4:
-    for (i=0; i<LOOPCOUNT/N; ++i) {
+    for (i=0; i < iter; ++i) {
       cy += mulredc4(z, x, y, m, invm);
       x[0] += tmp[0];
     }
     break;
    case 5:
-    for (i=0; i<LOOPCOUNT/N; ++i) {
+    for (i=0; i < iter; ++i) {
       cy += mulredc5(z, x, y, m, invm);
       x[0] += tmp[0];
     }
     break;
    case 6:
-    for (i=0; i<LOOPCOUNT/N; ++i) {
+    for (i=0; i < iter; ++i) {
       cy += mulredc6(z, x, y, m, invm);
       x[0] += tmp[0];
     }
     break;
    case 7:
-    for (i=0; i<LOOPCOUNT/N; ++i) {
+    for (i=0; i < iter; ++i) {
       cy += mulredc7(z, x, y, m, invm);
       x[0] += tmp[0];
     }
     break;
    case 8:
-    for (i=0; i<LOOPCOUNT/N; ++i) {
+    for (i=0; i < iter; ++i) {
       cy += mulredc8(z, x, y, m, invm);
       x[0] += tmp[0];
     }
     break;
    case 9:
-    for (i=0; i<LOOPCOUNT/N; ++i) {
+    for (i=0; i < iter; ++i) {
       cy += mulredc9(z, x, y, m, invm);
       x[0] += tmp[0];
     }
     break;
    case 10:
-    for (i=0; i<LOOPCOUNT/N; ++i) {
+    for (i=0; i < iter; ++i) {
       cy += mulredc10(z, x, y, m, invm);
       x[0] += tmp[0];
     }
     break;
    case 11:
-    for (i=0; i<LOOPCOUNT/N; ++i) {
+    for (i=0; i < iter; ++i) {
       cy += mulredc11(z, x, y, m, invm);
       x[0] += tmp[0];
     }
     break;
    case 12:
-    for (i=0; i<LOOPCOUNT/N; ++i) {
+    for (i=0; i < iter; ++i) {
       cy += mulredc12(z, x, y, m, invm);
       x[0] += tmp[0];
     }
     break;
    case 13:
-    for (i=0; i<LOOPCOUNT/N; ++i) {
+    for (i=0; i < iter; ++i) {
       cy += mulredc13(z, x, y, m, invm);
       x[0] += tmp[0];
     }
     break;
    case 14:
-    for (i=0; i<LOOPCOUNT/N; ++i) {
+    for (i=0; i < iter; ++i) {
       cy += mulredc14(z, x, y, m, invm);
       x[0] += tmp[0];
     }
     break;
    case 15:
-    for (i=0; i<LOOPCOUNT/N; ++i) {
+    for (i=0; i < iter; ++i) {
       cy += mulredc15(z, x, y, m, invm);
       x[0] += tmp[0];
     }
     break;
    case 16:
-    for (i=0; i<LOOPCOUNT/N; ++i) {
+    for (i=0; i < iter; ++i) {
       cy += mulredc16(z, x, y, m, invm);
       x[0] += tmp[0];
     }
     break;
    case 17:
-    for (i=0; i<LOOPCOUNT/N; ++i) {
+    for (i=0; i < iter; ++i) {
       cy += mulredc17(z, x, y, m, invm);
       x[0] += tmp[0];
     }
     break;
    case 18:
-    for (i=0; i<LOOPCOUNT/N; ++i) {
+    for (i=0; i < iter; ++i) {
       cy += mulredc18(z, x, y, m, invm);
       x[0] += tmp[0];
     }
     break;
    case 19:
-    for (i=0; i<LOOPCOUNT/N; ++i) {
+    for (i=0; i < iter; ++i) {
       cy += mulredc19(z, x, y, m, invm);
       x[0] += tmp[0];
     }
     break;
    case 20:
-    for (i=0; i<LOOPCOUNT/N; ++i) {
+    for (i=0; i < iter; ++i) {
       cy += mulredc20(z, x, y, m, invm);
       x[0] += tmp[0];
     }
     break;
    default:
-    for (i=0; i<LOOPCOUNT/N; ++i) {
+    for (i=0; i < iter; ++i) {
       cy += mulredc20(z, x, y, m,  invm);
       x[0] += tmp[0];
     }
@@ -348,13 +349,21 @@ void bench(mp_size_t N)
   }
   t3 = CPUTime() - t3;
   
-  printf("******************\nN=%ld\n", (long) N);
-  printf("mul+redc = %f\nmulredc  = %f\nmulredc1 = %f\n", t1, t2, t3);
+  t1 *= 1000000.;
+  t2 *= 1000000.;
+  t3 *= 1000000.;
+  printf("******************\nTime in microseconds per call, size=%lu\n", N);
+  printf("mul+redc = %f\nmulredc  = %f\n", t1/iter, t2/iter);
+  printf("mulredc1 = %f\n", t3/LOOPCOUNT);
 #else /* if defined(HAVE_NATIVE_MULREDC1_N) */
-  printf("******************\nN=%ld\n", (long) N);
-  printf("mul+redc = %f\nmulredc  = %f\n", t1, t2);
+  t1 *= 1000000.;
+  t2 *= 1000000.;
+  t3 *= 1000000.;
+  printf("******************\nTime in microseconds per call, size=%lu\n", N);
+  printf("mul+redc = %f\nmulredc  = %f\n", t1/iter, t2/iter);
 #endif
-  printf("Ratio %f, Normalized time=%f\n", t1/t2, t1/N);
+  printf("Ratio %f, mulredc time/size = %f, mulredc time/size^2 = %f\n", 
+         t1/t2, t2/iter/N, t2/iter/N/N);
   
   free(tmp);
   free(x); free(y); free(z); free(m);
@@ -363,11 +372,9 @@ void bench(mp_size_t N)
 
 int main(int argc, char** argv)
 {
-  int nn, i;
+  int i;
   int minsize = 1, maxsize = 20;
 
-  nn = 7;
-  
   if (argc > 1)
     minsize = atoi (argv[1]);
   if (argc > 2)
@@ -376,18 +383,7 @@ int main(int argc, char** argv)
     for (i = minsize; i <= maxsize; ++i) {
       bench(i);
     }
-#if 0
-    bench(nn); nn = 2*nn+3;
-    bench(nn); nn = 2*nn+3;
-    bench(nn); nn = 2*nn+3;
-    bench(nn); nn = 2*nn+3;
-    bench(nn); nn = 2*nn+3;
-    bench(nn); nn = 2*nn+3;
-    bench(nn); nn = 2*nn+3;
-    bench(nn); nn = 2*nn+3;
-    bench(nn); nn = 2*nn+3;
-    bench(nn); nn = 2*nn+3;
-#endif
+
   return 0;
 }
 
