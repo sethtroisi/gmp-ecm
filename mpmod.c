@@ -40,9 +40,6 @@ FILE *ECM_STDOUT, *ECM_STDERR; /* define them here since needed in tune.c */
 			     mpz_size (x) <= mpz_size (modulus->orig_modulus))
 #define MPZ_NORMALIZED(x)    ASSERT (PTR(x)[ABSIZ(x)-1] != 0)
 
-#ifndef GMP_NUMB_BITS
-#define GMP_NUMB_BITS __GMP_BITS_PER_MP_LIMB
-#endif
 
 
 static void base2mod (mpres_t, const mpres_t, mpres_t, mpmod_t);
@@ -314,9 +311,10 @@ ecm_redc_basecase (mpz_ptr r, mpz_ptr c, mpmod_t modulus)
   mp_ptr cp;
   mp_srcptr np;
   mp_limb_t cy;
-  mp_size_t j, nn = modulus->bits / __GMP_BITS_PER_MP_LIMB;
+  mp_size_t j, nn = modulus->bits / GMP_NUMB_BITS;
 
   ASSERT(ABSIZ(c) <= 2 * nn);
+  ASSERT(ALLOC(c) >= 2 * nn);
   ASSERT(ALLOC(r) >= nn);
   cp = PTR(c);
   rp = PTR(r);
@@ -419,6 +417,7 @@ mulredc (mp_limb_t *z, const mp_limb_t *x, const mp_limb_t *y,
     break;
    default:
     {
+      ASSERT(tmp != x && tmp != y);
       mpn_mul_n(tmp, x, y, N);
       ecm_redc3(tmp, m, N, invm);
       cy = mpn_add_n (z, tmp + N, tmp, N);
@@ -523,11 +522,14 @@ ecm_mulredc_basecase (mpres_t R, const mpres_t S1, const mpres_t S2,
   mp_ptr s1p, s2p;
   mp_srcptr np;
   mp_limb_t cy;
-  mp_size_t j, nn = modulus->bits / __GMP_BITS_PER_MP_LIMB;
+  mp_size_t j, nn = modulus->bits / GMP_NUMB_BITS;
 
 #ifdef WANT_ASSERT_EXPENSIVE
-  mpz_mul (modulus->temp1, S1, S2);
-  ecm_redc_basecase (modulus->temp2, modulus->temp1, modulus);
+  mpz_t test_result;
+  mpz_init (test_result);
+  MPZ_REALLOC (test_result, 2*nn);
+  mpz_mul (test_result, S1, S2);
+  ecm_redc_basecase (test_result, test_result, modulus);
 #endif
 
   ASSERT(ALLOC(R) >= nn);
@@ -556,13 +558,14 @@ ecm_mulredc_basecase (mpres_t R, const mpres_t S1, const mpres_t S2,
   SIZ(R) = (SIZ(S1)*SIZ(S2)) < 0 ? (int) -nn : (int) nn;
 
 #ifdef WANT_ASSERT_EXPENSIVE
-  if (mpz_cmp (modulus->temp2, R) != 0)
+  if (mpz_cmp (test_result, R) != 0)
     {
       printf ("mulredc and mpz_mul/ecm_redc_basecase produced different results.\n");
       gmp_printf ("mulredc:                   %Zd\n", R);
-      gmp_printf ("mpz_mul/ecm_redc_basecase: %Zd\n", modulus->temp2);
+      gmp_printf ("mpz_mul/ecm_redc_basecase: %Zd\n", test_result);
       abort ();
     }
+  mpz_clear (test_result);
 #endif
 
 #endif
@@ -578,7 +581,7 @@ ecm_mulredc_1_basecase (mpres_t R, const mpres_t S1, const unsigned long S2,
   mp_ptr s1p;
   mp_srcptr np;
   mp_limb_t cy;
-  mp_size_t j, nn = modulus->bits / __GMP_BITS_PER_MP_LIMB;
+  mp_size_t j, nn = modulus->bits / GMP_NUMB_BITS;
 
   ASSERT(ALLOC(R) >= nn);
   ASSERT(ALLOC(S1) >= nn);
@@ -681,9 +684,9 @@ mpmod_init_MPZ (mpmod_t modulus, const mpz_t N)
   modulus->repr = ECM_MOD_MPZ;
   
   n = mpz_size (N); /* number of limbs of N */
-  modulus->bits = n * __GMP_BITS_PER_MP_LIMB; /* Number of bits, 
-						 rounded up to full limb */
-  MPZ_INIT2 (modulus->temp1, 2UL * modulus->bits + __GMP_BITS_PER_MP_LIMB);
+  modulus->bits = n * GMP_NUMB_BITS; /* Number of bits, 
+					rounded up to full limb */
+  MPZ_INIT2 (modulus->temp1, 2UL * modulus->bits + GMP_NUMB_BITS);
   MPZ_INIT2 (modulus->temp2, modulus->bits);
   mpz_init_set_ui (modulus->aux_modulus, 1UL);
   /* we precompute B^(n + ceil(n/2)) mod N, where B=2^GMP_NUMB_BITS */
@@ -706,9 +709,9 @@ mpmod_init_BASE2 (mpmod_t modulus, const int base2, const mpz_t N)
   modulus->repr = ECM_MOD_BASE2;
   modulus->bits = base2;
 
-  Nbits = mpz_size (N) * __GMP_BITS_PER_MP_LIMB; /* Number of bits, rounded
-                                                    up to full limb */
-  MPZ_INIT2 (modulus->temp1, 2UL * Nbits + __GMP_BITS_PER_MP_LIMB);
+  Nbits = mpz_size (N) * GMP_NUMB_BITS; /* Number of bits, rounded
+                                           up to full limb */
+  MPZ_INIT2 (modulus->temp1, 2UL * Nbits + GMP_NUMB_BITS);
   MPZ_INIT2 (modulus->temp2, Nbits);
   
   mpz_set_ui (modulus->temp1, 1UL);
@@ -751,17 +754,17 @@ mpmod_init_MODMULN (mpmod_t modulus, const mpz_t N)
   MEMORY_UNTAG;
   
   modulus->repr = ECM_MOD_MODMULN;
-  Nbits = mpz_size (N) * __GMP_BITS_PER_MP_LIMB; /* Number of bits, rounded
-                                                    up to full limb */
+  Nbits = mpz_size (N) * GMP_NUMB_BITS; /* Number of bits, rounded
+                                           up to full limb */
   modulus->bits = Nbits;
 
-  MPZ_INIT2 (modulus->temp1, 2UL * Nbits + __GMP_BITS_PER_MP_LIMB);
+  MPZ_INIT2 (modulus->temp1, 2UL * Nbits + GMP_NUMB_BITS);
   MPZ_INIT2 (modulus->temp2, Nbits);
 
   mpz_set_ui (modulus->temp1, 1UL);
-  mpz_mul_2exp (modulus->temp1, modulus->temp1, __GMP_BITS_PER_MP_LIMB);
+  mpz_mul_2exp (modulus->temp1, modulus->temp1, GMP_NUMB_BITS);
   mpz_tdiv_r_2exp (modulus->temp2, modulus->orig_modulus, 
-                   __GMP_BITS_PER_MP_LIMB);
+                   GMP_NUMB_BITS);
   mpz_invert (modulus->temp2, modulus->temp2, modulus->temp1);
     /* Now temp2 = 1/n (mod 2^bits_per_limb) */
   mpz_sub (modulus->temp2, modulus->temp1, modulus->temp2);
@@ -798,11 +801,11 @@ mpmod_init_REDC (mpmod_t modulus, const mpz_t N)
   
   n = mpz_size (N);
   modulus->repr = ECM_MOD_REDC;
-  Nbits = n * __GMP_BITS_PER_MP_LIMB; /* Number of bits, rounded
-                                                    up to full limb */
+  Nbits = n * GMP_NUMB_BITS; /* Number of bits, rounded
+                                up to full limb */
   modulus->bits = Nbits;
   
-  mpz_init2 (modulus->temp1, 2 * Nbits + __GMP_BITS_PER_MP_LIMB);
+  mpz_init2 (modulus->temp1, 2 * Nbits + GMP_NUMB_BITS);
   mpz_init2 (modulus->temp2, Nbits);
   MPZ_INIT (modulus->aux_modulus);
 
@@ -869,8 +872,8 @@ mpmod_copy (mpmod_t r, const mpmod_t modulus)
   r->Fermat = modulus->Fermat;
   r->Nprim = modulus->Nprim;
   mpz_init_set (r->orig_modulus, modulus->orig_modulus);
-  mpz_init2 (r->temp1, 2 * abs(r->bits) + __GMP_BITS_PER_MP_LIMB);
-  mpz_init2 (r->temp2, abs(r->bits) + __GMP_BITS_PER_MP_LIMB);
+  mpz_init2 (r->temp1, 2 * abs(r->bits) + GMP_NUMB_BITS);
+  mpz_init2 (r->temp2, abs(r->bits) + GMP_NUMB_BITS);
   if (modulus->repr == ECM_MOD_MODMULN || modulus->repr == ECM_MOD_REDC)
     {
       mpz_init_set (r->multiple, modulus->multiple);
@@ -912,40 +915,28 @@ mpres_pow (mpres_t R, const mpres_t BASE, const mpz_t EXP, mpmod_t modulus)
   else if (modulus->repr == ECM_MOD_BASE2 || modulus->repr == ECM_MOD_MODMULN ||
            modulus->repr == ECM_MOD_REDC)
     {
-      unsigned int expidx;
+      size_t expidx;
       mp_limb_t bitmask, expbits;
 
       /* case EXP=0 */
-      if (mpz_cmp_ui (EXP, 0) == 0)
+      if (mpz_sgn (EXP) == 0)
         {
           mpres_set_ui (R, 1UL, modulus); /* set result to 1 */
           ASSERT_NORMALIZED (R);
           return;
         }
 
+      ASSERT (mpz_size (EXP) > 0);         /* probably redundant with _sgn() test */
       expidx = mpz_size (EXP) - 1;         /* point at most significant limb */
       expbits = mpz_getlimbn (EXP, expidx); /* get most significant limb */
+      ASSERT (expbits != 0);
+
+      /* Scan for the MSB in expbits */
       bitmask = ((mp_limb_t) 1) << (GMP_NUMB_BITS - 1);
-
-      while ((bitmask & expbits) == 0)
-        {
-          bitmask >>= 1;
-          if (bitmask == 0)                 /* no set bits in this limb */
-            {
-              if (expidx == 0)              /* no more limbs -> exp was 0 */
-                {
-                  mpres_set_ui (R, 1UL, modulus); /* set result to 1 */
-		  ASSERT_NORMALIZED (R);
-                  return;
-                }
-              expidx --;
-              expbits = mpz_getlimbn (EXP, expidx);
-              bitmask = (mp_limb_t) 1 << (GMP_NUMB_BITS - 1);
-            }
-        }
-
-    /* here the most significant limb with any set bits is in expbits, */
-    /* bitmask is set to mask in the msb of expbits */
+      for (; (bitmask & expbits) == 0; bitmask >>= 1);
+    
+      /* here the most significant limb with any set bits is in expbits, */
+      /* bitmask is set to mask in the msb of expbits */
 
       mpz_set (modulus->temp2, BASE);
       bitmask >>= 1;
@@ -954,28 +945,41 @@ mpres_pow (mpres_t R, const mpres_t BASE, const mpz_t EXP, mpmod_t modulus)
         {
           for ( ; bitmask != 0; bitmask >>= 1) 
             {
-              mpz_mul (modulus->temp1, modulus->temp2, modulus->temp2); /* r = r^2 */
-
+              /* Set temp2 = temp2*temp2 */
               if (modulus->repr == ECM_MOD_BASE2)
-                base2mod (modulus->temp2 , modulus->temp1, modulus->temp1, modulus);
+                {
+                  mpz_mul (modulus->temp1, modulus->temp2, modulus->temp2);
+                  base2mod (modulus->temp2 , modulus->temp1, modulus->temp1, modulus);
+                }
               else if (modulus->repr == ECM_MOD_MODMULN)
                 {
-                  ecm_redc_basecase (modulus->temp2, modulus->temp1, modulus);
+                  ecm_mulredc_basecase (modulus->temp2, modulus->temp2, modulus->temp2, 
+                                        modulus);
                 }
               else
-                REDC (modulus->temp2, modulus->temp1, modulus->temp2, modulus);
+                {
+                  mpz_mul (modulus->temp1, modulus->temp2, modulus->temp2);
+                  REDC (modulus->temp2, modulus->temp1, modulus->temp2, modulus);
+                }
 
+              /* If bit is 1, set temp2 = temp2 * BASE */
               if (expbits & bitmask)
-                { 
-                  mpz_mul (modulus->temp1, modulus->temp2, BASE);
+                {
                   if (modulus->repr == ECM_MOD_BASE2)
-                    base2mod (modulus->temp2, modulus->temp1, modulus->temp1, modulus);
+                    {
+                      mpz_mul (modulus->temp1, modulus->temp2, BASE);
+                      base2mod (modulus->temp2, modulus->temp1, modulus->temp1, modulus);
+                    }
                   else if (modulus->repr == ECM_MOD_MODMULN)
                     {
-                      ecm_redc_basecase (modulus->temp2, modulus->temp1, modulus);
+                      ecm_mulredc_basecase (modulus->temp2, BASE, modulus->temp2, 
+                                            modulus);
                     }
                   else
-                    REDC (modulus->temp2, modulus->temp1, modulus->temp2, modulus);
+                    {
+                      mpz_mul (modulus->temp1, modulus->temp2, BASE);
+                      REDC (modulus->temp2, modulus->temp1, modulus->temp2, modulus);
+                    }
                 }
             }
           if (expidx == 0)		/* if we just processed the least */
@@ -984,9 +988,10 @@ mpres_pow (mpres_t R, const mpres_t BASE, const mpz_t EXP, mpmod_t modulus)
           expbits = mpz_getlimbn (EXP, expidx);
           bitmask = (mp_limb_t) 1 << (GMP_NUMB_BITS - 1);
         }
-      mpz_set (R, modulus->temp2); /* TODO: isn't it possible to use R instead
-				      of modulus->temp2 above to avoid this
-				      copy? */
+      mpz_set (R, modulus->temp2);
+
+      /* mpz_getlimbn() ignores sign of argument, so we computed BASE^|EXP|.
+         If EXP was negative, do a modular inverse */
       if (mpz_sgn (EXP) < 0)
         {
           mpres_invert (R, R, modulus);
@@ -1020,33 +1025,33 @@ mpres_ui_pow (mpres_t R, const unsigned long BASE, const mpres_t EXP,
   else if (modulus->repr == ECM_MOD_BASE2 || modulus->repr == ECM_MOD_MODMULN ||
            modulus->repr == ECM_MOD_REDC)
     {
-      unsigned int expidx;
+      size_t expidx;
       mp_limb_t bitmask, expbits;
 
       expidx = mpz_size (EXP) -1;           /* point at most significant limb */
       expbits = mpz_getlimbn (EXP, expidx); /* get most significant limb */
       bitmask = (mp_limb_t) 1 << (GMP_NUMB_BITS - 1);
 
-      while ((bitmask & expbits) == 0)
+      /* case EXP=0 */
+      if (mpz_sgn (EXP) == 0)
         {
-          bitmask >>= 1;
-          if (bitmask == 0)                 /* no set bits in this limb */
-            {
-              if (expidx == 0)              /* no more limbs -> exp was 0 */
-                {
-                  mpres_set_ui (R, 1UL, modulus); /* set result to 1 */
-		  ASSERT_NORMALIZED (R);
-                  return;
-                }
-              expidx --;
-              expbits = mpz_getlimbn (EXP, expidx);
-              bitmask = (mp_limb_t) 1 << (GMP_NUMB_BITS - 1);
-            }
+          mpres_set_ui (R, 1UL, modulus); /* set result to 1 */
+          ASSERT_NORMALIZED (R);
+          return;
         }
 
-    /* here the most significant limb with any set bits is in expbits, */
-    /* bitmask is set to mask in the msb of expbits */
+      ASSERT (mpz_size (EXP) > 0);         /* probably redundant with _sgn() test */
+      expidx = mpz_size (EXP) - 1;         /* point at most significant limb */
+      expbits = mpz_getlimbn (EXP, expidx); /* get most significant limb */
+      ASSERT (expbits != 0);
+
+      /* Scan for the MSB in expbits */
+      bitmask = ((mp_limb_t) 1) << (GMP_NUMB_BITS - 1);
+      for (; (bitmask & expbits) == 0; bitmask >>= 1);
     
+      /* here the most significant limb with any set bits is in expbits, */
+      /* bitmask is set to mask in the msb of expbits */
+
       mpz_set_ui (modulus->temp2, BASE); /* temp2 = BASE */
       if (modulus->repr == ECM_MOD_MODMULN || modulus->repr == ECM_MOD_REDC)
         {
@@ -1055,21 +1060,29 @@ mpres_ui_pow (mpres_t R, const unsigned long BASE, const mpres_t EXP,
         }
       bitmask >>= 1;
 
+
       while (1) 
         {
           for ( ; bitmask != 0; bitmask >>= 1) 
             {
-              mpz_mul (modulus->temp1, modulus->temp2, modulus->temp2); /* r = r^2 */
-
+              /* Set temp2 = temp2*temp2 */
               if (modulus->repr == ECM_MOD_BASE2)
-                base2mod (modulus->temp2 , modulus->temp1, modulus->temp1, modulus);
+                {
+                  mpz_mul (modulus->temp1, modulus->temp2, modulus->temp2);
+                  base2mod (modulus->temp2 , modulus->temp1, modulus->temp1, modulus);
+                }
               else if (modulus->repr == ECM_MOD_MODMULN)
                 {
-                  ecm_redc_basecase (modulus->temp2, modulus->temp1, modulus);
+                  ecm_mulredc_basecase (modulus->temp2, modulus->temp2, modulus->temp2, 
+                                        modulus);
                 }
               else
-                REDC (modulus->temp2, modulus->temp1, modulus->temp2, modulus);
+                {
+                  mpz_mul (modulus->temp1, modulus->temp2, modulus->temp2);
+                  REDC (modulus->temp2, modulus->temp1, modulus->temp2, modulus);
+                }
 
+              /* If bit is 1, set temp2 = temp2 * BASE */
               if (expbits & bitmask)
                 {
                   if (BASE == 2UL)
@@ -1091,8 +1104,14 @@ mpres_ui_pow (mpres_t R, const unsigned long BASE, const mpres_t EXP,
           expbits = mpz_getlimbn (EXP, expidx);
           bitmask = (mp_limb_t) 1 << (GMP_NUMB_BITS - 1);
         }
-      mpz_set (R, modulus->temp2); /* TODO: use R instead of modulus->temp2
-				      above to avoid this copy? */
+      mpz_set (R, modulus->temp2);
+
+      /* mpz_getlimbn() ignores sign of argument, so we computed BASE^|EXP|.
+         If EXP was negative, do a modular inverse */
+      if (mpz_sgn (EXP) < 0)
+        {
+          mpres_invert (R, R, modulus);
+        }
     } /* if (modulus->repr == ECM_MOD_BASE2 || ... ) */
   ASSERT_NORMALIZED (R);
 }
@@ -1151,7 +1170,7 @@ mpres_mul (mpres_t R, const mpres_t S1, const mpres_t S2, mpmod_t modulus)
 
   if (modulus->repr == ECM_MOD_BASE2 && modulus->Fermat >= 32768)
     {
-      mp_size_t n = modulus->Fermat / __GMP_BITS_PER_MP_LIMB;
+      mp_size_t n = modulus->Fermat / GMP_NUMB_BITS;
       unsigned long k;
       mp_srcptr s1p = PTR(S1), s2p = PTR(S2);
       mp_size_t s1s = SIZ(S1), s2s = SIZ(S2);
@@ -1198,7 +1217,7 @@ mpres_mul (mpres_t R, const mpres_t S1, const mpres_t S2, mpmod_t modulus)
       base2mod (R, modulus->temp1, modulus->temp1, modulus);
       break;
     case ECM_MOD_MODMULN:
-      MPZ_REALLOC (R, modulus->bits / __GMP_BITS_PER_MP_LIMB);
+      MPZ_REALLOC (R, modulus->bits / GMP_NUMB_BITS);
       ecm_mulredc_basecase (R, S1, S2, modulus);
       break;
     case ECM_MOD_REDC:
@@ -1233,11 +1252,11 @@ mpres_muldivbysomething_si (mpres_t R, const mpres_t S, const long n,
 {
   ASSERT_NORMALIZED (S);
   if (modulus->repr == ECM_MOD_MODMULN && 
-      modulus->bits / __GMP_BITS_PER_MP_LIMB <= 20)
+      modulus->bits / GMP_NUMB_BITS <= 20)
     /* FIXME: is the 20 here the same constant as in mulredc1_20?
        If so, it should be changed into a macro. */
     {
-      MPZ_REALLOC (R, modulus->bits / __GMP_BITS_PER_MP_LIMB);
+      MPZ_REALLOC (R, modulus->bits / GMP_NUMB_BITS);
       if (n < 0)
 	{
 	  ecm_mulredc_1_basecase (R, S, -n, modulus);
@@ -1270,7 +1289,7 @@ mpres_mul_z_to_z (mpz_t R, const mpres_t S1, const mpz_t S2, mpmod_t modulus)
 
   if (modulus->repr == ECM_MOD_BASE2 && modulus->Fermat >= 32768)
     {
-      mp_size_t n = modulus->Fermat / __GMP_BITS_PER_MP_LIMB;
+      mp_size_t n = modulus->Fermat / GMP_NUMB_BITS;
       unsigned long k;
       mp_srcptr s1p = PTR(S1), s2p = PTR(S2);
       mp_size_t s1s = SIZ(S1), s2s = SIZ(S2);
@@ -1325,13 +1344,13 @@ mpres_mul_z_to_z (mpz_t R, const mpres_t S1, const mpz_t S2, mpmod_t modulus)
       if (mpz_cmp (S2, modulus->orig_modulus) >= 0)
 	{
 	  mpz_mod (modulus->temp2, S2, modulus->orig_modulus);
-          MPZ_REALLOC (R, modulus->bits / __GMP_BITS_PER_MP_LIMB);
+          MPZ_REALLOC (R, modulus->bits / GMP_NUMB_BITS);
  	  ecm_mulredc_basecase (R, S1, modulus->temp2, modulus);
           mpz_mod (R, R, modulus->orig_modulus);
 	}
       else
  	{
-	  MPZ_REALLOC (R, modulus->bits / __GMP_BITS_PER_MP_LIMB);
+	  MPZ_REALLOC (R, modulus->bits / GMP_NUMB_BITS);
 	  ecm_mulredc_basecase (R, S1, S2, modulus);
           mpz_mod (R, R, modulus->orig_modulus);
  	}
