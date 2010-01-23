@@ -2263,47 +2263,20 @@ ntt_spv_to_dct (mpzspv_t dct, const mpzspv_t spv, const spv_size_t spvlen,
 }
 
 
-/* Multiply the NTT coefficients in dft, assumed to be a scrambled DFT,
-   by the coefficients in dct, assumed to be in for layout produced by 
-   ntt_dft_to_dct(); */
-
-static void
-ntt_dft_mul_dct (mpzspv_t dft, const mpzspv_t dct, const unsigned long len, 
-		 const mpzspm_t ntt_context)
-{
-  unsigned long i, j, m;
-  
-  for (j = 0; j < ntt_context->sp_num; j++)
-  {
-      const sp_t sp = ntt_context->spm[j]->sp; 
-      const sp_t mul_c = ntt_context->spm[j]->mul_c;
-      m = 5UL;
-      
-      dft[j][0] = sp_mul (dft[j][0], dct[j][0], sp, mul_c);
-      
-      for (i = 2UL; i < len; i += 2UL)
-      {
-	  /* This works, but why? */
-	  if (i + i / 2UL > m)
-	      m = 2UL * m + 1UL;
-	  
-	  dft[j][i] = sp_mul (dft[j][i], dct[j][i / 2UL], sp, mul_c);
-	  dft[j][m - i] = sp_mul (dft[j][m - i], dct[j][i / 2UL], sp, mul_c);
-      }
-      dft[j][1] = sp_mul (dft[j][1], dct[j][len / 2UL], sp, mul_c);
-  }
-}
-
-
 /* Multiply the polynomial in "dft" by the RLP in "dct", where "dft" 
    contains the polynomial coefficients (not FFT'd yet) and "dct" 
    contains the DCT-I coefficients of the RLP. The latter are 
    assumed to be in the layout produced by ntt_dft_to_dct().
-   Output are the coefficients of the product polynomial, stored in dft. */
+   Output are the coefficients of the product polynomial, stored in dft. 
+   The "which" parameter controls which steps are computed:
+   bit 0: do forward transform
+   bit 1: do point-wise product
+   bit 2: do inverse transform 
+*/
 
 static void
 ntt_mul_by_dct (mpzspv_t dft, const mpzspv_t dct, const unsigned long len, 
-		const mpzspm_t ntt_context)
+		const mpzspm_t ntt_context, const int which)
 {
   int j;
   spv_size_t log2_len = ceil_log_2 (len);
@@ -2324,36 +2297,44 @@ ntt_mul_by_dct (mpzspv_t dft, const mpzspv_t dct, const unsigned long len,
 	unsigned long i, m;
 	
 	/* Forward DFT of dft[j] */
-	spv_ntt_gfp_dif (spv, log2_len, spm);
-	
-	m = 5UL;
+	if (which & 1)
+	  spv_ntt_gfp_dif (spv, log2_len, spm);
 	
 	/* Point-wise product */
-	spv[0] = sp_mul (spv[0], dct[j][0], spm->sp, spm->mul_c);
-	spv[1] = sp_mul (spv[1], dct[j][len / 2UL], spm->sp, spm->mul_c);
-	
-	for (i = 2UL; i < len; i += 2UL)
+	if (which & 2)
 	  {
-	    /* This works, but why? */
-	    if (i + i / 2UL > m)
-	      m = 2UL * m + 1;
+	    m = 5UL;
 	    
-	    spv[i] = sp_mul (spv[i], dct[j][i / 2UL], spm->sp, spm->mul_c);
-	    spv[m - i] = sp_mul (spv[m - i], dct[j][i / 2UL], spm->sp, 
-				 spm->mul_c);
+	    spv[0] = sp_mul (spv[0], dct[j][0], spm->sp, spm->mul_c);
+	    spv[1] = sp_mul (spv[1], dct[j][len / 2UL], spm->sp, spm->mul_c);
+	    
+	    for (i = 2UL; i < len; i += 2UL)
+	      {
+		/* This works, but why? */
+		if (i + i / 2UL > m)
+		  m = 2UL * m + 1;
+		
+		spv[i] = sp_mul (spv[i], dct[j][i / 2UL], spm->sp, spm->mul_c);
+		spv[m - i] = sp_mul (spv[m - i], dct[j][i / 2UL], spm->sp, 
+				     spm->mul_c);
+	      }
 	  }
 	
 	/* Inverse transform of dft[j] */
-	spv_ntt_gfp_dit (spv, log2_len, spm);
-	
-	/* Divide by transform length. FIXME: scale the DCT of h instead */
-	spv_mul_sp (spv, spv, spm->sp - (spm->sp - 1) / len, len, spm->sp, 
-		    spm->mul_c);
+	if (which & 4)
+	  {
+	    spv_ntt_gfp_dit (spv, log2_len, spm);
+	    
+	    /* Divide by transform length. FIXME: scale the DCT of h instead */
+	    spv_mul_sp (spv, spv, spm->sp - (spm->sp - 1) / len, len, 
+			spm->sp, spm->mul_c);
+	  }
       }
 #ifdef _OPENMP
   }
 #endif
 }
+
 
 ATTRIBUTE_UNUSED
 static void
@@ -2868,6 +2849,8 @@ pm1fs2 (mpz_t f, const mpres_t X, mpmod_t modulus,
   for (l = 0; l < params->s_2; l++)
     {
       const unsigned long M = params->l - 1L - params->s_1 / 2L;
+      outputf (OUTPUT_VERBOSE, "Multi-point evaluation %lu of %lu:\n", 
+               l + 1, params->s_2);
       pm1_sequence_g (g, NULL, X, params->P, M, params->l, 
 		      params->m_1, S_2->elem[l], modulus, NULL);
 
@@ -3133,6 +3116,8 @@ pm1fs2_ntt (mpz_t f, const mpres_t X, mpmod_t modulus,
     {
       const unsigned long M = params->l - 1L - params->s_1 / 2L;
 
+      outputf (OUTPUT_VERBOSE, "Multi-point evaluation %lu of %lu:\n", 
+               l + 1, params->s_2);
       /* Compute the coefficients of the polynomial g(x) */
       pm1_sequence_g (NULL, g_ntt, X, params->P, M, params->l, 
 		      params->m_1, S_2->elem[l], modulus, ntt_context);
@@ -3141,7 +3126,7 @@ pm1fs2_ntt (mpz_t f, const mpres_t X, mpmod_t modulus,
       outputf (OUTPUT_VERBOSE, "Computing g*h");
       timestart = cputime ();
       realstart = realtime ();
-      ntt_mul_by_dct (g_ntt, h_ntt, params->l, ntt_context);
+      ntt_mul_by_dct (g_ntt, h_ntt, params->l, ntt_context, 7);
       print_elapsed_time (OUTPUT_VERBOSE, timestart, realstart);
       
       /* Compute GCD of N and coefficients of product polynomial */
@@ -4246,6 +4231,8 @@ pp1fs2 (mpz_t f, const mpres_t X, mpmod_t modulus,
   for (l = 0; l < params->s_2; l++)
     {
       const long M = params->l - 1 - params->s_1 / 2;
+      outputf (OUTPUT_VERBOSE, "Multi-point evaluation %lu of %lu:\n", 
+               l + 1, params->s_2);
       pp1_sequence_g (g_x, g_y, NULL, NULL, b1_x, b1_y, params->P, 
 		      Delta, M, params->l, params->m_1, S_2->elem[l], 
 		      modulus, NULL);
@@ -4492,8 +4479,12 @@ pp1fs2_ntt (mpz_t f, const mpres_t X, mpmod_t modulus,
     {
       const long M = params->l - 1 - params->s_1 / 2;
 
+      outputf (OUTPUT_VERBOSE, "Multi-point evaluation %lu of %lu:\n", 
+               l + 1, params->s_2);
       if (twopass)
 	{
+	  /* Two-pass variant. Two separate convolutions, 
+	     then addition in Z/NZ */
 	  pp1_sequence_g (NULL, NULL, g_x_ntt, NULL, b1_x, b1_y, params->P, 
 			  Delta, M, params->l, params->m_1, S_2->elem[l], 
 			  modulus, ntt_context);
@@ -4502,7 +4493,7 @@ pp1fs2_ntt (mpz_t f, const mpres_t X, mpmod_t modulus,
 	  outputf (OUTPUT_VERBOSE, "Computing g_x*h_x");
 	  timestart = cputime ();
 	  realstart = realtime ();
-	  ntt_mul_by_dct (g_x_ntt, h_x_ntt, params->l, ntt_context);
+	  ntt_mul_by_dct (g_x_ntt, h_x_ntt, params->l, ntt_context, 7);
 	  /* Store the product coefficients we want in R */
 	  mpzspv_to_mpzv (g_x_ntt, params->s_1 / 2, R, nr, ntt_context);
 	  print_elapsed_time (OUTPUT_VERBOSE, timestart, realstart);
@@ -4516,7 +4507,7 @@ pp1fs2_ntt (mpz_t f, const mpres_t X, mpmod_t modulus,
 	  outputf (OUTPUT_VERBOSE, "Computing g_y*h_y");
 	  timestart = cputime ();
 	  realstart = realtime ();
-	  ntt_mul_by_dct (g_y_ntt, h_y_ntt, params->l, ntt_context);
+	  ntt_mul_by_dct (g_y_ntt, h_y_ntt, params->l, ntt_context, 7);
 	  print_elapsed_time (OUTPUT_VERBOSE, timestart, realstart);
 	  
 	  /* Compute product of sum of coefficients and gcd with N */
@@ -4525,6 +4516,8 @@ pp1fs2_ntt (mpz_t f, const mpres_t X, mpmod_t modulus,
 	}
       else
 	{
+	  /* One-pass variant. Two forward transforms and point-wise products,
+	     then addition and single inverse transform */
 	  pp1_sequence_g (NULL, NULL, g_x_ntt, g_y_ntt, b1_x, b1_y, params->P, 
 			  Delta, M, params->l, params->m_1, S_2->elem[l], 
 			  modulus, ntt_context);
@@ -4532,27 +4525,13 @@ pp1fs2_ntt (mpz_t f, const mpres_t X, mpmod_t modulus,
 	  outputf (OUTPUT_VERBOSE, "Computing forward NTT of g_x");
 	  timestart = cputime ();
 	  realstart = realtime ();
-	  mpzspv_to_ntt (g_x_ntt, (spv_size_t) 0, (spv_size_t) params->l, 
-	                 (spv_size_t) params->l, 0, ntt_context);
-	  print_elapsed_time (OUTPUT_VERBOSE, timestart, realstart);
-	  
-	  outputf (OUTPUT_VERBOSE, "Computing point-wise product of g_x and h_x");
-	  timestart = cputime ();
-	  realstart = realtime ();
-	  ntt_dft_mul_dct (g_x_ntt, h_x_ntt, params->l, ntt_context);
+	  ntt_mul_by_dct (g_x_ntt, h_x_ntt, params->l, ntt_context, 3);
 	  print_elapsed_time (OUTPUT_VERBOSE, timestart, realstart);
 	  
 	  outputf (OUTPUT_VERBOSE, "Computing forward NTT of g_y");
 	  timestart = cputime ();
 	  realstart = realtime ();
-	  mpzspv_to_ntt (g_y_ntt, (spv_size_t) 0, (spv_size_t) params->l, 
-	                 (spv_size_t) params->l, 0, ntt_context);
-	  print_elapsed_time (OUTPUT_VERBOSE, timestart, realstart);
-	  
-	  outputf (OUTPUT_VERBOSE, "Computing point-wise product of g_y and h_y");
-	  timestart = cputime ();
-	  realstart = realtime ();
-	  ntt_dft_mul_dct (g_y_ntt, h_y_ntt, params->l, ntt_context);
+	  ntt_mul_by_dct (g_y_ntt, h_y_ntt, params->l, ntt_context, 3);
 	  print_elapsed_time (OUTPUT_VERBOSE, timestart, realstart);
 	  
 	  outputf (OUTPUT_VERBOSE, "Adding and computing inverse NTT of sum");
@@ -4560,8 +4539,7 @@ pp1fs2_ntt (mpz_t f, const mpres_t X, mpmod_t modulus,
 	  realstart = realtime ();
 	  mpzspv_add (g_x_ntt, (spv_size_t) 0, g_x_ntt, (spv_size_t) 0, 
 	              g_y_ntt, (spv_size_t) 0, params->l, ntt_context);
-	  mpzspv_from_ntt (g_x_ntt, (spv_size_t) 0, params->l, (spv_size_t) 0,
-	                   ntt_context);
+	  ntt_mul_by_dct (g_x_ntt, NULL, params->l, ntt_context, 4);
 	  print_elapsed_time (OUTPUT_VERBOSE, timestart, realstart);
 	  
 	  ntt_gcd (mt, product_ptr, g_x_ntt, params->s_1 / 2, NULL, nr, 
