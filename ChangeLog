@@ -1,4 +1,1226 @@
 ------------------------------------------------------------------------
+r1431 | kruppa | 2010-01-23 20:55:47 +0100 (Sat, 23 Jan 2010) | 2 lines
+Changed paths:
+   M /trunk/pm1fs2.c
+
+Make "one-pass" P+1 stage 2 use parallel transforms
+
+------------------------------------------------------------------------
+r1430 | kruppa | 2010-01-22 23:36:34 +0100 (Fri, 22 Jan 2010) | 5 lines
+Changed paths:
+   M /trunk/mpmod.c
+
+Changed __GMP_BITS_PER_MP_LIMB to GMP_NUMB_BITS
+Bugfix in expensive assert check for mulredc
+Cleanup in powering functions
+
+
+------------------------------------------------------------------------
+r1429 | kruppa | 2010-01-22 21:42:31 +0100 (Fri, 22 Jan 2010) | 3 lines
+Changed paths:
+   M /trunk/configure.in
+
+Enable asm mulredc by default only on x86_64 and 64 bit PowerPC
+Check for GSL
+
+------------------------------------------------------------------------
+r1428 | kruppa | 2010-01-22 21:23:19 +0100 (Fri, 22 Jan 2010) | 3 lines
+Changed paths:
+   M /trunk/bench_mulredc.c
+
+Slightly more readable output
+
+
+------------------------------------------------------------------------
+r1427 | kruppa | 2010-01-20 14:20:32 +0100 (Wed, 20 Jan 2010) | 3 lines
+Changed paths:
+   M /trunk/rho.gp
+
+Make results agree better with those from rho.c
+Added functions for P+1 prob, and for small B2
+
+------------------------------------------------------------------------
+r1426 | zimmerma | 2010-01-08 19:03:00 +0100 (Fri, 08 Jan 2010) | 2 lines
+Changed paths:
+   M /trunk/sp.h
+
+[sp.h] define __GMP_BITS_PER_MP_LIMB from GMP_LIMB_BITS when undefined
+
+------------------------------------------------------------------------
+r1425 | kruppa | 2009-11-06 03:31:28 +0100 (Fri, 06 Nov 2009) | 5 lines
+Changed paths:
+   M /trunk/rho.c
+
+Functions for counting and estimating smooth and rough numbers.
+For small B2, estimate stage 2 probability with sum instead of 
+integral.
+
+
+------------------------------------------------------------------------
+r1424 | kruppa | 2009-11-01 15:53:30 +0100 (Sun, 01 Nov 2009) | 2 lines
+Changed paths:
+   M /trunk/Makefile.am
+
+Add target "rho" to test code in rho.c
+
+------------------------------------------------------------------------
+r1423 | kruppa | 2009-11-01 15:39:42 +0100 (Sun, 01 Nov 2009) | 3 lines
+Changed paths:
+   M /trunk/rho.c
+
+Functions for computing \Phi(x,y) and \Psi(x,y) exactly, 
+and an estimate for Phi(x,y) (number of y-rough numbers)
+
+------------------------------------------------------------------------
+r1422 | zimmerma | 2009-08-31 10:23:26 +0200 (Mon, 31 Aug 2009) | 3 lines
+Changed paths:
+   M /trunk/tune.c
+
+[tune.c] replace obsolete mpz_random by mpz_urandomb (suggested by Jason
+	 Moxham)
+
+------------------------------------------------------------------------
+r1421 | brian_gladman | 2009-08-11 17:35:55 +0200 (Tue, 11 Aug 2009) | 1 line
+Changed paths:
+   A /trunk/build.vc9/mp_lib.vsprops
+
+
+------------------------------------------------------------------------
+r1420 | brian_gladman | 2009-08-11 17:35:17 +0200 (Tue, 11 Aug 2009) | 1 line
+Changed paths:
+   M /trunk/build.vc9/ecm/ecm.vcproj
+   M /trunk/build.vc9/libecm/libecm.vcproj
+   M /trunk/build.vc9/readme.txt
+   M /trunk/build.vc9/tests.py
+   M /trunk/build.vc9/tune/tune.vcproj
+
+Update Windows VC++ build to use standard output directories and to use MPIR by default.
+------------------------------------------------------------------------
+r1419 | kruppa | 2009-05-28 21:48:48 +0200 (Thu, 28 May 2009) | 3 lines
+Changed paths:
+   M /trunk/main.c
+
+Allow -printconfig as only parameter, exit after printing config.
+Print tuning parameters, too.
+
+------------------------------------------------------------------------
+r1418 | zimmerma | 2009-05-18 13:59:13 +0200 (Mon, 18 May 2009) | 2 lines
+Changed paths:
+   M /trunk/mpzspv.c
+
+[mpzspv.c] get rid of malloc_usable_size (and thus malloc.h)
+
+------------------------------------------------------------------------
+r1417 | zimmerma | 2009-05-18 13:19:15 +0200 (Mon, 18 May 2009) | 2 lines
+Changed paths:
+   M /trunk/ecm-ecm.h
+   M /trunk/ecm-impl.h
+   M /trunk/ks-multiply.c
+   M /trunk/test.pm1
+
+[ks-multiply.c] check allocation failure in kronecker_schonhage
+
+------------------------------------------------------------------------
+r1416 | zimmerma | 2009-05-18 13:08:21 +0200 (Mon, 18 May 2009) | 2 lines
+Changed paths:
+   M /trunk/mpzspm.c
+
+[mpzspm.c] fixed typo
+
+------------------------------------------------------------------------
+r1415 | kruppa | 2009-05-17 23:20:05 +0200 (Sun, 17 May 2009) | 3 lines
+Changed paths:
+   M /trunk/mpzspm.c
+   M /trunk/pm1fs2.c
+   M /trunk/sp.c
+   M /trunk/spm.c
+   M /trunk/stage2.c
+
+Added some error handling for out-of-memory conditions to NTT code
+
+
+------------------------------------------------------------------------
+r1414 | zimmerma | 2009-05-12 16:07:12 +0200 (Tue, 12 May 2009) | 2 lines
+Changed paths:
+   M /trunk/build.vc9/assembler/test_mulredc.c
+   M /trunk/ecm_ntt.c
+   M /trunk/getprime.c
+   M /trunk/main.c
+   M /trunk/mpzspm.c
+   M /trunk/mpzspv.c
+   M /trunk/pm1.c
+   M /trunk/pm1fs2.c
+   M /trunk/polyeval.c
+   M /trunk/rho.c
+   M /trunk/schoen_strass.c
+   M /trunk/sets_long.c
+   M /trunk/sp.c
+   M /trunk/spm.c
+   M /trunk/stage2.c
+   M /trunk/test_mulredc.c
+   M /trunk/tune.c
+
+check return value of malloc in several places (bug reported by Torbjörn Granlund)
+
+------------------------------------------------------------------------
+r1413 | zimmerma | 2009-04-25 23:34:58 +0200 (Sat, 25 Apr 2009) | 2 lines
+Changed paths:
+   M /trunk/NEWS
+
+[NEWS] updated with changes between ecm-6.2.2 and ecm-6.2.3
+
+------------------------------------------------------------------------
+r1412 | kruppa | 2009-04-21 17:13:49 +0200 (Tue, 21 Apr 2009) | 2 lines
+Changed paths:
+   M /trunk/mul_fft-params.h.default
+
+Missing endline at end of file
+
+------------------------------------------------------------------------
+r1411 | kruppa | 2009-04-20 00:02:05 +0200 (Mon, 20 Apr 2009) | 2 lines
+Changed paths:
+   M /trunk/build.vc9/assembler/a_x64_mulredc.asm
+
+Ported recent improvements
+
+------------------------------------------------------------------------
+r1410 | kruppa | 2009-04-18 22:47:23 +0200 (Sat, 18 Apr 2009) | 4 lines
+Changed paths:
+   M /trunk/configure.in
+
+Cleanup of tests for asm redc code, test list of cpu types only once
+Print configuration at end of configure
+Various cleanups (or messups, as the case may be)
+
+------------------------------------------------------------------------
+r1409 | zimmerma | 2009-04-18 19:01:08 +0200 (Sat, 18 Apr 2009) | 2 lines
+Changed paths:
+   M /trunk/TODO
+
+[TODO] added item
+
+------------------------------------------------------------------------
+r1408 | kruppa | 2009-04-18 17:21:14 +0200 (Sat, 18 Apr 2009) | 3 lines
+Changed paths:
+   M /trunk/main.c
+
+Fixed old bug: if last line did not end in newline, only one curve would
+be run on that number in spite of -c parameter
+
+------------------------------------------------------------------------
+r1407 | kruppa | 2009-04-18 16:03:45 +0200 (Sat, 18 Apr 2009) | 3 lines
+Changed paths:
+   M /trunk/main.c
+
+Added -printconfig option which prints configuration optinons use for 
+building GMP-ECM
+
+------------------------------------------------------------------------
+r1406 | zimmerma | 2009-04-18 15:40:44 +0200 (Sat, 18 Apr 2009) | 2 lines
+Changed paths:
+   M /trunk/main.c
+
+[main.c] print --enable-asm-redc in header line if used
+
+------------------------------------------------------------------------
+r1405 | zimmerma | 2009-04-18 15:07:04 +0200 (Sat, 18 Apr 2009) | 2 lines
+Changed paths:
+   M /trunk/README.dev
+
+[README.dev] added item
+
+------------------------------------------------------------------------
+r1404 | zimmerma | 2009-04-18 15:03:09 +0200 (Sat, 18 Apr 2009) | 3 lines
+Changed paths:
+   M /trunk/configure.in
+
+[configure.in] applied patch from Peter Jeremy
+(http://gforge.inria.fr/tracker/index.php?func=detail&aid=7639&group_id=135&atid=623)
+
+------------------------------------------------------------------------
+r1403 | kruppa | 2009-04-16 17:51:46 +0200 (Thu, 16 Apr 2009) | 3 lines
+Changed paths:
+   M /trunk/INSTALL
+
+Added warning about incompatible GMP header/library
+Updated GMP version to 4.3.0
+
+------------------------------------------------------------------------
+r1402 | kruppa | 2009-04-16 17:21:21 +0200 (Thu, 16 Apr 2009) | 2 lines
+Changed paths:
+   M /trunk/x86_64/mulredc.m4
+   M /trunk/x86_64/mulredc10.asm
+   M /trunk/x86_64/mulredc11.asm
+   M /trunk/x86_64/mulredc12.asm
+   M /trunk/x86_64/mulredc13.asm
+   M /trunk/x86_64/mulredc14.asm
+   M /trunk/x86_64/mulredc15.asm
+   M /trunk/x86_64/mulredc16.asm
+   M /trunk/x86_64/mulredc17.asm
+   M /trunk/x86_64/mulredc18.asm
+   M /trunk/x86_64/mulredc19.asm
+   M /trunk/x86_64/mulredc2.asm
+   M /trunk/x86_64/mulredc20.asm
+   M /trunk/x86_64/mulredc3.asm
+   M /trunk/x86_64/mulredc4.asm
+   M /trunk/x86_64/mulredc5.asm
+   M /trunk/x86_64/mulredc6.asm
+   M /trunk/x86_64/mulredc7.asm
+   M /trunk/x86_64/mulredc8.asm
+   M /trunk/x86_64/mulredc9.asm
+
+Moving memory load ahead was missing for last unroll step
+
+------------------------------------------------------------------------
+r1401 | kruppa | 2009-04-16 16:39:05 +0200 (Thu, 16 Apr 2009) | 2 lines
+Changed paths:
+   M /trunk/README
+
+Replaced long obsolete files list by basic usage examples
+
+------------------------------------------------------------------------
+r1400 | kruppa | 2009-04-16 16:32:19 +0200 (Thu, 16 Apr 2009) | 3 lines
+Changed paths:
+   M /trunk/configure.in
+
+GMP 4.3.0 and newer always have three parts in version string (including
+patchlevel, even if it's zero). This broke a test in configure
+
+------------------------------------------------------------------------
+r1399 | kruppa | 2009-04-10 22:50:33 +0200 (Fri, 10 Apr 2009) | 4 lines
+Changed paths:
+   M /trunk/x86_64/mulredc.m4
+   M /trunk/x86_64/mulredc10.asm
+   M /trunk/x86_64/mulredc11.asm
+   M /trunk/x86_64/mulredc12.asm
+   M /trunk/x86_64/mulredc13.asm
+   M /trunk/x86_64/mulredc14.asm
+   M /trunk/x86_64/mulredc15.asm
+   M /trunk/x86_64/mulredc16.asm
+   M /trunk/x86_64/mulredc17.asm
+   M /trunk/x86_64/mulredc18.asm
+   M /trunk/x86_64/mulredc19.asm
+   M /trunk/x86_64/mulredc20.asm
+   M /trunk/x86_64/mulredc3.asm
+   M /trunk/x86_64/mulredc4.asm
+   M /trunk/x86_64/mulredc5.asm
+   M /trunk/x86_64/mulredc6.asm
+   M /trunk/x86_64/mulredc7.asm
+   M /trunk/x86_64/mulredc8.asm
+   M /trunk/x86_64/mulredc9.asm
+
+Moved memory load ahead one instruction.
+Slight speedup on Opteron/Phenom (~1% for 20 words), 
+noticable speedup on Core 2 (~8% for 20 words)
+
+------------------------------------------------------------------------
+r1398 | zimmerma | 2009-04-01 18:25:52 +0200 (Wed, 01 Apr 2009) | 2 lines
+Changed paths:
+   M /trunk/hecm/Makefile
+
+[hecm/Makefile] link against the libecm.a from .., not /usr/lib/libecm.a!
+
+------------------------------------------------------------------------
+r1397 | zimmerma | 2009-04-01 17:00:18 +0200 (Wed, 01 Apr 2009) | 2 lines
+Changed paths:
+   M /trunk/README.dev
+
+[README.dev] check config.guess is recent enough
+
+------------------------------------------------------------------------
+r1396 | zimmerma | 2009-04-01 16:39:47 +0200 (Wed, 01 Apr 2009) | 2 lines
+Changed paths:
+   D /trunk/configfsf.guess
+   D /trunk/configfsf.sub
+
+[configfsf.guess,configfsf.sub] removed unused files
+
+------------------------------------------------------------------------
+r1395 | zimmerma | 2009-04-01 14:18:03 +0200 (Wed, 01 Apr 2009) | 2 lines
+Changed paths:
+   M /trunk/README.dev
+   A /trunk/patch-config.guess.diff
+
+[patch-config.guess.diff] patch to fix config.guess on Mac OS X / PowerPC
+
+------------------------------------------------------------------------
+r1394 | kruppa | 2009-03-30 15:50:08 +0200 (Mon, 30 Mar 2009) | 4 lines
+Changed paths:
+   M /trunk/ecm-impl.h
+   M /trunk/ecm2.c
+   M /trunk/stage2.c
+
+Code to find factor of group order of elliptic curve in stage 2 could 
+segfault if factor (of input number) was re-discovered during initialisation 
+of arithmetic progressions on the curve
+
+------------------------------------------------------------------------
+r1393 | kruppa | 2009-03-30 15:44:52 +0200 (Mon, 30 Mar 2009) | 2 lines
+Changed paths:
+   M /trunk/ecm.c
+
+Bugfix: rhotable did not get freed if a factor was found in stage 1
+
+------------------------------------------------------------------------
+r1392 | brian_gladman | 2009-03-29 18:16:04 +0200 (Sun, 29 Mar 2009) | 1 line
+Changed paths:
+   M /trunk/build.vc9/ecm.sln
+   M /trunk/build.vc9/tune/tune.vcproj
+
+correct error in Windows tune builld
+------------------------------------------------------------------------
+r1391 | brian_gladman | 2009-03-29 13:44:30 +0200 (Sun, 29 Mar 2009) | 1 line
+Changed paths:
+   D /trunk/build.vc9/ecm-params.win32.amd.h
+   D /trunk/build.vc9/ecm-params.win32.intel.h
+   D /trunk/build.vc9/ecm-params.x64.amd.h
+   D /trunk/build.vc9/ecm-params.x64.intel.h
+
+
+------------------------------------------------------------------------
+r1390 | brian_gladman | 2009-03-29 13:43:13 +0200 (Sun, 29 Mar 2009) | 1 line
+Changed paths:
+   A /trunk/build.vc9/ecm-params.h.win32.amd
+   A /trunk/build.vc9/ecm-params.h.win32.intel
+   A /trunk/build.vc9/ecm-params.h.x64.amd
+   A /trunk/build.vc9/ecm-params.h.x64.intel
+   M /trunk/build.vc9/libecm/libecm.vcproj
+   A /trunk/build.vc9/mul_fft-params.h.win32.amd
+   A /trunk/build.vc9/mul_fft-params.h.win32.intel
+   A /trunk/build.vc9/mul_fft-params.h.x64.amd
+   A /trunk/build.vc9/mul_fft-params.h.x64.intel
+   M /trunk/build.vc9/readme.txt
+   M /trunk/build.vc9/tune/tune.vcproj
+
+Further update for Windows build
+------------------------------------------------------------------------
+r1389 | brian_gladman | 2009-03-29 00:05:29 +0100 (Sun, 29 Mar 2009) | 1 line
+Changed paths:
+   M /trunk/build.vc9/tests.py
+
+correct test.py for new directory structure
+------------------------------------------------------------------------
+r1388 | brian_gladman | 2009-03-28 23:59:27 +0100 (Sat, 28 Mar 2009) | 2 lines
+Changed paths:
+   M /trunk/build.vc9/assembler/a_x64_mulredc.asm
+   A /trunk/build.vc9/assembler/mulredc.h
+   M /trunk/build.vc9/config.h
+   M /trunk/build.vc9/ecm/ecm.vcproj
+   M /trunk/build.vc9/ecm-params.h
+   A /trunk/build.vc9/ecm-params.win32.amd.h
+   A /trunk/build.vc9/ecm-params.win32.intel.h
+   A /trunk/build.vc9/ecm-params.x64.amd.h
+   A /trunk/build.vc9/ecm-params.x64.intel.h
+   M /trunk/build.vc9/ecm.sln
+   M /trunk/build.vc9/libecm/libecm.vcproj
+   M /trunk/build.vc9/readme.txt
+   M /trunk/build.vc9/tests.py
+   A /trunk/build.vc9/tune
+   A /trunk/build.vc9/tune/tune.vcproj
+
+1. Add tune to the windows GMP-ECM build
+2. Add AMD and Intel build configurations (using tune output).
+------------------------------------------------------------------------
+r1387 | kruppa | 2009-03-28 22:53:42 +0100 (Sat, 28 Mar 2009) | 2 lines
+Changed paths:
+   M /trunk/INSTALL
+
+Updated note, since --enable-asm-redc is default now
+
+------------------------------------------------------------------------
+r1386 | brian_gladman | 2009-03-28 17:48:45 +0100 (Sat, 28 Mar 2009) | 1 line
+Changed paths:
+   M /trunk/build.vc9/libecm/libecm.vcproj
+   M /trunk/build.vc9/tests.py
+   M /trunk/ntt_gfp.c
+   M /trunk/spv.c
+
+Convert SSE2 inline assembler for 32-bit Windows build
+------------------------------------------------------------------------
+r1385 | zimmerma | 2009-03-28 12:59:04 +0100 (Sat, 28 Mar 2009) | 2 lines
+Changed paths:
+   M /trunk/README.dev
+
+[README.dev] more about INSTALL up-to-date
+
+------------------------------------------------------------------------
+r1384 | zimmerma | 2009-03-28 12:56:30 +0100 (Sat, 28 Mar 2009) | 2 lines
+Changed paths:
+   M /trunk/INSTALL
+
+[INSTALL] latest release of GMP is 4.2.4
+
+------------------------------------------------------------------------
+r1383 | kruppa | 2009-03-28 12:16:00 +0100 (Sat, 28 Mar 2009) | 2 lines
+Changed paths:
+   M /trunk/INSTALL
+
+Added mention of --enable-asm-redc and --enable-sse2
+
+------------------------------------------------------------------------
+r1382 | kruppa | 2009-03-28 11:56:24 +0100 (Sat, 28 Mar 2009) | 3 lines
+Changed paths:
+   M /trunk/configure.in
+
+Enable SSE2 if config.guess identifies the system as "i786" which seems to
+be what recent autotools call a Pentium 4 (rather than pentium4 as before)
+
+------------------------------------------------------------------------
+r1381 | rcosset | 2009-03-27 10:24:54 +0100 (Fri, 27 Mar 2009) | 1 line
+Changed paths:
+   M /trunk/hecm/auxi.h
+   M /trunk/hecm/hecm.c
+   M /trunk/hecm/morphismes.c
+
+Correction of typos in the comments of hecm
+------------------------------------------------------------------------
+r1380 | zimmerma | 2009-03-26 15:17:15 +0100 (Thu, 26 Mar 2009) | 4 lines
+Changed paths:
+   M /trunk/test.ecm
+   M /trunk/test.pm1
+   M /trunk/test.pp1
+
+[test.pm1] added new test, updated copyright years, added comments for return
+	   code
+[test.pp1,test.ecm] updated copyright years
+
+------------------------------------------------------------------------
+r1379 | kruppa | 2009-03-25 13:42:39 +0100 (Wed, 25 Mar 2009) | 3 lines
+Changed paths:
+   M /trunk/Makefile.am
+   M /trunk/configure.in
+
+Removed the horrible FASTOBJ kludge. There must be a better way to
+specify the order in which object files are to appear on the link command.
+
+------------------------------------------------------------------------
+r1378 | kruppa | 2009-03-24 17:00:44 +0100 (Tue, 24 Mar 2009) | 3 lines
+Changed paths:
+   M /trunk/mpmod.c
+
+Bugfix: in ecm_redc_n(), a carry was not propagated correctly if
+xp[n - 1] was zero but tp[n - 1] was non-zero.
+
+------------------------------------------------------------------------
+r1377 | rcosset | 2009-03-24 11:51:01 +0100 (Tue, 24 Mar 2009) | 1 line
+Changed paths:
+   M /trunk/hecm/hecm.c
+
+Print the imput number in hecm.
+------------------------------------------------------------------------
+r1376 | rcosset | 2009-03-24 11:40:39 +0100 (Tue, 24 Mar 2009) | 1 line
+Changed paths:
+   A /trunk/hecm
+   A /trunk/hecm/Jacobi.c
+   A /trunk/hecm/Jacobi.h
+   A /trunk/hecm/Makefile
+   A /trunk/hecm/ariKS.c
+   A /trunk/hecm/ariKS.h
+   A /trunk/hecm/auxi.c
+   A /trunk/hecm/auxi.h
+   A /trunk/hecm/generation.c
+   A /trunk/hecm/generation.h
+   A /trunk/hecm/hecm.c
+   A /trunk/hecm/hecm.h
+   A /trunk/hecm/morphismes.c
+   A /trunk/hecm/morphismes.h
+   A /trunk/hecm/stage1HECM.c
+   A /trunk/hecm/stage2HECM.c
+
+Added a new software gmp-hecm based on gmp-ecm. HECM used decomposable hyperelliptic curves of genus 2 instead of elliptic curves. Thus it does two run of ECM in parallel. The used of Kummer surfaces with small parameters make it quicker for numbers >= 10^300.
+------------------------------------------------------------------------
+r1375 | kruppa | 2009-03-23 15:23:23 +0100 (Mon, 23 Mar 2009) | 2 lines
+Changed paths:
+   M /trunk/NEWS
+   M /trunk/configure.in
+
+Updated NEWS with 6.2.2 release, bumped version to 6.3
+
+------------------------------------------------------------------------
+r1373 | kruppa | 2009-03-23 00:00:25 +0100 (Mon, 23 Mar 2009) | 3 lines
+Changed paths:
+   M /trunk/ntt_gfp.c
+   M /trunk/spv.c
+
+MacOS assembler doesn't like binary constants in asm code, replaced by hex.
+Patch supplied by "jedirock" on mersenneforum.org
+
+------------------------------------------------------------------------
+r1372 | rcosset | 2009-03-19 14:01:26 +0100 (Thu, 19 Mar 2009) | 1 line
+Changed paths:
+   M /trunk/mpmod.c
+
+Added a few commentary in mpmod.c
+------------------------------------------------------------------------
+r1371 | zimmerma | 2009-03-18 17:42:46 +0100 (Wed, 18 Mar 2009) | 2 lines
+Changed paths:
+   M /trunk/mpmod.c
+
+[mpmod.c] added some FIXME's
+
+------------------------------------------------------------------------
+r1370 | kruppa | 2009-03-18 01:13:21 +0100 (Wed, 18 Mar 2009) | 2 lines
+Changed paths:
+   M /trunk/ecm-impl.h
+   M /trunk/mpmod.c
+
+Merged in Romain's modifications
+
+------------------------------------------------------------------------
+r1369 | kruppa | 2009-03-18 00:20:59 +0100 (Wed, 18 Mar 2009) | 6 lines
+Changed paths:
+   M /trunk/x86_64/Makefile.am
+   M /trunk/x86_64/mulredc.h
+   M /trunk/x86_64/mulredc.m4
+   D /trunk/x86_64/mulredc1.h
+   M /trunk/x86_64/mulredc10.asm
+   M /trunk/x86_64/mulredc11.asm
+   M /trunk/x86_64/mulredc12.asm
+   M /trunk/x86_64/mulredc13.asm
+   M /trunk/x86_64/mulredc14.asm
+   M /trunk/x86_64/mulredc15.asm
+   M /trunk/x86_64/mulredc16.asm
+   M /trunk/x86_64/mulredc17.asm
+   M /trunk/x86_64/mulredc18.asm
+   M /trunk/x86_64/mulredc19.asm
+   M /trunk/x86_64/mulredc2.asm
+   M /trunk/x86_64/mulredc20.asm
+   M /trunk/x86_64/mulredc3.asm
+   M /trunk/x86_64/mulredc4.asm
+   M /trunk/x86_64/mulredc5.asm
+   M /trunk/x86_64/mulredc6.asm
+   M /trunk/x86_64/mulredc7.asm
+   M /trunk/x86_64/mulredc8.asm
+   M /trunk/x86_64/mulredc9.asm
+
+Removed mulredc1.h, prototypes are in mulredc.h now
+Removed superfluous #include <gmp.h> in mulredc.h
+Some small changes in mulredc.m4: replace some movq by movl, change 
+  for-loop so it works with LENGTH=2
+
+
+------------------------------------------------------------------------
+r1368 | kruppa | 2009-03-17 23:34:51 +0100 (Tue, 17 Mar 2009) | 3 lines
+Changed paths:
+   M /trunk/Makefile.am
+   M /trunk/athlon/Makefile.am
+   M /trunk/pentium4/Makefile.am
+   M /trunk/powerpc64/Makefile.am
+   M /trunk/x86_64/Makefile.am
+
+The include path to mulredc.h must use $(srcdir) or a build with
+separate source/build directories (as used by make distcheck) fails
+
+------------------------------------------------------------------------
+r1367 | kruppa | 2009-03-17 22:16:56 +0100 (Tue, 17 Mar 2009) | 5 lines
+Changed paths:
+   M /trunk/configure.in
+
+New config.guess don't call a Pentium 4 "pentium4" any more, but "i786",
+the corresponding case was missing in the first test for asm eligibility.
+And autoconf changes the m4 quote characters from ` and ' to [ and ], 
+so they need to be quoted for shell character-set matching. I hate autotools
+
+------------------------------------------------------------------------
+r1366 | kruppa | 2009-03-17 20:54:47 +0100 (Tue, 17 Mar 2009) | 6 lines
+Changed paths:
+   M /trunk/Makefile.am
+   D /trunk/asmredc.h
+   A /trunk/bench_mulredc.c
+   M /trunk/configure.in
+   M /trunk/mpmod.c
+   A /trunk/test_mulredc.c
+
+Build mulredc code in subdirectories if enabled, and link to it from the 
+top directory
+Moved bench_mulredc.c and test_mulredc.c to top directory rather than having
+identical copies in each subdir
+Did I mention that I hate autotools?
+
+------------------------------------------------------------------------
+r1365 | kruppa | 2009-03-17 20:45:30 +0100 (Tue, 17 Mar 2009) | 4 lines
+Changed paths:
+   D /trunk/config.guess
+   D /trunk/config.sub
+
+Removed config.guess and config.sub, they aren't sources and developers
+with different versions of autotools installed will overwrite each others'
+config.guess/config.sub all the time
+
+------------------------------------------------------------------------
+r1364 | kruppa | 2009-03-17 20:41:07 +0100 (Tue, 17 Mar 2009) | 4 lines
+Changed paths:
+   M /trunk/athlon/Makefile.am
+   M /trunk/athlon/mulredc.h
+   M /trunk/pentium4/Makefile.am
+   M /trunk/powerpc64/Makefile.am
+   D /trunk/powerpc64/bench.c
+   A /trunk/powerpc64/mulredc.h
+   D /trunk/powerpc64/test_mulredc.c
+
+Build mulredc as library in powerpc64
+Removed extaneous prototypes, EXTRA_DIST entries
+
+
+------------------------------------------------------------------------
+r1363 | kruppa | 2009-03-17 20:34:31 +0100 (Tue, 17 Mar 2009) | 3 lines
+Changed paths:
+   M /trunk/pentium4/Makefile.am
+   D /trunk/pentium4/bench.c
+   A /trunk/pentium4/mulredc.h
+   D /trunk/pentium4/test_mulredc.c
+
+Build mulredc as library
+
+
+------------------------------------------------------------------------
+r1362 | kruppa | 2009-03-17 20:28:22 +0100 (Tue, 17 Mar 2009) | 2 lines
+Changed paths:
+   M /trunk/athlon/Makefile.am
+   D /trunk/athlon/bench.c
+   A /trunk/athlon/mulredc.h
+   D /trunk/athlon/test_mulredc.c
+
+Build mulredc as library
+
+------------------------------------------------------------------------
+r1361 | kruppa | 2009-03-17 20:08:17 +0100 (Tue, 17 Mar 2009) | 2 lines
+Changed paths:
+   M /trunk/x86_64/Makefile.am
+
+Forgot to add mulredc.h to distribution
+
+------------------------------------------------------------------------
+r1360 | kruppa | 2009-03-17 19:55:46 +0100 (Tue, 17 Mar 2009) | 3 lines
+Changed paths:
+   M /trunk/x86_64/Makefile.am
+   D /trunk/x86_64/bench.c
+   A /trunk/x86_64/mulredc.h
+   D /trunk/x86_64/test_mulredc.c
+
+Build mulredc as library, so GMP-ECM can link it (with ld rather than ln)
+Removed bench and test_mulredc, are being moved to parent dir
+
+------------------------------------------------------------------------
+r1359 | kruppa | 2009-03-17 15:16:40 +0100 (Tue, 17 Mar 2009) | 2 lines
+Changed paths:
+   D /trunk/x86_64/Makefile.dev
+
+The targets from Makefile.dev are now in Makefile.am
+
+------------------------------------------------------------------------
+r1358 | zimmerma | 2009-03-17 11:00:52 +0100 (Tue, 17 Mar 2009) | 6 lines
+Changed paths:
+   A /trunk/m4
+
+added empty directory m4, since autoreconf seems to require it:
+
+patate% autoreconf -i
+aclocal: couldn't open directory `m4': No such file or directory
+autoreconf: aclocal failed with exit status: 1
+
+------------------------------------------------------------------------
+r1357 | kruppa | 2009-03-17 00:00:55 +0100 (Tue, 17 Mar 2009) | 3 lines
+Changed paths:
+   M /trunk/x86_64/redc.asm
+
+Use RIP-relative addressing instead of horrible call/pop for computed 
+jump. Fixes a compilation error on MacOS
+
+------------------------------------------------------------------------
+r1356 | kruppa | 2009-03-15 22:58:34 +0100 (Sun, 15 Mar 2009) | 2 lines
+Changed paths:
+   M /trunk/configure.in
+
+Added i686-apple-darwin* to list of hosts that understand asm code
+
+------------------------------------------------------------------------
+r1355 | kruppa | 2009-03-12 16:02:33 +0100 (Thu, 12 Mar 2009) | 5 lines
+Changed paths:
+   M /trunk/tune.c
+
+Fixed generation of NTT_GFP_TWIDDLE_DI[FT]_BREAKOVER values
+Avoid calling cputime() excessively often when timing short functions
+Fixed access to uninitialised memory
+
+
+------------------------------------------------------------------------
+r1354 | kruppa | 2009-03-12 15:53:28 +0100 (Thu, 12 Mar 2009) | 2 lines
+Changed paths:
+   M /trunk/ecm-params.h.powerpc970
+
+NTT_GFP_TWIDDLE_DI[FT]_BREAKOVER was not in log_2() form
+
+------------------------------------------------------------------------
+r1353 | kruppa | 2009-03-08 20:49:41 +0100 (Sun, 08 Mar 2009) | 3 lines
+Changed paths:
+   M /trunk/Makefile.am
+   M /trunk/configure.in
+   M /trunk/ecm-params.h.athlon64
+   M /trunk/ecm-params.h.pentium3
+   M /trunk/ecm-params.h.pentium4
+   A /trunk/mul_fft-params.h.athlon64
+   A /trunk/mul_fft-params.h.default
+   A /trunk/mul_fft-params.h.pentium3
+   A /trunk/mul_fft-params.h.pentium4
+   M /trunk/mul_fft.c
+
+Moved parameters for Schönhage-Strassen into separate file so that
+tune output does not overwrite them
+
+------------------------------------------------------------------------
+r1352 | zimmerma | 2009-03-04 14:45:34 +0100 (Wed, 04 Mar 2009) | 2 lines
+Changed paths:
+   M /trunk/ecmfactor2.c
+
+[ecmfactor2.c] added wrapper function, and fixed example which did not work
+
+------------------------------------------------------------------------
+r1351 | zimmerma | 2009-03-03 15:32:13 +0100 (Tue, 03 Mar 2009) | 2 lines
+Changed paths:
+   M /trunk/main.c
+
+[main.c] update champions sizes
+
+------------------------------------------------------------------------
+r1350 | zimmerma | 2009-02-27 17:34:43 +0100 (Fri, 27 Feb 2009) | 2 lines
+Changed paths:
+   M /trunk/NEWS
+   M /trunk/configure.in
+   M /trunk/powerpc64/powerpc-defs.m4
+
+the powerpc64 assembly code from Philip McLaughlin now works on Linux too
+
+------------------------------------------------------------------------
+r1349 | zimmerma | 2009-02-27 16:56:18 +0100 (Fri, 27 Feb 2009) | 2 lines
+Changed paths:
+   M /trunk/acinclude.m4
+
+[acinclude.m4] too many quotes
+
+------------------------------------------------------------------------
+r1348 | zimmerma | 2009-02-27 16:45:36 +0100 (Fri, 27 Feb 2009) | 3 lines
+Changed paths:
+   M /trunk/acinclude.m4
+   M /trunk/configure.in
+   M /trunk/powerpc64/Makefile.am
+   M /trunk/powerpc64/Makefile.dev
+   M /trunk/powerpc64/mulredc.m4
+   M /trunk/powerpc64/mulredc1.asm
+   M /trunk/powerpc64/mulredc10.asm
+   M /trunk/powerpc64/mulredc11.asm
+   M /trunk/powerpc64/mulredc12.asm
+   M /trunk/powerpc64/mulredc13.asm
+   M /trunk/powerpc64/mulredc14.asm
+   M /trunk/powerpc64/mulredc15.asm
+   M /trunk/powerpc64/mulredc16.asm
+   M /trunk/powerpc64/mulredc17.asm
+   M /trunk/powerpc64/mulredc18.asm
+   M /trunk/powerpc64/mulredc19.asm
+   M /trunk/powerpc64/mulredc2.asm
+   M /trunk/powerpc64/mulredc20.asm
+   M /trunk/powerpc64/mulredc3.asm
+   M /trunk/powerpc64/mulredc4.asm
+   M /trunk/powerpc64/mulredc5.asm
+   M /trunk/powerpc64/mulredc6.asm
+   M /trunk/powerpc64/mulredc7.asm
+   M /trunk/powerpc64/mulredc8.asm
+   M /trunk/powerpc64/mulredc9.asm
+   M /trunk/powerpc64/mulredc_1_2.m4
+   A /trunk/powerpc64/powerpc-defs.m4
+   M /trunk/powerpc64/redc.asm
+
+adapt PowerPC assembly files so that they can be used under Linux too
+(does not yet work)
+
+------------------------------------------------------------------------
+r1347 | kruppa | 2009-02-25 14:51:06 +0100 (Wed, 25 Feb 2009) | 2 lines
+Changed paths:
+   M /trunk/pp1.c
+
+Replaced some mpres_mul_ui() by 2 with mpres_add()
+
+------------------------------------------------------------------------
+r1346 | kruppa | 2009-02-24 23:18:20 +0100 (Tue, 24 Feb 2009) | 2 lines
+Changed paths:
+   M /trunk/x86_64/bench.c
+
+Fixed stupid error message about label at end of compound statement
+
+------------------------------------------------------------------------
+r1345 | kruppa | 2009-02-24 23:16:05 +0100 (Tue, 24 Feb 2009) | 5 lines
+Changed paths:
+   M /trunk/x86_64/redc.asm
+
+If a redc.s file was generated somehow, it was not run through the
+C preprocessor before assembly (only .S fils are), causing address 
+generation for a computed jump to go wrong. Added a tripwire so that 
+assembly fails if preprocessor isn't used.
+
+------------------------------------------------------------------------
+r1344 | kruppa | 2009-02-24 19:49:27 +0100 (Tue, 24 Feb 2009) | 2 lines
+Changed paths:
+   M /trunk/x86_64/Makefile.am
+   M /trunk/x86_64/bench.c
+   A /trunk/x86_64/mulredc1.h
+   A /trunk/x86_64/mulredc1.m4
+   M /trunk/x86_64/test_mulredc.c
+
+For Romain: mulredc code for n x 1 products
+
+------------------------------------------------------------------------
+r1343 | kruppa | 2009-02-21 22:17:27 +0100 (Sat, 21 Feb 2009) | 2 lines
+Changed paths:
+   D /trunk/powerpc64/Makefile.in
+
+Makefile.in should not be in repository, only Makefile.am
+
+------------------------------------------------------------------------
+r1342 | zimmerma | 2009-02-18 23:06:52 +0100 (Wed, 18 Feb 2009) | 3 lines
+Changed paths:
+   M /trunk/tune.c
+
+[tune.c] NTT_GFP_TWIDDLE_DIF_BREAKOVER/NTT_GFP_TWIDDLE_DIT_BREAKOVER should be
+         the logarithm in base 2 of the corresponding thresholds
+
+------------------------------------------------------------------------
+r1341 | kruppa | 2009-02-16 17:03:05 +0100 (Mon, 16 Feb 2009) | 4 lines
+Changed paths:
+   M /trunk/ecm-impl.h
+   M /trunk/pm1fs2.c
+   M /trunk/sets_long.c
+
+Moved maxS() from pm1fs2.c to sets_long.c as sets_max(), as it depends on
+how sets_long.c picks sets. Included test of sets_max() in the self-test.
+Fixed some typos in comments.
+
+------------------------------------------------------------------------
+r1340 | kruppa | 2009-02-15 16:09:34 +0100 (Sun, 15 Feb 2009) | 2 lines
+Changed paths:
+   D /trunk/m4
+
+Delete empty directory
+
+------------------------------------------------------------------------
+r1339 | zimmerma | 2009-02-12 10:58:27 +0100 (Thu, 12 Feb 2009) | 2 lines
+Changed paths:
+   M /trunk/Makefile.am
+
+[Makefile.am] forgot ecm-params.h.powerpc970 in make dist
+
+------------------------------------------------------------------------
+r1338 | kruppa | 2009-02-11 23:20:32 +0100 (Wed, 11 Feb 2009) | 4 lines
+Changed paths:
+   M /trunk/x86_64/bench.c
+   M /trunk/x86_64/mulredc.m4
+   M /trunk/x86_64/mulredc10.asm
+   M /trunk/x86_64/mulredc11.asm
+   M /trunk/x86_64/mulredc12.asm
+   M /trunk/x86_64/mulredc13.asm
+   M /trunk/x86_64/mulredc14.asm
+   M /trunk/x86_64/mulredc15.asm
+   M /trunk/x86_64/mulredc16.asm
+   M /trunk/x86_64/mulredc17.asm
+   M /trunk/x86_64/mulredc18.asm
+   M /trunk/x86_64/mulredc19.asm
+   M /trunk/x86_64/mulredc20.asm
+   M /trunk/x86_64/mulredc3.asm
+   M /trunk/x86_64/mulredc4.asm
+   M /trunk/x86_64/mulredc5.asm
+   M /trunk/x86_64/mulredc6.asm
+   M /trunk/x86_64/mulredc7.asm
+   M /trunk/x86_64/mulredc8.asm
+   M /trunk/x86_64/mulredc9.asm
+
+Added Phil McLaughlin's suggestion to remove a useless carry 
+propagation. Made bench.c use getrusage() if available which 
+has better resolution than clock() or times().
+
+------------------------------------------------------------------------
+r1337 | kruppa | 2009-02-11 15:26:46 +0100 (Wed, 11 Feb 2009) | 2 lines
+Changed paths:
+   M /trunk/x86_64/Makefile.am
+
+Add targets for bench and test_mulredc
+
+------------------------------------------------------------------------
+r1336 | kruppa | 2009-02-11 15:18:50 +0100 (Wed, 11 Feb 2009) | 2 lines
+Changed paths:
+   M /trunk/x86_64/bench.c
+   M /trunk/x86_64/test_mulredc.c
+
+Made bench compile again, fixed some -pedantic warnings in test_mulredc.c
+
+------------------------------------------------------------------------
+r1335 | zimmerma | 2009-02-11 10:00:35 +0100 (Wed, 11 Feb 2009) | 2 lines
+Changed paths:
+   M /trunk/powerpc64/README
+
+[powerpc64/README] added reference to LGPL license
+
+------------------------------------------------------------------------
+r1334 | zimmerma | 2009-02-10 09:58:20 +0100 (Tue, 10 Feb 2009) | 2 lines
+Changed paths:
+   A /trunk/ecm-params.h.powerpc970
+
+[ecm-params.h.powerpc970] default tuning parameters for powerpc64
+
+------------------------------------------------------------------------
+r1333 | zimmerma | 2009-02-10 09:50:43 +0100 (Tue, 10 Feb 2009) | 3 lines
+Changed paths:
+   M /trunk/Makefile.am
+   M /trunk/configure.in
+   A /trunk/powerpc64
+   A /trunk/powerpc64/Makefile.am
+   A /trunk/powerpc64/Makefile.dev
+   A /trunk/powerpc64/Makefile.in
+   A /trunk/powerpc64/README
+   A /trunk/powerpc64/bench.c
+   A /trunk/powerpc64/generate_all
+   A /trunk/powerpc64/mulredc.m4
+   A /trunk/powerpc64/mulredc1.asm
+   A /trunk/powerpc64/mulredc10.asm
+   A /trunk/powerpc64/mulredc11.asm
+   A /trunk/powerpc64/mulredc12.asm
+   A /trunk/powerpc64/mulredc13.asm
+   A /trunk/powerpc64/mulredc14.asm
+   A /trunk/powerpc64/mulredc15.asm
+   A /trunk/powerpc64/mulredc16.asm
+   A /trunk/powerpc64/mulredc17.asm
+   A /trunk/powerpc64/mulredc18.asm
+   A /trunk/powerpc64/mulredc19.asm
+   A /trunk/powerpc64/mulredc2.asm
+   A /trunk/powerpc64/mulredc20.asm
+   A /trunk/powerpc64/mulredc3.asm
+   A /trunk/powerpc64/mulredc4.asm
+   A /trunk/powerpc64/mulredc5.asm
+   A /trunk/powerpc64/mulredc6.asm
+   A /trunk/powerpc64/mulredc7.asm
+   A /trunk/powerpc64/mulredc8.asm
+   A /trunk/powerpc64/mulredc9.asm
+   A /trunk/powerpc64/mulredc_1_2.m4
+   A /trunk/powerpc64/redc.asm
+   A /trunk/powerpc64/test_mulredc.c
+
+incorporated asm redc code for powerpc64 from Philip McLaughlin (still to be
+tested)
+
+------------------------------------------------------------------------
+r1332 | kruppa | 2009-01-18 16:35:23 +0100 (Sun, 18 Jan 2009) | 2 lines
+Changed paths:
+   M /trunk/x86_64/mulredc.m4
+
+Replaced xorq by xorl, added an assert. Cosmetic change, mostly
+
+------------------------------------------------------------------------
+r1331 | kruppa | 2009-01-18 16:33:38 +0100 (Sun, 18 Jan 2009) | 2 lines
+Changed paths:
+   M /trunk/techdocs/mulrecip.tex
+
+Small fixes, cleanups
+
+------------------------------------------------------------------------
+r1330 | kruppa | 2009-01-18 16:32:10 +0100 (Sun, 18 Jan 2009) | 2 lines
+Changed paths:
+   M /trunk/rho.gp
+
+Small cleanups in comments
+
+------------------------------------------------------------------------
+r1329 | kruppa | 2009-01-16 15:35:39 +0100 (Fri, 16 Jan 2009) | 3 lines
+Changed paths:
+   M /trunk/mpzspm.c
+
+Use outputf() instead of printf() for error messages.
+Print some timing in mpzspm_init() with DEVVERBOSE.
+
+------------------------------------------------------------------------
+r1328 | kruppa | 2009-01-16 15:02:57 +0100 (Fri, 16 Jan 2009) | 3 lines
+Changed paths:
+   M /trunk/rho.c
+
+pmeprob() should not access "go" if it might be a NULL pointer.
+Added function for P-1 probability for factors in a known residue class.
+
+------------------------------------------------------------------------
+r1327 | zimmerma | 2009-01-07 12:41:32 +0100 (Wed, 07 Jan 2009) | 5 lines
+Changed paths:
+   M /trunk/ecm.c
+   M /trunk/ecm.h
+   M /trunk/factor.c
+   M /trunk/main.c
+
+Added patch from Philip McLaughlin which adds new option -nobase2s2 that
+disables base-2 arithmetic in Step 2.
+This is experimental, and might be removed or replaced by another mechanism
+later on; in particular, it seems if breaks the binary compatibility.
+
+------------------------------------------------------------------------
+r1326 | zimmerma | 2009-01-07 11:28:03 +0100 (Wed, 07 Jan 2009) | 5 lines
+Changed paths:
+   M /trunk/ecm.c
+   M /trunk/mpmod.c
+
+[mpmod.c] added code to compare base-2 arithmetic to default one
+	  (disabled for now)
+[ecm.c] isbase2() was called twice -> called only once now, should yield a
+	small speedup, especially for small B1
+
+------------------------------------------------------------------------
+r1325 | zimmerma | 2008-12-19 16:01:05 +0100 (Fri, 19 Dec 2008) | 2 lines
+Changed paths:
+   D /trunk/m4/libtool.m4
+   D /trunk/m4/ltoptions.m4
+   D /trunk/m4/ltsugar.m4
+   D /trunk/m4/ltversion.m4
+   D /trunk/m4/lt~obsolete.m4
+
+removed m4/* files
+
+------------------------------------------------------------------------
+r1324 | zimmerma | 2008-12-14 15:05:29 +0100 (Sun, 14 Dec 2008) | 4 lines
+Changed paths:
+   M /trunk/Makefile.am
+   M /trunk/ecm-impl.h
+   M /trunk/ecm.c
+   M /trunk/ecm.h
+   A /trunk/ecmfactor2.c
+   M /trunk/main.c
+   M /trunk/pm1.c
+   M /trunk/pp1.c
+
+(unfinished) change to enable the use of GMP-ECM stage 2 from HECM, where
+a curve is given in Weierstrass form (see example in ecmfactor2.c).
+It compiles, but remains to be debugged...
+
+------------------------------------------------------------------------
+r1323 | zimmerma | 2008-12-14 13:45:34 +0100 (Sun, 14 Dec 2008) | 3 lines
+Changed paths:
+   M /trunk/Makefile.am
+   M /trunk/configure.in
+   A /trunk/m4
+   A /trunk/m4/libtool.m4
+   A /trunk/m4/ltoptions.m4
+   A /trunk/m4/ltsugar.m4
+   A /trunk/m4/ltversion.m4
+   A /trunk/m4/lt~obsolete.m4
+
+[configure.in,Makefile.am] switch to automake >= 1.10, and added macros
+	suggested by autoreconf -i
+
+------------------------------------------------------------------------
+r1322 | brian_gladman | 2008-11-24 10:46:01 +0100 (Mon, 24 Nov 2008) | 1 line
+Changed paths:
+   M /trunk/build.vc9/ecm/ecm.vcproj
+   M /trunk/build.vc9/libecm/libecm.vcproj
+   M /trunk/build.vc9/readme.txt
+
+Update VC++ build project to assume that the GMP root directory is named 'GMP' not 'GMP-version'  
+------------------------------------------------------------------------
+r1321 | brian_gladman | 2008-11-24 10:21:23 +0100 (Mon, 24 Nov 2008) | 1 line
+Changed paths:
+   M /trunk/build.vc9/ecm/ecm.vcproj
+   M /trunk/build.vc9/libecm/libecm.vcproj
+
+Update MSVC builds to use GMP-4.2.4
+------------------------------------------------------------------------
+r1320 | zimmerma | 2008-10-12 14:13:23 +0200 (Sun, 12 Oct 2008) | 2 lines
+Changed paths:
+   M /trunk/configure.in
+
+[configure.in] changed version to 6.2.2
+
+------------------------------------------------------------------------
+r1319 | brian_gladman | 2008-09-02 18:15:48 +0200 (Tue, 02 Sep 2008) | 1 line
+Changed paths:
+   M /trunk/build.vc9/ecm/ecm.vcproj
+   M /trunk/build.vc9/libecm/libecm.vcproj
+
+correction to VC++ build project to set the GMP include directory to gmp-4.2.3
+------------------------------------------------------------------------
+r1318 | brian_gladman | 2008-08-30 22:03:27 +0200 (Sat, 30 Aug 2008) | 2 lines
+Changed paths:
+   M /trunk/build.vc9/ecm/ecm.vcproj
+   M /trunk/build.vc9/ecm-params.h
+   M /trunk/build.vc9/readme.txt
+
+Update the Visual Studio build to use GMP-4.2.3
+
+------------------------------------------------------------------------
+r1317 | zimmerma | 2008-07-17 11:28:30 +0200 (Thu, 17 Jul 2008) | 2 lines
+Changed paths:
+   M /trunk/configure.in
+
+fixed split infinitive (thanks Paul Leyland)
+
+------------------------------------------------------------------------
+r1316 | zimmerma | 2008-06-13 20:50:28 +0200 (Fri, 13 Jun 2008) | 2 lines
+Changed paths:
+   M /trunk/AUTHORS
+
+updated Dave's address
+
+------------------------------------------------------------------------
+r1315 | zimmerma | 2008-06-13 02:17:41 +0200 (Fri, 13 Jun 2008) | 2 lines
+Changed paths:
+   M /trunk/TODO
+
+added new item
+
+------------------------------------------------------------------------
+r1314 | zimmerma | 2008-06-12 23:53:56 +0200 (Thu, 12 Jun 2008) | 2 lines
+Changed paths:
+   M /trunk/TODO
+
+added comment
+
+------------------------------------------------------------------------
+r1313 | zimmerma | 2008-06-12 23:26:27 +0200 (Thu, 12 Jun 2008) | 2 lines
+Changed paths:
+   M /trunk/listz.c
+
+compile list_mul_low only if KS_MULTIPLY is nto defined, to avoid a warning
+
+------------------------------------------------------------------------
+r1312 | kruppa | 2008-06-12 02:38:03 +0200 (Thu, 12 Jun 2008) | 2 lines
+Changed paths:
+   M /trunk/pm1.c
+
+Bugfix: new P-1 stage 2 called pm1prob() with uninitialised value for S
+
+------------------------------------------------------------------------
+r1311 | zimmerma | 2008-06-09 09:56:58 +0200 (Mon, 09 Jun 2008) | 2 lines
+Changed paths:
+   M /trunk/configure.in
+
+removed --with-gmp-build option (no longer needed as we don't need gmp-impl.h)
+
+------------------------------------------------------------------------
+r1310 | zimmerma | 2008-06-06 05:49:50 +0200 (Fri, 06 Jun 2008) | 2 lines
+Changed paths:
+   M /trunk/TODO
+
+added two items
+
+------------------------------------------------------------------------
+r1309 | zimmerma | 2008-06-05 03:50:16 +0200 (Thu, 05 Jun 2008) | 3 lines
+Changed paths:
+   M /trunk/README.dev
+   M /trunk/mul_fft.c
+
+added tags corresponding to 6.2 and 6.2.1 in README.dev
+commented out unused function in mul_fft.c
+
+------------------------------------------------------------------------
+r1307 | kruppa | 2008-06-04 05:43:25 +0200 (Wed, 04 Jun 2008) | 2 lines
+Changed paths:
+   M /trunk/ChangeLog
+   M /trunk/NEWS
+   M /trunk/build.vc9/config.h
+
+Set version to 6.2.1 in trunk/build.vc9/config.h, updated NEWS, ChangeLog
+
+------------------------------------------------------------------------
 r1306 | kruppa | 2008-06-04 01:53:32 +0200 (Wed, 04 Jun 2008) | 2 lines
 Changed paths:
    M /trunk/countsmooth.c
