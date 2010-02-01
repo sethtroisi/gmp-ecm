@@ -2671,7 +2671,7 @@ ntt_gcd (mpz_t f, mpz_t *product, mpzspv_t ntt, const unsigned long ntt_offset,
 
     MEMORY_TAG;
     R = init_list2 (Rlen, (mpz_size (modulus->orig_modulus) + 2) * 
-                           mp_bits_per_limb);
+                           GMP_NUMB_BITS);
     MEMORY_UNTAG;
     mpres_init (tmpres, modulus);
     mpres_init (tmpprod, modulus);
@@ -4393,7 +4393,7 @@ pp1fs2_ntt (mpz_t f, const mpres_t X, mpmod_t modulus,
   lenF = params->s_1 / 2 + 1 + 1; /* Another +1 because poly_from_sets_V stores
 				     the leading 1 monomial for each factor */
   MEMORY_TAG;
-  F = init_list2 (lenF, (unsigned int) abs (modulus->bits) + mp_bits_per_limb);
+  F = init_list2 (lenF, (unsigned int) abs (modulus->bits) + GMP_NUMB_BITS);
   MEMORY_UNTAG;
   
   /* Build F */
@@ -4448,7 +4448,7 @@ pp1fs2_ntt (mpz_t f, const mpres_t X, mpmod_t modulus,
       g_y_ntt = g_x_ntt;
       MEMORY_TAG;
       R = init_list2 (nr, (mpz_size (modulus->orig_modulus) + 2) *  
-                          mp_bits_per_limb);
+                          GMP_NUMB_BITS);
       MEMORY_UNTAG;
     }
   else
