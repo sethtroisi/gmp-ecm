@@ -408,7 +408,7 @@ ks_wrapmul (listz_t R, unsigned int m0,
       /* no need to check return value of mpn_add_1: if 1, then {tp, s}
          is now identically 0, and should remain so */
       MPN_NORMALIZE(tp, size_tmp);
-      if ((size_tmp == s) && (tp[s - 1] >> (mp_bits_per_limb - 1)))
+      if ((size_tmp == s) && (tp[s - 1] >> (GMP_NUMB_BITS - 1)))
 	{
 	  negative = 1;
 	  mpn_com_n (tp, tp, s);

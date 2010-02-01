@@ -37,6 +37,7 @@ extern size_t REDC_THRESHOLD;
 extern size_t mpn_mul_lo_threshold[];
 
 #include <stdio.h> /* needed for "FILE *" */
+#include <limits.h>
 
 #if  defined (__STDC__)                                 \
   || defined (__cplusplus)                              \
@@ -281,7 +282,7 @@ typedef struct
   int bits;           /* in case of a base 2 number, 2^k[+-]1, bits = [+-]k
                          in case of MODMULN or REDC representation, nr. of 
                          bits b so that 2^b > orig_modulus and 
-                         mp_bits_per_limb | b */
+                         GMP_NUMB_BITS | b */
   int Fermat;         /* If repr = 1 (base 2 number): If modulus is 2^(2^m)+1, 
                          i.e. bits = 2^m, then Fermat = 2^m, 0 otherwise.
                          If repr != 1, undefined */
@@ -761,25 +762,19 @@ sets_nextset (const set_long_t *sets)
 }
 #endif
 
-#define TWO53 9007199254740992.0 /* 2^53 */
-
 /* a <- b * c where a and b are mpz, c is a double, and t an auxiliary mpz */
-#if (BITS_PER_MP_LIMB >= 53)
+/* Not sure how the preprocessor handles shifts by more than the integer 
+   width on 32 bit machines, so do the shift by 53 in two pieces */
+#if (((ULONG_MAX >> 27) >> 26) >= 1)
 #define mpz_mul_d(a, b, c, t) \
    mpz_mul_ui (a, b, (unsigned long int) c);
 #else
-#if (BITS_PER_MP_LIMB >= 32)
 #define mpz_mul_d(a, b, c, t) \
-   if (c < 4294967296.0) \
+   if (c < (double) ULONG_MAX) \
       mpz_mul_ui (a, b, (unsigned long int) c); \
    else { \
    mpz_set_d (t, c); \
    mpz_mul (a, b, t); }
-#else
-#define mpz_mul_d(a, b, c, t) \
-   mpz_set_d (t, c); \
-   mpz_mul (a, b, t);
-#endif
 #endif
 
 #endif /* _ECM_IMPL_H */

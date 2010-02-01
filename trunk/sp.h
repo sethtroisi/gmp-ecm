@@ -64,17 +64,8 @@ typedef unsigned int UHWtype;
 typedef mp_limb_t USItype;
 typedef mp_limb_t UDItype;
 
-/* __GMP_BITS_PER_MP_LIMB is no more defined in GMP 5 */
-#ifndef __GMP_BITS_PER_MP_LIMB
-#define __GMP_BITS_PER_MP_LIMB GMP_LIMB_BITS
-#endif
-
-#ifndef BITS_PER_MP_LIMB
-#define BITS_PER_MP_LIMB __GMP_BITS_PER_MP_LIMB
-#endif
-
 #ifndef W_TYPE_SIZE
-#define W_TYPE_SIZE BITS_PER_MP_LIMB
+#define W_TYPE_SIZE GMP_LIMB_BITS
 #endif
 
 #ifndef ULONG_MAX

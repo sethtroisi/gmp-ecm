@@ -182,7 +182,8 @@ base2mod (mpres_t R, const mpres_t S, mpres_t t, mpmod_t modulus)
 }
 
 /* Modular reduction modulo the Fermat number 2^m+1. 
-   n = m / GMP_BITS_PER_LIMB. Result is < 2^m+1.
+   n = m / GMP_NUMB_BITS. Result is < 2^m+1.
+   FIXME: this does not work with nails.
    Only copies the data to R if reduction is needed and returns 1 in that 
    case. If the value in S is reduced already, nothing is done and 0 is 
    returned. Yes, this is ugly. */
@@ -766,10 +767,10 @@ mpmod_init_MODMULN (mpmod_t modulus, const mpz_t N)
   mpz_tdiv_r_2exp (modulus->temp2, modulus->orig_modulus, 
                    GMP_NUMB_BITS);
   mpz_invert (modulus->temp2, modulus->temp2, modulus->temp1);
-    /* Now temp2 = 1/n (mod 2^bits_per_limb) */
+    /* Now temp2 = 1/n (mod 2^GMP_NUMB_BITS) */
   mpz_sub (modulus->temp2, modulus->temp1, modulus->temp2);
   modulus->Nprim = mpz_getlimbn (modulus->temp2, 0);
-    /* Now Nprim = -1/n (mod 2^bits_per_limb) */
+    /* Now Nprim = -1/n (mod 2^GMP_NUMB_BITS) */
 
   MPZ_INIT (modulus->R2);
   mpz_set_ui (modulus->temp1, 1UL);
