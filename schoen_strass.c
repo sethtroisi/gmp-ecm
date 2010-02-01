@@ -55,7 +55,7 @@ unsigned int Fermat;
 
 __GMP_DECLSPEC mp_limb_t __gmpn_mod_34lsub1 (mp_limb_t*, mp_size_t);
 
-/* compute remainder modulo 2^(mp_bits_per_limb*3/4)-1 */
+/* compute remainder modulo 2^(GMP_LIMB_BITS*3/4)-1 */
 #ifndef HAVE___GMPN_MOD_34LSUB1
 mp_limb_t
 __gmpn_mod_34lsub1 (mp_limb_t *src, mp_size_t size)
@@ -63,7 +63,7 @@ __gmpn_mod_34lsub1 (mp_limb_t *src, mp_size_t size)
   mp_ptr tp;
   mp_limb_t r, d;
 
-  ASSERT(BITS_PER_MP_LIMB % 4 == 0);
+  ASSERT(GMP_LIMB_BITS % 4 == 0);
   tp = malloc (size * sizeof (mp_limb_t));
   if (tp == NULL)
     {
@@ -71,7 +71,7 @@ __gmpn_mod_34lsub1 (mp_limb_t *src, mp_size_t size)
       exit (1);
     }
   MPN_COPY (tp, src, size);
-  d = (mp_limb_t) 1 << (3 * (mp_bits_per_limb / 4)) - (mp_limb_t) 1;
+  d = (mp_limb_t) 1 << (3 * (GMP_LIMB_BITS / 4)) - (mp_limb_t) 1;
   mpn_divmod_1 (&r, tp, size, d);
   free (tp);
   return r;
@@ -149,7 +149,7 @@ F_mod_gt (mpz_t R, unsigned int n)
 static void 
 F_mulmod (mpz_t R, mpz_t S1, mpz_t S2, unsigned int n)
 {
-  int n2 = (n - 1) / __GMP_BITS_PER_MP_LIMB + 1; /* type of _mp_size is int */
+  int n2 = (n - 1) / GMP_NUMB_BITS + 1; /* type of _mp_size is int */
 
   F_mod_1 (S1, n);
   F_mod_1 (S2, n);

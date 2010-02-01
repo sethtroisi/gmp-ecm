@@ -297,8 +297,7 @@ memory_use (unsigned long dF, unsigned int sp_num, unsigned int Ftreelvl,
       wrap-case in PrerevertDivision respectively */
   mem += (24.0 + 1.0) * (double) (sp_num ? MIN(MUL_NTT_THRESHOLD, dF) : dF);
 #endif
-  mem *= (double) (mpz_size (modulus->orig_modulus))
-                  * (mp_bits_per_limb / 8.0)
+  mem *= (double) (mpz_size (modulus->orig_modulus)) * sizeof (mp_limb_t)
          + sizeof (mpz_t);
   
   if (sp_num)
@@ -395,7 +394,7 @@ stage2 (mpz_t f, void *X, mpmod_t modulus, unsigned long dF, unsigned long k,
 
   MEMORY_TAG;
   F = init_list2 (dF + 1, mpz_sizeinbase (modulus->orig_modulus, 2) + 
-                          3 * mp_bits_per_limb);
+                          3 * GMP_NUMB_BITS);
   MEMORY_UNTAG;
   if (F == NULL)
     {
@@ -408,7 +407,7 @@ stage2 (mpz_t f, void *X, mpmod_t modulus, unsigned long dF, unsigned long k,
     sizeT += dF;
   MEMORY_TAG;
   T = init_list2 (sizeT, 2 * mpz_sizeinbase (modulus->orig_modulus, 2) + 
-                         3 * mp_bits_per_limb);
+                         3 * GMP_NUMB_BITS);
   MEMORY_UNTAG;
   if (T == NULL)
     {
@@ -460,7 +459,7 @@ stage2 (mpz_t f, void *X, mpmod_t modulus, unsigned long dF, unsigned long k,
         {
           MEMORY_TAG;
           Tree[i] = init_list2 (dF, mpz_sizeinbase (modulus->orig_modulus, 2) 
-                                    + mp_bits_per_limb);
+                                    + GMP_NUMB_BITS);
           MEMORY_UNTAG;
           if (Tree[i] == NULL)
             {
@@ -580,7 +579,7 @@ stage2 (mpz_t f, void *X, mpmod_t modulus, unsigned long dF, unsigned long k,
          but we need one more for TUpTree */
       MEMORY_TAG;
       invF = init_list2 (dF + 1, mpz_sizeinbase (modulus->orig_modulus, 2) + 
-                                 2 * mp_bits_per_limb);
+                                 2 * GMP_NUMB_BITS);
       MEMORY_UNTAG;
       if (invF == NULL)
 	{
@@ -622,7 +621,7 @@ stage2 (mpz_t f, void *X, mpmod_t modulus, unsigned long dF, unsigned long k,
      where i0*d <= B2min < (i0+1)*d */
   MEMORY_TAG;
   G = init_list2 (dF, mpz_sizeinbase (modulus->orig_modulus, 2) + 
-                      3 * mp_bits_per_limb);
+                      3 * GMP_NUMB_BITS);
   MEMORY_UNTAG;
   if (G == NULL)
     {

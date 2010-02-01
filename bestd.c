@@ -151,7 +151,7 @@ od:
         
         if (use_ntt)
           sp_num = (2 * mpz_sizeinbase (modulus->orig_modulus, 2) + lg_dF) / 
-                 __GMP_BITS_PER_MP_LIMB + 4;
+                 SP_NUMB_BITS + 4;
         
 	memory = memory_use (dF, sp_num, (treefile) ? 0 : lg_dF, modulus);
         outputf (OUTPUT_DEVVERBOSE, 
