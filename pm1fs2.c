@@ -1144,25 +1144,48 @@ V (mpres_t R, const mpres_t S, const long k, mpmod_t modulus)
   mpres_clear (Vi1, modulus);
 }
 
+
+/* Set R[i] = V_{i+k}(Q) * F[i] or U_{i+k}(Q) * F[i], for 0 <= i <= deg
+   We compute V_{i+k+1}(Q) by V_{i+k}(Q)*V_1(Q) - V_{i+k-1}(Q), 
+   same for U_{i+k+1}.
+   The values of V_1(Q), V_{k-1}(Q) and V_k(Q) and V_k(Q) are in 
+   V1, Vk_1 and Vk, resp. 
+   The values of Vk_1 and Vk are clobbered. */
+static void
+scale_by_chebyshev (listz_t R, const listz_t F, const unsigned long deg,
+                    mpmod_t modulus, const mpres_t V1, mpres_t Vk_1, 
+                    mpres_t Vk)
+{
+  mpres_t Vt;
+  unsigned long i;
+
+  mpres_init (Vt, modulus);
+
+  for (i = 0; i <= deg; i++)
+    {
+      mpres_mul_z_to_z (R[i], Vk, F[i], modulus);
+      mpres_mul (Vt, Vk, V1, modulus);
+      mpres_sub (Vt, Vt, Vk_1, modulus);
+      mpres_set (Vk_1, Vk, modulus); /* Could be a swap */
+      mpres_set (Vk, Vt, modulus); /* Could be a swap */
+    }
+
+  mpres_clear (Vt, modulus);
+}
+
+
 /* For a given reciprocal polynomial 
    F(x) = f_0 + sum_{i=1}^{deg} f_i V_i(x+1/x),
    compute F(\gamma x)F(\gamma^{-1} x), with Q = \gamma + 1 / \gamma
-
-   Hence, the result is 
-   f_i * (gamma*x)^deg * f_i * (1/gamma*x)^deg + ... 
-   + f_i * (gamma*x)^-deg * f_i * (1/gamma*x)^-deg
-   = f_i * gamma^deg * x^deg * f_i * 1/gamma^deg * x^deg + ...
-     f_i * gamma^-deg * x^-deg * f_i * 1/gamma^-deg * x^-deg
-   = f_i * x^deg * f_i * x^deg + ... + f_i * x^-deg * f_i * x^-deg
-   = f_i^2 * x^(2*deg) + ... + f_i^2 * x^(-2*deg)
 
    If NTT is used, needs 4 * deg + 3 entries in tmp.
    If no NTT is used, needs 4 * deg + 2 + (memory use of list_sqr_reciprocal)
 */
 
 static void
-list_scale_V (listz_t R, listz_t F, mpres_t Q, unsigned long deg,
-	      mpmod_t modulus, listz_t tmp, const unsigned long tmplen,
+list_scale_V (listz_t R, const listz_t F, const mpres_t Q, 
+              const unsigned long deg, mpmod_t modulus, listz_t tmp, 
+              const unsigned long tmplen, 
 	      mpzspv_t dct, const mpzspm_t ntt_context)
 {
   mpres_t Vi_1, Vi, Vt;
@@ -1199,24 +1222,14 @@ list_scale_V (listz_t R, listz_t F, mpres_t Q, unsigned long deg,
   mpres_init (Vi_1, modulus);
   mpres_init (Vi, modulus);
   mpres_init (Vt, modulus);
-  mpres_set_ui (Vi_1, 1UL, modulus); /* Vi_1 = V_0(Q) / 2 = 1*/
-  mpres_div_2exp (Vi, Q, 1, modulus); /* Vi = V_1(Q) = Q/2 */
 
-  mpz_mod (G[0], F[0], modulus->orig_modulus); /* G_0 = S_0 * V_0(Q)/2 = S_0 * 1 */
-  outputf (OUTPUT_TRACE, "list_scale_V: G_%lu = %Zd\n", 0, G[0]);
-  for (i = 1; i <= deg; i++)
-    {
-      /* Here, Vi = V_i(Q)/2, Vi_1 = V_{i-1}(Q)/2. */
-      mpres_mul_z_to_z (G[i], Vi, F[i], modulus); /* G[i] = S_i * V_i(Q)/2 */
-      outputf (OUTPUT_TRACE, 
-	       "list_scale_V: G_%lu = F_%lu * V_%lu(Q)/2 = %Zd * %Zd = %Zd\n", 
-	       i, i, i, F[i], Vi, G[i]);
-      
-      mpres_mul (Vt, Vi, Q, modulus);
-      mpres_sub (Vt, Vt, Vi_1, modulus);
-      mpres_set (Vi_1, Vi, modulus); /* Could be a swap */
-      mpres_set (Vi, Vt, modulus); /* Could be a swap */
-    }
+  /* Init computation of V_i(Q)/2 for i = 0, ..., deg */
+  mpres_div_2exp (Vi_1, Q, 1, modulus); /* V_{-1}(Q)/2 = V_1(Q)/2 = Q/2 */
+  mpres_set_ui (Vi, 1UL, modulus); /* Vi = V_0(Q) / 2 = 1*/
+  
+  /* Compute G[i] = V_i(Q) * F[i] for i = 0, ..., deg */
+  /* TODO: parallelize this */
+  scale_by_chebyshev (G, F, deg, modulus, Q, Vi_1, Vi);
 
   list_output_poly (G, deg + 1, 0, 1, "/* list_scale_V */ G(x) = ", "\n", 
 		    OUTPUT_TRACE);
@@ -1247,7 +1260,7 @@ list_scale_V (listz_t R, listz_t F, mpres_t Q, unsigned long deg,
   list_output_poly (G, 2 * deg + 1, 0, 1, "/* list_scale_V */ G(x)^2 == ", 
 		    "\n", OUTPUT_TRACE);
 
-  /* Generate U_1(Q)/2 ... U_deg(Q)/2, multpliy by S_i to form H. Convert H 
+  /* Generate U_1(Q)/2 ... U_deg(Q)/2, multpliy by F_i to form H. Convert H 
      to standard basis. Square the symmetic H polynomial. Multiply H^2 by
      (X + 1/X)^2 = X^2 + 2 + 1/X^2. Multiply that by (Q^2 - 4). */
 
@@ -1257,27 +1270,11 @@ list_scale_V (listz_t R, listz_t F, mpres_t Q, unsigned long deg,
   mpres_set_ui (Vi, 1UL, modulus);
   mpres_div_2exp (Vi, Vi, 1, modulus); /* V_i = U_1(Q) / 2 = 1/2 */
 
-  /* We later want to convert H in U_i basis to monomial basis. To do so,
-     we'll need one list element below H_U[0], so H_U gets stored shifted
-     up by one index */
-
   /* H[i-1] = h_i =  F[i] * U_i(Q) / 2, for 1 <= i <= deg. h_0 is undefined
      and has no storage allocated */
-  for (i = 1; i <= deg; i++)
-    {
-      /* Here, Vi = U_i(Q) / 2, Vi_1 = U_{i-1}(Q) / 2. */
-      /* h_i = S_i * U_i(Q)/2 */
-      mpres_mul_z_to_z (H[i - 1], Vi, F[i], modulus);
-      outputf (OUTPUT_TRACE, 
-	       "list_scale_V: H_%lu (in U_i basis) = F_%lu * U_%lu(Q)/2 = %Zd * %Zd = %Zd\n", 
-	       i, i, i, F[i], Vi, H[i - 1]);
-      
-      mpres_mul (Vt, Vi, Q, modulus);
-      mpres_sub (Vt, Vt, Vi_1, modulus);
-      mpres_set (Vi_1, Vi, modulus); /* Could be a swap */
-      mpres_set (Vi, Vt, modulus); /* Could be a swap */
-    }
-
+  /* TODO: parallelize this */
+  scale_by_chebyshev (H, F + 1, deg - 1, modulus, Q, Vi_1, Vi);
+  
   /* Convert H to standard basis */
   /* We can do it in-place with H - 1 = H_U. */
 
@@ -1329,12 +1326,27 @@ list_scale_V (listz_t R, listz_t F, mpres_t Q, unsigned long deg,
   /* Multiply by Q^2-4 */
   mpres_mul (Vt, Q, Q, modulus);
   mpres_sub_ui (Vt, Vt, 4, modulus);
-  for (i = 0; i <= 2 * deg - 2; i++)
-    mpres_mul_z_to_z (H[i], Vt, H[i], modulus);
+#ifdef _OPENMP
+#pragma omp parallel if (deg > 1000)
+  {
+    mpmod_t modulus_local;
+    long i; /* OpenMP insists on signed loop iteration var :( */
+    mpmod_copy (modulus_local, modulus);
+#pragma omp for
+#else
+    mpmod_t modulus_local = modulus;
+#endif
+    for (i = 0; (unsigned long) i <= 2 * deg - 2; i++)
+      mpres_mul_z_to_z (H[i], Vt, H[i], modulus_local);
+#ifdef _OPENMP
+    mpmod_clear (modulus_local);
+  }
+#endif
   list_output_poly (H, 2 * deg - 1, 0, 1, "/* list_scale_V */ "
 		    "H(x)^2*(Q^2-4) == ", "\n", OUTPUT_TRACE);
 
-  /* Multiply by (X - 1/X)^2 = X^2 - 2 + 1/X^2 and subtract from G*/
+
+  /* Multiply by (X - 1/X)^2 = X^2 - 2 + 1/X^2 and subtract from G */
   ASSERT (newtmplen > 0UL);
   if (deg == 1)
     {
@@ -1542,9 +1554,8 @@ poly_from_sets_V (listz_t F, const mpres_t Q, sets_long_t *sets,
   
   outputf (OUTPUT_DEVVERBOSE, " (processing set of size 2");
 
-  V (Qt, Q, set->elem[0], modulus); /* First set in sets is {-k, k}, 
-                                        Qt = V_2k(Q) */
-  V (Qt, Qt, 2UL, modulus);
+  V (Qt, Q, set->elem[0], modulus); /* First set in sets is {-k, k} */ 
+  V (Qt, Qt, 2UL, modulus);         /* Qt = V_2k(Q) */
   
   mpres_neg (Qt, Qt, modulus);
   mpres_get_z (F[0], Qt, modulus);
@@ -1579,18 +1590,19 @@ poly_from_sets_V (listz_t F, const mpres_t Q, sets_long_t *sets,
 	  list_scale_V (F, F, Qt, deg, modulus, tmp, tmplen, dct, 
 	                ntt_context);
 	  deg *= 2UL;
-	  ASSERT (mpz_cmp_ui (F[deg], 1UL) == 0); /* Check it's monic */
+	  ASSERT_ALWAYS (mpz_cmp_ui (F[deg], 1UL) == 0); /* Check it's monic */
 	}
       else
 	{
 	  ASSERT_ALWAYS (c % 2UL == 1UL);
+	  ASSERT_ALWAYS (set->elem[(c - 1UL) / 2UL] == 0UL);
 	  /* Generate the F(Q^{2k_i} * X)*F(Q^{-2k_i} * X) polynomials.
 	     Each is symmetric of degree 2*deg, so each has deg+1 coeffients
 	     in standard basis. */
 	  for (i = 0UL; i < (c - 1UL) / 2UL; i++)
 	    {
               /* Check it's symmetric */
-	      ASSERT (set->elem[i] == -set->elem[c - 1L - i]);
+	      ASSERT_ALWAYS (set->elem[i] == -set->elem[c - 1L - i]);
 	      V (Qt, Q, set->elem[i], modulus);
 	      V (Qt, Qt, 2UL, modulus);
 	      ASSERT (mpz_cmp_ui (F[deg], 1UL) == 0); /* Check it's monic */
@@ -2354,7 +2366,7 @@ ntt_print_vec (const char *msg, const spv_t spv, const spv_size_t l)
    R[i] will contain the 2n-1 coefficients r_i, 0 <= i <= 2*n-2, where 
    R(x) = S(x)^2 = r_0 + \sum_{i=1}^{2n-2} r_i (x^i + x^{-1}).
    dft must have power of 2 length len >= 2n.
-   The NTT primes must be == 1 (mod 4*len).
+   The NTT primes must be == 1 (mod 3*len).
 */
 
 #undef TRACE_ntt_sqr_reciprocal
