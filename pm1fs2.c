@@ -135,6 +135,11 @@ const unsigned long phiPfactors[] = {2UL, 3UL, 5UL, 7UL, 11UL, 13UL};
    U(i,X) = { if (i==0, return(0)); if (i==1, return(1)); if(i%2 == 0, return (U (i/2, X) * V(i/2,X))); return (V ((i+1)/2, X)  *U( (i-1)/2, X) + 1)}
 */
 
+#ifndef _OPENMP
+static int omp_get_num_threads () {return 1;}
+static int omp_get_thread_num () {return 0;}
+#endif
+
 static void 
 ntt_sqr_reciprocal (mpzv_t, const mpzv_t, mpzspv_t, const spv_size_t, 
 		    const mpzspm_t);
@@ -1076,13 +1081,17 @@ list_mul_blocks (listz_t R, const listz_t A, int monicA, const listz_t B,
 }
 
 
-/* compute V_k(S), where V(x) is defined by V_k(X + 1/X) = X^k + 1/X^k */
+/* 
+  Computes V_k(S), where the Chebyshev polynomial V_k(X) is defined by 
+  V_k(X + 1/X) = X^k + 1/X^k
+*/
 
 static void
 V (mpres_t R, const mpres_t S, const long k, mpmod_t modulus)
 {
-  mpres_t Vi, Vi1;
-  unsigned long i, j, uk;
+  mpres_t V0, Vi, Vi1;
+  unsigned long j, uk;
+  int po2;
 
   if (k == 0L)
     {
@@ -1098,61 +1107,229 @@ V (mpres_t R, const mpres_t S, const long k, mpmod_t modulus)
       return;
     }
 
+  for (po2 = 0; uk % 2UL == 0UL; uk >>= 1, po2++);
+
+  mpres_init (V0, modulus);
+  mpres_set_ui (V0, 2UL, modulus); /* V0 = V_0(S) = 2 */
+
+  if (uk == 1UL)
+    {
+      mpres_set (R, S, modulus);
+      while (po2-- > 0)
+        {
+          mpres_mul (R, R, R, modulus);
+          mpres_sub (R, R, V0, modulus);
+        }
+      mpres_clear (V0, modulus);
+      return;
+    }
+
+  if (0)
+    {
+      mpz_t tz;
+      mpz_init (tz);
+      mpres_get_z (tz, S, modulus);
+      gmp_printf ("Chebyshev_V(%ld, Mod(%Zd,N)) == ", k, tz);
+      mpz_clear (tz);
+    }
+
+  for (j = 1UL; j <= uk / 2UL; j <<= 1);
+
   mpres_init (Vi, modulus);
   mpres_init (Vi1, modulus);
 
-  for (j = 1UL; j <= uk / 2UL; j <<= 1);
-  ASSERT ((uk & j) > 0UL);
-
-  j >>= 1;
-  i = 1UL;
+  /* i = 1. Vi = V_i(S), Vi1 = V_{i+1}(S) */
   mpres_set (Vi, S, modulus);
   mpres_mul (Vi1, S, S, modulus);
-  mpres_sub_ui (Vi1, Vi1, 2, modulus);
+  mpres_sub (Vi1, Vi1, V0, modulus);
+  j >>= 1;
 
-  while (j)
+  while (j > 1)
     {
       if ((uk & j) != 0UL)
 	{
 	  /* i' = 2i + 1.
 	     V_{i'} = V_{2i + 1} = V_{i+1 + i} = V_{i+1} * V_{i} - V_1
-	     V_{i'+1} = V_{2i + 2} = {V_{i+1}}^2 - 2. */
+	     V_{i'+1} = V_{2i + 2} = {V_{i+1}}^2 - V_0. */
 	  mpres_mul (Vi, Vi, Vi1, modulus);
 	  mpres_sub (Vi, Vi, S, modulus);
 	  mpres_mul (Vi1, Vi1, Vi1, modulus);
-	  mpres_sub_ui (Vi1, Vi1, 2, modulus);
-	  i = 2UL*i + 1UL;
+	  mpres_sub (Vi1, Vi1, V0, modulus);
 	}
       else
 	{
 	  /* i' = 2i. 
-	     V_{i'} = V_{2i} = {V_i}^2 - 2.
+	     V_{i'} = V_{2i} = {V_i}^2 - V0.
 	     V_{i'+1} = V_{2i + 1} = V_{i+1 + i} = V_{i+1} * V_{i} - V_1 */
 	  mpres_mul (Vi1, Vi, Vi1, modulus);
 	  mpres_sub (Vi1, Vi1, S, modulus);
+
 	  mpres_mul (Vi, Vi, Vi, modulus);
-	  mpres_sub_ui (Vi, Vi, 2, modulus);
-	  i = 2UL*i;
+	  mpres_sub (Vi, Vi, V0, modulus);
 	}
       j >>= 1;
     }
 
-  ASSERT (i == uk);
+  /* Least significant bit of uk is always 1 */
+  mpres_mul (Vi, Vi, Vi1, modulus);
+  mpres_sub (Vi, Vi, S, modulus);
+
+  while (po2-- > 0)
+    {
+      mpres_mul (Vi, Vi, Vi, modulus);
+      mpres_sub (Vi, Vi, V0, modulus);
+    }
+
   mpres_set (R, Vi, modulus);
 
   mpres_clear (Vi, modulus);
   mpres_clear (Vi1, modulus);
+  mpres_clear (V0, modulus);
+
+  if (0)
+    {
+      mpz_t tz;
+      mpz_init (tz);
+      mpres_get_z (tz, R, modulus);
+      gmp_printf ("%Zd\n", tz);
+      mpz_clear (tz);
+    }
+}
+
+/* 
+  Computes U_k(S), where the Chebyshev polynomial U_k(X) is defined by 
+  U_k(X + 1/X) = (X^k - 1/X^k) / (X - 1/X)
+  If R1 != NULL, stores U_{k+1}(S) there
+*/
+
+static void
+U (mpres_t R, mpres_t R1, const mpres_t S, const long k, mpmod_t modulus)
+{
+  mpres_t V0, Vi, Vi1, Ui, Ui1, t;
+  unsigned long j, uk;
+
+  if (k == 0L)
+    {
+      mpres_set_ui (R, 0UL, modulus); /* U_0 = 0 */
+      if (R1 != NULL)
+	mpres_set_ui (R1, 1UL, modulus); /* U_1 = 1 */
+      return;
+    }
+
+  uk = labs (k);
+
+  if (uk == 1UL)
+    {
+      mpres_set_ui (R, 1UL, modulus);
+      if (k == -1)
+	mpres_neg (R, R, modulus);
+      
+      if (R1 != NULL)
+	{
+	  if (k == -1)
+	    mpres_set_ui (R1, 0UL, modulus);
+	  else
+	    mpres_set (R1, S, modulus); /* U_2(S) = S */
+	}
+
+      return;
+    }
+
+  if (0)
+    {
+      mpz_t tz;
+      mpz_init (tz);
+      mpres_get_z (tz, S, modulus);
+      gmp_printf ("Chebyshev_U(%ld, Mod(%Zd,N)) == ", k, tz);
+      mpz_clear (tz);
+    }
+
+  mpres_init (V0, modulus);
+  mpres_init (Vi, modulus);
+  mpres_init (Vi1, modulus);
+  mpres_init (Ui, modulus);
+  mpres_init (Ui1, modulus);
+  mpres_init (t, modulus);
+
+  for (j = 1UL; j <= uk / 2UL; j <<= 1);
+
+  mpres_set_ui (Ui, 1UL, modulus);   /* Ui = U_1(S) = 1 */
+  mpres_set (Ui1, S, modulus);       /* Ui1 = U_2(S) = S */
+  mpres_add (V0, Ui, Ui, modulus);   /* V0 = V_0(S) = 2 */
+  mpres_set (Vi, S, modulus);        /* Vi = V_1(S) = S */
+  mpres_mul (Vi1, Vi, Vi, modulus);
+  mpres_sub (Vi1, Vi1, V0, modulus); /* Vi1 = V_2(S) = S^2 - 2 */
+  j >>= 1; /* i = 1 */
+
+  while (j != 0)
+    {
+      if ((uk & j) == 0UL)
+	{
+	  mpres_mul (Vi1, Vi1, Vi, modulus);
+	  mpres_sub (Vi1, Vi1, S, modulus); /* V_{2i+1} = V_{i+1} V_i - V_1 */
+	  /* U_{2i+1} = (U_{i+1} + U_i) (U_{i+1} - U_i) */
+	  mpres_sub (t, Ui1, Ui, modulus);
+	  mpres_add (Ui1, Ui1, Ui, modulus);
+	  mpres_mul (Ui1, Ui1, t, modulus); 
+	  mpres_mul (Ui, Ui, Vi, modulus); /* U_{2n} = U_n V_n */
+	  mpres_mul (Vi, Vi, Vi, modulus);
+	  mpres_sub (Vi, Vi, V0, modulus); /* V_{2n} = V_n^2 - 2 */
+	}
+      else
+	{
+	  /* U_{2i+1} = (U_{i+1} + U_i) (U_{i+1} - U_i) */
+	  mpres_sub (t, Ui1, Ui, modulus);
+	  mpres_add (Ui, Ui, Ui1, modulus);
+	  mpres_mul (Ui, Ui, t, modulus);
+	  mpres_mul (Ui1, Ui1, Vi1, modulus); /* U_{2n+2} = U_{n+1} V_{n+1} */
+	  mpres_mul (Vi, Vi, Vi1, modulus);
+	  mpres_sub (Vi, Vi, S, modulus); /* V_{2i+1} = V_{i+1} V_i - V_1 */
+	  mpres_mul (Vi1, Vi1, Vi1, modulus);
+	  mpres_sub (Vi1, Vi1, V0, modulus); /* V_{2n+2} = V_{n+1}^2 - 2 */
+	}
+      j >>= 1;
+    }
+
+  if (k > 0)
+    mpres_set (R, Ui, modulus);
+  else
+    mpres_neg (R, Ui, modulus);
+
+  if (R1 != NULL)
+    {
+      /* Here k != -1,0,1, so k+1 is negative iff k is */
+      if (k > 0)
+	mpres_set (R1, Ui1, modulus);
+      else
+	mpres_neg (R1, Ui1, modulus);
+    }
+
+  mpres_clear (V0, modulus);
+  mpres_clear (Vi, modulus);
+  mpres_clear (Vi1, modulus);
+  mpres_clear (Ui, modulus);
+  mpres_clear (Ui1, modulus);
+  mpres_clear (t, modulus);
+
+  if (0)
+    {
+      mpz_t tz;
+      mpz_init (tz);
+      mpres_get_z (tz, R, modulus);
+      gmp_printf ("%Zd\n", tz);
+      mpz_clear (tz);
+    }
 }
 
 
-/* Set R[i] = V_{i+k}(Q) * F[i] or U_{i+k}(Q) * F[i], for 0 <= i <= deg
-   We compute V_{i+k+1}(Q) by V_{i+k}(Q)*V_1(Q) - V_{i+k-1}(Q), 
-   same for U_{i+k+1}.
+/* Set R[i] = V_{i+k}(Q) * F[i] or U_{i+k}(Q) * F[i], for 0 <= i < len
+   We compute V_{i+k+1}(Q) by V_{i+k}(Q)*V_1(Q) - V_{i+k-1}(Q).
+   For U, we compute U_{i+k+1}(Q) by U_{i+k}(Q)*V_1(Q) - U_{i+k-1}(Q).
    The values of V_1(Q), V_{k-1}(Q) and V_k(Q) and V_k(Q) are in 
    V1, Vk_1 and Vk, resp. 
    The values of Vk_1 and Vk are clobbered. */
 static void
-scale_by_chebyshev (listz_t R, const listz_t F, const unsigned long deg,
+scale_by_chebyshev (listz_t R, const listz_t F, const unsigned long len,
                     mpmod_t modulus, const mpres_t V1, mpres_t Vk_1, 
                     mpres_t Vk)
 {
@@ -1161,7 +1338,7 @@ scale_by_chebyshev (listz_t R, const listz_t F, const unsigned long deg,
 
   mpres_init (Vt, modulus);
 
-  for (i = 0; i <= deg; i++)
+  for (i = 0; i < len; i++)
     {
       mpres_mul_z_to_z (R[i], Vk, F[i], modulus);
       mpres_mul (Vt, Vk, V1, modulus);
@@ -1188,7 +1365,7 @@ list_scale_V (listz_t R, const listz_t F, const mpres_t Q,
               const unsigned long tmplen, 
 	      mpzspv_t dct, const mpzspm_t ntt_context)
 {
-  mpres_t Vi_1, Vi, Vt;
+  mpres_t Vt;
   unsigned long i;
   const listz_t G = tmp, H = tmp + 2 * deg + 1, newtmp = tmp + 4 * deg + 2;
   const unsigned long newtmplen = tmplen - 4 * deg - 2;
@@ -1219,17 +1396,42 @@ list_scale_V (listz_t R, const listz_t F, const mpres_t Q,
   list_output_poly (F, deg + 1, 0, 1, "/* list_scale_V */ F(x) = ", "\n", 
 		    OUTPUT_TRACE);
 
-  mpres_init (Vi_1, modulus);
-  mpres_init (Vi, modulus);
-  mpres_init (Vt, modulus);
+  /* Compute G[i] = V_i(Q)/2 * F[i] for i = 0, ..., deg.
+     For i=0, V_0(Q) = 2, so G[0] = F[0], 
+     which leaves deg entries to process */
 
-  /* Init computation of V_i(Q)/2 for i = 0, ..., deg */
-  mpres_div_2exp (Vi_1, Q, 1, modulus); /* V_{-1}(Q)/2 = V_1(Q)/2 = Q/2 */
-  mpres_set_ui (Vi, 1UL, modulus); /* Vi = V_0(Q) / 2 = 1*/
-  
-  /* Compute G[i] = V_i(Q) * F[i] for i = 0, ..., deg */
-  /* TODO: parallelize this */
-  scale_by_chebyshev (G, F, deg, modulus, Q, Vi_1, Vi);
+  mpz_set (G[0], F[0]);
+
+#if defined(_OPENMP)
+#pragma omp parallel if (deg > 1000)
+#endif
+  {
+    const int nr_chunks = omp_get_num_threads();
+    const int thread_nr = omp_get_thread_num();
+    mpmod_t modulus_local;
+    unsigned long l, start_i;
+    mpres_t Vi, Vi_1;
+    
+    l = (deg - 1) / nr_chunks + 1; /* l = ceil (deg / nr_chunks) */
+    start_i = thread_nr * l + 1;
+    l = MIN(l, deg + 1 - start_i);
+
+    mpmod_copy (modulus_local, modulus);
+    mpres_init (Vi_1, modulus_local);
+    mpres_init (Vi, modulus_local);
+    
+    V (Vi, Q, start_i, modulus_local);
+    mpres_div_2exp (Vi, Vi, 1, modulus_local);
+    V (Vi_1, Q, start_i - 1UL, modulus_local);
+    mpres_div_2exp (Vi_1, Vi_1, 1, modulus_local);
+    scale_by_chebyshev (G + start_i, F + start_i, l, modulus_local, 
+                        Q, Vi_1, Vi);
+    
+    mpres_clear (Vi_1, modulus_local);
+    mpres_clear (Vi, modulus_local);
+    mpmod_clear (modulus_local);
+  }
+
 
   list_output_poly (G, deg + 1, 0, 1, "/* list_scale_V */ G(x) = ", "\n", 
 		    OUTPUT_TRACE);
@@ -1260,20 +1462,41 @@ list_scale_V (listz_t R, const listz_t F, const mpres_t Q,
   list_output_poly (G, 2 * deg + 1, 0, 1, "/* list_scale_V */ G(x)^2 == ", 
 		    "\n", OUTPUT_TRACE);
 
-  /* Generate U_1(Q)/2 ... U_deg(Q)/2, multpliy by F_i to form H. Convert H 
-     to standard basis. Square the symmetic H polynomial. Multiply H^2 by
-     (X + 1/X)^2 = X^2 + 2 + 1/X^2. Multiply that by (Q^2 - 4). */
+  /* Compute H[i-1] = U_i(Q)/2 * F[i] for i = 1, ..., deg */
 
-  /* We'll reuse the Vi and Vi_1 variables here, but now they hold the 
-     U_i(Q)/2 and U_{i-1}(Q)/2 values, respectively. */
-  mpres_set_ui (Vi_1, 0UL, modulus); /* Vi_1 = U_0(Q) / 2 = 0 */
-  mpres_set_ui (Vi, 1UL, modulus);
-  mpres_div_2exp (Vi, Vi, 1, modulus); /* V_i = U_1(Q) / 2 = 1/2 */
+#if defined(_OPENMP)
+#pragma omp parallel if (deg > 1000)
+#endif
+  {
+    const int nr_chunks = omp_get_num_threads();
+    const int thread_nr = omp_get_thread_num();
+    mpmod_t modulus_local;
+    unsigned long l, start_i;
+    mpres_t Ui, Ui_1;
+    
+    l = (deg - 1) / nr_chunks + 1; /* l = ceil(deg / nr_chunks) */
+    start_i = thread_nr * l + 1UL;
+    l = MIN(l, deg + 1 - start_i);
+    
+    mpmod_copy (modulus_local, modulus);
+    mpres_init (Ui_1, modulus_local);
+    mpres_init (Ui, modulus_local);
+    
+    U (Ui_1, Ui, Q, start_i - 1, modulus_local);
+    mpres_div_2exp (Ui, Ui, 1, modulus_local);
+    mpres_div_2exp (Ui_1, Ui_1, 1, modulus_local);
+    
+#pragma omp critical
+    {
+    scale_by_chebyshev (H - 1 + start_i, F + start_i, l, modulus_local, 
+                        Q, Ui_1, Ui);
+    }
+    
+    mpres_clear (Ui_1, modulus_local);
+    mpres_clear (Ui, modulus_local);
+    mpmod_clear (modulus_local);
+  }
 
-  /* H[i-1] = h_i =  F[i] * U_i(Q) / 2, for 1 <= i <= deg. h_0 is undefined
-     and has no storage allocated */
-  /* TODO: parallelize this */
-  scale_by_chebyshev (H, F + 1, deg - 1, modulus, Q, Vi_1, Vi);
   
   /* Convert H to standard basis */
   /* We can do it in-place with H - 1 = H_U. */
@@ -1324,24 +1547,28 @@ list_scale_V (listz_t R, const listz_t F, const mpres_t Q,
 		    OUTPUT_TRACE);
 
   /* Multiply by Q^2-4 */
+  mpres_init (Vt, modulus);
   mpres_mul (Vt, Q, Q, modulus);
   mpres_sub_ui (Vt, Vt, 4, modulus);
-#ifdef _OPENMP
+
+#if defined(_OPENMP)
 #pragma omp parallel if (deg > 1000)
   {
     mpmod_t modulus_local;
     long i; /* OpenMP insists on signed loop iteration var :( */
+    
     mpmod_copy (modulus_local, modulus);
+    
 #pragma omp for
-#else
-    mpmod_t modulus_local = modulus;
-#endif
     for (i = 0; (unsigned long) i <= 2 * deg - 2; i++)
       mpres_mul_z_to_z (H[i], Vt, H[i], modulus_local);
-#ifdef _OPENMP
     mpmod_clear (modulus_local);
   }
+#else
+  for (i = 0; (unsigned long) i <= 2 * deg - 2; i++)
+    mpres_mul_z_to_z (H[i], Vt, H[i], modulus);
 #endif
+
   list_output_poly (H, 2 * deg - 1, 0, 1, "/* list_scale_V */ "
 		    "H(x)^2*(Q^2-4) == ", "\n", OUTPUT_TRACE);
 
@@ -1429,8 +1656,6 @@ list_scale_V (listz_t R, const listz_t F, const mpres_t Q,
 #endif
 
   mpres_clear (Vt, modulus);
-  mpres_clear (Vi, modulus);
-  mpres_clear (Vi_1, modulus);
 }
 
 
