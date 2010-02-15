@@ -168,7 +168,7 @@ AC_HEADER_TIME
 dnl Checks for header files.
 AC_FUNC_ALLOCA
 AC_HEADER_STDC
-AC_CHECK_HEADERS([math.h limits.h malloc.h strings.h sys/time.h unistd.h io.h signal.h])
+AC_CHECK_HEADERS([math.h limits.h malloc.h strings.h sys/time.h unistd.h io.h signal.h fcntl.h])
 AC_CHECK_HEADERS([windows.h])
 AC_CHECK_HEADERS([ctype.h sys/types.h sys/resource.h])
 
@@ -183,7 +183,7 @@ AC_CHECK_FUNCS([isascii memset strchr strlen strncasecmp strstr], [], AC_MSG_ERR
 AC_CHECK_FUNCS([access unlink], [], AC_MSG_ERROR([required function missing]))
 AC_CHECK_FUNCS([isspace isdigit isxdigit], [], AC_MSG_ERROR([required function missing]))
 AC_CHECK_FUNCS([time ctime], [], AC_MSG_ERROR([required function missing]))
-AC_CHECK_FUNCS([setpriority nice gethostname gettimeofday getrusage memmove signal])
+AC_CHECK_FUNCS([setpriority nice gethostname gettimeofday getrusage memmove signal fcntl fileno])
 
 dnl FIXME: which win32 library contains these functions?
 dnl AC_CHECK_FUNCS([GetCurrentProcess GetProcessTimes])

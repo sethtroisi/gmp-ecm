@@ -406,7 +406,7 @@ main (int argc, char *argv[])
   char *savefilename = NULL, *resumefilename = NULL, *infilename = NULL;
   char *TreeFilename = NULL, *chkfilename = NULL;
   char rtime[256] = "", who[256] = "", comment[256] = "", program[256] = "";
-  FILE *savefile = NULL, *resumefile = NULL, *infile = NULL;
+  FILE *resumefile = NULL, *infile = NULL;
   mpz_t resume_lastN, resume_lastfac; /* When resuming residues from a file,
         store the last number processed and the factors found for this it */
   int resume_wasPrp = 0; /* 1 if resume_lastN/resume_lastfac is a PRP */
@@ -1038,6 +1038,7 @@ main (int argc, char *argv[])
   /* Open save file for writing, if saving is requested */
   if (savefilename != NULL)
     {
+      FILE *savefile;
       /* Are we not appending and does this file already exist ? */
       if (!saveappend && access (savefilename, F_OK) == 0)
         {
@@ -1045,12 +1046,14 @@ main (int argc, char *argv[])
                   savefilename);
           exit (EXIT_FAILURE);
         }
-      savefile = fopen (savefilename, saveappend ? "a" : "w");
+      /* Test if we can open the file for writing */
+      savefile = fopen (savefilename, "a");
       if (savefile == NULL)
         {
           fprintf (stderr, "Could not open file %s for writing\n", savefilename);
           exit (EXIT_FAILURE);
         }
+      fclose (savefile);
     }
 
   if (resumefile && (specific_sigma || mpz_sgn (A) || specific_x0))
@@ -1077,7 +1080,7 @@ main (int argc, char *argv[])
      we could save by exiting cleanly, but the waiting for the code to check
      for signals may delay program end unacceptably */
 
-  if (savefile)
+  if (savefilename != NULL)
     {
       signal (SIGINT, &signal_handler);
       signal (SIGTERM, &signal_handler);
@@ -1614,24 +1617,15 @@ OutputFactorStuff:;
 
       /* Write composite cofactors to savefile if requested */
       /* If no factor was found, we consider cofactor composite and write it */
-      if (savefile != NULL && !n.isPrp)
+      if (savefilename != NULL && !n.isPrp)
         {
           mpz_mod (x, params->x, n.n); /* Reduce stage 1 residue wrt new co-
                                           factor, in case a factor was found */
           /* We write the B1done value to the safe file. This requires that
              a correct B1done is returned by the factoring functions */
-          write_resumefile_line (savefile, method, params->B1done, sigma, 
+          write_resumefile_line (savefilename, method, params->B1done, sigma, 
                                  A, x, &n, orig_x0, comment);
         }
-
-      /* Clean up any temp file left over.  At this time, we assume that if 
-         the user wants to resume the run, then they used -save file.  The 
-         temp save was ONLY to help in case of a power outage (or similar) 
-         for a long run.  It would allow finishing the current candidate, 
-         keeping the existing work done.   Now, we assume we are done. */
-#if !defined (DEBUG_AUTO_SAVE)
-      kill_temp_resume_file ();
-#endif
 
       /* advance B1, if autoincrement value had been set during command line parsing */
       if (!breadthfirst && autoincrementB1 > 0.0)
@@ -1654,8 +1648,6 @@ OutputFactorStuff:;
 
   if (infilename)	/* infile might be stdin, don't fclose that! */
     fclose (infile);
-  if (savefile)
-    fclose (savefile);
   if (resumefile)
     {
       fclose (resumefile);
