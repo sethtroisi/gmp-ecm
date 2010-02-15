@@ -28,6 +28,9 @@
 #include <gmp.h>
 #include "ecm.h"
 #include "ecm-ecm.h"
+#ifdef HAVE_FCNTL_H
+#include <fcntl.h>
+#endif
 
 #if defined (_MSC_VER) || defined (__MINGW32__)
 /* needed to declare GetComputerName() for write_resumefile_line() */
@@ -121,8 +124,7 @@ read_resumefile_line (int *method, mpz_t x, mpcandi_t *n, mpz_t sigma, mpz_t A,
         break;
       
       have_method = have_x = have_z = have_n = have_sigma = have_a = 
-                    have_b1 = have_qx = 0;
-      have_checksum = 0;
+                    have_b1 = have_qx = have_checksum = 0;
 
       /* Set optional fields to zero */
       mpz_set_ui (sigma, 0);
@@ -355,100 +357,103 @@ error:
     return 0;
 }
 
-void 
-write_temp_resumefile (int method, double B1, mpz_t sigma, mpz_t A, mpz_t x, 
-                       mpz_t n, mpz_t orig_x0, int verbose)
-{
-  FILE *fd;
-  mpcandi_t data;
-  char *comment = "ECM_WIP_AutoSave";
 
-  /* Use a 2 file save method.  It saves to a second file name, and when that is "correctly"
-     done, it deletes the final file, then renames from the very temp name, to the real
-     incremental name */
-  fd = fopen ("gmpecm1.wip", "w");
-  if (!fd)
-    {
-      /* failure to create a temp file is not critical.  GMP-ECM ALWAYS failed to 
-         create this before this code was added ;) and it still ran just fine */
-      if (verbose >= 2)
-	fprintf (stderr, "error, can't open incremental save file gmpecm1.wip\n");
-      return;
-    }
-  
-  mpcandi_t_init (&data);
-  mpcandi_t_add_candidate (&data, n, NULL, 0);
-  write_resumefile_line (fd, method, B1, sigma, A, x, &data, orig_x0, comment);
-  mpcandi_t_free (&data);
-  fclose (fd);
-  remove ("gmp_ecm.wip");
-  rename ("gmpecm1.wip", "gmp_ecm.wip");
-}
-
-void kill_temp_resume_file (void)
-{
-  remove ("gmp_ecm.wip");
-}
-
-void 
-write_resumefile_line (FILE *fd, int method, double B1, mpz_t sigma, mpz_t A, 
+/* Append a residue to the savefile with name given in fn.
+   Returns 1 on success, 0 on error */
+int  
+write_resumefile_line (char *fn, int method, double B1, mpz_t sigma, mpz_t A, 
 	mpz_t x, mpcandi_t *n, mpz_t x0, const char *comment)
 {
+  FILE *file;
   mpz_t checksum;
   time_t t;
   char text[256];
   char *uname, mname[32];
+#if defined(HAVE_FCNTL) && defined(HAVE_FILENO)
+  struct flock lock;
+  int r, fd;
+#endif
 
 #ifdef DEBUG
-  if (fd == NULL)
+  if (fn == NULL)
     {
-      fprintf (stderr, "write_resumefile_line: fd == NULL\n");
+      fprintf (stderr, "write_resumefile_line: fn == NULL\n");
       exit (EXIT_FAILURE);
     }
 #endif
   
+  file = fopen (fn, "a");
+  if (file == NULL)
+    {
+      fprintf (stderr, "Could not open file %s for writing\n", fn);
+      return 0;
+    }
+  
+#if defined(HAVE_FCNTL) && defined(HAVE_FILENO)
+  /* Try to get a lock on the file so several processes can append to
+     the same file safely */
+  
+  /* Supposedly some implementations of fcntl() can get confused over
+     garbage in unused fields in a flock struct, so zero it */
+  memset (&lock, 0, sizeof (struct flock));
+  fd = fileno (file);
+  lock.l_type = F_WRLCK;
+  lock.l_whence = SEEK_SET;
+  lock.l_start = 0;
+  lock.l_len = 1; 
+  /* F_SETLKW: blocking exclusive lock request */
+  r = fcntl (fd, F_SETLKW, &lock);
+  if (r != 0)
+    {
+      fclose (file);
+      return 0;
+    }
+
+  fseek (file, 0, SEEK_END);
+#endif
+  
   mpz_init (checksum);
   mpz_set_d (checksum, B1);
-  fprintf (fd, "METHOD=");
+  fprintf (file, "METHOD=");
   if (method == ECM_PM1)
-    fprintf (fd, "P-1");
+    fprintf (file, "P-1");
   else if (method == ECM_PP1)
-    fprintf (fd, "P+1");
+    fprintf (file, "P+1");
   else 
     {
-      fprintf (fd, "ECM");
+      fprintf (file, "ECM");
       if (mpz_sgn (sigma) != 0)
         {
-          fprintf (fd, "; SIGMA=");
-          mpz_out_str (fd, 10, sigma);
+          fprintf (file, "; SIGMA=");
+          mpz_out_str (file, 10, sigma);
           mpz_mul_ui (checksum, checksum, mpz_fdiv_ui (sigma, CHKSUMMOD));
         }
       else if (mpz_sgn (A) != 0)
         {
-          fprintf (fd, "; A=");
-          mpz_out_str (fd, 10, A);
+          fprintf (file, "; A=");
+          mpz_out_str (file, 10, A);
           mpz_mul_ui (checksum, checksum, mpz_fdiv_ui (A, CHKSUMMOD));
         }
     }
   
-  fprintf (fd, "; B1=%.0f; N=", B1);
+  fprintf (file, "; B1=%.0f; N=", B1);
   if (n->cpExpr)
-    fprintf(fd, "%s", n->cpExpr);
+    fprintf(file, "%s", n->cpExpr);
   else
-    mpz_out_str (fd, 10, n->n);
-  fprintf (fd, "; X=0x");
-  mpz_out_str (fd, 16, x);
+    mpz_out_str (file, 10, n->n);
+  fprintf (file, "; X=0x");
+  mpz_out_str (file, 16, x);
   mpz_mul_ui (checksum, checksum, mpz_fdiv_ui (n->n, CHKSUMMOD));
   mpz_mul_ui (checksum, checksum, mpz_fdiv_ui (x, CHKSUMMOD));
-  fprintf (fd, "; CHECKSUM=%lu; PROGRAM=GMP-ECM %s;",
+  fprintf (file, "; CHECKSUM=%lu; PROGRAM=GMP-ECM %s;",
            mpz_fdiv_ui (checksum, CHKSUMMOD), VERSION);
   mpz_clear (checksum);
   
   if (mpz_sgn (x0) != 0)
     {
-      fprintf (fd, " X0=0x");
-      mpz_out_str (fd, 16, x0);
-      fprintf (fd, ";");
+      fprintf (file, " X0=0x");
+      mpz_out_str (file, 16, x0);
+      fprintf (file, ";");
     }
   
   /* Try to get the users and his machines name */
@@ -483,17 +488,27 @@ write_resumefile_line (FILE *fd, int method, double B1, mpz_t sigma, mpz_t A,
   
   if (uname[0] != 0 || mname[0] != 0)
     {
-      fprintf (fd, " WHO=%.233s@%.32s;", uname, mname);
+      fprintf (file, " WHO=%.233s@%.32s;", uname, mname);
     }
 
   if (comment[0] != 0)
-    fprintf (fd, " COMMENT=%.255s;", comment);
+    fprintf (file, " COMMENT=%.255s;", comment);
   
   t = time (NULL);
   strncpy (text, ctime (&t), 255);
   text[255] = 0;
   text[strlen (text) - 1] = 0; /* Remove newline */
-  fprintf (fd, " TIME=%s;", text);
-  fprintf (fd, "\n");
-  fflush (fd);
+  fprintf (file, " TIME=%s;", text);
+  fprintf (file, "\n");
+  fflush (file);
+#if defined(HAVE_FCNTL) && defined(HAVE_FILENO)
+  lock.l_type = F_UNLCK;
+  lock.l_whence = SEEK_SET;
+  lock.l_start = 0;
+  lock.l_len = 1;  
+  fcntl (fd, F_SETLKW, &lock); /* F_SETLKW: blocking lock request */
+#endif
+  fclose (file);
+
+  return 1;
 }
