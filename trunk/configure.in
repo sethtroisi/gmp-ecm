@@ -26,6 +26,68 @@ AC_ARG_WITH(gmp_lib,     [  --with-gmp-lib=DIR      GMP lib directory ], with_gm
 AC_ARG_WITH(gwnum,       [  --with-gwnum=DIR        GWNUM source directory ], with_gwnum=$withval)
 
 
+dnl On Darwin, the config.guess script of autoconf 2.63 uses "cc" to 
+dnl determine that the system is 64 bit capable, but "gcc" as selected
+dnl by the configue script defaults to 32 bit mode. Here we check if we
+dnl need to pass the -m64 flag to gcc to make 64 bit compilation work.
+
+dnl Use C language for test compilation
+AC_LANG(C)
+
+CHECK_FOR_M64=no
+if test "x$GCC" = "xyes"; then
+  case $host in
+    x86_64-apple-darwin*) CHECK_FOR_M64=yes;;
+    *) ;;
+  esac
+fi
+
+if test "x$CHECK_FOR_M64" = "xyes"; then
+AC_MSG_CHECKING(whether gcc needs -m64 for 64 bit mode)
+AC_PREPROC_IFELSE([AC_LANG_SOURCE([[
+#ifndef __LP64__
+#error
+#endif
+]])],
+  dnl __LP64__ is defined, don't need -m64
+  [AC_MSG_RESULT(no)], 
+  dnl Not defined, need -m64
+  [AC_MSG_RESULT(yes)
+   dnl There's a configure test that processes assembly which does not
+   dnl call the assembler via $CC, so setting CC="$CC -m64" does not work.
+   dnl Translating the asm REDC code does not include $CFLAGS, 
+   dnl but $CCASFLAGS instead.
+   CFLAGS="$CFLAGS -m64"
+   CCASFLAGS="$CCASFLAGS -m64"]
+)
+dnl Try again to check that it works now
+AC_PREPROC_IFELSE([AC_LANG_SOURCE([[
+#ifdef __LP64__
+#error
+#endif
+]])],
+  [],
+  [AC_MSG_ERROR([[GCC does not produce 64 bit code even with -m64]])]
+)
+fi
+
+
+dnl Checks for typedefs, structures, and compiler characteristics.
+
+dnl Check if compiler supports "const," if not define it to empty string
+AC_C_CONST
+
+dnl Check if compiler supports "inline," if not define it to 
+dnl __inline__ or __inline or the empty string
+AC_C_INLINE
+
+dnl Check if both time.h and sys/time.h can be included
+AC_HEADER_TIME
+
+dnl Define size_t to something useable if standard headers don't
+AC_TYPE_SIZE_T
+
+
 ############################
 # Parse --enable-* options #
 ############################
@@ -159,11 +221,6 @@ if test "x$with_gwnum" != "x"; then
 fi
 AM_CONDITIONAL(WITH_GWNUM, test "x$with_gwnum" != "x")
 
-dnl Checks for typedefs, structures, and compiler characteristics.
-AC_C_CONST
-AC_C_INLINE
-AC_TYPE_SIZE_T
-AC_HEADER_TIME
 
 dnl Checks for header files.
 AC_FUNC_ALLOCA
@@ -242,11 +299,13 @@ dnl Don't need -L flag since we give full path to libgmp.a
     GMPLDFLAGS=""
   fi
 fi
-LIBS="$LIBS $GMPLIB"
+AC_SUBST(GMPLIB)
 LDFLAGS="$LDFLAGS $GMPLDFLAGS"
 
 dnl Check for corresponding 'gmp.h' and libgmp.a
 AC_MSG_CHECKING(if gmp.h version and libgmp version are the same)
+LIBS_BACKUP="$LIBS"
+LIBS="$LIBS $GMPLIB"
 AC_RUN_IFELSE([AC_LANG_PROGRAM([[
 #include <stdio.h>
 #include <string.h>
@@ -266,6 +325,7 @@ return strcmp (buffer, gmp_version);
     AC_MSG_ERROR(['gmp.h' and 'libgmp' have different versions, you have to reinstall GMP properly.])],
     AC_MSG_RESULT([cross-compiling: cannot test])
 )
+LIBS="$LIBS_BACKUP"
 
 AC_CHECK_FUNCS([__gmpn_add_nc __gmpn_mod_34lsub1])
 
