@@ -307,6 +307,8 @@ rhoexact (double x)
 }
 
 
+#ifdef HAVE_LIBGSL
+
 /* The Buchstab omega(x) function, exact for x <= 4 where it can be 
    evaluated without numerical integration, and approximated by 
    exp(gamma) for larger x. */
@@ -331,6 +333,7 @@ Buchstab_omega (const double x)
   return 0.56145948356688516982;
 }
 
+#endif
 
 void 
 rhoinit (int parm_invh, int parm_tablemax)

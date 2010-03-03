@@ -901,6 +901,18 @@ mpres_realloc (mpres_t R, const mpmod_t modulus)
     MPZ_REALLOC (R, modulus->bits / GMP_NUMB_BITS);
 }
 
+
+/* Returns non-zero if the two residues are equal, 
+   and zero if they are not */
+
+int 
+mpres_equal (const mpres_t S1, const mpres_t S2, mpmod_t modulus)
+{
+  mpz_mod (modulus->temp1, S1, modulus->orig_modulus);
+  mpz_mod (modulus->temp2, S2, modulus->orig_modulus);
+  return (mpz_cmp (modulus->temp1, modulus->temp2) == 0);
+}
+
 /* R <- BASE^EXP mod modulus.
    Assume EXP >= 0.
  */
