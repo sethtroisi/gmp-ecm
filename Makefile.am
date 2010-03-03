@@ -19,9 +19,9 @@ if ENABLE_ASM_REDC
   CLEANFILES = bench_mulredc test_mulredc
   bench_mulredc_CPPFLAGS = $(MULREDCINCPATH)
   bench_mulredc_LDFLAGS = $(MULREDCLIBPATH)
-  bench_mulredc_LDADD = $(MULREDCLIBRARY) -lgmp
+  bench_mulredc_LDADD = $(MULREDCLIBRARY) $(GMPLIB)
   test_mulredc_CPPFLAGS = $(MULREDCINCPATH)
-  test_mulredc_LDADD = $(MULREDCLIBRARY) -lgmp
+  test_mulredc_LDADD = $(MULREDCLIBRARY) $(GMPLIB)
   test_mulredc_LDFLAGS = $(MULREDCLIBPATH)
 endif
 
@@ -40,7 +40,7 @@ bin_PROGRAMS = ecm
 noinst_PROGRAMS = tune ecmfactor ecmfactor2
 # Most binaries want to link libecm.la, and the ones who don't will
 # have their own _LDADD which overrides the default LDADD here
-LDADD = libecm.la
+LDADD = libecm.la $(GMPLIB)
 
 ecm_CPPFLAGS = -DOUTSIDE_LIBECM
 ecm_SOURCES = auxi.c b1_ainc.c candi.c eval.c random.c main.c trial.c \
@@ -52,11 +52,11 @@ tune_SOURCES = mpmod.c tune.c mul_lo.c listz.c auxlib.c ks-multiply.c \
 	       mul_fft.c auxarith.c
 tune_CPPFLAGS = -DTUNE $(MULREDCINCPATH)
 tune_LDFLAGS = $(MULREDCLIBPATH)
-tune_LDADD = $(MULREDCLIBRARY)
+tune_LDADD = $(MULREDCLIBRARY) $(GMPLIB)
 
 rho_SOURCES = rho.c
 rho_CPPFLAGS = -DTESTDRIVE
-rho_LDADD = -lprimegen
+rho_LDADD = -lprimegen $(GMPLIB)
 
 if MEMORY_DEBUG
   libecm_la_SOURCES += memory.c
