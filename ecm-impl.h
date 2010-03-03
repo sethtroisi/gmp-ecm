@@ -549,6 +549,8 @@ void mpmod_copy (mpmod_t, const mpmod_t);
 void mpmod_pausegw (const mpmod_t modulus);
 #define mpmod_contgw __ECM(mpmod_contgw)
 void mpmod_contgw (const mpmod_t modulus);
+#define mpres_equal __ECM(mpres_equal)
+int mpres_equal (const mpres_t, const mpres_t, mpmod_t);
 #define mpres_pow __ECM(mpres_pow)
 void mpres_pow (mpres_t, const mpres_t, const mpz_t, mpmod_t);
 #define mpres_ui_pow __ECM(mpres_ui_pow)
