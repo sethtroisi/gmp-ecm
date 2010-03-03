@@ -71,7 +71,7 @@ __gmpn_mod_34lsub1 (mp_limb_t *src, mp_size_t size)
       exit (1);
     }
   MPN_COPY (tp, src, size);
-  d = (mp_limb_t) 1 << (3 * (GMP_LIMB_BITS / 4)) - (mp_limb_t) 1;
+  d = ((mp_limb_t) 1 << (3 * (GMP_LIMB_BITS / 4))) - (mp_limb_t) 1;
   mpn_divmod_1 (&r, tp, size, d);
   free (tp);
   return r;
