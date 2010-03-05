@@ -6,7 +6,7 @@ Instructions to install GMP-ECM:
    Remark: GNU MP is already installed in most Linux distributions.
    However it is often an old version, moreover without processor-specific
    optimizations. If you care about efficiency, be sure to install the
-   latest version of GNU MP (5.0.0 as of January 2010), and to compile it
+   latest version of GNU MP (5.0.1 as of February 2010), and to compile it
    for your particular processor.
    Warning: make sure you have only one version of GMP installed on your
    system at a given time. Frequently, after compiling GMP from source
@@ -154,8 +154,8 @@ Step-by-step instructions, courtesy of Jes Hansen:
    Now you get an icon on the desktop where you can start the MinSys. Do
    this, because is creates your home folder. Then exit it again.
 
-4) Download the latest version of GMP (in January 2010 the latest
-   version is 5.0.0, this will be assumed for the rest of this document) 
+4) Download the latest version of GMP (in February 2010 the latest
+   version is 5.0.1, this will be assumed for the rest of this document) 
    in .tar.gz format from http://gmplib.org/ and place it in your 
    newly created home folder. The home folder is in C:\GNU\msys\home and 
    has the same name as your Windows login name.
@@ -167,8 +167,8 @@ Step-by-step instructions, courtesy of Jes Hansen:
    feel free to disconnect.
 
 6) Start the MinSys up again from the desktop and type 
-   tar -xvzf gmp-5.0.0.tar.gz
-   cd gmp-5.0.0
+   tar -xvzf gmp-5.0.1.tar.gz
+   cd gmp-5.0.1
    ./configure
    make install
    cd ~
@@ -190,7 +190,7 @@ In case of a problem, report it to us, with:
 
 - the versions of GMP-ECM and GMP used (first output line), for example:
   
-  GMP-ECM 6.3 [powered by GMP 5.0.0] [P+1]
+  GMP-ECM 6.3 [powered by GMP 5.0.1] [P+1]
 
 - the detailed input enabling us to reproduce the problem, for example:
 
