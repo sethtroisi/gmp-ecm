@@ -59,6 +59,29 @@ facceptstr (FILE *fd, char *s)
   return i;
 }
 
+/* Accepts "\n" or "\r\n" or "\r". 
+   Returns 1 if any of the three was read, 0 otherwise */
+
+static int 
+facceptnl (FILE *fd)
+{
+  int c, r = 0;
+
+  c = fgetc (fd);
+  if (c == '\r')
+    {
+      c = fgetc (fd);
+      r = 1;
+    }
+
+  if (c == '\n')
+    r = 1;
+  else if (c != EOF)
+    ungetc (c, fd);
+
+  return r;
+}
+
 /* Reads a string from fd until the character "delim" or newline is seen, or 
    "len" characters have been written to "s" (including terminating null), 
    or EOF is reached. The "delim" and newline characters are left on the 
@@ -108,7 +131,7 @@ read_resumefile_line (int *method, mpz_t x, mpcandi_t *n, mpz_t sigma, mpz_t A,
   while (!feof (fd))
     {
       /* Ignore empty lines */
-      if (facceptstr (fd, "\n"))
+      if (facceptnl (fd))
         {
           continue;
         }
@@ -116,7 +139,8 @@ read_resumefile_line (int *method, mpz_t x, mpcandi_t *n, mpz_t sigma, mpz_t A,
       /* Ignore lines beginning with '#'*/
       if (facceptstr (fd, "#"))
         {
-          while ((c = fgetc (fd)) != EOF && !IS_NEWLINE(c));
+          while (!facceptnl (fd) && !feof (fd))
+            c = fgetc (fd);
           continue;
         }
       
@@ -138,7 +162,7 @@ read_resumefile_line (int *method, mpz_t x, mpcandi_t *n, mpz_t sigma, mpz_t A,
       if (comment != NULL)
         comment[0] = 0;
 
-      while (!facceptstr (fd, "\n") && !feof (fd))
+      while (!facceptnl (fd) && !feof (fd))
         {
           freadstrn (fd, tag, '=', 16);
           
@@ -348,8 +372,7 @@ read_resumefile_line (int *method, mpz_t x, mpcandi_t *n, mpz_t sigma, mpz_t A,
       
 error:
       /* In case of error, read rest of line and try next line */
-      c = fgetc (fd);
-      while (c != EOF && !IS_NEWLINE(c))
+      while (!facceptnl (fd) && !feof (fd))
         c = fgetc (fd);
     }
     
