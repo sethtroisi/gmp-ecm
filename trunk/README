@@ -359,7 +359,13 @@ Probable prime cofactor (3*2^210+1)/1358437 has 58 digits
 These -save and -resume options are useful to save the current state of the 
 computation after step 1, or to exchange data with other software. It allows 
 to perform step 1 with GMP-ECM, and step 2 with another software (or 
-vice-versa).
+vice-versa). 
+Note: the residue from the end of stage 1 gets written to the file only 
+after stage 2, if stage 2 is performed in the same program run. This way, 
+if a factor is found, the save file entry will contain the new cofactor 
+(if composite) or will be omitted (if cofactor is a probable prime). For 
+periodic saving during stage 1 for crash recovery, use -chkpnt, 
+described below.
 
 Here is an example how to reuse some P-1 computation:
 
