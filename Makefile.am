@@ -105,10 +105,10 @@ check: ecm$(EXEEXT)
 ## (cf section "Man pages" in the automake manual)
 dist_man_MANS = ecm.1
 
-man_MANS =
+## If ./configure found xsltproc and docbook.xsl, add a rule for building
+## the manpage. If they were not found, this rule is omitted and make will
+## never try to rebuild the man page, which would result in an error anyway.
 if MAKE_MANPAGE
-  man_MANS += ecm.1
-endif
-
 ecm.1: ecm.xml
 	xsltproc -o ecm.1 $(XSLDIR)/manpages/docbook.xsl ecm.xml
+endif
