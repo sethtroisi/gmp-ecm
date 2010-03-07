@@ -94,8 +94,6 @@ Table of contents:
 - [from Jakub Pawlewicz <pan@mimuw.edu.pl>] add an option -stage1time t
   to tell the step 1 time, when done by another program. PZ: or better
   have it in resume file? (Target: 6.1. Command line option done)
-- add proper file locking for save files, so several processes can safely
-  write to the same file.
 
 3) documentation
 - add examples for typical use to README 
