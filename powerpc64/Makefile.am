@@ -14,7 +14,7 @@ noinst_HEADERS = mulredc.h
 # to go in the distribution - no need for having them in EXTRA_DIST
 libmulredc_la_SOURCES = $(MULREDC) redc.asm
 
-.asm.s:
-	$(M4) -I../ -DOPERATION_$* `test -f $< || echo '$(srcdir)/'`$< >$*.s
+#.asm.s:
+#	$(M4) -I../ -DOPERATION_$* `test -f $< || echo '$(srcdir)/'`$< >$*.s
 .asm.S:
 	$(M4) -I../ -DOPERATION_$* `test -f $< || echo '$(srcdir)/'`$< >$*.S
