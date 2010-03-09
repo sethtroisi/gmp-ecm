@@ -722,19 +722,26 @@ choose_S (mpz_t B2len)
     return -30; /* Dickson(30) */
 }
 
+#define DIGITS_START 35
+#define DIGITS_INCR   5
+#define DIGITS_END   80
+
 static void
 print_expcurves (double B1, const mpz_t B2, unsigned long dF, unsigned long k, 
                  int S)
 {
   double prob;
-  int i;
-  char sep;
+  int i, j;
+  char sep, outs[128];
 
+  for (i = DIGITS_START, j = 0; i <= DIGITS_END; i += DIGITS_INCR, j += 3)
+    sprintf (outs + j, "%2u%c", i, (i < DIGITS_END) ? '\t' : '\n');
+  outs[j] = '\0';
   outputf (OUTPUT_VERBOSE, "Expected number of curves to find a factor "
-           "of n digits:\n20\t25\t30\t35\t40\t45\t50\t55\t60\t65\n");
-  for (i = 20; i <= 65; i += 5)
+           "of n digits:\n%s", outs);
+  for (i = DIGITS_START; i <= DIGITS_END; i += DIGITS_INCR)
     {
-      sep = (i < 65) ? '\t' : '\n';
+      sep = (i < DIGITS_END) ? '\t' : '\n';
       prob = ecmprob (B1, mpz_get_d (B2),
                       pow (10., i - .5), (double) dF * dF * k, S);
       if (prob > 1. / 10000000)
@@ -751,14 +758,17 @@ print_exptime (double B1, const mpz_t B2, unsigned long dF, unsigned long k,
                int S, double tottime)
 {
   double prob, exptime;
-  int i;
-  char sep;
+  int i, j;
+  char sep, outs[128];
   
-  outputf (OUTPUT_VERBOSE, "Expected time to find a factor of n digits:\n"
-    "20\t25\t30\t35\t40\t45\t50\t55\t60\t65\n");
-  for (i = 20; i <= 65; i += 5)
+  for (i = DIGITS_START, j = 0; i <= DIGITS_END; i += DIGITS_INCR, j += 3)
+    sprintf (outs + j, "%2u%c", i, (i < DIGITS_END) ? '\t' : '\n');
+  outs[j] = '\0';
+  outputf (OUTPUT_VERBOSE, "Expected time to find a factor of n digits:\n%s",
+           outs);
+  for (i = DIGITS_START; i <= DIGITS_END; i += DIGITS_INCR)
     {
-      sep = (i < 65) ? '\t' : '\n';
+      sep = (i < DIGITS_END) ? '\t' : '\n';
       prob = ecmprob (B1, mpz_get_d (B2), 
                       pow (10., i - .5), (double) dF * dF * k, S);
       exptime = (prob > 0.) ? tottime / prob : HUGE_VAL;
