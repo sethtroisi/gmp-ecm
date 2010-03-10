@@ -33,7 +33,7 @@
 #include <string.h>
 #include "primegen.h"
 #endif
-#ifdef HAVE_LIBGSL
+#if defined(TESTDRIVE) && defined(HAVE_LIBGSL)
 #include <gsl/gsl_math.h>
 #include <gsl/gsl_sf_expint.h>
 #include <gsl/gsl_integration.h>
@@ -232,7 +232,7 @@ Buchstab_Psi(const unsigned long x, const unsigned long y)
 #endif /* TESTDRIVE */
 
 
-#ifdef HAVE_LIBGSL
+#if defined(TESTDRIVE) && defined(HAVE_LIBGSL)
 static double
 Li (const double x)
 {
@@ -307,7 +307,7 @@ rhoexact (double x)
 }
 
 
-#ifdef HAVE_LIBGSL
+#if defined(TESTDRIVE) && defined(HAVE_LIBGSL)
 
 /* The Buchstab omega(x) function, exact for x <= 4 where it can be 
    evaluated without numerical integration, and approximated by 
@@ -728,7 +728,7 @@ pm1prob_rm (double B1, double B2, double N, double nr, int S, unsigned long r,
    This function estimates the \Phi(x,y) function via eq. (48) of the 1st
    edition resp. equation (6.49) of the 3rd edition of Tenenbaum's book. */
 
-#ifdef HAVE_LIBGSL
+#if defined(TESTDRIVE) && defined(HAVE_LIBGSL)
 
 static double 
 integrand1 (double x, double *y)
