@@ -20,10 +20,46 @@ AM_PROG_AS
 dnl the following is required to compile auxi.c according to autoconf 2.61
 AM_PROG_CC_C_O
 
-AC_ARG_WITH(gmp,         [  --with-gmp=DIR          GMP install directory ], with_gmp_include=$withval/include with_gmp_lib=$withval/lib)
-AC_ARG_WITH(gmp_include, [  --with-gmp-include=DIR  GMP include directory ], with_gmp_include=$withval)
-AC_ARG_WITH(gmp_lib,     [  --with-gmp-lib=DIR      GMP lib directory ], with_gmp_lib=$withval)
-AC_ARG_WITH(gwnum,       [  --with-gwnum=DIR        GWNUM source directory ], with_gwnum=$withval)
+AC_ARG_WITH(gmp,         [  --with-gmp=DIR          GMP install directory ], [with_gmp_include=$withval/include with_gmp_lib=$withval/lib])
+AC_ARG_WITH(gmp_include, [  --with-gmp-include=DIR  GMP include directory ], [with_gmp_include=$withval])
+AC_ARG_WITH(gmp_lib,     [  --with-gmp-lib=DIR      GMP lib directory ], [with_gmp_lib=$withval])
+AC_ARG_WITH(gwnum,       [  --with-gwnum=DIR        GWNUM source directory ], [with_gwnum=$withval])
+
+############################
+# Parse --enable-* options #
+############################
+
+dnl Assertions are enabled by default for beta/rc releases. The last parameter
+dnl of AC_ARG_ENABLE() sets the default value.
+AC_ARG_ENABLE(assert,
+AS_HELP_STRING([--enable-assert], [enable ASSERT checking [[default=yes]]]),[],[enable_assert=yes])
+if test "x$enable_assert" = xyes; then
+  AC_DEFINE(WANT_ASSERT,1,[Define to 1 if you want assertions enabled])
+fi
+
+AC_ARG_ENABLE(shellcmd,
+AS_HELP_STRING([--enable-shellcmd], [enable shell command execution [[default=no]]]),[],[])
+if test "x$enable_shellcmd" = xyes; then
+  AC_DEFINE(WANT_SHELLCMD,1,[Define to 1 if you want shell command execution])
+fi
+
+AC_ARG_ENABLE(openmp,
+AS_HELP_STRING([--enable-openmp], [enable OpenMP multi-threading [[default=no]]]),[],[])
+
+AC_ARG_ENABLE(sse2,
+AS_HELP_STRING([--enable-sse2], [use SSE2 instructions in NTT code (default=yes for Pentium 4, no for others)]),
+[],[])
+
+AC_ARG_ENABLE(asm-redc,
+AS_HELP_STRING([--enable-asm-redc], [use an asm redc [[default=yes on x86_64 and powerpc64, no on others]]]),[],[])
+
+AC_ARG_ENABLE(memory-debug,
+AS_HELP_STRING([--enable-memory-debug], [enable memory debugging [[default=no]]]),[],[])
+if test "x$enable_memory_debug" = xyes; then
+  AC_DEFINE(MEMORY_DEBUG, 1, [Define to 1 if you want memory debugging])
+fi
+AM_CONDITIONAL(MEMORY_DEBUG, [test "x$enable_memory_debug" = xyes])
+
 
 
 dnl On Darwin, the config.guess script of autoconf 2.63 uses "cc" to 
@@ -35,15 +71,15 @@ dnl Use C language for test compilation
 AC_LANG(C)
 
 CHECK_FOR_M64=no
-if test "x$GCC" = "xyes"; then
+if test "x$GCC" = xyes; then
   case $host in
     x86_64-apple-darwin* | powerpc64-*) CHECK_FOR_M64=yes;;
     *) ;;
   esac
 fi
 
-if test "x$CHECK_FOR_M64" = "xyes"; then
-AC_MSG_CHECKING(whether gcc needs -m64 for 64 bit mode)
+if test "x$CHECK_FOR_M64" = xyes; then
+AC_MSG_CHECKING([whether gcc needs -m64 for 64 bit mode])
 AC_PREPROC_IFELSE([AC_LANG_SOURCE([[
 #ifndef __LP64__
 #error
@@ -55,9 +91,10 @@ AC_PREPROC_IFELSE([AC_LANG_SOURCE([[
   [AC_MSG_RESULT(yes)
    dnl There's a configure test that processes assembly which does not
    dnl call the assembler via $CC, so setting CC="$CC -m64" does not work.
-   dnl Translating the asm REDC code does not include $CFLAGS, 
-   dnl but $CCASFLAGS instead.
-   CFLAGS="$CFLAGS -m64"
+   dnl Translating the asm REDC code does not include $CPPFLAGS or 
+   dnl $LDFLAGS, but $CCASFLAGS instead.
+   CPPFLAGS="$CPPFLAGS -m64"
+   LDFLAGS="$LDFLAGS -m64"
    CCASFLAGS="$CCASFLAGS -m64"]
 )
 dnl Try again to check that it works now
@@ -88,44 +125,11 @@ dnl Define size_t to something useable if standard headers don't
 AC_TYPE_SIZE_T
 
 
-############################
-# Parse --enable-* options #
-############################
-
-dnl Assertions are enabled by default for beta/rc releases. The last parameter
-dnl of AC_ARG_ENABLE() sets the default value.
-AC_ARG_ENABLE(assert,
-AS_HELP_STRING([--enable-assert], [enable ASSERT checking [[default=yes]]]),[],[enable_assert=yes])
-if test "x$enable_assert" = "xyes"; then
-  AC_DEFINE(WANT_ASSERT,1,[Define to 1 if you want assertions enabled])
+dnl If OpenMP is enabled, check which command line parameter (if any)
+dnl if required to make the compiler enable OpenMP
+if test "x$enable_openmp" = xyes; then
+  AC_OPENMP
 fi
-
-AC_ARG_ENABLE(shellcmd,
-AS_HELP_STRING([--enable-shellcmd], [enable shell command execution [[default=no]]]),[],[])
-if test "x$enable_shellcmd" = "xyes"; then
-  AC_DEFINE(WANT_SHELLCMD,1,[Define to 1 if you want shell command execution])
-fi
-
-AC_ARG_ENABLE(openmp,
-AS_HELP_STRING([--enable-openmp], [enable OpenMP multi-threading [[default=no]]]),[],[])
-if test "x$enable_openmp" = "xyes"; then
-  CFLAGS="$CFLAGS -fopenmp"
-fi
-
-AC_ARG_ENABLE(sse2,
-AS_HELP_STRING([--enable-sse2], [use SSE2 instructions in NTT code (default=yes for Pentium 4, no for others)]),
-[],[])
-
-AC_ARG_ENABLE(asm-redc,
-AS_HELP_STRING([--enable-asm-redc], [use an asm redc [[default=yes if available]]]),[],[])
-
-AC_ARG_ENABLE(memory-debug,
-AS_HELP_STRING([--enable-memory-debug], [enable memory debugging [[default=no]]]),[],[])
-if test "x$enable_memory_debug" = "xyes"; then
-  AC_DEFINE(MEMORY_DEBUG, 1, [Define to 1 if you want memory debugging])
-fi
-AM_CONDITIONAL(MEMORY_DEBUG, test "x$enable_memory_debug" = "xyes")
-
 
 ########################
 # Enable asm redc code #
@@ -135,14 +139,14 @@ AM_CONDITIONAL(MEMORY_DEBUG, test "x$enable_memory_debug" = "xyes")
 # Point ASMPATH to the correct subdirectory.
 
 # asm_redc enabled by default for x86_64 and 64 bit PowerPC
-if test "x$enable_asm_redc" = "x"; then
+if test "x$enable_asm_redc" = x; then
   case $host in
     x86_64* | powerpc-apple-darwin* | powerpc64-*-linux*) enable_asm_redc=yes;;
     *) enable_asm_redc=no;;
   esac
 fi
 
-if test "x$enable_asm_redc" = "xyes"; then
+if test "x$enable_asm_redc" = xyes; then
   case $host in
     pentium4-*-* | pentium3-*-* | viac7-*-* | i786-*-*) ASMPATH=pentium4;;
     athlon-*-*) ASMPATH=athlon;;
@@ -177,39 +181,37 @@ if test "x$enable_asm_redc" = "xyes"; then
     *)
   esac
 fi
-AM_CONDITIONAL(ENABLE_ASM_REDC, test "x$enable_asm_redc" = "xyes")
+AM_CONDITIONAL(ENABLE_ASM_REDC, [test "x$enable_asm_redc" = xyes])
 
 
 ############################
 # Enable SSE2 instructions #
 ############################
 # Test if we should use SSE2 instructions and if the cpu supports them
-if test "x$enable_sse2" = "xyes"; then
-  AC_DEFINE(HAVE_SSE2,1,[Define to 1 to enable SSE2 instructions in NTT code])
-  CFLAGS="$CFLAGS -msse2"
-elif test "x$enable_sse2" = "x"; then
+if test "x$enable_sse2" = "x"; then
 dnl Default: if we build for Pentium 4, enable SSE2 code for the NTT
   case $host in
     pentium4-*-* | viac7-*-* | i786-*-*) 
-      AC_DEFINE(HAVE_SSE2,1,[Define to 1 to enable SSE2 in NTT code])
-      CFLAGS="$CFLAGS -msse2"
       enable_sse2=yes
     ;;
   esac
 fi
-
+if test "x$enable_sse2" = xyes; then
+  AC_DEFINE(HAVE_SSE2,1,[Define to 1 to enable SSE2 instructions in NTT code])
+  CFLAGS="$CFLAGS -msse2"
+fi
 
 ########################
 # Add GWNUM if desired #
 ########################
 dnl If user wants GWNUM, check if the file exists (either as .a or .lib)
 if test "x$with_gwnum" != "x"; then
-  AC_CHECK_FILE($with_gwnum/gwnum.a, [
+  AC_CHECK_FILE([$with_gwnum/gwnum.a], [
     AC_DEFINE(HAVE_GWNUM, 1, [Define to 1 if gwnum.a or gwnum.lib exist])
     GWLIB="$with_gwnum/gwnum.a"
     CFLAGS="$CFLAGS -I$with_gwnum"
   ],[
-    AC_CHECK_FILE($with_gwnum/gwnum.lib, [
+    AC_CHECK_FILE([$with_gwnum/gwnum.lib], [
       AC_DEFINE(HAVE_GWNUM, 1, [Define to 1 if gwnum.a or gwnum.lib exist])
       GWLIB="$with_gwnum/gwnum.lib"
       CFLAGS="$CFLAGS -I$with_gwnum"
@@ -219,7 +221,7 @@ if test "x$with_gwnum" != "x"; then
     ])
   ])
 fi
-AM_CONDITIONAL(WITH_GWNUM, test "x$with_gwnum" != "x")
+AM_CONDITIONAL(WITH_GWNUM, [test "x$with_gwnum" != "x"])
 
 
 dnl Checks for header files.
@@ -231,10 +233,22 @@ AC_CHECK_HEADERS([ctype.h sys/types.h sys/resource.h])
 
 dnl Checks for library functions that are not in GMP
 AC_FUNC_STRTOD
-dnl Check for GSL, as recommended by GSL:
+
+dnl Check for GSL but don't add it to LIBS, since only rho uses it and
+dnl we don't want all other binaries to depend on it. 
+dnl If found, pass link flags to Makefile via GSL_LD_FLAGS
 AC_CHECK_LIB([m],[cos])
-AC_CHECK_LIB([gslcblas],[cblas_dgemm])
-AC_CHECK_LIB([gsl],[gsl_blas_dgemm])
+GSL_LD_FLAGS=
+dnl Check if "-lgslcblas" works. If yes, check if "-lgsl -lgslcblas" works.
+dnl If both work, put "-lgsl -lgslcblas" in GSL_LD_FLAGS
+AC_CHECK_LIB([gslcblas],[cblas_dgemm], dnl
+ [AC_CHECK_LIB([gsl],[gsl_blas_dgemm], dnl
+  [AC_DEFINE([HAVE_LIBGSL],1,[Define to 1 if you have the `gsl' library (-lgsl).])
+   AC_DEFINE([HAVE_LIBGSLCBLAS],1,[Define to 1 if you have the `gslcblas' library (-lgslcblas).])
+   GSL_LD_FLAGS="-lgsl -lgslcblas"], [], dnl
+   dnl Here comes the "OTHER-LIBRARIES" field for AC_CHECK_LIB [gsl]:
+   [-lgslcblas])])
+
 AC_CHECK_FUNCS([floor sqrt pow fmod], [], AC_MSG_ERROR([required function missing]))
 AC_CHECK_FUNCS([isascii memset strchr strlen strncasecmp strstr], [], AC_MSG_ERROR([required function missing]))
 AC_CHECK_FUNCS([access unlink], [], AC_MSG_ERROR([required function missing]))
@@ -248,7 +262,7 @@ AC_CHECK_FUNCS([malloc_usable_size])
 
 
 dnl If we use GCC, add some warning flags
-if test "x$GCC" = "xyes"; then
+if test "x$GCC" = xyes; then
   CFLAGS="-Wall -W -Wundef -pedantic $CFLAGS"
 fi
 
@@ -265,7 +279,7 @@ AC_CHECK_HEADERS([gmp.h], [], AC_MSG_ERROR([required header file missing]))
 
 dnl This needs to find only the header file so we can do it here, before
 dnl we start looking for libgmp.a
-AC_MSG_CHECKING(for recent GMP)
+AC_MSG_CHECKING([for recent GMP])
 AC_PREPROC_IFELSE([AC_LANG_SOURCE([[
 #include <gmp.h>
 #if (__GNU_MP_VERSION < 4 || (__GNU_MP_VERSION == 4 && __GNU_MP_VERSION_MINOR < 1))
@@ -284,15 +298,17 @@ dnl we need to find the libgmp.a file. At the moment, we only look for
 dnl it at the path specified by the user (i.e. --with-gmp) but make no
 dnl attempt to find it in the default system lib directories.
 
-dnl If GMP is linked statically, we add its path/filename to LIBS,
-dnl otherwise -lgmp is added to LIBS.
+dnl If GMP is linked statically, we pass its path/filename to the Makefile
+dnl via GMPLIB, otherwise -lgmp is passed via GMPLIB.
+dnl The search path to the dynamic GMP library is added to LDFLAGS, 
+dnl if GMP is not specified by full pathname.
 
 GMPLDFLAGS=""
 if test -d "$with_gmp_lib"; then
   GMPLDFLAGS="-L$with_gmp_lib"
 fi
 GMPLIB="-lgmp"
-if test "x$enable_shared" != "xyes"; then
+if test "x$enable_shared" != xyes; then
   if test -r "$with_gmp_lib/libgmp.a"; then
     GMPLIB="$with_gmp_lib/libgmp.a"
 dnl Don't need -L flag since we give full path to libgmp.a
@@ -302,10 +318,32 @@ fi
 AC_SUBST(GMPLIB)
 LDFLAGS="$LDFLAGS $GMPLDFLAGS"
 
-dnl Check for corresponding 'gmp.h' and libgmp.a
-AC_MSG_CHECKING(if gmp.h version and libgmp version are the same)
+
+dnl Test linking against GMP. This tests, for example, that the compiler
+dnl and GMP agree on the ABI (32 or 64 bit). AC_CHECK_LIB() does not work,
+dnl as it requires linking the library with -lgmp, whereas we may want
+dnl to specify it by full pathname as we do in the Makefile
+
+AC_MSG_CHECKING([whether we can link against GMP])
 LIBS_BACKUP="$LIBS"
 LIBS="$LIBS $GMPLIB"
+AC_LINK_IFELSE([AC_LANG_PROGRAM([[
+#ifdef HAVE_GMP_H
+#include <gmp.h>
+#endif]],[[
+  mpz_t t;
+  mpz_init(t);
+  mpz_clear(t);
+  return 0;
+]])], AC_MSG_RESULT(yes),
+   [AC_MSG_RESULT(no)
+    AC_MSG_ERROR([Could not link against GMP library.])]
+)
+
+dnl Check for corresponding 'gmp.h' and libgmp.a
+dnl This requires running a program linked against GMP, 
+dnl so is done after the link-only test.
+AC_MSG_CHECKING(if gmp.h version and libgmp version are the same)
 AC_RUN_IFELSE([AC_LANG_PROGRAM([[
 #include <stdio.h>
 #include <string.h>
@@ -331,9 +369,9 @@ LIBS="$LIBS_BACKUP"
 
 dnl Check for xsltproc
 AC_CHECK_PROG(XSLTPROC,xsltproc,xsltproc,)
-if test "x$XSLTPROC" != "x"; then
-  AC_MSG_CHECKING(for docbook.xsl)
-  if test "x$XSLDIR" = "x"; then
+if test "x$XSLTPROC" != x; then
+  AC_MSG_CHECKING([for docbook.xsl])
+  if test "x$XSLDIR" = x; then
     if test -d "/usr/local/share/sgml/docbook/xsl-stylesheets"; then
       XSLDIR="/usr/local/share/sgml/docbook/xsl-stylesheets"
     elif test -d "/usr/share/sgml/docbook/xsl-stylesheets"; then
@@ -351,7 +389,7 @@ if test "x$XSLTPROC" != "x"; then
     AC_MSG_RESULT(no)
   fi
 fi  
-AM_CONDITIONAL(MAKE_MANPAGE, test "x$make_manpage" = "xyes")
+AM_CONDITIONAL(MAKE_MANPAGE, [test "x$make_manpage" = xyes])
 
 case $host in
   athlon*-*-*) config_arch="athlon" ;;
@@ -369,60 +407,63 @@ esac
 LIBS="$LIBS $GWLIB"
 
 GMP_FINISH
-AC_CONFIG_FILES(Makefile athlon/Makefile pentium4/Makefile x86_64/Makefile powerpc64/Makefile build.vc9/Makefile build.vc9/assembler/Makefile build.vc9/ecm/Makefile build.vc9/libecm/Makefile)
-AC_CONFIG_LINKS(ecm-params.h:ecm-params.h.$config_arch)
+AC_CONFIG_FILES([Makefile athlon/Makefile pentium4/Makefile x86_64/Makefile powerpc64/Makefile build.vc9/Makefile build.vc9/assembler/Makefile build.vc9/ecm/Makefile build.vc9/libecm/Makefile])
+AC_CONFIG_LINKS([ecm-params.h:ecm-params.h.$config_arch])
 MUL_FFT_PARAMS="mul_fft-params.h.$config_arch"
 if ! test -f "$MUL_FFT_PARAMS"
 then
   MUL_FFT_PARAMS="mul_fft-params.h.default"
 fi
-AC_CONFIG_LINKS(mul_fft-params.h:"$MUL_FFT_PARAMS")
+AC_CONFIG_LINKS([mul_fft-params.h:"$MUL_FFT_PARAMS"])
 
 AC_SUBST(XSLDIR)
 AC_SUBST(ASMPATH)
+AC_SUBST(GSL_LD_FLAGS)
 
 AC_OUTPUT
 
-AC_MSG_NOTICE([[Configuration:]])
-AC_MSG_NOTICE([[Build for host type $host]])
+AC_MSG_NOTICE([Configuration:])
+AC_MSG_NOTICE([Build for host type $host])
 
-if test "x$enable_asm_redc" = "xyes"; then
-  AC_MSG_NOTICE([[Using asm redc code from directory $ASMPATH]])
+if test "x$enable_asm_redc" = xyes; then
+  AC_MSG_NOTICE([Using asm redc code from directory $ASMPATH])
 else
-  AC_MSG_NOTICE([[Not using asm redc code]])
+  AC_MSG_NOTICE([Not using asm redc code])
 fi
 
-if test "x$enable_sse2" = "xyes"; then
-  AC_MSG_NOTICE([[Using SSE2 instructions in NTT code]])
+if test "x$enable_sse2" = xyes; then
+  AC_MSG_NOTICE([Using SSE2 instructions in NTT code])
 else
-  AC_MSG_NOTICE([[Not using SSE2 instructions in NTT code]])
+  AC_MSG_NOTICE([Not using SSE2 instructions in NTT code])
 fi
+
+AC_MSG_NOTICE([Linking GMP with $GMPLIB])
 
 if test "x$with_gwnum" != "x"; then
-  AC_MSG_NOTICE([[Linking with George Woltman's GWNUM]])
+  AC_MSG_NOTICE([Linking with George Woltman's GWNUM])
 fi
 
-if test "x$enable_assert" = "xyes"; then
-  AC_MSG_NOTICE([[Assertions enabled]])
+if test "x$enable_assert" = xyes; then
+  AC_MSG_NOTICE([Assertions enabled])
 else
-  AC_MSG_NOTICE([[Assertions disabled]])
+  AC_MSG_NOTICE([Assertions disabled])
 fi
 
-if test "x$enable_shellcmd" = "xyes"; then
-  AC_MSG_NOTICE([[Shell command execution enabled]])
+if test "x$enable_shellcmd" = xyes; then
+  AC_MSG_NOTICE([Shell command execution enabled])
 else
-  AC_MSG_NOTICE([[Shell command execution disabled]])
+  AC_MSG_NOTICE([Shell command execution disabled])
 fi
 
-if test "x$enable_openmp" = "xyes"; then
-  AC_MSG_NOTICE([[OpenMP enabled]])
+if test "x$enable_openmp" = xyes; then
+  AC_MSG_NOTICE([OpenMP enabled])
 else
-  AC_MSG_NOTICE([[OpenMP disabled]])
+  AC_MSG_NOTICE([OpenMP disabled])
 fi
 
-if test "x$enable_memory_debug" = "xyes"; then
-  AC_MSG_NOTICE([[Memory debugging enabled]])
+if test "x$enable_memory_debug" = xyes; then
+  AC_MSG_NOTICE([Memory debugging enabled])
 else
-  AC_MSG_NOTICE([[Memory debugging disabled]])
+  AC_MSG_NOTICE([Memory debugging disabled])
 fi
 

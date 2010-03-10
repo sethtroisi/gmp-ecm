@@ -11,7 +11,7 @@ EXTRA_PROGRAMS = rho
 if ENABLE_ASM_REDC
   SUBDIRS = $(ASMPATH)
   MULREDCINCPATH = -I$(srcdir)/$(ASMPATH)
-  MULREDCLIBPATH = -L$(ASMPATH)
+  MULREDCLIBPATH = -L$(srcdir)/$(ASMPATH)
   MULREDCLIBRARY = -lmulredc
 
   # Add a testing and timing program for the mulredc code
@@ -33,16 +33,18 @@ libecm_la_SOURCES = ecm.c ecm2.c pm1.c pp1.c getprime.c listz.c lucas.c \
 		   auxarith.c
 # Link the asm redc code (if we use it) into libecm.la
 libecm_la_CPPFLAGS = $(MULREDCINCPATH)
+libecm_la_CFLAGS = $(OPENMP_CFLAGS)
 libecm_la_LDFLAGS = '-version-info 0:0:0' $(MULREDCLIBPATH)
 libecm_la_LIBADD = $(MULREDCLIBRARY)
 
 bin_PROGRAMS = ecm
 noinst_PROGRAMS = tune ecmfactor ecmfactor2
-# Most binaries want to link libecm.la, and the ones who don't will
+# Most binaries want to link libecm.la, and the ones which don't will
 # have their own _LDADD which overrides the default LDADD here
 LDADD = libecm.la $(GMPLIB)
 
 ecm_CPPFLAGS = -DOUTSIDE_LIBECM
+ecm_CFLAGS = $(OPENMP_CFLAGS)
 ecm_SOURCES = auxi.c b1_ainc.c candi.c eval.c random.c main.c trial.c \
               resume.c getprime.c
 
@@ -54,9 +56,12 @@ tune_CPPFLAGS = -DTUNE $(MULREDCINCPATH)
 tune_LDFLAGS = $(MULREDCLIBPATH)
 tune_LDADD = $(MULREDCLIBRARY) $(GMPLIB)
 
+ecmfactor_CFLAGS = $(OPENMP_CFLAGS)
+ecmfactor2_CFLAGS = $(OPENMP_CFLAGS)
+
 rho_SOURCES = rho.c
 rho_CPPFLAGS = -DTESTDRIVE
-rho_LDADD = -lprimegen $(GMPLIB)
+rho_LDADD = -lprimegen $(GMPLIB) $(GSL_LD_FLAGS)
 
 if MEMORY_DEBUG
   libecm_la_SOURCES += memory.c
