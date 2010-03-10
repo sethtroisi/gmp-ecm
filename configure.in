@@ -325,9 +325,9 @@ return strcmp (buffer, gmp_version);
     AC_MSG_ERROR(['gmp.h' and 'libgmp' have different versions, you have to reinstall GMP properly.])],
     AC_MSG_RESULT([cross-compiling: cannot test])
 )
-LIBS="$LIBS_BACKUP"
 
 AC_CHECK_FUNCS([__gmpn_add_nc __gmpn_mod_34lsub1])
+LIBS="$LIBS_BACKUP"
 
 dnl Check for xsltproc
 AC_CHECK_PROG(XSLTPROC,xsltproc,xsltproc,)
