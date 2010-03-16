@@ -97,13 +97,13 @@ void *
 sp_aligned_malloc (size_t len)
 {
   void *ptr, *aligned_ptr;
-  unsigned long addr;
+  size_t addr;
 
   ptr = malloc (len + CACHE_LINE_SIZE);
   if (ptr == NULL)
     return NULL;
 
-  addr = (unsigned long)ptr;				
+  addr = (size_t)ptr;				
   addr = CACHE_LINE_SIZE - (addr % CACHE_LINE_SIZE);
   aligned_ptr = (void *)((char *)ptr + addr);
 
