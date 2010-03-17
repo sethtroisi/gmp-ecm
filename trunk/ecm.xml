@@ -569,6 +569,14 @@ This is useful to get correct expected time with
   </listitem>
   </varlistentry>
 
+  <varlistentry>
+  <term><option>-printconfig</option></term>
+  <listitem>
+  <para>Prints configuration parameters used for the compilation 
+  and exits.</para>
+  </listitem>
+  </varlistentry>
+
 </variablelist>
 
 <!--  TeX users may be more comfortable with the \fB&lt;whatever&gt;\fP and -->
