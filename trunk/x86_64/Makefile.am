@@ -98,5 +98,8 @@ mulredc1_20.asm: mulredc1.m4
 
 .asm.s:
 	$(M4) -I../ -DOPERATION_$* `test -f $< || echo '$(srcdir)/'`$< >$*.s
-.asm.S:
-	$(M4) -I../ -DOPERATION_$* `test -f $< || echo '$(srcdir)/'`$< >$*.S
+# Nothing here needs the C preprocessor, and including this rule causes
+# "make" to build .S, then .s files which fails on case-insensitive 
+# filesystems
+#.asm.S:
+#	$(M4) -I../ -DOPERATION_$* `test -f $< || echo '$(srcdir)/'`$< >$*.S
