@@ -22,21 +22,34 @@ include(`config.m4')
 	GLOBL GSYM_PREFIX`'mulredc1
 	TYPE(GSYM_PREFIX`'mulredc1,`function')
 
+ifdef(`MINGW64_ABI',
+# stack: inv_m, %r9: m, %r8: y, %rdx: x, %rcx: *z
+define(`INV_M', `(%rsp)')
+define(`M', `%r9')
+define(`Y', `%r8')
+define(`X', `%rdx')
+define(`Z', `%rcx')
+define(`TMP2', `%r10')
+define(`TMP1', `%r11'),
+# %r8: inv_m, %rcx: m, %rdx: y, %rsi : x, %rdi : *z
+define(`INV_M', `%r8')
+define(`M', `%rcx')
+define(`Y', `%rdx')
+define(`X', `%rsi')
+define(`Z', `%rdi')
+define(`TMP2', `%r10')
+define(`TMP1', `%r9'))
+
 GSYM_PREFIX`'mulredc1:
-#     %r8  : inv_m
-#     %rcx : m
-#     %rdx : y
-#     %rsi : x
-#     %rdi : z
-	movq	%rdx, %rax
-	mulq	%rsi
-	movq	%rdx, %r10
-	movq	%rax, %r9       # store xy in [r9:r10]
-	mulq	%r8             # compute u
-	mulq	%rcx          # compute u*m
-	addq	%r9, %rax       # rax is 0, now (carry is important)
-	adcq	%r10, %rdx
-	movq	%rdx, (%rdi)
+	movq	Y, %rax
+	mulq	X
+	movq	%rdx, TMP2
+	movq	%rax, TMP1      # store xy in [r9:r10]
+	mulq	INV_M           # compute u
+	mulq	M               # compute u*m
+	addq	TMP1, %rax      # rax is 0, now (carry is important)
+	adcq	TMP2, %rdx
+	movq	%rdx, (Z)
 	adcq	$0, %rax
 	ret
 
