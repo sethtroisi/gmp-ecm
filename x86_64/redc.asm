@@ -1,7 +1,7 @@
 #
 # void ecm_redc3(mp_limb_t * z, const mp_limb_t * x, size_t n, mp_limb_t m)
 #                     %rdi           %rsi              %rdx      %rcx
-#
+#  MinGW w64          %rcx           %rdx              %r8       %r10
 #  save them in       %r8            %r9               %r10      %r11
 
 
@@ -15,10 +15,15 @@ GSYM_PREFIX`'ecm_redc3:
 	push	%rbx
 	subq	$32, %rsp				# SF: 2 Cpt + Jump +1
 
-	movq    %rdi, %r8
+ifdef(`MINGW64_ABI',
+`	movq	%rcx, %r8
+	movq	%rdx, %r9
+	movq	%r10, %r11
+	movq	%r8, %r10',
+`	movq    %rdi, %r8
 	movq    %rsi, %r9
 	movq    %rdx, %r10
-	movq    %rcx, %r11
+	movq    %rcx, %r11')
 
 	movq	%r10, %rcx                          # Read size
 	movq	%rcx, (%rsp)				# Save counter
