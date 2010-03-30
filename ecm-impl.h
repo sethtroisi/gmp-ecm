@@ -693,11 +693,6 @@ unsigned int get_random_ui (void);
 int  gw_ecm_stage1 (mpz_t, curve *, mpmod_t, double, double *, mpz_t);
 #endif
 
-/* redc.asm */
-#ifdef NATIVE_REDC
-void ecm_redc3 (mp_ptr, mp_srcptr, mp_size_t, mp_limb_t);
-#endif
-
 /* mul_fft.h */
 #define mpn_mul_fft __ECM(mpn_mul_fft)
 int  mpn_mul_fft (mp_ptr, mp_size_t, mp_srcptr, mp_size_t, mp_srcptr, 

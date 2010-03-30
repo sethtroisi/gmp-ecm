@@ -1,7 +1,7 @@
 #
 # void ecm_redc3(mp_limb_t * z, const mp_limb_t * x, size_t n, mp_limb_t m)
 #                     %rdi           %rsi              %rdx      %rcx
-#  MinGW w64          %rcx           %rdx              %r8       %r10
+#  MinGW w64          %rcx           %rdx              %r8       %r9
 #  save them in       %r8            %r9               %r10      %r11
 
 
@@ -13,13 +13,17 @@ include(`config.m4')
 GSYM_PREFIX`'ecm_redc3:
 	push	%rbp					# Push registers
 	push	%rbx
+ifdef(`WINDOWS64_ABI',
+`	push	%rsi
+	push	%rdi')
+
 	subq	$32, %rsp				# SF: 2 Cpt + Jump +1
 
-ifdef(`MINGW64_ABI',
-`	movq	%rcx, %r8
-	movq	%rdx, %r9
-	movq	%r10, %r11
-	movq	%r8, %r10',
+ifdef(`WINDOWS64_ABI',
+`	movq	%r8, %r10
+	movq	%rcx, %r8
+	movq	%r9, %r11
+	movq	%rdx, %r9',
 `	movq    %rdi, %r8
 	movq    %rsi, %r9
 	movq    %rdx, %r10
@@ -59,6 +63,9 @@ InnerLoop:
 		jnz     Loop				# Loop
 End:
 	addq	$32, %rsp
+ifdef(`WINDOWS64_ABI',
+`	pop	%rdi
+	pop	%rsi')
 	pop	%rbx
 	pop	%rbp
 	ret
@@ -247,6 +254,9 @@ UnrollEntry:
                 jnz     UnrollLoop                      # Loop
 End2:	
         addq    $32, %rsp
+ifdef(`WINDOWS64_ABI',
+`	pop	%rdi
+	pop	%rsi')
         pop     %rbx
         pop     %rbp
         ret

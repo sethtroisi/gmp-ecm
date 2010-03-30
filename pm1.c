@@ -913,6 +913,7 @@ pm1 (mpz_t f, mpz_t p, mpz_t N, mpz_t go, double *B1done, double B1,
       unsigned long lmax_NTT, lmax_noNTT;
 
       mpz_init (faststage2_params.m_1);
+      faststage2_params.l = 0;
 
       /* Find out what the longest transform length is we can do at all.
 	 If no maxmem is given, the non-NTT can theoretically do any length. */

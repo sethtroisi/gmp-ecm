@@ -16,7 +16,12 @@ noinst_HEADERS = mulredc.h
 # and redc.asm files to go in the distribution - no need for having 
 # them in EXTRA_DIST
 libmulredc_la_SOURCES = $(MULREDC) $(MULREDC1) redc.asm
-
+# It's actually the .s files that depend on config.m4, but automake
+# knows them only as intermediate files, not as targets. Adding the
+# dependency to libmulredc.la should work so long as no stale .s
+# files exist.
+libmulredc_la_DEPENDENCIES = $(top_srcdir)/config.m4
+  
 # There has to be a way of making this automatically
 mulredc2.asm: mulredc.m4
 	$(M4) -DLENGTH=2 $< > $@
