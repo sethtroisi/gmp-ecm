@@ -1,3 +1,159 @@
+r1449 | kruppa | 2010-03-07 21:53:40 +0100 (Sun, 07 Mar 2010) | 4 lines
+
+powerpc64 needs -m64 flag for gcc to produce 64 bit build. Without the flag,
+it produces a 32 bit build seemingly successfully, but the 64-bit mulredc 
+asm code produces incorrect arithmetic.
+
+------------------------------------------------------------------------
+r1447 | kruppa | 2010-03-07 17:25:37 +0100 (Sun, 07 Mar 2010) | 8 lines
+
+Changed rules for building manpage ecm.1. Previously the man page would be 
+built if ecm.1 was missing or was older than ecm.xml, even if xsltproc or 
+docbook.xsl were not found by ./configure, causing "make" to exit with
+error. 
+Furthermore, listing ecm.1 in two output variables would cause 
+"make install" to try to install the same man page twice, leading to a 
+warning.
+
+------------------------------------------------------------------------
+r1446 | kruppa | 2010-03-07 16:18:06 +0100 (Sun, 07 Mar 2010) | 2 lines
+
+File locking item removed, it's done
+
+------------------------------------------------------------------------
+r1445 | kruppa | 2010-03-07 02:23:44 +0100 (Sun, 07 Mar 2010) | 2 lines
+Changed paths:
+   M /trunk/README
+
+Point out explicitly that -save saves after stage 2
+
+------------------------------------------------------------------------
+r1444 | kruppa | 2010-03-07 00:47:56 +0100 (Sun, 07 Mar 2010) | 2 lines
+Changed paths:
+   M /trunk/resume.c
+
+Process LF, CR, and CR/LF as newline when reading save files
+
+------------------------------------------------------------------------
+r1443 | kruppa | 2010-03-05 15:53:07 +0100 (Fri, 05 Mar 2010) | 2 lines
+Changed paths:
+   M /trunk/INSTALL
+
+Refer to latest GMP version 5.0.1
+
+------------------------------------------------------------------------
+r1442 | kruppa | 2010-03-03 17:18:47 +0100 (Wed, 03 Mar 2010) | 8 lines
+Changed paths:
+   M /trunk/Makefile.am
+   M /trunk/configure.in
+
+On Darwin x86_64 systems, see if we need to pass -m64 to gcc to get
+64 bit code.
+
+Don't add the GMP library to LIBS, but let Makefile.am add it to LDADD
+instead, to avoid GMP getting copied into the GMP-ECM libraries which 
+is non-portable and seems to break linking on Darwin systems.
+
+
+------------------------------------------------------------------------
+r1441 | kruppa | 2010-03-03 17:13:40 +0100 (Wed, 03 Mar 2010) | 5 lines
+Changed paths:
+   M /trunk/ecm-impl.h
+   M /trunk/mpmod.c
+   M /trunk/rho.c
+   M /trunk/schoen_strass.c
+
+Fixed operator precedence bug in schoen_strass.c
+Compile Buchstab_omega() in rho.c only with GSL to avoid warning
+Added mpres_equal() function
+
+
+------------------------------------------------------------------------
+r1440 | kruppa | 2010-03-03 15:48:45 +0100 (Wed, 03 Mar 2010) | 2 lines
+Changed paths:
+   M /trunk/pm1fs2.c
+
+Hide omp critical pragma if OMP isn't used to avoid compiler warning
+
+------------------------------------------------------------------------
+r1439 | kruppa | 2010-02-15 18:34:20 +0100 (Mon, 15 Feb 2010) | 5 lines
+Changed paths:
+   M /trunk/configure.in
+   M /trunk/ecm-ecm.h
+   M /trunk/main.c
+   M /trunk/resume.c
+
+Removed some dead code from checkpoint writing.
+Changed writing save file lines always to append to the file, with
+file locking if fcntl() is available. 
+
+
+------------------------------------------------------------------------
+r1438 | kruppa | 2010-02-10 15:17:53 +0100 (Wed, 10 Feb 2010) | 3 lines
+Changed paths:
+   M /trunk/phiP.gp
+
+Slight cleanups
+
+
+------------------------------------------------------------------------
+r1437 | kruppa | 2010-02-10 14:41:32 +0100 (Wed, 10 Feb 2010) | 3 lines
+Changed paths:
+   M /trunk/pm1fs2.c
+
+Previous commint included P values where code could not factor phi(P). Fixed
+
+
+------------------------------------------------------------------------
+r1436 | kruppa | 2010-02-10 13:41:29 +0100 (Wed, 10 Feb 2010) | 3 lines
+Changed paths:
+   M /trunk/pm1fs2.c
+
+More P values to allow larger B2 in a single run
+
+
+------------------------------------------------------------------------
+r1435 | kruppa | 2010-02-10 01:49:03 +0100 (Wed, 10 Feb 2010) | 3 lines
+Changed paths:
+   M /trunk/pm1fs2.c
+
+More parallelization while building f(x)
+
+
+------------------------------------------------------------------------
+r1434 | kruppa | 2010-02-01 17:39:17 +0100 (Mon, 01 Feb 2010) | 2 lines
+Changed paths:
+   M /trunk/pm1fs2.c
+
+Cleanup in list_scale_V(), slightly more parallelization
+
+------------------------------------------------------------------------
+r1433 | kruppa | 2010-02-01 14:48:52 +0100 (Mon, 01 Feb 2010) | 3 lines
+Changed paths:
+   M /trunk/bestd.c
+   M /trunk/ecm-impl.h
+   M /trunk/ks-multiply.c
+   M /trunk/mpmod.c
+   M /trunk/pm1fs2.c
+   M /trunk/schoen_strass.c
+   M /trunk/sp.h
+   M /trunk/stage2.c
+
+Replaced __GMP_BITS_PER_MP_LIMB and most mp_bits_per_limb 
+by GMP_NUMB_BITS
+
+------------------------------------------------------------------------
+r1432 | zimmerma | 2010-01-30 22:21:43 +0100 (Sat, 30 Jan 2010) | 2 lines
+Changed paths:
+   M /trunk/ChangeLog
+   M /trunk/INSTALL
+   M /trunk/Makefile.am
+   M /trunk/NEWS
+   M /trunk/build.vc9/config.h
+   M /trunk/ecm.h
+
+preparation for the release of ecm-6.3
+
 ------------------------------------------------------------------------
 r1431 | kruppa | 2010-01-23 20:55:47 +0100 (Sat, 23 Jan 2010) | 2 lines
 Changed paths:

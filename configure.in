@@ -36,6 +36,7 @@ AC_ARG_ENABLE([assert],
 [AS_HELP_STRING([--enable-assert], [enable ASSERT checking [[default=yes]]])],[],[enable_assert=yes])
 if test "x$enable_assert" = xyes; then
   AC_DEFINE([WANT_ASSERT],1,[Define to 1 if you want assertions enabled])
+  GMP_DEFINE([WANT_ASSERT], 1)
 fi
 
 AC_ARG_ENABLE([shellcmd],
@@ -207,6 +208,12 @@ if test "x$enable_asm_redc" = xyes; then
   GMP_ASM_TEXT
   GMP_ASM_GLOBL
   GMP_ASM_TYPE 
+
+  case $host in
+    *-*-mingw32) GMP_DEFINE([WINDOWS64_ABI], 1)
+                 AC_DEFINE([WINDOWS64_ABI], 1,[Define to 1 if x86_64 ecm_redc3() and mulredc*() functions should be called with Windows ABI]);;
+    *) ;;
+  esac
 
   case $host in
     pentium3-*-*)
@@ -486,6 +493,10 @@ if test "x$XSLTPROC" != x; then
   fi
 fi  
 AM_CONDITIONAL([MAKE_MANPAGE], [test "x$make_manpage" = xyes])
+
+dnl Check for valgrind. GMP-ECM uses exit code 1 to signal error,
+dnl so we make valgrind use that code to signal error, too
+AC_CHECK_PROG([VALGRIND], [valgrind], [valgrind -q --error-exitcode=1])
 
 case $host in
   athlon*-*-*) config_arch="athlon" ;;

@@ -1,7 +1,11 @@
 Changes between ecm-6.2.3 and ecm-6.3:
 * New assembly code for 64-bit PowerPC (thanks to Philip McLaughlin)
+* Allow several processes to write to the same -save file
+* More routines in new P+-1 stage 2 use multi-threading in OpenMP build
 * Fixed incompatibility with GMP 5.0.0
 * Fixed several bugs, and now check return value from malloc() calls
+* Fixed linking of GMP which prevented successful builds under Darwin 
+  (and presumably other systems)
 
 Changes between ecm-6.2.2 and ecm-6.2.3:
 * Fixed incompatibility with GMP 4.3.0 when testing version in configure
