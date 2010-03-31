@@ -293,6 +293,11 @@ print_config ()
 
 #ifdef NATIVE_REDC
   printf ("NATIVE_REDC = %d\n", NATIVE_REDC);
+#ifdef TUNE_MULREDC_THRESH
+  printf ("TUNE_MULREDC_THRESH = %d\n", TUNE_MULREDC_THRESH);
+#else
+  printf ("TUNE_MULREDC_THRESH undefined\n");
+#endif
 #else
   printf ("NATIVE_REDC undefined\n");
 #endif
