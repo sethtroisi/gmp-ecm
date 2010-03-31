@@ -46,6 +46,8 @@ To make a new release:
 
   0) Check all tests pass (test.ecm, test.pm1, test.pp1, testlong.pp1),
      check the issues in TODO, and for bugs/patches on ecm.gforge.inria.fr.
+     Check also no compiler warnings remain (with and without assertions).
+     Check "make longcheck" works (this uses valgrind).
   1) Check the version (configure.in and build.vc9/config.h).
      If this release is not a beta or release candidate, switch assertions to
      off by default in configure.in.
