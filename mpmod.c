@@ -577,10 +577,9 @@ ecm_mulredc_basecase (mpres_t R, const mpres_t S1, const mpres_t S2,
   else
 #endif
     {
-      mp_ptr tmp;
+      mp_ptr tmp = PTR(modulus->temp1);
       ASSERT(ALLOC(modulus->temp1) >= 2*nn);
       ASSERT(tmp != s1p && tmp != s2p);
-      tmp = PTR(modulus->temp1);
       if (s1p == s2p)
         mpn_sqr (tmp, s1p, nn);
       else
