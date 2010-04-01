@@ -304,6 +304,9 @@ static inline void
 redc_basecase_n (mp_ptr rp, mp_ptr cp, mp_srcptr np, const mp_size_t nn, 
                  const mp_limb_t invm)
 {
+#if defined(HAVE___GMPN_REDC_1)
+  __gmpn_redc_1 (rp, cp, np, nn, invm);
+#else
   mp_limb_t cy;
 #if defined(NATIVE_REDC) && defined(HAVE_NATIVE_REDC3)
   ecm_redc3 (cp, np, nn, invm);
@@ -330,6 +333,7 @@ redc_basecase_n (mp_ptr rp, mp_ptr cp, mp_srcptr np, const mp_size_t nn,
       t = mpn_sub_n (rp, rp, np, nn); /* a borrow should always occur here */
       ASSERT_ALWAYS (t == 1);
     }
+#endif
 }
 
 /* r <- c/R^nn mod n, where n has nn limbs, and R=2^GMP_NUMB_BITS.
@@ -557,6 +561,13 @@ ecm_mulredc_basecase (mpres_t R, const mpres_t S1, const mpres_t S2,
   const mp_size_t TUNE_MULREDC_THRESH = 20;
 #endif
 #endif
+#if defined(NATIVE_REDC) && !defined(TUNE_SQRREDC_THRESH)
+#ifdef TUNE
+  extern mp_size_t TUNE_SQRREDC_THRESH;
+#else
+  const mp_size_t TUNE_SQRREDC_THRESH = 20;
+#endif
+#endif
 
   ASSERT(ALLOC(R) >= nn);
   ASSERT(ALLOC(S1) >= nn);
@@ -571,20 +582,35 @@ ecm_mulredc_basecase (mpres_t R, const mpres_t S1, const mpres_t S2,
   for (j = ABSIZ(S2); j < nn; j++) 
     s2p[j] = 0;
 
-#if defined(NATIVE_REDC)
-  if (nn <= TUNE_MULREDC_THRESH)
-    mulredc (rp, s1p, s2p, np, nn, modulus->Nprim);
-  else
-#endif
+  if (s1p == s2p)
     {
-      mp_ptr tmp = PTR(modulus->temp1);
-      ASSERT(ALLOC(modulus->temp1) >= 2*nn);
-      ASSERT(tmp != s1p && tmp != s2p);
-      if (s1p == s2p)
-        mpn_sqr (tmp, s1p, nn);
+#if defined(NATIVE_REDC)
+      if (nn <= TUNE_SQRREDC_THRESH)
+        mulredc (rp, s1p, s2p, np, nn, modulus->Nprim);
       else
-        mpn_mul_n (tmp, s1p, s2p, nn);
-      redc_basecase_n (rp, tmp, np, nn, modulus->Nprim);
+#endif
+        {
+          mp_ptr tmp = PTR(modulus->temp1);
+          ASSERT(ALLOC(modulus->temp1) >= 2*nn);
+          ASSERT(tmp != s1p);
+          mpn_sqr (tmp, s1p, nn);
+          redc_basecase_n (rp, tmp, np, nn, modulus->Nprim);
+        }
+    }
+  else
+    {
+#if defined(NATIVE_REDC)
+      if (nn <= TUNE_MULREDC_THRESH)
+        mulredc (rp, s1p, s2p, np, nn, modulus->Nprim);
+      else
+#endif
+        {
+          mp_ptr tmp = PTR(modulus->temp1);
+          ASSERT(ALLOC(modulus->temp1) >= 2*nn);
+          ASSERT(tmp != s1p && tmp != s2p);
+          mpn_mul_n (tmp, s1p, s2p, nn);
+          redc_basecase_n (rp, tmp, np, nn, modulus->Nprim);
+        }
     }
 
   MPN_NORMALIZE (rp, nn);

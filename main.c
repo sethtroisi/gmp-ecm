@@ -285,6 +285,12 @@ print_config ()
   printf ("HAVE___GMPN_MOD_34LSUB1 undefined\n");
 #endif
 
+#ifdef HAVE___GMPN_REDC_1
+  printf ("HAVE___GMPN_REDC_1 = %d\n", HAVE___GMPN_REDC_1);
+#else
+  printf ("HAVE___GMPN_REDC_1 undefined\n");
+#endif
+
 #ifdef MEMORY_DEBUG
   printf ("MEMORY_DEBUG = %d\n", MEMORY_DEBUG);
 #else
@@ -297,6 +303,11 @@ print_config ()
   printf ("TUNE_MULREDC_THRESH = %d\n", TUNE_MULREDC_THRESH);
 #else
   printf ("TUNE_MULREDC_THRESH undefined\n");
+#endif
+#ifdef TUNE_SQRREDC_THRESH
+  printf ("TUNE_SQRREDC_THRESH = %d\n", TUNE_SQRREDC_THRESH);
+#else
+  printf ("TUNE_SQRREDC_THRESH undefined\n");
 #endif
 #else
   printf ("NATIVE_REDC undefined\n");
