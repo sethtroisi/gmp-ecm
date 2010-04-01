@@ -86,7 +86,7 @@ size_t PREREVERTDIVISION_NTT_THRESHOLD;
 size_t POLYINVERT_NTT_THRESHOLD;
 size_t POLYEVALT_NTT_THRESHOLD;
 size_t MPZSPV_NORMALISE_STRIDE = 256;
-size_t TUNE_MULREDC_THRESH;
+size_t TUNE_MULREDC_THRESH, TUNE_SQRREDC_THRESH;
 
 void
 mpz_quick_random (mpz_t x, mpz_t M, unsigned long b)
@@ -146,6 +146,55 @@ tune_mpres_mul (mp_size_t limbs, int repr)
   mpz_clear (N);
   mpz_clear (p);
   mpz_clear (q);
+
+  return (double) __k / (double) __st;
+}
+
+/* There is no actual mpres_sqr() function (yet), we simply call
+   mpres_mul() with two identical input */
+double
+tune_mpres_sqr (mp_size_t limbs, int repr)
+{
+  mpmod_t modulus;
+  mpres_t x, z;
+  mpz_t N, p;
+  unsigned int __k = 1, __i;
+  long __st;
+
+  mpz_init (N);
+  mpz_init (p);
+  
+  /* No need to generate a probable prime, just ensure N is not
+     divisible by 2 or 3 */
+  do
+    {
+      mpz_urandomb (N, gmp_randstate, limbs * GMP_NUMB_BITS);
+      while (mpz_gcd_ui (NULL, N, 6) != 1)
+        mpz_add_ui (N, N, 1);
+    }
+  while ((mp_size_t) mpz_size (N) != limbs);
+  
+  if (repr == ECM_MOD_MPZ)
+    mpmod_init_MPZ (modulus, N);
+  else if (repr == ECM_MOD_MODMULN)
+    mpmod_init_MODMULN (modulus, N);
+  else if (repr == ECM_MOD_REDC)
+    mpmod_init_REDC (modulus, N);
+
+  mpz_urandomm (p, gmp_randstate, N);
+  
+  mpres_init (x, modulus);
+  mpres_init (z, modulus);
+
+  mpres_set_z (x, p, modulus);
+
+  TUNE_FUNC_LOOP (mpres_mul (z, x, x, modulus));
+
+  mpres_clear (x, modulus);
+  mpres_clear (z, modulus);
+  mpmod_clear (modulus);
+  mpz_clear (N);
+  mpz_clear (p);
 
   return (double) __k / (double) __st;
 }
@@ -306,6 +355,31 @@ tune_mulredc_noasm (size_t n)
 }
 
 
+double 
+tune_sqrredc_asm (size_t n)
+{
+  double r;
+  /* Make ecm_mulredc_basecase() always use asm mulredc code */
+  TUNE_SQRREDC_THRESH=20;
+  r = tune_mpres_sqr (n, ECM_MOD_MODMULN);
+  if (tune_verbose)
+    fprintf (stderr, "tune_sqrredc_asm(%2ld) = %f\n", (long) n, r);
+  return r;
+}
+
+double 
+tune_sqrredc_noasm (size_t n)
+{
+  double r;
+  /* Make ecm_mulredc_basecase() always use asm mulredc code */
+  TUNE_SQRREDC_THRESH=0;
+  r = tune_mpres_sqr (n, ECM_MOD_MODMULN);
+  if (tune_verbose)
+    fprintf (stderr, "tune_sqrredc_noasm(%2ld) = %f\n", (long) n, r);
+  return r;
+}
+
+
 /* Return the lowest n with min_n <= n < max_n such that
  * f1(t) >= f0(t) for all t in [n, n + k), or return max_n if no such
  * n exists. This function will typically return high values if there
@@ -455,6 +529,11 @@ main (int argc, char **argv)
                                     1, 20, 2);
   printf ("#define TUNE_MULREDC_THRESH %lu\n", 
           (unsigned long) TUNE_MULREDC_THRESH);
+
+  TUNE_SQRREDC_THRESH = crossover2 (tune_sqrredc_asm, tune_sqrredc_noasm,
+                                    1, 20, 2);
+  printf ("#define TUNE_SQRREDC_THRESH %lu\n", 
+          (unsigned long) TUNE_SQRREDC_THRESH);
 
   MPZMOD_THRESHOLD = crossover2 (tune_mpres_mul_modmuln, tune_mpres_mul_mpz,
       1, 512, 10);

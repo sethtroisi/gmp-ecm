@@ -467,7 +467,7 @@ return strcmp (buffer, gmp_version);
    [AC_MSG_RESULT([cross-compiling: cannot test])]
 )
 
-AC_CHECK_FUNCS([__gmpn_add_nc __gmpn_mod_34lsub1])
+AC_CHECK_FUNCS([__gmpn_add_nc __gmpn_mod_34lsub1 __gmpn_redc_1])
 LIBS="$LIBS_BACKUP"
 
 dnl Check for xsltproc
