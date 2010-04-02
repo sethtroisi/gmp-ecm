@@ -2,7 +2,6 @@ m4_define([ECM_VERSION], [6.3-rc3])
 
 AC_PREREQ([2.57])
 AC_INIT([ecm], ECM_VERSION, [ecm-discuss@lists.gforge.inria.fr])
-LT_PREREQ([2.2.6b])
 AC_CONFIG_HEADER([config.h])
 AC_CONFIG_MACRO_DIR([m4])
 GMP_INIT([config.m4])
@@ -143,7 +142,7 @@ AM_PROG_CC_C_O
 # Now that we have decided on CC and CFLAGS, init libtool
 # Don't make a shared library by default. Enable building a shared library
 # by specifying "--enable-shared" on the ./configure command line
-LT_PREREQ([2.2.6b])
+LT_PREREQ([2.2.6])
 LT_INIT([disable-shared])
 
 
