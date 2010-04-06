@@ -198,6 +198,9 @@
 /* Define to empty if `const' does not conform to ANSI C. */
 #undef const
 
+/* How to specify hot-spot attribute, if available */
+#define ATTRIBUTE_HOT 
+
 /* Define to `__inline__' or `__inline' if that's what the C compiler
    calls it, or to nothing if 'inline' is not supported under any name.  */
 #ifndef __cplusplus

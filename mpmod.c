@@ -43,7 +43,10 @@ FILE *ECM_STDOUT, *ECM_STDERR; /* define them here since needed in tune.c */
 
 
 
-static void base2mod (mpres_t, const mpres_t, mpres_t, mpmod_t);
+static void ecm_redc_basecase (mpz_ptr, mpz_ptr, mpmod_t) ATTRIBUTE_HOT;
+static void ecm_mulredc_basecase (mpres_t, const mpres_t, const mpres_t, 
+                                  mpmod_t) ATTRIBUTE_HOT;
+static void base2mod (mpres_t, const mpres_t, mpres_t, mpmod_t) ATTRIBUTE_HOT;
 static void REDC (mpres_t, const mpres_t, mpz_t, mpmod_t);
 
 #if 0 /* PZ: commented out, since I don't see how to use this code.

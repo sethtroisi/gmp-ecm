@@ -38,6 +38,11 @@
 *                                                                             *
 ******************************************************************************/
 
+void duplicate (mpres_t, mpres_t, mpres_t, mpres_t, mpmod_t, mpres_t, 
+                mpres_t, mpres_t, mpres_t) ATTRIBUTE_HOT;
+void add3 (mpres_t, mpres_t, mpres_t, mpres_t, mpres_t, mpres_t, mpres_t, 
+           mpres_t, mpmod_t, mpres_t, mpres_t, mpres_t) ATTRIBUTE_HOT;
+
 #define mpz_mulmod5(r,s1,s2,m,t) { mpz_mul(t,s1,s2); mpz_mod(r, t, m); }
 
 /* Computes curve parameter A and a starting point (x:1) from a given
