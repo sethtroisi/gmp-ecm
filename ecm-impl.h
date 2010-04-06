@@ -556,7 +556,7 @@ void mpres_pow (mpres_t, const mpres_t, const mpz_t, mpmod_t);
 #define mpres_ui_pow __ECM(mpres_ui_pow)
 void mpres_ui_pow (mpres_t, const unsigned long, const mpres_t, mpmod_t);
 #define mpres_mul __ECM(mpres_mul)
-void mpres_mul (mpres_t, const mpres_t, const mpres_t, mpmod_t);
+void mpres_mul (mpres_t, const mpres_t, const mpres_t, mpmod_t) ATTRIBUTE_HOT;
 #define mpres_mul_z_to_z __ECM(mpres_mul_z_to_z)
 void mpres_mul_z_to_z (mpz_t, const mpres_t, const mpz_t, mpmod_t);
 #define mpres_set_z_for_gcd __ECM(mpres_set_z_for_gcd)
@@ -566,13 +566,13 @@ void mpres_div_2exp (mpres_t, const mpres_t, const unsigned int, mpmod_t);
 #define mpres_add_ui __ECM(mpres_add_ui)
 void mpres_add_ui (mpres_t, const mpres_t, const unsigned long, mpmod_t);
 #define mpres_add __ECM(mpres_add)
-void mpres_add (mpres_t, const mpres_t, const mpres_t, mpmod_t);
+void mpres_add (mpres_t, const mpres_t, const mpres_t, mpmod_t) ATTRIBUTE_HOT;
 #define mpres_sub_ui __ECM(mpres_sub_ui)
 void mpres_sub_ui (mpres_t, const mpres_t, const unsigned long, mpmod_t);
 #define mpres_ui_sub __ECM(mpres_ui_sub)
 void mpres_ui_sub (mpres_t, const unsigned long, const mpres_t, mpmod_t);
 #define mpres_sub __ECM(mpres_sub)
-void mpres_sub (mpres_t, const mpres_t, const mpres_t, mpmod_t);
+void mpres_sub (mpres_t, const mpres_t, const mpres_t, mpmod_t) ATTRIBUTE_HOT;
 #define mpres_set_z __ECM(mpres_set_z)
 void mpres_set_z (mpres_t, const mpz_t, mpmod_t);
 #define mpres_get_z __ECM(mpres_get_z)

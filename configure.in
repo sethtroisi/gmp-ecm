@@ -469,6 +469,23 @@ return strcmp (buffer, gmp_version);
 AC_CHECK_FUNCS([__gmpn_add_nc __gmpn_mod_34lsub1 __gmpn_redc_1])
 LIBS="$LIBS_BACKUP"
 
+dnl Check if the compiler understands some __attribute__ directives
+AC_MSG_CHECKING([whether compiler knows __attribute__((hot))])
+dnl The AC_LANG_WERROR directive causes configure to consider a test 
+dnl compilation unsuccessful if it produced any output on stderr.
+dnl We use it since unknown __attribute__ only cause a warning, not an 
+dnl error. Unfortunately there seems to be no way to switch it off again, 
+dnl so this test is at the end of the configure script
+AC_LANG_WERROR
+AC_COMPILE_IFELSE([AC_LANG_PROGRAM([void foo() __attribute__ ((hot));
+void foo() {return;}], [foo()])],
+[AC_DEFINE([ATTRIBUTE_HOT],[__attribute__ ((hot))], [How to specify hot-spot attribute, if available])
+ AC_MSG_RESULT([yes])
+],
+[AC_DEFINE([ATTRIBUTE_HOT],[ ], [How to specify hot-spot attribute, if available])
+ AC_MSG_RESULT([no])
+])
+
 dnl Check for xsltproc
 AC_CHECK_PROG([XSLTPROC],[xsltproc],[xsltproc])
 if test "x$XSLTPROC" != x; then
