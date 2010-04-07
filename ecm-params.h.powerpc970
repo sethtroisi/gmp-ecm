@@ -1,5 +1,5 @@
 /* these values were determined on gcc40.fsffrance.org with ecm-6.3-rc3,
-   with gcc 4.1.2, CFLAGS="-m64  -mtune=970 -O3" */
+   gmp-5.0.1, and gcc 4.1.2, CFLAGS="-m64  -mtune=970 -O3" */
 #define TUNE_MULREDC_THRESH 12
 #define TUNE_SQRREDC_THRESH 10
 #define MPZMOD_THRESHOLD 74
