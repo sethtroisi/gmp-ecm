@@ -1,0 +1,14 @@
+/* those parameters were obtained on gcc60.fsffrance.org with ecm-6.3-rc3
+   gmp-5.0.1, and gcc 4.3.2 -O2 -pedantic -mtune=itanium2 */
+#define TUNE_MULREDC_THRESH 1
+#define TUNE_SQRREDC_THRESH 2
+#define MPZMOD_THRESHOLD 151
+#define REDC_THRESHOLD 509
+#define MPN_MUL_LO_THRESHOLD_TABLE {0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 12, 1, 14, 15, 18, 1, 1, 19, 14, 20, 16, 21, 24, 21, 20, 20}
+#define NTT_GFP_TWIDDLE_DIF_BREAKOVER 15
+#define NTT_GFP_TWIDDLE_DIT_BREAKOVER 16
+#define MUL_NTT_THRESHOLD 262144
+#define PREREVERTDIVISION_NTT_THRESHOLD 262144
+#define POLYINVERT_NTT_THRESHOLD 262144
+#define POLYEVALT_NTT_THRESHOLD 262144
+#define MPZSPV_NORMALISE_STRIDE 128
