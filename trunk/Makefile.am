@@ -90,7 +90,7 @@ EXTRA_DIST = test.pm1 test.pp1 test.ecm README.lib ecm.xml \
              ecm-params.h.pentium3 ecm-params.h.pentium4 \
              ecm-params.h.pentium-m ecm-params.h.powerpc970 \
              ecm-params.h.mips64el ecm-params.h.armv5tel \
-             ecm-params.h.sparc64 \
+             ecm-params.h.sparc64 ecm-params.h.ia64 \
              mul_fft-params.h.athlon64 mul_fft-params.h.pentium3 \
              mul_fft-params.h.default mul_fft-params.h.pentium4
 
