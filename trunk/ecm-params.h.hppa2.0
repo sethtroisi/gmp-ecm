@@ -1,0 +1,16 @@
+/* those parameters were obtained on gcc61.fsffrance.org with ecm-6.3-rc3
+   gmp-5.0.1, and gcc 4.4.1 -O2 -pedantic -mpa-risc-1-1
+   (note that GMP must be configured with ABI=1.0, see
+   http://gmplib.org/list-archives/gmp-bugs/2009-August/001585.html */
+#define TUNE_MULREDC_THRESH 3
+#define TUNE_SQRREDC_THRESH 4
+#define MPZMOD_THRESHOLD 185
+#define REDC_THRESHOLD 512
+#define MPN_MUL_LO_THRESHOLD_TABLE {0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1}
+#define NTT_GFP_TWIDDLE_DIF_BREAKOVER 17
+#define NTT_GFP_TWIDDLE_DIT_BREAKOVER 17
+#define MUL_NTT_THRESHOLD 262144
+#define PREREVERTDIVISION_NTT_THRESHOLD 262144
+#define POLYINVERT_NTT_THRESHOLD 262144
+#define POLYEVALT_NTT_THRESHOLD 262144
+#define MPZSPV_NORMALISE_STRIDE 256
