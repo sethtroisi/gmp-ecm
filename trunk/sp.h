@@ -61,8 +61,14 @@ extern size_t MPZSPV_NORMALISE_STRIDE;
  * note that a small prime must be the size of a GMP limb */
 typedef mp_limb_t UWtype;
 typedef unsigned int UHWtype;
+#if (defined(_PA_RISC1_1) && defined(__GNUC__))
+/* this seems to be needed, otherwise umul_ppmm() does not work properly */
+typedef mp_limb_t USItype __attribute__ ((mode (SI)));
+typedef mp_limb_t UDItype __attribute__ ((mode (DI)));
+#else
 typedef mp_limb_t USItype;
 typedef mp_limb_t UDItype;
+#endif
 
 #ifndef W_TYPE_SIZE
 #define W_TYPE_SIZE GMP_LIMB_BITS
