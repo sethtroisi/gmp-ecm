@@ -3,7 +3,7 @@
 #
 # Linux:   z: %rdi, x: %rsi, y: %rdx, m: %rcx, inv_m: %r8
 #          Needs %rbx, %rsp, %rbp, %r12-%r15 restored
-# Windows: z: %rcx, x: %rdx, y: %r8,  m: %r9, inv_m: 8(%rsp)
+# Windows: z: %rcx, x: %rdx, y: %r8,  m: %r9, inv_m: 28(%rsp)
 #          Needs %rbx, %rbp, %rdi, %rsi, %r12...%15 restored
 
 divert(-1)dnl
@@ -18,7 +18,7 @@ divert
 
 `ifdef(`WINDOWS64_ABI',
 `define(`Y_PARAM', `%r8')dnl
-define(`INVM_PARAM',`8(%rsp)')dnl'
+define(`INVM_PARAM',`72(%rsp)')dnl'
 ,
 `define(`Y_PARAM', `%rdx')dnl
 define(`INVM_PARAM',`%r8')dnl'
@@ -136,11 +136,11 @@ define(`JM8', `eval(J - 8)')dnl
 	movq	J`'(MP), %rax	# Fetch m[j] into %rax
 	adcq	%rdx, T1	# Add high word with carry to T1
 	# T1:T0 <= 2^128 - 2*2^64 + 1 + 2*2^64 - 2 <= 2^128 - 1, no carry!
-ifdef(`WANT_ASSERT', `
+`ifdef(`WANT_ASSERT', `
 	jnc	1f
 	call	abort
 1:
-',`')
+',`')'
 	
 	mulq	U		# m[j]*u
 	# rdx:rax <= 2^128 - 2*2^64 + 1, T1:T0 <= 2^128 - 1
