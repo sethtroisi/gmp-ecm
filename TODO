@@ -9,7 +9,7 @@ Table of contents:
 6) others
 
 1) efficiency/memory
-- try gmp_redc_2 (when available). See
+- try gmp_redc_2 (when in the public API of GMP). See
   http://gmplib.org/devel/REDC_1_TO_REDC_2_THRESHOLD.html.
 - try GMP's mpn/generic/powm.c code to select routines to perform modular
   multiplication depending on different thresholds
