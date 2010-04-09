@@ -309,6 +309,11 @@ print_config ()
 #else
   printf ("TUNE_SQRREDC_THRESH undefined\n");
 #endif
+#ifdef WINDOWS64_ABI
+  printf ("WINDOWS64_ABI = %d\n", WINDOWS64_ABI);
+#else
+  printf ("WINDOWS64_ABI undefined\n");
+#endif
 #else
   printf ("NATIVE_REDC undefined\n");
 #endif
@@ -1478,6 +1483,12 @@ BreadthFirstDoAgain:;
           printf ("[%.24s]\n", ctime (&t));
         }
 
+#if 0
+      /* Test mpres_muldivbysomething_si() which is not called in normal
+         operation */
+      mpmod_selftest (n.n);
+#endif
+      
       /* now call the ecm library */
       result = ecm_factor (f, n.n, B1, params);
 
