@@ -1,6 +1,6 @@
 /* config.h.in.  Generated from configure.in by autoheader.  */
 
-#define VERSION "6.3-rc3"
+#define VERSION "6.3-rc4"
 
 #define PACKAGE_BUGREPORT "ecm-discuss@lists.gforge.inria.fr"
 
