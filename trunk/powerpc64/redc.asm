@@ -34,6 +34,11 @@ dnl  c[0 ... n-1] will contain the high word carries from each inner loop pass.
 dnl  These carry words are added by the calling routine to obtain the final
 dnl  residue.
 
+dnl Use `C' to remove comments in .asm -> .s conversion.
+dnl Copied from GMP 4.2.
+define(C, `
+dnl')
+
 include(`config.m4')
         TEXT
         GLOBL GSYM_PREFIX`'ecm_redc3
@@ -41,17 +46,17 @@ include(`config.m4')
 
 GSYM_PREFIX`'ecm_redc3:
 
-	cmpdi	r5, 1				# length = 1?
+	cmpdi	r5, 1				C length = 1?
 	bne		1f
 
-    ld      r12, 0(r3)          # c[0]
-    ld      r0, 0(r4)           # m[0]
-    mulld   r7, r6, r12         # u = c[0] * m_inv mod 2^64
-    mulld   r11, r0, r7         # m[0]*u low
-    mulhdu  r10, r0, r7         # m[0]*u high
-	addc	r11, r11, r12		# c[0] + m[0]*u low = 0
-	addze	r10, r10			# carry to high half
-	std		r10, 0(r3)			# store the "carry" word
+    ld      r12, 0(r3)          C c[0]
+    ld      r0, 0(r4)           C m[0]
+    mulld   r7, r6, r12         C u = c[0] * m_inv mod 2^64
+    mulld   r11, r0, r7         C m[0]*u low
+    mulhdu  r10, r0, r7         C m[0]*u high
+	addc	r11, r11, r12		C c[0] + m[0]*u low = 0
+	addze	r10, r10			C carry to high half
+	std		r10, 0(r3)			C store the "carry" word
 	blr
 
     nop
@@ -60,60 +65,60 @@ GSYM_PREFIX`'ecm_redc3:
 	nop
 	nop
 1:
-    mflr    r0                  # save return addr
-    stdu    r0, -8(r1)          # on the stack
-    stdu    r13, -8(r1)         # save r13
+    mflr    r0                  C save return addr
+    stdu    r0, -8(r1)          C on the stack
+    stdu    r13, -8(r1)         C save r13
 dnl 
 dnl        get inner loop count and jump offset
 dnl 
-    subi    r7, r5, 2           # r7 = n - 2
-    andi.   r8, r7, 15          # r8 =  (n - 2) mod 16
-    sldi    r8, r8, 5           # r8 * 32 = byte offset
-    srdi    r7, r7, 4           # int((n - 2)/16)
+    subi    r7, r5, 2           C r7 = n - 2
+    andi.   r8, r7, 15          C r8 =  (n - 2) mod 16
+    sldi    r8, r8, 5           C r8 * 32 = byte offset
+    srdi    r7, r7, 4           C int((n - 2)/16)
 dnl 
 dnl  compute the address of inner loop end and subtract the offset
 dnl 
-    bl      nxt                 # put the address of the next instruction
-    							# into the link register
-nxt:							#
-    mflr    r9                  # r9 = address of this instruction
-    addi    r9, r9, 640  	# add offset to v_1 from nxt
-	                        # WARNING: any changes to the code between
-	                        # the labels "nxt" and "v_1" may require
-	                        # recomputation of the offset above.
-    sub     r9, r9, r8          # offset back to desired starting point
-    mtlr    r9                  # and now we can branch directly to our target
-    mtctr   r5                  # outer loop count n
-    addi    r13, r7, 1          # inner loop counter
+    bl      nxt                 C put the address of the next instruction
+    							C into the link register
+nxt:							C
+    mflr    r9                  C r9 = address of this instruction
+    addi    r9, r9, 640  	C add offset to v_1 from nxt
+	                        C WARNING: any changes to the code between
+	                        C the labels "nxt" and "v_1" may require
+	                        C recomputation of the offset above.
+    sub     r9, r9, r8          C offset back to desired starting point
+    mtlr    r9                  C and now we can branch directly to our target
+    mtctr   r5                  C outer loop count n
+    addi    r13, r7, 1          C inner loop counter
 
 	nop
 	nop
 
-OuterLoop:                      # execute n times
+OuterLoop:                      C execute n times
 
 dnl  compute u, set addr's
     
-    ld      r12, 0(r3)          # c[0]
-    mr      r8, r4              # r8 = working copy of m address
-    ld      r0, 0(r8)           # m[0]
-    mulld   r7, r6, r12         # u = c[0] * m_inv mod 2^64
-    mfctr   r5                  # save current outer loop count
+    ld      r12, 0(r3)          C c[0]
+    mr      r8, r4              C r8 = working copy of m address
+    ld      r0, 0(r8)           C m[0]
+    mulld   r7, r6, r12         C u = c[0] * m_inv mod 2^64
+    mfctr   r5                  C save current outer loop count
 
 dnl  start inner
-    mulld   r11, r0, r7         # m[0]*u low
-    mtctr   r13                 # inner loop count
-    mulhdu  r10, r0, r7         # m[0]*u high
-    ldu     r0, 8(r8)           # m[1]
-    addc    r11, r11, r12       # m[0]*u low + c[0] (don't bother storing zero)
-    mulld   r11, r0, r7         # m[1]*u low
-    ldu     r12, 8(r3)          # c[1], update c address
-    mr      r9, r3              # r9 = working copy of c addr
-    mulhdu  r0, r0, r7          # m[1]*u high
-    adde    r11, r10, r11       # m[1]*u low + m[0]*u high + cy
-    addze   r10, r0             # m[1]*u high + cy
+    mulld   r11, r0, r7         C m[0]*u low
+    mtctr   r13                 C inner loop count
+    mulhdu  r10, r0, r7         C m[0]*u high
+    ldu     r0, 8(r8)           C m[1]
+    addc    r11, r11, r12       C m[0]*u low + c[0] (don't bother storing zero)
+    mulld   r11, r0, r7         C m[1]*u low
+    ldu     r12, 8(r3)          C c[1], update c address
+    mr      r9, r3              C r9 = working copy of c addr
+    mulhdu  r0, r0, r7          C m[1]*u high
+    adde    r11, r10, r11       C m[1]*u low + m[0]*u high + cy
+    addze   r10, r0             C m[1]*u high + cy
 
-    blr                         # jump to start of the (n-2) mod 16 section
-								# (or to v_1, if (n-2) mod 16 = 0)
+    blr                         C jump to start of the (n-2) mod 16 section
+								C (or to v_1, if (n-2) mod 16 = 0)
     nop
 	nop
 	nop
@@ -124,192 +129,192 @@ dnl  start inner
 
 ILoop:
 
-    ldu     r0, 8(r8)           # m[i]
-    addc    r11, r11, r12       # m[i-1]*u low + m[i-2]*u high + c[i-1]
-    std     r11, 0(r9)          # store it in c[i-1]
-    mulld   r11, r0, r7         # m[i]*u low
-    ldu     r12, 8(r9)          # c[i]
-    mulhdu  r0, r0, r7          # m[i]*u high
-    adde    r11, r10, r11       # m[i]*u low + m[i-1]*u high + cy
-    addze   r10, r0             # r10 =  m[i]*u + cy
+    ldu     r0, 8(r8)           C m[i]
+    addc    r11, r11, r12       C m[i-1]*u low + m[i-2]*u high + c[i-1]
+    std     r11, 0(r9)          C store it in c[i-1]
+    mulld   r11, r0, r7         C m[i]*u low
+    ldu     r12, 8(r9)          C c[i]
+    mulhdu  r0, r0, r7          C m[i]*u high
+    adde    r11, r10, r11       C m[i]*u low + m[i-1]*u high + cy
+    addze   r10, r0             C r10 =  m[i]*u + cy
 dnl 
 dnl  start (n-2) mod 16 = 15
 dnl 
-    ldu     r0, 8(r8)           # m[i]
-    addc    r11, r11, r12       # m[i-1]*u low + m[i-2]*u high + c[i-1]
-    std     r11, 0(r9)          # store it in c[i-1]
-    mulld   r11, r0, r7         # m[i]*u low
-    ldu     r12, 8(r9)          # c[i]
-    mulhdu  r0, r0, r7          # m[i]*u high
-    adde    r11, r10, r11       # m[i]*u low + m[i-1]*u high + cy
-    addze   r10, r0             # r10 =  m[i]*u + cy
+    ldu     r0, 8(r8)           C m[i]
+    addc    r11, r11, r12       C m[i-1]*u low + m[i-2]*u high + c[i-1]
+    std     r11, 0(r9)          C store it in c[i-1]
+    mulld   r11, r0, r7         C m[i]*u low
+    ldu     r12, 8(r9)          C c[i]
+    mulhdu  r0, r0, r7          C m[i]*u high
+    adde    r11, r10, r11       C m[i]*u low + m[i-1]*u high + cy
+    addze   r10, r0             C r10 =  m[i]*u + cy
 dnl 
 dnl  start (n-2) mod 16 = 14
 dnl 
-    ldu     r0, 8(r8)           # m[i]
-    addc    r11, r11, r12       # m[i-1]*u low + m[i-2]*u high + c[i-1]
-    std     r11, 0(r9)          # store it in c[i-1]
-    mulld   r11, r0, r7         # m[i]*u low
-    ldu     r12, 8(r9)          # c[i]
-    mulhdu  r0, r0, r7          # m[i]*u high
-    adde    r11, r10, r11       # m[i]*u low + m[i-1]*u high + cy
-    addze   r10, r0             # r10 =  m[i]*u + cy
+    ldu     r0, 8(r8)           C m[i]
+    addc    r11, r11, r12       C m[i-1]*u low + m[i-2]*u high + c[i-1]
+    std     r11, 0(r9)          C store it in c[i-1]
+    mulld   r11, r0, r7         C m[i]*u low
+    ldu     r12, 8(r9)          C c[i]
+    mulhdu  r0, r0, r7          C m[i]*u high
+    adde    r11, r10, r11       C m[i]*u low + m[i-1]*u high + cy
+    addze   r10, r0             C r10 =  m[i]*u + cy
 dnl 
 dnl  start (n-2) mod 16 = 13
 dnl 
-    ldu     r0, 8(r8)           # m[i]
-    addc    r11, r11, r12       # m[i-1]*u low + m[i-2]*u high + c[i-1]
-    std     r11, 0(r9)          # store it in c[i-1]
-    mulld   r11, r0, r7         # m[i]*u low
-    ldu     r12, 8(r9)          # c[i]
-    mulhdu  r0, r0, r7          # m[i]*u high
-    adde    r11, r10, r11       # m[i]*u low + m[i-1]*u high + cy
-    addze   r10, r0             # r10 =  m[i]*u + cy
+    ldu     r0, 8(r8)           C m[i]
+    addc    r11, r11, r12       C m[i-1]*u low + m[i-2]*u high + c[i-1]
+    std     r11, 0(r9)          C store it in c[i-1]
+    mulld   r11, r0, r7         C m[i]*u low
+    ldu     r12, 8(r9)          C c[i]
+    mulhdu  r0, r0, r7          C m[i]*u high
+    adde    r11, r10, r11       C m[i]*u low + m[i-1]*u high + cy
+    addze   r10, r0             C r10 =  m[i]*u + cy
 dnl 
 dnl  start (n-2) mod 16 = 12
 dnl 
-    ldu     r0, 8(r8)           # m[i]
-    addc    r11, r11, r12       # m[i-1]*u low + m[i-2]*u high + c[i-1]
-    std     r11, 0(r9)          # store it in c[i-1]
-    mulld   r11, r0, r7         # m[i]*u low
-    ldu     r12, 8(r9)          # c[i]
-    mulhdu  r0, r0, r7          # m[i]*u high
-    adde    r11, r10, r11       # m[i]*u low + m[i-1]*u high + cy
-    addze   r10, r0             # r10 =  m[i]*u + cy
+    ldu     r0, 8(r8)           C m[i]
+    addc    r11, r11, r12       C m[i-1]*u low + m[i-2]*u high + c[i-1]
+    std     r11, 0(r9)          C store it in c[i-1]
+    mulld   r11, r0, r7         C m[i]*u low
+    ldu     r12, 8(r9)          C c[i]
+    mulhdu  r0, r0, r7          C m[i]*u high
+    adde    r11, r10, r11       C m[i]*u low + m[i-1]*u high + cy
+    addze   r10, r0             C r10 =  m[i]*u + cy
 dnl 
 dnl  start (n-2) mod 16 = 11
 dnl 
-    ldu     r0, 8(r8)           # m[i]
-    addc    r11, r11, r12       # m[i-1]*u low + m[i-2]*u high + c[i-1]
-    std     r11, 0(r9)          # store it in c[i-1]
-    mulld   r11, r0, r7         # m[i]*u low
-    ldu     r12, 8(r9)          # c[i]
-    mulhdu  r0, r0, r7          # m[i]*u high
-    adde    r11, r10, r11       # m[i]*u low + m[i-1]*u high + cy
-    addze   r10, r0             # r10 =  m[i]*u + cy
+    ldu     r0, 8(r8)           C m[i]
+    addc    r11, r11, r12       C m[i-1]*u low + m[i-2]*u high + c[i-1]
+    std     r11, 0(r9)          C store it in c[i-1]
+    mulld   r11, r0, r7         C m[i]*u low
+    ldu     r12, 8(r9)          C c[i]
+    mulhdu  r0, r0, r7          C m[i]*u high
+    adde    r11, r10, r11       C m[i]*u low + m[i-1]*u high + cy
+    addze   r10, r0             C r10 =  m[i]*u + cy
 dnl 
 dnl  start (n-2) mod 16 = 10
 dnl 
-    ldu     r0, 8(r8)           # m[i]
-    addc    r11, r11, r12       # m[i-1]*u low + m[i-2]*u high + c[i-1]
-    std     r11, 0(r9)          # store it in c[i-1]
-    mulld   r11, r0, r7         # m[i]*u low
-    ldu     r12, 8(r9)          # c[i]
-    mulhdu  r0, r0, r7          # m[i]*u high
-    adde    r11, r10, r11       # m[i]*u low + m[i-1]*u high + cy
-    addze   r10, r0             # r10 =  m[i]*u + cy
+    ldu     r0, 8(r8)           C m[i]
+    addc    r11, r11, r12       C m[i-1]*u low + m[i-2]*u high + c[i-1]
+    std     r11, 0(r9)          C store it in c[i-1]
+    mulld   r11, r0, r7         C m[i]*u low
+    ldu     r12, 8(r9)          C c[i]
+    mulhdu  r0, r0, r7          C m[i]*u high
+    adde    r11, r10, r11       C m[i]*u low + m[i-1]*u high + cy
+    addze   r10, r0             C r10 =  m[i]*u + cy
 dnl 
 dnl  start (n-2) mod 16 = 9
 dnl 
-    ldu     r0, 8(r8)           # m[i]
-    addc    r11, r11, r12       # m[i-1]*u low + m[i-2]*u high + c[i-1]
-    std     r11, 0(r9)          # store it in c[i-1]
-    mulld   r11, r0, r7         # m[i]*u low
-    ldu     r12, 8(r9)          # c[i]
-    mulhdu  r0, r0, r7          # m[i]*u high
-    adde    r11, r10, r11       # m[i]*u low + m[i-1]*u high + cy
-    addze   r10, r0             # r10 =  m[i]*u + cy
+    ldu     r0, 8(r8)           C m[i]
+    addc    r11, r11, r12       C m[i-1]*u low + m[i-2]*u high + c[i-1]
+    std     r11, 0(r9)          C store it in c[i-1]
+    mulld   r11, r0, r7         C m[i]*u low
+    ldu     r12, 8(r9)          C c[i]
+    mulhdu  r0, r0, r7          C m[i]*u high
+    adde    r11, r10, r11       C m[i]*u low + m[i-1]*u high + cy
+    addze   r10, r0             C r10 =  m[i]*u + cy
 dnl 
 dnl  start (n-2) mod 16 = 8
 dnl 
-    ldu     r0, 8(r8)           # m[i]
-    addc    r11, r11, r12       # m[i-1]*u low + m[i-2]*u high + c[i-1]
-    std     r11, 0(r9)          # store it in c[i-1]
-    mulld   r11, r0, r7         # m[i]*u low
-    ldu     r12, 8(r9)          # c[i]
-    mulhdu  r0, r0, r7          # m[i]*u high
-    adde    r11, r10, r11       # m[i]*u low + m[i-1]*u high + cy
-    addze   r10, r0             # r10 =  m[i]*u + cy
+    ldu     r0, 8(r8)           C m[i]
+    addc    r11, r11, r12       C m[i-1]*u low + m[i-2]*u high + c[i-1]
+    std     r11, 0(r9)          C store it in c[i-1]
+    mulld   r11, r0, r7         C m[i]*u low
+    ldu     r12, 8(r9)          C c[i]
+    mulhdu  r0, r0, r7          C m[i]*u high
+    adde    r11, r10, r11       C m[i]*u low + m[i-1]*u high + cy
+    addze   r10, r0             C r10 =  m[i]*u + cy
 dnl 
 dnl  start (n-2) mod 16 = 7
 dnl 
-    ldu     r0, 8(r8)           # m[i]
-    addc    r11, r11, r12       # m[i-1]*u low + m[i-2]*u high + c[i-1]
-    std     r11, 0(r9)          # store it in c[i-1]
-    mulld   r11, r0, r7         # m[i]*u low
-    ldu     r12, 8(r9)          # c[i]
-    mulhdu  r0, r0, r7          # m[i]*u high
-    adde    r11, r10, r11       # m[i]*u low + m[i-1]*u high + cy
-    addze   r10, r0             # r10 =  m[i]*u + cy
+    ldu     r0, 8(r8)           C m[i]
+    addc    r11, r11, r12       C m[i-1]*u low + m[i-2]*u high + c[i-1]
+    std     r11, 0(r9)          C store it in c[i-1]
+    mulld   r11, r0, r7         C m[i]*u low
+    ldu     r12, 8(r9)          C c[i]
+    mulhdu  r0, r0, r7          C m[i]*u high
+    adde    r11, r10, r11       C m[i]*u low + m[i-1]*u high + cy
+    addze   r10, r0             C r10 =  m[i]*u + cy
 dnl 
 dnl  start (n-2) mod 16 = 6
 dnl 
-    ldu     r0, 8(r8)           # m[i]
-    addc    r11, r11, r12       # m[i-1]*u low + m[i-2]*u high + c[i-1]
-    std     r11, 0(r9)          # store it in c[i-1]
-    mulld   r11, r0, r7         # m[i]*u low
-    ldu     r12, 8(r9)          # c[i]
-    mulhdu  r0, r0, r7          # m[i]*u high
-    adde    r11, r10, r11       # m[i]*u low + m[i-1]*u high + cy
-    addze   r10, r0             # r10 =  m[i]*u + cy
+    ldu     r0, 8(r8)           C m[i]
+    addc    r11, r11, r12       C m[i-1]*u low + m[i-2]*u high + c[i-1]
+    std     r11, 0(r9)          C store it in c[i-1]
+    mulld   r11, r0, r7         C m[i]*u low
+    ldu     r12, 8(r9)          C c[i]
+    mulhdu  r0, r0, r7          C m[i]*u high
+    adde    r11, r10, r11       C m[i]*u low + m[i-1]*u high + cy
+    addze   r10, r0             C r10 =  m[i]*u + cy
 dnl 
 dnl  start (n-2) mod 16 = 5
 dnl 
-    ldu     r0, 8(r8)           # m[i]
-    addc    r11, r11, r12       # m[i-1]*u low + m[i-2]*u high + c[i-1]
-    std     r11, 0(r9)          # store it in c[i-1]
-    mulld   r11, r0, r7         # m[i]*u low
-    ldu     r12, 8(r9)          # c[i]
-    mulhdu  r0, r0, r7          # m[i]*u high
-    adde    r11, r10, r11       # m[i]*u low + m[i-1]*u high + cy
-    addze   r10, r0             # r10 =  m[i]*u + cy
+    ldu     r0, 8(r8)           C m[i]
+    addc    r11, r11, r12       C m[i-1]*u low + m[i-2]*u high + c[i-1]
+    std     r11, 0(r9)          C store it in c[i-1]
+    mulld   r11, r0, r7         C m[i]*u low
+    ldu     r12, 8(r9)          C c[i]
+    mulhdu  r0, r0, r7          C m[i]*u high
+    adde    r11, r10, r11       C m[i]*u low + m[i-1]*u high + cy
+    addze   r10, r0             C r10 =  m[i]*u + cy
 dnl 
 dnl  start (n-2) mod 16 = 4
 dnl 
-    ldu     r0, 8(r8)           # m[i]
-    addc    r11, r11, r12       # m[i-1]*u low + m[i-2]*u high + c[i-1]
-    std     r11, 0(r9)          # store it in c[i-1]
-    mulld   r11, r0, r7         # m[i]*u low
-    ldu     r12, 8(r9)          # c[i]
-    mulhdu  r0, r0, r7          # m[i]*u high
-    adde    r11, r10, r11       # m[i]*u low + m[i-1]*u high + cy
-    addze   r10, r0             # r10 =  m[i]*u + cy
+    ldu     r0, 8(r8)           C m[i]
+    addc    r11, r11, r12       C m[i-1]*u low + m[i-2]*u high + c[i-1]
+    std     r11, 0(r9)          C store it in c[i-1]
+    mulld   r11, r0, r7         C m[i]*u low
+    ldu     r12, 8(r9)          C c[i]
+    mulhdu  r0, r0, r7          C m[i]*u high
+    adde    r11, r10, r11       C m[i]*u low + m[i-1]*u high + cy
+    addze   r10, r0             C r10 =  m[i]*u + cy
 dnl 
 dnl  start (n-2) mod 16 = 3
 dnl 
-    ldu     r0, 8(r8)           # m[i]
-    addc    r11, r11, r12       # m[i-1]*u low + m[i-2]*u high + c[i-1]
-    std     r11, 0(r9)          # store it in c[i-1]
-    mulld   r11, r0, r7         # m[i]*u low
-    ldu     r12, 8(r9)          # c[i]
-    mulhdu  r0, r0, r7          # m[i]*u high
-    adde    r11, r10, r11       # m[i]*u low + m[i-1]*u high + cy
-    addze   r10, r0             # r10 =  m[i]*u + cy
+    ldu     r0, 8(r8)           C m[i]
+    addc    r11, r11, r12       C m[i-1]*u low + m[i-2]*u high + c[i-1]
+    std     r11, 0(r9)          C store it in c[i-1]
+    mulld   r11, r0, r7         C m[i]*u low
+    ldu     r12, 8(r9)          C c[i]
+    mulhdu  r0, r0, r7          C m[i]*u high
+    adde    r11, r10, r11       C m[i]*u low + m[i-1]*u high + cy
+    addze   r10, r0             C r10 =  m[i]*u + cy
 dnl 
 dnl  start (n-2) mod 16 = 2
 dnl 
-	ldu     r0, 8(r8)           # m[i]
-    addc    r11, r11, r12       # m[i-1]*u low + m[i-2]*u high + c[i-1]
-    std     r11, 0(r9)          # store it in c[i-1]
-    mulld   r11, r0, r7         # m[i]*u low
-    ldu     r12, 8(r9)          # c[i]
-    mulhdu  r0, r0, r7          # m[i]*u high
-    adde    r11, r10, r11       # m[i]*u low + m[i-1]*u high + cy
-    addze   r10, r0             # r10 =  m[i]*u + cy
+	ldu     r0, 8(r8)           C m[i]
+    addc    r11, r11, r12       C m[i-1]*u low + m[i-2]*u high + c[i-1]
+    std     r11, 0(r9)          C store it in c[i-1]
+    mulld   r11, r0, r7         C m[i]*u low
+    ldu     r12, 8(r9)          C c[i]
+    mulhdu  r0, r0, r7          C m[i]*u high
+    adde    r11, r10, r11       C m[i]*u low + m[i-1]*u high + cy
+    addze   r10, r0             C r10 =  m[i]*u + cy
 dnl 
 dnl  start (n-2) mod 16 = 1
 dnl 
-    ldu     r0, 8(r8)           # m[i]
-    addc    r11, r11, r12       # m[i-1]*u low + m[i-2]*u high + c[i-1]
-    std     r11, 0(r9)          # store it in c[i-1]
-    mulld   r11, r0, r7         # m[i]*u low
-    ldu     r12, 8(r9)          # c[i]
-    mulhdu  r0, r0, r7          # m[i]*u high
-    adde    r11, r10, r11       # m[i]*u low + m[i-1]*u high + cy
-    addze   r10, r0             # r10 =  m[i]*u + cy
+    ldu     r0, 8(r8)           C m[i]
+    addc    r11, r11, r12       C m[i-1]*u low + m[i-2]*u high + c[i-1]
+    std     r11, 0(r9)          C store it in c[i-1]
+    mulld   r11, r0, r7         C m[i]*u low
+    ldu     r12, 8(r9)          C c[i]
+    mulhdu  r0, r0, r7          C m[i]*u high
+    adde    r11, r10, r11       C m[i]*u low + m[i-1]*u high + cy
+    addze   r10, r0             C r10 =  m[i]*u + cy
 v_1:
-    bdnz    ILoop               # blr above jumps directly to this bdnz instruction
-                                # when (n-2) mod 16 = 0
+    bdnz    ILoop               C blr above jumps directly to this bdnz instruction
+                                C when (n-2) mod 16 = 0
 dnl  finish inner
-    addc    r11, r11, r12       # m[i-1]*u low + m[i-2]*u high + c[i-1]
-    std     r11, 0(r9)          # store it in c[i-1]
-    addze   r10, r10            # result cy = 0 always
-    std     r10, -8(r3)         # store the "carry" word
-    mtctr   r5                  # restore outer loop count
+    addc    r11, r11, r12       C m[i-1]*u low + m[i-2]*u high + c[i-1]
+    std     r11, 0(r9)          C store it in c[i-1]
+    addze   r10, r10            C result cy = 0 always
+    std     r10, -8(r3)         C store the "carry" word
+    mtctr   r5                  C restore outer loop count
     bdnz    OuterLoop
 
-    ld      r13, 0(r1)          # restore r13
-    ld      r0, 8(r1)           # original return address
-    addi    r1, r1, 16          # restore stack ptr
+    ld      r13, 0(r1)          C restore r13
+    ld      r0, 8(r1)           C original return address
+    addi    r1, r1, 16          C restore stack ptr
     mtlr    r0
     blr
