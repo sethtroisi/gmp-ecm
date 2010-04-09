@@ -1,0 +1,14 @@
+/* parameters kindly provided by Torbjorn Granlund, and produced with
+   ecm-6.3-rc3 on alphaev56-unknown-freebsd6.4 */
+#define TUNE_MULREDC_THRESH 1
+#define TUNE_SQRREDC_THRESH 7
+#define MPZMOD_THRESHOLD 58
+#define REDC_THRESHOLD 493
+#define MPN_MUL_LO_THRESHOLD_TABLE {0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1}
+#define NTT_GFP_TWIDDLE_DIF_BREAKOVER 17
+#define NTT_GFP_TWIDDLE_DIT_BREAKOVER 17
+#define MUL_NTT_THRESHOLD 4096
+#define PREREVERTDIVISION_NTT_THRESHOLD 64
+#define POLYINVERT_NTT_THRESHOLD 512
+#define POLYEVALT_NTT_THRESHOLD 512
+#define MPZSPV_NORMALISE_STRIDE 128

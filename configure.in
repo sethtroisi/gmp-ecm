@@ -519,10 +519,15 @@ case $host in
   x86_64*-*-*) config_arch="athlon64" ;;
   pentium3-*-*) config_arch="pentium3" ;;
   pentium4-*-*) config_arch="pentium4" ;;
+  pentium-m-*-*) config_arch="pentium-m" ;;
   alphaev6*-*-*) config_arch="alpha-ev6" ;;
+  alphaev56*-*-*) config_arch="alpha-ev56" ;;
   alphaev5*-*-*) config_arch="alpha-ev5" ;;
   powerpc7450-*-*) config_arch="powerpc7450" ;;
   powerpc-apple-darwin* | powerpc64-*-*) config_arch="powerpc970" ;;
+  mips64el-*-*) config_arch="mips64el" ;;
+  armv5tel-*-*) config_arch="armv5tel" ;;
+  sparc64-*-*) config_arch="sparc64" ;;
   *) config_arch="default" ;;
 esac
 
