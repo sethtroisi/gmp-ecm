@@ -21,7 +21,7 @@ libmulredc_la_SOURCES = $(MULREDC) $(MULREDC1)
 # knows them only as intermediate files, not as targets. Adding the
 # dependency to libmulredc.la should work so long as no stale .s
 # files exist.
-libmulredc_la_DEPENDENCIES = $(top_srcdir)/config.m4
+libmulredc_la_DEPENDENCIES = $(top_builddir)/config.m4
   
 # There has to be a way of making this automatically
 mulredc2.asm: mulredc.m4

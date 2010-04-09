@@ -11,7 +11,7 @@ EXTRA_PROGRAMS = rho
 if ENABLE_ASM_REDC
   SUBDIRS = $(ASMPATH)
   MULREDCINCPATH = -I$(srcdir)/$(ASMPATH)
-  MULREDCLIBPATH = -L$(srcdir)/$(ASMPATH)
+  MULREDCLIBPATH = -L$(builddir)/$(ASMPATH)
   MULREDCLIBRARY = -lmulredc
 
   # Add a testing and timing program for the mulredc code
