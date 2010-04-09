@@ -1812,3 +1812,28 @@ mpres_out_str (FILE *fd, const unsigned int base, const mpres_t S,
   mpres_get_z (modulus->temp2, S, modulus);
   mpz_out_str (fd, base, modulus->temp2);
 }
+
+int
+mpmod_selftest (const mpz_t n)
+{
+  mpres_t test1, test2;
+  mpmod_t modulus;
+  
+  printf ("Performing self test\n");
+  mpmod_init (modulus, n, 0);
+  mpres_init (test1, modulus);
+  mpres_init (test2, modulus);
+  mpres_set_ui (test1, 2, modulus);
+  mpres_set_ui (test2, 5, modulus);
+  mpres_muldivbysomething_si (test1, test1, 5, modulus);
+  mpres_muldivbysomething_si (test2, test2, 2, modulus);
+  if (!mpres_equal (test1, test2, modulus))
+   {
+     printf ("mpres_muldivbysomething_si() wrong\n");
+     fflush (stdout);
+     abort();
+   }
+  mpres_clear (test1, modulus);
+  mpres_clear (test2, modulus);
+  mpmod_clear (modulus);
+}
