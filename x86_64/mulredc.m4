@@ -3,7 +3,7 @@
 #
 # Linux:   z: %rdi, x: %rsi, y: %rdx, m: %rcx, inv_m: %r8
 #          Needs %rbx, %rsp, %rbp, %r12-%r15 restored
-# Windows: z: %rcx, x: %rdx, y: %r8,  m: %r9, inv_m: 8(%rsp)
+# Windows: z: %rcx, x: %rdx, y: %r8,  m: %r9, inv_m: 28(%rsp)
 #          Needs %rbx, %rbp, %rdi, %rsi, %r12...%15 restored
 
 # This stuff is run through M4 twice, first when generating the
@@ -75,13 +75,13 @@ define(`I', `r12')dnl		# register that holds loop counter i
 define(`Il', `r12d')dnl		# register that holds loop counter i
 define(`ZP', `rdi')dnl		# register that holds z. Same as passed in
 ifdef(`WINDOWS64_ABI',
-define(`YP', `r8')dnl		# points to y array, same as passed in
+`define(`YP', `r8')dnl		# points to y array, same as passed in
 define(`MP', `r9')dnl		# points to m array, same as passed in
-define(`INVM', `r10')dnl	# register that holds invm. Same as passed in
+define(`INVM', `r10')dnl	# register that holds invm. Same as passed in'
 ,
-define(`YP', `r9')dnl		# register that points to the y array
+`define(`YP', `r9')dnl		# register that points to the y array
 define(`MP', `r10')dnl		# register that points to the m array
-define(`INVM', `r8')dnl		# register that holds invm. Same as passed in
+define(`INVM', `r8')dnl		# register that holds invm. Same as passed in'
 )dnl'
 
 dnl Put overview of register allocation into .s file
@@ -106,16 +106,16 @@ GSYM_PREFIX``''mulredc`'LENGTH:
 `	pushq	%rsi
 	pushq	%rdi
 ') dnl'
-	subq	$LOCALSPACE, %rsp	# subtract size of local vars
 `ifdef(`WINDOWS64_ABI',
 `	movq	%rdx, %XP
 	movq	%rcx, %ZP
-	movq	64(%rsp), %INVM'
+	movq	96(%rsp), %INVM # 7 push, ret addr, 4 reg vars = 96 bytes'
 ,
 `	movq	%rsi, %XP		# store x in XP
 	movq	%rdx, %YP		# store y in YP
 	movq	%rcx, %MP		# store m in MP'
 ) dnl'
+	subq	$LOCALSPACE, %rsp	# subtract size of local vars
 
 
 #########################################################################
@@ -151,13 +151,13 @@ GSYM_PREFIX``''mulredc`'LENGTH:
 	# CY:T1:T0 <= 2*(2^64-1)^2 <= 2^2*128 - 4*2^64 + 2, hence
 	# CY:T1 <= 2*2^64 - 4
 
-ifdef(`WANT_ASSERT', 
+`ifdef(`WANT_ASSERT', 
 `	pushf
 	testq	%T0, %T0
 	jz	2f
 	call	abort
 LABEL_SUFFIX(2)
-	popf')
+	popf')'
 dnl Cycle ring buffer. Only mappings of T0 and T1 to regs change, no MOVs!
 `define(`TT', defn(`T0'))dnl
 define(`TTl', defn(`T0l'))dnl
@@ -190,10 +190,10 @@ define(`JM8', `eval(J - 8)')dnl
 	movq	J`'(%MP), %rax	# Fetch m[j] into %rax
 	adcq	%rdx, %T1	# Add high word with carry to T1
 	# T1:T0 <= 2^128 - 2*2^64 + 1 + 2*2^64 - 2 <= 2^128 - 1, no carry!
-ifdef(`WANT_ASSERT', 
+`ifdef(`WANT_ASSERT', 
 `	jnc	3f
 	call	abort
-LABEL_SUFFIX(3)')
+LABEL_SUFFIX(3)')'
 	
 	mulq	%U		# m[j]*u
 	# rdx:rax <= 2^128 - 2*2^64 + 1, T1:T0 <= 2^128 - 1
@@ -273,13 +273,13 @@ LABEL_SUFFIX(1)
 
 	movq	8(%YP), %rax		# Fetch y[1]
 
-ifdef(`WANT_ASSERT', 
+`ifdef(`WANT_ASSERT', 
 `	pushf
 	testq	%T0, %T0
 	jz	4f
 	call	abort
 LABEL_SUFFIX(4)
-	popf')
+	popf')'
 dnl Cycle ring buffer. Only mappings of T0 and T1 to regs change, no MOVs!
 `define(`TT', defn(`T0'))dnl
 define(`TTl', defn(`T0l'))dnl
