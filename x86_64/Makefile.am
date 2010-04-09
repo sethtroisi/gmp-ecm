@@ -15,7 +15,8 @@ noinst_HEADERS = mulredc.h
 # This library definition also causes the mulredc[n].asm, mulredc1_[n].asm, 
 # and redc.asm files to go in the distribution - no need for having 
 # them in EXTRA_DIST
-libmulredc_la_SOURCES = $(MULREDC) $(MULREDC1) redc.asm
+# redc.asm is removed, is slower than GMP and not ported to Win64 ABI
+libmulredc_la_SOURCES = $(MULREDC) $(MULREDC1)
 # It's actually the .s files that depend on config.m4, but automake
 # knows them only as intermediate files, not as targets. Adding the
 # dependency to libmulredc.la should work so long as no stale .s
