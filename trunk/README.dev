@@ -48,6 +48,7 @@ To make a new release:
      check the issues in TODO, and for bugs/patches on ecm.gforge.inria.fr.
      Check also no compiler warnings remain (with and without assertions).
      Check "make longcheck" works (this uses valgrind).
+     Also check that configure works outside the source directory!
   1) Check the version (configure.in and build.vc9/config.h).
      If this release is not a beta or release candidate, switch assertions to
      off by default in configure.in.
