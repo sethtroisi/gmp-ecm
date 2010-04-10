@@ -202,8 +202,6 @@ mpzspv_from_mpzv (mpzspv_t x, const spv_size_t offset, const mpzv_t mpzv,
     for (i = 0; i < (long) len; i++)
     {
       unsigned int j;
-      ASSERT (mpz_sgn (mpzv[i]) >= 0);
-      ASSERT (mpz_cmp (mpzv[i], mpzspm->modulus) < 0);
       if (mpz_sgn (mpzv[i]) == 0)
 	{
 	  for (j = 0; j < sp_num; j++)
