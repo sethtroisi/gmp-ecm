@@ -1528,7 +1528,11 @@ list_scale_V (listz_t R, const listz_t F, const mpres_t Q,
   /* We can do it in-place with H - 1 = H_U. */
 
   for (i = deg; i >= 3; i--)
-    mpz_add (H[i - 3], H[i - 3], H[i - 1]);
+    {
+      mpz_add (H[i - 3], H[i - 3], H[i - 1]);
+      if (mpz_cmp (H[i - 3], modulus->orig_modulus) >= 0)
+        mpz_sub (H[i - 3], H[i - 3], modulus->orig_modulus);
+    }
   
   /* U_2(X+1/X) = (X^2 - 1/X^2)/(X-1/X) = X+1/X = V_1(X+1/X),
      so no addition occures here */
