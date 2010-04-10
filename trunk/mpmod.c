@@ -1424,6 +1424,7 @@ mpres_mul_z_to_z (mpz_t R, const mpres_t S1, const mpz_t S2, mpmod_t modulus)
       n ++;
       MPN_NORMALIZE(PTR(R), n);
       SIZ(R) = ((s1s ^ s2s) >= 0) ? (int) n : (int) -n;
+      mpz_mod (R, R, modulus->orig_modulus);
 
       return;
     }
