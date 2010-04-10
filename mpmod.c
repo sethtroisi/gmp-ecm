@@ -1256,10 +1256,15 @@ mpres_mul (mpres_t R, const mpres_t S1, const mpres_t S2, mpmod_t modulus)
     {
       mp_size_t n = modulus->Fermat / GMP_NUMB_BITS;
       unsigned long k;
-      mp_srcptr s1p = PTR(S1), s2p = PTR(S2);
-      mp_size_t s1s = SIZ(S1), s2s = SIZ(S2);
+      mp_srcptr s1p, s2p;
+      mp_size_t s1s, s2s;
       
       MPZ_REALLOC (R, n + 1);
+      s1p = PTR(S1);
+      s1s = SIZ(S1);
+      s2p = PTR(S2);
+      s2s = SIZ(S2);
+      
       k = mpn_fft_best_k (n, S1 == S2);
       ASSERT(mpn_fft_next_size (n, k) == n);
 
