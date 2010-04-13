@@ -1510,13 +1510,8 @@ list_scale_V (listz_t R, const listz_t F, const mpres_t Q,
     mpres_div_2exp (Ui, Ui, 1, modulus_local);
     mpres_div_2exp (Ui_1, Ui_1, 1, modulus_local);
     
-#if defined(_OPENMP)
-#pragma omp critical
-#endif
-    {
     scale_by_chebyshev (H - 1 + start_i, F + start_i, l, modulus_local, 
                         Q, Ui_1, Ui);
-    }
     
     mpres_clear (Ui_1, modulus_local);
     mpres_clear (Ui, modulus_local);

@@ -1842,4 +1842,6 @@ mpmod_selftest (const mpz_t n)
   mpres_clear (test1, modulus);
   mpres_clear (test2, modulus);
   mpmod_clear (modulus);
+
+  return 0;
 }
