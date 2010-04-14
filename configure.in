@@ -483,6 +483,22 @@ return strcmp (buffer, gmp_version);
 )
 
 AC_CHECK_FUNCS([__gmpn_add_nc __gmpn_mod_34lsub1 __gmpn_redc_1])
+
+# mpn_sqr() is renamed to __gmpn_sqr() in GMP 5.0.x, but may not be 
+# in future versions. AC_CHECK_FUNCS() does not allow including header 
+# files. Thus, a custom test for mpn_sqr()
+AC_MSG_CHECKING([for mpn_sqr])
+AC_LINK_IFELSE([AC_LANG_PROGRAM([[
+#ifdef HAVE_GMP_H
+#include <gmp.h>
+#endif]],[[
+  mpn_sqr ((mp_ptr) 0, (mp_ptr) 0, (mp_size_t) 0);
+  return 0;
+]])], [AC_MSG_RESULT(yes)
+       AC_DEFINE([HAVE_MPN_SQR], 1, [Define to 1 if you have the `mpn_sqr' function.])],
+   [AC_MSG_RESULT(no)]
+)
+
 LIBS="$LIBS_BACKUP"
 
 dnl Check if the compiler understands some __attribute__ directives
