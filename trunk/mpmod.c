@@ -596,7 +596,11 @@ ecm_mulredc_basecase (mpres_t R, const mpres_t S1, const mpres_t S2,
           mp_ptr tmp = PTR(modulus->temp1);
           ASSERT(ALLOC(modulus->temp1) >= 2*nn);
           ASSERT(tmp != s1p);
+#ifdef HAVE_MPN_SQR
           mpn_sqr (tmp, s1p, nn);
+#else
+          mpn_mul_n (tmp, s1p, s1p, nn);
+#endif
           redc_basecase_n (rp, tmp, np, nn, modulus->Nprim);
         }
     }
