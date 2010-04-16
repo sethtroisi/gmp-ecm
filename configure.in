@@ -206,7 +206,7 @@ if test "x$enable_asm_redc" = xyes; then
     x86_64-*-*)  ASMPATH=x86_64;; 
     powerpc-apple-darwin*) ASMPATH=powerpc64;;
     powerpc64-*-linux*)
-			  ECM_INCLUDE(powerpc64/powerpc-defs.m4)
+			  ECM_INCLUDE([<"$srcdir"/powerpc64/powerpc-defs.m4>])
 			  ASMPATH=powerpc64;;
     i[[56]]86-*-* | k[[78]]*-*-* | athlon*-*-* | pentiumpro-*-* | \
     pentium2-*-* | viac3*-*-* | i686-apple-darwin*)
