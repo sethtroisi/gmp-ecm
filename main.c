@@ -61,7 +61,7 @@ static char *champion_url[3] =
  "http://www.loria.fr/~zimmerma/records/Pminus1.html",
  "http://www.loria.fr/~zimmerma/records/Pplus1.html"};
 /* minimal number of digits to enter the champions table for ECM, P-1, P+1 */
-static unsigned int champion_digits[3] = { 62, 50, 42 };
+static unsigned int champion_digits[3] = { 63, 50, 42 };
 
 /* probab_prime_p() can get called from other modules. Instead of passing
    prpcmd to those functions, we make it static here - this variable will
@@ -328,6 +328,12 @@ print_config ()
   printf ("WANT_SHELLCMD = %d\n", WANT_SHELLCMD);
 #else
   printf ("WANT_SHELLCMD undefined\n");
+#endif
+
+#ifdef _OPENMP
+  printf ("_OPENMP = %d\n", _OPENMP);
+#else
+  printf ("_OPENMP undefined\n");
 #endif
 
 #ifdef MPZMOD_THRESHOLD
