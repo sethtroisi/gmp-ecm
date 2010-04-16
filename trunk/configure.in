@@ -563,6 +563,18 @@ case $host in
   *) config_arch="default" ;;
 esac
 
+# See if this is a Core 2, if we have /proc/cpuinfo 
+core2warn=no
+if test x"$config_arch" = xathlon64; then
+  if test -f /proc/cpuinfo; then
+    if $EGREP -q "Core\(TM\)2" /proc/cpuinfo; then
+      config_arch=core2
+    fi;
+  else
+    # No /proc/cpuinfo, tell user about ecm-params.h.core2
+    core2warn=yes
+  fi;
+fi
 
 LIBS="$LIBS $GWLIB"
 
@@ -628,3 +640,9 @@ else
   AC_MSG_NOTICE([Memory debugging disabled])
 fi
 
+if test x"$core2warn" = xyes; then
+  AC_MSG_NOTICE([Your cpu was detected as x86_64; if it is a Core 2, please either use the ecm-params.h.core2 file by executing the commands:])
+  AC_MSG_NOTICE([rm ecm-params.h])
+  AC_MSG_NOTICE([ln -s ecm-params.h.core2 ecm-params.h])
+  AC_MSG_NOTICE([or generate a custom ecm-params.h file for your system as described in INSTALL.])
+fi
