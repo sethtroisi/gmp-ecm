@@ -6,6 +6,7 @@ Changes between ecm-6.2.3 and ecm-6.3:
 * Fixed several bugs, and now check return value from malloc() calls
 * Fixed linking of GMP which prevented successful builds under Darwin 
   (and presumably other systems)
+* Allow use of x86_64 asm code under MinGW
 
 Changes between ecm-6.2.2 and ecm-6.2.3:
 * Fixed incompatibility with GMP 4.3.0 when testing version in configure

@@ -1,3 +1,313 @@
+------------------------------------------------------------------------
+r1499 | kruppa | 2010-04-17 01:26:15 +0200 (Sat, 17 Apr 2010) | 4 lines
+
+Specify source dir path for /powerpc64/powerpc-defs.m4 include to make
+out-of-source builds work
+
+
+------------------------------------------------------------------------
+r1498 | kruppa | 2010-04-16 23:41:03 +0200 (Fri, 16 Apr 2010) | 4 lines
+
+Detect Core 2 cpus if /proc/cpuinfo exists and use correct parameter file;
+warn about choosing right paramters if no /proc/cpuinfo exists on x86_64
+
+------------------------------------------------------------------------
+r1497 | kruppa | 2010-04-16 18:11:31 +0200 (Fri, 16 Apr 2010) | 4 lines
+
+Threshold 100 for using multi-threading in mpzspv_from_mpzv() was 
+too low for ECM, actually increased run-time. Threshold increased
+to 16384
+
+------------------------------------------------------------------------
+r1496 | kruppa | 2010-04-15 12:11:20 +0200 (Thu, 15 Apr 2010) | 2 lines
+
+Add underscores to abort call on systems that need it
+
+------------------------------------------------------------------------
+r1495 | kruppa | 2010-04-14 23:16:48 +0200 (Wed, 14 Apr 2010) | 2 lines
+
+Test for mpn_sqr() and if it doesn't exist, fall back to mpn_mul()
+
+------------------------------------------------------------------------
+r1494 | kruppa | 2010-04-13 19:15:12 +0200 (Tue, 13 Apr 2010) | 4 lines
+
+Fixed missing return value that caused compiler warning
+Removed OMP critical that was left over from debugging
+
+------------------------------------------------------------------------
+r1493 | kruppa | 2010-04-11 21:46:36 +0200 (Sun, 11 Apr 2010) | 3 lines
+
+Small changes: check if --with-gmp dir exists, clarification of comment, 
+remove duplicate case
+
+------------------------------------------------------------------------
+r1492 | kruppa | 2010-04-11 00:44:00 +0200 (Sun, 11 Apr 2010) | 4 lines
+
+Get addresses of input operands to mpres_mul() after realloc for result.
+Input operands may change address if input and output are the same mpz_t,
+and reading from the old, now free()'d, address makes valgrind unhappy
+
+------------------------------------------------------------------------
+r1491 | kruppa | 2010-04-10 23:45:24 +0200 (Sat, 10 Apr 2010) | 2 lines
+
+ASSERT input < modulus was too strict, NTT code itself does not fully reduce
+
+------------------------------------------------------------------------
+r1490 | kruppa | 2010-04-10 23:34:11 +0200 (Sat, 10 Apr 2010) | 2 lines
+
+Fixed missing mod reductions that could lead to NTT overflows
+
+------------------------------------------------------------------------
+r1489 | zimmerma | 2010-04-09 20:57:52 +0200 (Fri, 09 Apr 2010) | 2 lines
+
+[TODO] corrected item about mpn_redc_2
+
+------------------------------------------------------------------------
+r1488 | zimmerma | 2010-04-09 19:45:57 +0200 (Fri, 09 Apr 2010) | 2 lines
+
+[TODO] forgot to commit 2nd item in last change
+
+------------------------------------------------------------------------
+r1487 | zimmerma | 2010-04-09 19:45:29 +0200 (Fri, 09 Apr 2010) | 2 lines
+
+[TODO] added two items suggested by T. Granlund
+
+------------------------------------------------------------------------
+r1486 | zimmerma | 2010-04-09 19:31:09 +0200 (Fri, 09 Apr 2010) | 2 lines
+
+bumped version number to 6.3-rc4 (just to try "make dist")
+
+------------------------------------------------------------------------
+r1485 | zimmerma | 2010-04-09 19:25:07 +0200 (Fri, 09 Apr 2010) | 4 lines
+
+[ecm-params.h.alpha-ev56] new parameter file for Alpha ev56
+[Makefile.am] added ecm-params.h.alpha-ev56 in "make dist"
+[configure.in] now takes new default parameter files
+
+------------------------------------------------------------------------
+r1484 | kruppa | 2010-04-09 19:10:09 +0200 (Fri, 09 Apr 2010) | 4 lines
+
+Small changes to make building outside of the source directory work.
+Make libmulredc.a depend on config.m4 in all asm subdirectories.
+
+
+------------------------------------------------------------------------
+r1483 | zimmerma | 2010-04-09 19:06:09 +0200 (Fri, 09 Apr 2010) | 2 lines
+
+[README.dev] added item to make a new release
+
+------------------------------------------------------------------------
+r1482 | zimmerma | 2010-04-09 19:03:13 +0200 (Fri, 09 Apr 2010) | 3 lines
+
+[ecm-params.h.pentium4] updated parameters for ecm-6.3
+[Makefile.am] added hppa2.0 default parameters
+
+------------------------------------------------------------------------
+r1481 | kruppa | 2010-04-09 17:44:31 +0200 (Fri, 09 Apr 2010) | 4 lines
+
+Looks like gas wants "#" as comment separater and Apple Mac OS X assembler 
+wants ";" so now we use M4 to discard comments
+
+
+------------------------------------------------------------------------
+r1480 | kruppa | 2010-04-09 16:13:09 +0200 (Fri, 09 Apr 2010) | 4 lines
+
+Make -printconfig print whether Windows ABI is used for assembler functions
+Q&D (and #define'd out) test of mulredc1_*() functions
+
+
+------------------------------------------------------------------------
+r1479 | kruppa | 2010-04-09 16:02:40 +0200 (Fri, 09 Apr 2010) | 3 lines
+
+Likewise fixed incorrect reading of inv_m and missing quotes
+
+
+------------------------------------------------------------------------
+r1478 | kruppa | 2010-04-09 15:27:37 +0200 (Fri, 09 Apr 2010) | 6 lines
+
+Fixed incorrect quoting which broke the asserts and the switch to MS ABI
+in mulredc.m4.
+Fixed incorrect reading of inv_m from the stack.
+No longer include x86_64/redc.asm in build or distribution.
+
+
+------------------------------------------------------------------------
+r1477 | zimmerma | 2010-04-08 16:07:04 +0200 (Thu, 08 Apr 2010) | 2 lines
+
+[ecm-params.h.hppa2.0] parameter file for hppa2.0
+
+------------------------------------------------------------------------
+r1476 | zimmerma | 2010-04-08 15:19:34 +0200 (Thu, 08 Apr 2010) | 2 lines
+
+[sp.h] fix to make umul_ppmm() work properly on hppa2.0 (gcc61.fsffrance.org)
+
+------------------------------------------------------------------------
+r1475 | zimmerma | 2010-04-08 15:07:29 +0200 (Thu, 08 Apr 2010) | 2 lines
+
+[ecm-params.h.pentium-m] updated
+
+------------------------------------------------------------------------
+r1474 | zimmerma | 2010-04-07 17:48:22 +0200 (Wed, 07 Apr 2010) | 3 lines
+
+[ecm-params.h.ia64] new parameter file
+[Makefile.am] added ecm-params.h.ia64 in make dist
+
+------------------------------------------------------------------------
+r1473 | kruppa | 2010-04-07 17:36:19 +0200 (Wed, 07 Apr 2010) | 6 lines
+
+Changed comments from C++ style "//" to assembler style "#" to avoid
+.S files which cause trouble on case-insensitive filesystems.
+Removed mulredc*.asm files from SVN as these are generated code.
+Added rules to Makefile.am to generate the mulredc*.asm files.
+
+
+------------------------------------------------------------------------
+r1472 | zimmerma | 2010-04-07 15:13:59 +0200 (Wed, 07 Apr 2010) | 3 lines
+
+[ecm-params.h.sparc64] parameter file for sparc64
+[Makefile.am] added ecm-params.h.sparc64 to make dist
+
+------------------------------------------------------------------------
+r1471 | zimmerma | 2010-04-07 14:00:27 +0200 (Wed, 07 Apr 2010) | 2 lines
+
+[Makefile.am] added new parameter files to make dist
+
+------------------------------------------------------------------------
+r1470 | zimmerma | 2010-04-07 13:52:53 +0200 (Wed, 07 Apr 2010) | 2 lines
+
+[ecm-params.h.athlon] added comment (this is for Opteron)
+
+------------------------------------------------------------------------
+r1469 | zimmerma | 2010-04-07 13:04:26 +0200 (Wed, 07 Apr 2010) | 3 lines
+
+[ecm-params.h.armv5tel] new parameter file for ARM
+[ecm-params.h.mips64el,ecm-params.h.powerpc970] added version of GMP used
+
+------------------------------------------------------------------------
+r1468 | zimmerma | 2010-04-07 11:12:54 +0200 (Wed, 07 Apr 2010) | 2 lines
+
+[ecm-params.h.mips64el] new parameter file for MIPS64
+
+------------------------------------------------------------------------
+r1467 | zimmerma | 2010-04-07 09:56:05 +0200 (Wed, 07 Apr 2010) | 2 lines
+
+[ecm-params.h.powerpc970] updated tuning parameters for 6.3
+
+------------------------------------------------------------------------
+r1466 | kruppa | 2010-04-06 17:25:50 +0200 (Tue, 06 Apr 2010) | 3 lines
+
+Test if compiler understands __attribute__((hot)) at configure time
+Marked some hot-spot functions of ECM accordingly
+
+------------------------------------------------------------------------
+r1465 | kruppa | 2010-04-02 14:41:42 +0200 (Fri, 02 Apr 2010) | 3 lines
+
+Removed duplicate LT_PREREQ, lowered requirement from 2.2.6b
+to 2.2.6.
+
+------------------------------------------------------------------------
+r1464 | kruppa | 2010-04-01 17:16:34 +0200 (Thu, 01 Apr 2010) | 6 lines
+
+Separate thresholds for mulredc*() functions for squaring and 
+general multiplication, since GMP mpn_sqr() is faster than mpn_mul_n()
+Use __gmpn_redc_1() function if configure finds it, although 
+at this time it doesn't seem to be faster than the loop over mpn_addmul_1()
+
+
+------------------------------------------------------------------------
+r1463 | kruppa | 2010-03-31 11:35:48 +0200 (Wed, 31 Mar 2010) | 2 lines
+
+Print TUNE_MULREDC_THRESH with -printconfig
+
+------------------------------------------------------------------------
+r1462 | kruppa | 2010-03-31 10:27:19 +0200 (Wed, 31 Mar 2010) | 2 lines
+
+Fixed uninitialised variable in assertion
+
+------------------------------------------------------------------------
+r1461 | zimmerma | 2010-03-31 10:22:47 +0200 (Wed, 31 Mar 2010) | 2 lines
+
+[README.dev] added two reminders for making a new release
+
+------------------------------------------------------------------------
+r1460 | kruppa | 2010-03-31 01:53:51 +0200 (Wed, 31 Mar 2010) | 9 lines
+
+Switch assembly code to Windows ABI under MinGW
+Assembly redc3() function disabled on x86_84, GMP is faster
+New threshold for tuning: TUNE_MULREDC_THRESH, determines when to switch
+from asm mulredc*() functions to GMP
+Changed functions called by mpres_mul() to reduce call overhead
+Added "longcheck" target which runs the test scripts with different 
+parameters and with valgrind, if configure found valgrind
+
+
+------------------------------------------------------------------------
+r1459 | kruppa | 2010-03-18 17:46:07 +0100 (Thu, 18 Mar 2010) | 3 lines
+
+Make asm code switch to Windows 64 ABI if WINDOWS64_ABI is defined 
+in config.m4. Completely untested. mulredc1.m4 is to be done yet
+
+------------------------------------------------------------------------
+r1458 | kruppa | 2010-03-17 23:10:02 +0100 (Wed, 17 Mar 2010) | 2 lines
+
+Auto-generated files, should not be in SVN
+
+------------------------------------------------------------------------
+r1457 | kruppa | 2010-03-17 22:03:23 +0100 (Wed, 17 Mar 2010) | 2 lines
+
+Added -printconfig parameter
+
+------------------------------------------------------------------------
+r1456 | kruppa | 2010-03-17 19:01:40 +0100 (Wed, 17 Mar 2010) | 5 lines
+
+Try to import CC and CFLAGS from gmp.h (copied from MPFR 2.4.2)
+Detect SSE2 support by test compilation
+Use CCASFLAGS with CCAS
+Stricter quoting
+
+------------------------------------------------------------------------
+r1455 | kruppa | 2010-03-17 18:58:36 +0100 (Wed, 17 Mar 2010) | 3 lines
+
+Commented out .asm -> .S rule to avoid problems on case-insensitive 
+filesystems
+
+------------------------------------------------------------------------
+r1454 | kruppa | 2010-03-16 17:47:49 +0100 (Tue, 16 Mar 2010) | 2 lines
+
+Truncating pointer conversion bug fixed, pointed out by David Cleaver
+
+------------------------------------------------------------------------
+r1453 | kruppa | 2010-03-16 17:34:39 +0100 (Tue, 16 Mar 2010) | 5 lines
+
+Change use of CFLAGS, CCASFLAGS and LDFLAGS when checking for underscores
+to match that in the resulting Makefile. Fixes error when -m64 was added 
+to CCASFLAGS.
+
+
+------------------------------------------------------------------------
+r1452 | kruppa | 2010-03-10 22:15:44 +0100 (Wed, 10 Mar 2010) | 8 lines
+
+Use autoconf's test to determine how to enable OpenMP in the compiler.
+Enable OpenMP only for those targets that need it to avoid spurious 
+library dependencies.
+Link GSL only to rho in test-drive mode to avoid spurious library 
+dependency. Compile GSL-dependent code in rho.c only in test-drive mode.
+More consistent quoting in configure.in
+
+
+------------------------------------------------------------------------
+r1451 | kruppa | 2010-03-10 13:59:21 +0100 (Wed, 10 Mar 2010) | 3 lines
+
+Keep linking to GMP library while checking for GMP functions such as 
+__gmpn_add_nc and __gmpn_mod_34lsub1
+
+------------------------------------------------------------------------
+r1450 | zimmerma | 2010-03-09 11:35:21 +0100 (Tue, 09 Mar 2010) | 3 lines
+
+[ecm.c] clean up the code to print expected number of curves and time
+	also changed to print from 35 to 80 digits instead of 20 to 65
+
+------------------------------------------------------------------------
 r1449 | kruppa | 2010-03-07 21:53:40 +0100 (Sun, 07 Mar 2010) | 4 lines
 
 powerpc64 needs -m64 flag for gcc to produce 64 bit build. Without the flag,
