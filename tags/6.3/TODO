@@ -1,0 +1,150 @@
+ToDo's (see also TODO.sp):
+
+Table of contents:
+1) efficiency/memory
+2) interface
+3) documentation
+4) installation
+5) bugs
+6) others
+
+1) efficiency/memory
+- try gmp_redc_2 (when in the public API of GMP). See
+  http://gmplib.org/devel/REDC_1_TO_REDC_2_THRESHOLD.html.
+- try GMP's mpn/generic/powm.c code to select routines to perform modular
+  multiplication depending on different thresholds
+- try the mpn/generic/{sb,dc,mu}_bdiv_qr.c functions in GMP >= 4.3.0 for REDC
+- the conversion from mpz_t to NTT primes in function mpzspv_from_mpzv()
+  (file mpzspv.c) is quadratic. A faster conversion is possible with a
+  remainder tree (in addition since several conversions are made, the
+  cost of computing the tree would be small). The same applies to the
+  backward conversion (routine mpzspv_to_mpzv).
+- even worse, mpzspm_init seems to be cubic in the input size (because the CRT
+  algorithm used is quadratic in sp_num). We should use a subquadratic CRT.
+- the "Reducing  G * H" step is faster in NTT than with KS. This is probably
+  due to the fact that some transforms are cached in the NTT mode.
+- the "Reducing  G * H" step can be improved as follows: first compute
+  D = GH*I mod (x^d+1) where d = deg(F), and I = 1/F mod (x^d+1); then
+  compute E = D*F mod (x^d-1); finally compute T = (GH-E)/2 mod (x^d+1).
+  T equals the Montgomery product GH/(x^d+1) mod F.
+  See the paper "Fast convolution meets Montgomery" by Preda Mihailescu
+  (Mathematics of Computation).
+- slowdown in stage 1 with REDC between a 58672-digit number and a
+  58688-digit number [reported by Christophe.CLAVIER@gemalto.com, 29 Aug 2007]
+  (((2003663613*2^195000-2)/(2*23*173*3863))/1954173900202379)/3612632846010637
+  ((2003663613*2^195000-2)/(2*23*173*3863))/1954173900202379
+  with B1=1000 on an Opteron (44.2s for c58672, 67.5s for c58688).
+  The culprit seems to be the REDC routine in mpmod.c: indeed, in case the 
+  modulus has n limbs, but the most significant one has only a few bits,
+  the product (called x in REDC) has only 2n-1 limbs, and we never call
+  Mulders's short product in ecm_redc_n (however the else-code using full
+  products seem faster in that case).
+  For c58672, if one replaces if (xn == 2 * n) in mpmod.c/REDC by
+  if (xn >= 2 * n - 1), the time of stage 1 grows from 44s to 64s, whereas
+  ecm_redc_n should be faster...
+  This problem is still present in 6.2, ecm_redc_n should be better tuned,
+  in particular the choice k=0.75*n in ecm_mul_lo_n() is far from optimal.
+- in Brent-Suyama's extension, the evaluation of a polynomial of degree k
+  over N consecutive values is currently done using a O(k N) algorithm
+  [table of differences]. One can do O(N/k M(k)), cf Section 3 from 
+  "Linear recurrences with polynomial coefficients and application to
+   integer factorization and Cartier-Manin operator", by Alin Bostan,
+   Pierrick Gaudry and Eric Schost, SIAM journal on computing, 
+   vol. 36, no. 6, pp. 1777 - 1806, 2007.
+   It is not clear if this result also applies to ECM, but at least it
+   should word for P-1 and P+1.
+- why restrict the use of mpn_mul_fft to Fermat numbers? We could use it
+  for any cofactor of 2^(n*BITS_PER_MP_LIMB)+1, as long as
+  mpn_fft_next_size (n, mpn_fft_best_k (n, S1 == S2)) == n.
+- use mpres in step 2 (Target: 7.0)
+- write a mpn version of add3 and duplicate  
+- rewrite entire mpmod.c to be based on mpn_* functions, not mpz_*
+- take relative speed of multiplying/squaring into account in PRAC
+  (DN: couldn't get any significant speed increase)
+- use/implement a mpn_mul_hi_n routine for use in mpn_REDC
+- use mpn_addmul_2, mpn_addmul_4 in the basecase REDC [for machines
+  where it exists]. ASM code should perhaps be moved into GMP.
+- try McLaughlin's algorithm for Montgomery's modular multiplication
+  (http://www.ams.org/mcom/0000-000-00/S0025-5718-03-01543-6/home.html)
+- consider Colin Percival's generalized DWT for multiplication modulo
+  k*a^n+b, where k*a*b is highly composite. May belong to GMP rather than
+  GMP-ECM.
+- implement assembly code (redc.asm) for other architectures
+- allow composite d2, or better use the S1+S2 idea from the P+-1 algorithm
+  of Montgomery and Kruppa.
+- init mpz_t's with correct amount of memory allocated to avoid reallocs.
+  Check for reallocs with GMP's memory interface routines. (Partly done.)
+- try sliding window multiplication for ECM stage 1 (Target: 7.0)
+- choose Brent/Suyama polynomial according to B2/k and not B2!
+- Adjust estimated memory to take into account -treefile and NTT
+  (done but improvement possible)
+- when GWNUM is used, lower the default B2 (James Wanless, 17 Mar 2006,
+	james at grok.ltd.uk)
+- implement enhanced standard continuation? With graph cover algorithm?
+- parallel/distributed stage 2?
+- add curve selection for torsion group of order 8 or 16, see Montgomery's
+  thesis. (request of Peter-Lawrence Montgomery)
+- Torbj"orn Granlund suggested faster code for mpn_mod_1(), used extensively
+  in NTT. See
+    http://lists.gforge.inria.fr/pipermail/ecm-discuss/2008-May/003365.html
+
+2) interface
+- with -resume, print %time for THIS RUN instead of total run?
+	[suggested by SleepHound <sleephound@yahoo.com>]
+  Add CPUTIME=... in the save file, to take into account the total cpu time
+  spend so far (in seconds). George Woltman agrees for that change. It won't
+  hurt prime95/mprime -> will be added for his next version.
+- when resuming, print the *initial* x0 for P-1/P+1?
+- [from Jakub Pawlewicz <pan@mimuw.edu.pl>] add an option -stage1time t
+  to tell the step 1 time, when done by another program. PZ: or better
+  have it in resume file? (Target: 6.1. Command line option done)
+
+3) documentation
+- add examples for typical use to README 
+  (see http://www.mersenneforum.org/showthread.php?t=3922)
+
+4) installation
+- check for __builtin_constant_p and __builtin_expect at configure time
+- add a configure option --enable-shared --disable-static to link GMP
+  dynamically
+- [suggested by Peter Montgomery] add the possibility to compile a "fat"
+  binary, which automatically selects the best mulredc assembly code
+  depending on the cpuid [see TODO.fat]
+- [suggested by Thomas Kunz, who did port GMP-ECM to the PS3, i.e., to the
+  Cell architecture]: several changes to make it easier to port GMP-ECM to
+  specific architectures. Cf TODO.kunz.
+
+5) bugs
+- potential bug: _mpz_realloc changes the value to 0 when it does not fit
+	(mpmod.c)
+- ecm -v 1e6 3-2 < c155 prints wrong expected number of curves (should be
+  the same as ecm -v 1e6 2). Reported by Peter Montgomery, 30 Mar 2006.
+  This is because ecmprob() gets only B2min, B2 as parameters and assumes 
+  B1=B2min. Needs rewrite to integrate over interval [B2min, B2] but take 
+  B1 as smoothness bound. Target: 6.3
+- [reported by James Wanless <james@grok.ltd.uk>, 2 May 2008] the following
+  should find a factor but does not (same with sigma=1101118787):
+  [james@bympy2 gmp-ecm]$ echo '(2^86243+1)/(3)' | ./ecm6.1.1gmp4.2.1gwnum 
+  -n -no-ntt -power 1 -sigma 3793703189 11e3
+  GMP-ECM 6.1.1 [powered by GMP 4.2.1 and GWNUM 24.11] [ECM]
+  Input number is (2^86243+1)/(3) (25962 digits)
+  Using B1=11000, B2=1684420, polynomial x^1, sigma=3793703189
+  Step 1 took 33023ms
+  Step 2 took 137815ms
+  Due to GWNUM, fixed with newer version of GWNUM.
+
+6) others
+- from Dan Bernstein <djb@cr.yp.to> 7 Mar 2006: use the curve
+  (16b+18)y^2 = x^3 + (4b+2)x^2 + x with starting point (x=2,y=1).
+  Caveat: with Montgomery multiplication, even if b is small (the argument
+  used in duplicate), we still have to divide by R^l. Workaround: replace
+  the mpres_mul call by a mpres_mul_ui call (b is not transformed).
+- add primality proving of factors/cofactors? Maybe link Pari for this?
+- add point counting algorithm? SEA implementation exists for Pari/GP,
+   use that?
+- let user specify previous factoring work, compute distribution of
+  candidate factors, compute probability of/est. time to finding a factor 
+  with given parameters.
+- re-write in C++? Lots of work, but would make parts of the code much
+  cleaner.
+

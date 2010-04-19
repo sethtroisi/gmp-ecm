@@ -1,0 +1,203 @@
+Instructions to install GMP-ECM:
+
+0) you first need to install the GNU MP (GMP) library.
+   GNU MP is available from <http://gmplib.org/>.
+
+   Remark: GNU MP is already installed in most Linux distributions.
+   However it is often an old version, moreover without processor-specific
+   optimizations. If you care about efficiency, be sure to install the
+   latest version of GNU MP (5.0.1 as of February 2010), and to compile it
+   for your particular processor.
+   Warning: make sure you have only one version of GMP installed on your
+   system at a given time. Frequently, after compiling GMP from source
+   and installing it without removing the distribution's GMP package,
+   later attempts to build software that uses GMP find the GMP header 
+   file from the distribution's GMP package and the library from the 
+   newly compiled GMP (or vice versa). GMP-ECM tries to detect this by
+   comparing the version number from header and library; if this test 
+   fails, you should remove the obsolete GMP installation.
+
+1) check your configuration with:
+
+   $ ./configure
+
+   The configure script accepts several options (see ./configure --help).
+   In particular you can specify the GMP installation directory with:
+
+   $ ./configure --with-gmp=<gmpdir>
+
+   where <gmpdir>/include contains the header file gmp.h, and <gmpdir>/lib
+   contains the static or dynamic libraries (libgmp.a, libgmp.so, libgmp.lib).
+ 
+   Note: the configure script will first search for a static GMP library, which
+   makes GMP-ECM more efficient. When only a dynamic library is available, make
+   sure to correctly set your dynamic libraries search path (LD_LIBRARY_PATH
+   on Unix systems), otherwise the configure script may fail.
+
+   Warning: it is recommended to use the same compiler and options as those
+   used to compile GMP, otherwise the compilation may fail, or you may get
+   poor performance. In the GMP build directory, simply type:
+
+   $ egrep -w '(CC|CFLAGS)' config.log
+
+   to see which compiler and options were used to build GMP. For example
+   on a Sparc v9 you may have to type:
+   
+   $ ./configure CC=cc CFLAGS="-fast -fns=no -fsimple=1 -xarch=v9" 
+   
+   Note 2: On x86, x86-64, and 64 bit PowerPC systems, using GMP-ECM's 
+   own modular multiplication code usually gives better performance than 
+   the GMP-based functions. On these systems, configure enables it by 
+   default. If the system is not identified correctly, you can enable 
+   it by adding the command line parameter "--enable-asm-redc" to 
+   configure. To disable it, add "--disable-asm-redc".
+   On 32-bit x86 systems that have SSE2 (e.g., Pentium 4, some Celeron, 
+   some Sempron, Via C7), use of SSE2 instructions in stage 2 of P-1, P+1, 
+   and ECM is enabled by default. You can enable it manually by adding the
+   command line parameter "--enable-sse2" and disable it by adding 
+   "--disable-sse2" to ./configure. The SSE2 code is not used in 64-bit
+   builds, regardless of these parameters.
+
+   Note 3: If you want to use George Woltman's GWNUM library for speeding up
+   factoring base 2 numbers, obtain the file "gwnum_gpl_linux.tgz" from
+   ftp://mersenne.org/gimps/ (or gwnum_gpl.zip or gwnum_gpl_mingw.tgz
+   accordingly) and follow the instructions therein to compile
+   the library. Possibly the archive contains a readily compiled library
+   "gwnum.a" or "gwnum.lib". Then use
+
+   $ ./configure --with-gwnum=<gwnum directory>
+
+   The directory must include the gwnum.a or gwnum.lib file as well as 
+   gwnum.h and related header files. The source file of the gwnum library
+   is available at <http://www.mersenne.org/source.htm>.
+
+   To compile the GMP-ECM library as a shared library, use the
+   --enable-shared parameter for ./configure. Building a shared library is
+   disabled by default.
+
+2) compile the program with:
+
+   $ make
+
+   This will create the 'libecm.a' library, the 'libecm.so' shared
+   library if --enable-shared was used, the 'ecm' binary file,
+   the 'ecmfactor' binary file (sample use of libecm.a), and 'tune',
+   a tuning program.
+
+3) to check that the program works correctly, type:
+
+   $ make check
+
+   This will run several tests for P+1, P-1, ECM. These tests take a few
+   minutes. It should normally end with "All ECM tests are ok."
+
+4) (optional) to tune GMP-ECM, simply type:
+
+   $ make ecm-params; make
+
+   See also README ("How to get the best of GMP-ECM?"). Note: if your machine
+   has not enough memory for the tune program, you can run it manually with
+   ./tune -max_log2_len 16 for example (the default is 18).
+
+5) (optional) you can then install the ecm binary and its man page:
+
+   $ make install
+
+   By default, installation will be done in /usr/local.
+   You can change with the --prefix option of configure at step 1:
+   
+   $ ./configure --prefix=<my_installation_directory>
+
+   The ecm binary will go in <my_installation_directory>/bin,
+   its man page in <my_installation_directory>/man/man1,
+   the ecm library in <my_installation_directory>/lib,
+   and the corresponding header file in <my_installation_directory>/include.
+
+   You can also do "make uninstall" to remove those files.
+
+6) If you like GMP-ECM, please help us factoring Cunningham numbers. First
+   download "cunningham.in" on <http://www.loria.fr/~zimmerma/ecmnet/>, then
+   perform one ecm test with B1=110e6 on each number of this file:
+
+   $ ./ecm 110e6 < cunningham.in > cunningham.out &
+
+   If you find any factor (grep found cunningham.out), please submit it
+   using the report form on <http://www.loria.fr/~zimmerma/ecmnet/>.
+
+============================================================================
+
+For Windows users:
+
+Windows users have two options for building GMP-ECM: (a) the use of a
+number of Unix on Windows environments, or (b) the use of Microsoft
+Visual Studio C/C++ 2008.  The former is described here while the latter
+is described in the readme.txt file within the build.vc9 subdirectory.
+
+(a) For Windows users with a Unix-like environment:
+
+Before you can compile GMP-ECM, you will need a compiler. Several suitable
+compilers are freely available, for example as part of MinGW, CygWin and 
+Microsoft's Services for Unix (SFU). We recommend MinGW as it is a smaller 
+download than the others and generates binaries that run on any Windows 
+system, even if they don't have MinGW installed themselves.
+
+Step-by-step instructions, courtesy of Jes Hansen:
+
+1) Download the current MinGW from
+   http://prdownloads.sf.net/mingw/MinGW-3.1.0-1.exe?download
+   and MSYS from http://prdownloads.sf.net/mingw/MSYS-1.0.10.exe?download
+
+2) Create a folder, for example C:\GNU, and install MinGW (execute the 
+   MinGW-3.1.0-1.exe file) into C:\GNU\MinGW
+
+3) Install MSYS (execute the MSYS-1.0.10.exe file) into C:\GNU\msys
+   Now you get an icon on the desktop where you can start the MinSys. Do
+   this, because is creates your home folder. Then exit it again.
+
+4) Download the latest version of GMP (in February 2010 the latest
+   version is 5.0.1, this will be assumed for the rest of this document) 
+   in .tar.gz format from http://gmplib.org/ and place it in your 
+   newly created home folder. The home folder is in C:\GNU\msys\home and 
+   has the same name as your Windows login name.
+
+5) Download GMP-ECM (if you do not have it already) from
+   http://www.loria.fr/~zimmerma/records/ecmnet.html (check the News section
+   for the latest release, at the time of writing 6.3) and place it in your
+   home folder as well. You won't need an internet connection from now on, 
+   feel free to disconnect.
+
+6) Start the MinSys up again from the desktop and type 
+   tar -xvzf gmp-5.0.1.tar.gz
+   cd gmp-5.0.1
+   ./configure
+   make install
+   cd ~
+
+7) You are back in your home directory. Now type
+  tar -xvzf ecm-6.3.tar.gz
+  cd ecm-6.3
+  ./configure --with-gmp=/usr/local
+  make
+
+8) Four executables should have appeared. The main application is ecm.exe,
+   which can be run from the Windows command line.
+
+============================================================================
+
+In case of a problem, report it to us, with:
+
+- the output of the config.log file
+
+- the versions of GMP-ECM and GMP used (first output line), for example:
+  
+  GMP-ECM 6.3 [powered by GMP 5.0.1] [P+1]
+
+- the detailed input enabling us to reproduce the problem, for example:
+
+  $ echo 328006342451 | ./ecm -pp1 -x0 5 120 7043
+
+- the output you get.
+
+Then send your bug report at <ecm-discuss@lists.gforge.inria.fr>.
+This is a public list, with archives available at
+<http://lists.gforge.inria.fr/pipermail/ecm-discuss/>.

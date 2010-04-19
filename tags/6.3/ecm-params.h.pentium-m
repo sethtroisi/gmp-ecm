@@ -1,0 +1,14 @@
+/* those parameters were obtained on toto.loria.fr with ecm-6.3-rc3
+   gmp-5.0.1, and gcc 4.0.2 -m32 -O2 -pedantic -fomit-frame-pointer -mtune=pentium3 -march=pentium3 */
+#define TUNE_MULREDC_THRESH 1
+#define TUNE_SQRREDC_THRESH 1
+#define MPZMOD_THRESHOLD 98
+#define REDC_THRESHOLD 398
+#define MPN_MUL_LO_THRESHOLD_TABLE {0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 10, 1, 1, 12, 12, 1, 14, 12, 13, 1, 15, 16, 15, 16, 19, 20, 22}
+#define NTT_GFP_TWIDDLE_DIF_BREAKOVER 17
+#define NTT_GFP_TWIDDLE_DIT_BREAKOVER 17
+#define MUL_NTT_THRESHOLD 1024
+#define PREREVERTDIVISION_NTT_THRESHOLD 16
+#define POLYINVERT_NTT_THRESHOLD 256
+#define POLYEVALT_NTT_THRESHOLD 512
+#define MPZSPV_NORMALISE_STRIDE 1024
