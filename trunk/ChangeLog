@@ -1,4 +1,19 @@
 ------------------------------------------------------------------------
+r1501 | kruppa | 2010-04-18 22:14:22 +0200 (Sun, 18 Apr 2010) | 5 lines
+
+Version 6.3.
+Assertions off by default.
+Added new thresholds to 64-bit parameter files in build.vc9/.
+
+
+------------------------------------------------------------------------
+r1500 | kruppa | 2010-04-17 01:40:06 +0200 (Sat, 17 Apr 2010) | 4 lines
+
+Include ecm-params.h.core2 in distribution
+Updated record factor sizes
+
+
+------------------------------------------------------------------------
 r1499 | kruppa | 2010-04-17 01:26:15 +0200 (Sat, 17 Apr 2010) | 4 lines
 
 Specify source dir path for /powerpc64/powerpc-defs.m4 include to make
