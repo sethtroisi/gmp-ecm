@@ -14,11 +14,9 @@ Table of contents:
 - try GMP's mpn/generic/powm.c code to select routines to perform modular
   multiplication depending on different thresholds
 - try the mpn/generic/{sb,dc,mu}_bdiv_qr.c functions in GMP >= 4.3.0 for REDC
-- the conversion from mpz_t to NTT primes in function mpzspv_from_mpzv()
+- the conversion from NTT primes to mpz_t in function mpzspv_to_mpzv()
   (file mpzspv.c) is quadratic. A faster conversion is possible with a
-  remainder tree (in addition since several conversions are made, the
-  cost of computing the tree would be small). The same applies to the
-  backward conversion (routine mpzspv_to_mpzv).
+  product tree (already done for the mpz_t -> NTT conversion).
 - even worse, mpzspm_init seems to be cubic in the input size (because the CRT
   algorithm used is quadratic in sp_num). We should use a subquadratic CRT.
 - the "Reducing  G * H" step is faster in NTT than with KS. This is probably
