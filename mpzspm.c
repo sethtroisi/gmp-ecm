@@ -1,7 +1,7 @@
 /* mpzspm.c - "mpz small prime moduli" - pick a set of small primes large
    enough to represent a mpzv
 
-  Copyright 2005, 2008 Dave Newman and Jason Papadopoulos.
+  Copyright 2005, 2008, 2010 Dave Newman, Jason Papadopoulos, Paul Zimmermann.
 
   The SP Library is free software; you can redistribute it and/or modify
   it under the terms of the GNU Lesser General Public License as published by
@@ -101,6 +101,51 @@ mpzspm_max_len (mpz_t modulus)
     }
 
   return (spv_size_t)1 << i;
+}
+
+/* initialize mpzspm->T such that with m[j] := mpzspm->spm[j]->sp
+   T[0][0] = m[0], ..., T[0][n-1] = m[n-1]
+   ...
+   T[d-1][0] = m[0]*...*m[ceil(n/2)-1], T[d-1][1] = m[ceil(n/2)] * ... * m[n-1]
+   T[d][0] = m[0] * ... * m[n-1]
+   where d = ceil(log(n)/log(2)).
+   If n = 5, T[0]: 1, 1, 1, 1, 1
+             T[1]: 2, 2, 1
+             T[2]: 4, 1
+*/
+static void
+mpzspm_product_tree_init (mpzspm_t mpzspm)
+{
+  unsigned int d, i, j, oldn;
+  unsigned int n = mpzspm->sp_num;
+  mpzv_t *T;
+
+  for (i = n, d = 0; i > 1; i = (i + 1) / 2, d ++);
+  if (d <= I0_THRESHOLD)
+    {
+      mpzspm->T = NULL;
+      return;
+    }
+  T = (mpzv_t*) malloc ((d + 1) * sizeof (mpzv_t));
+  T[0] = (mpzv_t) malloc (n * sizeof (mpz_t));
+  for (j = 0; j < n; j++)
+    mpz_init_set_ui (T[0][j], (mp_limb_t) mpzspm->spm[j]->sp);
+  for (i = 1; i <= d; i++)
+    {
+      oldn = n;
+      n = (n + 1) / 2;
+      T[i] = (mpzv_t) malloc (n * sizeof (mpz_t));
+      for (j = 0; j < n; j++)
+        {
+          mpz_init (T[i][j]);
+          if (2 * j + 1 < oldn)
+            mpz_mul (T[i][j], T[i-1][2*j], T[i-1][2*j+1]);
+          else /* oldn is odd */
+            mpz_set (T[i][j], T[i-1][2*j]);
+        }
+    }
+  mpzspm->T = T;
+  mpzspm->d = d;
 }
 
 /* This function initializes a mpzspm_t structure which contains the number
@@ -279,6 +324,8 @@ mpzspm_init (spv_size_t max_len, mpz_t modulus)
   mpz_clear (S);
   mpz_clear (T);
 
+  mpzspm_product_tree_init (mpzspm);
+
   outputf (OUTPUT_DEVVERBOSE, "mpzspm_init took %lums\n", cputime() - st);
 
   return mpzspm;
@@ -307,9 +354,33 @@ mpzspm_init (spv_size_t max_len, mpz_t modulus)
   return NULL;
 }
 
+/* clear the product tree T */
+static void
+mpzspm_product_tree_clear (mpzspm_t mpzspm)
+{
+  unsigned int i, j;
+  unsigned int n = mpzspm->sp_num;
+  unsigned int d = mpzspm->d;
+  mpzv_t *T = mpzspm->T;
+
+  if (T == NULL) /* use the slow method */
+    return;
+
+  for (i = 0; i <= d; i++)
+    {
+      for (j = 0; j < n; j++)
+        mpz_clear (T[i][j]);
+      free (T[i]);
+      n = (n + 1) / 2;
+    }
+  free (T);
+}
+
 void mpzspm_clear (mpzspm_t mpzspm)
 {
   unsigned int i;
+
+  mpzspm_product_tree_clear (mpzspm);
 
   for (i = 0; i < mpzspm->sp_num; i++)
     {
@@ -331,3 +402,4 @@ void mpzspm_clear (mpzspm_t mpzspm)
   free (mpzspm->spm);
   free (mpzspm);
 }
+

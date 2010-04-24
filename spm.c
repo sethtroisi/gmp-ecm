@@ -232,3 +232,6 @@ spm_clear (spm_t spm)
   sp_aligned_free (spm->scratch);
   free (spm);
 }
+
+
+
