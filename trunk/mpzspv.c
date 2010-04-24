@@ -1,7 +1,8 @@
 /* mpzspv.c - "mpz small prime polynomial" functions for arithmetic on mpzv's
    reduced modulo a mpzspm
 
-  Copyright 2005, 2008 Dave Newman, Jason Papadopoulos and Alexander Kruppa.
+  Copyright 2005, 2008, 2010 Dave Newman, Jason Papadopoulos, Alexander Kruppa
+                             and Paul Zimmermann.
 
   The SP Library is free software; you can redistribute it and/or modify
   it under the terms of the GNU Lesser General Public License as published by
@@ -174,16 +175,70 @@ mpzspv_reverse (mpzspv_t x, spv_size_t offset, spv_size_t len, mpzspm_t mpzspm)
     }
 }
 
+/* convert mpzvi to CRT representation, naive version */
+void
+mpzspv_from_mpzv_slow (mpzspv_t x, const spv_size_t offset, mpz_t mpzvi,
+                       mpzspm_t mpzspm, unsigned int sp_num)
+{
+  unsigned int j;
+
+  for (j = 0; j < sp_num; j++)
+    x[j][offset] = mpn_mod_1 (PTR(mpzvi), SIZ(mpzvi),
+                              (mp_limb_t) mpzspm->spm[j]->sp);
+  /* The typecast to mp_limb_t assumes that mp_limb_t is at least
+     as wide as sp_t */
+}
+
+/* convert mpzvi to CRT representation, fast version, assumes
+   mpzspm->T has been precomputed (see mpzspm.c) */
+void
+mpzspv_from_mpzv_fast (mpzspv_t x, const spv_size_t offset, mpz_t mpzvi,
+                       mpzspm_t mpzspm, unsigned int sp_num)
+{
+  unsigned int i, j, k, i0 = I0_THRESHOLD, I0;
+  mpzv_t *T = mpzspm->T;
+  unsigned int d = mpzspm->d, ni;
+
+  ASSERT (d > i0);
+
+  /* T[0] serves as vector of temporary mpz_t's, since it contains the small
+     primes, which are also in mpzspm->spm[j]->sp */
+  /* initially we split mpzvi in two */
+  ni = 1 << (d - 1);
+  mpz_mod (T[0][0], mpzvi, T[d-1][0]);
+  mpz_mod (T[0][ni], mpzvi, T[d-1][1]);
+  for (i = d-1; i-- > i0;)
+    { /* goes down from depth i+1 to i */
+      ni = 1 << i;
+      for (j = k = 0; j + ni < sp_num; j += 2*ni, k += 2)
+        {
+          mpz_mod (T[0][j+ni], T[0][j], T[i][k+1]);
+          mpz_mod (T[0][j], T[0][j], T[i][k]);
+        }
+      /* for the last entry T[0][j] if j < sp_num, there is nothing to do */
+    }
+  /* last steps */
+  I0 = 1 << i0;
+  for (j = 0; j < sp_num; j += I0)
+    for (k = j; k < j + I0 && k < sp_num; k++)
+      x[k][offset] = mpn_mod_1 (PTR(T[0][j]), SIZ(T[0][j]),
+                                (mp_limb_t) mpzspm->spm[k]->sp);
+  /* The typecast to mp_limb_t assumes that mp_limb_t is at least
+     as wide as sp_t */
+}
+
+/* convert an array of len mpz_t numbers to CRT representation modulo
+   sp_num moduli */
 void
 mpzspv_from_mpzv (mpzspv_t x, const spv_size_t offset, const mpzv_t mpzv,
     const spv_size_t len, mpzspm_t mpzspm)
 {
   const unsigned int sp_num = mpzspm->sp_num;
   long i;
-  
+
   ASSERT (mpzspv_verify (x, offset + len, 0, mpzspm));
   ASSERT (sizeof (mp_limb_t) >= sizeof (sp_t));
-  
+
   /* GMP's comments on mpn_preinv_mod_1:
    *
    * "This function used to be documented, but is now considered obsolete.  It
@@ -210,12 +265,10 @@ mpzspv_from_mpzv (mpzspv_t x, const spv_size_t offset, const mpzv_t mpzv,
       else
         {
 	  ASSERT(mpz_sgn (mpzv[i]) > 0); /* We can't handle negative values */
-	  for (j = 0; j < sp_num; j++)
-            x[j][i + offset] = 
-              mpn_mod_1 (PTR(mpzv[i]), SIZ(mpzv[i]), 
-                (mp_limb_t) mpzspm->spm[j]->sp);
-              /* The typecast to mp_limb_t assumes that mp_limb_t is at least
-                 as wide as sp_t */
+          if (mpzspm->T == NULL)
+            mpzspv_from_mpzv_slow (x, i + offset, mpzv[i], mpzspm, sp_num);
+          else
+            mpzspv_from_mpzv_fast (x, i + offset, mpzv[i], mpzspm, sp_num);
 	}
     }
 #if defined(_OPENMP)
