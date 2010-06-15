@@ -126,6 +126,14 @@ Instructions to install GMP-ECM:
 
 ============================================================================
 
+Known problems:
+
+* [reported by Sam Rawlins] with MinGW under Windows XP (32-bit), the
+  compilation fails in spv.c. A fix seems to add -msse2 to CFLAGS.
+  See http://lists.gforge.inria.fr/pipermail/ecm-discuss/2010-June/004077.html
+
+============================================================================
+
 For Windows users:
 
 Windows users have two options for building GMP-ECM: (a) the use of a
