@@ -2,6 +2,7 @@
 # include <math.h>
 # include <gmp.h>
 # include "prototype.h"
+#include "getprime.h"
 
 main(int argc,char*argv[])
 {
