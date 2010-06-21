@@ -205,8 +205,8 @@ void multiplication(unsigned long PI,mpz_t xQ,mpz_t zQ,mpz_t d,mpz_t N,mpz_t sig
 			mpz_set(x_PIQ,x4Q);
 			mpz_set(z_PIQ,z4Q);
 		}
-		for (i=3; i<bits+1; i++) {
-			Kplus1 = PIm1>>(bits-i);
+		for (i=3; i<bits+1; i++) { // if PI > 4
+			Kplus1 = PIm1>>(bits-i); // read i bits of PIm1 left towards right
 			Kplus1 = Kplus1+1;
 			if (Kplus1%2 == 0) { // Kplus1 is an even
 				addition(x_PIQm1,z_PIQm1,x_PIQ,z_PIQ,xQ,zQ,N,x_2Kp1Q,z_2Kp1Q); // (2K+1)Q
@@ -246,33 +246,6 @@ void multiplication(unsigned long PI,mpz_t xQ,mpz_t zQ,mpz_t d,mpz_t N,mpz_t sig
 
 
 
-// 'eratosthene' returns the value of the first prime number which comes later min and which is lower than max
-unsigned long eratosthene(unsigned long min,mpz_t max) {
-	unsigned long int min_tmp; min_tmp = min+1;
-	mpz_t max_tmp; mpz_init(max_tmp); mpz_add_ui(max_tmp,max,1);
-	int i;
-	int prime = 1;
-	
-	while (mpz_cmp_ui(max_tmp,min_tmp) > 0) {
-		for (i=2; i<min_tmp; i++) {
-			// test for each value of i if min_tmp is divisible by i
-			if ((min_tmp%i) == 0) { // min_tmp is divisible by i, set prime to 0 and restart with min_tmp+1 
-				prime = 0;
-				break;
-			}
-		}
-		if (prime != 0) { // prime has been found, returns min = min_tmp(prime) and quit the function
-			return min_tmp;
-		}
-		min_tmp++;
-		prime=1; // no prime was found, set min_tmp to min_tmp+1 and reset prime to 1
-	}
-	
-	mpz_clear(max_tmp);
-}
-
-
-
 // 'stageOne' allows to calculate the stage one of the algorithm ECM
 // input : a border B1, a random integer sigma and N
 // output : the coordonates of the point Q=(xQ::zQ)
@@ -290,12 +263,10 @@ void stageOne(mpz_t B1,mpz_t sigma,mpz_t N,mpz_t Q) {
 	mpz_t xq; mpz_init(xq);
 	mpz_t zq; mpz_init(zq);
 
-	unsigned long PI,PI_tmp,PIj,PIjp1;
+	unsigned long PI,PIj,PIjp1;
 	int j,jp1,k,i;
-	mpz_t B1_tmp; mpz_init(B1_tmp); mpz_add_ui(B1_tmp,B1,1);
 
-	PI_tmp = PI = 2; // 2 is the first prime
-	while (mpz_cmp_ui(B1_tmp,PI) > 0) { // calculate the primes less than or equal to B1+1
+	for (PI = 2; mpz_cmp_ui(B1,PI)>=0; PI=getprime(PI)) { // returns successive odd primes, starting with 3
 		j = 0;
 		while (mpz_cmp_ui(B1,j) > 0) {
 			jp1 = j+1;
@@ -316,12 +287,9 @@ void stageOne(mpz_t B1,mpz_t sigma,mpz_t N,mpz_t Q) {
 			mpz_set(zQ,zq);
 			i++;
 		}
-		PI_tmp = eratosthene(PI,B1);
-		if ((mpz_cmp_ui(B1_tmp,PI_tmp)<0)||(PI_tmp==0)) // there isn't a prime anymore
-			break;
-		else
-			PI = PI_tmp;
 	}
+	
+	getprime (0);  // { free the memory used by getprime() }
 	
 	// calculate Q = (xQ/zQ)%N, the value of the point at the end of the first step of ECM
 	mpz_t gcd; mpz_init(gcd);
@@ -340,6 +308,5 @@ void stageOne(mpz_t B1,mpz_t sigma,mpz_t N,mpz_t Q) {
 	mpz_clear(v);
 	mpz_clear(xq);
 	mpz_clear(zq);
-	mpz_clear(B1_tmp);
 }
 
