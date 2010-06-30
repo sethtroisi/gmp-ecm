@@ -257,7 +257,7 @@ dnl for them by default and let the tests below check if it works
     ;;
   esac
 fi
-# If the neccessary predefines (__GNUC__ or __ICL, and __i386__)
+# If the necessary predefines (__GNUC__ or __ICL, and __i386__)
 # are not set, SSE2 will never be compiled in, and we switch off
 # the SSE2 flag
 if test "x$enable_sse2" = xyes; then
@@ -265,8 +265,8 @@ if test "x$enable_sse2" = xyes; then
 #if !defined(__GNUC__) && !defined(__ICL) || !defined(__i386__)
 #error
 #IRIXdoesnotexitaterrordirective
-#endif])], [], dnl Neccessary predefines are present. Nothing to do
-  [ dnl Neccessary predefines are not present. Switch off SSE2
+#endif])], [], dnl Necessary predefines are present. Nothing to do
+  [ dnl Necessary predefines are not present. Switch off SSE2
     AC_MSG_NOTICE([Not using GCC or ICC, or not a 32-bit x86. SSE2 disabled])
     enable_sse2=no])
 fi
