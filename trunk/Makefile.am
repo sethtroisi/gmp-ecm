@@ -2,6 +2,9 @@
 
 ACLOCAL_AMFLAGS = -I m4
 
+# to not install libecm.la, we could write noinst_LTLIBRARIES instead of
+# lib_LTLIBRARIES below, however then libecm.a is not installed either
+# (see http://www.gnu.org/software/automake/manual/html_node/Libtool-Convenience-Libraries.html)
 lib_LTLIBRARIES = libecm.la
 
 EXTRA_PROGRAMS = rho
