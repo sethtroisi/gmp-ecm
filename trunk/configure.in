@@ -203,13 +203,22 @@ fi
 if test "x$enable_asm_redc" = xyes; then
   case $host in
     pentium4-*-* | pentium3-*-* | viac7-*-* | i786-*-*) ASMPATH=pentium4;;
-    x86_64*-*-*)  ASMPATH=x86_64;; 
+    x86_64*-*-*)
+# In case GMP has been compiled with a 32-bit ABI...
+# Use AC_COMPILE_IFELSE instead of AC_PREPROC_IFELSE, otherwise
+# GMP's CFLAGS doesn't seem to be taken into account.
+AC_COMPILE_IFELSE([AC_LANG_PROGRAM([
+#if defined(__i386__)
+#error
+#endif])], [], [AC_MSG_NOTICE([32-bit ABI (i386), disabling asm-redc])
+                enable_asm_redc=no])
+                          ASMPATH=x86_64;;
 # warning: with powerpc-apple-darwin* we can have ABI=32
 # see bug #10646 on the bug tracker, where config.guess says
 # powerpc-apple-darwin8.11.0 (this a 64-bit machine, but most applications
 # are compiled in 32 bits). It works with --disable-asm-redc.
     powerpc-apple-darwin*)
-AC_PREPROC_IFELSE([AC_LANG_PROGRAM([
+AC_COMPILE_IFELSE([AC_LANG_PROGRAM([
 #if defined(__ppc__)
 #error
 #endif])], [], [AC_MSG_NOTICE([32-bit PowerPC, disabling asm-redc])
