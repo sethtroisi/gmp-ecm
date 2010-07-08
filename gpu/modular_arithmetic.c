@@ -94,16 +94,15 @@ conversion52to64bis(unsigned long *a,double *b,unsigned long sizeb,unsigned long
 	unsigned long tabr[12] = {12,24,36,48,8,20,32,44,4,16,28,40};
 	unsigned long tabl[12] = {40,28,16,56,44,32,20,60,48,36,24,12};
 	unsigned long i,j,k,cmp;
-	unsigned long *tmp = malloc(sizeb*sizeof(unsigned long));
+	unsigned long *tmp = malloc((sizeb+1)*sizeof(unsigned long));
 	/* initialization */
-	for (i=0; i<sizeb; i++) {
-		tmp[i] = 0.0; a[i] = 0;
-	}
+	for (i=0; i<sizeb+1; i++)
+		tmp[i] = 0.0;
 	
-	/* converts b to double and sets */
+	/* converts b to unsigned long */
 	for (i=0; i<sizeb; i++)
 		tmp[i] = b[i];
-	
+
 	j = 0; k = 0; cmp = 1;
 	a[0] = (tmp[0]|((tmp[1]&((1UL<<12)-1UL))<<52));
 	for (i=1; i<n; i++) {
@@ -401,9 +400,9 @@ REDC(double *a,double *b,double *c,double *mod,double *mu,unsigned long n) {
 	for (i=0; i<nn; i++) {
 		q[i] = 0.0; r[i] = 0.0; h[i] = 0.0; l[i] = 0.0; tmp[i] = 0.0; tmp1[i] = 0.0;
 	}
-	
+
 	cy = dpn_mul(a,b,c,n); /* a = b*c */
-		
+
 	for (i=0; i<n; i++) {
 		mul(h+i,q+i,mu[0],a[i]);
 		if (q[i] < 0)
@@ -416,7 +415,10 @@ REDC(double *a,double *b,double *c,double *mod,double *mu,unsigned long n) {
 		}
 		h[0] = h[0]*TWOm52;
 		tmp[0] = l[0];
-
+		if (TWO52 < tmp[0]) {
+			tmp[0] = tmp[0]-TWO52;
+			cy++;
+		}
 		for (j=1; j<=n; j++) {
 			mul(h+j,l+j,q[i],mod[j]);
 			if (l[j] < 0) {
@@ -482,23 +484,24 @@ dpn_mul_mod(double *a,double *b,double *c,mpz_t mod,double *mu,unsigned long n) 
 		d[i] = 0.0;
 
 	conversion64to52(d,mod,n);
-	
+
 	mpz_t lambda; mpz_init(lambda);
 	mpz_t exp; mpz_init(exp);
 	mpz_t A; mpz_init(A);
 		
 	cy = dpn_mul(a,b,c,n); /* a = b*c */
+
 	conversion52to64(a,nn,A); /* converts a from base 2^52 to mpz_t (a=A) */
 	mpz_ui_pow_ui(exp,2,52);
-	mpz_pow_ui(lambda,exp,n);
-	mpz_mul(lambda,lambda,A);
+	mpz_pow_ui(lambda,exp,n); /* lambda = (2^52)^n */
+	mpz_mul(lambda,lambda,A); /* lambda*A */
 	mpz_mod(lambda,lambda,mod); /* lambda*A mod[mod] */
 	conversion64to52(redc,lambda,n); /* converts lambda*A mod[mod] to base 2^52 */
 	
 	for (i=0; i<nn; i++)
 		a[i] = 0.0;
 	cy = REDC(a,redc,un,d,mu,n); /* computes (lambda*A mod[mod])*(2^52)^(-n) = b*c mod[mod] */
-		
+	
 	mpz_clear(lambda); mpz_clear(exp); mpz_clear(A);
 	free(redc); free(un); free(d);
 }
@@ -632,9 +635,9 @@ main (int argc, char * argv[]) {
 	mpz_mul_ui(tmp,N2,-1);
 	mpz_powm_ui(tmp,tmp,-1,exp);
 	conversion64to52(mu,tmp,1);
-	
+
 	dpn_mul_mod(mmod,b,c,N2,mu,n);
-	for (i=0; i<maxm; i++)
+	for (i=0; i<n; i++)
 		printf("mmod[%lu]=%f\n",i,mmod[i]);
 	/* verif */
 	mpz_t mulmod; mpz_init(mulmod);
