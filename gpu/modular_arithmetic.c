@@ -3,6 +3,7 @@
 #include <math.h>
 #include <gmp.h>
 #include <sys/cdefs.h>
+#include <assert.h>
 
 
 #define ONE ((mp_limb_t)1)
@@ -268,7 +269,19 @@ mul (double *h, double *l, double b, double c)
 	0 <= bl/2^26 < 2^26 */
 
 	*h += bh; /* 0 <= h/2^52 < 2^52 */
-	*l += bl; /* 0 <= l < 2^52 */
+	*l += bl;
+
+        if (*l >= TWO52)
+          {
+            *h += TWO52;
+            *l -= TWO52;
+          }
+        else if (*l < 0.0)
+          {
+            *h -= TWO52;
+            *l += TWO52;
+          }
+        assert (0.0 <= *l && *l < TWO52);
 }
 
 

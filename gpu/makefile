@@ -6,5 +6,5 @@ prototype.o : prototype.c prototype.h
 	gcc -c prototype.c -o prototype.o -lgmp -lm
 getprime.o : getprime.c getprime.h
 	gcc -c getprime.c -o getprime.o -lgmp -lm
-a.out:
+a.out: modular_arithmetic.c
 	gcc modular_arithmetic.c -lgmp -lm
