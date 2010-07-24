@@ -14,18 +14,15 @@ EXTRA_PROGRAMS = rho
 if ENABLE_ASM_REDC
   SUBDIRS = $(ASMPATH)
   MULREDCINCPATH = -I$(srcdir)/$(ASMPATH)
-  MULREDCLIBPATH = -L$(builddir)/$(ASMPATH)
-  MULREDCLIBRARY = -lmulredc
+  MULREDCLIBRARY = $(builddir)/$(ASMPATH)/libmulredc.la
 
   # Add a testing and timing program for the mulredc code
   EXTRA_PROGRAMS += bench_mulredc test_mulredc
   CLEANFILES = bench_mulredc test_mulredc
   bench_mulredc_CPPFLAGS = $(MULREDCINCPATH)
-  bench_mulredc_LDFLAGS = $(MULREDCLIBPATH)
   bench_mulredc_LDADD = $(MULREDCLIBRARY) $(GMPLIB)
   test_mulredc_CPPFLAGS = $(MULREDCINCPATH)
   test_mulredc_LDADD = $(MULREDCLIBRARY) $(GMPLIB)
-  test_mulredc_LDFLAGS = $(MULREDCLIBPATH)
 endif
 
 libecm_la_SOURCES = ecm.c ecm2.c pm1.c pp1.c getprime.c listz.c lucas.c \
@@ -38,13 +35,13 @@ libecm_la_SOURCES = ecm.c ecm2.c pm1.c pp1.c getprime.c listz.c lucas.c \
 libecm_la_CPPFLAGS = $(MULREDCINCPATH)
 libecm_la_CFLAGS = $(OPENMP_CFLAGS)
 libecm_la_LDFLAGS = '-version-info 0:0:0'
-libecm_la_LIBADD = $(builddir)/$(ASMPATH)/libmulredc.la
+libecm_la_LIBADD = $(MULREDCLIBRARY)
 
 bin_PROGRAMS = ecm
 noinst_PROGRAMS = tune ecmfactor ecmfactor2
 # Most binaries want to link libecm.la, and the ones which don't will
 # have their own _LDADD which overrides the default LDADD here
-LDADD = $(MULREDCLIBPATH) libecm.la $(GMPLIB)
+LDADD = libecm.la $(GMPLIB)
 
 ecm_CPPFLAGS = -DOUTSIDE_LIBECM
 ecm_CFLAGS = $(OPENMP_CFLAGS)
@@ -56,7 +53,6 @@ tune_SOURCES = mpmod.c tune.c mul_lo.c listz.c auxlib.c ks-multiply.c \
 	       ntt_gfp.c mpzspv.c mpzspm.c sp.c spv.c spm.c random.c \
 	       mul_fft.c auxarith.c
 tune_CPPFLAGS = -DTUNE $(MULREDCINCPATH)
-tune_LDFLAGS = $(MULREDCLIBPATH)
 tune_LDADD = $(MULREDCLIBRARY) $(GMPLIB)
 
 ecmfactor_CFLAGS = $(OPENMP_CFLAGS)
