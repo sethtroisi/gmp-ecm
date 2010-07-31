@@ -155,7 +155,9 @@ GSYM_PREFIX``''mulredc`'LENGTH:
 `	pushf
 	testq	%T0, %T0
 	jz	2f
-	call	GSYM_PREFIX`'abort
+	lea     _GLOBAL_OFFSET_TABLE_(%rip), %rbx # if we do PIC code, we 
+		# need to set rbx; if not, it doesnt hurt
+	call	GSYM_PREFIX`'abort@plt
 LABEL_SUFFIX(2)
 	popf')'
 dnl Cycle ring buffer. Only mappings of T0 and T1 to regs change, no MOVs!
@@ -192,7 +194,9 @@ define(`JM8', `eval(J - 8)')dnl
 	# T1:T0 <= 2^128 - 2*2^64 + 1 + 2*2^64 - 2 <= 2^128 - 1, no carry!
 `ifdef(`WANT_ASSERT', 
 `	jnc	3f
-	call	GSYM_PREFIX`'abort
+	lea     _GLOBAL_OFFSET_TABLE_(%rip), %rbx # if we do PIC code, we 
+		# need to set rbx; if not, it doesnt hurt
+	call	GSYM_PREFIX`'abort@plt
 LABEL_SUFFIX(3)')'
 	
 	mulq	%U		# m[j]*u
@@ -277,7 +281,9 @@ LABEL_SUFFIX(1)
 `	pushf
 	testq	%T0, %T0
 	jz	4f
-	call	GSYM_PREFIX`'abort
+	lea     _GLOBAL_OFFSET_TABLE_(%rip), %rbx # if we do PIC code, we 
+		# need to set rbx; if not, it doesnt hurt
+	call	GSYM_PREFIX`'abort@plt
 LABEL_SUFFIX(4)
 	popf')'
 dnl Cycle ring buffer. Only mappings of T0 and T1 to regs change, no MOVs!
