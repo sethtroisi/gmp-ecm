@@ -13,6 +13,11 @@ noinst_LTLIBRARIES = libmulredc.la
 libmulredc_la_SOURCES = $(MULREDC) redc.asm
 noinst_HEADERS = mulredc.h
 
+# The asm code does not depend on any libraries except libc for abort()
+# if assertions are enabled
+LIBS = 
+LDFLAGS = 
+
 # It's actually the .s files that depend on config.m4, but automake
 # knows them only as intermediate files, not as targets. Adding the
 # dependency to libmulredc.la should work so long as no stale .s

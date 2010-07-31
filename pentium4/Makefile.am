@@ -18,6 +18,11 @@ libmulredc_la_SOURCES = $(MULREDC) redc.asm
 # dependency to libmulredc.la should work so long as no stale .s
 # files exist.
 libmulredc_la_DEPENDENCIES = $(top_builddir)/config.m4
+
+# The asm code does not depend on any libraries except libc for abort()
+# if assertions are enabled
+LIBS = 
+LDFLAGS = 
   
 .asm.s:
 	$(M4) -I../ -DOPERATION_$* `test -f $< || echo '$(srcdir)/'`$< >$*.s
