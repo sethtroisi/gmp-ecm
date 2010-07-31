@@ -50,7 +50,8 @@ GSYM_PREFIX`'mulredc1:
 	addq	TMP1, %rax      # rax is 0, now (carry is important)
 ifdef(`WANT_ASSERT', 
 `	jz	1f
-	call	abort
+	lea     _GLOBAL_OFFSET_TABLE_(%rip), %rbx
+	call	abort@plt
 LABEL_SUFFIX(1)')
 	adcq	TMP2, %rdx
 	movq	%rdx, (Z)
