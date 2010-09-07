@@ -131,6 +131,9 @@ Known problems:
 * [reported by Sam Rawlins] with MinGW under Windows XP (32-bit), the
   compilation fails in spv.c. A fix seems to add -msse2 to CFLAGS.
   See http://lists.gforge.inria.fr/pipermail/ecm-discuss/2010-June/004077.html
+* GCC 4.4.5 miscompiles GMP-ECM on Sparc (maybe some other versions of GCC are
+  affected, but GCC 4.3 works).
+  See http://gcc.gnu.org/bugzilla/show_bug.cgi?id=45559 for more details.
 
 ============================================================================
 
