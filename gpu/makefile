@@ -11,7 +11,7 @@ prototype.o : prototype.c prototype.h
 getprime.o : getprime.c getprime.h
 	$(CC) $(CFLAGS) -c getprime.c -o getprime.o
 
-a.out: modular_arithmetic.c
-	$(CC) $(CFLAGS) modular_arithmetic.c $(LDFLAGS)
+modular_arithmetic: modular_arithmetic.c
+	$(CC) $(CFLAGS) modular_arithmetic.c $(LDFLAGS) -o $@
 clean:
-	\rm -f stage1 a.out *.o
+	\rm -f stage1 modular_arithmetic *.o
