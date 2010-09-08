@@ -28,6 +28,7 @@ After stage 1, x=176288302873110894925019269913340456723239006295972770222672902
 */
 
 #include <stdio.h>
+#include <stdlib.h>
 #include <math.h>
 #include <gmp.h>
 #include "prototype.h"
@@ -69,4 +70,6 @@ main (int argc, char*argv[])
       mpz_clear (B1);
       mpz_clear (x);
     }
+
+  return 0;
 }

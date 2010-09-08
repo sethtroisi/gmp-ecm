@@ -23,7 +23,7 @@
 #include <stdio.h>
 #include <math.h>
 #include <gmp.h>
-
+#include "getprime.h"
 
 /* calculParam calculates the values of parameters of Suyama's parametrisation
    input : a random integer sigma and N
@@ -206,7 +206,7 @@ void addition(mpz_t xP,mpz_t zP,mpz_t xQ,mpz_t zQ,mpz_t x_PminusQ,mpz_t z_Pminus
    output : the coordonates of the point PI.Q = (x_PIQ::z_PIQ) */
 void
 multiplication (unsigned long PI, mpz_t xQ, mpz_t zQ, mpz_t d, mpz_t N,
-                mpz_t sigma, mpz_t x_PIQ, mpz_t z_PIQ)
+                mpz_t x_PIQ, mpz_t z_PIQ)
 {
   int i, bits=0;
   unsigned long PIm1,tmp; 
@@ -344,7 +344,7 @@ stageOne (mpz_t B1, mpz_t sigma, mpz_t N, mpz_t Q)
   mpz_t xq;
   mpz_t zq;
   unsigned long PI,PIj,PIjp1;
-  int j,jp1,k,i;
+  int j, jp1, k, i;
   mpz_t gcd;
   mpz_t bezout1;
   mpz_t bezout2;
@@ -371,18 +371,16 @@ stageOne (mpz_t B1, mpz_t sigma, mpz_t N, mpz_t Q)
           PIj = pow(PI,j);
           PIjp1 = pow(PI,jp1);
           if ((mpz_cmp_ui(B1,PIj)>=0)&&(mpz_cmp_ui(B1,PIjp1)<0))
-            {
-              k = j;
-              break; /* k has been found -> quit 'if' */
-            }
+            break; /* k has been found -> quit 'if' */
           j++;
         }
+      k = j;
       i = 0;
       while (i < k)
         {
           /* calculate PI.Q with the function 'multiplication' */
           /* repeat the operation k times */
-          multiplication (PI,xQ,zQ,d,N,sigma,xq,zq);
+          multiplication (PI, xQ, zQ, d, N, xq, zq);
           mpz_set(xQ,xq);
           mpz_set(zQ,zq);
           i++;
