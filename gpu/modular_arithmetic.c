@@ -1,3 +1,25 @@
+/* Plain C stage 1 (without GMP for the critical loops).
+
+  Copyright 2010 Julie Feltin and Paul Zimmermann.
+
+  This file is part of the ECM Library.
+
+  The ECM Library is free software; you can redistribute it and/or modify
+  it under the terms of the GNU Lesser General Public License as published by
+  the Free Software Foundation; either version 2.1 of the License, or (at your
+  option) any later version.
+
+  The ECM Library is distributed in the hope that it will be useful, but
+  WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
+  or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU Lesser General Public
+  License for more details.
+
+  You should have received a copy of the GNU Lesser General Public License
+  along with the ECM Library; see the file COPYING.LIB.  If not, write to
+  the Free Software Foundation, Inc., 51 Franklin St, Fifth Floor, Boston,
+  MA 02110-1301, USA.
+*/
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <math.h>
@@ -18,24 +40,28 @@
 
 
 /* computes size of N in base 2^52 */
-unsigned long sizeAlloc(mpz_t N) {
-	mpz_t tmp; mpz_init(tmp);
-	mpz_t exp; mpz_init(exp);
-	mpz_t exp_tmp; mpz_init(exp_tmp);
-	unsigned long n;
+unsigned long
+sizeAlloc (mpz_t N)
+{
+  mpz_t tmp;
+  mpz_t exp;
+  mpz_t exp_tmp;
+  unsigned long n;
 
-	mpz_ui_pow_ui(exp,2,52);
-	n = mpz_size(N); /* starts with (2^52)^sizeN */
-	while (mpz_cmp_ui(tmp,0)>=0) {
-		mpz_pow_ui(exp_tmp,exp,n);
-		mpz_sub(tmp,N,exp_tmp); /* N - (2^52)^i */
-		n++;
-	}
-	mpz_clear(tmp); mpz_clear(exp); mpz_clear(exp_tmp);
-	return n-1;
+  mpz_init(tmp);
+  mpz_init(exp);
+  mpz_init(exp_tmp);
+
+  mpz_ui_pow_ui(exp,2,52);
+  n = mpz_size(N); /* starts with (2^52)^sizeN */
+  while (mpz_cmp_ui(tmp,0)>=0) {
+    mpz_pow_ui(exp_tmp,exp,n);
+    mpz_sub(tmp,N,exp_tmp); /* N - (2^52)^i */
+    n++;
+  }
+  mpz_clear(tmp); mpz_clear(exp); mpz_clear(exp_tmp);
+  return n-1;
 }
-
-
 
 /* converts N from base 2^64 to base 2^52 */
 void
@@ -72,20 +98,24 @@ conversion64to52(double *b,mpz_t N,unsigned long n) {
 
 /* converts N from base 2^52 to mpz_t */
 void
-conversion52to64(double * b,unsigned long n,mpz_t M) {
-	unsigned long i;
-	mpz_t exp; mpz_init(exp);
-	mpz_t exp_tmp; mpz_init(exp_tmp);
-	
-	mpz_ui_pow_ui(exp,2,52);
-	for (i=0; i<n; i++) {
-		mpz_pow_ui(exp_tmp,exp,i);
-		mpz_mul_ui(exp_tmp,exp_tmp,b[i]);
-		mpz_add(M,M,exp_tmp);
-	}
+conversion52to64(double * b,unsigned long n,mpz_t M)
+{
+  unsigned long i;
+  mpz_t exp;
+  mpz_t exp_tmp;
 
-	mpz_clear(exp);
-	mpz_clear(exp_tmp);
+  mpz_init(exp);
+  mpz_init(exp_tmp);
+	
+  mpz_ui_pow_ui(exp,2,52);
+  for (i=0; i<n; i++) {
+    mpz_pow_ui(exp_tmp,exp,i);
+    mpz_mul_ui(exp_tmp,exp_tmp,b[i]);
+    mpz_add(M,M,exp_tmp);
+  }
+  
+  mpz_clear(exp);
+  mpz_clear(exp_tmp);
 }
 
 
@@ -212,18 +242,18 @@ dpn_add_mod(double *amod,double *b,double *c,double *mod,unsigned long n) {
 		
 /* {a, n} <- {b, n} - {c, n} mod {mod, n}, returns carry out (0 or 1) */
 double
-dpn_sub_mod(double *smod,double *b,double *c,double *mod,unsigned long n) {
-	unsigned long i;
-	double cy;
+dpn_sub_mod(double *smod,double *b,double *c,double *mod,unsigned long n)
+{
+  double cy;
 	
-	cy = dpn_sub(smod,b,c,n);
+  cy = dpn_sub(smod,b,c,n);
 	
-	if (cy != 0) {
-		cy = dpn_add(smod,smod,mod,n);
-		if (cy == 0)
-			abort();
-	}
-	return cy;	
+  if (cy != 0) {
+    cy = dpn_add(smod,smod,mod,n);
+    if (cy == 0)
+      abort();
+  }
+  return cy;	
 }
 
 
@@ -325,9 +355,11 @@ dpn_mul(double *a,double *b,double *c,unsigned long n) {
 	double cy = 0.0;
 	
 	double ** hbc = malloc(nn*sizeof(double));
+	double ** lbc = malloc(nn*sizeof(double));
+	int cmp;
+
 	for (i=0; i<nn; i++)
 		hbc[i] = malloc(nn*sizeof(double));
-	double ** lbc = malloc(nn*sizeof(double));
 	for (i=0; i<nn; i++)
 		lbc[i] = malloc(nn*sizeof(double));
 	/* initialization */
@@ -338,7 +370,6 @@ dpn_mul(double *a,double *b,double *c,unsigned long n) {
 	}
 
 	/* if b > c precomputes b[i]*c[j], else computes c[i]*b[j] */
-	int cmp;
 	cmp = dpn_cmp(b,c,n);
 	if (cmp == 1)
 		coef(hbc,lbc,b,c,n);
@@ -486,21 +517,25 @@ dpn_mul_mod(double *a,double *b,double *c,mpz_t mod,double *mu,unsigned long n) 
 	unsigned long i;
 	unsigned long nn = 2*n;
 	double *redc = (double*)malloc(nn*sizeof(double));
+	double *un = (double*)malloc(n*sizeof(double));
+	double *d = (double*)malloc(n*sizeof(double));
+	mpz_t lambda;
+	mpz_t exp;
+	mpz_t A;
+
 	for (i=0; i<nn; i++)
 		redc[i] = 0.0;
-	double *un = (double*)malloc(n*sizeof(double));
 	un[0] = 1.0;
 	for (i=1; i<n; i++)
 		un[i] = 0.0;
-	double *d = (double*)malloc(n*sizeof(double));
 	for (i=0; i<n; i++)
 		d[i] = 0.0;
 
 	conversion64to52(d,mod,n);
 
-	mpz_t lambda; mpz_init(lambda);
-	mpz_t exp; mpz_init(exp);
-	mpz_t A; mpz_init(A);
+        mpz_init(lambda);
+        mpz_init(exp);
+        mpz_init(A);
 		
 	cy = dpn_mul(a,b,c,n); /* a = b*c */
 
@@ -521,25 +556,58 @@ dpn_mul_mod(double *a,double *b,double *c,mpz_t mod,double *mu,unsigned long n) 
 
 
 
-
+int
 main (int argc, char * argv[]) {
 	/* assume 0 < N,N1 < N2 */
-	mpz_t N; mpz_init(N); mpz_set_str(N,argv[1],10);
-	mpz_t N1; mpz_init(N1); mpz_set_str(N1,argv[2],10);
-	mpz_t N2; mpz_init(N2); mpz_set_str(N2,argv[3],10); /* N2 -> modulo */
-
+	mpz_t N;
+	mpz_t N1;
+	mpz_t N2;
 	unsigned long nb,nc,nd;
+	unsigned long n;
+	unsigned long i;
+        double *b, *c, *d;
+        unsigned long *test;
+	double cy;
+        double *a;
+	mpz_t add;
+        double *s;
+	mpz_t sub;
+        double *ma;
+	mpz_t moda;
+        double *ms;
+	mpz_t mods;
+        unsigned long maxm;
+        double *mm;
+	mpz_t mult;
+        double *mmod;
+        double *mu;
+        double *un;
+	mpz_t lambda;
+	mpz_t tmp;
+	mpz_t exp;
+	mpz_t mulmod;
+
+        if (argc != 4)
+          {
+            fprintf (stderr, "Usage: modular_arithmetic N N1 N2\n");
+            exit (1);
+          }
+
+        mpz_init(N);
+        mpz_set_str(N,argv[1],10);
+        mpz_init(N1);
+        mpz_set_str(N1,argv[2],10);
+        mpz_init(N2);
+        mpz_set_str(N2,argv[3],10); /* N2 -> modulo */
+
 	nb = sizeAlloc(N); nc = sizeAlloc(N1); nd = sizeAlloc(N2);
 	
-	unsigned long n;
 	n = (nc>nb)?nc:nb;
 	n = (n>nd)?n:nd;
 	
-	unsigned long i;
-	
-	double *b = (double*)malloc(n*sizeof(double));
-	double *c = (double*)malloc(n*sizeof(double));
-	double *d = (double*)malloc(n*sizeof(double));
+	b = (double*)malloc(n*sizeof(double));
+	c = (double*)malloc(n*sizeof(double));
+	d = (double*)malloc(n*sizeof(double));
 	for (i=0; i<n; i++) {
 		b[i] = 0.0; c[i] = 0.0; d[i] = 0.0;
 	}
@@ -556,7 +624,7 @@ main (int argc, char * argv[]) {
 		printf("d[%lu]=%f\n",i,d[i]);
 	printf("\n");
 
-	unsigned long *test = (unsigned long*)malloc(n*sizeof(unsigned long));
+	test = (unsigned long*)malloc(n*sizeof(unsigned long));
 	for (i=0; i<n; i++)
 		test[i] = 0;
 	conversion52to64bis(test,b,n,mpz_size(N));
@@ -566,83 +634,82 @@ main (int argc, char * argv[]) {
 		
 		
 	/* add */
-	double cy;
-	double *a = (double*)malloc(n*sizeof(double));
+	a = (double*)malloc(n*sizeof(double));
 	for (i=0; i<n; i++)
 		a[i] = 0.0;
 	cy = dpn_add(a,b,c,n);
 	for (i=0; i<n; i++)
 		printf("a[%lu]=%f\n",i,a[i]);
 	/* verif */
-	mpz_t add; mpz_init(add);
+        mpz_init(add);
 	mpz_add(add,N,N1);
 	gmp_printf("add=%Zd\n\n",add);
 	
 	
 	/* sub */
-	double *s = (double*)malloc(n*sizeof(double));
+	s = (double*)malloc(n*sizeof(double));
 	for (i=0; i<n; i++)
 		s[i] = 0.0;
 	cy = dpn_sub(s,b,c,n);
 	for (i=0; i<n; i++)
 		printf("s[%lu]=%f\n",i,s[i]);
 	/* verif */
-	mpz_t sub; mpz_init(sub);
+        mpz_init(sub);
 	mpz_sub(sub,N,N1);
 	gmp_printf("sub=%Zd\n\n",sub);
 	
 	
 	/* add mod */
-	double *ma = (double*)malloc(n*sizeof(double));
+	ma = (double*)malloc(n*sizeof(double));
 	for (i=0; i<n; i++)
 		ma[i] = 0.0;
 	cy = dpn_add_mod(ma,b,c,d,n);
 	for (i=0; i<n; i++)
 		printf("ma[%lu]=%f\n",i,ma[i]);
 	/* verif */
-	mpz_t moda; mpz_init(moda);
+        mpz_init(moda);
 	mpz_mod(moda,add,N2);
 	gmp_printf("addmod=%Zd\n\n",moda);
 	
 	
 	/* sub mod */
-	double *ms = (double*)malloc(n*sizeof(double));
+	ms = (double*)malloc(n*sizeof(double));
 	for (i=0; i<n; i++)
 		ms[i] = 0.0;
 	cy = dpn_sub_mod(ms,b,c,d,n);
 	for (i=0; i<n; i++)
 		printf("ms[%lu]=%f\n",i,ms[i]);
 	/* verif */
-	mpz_t mods; mpz_init(mods);
+        mpz_init(mods);
 	mpz_mod(mods,sub,N2);
 	gmp_printf("submod=%Zd\n\n",mods);
 	
 	
 	/* mul */
-	unsigned long maxm = 2*n;
-	double *mm = (double*)malloc(maxm*sizeof(double));
+	maxm = 2*n;
+	mm = (double*)malloc(maxm*sizeof(double));
 	for (i=0; i<maxm; i++)
 		mm[i] = 0.0;
 	cy = dpn_mul(mm,b,c,n);
 	for (i=0; i<maxm; i++)
 		printf("mm[%lu]=%f\n",i,mm[i]);
 	/* verif */
-	mpz_t mult; mpz_init(mult);
+        mpz_init(mult);
 	mpz_mul(mult,N,N1);
 	gmp_printf("mult=%Zd\n\n",mult);
 	
 	
 	/* mul mod */
-	double *mmod = (double*)malloc(maxm*sizeof(double));
+	mmod = (double*)malloc(maxm*sizeof(double));
 	for (i=0; i<maxm; i++)
 		mmod[i] = 0.0;
-	double *mu = (double*)malloc(sizeof(double));
-	double *un = (double*)malloc(n*sizeof(double));
+	mu = (double*)malloc(sizeof(double));
+	un = (double*)malloc(n*sizeof(double));
 	un[0] = 1.0;
 	
-	mpz_t lambda; mpz_init(lambda);
-	mpz_t tmp; mpz_init(tmp);
-	mpz_t exp; mpz_init(exp);
+        mpz_init(lambda);
+        mpz_init(tmp);
+        mpz_init(exp);
 	mpz_ui_pow_ui(exp,2,52);
 		/* mu = -N2^(-1) mod[2^52] */
 	mpz_mul_ui(tmp,N2,-1);
@@ -653,7 +720,7 @@ main (int argc, char * argv[]) {
 	for (i=0; i<n; i++)
 		printf("mmod[%lu]=%f\n",i,mmod[i]);
 	/* verif */
-	mpz_t mulmod; mpz_init(mulmod);
+        mpz_init(mulmod);
 	mpz_mul(mulmod,N,N1);
 	mpz_mod(mulmod,mulmod,N2);
 	gmp_printf("mulmod=%Zd\n",mulmod);
@@ -664,6 +731,7 @@ main (int argc, char * argv[]) {
 	free(b); free(c); free(d); free(test);
 	free(a); free(s); free(ma); free(ms);
 	free(mm); free(mmod); free(mu); free(un);
-	
+
+        return 0;
 }
 
