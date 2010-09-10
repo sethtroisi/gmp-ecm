@@ -109,7 +109,7 @@ calculParam (mpz_t sigma, mpz_t N, mpz_t d, mpz_t x0, mpz_t z0, mpz_t u,
 
 
 
-/* 'duplicate' allows to duplicate a point P = (xP::zP) in the multiplication pi.Q on the elliptique curve
+/* 'duplicate' allows to duplicate a point P = (xP::zP) in the multiplication pi.Q on the elliptic curve
    input : the coordonates (xP::zP) of the point P to duplicate, a the Suyama's parameter and N
    output : the coordonates (x2P::z2P) of the point 2P */
 void duplicate(mpz_t xP,mpz_t zP,mpz_t d,mpz_t N,mpz_t x2P,mpz_t z2P) {
@@ -149,7 +149,7 @@ void duplicate(mpz_t xP,mpz_t zP,mpz_t d,mpz_t N,mpz_t x2P,mpz_t z2P) {
 
 
 
-/* 'addition' allows to add (P,Q->P+Q) in the multiplication pi.Q on the elliptique curve
+/* 'addition' allows to add (P,Q->P+Q) in the multiplication pi.Q on the elliptic curve
    input : the coordinates of points P=(xP::zP) and Q=(xQ::zQ),
    x_PminusQ ,z_PminusQ corresponding in the coordonates of the difference P-Q=(x_P-Q::z_P-Q) and N
    output : the coordinates of P+Q=(x_P+Q::z_P+Q) */
@@ -200,7 +200,7 @@ void addition(mpz_t xP,mpz_t zP,mpz_t xQ,mpz_t zQ,mpz_t x_PminusQ,mpz_t z_Pminus
 
 
 
-/* 'multiplication' allows to calculate the multiplication pi.Q on the elliptique curve
+/* 'multiplication' allows to calculate the multiplication pi.Q on the elliptic curve
    input : integer PI which whom we want to multiplicate the point Q, the coordonates of the point Q = (xQ::zQ),
    Suyama's parameter a and N the number to be factored
    output : the coordonates of the point PI.Q = (x_PIQ::z_PIQ) */
@@ -252,7 +252,7 @@ multiplication (unsigned long PI, mpz_t xQ, mpz_t zQ, mpz_t d, mpz_t N,
       bits++;
     }
 
-  duplicate(xQ,zQ,d,N,x2Q,z2Q); /* x2Q and z2Q */
+  duplicate (xQ, zQ, d, N, x2Q, z2Q); /* x2Q and z2Q */
 	
   /* if PI=2, returns 2Q=(x2Q::z2Q) */
   if (PI == 2)
