@@ -82,7 +82,7 @@ static int exit_asap_signalnr = 0; /* Remembers which signal we received */
      is now contained within eval() function.
 */
 
-int 
+int
 read_number (mpcandi_t *n, FILE *fd, int primetest)
 {
   int c;
