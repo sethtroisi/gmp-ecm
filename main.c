@@ -76,7 +76,7 @@ static int exit_asap_signalnr = 0; /* Remembers which signal we received */
 /* Tries to read a number from a line from fd and stores it in r.
    Keeps reading lines until a number is found. Lines beginning with "#"
      are skipped.
-   Returns 1 if a number was successfully read, 0 if no number can be read 
+   Returns 1 if a number was successfully read, 0 if no number can be read
      (i.e. at EOF)
    Function is now simpler.  Much of the logic (other than skipping # lines
      is now contained within eval() function.
