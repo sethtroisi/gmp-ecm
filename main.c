@@ -89,7 +89,7 @@ read_number (mpcandi_t *n, FILE *fd, int primetest)
 
 new_line:
   c = fgetc (fd);
-  
+
   /* Skip comment lines beginning with '#' */
   if (c == '#')
     {
