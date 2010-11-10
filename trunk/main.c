@@ -132,7 +132,7 @@ new_line:
   return 1;
 }
 
-int 
+int
 probab_prime_p (mpz_t N, int reps)
 {
 #ifdef WANT_SHELLCMD
