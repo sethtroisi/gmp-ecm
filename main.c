@@ -158,7 +158,7 @@ probab_prime_p (mpz_t N, int reps)
       return mpz_probab_prime_p (N, reps);
 }
 
-void 
+void
 signal_handler (int sig)
 {
   if (sig == SIGINT || sig == SIGTERM)
