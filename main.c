@@ -86,7 +86,7 @@ int
 read_number (mpcandi_t *n, FILE *fd, int primetest)
 {
   int c;
-  
+
 new_line:
   c = fgetc (fd);
   
