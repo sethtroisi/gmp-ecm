@@ -296,9 +296,9 @@ if test "x$enable_sse2" = xyes; then
   AC_MSG_CHECKING([for SSE2 support])
   m4_define([SSE2_TEST_PROG], [AC_LANG_PROGRAM([], dnl
 [#if (defined(__GNUC__) || defined(__ICL)) && defined(__i386__)
-/* When there are no constraints, registers are referred to by
-   single % sign, not double. Argh */
-asm volatile ("pmuludq %xmm2, %xmm0");
+/* On some machines, a program without constraints may pass without -msse2 but
+   those with constraints in spv.c fail, thus we test with constraints here. */
+asm volatile ("pmuludq %%xmm2, %%xmm0" : : :"%xmm0");
 #else
 #error
 #IRIXdoesnotexitaterrordirective
