@@ -2407,7 +2407,7 @@ ntt_dft_to_dct (mpzspv_t dct, mpzspv_t dft, unsigned long len,
      element with scrambled index 1 is stored in h[params->l] */
   
 #ifdef WANT_ASSERT
-  /* Test that the coefficients are symmetic (if they were unscambled) and 
+  /* Test that the coefficients are symmetric (if they were unscrambled) and 
      that our algorithm for finding identical coefficients in the scrambled 
      data works */
   m = 5UL;
@@ -2494,9 +2494,9 @@ ntt_spv_to_dct (mpzspv_t dct, const mpzspv_t spv, const spv_size_t spvlen,
          element with scrambled index 1 is stored in h[params->l] */
   
 #ifdef WANT_ASSERT
-      /* Test that the coefficients are symmetic (if they were unscambled) and 
-         that our algorithm for finding identical coefficients in the scrambled 
-         data works */
+      /* Test that the coefficients are symmetric (if they were unscrambled)
+         and that our algorithm for finding identical coefficients in the 
+         scrambled data works */
       {
         spv_size_t m = 5;
         for (i = 2; i < l; i += 2L)
