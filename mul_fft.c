@@ -2428,7 +2428,11 @@ mpn_mul_fft_aux (mp_ptr op, const mp_size_t pl,
 	 printf ("   temp space %ld\n", 2 * K * (nprime + 1));)
 
   A = __GMP_ALLOCATE_FUNC_LIMBS (2 * K * (nprime + 1));
-  ASSERT(A != NULL);
+  if (A == NULL)
+    {
+      fprintf (stderr, "Cannot allocate memory, please use -maxmem\n");
+      exit (EXIT_FAILURE);
+    }
   B = A + K * (nprime + 1);
   Ap = TMP_ALLOC_MP_PTRS (K);
   ASSERT(Ap != NULL);
