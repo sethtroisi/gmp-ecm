@@ -281,6 +281,7 @@
       <TargetEnvironment>X64</TargetEnvironment>
     </Midl>
     <ClCompile>
+      <Optimization>Full</Optimization>
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <FavorSizeOrSpeed>Speed</FavorSizeOrSpeed>
       <AdditionalIncludeDirectories>..\..\..\$(mp_dir)\build.vc10\lib\$(IntDir);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
