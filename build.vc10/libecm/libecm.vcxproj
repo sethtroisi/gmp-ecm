@@ -416,6 +416,7 @@ call file_copy config.h ..\config.h
       <Optimization Condition="'$(Configuration)|$(Platform)'=='Release-AMD|Win32'">MaxSpeed</Optimization>
       <Optimization Condition="'$(Configuration)|$(Platform)'=='Release-AMD|x64'">Full</Optimization>
       <Optimization Condition="'$(Configuration)|$(Platform)'=='Release-Intel|Win32'">MaxSpeed</Optimization>
+      <Optimization Condition="'$(Configuration)|$(Platform)'=='Release-Intel|x64'">Full</Optimization>
     </ClCompile>
     <ClCompile Include="..\..\mul_lo.c" />
     <ClCompile Include="..\..\ntt_gfp.c" />
