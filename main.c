@@ -873,20 +873,27 @@ main (int argc, char *argv[])
   /* start of the program */
   if (verbose >= 1)
     {
+      char Gmp_version[64];
+#ifdef __MPIR_VERSION
+      sprintf (Gmp_version, "MPIR %d.%d.%d", __MPIR_VERSION,
+	       __MPIR_VERSION_MINOR, __MPIR_VERSION_PATCHLEVEL);
+#else /* original GMP */
+      sprintf (Gmp_version, "GMP %s", gmp_version);
+#endif /* __MPIR_VERSION */
 #ifdef HAVE_GWNUM
 #ifdef NATIVE_REDC
-      printf ("GMP-ECM %s [configured with GMP %s, GWNUM %s and --enable-asm-redc] [", 
-              VERSION, gmp_version, GWNUM_VERSION);
+      printf ("GMP-ECM %s [configured with %s, GWNUM %s and --enable-asm-redc] [", 
+              VERSION, Gmp_version, GWNUM_VERSION);
 #else
-      printf ("GMP-ECM %s [configured with GMP %s and GWNUM %s] [", 
-              VERSION, gmp_version, GWNUM_VERSION);
+      printf ("GMP-ECM %s [configured with %s and GWNUM %s] [", 
+              VERSION, Gmp_version, GWNUM_VERSION);
 #endif
 #else
 #ifdef NATIVE_REDC
-      printf ("GMP-ECM %s [configured with GMP %s and --enable-asm-redc] [",
-              VERSION, gmp_version);
+      printf ("GMP-ECM %s [configured with %s and --enable-asm-redc] [",
+              VERSION, Gmp_version);
 #else
-      printf ("GMP-ECM %s [configured with GMP %s] [", VERSION, gmp_version);
+      printf ("GMP-ECM %s [configured with %s] [", VERSION, Gmp_version);
 #endif
 #endif
       switch (method)
