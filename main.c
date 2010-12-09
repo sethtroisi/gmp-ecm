@@ -165,7 +165,7 @@ signal_handler (int sig)
     {
       exit_asap_value = 1;
       exit_asap_signalnr = sig;
-      /* If one of these two signals arrives again, we'll let the default 
+      /* If one of these two signals arrives again, we'll let the default
          handler take over,  which will usually terminate the process 
          immediately. */
       signal (SIGINT, SIG_DFL);
