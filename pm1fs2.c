@@ -595,8 +595,23 @@ choose_P (const mpz_t B2min, const mpz_t B2, const unsigned long lmax,
   const unsigned int Pvalues_len = sizeof (Pvalues) / sizeof (unsigned long);
   int r;
 
+  outputf (OUTPUT_TRACE, 
+           "choose_P(B2min = %Zd, B2 = %Zd, lmax = %lu, min_s2 = %ld, "
+           "use_ntt = %d, method = %d\n", 
+           B2min, B2, lmax, min_s2, use_ntt, method);
+
   if (mpz_cmp (B2, B2min) < 0)
     return 0L;
+
+  /* If we use the NTT, we allow only power-of-two transform lengths.
+     In that case, the code below assumes that lmax is a power of two.
+     If that is not the case, print error and return. */
+  if (use_ntt && (lmax & (lmax - 1UL)) != 0)
+    {
+      outputf (OUTPUT_ERROR, 
+               "choose_P: Error, lmax = %lu is not a power of two\n", lmax);
+      return ECM_ERROR;
+    }
   
   mpz_init (effB2);
   mpz_init (tryeffB2);
