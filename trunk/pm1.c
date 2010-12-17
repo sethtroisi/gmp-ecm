@@ -966,6 +966,9 @@ pm1 (mpz_t f, mpz_t p, mpz_t N, mpz_t go, double *B1done, double B1,
       
       if ((!use_ntt || P_ntt == ECM_ERROR) && P_nontt == ECM_ERROR)
         {
+          outputf (OUTPUT_ERROR, 
+                   "Error: cannot choose suitable P value for your stage 2 "
+                   "parameters.\nTry a shorter B2min,B2 interval.\n");
           mpz_clear (faststage2_params.m_1);
           mpz_clear (params_ntt.m_1);
           mpz_clear (params_nontt.m_1);
