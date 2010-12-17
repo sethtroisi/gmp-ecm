@@ -327,14 +327,17 @@ fi
 ########################
 dnl If user wants GWNUM, check if the file exists (either as .a or .lib)
 if test "x$with_gwnum" != "x"; then
+  if test "x$enable_openmp" = xyes; then
+      AC_MSG_ERROR([Woltman's GWNUM currently cannot be used together with OpenMP])
+  fi
   AC_CHECK_FILE([$with_gwnum/gwnum.a], [
     AC_DEFINE([HAVE_GWNUM], 1, [Define to 1 if gwnum.a or gwnum.lib exist])
-    GWLIB="$with_gwnum/gwnum.a"
+    GWLIB="$with_gwnum/gwnum.a -lpthread"
     CPPFLAGS="$CPPFLAGS -I$with_gwnum"
   ],[
     AC_CHECK_FILE([$with_gwnum/gwnum.lib], [
       AC_DEFINE([HAVE_GWNUM], 1, [Define to 1 if gwnum.a or gwnum.lib exist])
-      GWLIB="$with_gwnum/gwnum.lib"
+      GWLIB="$with_gwnum/gwnum.lib -lpthread"
       CPPFLAGS="$CPPFLAGS -I$with_gwnum"
     ],[
       with_gwnum=
