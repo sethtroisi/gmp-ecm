@@ -908,12 +908,17 @@ pm1 (mpz_t f, mpz_t p, mpz_t N, mpz_t go, double *B1done, double B1,
 
   if (stage2_variant != 0)
     {
-      long P;
+      long P_ntt, P_nontt;
       const unsigned long lmax = 1UL<<28; /* An upper bound */
       unsigned long lmax_NTT, lmax_noNTT;
+      faststage2_param_t params_ntt, params_nontt, *better_params;
 
       mpz_init (faststage2_params.m_1);
       faststage2_params.l = 0;
+      mpz_init (params_ntt.m_1);
+      params_ntt.l = 0;
+      mpz_init (params_nontt.m_1);
+      params_nontt.l = 0;
 
       /* Find out what the longest transform length is we can do at all.
 	 If no maxmem is given, the non-NTT can theoretically do any length. */
@@ -922,7 +927,7 @@ pm1 (mpz_t f, mpz_t p, mpz_t N, mpz_t go, double *B1done, double B1,
       if (use_ntt)
 	{
 	  unsigned long t;
-	  /* See what transform length that the NTT can handle (due to limited 
+	  /* See what transform length the NTT can handle (due to limited 
 	     primes and limited memory) */
 	  t = mpzspm_max_len (N);
 	  lmax_NTT = MIN (lmax, t);
@@ -932,9 +937,17 @@ pm1 (mpz_t f, mpz_t p, mpz_t N, mpz_t go, double *B1done, double B1,
 	      lmax_NTT = MIN (lmax_NTT, t);
 	    }
 	  outputf (OUTPUT_DEVVERBOSE, "NTT can handle lmax <= %lu\n", lmax_NTT);
+          P_ntt = choose_P (B2min, B2, lmax_NTT, k, &params_ntt, 
+                            B2min, B2, 1, ECM_PM1);
+          if (P_ntt != ECM_ERROR)
+            outputf (OUTPUT_DEVVERBOSE, 
+	             "Parameters for NTT: P=%lu, l=%lu\n", 
+	             params_ntt.P, params_ntt.l);
 	}
+      else
+        P_ntt = 0; /* or GCC complains about uninitialized var */
       
-      /* See what transform length that the non-NTT code can handle */
+      /* See what transform length the non-NTT code can handle */
       lmax_noNTT = lmax;
       if (maxmem != 0.)
 	{
@@ -944,18 +957,43 @@ pm1 (mpz_t f, mpz_t p, mpz_t N, mpz_t go, double *B1done, double B1,
 	  outputf (OUTPUT_DEVVERBOSE, "non-NTT can handle lmax <= %lu\n", 
 		   lmax_noNTT);
 	}
+      P_nontt = choose_P (B2min, B2, lmax_noNTT, k, &params_nontt, 
+                          B2min, B2, 0, ECM_PM1);
+      if (P_nontt != ECM_ERROR)
+        outputf (OUTPUT_DEVVERBOSE, 
+                 "Parameters for non-NTT: P=%lu, l=%lu\n", 
+                 params_nontt.P, params_nontt.l);
       
-      P = choose_P (B2min, B2, MAX (lmax_NTT, lmax_noNTT), k, 
-		    &faststage2_params, B2min, B2, use_ntt, ECM_PM1);
-      if (P == ECM_ERROR)
+      if ((!use_ntt || P_ntt == ECM_ERROR) && P_nontt == ECM_ERROR)
         {
           mpz_clear (faststage2_params.m_1);
+          mpz_clear (params_ntt.m_1);
+          mpz_clear (params_nontt.m_1);
           return ECM_ERROR;
         }
-      
-      /* See if the selected parameters let us use NTT or not */
-      if (faststage2_params.l > lmax_NTT)
-	use_ntt = 0;
+
+      /* Now decide wether to take NTT or non-NTT.
+         How to choose the better one is not an easy question.
+         It will depend on the speed ration between NTT/non-NTT code,
+         their difference in memory use and available memory.
+         For now, we choose the one that uses a longer transform length.
+         FIXME: Write something not brain-dead here */
+      if (!use_ntt || P_ntt == ECM_ERROR || params_nontt.l > params_ntt.l)
+        {
+          better_params = &params_nontt;
+          use_ntt = 0;
+        }
+      else
+        better_params = &params_ntt;
+
+      faststage2_params.P = better_params->P;
+      faststage2_params.s_1 = better_params->s_1;
+      faststage2_params.s_2 = better_params->s_2;
+      faststage2_params.l = better_params->l;
+      mpz_set (faststage2_params.m_1, better_params->m_1);
+
+      mpz_clear (params_ntt.m_1);
+      mpz_clear (params_nontt.m_1);
       
       if (maxmem != 0.)
 	  outputf (OUTPUT_VERBOSE, "Using lmax = %lu with%s NTT which takes "
