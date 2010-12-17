@@ -893,6 +893,9 @@ pp1 (mpz_t f, mpz_t p, mpz_t n, mpz_t go, double *B1done, double B1,
 		    &faststage2_params, B2min, B2, use_ntt, ECM_PP1);
       if (P == ECM_ERROR)
 	{
+          outputf (OUTPUT_ERROR, 
+                   "Error: cannot choose suitable P value for your stage 2 "
+                   "parameters.\nTry a shorter B2min,B2 interval.\n");
 	  mpz_clear (faststage2_params.m_1);
 	  return ECM_ERROR;
 	}

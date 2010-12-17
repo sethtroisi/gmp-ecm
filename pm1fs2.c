@@ -739,14 +739,7 @@ choose_P (const mpz_t B2min, const mpz_t B2, const unsigned long lmax,
   mpz_clear (m_1);
   mpz_clear (lmin);
 
-  if (P == 0)
-    {
-      outputf (OUTPUT_ERROR, "Error: cannot choose suitable P value for your "
-	       "stage 2 parameters.\nTry a shorter B2min,B2 interval.\n");
-      return ECM_ERROR;
-    }
-  else
-    return P;
+  return (P != 0) ? (long) P : ECM_ERROR;
 }
 
 
