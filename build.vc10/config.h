@@ -155,7 +155,9 @@
 #define HAVE_WINDOWS_H 1
 
 /* Define to 1 if you have the `__gmpn_add_nc' function. */
-#define HAVE___GMPN_ADD_NC 1
+#if defined( _WIN64 )
+#  define HAVE___GMPN_ADD_NC 1
+#endif
 
 /* Define to 1 if you have the `__gmpn_mod_34lsub1' function. */
 #define HAVE___GMPN_MOD_34LSUB1 1
