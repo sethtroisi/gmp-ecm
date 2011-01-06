@@ -315,16 +315,16 @@ define(`JM8', `eval(J - 8)')dnl
 	mulq	%XI		# y[j] * x[i]
 	addq	%rax, %T0	# Add low word to T0
 
-	movq	J`'(%MP), %rax	# Fetch m[j] into %rax
+	movq	%U, %rax
 	adcq	%rdx, %T1	# Add high word with carry to T1
 	adcb	$0, %CYb	# %CY <= 2
 	
-	mulq	%U		# m[j]*u
-	addq	%T0, %rax	# Add T0 and low word
+	mulq	J`'(%MP)	# m[j]*u
+	addq	%rax, %T0	# Add T0 and low word
 
-	movq	%rax, JM8`'(%TP)	``#'' Store T0 in tmp[UNROLL-1]
-	adcq	%rdx, %T1	# Add high word with carry to T1
 	movq	J8`'(%YP), %rax	``#'' Fetch y[j+1] = y[eval(UNROLL+1)] into %rax
+	adcq	%rdx, %T1	# Add high word with carry to T1
+	movq	%T0, JM8`'(%TP)	``#'' Store T0 in tmp[UNROLL-1]
 
 dnl Cycle ring buffer. Only mappings of T0 and T1 to regs change, no MOVs!
 `define(`TT', defn(`T0'))dnl
