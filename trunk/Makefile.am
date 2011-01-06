@@ -46,7 +46,7 @@ LDADD = libecm.la $(GMPLIB)
 ecm_CPPFLAGS = -DOUTSIDE_LIBECM
 ecm_CFLAGS = $(OPENMP_CFLAGS)
 ecm_SOURCES = auxi.c b1_ainc.c candi.c eval.c random.c main.c trial.c \
-              resume.c getprime.c
+              resume.c getprime.c champions.h
 
 tune_SOURCES = mpmod.c tune.c mul_lo.c listz.c auxlib.c ks-multiply.c \
                toomcook.c schoen_strass.c polyeval.c median.c ecm_ntt.c \
