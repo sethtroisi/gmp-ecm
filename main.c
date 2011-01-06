@@ -51,17 +51,7 @@
 
 /* #define DEBUG */
 
-/* people keeping track of champions and corresponding url's: ECM, P-1, P+1 */
-static char *champion_keeper[3] =
-{ "Richard Brent <champs@rpbrent.com>",
-  "Paul Zimmermann <zimmerma@loria.fr>",
-  "Paul Zimmermann <zimmerma@loria.fr>"};
-static char *champion_url[3] =
-{"http://wwwmaths.anu.edu.au/~brent/ftp/champs.txt",
- "http://www.loria.fr/~zimmerma/records/Pminus1.html",
- "http://www.loria.fr/~zimmerma/records/Pplus1.html"};
-/* minimal number of digits to enter the champions table for ECM, P-1, P+1 */
-static unsigned int champion_digits[3] = { 66, 51, 43 };
+#include "champions.h"
 
 /* probab_prime_p() can get called from other modules. Instead of passing
    prpcmd to those functions, we make it static here - this variable will
