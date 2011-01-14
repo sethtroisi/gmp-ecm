@@ -368,6 +368,7 @@
     <ClCompile Include="..\..\trial.c" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="..\..\champions.h" />
     <ClInclude Include="..\..\config.h" />
     <ClInclude Include="..\..\ecm-ecm.h" />
     <ClInclude Include="..\..\ecm-gmp.h" />
