@@ -174,7 +174,7 @@ stop_asap_test ()
 }
 
 
-static void 
+static void
 usage (void)
 {
     printf ("Usage: ecm [options] B1 [[B2min-]B2] < file\n");
