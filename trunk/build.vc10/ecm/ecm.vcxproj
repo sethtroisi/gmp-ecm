@@ -193,6 +193,8 @@
       <DataExecutionPrevention>
       </DataExecutionPrevention>
       <TargetMachine>MachineX64</TargetMachine>
+      <StackReserveSize>8388608</StackReserveSize>
+      <StackCommitSize>65536</StackCommitSize>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release-AMD|Win32'">
@@ -248,6 +250,8 @@
       <DataExecutionPrevention>
       </DataExecutionPrevention>
       <TargetMachine>MachineX64</TargetMachine>
+      <StackReserveSize>8388608</StackReserveSize>
+      <StackCommitSize>65536</StackCommitSize>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release-Intel|Win32'">
@@ -303,6 +307,8 @@
       <DataExecutionPrevention>
       </DataExecutionPrevention>
       <TargetMachine>MachineX64</TargetMachine>
+      <StackReserveSize>8388608</StackReserveSize>
+      <StackCommitSize>65536</StackCommitSize>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug-Intel|Win32'">
@@ -354,6 +360,8 @@
       <DataExecutionPrevention>
       </DataExecutionPrevention>
       <TargetMachine>MachineX64</TargetMachine>
+      <StackReserveSize>8388608</StackReserveSize>
+      <StackCommitSize>65536</StackCommitSize>
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
