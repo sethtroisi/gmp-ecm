@@ -503,7 +503,7 @@ and a non-zero code (false) means "is composite". Example:
   ecm -prpcmd "pfgw --" -c 900 1e6 <hugecandidates.txt
 
 where pfgw is an OpenPFGW binary, available (only for Intel x86 and 
-compatible cpus) at <http://groups.yahoo.com/group/openpfgw/>.
+compatible cpus) at <http://sourceforge.net/projects/openpfgw/>.
 
 The parameter -idlecmd <cmd> will make GMP-ECM run <cmd> before each ECM,
 P-1 or P+1 attempt on a number. If the exit status of <cmd> is non-zero,
