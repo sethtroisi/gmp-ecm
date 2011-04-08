@@ -87,6 +87,9 @@ Table of contents:
     http://lists.gforge.inria.fr/pipermail/ecm-discuss/2008-May/003365.html
 
 2) interface
+- from Mark Rodenkirch <rogue@wi.rr.com> 08 April 2011: print messages like
+  "Step 1: 1500000/100000000" with a command-line option
+  http://lists.gforge.inria.fr/pipermail/ecm-discuss/2011-April/004088.html
 - with -resume, print %time for THIS RUN instead of total run?
 	[suggested by SleepHound <sleephound@yahoo.com>]
   Add CPUTIME=... in the save file, to take into account the total cpu time
