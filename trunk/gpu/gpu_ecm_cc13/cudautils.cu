@@ -33,13 +33,13 @@ clock2_t cuda_Main(biguint_t h_invmod, biguint_t h_N, biguint_t *h_xarray, bigui
 	dim3 dimBlock(SIZE_NUMBER);
 	dim3 dimGrid(number_of_curves);
 
-	int deviceCount;
-	int bestDevice=-1,bestMajor=-1,bestMinor=-1;
+	//int deviceCount;
+	//int bestDevice=-1,bestMajor=-1,bestMinor=-1;
 	cudaDeviceProp deviceProp;
-	cudaGetDeviceCount(&deviceCount);
+	//cudaGetDeviceCount(&deviceCount);
 				
 	printf("#Compiled for a NVIDIA GPU with compute capability at least %d.%d.\n",MAJOR,MINOR);
-
+/*
 	if (device==-1)
 	{
 		for (device = 0; device < deviceCount; ++device) 
@@ -75,7 +75,8 @@ clock2_t cuda_Main(biguint_t h_invmod, biguint_t h_N, biguint_t *h_xarray, bigui
 		}
 		cudaSetDevice(bestDevice);
 	}
-	else
+*/	
+	if (device!=-1)
 	{
 		printf("#Device %d was required.\n",device);
 		cudaGetDeviceProperties(&deviceProp,device);
@@ -91,33 +92,24 @@ clock2_t cuda_Main(biguint_t h_invmod, biguint_t h_N, biguint_t *h_xarray, bigui
 	cudaGetDevice(&device);
 	cudaGetDeviceProperties(&deviceProp,device);
 	printf("#Will use device %d : %s, compute capability %d.%d, %d MPs.\n",device,deviceProp.name,deviceProp.major,deviceProp.minor,deviceProp.multiProcessorCount);
-	
 
-	size_t size=sizeof(biguint_t);
-	size_t pitch;
-	cudaMallocPitch(&d_xA, &pitch, size, number_of_curves);
-	cudaMallocPitch(&d_zA, &pitch, size, number_of_curves);
-	//cudaMalloc(&d_xA,number_of_curves*sizeof(biguint_t));
-	//cudaMalloc(&d_zA,number_of_curves*sizeof(biguint_t));
+
+
+	cudaMalloc(&d_xA,number_of_curves*sizeof(biguint_t));
+	cudaMalloc(&d_zA,number_of_curves*sizeof(biguint_t));
 #ifdef CC13
-	cudaMallocPitch(&d_xB, &pitch, size, number_of_curves);
-	cudaMallocPitch(&d_zB, &pitch, size, number_of_curves);
-	cudaMallocPitch(&d_xC, &pitch, size, number_of_curves);
-	cudaMallocPitch(&d_zC, &pitch, size, number_of_curves);
-	//cudaMalloc(&d_xB,number_of_curves*sizeof(biguint_t));
-	//cudaMalloc(&d_zB,number_of_curves*sizeof(biguint_t));
-	//cudaMalloc(&d_xC,number_of_curves*sizeof(biguint_t));
-	//cudaMalloc(&d_zC,number_of_curves*sizeof(biguint_t));
+	cudaMalloc(&d_xB,number_of_curves*sizeof(biguint_t));
+	cudaMalloc(&d_zB,number_of_curves*sizeof(biguint_t));
+	cudaMalloc(&d_xC,number_of_curves*sizeof(biguint_t));
+	cudaMalloc(&d_zC,number_of_curves*sizeof(biguint_t));
 #endif
 
-	//printf("#pitch %u size %u\n",(unsigned int)pitch,(unsigned int)size);	
 	//printf("#size %lu\n",sizeof(unsigned int));	
 
 	//Copy into the gpu memory
 	cuda_copy_cst(h_N,h_invmod,h_darray,number_of_curves);
-	cudaMemcpy2D(d_xA, pitch, h_xarray, sizeof(biguint_t), sizeof(biguint_t), number_of_curves, cudaMemcpyHostToDevice) ;
-	cudaMemcpy2D(d_zA, pitch, h_zarray, sizeof(biguint_t), sizeof(biguint_t), number_of_curves, cudaMemcpyHostToDevice) ;
-	//cudaMemcpy2D(d_zA, sizeof(biguint_t), h_zarray, sizeof(biguint_t), sizeof(biguint_t), number_of_curves, cudaMemcpyHostToDevice) ;
+	cudaMemcpy(d_xA, h_xarray, sizeof(biguint_t)*number_of_curves, cudaMemcpyHostToDevice) ;
+	cudaMemcpy(d_zA, h_zarray, sizeof(biguint_t)*number_of_curves, cudaMemcpyHostToDevice) ;
 
 	temp1=clock();
 #ifndef TEST
@@ -310,22 +302,20 @@ clock2_t cuda_Main(biguint_t h_invmod, biguint_t h_N, biguint_t *h_xarray, bigui
 	getprime(0);
 	printf("#All kernels launched, waiting for results...\n");
 #ifdef CC13
-	//cudaMemcpy2D(h_xarray, sizeof(biguint_t), d_xB,sizeof(biguint_t), sizeof(biguint_t), number_of_curves, cudaMemcpyDeviceToHost) ;
-	//cudaMemcpy2D(h_zarray, sizeof(biguint_t), d_zB,sizeof(biguint_t), sizeof(biguint_t), number_of_curves, cudaMemcpyDeviceToHost) ;
-	cudaMemcpy2D(h_xarray, sizeof(biguint_t), d_xB, pitch, sizeof(biguint_t), number_of_curves, cudaMemcpyDeviceToHost) ;
-	cudaMemcpy2D(h_zarray, sizeof(biguint_t), d_zB, pitch, sizeof(biguint_t), number_of_curves, cudaMemcpyDeviceToHost) ;
+	cudaMemcpy(h_xarray, d_xB, sizeof(biguint_t)*number_of_curves, cudaMemcpyDeviceToHost);
+	cudaMemcpy(h_zarray, d_zB, sizeof(biguint_t)*number_of_curves, cudaMemcpyDeviceToHost);
 #endif
 #ifdef CC20
-	cudaMemcpy2D(h_xarray, sizeof(biguint_t), d_xA,sizeof(biguint_t), sizeof(biguint_t), number_of_curves, cudaMemcpyDeviceToHost) ;
-	cudaMemcpy2D(h_zarray, sizeof(biguint_t), d_zA,sizeof(biguint_t), sizeof(biguint_t), number_of_curves, cudaMemcpyDeviceToHost) ;
+	cudaMemcpy(h_xarray, d_xA, sizeof(biguint_t)*number_of_curves, cudaMemcpyDeviceToHost);
+	cudaMemcpy(h_zarray, d_zA, sizeof(biguint_t)*number_of_curves, cudaMemcpyDeviceToHost);
 #endif
 
 #endif
 
 #ifdef TEST
 	Cuda_Test<<<dimGrid,dimBlock>>>(d_xA,d_zA);
-	cudaMemcpy2D(h_xarray, sizeof(biguint_t), d_xA,sizeof(biguint_t), sizeof(biguint_t), number_of_curves, cudaMemcpyDeviceToHost) ;
-	cudaMemcpy2D(h_zarray, sizeof(biguint_t), d_zA,sizeof(biguint_t), sizeof(biguint_t), number_of_curves, cudaMemcpyDeviceToHost) ;
+	cudaMemcpy(h_xarray, d_xA, sizeof(biguint_t)*number_of_curves, cudaMemcpyDeviceToHost);
+	cudaMemcpy(h_zarray, d_zA, sizeof(biguint_t)*number_of_curves, cudaMemcpyDeviceToHost);
 #endif
 
 
