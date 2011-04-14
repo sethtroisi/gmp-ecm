@@ -21,11 +21,8 @@ int main (int argc, char * argv[])
 	biguint_t h_invmod;
 	biguint_t h_N;
  
-	//size_t size = sizeof(biguint_t);
-	//size_t pitch;
-
   mpz_t N;
-	mpz_t mpztemp;
+	mpz_t mpz_max; //2^(32*SIZE_NUMBER)
 	mpz_t mpz_invmod; //N^-1 mod (2^(32*SIZE_NUMBER))
 	mpz_t mpz_Rinv; // 2^-(32*SIZE_NUMBER) mod N
   mpz_t sigma;
@@ -37,15 +34,13 @@ int main (int argc, char * argv[])
   mpz_t zfin;
   mpz_t u;
   mpz_t v;
-  //mpz_t gcd;
-  //mpz_t factor;
 
 	gmp_randstate_t state;
 	gmp_randinit_default(state);
-	unsigned long seed=time(NULL);
-	gmp_randseed_ui(state,seed);
+	unsigned long seed=0;
 
   mpz_init (N);
+  mpz_init (mpz_max);
   mpz_init (sigma);
   mpz_init (mpz_B1);
   mpz_init (mpz_d);
@@ -55,11 +50,8 @@ int main (int argc, char * argv[])
   mpz_init (zfin);
   mpz_init (u);
   mpz_init (v);
-  mpz_init (mpztemp);
   mpz_init (mpz_invmod);
   mpz_init (mpz_Rinv);
-  //mpz_init (gcd);
-  //mpz_init (factor);
 
   if (argc < 3)
   {  
@@ -113,8 +105,10 @@ int main (int argc, char * argv[])
 
 	if (mpz_cmp_ui(sigma,0)==0)
 	{
-  	mpz_urandomb(sigma,state,3);
-		mpz_add_ui(sigma,sigma,6);
+		seed=time(NULL);
+		gmp_randseed_ui(state,seed);
+  	mpz_urandomb(sigma,state,3);//between 0 and 2^3
+		mpz_add_ui(sigma,sigma,6);//add 6
 	}
 	gmp_randclear (state);
 	
@@ -125,8 +119,8 @@ int main (int argc, char * argv[])
    	exit (1);
   }
 
-	mpz_ui_pow_ui(mpztemp,2,32*SIZE_NUMBER);	
-	if (mpz_cmp(N,mpztemp) >=0)
+	mpz_ui_pow_ui(mpz_max,2,32*SIZE_NUMBER);	
+	if (mpz_cmp(N,mpz_max) >=0)
   {
   	fprintf (stderr, "Error, N should be stricly lower than 2^%d\n",32*SIZE_NUMBER);
    	exit (1);
@@ -139,7 +133,9 @@ int main (int argc, char * argv[])
   }
 	B1=(unsigned int)mpz_get_ui(mpz_B1);
 
-	gmp_printf ("#gpu_ecm launched with :\nN=%Zd\nB1=%u\ncurves=%u\nfirstsigma=%Zd\n\n",N,B1,number_of_curves,sigma);
+	gmp_printf ("#gpu_ecm launched with :\nN=%Zd\nB1=%u\ncurves=%u\nfirstsigma=%Zd\n",N,B1,number_of_curves,sigma);
+	if (seed!=0)
+		printf("#used seed %lu to generate sigma\n",seed);
 
 	h_xarray=(biguint_t *) malloc(number_of_curves*sizeof(biguint_t));
 	h_zarray=(biguint_t *) malloc(number_of_curves*sizeof(biguint_t));
@@ -149,10 +145,10 @@ int main (int argc, char * argv[])
 
 	//Some precomputation
 	//Compute N^-1 mod 2^(32*SIZE_NUMBER)
-	mpz_invert(mpz_invmod,N,mpztemp);
-	mpz_sub(mpz_invmod,mpztemp,mpz_invmod);
+	mpz_invert(mpz_invmod,N,mpz_max);
+	mpz_sub(mpz_invmod,mpz_max,mpz_invmod);
 	//Compute  2^-(32*SIZE_NUMBER) mod N
-	mpz_invert(mpz_Rinv,mpztemp,N);
+	mpz_invert(mpz_Rinv,mpz_max,N);
 	
 	mpz_to_biguint(h_N,N);	
 	mpz_to_biguint(h_invmod,mpz_invmod);	
@@ -160,6 +156,9 @@ int main (int argc, char * argv[])
 	for(i=0;i<number_of_curves;i++)
 	{
 		calculParam (sigma, N, mpz_d, xp, zp, u, v);
+
+		//if (i==0 || i==number_of_curves-1)
+		//	gmp_printf ("\nsigma=%Zd\nd=%Zd\nx0=%Zd\nz0=%Zd\n",sigma,mpz_d,xp,zp);
 
 		//Compute the Montgomery representation of x0, z0 and d
 		mpz_mul_2exp(xp,xp,32*SIZE_NUMBER);
@@ -213,13 +212,15 @@ int main (int argc, char * argv[])
 
 	mpz_sub_ui(sigma,sigma,number_of_curves);
 
+/*
 #ifdef TEST
 	biguint_to_mpz(mpztemp,h_xarray[0]);
 	biguint_print(h_xarray[0]);
 	printf("\n");
 #endif
+*/
 
-	printf("#Begin GPU computation...\n");
+	printf("\n#Begin GPU computation...\n");
 	time_gpu=cuda_Main(h_invmod,h_N,h_xarray,h_zarray,h_darray,B1,number_of_curves,device);
 	printf("#All kernels finished, analysing results...\n");
 
@@ -233,11 +234,21 @@ int main (int argc, char * argv[])
 		mpz_mul(zfin,zfin,mpz_Rinv);
 		mpz_mod(zfin,zfin,N);
 
-		gmp_printf("#Looking for factors for the curves with sigma=%Zd\n",sigma);
-		nbfactor+=findfactor(N,xfin,zfin);
+		//if (i==0 || i==number_of_curves-1)
+		//{
+			gmp_printf("#Looking for factors for the curves with sigma=%Zd\n",sigma);
+			//printf("x=");
+			//biguint_print(h_xarray[i]);
+			//printf("\nz=");
+			//biguint_print(h_zarray[i]);
+			//printf("\nd=");
+			//biguint_print(h_darray[i]);
+			//printf("\n");
+			nbfactor+=findfactor(N,xfin,zfin);
+		//}
 
 		mpz_add_ui(sigma,sigma,1);
-
+/*
 #ifdef TEST
 		if (i==0)
 		{
@@ -252,6 +263,22 @@ int main (int argc, char * argv[])
 		}
 #endif
 
+#ifndef TEST
+		if (i==0)
+		{
+			gmp_printf ("xfin=%Zd\n",xfin);
+			gmp_printf ("zfin=%Zd\n",zfin);
+		}
+#endif
+	
+		mpz_invert(zfin,zfin,N);
+		mpz_mul(xfin,xfin,zfin);
+		mpz_mod(xfin,xfin,N);
+#ifndef TEST
+		if (i==0)
+			gmp_printf ("xunifi=%Zd\n",xfin);
+#endif
+*/
 	}
 
 	if (nbfactor==0)
@@ -259,13 +286,13 @@ int main (int argc, char * argv[])
 	else if (nbfactor==1)
 		printf("#Results : 1 factor found\n");
 	else
-		printf("#Results : %u factor(s) found (not necessarily different)\n",nbfactor);
+		printf("#Results : %u curves find a factor (not necessarily different)\n",nbfactor);
 	
-	printf("\n#Time gpu : %.3f init&copy=%.3f computation=%.3f\n",(double)(time_gpu.init+time_gpu.computation)/CLOCKS_PER_SEC,(double)(time_gpu.init)/CLOCKS_PER_SEC,(double)(time_gpu.computation)/CLOCKS_PER_SEC);
+	printf("\n#Temps gpu : %.3f init&copy=%.3f computation=%.3f\n",(double)(time_gpu.init+time_gpu.computation)/CLOCKS_PER_SEC,(double)(time_gpu.init)/CLOCKS_PER_SEC,(double)(time_gpu.computation)/CLOCKS_PER_SEC);
 
 	mpz_clear (sigma);
   mpz_clear (N);
-  mpz_clear (mpztemp);
+  mpz_clear (mpz_max);
   mpz_clear (mpz_invmod);
   mpz_clear (mpz_B1);
   mpz_clear (mpz_d);
@@ -301,6 +328,7 @@ unsigned int findfactor(mpz_t N, mpz_t xfin, mpz_t zfin)
 
 	mpz_set_ui(factor,0);
 
+	gmp_printf("  xfin=%Zd\n  zfin=%Zd\n",xfin,zfin);
 	// tester si pgcd =N et =0
 	mpz_gcd(gcd,zfin,N);
 	
@@ -309,32 +337,33 @@ unsigned int findfactor(mpz_t N, mpz_t xfin, mpz_t zfin)
 		mpz_invert(zfin,zfin,N);
 		mpz_mul(xfin,xfin,zfin);
 		mpz_mod(xfin,xfin,N);
+		gmp_printf("  xunif=%Zd\n",xfin);
 		mpz_gcd(gcd,xfin,N);
 			
 		if (mpz_cmp_ui(gcd,1)==0)
 		{
-			gmp_printf("  #No factors found. You shoud try with a bigger B1.\n");
+			printf("  #No factors found. You shoud try with a bigger B1.\n");
 		}
 		else if (mpz_cmp(gcd,N))
 		{
-			gmp_printf("  #No factors found. You should try with a smaller B1\n");
+			printf("  #No factors found. You should try with a smaller B1\n");
 		}
 		else
 		{
 			mpz_set(factor,gcd);
 			gmp_printf("  #Factor found : %Zd (with x/z)\n",factor);
-			findfactor=1;	
+			findfactor=1;
 		}
 	}
 	else if (mpz_cmp(gcd,N)==0)
 	{
-		gmp_printf("  #No factors found. You should try with a smaller B1\n");
+		printf("  #No factors found. You should try with a smaller B1\n");
 	}
 	else //gcd !=1 gcd!=N (and gcd>0 because N>0) so we found a factor
 	{
 		mpz_set(factor,gcd);
 		gmp_printf("  #Factor found : %Zd (with z)\n",factor);
-		findfactor=1;	
+		findfactor=1;
 	}
 		/*
 	if (mpz_cmp_ui(factor,0)!=0)
@@ -355,6 +384,7 @@ unsigned int findfactor(mpz_t N, mpz_t xfin, mpz_t zfin)
  	mpz_clear(temp);
   mpz_clear(gcd);
   mpz_clear(factor);
+	
 	return findfactor;
 }
 
