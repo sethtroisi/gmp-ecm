@@ -9,4 +9,5 @@ N1024=47681613061146593645052729004435908729127043022858896185710862020660450709
 B1=500
 curves=144
 
-time ./gpu_ecm $N $B1 -n $curves -s 17
+#time ./gpu_ecm $N $B1 -n $curves -s 17
+time ./gpu_ecm $N1024 $1 -n $curves -s 17

@@ -13,14 +13,17 @@ CFLAGS+=-DCC13
 $(BIN): obj/main.cu.o obj/cudautils.cu.o obj/cudaarith.cu.o
 	gcc -fPIC -m64 -o $@ $^ $(LDFLAGS) -L/usr/local/cuda/lib64 -lcudart
 
-obj/main.cu.o : main.cu cudautils.cu utils.h 
+obj/main.cu.o : main.cu cudautils.cu utils.h objdir 
 	nvcc $(CFLAGS) $(COMPUTECAPABILITY) $(NVCCFLAGS) -o $@ -c $<
 
-obj/cudautils.cu.o : cudautils.cu cudaarith.cu utils.h 
+obj/cudautils.cu.o : cudautils.cu cudaarith.cu utils.h objdir
 	nvcc $(CFLAGS) $(COMPUTECAPABILITY) $(NVCCFLAGS) -o $@ -c $<
 
-obj/cudaarith.cu.o : cudaarith.cu utils.h
+obj/cudaarith.cu.o : cudaarith.cu utils.h objdir
 	nvcc $(CFLAGS) $(COMPUTECAPABILITY) $(NVCCFLAGS) -o $@ -c $<
+
+objdir:
+	mkdir -p obj
 
 clean: 
 	rm obj/*.cu.o
