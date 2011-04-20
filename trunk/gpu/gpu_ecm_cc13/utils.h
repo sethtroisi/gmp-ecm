@@ -22,21 +22,27 @@ struct clock2_t
 	clock_t computation;
 };
 
+//#define MAX_CURVES 500
+
 #ifdef CC20
 #define MAJOR 2
 #define MINOR 0
-#define MAX_CURVES_BY_MP 20
-#define NUMBER_OF_MP 14
-#define MAX_NUMBER_OF_CURVES MAX_CURVES_BY_MP*NUMBER_OF_MP
+#define MAX_USE_SHARED_MEM 2560
+//#define MAX_CURVES_BY_MP 20
+//#define NUMBER_OF_MP 14
+//#define MAX_NUMBER_OF_CURVES MAX_CURVES_BY_MP*NUMBER_OF_MP
 #endif
 
 #ifdef CC13
 #define MAJOR 1
 #define MINOR 3
-#define MAX_CURVES_BY_MP 6
-#define NUMBER_OF_MP 24
-#define MAX_NUMBER_OF_CURVES MAX_CURVES_BY_MP*NUMBER_OF_MP
+#define MAX_USE_SHARED_MEM 2632
+//#define MAX_CURVES_BY_MP 6
+//#define NUMBER_OF_MP 24
+//#define MAX_NUMBER_OF_CURVES MAX_CURVES_BY_MP*NUMBER_OF_MP
 #endif
+
+
 
 //functions in main.cu
 unsigned int findfactor(mpz_t N, mpz_t xfin, mpz_t zfin);
@@ -47,7 +53,7 @@ void biguint_to_mpz (mpz_t a, biguint_t b);
 void calculParam (mpz_t sigma, mpz_t N, mpz_t d, mpz_t x0, mpz_t z0, mpz_t u, mpz_t v);
 
 //functions in cudautils.cu
-clock2_t cuda_Main(biguint_t h_invmod, biguint_t h_N, biguint_t *h_xarray, biguint_t *h_zarray, biguint_t *h_darray, unsigned int B1, unsigned int number_of_curves,int device);
+clock2_t cuda_Main(biguint_t h_N, biguint_t h_invmod, biguint_t *h_xarray, biguint_t *h_zarray, biguint_t *h_darray, unsigned int B1,unsigned int number_of_curves);
 unsigned long getprime (unsigned long pp);
 
 #define NV 10
