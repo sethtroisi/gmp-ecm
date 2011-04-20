@@ -1,6 +1,6 @@
 #include "cudaarith.h"
 
-clock2_t cuda_Main(biguint_t h_invmod, biguint_t h_N, biguint_t *h_xarray, biguint_t *h_zarray,biguint_t *h_darray, unsigned int B1, unsigned int number_of_curves,int device)
+clock2_t cuda_Main(biguint_t h_N, biguint_t h_invmod, biguint_t *h_xarray, biguint_t *h_zarray, biguint_t *h_darray, unsigned int B1,unsigned int number_of_curves)
 {
 	clock_t begingpu,temp1,endgpu;
 	clock2_t gputime;
@@ -22,6 +22,7 @@ clock2_t cuda_Main(biguint_t h_invmod, biguint_t h_N, biguint_t *h_xarray, bigui
 
 	biguint_t *d_xA;
 	biguint_t *d_zA;
+	biguint_t *d_d;
 #ifdef CC13
 	biguint_t *d_xB;
 	biguint_t *d_zB;
@@ -33,70 +34,9 @@ clock2_t cuda_Main(biguint_t h_invmod, biguint_t h_N, biguint_t *h_xarray, bigui
 	dim3 dimBlock(SIZE_NUMBER);
 	dim3 dimGrid(number_of_curves);
 
-	//int deviceCount;
-	//int bestDevice=-1,bestMajor=-1,bestMinor=-1;
-	cudaDeviceProp deviceProp;
-	//cudaGetDeviceCount(&deviceCount);
-				
-	printf("#Compiled for a NVIDIA GPU with compute capability at least %d.%d.\n",MAJOR,MINOR);
-/*
-	if (device==-1)
-	{
-		for (device = 0; device < deviceCount; ++device) 
-		{
-			cudaGetDeviceProperties(&deviceProp, device);
-			if (device == 0) 
-			{
-				if (deviceProp.major == 9999 && deviceProp.minor == 9999)
-					printf("#There is no device supporting CUDA.\n");
-				else if (deviceCount == 1)
-					printf("#There is 1 device supporting CUDA :\n");
-				else
-				printf("#There are %d devices supporting CUDA :\n",deviceCount);
-			}
-	
-			printf("#%d) %s (compute capability %d.%d)\n",device,deviceProp.name,deviceProp.major,deviceProp.minor);
-
-			if (deviceProp.major > MAJOR || (deviceProp.major==MAJOR && deviceProp.minor >= MINOR))
-			{
-				if (deviceProp.major > bestMajor || (deviceProp.major==bestMajor && deviceProp.minor > bestMinor))
-				{
-				bestDevice=device;
-				bestMajor=deviceProp.major;
-				bestMinor=deviceProp.minor;
-				}
-			}
-		}
-
-		if (bestDevice<0)
-		{
-			printf("#Error : there is no device with compute capability at least %d.%d.\n",MAJOR,MINOR);
-			exit(1);
-		}
-		cudaSetDevice(bestDevice);
-	}
-*/	
-	if (device!=-1)
-	{
-		printf("#Device %d was required.\n",device);
-		cudaGetDeviceProperties(&deviceProp,device);
-		if (deviceProp.major < MAJOR || (deviceProp.major== MAJOR && deviceProp.minor< MINOR))
-		{
-			printf("#Error : Device %d have a compute capability of %d.%d (required %d.%d).\n",device,deviceProp.major,deviceProp.minor,MAJOR,MINOR);
-			exit(1);
-		}
-		else
-			cudaSetDevice(device);
-	}
-	
-	cudaGetDevice(&device);
-	cudaGetDeviceProperties(&deviceProp,device);
-	printf("#Will use device %d : %s, compute capability %d.%d, %d MPs.\n",device,deviceProp.name,deviceProp.major,deviceProp.minor,deviceProp.multiProcessorCount);
-
-
-
 	cudaMalloc(&d_xA,number_of_curves*sizeof(biguint_t));
 	cudaMalloc(&d_zA,number_of_curves*sizeof(biguint_t));
+	cudaMalloc(&d_d,number_of_curves*sizeof(biguint_t));
 #ifdef CC13
 	cudaMalloc(&d_xB,number_of_curves*sizeof(biguint_t));
 	cudaMalloc(&d_zB,number_of_curves*sizeof(biguint_t));
@@ -107,12 +47,12 @@ clock2_t cuda_Main(biguint_t h_invmod, biguint_t h_N, biguint_t *h_xarray, bigui
 	//printf("#size %lu\n",sizeof(unsigned int));	
 
 	//Copy into the gpu memory
-	cuda_copy_cst(h_N,h_invmod,h_darray,number_of_curves);
+	cuda_copy_cst(h_N, h_invmod);
 	cudaMemcpy(d_xA, h_xarray, sizeof(biguint_t)*number_of_curves, cudaMemcpyHostToDevice) ;
 	cudaMemcpy(d_zA, h_zarray, sizeof(biguint_t)*number_of_curves, cudaMemcpyHostToDevice) ;
+	cudaMemcpy(d_d, h_darray, sizeof(biguint_t)*number_of_curves, cudaMemcpyHostToDevice) ;
 
 	temp1=clock();
-#ifndef TEST
 	//cudaSetDeviceFlags(cudaDeviceScheduleSpin);	
 	//cudaSetDeviceFlags(cudaDeviceBlockingSync);	
 	unsigned int power2,power3;
@@ -134,7 +74,7 @@ clock2_t cuda_Main(biguint_t h_invmod, biguint_t h_N, biguint_t *h_xarray, bigui
 		pp*=3;
 	}
 	//printf("#Calling gpu for prime 2 with power %u 3 with power %u...\n",power2,power3);	
-	Cuda_Ell_Mul_2_3<<<dimGrid,dimBlock>>>(d_xA,d_zA,d_xB,d_zB,d_xC,d_zC,power2,power3);
+	Cuda_Ell_Mul_2_3<<<dimGrid,dimBlock>>>(d_xA,d_zA,d_xB,d_zB,d_xC,d_zC,d_d,power2,power3);
 	//cudaThreadSynchronize();
 
 
@@ -191,7 +131,7 @@ clock2_t cuda_Main(biguint_t h_invmod, biguint_t h_N, biguint_t *h_xarray, bigui
 				else if (d - e <= e / 4 && (d - e) % 6 == 0)
   			{ // condition 2 
   				d = (d - e) / 2;
-					Cuda_Ell_Add_Dbl<<<dimGrid,dimBlock>>>(d_xA,d_zA,d_xB,d_zB,d_xC,d_zC);
+					Cuda_Ell_Add_Dbl<<<dimGrid,dimBlock>>>(d_xA,d_zA,d_xB,d_zB,d_xC,d_zC,d_d);
   			}
   
 				else if ((d + 3) / 4 <= e)
@@ -203,49 +143,51 @@ clock2_t cuda_Main(biguint_t h_invmod, biguint_t h_N, biguint_t *h_xarray, bigui
 				else if ((d + e) % 2 == 0)
 				{ // condition 4 
   				d = (d - e) / 2;
-					Cuda_Ell_Add_Dbl<<<dimGrid,dimBlock>>>(d_xA,d_zA,d_xB,d_zB,d_xC,d_zC);
+					Cuda_Ell_Add_Dbl<<<dimGrid,dimBlock>>>(d_xA,d_zA,d_xB,d_zB,d_xC,d_zC,d_d);
 				}
   
 				// now d+e is odd 
   			else if (d % 2 == 0)
 				{ // condition 5 
   				d /= 2;
-					Cuda_Ell_Add_Dbl<<<dimGrid,dimBlock>>>(d_xA,d_zA,d_xC,d_zC,d_xB,d_zB);
+					Cuda_Ell_Add_Dbl<<<dimGrid,dimBlock>>>(d_xA,d_zA,d_xC,d_zC,d_xB,d_zB,d_d);
 				}
   
 				// now d is odd, e is even 
   			else if (d % 3 == 0)
 				{ // condition 6 
   				d = d / 3 - e;
-					Cuda_Ell_Dbl_3Add<<<dimGrid,dimBlock>>>(d_xA,d_zA,d_xB,d_zB,d_xC,d_zC);
+					Cuda_Ell_Dbl_3Add<<<dimGrid,dimBlock>>>(d_xA,d_zA,d_xB,d_zB,d_xC,d_zC,d_d);
 				}
   
 				else if ((d + e) % 3 == 0)
 				{ // condition 7 
   				d = (d - 2 * e) / 3;
-					Cuda_Ell_2Add_Dbl_Add<<<dimGrid,dimBlock>>>(d_xA,d_zA,d_xB,d_zB,d_xC,d_zC,1);
+					Cuda_Ell_2Add_Dbl_Add<<<dimGrid,dimBlock>>>(d_xA,d_zA,d_xB,d_zB,d_xC,d_zC,d_d,1);
 				}
   
 				else if ((d - e) % 3 == 0)
 				{ // condition 8 
   				d = (d - e) / 3;
-					Cuda_Ell_2Add_Dbl_Add<<<dimGrid,dimBlock>>>(d_xA,d_zA,d_xB,d_zB,d_xC,d_zC,2);
+					Cuda_Ell_2Add_Dbl_Add<<<dimGrid,dimBlock>>>(d_xA,d_zA,d_xB,d_zB,d_xC,d_zC,d_d,2);
 				}
 					
 				else // necessarily e is even here 
 				{ // condition 9 
   				e /= 2;
-					Cuda_Ell_Add_Dbl<<<dimGrid,dimBlock>>>(d_xB,d_zB,d_xC,d_zC,d_xA,d_zA);
+					Cuda_Ell_Add_Dbl<<<dimGrid,dimBlock>>>(d_xB,d_zB,d_xC,d_zC,d_xA,d_zA,d_d);
 				}
 				//cudaThreadSynchronize();
 			}
-			Cuda_Ell_Final<<<dimGrid,dimBlock>>>(d_xA,d_zA,d_xB,d_zB,d_xC,d_zC);
+			Cuda_Ell_Final<<<dimGrid,dimBlock>>>(d_xA,d_zA,d_xB,d_zB,d_xC,d_zC,d_d);
 			//cudaThreadSynchronize();
 			pp*=PI;
 		}
 		
 		PI=getprime(PI);
 	}	while(PI<=B1);
+
+//cpt<<<dimGrid,dimBlock>>>(d_zB);
 
 #endif
 
@@ -266,7 +208,7 @@ clock2_t cuda_Main(biguint_t h_invmod, biguint_t h_N, biguint_t *h_xarray, bigui
 		pp*=3;
 	}
 	printf("#Calling gpu for prime 2 with power %u 3 with power %u...\n",power2,power3);	
-	Cuda_Ell_Mul_2_3<<<dimGrid,dimBlock>>>(d_xA,d_zA,power2,power3);
+	Cuda_Ell_Mul_2_3<<<dimGrid,dimBlock>>>(d_xA,d_zA,d_d,power2,power3);
 	cudaThreadSynchronize();
 	//cudaError_t error=cudaGetLastError();
 	//if (error != cudaSuccess)
@@ -291,7 +233,7 @@ clock2_t cuda_Main(biguint_t h_invmod, biguint_t h_N, biguint_t *h_xarray, bigui
 		}
 				
 		printf("#Calling gpu for prime %u ...\n",PI);	
-		Cuda_PRAC<<<dimGrid,dimBlock>>>(d_xA,d_zA,PI,B1,val[i]);
+		Cuda_PRAC<<<dimGrid,dimBlock>>>(d_xA,d_zA,d_d,PI,B1,val[i]);
 		cudaThreadSynchronize();
 		
 		PI=getprime(PI);
@@ -310,17 +252,9 @@ clock2_t cuda_Main(biguint_t h_invmod, biguint_t h_N, biguint_t *h_xarray, bigui
 	cudaMemcpy(h_zarray, d_zA, sizeof(biguint_t)*number_of_curves, cudaMemcpyDeviceToHost);
 #endif
 
-#endif
-
-#ifdef TEST
-	Cuda_Test<<<dimGrid,dimBlock>>>(d_xA,d_zA);
-	cudaMemcpy(h_xarray, d_xA, sizeof(biguint_t)*number_of_curves, cudaMemcpyDeviceToHost);
-	cudaMemcpy(h_zarray, d_zA, sizeof(biguint_t)*number_of_curves, cudaMemcpyDeviceToHost);
-#endif
-
-
 	cudaFree(d_xA);
 	cudaFree(d_zA);
+	cudaFree(d_d);
 #ifdef CC13
 	cudaFree(d_xB);
 	cudaFree(d_zB);

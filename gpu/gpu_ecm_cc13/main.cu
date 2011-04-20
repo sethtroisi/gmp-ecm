@@ -66,7 +66,7 @@ int main (int argc, char * argv[])
 	argv+=2;
 
 	//default values
-	number_of_curves=MAX_NUMBER_OF_CURVES;
+	number_of_curves=0;
 	device=-1;
 	mpz_set_ui(sigma,0);
 	
@@ -98,11 +98,8 @@ int main (int argc, char * argv[])
 			exit(1);
 	}
 
-	if (number_of_curves>MAX_NUMBER_OF_CURVES)
-		number_of_curves=MAX_NUMBER_OF_CURVES;
-	if (number_of_curves==0)
-		number_of_curves=1;
 
+	//init data according to the arguments
 	if (mpz_cmp_ui(sigma,0)==0)
 	{
 		seed=time(NULL);
@@ -119,12 +116,13 @@ int main (int argc, char * argv[])
    	exit (1);
   }
 
-	mpz_ui_pow_ui(mpz_max,2,32*SIZE_NUMBER);	
+	mpz_ui_pow_ui(mpz_max,2,32*SIZE_NUMBER-4);	
 	if (mpz_cmp(N,mpz_max) >=0)
   {
-  	fprintf (stderr, "Error, N should be stricly lower than 2^%d\n",32*SIZE_NUMBER);
+  	fprintf (stderr, "Error, N should be stricly lower than 2^%d\n",32*SIZE_NUMBER-4);
    	exit (1);
   }
+	mpz_ui_pow_ui(mpz_max,2,32*SIZE_NUMBER);	
 
 	if (mpz_cmp_ui(mpz_B1,TWO32) >=0)
   {
@@ -133,6 +131,39 @@ int main (int argc, char * argv[])
   }
 	B1=(unsigned int)mpz_get_ui(mpz_B1);
 
+	//int deviceCount;
+	//int bestDevice=-1,bestMajor=-1,bestMinor=-1;
+	cudaDeviceProp deviceProp;
+	//cudaGetDeviceCount(&deviceCount);
+				
+	printf("#Compiled for a NVIDIA GPU with compute capability %d.%d.\n",MAJOR,MINOR);
+	if (device!=-1)
+	{
+		printf("#Device %d is required.\n",device);
+		cudaError_t err= cudaSetDevice(device);
+		if (err != cudaSuccess)
+		{
+			printf("#Error : Could not use device %d\n",device);
+			exit(1);
+		}
+	}
+	
+	cudaGetDevice(&device);
+	cudaGetDeviceProperties(&deviceProp,device);
+	if (deviceProp.major < MAJOR || (deviceProp.major== MAJOR && deviceProp.minor< MINOR))
+	{
+		printf("#Error : Device %d have a compute capability of %d.%d (required %d.%d).\n",device,deviceProp.major,deviceProp.minor,MAJOR,MINOR);
+		exit(1);
+	}
+	else if (deviceProp.major==MAJOR && deviceProp.minor==MINOR)
+		printf("#Will use device %d : %s, compute capability %d.%d, %d MPs.\n",device,deviceProp.name,deviceProp.major,deviceProp.minor,deviceProp.multiProcessorCount);
+	else
+		printf("#Will use device %d : %s, compute capability %d.%d (you should compile the program for this compute capability to be more efficient), %d MPs.\n",device,deviceProp.name,deviceProp.major,deviceProp.minor,deviceProp.multiProcessorCount);
+
+
+	if (number_of_curves==0)
+		number_of_curves=deviceProp.multiProcessorCount*(deviceProp.sharedMemPerBlock/MAX_USE_SHARED_MEM);
+
 	gmp_printf ("#gpu_ecm launched with :\nN=%Zd\nB1=%u\ncurves=%u\nfirstsigma=%Zd\n",N,B1,number_of_curves,sigma);
 	if (seed!=0)
 		printf("#used seed %lu to generate sigma\n",seed);
@@ -140,7 +171,6 @@ int main (int argc, char * argv[])
 	h_xarray=(biguint_t *) malloc(number_of_curves*sizeof(biguint_t));
 	h_zarray=(biguint_t *) malloc(number_of_curves*sizeof(biguint_t));
 	h_darray=(biguint_t *) malloc(number_of_curves*sizeof(biguint_t));
-
 
 
 	//Some precomputation
@@ -157,46 +187,10 @@ int main (int argc, char * argv[])
 	{
 		calculParam (sigma, N, mpz_d, xp, zp, u, v);
 
-		//if (i==0 || i==number_of_curves-1)
-		//	gmp_printf ("\nsigma=%Zd\nd=%Zd\nx0=%Zd\nz0=%Zd\n",sigma,mpz_d,xp,zp);
-
 		//Compute the Montgomery representation of x0, z0 and d
 		mpz_mul_2exp(xp,xp,32*SIZE_NUMBER);
 		mpz_mod(xp,xp,N);
-#ifndef TEST
 		mpz_to_biguint(h_xarray[i],xp);	
-#endif
-#ifdef TEST
-		for (j=0;j<32;j++)
-			h_xarray[i][j]=0;
-	/*h_xarray[i][0]=987562;
-	h_xarray[i][1]=655364;
-	h_xarray[i][2]=25445;
-	h_xarray[i][3]=6555436;
-	h_xarray[i][4]=65574436;
-	h_xarray[i][5]=657536;
-	h_xarray[i][6]=6555536;
-	h_xarray[i][7]=65536;
-	h_xarray[i][8]=6555436;
-	h_xarray[i][9]=675536;
-	h_xarray[i][10]=655836;
-	h_xarray[i][11]=6554536;
-	h_xarray[i][12]=4231;
-	h_xarray[i][13]=1237;
-	h_xarray[i][14]=789;
-	h_xarray[i][15]=6554536;
-	h_xarray[i][16]=654536;
-	h_xarray[i][17]=65525536;
-	h_xarray[i][18]=6565536;
-	h_xarray[i][19]=675536;
-	h_xarray[i][20]=5536;
-	h_xarray[i][21]=54536;
-	*/
-	h_xarray[i][0]=2;
-	h_xarray[i][1]=3;
-	h_xarray[i][16]=4;
-	h_xarray[i][17]=5;
-#endif
 
 		mpz_mul_2exp(zp,zp,32*SIZE_NUMBER);
 		mpz_mod(zp,zp,N);
@@ -212,16 +206,8 @@ int main (int argc, char * argv[])
 
 	mpz_sub_ui(sigma,sigma,number_of_curves);
 
-/*
-#ifdef TEST
-	biguint_to_mpz(mpztemp,h_xarray[0]);
-	biguint_print(h_xarray[0]);
-	printf("\n");
-#endif
-*/
-
 	printf("\n#Begin GPU computation...\n");
-	time_gpu=cuda_Main(h_invmod,h_N,h_xarray,h_zarray,h_darray,B1,number_of_curves,device);
+	time_gpu=cuda_Main(h_N,h_invmod,h_xarray,h_zarray,h_darray,B1,number_of_curves);
 	printf("#All kernels finished, analysing results...\n");
 
 	for(i=0;i<number_of_curves;i++)
@@ -234,51 +220,10 @@ int main (int argc, char * argv[])
 		mpz_mul(zfin,zfin,mpz_Rinv);
 		mpz_mod(zfin,zfin,N);
 
-		//if (i==0 || i==number_of_curves-1)
-		//{
-			gmp_printf("#Looking for factors for the curves with sigma=%Zd\n",sigma);
-			//printf("x=");
-			//biguint_print(h_xarray[i]);
-			//printf("\nz=");
-			//biguint_print(h_zarray[i]);
-			//printf("\nd=");
-			//biguint_print(h_darray[i]);
-			//printf("\n");
-			nbfactor+=findfactor(N,xfin,zfin);
-		//}
+		gmp_printf("#Looking for factors for the curves with sigma=%Zd\n",sigma);
+		nbfactor+=findfactor(N,xfin,zfin);
 
 		mpz_add_ui(sigma,sigma,1);
-/*
-#ifdef TEST
-		if (i==0)
-		{
-			printf ("a=");
-			biguint_print(h_xarray[i]);
-			printf ("+(");
-			biguint_print(h_zarray[i]);
-			printf (")*2^1024\n");
-			mpz_mul(mpztemp,mpztemp,mpztemp);
-			gmp_printf("b=%Zd\n",mpztemp);
-			printf("print a;print b; print a-b\n");
-		}
-#endif
-
-#ifndef TEST
-		if (i==0)
-		{
-			gmp_printf ("xfin=%Zd\n",xfin);
-			gmp_printf ("zfin=%Zd\n",zfin);
-		}
-#endif
-	
-		mpz_invert(zfin,zfin,N);
-		mpz_mul(xfin,xfin,zfin);
-		mpz_mod(xfin,xfin,N);
-#ifndef TEST
-		if (i==0)
-			gmp_printf ("xunifi=%Zd\n",xfin);
-#endif
-*/
 	}
 
 	if (nbfactor==0)
@@ -396,7 +341,8 @@ void biguint_print (biguint_t a)
 
   printf ("%u", a[0]);
   for (i = 1; i < SIZE_NUMBER; i++)
-    printf ("+%u*2^%u", a[i], 32*i);
+    if (a[i]!=0)
+			printf ("+%u*2^%u", a[i], 32*i);
   //printf ("\n");
 }
 
