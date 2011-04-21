@@ -14,7 +14,7 @@ __device__ int Cuda_Cmp(const biguint_t A, const biguint_t B)
 		if (A[i] < B[i])
 			return -1;
 		i--;
-	}while(i!=0);
+	}while(i!=-1);
 	return 0;
 }
 //#endif
