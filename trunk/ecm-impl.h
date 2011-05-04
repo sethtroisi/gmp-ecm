@@ -28,6 +28,29 @@
 #include <sys/types.h> /* needed for size_t */
 #endif
 
+#if HAVE_STDINT_H
+#include <stdint.h>
+/* needed for int64_t and uint64_t */
+/* or configure will define these for us if possible */
+#endif
+
+#if defined UINT64_MAX || defined uint64_t
+typedef int64_t ecm_int;
+typedef uint64_t ecm_uint;
+#define ECM_INT_MAX INT64_MAX
+#define ECM_UINT_MAX UINT64_MAX
+#elif defined HAVE_LONG_LONG_INT
+typedef long long ecm_int;
+typedef unsigned long long ecm_uint;
+#define ECM_INT_MAX LLONG_MAX
+#define ECM_UINT_MAX ULLONG_MAX
+#else
+typedef long ecm_int;
+typedef unsigned long ecm_uint;
+#define ECM_INT_MAX LONG_MAX
+#define ECM_UINT_MAX ULONG_MAX
+#endif
+
 #ifndef TUNE
 #include "ecm-params.h"
 #else
@@ -389,7 +412,7 @@ int     ecm_findmatch (unsigned long *, const unsigned long, root_params_t *,
 
 /* lucas.c */
 #define pp1_mul_prac __ECM(pp1_mul_prac)
-void  pp1_mul_prac     (mpres_t, unsigned long, mpmod_t, mpres_t, mpres_t,
+void  pp1_mul_prac     (mpres_t, ecm_uint, mpmod_t, mpres_t, mpres_t,
                         mpres_t, mpres_t, mpres_t);
 
 /* pp1.c */
