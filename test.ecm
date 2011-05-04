@@ -2,7 +2,7 @@
 
 # test file for ECM
 #
-# Copyright 2002, 2003, 2004, 2005, 2006, 2008, 2009 Jim Fougeron, Alexander Kruppa, Dave Newman, Paul Zimmermann.
+# Copyright 2002, 2003, 2004, 2005, 2006, 2008, 2009, 2011 Jim Fougeron, Alexander Kruppa, Dave Newman, Paul Zimmermann.
 #
 # This program is free software; you can redistribute it and/or modify it
 # under the terms of the GNU General Public License as published by the
@@ -144,5 +144,12 @@ echo 493671084022010320922697718944221569774262937898523672663031469122444419595
 # (43 32 bit words) and cannot use mulredc which handles only up to 20 limbs
 
 echo "10090030271*10^400+696212088699" | $ECM -sigma 3923937547 1e3 1e6; checkcode $? 14
+
+# the following tests should work on machines which have uint64_t or where
+# unsigned long long has 64 bits (exercises patch from David Cleaver, r1575)
+echo "NOTE: NEXT 3 TESTS WILL FAIL ON SOME 32BIT MACHINES, THIS IS EXPECTED."
+echo 10000000000000000000000000000000000000121 | $ECM -sigma 61 -go 1195504287780095287 2950307;  checkcode $? 8
+echo 10000000000000000000000000000000000000121 | $ECM -sigma 266 -go 218187387944803649 9405629;  checkcode $? 8
+echo 10000000000000000000000000000000000000121 | $ECM -sigma 291 -go 5994496018878137 4372759;  checkcode $? 8
 
 echo "All ECM tests are ok."
