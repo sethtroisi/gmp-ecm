@@ -321,13 +321,13 @@ ecm_mul_end:
    DUP is the cost of a duplicate
 */
 static double
-lucas_cost (unsigned long n, double v)
+lucas_cost (ecm_uint n, double v)
 {
-  unsigned long d, e, r;
+  ecm_uint d, e, r;
   double c; /* cost */
 
   d = n;
-  r = (unsigned long) ((double) d * v + 0.5);
+  r = (ecm_uint) ((double) d * v + 0.5);
   if (r >= n)
     return (ADD * (double) n);
   d = n - r;
@@ -407,11 +407,11 @@ lucas_cost (unsigned long n, double v)
 */
 
 static void
-prac (mpres_t xA, mpres_t zA, unsigned long k, mpmod_t n, mpres_t b,
+prac (mpres_t xA, mpres_t zA, ecm_uint k, mpmod_t n, mpres_t b,
       mpres_t u, mpres_t v, mpres_t w, mpres_t xB, mpres_t zB, mpres_t xC, 
       mpres_t zC, mpres_t xT, mpres_t zT, mpres_t xT2, mpres_t zT2)
 {
-  unsigned long d, e, r, i = 0, nv;
+  ecm_uint d, e, r, i = 0, nv;
   double c, cmin;
   __mpz_struct *tmp;
 #define NV 10  
@@ -444,7 +444,7 @@ prac (mpres_t xA, mpres_t zA, unsigned long k, mpmod_t n, mpres_t b,
     }
 
   d = k;
-  r = (unsigned long) ((double) d * val[i] + 0.5);
+  r = (ecm_uint) ((double) d * val[i] + 0.5);
   
   /* first iteration always begins by Condition 3, then a swap */
   d = k - r;
@@ -644,7 +644,7 @@ ecm_stage1 (mpz_t f, mpres_t x, mpres_t A, mpmod_t n, double B1,
     {
       for (r = p; r <= B1; r *= p)
 	if (r > *B1done)
-	  prac (x, z, (unsigned long) p, n, b, u, v, w, xB, zB, xC, zC, xT,
+	  prac (x, z, (ecm_uint) p, n, b, u, v, w, xB, zB, xC, zC, xT,
 		zT, xT2, zT2);
 
       if (mpres_is_zero (z, n))
@@ -901,10 +901,10 @@ ecm (mpz_t f, mpz_t x, mpz_t sigma, mpz_t n, mpz_t go, double *B1done,
   /* now n is odd */
 
   /* check that B1 is not too large */
-  if (B1 > (double) ULONG_MAX)
+  if (B1 > (double) ECM_UINT_MAX)
     {
       outputf (OUTPUT_ERROR, "Error, maximal step 1 bound for ECM is %lu.\n", 
-               ULONG_MAX);
+               ECM_UINT_MAX);
       return ECM_ERROR;
     }
 
