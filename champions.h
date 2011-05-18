@@ -11,4 +11,4 @@ static char *champion_url[3] =
  "http://www.loria.fr/~zimmerma/records/Pminus1.html",
  "http://www.loria.fr/~zimmerma/records/Pplus1.html"};
 /* minimal number of digits to enter the champions table for ECM, P-1, P+1 */
-static unsigned int champion_digits[3] = { 66, 52, 47 };
+static unsigned int champion_digits[3] = { 66, 52, 48 };
