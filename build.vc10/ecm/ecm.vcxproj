@@ -157,6 +157,7 @@
       <WarningLevel>Level3</WarningLevel>
       <DebugInformationFormat>EditAndContinue</DebugInformationFormat>
       <CompileAs>Default</CompileAs>
+      <OpenMPSupport>true</OpenMPSupport>
     </ClCompile>
     <Link>
       <AdditionalDependencies>ws2_32.lib;..\..\..\$(mp_dir)lib\$(Platform)\debug\$(mp_lib);%(AdditionalDependencies)</AdditionalDependencies>
@@ -184,6 +185,7 @@
       <WarningLevel>Level3</WarningLevel>
       <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
       <CompileAs>Default</CompileAs>
+      <OpenMPSupport>true</OpenMPSupport>
     </ClCompile>
     <Link>
       <AdditionalDependencies>ws2_32.lib;..\..\..\$(mp_dir)lib\$(Platform)\debug\$(mp_lib);%(AdditionalDependencies)</AdditionalDependencies>
@@ -210,6 +212,7 @@
       <WarningLevel>Level3</WarningLevel>
       <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
       <CompileAs>Default</CompileAs>
+      <OpenMPSupport>true</OpenMPSupport>
     </ClCompile>
     <Link>
       <AdditionalDependencies>ws2_32.lib;..\..\..\$(mp_dir)lib\$(Platform)\release\$(mp_lib);%(AdditionalDependencies)</AdditionalDependencies>
@@ -239,6 +242,7 @@
       <WarningLevel>Level3</WarningLevel>
       <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
       <CompileAs>Default</CompileAs>
+      <OpenMPSupport>true</OpenMPSupport>
     </ClCompile>
     <Link>
       <AdditionalDependencies>ws2_32.lib;..\..\..\$(mp_dir)lib\$(Platform)\release\$(mp_lib);%(AdditionalDependencies)</AdditionalDependencies>
@@ -267,6 +271,7 @@
       <WarningLevel>Level3</WarningLevel>
       <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
       <CompileAs>Default</CompileAs>
+      <OpenMPSupport>true</OpenMPSupport>
     </ClCompile>
     <Link>
       <AdditionalDependencies>ws2_32.lib;..\..\..\$(mp_dir)lib\$(Platform)\release\$(mp_lib);%(AdditionalDependencies)</AdditionalDependencies>
@@ -296,6 +301,7 @@
       <WarningLevel>Level3</WarningLevel>
       <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
       <CompileAs>Default</CompileAs>
+      <OpenMPSupport>true</OpenMPSupport>
     </ClCompile>
     <Link>
       <AdditionalDependencies>ws2_32.lib;..\..\..\$(mp_dir)lib\$(Platform)\release\$(mp_lib);%(AdditionalDependencies)</AdditionalDependencies>
@@ -324,6 +330,7 @@
       <WarningLevel>Level3</WarningLevel>
       <DebugInformationFormat>EditAndContinue</DebugInformationFormat>
       <CompileAs>Default</CompileAs>
+      <OpenMPSupport>true</OpenMPSupport>
     </ClCompile>
     <Link>
       <AdditionalDependencies>ws2_32.lib;..\..\..\$(mp_dir)lib\$(Platform)\debug\$(mp_lib);%(AdditionalDependencies)</AdditionalDependencies>
@@ -351,6 +358,7 @@
       <WarningLevel>Level3</WarningLevel>
       <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
       <CompileAs>Default</CompileAs>
+      <OpenMPSupport>true</OpenMPSupport>
     </ClCompile>
     <Link>
       <AdditionalDependencies>ws2_32.lib;..\..\..\$(mp_dir)lib\$(Platform)\debug\$(mp_lib);%(AdditionalDependencies)</AdditionalDependencies>

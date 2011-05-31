@@ -67,6 +67,7 @@
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release-Intel|x64'" Label="Configuration">
     <ConfigurationType>StaticLibrary</ConfigurationType>
     <CharacterSet>MultiByte</CharacterSet>
+    <UseOfAtl>Static</UseOfAtl>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release-AMD|x64'" Label="Configuration">
     <ConfigurationType>StaticLibrary</ConfigurationType>
@@ -182,6 +183,7 @@ call file_copy config.h ..\config.h
       <WarningLevel>Level3</WarningLevel>
       <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
       <CompileAs>Default</CompileAs>
+      <OpenMPSupport>true</OpenMPSupport>
     </ClCompile>
     <Lib />
     <Lib />
@@ -230,6 +232,7 @@ call file_copy config.h ..\config.h
       <WarningLevel>Level3</WarningLevel>
       <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
       <CompileAs>Default</CompileAs>
+      <OpenMPSupport>true</OpenMPSupport>
     </ClCompile>
     <Lib />
     <Lib />
@@ -280,6 +283,7 @@ call file_copy config.h ..\config.h
       <WarningLevel>Level3</WarningLevel>
       <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
       <CompileAs>Default</CompileAs>
+      <OpenMPSupport>true</OpenMPSupport>
     </ClCompile>
     <Lib />
     <Lib />
@@ -330,6 +334,7 @@ call file_copy config.h ..\config.h
       <WarningLevel>Level3</WarningLevel>
       <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
       <CompileAs>Default</CompileAs>
+      <OpenMPSupport>true</OpenMPSupport>
     </ClCompile>
     <Lib />
     <Lib />
