@@ -7,6 +7,11 @@ import platform
 from re import match
 from subprocess import Popen, PIPE, STDOUT
 from tempfile import *
+from time import clock
+
+class Timer() :
+  def __enter__(self): self.start = clock()
+  def __exit__(self, *args): print(' time {:.3f} milliseconds'.format(1000 * (clock() - self.start)))
 
 test_dir = ".\\x64\\Release\\"
 # test_dir = ".\\win32\\Release\\"
@@ -168,10 +173,12 @@ def do_tests(tests) :
             op = rv[1].rsplit('\r\n')
             for i in op :
                 print(i)
-out = True
-do_tests(ecm)
-do_tests(pm1)
-do_tests(pp1)
-do_tests(pp1_2)
-do_tests(c200)
-do_tests(test)
+
+with Timer():
+  out = True
+  do_tests(ecm)
+  do_tests(pm1)
+  do_tests(pp1)
+  do_tests(pp1_2)
+  do_tests(c200)
+  do_tests(test)
