@@ -162,7 +162,7 @@ def do_tests(tests) :
         if type(tt[2]) == int and rv[0] != tt[2] :
             print("*** ERROR ***", rv[0], tt[2])
         elif type(tt[2]) == tuple and \
-                 rv[0] != tt[2][0] and rv[0] != tt[2][2] :
+                 rv[0] != tt[2][0] and rv[0] != tt[2][1] :
             print("*** ERROR ***", rv[0], tt[2])
         if out :
             op = rv[1].rsplit('\r\n')

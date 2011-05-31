@@ -107,7 +107,7 @@
 #define HAVE_SQRT 1
 
 /* Define to 1 if you have the <stdint.h> header file. */
-#undef HAVE_STDINT_H
+#define HAVE_STDINT_H 1
 
 /* Define to 1 if you have the <stdlib.h> header file. */
 #define HAVE_STDLIB_H 1
@@ -170,6 +170,7 @@
 
 /* Define if the system has the type `long long'. */
 #define HAVE_LONG_LONG		1
+#define HAVE_LONG_LONG_INT  1
 
 /* Define to 1 to use asm redc on x86 or x86_64 */
 #  define NATIVE_REDC   1         
@@ -202,6 +203,10 @@
 
 /* How to specify hot-spot attribute, if available */
 #define ATTRIBUTE_HOT 
+
+#define HAVE___GMPN_REDC_1 1
+
+#define WINDOWS64_ABI   1
 
 /* Define to `__inline__' or `__inline' if that's what the C compiler
    calls it, or to nothing if 'inline' is not supported under any name.  */
