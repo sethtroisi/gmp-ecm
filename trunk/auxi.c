@@ -45,7 +45,7 @@ nb_digits (const mpz_t n)
 				    
   mpz_init (x);
   mpz_ui_pow_ui (x, 10, size - 1);
-  if (mpz_cmp (n, x) < 0)
+  if (mpz_cmpabs (n, x) < 0)
     size --;
   mpz_clear (x);
 
