@@ -1495,11 +1495,11 @@ BreadthFirstDoAgain:;
       mpmod_selftest (n.n);
 #endif
       
-      if (mpz_cmp_ui(n.n,0)<=0)
-      {
-      	fprintf(stderr,"N should be positive\n");
-	exit(EXIT_FAILURE);
-      }
+      if (mpz_cmp_ui (n.n, 0) <= 0)
+	{
+	  fprintf (stderr, "N should be positive\n");
+	  exit (EXIT_FAILURE);
+	}
 
       /* now call the ecm library */
       result = ecm_factor (f, n.n, B1, params);
