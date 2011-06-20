@@ -1497,7 +1497,7 @@ BreadthFirstDoAgain:;
       
       if (mpz_cmp_ui (n.n, 0) <= 0)
 	{
-	  fprintf (stderr, "N should be positive\n");
+	  fprintf (stderr, "Error, input number should be positive\n");
 	  exit (EXIT_FAILURE);
 	}
 
@@ -1528,8 +1528,8 @@ BreadthFirstDoAgain:;
 	  if (verbose > 0)
             printf ("\n");
 
-          /* Complain about non-proper factors (1, 0, negative) */
-          if (mpz_cmp_ui (f, 2) < 0)
+          /* Complain about non-proper factors (0, negative) */
+          if (mpz_cmp_ui (f, 1) < 0)
             {
               fprintf (stderr, "Error: factor found is ");
               mpz_out_str (stderr, 10, f);
