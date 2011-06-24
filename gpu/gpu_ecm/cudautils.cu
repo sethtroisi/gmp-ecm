@@ -2,13 +2,11 @@
 #include "utils.h"
 #include "cudaarith.h"
 
-clock2_t cuda_Main(biguint_t h_N, biguint_t h_Nhalf, biguint_t h_invmod, biguint_t *h_xarray, biguint_t *h_zarray, biguint_t *h_x2array, biguint_t *h_z2array, unsigned int B1, unsigned int firstinvd, unsigned int number_of_curves)
+clock2_t cuda_Main(biguint_t h_N, biguint_t h_invmod, biguint_t *h_xarray, biguint_t *h_zarray, biguint_t *h_x2array, biguint_t *h_z2array, unsigned int B1, unsigned int firstinvd, unsigned int number_of_curves)
 {
 	clock_t begingpu,temp1,endgpu;
 	clock2_t gputime;
 	begingpu=clock();
-	unsigned int PI=3,pp;
-	unsigned int GPUcall=0;
 	
 	biguint_t *d_xA;
 	biguint_t *d_zA;
@@ -20,7 +18,7 @@ clock2_t cuda_Main(biguint_t h_N, biguint_t h_Nhalf, biguint_t h_invmod, biguint
 	dim3 dimBlock(SIZE_NUMBER,CURVES_BY_BLOCK);
 	dim3 dimGrid(number_of_curves/CURVES_BY_BLOCK);
 
-	printf("%u %u %u %u %u %u\n",dimBlock.x,dimBlock.y,dimBlock.z,dimGrid.x,dimGrid.y,dimGrid.z);
+	fprintf(stdout,"%u %u %u %u %u %u\n",dimBlock.x,dimBlock.y,dimBlock.z,dimGrid.x,dimGrid.y,dimGrid.z);
 
 	cudaMalloc(&d_xA,number_of_curves*sizeof(biguint_t));
 	cudaMalloc(&d_zA,number_of_curves*sizeof(biguint_t));
@@ -36,37 +34,15 @@ clock2_t cuda_Main(biguint_t h_N, biguint_t h_Nhalf, biguint_t h_invmod, biguint
 	cudaMemcpy(d_xB, h_x2array, sizeof(biguint_t)*number_of_curves, cudaMemcpyHostToDevice) ;
 	cudaMemcpy(d_zB, h_z2array, sizeof(biguint_t)*number_of_curves, cudaMemcpyHostToDevice) ;
 
+	endgpu=clock();
+	compute_s(s,B1);
+
 	temp1=clock();
 	//cudaSetDeviceFlags(cudaDeviceScheduleSpin);	
 	//cudaSetDeviceFlags(cudaDeviceBlockingSync);	
-	unsigned int power2=0;
-	unsigned int ppp;
-	pp=2;
-	while(pp<=B1)
-	{
-		power2++;
-		pp*=2;
-	}
-	mpz_mul_2exp(s,s,power2);
-	
-	//for prime >=3
-	PI=getprime(PI);
-	while (PI<=B1)
-	{
-		pp=PI;
-		ppp=1;
-		while(pp<=B1)
-		{
-			ppp=pp;
-			pp*=PI;
-		}
-		mpz_mul_ui(s,s,ppp);
-		PI=getprime(PI);
-	}	
+	gmp_fprintf(stdout,"#s has %lu bits\nCompute in %.3f sec\n", 
+		mpz_sizeinbase(s,2), (double) (temp1-endgpu)/CLOCKS_PER_SEC);
 
-	getprime(0);
-	gmp_printf("#s has %u bits\n",(unsigned int) mpz_sizeinbase(s,2));
-	
 
 	for (j=mpz_sizeinbase(s,2)-2;j>=0;j--)
 	{
@@ -74,19 +50,18 @@ clock2_t cuda_Main(biguint_t h_N, biguint_t h_Nhalf, biguint_t h_invmod, biguint
 			Cuda_Ell_DblAdd<<<dimGrid,dimBlock>>>(d_xB,d_zB,d_xA,d_zA,firstinvd);
 		else
 			Cuda_Ell_DblAdd<<<dimGrid,dimBlock>>>(d_xA,d_zA,d_xB,d_zB,firstinvd);
-		GPUcall++;
 	}
 
-	printf("#%u GPU calls.\n",GPUcall);
-	printf("#All kernels launched, waiting for results...\n");
+	fprintf(stdout,"#All kernels launched, waiting for results...\n");
 	cudaMemcpy(h_xarray, d_xA, sizeof(biguint_t)*number_of_curves, cudaMemcpyDeviceToHost);
 	cudaMemcpy(h_zarray, d_zA, sizeof(biguint_t)*number_of_curves, cudaMemcpyDeviceToHost);
 
 #else
-	cuda_copy_cst(h_N, h_invmod, h_darray, h_N2, h_N3, h_N4, number_of_curves);
+	cuda_copy_cst(h_N, h_invmod);
 	cudaMemcpy(d_xB, h_xarray, sizeof(biguint_t)*number_of_curves, cudaMemcpyHostToDevice) ;
 	cudaMemcpy(d_zB, h_zarray, sizeof(biguint_t)*number_of_curves, cudaMemcpyHostToDevice) ;
 	
+	temp1=clock();
 	Cuda_Test<<<dimGrid,dimBlock>>>(d_xB,d_zB);
 	cudaMemcpy(h_xarray, d_xB, sizeof(biguint_t)*number_of_curves, cudaMemcpyDeviceToHost);
 	cudaMemcpy(h_zarray, d_zB, sizeof(biguint_t)*number_of_curves, cudaMemcpyDeviceToHost);

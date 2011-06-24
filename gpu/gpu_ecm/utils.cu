@@ -1,22 +1,31 @@
 #include "main.h"
 #include "utils.h"
 
+void usage (void)
+{
+	printf ("Usage: gpu_ecm [options] B1 < file\n");
+	printf ("\nParameters:\n");
+	printf ("  N          number to factor\n");
+	printf ("  B1         stage 1 bound\n");
+	printf ("\nOptions:\n");
+	printf ("  -n n       compute on n curves in parallel\n");
+	printf ("  -d n       compute on device n\n");
+	printf ("  -s d       compute for invd from d to d+number_of_curves \n");
+	printf ("  -save file save residues at end of stage 1 in file\n");
+	printf ("  -h, --help prints this help and exit\n");
+}
+
 unsigned int findfactor(mpz_t N, mpz_t xfin, mpz_t zfin)
 {
 	//int probprime;
-	int findfactor=0;
 	mpz_t gcd;
 	mpz_t factor;
-	mpz_t temp;
 
   mpz_init (gcd);
-  mpz_init (temp);
   mpz_init (factor);
 
 	mpz_set_ui(factor,0);
 
-	gmp_printf("  xfin=%Zd\n  zfin=%Zd\n",xfin,zfin);
-	// tester si pgcd =N et =0
 	mpz_gcd(gcd,zfin,N);
 	
 	if (mpz_cmp_ui(gcd,1)==0)
@@ -24,33 +33,22 @@ unsigned int findfactor(mpz_t N, mpz_t xfin, mpz_t zfin)
 		mpz_invert(zfin,zfin,N);
 		mpz_mul(xfin,xfin,zfin);
 		mpz_mod(xfin,xfin,N);
-		gmp_printf("  xunif=%Zd\n",xfin);
-		mpz_gcd(gcd,xfin,N);
 			
-		if (mpz_cmp_ui(gcd,1)==0)
-		{
-			printf("  #No factors found. You shoud try with a bigger B1.\n");
-		}
-		else if (mpz_cmp(gcd,N)==0)
-		{
-			printf("  #No factors found. You should try with a smaller B1\n");
-		}
-		else
-		{
-			mpz_set(factor,gcd);
-			gmp_printf("  #Factor found : %Zd (with x/z)\n",factor);
-			findfactor=1;
-		}
+  	mpz_clear(gcd);
+  	mpz_clear(factor);
+		return ECM_NO_FACTOR_FOUND;
 	}
-	else if (mpz_cmp(gcd,N)==0)
+	else //gcd !=1 (and gcd>0 because N>0) so we found a factor
 	{
-		printf("  #No factors found. You should try with a smaller B1\n");
-	}
-	else //gcd !=1 gcd!=N (and gcd>0 because N>0) so we found a factor
-	{
-		mpz_set(factor,gcd);
-		gmp_printf("  #Factor found : %Zd (with z)\n",factor);
-		findfactor=1;
+		//vérifier si factor=N
+		gmp_fprintf(stdout,"********** Factor found in step 1: %Zd\n",gcd);
+		if (mpz_cmp(gcd,N)==0)
+			fprintf(stdout,"Found input number N\n");
+
+		//TODO ecrire facteur cofacteur is prime facteur es prime cofacteur..
+  	mpz_clear(gcd);
+  	mpz_clear(factor);
+		return ECM_FACTOR_FOUND;
 	}
 		/*
 	if (mpz_cmp_ui(factor,0)!=0)
@@ -68,21 +66,17 @@ unsigned int findfactor(mpz_t N, mpz_t xfin, mpz_t zfin)
 			gmp_sprintf (str[i],"%s \n",str[i]);
 	}
  */
- 	mpz_clear(temp);
-  mpz_clear(gcd);
-  mpz_clear(factor);
-	
-	return findfactor;
+ 	//mpz_clear(temp);
 }
 
 void biguint_print (biguint_t a)
 {
   unsigned int i;
 
-  printf ("%u", a[0]);
+  fprintf (stdout,"%u", a[0]);
   for (i = 1; i < SIZE_NUMBER; i++)
     if (a[i]!=0)
-			printf ("+%u*2^%u", a[i], 32*i);
+			fprintf (stdout,"+%u*2^%u", a[i], 32*i);
   //printf ("\n");
 }
 
@@ -90,10 +84,10 @@ void bigint_print (dbigint_t a)
 {
   unsigned int i;
 
-  printf ("%d", a[0]);
+  fprintf (stdout,"%d", a[0]);
   for (i = 1; i < SIZE_NUMBER; i++)
-    printf ("+%d*2^%u", a[i], 32*i);
-  printf ("\n");
+    fprintf (stdout,"+%d*2^%u", a[i], 32*i);
+  fprintf (stdout,"\n");
 }
 
 void mpz_to_biguint (biguint_t a, mpz_t b)
@@ -261,3 +255,171 @@ unsigned long getprime (unsigned long pp)
  return offset + 2 * current;
 }
 
+#define MAX_HEIGHT 30
+
+void compute_s (mpz_t s, unsigned int B1)
+{
+/*
+	unsigned int PI=3,pp,ppp;
+	pp=2;
+	ppp=1;
+	while(pp<=B1)
+	{
+		ppp=pp;
+		pp*=2;
+	}
+	mpz_set_ui(s,ppp);
+	//mpz_mul_2exp(s,s,power2);
+	
+	//for prime >=3
+	PI=getprime(PI);
+	while (PI<=B1)
+	{
+		pp=PI;
+		ppp=1;
+		while(pp<=B1)
+		{
+			ppp=pp;
+			pp*=PI;
+
+		}
+		mpz_mul_ui(s,s,ppp);
+		PI=getprime(PI);
+	}	
+*/
+	mpz_t l[MAX_HEIGHT];
+	mpz_t r[MAX_HEIGHT];
+	unsigned int i, j;
+	unsigned long pi=2, pp;
+	for (i=0;i<MAX_HEIGHT;i++)
+	{
+		mpz_init(l[i]);
+		mpz_init(r[i]);
+	}
+
+	i=0;
+	while (pi<=B1)
+	{
+		pp=pi;
+		while(pp<=B1)
+			pp*=pi;
+		pp/=pi;
+
+		if (i%2==0)
+			mpz_set_ui(l[0],pp);
+		else
+			mpz_set_ui(r[0],pp);
+			
+		j=0;
+		while ((i&(1<<j))!=0)
+		{
+			if ((i&(1<<(j+1)))==0)
+				mpz_mul(l[j+1],l[j],r[j]);
+			else
+				mpz_mul(r[j+1],l[j],r[j]);
+			j++;
+		}
+
+
+		//printf(" %u\n",pp);
+		//mpz_mul_ui(s,s,pp);
+
+		i++;
+		pi=getprime(pi);
+	}
+
+	if (i%2==0)
+		mpz_set_ui(r[0],1);
+	else
+		mpz_set_ui(r[0],1);
+		
+	j=0;
+	for (j=0;j<MAX_HEIGHT-1;j++)
+	{
+		if ((i&(1<<(j)))==0)
+			mpz_set(r[j+1],r[j]);
+		else
+			mpz_mul(r[j+1],l[j],r[j]);
+	}
+	
+	fprintf(stdout,"%u primes under B1\n",i);
+	
+	mpz_set(s,r[MAX_HEIGHT-1]);
+	
+	//for (i=0;i<MAX_HEIGHT;i++)
+	//	gmp_fprintf("%Zd %Zd\n",l[i],r[i]);
+
+	//gmp_fprintf("%Zd\n",s);
+
+	//mpz_set(s,p[MAX_HEIGHT-1]);
+
+	getprime(0);
+	for (i=0;i<MAX_HEIGHT;i++)
+	{
+		mpz_clear(l[i]);
+		mpz_clear(r[i]);
+	}
+}
+
+void write_resumefile_line (FILE *file, mpz_t N, unsigned int B1, mpz_t xp, 
+	unsigned int firstinvd, mpz_t mpz_d)
+{
+  mpz_t checksum;
+  mpz_t A;
+  time_t t;
+  char text[256];
+  char *uname, mname[32];
+  
+  mpz_init (checksum);
+  mpz_init (A);
+		
+	mpz_mul_ui(A,mpz_d,firstinvd);
+	mpz_mod(A,A,N);
+	mpz_mul_ui(A,A,4);
+	mpz_sub_ui(A,A,2);
+	mpz_mod(A,A,N);
+
+
+  mpz_set_ui (checksum, B1);
+  
+	gmp_fprintf (file, "METHOD=ECM; A=%Zd",A);
+  
+	mpz_mul_ui (checksum, checksum, mpz_fdiv_ui (A, CHKSUMMOD));
+  
+  gmp_fprintf (file, "; B1=%u; N=%Zd", B1, N);
+  
+	gmp_fprintf (file, "; X=0x%Zx",xp);
+  
+	mpz_mul_ui (checksum, checksum, mpz_fdiv_ui (N, CHKSUMMOD));
+  mpz_mul_ui (checksum, checksum, mpz_fdiv_ui (xp, CHKSUMMOD));
+  fprintf (file, "; CHECKSUM=%lu; PROGRAM=GPU-ECM %s;",
+           mpz_fdiv_ui (checksum, CHKSUMMOD), VERSION);
+  mpz_clear (checksum);
+  
+ 	fprintf (file, " X0=0x2;");
+  
+  /* Try to get the users and his machines name */
+  /* TODO: how to make portable? */
+  uname = getenv ("LOGNAME");
+  if (uname == NULL)
+    uname = getenv ("USERNAME");
+  if (uname == NULL)
+    uname = "";
+  
+  if (gethostname (mname, 32) != 0)
+    mname[0] = 0;
+  mname[31] = 0; /* gethostname() may omit trailing 0 if hostname >31 chars */
+  
+  if (uname[0] != 0 || mname[0] != 0)
+    {
+      fprintf (file, " WHO=%.233s@%.32s;", uname, mname);
+    }
+
+  t = time (NULL);
+  strncpy (text, ctime (&t), 255);
+  text[255] = 0;
+  text[strlen (text) - 1] = 0; /* Remove newline */
+  fprintf (file, " TIME=%s;", text);
+  fprintf (file, "\n");
+  fflush (file);
+}
