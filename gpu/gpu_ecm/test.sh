@@ -11,7 +11,7 @@ N1017=23435707581928147996208746498766434414539549295974890131556312174632503546
 B1=$2
 curves=$1
 
-time  ./gpu_ecm $N1024 $B1 -s 17 -n $curves 
+time ./gpu_ecm -s 17 -n $curves $B1 < c300 
 #time ./gpu_ecm $N1024 $B1 -s 17
 #time ./gpu_ecm $N $B1 -n $curves -s 17
 #time ./gpu_ecm $numbertest 1000000 -s 17

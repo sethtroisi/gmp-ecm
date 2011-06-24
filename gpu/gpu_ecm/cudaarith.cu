@@ -17,9 +17,74 @@
 
 #define __mul(h,l,a,b) __asm__("mul.hi.u32 %0,%2,%3;\n\t" "mul.lo.u32 %1,%2,%3;" : "=r"(h), "=r"(l) : "r"(a), "r"(b))
 
+#define __mad_lo(r,a,b,c) __asm__("mad.lo.u32 %0,%1,%2,%3;" : "=r"(r) : "r"(a), "r"(b), "r"(c))
+#define __mad_hi(r,a,b,c) __asm__("mad.hi.u32 %0,%1,%2,%3;" : "=r"(r) : "r"(a), "r"(b), "r"(c))
 
 //specific functions for compute capability 1.3
 //#ifdef CC13
+//cy[i]=0 or 1
+__device__ int Cuda_Cmp2
+(const biguint_t A, const dbigint_t cy, const biguint_t B)
+{
+	int i;
+	int r=0;
+	for (i = SIZE_NUMBER-1;i>0;i--)
+	{
+	  /*
+		si r=0 ne rien faire
+		si r=1 et A[i]=TWO32-1
+			si B[i]=TWO32-1 (?=0) (?dépend pas de la retenue)
+				on passe a l'itération suivante avec r=1
+			sinon
+				A>B return 1
+		si r=1 et A[i]!=TWO32-1
+			aucune retenue ne peut se propager donc égalité au niveau d'avant
+			on fait cette itération normalement avec r=0
+		si r=-1 et A[i]=TWO32-1
+			une retenue peut se propager 
+			Si B[i]==0
+				suivant la retenue
+			Si B[i]>0
+				return -1 car si pas retenus de propagé alors c'est vrai au niveau
+				précedent et si retenue propages c'est vrai pour ce niveau
+		si r=-1 et A[i]!=TWO32-1
+			aucune retenue ne peut se propager 
+			return -1
+	*/
+		if (r==1 && A[i]==TWO32-1 && cy[i-1]==1)
+			return 1;
+		else if (r==i-1 && A[i]!=TWO32-1)
+			return -1;
+		else if (r==1 && A[i]==TWO32-1 && cy[i-1]==0)
+		{
+			//assume no propagation
+			if (B[i]==TWO32-1)
+				r=0;
+			else
+				return 1;
+		}
+		else if (r==-1 && A[i]==TWO32-1 && cy[i-1]==0)
+		{
+			//assume no propagation
+			return -1;
+		}
+		else //r=0 or (r=1 and A[i]!=2^32-1) or (r=-1 and A[i]=2^32-1 and cy[i-1]=1)
+		{
+			if (A[i]+cy[i-1] > B[i])
+				return 1;
+			else if (A[i]+cy[i-1]==B[i])
+				r=(cy[i-1]==0)?1:0;
+			else if (A[i]+1 < B[i])
+				return -1;
+			else //it happens only for cy[i-1]=0
+				r=-1;
+		}
+	}
+	// traiter le cas i=0
+	return 0;
+}
+
+
 //  (A > B)?, returns 1(true), -1(false) or 0(a=b) 
 //Assume A and B are normalize (no carry or borrow)
 __device__ int Cuda_Cmp(const biguint_t A, const biguint_t B)
@@ -34,6 +99,7 @@ __device__ int Cuda_Cmp(const biguint_t A, const biguint_t B)
 	}
 	return 0;
 }
+
 /*
 //Assume all carries are negative
 //return -1 if A+cy*2^32 < 0 else return 1
@@ -79,125 +145,36 @@ __device__ int Cuda_Cmp(const biguint_t A, const biguint_t B)
 #endif
 */
 
-//Assume cy[threadIdx.x] = 0,+1
+//Assume cy[threadIdx.x] = 0,+/-1
 __device__ void Cuda_Normalize(biguint_t A,dbigint_t cy)
 {
-	int oldcy;
-	oldcy = cy[threadIdx.x];//(threadIdx.x==0)?0:cy[threadIdx.x-1];
-	//cy[threadIdx.x]=0;
-	int tmp=(threadIdx.x==SIZE_NUMBER-1)?0:threadIdx.x+1;
-/*
-	if (oldcy==1)
-	{
-		A[tmp]++;
-		if (A[tmp]==0)
-			cy[tmp]=oldcy;
-	}
-	*/
-	/*
-	asm(
-		"add.cc.u32 %0, %0, %2;\n\t"
-		"addc.s32 %1, 0, 0;\n\t"
-		: "=r"(A[tmp]), "=r"(cy[tmp]) : "r"(oldcy)
-		);
-	*/
-	A[tmp]+=oldcy;
-	cy[tmp]=(A[tmp]<oldcy);
-}
-
-//Assume cy[threadIdx.x] >= 0
-__device__ void Cuda_Normalize_test(biguint_t A,dbigint_t cy)
-{
-	int oldcy;
-	if (threadIdx.x!=0)
-		oldcy = cy[threadIdx.x-1];
-	else
-		oldcy=0;
-
-	A[threadIdx.x]+=oldcy;
-	cy[threadIdx.x]=(A[threadIdx.x] < oldcy);
-}
-
-//Assume cy[threadIdx.x] = 0,+/-1
-__device__ void Cuda_Normalize2(biguint_t A,dbigint_t cy)
-{
-	int oldcy;
-	oldcy = cy[threadIdx.x];
+	int cytemp;
+	cytemp = cy[threadIdx.x];
 	cy[threadIdx.x]=0;
 	int tmp=threadIdx.x+1 % SIZE_NUMBER;
 
-	//if (threadIdx.x!=SIZE_NUMBER-1)
-	//{
-		if (oldcy==1)
-		{
-			A[tmp]++;
-			if (A[tmp]==0)
-				cy[tmp]=oldcy;
-		}
-		else if (oldcy==-1) 
-		{
-			if (A[tmp]==0)
-				cy[tmp]=oldcy;
-			A[tmp]--;
-		}
-	//}
-	//if (threadIdx.x==SIZE_NUMBER-1)
-	//	cy[SIZE_NUMBER-1]+=oldcy;
+	if (cytemp==1)
+	{
+		A[tmp]++;
+		if (A[tmp]==0)
+			cy[tmp]=cytemp;
+	}
+	else if (cytemp==-1) 
+	{
+		if (A[tmp]==0)
+			cy[tmp]=cytemp;
+		A[tmp]--;
+	}	
 }
 
-
-__device__ int Cuda_Is_Normalize_64(dbigint_t cy)
-{
-	if (cy[threadIdx.x]==0 && cy[threadIdx.x+SIZE_NUMBER]==0)
-		return 0;
-	else
-		return 1;
-}
+/*
 __device__ void Cuda_Normalize_64(dbiguint_t A,dbigint_t cy)
 {
-	/*
-	int oldcy;
-	int oldcy2;
-	oldcy = cy[threadIdx.x];
-	oldcy2 = cy[threadIdx.x+SIZE_NUMBER];
-	cy[threadIdx.x]=0;
-	cy[threadIdx.x+SIZE_NUMBER]=0;
-
-		A[threadIdx.x+1]+=oldcy;
-		if (A[threadIdx.x+1]<oldcy)
-			cy[threadIdx.x+1]=1;
-	
-	if (threadIdx.x!=SIZE_NUMBER-1)
-	{
-			A[threadIdx.x+1+SIZE_NUMBER]+=oldcy2;
-			if (A[threadIdx.x+1+SIZE_NUMBER]<oldcy2)
-				cy[threadIdx.x+1+SIZE_NUMBER]=1;
-	}
-	*/
-	int oldcy;
-
-	oldcy = cy[threadIdx.x];
-	cy[threadIdx.x]=0;
-	A[threadIdx.x+1]+=oldcy;
-	if (A[threadIdx.x+1]<oldcy)
-		cy[threadIdx.x+1]=1;
-	/*
-	asm("{\n\t"
-		".reg .u32 t;\n\t"
-		"add.cc.u32 %0, %0, %2;\n\t"
-		"addc.u32 %1, 0, 0;\n\t"
-		"}"
-		: "+r"(A[threadIdx.x+1]), "=r"(cy[threadIdx.x+1]) : "r"(cy[threadIdx.x]));
-*/
-	oldcy = cy[threadIdx.x-1+SIZE_NUMBER];
-	cy[threadIdx.x-1+SIZE_NUMBER]=0;
-
-	A[threadIdx.x+SIZE_NUMBER]+=oldcy;
-	if (A[threadIdx.x+SIZE_NUMBER]<oldcy)
-		cy[threadIdx.x+SIZE_NUMBER]=1;
+	__add_cc(A[threadIdx.x+1],A[threadIdx.x+1],cy[threadIdx.x]);
+	__addcy(cy[(threadIdx.x+1)]); //In the end of RedMont cy[0] is always 0
 }
-
-
+*/
+/*
 __device__ void Cuda_Fully_Normalize_64(biguint_t A,dbigint_t cy)
 {
 	do
@@ -205,40 +182,16 @@ __device__ void Cuda_Fully_Normalize_64(biguint_t A,dbigint_t cy)
 	Cuda_Normalize_64(A,cy);
 	}while(__any(cy[threadIdx.x]|cy[threadIdx.x+SIZE_NUMBER])!=0);
 }
+*/
 
-/*
-__device__ void Cuda_Fully_Normalize_Plus(biguint_t A,dbigint_t cy)
-{
-	do
-	{
-	Cuda_Normalize_Plus(A,cy);
-	}while(__any(Cuda_Is_Normalize(cy))!=0);
-}
-*/
-__device__ void Cuda_Fully_Normalize2(biguint_t A,dbigint_t cy)
-{
-	do
-	{
-	Cuda_Normalize2(A,cy);
-	//}while(__any(Cuda_Is_Normalize(cy))!=0);
-	}while(__any(cy[threadIdx.x])!=0);
-}
-/*
-__device__ void Cuda_Fully_Normalize_test(biguint_t A,dbigint_t cy)
-{
-	do
-	{
-	Cuda_Normalize_test(A,cy);
-	}while(__any(cy[threadIdx.x])!=0);
-}
-*/
-//Fully_Normalize for carry in {0,1}
 __device__ void Cuda_Fully_Normalize(biguint_t A,dbigint_t cy)
 {
+	
 	do
 	{
-	Cuda_Normalize(A,cy);
+		Cuda_Normalize(A,cy);
 	}while(__any(cy[threadIdx.x])!=0);
+	
 }
 
 __device__ void Cuda_Add 
@@ -267,13 +220,13 @@ __device__ void Cuda_Add_mod
 (biguint_t Rmod, dbigint_t cy, const biguint_t A,const biguint_t B)
 {
   Cuda_Add(Rmod, cy, A, B);
-	//Cuda_Fully_Normalize2(Rmod,cy);	
-	Cuda_Fully_Normalize2(Rmod, cy);	
+	Cuda_Fully_Normalize(Rmod, cy);	
   
 	if (Cuda_Cmp (Rmod, Ncst) >= 0)// (Rmod >= N)? 
+	//if (Cuda_Cmp2 (Rmod, cy, Ncst) >= 0)// (Rmod >= N)? 
 	{
    	Cuda_Sub (Rmod, cy, Rmod, Ncst); 
-		Cuda_Fully_Normalize2(Rmod, cy);	
+		Cuda_Fully_Normalize(Rmod, cy);	
 	}
 }
 
@@ -282,13 +235,12 @@ __device__ void Cuda_Add_mod
 (biguint_t Rmod, dbigint_t cy, const biguint_t A)
 {
  	Cuda_Add(Rmod, cy, Rmod, A);
-	//Cuda_Fully_Normalize2(Rmod,cy);	
-	Cuda_Fully_Normalize2(Rmod, cy);
+	Cuda_Fully_Normalize(Rmod, cy);
 
 	if (Cuda_Cmp (Rmod, Ncst) >= 0)// (Rmod >= N)? 
 	{
    	Cuda_Sub (Rmod, cy, Rmod, Ncst);  
-		Cuda_Fully_Normalize2(Rmod, cy);	
+		Cuda_Fully_Normalize(Rmod, cy);	
 	}
 }
 
@@ -299,17 +251,16 @@ __device__ void Cuda_Sub_mod
 	if (Cuda_Cmp(Rmod, A)>=0)
 	{
 		Cuda_Sub(Rmod, cy, Rmod, A);
-		Cuda_Fully_Normalize2(Rmod, cy);	
+		Cuda_Fully_Normalize(Rmod, cy);	
 	}
 	else
 	{
 		Cuda_Add (Rmod, cy, Rmod, Ncst);
-		//Cuda_Fully_Normalize2(Rmod,cy);	
 		Cuda_Subc (Rmod, cy, Rmod, A);
-		Cuda_Fully_Normalize2(Rmod, cy);	
+		Cuda_Fully_Normalize(Rmod, cy);	
 	}
 }
-
+/*
 __device__ void Cuda_Mul
 (dbiguint_t R, dbigint_t cy, const biguint_t A,const biguint_t B)
 {
@@ -327,45 +278,71 @@ __device__ void Cuda_Mul
 		//Cuda_Mul_uint(&h,&l,temp,B[i]);
 		__mul(h,l,temp,B[i]);
 		
-		R[i+threadIdx.x] +=l;
+		//R[i+threadIdx.x] +=l;
 		//cy[i+threadIdx.x]+=(R[i+threadIdx.x] < l);
-		if (R[i+threadIdx.x] < l)
-			cy[i+threadIdx.x]++;
+		//if (R[i+threadIdx.x] < l)
+		//	cy[i+threadIdx.x]++;
 		
-		R[i+1+threadIdx.x] +=h;
+		//__add_cc(R[i+threadIdx.x],R[i+threadIdx.x],l);
+		//__addcy2(cy[i+threadIdx.x]);
+		
+		//R[i+1+threadIdx.x] +=h;
 		//cy[i+1+threadIdx.x]+=(R[i+1+threadIdx.x]<h);
-		if (R[i+1+threadIdx.x]<h)
-			cy[i+1+threadIdx.x]++;
+		//if (R[i+1+threadIdx.x]<h)
+		//	cy[i+1+threadIdx.x]++;
+		
+		//__add_cc(R[i+1+threadIdx.x],R[i+1+threadIdx.x],h);
+		//__addcy2(cy[i+1+threadIdx.x]);
+
+		__add_cc(R[i+threadIdx.x],R[i+threadIdx.x],l);
+		__addc_cc(R[i+1+threadIdx.x],R[i+1+threadIdx.x],h);
+		__addcy2(cy[i+1+threadIdx.x]);
 	}
 	//Cuda_Fully_Normalize_64(R,cy);
 }
-
+*/
+/*
 __device__ void Cuda_RedMont_Step (dbiguint_t r, dbigint_t cy)
 {
 	unsigned int h,l;
-	unsigned int tmp;
+	unsigned int tmp; 
 	//unsigned int tmp,tmp2;
 
 	//h*2^32+l =A[i]*B[threadIDx.x]
 	//Cuda_Mul_uint(&h,&l,invmodcst[0]*r[0],Ncst[threadIdx.x]);
 	__mul(h,l,invmodcst[0]*r[0],Ncst[threadIdx.x]);
 	
-	r[threadIdx.x]+=l;
-	cy[threadIdx.x]+=(r[threadIdx.x]<l);
+	//r[threadIdx.x]+=l;
+	//cy[threadIdx.x]+=(r[threadIdx.x]<l);
  
- 	r[threadIdx.x+1]+=h;
-	cy[threadIdx.x+1]+=(r[1+threadIdx.x]<h);
+ 	//r[threadIdx.x+1]+=h;
+	//cy[threadIdx.x+1]+=(r[1+threadIdx.x]<h);
+		
+	__add_cc(r[threadIdx.x],r[threadIdx.x],l);
+	__addc_cc(r[threadIdx.x+1],r[threadIdx.x+1],h);
+	__addcy2(cy[threadIdx.x+1]);
 
 	
 	//Normalize only to add the last carry
 	//Cuda_Normalize(r,cy);
-	tmp=cy[threadIdx.x];
-	cy[threadIdx.x]=0;
-	r[threadIdx.x+1]+=tmp;
-	cy[threadIdx.x+1]+=(r[threadIdx.x+1]<tmp);//+= is mandatory, can't put only =
+	
+	//tmp=cy[threadIdx.x];
+	//cy[threadIdx.x]=0;
+	//r[threadIdx.x+1]+=tmp;
+	//cy[threadIdx.x+1]+=(r[threadIdx.x+1]<tmp);//+= is mandatory, can't put only =
 
-	r[threadIdx.x]=r[threadIdx.x+1];
-	cy[threadIdx.x]=cy[threadIdx.x+1];
+	//make one round of normalize + a right shift
+	//__addcy(cy[threadIdx.x]);
+
+
+	__add_cc(r[threadIdx.x],r[threadIdx.x+1],cy[threadIdx.x]);
+	tmp=(threadIdx.x==SIZE_NUMBER-1)?cy[threadIdx.x+1]:0;
+	__asm__("addc.u32 %0,%1, 0;" :"=r"(cy[threadIdx.x]): "r"(tmp)); 
+
+	//cy[threadIdx.x]+=tmp;
+	//r[threadIdx.x]=r[threadIdx.x+1];
+	//cy[threadIdx.x]=cy[threadIdx.x+1];
+
 	r[SIZE_NUMBER+threadIdx.x]=r[SIZE_NUMBER+threadIdx.x+1];
 	cy[SIZE_NUMBER+threadIdx.x]=cy[SIZE_NUMBER+threadIdx.x+1];
 	if (threadIdx.x==0)
@@ -375,35 +352,45 @@ __device__ void Cuda_RedMont_Step (dbiguint_t r, dbigint_t cy)
 	}
 
 }
-/*
-__device__ void Cuda_Mulmod_step(dbiguint_t r,dbigint_t cy, biguint_t A, unsigned int b)
+*/
+__device__ void Cuda_Mulmod_step
+(dbiguint_t r,dbigint_t cy, unsigned int a, unsigned int b)
 {
 	unsigned int h,l;
-
-	__mul(h,l,A[threadIdx.x],b);
-	__add2_cc(r[threadIdx.x],l);
-	__add2c_cc(r[threadIdx.x+1],h);
-	__carry(cy[threadIdx.x+1]);
-
-	//h*2^32+l =A[i]*B[threadIDx.x]
-	__mul(h,l,invmodcst[0]*r[0],Ncst[threadIdx.x]);
-	__add2_cc(r[threadIdx.x],l);
-	__add2c_cc(r[threadIdx.x+1],h);
-	__carry(cy[threadIdx.x+1]);
-		
-	asm(
-		"add.cc.u32 %0, %0, %2;\n\t"
-		"addc.u32 %1, 0, 0;\n\t"
-		: "+r"(r[threadIdx.x+1]), "=r"(cy[threadIdx.x+1]) : "r"(cy[threadIdx.x]));
+	int tmp;
+	__mul(h,l,a,b);
+	__add_cc(r[threadIdx.x],r[threadIdx.x],l);
+	__addc_cc(r[threadIdx.x+1],r[threadIdx.x+1],h);
+	__addcy2(cy[threadIdx.x+1]);
 
 
-	r[threadIdx.x]=r[threadIdx.x+1];
-	cy[threadIdx.x]=cy[threadIdx.x+1];
-	cy[threadIdx.x+SIZE_NUMBER]=0;
-	r[threadIdx.x+SIZE_NUMBER]=0;
-//si plus grand que 2B alors on fait -N
-}
+/*
+	 h=r[threadIdx.x];
+	 __mad_lo(r[threadIdx.x],a,b,r[threadIdx.x]);
+	 cy[threadIdx.x]+=(r[threadIdx.x]<h)?1:0;
+	 h=r[threadIdx.x+1];
+	 __mad_hi(r[threadIdx.x+1],a,b,r[threadIdx.x+1]);
+	 cy[threadIdx.x+1]+=(r[threadIdx.x+1]<h)?1:0;
 */
+
+	__mul(h,l,invmodcst[0]*r[0],Ncst[threadIdx.x]);
+	__add_cc(r[threadIdx.x],r[threadIdx.x],l);
+	__addc_cc(r[threadIdx.x+1],r[threadIdx.x+1],h);
+	__addcy2(cy[threadIdx.x+1]);
+ 
+	//make one round of normalize + a right shift
+	__add_cc(r[threadIdx.x],r[threadIdx.x+1],cy[threadIdx.x]);
+	tmp=(threadIdx.x==SIZE_NUMBER-1)?cy[threadIdx.x+1]:0;
+	__asm__("addc.s32 %0,%1, 0;" :"=r"(cy[threadIdx.x]): "r"(tmp)); 
+
+	if (threadIdx.x==0)
+	{
+		cy[SIZE_NUMBER]=0;
+		r[SIZE_NUMBER]=0;
+	}
+}
+
+/*
 //Assume r<N^2
 __device__ void Cuda_RedMontgomery_V2 
 (biguint_t mul, dbiguint_t r, dbigint_t cy)
@@ -416,33 +403,34 @@ __device__ void Cuda_RedMontgomery_V2
 		//__syncthreads();
 	}
 
-	//Cuda_Fully_Normalize(r,cy);
 	Cuda_Fully_Normalize_64(r,cy);
-	//Cuda_Fully_Normalize_test(r,cy);
+	//Cuda_Fully_Normalize(r,cy);
 
 	if (Cuda_Cmp (r,Ncst) >= 0) // mul >= N 
 	{
   	Cuda_Sub (mul, cy, r, Ncst); 
-		Cuda_Fully_Normalize2(mul,cy);	
+		Cuda_Fully_Normalize(mul,cy);	
 	}
 	else
 	{
 		mul[threadIdx.x]=r[threadIdx.x];
 	}
 }
-
+*/
 __device__ void Cuda_Dbl_mod
 (biguint_t r, dbigint_t cy, biguint_t a)
 {
-	cy[threadIdx.x]=(a[threadIdx.x]>>31);
-	r[threadIdx.x]=a[threadIdx.x]<<1;
+	//cy[threadIdx.x]=(a[threadIdx.x]>>31);
+	//r[threadIdx.x]=a[threadIdx.x]<<1;
+	__add_cc(r[threadIdx.x],a[threadIdx.x],a[threadIdx.x]);
+	__addcy2(r[(threadIdx.x+1)%SIZE_NUMBER]);
 
-	Cuda_Normalize_test(r,cy);	
+	//Cuda_Normalize_test(r,cy);	
 
 	if (Cuda_Cmp (r,Ncst) >= 0) 
 	{
   	Cuda_Sub (r, cy, r, Ncst); 
-		Cuda_Fully_Normalize2(r, cy);	
+		Cuda_Fully_Normalize(r, cy);	
 	}
 }
 
@@ -458,7 +446,7 @@ __device__ void Cuda_Mulint_mod(dbiguint_t r,dbigint_t cy, biguint_t A, unsigned
 	__mul(h,l,invmodcst[0]*r[0],Ncst[threadIdx.x]);
 	__add_cc(r[threadIdx.x],r[threadIdx.x],l);
 	__addc_cc(r[threadIdx.x+1],r[threadIdx.x+1],h);
-	__addcy(cy[threadIdx.x+1]);
+	__addcy2(cy[threadIdx.x+1]);
 	/*	
 	r[threadIdx.x]+=l;
 	cy[threadIdx.x]+=(r[threadIdx.x]<l);
@@ -474,77 +462,95 @@ __device__ void Cuda_Mulint_mod(dbiguint_t r,dbigint_t cy, biguint_t A, unsigned
 	cy[threadIdx.x+1]=(r[threadIdx.x+1]<tmp);
 	*/
 
+	//make one round of normalize + a right shift
+	/*
 	asm(
 		"add.cc.u32 %0, %1, %2;\n\t"
 		"addc.u32 %1, 0, 0;\n\t"
 		: "=r"(r[threadIdx.x]), "+r"(cy[threadIdx.x]) : "r"(r[threadIdx.x+1]));
+	*/
+	__add_cc(r[threadIdx.x],r[threadIdx.x+1],cy[threadIdx.x]);
+	__addcy(cy[threadIdx.x]);
 	//r[threadIdx.x]=r[threadIdx.x+1];
 	//cy[threadIdx.x]=cy[threadIdx.x+1];
-	cy[threadIdx.x+SIZE_NUMBER]=0;
-	r[threadIdx.x+SIZE_NUMBER]=0;
-
-	Cuda_Fully_Normalize2(r,cy);	
+	if (threadIdx.x==0)
+	{
+		//cy[threadIdx.x+SIZE_NUMBER]=0;
+		//r[threadIdx.x+SIZE_NUMBER]=0;
+		cy[SIZE_NUMBER]=0;
+		r[SIZE_NUMBER]=0;
+	}
+	
+	Cuda_Fully_Normalize(r,cy);	
 
 	if (Cuda_Cmp (r,Ncst) >= 0) 
 	{
   	Cuda_Sub (r, cy, r, Ncst); 
-		Cuda_Fully_Normalize2(r,cy);	
+		Cuda_Fully_Normalize(r,cy);	
 	}
 }
 
-//Assume A ans B are the montgomery representation
-//Compute mul = A * B * 2^-(32*SIZE_NUMBER) mod[mod]
 __device__ void Cuda_Mul_mod (biguint_t mul, dbigint_t cy, const biguint_t A,const biguint_t B, dbiguint_t r)
 {
-	Cuda_Mul(r,cy,A,B);
-	Cuda_RedMontgomery_V2(mul,r,cy);
+
+	int i;
+	unsigned int temp=A[threadIdx.x];
+
+	r[threadIdx.x]=0;
+	//r[threadIdx.x+SIZE_NUMBER]=0;
+	
+	for (i=0;i<SIZE_NUMBER;i++)
+		Cuda_Mulmod_step(r,cy,temp,B[i]);
+
+	Cuda_Fully_Normalize(r,cy);
+
+	if (Cuda_Cmp (r,Ncst) >= 0) // mul >= N 
+	{
+  	Cuda_Sub (mul, cy, r, Ncst); 
+		Cuda_Fully_Normalize(mul,cy);	
+	}
+	else
+		mul[threadIdx.x]=r[threadIdx.x];
 }
-
-
-//Assume A ans B are the montgomery representation
-//Compute mul = A * A * 2^-(32*SIZE_NUMBER) mod[mod]
 __device__ void Cuda_Square_mod (biguint_t mul, dbigint_t cy, const biguint_t A, dbiguint_t r)
 {
-	Cuda_Mul(r,cy,A,A);
-	Cuda_RedMontgomery_V2(mul,r,cy);
+	Cuda_Mul_mod(mul,cy,A,A,r);
 }
 
 #ifndef TEST
 __global__ void Cuda_Ell_DblAdd(biguint_t *xarg, biguint_t *zarg, biguint_t *x2arg, biguint_t *z2arg, unsigned int firstinvd)
 {
-	__shared__ unsigned int b_temp_r[CURVES_BY_BLOCK][2*SIZE_NUMBER];
+	__shared__ unsigned int b_temp_r[CURVES_BY_BLOCK][SIZE_NUMBER+1];
+	__shared__ int b_cy[CURVES_BY_BLOCK][SIZE_NUMBER+1]; 
 
-	__shared__ int b_cy[CURVES_BY_BLOCK][2*SIZE_NUMBER]; 
-	
-	//__shared__ unsigned int b_t[CURVES_BY_BLOCK][SIZE_NUMBER];
+	__shared__ unsigned int b_t[CURVES_BY_BLOCK][SIZE_NUMBER];
 	__shared__ unsigned int b_u[CURVES_BY_BLOCK][SIZE_NUMBER];
 	__shared__ unsigned int b_v[CURVES_BY_BLOCK][SIZE_NUMBER];
 	__shared__ unsigned int b_w[CURVES_BY_BLOCK][SIZE_NUMBER];
 	
-	unsigned int idx1=blockIdx.x*blockDim.y+threadIdx.y;
-
-	unsigned int tmp1;
+	volatile unsigned int idx1=blockIdx.x*blockDim.y+threadIdx.y;
+	//volatile unsigned int t1=threadIdx.x+1;
+	//volatile unsigned int t2=threadIdx.x+SIZE_NUMBER;
 	
-	//init
-	//b_t[threadIdx.y][threadIdx.x]=xarg[idx1][threadIdx.x];
-	b_u[threadIdx.y][threadIdx.x]=xarg[idx1][threadIdx.x];
-	b_temp_r[threadIdx.y][threadIdx.x]=zarg[idx1][threadIdx.x];
-	b_v[threadIdx.y][threadIdx.x]=x2arg[idx1][threadIdx.x];
-	b_w[threadIdx.y][threadIdx.x]=z2arg[idx1][threadIdx.x];
-
-	b_cy[threadIdx.y][threadIdx.x]=0;	
-	b_cy[threadIdx.y][SIZE_NUMBER + threadIdx.x]=0;	
-
-	//unsigned int *t=b_t[threadIdx.y];
+	unsigned int *t=b_t[threadIdx.y];
 	unsigned int *u=b_u[threadIdx.y];
 	unsigned int *v=b_v[threadIdx.y];
 	unsigned int *w=b_w[threadIdx.y];
 	unsigned int *temp_r=b_temp_r[threadIdx.y];
 	int *cy=b_cy[threadIdx.y];
 
+	//init
+	b_cy[threadIdx.y][threadIdx.x]=0;	
+	if (threadIdx.x==0)
+		b_cy[threadIdx.y][SIZE_NUMBER]=0;	
+
+	v[threadIdx.x]=x2arg[idx1][threadIdx.x];
+	w[threadIdx.x]=z2arg[idx1][threadIdx.x];
+	temp_r[threadIdx.x]=zarg[idx1][threadIdx.x];
+	u[threadIdx.x]=xarg[idx1][threadIdx.x];
 
 	//C=x2+z2
-	Cuda_Add_mod(temp_r+SIZE_NUMBER,cy,v,w);
+	Cuda_Add_mod(t,cy,v,w);
 	//D=x2-z2
 	Cuda_Sub_mod(v,cy,w);
 	//A=x+z
@@ -553,8 +559,8 @@ __global__ void Cuda_Ell_DblAdd(biguint_t *xarg, biguint_t *zarg, biguint_t *x2a
 	Cuda_Sub_mod(u,cy,temp_r);
 
 	//CB=C*B=(xq+zq)(xp-zp)
-	Cuda_Mul_mod(temp_r,cy,temp_r+SIZE_NUMBER,u,temp_r);
-	tmp1=temp_r[threadIdx.x];
+	Cuda_Mul_mod(t,cy,t,u,temp_r);
+	
 	//DA=D*A=(xq-zq)(xp+zp)
 	Cuda_Mul_mod(v,cy,v,w,temp_r);
 
@@ -579,12 +585,10 @@ __global__ void Cuda_Ell_DblAdd(biguint_t *xarg, biguint_t *zarg, biguint_t *x2a
 
 	zarg[idx1][threadIdx.x]=w[threadIdx.x];
 	
-	u[threadIdx.x]=tmp1;
-
 	//DA+CB mod N
-	Cuda_Add_mod(w,cy,v,u);
+	Cuda_Add_mod(w,cy,v,t);
 	//DA-CB mod N
-	Cuda_Sub_mod(v,cy,u);
+	Cuda_Sub_mod(v,cy,t);
 
 	//(DA+CB)^2 mod N
 	Cuda_Square_mod(w,cy,w,temp_r);
@@ -603,19 +607,24 @@ __global__ void Cuda_Ell_DblAdd(biguint_t *xarg, biguint_t *zarg, biguint_t *x2a
 #ifdef TEST
 __global__ void Cuda_Test(biguint_t *Aarg, biguint_t *Barg)
 {
-	__shared__ int cy[CURVES_BY_BLOCK][2*SIZE_NUMBER]; 
-	__shared__ unsigned int A[CURVES_BY_BLOCK][SIZE_NUMBER]; 
-	__shared__ unsigned int B[CURVES_BY_BLOCK][SIZE_NUMBER]; 
+	__shared__ int b_cy[CURVES_BY_BLOCK][2*SIZE_NUMBER]; 
+	__shared__ unsigned int b_r[CURVES_BY_BLOCK][2*SIZE_NUMBER]; 
+	__shared__ unsigned int b_b[CURVES_BY_BLOCK][SIZE_NUMBER]; 
 
 	unsigned int idx1=blockIdx.x*blockDim.y+threadIdx.y;
-	A[threadIdx.y][threadIdx.x]=Aarg[idx1][threadIdx.x];
-	B[threadIdx.y][threadIdx.x]=Barg[idx1][threadIdx.x];
+	unsigned int *b=b_b[threadIdx.y];
+	unsigned int *r=b_r[threadIdx.y];
+	int *cy=b_cy[threadIdx.y];
+	r[SIZE_NUMBER+threadIdx.x]=Aarg[idx1][threadIdx.x];
+	b[threadIdx.x]=Barg[idx1][threadIdx.x];
+		
+	cy[threadIdx.x]=0;
+	cy[threadIdx.x+SIZE_NUMBER]=0;
 
-	Cuda_Add(A[threadIdx.y],cy[threadIdx.y],A[threadIdx.y],B[threadIdx.y]);
-	Cuda_Fully_Normalize2(A[threadIdx.y],cy[threadIdx.y]);
+	Cuda_Mul_mod(r,cy,r+SIZE_NUMBER,b,r);
 
-	Aarg[idx1][threadIdx.x]=A[threadIdx.y][threadIdx.x];
-	Barg[idx1][threadIdx.x]=cy[threadIdx.y][threadIdx.x];
+	Aarg[idx1][threadIdx.x]=r[threadIdx.x];
+	Barg[idx1][threadIdx.x]=cy[threadIdx.x];
 }
 /*
 __global__ void Cuda_Test(biguint_t *Aarg, biguint_t *Barg)
