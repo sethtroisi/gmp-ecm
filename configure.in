@@ -103,12 +103,12 @@ if test "x$GMP_CC$GMP_CFLAGS" = x; then
    do
      test $cpp = /lib/cpp || cpp="$cpp -E"
      echo "Trying to run $cpp" >&AS_MESSAGE_LOG_FD
-     AC_LANG_CONFTEST([foo])
+     AC_LANG_CONFTEST([AC_LANG_SOURCE([foo])])
      if $cpp $CPPFLAGS conftest.$ac_ext > /dev/null 2> /dev/null ; then
        # Get CC and CFLAGS
-       AC_LANG_CONFTEST([#include "gmp.h"
+       AC_LANG_CONFTEST([AC_LANG_SOURCE([#include "gmp.h"
 MPFR_OPTION_CC __GMP_CC
-MPFR_OPTION_CFLAGS __GMP_CFLAGS])
+MPFR_OPTION_CFLAGS __GMP_CFLAGS])])
        echo "Trying to parse gmp.h with: $cpp $CPPFLAGS conftest.$ac_ext" >&AS_MESSAGE_LOG_FD
        if $cpp $CPPFLAGS conftest.$ac_ext 2> /dev/null > conftest.out; then
          GMP_CC="`$EGREP MPFR_OPTION_CC conftest.out | $SED -e 's/MPFR_OPTION_CC //g' | $SED -e 's/"//g'`"
@@ -136,7 +136,7 @@ dnl But these variables may be invalid, so we must check them first.
 dnl Note: we do not use AC_RUN_IFELSE, as it implies AC_PROG_CC.
 if test "x$GMP_CC$GMP_CFLAGS" != x; then
    AC_MSG_CHECKING([whether CC=$GMP_CC and CFLAGS=$GMP_CFLAGS works])
-   AC_LANG_CONFTEST([int main (void) { return 0; }])
+   AC_LANG_CONFTEST([AC_LANG_SOURCE([int main (void) { return 0; }])])
    if $GMP_CC $GMP_CFLAGS -o conftest conftest.$ac_ext 2> /dev/null ; then
      AC_MSG_RESULT([yes])
      CFLAGS=$GMP_CFLAGS
