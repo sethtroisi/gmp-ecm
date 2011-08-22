@@ -73,7 +73,7 @@ if WITH_GWNUM
   
   libecm_la_SOURCES += Fgw.c
   # Use ecm_DEPENDENCIES += gwdata.ld instead? Is that possible?
-  ecm_DEPENDENCIES = $(LDADD) gwdata.ld
+  ecm_DEPENDENCIES = gwdata.ld
   ecm_LDFLAGS = $(AM_LDFLAGS) -Wl,gwdata.ld
   Fgwtest : Fgw.c gwdata.ld
 	$(CC) $(CFLAGS) $(CPPFLAGS) -g -DTESTDRIVE -Wl,gwdata.ld -o Fgwtest Fgw.c libecm.a $(LIBS)
