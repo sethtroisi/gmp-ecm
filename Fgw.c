@@ -101,11 +101,18 @@ gw_ecm_stage1 (mpz_t f, curve *P, mpmod_t modulus,
      so copy them into long int vars */
   siz_x = SIZ(gw_x);
   siz_z = SIZ(gw_z);
-  
+
+#ifndef __MINGW64__  
   youpi = gwnum_ecmStage1 (gw_k, gw_b, gw_n, gw_c, 
       PTR(modulus->orig_modulus), ABSIZ(modulus->orig_modulus), 
       B1, &gw_B1done, PTR(gw_A), ABSIZ(gw_A), 
       PTR(gw_x), &siz_x, PTR(gw_z), &siz_z, NULL, 0);
+#else /* contributed by David Clearer */
+  youpi = gwnum_ecmStage1_x64 (gw_k, gw_b, gw_n, gw_c,
+      PTR(modulus->orig_modulus), ABSIZ(modulus->orig_modulus),
+      B1, &gw_B1done, PTR(gw_A), ABSIZ(gw_A),
+      PTR(gw_x), &siz_x, PTR(gw_z), &siz_z, NULL, 0);
+#endif
   
   /* Test that not more was written to gw_x and gw_z than we had space for */
   ASSERT_ALWAYS (siz_x <= (unsigned long) ALLOC(gw_x));
