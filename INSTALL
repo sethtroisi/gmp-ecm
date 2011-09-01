@@ -70,7 +70,7 @@ Instructions to install GMP-ECM:
    The directory must include the gwnum.a or gwnum.lib file as well as 
    gwnum.h and related header files. The source file of the gwnum library
    is available at <http://www.mersenne.org/source.htm>.
-   Note added 21 Aug 2011: David Clearer contributed changes to use gwnum 26.6
+   Note added 21 Aug 2011: David Cleaver contributed changes to use gwnum 26.6
    under Windows x64 with MingW64 in Msys. Those changes were incorporated in
    GMP-ECM (some changes also have to be done to gwnum).
 

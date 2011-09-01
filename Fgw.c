@@ -107,7 +107,7 @@ gw_ecm_stage1 (mpz_t f, curve *P, mpmod_t modulus,
       PTR(modulus->orig_modulus), ABSIZ(modulus->orig_modulus), 
       B1, &gw_B1done, PTR(gw_A), ABSIZ(gw_A), 
       PTR(gw_x), &siz_x, PTR(gw_z), &siz_z, NULL, 0);
-#else /* contributed by David Clearer */
+#else /* contributed by David Cleaver */
   youpi = gwnum_ecmStage1_x64 (gw_k, gw_b, gw_n, gw_c,
       PTR(modulus->orig_modulus), ABSIZ(modulus->orig_modulus),
       B1, &gw_B1done, PTR(gw_A), ABSIZ(gw_A),
