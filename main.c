@@ -242,14 +242,19 @@ static void
 print_config ()
 {
   printf ("Compilation options:\n");
-#ifdef __GNU_MP_VERSION_PATCHLEVEL
-  printf ("Included GMP header files version %d.%d.%d\n", 
-          __GNU_MP_VERSION, __GNU_MP_VERSION_MINOR, 
-          __GNU_MP_VERSION_PATCHLEVEL);
-#else
-  printf ("Included GMP header files version %d.%d\n", 
-          __GNU_MP_VERSION, __GNU_MP_VERSION_MINOR);
-#endif
+#ifdef __MPIR_VERSION
+     printf ("Included MPIR header files version %d.%d.%d\n", 
+             __MPIR_VERSION, __MPIR_VERSION_MINOR, __MPIR_VERSION_PATCHLEVEL);
+#else /* __MPIR_VERSION */
+   #ifdef __GNU_MP_VERSION_PATCHLEVEL
+     printf ("Included GMP header files version %d.%d.%d\n", 
+             __GNU_MP_VERSION, __GNU_MP_VERSION_MINOR, 
+             __GNU_MP_VERSION_PATCHLEVEL);
+   #else
+     printf ("Included GMP header files version %d.%d\n", 
+             __GNU_MP_VERSION, __GNU_MP_VERSION_MINOR);
+   #endif
+#endif /* __MPIR_VERSION */
 
 #ifdef GWNUM_VERSION
   printf ("Included GWNUM header files version %s\n", GWNUM_VERSION);
