@@ -49,6 +49,7 @@ To make a new release:
      Check also no compiler warnings remain (with and without assertions).
      Check "make longcheck" works (this uses valgrind).
      Also check that configure works outside the source directory!
+     Check the default tuning files ecm-params.h.*
   1) Check the version (configure.in and build.vc9/config.h).
      If this release is not a beta or release candidate, switch assertions to
      off by default in configure.in.
