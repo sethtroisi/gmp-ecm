@@ -65,7 +65,7 @@ gw_ecm_stage1 (mpz_t f, curve *P, mpmod_t modulus,
   const unsigned long gw_b = 2;
   const unsigned long gw_n = abs (modulus->bits);
   const signed long gw_c = sgn (modulus->bits);
-  unsigned long gw_B1done = *B1done;
+  ecm_uint gw_B1done = *B1done;
   unsigned long siz_x, siz_z; /* Size of gw_x and gw_y as longs */
   mpz_t gw_x, gw_z, gw_A;
   int youpi;
@@ -103,12 +103,12 @@ gw_ecm_stage1 (mpz_t f, curve *P, mpmod_t modulus,
   siz_z = SIZ(gw_z);
 
 #ifndef __MINGW64__  
-  youpi = gwnum_ecmStage1 (gw_k, gw_b, gw_n, gw_c, 
+  youpi = gwnum_ecmStage1_u32 (gw_k, gw_b, gw_n, gw_c, 
       PTR(modulus->orig_modulus), ABSIZ(modulus->orig_modulus), 
       B1, &gw_B1done, PTR(gw_A), ABSIZ(gw_A), 
       PTR(gw_x), &siz_x, PTR(gw_z), &siz_z, NULL, 0);
 #else /* contributed by David Cleaver */
-  youpi = gwnum_ecmStage1_x64 (gw_k, gw_b, gw_n, gw_c,
+  youpi = gwnum_ecmStage1_u64 (gw_k, gw_b, gw_n, gw_c,
       PTR(modulus->orig_modulus), ABSIZ(modulus->orig_modulus),
       B1, &gw_B1done, PTR(gw_A), ABSIZ(gw_A),
       PTR(gw_x), &siz_x, PTR(gw_z), &siz_z, NULL, 0);
