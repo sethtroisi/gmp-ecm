@@ -116,9 +116,6 @@ extern FILE *ECM_STDOUT, *ECM_STDERR;
 #define PM1FS2_COST 1.0 / 4.0
 #define PP1FS2_COST 1.0 / 4.0
 
-/* residues are fully reduced (i.e. in canonical mpz form) */
-#define FULL_REDUCTION
-
 /* if POLYEVALTELLEGEN is defined, use polyeval_tellegen(),
    otherwise use polyeval() */
 #define POLYEVALTELLEGEN
