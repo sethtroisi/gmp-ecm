@@ -242,9 +242,6 @@ pp1_stage1 (mpz_t f, mpres_t P0, mpmod_t n, double B1, double *B1done,
     *B1done = p;
   
   mpres_sub_ui (P, P0, 2, n);
-#ifndef FULL_REDUCTION
-  mpres_normalize (P); /* needed for gcd */
-#endif
   mpres_gcd (f, P, n);
   youpi = mpz_cmp_ui (f, 1);
 

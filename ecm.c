@@ -617,10 +617,6 @@ ecm_stage1 (mpz_t f, mpres_t x, mpres_t A, mpmod_t n, double B1,
   mpres_add_ui (b, A, 2, n);
   mpres_div_2exp (b, b, 2, n); /* b == (A0+2)*B/4, where B=2^(k*GMP_NUMB_LIMB)
                                   for MODMULN or REDC, B=1 otherwise */
-#ifndef FULL_REDUCTION
-  mpres_semi_normalize (b, mpz_size (n->orig_modulus));
-#endif
-
   /* preload group order */
   if (go != NULL)
     ecm_mul (x, z, go, n, b);
@@ -681,10 +677,6 @@ ecm_stage1 (mpz_t f, mpres_t x, mpres_t A, mpmod_t n, double B1,
     writechkfile (chkfilename, ECM_ECM, *B1done, n, A, x, z);
   getprime_clear (); /* free the prime tables, and reinitialize */
 
-  /* Normalize z to 1 */
-#ifndef FULL_REDUCTION
-  mpres_normalize (z); /* needed for gcd */
-#endif
   if (!mpres_invert (u, z, n)) /* Factor found? */
     {
       mpres_gcd (f, z, n);
