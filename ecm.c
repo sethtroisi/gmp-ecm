@@ -164,6 +164,8 @@ montgomery_to_weierstrass (mpz_t f, mpres_t x, mpres_t y, mpres_t A, mpmod_t n)
   return ECM_NO_FACTOR_FOUND;
 }
 
+static unsigned long MUL=0, SQR=0;
+
 /* adds Q=(x2:z2) and R=(x1:z1) and puts the result in (x3:z3),
      using 6 muls (4 muls and 2 squares), and 6 add/sub.
    One assumes that Q-R=P or R-Q=P where P=(x:z).
@@ -206,6 +208,8 @@ add3 (mpres_t x3, mpres_t z3, mpres_t x2, mpres_t z2, mpres_t x1, mpres_t z1,
       mpres_mul (z3, x, v, n);   /* z3 = 4*x*(x2*z1-x1*z2)^2 mod n */
     }
   /* mul += 6; */
+  MUL += 4;
+  SQR += 2;
 }
 
 /* computes 2P=(x2:z2) from P=(x1:z1), with 5 muls (3 muls and 2 squares)
@@ -227,6 +231,8 @@ duplicate (mpres_t x2, mpres_t z2, mpres_t x1, mpres_t z1, mpmod_t n,
   mpres_mul (u, w, b, n);   /* u = w*b = ((A+2)/4*(4*x1*z1)) mod n */
   mpres_add (u, u, v, n);   /* u = (x1-z1)^2+(A+2)/4*(4*x1*z1) */
   mpres_mul (z2, w, u, n);  /* z2 = ((4*x1*z1)*((x1-z1)^2+(A+2)/4*(4*x1*z1))) mod n */
+  MUL += 3;
+  SQR += 2;
 }
 
 /* multiply P=(x:z) by e and puts the result in (x:z). */
@@ -860,7 +866,7 @@ ecm (mpz_t f, mpz_t x, mpz_t sigma, mpz_t n, mpz_t go, double *B1done,
      unsigned long k, const int S, int verbose, int repr, int nobase2step2, int use_ntt,
      int sigma_is_A, FILE *os, FILE* es, char *chkfilename,
      char *TreeFilename, double maxmem, double stage1time, 
-     gmp_randstate_t rng, int (*stop_asap)(void))
+     gmp_randstate_t rng, int (*stop_asap)(void), int batch)
 {
   int youpi = ECM_NO_FACTOR_FOUND;
   int base2 = 0;  /* If n is of form 2^n[+-]1, set base to [+-]n */
@@ -1110,7 +1116,10 @@ ecm (mpz_t f, mpz_t x, mpz_t sigma, mpz_t n, mpz_t go, double *B1done,
     goto end_of_ecm_rhotable;
 #endif
 
-  if (B1 > *B1done)
+	if (B1 > *B1done && batch==1)
+    youpi = ecm_stage1_batch (f, P.x, sigma, modulus, B1, B1done, go, 
+		                          stop_asap, chkfilename);
+  else if (B1 > *B1done)
     youpi = ecm_stage1 (f, P.x, P.A, modulus, B1, B1done, go, stop_asap,
                         chkfilename);
   

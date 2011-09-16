@@ -234,6 +234,9 @@ usage (void)
     printf ("               or can use N as a placeholder for the number being factored.\n");
     printf ("  -printconfig Print compile-time configuration and exit.\n");
 
+    printf ("  -batch       (experimental) use Montgomery parametrization and batch\n" 
+					  "               computation.\n");
+
     printf ("  -h, --help   Prints this help and exit.\n");
 }
 
@@ -454,6 +457,7 @@ main (int argc, char *argv[])
   char *faccmd = NULL;
   char *idlecmd = NULL;
 #endif
+	int batch = 0; /* By default we don't use batch mode */
 
   /* check ecm is linked with a compatible library */
   if (mp_bits_per_limb != GMP_NUMB_BITS)
@@ -570,6 +574,12 @@ main (int argc, char *argv[])
       else if (strcmp (argv[1], "-b") == 0)
         {
 	  breadthfirst = 1;
+	  argv++;
+	  argc--;
+        }
+      else if (strcmp (argv[1], "-batch") == 0)
+        {
+	  batch = 1;
 	  argv++;
 	  argc--;
         }
@@ -1444,12 +1454,42 @@ BreadthFirstDoAgain:;
       cnt --; /* one more curve performed */
 
       mpgocandi_fixup_with_N (&go, &n);
+			/* If we are in batch mode and A (and x0?) are not provide */
+			//Si A existe il faut vérifier que d tiendra dans un mot et que x vaut 2
+			//(pour linstant on ne gère que ca..)
+			//Si A existe pas on le choisi au hasard (et si x0 existe il faut encore
+			//que x0 valent 2
+			if (batch==1)
+				{	
+				  mpz_set_ui (sigma, 0); 
+				  
+					if (mpz_sgn(A)==0)
+					  {
+							/*In order to d to be smaller than 2^32, 
+							we must have 2 < A < 4*2^32 - 2 */
+              mpz_urandomb (A, randstate, 31); 
+              mpz_add_ui (A, A, 1); 
+							mpz_mul_2exp (A, A, 2);
+							mpz_add_ui (A, A, 2);
+            }
 
+					if (mpz_sgn (orig_x0) == 0)
+				  	  mpz_set_ui (orig_x0, 2);
+					else if (mpz_cmp_ui (orig_x0, 2) !=0)
+						{
+						  fprintf (stderr, "Error, x0 should be equal to 2"
+							                 " in batch mode.\n");
+              exit (EXIT_FAILURE);
+						}
+					
+					mpz_set (x, orig_x0);
+				}
       /* set parameters that may change from one curve to another */
+      params->batch = batch; 
       params->method = method; /* may change with resume */
       mpz_set (params->x, x); /* may change with resume */
       /* if sigma is zero, then we use the A value instead */
-      params->sigma_is_A = (mpz_sgn (sigma) == 0) ? 1 : 0;
+      params->sigma_is_A = ((mpz_sgn (sigma) == 0 || batch==1)? 1 : 0);
       mpz_set (params->sigma, (params->sigma_is_A) ? A : sigma);
       mpz_set (params->go, go.Candi.n); /* may change if contains N */
       mpz_set (params->B2min, B2min); /* may change with -c */

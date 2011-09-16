@@ -509,7 +509,7 @@ return strcmp (buffer, gmp_version);
    [AC_MSG_RESULT([cross-compiling: cannot test])]
 )
 
-AC_CHECK_FUNCS([__gmpn_add_nc __gmpn_mod_34lsub1 __gmpn_redc_1])
+AC_CHECK_FUNCS([__gmpn_add_nc __gmpn_mod_34lsub1 __gmpn_redc_1 __gmpn_redc_2])
 
 # mpn_sqr() is renamed to __gmpn_sqr() in GMP 5.0.x, but may not be 
 # in future versions. AC_CHECK_FUNCS() does not allow including header 

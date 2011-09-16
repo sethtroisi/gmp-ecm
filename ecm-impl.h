@@ -306,7 +306,7 @@ typedef struct
   int Fermat;         /* If repr = 1 (base 2 number): If modulus is 2^(2^m)+1, 
                          i.e. bits = 2^m, then Fermat = 2^m, 0 otherwise.
                          If repr != 1, undefined */
-  mp_limb_t Nprim;    /* For MODMULN */
+  mp_limb_t Nprim[2]; /* For MODMULN */
   mpz_t orig_modulus; /* The original modulus */
   mpz_t aux_modulus;  /* Used only for MPZ and REDC:
 			 - the auxiliary modulus value (i.e. normalized 
@@ -389,7 +389,6 @@ void ecm_mul (mpres_t, mpres_t, mpz_t, mpmod_t, mpres_t);
 #define print_B1_B2_poly __ECM(print_B1_B2_poly)
 void print_B1_B2_poly (int, int, double, double, mpz_t, mpz_t, mpz_t, int S,  
                        mpz_t, int, mpz_t);
-      
 
 /* ecm2.c */
 #define ecm_rootsF __ECM(ecm_rootsF)
