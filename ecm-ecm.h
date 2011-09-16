@@ -97,7 +97,7 @@ int  inc_verbose ();
 #define ECM_COMP_FAC_PRIME_COFAC (2+8)
 #define ECM_PRIME_FAC_PRIME_COFAC (2+4+8)
 
-/* getprime2.c */
+/* getprime.c */
 double getprime ();
 void getprime_clear ();
 void getprime_seek (double);
@@ -154,6 +154,10 @@ int  mpgocandi_fixup_with_N(mpgocandi_t *go, mpcandi_t *n);
 /* random2.c */
 void pp1_random_seed  (mpz_t, mpz_t, gmp_randstate_t);
 void pm1_random_seed  (mpz_t, mpz_t, gmp_randstate_t);
+
+/* batch.c */
+int ecm_stage1_batch (mpz_t, mpz_t, mpz_t, mpz_t, double, double *, 
+                      mpz_t, int, char *);
 
 /* default number of probable prime tests */
 #define PROBAB_PRIME_TESTS 1
