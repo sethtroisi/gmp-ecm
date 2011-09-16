@@ -305,14 +305,19 @@ REDC (mpres_t r, const mpres_t x, mpz_t t, mpmod_t modulus)
 /* Quadratic time redc for n word moduli. */
 static inline void 
 redc_basecase_n (mp_ptr rp, mp_ptr cp, mp_srcptr np, const mp_size_t nn, 
-                 const mp_limb_t invm)
+                 const mp_ptr invm)
 {
+#if defined(HAVE___GMPN_REDC_2)
+  __gmpn_redc_2 (rp, cp, np, nn, invm);
+#else /* HAVE___GMPN_REDC_2 is not defined */
 #if defined(HAVE___GMPN_REDC_1)
-  __gmpn_redc_1 (rp, cp, np, nn, invm);
-#else
+  __gmpn_redc_1 (rp, cp, np, nn, invm[0]);
+#else /* neither HAVE___GMPN_REDC_2 nor HAVE___GMPN_REDC_1 is defined */
   mp_limb_t cy;
-#if defined(NATIVE_REDC) && defined(HAVE_NATIVE_REDC3)
-  ecm_redc3 (cp, np, nn, invm);
+/* ecm_redc3 is assembly code for variable size redc, defined in
+   xxx/redc.asm for xxx={pentium4,athlon,x86_64,powerpc64} */
+#if defined(HAVE_NATIVE_REDC3)
+  ecm_redc3 (cp, np, nn, invm[0]);
   /* add vector of carries and shift */
   cy = mpn_add_n (rp, cp + nn, cp, nn);
 #else
@@ -320,14 +325,14 @@ redc_basecase_n (mp_ptr rp, mp_ptr cp, mp_srcptr np, const mp_size_t nn,
   
   for (j = 0; j < nn; j++)
     {
-      cy = mpn_addmul_1 (cp, np, nn, cp[0] * invm);
+      cy = mpn_addmul_1 (cp, np, nn, cp[0] * invm[0]);
       ASSERT(cp[0] == (mp_limb_t) 0);
       cp[0] = cy;
       cp++;
     }
   /* add vector of carries and shift */
   cy = mpn_add_n (rp, cp, cp - nn, nn);
-#endif
+#endif /* HAVE_NATIVE_REDC3 */
   /* the result of Montgomery's REDC is less than 2^Nbits + N,
      thus at most one correction is enough */
   if (cy != 0)
@@ -336,7 +341,9 @@ redc_basecase_n (mp_ptr rp, mp_ptr cp, mp_srcptr np, const mp_size_t nn,
       t = mpn_sub_n (rp, rp, np, nn); /* a borrow should always occur here */
       ASSERT_ALWAYS (t == 1);
     }
-#endif
+#endif /* HAVE___GMPN_REDC_1 */
+#endif /* HAVE___GMPN_REDC_2 */
+  /* Note: both mpn_redc_1 and mpn_redc_2 subtract N if needed */
 }
 
 /* r <- c/R^nn mod n, where n has nn limbs, and R=2^GMP_NUMB_BITS.
@@ -589,7 +596,7 @@ ecm_mulredc_basecase (mpres_t R, const mpres_t S1, const mpres_t S2,
     {
 #if defined(NATIVE_REDC)
       if (nn <= TUNE_SQRREDC_THRESH)
-        mulredc (rp, s1p, s2p, np, nn, modulus->Nprim);
+        mulredc (rp, s1p, s2p, np, nn, modulus->Nprim[0]);
       else
 #endif
         {
@@ -608,7 +615,7 @@ ecm_mulredc_basecase (mpres_t R, const mpres_t S1, const mpres_t S2,
     {
 #if defined(NATIVE_REDC)
       if (nn <= TUNE_MULREDC_THRESH)
-        mulredc (rp, s1p, s2p, np, nn, modulus->Nprim);
+        mulredc (rp, s1p, s2p, np, nn, modulus->Nprim[0]);
       else
 #endif
         {
@@ -651,7 +658,7 @@ ecm_mulredc_1_basecase (mpres_t R, const mpres_t S1, const mp_limb_t S2,
 #ifdef HAVE_NATIVE_MULREDC1_N
   if (nn < 20)
     {
-      mulredc_1(rp, S2, s1p, np, nn, modulus->Nprim);
+      mulredc_1(rp, S2, s1p, np, nn, modulus->Nprim[0]);
       MPN_NORMALIZE (rp, nn);
       SIZ(R) = (SIZ(S1)) < 0 ? (int) -nn : (int) nn;
     }
@@ -818,14 +825,15 @@ mpmod_init_MODMULN (mpmod_t modulus, const mpz_t N)
   MPZ_INIT2 (modulus->temp2, Nbits);
 
   mpz_set_ui (modulus->temp1, 1UL);
-  mpz_mul_2exp (modulus->temp1, modulus->temp1, GMP_NUMB_BITS);
+  mpz_mul_2exp (modulus->temp1, modulus->temp1, 2 * GMP_NUMB_BITS);
   mpz_tdiv_r_2exp (modulus->temp2, modulus->orig_modulus, 
-                   GMP_NUMB_BITS);
+                   2 * GMP_NUMB_BITS);
   mpz_invert (modulus->temp2, modulus->temp2, modulus->temp1);
-    /* Now temp2 = 1/n (mod 2^GMP_NUMB_BITS) */
+  /* Now temp2 = 1/n (mod 2^(2*GMP_NUMB_BITS)) */
   mpz_sub (modulus->temp2, modulus->temp1, modulus->temp2);
-  modulus->Nprim = mpz_getlimbn (modulus->temp2, 0);
-    /* Now Nprim = -1/n (mod 2^GMP_NUMB_BITS) */
+  modulus->Nprim[0] = mpz_getlimbn (modulus->temp2, 0);
+  modulus->Nprim[1] = mpz_getlimbn (modulus->temp2, 1);
+  /* Now Nprim = -1/n (mod 2^(2*GMP_NUMB_BITS)) */
 
   MPZ_INIT2 (modulus->R2, Nbits);
   mpz_set_ui (modulus->temp1, 1UL);
@@ -927,7 +935,8 @@ mpmod_copy (mpmod_t r, const mpmod_t modulus)
   r->repr = modulus->repr;
   r->bits = modulus->bits;
   r->Fermat = modulus->Fermat;
-  r->Nprim = modulus->Nprim;
+  r->Nprim[0] = modulus->Nprim[0];
+  r->Nprim[1] = modulus->Nprim[1];
   mpz_init_set (r->orig_modulus, modulus->orig_modulus);
   MPZ_INIT2 (r->temp1, 2 * Nbits + GMP_NUMB_BITS);
   MPZ_INIT2 (r->temp2, Nbits + GMP_NUMB_BITS);

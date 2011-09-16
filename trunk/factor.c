@@ -93,7 +93,7 @@ ecm_factor (mpz_t f, mpz_t n, double B1, ecm_params p)
     res = ecm (f, p->x, p->sigma, n, p->go, &(p->B1done), B1, p->B2min, p->B2, 
                B2scale, p->k, p->S, p->verbose, p->repr, p->nobase2step2, p->use_ntt, p->sigma_is_A,
 	       p->os, p->es, p->chkfilename, p->TreeFilename, p->maxmem, 
-	       p->stage1time, p->rng, p->stop_asap);
+	       p->stage1time, p->rng, p->stop_asap, p->batch);
   else if (p->method == ECM_PM1)
     res = pm1 (f, p->x, n, p->go, &(p->B1done), B1, p->B2min, p->B2, B2scale,
                p->k, p->S, p->verbose, p->repr, p->use_ntt, p->os, p->es,
