@@ -457,7 +457,7 @@ main (int argc, char *argv[])
   char *faccmd = NULL;
   char *idlecmd = NULL;
 #endif
-	int batch = 0; /* By default we don't use batch mode */
+  int batch = 0; /* By default we don't use batch mode */
 
   /* check ecm is linked with a compatible library */
   if (mp_bits_per_limb != GMP_NUMB_BITS)
@@ -1454,36 +1454,42 @@ BreadthFirstDoAgain:;
       cnt --; /* one more curve performed */
 
       mpgocandi_fixup_with_N (&go, &n);
-			/* If we are in batch mode and A (and x0?) are not provide */
-			//Si A existe il faut vérifier que d tiendra dans un mot et que x vaut 2
-			//(pour linstant on ne gère que ca..)
-			//Si A existe pas on le choisi au hasard (et si x0 existe il faut encore
-			//que x0 valent 2
-			if (batch==1)
-				{	
-				  mpz_set_ui (sigma, 0); 
-				  
-					if (mpz_sgn(A)==0)
-					  {
-							/*In order to d to be smaller than 2^32, 
-							we must have 2 < A < 4*2^32 - 2 */
+      /* If we are in batch mode:
+         If A was given one should check that d fits in one word and that x0=2.
+         If A was not given one chooses it at random (and if x0 exists
+         it must be 2). */
+      if (batch == 1)
+        {
+          static int random = 0;
+
+          if (method != ECM_ECM)
+            {
+              fprintf (stderr, "Error, the -batch option is only valid for ECM\n");
+              exit (EXIT_FAILURE);
+            }
+          mpz_set_ui (sigma, 0); 
+          if (mpz_sgn (A) == 0) /* A was not given by the user */
+            random = 1;
+            {
+              /* In order to d = (A+2)/4 to be smaller than 2^32,
+                 we must have 2 < A < 4*2^32 - 2 */
               mpz_urandomb (A, randstate, 31); 
               mpz_add_ui (A, A, 1); 
-							mpz_mul_2exp (A, A, 2);
-							mpz_add_ui (A, A, 2);
+              mpz_mul_2exp (A, A, 2);
+              mpz_add_ui (A, A, 2);
             }
-
-					if (mpz_sgn (orig_x0) == 0)
-				  	  mpz_set_ui (orig_x0, 2);
-					else if (mpz_cmp_ui (orig_x0, 2) !=0)
-						{
-						  fprintf (stderr, "Error, x0 should be equal to 2"
-							                 " in batch mode.\n");
+          
+          if (mpz_sgn (orig_x0) == 0)
+            mpz_set_ui (orig_x0, 2);
+          else if (mpz_cmp_ui (orig_x0, 2) != 0)
+            {
+              fprintf (stderr, "Error, x0 should be equal to 2"
+                       " in batch mode.\n");
               exit (EXIT_FAILURE);
-						}
-					
-					mpz_set (x, orig_x0);
-				}
+            }
+          
+          mpz_set (x, orig_x0);
+        }
       /* set parameters that may change from one curve to another */
       params->batch = batch; 
       params->method = method; /* may change with resume */
