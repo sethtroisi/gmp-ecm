@@ -1116,12 +1116,15 @@ ecm (mpz_t f, mpz_t x, mpz_t sigma, mpz_t n, mpz_t go, double *B1done,
     goto end_of_ecm_rhotable;
 #endif
 
-	if (B1 > *B1done && batch==1)
-    youpi = ecm_stage1_batch (f, P.x, sigma, modulus, B1, B1done, go, 
-		                          stop_asap, chkfilename);
-  else if (B1 > *B1done)
-    youpi = ecm_stage1 (f, P.x, P.A, modulus, B1, B1done, go, stop_asap,
-                        chkfilename);
+  if (B1 > *B1done)
+    {
+      if (batch == 1)
+        youpi = ecm_stage1_batch (f, P.x, sigma, modulus, B1, B1done, go,
+                                  stop_asap, chkfilename);
+      else
+        youpi = ecm_stage1 (f, P.x, P.A, modulus, B1, B1done, go, stop_asap,
+                            chkfilename);
+    }
   
   if (stage1time > 0.)
     {
