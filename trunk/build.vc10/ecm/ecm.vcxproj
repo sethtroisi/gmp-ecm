@@ -375,6 +375,7 @@
   <ItemGroup>
     <ClCompile Include="..\..\auxi.c" />
     <ClCompile Include="..\..\b1_ainc.c" />
+    <ClCompile Include="..\..\batch.c" />
     <ClCompile Include="..\..\candi.c" />
     <ClCompile Include="..\..\eval.c" />
     <ClCompile Include="..\..\getprime.c" />
