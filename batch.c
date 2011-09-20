@@ -136,8 +136,7 @@ For now we don't take into account go stop_asap and chkfilename
 */
 int 
 ecm_stage1_batch (mpz_t f, mpres_t x, mpres_t A, mpmod_t n, double B1,
-            double *B1done, mpz_t go, int (*stop_asap)(void),
-            char *chkfilename)
+                  double *B1done)
 {
   mpz_t s; /* product of primes up to B1 */
   unsigned long d; 
@@ -172,6 +171,7 @@ ecm_stage1_batch (mpz_t f, mpres_t x, mpres_t A, mpmod_t n, double B1,
   outputf (OUTPUT_VERBOSE, ("Batch mode: \n"));
 
   /* construct the batch exponent */
+  st = cputime ();
   compute_s (s, B1);
   outputf (OUTPUT_VERBOSE, "  computing s of %lu bits took %ldms\n",
            mpz_sizeinbase (s, 2), cputime () - st);
@@ -185,7 +185,7 @@ ecm_stage1_batch (mpz_t f, mpres_t x, mpres_t A, mpmod_t n, double B1,
   /* Compute d from A */
   mpz_add_ui (u, A, 2);
   mpz_div_2exp (u, u, 2);
-  mpz_mod (u, u, n);
+  mpz_mod (u, u, n->orig_modulus);
   if (mpz_fits_ulong_p (u) == 0)
     {
       outputf (OUTPUT_ERROR,

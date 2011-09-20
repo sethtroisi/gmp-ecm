@@ -219,7 +219,8 @@ read_resumefile_line (int *method, mpz_t x, mpcandi_t *n, mpz_t sigma, mpz_t A,
             }
           else if (strcmp (tag, "CHECKSUM") == 0)
             {
-              fscanf (fd, "%u", &saved_checksum);
+              if (fscanf (fd, "%u", &saved_checksum) != 1)
+                goto error;
               have_checksum = 1;
             }
           else if (strcmp (tag, "COMMENT") == 0)
@@ -244,7 +245,8 @@ read_resumefile_line (int *method, mpz_t x, mpcandi_t *n, mpz_t sigma, mpz_t A,
             }
           else if (strcmp (tag, "B1") == 0)
             {
-              fscanf (fd, "%lf", b1);
+              if (fscanf (fd, "%lf", b1) != 1)
+                goto error;
               have_b1 = 1;
             }
           else if (strcmp (tag, "PROGRAM") == 0)
