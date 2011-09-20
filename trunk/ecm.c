@@ -1119,8 +1119,8 @@ ecm (mpz_t f, mpz_t x, mpz_t sigma, mpz_t n, mpz_t go, double *B1done,
   if (B1 > *B1done)
     {
       if (batch == 1)
-        youpi = ecm_stage1_batch (f, P.x, sigma, modulus, B1, B1done, go,
-                                  stop_asap, chkfilename);
+        /* FIXME: go, stop_asap and chkfilename are ignored in batch mode */
+        youpi = ecm_stage1_batch (f, P.x, sigma, modulus, B1, B1done);
       else
         youpi = ecm_stage1 (f, P.x, P.A, modulus, B1, B1done, go, stop_asap,
                             chkfilename);
