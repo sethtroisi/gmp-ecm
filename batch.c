@@ -55,8 +55,8 @@ dup_add (mpres_t x1, mpres_t z1, mpres_t x2, mpres_t z2,
 void
 compute_s (mpz_t s, unsigned int B1)
 {
-  mpz_t l[MAX_HEIGHT];
-  mpz_t r[MAX_HEIGHT];
+  mpz_t l[MAX_HEIGHT]; /* prime powers of even index */
+  mpz_t r[MAX_HEIGHT]; /* prime powers of odd index */
   unsigned int i, j;
   unsigned long pi = 2, pp;
 
@@ -73,7 +73,7 @@ compute_s (mpz_t s, unsigned int B1)
       while (pp <= B1 / pi)
         pp *= pi;
 
-      if ((i % 2) == 0)
+      if ((i & 1) == 0)
         mpz_set_ui (l[0], pp);
       else
         mpz_set_ui (r[0], pp);
