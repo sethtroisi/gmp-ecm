@@ -1460,7 +1460,7 @@ BreadthFirstDoAgain:;
          it must be 2). */
       if (batch == 1)
         {
-          static int random = 0;
+          static int random = 0; /* non-zero if user asked for random curves */
 
           if (method != ECM_ECM)
             {
@@ -1468,9 +1468,9 @@ BreadthFirstDoAgain:;
               exit (EXIT_FAILURE);
             }
           mpz_set_ui (sigma, 0); 
-          if (mpz_sgn (A) == 0) /* A was not given by the user */
-            random = 1;
+          if (random || (mpz_sgn (A) == 0)) /* A was not given by the user */
             {
+              random = 1;
               /* In order to d = (A+2)/4 to be smaller than 2^32,
                  we must have 2 < A < 4*2^32 - 2 */
               mpz_urandomb (A, randstate, 31); 
