@@ -185,7 +185,7 @@ ecm_stage1_batch (mpz_t f, mpres_t x, mpres_t A, mpmod_t n, double B1,
   /* Compute d from A */
   mpz_add_ui (u, A, 2);
   mpz_div_2exp (u, u, 2);
-  mpz_mod (u, u, n->orig_modulus);
+  mpres_set_z_for_gcd (u, u, n);
   if (mpz_fits_ulong_p (u) == 0)
     {
       outputf (OUTPUT_ERROR,
