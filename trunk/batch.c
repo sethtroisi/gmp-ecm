@@ -3,6 +3,8 @@
    For example we can start with (x=2:y=1) with the curve by^2 = x^3 + ax^2 + x
    with a = 4d-2 and b=16d+2, then we have to multiply by d=(a+2)/4 in the
    duplicates.
+   With the change of variable x=b*X, y=b*Y, this curve becomes:
+   Y^2 = X^3 + a/b*X^2 + 1/b^2*X.
 */
 
 #include "ecm-gmp.h"
@@ -182,8 +184,13 @@ ecm_stage1_batch (mpz_t f, mpres_t x, mpres_t A, mpmod_t n, double B1,
   mpres_set (x1, x, n);
   mpres_set_ui (z1, 1, n); /* P1 <- 1P */
 
-  /* Compute d from A */
+  /* Compute d=(A+2)/4 from A */
   mpz_add_ui (u, A, 2);
+  if (mpz_fdiv_ui (u, 4) != 0)
+    {
+      outputf (OUTPUT_ERROR, "Error, A+2 should be divisible by 4\n");
+      return ECM_ERROR;
+    }
   mpz_div_2exp (u, u, 2);
   mpres_set_z_for_gcd (u, u, n);
   if (mpz_fits_ulong_p (u) == 0)
