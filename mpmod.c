@@ -1350,6 +1350,7 @@ mpres_mul (mpres_t R, const mpres_t S1, const mpres_t S2, mpmod_t modulus)
 #endif
 }
 
+/* R <- S * n mod modulus */
 void 
 mpres_mul_ui (mpres_t R, const mpres_t S, const unsigned long n, 
               mpmod_t modulus)
@@ -1361,6 +1362,17 @@ mpres_mul_ui (mpres_t R, const mpres_t S, const unsigned long n,
   ASSERT_NORMALIZED (R);
 }
 
+/* R <- S * 2^k mod modulus */
+void 
+mpres_mul_2exp (mpres_t R, const mpres_t S, const unsigned long k, 
+              mpmod_t modulus)
+{
+  ASSERT_NORMALIZED (S);
+  mpz_mul_2exp (modulus->temp1, S, k);
+  /* This is the same for all methods: just reduce with original modulus */
+  mpz_mod (R, modulus->temp1, modulus->orig_modulus);
+  ASSERT_NORMALIZED (R);
+}
 
 /* Multiplies S by n and possibly divides by some constant. 
    Whether or not it divides depends on the modulus representation and

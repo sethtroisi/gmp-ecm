@@ -608,6 +608,8 @@ void mpres_clear (mpres_t, const mpmod_t);
 void mpres_realloc (mpres_t, const mpmod_t);
 #define mpres_mul_ui __ECM(mpres_mul_ui)
 void mpres_mul_ui (mpres_t, const mpres_t, const unsigned long, mpmod_t);
+#define mpres_mul_2exp __ECM(mpres_mul_2exp)
+void mpres_mul_2exp (mpres_t, const mpres_t, const unsigned long, mpmod_t);
 #define mpres_muldivbysomething_si __ECM(mpres_muldivbysomething_si)
 void mpres_muldivbysomething_si (mpres_t, const mpres_t, const long, mpmod_t);
 #define mpres_neg __ECM(mpres_neg)
