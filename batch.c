@@ -203,9 +203,11 @@ ecm_stage1_batch (mpz_t f, mpres_t x, mpres_t A, mpmod_t n, double B1,
 
   /* Compute 2P : no need to duplicate P, the coordinates are simple. */ 
   mpres_set_ui (x2, 9, n); 
-  mpres_set_ui (z2, 8 + 64 * d, n); /* P2 <- 2P */ 
-  
-  /* invariant: if j represents the upper bits of s,
+  mpres_set_ui (z2, d, n);
+  mpres_mul_ui(z2, z2, 64, n);
+  mpres_add_ui(z2, z2, 8, n); /* P2 <- 2P */ 
+
+/* invariant: if j represents the upper bits of s,
      then P1 = j*P and P2=(j+1)*P */
 
   /* now perform the double-and-add ladder */
