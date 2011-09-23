@@ -152,6 +152,10 @@ checkcode $? 14
 echo "2^349-1" | $ECM -batch -A 134 967 551113 
 checkcode $? 6
 
+# this example did fail on 32-bit computers (thanks to David Cleaver)
+echo "2^347-1" | $ECM -batch -A 5837673714 36209 11436599
+checkcode $? 14
+
 # the following tests should work on machines which have uint64_t or where
 # unsigned long long has 64 bits (exercises patch from David Cleaver, r1575)
 echo "NOTE: NEXT 3 TESTS WILL FAIL ON SOME 32BIT MACHINES, THIS IS EXPECTED."
