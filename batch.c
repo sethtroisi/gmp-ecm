@@ -16,7 +16,9 @@ static unsigned long MUL = 0, SQR = 0;
 
 /* (x1:z1) <- 2(x1:z1) 
    (x2:z2) <- (x1:z1) + (x2:z2) 
-   assume (x2:z2) - (x1:z1) = (2:1) */
+   assume (x2:z2) - (x1:z1) = (2:1)
+   Uses 4 full multiplies and 4 full doubles.
+*/
 static void
 dup_add (mpres_t x1, mpres_t z1, mpres_t x2, mpres_t z2, 
          mpres_t q, mpres_t t, mpres_t u, mpres_t v, mpres_t w,
@@ -202,12 +204,12 @@ ecm_stage1_batch (mpz_t f, mpres_t x, mpres_t A, mpmod_t n, double B1,
   d = mpz_get_ui (u); 
 
   /* Compute 2P : no need to duplicate P, the coordinates are simple. */ 
-  mpres_set_ui (x2, 9, n); 
+  mpres_set_ui (x2, 9, n);
   mpres_set_ui (z2, d, n);
-  mpres_mul_ui(z2, z2, 64, n);
-  mpres_add_ui(z2, z2, 8, n); /* P2 <- 2P */ 
+  mpres_mul_2exp (z2, z2, 6, n);
+  mpres_add_ui (z2, z2, 8, n); /* P2 <- 2P = (9 : : 64d+8) */
 
-/* invariant: if j represents the upper bits of s,
+  /* invariant: if j represents the upper bits of s,
      then P1 = j*P and P2=(j+1)*P */
 
   /* now perform the double-and-add ladder */
