@@ -147,7 +147,10 @@ echo "10090030271*10^400+696212088699" | $ECM -sigma 3923937547 1e3 1e6; checkco
 
 # To test the batch mode
 echo "458903930815802071188998938170281707063809443792768383215233" | $ECM -batch -A 166 10000
-checkcode $? 14 
+checkcode $? 14
+
+echo "2^349-1" | $ECM -batch -A 134 967 551113 
+checkcode $? 6
 
 # the following tests should work on machines which have uint64_t or where
 # unsigned long long has 64 bits (exercises patch from David Cleaver, r1575)
