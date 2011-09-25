@@ -102,7 +102,7 @@ gw_ecm_stage1 (mpz_t f, curve *P, mpmod_t modulus,
   siz_x = SIZ(gw_x);
   siz_z = SIZ(gw_z);
 
-#ifndef __MINGW64__  
+#if GMP_NUMB_BITS <= 32
   youpi = gwnum_ecmStage1_u32 (gw_k, gw_b, gw_n, gw_c, 
       PTR(modulus->orig_modulus), ABSIZ(modulus->orig_modulus), 
       B1, &gw_B1done, PTR(gw_A), ABSIZ(gw_A), 

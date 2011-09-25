@@ -1,6 +1,6 @@
 /* Elliptic Curve Method: toplevel and stage 1 routines.
 
-  Copyright 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008
+  Copyright 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009, 2010, 2011
   Paul Zimmermann and Alexander Kruppa.
 
   This file is part of the ECM Library.
@@ -1106,7 +1106,7 @@ ecm (mpz_t f, mpz_t x, mpz_t sigma, mpz_t n, mpz_t go, double *B1done,
 #ifdef HAVE_GWNUM
   /* Right now, we only do base 2 numbers with GWNUM */
 
-  if (base2 != 0 && B1 >= *B1done)
+  if (base2 != 0 && B1 >= *B1done && batch != 1)
       youpi = gw_ecm_stage1 (f, &P, modulus, B1, B1done, go);
 
   /* At this point B1 == *B1done unless interrupted, or no GWNUM ecm_stage1
