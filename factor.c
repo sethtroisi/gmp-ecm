@@ -1,6 +1,6 @@
 /* factor.c - public interface for libecm.
 
-  Copyright 2005 Paul Zimmermann and Alexander Kruppa.
+  Copyright 2005, 2006, 2007, 2009, 2011 Paul Zimmermann and Alexander Kruppa.
 
   This file is part of the ECM Library.
 
@@ -54,6 +54,7 @@ ecm_init (ecm_params q)
   MEMORY_UNTAG;
   q->use_ntt = 1;
   q->stop_asap = NULL;
+  q->batch = 0; /* no batch mode by default in library mode */
 }
 
 void
