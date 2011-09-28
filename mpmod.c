@@ -643,22 +643,21 @@ static void
 ecm_mulredc_1_basecase (mpres_t R, const mpres_t S1, const mp_limb_t S2, 
                         mpmod_t modulus)
 {
-  mp_ptr rp;
   mp_ptr s1p;
-  mp_srcptr np;
   mp_size_t j, nn = modulus->bits / GMP_NUMB_BITS;
+
   ASSERT(ALLOC(R) >= nn);
   ASSERT(ALLOC(S1) >= nn);
-  rp = PTR(R);
   s1p = PTR(S1);
-  np = PTR(modulus->orig_modulus);
   for (j = ABSIZ(S1); j < nn; j++) 
     s1p[j] = 0;
 
 #ifdef HAVE_NATIVE_MULREDC1_N
   if (nn < 20)
     {
-      mulredc_1(rp, S2, s1p, np, nn, modulus->Nprim[0]);
+      mp_ptr rp = PTR(R);
+      mulredc_1(rp, S2, s1p, PTR(modulus->orig_modulus), nn,
+                modulus->Nprim[0]);
       MPN_NORMALIZE (rp, nn);
       SIZ(R) = (SIZ(S1)) < 0 ? (int) -nn : (int) nn;
     }
