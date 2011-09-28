@@ -1274,9 +1274,8 @@ static void
 mpn_fft_fft_radix4Rec (mp_ptr *Ap, mp_size_t ind_start, mp_size_t k,
     mp_size_t omega, mp_size_t n, mp_ptr *rotbuf)
 {
-  mp_size_t i, stride, stride2, K;
+  mp_size_t i, stride, stride2;
   
-  K = 1<<k;
   stride2 = 1<<(k-2);
   stride = 1<<(k-1);
 
@@ -1338,10 +1337,9 @@ static void
 mpn_fft_fft_radix4RecNeg (mp_ptr *Ap, mp_size_t ind_start, mp_size_t k,
     mp_size_t omega, mp_size_t n, mp_ptr *rotbuf)
 {
-  mp_size_t i, stride, stride2, K;
+  mp_size_t i, stride, stride2;
   mp_size_t N = MUL_4GMP_NUMB_BITS(n); /* 4 * n * GMP_NUMB_BITS */
 
-  K = 1 << k;
   stride2 = 1 << (k - 2);
   stride  = 1 << (k - 1);
 
@@ -1843,14 +1841,8 @@ mpn_fft_mul_modF_K_fftInv (mp_ptr *ap, mp_ptr *bp, mp_size_t n, mp_size_t Mp, in
 		    n, K2, nprime2, nprime2, 2.0*(double)n/nprime2/K2));
       
       {
-	mp_ptr tp, tpn;
-	int n2 = n << 1;
         mp_size_t k1, k2, K1, omega, omegai;
         mp_ptr *BufA;
-
-	tp = TMP_ALLOC_LIMBS (n2);
-	ASSERT(tp != NULL);
-	tpn = tp + n;
 
 	k1 = old_k >> 1;
 	k2 = old_k - k1;
