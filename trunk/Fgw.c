@@ -1,7 +1,7 @@
 /* 
   Interface code for George Woltman's gwnum library
   
-  Copyright 2004-2006 Paul Zimmermann and Alexander Kruppa.
+  Copyright 2004, 2005, 2006, 2008, 2011 Paul Zimmermann and Alexander Kruppa.
   
   Contains code based on the GWNUM library, 
     copyright 2002-2005 George Woltman, Just For Fun Software, Inc.
@@ -102,6 +102,10 @@ gw_ecm_stage1 (mpz_t f, curve *P, mpmod_t modulus,
   siz_x = SIZ(gw_x);
   siz_z = SIZ(gw_z);
 
+  /* George Woltman says that the gwnum library can handle k values up to 49
+     or 50 bits long. */
+  ASSERT_ALWAYS (gw_k = rint (gw_k)); /* check that k is an integer */
+  ASSERT_ALWAYS (1.0 <= gw_k && gw_k <= 562949953421312.0);
 #if GMP_NUMB_BITS <= 32
   youpi = gwnum_ecmStage1_u32 (gw_k, gw_b, gw_n, gw_c, 
       PTR(modulus->orig_modulus), ABSIZ(modulus->orig_modulus), 
