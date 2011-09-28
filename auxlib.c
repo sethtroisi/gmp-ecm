@@ -80,13 +80,11 @@ void
 mpz_divby3_1op (mpz_t RS)
 {
   mp_size_t abssize = mpz_size (RS);
-  mp_limb_t r;
   
   if (abssize == 0)
     return;
   
-  r = mpn_divexact_by3 (RS->_mp_d, RS->_mp_d, abssize);
-  ASSERT (r == 0);
+  mpn_divexact_by3 (RS->_mp_d, RS->_mp_d, abssize);
 
   if (RS->_mp_d[abssize - 1] == 0)
     RS->_mp_size -= mpz_sgn (RS);
