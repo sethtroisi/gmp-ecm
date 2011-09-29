@@ -55,40 +55,36 @@ dup_add (mpres_t x1, mpres_t z1, mpres_t x2, mpres_t z2,
 }
 
 #define MAX_HEIGHT 30
-
 void
 compute_s (mpz_t s, unsigned int B1)
 {
-  mpz_t l[MAX_HEIGHT]; /* prime powers of even index */
-  mpz_t r[MAX_HEIGHT]; /* prime powers of odd index */
+  mpz_t acc[MAX_HEIGHT]; /* To accumulate products of prime */
   unsigned int i, j;
   unsigned long pi = 2, pp;
 
   for (i = 0; i < MAX_HEIGHT; i++)
-    {
-      mpz_init (l[i]);
-      mpz_init (r[i]);
-    }
+      mpz_init (acc[i]);
 
   i = 0;
   while (pi <= B1)
     {
       pp = pi;
       while (pp <= B1 / pi)
-        pp *= pi;
+          pp *= pi;
 
       if ((i & 1) == 0)
-        mpz_set_ui (l[0], pp);
+          mpz_set_ui (acc[0], pp);
       else
-        mpz_set_ui (r[0], pp);
+          mpz_mul_ui (acc[0], acc[0], pp);
 			
       j = 0;
       while ((i & (1 << j)) != 0)
         {
           if ((i & (1 << (j + 1))) == 0)
-            mpz_mul (l[j+1], l[j], r[j]);
+              mpz_set (acc[j+1], acc[j]);
           else
-            mpz_mul (r[j+1], l[j], r[j]);
+              mpz_mul (acc[j+1], acc[j+1], acc[j]);
+          mpz_set_ui(acc[j],1);
           j++;
         }
 
@@ -96,29 +92,18 @@ compute_s (mpz_t s, unsigned int B1)
       pi = getprime (pi);
     }
 
-  if ((i % 2) == 0)
-    mpz_set_ui (r[0], 1);
-  else
-    mpz_set_ui (r[0], 1);
-		
-  j = 0;
-  for (j = 0;j < MAX_HEIGHT - 1; j++)
+  j=1;
+  while (mpz_cmp_ui(acc[j],0) !=0)
     {
-      if ((i & (1 << j)) == 0)
-        mpz_set (r[j+1], r[j]);
-      else
-        mpz_mul (r[j+1], l[j], r[j]);
+      mpz_mul (acc[j], acc[j], acc[j-1]);
+      j++;
     }
-	
-  mpz_set (s, r[MAX_HEIGHT - 1]);
+  mpz_set (s, acc[j-1]);
 	
   getprime_clear (); /* free the prime tables, and reinitialize */
   
   for (i = 0; i < MAX_HEIGHT; i++)
-    {
-      mpz_clear (l[i]);
-      mpz_clear (r[i]);
-    }
+      mpz_clear (acc[i]);
 }
 
 /* Input: x is initial point
