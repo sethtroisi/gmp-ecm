@@ -158,8 +158,8 @@ void pm1_random_seed  (mpz_t, mpz_t, gmp_randstate_t);
 /* default number of probable prime tests */
 #define PROBAB_PRIME_TESTS 1
 
-/* maximal stage 1 bound = 2^53 + 4, the next prime being 2^53 + 5 */
-#define MAX_B1 9007199254740996.0
+/* maximal stage 1 bound = 2^53 - 1, the next prime being 2^53 + 5 */
+#define MAX_B1 9007199254740991.0
 
 /* The checksum for savefile is the product of all mandatory fields, modulo
    the greatest prime below 2^32 */
