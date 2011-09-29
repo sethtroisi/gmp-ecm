@@ -55,7 +55,7 @@ dup_add (mpres_t x1, mpres_t z1, mpres_t x2, mpres_t z2,
 }
 
 #define MAX_HEIGHT 28
-#define MAX_B1 2777105129UL /* nth_prime(2^(MAX_HEIGHT-1)) */
+#define MAX_B1_BATCH 2777105129UL /* nth_prime(2^(MAX_HEIGHT-1)) */
 
 /* this function requires that we accumulate less than 2^(MAX_HEIGHT-1)
    primes */
@@ -66,7 +66,7 @@ compute_s (mpz_t s, unsigned long B1)
   unsigned int i, j;
   unsigned long pi = 2, pp, maxpp;
 
-  ASSERT_ALWAYS (B1 < MAX_B1);
+  ASSERT_ALWAYS (B1 < MAX_B1_BATCH);
 
   for (j = 0; j < MAX_HEIGHT; j++)
     mpz_init (acc[j]); /* sets acc[j] to 0 */
