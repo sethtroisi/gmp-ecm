@@ -106,7 +106,7 @@ gw_ecm_stage1 (mpz_t f, curve *P, mpmod_t modulus,
      or 50 bits long, and the maximum c value is +/-8388607 */
   ASSERT_ALWAYS (gw_k == rint (gw_k)); /* check that k is an integer */
   ASSERT_ALWAYS (1.0 <= gw_k && gw_k <= 562949953421312.0);
-  ASSERT_ALWAYS (-8388607 <= c && c <= 8388607);
+  ASSERT_ALWAYS (-8388607 <= gw_c && gw_c <= 8388607);
 #if GMP_NUMB_BITS <= 32
   youpi = gwnum_ecmStage1_u32 (gw_k, gw_b, gw_n, gw_c, 
       PTR(modulus->orig_modulus), ABSIZ(modulus->orig_modulus), 

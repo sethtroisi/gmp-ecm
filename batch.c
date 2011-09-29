@@ -222,6 +222,7 @@ ecm_stage1_batch (mpz_t f, mpres_t x, mpres_t A, mpmod_t n, double B1,
           /* P1 <- P1+P2     P2 <- 2*P2 */
         dup_add (x2, z2, x1, z1, q, t, u, v, w, d, n);
     }
+  mpz_clear (s);
   
   outputf (OUTPUT_VERBOSE, "  MUL=%lu SQR=%lu\n", MUL, SQR);
 
