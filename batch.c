@@ -54,22 +54,29 @@ dup_add (mpres_t x1, mpres_t z1, mpres_t x2, mpres_t z2,
   SQR += 4;
 }
 
-#define MAX_HEIGHT 30
-void
-compute_s (mpz_t s, unsigned int B1)
-{
-  mpz_t acc[MAX_HEIGHT]; /* To accumulate products of prime */
-  unsigned int i, j;
-  unsigned long pi = 2, pp;
+#define MAX_HEIGHT 28
+#define MAX_B1 2777105129UL /* nth_prime(2^(MAX_HEIGHT-1)) */
 
-  for (i = 0; i < MAX_HEIGHT; i++)
-      mpz_init (acc[i]);
+/* this function requires that we accumulate less than 2^(MAX_HEIGHT-1)
+   primes */
+static void
+compute_s (mpz_t s, unsigned long B1)
+{
+  mpz_t acc[MAX_HEIGHT]; /* To accumulate products of prime powers */
+  unsigned int i, j;
+  unsigned long pi = 2, pp, maxpp;
+
+  ASSERT_ALWAYS (B1 < MAX_B1);
+
+  for (j = 0; j < MAX_HEIGHT; j++)
+    mpz_init (acc[j]); /* sets acc[j] to 0 */
 
   i = 0;
   while (pi <= B1)
     {
       pp = pi;
-      while (pp <= B1 / pi)
+      maxpp = B1 / pi;
+      while (pp <= maxpp)
           pp *= pi;
 
       if ((i & 1) == 0)
@@ -78,13 +85,19 @@ compute_s (mpz_t s, unsigned int B1)
           mpz_mul_ui (acc[0], acc[0], pp);
 			
       j = 0;
+      /* We have accumulated i+1 products so far. If bits 0..j of i are all
+         set, then i+1 is a multiple of 2^(j+1). */
       while ((i & (1 << j)) != 0)
         {
-          if ((i & (1 << (j + 1))) == 0)
-              mpz_set (acc[j+1], acc[j]);
+          /* we use acc[MAX_HEIGHT-1] as 0-sentinel below, thus we need
+             j+1 < MAX_HEIGHT-1 */
+          ASSERT (j + 1 < MAX_HEIGHT - 1);
+          if ((i & (1 << (j + 1))) == 0) /* i+1 is not multiple of 2^(j+2),
+                                            thus add[j+1] is "empty" */
+            mpz_swap (acc[j+1], acc[j]); /* avoid a copy with mpz_set */
           else
-              mpz_mul (acc[j+1], acc[j+1], acc[j]);
-          mpz_set_ui(acc[j],1);
+            mpz_mul (acc[j+1], acc[j+1], acc[j]); /* accumulate in acc[j+1] */
+          mpz_set_ui (acc[j], 1);
           j++;
         }
 
@@ -92,13 +105,8 @@ compute_s (mpz_t s, unsigned int B1)
       pi = getprime (pi);
     }
 
-  j=1;
-  while (mpz_cmp_ui(acc[j],0) !=0)
-    {
-      mpz_mul (acc[j], acc[j], acc[j-1]);
-      j++;
-    }
-  mpz_set (s, acc[j-1]);
+  for (mpz_set (s, acc[0]), j = 1; mpz_cmp_ui (acc[j], 0) != 0; j++)
+    mpz_mul (s, s, acc[j]);
 	
   getprime_clear (); /* free the prime tables, and reinitialize */
   
