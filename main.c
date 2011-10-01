@@ -173,7 +173,6 @@ stop_asap_test ()
   return exit_asap_value;
 }
 
-
 static void
 usage (void)
 {
@@ -453,11 +452,17 @@ main (int argc, char *argv[])
   double maxmem = 0.;
   double stage1time = 0.;
   ecm_params params;
+  int batch = 0; /* By default we don't use batch mode */
 #ifdef WANT_SHELLCMD
   char *faccmd = NULL;
   char *idlecmd = NULL;
 #endif
-  int batch = 0; /* By default we don't use batch mode */
+#ifdef HAVE_GWNUM
+  double gw_k = 0.0;       /* set default values for gwnum poly k*b^n+c */
+  unsigned long gw_b = 0;  /* set default values for gwnum poly k*b^n+c */
+  unsigned long gw_n = 0;  /* set default values for gwnum poly k*b^n+c */
+  signed long gw_c = 0;    /* set default values for gwnum poly k*b^n+c */
+#endif
 
   /* check ecm is linked with a compatible library */
   if (mp_bits_per_limb != GMP_NUMB_BITS)
@@ -1508,6 +1513,35 @@ BreadthFirstDoAgain:;
         params->use_ntt = (mpz_size (n.n) <= NTT_SIZE_THRESHOLD);
       else 
         params->use_ntt = (use_ntt != 0);
+
+#ifdef HAVE_GWNUM
+      /* check if the input number can be represented as k*b^n+c */
+      if (kbnc_z (&gw_k, &gw_b, &gw_n, &gw_c, n.n))
+        {
+          params->gw_k = gw_k;
+          params->gw_b = gw_b;
+          params->gw_n = gw_n;
+          params->gw_c = gw_c;
+          if (verbose > OUTPUT_NORMAL)
+            printf ("Found number: %.0f*%lu^%lu + %ld\n",
+                    gw_k, gw_b, gw_n, gw_c);
+        }
+      else if (kbnc_str (&gw_k, &gw_b, &gw_n, &gw_c, n.cpExpr, n.n))
+        {
+          params->gw_k = gw_k;
+          params->gw_b = gw_b;
+          params->gw_n = gw_n;
+          params->gw_c = gw_c;
+          if (verbose > OUTPUT_NORMAL)
+            printf ("Found number: %.0f*%lu^%lu + %ld\n",
+                    gw_k, gw_b, gw_n, gw_c);
+        }
+      else
+        {
+          if (verbose > OUTPUT_NORMAL)
+            printf ("Did not find a gwnum poly for the input number.\n");
+        }
+#endif
 
 #ifdef WANT_SHELLCMD
       /* See if the system is currently idle, if -idlecmd was given */

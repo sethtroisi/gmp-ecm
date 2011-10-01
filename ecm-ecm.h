@@ -132,6 +132,10 @@ int write_resumefile_line (char *, int, double, mpz_t, mpz_t, mpz_t, mpcandi_t *
 /* main.c */
 int read_number (mpcandi_t *n, FILE *, int primetest);
 int probab_prime_p (mpz_t, int);
+int kbnc_z (double *k, unsigned long *b, unsigned long *n, signed long *c,
+            mpz_t z);
+int kbnc_str (double *k, unsigned long *b, unsigned long *n, signed long *c,
+              char *z, mpz_t num);
 
 /* eval.c */
 int eval (mpcandi_t *n, FILE *fd, int bPrp);
