@@ -67,7 +67,11 @@ typedef struct
   int use_ntt;     /* set to 1 to use ntt poly code in stage 2 */
   int (*stop_asap) (void); /* Pointer to function, if it returns 0, contine 
                       normally, otherwise exit asap. May be NULL */
-	int batch;      /* Batch mode */
+  int batch;      /* Batch mode */
+  double gw_k;         /* use for gwnum stage 1 if input has form k*b^n+c */
+  unsigned long gw_b;  /* use for gwnum stage 1 if input has form k*b^n+c */
+  unsigned long gw_n;  /* use for gwnum stage 1 if input has form k*b^n+c */
+  signed long gw_c;    /* use for gwnum stage 1 if input has form k*b^n+c */
 } __ecm_param_struct;
 typedef __ecm_param_struct ecm_params[1];
 
@@ -86,7 +90,8 @@ void ecm_clear (ecm_params);
 /* the following interface is not supported */
 int ecm (mpz_t, mpz_t, mpz_t, mpz_t, mpz_t, double *, double, mpz_t, mpz_t,
          double, unsigned long, const int, int, int, int, int, int, FILE*, FILE*,
-         char*, char *, double, double, gmp_randstate_t, int (*)(void), int);
+         char*, char *, double, double, gmp_randstate_t, int (*)(void), int,
+         double, unsigned long, unsigned long, signed long);
 int pp1 (mpz_t, mpz_t, mpz_t, mpz_t, double *, double, mpz_t, mpz_t, 
          double, unsigned long, const int, int, int, int, FILE*, FILE*, char*,
          char *, double, gmp_randstate_t, int (*)(void));

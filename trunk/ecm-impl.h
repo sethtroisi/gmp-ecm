@@ -711,7 +711,8 @@ unsigned int get_random_ui (void);
 
 /* Fgw.c */
 #ifdef HAVE_GWNUM
-int  gw_ecm_stage1 (mpz_t, curve *, mpmod_t, double, double *, mpz_t);
+int  gw_ecm_stage1 (mpz_t, curve *, mpmod_t, double, double *, mpz_t,
+                    double, unsigned long, unsigned long, signed long);
 #endif
 
 /* mul_fft.h */
