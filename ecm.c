@@ -866,7 +866,8 @@ ecm (mpz_t f, mpz_t x, mpz_t sigma, mpz_t n, mpz_t go, double *B1done,
      unsigned long k, const int S, int verbose, int repr, int nobase2step2, int use_ntt,
      int sigma_is_A, FILE *os, FILE* es, char *chkfilename,
      char *TreeFilename, double maxmem, double stage1time, 
-     gmp_randstate_t rng, int (*stop_asap)(void), int batch)
+     gmp_randstate_t rng, int (*stop_asap)(void), int batch,
+     double gw_k, unsigned long gw_b, unsigned long gw_n, signed long gw_c)
 {
   int youpi = ECM_NO_FACTOR_FOUND;
   int base2 = 0;  /* If n is of form 2^n[+-]1, set base to [+-]n */
@@ -1104,10 +1105,10 @@ ecm (mpz_t f, mpz_t x, mpz_t sigma, mpz_t n, mpz_t go, double *B1done,
     }
 
 #ifdef HAVE_GWNUM
-  /* Right now, we only do base 2 numbers with GWNUM */
+  /* We will only use GWNUM for numbers of the form k*b^n+c */
 
-  if (base2 != 0 && B1 >= *B1done && batch != 1)
-      youpi = gw_ecm_stage1 (f, &P, modulus, B1, B1done, go);
+  if (gw_b != 0 && B1 >= *B1done && batch != 1)
+      youpi = gw_ecm_stage1 (f, &P, modulus, B1, B1done, go, gw_k, gw_b, gw_n, gw_c);
 
   /* At this point B1 == *B1done unless interrupted, or no GWNUM ecm_stage1
      is available */
