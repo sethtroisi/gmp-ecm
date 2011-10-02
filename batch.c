@@ -138,7 +138,7 @@ ecm_stage1_batch (mpz_t f, mpres_t x, mpres_t A, mpmod_t n, double B1,
   mpz_t s; /* product of primes up to B1 */
   unsigned long d; 
   mpz_t x1, z1, x2, z2;
-  long i;
+  unsigned long i;
   int st;
   mpz_t q, t, u, v, w;
   int ret = ECM_NO_FACTOR_FOUND;
@@ -206,7 +206,7 @@ ecm_stage1_batch (mpz_t f, mpres_t x, mpres_t A, mpmod_t n, double B1,
      then P1 = j*P and P2=(j+1)*P */
 
   /* now perform the double-and-add ladder */
-  for (i = mpz_sizeinbase (s, 2) - 2; i>=0; i--)
+  for (i = mpz_sizeinbase (s, 2) - 1; i-- > 0;)
     {
       if (mpz_tstbit (s, i) == 0) /* (j,j+1) -> (2j,2j+1) */
         /* P2 <- P1+P2    P1 <- 2*P1 */
