@@ -14,13 +14,13 @@
 
 static unsigned long MUL = 0, SQR = 0;
 
-/* (x1:z1) <- 2(x1:z1) 
-   (x2:z2) <- (x1:z1) + (x2:z2) 
+/* (x1:z1) <- 2(x1:z1)
+   (x2:z2) <- (x1:z1) + (x2:z2)
    assume (x2:z2) - (x1:z1) = (2:1)
    Uses 4 full multiplies and 4 full doubles.
 */
 static void
-dup_add (mpres_t x1, mpres_t z1, mpres_t x2, mpres_t z2, 
+dup_add (mpres_t x1, mpres_t z1, mpres_t x2, mpres_t z2,
          mpres_t q, mpres_t t, mpres_t u, mpres_t v, mpres_t w,
          unsigned long d, mpmod_t n)
 {
@@ -28,28 +28,28 @@ dup_add (mpres_t x1, mpres_t z1, mpres_t x2, mpres_t z2,
   mpres_sub (u, x1, z1, n); /* u = x1-z1 */
   mpres_add (t, x2, z2, n); /* t = x2+z2 */
   mpres_sub (v, x2, z2, n); /* v = x2-z2 */
-  
+
   mpres_mul (t, t, u, n); /* t = (x1-z1)(x2+z2) */
   mpres_mul (v, v, w, n); /* v = (x2-z2)(x1+z1) */
   mpres_mul (w, w, w, n); /* w = (x1+z1)^2 */
   mpres_mul (u, u, u, n); /* u = (x1-z1)^2 */
-  
+
   mpres_mul (x1, u, w, n); /* xdup = (x1+z1)^2 * (x1-z1)^2 */
 
   mpres_sub (w, w, u, n);   /* w = (x1+z1)^2 - (x1-z1)^2 */
-	
+
   mpres_mul_ui (q, w, d, n); /* q = d* ((x1+z1)^2 - (x1-z1)^2) */
-  
+
   mpres_add (u, u, q, n);  /* u = (x1-z1)^2 - d* ((x1+z1)^2 - (x1-z1)^2) */
   mpres_mul (z1, w, u, n); /* zdup = w * [(x1-z1)^2 - d* ((x1+z1)^2 - (x1-z1)^2)] */
 
   mpres_add (w, v, t, n);
   mpres_sub (v, v, t, n);
-  
+
   mpres_mul (v, v, v, n);
   mpres_mul (x2, w, w, n);
   mpres_add (z2, v, v, n);
-  
+
   MUL += 4;
   SQR += 4;
 }
@@ -83,7 +83,7 @@ compute_s (mpz_t s, unsigned long B1)
           mpz_set_ui (acc[0], pp);
       else
           mpz_mul_ui (acc[0], acc[0], pp);
-			
+
       j = 0;
       /* We have accumulated i+1 products so far. If bits 0..j of i are all
          set, then i+1 is a multiple of 2^(j+1). */
@@ -107,9 +107,9 @@ compute_s (mpz_t s, unsigned long B1)
 
   for (mpz_set (s, acc[0]), j = 1; mpz_cmp_ui (acc[j], 0) != 0; j++)
     mpz_mul (s, s, acc[j]);
-	
+
   getprime_clear (); /* free the prime tables, and reinitialize */
-  
+
   for (i = 0; i < MAX_HEIGHT; i++)
       mpz_clear (acc[i]);
 }
@@ -131,12 +131,12 @@ compute_s (mpz_t s, unsigned long B1)
 /*
 For now we don't take into account go stop_asap and chkfilename
 */
-int 
+int
 ecm_stage1_batch (mpz_t f, mpres_t x, mpres_t A, mpmod_t n, double B1,
                   double *B1done)
 {
   mpz_t s; /* product of primes up to B1 */
-  unsigned long d; 
+  unsigned long d;
   mpz_t x1, z1, x2, z2;
   unsigned long i;
   int st;
@@ -194,9 +194,9 @@ ecm_stage1_batch (mpz_t f, mpres_t x, mpres_t A, mpmod_t n, double B1,
                "Error, d=(A+2)/4 should fit in an ulong, A=%Zd\n", A);
       return ECM_ERROR;
     }
-  d = mpz_get_ui (u); 
+  d = mpz_get_ui (u);
 
-  /* Compute 2P : no need to duplicate P, the coordinates are simple. */ 
+  /* Compute 2P : no need to duplicate P, the coordinates are simple. */
   mpres_set_ui (x2, 9, n);
   mpres_set_ui (z2, d, n);
   mpres_mul_2exp (z2, z2, 6, n);
@@ -216,11 +216,11 @@ ecm_stage1_batch (mpz_t f, mpres_t x, mpres_t A, mpmod_t n, double B1,
         dup_add (x2, z2, x1, z1, q, t, u, v, w, d, n);
     }
   mpz_clear (s);
-  
+
   outputf (OUTPUT_VERBOSE, "  MUL=%lu SQR=%lu\n", MUL, SQR);
 
   *B1done=B1;
-	
+
   if (!mpres_invert (u, z1, n)) /* Factor found? */
     {
       mpres_gcd (f, z1, n);
