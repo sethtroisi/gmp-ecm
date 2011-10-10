@@ -404,6 +404,7 @@ call file_copy config.h ..\config.h
   <ItemGroup>
     <ClCompile Include="..\..\auxarith.c" />
     <ClCompile Include="..\..\auxlib.c" />
+    <ClCompile Include="..\..\batch.c" />
     <ClCompile Include="..\..\bestd.c" />
     <ClCompile Include="..\..\ecm.c" />
     <ClCompile Include="..\..\ecm2.c" />
