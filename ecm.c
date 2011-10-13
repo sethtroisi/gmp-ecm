@@ -731,7 +731,7 @@ choose_S (mpz_t B2len)
 
 static void
 print_expcurves (double B1, const mpz_t B2, unsigned long dF, unsigned long k, 
-                 int S)
+                 int S, int batch)
 {
   double prob;
   int i, j;
@@ -746,7 +746,10 @@ print_expcurves (double B1, const mpz_t B2, unsigned long dF, unsigned long k,
     {
       sep = (i < DIGITS_END) ? '\t' : '\n';
       prob = ecmprob (B1, mpz_get_d (B2),
-                      pow (10., i - .5), (double) dF * dF * k, S);
+                      /* in batch mode, the extra smoothness is smaller by a
+                         factor of 3 experimentally */
+                      pow (10., i - .5) * ((batch) ? 3.0 : 1.0),
+                      (double) dF * dF * k, S);
       if (prob > 1. / 10000000)
         outputf (OUTPUT_VERBOSE, "%.0f%c", floor (1. / prob + .5), sep);
       else if (prob > 0.)
@@ -758,7 +761,7 @@ print_expcurves (double B1, const mpz_t B2, unsigned long dF, unsigned long k,
 
 static void
 print_exptime (double B1, const mpz_t B2, unsigned long dF, unsigned long k, 
-               int S, double tottime)
+               int S, double tottime, int batch)
 {
   double prob, exptime;
   int i, j;
@@ -772,8 +775,11 @@ print_exptime (double B1, const mpz_t B2, unsigned long dF, unsigned long k,
   for (i = DIGITS_START; i <= DIGITS_END; i += DIGITS_INCR)
     {
       sep = (i < DIGITS_END) ? '\t' : '\n';
-      prob = ecmprob (B1, mpz_get_d (B2), 
-                      pow (10., i - .5), (double) dF * dF * k, S);
+      prob = ecmprob (B1, mpz_get_d (B2),
+                      /* in batch mode, the extra smoothness is smaller by a
+                         factor of 3 experimentally */
+                      pow (10., i - .5) * ((batch) ? 3.0 : 1.0),
+                      (double) dF * dF * k, S);
       exptime = (prob > 0.) ? tottime / prob : HUGE_VAL;
       outputf (OUTPUT_TRACE, "Digits: %d, Total time: %.0f, probability: "
                "%g, expected time: %.0f\n", i, tottime, prob, exptime);
@@ -867,7 +873,8 @@ ecm (mpz_t f, mpz_t x, mpz_t sigma, mpz_t n, mpz_t go, double *B1done,
      int sigma_is_A, FILE *os, FILE* es, char *chkfilename,
      char *TreeFilename, double maxmem, double stage1time, 
      gmp_randstate_t rng, int (*stop_asap)(void), int batch,
-     double gw_k, unsigned long gw_b, unsigned long gw_n, signed long gw_c)
+     ATTRIBUTE_UNUSED double gw_k, ATTRIBUTE_UNUSED unsigned long gw_b,
+     ATTRIBUTE_UNUSED unsigned long gw_n, ATTRIBUTE_UNUSED signed long gw_c)
 {
   int youpi = ECM_NO_FACTOR_FOUND;
   int base2 = 0;  /* If n is of form 2^n[+-]1, set base to [+-]n */
@@ -1100,7 +1107,7 @@ ecm (mpz_t f, mpz_t x, mpz_t sigma, mpz_t n, mpz_t go, double *B1done,
       else
         {
           rhoinit (256, 10);
-          print_expcurves (B1, B2, dF, k, root_params.S);
+          print_expcurves (B1, B2, dF, k, root_params.S, batch);
         }
     }
 
@@ -1233,7 +1240,7 @@ end_of_ecm_rhotable:
               (stop_asap == NULL || !(*stop_asap)()))
             print_exptime (B1, B2, dF, k, root_params.S, 
                            (long) (stage1time * 1000.) + 
-                           elltime (st, cputime ()));
+                           elltime (st, cputime ()), batch);
           rhoinit (1, 0); /* Free memory of rhotable */
         }
     }
