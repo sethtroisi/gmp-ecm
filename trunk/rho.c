@@ -40,6 +40,14 @@
 #endif
 #include "ecm-impl.h"
 
+/* For Suyama's curves, we have a known torsion factor of 12 = 2^2*3^1, and
+   an average extra exponent of 1/2 for 2, and 1/3 for 3 due to the probability
+   that the group order divided by 12 is divisible by 2 or 3, thus on average
+   we should have 2^2.5*3^1.333 ~ 24.5, however experimentally we have
+   2^3.323*3^1.687 ~ 63.9 (see Alexander Kruppa's thesis, Table 5.1 page 96,
+   row sigma=2, http://tel.archives-ouvertes.fr/tel-00477005/en/).
+   The exp(ECM_EXTRA_SMOOTHNESS) value takes into account the extra
+   smoothness with respect to a random number. */
 #ifndef ECM_EXTRA_SMOOTHNESS
 #define ECM_EXTRA_SMOOTHNESS 3.134
 #endif
@@ -588,7 +596,7 @@ prob (double B1, double B2, double N, double nr, int S, double delta)
 {
   const double sumthresh = 20000.;
   double alpha, beta, stage1, stage2, brsu;
-  const double effN = N / exp(delta);
+  const double effN = N / exp (delta);
 
   ASSERT(rhotable != NULL);
   
