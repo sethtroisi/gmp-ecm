@@ -32,6 +32,10 @@
 # define ULONG_MAX __GMP_ULONG_MAX
 #endif
 
+/* the following factor takes into account the smaller expected smoothness
+   for Montgomery's curves (batch mode) with respect to Suyama's curves */
+#define BATCH_EXTRA_SMOOTHNESS (1.0 / 3.0)
+
 /******************************************************************************
 *                                                                             *
 *                            Elliptic Curve Method                            *
@@ -746,9 +750,9 @@ print_expcurves (double B1, const mpz_t B2, unsigned long dF, unsigned long k,
     {
       sep = (i < DIGITS_END) ? '\t' : '\n';
       prob = ecmprob (B1, mpz_get_d (B2),
-                      /* in batch mode, the extra smoothness is smaller by a
-                         factor of 3 experimentally */
-                      pow (10., i - .5) * ((batch) ? 3.0 : 1.0),
+                      /* in batch mode, the extra smoothness is smaller */
+                      pow (10., i - .5) /
+                      ((batch) ? BATCH_EXTRA_SMOOTHNESS : 1.0),
                       (double) dF * dF * k, S);
       if (prob > 1. / 10000000)
         outputf (OUTPUT_VERBOSE, "%.0f%c", floor (1. / prob + .5), sep);
@@ -776,9 +780,9 @@ print_exptime (double B1, const mpz_t B2, unsigned long dF, unsigned long k,
     {
       sep = (i < DIGITS_END) ? '\t' : '\n';
       prob = ecmprob (B1, mpz_get_d (B2),
-                      /* in batch mode, the extra smoothness is smaller by a
-                         factor of 3 experimentally */
-                      pow (10., i - .5) * ((batch) ? 3.0 : 1.0),
+                      /* in batch mode, the extra smoothness is smaller */
+                      pow (10., i - .5) /
+                      ((batch) ? BATCH_EXTRA_SMOOTHNESS : 1.0),
                       (double) dF * dF * k, S);
       exptime = (prob > 0.) ? tottime / prob : HUGE_VAL;
       outputf (OUTPUT_TRACE, "Digits: %d, Total time: %.0f, probability: "
