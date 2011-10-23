@@ -72,6 +72,7 @@ ecm_clear (ecm_params q)
   mpz_clear (q->B2min);
   mpz_clear (q->B2);
   gmp_randclear (q->rng);
+  mpz_clear (q->batch_s);
 }
 
 /* returns ECM_FACTOR_FOUND, ECM_NO_FACTOR_FOUND, or ECM_ERROR */
