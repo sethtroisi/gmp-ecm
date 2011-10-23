@@ -876,7 +876,7 @@ ecm (mpz_t f, mpz_t x, mpz_t sigma, mpz_t n, mpz_t go, double *B1done,
      unsigned long k, const int S, int verbose, int repr, int nobase2step2, int use_ntt,
      int sigma_is_A, FILE *os, FILE* es, char *chkfilename,
      char *TreeFilename, double maxmem, double stage1time, 
-     gmp_randstate_t rng, int (*stop_asap)(void), int batch,
+     gmp_randstate_t rng, int (*stop_asap)(void), int batch, mpz_t batch_s,
      ATTRIBUTE_UNUSED double gw_k, ATTRIBUTE_UNUSED unsigned long gw_b,
      ATTRIBUTE_UNUSED unsigned long gw_n, ATTRIBUTE_UNUSED signed long gw_c)
 {
@@ -1132,7 +1132,7 @@ ecm (mpz_t f, mpz_t x, mpz_t sigma, mpz_t n, mpz_t go, double *B1done,
     {
       if (batch == 1)
         /* FIXME: go, stop_asap and chkfilename are ignored in batch mode */
-        youpi = ecm_stage1_batch (f, P.x, sigma, modulus, B1, B1done);
+        youpi = ecm_stage1_batch (f, P.x, sigma, modulus, B1, B1done, batch_s);
       else
         youpi = ecm_stage1 (f, P.x, P.A, modulus, B1, B1done, go, stop_asap,
                             chkfilename);
