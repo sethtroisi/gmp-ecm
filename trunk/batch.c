@@ -196,14 +196,6 @@ ecm_stage1_batch (mpz_t f, mpres_t x, mpres_t A, mpmod_t n, double B1,
   mpres_init (w, n);
   MEMORY_UNTAG;
 
-  outputf (OUTPUT_VERBOSE, ("Batch mode: \n"));
-
-  /* construct the batch exponent */
-  st = cputime ();
-  outputf (OUTPUT_VERBOSE, "  s has %lu bits\n", mpz_sizeinbase (s, 2));
-
-  st = cputime ();
-
   /* initialize P */
   mpres_set (x1, x, n);
   mpres_set_ui (z1, 1, n); /* P1 <- 1P */
