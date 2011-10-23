@@ -137,6 +137,9 @@ int kbnc_z (double *k, unsigned long *b, unsigned long *n, signed long *c,
 int kbnc_str (double *k, unsigned long *b, unsigned long *n, signed long *c,
               char *z, mpz_t num);
 
+/* batch.c */
+static void compute_s (mpz_t, unsigned long);
+
 /* eval.c */
 int eval (mpcandi_t *n, FILE *fd, int bPrp);
 int eval_str (mpcandi_t *n, char *cp, int primetest, char **EndChar); /* EndChar can be NULL */

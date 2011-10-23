@@ -68,6 +68,8 @@ typedef struct
   int (*stop_asap) (void); /* Pointer to function, if it returns 0, contine 
                       normally, otherwise exit asap. May be NULL */
   int batch;      /* Batch mode */
+  double batch_B1; /* B1 is the limit used to calculate s for batch mode */
+  mpz_t batch_s;   /* s is the product of primes up to B1 for batch mode */
   double gw_k;         /* use for gwnum stage 1 if input has form k*b^n+c */
   unsigned long gw_b;  /* use for gwnum stage 1 if input has form k*b^n+c */
   unsigned long gw_n;  /* use for gwnum stage 1 if input has form k*b^n+c */
@@ -90,7 +92,7 @@ void ecm_clear (ecm_params);
 /* the following interface is not supported */
 int ecm (mpz_t, mpz_t, mpz_t, mpz_t, mpz_t, double *, double, mpz_t, mpz_t,
          double, unsigned long, const int, int, int, int, int, int, FILE*, FILE*,
-         char*, char *, double, double, gmp_randstate_t, int (*)(void), int,
+         char*, char *, double, double, gmp_randstate_t, int (*)(void), int, mpz_t,
          double, unsigned long, unsigned long, signed long);
 int pp1 (mpz_t, mpz_t, mpz_t, mpz_t, double *, double, mpz_t, mpz_t, 
          double, unsigned long, const int, int, int, int, FILE*, FILE*, char*,

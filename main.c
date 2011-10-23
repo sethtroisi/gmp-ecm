@@ -1496,7 +1496,12 @@ BreadthFirstDoAgain:;
           mpz_set (x, orig_x0);
         }
       /* set parameters that may change from one curve to another */
-      params->batch = batch; 
+      params->batch = batch;
+      if (params->batch == 1 && params->batch_B1 != B1)
+      {
+        params->batch_B1 = B1;
+        compute_s(params->batch_s, params->batch_B1);
+      }
       params->method = method; /* may change with resume */
       mpz_set (params->x, x); /* may change with resume */
       /* if sigma is zero, then we use the A value instead */
