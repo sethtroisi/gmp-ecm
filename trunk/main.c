@@ -26,6 +26,7 @@
 #ifdef _MSC_VER
 #  include <winsock2.h>
 #endif
+#include "ecm-impl.h"
 #include "ecm-ecm.h"
 
 #ifdef HAVE_UNISTD_H /* for access() */
@@ -1499,8 +1500,17 @@ BreadthFirstDoAgain:;
       params->batch = batch;
       if (params->batch == 1 && params->batch_B1 != B1)
       {
+        int st;
         params->batch_B1 = B1;
+
+        if (verbose > OUTPUT_NORMAL)
+          printf("Batch mode: \n");
+        st = cputime ();
+        /* construct the batch exponent */
         compute_s(params->batch_s, params->batch_B1);
+        if (verbose > OUTPUT_NORMAL)
+          printf("  computing s of %lu bits took %ldms\n",
+            mpz_sizeinbase (params->batch_s, 2), cputime () - st);
       }
       params->method = method; /* may change with resume */
       mpz_set (params->x, x); /* may change with resume */

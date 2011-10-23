@@ -200,8 +200,7 @@ ecm_stage1_batch (mpz_t f, mpres_t x, mpres_t A, mpmod_t n, double B1,
 
   /* construct the batch exponent */
   st = cputime ();
-  outputf (OUTPUT_VERBOSE, "  computing s of %lu bits took %ldms\n",
-           mpz_sizeinbase (s, 2), cputime () - st);
+  outputf (OUTPUT_VERBOSE, "  s has %lu bits\n", mpz_sizeinbase (s, 2));
 
   st = cputime ();
 
@@ -245,9 +244,8 @@ ecm_stage1_batch (mpz_t f, mpres_t x, mpres_t A, mpmod_t n, double B1,
           /* P1 <- P1+P2     P2 <- 2*P2 */
         dup_add (x2, z2, x1, z1, q, t, u, v, w, d, n);
     }
-  mpz_clear (s);
 
-  outputf (OUTPUT_VERBOSE, "  MUL=%lu SQR=%lu\n", MUL, SQR);
+  /* outputf (OUTPUT_VERBOSE, "  MUL=%lu SQR=%lu\n", MUL, SQR); */
 
   *B1done=B1;
 
