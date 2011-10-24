@@ -55,35 +55,20 @@ dup_add (mpres_t x1, mpres_t z1, mpres_t x2, mpres_t z2,
 }
 
 
-/*
-pn() = nth prime, ie, pn(1)=2, pn(2)=3, pn(2^5)=131, etc...
-pn( 1*2^26) = 1339484197
-pn( 2*2^26) = 2777105129
-pn( 3*2^26) = 4251644167
-etc...
-*/
-
-#define MAX_HEIGHT 27
-unsigned long pn26[] = {1339484197,2777105129,4251644167
-#if ULONG_MAX > 4294967295
-,5750079047,7266366167,8796789583,10338976121,11891268401
-,13452341557,15021274439,16597229563,18179600099
-#endif
-};
+#define MAX_HEIGHT 32
 
 #if ULONG_MAX == 4294967295
 #define MAX_B1_BATCH 2977044736UL
 #else
-#define MAX_B1_BATCH 18179600098UL
+/* nth_prime(2^(MAX_HEIGHT-1)) */
+#define MAX_B1_BATCH 50685770167UL
 #endif
 
-/* this function splits the computation of s into pieces,
-   which allows us to reach higher values of B1 */
 void
 compute_s (mpz_t s, unsigned long B1)
 {
   mpz_t acc[MAX_HEIGHT]; /* To accumulate products of prime powers */
-  unsigned int i, j, k;
+  unsigned int i, j;
   unsigned long pi = 2, pp, maxpp;
 
   ASSERT_ALWAYS (B1 < MAX_B1_BATCH);
@@ -91,60 +76,47 @@ compute_s (mpz_t s, unsigned long B1)
   for (j = 0; j < MAX_HEIGHT; j++)
     mpz_init (acc[j]); /* sets acc[j] to 0 */
 
-  k = 0;
-  mpz_set_ui(s, 1);
-
+  i = 0;
   while (pi <= B1)
     {
+      pp = pi;
+      maxpp = B1 / pi;
+      while (pp <= maxpp)
+          pp *= pi;
 
-      i = 0;
-      for (j = 0; j < MAX_HEIGHT; j++)
-        mpz_set_ui (acc[j], 0); /* sets acc[j] to 0 */
+      if ((i & 1) == 0)
+          mpz_set_ui (acc[0], pp);
+      else
+          mpz_mul_ui (acc[0], acc[0], pp);
+			
+      j = 0;
+      /* We have accumulated i+1 products so far. If bits 0..j of i are all
+         set, then i+1 is a multiple of 2^(j+1). */
+      while ((i & (1 << j)) != 0)
+        {
+          /* we use acc[MAX_HEIGHT-1] as 0-sentinel below, thus we need
+             j+1 < MAX_HEIGHT-1 */
+          ASSERT (j + 1 < MAX_HEIGHT - 1);
+          if ((i & (1 << (j + 1))) == 0) /* i+1 is not multiple of 2^(j+2),
+                                            thus add[j+1] is "empty" */
+            mpz_swap (acc[j+1], acc[j]); /* avoid a copy with mpz_set */
+          else
+            mpz_mul (acc[j+1], acc[j+1], acc[j]); /* accumulate in acc[j+1] */
+          mpz_set_ui (acc[j], 1);
+          j++;
+        }
 
-      while (pi < pn26[k] && pi <= B1)
-      {
-
-        pp = pi;
-        maxpp = B1 / pi;
-        while (pp <= maxpp)
-            pp *= pi;
-
-        if ((i & 1) == 0)
-            mpz_set_ui (acc[0], pp);
-        else
-            mpz_mul_ui (acc[0], acc[0], pp);
-
-        j = 0;
-        /* We have accumulated i+1 products so far. If bits 0..j of i are all
-           set, then i+1 is a multiple of 2^(j+1). */
-        while ((i & (1 << j)) != 0)
-          {
-            /* we use acc[MAX_HEIGHT-1] as 0-sentinel below, thus we need
-               j+1 < MAX_HEIGHT-1 */
-            ASSERT (j + 1 < MAX_HEIGHT - 1);
-            if ((i & (1 << (j + 1))) == 0) /* i+1 is not multiple of 2^(j+2),
-                                              thus add[j+1] is "empty" */
-              mpz_swap (acc[j+1], acc[j]); /* avoid a copy with mpz_set */
-            else
-              mpz_mul (acc[j+1], acc[j+1], acc[j]); /* accumulate in acc[j+1] */
-            mpz_set_ui (acc[j], 1);
-            j++;
-          }
-
-        i++;
-        pi = getprime ();
-      }
-
-      k++;
-      for (j = 0; mpz_cmp_ui (acc[j], 0) != 0; j++)
-        mpz_mul (s, s, acc[j]);
+      i++;
+      pi = getprime (pi);
     }
 
+  for (mpz_set (s, acc[0]), j = 1; mpz_cmp_ui (acc[j], 0) != 0; j++)
+    mpz_mul (s, s, acc[j]);
+	
   getprime_clear (); /* free the prime tables, and reinitialize */
-
+  
   for (i = 0; i < MAX_HEIGHT; i++)
       mpz_clear (acc[i]);
-
 }
 
 
