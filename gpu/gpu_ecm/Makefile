@@ -17,18 +17,18 @@ endif
 
 ifeq ($(v),0)
 CFLAGS+=-DTEST
-CFLAGS+=-DSIZE_NUMBER=32
+CFLAGS+=-DNB_DIGITS=32
 else
 	ifeq ($(v),1)
-		CFLAGS+=-DSIZE_NUMBER=4
+		CFLAGS+=-DNB_DIGITS=4
 	else
 		ifeq ($(v),2)
-			CFLAGS+=-DSIZE_NUMBER=8
+			CFLAGS+=-DNB_DIGITS=8
 		else
 			ifeq ($(v),3)
-				CFLAGS+=-DSIZE_NUMBER=16
+				CFLAGS+=-DNB_DIGITS=16
 			else
-				CFLAGS+=-DSIZE_NUMBER=32
+				CFLAGS+=-DNB_DIGITS=32
 			endif
 		endif
 	endif
@@ -68,6 +68,10 @@ obj/cudaarith.cu.o : cudaarith.cu main.h
 s: s.c
 	gcc -I/usr/include -c s.c
 	gcc -o stest s.o $(LDFLAGS)
+
+compute_s: compute_s.c
+	gcc -I/usr/include -c compute_s.c
+	gcc -o compute_s compute_s.o $(LDFLAGS)
 
 #withdouble: obj/withdouble.cu.o objdir
 #obj/withdouble.cu.o : withdouble.cu 
