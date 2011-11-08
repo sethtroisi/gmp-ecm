@@ -137,7 +137,6 @@ ecm_stage1_batch (mpz_t f, mpres_t x, mpres_t A, mpmod_t n, double B1,
   unsigned long d;
   mpz_t x1, z1, x2, z2;
   unsigned long i;
-  int st;
   mpz_t q, t, u, v, w;
   int ret = ECM_NO_FACTOR_FOUND;
 

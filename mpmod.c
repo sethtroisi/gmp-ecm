@@ -1389,7 +1389,10 @@ mpres_sqr (mpres_t R, const mpres_t S1, mpmod_t modulus)
 #endif
 
   if (UNLIKELY(modulus->repr == ECM_MOD_BASE2 && modulus->Fermat >= 32768))
-    return mpres_mul (R, S1, S1, modulus);
+    {
+      mpres_mul (R, S1, S1, modulus);
+      return;
+    }
 
   switch (modulus->repr)
     {
