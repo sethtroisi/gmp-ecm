@@ -1,6 +1,6 @@
 /* GMP-ECM -- Integer factorization with ECM and Pollard 'P-1' methods.
 
-  Copyright 2001, 2002, 2003, 2004, 2005 Jim Fougeron, Laurent Fousse, Alexander Kruppa, Paul Zimmermann.
+  Copyright 2001, 2002, 2003, 2004, 2005, 2011 Jim Fougeron, Laurent Fousse, Alexander Kruppa, Paul Zimmermann.
 
   This program is free software; you can redistribute it and/or modify it
   under the terms of the GNU General Public License as published by the
@@ -295,8 +295,8 @@ print_config ()
   printf ("MEMORY_DEBUG undefined\n");
 #endif
 
-#ifdef NATIVE_REDC
-  printf ("NATIVE_REDC = %d\n", NATIVE_REDC);
+#ifdef USE_ASM_REDC
+  printf ("USE_ASM_REDC = %d\n", USE_ASM_REDC);
 #ifdef TUNE_MULREDC_THRESH
   printf ("TUNE_MULREDC_THRESH = %d\n", TUNE_MULREDC_THRESH);
 #else
@@ -313,7 +313,7 @@ print_config ()
   printf ("WINDOWS64_ABI undefined\n");
 #endif
 #else
-  printf ("NATIVE_REDC undefined\n");
+  printf ("USE_ASM_REDC undefined\n");
 #endif
 
 #ifdef WANT_ASSERT
@@ -901,7 +901,7 @@ main (int argc, char *argv[])
       out += sprintf (out, ", GWNUM %s", GWNUM_VERSION);
 #endif
 
-#ifdef NATIVE_REDC
+#ifdef USE_ASM_REDC
       out += sprintf (out, ", --enable-asm-redc");
 #endif
 

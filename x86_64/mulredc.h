@@ -8,7 +8,7 @@
 #define HAVE_NATIVE_MULREDC1_N
 /* Signals that we have assembly code for variable size redc */
 /* Undefined since recent versions of GMP are faster */
-/* #define HAVE_NATIVE_REDC3 */
+/* #define HAVE_ASM_REDC3 */
 
 /* Call the mulredc*() function with MS Windows parameter passing if
   WINDOWS64_ABI is defined. This is useful for testing the functions
