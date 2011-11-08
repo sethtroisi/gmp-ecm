@@ -101,6 +101,22 @@ extern FILE *ECM_STDOUT, *ECM_STDERR;
 #define ATTRIBUTE_CONST
 #endif
 
+#ifndef LIKELY
+#if defined(__GNUC__)
+#define LIKELY(x) __builtin_expect ((x) != 0, 1)
+#else
+#define LIKELY(x) x
+#endif
+#endif
+
+#ifndef UNLIKELY
+#if defined(__GNUC__)
+#define UNLIKELY(x) __builtin_expect ((x) != 0, 0)
+#else
+#define UNLIKELY(x) x
+#endif
+#endif
+
 /* Whether we build the polynomials in stage 2 as described in the literature 
    as products of (x - x_i) (NEGATED_ROOTS 0), or as 
    (x + x_i) (NEGATED_ROOTS 1) */
@@ -576,6 +592,8 @@ void mpres_pow (mpres_t, const mpres_t, const mpz_t, mpmod_t);
 void mpres_ui_pow (mpres_t, const unsigned long, const mpres_t, mpmod_t);
 #define mpres_mul __ECM(mpres_mul)
 void mpres_mul (mpres_t, const mpres_t, const mpres_t, mpmod_t) ATTRIBUTE_HOT;
+#define mpres_sqr __ECM(mpres_sqr)
+void mpres_sqr (mpres_t, const mpres_t, mpmod_t) ATTRIBUTE_HOT;
 #define mpres_mul_z_to_z __ECM(mpres_mul_z_to_z)
 void mpres_mul_z_to_z (mpz_t, const mpres_t, const mpz_t, mpmod_t);
 #define mpres_set_z_for_gcd __ECM(mpres_set_z_for_gcd)

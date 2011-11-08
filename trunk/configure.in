@@ -239,7 +239,7 @@ fi
 
 if test "x$enable_asm_redc" = xyes; then
 # do the necessary definitions and includes
-  AC_DEFINE([NATIVE_REDC],1,[Define to 1 to use asm redc])
+  AC_DEFINE([USE_ASM_REDC],1,[Define to 1 to use asm redc])
   test "x$CCAS" != x || CCAS="$CC -c"
   AC_SUBST([CCAS])
   GMP_PROG_M4

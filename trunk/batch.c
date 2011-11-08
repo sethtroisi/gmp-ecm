@@ -10,14 +10,10 @@
 #include "ecm-gmp.h"
 #include "ecm-impl.h"
 
-#define USE_REDC
-
-static unsigned long MUL = 0, SQR = 0;
-
 /* (x1:z1) <- 2(x1:z1)
    (x2:z2) <- (x1:z1) + (x2:z2)
    assume (x2:z2) - (x1:z1) = (2:1)
-   Uses 4 full multiplies and 4 full doubles.
+   Uses 4 modular multiplies and 4 modular squarings.
 */
 static void
 dup_add (mpres_t x1, mpres_t z1, mpres_t x2, mpres_t z2,
@@ -31,14 +27,14 @@ dup_add (mpres_t x1, mpres_t z1, mpres_t x2, mpres_t z2,
 
   mpres_mul (t, t, u, n); /* t = (x1-z1)(x2+z2) */
   mpres_mul (v, v, w, n); /* v = (x2-z2)(x1+z1) */
-  mpres_mul (w, w, w, n); /* w = (x1+z1)^2 */
-  mpres_mul (u, u, u, n); /* u = (x1-z1)^2 */
+  mpres_sqr (w, w, n);    /* w = (x1+z1)^2 */
+  mpres_sqr (u, u, n);    /* u = (x1-z1)^2 */
 
   mpres_mul (x1, u, w, n); /* xdup = (x1+z1)^2 * (x1-z1)^2 */
 
   mpres_sub (w, w, u, n);   /* w = (x1+z1)^2 - (x1-z1)^2 */
 
-  mpres_mul_ui (q, w, d, n); /* q = d* ((x1+z1)^2 - (x1-z1)^2) */
+  mpres_mul_ui (q, w, d, n); /* q = d * ((x1+z1)^2 - (x1-z1)^2) */
 
   mpres_add (u, u, q, n);  /* u = (x1-z1)^2 - d* ((x1+z1)^2 - (x1-z1)^2) */
   mpres_mul (z1, w, u, n); /* zdup = w * [(x1-z1)^2 - d* ((x1+z1)^2 - (x1-z1)^2)] */
@@ -46,12 +42,9 @@ dup_add (mpres_t x1, mpres_t z1, mpres_t x2, mpres_t z2,
   mpres_add (w, v, t, n);
   mpres_sub (v, v, t, n);
 
-  mpres_mul (v, v, v, n);
-  mpres_mul (x2, w, w, n);
+  mpres_sqr (v, v, n);
+  mpres_sqr (x2, w, n);
   mpres_add (z2, v, v, n);
-
-  MUL += 4;
-  SQR += 4;
 }
 
 
@@ -208,8 +201,6 @@ ecm_stage1_batch (mpz_t f, mpres_t x, mpres_t A, mpmod_t n, double B1,
           /* P1 <- P1+P2     P2 <- 2*P2 */
         dup_add (x2, z2, x1, z1, q, t, u, v, w, d, n);
     }
-
-  /* outputf (OUTPUT_VERBOSE, "  MUL=%lu SQR=%lu\n", MUL, SQR); */
 
   *B1done=B1;
 
