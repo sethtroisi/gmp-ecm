@@ -4,7 +4,7 @@
 #include <gmp.h>
 
 /* Signals that we have assembly code for variable size redc */
-#define HAVE_NATIVE_REDC3
+#define HAVE_ASM_REDC3
 
 extern void ecm_redc3(mp_limb_t *, const mp_limb_t *, mp_size_t, mp_limb_t);
 
