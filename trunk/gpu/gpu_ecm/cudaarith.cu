@@ -31,24 +31,24 @@ __device__ int Cuda_Cmp2
   for (i = NB_DIGITS-1;i>0;i--)
   {
     /*
-    si r=0 ne rien faire
-    si r=1 et A[i]=TWO32-1
-      si B[i]=TWO32-1 (?=0) (?dépend pas de la retenue)
-        on passe a l'itération suivante avec r=1
-      sinon
+    if r=0 do nothing
+    if r=1 and A[i]=TWO32-1
+      if B[i]=TWO32-1 (?=0) (depend on the carries?)
+        go to the next iteration with r=1
+      else
         A>B return 1
-    si r=1 et A[i]!=TWO32-1
-      aucune retenue ne peut se propager donc égalité au niveau d'avant
-      on fait cette itération normalement avec r=0
-    si r=-1 et A[i]=TWO32-1
-      une retenue peut se propager 
-      Si B[i]==0
-        suivant la retenue
-      Si B[i]>0
-        return -1 car si pas retenus de propagé alors c'est vrai au niveau
-        précedent et si retenue propages c'est vrai pour ce niveau
-    si r=-1 et A[i]!=TWO32-1
-      aucune retenue ne peut se propager 
+    if r=1 and A[i]!=TWO32-1
+      no carry can propagate so equality at the previous iteration
+      let set r=0 for the rest of the iteration
+    if r=-1 and A[i]=TWO32-1
+      a carry can be propagated 
+      if B[i]==0
+        depend on carry
+      if B[i]>0
+        return -1 because if no carry propagated then it true at the previous iteration
+        and if a carry is propagated it is true a this iteration
+    if r=-1 and A[i]!=TWO32-1
+      no carry can be propagated
       return -1
   */
     if (r==1 && A[i]==TWO32-1 && cy[i-1]==1)
