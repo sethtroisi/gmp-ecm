@@ -47,7 +47,6 @@ unsigned int findfactor(mpz_t N, mpz_t xfin, mpz_t zfin)
   }
   else //gcd !=1 (and gcd>0 because N>0) so we found a factor
   {
-    //vérifier si factor=N
     gmp_fprintf(stdout,"********** Factor found in step 1: %Zd\n",gcd);
     if (mpz_cmp(gcd,N)==0)
       fprintf(stdout,"Found input number N\n");
@@ -68,7 +67,6 @@ unsigned int findfactor(mpz_t N, mpz_t xfin, mpz_t zfin)
     
       mpz_clear(cofactor);
     }
-    //TODO ecrire facteur cofacteur is prime facteur es prime cofacteur..
     mpz_clear(gcd);
     return ECM_FACTOR_FOUND;
   }

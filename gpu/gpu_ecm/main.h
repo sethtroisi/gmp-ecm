@@ -6,7 +6,7 @@
 #include <sys/resource.h>
 #include <assert.h>
 
-//ca définit aussi le nombre de threads; problemes si plus grand que la taille d'un warp (ie 32)
+//also define number of threads; problems ig bigger tjhan the size of a warp (ie 32)
 //#define NB_DIGITS 32
 
 #define CHKSUMMOD 4294967291U
@@ -52,7 +52,7 @@ struct clock2_t
 #ifdef CC20
   #define MAJOR 2
   #define MINOR 0
-  #define CURVES_BY_BLOCK 16
+  #define CURVES_BY_BLOCK 32//16
   #define BLOCKS_BY_MP 1//3
   #define CURVES_BY_MP CURVES_BY_BLOCK*BLOCKS_BY_MP
 #endif

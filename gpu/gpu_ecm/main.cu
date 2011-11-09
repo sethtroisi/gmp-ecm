@@ -394,7 +394,7 @@ int main (int argc, char * argv[])
         write_resumefile_line (savefile, N, B1, xp, firstinvd, mpz_d);
       else if (ret==ECM_FACTOR_FOUND)
         fprintf(stdout,"Factor found with (d*2^32) mod N = %u\n",firstinvd);
-            //Mettre plutot A pour GMP-ECM
+            //Maybe print A for GMP-ECM
           
       if (i==0 || i==number_of_curves-1)
       {
