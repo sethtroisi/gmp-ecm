@@ -518,3 +518,436 @@ mpzspv_random (mpzspv_t x, spv_size_t offset, spv_size_t len, mpzspm_t mpzspm)
   for (i = 0; i < mpzspm->sp_num; i++)
     spv_random (x[i] + offset, len, mpzspm->spm[i]->sp);
 }
+
+
+/* Do multiplication via NTT. Depending on the value of "steps", does 
+   in-place forward transform of x, in-place forward transform of y, 
+   pair-wise multiplication of x by y to r, in-place inverse transform of r. 
+   Contrary to calling these three operations separately, this function does 
+   all three steps on a small-prime vector at a time, resulting in slightly 
+   better cache efficiency (also in preparation to storing NTT vectors on disk 
+   and reading them in for the multiplication). */
+
+void
+mpzspv_mul_ntt (mpzspv_t r, const spv_size_t offsetr, 
+    mpzspv_t x, const spv_size_t offsetx, const spv_size_t lenx,
+    mpzspv_t y, const spv_size_t offsety, const spv_size_t leny,
+    const spv_size_t ntt_size, const int monic, const spv_size_t monic_pos, 
+    mpzspm_t mpzspm, const int steps)
+{
+  spv_size_t log2_ntt_size;
+  int i;
+  
+  ASSERT (mpzspv_verify (x, offsetx, lenx, mpzspm));
+  ASSERT (mpzspv_verify (y, offsety, leny, mpzspm));
+  ASSERT (mpzspv_verify (x, offsetx + ntt_size, 0, mpzspm));
+  ASSERT (mpzspv_verify (y, offsety + ntt_size, 0, mpzspm));
+  ASSERT (mpzspv_verify (r, offsetr + ntt_size, 0, mpzspm));
+  
+  log2_ntt_size = ceil_log_2 (ntt_size);
+
+  /* Need parallelization at higher level (e.g., handling a branch of the 
+     product tree in one thread) to make this worthwhile for ECM */
+#define MPZSPV_MUL_NTT_OPENMP 0
+
+#if defined(_OPENMP) && MPZSPV_MUL_NTT_OPENMP
+#pragma omp parallel if (ntt_size > 16384)
+  {
+#pragma omp for
+#endif
+  for (i = 0; i < (int) mpzspm->sp_num; i++)
+    {
+      spv_size_t j;
+      spm_t spm = mpzspm->spm[i];
+      spv_t spvr = r[i] + offsetr;
+      spv_t spvx = x[i] + offsetx;
+      spv_t spvy = y[i] + offsety;
+
+      if ((steps & NTT_MUL_STEP_FFT1) != 0) {
+        if (ntt_size < lenx)
+          {
+            for (j = ntt_size; j < lenx; j += ntt_size)
+              spv_add (spvx, spvx, spvx + j, ntt_size, spm->sp);
+          }
+        if (ntt_size > lenx)
+          spv_set_zero (spvx + lenx, ntt_size - lenx);
+
+        if (monic)
+          spvx[lenx % ntt_size] = sp_add (spvx[lenx % ntt_size], 1, spm->sp);
+
+        spv_ntt_gfp_dif (spvx, log2_ntt_size, spm);
+      }
+
+      if ((steps & NTT_MUL_STEP_FFT2) != 0) {
+        if (ntt_size < leny)
+          {
+            for (j = ntt_size; j < leny; j += ntt_size)
+              spv_add (spvy, spvy, spvy + j, ntt_size, spm->sp);
+          }
+        if (ntt_size > leny)
+          spv_set_zero (spvy + leny, ntt_size - leny);
+
+        if (monic)
+          spvy[leny % ntt_size] = sp_add (spvy[leny % ntt_size], 1, spm->sp);
+
+        spv_ntt_gfp_dif (spvy, log2_ntt_size, spm);
+      }
+
+      if ((steps & NTT_MUL_STEP_MUL) != 0) {
+        spv_pwmul (spvr, spvx, spvy, ntt_size, spm->sp, spm->mul_c);
+      }
+
+      if ((steps & NTT_MUL_STEP_IFFT) != 0) {
+        ASSERT (sizeof (mp_limb_t) >= sizeof (sp_t));
+
+        spv_ntt_gfp_dit (spvr, log2_ntt_size, spm);
+
+        /* spm->sp - (spm->sp - 1) / ntt_size is the inverse of ntt_size */
+        spv_mul_sp (spvr, spvr, spm->sp - (spm->sp - 1) / ntt_size,
+            ntt_size, spm->sp, spm->mul_c);
+
+        if (monic_pos)
+          spvr[monic_pos % ntt_size] = sp_sub (spvr[monic_pos % ntt_size],
+              1, spm->sp);
+      }
+    }
+#if defined(_OPENMP) && MPZSPV_MUL_NTT_OPENMP
+  }
+#endif
+}
+
+/* Computes a DCT-I of the length dctlen. Input is the spvlen coefficients
+   in spv. tmp is temp space and must have space for 2*dctlen-2 sp_t's */
+
+void
+mpzspv_to_dct1 (mpzspv_t dct, const mpzspv_t spv, const spv_size_t spvlen, 
+                const spv_size_t dctlen, mpzspv_t tmp, 
+		const mpzspm_t mpzspm)
+{
+  const spv_size_t l = 2 * (dctlen - 1); /* Length for the DFT */
+  const spv_size_t log2_l = ceil_log_2 (l);
+  int j;
+
+#ifdef _OPENMP
+#pragma omp parallel private(j)
+  {
+#pragma omp for
+#endif
+  for (j = 0; j < (int) mpzspm->sp_num; j++)
+    {
+      const spm_t spm = mpzspm->spm[j];
+      spv_size_t i;
+      
+      /* Make a symmetric copy of spv in tmp. I.e. with spv = [3, 2, 1], 
+         spvlen = 3, dctlen = 5 (hence l = 8), we want 
+         tmp = [3, 2, 1, 0, 0, 0, 1, 2] */
+      spv_set (tmp[j], spv[j], spvlen);
+      spv_rev (tmp[j] + l - spvlen + 1, spv[j] + 1, spvlen - 1);
+      /* Now we have [3, 2, 1, ?, ?, ?, 1, 2]. Fill the ?'s with zeros. */
+      spv_set_sp (tmp[j] + spvlen, (sp_t) 0, l - 2 * spvlen + 1);
+
+#if 0
+      printf ("mpzspv_to_dct1: tmp[%d] = [", j);
+      for (i = 0; i < l; i++)
+          printf ("%lu, ", tmp[j][i]);
+      printf ("]\n");
+#endif
+      
+      spv_ntt_gfp_dif (tmp[j], log2_l, spm);
+
+#if 0
+      printf ("mpzspv_to_dct1: tmp[%d] = [", j);
+      for (i = 0; i < l; i++)
+          printf ("%lu, ", tmp[j][i]);
+      printf ("]\n");
+#endif
+
+      /* The forward transform is scrambled. We want elements [0 ... l/2]
+         of the unscrabled data, that is all the coefficients with the most 
+         significant bit in the index (in log2(l) word size) unset, plus the 
+         element at index l/2. By scrambling, these map to the elements with 
+         even index, plus the element at index 1. 
+         The elements with scrambled index 2*i are stored in h[i], the
+         element with scrambled index 1 is stored in h[params->l] */
+  
+#ifdef WANT_ASSERT
+      /* Test that the coefficients are symmetric (if they were unscrambled)
+         and that our algorithm for finding identical coefficients in the 
+         scrambled data works */
+      {
+        spv_size_t m = 5;
+        for (i = 2; i < l; i += 2L)
+          {
+            /* This works, but why? */
+            if (i + i / 2L > m)
+                m = 2L * m + 1L;
+
+            ASSERT (tmp[j][i] == tmp[j][m - i]);
+#if 0
+            printf ("mpzspv_to_dct1: DFT[%lu] == DFT[%lu]\n", i, m - i);
+#endif
+          }
+      }
+#endif
+
+      /* Copy coefficients to dct buffer */
+      for (i = 0; i < l / 2; i++)
+        dct[j][i] = tmp[j][i * 2];
+      dct[j][l / 2] = tmp[j][1];
+    }
+#ifdef _OPENMP
+  }
+#endif
+}
+
+
+/* Multiply the polynomial in "dft" by the RLP in "dct", where "dft" 
+   contains the polynomial coefficients (not FFT'd yet) and "dct" 
+   contains the DCT-I coefficients of the RLP. The latter are 
+   assumed to be in the layout produced by mpzspv_to_dct1().
+   Output are the coefficients of the product polynomial, stored in dft. 
+   The "steps" parameter controls which steps are computed:
+   NTT_MUL_STEP_FFT1: do forward transform
+   NTT_MUL_STEP_MUL: do point-wise product
+   NTT_MUL_STEP_IFFT: do inverse transform 
+*/
+
+void
+mpzspv_mul_by_dct (mpzspv_t dft, const mpzspv_t dct, const spv_size_t len, 
+		   const mpzspm_t mpzspm, const int steps)
+{
+  int j;
+  spv_size_t log2_len = ceil_log_2 (len);
+  
+#ifdef _OPENMP
+#pragma omp parallel private(j)
+  {
+#pragma omp for
+#endif
+    for (j = 0; j < (int) (mpzspm->sp_num); j++)
+      {
+	const spm_t spm = mpzspm->spm[j];
+	const spv_t spv = dft[j];
+	unsigned long i, m;
+	
+	/* Forward DFT of dft[j] */
+	if ((steps & NTT_MUL_STEP_FFT1) != 0)
+	  spv_ntt_gfp_dif (spv, log2_len, spm);
+	
+	/* Point-wise product */
+	if ((steps & NTT_MUL_STEP_MUL) != 0)
+	  {
+	    m = 5UL;
+	    
+	    spv[0] = sp_mul (spv[0], dct[j][0], spm->sp, spm->mul_c);
+	    spv[1] = sp_mul (spv[1], dct[j][len / 2UL], spm->sp, spm->mul_c);
+	    
+	    for (i = 2UL; i < len; i += 2UL)
+	      {
+		/* This works, but why? */
+		if (i + i / 2UL > m)
+		  m = 2UL * m + 1;
+		
+		spv[i] = sp_mul (spv[i], dct[j][i / 2UL], spm->sp, spm->mul_c);
+		spv[m - i] = sp_mul (spv[m - i], dct[j][i / 2UL], spm->sp, 
+				     spm->mul_c);
+	      }
+	  }
+	
+	/* Inverse transform of dft[j] */
+	if ((steps & NTT_MUL_STEP_IFFT) != 0)
+	  {
+	    spv_ntt_gfp_dit (spv, log2_len, spm);
+	    
+	    /* Divide by transform length. FIXME: scale the DCT of h instead */
+	    spv_mul_sp (spv, spv, spm->sp - (spm->sp - 1) / len, len, 
+			spm->sp, spm->mul_c);
+	  }
+      }
+#ifdef _OPENMP
+  }
+#endif
+}
+
+
+void 
+mpzspv_sqr_reciprocal (mpzspv_t dft, const spv_size_t n, 
+                       const mpzspm_t mpzspm)
+{
+  const spv_size_t log2_n = ceil_log_2 (n);
+  const spv_size_t len = ((spv_size_t) 2) << log2_n;
+  const spv_size_t log2_len = 1 + log2_n;
+  int j;
+
+  ASSERT(mpzspm->max_ntt_size % 3UL == 0UL);
+  ASSERT(len % 3UL != 0UL);
+  ASSERT(mpzspm->max_ntt_size % len == 0UL);
+
+#ifdef _OPENMP
+#pragma omp parallel
+  {
+#pragma omp for
+#endif
+    for (j = 0; j < (int) (mpzspm->sp_num); j++)
+      {
+        const spm_t spm = mpzspm->spm[j];
+        const spv_t spv = dft[j];
+        sp_t w1, w2, invlen;
+        const sp_t sp = spm->sp, mul_c = spm->mul_c;
+        spv_size_t i;
+
+        /* Zero out NTT elements [n .. len-n] */
+        spv_set_sp (spv + n, (sp_t) 0, len - 2*n + 1);
+
+#ifdef TRACE_ntt_sqr_reciprocal
+        if (j == 0)
+          {
+            printf ("ntt_sqr_reciprocal: NTT vector mod %lu\n", sp);
+            ntt_print_vec ("ntt_sqr_reciprocal: before weighting:", spv, len);
+          }
+#endif
+
+        /* Compute the root for the weight signal, a 3rd primitive root 
+           of unity */
+        w1 = sp_pow (spm->prim_root, mpzspm->max_ntt_size / 3UL, sp, 
+                     mul_c);
+        /* Compute iw= 1/w */
+        w2 = sp_pow (spm->inv_prim_root, mpzspm->max_ntt_size / 3UL, sp, 
+                     mul_c);
+#ifdef TRACE_ntt_sqr_reciprocal
+        if (j == 0)
+          printf ("w1 = %lu ,w2 = %lu\n", w1, w2);
+#endif
+        ASSERT(sp_mul(w1, w2, sp, mul_c) == (sp_t) 1);
+        ASSERT(w1 != (sp_t) 1);
+        ASSERT(sp_pow (w1, 3UL, sp, mul_c) == (sp_t) 1);
+        ASSERT(w2 != (sp_t) 1);
+        ASSERT(sp_pow (w2, 3UL, sp, mul_c) == (sp_t) 1);
+
+        /* Fill NTT elements spv[len-n+1 .. len-1] with coefficients and
+           apply weight signal to spv[i] and spv[l-i] for 0 <= i < n
+           Use the fact that w^i + w^{-i} = -1 if i != 0 (mod 3). */
+        for (i = 0; i + 2 < n; i += 3)
+          {
+            sp_t t, u;
+            
+	    if (i > 0)
+	      spv[len - i] = spv[i];
+            
+            t = spv[i + 1];
+            u = sp_mul (t, w1, sp, mul_c);
+            spv[i + 1] = u;
+            spv[len - i - 1] = sp_neg (sp_add (t, u, sp), sp);
+
+            t = spv[i + 2];
+            u = sp_mul (t, w2, sp, mul_c);
+            spv[i + 2] = u;
+            spv[len - i - 2] = sp_neg (sp_add (t, u, sp), sp);
+          }
+        if (i < n && i > 0)
+          {
+            spv[len - i] = spv[i];
+          }
+        if (i + 1 < n)
+          {
+            sp_t t, u;
+            t = spv[i + 1];
+            u = sp_mul (t, w1, sp, mul_c);
+            spv[i + 1] = u;
+            spv[len - i - 1] = sp_neg (sp_add (t, u, sp), sp);
+          }
+
+#ifdef TRACE_ntt_sqr_reciprocal
+      if (j == 0)
+        ntt_print_vec ("ntt_sqr_reciprocal: after weighting:", spv, len);
+#endif
+
+        /* Forward DFT of dft[j] */
+        spv_ntt_gfp_dif (spv, log2_len, spm);
+
+#ifdef TRACE_ntt_sqr_reciprocal
+        if (j == 0)
+          ntt_print_vec ("ntt_sqr_reciprocal: after forward transform:", 
+			 spv, len);
+#endif
+
+        /* Square the transformed vector point-wise */
+        spv_pwmul (spv, spv, spv, len, sp, mul_c);
+      
+#ifdef TRACE_ntt_sqr_reciprocal
+        if (j == 0)
+          ntt_print_vec ("ntt_sqr_reciprocal: after point-wise squaring:", 
+			 spv, len);
+#endif
+
+        /* Inverse transform of dft[j] */
+        spv_ntt_gfp_dit (spv, log2_len, spm);
+      
+#ifdef TRACE_ntt_sqr_reciprocal
+        if (j == 0)
+          ntt_print_vec ("ntt_sqr_reciprocal: after inverse transform:", 
+			 spv, len);
+#endif
+
+        /* Un-weight and divide by transform length */
+        invlen = sp - (sp - (sp_t) 1) / len; /* invlen = 1/len (mod sp) */
+        w1 = sp_mul (invlen, w1, sp, mul_c);
+        w2 = sp_mul (invlen, w2, sp, mul_c);
+        for (i = 0; i < 2 * n - 3; i += 3)
+          {
+            spv[i] = sp_mul (spv[i], invlen, sp, mul_c);
+            spv[i + 1] = sp_mul (spv[i + 1], w2, sp, mul_c);
+            spv[i + 2] = sp_mul (spv[i + 2], w1, sp, mul_c);
+          }
+        if (i < 2 * n - 1)
+          spv[i] = sp_mul (spv[i], invlen, sp, mul_c);
+        if (i < 2 * n - 2)
+          spv[i + 1] = sp_mul (spv[i + 1], w2, sp, mul_c);
+        
+#ifdef TRACE_ntt_sqr_reciprocal
+        if (j == 0)
+          ntt_print_vec ("ntt_sqr_reciprocal: after un-weighting:", spv, len);
+#endif
+
+        /* Separate the coefficients of R in the wrapped-around product. */
+
+        /* Set w1 = cuberoot(1)^l where cuberoot(1) is the same primitive
+           3rd root of unity we used for the weight signal */
+        w1 = sp_pow (spm->prim_root, mpzspm->max_ntt_size / 3UL, sp, 
+                     mul_c);
+        w1 = sp_pow (w1, len % 3UL, sp, mul_c);
+        
+        /* Set w2 = 1/(w1 - 1/w1). Incidentally, w2 = 1/sqrt(-3) */
+        w2 = sp_inv (w1, sp, mul_c);
+        w2 = sp_sub (w1, w2, sp);
+        w2 = sp_inv (w2, sp, mul_c);
+#ifdef TRACE_ntt_sqr_reciprocal
+        if (j == 0)
+          printf ("For separating: w1 = %lu, w2 = %lu\n", w1, w2);
+#endif
+        
+        for (i = len - (2*n - 2); i <= len / 2; i++)
+          {
+            sp_t t, u;
+            /* spv[i] = s_i + w^{-l} s_{l-i}. 
+               spv[l-i] = s_{l-i} + w^{-l} s_i */
+            t = sp_mul (spv[i], w1, sp, mul_c); /* t = w^l s_i + s_{l-i} */
+            t = sp_sub (t, spv[len - i], sp);   /* t = w^l s_i + w^{-l} s_i */
+            t = sp_mul (t, w2, sp, mul_c);      /* t = s_1 */
+
+            u = sp_sub (spv[i], t, sp);         /* u = w^{-l} s_{l-i} */
+            u = sp_mul (u, w1, sp, mul_c);      /* u = s_{l-i} */
+            spv[i] = t;
+            spv[len - i] = u;
+            ASSERT(i < len / 2 || t == u);
+          }
+
+#ifdef TRACE_ntt_sqr_reciprocal
+        if (j == 0)
+          ntt_print_vec ("ntt_sqr_reciprocal: after un-wrapping:", spv, len);
+#endif
+      }
+#ifdef _OPENMP
+    }
+#endif
+}

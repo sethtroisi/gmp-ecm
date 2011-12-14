@@ -2391,221 +2391,6 @@ mpzspv_init_mt (spv_size_t len, mpzspm_t mpzspm)
 }
 
 
-/* Copy the len/2 + 1 distinct coefficients of the DFT of a symmetric signal,
-   kinda as if a DCT had been used. The coefficients in the DFT are 
-   assumed to be scrambled. The output is not arranged like a regular 
-   scrambled DCT would be. */
-
-ATTRIBUTE_UNUSED
-static void
-ntt_dft_to_dct (mpzspv_t dct, mpzspv_t dft, unsigned long len, 
-		const mpzspm_t ntt_context)
-{
-  unsigned long i, j;
-#ifdef WANT_ASSERT
-  unsigned long m;
-#endif
-
-  /* The forward transform is scrambled. We want elements [0 ... l/2]
-     of the unscrabled data, that is all the coefficients with the most 
-     significant bit in the index (in log2(l) word size) unset, plus the 
-     element at index l/2. By scrambling, these map to the elements with 
-     even index, plus the element at index 1. 
-     The elements with scrambled index 2*i are stored in h[i], the
-     element with scrambled index 1 is stored in h[params->l] */
-  
-#ifdef WANT_ASSERT
-  /* Test that the coefficients are symmetric (if they were unscrambled) and 
-     that our algorithm for finding identical coefficients in the scrambled 
-     data works */
-  m = 5UL;
-  for (i = 2UL; i < len; i += 2UL)
-    {
-      /* This works, but why? */
-      if (i + i / 2UL > m)
-	  m = 2UL * m + 1UL;
-
-      for (j = 0UL; j < ntt_context->sp_num; j++)
-	{
-	  ASSERT (dft[j][i] == dft[j][m - i]);
-	}
-      outputf (OUTPUT_TRACE, "ntt_dft_to_dct: DFT[%lu] == DFT[%lu]\n",
-	       i, m - i);
-    }
-#endif
-  /* Copy coefficients to dct buffer */
-  for (j = 0UL; j < ntt_context->sp_num; j++)
-    {
-      for (i = 0UL; i < len / 2UL; i++)
-	  dct[j][i] = dft[j][i * 2UL];
-      dct[j][len / 2UL] = dft[j][1];
-    }
-}
-
-
-/* Computes a DCT-I of the length dctlen. Input is the spvlen coefficients
-   in spv. tmp is temp space and must have space for 2*dctlen-2 sp_t's */
-
-static void
-ntt_spv_to_dct (mpzspv_t dct, const mpzspv_t spv, const spv_size_t spvlen, 
-                const spv_size_t dctlen, mpzspv_t tmp, 
-		const mpzspm_t ntt_context)
-{
-  const spv_size_t l = 2 * (dctlen - 1); /* Length for the DFT */
-  const spv_size_t log2_l = ceil_log_2 (l);
-  int j;
-
-#ifdef _OPENMP
-#pragma omp parallel private(j)
-  {
-#pragma omp master
-    {
-      outputf (OUTPUT_VERBOSE, " using %d threads", omp_get_num_threads());
-    }
-#pragma omp for
-#endif
-  for (j = 0; j < (int) ntt_context->sp_num; j++)
-    {
-      const spm_t spm = ntt_context->spm[j];
-      spv_size_t i;
-      
-      /* Make a symmetric copy of spv in tmp. I.e. with spv = [3, 2, 1], 
-         spvlen = 3, dctlen = 5 (hence l = 8), we want 
-         tmp = [3, 2, 1, 0, 0, 0, 1, 2] */
-      spv_set (tmp[j], spv[j], spvlen);
-      spv_rev (tmp[j] + l - spvlen + 1, spv[j] + 1, spvlen - 1);
-      /* Now we have [3, 2, 1, ?, ?, ?, 1, 2]. Fill the ?'s with zeros. */
-      spv_set_sp (tmp[j] + spvlen, (sp_t) 0, l - 2 * spvlen + 1);
-
-#if 0
-      printf ("ntt_spv_to_dct: tmp[%d] = [", j);
-      for (i = 0; i < l; i++)
-          printf ("%lu, ", tmp[j][i]);
-      printf ("]\n");
-#endif
-      
-      spv_ntt_gfp_dif (tmp[j], log2_l, spm);
-
-#if 0
-      printf ("ntt_spv_to_dct: tmp[%d] = [", j);
-      for (i = 0; i < l; i++)
-          printf ("%lu, ", tmp[j][i]);
-      printf ("]\n");
-#endif
-
-      /* The forward transform is scrambled. We want elements [0 ... l/2]
-         of the unscrabled data, that is all the coefficients with the most 
-         significant bit in the index (in log2(l) word size) unset, plus the 
-         element at index l/2. By scrambling, these map to the elements with 
-         even index, plus the element at index 1. 
-         The elements with scrambled index 2*i are stored in h[i], the
-         element with scrambled index 1 is stored in h[params->l] */
-  
-#ifdef WANT_ASSERT
-      /* Test that the coefficients are symmetric (if they were unscrambled)
-         and that our algorithm for finding identical coefficients in the 
-         scrambled data works */
-      {
-        spv_size_t m = 5;
-        for (i = 2; i < l; i += 2L)
-          {
-            /* This works, but why? */
-            if (i + i / 2L > m)
-                m = 2L * m + 1L;
-
-            ASSERT (tmp[j][i] == tmp[j][m - i]);
-#if 0
-            outputf (OUTPUT_TRACE, "ntt_spv_to_dct: DFT[%lu] == DFT[%lu]\n",
-                     i, m - i);
-#endif
-          }
-      }
-#endif
-
-      /* Copy coefficients to dct buffer */
-      for (i = 0; i < l / 2; i++)
-        dct[j][i] = tmp[j][i * 2];
-      dct[j][l / 2] = tmp[j][1];
-    }
-#ifdef _OPENMP
-  }
-#endif
-}
-
-
-/* Multiply the polynomial in "dft" by the RLP in "dct", where "dft" 
-   contains the polynomial coefficients (not FFT'd yet) and "dct" 
-   contains the DCT-I coefficients of the RLP. The latter are 
-   assumed to be in the layout produced by ntt_dft_to_dct().
-   Output are the coefficients of the product polynomial, stored in dft. 
-   The "which" parameter controls which steps are computed:
-   bit 0: do forward transform
-   bit 1: do point-wise product
-   bit 2: do inverse transform 
-*/
-
-static void
-ntt_mul_by_dct (mpzspv_t dft, const mpzspv_t dct, const unsigned long len, 
-		const mpzspm_t ntt_context, const int which)
-{
-  int j;
-  spv_size_t log2_len = ceil_log_2 (len);
-  
-#ifdef _OPENMP
-#pragma omp parallel private(j)
-  {
-#pragma omp master 
-    {
-      outputf (OUTPUT_VERBOSE, " using %d threads", omp_get_num_threads());
-    }
-#pragma omp for
-#endif
-    for (j = 0; j < (int) (ntt_context->sp_num); j++)
-      {
-	const spm_t spm = ntt_context->spm[j];
-	const spv_t spv = dft[j];
-	unsigned long i, m;
-	
-	/* Forward DFT of dft[j] */
-	if (which & 1)
-	  spv_ntt_gfp_dif (spv, log2_len, spm);
-	
-	/* Point-wise product */
-	if (which & 2)
-	  {
-	    m = 5UL;
-	    
-	    spv[0] = sp_mul (spv[0], dct[j][0], spm->sp, spm->mul_c);
-	    spv[1] = sp_mul (spv[1], dct[j][len / 2UL], spm->sp, spm->mul_c);
-	    
-	    for (i = 2UL; i < len; i += 2UL)
-	      {
-		/* This works, but why? */
-		if (i + i / 2UL > m)
-		  m = 2UL * m + 1;
-		
-		spv[i] = sp_mul (spv[i], dct[j][i / 2UL], spm->sp, spm->mul_c);
-		spv[m - i] = sp_mul (spv[m - i], dct[j][i / 2UL], spm->sp, 
-				     spm->mul_c);
-	      }
-	  }
-	
-	/* Inverse transform of dft[j] */
-	if (which & 4)
-	  {
-	    spv_ntt_gfp_dit (spv, log2_len, spm);
-	    
-	    /* Divide by transform length. FIXME: scale the DCT of h instead */
-	    spv_mul_sp (spv, spv, spm->sp - (spm->sp - 1) / len, len, 
-			spm->sp, spm->mul_c);
-	  }
-      }
-#ifdef _OPENMP
-  }
-#endif
-}
-
-
 ATTRIBUTE_UNUSED
 static void
 ntt_print_vec (const char *msg, const spv_t spv, const spv_size_t l)
@@ -2632,13 +2417,9 @@ static void
 ntt_sqr_reciprocal (mpzv_t R, const mpzv_t S, mpzspv_t dft, 
 		    const spv_size_t n, const mpzspm_t ntt_context)
 {
-  const spv_size_t log2_n = ceil_log2 (n);
-  const spv_size_t len = ((spv_size_t) 2) << log2_n;
-  const spv_size_t log2_len = 1 + log2_n;
 #ifdef WANT_ASSERT
   mpz_t S_eval_1, R_eval_1;
 #endif
-  int j;
   
   if (n == 0)
     return;
@@ -2661,185 +2442,18 @@ ntt_sqr_reciprocal (mpzv_t R, const mpzv_t S, mpzspv_t dft,
 #ifdef TRACE_ntt_sqr_reciprocal
   printf ("ntt_sqr_reciprocal: n %lu, length %lu\n", n, len);
   gmp_printf ("Input polynomial is %Zd", S[0]);
-  for (j = 1; (spv_size_t) j < n; j++)
-    gmp_printf (" + %Zd * (x^%lu + x^(-%lu))", S[j], j, j);
+  { 
+    int j;
+    for (j = 1; (spv_size_t) j < n; j++)
+      gmp_printf (" + %Zd * (x^%lu + x^(-%lu))", S[j], j, j);
+  }
   printf ("\n");
 #endif
-  
-  ASSERT(ntt_context->max_ntt_size % 3UL == 0UL);
-  ASSERT(len % 3UL != 0UL);
-  ASSERT(ntt_context->max_ntt_size % len == 0UL);
+
   /* Fill NTT elements [0 .. n-1] with coefficients */
-  mpzspv_from_mpzv (dft, (spv_size_t) 0, S, (spv_size_t) n, ntt_context);
-
-#ifdef _OPENMP
-#pragma omp parallel
-  {
-#pragma omp for
-#endif
-    for (j = 0UL; j < (int) (ntt_context->sp_num); j++)
-      {
-        const spm_t spm = ntt_context->spm[j];
-        const spv_t spv = dft[j];
-        sp_t w1, w2, invlen;
-        const sp_t sp = spm->sp, mul_c = spm->mul_c;
-        spv_size_t i;
-
-        /* Zero out NTT elements [n .. len-n] */
-        spv_set_sp (spv + n, (sp_t) 0, len - 2*n + 1);
-
-#ifdef TRACE_ntt_sqr_reciprocal
-        if (j == 0UL)
-          {
-            printf ("ntt_sqr_reciprocal: NTT vector mod %lu\n", sp);
-            ntt_print_vec ("ntt_sqr_reciprocal: before weighting:", spv, len);
-          }
-#endif
-
-        /* Compute the root for the weight signal, a 3rd primitive root 
-           of unity */
-        w1 = sp_pow (spm->prim_root, ntt_context->max_ntt_size / 3UL, sp, 
-                     mul_c);
-        /* Compute iw= 1/w */
-        w2 = sp_pow (spm->inv_prim_root, ntt_context->max_ntt_size / 3UL, sp, 
-                     mul_c);
-#ifdef TRACE_ntt_sqr_reciprocal
-        if (j == 0)
-          printf ("w1 = %lu ,w2 = %lu\n", w1, w2);
-#endif
-        ASSERT(sp_mul(w1, w2, sp, mul_c) == (sp_t) 1);
-        ASSERT(w1 != (sp_t) 1);
-        ASSERT(sp_pow (w1, 3UL, sp, mul_c) == (sp_t) 1);
-        ASSERT(w2 != (sp_t) 1);
-        ASSERT(sp_pow (w2, 3UL, sp, mul_c) == (sp_t) 1);
-
-        /* Fill NTT elements spv[len-n+1 .. len-1] with coefficients and
-           apply weight signal to spv[i] and spv[l-i] for 0 <= i < n
-           Use the fact that w^i + w^{-i} = -1 if i != 0 (mod 3). */
-        for (i = 0; i < n - 2UL; i += 3)
-          {
-            sp_t t, u;
-            
-	    if (i > 0)
-	      spv[len - i] = spv[i];
-            
-            t = spv[i + 1];
-            u = sp_mul (t, w1, sp, mul_c);
-            spv[i + 1] = u;
-            spv[len - i - 1] = sp_neg (sp_add (t, u, sp), sp);
-
-            t = spv[i + 2];
-            u = sp_mul (t, w2, sp, mul_c);
-            spv[i + 2] = u;
-            spv[len - i - 2] = sp_neg (sp_add (t, u, sp), sp);
-          }
-        if (i < n && i > 0)
-          {
-            spv[len - i] = spv[i];
-          }
-        if (i < n - 1UL)
-          {
-            sp_t t, u;
-            t = spv[i + 1];
-            u = sp_mul (t, w1, sp, mul_c);
-            spv[i + 1] = u;
-            spv[len - i - 1] = sp_neg (sp_add (t, u, sp), sp);
-          }
-
-#ifdef TRACE_ntt_sqr_reciprocal
-      if (j == 0UL)
-        ntt_print_vec ("ntt_sqr_reciprocal: after weighting:", spv, len);
-#endif
-
-        /* Forward DFT of dft[j] */
-        spv_ntt_gfp_dif (spv, log2_len, spm);
-
-#if 0 && defined(TRACE_ntt_sqr_reciprocal)
-        if (j == 0UL)
-          ntt_print_vec ("ntt_sqr_reciprocal: after forward transform:", 
-			 spv, len);
-#endif
-
-        /* Square the transformed vector point-wise */
-        spv_pwmul (spv, spv, spv, len, sp, mul_c);
-      
-#if 0 && defined(TRACE_ntt_sqr_reciprocal)
-        if (j == 0UL)
-          ntt_print_vec ("ntt_sqr_reciprocal: after point-wise squaring:", 
-			 spv, len);
-#endif
-
-        /* Inverse transform of dft[j] */
-        spv_ntt_gfp_dit (spv, log2_len, spm);
-      
-#if 0 && defined(TRACE_ntt_sqr_reciprocal)
-        if (j == 0UL)
-          ntt_print_vec ("ntt_sqr_reciprocal: after inverse transform:", 
-			 spv, len);
-#endif
-
-        /* Un-weight and divide by transform length */
-        invlen = sp - (sp - (sp_t) 1) / len; /* weight = 1/len (mod sp) */
-        w1 = sp_mul (invlen, w1, sp, mul_c);
-        w2 = sp_mul (invlen, w2, sp, mul_c);
-        for (i = 0; i < 2 * n - 3; i += 3)
-          {
-            spv[i] = sp_mul (spv[i], invlen, sp, mul_c);
-            spv[i + 1] = sp_mul (spv[i + 1], w2, sp, mul_c);
-            spv[i + 2] = sp_mul (spv[i + 2], w1, sp, mul_c);
-          }
-        if (i < 2 * n - 1)
-          spv[i] = sp_mul (spv[i], invlen, sp, mul_c);
-        if (i < 2 * n - 2)
-          spv[i + 1] = sp_mul (spv[i + 1], w2, sp, mul_c);
-        
-#ifdef TRACE_ntt_sqr_reciprocal
-        if (j == 0UL)
-          ntt_print_vec ("ntt_sqr_reciprocal: after un-weighting:", spv, len);
-#endif
-
-        /* Separate the coefficients of R in the wrapped-around product. */
-
-        /* Set w1 = cuberoot(1)^l where cuberoot(1) is the same primitive
-           3rd root of unity we used for the weight signal */
-        w1 = sp_pow (spm->prim_root, ntt_context->max_ntt_size / 3UL, sp, 
-                     mul_c);
-        w1 = sp_pow (w1, len % 3UL, sp, mul_c);
-        
-        /* Set w2 = 1/(w1 - 1/w1). Incidentally, w2 = 1/sqrt(-3) */
-        w2 = sp_inv (w1, sp, mul_c);
-        w2 = sp_sub (w1, w2, sp);
-        w2 = sp_inv (w2, sp, mul_c);
-#ifdef TRACE_ntt_sqr_reciprocal
-        if (j == 0UL)
-          printf ("For separating: w1 = %lu, w2 = %lu\n", w1, w2);
-#endif
-        
-        for (i = len - (2*n - 2); i <= len / 2; i++)
-          {
-            sp_t t, u;
-            /* spv[i] = s_i + w^{-l} s_{l-i}. 
-               spv[l-i] = s_{l-i} + w^{-l} s_i */
-            t = sp_mul (spv[i], w1, sp, mul_c); /* t = w^l s_i + s_{l-i} */
-            t = sp_sub (t, spv[len - i], sp);   /* t = w^l s_i + w^{-l} s_i */
-            t = sp_mul (t, w2, sp, mul_c);      /* t = s_1 */
-
-            u = sp_sub (spv[i], t, sp);         /* u = w^{-l} s_{l-i} */
-            u = sp_mul (u, w1, sp, mul_c);      /* u = s_{l-i} */
-            spv[i] = t;
-            spv[len - i] = u;
-            ASSERT(i < len / 2 || t == u);
-          }
-
-#ifdef TRACE_ntt_sqr_reciprocal
-        if (j == 0UL)
-          ntt_print_vec ("ntt_sqr_reciprocal: after un-wrapping:", spv, len);
-#endif
-      }
-#ifdef _OPENMP
-    }
-#endif
-
+  mpzspv_from_mpzv (dft, (spv_size_t) 0, S, n, ntt_context);
+  mpzspv_sqr_reciprocal (dft, n, ntt_context);
+  
 #if defined(_OPENMP)
 #pragma omp parallel if (n > 50)
 #endif
@@ -3369,10 +2983,13 @@ pm1fs2_ntt (mpz_t f, const mpres_t X, mpmod_t modulus,
 
   /* Compute the DCT-I of h */
   outputf (OUTPUT_VERBOSE, "Computing DCT-I of h");
+#ifdef _OPENMP
+  outputf (OUTPUT_VERBOSE, " using %d threads", omp_get_thread_limit());
+#endif
   timestart = cputime ();
   realstart = realtime ();
   
-  ntt_spv_to_dct (h_ntt, h_ntt, params->s_1 / 2 + 1, params->l / 2 + 1, 
+  mpzspv_to_dct1 (h_ntt, h_ntt, params->s_1 / 2 + 1, params->l / 2 + 1, 
                   g_ntt, ntt_context);
   print_elapsed_time (OUTPUT_VERBOSE, timestart, realstart);
   
@@ -3394,9 +3011,13 @@ pm1fs2_ntt (mpz_t f, const mpres_t X, mpmod_t modulus,
 
       /* Do the convolution */
       outputf (OUTPUT_VERBOSE, "Computing g*h");
+#ifdef _OPENMP
+      outputf (OUTPUT_VERBOSE, " using %d threads", omp_get_thread_limit());
+#endif
       timestart = cputime ();
       realstart = realtime ();
-      ntt_mul_by_dct (g_ntt, h_ntt, params->l, ntt_context, 7);
+      mpzspv_mul_by_dct (g_ntt, h_ntt, params->l, ntt_context, 
+        NTT_MUL_STEP_FFT1 + NTT_MUL_STEP_MUL + NTT_MUL_STEP_IFFT);
       print_elapsed_time (OUTPUT_VERBOSE, timestart, realstart);
       
       /* Compute GCD of N and coefficients of product polynomial */
@@ -4726,16 +4347,22 @@ pp1fs2_ntt (mpz_t f, const mpres_t X, mpmod_t modulus,
   
   /* Compute DCT-I of h_x and h_y */
   outputf (OUTPUT_VERBOSE, "Computing DCT-I of h_x");
+#ifdef _OPENMP
+  outputf (OUTPUT_VERBOSE, " using %d threads", omp_get_thread_limit());
+#endif
   timestart = cputime ();
   realstart = realtime ();
-  ntt_spv_to_dct (h_x_ntt, h_x_ntt, params->s_1 / 2 + 1, params->l / 2 + 1,
+  mpzspv_to_dct1 (h_x_ntt, h_x_ntt, params->s_1 / 2 + 1, params->l / 2 + 1,
 		  g_x_ntt, ntt_context);
   print_elapsed_time (OUTPUT_VERBOSE, timestart, realstart);
 
   outputf (OUTPUT_VERBOSE, "Computing DCT-I of h_y");
+#ifdef _OPENMP
+  outputf (OUTPUT_VERBOSE, " using %d threads", omp_get_thread_limit());
+#endif
   timestart = cputime ();
   realstart = realtime ();
-  ntt_spv_to_dct (h_y_ntt, h_y_ntt, params->s_1 / 2 + 1, params->l / 2 + 1,
+  mpzspv_to_dct1 (h_y_ntt, h_y_ntt, params->s_1 / 2 + 1, params->l / 2 + 1,
 		  g_x_ntt, ntt_context);
   print_elapsed_time (OUTPUT_VERBOSE, timestart, realstart);
 
@@ -4761,9 +4388,13 @@ pp1fs2_ntt (mpz_t f, const mpres_t X, mpmod_t modulus,
 
 	  /* Do the convolution product of g_x * h_x */
 	  outputf (OUTPUT_VERBOSE, "Computing g_x*h_x");
+#ifdef _OPENMP
+          outputf (OUTPUT_VERBOSE, " using %d threads", omp_get_thread_limit());
+#endif
 	  timestart = cputime ();
 	  realstart = realtime ();
-	  ntt_mul_by_dct (g_x_ntt, h_x_ntt, params->l, ntt_context, 7);
+	  mpzspv_mul_by_dct (g_x_ntt, h_x_ntt, params->l, ntt_context, 
+	    NTT_MUL_STEP_FFT1 + NTT_MUL_STEP_MUL + NTT_MUL_STEP_IFFT);
 	  /* Store the product coefficients we want in R */
 	  mpzspv_to_mpzv (g_x_ntt, params->s_1 / 2, R, nr, ntt_context);
 	  print_elapsed_time (OUTPUT_VERBOSE, timestart, realstart);
@@ -4775,9 +4406,13 @@ pp1fs2_ntt (mpz_t f, const mpres_t X, mpmod_t modulus,
 	  
 	  /* Do the convolution product of g_y * (Delta * h_y) */
 	  outputf (OUTPUT_VERBOSE, "Computing g_y*h_y");
+#ifdef _OPENMP
+          outputf (OUTPUT_VERBOSE, " using %d threads", omp_get_thread_limit());
+#endif
 	  timestart = cputime ();
 	  realstart = realtime ();
-	  ntt_mul_by_dct (g_y_ntt, h_y_ntt, params->l, ntt_context, 7);
+	  mpzspv_mul_by_dct (g_y_ntt, h_y_ntt, params->l, ntt_context, 
+	    NTT_MUL_STEP_FFT1 + NTT_MUL_STEP_MUL + NTT_MUL_STEP_IFFT);
 	  print_elapsed_time (OUTPUT_VERBOSE, timestart, realstart);
 	  
 	  /* Compute product of sum of coefficients and gcd with N */
@@ -4793,23 +4428,35 @@ pp1fs2_ntt (mpz_t f, const mpres_t X, mpmod_t modulus,
 			  modulus, ntt_context);
 
 	  outputf (OUTPUT_VERBOSE, "Computing forward NTT of g_x");
+#ifdef _OPENMP
+          outputf (OUTPUT_VERBOSE, " using %d threads", omp_get_thread_limit());
+#endif
 	  timestart = cputime ();
 	  realstart = realtime ();
-	  ntt_mul_by_dct (g_x_ntt, h_x_ntt, params->l, ntt_context, 3);
+	  mpzspv_mul_by_dct (g_x_ntt, h_x_ntt, params->l, ntt_context, 
+	    NTT_MUL_STEP_FFT1 + NTT_MUL_STEP_MUL);
 	  print_elapsed_time (OUTPUT_VERBOSE, timestart, realstart);
 	  
 	  outputf (OUTPUT_VERBOSE, "Computing forward NTT of g_y");
+#ifdef _OPENMP
+          outputf (OUTPUT_VERBOSE, " using %d threads", omp_get_thread_limit());
+#endif
 	  timestart = cputime ();
 	  realstart = realtime ();
-	  ntt_mul_by_dct (g_y_ntt, h_y_ntt, params->l, ntt_context, 3);
+	  mpzspv_mul_by_dct (g_y_ntt, h_y_ntt, params->l, ntt_context, 
+	    NTT_MUL_STEP_FFT1 + NTT_MUL_STEP_MUL);
 	  print_elapsed_time (OUTPUT_VERBOSE, timestart, realstart);
 	  
 	  outputf (OUTPUT_VERBOSE, "Adding and computing inverse NTT of sum");
+#ifdef _OPENMP
+          outputf (OUTPUT_VERBOSE, " using %d threads", omp_get_thread_limit());
+#endif
 	  timestart = cputime ();
 	  realstart = realtime ();
 	  mpzspv_add (g_x_ntt, (spv_size_t) 0, g_x_ntt, (spv_size_t) 0, 
 	              g_y_ntt, (spv_size_t) 0, params->l, ntt_context);
-	  ntt_mul_by_dct (g_x_ntt, NULL, params->l, ntt_context, 4);
+	  mpzspv_mul_by_dct (g_x_ntt, NULL, params->l, ntt_context, 
+	    NTT_MUL_STEP_IFFT);
 	  print_elapsed_time (OUTPUT_VERBOSE, timestart, realstart);
 	  
 	  ntt_gcd (mt, product_ptr, g_x_ntt, params->s_1 / 2, NULL, nr, 
