@@ -127,6 +127,13 @@ typedef __sp_nttdata sp_nttdata_t[1];
 
 #define MAX_NTT_BLOCK_SIZE 128
 
+/* Which steps to perform in convolution product funtions:
+   forward transform, pair-wise multiplication, inverse transform */
+#define NTT_MUL_STEP_FFT1 1
+#define NTT_MUL_STEP_FFT2 2
+#define NTT_MUL_STEP_MUL 4
+#define NTT_MUL_STEP_IFFT 8
+
 /* SPM */
 
 /* small prime modulus - this contains some precomputed constants to
@@ -518,6 +525,14 @@ void mpzspv_pwmul (mpzspv_t, spv_size_t, mpzspv_t, spv_size_t, mpzspv_t,
 void mpzspv_to_ntt (mpzspv_t, spv_size_t, spv_size_t, spv_size_t, int,
     mpzspm_t);
 void mpzspv_from_ntt (mpzspv_t, spv_size_t, spv_size_t, spv_size_t, mpzspm_t);
+void mpzspv_mul_ntt (mpzspv_t, spv_size_t, mpzspv_t, spv_size_t, spv_size_t, 
+    mpzspv_t, spv_size_t, spv_size_t, spv_size_t, int, spv_size_t, mpzspm_t, 
+    int);
 void mpzspv_random (mpzspv_t, spv_size_t, spv_size_t, mpzspm_t);
+void mpzspv_to_dct1 (mpzspv_t, mpzspv_t, spv_size_t, spv_size_t, mpzspv_t, 
+    mpzspm_t);
+void mpzspv_mul_by_dct (mpzspv_t, const mpzspv_t, spv_size_t, const mpzspm_t, 
+    int);
+void mpzspv_sqr_reciprocal (mpzspv_t, spv_size_t, const mpzspm_t);
 
 #endif /* _SP_H */
