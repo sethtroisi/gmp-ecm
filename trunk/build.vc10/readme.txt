@@ -95,10 +95,19 @@ and each of these has the following configurations:
 When a version of ecm and ecmlib are built the library and the application
 are put in the directory matching the configuration that has been built:
 
-   build.vc10\win32\release
-   build.vc10\win32\debug
-   build.vc10\x64\release
-   build.vc10\x64\debug
+    GMP-ECM
+      buid.vc10     -- ECM build files 
+      lib           -- ECM static library files
+      dll           -- ECM dynamic library files
+      bin           -- ECM executable files
+      
+within these lib, dll and bin directories, the outputs are located in
+sub-directories determined by the platform and configuration:
+ 
+   win32\release
+   win32\debug
+   x64\release
+   x64\debug
 
 If you don't want assembler support you need to change the define:      
 
@@ -124,5 +133,5 @@ Tests
 The file tests.py is a python script that runs the ECM tests. It runs the
 x64/release-amd version by default but can be edited to test other builds.
 
-    Brian Gladman, 4th March 2010
+    Brian Gladman, 20/12/2011
 
