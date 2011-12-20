@@ -119,28 +119,28 @@
   <PropertyGroup Label="UserMacros" />
   <PropertyGroup>
     <_ProjectFileVersion>10.0.30128.1</_ProjectFileVersion>
-    <OutDir Condition="'$(Configuration)|$(Platform)'=='Debug-AMD|Win32'">$(SolutionDir)$(Platform)\Debug\</OutDir>
+    <OutDir Condition="'$(Configuration)|$(Platform)'=='Debug-AMD|Win32'">$(SolutionDir)..\lib\$(Platform)\Debug\</OutDir>
     <IntDir Condition="'$(Configuration)|$(Platform)'=='Debug-AMD|Win32'">$(Platform)\Debug\</IntDir>
     <LinkIncremental Condition="'$(Configuration)|$(Platform)'=='Debug-AMD|Win32'">true</LinkIncremental>
-    <OutDir Condition="'$(Configuration)|$(Platform)'=='Debug-AMD|x64'">$(SolutionDir)$(Platform)\Debug\</OutDir>
+    <OutDir Condition="'$(Configuration)|$(Platform)'=='Debug-AMD|x64'">$(SolutionDir)..\lib\$(Platform)\Debug\</OutDir>
     <IntDir Condition="'$(Configuration)|$(Platform)'=='Debug-AMD|x64'">$(Platform)\Debug\</IntDir>
     <LinkIncremental Condition="'$(Configuration)|$(Platform)'=='Debug-AMD|x64'">true</LinkIncremental>
-    <OutDir Condition="'$(Configuration)|$(Platform)'=='Release-AMD|Win32'">$(SolutionDir)$(Platform)\Release\</OutDir>
+    <OutDir Condition="'$(Configuration)|$(Platform)'=='Release-AMD|Win32'">$(SolutionDir)..\lib\$(Platform)\Release\</OutDir>
     <IntDir Condition="'$(Configuration)|$(Platform)'=='Release-AMD|Win32'">$(Platform)\Release\</IntDir>
     <LinkIncremental Condition="'$(Configuration)|$(Platform)'=='Release-AMD|Win32'">false</LinkIncremental>
-    <OutDir Condition="'$(Configuration)|$(Platform)'=='Release-AMD|x64'">$(SolutionDir)$(Platform)\Release\</OutDir>
+    <OutDir Condition="'$(Configuration)|$(Platform)'=='Release-AMD|x64'">$(SolutionDir)..\lib\$(Platform)\Release\</OutDir>
     <IntDir Condition="'$(Configuration)|$(Platform)'=='Release-AMD|x64'">$(Platform)\Release\</IntDir>
     <LinkIncremental Condition="'$(Configuration)|$(Platform)'=='Release-AMD|x64'">false</LinkIncremental>
-    <OutDir Condition="'$(Configuration)|$(Platform)'=='Release-Intel|Win32'">$(SolutionDir)$(Platform)\Release\</OutDir>
+    <OutDir Condition="'$(Configuration)|$(Platform)'=='Release-Intel|Win32'">$(SolutionDir)..\lib\$(Platform)\Release\</OutDir>
     <IntDir Condition="'$(Configuration)|$(Platform)'=='Release-Intel|Win32'">$(Platform)\Release\</IntDir>
     <LinkIncremental Condition="'$(Configuration)|$(Platform)'=='Release-Intel|Win32'">false</LinkIncremental>
-    <OutDir Condition="'$(Configuration)|$(Platform)'=='Release-Intel|x64'">$(SolutionDir)$(Platform)\Release\</OutDir>
+    <OutDir Condition="'$(Configuration)|$(Platform)'=='Release-Intel|x64'">$(SolutionDir)..\lib\$(Platform)\Release\</OutDir>
     <IntDir Condition="'$(Configuration)|$(Platform)'=='Release-Intel|x64'">$(Platform)\Release\</IntDir>
     <LinkIncremental Condition="'$(Configuration)|$(Platform)'=='Release-Intel|x64'">false</LinkIncremental>
-    <OutDir Condition="'$(Configuration)|$(Platform)'=='Debug-Intel|Win32'">$(SolutionDir)$(Platform)\Debug\</OutDir>
+    <OutDir Condition="'$(Configuration)|$(Platform)'=='Debug-Intel|Win32'">$(SolutionDir)..\lib\$(Platform)\Debug\</OutDir>
     <IntDir Condition="'$(Configuration)|$(Platform)'=='Debug-Intel|Win32'">$(Platform)\Debug\</IntDir>
     <LinkIncremental Condition="'$(Configuration)|$(Platform)'=='Debug-Intel|Win32'">true</LinkIncremental>
-    <OutDir Condition="'$(Configuration)|$(Platform)'=='Debug-Intel|x64'">$(SolutionDir)$(Platform)\Debug\</OutDir>
+    <OutDir Condition="'$(Configuration)|$(Platform)'=='Debug-Intel|x64'">$(SolutionDir)..\lib\$(Platform)\Debug\</OutDir>
     <IntDir Condition="'$(Configuration)|$(Platform)'=='Debug-Intel|x64'">$(Platform)\Debug\</IntDir>
     <LinkIncremental Condition="'$(Configuration)|$(Platform)'=='Debug-Intel|x64'">true</LinkIncremental>
   </PropertyGroup>
