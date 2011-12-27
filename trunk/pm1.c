@@ -937,6 +937,9 @@ pm1 (mpz_t f, mpz_t p, mpz_t N, mpz_t go, double *B1done, double B1,
 	      lmax_NTT = MIN (lmax_NTT, t);
 	    }
 	  outputf (OUTPUT_DEVVERBOSE, "NTT can handle lmax <= %lu\n", lmax_NTT);
+          /* FIXME: if both ntt and no-ntt are tried, but finally ntt is
+             preferred, the last B2 bound computed is that of no-ntt,
+             which is thus wrong */
           P_ntt = choose_P (B2min, B2, lmax_NTT, k, &params_ntt, 
                             B2min, B2, 1, ECM_PM1);
           if (P_ntt != ECM_ERROR)
@@ -957,14 +960,18 @@ pm1 (mpz_t f, mpz_t p, mpz_t N, mpz_t go, double *B1done, double B1,
 	  outputf (OUTPUT_DEVVERBOSE, "non-NTT can handle lmax <= %lu\n", 
 		   lmax_noNTT);
 	}
-      P_nontt = choose_P (B2min, B2, lmax_noNTT, k, &params_nontt, 
-                          B2min, B2, 0, ECM_PM1);
+      if (use_ntt != 2)
+        P_nontt = choose_P (B2min, B2, lmax_noNTT, k, &params_nontt, 
+                            B2min, B2, 0, ECM_PM1);
+      else
+        P_nontt = ECM_ERROR;
       if (P_nontt != ECM_ERROR)
         outputf (OUTPUT_DEVVERBOSE, 
                  "Parameters for non-NTT: P=%lu, l=%lu\n", 
                  params_nontt.P, params_nontt.l);
       
-      if ((!use_ntt || P_ntt == ECM_ERROR) && P_nontt == ECM_ERROR)
+      if (((!use_ntt || P_ntt == ECM_ERROR) && P_nontt == ECM_ERROR) ||
+          (use_ntt == 2 && P_ntt == ECM_ERROR))
         {
           outputf (OUTPUT_ERROR, 
                    "Error: cannot choose suitable P value for your stage 2 "
@@ -977,17 +984,21 @@ pm1 (mpz_t f, mpz_t p, mpz_t N, mpz_t go, double *B1done, double B1,
 
       /* Now decide wether to take NTT or non-NTT.
          How to choose the better one is not an easy question.
-         It will depend on the speed ration between NTT/non-NTT code,
+         It will depend on the speed ratio between NTT/non-NTT code,
          their difference in memory use and available memory.
          For now, we choose the one that uses a longer transform length.
          FIXME: Write something not brain-dead here */
-      if (!use_ntt || P_ntt == ECM_ERROR || params_nontt.l > params_ntt.l)
+      if (use_ntt == 0 || P_ntt == ECM_ERROR ||
+          (use_ntt == 1 && params_nontt.l > params_ntt.l))
         {
           better_params = &params_nontt;
           use_ntt = 0;
         }
       else
-        better_params = &params_ntt;
+        {
+          better_params = &params_ntt;
+          use_ntt = 1;
+        }
 
       faststage2_params.P = better_params->P;
       faststage2_params.s_1 = better_params->s_1;
