@@ -1527,7 +1527,7 @@ BreadthFirstDoAgain:;
       if (use_ntt == 1 && (method == ECM_ECM || S != ECM_DEFAULT_S)) 
         params->use_ntt = (mpz_size (n.n) <= NTT_SIZE_THRESHOLD);
       else 
-        params->use_ntt = (use_ntt != 0);
+        params->use_ntt = use_ntt;
 
 #ifdef HAVE_GWNUM
       /* check if the input number can be represented as k*b^n+c */
