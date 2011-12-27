@@ -6,7 +6,7 @@ Instructions to install GMP-ECM:
    Remark: GNU MP is already installed in most Linux distributions.
    However it is often an old version, moreover without processor-specific
    optimizations. If you care about efficiency, be sure to install the
-   latest version of GNU MP (5.0.1 as of February 2010), and to compile it
+   latest version of GNU MP (5.0.2 as of May 2011), and to compile it
    for your particular processor.
    Warning: make sure you have only one version of GMP installed on your
    system at a given time. Frequently, after compiling GMP from source
@@ -29,6 +29,10 @@ Instructions to install GMP-ECM:
    where <gmpdir>/include contains the header file gmp.h, and <gmpdir>/lib
    contains the static or dynamic libraries (libgmp.a, libgmp.so, libgmp.lib).
  
+   To compile the GMP-ECM library as a shared library, use the
+   --enable-shared parameter for ./configure. Building a shared library is
+   disabled by default.
+
    Note: the configure script will first search for a static GMP library, which
    makes GMP-ECM more efficient. When only a dynamic library is available, make
    sure to correctly set your dynamic libraries search path (LD_LIBRARY_PATH
@@ -73,10 +77,6 @@ Instructions to install GMP-ECM:
    Note added 21 Aug 2011: David Cleaver contributed changes to use gwnum 26.6
    under Windows x64 with MingW64 in Msys. Those changes were incorporated in
    GMP-ECM (some changes also have to be done to gwnum).
-
-   To compile the GMP-ECM library as a shared library, use the
-   --enable-shared parameter for ./configure. Building a shared library is
-   disabled by default.
 
 2) compile the program with:
 
@@ -169,30 +169,27 @@ Step-by-step instructions, courtesy of Jes Hansen:
    Now you get an icon on the desktop where you can start the MinSys. Do
    this, because is creates your home folder. Then exit it again.
 
-4) Download the latest version of GMP (in February 2010 the latest
-   version is 5.0.1, this will be assumed for the rest of this document) 
+4) Download the latest version of GMP (in May 2011 the latest
+   version is 5.0.2, this will be assumed for the rest of this document) 
    in .tar.gz format from http://gmplib.org/ and place it in your 
    newly created home folder. The home folder is in C:\GNU\msys\home and 
    has the same name as your Windows login name.
 
 5) Download GMP-ECM (if you do not have it already) from
-   http://www.loria.fr/~zimmerma/records/ecmnet.html (check the News section
-   for the latest release, at the time of writing 6.3) and place it in your
-   home folder as well. You won't need an internet connection from now on, 
-   feel free to disconnect.
+   http://ecm.gforge.inria.fr/ and place it in your home folder as well.
 
 6) Start the MinSys up again from the desktop and type 
-   tar -xvzf gmp-5.0.1.tar.gz
-   cd gmp-5.0.1
+   tar -xvzf gmp-5.0.2.tar.gz
+   cd gmp-5.0.2
    ./configure
    make install
    cd ~
 
 7) You are back in your home directory. Now type
-  tar -xvzf ecm-6.3.tar.gz
-  cd ecm-6.3
-  ./configure --with-gmp=/usr/local
-  make
+   tar -xvzf ecm-6.4.tar.gz
+   cd ecm-6.4
+   ./configure --with-gmp=/usr/local
+   make
 
 8) Four executables should have appeared. The main application is ecm.exe,
    which can be run from the Windows command line.
@@ -205,7 +202,7 @@ In case of a problem, report it to us, with:
 
 - the versions of GMP-ECM and GMP used (first output line), for example:
   
-  GMP-ECM 6.3 [powered by GMP 5.0.1] [P+1]
+  GMP-ECM 6.4 [powered by GMP 5.0.2] [P+1]
 
 - the detailed input enabling us to reproduce the problem, for example:
 
