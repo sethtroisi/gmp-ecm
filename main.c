@@ -1477,12 +1477,14 @@ BreadthFirstDoAgain:;
           if (random || (mpz_sgn (A) == 0)) /* A was not given by the user */
             {
               random = 1;
-              /* In order to d = (A+2)/4 to be smaller than 2^32,
-                 we must have 2 < A < 4*2^32 - 2 */
-              mpz_urandomb (A, randstate, 31); 
-              mpz_add_ui (A, A, 1); 
-              mpz_mul_2exp (A, A, 2);
-              mpz_add_ui (A, A, 2);
+              /* We need that d = (A+2)/4 is smaller than 2^GMP_NUMB_BITS */
+              mpz_urandomb (A, randstate, 32);  /* generates d */
+              if (GMP_NUMB_BITS >= 64)
+                mpz_mul (A, A, A);              /* ensures d is a square,
+                                                   which increases the success
+                                                   probability */
+              mpz_mul_2exp (A, A, 2);           /* 4d */
+              mpz_sub_ui (A, A, 2);             /* 4d-2 */
             }
           
           if (mpz_sgn (orig_x0) == 0)
