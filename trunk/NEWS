@@ -1,10 +1,16 @@
-Changes between ecm-6.3 and ecm-6.3.1:
+Changes between ecm-6.3 and ecm-6.4:
 * Fixed configure problem with SSE2
   (http://trac.sagemath.org/sage_trac/ticket/10252)
 * Fixed configure bug on 32-bit PowerPC (tried to use 64-bit assembly)
   https://gforge.inria.fr/tracker/index.php?func=detail&aid=10646
 * Fixed dependencies from build directory
   https://gforge.inria.fr/tracker/index.php?func=detail&aid=10648
+* Patch from David Cleaver to allow B1 >= 2^32 on machines where
+  "unsigned long" has 32 bits only
+* Patch from David Cleaver to use GWNUM 26.6 on Windows x64 with MingW64/Msys
+* Improved conversion from mpz_t to residue number system in NTT code
+* Better asm code for AMD cpus
+* New option -batch with faster Stage 1 (but smaller success probability)
 * Added Visual Studio 2010 build
 
 Changes between ecm-6.2.3 and ecm-6.3:
