@@ -65,7 +65,7 @@ To make a new release:
   5) Generate the release version with "make dist".
   6) Test the release version with "make distcheck" (in particular, check
      the man page is correctly installed).
-  7) If there is no problem, add a tag to the CVS corresponding to the
+  7) If there is no problem, add a tag to the svn version corresponding to the
      release, for example:
      $ svn cp . svn+ssh://zimmerma@scm.gforge.inria.fr/svn/ecm/tags/6.2
      or more detailed:
@@ -73,7 +73,7 @@ To make a new release:
              svn+ssh://zimmerma@scm.gforge.inria.fr/svn/ecm/tags/6.2.1 \
              -m "Tagging r1307 as version 6.2.1"
 
-     Version 6.2 is r1290, 6.2.1 is r1307.
+     Version 6.2 is r1290, 6.2.1 is r1307, 6.3 is r1501.
 
 To see the differences between a given tag and the current version:
 
