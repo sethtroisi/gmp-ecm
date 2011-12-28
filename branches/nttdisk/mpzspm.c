@@ -64,7 +64,7 @@ static unsigned long sp_max_modulus_bits[32] =
    24000000, 12000000, 6041939, 3022090, 1509176, 752516, 376924, 190107, 
    95348, 47601, 24253, 11971, 6162, 3087, 1557, 833, 345, 172, 78, 46, 15, 
    0, 0, 0, 0};
-#elif (SP_NUMB_BITS >= 60)
+#elif (SP_NUMB_BITS >= 40)
   /* There are so many primes, we can do pretty much any modulus with 
      any transform length. I didn't bother computing the actual values. */
 static unsigned long sp_max_modulus_bits[32] =  

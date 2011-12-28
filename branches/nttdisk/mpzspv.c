@@ -176,24 +176,33 @@ mpzspv_reverse (mpzspv_t x, spv_size_t offset, spv_size_t len, mpzspm_t mpzspm)
 }
 
 /* convert mpzvi to CRT representation, naive version */
-void
+static void
 mpzspv_from_mpzv_slow (mpzspv_t x, const spv_size_t offset, mpz_t mpzvi,
-                       mpzspm_t mpzspm, unsigned int sp_num)
+                       mpzspm_t mpzspm, 
+		       mpz_t rem,
+		       unsigned int sp_num)
 {
   unsigned int j;
 
   for (j = 0; j < sp_num; j++)
-    x[j][offset] = mpn_mod_1 (PTR(mpzvi), SIZ(mpzvi),
+    { 
+#if SP_TYPE_BITS > GMP_LIMB_BITS
+      mpz_tdiv_r(rem, mpzvi, mpzspm->spm[j]->mp_sp);
+      x[j][offset] = mpz_get_sp(rem);
+#else
+      x[j][offset] = mpn_mod_1 (PTR(mpzvi), SIZ(mpzvi),
                               (mp_limb_t) mpzspm->spm[j]->sp);
-  /* The typecast to mp_limb_t assumes that mp_limb_t is at least
-     as wide as sp_t */
+#endif
+    }
 }
 
 /* convert mpzvi to CRT representation, fast version, assumes
    mpzspm->T has been precomputed (see mpzspm.c) */
-void
+static void
 mpzspv_from_mpzv_fast (mpzspv_t x, const spv_size_t offset, mpz_t mpzvi,
-                       mpzspm_t mpzspm, unsigned int sp_num)
+                       mpzspm_t mpzspm, 
+		       mpz_t rem,
+		       unsigned int sp_num)
 {
   unsigned int i, j, k, i0 = I0_THRESHOLD, I0;
   mpzv_t *T = mpzspm->T;
@@ -221,10 +230,15 @@ mpzspv_from_mpzv_fast (mpzspv_t x, const spv_size_t offset, mpz_t mpzvi,
   I0 = 1 << i0;
   for (j = 0; j < sp_num; j += I0)
     for (k = j; k < j + I0 && k < sp_num; k++)
-      x[k][offset] = mpn_mod_1 (PTR(T[0][j]), SIZ(T[0][j]),
+      {
+#if SP_TYPE_BITS > GMP_LIMB_BITS
+	mpz_tdiv_r(rem, T[0][j], mpzspm->spm[k]->mp_sp);
+	x[k][offset] = mpz_get_sp(rem);
+#else
+	x[k][offset] = mpn_mod_1 (PTR(T[0][j]), SIZ(T[0][j]),
                                 (mp_limb_t) mpzspm->spm[k]->sp);
-  /* The typecast to mp_limb_t assumes that mp_limb_t is at least
-     as wide as sp_t */
+#endif
+      }
 }
 
 /* convert an array of len mpz_t numbers to CRT representation modulo
@@ -234,10 +248,10 @@ mpzspv_from_mpzv (mpzspv_t x, const spv_size_t offset, const mpzv_t mpzv,
     const spv_size_t len, mpzspm_t mpzspm)
 {
   const unsigned int sp_num = mpzspm->sp_num;
+  mpz_t rem;
   long i;
 
   ASSERT (mpzspv_verify (x, offset + len, 0, mpzspm));
-  ASSERT (sizeof (mp_limb_t) >= sizeof (sp_t));
 
   /* GMP's comments on mpn_preinv_mod_1:
    *
@@ -249,11 +263,13 @@ mpzspv_from_mpzv (mpzspv_t x, const spv_size_t offset, const mpzv_t mpzv,
    * separately */
   
 #if defined(_OPENMP)
-#pragma omp parallel private(i) if (len > 16384)
+#pragma omp parallel private(i,rem) if (len > 16384)
   {
     /* Multi-threading with dynamic scheduling slows things down */
 #pragma omp for schedule(static)
 #endif
+
+    mpz_init(rem);
     for (i = 0; i < (long) len; i++)
     {
       unsigned int j;
@@ -266,11 +282,13 @@ mpzspv_from_mpzv (mpzspv_t x, const spv_size_t offset, const mpzv_t mpzv,
         {
 	  ASSERT(mpz_sgn (mpzv[i]) > 0); /* We can't handle negative values */
           if (mpzspm->T == NULL)
-            mpzspv_from_mpzv_slow (x, i + offset, mpzv[i], mpzspm, sp_num);
+            mpzspv_from_mpzv_slow (x, i + offset, mpzv[i], mpzspm, rem, sp_num);
           else
-            mpzspv_from_mpzv_fast (x, i + offset, mpzv[i], mpzspm, sp_num);
+            mpzspv_from_mpzv_fast (x, i + offset, mpzv[i], mpzspm, rem, sp_num);
 	}
     }
+    mpz_clear(rem);
+
 #if defined(_OPENMP)
   }
 #endif
@@ -320,16 +338,12 @@ mpzspv_to_mpzv (mpzspv_t x, spv_size_t offset, mpzv_t mpzv,
   	    t = sp_mul (x[i][l + k + offset], mpzspm->crt3[i], spm[i]->sp,
                   spm[i]->mul_c);
           
-            if (sizeof (sp_t) > sizeof (unsigned long))
-              {
-                mpz_set_sp (mt, t);
-                mpz_addmul (mpzv[l + k], mpzspm->crt1[i], mt);
-              }
-            else
-              {
-      	        mpz_addmul_ui (mpzv[l + k], mpzspm->crt1[i], t);
-              }
-
+#if SP_TYPE_BITS > GMP_LIMB_BITS
+            mpz_set_sp (mt, t);
+            mpz_addmul (mpzv[l + k], mpzspm->crt1[i], mt);
+#else
+	    mpz_addmul_ui (mpzv[l + k], mpzspm->crt1[i], t);
+#endif
 	    f[k] += (float) t * prime_recip;
           }
       }
@@ -414,7 +428,7 @@ mpzspv_normalise (mpzspv_t x, spv_size_t offset, spv_size_t len,
         {
 	  for (k = 0; k < stride; k++)
 	    {
-	      umul_ppmm (d[3 * k + 1], d[3 * k], mpzspm->crt5[i],
+	      sp_wide_mul (d[3 * k + 1], d[3 * k], mpzspm->crt5[i],
 		  (sp_t) f[k]);
               d[3 * k + 2] = 0;
 	    }
@@ -425,7 +439,7 @@ mpzspv_normalise (mpzspv_t x, spv_size_t offset, spv_size_t len,
 	      v = mpzspm->crt4[i][j];
 	    
 	      for (k = 0; k < stride; k++)
-	        umul_ppmm (s[3 * k + 1], s[3 * k], w[k + l], v);
+	        sp_wide_mul (s[3 * k + 1], s[3 * k], w[k + l], v);
  	      
 	      /* this mpn_add_n accounts for about a third of the function's
 	       * runtime */

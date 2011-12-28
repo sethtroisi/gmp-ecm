@@ -22,6 +22,48 @@
 #include <stdlib.h>
 #include "sp.h"
 
+sp_t sp_reciprocal(sp_t p)
+{
+    /* integer reciprocal */
+
+    #if SP_NUMB_BITS <= SP_TYPE_BITS - 2
+    mp_limb_t shift = 2 * SP_NUMB_BITS + 1;
+    #else
+    mp_limb_t shift = 2 * SP_NUMB_BITS;
+    #endif
+
+#if SP_TYPE_BITS == GMP_LIMB_BITS  /* use GMP functions */
+    mp_limb_t recip, dummy;
+
+    udiv_qrnnd (recip, dummy,
+		(mp_limb_t) 1 << (shift - SP_TYPE_BITS), 0, p);
+    return recip;
+
+#elif SP_TYPE_BITS < GMP_LIMB_BITS  /* ordinary division */
+
+    return ((mp_limb_t)1 << shift) / p;
+
+#else  /* worst case: bit-at-a-time */
+
+    sp_t r = (sp_t)1 << (SP_NUMB_BITS - 1);
+    sp_t q = 0;
+    mp_limb_t i;
+
+    for (i = 0; i < shift + 1 - SP_NUMB_BITS; i++)
+      {
+	q += q;
+	r += r;
+	if (r >= p)
+	{
+	  r -= p;
+	  q |= 1;
+	}
+      }
+    return q;
+
+#endif
+}
+
 /* Test if m is a base "a" strong probable prime */
 
 int
@@ -64,7 +106,7 @@ sp_prime (sp_t x)
   if (x < SP_MIN)
     return 1;
   
-  sp_reciprocal (d, x);
+  d = sp_reciprocal (x);
   
   if (SP_NUMB_BITS <= 32)
     {

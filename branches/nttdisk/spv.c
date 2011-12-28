@@ -152,7 +152,8 @@ spv_pwmul (spv_t r, spv_t x, spv_t y, spv_size_t len, sp_t m, sp_t d)
   ASSERT (r >= y + len || y >= r);
 
 #if (defined(__GNUC__) || defined(__ICL)) && \
-  	defined(__i386__) && defined(HAVE_SSE2)
+    (defined(__i386__) || defined(__x86_64__)) && \
+    defined(HAVE_SSE2) && (SP_NUMB_BITS < 32)
 
   asm volatile (
        "movd %6, %%xmm6            \n\t"
@@ -171,19 +172,19 @@ spv_pwmul (spv_t r, spv_t x, spv_t y, spv_size_t len, sp_t m, sp_t d)
 
        "movdqa %%xmm0, %%xmm2      \n\t"
        "movdqa %%xmm1, %%xmm3      \n\t"
-       "psrlq $" STRING((2*SP_NUMB_BITS - W_TYPE_SIZE)) ", %%xmm2  \n\t"
+       "psrlq $" STRING((2*SP_NUMB_BITS - SP_TYPE_BITS)) ", %%xmm2  \n\t"
        "pmuludq %%xmm7, %%xmm2     \n\t"
-       "psrlq $" STRING((2*SP_NUMB_BITS - W_TYPE_SIZE)) ", %%xmm3  \n\t"
+       "psrlq $" STRING((2*SP_NUMB_BITS - SP_TYPE_BITS)) ", %%xmm3  \n\t"
        "pmuludq %%xmm7, %%xmm3     \n\t"
 
-#if SP_NUMB_BITS < W_TYPE_SIZE - 1
+       #if SP_NUMB_BITS <= 30
        "psrlq $33, %%xmm2          \n\t"
        "pmuludq %%xmm6, %%xmm2     \n\t"
        "psrlq $33, %%xmm3          \n\t"
        "pmuludq %%xmm6, %%xmm3     \n\t"
        "psubq %%xmm2, %%xmm0       \n\t"
        "psubq %%xmm3, %%xmm1       \n\t"
-#else
+       #else
        "pshufd $0xf5, %%xmm2, %%xmm2 \n\t"
        "pmuludq %%xmm6, %%xmm2     \n\t"
        "pshufd $0xf5, %%xmm3, %%xmm3 \n\t"
@@ -199,7 +200,7 @@ spv_pwmul (spv_t r, spv_t x, spv_t y, spv_size_t len, sp_t m, sp_t d)
        "pand %%xmm5, %%xmm3        \n\t"
        "paddq %%xmm2, %%xmm0       \n\t"
        "paddq %%xmm3, %%xmm1       \n\t"
-#endif
+       #endif
        "pshufd $0x8, %%xmm0, %%xmm0 \n\t"
        "pshufd $0x8, %%xmm1, %%xmm1 \n\t"
        "punpckldq %%xmm1, %%xmm0   \n\t"
@@ -220,7 +221,8 @@ spv_pwmul (spv_t r, spv_t x, spv_t y, spv_size_t len, sp_t m, sp_t d)
 	"g"(len & (spv_size_t)(~3)), "g"(m), "g"(d)
        :"%xmm0", "%xmm1", "%xmm2", "%xmm3",
         "%xmm5", "%xmm6", "%xmm7", "cc", "memory");
-#elif defined( _MSC_VER ) && defined( SSE2)
+
+#elif defined( _MSC_VER ) && defined( SSE2) && (SP_NUMB_BITS < 32)
     __asm
     {   push        esi
         push        edi
@@ -246,19 +248,19 @@ spv_pwmul (spv_t r, spv_t x, spv_t y, spv_size_t len, sp_t m, sp_t d)
 
         movdqa      xmm2, xmm0
         movdqa      xmm3, xmm1
-        psrlq       xmm2, 2*SP_NUMB_BITS - W_TYPE_SIZE
+        psrlq       xmm2, 2*SP_NUMB_BITS - SP_TYPE_BITS
         pmuludq     xmm2, xmm7
-        psrlq       xmm3, 2*SP_NUMB_BITS - W_TYPE_SIZE
+        psrlq       xmm3, 2*SP_NUMB_BITS - SP_TYPE_BITS
         pmuludq     xmm3, xmm7
 
-#if SP_NUMB_BITS < W_TYPE_SIZE - 1
+        #if SP_NUMB_BITS <= 30
         psrlq       xmm2, 33
         pmuludq     xmm2, xmm6
         psrlq       xmm3, 33
         pmuludq     xmm3, xmm6
         psubq       xmm0, xmm2
         psubq       xmm1, xmm3
-#else
+        #else
         pshufd      xmm2, xmm2, 0xf5
         pmuludq     xmm2, xmm6
         pshufd      xmm3, xmm3, 0xf5
@@ -274,7 +276,7 @@ spv_pwmul (spv_t r, spv_t x, spv_t y, spv_size_t len, sp_t m, sp_t d)
         pand        xmm3, xmm5
         paddq       xmm0, xmm2
         paddq       xmm1, xmm3
-#endif
+        #endif
         pshufd      xmm0, xmm0, 0x8
         pshufd      xmm1, xmm1, 0x8
         punpckldq   xmm0, xmm1
@@ -322,7 +324,8 @@ spv_mul_sp (spv_t r, spv_t x, sp_t c, spv_size_t len, sp_t m, sp_t d)
   ASSERT (r >= x + len || x >= r);
   
 #if (defined(__GNUC__) || defined(__ICL)) && \
-  	defined(__i386__) && defined(HAVE_SSE2)
+    (defined(__i386__) || defined(__x86_64__)) && \
+    defined(HAVE_SSE2) && (SP_NUMB_BITS < 32)
 
   asm volatile (
        "movd %2, %%xmm4            \n\t"
@@ -342,12 +345,12 @@ spv_mul_sp (spv_t r, spv_t x, sp_t c, spv_size_t len, sp_t m, sp_t d)
 
        "movdqa %%xmm0, %%xmm2      \n\t"
        "movdqa %%xmm1, %%xmm3      \n\t"
-       "psrlq $" STRING((2*SP_NUMB_BITS - W_TYPE_SIZE)) ", %%xmm2  \n\t"
+       "psrlq $" STRING((2*SP_NUMB_BITS - SP_TYPE_BITS)) ", %%xmm2  \n\t"
        "pmuludq %%xmm7, %%xmm2     \n\t"
-       "psrlq $" STRING((2*SP_NUMB_BITS - W_TYPE_SIZE)) ", %%xmm3  \n\t"
+       "psrlq $" STRING((2*SP_NUMB_BITS - SP_TYPE_BITS)) ", %%xmm3  \n\t"
        "pmuludq %%xmm7, %%xmm3     \n\t"
 
-#if SP_NUMB_BITS < W_TYPE_SIZE - 1
+#if SP_NUMB_BITS <= 30
        "psrlq $33, %%xmm2          \n\t"
        "pmuludq %%xmm6, %%xmm2     \n\t"
        "psrlq $33, %%xmm3          \n\t"
@@ -391,7 +394,7 @@ spv_mul_sp (spv_t r, spv_t x, sp_t c, spv_size_t len, sp_t m, sp_t d)
 	"g"(len & (spv_size_t)(~3)), "g"(m), "g"(d)
        :"%xmm0", "%xmm1", "%xmm2", "%xmm3",
         "%xmm4", "%xmm5", "%xmm6", "%xmm7", "cc", "memory");
-#elif defined( _MSC_VER ) && defined( SSE2) 
+#elif defined( _MSC_VER ) && defined( SSE2) && (SP_NUMB_BITS < 32)
     __asm
     {   push        esi
         push        edi
@@ -418,12 +421,12 @@ spv_mul_sp (spv_t r, spv_t x, sp_t c, spv_size_t len, sp_t m, sp_t d)
 
         movdqa      xmm2, xmm0
         movdqa      xmm3, xmm1
-        psrlq       xmm2, 2*SP_NUMB_BITS - W_TYPE_SIZE
+        psrlq       xmm2, 2*SP_NUMB_BITS - SP_TYPE_BITS
         pmuludq     xmm2, xmm7
-        psrlq       xmm3, 2*SP_NUMB_BITS - W_TYPE_SIZE
+        psrlq       xmm3, 2*SP_NUMB_BITS - SP_TYPE_BITS
         pmuludq     xmm3, xmm7
 
-#if SP_NUMB_BITS < W_TYPE_SIZE - 1
+#if SP_NUMB_BITS <= 30
         psrlq       xmm2, 33
         pmuludq     xmm2, xmm6
         psrlq       xmm3, 33
@@ -475,9 +478,27 @@ void
 spv_random (spv_t x, spv_size_t len, sp_t m)
 {
   spv_size_t i;
-  mpn_random (x, len);
-  
+#if SP_TYPE_BITS == GMP_LIMB_BITS
+  mpn_random ((mp_limb_t *)x, len);
+
+#elif SP_TYPE_BITS < GMP_LIMB_BITS
+  mpn_random ((mp_limb_t *)x, len / 2);
+  if (len % 2)
+    {
+      mp_limb_t t;
+      mpn_random (&t, 1);
+      x[len - 1] = (sp_t)t;
+    }
+
+#else
+  mpn_random ((mp_limb_t *)x, 2 * len);
+#endif
+
   for (i = 0; i < len; i++)
-    while (x[i] >= m)
+#if SP_NUMB_BITS > SP_TYPE_BITS - 3
+    while (x[i] >= m) 
       x[i] -= m;
+#else
+    x[i] %= m;
+#endif
 }

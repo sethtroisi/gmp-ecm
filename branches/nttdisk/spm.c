@@ -103,7 +103,12 @@ spm_init (spv_size_t n, sp_t sp)
   ASSERT (sp % (sp_t) n == (sp_t) 1);
 
   spm->sp = sp;
-  sp_reciprocal (spm->mul_c, sp);
+  spm->mul_c = sp_reciprocal (sp);
+
+#if SP_TYPE_BITS > GMP_LIMB_BITS
+  mpz_init(spm->mp_sp);
+  mpz_set_sp(spm->mp_sp, sp);
+#endif
 
   /* find an $n$-th primitive root $a$ of unity $(mod sp)$. */
 
@@ -221,6 +226,10 @@ spm_init (spv_size_t n, sp_t sp)
   free_spm:
   free (spm);
 
+#if SP_TYPE_BITS > GMP_LIMB_BITS
+  mpz_clear(spm->mp_sp);
+#endif
+
   return NULL;
 }
 
@@ -230,6 +239,9 @@ spm_clear (spm_t spm)
   nttdata_clear (spm->nttdata);
   nttdata_clear (spm->inttdata);
   sp_aligned_free (spm->scratch);
+#if SP_TYPE_BITS > GMP_LIMB_BITS
+  mpz_clear(spm->mp_sp);
+#endif
   free (spm);
 }
 

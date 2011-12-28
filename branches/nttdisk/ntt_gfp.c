@@ -28,7 +28,8 @@ static void bfly_dif(spv_t x0, spv_t x1, spv_t w,
   spv_size_t i = 0;
 
 #if (defined(__GNUC__) || defined(__ICL)) && \
-  	defined(__i386__) && defined(HAVE_SSE2)
+    (defined(__i386__) || defined(__x86_64__)) && \
+    defined(HAVE_SSE2) && (SP_NUMB_BITS < 32)
 
   asm volatile (
        "movd %6, %%xmm6            \n\t"
@@ -65,12 +66,12 @@ static void bfly_dif(spv_t x0, spv_t x1, spv_t w,
 
        "movdqa %%xmm0, %%xmm2      \n\t"
        "movdqa %%xmm1, %%xmm3      \n\t"
-       "psrlq $" STRING((2*SP_NUMB_BITS - W_TYPE_SIZE)) ", %%xmm2  \n\t"
+       "psrlq $" STRING((2*SP_NUMB_BITS - SP_TYPE_BITS)) ", %%xmm2  \n\t"
        "pmuludq %%xmm7, %%xmm2     \n\t"
-       "psrlq $" STRING((2*SP_NUMB_BITS - W_TYPE_SIZE)) ", %%xmm3  \n\t"
+       "psrlq $" STRING((2*SP_NUMB_BITS - SP_TYPE_BITS)) ", %%xmm3  \n\t"
        "pmuludq %%xmm7, %%xmm3     \n\t"
 
-#if SP_NUMB_BITS < W_TYPE_SIZE - 1
+#if SP_NUMB_BITS <= 30
        "psrlq $33, %%xmm2          \n\t"
        "pmuludq %%xmm6, %%xmm2     \n\t"
        "psrlq $33, %%xmm3          \n\t"
@@ -111,7 +112,7 @@ static void bfly_dif(spv_t x0, spv_t x1, spv_t w,
        :"r"(x0), "r"(x1), "r"(w), "0"(i), "g"(len), "g"(p), "g"(d)
        :"%xmm0", "%xmm1", "%xmm2", "%xmm3",
         "%xmm5", "%xmm6", "%xmm7", "cc", "memory");
-#elif defined( _MSC_VER ) && defined( SSE2) 
+#elif defined( _MSC_VER ) && defined(SSE2) && (SP_NUMB_BITS < 32)
     __asm
     {   push        esi
         push        edi
@@ -153,12 +154,12 @@ static void bfly_dif(spv_t x0, spv_t x1, spv_t w,
 
         movdqa      xmm2, xmm0
         movdqa      xmm3, xmm1
-        psrlq       xmm2, 2*SP_NUMB_BITS - W_TYPE_SIZE
+        psrlq       xmm2, 2*SP_NUMB_BITS - SP_TYPE_BITS
         pmuludq     xmm2, xmm7
-        psrlq       xmm3, 2*SP_NUMB_BITS - W_TYPE_SIZE
+        psrlq       xmm3, 2*SP_NUMB_BITS - SP_TYPE_BITS
         pmuludq     xmm3, xmm7
 
-#if SP_NUMB_BITS < W_TYPE_SIZE - 1
+#if SP_NUMB_BITS <= 30
         psrlq       xmm2, 33
         pmuludq     xmm2, xmm6
         psrlq       xmm3, 33
@@ -358,7 +359,8 @@ static inline void bfly_dit(spv_t x0, spv_t x1, spv_t w,
   spv_size_t i = 0;
 
 #if (defined(__GNUC__) || defined(__ICL)) && \
-  	defined(__i386__) && defined(HAVE_SSE2)
+    (defined(__i386__) || defined(__x86_64__)) && \
+     defined(HAVE_SSE2) && (SP_NUMB_BITS < 32)
 
   asm volatile (
        "movd %6, %%xmm6            \n\t"
@@ -377,12 +379,12 @@ static inline void bfly_dit(spv_t x0, spv_t x1, spv_t w,
 
        "movdqa %%xmm0, %%xmm2      \n\t"
        "movdqa %%xmm1, %%xmm3      \n\t"
-       "psrlq $" STRING((2*SP_NUMB_BITS - W_TYPE_SIZE)) ", %%xmm2  \n\t"
+       "psrlq $" STRING((2*SP_NUMB_BITS - SP_TYPE_BITS)) ", %%xmm2  \n\t"
        "pmuludq %%xmm7, %%xmm2     \n\t"
-       "psrlq $" STRING((2*SP_NUMB_BITS - W_TYPE_SIZE)) ", %%xmm3  \n\t"
+       "psrlq $" STRING((2*SP_NUMB_BITS - SP_TYPE_BITS)) ", %%xmm3  \n\t"
        "pmuludq %%xmm7, %%xmm3     \n\t"
 
-#if SP_NUMB_BITS < W_TYPE_SIZE - 1
+#if SP_NUMB_BITS <= 30
        "psrlq $33, %%xmm2          \n\t"
        "pmuludq %%xmm6, %%xmm2     \n\t"
        "psrlq $33, %%xmm3          \n\t"
@@ -441,7 +443,7 @@ static inline void bfly_dit(spv_t x0, spv_t x1, spv_t w,
        :"r"(x0), "r"(x1), "r"(w), "0"(i), "g"(len), "g"(p), "g"(d)
        :"%xmm0", "%xmm1", "%xmm2", "%xmm3",
         "%xmm5", "%xmm6", "%xmm7", "cc", "memory");
-#elif defined( _MSC_VER ) && defined( SSE2) 
+#elif defined( _MSC_VER ) && defined( SSE2) && (SP_NUMB_BITS < 32)
     __asm
     {   push        esi
         push        edi
@@ -465,12 +467,12 @@ static inline void bfly_dit(spv_t x0, spv_t x1, spv_t w,
 
         movdqa      xmm2, xmm0
         movdqa      xmm3, xmm1
-        psrlq       xmm2, 2*SP_NUMB_BITS - W_TYPE_SIZE
+        psrlq       xmm2, 2*SP_NUMB_BITS - SP_TYPE_BITS
         pmuludq     xmm2, xmm7
-        psrlq       xmm3, 2*SP_NUMB_BITS - W_TYPE_SIZE
+        psrlq       xmm3, 2*SP_NUMB_BITS - SP_TYPE_BITS
         pmuludq     xmm3, xmm7
 
-#if SP_NUMB_BITS < W_TYPE_SIZE - 1
+#if SP_NUMB_BITS <= 30
         psrlq       xmm2, 33
         pmuludq     xmm2, xmm6
         psrlq       xmm3, 33
