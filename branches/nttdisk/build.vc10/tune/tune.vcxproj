@@ -1,0 +1,270 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project DefaultTargets="Build" ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup Label="ProjectConfigurations">
+    <ProjectConfiguration Include="Release-AMD|Win32">
+      <Configuration>Release-AMD</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release-AMD|x64">
+      <Configuration>Release-AMD</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release-Intel|Win32">
+      <Configuration>Release-Intel</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release-Intel|x64">
+      <Configuration>Release-Intel</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+  </ItemGroup>
+  <PropertyGroup Label="Globals">
+    <ProjectGuid>{80E08750-5C6C-492E-BB1E-7200978AE125}</ProjectGuid>
+    <RootNamespace>tune</RootNamespace>
+    <Keyword>Win32Proj</Keyword>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release-AMD|Win32'" Label="Configuration">
+    <ConfigurationType>Application</ConfigurationType>
+    <CharacterSet>Unicode</CharacterSet>
+    <WholeProgramOptimization>true</WholeProgramOptimization>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release-Intel|Win32'" Label="Configuration">
+    <ConfigurationType>Application</ConfigurationType>
+    <CharacterSet>Unicode</CharacterSet>
+    <WholeProgramOptimization>true</WholeProgramOptimization>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release-AMD|x64'" Label="Configuration">
+    <ConfigurationType>Application</ConfigurationType>
+    <CharacterSet>Unicode</CharacterSet>
+    <WholeProgramOptimization>true</WholeProgramOptimization>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release-Intel|x64'" Label="Configuration">
+    <ConfigurationType>Application</ConfigurationType>
+    <CharacterSet>Unicode</CharacterSet>
+    <WholeProgramOptimization>true</WholeProgramOptimization>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
+  <ImportGroup Label="ExtensionSettings">
+    <Import Project="..\vsyasm.props" />
+  </ImportGroup>
+  <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Release-AMD|Win32'" Label="PropertySheets">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+    <Import Project="..\mp_lib.props" />
+  </ImportGroup>
+  <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Release-Intel|Win32'" Label="PropertySheets">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+    <Import Project="..\mp_lib.props" />
+  </ImportGroup>
+  <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Release-AMD|x64'" Label="PropertySheets">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+    <Import Project="..\mp_lib.props" />
+  </ImportGroup>
+  <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Release-Intel|x64'" Label="PropertySheets">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+    <Import Project="..\mp_lib.props" />
+  </ImportGroup>
+  <PropertyGroup Label="UserMacros" />
+  <PropertyGroup>
+    <_ProjectFileVersion>10.0.30128.1</_ProjectFileVersion>
+    <OutDir Condition="'$(Configuration)|$(Platform)'=='Release-Intel|Win32'">$(SolutionDir)..\lib\$(Platform)\Release\</OutDir>
+    <IntDir Condition="'$(Configuration)|$(Platform)'=='Release-Intel|Win32'">$(Platform)\Release\</IntDir>
+    <LinkIncremental Condition="'$(Configuration)|$(Platform)'=='Release-Intel|Win32'">false</LinkIncremental>
+    <OutDir Condition="'$(Configuration)|$(Platform)'=='Release-Intel|x64'">$(SolutionDir)..\lib\$(Platform)\Release\</OutDir>
+    <IntDir Condition="'$(Configuration)|$(Platform)'=='Release-Intel|x64'">$(Platform)\Release\</IntDir>
+    <LinkIncremental Condition="'$(Configuration)|$(Platform)'=='Release-Intel|x64'">false</LinkIncremental>
+    <OutDir Condition="'$(Configuration)|$(Platform)'=='Release-AMD|Win32'">$(SolutionDir)..\lib\$(Platform)\Release\</OutDir>
+    <IntDir Condition="'$(Configuration)|$(Platform)'=='Release-AMD|Win32'">$(Platform)\Release\</IntDir>
+    <LinkIncremental Condition="'$(Configuration)|$(Platform)'=='Release-AMD|Win32'">false</LinkIncremental>
+    <OutDir Condition="'$(Configuration)|$(Platform)'=='Release-AMD|x64'">$(SolutionDir)..\lib\$(Platform)\Release\</OutDir>
+    <IntDir Condition="'$(Configuration)|$(Platform)'=='Release-AMD|x64'">$(Platform)\Release\</IntDir>
+    <LinkIncremental Condition="'$(Configuration)|$(Platform)'=='Release-AMD|x64'">false</LinkIncremental>
+  </PropertyGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release-Intel|Win32'">
+    <ClCompile>
+      <Optimization>MaxSpeed</Optimization>
+      <IntrinsicFunctions>true</IntrinsicFunctions>
+      <AdditionalIncludeDirectories>..\..\;..\..\..\$(mp_dir)lib\$(IntDir);..\assembler;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <PreprocessorDefinitions>WIN32;NDEBUG;_CONSOLE;TUNE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
+      <FunctionLevelLinking>true</FunctionLevelLinking>
+      <PrecompiledHeader>
+      </PrecompiledHeader>
+      <WarningLevel>Level3</WarningLevel>
+      <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
+    </ClCompile>
+    <Link>
+      <AdditionalDependencies>..\..\..\$(mp_dir)lib\$(Platform)\release\$(mp_lib);%(AdditionalDependencies)</AdditionalDependencies>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+      <SubSystem>Console</SubSystem>
+      <OptimizeReferences>true</OptimizeReferences>
+      <EnableCOMDATFolding>true</EnableCOMDATFolding>
+      <TargetMachine>MachineX86</TargetMachine>
+    </Link>
+    <PostBuildEvent>
+      <Command>"$(TargetPath)" &gt;..\ecm-params.h.win32.intel.new</Command>
+    </PostBuildEvent>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release-Intel|x64'">
+    <Midl>
+      <TargetEnvironment>X64</TargetEnvironment>
+    </Midl>
+    <ClCompile>
+      <Optimization>MaxSpeed</Optimization>
+      <IntrinsicFunctions>true</IntrinsicFunctions>
+      <AdditionalIncludeDirectories>..\..\;..\..\..\$(mp_dir)lib\$(IntDir);..\assembler;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <PreprocessorDefinitions>WIN32;_WIN64;NDEBUG;_CONSOLE;TUNE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
+      <FunctionLevelLinking>true</FunctionLevelLinking>
+      <PrecompiledHeader>
+      </PrecompiledHeader>
+      <WarningLevel>Level3</WarningLevel>
+      <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
+    </ClCompile>
+    <Link>
+      <AdditionalDependencies>..\..\..\$(mp_dir)lib\$(Platform)\release\$(mp_lib);%(AdditionalDependencies)</AdditionalDependencies>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+      <SubSystem>Console</SubSystem>
+      <OptimizeReferences>true</OptimizeReferences>
+      <EnableCOMDATFolding>true</EnableCOMDATFolding>
+      <TargetMachine>MachineX64</TargetMachine>
+    </Link>
+    <PostBuildEvent>
+      <Command>"$(TargetPath)" &gt;..\ecm-params.h.x64.intel.new</Command>
+    </PostBuildEvent>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release-AMD|Win32'">
+    <ClCompile>
+      <Optimization>MaxSpeed</Optimization>
+      <IntrinsicFunctions>true</IntrinsicFunctions>
+      <AdditionalIncludeDirectories>..\..\;..\..\..\$(mp_dir)lib\$(IntDir);..\assembler;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <PreprocessorDefinitions>WIN32;NDEBUG;_CONSOLE;TUNE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
+      <FunctionLevelLinking>true</FunctionLevelLinking>
+      <PrecompiledHeader>
+      </PrecompiledHeader>
+      <WarningLevel>Level3</WarningLevel>
+      <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
+    </ClCompile>
+    <Link>
+      <AdditionalDependencies>..\..\..\$(mp_dir)lib\$(Platform)\release\$(mp_lib);%(AdditionalDependencies)</AdditionalDependencies>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+      <SubSystem>Console</SubSystem>
+      <OptimizeReferences>true</OptimizeReferences>
+      <EnableCOMDATFolding>true</EnableCOMDATFolding>
+      <TargetMachine>MachineX86</TargetMachine>
+    </Link>
+    <PostBuildEvent>
+      <Command>"$(TargetPath)" &gt;..\ecm-params.h.win32.amd.new</Command>
+    </PostBuildEvent>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release-AMD|x64'">
+    <Midl>
+      <TargetEnvironment>X64</TargetEnvironment>
+    </Midl>
+    <ClCompile>
+      <Optimization>MaxSpeed</Optimization>
+      <IntrinsicFunctions>true</IntrinsicFunctions>
+      <AdditionalIncludeDirectories>..\..\;..\..\..\$(mp_dir)lib\$(IntDir);..\assembler;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <PreprocessorDefinitions>WIN32;_WIN64;NDEBUG;_CONSOLE;TUNE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
+      <FunctionLevelLinking>true</FunctionLevelLinking>
+      <PrecompiledHeader>
+      </PrecompiledHeader>
+      <WarningLevel>Level3</WarningLevel>
+      <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
+    </ClCompile>
+    <Link>
+      <AdditionalDependencies>..\..\..\$(mp_dir)lib\$(Platform)\release\$(mp_lib);%(AdditionalDependencies)</AdditionalDependencies>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+      <SubSystem>Console</SubSystem>
+      <OptimizeReferences>true</OptimizeReferences>
+      <EnableCOMDATFolding>true</EnableCOMDATFolding>
+      <TargetMachine>MachineX64</TargetMachine>
+    </Link>
+    <PostBuildEvent>
+      <Command>"$(TargetPath)" &gt;..\ecm-params.h.x64.amd.new</Command>
+    </PostBuildEvent>
+  </ItemDefinitionGroup>
+  <ItemGroup>
+    <YASM Include="..\assembler\a_win32a_mulredc.asm">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release-AMD|x64'">true</ExcludedFromBuild>
+      <Defines Condition="'$(Configuration)|$(Platform)'=='Release-AMD|x64'">true</Defines>
+      <IncludePaths Condition="'$(Configuration)|$(Platform)'=='Release-AMD|x64'">true</IncludePaths>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release-Intel|Win32'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release-Intel|x64'">true</ExcludedFromBuild>
+      <Defines Condition="'$(Configuration)|$(Platform)'=='Release-Intel|x64'">true</Defines>
+      <IncludePaths Condition="'$(Configuration)|$(Platform)'=='Release-Intel|x64'">true</IncludePaths>
+    </YASM>
+    <YASM Include="..\assembler\a_win32a_redc.asm">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release-AMD|x64'">true</ExcludedFromBuild>
+      <Defines Condition="'$(Configuration)|$(Platform)'=='Release-AMD|x64'">true</Defines>
+      <IncludePaths Condition="'$(Configuration)|$(Platform)'=='Release-AMD|x64'">true</IncludePaths>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release-Intel|Win32'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release-Intel|x64'">true</ExcludedFromBuild>
+      <Defines Condition="'$(Configuration)|$(Platform)'=='Release-Intel|x64'">true</Defines>
+      <IncludePaths Condition="'$(Configuration)|$(Platform)'=='Release-Intel|x64'">true</IncludePaths>
+    </YASM>
+    <YASM Include="..\assembler\a_win32p_mulredc.asm">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release-AMD|Win32'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release-AMD|x64'">true</ExcludedFromBuild>
+      <Defines Condition="'$(Configuration)|$(Platform)'=='Release-AMD|x64'">true</Defines>
+      <IncludePaths Condition="'$(Configuration)|$(Platform)'=='Release-AMD|x64'">true</IncludePaths>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release-Intel|x64'">true</ExcludedFromBuild>
+      <Defines Condition="'$(Configuration)|$(Platform)'=='Release-Intel|x64'">true</Defines>
+      <IncludePaths Condition="'$(Configuration)|$(Platform)'=='Release-Intel|x64'">true</IncludePaths>
+    </YASM>
+    <YASM Include="..\assembler\a_win32p_redc.asm">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release-AMD|Win32'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release-AMD|x64'">true</ExcludedFromBuild>
+      <Defines Condition="'$(Configuration)|$(Platform)'=='Release-AMD|x64'">true</Defines>
+      <IncludePaths Condition="'$(Configuration)|$(Platform)'=='Release-AMD|x64'">true</IncludePaths>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release-Intel|x64'">true</ExcludedFromBuild>
+      <Defines Condition="'$(Configuration)|$(Platform)'=='Release-Intel|x64'">true</Defines>
+      <IncludePaths Condition="'$(Configuration)|$(Platform)'=='Release-Intel|x64'">true</IncludePaths>
+    </YASM>
+    <YASM Include="..\assembler\a_x64_mulredc.asm">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release-AMD|Win32'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release-Intel|Win32'">true</ExcludedFromBuild>
+    </YASM>
+    <YASM Include="..\assembler\a_x64_redc.asm">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release-AMD|Win32'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release-Intel|Win32'">true</ExcludedFromBuild>
+    </YASM>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="..\..\auxarith.c" />
+    <ClCompile Include="..\..\auxlib.c" />
+    <ClCompile Include="..\..\ecm_ntt.c" />
+    <ClCompile Include="..\..\ks-multiply.c" />
+    <ClCompile Include="..\..\listz.c" />
+    <ClCompile Include="..\..\median.c" />
+    <ClCompile Include="..\..\mpmod.c" />
+    <ClCompile Include="..\..\mpzspm.c" />
+    <ClCompile Include="..\..\mpzspv.c" />
+    <ClCompile Include="..\..\mul_fft.c" />
+    <ClCompile Include="..\..\mul_lo.c" />
+    <ClCompile Include="..\..\ntt_gfp.c" />
+    <ClCompile Include="..\..\polyeval.c" />
+    <ClCompile Include="..\..\random.c" />
+    <ClCompile Include="..\..\schoen_strass.c" />
+    <ClCompile Include="..\..\sp.c" />
+    <ClCompile Include="..\..\spm.c" />
+    <ClCompile Include="..\..\spv.c" />
+    <ClCompile Include="..\..\toomcook.c" />
+    <ClCompile Include="..\..\tune.c" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="..\config.h" />
+    <ClInclude Include="..\..\ecm-ecm.h" />
+    <ClInclude Include="..\..\ecm-gmp.h" />
+    <ClInclude Include="..\..\ecm-impl.h" />
+    <ClInclude Include="..\..\ecm.h" />
+    <ClInclude Include="..\..\longlong.h" />
+    <ClInclude Include="..\..\sp.h" />
+  </ItemGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
+  <ImportGroup Label="ExtensionTargets">
+    <Import Project="..\vsyasm.targets" />
+  </ImportGroup>
+</Project>

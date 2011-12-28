@@ -1,0 +1,166 @@
+#!/bin/sh
+
+# test file for ECM
+#
+# Copyright 2002, 2003, 2004, 2005, 2006, 2008, 2009, 2011 Jim Fougeron, Alexander Kruppa, Dave Newman, Paul Zimmermann.
+#
+# This program is free software; you can redistribute it and/or modify it
+# under the terms of the GNU General Public License as published by the
+# Free Software Foundation; either version 2 of the License, or (at your
+# option) any later version.
+#
+# This program is distributed in the hope that it will be useful, but WITHOUT
+# ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+# FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License for
+# more details.
+#
+# You should have received a copy of the GNU General Public License along
+# with this program; see the file COPYING.  If not, write to the Free
+# Software Foundation, Inc., 51 Franklin St, Fifth Floor, Boston,
+# MA 02110-1301, USA.
+
+ECM="$1"
+
+# Call with "checkcode $? n" to check that return code is n
+# (see test.pm1 for the explanation of the different return codes)              
+checkcode () {
+  if [ $1 != $2 ]
+  then
+    echo "############### ERROR ###############"
+    echo "Expected return code $2 but got $1"
+    exit 1
+  fi
+}
+
+# Exit statues returned by GMP-ECM:
+# 0      Normal program termination, no factor found
+# 1      Error
+# 2      Composite factor found, cofactor is composite
+# 6      Probable prime factor found, cofactor is composite
+# 8      Input number found
+# 10     Composite factor found, cofactor is a probable prime
+# 14     Probable prime factor found, cofactor is a probable prime
+
+# try primes < d in stage 2. Curve with sigma=7, mod 30210181 has order
+# 2^4 * 3^3 * 29 * 2411
+echo 2050449353925555290706354283 | $ECM -sigma 7 -k 1 30 0-1e6; checkcode $? 14
+
+# Check a stage 2 of length 1. g1=1822795201 g2=968809 g3=567947
+echo 212252637915375215854013140804296246361 | $ECM -sigma 781683988 -go 550232165123 63421 1822795201-1822795201; checkcode $? 8
+
+# tests from Torbjo"rn Granlund
+echo 137703491 | $ECM -sigma 6 84 1000; checkcode $? 8
+
+echo 3533000986701102061387017352606588294716061 | $ECM -sigma 1621 191 225; checkcode $? 14
+
+echo 145152979917007299777325725119 | $ECM -sigma 711387948 924 117751; checkcode $? 14
+
+# Test a few base 2 numbers. These tests are fairly quick.
+
+# Test a 2^n-1 number, factor found in stage 1. Order mod 33554520197234177
+# with sigma=262763035 is 2^3*3*5*47*59*241*601*743*937
+
+echo "2^919-1" | $ECM -sigma 262763035 937 1; checkcode $? 6
+
+# Test a 2^n-1 number, factor found in stage 2. Order mod 33554520197234177
+# with sigma=1691973485 is 2^6*3*11*29*59*73*263*283*1709
+
+echo "2^919-1" | $ECM -sigma 1691973485 283 1709; checkcode $? 6
+
+# Test a 2^n+1 number, factor found in stage 1. Order mod 24651922299337
+# with sigma=2301432245 is 2^3*3^3*5^2*7^2*17*67*157*521
+echo "(2^1033+1)/3" | $ECM -sigma 2301432245 521 1; checkcode $? 6
+
+# Test a 2^n+1 number, factor found in stage 2. Order mod 24651922299337
+# with sigma=2394040080 is 2^2*3^2*13*19*53*127*223*1847
+echo "(2^1033+1)/3" | $ECM -sigma 2301432245 223 1847; checkcode $? 6
+
+# Test another 2^n+1 number, with a larger known factor divided out.
+# Factor found in stage 1, order mod 114584129081 with sigma=2399424618
+# is 2^9*3^2*5^2*7^2*53*383
+echo "(2^1063+1)/3/26210488518118323164267329859" | $ECM -sigma 2399424618 383 1 ; checkcode $? 6
+
+# Like last one, but factor found in stage 2
+echo "(2^1063+1)/3/26210488518118323164267329859" | $ECM -sigma 2399424618 71 500; checkcode $? 6
+
+echo 242668358425701966181147598421249782519178289604307455138484425562807899 | $ECM -sigma 1417477358 28560 8e7-85507063; checkcode $? 14
+
+# bug found by Jim Fougeron
+echo 3533000986701102061387017352606588294716061 | $ECM -sigma 291310394389387 191 225; checkcode $? 14
+
+echo 121279606270805899614487548491773862357 | $ECM -sigma 1931630101 120; checkcode $? 14
+
+echo 291310394389387 | $ECM -power 3 -sigma 40 2000; checkcode $? 8
+
+echo 3533000986701102061387017352606588294716061 | $ECM -sigma 3547 167 211; checkcode $? 14
+
+# test -go option
+echo 449590253344339769860648131841615148645295989319968106906219761704350259884936939123964073775456979170209297434164627098624602597663490109944575251386017 | $ECM -sigma 63844855 -go 172969 61843 20658299; checkcode $? 14
+
+echo 17061648125571273329563156588435816942778260706938821014533 | $ECM -sigma 585928442 174000; checkcode $? 14
+
+echo 89101594496537524661600025466303491594098940711325290746374420963129505171895306244425914080753573576861992127359576789001 | $ECM -sigma 877655087 -go 325001 157721 1032299; checkcode $? 14
+
+echo 5394204444759808120647321820789847518754252780933425517607611172590240019087317088600360602042567541009369753816111824690753627535877960715703346991252857 | $ECM -sigma 805816989 -go 345551 149827; checkcode $? 6
+
+echo 3923385745693995079670229419275984584311007321932374190635656246740175165573932140787529348954892963218868359081838772941945556717 | $ECM -sigma 876329474 141667 150814537; checkcode $? 14
+
+echo 124539923134619429718018353168641490719788526741873602224103589351798060075728544650990190016536810151633233676972068237330360238752628542584228856301923448951 | $ECM -sigma 1604840403 -go "1260317*1179109*661883" 96097 24289207; checkcode $? 14
+
+# for ecm3, g1=4043946241 divides 484984500^120-17923^120
+# doesn't work with Dickson(60), commented since may be not reproducible
+#echo 5735013127104523546495917836490637235369 | $ECM -power 60 -k 2 -A 3848610099745584498259560038340842096471 -x0 2527419713481530878734189429997880136878 330000 500000000; checkcode $? 8
+
+# g1=1805746381 divides 1577240280^12-349^12, doesn't work with Dickson
+# warning: depends on the value of d chosen in stage 2
+# works with -k 2 (d=92820), -k 3 (d=78540)
+#echo 17833653493084084667826559287841287911473 | $ECM -power 6 -k 2 -A 7423036368129288563912180723909655170075 -x0 9011819881065862648414808987718432766274 389797 16e8; checkcode $? 8
+
+# g1=1822795201 divides 185550750^30-25009^30, doesn't work with Dickson
+#echo 212252637915375215854013140804296246361 | $ECM -power 15 -k 2 -sigma 781683988 1000000; checkcode $? 8
+
+# p49 found by Sean Irvine
+echo 4983070578699621345648758795946786489699447158923341167929707152021191319057138908604417894224244096909460401007237133698775496719078793168004317119431646035122982915288481052088094940158965731422616671 | $ECM -sigma 909010734 122861 176711; checkcode $? 6
+
+# bug in ecm-5.0 (overflow in fin_diff_coeff)
+echo 1408323592065265621229603282020508687 | $ECM -sigma 1549542516 -go 2169539 531571 29973883000-29973884000; checkcode $? 8
+
+# bug in ecm 5.0 and 5.0.1 (factor found for c110 input, not with p58)
+echo 3213162276640339413566047915418064969550383692549981333701 | $ECM -sigma 2735675386 -go 1615843 408997 33631583; checkcode $? 8
+
+echo 39614081257132168796771975177 | $ECM -sigma 480 1e6; checkcode $? 8
+
+echo 10000286586958753753 | $ECM -sigma 3956738175 1e6; checkcode $? 8
+
+echo 49672383630046506169472128421 | $ECM -sigma 2687434659 166669 86778487; checkcode $? 8
+
+echo 216259730493575791390589173296092767511 | $ECM -sigma 214659179 1124423 20477641; checkcode $? 8
+
+# bug reported by Allan Steel on 14 March 2006
+echo 49367108402201032092269771894422156977426293789852367266303146912244441959559870316184237 | $ECM -sigma 6 5000; checkcode $? 0
+
+# A test with a larger input number to test modular arithmetic routines not
+# in mulredc*.asm. This input has 1363 bits so it has 22 64 bit words 
+# (43 32 bit words) and cannot use mulredc which handles only up to 20 limbs
+
+echo "10090030271*10^400+696212088699" | $ECM -sigma 3923937547 1e3 1e6; checkcode $? 14
+
+# To test the batch mode
+echo "458903930815802071188998938170281707063809443792768383215233" | $ECM -batch -A 166 10000
+checkcode $? 14
+
+echo "2^349-1" | $ECM -batch -A 134 967 551113 
+checkcode $? 6
+
+# this example did fail on 32-bit computers (thanks to David Cleaver)
+echo "2^347-1" | $ECM -batch -A 5837673714 36209 11436599
+checkcode $? 14
+
+# the following tests should work on machines which have uint64_t or where
+# unsigned long long has 64 bits (exercises patch from David Cleaver, r1575)
+echo "NOTE: NEXT 3 TESTS WILL FAIL ON SOME 32BIT MACHINES, THIS IS EXPECTED."
+echo 10000000000000000000000000000000000000121 | $ECM -sigma 61 -go 1195504287780095287 2950307;  checkcode $? 8
+echo 10000000000000000000000000000000000000121 | $ECM -sigma 266 -go 218187387944803649 9405629;  checkcode $? 8
+echo 10000000000000000000000000000000000000121 | $ECM -sigma 291 -go 5994496018878137 4372759;  checkcode $? 8
+
+echo "All ECM tests are ok."
