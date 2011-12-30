@@ -63,20 +63,15 @@ Instructions to install GMP-ECM:
    builds, regardless of these parameters.
 
    Note 3: If you want to use George Woltman's GWNUM library for speeding up
-   factoring base 2 numbers, obtain the file "gwnum_gpl_linux.tgz" from
-   ftp://mersenne.org/gimps/ (or gwnum_gpl.zip or gwnum_gpl_mingw.tgz
-   accordingly) and follow the instructions therein to compile
-   the library. Possibly the archive contains a readily compiled library
-   "gwnum.a" or "gwnum.lib". Then use
+   factoring base 2 numbers, obtain the source file from
+   <ftp://mersenne.org/gimps/> (on December 2011 the latest source is
+   source272.zip), build the gwnum library for your operating system, then use
 
    $ ./configure --with-gwnum=<gwnum directory>
 
    The directory must include the gwnum.a or gwnum.lib file as well as 
    gwnum.h and related header files. The source file of the gwnum library
    is available at <http://www.mersenne.org/source.htm>.
-   Note added 21 Aug 2011: David Cleaver contributed changes to use gwnum 26.6
-   under Windows x64 with MingW64 in Msys. Those changes were incorporated in
-   GMP-ECM (some changes also have to be done to gwnum).
 
 2) compile the program with:
 
