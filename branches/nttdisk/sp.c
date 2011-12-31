@@ -20,7 +20,7 @@
 
 #include <stdio.h> /* for stderr */
 #include <stdlib.h>
-#include "sp.h"
+#include "ecm-impl.h"
 
 sp_t sp_reciprocal(sp_t p)
 {

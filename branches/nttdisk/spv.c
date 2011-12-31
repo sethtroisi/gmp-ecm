@@ -20,7 +20,7 @@
 */
 
 #include <string.h> /* for memset */
-#include "sp.h"
+#include "ecm-impl.h"
 
 /* Routines for vectors of integers modulo r common small prime
  * 

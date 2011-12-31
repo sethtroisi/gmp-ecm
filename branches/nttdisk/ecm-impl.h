@@ -28,10 +28,23 @@
 #include <sys/types.h> /* needed for size_t */
 #endif
 
-#if HAVE_STDINT_H
+/* name some types whose bit widths are unambiguous */
+
+#if defined(HAVE_STDINT_H)
 #include <stdint.h>
-/* needed for int64_t and uint64_t */
-/* or configure will define these for us if possible */
+#elif defined(HAVE_INTTYPES_H)
+#include <inttypes.h>
+#elif defined(_MSC_VER)
+typedef signed __int32 int32_t;
+typedef unsigned __int32 uint32_t;
+typedef signed __int64 int64_t;
+typedef unsigned __int64 uint64_t;
+
+/* portable formatting of wide types */
+#define PRId64 "I64d"
+#define PRIu64 "I64u"
+#define PRIx64 "I64x"
+
 #endif
 
 #if defined UINT64_MAX || defined uint64_t
@@ -146,8 +159,6 @@ extern FILE *ECM_STDOUT, *ECM_STDERR;
 #define KS 5
 #define NTT 6
 
-#include "sp.h"
-
 /* compile with -DMULT=2 to override default */
 #ifndef MULT
 #ifdef KS_MULTIPLY
@@ -168,6 +179,8 @@ extern FILE *ECM_STDOUT, *ECM_STDERR;
 #else
 #define ASSERT(expr)   do {} while (0)
 #endif
+
+#include "sp.h"
 
 #ifdef MEMORY_DEBUG
 void tests_free (void *, size_t);

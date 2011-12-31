@@ -26,24 +26,6 @@
 #ifndef _SP_H
 #define _SP_H
 
-#include "config.h"
-#include <stdlib.h>
-
-#ifdef HAVE_SYS_TYPES_H
-#include <sys/types.h> /* needed for size_t */
-#endif
-
-/* name some types whose bit widths are unambiguous */
-
-#if defined(HAVE_STDINT_H)
-#include <stdint.h>
-#elif defined(HAVE_INTTYPES_H)
-#include <inttypes.h>
-#elif defined(_MSC_VER)
-typedef unsigned __int32 uint32_t;
-typedef unsigned __int64 uint64_t;
-#endif
-
 /* include (hopefully standard) SSE2 interface, along
    with mnemonics for the small part of the ISA that 
    we need */
@@ -86,13 +68,6 @@ extern size_t MPZSPV_NORMALISE_STRIDE;
 #endif
 
 #include <gmp.h>
-
-#ifdef WANT_ASSERT
-#include <assert.h>
-#define ASSERT(expr)   assert (expr)
-#else
-#define ASSERT(expr)   do {} while (0)
-#endif
 
 /* Basic defs for the data types used in Number Theoretic Transforms
 

@@ -23,7 +23,6 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include "sp.h"
 #include "ecm-impl.h"
 
 #ifdef HAVE_UNISTD_H

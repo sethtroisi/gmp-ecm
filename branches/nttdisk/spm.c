@@ -20,7 +20,7 @@
 */
 
 #include <stdlib.h>
-#include "sp.h"
+#include "ecm-impl.h"
 
 /* Returns the exponent of $q$ in the factorisation of $n$ */
 static int

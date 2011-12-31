@@ -23,7 +23,7 @@
 #include <stdio.h> /* for stderr */
 #include <stdlib.h>
 #include <string.h> /* for memset */
-#include "sp.h"
+#include "ecm-impl.h"
 
 mpzspv_t
 mpzspv_init (spv_size_t len, mpzspm_t mpzspm)
@@ -179,7 +179,7 @@ mpzspv_reverse (mpzspv_t x, spv_size_t offset, spv_size_t len, mpzspm_t mpzspm)
 static void
 mpzspv_from_mpzv_slow (mpzspv_t x, const spv_size_t offset, mpz_t mpzvi,
                        mpzspm_t mpzspm, 
-		       mpz_t rem,
+		       ATTRIBUTE_UNUSED mpz_t rem,
 		       unsigned int sp_num)
 {
   unsigned int j;
@@ -201,7 +201,7 @@ mpzspv_from_mpzv_slow (mpzspv_t x, const spv_size_t offset, mpz_t mpzvi,
 static void
 mpzspv_from_mpzv_fast (mpzspv_t x, const spv_size_t offset, mpz_t mpzvi,
                        mpzspm_t mpzspm, 
-		       mpz_t rem,
+		       ATTRIBUTE_UNUSED mpz_t rem,
 		       unsigned int sp_num)
 {
   unsigned int i, j, k, i0 = I0_THRESHOLD, I0;
