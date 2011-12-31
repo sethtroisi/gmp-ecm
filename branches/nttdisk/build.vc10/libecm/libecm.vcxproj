@@ -419,6 +419,7 @@ call file_copy config.h ..\config.h
     <ClCompile Include="..\..\ntt_gfp.c" />
     <ClCompile Include="..\..\pm1.c" />
     <ClCompile Include="..\..\pm1fs2.c" />
+    <ClCompile Include="..\..\pm1fs2_param.c" />
     <ClCompile Include="..\..\polyeval.c" />
     <ClCompile Include="..\..\pp1.c" />
     <ClCompile Include="..\..\random.c" />

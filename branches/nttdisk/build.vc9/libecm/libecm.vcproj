@@ -1056,6 +1056,10 @@
 				>
 			</File>
 			<File
+				RelativePath="..\..\pm1fs2_param.c"
+				>
+			</File>
+			<File
 				RelativePath="..\..\polyeval.c"
 				>
 			</File>

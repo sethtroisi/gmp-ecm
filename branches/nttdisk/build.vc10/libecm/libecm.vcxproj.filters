@@ -91,6 +91,9 @@
     <ClCompile Include="..\..\pm1fs2.c">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="..\..\pm1fs2_param.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
     <ClCompile Include="..\..\polyeval.c">
       <Filter>Source Files</Filter>
     </ClCompile>
