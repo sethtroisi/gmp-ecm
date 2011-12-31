@@ -29,8 +29,8 @@ libecm_la_SOURCES = ecm.c ecm2.c pm1.c pp1.c getprime.c listz.c lucas.c \
 		   stage2.c toomcook.c mpmod.c mul_lo.c polyeval.c median.c \
 		   schoen_strass.c ks-multiply.c rho.c bestd.c auxlib.c \
 		   random.c factor.c sp.c spv.c spm.c mpzspm.c mpzspv.c \
-		   ntt_gfp.c ecm_ntt.c pm1fs2.c mul_fft.c sets_long.c \
-		   auxarith.c batch.c
+		   ntt_gfp.c ecm_ntt.c pm1fs2.c pm1fs2_param.c mul_fft.c \
+		   sets_long.c auxarith.c batch.c
 # Link the asm redc code (if we use it) into libecm.la
 libecm_la_CPPFLAGS = $(MULREDCINCPATH)
 libecm_la_CFLAGS = $(OPENMP_CFLAGS)
