@@ -151,150 +151,62 @@ spv_pwmul (spv_t r, spv_t x, spv_t y, spv_size_t len, sp_t m, sp_t d)
   ASSERT (r >= x + len || x >= r);
   ASSERT (r >= y + len || y >= r);
 
-#if (defined(__GNUC__) || defined(__ICL)) && \
-    (defined(__i386__) || defined(__x86_64__)) && \
-    defined(HAVE_SSE2) && (SP_NUMB_BITS < 32)
+#if defined(HAVE_SSE2) && (SP_NUMB_BITS < 32)
 
-  asm volatile (
-       "movd %6, %%xmm6            \n\t"
-       "pshufd $0x44, %%xmm6, %%xmm5  \n\t"
-       "pshufd $0, %%xmm6, %%xmm6  \n\t"
-       "movd %7, %%xmm7            \n\t"
-       "pshufd $0, %%xmm7, %%xmm7  \n\t"
+  __m128i t0, t1, t2, t3, vm, vm2, vd;
 
-       "0:                         \n\t"
-       "movdqa (%1,%4,4), %%xmm0   \n\t"
-       "movdqa (%2,%4,4), %%xmm2   \n\t"
-       "pshufd $0x31, %%xmm0, %%xmm1\n\t"
-       "pshufd $0x31, %%xmm2, %%xmm3\n\t"
-       "pmuludq %%xmm2, %%xmm0     \n\t"
-       "pmuludq %%xmm3, %%xmm1     \n\t"
+  vm = pshufd(pcvt_i32(m), 0x00);
+  vm2 = pshufd(pcvt_i32(m), 0x44);
+  vd = pshufd(pcvt_i32(d), 0x00);
 
-       "movdqa %%xmm0, %%xmm2      \n\t"
-       "movdqa %%xmm1, %%xmm3      \n\t"
-       "psrlq $" STRING((2*SP_NUMB_BITS - SP_TYPE_BITS)) ", %%xmm2  \n\t"
-       "pmuludq %%xmm7, %%xmm2     \n\t"
-       "psrlq $" STRING((2*SP_NUMB_BITS - SP_TYPE_BITS)) ", %%xmm3  \n\t"
-       "pmuludq %%xmm7, %%xmm3     \n\t"
+  for (; i < (len & (spv_size_t)(~3)); i += 4)
+    {
+      t0 = pload((__m128i *)(x + i));
+      t1 = pload((__m128i *)(y + i));
+      t2 = pshufd(t0, 0x31);
+      t3 = pshufd(t1, 0x31);
+      t0 = pmuludq(t0, t1);
+      t2 = pmuludq(t2, t3);
+      t1 = psrlq(t0, 2 * SP_NUMB_BITS - SP_TYPE_BITS);
+      t3 = psrlq(t2, 2 * SP_NUMB_BITS - SP_TYPE_BITS);
+      t1 = pmuludq(t1, vd);
+      t3 = pmuludq(t3, vd);
 
-       #if SP_NUMB_BITS <= 30
-       "psrlq $33, %%xmm2          \n\t"
-       "pmuludq %%xmm6, %%xmm2     \n\t"
-       "psrlq $33, %%xmm3          \n\t"
-       "pmuludq %%xmm6, %%xmm3     \n\t"
-       "psubq %%xmm2, %%xmm0       \n\t"
-       "psubq %%xmm3, %%xmm1       \n\t"
-       #else
-       "pshufd $0xf5, %%xmm2, %%xmm2 \n\t"
-       "pmuludq %%xmm6, %%xmm2     \n\t"
-       "pshufd $0xf5, %%xmm3, %%xmm3 \n\t"
-       "pmuludq %%xmm6, %%xmm3     \n\t"
-       "psubq %%xmm2, %%xmm0       \n\t"
-       "psubq %%xmm3, %%xmm1       \n\t"
+      #if SP_NUMB_BITS < 31
+      t1 = psrlq(t1, 33);
+      t3 = psrlq(t3, 33);
+      t1 = pmuludq(t1, vm);
+      t3 = pmuludq(t3, vm);
+      t0 = psubq(t0, t1);
+      t2 = psubq(t2, t3);
+      #else
+      t1 = pshufd(t1, 0xf5);
+      t3 = pshufd(t3, 0xf5);
+      t1 = pmuludq(t1, vm);
+      t3 = pmuludq(t3, vm);
+      t0 = psubq(t0, t1);
+      t2 = psubq(t2, t3);
 
-       "psubq %%xmm5, %%xmm0       \n\t"
-       "psubq %%xmm5, %%xmm1       \n\t"
-       "pshufd $0xf5, %%xmm0, %%xmm2 \n\t"
-       "pshufd $0xf5, %%xmm1, %%xmm3 \n\t"
-       "pand %%xmm5, %%xmm2        \n\t"
-       "pand %%xmm5, %%xmm3        \n\t"
-       "paddq %%xmm2, %%xmm0       \n\t"
-       "paddq %%xmm3, %%xmm1       \n\t"
-       #endif
-       "pshufd $0x8, %%xmm0, %%xmm0 \n\t"
-       "pshufd $0x8, %%xmm1, %%xmm1 \n\t"
-       "punpckldq %%xmm1, %%xmm0   \n\t"
-       "psubd %%xmm6, %%xmm0       \n\t"
+      t0 = psubq(t0, vm2);
+      t2 = psubq(t2, vm2);
+      t1 = pshufd(t0, 0xf5);
+      t3 = pshufd(t2, 0xf5);
+      t1 = pand(t1, vm2);
+      t3 = pand(t3, vm2);
+      t0 = paddq(t0, t1);
+      t2 = paddq(t2, t3);
+      #endif
 
-       "pxor %%xmm1, %%xmm1        \n\t"
-       "pcmpgtd %%xmm0, %%xmm1     \n\t"
-       "pand %%xmm6, %%xmm1        \n\t"
-       "paddd %%xmm1, %%xmm0       \n\t"
-       "movdqa %%xmm0, (%3,%4,4)   \n\t"
-
-       "addl $4, %4                \n\t"  /* INC */
-       "cmpl %5, %4                \n\t"
-       "jne 0b                     \n\t"
-
-       :"=r"(i)
-       :"r"(x), "r"(y), "r"(r), "0"(i), 
-	"g"(len & (spv_size_t)(~3)), "g"(m), "g"(d)
-       :"%xmm0", "%xmm1", "%xmm2", "%xmm3",
-        "%xmm5", "%xmm6", "%xmm7", "cc", "memory");
-
-#elif defined( _MSC_VER ) && defined( SSE2) && (SP_NUMB_BITS < 32)
-    __asm
-    {   push        esi
-        push        edi
-        mov         edi, x
-        mov         esi, y
-        mov         edx, r
-        xor         ecx, ecx
-        mov         eax, len
-        and         eax, ~3
-
-        movd        xmm6, m
-        pshufd      xmm5, xmm6, 0x44
-        pshufd      xmm6, xmm6, 0
-        movd        xmm7, d
-        pshufd      xmm7, xmm7, 0
-
-    L0: movdqa      xmm0, [edi+ecx*4]
-        movdqa      xmm2, [esi+ecx*4]
-        pshufd      xmm1, xmm0, 0x31
-        pshufd      xmm3, xmm2, 0x31
-        pmuludq     xmm0, xmm2
-        pmuludq     xmm1, xmm3
-
-        movdqa      xmm2, xmm0
-        movdqa      xmm3, xmm1
-        psrlq       xmm2, 2*SP_NUMB_BITS - SP_TYPE_BITS
-        pmuludq     xmm2, xmm7
-        psrlq       xmm3, 2*SP_NUMB_BITS - SP_TYPE_BITS
-        pmuludq     xmm3, xmm7
-
-        #if SP_NUMB_BITS <= 30
-        psrlq       xmm2, 33
-        pmuludq     xmm2, xmm6
-        psrlq       xmm3, 33
-        pmuludq     xmm3, xmm6
-        psubq       xmm0, xmm2
-        psubq       xmm1, xmm3
-        #else
-        pshufd      xmm2, xmm2, 0xf5
-        pmuludq     xmm2, xmm6
-        pshufd      xmm3, xmm3, 0xf5
-        pmuludq     xmm3, xmm6
-        psubq       xmm0, xmm2
-        psubq       xmm1, xmm3
-
-        psubq       xmm0, xmm5
-        psubq       xmm1, xmm5
-        pshufd      xmm2, xmm0, 0xf5
-        pshufd      xmm3, xmm1, 0xf5
-        pand        xmm2, xmm5
-        pand        xmm3, xmm5
-        paddq       xmm0, xmm2
-        paddq       xmm1, xmm3
-        #endif
-        pshufd      xmm0, xmm0, 0x8
-        pshufd      xmm1, xmm1, 0x8
-        punpckldq   xmm0, xmm1
-        psubd       xmm0, xmm6
-
-        pxor        xmm1, xmm1
-        pcmpgtd     xmm1, xmm0
-        pand        xmm1, xmm6
-        paddd       xmm0, xmm1
-        movdqa      [edx+ecx*4], xmm0
-
-        add         ecx, 4
-        cmp         eax, ecx
-        jne         L0
-        mov         i, ecx
-        pop         edi
-        pop         esi
+      t0 = pshufd(t0, 0x08);
+      t1 = pshufd(t2, 0x08);
+      t0 = punpcklo32(t0, t1);
+      t0 = psubd(t0, vm);
+      t1 = pcmpgtd(psetzero(), t0);
+      t1 = pand(t1, vm);
+      t0 = paddd(t0, t1);
+      pstore((__m128i *)(r + i), t0);
     }
+
 #endif
 
   for (; i < len; i++)
@@ -323,151 +235,62 @@ spv_mul_sp (spv_t r, spv_t x, sp_t c, spv_size_t len, sp_t m, sp_t d)
   
   ASSERT (r >= x + len || x >= r);
   
-#if (defined(__GNUC__) || defined(__ICL)) && \
-    (defined(__i386__) || defined(__x86_64__)) && \
-    defined(HAVE_SSE2) && (SP_NUMB_BITS < 32)
+#if defined(HAVE_SSE2) && (SP_NUMB_BITS < 32)
 
-  asm volatile (
-       "movd %2, %%xmm4            \n\t"
-       "pshufd $0, %%xmm4, %%xmm4  \n\t"
-       "movd %6, %%xmm6            \n\t"
-       "pshufd $0x44, %%xmm6, %%xmm5  \n\t"
-       "pshufd $0, %%xmm6, %%xmm6  \n\t"
-       "movd %7, %%xmm7            \n\t"
-       "pshufd $0, %%xmm7, %%xmm7  \n\t"
+  __m128i t0, t1, t2, t3, vm, vm2, vd, vc;
 
-       "0:                         \n\t"
-       "movdqa (%1,%4,4), %%xmm0   \n\t"
-       "pshufd $0x31, %%xmm0, %%xmm1\n\t"
-       "pshufd $0x31, %%xmm4, %%xmm3\n\t"
-       "pmuludq %%xmm4, %%xmm0     \n\t"
-       "pmuludq %%xmm3, %%xmm1     \n\t"
+  vc = pshufd(pcvt_i32(c), 0x44);
+  vm = pshufd(pcvt_i32(m), 0x00);
+  vm2 = pshufd(pcvt_i32(m), 0x44);
+  vd = pshufd(pcvt_i32(d), 0x00);
 
-       "movdqa %%xmm0, %%xmm2      \n\t"
-       "movdqa %%xmm1, %%xmm3      \n\t"
-       "psrlq $" STRING((2*SP_NUMB_BITS - SP_TYPE_BITS)) ", %%xmm2  \n\t"
-       "pmuludq %%xmm7, %%xmm2     \n\t"
-       "psrlq $" STRING((2*SP_NUMB_BITS - SP_TYPE_BITS)) ", %%xmm3  \n\t"
-       "pmuludq %%xmm7, %%xmm3     \n\t"
+  for (; i < (len & (spv_size_t)(~3)); i += 4)
+    {
+      t0 = pload((__m128i *)(x + i));
+      t2 = pshufd(t0, 0x31);
+      t0 = pmuludq(t0, vc);
+      t2 = pmuludq(t2, vc);
+      t1 = psrlq(t0, 2 * SP_NUMB_BITS - SP_TYPE_BITS);
+      t3 = psrlq(t2, 2 * SP_NUMB_BITS - SP_TYPE_BITS);
+      t1 = pmuludq(t1, vd);
+      t3 = pmuludq(t3, vd);
 
-#if SP_NUMB_BITS <= 30
-       "psrlq $33, %%xmm2          \n\t"
-       "pmuludq %%xmm6, %%xmm2     \n\t"
-       "psrlq $33, %%xmm3          \n\t"
-       "pmuludq %%xmm6, %%xmm3     \n\t"
-       "psubq %%xmm2, %%xmm0       \n\t"
-       "psubq %%xmm3, %%xmm1       \n\t"
-#else
-       "pshufd $0xf5, %%xmm2, %%xmm2 \n\t"
-       "pmuludq %%xmm6, %%xmm2     \n\t"
-       "pshufd $0xf5, %%xmm3, %%xmm3 \n\t"
-       "pmuludq %%xmm6, %%xmm3     \n\t"
-       "psubq %%xmm2, %%xmm0       \n\t"
-       "psubq %%xmm3, %%xmm1       \n\t"
+      #if SP_NUMB_BITS < 31
+      t1 = psrlq(t1, 33);
+      t3 = psrlq(t3, 33);
+      t1 = pmuludq(t1, vm);
+      t3 = pmuludq(t3, vm);
+      t0 = psubq(t0, t1);
+      t2 = psubq(t2, t3);
+      #else
+      t1 = pshufd(t1, 0xf5);
+      t3 = pshufd(t3, 0xf5);
+      t1 = pmuludq(t1, vm);
+      t3 = pmuludq(t3, vm);
+      t0 = psubq(t0, t1);
+      t2 = psubq(t2, t3);
 
-       "psubq %%xmm5, %%xmm0       \n\t"
-       "psubq %%xmm5, %%xmm1       \n\t"
-       "pshufd $0xf5, %%xmm0, %%xmm2 \n\t"
-       "pshufd $0xf5, %%xmm1, %%xmm3 \n\t"
-       "pand %%xmm5, %%xmm2        \n\t"
-       "pand %%xmm5, %%xmm3        \n\t"
-       "paddq %%xmm2, %%xmm0       \n\t"
-       "paddq %%xmm3, %%xmm1       \n\t"
-#endif
-       "pshufd $0x8, %%xmm0, %%xmm0 \n\t"
-       "pshufd $0x8, %%xmm1, %%xmm1 \n\t"
-       "punpckldq %%xmm1, %%xmm0   \n\t"
-       "psubd %%xmm6, %%xmm0       \n\t"
+      t0 = psubq(t0, vm2);
+      t2 = psubq(t2, vm2);
+      t1 = pshufd(t0, 0xf5);
+      t3 = pshufd(t2, 0xf5);
+      t1 = pand(t1, vm2);
+      t3 = pand(t3, vm2);
+      t0 = paddq(t0, t1);
+      t2 = paddq(t2, t3);
+      #endif
 
-       "pxor %%xmm1, %%xmm1        \n\t"
-       "pcmpgtd %%xmm0, %%xmm1     \n\t"
-       "pand %%xmm6, %%xmm1        \n\t"
-       "paddd %%xmm1, %%xmm0       \n\t"
-       "movdqa %%xmm0, (%3,%4,4)   \n\t"
+      t0 = pshufd(t0, 0x08);
+      t1 = pshufd(t2, 0x08);
+      t0 = punpcklo32(t0, t1);
+      t0 = psubd(t0, vm);
+      t1 = pcmpgtd(psetzero(), t0);
+      t1 = pand(t1, vm);
+      t0 = paddd(t0, t1);
 
-       "addl $4, %4                \n\t"  /* INC */
-       "cmpl %5, %4                \n\t"
-       "jne 0b                     \n\t"
-
-       :"=r"(i)
-       :"r"(x), "g"(c), "r"(r), "0"(i), 
-	"g"(len & (spv_size_t)(~3)), "g"(m), "g"(d)
-       :"%xmm0", "%xmm1", "%xmm2", "%xmm3",
-        "%xmm4", "%xmm5", "%xmm6", "%xmm7", "cc", "memory");
-#elif defined( _MSC_VER ) && defined( SSE2) && (SP_NUMB_BITS < 32)
-    __asm
-    {   push        esi
-        push        edi
-        xor         ecx, ecx
-        mov         edi, x
-        mov         esi, c
-        mov         edx, r
-        mov         eax, len
-        and         eax, ~3
-
-        movd        xmm4, esi
-        pshufd      xmm4, xmm4, 0
-        movd        xmm6, m
-        pshufd      xmm5, xmm6, 0x44
-        pshufd      xmm6, xmm6, 0
-        movd        xmm7, d
-        pshufd      xmm7, xmm7, 0
-
-    L0: movdqa      xmm0, [edi+ecx*4]
-        pshufd      xmm1, xmm0, 0x31
-        pshufd      xmm3, xmm4, 0x31
-        pmuludq     xmm0, xmm4
-        pmuludq     xmm1, xmm3
-
-        movdqa      xmm2, xmm0
-        movdqa      xmm3, xmm1
-        psrlq       xmm2, 2*SP_NUMB_BITS - SP_TYPE_BITS
-        pmuludq     xmm2, xmm7
-        psrlq       xmm3, 2*SP_NUMB_BITS - SP_TYPE_BITS
-        pmuludq     xmm3, xmm7
-
-#if SP_NUMB_BITS <= 30
-        psrlq       xmm2, 33
-        pmuludq     xmm2, xmm6
-        psrlq       xmm3, 33
-        pmuludq     xmm3, xmm6
-        psubq       xmm0, xmm2
-        psubq       xmm1, xmm3
-#else
-        pshufd      xmm2, xmm2, 0xf5
-        pmuludq     xmm2, xmm6
-        pshufd      xmm3, xmm3, 0xf5
-        pmuludq     xmm3, xmm6
-        psubq       xmm0, xmm2
-        psubq       xmm1, xmm3
-
-        psubq       xmm0, xmm5
-        psubq       xmm1, xmm5
-        pshufd      xmm2, xmm0, 0xf5
-        pshufd      xmm3, xmm1, 0xf5
-        pand        xmm2, xmm5
-        pand        xmm3, xmm5
-        paddq       xmm0, xmm2
-        paddq       xmm1, xmm3
-#endif
-        pshufd      xmm0, xmm0, 0x8
-        pshufd      xmm1, xmm1, 0x8
-        punpckldq   xmm0, xmm1
-        psubd       xmm0, xmm6
-
-        pxor        xmm1, xmm1
-        pcmpgtd     xmm1, xmm0
-        pand        xmm1, xmm6
-        paddd       xmm0, xmm1
-        movdqa      [edx+ecx*4], xmm0
-
-        add         ecx, 4
-        cmp         eax, ecx
-        jne         L0
-        mov         i, ecx
-        pop         edi
-        pop         esi
+      pstore((__m128i *)(r + i), t0);
     }
+
 #endif
 
   for (; i < len; i++)

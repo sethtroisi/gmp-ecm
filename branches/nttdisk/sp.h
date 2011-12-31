@@ -33,8 +33,7 @@
 #include <sys/types.h> /* needed for size_t */
 #endif
 
-/* separate from what GMP thinks, name some types whose bit
-   widths are unambiguous */
+/* name some types whose bit widths are unambiguous */
 
 #if defined(HAVE_STDINT_H)
 #include <stdint.h>
@@ -43,6 +42,35 @@
 #elif defined(_MSC_VER)
 typedef unsigned __int32 uint32_t;
 typedef unsigned __int64 uint64_t;
+#endif
+
+/* include (hopefully standard) SSE2 interface, along
+   with mnemonics for the small part of the ISA that 
+   we need */
+
+#ifdef HAVE_SSE2
+#include <emmintrin.h>
+
+#define pload  _mm_load_si128
+#define pstore _mm_store_si128
+#define pand _mm_and_si128
+#define psetzero() _mm_setzero_si128()
+#define pcvt_i32 _mm_cvtsi32_si128
+#define pcvt_i64 _mm_cvtsi64_si128
+#define paddd _mm_add_epi32
+#define paddq _mm_add_epi64
+#define psubd _mm_sub_epi32
+#define psubq _mm_sub_epi64
+#define pmuludq _mm_mul_epu32
+#define pslld _mm_slli_epi32
+#define psllq _mm_slli_epi64
+#define psrld _mm_srli_epi32
+#define psrlq _mm_srli_epi64
+#define pshufd _mm_shuffle_epi32
+#define pcmpgtd _mm_cmpgt_epi32
+#define punpcklo32 _mm_unpacklo_epi32
+#define punpcklo64 _mm_unpacklo_epi64
+
 #endif
 
 #ifndef TUNE
