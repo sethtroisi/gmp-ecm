@@ -30,9 +30,7 @@
 
 /* name some types whose bit widths are unambiguous */
 
-#if defined(HAVE_STDINT_H)
-#include <stdint.h>
-#elif defined(HAVE_INTTYPES_H)
+#if defined(HAVE_INTTYPES_H)
 #include <inttypes.h>
 #elif defined(_MSC_VER)
 typedef signed __int32 int32_t;
@@ -271,7 +269,7 @@ typedef __root_params_t root_params_t;
 
 typedef struct
 {
-  unsigned long P, s_1, s_2, l;
+  uint64_t P, s_1, s_2, l;
   mpz_t m_1;
 } __faststage2_param_t;
 typedef __faststage2_param_t faststage2_param_t;
@@ -354,6 +352,39 @@ typedef __mpmod_struct mpmod_t[1];
 extern "C" {
 #endif  
 
+static inline void 
+mpz_set_uint64 (mpz_t m, const uint64_t n)
+{
+#if GMP_LIMB_BITS == 64  /* 64-bit GMP limb */
+  if (sizeof(mp_limb_t) > sizeof(unsigned long))
+    {
+       mpz_set_ui (m, (unsigned long)(uint32_t)(n >> 32));
+       mpz_mul_2exp (m, m, 32);
+       mpz_add_ui (m, m, (unsigned long)(uint32_t)n);
+    }
+  else
+    mpz_set_ui(m, (unsigned long)n);
+
+#else                    /* 32-bit GMP limb */
+  mpz_set_ui (m, (unsigned long)(uint32_t)(n >> 32));
+  mpz_mul_2exp (m, m, 32);
+  mpz_add_ui (m, m, (unsigned long)(uint32_t)n);
+#endif
+}
+
+static inline void 
+mpz_set_int64 (mpz_t m, const int64_t n)
+{
+  if (n < 0)
+    {
+      mpz_set_uint64(m, -n);
+      mpz_neg(m, m);
+    }
+  else
+    mpz_set_uint64(m, n);
+}
+
+
 /* getprime.c */
 #define getprime __ECM(getprime)
 double   getprime       ();
@@ -377,7 +408,7 @@ void    pm1_rootsG_clear (pm1_roots_state_t *, mpmod_t);
 /* pm1fs2_param.c */
 #define choose_P __ECM(choose_P)
 long    choose_P (const mpz_t, const mpz_t, const unsigned long,
-                  const unsigned long, faststage2_param_t *, mpz_t, mpz_t,
+                  const uint64_t, faststage2_param_t *, mpz_t, mpz_t,
                   const int, const int);
 #define pm1fs2_memory_use __ECM(pm1fs2_ntt_memory_use)
 size_t  pm1fs2_memory_use (const unsigned long, const mpz_t, const int);
@@ -764,53 +795,37 @@ mp_size_t mpn_fft_next_size (mp_size_t, int);
 int ecm_stage1_batch (mpz_t, mpres_t, mpres_t, mpmod_t, double, double *, mpz_t);
 
 /* sets_long.c */
-/* A set of long ints */
+/* A set of 64-bit ints */
 typedef struct {
-  unsigned long card;
-  long elem[1];
-} set_long_t;
+  uint32_t card;
+  int64_t *elem;
+} set_t;
 
-/* A set of sets of long ints */
+/* A set of sets of 64-bit ints */
 typedef struct {
-  unsigned long nr;
-  set_long_t sets[1];
-} sets_long_t;
+  uint32_t num_sets;
+  uint32_t num_sets_alloc;
+  set_t *sets;
+} set_list_t;
 
-#define quicksort_long __ECM(quicksort_long)
-void          quicksort_long (long *, unsigned long);
+#define sets_init __ECM(sets_init)
+void          sets_init (set_list_t *);
+#define sets_free __ECM(sets_free)
+void          sets_free (set_list_t *);
 #define sets_print __ECM(sets_print)
-void          sets_print (const int, sets_long_t *);
+void          sets_print (const int, set_list_t *);
 #define sets_max __ECM(sets_max)
-void          sets_max (mpz_t, const unsigned long);
+void          sets_max (mpz_t, const uint64_t);
+#define sets_sumset_size __ECM(sets_sumset_size)
+uint32_t      sets_sumset_size (const set_list_t *);
 #define sets_sumset __ECM(sets_sumset)
-void          sets_sumset (set_long_t *, const sets_long_t *);
+uint32_t      sets_sumset (int64_t *, const set_list_t *);
 #define sets_sumset_minmax __ECM(sets_sumset_minmax)
-void          sets_sumset_minmax (mpz_t, const sets_long_t *, const int);
+void          sets_sumset_minmax (mpz_t, const set_list_t *, const int);
 #define sets_extract __ECM(sets_extract)
-void          sets_extract (sets_long_t *, size_t *, sets_long_t *, 
-                            const unsigned long);
+void          sets_extract (set_list_t *, set_list_t *, const uint64_t);
 #define sets_get_factored_sorted __ECM(sets_get_factored_sorted)
-sets_long_t *  sets_get_factored_sorted (const unsigned long);
-
-/* Return the size in bytes of a set of cardinality c */
-#define set_sizeof __ECM(set_sizeof)
-ATTRIBUTE_UNUSED
-static size_t 
-set_sizeof (const unsigned long c)
-{
-  return sizeof (long) + (size_t) c * sizeof (unsigned long);
-}
-
-
-/* Return pointer to the next set in "*sets" */
-ATTRIBUTE_UNUSED
-static set_long_t *
-sets_nextset (const set_long_t *sets)
-{
-  return (set_long_t *) ((char *)sets + sizeof(unsigned long) + 
-                         sets->card * sizeof(long));
-}
-
+void          sets_get_factored_sorted (set_list_t *, const uint64_t);
 
 #if defined (__cplusplus)
 }

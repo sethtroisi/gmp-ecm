@@ -67,8 +67,6 @@ extern size_t POLYEVALT_NTT_THRESHOLD;
 extern size_t MPZSPV_NORMALISE_STRIDE;
 #endif
 
-#include <gmp.h>
-
 /* Basic defs for the data types used in Number Theoretic Transforms
 
    The choice of basic data type has to balance computational

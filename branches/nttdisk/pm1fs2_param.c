@@ -37,102 +37,130 @@
    sumset(a,b) = {local(i, j, l); l = listcreate (length(a) * length(b)); for (i = 1, length(a), for (j = 1, length(b), listput(l, a[i] + b[j]))); listsort (l, 1); l}
 */
 
-const unsigned long Pvalues[] = {
-    3UL, 5UL, 9UL, 15UL, 21UL, 17UL, 27UL, 33UL, 45UL, 51UL, 63UL, 75UL, 
-    105UL, 99UL, 135UL, 165UL, 195UL, 189UL, 231UL, 255UL, 315UL, 345UL, 
-    357UL, 375UL, 405UL, 435UL, 525UL, 585UL, 615UL, 735UL, 765UL, 825UL, 
-    945UL, 1155UL, 1065UL, 1365UL, 1305UL, 1335UL, 1575UL, 1785UL, 1995UL, 
-    2145UL, 2205UL, 2415UL, 2625UL, 2805UL, 3045UL, 3465UL, 3675UL, 4095UL, 
-    4305UL, 4515UL, 4725UL, 4785UL, 5355UL, 5775UL, 5985UL, 5865UL, 6825UL, 
-    7245UL, 8085UL, 8925UL, 9555UL, 10395UL, 10725UL, 11025UL, 12285UL, 
-    12705UL, 15015UL, 14175UL, 15225UL, 16065UL, 17325UL, 19635UL, 21945UL, 
-    23205UL, 24255UL, 25935UL, 26775UL, 28875UL, 31395UL, 33495UL, 35805UL, 
-    36465UL, 38115UL, 39585UL, 40425UL, 45045UL, 45885UL, 49665UL, 51765UL, 
-    58905UL, 65835UL, 69615UL, 75075UL, 77805UL, 82005UL, 84315UL, 86625UL, 
-    88935UL, 94185UL, 98175UL, 105105UL, 109725UL, 116025UL, 118755UL, 
-    121275UL, 135135UL, 137445UL, 137655UL, 144375UL, 153615UL, 165165UL, 
-    167475UL, 176715UL, 179025UL, 185955UL, 197505UL, 208845UL, 215985UL, 
-    225225UL, 255255UL, 250635UL, 285285UL, 277095UL, 294525UL, 315315UL, 
-    345345UL, 373065UL, 368445UL, 405405UL, 435435UL, 451605UL, 465465UL, 
-    454545UL, 504735UL, 525525UL, 555555UL, 569415UL, 596505UL, 645645UL, 
-    647955UL, 672945UL, 687225UL, 765765UL, 770385UL, 805035UL, 855855UL, 
-    858585UL, 915915UL, 945945UL, 962115UL, 1036035UL, 1066065UL, 1119195UL, 
-    1156155UL, 1276275UL, 1306305UL, 1354815UL, 1426425UL, 1456455UL, 
-    1514205UL, 1576575UL, 1666665UL, 1726725UL, 1786785UL, 1789515UL, 
-    1865325UL, 1996995UL, 1983135UL, 2177175UL, 2297295UL, 2327325UL, 
-    2417415UL, 2567565UL, 2611455UL, 2807805UL, 2847075UL, 2878785UL, 
-    3048045UL, 3161235UL, 3258255UL, 3357585UL, 3401475UL, 3533145UL, 
-    3828825UL, 3918915UL, 3985905UL, 4279275UL, 4849845UL, 4789785UL, 
-    4967655UL, 5180175UL, 5360355UL, 5870865UL, 5990985UL, 6561555UL, 
-    6531525UL, 6891885UL, 7402395UL, 7912905UL, 8273265UL, 8580495UL, 
-    8843835UL, 9444435UL, 10015005UL, 10465455UL, 10705695UL, 10885875UL, 
-    11696685UL, 12267255UL, 12507495UL, 12785955UL, 13498485UL, 14549535UL, 
-    14849835UL, 15570555UL, 16111095UL, 16291275UL, 17612595UL, 18123105UL, 
-    18633615UL, 19684665UL, 20255235UL, 20825805UL, 22207185UL, 22717695UL, 
-    24249225UL, 24819795UL, 25741485UL, 26531505UL, 28333305UL, 29354325UL, 
-    30045015UL, 31396365UL, 32807775UL, 33948915UL, 33528495UL, 34879845UL, 
-    37011975UL, 37522485UL, 39564525UL, 41096055UL, 43648605UL, 44219175UL, 
-    45930885UL, 47222175UL, 48333285UL, 50075025UL, 51816765UL, 52777725UL, 
-    55390335UL, 55547415UL, 59053995UL, 60063465UL, 61906845UL, 64579515UL, 
-    66621555UL, 67492425UL, 70105035UL, 73258185UL, 74939865UL, 77224455UL, 
-    79594515UL, 81876795UL, 84999915UL, 88062975UL, 91005915UL, 94189095UL, 
-    98423325UL, 101846745UL, 111546435UL, 111035925UL, 115120005UL, 
-    121246125UL, 124098975UL, 130945815UL, 140645505UL, 150345195UL, 
-    150225075UL, 155450295UL, 158333175UL, 170255085UL, 179444265UL, 
-    190285095UL, 198843645UL, 203408205UL, 206831625UL, 217222005UL, 
-    229474245UL, 240705465UL, 252447195UL, 254999745UL, 269023755UL, 
-    282146865UL, 287672385UL, 294076965UL, 306110805UL, 318302985UL, 
-    334639305UL, 344338995UL, 354038685UL, 363738375UL, 373438065UL,
-    387221835UL, 400254855UL, 421936515UL, 431636205UL, 451035585UL,
-    453888435UL, 470434965UL, 480134655UL, 510765255UL, 522506985UL,
-    557732175UL, 570855285UL, 596530935UL, 610224615UL, 627912285UL,
-    654729075UL, 703227525UL, 722116395UL, 751725975UL, 780825045UL,
-    790524735UL, 821665845UL, 851275425UL, 863017155UL, 909984075UL,
-    936020085UL, 984518535UL, 1017041025UL, 1052416365UL
-#if (ULONG_MAX > 4294967295)
-   ,1086110025UL, 1110614505UL, 1147371225UL, 1191785595UL, 1213887675UL,
-    1265809545UL, 1282356075UL, 1331995665UL, 1391905515UL, 1450103655UL,
-    1479202725UL, 1547100555UL, 1555088535UL, 1673196525UL, 1712565855UL,
-    1767130365UL, 1830673845UL, 1883166285UL, 1954487535UL, 2001964965UL,
-    2119382265UL, 2187280095UL, 2255177925UL, 2342475135UL, 2390973585UL,
-    2421213795UL, 2555868315UL, 2672264595UL, 2788660875UL, 2856558705UL,
-    2953555605UL, 3050552505UL, 3234846615UL, 3457939485UL, 3516137625UL,
-    3681032355UL, 3758629875UL, 3904125225UL, 4127218095UL, 4360010655UL,
-    4573403835UL, 4796496705UL, 4844995155UL, 5019589575UL, 5203883685UL,
-    5262081825UL, 5465775315UL, 5766465705UL, 5898837945UL, 6164152995UL,
-    6358146795UL, 6411780375UL, 6804332535UL, 6980458485UL, 7172920755UL,
-    7473611145UL, 7716103395UL, 7968295335UL, 8182259085UL, 8342499165UL,
-    8812168365UL, 9023519505UL, 9704539845UL, 9927632715UL, 10373818455UL,
-    10439434005UL, 10820004195UL, 11043097065UL, 11489282805UL,
-    11877270405UL, 12381654285UL, 12604747155UL, 13080031965UL,
-    13274025765UL, 13642613985UL, 14389490115UL, 14583483915UL,
-    15058768725UL, 15611651055UL, 16174233075UL, 16397325945UL,
-    17289697425UL, 17735883165UL, 18143270145UL, 18381678315UL,
-    19074440385UL, 19559424885UL, 20636090475UL, 20941375455UL,
-    21800053275UL, 22643926305UL, 23148310185UL, 24205576395UL,
-    24546777255UL, 25544133615UL, 26389538175UL, 26863291455UL,
-    27813861075UL, 29113619535UL, 29494189725UL, 30520074585UL,
-    30684969315UL, 31790733975UL, 33575476935UL, 34467848415UL,
-    35202742575UL, 36427185795UL, 38037334335UL, 39240095895UL,
-    40365259935UL, 42053005995UL, 43168470345UL, 44953213305UL,
-    45845584785UL, 48522699225UL, 50307442185UL, 51869092275UL,
-    53653835235UL, 54546206715UL, 56680138515UL, 58784971245UL,
-    59386352025UL, 61908271425UL, 63431122755UL, 65700850215UL,
-    67931778915UL, 70162707615UL, 72616729185UL, 74120181135UL,
-    75740029365UL, 78417143805UL, 80871165375UL, 82840202445UL,
-    86448487125UL, 88466022645UL, 91133437395UL, 92918180355UL,
-    100280245065UL, 100726430805UL, 102811864155UL, 106749938295UL,
-    109000266375UL, 113219631525UL, 119689324755UL, 121027881975UL,
-    127943760945UL, 132628711215UL, 134859639915UL, 141775518885UL,
-    148691397855UL, 150922326555UL, 155607276825UL, 161320394235UL,
-    164977177365UL, 171446870595UL, 177470378085UL, 183270792705UL
-#endif
+const uint64_t Pvalues[] = {
+3ULL, 5ULL, 9ULL, 15ULL, 21ULL, 17ULL, 27ULL, 33ULL, 45ULL, 
+51ULL, 63ULL, 75ULL, 105ULL, 99ULL, 135ULL, 165ULL, 195ULL, 189ULL, 
+231ULL, 255ULL, 315ULL, 345ULL, 357ULL, 375ULL, 405ULL, 435ULL, 
+525ULL, 585ULL, 615ULL, 735ULL, 765ULL, 825ULL, 945ULL, 1155ULL, 
+1065ULL, 1365ULL, 1305ULL, 1335ULL, 1575ULL, 1785ULL, 1995ULL, 
+2145ULL, 2205ULL, 2415ULL, 2625ULL, 2805ULL, 3045ULL, 3465ULL, 
+3675ULL, 4095ULL, 4305ULL, 4515ULL, 4725ULL, 4785ULL, 5355ULL, 
+5775ULL, 5985ULL, 5865ULL, 6825ULL, 7245ULL, 8085ULL, 8925ULL, 
+9555ULL, 10395ULL, 10725ULL, 11025ULL, 12285ULL, 12705ULL, 
+15015ULL, 14175ULL, 15225ULL, 16065ULL, 17325ULL, 19635ULL, 
+21945ULL, 23205ULL, 24255ULL, 25935ULL, 26775ULL, 28875ULL, 
+31395ULL, 33495ULL, 35805ULL, 36465ULL, 38115ULL, 39585ULL, 
+40425ULL, 45045ULL, 45885ULL, 49665ULL, 51765ULL, 58905ULL, 
+65835ULL, 69615ULL, 75075ULL, 77805ULL, 82005ULL, 84315ULL, 
+86625ULL, 88935ULL, 94185ULL, 98175ULL, 105105ULL, 109725ULL, 
+116025ULL, 118755ULL, 121275ULL, 135135ULL, 137445ULL, 137655ULL, 
+144375ULL, 153615ULL, 165165ULL, 167475ULL, 176715ULL, 179025ULL, 
+185955ULL, 197505ULL, 208845ULL, 215985ULL, 225225ULL, 255255ULL, 
+250635ULL, 285285ULL, 277095ULL, 294525ULL, 315315ULL, 345345ULL, 
+373065ULL, 368445ULL, 405405ULL, 435435ULL, 451605ULL, 465465ULL, 
+454545ULL, 504735ULL, 525525ULL, 555555ULL, 569415ULL, 596505ULL, 
+645645ULL, 647955ULL, 672945ULL, 687225ULL, 765765ULL, 770385ULL, 
+805035ULL, 855855ULL, 858585ULL, 915915ULL, 945945ULL, 962115ULL, 
+1036035ULL, 1066065ULL, 1119195ULL, 1156155ULL, 1276275ULL, 
+1306305ULL, 1354815ULL, 1426425ULL, 1456455ULL, 1514205ULL, 
+1576575ULL, 1666665ULL, 1726725ULL, 1786785ULL, 1789515ULL, 
+1865325ULL, 1996995ULL, 1983135ULL, 2177175ULL, 2297295ULL, 
+2327325ULL, 2417415ULL, 2567565ULL, 2611455ULL, 2807805ULL, 2847075ULL, 
+2878785ULL, 3048045ULL, 3161235ULL, 3258255ULL, 3357585ULL, 3401475ULL, 
+3533145ULL, 3828825ULL, 3918915ULL, 3985905ULL, 4279275ULL, 4849845ULL, 
+4789785ULL, 4967655ULL, 5180175ULL, 5360355ULL, 5870865ULL, 5990985ULL, 
+6561555ULL, 6531525ULL, 6891885ULL, 7402395ULL, 7912905ULL, 8273265ULL, 
+8580495ULL, 8843835ULL, 9444435ULL, 10015005ULL, 10465455ULL, 10705695ULL, 
+10885875ULL, 11696685ULL, 12267255ULL, 12507495ULL, 12785955ULL, 
+13498485ULL, 14549535ULL, 14849835ULL, 15570555ULL, 16111095ULL, 
+16291275ULL, 17612595ULL, 18123105ULL, 18633615ULL, 19684665ULL, 
+20255235ULL, 20825805ULL, 22207185ULL, 22717695ULL, 24249225ULL, 
+24819795ULL, 25741485ULL, 26531505ULL, 28333305ULL, 29354325ULL, 
+30045015ULL, 31396365ULL, 32807775ULL, 33948915ULL, 33528495ULL, 
+34879845ULL, 37011975ULL, 37522485ULL, 39564525ULL, 41096055ULL, 
+43648605ULL, 44219175ULL, 45930885ULL, 47222175ULL, 48333285ULL, 
+50075025ULL, 51816765ULL, 52777725ULL, 55390335ULL, 55547415ULL, 
+59053995ULL, 60063465ULL, 61906845ULL, 64579515ULL, 66621555ULL, 
+67492425ULL, 70105035ULL, 73258185ULL, 74939865ULL, 77224455ULL, 
+79594515ULL, 81876795ULL, 84999915ULL, 88062975ULL, 91005915ULL, 
+94189095ULL, 98423325ULL, 101846745ULL, 111546435ULL, 111035925ULL, 
+115120005ULL, 121246125ULL, 124098975ULL, 130945815ULL, 140645505ULL, 
+150345195ULL, 150225075ULL, 155450295ULL, 158333175ULL, 170255085ULL, 
+179444265ULL, 190285095ULL, 198843645ULL, 203408205ULL, 206831625ULL, 
+217222005ULL, 229474245ULL, 240705465ULL, 252447195ULL, 254999745ULL, 
+269023755ULL, 282146865ULL, 287672385ULL, 294076965ULL, 306110805ULL, 
+318302985ULL, 334639305ULL, 344338995ULL, 354038685ULL, 363738375ULL, 
+373438065ULL, 387221835ULL, 400254855ULL, 421936515ULL, 431636205ULL, 
+451035585ULL, 453888435ULL, 470434965ULL, 480134655ULL, 510765255ULL, 
+522506985ULL, 557732175ULL, 570855285ULL, 596530935ULL, 610224615ULL, 
+627912285ULL, 654729075ULL, 703227525ULL, 722116395ULL, 751725975ULL, 
+780825045ULL, 790524735ULL, 821665845ULL, 851275425ULL, 863017155ULL, 
+909984075ULL, 936020085ULL, 984518535ULL, 1017041025ULL, 1052416365ULL,
+1086110025ULL, 1110614505ULL, 1147371225ULL, 1191785595ULL, 1213887675ULL, 
+1265809545ULL, 1282356075ULL, 1331995665ULL, 1391905515ULL, 1450103655ULL, 
+1479202725ULL, 1547100555ULL, 1555088535ULL, 1673196525ULL, 1712565855ULL, 
+1767130365ULL, 1830673845ULL, 1883166285ULL, 1954487535ULL, 2001964965ULL, 
+2119382265ULL, 2187280095ULL, 2255177925ULL, 2342475135ULL, 2390973585ULL, 
+2421213795ULL, 2555868315ULL, 2672264595ULL, 2788660875ULL, 2856558705ULL, 
+2953555605ULL, 3050552505ULL, 3234846615ULL, 3457939485ULL, 3516137625ULL, 
+3681032355ULL, 3758629875ULL, 3904125225ULL, 4127218095ULL, 4360010655ULL, 
+4573403835ULL, 4796496705ULL, 4844995155ULL, 5019589575ULL, 5203883685ULL, 
+5262081825ULL, 5465775315ULL, 5766465705ULL, 5898837945ULL, 6164152995ULL, 
+6358146795ULL, 6411780375ULL, 6804332535ULL, 6980458485ULL, 7172920755ULL, 
+7473611145ULL, 7716103395ULL, 7968295335ULL, 8182259085ULL, 8342499165ULL, 
+8812168365ULL, 9023519505ULL, 9704539845ULL, 9927632715ULL, 10373818455ULL, 
+10439434005ULL, 10820004195ULL, 11043097065ULL, 11489282805ULL, 11877270405ULL, 
+12381654285ULL, 12604747155ULL, 13080031965ULL, 13274025765ULL, 13642613985ULL,
+14389490115ULL, 14583483915ULL, 15058768725ULL, 15611651055ULL, 16174233075ULL,
+16397325945ULL, 17289697425ULL, 17735883165ULL, 18143270145ULL, 18381678315ULL,
+19074440385ULL, 19559424885ULL, 20636090475ULL, 20941375455ULL, 21800053275ULL,
+22643926305ULL, 23148310185ULL, 24205576395ULL, 24546777255ULL, 25544133615ULL,
+26389538175ULL, 26863291455ULL, 27813861075ULL, 29113619535ULL, 29494189725ULL,
+30520074585ULL, 30684969315ULL, 31790733975ULL, 33575476935ULL, 34467848415ULL,
+35202742575ULL, 36427185795ULL, 38037334335ULL, 39240095895ULL, 40365259935ULL,
+42053005995ULL, 43168470345ULL, 44953213305ULL, 45845584785ULL, 48522699225ULL,
+50307442185ULL, 51869092275ULL, 53653835235ULL, 54546206715ULL, 56680138515ULL,
+58784971245ULL, 59386352025ULL, 61908271425ULL, 63431122755ULL, 65700850215ULL,
+67931778915ULL, 70162707615ULL, 72616729185ULL, 74120181135ULL, 75740029365ULL,
+78417143805ULL, 80871165375ULL, 82840202445ULL, 86448487125ULL, 88466022645ULL, 
+91133437395ULL, 92918180355ULL, 100280245065ULL, 100726430805ULL, 
+102811864155ULL, 106749938295ULL, 109000266375ULL, 113219631525ULL, 
+119689324755ULL, 121027881975ULL, 127943760945ULL, 132628711215ULL, 
+134859639915ULL, 141775518885ULL, 148691397855ULL, 150922326555ULL, 
+155607276825ULL, 161320394235ULL, 164977177365ULL, 171446870595ULL, 
+177470378085ULL, 183270792705ULL,
 };
 
 /* All the prime factors that can appear in eulerphi(P) */
 const unsigned long phiPfactors[] = {2UL, 3UL, 5UL, 7UL, 11UL, 13UL, 
 				     17UL, 19UL};
 
+/* returns Euler's totient phi function */
+static uint64_t
+eulerphi64 (uint64_t n)
+{
+  uint64_t phi = 1, p;
+
+  for (p = 2UL; p * p <= n; p += 2)
+    {
+      if (n % p == 0)
+	{
+	  phi *= p - 1;
+	  n /= p;
+	  while (n % p == 0)
+	    {
+	      phi *= p;
+	      n /= p;
+	    }
+	}
+
+      if (p == 2UL)
+	p--;
+    }
+
+  /* now n is prime or 1 */
+  return (n == 1) ? phi : phi * (n - 1);
+}
 
 /* Approximate amount of memory in bytes each coefficient in an NTT takes 
    so that NTT can do transforms up to length lmax with modulus, or
@@ -299,30 +327,32 @@ pp1fs2_maxlen (const size_t memory, const mpz_t modulus, const int use_ntt,
    are stored in effB2min and effB2 */
 
 static int
-test_P (const mpz_t B2min, const mpz_t B2, mpz_t m_1, const unsigned long P, 
+test_P (const mpz_t B2min, const mpz_t B2, mpz_t m_1, const uint64_t P, 
 	const unsigned long nr, mpz_t effB2min, mpz_t effB2)
 {
-  mpz_t m;
+  mpz_t m, Ptmp;
   /* We need B2min >= 2 * max(S_1 + S_2) + (2*m_1 - 1)*P + 1, or
      B2min - 2 * max(S_1 + S_2) - 1 >= (2*m_1)*P - P, or
      (B2min - 2*max(S_1 + S_2) + P - 1)/(2P) >= m_1
      Choose m_1 accordingly */
   
   mpz_init (m);
+  mpz_init (Ptmp);
   sets_max (m, P);
   mpz_mul_2exp (m, m, 1UL); /* m = 2*max(S_1 + S_2) */
 
   mpz_sub (m_1, B2min, m);
   mpz_sub_ui (m_1, m_1, 1UL); /* m_1 = B2min - 2*max(S_1 + S_2) - 1 */
-  mpz_add_ui (m_1, m_1, P);
+  mpz_set_uint64(Ptmp, P);
+  mpz_add (m_1, m_1, Ptmp);
   mpz_fdiv_q_2exp (m_1, m_1, 1UL);
-  mpz_fdiv_q_ui (m_1, m_1, P);    /* 2UL*P may overflow */
+  mpz_fdiv_q (m_1, m_1, Ptmp);    /* 2UL*P may overflow */
   
   /* Compute effB2min = 2 * max(S_1 + S_2) + (2*(m_1 - 1) + 1)*P + 1 */
   
   mpz_mul_2exp (effB2min, m_1, 1UL);
   mpz_sub_ui (effB2min, effB2min, 1UL);
-  mpz_mul_ui (effB2min, effB2min, P);
+  mpz_mul (effB2min, effB2min, Ptmp);
   mpz_add (effB2min, effB2min, m);
   mpz_add_ui (effB2min, effB2min, 1UL);
   ASSERT_ALWAYS (mpz_cmp (effB2min, B2min) <= 0);
@@ -334,22 +364,23 @@ test_P (const mpz_t B2min, const mpz_t B2, mpz_t m_1, const unsigned long P,
   mpz_add_ui (effB2, m_1, nr);
   mpz_mul_2exp (effB2, effB2, 1UL);
   mpz_add_ui (effB2, effB2, 1UL);
-  mpz_mul_ui (effB2, effB2, P);
+  mpz_mul (effB2, effB2, Ptmp);
   mpz_sub (effB2, effB2, m);
 
   /* The effective B2 values is that value, minus 1 */
   mpz_sub_ui (effB2, effB2, 1UL);
 
   mpz_clear (m);
+  mpz_clear (Ptmp);
   return (mpz_cmp (B2, effB2) <= 0);
 }
 
 
 static void
-factor_phiP (int *exponents, const unsigned long phiP)
+factor_phiP (int *exponents, const uint64_t phiP)
 {
     const int nrprimes = sizeof (phiPfactors) / sizeof (unsigned long);
-    unsigned long cofactor = phiP;
+    uint64_t cofactor = phiP;
     int i;
     
     ASSERT_ALWAYS (phiP > 0UL);
@@ -374,8 +405,8 @@ pow_ul (const unsigned long b, const unsigned int e)
     return r;
 }
 
-static unsigned long
-absdiff_ul (unsigned long a, unsigned long b)
+static uint64_t
+absdiff_ul (uint64_t a, uint64_t b)
 {
     return (a > b) ? a - b : b - a;
 }
@@ -386,7 +417,7 @@ absdiff_ul (unsigned long a, unsigned long b)
    Returns 0 if no such choice is possible */
 
 static unsigned long 
-choose_s_1 (const unsigned long phiP, const unsigned long min_s2,
+choose_s_1 (const uint64_t phiP, const uint64_t min_s2,
 	    const unsigned long l, const int use_ntt)
 {
   const int nrprimes = sizeof (phiPfactors) / sizeof (unsigned long);
@@ -394,7 +425,7 @@ choose_s_1 (const unsigned long phiP, const unsigned long min_s2,
      arrays */
   int phiPexponents[sizeof (phiPfactors) / sizeof (unsigned long)], 
     exponents[sizeof (phiPfactors) / sizeof (unsigned long)];
-  unsigned long s_1 = 0UL, s_2 = 0UL, trys_1;
+  uint64_t s_1 = 0UL, s_2 = 0UL, trys_1;
   int i;
 
   ASSERT_ALWAYS (phiP > 0 && phiP % 2 == 0);
@@ -409,18 +440,19 @@ choose_s_1 (const unsigned long phiP, const unsigned long min_s2,
       for (i = 0; i < nrprimes; i++)
 	  trys_1 *= pow_ul (phiPfactors[i], exponents[i]);
 #if 0
-      printf ("choose_s_1: Trying trys_1 = %lu\n", trys_1);
+      printf ("choose_s_1: Trying trys_1 = %" PRId64 "\n", trys_1);
 #endif
       /* See if it satisfies all the required conditions and is an 
 	 improvement over the previous choice */
       if (phiP / trys_1 >= min_s2 && 
-	  (s_2 == 0UL || phiP / trys_1 < s_2) && 
+	  (s_2 == 0 || phiP / trys_1 < s_2) && 
 	  absdiff_ul (trys_1, l) < absdiff_ul (s_1, l) &&
 	  (use_ntt == 0 || trys_1 < l))
       {
 #if 0
-	  printf ("choose_s_1: New best s_1 for phiP = %lu, min_s2 = %lu, "
-		  "l = %lu : %lu\n", phiP, min_s2, l, trys_1);
+	  printf ("choose_s_1: New best s_1 for "
+	          "phiP = %" PRId64 ", min_s2 = %" PRId64 
+		  ", l = %lu : %" PRId64\n", phiP, min_s2, l, trys_1);
 #endif
 	  s_1 = trys_1;
       }
@@ -439,8 +471,8 @@ choose_s_1 (const unsigned long phiP, const unsigned long min_s2,
 /* Approximate cost of stage 2. Cost with and without ntt are not 
    comparable. We have l > s_1 and s_1 * s_2 = eulerphi(P), hence
    s_2*l > eulerphi(P) and so cost (s_2, l) > eulerphi(P) for all P */
-static unsigned long 
-est_cost (const unsigned long s_2, const unsigned long l, const int use_ntt,
+static uint64_t
+est_cost (const uint64_t s_2, const unsigned long l, const int use_ntt,
           const int method)
 {
   if (method == ECM_PM1)
@@ -480,7 +512,7 @@ est_cost (const unsigned long s_2, const unsigned long l, const int use_ntt,
 
 long
 choose_P (const mpz_t B2min, const mpz_t B2, const unsigned long lmax,
-	  const unsigned long min_s2, faststage2_param_t *finalparams, 
+	  const uint64_t min_s2, faststage2_param_t *finalparams, 
 	  mpz_t final_B2min, mpz_t final_B2, const int use_ntt, 
 	  const int method)
 {
@@ -518,13 +550,13 @@ choose_P (const mpz_t B2min, const mpz_t B2, const unsigned long lmax,
   mpz_t B2l, m_1, effB2min, tryeffB2, effB2, lmin;
   /* The best parameters found so far, P == 0 means that no suitable P
      has been found yet: */
-  unsigned long P = 0, s_1 = 0, s_2 = 0, l = 0, cost = 0;
+  uint64_t P = 0, s_1 = 0, s_2 = 0, l = 0, cost = 0;
   unsigned int i;
-  const unsigned int Pvalues_len = sizeof (Pvalues) / sizeof (unsigned long);
+  const unsigned int Pvalues_len = sizeof (Pvalues) / sizeof (uint64_t);
   int r;
 
   outputf (OUTPUT_TRACE, 
-           "choose_P(B2min = %Zd, B2 = %Zd, lmax = %lu, min_s2 = %ld, "
+           "choose_P(B2min = %Zd, B2 = %Zd, lmax = %lu, min_s2 = %" PRId64 ", "
            "use_ntt = %d, method = %d\n", 
            B2min, B2, lmax, min_s2, use_ntt, method);
 
@@ -558,21 +590,23 @@ choose_P (const mpz_t B2min, const mpz_t B2, const unsigned long lmax,
 
   for (i = 0 ; i < Pvalues_len; i++)
     {
-      unsigned long tryP, tryphiP, trys_1, trys_2, tryl, trycost;
+      uint64_t tryP, tryphiP, trys_1, trys_2, trycost;
+      unsigned long tryl;
       
       tryP = Pvalues[i];
-      tryphiP = eulerphi (tryP);
+      tryphiP = eulerphi64 (tryP);
       
       outputf (OUTPUT_TRACE, 
-	       "choose_P: trying P = %lu, eulerphi(P) = %lu\n", tryP, tryphiP);
+	       "choose_P: trying P = %" PRId64 ", eulerphi(P) = "
+	       "%" PRId64 "\n", tryP, tryphiP);
       
       /* If we have a good P already and this tryphiP >= cost, then 
 	 there's no hope for this tryP, since cost(s_2, l) > eulerphi(P) */
       if (P != 0 && tryphiP >= cost)
 	{
 	  outputf (OUTPUT_TRACE, 
-		   "choose_P: tryphiP > cost = %lu, this P is too large\n",
-		   cost);
+		   "choose_P: tryphiP > cost = %" PRId64 
+		   ", this P is too large\n", cost);
 	  continue;
 	}
       
@@ -580,7 +614,8 @@ choose_P (const mpz_t B2min, const mpz_t B2, const unsigned long lmax,
 	 l >= B2l/P/2 */
       mpz_cdiv_q_ui (lmin, B2l, tryP);
       mpz_cdiv_q_2exp (lmin, lmin, 1UL);
-      outputf (OUTPUT_TRACE, "choose_P: lmin = %Zd for P = %lu\n", lmin, tryP);
+      outputf (OUTPUT_TRACE, "choose_P: lmin = %Zd for "
+	  			"P = %" PRId64 "\n", lmin, tryP);
       if (mpz_cmp_ui (lmin, lmax) > 0)
 	{
 	  outputf (OUTPUT_TRACE, 
@@ -602,19 +637,22 @@ choose_P (const mpz_t B2min, const mpz_t B2, const unsigned long lmax,
 	  if (trys_1 == 0)
 	    {
 	      outputf (OUTPUT_TRACE, 
-		       "choose_P: could not choose s_1 for P = %lu, l = %lu\n",
-		       tryP, tryl);
+		       "choose_P: could not choose s_1 for "
+		       "P = %" PRId64 ", l = %lu\n", tryP, tryl);
 	      continue;
 	    }
 	  ASSERT (tryphiP % trys_1 == 0UL);
 	  trys_2 = tryphiP / trys_1;
-	  outputf (OUTPUT_TRACE, "choose_P: chose s_1 = %lu, k = s_2 = %lu "
-		   "for P = %lu, l = %lu\n", trys_1, trys_2, tryP, tryl);
+	  outputf (OUTPUT_TRACE, 
+	      	"choose_P: chose s_1 = %" PRId64 ", k = s_2 = %" PRId64 
+		   "for P = %" PRId64 ", l = %lu\n", 
+		   trys_1, trys_2, tryP, tryl);
 	  
 	  if (test_P (B2min, B2, m_1, tryP, tryl - trys_1, effB2min, tryeffB2))
 	    {
 	      outputf (OUTPUT_TRACE, 
-		       "choose_P: P = %lu, l = %lu, s_1 = %lu, k = s_2 = %lu "
+		       "choose_P: P = %" PRId64 ", l = %" PRId64 
+		       ", s_1 = %" PRId64 ", k = s_2 = %" PRId64
 		       "works, m_1 = %Zd, effB2min = %Zd, effB2 = %zZd\n",
 		       tryP, tryl, trys_1, trys_2, m_1, effB2min, tryeffB2);
 	      /* We use these parameters if we 
@@ -628,8 +666,8 @@ choose_P (const mpz_t B2min, const mpz_t B2, const unsigned long lmax,
 		  (trycost == cost && mpz_cmp (tryeffB2, effB2) > 0))
 		{
 		  outputf (OUTPUT_TRACE, 
-			   "choose_P: and is the new optimum (cost = %lu)\n",
-			   trycost);
+			   "choose_P: and is the new "
+			   "optimum (cost = %" PRId64 ")\n", trycost);
 		  P = tryP;
 		  s_1 = trys_1;
 		  s_2 = trys_2;
