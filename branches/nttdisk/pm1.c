@@ -944,7 +944,7 @@ pm1 (mpz_t f, mpz_t p, mpz_t N, mpz_t go, double *B1done, double B1,
                             B2min, B2, 1, ECM_PM1);
           if (P_ntt != ECM_ERROR)
             outputf (OUTPUT_DEVVERBOSE, 
-	             "Parameters for NTT: P=%lu, l=%lu\n", 
+	             "Parameters for NTT: P=%" PRId64 ", l=%lu\n", 
 	             params_ntt.P, params_ntt.l);
 	}
       else
@@ -967,7 +967,7 @@ pm1 (mpz_t f, mpz_t p, mpz_t N, mpz_t go, double *B1done, double B1,
         P_nontt = ECM_ERROR;
       if (P_nontt != ECM_ERROR)
         outputf (OUTPUT_DEVVERBOSE, 
-                 "Parameters for non-NTT: P=%lu, l=%lu\n", 
+                 "Parameters for non-NTT: P=%" PRId64 ", l=%lu\n", 
                  params_nontt.P, params_nontt.l);
       
       if (((!use_ntt || P_ntt == ECM_ERROR) && P_nontt == ECM_ERROR) ||
@@ -1077,10 +1077,14 @@ pm1 (mpz_t f, mpz_t p, mpz_t N, mpz_t go, double *B1done, double B1,
   if (mpz_cmp (B2, B2min) >= 0)
     {
       if (stage2_variant != 0)
-        outputf (OUTPUT_VERBOSE, "P = %lu, l = %lu, s_1 = %lu, k = s_2 = %lu, "
-                 "m_1 = %Zd\n", faststage2_params.P, faststage2_params.l,
-                 faststage2_params.s_1,faststage2_params.s_2,
-                 faststage2_params.m_1);
+	{ 
+	  /* can't mix 64-bit types and mpz_t on win32 for some reason */
+	  outputf (OUTPUT_VERBOSE, "P = %" PRId64 ", l = %lu"
+			", s_1 = %" PRId64 ", k = s_2 = %" PRId64 ,
+		 faststage2_params.P, faststage2_params.l,
+                 faststage2_params.s_1,faststage2_params.s_2);
+	  outputf (OUTPUT_VERBOSE, ", m_1 = %Zd\n", faststage2_params.m_1);
+	}
       else
         outputf (OUTPUT_VERBOSE, "dF=%lu, k=%lu, d=%lu, d2=%lu, i0=%Zd\n", 
                  dF, k, root_params.d1, root_params.d2, root_params.i0);

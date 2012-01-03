@@ -402,3 +402,39 @@ void mpzspm_clear (mpzspm_t mpzspm)
   free (mpzspm);
 }
 
+
+void
+mpzspm_print_CRT_primes (const int verbosity, const char *prefix, 
+		   const mpzspm_t ntt_context)
+{
+  double modbits = 0.;
+  unsigned int i;
+  
+  if (test_verbose (verbosity))
+    {
+      outputf (verbosity, 
+#if SP_TYPE_BITS == 64
+			"%s%" PRId64 
+#else
+			"%s%u"
+#endif
+			, prefix, ntt_context->spm[0]->sp);
+
+      modbits += log ((double) ntt_context->spm[0]->sp);
+      for (i = 1; i < ntt_context->sp_num; i++)
+	{
+	  outputf (verbosity,
+#if SP_TYPE_BITS == 64
+			" * %" PRId64 
+#else
+			" * %u"
+#endif
+			, ntt_context->spm[i]->sp);
+
+	  modbits += log ((double) ntt_context->spm[i]->sp);
+	}
+      outputf (verbosity, ", has %d primes, %f bits\n", 
+               ntt_context->sp_num, modbits / log (2.));
+    }
+}
+

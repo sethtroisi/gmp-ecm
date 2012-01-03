@@ -416,7 +416,7 @@ absdiff_ul (uint64_t a, uint64_t b)
    under those conditions. If use_ntt == 1, we require s_1 < l.
    Returns 0 if no such choice is possible */
 
-static unsigned long 
+static uint64_t
 choose_s_1 (const uint64_t phiP, const uint64_t min_s2,
 	    const unsigned long l, const int use_ntt)
 {
@@ -452,7 +452,7 @@ choose_s_1 (const uint64_t phiP, const uint64_t min_s2,
 #if 0
 	  printf ("choose_s_1: New best s_1 for "
 	          "phiP = %" PRId64 ", min_s2 = %" PRId64 
-		  ", l = %lu : %" PRId64\n", phiP, min_s2, l, trys_1);
+		  ", l = %lu : %" PRId64 "\n", phiP, min_s2, l, trys_1);
 #endif
 	  s_1 = trys_1;
       }
@@ -547,10 +547,11 @@ choose_P (const mpz_t B2min, const mpz_t B2, const unsigned long lmax,
      be small, as long as s_1 is small enough.
   */
 
-  mpz_t B2l, m_1, effB2min, tryeffB2, effB2, lmin;
+  mpz_t B2l, m_1, effB2min, tryeffB2, effB2, lmin, Ptmp;
   /* The best parameters found so far, P == 0 means that no suitable P
      has been found yet: */
-  uint64_t P = 0, s_1 = 0, s_2 = 0, l = 0, cost = 0;
+  uint64_t P = 0, s_1 = 0, s_2 = 0, cost = 0;
+  unsigned long l = 0;
   unsigned int i;
   const unsigned int Pvalues_len = sizeof (Pvalues) / sizeof (uint64_t);
   int r;
@@ -579,6 +580,7 @@ choose_P (const mpz_t B2min, const mpz_t B2, const unsigned long lmax,
   mpz_init (B2l);
   mpz_init (m_1);
   mpz_init (lmin);
+  mpz_init (Ptmp);
   
   mpz_sub (B2l, B2, B2min);
   mpz_add_ui (B2l, B2l, 1UL); /* +1 due to closed interval */
@@ -612,7 +614,8 @@ choose_P (const mpz_t B2min, const mpz_t B2, const unsigned long lmax,
       
       /* We have nr < l and effB2-effB2min <= 2*nr*P. Hence we need 
 	 l >= B2l/P/2 */
-      mpz_cdiv_q_ui (lmin, B2l, tryP);
+      mpz_set_uint64(Ptmp, tryP);
+      mpz_cdiv_q (lmin, B2l, Ptmp);
       mpz_cdiv_q_2exp (lmin, lmin, 1UL);
       outputf (OUTPUT_TRACE, "choose_P: lmin = %Zd for "
 	  			"P = %" PRId64 "\n", lmin, tryP);
@@ -645,16 +648,19 @@ choose_P (const mpz_t B2min, const mpz_t B2, const unsigned long lmax,
 	  trys_2 = tryphiP / trys_1;
 	  outputf (OUTPUT_TRACE, 
 	      	"choose_P: chose s_1 = %" PRId64 ", k = s_2 = %" PRId64 
-		   "for P = %" PRId64 ", l = %lu\n", 
+		   " for P = %" PRId64 ", l = %lu\n", 
 		   trys_1, trys_2, tryP, tryl);
 	  
 	  if (test_P (B2min, B2, m_1, tryP, tryl - trys_1, effB2min, tryeffB2))
 	    {
+	      /* can't mix 64-bit types and mpz_t on win32 for some reason */
 	      outputf (OUTPUT_TRACE, 
-		       "choose_P: P = %" PRId64 ", l = %" PRId64 
-		       ", s_1 = %" PRId64 ", k = s_2 = %" PRId64
-		       "works, m_1 = %Zd, effB2min = %Zd, effB2 = %zZd\n",
-		       tryP, tryl, trys_1, trys_2, m_1, effB2min, tryeffB2);
+		       "choose_P: P = %" PRId64 ", l = %lu, "
+		       "s_1 = %" PRId64 ", k = s_2 = %" PRId64 " works, ",
+		       tryP, tryl, trys_1, trys_2);
+	      outputf (OUTPUT_TRACE, 
+		       "m_1 = %Zd, effB2min = %Zd, effB2 = %Zd\n",
+		       m_1, effB2min, tryeffB2);
 	      /* We use these parameters if we 
 		 1. didn't have any suitable ones yet, or 
 		 2. these cover [B2min, B2] and are cheaper than the best 
@@ -704,6 +710,7 @@ choose_P (const mpz_t B2min, const mpz_t B2, const unsigned long lmax,
   mpz_clear (B2l);
   mpz_clear (m_1);
   mpz_clear (lmin);
+  mpz_clear (Ptmp);
 
   return (P != 0) ? (long) P : ECM_ERROR;
 }

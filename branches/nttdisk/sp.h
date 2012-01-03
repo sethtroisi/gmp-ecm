@@ -620,6 +620,8 @@ void spv_ntt_gfp_dit (spv_t, spv_size_t, spm_t);
 spv_size_t mpzspm_max_len (mpz_t);
 mpzspm_t mpzspm_init (spv_size_t, mpz_t);
 void mpzspm_clear (mpzspm_t);
+void mpzspm_print_CRT_primes (const int, const char *, 
+			   const mpzspm_t);
 
 /* mpzspv */
 

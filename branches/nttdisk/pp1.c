@@ -957,10 +957,15 @@ pp1 (mpz_t f, mpz_t p, mpz_t n, mpz_t go, double *B1done, double B1,
   if (mpz_cmp (B2, B2min) >= 0)
     {
       if (stage2_variant != 0)
-        outputf (OUTPUT_VERBOSE, "P = %lu, l = %lu, s_1 = %lu, k = s_2 = %lu, "
-                 "m_1 = %Zd\n", faststage2_params.P, faststage2_params.l,
-                 faststage2_params.s_1,faststage2_params.s_2,
-                 faststage2_params.m_1);
+	{
+	  /* can't mix 64-bit types and mpz_t on win32 for some reason */
+	  outputf (OUTPUT_VERBOSE, "P = %" PRId64 ", l = %lu, "
+		"s_1 = %" PRId64 ", k = s_2 = %" PRId64 ,
+                 ", m_1 = %Zd\n", faststage2_params.P, faststage2_params.l,
+                 faststage2_params.s_1,faststage2_params.s_2);
+	  outputf (OUTPUT_VERBOSE, ", m_1 = %Zd\n", 
+	      	faststage2_params.m_1);
+	}
       else
         outputf (OUTPUT_VERBOSE, "dF=%lu, k=%lu, d=%lu, d2=%lu, i0=%Zd\n", 
                  dF, k, root_params.d1, root_params.d2, 

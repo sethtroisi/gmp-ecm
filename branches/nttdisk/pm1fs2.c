@@ -89,27 +89,6 @@ print_elapsed_time (int verbosity, long cpu_start,
 
 
 static void
-print_CRT_primes (const int verbosity, const char *prefix, 
-		   const mpzspm_t ntt_context)
-{
-  double modbits = 0.;
-  unsigned int i;
-  
-  if (test_verbose (verbosity))
-    {
-      outputf (verbosity, "%s%lu", prefix, ntt_context->spm[0]->sp);
-      modbits += log ((double) ntt_context->spm[0]->sp);
-      for (i = 1; i < ntt_context->sp_num; i++)
-	{
-	  outputf (verbosity, " * %lu", ntt_context->spm[i]->sp);
-	  modbits += log ((double) ntt_context->spm[i]->sp);
-	}
-      outputf (verbosity, ", has %d primes, %f bits\n", 
-               ntt_context->sp_num, modbits / log (2.));
-    }
-}
-
-static void
 list_output_poly (listz_t l, unsigned long len, int monic, int symmetric,
 		  char *prefix, char *suffix, int verbosity)
 {
@@ -1296,7 +1275,7 @@ build_F_ntt (listz_t F, const mpres_t P_1, set_list_t *S_1,
       return ECM_ERROR;
     }
   
-  print_CRT_primes (OUTPUT_DEVVERBOSE, "CRT modulus for building F = ",
+  mpzspm_print_CRT_primes (OUTPUT_DEVVERBOSE, "CRT modulus for building F = ",
 		    F_ntt_context);
   
   outputf (OUTPUT_VERBOSE, "Computing F from factored S_1");
@@ -2266,7 +2245,7 @@ pm1fs2_ntt (mpz_t f, const mpres_t X, mpmod_t modulus,
       return ECM_ERROR;
     }
 
-  print_CRT_primes (OUTPUT_DEVVERBOSE, "CRT modulus for evaluation = ", 
+  mpzspm_print_CRT_primes (OUTPUT_DEVVERBOSE, "CRT modulus for evaluation = ", 
 		    ntt_context);
 
   sets_init(&S_1);
@@ -3647,7 +3626,7 @@ pp1fs2_ntt (mpz_t f, const mpres_t X, mpmod_t modulus,
       return ECM_ERROR;
     }
 
-  print_CRT_primes (OUTPUT_DEVVERBOSE, "CRT modulus for evaluation = ", 
+  mpzspm_print_CRT_primes (OUTPUT_DEVVERBOSE, "CRT modulus for evaluation = ", 
 		    ntt_context);
 
   /* Allocate memory for F with correct amount of space for each mpz_t */

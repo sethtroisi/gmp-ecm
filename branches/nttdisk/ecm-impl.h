@@ -269,7 +269,8 @@ typedef __root_params_t root_params_t;
 
 typedef struct
 {
-  uint64_t P, s_1, s_2, l;
+  uint64_t P, s_1, s_2;
+  unsigned long l;
   mpz_t m_1;
 } __faststage2_param_t;
 typedef __faststage2_param_t faststage2_param_t;
