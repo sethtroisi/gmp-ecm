@@ -27,7 +27,7 @@ GMP-ECM using Visual Studio you first need to obtain and build either
 GMP or MPIR.   MPIR has a fully integrated Visual Studio build system
 for Windows but GMP does not.  
 
-The VC++ build of ECM-GMP now defaults to MPIR but the property sheet 
+The VC++ build of GMP-ECM now defaults to MPIR but the property sheet 
 mp_lib.vsprops can be edited to set the macro mp_lib to 'gmp' instead 
 of 'mpir' to build ECM using GMP.
 
@@ -63,7 +63,7 @@ with x86 assembler support using the YASM assembler.  In particular it
 includes fast assembler code for modern AMD and Intel architectures 
 running in 64-bit mode on Windows (not available in GMP).
 
-Building ECM-GMP
+Building GMP-ECM
 ================
 
 The build files for GMP-ECM assume that the GMP and ECM build directories
