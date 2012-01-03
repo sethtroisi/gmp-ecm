@@ -121,8 +121,7 @@ read_resumefile_line (int *method, mpz_t x, mpcandi_t *n, mpz_t sigma, mpz_t A,
         mpz_t x0, double *b1, char *program, char *who, char *rtime, 
         char *comment, FILE *fd)
 {
-  int a, c;
-  int have_method, have_x, have_z, have_n, have_sigma, have_a, have_b1, 
+  int a, have_method, have_x, have_z, have_n, have_sigma, have_a, have_b1, 
       have_checksum, have_qx;
   unsigned int saved_checksum;
   char tag[16];
@@ -140,7 +139,7 @@ read_resumefile_line (int *method, mpz_t x, mpcandi_t *n, mpz_t sigma, mpz_t A,
       if (facceptstr (fd, "#"))
         {
           while (!facceptnl (fd) && !feof (fd))
-            c = fgetc (fd);
+            fgetc (fd);
           continue;
         }
       
@@ -375,7 +374,7 @@ read_resumefile_line (int *method, mpz_t x, mpcandi_t *n, mpz_t sigma, mpz_t A,
 error:
       /* In case of error, read rest of line and try next line */
       while (!facceptnl (fd) && !feof (fd))
-        c = fgetc (fd);
+        fgetc (fd);
     }
     
     /* We hit EOF without reading a proper save line */

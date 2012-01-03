@@ -460,7 +460,7 @@ mulredc (mp_ptr z, mp_srcptr x, mp_srcptr y, mp_srcptr m,
      thus at most one correction is enough */
   if (cy != 0)
     {
-      mp_limb_t t;
+      ATTRIBUTE_UNUSED mp_limb_t t;
       t = mpn_sub_n (z, z, m, nn); /* a borrow should always occur here */
       ASSERT (t == 1);
     }
@@ -547,7 +547,7 @@ mulredc_1 (mp_ptr z, const mp_limb_t x, mp_srcptr y, mp_srcptr m,
      thus one correction (at most) is enough */
   if (cy != 0)
     {
-      mp_limb_t t;
+      ATTRIBUTE_UNUSED mp_limb_t t;
       t = mpn_sub_n (z, z, m, N); /* a borrow should always occur here */
       ASSERT (t == 1);
     }
