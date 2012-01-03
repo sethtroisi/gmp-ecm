@@ -16,7 +16,7 @@ C:\Program Files (x86)\Microsoft Visual Studio 10.0\VC\bin
 The Multi-Precision Library - GMP and MPIR
 ==========================================
 
-GMP-ECM works with either GMP or MPIR, a fork of GMP.  To build and run
+GMP-ECM works with either GMP or MPIR, a fork of GMP. To build and run
 GMP-ECM using Visual Studio you first need to obtain and build either 
 GMP or MPIR.   MPIR has a fully integrated Visual Studio build system
 for Windows but GMP does not.  
@@ -34,7 +34,7 @@ GMP can be built from the GMP source code available here:
   
 using the Visual Studio build files I provide here:
 
-  http://fp.gladman.plus.com/computing/gmp4win.htm 
+  http://www.gladman.me.uk/computing/gmp4win.php
   
 But these are based on GMP 4.2.x and are no longer being maintained.
 
@@ -96,7 +96,7 @@ When a version of ecm and ecmlib are built the library and the application
 are put in the directory matching the configuration that has been built:
 
     GMP-ECM
-      buid.vc10     -- ECM build files 
+      build.vc10    -- ECM build files 
       lib           -- ECM static library files
       dll           -- ECM dynamic library files
       bin           -- ECM executable files
@@ -133,5 +133,5 @@ Tests
 The file tests.py is a python script that runs the ECM tests. It runs the
 x64/release-amd version by default but can be edited to test other builds.
 
-    Brian Gladman, 20/12/2011
+    Brian Gladman, 3rd January 2012
 
