@@ -1,4 +1,5 @@
-/* produced 3 Jan 2012 on tarte.loria.fr with GMP 5.0.2 for ecm-6.4 */
+/* produced 3 Jan 2012 on tarte.loria.fr with GMP 5.0.2 for ecm-6.4
+   (Intel(R) Core(TM)2 Quad CPU    Q9550  @ 2.83GHz) */
 
 #define TUNE_MULREDC_THRESH 20
 #define TUNE_SQRREDC_THRESH 3
