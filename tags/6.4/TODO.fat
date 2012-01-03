@@ -1,0 +1,95 @@
+In-Reply-To: <E1JA6KR-0004LH-RP@mermoz.loria.fr>
+Date: Thu, 3 Jan 2008 01:29:41 +0100 (CET)
+Subject: Re: Illegal instruction
+From: Peter-Lawrence.Montgomery@cwi.nl
+To: "Paul Zimmermann" <Paul.Zimmermann@loria.fr>
+Cc: kruppaal@loria.fr, pierrick.gaudry@gmail.com
+MIME-Version: 1.0
+Content-Type: text/plain;charset=iso-8859-1
+
+    Here is the suggested pseudocode.  I can
+send the source files the CWI NFS code is using
+to look for CPUID features of interest.
+
+
+
+global data
+
+     cpuid_info                  (struct, X86 only)
+     cores_available             (int, not yet used)
+     specialized_mulredc_usable  (boolean)
+     specialized_redc3_usable    (boolean, not yet used)
+
+While processing command line
+
+     Initialize cores_available = 1
+     #if X86 then
+        Call code to fill in cpuid_info struct.
+        I can supply something for this.
+
+        cores_available = (value from CPUID)
+
+        if -v option set, print hardware information.
+    #endif
+
+Early in mpmod_init
+
+   Initialize specialized_mulredc_usable = specialized_redc3_usable = TRUE
+
+
+File mpmod.c, procedure mpmod_init, near line 448
+
+     When mpz_size(N) < MPZMOD_THRESHOLD
+
+          #if ASM_REDC && X86
+
+               specialized_mulredc_usable = (SSE2 availability flag from
+CPUID)
+
+          #endif
+
+File mpmod.c, procedure mulredc, near line 311
+
+    if (specialized_mulredc_usable) {
+           switch(N)
+    } else {
+           choose the default code
+    }
+
+
+
+
+        Peter
+
+
+
+
+
+>        Dear Peter,
+>
+>>       The problem is that we do only one compile but the binary may
+>> execute on 100 different x86 machines. (Actually there is one 32-bit
+>> compile and one 64-bit compile -- the arch command
+>> lets us distinguish these environments when we
+>> choose the executable).  I would like the
+>> code to use the CPUID instruction output to
+>> distinguish SSE2, 3DNOW, and other extensions.
+>> Unless the (run-time) command line specifies a multiplication
+>> algorithm, pick the best algorithm using the
+>> available hardware, just as you now distinguish cofactors
+>> of 2^n +- 1.
+>
+> ok I understand. What you want is a kind of "fat binary" like what GMP
+> now provides. However I have to idea how to implement that in a portable
+> way. If you know how to do this, and want to contribute it to GMP-ECM,
+> please go ahead!
+>
+> Best wishes,
+> Paul
+>
+> PS: note that with --disable-asm-redc, and with GMP configured as fat
+> binary,
+> you should get what you want, but it would probably be less efficient than
+> with
+> --enable-asm-redc.
+>
