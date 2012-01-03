@@ -10,6 +10,7 @@ Changes between ecm-6.3 and ecm-6.4:
 * Patch from David Cleaver to use GWNUM 26.6 on Windows x64 with MingW64/Msys
 * Improved conversion from mpz_t to residue number system in NTT code
 * Better asm code for AMD cpus
+* Use of GMP's mpn_mullo_n and mpn_redc_2 when available
 * New option -batch with faster Stage 1 (but smaller success probability)
 * Added Visual Studio 2010 build
 
