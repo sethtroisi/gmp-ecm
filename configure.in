@@ -604,6 +604,19 @@ if test x"$config_arch" = xathlon64; then
   fi;
 fi
 
+# See if this is a Pentium 4, if we have /proc/cpuinfo 
+pentium4warn=no
+if test x"$config_arch" = xdefault; then
+  if test -f /proc/cpuinfo; then
+    if $EGREP -q "Pentium\(R\) 4" /proc/cpuinfo; then
+      config_arch=pentium4
+    fi;
+  else
+    # No /proc/cpuinfo, tell user about ecm-params.h.pentium4
+    pentium4warn=yes
+  fi;
+fi
+
 LIBS="$LIBS $GWLIB"
 
 GMP_FINISH
@@ -672,5 +685,12 @@ if test x"$core2warn" = xyes; then
   AC_MSG_NOTICE([Your cpu was detected as x86_64; if it is a Core 2, please either use the ecm-params.h.core2 file by executing the commands:])
   AC_MSG_NOTICE([rm ecm-params.h])
   AC_MSG_NOTICE([ln -s ecm-params.h.core2 ecm-params.h])
+  AC_MSG_NOTICE([or generate a custom ecm-params.h file for your system as described in INSTALL.])
+fi
+
+if test x"$pentium4warn" = xyes; then
+  AC_MSG_NOTICE([Your cpu was detected as default; if it is a Pentium 4, please either use the ecm-params.h.pentium4 file by executing the commands:])
+  AC_MSG_NOTICE([rm ecm-params.h])
+  AC_MSG_NOTICE([ln -s ecm-params.h.pentium4 ecm-params.h])
   AC_MSG_NOTICE([or generate a custom ecm-params.h file for your system as described in INSTALL.])
 fi
