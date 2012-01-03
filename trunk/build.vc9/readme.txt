@@ -1,4 +1,3 @@
-
 Building GMP-ECM with Microsoft Visual C++ 2008 (version 9)
 ===========================================================
 
@@ -40,7 +39,7 @@ GMP can be built from the GMP source code available here:
   
 using the Visual Studio build files I provide here:
 
-  http://fp.gladman.plus.com/computing/gmp4win.htm 
+  http://www.gladman.me.uk/computing/gmp4win.php 
   
 But these are based on GMP 4.2.x and are no longer being maintained.
 
@@ -130,4 +129,4 @@ Tests
 The file tests.py is a python script that runs the ECM tests. It runs the
 x64/release-amd version by default but can be edited to test other builds.
 
-    Brian Gladman, 11th August 2009
+    Brian Gladman, 3rd January 2012
