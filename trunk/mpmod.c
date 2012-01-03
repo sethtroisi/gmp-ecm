@@ -577,7 +577,7 @@ ecm_mulredc_basecase (mpres_t R, const mpres_t S1, const mpres_t S2,
   mp_ptr rp;
   mp_ptr s1p, s2p;
   mp_srcptr np;
-  mp_size_t j, nn;
+  mp_size_t j, nn = modulus->bits / GMP_NUMB_BITS;
 
   ASSERT(ALLOC(R) >= nn);
   ASSERT(ALLOC(S1) >= nn);
@@ -586,7 +586,6 @@ ecm_mulredc_basecase (mpres_t R, const mpres_t S1, const mpres_t S2,
   s1p = PTR(S1);
   s2p = PTR(S2);
   np = PTR(modulus->orig_modulus);
-  nn = modulus->bits / GMP_NUMB_BITS;
   /* FIXME: S1 and S2 are input and marked const, we mustn't write to them */
   for (j = ABSIZ(S1); j < nn; j++) 
     s1p[j] = 0;
@@ -620,14 +619,13 @@ ecm_sqrredc_basecase (mpres_t R, const mpres_t S1, mpmod_t modulus)
   mp_ptr rp;
   mp_ptr s1p;
   mp_srcptr np;
-  mp_size_t j, nn;
+  mp_size_t j, nn = modulus->bits / GMP_NUMB_BITS;
 
   ASSERT(ALLOC(R) >= nn);
   ASSERT(ALLOC(S1) >= nn);
   rp = PTR(R);
   s1p = PTR(S1);
   np = PTR(modulus->orig_modulus);
-  nn = modulus->bits / GMP_NUMB_BITS;
   /* FIXME: S1 is input and marked const, we mustn't write to it */
   for (j = ABSIZ(S1); j < nn; j++)
     s1p[j] = 0;
