@@ -1,4 +1,4 @@
-m4_define([ECM_VERSION], [6.4-rc1])
+m4_define([ECM_VERSION], [6.4])
 
 AC_PREREQ([2.57])
 AC_INIT([ecm], ECM_VERSION, [ecm-discuss@lists.gforge.inria.fr])
@@ -510,6 +510,7 @@ return strcmp (buffer, gmp_version);
 )
 
 AC_CHECK_FUNCS([__gmpn_add_nc __gmpn_mod_34lsub1 __gmpn_redc_1 __gmpn_redc_2])
+AC_CHECK_FUNCS([__gmpn_mullo_n])
 
 # mpn_sqr() is renamed to __gmpn_sqr() in GMP 5.0.x, but may not be 
 # in future versions. AC_CHECK_FUNCS() does not allow including header 
