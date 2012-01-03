@@ -1,4 +1,5 @@
-This is the README file for GMP-ECM. (See README.lib for the ecm library.)
+This is the README file for GMP-ECM. (See INSTALL-ecm for installing GMP-ECM
+and the ecm library, and README.lib for using the ecm library.)
 
 Table of contents of this file:
 1. Basic usage.
@@ -34,6 +35,10 @@ ecm 1000000 5e8 < composites
 Scientific notation is accepted for B1 and B2 values. The actual B2 value
 used may be larger than the specified value to let parameters satisfy some 
 conditions imposed by the stage 2 algorithm.
+
+To run one curve with B1=11e7 on M1061, simply do:
+
+echo "2^1061-1" | ecm 11e7
 
 To run more than one ECM curve on each input number, use the -c parameter.
 
