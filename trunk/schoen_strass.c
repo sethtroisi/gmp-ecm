@@ -172,8 +172,9 @@ F_mulmod (mpz_t R, mpz_t S1, mpz_t S2, unsigned int n)
     {
       unsigned long k;
       
-      /* WARNING: _mpz_realloc does not keep the value!!! */
       _mpz_realloc (gt, n2 + 1);
+      /* in case the reallocation fails, _mpz_realloc sets the value to 0 */
+      ASSERT_ALWAYS (mpz_cmp_ui (gt, 0) != 0);
       k = mpn_fft_best_k (n2, S1 == S2);
       mpn_mul_fft (PTR(gt), n2, PTR(S1), ABSIZ(S1), PTR(S2), ABSIZ(S2), k);
       MPN_NORMALIZE(PTR(gt), n2);

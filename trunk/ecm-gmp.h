@@ -132,4 +132,8 @@ __GMP_DECLSPEC mp_limb_t __gmpn_add_nc (mp_ptr, mp_srcptr, mp_srcptr,
   void __gmpn_redc_2 (mp_ptr, mp_ptr, mp_srcptr, mp_size_t, mp_srcptr);
 #endif
 
+#if defined(HAVE___GMPN_MULLO_N)
+  void __gmpn_mullo_n (mp_ptr, mp_srcptr, mp_srcptr, mp_size_t);
+#endif
+
 #endif /* _ECM_GMP_H */

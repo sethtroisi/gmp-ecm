@@ -246,7 +246,11 @@ ecm_redc_n (mp_ptr rp, mp_srcptr x0p, mp_size_t xn,
     }
   else
     xp = (mp_ptr) x0p;
+#ifdef HAVE___GMPN_MULLO_N /* available up from GMP 5.0.0 */
+  __gmpn_mullo_n (up, xp, aux, n);
+#else
   ecm_mul_lo_n (up, xp, aux, n);
+#endif
   tp = up + nn;
   mpn_mul_n (tp, up, orig, n);
   /* add {x, 2n} and {tp, 2n}. We know that {tp, n} + {xp, n} will give
@@ -901,8 +905,9 @@ mpmod_init_REDC (mpmod_t modulus, const mpz_t N)
   /* ensure aux_modulus has n allocated limbs, for ecm_redc_n */
   if (ABSIZ(modulus->aux_modulus) < n)
     {
-      /* WARNING: _mpz_realloc does not keep the value!!! */
       _mpz_realloc (modulus->aux_modulus, n);
+      /* in case the reallocation fails, _mpz_realloc sets the value to 0 */
+      ASSERT_ALWAYS (mpz_cmp_ui (modulus->aux_modulus, 0) != 0);
       MPN_ZERO (PTR(modulus->aux_modulus) + ABSIZ(modulus->aux_modulus),
 		n - ABSIZ(modulus->aux_modulus));
     }
