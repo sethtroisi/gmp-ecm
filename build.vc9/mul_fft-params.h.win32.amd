@@ -1,2 +1,0 @@
-/* Empty file so that #include won't produce an error message.
-   With no parameters defined, mul_fft.c will use defaults. */
