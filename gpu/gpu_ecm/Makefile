@@ -62,7 +62,7 @@ obj/main.cu.o : main.cu main.h utils.h cudautils.h
 obj/cudautils.cu.o : cudautils.cu main.h cudaarith.h
 	nvcc $(CFLAGS) $(COMPUTECAPABILITY) $(NVCCFLAGS) -o $@ -c $<
 
-obj/cudaarith.cu.o : cudaarith.cu main.h
+obj/cudaarith.cu.o: cudaarith.cu main.h
 	nvcc $(CFLAGS) $(COMPUTECAPABILITY) $(NVCCFLAGS) -o $@ -c $<
 
 s: s.c
@@ -79,7 +79,6 @@ compute_s: compute_s.c
 
 clean: 
 	rm obj/*.cu.o
-	
+
 mrproper: clean
 	rm $(BIN)
-
