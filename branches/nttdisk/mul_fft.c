@@ -65,9 +65,13 @@ MA 02110-1301, USA. */
 #include <limits.h> /* for LONG_MAX */
 #include <assert.h>
 #include "config.h"
+
 #ifdef HAVE_ALLOCA_H
 #include <alloca.h>
+#elif defined(HAVE_MALLOC_H)
+#include <malloc.h>
 #endif
+
 #include "gmp.h"
 #include "mul_fft-params.h"
 
