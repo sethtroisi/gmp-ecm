@@ -620,7 +620,7 @@ fi
 LIBS="$LIBS $GWLIB"
 
 GMP_FINISH
-AC_CONFIG_FILES([Makefile athlon/Makefile pentium4/Makefile x86_64/Makefile powerpc64/Makefile build.vc9/Makefile build.vc9/assembler/Makefile build.vc9/ecm/Makefile build.vc9/libecm/Makefile build.vc9/tune/Makefile])
+AC_CONFIG_FILES([Makefile athlon/Makefile pentium4/Makefile x86_64/Makefile powerpc64/Makefile])
 AC_CONFIG_LINKS([ecm-params.h:ecm-params.h.$config_arch])
 MUL_FFT_PARAMS="mul_fft-params.h.$config_arch"
 if ! test -f "$MUL_FFT_PARAMS"
