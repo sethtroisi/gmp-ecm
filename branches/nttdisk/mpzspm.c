@@ -21,6 +21,7 @@
 
 #include <stdio.h> /* for printf */
 #include <stdlib.h>
+#include <math.h>
 #include "ecm-impl.h"
 
 

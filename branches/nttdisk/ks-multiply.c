@@ -21,7 +21,6 @@
 */
 
 #include <stdlib.h>
-#include "ecm-gmp.h" /* for MPZ_REALLOC and MPN_COPY */
 #include "ecm-impl.h"
 
 #define FFT_WRAP /* always defined since mpn_mul_fft is included */

@@ -7,7 +7,6 @@
    Y^2 = X^3 + a/b*X^2 + 1/b^2*X.
 */
 
-#include "ecm-gmp.h"
 #include "ecm-impl.h"
 
 /* (x1:z1) <- 2(x1:z1)

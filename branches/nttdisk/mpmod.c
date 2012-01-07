@@ -22,7 +22,6 @@
 
 #include <stdio.h>
 #include <stdlib.h>
-#include "ecm-gmp.h"
 #include "ecm-impl.h"
 
 #ifdef USE_ASM_REDC

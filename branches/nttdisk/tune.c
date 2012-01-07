@@ -21,7 +21,6 @@
 
 #include <stdio.h>
 #include <stdlib.h>
-#include "ecm-gmp.h"
 #include "ecm-impl.h"
 
 /* 250ms, we (probably) don't need any more precision */

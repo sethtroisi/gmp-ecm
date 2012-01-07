@@ -26,8 +26,6 @@
 #include <stdio.h>
 #include <math.h> /* for rint */
 #include <gmp.h>
-#include "ecm-gmp.h"
-#include "ecm.h"
 #include "ecm-impl.h"
 #define ADD_UNDERSCORES
 #include "gwdbldbl.h"

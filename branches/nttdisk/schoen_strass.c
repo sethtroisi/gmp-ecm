@@ -23,7 +23,6 @@
 #include <stdio.h>
 #include <stdlib.h> /* for abs if assertions enabled */
 #include "ecm-impl.h"
-#include "ecm-gmp.h"
 
 #ifdef HAVE_LIMITS_H
 # include <limits.h>
