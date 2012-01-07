@@ -89,10 +89,10 @@ print_elapsed_time (int verbosity, long cpu_start,
 
 
 static void
-list_output_poly (listz_t l, unsigned long len, int monic, int symmetric,
+list_output_poly (listz_t l, uint64_t len, int monic, int symmetric,
 		  char *prefix, char *suffix, int verbosity)
 {
-  unsigned long i;
+  uint64_t i;
 
   if (prefix != NULL)
     outputf (verbosity, prefix);
@@ -133,11 +133,11 @@ list_output_poly (listz_t l, unsigned long len, int monic, int symmetric,
    unchanged), 1 otherwise */
 
 static int ATTRIBUTE_UNUSED
-list_scale_rev (listz_t R, listz_t S, mpz_t r, long k, unsigned long deg, 
+list_scale_rev (listz_t R, listz_t S, mpz_t r, long k, uint64_t deg, 
 		mpz_t modulus, listz_t tmp, 
-		ATTRIBUTE_UNUSED const unsigned long tmplen)
+		ATTRIBUTE_UNUSED const uint64_t tmplen)
 {
-  unsigned long i;
+  uint64_t i;
 
   ASSERT (tmplen >= 3);
   mpz_powm_ui (tmp[0], r, (unsigned long) labs (k), modulus);
@@ -170,11 +170,11 @@ list_scale_rev (listz_t R, listz_t S, mpz_t r, long k, unsigned long deg,
 /* Same, but does squaring which makes things easier */
 
 static void
-list_sqr_reciprocal (listz_t R, listz_t S, const unsigned long l, 
+list_sqr_reciprocal (listz_t R, listz_t S, const uint64_t l, 
 		     mpz_t modulus, listz_t tmp, 
-		     ATTRIBUTE_UNUSED const unsigned long tmplen)
+		     ATTRIBUTE_UNUSED const uint64_t tmplen)
 {
-  unsigned long i;
+  uint64_t i;
   listz_t Srev, r1 = tmp, r2 = tmp + 2 * l - 1, t = tmp + 4 * l - 2;
 
   if (l == 0UL)
@@ -250,9 +250,9 @@ list_sqr_reciprocal (listz_t R, listz_t S, const unsigned long l,
 
 ATTRIBUTE_UNUSED
 static void
-list_recip_eval1 (mpz_t R, const listz_t S, const unsigned long l)
+list_recip_eval1 (mpz_t R, const listz_t S, const uint64_t l)
 {
-  unsigned long i;
+  uint64_t i;
 
   mpz_set_ui (R, 0UL);
   for (i = 1; i < l; i++)
@@ -280,13 +280,13 @@ list_recip_eval1 (mpz_t R, const listz_t S, const unsigned long l)
   /* We have to divide S1[0] and S2[0] by 2 */
 
 static void
-list_mul_reciprocal (listz_t R, listz_t S1, unsigned long l1, 
-		     listz_t S2, unsigned long l2,
+list_mul_reciprocal (listz_t R, listz_t S1, uint64_t l1, 
+		     listz_t S2, uint64_t l2,
 		     mpz_t modulus, listz_t tmp, 
-		     ATTRIBUTE_UNUSED const unsigned long tmplen)
+		     ATTRIBUTE_UNUSED const uint64_t tmplen)
 {
-  unsigned long i;
-  const unsigned long lmax = MAX(l1, l2);
+  uint64_t i;
+  const uint64_t lmax = MAX(l1, l2);
   listz_t r1 = tmp, r2 = tmp + 2*lmax - 1, rev = tmp + 4*lmax - 2,
     t = tmp + 6*lmax - 3;
 #ifdef WANT_ASSERT
@@ -297,7 +297,7 @@ list_mul_reciprocal (listz_t R, listz_t S1, unsigned long l1,
   ASSERT (S2 < tmp || S2 >= tmp + tmplen);
   ASSERT (R < tmp || R >= tmp + tmplen);
 
-  if (l1 == 0UL || l2 == 0UL)
+  if (l1 == 0 || l2 == 0)
     return;
 
   if (S1 == S2)
@@ -426,10 +426,10 @@ list_mul_reciprocal (listz_t R, listz_t S1, unsigned long l1,
 
 static void ATTRIBUTE_UNUSED
 list_mul_blocks (listz_t R, const listz_t A, int monicA, const listz_t B, 
-		 int monicB, const unsigned long len, const unsigned int k,
-		 listz_t tmp, ATTRIBUTE_UNUSED const unsigned long tmplen)
+		 int monicB, const uint64_t len, const uint64_t k,
+		 listz_t tmp, ATTRIBUTE_UNUSED const uint64_t tmplen)
 {
-  unsigned int j;
+  uint64_t j;
   
   if (k == 0 || len == 0)
     return;
@@ -705,12 +705,12 @@ U (mpres_t R, mpres_t R1, const mpres_t S, const long k, mpmod_t modulus)
    V1, Vk_1 and Vk, resp. 
    The values of Vk_1 and Vk are clobbered. */
 static void
-scale_by_chebyshev (listz_t R, const listz_t F, const unsigned long len,
+scale_by_chebyshev (listz_t R, const listz_t F, const uint64_t len,
                     mpmod_t modulus, const mpres_t V1, mpres_t Vk_1, 
                     mpres_t Vk)
 {
   mpres_t Vt;
-  unsigned long i;
+  uint64_t i;
 
   mpres_init (Vt, modulus);
 
@@ -737,12 +737,12 @@ scale_by_chebyshev (listz_t R, const listz_t F, const unsigned long len,
 
 static void
 list_scale_V (listz_t R, const listz_t F, const mpres_t Q, 
-              const unsigned long deg, mpmod_t modulus, listz_t tmp, 
-              const unsigned long tmplen, 
+              const uint64_t deg, mpmod_t modulus, listz_t tmp, 
+              const uint64_t tmplen, 
 	      mpzspv_t dct, const mpzspm_t ntt_context)
 {
   mpres_t Vt;
-  unsigned long i;
+  uint64_t i;
   const listz_t G = tmp, H = tmp + 2 * deg + 1, newtmp = tmp + 4 * deg + 2;
   const unsigned long newtmplen = tmplen - 4 * deg - 2;
 #ifdef WANT_ASSERT
@@ -785,7 +785,7 @@ list_scale_V (listz_t R, const listz_t F, const mpres_t Q,
     const int nr_chunks = omp_get_num_threads();
     const int thread_nr = omp_get_thread_num();
     mpmod_t modulus_local;
-    unsigned long l, start_i;
+    uint64_t l, start_i;
     mpres_t Vi, Vi_1;
     
     l = (deg - 1) / nr_chunks + 1; /* l = ceil (deg / nr_chunks) */
@@ -847,7 +847,7 @@ list_scale_V (listz_t R, const listz_t F, const mpres_t Q,
     const int nr_chunks = omp_get_num_threads();
     const int thread_nr = omp_get_thread_num();
     mpmod_t modulus_local;
-    unsigned long l, start_i;
+    uint64_t l, start_i;
     mpres_t Ui, Ui_1;
     
     l = (deg - 1) / nr_chunks + 1; /* l = ceil(deg / nr_chunks) */
@@ -932,7 +932,7 @@ list_scale_V (listz_t R, const listz_t F, const mpres_t Q,
 #pragma omp parallel if (deg > 1000)
   {
     mpmod_t modulus_local;
-    long i; /* OpenMP insists on signed loop iteration var :( */
+    uint64_t i; /* OpenMP insists on signed loop iteration var :( */
     
     mpmod_copy (modulus_local, modulus);
     
@@ -1046,7 +1046,7 @@ list_scale_V (listz_t R, const listz_t F, const mpres_t Q,
 */
 
 static long int ATTRIBUTE_UNUSED
-list_is_symmetric (listz_t l, unsigned long len, int monic, int anti, 
+list_is_symmetric (listz_t l, uint64_t len, int monic, int anti, 
 		   mpz_t modulus, mpz_t tmp)
 {
     unsigned long i;
@@ -1095,10 +1095,10 @@ list_is_symmetric (listz_t l, unsigned long len, int monic, int anti,
 
 ATTRIBUTE_UNUSED static void 
 list_eval_poly (mpz_t r, const listz_t F, const mpz_t x, 
-		const unsigned long n, const int monic, const mpz_t modulus, 
+		const uint64_t n, const int monic, const mpz_t modulus, 
 		listz_t tmp)
 {
-  unsigned long i;
+  uint64_t i;
 
   mpz_set_ui (tmp[0], 1UL);
   mpz_set_ui (r, 0UL);
@@ -1128,12 +1128,13 @@ list_eval_poly (mpz_t r, const listz_t F, const mpz_t x,
    2*d is F(x) = f_0 + \sum_{1 <= i <= d} f_i (x^i + 1/x^i). The coefficient
    f_i is stored in F[i], which therefore needs d+1 elements. */
 
-static unsigned long
+static uint64_t
 poly_from_sets_V (listz_t F, const mpres_t Q, set_list_t *sets, 
 		  listz_t tmp, const unsigned long tmplen, mpmod_t modulus,
 		  mpzspv_t dct, const mpzspm_t ntt_context)
 {
-  unsigned long c, deg, i, nr;
+  unsigned long c, i, nr;
+  uint64_t deg;
   mpres_t Qt;
   
   ASSERT_ALWAYS (sets->num_sets > 0UL);
@@ -1316,24 +1317,25 @@ build_F_ntt (listz_t F, const mpres_t P_1, set_list_t *S_1,
 
 static void
 pm1_sequence_g (listz_t g_mpz, mpzspv_t g_ntt, const mpres_t b_1, 
-                const unsigned long P, const long M_param, 
-		const unsigned long l_param, const mpz_t m_1, 
+                const uint64_t P, const uint64_t M_param, 
+		const uint64_t l_param, const mpz_t m_1, 
 		const int64_t k_2, mpmod_t modulus_param, 
 		const mpzspm_t ntt_context)
 {
   mpres_t r[3], x_0, x_Mi;
   mpz_t t, t1;
-  unsigned long i;
+  uint64_t i;
   long timestart, realstart;
-  long M = M_param;
-  unsigned long l = l_param, offset = 0UL;
+  uint64_t M = M_param;
+  uint64_t l = l_param, offset = 0;
   mpmod_t modulus;
   int want_output = 1;
 
   outputf (OUTPUT_VERBOSE, "Computing g_i");
-  outputf (OUTPUT_DEVVERBOSE, "\npm1_sequence_g: P = %lu, M_param = %lu, "
-           "l_param = %lu, m_1 = %Zd, k_2 = %" PRId64 "\n", 
-	   P, M_param, l_param, m_1, k_2);
+  outputf (OUTPUT_DEVVERBOSE, "\npm1_sequence_g: P = %" PRIu64
+            ", M_param = %" PRIu64 ", l_param = %" PRIu64 
+            ", k_2 = %" PRId64 , P, M_param, l_param, k_2);
+  outputf (OUTPUT_DEVVERBOSE, ", m_1 = %Zd\n", m_1);
   timestart = cputime ();
   realstart = realtime ();
 
@@ -1348,11 +1350,11 @@ pm1_sequence_g (listz_t g_mpz, mpzspv_t g_ntt, const mpres_t b_1,
     l = (l_param - 1) / nr_chunks + 1; /* = ceil(l_param / nr_chunks) */
     offset = thread_nr * l;
     outputf (OUTPUT_DEVVERBOSE, 
-             "pm1_sequence_g: thread %d has l = %lu, offset = %lu.\n", 
-             thread_nr, l, offset);
+             "pm1_sequence_g: thread %d has l = %" PRIu64 
+             ", offset = %" PRIu64 ".\n", thread_nr, l, offset);
     ASSERT_ALWAYS (l_param >= offset);
     l = MIN(l, l_param - offset);
-    M = M_param - (long) offset;
+    M = M_param - offset;
     
     /* Let only the master thread print stuff */
     want_output = (thread_nr == 0);
@@ -1379,17 +1381,17 @@ pm1_sequence_g (listz_t g_mpz, mpzspv_t g_ntt, const mpres_t b_1,
 	  mpres_get_z (t, b_1, modulus);
 	  outputf (OUTPUT_TRACE, "\n/* pm1_sequence_g */ N = %Zd; "
 		   "b_1 = Mod(%Zd, N); /* PARI */\n", modulus->orig_modulus, t);
-	  outputf (OUTPUT_TRACE, "/* pm1_sequence_g */ P = %lu; M = %ld; "
-		   "m_1 = %Zd; /* PARI */\n", P, M, m_1);
-	  outputf (OUTPUT_TRACE, 
-		   "/* pm1_sequence_g */ r = b_1^P; /* PARI */\n");
+	  outputf (OUTPUT_TRACE, "/* pm1_sequence_g */ P = %" PRIu64
+                   "; M = %" PRIu64 , P, M);
+	  outputf (OUTPUT_TRACE, "; m_1 = %Zd; /* PARI */\n", m_1);
+	  outputf (OUTPUT_TRACE,"/* pm1_sequence_g */ r = b_1^P; /* PARI */\n");
 	  outputf (OUTPUT_TRACE, "/* pm1_sequence_g */ x_0 = "
 		   "b_1^(2*% " PRId64 " + (2*m_1 + 1)*P); /* PARI */\n", k_2);
 	}
     }
 
   /* We use (M-(i+1))^2 = (M-i)^2 + 2*(-M+i) + 1 */
-  mpz_set_ui (t, P);
+  mpz_set_uint64 (t, P);
   mpres_pow (r[0], b_1, t, modulus);     /* r[0] = b_1^P = r */
   if (test_verbose (OUTPUT_TRACE))
     {
@@ -1399,24 +1401,27 @@ pm1_sequence_g (listz_t g_mpz, mpzspv_t g_ntt, const mpres_t b_1,
   
   /* FIXME: This is a huge mess, clean up some time */
 
-  mpz_set_si (t, M);
+  mpz_set_uint64 (t, M);
   mpz_neg (t, t);
   mpz_mul_2exp (t, t, 1UL);
   mpz_add_ui (t, t, 1UL);
   mpres_pow (r[1], r[0], t, modulus);    /* r[1] = r^{2(-M+i)+1}, i = 0 */
-  mpz_set_si (t, M);
+  mpz_set_uint64 (t, M);
   mpz_mul (t, t, t);                     /* t = M^2 */
   mpres_pow (r[2], r[0], t, modulus);    /* r[2] = r^{(M-i)^2}, i = 0 */
   mpres_mul (r[0], r[0], r[0], modulus); /* r[0] = r^2 */
 
-  mpz_set_int64(t1, k_2);
   mpz_mul_2exp (t, m_1, 1UL);
   mpz_add_ui (t, t, 1UL);
-  mpz_mul_ui (t, t, P);
+  mpz_set_uint64(t1, P);
+  mpz_mul (t, t, t1);
+  mpz_set_int64(t1, k_2);
   mpz_addmul_ui (t, t1, 2UL);
   if (want_output)
-    outputf (OUTPUT_TRACE, "/* pm1_sequence_g */ 2*%" PRId64 " + "
-		    "(2*%Zd + 1)*P == %Zd /* PARI C */\n", k_2, m_1, t);
+    {
+      outputf (OUTPUT_TRACE, "/* pm1_sequence_g */ 2*%" PRId64 , k_2);
+      outputf (OUTPUT_TRACE, " + (2*%Zd + 1)*P == %Zd /* PARI C */\n", m_1, t);
+    }
 
   mpres_pow (x_0, b_1, t, modulus);  /* x_0 = b_1^{2*k_2 + (2*m_1 + 1)*P} */
   if (want_output && test_verbose (OUTPUT_TRACE))
@@ -1426,7 +1431,7 @@ pm1_sequence_g (listz_t g_mpz, mpzspv_t g_ntt, const mpres_t b_1,
 	       t);
     }
   
-  mpz_set_si (t, M);
+  mpz_set_uint64 (t, M);
   mpres_pow (x_Mi, x_0, t, modulus); /* x_Mi = x_0^{M-i}, i = 0 */
 
   mpres_invert (x_0, x_0, modulus);  /* x_0 := x_0^{-1} now */
@@ -1455,14 +1460,15 @@ pm1_sequence_g (listz_t g_mpz, mpzspv_t g_ntt, const mpres_t b_1,
 	  mpres_mul_z_to_z (g_mpz[offset + i], r[1], g_mpz[offset + i - 1], 
 			    modulus);
 	  outputf (OUTPUT_TRACE, "/* pm1_sequence_g */ g_%lu = %Zd;"
-		   " /* PARI */\n", offset + i, g_mpz[offset + i]);
+		   " /* PARI */\n", (unsigned long)(offset + i), 
+                                        g_mpz[offset + i]);
         }
       if (g_ntt != NULL)
       {
 	  mpres_mul_z_to_z (t, r[1], t, modulus);
 	  if (g_mpz == NULL) /* Only one should be non-NULL... */
 	      outputf (OUTPUT_TRACE, "/* pm1_sequence_g */ g_%lu = %Zd;"
-		       " /* PARI */\n", offset + i, t);
+		       " /* PARI */\n", (unsigned long)(offset + i), t);
 	  mpzspv_from_mpzv (g_ntt, offset + i, &t, 1UL, ntt_context);
       }
       mpres_mul (r[1], r[1], r[0], modulus);
@@ -1487,12 +1493,13 @@ pm1_sequence_g (listz_t g_mpz, mpzspv_t g_ntt, const mpres_t b_1,
     {
       for (i = 0; i < l_param; i++)
 	{
-	  outputf (OUTPUT_TRACE, "/* pm1_sequence_g */ g_%lu == x_0^"
-		   "(M - %lu) * r^((M - %lu)^2) /* PARI C */\n", i, i, i);
+	  outputf (OUTPUT_TRACE, "/* pm1_sequence_g */ g_%" PRIu64
+                   " == x_0^(M - %" PRIu64 ") * r^((M - %" PRIu64 ")^2) "
+                   "/* PARI C */\n", i, i, i);
 	}
       outputf (OUTPUT_TRACE, "/* pm1_sequence_g */ g(x) = g_0");
       for (i = 1; i < l; i++)
-	outputf (OUTPUT_TRACE, " + g_%lu * x^%lu", i, i);
+	outputf (OUTPUT_TRACE, " + g_%" PRIu64 " * x^%" PRIu64 ,  i, i);
       outputf (OUTPUT_TRACE, " /* PARI */\n");
     }
 }
@@ -1503,7 +1510,7 @@ pm1_sequence_g (listz_t g_mpz, mpzspv_t g_ntt, const mpres_t b_1,
 
 static void 
 pm1_sequence_h (listz_t h, mpzspv_t h_ntt, mpz_t *f, const mpres_t r, 
-		const unsigned long d, mpmod_t modulus_parm, 
+		const uint64_t d, mpmod_t modulus_parm, 
 		const mpzspm_t ntt_context)
 {
   mpres_t invr;  /* r^{-1}. Can be shared between threads */
@@ -1535,8 +1542,8 @@ pm1_sequence_h (listz_t h, mpzspv_t h_ntt, mpz_t *f, const mpres_t r,
   {
     mpres_t fd[3]; /* finite differences table for r^{-i^2}*/
     mpz_t t;       /* the h_j value as an mpz_t */
-    unsigned long j;
-    unsigned long offset = 0UL, len = d;
+    uint64_t j;
+    uint64_t offset = 0UL, len = d;
     mpmod_t modulus;
 
     /* Adjust offset and length for this thread */
@@ -1544,13 +1551,13 @@ pm1_sequence_h (listz_t h, mpzspv_t h_ntt, mpz_t *f, const mpres_t r,
     {
       const int nr_chunks = omp_get_num_threads();
       const int thread_nr = omp_get_thread_num();
-      unsigned long chunklen;
+      uint64_t chunklen;
       
       if (thread_nr == 0)
 	outputf (OUTPUT_VERBOSE, " using %d threads", nr_chunks);
 
-      chunklen = (len - 1UL) / (unsigned long) nr_chunks + 1UL;
-      offset = chunklen * (unsigned long) thread_nr;
+      chunklen = (len - 1UL) / nr_chunks + 1UL;
+      offset = chunklen * thread_nr;
       len = MIN(chunklen, len - offset);
     }
 #endif
@@ -1569,11 +1576,11 @@ pm1_sequence_h (listz_t h, mpzspv_t h_ntt, mpz_t *f, const mpres_t r,
        local memory. May not make much difference overall */
 
     mpres_mul (fd[0], invr, invr, modulus); /* fd[0] = r^{-2} */
-    mpz_set_ui (t, offset);
+    mpz_set_uint64 (t, offset);
     mpz_mul_2exp (t, t, 1UL);
     mpz_add_ui (t, t, 1UL);                 /* t = 2 * offset + 1 */
     mpres_pow (fd[1], invr, t, modulus);    /* fd[1] = r^{-(2*offset+1)} */
-    mpz_set_ui (t, offset);
+    mpz_set_uint64 (t, offset);
     mpz_mul (t, t, t);                      /* t = offset^2 */
     mpres_pow (fd[2], invr, t, modulus);    /* fd[2] = r^{-offset^2} */
     
@@ -1606,13 +1613,15 @@ pm1_sequence_h (listz_t h, mpzspv_t h_ntt, mpz_t *f, const mpres_t r,
 
   if (test_verbose (OUTPUT_TRACE))
     {
-      unsigned long j;
+      uint64_t j;
       for (j = 0; j < d; j++)
-	outputf (OUTPUT_TRACE, "/* pm1_sequence_h */ h_%lu == "
-		   "f_%lu * r^(-%lu^2) /* PARI C */\n", j, j, j);
+	outputf (OUTPUT_TRACE, "/* pm1_sequence_h */ h_%" PRIu64
+		   " == f_" PRIu64 " * r^(-%" PRIu64 "^2) "
+                   "/* PARI C */\n", j, j, j);
       outputf (OUTPUT_TRACE, "/* pm1_sequence_h */ h(x) = h_0");
       for (j = 1; j < d; j++)
-        outputf (OUTPUT_TRACE, " + h_%lu * (x^%lu + x^(-%lu))", j, j, j);
+        outputf (OUTPUT_TRACE, " + h_%" PRIu64 " * (x^%" PRIu64
+                        " + x^(-%" PRIu64 "))", j, j, j);
       outputf (OUTPUT_TRACE, " /* PARI */\n");
     }
 }
@@ -1620,12 +1629,12 @@ pm1_sequence_h (listz_t h, mpzspv_t h_ntt, mpz_t *f, const mpres_t r,
 
 static int 
 make_S_1_S_2 (set_list_t *S_1, int64_t **s2_sumset_out, 
-	      uint32_t *s2_sumset_size_out,
+	      uint64_t *s2_sumset_size_out,
               const faststage2_param_t *params)
 {
-  unsigned long i;
+  uint64_t i;
   set_list_t S_2;
-  uint32_t s2_sumset_size;
+  uint64_t s2_sumset_size;
   int64_t *s2_sumset;
 
   sets_get_factored_sorted (S_1, params->P);
@@ -1948,12 +1957,12 @@ int
 pm1fs2 (mpz_t f, const mpres_t X, mpmod_t modulus, 
 	const faststage2_param_t *params)
 {
-  unsigned long phiP, nr;
-  unsigned long i, l, lenF, lenG, lenR, tmplen;
+  uint64_t nr;
+  uint64_t i, l, lenF, lenG, lenR, tmplen;
   set_list_t S_1; /* This is stored as a set of sets (arithmetic 
                      progressions of prime length */
   int64_t *s2_sumset; /* set of sums of S_2 */
-  uint32_t s2_sumset_size;
+  uint64_t s2_sumset_size;
   listz_t F;   /* Polynomial F has roots X^{k_1} for k_1 \in S_1, so has 
 		  degree s_1. It is symmetric, so has only s_1 / 2 + 1 
 		  distinct coefficients. The sequence h_j will be stored in 
@@ -1969,8 +1978,7 @@ pm1fs2 (mpz_t f, const mpres_t X, mpmod_t modulus,
   timetotalstart = cputime ();
   realtotalstart = realtime ();
 
-  phiP = eulerphi (params->P);
-  ASSERT_ALWAYS (phiP == params->s_1 * params->s_2);
+  ASSERT_ALWAYS (eulerphi64 (params->P) == params->s_1 * params->s_2);
   ASSERT_ALWAYS (params->s_1 < params->l);
   nr = params->l - params->s_1; /* Number of points we evaluate */
 
@@ -2059,18 +2067,19 @@ pm1fs2 (mpz_t f, const mpres_t X, mpmod_t modulus,
   if (test_verbose (OUTPUT_TRACE))
     {
       for (i = 0; i < params->s_1 + 1; i++)
-        outputf (OUTPUT_VERBOSE, "h_%lu = %Zd; /* PARI */\n", i, h[i]);
+        outputf (OUTPUT_VERBOSE, "h_%lu = %Zd; /* PARI */\n", 
+                        (unsigned long)i, h[i]);
       outputf (OUTPUT_VERBOSE, "h(x) = h_0");
       for (i = 1; i < params->s_1 + 1; i++)
-        outputf (OUTPUT_VERBOSE, " + h_%lu * x^%lu", i, i);
+        outputf (OUTPUT_VERBOSE, " + h_%" PRIu64 "* x^%" PRIu64 , i, i);
       outputf (OUTPUT_VERBOSE, " /* PARI */\n");
     }
 
   for (l = 0; l < params->s_2; l++)
     {
-      const unsigned long M = params->l - 1L - params->s_1 / 2L;
-      outputf (OUTPUT_VERBOSE, "Multi-point evaluation %lu of %lu:\n", 
-               l + 1, params->s_2);
+      const uint64_t M = params->l - 1L - params->s_1 / 2L;
+      outputf (OUTPUT_VERBOSE, "Multi-point evaluation %" PRIu64
+                        " of %" PRIu64 ":\n", l + 1, params->s_2);
       pm1_sequence_g (g, NULL, X, params->P, M, params->l, 
 		      params->m_1, s2_sumset[l], modulus, NULL);
 
@@ -2097,47 +2106,11 @@ pm1fs2 (mpz_t f, const mpres_t X, mpmod_t modulus,
 
       outputf (OUTPUT_VERBOSE, " took %lums\n", cputime () - timestart);
 
-#if 0 && defined(WANT_ASSERT)
-
-      /* See if R[i] is correct, with a test that works even if i0 != 0 */
-      /* More expensive self-test */
-      /* alpha = beta*(i0 + l*nr) */
-      /* This code is old and probably does not work. */
-
-      outputf (OUTPUT_VERBOSE, "Verifying all results (slow)");
-      for (i = 0; i < nr; i++)
-	{
-	  mpz_set_ui (mt, nr * l);
-	  mpz_add (mt, mt, root_params->i0);
-	  mpz_add_ui (mt, mt, i);
-	  mpz_mul_ui (mt, mt, beta);
-	  mpres_get_z (tmp[0], X, modulus);
-	  mpz_powm (tmp[0], tmp[0], mt, modulus->orig_modulus);
-	  /* Hence, tmp[0] = X^(alpha + i * beta) */
-	  list_eval_poly (tmp[1], F, tmp[0], dF, 1, modulus->orig_modulus, 
-			  tmp + 2);
-
-	  mpz_set_ui (mt, i);
-	  mpz_mul_ui (mt, mt, i);
-	  mpz_mul_ui (mt, mt, beta / 2); /* h(i) = beta*i^2/2 */
-	  mpres_get_z (tmp[0], X, modulus);
-	  mpz_powm (tmp[0], tmp[0], mt, modulus->orig_modulus); /* X^h(1) */
-	  mpz_mul (tmp[0], tmp[0], R[i]);
-	  mpz_mod (tmp[0], tmp[0], modulus->orig_modulus);
-	  if (mpz_cmp (tmp[0], tmp[1]) != 0)
-	    {
-	      outputf (OUTPUT_ERROR, "Result in R[%ld] incorrect.\n", i);
-	      outputf (OUTPUT_ERROR, "R[%ld] = %Zd\n", i, R[i]);
-	      abort ();
-	    }
-	}
-      outputf (OUTPUT_VERBOSE, " - everything's correct! :-D\n");
-#endif
-
       if (test_verbose (OUTPUT_TRACE))
 	{
 	  for (i = 0; i < nr; i++)
-	    outputf (OUTPUT_TRACE, "r_%lu = %Zd; /* PARI */\n", i, R[i]);
+	    outputf (OUTPUT_TRACE, "r_%lu = %Zd; /* PARI */\n", 
+                                (unsigned long)i, R[i]);
 	}
 
       outputf (OUTPUT_VERBOSE, "Computing product of F(g_i)");
@@ -2204,12 +2177,12 @@ int
 pm1fs2_ntt (mpz_t f, const mpres_t X, mpmod_t modulus, 
 	const faststage2_param_t *params)
 {
-  unsigned long nr;
-  unsigned long l, lenF;
+  uint64_t nr;
+  uint64_t l, lenF;
   set_list_t S_1; /* This is stored as a set of sets (arithmetic 
                        progressions of prime length */
   int64_t *s2_sumset; /* set of sums of S_2 */
-  uint32_t s2_sumset_size;
+  uint64_t s2_sumset_size;
   listz_t F;   /* Polynomial F has roots X^{k_1} for k_1 \in S_1, so has 
 		  degree s_1. It is symmetric, so has only s_1 / 2 + 1 
 		  distinct coefficients. The sequence h_j will be stored in 
@@ -2228,7 +2201,7 @@ pm1fs2_ntt (mpz_t f, const mpres_t X, mpmod_t modulus,
   timetotalstart = cputime ();
   realtotalstart = realtime ();
 
-  ASSERT_ALWAYS (eulerphi (params->P) == params->s_1 * params->s_2);
+  ASSERT_ALWAYS (eulerphi64 (params->P) == params->s_1 * params->s_2);
   ASSERT_ALWAYS (params->s_1 < params->l);
   nr = params->l - params->s_1; /* Number of points we evaluate */
 
@@ -2313,7 +2286,7 @@ pm1fs2_ntt (mpz_t f, const mpres_t X, mpmod_t modulus,
   
   h_ntt = mpzspv_init (params->l / 2 + 1, ntt_context);
 
-  mpz_set_ui (mt, params->P);
+  mpz_set_uint64 (mt, params->P);
   mpres_pow (tmpres, X, mt, modulus); /* tmpres = X^P */
   pm1_sequence_h (NULL, h_ntt, F, tmpres, params->s_1 / 2 + 1, modulus, 
 		  ntt_context);
@@ -2341,10 +2314,10 @@ pm1fs2_ntt (mpz_t f, const mpres_t X, mpmod_t modulus,
 
   for (l = 0; l < params->s_2; l++)
     {
-      const unsigned long M = params->l - 1L - params->s_1 / 2L;
+      const uint64_t M = params->l - 1L - params->s_1 / 2L;
 
-      outputf (OUTPUT_VERBOSE, "Multi-point evaluation %lu of %lu:\n", 
-               l + 1, params->s_2);
+      outputf (OUTPUT_VERBOSE, "Multi-point evaluation %" PRIu64 
+                        " of %" PRIu64 ":\n", l + 1, params->s_2);
       /* Compute the coefficients of the polynomial g(x) */
       pm1_sequence_g (NULL, g_ntt, X, params->P, M, params->l, 
 		      params->m_1, s2_sumset[l], modulus, ntt_context);
@@ -2803,9 +2776,12 @@ pp1_sequence_g (listz_t g_x, listz_t g_y, mpzspv_t g_x_ntt, mpzspv_t g_y_ntt,
       {
 	mpres_get_z (mt, Delta, modulus);
 	outputf (OUTPUT_TRACE, 
-		 "\n/* pp1_sequence_g */ w = quadgen (4*%Zd); P = %lu; "
-		 "M = %ld; k_2 = %" PRId64 "; m_1 = %Zd; N = %Zd;/* PARI */\n", 
-		 mt, P, M, k_2, m_1, modulus->orig_modulus);
+		 "\n/* pp1_sequence_g */ w = quadgen (4*%Zd); "
+                 "P = %" PRIu64 "; M = %" PRIu64 "; k_2 = %" PRId64 ,
+		 mt, P, M, k_2);
+	outputf (OUTPUT_TRACE, 
+                 "; m_1 = %Zd; N = %Zd;/* PARI */\n", 
+		 m_1, modulus->orig_modulus);
 	
 	outputf (OUTPUT_TRACE, "/* pp1_sequence_g */ b_1 = ");
 	gfp_ext_print (b1_x, b1_y, modulus, OUTPUT_TRACE);
@@ -3324,12 +3300,12 @@ int
 pp1fs2 (mpz_t f, const mpres_t X, mpmod_t modulus, 
 	const faststage2_param_t *params)
 {
-  unsigned long nr;
-  unsigned long i, l, lenF, lenH, lenG, lenR, tmplen;
+  uint64_t nr;
+  uint64_t i, l, lenF, lenH, lenG, lenR, tmplen;
   set_list_t S_1; /* This is stored as a set of sets (arithmetic 
                        progressions of prime length */
   int64_t *s2_sumset; /* set of sums of S_2 */
-  uint32_t s2_sumset_size;
+  uint64_t s2_sumset_size;
   listz_t F;   /* Polynomial F has roots X^{k_1} for k_1 \in S_1, so has 
 		  degree s_1. It is symmetric, so has only s_1 / 2 + 1 
 		  distinct coefficients. The sequence h_j will be stored in 
@@ -3338,7 +3314,7 @@ pp1fs2 (mpz_t f, const mpres_t X, mpmod_t modulus,
 		  need s_1 / 2 + 1 entries. */
 
   listz_t g_x, g_y, fh_x, fh_y, h_x, h_y, tmp, R_x, R_y; 
-  const unsigned long tmpreslen = 2UL;
+  const uint64_t tmpreslen = 2UL;
   mpres_t b1_x, b1_y, Delta, tmpres[2];
   mpz_t mt;   /* All-purpose temp mpz_t */
   int youpi = ECM_NO_FACTOR_FOUND;
@@ -3418,10 +3394,12 @@ pp1fs2 (mpz_t f, const mpres_t X, mpmod_t modulus,
   if (test_verbose (OUTPUT_TRACE))
     {
       for (i = 0; i < params->s_1 / 2 + 1; i++)
-	outputf (OUTPUT_TRACE, "f_%lu = %Zd; /* PARI */\n", i, F[i]);
+	outputf (OUTPUT_TRACE, "f_%lu = %Zd; /* PARI */\n", 
+                                (unsigned long)i, F[i]);
       outputf (OUTPUT_TRACE, "f(x) = f_0");
       for (i = 1; i < params->s_1 / 2 + 1; i++)
-	outputf (OUTPUT_TRACE, "+ f_%lu * (x^%lu + x^(-%lu))", i, i, i);
+	outputf (OUTPUT_TRACE, "+ f_%" PRIu64 " * (x^%" PRIu64
+                        " + x^(-%" PRIu64 "))", i, i, i);
       outputf (OUTPUT_TRACE, "/* PARI */ \n");
     }
 
@@ -3467,9 +3445,9 @@ pp1fs2 (mpz_t f, const mpres_t X, mpmod_t modulus,
   
   for (l = 0; l < params->s_2; l++)
     {
-      const long M = params->l - 1 - params->s_1 / 2;
-      outputf (OUTPUT_VERBOSE, "Multi-point evaluation %lu of %lu:\n", 
-               l + 1, params->s_2);
+      const uint64_t M = params->l - 1 - params->s_1 / 2;
+      outputf (OUTPUT_VERBOSE, "Multi-point evaluation %" PRIu64
+                        " of %" PRIu64 ":\n", l + 1, params->s_2);
       pp1_sequence_g (g_x, g_y, NULL, NULL, b1_x, b1_y, params->P, 
 		      Delta, M, params->l, params->m_1, s2_sumset[l], 
 		      modulus, NULL);
@@ -3564,12 +3542,12 @@ int
 pp1fs2_ntt (mpz_t f, const mpres_t X, mpmod_t modulus,
 	    const faststage2_param_t *params, const int twopass)
 {
-  unsigned long nr;
-  unsigned long l, lenF;
+  uint64_t nr;
+  uint64_t l, lenF;
   set_list_t S_1; /* This is stored as a set of sets (arithmetic 
                        progressions of prime length */
   int64_t *s2_sumset; /* set of sums of S_2 */
-  uint32_t s2_sumset_size;
+  uint64_t s2_sumset_size;
   listz_t F;   /* Polynomial F has roots X^{k_1} for k_1 \in S_1, so has 
 		  degree s_1. It is symmetric, so has only s_1 / 2 + 1 
 		  distinct coefficients. The sequence h_j will be stored in 
@@ -3592,7 +3570,7 @@ pp1fs2_ntt (mpz_t f, const mpres_t X, mpmod_t modulus,
   timetotalstart = cputime ();
   realtotalstart = realtime ();
 
-  ASSERT_ALWAYS (eulerphi (params->P) == params->s_1 * params->s_2);
+  ASSERT_ALWAYS (eulerphi64 (params->P) == params->s_1 * params->s_2);
   ASSERT_ALWAYS (params->s_1 < params->l);
   nr = params->l - params->s_1; /* Number of points we evaluate */
 
@@ -3722,10 +3700,10 @@ pp1fs2_ntt (mpz_t f, const mpres_t X, mpmod_t modulus,
 
   for (l = 0; l < params->s_2; l++)
     {
-      const long M = params->l - 1 - params->s_1 / 2;
+      const int64_t M = params->l - 1 - params->s_1 / 2;
 
-      outputf (OUTPUT_VERBOSE, "Multi-point evaluation %lu of %lu:\n", 
-               l + 1, params->s_2);
+      outputf (OUTPUT_VERBOSE, "Multi-point evaluation %" PRIu64 
+                        " of %" PRIu64 ":\n", l + 1, params->s_2);
       if (twopass)
 	{
 	  /* Two-pass variant. Two separate convolutions, 

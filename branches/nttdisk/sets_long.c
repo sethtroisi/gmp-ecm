@@ -65,7 +65,7 @@ sets_free (set_list_t *L)
 
 
 /* Returns the smallest prime factor of N. If N == 1, return 1. */
-static int64_t
+static uint64_t
 smallest_factor (const uint64_t N)
 {
   unsigned long i;
@@ -145,11 +145,12 @@ sets_max (mpz_t S, const uint64_t beta)
    enough memory allocated. Returns number of elements in the 
    set of sums */
 
-static uint32_t 
+static uint64_t 
 sets_sumset_recurse (int64_t *sum, const set_list_t *sets, 
                     const uint32_t which_set, const int64_t add)
 {
-  uint32_t i, j = 0;
+  uint32_t i; 
+  uint64_t j = 0;
   set_t * curr_set;
 
   if (which_set == sets->num_sets)
@@ -173,18 +174,18 @@ sets_sumset_recurse (int64_t *sum, const set_list_t *sets,
 }
 
 
-uint32_t
+uint64_t
 sets_sumset (int64_t *sum, const set_list_t *sets)
 {
   return sets_sumset_recurse (sum, sets, 0, 0);
 }
 
 
-uint32_t
+uint64_t
 sets_sumset_size (const set_list_t *L)
 {
   uint32_t i;
-  uint32_t size = 1;
+  uint64_t size = 1;
 
   for (i = 0; i < L->num_sets; i++)
     size *= L->sets[i].card;

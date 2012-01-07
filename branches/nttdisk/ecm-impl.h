@@ -23,6 +23,7 @@
 
 #include "config.h"
 #include "ecm.h"
+#include "ecm-gmp.h"
 
 #ifdef HAVE_SYS_TYPES_H
 #include <sys/types.h> /* needed for size_t */
@@ -269,8 +270,7 @@ typedef __root_params_t root_params_t;
 
 typedef struct
 {
-  uint64_t P, s_1, s_2;
-  unsigned long l;
+  uint64_t P, s_1, s_2, l;
   mpz_t m_1;
 } __faststage2_param_t;
 typedef __faststage2_param_t faststage2_param_t;
@@ -408,18 +408,20 @@ void    pm1_rootsG_clear (pm1_roots_state_t *, mpmod_t);
 
 /* pm1fs2_param.c */
 #define choose_P __ECM(choose_P)
-long    choose_P (const mpz_t, const mpz_t, const unsigned long,
+long    choose_P (const mpz_t, const mpz_t, const uint64_t,
                   const uint64_t, faststage2_param_t *, mpz_t, mpz_t,
                   const int, const int);
 #define pm1fs2_memory_use __ECM(pm1fs2_ntt_memory_use)
-size_t  pm1fs2_memory_use (const unsigned long, const mpz_t, const int);
+size_t  pm1fs2_memory_use (const uint64_t, const mpz_t, const int);
 #define pm1fs2_maxlen __ECM(pm1fs2_maxlen)
 unsigned long pm1fs2_maxlen (const size_t, const mpz_t, const int);
 #define pp1fs2_memory_use __ECM(pp1fs2_ntt_memory_use)
-size_t  pp1fs2_memory_use (const unsigned long, const mpz_t, const int, 
+size_t  pp1fs2_memory_use (const uint64_t, const mpz_t, const int, 
                            const int);
 #define pp1fs2_maxlen __ECM(pp1fs2_maxlen)
 unsigned long pp1fs2_maxlen (const size_t, const mpz_t, const int, const int);
+#define eulerphi64 __ECM(eulerphi64)
+uint64_t eulerphi64 (uint64_t n);
 
 /* pm1fs2.c */
 #define pm1fs2 __ECM(pm1fs2)
@@ -818,9 +820,9 @@ void          sets_print (const int, set_list_t *);
 #define sets_max __ECM(sets_max)
 void          sets_max (mpz_t, const uint64_t);
 #define sets_sumset_size __ECM(sets_sumset_size)
-uint32_t      sets_sumset_size (const set_list_t *);
+uint64_t      sets_sumset_size (const set_list_t *);
 #define sets_sumset __ECM(sets_sumset)
-uint32_t      sets_sumset (int64_t *, const set_list_t *);
+uint64_t      sets_sumset (int64_t *, const set_list_t *);
 #define sets_sumset_minmax __ECM(sets_sumset_minmax)
 void          sets_sumset_minmax (mpz_t, const set_list_t *, const int);
 #define sets_extract __ECM(sets_extract)
