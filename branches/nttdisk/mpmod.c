@@ -245,7 +245,11 @@ ecm_redc_n (mp_ptr rp, mp_srcptr x0p, mp_size_t xn,
     }
   else
     xp = (mp_ptr) x0p;
+#ifdef HAVE___GMPN_MULLO_N /* available up from GMP 5.0.0 */
+  __gmpn_mullo_n (up, xp, aux, n);
+#else
   ecm_mul_lo_n (up, xp, aux, n);
+#endif
   tp = up + nn;
   mpn_mul_n (tp, up, orig, n);
   /* add {x, 2n} and {tp, 2n}. We know that {tp, n} + {xp, n} will give
@@ -455,7 +459,7 @@ mulredc (mp_ptr z, mp_srcptr x, mp_srcptr y, mp_srcptr m,
      thus at most one correction is enough */
   if (cy != 0)
     {
-      mp_limb_t t;
+      ATTRIBUTE_UNUSED mp_limb_t t;
       t = mpn_sub_n (z, z, m, nn); /* a borrow should always occur here */
       ASSERT (t == 1);
     }
@@ -542,7 +546,7 @@ mulredc_1 (mp_ptr z, const mp_limb_t x, mp_srcptr y, mp_srcptr m,
      thus one correction (at most) is enough */
   if (cy != 0)
     {
-      mp_limb_t t;
+      ATTRIBUTE_UNUSED mp_limb_t t;
       t = mpn_sub_n (z, z, m, N); /* a borrow should always occur here */
       ASSERT (t == 1);
     }
@@ -576,7 +580,7 @@ ecm_mulredc_basecase (mpres_t R, const mpres_t S1, const mpres_t S2,
   mp_ptr rp;
   mp_ptr s1p, s2p;
   mp_srcptr np;
-  mp_size_t j, nn;
+  mp_size_t j, nn = modulus->bits / GMP_NUMB_BITS;
 
   ASSERT(ALLOC(R) >= nn);
   ASSERT(ALLOC(S1) >= nn);
@@ -585,7 +589,6 @@ ecm_mulredc_basecase (mpres_t R, const mpres_t S1, const mpres_t S2,
   s1p = PTR(S1);
   s2p = PTR(S2);
   np = PTR(modulus->orig_modulus);
-  nn = modulus->bits / GMP_NUMB_BITS;
   /* FIXME: S1 and S2 are input and marked const, we mustn't write to them */
   for (j = ABSIZ(S1); j < nn; j++) 
     s1p[j] = 0;
@@ -619,14 +622,13 @@ ecm_sqrredc_basecase (mpres_t R, const mpres_t S1, mpmod_t modulus)
   mp_ptr rp;
   mp_ptr s1p;
   mp_srcptr np;
-  mp_size_t j, nn;
+  mp_size_t j, nn = modulus->bits / GMP_NUMB_BITS;
 
   ASSERT(ALLOC(R) >= nn);
   ASSERT(ALLOC(S1) >= nn);
   rp = PTR(R);
   s1p = PTR(S1);
   np = PTR(modulus->orig_modulus);
-  nn = modulus->bits / GMP_NUMB_BITS;
   /* FIXME: S1 is input and marked const, we mustn't write to it */
   for (j = ABSIZ(S1); j < nn; j++)
     s1p[j] = 0;
@@ -902,8 +904,9 @@ mpmod_init_REDC (mpmod_t modulus, const mpz_t N)
   /* ensure aux_modulus has n allocated limbs, for ecm_redc_n */
   if (ABSIZ(modulus->aux_modulus) < n)
     {
-      /* WARNING: _mpz_realloc does not keep the value!!! */
       _mpz_realloc (modulus->aux_modulus, n);
+      /* in case the reallocation fails, _mpz_realloc sets the value to 0 */
+      ASSERT_ALWAYS (mpz_cmp_ui (modulus->aux_modulus, 0) != 0);
       MPN_ZERO (PTR(modulus->aux_modulus) + ABSIZ(modulus->aux_modulus),
 		n - ABSIZ(modulus->aux_modulus));
     }

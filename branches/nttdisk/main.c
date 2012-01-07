@@ -1511,7 +1511,7 @@ BreadthFirstDoAgain:;
           /* construct the batch exponent */
           compute_s (params->batch_s, params->batch_B1);
           if (verbose > OUTPUT_NORMAL)
-            printf ("  computing prime product of %lu bits took %ldms\n",
+            printf ("  computing prime product of %zu bits took %ldms\n",
                     mpz_sizeinbase (params->batch_s, 2), cputime () - st);
         }
       params->method = method; /* may change with resume */

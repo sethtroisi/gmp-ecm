@@ -30,4 +30,3 @@ clean:
 	
 mrproper: clean
 	rm $(BIN)
-

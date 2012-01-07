@@ -1,14 +1,15 @@
-/* those parameters were kindly obtained by Torbjorn Granlund under
-   pentium4-pc-freebsd7.2 with ABI=32 (Prescott CPU), with ecm-6.3-rc3 */
-#define TUNE_MULREDC_THRESH 3
+/* those parameters were generated on 3 Jan 2012 on macaron.loria.fr
+   (Intel(R) Pentium(R) 4 CPU 3.20GHz) for ecm-6.4 with GMP 5.0.2 */
+
+#define TUNE_MULREDC_THRESH 1
 #define TUNE_SQRREDC_THRESH 3
-#define MPZMOD_THRESHOLD 101
-#define REDC_THRESHOLD 512
-#define MPN_MUL_LO_THRESHOLD_TABLE {0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1}
+#define MPZMOD_THRESHOLD 84
+#define REDC_THRESHOLD 119
+#define MPN_MUL_LO_THRESHOLD_TABLE {0, 0, 1, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1}
 #define NTT_GFP_TWIDDLE_DIF_BREAKOVER 17
 #define NTT_GFP_TWIDDLE_DIT_BREAKOVER 17
-#define MUL_NTT_THRESHOLD 262144
-#define PREREVERTDIVISION_NTT_THRESHOLD 256
-#define POLYINVERT_NTT_THRESHOLD 2048
-#define POLYEVALT_NTT_THRESHOLD 16384
-#define MPZSPV_NORMALISE_STRIDE 16
+#define MUL_NTT_THRESHOLD 4096
+#define PREREVERTDIVISION_NTT_THRESHOLD 64
+#define POLYINVERT_NTT_THRESHOLD 1024
+#define POLYEVALT_NTT_THRESHOLD 512
+#define MPZSPV_NORMALISE_STRIDE 2048

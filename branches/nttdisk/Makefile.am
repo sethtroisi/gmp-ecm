@@ -85,7 +85,7 @@ endif
 include_HEADERS = ecm.h
 noinst_HEADERS = ecm-impl.h ecm-gmp.h ecm-ecm.h sp.h longlong.h ecm-params.h
 
-EXTRA_DIST = test.pm1 test.pp1 test.ecm README.lib ecm.xml \
+EXTRA_DIST = test.pm1 test.pp1 test.ecm README.lib INSTALL-ecm ecm.xml \
              ecm-params.h.alpha-ev5 ecm-params.h.athlon64 \
              ecm-params.h.default ecm-params.h.alpha-ev6 \
              ecm-params.h.athlon ecm-params.h.powerpc7450 \
@@ -98,7 +98,7 @@ EXTRA_DIST = test.pm1 test.pp1 test.ecm README.lib ecm.xml \
              mul_fft-params.h.athlon64 mul_fft-params.h.pentium3 \
              mul_fft-params.h.default mul_fft-params.h.pentium4
 
-DIST_SUBDIRS = athlon pentium4 x86_64 powerpc64 build.vc9
+DIST_SUBDIRS = athlon pentium4 x86_64 powerpc64
 
 DISTCLEANFILES = config.m4
 
