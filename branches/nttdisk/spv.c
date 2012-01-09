@@ -19,7 +19,11 @@
   MA 02110-1301, USA.
 */
 
+#include "config.h"
 #include <string.h> /* for memset */
+#ifdef USE_VALGRIND
+#include <valgrind/memcheck.h>
+#endif
 #include "ecm-impl.h"
 
 /* Routines for vectors of integers modulo r common small prime
@@ -27,6 +31,26 @@
  * These are low-overhead routines that don't do memory allocation,
  * other than for temporary variables. Unless otherwise specified, any
  * of the input pointers can be equal. */
+
+int
+spv_verify (spv_t x, spv_size_t len, const sp_t m)
+{
+  spv_size_t i;
+#ifdef USE_VALGRIND
+  if (len > 0)
+    {
+      if (VALGRIND_CHECK_MEM_IS_DEFINED(x, len * sizeof(sp_t)) != 0)
+        return 0;
+    }
+#endif
+  for (i = 0; i < len; i++)
+    {
+      if (x[i] >= m)
+        return 0;
+    }
+  
+  return 1;
+}
 
 /* r = x */
 void

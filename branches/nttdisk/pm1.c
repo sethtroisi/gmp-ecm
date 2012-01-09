@@ -1005,6 +1005,7 @@ pm1 (mpz_t f, mpz_t p, mpz_t N, mpz_t go, double *B1done, double B1,
       faststage2_params.s_2 = better_params->s_2;
       faststage2_params.l = better_params->l;
       mpz_set (faststage2_params.m_1, better_params->m_1);
+      faststage2_params.file_stem = TreeFilename;
 
       mpz_clear (params_ntt.m_1);
       mpz_clear (params_nontt.m_1);

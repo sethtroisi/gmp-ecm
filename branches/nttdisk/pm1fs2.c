@@ -1141,7 +1141,7 @@ poly_from_sets_V (listz_t F, const mpres_t Q, set_list_t *sets,
   ASSERT_ALWAYS (sets->sets[0].card == 2UL); /* Check that the cardinality of 
                                                 first set is 2 */
   /* Check that first set is symmetric around 0 */
-  ASSERT_ALWAYS (sets->sets[0].elem[0] == -set->sets[0].elem[1]);
+  ASSERT_ALWAYS (sets->sets[0].elem[0] == -sets->sets[0].elem[1]);
 
   if (test_verbose (OUTPUT_TRACE))
     {
