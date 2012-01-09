@@ -264,9 +264,13 @@ ecm_redc_n (mp_ptr rp, mp_srcptr x0p, mp_size_t xn,
   cy = mpn_add_n (rp, tp + n, xp + n, n);
   cy += mpn_add_1 (rp, rp, n, (mp_limb_t) ((xp[n - 1] | tp[n - 1]) ? 1 : 0));
 #endif
-  if (cy || mpn_cmp (rp, orig, n) > 0)
+  /* when N < B^n/4, we don't need to perform this last reduction,
+     if we allow residues in [0, 2N).
+     See for example the slides from David Harvey at Sage Days 35
+     (http://wiki.sagemath.org/SageFlintDays/slides) */
+  if (orig[n-1] >> (GMP_NUMB_BITS - 2) && (cy || mpn_cmp (rp, orig, n) > 0))
     cy -= mpn_sub_n (rp, rp, orig, n);
-  /* ASSERT ((cy == 0) && (mpn_cmp (rp, orig, n) < 0)); */
+  ASSERT (cy == 0);
   TMP_FREE(marker);
 }
 
