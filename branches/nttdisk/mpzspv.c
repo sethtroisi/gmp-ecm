@@ -20,10 +20,17 @@
   MA 02110-1301, USA.
 */
 
+#include "config.h"
 #include <stdio.h> /* for stderr */
 #include <stdlib.h>
+#include <errno.h>
 #include <string.h> /* for memset */
+#ifdef USE_VALGRIND
+#include <valgrind/memcheck.h>
+#endif
 #include "ecm-impl.h"
+
+#define MPZSPV_MUL_NTT_OPENMP 0
 
 mpzspv_t
 mpzspv_init (spv_size_t len, mpzspm_t mpzspm)
@@ -55,7 +62,7 @@ void
 mpzspv_clear (mpzspv_t x, mpzspm_t mpzspm)
 {
   unsigned int i;
-	
+  
   ASSERT (mpzspv_verify (x, 0, 0, mpzspm));
   
   for (i = 0; i < mpzspm->sp_num; i++)
@@ -75,13 +82,11 @@ int
 mpzspv_verify (mpzspv_t x, spv_size_t offset, spv_size_t len, mpzspm_t mpzspm)
 {
   unsigned int i;
-  spv_size_t j;
   
   for (i = 0; i < mpzspm->sp_num; i++)
     {
-      for (j = offset; j < offset + len; j++)
-	if (x[i][j] >= mpzspm->spm[i]->sp)
-	  return 0;
+      if (spv_verify (x[i] + offset, len, mpzspm->spm[i]->sp) == 0)
+        return 0;
     }
 
   return 1;
@@ -294,6 +299,70 @@ mpzspv_from_mpzv (mpzspv_t x, const spv_size_t offset, const mpzv_t mpzv,
 #endif
 }
 
+
+/* Convert mpz_t from memory or a file to small prime vectors and 
+   optionally write them to disk files. x must have space for blocklen 
+   entries. Exactly one of mpzv and mpz_file must be non-NULL.
+   The small prime vectors are written to files if sp_files is non-NULL */
+
+void
+mpzspv_from_mpzv_file (mpzspv_t x, const spv_size_t offset, 
+    FILE **sp_files, const mpzv_t mpzv, FILE * const mpz_file, 
+    const spv_size_t len, const spv_size_t blocklen, mpzspm_t mpzspm)
+{
+  const unsigned int sp_num = mpzspm->sp_num;
+  spv_size_t len_done = 0;
+  mpz_t mpz, rem, *mpzp = &mpz;
+
+  ASSERT (sizeof (mp_limb_t) >= sizeof (sp_t));
+  ASSERT ((mpzv != NULL ? 1 : 0) ^ (mpz_file != NULL ? 1 : 0));
+  ASSERT (blocklen > 0);
+
+  if (mpz_file != NULL)
+    mpz_init(mpz);
+  mpz_init(rem);
+  /* Convert to small-prime vectors in x */
+  while (len_done < len)
+  {
+    const spv_size_t len_now = MIN(len - len_done, blocklen);
+    spv_size_t i;
+    for (i = 0; i < len_now; i++)
+    {
+      if (mpz_file != NULL) {
+        if (mpz_inp_raw(mpz, mpz_file) == 0) {
+          abort();
+        }
+      } else {
+        mpzp = &mpzv[len_done + i];
+      }
+      if (mpz_sgn (*mpzp) == 0)
+        {
+          unsigned int j;
+          for (j = 0; j < sp_num; j++)
+            x[j][offset + len_done + i] = 0;
+        }
+      else
+        {
+          mpzspv_from_mpzv_slow (x, offset + len_done + i, *mpzp, mpzspm, rem, sp_num);
+        }
+    }
+
+    /* Write x to disk files */
+    if (sp_files != NULL) {
+      unsigned int j;
+      for (j = 0; j < sp_num; j++)
+      {
+        fwrite(x[j] + offset, sizeof(sp_t), len_now, sp_files[j]);
+      }
+    }
+    len_done += len_now;
+  }
+  if (mpz_file != NULL)
+    mpz_clear(mpz);
+  mpz_clear(rem);
+}
+
+
 /* See: Daniel J. Bernstein and Jonathan P. Sorenson,
  * Modular Exponentiation via the explicit Chinese Remainder Theorem
  *
@@ -355,6 +424,103 @@ mpzspv_to_mpzv (mpzspv_t x, spv_size_t offset, mpzv_t mpzv,
   mpz_clear (mt);
   free (f);
 }  
+
+
+void
+mpzspv_to_mpzv_file (mpzspv_t x, const spv_size_t offset, 
+    FILE **sp_files, mpzv_t mpzv, FILE * const mpz_file, 
+    const spv_size_t len, const spv_size_t blocklen, mpzspm_t mpzspm)
+{
+  unsigned int i;
+  spv_size_t len_done = 0;
+  float *prime_recip = (float *) malloc (mpzspm->sp_num * sizeof (float));
+  spm_t *spm = mpzspm->spm;
+#if SP_TYPE_BITS > GMP_LIMB_BITS
+  mpz_t mt;
+#endif
+
+  if (prime_recip == NULL)
+    {
+      fprintf (stderr, "Cannot allocate memory in mpzspv_to_mpzv_file()\n");
+      exit (1);
+    }
+  
+  if (!sp_files) {
+    ASSERT (mpzspv_verify (x, offset, len, mpzspm));
+  } else {
+    ASSERT (mpzspv_verify (x, offset + MIN(len, blocklen), 0, mpzspm));
+  }
+  
+#if SP_TYPE_BITS > GMP_LIMB_BITS
+  mpz_init (mt);
+#endif
+  for (i = 0; i < mpzspm->sp_num; i++)
+    {
+      /* Maybe this should be stored permanently in mpzspm_t */
+      prime_recip[i] = 1.0f / (float) spm[i]->sp;
+    }
+
+  if (sp_files != NULL) 
+    {
+      for (i = 0; i < mpzspm->sp_num; i++)
+        {
+          if (fseek (sp_files[i], offset * sizeof(sp_t), SEEK_SET) != 0)
+            {
+              fprintf (stderr, "mpzspv_to_mpzv_file(): fseek() returned error %d\n", 
+                       errno);
+              abort ();
+            }
+        }
+    }
+
+  while (len_done < len) 
+    {
+      const spv_size_t len_now = MIN(len - len_done, blocklen);
+      spv_size_t l;
+      
+      if (sp_files != NULL) {
+        for (i = 0; i < mpzspm->sp_num; i++) {
+          fread (x[i] + offset, sizeof(sp_t), len_now, sp_files[i]);
+        }
+      }
+      
+      for (l = 0; l < len_now; l++)
+        {
+          float f = 0.5;
+          mpz_set_ui (mpzv[len_done + l], 0);
+      
+          for (i = 0; i < mpzspm->sp_num; i++)
+            {
+              const sp_t t = sp_mul (x[i][l + offset], mpzspm->crt3[i], 
+                  spm[i]->sp, spm[i]->mul_c);
+
+#if SP_TYPE_BITS > GMP_LIMB_BITS
+              mpz_set_sp (mt, t);
+              mpz_addmul (mpzv[len_done + l], mpzspm->crt1[i], mt);
+#else
+              mpz_addmul_ui (mpzv[len_done + l], mpzspm->crt1[i], t);
+#endif
+
+              f += (float) t * prime_recip[i];
+            }
+
+          mpz_add (mpzv[len_done + l], mpzv[len_done + l], mpzspm->crt2[(unsigned int) f]);
+
+          /* Write this mpz_t to file, if requested */
+          if (mpz_file != NULL) {
+            if (mpz_out_raw(mpz_file, mpzv[len_done + l]) == 0) {
+              abort();
+            }
+          }
+        }
+      len_done += len_now;
+    }
+#if SP_TYPE_BITS > GMP_LIMB_BITS
+  mpz_clear (mt);
+#endif
+  free(prime_recip);
+}
+
 
 void
 mpzspv_pwmul (mpzspv_t r, spv_size_t r_offset, mpzspv_t x, spv_size_t x_offset,
@@ -534,6 +700,287 @@ mpzspv_random (mpzspv_t x, spv_size_t offset, spv_size_t len, mpzspm_t mpzspm)
 }
 
 
+/* Adds or multiplies sp_t's from x and a file and stores result in r. 
+   r[i] = x[i] + f[i] (+ x[i + wrap_size] + f[i + wrap_size] ...)
+   Adds if add_or_mul == 0 */
+static void
+add_or_mul_file (spv_t r, const spv_t x, FILE *f, const spv_size_t len, 
+    const spv_size_t wrap_size, const spv_size_t block_len, 
+    const int add_or_mul, const spm_t spm)
+{
+  spv_t tmp_block;
+  spv_size_t nr_read = 0;
+
+  if (len == 0)
+    return; 
+
+  ASSERT(block_len > 0);
+  ASSERT(wrap_size > 0);
+  ASSERT(block_len <= wrap_size); /* We assume at most 1 wrap per block */
+
+  tmp_block = (spv_t) sp_aligned_malloc (block_len * sizeof (sp_t));
+  if (tmp_block == NULL) 
+    {
+      fprintf (stderr, "add_file(): could not allocate memory\n");
+      abort();
+    }
+
+  while (nr_read < len)
+    {
+      const spv_size_t nr_now = MIN(len - nr_read, block_len);
+      const spv_size_t offset_within_wrap = nr_read % wrap_size;
+      const spv_size_t len_before_wrap = 
+        MIN(nr_now, wrap_size - offset_within_wrap);
+      const spv_size_t len_after_wrap = nr_now - len_before_wrap;
+
+      fread (tmp_block, sizeof(sp_t), nr_now, f);
+
+      if (add_or_mul == 0)
+        spv_add (r + offset_within_wrap, x + nr_read, tmp_block, 
+                 len_before_wrap, spm->sp);
+      else
+        spv_pwmul (r + offset_within_wrap, x + nr_read, tmp_block, 
+                   len_before_wrap, spm->sp, spm->mul_c);
+
+      if (len_after_wrap != 0)
+        {
+          if (add_or_mul == 0)
+            spv_add (r, x + nr_read + len_before_wrap, 
+                     tmp_block + len_before_wrap, len_after_wrap, 
+                     spm->sp);
+          else
+            spv_pwmul (r, x + nr_read + len_before_wrap, 
+                       tmp_block + len_before_wrap, len_after_wrap, 
+                       spm->sp, spm->mul_c);
+        }
+      nr_read += nr_now;
+    }
+  sp_aligned_free (tmp_block);
+}
+
+
+/* Adds or multiplies sp_t's from two file and stores result in r. 
+   Adds if add_or_mul == 0 */
+static void
+add_or_mul_2file (spv_t r, FILE *f1, FILE *f2, const spv_size_t len, 
+    const spv_size_t wrap_size, const spv_size_t block_len, 
+    const int add_or_mul, const spm_t spm)
+{
+  spv_t tmp_block1, tmp_block2;
+  spv_size_t nr_read = 0;
+
+  if (len == 0)
+    return; 
+
+  ASSERT(block_len > 0);
+  ASSERT(wrap_size > 0);
+  ASSERT(block_len <= wrap_size); /* We assume at most 1 wrap per block */
+
+  tmp_block1 = (spv_t) sp_aligned_malloc (block_len * sizeof (sp_t));
+  tmp_block2 = (spv_t) sp_aligned_malloc (block_len * sizeof (sp_t));
+  if (tmp_block1 == NULL || tmp_block2 == NULL) 
+    {
+      fprintf (stderr, "add_file(): could not allocate memory\n");
+      abort();
+    }
+
+  while (nr_read < len)
+    {
+      const spv_size_t nr_now = MIN(len - nr_read, block_len);
+      const spv_size_t offset_within_wrap = nr_read % wrap_size;
+      const spv_size_t len_before_wrap = 
+        MIN(nr_now, wrap_size - offset_within_wrap);
+      const spv_size_t len_after_wrap = nr_now - len_before_wrap;
+
+      fread (tmp_block1, sizeof(sp_t), nr_now, f1);
+      fread (tmp_block2, sizeof(sp_t), nr_now, f2);
+
+      if (add_or_mul == 0)
+        spv_add (r + offset_within_wrap, tmp_block1, tmp_block2, 
+                 len_before_wrap, spm->sp);
+      else
+        spv_pwmul (r + offset_within_wrap, tmp_block1, tmp_block2, 
+                   len_before_wrap, spm->sp, spm->mul_c);
+
+      if (len_after_wrap != 0)
+        {
+          if (add_or_mul == 0)
+            spv_add (r, tmp_block1 + len_before_wrap, 
+                     tmp_block2 + len_before_wrap, len_after_wrap, spm->sp);
+          else
+            spv_pwmul (r, tmp_block1 + len_before_wrap, 
+                       tmp_block2 + len_before_wrap, len_after_wrap, spm->sp, 
+                       spm->mul_c);
+        }
+      nr_read += nr_now;
+    }
+  
+  sp_aligned_free (tmp_block1);
+  sp_aligned_free (tmp_block2);
+}
+
+
+static size_t 
+seek_and_read_sp (void *ptr, const size_t nread, const size_t offset, FILE *f)
+{
+  size_t r;
+  if (fseek (f, offset * sizeof(sp_t), SEEK_SET) != 0)
+    {
+      fprintf (stderr, "seek_and_read(): fseek() returned error %d\n", 
+               errno);
+      abort ();
+    }
+  
+  r = fread(ptr, sizeof(sp_t), nread, f);
+  if (r != nread)
+    {
+      fprintf (stderr, "seek_and_read(): Error reading data, r = %lu, errno = %d\n",
+               (unsigned long) r, errno);
+      abort();
+    }
+
+  return r;
+}
+
+
+static size_t 
+seek_and_write_sp (const void *ptr, const size_t nread, const size_t offset, FILE *f)
+{
+  size_t r;
+  if (fseek (f, offset * sizeof(sp_t), SEEK_SET) != 0)
+    {
+      fprintf (stderr, "seek_and_read(): fseek() returned error %d\n", 
+               errno);
+      abort ();
+    }
+  
+  r = fwrite(ptr, sizeof(sp_t), nread, f);
+  if (r != nread)
+    {
+      fprintf (stderr, "seek_and_read(): Error writing data, r = %lu, errno = %d\n",
+               (unsigned long) r, errno);
+      abort();
+    }
+  fflush(f);
+
+  return r;
+}
+
+
+static void
+mul_dct_file (const spv_t r, const spv_t spv, FILE *dct_file, 
+              const spv_size_t dftlen, const spv_size_t blocklen, const spm_t spm)
+{
+  const spv_size_t dctlen = dftlen / 2 + 1;
+  spv_size_t nr_read = 0, i;
+  unsigned long m = 5UL;
+  spv_t tmp;
+  
+  ASSERT(dftlen % 2 == 0);
+  if (dftlen == 0)
+    return;
+  
+  tmp = (spv_t) sp_aligned_malloc (MIN(blocklen, dctlen) * sizeof (sp_t));
+  if (tmp == NULL) 
+    {
+      fprintf (stderr, "mul_dct_file_blocks(): could not allocate memory\n");
+      abort();
+    }
+
+  while (nr_read < dctlen)
+    {
+      const spv_size_t read_now = MIN(dctlen - nr_read, blocklen);
+      const spv_size_t mul_now = MIN(dctlen - nr_read - 1, blocklen);
+      
+      seek_and_read_sp (tmp, read_now, nr_read, dct_file);
+      
+      i = 0;
+      if (nr_read == 0)
+        {
+          r[0] = sp_mul (spv[0], tmp[0], spm->sp, spm->mul_c);
+          i = 1;
+        }
+      
+      for ( ; i < mul_now; i++)
+        {
+          const spv_size_t j = nr_read + i;
+          /* This works, but why? */
+          if (3*j > m)
+            m = 2UL * m + 1;
+          
+          r[2*j] = sp_mul (spv[2*j], tmp[i], spm->sp, spm->mul_c);
+          r[m - 2*j] = sp_mul (spv[m - 2*j], tmp[i], spm->sp, spm->mul_c);
+        }
+      nr_read += read_now;
+      if (nr_read == dctlen)
+        {
+#ifdef USE_VALGRIND
+          VALGRIND_CHECK_VALUE_IS_DEFINED(tmp[i]);
+#endif
+          r[1] = sp_mul (spv[1], tmp[i], spm->sp, spm->mul_c);
+        }
+    }
+  sp_aligned_free(tmp);
+}
+
+
+/* Multiply the DFT of a polynomial by the DCT-I of a reciprocal Laurent
+   polynomial. */
+static void
+mul_dct(const spv_t r, const spv_t spv, const spv_t dct, const spv_size_t len, 
+        const spm_t spm)
+{
+  unsigned long m = 5UL, i;
+  
+  if (len > 0)
+    r[0] = sp_mul (spv[0], dct[0], spm->sp, spm->mul_c);
+  if (len > 1)
+    r[1] = sp_mul (spv[1], dct[len / 2UL], spm->sp, spm->mul_c);
+  
+  ASSERT(len % 2 == 0);
+  for (i = 2UL; i < len; i += 2UL)
+    {
+      /* This works, but why? */
+      if (i + i / 2UL > m)
+        m = 2UL * m + 1;
+      
+      r[i] = sp_mul (spv[i], dct[i / 2UL], spm->sp, spm->mul_c);
+      r[m - i] = sp_mul (spv[m - i], dct[i / 2UL], spm->sp, 
+                         spm->mul_c);
+    }
+}
+
+
+static void
+one_fft_file(spv_t spv, FILE *file, const spv_size_t offset, 
+             const spv_size_t len, const spv_size_t ntt_size, const int monic,
+             const spv_size_t block_len, const spm_t spm)
+{
+  spv_size_t log2_ntt_size = ceil_log_2 (ntt_size);
+  if (file != NULL)
+    {
+      seek_and_read_sp (spv, ntt_size, offset, file);
+      if (ntt_size < len)
+        add_or_mul_file (spv, spv, file, len - ntt_size, ntt_size, block_len, 
+                         0, spm);
+    } 
+  else if (ntt_size < len) 
+    {
+      spv_size_t j;
+      for (j = ntt_size; j < len; j += ntt_size)
+        spv_add (spv, spv, spv + j, ntt_size, spm->sp);
+    }
+
+  if (ntt_size > len)
+    spv_set_zero (spv + len, ntt_size - len);
+
+  if (monic)
+    spv[len % ntt_size] = sp_add (spv[len % ntt_size], 1, spm->sp);
+
+  spv_ntt_gfp_dif (spv, log2_ntt_size, spm);
+}
+
+
 /* Do multiplication via NTT. Depending on the value of "steps", does 
    in-place forward transform of x, in-place forward transform of y, 
    pair-wise multiplication of x by y to r, in-place inverse transform of r. 
@@ -562,8 +1009,6 @@ mpzspv_mul_ntt (mpzspv_t r, const spv_size_t offsetr,
 
   /* Need parallelization at higher level (e.g., handling a branch of the 
      product tree in one thread) to make this worthwhile for ECM */
-#define MPZSPV_MUL_NTT_OPENMP 0
-
 #if defined(_OPENMP) && MPZSPV_MUL_NTT_OPENMP
 #pragma omp parallel if (ntt_size > 16384)
   {
@@ -629,6 +1074,219 @@ mpzspv_mul_ntt (mpzspv_t r, const spv_size_t offsetr,
   }
 #endif
 }
+
+
+/* Do multiplication via NTT. Depending on the value of "steps", does 
+   in-place forward transform of x, in-place forward transform of y, 
+   pair-wise multiplication of x by y to r, in-place inverse transform of r. 
+   Contrary to calling these three operations separately, this function does 
+   all steps on a small-prime vector at a time, resulting in slightly 
+   better cache efficiency.
+   Input and output spv_t's can be stored in files. Files are read or written
+   beginning at the current file pointer position. If x_files is non-NULL and
+   x is non-NULL, then the data in x is replaced by the data from the files, 
+   likewise for y. If r and r_files are non-NULL, then output data is written
+   to both r and r_files.
+   It is permissible to let any combination of x, y, and r point at the same 
+   memory, in which case the pointers x, y, or r, respectively must be 
+   identical. Other overlap is not permitted.
+*/
+
+void
+mpzspv_mul_ntt_file (mpzspv_t r, const spv_size_t offsetr, FILE **r_files, 
+    mpzspv_t x, const spv_size_t offsetx, const spv_size_t lenx, FILE **x_files,
+    mpzspv_t y, const spv_size_t offsety, const spv_size_t leny, FILE **y_files,
+    const spv_size_t ntt_size, const int monic, const spv_size_t monic_pos, 
+    mpzspm_t mpzspm, const int steps)
+{
+  const spv_size_t block_len = 16384;
+  spv_size_t log2_ntt_size;
+  int i;
+  const int do_fft1 = (steps & NTT_MUL_STEP_FFT1) != 0;
+  const int do_fft2 = (steps & NTT_MUL_STEP_FFT2) != 0;
+  const int do_pwmul = (steps & NTT_MUL_STEP_MUL) != 0;
+  const int do_pwmul_dct = (steps & NTT_MUL_STEP_MULDCT) != 0;
+  const int do_ifft = (steps & NTT_MUL_STEP_IFFT) != 0;
+
+  if (x == y && do_fft1 && do_fft2)
+    {
+      fprintf (stderr, "mpzspv_mul_ntt_file(): Error, x=y and forward "
+               "transform requested for both\n");
+      abort();
+    }
+  
+  if (do_pwmul && do_pwmul_dct)
+    {
+      fprintf (stderr, "mpzspv_mul_ntt_file(): Error, both PWMUL "
+               "and PWMULDCT requested\n");
+      abort();
+    }
+  
+  if (x != NULL)
+    {
+      ASSERT (mpzspv_verify (x, offsetx, lenx, mpzspm));
+      ASSERT (mpzspv_verify (x, offsetx + ntt_size, 0, mpzspm));
+    }
+  if (y != NULL) 
+    {
+      ASSERT (mpzspv_verify (y, offsety, leny, mpzspm));
+      ASSERT (mpzspv_verify (y, offsety + ntt_size, 0, mpzspm));
+    }
+  if (r != NULL)
+    {
+      ASSERT (mpzspv_verify (r, offsetr + ntt_size, 0, mpzspm));
+    }
+  
+  log2_ntt_size = ceil_log_2 (ntt_size);
+
+  /* Need parallelization at higher level (e.g., handling a branch of the 
+     product tree in one thread) to make this worthwhile for ECM */
+
+#if defined(_OPENMP) && MPZSPV_MUL_NTT_OPENMP
+#pragma omp parallel if (ntt_size > 32768)
+  {
+#pragma omp for
+#endif
+  for (i = 0; i < (int) mpzspm->sp_num; i++)
+    {
+      const spm_t spm = mpzspm->spm[i];
+      spv_t tmp = NULL;
+      char tmp_content = ' ';
+
+      /* If we do any transform, we need some memory to do the transform in. 
+         The point-wise multiply needa a small block of memory, too, to avoid
+         having an fread() for each sp_t.
+         If x is in memory, then any forward transform of x is done in-place.
+         Same for y. If r is in memory, we can use that as temp storage, so
+         long as we don't overwrite input data we still need. */
+      
+      if ((do_fft1 && x == NULL) || (do_fft2 && y == NULL) || 
+          (do_ifft && r == NULL))
+        {
+          tmp = (spv_t) sp_aligned_malloc (ntt_size * sizeof (sp_t));
+          if (tmp == NULL)
+            {
+              fprintf (stderr, "Cannot allocate tmp memory in "
+                       "mpzspv_mul_ntt_file()\n");
+              abort();
+            }
+        }
+
+      spv_t spvx = (x == NULL) ? tmp : x[i] + offsetx;
+      spv_t spvy = (y == NULL) ? tmp : y[i] + offsety;
+      spv_t spvr = (r == NULL) ? tmp : r[i] + offsetr;
+
+      if (do_fft1) 
+        {
+          one_fft_file(spvx, (x_files != NULL) ? x_files[i] : NULL, offsetx, 
+                       lenx, ntt_size, monic, block_len, spm);
+          if (x == NULL)
+            tmp_content = 'x';
+          if (x_files != NULL)
+            {
+              seek_and_write_sp (spvx, ntt_size, offsetx, x_files[i]);
+            }
+        }
+
+      if (do_fft2) 
+        {
+          one_fft_file(spvy, (y_files != NULL) ? y_files[i] : NULL, offsety, 
+                       leny, ntt_size, monic, block_len, spm);
+          if (y == NULL)
+            tmp_content = 'y';
+          if (y_files != NULL)
+            {
+              seek_and_write_sp (spvy, ntt_size, offsety, y_files[i]);
+            }
+        }
+
+      if (do_pwmul) 
+        {
+          if (x_files == NULL && y_files == NULL)
+            {
+              spv_pwmul (spvr, spvx, spvy, ntt_size, spm->sp, spm->mul_c);
+            }
+          else if (x_files != NULL && y_files == NULL)
+            {
+              if (tmp_content == 'x')
+                spv_pwmul (spvr, tmp, spvy, ntt_size, spm->sp, spm->mul_c);
+              else
+                add_or_mul_file (spvr, spvy, x_files[i], ntt_size, ntt_size, 
+                                 block_len, 1, spm);
+            }
+          else if (x_files == NULL && y_files != NULL)
+            {
+              if (tmp_content == 'y')
+                spv_pwmul (spvr, spvx, tmp, ntt_size, spm->sp, spm->mul_c);
+              else
+                add_or_mul_file (spvr, spvx, y_files[i], ntt_size, ntt_size, 
+                                 block_len, 1, spm);
+            }
+          else /* x_files != NULL && y_files != NULL */
+            {
+              if (tmp_content == 'x')
+                add_or_mul_file (spvr, tmp, y_files[i], ntt_size, ntt_size,
+                                 block_len, 1, spm);
+              else if (tmp_content == 'y')
+                add_or_mul_file (spvr, tmp, x_files[i], ntt_size, ntt_size,
+                                 block_len, 1, spm);
+              else
+                add_or_mul_2file (spvr, x_files[i], y_files[i], ntt_size, 
+                                  ntt_size, block_len, 1, spm);
+            }
+          if (r == NULL)
+            tmp_content = 'r';
+        }
+      else if (do_pwmul_dct)
+        {
+          if (x_files != NULL && tmp_content != 'x')
+            {
+              seek_and_read_sp (spvx, ntt_size, offsetx, x_files[i]);
+            }
+          if (y_files != NULL)
+            {
+              mul_dct_file (spvr, spvx, y_files[i], ntt_size, 
+                                   block_len, spm);
+            } else { 
+              mul_dct (spvr, spvx, spvy, ntt_size, spm);
+            }
+          if (r == NULL)
+            tmp_content = 'r';
+        }
+
+      if (do_ifft) 
+        {
+          ASSERT (sizeof (mp_limb_t) >= sizeof (sp_t));
+
+          if (r_files != NULL && tmp_content != 'r')
+            {
+              seek_and_read_sp (spvr, ntt_size, offsetr, r_files[i]);
+            }
+          spv_ntt_gfp_dit (spvr, log2_ntt_size, spm);
+
+          /* spm->sp - (spm->sp - 1) / ntt_size is the inverse of ntt_size */
+          spv_mul_sp (spvr, spvr, spm->sp - (spm->sp - 1) / ntt_size,
+              ntt_size, spm->sp, spm->mul_c);
+
+          if (monic_pos)
+            spvr[monic_pos % ntt_size] = sp_sub (spvr[monic_pos % ntt_size],
+                1, spm->sp);
+        }
+
+      if (r_files != NULL && tmp_content == 'r')
+        {
+          seek_and_write_sp (spvr, ntt_size, offsetr, r_files[i]);
+        }
+      if (tmp != NULL) 
+        {
+          sp_aligned_free (tmp);
+        }
+    }
+#if defined(_OPENMP) && MPZSPV_MUL_NTT_OPENMP
+  }
+#endif
+}
+
 
 /* Computes a DCT-I of the length dctlen. Input is the spvlen coefficients
    in spv. tmp is temp space and must have space for 2*dctlen-2 sp_t's */
@@ -964,4 +1622,145 @@ mpzspv_sqr_reciprocal (mpzspv_t dft, const spv_size_t n,
 #ifdef _OPENMP
     }
 #endif
+}
+
+
+FILE **
+mpzspv_open_fileset (const char *file_stem, const mpzspm_t mpzspm)
+{
+  FILE **files;
+  char *filename;
+  const unsigned int spnum = mpzspm->sp_num;
+  unsigned int i;
+  
+  files = (FILE **) malloc (spnum * sizeof(FILE *));
+  filename = (char *) malloc ((strlen(file_stem) + 10) * sizeof(FILE *));
+  if (files == NULL || filename == NULL)
+    {
+      fprintf (stderr, "mpzspv_open_fileset(): could not allocate memory\n");
+      abort ();
+    }
+  
+  for (i = 0; i < spnum; i++)
+    {
+      sprintf (filename, "%s.%u", file_stem, i);
+      files[i] = fopen(filename, "w+");
+      if (files[i] == NULL)
+        {
+          fprintf (stderr, 
+                   "mpzspv_open_fileset(): error opening %s for writing\n", 
+                   filename);
+          while (i > 0)
+            {
+              fclose(files[--i]);
+            }
+          free (filename);
+          free (files);
+          abort(); /* For now, bomb out for easier debugging */
+          return NULL;
+        }
+    }
+  
+  free (filename);
+  
+  return files;
+}
+
+void
+mpzspv_close_fileset (FILE **files, const mpzspm_t mpzspm)
+{
+  unsigned int i;
+  
+  for (i = 0; i < mpzspm->sp_num; i++)
+    {
+      if (fclose(files[i]) != 0)
+        {
+          fprintf (stderr, 
+                   "mpzspv_open_fileset(): fclose() set error code %d\n", 
+                   errno);
+          abort();
+        }
+    }
+  
+  free (files);
+}
+
+void
+mpzspv_read (mpzspv_t mpzspv, const spv_size_t mpzspv_offset, 
+             FILE **files, const spv_size_t file_offset,
+             const spv_size_t len, const mpzspm_t mpzspm)
+{
+  unsigned int i;
+  
+  for (i = 0; i < mpzspm->sp_num; i++)
+    {
+      seek_and_read_sp (mpzspv[i] + mpzspv_offset, len, file_offset, files[i]);
+    }
+}
+
+void
+mpzspv_write (mpzspv_t mpzspv, const spv_size_t mpzspv_offset, 
+             FILE **files, const spv_size_t file_offset,
+             const spv_size_t len, const mpzspm_t mpzspm)
+{
+  unsigned int i;
+  
+  for (i = 0; i < mpzspm->sp_num; i++)
+    {
+      seek_and_write_sp (mpzspv[i] + mpzspv_offset, len, file_offset, files[i]);
+    }
+}
+
+void
+mpzspv_print (mpzspv_t mpzspv, const spv_size_t offset, 
+              const spv_size_t len, const char *prefix, 
+              const mpzspm_t mpzspm)
+{
+  unsigned int i;
+
+  if (len == 0)
+    {
+      printf("%s: Zero length vector\n", prefix);
+      return;
+    }
+  
+  for (i = 0; i < mpzspm->sp_num; i++)
+    {
+      spv_size_t j;
+      printf ("%s (%lu", prefix, mpzspv[i][offset]);
+      for (j = 1; j < len; j++)
+        {
+          printf(", %lu", mpzspv[i][offset + j]);
+        }
+      printf (") (mod %lu)\n", mpzspm->spm[i]->sp);
+    }
+}
+
+void
+mpzspv_print_file (FILE **files, const spv_size_t offset, 
+              const spv_size_t len, const char *prefix, 
+              const mpzspm_t mpzspm)
+{
+  unsigned int i;
+  spv_t tmp;
+
+  if (len == 0)
+    {
+      printf("%s: Zero length vector\n", prefix);
+      return;
+    }
+  
+  tmp = (spv_t) sp_aligned_malloc (len * sizeof (sp_t));
+
+  for (i = 0; i < mpzspm->sp_num; i++)
+    {
+      spv_size_t j;
+      seek_and_read_sp (tmp, len, offset, files[i]);
+      printf ("%s (%lu", prefix, tmp[0]);
+      for (j = 1; j < len; j++)
+        {
+          printf(", %lu", tmp[j]);
+        }
+      printf (") (mod %lu)\n", mpzspm->spm[i]->sp);
+    }
 }
