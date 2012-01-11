@@ -505,7 +505,8 @@ static inline sp_t sp_add(sp_t a, sp_t b, sp_t m)
 
 static inline sp_t sp_udiv_rem(sp_t nh, sp_t nl, sp_t d, sp_t di)
 {
-  sp_t r, q1, q2, tmp;
+  sp_t r, q1, q2;
+  ATTRIBUTE_UNUSED sp_t tmp;
 
   q1 = nh << (2*(SP_TYPE_BITS - SP_NUMB_BITS)) |
 	    nl >> (2*SP_NUMB_BITS - SP_TYPE_BITS);
@@ -518,7 +519,8 @@ static inline sp_t sp_udiv_rem(sp_t nh, sp_t nl, sp_t d, sp_t di)
 
 static inline sp_t sp_udiv_rem(sp_t nh, sp_t nl, sp_t d, sp_t di)
 {
-  sp_t q1, q2, tmp, dqh, dql;
+  sp_t q1, q2, dqh, dql;
+  ATTRIBUTE_UNUSED sp_t tmp;
   q1 = nh << (2*(SP_TYPE_BITS - SP_NUMB_BITS)) |
 	    nl >> (2*SP_NUMB_BITS - SP_TYPE_BITS);
   sp_wide_mul (q2, tmp, q1, di);
