@@ -89,10 +89,10 @@ print_elapsed_time (int verbosity, long cpu_start,
 
 
 static void
-list_output_poly (listz_t l, uint64_t len, int monic, int symmetric,
+list_output_poly (listz_t l, unsigned long len, int monic, int symmetric,
 		  char *prefix, char *suffix, int verbosity)
 {
-  uint64_t i;
+  unsigned long i;
 
   if (prefix != NULL)
     outputf (verbosity, prefix);
@@ -1856,14 +1856,14 @@ ntt_sqr_reciprocal (mpzv_t R, const mpzv_t S, mpzspv_t dft,
    If add == NULL, add[i] is assumed to be 0. */
 
 static void
-ntt_gcd (mpz_t f, mpz_t *product, mpzspv_t ntt, const unsigned long ntt_offset,
-	 const listz_t add, const unsigned long len_param, 
+ntt_gcd (mpz_t f, mpz_t *product, mpzspv_t ntt, const uint64_t ntt_offset,
+	 const listz_t add, const uint64_t len_param, 
 	 const mpzspm_t ntt_context, mpmod_t modulus_param)
 {
-  unsigned long i, j;
+  uint64_t i, j;
   const unsigned long Rlen = MPZSPV_NORMALISE_STRIDE;
   listz_t R;
-  unsigned long len = len_param, thread_offset = 0;
+  uint64_t len = len_param, thread_offset = 0;
   mpres_t tmpres, tmpprod, totalprod;
   mpmod_t modulus;
   long timestart, realstart;
@@ -1915,14 +1915,15 @@ ntt_gcd (mpz_t f, mpz_t *product, mpzspv_t ntt, const unsigned long ntt_offset,
 	/* Accumulate product in tmpprod */
 	for (j = 0; j < blocklen; j++)
 	  {
-	    outputf (OUTPUT_TRACE, "r_%lu = %Zd; /* PARI */\n", i, R[j]);
+	    outputf (OUTPUT_TRACE, "r_%lu = %Zd; /* PARI */\n", 
+				(unsigned long)i, R[j]);
 	    if (add != NULL)
 	      mpz_add (R[j], R[j], add[i + thread_offset + j]);
 	    mpres_set_z_for_gcd (tmpres, R[j], modulus);
 #define TEST_ZERO_RESULT
 #ifdef TEST_ZERO_RESULT
 	    if (mpres_is_zero (tmpres, modulus))
-	      outputf (OUTPUT_VERBOSE, "R_[%lu] = 0\n", i);
+	      outputf (OUTPUT_VERBOSE, "R_[%" PRIu64 "] = 0\n", i);
 #endif
 	    mpres_mul (tmpprod, tmpprod, tmpres, modulus); 
 	  }
@@ -2407,7 +2408,7 @@ gfp_ext_mul (mpres_t r_0, mpres_t r_1, const mpres_t a_0, const mpres_t a_1,
 	     mpmod_t modulus, ATTRIBUTE_UNUSED const unsigned long tmplen, 
 	     mpres_t *tmp)
 {
-  ASSERT (tmplen >= 2);
+  ASSERT (tmplen >= 2UL);
   if (0 && test_verbose (OUTPUT_TRACE))
     {
       mpz_t t;
@@ -2476,18 +2477,18 @@ gfp_ext_sqr_norm1 (mpres_t r_0, mpres_t r_1, const mpres_t a_0,
 }
 
 
-/* Raise (a0 + a1*sqrt(Delta)) to the power e which is a signed long int. 
+/* Raise (a0 + a1*sqrt(Delta)) to the power e which is a 64-bit signed int.
    (a0 + a1*sqrt(Delta)) is assumed to have norm 1, i.e. 
    a0^2 - a1^2*Delta == 1. The result is (r0 * r1*sqrt(Delta)). 
    a0, a1, r0 and r1 must not overlap */
 
 static void 
 gfp_ext_pow_norm1_sl (mpres_t r0, mpres_t r1, const mpres_t a0, 
-                      const mpres_t a1, const long e, const mpres_t Delta, 
+                      const mpres_t a1, const int64_t e, const mpres_t Delta, 
                       mpmod_t modulus, unsigned long tmplen, mpres_t *tmp)
 {
-  const unsigned long abs_e = labs (e);
-  unsigned long mask = ~0UL - (~0UL >> 1);
+  const int64_t abs_e = (e > 0) ? e : -e;
+  uint64_t mask = (uint64_t)1 << 63;
 
   ASSERT (a0 != r0 && a1 != r0 && a0 != r1 && a1 != r1);
 
@@ -2504,13 +2505,13 @@ gfp_ext_pow_norm1_sl (mpres_t r0, mpres_t r1, const mpres_t a0,
      is the norm which is known to be 1, so the result is 
      a0 - a1*sqrt(Delta). */
 
-  while ((abs_e & mask) == 0UL)
+  while ((abs_e & mask) == 0)
     mask >>= 1;
 
   mpres_set (r0, a0, modulus);
   mpres_set (r1, a1, modulus);
 
-  while (mask > 1UL)
+  while (mask > 1)
     {
       gfp_ext_sqr_norm1 (r0, r1, r0, r1, modulus);
       mask >>= 1;
@@ -2531,7 +2532,7 @@ gfp_ext_pow_norm1_sl (mpres_t r0, mpres_t r1, const mpres_t a0,
       mpz_clear (t);
       outputf (OUTPUT_TRACE, "/* gfp_ext_pow_norm1_sl */ (");
       gfp_ext_print (a0, a1, modulus, OUTPUT_TRACE);
-      outputf (OUTPUT_TRACE, ")^(%ld) == ", e);
+      outputf (OUTPUT_TRACE, ")^(%" PRId64 ") == ", e);
       gfp_ext_print (r0, r1, modulus, OUTPUT_TRACE);
       outputf (OUTPUT_TRACE, " /* PARI C */\n");
     }
@@ -2600,14 +2601,14 @@ gfp_ext_pow_norm1 (mpres_t r0, mpres_t r1, const mpres_t a0,
 
 ATTRIBUTE_UNUSED static void
 gfp_ext_rn2 (mpres_t *r_x, mpres_t *r_y, const mpres_t a_x, const mpres_t a_y,
-	     const long k, const unsigned long l, const mpres_t Delta, 
+	     const int64_t k, const uint64_t l, const mpres_t Delta, 
 	     mpmod_t modulus, const unsigned long origtmplen, mpres_t *origtmp)
 {
   mpres_t *r2_x = origtmp, *r2_y = origtmp + 2, *v = origtmp + 4, 
     *V2 = origtmp + 6;
   const unsigned long newtmplen = origtmplen - 7;
   mpres_t *newtmp = origtmp + 7;
-  unsigned long i;
+  uint64_t i;
 
   if (l == 0UL)
     return;
@@ -2642,8 +2643,10 @@ gfp_ext_rn2 (mpres_t *r_x, mpres_t *r_y, const mpres_t a_x, const mpres_t a_y,
       /* Now r[1] = a^(k^2 + 2k + 1) = a^((k+1)^2) */
     }
   if (pari)
-    gmp_printf ("/* In gfp_ext_rn2 */ a^(%ld^2) %% N == (%Zd + %Zd * w) %% N "
-		"/* PARI C */\n", k + 1, r_x[1], r_y[1]);
+    {
+      gmp_printf ("/* In gfp_ext_rn2 */ a^(%" PRId64 "^2) %% N == ", k + 1);
+      gmp_printf ("(%Zd + %Zd * w) %% N /* PARI C */\n", r_x[1], r_y[1]);
+    }
   
   /* Compute r2[0] = a^(k^2+2) = a^(k^2) * a^2 */
   gfp_ext_sqr_norm1 (v[0], v[1], a_x, a_y, modulus);
@@ -2655,9 +2658,11 @@ gfp_ext_rn2 (mpres_t *r_x, mpres_t *r_y, const mpres_t a_x, const mpres_t a_y,
   /* Compute a^((k+1)^2+2) = a^((k+1)^2) * a^2 */
   gfp_ext_mul (r2_x[1], r2_y[1], r_x[1], r_y[1], v[0], v[1], Delta, modulus, 
 	       newtmplen, newtmp);
-  if (pari)
-    gmp_printf ("/* In gfp_ext_rn2 */ a^(%ld^2+2) %% N == (%Zd + %Zd * w) %% N "
-		"/* PARI C */\n", k + 1, r2_x[1], r2_y[1]);
+  if (pari) 
+    { 
+      gmp_printf ("/* In gfp_ext_rn2 */ a^(%" PRId64 "^2+2) %% N == ", k + 1);
+      gmp_printf ("(%Zd + %Zd * w) %% N /* PARI C */\n", r2_x[1], r2_y[1]);
+    }
   
   /* Compute V_2(a + 1/a). Since 1/a = a_x - a_y, we have a+1/a = 2*a_x.
      V_2(x) = x^2 - 2, so we want 4*a_x^2 - 2. */
@@ -2697,9 +2702,12 @@ gfp_ext_rn2 (mpres_t *r_x, mpres_t *r_y, const mpres_t a_x, const mpres_t a_y,
       /* v[i] = v[i - 1] * V_2(a + 1/a) - v[i - 2] */
       mpres_mul (newtmp[0], v[1 - i % 2], *V2, modulus);
       mpres_sub (v[i % 2], newtmp[0], v[i % 2], modulus);
-      if (pari)
-	gmp_printf ("/* In gfp_ext_rn2 */ V(%lu, a + 1/a) %% N == %Zd %% N "
-		    "/* PARI C */\n", 2 * (k + i) + 1, v[i % 2]);
+      if (pari) 
+	{
+	  gmp_printf ("/* In gfp_ext_rn2 */ V(%" PRId64 ", a + 1/a) ",
+			      2 * (k + i) + 1);
+	  gmp_printf ("%% N == %Zd %% N /* PARI C */\n", v[i % 2]);
+	}
     }
 }
 
@@ -2709,9 +2717,9 @@ gfp_ext_rn2 (mpres_t *r_x, mpres_t *r_y, const mpres_t a_x, const mpres_t a_y,
 
 static void
 pp1_sequence_g (listz_t g_x, listz_t g_y, mpzspv_t g_x_ntt, mpzspv_t g_y_ntt,
-		const mpres_t b1_x, const mpres_t b1_y, const unsigned long P, 
-		const mpres_t Delta, const long M_param, 
-		const unsigned long l_param, const mpz_t m_1, 
+		const mpres_t b1_x, const mpres_t b1_y, const uint64_t P, 
+		const mpres_t Delta, const uint64_t M_param, 
+		const uint64_t l_param, const mpz_t m_1, 
 		const int64_t k_2, const mpmod_t modulus_param, 
 		const mpzspm_t ntt_context)
 {
@@ -2721,10 +2729,10 @@ pp1_sequence_g (listz_t g_x, listz_t g_y, mpzspv_t g_x_ntt, mpzspv_t g_y_ntt,
   mpres_t r_x, r_y, x0_x, x0_y, v2,
       r1_x[2], r1_y[2], r2_x[2], r2_y[2], 
       v[2], tmp[3];
-  mpz_t mt, mt1;
+  mpz_t mt, mt1, mt2;
   mpmod_t modulus; /* Thread-local copy of modulus_param */
-  unsigned long i, l = l_param, offset = 0;
-  long M = M_param;
+  uint64_t i, l = l_param, offset = 0;
+  uint64_t M = M_param;
   long timestart, realstart;
   int want_output = 1;
 
@@ -2736,7 +2744,7 @@ pp1_sequence_g (listz_t g_x, listz_t g_y, mpzspv_t g_x_ntt, mpzspv_t g_y_ntt,
   realstart = realtime ();
 
 #ifdef _OPENMP
-#pragma omp parallel if (l > 100) private(r_x, r_y, x0_x, x0_y, v2, r1_x, r1_y, r2_x, r2_y, v, tmp, mt, mt1, modulus, i, l, offset, M, want_output)
+#pragma omp parallel if (l > 100) private(r_x, r_y, x0_x, x0_y, v2, r1_x, r1_y, r2_x, r2_y, v, tmp, mt, mt1, mt2, modulus, i, l, offset, M, want_output)
   {
     /* When multi-threading, we adjust the parameters for each thread */
 
@@ -2747,7 +2755,7 @@ pp1_sequence_g (listz_t g_x, listz_t g_y, mpzspv_t g_x_ntt, mpzspv_t g_y_ntt,
     offset = thread_nr * l;
     ASSERT_ALWAYS (l_param >= offset);
     l = MIN(l, l_param - offset);
-    M = M_param - (long) offset;
+    M = M_param - offset;
 
     want_output = (omp_get_thread_num() == 0);
     if (want_output)
@@ -2771,14 +2779,16 @@ pp1_sequence_g (listz_t g_x, listz_t g_y, mpzspv_t g_x_ntt, mpzspv_t g_y_ntt,
       mpres_init (tmp[i], modulus);
     mpz_init (mt);
     mpz_init (mt1);
+    mpz_init (mt2);
     
     if (want_output && test_verbose (OUTPUT_TRACE))
       {
 	mpres_get_z (mt, Delta, modulus);
 	outputf (OUTPUT_TRACE, 
-		 "\n/* pp1_sequence_g */ w = quadgen (4*%Zd); "
+		 "\n/* pp1_sequence_g */ w = quadgen (4*%Zd); ", mt);
+	outputf (OUTPUT_TRACE, 
                  "P = %" PRIu64 "; M = %" PRIu64 "; k_2 = %" PRId64 ,
-		 mt, P, M, k_2);
+		 P, M, k_2);
 	outputf (OUTPUT_TRACE, 
                  "; m_1 = %Zd; N = %Zd;/* PARI */\n", 
 		 m_1, modulus->orig_modulus);
@@ -2806,9 +2816,10 @@ pp1_sequence_g (listz_t g_x, listz_t g_y, mpzspv_t g_x_ntt, mpzspv_t g_y_ntt,
     
     /* Compute x0 = x_0 */
     mpz_set_int64(mt1, k_2);
+    mpz_set_uint64(mt2, P);
     mpz_mul_2exp (mt, m_1, 1UL);
     mpz_add_ui (mt, mt, 1UL);
-    mpz_mul_ui (mt, mt, P);
+    mpz_mul (mt, mt, mt2);
     mpz_addmul_ui (mt, mt1, 2UL); /* mt = 2*k_2 + (2*m_1 + 1) * P */
     gfp_ext_pow_norm1 (x0_x, x0_y, b1_x, b1_y, mt, Delta, modulus, 
 		       tmplen, tmp);
@@ -2967,6 +2978,7 @@ pp1_sequence_g (listz_t g_x, listz_t g_y, mpzspv_t g_x_ntt, mpzspv_t g_y_ntt,
       mpres_clear (tmp[i], modulus);
     mpz_clear (mt);
     mpz_clear (mt1);
+    mpz_clear (mt2);
     mpmod_clear (modulus);
 #ifdef _OPENMP
   }
@@ -2979,9 +2991,11 @@ pp1_sequence_g (listz_t g_x, listz_t g_y, mpzspv_t g_x_ntt, mpzspv_t g_y_ntt,
       for (i = 0; i < l_param; i++)
 	{
 	  outputf (OUTPUT_TRACE, "/* pp1_sequence_g */ g_%lu = "
-		   "x_0^(M-%lu) * r^((M-%lu)^2); /* PARI */", i, i, i);
+		   "x_0^(M-%lu) * r^((M-%lu)^2); /* PARI */", 
+		   (unsigned long)i, (unsigned long)i, (unsigned long)i);
 	  outputf (OUTPUT_TRACE, "/* pp1_sequence_g */ g_%lu == "
-		   "%Zd + %Zd*w /* PARI C */\n", i, g_x[i], g_y[i]);
+		   "%Zd + %Zd*w /* PARI C */\n", 
+		   (unsigned long)i, g_x[i], g_y[i]);
 	}
     }
 }
@@ -2993,11 +3007,11 @@ pp1_sequence_g (listz_t g_x, listz_t g_y, mpzspv_t g_x_ntt, mpzspv_t g_y_ntt,
 static void
 pp1_sequence_h (listz_t h_x, listz_t h_y, mpzspv_t h_x_ntt, mpzspv_t h_y_ntt,
 		const listz_t f, const mpres_t b1_x, const mpres_t b1_y, 
-		const long k_param, const unsigned long l_param, 
-		const unsigned long P, const mpres_t Delta, 
+		const int64_t k_param, const uint64_t l_param, 
+		const uint64_t P, const mpres_t Delta, 
 		mpmod_t modulus_param, const mpzspm_t ntt_context)
 {
-  unsigned long i;
+  uint64_t i;
   long timestart, realstart;
 
   if (l_param == 0UL)
@@ -3016,14 +3030,15 @@ pp1_sequence_h (listz_t h_x, listz_t h_y, mpzspv_t h_x_ntt, mpzspv_t h_y_ntt,
       mpz_init (t);
       mpres_get_z (t, Delta, modulus_param);
       outputf (OUTPUT_TRACE, "\n/* pp1_sequence_h */ N = %Zd; "
-	       "Delta = %Zd; w = quadgen (4*Delta); k = %ld; P = %lu; "
-	       "/* PARI */\n", modulus_param->orig_modulus, t, k_param, P);
+	       "Delta = %Zd; ", modulus_param->orig_modulus, t);
+      outputf (OUTPUT_TRACE, "k = %ld; P = %lu; /* PARI */\n", k_param, P);
       outputf (OUTPUT_TRACE, "/* pp1_sequence_h */ b_1 = ");
       gfp_ext_print (b1_x, b1_y, modulus_param, OUTPUT_TRACE);
       outputf (OUTPUT_TRACE, "; r = b_1^P; rn = b_1^(-P); /* PARI */\n");
       for (i = 0; i < l_param; i++)
 	outputf (OUTPUT_TRACE, 
-		 "/* pp1_sequence_h */ f_%lu = %Zd; /* PARI */\n", i, f[i]);
+		 "/* pp1_sequence_h */ f_%lu = %Zd; /* PARI */\n", 
+		 (unsigned long)i, f[i]);
       mpz_clear (t);
     }
 
@@ -3036,8 +3051,8 @@ pp1_sequence_h (listz_t h_x, listz_t h_y, mpzspv_t h_x_ntt, mpzspv_t h_y_ntt,
       tmp[2];
     mpmod_t modulus; /* Thread-local copy of modulus_param */
     mpz_t mt;
-    unsigned long l = l_param, offset = 0;
-    long k = k_param;
+    uint64_t l = l_param, offset = 0;
+    int64_t k = k_param;
 
 #ifdef _OPENMP
     /* When multi-threading, we adjust the parameters for each thread */
@@ -3058,10 +3073,7 @@ pp1_sequence_h (listz_t h_x, listz_t h_y, mpzspv_t h_x_ntt, mpzspv_t h_y_ntt,
     /* Each thread computes r[i + offset] = b1^(-P*(k+i+offset)^2) * f_i 
        for i = 0, 1, ..., l-1, where l is the adjusted length of each thread */
 
-    /* Test that k+offset does not overflow */
-    ASSERT_ALWAYS (offset <= (unsigned long) LONG_MAX && 
-		   k <= LONG_MAX - (long) offset);
-    k += (long) offset;
+    k += offset;
 
     mpz_init (mt);
     /* Make thread-local copy of modulus */
@@ -3081,7 +3093,7 @@ pp1_sequence_h (listz_t h_x, listz_t h_y, mpzspv_t h_x_ntt, mpzspv_t h_y_ntt,
     mpres_init (V2, modulus);
     mpres_init (rn_x, modulus);
     mpres_init (rn_y, modulus);
-    for (i = 0; i < (unsigned long) tmplen; i++)
+    for (i = 0; i < tmplen; i++)
       mpres_init (tmp[i], modulus);
 
     /* Compute rn = b_1^{-P}. It has the same value for all threads,
@@ -3102,7 +3114,8 @@ pp1_sequence_h (listz_t h_x, listz_t h_y, mpzspv_t h_x_ntt, mpzspv_t h_y_ntt,
 #pragma omp critical
 #endif
 	{
-	  outputf (OUTPUT_TRACE, "/* pp1_sequence_h */ rn^(%ld^2) == ", k);
+	  outputf (OUTPUT_TRACE, 
+	  	"/* pp1_sequence_h */ rn^(%" PRId64 "^2) == ", k);
 	  gfp_ext_print (s_x[0], s_y[0], modulus, OUTPUT_TRACE);
 	  outputf (OUTPUT_TRACE, " /* PARI C */\n");
 	}
@@ -3126,8 +3139,8 @@ pp1_sequence_h (listz_t h_x, listz_t h_y, mpzspv_t h_x_ntt, mpzspv_t h_y_ntt,
 #pragma omp critical
 #endif
 	    {
-	      outputf (OUTPUT_TRACE, "/* pp1_sequence_h */ rn^(%ld^2) == ", 
-		       k + 1);
+	      outputf (OUTPUT_TRACE, 
+		  	"/* pp1_sequence_h */ rn^(%" PRId64 "^2) == ", k + 1);
 	      gfp_ext_print (s_x[1], s_y[1], modulus, OUTPUT_TRACE);
 	      outputf (OUTPUT_TRACE, " /* PARI C */\n");
 	    }
@@ -3184,10 +3197,12 @@ pp1_sequence_h (listz_t h_x, listz_t h_y, mpzspv_t h_x_ntt, mpzspv_t h_y_ntt,
 		   "/* PARI C */\n", mt);
 	  mpres_get_z (mt, v[0], modulus);
 	  outputf (OUTPUT_TRACE, "/* pp1_sequence_h */ r^(2*%ld+1) + "
-		   "1/r^(2*%ld+1) == %Zd /* PARI C */\n", k, k, mt);
+		   "1/r^(2*%ld+1) == %Zd /* PARI C */\n", 
+		   (long)k, (long)k, mt);
 	  mpres_get_z (mt, v[1], modulus);
 	  outputf (OUTPUT_TRACE, "/* pp1_sequence_h */ r^(2*%ld+3) + "
-		   "1/r^(2*%ld+3) == %Zd /* PARI C */\n", k, k, mt);
+		   "1/r^(2*%ld+3) == %Zd /* PARI C */\n", 
+		   (long)k, (long)k, mt);
 	}
       }
     
@@ -3291,7 +3306,7 @@ pp1_sequence_h (listz_t h_x, listz_t h_y, mpzspv_t h_x_ntt, mpzspv_t h_y_ntt,
       for (i = 0; i < l_param; i++)
 	gmp_printf ("/* pp1_sequence_h */ (rn^((k+%lu)^2) * f_%lu) == "
 		    "(%Zd + Mod(%Zd / Delta, N) * w) /* PARI C */\n", 
-		    i, i, h_x[i], h_y[i]);
+		    (unsigned long)i, (unsigned long)i, h_x[i], h_y[i]);
     }
 }
 
@@ -3314,7 +3329,7 @@ pp1fs2 (mpz_t f, const mpres_t X, mpmod_t modulus,
 		  need s_1 / 2 + 1 entries. */
 
   listz_t g_x, g_y, fh_x, fh_y, h_x, h_y, tmp, R_x, R_y; 
-  const uint64_t tmpreslen = 2UL;
+  const unsigned long tmpreslen = 2UL;
   mpres_t b1_x, b1_y, Delta, tmpres[2];
   mpz_t mt;   /* All-purpose temp mpz_t */
   int youpi = ECM_NO_FACTOR_FOUND;
@@ -3700,7 +3715,7 @@ pp1fs2_ntt (mpz_t f, const mpres_t X, mpmod_t modulus,
 
   for (l = 0; l < params->s_2; l++)
     {
-      const int64_t M = params->l - 1 - params->s_1 / 2;
+      const uint64_t M = params->l - 1 - params->s_1 / 2;
 
       outputf (OUTPUT_VERBOSE, "Multi-point evaluation %" PRIu64 
                         " of %" PRIu64 ":\n", l + 1, params->s_2);
