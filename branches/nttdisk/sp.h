@@ -26,6 +26,10 @@
 #ifndef _SP_H
 #define _SP_H
 
+#include "config.h"
+#include <stdio.h>
+#include <gmp.h>
+
 /* include (hopefully standard) SSE2 interface, along
    with mnemonics for the small part of the ISA that 
    we need */
@@ -185,7 +189,8 @@ typedef __sp_nttdata sp_nttdata_t[1];
 #define NTT_MUL_STEP_FFT1 1
 #define NTT_MUL_STEP_FFT2 2
 #define NTT_MUL_STEP_MUL 4
-#define NTT_MUL_STEP_IFFT 8
+#define NTT_MUL_STEP_MULDCT 8
+#define NTT_MUL_STEP_IFFT 16
 
 /* SPM */
 
@@ -584,6 +589,9 @@ void spm_clear (spm_t);
 
 /* spv */
 
+/* SELF-TEST */
+int spv_verify (spv_t, spv_size_t, sp_t);
+
 /* ASSIGNMENT */
 
 void spv_set (spv_t, spv_t, spv_size_t);
@@ -639,12 +647,16 @@ void mpzspv_revcopy (mpzspv_t, spv_size_t, mpzspv_t, spv_size_t, spv_size_t,
 void mpzspv_set_sp (mpzspv_t, spv_size_t, sp_t, spv_size_t, mpzspm_t);
 void mpzspv_from_mpzv (mpzspv_t, const spv_size_t, const mpzv_t, 
 		       const spv_size_t, mpzspm_t);
+void mpzspv_from_mpzv_file (mpzspv_t, spv_size_t, FILE **sp_files, 
+     const mpzv_t, FILE *, spv_size_t, spv_size_t, mpzspm_t);
 void mpzspv_reverse (mpzspv_t, spv_size_t, spv_size_t, mpzspm_t);
 void mpzspv_neg (mpzspv_t, spv_size_t, mpzspv_t, spv_size_t, spv_size_t,
     mpzspm_t);
 void mpzspv_add (mpzspv_t, spv_size_t, mpzspv_t, spv_size_t, mpzspv_t,
     spv_size_t, spv_size_t, mpzspm_t);
 void mpzspv_to_mpzv (mpzspv_t, spv_size_t, mpzv_t, spv_size_t, mpzspm_t);
+void mpzspv_to_mpzv_file (mpzspv_t, spv_size_t, FILE **sp_files, const mpzv_t, 
+     FILE *, spv_size_t, spv_size_t, mpzspm_t);
 void mpzspv_normalise (mpzspv_t, spv_size_t, spv_size_t, mpzspm_t);
 void mpzspv_pwmul (mpzspv_t, spv_size_t, mpzspv_t, spv_size_t, mpzspv_t, 
     spv_size_t, spv_size_t, mpzspm_t);
@@ -654,11 +666,21 @@ void mpzspv_from_ntt (mpzspv_t, spv_size_t, spv_size_t, spv_size_t, mpzspm_t);
 void mpzspv_mul_ntt (mpzspv_t, spv_size_t, mpzspv_t, spv_size_t, spv_size_t, 
     mpzspv_t, spv_size_t, spv_size_t, spv_size_t, int, spv_size_t, mpzspm_t, 
     int);
+void mpzspv_mul_ntt_file (mpzspv_t, const spv_size_t, FILE **, mpzspv_t, 
+    spv_size_t, spv_size_t, FILE **, mpzspv_t, spv_size_t, spv_size_t, 
+    FILE **, spv_size_t, int, spv_size_t, mpzspm_t, int);
 void mpzspv_random (mpzspv_t, spv_size_t, spv_size_t, mpzspm_t);
 void mpzspv_to_dct1 (mpzspv_t, mpzspv_t, spv_size_t, spv_size_t, mpzspv_t, 
     mpzspm_t);
 void mpzspv_mul_by_dct (mpzspv_t, const mpzspv_t, spv_size_t, const mpzspm_t, 
     int);
+void mpzspv_to_dct1_file (mpzspv_t, mpzspv_t, FILE **, spv_size_t, spv_size_t, mpzspm_t);
 void mpzspv_sqr_reciprocal (mpzspv_t, spv_size_t, const mpzspm_t);
+FILE **mpzspv_open_fileset(const char *, const mpzspm_t);
+void mpzspv_close_fileset(FILE **, const mpzspm_t);
+void mpzspv_read (mpzspv_t, spv_size_t, FILE **, spv_size_t, spv_size_t, mpzspm_t);
+void mpzspv_write (mpzspv_t, spv_size_t, FILE **, spv_size_t, spv_size_t, mpzspm_t);
+void mpzspv_print (mpzspv_t, spv_size_t, spv_size_t, const char *, mpzspm_t);
+void mpzspv_print_file (FILE **, spv_size_t, spv_size_t, const char *, mpzspm_t);
 
 #endif /* _SP_H */
