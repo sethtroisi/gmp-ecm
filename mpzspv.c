@@ -176,10 +176,11 @@ mpzspv_reverse (mpzspv_t x, spv_size_t offset, spv_size_t len, mpzspm_t mpzspm)
 }
 
 /* convert mpzvi to CRT representation, naive version */
-void
+static void
 mpzspv_from_mpzv_slow (mpzspv_t x, const spv_size_t offset, mpz_t mpzvi,
-                       mpzspm_t mpzspm, unsigned int sp_num)
+                       mpzspm_t mpzspm)
 {
+  const unsigned int sp_num = mpzspm->sp_num;
   unsigned int j;
 
   for (j = 0; j < sp_num; j++)
@@ -191,10 +192,11 @@ mpzspv_from_mpzv_slow (mpzspv_t x, const spv_size_t offset, mpz_t mpzvi,
 
 /* convert mpzvi to CRT representation, fast version, assumes
    mpzspm->T has been precomputed (see mpzspm.c) */
-void
+static void
 mpzspv_from_mpzv_fast (mpzspv_t x, const spv_size_t offset, mpz_t mpzvi,
-                       mpzspm_t mpzspm, unsigned int sp_num)
+                       mpzspm_t mpzspm)
 {
+  const unsigned int sp_num = mpzspm->sp_num;
   unsigned int i, j, k, i0 = I0_THRESHOLD, I0;
   mpzv_t *T = mpzspm->T;
   unsigned int d = mpzspm->d, ni;
@@ -266,9 +268,9 @@ mpzspv_from_mpzv (mpzspv_t x, const spv_size_t offset, const mpzv_t mpzv,
         {
 	  ASSERT(mpz_sgn (mpzv[i]) > 0); /* We can't handle negative values */
           if (mpzspm->T == NULL)
-            mpzspv_from_mpzv_slow (x, i + offset, mpzv[i], mpzspm, sp_num);
+            mpzspv_from_mpzv_slow (x, i + offset, mpzv[i], mpzspm);
           else
-            mpzspv_from_mpzv_fast (x, i + offset, mpzv[i], mpzspm, sp_num);
+            mpzspv_from_mpzv_fast (x, i + offset, mpzv[i], mpzspm);
 	}
     }
 #if defined(_OPENMP)
