@@ -210,12 +210,24 @@ spm_init (spv_size_t n, sp_t sp)
 		ntt_power, spm->inttdata, 
 		NTT_GFP_TWIDDLE_DIT_BREAKOVER))
     goto free_nttdata;
-  spm->scratch = (spv_t) sp_aligned_malloc (
+
+  spm->scratch1 = (spv_t) sp_aligned_malloc (
 		  	MAX_NTT_BLOCK_SIZE * sizeof(sp_t));
-  if (spm->scratch == NULL)
-    goto free_inttdata;
+  if (spm->scratch1 == NULL)
+    goto free_scratch1;
+
+  spm->scratch2 = (spv_t) sp_aligned_malloc (
+		  	MAX_NTT_BLOCK_SIZE * sizeof(sp_t));
+  if (spm->scratch2 == NULL)
+    goto free_scratch2;
     
   return spm;
+
+  free_scratch2:
+  sp_aligned_free (spm->scratch2);
+
+  free_scratch1:
+  sp_aligned_free (spm->scratch1);
 
   free_inttdata:
   nttdata_clear (spm->inttdata);
@@ -238,7 +250,8 @@ spm_clear (spm_t spm)
 {
   nttdata_clear (spm->nttdata);
   nttdata_clear (spm->inttdata);
-  sp_aligned_free (spm->scratch);
+  sp_aligned_free (spm->scratch1);
+  sp_aligned_free (spm->scratch2);
 #if SP_TYPE_BITS > GMP_LIMB_BITS
   mpz_clear(spm->mp_sp);
 #endif

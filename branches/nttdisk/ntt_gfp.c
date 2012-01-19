@@ -20,11 +20,55 @@
 
 #include "ecm-impl.h"
 
+static void bfly(spv_t x0, spv_t x1, 
+		spv_size_t len, sp_t p)
+{
+  spv_size_t i;
+
+#if defined(HAVE_SSE2) && (SP_NUMB_BITS < 32)
+
+  __m128i t0, t1, t2, t3, vp;
+
+  vp = pshufd(pcvt_i32(p), 0x00);
+
+  for (i = 0; i < len; i += 4)
+    {
+      t0 = pload((__m128i *)(x0 + i));
+      t1 = pload((__m128i *)(x1 + i));
+      t2 = paddd(t0, t1);
+      t3 = psubd(t0, t1);
+      t2 = psubd(t2, vp);
+
+      t0 = pcmpgtd(psetzero(), t2);
+      t1 = pcmpgtd(psetzero(), t3);
+      t0 = pand(t0, vp);
+      t1 = pand(t1, vp);
+      t2 = paddd(t2, t0);
+      t3 = paddd(t3, t1);
+
+      pstore((__m128i *)(x0 + i), t2);
+      pstore((__m128i *)(x1 + i), t3);
+    }
+
+#else
+  for (i = 0; i < len; i++)
+    {
+      sp_t t0 = x0[i];
+      sp_t t1 = x1[i];
+      sp_t t2, t3;
+      t2 = sp_add (t0, t1, p);
+      t3 = sp_sub (t0, t1, p);
+      x0[i] = t2;
+      x1[i] = t3;
+    }
+#endif
+}
+
 /*--------------------------- FORWARD NTT --------------------------------*/
 static void bfly_dif(spv_t x0, spv_t x1, spv_t w,
 			spv_size_t len, sp_t p, sp_t d)
 {
-  spv_size_t i = 0;
+  spv_size_t i;
 
 #if defined(HAVE_SSE2) && (SP_NUMB_BITS < 32)
 
@@ -34,7 +78,7 @@ static void bfly_dif(spv_t x0, spv_t x1, spv_t w,
   vm2 = pshufd(pcvt_i32(p), 0x44);
   vd = pshufd(pcvt_i32(d), 0x00);
 
-  for (; i < len; i += 4)
+  for (i = 0; i < len; i += 4)
     {
       t0 = pload((__m128i *)(x0 + i));
       t1 = pload((__m128i *)(x1 + i));
@@ -107,6 +151,101 @@ static void bfly_dif(spv_t x0, spv_t x1, spv_t w,
       t2 = sp_add (t0, t1, p);
       t3 = sp_sub (t0, t1, p);
       t3 = sp_mul (t3, w0, p, d);
+      x0[i] = t2;
+      x1[i] = t3;
+    }
+#endif
+}
+
+static void bfly_dif_sp(spv_t x0, spv_t x1, sp_t w,
+			spv_size_t len, sp_t p, sp_t d)
+{
+  /* same as bfly_dif except all butterflies are scaled
+     by a single value of w */
+
+  spv_size_t i;
+
+#if defined(HAVE_SSE2) && (SP_NUMB_BITS < 32)
+
+  __m128i t0, t1, t2, t3, vm, vm2, vd, vw;
+
+  vw = pshufd(pcvt_i32(w), 0x00);
+  vm = pshufd(pcvt_i32(p), 0x00);
+  vm2 = pshufd(pcvt_i32(p), 0x44);
+  vd = pshufd(pcvt_i32(d), 0x00);
+
+  for (i = 0; i < len; i += 4)
+    {
+      t0 = pload((__m128i *)(x0 + i));
+      t1 = pload((__m128i *)(x1 + i));
+      t2 = paddd(t0, t1);
+      t3 = psubd(t0, t1);
+      t2 = psubd(t2, vm);
+
+      t0 = pcmpgtd(psetzero(), t2);
+      t1 = pcmpgtd(psetzero(), t3);
+      t0 = pand(t0, vm);
+      t1 = pand(t1, vm);
+      t2 = paddd(t2, t0);
+      t0 = vw;
+      t1 = paddd(t3, t1);
+
+      pstore((__m128i *)(x0 + i), t2);
+
+      t2 = pshufd(t0, 0x31);
+      t3 = pshufd(t1, 0x31);
+      t0 = pmuludq(t0, t1);
+      t2 = pmuludq(t2, t3);
+      t1 = psrlq(t0, 2 * SP_NUMB_BITS - SP_TYPE_BITS);
+      t3 = psrlq(t2, 2 * SP_NUMB_BITS - SP_TYPE_BITS);
+      t1 = pmuludq(t1, vd);
+      t3 = pmuludq(t3, vd);
+
+      #if SP_NUMB_BITS < 31
+      t1 = psrlq(t1, 33);
+      t3 = psrlq(t3, 33);
+      t1 = pmuludq(t1, vm);
+      t3 = pmuludq(t3, vm);
+      t0 = psubq(t0, t1);
+      t2 = psubq(t2, t3);
+      #else
+      t1 = pshufd(t1, 0xf5);
+      t3 = pshufd(t3, 0xf5);
+      t1 = pmuludq(t1, vm);
+      t3 = pmuludq(t3, vm);
+      t0 = psubq(t0, t1);
+      t2 = psubq(t2, t3);
+
+      t0 = psubq(t0, vm2);
+      t2 = psubq(t2, vm2);
+      t1 = pshufd(t0, 0xf5);
+      t3 = pshufd(t2, 0xf5);
+      t1 = pand(t1, vm2);
+      t3 = pand(t3, vm2);
+      t0 = paddq(t0, t1);
+      t2 = paddq(t2, t3);
+      #endif
+
+      t0 = pshufd(t0, 0x08);
+      t1 = pshufd(t2, 0x08);
+      t0 = punpcklo32(t0, t1);
+      t0 = psubd(t0, vm);
+      t1 = pcmpgtd(psetzero(), t0);
+      t1 = pand(t1, vm);
+      t0 = paddd(t0, t1);
+
+      pstore((__m128i *)(x1 + i), t0);
+    }
+
+#else
+  for (i = 0; i < len; i++)
+    {
+      sp_t t0 = x0[i];
+      sp_t t1 = x1[i];
+      sp_t t2, t3;
+      t2 = sp_add (t0, t1, p);
+      t3 = sp_sub (t0, t1, p);
+      t3 = sp_mul (t3, w, p, d);
       x0[i] = t2;
       x1[i] = t3;
     }
@@ -205,6 +344,46 @@ spv_ntt_dif_core (spv_t x, spv_t w,
   spv_ntt_dif_core (x1, w + len, log2_len - 1, p, d);
 }
 
+static void
+spv_vector_ntt_dif (spv_t x, spv_t w, spv_size_t log2_len, 
+			spv_size_t vsize, spv_size_t stride,
+			sp_t p, sp_t d)
+{
+  spv_size_t i, j;
+  spv_size_t num_blocks = 1;
+  spv_size_t num_bfly = 1 << (log2_len - 1);
+  spv_size_t bfly_stride = stride << (log2_len - 1);
+
+  while (num_bfly > 0)
+    {
+      spv_t x0 = x;
+      spv_t x1 = x + bfly_stride;
+
+      for (i = 0; i < num_blocks; i++)
+	{
+	  bfly(x0, x1, vsize, p);
+
+	  for (j = 1; j < num_bfly; j++)
+	    {
+	      x0 += stride;
+	      x1 += stride;
+	      bfly_dif_sp(x0, x1, w[j], vsize, p, d);
+	    }
+
+	  x0 = x1 + stride;
+	  x1 = x0 + bfly_stride;
+	}
+
+      w += num_bfly;
+      num_blocks *= 2;
+      num_bfly /= 2;
+      bfly_stride /= 2;
+    }
+}
+	
+static const int bitrev[16] =
+{ 0, 8, 4, 12, 2, 10, 6, 14, 1, 9, 5, 13, 3, 11, 7, 15};
+
 void
 spv_ntt_gfp_dif (spv_t x, spv_size_t log2_len, spm_t data)
 {
@@ -221,34 +400,52 @@ spv_ntt_gfp_dif (spv_t x, spv_size_t log2_len, spm_t data)
     {
       /* recursive version for data that
          doesn't fit in the L1 cache */
-      spv_size_t len = 1 << (log2_len - 1);
-      spv_t x0 = x;
-      spv_t x1 = x + len;
-      spv_t roots = data->nttdata->ntt_roots;
 
-        {
-          spv_size_t i;
-	  spv_size_t block_size = MIN(len, MAX_NTT_BLOCK_SIZE);
-          sp_t root = roots[log2_len];
-	  spv_t w = data->scratch;
+      spv_size_t i, j;
+      spv_size_t log2_col_len = 4;
+      spv_size_t col_len = 1 << log2_col_len;
+      spv_size_t row_len = 1 << (log2_len - log2_col_len);
+      spv_size_t block_size = MIN(row_len, MAX_NTT_BLOCK_SIZE);
+      spv_size_t stride = row_len;
 
-	  w[0] = 1;
-	  for (i = 1; i < block_size; i++)
-	    w[i] = sp_mul (w[i-1], root, p, d);
+      sp_t root = data->nttdata->ntt_roots[log2_len];
+      spv_t col_w = data->nttdata->twiddle + 
+	            data->nttdata->twiddle_size - col_len;
+      spv_t w0 = data->scratch1;
+      spv_t w1 = data->scratch2;
 
-          root = sp_pow (root, block_size, p, d);
+      for (i = 1, w0[0] = 1; i < block_size; i++)
+       	w0[i] = sp_mul (w0[i-1], root, p, d);
 
-	  for (i = 0; i < len; i += block_size)
+      root = sp_pow (root, block_size, p, d);
+
+      for (i = 0; i < row_len; i += block_size)
+	{
+	  spv_t x0 = x + i;
+
+	  spv_vector_ntt_dif(x0, col_w, log2_col_len, 
+	      		block_size, stride, p, d);
+
+	  spv_set(w1, w0, block_size);
+	  for (j = 1; j < col_len; j++)
 	    {
-	      if (i)
-	        spv_mul_sp (w, w, root, block_size, p, d);
+	      spv_pwmul(x0 + bitrev[j] * stride, 
+		        x0 + bitrev[j] * stride, 
+			w1, block_size, p, d);
 
-	      bfly_dif (x0 + i, x1 + i, w, block_size, p, d);
+	      if (j < col_len - 1)
+		spv_pwmul(w1, w1, w0, block_size, p, d);
 	    }
+
+	  if (i + block_size < row_len)
+	    spv_mul_sp(w0, w0, root, block_size, p, d);
 	}
-	
-      spv_ntt_gfp_dif (x0, log2_len - 1, data);
-      spv_ntt_gfp_dif (x1, log2_len - 1, data);
+
+      for (i = 0; i < col_len; i++)
+	{
+          spv_ntt_gfp_dif (x, log2_len - log2_col_len, data);
+	  x += stride;
+	}
     }
 }
 
@@ -256,7 +453,7 @@ spv_ntt_gfp_dif (spv_t x, spv_size_t log2_len, spm_t data)
 static inline void bfly_dit(spv_t x0, spv_t x1, spv_t w,
 				spv_size_t len, sp_t p, sp_t d)
 {
-  spv_size_t i = 0;
+  spv_size_t i;
 
 #if defined(HAVE_SSE2) && (SP_NUMB_BITS < 32)
 
@@ -266,7 +463,7 @@ static inline void bfly_dit(spv_t x0, spv_t x1, spv_t w,
   vm2 = pshufd(pcvt_i32(p), 0x44);
   vd = pshufd(pcvt_i32(d), 0x00);
 
-  for (; i < len; i += 4)
+  for (i = 0; i < len; i += 4)
     {
       t0 = pload((__m128i *)(x1 + i));
       t1 = pload((__m128i *)(w + i));
@@ -335,6 +532,97 @@ static inline void bfly_dit(spv_t x0, spv_t x1, spv_t w,
       sp_t t0 = x0[i];
       sp_t t1 = x1[i];
       t1 = sp_mul (t1, w0, p, d);
+      x0[i] = sp_add (t0, t1, p);
+      x1[i] = sp_sub (t0, t1, p);
+    }
+#endif
+}
+
+static inline void bfly_dit_sp(spv_t x0, spv_t x1, sp_t w,
+				spv_size_t len, sp_t p, sp_t d)
+{
+  /* same as bfly_dit except all butterflies are scaled by
+     a single value of w */
+
+  spv_size_t i;
+
+#if defined(HAVE_SSE2) && (SP_NUMB_BITS < 32)
+
+  __m128i t0, t1, t2, t3, vm, vm2, vd, vw;
+
+  vw = pshufd(pcvt_i32(w), 0x00);
+  vm = pshufd(pcvt_i32(p), 0x00);
+  vm2 = pshufd(pcvt_i32(p), 0x44);
+  vd = pshufd(pcvt_i32(d), 0x00);
+
+  for (i = 0; i < len; i += 4)
+    {
+      t0 = pload((__m128i *)(x1 + i));
+      t1 = vw;
+      t2 = pshufd(t0, 0x31);
+      t3 = pshufd(t1, 0x31);
+      t0 = pmuludq(t0, t1);
+      t2 = pmuludq(t2, t3);
+      t1 = psrlq(t0, 2 * SP_NUMB_BITS - SP_TYPE_BITS);
+      t3 = psrlq(t2, 2 * SP_NUMB_BITS - SP_TYPE_BITS);
+      t1 = pmuludq(t1, vd);
+      t3 = pmuludq(t3, vd);
+
+      #if SP_NUMB_BITS < 31
+      t1 = psrlq(t1, 33);
+      t3 = psrlq(t3, 33);
+      t1 = pmuludq(t1, vm);
+      t3 = pmuludq(t3, vm);
+      t0 = psubq(t0, t1);
+      t2 = psubq(t2, t3);
+      #else
+      t1 = pshufd(t1, 0xf5);
+      t3 = pshufd(t3, 0xf5);
+      t1 = pmuludq(t1, vm);
+      t3 = pmuludq(t3, vm);
+      t0 = psubq(t0, t1);
+      t2 = psubq(t2, t3);
+
+      t0 = psubq(t0, vm2);
+      t2 = psubq(t2, vm2);
+      t1 = pshufd(t0, 0xf5);
+      t3 = pshufd(t2, 0xf5);
+      t1 = pand(t1, vm2);
+      t3 = pand(t3, vm2);
+      t0 = paddq(t0, t1);
+      t2 = paddq(t2, t3);
+      #endif
+
+      t0 = pshufd(t0, 0x08);
+      t1 = pshufd(t2, 0x08);
+      t0 = punpcklo32(t0, t1);
+      t0 = psubd(t0, vm);
+      t1 = pcmpgtd(psetzero(), t0);
+      t1 = pand(t1, vm);
+      t0 = paddd(t0, t1);
+
+      t1 = pload((__m128i *)(x0 + i));
+      t2 = paddd(t1, t0);
+      t3 = psubd(t1, t0);
+      t2 = psubd(t2, vm);
+
+      t0 = pcmpgtd(psetzero(), t2);
+      t1 = pcmpgtd(psetzero(), t3);
+      t0 = pand(t0, vm);
+      t1 = pand(t1, vm);
+      t2 = paddd(t2, t0);
+      t3 = paddd(t3, t1);
+
+      pstore((__m128i *)(x0 + i), t2);
+      pstore((__m128i *)(x1 + i), t3);
+    }
+
+#else
+  for (i = 0; i < len; i++)
+    {
+      sp_t t0 = x0[i];
+      sp_t t1 = x1[i];
+      t1 = sp_mul (t1, w, p, d);
       x0[i] = sp_add (t0, t1, p);
       x1[i] = sp_sub (t0, t1, p);
     }
@@ -433,6 +721,44 @@ spv_ntt_dit_core (spv_t x, spv_t w,
   bfly_dit (x0, x1, w, len, p, d);
 }
 
+static void
+spv_vector_ntt_dit (spv_t x, spv_t w, spv_size_t log2_len, 
+			spv_size_t vsize, spv_size_t stride,
+			sp_t p, sp_t d)
+{
+  spv_size_t i, j;
+  spv_size_t num_bfly = 1;
+  spv_size_t num_blocks = 1 << (log2_len - 1);
+  spv_size_t bfly_stride = stride;
+
+  w += (1 << log2_len) - 2;
+  while (num_blocks > 0)
+    {
+      spv_t x0 = x;
+      spv_t x1 = x + bfly_stride;
+
+      for (i = 0; i < num_blocks; i++)
+	{
+	  bfly(x0, x1, vsize, p);
+
+	  for (j = 1; j < num_bfly; j++)
+	    {
+	      x0 += stride;
+	      x1 += stride;
+	      bfly_dit_sp(x0, x1, w[j], vsize, p, d);
+	    }
+
+	  x0 = x1 + stride;
+	  x1 = x0 + bfly_stride;
+	}
+
+      num_blocks /= 2;
+      num_bfly *= 2;
+      bfly_stride *= 2;
+      w -= num_bfly;
+    }
+}
+	
 void
 spv_ntt_gfp_dit (spv_t x, spv_size_t log2_len, spm_t data)
 {
@@ -447,33 +773,53 @@ spv_ntt_gfp_dit (spv_t x, spv_size_t log2_len, spm_t data)
     }
   else
     {
-      spv_size_t len = 1 << (log2_len - 1);
+      spv_size_t i, j;
       spv_t x0 = x;
-      spv_t x1 = x + len;
-      spv_t roots = data->inttdata->ntt_roots;
+      spv_size_t log2_col_len = 4;
+      spv_size_t col_len = 1 << log2_col_len;
+      spv_size_t row_len = 1 << (log2_len - log2_col_len);
+      spv_size_t block_size = MIN(row_len, MAX_NTT_BLOCK_SIZE);
+      spv_size_t stride = row_len;
 
-      spv_ntt_gfp_dit (x0, log2_len - 1, data);
-      spv_ntt_gfp_dit (x1, log2_len - 1, data);
+      sp_t root = data->inttdata->ntt_roots[log2_len];
+      spv_t col_w = data->inttdata->twiddle + 
+	            data->inttdata->twiddle_size - col_len;
+      spv_t w0 = data->scratch1;
+      spv_t w1 = data->scratch2;
 
-        {
-          spv_size_t i;
-	  spv_size_t block_size = MIN(len, MAX_NTT_BLOCK_SIZE);
-          sp_t root = roots[log2_len];
-	  spv_t w = data->scratch;
+      for (i = 0; i < col_len; i++)
+	{
+	  spv_ntt_gfp_dit(x0, log2_len - log2_col_len, data);
+	  x0 += stride;
+	}
 
-	  w[0] = 1;
-	  for (i = 1; i < block_size; i++)
-	    w[i] = sp_mul (w[i-1], root, p, d);
 
-          root = sp_pow (root, block_size, p, d);
+      for (i = 1, w0[0] = 1; i < block_size; i++)
+       	w0[i] = sp_mul (w0[i-1], root, p, d);
 
-	  for (i = 0; i < len; i += block_size)
+      root = sp_pow (root, block_size, p, d);
+
+      for (i = 0; i < row_len; i += block_size)
+	{
+	  x0 = x + i;
+
+	  spv_set(w1, w0, block_size);
+	  for (j = 1; j < col_len; j++)
 	    {
-	      if (i)
-	        spv_mul_sp (w, w, root, block_size, p, d);
+	      spv_pwmul(x0 + bitrev[j] * stride, 
+		        x0 + bitrev[j] * stride, 
+			w1, block_size, p, d);
 
-	      bfly_dit (x0 + i, x1 + i, w, block_size, p, d);
+	      if (j < col_len - 1)
+		spv_pwmul(w1, w1, w0, block_size, p, d);
 	    }
+
+	  if (i + block_size < row_len)
+	    spv_mul_sp(w0, w0, root, block_size, p, d);
+
+	  spv_vector_ntt_dit(x0, col_w, log2_col_len, 
+	      		block_size, stride, p, d);
+
 	}
     }
 }

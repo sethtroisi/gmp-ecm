@@ -204,7 +204,8 @@ typedef struct
   sp_t inv_prim_root;
   sp_nttdata_t nttdata;
   sp_nttdata_t inttdata;
-  spv_t scratch;
+  spv_t scratch1;
+  spv_t scratch2;
 #if SP_TYPE_BITS > GMP_LIMB_BITS
   mpz_t mp_sp;
 #endif
