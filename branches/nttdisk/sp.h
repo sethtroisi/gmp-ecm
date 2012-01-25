@@ -41,8 +41,6 @@
 #define pstore _mm_store_si128
 #define pand _mm_and_si128
 #define psetzero() _mm_setzero_si128()
-#define pcvt_i32 _mm_cvtsi32_si128
-#define pcvt_i64 _mm_cvtsi64_si128
 #define paddd _mm_add_epi32
 #define paddq _mm_add_epi64
 #define psubd _mm_sub_epi32
@@ -56,6 +54,13 @@
 #define pcmpgtd _mm_cmpgt_epi32
 #define punpcklo32 _mm_unpacklo_epi32
 #define punpcklo64 _mm_unpacklo_epi64
+#define pcvt_i32 _mm_cvtsi32_si128
+
+#if defined(_WIN64) || defined(__x86_64__)
+#define pcvt_i64 _mm_cvtsi64_si128
+#else
+#define pcvt_i64(x) _mm_loadl_epi64((__m128i const *)&(x))
+#endif
 
 #endif
 

@@ -203,13 +203,13 @@ spm_init (spv_size_t n, sp_t sp)
 			n >> ntt_power, sp, spm->mul_c),
 		ntt_power, spm->nttdata, 
 		NTT_GFP_TWIDDLE_DIF_BREAKOVER))
-    goto free_spm;
+    goto free_nttdata;
   if (!nttdata_init (sp, spm->mul_c, 
 		sp_pow (spm->inv_prim_root, 
 			n >> ntt_power, sp, spm->mul_c),
 		ntt_power, spm->inttdata, 
 		NTT_GFP_TWIDDLE_DIT_BREAKOVER))
-    goto free_nttdata;
+    goto free_inttdata;
 
   spm->scratch1 = (spv_t) sp_aligned_malloc (
 		  	MAX_NTT_BLOCK_SIZE * sizeof(sp_t));
@@ -235,13 +235,10 @@ spm_init (spv_size_t n, sp_t sp)
   free_nttdata:
   nttdata_clear (spm->nttdata);
 
-  free_spm:
-  free (spm);
-
 #if SP_TYPE_BITS > GMP_LIMB_BITS
   mpz_clear(spm->mp_sp);
 #endif
-
+  free (spm);
   return NULL;
 }
 

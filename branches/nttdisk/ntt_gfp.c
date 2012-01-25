@@ -25,30 +25,153 @@ static void bfly(spv_t x0, spv_t x1,
 {
   spv_size_t i;
 
-#if defined(HAVE_SSE2) && (SP_NUMB_BITS < 32)
+#if defined(HAVE_SSE2) 
+  
+  #if SP_NUMB_BITS < 32
 
-  __m128i t0, t1, t2, t3, vp;
+  __m128i t0, t1, t2, t3, t4, t5, t6, t7;
+  __m128i vp;
 
   vp = pshufd(pcvt_i32(p), 0x00);
 
-  for (i = 0; i < len; i += 4)
+  t4 = pload((__m128i *)(x0 + 0));
+  t5 = pload((__m128i *)(x1 + 0));
+
+  t0 = pload((__m128i *)(x0 + 4));
+  t6 = paddd(t4, t5);
+  t7 = psubd(t4, t5);
+  t1 = pload((__m128i *)(x1 + 4));
+  t6 = psubd(t6, vp);
+  t4 = pcmpgtd(psetzero(), t6);
+  t5 = pcmpgtd(psetzero(), t7);
+  t4 = pand(t4, vp);
+  t5 = pand(t5, vp);
+  t6 = paddd(t6, t4);
+  t7 = paddd(t7, t5);
+
+  for (i = 8; i < len; i += 8)
     {
-      t0 = pload((__m128i *)(x0 + i));
-      t1 = pload((__m128i *)(x1 + i));
+      t4 = pload((__m128i *)(x0 + i + 0));
       t2 = paddd(t0, t1);
       t3 = psubd(t0, t1);
+      t5 = pload((__m128i *)(x1 + i + 0));
       t2 = psubd(t2, vp);
-
       t0 = pcmpgtd(psetzero(), t2);
+      pstore((__m128i *)(x0 + i - 8), t6);
       t1 = pcmpgtd(psetzero(), t3);
       t0 = pand(t0, vp);
+      pstore((__m128i *)(x1 + i - 8), t7);
       t1 = pand(t1, vp);
       t2 = paddd(t2, t0);
       t3 = paddd(t3, t1);
 
-      pstore((__m128i *)(x0 + i), t2);
-      pstore((__m128i *)(x1 + i), t3);
+      t0 = pload((__m128i *)(x0 + i + 4));
+      t6 = paddd(t4, t5);
+      t7 = psubd(t4, t5);
+      t1 = pload((__m128i *)(x1 + i + 4));
+      t6 = psubd(t6, vp);
+      t4 = pcmpgtd(psetzero(), t6);
+      pstore((__m128i *)(x0 + i - 4), t2);
+      t5 = pcmpgtd(psetzero(), t7);
+      t4 = pand(t4, vp);
+      pstore((__m128i *)(x1 + i - 4), t3);
+      t5 = pand(t5, vp);
+      t6 = paddd(t6, t4);
+      t7 = paddd(t7, t5);
     }
+
+  t2 = paddd(t0, t1);
+  t3 = psubd(t0, t1);
+  t2 = psubd(t2, vp);
+  pstore((__m128i *)(x0 + i - 8), t6);
+  t0 = pcmpgtd(psetzero(), t2);
+  t1 = pcmpgtd(psetzero(), t3);
+  pstore((__m128i *)(x1 + i - 8), t7);
+  t0 = pand(t0, vp);
+  t1 = pand(t1, vp);
+  t2 = paddd(t2, t0);
+  t3 = paddd(t3, t1);
+
+  pstore((__m128i *)(x0 + i - 4), t2);
+  pstore((__m128i *)(x1 + i - 4), t3);
+
+  #else
+
+  __m128i t0, t1, t2, t3, t4, t5, t6, t7;
+  __m128i vp;
+
+  vp = pshufd(pcvt_i64(p), 0x44);
+
+  t4 = pload((__m128i *)(x0 + 0));
+  t5 = pload((__m128i *)(x1 + 0));
+
+  t0 = pload((__m128i *)(x0 + 2));
+  t6 = paddq(t4, t5);
+  t7 = psubq(t4, t5);
+  t1 = pload((__m128i *)(x1 + 2));
+  t6 = psubq(t6, vp);
+  t4 = pcmpgtd(psetzero(), t6);
+  t5 = pcmpgtd(psetzero(), t7);
+  t4 = pshufd(t4, 0xf5);
+  t5 = pshufd(t5, 0xf5);
+  t4 = pand(t4, vp);
+  t5 = pand(t5, vp);
+  t6 = paddq(t6, t4);
+  t7 = paddq(t7, t5);
+
+  for (i = 4; i < len; i += 4)
+    {
+      t4 = pload((__m128i *)(x0 + i + 0));
+      t2 = paddq(t0, t1);
+      t3 = psubq(t0, t1);
+      t5 = pload((__m128i *)(x1 + i + 0));
+      t2 = psubq(t2, vp);
+      t0 = pcmpgtd(psetzero(), t2);
+      pstore((__m128i *)(x0 + i - 4), t6);
+      t1 = pcmpgtd(psetzero(), t3);
+      t0 = pshufd(t0, 0xf5);
+      pstore((__m128i *)(x1 + i - 4), t7);
+      t1 = pshufd(t1, 0xf5);
+      t0 = pand(t0, vp);
+      t1 = pand(t1, vp);
+      t2 = paddq(t2, t0);
+      t3 = paddq(t3, t1);
+
+      t0 = pload((__m128i *)(x0 + i + 2));
+      t6 = paddq(t4, t5);
+      t7 = psubq(t4, t5);
+      t1 = pload((__m128i *)(x1 + i + 2));
+      t6 = psubq(t6, vp);
+      t4 = pcmpgtd(psetzero(), t6);
+      pstore((__m128i *)(x0 + i - 2), t2);
+      t5 = pcmpgtd(psetzero(), t7);
+      t4 = pshufd(t4, 0xf5);
+      pstore((__m128i *)(x1 + i - 2), t3);
+      t5 = pshufd(t5, 0xf5);
+      t4 = pand(t4, vp);
+      t5 = pand(t5, vp);
+      t6 = paddq(t6, t4);
+      t7 = paddq(t7, t5);
+    }
+
+  t2 = paddq(t0, t1);
+  t3 = psubq(t0, t1);
+  t2 = psubq(t2, vp);
+  t0 = pcmpgtd(psetzero(), t2);
+  pstore((__m128i *)(x0 + i - 4), t6);
+  t1 = pcmpgtd(psetzero(), t3);
+  t0 = pshufd(t0, 0xf5);
+  pstore((__m128i *)(x1 + i - 4), t7);
+  t1 = pshufd(t1, 0xf5);
+  t0 = pand(t0, vp);
+  t1 = pand(t1, vp);
+  t2 = paddq(t2, t0);
+  t3 = paddq(t3, t1);
+
+  pstore((__m128i *)(x0 + i - 2), t2);
+  pstore((__m128i *)(x1 + i - 2), t3);
+
+  #endif
 
 #else
   for (i = 0; i < len; i++)
