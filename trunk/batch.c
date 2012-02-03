@@ -14,8 +14,6 @@
 //#define BATCHMODE 2
 
 
-static unsigned long MUL=0, SQR=0;
-
 /* (x1:z1) <- 2(x1:z1)
    (x2:z2) <- (x1:z1) + (x2:z2)
    assume (x2:z2) - (x1:z1) = (2:1)
@@ -59,12 +57,6 @@ dup_add (mpres_t x1, mpres_t z1, mpres_t x2, mpres_t z2,
   mpresn_sqr (v, v, n);
   mpresn_sqr (x2, w, n);
   mpresn_add (z2, v, v, n);
-#if BATCHMODE == 1
-  MUL += 4;
-#else
-  MUL += 5;
-#endif
-SQR += 4;
 }
 
 
@@ -125,7 +117,6 @@ compute_s (mpz_t s, unsigned long B1)
 
   for (mpz_set (s, acc[0]), j = 1; mpz_cmp_ui (acc[j], 0) != 0; j++)
     mpz_mul (s, s, acc[j]);
-	//fprintf(stdout,"%d\n",j);
   getprime_clear (); /* free the prime tables, and reinitialize */
   
   for (i = 0; i < MAX_HEIGHT; i++)
@@ -210,7 +201,6 @@ ecm_stage1_batch (mpz_t f, mpres_t x, mpres_t A, mpmod_t n, double B1,
       return ECM_ERROR;
     }
   d = mpz_get_ui (u);
-  gmp_printf("d=%lu A=%Zd\n", d, A);
 #else
   if (n->repr == ECM_MOD_MPZ || n->repr == ECM_MOD_BASE2)
       mpz_mod (A, A, n->orig_modulus);
@@ -222,7 +212,6 @@ ecm_stage1_batch (mpz_t f, mpres_t x, mpres_t A, mpmod_t n, double B1,
   mpres_add_ui (d, A, 2, n);
   mpres_div_2exp (d, d, 2, n); /* b == (A0+2)*B/4, where B=2^(k*GMP_NUMB_LIMB)
                                   for MODMULN or REDC, B=1 otherwise */
-  gmp_printf("d=%Zd A=%Zd\n", d, A);
 #endif
 
   /* Compute 2P : no need to duplicate P, the coordinates are simple. */
@@ -263,7 +252,6 @@ ecm_stage1_batch (mpz_t f, mpres_t x, mpres_t A, mpmod_t n, double B1,
         dup_add (x2, z2, x1, z1, q, t, u, v, w, d, n);
     }
 
-  fprintf (stdout, "MUL=%lu SQR=%lu\n", MUL, SQR);
   *B1done=B1;
 
   if (!mpres_invert (u, z1, n)) /* Factor found? */
