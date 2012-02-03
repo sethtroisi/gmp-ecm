@@ -244,7 +244,6 @@ ecm_stage1_batch (mpz_t f, mpres_t x, mpres_t A, mpmod_t n, double B1,
   /* invariant: if j represents the upper bits of s,
      then P1 = j*P and P2=(j+1)*P */
 
-  //temporary fix for mpn
   mpresn_pad (x1, n);
   mpresn_pad (z1, n);
   mpresn_pad (x2, n);
