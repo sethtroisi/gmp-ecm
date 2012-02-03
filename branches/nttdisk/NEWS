@@ -1,3 +1,7 @@
+Changes between ecm-6.4 and ecm-6.5:
+* New configure option --enable-mulredc-svoboda, for input numbers whose low
+  limbs is congruent to -1
+
 Changes between ecm-6.3 and ecm-6.4:
 * Fixed configure problem with SSE2
   (http://trac.sagemath.org/sage_trac/ticket/10252)

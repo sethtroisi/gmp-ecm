@@ -336,7 +336,9 @@ typedef struct
                          i.e. bits = 2^m, then Fermat = 2^m, 0 otherwise.
                          If repr != 1, undefined */
   mp_limb_t Nprim[2]; /* For MODMULN */
-  mpz_t orig_modulus; /* The original modulus */
+  mpz_t orig_modulus; /* The original modulus N */
+  mpz_t mult_modulus; /* We perform all computations modulo this multiple k*N
+                         of N */
   mpz_t aux_modulus;  /* Used only for MPZ and REDC:
 			 - the auxiliary modulus value (i.e. normalized 
                            modulus, or -1/N (mod 2^bits) for REDC,
@@ -628,8 +630,8 @@ void mpmod_init_MODMULN (mpmod_t, const mpz_t);
 void mpmod_init_REDC (mpmod_t, const mpz_t);
 #define mpmod_clear __ECM(mpmod_clear)
 void mpmod_clear (mpmod_t);
-#define mpmod_copy __ECM(mpmod_copy)
-void mpmod_copy (mpmod_t, const mpmod_t);
+#define mpmod_init_set __ECM(mpmod_init_set)
+void mpmod_init_set (mpmod_t, const mpmod_t);
 #define mpmod_pausegw __ECM(mpmod_pausegw)
 void mpmod_pausegw (const mpmod_t modulus);
 #define mpmod_contgw __ECM(mpmod_contgw)
@@ -692,6 +694,18 @@ void mpres_out_str (FILE *, const unsigned int, const mpres_t, mpmod_t);
 int  mpres_is_zero (const mpres_t, mpmod_t);
 #define mpres_set(a,b,n) mpz_set (a, b)
 #define mpres_swap(a,b,n) mpz_swap (a, b)
+#define mpresn_mul __ECM(mpresn_mul)
+void mpresn_mul (mpres_t, const mpres_t, const mpres_t, mpmod_t);
+#define mpresn_addsub __ECM(mpresn_addsub)
+void mpresn_addsub (mpres_t, mpres_t, const mpres_t, const mpres_t, mpmod_t);
+#define mpresn_sqr __ECM(mpresn_sqr)
+void mpresn_sqr (mpres_t, const mpres_t, mpmod_t);
+#define mpresn_add __ECM(mpresn_add)
+void mpresn_add (mpres_t, const mpres_t, const mpres_t, mpmod_t);
+#define mpresn_sub __ECM(mpresn_sub)
+void mpresn_sub (mpres_t, const mpres_t, const mpres_t, mpmod_t);
+#define mpresn_mul_ui __ECM(mpresn_mul_ui)
+void mpresn_mul_ui (mpres_t, const mpres_t, const unsigned long, mpmod_t);
 
 /* mul_lo.c */
 #define ecm_mul_lo_n __ECM(ecm_mul_lo_n)
