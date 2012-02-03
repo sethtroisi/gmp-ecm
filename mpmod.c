@@ -2010,10 +2010,30 @@ mpresn_sqr (mpres_t R, const mpres_t S1, mpmod_t modulus)
 {
   mp_size_t n = ABSIZ(modulus->mult_modulus);
   mp_limb_t invm = modulus->Nprim[0];
+  mp_ptr np = PTR(modulus->mult_modulus);
 
   ASSERT (SIZ(S1) == n || -SIZ(S1) == n);
 
-  mulredc (PTR(R), PTR(S1), PTR(S1), PTR(modulus->mult_modulus), n, invm);
+#ifdef USE_ASM_REDC
+  mulredc (PTR(R), PTR(S1), PTR(S1), np, n, invm);
+#else
+  {
+    mp_ptr r = PTR(R);
+    mp_ptr t = PTR(modulus->temp1);
+    mp_size_t j;
+    mp_limb_t cy;
+
+#ifdef HAVE_MPN_SQR
+    mpn_sqr (t, PTR(S1), n);
+#else
+    mpn_mul_n (t, PTR(S1), PTR(S1), n);
+#endif
+    for (j = 0; j < n; j++, t++)
+      r[j] = mpn_addmul_1 (t, np, n, t[0] * invm);
+    cy = mpn_add_n (r, r, t, n);
+    ASSERT(cy == 0);
+  }
+#endif
   SIZ(R) = n;
 }
 
@@ -2022,11 +2042,27 @@ mpresn_mul (mpres_t R, const mpres_t S1, const mpres_t S2, mpmod_t modulus)
 {
   mp_size_t n = ABSIZ(modulus->mult_modulus);
   mp_limb_t invm = modulus->Nprim[0];
+  mp_ptr np = PTR(modulus->mult_modulus);
 
   ASSERT (SIZ(S1) == n || -SIZ(S1) == n);
   ASSERT (SIZ(S2) == n || -SIZ(S2) == n);
 
-  mulredc (PTR(R), PTR(S1), PTR(S2), PTR(modulus->mult_modulus), n, invm);
+#ifdef USE_ASM_REDC
+  mulredc (PTR(R), PTR(S1), PTR(S2), np, n, invm);
+#else
+  {
+    mp_ptr r = PTR(R);
+    mp_ptr t = PTR(modulus->temp1);
+    mp_size_t j;
+    mp_limb_t cy;
+
+    mpn_mul_n (t, PTR(S1), PTR(S2), n);
+    for (j = 0; j < n; j++, t++)
+      r[j] = mpn_addmul_1 (t, np, n, t[0] * invm);
+    cy = mpn_add_n (r, r, t, n);
+    ASSERT(cy == 0);
+  }
+#endif
 
   SIZ(R) = SIZ(S1) == SIZ(S2) ? n : -n;
 }
