@@ -1448,7 +1448,7 @@ list_scale_V (listz_t R, const listz_t F, const mpres_t Q,
     start_i = thread_nr * l + 1;
     l = MIN(l, deg + 1 - start_i);
 
-    mpmod_copy (modulus_local, modulus);
+    mpmod_init_set (modulus_local, modulus);
     mpres_init (Vi_1, modulus_local);
     mpres_init (Vi, modulus_local);
     
@@ -1510,7 +1510,7 @@ list_scale_V (listz_t R, const listz_t F, const mpres_t Q,
     start_i = thread_nr * l + 1UL;
     l = MIN(l, deg + 1 - start_i);
     
-    mpmod_copy (modulus_local, modulus);
+    mpmod_init_set (modulus_local, modulus);
     mpres_init (Ui_1, modulus_local);
     mpres_init (Ui, modulus_local);
     
@@ -1590,7 +1590,7 @@ list_scale_V (listz_t R, const listz_t F, const mpres_t Q,
     mpmod_t modulus_local;
     long i; /* OpenMP insists on signed loop iteration var :( */
     
-    mpmod_copy (modulus_local, modulus);
+    mpmod_init_set (modulus_local, modulus);
     
 #pragma omp for
     for (i = 0; (unsigned long) i <= 2 * deg - 2; i++)
@@ -2020,7 +2020,7 @@ pm1_sequence_g (listz_t g_mpz, mpzspv_t g_ntt, const mpres_t b_1,
 #endif
 
   /* Make a private copy of the mpmod_t struct */
-  mpmod_copy (modulus, modulus_param);
+  mpmod_init_set (modulus, modulus_param);
 
   mpz_init (t);
   mpres_init (r[0], modulus);
@@ -2211,7 +2211,7 @@ pm1_sequence_h (listz_t h, mpzspv_t h_ntt, mpz_t *f, const mpres_t r,
     }
 #endif
     
-    mpmod_copy (modulus, modulus_parm);
+    mpmod_init_set (modulus, modulus_parm);
     mpres_init (fd[0], modulus);
     mpres_init (fd[1], modulus);
     mpres_init (fd[2], modulus);
@@ -2551,7 +2551,7 @@ ntt_gcd (mpz_t f, mpz_t *product, mpzspv_t ntt, const unsigned long ntt_offset,
 #endif
 
     /* Make a private copy of the mpmod_t struct */
-    mpmod_copy (modulus, modulus_param);
+    mpmod_init_set (modulus, modulus_param);
 
     MEMORY_TAG;
     R = init_list2 (Rlen, (mpz_size (modulus->orig_modulus) + 2) * 
@@ -3439,7 +3439,7 @@ pp1_sequence_g (listz_t g_x, listz_t g_y, mpzspv_t g_x_ntt, mpzspv_t g_y_ntt,
     if (want_output)
       outputf (OUTPUT_VERBOSE, " using %d threads", nr_chunks);
 #endif
-    mpmod_copy (modulus, modulus_param);
+    mpmod_init_set (modulus, modulus_param);
     mpres_init (r_x, modulus);
     mpres_init (r_y, modulus);
     mpres_init (x0_x, modulus);
@@ -3746,7 +3746,7 @@ pp1_sequence_h (listz_t h_x, listz_t h_y, mpzspv_t h_x_ntt, mpzspv_t h_y_ntt,
 
     mpz_init (mt);
     /* Make thread-local copy of modulus */
-    mpmod_copy (modulus, modulus_param);
+    mpmod_init_set (modulus, modulus_param);
 
     /* Init the local mpres_t variables */
     for (i = 0; i < 2; i++)
