@@ -10,14 +10,31 @@
 #include "ecm-gmp.h"
 #include "ecm-impl.h"
 
-#define BATCHMODE 1
-//#define BATCHMODE 2
+#define BATCHMODE 1 /* use an unsigned long for 'd' */
+//#define BATCHMODE 2 /* use an mpz_t for 'd' */
 
+#if 0
+/* this function is useful in debug mode to print non-normalized residues */
+static void
+mpresn_print (mpres_t x, mpmod_t n)
+{
+  mp_size_t m, xn;
+
+  xn = SIZ(x);
+  m = ABSIZ(x);
+  MPN_NORMALIZE(PTR(x), m);
+  SIZ(x) = xn >= 0 ? m : -m;
+  gmp_printf ("%Zd\n", x);
+  SIZ(x) = xn;
+}
+#endif
 
 /* (x1:z1) <- 2(x1:z1)
    (x2:z2) <- (x1:z1) + (x2:z2)
    assume (x2:z2) - (x1:z1) = (2:1)
    Uses 4 modular multiplies and 4 modular squarings.
+   Inputs are x1, z1, x2, z2, d, n.
+   Auxiliary variables: q, t, u, v, w.
 */
 static void
 #if BATCHMODE == 1
@@ -228,17 +245,12 @@ ecm_stage1_batch (mpz_t f, mpres_t x, mpres_t A, mpmod_t n, double B1,
      then P1 = j*P and P2=(j+1)*P */
 
   //temporary fix for mpn
-  SIZ(x1)=n->bits/GMP_NUMB_BITS;
-  SIZ(z1)=n->bits/GMP_NUMB_BITS;
-  SIZ(x2)=n->bits/GMP_NUMB_BITS;
-  SIZ(z2)=n->bits/GMP_NUMB_BITS;
-  SIZ(q)=n->bits/GMP_NUMB_BITS;
-  SIZ(t)=n->bits/GMP_NUMB_BITS;
-  SIZ(u)=n->bits/GMP_NUMB_BITS;
-  SIZ(v)=n->bits/GMP_NUMB_BITS;
-  SIZ(w)=n->bits/GMP_NUMB_BITS;
+  mpresn_pad (x1, n);
+  mpresn_pad (z1, n);
+  mpresn_pad (x2, n);
+  mpresn_pad (z2, n);
 #if BATCHMODE == 2
-  SIZ(d)=n->bits/GMP_NUMB_BITS;
+  mpresn_pad (d, n);
 #endif
 
   /* now perform the double-and-add ladder */

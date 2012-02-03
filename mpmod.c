@@ -1,6 +1,6 @@
 /* Modular multiplication.
 
-  Copyright 2002, 2003, 2004, 2005, 2011 Paul Zimmermann and Alexander Kruppa.
+  Copyright 2002, 2003, 2004, 2005, 2011, 2012 Paul Zimmermann, Alexander Kruppa and Cyril Bouvier.
 
   This file is part of the ECM Library.
 
@@ -752,7 +752,7 @@ mpmod_init (mpmod_t modulus, const mpz_t N, int repr)
       ASSERT (r == 0); /* error should not happen if isbase2 is correct */
       break;
     }
-  
+
   return r;
 }
 
@@ -774,6 +774,10 @@ mpmod_init_MPZ (mpmod_t modulus, const mpz_t N)
   n = mpz_size (N); /* number of limbs of N */
   modulus->bits = n * GMP_NUMB_BITS; /* Number of bits, 
 					rounded up to full limb */
+
+  MPZ_INIT2 (modulus->mult_modulus,  modulus->bits);
+  mpz_set (modulus->mult_modulus, modulus->orig_modulus);
+  
   MPZ_INIT2 (modulus->temp1, 2UL * modulus->bits + GMP_NUMB_BITS);
   MPZ_INIT2 (modulus->temp2, modulus->bits);
   MPZ_INIT2 (modulus->aux_modulus, modulus->bits);
@@ -800,6 +804,10 @@ mpmod_init_BASE2 (mpmod_t modulus, const int base2, const mpz_t N)
 
   Nbits = mpz_size (N) * GMP_NUMB_BITS; /* Number of bits, rounded
                                            up to full limb */
+
+  MPZ_INIT (modulus->mult_modulus);
+  mpz_set (modulus->mult_modulus, modulus->orig_modulus);
+  
   MPZ_INIT2 (modulus->temp1, 2UL * Nbits + GMP_NUMB_BITS);
   MPZ_INIT2 (modulus->temp2, Nbits);
   
@@ -847,6 +855,9 @@ mpmod_init_MODMULN (mpmod_t modulus, const mpz_t N)
                                            up to full limb */
   modulus->bits = Nbits;
 
+  MPZ_INIT2 (modulus->mult_modulus,  modulus->bits);
+  mpz_set (modulus->mult_modulus, modulus->orig_modulus);
+  
   MPZ_INIT2 (modulus->temp1, 2UL * Nbits + GMP_NUMB_BITS);
   MPZ_INIT2 (modulus->temp2, Nbits);
 
@@ -895,6 +906,9 @@ mpmod_init_REDC (mpmod_t modulus, const mpz_t N)
                                 up to full limb */
   modulus->bits = Nbits;
   
+  MPZ_INIT2 (modulus->mult_modulus,  modulus->bits);
+  mpz_set (modulus->mult_modulus, modulus->orig_modulus);
+  
   MPZ_INIT2 (modulus->temp1, 2 * Nbits + GMP_NUMB_BITS);
   MPZ_INIT2 (modulus->temp2, Nbits);
   MPZ_INIT2 (modulus->aux_modulus, Nbits);
@@ -940,6 +954,7 @@ void
 mpmod_clear (mpmod_t modulus)
 {
   mpz_clear (modulus->orig_modulus);
+  mpz_clear (modulus->mult_modulus);
   mpz_clear (modulus->temp1);
   mpz_clear (modulus->temp2);
   if (modulus->repr == ECM_MOD_REDC || modulus->repr == ECM_MOD_MPZ)
@@ -954,17 +969,20 @@ mpmod_clear (mpmod_t modulus)
   return;
 }
 
-
+/* initialize r and set all entries from those of modulus */
 void
-mpmod_copy (mpmod_t r, const mpmod_t modulus)
+mpmod_init_set (mpmod_t r, const mpmod_t modulus)
 {
   const unsigned long Nbits = abs(modulus->bits);
+
   r->repr = modulus->repr;
   r->bits = modulus->bits;
   r->Fermat = modulus->Fermat;
   r->Nprim[0] = modulus->Nprim[0];
   r->Nprim[1] = modulus->Nprim[1];
   mpz_init_set (r->orig_modulus, modulus->orig_modulus);
+  MPZ_INIT2 (r->mult_modulus, Nbits);
+  mpz_set (r->mult_modulus, modulus->mult_modulus);
   MPZ_INIT2 (r->temp1, 2 * Nbits + GMP_NUMB_BITS);
   MPZ_INIT2 (r->temp2, Nbits + GMP_NUMB_BITS);
   if (modulus->repr == ECM_MOD_MODMULN || modulus->repr == ECM_MOD_REDC)
@@ -1967,149 +1985,68 @@ mpmod_selftest (const mpz_t n)
 /* Experimental use of mpn */
 /***************************/
 
+/* ensure R has allocated space for at least n limbs,
+   and if less than n limbs are used, pad with zeros,
+   and set SIZ(R) to n if positive or -n if negative */
+void
+mpresn_pad (mpres_t R, mpmod_t N)
+{
+  mp_size_t n = ABSIZ(N->mult_modulus);
+  mp_size_t rn;
+
+  _mpz_realloc (R, n);
+  rn = mpz_size (R);
+  ASSERT_ALWAYS (rn <= n);
+  if (rn < n)
+    {
+      MPN_ZERO (PTR(R) + rn, n - rn);
+      SIZ(R) = SIZ(R) >= 0 ? n : -n;
+    }
+}
+
+/* R <- S1 * S2 mod N, used only for ECM_MOD_MODMULN */
 void 
 mpresn_sqr (mpres_t R, const mpres_t S1, mpmod_t modulus)
 {
-  mp_ptr s1 = PTR(S1);
-  mp_ptr t1 = PTR(modulus->temp1);
-  mp_size_t n = modulus->bits/GMP_NUMB_BITS;
-
-  SIZ(modulus->temp1)=ALLOC(modulus->temp1);
+  mp_size_t n = ABSIZ(modulus->mult_modulus);
+  mp_limb_t invm = modulus->Nprim[0];
 
   ASSERT (SIZ(S1) == n || -SIZ(S1) == n);
-  ASSERT (SIZ(modulus->temp1) >= 2*n || -SIZ(modulus->temp1) >= n);
 
-  if (UNLIKELY(modulus->repr == ECM_MOD_BASE2 && modulus->Fermat >= 32768))
-    {
-      mpresn_mul (R, S1, S1, modulus);
-      return;
-    }
-
-  switch (modulus->repr)
-    {
-    case ECM_MOD_BASE2:
-      mpn_sqr (t1, s1, n);
-      base2mod (R, modulus->temp1, modulus->temp1, modulus);
-      break;
-    case ECM_MOD_MODMULN:
-      MPZ_REALLOC (R, modulus->bits / GMP_NUMB_BITS);
-      ecm_sqrredc_basecase (R, S1, modulus);
-      break;
-    case ECM_MOD_REDC:
-      mpn_sqr (t1, s1, n);
-      REDC (R, modulus->temp1, modulus->temp2, modulus);
-      break;
-    default: /* case ECM_MOD_MPZ */
-      mpn_sqr (t1, s1, n);
-      mpres_mpz_mod (R, modulus->temp1, modulus->orig_modulus,
-		     modulus->aux_modulus);
-      break;
-    }
-
-  SIZ(R)=n; //FIXME The determination of the sign is done during the reduction
+  mulredc (PTR(R), PTR(S1), PTR(S1), PTR(modulus->mult_modulus), n, invm);
+  SIZ(R) = n;
 }
 
 void 
 mpresn_mul (mpres_t R, const mpres_t S1, const mpres_t S2, mpmod_t modulus)
 {
-  mp_ptr s1 = PTR(S1);
-  mp_ptr s2 = PTR(S2);
-  mp_ptr t1 = PTR(modulus->temp1);
-  mp_size_t n = modulus->bits/GMP_NUMB_BITS;
-
-  SIZ(modulus->temp1)=ALLOC(modulus->temp1);
+  mp_size_t n = ABSIZ(modulus->mult_modulus);
+  mp_limb_t invm = modulus->Nprim[0];
 
   ASSERT (SIZ(S1) == n || -SIZ(S1) == n);
   ASSERT (SIZ(S2) == n || -SIZ(S2) == n);
-  ASSERT (SIZ(modulus->temp1) >= 2*n || -SIZ(modulus->temp1) >= n);
 
-  //for this case, nothing has changed.
-  if (UNLIKELY(modulus->repr == ECM_MOD_BASE2 && modulus->Fermat >= 32768))
-    {
-      mp_size_t n = modulus->Fermat / GMP_NUMB_BITS;
-      unsigned long k;
-      mp_srcptr s1p, s2p;
-      mp_size_t s1s, s2s;
-      
-      MPZ_REALLOC (R, n + 1);
-      s1p = PTR(S1);
-      s1s = SIZ(S1);
-      s2p = PTR(S2);
-      s2s = SIZ(S2);
-      
-      k = mpn_fft_best_k (n, S1 == S2);
-      ASSERT(mpn_fft_next_size (n, k) == n);
+  mulredc (PTR(R), PTR(S1), PTR(S2), PTR(modulus->mult_modulus), n, invm);
 
-      if (base2mod_2 (modulus->temp1, S1, n, modulus->orig_modulus))
-        {
-          s1p = PTR(modulus->temp1);
-          s1s = SIZ(modulus->temp1);
-        }
-      if (S1 == S2)
-        {
-          s2p = s1p;
-          s2s = s1s;
-        }
-      else if (base2mod_2 (modulus->temp2, S2, n, modulus->orig_modulus))
-        {
-          s2p = PTR(modulus->temp2);
-          s2s = SIZ(modulus->temp2);
-        }
-
-      /* mpn_mul_fft() computes the product modulo B^n + 1, where 
-         B = 2^(machine word size in bits). So the result can be = B^n, 
-         in that case R is set to zero and 1 is returned as carry-out.
-         In all other cases 0 is returned. Hence the complete result is 
-         R + cy * B^n, where cy is the value returned by mpn_mul_fft(). */
-      PTR(R)[n] = mpn_mul_fft (PTR(R), n, s1p, ABS(s1s), s2p, ABS(s2s), k);
-      n ++;
-      MPN_NORMALIZE(PTR(R), n);
-      SIZ(R) = ((s1s ^ s2s) >= 0) ? (int) n : (int) -n;
-
-      return;
-    }
-
-  switch (modulus->repr)
-    {
-    case ECM_MOD_BASE2:
-      mpn_mul_n (t1, s1, s2, n);
-      base2mod (R, modulus->temp1, modulus->temp1, modulus);
-      break;
-    case ECM_MOD_MODMULN:
-      MPZ_REALLOC (R, modulus->bits / GMP_NUMB_BITS);
-      ecm_mulredc_basecase (R, S1, S2, modulus);
-      break;
-    case ECM_MOD_REDC:
-      mpn_mul_n (t1, s1, s2, n);
-      REDC (R, modulus->temp1, modulus->temp2, modulus);
-      break;
-    default: /* case ECM_MOD_MPZ */
-      mpn_mul_n (t1, s1, s2, n);
-      mpres_mpz_mod (R, modulus->temp1, modulus->orig_modulus,
-		     modulus->aux_modulus);
-      break;
-    }
-
-  SIZ(R)=n; //FIXME The determination of the sign is done during the reduction
+  SIZ(R) = SIZ(S1) == SIZ(S2) ? n : -n;
 }
 
-/* R <- S * n mod modulus */
+/* R <- S * m mod modulus */
 void 
 mpresn_mul_ui (mpres_t R, const mpres_t S, const unsigned long m, 
               mpmod_t modulus)
 {
-  mp_ptr s = PTR(S);
   mp_ptr t1 = PTR(modulus->temp1);
-  mp_size_t n = modulus->bits/GMP_NUMB_BITS;
+  mp_size_t n = ABSIZ(modulus->mult_modulus);
+  mp_limb_t q[2];
 
   ASSERT (SIZ(S) == n || -SIZ(S) == n);
-  ASSERT (SIZ(modulus->temp1) >= n+1 || -SIZ(modulus->temp1) >= n+1);
+  ASSERT (ALLOC(modulus->temp1) >= n+1);
 
-  t1[n]=mpn_mul_1 (t1, s, n, m);
-  /* This is the same for all methods: just reduce with original modulus */
-  mpz_mod (R, modulus->temp1, modulus->orig_modulus);
+  t1[n] = mpn_mul_1 (t1, PTR(S), n, m);
+  mpn_tdiv_qr (q, PTR(R), 0, t1, n + 1, PTR(modulus->mult_modulus), n);
 
-  SIZ(R)=n; //mpz_mod return always a non-negative integer.
+  SIZ(R) = SIZ(S); /* sign is unchanged */
 }
 
 /* R <- S1 + S2 mod modulus */
@@ -2121,7 +2058,7 @@ mpresn_add (mpres_t R, const mpres_t S1, const mpres_t S2, mpmod_t modulus)
   mp_ptr r = PTR(R);
   mp_ptr s1 = PTR(S1);
   mp_ptr s2 = PTR(S2);
-  mp_size_t n = modulus->bits/GMP_NUMB_BITS;
+  mp_size_t n = ABSIZ(modulus->mult_modulus);
 
   ASSERT (SIZ(S1) == n || -SIZ(S1) == n);
   ASSERT (SIZ(S2) == n || -SIZ(S2) == n);
@@ -2146,6 +2083,36 @@ mpresn_add (mpres_t R, const mpres_t S1, const mpres_t S2, mpmod_t modulus)
     }
 }
 
+void
+mpresn_sub (mpres_t R, const mpres_t S1, const mpres_t S2, mpmod_t modulus)
+{
+  mp_ptr r = PTR(R);
+  mp_ptr s1 = PTR(S1);
+  mp_ptr s2 = PTR(S2);
+  mp_size_t n = ABSIZ(modulus->mult_modulus);
+
+  ASSERT (SIZ(S1) == n || -SIZ(S1) == n);
+  ASSERT (SIZ(S2) == n || -SIZ(S2) == n);
+
+  if (SIZ(S1) != SIZ(S2)) /* S1 and S2 are of different signs */
+    {
+      mpn_add_n (r, s1, s2, n);
+      SIZ(R) = SIZ(S1);
+    }
+  else /* same signs, it's a real subtraction */
+    {
+      if (mpn_cmp (s1, s2, n) >= 0)
+        {
+          mpn_sub_n (r, s1, s2, n);
+          SIZ(R) = SIZ(S1);
+        }
+      else
+        {
+          mpn_sub_n (r, s2, s1, n);
+          SIZ(R) = -SIZ(S2);
+        }
+    }
+}
 
 /* (R, T) <- (S1 + S2, S1 - S2) */
 void
@@ -2156,7 +2123,7 @@ mpresn_addsub (mpres_t R, mpres_t T,
   mp_ptr t = PTR(T);
   mp_ptr s1 = PTR(S1);
   mp_ptr s2 = PTR(S2);
-  mp_size_t n = modulus->bits/GMP_NUMB_BITS;
+  mp_size_t n = ABSIZ(modulus->mult_modulus);
 
   ASSERT (SIZ(S1) == n || -SIZ(S1) == n);
   ASSERT (SIZ(S2) == n || -SIZ(S2) == n);
@@ -2192,35 +2159,3 @@ mpresn_addsub (mpres_t R, mpres_t T,
       SIZ(T) = SIZ(S1);
     }
 }
-
-void
-mpresn_sub (mpres_t R, const mpres_t S1, const mpres_t S2, mpmod_t modulus)
-{
-  mp_ptr r = PTR(R);
-  mp_ptr s1 = PTR(S1);
-  mp_ptr s2 = PTR(S2);
-  mp_size_t n = modulus->bits/GMP_NUMB_BITS;
-
-  ASSERT (SIZ(S1) == n || -SIZ(S1) == n);
-  ASSERT (SIZ(S2) == n || -SIZ(S2) == n);
-
-  if (SIZ(S1) != SIZ(S2)) /* S1 and S2 are of different signs */
-    {
-      mpn_add_n (r, s1, s2, n);
-      SIZ(R) = SIZ(S1);
-    }
-  else /* same signs, it's a real subtraction */
-    {
-      if (mpn_cmp (s1, s2, n) >= 0)
-        {
-          mpn_sub_n (r, s1, s2, n);
-          SIZ(R) = SIZ(S1);
-        }
-      else
-        {
-          mpn_sub_n (r, s2, s1, n);
-          SIZ(R) = -SIZ(S2);
-        }
-    }
-}
-
