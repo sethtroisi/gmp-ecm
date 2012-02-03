@@ -901,6 +901,10 @@ ecm (mpz_t f, mpz_t x, mpz_t sigma, mpz_t n, mpz_t go, double *B1done,
   ECM_STDOUT = (os == NULL) ? stdout : os;
   ECM_STDERR = (es == NULL) ? stdout : es;
 
+  /* in batch mode, we force MODMULN */
+  if (batch)
+    repr = ECM_MOD_MODMULN;
+
   /* if n is even, return 2 */
   if (mpz_divisible_2exp_p (n, 1))
     {
