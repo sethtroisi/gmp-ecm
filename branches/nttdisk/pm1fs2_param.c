@@ -304,7 +304,8 @@ const uint64_t Pvalues[] = {
 
 /* All the prime factors that can appear in eulerphi(P) */
 const unsigned long phiPfactors[] = {2UL, 3UL, 5UL, 7UL, 11UL, 13UL, 
-				     17UL, 19UL};
+				     17UL, 19UL, 23UL, 29UL, 31UL, 37UL,
+				     41UL, 43UL, 47UL, 53UL};
 
 /* returns Euler's totient phi function */
 uint64_t
