@@ -174,6 +174,7 @@ typedef uint64_t sp_t;
 
 /* vector of residues modulo a common small prime */
 typedef sp_t * spv_t;
+typedef const sp_t * spv_tc;
 
 /* length of a spv, and the type used for array offsets */
 typedef unsigned long spv_size_t;
@@ -598,7 +599,7 @@ void spm_clear (spm_t);
 /* spv */
 
 /* SELF-TEST */
-int spv_verify (spv_t, spv_size_t, sp_t);
+int spv_verify (spv_tc, spv_size_t, sp_t);
 
 /* ASSIGNMENT */
 
@@ -655,8 +656,6 @@ void mpzspv_revcopy (mpzspv_t, spv_size_t, mpzspv_t, spv_size_t, spv_size_t,
 void mpzspv_set_sp (mpzspv_t, spv_size_t, sp_t, spv_size_t, mpzspm_t);
 void mpzspv_from_mpzv (mpzspv_t, const spv_size_t, const mpzv_t, 
 		       const spv_size_t, mpzspm_t);
-void mpzspv_from_mpzv_file (mpzspv_t, spv_size_t, FILE **sp_files, 
-     const mpzv_t, FILE *, spv_size_t, spv_size_t, mpzspm_t);
 void mpzspv_reverse (mpzspv_t, spv_size_t, spv_size_t, mpzspm_t);
 void mpzspv_neg (mpzspv_t, spv_size_t, mpzspv_t, spv_size_t, spv_size_t,
     mpzspm_t);
@@ -668,20 +667,14 @@ void mpzspv_to_mpzv_file (mpzspv_t, spv_size_t, FILE **sp_files, const mpzv_t,
 void mpzspv_normalise (mpzspv_t, spv_size_t, spv_size_t, mpzspm_t);
 void mpzspv_pwmul (mpzspv_t, spv_size_t, mpzspv_t, spv_size_t, mpzspv_t, 
     spv_size_t, spv_size_t, mpzspm_t);
-void mpzspv_to_ntt (mpzspv_t, spv_size_t, spv_size_t, spv_size_t, int,
-    mpzspm_t);
-void mpzspv_from_ntt (mpzspv_t, spv_size_t, spv_size_t, spv_size_t, mpzspm_t);
-void mpzspv_mul_ntt (mpzspv_t, spv_size_t, mpzspv_t, spv_size_t, spv_size_t, 
-    mpzspv_t, spv_size_t, spv_size_t, spv_size_t, int, spv_size_t, mpzspm_t, 
-    int);
 void mpzspv_mul_ntt_file (mpzspv_t, const spv_size_t, FILE **, mpzspv_t, 
     spv_size_t, spv_size_t, FILE **, mpzspv_t, spv_size_t, spv_size_t, 
     FILE **, spv_size_t, int, spv_size_t, mpzspm_t, int);
-void mpzspv_random (mpzspv_t, spv_size_t, spv_size_t, mpzspm_t);
-void mpzspv_to_dct1 (mpzspv_t, mpzspv_t, spv_size_t, spv_size_t, mpzspv_t, 
-    mpzspm_t);
-void mpzspv_mul_by_dct (mpzspv_t, const mpzspv_t, spv_size_t, const mpzspm_t, 
+void mpzspv_mul_ntt (mpzspv_t, spv_size_t, mpzspv_t, spv_size_t, spv_size_t, 
+    mpzspv_t, spv_size_t, spv_size_t, spv_size_t, int, spv_size_t, mpzspm_t, 
     int);
+void mpzspv_random (mpzspv_t, spv_size_t, spv_size_t, mpzspm_t);
+void mpzspv_to_dct1 (mpzspv_t, mpzspv_t, spv_size_t, spv_size_t, mpzspm_t);
 void mpzspv_to_dct1_file (mpzspv_t, mpzspv_t, FILE **, spv_size_t, spv_size_t, mpzspm_t);
 void mpzspv_sqr_reciprocal (mpzspv_t, spv_size_t, const mpzspm_t);
 FILE **mpzspv_open_fileset(const char *, const mpzspm_t);

@@ -33,7 +33,7 @@
  * of the input pointers can be equal. */
 
 int
-spv_verify (spv_t x, spv_size_t len, const sp_t m)
+spv_verify (const spv_tc x, const spv_size_t len, const sp_t m)
 {
   spv_size_t i;
 #ifdef USE_VALGRIND

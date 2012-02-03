@@ -366,64 +366,14 @@ mpzspv_from_mpzv_file (mpzspv_t x, const spv_size_t offset,
 /* See: Daniel J. Bernstein and Jonathan P. Sorenson,
  * Modular Exponentiation via the explicit Chinese Remainder Theorem
  *
- * memory: MPZSPV_NORMALISE_STRIDE floats */
+ * memory: mpzspm->sp_num floats */
+
 void
 mpzspv_to_mpzv (mpzspv_t x, spv_size_t offset, mpzv_t mpzv,
     spv_size_t len, mpzspm_t mpzspm)
 {
-  unsigned int i;
-  spv_size_t k, l;
-  float *f = (float *) malloc (MPZSPV_NORMALISE_STRIDE * sizeof (float));
-  float prime_recip;
-  sp_t t;
-  spm_t *spm = mpzspm->spm;
-  mpz_t mt;
-
-  if (f == NULL)
-    {
-      fprintf (stderr, "Cannot allocate memory in mpzspv_to_mpzv\n");
-      exit (1);
-    }
-  
-  ASSERT (mpzspv_verify (x, offset, len, mpzspm));
-  
-  mpz_init (mt);
-  for (l = 0; l < len; l += MPZSPV_NORMALISE_STRIDE)
-    {
-      spv_size_t stride = MIN (MPZSPV_NORMALISE_STRIDE, len - l);
-
-      for (k = 0; k < stride; k++)
-        {
-          f[k] = 0.5;
-          mpz_set_ui (mpzv[k + l], 0);
-        }
-  
-    for (i = 0; i < mpzspm->sp_num; i++)
-      {
-        prime_recip = 1.0f / (float) spm[i]->sp;
-      
-        for (k = 0; k < stride; k++)
-          {
-  	    t = sp_mul (x[i][l + k + offset], mpzspm->crt3[i], spm[i]->sp,
-                  spm[i]->mul_c);
-          
-#if SP_TYPE_BITS > GMP_LIMB_BITS
-            mpz_set_sp (mt, t);
-            mpz_addmul (mpzv[l + k], mpzspm->crt1[i], mt);
-#else
-	    mpz_addmul_ui (mpzv[l + k], mpzspm->crt1[i], t);
-#endif
-	    f[k] += (float) t * prime_recip;
-          }
-      }
-
-    for (k = 0; k < stride; k++)
-      mpz_add (mpzv[l + k], mpzv[l + k], mpzspm->crt2[(unsigned int) f[k]]);
-  }
-  
-  mpz_clear (mt);
-  free (f);
-}  
+  mpzspv_to_mpzv_file (x, offset, NULL, mpzv, NULL, len, len, mpzspm);
+}
 
 
 void
@@ -625,68 +575,6 @@ mpzspv_normalise (mpzspv_t x, spv_size_t offset, spv_size_t len,
   free (f);
 }
 
-void
-mpzspv_to_ntt (mpzspv_t x, spv_size_t offset, spv_size_t len,
-    spv_size_t ntt_size, int monic, mpzspm_t mpzspm)
-{
-  unsigned int i;
-  spv_size_t j, log2_ntt_size;
-  spm_t spm;
-  spv_t spv;
-  
-  ASSERT (mpzspv_verify (x, offset, len, mpzspm));
-  ASSERT (mpzspv_verify (x, offset + ntt_size, 0, mpzspm));
-  
-  log2_ntt_size = ceil_log_2 (ntt_size);
-
-  for (i = 0; i < mpzspm->sp_num; i++)
-    {
-      spm = mpzspm->spm[i];
-      spv = x[i] + offset;
-      
-      if (ntt_size < len)
-        {
-	  for (j = ntt_size; j < len; j += ntt_size)
-	    spv_add (spv, spv, spv + j, ntt_size, spm->sp);
-	}
-      if (ntt_size > len)
-	spv_set_zero (spv + len, ntt_size - len);
-
-      if (monic)
-	spv[len % ntt_size] = sp_add (spv[len % ntt_size], 1, spm->sp);
-      
-      spv_ntt_gfp_dif (spv, log2_ntt_size, spm);
-    }
-}
-
-void mpzspv_from_ntt (mpzspv_t x, spv_size_t offset, spv_size_t ntt_size,
-    spv_size_t monic_pos, mpzspm_t mpzspm)
-{
-  unsigned int i;
-  spv_size_t log2_ntt_size;
-  spm_t spm;
-  spv_t spv;
-  
-  ASSERT (mpzspv_verify (x, offset, ntt_size, mpzspm));
-  
-  log2_ntt_size = ceil_log_2 (ntt_size);
-
-  for (i = 0; i < mpzspm->sp_num; i++)
-    {
-      spm = mpzspm->spm[i];
-      spv = x[i] + offset;
-      
-      spv_ntt_gfp_dit (spv, log2_ntt_size, spm);
-
-      /* spm->sp - (spm->sp - 1) / ntt_size is the inverse of ntt_size */
-      spv_mul_sp (spv, spv, spm->sp - (spm->sp - 1) / ntt_size,
-	  ntt_size, spm->sp, spm->mul_c);
-      
-      if (monic_pos)
-	spv[monic_pos % ntt_size] = sp_sub (spv[monic_pos % ntt_size],
-	    1, spm->sp);
-    }
-}
 
 void
 mpzspv_random (mpzspv_t x, spv_size_t offset, spv_size_t len, mpzspm_t mpzspm)
@@ -985,101 +873,6 @@ one_fft_file(spv_t spv, FILE *file, const spv_size_t offset,
    in-place forward transform of x, in-place forward transform of y, 
    pair-wise multiplication of x by y to r, in-place inverse transform of r. 
    Contrary to calling these three operations separately, this function does 
-   all three steps on a small-prime vector at a time, resulting in slightly 
-   better cache efficiency (also in preparation to storing NTT vectors on disk 
-   and reading them in for the multiplication). */
-
-void
-mpzspv_mul_ntt (mpzspv_t r, const spv_size_t offsetr, 
-    mpzspv_t x, const spv_size_t offsetx, const spv_size_t lenx,
-    mpzspv_t y, const spv_size_t offsety, const spv_size_t leny,
-    const spv_size_t ntt_size, const int monic, const spv_size_t monic_pos, 
-    mpzspm_t mpzspm, const int steps)
-{
-  spv_size_t log2_ntt_size;
-  int i;
-  
-  ASSERT (mpzspv_verify (x, offsetx, lenx, mpzspm));
-  ASSERT (mpzspv_verify (y, offsety, leny, mpzspm));
-  ASSERT (mpzspv_verify (x, offsetx + ntt_size, 0, mpzspm));
-  ASSERT (mpzspv_verify (y, offsety + ntt_size, 0, mpzspm));
-  ASSERT (mpzspv_verify (r, offsetr + ntt_size, 0, mpzspm));
-  
-  log2_ntt_size = ceil_log_2 (ntt_size);
-
-  /* Need parallelization at higher level (e.g., handling a branch of the 
-     product tree in one thread) to make this worthwhile for ECM */
-#if defined(_OPENMP) && MPZSPV_MUL_NTT_OPENMP
-#pragma omp parallel if (ntt_size > 16384)
-  {
-#pragma omp for
-#endif
-  for (i = 0; i < (int) mpzspm->sp_num; i++)
-    {
-      spv_size_t j;
-      spm_t spm = mpzspm->spm[i];
-      spv_t spvr = r[i] + offsetr;
-      spv_t spvx = x[i] + offsetx;
-      spv_t spvy = y[i] + offsety;
-
-      if ((steps & NTT_MUL_STEP_FFT1) != 0) {
-        if (ntt_size < lenx)
-          {
-            for (j = ntt_size; j < lenx; j += ntt_size)
-              spv_add (spvx, spvx, spvx + j, ntt_size, spm->sp);
-          }
-        if (ntt_size > lenx)
-          spv_set_zero (spvx + lenx, ntt_size - lenx);
-
-        if (monic)
-          spvx[lenx % ntt_size] = sp_add (spvx[lenx % ntt_size], 1, spm->sp);
-
-        spv_ntt_gfp_dif (spvx, log2_ntt_size, spm);
-      }
-
-      if ((steps & NTT_MUL_STEP_FFT2) != 0) {
-        if (ntt_size < leny)
-          {
-            for (j = ntt_size; j < leny; j += ntt_size)
-              spv_add (spvy, spvy, spvy + j, ntt_size, spm->sp);
-          }
-        if (ntt_size > leny)
-          spv_set_zero (spvy + leny, ntt_size - leny);
-
-        if (monic)
-          spvy[leny % ntt_size] = sp_add (spvy[leny % ntt_size], 1, spm->sp);
-
-        spv_ntt_gfp_dif (spvy, log2_ntt_size, spm);
-      }
-
-      if ((steps & NTT_MUL_STEP_MUL) != 0) {
-        spv_pwmul (spvr, spvx, spvy, ntt_size, spm->sp, spm->mul_c);
-      }
-
-      if ((steps & NTT_MUL_STEP_IFFT) != 0) {
-        ASSERT (sizeof (mp_limb_t) >= sizeof (sp_t));
-
-        spv_ntt_gfp_dit (spvr, log2_ntt_size, spm);
-
-        /* spm->sp - (spm->sp - 1) / ntt_size is the inverse of ntt_size */
-        spv_mul_sp (spvr, spvr, spm->sp - (spm->sp - 1) / ntt_size,
-            ntt_size, spm->sp, spm->mul_c);
-
-        if (monic_pos)
-          spvr[monic_pos % ntt_size] = sp_sub (spvr[monic_pos % ntt_size],
-              1, spm->sp);
-      }
-    }
-#if defined(_OPENMP) && MPZSPV_MUL_NTT_OPENMP
-  }
-#endif
-}
-
-
-/* Do multiplication via NTT. Depending on the value of "steps", does 
-   in-place forward transform of x, in-place forward transform of y, 
-   pair-wise multiplication of x by y to r, in-place inverse transform of r. 
-   Contrary to calling these three operations separately, this function does 
    all steps on a small-prime vector at a time, resulting in slightly 
    better cache efficiency.
    Input and output spv_t's can be stored in files. Files are read or written
@@ -1108,7 +901,7 @@ mpzspv_mul_ntt_file (mpzspv_t r, const spv_size_t offsetr, FILE **r_files,
   const int do_pwmul_dct = (steps & NTT_MUL_STEP_MULDCT) != 0;
   const int do_ifft = (steps & NTT_MUL_STEP_IFFT) != 0;
 
-  if (x == y && do_fft1 && do_fft2)
+  if (x == y && offsetx == offsety && do_fft1 && do_fft2)
     {
       fprintf (stderr, "mpzspv_mul_ntt_file(): Error, x=y and forward "
                "transform requested for both\n");
@@ -1287,17 +1080,28 @@ mpzspv_mul_ntt_file (mpzspv_t r, const spv_size_t offsetr, FILE **r_files,
 #endif
 }
 
+void
+mpzspv_mul_ntt (mpzspv_t r, const spv_size_t offsetr, 
+    mpzspv_t x, const spv_size_t offsetx, const spv_size_t lenx,
+    mpzspv_t y, const spv_size_t offsety, const spv_size_t leny,
+    const spv_size_t ntt_size, const int monic, const spv_size_t monic_pos, 
+    mpzspm_t mpzspm, const int steps)
+{
+  mpzspv_mul_ntt_file(r, offsetr, NULL, x, offsetx, lenx, NULL, 
+      y, offsety, leny, NULL, ntt_size,  monic,  monic_pos, mpzspm, steps);
+}
+
 
 /* Computes a DCT-I of the length dctlen. Input is the spvlen coefficients
    in spv. tmp is temp space and must have space for 2*dctlen-2 sp_t's */
 
 void
-mpzspv_to_dct1 (mpzspv_t dct, const mpzspv_t spv, const spv_size_t spvlen, 
-                const spv_size_t dctlen, mpzspv_t tmp, 
-		const mpzspm_t mpzspm)
+mpzspv_to_dct1_file (mpzspv_t dct, const mpzspv_t spv, FILE **file, 
+                     const spv_size_t spvlen, const spv_size_t dctlen, 
+                     const mpzspm_t mpzspm)
 {
-  const spv_size_t l = 2 * (dctlen - 1); /* Length for the DFT */
-  const spv_size_t log2_l = ceil_log_2 (l);
+  const spv_size_t ntt_size = 2 * (dctlen - 1); /* Length for the DFT */
+  const spv_size_t log2_l = ceil_log_2 (ntt_size);
   int j;
 
 #ifdef _OPENMP
@@ -1310,37 +1114,51 @@ mpzspv_to_dct1 (mpzspv_t dct, const mpzspv_t spv, const spv_size_t spvlen,
       const spm_t spm = mpzspm->spm[j];
       spv_size_t i;
       
-      /* Make a symmetric copy of spv in tmp. I.e. with spv = [3, 2, 1], 
-         spvlen = 3, dctlen = 5 (hence l = 8), we want 
-         tmp = [3, 2, 1, 0, 0, 0, 1, 2] */
-      spv_set (tmp[j], spv[j], spvlen);
-      spv_rev (tmp[j] + l - spvlen + 1, spv[j] + 1, spvlen - 1);
+      spv_t tmp = (spv_t) sp_aligned_malloc (ntt_size * sizeof (sp_t));
+      if (tmp == NULL)
+        {
+          fprintf (stderr, "Cannot allocate tmp memory in "
+                   "mpzspv_to_dct1()\n");
+          abort();
+        }
+
+      if (file != NULL)
+        {
+          seek_and_read_sp (tmp, spvlen, 0, file[j]);
+        } else {
+          /* Copy spv to tmp */
+          spv_set (tmp, spv[j], spvlen);
+        }
+      /* Make a symmetric copy of input coefficients in tmp. E.g., 
+         with spv = [3, 2, 1], spvlen = 3, dctlen = 5 (hence ntt_size = 8), 
+         we want tmp = [3, 2, 1, 0, 0, 0, 1, 2] */
+      spv_rev (tmp + ntt_size - spvlen + 1, tmp + 1, spvlen - 1);
       /* Now we have [3, 2, 1, ?, ?, ?, 1, 2]. Fill the ?'s with zeros. */
-      spv_set_sp (tmp[j] + spvlen, (sp_t) 0, l - 2 * spvlen + 1);
+      spv_set_sp (tmp + spvlen, (sp_t) 0, ntt_size - 2 * spvlen + 1);
 
 #if 0
       printf ("mpzspv_to_dct1: tmp[%d] = [", j);
-      for (i = 0; i < l; i++)
-          printf ("%lu, ", tmp[j][i]);
+      for (i = 0; i < ntt_size; i++)
+          printf ("%lu, ", tmp[i]);
       printf ("]\n");
 #endif
       
-      spv_ntt_gfp_dif (tmp[j], log2_l, spm);
+      spv_ntt_gfp_dif (tmp, log2_l, spm);
 
 #if 0
       printf ("mpzspv_to_dct1: tmp[%d] = [", j);
-      for (i = 0; i < l; i++)
-          printf ("%lu, ", tmp[j][i]);
+      for (i = 0; i < ntt_size; i++)
+          printf ("%lu, ", tmp[i]);
       printf ("]\n");
 #endif
 
-      /* The forward transform is scrambled. We want elements [0 ... l/2]
+      /* The forward transform is scrambled. We want elements [0 ... ntt_size/2]
          of the unscrabled data, that is all the coefficients with the most 
-         significant bit in the index (in log2(l) word size) unset, plus the 
-         element at index l/2. By scrambling, these map to the elements with 
+         significant bit in the index (in log2(ntt_size) word size) unset, plus the 
+         element at index ntt_size/2. By scrambling, these map to the elements with 
          even index, plus the element at index 1. 
          The elements with scrambled index 2*i are stored in h[i], the
-         element with scrambled index 1 is stored in h[params->l] */
+         element with scrambled index 1 is stored in h[params->ntt_size] */
   
 #ifdef WANT_ASSERT
       /* Test that the coefficients are symmetric (if they were unscrambled)
@@ -1348,13 +1166,13 @@ mpzspv_to_dct1 (mpzspv_t dct, const mpzspv_t spv, const spv_size_t spvlen,
          scrambled data works */
       {
         spv_size_t m = 5;
-        for (i = 2; i < l; i += 2L)
+        for (i = 2; i < ntt_size; i += 2L)
           {
             /* This works, but why? */
             if (i + i / 2L > m)
                 m = 2L * m + 1L;
 
-            ASSERT (tmp[j][i] == tmp[j][m - i]);
+            ASSERT (tmp[i] == tmp[m - i]);
 #if 0
             printf ("mpzspv_to_dct1: DFT[%lu] == DFT[%lu]\n", i, m - i);
 #endif
@@ -1363,13 +1181,32 @@ mpzspv_to_dct1 (mpzspv_t dct, const mpzspv_t spv, const spv_size_t spvlen,
 #endif
 
       /* Copy coefficients to dct buffer */
-      for (i = 0; i < l / 2; i++)
-        dct[j][i] = tmp[j][i * 2];
-      dct[j][l / 2] = tmp[j][1];
+      {
+        spv_t out_buf = (dct != NULL) ? dct[j] : tmp;
+        const sp_t coeff_1 = tmp[1];
+        for (i = 0; i < ntt_size / 2; i++)
+          out_buf[i] = tmp[i * 2];
+        out_buf[ntt_size / 2] = coeff_1;
+        if (file != NULL)
+          {
+            /* Write data back to file */
+            seek_and_write_sp (tmp, dctlen + 1, 0, file[j]);
+          }
+      }
+
+      sp_aligned_free(tmp);
     }
 #ifdef _OPENMP
   }
 #endif
+}
+
+
+void
+mpzspv_to_dct1 (mpzspv_t dct, mpzspv_t spv, const spv_size_t spvlen, 
+                const spv_size_t dctlen, const mpzspm_t mpzspm)
+{
+  mpzspv_to_dct1_file (dct, spv, NULL, spvlen, dctlen, mpzspm);
 }
 
 
@@ -1382,64 +1219,8 @@ mpzspv_to_dct1 (mpzspv_t dct, const mpzspv_t spv, const spv_size_t spvlen,
    NTT_MUL_STEP_FFT1: do forward transform
    NTT_MUL_STEP_MUL: do point-wise product
    NTT_MUL_STEP_IFFT: do inverse transform 
+   Now handled by mpzspv_mul_ntt().
 */
-
-void
-mpzspv_mul_by_dct (mpzspv_t dft, const mpzspv_t dct, const spv_size_t len, 
-		   const mpzspm_t mpzspm, const int steps)
-{
-  int j;
-  spv_size_t log2_len = ceil_log_2 (len);
-  
-#ifdef _OPENMP
-#pragma omp parallel private(j)
-  {
-#pragma omp for
-#endif
-    for (j = 0; j < (int) (mpzspm->sp_num); j++)
-      {
-	const spm_t spm = mpzspm->spm[j];
-	const spv_t spv = dft[j];
-	unsigned long i, m;
-	
-	/* Forward DFT of dft[j] */
-	if ((steps & NTT_MUL_STEP_FFT1) != 0)
-	  spv_ntt_gfp_dif (spv, log2_len, spm);
-	
-	/* Point-wise product */
-	if ((steps & NTT_MUL_STEP_MUL) != 0)
-	  {
-	    m = 5UL;
-	    
-	    spv[0] = sp_mul (spv[0], dct[j][0], spm->sp, spm->mul_c);
-	    spv[1] = sp_mul (spv[1], dct[j][len / 2UL], spm->sp, spm->mul_c);
-	    
-	    for (i = 2UL; i < len; i += 2UL)
-	      {
-		/* This works, but why? */
-		if (i + i / 2UL > m)
-		  m = 2UL * m + 1;
-		
-		spv[i] = sp_mul (spv[i], dct[j][i / 2UL], spm->sp, spm->mul_c);
-		spv[m - i] = sp_mul (spv[m - i], dct[j][i / 2UL], spm->sp, 
-				     spm->mul_c);
-	      }
-	  }
-	
-	/* Inverse transform of dft[j] */
-	if ((steps & NTT_MUL_STEP_IFFT) != 0)
-	  {
-	    spv_ntt_gfp_dit (spv, log2_len, spm);
-	    
-	    /* Divide by transform length. FIXME: scale the DCT of h instead */
-	    spv_mul_sp (spv, spv, spm->sp - (spm->sp - 1) / len, len, 
-			spm->sp, spm->mul_c);
-	  }
-      }
-#ifdef _OPENMP
-  }
-#endif
-}
 
 
 void 
@@ -1623,7 +1404,6 @@ mpzspv_sqr_reciprocal (mpzspv_t dft, const spv_size_t n,
     }
 #endif
 }
-
 
 FILE **
 mpzspv_open_fileset (const char *file_stem, const mpzspm_t mpzspm)
