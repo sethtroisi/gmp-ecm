@@ -1970,7 +1970,6 @@ mpmod_selftest (const mpz_t n)
 void 
 mpresn_sqr (mpres_t R, const mpres_t S1, mpmod_t modulus)
 {
-  mp_ptr r = PTR(R);
   mp_ptr s1 = PTR(S1);
   mp_ptr t1 = PTR(modulus->temp1);
   mp_size_t n = modulus->bits/GMP_NUMB_BITS;
@@ -2013,7 +2012,6 @@ mpresn_sqr (mpres_t R, const mpres_t S1, mpmod_t modulus)
 void 
 mpresn_mul (mpres_t R, const mpres_t S1, const mpres_t S2, mpmod_t modulus)
 {
-  mp_ptr r = PTR(R);
   mp_ptr s1 = PTR(S1);
   mp_ptr s2 = PTR(S2);
   mp_ptr t1 = PTR(modulus->temp1);
@@ -2100,7 +2098,6 @@ void
 mpresn_mul_ui (mpres_t R, const mpres_t S, const unsigned long m, 
               mpmod_t modulus)
 {
-  mp_ptr r = PTR(R);
   mp_ptr s = PTR(S);
   mp_ptr t1 = PTR(modulus->temp1);
   mp_size_t n = modulus->bits/GMP_NUMB_BITS;
