@@ -264,6 +264,91 @@ static void bfly_dif(spv_t x0, spv_t x1, spv_t w,
       pstore((__m128i *)(x1 + i), t0);
     }
 
+#elif defined(HAVE_SSE2) && (GMP_LIMB_BITS == 32)
+
+  __m128i t0, t1, t2, t3, t4, t5, vm, vd;
+
+  vm = pshufd(pcvt_i64(p), 0x44);
+  vd = pshufd(pcvt_i64(d), 0x44);
+
+  for (i = 0; i < len; i += 2)
+    {
+      t0 = pload((__m128i *)(x0 + i));
+      t1 = pload((__m128i *)(x1 + i));
+      t2 = paddq(t0, t1);
+      t3 = psubq(t0, t1);
+      t2 = psubq(t2, vm);
+
+      t0 = pcmpgtd(psetzero(), t2);
+      t1 = pcmpgtd(psetzero(), t3);
+      t0 = pshufd(t0, 0xf5);
+      t1 = pshufd(t1, 0xf5);
+      t0 = pand(t0, vm);
+      t1 = pand(t1, vm);
+      t2 = paddq(t2, t0);
+      t4 = pload((__m128i *)(w + i));
+      t5 = paddq(t3, t1);
+
+      pstore((__m128i *)(x0 + i), t2);
+
+      t3 = pshufd(t4, 0x31);
+      t3 = pmuludq(t3, t5);
+      t2 = pshufd(t5, 0x31);
+      t2 = pmuludq(t2, t4);
+      t1 = pshufd(t4, 0x31);
+      t4 = pmuludq(t4, t5);
+      t5 = pshufd(t5, 0x31);
+      t5 = pmuludq(t5, t1);
+      t3 = paddq(t2, t3);
+
+      t0 = t4;
+      t4 = psrlq(t4, 32);
+      t1 = t3;
+      t3 = psllq(t3, 32);
+      t3 = paddq(t3, t0);
+      t4 = paddq(t4, t1);
+      t4 = psrlq(t4, 32);
+      t4 = paddq(t4, t5);
+
+      t0 = t3;
+      t4 = psllq(t4, 2*(SP_TYPE_BITS - SP_NUMB_BITS));
+      t0 = psrlq(t0, 2*SP_NUMB_BITS - SP_TYPE_BITS);
+      t4 = paddq(t4, t0);
+
+      t5 = pshufd(t4, 0x31);
+      t5 = pmuludq(t5, vd);
+      t2 = pshufd(vd, 0x31);
+      t2 = pmuludq(t2, t4);
+      t1 = pshufd(t4, 0x31);
+      t4 = pmuludq(t4, vd);
+      t0 = pshufd(vd, 0x31);
+      t1 = pmuludq(t1, t0);
+      t5 = paddq(t5, t2);
+
+      t4 = psrlq(t4, 32);
+      t5 = paddq(t5, t4);
+      t5 = psrlq(t5, 32);
+      t1 = paddq(t1, t5);
+      t1 = psrlq(t1, 1);
+
+      t5 = pshufd(t1, 0x31);
+      t5 = pmuludq(t5, vm);
+      t2 = pshufd(vm, 0x31);
+      t2 = pmuludq(t2, t1);
+      t1 = pmuludq(t1, vm);
+      t5 = paddq(t5, t2);
+      t5 = psllq(t5, 32);
+      t1 = paddq(t1, t5);
+
+      t3 = psubq(t3, t1);
+      t3 = psubq(t3, vm);
+      t1 = pcmpgtd(psetzero(), t3);
+      t1 = pshufd(t1, 0xf5);
+      t1 = pand(t1, vm);
+      t3 = paddq(t3, t1);
+      pstore((__m128i *)(x1 + i), t3);
+    }
+
 #else
   for (i = 0; i < len; i++)
     {
@@ -311,7 +396,7 @@ static void bfly_dif_sp(spv_t x0, spv_t x1, sp_t w,
       t1 = pand(t1, vm);
       t2 = paddd(t2, t0);
       t0 = vw;
-      t1 = paddd(t3, t1);
+      t1 = paddq(t3, t1);
 
       pstore((__m128i *)(x0 + i), t2);
 
@@ -358,6 +443,92 @@ static void bfly_dif_sp(spv_t x0, spv_t x1, sp_t w,
       t0 = paddd(t0, t1);
 
       pstore((__m128i *)(x1 + i), t0);
+    }
+
+#elif defined(HAVE_SSE2) && (GMP_LIMB_BITS == 32)
+
+  __m128i t0, t1, t2, t3, t4, t5, vm, vd, vw;
+
+  vm = pshufd(pcvt_i64(p), 0x44);
+  vd = pshufd(pcvt_i64(d), 0x44);
+  vw = pshufd(pcvt_i64(w), 0x44);
+
+  for (i = 0; i < len; i += 2)
+    {
+      t0 = pload((__m128i *)(x0 + i));
+      t1 = pload((__m128i *)(x1 + i));
+      t2 = paddq(t0, t1);
+      t3 = psubq(t0, t1);
+      t2 = psubq(t2, vm);
+
+      t0 = pcmpgtd(psetzero(), t2);
+      t1 = pcmpgtd(psetzero(), t3);
+      t0 = pshufd(t0, 0xf5);
+      t1 = pshufd(t1, 0xf5);
+      t0 = pand(t0, vm);
+      t1 = pand(t1, vm);
+      t2 = paddq(t2, t0);
+      t4 = vw;
+      t5 = paddq(t3, t1);
+
+      pstore((__m128i *)(x0 + i), t2);
+
+      t3 = pshufd(t4, 0x31);
+      t3 = pmuludq(t3, t5);
+      t2 = pshufd(t5, 0x31);
+      t2 = pmuludq(t2, t4);
+      t1 = pshufd(t4, 0x31);
+      t4 = pmuludq(t4, t5);
+      t5 = pshufd(t5, 0x31);
+      t5 = pmuludq(t5, t1);
+      t3 = paddq(t2, t3);
+
+      t0 = t4;
+      t4 = psrlq(t4, 32);
+      t1 = t3;
+      t3 = psllq(t3, 32);
+      t3 = paddq(t3, t0);
+      t4 = paddq(t4, t1);
+      t4 = psrlq(t4, 32);
+      t4 = paddq(t4, t5);
+
+      t0 = t3;
+      t4 = psllq(t4, 2*(SP_TYPE_BITS - SP_NUMB_BITS));
+      t0 = psrlq(t0, 2*SP_NUMB_BITS - SP_TYPE_BITS);
+      t4 = paddq(t4, t0);
+
+      t5 = pshufd(t4, 0x31);
+      t5 = pmuludq(t5, vd);
+      t2 = pshufd(vd, 0x31);
+      t2 = pmuludq(t2, t4);
+      t1 = pshufd(t4, 0x31);
+      t4 = pmuludq(t4, vd);
+      t0 = pshufd(vd, 0x31);
+      t1 = pmuludq(t1, t0);
+      t5 = paddq(t5, t2);
+
+      t4 = psrlq(t4, 32);
+      t5 = paddq(t5, t4);
+      t5 = psrlq(t5, 32);
+      t1 = paddq(t1, t5);
+      t1 = psrlq(t1, 1);
+
+      t5 = pshufd(t1, 0x31);
+      t5 = pmuludq(t5, vm);
+      t2 = pshufd(vm, 0x31);
+      t2 = pmuludq(t2, t1);
+      t1 = pmuludq(t1, vm);
+      t5 = paddq(t5, t2);
+      t5 = psllq(t5, 32);
+      t1 = paddq(t1, t5);
+
+      t3 = psubq(t3, t1);
+      t3 = psubq(t3, vm);
+      t1 = pcmpgtd(psetzero(), t3);
+      t1 = pshufd(t1, 0xf5);
+      t1 = pand(t1, vm);
+      t3 = paddq(t3, t1);
+      pstore((__m128i *)(x1 + i), t3);
     }
 
 #else
@@ -648,6 +819,92 @@ static inline void bfly_dit(spv_t x0, spv_t x1, spv_t w,
       pstore((__m128i *)(x1 + i), t3);
     }
 
+#elif defined(HAVE_SSE2) && (GMP_LIMB_BITS == 32)
+
+  __m128i t0, t1, t2, t3, t4, t5, vm, vd;
+
+  vm = pshufd(pcvt_i64(p), 0x44);
+  vd = pshufd(pcvt_i64(d), 0x44);
+
+  for (i = 0; i < len; i += 2)
+    {
+      t4 = pload((__m128i *)(x1 + i));
+      t5 = pload((__m128i *)(w + i));
+
+      t3 = pshufd(t4, 0x31);
+      t3 = pmuludq(t3, t5);
+      t2 = pshufd(t5, 0x31);
+      t2 = pmuludq(t2, t4);
+      t1 = pshufd(t4, 0x31);
+      t4 = pmuludq(t4, t5);
+      t5 = pshufd(t5, 0x31);
+      t5 = pmuludq(t5, t1);
+      t3 = paddq(t2, t3);
+
+      t0 = t4;
+      t4 = psrlq(t4, 32);
+      t1 = t3;
+      t3 = psllq(t3, 32);
+      t3 = paddq(t3, t0);
+      t4 = paddq(t4, t1);
+      t4 = psrlq(t4, 32);
+      t4 = paddq(t4, t5);
+
+      t0 = t3;
+      t4 = psllq(t4, 2*(SP_TYPE_BITS - SP_NUMB_BITS));
+      t0 = psrlq(t0, 2*SP_NUMB_BITS - SP_TYPE_BITS);
+      t4 = paddq(t4, t0);
+
+      t5 = pshufd(t4, 0x31);
+      t5 = pmuludq(t5, vd);
+      t2 = pshufd(vd, 0x31);
+      t2 = pmuludq(t2, t4);
+      t1 = pshufd(t4, 0x31);
+      t4 = pmuludq(t4, vd);
+      t0 = pshufd(vd, 0x31);
+      t1 = pmuludq(t1, t0);
+      t5 = paddq(t5, t2);
+
+      t4 = psrlq(t4, 32);
+      t5 = paddq(t5, t4);
+      t5 = psrlq(t5, 32);
+      t1 = paddq(t1, t5);
+      t1 = psrlq(t1, 1);
+
+      t5 = pshufd(t1, 0x31);
+      t5 = pmuludq(t5, vm);
+      t2 = pshufd(vm, 0x31);
+      t2 = pmuludq(t2, t1);
+      t1 = pmuludq(t1, vm);
+      t5 = paddq(t5, t2);
+      t5 = psllq(t5, 32);
+      t1 = paddq(t1, t5);
+
+      t3 = psubq(t3, t1);
+      t3 = psubq(t3, vm);
+      t1 = pcmpgtd(psetzero(), t3);
+      t1 = pshufd(t1, 0xf5);
+      t1 = pand(t1, vm);
+      t3 = paddq(t3, t1);
+
+      t1 = pload((__m128i *)(x0 + i));
+      t2 = paddq(t1, t3);
+      t3 = psubq(t1, t3);
+      t2 = psubq(t2, vm);
+
+      t0 = pcmpgtd(psetzero(), t2);
+      t1 = pcmpgtd(psetzero(), t3);
+      t0 = pshufd(t0, 0xf5);
+      t1 = pshufd(t1, 0xf5);
+      t0 = pand(t0, vm);
+      t1 = pand(t1, vm);
+      t2 = paddq(t2, t0);
+      t3 = paddq(t3, t1);
+
+      pstore((__m128i *)(x0 + i), t2);
+      pstore((__m128i *)(x1 + i), t3);
+    }
+
 #else
   for (i = 0; i < len; i++)
     {
@@ -735,6 +992,93 @@ static inline void bfly_dit_sp(spv_t x0, spv_t x1, sp_t w,
       t1 = pand(t1, vm);
       t2 = paddd(t2, t0);
       t3 = paddd(t3, t1);
+
+      pstore((__m128i *)(x0 + i), t2);
+      pstore((__m128i *)(x1 + i), t3);
+    }
+
+#elif defined(HAVE_SSE2) && (GMP_LIMB_BITS == 32)
+
+  __m128i t0, t1, t2, t3, t4, t5, vm, vd, vw;
+
+  vm = pshufd(pcvt_i64(p), 0x44);
+  vd = pshufd(pcvt_i64(d), 0x44);
+  vw = pshufd(pcvt_i64(w), 0x44);
+
+  for (i = 0; i < len; i += 2)
+    {
+      t4 = pload((__m128i *)(x1 + i));
+      t5 = vw;
+
+      t3 = pshufd(t4, 0x31);
+      t3 = pmuludq(t3, t5);
+      t2 = pshufd(t5, 0x31);
+      t2 = pmuludq(t2, t4);
+      t1 = pshufd(t4, 0x31);
+      t4 = pmuludq(t4, t5);
+      t5 = pshufd(t5, 0x31);
+      t5 = pmuludq(t5, t1);
+      t3 = paddq(t2, t3);
+
+      t0 = t4;
+      t4 = psrlq(t4, 32);
+      t1 = t3;
+      t3 = psllq(t3, 32);
+      t3 = paddq(t3, t0);
+      t4 = paddq(t4, t1);
+      t4 = psrlq(t4, 32);
+      t4 = paddq(t4, t5);
+
+      t0 = t3;
+      t4 = psllq(t4, 2*(SP_TYPE_BITS - SP_NUMB_BITS));
+      t0 = psrlq(t0, 2*SP_NUMB_BITS - SP_TYPE_BITS);
+      t4 = paddq(t4, t0);
+
+      t5 = pshufd(t4, 0x31);
+      t5 = pmuludq(t5, vd);
+      t2 = pshufd(vd, 0x31);
+      t2 = pmuludq(t2, t4);
+      t1 = pshufd(t4, 0x31);
+      t4 = pmuludq(t4, vd);
+      t0 = pshufd(vd, 0x31);
+      t1 = pmuludq(t1, t0);
+      t5 = paddq(t5, t2);
+
+      t4 = psrlq(t4, 32);
+      t5 = paddq(t5, t4);
+      t5 = psrlq(t5, 32);
+      t1 = paddq(t1, t5);
+      t1 = psrlq(t1, 1);
+
+      t5 = pshufd(t1, 0x31);
+      t5 = pmuludq(t5, vm);
+      t2 = pshufd(vm, 0x31);
+      t2 = pmuludq(t2, t1);
+      t1 = pmuludq(t1, vm);
+      t5 = paddq(t5, t2);
+      t5 = psllq(t5, 32);
+      t1 = paddq(t1, t5);
+
+      t3 = psubq(t3, t1);
+      t3 = psubq(t3, vm);
+      t1 = pcmpgtd(psetzero(), t3);
+      t1 = pshufd(t1, 0xf5);
+      t1 = pand(t1, vm);
+      t3 = paddq(t3, t1);
+
+      t1 = pload((__m128i *)(x0 + i));
+      t2 = paddq(t1, t3);
+      t3 = psubq(t1, t3);
+      t2 = psubq(t2, vm);
+
+      t0 = pcmpgtd(psetzero(), t2);
+      t1 = pcmpgtd(psetzero(), t3);
+      t0 = pshufd(t0, 0xf5);
+      t1 = pshufd(t1, 0xf5);
+      t0 = pand(t0, vm);
+      t1 = pand(t1, vm);
+      t2 = paddq(t2, t0);
+      t3 = paddq(t3, t1);
 
       pstore((__m128i *)(x0 + i), t2);
       pstore((__m128i *)(x1 + i), t3);

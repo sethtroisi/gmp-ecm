@@ -40,6 +40,7 @@
 #define pload  _mm_load_si128
 #define pstore _mm_store_si128
 #define pand _mm_and_si128
+#define pxor _mm_xor_si128
 #define psetzero() _mm_setzero_si128()
 #define paddd _mm_add_epi32
 #define paddq _mm_add_epi64
