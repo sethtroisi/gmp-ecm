@@ -26,44 +26,9 @@
 #ifndef _SP_H
 #define _SP_H
 
-#include "config.h"
-#include <stdio.h>
-#include <gmp.h>
+#include "basicdefs.h"
+#include "ecm-gmp.h"
 
-/* include (hopefully standard) SSE2 interface, along
-   with mnemonics for the small part of the ISA that 
-   we need */
-
-#ifdef HAVE_SSE2
-#include <emmintrin.h>
-
-#define pload  _mm_load_si128
-#define pstore _mm_store_si128
-#define pand _mm_and_si128
-#define pxor _mm_xor_si128
-#define psetzero() _mm_setzero_si128()
-#define paddd _mm_add_epi32
-#define paddq _mm_add_epi64
-#define psubd _mm_sub_epi32
-#define psubq _mm_sub_epi64
-#define pmuludq _mm_mul_epu32
-#define pslld _mm_slli_epi32
-#define psllq _mm_slli_epi64
-#define psrld _mm_srli_epi32
-#define psrlq _mm_srli_epi64
-#define pshufd _mm_shuffle_epi32
-#define pcmpgtd _mm_cmpgt_epi32
-#define punpcklo32 _mm_unpacklo_epi32
-#define punpcklo64 _mm_unpacklo_epi64
-#define pcvt_i32 _mm_cvtsi32_si128
-
-#if defined(_WIN64) || defined(__x86_64__)
-#define pcvt_i64 _mm_cvtsi64_si128
-#else
-#define pcvt_i64(x) _mm_loadl_epi64((__m128i const *)&(x))
-#endif
-
-#endif
 
 #ifndef TUNE
 #include "ecm-params.h"
@@ -252,17 +217,6 @@ typedef __mpzspm_struct * mpzspm_t;
 
 typedef spv_t * mpzspv_t;
 
-#define MAX(x,y) (((x)<(y))?(y):(x))
-#define MIN(x,y) (((x)<(y))?(x):(y))
-
-#define SIZ(x) ((x)->_mp_size)
-#define PTR(x) ((x)->_mp_d)
-
-/* expanding macros and then turning them 
-   into strings requires two levels of macro-izing */
-
-#define _(x) #x
-#define STRING(x) _(x)
 
 /*************
  * FUNCTIONS *
@@ -292,27 +246,9 @@ static inline void
 mpz_set_sp (mpz_t m, const sp_t n)
 {
 #if SP_TYPE_BITS == 32
-
   mpz_set_ui(m, (unsigned long)(uint32_t)n);
-
 #else /* 64-bit sp_t */
-
-  #if GMP_LIMB_BITS == 64  /* 64-bit GMP limb, 64-bit sp_t */
-  if (sizeof(sp_t) > sizeof(unsigned long))
-    {
-       mpz_set_ui (m, (unsigned long)(uint32_t)(n >> 32));
-       mpz_mul_2exp (m, m, 32);
-       mpz_add_ui (m, m, (unsigned long)(uint32_t)n);
-    }
-  else
-    mpz_set_ui(m, (unsigned long)n);
-
-  #else                    /* 32-bit GMP limb, 64-bit sp_t */
-  mpz_set_ui (m, (unsigned long)(uint32_t)(n >> 32));
-  mpz_mul_2exp (m, m, 32);
-  mpz_add_ui (m, m, (unsigned long)(uint32_t)n);
-  #endif
-
+  mpz_set_uint64(m, n);
 #endif
 }
 

@@ -23,25 +23,8 @@ MA 02110-1301, USA. */
 #ifndef _ECM_GMP_H
 #define _ECM_GMP_H 1
 
-#include "config.h"
+#include "basicdefs.h"
 #include <gmp.h>
-
-#ifndef alloca
-#ifdef __GNUC__
-# define alloca __builtin_alloca
-#elif defined (__DECC)
-# define alloca(x) __ALLOCA(x)
-#elif defined (_MSC_VER)
-# include <malloc.h>
-# define alloca _alloca
-#elif HAVE_ALLOCA_H || defined (sun)
-# include <alloca.h>
-#elif defined (_AIX) || defined (_IBMR2)
-#pragma alloca
-#else
-  char *alloca ();
-#endif
-#endif
 
 #define ABSIZ(x) ABS (SIZ (x))
 #define ALLOC(x) ((x)->_mp_alloc)
@@ -135,5 +118,38 @@ __GMP_DECLSPEC mp_limb_t __gmpn_add_nc (mp_ptr, mp_srcptr, mp_srcptr,
 #if defined(HAVE___GMPN_MULLO_N)
   void __gmpn_mullo_n (mp_ptr, mp_srcptr, mp_srcptr, mp_size_t);
 #endif
+
+static inline void 
+mpz_set_uint64 (mpz_t m, const uint64_t n)
+{
+#if GMP_LIMB_BITS == 64  /* 64-bit GMP limb */
+  if (sizeof(mp_limb_t) > sizeof(unsigned long))
+    {
+       mpz_set_ui (m, (unsigned long)(uint32_t)(n >> 32));
+       mpz_mul_2exp (m, m, 32);
+       mpz_add_ui (m, m, (unsigned long)(uint32_t)n);
+    }
+  else
+    mpz_set_ui(m, (unsigned long)n);
+
+#else                    /* 32-bit GMP limb */
+  mpz_set_ui (m, (unsigned long)(uint32_t)(n >> 32));
+  mpz_mul_2exp (m, m, 32);
+  mpz_add_ui (m, m, (unsigned long)(uint32_t)n);
+#endif
+}
+
+static inline void 
+mpz_set_int64 (mpz_t m, const int64_t n)
+{
+  if (n < 0)
+    {
+      mpz_set_uint64(m, -n);
+      mpz_neg(m, m);
+    }
+  else
+    mpz_set_uint64(m, n);
+}
+
 
 #endif /* _ECM_GMP_H */

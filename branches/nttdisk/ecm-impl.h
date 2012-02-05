@@ -21,30 +21,11 @@
 #ifndef _ECM_IMPL_H
 #define _ECM_IMPL_H 1
 
-#include "config.h"
-#include "ecm.h"
+#include "basicdefs.h"
 #include "ecm-gmp.h"
+#include "ecm.h"
+#include "sp.h"
 
-#ifdef HAVE_SYS_TYPES_H
-#include <sys/types.h> /* needed for size_t */
-#endif
-
-/* name some types whose bit widths are unambiguous */
-
-#if defined(HAVE_INTTYPES_H)
-#include <inttypes.h>
-#elif defined(_MSC_VER)
-typedef signed __int32 int32_t;
-typedef unsigned __int32 uint32_t;
-typedef signed __int64 int64_t;
-typedef unsigned __int64 uint64_t;
-
-/* portable formatting of wide types */
-#define PRId64 "I64d"
-#define PRIu64 "I64u"
-#define PRIx64 "I64x"
-
-#endif
 
 #if defined UINT64_MAX || defined uint64_t
 typedef int64_t ecm_int;
@@ -71,9 +52,6 @@ extern size_t REDC_THRESHOLD;
 #endif
 extern size_t mpn_mul_lo_threshold[];
 
-#include <stdio.h> /* needed for "FILE *" */
-#include <limits.h>
-
 #if  defined (__STDC__)                                 \
   || defined (__cplusplus)                              \
   || defined (_AIX)                                     \
@@ -97,37 +75,6 @@ extern size_t mpn_mul_lo_threshold[];
 #define ECM_STDOUT __ecm_stdout
 #define ECM_STDERR __ecm_stderr
 extern FILE *ECM_STDOUT, *ECM_STDERR;
-
-/* Warnings about unused parameters by gcc can be suppressed by prefixing 
-   parameter with ATTRIBUTE_UNUSED when parameter can't be removed, i.e. 
-   for interface consistency reasons */
-#ifdef __GNUC__
-#if    __GNUC__ >= 3
-#define ATTRIBUTE_UNUSED __attribute__ ((unused))
-#else
-#define ATTRIBUTE_UNUSED
-#endif
-#define ATTRIBUTE_CONST __attribute__ ((const))
-#else
-#define ATTRIBUTE_UNUSED
-#define ATTRIBUTE_CONST
-#endif
-
-#ifndef LIKELY
-#if defined(__GNUC__)
-#define LIKELY(x) __builtin_expect ((x) != 0, 1)
-#else
-#define LIKELY(x) x
-#endif
-#endif
-
-#ifndef UNLIKELY
-#if defined(__GNUC__)
-#define UNLIKELY(x) __builtin_expect ((x) != 0, 0)
-#else
-#define UNLIKELY(x) x
-#endif
-#endif
 
 /* Whether we build the polynomials in stage 2 as described in the literature 
    as products of (x - x_i) (NEGATED_ROOTS 0), or as 
@@ -170,16 +117,6 @@ extern FILE *ECM_STDOUT, *ECM_STDERR;
 #ifdef POLYEVALTELLEGEN
 #define USE_SHORT_PRODUCT
 #endif
-
-#include <assert.h>
-#define ASSERT_ALWAYS(expr)   assert (expr)
-#ifdef WANT_ASSERT
-#define ASSERT(expr)   assert (expr)
-#else
-#define ASSERT(expr)   do {} while (0)
-#endif
-
-#include "sp.h"
 
 #ifdef MEMORY_DEBUG
 void tests_free (void *, size_t);
@@ -355,39 +292,6 @@ typedef __mpmod_struct mpmod_t[1];
 #if defined (__cplusplus)
 extern "C" {
 #endif  
-
-static inline void 
-mpz_set_uint64 (mpz_t m, const uint64_t n)
-{
-#if GMP_LIMB_BITS == 64  /* 64-bit GMP limb */
-  if (sizeof(mp_limb_t) > sizeof(unsigned long))
-    {
-       mpz_set_ui (m, (unsigned long)(uint32_t)(n >> 32));
-       mpz_mul_2exp (m, m, 32);
-       mpz_add_ui (m, m, (unsigned long)(uint32_t)n);
-    }
-  else
-    mpz_set_ui(m, (unsigned long)n);
-
-#else                    /* 32-bit GMP limb */
-  mpz_set_ui (m, (unsigned long)(uint32_t)(n >> 32));
-  mpz_mul_2exp (m, m, 32);
-  mpz_add_ui (m, m, (unsigned long)(uint32_t)n);
-#endif
-}
-
-static inline void 
-mpz_set_int64 (mpz_t m, const int64_t n)
-{
-  if (n < 0)
-    {
-      mpz_set_uint64(m, -n);
-      mpz_neg(m, m);
-    }
-  else
-    mpz_set_uint64(m, n);
-}
-
 
 /* getprime.c */
 #define getprime __ECM(getprime)

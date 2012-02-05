@@ -60,19 +60,8 @@ MA 02110-1301, USA. */
    /* Throughout this file, Mp is chosen so that 
       ord_{2^Nprime + 1}(sqrt(2)^Mp) == 2^k */
 
-#include <stdio.h>
-#include <stdlib.h> /* for abort() */
-#include <limits.h> /* for LONG_MAX */
-#include <assert.h>
-#include "config.h"
-
-#ifdef HAVE_ALLOCA_H
-#include <alloca.h>
-#elif defined(HAVE_MALLOC_H)
-#include <malloc.h>
-#endif
-
-#include "gmp.h"
+#include <gmp.h>
+#include "basicdefs.h"
 #include "mul_fft-params.h"
 
 /* All functions that are not declared static are renamed to avoid 
@@ -104,26 +93,6 @@ MA 02110-1301, USA. */
 
 #ifndef SQR_FFT_MODF_THRESHOLD
 #define SQR_FFT_MODF_THRESHOLD 568
-#endif
-
-#ifndef ASSERT
-#ifdef WANT_ASSERT
-#define ASSERT(x) assert(x)
-#else
-#define ASSERT(x)
-#endif
-#endif
-
-#ifndef ASSERT_ALWAYS
-#define ASSERT_ALWAYS(x) assert(x)
-#endif
-
-#ifndef LIKELY
-#if defined(__GNUC__)
-#define LIKELY(x) __builtin_expect ((x) != 0, 1)
-#else
-#define LIKELY(x) x
-#endif
 #endif
 
 /* _PROTO macro is copied from longlong.h of GMP */

@@ -83,7 +83,8 @@ if WITH_GWNUM
 endif
 
 include_HEADERS = ecm.h
-noinst_HEADERS = ecm-impl.h ecm-gmp.h ecm-ecm.h sp.h longlong.h ecm-params.h
+noinst_HEADERS = basicdefs.h ecm-impl.h ecm-gmp.h ecm-ecm.h \
+		 sp.h longlong.h ecm-params.h
 
 EXTRA_DIST = test.pm1 test.pp1 test.ecm README.lib INSTALL-ecm ecm.xml \
              ecm-params.h.alpha-ev5 ecm-params.h.athlon64 \
