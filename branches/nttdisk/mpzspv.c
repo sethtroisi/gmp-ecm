@@ -270,11 +270,13 @@ mpzspv_from_mpzv (mpzspv_t x, const spv_size_t offset, const mpzv_t mpzv,
 #if defined(_OPENMP)
 #pragma omp parallel private(i,rem) if (len > 16384)
   {
-    /* Multi-threading with dynamic scheduling slows things down */
-#pragma omp for schedule(static)
 #endif
+    /* Multi-threading with dynamic scheduling slows things down */
 
     mpz_init(rem);
+#if defined(_OPENMP)
+#pragma omp for schedule(static)
+#endif
     for (i = 0; i < (long) len; i++)
     {
       unsigned int j;
