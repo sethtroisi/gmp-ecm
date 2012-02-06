@@ -2006,7 +2006,7 @@ mpresn_pad (mpres_t R, mpmod_t N)
     }
 }
 
-/* R <- S1 * S2 mod N, used only for ECM_MOD_MODMULN */
+/* R <- S1 * S1 mod N, used only for ECM_MOD_MODMULN */
 void 
 mpresn_sqr (mpres_t R, const mpres_t S1, mpmod_t modulus)
 {
@@ -2017,28 +2017,30 @@ mpresn_sqr (mpres_t R, const mpres_t S1, mpmod_t modulus)
   ASSERT (SIZ(S1) == n || -SIZ(S1) == n);
 
 #ifdef USE_ASM_REDC
-  mulredc (PTR(R), PTR(S1), PTR(S1), np, n, invm);
-#else
-  {
-    mp_ptr r = PTR(R);
-    mp_ptr t = PTR(modulus->temp1);
-    mp_size_t j;
-    mp_limb_t cy;
+  if (n < TUNE_SQRREDC_THRESH)
+    mulredc (PTR(R), PTR(S1), PTR(S1), np, n, invm);
+  else
+#endif
+    {
+      mp_ptr r = PTR(R);
+      mp_ptr t = PTR(modulus->temp1);
+      mp_size_t j;
+      ATTRIBUTE_UNUSED mp_limb_t cy;
 
 #ifdef HAVE_MPN_SQR
-    mpn_sqr (t, PTR(S1), n);
+      mpn_sqr (t, PTR(S1), n);
 #else
-    mpn_mul_n (t, PTR(S1), PTR(S1), n);
+      mpn_mul_n (t, PTR(S1), PTR(S1), n);
 #endif
-    for (j = 0; j < n; j++, t++)
-      r[j] = mpn_addmul_1 (t, np, n, t[0] * invm);
-    cy = mpn_add_n (r, r, t, n);
-    ASSERT(cy == 0);
-  }
-#endif
+      for (j = 0; j < n; j++, t++)
+        r[j] = mpn_addmul_1 (t, np, n, t[0] * invm);
+      cy = mpn_add_n (r, r, t, n);
+      ASSERT(cy == 0);
+    }
   SIZ(R) = n;
 }
 
+/* R <- S1 * S2 mod N, used only for ECM_MOD_MODMULN */
 void 
 mpresn_mul (mpres_t R, const mpres_t S1, const mpres_t S2, mpmod_t modulus)
 {
@@ -2050,21 +2052,22 @@ mpresn_mul (mpres_t R, const mpres_t S1, const mpres_t S2, mpmod_t modulus)
   ASSERT (SIZ(S2) == n || -SIZ(S2) == n);
 
 #ifdef USE_ASM_REDC
-  mulredc (PTR(R), PTR(S1), PTR(S2), np, n, invm);
-#else
-  {
-    mp_ptr r = PTR(R);
-    mp_ptr t = PTR(modulus->temp1);
-    mp_size_t j;
-    mp_limb_t cy;
-
-    mpn_mul_n (t, PTR(S1), PTR(S2), n);
-    for (j = 0; j < n; j++, t++)
-      r[j] = mpn_addmul_1 (t, np, n, t[0] * invm);
-    cy = mpn_add_n (r, r, t, n);
-    ASSERT(cy == 0);
-  }
+  if (n < TUNE_MULREDC_THRESH) /* use quadratic assembly mulredc */
+    mulredc (PTR(R), PTR(S1), PTR(S2), np, n, invm);
+  else
 #endif
+    {
+      mp_ptr r = PTR(R);
+      mp_ptr t = PTR(modulus->temp1);
+      mp_size_t j;
+      ATTRIBUTE_UNUSED mp_limb_t cy;
+      
+      mpn_mul_n (t, PTR(S1), PTR(S2), n);
+      for (j = 0; j < n; j++, t++)
+        r[j] = mpn_addmul_1 (t, np, n, t[0] * invm);
+      cy = mpn_add_n (r, r, t, n);
+      ASSERT(cy == 0);
+    }
 
   SIZ(R) = SIZ(S1) == SIZ(S2) ? n : -n;
 }
