@@ -563,14 +563,14 @@ mulredc_1 (mp_ptr z, const mp_limb_t x, mp_srcptr y, mp_srcptr m,
 #ifdef TUNE
   extern mp_size_t TUNE_MULREDC_THRESH;
 #else
-  const mp_size_t TUNE_MULREDC_THRESH = 20;
+  const mp_size_t TUNE_MULREDC_THRESH = MULREDC_ASSEMBLY_MAX + 1;
 #endif
 #endif
 #if defined(USE_ASM_REDC) && !defined(TUNE_SQRREDC_THRESH)
 #ifdef TUNE
   extern mp_size_t TUNE_SQRREDC_THRESH;
 #else
-  const mp_size_t TUNE_SQRREDC_THRESH = 20;
+  const mp_size_t TUNE_SQRREDC_THRESH = MULREDC_ASSEMBLY_MAX + 1;
 #endif
 #endif
 
@@ -601,7 +601,7 @@ ecm_mulredc_basecase (mpres_t R, const mpres_t S1, const mpres_t S2,
     s2p[j] = 0;
 
 #if defined(USE_ASM_REDC)
-  if (nn <= TUNE_MULREDC_THRESH)
+  if (nn < TUNE_MULREDC_THRESH) /* use quadratic assembly mulredc */
     mulredc (rp, s1p, s2p, np, nn, modulus->Nprim[0]);
   else
 #endif
@@ -639,7 +639,7 @@ ecm_sqrredc_basecase (mpres_t R, const mpres_t S1, mpmod_t modulus)
     s1p[j] = 0;
 
 #if defined(USE_ASM_REDC)
-  if (nn <= TUNE_SQRREDC_THRESH)
+  if (nn < TUNE_SQRREDC_THRESH)
     mulredc (rp, s1p, s1p, np, nn, modulus->Nprim[0]);
   else
 #endif
@@ -737,7 +737,9 @@ mpmod_init (mpmod_t modulus, const mpz_t N, int repr)
       mpmod_init_MPZ (modulus, N);
       break;
     case ECM_MOD_MODMULN:
-      outputf (OUTPUT_VERBOSE, "Using MODMULN\n");
+      outputf (OUTPUT_VERBOSE, "Using MODMULN [TUNE_MULREDC_THRESH=%d, "
+               "TUNE_SQRREDC_THRESH=%d]\n",
+               TUNE_MULREDC_THRESH, TUNE_SQRREDC_THRESH);
       mpmod_init_MODMULN (modulus, N);
       break;
     case ECM_MOD_REDC:

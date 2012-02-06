@@ -604,6 +604,8 @@ if test x"$config_arch" = xathlon64; then
   if test -f /proc/cpuinfo; then
     if $EGREP -q "Core\(TM\)2" /proc/cpuinfo; then
       config_arch=core2
+    elif $EGREP -q "Core\(TM\) i5" /proc/cpuinfo; then
+      config_arch=corei5
     fi;
   else
     # No /proc/cpuinfo, tell user about ecm-params.h.core2

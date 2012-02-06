@@ -1,7 +1,7 @@
-/* Tune program.
+/* Tune program for GMP-ECM.
 
-  Copyright 2003, 2005, 2006, 2008 Paul Zimmermann, Alexander Kruppa, 
-  Dave Newman and Jason Papadopoulos.
+  Copyright 2003, 2005, 2006, 2007, 2008, 2009, 2010, 2012 Paul Zimmermann,
+  Alexander Kruppa, Dave Newman and Jason Papadopoulos.
 
   This program is free software; you can redistribute it and/or modify it
   under the terms of the GNU General Public License as published by the
@@ -188,7 +188,7 @@ tune_mpres_sqr (mp_size_t limbs, int repr)
 
   mpres_set_z (x, p, modulus);
 
-  TUNE_FUNC_LOOP (mpres_mul (z, x, x, modulus));
+  TUNE_FUNC_LOOP (mpres_sqr (z, x, modulus));
 
   mpres_clear (x, modulus);
   mpres_clear (z, modulus);
@@ -334,8 +334,9 @@ double
 tune_mulredc_asm (size_t n)
 {
   double r;
-  /* Make ecm_mulredc_basecase() always use asm mulredc code */
-  TUNE_MULREDC_THRESH=20;
+
+  /* Make ecm_mulredc_basecase() always use assembly mulredc code */
+  TUNE_MULREDC_THRESH = n + 1;
   r = tune_mpres_mul (n, ECM_MOD_MODMULN);
   if (tune_verbose)
     fprintf (stderr, "tune_mulredc_asm(%2ld) = %f\n", (long) n, r);
@@ -346,8 +347,9 @@ double
 tune_mulredc_noasm (size_t n)
 {
   double r;
-  /* Make ecm_mulredc_basecase() never use asm mulredc code */
-  TUNE_MULREDC_THRESH=0;
+
+  /* Make ecm_mulredc_basecase() never use assembly mulredc code */
+  TUNE_MULREDC_THRESH = n;
   r = tune_mpres_mul (n, ECM_MOD_MODMULN);
   if (tune_verbose)
     fprintf (stderr, "tune_mulredc_noasm(%2ld) = %f\n", (long) n, r);
@@ -359,8 +361,9 @@ double
 tune_sqrredc_asm (size_t n)
 {
   double r;
-  /* Make ecm_mulredc_basecase() always use asm mulredc code */
-  TUNE_SQRREDC_THRESH=20;
+
+  /* Make ecm_mulredc_basecase() always use assembly mulredc code */
+  TUNE_SQRREDC_THRESH = n + 1;
   r = tune_mpres_sqr (n, ECM_MOD_MODMULN);
   if (tune_verbose)
     fprintf (stderr, "tune_sqrredc_asm(%2ld) = %f\n", (long) n, r);
@@ -371,8 +374,9 @@ double
 tune_sqrredc_noasm (size_t n)
 {
   double r;
-  /* Make ecm_mulredc_basecase() always use asm mulredc code */
-  TUNE_SQRREDC_THRESH=0;
+
+  /* Make ecm_mulredc_basecase() never use assembly mulredc code */
+  TUNE_SQRREDC_THRESH = n;
   r = tune_mpres_sqr (n, ECM_MOD_MODMULN);
   if (tune_verbose)
     fprintf (stderr, "tune_sqrredc_noasm(%2ld) = %f\n", (long) n, r);
@@ -526,12 +530,12 @@ main (int argc, char **argv)
   spv = mpzspv[0];
   
   TUNE_MULREDC_THRESH = crossover2 (tune_mulredc_asm, tune_mulredc_noasm,
-                                    1, 20, 2);
+                                    1, MULREDC_ASSEMBLY_MAX + 1, 2);
   printf ("#define TUNE_MULREDC_THRESH %lu\n", 
           (unsigned long) TUNE_MULREDC_THRESH);
 
   TUNE_SQRREDC_THRESH = crossover2 (tune_sqrredc_asm, tune_sqrredc_noasm,
-                                    1, 20, 2);
+                                    1, MULREDC_ASSEMBLY_MAX + 1, 2);
   printf ("#define TUNE_SQRREDC_THRESH %lu\n", 
           (unsigned long) TUNE_SQRREDC_THRESH);
 
