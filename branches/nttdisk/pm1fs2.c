@@ -59,13 +59,40 @@ const int pari = 0;
 
    V(i,X) = { if (i==0, return(2)); if (i==1, return(X)); if(i%2 == 0, return (V (i/2, X)^2-2)); return (V ((i+1)/2, X) * V ((i-1)/2, X) - X)}
 
-   U(i,X) = { if (i==0, return(0)); if (i==1, return(1)); if(i%2 == 0, return (U (i/2, X) * V(i/2,X))); return (V ((i+1)/2, X)  *U( (i-1)/2, X) + 1)}
+   U(i,X) = { if (i==0, return(0)); if (i==1, return(1)); if(i%2 == 0, return (U (i/2, X) * V(i/2,X))); return (V ((i+1)/2, X) * U( (i-1)/2, X) + 1)}
 */
 
-#ifndef _OPENMP
-static int omp_get_num_threads () {return 1;}
-static int omp_get_thread_num () {return 0;}
+
+static void 
+get_chunk (uint64_t *chunk_start, uint64_t *chunk_len, const uint64_t len)
+{
+#ifdef _OPENMP
+  if(omp_in_parallel())
+    {
+      const int nr_chunks = omp_get_num_threads();
+      const int thread_nr = omp_get_thread_num();
+      uint64_t s, l;
+
+      ASSERT_ALWAYS(nr_chunks > 0);
+      if (len == 0)
+        {
+          *chunk_start = 0;
+          *chunk_len = 0;
+          return;
+        }
+
+      l = (len - 1) / nr_chunks + 1; /* l = ceil(len / nr_chunks) */
+      s = thread_nr * l;
+      l = MIN(l, (len > s) ? len - s : 0);
+      *chunk_start = s;
+      *chunk_len = l;
+      return;
+    }
 #endif
+
+  *chunk_start = 0;
+  *chunk_len = len;
+}
 
 static void 
 ntt_sqr_reciprocal (mpzv_t, const mpzv_t, mpzspv_t, const spv_size_t, 
@@ -89,10 +116,10 @@ print_elapsed_time (int verbosity, long cpu_start,
 
 
 static void
-list_output_poly (listz_t l, unsigned long len, int monic, int symmetric,
+list_output_poly (listz_t l, uint64_t len, int monic, int symmetric,
 		  char *prefix, char *suffix, int verbosity)
 {
-  unsigned long i;
+  uint64_t i;
 
   if (prefix != NULL)
     outputf (verbosity, prefix);
@@ -100,24 +127,25 @@ list_output_poly (listz_t l, unsigned long len, int monic, int symmetric,
   if (len == 0)
     {
       if (monic)
-	outputf (verbosity, "1\n", len, len);
+	outputf (verbosity, "1\n");
       else
-	outputf (verbosity, "0\n", len);
+	outputf (verbosity, "0\n");
       return;
     }
 
   if (monic)
     {
       if (symmetric)
-	outputf (verbosity, "(x^%lu + x^-%lu) + ", len, len);
+	outputf (verbosity, "(x^%" PRIu64 " + x^-%" PRIu64 ") + ", len, len);
       else
-	outputf (verbosity, "x^%lu + ", len);
+	outputf (verbosity, "x^%" PRIu64 " + ", len);
     }
   for (i = len - 1; i > 0; i--)
     if (symmetric)
-      outputf (verbosity, "%Zd * (x^%lu + x^-%lu) + ", l[i], i, i);
+      outputf (verbosity, "%Zd * (x^%" PRIu64 " + x^-%" PRIu64 ") + ", 
+               l[i], i, i);
     else
-      outputf (verbosity, "%Zd * x^%lu + ", l[i], i);
+      outputf (verbosity, "%Zd * x^%" PRIu64 " + ", l[i], i);
   outputf (verbosity, "%Zd", l[0]);
   if (suffix != NULL)
     outputf (verbosity, suffix);
@@ -186,10 +214,8 @@ list_sqr_reciprocal (listz_t R, listz_t S, const uint64_t l,
   ASSERT (tmplen >= 4 * l - 2 + list_mul_mem (l));
 
 #if 0
-  gmp_printf ("/* list_sqr_reciprocal */ S(x) = %Zd", S[0]);
-  for (i = 1; i < l1; i++)
-    gmp_printf (" + %Zd * (x^%lu + 1/x^%lu)", S[i], i, i);
-  gmp_printf ("\n");
+  list_output_poly (S, l, 0, 1, "/* list_sqr_reciprocal */ S(x) = ", 
+                    "\n", OUTPUT_DEVVERBOSE)
 #endif
 
   if (mpz_odd_p (S[0]))
@@ -744,7 +770,7 @@ list_scale_V (listz_t R, const listz_t F, const mpres_t Q,
   mpres_t Vt;
   uint64_t i;
   const listz_t G = tmp, H = tmp + 2 * deg + 1, newtmp = tmp + 4 * deg + 2;
-  const unsigned long newtmplen = tmplen - 4 * deg - 2;
+  const uint64_t newtmplen = tmplen - 4 * deg - 2;
 #ifdef WANT_ASSERT
   mpz_t leading;
 #endif
@@ -782,15 +808,12 @@ list_scale_V (listz_t R, const listz_t F, const mpres_t Q,
 #pragma omp parallel if (deg > 1000)
 #endif
   {
-    const int nr_chunks = omp_get_num_threads();
-    const int thread_nr = omp_get_thread_num();
     mpmod_t modulus_local;
     uint64_t l, start_i;
     mpres_t Vi, Vi_1;
     
-    l = (deg - 1) / nr_chunks + 1; /* l = ceil (deg / nr_chunks) */
-    start_i = thread_nr * l + 1;
-    l = MIN(l, deg + 1 - start_i);
+    get_chunk (&start_i, &l, deg);
+    start_i++;
 
     mpmod_init_set (modulus_local, modulus);
     mpres_init (Vi_1, modulus_local);
@@ -844,15 +867,12 @@ list_scale_V (listz_t R, const listz_t F, const mpres_t Q,
 #pragma omp parallel if (deg > 1000)
 #endif
   {
-    const int nr_chunks = omp_get_num_threads();
-    const int thread_nr = omp_get_thread_num();
     mpmod_t modulus_local;
     uint64_t l, start_i;
     mpres_t Ui, Ui_1;
     
-    l = (deg - 1) / nr_chunks + 1; /* l = ceil(deg / nr_chunks) */
-    start_i = thread_nr * l + 1UL;
-    l = MIN(l, deg + 1 - start_i);
+    get_chunk (&start_i, &l, deg);
+    start_i++;
     
     mpmod_init_set (modulus_local, modulus);
     mpres_init (Ui_1, modulus_local);
@@ -1130,7 +1150,7 @@ list_eval_poly (mpz_t r, const listz_t F, const mpz_t x,
 
 static uint64_t
 poly_from_sets_V (listz_t F, const mpres_t Q, set_list_t *sets, 
-		  listz_t tmp, const unsigned long tmplen, mpmod_t modulus,
+		  listz_t tmp, const uint64_t tmplen, mpmod_t modulus,
 		  mpzspv_t dct, const mpzspm_t ntt_context)
 {
   unsigned long c, i, nr;
@@ -1222,10 +1242,10 @@ poly_from_sets_V (listz_t F, const mpres_t Q, set_list_t *sets,
 	      ASSERT (mpz_cmp_ui (F[(2UL * i + 1UL) * deg], 1UL) == 0);
 	      ASSERT (mpz_cmp_ui (F[(2UL * i + 1UL) * (deg + 1UL) + 2UL*deg], 
 	                          1UL) == 0);
-	      list_output_poly (F, (2UL * i + 1UL) * deg + 1, 0, 1, 
+	      list_output_poly (F, (2 * i + 1) * deg + 1, 0, 1, 
 				"poly_from_sets_V: Multiplying ", "\n",
 				OUTPUT_TRACE);
-	      list_output_poly (F + (2UL * i + 1UL) * (deg + 1UL), 
+	      list_output_poly (F + (2 * i + 1) * (deg + 1), 
 	                        2UL * deg + 1UL, 0, 1, " and ", "\n", 
 	                        OUTPUT_TRACE);
 	      list_mul_reciprocal (F, 
@@ -1235,7 +1255,7 @@ poly_from_sets_V (listz_t F, const mpres_t Q, set_list_t *sets,
 				   tmp, tmplen);
 	      list_mod (F, F, (2UL * i + 3UL) * deg + 1UL, 
 	                modulus->orig_modulus);
-	      list_output_poly (F, (2UL * i + 3UL) * deg + 1UL, 0, 1, 
+	      list_output_poly (F, (2 * i + 3) * deg + 1, 0, 1, 
                                 " = ", "\n", OUTPUT_TRACE);
 	      ASSERT (mpz_cmp_ui (F[(2UL * i + 3UL) * deg], 1UL) == 0);
 	    }
@@ -1255,7 +1275,7 @@ build_F_ntt (listz_t F, const mpres_t P_1, set_list_t *S_1,
 {
   mpzspm_t F_ntt_context;
   mpzspv_t F_ntt;
-  unsigned long tmplen;
+  uint64_t tmplen;
   listz_t tmp;
   long timestart, realstart;
   unsigned long i;
@@ -1326,8 +1346,6 @@ pm1_sequence_g (listz_t g_mpz, mpzspv_t g_ntt, FILE **ntt_files, const mpres_t b
   mpz_t t, t1;
   uint64_t i;
   long timestart, realstart;
-  uint64_t M = M_param;
-  uint64_t l = l_param, offset = 0;
   mpmod_t modulus;
   mpzspv_t tmp_ntt = NULL;
   const size_t buflen = 16384;
@@ -1342,27 +1360,24 @@ pm1_sequence_g (listz_t g_mpz, mpzspv_t g_ntt, FILE **ntt_files, const mpres_t b
   realstart = realtime ();
 
 #ifdef _OPENMP
-#pragma omp parallel if (l > 100) private(r, x_0, x_Mi, t, t1, i, M, l, offset, modulus, want_output, tmp_ntt)
+#pragma omp parallel if (l_param > 100) private(r, x_0, x_Mi, t, t1, i, modulus, want_output) firstprivate(tmp_ntt)
+#endif
   {
+    uint64_t M, l, offset;
     /* When multi-threading, we adjust the parameters for each thread */
+    get_chunk (&offset, &l, l_param);
+    M = M_param - offset;
 
-    const int nr_chunks = omp_get_num_threads();
-    const int thread_nr = omp_get_thread_num();
-    
-    l = (l_param - 1) / nr_chunks + 1; /* = ceil(l_param / nr_chunks) */
-    offset = thread_nr * l;
+#ifdef _OPENMP
     outputf (OUTPUT_DEVVERBOSE, 
              "pm1_sequence_g: thread %d has l = %" PRIu64 
-             ", offset = %" PRIu64 ".\n", thread_nr, l, offset);
-    ASSERT_ALWAYS (l_param >= offset);
-    l = MIN(l, l_param - offset);
-    M = M_param - offset;
+             ", offset = %" PRIu64 ".\n", omp_get_thread_num(), l, offset);
     
     /* Let only the master thread print stuff */
-    want_output = (thread_nr == 0);
+    want_output = (omp_get_thread_num() == 0);
 
     if (want_output)
-      outputf (OUTPUT_VERBOSE, " using %d threads", nr_chunks);
+      outputf (OUTPUT_VERBOSE, " using %d threads", omp_get_num_threads());
 #endif
 
   /* Make a private copy of the mpmod_t struct */
@@ -1519,10 +1534,7 @@ pm1_sequence_g (listz_t g_mpz, mpzspv_t g_ntt, FILE **ntt_files, const mpres_t b
     {
       mpzspv_clear (tmp_ntt, ntt_context);
     }
-
-#ifdef _OPENMP
   }
-#endif
 
   print_elapsed_time (OUTPUT_VERBOSE, timestart, realstart);
   
@@ -1535,7 +1547,7 @@ pm1_sequence_g (listz_t g_mpz, mpzspv_t g_ntt, FILE **ntt_files, const mpres_t b
                    "/* PARI C */\n", i, i, i);
 	}
       outputf (OUTPUT_TRACE, "/* pm1_sequence_g */ g(x) = g_0");
-      for (i = 1; i < l; i++)
+      for (i = 1; i < l_param; i++)
 	outputf (OUTPUT_TRACE, " + g_%" PRIu64 " * x^%" PRIu64 ,  i, i);
       outputf (OUTPUT_TRACE, " /* PARI */\n");
     }
@@ -1579,26 +1591,16 @@ pm1_sequence_h (listz_t h, mpzspv_t h_ntt, FILE **ntt_files, mpz_t *f,
   {
     mpres_t fd[3]; /* finite differences table for r^{-i^2}*/
     mpz_t t;       /* the h_j value as an mpz_t */
-    uint64_t i;
-    uint64_t offset = 0UL, len = d;
+    uint64_t i, offset, len;
     const uint64_t blocklen = 16384;
     mpzspv_t tmp_ntt = NULL;
     mpmod_t modulus;
 
     /* Adjust offset and length for this thread */
+    get_chunk (&offset, &len, d);
 #ifdef _OPENMP
-    {
-      const int nr_chunks = omp_get_num_threads();
-      const int thread_nr = omp_get_thread_num();
-      uint64_t chunklen;
-      
-      if (thread_nr == 0)
-	outputf (OUTPUT_VERBOSE, " using %d threads", nr_chunks);
-
-      chunklen = (len - 1UL) / nr_chunks + 1UL;
-      offset = chunklen * thread_nr;
-      len = MIN(chunklen, len - offset);
-    }
+    if (omp_get_thread_num() == 0)
+      outputf (OUTPUT_VERBOSE, " using %d threads", omp_get_num_threads());
 #endif
     
     mpmod_init_set (modulus, modulus_parm);
@@ -1685,7 +1687,7 @@ pm1_sequence_h (listz_t h, mpzspv_t h_ntt, FILE **ntt_files, mpz_t *f,
       uint64_t j;
       for (j = 0; j < d; j++)
 	outputf (OUTPUT_TRACE, "/* pm1_sequence_h */ h_%" PRIu64
-		   " == f_" PRIu64 " * r^(-%" PRIu64 "^2) "
+		   " == f_%" PRIu64 " * r^(-%" PRIu64 "^2) "
                    "/* PARI C */\n", j, j, j);
       outputf (OUTPUT_TRACE, "/* pm1_sequence_h */ h(x) = h_0");
       for (j = 1; j < d; j++)
@@ -1869,22 +1871,10 @@ ntt_sqr_reciprocal (mpzv_t R, const mpzv_t S, mpzspv_t dft,
 #pragma omp parallel if (n > 50)
 #endif
   {
-    spv_size_t i, offset = 0, chunklen = 2*n - 1;
+    spv_size_t i, offset, chunklen;
 
-#if defined(_OPENMP)
-    {
-      const int nr_chunks = omp_get_num_threads();
-      const int thread_nr = omp_get_thread_num();
-      
-      chunklen = (chunklen - 1) / (spv_size_t) nr_chunks + 1;
-      offset = (spv_size_t) thread_nr * chunklen;
-      if (2*n - 1 > offset)
-        chunklen = MIN(chunklen, (2*n - 1) - offset);
-      else
-        chunklen = 0UL;
-    }
-#endif
-    
+    get_chunk (&offset, &chunklen, 2*n - 1);
+        
     mpzspv_to_mpzv (dft, offset, R + offset, chunklen, ntt_context);
     for (i = offset; i < offset + chunklen; i++)
       mpz_mod (R[i], R[i], ntt_context->modulus);
@@ -1933,7 +1923,7 @@ ntt_gcd (mpz_t f, mpz_t *product, mpzspv_t ntt, FILE **ntt_files,
   uint64_t i, j;
   const unsigned long Rlen = MPZSPV_NORMALISE_STRIDE;
   listz_t R;
-  uint64_t len = len_param, thread_offset = 0;
+  uint64_t len, thread_offset;
   mpres_t tmpres, tmpprod, totalprod;
   mpmod_t modulus;
   long timestart, realstart;
@@ -1948,21 +1938,15 @@ ntt_gcd (mpz_t f, mpz_t *product, mpzspv_t ntt, FILE **ntt_files,
   mpres_set_ui (totalprod, 1UL, modulus_param);
 
 #ifdef _OPENMP
-#pragma omp parallel if (len > 100) private(i, j, R, len, thread_offset, tmpres, tmpprod, modulus) shared(totalprod)
+#pragma omp parallel if (len_param > 100) private(i, j, R, len, thread_offset, tmpres, tmpprod, modulus) shared(totalprod)
   {
-    const int nr_chunks = omp_get_num_threads();
-    const int thread_nr = omp_get_thread_num();
-
-    len = (len_param - 1) / nr_chunks + 1;
-    thread_offset = thread_nr * len;
-    ASSERT (len_param >= thread_offset);
-    len = MIN(len, len_param - thread_offset);
 #pragma omp master
     {
-      outputf (OUTPUT_VERBOSE, " using %d threads", nr_chunks);
+      outputf (OUTPUT_VERBOSE, " using %d threads", omp_get_num_threads());
     }
 #endif
 
+    get_chunk (&thread_offset, &len, len_param);
     /* Make a private copy of the mpmod_t struct */
     mpmod_init_set (modulus, modulus_param);
 
@@ -2004,7 +1988,7 @@ ntt_gcd (mpz_t f, mpz_t *product, mpzspv_t ntt, FILE **ntt_files,
 	/* Accumulate product in tmpprod */
 	for (j = 0; j < blocklen; j++)
 	  {
-	    outputf (OUTPUT_TRACE, "r_%lu = %Zd; /* PARI */\n", (unsigned long)i, R[j]);
+	    outputf (OUTPUT_TRACE, "r_%" PRIu64 " = %Zd; /* PARI */\n", i, R[j]);
 	    if (add != NULL)
 	      mpz_add (R[j], R[j], add[i + thread_offset + j]);
 	    mpres_set_z_for_gcd (tmpres, R[j], modulus);
@@ -2100,8 +2084,8 @@ pm1fs2 (mpz_t f, const mpres_t X, mpmod_t modulus,
   g = init_list2 (lenG, (unsigned int) abs (modulus->bits));
   lenR = nr;
   R = init_list2 (lenR, (unsigned int) abs (modulus->bits));    
-  tmplen = 3UL * params->l + list_mul_mem (params->l / 2);
-  outputf (OUTPUT_DEVVERBOSE, "tmplen = %lu\n", tmplen);
+  tmplen = 3 * params->l + list_mul_mem (params->l / 2);
+  outputf (OUTPUT_DEVVERBOSE, "tmplen = %" PRIu64 "\n", tmplen);
   if (TMulGen_space (params->l - 1, params->s_1, lenR) + 12 > tmplen)
     {
       tmplen = TMulGen_space (params->l - 1, params->s_1 - 1, lenR) + 12;
@@ -2161,8 +2145,7 @@ pm1fs2 (mpz_t f, const mpres_t X, mpmod_t modulus,
   if (test_verbose (OUTPUT_TRACE))
     {
       for (i = 0; i < params->s_1 + 1; i++)
-        outputf (OUTPUT_VERBOSE, "h_%lu = %Zd; /* PARI */\n", 
-                        (unsigned long)i, h[i]);
+        outputf (OUTPUT_VERBOSE, "h_%" PRIu64 " = %Zd; /* PARI */\n", i, h[i]);
       outputf (OUTPUT_VERBOSE, "h(x) = h_0");
       for (i = 1; i < params->s_1 + 1; i++)
         outputf (OUTPUT_VERBOSE, " + h_%" PRIu64 "* x^%" PRIu64 , i, i);
@@ -2203,8 +2186,8 @@ pm1fs2 (mpz_t f, const mpres_t X, mpmod_t modulus,
       if (test_verbose (OUTPUT_TRACE))
 	{
 	  for (i = 0; i < nr; i++)
-	    outputf (OUTPUT_TRACE, "r_%lu = %Zd; /* PARI */\n", 
-                                (unsigned long)i, R[i]);
+	    outputf (OUTPUT_TRACE, "r_%" PRIu64 " = %Zd; /* PARI */\n", 
+                                i, R[i]);
 	}
 
       outputf (OUTPUT_VERBOSE, "Computing product of F(g_i)");
@@ -2579,7 +2562,7 @@ gfp_ext_print (const mpres_t r_x, const mpres_t r_y, mpmod_t modulus,
 static void 
 gfp_ext_mul (mpres_t r_0, mpres_t r_1, const mpres_t a_0, const mpres_t a_1,
 	     const mpres_t b_0, const mpres_t b_1, const mpres_t Delta, 
-	     mpmod_t modulus, ATTRIBUTE_UNUSED const unsigned long tmplen, 
+	     mpmod_t modulus, ATTRIBUTE_UNUSED const uint64_t tmplen, 
 	     mpres_t *tmp)
 {
   ASSERT (tmplen >= 2UL);
@@ -2659,7 +2642,7 @@ gfp_ext_sqr_norm1 (mpres_t r_0, mpres_t r_1, const mpres_t a_0,
 static void 
 gfp_ext_pow_norm1_sl (mpres_t r0, mpres_t r1, const mpres_t a0, 
                       const mpres_t a1, const int64_t e, const mpres_t Delta, 
-                      mpmod_t modulus, unsigned long tmplen, mpres_t *tmp)
+                      mpmod_t modulus, const uint64_t tmplen, mpres_t *tmp)
 {
   const int64_t abs_e = (e > 0) ? e : -e;
   uint64_t mask = (uint64_t)1 << 63;
@@ -2718,7 +2701,7 @@ gfp_ext_pow_norm1_sl (mpres_t r0, mpres_t r1, const mpres_t a0,
 static void 
 gfp_ext_pow_norm1 (mpres_t r0, mpres_t r1, const mpres_t a0, 
                    const mpres_t a1, mpz_t e, const mpres_t Delta, 
-                   mpmod_t modulus, unsigned long tmplen, mpres_t *tmp)
+                   mpmod_t modulus, const uint64_t tmplen, mpres_t *tmp)
 {
   mpz_t abs_e;
   unsigned long idx;
@@ -2776,11 +2759,11 @@ gfp_ext_pow_norm1 (mpres_t r0, mpres_t r1, const mpres_t a0,
 ATTRIBUTE_UNUSED static void
 gfp_ext_rn2 (mpres_t *r_x, mpres_t *r_y, const mpres_t a_x, const mpres_t a_y,
 	     const int64_t k, const uint64_t l, const mpres_t Delta, 
-	     mpmod_t modulus, const unsigned long origtmplen, mpres_t *origtmp)
+	     mpmod_t modulus, const size_t origtmplen, mpres_t *origtmp)
 {
   mpres_t *r2_x = origtmp, *r2_y = origtmp + 2, *v = origtmp + 4, 
     *V2 = origtmp + 6;
-  const unsigned long newtmplen = origtmplen - 7;
+  const size_t newtmplen = origtmplen - 7;
   mpres_t *newtmp = origtmp + 7;
   uint64_t i;
 
@@ -2897,7 +2880,7 @@ pp1_sequence_g (listz_t g_x, listz_t g_y, mpzspv_t g_x_ntt, mpzspv_t g_y_ntt,
 		const int64_t k_2, const mpmod_t modulus_param, 
 		const mpzspm_t ntt_context)
 {
-  const unsigned long tmplen = 3;
+  const uint64_t tmplen = 3;
   const int want_x = (g_x != NULL || g_x_ntt != NULL);
   const int want_y = (g_y != NULL || g_y_ntt != NULL);
   mpres_t r_x, r_y, x0_x, x0_y, v2,
@@ -2917,24 +2900,16 @@ pp1_sequence_g (listz_t g_x, listz_t g_y, mpzspv_t g_x_ntt, mpzspv_t g_y_ntt,
   timestart = cputime ();
   realstart = realtime ();
 
+  /* When multi-threading, we adjust the parameters for each thread */
 #ifdef _OPENMP
 #pragma omp parallel if (l > 100) private(r_x, r_y, x0_x, x0_y, v2, r1_x, r1_y, r2_x, r2_y, v, tmp, mt, mt1, mt2, modulus, i, l, offset, M, want_output)
   {
-    /* When multi-threading, we adjust the parameters for each thread */
-
-    const int nr_chunks = omp_get_num_threads();
-    const int thread_nr = omp_get_thread_num();
-
-    l = (l_param - 1) / nr_chunks + 1;
-    offset = thread_nr * l;
-    ASSERT_ALWAYS (l_param >= offset);
-    l = MIN(l, l_param - offset);
-    M = M_param - offset;
-
     want_output = (omp_get_thread_num() == 0);
     if (want_output)
-      outputf (OUTPUT_VERBOSE, " using %d threads", nr_chunks);
+      outputf (OUTPUT_VERBOSE, " using %d threads", omp_get_num_threads());
 #endif
+    get_chunk (&offset, &l, l_param);
+    M = M_param - offset;
     mpmod_init_set (modulus, modulus_param);
     mpres_init (r_x, modulus);
     mpres_init (r_y, modulus);
@@ -3164,12 +3139,12 @@ pp1_sequence_g (listz_t g_x, listz_t g_y, mpzspv_t g_x_ntt, mpzspv_t g_y_ntt,
     {
       for (i = 0; i < l_param; i++)
 	{
-	  outputf (OUTPUT_TRACE, "/* pp1_sequence_g */ g_%lu = "
-		   "x_0^(M-%lu) * r^((M-%lu)^2); /* PARI */", 
-		   (unsigned long)i, (unsigned long)i, (unsigned long)i);
-	  outputf (OUTPUT_TRACE, "/* pp1_sequence_g */ g_%lu == "
+	  outputf (OUTPUT_TRACE, "/* pp1_sequence_g */ g_%" PRIu64 " = "
+		   "x_0^(M-%" PRIu64 ") * r^((M-%" PRIu64 ")^2); /* PARI */", 
+		   i, i, i);
+	  outputf (OUTPUT_TRACE, "/* pp1_sequence_g */ g_%" PRIu64 " == "
 		   "%Zd + %Zd*w /* PARI C */\n", 
-		   (unsigned long)i, g_x[i], g_y[i]);
+		   i, g_x[i], g_y[i]);
 	}
     }
 }
@@ -3211,8 +3186,8 @@ pp1_sequence_h (listz_t h_x, listz_t h_y, mpzspv_t h_x_ntt, mpzspv_t h_y_ntt,
       outputf (OUTPUT_TRACE, "; r = b_1^P; rn = b_1^(-P); /* PARI */\n");
       for (i = 0; i < l_param; i++)
 	outputf (OUTPUT_TRACE, 
-		 "/* pp1_sequence_h */ f_%lu = %Zd; /* PARI */\n", 
-		 (unsigned long)i, f[i]);
+		 "/* pp1_sequence_h */ f_%" PRIu64 " = %Zd; /* PARI */\n", 
+		 i, f[i]);
       mpz_clear (t);
     }
 
@@ -3220,27 +3195,19 @@ pp1_sequence_h (listz_t h_x, listz_t h_y, mpzspv_t h_x_ntt, mpzspv_t h_y_ntt,
 #pragma omp parallel if (l_param > 100) private(i)
 #endif
   {
-    const size_t tmplen = 2;
+    const uint64_t tmplen = 2;
     mpres_t s_x[3], s_y[3], s2_x[2], s2_y[2], v[2], V2, rn_x, rn_y, 
       tmp[2];
     mpmod_t modulus; /* Thread-local copy of modulus_param */
     mpz_t mt;
-    uint64_t l = l_param, offset = 0;
+    uint64_t l, offset;
     int64_t k = k_param;
 
-#ifdef _OPENMP
     /* When multi-threading, we adjust the parameters for each thread */
-
-    const int nr_chunks = omp_get_num_threads();
-    const int thread_nr = omp_get_thread_num();
-
-    l = (l_param - 1) / nr_chunks + 1;
-    offset = thread_nr * l;
-    ASSERT_ALWAYS (l_param >= offset);
-    l = MIN(l, l_param - offset);
-
-    if (thread_nr == 0)
-      outputf (OUTPUT_VERBOSE, " using %d threads", nr_chunks);
+    get_chunk (&offset, &l, l_param);
+#ifdef _OPENMP
+    if (omp_get_thread_num() == 0)
+      outputf (OUTPUT_VERBOSE, " using %d threads", omp_get_num_threads());
     outputf (OUTPUT_TRACE, "\n");
 #endif
 
@@ -3478,9 +3445,10 @@ pp1_sequence_h (listz_t h_x, listz_t h_y, mpzspv_t h_x_ntt, mpzspv_t h_y_ntt,
   if (h_x != NULL && h_y != NULL && test_verbose (OUTPUT_TRACE))
     {
       for (i = 0; i < l_param; i++)
-	gmp_printf ("/* pp1_sequence_h */ (rn^((k+%lu)^2) * f_%lu) == "
+	gmp_printf ("/* pp1_sequence_h */ (rn^((k+%" PRIu64 ")^2) * f_%" 
+	            PRIu64 ") == "
 		    "(%Zd + Mod(%Zd / Delta, N) * w) /* PARI C */\n", 
-		    (unsigned long)i, (unsigned long)i, h_x[i], h_y[i]);
+		    i, i, h_x[i], h_y[i]);
     }
 }
 
@@ -3551,7 +3519,7 @@ pp1fs2 (mpz_t f, const mpres_t X, mpmod_t modulus,
   R_x = init_list2 (lenR, (unsigned int) abs (modulus->bits));
   R_y = init_list2 (lenR, (unsigned int) abs (modulus->bits));
   tmplen = 3UL * params->l + list_mul_mem (params->l / 2) + 20;
-  outputf (OUTPUT_DEVVERBOSE, "tmplen = %lu\n", tmplen);
+  outputf (OUTPUT_DEVVERBOSE, "tmplen = %" PRIu64 "\n", tmplen);
   if (TMulGen_space (params->l - 1, params->s_1, lenR) + 12 > tmplen)
     {
       tmplen = TMulGen_space (params->l - 1, params->s_1 - 1, lenR) + 12;
@@ -3583,8 +3551,7 @@ pp1fs2 (mpz_t f, const mpres_t X, mpmod_t modulus,
   if (test_verbose (OUTPUT_TRACE))
     {
       for (i = 0; i < params->s_1 / 2 + 1; i++)
-	outputf (OUTPUT_TRACE, "f_%lu = %Zd; /* PARI */\n", 
-                                (unsigned long)i, F[i]);
+	outputf (OUTPUT_TRACE, "f_%" PRIu64 " = %Zd; /* PARI */\n", i, F[i]);
       outputf (OUTPUT_TRACE, "f(x) = f_0");
       for (i = 1; i < params->s_1 / 2 + 1; i++)
 	outputf (OUTPUT_TRACE, "+ f_%" PRIu64 " * (x^%" PRIu64
