@@ -1149,7 +1149,7 @@ V (mpres_t R, const mpres_t S, const long k, mpmod_t modulus)
       mpres_set (R, S, modulus);
       while (po2-- > 0)
         {
-          mpres_mul (R, R, R, modulus);
+          mpres_sqr (R, R, modulus);
           mpres_sub (R, R, V0, modulus);
         }
       mpres_clear (V0, modulus);
@@ -1172,7 +1172,7 @@ V (mpres_t R, const mpres_t S, const long k, mpmod_t modulus)
 
   /* i = 1. Vi = V_i(S), Vi1 = V_{i+1}(S) */
   mpres_set (Vi, S, modulus);
-  mpres_mul (Vi1, S, S, modulus);
+  mpres_sqr (Vi1, S, modulus);
   mpres_sub (Vi1, Vi1, V0, modulus);
   j >>= 1;
 
@@ -1185,7 +1185,7 @@ V (mpres_t R, const mpres_t S, const long k, mpmod_t modulus)
 	     V_{i'+1} = V_{2i + 2} = {V_{i+1}}^2 - V_0. */
 	  mpres_mul (Vi, Vi, Vi1, modulus);
 	  mpres_sub (Vi, Vi, S, modulus);
-	  mpres_mul (Vi1, Vi1, Vi1, modulus);
+	  mpres_sqr (Vi1, Vi1, modulus);
 	  mpres_sub (Vi1, Vi1, V0, modulus);
 	}
       else
@@ -1196,7 +1196,7 @@ V (mpres_t R, const mpres_t S, const long k, mpmod_t modulus)
 	  mpres_mul (Vi1, Vi, Vi1, modulus);
 	  mpres_sub (Vi1, Vi1, S, modulus);
 
-	  mpres_mul (Vi, Vi, Vi, modulus);
+	  mpres_sqr (Vi, Vi, modulus);
 	  mpres_sub (Vi, Vi, V0, modulus);
 	}
       j >>= 1;
@@ -1208,7 +1208,7 @@ V (mpres_t R, const mpres_t S, const long k, mpmod_t modulus)
 
   while (po2-- > 0)
     {
-      mpres_mul (Vi, Vi, Vi, modulus);
+      mpres_sqr (Vi, Vi, modulus);
       mpres_sub (Vi, Vi, V0, modulus);
     }
 
@@ -1289,7 +1289,7 @@ U (mpres_t R, mpres_t R1, const mpres_t S, const long k, mpmod_t modulus)
   mpres_set (Ui1, S, modulus);       /* Ui1 = U_2(S) = S */
   mpres_add (V0, Ui, Ui, modulus);   /* V0 = V_0(S) = 2 */
   mpres_set (Vi, S, modulus);        /* Vi = V_1(S) = S */
-  mpres_mul (Vi1, Vi, Vi, modulus);
+  mpres_sqr (Vi1, Vi, modulus);
   mpres_sub (Vi1, Vi1, V0, modulus); /* Vi1 = V_2(S) = S^2 - 2 */
   j >>= 1; /* i = 1 */
 
@@ -1304,7 +1304,7 @@ U (mpres_t R, mpres_t R1, const mpres_t S, const long k, mpmod_t modulus)
 	  mpres_add (Ui1, Ui1, Ui, modulus);
 	  mpres_mul (Ui1, Ui1, t, modulus); 
 	  mpres_mul (Ui, Ui, Vi, modulus); /* U_{2n} = U_n V_n */
-	  mpres_mul (Vi, Vi, Vi, modulus);
+	  mpres_sqr (Vi, Vi, modulus);
 	  mpres_sub (Vi, Vi, V0, modulus); /* V_{2n} = V_n^2 - 2 */
 	}
       else
@@ -1316,7 +1316,7 @@ U (mpres_t R, mpres_t R1, const mpres_t S, const long k, mpmod_t modulus)
 	  mpres_mul (Ui1, Ui1, Vi1, modulus); /* U_{2n+2} = U_{n+1} V_{n+1} */
 	  mpres_mul (Vi, Vi, Vi1, modulus);
 	  mpres_sub (Vi, Vi, S, modulus); /* V_{2i+1} = V_{i+1} V_i - V_1 */
-	  mpres_mul (Vi1, Vi1, Vi1, modulus);
+	  mpres_sqr (Vi1, Vi1, modulus);
 	  mpres_sub (Vi1, Vi1, V0, modulus); /* V_{2n+2} = V_{n+1}^2 - 2 */
 	}
       j >>= 1;
@@ -1581,7 +1581,7 @@ list_scale_V (listz_t R, const listz_t F, const mpres_t Q,
 
   /* Multiply by Q^2-4 */
   mpres_init (Vt, modulus);
-  mpres_mul (Vt, Q, Q, modulus);
+  mpres_sqr (Vt, Q, modulus);
   mpres_sub_ui (Vt, Vt, 4, modulus);
 
 #if defined(_OPENMP)
@@ -2064,7 +2064,7 @@ pm1_sequence_g (listz_t g_mpz, mpzspv_t g_ntt, const mpres_t b_1,
   mpz_set_si (t, M);
   mpz_mul (t, t, t);                     /* t = M^2 */
   mpres_pow (r[2], r[0], t, modulus);    /* r[2] = r^{(M-i)^2}, i = 0 */
-  mpres_mul (r[0], r[0], r[0], modulus); /* r[0] = r^2 */
+  mpres_sqr (r[0], r[0], modulus); /* r[0] = r^2 */
 
   mpz_mul_2exp (t, m_1, 1UL);
   mpz_add_ui (t, t, 1UL);
@@ -2224,7 +2224,7 @@ pm1_sequence_h (listz_t h, mpzspv_t h_ntt, mpz_t *f, const mpres_t r,
        separately in each thread has the advantage of putting it in
        local memory. May not make much difference overall */
 
-    mpres_mul (fd[0], invr, invr, modulus); /* fd[0] = r^{-2} */
+    mpres_sqr (fd[0], invr, modulus);       /* fd[0] = r^{-2} */
     mpz_set_ui (t, offset);
     mpz_mul_2exp (t, t, 1UL);
     mpz_add_ui (t, t, 1UL);                 /* t = 2 * offset + 1 */
@@ -3154,7 +3154,7 @@ gfp_ext_sqr_norm1 (mpres_t r_0, mpres_t r_1, const mpres_t a_0,
   mpres_mul (r_1, a_0, a_1, modulus);
   mpres_add (r_1, r_1, r_1, modulus);       /* r_1 = 2*a_0*a_1 */
   
-  mpres_mul (r_0, a_0, a_0, modulus);
+  mpres_sqr (r_0, a_0, modulus);
   mpres_add (r_0, r_0, r_0, modulus);
   mpres_sub_ui (r_0, r_0, 1UL, modulus);    /* r_0 = 2*a_0^2 - 1 */
 
@@ -3351,7 +3351,7 @@ gfp_ext_rn2 (mpres_t *r_x, mpres_t *r_y, const mpres_t a_x, const mpres_t a_y,
   mpres_add (*V2, a_x, a_x, modulus); /* V2 = a + 1/a  = 2*a_x*/
   V (v[0], *V2, 2 * k + 1, modulus);  /* v[0] = V_{2k+1} (a + 1/a) */
   V (v[1], *V2, 2 * k + 3, modulus);  /* v[0] = V_{2k+3} (a + 1/a) */
-  mpres_mul (*V2, *V2, *V2, modulus); /* V2 = 4*a_x^2 */
+  mpres_sqr (*V2, *V2, modulus);      /* V2 = 4*a_x^2 */
   mpres_sub_ui (*V2, *V2, 2UL, modulus); /* V2 = 4*a_x^2 - 2 */
   if (pari)
     {
@@ -3852,7 +3852,7 @@ pp1_sequence_h (listz_t h_x, listz_t h_y, mpzspv_t h_x_ntt, mpzspv_t h_y_ntt,
     mpres_add (V2, rn_x, rn_x, modulus); /* V2 = r + 1/r  = 2*rn_x */
     V (v[0], V2, 2 * k + 1, modulus);  /* v[0] = V_{2k+1} (r + 1/r) */
     V (v[1], V2, 2 * k + 3, modulus);  /* v[1] = V_{2k+3} (r + 1/r) */
-    mpres_mul (V2, V2, V2, modulus); /* V2 = 4*a_x^2 */
+    mpres_sqr (V2, V2, modulus);       /* V2 = 4*a_x^2 */
     mpres_sub_ui (V2, V2, 2UL, modulus); /* V2 = 4*a_x^2 - 2 */
     if (test_verbose (OUTPUT_TRACE))
       {
@@ -4080,7 +4080,7 @@ pp1fs2 (mpz_t f, const mpres_t X, mpmod_t modulus,
     }
 
   /* Compute Delta and b1_x + b1_y * sqrt(Delta) = X) */
-  mpres_mul (Delta, X, X, modulus);
+  mpres_sqr (Delta, X, modulus);
   mpres_sub_ui (Delta, Delta, 4UL, modulus);
   mpres_div_2exp (b1_x, X, 1, modulus);
   mpres_set_ui (b1_y, 1UL, modulus);
@@ -4306,7 +4306,7 @@ pp1fs2_ntt (mpz_t f, const mpres_t X, mpmod_t modulus,
   mpres_init (Delta, modulus);
 
   /* Compute Delta and b1_x + b1_y * sqrt(Delta) = X) */
-  mpres_mul (Delta, X, X, modulus);
+  mpres_sqr (Delta, X, modulus);
   mpres_sub_ui (Delta, Delta, 4UL, modulus);
   mpres_div_2exp (b1_x, X, 1, modulus);
   mpres_set_ui (b1_y, 1UL, modulus);

@@ -74,18 +74,18 @@ get_curve_from_sigma (mpz_t f, mpres_t A, mpres_t x, mpz_t sigma, mpmod_t n)
 
   mpres_set_z  (u, sigma, n);
   mpres_mul_ui (v, u, 4, n);   /* v = (4*sigma) mod n */
-  mpres_mul (t, u, u, n);
+  mpres_sqr (t, u, n);
   mpres_sub_ui (u, t, 5, n);       /* u = (sigma^2-5) mod n */
-  mpres_mul (t, u, u, n);
+  mpres_sqr (t, u, n);
   mpres_mul (x, t, u, n);          /* x = (u^3) mod n */
-  mpres_mul (t, v, v, n);
+  mpres_sqr (t, v, n);
   mpres_mul (z, t, v, n);          /* z = (v^3) mod n */
   mpres_mul (t, x, v, n);
   mpres_mul_ui (b, t, 4, n);       /* b = (4*x*v) mod n */
   mpres_mul_ui (t, u, 3, n);
   mpres_sub (u, v, u, n);          /* u' = v-u */
   mpres_add (v, t, v, n);          /* v' = (3*u+v) mod n */
-  mpres_mul (t, u, u, n);
+  mpres_sqr (t, u, n);
   mpres_mul (u, t, u, n);          /* u'' = ((v-u)^3) mod n */
   mpres_mul (A, u, v, n);          /* a = (u'' * v') mod n = 
                                       ((v-u)^3 * (3*u+v)) mod n */
@@ -155,7 +155,7 @@ montgomery_to_weierstrass (mpz_t f, mpres_t x, mpres_t y, mpres_t A, mpmod_t n)
   mpres_mul (x, x, y, n);    /* (3x+a)/(3g) */
 
   /* update A */
-  mpres_mul (A, A, A, n);    /* a^2 */
+  mpres_sqr (A, A, n);    /* a^2 */
   mpres_sub_ui (A, A, 3, n);
   mpres_neg (A, A, n);       /* 3-a^2 */
   mpres_mul (A, A, y, n);    /* (3-a^2)/(3g^2) */
@@ -195,8 +195,8 @@ add3 (mpres_t x3, mpres_t z3, mpres_t x2, mpres_t z2, mpres_t x1, mpres_t z1,
   mpres_add (w, u, v, n);        /* w = 2*(x1*x2-z1*z2) */
   mpres_sub (v, u, v, n);        /* v = 2*(x2*z1-x1*z2) */
 
-  mpres_mul (w, w, w, n);        /* w = 4*(x1*x2-z1*z2)^2 */
-  mpres_mul (v, v, v, n);        /* v = 4*(x2*z1-x1*z2)^2 */
+  mpres_sqr (w, w, n);           /* w = 4*(x1*x2-z1*z2)^2 */
+  mpres_sqr (v, v, n);           /* v = 4*(x2*z1-x1*z2)^2 */
 
   if (x == x3) /* same variable: in-place variant */
     {
@@ -227,9 +227,9 @@ duplicate (mpres_t x2, mpres_t z2, mpres_t x1, mpres_t z1, mpmod_t n,
            mpres_t b, mpres_t u, mpres_t v, mpres_t w)
 {
   mpres_add (u, x1, z1, n);
-  mpres_mul (u, u, u, n);   /* u = (x1+z1)^2 mod n */
+  mpres_sqr (u, u, n);      /* u = (x1+z1)^2 mod n */
   mpres_sub (v, x1, z1, n);
-  mpres_mul (v, v, v, n);   /* v = (x1-z1)^2 mod n */
+  mpres_sqr (v, v, n);      /* v = (x1-z1)^2 mod n */
   mpres_mul (x2, u, v, n);  /* x2 = u*v = (x1^2 - z1^2)^2 mod n */
   mpres_sub (w, u, v, n);   /* w = u-v = 4*x1*z1 */
   mpres_mul (u, w, b, n);   /* u = w*b = ((A+2)/4*(4*x1*z1)) mod n */
