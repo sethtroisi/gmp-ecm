@@ -71,7 +71,7 @@ mpmod_tune_base2 (const mpz_t n, int K, int base2)
   mpres_sub_ui (x, x, 1, modulus); /* so that the initial value is dense */
   t0 = cputime ();
   for (k = 0; k < K; k++)
-    mpres_mul (x, x, x, modulus);
+    mpres_sqr (x, x, modulus);
   t0 = cputime () - t0;
 
   mpres_clear (x, modulus);
@@ -85,7 +85,7 @@ mpmod_tune_base2 (const mpz_t n, int K, int base2)
   mpres_sub_ui (x, x, 1, modulus); /* so that the initial value is dense */
   t1 = cputime ();
   for (k = 0; k < K; k++)
-    mpres_mul (x, x, x, modulus);
+    mpres_sqr (x, x, modulus);
   t1 = cputime () - t1;
 
   fprintf (stderr, "ECM_MOD_NOBASE2:%ld ECM_MOD_BASE2:%ld\n", t0, t1);

@@ -40,7 +40,7 @@
 static void
 pp1_duplicate (mpres_t P, mpres_t Q, mpmod_t n)
 {
-  mpres_mul (P, Q, Q, n);
+  mpres_sqr (P, Q, n);
   mpres_sub_ui (P, P, 2, n);
 }
 

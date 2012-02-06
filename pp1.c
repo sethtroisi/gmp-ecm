@@ -80,7 +80,7 @@ pp1_mul (mpres_t P1, mpres_t P0, mpz_t e, mpmod_t n, mpres_t P, mpres_t Q)
   
   /* now e >= 2 */
   mpz_sub_ui (e, e, 1);
-  mpres_mul (P, P0, P0, n);
+  mpres_sqr (P, P0, n);
   mpres_sub_ui (P, P, 2, n); /* P = V_2(P0) = P0^2-2 */
   mpres_set (Q, P0, n);      /* Q = V_1(P0) = P0 */
 
@@ -95,7 +95,7 @@ pp1_mul (mpres_t P1, mpres_t P0, mpz_t e, mpmod_t n, mpres_t P, mpres_t Q)
               mpres_mul (Q, P, Q, n);
               mpres_sub (Q, Q, P0, n);
             }
-          mpres_mul (P, P, P, n);
+          mpres_sqr (P, P, n);
           mpres_sub_ui (P, P, 2, n);
         }
       else /* k -> 2k */
@@ -104,7 +104,7 @@ pp1_mul (mpres_t P1, mpres_t P0, mpz_t e, mpmod_t n, mpres_t P, mpres_t Q)
           mpres_sub (P, P, P0, n);
           if (i) /* Q is not needed for last iteration */
             {
-              mpres_mul (Q, Q, Q, n);
+              mpres_sqr (Q, Q, n);
               mpres_sub_ui (Q, Q, 2, n);
             }
         }
@@ -326,10 +326,10 @@ pp1_mul2 (mpres_t a, mpres_t b, mpres_t P, mpz_t e, mpmod_t n)
   while (l--)
     {
       /* square: (ax+b)^2 = (a^2P+2ab) x + (b^2-a^2) */
-      mpres_mul (t, a, a, n); /* a^2 */
+      mpres_sqr (t, a, n);    /* a^2 */
       mpres_mul (a, a, b, n);
       mpres_add (a, a, a, n); /* 2ab */
-      mpres_mul (b, b, b, n); /* b^2 */
+      mpres_sqr (b, b, n);    /* b^2 */
       mpres_sub (b, b, t, n); /* b^2-a^2 */
       mpres_mul (t, t, P, n); /* a^2P */
       mpres_add (a, t, a, n); /* a^2P+2ab */

@@ -150,8 +150,6 @@ tune_mpres_mul (mp_size_t limbs, int repr)
   return (double) __k / (double) __st;
 }
 
-/* There is no actual mpres_sqr() function (yet), we simply call
-   mpres_mul() with two identical input */
 double
 tune_mpres_sqr (mp_size_t limbs, int repr)
 {
