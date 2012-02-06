@@ -146,6 +146,9 @@ extern FILE *ECM_STDOUT, *ECM_STDERR;
 #define KS 5
 #define NTT 6
 
+/* maximal limb size of assembly mulredc */
+#define MULREDC_ASSEMBLY_MAX 20
+
 #include "sp.h"
 
 /* compile with -DMULT=2 to override default */
@@ -648,6 +651,8 @@ int  mpres_is_zero (const mpres_t, mpmod_t);
 void mpresn_mul (mpres_t, const mpres_t, const mpres_t, mpmod_t);
 #define mpresn_addsub __ECM(mpresn_addsub)
 void mpresn_addsub (mpres_t, mpres_t, const mpres_t, const mpres_t, mpmod_t);
+#define mpresn_pad __ECM(mpresn_pad)
+void mpresn_pad (mpres_t R, mpmod_t N);
 #define mpresn_sqr __ECM(mpresn_sqr)
 void mpresn_sqr (mpres_t, const mpres_t, mpmod_t);
 #define mpresn_add __ECM(mpresn_add)
