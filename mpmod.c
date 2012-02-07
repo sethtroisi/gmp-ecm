@@ -470,6 +470,65 @@ mulredc (mp_ptr z, mp_srcptr x, mp_srcptr y, mp_srcptr m,
     }
 }
 
+/* {rp, n} <- {ap, n}^2/B^n mod {np, n} where B = 2^GMP_NUMB_BITS */
+ATTRIBUTE_UNUSED static void
+sqrredc (mp_ptr rp, mp_srcptr ap, mp_srcptr np, const mp_size_t n,
+         const mp_limb_t invm)
+{
+  mp_ptr cp;
+  mp_size_t i;
+  mp_limb_t cy, q;
+  TMP_DECL(marker);
+
+  TMP_MARK(marker);
+  cp = TMP_ALLOC_LIMBS(2*n);
+  for (i = 0; i < n; i++)
+    umul_ppmm (cp[2*i+1], cp[2*i], ap[i], ap[i]);
+
+  if (UNLIKELY(n == 1))
+    {
+      q = cp[0] * invm;
+      rp[0] = mpn_addmul_1 (cp, np, 1, q);
+      cy = mpn_add_n (rp, rp, cp + 1, 1);
+      goto end_sqrredc;
+    }
+
+  if (cp[0] & (mp_limb_t) 1)
+    /* cp[n] is either some ap[i]^2 mod B or floor(ap[i]^2/B),
+       the latter is at most floor((B-1)^2/B) = B-2, and the former cannot be
+       B-1 since -1 is not a square mod 2^n for n >1, thus there is no carry
+       in cp[n] + ... below */
+    cp[n] += mpn_add_n (cp, cp, np, n);
+  /* now {cp, 2n} is even: divide by two */
+  mpn_rshift (cp, cp, 2*n, 1);
+  /* now cp[2n-1] is at most B/2-1 */
+
+  for (i = 0; i < n - 1; i++)
+    {
+      q = cp[i] * invm;
+      cp[i] = mpn_addmul_1 (cp + i, np, n, q);
+      /* accumulate ap[i+1..n-1] * ap[i] */
+      rp[i] = mpn_addmul_1 (cp + 2 * i + 1, ap + i + 1, n - 1 - i, ap[i]);
+    }
+  /* the last iteration did set cp[n-2] to zero, accumulated a[n-1] * a[n-2] */
+
+  /* cp[2n-1] was untouched so far, so it is still at most B/2-1 */
+  q = cp[n-1] * invm;
+  rp[n-1] = mpn_addmul_1 (cp + n - 1, np, n, q);
+  /* rp[n-1] <= floor((B^n-1)*(B-1)/B^n)<=B-2 */
+
+  /* now add {rp, n}, {cp+n, n} and {cp, n-1} */
+  /* cp[2n-1] still <= B/2-1 */
+  rp[n-1] += mpn_add_n (rp, rp, cp, n-1); /* no overflow in rp[n-1] + ... */
+  cy = mpn_add_n (rp, rp, cp + n, n);
+  /* multiply by 2 */
+  cy = (cy << 1) + mpn_lshift (rp, rp, n, 1);
+ end_sqrredc:
+  while (cy)
+    cy -= mpn_sub_n (rp, rp, np, n);
+  TMP_FREE(marker);
+}
+
 #ifdef HAVE_NATIVE_MULREDC1_N
 /* Multiplies y by the 1-limb value of x and does modulo reduction.
    The resulting residue may be multiplied by some constant, 
@@ -640,7 +699,10 @@ ecm_sqrredc_basecase (mpres_t R, const mpres_t S1, mpmod_t modulus)
 
 #if defined(USE_ASM_REDC)
   if (nn < TUNE_SQRREDC_THRESH)
-    mulredc (rp, s1p, s1p, np, nn, modulus->Nprim[0]);
+    {
+      mulredc (rp, s1p, s1p, np, nn, modulus->Nprim[0]);
+      /* sqrredc (rp, s1p, np, nn, modulus->Nprim[0]); */
+    }
   else
 #endif
     { /* first square, then reduce */
@@ -2011,31 +2073,26 @@ void
 mpresn_sqr (mpres_t R, const mpres_t S1, mpmod_t modulus)
 {
   mp_size_t n = ABSIZ(modulus->mult_modulus);
-  mp_limb_t invm = modulus->Nprim[0];
+  mp_ptr invm = modulus->Nprim;
   mp_ptr np = PTR(modulus->mult_modulus);
 
   ASSERT (SIZ(S1) == n || -SIZ(S1) == n);
 
 #ifdef USE_ASM_REDC
   if (n < TUNE_SQRREDC_THRESH)
-    mulredc (PTR(R), PTR(S1), PTR(S1), np, n, invm);
+    mulredc (PTR(R), PTR(S1), PTR(S1), np, n, invm[0]);
+  /* sqrredc (PTR(R), PTR(S1), np, n, invm[0]); */
   else
 #endif
     {
-      mp_ptr r = PTR(R);
       mp_ptr t = PTR(modulus->temp1);
-      mp_size_t j;
-      ATTRIBUTE_UNUSED mp_limb_t cy;
 
 #ifdef HAVE_MPN_SQR
       mpn_sqr (t, PTR(S1), n);
 #else
       mpn_mul_n (t, PTR(S1), PTR(S1), n);
 #endif
-      for (j = 0; j < n; j++, t++)
-        r[j] = mpn_addmul_1 (t, np, n, t[0] * invm);
-      cy = mpn_add_n (r, r, t, n);
-      ASSERT(cy == 0);
+      redc_basecase_n (PTR(R), t, np, n, invm);
     }
   SIZ(R) = n;
 }
@@ -2045,7 +2102,7 @@ void
 mpresn_mul (mpres_t R, const mpres_t S1, const mpres_t S2, mpmod_t modulus)
 {
   mp_size_t n = ABSIZ(modulus->mult_modulus);
-  mp_limb_t invm = modulus->Nprim[0];
+  mp_ptr invm = modulus->Nprim;
   mp_ptr np = PTR(modulus->mult_modulus);
 
   ASSERT (SIZ(S1) == n || -SIZ(S1) == n);
@@ -2053,20 +2110,14 @@ mpresn_mul (mpres_t R, const mpres_t S1, const mpres_t S2, mpmod_t modulus)
 
 #ifdef USE_ASM_REDC
   if (n < TUNE_MULREDC_THRESH) /* use quadratic assembly mulredc */
-    mulredc (PTR(R), PTR(S1), PTR(S2), np, n, invm);
+    mulredc (PTR(R), PTR(S1), PTR(S2), np, n, invm[0]);
   else
 #endif
     {
-      mp_ptr r = PTR(R);
       mp_ptr t = PTR(modulus->temp1);
-      mp_size_t j;
-      ATTRIBUTE_UNUSED mp_limb_t cy;
       
       mpn_mul_n (t, PTR(S1), PTR(S2), n);
-      for (j = 0; j < n; j++, t++)
-        r[j] = mpn_addmul_1 (t, np, n, t[0] * invm);
-      cy = mpn_add_n (r, r, t, n);
-      ASSERT(cy == 0);
+      redc_basecase_n (PTR(R), t, np, n, invm);
     }
 
   SIZ(R) = SIZ(S1) == SIZ(S2) ? n : -n;
