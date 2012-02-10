@@ -239,7 +239,12 @@
     <ClCompile Include="..\..\ks-multiply.c" />
     <ClCompile Include="..\..\listz.c" />
     <ClCompile Include="..\..\median.c" />
-    <ClCompile Include="..\..\mpmod.c" />
+    <ClCompile Include="..\..\mpmod.c">
+      <PreprocessorDefinitions Condition="'$(Configuration)|$(Platform)'=='Release-AMD|Win32'">TUNE_MULREDC_THRESH#0;TUNE_SQRREDC_THRESH#0;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions Condition="'$(Configuration)|$(Platform)'=='Release-Intel|Win32'">TUNE_MULREDC_THRESH#0;TUNE_SQRREDC_THRESH#0;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions Condition="'$(Configuration)|$(Platform)'=='Release-AMD|x64'">TUNE_MULREDC_THRESH#0;TUNE_SQRREDC_THRESH#0;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions Condition="'$(Configuration)|$(Platform)'=='Release-Intel|x64'">TUNE_MULREDC_THRESH#0;TUNE_SQRREDC_THRESH#0;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+    </ClCompile>
     <ClCompile Include="..\..\mpzspm.c" />
     <ClCompile Include="..\..\mpzspv.c" />
     <ClCompile Include="..\..\mul_fft.c" />
@@ -255,6 +260,7 @@
     <ClCompile Include="..\..\tune.c" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="..\..\ecm-params.h" />
     <ClInclude Include="..\config.h" />
     <ClInclude Include="..\..\ecm-ecm.h" />
     <ClInclude Include="..\..\ecm-gmp.h" />
