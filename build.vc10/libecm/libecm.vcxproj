@@ -181,7 +181,6 @@ call file_copy config.h ..\config.h
       </PrecompiledHeader>
       <WarningLevel>Level3</WarningLevel>
       <CompileAs>Default</CompileAs>
-      <OpenMPSupport>true</OpenMPSupport>
     </ClCompile>
     <Lib />
     <Lib />
@@ -276,7 +275,6 @@ call file_copy config.h ..\config.h
       </PrecompiledHeader>
       <WarningLevel>Level3</WarningLevel>
       <CompileAs>Default</CompileAs>
-      <OpenMPSupport>true</OpenMPSupport>
     </ClCompile>
     <Lib />
     <Lib />
@@ -325,7 +323,6 @@ call file_copy config.h ..\config.h
       </PrecompiledHeader>
       <WarningLevel>Level3</WarningLevel>
       <CompileAs>Default</CompileAs>
-      <OpenMPSupport>true</OpenMPSupport>
     </ClCompile>
     <Lib />
     <Lib />
