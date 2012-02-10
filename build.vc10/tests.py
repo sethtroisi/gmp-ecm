@@ -13,8 +13,8 @@ class Timer() :
   def __enter__(self): self.start = clock()
   def __exit__(self, *args): print(' time {:.3f} milliseconds'.format(1000 * (clock() - self.start)))
 
-test_dir = ".\\x64\\Release\\"
-# test_dir = ".\\win32\\Release\\"
+test_dir = '..\\bin\\x64\\Release\\'
+# test_dir = '..\\bin\\win32\\Release\\'
 
 ecm = [
   ("2050449353925555290706354283", "-sigma 7 -k 1 30 0-1e6", 14),
