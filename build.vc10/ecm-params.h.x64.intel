@@ -1,20 +1,16 @@
-/* contributed by tom at womack dot net */
+/* created 06 Feb 2012 on confit.loria.fr (Intel(R) Core(TM) i5-2500 CPU)
+   for svn revision 1705 with GMP 5.0.3 and gcc 4.6.1 */
 
-/* things that were consistent */
-#define PREREVERTDIVISION_NTT_THRESHOLD 16
-#define POLYINVERT_NTT_THRESHOLD 256
-#define POLYEVALT_NTT_THRESHOLD 256
+#define TUNE_MULREDC_THRESH 21
+#define TUNE_SQRREDC_THRESH 9
+#define MPZMOD_THRESHOLD 77
+#define REDC_THRESHOLD 512
+#define MPN_MUL_LO_THRESHOLD_TABLE {0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 9, 1, 1, 1, 1, 11, 12, 12, 13, 14, 13, 14, 14, 16, 16, 16, 16, 16, 16}
+#define NTT_GFP_TWIDDLE_DIF_BREAKOVER 17
+#define NTT_GFP_TWIDDLE_DIT_BREAKOVER 17
 #define MUL_NTT_THRESHOLD 256
+#define PREREVERTDIVISION_NTT_THRESHOLD 8
+#define POLYINVERT_NTT_THRESHOLD 128
+#define POLYEVALT_NTT_THRESHOLD 64
+#define MPZSPV_NORMALISE_STRIDE 256
 
-/* things that are not granular (round to 250/500 ?) */
-#define MPZMOD_THRESHOLD 249 /* range 231-264 */
-#define REDC_THRESHOLD 506   /* range 505-509 */
-
-/* things that broke 2-3 */
-/* this came out as 256 twice */
-#define MPZSPV_NORMALISE_STRIDE 128
-
-/* the table (individual modes) */
-#define MPN_MUL_LO_THRESHOLD_TABLE {0,0,1,0,0,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1}
-#define NTT_GFP_TWIDDLE_DIF_BREAKOVER 11
-#define NTT_GFP_TWIDDLE_DIT_BREAKOVER 11
