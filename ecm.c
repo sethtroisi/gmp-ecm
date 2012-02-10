@@ -42,8 +42,8 @@
 #define BATCH_EXTRA_SMOOTHNESS 0.416384512396064
 #else
 /* For A=4d-2 for d a random integer, the average expected torsion is that
-   of a generic Suyama curve by the constant 1/3 */
-#define BATCH_EXTRA_SMOOTHNESS (1.0 / 3.0)
+   of a generic Suyama curve multiplied by the constant 1/(3*3^(1/128)) */
+#define BATCH_EXTRA_SMOOTHNESS 0.330484606500389
 #endif
 
 /******************************************************************************
