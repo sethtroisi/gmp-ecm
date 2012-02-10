@@ -18,6 +18,9 @@
 # endif
 
 #define LOOPCOUNT 10000000UL
+#define MAXSIZE 20
+
+int tune_mul[MAXSIZE+1], tune_sqr[MAXSIZE+1];
 
 #include <gmp.h>
 #include "mulredc.h"
@@ -59,11 +62,11 @@ void bench(mp_size_t N)
   mp_limb_t *x, *y, *z, *m, invm[2], cy, *tmp;
   unsigned long i;
   const unsigned long iter = LOOPCOUNT/N;
-  double t2, t3 = 0., tmul, tsqr, tredc_1, tredc_2;
+  double t2, t3 = 0., tmul, tsqr, tredc_1, tredc_2, t_mulredc_1, t_mulredc_2;
+  double t_sqrredc_1, t_sqrredc_2, t_sqrredc3, tmul_best, tsqr_best;
   mpz_t M, B;
 #if defined(HAVE_ASM_REDC3)
   double t1;
-  mp_limb_t cy2;
 #endif
   
   x = (mp_limb_t *) malloc(N*sizeof(mp_limb_t));
@@ -124,17 +127,6 @@ void bench(mp_size_t N)
   tredc_2 = CPUTime()-tredc_2;
 #endif
 
-  /* Mul followed by ecm_redc3 */
-#ifdef HAVE_ASM_REDC3
-  t1 = CPUTime();
-  for (i = 0; i < iter; ++i) {
-    mpn_mul_n(tmp, x, y, N);
-    ecm_redc3(tmp, m, N, invm[0]);
-    x[0] += tmp[0];
-  }
-  t1 = CPUTime()-t1;
-#endif
-  
   /* Mixed mul and redc */
   t2 = CPUTime();
   switch (N) {
@@ -265,6 +257,108 @@ void bench(mp_size_t N)
     }
   }
   t2 = CPUTime()-t2;
+  tmul_best = t2;
+  tune_mul[N] = 0;
+  tsqr_best = t2;
+  tune_sqr[N] = 0;
+  
+  /* Mul followed by mpn_redc_1 */
+#ifdef HAVE___GMPN_REDC_1
+  t_mulredc_1 = CPUTime();
+  for (i = 0; i < iter; ++i) {
+    mpn_mul_n(tmp, x, y, N);
+    __gmpn_redc_1 (z, tmp, m, N, invm[0]);
+    x[0] += tmp[0];
+  }
+  t_mulredc_1 = CPUTime()-t_mulredc_1;
+  if (t_mulredc_1 < tmul_best)
+    {
+      tune_mul[N] = 1;
+      tmul_best = t_mulredc_1;
+    }
+#endif
+  
+  /* Mul followed by mpn_redc_2 */
+#ifdef HAVE___GMPN_REDC_2
+  t_mulredc_2 = CPUTime();
+  for (i = 0; i < iter; ++i) {
+    mpn_mul_n(tmp, x, y, N);
+    __gmpn_redc_2 (z, tmp, m, N, invm);
+    x[0] += tmp[0];
+  }
+  t_mulredc_2 = CPUTime()-t_mulredc_2;
+  if (t_mulredc_2 < tmul_best)
+    {
+      tune_mul[N] = 2;
+      tmul_best = t_mulredc_2;
+    }
+#endif
+  
+  /* Mul followed by ecm_redc3 */
+#ifdef HAVE_ASM_REDC3
+  t1 = CPUTime();
+  for (i = 0; i < iter; ++i) {
+    mpn_mul_n(tmp, x, y, N);
+    ecm_redc3(tmp, m, N, invm[0]);
+    mpn_add_n(z, tmp + N, tmp, N);
+    x[0] += tmp[0];
+  }
+  t1 = CPUTime()-t1;
+  if (t1 < tmul_best)
+    {
+      tune_mul[N] = 3;
+      tmul_best = t1;
+    }
+#endif
+  
+  /* Sqr followed by mpn_redc_1 */
+#if defined(HAVE___GMPN_REDC_1) && defined(HAVE_MPN_SQR)
+  t_sqrredc_1 = CPUTime();
+  for (i = 0; i < iter; ++i) {
+    mpn_sqr(tmp, x, N);
+    __gmpn_redc_1 (z, tmp, m, N, invm[0]);
+    x[0] += tmp[0];
+  }
+  t_sqrredc_1 = CPUTime()-t_sqrredc_1;
+  if (t_sqrredc_1 < tsqr_best)
+    {
+      tune_sqr[N] = 1;
+      tsqr_best = t_sqrredc_1;
+    }
+#endif
+  
+  /* Sqr followed by mpn_redc_2 */
+#if defined(HAVE___GMPN_REDC_2) && defined(HAVE_MPN_SQR)
+  t_sqrredc_2 = CPUTime();
+  for (i = 0; i < iter; ++i) {
+    mpn_sqr(tmp, x, N);
+    __gmpn_redc_2 (z, tmp, m, N, invm);
+    x[0] += tmp[0];
+  }
+  t_sqrredc_2 = CPUTime()-t_sqrredc_2;
+  if (t_sqrredc_2 < tsqr_best)
+    {
+      tune_sqr[N] = 2;
+      tsqr_best = t_sqrredc_2;
+    }
+#endif
+  
+  /* Sqr followed by redc3 */
+#if defined(HAVE_ASM_REDC3) && defined(HAVE_MPN_SQR)
+  t_sqrredc3 = CPUTime();
+  for (i = 0; i < iter; ++i) {
+    mpn_sqr(tmp, x, N);
+    ecm_redc3(tmp, m, N, invm[0]);
+    mpn_add_n(z, tmp + N, tmp, N);
+    x[0] += tmp[0];
+  }
+  t_sqrredc3 = CPUTime()-t_sqrredc3;
+  if (t_sqrredc3 < tsqr_best)
+    {
+      tune_sqr[N] = 3;
+      tsqr_best = t_sqrredc3;
+    }
+#endif
   
 #if defined(HAVE_NATIVE_MULREDC1_N)
   /* mulredc1 */
@@ -403,6 +497,7 @@ void bench(mp_size_t N)
   t2 *= 1000000.;
   printf("******************\nTime in microseconds per call, size=%lu\n", N);
 
+  /* basic operations */
   printf("mpn_mul_n  = %f\n", tmul/iter);
 #ifdef HAVE_MPN_SQR
   printf("mpn_sqr    = %f\n", tsqr/iter);
@@ -413,12 +508,36 @@ void bench(mp_size_t N)
 #ifdef HAVE___GMPN_REDC_2
   printf("mpn_redc_2 = %f\n", tredc_2/iter);
 #endif
+
+  /* modular multiplication and squaring */
+  printf("mulredc    = %f\n", t2/iter);
+#if defined(HAVE___GMPN_REDC_1)
+  t_mulredc_1 *= 1000000.;
+  printf("mul+redc_1 = %f\n", t_mulredc_1/iter);
+#endif
+#if defined(HAVE___GMPN_REDC_2)
+  t_mulredc_2 *= 1000000.;
+  printf("mul+redc_2 = %f\n", t_mulredc_2/iter);
+#endif
 #if defined(HAVE_ASM_REDC3)
   t1 *= 1000000.;
-  printf("mul+redc   = %f\n", t1/iter);
+  printf("mul+redc3  = %f\n", t1/iter);
 #endif
-  printf("mulredc    = %f\n", t2/iter);
-  printf("mulredc1   = %f\n", t3/LOOPCOUNT);
+#if defined(HAVE___GMPN_REDC_1) && defined(HAVE_MPN_SQR)
+  t_sqrredc_1 *= 1000000.;
+  printf("sqr+redc_1 = %f\n", t_sqrredc_1/iter);
+#endif
+#if defined(HAVE___GMPN_REDC_2) && defined(HAVE_MPN_SQR)
+  t_sqrredc_2 *= 1000000.;
+  printf("sqr+redc_2 = %f\n", t_sqrredc_2/iter);
+#endif
+#if defined(HAVE_ASM_REDC3) && defined(HAVE_MPN_SQR)
+  t_sqrredc3 *= 1000000.;
+  printf("sqr+redc3  = %f\n", t_sqrredc3/iter);
+#endif
+
+  /* multiplication of n limbs by one limb */
+  printf ("mulredc1   = %f\n", t3/LOOPCOUNT);
   
   free(tmp);
   free(x); free(y); free(z); free(m);
@@ -428,42 +547,26 @@ void bench(mp_size_t N)
 int main(int argc, char** argv)
 {
   int i;
-  int minsize = 1, maxsize = 20;
+  int minsize = 1, maxsize = MAXSIZE;
 
   if (argc > 1)
     minsize = atoi (argv[1]);
   if (argc > 2)
     maxsize = atoi (argv[2]);
   
-    for (i = minsize; i <= maxsize; ++i) {
-      bench(i);
-    }
+  for (i = minsize; i <= maxsize; ++i)
+    bench(i);
+
+  printf ("/* 0:mulredc 1:mul+redc_1 2:mul+redc_2 3:mul+redc3 */\n");
+  printf ("#define TUNE_MULREDC {0");
+  for (i = 1; i <= maxsize; i++)
+    printf (",%d", tune_mul[i]);
+  printf ("}\n");
+  printf ("/* 0:mulredc 1:sqr+redc_1 2:sqr+redc_2 3:sqr+redc3 */\n");
+  printf ("#define TUNE_SQRREDC {0");
+  for (i = 1; i <= maxsize; i++)
+    printf (",%d", tune_sqr[i]);
+  printf ("}\n");
 
   return 0;
 }
-
-
-#if 0
-
-W := 2^64;
-
-x0:= 12580274668139321508;
-x1:= 9205793975152560417;
-x2:= 7857372727033793057;
-x := x0 + W*(x1 + W*x2);
-
-y0:= 13688385828267279103;
-y1:= 10575011835742767258;
-y2:= 8802048318027595690;
-y := y0 + W*(y1 + W*y2);
-  
-m0:= 2981542467342508025;
-m1:= 5964669706257742025;
-m2:= 18446744073678090270;
-m := m0 + W*(m1 + W*m2);
-  
-invm := 9419286575570128311;
-
-
-
-#endif
