@@ -98,7 +98,7 @@ EXTRA_DIST = test.pm1 test.pp1 test.ecm README.lib INSTALL-ecm ecm.xml \
              mul_fft-params.h.athlon64 mul_fft-params.h.pentium3 \
              mul_fft-params.h.default mul_fft-params.h.pentium4
 
-DIST_SUBDIRS = athlon pentium4 x86_64 powerpc64
+DIST_SUBDIRS = athlon pentium4 x86_64 powerpc64 build.vc10
 
 DISTCLEANFILES = config.m4
 
