@@ -86,7 +86,6 @@ size_t PREREVERTDIVISION_NTT_THRESHOLD;
 size_t POLYINVERT_NTT_THRESHOLD;
 size_t POLYEVALT_NTT_THRESHOLD;
 size_t MPZSPV_NORMALISE_STRIDE = 256;
-size_t TUNE_MULREDC_THRESH, TUNE_SQRREDC_THRESH;
 
 void
 mpz_quick_random (mpz_t x, mpz_t M, unsigned long b)
@@ -328,60 +327,6 @@ TUNE_FUNC_START (tune_ecm_mul_lo_n)
   TUNE_FUNC_LOOP (ecm_mul_lo_n (rp, xp, yp, mp_size));
 TUNE_FUNC_END (tune_ecm_mul_lo_n)
 
-double 
-tune_mulredc_asm (size_t n)
-{
-  double r;
-
-  /* Make ecm_mulredc_basecase() always use assembly mulredc code */
-  TUNE_MULREDC_THRESH = n + 1;
-  r = tune_mpres_mul (n, ECM_MOD_MODMULN);
-  if (tune_verbose)
-    fprintf (stderr, "tune_mulredc_asm(%2ld) = %f\n", (long) n, r);
-  return r;
-}
-
-double 
-tune_mulredc_noasm (size_t n)
-{
-  double r;
-
-  /* Make ecm_mulredc_basecase() never use assembly mulredc code */
-  TUNE_MULREDC_THRESH = n;
-  r = tune_mpres_mul (n, ECM_MOD_MODMULN);
-  if (tune_verbose)
-    fprintf (stderr, "tune_mulredc_noasm(%2ld) = %f\n", (long) n, r);
-  return r;
-}
-
-
-double 
-tune_sqrredc_asm (size_t n)
-{
-  double r;
-
-  /* Make ecm_mulredc_basecase() always use assembly mulredc code */
-  TUNE_SQRREDC_THRESH = n + 1;
-  r = tune_mpres_sqr (n, ECM_MOD_MODMULN);
-  if (tune_verbose)
-    fprintf (stderr, "tune_sqrredc_asm(%2ld) = %f\n", (long) n, r);
-  return r;
-}
-
-double 
-tune_sqrredc_noasm (size_t n)
-{
-  double r;
-
-  /* Make ecm_mulredc_basecase() never use assembly mulredc code */
-  TUNE_SQRREDC_THRESH = n;
-  r = tune_mpres_sqr (n, ECM_MOD_MODMULN);
-  if (tune_verbose)
-    fprintf (stderr, "tune_sqrredc_noasm(%2ld) = %f\n", (long) n, r);
-  return r;
-}
-
-
 /* Return the lowest n with min_n <= n < max_n such that
  * f1(t) >= f0(t) for all t in [n, n + k), or return max_n if no such
  * n exists. This function will typically return high values if there
@@ -527,16 +472,6 @@ main (int argc, char **argv)
   spm = mpzspm->spm[0];
   spv = mpzspv[0];
   
-  TUNE_MULREDC_THRESH = crossover2 (tune_mulredc_asm, tune_mulredc_noasm,
-                                    1, MULREDC_ASSEMBLY_MAX + 1, 2);
-  printf ("#define TUNE_MULREDC_THRESH %lu\n", 
-          (unsigned long) TUNE_MULREDC_THRESH);
-
-  TUNE_SQRREDC_THRESH = crossover2 (tune_sqrredc_asm, tune_sqrredc_noasm,
-                                    1, MULREDC_ASSEMBLY_MAX + 1, 2);
-  printf ("#define TUNE_SQRREDC_THRESH %lu\n", 
-          (unsigned long) TUNE_SQRREDC_THRESH);
-
   MPZMOD_THRESHOLD = crossover2 (tune_mpres_mul_modmuln, tune_mpres_mul_mpz,
       1, 512, 10);
   

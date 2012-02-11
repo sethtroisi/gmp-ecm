@@ -325,7 +325,7 @@ typedef struct
   int Fermat;         /* If repr = 1 (base 2 number): If modulus is 2^(2^m)+1, 
                          i.e. bits = 2^m, then Fermat = 2^m, 0 otherwise.
                          If repr != 1, undefined */
-  mp_limb_t Nprim[2]; /* For MODMULN */
+  mp_limb_t *Nprim;   /* For MODMULN */
   mpz_t orig_modulus; /* The original modulus N */
   mpz_t mult_modulus; /* We perform all computations modulo this multiple k*N
                          of N */

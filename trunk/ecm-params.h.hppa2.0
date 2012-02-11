@@ -2,8 +2,6 @@
    gmp-5.0.1, and gcc 4.4.1 -O2 -pedantic -mpa-risc-1-1
    (note that GMP must be configured with ABI=1.0, see
    http://gmplib.org/list-archives/gmp-bugs/2009-August/001585.html */
-#define TUNE_MULREDC_THRESH 3
-#define TUNE_SQRREDC_THRESH 4
 #define MPZMOD_THRESHOLD 185
 #define REDC_THRESHOLD 512
 #define MPN_MUL_LO_THRESHOLD_TABLE {0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1}
