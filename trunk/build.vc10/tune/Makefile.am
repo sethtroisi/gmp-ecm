@@ -1,1 +1,1 @@
-EXTRA_DIST = tune.vcxproj
+EXTRA_DIST = tune.vcxproj tune.vcxproj.filters
