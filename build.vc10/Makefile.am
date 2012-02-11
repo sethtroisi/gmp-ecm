@@ -1,4 +1,4 @@
 EXTRA_DIST = config.h ecm-params.h ecm.sln file_copy.bat readme.txt \
-             tests.py
+             tests.py vsyasm.props
 
-DIST_SUBDIRS = assembler ecm libecm
+DIST_SUBDIRS = assembler ecm libecm tune
