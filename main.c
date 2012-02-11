@@ -297,16 +297,6 @@ print_config ()
 
 #ifdef USE_ASM_REDC
   printf ("USE_ASM_REDC = %d\n", USE_ASM_REDC);
-#ifdef TUNE_MULREDC_THRESH
-  printf ("TUNE_MULREDC_THRESH = %d\n", TUNE_MULREDC_THRESH);
-#else
-  printf ("TUNE_MULREDC_THRESH undefined\n");
-#endif
-#ifdef TUNE_SQRREDC_THRESH
-  printf ("TUNE_SQRREDC_THRESH = %d\n", TUNE_SQRREDC_THRESH);
-#else
-  printf ("TUNE_SQRREDC_THRESH undefined\n");
-#endif
 #ifdef WINDOWS64_ABI
   printf ("WINDOWS64_ABI = %d\n", WINDOWS64_ABI);
 #else

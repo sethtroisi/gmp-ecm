@@ -112,16 +112,16 @@ void bench(mp_size_t N)
 #endif
 
 #ifdef HAVE___GMPN_REDC_1
-  tredc_1 = CPUTime();
   mpn_mul_n(tmp, x, y, N);
+  tredc_1 = CPUTime();
   for (i = 0; i < iter; ++i)
     __gmpn_redc_1 (z, tmp, m, N, invm[0]);
   tredc_1 = CPUTime()-tredc_1;
 #endif
 
 #ifdef HAVE___GMPN_REDC_2
-  tredc_2 = CPUTime();
   mpn_mul_n(tmp, x, y, N);
+  tredc_2 = CPUTime();
   for (i = 0; i < iter; ++i)
     __gmpn_redc_2 (z, tmp, m, N, invm);
   tredc_2 = CPUTime()-tredc_2;
@@ -558,12 +558,12 @@ int main(int argc, char** argv)
     bench(i);
 
   printf ("/* 0:mulredc 1:mul+redc_1 2:mul+redc_2 3:mul+redc3 */\n");
-  printf ("#define TUNE_MULREDC {0");
+  printf ("#define TUNE_MULREDC_TABLE {0");
   for (i = 1; i <= maxsize; i++)
     printf (",%d", tune_mul[i]);
   printf ("}\n");
   printf ("/* 0:mulredc 1:sqr+redc_1 2:sqr+redc_2 3:sqr+redc3 */\n");
-  printf ("#define TUNE_SQRREDC {0");
+  printf ("#define TUNE_SQRREDC_TABLE {0");
   for (i = 1; i <= maxsize; i++)
     printf (",%d", tune_sqr[i]);
   printf ("}\n");
