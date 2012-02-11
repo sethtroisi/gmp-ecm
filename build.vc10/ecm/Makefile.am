@@ -1,1 +1,1 @@
-EXTRA_DIST = ecm.vcxproj
+EXTRA_DIST = ecm.vcxproj ecm.vcxproj.filters
