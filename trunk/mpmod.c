@@ -24,6 +24,7 @@
 #include <stdlib.h>
 #include "ecm-gmp.h"
 #include "ecm-impl.h"
+#include "mpmod.h"
 
 #ifdef USE_ASM_REDC
   #include "mulredc.h"
@@ -639,25 +640,25 @@ ecm_mulredc_basecase_n (mp_ptr rp, mp_srcptr s1p, mp_srcptr s2p,
     {
       switch (tune_mulredc_table[nn])
         {
-        case 0: /* use quadratic assembly mulredc */
+        case MPMOD_MULREDC: /* use quadratic assembly mulredc */
           mulredc (rp, s1p, s2p, np, nn, invm[0]);
           break;
-        case 1: /* mpn_mul_n + __gmpn_redc_1 */
+        case MPMOD_MUL_REDC1: /* mpn_mul_n + __gmpn_redc_1 */
           mpn_mul_n (tmp, s1p, s2p, nn);
           __gmpn_redc_1 (rp, tmp, np, nn, invm[0]);
           break;
-        case 2: /* mpn_mul_n + __gmpn_redc_2 */
+        case MPMOD_MUL_REDC2: /* mpn_mul_n + __gmpn_redc_2 */
           mpn_mul_n (tmp, s1p, s2p, nn);
           __gmpn_redc_2 (rp, tmp, np, nn, invm);
           break;
-        case 3: /* mpn_mul_n + ecm_redc3 */
+        case MPMOD_MUL_REDC3: /* mpn_mul_n + ecm_redc3 */
           mpn_mul_n (tmp, s1p, s2p, nn);
           ecm_redc3 (tmp, np, nn, invm[0]);
           cy = mpn_add_n (rp, tmp + nn, tmp, nn);
           if (cy != 0)
             mpn_sub_n (rp, rp, np, nn); /* a borrow should always occur here */
           break;
-        default: /* plain C quadratic reduction */
+        case MPMOD_MUL_REDC_C: /* plain C quadratic reduction */
           mpn_mul_n (tmp, s1p, s2p, nn);
           for (j = 0; j < nn; j++, tmp++)
             tmp[0] = mpn_addmul_1 (tmp, np, nn, tmp[0] * invm[0]);
@@ -665,6 +666,12 @@ ecm_mulredc_basecase_n (mp_ptr rp, mp_srcptr s1p, mp_srcptr s2p,
           if (cy != 0)
             mpn_sub_n (rp, rp, np, nn); /* a borrow should always occur here */
           break;
+        default:
+          {
+            outputf (OUTPUT_ERROR, "Invalid mulredc mode: %d\n",
+                     tune_mulredc_table[nn]);
+            exit (EXIT_FAILURE);
+          }
         }
     }
   else /* nn > MULREDC_ASSEMBLY_MAX */
@@ -685,10 +692,10 @@ ecm_sqrredc_basecase_n (mp_ptr rp, mp_srcptr s1p,
     {
       switch (tune_sqrredc_table[nn])
         {
-        case 0: /* use quadratic assembly mulredc */
+        case MPMOD_MULREDC: /* use quadratic assembly mulredc */
           mulredc (rp, s1p, s1p, np, nn, invm[0]);
           break;
-        case 1: /* mpn_sqr + __gmpn_redc_1 */
+        case MPMOD_MUL_REDC1: /* mpn_sqr + __gmpn_redc_1 */
 #ifdef HAVE_MPN_SQR
           mpn_sqr (tmp, s1p, nn);
 #else
@@ -696,7 +703,7 @@ ecm_sqrredc_basecase_n (mp_ptr rp, mp_srcptr s1p,
 #endif
           __gmpn_redc_1 (rp, tmp, np, nn, invm[0]);
           break;
-        case 2: /* mpn_mul_n + __gmpn_redc_2 */
+        case MPMOD_MUL_REDC2: /* mpn_mul_n + __gmpn_redc_2 */
 #ifdef HAVE_MPN_SQR
           mpn_sqr (tmp, s1p, nn);
 #else
@@ -704,7 +711,7 @@ ecm_sqrredc_basecase_n (mp_ptr rp, mp_srcptr s1p,
 #endif
           __gmpn_redc_2 (rp, tmp, np, nn, invm);
           break;
-        case 3: /* mpn_mul_n + ecm_redc3 */
+        case MPMOD_MUL_REDC3: /* mpn_mul_n + ecm_redc3 */
 #ifdef HAVE_MPN_SQR
           mpn_sqr (tmp, s1p, nn);
 #else
@@ -715,7 +722,7 @@ ecm_sqrredc_basecase_n (mp_ptr rp, mp_srcptr s1p,
           if (cy != 0)
             mpn_sub_n (rp, rp, np, nn); /* a borrow should always occur here */
           break;
-        default: /* plain C quadratic reduction */
+        case MPMOD_MUL_REDC_C: /* plain C quadratic reduction */
 #ifdef HAVE_MPN_SQR
           mpn_sqr (tmp, s1p, nn);
 #else
@@ -727,6 +734,12 @@ ecm_sqrredc_basecase_n (mp_ptr rp, mp_srcptr s1p,
           if (cy != 0)
             mpn_sub_n (rp, rp, np, nn); /* a borrow should always occur here */
           break;
+        default:
+          {
+            outputf (OUTPUT_ERROR, "Invalid sqrredc mode: %d\n",
+                     tune_sqrredc_table[nn]);
+            exit (EXIT_FAILURE);
+          }
         }
     }
   else /* nn > MULREDC_ASSEMBLY_MAX */

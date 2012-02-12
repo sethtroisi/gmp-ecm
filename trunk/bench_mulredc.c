@@ -24,6 +24,19 @@ int tune_mul[MAXSIZE+1], tune_sqr[MAXSIZE+1];
 
 #include <gmp.h>
 #include "mulredc.h"
+#include "mpmod.h"
+
+#ifdef HAVE___GMPN_REDC_1
+#ifndef __gmpn_redc_1
+void __gmpn_redc_1 (mp_ptr, mp_ptr, mp_srcptr, mp_size_t, mp_limb_t);
+#endif
+#endif
+
+#ifdef HAVE___GMPN_REDC_2
+#ifndef __gmpn_redc_2
+void __gmpn_redc_2 (mp_ptr, mp_ptr, mp_srcptr, mp_size_t, mp_srcptr);
+#endif
+#endif
 
 double CPUTime()
 {
@@ -258,9 +271,9 @@ void bench(mp_size_t N)
   }
   t2 = CPUTime()-t2;
   tmul_best = t2;
-  tune_mul[N] = 0;
+  tune_mul[N] = MPMOD_MULREDC;
   tsqr_best = t2;
-  tune_sqr[N] = 0;
+  tune_sqr[N] = MPMOD_MULREDC;
   
   /* Mul followed by mpn_redc_1 */
 #ifdef HAVE___GMPN_REDC_1
@@ -273,7 +286,7 @@ void bench(mp_size_t N)
   t_mulredc_1 = CPUTime()-t_mulredc_1;
   if (t_mulredc_1 < tmul_best)
     {
-      tune_mul[N] = 1;
+      tune_mul[N] = MPMOD_MUL_REDC1;
       tmul_best = t_mulredc_1;
     }
 #endif
@@ -289,7 +302,7 @@ void bench(mp_size_t N)
   t_mulredc_2 = CPUTime()-t_mulredc_2;
   if (t_mulredc_2 < tmul_best)
     {
-      tune_mul[N] = 2;
+      tune_mul[N] = MPMOD_MUL_REDC2;
       tmul_best = t_mulredc_2;
     }
 #endif
@@ -306,7 +319,7 @@ void bench(mp_size_t N)
   t1 = CPUTime()-t1;
   if (t1 < tmul_best)
     {
-      tune_mul[N] = 3;
+      tune_mul[N] = MPMOD_MUL_REDC3;
       tmul_best = t1;
     }
 #endif
@@ -322,7 +335,7 @@ void bench(mp_size_t N)
   t_sqrredc_1 = CPUTime()-t_sqrredc_1;
   if (t_sqrredc_1 < tsqr_best)
     {
-      tune_sqr[N] = 1;
+      tune_sqr[N] = MPMOD_MUL_REDC1;
       tsqr_best = t_sqrredc_1;
     }
 #endif
@@ -338,7 +351,7 @@ void bench(mp_size_t N)
   t_sqrredc_2 = CPUTime()-t_sqrredc_2;
   if (t_sqrredc_2 < tsqr_best)
     {
-      tune_sqr[N] = 2;
+      tune_sqr[N] = MPMOD_MUL_REDC2;
       tsqr_best = t_sqrredc_2;
     }
 #endif
@@ -355,7 +368,7 @@ void bench(mp_size_t N)
   t_sqrredc3 = CPUTime()-t_sqrredc3;
   if (t_sqrredc3 < tsqr_best)
     {
-      tune_sqr[N] = 3;
+      tune_sqr[N] = MPMOD_MUL_REDC3;
       tsqr_best = t_sqrredc3;
     }
 #endif
