@@ -60,6 +60,7 @@ MA 02110-1301, USA. */
    /* Throughout this file, Mp is chosen so that 
       ord_{2^Nprime + 1}(sqrt(2)^Mp) == 2^k */
 
+#include <stdlib.h>
 #include <gmp.h>
 #include "basicdefs.h"
 #include "mul_fft-params.h"
