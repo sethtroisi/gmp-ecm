@@ -641,16 +641,23 @@ ecm_mulredc_basecase_n (mp_ptr rp, mp_srcptr s1p, mp_srcptr s2p,
       switch (tune_mulredc_table[nn])
         {
         case MPMOD_MULREDC: /* use quadratic assembly mulredc */
+#ifdef USE_ASM_REDC
           mulredc (rp, s1p, s2p, np, nn, invm[0]);
           break;
+#endif /* otherwise go through to the next available mode */
         case MPMOD_MUL_REDC1: /* mpn_mul_n + __gmpn_redc_1 */
+#if defined(HAVE___GMPN_REDC_1)
           mpn_mul_n (tmp, s1p, s2p, nn);
           __gmpn_redc_1 (rp, tmp, np, nn, invm[0]);
           break;
+#endif /* otherwise go through to the next available mode */
         case MPMOD_MUL_REDC2: /* mpn_mul_n + __gmpn_redc_2 */
+#if defined(HAVE___GMPN_REDC_2)
           mpn_mul_n (tmp, s1p, s2p, nn);
           __gmpn_redc_2 (rp, tmp, np, nn, invm);
           break;
+#endif /* otherwise go through to the next available mode */
+#if defined(HAVE_ASM_REDC3)
         case MPMOD_MUL_REDC3: /* mpn_mul_n + ecm_redc3 */
           mpn_mul_n (tmp, s1p, s2p, nn);
           ecm_redc3 (tmp, np, nn, invm[0]);
@@ -658,6 +665,7 @@ ecm_mulredc_basecase_n (mp_ptr rp, mp_srcptr s1p, mp_srcptr s2p,
           if (cy != 0)
             mpn_sub_n (rp, rp, np, nn); /* a borrow should always occur here */
           break;
+#endif /* otherwise go through to the next available mode */
         case MPMOD_MUL_REDC_C: /* plain C quadratic reduction */
           mpn_mul_n (tmp, s1p, s2p, nn);
           for (j = 0; j < nn; j++, tmp++)
@@ -693,23 +701,31 @@ ecm_sqrredc_basecase_n (mp_ptr rp, mp_srcptr s1p,
       switch (tune_sqrredc_table[nn])
         {
         case MPMOD_MULREDC: /* use quadratic assembly mulredc */
+#ifdef USE_ASM_REDC
           mulredc (rp, s1p, s1p, np, nn, invm[0]);
           break;
+#endif /* otherwise go through to the next available mode */
         case MPMOD_MUL_REDC1: /* mpn_sqr + __gmpn_redc_1 */
+#if defined(HAVE___GMPN_REDC_1)
           mpn_sqr (tmp, s1p, nn);
           __gmpn_redc_1 (rp, tmp, np, nn, invm[0]);
           break;
+#endif /* otherwise go through to the next available mode */
         case MPMOD_MUL_REDC2: /* mpn_mul_n + __gmpn_redc_2 */
+#if defined(HAVE___GMPN_REDC_2)
           mpn_sqr (tmp, s1p, nn);
           __gmpn_redc_2 (rp, tmp, np, nn, invm);
           break;
+#endif /* otherwise go through to the next available mode */
         case MPMOD_MUL_REDC3: /* mpn_mul_n + ecm_redc3 */
+#if defined(HAVE_ASM_REDC3)
           mpn_sqr (tmp, s1p, nn);
           ecm_redc3 (tmp, np, nn, invm[0]);
           cy = mpn_add_n (rp, tmp + nn, tmp, nn);
           if (cy != 0)
             mpn_sub_n (rp, rp, np, nn); /* a borrow should always occur here */
           break;
+#endif /* otherwise go through to the next available mode */
         case MPMOD_MUL_REDC_C: /* plain C quadratic reduction */
           mpn_sqr (tmp, s1p, nn);
           for (j = 0; j < nn; j++, tmp++)
