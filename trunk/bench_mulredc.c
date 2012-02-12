@@ -76,15 +76,44 @@ void mp_print(mp_limb_t *x, int N) {
   printf("\n");
 }
 
+static void
+ecm_redc_1_svoboda (mp_ptr rp, mp_ptr tmp, mp_srcptr np, mp_size_t nn,
+                    mp_limb_t invm, mp_srcptr sp)
+{
+  mp_size_t j;
+  mp_limb_t t0, cy;
+
+  /* instead of adding {np, nn} * (invm * tmp[0] mod B), we add
+     {sp, nn} * tmp[0], where {np, nn} * invm = B * {sp, nn} - 1 */
+  for (j = 0; j < nn - 1; j++, tmp++)
+    rp[j + 1] = mpn_addmul_1 (tmp + 1, sp, nn, tmp[0]);
+  /* for the last step, we reduce with {np, nn} */
+  t0 = mpn_addmul_1 (tmp, np, nn, tmp[0] * invm);
+  tmp ++;
+
+  rp[0] = tmp[0];
+  cy = mpn_add_n (rp + 1, rp + 1, tmp + 1, nn - 1);
+  rp[nn-1] += t0;
+  cy += rp[nn-1] < t0;
+  if (cy != 0)
+    mpn_sub_n (rp, rp, np, nn); /* a borrow should always occur here */
+}
+
 void bench(mp_size_t N)
 {
-  mp_limb_t *x, *y, *z, *m,* invm, cy, *tmp;
+  mp_limb_t *x, *y, *z, *m, *invm, cy, *tmp, *svoboda1;
   unsigned long i;
   const unsigned long iter = LOOPCOUNT/N;
-  double t2, t3 = 0., tmul, tsqr, tredc_1, tredc_2, t_mulredc_1, t_mulredc_2;
-  double t_sqrredc_1, t_sqrredc_2, t_sqrredc3, tmul_best, tsqr_best;
-  double tredc_n, t_mulredc_n, t_sqrredc_n, tredc3;
+  double t2, t3 = 0., tmul, tsqr, tredc_1, t_mulredc_1;
+  double t_sqrredc_1, t_sqrredc3, tmul_best, tsqr_best;
+  double tredc3, tsvoboda1;
   mpz_t M, B;
+#ifdef HAVE___GMPN_REDC_2
+  double tredc_2, t_mulredc_2, t_sqrredc_2;
+#endif
+#ifdef HAVE___GMPN_REDC_N
+  double tredc_n, t_mulredc_n, t_sqrredc_n;
+#endif
 #if defined(HAVE_ASM_REDC3)
   double t1;
 #endif
@@ -95,6 +124,7 @@ void bench(mp_size_t N)
   m = (mp_limb_t *) malloc(N*sizeof(mp_limb_t));
   tmp = (mp_limb_t *) malloc((2*N+2)*sizeof(mp_limb_t));
   invm = (mp_limb_t *) malloc(N*sizeof(mp_limb_t));
+  svoboda1 = (mp_limb_t *) malloc(N*sizeof(mp_limb_t));
  
   mpn_random(m, N);
   m[0] |= 1UL;
@@ -113,6 +143,10 @@ void bench(mp_size_t N)
 
   for (i = 0; i < (unsigned) N; i++)
     invm[i] = mpz_getlimbn(M, i);
+
+  tmp[N] = mpn_mul_1 (tmp, m, N, invm[0]); /* {tmp,N+1} should be = -1 mod B */
+  mpn_add_1 (tmp, tmp, N + 1, 1); /* now = 0 mod B */
+  mpn_copyi (svoboda1, tmp + 1, N);
 
   mpz_clear (M);
   mpz_clear (B);
@@ -137,6 +171,12 @@ void bench(mp_size_t N)
     __gmpn_redc_1 (z, tmp, m, N, invm[0]);
   tredc_1 = CPUTime()-tredc_1;
 #endif
+
+  mpn_mul_n(tmp, x, y, N);
+  tsvoboda1 = CPUTime();
+  for (i = 0; i < iter; ++i)
+    ecm_redc_1_svoboda (z, tmp, m, N, invm[0], svoboda1);
+  tsvoboda1 = CPUTime()-tsvoboda1;
 
 #ifdef HAVE___GMPN_REDC_2
   mpn_mul_n(tmp, x, y, N);
@@ -567,9 +607,8 @@ void bench(mp_size_t N)
   tmul *= 1000000.;
   tsqr *= 1000000.;
   tredc_1 *= 1000000.;
-  tredc_2 *= 1000000.;
+  tsvoboda1 *= 1000000.;
   tredc3  *= 1000000.;
-  tredc_n *= 1000000.;
   t2 *= 1000000.;
   printf("******************\nTime in microseconds per call, size=%lu\n", N);
 
@@ -579,13 +618,16 @@ void bench(mp_size_t N)
 #ifdef HAVE___GMPN_REDC_1
   printf("mpn_redc_1 = %f\n", tredc_1/iter);
 #endif
+  printf("svoboda1   = %f\n", tsvoboda1/iter);
 #ifdef HAVE___GMPN_REDC_2
+  tredc_2 *= 1000000.;
   printf("mpn_redc_2 = %f\n", tredc_2/iter);
 #endif
 #ifdef HAVE_ASM_REDC3
   printf("ecm_redc3  = %f\n", tredc3/iter);
 #endif
 #ifdef HAVE___GMPN_REDC_N
+  tredc_n *= 1000000.;
   printf("mpn_redc_n = %f\n", tredc_n/iter);
 #endif
 
@@ -630,6 +672,7 @@ void bench(mp_size_t N)
   free(tmp);
   free(x); free(y); free(z); free(m);
   free (invm);
+  free (svoboda1);
 }
   
 
