@@ -657,8 +657,8 @@ ecm_mulredc_basecase_n (mp_ptr rp, mp_srcptr s1p, mp_srcptr s2p,
           __gmpn_redc_2 (rp, tmp, np, nn, invm);
           break;
 #endif /* otherwise go through to the next available mode */
-#if defined(HAVE_ASM_REDC3)
         case MPMOD_MUL_REDC3: /* mpn_mul_n + ecm_redc3 */
+#if defined(HAVE_ASM_REDC3)
           mpn_mul_n (tmp, s1p, s2p, nn);
           ecm_redc3 (tmp, np, nn, invm[0]);
           cy = mpn_add_n (rp, tmp + nn, tmp, nn);
@@ -989,6 +989,16 @@ mpmod_init_BASE2 (mpmod_t modulus, const int base2, const mpz_t N)
   return 0;
 }
 
+/* initialize the following fields:
+   orig_modulus - the original modulus
+   bits         - # of bits of N, rounded up to a multiple of GMP_NUMB_BITS
+   mult_modulus - the original modulus
+   temp1, temp2 - auxiliary variables
+   Nprim        - -1/N mod B^n where B=2^GMP_NUMB_BITS and n = #limbs(N)
+   R2           - (2^bits)^2 (mod N)
+   R3           - (2^bits)^3 (mod N)
+   multiple     - smallest multiple of N >= 2^bits
+ */
 void
 mpmod_init_MODMULN (mpmod_t modulus, const mpz_t N)
 {
@@ -1034,12 +1044,11 @@ mpmod_init_MODMULN (mpmod_t modulus, const mpz_t N)
   /* since we directly check even modulus in ecm/pm1/pp1,
      N is odd here, thus 1/N mod 2^Nbits always exist */
   mpz_invert (modulus->temp2, N, modulus->temp1); /* temp2 = 1/N mod B^n */
-
   mpz_sub (modulus->temp2, modulus->temp1, modulus->temp2);
   /* temp2 = -1/N mod B^n */
   /* ensure Nprim has all its n limbs correctly set, for ecm_redc_n */
   MPN_ZERO(modulus->Nprim, mpz_size (N));
-  MPN_COPY(modulus->Nprim, PTR(modulus->temp2), ABSIZ(modulus->temp2));
+  mpn_copyi (modulus->Nprim, PTR(modulus->temp2), ABSIZ(modulus->temp2));
 }
 
 void 
@@ -1153,7 +1162,7 @@ mpmod_init_set (mpmod_t r, const mpmod_t modulus)
   if (modulus->repr == ECM_MOD_MODMULN)
     {
       r->Nprim = (mp_limb_t*) malloc (n * sizeof (mp_limb_t));
-      MPN_COPY(r->Nprim, modulus->Nprim, n);
+      mpn_copyi (r->Nprim, modulus->Nprim, n);
     }
 }
 
