@@ -574,7 +574,7 @@ void spv_ntt_gfp_dit (spv_t, spv_size_t, spm_t);
 spv_size_t mpzspm_max_len (mpz_t);
 mpzspm_t mpzspm_init (spv_size_t, mpz_t);
 void mpzspm_clear (mpzspm_t);
-void mpzspm_print_CRT_primes (const int, const char *, 
+void mpzspm_print_CRT_primes (int, const char *, 
 			   const mpzspm_t);
 
 /* mpzspv */
@@ -591,8 +591,10 @@ void mpzspv_set (mpzspv_t, spv_size_t, mpzspv_t, spv_size_t, spv_size_t,
 void mpzspv_revcopy (mpzspv_t, spv_size_t, mpzspv_t, spv_size_t, spv_size_t,
     mpzspm_t);
 void mpzspv_set_sp (mpzspv_t, spv_size_t, sp_t, spv_size_t, mpzspm_t);
-void mpzspv_from_mpzv (mpzspv_t, const spv_size_t, const mpzv_t, 
-		       const spv_size_t, mpzspm_t);
+void mpzspv_from_mpzv (mpzspv_t, spv_size_t, const mpzv_t, 
+		       spv_size_t, mpzspm_t);
+void mpzspv_from_mpzv_file (mpzspv_t, spv_size_t, FILE **, const mpzv_t, FILE *, 
+    spv_size_t, spv_size_t, mpzspm_t);
 void mpzspv_reverse (mpzspv_t, spv_size_t, spv_size_t, mpzspm_t);
 void mpzspv_neg (mpzspv_t, spv_size_t, mpzspv_t, spv_size_t, spv_size_t,
     mpzspm_t);
@@ -604,7 +606,7 @@ void mpzspv_to_mpzv_file (mpzspv_t, spv_size_t, FILE **sp_files, const mpzv_t,
 void mpzspv_normalise (mpzspv_t, spv_size_t, spv_size_t, mpzspm_t);
 void mpzspv_pwmul (mpzspv_t, spv_size_t, mpzspv_t, spv_size_t, mpzspv_t, 
     spv_size_t, spv_size_t, mpzspm_t);
-void mpzspv_mul_ntt_file (mpzspv_t, const spv_size_t, FILE **, mpzspv_t, 
+void mpzspv_mul_ntt_file (mpzspv_t, spv_size_t, FILE **, mpzspv_t, 
     spv_size_t, spv_size_t, FILE **, mpzspv_t, spv_size_t, spv_size_t, 
     FILE **, spv_size_t, int, spv_size_t, mpzspm_t, int);
 void mpzspv_mul_ntt (mpzspv_t, spv_size_t, mpzspv_t, spv_size_t, spv_size_t, 
@@ -614,6 +616,7 @@ void mpzspv_random (mpzspv_t, spv_size_t, spv_size_t, mpzspm_t);
 void mpzspv_to_dct1 (mpzspv_t, mpzspv_t, spv_size_t, spv_size_t, mpzspm_t);
 void mpzspv_to_dct1_file (mpzspv_t, mpzspv_t, FILE **, spv_size_t, spv_size_t, mpzspm_t);
 void mpzspv_sqr_reciprocal (mpzspv_t, spv_size_t, const mpzspm_t);
+void mpzspv_sqr_reciprocal_file (FILE **, spv_size_t, mpzspm_t mpzspm);
 FILE **mpzspv_open_fileset(const char *, const mpzspm_t);
 void mpzspv_close_fileset(FILE **, const mpzspm_t);
 void mpzspv_read (mpzspv_t, spv_size_t, FILE **, spv_size_t, spv_size_t, mpzspm_t);
