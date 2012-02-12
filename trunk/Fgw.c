@@ -322,6 +322,19 @@ kbnc_str (double *k, unsigned long *b, unsigned long *n, signed long *c,
   return 0;
 }
 
+/* this method doesn't care if v is 32 or 64 bits... */
+unsigned long gw_log_2(unsigned long v)
+{
+  unsigned long r = 0; /* r will be lg(v) */
+
+  while (v >>= 1)
+    {
+      r++;
+    }
+
+  return r;
+}
+
 int 
 gw_ecm_stage1 (mpz_t f, curve *P, mpmod_t modulus, 
 	       double B1, double *B1done, mpz_t go, double gw_k,
@@ -350,8 +363,10 @@ gw_ecm_stage1 (mpz_t f, curve *P, mpmod_t modulus,
      plain integers */
 
   /* Allocate enough memory for any residue (mod k*b^n+c) for x, z */
-  mpz_init2 (gw_x, mpz_sizeinbase (modulus->orig_modulus, 2) + 64);
-  mpz_init2 (gw_z, mpz_sizeinbase (modulus->orig_modulus, 2) + 64);
+  /* mpz_init2 (gw_x, mpz_sizeinbase (modulus->orig_modulus, 2) + 64); */
+  /* mpz_init2 (gw_z, mpz_sizeinbase (modulus->orig_modulus, 2) + 64); */
+  mpz_init2 (gw_x, (gw_n+1)*gw_log_2(gw_b)+64);
+  mpz_init2 (gw_z, (gw_n+1)*gw_log_2(gw_b)+64);
   mpz_init (gw_A);
 
   /* mpres_get_z always produces non-negative integers */
