@@ -433,14 +433,14 @@ dnl we start looking for libgmp.a
 AC_MSG_CHECKING([for recent GMP])
 AC_PREPROC_IFELSE([AC_LANG_SOURCE([[
 #include <gmp.h>
-#if (__GNU_MP_VERSION < 4 || (__GNU_MP_VERSION == 4 && __GNU_MP_VERSION_MINOR < 1))
+#if (__GNU_MP_VERSION <= 4)
 #error
 #IRIXdoesnotexitaterrordirective
 #endif
 ]])],
   [AC_MSG_RESULT(yes)],
   [AC_MSG_RESULT(no)
-   AC_MSG_ERROR([GMP 4.1.0 or newer is required])]
+   AC_MSG_ERROR([GMP 5.0.0 or newer is required])]
 )
 
 dnl Now choose how to link the GMP library. If we can, we'd prefer to
@@ -518,21 +518,6 @@ return strcmp (buffer, gmp_version);
 
 AC_CHECK_FUNCS([__gmpn_add_nc __gmpn_mod_34lsub1 __gmpn_redc_1 __gmpn_redc_2])
 AC_CHECK_FUNCS([__gmpn_mullo_n])
-
-# mpn_sqr() is renamed to __gmpn_sqr() in GMP 5.0.x, but may not be 
-# in future versions. AC_CHECK_FUNCS() does not allow including header 
-# files. Thus, a custom test for mpn_sqr()
-AC_MSG_CHECKING([for mpn_sqr])
-AC_LINK_IFELSE([AC_LANG_PROGRAM([[
-#ifdef HAVE_GMP_H
-#include <gmp.h>
-#endif]],[[
-  mpn_sqr ((mp_ptr) 0, (mp_ptr) 0, (mp_size_t) 0);
-  return 0;
-]])], [AC_MSG_RESULT(yes)
-       AC_DEFINE([HAVE_MPN_SQR], 1, [Define to 1 if you have the `mpn_sqr' function.])],
-   [AC_MSG_RESULT(no)]
-)
 
 LIBS="$LIBS_BACKUP"
 
