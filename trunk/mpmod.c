@@ -696,38 +696,22 @@ ecm_sqrredc_basecase_n (mp_ptr rp, mp_srcptr s1p,
           mulredc (rp, s1p, s1p, np, nn, invm[0]);
           break;
         case MPMOD_MUL_REDC1: /* mpn_sqr + __gmpn_redc_1 */
-#ifdef HAVE_MPN_SQR
           mpn_sqr (tmp, s1p, nn);
-#else
-          mpn_mul_n (tmp, s1p, s1p, nn);
-#endif
           __gmpn_redc_1 (rp, tmp, np, nn, invm[0]);
           break;
         case MPMOD_MUL_REDC2: /* mpn_mul_n + __gmpn_redc_2 */
-#ifdef HAVE_MPN_SQR
           mpn_sqr (tmp, s1p, nn);
-#else
-          mpn_mul_n (tmp, s1p, s1p, nn);
-#endif
           __gmpn_redc_2 (rp, tmp, np, nn, invm);
           break;
         case MPMOD_MUL_REDC3: /* mpn_mul_n + ecm_redc3 */
-#ifdef HAVE_MPN_SQR
           mpn_sqr (tmp, s1p, nn);
-#else
-          mpn_mul_n (tmp, s1p, s1p, nn);
-#endif
           ecm_redc3 (tmp, np, nn, invm[0]);
           cy = mpn_add_n (rp, tmp + nn, tmp, nn);
           if (cy != 0)
             mpn_sub_n (rp, rp, np, nn); /* a borrow should always occur here */
           break;
         case MPMOD_MUL_REDC_C: /* plain C quadratic reduction */
-#ifdef HAVE_MPN_SQR
           mpn_sqr (tmp, s1p, nn);
-#else
-          mpn_mul_n (tmp, s1p, s1p, nn);
-#endif
           for (j = 0; j < nn; j++, tmp++)
             tmp[0] = mpn_addmul_1 (tmp, np, nn, tmp[0] * invm[0]);
           cy = mpn_add_n (rp, tmp - nn, tmp, nn);
@@ -744,11 +728,7 @@ ecm_sqrredc_basecase_n (mp_ptr rp, mp_srcptr s1p,
     }
   else /* nn > MULREDC_ASSEMBLY_MAX */
     {
-#ifdef HAVE_MPN_SQR
       mpn_sqr (tmp, s1p, nn);
-#else
-      mpn_mul_n (tmp, s1p, s1p, nn);
-#endif
       ecm_redc_n (rp, tmp, 2 * nn, np, invm, nn);
     }
 }

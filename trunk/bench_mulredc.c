@@ -117,12 +117,10 @@ void bench(mp_size_t N)
     mpn_mul_n(tmp, x, y, N);
   tmul = CPUTime()-tmul;
 
-#ifdef HAVE_MPN_SQR
   tsqr = CPUTime();
   for (i = 0; i < iter; ++i)
-    mpn_sqr(tmp, x, N);
+    mpn_sqr (tmp, x, N);
   tsqr = CPUTime()-tsqr;
-#endif
 
 #ifdef HAVE___GMPN_REDC_1
   mpn_mul_n(tmp, x, y, N);
@@ -325,7 +323,7 @@ void bench(mp_size_t N)
 #endif
   
   /* Sqr followed by mpn_redc_1 */
-#if defined(HAVE___GMPN_REDC_1) && defined(HAVE_MPN_SQR)
+#if defined(HAVE___GMPN_REDC_1)
   t_sqrredc_1 = CPUTime();
   for (i = 0; i < iter; ++i) {
     mpn_sqr(tmp, x, N);
@@ -341,7 +339,7 @@ void bench(mp_size_t N)
 #endif
   
   /* Sqr followed by mpn_redc_2 */
-#if defined(HAVE___GMPN_REDC_2) && defined(HAVE_MPN_SQR)
+#if defined(HAVE___GMPN_REDC_2)
   t_sqrredc_2 = CPUTime();
   for (i = 0; i < iter; ++i) {
     mpn_sqr(tmp, x, N);
@@ -357,7 +355,7 @@ void bench(mp_size_t N)
 #endif
   
   /* Sqr followed by redc3 */
-#if defined(HAVE_ASM_REDC3) && defined(HAVE_MPN_SQR)
+#if defined(HAVE_ASM_REDC3)
   t_sqrredc3 = CPUTime();
   for (i = 0; i < iter; ++i) {
     mpn_sqr(tmp, x, N);
@@ -512,9 +510,7 @@ void bench(mp_size_t N)
 
   /* basic operations */
   printf("mpn_mul_n  = %f\n", tmul/iter);
-#ifdef HAVE_MPN_SQR
   printf("mpn_sqr    = %f\n", tsqr/iter);
-#endif
 #ifdef HAVE___GMPN_REDC_1
   printf("mpn_redc_1 = %f\n", tredc_1/iter);
 #endif
@@ -536,15 +532,15 @@ void bench(mp_size_t N)
   t1 *= 1000000.;
   printf("mul+redc3  = %f\n", t1/iter);
 #endif
-#if defined(HAVE___GMPN_REDC_1) && defined(HAVE_MPN_SQR)
+#if defined(HAVE___GMPN_REDC_1)
   t_sqrredc_1 *= 1000000.;
   printf("sqr+redc_1 = %f\n", t_sqrredc_1/iter);
 #endif
-#if defined(HAVE___GMPN_REDC_2) && defined(HAVE_MPN_SQR)
+#if defined(HAVE___GMPN_REDC_2)
   t_sqrredc_2 *= 1000000.;
   printf("sqr+redc_2 = %f\n", t_sqrredc_2/iter);
 #endif
-#if defined(HAVE_ASM_REDC3) && defined(HAVE_MPN_SQR)
+#if defined(HAVE_ASM_REDC3)
   t_sqrredc3 *= 1000000.;
   printf("sqr+redc3  = %f\n", t_sqrredc3/iter);
 #endif
