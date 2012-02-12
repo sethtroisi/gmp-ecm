@@ -70,7 +70,7 @@
     <OutDir Condition="'$(Configuration)|$(Platform)'=='Release-Intel|Win32'">$(SolutionDir)..\lib\$(Platform)\Release\</OutDir>
     <IntDir Condition="'$(Configuration)|$(Platform)'=='Release-Intel|Win32'">$(Platform)\Release\</IntDir>
     <LinkIncremental Condition="'$(Configuration)|$(Platform)'=='Release-Intel|Win32'">false</LinkIncremental>
-    <OutDir Condition="'$(Configuration)|$(Platform)'=='Release-Intel|x64'">$(SolutionDir)..\lib\$(Platform)\Release\</OutDir>
+    <OutDir Condition="'$(Configuration)|$(Platform)'=='Release-Intel|x64'">$(SolutionDir)..\bin\$(Platform)\Release\</OutDir>
     <IntDir Condition="'$(Configuration)|$(Platform)'=='Release-Intel|x64'">$(Platform)\Release\</IntDir>
     <LinkIncremental Condition="'$(Configuration)|$(Platform)'=='Release-Intel|x64'">false</LinkIncremental>
     <OutDir Condition="'$(Configuration)|$(Platform)'=='Release-AMD|Win32'">$(SolutionDir)..\lib\$(Platform)\Release\</OutDir>
