@@ -363,8 +363,6 @@ gw_ecm_stage1 (mpz_t f, curve *P, mpmod_t modulus,
      plain integers */
 
   /* Allocate enough memory for any residue (mod k*b^n+c) for x, z */
-  /* mpz_init2 (gw_x, mpz_sizeinbase (modulus->orig_modulus, 2) + 64); */
-  /* mpz_init2 (gw_z, mpz_sizeinbase (modulus->orig_modulus, 2) + 64); */
   mpz_init2 (gw_x, (gw_n+1)*gw_log_2(gw_b)+64);
   mpz_init2 (gw_z, (gw_n+1)*gw_log_2(gw_b)+64);
   mpz_init (gw_A);
