@@ -38,6 +38,12 @@ void __gmpn_redc_2 (mp_ptr, mp_ptr, mp_srcptr, mp_size_t, mp_srcptr);
 #endif
 #endif
 
+#ifdef HAVE___GMPN_REDC_N
+#ifndef __gmpn_redc_N
+void __gmpn_redc_n (mp_ptr, mp_ptr, mp_srcptr, mp_size_t, mp_srcptr);
+#endif
+#endif
+
 double CPUTime()
 {
   double ret;
@@ -72,11 +78,12 @@ void mp_print(mp_limb_t *x, int N) {
 
 void bench(mp_size_t N)
 {
-  mp_limb_t *x, *y, *z, *m, invm[2], cy, *tmp;
+  mp_limb_t *x, *y, *z, *m,* invm, cy, *tmp;
   unsigned long i;
   const unsigned long iter = LOOPCOUNT/N;
   double t2, t3 = 0., tmul, tsqr, tredc_1, tredc_2, t_mulredc_1, t_mulredc_2;
   double t_sqrredc_1, t_sqrredc_2, t_sqrredc3, tmul_best, tsqr_best;
+  double tredc_n, t_mulredc_n, t_sqrredc_n, tredc3;
   mpz_t M, B;
 #if defined(HAVE_ASM_REDC3)
   double t1;
@@ -84,9 +91,10 @@ void bench(mp_size_t N)
   
   x = (mp_limb_t *) malloc(N*sizeof(mp_limb_t));
   y = (mp_limb_t *) malloc(N*sizeof(mp_limb_t));
-  z = (mp_limb_t *) malloc((N+1)*sizeof(mp_limb_t));
+  z = (mp_limb_t *) malloc((2*N)*sizeof(mp_limb_t));
   m = (mp_limb_t *) malloc(N*sizeof(mp_limb_t));
   tmp = (mp_limb_t *) malloc((2*N+2)*sizeof(mp_limb_t));
+  invm = (mp_limb_t *) malloc(N*sizeof(mp_limb_t));
  
   mpn_random(m, N);
   m[0] |= 1UL;
@@ -103,8 +111,8 @@ void bench(mp_size_t N)
   mpz_invert (M, M, B);
   mpz_sub (M, B, M);
 
-  invm[0] = mpz_getlimbn (M, 0);
-  invm[1] = mpz_getlimbn (M, 1);
+  for (i = 0; i < (unsigned) N; i++)
+    invm[i] = mpz_getlimbn(M, i);
 
   mpz_clear (M);
   mpz_clear (B);
@@ -136,6 +144,25 @@ void bench(mp_size_t N)
   for (i = 0; i < iter; ++i)
     __gmpn_redc_2 (z, tmp, m, N, invm);
   tredc_2 = CPUTime()-tredc_2;
+#endif
+
+#ifdef HAVE_ASM_REDC3
+  mpn_mul_n(tmp, x, y, N);
+  tredc3 = CPUTime();
+  for (i = 0; i < iter; ++i)
+    {
+      ecm_redc3 (tmp, m, N, invm[0]);
+      mpn_add_n (tmp, tmp, tmp + N, N);
+    }
+  tredc3 = CPUTime()-tredc3;
+#endif
+
+#ifdef HAVE___GMPN_REDC_N
+  mpn_mul_n(tmp, x, y, N);
+  tredc_n = CPUTime();
+  for (i = 0; i < iter; ++i)
+    __gmpn_redc_n (z, tmp, m, N, invm);
+  tredc_n = CPUTime()-tredc_n;
 #endif
 
   /* Mixed mul and redc */
@@ -322,6 +349,24 @@ void bench(mp_size_t N)
     }
 #endif
   
+  /* Mul followed by mpn_redc_n */
+#ifdef HAVE___GMPN_REDC_N
+  t_mulredc_n = CPUTime();
+  for (i = 0; i < iter; ++i)
+    {
+      mpn_mul_n (tmp, x, y, N);
+      __gmpn_redc_n (z, tmp, m, N, invm);
+    }
+  t_mulredc_n = CPUTime()-t_mulredc_n;
+#if 0 /* don't activate as long as we don't handle mpn_redc_n in mpmod.c */
+  if (t_mulredc_n < tmul_best)
+    {
+      tune_mul[N] = MPMOD_MUL_REDCN;
+      tmul_best = t_mulredc_n;
+    }
+#endif
+#endif
+  
   /* Sqr followed by mpn_redc_1 */
 #if defined(HAVE___GMPN_REDC_1)
   t_sqrredc_1 = CPUTime();
@@ -369,6 +414,24 @@ void bench(mp_size_t N)
       tune_sqr[N] = MPMOD_MUL_REDC3;
       tsqr_best = t_sqrredc3;
     }
+#endif
+  
+  /* Sqr followed by mpn_redc_n */
+#if defined(HAVE___GMPN_REDC_N)
+  t_sqrredc_n = CPUTime();
+  for (i = 0; i < iter; ++i)
+    {
+      mpn_sqr (tmp, x, N);
+      __gmpn_redc_n (z, tmp, m, N, invm);
+    }
+  t_sqrredc_n = CPUTime()-t_sqrredc_n;
+#if 0 /* don't activate as long as we don't handle mpn_redc_n in mpmod.c */
+  if (t_sqrredc_n < tsqr_best)
+    {
+      tune_sqr[N] = MPMOD_MUL_REDCN;
+      tsqr_best = t_sqrredc_n;
+    }
+#endif
 #endif
   
 #if defined(HAVE_NATIVE_MULREDC1_N)
@@ -505,6 +568,8 @@ void bench(mp_size_t N)
   tsqr *= 1000000.;
   tredc_1 *= 1000000.;
   tredc_2 *= 1000000.;
+  tredc3  *= 1000000.;
+  tredc_n *= 1000000.;
   t2 *= 1000000.;
   printf("******************\nTime in microseconds per call, size=%lu\n", N);
 
@@ -516,6 +581,12 @@ void bench(mp_size_t N)
 #endif
 #ifdef HAVE___GMPN_REDC_2
   printf("mpn_redc_2 = %f\n", tredc_2/iter);
+#endif
+#ifdef HAVE_ASM_REDC3
+  printf("ecm_redc3  = %f\n", tredc3/iter);
+#endif
+#ifdef HAVE___GMPN_REDC_N
+  printf("mpn_redc_n = %f\n", tredc_n/iter);
 #endif
 
   /* modular multiplication and squaring */
@@ -532,6 +603,10 @@ void bench(mp_size_t N)
   t1 *= 1000000.;
   printf("mul+redc3  = %f\n", t1/iter);
 #endif
+#if defined(HAVE___GMPN_REDC_N)
+  t_mulredc_n *= 1000000.;
+  printf("mul+redc_n = %f\n", t_mulredc_n/iter);
+#endif
 #if defined(HAVE___GMPN_REDC_1)
   t_sqrredc_1 *= 1000000.;
   printf("sqr+redc_1 = %f\n", t_sqrredc_1/iter);
@@ -544,12 +619,17 @@ void bench(mp_size_t N)
   t_sqrredc3 *= 1000000.;
   printf("sqr+redc3  = %f\n", t_sqrredc3/iter);
 #endif
+#if defined(HAVE___GMPN_REDC_N)
+  t_sqrredc_n *= 1000000.;
+  printf("sqr+redc_n = %f\n", t_sqrredc_n/iter);
+#endif
 
   /* multiplication of n limbs by one limb */
   printf ("mulredc1   = %f\n", t3/LOOPCOUNT);
   
   free(tmp);
   free(x); free(y); free(z); free(m);
+  free (invm);
 }
   
 

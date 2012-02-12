@@ -25,3 +25,4 @@
 #define MPMOD_MUL_REDC2 2 /* mpn_mul_n or mpn_sqr followed by mpn_redc_2 */
 #define MPMOD_MUL_REDC3 3 /* mpn_mul_n or mpn_sqr followed by ecm_redc3 */
 #define MPMOD_MUL_REDC_C 4 /* mpn_mul_n or mpn_sqr followed by plain C redc */
+#define MPMOD_MUL_REDCN 5 /* mpn_mul_n or mpn_sqr followed by mpn_redc_n */
