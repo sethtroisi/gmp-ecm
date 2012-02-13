@@ -29,9 +29,4 @@ extern mp_limb_t mulredc18(mp_limb_t *z, const mp_limb_t *x, const mp_limb_t *y,
 extern mp_limb_t mulredc19(mp_limb_t *z, const mp_limb_t *x, const mp_limb_t *y, const mp_limb_t *m, mp_limb_t inv_m);
 extern mp_limb_t mulredc20(mp_limb_t *z, const mp_limb_t *x, const mp_limb_t *y, const mp_limb_t *m, mp_limb_t inv_m);
 
-/* 0:mulredc 1:mul+redc_1 2:mul+redc_2 3:mul+redc3 */
-#define TUNE_MULREDC_TABLE {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0}
-/* 0:mulredc 1:sqr+redc_1 2:sqr+redc_2 3:sqr+redc3 */
-#define TUNE_SQRREDC_TABLE {0,0,0,0,0,0,0,0,0,0,0,1,1,0,1,1,1,1,1,1,1}
-
 #endif

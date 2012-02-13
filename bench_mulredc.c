@@ -3,12 +3,16 @@
 #include <stdlib.h>
 #include <assert.h>
 #include <time.h>
+#include <string.h>
+#ifndef _MSC_VER
 # include <sys/time.h>
 # include <sys/times.h>
 # include <sys/param.h>
 # include <sys/resource.h>
-# include <string.h>
 # include <unistd.h>
+#else
+#include "getrusage.h"
+#endif
 # ifndef HZ
 #  ifdef CLK_TCK
 #   define HZ CLK_TCK

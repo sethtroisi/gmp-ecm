@@ -9,25 +9,16 @@
       <UniqueIdentifier>{93995380-89BD-4b04-88EB-625FBE52EBFB}</UniqueIdentifier>
       <Extensions>h;hpp;hxx;hm;inl;inc;xsd</Extensions>
     </Filter>
+    <Filter Include="Source Files\Assembler">
+      <UniqueIdentifier>{2f18179f-5dba-420c-8dc7-bc7f8228a1b2}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
-    <YASM Include="..\assembler\a_win32a_mulredc.asm">
-      <Filter>Source Files</Filter>
+    <YASM Include="..\assembler\mulredc.asm">
+      <Filter>Source Files\Assembler</Filter>
     </YASM>
-    <YASM Include="..\assembler\a_win32a_redc.asm">
-      <Filter>Source Files</Filter>
-    </YASM>
-    <YASM Include="..\assembler\a_win32p_mulredc.asm">
-      <Filter>Source Files</Filter>
-    </YASM>
-    <YASM Include="..\assembler\a_win32p_redc.asm">
-      <Filter>Source Files</Filter>
-    </YASM>
-    <YASM Include="..\assembler\a_x64_mulredc.asm">
-      <Filter>Source Files</Filter>
-    </YASM>
-    <YASM Include="..\assembler\a_x64_redc.asm">
-      <Filter>Source Files</Filter>
+    <YASM Include="..\assembler\redc.asm">
+      <Filter>Source Files\Assembler</Filter>
     </YASM>
   </ItemGroup>
   <ItemGroup>

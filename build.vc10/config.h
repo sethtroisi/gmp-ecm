@@ -202,9 +202,11 @@
 #undef const
 
 /* How to specify hot-spot attribute, if available */
-#define ATTRIBUTE_HOT 
+#define ATTRIBUTE_HOT
 
 #define HAVE___GMPN_REDC_1 1
+
+#define HAVE_ASM_REDC3 1
 
 #define WINDOWS64_ABI   1
 
