@@ -31,6 +31,11 @@
 #include "ecm-impl.h"
 
 #define MPZSPV_MUL_NTT_OPENMP 0
+#define TRACE_ntt_sqr_reciprocal 0
+
+static size_t seek_and_read_sp (void *, size_t, size_t, FILE *);
+static size_t seek_and_write_sp (const void *, size_t, size_t, FILE *);
+
 
 mpzspv_t
 mpzspv_init (spv_size_t len, mpzspm_t mpzspm)
@@ -201,6 +206,7 @@ mpzspv_from_mpzv_slow (mpzspv_t x, const spv_size_t offset, mpz_t mpzvi,
     }
 }
 
+
 /* convert mpzvi to CRT representation, fast version, assumes
    mpzspm->T has been precomputed (see mpzspm.c) */
 static void
@@ -302,13 +308,12 @@ mpzspv_from_mpzv (mpzspv_t x, const spv_size_t offset, const mpzv_t mpzv,
 }
 
 
-/* Convert mpz_t from memory or a file to small prime vectors and 
-   optionally write them to disk files. x must have space for blocklen 
-   entries. Exactly one of mpzv and mpz_file must be non-NULL.
-   The small prime vectors are written to files if sp_files is non-NULL */
+/* Convert mpz_t from memory or a file to small prime vectors and write them 
+   to disk files specified by sp_files. tmp must have space for blocklen 
+   entries. Exactly one of mpzv and mpz_file must  be non-NULL. */
 
 void
-mpzspv_from_mpzv_file (mpzspv_t x, const spv_size_t offset, 
+mpzspv_from_mpzv_file (mpzspv_t tmp, const spv_size_t offset, 
     FILE **sp_files, const mpzv_t mpzv, FILE * const mpz_file, 
     const spv_size_t len, const spv_size_t blocklen, mpzspm_t mpzspm)
 {
@@ -341,11 +346,11 @@ mpzspv_from_mpzv_file (mpzspv_t x, const spv_size_t offset,
         {
           unsigned int j;
           for (j = 0; j < sp_num; j++)
-            x[j][offset + len_done + i] = 0;
+            tmp[j][i] = 0;
         }
       else
         {
-          mpzspv_from_mpzv_slow (x, offset + len_done + i, *mpzp, mpzspm, rem, sp_num);
+          mpzspv_from_mpzv_slow (tmp, i, *mpzp, mpzspm, rem, sp_num);
         }
     }
 
@@ -354,7 +359,7 @@ mpzspv_from_mpzv_file (mpzspv_t x, const spv_size_t offset,
       unsigned int j;
       for (j = 0; j < sp_num; j++)
       {
-        fwrite(x[j] + offset, sizeof(sp_t), len_now, sp_files[j]);
+        seek_and_write_sp (tmp[j], len_now, offset + len_done, sp_files[j]);
       }
     }
     len_done += len_now;
@@ -734,7 +739,7 @@ seek_and_read_sp (void *ptr, const size_t nread, const size_t offset, FILE *f)
 
 
 static size_t 
-seek_and_write_sp (const void *ptr, const size_t nread, const size_t offset, FILE *f)
+seek_and_write_sp (const void *ptr, const size_t nwrite, const size_t offset, FILE *f)
 {
   size_t r;
   if (fseek (f, offset * sizeof(sp_t), SEEK_SET) != 0)
@@ -744,8 +749,8 @@ seek_and_write_sp (const void *ptr, const size_t nread, const size_t offset, FIL
       abort ();
     }
   
-  r = fwrite(ptr, sizeof(sp_t), nread, f);
-  if (r != nread)
+  r = fwrite(ptr, sizeof(sp_t), nwrite, f);
+  if (r != nwrite)
     {
       fprintf (stderr, "seek_and_read(): Error writing data, r = %lu, errno = %d\n",
                (unsigned long) r, errno);
@@ -1212,6 +1217,18 @@ mpzspv_to_dct1 (mpzspv_t dct, mpzspv_t spv, const spv_size_t spvlen,
 }
 
 
+ATTRIBUTE_UNUSED
+static void
+spv_print_vec (const char *msg, const spv_t spv, const spv_size_t l)
+{
+  spv_size_t i;
+  printf ("%s [%lu", msg, spv[0]);
+  for (i = 1; i < l; i++)
+    printf (", %lu", spv[i]);
+  printf ("]\n");
+}
+
+
 /* Multiply the polynomial in "dft" by the RLP in "dct", where "dft" 
    contains the polynomial coefficients (not FFT'd yet) and "dct" 
    contains the DCT-I coefficients of the RLP. The latter are 
@@ -1237,9 +1254,9 @@ spv_sqr_reciprocal(const spv_size_t n, const spm_t spm, const spv_t spv, const s
   /* Zero out NTT elements [n .. len-n] */
   spv_set_sp (spv + n, (sp_t) 0, len - 2*n + 1);
 
-#ifdef TRACE_ntt_sqr_reciprocal
+#if TRACE_ntt_sqr_reciprocal
   printf ("ntt_sqr_reciprocal: NTT vector mod %lu\n", sp);
-  ntt_print_vec ("ntt_sqr_reciprocal: before weighting:", spv, len);
+  spv_print_vec ("ntt_sqr_reciprocal: before weighting:", spv, n);
 #endif
 
   /* Compute the root for the weight signal, a 3rd primitive root 
@@ -1247,7 +1264,7 @@ spv_sqr_reciprocal(const spv_size_t n, const spm_t spm, const spv_t spv, const s
   w1 = sp_pow (spm->prim_root, max_ntt_size / 3UL, sp, mul_c);
   /* Compute iw= 1/w */
   w2 = sp_pow (spm->inv_prim_root, max_ntt_size / 3UL, sp, mul_c);
-#ifdef TRACE_ntt_sqr_reciprocal
+#if TRACE_ntt_sqr_reciprocal
   printf ("w1 = %lu ,w2 = %lu\n", w1, w2);
 #endif
   ASSERT(sp_mul(w1, w2, sp, mul_c) == (sp_t) 1);
@@ -1289,31 +1306,31 @@ spv_sqr_reciprocal(const spv_size_t n, const spm_t spm, const spv_t spv, const s
       spv[len - i - 1] = sp_neg (sp_add (t, u, sp), sp);
     }
 
-#ifdef TRACE_ntt_sqr_reciprocal
-  ntt_print_vec ("ntt_sqr_reciprocal: after weighting:", spv, len);
+#if TRACE_ntt_sqr_reciprocal
+  spv_print_vec ("ntt_sqr_reciprocal: after weighting:", spv, len);
 #endif
 
   /* Forward DFT of dft[j] */
   spv_ntt_gfp_dif (spv, log2_len, spm);
 
-#ifdef TRACE_ntt_sqr_reciprocal
-  ntt_print_vec ("ntt_sqr_reciprocal: after forward transform:", 
+#if TRACE_ntt_sqr_reciprocal
+  spv_print_vec ("ntt_sqr_reciprocal: after forward transform:", 
                  spv, len);
 #endif
 
   /* Square the transformed vector point-wise */
   spv_pwmul (spv, spv, spv, len, sp, mul_c);
 
-#ifdef TRACE_ntt_sqr_reciprocal
-  ntt_print_vec ("ntt_sqr_reciprocal: after point-wise squaring:", 
+#if TRACE_ntt_sqr_reciprocal
+  spv_print_vec ("ntt_sqr_reciprocal: after point-wise squaring:", 
                  spv, len);
 #endif
 
   /* Inverse transform of dft[j] */
   spv_ntt_gfp_dit (spv, log2_len, spm);
 
-#ifdef TRACE_ntt_sqr_reciprocal
-  ntt_print_vec ("ntt_sqr_reciprocal: after inverse transform:", 
+#if TRACE_ntt_sqr_reciprocal
+  spv_print_vec ("ntt_sqr_reciprocal: after inverse transform:", 
                  spv, len);
 #endif
 
@@ -1332,8 +1349,8 @@ spv_sqr_reciprocal(const spv_size_t n, const spm_t spm, const spv_t spv, const s
   if (i < 2 * n - 2)
     spv[i + 1] = sp_mul (spv[i + 1], w2, sp, mul_c);
   
-#ifdef TRACE_ntt_sqr_reciprocal
-  ntt_print_vec ("ntt_sqr_reciprocal: after un-weighting:", spv, len);
+#if TRACE_ntt_sqr_reciprocal
+  spv_print_vec ("ntt_sqr_reciprocal: after un-weighting:", spv, len);
 #endif
 
   /* Separate the coefficients of R in the wrapped-around product. */
@@ -1347,7 +1364,7 @@ spv_sqr_reciprocal(const spv_size_t n, const spm_t spm, const spv_t spv, const s
   w2 = sp_inv (w1, sp, mul_c);
   w2 = sp_sub (w1, w2, sp);
   w2 = sp_inv (w2, sp, mul_c);
-#ifdef TRACE_ntt_sqr_reciprocal
+#if TRACE_ntt_sqr_reciprocal
   printf ("For separating: w1 = %lu, w2 = %lu\n", w1, w2);
 #endif
   
@@ -1367,8 +1384,8 @@ spv_sqr_reciprocal(const spv_size_t n, const spm_t spm, const spv_t spv, const s
       ASSERT(i < len / 2 || t == u);
     }
 
-#ifdef TRACE_ntt_sqr_reciprocal
-  ntt_print_vec ("ntt_sqr_reciprocal: after un-wrapping:", spv, len);
+#if TRACE_ntt_sqr_reciprocal
+  spv_print_vec ("ntt_sqr_reciprocal: after un-wrapping:", spv, len);
 #endif
 }
 
@@ -1378,6 +1395,10 @@ void
 mpzspv_sqr_reciprocal (mpzspv_t dft, const spv_size_t n, 
                        const mpzspm_t mpzspm)
 {
+#ifdef WANT_ASSERT
+  const spv_size_t log2_n = ceil_log_2 (n);
+  const spv_size_t len = ((spv_size_t) 2) << log2_n;
+#endif
   int j;
 
   ASSERT(mpzspm->max_ntt_size % 3UL == 0UL);
