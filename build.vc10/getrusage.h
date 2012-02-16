@@ -7,6 +7,7 @@ extern "C"
 {
 #endif
 
+#define ENODATA         61
 #define	RUSAGE_SELF	     0
 #define	RUSAGE_CHILDREN	-1
 
@@ -18,8 +19,8 @@ typedef struct
 
 typedef struct rusage
 {
-    tval     ru_utime;   /* user time used                      */
-    tval     ru_stime;   /* system time used                    */
+    tval  ru_utime;   /* user time used                      */
+    tval  ru_stime;   /* system time used                    */
     long     ru_maxrss;  /* integral max resident set size      */
     long     ru_ixrss;   /* integral shared text memory size    */
     long     ru_idrss;   /* integral unshared data size         */

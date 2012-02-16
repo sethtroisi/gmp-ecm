@@ -1,6 +1,10 @@
 #include "main.h"
 #include "utils.h"
 
+#ifdef _MSC_VER
+#include "getrusage.h"
+#endif
+
 void usage (void)
 {
   printf ("Usage: gpu_ecm [options] B1 < file\n");
@@ -115,6 +119,10 @@ void biguint_to_mpz (mpz_t a, biguint_t b)
 
   for (i=NB_DIGITS-1;i>=0;i--)
   {
+#ifdef _MSC_VER
+    mpz_mul_2exp(a, a, 32);
+	mpz_add_ui(a , a, b[i]);
+#else
     if (i%2 == 0)
       mpz_add_ui(a,a,b[i]);
     else
@@ -124,6 +132,7 @@ void biguint_to_mpz (mpz_t a, biguint_t b)
     }
     if (i!=0 && i%2==0)
       mpz_mul_2exp(a,a,64);
+#endif
   }
 }
 
