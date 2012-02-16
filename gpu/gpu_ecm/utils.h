@@ -1,3 +1,4 @@
+#include <stdint.h>
 #include <gmp.h>
 
 //#define NV 10
