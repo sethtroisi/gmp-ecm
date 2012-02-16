@@ -1,10 +1,18 @@
 #include <stdio.h>
 #include <stdlib.h>
+#ifndef _MSC_VER
 #include <unistd.h>
-#include <time.h>
 #include <sys/time.h>
 #include <sys/resource.h>
+#else
+#include <windows.h>
+#endif
+#include <time.h>
 #include <assert.h>
+
+#ifdef _MSC_VER
+#define __asm__ asm
+#endif
 
 //also define number of threads; problems ig bigger tjhan the size of a warp (ie 32)
 //#define NB_DIGITS 32

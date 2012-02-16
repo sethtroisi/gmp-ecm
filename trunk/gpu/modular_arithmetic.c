@@ -24,7 +24,9 @@
 #include <stdlib.h>
 #include <math.h>
 #include <gmp.h>
+#ifndef _MSC_VER
 #include <sys/cdefs.h>
+#endif
 #include <assert.h>
 #include "modular_arithmetic.h"
 

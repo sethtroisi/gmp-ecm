@@ -114,7 +114,11 @@ int main (int argc, char * argv[])
   //argv+=2;
 
   if (verbose < 2)
+#ifdef _MSC_VER
+    OUTPUT_VVERBOSE=fopen("NUL:","a");
+#else
     OUTPUT_VVERBOSE=fopen("/dev/null","a");
+#endif
   else
     OUTPUT_VVERBOSE=stdout;
 
@@ -307,8 +311,11 @@ int main (int argc, char * argv[])
     
     mpz_to_biguint(h_N, N); 
     mpz_to_biguint(h_invmod, mpz_invmod); 
-    
+#ifdef _MSC_VER
+   mpz_set_ux(mpz_d, TWO32);
+#else
     mpz_set_ui(mpz_d, TWO32);
+#endif
     mpz_invert(mpz_d, mpz_d, N);
     
     //Compute the Montgomery representation
