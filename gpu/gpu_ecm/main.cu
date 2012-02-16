@@ -1,3 +1,9 @@
+
+#ifdef _MSC_VER
+#define WIN32_LEAN_AND_MEAN
+#include <windows.h>
+#endif
+
 #include "main.h"
 #include "utils.h"
 #include "cudautils.h"
@@ -45,6 +51,11 @@ int main (int argc, char * argv[])
   mpz_t x2p;
   mpz_t z2p;
   mpz_t s;
+
+#ifdef _MSC_VER
+  if(!SetPriorityClass(GetCurrentProcess(), IDLE_PRIORITY_CLASS))
+	printf("Could not set process priority\n");
+#endif
 
   //default values
   number_of_curves=0;
