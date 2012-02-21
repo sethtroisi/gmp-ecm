@@ -234,8 +234,8 @@ usage (void)
     printf ("               or can use N as a placeholder for the number being factored.\n");
     printf ("  -printconfig Print compile-time configuration and exit.\n");
 
-    printf ("  -batch       (experimental) use Montgomery parametrization and batch\n" 
-					  "               computation.\n");
+    printf ("  -batch[=1|2] (experimental) use Montgomery parametrization and batch\n" 
+					  "               computation. Option -batch is equivalent to -batch=1\n");
 
     printf ("  -h, --help   Prints this help and exit.\n");
 }
@@ -573,9 +573,16 @@ main (int argc, char *argv[])
 	  argv++;
 	  argc--;
         }
-      else if (strcmp (argv[1], "-batch") == 0)
+      else if (strcmp (argv[1], "-batch") == 0 || 
+                                            strcmp (argv[1], "-batch=1") == 0)
         {
 	  batch = 1;
+	  argv++;
+	  argc--;
+        }
+      else if (strcmp (argv[1], "-batch=2") == 0)
+        {
+	  batch = 2;
 	  argv++;
 	  argc--;
         }
@@ -1454,7 +1461,7 @@ BreadthFirstDoAgain:;
          If A was given one should check that d fits in one word and that x0=2.
          If A was not given one chooses it at random (and if x0 exists
          it must be 2). */
-      if (batch == 1)
+      if (batch != 0)
         {
           if (method != ECM_ECM)
             {
@@ -1476,7 +1483,7 @@ BreadthFirstDoAgain:;
         }
       /* set parameters that may change from one curve to another */
       params->batch = batch;
-      if (params->batch == 1 && params->batch_B1 != B1)
+      if (params->batch != 0 && params->batch_B1 != B1)
         {
           int st;
           params->batch_B1 = B1;
@@ -1493,7 +1500,7 @@ BreadthFirstDoAgain:;
       params->method = method; /* may change with resume */
       mpz_set (params->x, x); /* may change with resume */
       /* if sigma is zero, then we use the A value instead */
-      params->sigma_is_A = ((mpz_sgn (sigma) == 0 || batch==1)? 1 : 0);
+      params->sigma_is_A = ((mpz_sgn (sigma) == 0 || batch != 0) ? 1 : 0);
       mpz_set (params->sigma, (params->sigma_is_A) ? A : sigma);
       mpz_set (params->go, go.Candi.n); /* may change if contains N */
       mpz_set (params->B2min, B2min); /* may change with -c */

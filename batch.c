@@ -9,7 +9,6 @@
 
 #include "ecm-gmp.h"
 #include "ecm-impl.h"
-#include "batchmode.h"
 
 
 #if 0
@@ -36,15 +35,9 @@ mpresn_print (mpres_t x, mpmod_t n)
    Auxiliary variables: q, t, u, v, w.
 */
 static void
-#if BATCHMODE == 1
-dup_add (mpres_t x1, mpres_t z1, mpres_t x2, mpres_t z2,
+dup_add_batch1 (mpres_t x1, mpres_t z1, mpres_t x2, mpres_t z2,
          mpres_t q, mpres_t t, mpres_t u, mpres_t v, mpres_t w,
          unsigned long d, mpmod_t n)
-#else
-dup_add (mpres_t x1, mpres_t z1, mpres_t x2, mpres_t z2,
-         mpres_t q, mpres_t t, mpres_t u, mpres_t v, mpres_t w,
-         mpres_t d, mpmod_t n)
-#endif
 {
   mpresn_addsub (w, u, x1, z1, n); /* w = x1+/-z1 */
   mpresn_addsub (t, v, x2, z2, n); /* t = x2+/-z2 */
@@ -58,11 +51,37 @@ dup_add (mpres_t x1, mpres_t z1, mpres_t x2, mpres_t z2,
 
   mpresn_sub (w, w, u, n);   /* w = (x1+z1)^2 - (x1-z1)^2 */
 
-#if BATCHMODE == 1
   mpresn_mul_ui (q, w, d, n); /* q = d * ((x1+z1)^2 - (x1-z1)^2) */
-#else
+
+  mpresn_add (u, u, q, n);  /* u = (x1-z1)^2 - d* ((x1+z1)^2 - (x1-z1)^2) */
+  mpresn_mul (z1, w, u, n); /* zdup = w * [(x1-z1)^2 - d* ((x1+z1)^2 - (x1-z1)^2)] */
+
+  mpresn_add (w, v, t, n);
+  mpresn_sub (v, v, t, n);
+
+  mpresn_sqr (v, v, n);
+  mpresn_sqr (x2, w, n);
+  mpresn_add (z2, v, v, n);
+}
+
+static void
+dup_add_batch2 (mpres_t x1, mpres_t z1, mpres_t x2, mpres_t z2,
+         mpres_t q, mpres_t t, mpres_t u, mpres_t v, mpres_t w,
+         mpres_t d, mpmod_t n)
+{
+  mpresn_addsub (w, u, x1, z1, n); /* w = x1+/-z1 */
+  mpresn_addsub (t, v, x2, z2, n); /* t = x2+/-z2 */
+
+  mpresn_mul (t, t, u, n); /* t = (x1-z1)(x2+z2) */
+  mpresn_mul (v, v, w, n); /* v = (x2-z2)(x1+z1) */
+  mpresn_sqr (w, w, n);    /* w = (x1+z1)^2 */
+  mpresn_sqr (u, u, n);    /* u = (x1-z1)^2 */
+
+  mpresn_mul (x1, u, w, n); /* xdup = (x1+z1)^2 * (x1-z1)^2 */
+
+  mpresn_sub (w, w, u, n);   /* w = (x1+z1)^2 - (x1-z1)^2 */
+
   mpresn_mul (q, w, d, n); /* q = d * ((x1+z1)^2 - (x1-z1)^2) */
-#endif
 
   mpresn_add (u, u, q, n);  /* u = (x1-z1)^2 - d* ((x1+z1)^2 - (x1-z1)^2) */
   mpresn_mul (z1, w, u, n); /* zdup = w * [(x1-z1)^2 - d* ((x1+z1)^2 - (x1-z1)^2)] */
@@ -160,13 +179,11 @@ For now we don't take into account go stop_asap and chkfilename
 */
 int
 ecm_stage1_batch (mpz_t f, mpres_t x, mpres_t A, mpmod_t n, double B1,
-                  double *B1done, mpz_t s)
+                  double *B1done, int batch, mpz_t s)
 {
-#if BATCHMODE == 1
-  unsigned long d;
-#else
-  mpz_t d;
-#endif
+  unsigned long d_1;
+  mpz_t d_2;
+
   mpres_t x1, z1, x2, z2;
   unsigned long i;
   mpres_t q, t, u, v, w;
@@ -190,10 +207,8 @@ ecm_stage1_batch (mpz_t f, mpres_t x, mpres_t A, mpmod_t n, double B1,
   mpres_init (v, n);
   MEMORY_TAG;
   mpres_init (w, n);
-#if BATCHMODE == 2
   MEMORY_TAG;
-  mpres_init (d, n);
-#endif
+  mpres_init (d_2, n);
   MEMORY_UNTAG;
 
   /* initialize P */
@@ -201,42 +216,46 @@ ecm_stage1_batch (mpz_t f, mpres_t x, mpres_t A, mpmod_t n, double B1,
   mpres_set_ui (z1, 1, n); /* P1 <- 1P */
 
   /* Compute d=(A+2)/4 from A */
-#if BATCHMODE == 1
-  mpz_add_ui (u, A, 2);
-  if (mpz_fdiv_ui (u, 4) != 0)
-    {
-      outputf (OUTPUT_ERROR, "Error, A+2 should be divisible by 4\n");
-      return ECM_ERROR;
-    }
-  mpz_div_2exp (u, u, 2);
-  mpres_set_z_for_gcd (u, u, n);
-  if (mpz_fits_ulong_p (u) == 0)
-    {
-      outputf (OUTPUT_ERROR,
+  if( batch ==1 )
+  {
+      mpz_add_ui (u, A, 2);
+      if (mpz_fdiv_ui (u, 4) != 0)
+        {
+          outputf (OUTPUT_ERROR, "Error, A+2 should be divisible by 4\n");
+          return ECM_ERROR;
+        }
+      mpz_div_2exp (u, u, 2);
+      mpres_set_z_for_gcd (u, u, n);
+      if (mpz_fits_ulong_p (u) == 0)
+        {
+          outputf (OUTPUT_ERROR,
                "Error, d=(A+2)/4 should fit in an ulong, A=%Zd\n", A);
-      return ECM_ERROR;
+          return ECM_ERROR;
+        }
+        d_1 = mpz_get_ui (u);
     }
-  d = mpz_get_ui (u);
-#else
-  if (n->repr == ECM_MOD_MPZ || n->repr == ECM_MOD_BASE2)
-      mpz_mod (A, A, n->orig_modulus);
-  else if (n->repr == ECM_MOD_MODMULN || n->repr == ECM_MOD_REDC)
+  else
     {
-      mpz_mul_2exp (A, A, n->bits);
-      mpz_mod (A, A, n->orig_modulus);
+      if (n->repr == ECM_MOD_MPZ || n->repr == ECM_MOD_BASE2)
+          mpz_mod (A, A, n->orig_modulus);
+      else if (n->repr == ECM_MOD_MODMULN || n->repr == ECM_MOD_REDC)
+        {
+          mpz_mul_2exp (A, A, n->bits);
+          mpz_mod (A, A, n->orig_modulus);
+        }
+      mpres_add_ui (d_2, A, 2, n);
+      mpres_div_2exp (d_2, d_2, 2, n); 
+                                /* b ==(A0+2)*B/4, where B=2^(k*GMP_NUMB_LIMB)
+                                   for MODMULN or REDC, B=1 otherwise */
     }
-  mpres_add_ui (d, A, 2, n);
-  mpres_div_2exp (d, d, 2, n); /* b == (A0+2)*B/4, where B=2^(k*GMP_NUMB_LIMB)
-                                  for MODMULN or REDC, B=1 otherwise */
-#endif
 
   /* Compute 2P : no need to duplicate P, the coordinates are simple. */
   mpres_set_ui (x2, 9, n);
-#if BATCHMODE == 1
-  mpres_set_ui (z2, d, n);
-#else
-  mpres_set (z2, d, n);
-#endif 
+  if (batch == 1)
+      mpres_set_ui (z2, d_1, n);
+  else
+      mpres_set (z2, d_2, n);
+ 
   mpres_mul_2exp (z2, z2, 6, n);
   mpres_add_ui (z2, z2, 8, n); /* P2 <- 2P = (9 : : 64d+8) */
 
@@ -247,19 +266,33 @@ ecm_stage1_batch (mpz_t f, mpres_t x, mpres_t A, mpmod_t n, double B1,
   mpresn_pad (z1, n);
   mpresn_pad (x2, n);
   mpresn_pad (z2, n);
-#if BATCHMODE == 2
-  mpresn_pad (d, n);
-#endif
+  if ( batch  == 2)
+      mpresn_pad (d_2, n);
 
   /* now perform the double-and-add ladder */
-  for (i = mpz_sizeinbase (s, 2) - 1; i-- > 0;)
+  if (batch == 1)
     {
-      if (mpz_tstbit (s, i) == 0) /* (j,j+1) -> (2j,2j+1) */
-        /* P2 <- P1+P2    P1 <- 2*P1 */
-        dup_add (x1, z1, x2, z2, q, t, u, v , w, d, n);
-      else /* (j,j+1) -> (2j+1,2j+2) */
-          /* P1 <- P1+P2     P2 <- 2*P2 */
-        dup_add (x2, z2, x1, z1, q, t, u, v, w, d, n);
+      for (i = mpz_sizeinbase (s, 2) - 1; i-- > 0;)
+        {
+          if (mpz_tstbit (s, i) == 0) /* (j,j+1) -> (2j,2j+1) */
+            /* P2 <- P1+P2    P1 <- 2*P1 */
+            dup_add_batch1 (x1, z1, x2, z2, q, t, u, v , w, d_1, n);
+          else /* (j,j+1) -> (2j+1,2j+2) */
+              /* P1 <- P1+P2     P2 <- 2*P2 */
+            dup_add_batch1 (x2, z2, x1, z1, q, t, u, v, w, d_1, n);
+        }
+    }
+  else
+    {
+      for (i = mpz_sizeinbase (s, 2) - 1; i-- > 0;)
+        {
+          if (mpz_tstbit (s, i) == 0) /* (j,j+1) -> (2j,2j+1) */
+            /* P2 <- P1+P2    P1 <- 2*P1 */
+            dup_add_batch2 (x1, z1, x2, z2, q, t, u, v , w, d_2, n);
+          else /* (j,j+1) -> (2j+1,2j+2) */
+              /* P1 <- P1+P2     P2 <- 2*P2 */
+            dup_add_batch2 (x2, z2, x1, z1, q, t, u, v, w, d_2, n);
+        }
     }
 
   *B1done=B1;
@@ -280,6 +313,7 @@ ecm_stage1_batch (mpz_t f, mpres_t x, mpres_t A, mpmod_t n, double B1,
   mpz_clear (u);
   mpz_clear (v);
   mpz_clear (w);
+  mpz_clear (d_2);
 
   return ret;
 }
