@@ -24,7 +24,6 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include "ecm-impl.h"
-#include "batchmode.h"
 #include <math.h>
 
 #ifdef HAVE_LIMITS_H
@@ -35,22 +34,16 @@
 
 /* the following factor takes into account the smaller expected smoothness
    for Montgomery's curves (batch mode) with respect to Suyama's curves */
-#if BATCHMODE == 1
 #if GMP_NUMB_BITS >= 64
 /* For GMP_NUMB_BITS >= 64 we use A=4d-2 with d a square (see main.c). In that
    case, Cyril Bouvier and Razvan Barbulescu have shown that the average
    expected torsion is that of a generic Suyama curve multiplied by the
    constant 2^(1/3)/(3*3^(1/128)) */
-#define BATCH_EXTRA_SMOOTHNESS 0.416384512396064
+#define BATCH1_EXTRA_SMOOTHNESS 0.416384512396064
 #else
 /* For A=4d-2 for d a random integer, the average expected torsion is that
    of a generic Suyama curve multiplied by the constant 1/(3*3^(1/128)) */
-#define BATCH_EXTRA_SMOOTHNESS 0.330484606500389
-#endif
-#else
-/* For batch mode 2, we use an elliptic parametrization of a family having the
-   same torsion properties as Suyama family */
-#define BATCH_EXTRA_SMOOTHNESS 1.0
+#define BATCH1_EXTRA_SMOOTHNESS 0.330484606500389
 #endif
 /******************************************************************************
 *                                                                             *
@@ -768,7 +761,7 @@ print_expcurves (double B1, const mpz_t B2, unsigned long dF, unsigned long k,
       prob = ecmprob (B1, mpz_get_d (B2),
                       /* in batch mode, the extra smoothness is smaller */
                       pow (10., i - .5) /
-                      ((batch) ? BATCH_EXTRA_SMOOTHNESS : 1.0),
+                      ((batch == 1) ? BATCH1_EXTRA_SMOOTHNESS : 1.0),
                       (double) dF * dF * k, S);
       if (prob > 1. / 10000000)
         outputf (OUTPUT_VERBOSE, "%.0f%c", floor (1. / prob + .5), sep);
@@ -798,7 +791,7 @@ print_exptime (double B1, const mpz_t B2, unsigned long dF, unsigned long k,
       prob = ecmprob (B1, mpz_get_d (B2),
                       /* in batch mode, the extra smoothness is smaller */
                       pow (10., i - .5) /
-                      ((batch) ? BATCH_EXTRA_SMOOTHNESS : 1.0),
+                      ((batch == 1) ? BATCH1_EXTRA_SMOOTHNESS : 1.0),
                       (double) dF * dF * k, S);
       exptime = (prob > 0.) ? tottime / prob : HUGE_VAL;
       outputf (OUTPUT_TRACE, "Digits: %d, Total time: %.0f, probability: "
@@ -1055,11 +1048,10 @@ ecm (mpz_t f, mpz_t x, mpz_t sigma, mpz_t n, mpz_t go, double *B1done,
       if (youpi != ECM_NO_FACTOR_FOUND)
 	  goto end_of_ecm;
     }
-  else if (sigma_is_A == 1 && batch != 0)
+  else if (sigma_is_A == 1 && batch == 1)
     {
       if (mpz_sgn (sigma) == 0)
         {
-#if BATCHMODE == 1
           /* We need that d = (A+2)/4 is smaller than 2^GMP_NUMB_BITS */
           mpz_urandomb (P.A, rng, 32);  /* generates d */
           if (GMP_NUMB_BITS >= 64)
@@ -1068,23 +1060,22 @@ ecm (mpz_t f, mpz_t x, mpz_t sigma, mpz_t n, mpz_t go, double *B1done,
                                              probability */
           mpz_mul_2exp (P.A, P.A, 2);           /* 4d */
           mpz_sub_ui (P.A, P.A, 2);             /* 4d-2 */
-#else
+        }
+      else   /* sigma contains the A value */
+          mpz_set (P.A, sigma);
+    }
+  else if (sigma_is_A == 1 && batch == 2)
+    {
+      if (mpz_sgn (sigma) == 0)
+        {
           mpz_urandomb (sigma, rng, 32);
           mpz_add_ui (sigma, sigma, 2);
           youpi = get_curve_from_ell_parametrization (f, P.A, sigma, modulus);
           if (youpi != ECM_NO_FACTOR_FOUND)
 	          goto end_of_ecm;
-#endif 
         }
-      else
-        {
-          /* sigma contains the A value */
-#if BATCHMODE == 1
-          mpz_set (P.A, sigma);
-#else
+      else    /* sigma contains the A value */
           mpres_set_z (P.A, sigma, modulus);
-#endif 
-        }
     }
   else if (sigma_is_A == 1)
     {
@@ -1169,7 +1160,7 @@ ecm (mpz_t f, mpz_t x, mpz_t sigma, mpz_t n, mpz_t go, double *B1done,
 #ifdef HAVE_GWNUM
   /* We will only use GWNUM for numbers of the form k*b^n+c */
 
-  if (gw_b != 0 && B1 >= *B1done && batch != 1)
+  if (gw_b != 0 && B1 >= *B1done && batch == 0)
       youpi = gw_ecm_stage1 (f, &P, modulus, B1, B1done, go, gw_k, gw_b, gw_n, gw_c);
 
   /* At this point B1 == *B1done unless interrupted, or no GWNUM ecm_stage1
@@ -1181,9 +1172,10 @@ ecm (mpz_t f, mpz_t x, mpz_t sigma, mpz_t n, mpz_t go, double *B1done,
 
   if (B1 > *B1done)
     {
-      if (batch == 1)
+      if (batch != 0)
         /* FIXME: go, stop_asap and chkfilename are ignored in batch mode */
-        youpi = ecm_stage1_batch (f, P.x, P.A, modulus, B1, B1done, batch_s);
+        youpi = ecm_stage1_batch (f, P.x, P.A, modulus, B1, B1done, batch, 
+                                                            batch_s);
       else
         youpi = ecm_stage1 (f, P.x, P.A, modulus, B1, B1done, go, stop_asap,
                             chkfilename);

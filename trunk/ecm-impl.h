@@ -765,7 +765,11 @@ int  mpn_fft_best_k (mp_size_t, int);
 mp_size_t mpn_fft_next_size (mp_size_t, int);
 
 /* batch.c */
-int ecm_stage1_batch (mpz_t, mpres_t, mpres_t, mpmod_t, double, double *, mpz_t);
+int ecm_stage1_batch (mpz_t, mpres_t, mpres_t, mpmod_t, double, double *, 
+                                                                int,  mpz_t);
+
+/* ellparam_batch.c */
+int get_curve_from_ell_parametrization (mpz_t, mpres_t, mpz_t, mpmod_t);
 
 /* sets_long.c */
 /* A set of long ints */
