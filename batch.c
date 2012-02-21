@@ -9,9 +9,8 @@
 
 #include "ecm-gmp.h"
 #include "ecm-impl.h"
+#include "batchmode.h"
 
-#define BATCHMODE 1 /* use an unsigned long for 'd' */
-//#define BATCHMODE 2 /* use an mpz_t for 'd' */
 
 #if 0
 /* this function is useful in debug mode to print non-normalized residues */

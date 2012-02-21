@@ -24,6 +24,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include "ecm-impl.h"
+#include "batchmode.h"
 #include <math.h>
 
 #ifdef HAVE_LIMITS_H
@@ -34,6 +35,7 @@
 
 /* the following factor takes into account the smaller expected smoothness
    for Montgomery's curves (batch mode) with respect to Suyama's curves */
+#if BATCHMODE == 1
 #if GMP_NUMB_BITS >= 64
 /* For GMP_NUMB_BITS >= 64 we use A=4d-2 with d a square (see main.c). In that
    case, Cyril Bouvier and Razvan Barbulescu have shown that the average
@@ -45,7 +47,11 @@
    of a generic Suyama curve multiplied by the constant 1/(3*3^(1/128)) */
 #define BATCH_EXTRA_SMOOTHNESS 0.330484606500389
 #endif
-
+#else
+/* For batch mode 2, we use an elliptic parametrization of a family having the
+   same torsion properties as Suyama family */
+#define BATCH_EXTRA_SMOOTHNESS 1.0
+#endif
 /******************************************************************************
 *                                                                             *
 *                            Elliptic Curve Method                            *
@@ -1049,6 +1055,37 @@ ecm (mpz_t f, mpz_t x, mpz_t sigma, mpz_t n, mpz_t go, double *B1done,
       if (youpi != ECM_NO_FACTOR_FOUND)
 	  goto end_of_ecm;
     }
+  else if (sigma_is_A == 1 && batch != 0)
+    {
+      if (mpz_sgn (sigma) == 0)
+        {
+#if BATCHMODE == 1
+          /* We need that d = (A+2)/4 is smaller than 2^GMP_NUMB_BITS */
+          mpz_urandomb (P.A, rng, 32);  /* generates d */
+          if (GMP_NUMB_BITS >= 64)
+            mpz_mul (P.A, P.A, P.A);      /* ensures d is a square,
+                                             which increases the success
+                                             probability */
+          mpz_mul_2exp (P.A, P.A, 2);           /* 4d */
+          mpz_sub_ui (P.A, P.A, 2);             /* 4d-2 */
+#else
+          mpz_urandomb (sigma, rng, 32);
+          mpz_add_ui (sigma, sigma, 2);
+          youpi = get_curve_from_ell_parametrization (f, P.A, sigma, modulus);
+          if (youpi != ECM_NO_FACTOR_FOUND)
+	          goto end_of_ecm;
+#endif 
+        }
+      else
+        {
+          /* sigma contains the A value */
+#if BATCHMODE == 1
+          mpz_set (P.A, sigma);
+#else
+          mpres_set_z (P.A, sigma, modulus);
+#endif 
+        }
+    }
   else if (sigma_is_A == 1)
     {
       /* sigma contains the A value */
@@ -1146,7 +1183,7 @@ ecm (mpz_t f, mpz_t x, mpz_t sigma, mpz_t n, mpz_t go, double *B1done,
     {
       if (batch == 1)
         /* FIXME: go, stop_asap and chkfilename are ignored in batch mode */
-        youpi = ecm_stage1_batch (f, P.x, sigma, modulus, B1, B1done, batch_s);
+        youpi = ecm_stage1_batch (f, P.x, P.A, modulus, B1, B1done, batch_s);
       else
         youpi = ecm_stage1 (f, P.x, P.A, modulus, B1, B1done, go, stop_asap,
                             chkfilename);

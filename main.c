@@ -1456,27 +1456,13 @@ BreadthFirstDoAgain:;
          it must be 2). */
       if (batch == 1)
         {
-          static int random = 0; /* non-zero if user asked for random curves */
-
           if (method != ECM_ECM)
             {
               fprintf (stderr, "Error, the -batch option is only valid for ECM\n");
               exit (EXIT_FAILURE);
             }
           mpz_set_ui (sigma, 0); 
-          if (random || (mpz_sgn (A) == 0)) /* A was not given by the user */
-            {
-              random = 1;
-              /* We need that d = (A+2)/4 is smaller than 2^GMP_NUMB_BITS */
-              mpz_urandomb (A, randstate, 32);  /* generates d */
-              if (GMP_NUMB_BITS >= 64)
-                mpz_mul (A, A, A);              /* ensures d is a square,
-                                                   which increases the success
-                                                   probability */
-              mpz_mul_2exp (A, A, 2);           /* 4d */
-              mpz_sub_ui (A, A, 2);             /* 4d-2 */
-            }
-          
+
           if (mpz_sgn (orig_x0) == 0)
             mpz_set_ui (orig_x0, 2);
           else if (mpz_cmp_ui (orig_x0, 2) != 0)
