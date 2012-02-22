@@ -14,9 +14,6 @@
 #define __asm__ asm
 #endif
 
-//also define number of threads; problems ig bigger tjhan the size of a warp (ie 32)
-//#define NB_DIGITS 32
-
 #define CHKSUMMOD 4294967291U
 #define VERSION "0.1"
 #define ECM_FACTOR_FOUND 2
@@ -40,7 +37,7 @@
 #endif
 
 #define VOL volatile 
-//#define VOL  
+//#define VOL
 
 #define MAX_BITS SIZE_DIGIT*NB_DIGITS
 typedef digit_t VOL biguint_t[NB_DIGITS];
