@@ -145,12 +145,16 @@ echo 493671084022010320922697718944221569774262937898523672663031469122444419595
 
 echo "10090030271*10^400+696212088699" | $ECM -sigma 3923937547 1e3 1e6; checkcode $? 14
 
-# To test the batch mode
+# To test batch mode 1
 echo "458903930815802071188998938170281707063809443792768383215233" | $ECM -batch -A 166 10000
 checkcode $? 14
 
 echo "2^349-1" | $ECM -batch -A 134 967 551113 
 checkcode $? 6
+
+# To test batch mode 2
+echo "911962091" | ./ecm -batch=2 -A 440688534 50000
+checkcode $? 8
 
 # this example did fail on 32-bit computers (thanks to David Cleaver)
 echo "2^347-1" | $ECM -batch -A 5837673714 36209 11436599

@@ -1071,6 +1071,7 @@ ecm (mpz_t f, mpz_t x, mpz_t sigma, mpz_t n, mpz_t go, double *B1done,
           mpz_urandomb (sigma, rng, 32);
           mpz_add_ui (sigma, sigma, 2);
           youpi = get_curve_from_ell_parametrization (f, P.A, sigma, modulus);
+          mpres_get_z (sigma, P.A, modulus);
           if (youpi != ECM_NO_FACTOR_FOUND)
 	          goto end_of_ecm;
         }
