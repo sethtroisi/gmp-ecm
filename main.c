@@ -1489,7 +1489,7 @@ BreadthFirstDoAgain:;
           params->batch_B1 = B1;
 
           if (verbose > OUTPUT_NORMAL)
-            printf ("Batch mode: \n");
+            printf ("Batch mode %d: \n", batch);
           st = cputime ();
           /* construct the batch exponent */
           compute_s (params->batch_s, params->batch_B1);
