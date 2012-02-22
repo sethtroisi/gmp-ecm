@@ -218,7 +218,8 @@ ecm_stage1_batch (mpz_t f, mpres_t x, mpres_t A, mpmod_t n, double B1,
   /* Compute d=(A+2)/4 from A */
   if( batch ==1 )
   {
-      mpz_add_ui (u, A, 2);
+      mpres_get_z(u, A, n);
+      mpz_add_ui (u, u, 2);
       if (mpz_fdiv_ui (u, 4) != 0)
         {
           outputf (OUTPUT_ERROR, "Error, A+2 should be divisible by 4\n");
