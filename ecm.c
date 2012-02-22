@@ -1053,16 +1053,16 @@ ecm (mpz_t f, mpz_t x, mpz_t sigma, mpz_t n, mpz_t go, double *B1done,
       if (mpz_sgn (sigma) == 0)
         {
           /* We need that d = (A+2)/4 is smaller than 2^GMP_NUMB_BITS */
-          mpz_urandomb (P.A, rng, 32);  /* generates d */
+          mpz_urandomb (sigma, rng, 32);  /* generates d */
           if (GMP_NUMB_BITS >= 64)
-            mpz_mul (P.A, P.A, P.A);      /* ensures d is a square,
+            mpz_mul (sigma, sigma, sigma);      /* ensures d is a square,
                                              which increases the success
                                              probability */
-          mpz_mul_2exp (P.A, P.A, 2);           /* 4d */
-          mpz_sub_ui (P.A, P.A, 2);             /* 4d-2 */
+          mpz_mul_2exp (sigma, sigma, 2);           /* 4d */
+          mpz_sub_ui (sigma, sigma, 2);             /* 4d-2 */
         }
-      else   /* sigma contains the A value */
-          mpz_set (P.A, sigma);
+      
+      mpres_set_z (P.A, sigma, modulus);
     }
   else if (sigma_is_A == 1 && batch == 2)
     {
