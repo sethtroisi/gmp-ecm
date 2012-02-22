@@ -103,10 +103,14 @@ void mpz_to_biguint (biguint_t a, mpz_t b)
 
   for (i=0;i<NB_DIGITS;i++)
   {
+#if GMP_NUMB_BITS == 32
+    a[i]=mpz_getlimbn(b, i);  
+#else // GMP_NUMB_BITS == 64
     if (i%2 == 0)
       a[i]=(mpz_getlimbn(b, i/2) & 0x00000000ffffffff);
     else
       a[i]=(mpz_getlimbn(b, i/2) >> 32);  
+#endif
   }
 }
 
@@ -115,23 +119,25 @@ void biguint_to_mpz (mpz_t a, biguint_t b)
   int i;
   unsigned long temp;
   
-  mpz_set_ui(a,0);
+  mpz_set_ui(a, 0);
 
   for (i=NB_DIGITS-1;i>=0;i--)
   {
-#ifdef _MSC_VER
-    mpz_mul_2exp(a, a, 32);
-	mpz_add_ui(a , a, b[i]);
-#else
+#if GMP_NUMB_BITS == 32
+    mpz_mul_2exp(a, a, GMP_NUMB_BITS);
+	  mpz_add_ui(a , a, b[i]);
+#else // GMP_NUMB_BITS == 64
     if (i%2 == 0)
+    {  
       mpz_add_ui(a,a,b[i]);
+      if (i != 0)
+        mpz_mul_2exp(a, a, GMP_NUMB_BITS);
+    }
     else
     {
       temp=(unsigned long)b[i];
-      mpz_add_ui(a,a,(temp<<32));
+      mpz_add_ui(a, a, (temp<<32));
     }
-    if (i!=0 && i%2==0)
-      mpz_mul_2exp(a,a,64);
 #endif
   }
 }
