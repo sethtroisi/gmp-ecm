@@ -237,17 +237,10 @@ ecm_stage1_batch (mpz_t f, mpres_t x, mpres_t A, mpmod_t n, double B1,
     }
   else
     {
-      if (n->repr == ECM_MOD_MPZ || n->repr == ECM_MOD_BASE2)
-          mpz_mod (A, A, n->orig_modulus);
-      else if (n->repr == ECM_MOD_MODMULN || n->repr == ECM_MOD_REDC)
-        {
-          mpz_mul_2exp (A, A, n->bits);
-          mpz_mod (A, A, n->orig_modulus);
-        }
+      /* b ==(A0+2)*B/4, where B=2^(k*GMP_NUMB_LIMB)
+         for MODMULN or REDC, B=1 otherwise */
       mpres_add_ui (d_2, A, 2, n);
       mpres_div_2exp (d_2, d_2, 2, n); 
-                                /* b ==(A0+2)*B/4, where B=2^(k*GMP_NUMB_LIMB)
-                                   for MODMULN or REDC, B=1 otherwise */
     }
 
   /* Compute 2P : no need to duplicate P, the coordinates are simple. */
