@@ -54,8 +54,21 @@ int main (int argc, char * argv[])
 
 #ifdef _MSC_VER
   if(!SetPriorityClass(GetCurrentProcess(), IDLE_PRIORITY_CLASS))
-	printf("Could not set process priority\n");
+	  printf("Could not set process priority\n");
 #endif
+
+  /* check ecm is linked with a compatible library */
+  if (mp_bits_per_limb != GMP_NUMB_BITS)
+  {
+    fprintf (stderr, "Error, mp_bits_per_limb and GMP_NUMB_BITS differ\n");
+    fprintf (stderr, "Please check your LD_LIBRARY_PATH variable\n");
+    exit (EXIT_FAILURE);
+  }
+  if (GMP_NUMB_BITS != 32 && GMP_NUMB_BITS != 64) 
+  {
+    fprintf (stderr, "Error, GMP_NUMB_BITS should be either 32 or 64.\n");
+    exit (EXIT_FAILURE);
+  }
 
   //default values
   number_of_curves=0;
@@ -232,7 +245,7 @@ int main (int argc, char * argv[])
     exit(EXIT_FAILURE);
   }
 
-  srand(time(NULL));
+  srand(getpid()*time(NULL));
   
   mpz_init (N);
   mpz_init (mpz_B);
