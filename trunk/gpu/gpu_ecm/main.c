@@ -185,8 +185,6 @@ int main (int argc, char * argv[])
     exit(EXIT_FAILURE);
   }
 
-  srand(getpid()*time(NULL));
-  
   mpz_init (N);
   mpz_init (mpz_B);
   mpz_init (mpz_d);
@@ -258,7 +256,7 @@ int main (int argc, char * argv[])
   
     
     if (firstinvd_arg == 0)
-      firstinvd = (rand() % (TWO32-2-number_of_curves)) + 2;
+      firstinvd = (get_random_ui() % (TWO32-2-number_of_curves)) + 2;
     else
       firstinvd = firstinvd_arg;
  

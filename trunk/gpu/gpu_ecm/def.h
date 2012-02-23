@@ -17,7 +17,7 @@
 #define __asm__ asm
 #endif
 
-#define VERSION "0.1"
+#define VERSION_GPUECM "0.1"
 
 #define ECM_FACTOR_FOUND 2
 #define ECM_NO_FACTOR_FOUND 0
