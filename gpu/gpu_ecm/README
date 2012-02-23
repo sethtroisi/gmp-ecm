@@ -36,10 +36,7 @@ Options:
   -h, --help prints this help and exit
 
 
-As in GMP-ECM, each line of 'file' should either be a integer, or begin by #.
-Contrary to GMP-ECM, the integer cannot be given by an expression (e.g.
-2^1024-1)
-
+The input file is read with the same functions as in GMP-ECM.
 
 
 3. check.sh

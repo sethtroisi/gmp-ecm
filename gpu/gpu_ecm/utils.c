@@ -128,7 +128,7 @@ void biguint_to_mpz (mpz_t a, biguint_t b)
   }
 }
 
-void write_resumefile_line (FILE *file, mpz_t N, unsigned int B1, mpz_t xp, 
+void write_resumefile2_line (FILE *file, mpz_t N, unsigned int B1, mpz_t xp, 
   unsigned int firstinvd, mpz_t mpz_d)
 {
   mpz_t checksum;
@@ -190,7 +190,7 @@ void write_resumefile_line (FILE *file, mpz_t N, unsigned int B1, mpz_t xp,
   fprintf (file, "\n");
   fflush (file);
 }
-
+#if 0
 #define IS_NEWLINE(c) (((c) == '\n') || ((c) == '\r'))
 #define MAX_LINE 1000
 
@@ -222,4 +222,4 @@ new_line:
 
   return 1;
 }
-
+#endif
