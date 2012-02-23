@@ -1,34 +1,37 @@
-
 #ifdef _MSC_VER
 #define WIN32_LEAN_AND_MEAN
 #include <windows.h>
 #endif
 
-#include "main.h"
+#include "def.h"
 #include "utils.h"
-#include "cudautils.h"
+
+#define TWO32 4294967296 // 2^32 
+
+ 
+extern int select_GPU (int, int, FILE*);
+extern void cuda_Main (biguint_t, biguint_t, biguint_t*, biguint_t*, biguint_t*,
+                       biguint_t*, mpz_t, unsigned int, unsigned int, FILE*, 
+                       FILE*);
 
 int main (int argc, char * argv[]) 
 {
   int main_ret=EXIT_SUCCESS;
 
-  long begincputime, endcputime, begingputime, endgputime; 
+  long begincputime = 0, endcputime = 0, begingputime = 0, endgputime = 0; 
 
   unsigned int i;
-#ifdef TEST
-  unsigned int j;
-#endif
   unsigned int B1;
-  unsigned int number_of_curves;
-  //unsigned int nbfactor=0;
+  unsigned int number_of_curves = 0;
+
   int ret;
   unsigned int firstinvd;
-  unsigned int firstinvd_arg;
+  unsigned int firstinvd_arg = 0;
 
   FILE *savefile = NULL;
   char *savefilename = NULL;
 
-  int device;
+  int device = -1;
 
   int verbose=0;
   FILE *OUTPUT_VERBOSE = NULL;
@@ -70,11 +73,11 @@ int main (int argc, char * argv[])
     exit (EXIT_FAILURE);
   }
 
-  //default values
-  number_of_curves=0;
-  device=-1;
-  firstinvd_arg=0;
   
+  /***********************/
+  /* Looking for options */
+  /***********************/
+
   while (argc > 1 && argv[1][0]=='-')
   {
     if (strcmp(argv[1], "-h")== 0 || strcmp (argv[1], "--help") ==0)
@@ -134,9 +137,6 @@ int main (int argc, char * argv[])
   //mpz_set_str (N, argv[1], 10); // in base 10 
   sscanf(argv[1], "%u", &B1);
 
-  //argc-=2;
-  //argv+=2;
-
   if (verbose < 2)
 #ifdef _MSC_VER
     OUTPUT_VVERBOSE=fopen("NUL:","a");
@@ -151,75 +151,15 @@ int main (int argc, char * argv[])
   else
     OUTPUT_VERBOSE = OUTPUT_VVERBOSE;
 
-  /******************/
-  /* Select the GPU */
-  /******************/
+  /***********************************************/
+  /* Select the GPU and analyse number_of_curves */
+  /***********************************************/
 
-  cudaDeviceProp deviceProp;
-  cudaError_t err;
-        
-  fprintf(OUTPUT_VERBOSE,
-    "#Compiled for a NVIDIA GPU with compute capability %d.%d.\n",MAJOR,MINOR);
-  if (device!=-1)
-  {
-    fprintf(OUTPUT_VERBOSE,"#Device %d is required.\n",device);
-
-    err= cudaSetDevice(device);
-    if (err != cudaSuccess)
-    {
-      fprintf(stderr, "Error: Could not use device %d\n",device);
-      fprintf(stderr, "Error msg: %s\n", cudaGetErrorString(err));
-      exit(EXIT_FAILURE);
-    }
-  }
-  
-  err = cudaGetDevice (&device);
-  if (err != cudaSuccess)
-  {
-    fprintf(stderr, "Error: no active device\n");
-    fprintf(stderr, "Error msg: %s\n", cudaGetErrorString(err));
-    exit(EXIT_FAILURE);
-  }
-
-  err = cudaGetDeviceProperties (&deviceProp, device);
-  if (err != cudaSuccess)
-  {
-    fprintf(stderr, "Error while getting device's properties\n");
-    fprintf(stderr, "Error msg: %s\n", cudaGetErrorString(err));
-    exit(EXIT_FAILURE);
-  }
-
-  if ( deviceProp.major < MAJOR || 
-                        (deviceProp.major== MAJOR && deviceProp.minor< MINOR))
-  {
-    fprintf(stderr,
-      "Error: Device %d have a compute capability of %d.%d (required %d.%d).\n",
-      device,deviceProp.major,deviceProp.minor,MAJOR,MINOR);
-    exit(EXIT_FAILURE);
-  }
-  fprintf(OUTPUT_VERBOSE, 
-    "#Will use device %d : %s, compute capability %d.%d, %d MPs.\n", device,
-    deviceProp.name, deviceProp.major, deviceProp.minor, 
-     deviceProp.multiProcessorCount);
-  //if (deviceProp.major != MAJOR || deviceProp.minor != MINOR)
-  //  fprintf(OUTPUT_VERBOSE, "#You should compile the program for this compute 
-  //  capability to be more efficient"); 
-
-
-  cudaSetDeviceFlags(cudaDeviceScheduleAuto); 
-  //cudaSetDeviceFlags(cudaDeviceScheduleYield); 
-  //cudaSetDeviceFlags(cudaDeviceScheduleSpin); //the other make performance
-  //worse
-
+  number_of_curves = select_GPU(device, number_of_curves, OUTPUT_VERBOSE);
 
   /*****************************/
   /* Initialize some variables */
   /*****************************/
-
-  //number_of_curves should be a multiple of CURVES_BY_BLOCK
-  number_of_curves=(number_of_curves/CURVES_BY_BLOCK)*CURVES_BY_BLOCK;
-  if (number_of_curves==0)
-    number_of_curves=deviceProp.multiProcessorCount*CURVES_BY_MP;
 
   //If needed, open savefile
   if (savefilename!=NULL)
@@ -355,20 +295,6 @@ int main (int argc, char * argv[])
     mpz_mul_2exp(x2p, x2p, MAX_BITS);
     mpz_mod(x2p, x2p, N);
   
-#ifdef TEST
-    mpz_set_str(xp,"143805795474180477715551670989706028047729675645425252587319477048578939317229826117558190107889475963854697259734869847815638012718519302222375492556416739307266882805602763960478644417547693257368452083973266767326241158429824355507033182709885084613778430054616797020729738481697557927534650235438",10);
-    mpz_set_ui(zp,1);
-    mpz_mul(x2p,xp,zp);
-    mpz_mod(x2p,x2p,N);
-    gmp_printf("\n%Zd\n%Zd\n",xp,zp);
-  
-    mpz_mul_2exp(xp,xp, MAX_BITS);
-    mpz_mod(xp,xp,N);
-    
-    mpz_mul_2exp(zp,zp, MAX_BITS);
-    mpz_mod(zp,zp,N);
-#endif
-  
     for (i=0; i<number_of_curves; i++)
     {
       mpz_mul_ui(z2p,mpz_d,firstinvd);
@@ -410,7 +336,6 @@ int main (int argc, char * argv[])
       mpz_mul(zp,zp,mpz_Rinv);
       mpz_mod(zp,zp,N);
   
-  #ifndef TEST
       if (i==0 || i==number_of_curves-1)
       {
         fprintf(OUTPUT_VVERBOSE,"\n");
@@ -433,26 +358,6 @@ int main (int argc, char * argv[])
       }
   
       firstinvd++;
-  #endif
-  
-  #ifdef TEST
-      if (i==0)
-      {
-        printf ("xp=");
-        biguint_print(h_xarray[i]);
-        printf ("\nzp=");
-        //printf ("+(");
-        biguint_print(h_zarray[i]);
-        //printf ("\n");
-        gmp_printf("\n%Zd\n%Zd\n",xp,zp);
-        mpz_sub(xp,xp,x2p);
-        gmp_printf("\n%Zd\n",xp);
-        //printf (")*2^1024\n");
-        //mpz_mul(mpztemp,mpztemp,mpztemp);
-        //gmp_printf("b=%Zd\n",mpztemp);
-        //printf("print A;print B;diff=(A+B)*(B-A)-res; print diff.digits(2^32); print 2^(-1024)*(A+B)*(B-A) %% N - res\n");
-      }
-  #endif
     }
   
 end_main_loop:
@@ -487,7 +392,6 @@ free_memory_and_exit:
   if (savefile != NULL)
     fclose(savefile);
 
-  cudaThreadExit(); //useless?? implicitly call on host exit 
   return main_ret;
 }
 

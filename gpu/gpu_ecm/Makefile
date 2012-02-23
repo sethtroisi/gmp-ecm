@@ -18,14 +18,14 @@ COMPUTE_CAPABILITY=1.3
 mOPTION=-m64
 
 OBJDIR=obj
-CU_FILES=utils.cu main.cu cudautils.cu cudaarith.cu
-OBJ_FILES=$(addprefix $(OBJDIR)/,utils.cu.o main.cu.o cudautils.cu.o \
-                                 cudaarith.cu.o)
+#CU_FILES=cudakernel.cu main.cu cudautils.cu cudaarith.cu
+#C_FILES=utils.c 
+OBJ_FILES=$(addprefix $(OBJDIR)/,utils.c.o main.c.o cudakernel.cu.o)
 
 LDFLAGS=$(GMP_PATH)/lib/libgmp.a -lm 
 LDFLAGS+=-L$(CUDA_PATH)/lib64 -lcudart
 
-CFLAGS=-O2 -I$(GMP_PATH)/include
+CFLAGS=-O2 -I$(GMP_PATH)/include -I$(CUDA_PATH)/include
 
 NVCCFLAGS=$(USE_THIS_CC) --compiler-options -fno-strict-aliasing 
 NVCCFLAGS+=$(mOPTION) --ptxas-options=-v
@@ -43,10 +43,13 @@ endif
 
 
 $(BIN): $(OBJ_FILES) | $(OBJDIR)
-	gcc -fPIC $(mOPTION) -o $@ $^ $(LDFLAGS)
+	gcc -Wall -fPIC $(mOPTION) -o $@ $^ $(LDFLAGS)
 
 $(OBJDIR)/%.cu.o : %.cu
 	nvcc $(CFLAGS) $(COMPUTECAPABILITY) $(NVCCFLAGS) -o $@ -c $<
+
+$(OBJDIR)/%.c.o : %.c
+	gcc -Wall $(CFLAGS) -o $@ -c $<
 
 $(OBJDIR): 
 	mkdir $(OBJDIR)
