@@ -21,7 +21,7 @@ OBJDIR=obj
 
 OBJ_CU=$(addprefix $(OBJDIR)/,$(patsubst %.cu,%.cu.o,$(wildcard *.cu)))
 OBJ_C=$(addprefix $(OBJDIR)/,$(patsubst %.c,%.c.o,$(wildcard *.c)))
-FILES_FROM_GMPECM=random.c batch.c getprime.c
+FILES_FROM_GMPECM=random.c batch.c getprime.c eval.c candi.c auxi.c
 OBJ_FROM_GMPECM=$(addprefix $(OBJDIR)/,$(patsubst %.c,%.o,$(FILES_FROM_GMPECM)))
 OBJ_FILES=$(OBJ_C) $(OBJ_CU) $(OBJ_FROM_GMPECM) 
 

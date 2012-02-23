@@ -24,6 +24,8 @@ int main (int argc, char * argv[])
   unsigned int B1;
   unsigned int number_of_curves = 0;
 
+  mpcandi_t n;
+
   int ret;
   unsigned int firstinvd;
   unsigned int firstinvd_arg = 0;
@@ -33,7 +35,7 @@ int main (int argc, char * argv[])
 
   int device = -1;
 
-  int verbose=0;
+  int verbose = 0;
   FILE *OUTPUT_VERBOSE = NULL;
   FILE *OUTPUT_VVERBOSE = NULL;
 
@@ -185,6 +187,8 @@ int main (int argc, char * argv[])
     exit(EXIT_FAILURE);
   }
 
+  mpcandi_t_init (&n);
+
   mpz_init (N);
   mpz_init (mpz_B);
   mpz_init (mpz_d);
@@ -222,9 +226,10 @@ int main (int argc, char * argv[])
   /*Computation for each input number in the file*/
   /***********************************************/
 
-  while (!feof(stdin) && read_number(N, stdin)==1)
+  while (!feof(stdin) && read_number(&n, stdin, 0) == 1)
   {
     begincputime=cputime();
+    mpz_set(N, n.n); // FIXME : don't use N only mpcandi_t n
     gmp_fprintf (stdout, "Input number is %Zd (%u digits)\n", 
                                           N, mpz_sizeinbase(N, 10));
 
@@ -345,7 +350,7 @@ int main (int argc, char * argv[])
       
       ret=findfactor(N,xp,zp);
       if (ret==ECM_NO_FACTOR_FOUND && savefile != NULL)
-        write_resumefile_line (savefile, N, B1, xp, firstinvd, mpz_d);
+        write_resumefile2_line (savefile, N, B1, xp, firstinvd, mpz_d);
       else if (ret==ECM_FACTOR_FOUND)
         fprintf(stdout,"Factor found with (d*2^32) mod N = %u\n",firstinvd);
             //Maybe print A for GMP-ECM
@@ -370,6 +375,8 @@ end_main_loop:
     }
 
 free_memory_and_exit:
+  mpcandi_t_free(&n);
+
   mpz_clear (N);
   mpz_clear (mpz_B);
   mpz_clear (mpz_invmod);
