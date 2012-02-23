@@ -52,3 +52,88 @@ nb_digits (const mpz_t n)
   return size;
 }
 
+/* Tries to read a number from a line from fd and stores it in r.
+   Keeps reading lines until a number is found. Lines beginning with "#"
+     are skipped.
+   Returns 1 if a number was successfully read, 0 if no number can be read
+     (i.e. at EOF)
+   Function is now simpler.  Much of the logic (other than skipping # lines
+     is now contained within eval() function.
+*/
+
+int
+read_number (mpcandi_t *n, FILE *fd, int primetest)
+{
+  int c;
+
+new_line:
+  c = fgetc (fd);
+
+  /* Skip comment lines beginning with '#' */
+  if (c == '#')
+    {
+      do
+        c = fgetc (fd);
+      while (c != EOF && !IS_NEWLINE(c));
+      if (IS_NEWLINE(c))
+        goto new_line;
+    }
+
+  if (c == EOF)
+    return 0;
+
+  ungetc (c, fd);
+  if (!eval (n, fd, primetest))
+    goto new_line;
+
+#if 0
+  /*  Code to test out eval_str function, which "appears" to work correctly. */
+  {
+    /* warning!! Line is pretty small, but since this is just testing code, we
+       can easily control the input for this test.  This code should NEVER be
+       compiled into released build, its only for testing of eval_str() */
+    char Line[500], *cp;
+    fgets (Line, sizeof(Line), fd);
+
+    if (!eval_str (n, Line, primetest, &cp))
+      goto new_line;
+    fprintf (stderr, "\nLine is at %X cp is at %X\n", Line, cp);
+  }
+#endif
+
+#if defined (DEBUG_EVALUATOR)
+  if (n->cpExpr)
+    fprintf (stderr, "%s\n", n->cpExpr);
+  mpz_out_str (stderr, 10, n->n);
+  fprintf (stderr, "\n");
+#endif
+
+  return 1;
+}
+
+int
+probab_prime_p (mpz_t N, int reps)
+{
+#ifdef WANT_SHELLCMD
+  if (prpcmd != NULL)
+    {
+      FILE *fc;
+      int r;
+      fc = popen (prpcmd, "w");
+      if (fc != NULL)
+        {
+          gmp_fprintf (fc, "%Zd\n", N);
+          r = pclose (fc);
+          if (r == 0) /* Exit status of 0 means success = is a PRP */
+            return 1;
+          else
+            return 0;
+        } else {
+          fprintf (stderr, "Error executing the PRP command\n");
+          exit (EXIT_FAILURE);
+        }
+    } else
+#endif
+      return mpz_probab_prime_p (N, reps);
+}
+
