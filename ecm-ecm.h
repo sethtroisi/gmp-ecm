@@ -70,7 +70,6 @@ typedef struct
 unsigned int nb_digits  (const mpz_t);
 int probab_prime_p (mpz_t, int);
 int read_number (mpcandi_t*, FILE*, int);
-unsigned int get_random_ui (void);
 
 /* Various logging levels */
 /* OUTPUT_ALWAYS means print always, regardless of verbose value */
@@ -141,8 +140,6 @@ int write_resumefile_line (char *, int, double, mpz_t, mpz_t, mpz_t, mpcandi_t *
                            mpz_t, const char *);
 
 /* main.c */
-int read_number (mpcandi_t *n, FILE *, int primetest);
-int probab_prime_p (mpz_t, int);
 int kbnc_z (double *k, unsigned long *b, unsigned long *n, signed long *c,
             mpz_t z);
 int kbnc_str (double *k, unsigned long *b, unsigned long *n, signed long *c,
@@ -168,6 +165,9 @@ int  mpcandi_t_addfoundfactor_d (mpcandi_t *n, double f);
 void mpgocandi_t_init(mpgocandi_t *go);
 void mpgocandi_t_free(mpgocandi_t *go);
 int  mpgocandi_fixup_with_N(mpgocandi_t *go, mpcandi_t *n);
+
+/* random.c */
+unsigned int get_random_ui (void);
 
 /* random2.c */
 void pp1_random_seed  (mpz_t, mpz_t, gmp_randstate_t);
