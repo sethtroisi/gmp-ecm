@@ -68,6 +68,8 @@ typedef struct
 
 /* auxi.c */
 unsigned int nb_digits  (const mpz_t);
+int probab_prime_p (mpz_t, int);
+int read_number (mpcandi_t*, FILE*, int);
 unsigned int get_random_ui (void);
 
 /* Various logging levels */
