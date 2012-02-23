@@ -31,8 +31,10 @@ s=`cut -d ";" -f 6 gpuecm2.tmp |cut -c 11-`
 
 if [ $t -eq $s ] ;then
   echo "Ok! $t"
+  rm -f ecm.tmp gpuecm.tmp gpuecm2.tmp
 else
   echo "Erreur! $s"
+  echo "See ecm.tmp gpuecm2.tmp"
+  rm -f gpuecm.tmp
 fi
 
-rm -f ecm.tmp gpuecm.tmp gpuecm2.tmp
