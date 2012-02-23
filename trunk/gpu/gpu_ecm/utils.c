@@ -1,5 +1,6 @@
-#include "main.h"
-#include "utils.h"
+#include "def.h"
+
+#define CHKSUMMOD 4294967291U
 
 #ifdef _MSC_VER
 #include "getrusage.h"

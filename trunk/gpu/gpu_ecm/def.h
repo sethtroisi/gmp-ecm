@@ -1,26 +1,27 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
+#include <assert.h>
+#include <time.h>
+
 #ifndef _MSC_VER
 #include <unistd.h>
-#include <sys/time.h>
 #include <sys/resource.h>
 #else
 #include <windows.h>
 #endif
-#include <time.h>
-#include <assert.h>
+
+#include <gmp.h>
 
 #ifdef _MSC_VER
 #define __asm__ asm
 #endif
 
-#define CHKSUMMOD 4294967291U
 #define VERSION "0.1"
+
 #define ECM_FACTOR_FOUND 2
 #define ECM_NO_FACTOR_FOUND 0
 
-#define TWO32 4294967296 // 2^32 
-#define TWO31 2147483648 // 2^31 
 
 #ifndef NB_DIGITS
   #define NB_DIGITS 32 //by default
@@ -47,25 +48,7 @@ typedef carry_t VOL dbigint_t[NB_DIGITS+1];
 typedef struct clock2_t clock2_t;
 struct clock2_t
 {
-  //clock_t init;
-  //clock_t computation;
   long init;
   long computation;
 };
 
-
-#ifdef CC20
-  #define MAJOR 2
-  #define MINOR 0
-  #define CURVES_BY_BLOCK 32//16
-  #define BLOCKS_BY_MP 1//3
-  #define CURVES_BY_MP CURVES_BY_BLOCK*BLOCKS_BY_MP
-#endif
-
-#ifdef CC13
-  #define MAJOR 1
-  #define MINOR 3
-  #define CURVES_BY_BLOCK 16
-  #define BLOCKS_BY_MP 1
-  #define CURVES_BY_MP CURVES_BY_BLOCK*BLOCKS_BY_MP
-#endif
