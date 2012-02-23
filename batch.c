@@ -7,9 +7,78 @@
    Y^2 = X^3 + a/b*X^2 + 1/b^2*X.
 */
 
-#include "ecm-gmp.h"
-#include "ecm-impl.h"
+#ifdef OUTSIDE_LIBECM
+# include "ecm-ecm.h"
+#else
+# include "ecm-impl.h"
+#endif
 
+
+#define MAX_HEIGHT 32
+
+#if ULONG_MAX == 4294967295
+#define MAX_B1_BATCH 2977044736UL
+#else
+/* nth_prime(2^(MAX_HEIGHT-1)) */
+#define MAX_B1_BATCH 50685770167UL
+#endif
+
+void
+compute_s (mpz_t s, unsigned long B1)
+{
+  mpz_t acc[MAX_HEIGHT]; /* To accumulate products of prime powers */
+  unsigned int i, j;
+  unsigned long pi = 2, pp, maxpp;
+
+  ASSERT_ALWAYS (B1 < MAX_B1_BATCH);
+
+  for (j = 0; j < MAX_HEIGHT; j++)
+    mpz_init (acc[j]); /* sets acc[j] to 0 */
+
+  i = 0;
+  while (pi <= B1)
+    {
+      pp = pi;
+      maxpp = B1 / pi;
+      while (pp <= maxpp)
+          pp *= pi;
+
+      if ((i & 1) == 0)
+          mpz_set_ui (acc[0], pp);
+      else
+          mpz_mul_ui (acc[0], acc[0], pp);
+			
+      j = 0;
+      /* We have accumulated i+1 products so far. If bits 0..j of i are all
+         set, then i+1 is a multiple of 2^(j+1). */
+      while ((i & (1 << j)) != 0)
+        {
+          /* we use acc[MAX_HEIGHT-1] as 0-sentinel below, thus we need
+             j+1 < MAX_HEIGHT-1 */
+          ASSERT (j + 1 < MAX_HEIGHT - 1);
+          if ((i & (1 << (j + 1))) == 0) /* i+1 is not multiple of 2^(j+2),
+                                            thus add[j+1] is "empty" */
+            mpz_swap (acc[j+1], acc[j]); /* avoid a copy with mpz_set */
+          else
+            mpz_mul (acc[j+1], acc[j+1], acc[j]); /* accumulate in acc[j+1] */
+          mpz_set_ui (acc[j], 1);
+          j++;
+        }
+
+      i++;
+      pi = getprime (pi);
+    }
+
+  for (mpz_set (s, acc[0]), j = 1; mpz_cmp_ui (acc[j], 0) != 0; j++)
+    mpz_mul (s, s, acc[j]);
+  getprime_clear (); /* free the prime tables, and reinitialize */
+  
+  for (i = 0; i < MAX_HEIGHT; i++)
+      mpz_clear (acc[i]);
+}
+
+
+#ifndef GPUECM
 
 #if 0
 /* this function is useful in debug mode to print non-normalized residues */
@@ -93,71 +162,6 @@ dup_add_batch2 (mpres_t x1, mpres_t z1, mpres_t x2, mpres_t z2,
   mpresn_sqr (x2, w, n);
   mpresn_add (z2, v, v, n);
 }
-
-
-#define MAX_HEIGHT 32
-
-#if ULONG_MAX == 4294967295
-#define MAX_B1_BATCH 2977044736UL
-#else
-/* nth_prime(2^(MAX_HEIGHT-1)) */
-#define MAX_B1_BATCH 50685770167UL
-#endif
-
-void
-compute_s (mpz_t s, unsigned long B1)
-{
-  mpz_t acc[MAX_HEIGHT]; /* To accumulate products of prime powers */
-  unsigned int i, j;
-  unsigned long pi = 2, pp, maxpp;
-
-  ASSERT_ALWAYS (B1 < MAX_B1_BATCH);
-
-  for (j = 0; j < MAX_HEIGHT; j++)
-    mpz_init (acc[j]); /* sets acc[j] to 0 */
-
-  i = 0;
-  while (pi <= B1)
-    {
-      pp = pi;
-      maxpp = B1 / pi;
-      while (pp <= maxpp)
-          pp *= pi;
-
-      if ((i & 1) == 0)
-          mpz_set_ui (acc[0], pp);
-      else
-          mpz_mul_ui (acc[0], acc[0], pp);
-			
-      j = 0;
-      /* We have accumulated i+1 products so far. If bits 0..j of i are all
-         set, then i+1 is a multiple of 2^(j+1). */
-      while ((i & (1 << j)) != 0)
-        {
-          /* we use acc[MAX_HEIGHT-1] as 0-sentinel below, thus we need
-             j+1 < MAX_HEIGHT-1 */
-          ASSERT (j + 1 < MAX_HEIGHT - 1);
-          if ((i & (1 << (j + 1))) == 0) /* i+1 is not multiple of 2^(j+2),
-                                            thus add[j+1] is "empty" */
-            mpz_swap (acc[j+1], acc[j]); /* avoid a copy with mpz_set */
-          else
-            mpz_mul (acc[j+1], acc[j+1], acc[j]); /* accumulate in acc[j+1] */
-          mpz_set_ui (acc[j], 1);
-          j++;
-        }
-
-      i++;
-      pi = getprime (pi);
-    }
-
-  for (mpz_set (s, acc[0]), j = 1; mpz_cmp_ui (acc[j], 0) != 0; j++)
-    mpz_mul (s, s, acc[j]);
-  getprime_clear (); /* free the prime tables, and reinitialize */
-  
-  for (i = 0; i < MAX_HEIGHT; i++)
-      mpz_clear (acc[i]);
-}
-
 
 
 /* Input: x is initial point
@@ -311,3 +315,5 @@ ecm_stage1_batch (mpz_t f, mpres_t x, mpres_t A, mpmod_t n, double B1,
 
   return ret;
 }
+
+#endif
