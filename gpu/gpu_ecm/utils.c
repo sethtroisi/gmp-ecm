@@ -34,6 +34,18 @@ cputime ()
   return sec + (rus.ru_utime.tv_usec+rus.ru_stime.tv_usec) / 1000L;
 }
 
+void to_mont_repr (mpz_t x, mpcandi_t n)
+{
+  mpz_mul_2exp (x, x, MAX_BITS);
+  mpz_mod(x, x, n.n);
+}
+
+void from_mont_repr (mpz_t x, mpcandi_t n, mpz_t invB)
+{
+  mpz_mul(x, x, invB);
+  mpz_mod(x, x, n.n);
+}
+
 unsigned int findfactor(mpcandi_t n, mpz_t xfin, mpz_t zfin)
 {
   mpz_t gcd;
