@@ -142,7 +142,7 @@ void write_resumefile_wrapper (char *filename, mpcandi_t *n, unsigned int B1,
   mpz_sub_ui(A, A, 2);
   mpz_mod(A, A, n->n);
 
-  write_resumefile_line (filename, 0, B1, zero, A, xp, n, deux, "comment"); 
+  write_resumefile_line (filename, 0, B1, zero, A, xp, n, deux, ""); 
 
   mpz_clear (A);
   mpz_clear (zero);
