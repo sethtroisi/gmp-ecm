@@ -190,6 +190,7 @@ call file_copy config.h ..\config.h
     <ClCompile Include="..\..\ecm.c" />
     <ClCompile Include="..\..\ecm2.c" />
     <ClCompile Include="..\..\ecm_ntt.c" />
+    <ClCompile Include="..\..\ellparam_batch.c" />
     <ClCompile Include="..\..\factor.c" />
     <ClCompile Include="..\..\getprime.c" />
     <ClCompile Include="..\..\ks-multiply.c" />

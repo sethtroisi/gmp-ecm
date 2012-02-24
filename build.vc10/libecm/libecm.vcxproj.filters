@@ -118,6 +118,9 @@
     <ClCompile Include="..\..\batch.c">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="..\..\ellparam_batch.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\config.h">
