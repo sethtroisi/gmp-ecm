@@ -10,6 +10,8 @@ typedef struct
 
 void usage (void);
 long cputime();
+void to_mont_repr (mpz_t, mpcandi_t);
+void from_mont_repr (mpz_t, mpcandi_t, mpz_t);
 unsigned int findfactor (mpcandi_t n, mpz_t xfin, mpz_t zfin);
 void print_factor_cofactor (mpcandi_t n, mpz_t factor);
 void biguint_print (biguint_t a);
