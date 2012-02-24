@@ -127,7 +127,7 @@ void biguint_to_mpz (mpz_t a, biguint_t b)
 }
 
 void write_resumefile_wrapper (char *filename, mpcandi_t *n, unsigned int B1, 
-                               mpz_t xp, unsigned int invd, mpz_t mpz_d)
+                               mpz_t xp, unsigned int invd, mpz_t invw)
 {
   mpz_t A;
   mpz_t zero;
@@ -136,7 +136,7 @@ void write_resumefile_wrapper (char *filename, mpcandi_t *n, unsigned int B1,
   mpz_init_set_ui (zero, 0);
   mpz_init_set_ui (deux, 2);
 
-  mpz_mul_ui(A, mpz_d, invd);
+  mpz_mul_ui(A, invw, invd);
   mpz_mod(A, A, n->n);
   mpz_mul_ui(A, A, 4);
   mpz_sub_ui(A, A, 2);

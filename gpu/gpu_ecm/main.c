@@ -38,23 +38,25 @@ int main (int argc, char * argv[])
   FILE *OUTPUT_VERBOSE = NULL;
   FILE *OUTPUT_VVERBOSE = NULL;
 
-  biguint_t *h_xarray;
-  biguint_t *h_zarray;
-  biguint_t h_invmod;
-  biguint_t h_N;
-  biguint_t *h_x2array;
-  biguint_t *h_z2array;
- 
   mpz_t N;
-  mpz_t mpz_B; //2^(MAX_BITS)
-  mpz_t mpz_invmod; //N^-1 mod (2^(MAX_BITS))
-  mpz_t mpz_Rinv; // 2^-(MAX_BITS) mod N
-  mpz_t mpz_d;
+  mpz_t B;    /* B = 2^(MAX_BITS) */
+  mpz_t invN; /* invN = -N^-1 mod B */
+  mpz_t invB; /* B^-1 mod N */
+  mpz_t invw; /* 2^(-SIZE_DIGIT) % N */
   mpz_t xp;
   mpz_t zp;
   mpz_t x2p;
   mpz_t z2p;
   mpz_t s;
+
+  /* The same variables but for the GPU */
+  biguint_t *h_xarray;
+  biguint_t *h_zarray;
+  biguint_t h_invN;
+  biguint_t h_N;
+  biguint_t *h_x2array;
+  biguint_t *h_z2array;
+ 
 
 #ifdef _MSC_VER
   if(!SetPriorityClass(GetCurrentProcess(), IDLE_PRIORITY_CLASS))
@@ -173,14 +175,14 @@ int main (int argc, char * argv[])
   mpcandi_t_init (&n);
 
   mpz_init (N);
-  mpz_init (mpz_B);
-  mpz_init (mpz_d);
+  mpz_init (B);
+  mpz_init (invw);
   mpz_init (xp);
   mpz_init (zp);
   mpz_init (x2p);
   mpz_init (z2p);
-  mpz_init (mpz_invmod);
-  mpz_init (mpz_Rinv);
+  mpz_init (invN);
+  mpz_init (invB);
   mpz_init (s);
 
 
@@ -193,15 +195,14 @@ int main (int argc, char * argv[])
   /*Some common precomputation*/
   /****************************/
 
-  mpz_ui_pow_ui(mpz_B, 2, MAX_BITS);  
+  mpz_ui_pow_ui(B, 2, MAX_BITS); /* B = 2^(MAX_BITS) */  
   
   //precompute s from B1
   begincputime = cputime();
   compute_s(s, B1);
   endcputime = cputime();
-  gmp_fprintf(OUTPUT_VERBOSE,"#s has %lu bits\n", 
-                  mpz_sizeinbase(s,2));
-  gmp_fprintf(stdout,"Precomputation of s took %.3fs\n", 
+  gmp_fprintf(OUTPUT_VERBOSE, "#s has %lu bits\n", mpz_sizeinbase(s,2));
+  gmp_fprintf(stdout, "Precomputation of s took %.3fs\n", 
                   (double) (endcputime-begincputime)/1000);
   
   
@@ -251,22 +252,18 @@ int main (int argc, char * argv[])
     gmp_fprintf (stdout, "Using B1=%u, firstinvd=%u, with %u curves\n", 
                                           B1, firstinvd, number_of_curves);
   
-    //Some precomputation
+    /*Some precomputation specific to each N */
         
-    //Compute N^-1 mod 2^(MAX_BITS)
-    mpz_invert(mpz_invmod, N, mpz_B);
-    mpz_sub(mpz_invmod, mpz_B, mpz_invmod);
-    //Compute  2^-(MAX_BITS) mod N
-    mpz_invert(mpz_Rinv, mpz_B, N);
+    mpz_invert(invN, N, B);
+    mpz_sub(invN, B, invN); /* Compute invN = -N^-1 mod B */
     
     mpz_to_biguint(h_N, N); 
-    mpz_to_biguint(h_invmod, mpz_invmod); 
-#ifdef _MSC_VER
-   mpz_set_ux(mpz_d, TWO32);
-#else
-    mpz_set_ui(mpz_d, TWO32);
-#endif
-    mpz_invert(mpz_d, mpz_d, N);
+    mpz_to_biguint(h_invN, invN); 
+   
+    mpz_invert(invB, B, N); /* Compute invB = B^-1 mod N */
+
+    mpz_ui_pow_ui(invw, 2, SIZE_DIGIT);   
+    mpz_invert(invw, invw, N); /* Compute inw = 2^-SIZE_DIGIT % N */
     
     //Compute the Montgomery representation
     mpz_set_ui (xp, 2);
@@ -283,7 +280,7 @@ int main (int argc, char * argv[])
   
     for (i=0; i<number_of_curves; i++)
     {
-      mpz_mul_ui(z2p,mpz_d,firstinvd);
+      mpz_mul_ui(z2p, invw, firstinvd);
       mpz_mod(z2p,z2p,N);
       mpz_mul_ui(z2p,z2p,64);
       mpz_add_ui(z2p,z2p,8);
@@ -307,7 +304,7 @@ int main (int argc, char * argv[])
   
     begingputime=cputime();
     fprintf(OUTPUT_VERBOSE,"#Begin GPU computation...\n");
-    cuda_Main( h_N, h_invmod, h_xarray, h_zarray, h_x2array, 
+    cuda_Main( h_N, h_invN, h_xarray, h_zarray, h_x2array, 
                           h_z2array, s, firstinvd, number_of_curves,
                           OUTPUT_VERBOSE, OUTPUT_VVERBOSE);
     endgputime=cputime();
@@ -315,11 +312,11 @@ int main (int argc, char * argv[])
     for(i=0;i<number_of_curves;i++)
     {
       biguint_to_mpz(xp,h_xarray[i]); 
-      mpz_mul(xp,xp,mpz_Rinv);
+      mpz_mul(xp, xp, invB);
       mpz_mod(xp,xp,N);
   
       biguint_to_mpz(zp,h_zarray[i]); 
-      mpz_mul(zp,zp,mpz_Rinv);
+      mpz_mul(zp, zp, invB);
       mpz_mod(zp,zp,N);
   
       if (i==0 || i==number_of_curves-1)
@@ -333,7 +330,7 @@ int main (int argc, char * argv[])
       
       ret=findfactor(N,xp,zp);
       if (ret==ECM_NO_FACTOR_FOUND && savefilename != NULL)
-        write_resumefile_wrapper (savefilename, &n, B1, xp, firstinvd, mpz_d);
+        write_resumefile_wrapper (savefilename, &n, B1, xp, firstinvd, invw);
       else if (ret==ECM_FACTOR_FOUND)
         fprintf(stdout,"Factor found with (d*2^32) mod N = %u\n",firstinvd);
             //Maybe print A for GMP-ECM
@@ -361,14 +358,14 @@ free_memory_and_exit:
   mpcandi_t_free(&n);
 
   mpz_clear (N);
-  mpz_clear (mpz_B);
-  mpz_clear (mpz_invmod);
-  mpz_clear (mpz_d);
+  mpz_clear (B);
+  mpz_clear (invN);
+  mpz_clear (invw);
   mpz_clear (xp);
   mpz_clear (zp);
   mpz_clear (x2p);
   mpz_clear (z2p);
-  mpz_clear (mpz_Rinv);
+  mpz_clear (invB);
   mpz_clear (s);
 
   
