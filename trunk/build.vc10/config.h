@@ -2,6 +2,8 @@
 
 #define VERSION "6.5-dev"
 
+#define VERSION_GPU "gpu_ecm-win"
+
 #define PACKAGE_BUGREPORT "ecm-discuss@lists.gforge.inria.fr"
 
 /* Define to one of `_getb67', `GETB67', `getb67' for Cray-2 and Cray-YMP
