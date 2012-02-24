@@ -38,7 +38,6 @@ int main (int argc, char * argv[])
   FILE *OUTPUT_VERBOSE = NULL;
   FILE *OUTPUT_VVERBOSE = NULL;
 
-  mpz_t N;
   mpz_t B;    /* B = 2^(MAX_BITS) */
   mpz_t invN; /* invN = -N^-1 mod B */
   mpz_t invB; /* B^-1 mod N */
@@ -137,7 +136,6 @@ int main (int argc, char * argv[])
     exit(EXIT_FAILURE);
   }
   
-  //mpz_set_str (N, argv[1], 10); // in base 10 
   sscanf(argv[1], "%u", &B1);
 
   if (verbose < 2)
@@ -174,7 +172,6 @@ int main (int argc, char * argv[])
 
   mpcandi_t_init (&n);
 
-  mpz_init (N);
   mpz_init (B);
   mpz_init (invw);
   mpz_init (xp);
@@ -210,14 +207,18 @@ int main (int argc, char * argv[])
   /*Computation for each input number in the file*/
   /***********************************************/
 
-  while (!feof(stdin) && read_number(&n, stdin, 0) == 1)
+  while (read_number(&n, stdin, 0) == 1)
   {
+    /* The integer we try to factor is in n.n */
     begincputime=cputime();
-    mpz_set(N, n.n); // FIXME : don't use N only mpcandi_t n
-    gmp_fprintf (stdout, "Input number is %Zd (%u digits)\n", 
-                                          N, mpz_sizeinbase(N, 10));
 
-    if (mpz_sizeinbase(N, 2) > MAX_BITS-1)
+    if (n.nexprlen == 0)
+      gmp_fprintf (stdout, "Input number is %Zd (%u digits)\n", n.n, n.ndigits);
+    else
+      fprintf (stdout, "Input number is %s (%u digits)\n", n.cpExpr, n.ndigits);
+
+
+    if (mpz_sizeinbase(n.n, 2) > MAX_BITS-1)
     {
       fprintf (stderr, "Error, input number should be stricly lower than 2^%d\n",
                                                           MAX_BITS-1);
@@ -225,18 +226,18 @@ int main (int argc, char * argv[])
       goto free_memory_and_exit;
     }
 
-    if (mpz_cmp_ui (N, 0) <= 0)
+    if (mpz_cmp_ui (n.n, 0) <= 0)
     {
       fprintf (stderr, "Error, input number should be positive\n");
       main_ret= EXIT_FAILURE;
       goto free_memory_and_exit;
     }
-    else if (mpz_cmp_ui (N, 1) == 0)
+    else if (mpz_cmp_ui (n.n, 1) == 0)
     {
       fprintf (stdout, "********** Factor found in step 1: 1\n");
       goto end_main_loop;
     }
-    else if (mpz_divisible_ui_p (N, 2))
+    else if (mpz_divisible_ui_p (n.n, 2))
     {
       fprintf (stdout, "********** Factor found in step 1: 2\n");
       goto end_main_loop;
@@ -254,43 +255,43 @@ int main (int argc, char * argv[])
   
     /*Some precomputation specific to each N */
         
-    mpz_invert(invN, N, B);
+    mpz_invert(invN, n.n, B);
     mpz_sub(invN, B, invN); /* Compute invN = -N^-1 mod B */
     
-    mpz_to_biguint(h_N, N); 
+    mpz_to_biguint(h_N, n.n); 
     mpz_to_biguint(h_invN, invN); 
    
-    mpz_invert(invB, B, N); /* Compute invB = B^-1 mod N */
+    mpz_invert(invB, B, n.n); /* Compute invB = B^-1 mod N */
 
     mpz_ui_pow_ui(invw, 2, SIZE_DIGIT);   
-    mpz_invert(invw, invw, N); /* Compute inw = 2^-SIZE_DIGIT % N */
+    mpz_invert(invw, invw, n.n); /* Compute inw = 2^-SIZE_DIGIT % N */
     
     //Compute the Montgomery representation
     mpz_set_ui (xp, 2);
     mpz_mul_2exp(xp, xp, MAX_BITS);
-    mpz_mod(xp, xp, N);
+    mpz_mod(xp, xp, n.n);
     
     mpz_set_ui (zp, 1);
     mpz_mul_2exp(zp, zp, MAX_BITS);
-    mpz_mod(zp, zp, N);
+    mpz_mod(zp, zp, n.n);
     
     mpz_set_ui (x2p, 9);
     mpz_mul_2exp(x2p, x2p, MAX_BITS);
-    mpz_mod(x2p, x2p, N);
+    mpz_mod(x2p, x2p, n.n);
   
     for (i=0; i<number_of_curves; i++)
     {
-      mpz_mul_ui(z2p, invw, firstinvd);
-      mpz_mod(z2p,z2p,N);
-      mpz_mul_ui(z2p,z2p,64);
-      mpz_add_ui(z2p,z2p,8);
-      mpz_mod(z2p,z2p,N);
+      mpz_mul_ui (z2p, invw, firstinvd);
+      mpz_mod (z2p, z2p, n.n);
+      mpz_mul_ui (z2p, z2p, 64);
+      mpz_add_ui (z2p, z2p, 8);
+      mpz_mod (z2p, z2p, n.n);
   
       if (i==0 || i==number_of_curves-1)
         gmp_fprintf(OUTPUT_VVERBOSE,"8+64*d=%Zd\n",z2p);
   
       mpz_mul_2exp(z2p, z2p, MAX_BITS);
-      mpz_mod(z2p, z2p, N);
+      mpz_mod(z2p, z2p, n.n);
   
       mpz_to_biguint(h_xarray[i],xp); 
       mpz_to_biguint(h_zarray[i],zp); 
@@ -311,13 +312,13 @@ int main (int argc, char * argv[])
   
     for(i=0;i<number_of_curves;i++)
     {
-      biguint_to_mpz(xp,h_xarray[i]); 
+      biguint_to_mpz(xp, h_xarray[i]); 
       mpz_mul(xp, xp, invB);
-      mpz_mod(xp,xp,N);
+      mpz_mod(xp, xp, n.n);
   
-      biguint_to_mpz(zp,h_zarray[i]); 
+      biguint_to_mpz(zp, h_zarray[i]); 
       mpz_mul(zp, zp, invB);
-      mpz_mod(zp,zp,N);
+      mpz_mod(zp, zp, n.n);
   
       if (i==0 || i==number_of_curves-1)
       {
@@ -328,7 +329,7 @@ int main (int argc, char * argv[])
         gmp_fprintf(OUTPUT_VVERBOSE,"  xfin=%Zd\n  zfin=%Zd\n",xp,zp);
       }
       
-      ret=findfactor(N,xp,zp);
+      ret=findfactor(n.n, xp, zp);
       if (ret==ECM_NO_FACTOR_FOUND && savefilename != NULL)
         write_resumefile_wrapper (savefilename, &n, B1, xp, firstinvd, invw);
       else if (ret==ECM_FACTOR_FOUND)
@@ -357,7 +358,6 @@ end_main_loop:
 free_memory_and_exit:
   mpcandi_t_free(&n);
 
-  mpz_clear (N);
   mpz_clear (B);
   mpz_clear (invN);
   mpz_clear (invw);
