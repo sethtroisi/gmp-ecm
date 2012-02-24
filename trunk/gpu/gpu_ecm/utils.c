@@ -20,6 +20,8 @@ void usage (void)
   printf ("  -h, --help prints this help and exit\n");
 }
 
+//FIXME can't use cputime from GMP-ECM because it does not take into account GPU
+//time
 long
 cputime ()
 {
@@ -32,47 +34,61 @@ cputime ()
   return sec + (rus.ru_utime.tv_usec+rus.ru_stime.tv_usec) / 1000L;
 }
 
-unsigned int findfactor(mpz_t N, mpz_t xfin, mpz_t zfin)
+unsigned int findfactor(mpcandi_t n, mpz_t xfin, mpz_t zfin)
 {
   mpz_t gcd;
   mpz_init (gcd);
 
-  mpz_gcd(gcd,zfin,N);
+  mpz_gcd(gcd, zfin, n.n);
   
-  if (mpz_cmp_ui(gcd,1)==0)
+  if (mpz_cmp_ui (gcd, 1)==0)
   {
-    mpz_invert(zfin,zfin,N);
-    mpz_mul(xfin,xfin,zfin);
-    mpz_mod(xfin,xfin,N);
+    mpz_invert (zfin, zfin, n.n);
+    mpz_mul (xfin, xfin, zfin);
+    mpz_mod (xfin, xfin, n.n);
       
     mpz_clear(gcd);
     return ECM_NO_FACTOR_FOUND;
   }
   else //gcd !=1 (and gcd>0 because N>0) so we found a factor
   {
-    gmp_fprintf(stdout,"********** Factor found in step 1: %Zd\n",gcd);
-    if (mpz_cmp(gcd,N)==0)
-      fprintf(stdout,"Found input number N\n");
+    print_factor_cofactor (n, gcd);
+    mpz_clear(gcd);
+    return ECM_FACTOR_FOUND;
+  }
+}
+
+void print_factor_cofactor (mpcandi_t n, mpz_t factor)
+{
+    gmp_fprintf(stdout,"********** Factor found in step 1: %Zd\n", factor);
+    if (mpz_cmp (factor, n.n) ==0 )
+      fprintf(stdout, "Found input number N\n");
     else
     {
       mpz_t cofactor;
       mpz_init (cofactor);
     
-      mpz_divexact(cofactor, N, gcd);
+      mpz_divexact(cofactor, n.n, factor);
       
       gmp_fprintf(stdout,"Found %s factor of %u digits: %Zd\n",
-              mpz_probab_prime_p (gcd, 5) ? "probable prime" : "composite", 
-              mpz_sizeinbase (gcd ,10) , gcd);
-      
-      gmp_fprintf(stdout,"%s cofactor %Zd has %u digits\n",
+              mpz_probab_prime_p (factor, 5) ? "probable prime" : "composite", 
+              mpz_sizeinbase (factor, 10), factor);
+     
+      if (n.nexprlen == 0)
+      {
+        gmp_fprintf(stdout,"%s cofactor %Zd has %u digits\n",
               mpz_probab_prime_p (cofactor, 5) ? "Probable prime" : "Composite", 
-              cofactor, mpz_sizeinbase (cofactor ,10));
-    
+              cofactor, mpz_sizeinbase (cofactor, 10));
+      }
+      else
+      {
+        gmp_fprintf(stdout,"%s cofactor (%s)/%Zd has %u digits\n",
+              mpz_probab_prime_p (cofactor, 5) ? "Probable prime" : "Composite", 
+              n.cpExpr, factor, mpz_sizeinbase (cofactor, 10));
+      }
+
       mpz_clear(cofactor);
     }
-    mpz_clear(gcd);
-    return ECM_FACTOR_FOUND;
-  }
 }
 
 void biguint_print (biguint_t a)
@@ -131,10 +147,10 @@ void write_resumefile_wrapper (char *filename, mpcandi_t *n, unsigned int B1,
 {
   mpz_t A;
   mpz_t zero;
-  mpz_t deux;
+  mpz_t two;
   mpz_init (A);
   mpz_init_set_ui (zero, 0);
-  mpz_init_set_ui (deux, 2);
+  mpz_init_set_ui (two, 2);
 
   mpz_mul_ui(A, invw, invd);
   mpz_mod(A, A, n->n);
@@ -142,10 +158,10 @@ void write_resumefile_wrapper (char *filename, mpcandi_t *n, unsigned int B1,
   mpz_sub_ui(A, A, 2);
   mpz_mod(A, A, n->n);
 
-  write_resumefile_line (filename, 0, B1, zero, A, xp, n, deux, ""); 
+  write_resumefile_line (filename, 0, B1, zero, A, xp, n, two, ""); 
 
   mpz_clear (A);
   mpz_clear (zero);
-  mpz_clear (deux);
+  mpz_clear (two);
 }
 
