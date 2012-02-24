@@ -15,9 +15,12 @@ void biguint_print (biguint_t a);
 void bigint_print (dbigint_t a);
 void mpz_to_biguint (biguint_t a, mpz_t b);
 void biguint_to_mpz (mpz_t a, biguint_t b);
+void write_resumefile_wrapper (char *filename, mpcandi_t *n, unsigned int B1, 
+                               mpz_t xp, unsigned int invd, mpz_t mpz_d);
 
-void write_resumefile2_line (FILE *savefile, mpz_t N, unsigned int B1, 
-                                mpz_t xp, unsigned int firstinvd, mpz_t mpz_d);
+/* Require resume.c from trunk/ directory */
+int write_resumefile_line (char *, int, double, mpz_t, mpz_t, mpz_t, 
+                           mpcandi_t *, mpz_t, const char *);
 
 /* Require mpcandi.c from trunk/ directory */
 extern void mpcandi_t_init (mpcandi_t *n);  

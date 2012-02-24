@@ -30,7 +30,6 @@ int main (int argc, char * argv[])
   unsigned int firstinvd;
   unsigned int firstinvd_arg = 0;
 
-  FILE *savefile = NULL;
   char *savefilename = NULL;
 
   int device = -1;
@@ -162,22 +161,6 @@ int main (int argc, char * argv[])
   /*****************************/
   /* Initialize some variables */
   /*****************************/
-
-  //If needed, open savefile
-  if (savefilename!=NULL)
-  {
-    if ( strcmp (savefilename, "-") == 0 )
-      savefile = stdout;
-    else
-    {
-      savefile=fopen(savefilename, "a");
-      if (savefile == NULL)
-      {
-        fprintf(stderr,"Error, could not open file: %s\n", savefilename);
-        exit(EXIT_FAILURE);
-      }
-    }
-  }
 
   if (firstinvd_arg !=0 && 
                 (firstinvd_arg < 2 || firstinvd_arg > TWO32-number_of_curves))
@@ -349,8 +332,8 @@ int main (int argc, char * argv[])
       }
       
       ret=findfactor(N,xp,zp);
-      if (ret==ECM_NO_FACTOR_FOUND && savefile != NULL)
-        write_resumefile2_line (savefile, N, B1, xp, firstinvd, mpz_d);
+      if (ret==ECM_NO_FACTOR_FOUND && savefilename != NULL)
+        write_resumefile_wrapper (savefilename, &n, B1, xp, firstinvd, mpz_d);
       else if (ret==ECM_FACTOR_FOUND)
         fprintf(stdout,"Factor found with (d*2^32) mod N = %u\n",firstinvd);
             //Maybe print A for GMP-ECM
@@ -394,9 +377,6 @@ free_memory_and_exit:
   free((void *) h_x2array);
   free((void *) h_z2array);
   
-  if (savefile != NULL)
-    fclose(savefile);
-
   return main_ret;
 }
 
