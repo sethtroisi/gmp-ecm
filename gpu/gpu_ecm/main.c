@@ -239,9 +239,11 @@ int main (int argc, char * argv[])
     }
     else if (mpz_divisible_ui_p (n.n, 2))
     {
-      fprintf (stdout, "********** Factor found in step 1: 2\n");
+      mpz_t two;
+      mpz_init_set_ui (two, 2);
+      print_factor_cofactor (n, two);
+      mpz_clear (two);
       goto end_main_loop;
-      //FIXME cofactor
     }
   
     
@@ -329,12 +331,13 @@ int main (int argc, char * argv[])
         gmp_fprintf(OUTPUT_VVERBOSE,"  xfin=%Zd\n  zfin=%Zd\n",xp,zp);
       }
       
-      ret=findfactor(n.n, xp, zp);
+      ret = findfactor (n, xp, zp);
       if (ret==ECM_NO_FACTOR_FOUND && savefilename != NULL)
         write_resumefile_wrapper (savefilename, &n, B1, xp, firstinvd, invw);
       else if (ret==ECM_FACTOR_FOUND)
-        fprintf(stdout,"Factor found with (d*2^32) mod N = %u\n",firstinvd);
-            //Maybe print A for GMP-ECM
+        //Maybe print A for GMP-ECM
+        fprintf(OUTPUT_VERBOSE, "Factor found with (d*2^32) mod N = %u\n", 
+                                                                     firstinvd);
           
       if (i==0 || i==number_of_curves-1)
       {
