@@ -7,10 +7,10 @@
    Y^2 = X^3 + a/b*X^2 + 1/b^2*X.
 */
 
-#ifdef OUTSIDE_LIBECM
-# include "ecm-ecm.h"
+#ifdef GPUECM
+#include "ecm-ecm.h"
 #else
-# include "ecm-impl.h"
+#include "ecm-impl.h"
 #endif
 
 
