@@ -5,6 +5,14 @@ __constant__ __device__ biguint_t d_invNcst;
 __device__ biguint_t d_Ncst;
 
 
+#define errCheck(err) cuda_errCheck (err, __FILE__, __LINE__)
+#define cudaMalloc(d, size) errCheck (cudaMalloc (d, size))
+#define cudaMemcpyHtoD(d, h, size) errCheck (cudaMemcpy ((void *) d, \
+                                    (void *) h, size, cudaMemcpyHostToDevice))
+#define cudaMemcpyDtoH(h, d, size) errCheck (cudaMemcpy ((void *) h, \
+                                    (void *) d, size, cudaMemcpyDeviceToHost))
+
+
 /******************************/
 /* Host code handling the GPU */
 /******************************/
@@ -93,72 +101,51 @@ void cuda_Main (biguint_t h_N, biguint_t h_invN, biguint_t *h_xarray,
                     unsigned int number_of_curves, FILE *OUTPUT_VERBOSE,
                     FILE *OUTPUT_VVERBOSE)
 {
-  cudaError_t err;
-  
-  biguint_t *d_xA;
-  biguint_t *d_zA;
-  biguint_t *d_xB;
-  biguint_t *d_zB;
+  size_t j;
+  biguint_t *d_xA, *d_zA, *d_xB, *d_zB;
 
   size_t array_size = sizeof(biguint_t) * number_of_curves;
 
-  dim3 dimBlock(NB_DIGITS,CURVES_BY_BLOCK);
-  dim3 dimGrid(number_of_curves/CURVES_BY_BLOCK);
+  dim3 dimBlock (NB_DIGITS, CURVES_BY_BLOCK);
+  dim3 dimGrid (number_of_curves/CURVES_BY_BLOCK);
 
   fprintf(OUTPUT_VVERBOSE, "Block: %ux%ux%u Grid: %ux%ux%u\n", dimBlock.x, 
                       dimBlock.y, dimBlock.z, dimGrid.x, dimGrid.y, dimGrid.z);
 
-  errCheck( cudaMalloc(&d_xA, array_size) );
-  errCheck( cudaMalloc(&d_zA, array_size) );
-  errCheck( cudaMalloc(&d_xB, array_size) );
-  errCheck( cudaMalloc(&d_zB, array_size) );
+  cudaMalloc (&d_xA, array_size);
+  cudaMalloc (&d_zA, array_size);
+  cudaMalloc (&d_xB, array_size);
+  cudaMalloc (&d_zB, array_size);
 
-  //Copy into the gpu memory
+  /* Copy into the gpu memory */
   cudaMemcpyToSymbol(d_invNcst, (void *) h_invN, sizeof(biguint_t));
   cudaMemcpyToSymbol(d_Ncst, (void *) h_N, sizeof(biguint_t));
 
-  errCheck( cudaMemcpy((void *) d_xA, (void *) h_xarray, array_size, 
-                                                    cudaMemcpyHostToDevice) );
-  errCheck( cudaMemcpy((void *) d_zA, (void *) h_zarray, array_size, 
-                                                    cudaMemcpyHostToDevice) );
-  errCheck( cudaMemcpy((void *) d_xB, (void *) h_x2array, array_size, 
-                                                    cudaMemcpyHostToDevice) );
-  errCheck( cudaMemcpy((void *) d_zB, (void *) h_z2array, array_size, 
-                                                    cudaMemcpyHostToDevice) );
+  cudaMemcpyHtoD (d_xA, h_xarray, array_size);
+  cudaMemcpyHtoD (d_zA, h_zarray, array_size);
+  cudaMemcpyHtoD (d_xB, h_x2array, array_size);
+  cudaMemcpyHtoD (d_zB, h_z2array, array_size);
 
-  size_t j;
-
-  for (j=mpz_sizeinbase(s,2)-1; j>0; j-- )
+  /* Double-and-add loop: it calls the GPU for each bits of s */
+  for (j = mpz_sizeinbase (s, 2) - 1; j>0; j-- )
   {
-    if (mpz_tstbit(s, j-1) ==1 )
+    if (mpz_tstbit (s, j-1) == 1)
       Cuda_Ell_DblAdd<<<dimGrid,dimBlock>>>(d_xB, d_zB, d_xA, d_zA, firstinvd);
     else
       Cuda_Ell_DblAdd<<<dimGrid,dimBlock>>>(d_xA, d_zA, d_xB, d_zB, firstinvd);
 
-    //cudaThreadSynchronize();
-    
     //maybe only for debug mode??
-    err = cudaGetLastError(); 
-    if (err != cudaSuccess )
-    {
-      fprintf(stderr, "%s(%i) : Error cuda : %s.\n",
-              __FILE__, __LINE__, cudaGetErrorString( err) );
-      exit(EXIT_FAILURE);
-    }
-    
+    errCheck (cudaGetLastError()); 
   }
 
-  errCheck( cudaMemcpy((void *) h_xarray, (void *) d_xA, array_size, 
-                                                   cudaMemcpyDeviceToHost) );
-  errCheck( cudaMemcpy((void *) h_zarray, (void *) d_zA, array_size, 
-                                                   cudaMemcpyDeviceToHost) );
+  /* Get the results back from device memory */
+  cudaMemcpyDtoH (h_xarray, d_xA, array_size);
+  cudaMemcpyDtoH (h_zarray, d_zA, array_size);
 
-
-  cudaFree((void *) d_xA);
-  cudaFree((void *) d_zA);
-  cudaFree((void *) d_xB);
-  cudaFree((void *) d_zB);
-
+  cudaFree ((void *) d_xA);
+  cudaFree ((void *) d_zA);
+  cudaFree ((void *) d_xB);
+  cudaFree ((void *) d_zB);
 }
 
 
