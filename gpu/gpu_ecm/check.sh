@@ -33,7 +33,7 @@ if [ $t -eq $s ] ;then
   echo "Ok! $t"
   rm -f ecm.tmp gpuecm.tmp gpuecm2.tmp
 else
-  echo "Erreur! $s"
+  echo "Error! $s"
   echo "See ecm.tmp gpuecm2.tmp"
   rm -f gpuecm.tmp
 fi
