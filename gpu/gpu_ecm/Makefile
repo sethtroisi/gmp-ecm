@@ -55,7 +55,7 @@ $(OBJDIR)/%.c.o : %.c | $(OBJDIR)
 	gcc -Wall $(CFLAGS) -o $@ -c $<
 
 $(OBJDIR)/%.o : ../../%.c | $(OBJDIR)
-	gcc -Wall $(CFLAGS) -DGPUECM -DOUTSIDE_LIBECM -o $@ -c $<
+	gcc -Wall $(CFLAGS) -DGPUECM -DVERSION_GPU=\"0.1\" -DOUTSIDE_LIBECM -o $@ -c $<
 
 $(OBJDIR): 
 	mkdir $(OBJDIR)

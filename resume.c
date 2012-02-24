@@ -469,8 +469,13 @@ write_resumefile_line (char *fn, int method, double B1, mpz_t sigma, mpz_t A,
   mpz_out_str (file, 16, x);
   mpz_mul_ui (checksum, checksum, mpz_fdiv_ui (n->n, CHKSUMMOD));
   mpz_mul_ui (checksum, checksum, mpz_fdiv_ui (x, CHKSUMMOD));
+#ifdef GPUECM
+  fprintf (file, "; CHECKSUM=%lu; PROGRAM=GPU-ECM %s;",
+           mpz_fdiv_ui (checksum, CHKSUMMOD), VERSION_GPU);
+#else
   fprintf (file, "; CHECKSUM=%lu; PROGRAM=GMP-ECM %s;",
            mpz_fdiv_ui (checksum, CHKSUMMOD), VERSION);
+#endif
   mpz_clear (checksum);
   
   if (mpz_sgn (x0) != 0)
