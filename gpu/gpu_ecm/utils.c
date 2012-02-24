@@ -1,6 +1,5 @@
 #include "def.h"
-
-#define CHKSUMMOD 4294967291U
+#include "utils.h"
 
 #ifdef _MSC_VER
 #include "getrusage.h"
@@ -15,8 +14,7 @@ void usage (void)
   printf ("  -n n       compute on n curves in parallel\n");
   printf ("  -d n       compute on device n\n");
   printf ("  -s d       compute for invd from d to d+number_of_curves \n");
-  printf ("  -save file save residues at end of stage 1 in file"
-                                                    " ( - means stdout )\n");
+  printf ("  -save file save residues at end of stage 1 in file\n");
   printf ("  -v         verbose\n");
   printf ("  -vv        very verbose\n");
   printf ("  -h, --help prints this help and exit\n");
@@ -128,98 +126,26 @@ void biguint_to_mpz (mpz_t a, biguint_t b)
   }
 }
 
-void write_resumefile2_line (FILE *file, mpz_t N, unsigned int B1, mpz_t xp, 
-  unsigned int firstinvd, mpz_t mpz_d)
+void write_resumefile_wrapper (char *filename, mpcandi_t *n, unsigned int B1, 
+                               mpz_t xp, unsigned int invd, mpz_t mpz_d)
 {
-  mpz_t checksum;
   mpz_t A;
-  time_t t;
-  char text[256];
-  char *uname, mname[32];
-  
-  mpz_init (checksum);
+  mpz_t zero;
+  mpz_t deux;
   mpz_init (A);
-    
-  mpz_mul_ui(A,mpz_d,firstinvd);
-  mpz_mod(A,A,N);
-  mpz_mul_ui(A,A,4);
-  mpz_sub_ui(A,A,2);
-  mpz_mod(A,A,N);
+  mpz_init_set_ui (zero, 0);
+  mpz_init_set_ui (deux, 2);
 
+  mpz_mul_ui(A, mpz_d, invd);
+  mpz_mod(A, A, n->n);
+  mpz_mul_ui(A, A, 4);
+  mpz_sub_ui(A, A, 2);
+  mpz_mod(A, A, n->n);
 
-  mpz_set_ui (checksum, B1);
-  
-  gmp_fprintf (file, "METHOD=ECM; A=%Zd",A);
-  
-  mpz_mul_ui (checksum, checksum, mpz_fdiv_ui (A, CHKSUMMOD));
-  
-  gmp_fprintf (file, "; B1=%u; N=%Zd", B1, N);
-  
-  gmp_fprintf (file, "; X=0x%Zx",xp);
-  
-  mpz_mul_ui (checksum, checksum, mpz_fdiv_ui (N, CHKSUMMOD));
-  mpz_mul_ui (checksum, checksum, mpz_fdiv_ui (xp, CHKSUMMOD));
-  fprintf (file, "; CHECKSUM=%lu; PROGRAM=GPU-ECM %s;", 
-           mpz_fdiv_ui (checksum, CHKSUMMOD), VERSION_GPUECM); 
-  mpz_clear (checksum);
-  
-  fprintf (file, " X0=0x2;");
-  
-  /* Try to get the users and his machines name */
-  /* TODO: how to make portable? */
-  uname = getenv ("LOGNAME");
-  if (uname == NULL)
-    uname = getenv ("USERNAME");
-  if (uname == NULL)
-    uname = "";
-  
-  if (gethostname (mname, 32) != 0)
-    mname[0] = 0;
-  mname[31] = 0; /* gethostname() may omit trailing 0 if hostname >31 chars */
-  
-  if (uname[0] != 0 || mname[0] != 0)
-    {
-      fprintf (file, " WHO=%.233s@%.32s;", uname, mname); 
-    }
+  write_resumefile_line (filename, 0, B1, zero, A, xp, n, deux, "comment"); 
 
-  t = time (NULL);
-  strncpy (text, ctime (&t), 255);
-  text[255] = 0;
-  text[strlen (text) - 1] = 0; /* Remove newline */
-  //fprintf (file, " TIME=%s;", text); temporaire
-  fprintf (file, "\n");
-  fflush (file);
+  mpz_clear (A);
+  mpz_clear (zero);
+  mpz_clear (deux);
 }
-#if 0
-#define IS_NEWLINE(c) (((c) == '\n') || ((c) == '\r'))
-#define MAX_LINE 1000
 
-int read_number (mpz_t n, FILE *fd)
-{
-  int c;
-  char line[MAX_LINE];
-
-new_line:
-  c = fgetc (fd);
-
-  /* Skip comment lines beginning with '#' */
-  if (c == '#')
-    {
-      do
-        c = fgetc (fd);
-      while (c != EOF && !IS_NEWLINE(c));
-      if (IS_NEWLINE(c))
-        goto new_line;
-    }
-
-  if (c == EOF)
-    return 0;
-
-  ungetc (c, fd);
-  
-  if (fgets(line, sizeof line, fd) == NULL || mpz_set_str(n, line, 0)==-1)
-    goto new_line;
-
-  return 1;
-}
-#endif
