@@ -153,7 +153,7 @@ echo "2^349-1" | $ECM -batch -A 134 967 551113
 checkcode $? 6
 
 # To test batch mode 2
-echo "911962091" | ./ecm -batch=2 -A 440688534 50000
+echo "911962091" | $ECM -batch=2 -A 440688534 50000
 checkcode $? 8
 
 # this example did fail on 32-bit computers (thanks to David Cleaver)
@@ -161,7 +161,7 @@ echo "2^347-1" | $ECM -batch -A 5837673714 36209 11436599
 checkcode $? 14
 
 # this example would fail with the old Fgw.c when using gwnum (fixed by David Cleaver, r1734)
-echo "((173^173+1)/174)/471462511391940575680645418941" | ecm -sigma 12345 20000
+echo "((173^173+1)/174)/471462511391940575680645418941" | $ECM -sigma 12345 20000
 checkcode $? 0
 
 # the following tests should work on machines which have uint64_t or where
