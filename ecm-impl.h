@@ -765,6 +765,9 @@ int  mpn_fft_best_k (mp_size_t, int);
 mp_size_t mpn_fft_next_size (mp_size_t, int);
 
 /* batch.c */
+void compute_s (mpz_t, unsigned long);
+int write_s_in_file (char *, mpz_t);
+void read_s_from_file (mpz_t, char *); 
 int ecm_stage1_batch (mpz_t, mpres_t, mpres_t, mpmod_t, double, double *, 
                                                                 int,  mpz_t);
 
