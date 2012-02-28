@@ -151,6 +151,8 @@ usage (void)
 
     printf ("  -batch[=1|2] (experimental) use Montgomery parametrization and batch\n" 
 					  "               computation. Option -batch is equivalent to -batch=1\n");
+    printf ("  -bsaves file In the batch mode, save s in file.\n");
+    printf ("  -bloads file In the batch mode, load s from file.\n");
 
     printf ("  -h, --help   Prints this help and exit.\n");
 }
@@ -359,6 +361,8 @@ main (int argc, char *argv[])
   double stage1time = 0.;
   ecm_params params;
   int batch = 0; /* By default we don't use batch mode */
+  char *savefile_s = NULL;
+  char *loadfile_s = NULL;
 #ifdef WANT_SHELLCMD
   char *faccmd = NULL;
   char *idlecmd = NULL;
@@ -500,6 +504,18 @@ main (int argc, char *argv[])
 	  batch = 2;
 	  argv++;
 	  argc--;
+        }
+      else if ((argc > 2) && (strcmp (argv[1], "-bsaves") == 0))
+        {
+          savefile_s = argv[2];
+          argv += 2;
+          argc -= 2;
+        }
+      else if ((argc > 2) && (strcmp (argv[1], "-bloads") == 0))
+        {
+          loadfile_s = argv[2];
+          argv += 2;
+          argc -= 2;
         }
       else if (strcmp (argv[1], "-h") == 0 || strcmp (argv[1], "--help") == 0)
         {
@@ -1404,13 +1420,30 @@ BreadthFirstDoAgain:;
           params->batch_B1 = B1;
 
           if (verbose > OUTPUT_NORMAL)
-            printf ("Batch mode %d: \n", batch);
+            printf ("Batch mode %d: ", batch);
           st = cputime ();
           /* construct the batch exponent */
-          compute_s (params->batch_s, params->batch_B1);
-          if (verbose > OUTPUT_NORMAL)
-            printf ("  computing prime product of %zu bits took %ldms\n",
+          if (loadfile_s != NULL)
+            {
+            /* For now, there is no check that it correspond to the actual B1*/
+              read_s_from_file (params->batch_s, loadfile_s);
+              if (verbose > OUTPUT_NORMAL)
+                printf ("reading prime product of %zu bits took %ldms\n",
                     mpz_sizeinbase (params->batch_s, 2), cputime () - st);
+            }
+          else
+            {
+              compute_s (params->batch_s, params->batch_B1);
+              if (verbose > OUTPUT_NORMAL)
+                printf ("computing prime product of %zu bits took %ldms\n",
+                    mpz_sizeinbase (params->batch_s, 2), cputime () - st);
+              if (savefile_s != NULL)
+                {
+                  int ret = write_s_in_file (savefile_s, params->batch_s);
+                  if (verbose > OUTPUT_NORMAL && ret > 0)
+                    printf ("Save s (%u bytes) in %s.\n", ret, savefile_s);
+                }
+            }
         }
       params->method = method; /* may change with resume */
       mpz_set (params->x, x); /* may change with resume */
