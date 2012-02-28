@@ -489,32 +489,35 @@ list_mul_blocks (listz_t R, const listz_t A, int monicA, const listz_t B,
 */
 
 static void
-V (mpres_t R, const mpres_t S, const long k, mpmod_t modulus)
+V (mpres_t R, const mpres_t S, const int64_t k, mpmod_t modulus)
 {
   mpres_t V0, Vi, Vi1;
-  unsigned long j, uk;
+  uint64_t j, uk;
   int po2;
 
-  if (k == 0L)
+  if (test_verbose(OUTPUT_TRACE))
+    {
+      mpz_t tz;
+      mpz_init (tz);
+      mpres_get_z (tz, S, modulus);
+      gmp_printf ("Chebyshev_V(%ld, Mod(%Zd,N)) == ", (long)k, tz);
+      mpz_clear (tz);
+    }
+
+  if (k == 0)
     {
       mpres_set_ui (R, 2UL, modulus);
-      return;
+      goto exit;
     }
 
-  uk = labs (k);
+  uk = (k >= 0) ? k : -k;
 
-  if (uk == 1UL)
-    {
-      mpres_set (R, S, modulus);
-      return;
-    }
-
-  for (po2 = 0; uk % 2UL == 0UL; uk >>= 1, po2++);
+  for (po2 = 0; uk % 2 == 0; uk >>= 1, po2++);
 
   mpres_init (V0, modulus);
   mpres_set_ui (V0, 2UL, modulus); /* V0 = V_0(S) = 2 */
 
-  if (uk == 1UL)
+  if (uk == 1)
     {
       mpres_set (R, S, modulus);
       while (po2-- > 0)
@@ -523,19 +526,10 @@ V (mpres_t R, const mpres_t S, const long k, mpmod_t modulus)
           mpres_sub (R, R, V0, modulus);
         }
       mpres_clear (V0, modulus);
-      return;
+      goto exit;
     }
 
-  if (0)
-    {
-      mpz_t tz;
-      mpz_init (tz);
-      mpres_get_z (tz, S, modulus);
-      gmp_printf ("Chebyshev_V(%ld, Mod(%Zd,N)) == ", k, tz);
-      mpz_clear (tz);
-    }
-
-  for (j = 1UL; j <= uk / 2UL; j <<= 1);
+  for (j = 1; j <= uk / 2; j <<= 1);
 
   mpres_init (Vi, modulus);
   mpres_init (Vi1, modulus);
@@ -548,7 +542,7 @@ V (mpres_t R, const mpres_t S, const long k, mpmod_t modulus)
 
   while (j > 1)
     {
-      if ((uk & j) != 0UL)
+      if ((uk & j) != 0)
 	{
 	  /* i' = 2i + 1.
 	     V_{i'} = V_{2i + 1} = V_{i+1 + i} = V_{i+1} * V_{i} - V_1
@@ -588,7 +582,8 @@ V (mpres_t R, const mpres_t S, const long k, mpmod_t modulus)
   mpres_clear (Vi1, modulus);
   mpres_clear (V0, modulus);
 
-  if (0)
+exit:
+  if (test_verbose(OUTPUT_TRACE))
     {
       mpz_t tz;
       mpz_init (tz);
@@ -724,14 +719,18 @@ U (mpres_t R, mpres_t R1, const mpres_t S, const long k, mpmod_t modulus)
 }
 
 
-/* Set R[i] = V_{i+k}(Q) * F[i] or U_{i+k}(Q) * F[i], for 0 <= i < len
+/* Set R1[i] = V_{i+k}(Q) * F1[i] or U_{i+k}(Q) * F[i], for 0 <= i < len
+   (and R2[i] = V_{i+k}(Q) * F2[i] etc, if both R2, F2 are non-NULL)
    We compute V_{i+k+1}(Q) by V_{i+k}(Q)*V_1(Q) - V_{i+k-1}(Q).
    For U, we compute U_{i+k+1}(Q) by U_{i+k}(Q)*V_1(Q) - U_{i+k-1}(Q).
    The values of V_1(Q), V_{k-1}(Q) and V_k(Q) and V_k(Q) are in 
    V1, Vk_1 and Vk, resp. 
-   The values of Vk_1 and Vk are clobbered. */
+   The values of Vk_1 and Vk are clobbered. 
+   */
 static void
-scale_by_chebyshev (listz_t R, const listz_t F, const uint64_t len,
+scale_by_chebyshev (listz_t R1, const listz_t F1, 
+                    listz_t R2, const listz_t F2, 
+                    const uint64_t len,
                     mpmod_t modulus, const mpres_t V1, mpres_t Vk_1, 
                     mpres_t Vk)
 {
@@ -742,7 +741,9 @@ scale_by_chebyshev (listz_t R, const listz_t F, const uint64_t len,
 
   for (i = 0; i < len; i++)
     {
-      mpres_mul_z_to_z (R[i], Vk, F[i], modulus);
+      mpres_mul_z_to_z (R1[i], Vk, F1[i], modulus);
+      if (R2 != NULL && F2 != NULL)
+        mpres_mul_z_to_z (R2[i], Vk, F2[i], modulus);
       mpres_mul (Vt, Vk, V1, modulus);
       mpres_sub (Vt, Vt, Vk_1, modulus);
       mpres_set (Vk_1, Vk, modulus); /* Could be a swap */
@@ -761,7 +762,7 @@ scale_by_chebyshev (listz_t R, const listz_t F, const uint64_t len,
    If no NTT is used, needs 4 * deg + 2 + (memory use of list_sqr_reciprocal)
 */
 
-static void
+static void ATTRIBUTE_UNUSED
 list_scale_V (listz_t R, const listz_t F, const mpres_t Q, 
               const uint64_t deg, mpmod_t modulus, listz_t tmp, 
               const uint64_t tmplen, 
@@ -832,8 +833,8 @@ list_scale_V (listz_t R, const listz_t F, const mpres_t Q,
     mpres_div_2exp (Vi, Vi, 1, modulus_local);
     V (Vi_1, Q, start_i - 1, modulus_local);
     mpres_div_2exp (Vi_1, Vi_1, 1, modulus_local);
-    scale_by_chebyshev (G + start_i, F + start_i, l, modulus_local, 
-                        Q, Vi_1, Vi);
+    scale_by_chebyshev (G + start_i, F + start_i, NULL, NULL, l, 
+                        modulus_local, Q, Vi_1, Vi);
     
     mpres_clear (Vi_1, modulus_local);
     mpres_clear (Vi, modulus_local);
@@ -883,8 +884,8 @@ list_scale_V (listz_t R, const listz_t F, const mpres_t Q,
     mpres_div_2exp (Ui, Ui, 1, modulus_local);
     mpres_div_2exp (Ui_1, Ui_1, 1, modulus_local);
     
-    scale_by_chebyshev (H + start_i, F + start_i + 1, l, modulus_local, 
-                        Q, Ui_1, Ui);
+    scale_by_chebyshev (H + start_i, F + start_i + 1, NULL, NULL, l, 
+                        modulus_local, Q, Ui_1, Ui);
     
     mpres_clear (Ui_1, modulus_local);
     mpres_clear (Ui, modulus_local);
@@ -903,7 +904,7 @@ list_scale_V (listz_t R, const listz_t F, const mpres_t Q,
     }
   
   /* U_2(X+1/X) = (X^2 - 1/X^2)/(X-1/X) = X+1/X = V_1(X+1/X),
-     so no addition occures here */
+     so no addition occurs here */
   /* if (deg >= 2)
      mpz_set (H[1], H[1]); Again, a no-op. */
   
@@ -1064,6 +1065,140 @@ list_scale_V (listz_t R, const listz_t F, const mpres_t Q,
   mpres_clear (Vt, modulus);
 }
 
+/* New, simpler version */
+static void
+list_scale_V2 (listz_t R, const listz_t F, const mpres_t Q, 
+              const uint64_t deg, mpmod_t modulus, listz_t tmp, 
+              const uint64_t tmplen, 
+	      mpzspv_t dct, FILE **dct_files, const mpzspm_t ntt_context)
+{
+  uint64_t i;
+  const listz_t G = tmp, H = tmp + 2 * deg + 1, newtmp = tmp + 4 * deg + 2;
+  const uint64_t newtmplen = tmplen - 4 * deg - 2;
+#ifdef WANT_ASSERT
+  mpz_t leading;
+#endif
+  
+  if (deg == 0)
+    {
+      ASSERT(tmplen >= 1);
+      mpz_mul (tmp[0], F[0], F[0]);
+      mpz_mod (R[0], tmp[0], modulus->orig_modulus);
+      return;
+    }
+  
+  /* Make sure newtmplen does not underflow */
+  ASSERT_ALWAYS (tmplen >= 4 * deg + 2);
+#ifdef WANT_ASSERT
+  mpz_init (leading);
+  mpz_mul (leading, F[deg], F[deg]);
+  mpz_mod (leading, leading, modulus->orig_modulus);
+#endif
+
+  outputf (OUTPUT_TRACE, "\nN=%Zd; deg = %lu; /* PARI list_scale_V2 */\n", 
+           modulus->orig_modulus, deg);
+  if (test_verbose(OUTPUT_TRACE))
+    {
+      mpres_t out_t;
+      mpres_init (out_t, modulus);
+      mpres_get_z (out_t, Q, modulus);
+      outputf (OUTPUT_TRACE, "Q = Mod(%Zd,N); /* PARI list_scale_V2 */\n", out_t);
+      mpres_clear (out_t, modulus);
+    }
+  list_output_poly (F, deg + 1, 0, 1, "F(x) = ", "; /* PARI list_scale_V2 */\n", 
+		    OUTPUT_TRACE);
+
+  for (i = 0; i <= deg; i++)
+    {
+      ASSERT_ALWAYS (mpz_sgn (F[i]) >= 0 && mpz_cmp (F[i], modulus->orig_modulus) < 0);
+    }
+
+  if (ntt_context != NULL)
+    ntt_sqr_reciprocal (G, F, dct, dct_files, deg + 1, ntt_context);
+  else
+    list_sqr_reciprocal (G, F, deg + 1, modulus->orig_modulus, 
+                         newtmp, newtmplen);
+
+  outputf (OUTPUT_TRACE, "G(x) = F(x)^2;/* PARI list_scale_V2 */\n");
+  list_output_poly (G, 2 * deg + 1, 0, 1, "G(x) == ", 
+		    " /* PARI list_scale_V2 */\n", OUTPUT_TRACE);
+
+  /* Compute G[i] = V_i(Q) * G[i] for i = 0, ..., 2*deg
+     and H[i] = V_i(Q) * F[i] for i = 0, ..., deg. */
+
+#if defined(_OPENMP)
+#pragma omp parallel if (deg > 1000)
+#endif
+  {
+    mpmod_t modulus_local;
+    uint64_t l, start_i;
+    mpres_t Vi, Vi_1;
+    
+    mpmod_init_set (modulus_local, modulus);
+    mpres_init (Vi_1, modulus_local);
+    mpres_init (Vi, modulus_local);
+    
+    /* Do G[i] and H[i], i = 0, ..., deg */
+    get_chunk (&start_i, &l, deg + 1);
+    V (Vi_1, Q, (int64_t) start_i - 1, modulus_local);
+    V (Vi, Q, start_i, modulus_local);
+    scale_by_chebyshev (G + start_i, G + start_i, H + start_i, F + start_i, 
+                        l, modulus_local, Q, Vi_1, Vi);
+    
+    /* Do the remaining entries G[i], i = deg+1, ..., 2*deg+1 */
+    get_chunk (&start_i, &l, deg);
+    start_i += deg + 1;
+    V (Vi, Q, start_i, modulus_local);
+    V (Vi_1, Q, (int64_t) start_i - 1, modulus_local);
+    scale_by_chebyshev (G + start_i, G + start_i, NULL, NULL, l, modulus_local, 
+                        Q, Vi_1, Vi);
+    
+    mpres_clear (Vi_1, modulus_local);
+    mpres_clear (Vi, modulus_local);
+    mpmod_clear (modulus_local);
+  }
+
+  list_output_poly (G, 2*deg + 1, 0, 1, "Gw(x) = ", 
+                    "; /* PARI list_scale_V2 */\n", OUTPUT_TRACE);
+
+  for (i = 0; i <= deg; i++)
+    {
+      ASSERT_ALWAYS (mpz_sgn (H[i]) >= 0 && mpz_cmp (H[i], modulus->orig_modulus) < 0);
+    }
+
+  list_output_poly (H, deg + 1, 0, 1, "H(x) = ", "; /* PARI list_scale_V2 */\n", 
+		    OUTPUT_TRACE);
+
+  if (ntt_context != NULL)
+    ntt_sqr_reciprocal (H, H, dct, dct_files, deg + 1, ntt_context);
+  else
+    list_sqr_reciprocal (H, H, deg + 1, modulus->orig_modulus, 
+  		         newtmp, newtmplen);
+
+  list_output_poly (H, 2*deg + 1, 0, 1, "H(x)^2 == ", 
+                    " /* PARI list_scale_V2 */\n", OUTPUT_TRACE);
+
+  for (i = 0; i <= 2 * deg; i++)
+    {
+      mpz_sub (H[i], H[i], G[i]);
+      if (mpz_odd_p(H[i]))
+        mpz_add (H[i], H[i], modulus->orig_modulus);
+      mpz_tdiv_q_2exp(H[i], H[i], 1);
+      if (mpz_sgn (H[i]) < 0)
+        mpz_add (H[i], H[i], modulus->orig_modulus);
+      mpz_set (R[i], H[i]);
+      ASSERT_ALWAYS (mpz_sgn (R[i]) >= 0 && mpz_cmp(R[i], modulus->orig_modulus) <= 0);
+    }
+
+  list_output_poly (R, 2 * deg, 0, 1, "R(x) = ", " /* PARI list_scale_V2 */\n", OUTPUT_TRACE);
+
+#ifdef WANT_ASSERT
+  mpz_mod (R[2 * deg], R[2 * deg], modulus->orig_modulus);
+  ASSERT (mpz_cmp (leading, R[2 * deg]) == 0);
+  mpz_clear (leading);
+#endif
+}
+
 
 #ifdef WANT_ASSERT
 /* Check if l is an (anti-)symmetric, possibly monic, polynomial. 
@@ -1167,9 +1302,9 @@ poly_from_sets_V (listz_t F, const mpres_t Q, set_list_t *sets,
   mpres_t Qt;
   
   ASSERT_ALWAYS (sets->num_sets > 0UL);
-  ASSERT_ALWAYS (sets->sets[0].card == 2UL); /* Check that the cardinality of 
-                                                first set is 2 */
-  /* Check that first set is symmetric around 0 */
+  /* Check that the cardinality of first set is 2 */
+  ASSERT_ALWAYS (sets->sets[0].card == 2UL);
+  /* Check that the first set is symmetric around 0 */
   ASSERT_ALWAYS (sets->sets[0].elem[0] == -sets->sets[0].elem[1]);
 
   if (test_verbose (OUTPUT_TRACE))
@@ -1216,7 +1351,7 @@ poly_from_sets_V (listz_t F, const mpres_t Q, set_list_t *sets,
 	  ASSERT_ALWAYS (curr_set->elem[0] == -curr_set->elem[1]);
 	  V (Qt, Q, curr_set->elem[0], modulus);
 	  V (Qt, Qt, 2UL, modulus);
-	  list_scale_V (F, F, Qt, deg, modulus, tmp, tmplen, dct, 
+	  list_scale_V2 (F, F, Qt, deg, modulus, tmp, tmplen, dct, 
 	                dct_files, ntt_context);
 	  deg *= 2UL;
 	  ASSERT_ALWAYS (mpz_cmp_ui (F[deg], 1UL) == 0); /* Check it's monic */
@@ -1234,10 +1369,10 @@ poly_from_sets_V (listz_t F, const mpres_t Q, set_list_t *sets,
 	      ASSERT_ALWAYS (curr_set->elem[i] == -curr_set->elem[c - 1L - i]);
 	      V (Qt, Q, curr_set->elem[i], modulus);
 	      V (Qt, Qt, 2UL, modulus);
-	      ASSERT (mpz_cmp_ui (F[deg], 1UL) == 0); /* Check it's monic */
-	      list_scale_V (F + (2UL * i + 1UL) * (deg + 1UL), F, Qt, deg, 
+	      ASSERT_ALWAYS (mpz_cmp_ui (F[deg], 1UL) == 0); /* Check it's monic */
+	      list_scale_V2 (F + (2UL * i + 1UL) * (deg + 1UL), F, Qt, deg, 
 	                    modulus, tmp, tmplen, dct, dct_files, ntt_context);
-	      ASSERT (mpz_cmp_ui (F[(2UL * i + 1UL) * (deg + 1UL) + 2UL * deg], 
+	      ASSERT_ALWAYS (mpz_cmp_ui (F[(2UL * i + 1UL) * (deg + 1UL) + 2UL * deg], 
 	              1UL) == 0); /* Check it's monic */
 	    }
 	  /* Multiply the polynomials */
@@ -1248,8 +1383,8 @@ poly_from_sets_V (listz_t F, const mpres_t Q, set_list_t *sets,
 		 at F. This product has degree 2 * deg + i * 4 * deg, that is
 		 (2 * i + 1) * 2 * deg, which means (2 * i + 1) * deg + 1
 		 coefficients in F[0 ... (i * 2 + 1) * deg]. */
-	      ASSERT (mpz_cmp_ui (F[(2UL * i + 1UL) * deg], 1UL) == 0);
-	      ASSERT (mpz_cmp_ui (F[(2UL * i + 1UL) * (deg + 1UL) + 2UL*deg], 
+	      ASSERT_ALWAYS (mpz_cmp_ui (F[(2UL * i + 1UL) * deg], 1UL) == 0);
+	      ASSERT_ALWAYS (mpz_cmp_ui (F[(2UL * i + 1UL) * (deg + 1UL) + 2UL*deg], 
 	                          1UL) == 0);
 	      list_output_poly (F, (2 * i + 1) * deg + 1, 0, 1, 
 				"poly_from_sets_V: Multiplying ", "\n",
@@ -1266,7 +1401,7 @@ poly_from_sets_V (listz_t F, const mpres_t Q, set_list_t *sets,
 	                modulus->orig_modulus);
 	      list_output_poly (F, (2 * i + 3) * deg + 1, 0, 1, 
                                 " = ", "\n", OUTPUT_TRACE);
-	      ASSERT (mpz_cmp_ui (F[(2UL * i + 3UL) * deg], 1UL) == 0);
+	      ASSERT_ALWAYS (mpz_cmp_ui (F[(2UL * i + 3UL) * deg], 1UL) == 0);
 	    }
 	  deg *= c;
 	}
