@@ -1,8 +1,9 @@
 #include "def.h"
 #include "cudakernel.h"
 
-__constant__ __device__ biguint_t d_invNcst;
+__constant__ __device__ digit_t d_invNcst;
 __device__ biguint_t d_Ncst;
+__device__ biguint_t d_Mcst;
 
 
 #define errCheck(err) cuda_errCheck (err, __FILE__, __LINE__)
@@ -95,12 +96,12 @@ int select_GPU (int device, int number_of_curves, FILE *OUTPUT_VERBOSE)
 }
 
 extern "C"
-void cuda_Main (biguint_t h_N, biguint_t h_invN, biguint_t *h_xarray, 
-                    biguint_t *h_zarray, biguint_t *h_x2array, 
-                    biguint_t *h_z2array, mpz_t s, unsigned int firstinvd, 
-                    unsigned int number_of_curves, FILE *OUTPUT_VERBOSE,
-                    FILE *OUTPUT_VVERBOSE)
-{
+void cuda_Main (biguint_t h_N, biguint_t h_M, digit_t h_invN, 
+                    biguint_t *h_xarray, biguint_t *h_zarray, 
+                    biguint_t *h_x2array, biguint_t *h_z2array, mpz_t s,
+                    unsigned int firstinvd, unsigned int number_of_curves, 
+                    FILE *OUTPUT_VERBOSE, FILE *OUTPUT_VVERBOSE) 
+{ 
   size_t j;
   biguint_t *d_xA, *d_zA, *d_xB, *d_zB;
 
@@ -118,8 +119,9 @@ void cuda_Main (biguint_t h_N, biguint_t h_invN, biguint_t *h_xarray,
   cudaMalloc (&d_zB, array_size);
 
   /* Copy into the gpu memory */
-  cudaMemcpyToSymbol(d_invNcst, (void *) h_invN, sizeof(biguint_t));
-  cudaMemcpyToSymbol(d_Ncst, (void *) h_N, sizeof(biguint_t));
+  cudaMemcpyToSymbol (d_invNcst, (void *) &h_invN, sizeof(digit_t));
+  cudaMemcpyToSymbol (d_Ncst, (void *) h_N, sizeof(biguint_t));
+  cudaMemcpyToSymbol (d_Mcst, (void *) h_M, sizeof(biguint_t));
 
   cudaMemcpyHtoD (d_xA, h_xarray, array_size);
   cudaMemcpyHtoD (d_zA, h_zarray, array_size);
@@ -311,7 +313,7 @@ __device__ void Cuda_Mulmod_step
    cy[threadIdx.x+1]+=(r[threadIdx.x+1]<h)?1:0;
 */
 
-  __mul(h, l, d_invNcst[0]*r[0], d_Ncst[threadIdx.x]);
+  __mul(h, l, d_invNcst*r[0], d_Ncst[threadIdx.x]);
   __add_cc(r[threadIdx.x],r[threadIdx.x],l);
   __addc_cc(r[threadIdx.x+1],r[threadIdx.x+1],h);
   __addcy2(cy[threadIdx.x+1]);
@@ -354,7 +356,7 @@ __device__ void Cuda_Mulint_mod(dbiguint_t r,dbigint_t cy, biguint_t A, unsigned
   __addcy(cy[threadIdx.x+1]);
 
   //h*2^32+l =A[i]*B[threadIDx.x]
-  __mul(h, l, d_invNcst[0]*r[0], d_Ncst[threadIdx.x]);
+  __mul(h, l, d_invNcst*r[0], d_Ncst[threadIdx.x]);
   __add_cc(r[threadIdx.x],r[threadIdx.x],l);
   __addc_cc(r[threadIdx.x+1],r[threadIdx.x+1],h);
   __addcy2(cy[threadIdx.x+1]);
@@ -432,6 +434,11 @@ Cuda_Square_mod (biguint_t mul, dbigint_t cy, const biguint_t A, dbiguint_t r)
   Cuda_Mul_mod(mul,cy,A,A,r);
 }
 
+/* 
+  Compute silmutaneously:
+  (xarg : zarg ) <- [2](xarg : zarg) 
+  (xarg2 : zarg2 ) <- (xarg : zarg) + (xarg2 : zarg2) 
+*/
 __global__ void 
 Cuda_Ell_DblAdd (biguint_t *xarg, biguint_t *zarg, biguint_t *x2arg, 
                                        biguint_t *z2arg, unsigned int firstinvd)
@@ -465,55 +472,35 @@ Cuda_Ell_DblAdd (biguint_t *xarg, biguint_t *zarg, biguint_t *x2arg,
   temp_r[threadIdx.x]=zarg[idx1][threadIdx.x];
   u[threadIdx.x]=xarg[idx1][threadIdx.x];
 
-  //C=x2+z2
-  Cuda_Add_mod(t,cy,v,w);
-  //D=x2-z2
-  Cuda_Sub_mod(v,cy,w);
-  //A=x+z
-  Cuda_Add_mod(w,cy,u,temp_r);
-  //B=x-z
-  Cuda_Sub_mod(u,cy,temp_r);
+  Cuda_Add_mod(t, cy, v, w);      /* C=x2+z2 */
+  Cuda_Sub_mod(v, cy, w);         /* D=x2-z2 */
+  Cuda_Add_mod(w, cy, u, temp_r); /* A=x+z */
+  Cuda_Sub_mod(u, cy, temp_r);    /* B=x-z */
 
-  //CB=C*B=(xq+zq)(xp-zp)
-  Cuda_Mul_mod(t,cy,t,u,temp_r);
-  
-  //DA=D*A=(xq-zq)(xp+zp)
-  Cuda_Mul_mod(v,cy,v,w,temp_r);
+  Cuda_Mul_mod(t, cy, t, u, temp_r); /* CB=C*B=(xq+zq)(xp-zp) */
+  Cuda_Mul_mod(v, cy, v, w, temp_r); /* DA=D*A=(xq-zq)(xp+zp) */
 
-  //AA=A^2
-  Cuda_Square_mod(w,cy,w,temp_r);
-  //BB=B^2
-  Cuda_Square_mod(u,cy,u,temp_r);
+  Cuda_Square_mod(w, cy, w, temp_r); /* AA=A^2 */
+  Cuda_Square_mod(u, cy, u, temp_r); /* BB=B^2 */
 
-  //x2=AA*BB
-  Cuda_Mul_mod(temp_r,cy,u,w,temp_r);
+  Cuda_Mul_mod(temp_r, cy, u, w, temp_r); /* x2=AA*BB */
   xarg[idx1][threadIdx.x]=temp_r[threadIdx.x];
 
-  //C= AA-BB
-  Cuda_Sub_mod(w,cy,u);
-  //d*C 
-  Cuda_Mulint_mod(temp_r,cy,w,idx1+firstinvd);
-  //BB+d*C
-  Cuda_Add_mod(u,cy,temp_r);
-  
-  //z2=C*(BB+d*C)
-  Cuda_Mul_mod(w,cy,w,u,temp_r);
-
+  Cuda_Sub_mod(w,cy,u); /* C= AA-BB */
+  Cuda_Mulint_mod(temp_r,cy,w,idx1+firstinvd); /* d*C */ 
+  Cuda_Add_mod(u,cy,temp_r); /* BB+d*C */
+ 
+  Cuda_Mul_mod(w,cy,w,u,temp_r); /* z2=C*(BB+d*C) */
   zarg[idx1][threadIdx.x]=w[threadIdx.x];
-  
-  //DA+CB mod N
-  Cuda_Add_mod(w,cy,v,t);
-  //DA-CB mod N
-  Cuda_Sub_mod(v,cy,t);
+ 
+  Cuda_Add_mod(w, cy, v, t); /* DA+CB mod N */
+  Cuda_Sub_mod(v, cy, t); /* DA-CB mod N */
 
-  //(DA+CB)^2 mod N
-  Cuda_Square_mod(w,cy,w,temp_r);
-  //(DA-CB)^2 mod N
-  Cuda_Square_mod(v,cy,v,temp_r);
+  Cuda_Square_mod(w, cy, w, temp_r); /* (DA+CB)^2 mod N */
+  Cuda_Square_mod(v, cy, v, temp_r); /* (DA-CB)^2 mod N */
 
-  //z0=1 1*(DA+CB)^2
-  //x0=2 2*(DA-CB)^2
-  Cuda_Dbl_mod(u,cy,v);
+  /* z0=1 so there is nothing to compute for z0*(DA+CB)^2 */
+  Cuda_Dbl_mod(u, cy, v); /* x0=2 x0*(DA-CB)^2 */
   
   x2arg[idx1][threadIdx.x]=w[threadIdx.x];
   z2arg[idx1][threadIdx.x]=u[threadIdx.x];
