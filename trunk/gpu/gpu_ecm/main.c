@@ -10,9 +10,9 @@
 
  
 extern int select_GPU (int, int, FILE*);
-extern void cuda_Main (biguint_t, biguint_t, biguint_t*, biguint_t*, biguint_t*,
-                       biguint_t*, mpz_t, unsigned int, unsigned int, FILE*, 
-                       FILE*);
+extern void cuda_Main (biguint_t, biguint_t, digit_t, biguint_t*, biguint_t*, 
+                       biguint_t*, biguint_t*, mpz_t, unsigned int, 
+                       unsigned int, FILE*, FILE*);
 
 int main (int argc, char * argv[]) 
 {
@@ -39,9 +39,11 @@ int main (int argc, char * argv[])
   FILE *OUTPUT_VERBOSE = NULL;
   FILE *OUTPUT_VVERBOSE = NULL;
 
-  mpz_t invN; /* invN = -N^-1 mod B */
-  mpz_t invB; /* 2^(-MAX_BITS) mod N */
-  mpz_t invw; /* 2^(-SIZE_DIGIT) % N */
+  mpz_t w; /* w = 2^(SIZE_DIGIT) */
+  mpz_t invN; /* invN = -N^-1 mod w */
+  mpz_t invB; /* invB = 2^(-MAX_BITS) mod N ; B is w^NB_DIGITS */
+  mpz_t invw; /* w^(-1) mod N */
+  mpz_t M; /* (invN*N+1)/w */
   mpz_t xp;
   mpz_t zp;
   mpz_t x2p;
@@ -51,8 +53,9 @@ int main (int argc, char * argv[])
   /* The same variables but for the GPU */
   biguint_t *h_xarray;
   biguint_t *h_zarray;
-  biguint_t h_invN;
+  digit_t h_invN;
   biguint_t h_N;
+  biguint_t h_M;
   biguint_t *h_x2array;
   biguint_t *h_z2array;
  
@@ -173,6 +176,8 @@ int main (int argc, char * argv[])
   mpcandi_t_init (&n);
 
   mpz_init (invw);
+  mpz_init (w);
+  mpz_init (M);
   mpz_init (xp);
   mpz_init (zp);
   mpz_init (x2p);
@@ -253,18 +258,23 @@ int main (int argc, char * argv[])
                                           B1, firstinvd, number_of_curves);
   
     /*Some precomputation specific to each N */
-    mpz_ui_pow_ui(invB, 2, MAX_BITS); /* Temporarily invB = B = 2^MAXBITS*/
+    mpz_ui_pow_ui (w, 2, SIZE_DIGIT);
     
-    mpz_invert(invN, n.n, invB);
-    mpz_sub(invN, invB, invN); /* Compute invN = -N^-1 mod B */
-    
-    mpz_to_biguint(h_N, n.n); 
-    mpz_to_biguint(h_invN, invN); 
+    mpz_invert (invN, n.n, w);
+    mpz_sub (invN, w, invN); /* Compute invN = -N^-1 mod w */
    
-    mpz_invert(invB, invB, n.n); /* Compute invB = 2^(-MAX_BITS) mod N */
+    mpz_mul (M, invN, n.n);
+    mpz_add_ui (M, M, 1);
+    mpz_divexact (M, M, w); /* Compute M = (invN*N+1)/w */
 
-    mpz_ui_pow_ui(invw, 2, SIZE_DIGIT);   
-    mpz_invert(invw, invw, n.n); /* Compute inw = 2^-SIZE_DIGIT % N */
+    mpz_to_biguint (h_N, n.n); 
+    mpz_to_biguint (h_M, M); 
+    h_invN = mpz_get_ui (invN); 
+   
+    mpz_ui_pow_ui (invB, 2, MAX_BITS); 
+    mpz_invert (invB, invB, n.n); /* Compute invB = 2^(-MAX_BITS) mod N */
+
+    mpz_invert (invw, w, n.n); /* Compute inw = 2^-SIZE_DIGIT % N */
     
     /* xp zp x2p are independent of N and the curve */
     mpz_set_ui (xp, 2);
@@ -301,7 +311,7 @@ int main (int argc, char * argv[])
     /* Call the wrapper function that call the GPU */
     begingputime=cputime();
     fprintf(OUTPUT_VERBOSE,"#Begin GPU computation...\n");
-    cuda_Main( h_N, h_invN, h_xarray, h_zarray, h_x2array, 
+    cuda_Main( h_N, h_M, h_invN, h_xarray, h_zarray, h_x2array, 
                           h_z2array, s, firstinvd, number_of_curves,
                           OUTPUT_VERBOSE, OUTPUT_VVERBOSE);
     endgputime=cputime();
@@ -360,6 +370,8 @@ free_memory_and_exit:
 
   mpz_clear (invN);
   mpz_clear (invw);
+  mpz_clear (w);
+  mpz_clear (M);
   mpz_clear (xp);
   mpz_clear (zp);
   mpz_clear (x2p);
