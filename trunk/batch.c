@@ -8,6 +8,7 @@
 */
 
 #ifdef GPUECM
+#include <stdlib.h>
 #include "ecm-ecm.h"
 #else
 #include "ecm-impl.h"
