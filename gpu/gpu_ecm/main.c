@@ -10,8 +10,8 @@
 
  
 extern int select_GPU (int, int, FILE*);
-extern void cuda_Main (biguint_t, biguint_t, digit_t, biguint_t*, biguint_t*, 
-                       biguint_t*, biguint_t*, mpz_t, unsigned int, 
+extern void cuda_Main (biguint_t, biguint_t, biguint_t, digit_t, biguint_t*, 
+                       biguint_t*, biguint_t*, biguint_t*, mpz_t, unsigned int, 
                        unsigned int, FILE*, FILE*);
 
 int main (int argc, char * argv[]) 
@@ -39,6 +39,7 @@ int main (int argc, char * argv[])
   FILE *OUTPUT_VERBOSE = NULL;
   FILE *OUTPUT_VVERBOSE = NULL;
 
+  mpz_t N3; /* N3 = 3*N */
   mpz_t w; /* w = 2^(SIZE_DIGIT) */
   mpz_t invN; /* invN = -N^-1 mod w */
   mpz_t invB; /* invB = 2^(-MAX_BITS) mod N ; B is w^NB_DIGITS */
@@ -55,6 +56,7 @@ int main (int argc, char * argv[])
   biguint_t *h_zarray;
   digit_t h_invN;
   biguint_t h_N;
+  biguint_t h_3N;
   biguint_t h_M;
   biguint_t *h_x2array;
   biguint_t *h_z2array;
@@ -175,6 +177,7 @@ int main (int argc, char * argv[])
 
   mpcandi_t_init (&n);
 
+  mpz_init (N3);
   mpz_init (invw);
   mpz_init (w);
   mpz_init (M);
@@ -220,10 +223,10 @@ int main (int argc, char * argv[])
       fprintf (stdout, "Input number is %s (%u digits)\n", n.cpExpr, n.ndigits);
 
     /* Check that N is not too big */
-    if (mpz_sizeinbase(n.n, 2) > MAX_BITS-1)
+    if (mpz_sizeinbase(n.n, 2) > MAX_BITS-6)
     {
       fprintf (stderr, "Error, input number should be stricly lower than 2^%d\n",
-                                                          MAX_BITS-1);
+                                                          MAX_BITS-6);
       main_ret= EXIT_FAILURE;
       goto free_memory_and_exit;
     }
@@ -258,7 +261,9 @@ int main (int argc, char * argv[])
                                           B1, firstinvd, number_of_curves);
   
     /*Some precomputation specific to each N */
-    mpz_ui_pow_ui (w, 2, SIZE_DIGIT);
+    mpz_mul_ui (N3, n.n, 3); /* Compute N3 = 3*N */
+
+    mpz_ui_pow_ui (w, 2, SIZE_DIGIT); /* Compute w = 2^SIZE_DIGIT */
     
     mpz_invert (invN, n.n, w);
     mpz_sub (invN, w, invN); /* Compute invN = -N^-1 mod w */
@@ -268,6 +273,7 @@ int main (int argc, char * argv[])
     mpz_divexact (M, M, w); /* Compute M = (invN*N+1)/w */
 
     mpz_to_biguint (h_N, n.n); 
+    mpz_to_biguint (h_3N, N3); 
     mpz_to_biguint (h_M, M); 
     h_invN = mpz_get_ui (invN); 
    
@@ -311,7 +317,7 @@ int main (int argc, char * argv[])
     /* Call the wrapper function that call the GPU */
     begingputime=cputime();
     fprintf(OUTPUT_VERBOSE,"#Begin GPU computation...\n");
-    cuda_Main( h_N, h_M, h_invN, h_xarray, h_zarray, h_x2array, 
+    cuda_Main( h_N, h_3N, h_M, h_invN, h_xarray, h_zarray, h_x2array, 
                           h_z2array, s, firstinvd, number_of_curves,
                           OUTPUT_VERBOSE, OUTPUT_VVERBOSE);
     endgputime=cputime();
@@ -356,6 +362,7 @@ end_main_loop:
     if (begingputime == 0)
       begingputime = endcputime;
 
+    /* FIXME timings seems wrong because we measure CPU time, not GPU time */
     fprintf(stdout, "gpu_ecm took : %.3fs (%.3f+%.3f+%.3f)\n",
         (double) (endcputime-begincputime)/1000, 
         (double) (begingputime-begincputime)/1000, 
@@ -368,6 +375,7 @@ end_main_loop:
 free_memory_and_exit:
   mpcandi_t_free(&n);
 
+  mpz_clear (N3);
   mpz_clear (invN);
   mpz_clear (invw);
   mpz_clear (w);
