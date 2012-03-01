@@ -29,9 +29,13 @@ inline void cuda_errCheck (cudaError err, const char *file, const int line)
   }
 }
 
+/* First call to a global function initialize the device */
+__global__ void Cuda_Init_Device ()
+{
+}
 
 extern "C" 
-int select_GPU (int device, int number_of_curves, FILE *OUTPUT_VERBOSE)
+int select_and_init_GPU (int device, int number_of_curves, FILE *OUTPUT_VERBOSE)
 {
   cudaDeviceProp deviceProp;
   cudaError_t err;
@@ -92,6 +96,10 @@ int select_GPU (int device, int number_of_curves, FILE *OUTPUT_VERBOSE)
   number_of_curves=(number_of_curves/CURVES_BY_BLOCK)*CURVES_BY_BLOCK;
   if (number_of_curves==0)
     number_of_curves = MPcount * CURVES_BY_MP;
+
+  /* First call to a global function initialize the device */
+  Cuda_Init_Device<<<1, 1>>> ();
+  errCheck (cudaGetLastError()); 
 
   return number_of_curves;
 }
