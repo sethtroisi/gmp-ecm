@@ -9,7 +9,7 @@
 #define TWO32 4294967296 // 2^32 
 
  
-extern int select_GPU (int, int, FILE*);
+extern int select_and_init_GPU (int, int, FILE*);
 extern void cuda_Main (biguint_t, biguint_t, biguint_t, digit_t, biguint_t*, 
                        biguint_t*, biguint_t*, biguint_t*, mpz_t, unsigned int, 
                        unsigned int, FILE*, FILE*);
@@ -161,7 +161,13 @@ int main (int argc, char * argv[])
   /* Select the GPU and analyse number_of_curves */
   /***********************************************/
 
-  number_of_curves = select_GPU(device, number_of_curves, OUTPUT_VERBOSE);
+  begincputime = cputime ();
+  number_of_curves = select_and_init_GPU (device, number_of_curves, 
+                                                                OUTPUT_VERBOSE);
+  fprintf(stdout, "Selecting and initialization of the device s took %.3fs\n", 
+                                       (double) (cputime ()-begincputime)/1000);
+  /* TRICKS: If initialization of the device is too long (few seconds), */
+  /* try running 'nvidia-smi -q -l' on the background .                 */
 
   /*****************************/
   /* Initialize some variables */
@@ -203,9 +209,9 @@ int main (int argc, char * argv[])
   begincputime = cputime ();
   compute_s (s, B1);
 
-  gmp_fprintf(OUTPUT_VERBOSE, "#s has %lu bits\n", mpz_sizeinbase (s, 2));
-  gmp_fprintf(stdout, "Precomputation of s took %.3fs\n", 
-                  (double) (cputime ()-begincputime)/1000);
+  fprintf(OUTPUT_VERBOSE, "#s has %lu bits\n", mpz_sizeinbase (s, 2));
+  fprintf(stdout, "Precomputation of s took %.3fs\n", 
+                                       (double) (cputime ()-begincputime)/1000);
   
   
   /***********************************************/
@@ -362,7 +368,6 @@ end_main_loop:
     if (begingputime == 0)
       begingputime = endcputime;
 
-    /* FIXME timings seems wrong because we measure CPU time, not GPU time */
     fprintf(stdout, "gpu_ecm took : %.3fs (%.3f+%.3f+%.3f)\n",
         (double) (endcputime-begincputime)/1000, 
         (double) (begingputime-begincputime)/1000, 
