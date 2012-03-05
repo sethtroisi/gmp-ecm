@@ -1135,9 +1135,9 @@ ecm (mpz_t f, mpz_t x, mpz_t sigma, mpz_t n, mpz_t go, double *B1done,
       mpz_init (t);
       MEMORY_UNTAG;
       mpres_get_z (t, P.A, modulus);
-      outputf (OUTPUT_RESVERBOSE, "a=%Zd\n", t);
+      outputf (OUTPUT_RESVERBOSE, "A=%Zd\n", t);
       mpres_get_z (t, P.x, modulus);
-      outputf (OUTPUT_RESVERBOSE, "starting point: x=%Zd\n", t);
+      outputf (OUTPUT_RESVERBOSE, "starting point: x0=%Zd\n", t);
       mpz_clear (t);
     }
 
