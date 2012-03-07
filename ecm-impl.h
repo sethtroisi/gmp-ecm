@@ -117,11 +117,6 @@ extern FILE *ECM_STDOUT, *ECM_STDERR;
 #endif
 #endif
 
-/* Whether we build the polynomials in stage 2 as described in the literature 
-   as products of (x - x_i) (NEGATED_ROOTS 0), or as 
-   (x + x_i) (NEGATED_ROOTS 1) */
-#define NEGATED_ROOTS 0
-
 /* default B2 choice: pow (B1 * METHOD_COST / 6.0, DEFAULT_B2_EXPONENT) */
 #define DEFAULT_B2_EXPONENT 1.43
 #define PM1_COST 1.0 / 6.0

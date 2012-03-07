@@ -128,11 +128,8 @@ ntt_PolyFromRoots_Tree (mpzv_t r, mpzv_t a, spv_size_t len, mpzv_t t,
 	 the possibly negated roots), and advance the destination level 
 	 of the tree to the next level */
       src = *dst;
-#if NEGATED_ROOTS == 1
+      /* we consider x + root[i], which means we consider negated roots */
       list_set (*dst--, a, len);
-#else
-      list_neg (*dst--, a, len, mpzspm->modulus);
-#endif
     }
   
   m = (dolvl == -1) ? 1 : 1 << (ceil_log2 (len) - 1 - dolvl);

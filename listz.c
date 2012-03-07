@@ -622,12 +622,8 @@ PolyFromRoots (listz_t G, listz_t a, unsigned int k, listz_t T, mpz_t n)
     {
       if (k == 1)
 	{
-#if NEGATED_ROOTS == 1
+          /* we consider x + a[0], which mean we consider negated roots */
 	  mpz_mod (G[0], a[0], n);
-#else
-	  mpz_neg (T[0], a[0]);
-	  mpz_mod (G[0], T[0], n);
-#endif
 	}
       return;
     }
@@ -638,19 +634,13 @@ PolyFromRoots (listz_t G, listz_t a, unsigned int k, listz_t T, mpz_t n)
      polynomial with the opposite roots. This has no consequence if
      we do it for all polynomials: if F(x) and G(x) have a common root,
      then so do F(-x) and G(-x). This saves one negation.
-     
-     NOT ANY MORE! We added the mpz_neg()'s  so building the poly from
-     its roots works as one would expect in the FastPM1Stage2 algorithm!
   */
   if (k == 2)
     {
       mpz_mul (T[0], a[0], a[1]);
-      mpz_add (T[1], a[1], a[0]); /* mpz_add may allocate extra limb */
-#if NEGATED_ROOTS == 0
-      mpz_neg (T[1], T[1]);
-#endif
-      mpz_mod (G[1], T[1], n);
       mpz_mod (G[0], T[0], n);
+      mpz_add (T[1], a[1], a[0]); /* mpz_add may allocate extra limb */
+      mpz_mod (G[1], T[1], n);
       return;
     }
 #endif
@@ -711,13 +701,8 @@ PolyFromRoots_Tree (listz_t G, listz_t a, unsigned int k, listz_t T,
     {
       if (k == 1)
         {
-#if NEGATED_ROOTS == 1
+          /* we consider x + a[0], which mean we consider negated roots */
 	  mpz_mod (G[0], a[0], n);
-#else
-	  mpz_neg (a[0], a[0]);
-	  mpz_mod (G[0], a[0], n);
-          mpz_neg (a[0], a[0]);
-#endif
         }
       return 0;
     }
@@ -749,9 +734,6 @@ PolyFromRoots_Tree (listz_t G, listz_t a, unsigned int k, listz_t T,
       mpz_set (H1[1], a[1]);
       mpz_mul (T[0], a[0], a[1]);
       mpz_add (G[1], a[1], a[0]);
-#if NEGATED_ROOTS == 0
-      mpz_neg (G[1], G[1]);
-#endif
       mpz_mod (G[1], G[1], n);
       mpz_mod (G[0], T[0], n);
       return 0;
