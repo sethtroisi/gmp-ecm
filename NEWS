@@ -5,7 +5,7 @@ Changes between ecm-6.4 and ecm-6.5:
 * New ecmbench utility
 
 Changes between ecm-6.4 and ecm-6.4.1:
-* Fixed a speed regression with respect to ecm-5.3
+* Fixed a speed regression with respect to ecm-6.3
   http://lists.gforge.inria.fr/pipermail/ecm-discuss/2012-February/004103.html
 * Fixed a bug with the -treefile option which had been present for a long time
 * Several fixes for the Visual Studio 2010 build
