@@ -471,7 +471,6 @@ stage2 (mpz_t f, void *X, mpmod_t modulus, unsigned long dF, unsigned long k,
               goto clear_T;
             }
         }
-      /* list_set (Tree[lgk - 1], F, dF); PolyFromRoots_Tree does it */
     }
   else
     Tree = NULL;
