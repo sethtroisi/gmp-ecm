@@ -78,7 +78,6 @@ MA 02110-1301, USA. */
 #ifndef MPN_ZERO
 #define MPN_ZERO(dst, n)			\
   do {						\
-    ASSERT ((n) >= 0);				\
     if ((n) != 0)				\
       {						\
 	mp_ptr __dst = (dst);			\
