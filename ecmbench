@@ -2,7 +2,7 @@
 set ECM=$1
 echo Benchmark of $ECM
 @ n = 1
-/bin/rm ecmbench.data
+/bin/rm -f ecmbench.data
 while ("$n" != "26")
    set t0=`echo "3*2^(64*$n-2)-1" | $ECM -sigma 6 1e6 1 |& grep "Step 1" | sed 's/Step 1 took//g' | sed 's/ms//g'`
    set t1=`echo "3*2^(64*$n-2)-1" | $ECM -modmuln -sigma 6 1e6 1 |& grep "Step 1" | sed 's/Step 1 took//g' | sed 's/ms//g'`
