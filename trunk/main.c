@@ -122,7 +122,7 @@ usage (void)
     printf ("  -resume file resume residues from file, reads from stdin if file is \"-\"\n");
     printf ("  -chkpnt file save periodic checkpoints during stage 1 to file\n");
     printf ("  -primetest   perform a primality test on input\n");
-    printf ("  -treefile f  store product tree of F in files f.0 f.1 ... \n");
+    printf ("  -treefile f  [ECM only] store stage 2 data in files f.0, ... \n");
     printf ("  -maxmem n    use at most n MB of memory in stage 2\n");
     printf ("  -stage1time n add n seconds to ECM stage 1 time (for expected time est.)\n");
 #ifdef WANT_SHELLCMD
@@ -991,6 +991,13 @@ main (int argc, char *argv[])
   params->TreeFilename = TreeFilename;
   params->maxmem = maxmem;
   params->stage1time = stage1time;
+
+  /* -treefile is valid for ECM only */
+  if (TreeFilename != NULL && method != ECM_ECM)
+    {
+      fprintf (stderr, "Error: the -treefile option is for ECM only\n");
+      exit (EXIT_FAILURE);
+    }
 
   /* Open resume file for reading, if resuming is requested */
   if (resumefilename != NULL)
