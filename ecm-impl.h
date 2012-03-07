@@ -322,8 +322,6 @@ typedef struct
                          If repr != 1, undefined */
   mp_limb_t *Nprim;   /* For MODMULN */
   mpz_t orig_modulus; /* The original modulus N */
-  mpz_t mult_modulus; /* We perform all computations modulo this multiple k*N
-                         of N */
   mpz_t aux_modulus;  /* Used only for MPZ and REDC:
 			 - the auxiliary modulus value (i.e. normalized 
                            modulus, or -1/N (mod 2^bits) for REDC,
