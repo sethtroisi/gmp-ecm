@@ -176,11 +176,14 @@ void bench(mp_size_t N)
   tredc_1 = CPUTime()-tredc_1;
 #endif
 
-  mpn_mul_n(tmp, x, y, N);
-  tsvoboda1 = CPUTime();
-  for (i = 0; i < iter; ++i)
-    ecm_redc_1_svoboda (z, tmp, m, N, invm[0], svoboda1);
-  tsvoboda1 = CPUTime()-tsvoboda1;
+  if (N > 1) /* Svoboda only works for N > 1 */
+    {
+      mpn_mul_n(tmp, x, y, N);
+      tsvoboda1 = CPUTime();
+      for (i = 0; i < iter; ++i)
+        ecm_redc_1_svoboda (z, tmp, m, N, invm[0], svoboda1);
+      tsvoboda1 = CPUTime()-tsvoboda1;
+    }
 
 #ifdef HAVE___GMPN_REDC_2
   mpn_mul_n(tmp, x, y, N);
@@ -622,7 +625,8 @@ void bench(mp_size_t N)
 #ifdef HAVE___GMPN_REDC_1
   printf("mpn_redc_1 = %f\n", tredc_1/iter);
 #endif
-  printf("svoboda1   = %f\n", tsvoboda1/iter);
+  if (N > 1)
+    printf("svoboda1   = %f\n", tsvoboda1/iter);
 #ifdef HAVE___GMPN_REDC_2
   tredc_2 *= 1000000.;
   printf("mpn_redc_2 = %f\n", tredc_2/iter);
