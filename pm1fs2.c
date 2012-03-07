@@ -1796,8 +1796,9 @@ poly_from_sets_V (listz_t F, const mpres_t Q, sets_long_t *sets,
   ASSERT_ALWAYS (sets->nr > 0UL);
   ASSERT_ALWAYS (set->card == 2UL); /* Check that the cardinality of 
                                        first set is 2 */
-  /* Check that first set is symmetric around 0 */
-  ASSERT_ALWAYS (set->elem[0] == -set->elem[1]);
+  /* Check that first set is symmetric around 0 (we write card-1
+     instead of 1 to avoid a compiler warning with clang 2.9) */
+  ASSERT_ALWAYS (set->elem[0] == -set->elem[set->card - 1]);
 
   if (test_verbose (OUTPUT_TRACE))
     {
@@ -1841,8 +1842,9 @@ poly_from_sets_V (listz_t F, const mpres_t Q, sets_long_t *sets,
 
       if (c == 2UL)
 	{
-	  /* Check it's symmetric */
-	  ASSERT_ALWAYS (set->elem[0] == -set->elem[1]);
+	  /* Check it's symmetric (we write c-1 instead of 2 to avoid a
+           compiler warning with clang 2.9) */
+	  ASSERT_ALWAYS (set->elem[0] == -set->elem[c - 1]);
 	  V (Qt, Q, set->elem[0], modulus);
 	  V (Qt, Qt, 2UL, modulus);
 	  list_scale_V (F, F, Qt, deg, modulus, tmp, tmplen, dct, 
