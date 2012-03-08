@@ -62,8 +62,12 @@ set_copy (set_long_t *T, set_long_t *S)
 }
 
 
-/* Exchange two adjacent sets in memory. */
-
+/* Exchange two adjacent sets in memory. Since all "elem" arrays are stored
+   in the same chunk of allocated memory, and not in different chunks, we
+   cannot simply swap the "elem" pointers.
+   If the set T has size c and the next has size d, after the swap the set T
+   will have size d and the next will have size c.
+*/
 static void 
 set_swap (set_long_t *T)
 {
@@ -74,6 +78,8 @@ set_swap (set_long_t *T)
   ASSERT(tmp != NULL);
   set_copy (tmp, T);
   set_copy (T, next);
+  /* warning: sets_nextset(T) might differ from next, if T and next had
+     different sizes */
   set_copy (sets_nextset(T), tmp);  
 }
 
