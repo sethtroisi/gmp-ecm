@@ -2224,8 +2224,8 @@ mpresn_mul_1 (mpres_t R, const mpres_t S, const mp_limb_t m, mpmod_t modulus)
 #ifdef HAVE___GMPN_ADD_NC
   q = __gmpn_add_nc (PTR(R), t1 + 1, t2 + 1, n, t1[0] != 0);
 #else
-  mpn_add_nc (PTR(R), t1 + 1, t2 + 1, n);
-  q = mpn_add_1 (PTR(R), PTR(R), n, t1[0] != 0);
+  q = mpn_add_n (PTR(R), t1 + 1, t2 + 1, n);
+  q += mpn_add_1 (PTR(R), PTR(R), n, t1[0] != 0);
 #endif
   while (q != 0)
     q -= mpn_sub_n (PTR(R), PTR(R), PTR(modulus->orig_modulus), n);
