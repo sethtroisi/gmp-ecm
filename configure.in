@@ -368,10 +368,16 @@ AC_CHECK_HEADERS([ctype.h sys/types.h sys/resource.h])
 dnl Checks for library functions that are not in GMP
 AC_FUNC_STRTOD
 
+dnl Check functions in the math library
+AC_CHECK_LIB(m,pow,,AC_MSG_ERROR(required function missing))
+AC_CHECK_LIB(m,floor,,AC_MSG_ERROR(required function missing))
+AC_CHECK_LIB(m,sqrt,,AC_MSG_ERROR(required function missing))
+AC_CHECK_LIB(m,fmod,,AC_MSG_ERROR(required function missing))
+AC_CHECK_LIB(m,cos)
+
 dnl Check for GSL but don't add it to LIBS, since only rho uses it and
 dnl we don't want all other binaries to depend on it. 
 dnl If found, pass link flags to Makefile via GSL_LD_FLAGS
-AC_CHECK_LIB([m],[cos])
 GSL_LD_FLAGS=
 dnl Check if "-lgslcblas" works. If yes, check if "-lgsl -lgslcblas" works.
 dnl If both work, put "-lgsl -lgslcblas" in GSL_LD_FLAGS
@@ -383,7 +389,6 @@ AC_CHECK_LIB([gslcblas],[cblas_dgemm], dnl
    dnl Here comes the "OTHER-LIBRARIES" field for AC_CHECK_LIB [gsl]:
    [-lgslcblas])])
 
-AC_CHECK_FUNCS([floor sqrt pow fmod], [], [AC_MSG_ERROR([required function missing])])
 AC_CHECK_FUNCS([isascii memset strchr strlen strncasecmp strstr], [], [AC_MSG_ERROR([required function missing])])
 AC_CHECK_FUNCS([access unlink], [], [AC_MSG_ERROR([required function missing])])
 AC_CHECK_FUNCS([isspace isdigit isxdigit], [], [AC_MSG_ERROR([required function missing])])

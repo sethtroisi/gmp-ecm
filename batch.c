@@ -1,5 +1,5 @@
 /* ECM stage 1 in batch mode, for initial point (x:z) with small coordinates,
-   such that x and z fit into an unsigned long.
+   such that x and z fit into a mp_limb_t.
    For example we can start with (x=2:y=1) with the curve by^2 = x^3 + ax^2 + x
    with a = 4d-2 and b=16d+2, then we have to multiply by d=(a+2)/4 in the
    duplicates.
@@ -164,7 +164,7 @@ mpresn_print (mpres_t x, mpmod_t n)
 static void
 dup_add_batch1 (mpres_t x1, mpres_t z1, mpres_t x2, mpres_t z2,
          mpres_t q, mpres_t t, mpres_t u, mpres_t v, mpres_t w,
-         unsigned long d, mpmod_t n)
+         mp_limb_t d, mpmod_t n)
 {
   mpresn_addsub (w, u, x1, z1, n); /* w = x1+/-z1 */
   mpresn_addsub (t, v, x2, z2, n); /* t = x2+/-z2 */
@@ -178,7 +178,7 @@ dup_add_batch1 (mpres_t x1, mpres_t z1, mpres_t x2, mpres_t z2,
 
   mpresn_sub (w, w, u, n);   /* w = (x1+z1)^2 - (x1-z1)^2 */
 
-  mpresn_mul_ui (q, w, d, n); /* q = d * ((x1+z1)^2 - (x1-z1)^2) */
+  mpresn_mul_1 (q, w, d, n); /* q = d * ((x1+z1)^2 - (x1-z1)^2) */
 
   mpresn_add (u, u, q, n);  /* u = (x1-z1)^2 - d* ((x1+z1)^2 - (x1-z1)^2) */
   mpresn_mul (z1, w, u, n); /* zdup = w * [(x1-z1)^2 - d* ((x1+z1)^2 - (x1-z1)^2)] */
@@ -243,7 +243,7 @@ int
 ecm_stage1_batch (mpz_t f, mpres_t x, mpres_t A, mpmod_t n, double B1,
                   double *B1done, int batch, mpz_t s)
 {
-  unsigned long d_1;
+  mp_limb_t d_1;
   mpz_t d_2;
 
   mpres_t x1, z1, x2, z2;
@@ -278,9 +278,9 @@ ecm_stage1_batch (mpz_t f, mpres_t x, mpres_t A, mpmod_t n, double B1,
   mpres_set_ui (z1, 1, n); /* P1 <- 1P */
 
   /* Compute d=(A+2)/4 from A */
-  if( batch ==1 )
+  if (batch == 1)
   {
-      mpres_get_z(u, A, n);
+      mpres_get_z (u, A, n);
       mpz_add_ui (u, u, 2);
       if (mpz_fdiv_ui (u, 4) != 0)
         {
@@ -289,13 +289,14 @@ ecm_stage1_batch (mpz_t f, mpres_t x, mpres_t A, mpmod_t n, double B1,
         }
       mpz_div_2exp (u, u, 2);
       mpres_set_z_for_gcd (u, u, n);
-      if (mpz_fits_ulong_p (u) == 0)
+      if (mpz_size (u) > 1)
         {
+          mpres_get_z (u, A, n);
           outputf (OUTPUT_ERROR,
-               "Error, d=(A+2)/4 should fit in an ulong, A=%Zd\n", A);
+               "Error, d=(A+2)/4 should fit in a mp_limb_t, A=%Zd\n", u);
           return ECM_ERROR;
         }
-        d_1 = mpz_get_ui (u);
+      d_1 = mpz_getlimbn (u, 0);
     }
   else
     {
