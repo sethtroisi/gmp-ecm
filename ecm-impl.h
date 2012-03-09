@@ -652,8 +652,8 @@ void mpresn_sqr (mpres_t, const mpres_t, mpmod_t);
 void mpresn_add (mpres_t, const mpres_t, const mpres_t, mpmod_t);
 #define mpresn_sub __ECM(mpresn_sub)
 void mpresn_sub (mpres_t, const mpres_t, const mpres_t, mpmod_t);
-#define mpresn_mul_ui __ECM(mpresn_mul_ui)
-void mpresn_mul_ui (mpres_t, const mpres_t, const unsigned long, mpmod_t);
+#define mpresn_mul_1 __ECM(mpresn_mul_ui)
+void mpresn_mul_1 (mpres_t, const mpres_t, const mp_limb_t, mpmod_t);
 
 /* mul_lo.c */
 #define ecm_mul_lo_n __ECM(ecm_mul_lo_n)

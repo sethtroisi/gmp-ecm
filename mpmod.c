@@ -2182,10 +2182,9 @@ mpresn_mul (mpres_t R, const mpres_t S1, const mpres_t S2, mpmod_t modulus)
   SIZ(R) = SIZ(S1) == SIZ(S2) ? n : -n;
 }
 
-/* R <- S * m mod modulus */
+/* R <- S * m mod modulus where m fits in a mp_limb_t */
 void 
-mpresn_mul_ui (mpres_t R, const mpres_t S, const unsigned long m, 
-              mpmod_t modulus)
+mpresn_mul_1 (mpres_t R, const mpres_t S, const mp_limb_t m, mpmod_t modulus)
 {
   mp_ptr t1 = PTR(modulus->temp1);
   mp_size_t n = ABSIZ(modulus->orig_modulus);
