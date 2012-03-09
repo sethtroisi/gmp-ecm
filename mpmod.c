@@ -323,13 +323,6 @@ redc_basecase_n (mp_ptr rp, mp_ptr cp, mp_srcptr np, const mp_size_t nn,
   __gmpn_redc_1 (rp, cp, np, nn, invm[0]);
 #else /* neither HAVE___GMPN_REDC_2 nor HAVE___GMPN_REDC_1 is defined */
   mp_limb_t cy;
-/* ecm_redc3 is assembly code for variable size redc, defined in
-   xxx/redc.asm for xxx={pentium4,athlon,x86_64,powerpc64} */
-#if defined(HAVE_ASM_REDC3)
-  ecm_redc3 (cp, np, nn, invm[0]);
-  /* add vector of carries and shift */
-  cy = mpn_add_n (rp, cp + nn, cp, nn);
-#else
   mp_size_t j;
   
   for (j = 0; j < nn; j++)
@@ -341,7 +334,6 @@ redc_basecase_n (mp_ptr rp, mp_ptr cp, mp_srcptr np, const mp_size_t nn,
     }
   /* add vector of carries and shift */
   cy = mpn_add_n (rp, cp, cp - nn, nn);
-#endif /* HAVE_ASM_REDC3 */
   /* the result of Montgomery's REDC is less than 2^Nbits + N,
      thus at most one correction is enough */
   if (cy != 0)
@@ -657,13 +649,10 @@ ecm_mulredc_basecase_n (mp_ptr rp, mp_srcptr s1p, mp_srcptr s2p,
           __gmpn_redc_2 (rp, tmp, np, nn, invm);
           break;
 #endif /* otherwise go through to the next available mode */
-        case MPMOD_MUL_REDC3: /* mpn_mul_n + ecm_redc3 */
-#if defined(HAVE_ASM_REDC3)
+        case MPMOD_MUL_REDCN: /* mpn_mul_n + __gmpn_redc_n */
+#if defined(HAVE___GMPN_REDC_N)
           mpn_mul_n (tmp, s1p, s2p, nn);
-          ecm_redc3 (tmp, np, nn, invm[0]);
-          cy = mpn_add_n (rp, tmp + nn, tmp, nn);
-          if (cy != 0)
-            mpn_sub_n (rp, rp, np, nn); /* a borrow should always occur here */
+          __gmpn_redc_n (rp, tmp, np, nn, invm);
           break;
 #endif /* otherwise go through to the next available mode */
         case MPMOD_MUL_REDC_C: /* plain C quadratic reduction */
@@ -711,19 +700,16 @@ ecm_sqrredc_basecase_n (mp_ptr rp, mp_srcptr s1p,
           __gmpn_redc_1 (rp, tmp, np, nn, invm[0]);
           break;
 #endif /* otherwise go through to the next available mode */
-        case MPMOD_MUL_REDC2: /* mpn_mul_n + __gmpn_redc_2 */
+        case MPMOD_MUL_REDC2: /* mpn_sqr + __gmpn_redc_2 */
 #if defined(HAVE___GMPN_REDC_2)
           mpn_sqr (tmp, s1p, nn);
           __gmpn_redc_2 (rp, tmp, np, nn, invm);
           break;
 #endif /* otherwise go through to the next available mode */
-        case MPMOD_MUL_REDC3: /* mpn_mul_n + ecm_redc3 */
-#if defined(HAVE_ASM_REDC3)
+        case MPMOD_MUL_REDCN: /* mpn_sqr + __gmpn_redc_n */
+#if defined(HAVE___GMPN_REDC_N)
           mpn_sqr (tmp, s1p, nn);
-          ecm_redc3 (tmp, np, nn, invm[0]);
-          cy = mpn_add_n (rp, tmp + nn, tmp, nn);
-          if (cy != 0)
-            mpn_sub_n (rp, rp, np, nn); /* a borrow should always occur here */
+          __gmpn_redc_n (rp, tmp, np, nn, invm);
           break;
 #endif /* otherwise go through to the next available mode */
         case MPMOD_MUL_REDC_C: /* plain C quadratic reduction */

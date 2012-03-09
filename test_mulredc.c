@@ -241,30 +241,9 @@ void test(mp_size_t N, int k)
         }
     }
     
-    /* Mul followed by ecm_redc3 */
-    mpn_mul_n(tmp, x, yp, N);
-    ecm_redc3(tmp, m, N, invm);
-    cy2 = mpn_add_n (tmp2, tmp + N, tmp, N);
-
     /* Mixed mul and redc */
     cy = call_mulredc (N, z, x, yp, m, invm);
     
-    if (cy != cy2)
-      printf ("i = %d: mulredc cy = %ld, mpn_mul_n/ecm_redc3 cy = %ld\n", 
-              i, (long) cy, (long) cy2);
-    assert (cy == cy2);
-    if (mpn_cmp(z,tmp2, N) != 0)
-      {
-        printf ("i = %d\nmulredc             = ", i);
-        for (j = N - 1; j >= 0; j--)
-          printf ("%lx ", z[j]);
-        printf ("\nmpn_mul_n/ecm_redc3 = ");
-        for (j = N - 1; j >= 0; j--)
-          printf ("%lx ", tmp2[j]);
-        printf ("\n");
-        assert (mpn_cmp(z,tmp2, N) == 0);
-      }
-
     if (cy)
       printf("!");
     z[N] = cy;

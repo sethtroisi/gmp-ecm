@@ -109,17 +109,13 @@ void bench(mp_size_t N)
   unsigned long i;
   const unsigned long iter = LOOPCOUNT/N;
   double t2, t3 = 0., tmul, tsqr, tredc_1, t_mulredc_1;
-  double t_sqrredc_1, t_sqrredc3, tmul_best, tsqr_best;
-  double tredc3, tsvoboda1;
+  double t_sqrredc_1, tmul_best, tsqr_best, tsvoboda1;
   mpz_t M, B;
 #ifdef HAVE___GMPN_REDC_2
   double tredc_2, t_mulredc_2, t_sqrredc_2;
 #endif
 #ifdef HAVE___GMPN_REDC_N
   double tredc_n, t_mulredc_n, t_sqrredc_n;
-#endif
-#if defined(HAVE_ASM_REDC3)
-  double t1;
 #endif
   
   x = (mp_limb_t *) malloc(N*sizeof(mp_limb_t));
@@ -191,17 +187,6 @@ void bench(mp_size_t N)
   for (i = 0; i < iter; ++i)
     __gmpn_redc_2 (z, tmp, m, N, invm);
   tredc_2 = CPUTime()-tredc_2;
-#endif
-
-#ifdef HAVE_ASM_REDC3
-  mpn_mul_n(tmp, x, y, N);
-  tredc3 = CPUTime();
-  for (i = 0; i < iter; ++i)
-    {
-      ecm_redc3 (tmp, m, N, invm[0]);
-      mpn_add_n (tmp, tmp, tmp + N, N);
-    }
-  tredc3 = CPUTime()-tredc3;
 #endif
 
 #ifdef HAVE___GMPN_REDC_N
@@ -379,23 +364,6 @@ void bench(mp_size_t N)
     }
 #endif
   
-  /* Mul followed by ecm_redc3 */
-#ifdef HAVE_ASM_REDC3
-  t1 = CPUTime();
-  for (i = 0; i < iter; ++i) {
-    mpn_mul_n(tmp, x, y, N);
-    ecm_redc3(tmp, m, N, invm[0]);
-    mpn_add_n(z, tmp + N, tmp, N);
-    x[0] += tmp[0];
-  }
-  t1 = CPUTime()-t1;
-  if (t1 < tmul_best)
-    {
-      tune_mul[N] = MPMOD_MUL_REDC3;
-      tmul_best = t1;
-    }
-#endif
-  
   /* Mul followed by mpn_redc_n */
 #ifdef HAVE___GMPN_REDC_N
   t_mulredc_n = CPUTime();
@@ -405,13 +373,11 @@ void bench(mp_size_t N)
       __gmpn_redc_n (z, tmp, m, N, invm);
     }
   t_mulredc_n = CPUTime()-t_mulredc_n;
-#if 0 /* don't activate as long as we don't handle mpn_redc_n in mpmod.c */
   if (t_mulredc_n < tmul_best)
     {
       tune_mul[N] = MPMOD_MUL_REDCN;
       tmul_best = t_mulredc_n;
     }
-#endif
 #endif
   
   /* Sqr followed by mpn_redc_1 */
@@ -446,23 +412,6 @@ void bench(mp_size_t N)
     }
 #endif
   
-  /* Sqr followed by redc3 */
-#if defined(HAVE_ASM_REDC3)
-  t_sqrredc3 = CPUTime();
-  for (i = 0; i < iter; ++i) {
-    mpn_sqr(tmp, x, N);
-    ecm_redc3(tmp, m, N, invm[0]);
-    mpn_add_n(z, tmp + N, tmp, N);
-    x[0] += tmp[0];
-  }
-  t_sqrredc3 = CPUTime()-t_sqrredc3;
-  if (t_sqrredc3 < tsqr_best)
-    {
-      tune_sqr[N] = MPMOD_MUL_REDC3;
-      tsqr_best = t_sqrredc3;
-    }
-#endif
-  
   /* Sqr followed by mpn_redc_n */
 #if defined(HAVE___GMPN_REDC_N)
   t_sqrredc_n = CPUTime();
@@ -472,13 +421,11 @@ void bench(mp_size_t N)
       __gmpn_redc_n (z, tmp, m, N, invm);
     }
   t_sqrredc_n = CPUTime()-t_sqrredc_n;
-#if 0 /* don't activate as long as we don't handle mpn_redc_n in mpmod.c */
   if (t_sqrredc_n < tsqr_best)
     {
       tune_sqr[N] = MPMOD_MUL_REDCN;
       tsqr_best = t_sqrredc_n;
     }
-#endif
 #endif
   
 #if defined(HAVE_NATIVE_MULREDC1_N)
@@ -615,7 +562,6 @@ void bench(mp_size_t N)
   tsqr *= 1000000.;
   tredc_1 *= 1000000.;
   tsvoboda1 *= 1000000.;
-  tredc3  *= 1000000.;
   t2 *= 1000000.;
   printf("******************\nTime in microseconds per call, size=%lu\n", N);
 
@@ -630,9 +576,6 @@ void bench(mp_size_t N)
 #ifdef HAVE___GMPN_REDC_2
   tredc_2 *= 1000000.;
   printf("mpn_redc_2 = %f\n", tredc_2/iter);
-#endif
-#ifdef HAVE_ASM_REDC3
-  printf("ecm_redc3  = %f\n", tredc3/iter);
 #endif
 #ifdef HAVE___GMPN_REDC_N
   tredc_n *= 1000000.;
@@ -649,10 +592,6 @@ void bench(mp_size_t N)
   t_mulredc_2 *= 1000000.;
   printf("mul+redc_2 = %f\n", t_mulredc_2/iter);
 #endif
-#if defined(HAVE_ASM_REDC3)
-  t1 *= 1000000.;
-  printf("mul+redc3  = %f\n", t1/iter);
-#endif
 #if defined(HAVE___GMPN_REDC_N)
   t_mulredc_n *= 1000000.;
   printf("mul+redc_n = %f\n", t_mulredc_n/iter);
@@ -664,10 +603,6 @@ void bench(mp_size_t N)
 #if defined(HAVE___GMPN_REDC_2)
   t_sqrredc_2 *= 1000000.;
   printf("sqr+redc_2 = %f\n", t_sqrredc_2/iter);
-#endif
-#if defined(HAVE_ASM_REDC3)
-  t_sqrredc3 *= 1000000.;
-  printf("sqr+redc3  = %f\n", t_sqrredc3/iter);
 #endif
 #if defined(HAVE___GMPN_REDC_N)
   t_sqrredc_n *= 1000000.;
@@ -697,12 +632,12 @@ int main(int argc, char** argv)
   for (i = minsize; i <= maxsize; ++i)
     bench(i);
 
-  printf ("/* 0:mulredc 1:mul+redc_1 2:mul+redc_2 3:mul+redc3 */\n");
+  printf ("/* 0:mulredc 1:mul+redc_1 2:mul+redc_2 3:mul+redc_n */\n");
   printf ("#define TUNE_MULREDC_TABLE {0");
   for (i = 1; i <= maxsize; i++)
     printf (",%d", tune_mul[i]);
   printf ("}\n");
-  printf ("/* 0:mulredc 1:sqr+redc_1 2:sqr+redc_2 3:sqr+redc3 */\n");
+  printf ("/* 0:mulredc 1:sqr+redc_1 2:sqr+redc_2 3:sqr+redc_n */\n");
   printf ("#define TUNE_SQRREDC_TABLE {0");
   for (i = 1; i <= maxsize; i++)
     printf (",%d", tune_sqr[i]);
