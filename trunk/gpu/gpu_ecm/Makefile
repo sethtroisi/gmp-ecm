@@ -50,10 +50,10 @@ endif
 $(BIN): $(OBJ_FILES)
 	gcc -Wall -fPIC $(mOPTION) -o $@ $^ $(LDFLAGS)
 
-$(OBJDIR)/%.cu.o : %.cu | $(OBJDIR)
+$(OBJDIR)/%.cu.o : %.cu cudakernel.h def.h | $(OBJDIR)
 	nvcc $(KEEP) $(CFLAGS) $(COMPUTECAPABILITY) $(NVCCFLAGS) -o $@ -c $<
 
-$(OBJDIR)/%.c.o : %.c | $(OBJDIR)
+$(OBJDIR)/%.c.o : %.c def.h utils.h | $(OBJDIR)
 	gcc -Wall $(CFLAGS) -o $@ -c $<
 
 $(OBJDIR)/%.o : ../../%.c | $(OBJDIR)
