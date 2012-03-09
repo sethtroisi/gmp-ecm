@@ -634,7 +634,7 @@ ecm_stage1 (mpz_t f, mpres_t x, mpres_t A, mpmod_t n, double B1,
   mpres_set_ui (z, 1, n);
 
   mpres_add_ui (b, A, 2, n);
-  mpres_div_2exp (b, b, 2, n); /* b == (A0+2)*B/4, where B=2^(k*GMP_NUMB_LIMB)
+  mpres_div_2exp (b, b, 2, n); /* b == (A0+2)*B/4, where B=2^(k*GMP_NUMB_BITS)
                                   for MODMULN or REDC, B=1 otherwise */
   /* preload group order */
   if (go != NULL)
@@ -910,7 +910,17 @@ ecm (mpz_t f, mpz_t x, mpz_t sigma, mpz_t n, mpz_t go, double *B1done,
   ECM_STDOUT = (os == NULL) ? stdout : os;
   ECM_STDERR = (es == NULL) ? stdout : es;
 
-  /* in batch mode, we force MODMULN */
+#ifdef MPRESN_NO_ADJUSTMENT
+  /* When no adjustment is made in mpresn_ functions, N should be smaller
+     than B^n/16 */
+  if (mpz_sizeinbase (n, 2) > mpz_size (n) * GMP_NUMB_BITS - 4)
+    {
+      outputf (OUTPUT_ERROR, "Error, N should be smaller than B^n/16\n");
+      return ECM_ERROR;
+    }
+#endif
+
+  /* In batch mode, we force MODMULN */
   if (batch)
     repr = ECM_MOD_MODMULN;
 
@@ -1052,12 +1062,25 @@ ecm (mpz_t f, mpz_t x, mpz_t sigma, mpz_t n, mpz_t go, double *B1done,
     {
       if (mpz_sgn (sigma) == 0)
         {
-          /* We need that d = (A+2)/4 is smaller than 2^GMP_NUMB_BITS */
-          mpz_urandomb (sigma, rng, 32);  /* generates d */
+          int i;
+
+          /* We choose a positive integer d' smaller than B=2^GMP_NUMB_BITS
+             and consider d = d'/B and A = 4d-2 */
+          do
+            mpz_urandomb (sigma, rng, 32);  /* generates d' <> 0 */
+          while (mpz_sgn (sigma) == 0);
+          ASSERT((GMP_NUMB_BITS % 2) == 0);
           if (GMP_NUMB_BITS >= 64)
-            mpz_mul (sigma, sigma, sigma);      /* ensures d is a square,
-                                             which increases the success
-                                             probability */
+            mpz_mul (sigma, sigma, sigma);      /* ensures d' (and thus d) is
+                                                   a square, which increases
+                                                   the success probability */
+          /* divide d' by B to get d */
+          for (i = 0; i < GMP_NUMB_BITS; i++)
+            {
+              if (mpz_tstbit (sigma, 0) == 1)
+                mpz_add (sigma, sigma, n);
+              mpz_div_2exp (sigma, sigma, 1);
+            }
           mpz_mul_2exp (sigma, sigma, 2);           /* 4d */
           mpz_sub_ui (sigma, sigma, 2);             /* 4d-2 */
         }
