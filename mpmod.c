@@ -1007,7 +1007,7 @@ mpmod_init_MODMULN (mpmod_t modulus, const mpz_t N)
   modulus->bits = Nbits;
 
   MPZ_INIT2 (modulus->temp1, 2UL * Nbits + GMP_NUMB_BITS);
-  MPZ_INIT2 (modulus->temp2, Nbits);
+  MPZ_INIT2 (modulus->temp2, Nbits + 1);
   modulus->Nprim = (mp_limb_t*) malloc (mpz_size (N) * sizeof (mp_limb_t));
 
   MPZ_INIT2 (modulus->R2, Nbits);
@@ -2127,12 +2127,20 @@ mpmod_selftest (const mpz_t n)
   return 0;
 }
 
-
-
-
 /****************************************************/
 /* mpresn: modular arithmetic based directly on mpn */
 /****************************************************/
+
+/* We use here a signed word-based redundant representation.
+
+   In case N < B^n/16 (since for redc where we add to the absolute value of
+   the residue), where n is the number of limbs of N in base B (2^32 or 2^64
+   usually), we can prove there is no adjustment (adding or subtracting N),
+   cf http://www.loria.fr/~zimmerma/papers/norm.pdf.
+
+   However current branch predictors are quite good, thus we prefer to keep
+   the tests and to allow any input N (instead of only N < B^n/16).
+*/
 
 /* ensure R has allocated space for at least n limbs,
    and if less than n limbs are used, pad with zeros,
@@ -2182,19 +2190,45 @@ mpresn_mul (mpres_t R, const mpres_t S1, const mpres_t S2, mpmod_t modulus)
   SIZ(R) = SIZ(S1) == SIZ(S2) ? n : -n;
 }
 
-/* R <- S * m mod modulus where m fits in a mp_limb_t */
+/* R <- S*m/B mod modulus where m fits in a mp_limb_t.
+   Here S (w in dup_add_batch1) is the result of a subtraction,
+   thus with the notations from http://www.loria.fr/~zimmerma/papers/norm.pdf
+   we have S < 2 \alpha N.
+   Then R < (2 \alpha N \beta + \beta N) = (2 \alpha + 1) N.
+   This result R is used in an addition with u being the result of a squaring
+   thus u < \alpha N, which gives a result < (3 \alpha + 1) N.
+   Finally this result is used in a multiplication with another operand less
+   than 2 \alpha N, thus we want:
+   ((2 \alpha) (3 \alpha + 1) N^2 + \beta N)/\beta \leq \alpha N, i.e.,
+   2 \alpha (3 \alpha + 1) \varepsilon + 1 \leq \alpha
+   This implies \varepsilon \leq 7/2 - sqrt(3)/2 ~ 0.0359, in which case
+   we can take \alpha = 2/3*sqrt(3)+1 ~ 2.1547.
+   In that case no adjustment is needed in mpresn_mul_1.
+   However we prefer to keep the adjustment here, to allow a larger set of
+   inputs (\varepsilon \leq 1/16 = 0.0625 instead of 0.0359).
+*/
 void 
 mpresn_mul_1 (mpres_t R, const mpres_t S, const mp_limb_t m, mpmod_t modulus)
 {
   mp_ptr t1 = PTR(modulus->temp1);
+  mp_ptr t2 = PTR(modulus->temp2);
   mp_size_t n = ABSIZ(modulus->orig_modulus);
-  mp_limb_t q[2];
+  mp_limb_t q;
 
   ASSERT (SIZ(S) == n || -SIZ(S) == n);
   ASSERT (ALLOC(modulus->temp1) >= n+1);
 
   t1[n] = mpn_mul_1 (t1, PTR(S), n, m);
-  mpn_tdiv_qr (q, PTR(R), 0, t1, n + 1, PTR(modulus->orig_modulus), n);
+  q = t1[0] * modulus->Nprim[0];
+  t2[n] = mpn_mul_1 (t2, PTR(modulus->orig_modulus), n, q);
+#ifdef HAVE___GMPN_ADD_NC
+  q = __gmpn_add_nc (PTR(R), t1 + 1, t2 + 1, n, t1[0] != 0);
+#else
+  mpn_add_nc (PTR(R), t1 + 1, t2 + 1, n);
+  q = mpn_add_1 (PTR(R), PTR(R), n, t1[0] != 0);
+#endif
+  while (q != 0)
+    q -= mpn_sub_n (PTR(R), PTR(R), PTR(modulus->orig_modulus), n);
 
   SIZ(R) = SIZ(S); /* sign is unchanged */
 }
@@ -2209,25 +2243,33 @@ mpresn_add (mpres_t R, const mpres_t S1, const mpres_t S2, mpmod_t modulus)
   mp_ptr s1 = PTR(S1);
   mp_ptr s2 = PTR(S2);
   mp_size_t n = ABSIZ(modulus->orig_modulus);
+  ATTRIBUTE_UNUSED mp_limb_t cy;
 
   ASSERT (SIZ(S1) == n || -SIZ(S1) == n);
   ASSERT (SIZ(S2) == n || -SIZ(S2) == n);
 
   if (SIZ(S1) == SIZ(S2)) /* S1 and S2 are of same sign */
     {
-      mpn_add_n (r, s1, s2, n);
+      cy = mpn_add_n (r, s1, s2, n);
+      /* for N < B^n/16, the while loop will be never performed, which proves
+         it will be performed a small number of times. In practice we
+         observed up to 7 loops, but it happens rarely. */
+#ifndef MPRESN_NO_ADJUSTMENT
+      while (cy != 0)
+        cy -= mpn_sub_n (r, r, PTR(modulus->orig_modulus), n);
+#endif
       SIZ(R) = SIZ(S1);
     }
   else /* different signs */
     {
       if (mpn_cmp (s1, s2, n) >= 0)
         {
-          mpn_sub_n (r, s1, s2, n);
+          mpn_sub_n (r, s1, s2, n); /* no borrow here */
           SIZ(R) = SIZ(S1);
         }
       else
         {
-          mpn_sub_n (r, s2, s1, n);
+          mpn_sub_n (r, s2, s1, n); /* idem */
           SIZ(R) = SIZ(S2);
         }
     }
@@ -2240,27 +2282,33 @@ mpresn_sub (mpres_t R, const mpres_t S1, const mpres_t S2, mpmod_t modulus)
   mp_ptr s1 = PTR(S1);
   mp_ptr s2 = PTR(S2);
   mp_size_t n = ABSIZ(modulus->orig_modulus);
+  ATTRIBUTE_UNUSED mp_limb_t cy;
 
   ASSERT (SIZ(S1) == n || -SIZ(S1) == n);
   ASSERT (SIZ(S2) == n || -SIZ(S2) == n);
 
   if (SIZ(S1) != SIZ(S2)) /* S1 and S2 are of different signs */
     {
-      mpn_add_n (r, s1, s2, n);
+      cy = mpn_add_n (r, s1, s2, n);
+#ifndef MPRESN_NO_ADJUSTMENT
+      while (cy != 0)
+        cy -= mpn_sub_n (r, r, PTR(modulus->orig_modulus), n);
+#endif
       SIZ(R) = SIZ(S1);
     }
   else /* same signs, it's a real subtraction */
     {
       if (mpn_cmp (s1, s2, n) >= 0)
         {
-          mpn_sub_n (r, s1, s2, n);
+          mpn_sub_n (r, s1, s2, n); /* no borrow here */
           SIZ(R) = SIZ(S1);
         }
       else
         {
-          mpn_sub_n (r, s2, s1, n);
+          mpn_sub_n (r, s2, s1, n); /* idem */
           SIZ(R) = -SIZ(S2);
         }
+      
     }
 }
 
@@ -2274,22 +2322,27 @@ mpresn_addsub (mpres_t R, mpres_t T,
   mp_ptr s1 = PTR(S1);
   mp_ptr s2 = PTR(S2);
   mp_size_t n = ABSIZ(modulus->orig_modulus);
+  ATTRIBUTE_UNUSED mp_limb_t cy;
 
   ASSERT (SIZ(S1) == n || -SIZ(S1) == n);
   ASSERT (SIZ(S2) == n || -SIZ(S2) == n);
 
   if (SIZ(S1) == SIZ(S2)) /* S1 and S2 are of same sign */
     {
-      mpn_add_n (r, s1, s2, n);
+      cy = mpn_add_n (r, s1, s2, n);
+#ifndef MPRESN_NO_ADJUSTMENT
+      while (cy != 0)
+        cy -= mpn_sub_n (r, r, PTR(modulus->orig_modulus), n);
+#endif
       SIZ(R) = SIZ(S1);
       if (mpn_cmp (s1, s2, n) >= 0)
         {
-          mpn_sub_n (t, s1, s2, n);
+          mpn_sub_n (t, s1, s2, n); /* no borrow since {s1,n} >= {s2,n} */
           SIZ(T) = SIZ(S1);
         }
       else
         {
-          mpn_sub_n (t, s2, s1, n);
+          mpn_sub_n (t, s2, s1, n); /* idem since {s2,n} >= {s1,n} */
           SIZ(T) = -SIZ(S2);
         }
     }
@@ -2297,15 +2350,19 @@ mpresn_addsub (mpres_t R, mpres_t T,
     {
       if (mpn_cmp (s1, s2, n) >= 0)
         {
-          mpn_sub_n (r, s1, s2, n);
+          mpn_sub_n (r, s1, s2, n); /* no borrow since {s1,n} >= {s2,n} */
           SIZ(R) = SIZ(S1);
         }
       else
         {
-          mpn_sub_n (r, s2, s1, n);
+          mpn_sub_n (r, s2, s1, n); /* idem since {s2,n} >= {s1,n} */
           SIZ(R) = SIZ(S2);
         }
-      mpn_add_n (t, s1, s2, n);
+      cy = mpn_add_n (t, s1, s2, n);
+#ifndef MPRESN_NO_ADJUSTMENT
+      while (cy != 0)
+        cy -= mpn_sub_n (r, r, PTR(modulus->orig_modulus), n);
+#endif
       SIZ(T) = SIZ(S1);
     }
 }

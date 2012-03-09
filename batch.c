@@ -160,11 +160,16 @@ mpresn_print (mpres_t x, mpmod_t n)
    Uses 4 modular multiplies and 4 modular squarings.
    Inputs are x1, z1, x2, z2, d, n.
    Auxiliary variables: q, t, u, v, w.
+
+   In the batch 1 mode, we pass d_prime such that the actual d is d_prime/beta.
+   Since beta is a square, if d_prime is a square (on 64-bit machines),
+   so is d.
+   In mpresn_mul_1, we multiply by d_prime = beta*d and divide by beta.
 */
 static void
 dup_add_batch1 (mpres_t x1, mpres_t z1, mpres_t x2, mpres_t z2,
          mpres_t q, mpres_t t, mpres_t u, mpres_t v, mpres_t w,
-         mp_limb_t d, mpmod_t n)
+         mp_limb_t d_prime, mpmod_t n)
 {
   mpresn_addsub (w, u, x1, z1, n); /* w = x1+/-z1 */
   mpresn_addsub (t, v, x2, z2, n); /* t = x2+/-z2 */
@@ -178,7 +183,7 @@ dup_add_batch1 (mpres_t x1, mpres_t z1, mpres_t x2, mpres_t z2,
 
   mpresn_sub (w, w, u, n);   /* w = (x1+z1)^2 - (x1-z1)^2 */
 
-  mpresn_mul_1 (q, w, d, n); /* q = d * ((x1+z1)^2 - (x1-z1)^2) */
+  mpresn_mul_1 (q, w, d_prime, n); /* q = d * ((x1+z1)^2 - (x1-z1)^2) */
 
   mpresn_add (u, u, q, n);  /* u = (x1-z1)^2 - d* ((x1+z1)^2 - (x1-z1)^2) */
   mpresn_mul (z1, w, u, n); /* zdup = w * [(x1-z1)^2 - d* ((x1+z1)^2 - (x1-z1)^2)] */
@@ -277,39 +282,38 @@ ecm_stage1_batch (mpz_t f, mpres_t x, mpres_t A, mpmod_t n, double B1,
   mpres_set (x1, x, n);
   mpres_set_ui (z1, 1, n); /* P1 <- 1P */
 
-  /* Compute d=(A+2)/4 from A */
+  /* Compute d=(A+2)/4 from A and d'=B*d thus d' = 2^(GMP_NUMB_BITS-2)*(A+2) */
   if (batch == 1)
   {
       mpres_get_z (u, A, n);
       mpz_add_ui (u, u, 2);
-      if (mpz_fdiv_ui (u, 4) != 0)
-        {
-          outputf (OUTPUT_ERROR, "Error, A+2 should be divisible by 4\n");
-          return ECM_ERROR;
-        }
-      mpz_div_2exp (u, u, 2);
-      mpres_set_z_for_gcd (u, u, n);
+      mpz_mul_2exp (u, u, GMP_NUMB_BITS - 2);
+      mpres_set_z_for_gcd (u, u, n); /* reduces u mod n */
       if (mpz_size (u) > 1)
         {
           mpres_get_z (u, A, n);
           outputf (OUTPUT_ERROR,
-               "Error, d=(A+2)/4 should fit in a mp_limb_t, A=%Zd\n", u);
+               "Error, d'=B*(A+2)/4 should fit in a mp_limb_t, A=%Zd\n", u);
           return ECM_ERROR;
         }
       d_1 = mpz_getlimbn (u, 0);
     }
   else
     {
-      /* b ==(A0+2)*B/4, where B=2^(k*GMP_NUMB_LIMB)
-         for MODMULN or REDC, B=1 otherwise */
+      /* b = (A0+2)*B/4, where B=2^(k*GMP_NUMB_BITS)
+         for MODMULN or REDC, B=2^GMP_NUMB_BITS for batch1,
+         and B=1 otherwise */
       mpres_add_ui (d_2, A, 2, n);
       mpres_div_2exp (d_2, d_2, 2, n); 
     }
 
   /* Compute 2P : no need to duplicate P, the coordinates are simple. */
   mpres_set_ui (x2, 9, n);
-  if (batch == 1)
+  if (batch == 1) /* here d = d_1 / GMP_NUMB_BITS */
+    {
       mpres_set_ui (z2, d_1, n);
+      mpres_div_2exp (z2, z2, GMP_NUMB_BITS, n);
+    }
   else
       mpres_set (z2, d_2, n);
  
@@ -323,7 +327,7 @@ ecm_stage1_batch (mpz_t f, mpres_t x, mpres_t A, mpmod_t n, double B1,
   mpresn_pad (z1, n);
   mpresn_pad (x2, n);
   mpresn_pad (z2, n);
-  if ( batch  == 2)
+  if (batch == 2)
       mpresn_pad (d_2, n);
 
   /* now perform the double-and-add ladder */
