@@ -1,10 +1,10 @@
-/* created 06 Feb 2012 on confit.loria.fr (Intel(R) Core(TM) i5-2500 CPU)
-   for svn revision 1721 with GMP 5.0.4 and gcc 4.6.1 */
+/* updated 09 Mar 2012 on confit.loria.fr (Intel(R) Core(TM) i5-2500 CPU)
+   for svn revision 1724 with GMP 5.0.4 and gcc 4.6.1 */
 
-/* 0:mulredc 1:mul+redc_1 2:mul+redc_2 3:mul+redc3 */
-#define TUNE_MULREDC_TABLE {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0}
-/* 0:mulredc 1:sqr+redc_1 2:sqr+redc_2 3:sqr+redc3 */
-#define TUNE_SQRREDC_TABLE {0,0,0,0,0,0,0,0,1,3,3,1,1,3,1,1,1,1,1,1,1}
+/* 0:mulredc 1:mul+redc_1 2:mul+redc_2 3:mul+redc_n */
+#define TUNE_MULREDC_TABLE {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0}
+/* 0:mulredc 1:sqr+redc_1 2:sqr+redc_2 3:sqr+redc_n */
+#define TUNE_SQRREDC_TABLE {0,0,0,0,0,0,0,0,1,1,1,1,1,1,1,1,1,1,1,2,2}
 
 #define MPZMOD_THRESHOLD 77
 #define REDC_THRESHOLD 512
