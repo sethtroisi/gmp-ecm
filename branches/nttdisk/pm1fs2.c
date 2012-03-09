@@ -266,7 +266,12 @@ list_sqr_reciprocal (listz_t R, listz_t S, const uint64_t l,
       mpz_set (R[i], r1[i]);
 
   if (R != S)
-    mpz_mul_2exp (S[0], S[0], 1UL);
+    {
+      mpz_mul_2exp (S[0], S[0], 1UL);
+      if (mpz_cmp(S[0], modulus) >= 0)
+        mpz_sub(S[0], S[0], modulus);
+      ASSERT_ALWAYS (mpz_cmp(S[0], modulus) < 0);
+    }
 	
 #if 0
   for (i = 0; i < 2UL * l; i++)
@@ -1116,8 +1121,11 @@ list_scale_V2 (listz_t R, const listz_t F, const mpres_t Q,
   if (ntt_context != NULL)
     ntt_sqr_reciprocal (G, F, dct, dct_files, deg + 1, ntt_context);
   else
-    list_sqr_reciprocal (G, F, deg + 1, modulus->orig_modulus, 
-                         newtmp, newtmplen);
+    {
+      list_sqr_reciprocal (G, F, deg + 1, modulus->orig_modulus, 
+                           newtmp, newtmplen);
+      list_mod (G, G, 2*deg + 1, modulus->orig_modulus);
+    }
 
   outputf (OUTPUT_TRACE, "G(x) = F(x)^2;/* PARI list_scale_V2 */\n");
   list_output_poly (G, 2 * deg + 1, 0, 1, "G(x) == ", 
@@ -1172,8 +1180,11 @@ list_scale_V2 (listz_t R, const listz_t F, const mpres_t Q,
   if (ntt_context != NULL)
     ntt_sqr_reciprocal (H, H, dct, dct_files, deg + 1, ntt_context);
   else
-    list_sqr_reciprocal (H, H, deg + 1, modulus->orig_modulus, 
-  		         newtmp, newtmplen);
+    {
+      list_sqr_reciprocal (H, H, deg + 1, modulus->orig_modulus, 
+		           newtmp, newtmplen);
+      list_mod (H, H, 2 * deg + 1, modulus->orig_modulus);
+    }
 
   list_output_poly (H, 2*deg + 1, 0, 1, "H(x)^2 == ", 
                     " /* PARI list_scale_V2 */\n", OUTPUT_TRACE);
