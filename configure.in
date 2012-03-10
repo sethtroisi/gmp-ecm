@@ -448,6 +448,17 @@ AC_PREPROC_IFELSE([AC_LANG_SOURCE([[
    AC_MSG_ERROR([GMP 5.0.0 or newer is required])]
 )
 
+dnl Figure out if GMP is MPIR
+AC_MSG_CHECKING([for MPIR])
+AC_PREPROC_IFELSE([AC_LANG_SOURCE([[
+#include <gmp.h>
+#ifndef __MPIR_VERSION
+#error
+#IRIXdoesnotexitaterrordirective
+#endif
+]])],
+  [AC_DEFINE([HAVE_MPIR],1,[Define to 1 if GMP is MPIR])])
+
 dnl Now choose how to link the GMP library. If we can, we'd prefer to
 dnl link it statically since that makes for faster function calls. To
 dnl link it statically, we mustn't build a dynamic GMP-ECM library and
