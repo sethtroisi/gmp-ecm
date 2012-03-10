@@ -328,7 +328,7 @@ ecm_stage1_batch (mpz_t f, mpres_t x, mpres_t A, mpmod_t n, double B1,
   mpresn_pad (x2, n);
   mpresn_pad (z2, n);
   if (batch == 2)
-      mpresn_pad (d_2, n);
+    mpresn_pad (d_2, n);
 
   /* now perform the double-and-add ladder */
   if (batch == 1)
@@ -357,6 +357,9 @@ ecm_stage1_batch (mpz_t f, mpres_t x, mpres_t A, mpmod_t n, double B1,
     }
 
   *B1done=B1;
+
+  mpresn_unpad (x1);
+  mpresn_unpad (z1);
 
   if (!mpres_invert (u, z1, n)) /* Factor found? */
     {
