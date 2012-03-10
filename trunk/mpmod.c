@@ -2029,7 +2029,7 @@ mpres_invert (mpres_t R, const mpres_t S, mpmod_t modulus)
 
   if (mpz_invert (modulus->temp2, S, modulus->orig_modulus) == 0)
     return 0;
-
+  
   if (modulus->repr == ECM_MOD_MPZ || modulus->repr == ECM_MOD_BASE2)
     {
       mpz_set (R, modulus->temp2);
@@ -2145,6 +2145,16 @@ mpresn_pad (mpres_t R, mpmod_t N)
       MPN_ZERO (PTR(R) + rn, n - rn);
       SIZ(R) = SIZ(R) >= 0 ? n : -n;
     }
+}
+
+void
+mpresn_unpad (mpres_t R)
+{
+  mp_size_t n = ABSIZ(R);
+
+  while (n > 0 && PTR(R)[n-1] == 0)
+    n--;
+  SIZ(R) = SIZ(R) >= 0 ? n : -n;
 }
 
 /* R <- S1 * S1 mod N, used only for ECM_MOD_MODMULN */
