@@ -649,6 +649,8 @@ void mpresn_mul (mpres_t, const mpres_t, const mpres_t, mpmod_t);
 void mpresn_addsub (mpres_t, mpres_t, const mpres_t, const mpres_t, mpmod_t);
 #define mpresn_pad __ECM(mpresn_pad)
 void mpresn_pad (mpres_t R, mpmod_t N);
+#define mpresn_unpad __ECM(mpresn_unpad)
+void mpresn_unpad (mpres_t R);
 #define mpresn_sqr __ECM(mpresn_sqr)
 void mpresn_sqr (mpres_t, const mpres_t, mpmod_t);
 #define mpresn_add __ECM(mpresn_add)
