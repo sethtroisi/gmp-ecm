@@ -35,6 +35,10 @@
 
 static size_t seek_and_read_sp (void *, size_t, size_t, FILE *);
 static size_t seek_and_write_sp (const void *, size_t, size_t, FILE *);
+static void  mpzspv_seek_and_read (mpzspv_t, spv_size_t, FILE **, size_t, 
+    size_t, mpzspm_t);
+static void mpzspv_seek_and_write (mpzspv_t, spv_size_t, FILE **, size_t, 
+    size_t, mpzspm_t);
 
 
 mpzspv_t
@@ -185,22 +189,26 @@ mpzspv_reverse (mpzspv_t x, spv_size_t offset, spv_size_t len, mpzspm_t mpzspm)
     }
 }
 
-/* convert mpzvi to CRT representation, naive version */
+/* convert mpz to CRT representation, naive version */
 static void
-mpzspv_from_mpzv_slow (mpzspv_t x, const spv_size_t offset, mpz_t mpzvi,
-                       mpzspm_t mpzspm, 
-		       ATTRIBUTE_UNUSED mpz_t rem,
-		       unsigned int sp_num)
+mpzspv_from_mpzv_slow (mpzspv_t x, const spv_size_t offset, const mpz_t mpz, 
+                       mpzspm_t mpzspm, ATTRIBUTE_UNUSED mpz_t rem,
+		       const unsigned int sp_num)
 {
   unsigned int j;
 
-  for (j = 0; j < sp_num; j++)
+  if (mpz_sgn (mpz) == 0)
+    {
+      for (j = 0; j < sp_num; j++)
+        x[j][offset] = 0;
+    }
+  else for (j = 0; j < sp_num; j++)
     { 
 #if SP_TYPE_BITS > GMP_LIMB_BITS
-      mpz_tdiv_r(rem, mpzvi, mpzspm->spm[j]->mp_sp);
+      mpz_tdiv_r(rem, mpz, mpzspm->spm[j]->mp_sp);
       x[j][offset] = mpz_get_sp(rem);
 #else
-      x[j][offset] = mpn_mod_1 (PTR(mpzvi), SIZ(mpzvi),
+      x[j][offset] = mpn_mod_1 (PTR(mpz), SIZ(mpz),
                               (mp_limb_t) mpzspm->spm[j]->sp);
 #endif
     }
@@ -285,20 +293,11 @@ mpzspv_from_mpzv (mpzspv_t x, const spv_size_t offset, const mpzv_t mpzv,
 #endif
     for (i = 0; i < (long) len; i++)
     {
-      unsigned int j;
-      if (mpz_sgn (mpzv[i]) == 0)
-	{
-	  for (j = 0; j < sp_num; j++)
-	    x[j][i + offset] = 0;
-	}
+      ASSERT(mpz_sgn (mpzv[i]) > 0); /* We can't handle negative values */
+      if (mpzspm->T == NULL)
+        mpzspv_from_mpzv_slow (x, i + offset, mpzv[i], mpzspm, rem, sp_num);
       else
-        {
-	  ASSERT(mpz_sgn (mpzv[i]) > 0); /* We can't handle negative values */
-          if (mpzspm->T == NULL)
-            mpzspv_from_mpzv_slow (x, i + offset, mpzv[i], mpzspm, rem, sp_num);
-          else
-            mpzspv_from_mpzv_fast (x, i + offset, mpzv[i], mpzspm, rem, sp_num);
-	}
+        mpzspv_from_mpzv_fast (x, i + offset, mpzv[i], mpzspm, rem, sp_num);
     }
     mpz_clear(rem);
 
@@ -342,16 +341,7 @@ mpzspv_from_mpzv_file (mpzspv_t tmp, const spv_size_t offset,
       } else {
         mpzp = &mpzv[len_done + i];
       }
-      if (mpz_sgn (*mpzp) == 0)
-        {
-          unsigned int j;
-          for (j = 0; j < sp_num; j++)
-            tmp[j][i] = 0;
-        }
-      else
-        {
-          mpzspv_from_mpzv_slow (tmp, i, *mpzp, mpzspm, rem, sp_num);
-        }
+      mpzspv_from_mpzv_slow (tmp, i, *mpzp, mpzspm, rem, sp_num);
     }
 
     /* Write x to disk files */
@@ -375,6 +365,32 @@ mpzspv_from_mpzv_file (mpzspv_t tmp, const spv_size_t offset,
  *
  * memory: mpzspm->sp_num floats */
 
+static inline void
+mpzspv_to_mpz(mpz_t res, mpzspv_t x, const spv_size_t offset, 
+              mpzspm_t mpzspm, mpz_t mt)
+{
+  unsigned int i;
+  float f = 0.5;
+  mpz_set_ui (res, 0);
+
+  for (i = 0; i < mpzspm->sp_num; i++)
+    {
+      const sp_t t = sp_mul (x[i][offset], mpzspm->crt3[i], 
+          mpzspm->spm[i]->sp, mpzspm->spm[i]->mul_c);
+
+#if SP_TYPE_BITS > GMP_LIMB_BITS
+      mpz_set_sp (mt, t);
+      mpz_addmul (res, mpzspm->crt1[i], mt);
+#else
+      mpz_addmul_ui (res, mpzspm->crt1[i], t);
+#endif
+
+      f += (float) t * mpzspm->prime_recip[i];
+    }
+
+  mpz_add (res, res, mpzspm->crt2[(unsigned int) f]);
+}
+
 void
 mpzspv_to_mpzv (mpzspv_t x, spv_size_t offset, mpzv_t mpzv,
     spv_size_t len, mpzspm_t mpzspm)
@@ -388,20 +404,9 @@ mpzspv_to_mpzv_file (mpzspv_t x, const spv_size_t offset,
     FILE **sp_files, mpzv_t mpzv, FILE * const mpz_file, 
     const spv_size_t len, const spv_size_t blocklen, mpzspm_t mpzspm)
 {
-  unsigned int i;
   spv_size_t len_done = 0;
-  float *prime_recip = (float *) malloc (mpzspm->sp_num * sizeof (float));
-  spm_t *spm = mpzspm->spm;
-#if SP_TYPE_BITS > GMP_LIMB_BITS
   mpz_t mt;
-#endif
 
-  if (prime_recip == NULL)
-    {
-      fprintf (stderr, "Cannot allocate memory in mpzspv_to_mpzv_file()\n");
-      exit (1);
-    }
-  
   if (!sp_files) {
     ASSERT (mpzspv_verify (x, offset, len, mpzspm));
   } else {
@@ -411,24 +416,6 @@ mpzspv_to_mpzv_file (mpzspv_t x, const spv_size_t offset,
 #if SP_TYPE_BITS > GMP_LIMB_BITS
   mpz_init (mt);
 #endif
-  for (i = 0; i < mpzspm->sp_num; i++)
-    {
-      /* Maybe this should be stored permanently in mpzspm_t */
-      prime_recip[i] = 1.0f / (float) spm[i]->sp;
-    }
-
-  if (sp_files != NULL) 
-    {
-      for (i = 0; i < mpzspm->sp_num; i++)
-        {
-          if (fseek (sp_files[i], offset * sizeof(sp_t), SEEK_SET) != 0)
-            {
-              fprintf (stderr, "mpzspv_to_mpzv_file(): fseek() returned error %d\n", 
-                       errno);
-              abort ();
-            }
-        }
-    }
 
   while (len_done < len) 
     {
@@ -436,33 +423,13 @@ mpzspv_to_mpzv_file (mpzspv_t x, const spv_size_t offset,
       spv_size_t l;
       
       if (sp_files != NULL) {
-        for (i = 0; i < mpzspm->sp_num; i++) {
-          fread (x[i] + offset, sizeof(sp_t), len_now, sp_files[i]);
-        }
+        mpzspv_seek_and_read (x, offset, sp_files, offset + len_done, len_now, mpzspm);
       }
       
       for (l = 0; l < len_now; l++)
         {
-          float f = 0.5;
-          mpz_set_ui (mpzv[len_done + l], 0);
-      
-          for (i = 0; i < mpzspm->sp_num; i++)
-            {
-              const sp_t t = sp_mul (x[i][l + offset], mpzspm->crt3[i], 
-                  spm[i]->sp, spm[i]->mul_c);
-
-#if SP_TYPE_BITS > GMP_LIMB_BITS
-              mpz_set_sp (mt, t);
-              mpz_addmul (mpzv[len_done + l], mpzspm->crt1[i], mt);
-#else
-              mpz_addmul_ui (mpzv[len_done + l], mpzspm->crt1[i], t);
-#endif
-
-              f += (float) t * prime_recip[i];
-            }
-
-          mpz_add (mpzv[len_done + l], mpzv[len_done + l], mpzspm->crt2[(unsigned int) f]);
-
+          mpzspv_to_mpz(mpzv[len_done + l], x, l + offset, mpzspm, mt);
+          
           /* Write this mpz_t to file, if requested */
           if (mpz_file != NULL) {
             if (mpz_out_raw(mpz_file, mpzv[len_done + l]) == 0) {
@@ -475,7 +442,97 @@ mpzspv_to_mpzv_file (mpzspv_t x, const spv_size_t offset,
 #if SP_TYPE_BITS > GMP_LIMB_BITS
   mpz_clear (mt);
 #endif
-  free(prime_recip);
+}
+
+
+void
+mpzspv_fromto_mpzv_file (mpzspv_t x, const spv_size_t offset, 
+    FILE **sp_files, const spv_size_t len, 
+    mpz_producerfunc_t producer, void * producer_state, 
+    mpz_consumerfunc_t consumer, void * consumer_state,
+    mpzspm_t mpzspm)
+{
+  const unsigned int sp_num = mpzspm->sp_num;
+  spv_size_t blocksize = 16384, len_done = 0, buffer_offset = 0;
+  mpzspv_t buffer;
+  mpz_t mpz1, mpz2, mt;
+
+  ASSERT (sizeof (mp_limb_t) >= sizeof (sp_t));
+
+  mpz_init(mpz1);
+  mpz_init(mpz2);
+  mpz_init(mt);
+
+  if (x != NULL)
+    {
+      blocksize = len; /* Do whole thing at once */
+      buffer = x;
+      buffer_offset = offset;
+    }
+  else
+    {
+      /* Do piecewise, using a temp buffer */
+      buffer = mpzspv_init (blocksize, mpzspm);
+      if (buffer == NULL)
+        {
+          abort();
+        }
+    }
+
+  while (len_done < len)
+  {
+    const spv_size_t len_now = MIN(len - len_done, blocksize);
+    spv_size_t i;
+
+    /* Read x from disk files */
+    if (consumer != NULL && sp_files != NULL) {
+      mpzspv_seek_and_read (buffer, buffer_offset, sp_files, 
+                            offset + len_done, len_now, mpzspm);
+    }
+
+    for (i = 0; i < len_now; i++)
+      {
+        if (producer != NULL)
+          {
+            /* Get new mpz1 from producer */
+            (*producer)(producer_state, mpz1);
+          }
+        
+        if (consumer != NULL)
+          {
+            /* Convert NTT entry to mpz2 */
+            mpzspv_to_mpz (mpz2, buffer, buffer_offset + i, mpzspm, mt);
+            mpz_mod (mpz2, mpz2, mpzspm->modulus);
+            /* Give mpz2 to consumer */
+            (*consumer)(consumer_state, mpz2);
+          }
+        
+        if (producer != NULL)
+          {
+            /* Convert the mpz1 we got from producer to NTT */
+            mpzspv_from_mpzv_slow (buffer, buffer_offset + i, mpz1, mpzspm, 
+                                   mt, sp_num);
+          }
+      }
+
+    /* Write x to disk files */
+    if (producer != NULL && sp_files != NULL) {
+      mpzspv_seek_and_write (buffer, buffer_offset, sp_files, offset + len_done, 
+                             len_now, mpzspm);
+    }
+    len_done += len_now;
+    /* If we write NTT data to memory, we need to advance the offset to fill 
+       the entire array. If we use a temp buffer, we reuse the same buffer 
+       each time */
+    if (x != NULL)
+      buffer_offset += len_now;
+  }
+  mpz_clear(mpz1);
+  mpz_clear(mpz2);
+  mpz_clear(mt);
+
+  if (x == NULL)
+    mpzspv_clear (buffer, mpzspm);
 }
 
 
@@ -737,6 +794,16 @@ seek_and_read_sp (void *ptr, const size_t nread, const size_t offset, FILE *f)
   return r;
 }
 
+static void 
+mpzspv_seek_and_read (mpzspv_t dst, spv_size_t offset, FILE **sp_files, 
+                      const size_t fileoffset, size_t nread, mpzspm_t mpzspm)
+{
+  unsigned int j;
+  for (j = 0; j < mpzspm->sp_num; j++)
+  {
+    seek_and_read_sp (dst[j] + offset, nread, fileoffset, sp_files[j]);
+  }
+}
 
 static size_t 
 seek_and_write_sp (const void *ptr, const size_t nwrite, const size_t offset, FILE *f)
@@ -761,6 +828,17 @@ seek_and_write_sp (const void *ptr, const size_t nwrite, const size_t offset, FI
   return r;
 }
 
+
+static void 
+mpzspv_seek_and_write (mpzspv_t src, spv_size_t offset, FILE **sp_files, 
+                       const size_t fileoffset, size_t nwrite, mpzspm_t mpzspm)
+{
+  unsigned int j;
+  for (j = 0; j < mpzspm->sp_num; j++)
+  {
+    seek_and_write_sp (src[j] + offset, nwrite, fileoffset, sp_files[j]);
+  }
+}
 
 static void
 mul_dct_file (const spv_t r, const spv_t spv, FILE *dct_file, 

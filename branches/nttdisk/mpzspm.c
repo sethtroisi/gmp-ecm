@@ -262,6 +262,7 @@ mpzspm_init (spv_size_t max_len, mpz_t modulus)
   mpzspm->crt3 = (spv_t) malloc (mpzspm->sp_num * sizeof (sp_t));
   mpzspm->crt4 = (spv_t *) malloc (mpzspm->sp_num * sizeof (spv_t));
   mpzspm->crt5 = (spv_t) malloc (mpzspm->sp_num * sizeof (sp_t));
+  mpzspm->prime_recip = (float *) malloc (mpzspm->sp_num * sizeof (float));
   if (mpzspm->crt1 == NULL || mpzspm->crt2 == NULL || mpzspm->crt3 == NULL ||
       mpzspm->crt4 == NULL || mpzspm->crt5 == NULL)
     {
@@ -307,6 +308,8 @@ mpzspm_init (spv_size_t max_len, mpz_t modulus)
       mpz_set_sp (mp, p);
       mpz_fdiv_r (mt, T, mp);
       mpzspm->crt5[i] = mpz_get_sp (mt);
+
+      mpzspm->prime_recip[i] = 1.0f / (float) p;
     }
   
   mpz_set_ui (T, 0);
@@ -342,6 +345,7 @@ mpzspm_init (spv_size_t max_len, mpz_t modulus)
   free (mpzspm->crt3);
   free (mpzspm->crt4);
   free (mpzspm->crt5);
+  free (mpzspm->prime_recip);
   
   error_clear_mpzspm_spm:
   for (i = 0; i < mpzspm->sp_num; i++)

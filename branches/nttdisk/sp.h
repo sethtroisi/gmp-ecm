@@ -203,6 +203,7 @@ typedef struct
     /* precomputed crt constants, see mpzspm.c */
     mpzv_t crt1, crt2;
     sp_t *crt3, **crt4, *crt5;
+    float *prime_recip;
 
     /* product tree to speed up conversion from mpz to sp */
     mpzv_t *T;            /* product tree */
@@ -217,6 +218,10 @@ typedef __mpzspm_struct * mpzspm_t;
 
 typedef spv_t * mpzspv_t;
 
+/* Producer function */
+typedef void (*mpz_producerfunc_t)(void *, mpz_t);
+/* Consumer function */
+typedef void (*mpz_consumerfunc_t)(void *, const mpz_t);
 
 /*************
  * FUNCTIONS *
@@ -603,6 +608,8 @@ void mpzspv_add (mpzspv_t, spv_size_t, mpzspv_t, spv_size_t, mpzspv_t,
 void mpzspv_to_mpzv (mpzspv_t, spv_size_t, mpzv_t, spv_size_t, mpzspm_t);
 void mpzspv_to_mpzv_file (mpzspv_t, spv_size_t, FILE **sp_files, const mpzv_t, 
      FILE *, spv_size_t, spv_size_t, mpzspm_t);
+void mpzspv_fromto_mpzv_file (mpzspv_t, spv_size_t, FILE **, spv_size_t, 
+    mpz_producerfunc_t, void *, mpz_consumerfunc_t, void *, mpzspm_t mpzspm);
 void mpzspv_normalise (mpzspv_t, spv_size_t, spv_size_t, mpzspm_t);
 void mpzspv_pwmul (mpzspv_t, spv_size_t, mpzspv_t, spv_size_t, mpzspv_t, 
     spv_size_t, spv_size_t, mpzspm_t);
