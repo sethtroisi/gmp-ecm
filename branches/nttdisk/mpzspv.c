@@ -293,7 +293,7 @@ mpzspv_from_mpzv (mpzspv_t x, const spv_size_t offset, const mpzv_t mpzv,
 #endif
     for (i = 0; i < (long) len; i++)
     {
-      ASSERT(mpz_sgn (mpzv[i]) > 0); /* We can't handle negative values */
+      ASSERT(mpz_sgn (mpzv[i]) >= 0); /* We can't handle negative values */
       if (mpzspm->T == NULL)
         mpzspv_from_mpzv_slow (x, i + offset, mpzv[i], mpzspm, rem, sp_num);
       else
