@@ -311,7 +311,10 @@ ecm_stage1_batch (mpz_t f, mpres_t x, mpres_t A, mpmod_t n, double B1,
   mpres_set_ui (x2, 9, n);
   if (batch == 1) /* here d = d_1 / GMP_NUMB_BITS */
     {
-      mpres_set_ui (z2, d_1, n);
+      /* warning: mpres_set_ui takes an unsigned long which has only 32 bits
+         on Windows, while d_1 might have 64 bits */
+      ASSERT_ALWAYS (mpz_size (u) == 1 && mpz_getlimbn (u, 0) == d_1);
+      mpres_set_z (z2, u, n);
       mpres_div_2exp (z2, z2, GMP_NUMB_BITS, n);
     }
   else
