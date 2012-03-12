@@ -42,8 +42,8 @@ ordpow (const sp_t q, sp_t a, const sp_t sp, const sp_t mul_c)
 }
 
 /* initialize roots of unity and twiddle factors for one NTT.
-   If sucessful, returns 1.
-   If unsucessful, returns 0 (and frees allocated memory) */
+   If successful, returns 1.
+   If unsuccessful, returns 0 (and frees allocated memory) */
 static int
 nttdata_init (const sp_t sp, const sp_t mul_c, 
 		const sp_t prim_root, const spv_size_t log2_len,
