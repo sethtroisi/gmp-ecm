@@ -1,7 +1,7 @@
 #include "config.h"
 #include <stdio.h>
 #include <stdlib.h>
-#include <float.h> /* for DBL_MAX */
+#include <limits.h> /* for LONG_MAX */
 #include <assert.h>
 #include <time.h>
 #include <string.h>
@@ -51,27 +51,65 @@ void __gmpn_redc_n (mp_ptr, mp_ptr, mp_srcptr, mp_size_t, mp_srcptr);
 #endif
 #endif
 
-double CPUTime()
+/* cputime () gives the elapsed time in milliseconds */
+
+#if defined (_WIN32)
+/* First case - GetProcessTimes () is the only known way of getting process
+ * time (as opposed to calendar time) under mingw32 */
+
+#include <windows.h>
+
+long
+cputime ()
 {
-  double ret;
-#if HAVE_GETRUSAGE
-  struct rusage usage;
-  getrusage(RUSAGE_SELF, &usage);
-  ret = (double) usage.ru_utime.tv_sec + 
-        (double) usage.ru_utime.tv_usec / 1000000.;
-#elif defined(USE_CLOCK)
-  clock_t t;
+  FILETIME lpCreationTime, lpExitTime, lpKernelTime, lpUserTime;
+  ULARGE_INTEGER n;
 
-  t = clock();
-  ret = (double)t / (double)CLOCKS_PER_SEC;
-#else
-  struct tms t; 
+  HANDLE hProcess = GetCurrentProcess();
+  
+  GetProcessTimes (hProcess, &lpCreationTime, &lpExitTime, &lpKernelTime,
+      &lpUserTime);
 
-  times(&t);
-  ret = t.tms_utime * 1. / HZ;
-#endif
-  return ret;
+  /* copy FILETIME to a ULARGE_INTEGER as recommended by MSDN docs */
+  n.u.LowPart = lpUserTime.dwLowDateTime;
+  n.u.HighPart = lpUserTime.dwHighDateTime;
+
+  /* lpUserTime is in units of 100 ns. Return time in milliseconds */
+  return (long) (n.QuadPart / 10000);
 }
+
+#elif defined (HAVE_GETRUSAGE)
+/* Next case: getrusage () has higher resolution than clock () and so is
+   preferred. */
+
+#ifdef HAVE_SYS_TYPES_H
+# include <sys/types.h>
+#endif
+#ifdef HAVE_SYS_RESOURCE_H
+# include <sys/resource.h>
+#endif
+
+long
+cputime ()
+{
+  struct rusage rus;
+
+  getrusage (RUSAGE_SELF, &rus);
+  /* This overflows a 32 bit signed int after 2147483s = 24.85 days */
+  return rus.ru_utime.tv_sec * 1000L + rus.ru_utime.tv_usec / 1000L;
+}
+
+#else
+/* Resort to clock (), which on some systems may return calendar time. */
+
+long
+cputime ()
+{
+  /* Return time in milliseconds */
+  return (long) (clock () * (1000. / (double) CLOCKS_PER_SEC));
+}
+
+#endif /* defining cputime () */
 
 void mp_print(mp_limb_t *x, int N) {
   int i;
@@ -110,21 +148,21 @@ void bench(mp_size_t N)
 {
   mp_limb_t *x, *y, *z, *m, *invm, *tmp, *svoboda1;
   unsigned long i;
-  const unsigned long iter = LOOPCOUNT/N;
-  double tmul, tsqr, tredc_1, t_mulredc_1, tsvoboda1 = 0.0;
-  double t_sqrredc_1, tmul_best = DBL_MAX, tsqr_best = DBL_MAX;
+  unsigned long iter;
+  long tmul, tsqr, tredc_1, t_mulredc_1, tsvoboda1 = 0, t_sqrredc_1;
+  long tmul_best = LONG_MAX, tsqr_best = LONG_MAX, tredc_best = LONG_MAX;
   mpz_t M, B;
 #ifdef USE_ASM_REDC
-  double t2;
+  long t2;
 #endif
 #ifdef HAVE_NATIVE_MULREDC1_N
-  double t3 = 0.0;
+  long t3 = 0;
 #endif
 #ifdef HAVE___GMPN_REDC_2
-  double tredc_2, t_mulredc_2, t_sqrredc_2;
+  long tredc_2, t_mulredc_2, t_sqrredc_2;
 #endif
 #ifdef HAVE___GMPN_REDC_N
-  double tredc_n, t_mulredc_n, t_sqrredc_n;
+  long tredc_n, t_mulredc_n, t_sqrredc_n;
 #endif
   
   x = (mp_limb_t *) malloc(N*sizeof(mp_limb_t));
@@ -163,52 +201,73 @@ void bench(mp_size_t N)
   mpn_random(x, N);
   mpn_random(y, N);
 
-  tmul = CPUTime();
+  /* we set 'iter' to get about 100ms for each test */
+  tmul = cputime();
+  i = 0;
+  iter = 1;
+  do
+    {
+      iter = 2 * iter;
+      for (; i < iter; i++)
+        mpn_mul_n (tmp, x, y, N);
+    }
+  while (cputime() - tmul < 100);
+  iter = (long) (((double) iter * 100.0) / (double) (cputime() - tmul));
+
+  tmul = cputime();
   for (i = 0; i < iter; ++i)
     mpn_mul_n(tmp, x, y, N);
-  tmul = CPUTime()-tmul;
+  tmul = cputime()-tmul;
 
-  tsqr = CPUTime();
+  tsqr = cputime();
   for (i = 0; i < iter; ++i)
     mpn_sqr (tmp, x, N);
-  tsqr = CPUTime()-tsqr;
+  tsqr = cputime()-tsqr;
 
 #ifdef HAVE___GMPN_REDC_1
   mpn_mul_n(tmp, x, y, N);
-  tredc_1 = CPUTime();
+  tredc_1 = cputime();
   for (i = 0; i < iter; ++i)
     __gmpn_redc_1 (z, tmp, m, N, invm[0]);
-  tredc_1 = CPUTime()-tredc_1;
+  tredc_1 = cputime()-tredc_1;
+  if (tredc_1 < tredc_best)
+    tredc_best = tredc_1;
 #endif
 
   if (N > 1) /* Svoboda only works for N > 1 */
     {
       mpn_mul_n(tmp, x, y, N);
-      tsvoboda1 = CPUTime();
+      tsvoboda1 = cputime();
       for (i = 0; i < iter; ++i)
         ecm_redc_1_svoboda (z, tmp, m, N, invm[0], svoboda1);
-      tsvoboda1 = CPUTime()-tsvoboda1;
+      tsvoboda1 = cputime()-tsvoboda1;
+      if (tsvoboda1 < tredc_best)
+        tredc_best = tsvoboda1;
     }
 
 #ifdef HAVE___GMPN_REDC_2
   mpn_mul_n(tmp, x, y, N);
-  tredc_2 = CPUTime();
+  tredc_2 = cputime();
   for (i = 0; i < iter; ++i)
     __gmpn_redc_2 (z, tmp, m, N, invm);
-  tredc_2 = CPUTime()-tredc_2;
+  tredc_2 = cputime()-tredc_2;
+  if (tredc_2 < tredc_best)
+    tredc_best = tredc_2;
 #endif
 
 #ifdef HAVE___GMPN_REDC_N
   mpn_mul_n(tmp, x, y, N);
-  tredc_n = CPUTime();
+  tredc_n = cputime();
   for (i = 0; i < iter; ++i)
     __gmpn_redc_n (z, tmp, m, N, invm);
-  tredc_n = CPUTime()-tredc_n;
+  tredc_n = cputime()-tredc_n;
+  if (tredc_n < tredc_best)
+    tredc_best = tredc_n;
 #endif
 
 #ifdef USE_ASM_REDC
   /* Mixed mul and redc */
-  t2 = CPUTime();
+  t2 = cputime();
   switch (N) {
    case 1:
     for (i=0; i < iter; ++i) {
@@ -336,7 +395,7 @@ void bench(mp_size_t N)
       x[0] += tmp[0];
     }
   }
-  t2 = CPUTime()-t2;
+  t2 = cputime()-t2;
   if (t2 < tmul_best)
     {
       tmul_best = t2;
@@ -351,13 +410,13 @@ void bench(mp_size_t N)
   
   /* Mul followed by mpn_redc_1 */
 #ifdef HAVE___GMPN_REDC_1
-  t_mulredc_1 = CPUTime();
+  t_mulredc_1 = cputime();
   for (i = 0; i < iter; ++i) {
     mpn_mul_n(tmp, x, y, N);
     __gmpn_redc_1 (z, tmp, m, N, invm[0]);
     x[0] += tmp[0];
   }
-  t_mulredc_1 = CPUTime()-t_mulredc_1;
+  t_mulredc_1 = cputime()-t_mulredc_1;
   if (t_mulredc_1 < tmul_best)
     {
       tune_mul[N] = MPMOD_MUL_REDC1;
@@ -367,13 +426,13 @@ void bench(mp_size_t N)
   
   /* Mul followed by mpn_redc_2 */
 #ifdef HAVE___GMPN_REDC_2
-  t_mulredc_2 = CPUTime();
+  t_mulredc_2 = cputime();
   for (i = 0; i < iter; ++i) {
     mpn_mul_n(tmp, x, y, N);
     __gmpn_redc_2 (z, tmp, m, N, invm);
     x[0] += tmp[0];
   }
-  t_mulredc_2 = CPUTime()-t_mulredc_2;
+  t_mulredc_2 = cputime()-t_mulredc_2;
   if (t_mulredc_2 < tmul_best)
     {
       tune_mul[N] = MPMOD_MUL_REDC2;
@@ -383,13 +442,13 @@ void bench(mp_size_t N)
   
   /* Mul followed by mpn_redc_n */
 #ifdef HAVE___GMPN_REDC_N
-  t_mulredc_n = CPUTime();
+  t_mulredc_n = cputime();
   for (i = 0; i < iter; ++i)
     {
       mpn_mul_n (tmp, x, y, N);
       __gmpn_redc_n (z, tmp, m, N, invm);
     }
-  t_mulredc_n = CPUTime()-t_mulredc_n;
+  t_mulredc_n = cputime()-t_mulredc_n;
   if (t_mulredc_n < tmul_best)
     {
       tune_mul[N] = MPMOD_MUL_REDCN;
@@ -399,13 +458,13 @@ void bench(mp_size_t N)
   
   /* Sqr followed by mpn_redc_1 */
 #ifdef HAVE___GMPN_REDC_1
-  t_sqrredc_1 = CPUTime();
+  t_sqrredc_1 = cputime();
   for (i = 0; i < iter; ++i) {
     mpn_sqr(tmp, x, N);
     __gmpn_redc_1 (z, tmp, m, N, invm[0]);
     x[0] += tmp[0];
   }
-  t_sqrredc_1 = CPUTime()-t_sqrredc_1;
+  t_sqrredc_1 = cputime()-t_sqrredc_1;
   if (t_sqrredc_1 < tsqr_best)
     {
       tune_sqr[N] = MPMOD_MUL_REDC1;
@@ -415,13 +474,13 @@ void bench(mp_size_t N)
   
   /* Sqr followed by mpn_redc_2 */
 #ifdef HAVE___GMPN_REDC_2
-  t_sqrredc_2 = CPUTime();
+  t_sqrredc_2 = cputime();
   for (i = 0; i < iter; ++i) {
     mpn_sqr(tmp, x, N);
     __gmpn_redc_2 (z, tmp, m, N, invm);
     x[0] += tmp[0];
   }
-  t_sqrredc_2 = CPUTime()-t_sqrredc_2;
+  t_sqrredc_2 = cputime()-t_sqrredc_2;
   if (t_sqrredc_2 < tsqr_best)
     {
       tune_sqr[N] = MPMOD_MUL_REDC2;
@@ -431,13 +490,13 @@ void bench(mp_size_t N)
   
   /* Sqr followed by mpn_redc_n */
 #ifdef HAVE___GMPN_REDC_N
-  t_sqrredc_n = CPUTime();
+  t_sqrredc_n = cputime();
   for (i = 0; i < iter; ++i)
     {
       mpn_sqr (tmp, x, N);
       __gmpn_redc_n (z, tmp, m, N, invm);
     }
-  t_sqrredc_n = CPUTime()-t_sqrredc_n;
+  t_sqrredc_n = cputime()-t_sqrredc_n;
   if (t_sqrredc_n < tsqr_best)
     {
       tune_sqr[N] = MPMOD_MUL_REDCN;
@@ -447,7 +506,7 @@ void bench(mp_size_t N)
   
 #ifdef HAVE_NATIVE_MULREDC1_N
   /* mulredc1 */
-  t3 = CPUTime();
+  t3 = cputime();
   switch (N) {
    case 1:
     for (i=0; i<LOOPCOUNT; ++i) {
@@ -571,73 +630,108 @@ void bench(mp_size_t N)
     break;
    default: ;
   }
-  t3 = CPUTime() - t3;
-  t3 *= 1000000.;
+  t3 = cputime() - t3;
 #endif /* ifdef HAVE_NATIVE_MULREDC1_N */
 
-  tmul *= 1000000.;
-  tsqr *= 1000000.;
-  tredc_1 *= 1000000.;
-  printf("******************\nTime in microseconds per call, size=%lu\n", N);
+  printf ("******************\n");
+  printf ("Time in microseconds per call, size=%lu (iter=%lu):\n", N, iter);
 
   /* basic operations */
-  printf("mpn_mul_n  = %f\n", tmul/iter);
-  printf("mpn_sqr    = %f\n", tsqr/iter);
+  printf("mpn_mul_n  = %.3f\n", (double) tmul * 1e3 / (double) iter);
+  printf("mpn_sqr    = %.3f\n", (double) tsqr * 1e3 / (double) iter);
 #ifdef HAVE___GMPN_REDC_1
-  printf("mpn_redc_1 = %f\n", tredc_1/iter);
+  printf ("mpn_redc_1 = %.3f", (double) tredc_1 * 1e3 / (double) iter);
+  if (tredc_1 == tredc_best)
+    printf (" *");
+  printf ("\n");
 #endif
   if (N > 1)
     {
-      tsvoboda1 *= 1000000.;
-      printf("svoboda1   = %f\n", tsvoboda1/iter);
+      printf("svoboda1   = %.3f", (double) tsvoboda1 * 1e3 / (double) iter);
+      if (tsvoboda1 == tredc_best)
+        printf (" *");
+      printf ("\n");
     }
 #ifdef HAVE___GMPN_REDC_2
-  tredc_2 *= 1000000.;
-  printf("mpn_redc_2 = %f\n", tredc_2/iter);
+  printf("mpn_redc_2 = %.3f", (double) tredc_2 * 1e3 / (double) iter);
+  if (tredc_2 == tredc_best)
+    printf (" *");
+  printf ("\n");
 #endif
 #ifdef HAVE___GMPN_REDC_N
-  tredc_n *= 1000000.;
-  printf("mpn_redc_n = %f\n", tredc_n/iter);
+  printf("mpn_redc_n = %.3f", (double) tredc_n * 1e3 / (double) iter);
+  if (tredc_n == tredc_best)
+    printf (" *");
+  printf ("\n");
 #endif
 
-  /* modular multiplication and squaring */
+  printf ("\n");
+
+  /* modular multiplication */
 #ifdef USE_ASM_REDC
-  t2 *= 1000000.;
-  printf("mulredc    = %f\n", t2/iter);
+  printf("mulredc    = %.3f", (double) t2 * 1e3 / (double) iter);
+  if (tmul_best == t2)
+    printf (" *");
+  printf ("\n");
 #endif
 #ifdef HAVE___GMPN_REDC_1
-  t_mulredc_1 *= 1000000.;
-  printf("mul+redc_1 = %f\n", t_mulredc_1/iter);
+  printf("mul+redc_1 = %.3f", (double) t_mulredc_1 * 1e3 / (double) iter);
+  if (tmul_best == t_mulredc_1)
+    printf (" *");
+  printf ("\n");
 #endif
 #ifdef HAVE___GMPN_REDC_2
-  t_mulredc_2 *= 1000000.;
-  printf("mul+redc_2 = %f\n", t_mulredc_2/iter);
+  printf("mul+redc_2 = %.3f", (double) t_mulredc_2 * 1e3 / (double) iter);
+  if (tmul_best == t_mulredc_2)
+    printf (" *");
+  printf ("\n");
 #endif
 #ifdef HAVE___GMPN_REDC_N
-  t_mulredc_n *= 1000000.;
-  printf("mul+redc_n = %f\n", t_mulredc_n/iter);
+  printf("mul+redc_n = %.3f", (double) t_mulredc_n * 1e3 / (double) iter);
+  if (tmul_best == t_mulredc_n)
+    printf (" *");
+  printf ("\n");
+#endif
+
+  printf ("\n");
+
+  /* modular squaring */
+#ifdef USE_ASM_REDC
+  printf("mulredc    = %.3f", (double) t2 * 1e3 / (double) iter);
+  if (tsqr_best == t2)
+    printf (" *");
+  printf ("\n");
 #endif
 #ifdef HAVE___GMPN_REDC_1
-  t_sqrredc_1 *= 1000000.;
-  printf("sqr+redc_1 = %f\n", t_sqrredc_1/iter);
+  printf("sqr+redc_1 = %.3f", (double) t_sqrredc_1 * 1e3 / (double) iter);
+  if (tsqr_best == t_sqrredc_1)
+    printf (" *");
+  printf ("\n");
 #endif
 #ifdef HAVE___GMPN_REDC_2
-  t_sqrredc_2 *= 1000000.;
-  printf("sqr+redc_2 = %f\n", t_sqrredc_2/iter);
+  printf("sqr+redc_2 = %.3f", (double) t_sqrredc_2 * 1e3 / (double) iter);
+  if (tsqr_best == t_sqrredc_2)
+    printf (" *");
+  printf ("\n");
 #endif
 #ifdef HAVE___GMPN_REDC_N
-  t_sqrredc_n *= 1000000.;
-  printf("sqr+redc_n = %f\n", t_sqrredc_n/iter);
+  printf("sqr+redc_n = %.3f", (double) t_sqrredc_n * 1e3 / (double) iter);
+  if (tsqr_best == t_sqrredc_n)
+    printf (" *");
+  printf ("\n");
 #endif
 
 #ifdef HAVE_NATIVE_MULREDC1_N
   /* multiplication of n limbs by one limb */
-  printf ("mulredc1   = %f\n", t3/LOOPCOUNT);
+  printf ("mulredc1   = %.3f\n", (double) t3 * 1e3 / (double) LOOPCOUNT);
 #endif
   fflush (stdout);
   
-  free(tmp);
-  free(x); free(y); free(z); free(m);
+  free (tmp);
+  free (x);
+  free (y);
+  free (z);
+  free (m);
   free (invm);
   free (svoboda1);
 }
