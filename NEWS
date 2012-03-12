@@ -1,16 +1,16 @@
-Changes between ecm-6.4 and ecm-6.5:
-* New configure option --enable-mulredc-svoboda, for input numbers whose low
-  limbs is congruent to -1
-* New tuning parameters for Intel Core i5
-* New ecmbench utility
-
 Changes between ecm-6.4 and ecm-6.4.1:
+* GMP-ECM is now distributed under the GPL version 3 or later for the binary,
+  and under the LGPL version 3 or later for the library
 * Fixed a speed regression with respect to ecm-6.3
   http://lists.gforge.inria.fr/pipermail/ecm-discuss/2012-February/004103.html
 * Fixed a bug with the -treefile option which had been present for a long time
 * Several fixes for the Visual Studio 2010 build
 * New experimental option -batch=2, and speedup for -batch (i.e., -batch=1)
 * New tuning mechanism, now --enable-asm-redc is always recommended
+* New configure option --enable-mulredc-svoboda, for input numbers whose low
+  limbs is congruent to -1
+* New tuning parameters for Intel Core i5
+* New ecmbench utility
 
 Changes between ecm-6.3 and ecm-6.4:
 * Fixed configure problem with SSE2

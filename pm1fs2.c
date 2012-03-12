@@ -2398,9 +2398,12 @@ static void
 ntt_print_vec (const char *msg, const spv_t spv, const spv_size_t l)
 {
   spv_size_t i;
-  printf ("%s [%lu", msg, spv[0]);
+
+  /* Warning: on some computers, for example gcc49.fsffrance.org,
+     "unsigned long" might be shorter than "sp_t" */
+  gmp_printf ("%s [%Nd", msg, (mp_ptr) spv, 1);
   for (i = 1; i < l; i++)
-    printf (", %lu", spv[i]);
+    gmp_printf (", %Nd", (mp_ptr) spv + i, 1);
   printf ("]\n");
 }
 
