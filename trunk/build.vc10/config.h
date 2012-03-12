@@ -208,6 +208,8 @@
 
 #define HAVE___GMPN_REDC_1 1
 
+#define HAVE___GMPN_REDC_2 1
+
 #define HAVE_ASM_REDC3  1
 
 #define WINDOWS64_ABI   1
