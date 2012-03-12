@@ -316,10 +316,10 @@ static inline void
 redc_basecase_n (mp_ptr rp, mp_ptr cp, mp_srcptr np, const mp_size_t nn, 
                  const mp_ptr invm)
 {
-#if defined(HAVE___GMPN_REDC_2)
+#ifdef HAVE___GMPN_REDC_2
   __gmpn_redc_2 (rp, cp, np, nn, invm);
 #else /* HAVE___GMPN_REDC_2 is not defined */
-#if defined(HAVE___GMPN_REDC_1)
+#ifdef HAVE___GMPN_REDC_1
   __gmpn_redc_1 (rp, cp, np, nn, invm[0]);
 #else /* neither HAVE___GMPN_REDC_2 nor HAVE___GMPN_REDC_1 is defined */
   mp_limb_t cy;
@@ -377,7 +377,7 @@ ecm_redc_basecase (mpz_ptr r, mpz_ptr c, mpmod_t modulus)
   SIZ(r) = SIZ(c) < 0 ? (int) -nn : (int) nn;
 }
 
-#if defined(USE_ASM_REDC)
+#ifdef USE_ASM_REDC
 /* Quadratic time multiplication and REDC with nn-limb modulus.
    x and y are nn-limb residues, the nn-limb result is written to z. 
    This function merely calls the correct mulredc*() assembly function
@@ -526,7 +526,10 @@ sqrredc (mp_ptr rp, mp_srcptr ap, mp_srcptr np, const mp_size_t n,
 /* Multiplies y by the 1-limb value of x and does modulo reduction.
    The resulting residue may be multiplied by some constant, 
    which makes this function useful only for cases where, e.g.,
-   all projective coordinates are multiplied by the same constant. */
+   all projective coordinates are multiplied by the same constant.
+   More precisely it computes:
+   {z, N} = {y, N} * x / 2^GMP_NUMB_BITS mod {m, N}
+*/
 static void
 mulredc_1 (mp_ptr z, const mp_limb_t x, mp_srcptr y, mp_srcptr m, 
            const mp_size_t N, const mp_limb_t invm)
@@ -638,19 +641,19 @@ ecm_mulredc_basecase_n (mp_ptr rp, mp_srcptr s1p, mp_srcptr s2p,
           break;
 #endif /* otherwise go through to the next available mode */
         case MPMOD_MUL_REDC1: /* mpn_mul_n + __gmpn_redc_1 */
-#if defined(HAVE___GMPN_REDC_1)
+#ifdef HAVE___GMPN_REDC_1
           mpn_mul_n (tmp, s1p, s2p, nn);
           __gmpn_redc_1 (rp, tmp, np, nn, invm[0]);
           break;
 #endif /* otherwise go through to the next available mode */
         case MPMOD_MUL_REDC2: /* mpn_mul_n + __gmpn_redc_2 */
-#if defined(HAVE___GMPN_REDC_2)
+#ifdef HAVE___GMPN_REDC_2
           mpn_mul_n (tmp, s1p, s2p, nn);
           __gmpn_redc_2 (rp, tmp, np, nn, invm);
           break;
 #endif /* otherwise go through to the next available mode */
         case MPMOD_MUL_REDCN: /* mpn_mul_n + __gmpn_redc_n */
-#if defined(HAVE___GMPN_REDC_N)
+#ifdef HAVE___GMPN_REDC_N
           mpn_mul_n (tmp, s1p, s2p, nn);
           __gmpn_redc_n (rp, tmp, np, nn, invm);
           break;
@@ -695,19 +698,19 @@ ecm_sqrredc_basecase_n (mp_ptr rp, mp_srcptr s1p,
           break;
 #endif /* otherwise go through to the next available mode */
         case MPMOD_MUL_REDC1: /* mpn_sqr + __gmpn_redc_1 */
-#if defined(HAVE___GMPN_REDC_1)
+#ifdef HAVE___GMPN_REDC_1
           mpn_sqr (tmp, s1p, nn);
           __gmpn_redc_1 (rp, tmp, np, nn, invm[0]);
           break;
 #endif /* otherwise go through to the next available mode */
         case MPMOD_MUL_REDC2: /* mpn_sqr + __gmpn_redc_2 */
-#if defined(HAVE___GMPN_REDC_2)
+#ifdef HAVE___GMPN_REDC_2
           mpn_sqr (tmp, s1p, nn);
           __gmpn_redc_2 (rp, tmp, np, nn, invm);
           break;
 #endif /* otherwise go through to the next available mode */
         case MPMOD_MUL_REDCN: /* mpn_sqr + __gmpn_redc_n */
-#if defined(HAVE___GMPN_REDC_N)
+#ifdef HAVE___GMPN_REDC_N
           mpn_sqr (tmp, s1p, nn);
           __gmpn_redc_n (rp, tmp, np, nn, invm);
           break;
@@ -2214,17 +2217,25 @@ mpresn_mul_1 (mpres_t R, const mpres_t S, const mp_limb_t m, mpmod_t modulus)
   ASSERT (SIZ(S) == n || -SIZ(S) == n);
   ASSERT (ALLOC(modulus->temp1) >= n+1);
 
-  t1[n] = mpn_mul_1 (t1, PTR(S), n, m);
-  q = t1[0] * modulus->Nprim[0];
-  t2[n] = mpn_mul_1 (t2, PTR(modulus->orig_modulus), n, q);
-#ifdef HAVE___GMPN_ADD_NC
-  q = __gmpn_add_nc (PTR(R), t1 + 1, t2 + 1, n, t1[0] != 0);
-#else
-  q = mpn_add_n (PTR(R), t1 + 1, t2 + 1, n);
-  q += mpn_add_1 (PTR(R), PTR(R), n, t1[0] != 0);
+#if defined(USE_ASM_REDC) && defined(HAVE_NATIVE_MULREDC1_N)
+  if (n <= MULREDC_ASSEMBLY_MAX)
+    mulredc_1 (PTR(R), m, PTR(S), PTR(modulus->orig_modulus), n,
+               modulus->Nprim[0]);
+  else
 #endif
-  while (q != 0)
-    q -= mpn_sub_n (PTR(R), PTR(R), PTR(modulus->orig_modulus), n);
+    {
+      t1[n] = mpn_mul_1 (t1, PTR(S), n, m);
+      q = t1[0] * modulus->Nprim[0];
+      t2[n] = mpn_mul_1 (t2, PTR(modulus->orig_modulus), n, q);
+#ifdef HAVE___GMPN_ADD_NC
+      q = __gmpn_add_nc (PTR(R), t1 + 1, t2 + 1, n, t1[0] != 0);
+#else
+      q = mpn_add_n (PTR(R), t1 + 1, t2 + 1, n);
+      q += mpn_add_1 (PTR(R), PTR(R), n, t1[0] != 0);
+#endif
+      while (q != 0)
+        q -= mpn_sub_n (PTR(R), PTR(R), PTR(modulus->orig_modulus), n);
+    }
 
   SIZ(R) = SIZ(S); /* sign is unchanged */
 }

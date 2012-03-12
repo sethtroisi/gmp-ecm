@@ -1,6 +1,7 @@
 #include "config.h"
 #include <stdio.h>
 #include <stdlib.h>
+#include <float.h> /* for DBL_MAX */
 #include <assert.h>
 #include <time.h>
 #include <string.h>
@@ -27,7 +28,9 @@
 int tune_mul[MAXSIZE+1], tune_sqr[MAXSIZE+1];
 
 #include <gmp.h>
+#ifdef USE_ASM_REDC
 #include "mulredc.h"
+#endif
 #include "mpmod.h"
 
 #ifdef HAVE___GMPN_REDC_1
@@ -73,8 +76,8 @@ double CPUTime()
 void mp_print(mp_limb_t *x, int N) {
   int i;
   for (i = 0; i < N-1; ++i)
-    printf("%lu + W*(", x[i]);
-  printf("%lu", x[N-1]);
+    gmp_printf("%Nd + W*(", x + i, 1);
+  gmp_printf("%Nd", x + (N-1), 1);
   for (i = 0; i < N-1; ++i)
     printf(")");
   printf("\n");
@@ -105,12 +108,18 @@ ecm_redc_1_svoboda (mp_ptr rp, mp_ptr tmp, mp_srcptr np, mp_size_t nn,
 
 void bench(mp_size_t N)
 {
-  mp_limb_t *x, *y, *z, *m, *invm, cy, *tmp, *svoboda1;
+  mp_limb_t *x, *y, *z, *m, *invm, *tmp, *svoboda1;
   unsigned long i;
   const unsigned long iter = LOOPCOUNT/N;
-  double t2, t3 = 0., tmul, tsqr, tredc_1, t_mulredc_1;
-  double t_sqrredc_1, tmul_best, tsqr_best, tsvoboda1;
+  double tmul, tsqr, tredc_1, t_mulredc_1, tsvoboda1 = 0.0;
+  double t_sqrredc_1, tmul_best = DBL_MAX, tsqr_best = DBL_MAX;
   mpz_t M, B;
+#ifdef USE_ASM_REDC
+  double t2;
+#endif
+#ifdef HAVE_NATIVE_MULREDC1_N
+  double t3 = 0.0;
+#endif
 #ifdef HAVE___GMPN_REDC_2
   double tredc_2, t_mulredc_2, t_sqrredc_2;
 #endif
@@ -197,140 +206,148 @@ void bench(mp_size_t N)
   tredc_n = CPUTime()-tredc_n;
 #endif
 
+#ifdef USE_ASM_REDC
   /* Mixed mul and redc */
   t2 = CPUTime();
   switch (N) {
    case 1:
     for (i=0; i < iter; ++i) {
-      cy += mulredc1(z, x[0], y[0], m[0], invm[0]);
+      mulredc1(z, x[0], y[0], m[0], invm[0]);
       x[0] += tmp[0];
     }
     break;
    case 2:
     for (i=0; i < iter; ++i) {
-      cy += mulredc2(z, x, y, m, invm[0]);
+      mulredc2(z, x, y, m, invm[0]);
       x[0] += tmp[0];
     }
     break;
    case 3:
     for (i=0; i < iter; ++i) {
-      cy += mulredc3(z, x, y, m, invm[0]);
+      mulredc3(z, x, y, m, invm[0]);
       x[0] += tmp[0];
     }
     break;
    case 4:
     for (i=0; i < iter; ++i) {
-      cy += mulredc4(z, x, y, m, invm[0]);
+      mulredc4(z, x, y, m, invm[0]);
       x[0] += tmp[0];
     }
     break;
    case 5:
     for (i=0; i < iter; ++i) {
-      cy += mulredc5(z, x, y, m, invm[0]);
+      mulredc5(z, x, y, m, invm[0]);
       x[0] += tmp[0];
     }
     break;
    case 6:
     for (i=0; i < iter; ++i) {
-      cy += mulredc6(z, x, y, m, invm[0]);
+      mulredc6(z, x, y, m, invm[0]);
       x[0] += tmp[0];
     }
     break;
    case 7:
     for (i=0; i < iter; ++i) {
-      cy += mulredc7(z, x, y, m, invm[0]);
+      mulredc7(z, x, y, m, invm[0]);
       x[0] += tmp[0];
     }
     break;
    case 8:
     for (i=0; i < iter; ++i) {
-      cy += mulredc8(z, x, y, m, invm[0]);
+      mulredc8(z, x, y, m, invm[0]);
       x[0] += tmp[0];
     }
     break;
    case 9:
     for (i=0; i < iter; ++i) {
-      cy += mulredc9(z, x, y, m, invm[0]);
+      mulredc9(z, x, y, m, invm[0]);
       x[0] += tmp[0];
     }
     break;
    case 10:
     for (i=0; i < iter; ++i) {
-      cy += mulredc10(z, x, y, m, invm[0]);
+      mulredc10(z, x, y, m, invm[0]);
       x[0] += tmp[0];
     }
     break;
    case 11:
     for (i=0; i < iter; ++i) {
-      cy += mulredc11(z, x, y, m, invm[0]);
+      mulredc11(z, x, y, m, invm[0]);
       x[0] += tmp[0];
     }
     break;
    case 12:
     for (i=0; i < iter; ++i) {
-      cy += mulredc12(z, x, y, m, invm[0]);
+      mulredc12(z, x, y, m, invm[0]);
       x[0] += tmp[0];
     }
     break;
    case 13:
     for (i=0; i < iter; ++i) {
-      cy += mulredc13(z, x, y, m, invm[0]);
+      mulredc13(z, x, y, m, invm[0]);
       x[0] += tmp[0];
     }
     break;
    case 14:
     for (i=0; i < iter; ++i) {
-      cy += mulredc14(z, x, y, m, invm[0]);
+      mulredc14(z, x, y, m, invm[0]);
       x[0] += tmp[0];
     }
     break;
    case 15:
     for (i=0; i < iter; ++i) {
-      cy += mulredc15(z, x, y, m, invm[0]);
+      mulredc15(z, x, y, m, invm[0]);
       x[0] += tmp[0];
     }
     break;
    case 16:
     for (i=0; i < iter; ++i) {
-      cy += mulredc16(z, x, y, m, invm[0]);
+      mulredc16(z, x, y, m, invm[0]);
       x[0] += tmp[0];
     }
     break;
    case 17:
     for (i=0; i < iter; ++i) {
-      cy += mulredc17(z, x, y, m, invm[0]);
+      mulredc17(z, x, y, m, invm[0]);
       x[0] += tmp[0];
     }
     break;
    case 18:
     for (i=0; i < iter; ++i) {
-      cy += mulredc18(z, x, y, m, invm[0]);
+      mulredc18(z, x, y, m, invm[0]);
       x[0] += tmp[0];
     }
     break;
    case 19:
     for (i=0; i < iter; ++i) {
-      cy += mulredc19(z, x, y, m, invm[0]);
+      mulredc19(z, x, y, m, invm[0]);
       x[0] += tmp[0];
     }
     break;
    case 20:
     for (i=0; i < iter; ++i) {
-      cy += mulredc20(z, x, y, m, invm[0]);
+      mulredc20(z, x, y, m, invm[0]);
       x[0] += tmp[0];
     }
     break;
    default:
     for (i=0; i < iter; ++i) {
-      cy += mulredc20(z, x, y, m,  invm[0]);
+      mulredc20(z, x, y, m,  invm[0]);
       x[0] += tmp[0];
     }
   }
   t2 = CPUTime()-t2;
-  tmul_best = t2;
-  tune_mul[N] = MPMOD_MULREDC;
-  tsqr_best = t2;
-  tune_sqr[N] = MPMOD_MULREDC;
+  if (t2 < tmul_best)
+    {
+      tmul_best = t2;
+      tune_mul[N] = MPMOD_MULREDC;
+    }
+  if (t2 < tsqr_best)
+    {
+      tsqr_best = t2;
+      tune_sqr[N] = MPMOD_MULREDC;
+    }
+#endif
   
   /* Mul followed by mpn_redc_1 */
 #ifdef HAVE___GMPN_REDC_1
@@ -381,7 +398,7 @@ void bench(mp_size_t N)
 #endif
   
   /* Sqr followed by mpn_redc_1 */
-#if defined(HAVE___GMPN_REDC_1)
+#ifdef HAVE___GMPN_REDC_1
   t_sqrredc_1 = CPUTime();
   for (i = 0; i < iter; ++i) {
     mpn_sqr(tmp, x, N);
@@ -397,7 +414,7 @@ void bench(mp_size_t N)
 #endif
   
   /* Sqr followed by mpn_redc_2 */
-#if defined(HAVE___GMPN_REDC_2)
+#ifdef HAVE___GMPN_REDC_2
   t_sqrredc_2 = CPUTime();
   for (i = 0; i < iter; ++i) {
     mpn_sqr(tmp, x, N);
@@ -413,7 +430,7 @@ void bench(mp_size_t N)
 #endif
   
   /* Sqr followed by mpn_redc_n */
-#if defined(HAVE___GMPN_REDC_N)
+#ifdef HAVE___GMPN_REDC_N
   t_sqrredc_n = CPUTime();
   for (i = 0; i < iter; ++i)
     {
@@ -428,127 +445,127 @@ void bench(mp_size_t N)
     }
 #endif
   
-#if defined(HAVE_NATIVE_MULREDC1_N)
+#ifdef HAVE_NATIVE_MULREDC1_N
   /* mulredc1 */
   t3 = CPUTime();
   switch (N) {
    case 1:
     for (i=0; i<LOOPCOUNT; ++i) {
-      cy += mulredc1(z, x[0], y[0], m[0], invm[0]);
+      mulredc1(z, x[0], y[0], m[0], invm[0]);
       x[0] += tmp[0];
     }
     break;
    case 2:
     for (i=0; i<LOOPCOUNT; ++i) {
-      cy += mulredc1_2(z, x[0], y, m, invm[0]);
+      mulredc1_2(z, x[0], y, m, invm[0]);
       x[0] += tmp[0];
     }
     break;
    case 3:
     for (i=0; i<LOOPCOUNT; ++i) {
-      cy += mulredc1_3(z, x[0], y, m, invm[0]);
+      mulredc1_3(z, x[0], y, m, invm[0]);
       x[0] += tmp[0];
     }
     break;
    case 4:
     for (i=0; i<LOOPCOUNT; ++i) {
-      cy += mulredc1_4(z, x[0], y, m, invm[0]);
+      mulredc1_4(z, x[0], y, m, invm[0]);
       x[0] += tmp[0];
     }
     break;
    case 5:
     for (i=0; i<LOOPCOUNT; ++i) {
-      cy += mulredc1_5(z, x[0], y, m, invm[0]);
+      mulredc1_5(z, x[0], y, m, invm[0]);
       x[0] += tmp[0];
     }
     break;
    case 6:
     for (i=0; i<LOOPCOUNT; ++i) {
-      cy += mulredc1_6(z, x[0], y, m, invm[0]);
+      mulredc1_6(z, x[0], y, m, invm[0]);
       x[0] += tmp[0];
     }
     break;
    case 7:
     for (i=0; i<LOOPCOUNT; ++i) {
-      cy += mulredc1_7(z, x[0], y, m, invm[0]);
+      mulredc1_7(z, x[0], y, m, invm[0]);
       x[0] += tmp[0];
     }
     break;
    case 8:
     for (i=0; i<LOOPCOUNT; ++i) {
-      cy += mulredc1_8(z, x[0], y, m, invm[0]);
+      mulredc1_8(z, x[0], y, m, invm[0]);
       x[0] += tmp[0];
     }
     break;
    case 9:
     for (i=0; i<LOOPCOUNT; ++i) {
-      cy += mulredc1_9(z, x[0], y, m, invm[0]);
+      mulredc1_9(z, x[0], y, m, invm[0]);
       x[0] += tmp[0];
     }
     break;
    case 10:
     for (i=0; i<LOOPCOUNT; ++i) {
-      cy += mulredc1_10(z, x[0], y, m, invm[0]);
+      mulredc1_10(z, x[0], y, m, invm[0]);
       x[0] += tmp[0];
     }
     break;
    case 11:
     for (i=0; i<LOOPCOUNT; ++i) {
-      cy += mulredc1_11(z, x[0], y, m, invm[0]);
+      mulredc1_11(z, x[0], y, m, invm[0]);
       x[0] += tmp[0];
     }
     break;
    case 12:
     for (i=0; i<LOOPCOUNT; ++i) {
-      cy += mulredc1_12(z, x[0], y, m, invm[0]);
+      mulredc1_12(z, x[0], y, m, invm[0]);
       x[0] += tmp[0];
     }
     break;
    case 13:
     for (i=0; i<LOOPCOUNT; ++i) {
-      cy += mulredc1_13(z, x[0], y, m, invm[0]);
+      mulredc1_13(z, x[0], y, m, invm[0]);
       x[0] += tmp[0];
     }
     break;
    case 14:
     for (i=0; i<LOOPCOUNT; ++i) {
-      cy += mulredc1_14(z, x[0], y, m, invm[0]);
+      mulredc1_14(z, x[0], y, m, invm[0]);
       x[0] += tmp[0];
     }
     break;
    case 15:
     for (i=0; i<LOOPCOUNT; ++i) {
-      cy += mulredc1_15(z, x[0], y, m, invm[0]);
+      mulredc1_15(z, x[0], y, m, invm[0]);
       x[0] += tmp[0];
     }
     break;
    case 16:
     for (i=0; i<LOOPCOUNT; ++i) {
-      cy += mulredc1_16(z, x[0], y, m, invm[0]);
+      mulredc1_16(z, x[0], y, m, invm[0]);
       x[0] += tmp[0];
     }
     break;
    case 17:
     for (i=0; i<LOOPCOUNT; ++i) {
-      cy += mulredc1_17(z, x[0], y, m, invm[0]);
+      mulredc1_17(z, x[0], y, m, invm[0]);
       x[0] += tmp[0];
     }
     break;
    case 18:
     for (i=0; i<LOOPCOUNT; ++i) {
-      cy += mulredc1_18(z, x[0], y, m, invm[0]);
+      mulredc1_18(z, x[0], y, m, invm[0]);
       x[0] += tmp[0];
     }
     break;
    case 19:
     for (i=0; i<LOOPCOUNT; ++i) {
-      cy += mulredc1_19(z, x[0], y, m, invm[0]);
+      mulredc1_19(z, x[0], y, m, invm[0]);
       x[0] += tmp[0];
     }
     break;
    case 20:
     for (i=0; i<LOOPCOUNT; ++i) {
-      cy += mulredc1_20(z, x[0], y, m, invm[0]);
+      mulredc1_20(z, x[0], y, m, invm[0]);
       x[0] += tmp[0];
     }
     break;
@@ -556,14 +573,11 @@ void bench(mp_size_t N)
   }
   t3 = CPUTime() - t3;
   t3 *= 1000000.;
-#endif /* if defined(HAVE_NATIVE_MULREDC1_N) */
+#endif /* ifdef HAVE_NATIVE_MULREDC1_N */
 
   tmul *= 1000000.;
   tsqr *= 1000000.;
   tredc_1 *= 1000000.;
-  if (N > 1)
-    tsvoboda1 *= 1000000.;
-  t2 *= 1000000.;
   printf("******************\nTime in microseconds per call, size=%lu\n", N);
 
   /* basic operations */
@@ -573,7 +587,10 @@ void bench(mp_size_t N)
   printf("mpn_redc_1 = %f\n", tredc_1/iter);
 #endif
   if (N > 1)
-    printf("svoboda1   = %f\n", tsvoboda1/iter);
+    {
+      tsvoboda1 *= 1000000.;
+      printf("svoboda1   = %f\n", tsvoboda1/iter);
+    }
 #ifdef HAVE___GMPN_REDC_2
   tredc_2 *= 1000000.;
   printf("mpn_redc_2 = %f\n", tredc_2/iter);
@@ -584,34 +601,40 @@ void bench(mp_size_t N)
 #endif
 
   /* modular multiplication and squaring */
+#ifdef USE_ASM_REDC
+  t2 *= 1000000.;
   printf("mulredc    = %f\n", t2/iter);
-#if defined(HAVE___GMPN_REDC_1)
+#endif
+#ifdef HAVE___GMPN_REDC_1
   t_mulredc_1 *= 1000000.;
   printf("mul+redc_1 = %f\n", t_mulredc_1/iter);
 #endif
-#if defined(HAVE___GMPN_REDC_2)
+#ifdef HAVE___GMPN_REDC_2
   t_mulredc_2 *= 1000000.;
   printf("mul+redc_2 = %f\n", t_mulredc_2/iter);
 #endif
-#if defined(HAVE___GMPN_REDC_N)
+#ifdef HAVE___GMPN_REDC_N
   t_mulredc_n *= 1000000.;
   printf("mul+redc_n = %f\n", t_mulredc_n/iter);
 #endif
-#if defined(HAVE___GMPN_REDC_1)
+#ifdef HAVE___GMPN_REDC_1
   t_sqrredc_1 *= 1000000.;
   printf("sqr+redc_1 = %f\n", t_sqrredc_1/iter);
 #endif
-#if defined(HAVE___GMPN_REDC_2)
+#ifdef HAVE___GMPN_REDC_2
   t_sqrredc_2 *= 1000000.;
   printf("sqr+redc_2 = %f\n", t_sqrredc_2/iter);
 #endif
-#if defined(HAVE___GMPN_REDC_N)
+#ifdef HAVE___GMPN_REDC_N
   t_sqrredc_n *= 1000000.;
   printf("sqr+redc_n = %f\n", t_sqrredc_n/iter);
 #endif
 
+#ifdef HAVE_NATIVE_MULREDC1_N
   /* multiplication of n limbs by one limb */
   printf ("mulredc1   = %f\n", t3/LOOPCOUNT);
+#endif
+  fflush (stdout);
   
   free(tmp);
   free(x); free(y); free(z); free(m);
