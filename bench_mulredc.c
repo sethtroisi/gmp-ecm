@@ -561,7 +561,8 @@ void bench(mp_size_t N)
   tmul *= 1000000.;
   tsqr *= 1000000.;
   tredc_1 *= 1000000.;
-  tsvoboda1 *= 1000000.;
+  if (N > 1)
+    tsvoboda1 *= 1000000.;
   t2 *= 1000000.;
   printf("******************\nTime in microseconds per call, size=%lu\n", N);
 
