@@ -183,9 +183,40 @@ mpzspv_from_mpzv_slow (mpzspv_t x, const spv_size_t offset, mpz_t mpzvi,
   const unsigned int sp_num = mpzspm->sp_num;
   unsigned int j;
 
+  /* GMP's comments on mpn_preinv_mod_1:
+   *
+   * "This function used to be documented, but is now considered obsolete.  It
+   * continues to exist for binary compatibility, even when not required
+   * internally."
+   *
+   * It doesn't accept 0 as the dividend so we have to treat this case
+   * separately */
+  
   for (j = 0; j < sp_num; j++)
+    {
+#if HAVE___GMPN_PREINV_MOD_1
+#if SP_NUMB_BITS == W_TYPE_SIZE - 2
+      /* mul_c is 2^(2*SP_NUMB_BITS+1)/sp where sp has SP_NUMB_BITS bits
+         therefore we must multiply mul_c by 2^(W_TYPE_SIZE-SP_NUMB_BITS-1) */
+    x[j][offset] = __gmpn_preinv_mod_1 (PTR(mpzvi), SIZ(mpzvi),
+              (mp_limb_t) mpzspm->spm[j]->sp << 2, mpzspm->spm[j]->mul_c << 1);
+    if (x[j][offset] >= (mpzspm->spm[j]->sp << 1))
+      x[j][offset] -= (mpzspm->spm[j]->sp << 1);
+#elif SP_NUMB_BITS == W_TYPE_SIZE - 1
+      /* mul_c is 2^(2*SP_NUMB_BITS)/sp where sp has SP_NUMB_BITS bits
+         therefore we must multiply mul_c by 2^(W_TYPE_SIZE-SP_NUMB_BITS) */
+    x[j][offset] = __gmpn_preinv_mod_1 (PTR(mpzvi), SIZ(mpzvi),
+              (mp_limb_t) mpzspm->spm[j]->sp << 1, mpzspm->spm[j]->mul_c << 1);
+#else
+#error "SP_NUMB_BITS should be W_TYPE_SIZE - 1 or -2"
+#endif
+    if (x[j][offset] >= mpzspm->spm[j]->sp)
+      x[j][offset] -= mpzspm->spm[j]->sp;
+#else
     x[j][offset] = mpn_mod_1 (PTR(mpzvi), SIZ(mpzvi),
                               (mp_limb_t) mpzspm->spm[j]->sp);
+#endif
+    }
   /* The typecast to mp_limb_t assumes that mp_limb_t is at least
      as wide as sp_t */
 }
@@ -241,15 +272,6 @@ mpzspv_from_mpzv (mpzspv_t x, const spv_size_t offset, const mpzv_t mpzv,
   ASSERT (mpzspv_verify (x, offset + len, 0, mpzspm));
   ASSERT (sizeof (mp_limb_t) >= sizeof (sp_t));
 
-  /* GMP's comments on mpn_preinv_mod_1:
-   *
-   * "This function used to be documented, but is now considered obsolete.  It
-   * continues to exist for binary compatibility, even when not required
-   * internally."
-   *
-   * It doesn't accept 0 as the dividend so we have to treat this case
-   * separately */
-  
 #if defined(_OPENMP)
 #pragma omp parallel private(i) if (len > 16384)
   {
