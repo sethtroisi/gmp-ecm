@@ -179,7 +179,7 @@ checkcode $? 14
 echo 911962091 | $ECM -batch=2 -A 440688534 50000
 checkcode $? 8
 
-echo 31622776601683791911 | $ECM -batch=1 -A 124052764650467335534 11000
+echo 31622776601683791911 | $ECM -batch=1 -A 27063318473587686303 11000
 checkcode $? 0
 
 # non-regression test for bug fixed by changeset r1819 on 64-bit
