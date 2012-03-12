@@ -16,13 +16,18 @@ if ENABLE_ASM_REDC
   MULREDCINCPATH = -I$(srcdir)/$(ASMPATH)
   MULREDCLIBRARY = $(builddir)/$(ASMPATH)/libmulredc.la
 
-  # Add a testing and timing program for the mulredc code
+  # Add a tuning and testing program for the mulredc code
   EXTRA_PROGRAMS += bench_mulredc test_mulredc
   CLEANFILES = bench_mulredc test_mulredc
   bench_mulredc_CPPFLAGS = $(MULREDCINCPATH)
   bench_mulredc_LDADD = $(MULREDCLIBRARY) $(GMPLIB)
   test_mulredc_CPPFLAGS = $(MULREDCINCPATH)
   test_mulredc_LDADD = $(MULREDCLIBRARY) $(GMPLIB)
+else
+  # Add a tuning program for the mulredc code
+  EXTRA_PROGRAMS += bench_mulredc
+  CLEANFILES = bench_mulredc
+  bench_mulredc_LDADD = $(GMPLIB)
 endif
 
 libecm_la_SOURCES = ecm.c ecm2.c pm1.c pp1.c getprime.c listz.c lucas.c \
