@@ -2368,7 +2368,7 @@ mpresn_addsub (mpres_t R, mpres_t T,
       cy = mpn_add_n (t, s1, s2, n);
 #ifndef MPRESN_NO_ADJUSTMENT
       while (cy != 0)
-        cy -= mpn_sub_n (r, r, PTR(modulus->orig_modulus), n);
+        cy -= mpn_sub_n (t, t, PTR(modulus->orig_modulus), n);
 #endif
       SIZ(T) = SIZ(S1);
     }
