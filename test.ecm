@@ -182,6 +182,15 @@ checkcode $? 8
 echo 31622776601683791911 | $ECM -batch=1 -A 124052764650467335534 11000
 checkcode $? 0
 
+# non-regression test for bug fixed by changeset r1819 on 64-bit
+# (this also produces a small d' on 32-bit, thus can be used with batch=1)
+echo 18446744073709551557 | $ECM -batch -A 312656731337392125 11000
+checkcode $? 8
+
+# non-regression test for bug fixed by changeset r1819 on 32-bit
+echo 4294967291 | $ECM -batch -A 17 1000
+checkcode $? 8
+
 # this example would fail with the old Fgw.c when using gwnum (fixed by David Cleaver, r1734)
 echo "((173^173+1)/174)/471462511391940575680645418941" | $ECM -sigma 12345 20000
 checkcode $? 0
