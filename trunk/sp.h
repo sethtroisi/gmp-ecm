@@ -1,6 +1,6 @@
 /* sp.h - header file for the sp library
 
-  Copyright 2005, 2008, 2010 Dave Newman, Jason Papadopoulos and
+  Copyright 2005, 2008, 2010, 2011, 2012 Dave Newman, Jason Papadopoulos and
                              Paul Zimmermann.
   Copyright 1991, 1993, 1994, 1995, 1996, 1997, 1999, 2000, 2001, 2002, 2003,
   2004, 2005, 2010 Free Software Foundation, Inc. (for parts from gmp-impl.h).
@@ -46,6 +46,14 @@ extern size_t MPZSPV_NORMALISE_STRIDE;
 #endif
 
 #include <gmp.h>
+
+#ifdef __GNUC__
+#if    __GNUC__ >= 3
+#define ATTRIBUTE_UNUSED __attribute__ ((unused))
+#else
+#define ATTRIBUTE_UNUSED
+#endif
+#endif
 
 /**************
  * GMP_IMPL.H *
@@ -361,7 +369,7 @@ static inline sp_t sp_add(sp_t a, sp_t b, sp_t m)
 
 #define sp_reciprocal(invxl,xl)              \
   do {                                       \
-    mp_limb_t dummy;                         \
+    ATTRIBUTE_UNUSED mp_limb_t dummy;        \
     udiv_qrnnd (invxl, dummy,                \
 		(sp_t) 1 << (2 * SP_NUMB_BITS + 1 -	\
 		W_TYPE_SIZE), 0, xl);        \
@@ -370,7 +378,8 @@ static inline sp_t sp_add(sp_t a, sp_t b, sp_t m)
 static inline sp_t sp_udiv_rem(sp_t nh, sp_t nl, sp_t d, sp_t di)
 {
   sp_t r;
-  mp_limb_t q1, q2, tmp;
+  mp_limb_t q1, q2;
+  ATTRIBUTE_UNUSED mp_limb_t tmp;
   q1 = nh << (2*(W_TYPE_SIZE - SP_NUMB_BITS)) |
 	    nl >> (2*SP_NUMB_BITS - W_TYPE_SIZE);
   umul_ppmm (q2, tmp, q1, di);
