@@ -160,10 +160,6 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="..\..\bench_mulredc.c" />
-    <ClCompile Include="..\getrusage.c" />
-  </ItemGroup>
-  <ItemGroup>
-    <ClInclude Include="..\getrusage.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
