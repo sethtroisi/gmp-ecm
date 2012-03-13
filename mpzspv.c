@@ -176,7 +176,8 @@ mpzspv_reverse (mpzspv_t x, spv_size_t offset, spv_size_t len, mpzspm_t mpzspm)
 }
 
 #if 0
-/* assume d < B - 1 */
+/* Return {xp, xn} / B^(xn-1) mod d where B = 2^GMP_NUMB_LIMB.
+   Assume d < B - 1 */
 static mp_limb_t
 ecm_bdiv_r_1 (mp_ptr xp, mp_size_t xn, mp_limb_t d)
 {
@@ -184,8 +185,8 @@ ecm_bdiv_r_1 (mp_ptr xp, mp_size_t xn, mp_limb_t d)
 
   if (xn == 0)
     return 0;
-  __gmpn_binvert (&di, &d, 1, &x0); /* di = 1/d mod B = 2^GMP_NUMB_LIMB */
-  di = -di;             /* -1/d mod B */
+  __gmpn_binvert (&di, &d, 1, &x0); /* di = 1/d mod B */
+  di = -di;                         /* -1/d mod B */
   x0 = xp[0];
   cy = (mp_limb_t) 0;
   while (xn > 1)
@@ -234,12 +235,8 @@ mpzspv_from_mpzv_slow (mpzspv_t x, const spv_size_t offset, mpz_t mpzvi,
      needs floor(2^64/(2*sp))-2^32 = floor(2^63/sp)-2^32. */
   
   for (j = 0; j < sp_num; j++)
-#if 0
-    x[j][offset] = ecm_bdiv_r_1 (PTR(mpzvi), SIZ(mpzvi), mpzspm->spm[j]->sp);
-#else
     x[j][offset] = mpn_mod_1 (PTR(mpzvi), SIZ(mpzvi),
                               (mp_limb_t) mpzspm->spm[j]->sp);
-#endif
   /* The typecast to mp_limb_t assumes that mp_limb_t is at least
      as wide as sp_t */
 }
