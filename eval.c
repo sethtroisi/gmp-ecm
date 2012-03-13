@@ -194,7 +194,7 @@ JoinLinesLoop:;
   while (*c && !IS_NEWLINE(*c) && *c != ';')
     {
       /* strip space and tabs out here, and then we DON'T have to mess with them in the rest of the parser */
-      if (!isspace(*c))
+      if (!isspace((int) *c))
 	expr[nCurSize++] = *c;
       if (nCurSize == nMaxSize)
       {
@@ -529,7 +529,7 @@ int eval_2 (int bInFuncParams)
 	}
       else            /* Number is decimal value */
 	{
-	  for (i=0;isdigit(expr_str[i]);i++)
+	  for (i=0;isdigit((int) expr_str[i]);i++)
 	    ;
 	  if (!i)         /* No digits found */
 	    {
@@ -580,7 +580,7 @@ int eval_2 (int bInFuncParams)
 	    {
 		num_base = 16;	/* Kick up to hex */
 		expr_str += 2;	/* skip the 0x string of the number */
-		for (i=0;isxdigit(expr_str[i]);i++)
+		for (i=0;isxdigit((int) expr_str[i]);i++)
 	          ;
 	    }
 	  op=expr_str[i];
@@ -623,7 +623,7 @@ MONADIC_SUFFIX_LOOP:;
 	    }
 	  else if ('!' == op)
 	    {
-	      if (!isdigit(*expr_str))
+	      if (!isdigit((int) *expr_str))
 		{
 		  /* If the next char is not a digit, then this is a simple factorial, and not a "multi" factorial */
 		  mpz_set(n_stack[2], n);
@@ -636,7 +636,7 @@ MONADIC_SUFFIX_LOOP:;
 	    }
 	  else if ('#' == op)
 	    {
-	      if (!isdigit(*expr_str))
+	      if (!isdigit((int) *expr_str))
 		{
   		  /* If the next char is not a digit, then this is a simple primorial, and not a "reduced" primorial */
 		  mpz_set(n_stack[2], n);
