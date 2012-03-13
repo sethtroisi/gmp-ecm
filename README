@@ -523,9 +523,10 @@ system is idle again.
 
 [this part has to be rewritten, beginning of new part]
 
-After configuring GMP-ECM, type "make bench_mulredc", and type:
+After configuring GMP-ECM, type "make bench_mulredc" (or
+"make bench_mulredc.exe" under Windows) and type:
 
-$ ./bench_mulredc
+$ ./bench_mulredc # or bench_mulredc.exe under Windows
 
 This will output at the end two lines as follows:
 
