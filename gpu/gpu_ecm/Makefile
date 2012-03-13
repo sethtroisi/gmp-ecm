@@ -26,7 +26,7 @@ OBJ_FROM_GMPECM:=$(addprefix $(OBJDIR)/,$(patsubst %.c,%.o,$(FILES_FROM_GMPECM))
 OBJ_FILES:=$(OBJ_C) $(OBJ_CU) $(OBJ_FROM_GMPECM) 
 
 LDFLAGS:=$(GMP_PATH)/lib/libgmp.a -lm 
-LDFLAGS+=-L$(CUDA_PATH)/lib64 -lcudart
+LDFLAGS+=-L$(CUDA_PATH)/lib64 -L$(CUDA_PATH)/lib -lcudart
 
 CFLAGS:=-O2 -I$(GMP_PATH)/include
 

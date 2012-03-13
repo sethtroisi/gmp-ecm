@@ -205,12 +205,12 @@ __device__ int Cuda_Cmp(const biguint_t A, const biguint_t B)
 }
 
 //Assume cy[threadIdx.x] = 0,+/-1
-__device__ void Cuda_Normalize(biguint_t A,dbigint_t cy)
+__device__ void Cuda_Normalize (biguint_t A, dbigint_t cy)
 {
   carry_t cytemp;
   cytemp = cy[threadIdx.x];
   cy[threadIdx.x]=0;
-  int tmp=threadIdx.x+1 % NB_DIGITS;
+  int tmp= (threadIdx.x + 1) % NB_DIGITS;
 
   if (cytemp==1)
   {
@@ -223,10 +223,10 @@ __device__ void Cuda_Normalize(biguint_t A,dbigint_t cy)
     if (A[tmp]==0)
       cy[tmp]=cytemp;
     A[tmp]--;
-  } 
+  }
 }
 
-__device__ void Cuda_Fully_Normalize(biguint_t A,dbigint_t cy)
+__device__ void Cuda_Fully_Normalize (biguint_t A, dbigint_t cy)
 {
   
   do
