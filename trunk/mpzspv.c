@@ -175,6 +175,41 @@ mpzspv_reverse (mpzspv_t x, spv_size_t offset, spv_size_t len, mpzspm_t mpzspm)
     }
 }
 
+#if 0
+/* assume d < B - 1 */
+static mp_limb_t
+ecm_bdiv_r_1 (mp_ptr xp, mp_size_t xn, mp_limb_t d)
+{
+  mp_limb_t di, q, cy, hi, lo, x0, x1;
+
+  if (xn == 0)
+    return 0;
+  __gmpn_binvert (&di, &d, 1, &x0); /* di = 1/d mod B = 2^GMP_NUMB_LIMB */
+  di = -di;             /* -1/d mod B */
+  x0 = xp[0];
+  cy = (mp_limb_t) 0;
+  while (xn > 1)
+    {
+      /* Invariant: cy is the input carry on xp[1], x0 is xp[0] */
+      x1 = xp[1];
+      q = x0 * di; /* q = -x0/d mod B */
+      umul_ppmm (hi, lo, q, d); /* hi*B + lo = -x0 mod B */
+      /* Add hi*B + lo to x1*B + x0. Since d <= B-2 we have
+         hi*B + lo <= (B-1)(B-2) = B^2-3B+2, thus hi <= B-3 */
+      hi += cy + (lo != 0); /* cannot overflow */
+      x0 = x1 + hi;
+      cy = x0 < hi;
+      xn --;
+      xp ++;
+    }
+  if (cy != 0)
+    x0 -= d;
+  while (x0 >= d)
+    x0 -= d;
+  return x0;
+}
+#endif
+
 /* convert mpzvi to CRT representation, naive version */
 static void
 mpzspv_from_mpzv_slow (mpzspv_t x, const spv_size_t offset, mpz_t mpzvi,
@@ -191,32 +226,20 @@ mpzspv_from_mpzv_slow (mpzspv_t x, const spv_size_t offset, mpz_t mpzvi,
    *
    * It doesn't accept 0 as the dividend so we have to treat this case
    * separately */
+
+  /* Note: we can't use the mul_c field for mpn_preinv_mod_1, since on 64-bit
+     it is floor(2^125/sp) where sp has 62 bits, and mpn_preinv_mod_1 needs
+     floor(2^128/(4*sp))-2^64 = floor(2^126/sp)-2^64.
+     On 32-bit it is floor(2^62/sp) where sp has 31 bits, and mpn_preinv_mod_1
+     needs floor(2^64/(2*sp))-2^32 = floor(2^63/sp)-2^32. */
   
   for (j = 0; j < sp_num; j++)
-    {
-#if HAVE___GMPN_PREINV_MOD_1
-#if SP_NUMB_BITS == W_TYPE_SIZE - 2
-      /* mul_c is 2^(2*SP_NUMB_BITS+1)/sp where sp has SP_NUMB_BITS bits
-         therefore we must multiply mul_c by 2^(W_TYPE_SIZE-SP_NUMB_BITS-1) */
-    x[j][offset] = __gmpn_preinv_mod_1 (PTR(mpzvi), SIZ(mpzvi),
-              (mp_limb_t) mpzspm->spm[j]->sp << 2, mpzspm->spm[j]->mul_c << 1);
-    if (x[j][offset] >= (mpzspm->spm[j]->sp << 1))
-      x[j][offset] -= (mpzspm->spm[j]->sp << 1);
-#elif SP_NUMB_BITS == W_TYPE_SIZE - 1
-      /* mul_c is 2^(2*SP_NUMB_BITS)/sp where sp has SP_NUMB_BITS bits
-         therefore we must multiply mul_c by 2^(W_TYPE_SIZE-SP_NUMB_BITS) */
-    x[j][offset] = __gmpn_preinv_mod_1 (PTR(mpzvi), SIZ(mpzvi),
-              (mp_limb_t) mpzspm->spm[j]->sp << 1, mpzspm->spm[j]->mul_c << 1);
-#else
-#error "SP_NUMB_BITS should be W_TYPE_SIZE - 1 or -2"
-#endif
-    if (x[j][offset] >= mpzspm->spm[j]->sp)
-      x[j][offset] -= mpzspm->spm[j]->sp;
+#if 0
+    x[j][offset] = ecm_bdiv_r_1 (PTR(mpzvi), SIZ(mpzvi), mpzspm->spm[j]->sp);
 #else
     x[j][offset] = mpn_mod_1 (PTR(mpzvi), SIZ(mpzvi),
                               (mp_limb_t) mpzspm->spm[j]->sp);
 #endif
-    }
   /* The typecast to mp_limb_t assumes that mp_limb_t is at least
      as wide as sp_t */
 }
