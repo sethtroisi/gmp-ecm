@@ -47,12 +47,10 @@ extern size_t MPZSPV_NORMALISE_STRIDE;
 
 #include <gmp.h>
 
-#ifdef __GNUC__
-#if    __GNUC__ >= 3
+#if defined( __GNUC__ ) && __GNUC__ >= 3
 #define ATTRIBUTE_UNUSED __attribute__ ((unused))
 #else
 #define ATTRIBUTE_UNUSED
-#endif
 #endif
 
 /**************

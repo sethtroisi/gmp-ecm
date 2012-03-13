@@ -14,13 +14,5 @@
     <ClCompile Include="..\..\bench_mulredc.c">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="..\getrusage.c">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-  </ItemGroup>
-  <ItemGroup>
-    <ClInclude Include="..\getrusage.h">
-      <Filter>Source Files</Filter>
-    </ClInclude>
   </ItemGroup>
 </Project>
