@@ -167,26 +167,19 @@ void cuda_Main (biguint_t h_N, biguint_t h_3N, biguint_t h_M, digit_t h_invN,
 /***************/
 
 
-#define __add_cc(r,a,b) __asm__("add.cc.u32 %0,%1, %2;" :"=r"(r):"r"(a),"r"(b)) 
-#define __addc_cc(r,a,b) __asm__("addc.cc.u32 %0,%1, %2;":"=r"(r):"r"(a),"r"(b)) 
+#define __add_cc(r,a,b) asm ("add.cc.u32 %0, %1, %2;": "=r"(r): "r"(a), "r"(b)) 
+#define __addc_cc(r,a,b) asm ("addc.cc.u32 %0, %1, %2;": "=r"(r): "r"(a), "r"(b))
+#define __sub_cc(r,a,b) asm ("sub.cc.u32 %0, %1, %2;": "=r"(r): "r"(a), "r"(b)) 
 
-#define __sub_cc(r,a,b) __asm__("sub.cc.u32 %0,%1, %2;" :"=r"(r):"r"(a),"r"(b)) 
+#define __addcy(carry) asm ("addc.s32 %0, 0, 0;" : "=r"(carry)) 
+#define __addcy2(carry) asm ("addc.s32 %0, %0, 0;" : "+r"(carry)) 
 
-#define __addcy(carry) __asm__("addc.s32 %0, 0, 0;" :"=r"(carry)) 
-#define __addcy2(carry) __asm__("addc.s32 %0, %0, 0;" :"+r"(carry)) 
+#define __subcy(carry) asm ("subc.s32 %0, 0, 0;" : "=r"(carry)) 
+#define __subcy2(carry) asm ("subc.s32 %0, %0, 0;" : "+r"(carry)) 
 
-#define __subcy(carry) __asm__("subc.s32 %0, 0, 0;" :"=r"(carry)) 
-#define __subcy2(carry) __asm__("subc.s32 %0, %0, 0;" :"+r"(carry)) 
-
-#define __mul(h,l,a,b) __asm__("mul.hi.u32 %0,%2,%3;\n\t" "mul.lo.u32 %1,%2,%3;"\
-                                            : "=r"(h), "=r"(l) : "r"(a), "r"(b))
-
-#define __mad_lo(r,a,b,c) __asm__("mad.lo.u32 %0,%1,%2,%3;" \
-                                            : "=r"(r) : "r"(a), "r"(b), "r"(c))
-#define __mad_hi(r,a,b,c) __asm__("mad.hi.u32 %0,%1,%2,%3;" \
-                                            : "=r"(r) : "r"(a), "r"(b), "r"(c))
-
-
+#define __mul(h, l, a, b) asm("mul.hi.u32 %0, %2, %3;\n\t"\
+                              "mul.lo.u32 %1, %2, %3;"\
+                                   : "=r"(h), "=r"(l) : "r"(a), "r"(b))
 
 
 //  (A > B)?, returns 1(true), -1(false) or 0(a=b) 
