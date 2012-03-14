@@ -43,7 +43,7 @@ libecm_la_LDFLAGS = '-version-info 0:0:0'
 libecm_la_LIBADD = $(MULREDCLIBRARY)
 
 bin_PROGRAMS = ecm
-noinst_PROGRAMS = tune ecmfactor ecmfactor2
+noinst_PROGRAMS = tune ecmfactor ecmfactor2 bench_mulredc
 # Most binaries want to link libecm.la, and the ones which don't will
 # have their own _LDADD which overrides the default LDADD here
 LDADD = libecm.la $(GMPLIB)
