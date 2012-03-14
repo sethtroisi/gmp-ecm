@@ -628,99 +628,115 @@ void bench(mp_size_t N)
   t3 = cputime() - t3;
 #endif /* ifdef HAVE_NATIVE_MULREDC1_N */
 
-  printf ("******************\n");
-  printf ("Time in microseconds per call, size=%lu (iter=%lu):\n", N, iter);
+  fprintf (stderr, "******************\n");
+  fprintf (stderr, "Time in microseconds per call, size=%lu (iter=%lu):\n",
+           N, iter);
 
   /* basic operations */
-  printf("mpn_mul_n  = %.3f\n", (double) tmul * 1e3 / (double) iter);
-  printf("mpn_sqr    = %.3f\n", (double) tsqr * 1e3 / (double) iter);
+  fprintf (stderr, "mpn_mul_n  = %.3f\n",
+           (double) tmul * 1e3 / (double) iter);
+  fprintf (stderr, "mpn_sqr    = %.3f\n",
+           (double) tsqr * 1e3 / (double) iter);
 #ifdef HAVE___GMPN_REDC_1
-  printf ("mpn_redc_1 = %.3f", (double) tredc_1 * 1e3 / (double) iter);
+  fprintf (stderr, "mpn_redc_1 = %.3f",
+           (double) tredc_1 * 1e3 / (double) iter);
   if (tredc_1 == tredc_best)
-    printf (" *");
-  printf ("\n");
+    fprintf (stderr, " *");
+  fprintf (stderr, "\n");
 #endif
   if (N > 1)
     {
-      printf("svoboda1   = %.3f", (double) tsvoboda1 * 1e3 / (double) iter);
+      fprintf (stderr, "svoboda1   = %.3f",
+               (double) tsvoboda1 * 1e3 / (double) iter);
       if (tsvoboda1 == tredc_best)
-        printf (" *");
-      printf ("\n");
+        fprintf (stderr, " *");
+      fprintf (stderr, "\n");
     }
 #ifdef HAVE___GMPN_REDC_2
-  printf("mpn_redc_2 = %.3f", (double) tredc_2 * 1e3 / (double) iter);
+  fprintf (stderr, "mpn_redc_2 = %.3f",
+           (double) tredc_2 * 1e3 / (double) iter);
   if (tredc_2 == tredc_best)
-    printf (" *");
-  printf ("\n");
+    fprintf (stderr, " *");
+  fprintf (stderr, "\n");
 #endif
 #ifdef HAVE___GMPN_REDC_N
-  printf("mpn_redc_n = %.3f", (double) tredc_n * 1e3 / (double) iter);
+  fprintf (stderr, "mpn_redc_n = %.3f",
+           (double) tredc_n * 1e3 / (double) iter);
   if (tredc_n == tredc_best)
-    printf (" *");
-  printf ("\n");
+    fprintf (stderr, " *");
+  fprintf (stderr, "\n");
 #endif
 
-  printf ("\n");
+  fprintf (stderr, "\n");
 
   /* modular multiplication */
 #ifdef USE_ASM_REDC
-  printf("mulredc    = %.3f", (double) t2 * 1e3 / (double) iter);
+  fprintf (stderr, "mulredc    = %.3f",
+           (double) t2 * 1e3 / (double) iter);
   if (tmul_best == t2)
-    printf (" *");
-  printf ("\n");
+    fprintf (stderr, " *");
+  fprintf (stderr, "\n");
 #endif
 #ifdef HAVE___GMPN_REDC_1
-  printf("mul+redc_1 = %.3f", (double) t_mulredc_1 * 1e3 / (double) iter);
+  fprintf (stderr, "mul+redc_1 = %.3f",
+           (double) t_mulredc_1 * 1e3 / (double) iter);
   if (tmul_best == t_mulredc_1)
-    printf (" *");
-  printf ("\n");
+    fprintf (stderr, " *");
+  fprintf (stderr, "\n");
 #endif
 #ifdef HAVE___GMPN_REDC_2
-  printf("mul+redc_2 = %.3f", (double) t_mulredc_2 * 1e3 / (double) iter);
+  fprintf (stderr, "mul+redc_2 = %.3f",
+           (double) t_mulredc_2 * 1e3 / (double) iter);
   if (tmul_best == t_mulredc_2)
-    printf (" *");
-  printf ("\n");
+    fprintf (stderr, " *");
+  fprintf (stderr, "\n");
 #endif
 #ifdef HAVE___GMPN_REDC_N
-  printf("mul+redc_n = %.3f", (double) t_mulredc_n * 1e3 / (double) iter);
+  fprintf (stderr, "mul+redc_n = %.3f",
+           (double) t_mulredc_n * 1e3 / (double) iter);
   if (tmul_best == t_mulredc_n)
-    printf (" *");
-  printf ("\n");
+    fprintf (stderr, " *");
+  fprintf (stderr, "\n");
 #endif
 
-  printf ("\n");
+  fprintf (stderr, "\n");
 
   /* modular squaring */
 #ifdef USE_ASM_REDC
-  printf("mulredc    = %.3f", (double) t2 * 1e3 / (double) iter);
+  fprintf (stderr, "mulredc    = %.3f",
+           (double) t2 * 1e3 / (double) iter);
   if (tsqr_best == t2)
-    printf (" *");
-  printf ("\n");
+    fprintf (stderr, " *");
+  fprintf (stderr, "\n");
 #endif
 #ifdef HAVE___GMPN_REDC_1
-  printf("sqr+redc_1 = %.3f", (double) t_sqrredc_1 * 1e3 / (double) iter);
+  fprintf (stderr, "sqr+redc_1 = %.3f",
+           (double) t_sqrredc_1 * 1e3 / (double) iter);
   if (tsqr_best == t_sqrredc_1)
-    printf (" *");
-  printf ("\n");
+    fprintf (stderr, " *");
+  fprintf (stderr, "\n");
 #endif
 #ifdef HAVE___GMPN_REDC_2
-  printf("sqr+redc_2 = %.3f", (double) t_sqrredc_2 * 1e3 / (double) iter);
+  fprintf (stderr, "sqr+redc_2 = %.3f",
+           (double) t_sqrredc_2 * 1e3 / (double) iter);
   if (tsqr_best == t_sqrredc_2)
-    printf (" *");
-  printf ("\n");
+    fprintf (stderr, " *");
+  fprintf (stderr, "\n");
 #endif
 #ifdef HAVE___GMPN_REDC_N
-  printf("sqr+redc_n = %.3f", (double) t_sqrredc_n * 1e3 / (double) iter);
+  fprintf (stderr, "sqr+redc_n = %.3f",
+           (double) t_sqrredc_n * 1e3 / (double) iter);
   if (tsqr_best == t_sqrredc_n)
-    printf (" *");
-  printf ("\n");
+    fprintf (stderr, " *");
+  fprintf (stderr, "\n");
 #endif
 
 #ifdef HAVE_NATIVE_MULREDC1_N
   /* multiplication of n limbs by one limb */
-  printf ("mulredc1   = %.3f\n", (double) t3 * 1e3 / (double) LOOPCOUNT);
+  fprintf (stderr, "mulredc1   = %.3f\n",
+           (double) t3 * 1e3 / (double) LOOPCOUNT);
 #endif
-  fflush (stdout);
+  fflush (stderr);
   
   free (tmp);
   free (x);
@@ -755,6 +771,7 @@ int main(int argc, char** argv)
   for (i = 1; i <= maxsize; i++)
     printf (",%d", tune_sqr[i]);
   printf ("}\n");
+  fflush (stdout);
 
   return 0;
 }
