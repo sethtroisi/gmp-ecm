@@ -240,9 +240,9 @@ __device__ void Cuda_Add_mod
 /* Input: 0 <= Rmod, B < 3*N */ 
 /* Ouput: 0 <= Rmod < 6*N */ 
 __device__ void Cuda_Sub_mod 
-(biguint_t Rmod, dbigint_t cy, const biguint_t B)
+(biguint_t Rmod, dbigint_t cy, const biguint_t B, const digit_t N3thdx)
 {
-  __add_cc (Rmod[threadIdx.x], Rmod[threadIdx.x], d_3Ncst[threadIdx.x]);
+  __add_cc (Rmod[threadIdx.x], Rmod[threadIdx.x], N3thdx);
   __addcy (cy[threadIdx.x]);
   __sub_cc (Rmod[threadIdx.x], Rmod[threadIdx.x], B[threadIdx.x]);
   __subcy2 (cy[threadIdx.x]);
@@ -441,12 +441,13 @@ Cuda_Ell_DblAdd (biguint_t *xarg, biguint_t *zarg, biguint_t *x2arg,
   u[threadIdx.x]=zarg[idx1][threadIdx.x];
 
   const digit_t Nthdx = d_Ncst[threadIdx.x]; 
+  const digit_t N3thdx = d_3Ncst[threadIdx.x]; 
   const digit_t invN = d_invNcst; 
 
-  Cuda_Add_mod(t, cy, v, w);      /* C=x2+z2 */
-  Cuda_Sub_mod(v, cy, w);         /* D=x2-z2 */
-  Cuda_Add_mod(w, cy, u, temp_r); /* A=x+z */
-  Cuda_Sub_mod(u, cy, temp_r);    /* B=x-z */
+  Cuda_Add_mod(t, cy, v, w);           /* C=z2+x2 */
+  Cuda_Sub_mod(v, cy, w, N3thdx);      /* D=z2-x2 */
+  Cuda_Add_mod(w, cy, u, temp_r);      /* A=z+x */
+  Cuda_Sub_mod(u, cy, temp_r, N3thdx); /* B=z-x */
 
   Cuda_Mul_mod(t, cy, t, u, temp_r, Nthdx, invN); /* CB=C*B=(zq+xq)(zp-xp) */
   Cuda_Mul_mod(v, cy, v, w, temp_r, Nthdx, invN); /* DA=D*A=(zq-xq)(zp+xp) */
@@ -457,15 +458,15 @@ Cuda_Ell_DblAdd (biguint_t *xarg, biguint_t *zarg, biguint_t *x2arg,
   Cuda_Mul_mod(temp_r, cy, u, w, temp_r, Nthdx, invN); /* x2=AA*BB */
   xarg[idx1][threadIdx.x]=temp_r[threadIdx.x];
 
-  Cuda_Sub_mod (w, cy, u); /* C= AA-BB */
+  Cuda_Sub_mod (w, cy, u, N3thdx); /* C= AA-BB */
   Cuda_Mulint_mod (temp_r, cy, w, idx1 + firstinvd, Nthdx, invN); /* d*C */ 
   Cuda_Add_mod (u, cy, temp_r); /* BB+d*C */
  
   Cuda_Mul_mod (w, cy, w, u, temp_r, Nthdx, invN); /* z2=C*(BB+d*C) */
   zarg[idx1][threadIdx.x]=w[threadIdx.x];
  
-  Cuda_Add_mod(w, cy, v, t); /* DA+CB mod N */
-  Cuda_Sub_mod(v, cy, t); /* DA-CB mod N */
+  Cuda_Add_mod(w, cy, v, t);       /* DA+CB mod N */
+  Cuda_Sub_mod(v, cy, t, N3thdx);  /* DA-CB mod N */
 
   Cuda_Square_mod(w, cy, w, temp_r, Nthdx, invN); /* (DA+CB)^2 mod N */
   Cuda_Square_mod(v, cy, v, temp_r, Nthdx, invN); /* (DA-CB)^2 mod N */
