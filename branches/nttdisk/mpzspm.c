@@ -401,6 +401,7 @@ void mpzspm_clear (mpzspm_t mpzspm)
   free (mpzspm->crt3);
   free (mpzspm->crt4);
   free (mpzspm->crt5);
+  free (mpzspm->prime_recip);
   
   mpz_clear (mpzspm->modulus);
   free (mpzspm->spm);
