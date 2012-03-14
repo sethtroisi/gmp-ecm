@@ -564,7 +564,7 @@ unsigned int ks_wrapmul (listz_t, unsigned int, listz_t, unsigned int,
 /* mpmod.c */
 /* Define MPRESN_NO_ADJUSTMENT if mpresn_add, mpresn_sub and mpresn_addsub
    should perform no adjustment step. This yields constraints on N. */
-// #define MPRESN_NO_ADJUSTMENT
+/* #define MPRESN_NO_ADJUSTMENT */
 #define isbase2 __ECM(isbase2)
 int isbase2 (const mpz_t, const double);
 #define mpmod_init __ECM(mpmod_init)
