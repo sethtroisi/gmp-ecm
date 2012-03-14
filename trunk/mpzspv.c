@@ -233,6 +233,13 @@ mpzspv_from_mpzv_slow (mpzspv_t x, const spv_size_t offset, mpz_t mpzvi,
      floor(2^128/(4*sp))-2^64 = floor(2^126/sp)-2^64.
      On 32-bit it is floor(2^62/sp) where sp has 31 bits, and mpn_preinv_mod_1
      needs floor(2^64/(2*sp))-2^32 = floor(2^63/sp)-2^32. */
+
+  /* Note: we could improve this as follows. Assume the number N to factor has
+     n limbs. Instead of computing v mod p by reducing v by the high limbs,
+     we first compute v/B^(n-1) mod p by reducing v by the low limbs, then
+     deduce v mod p using a precomputed value of B^(n-1) mod p.
+     The reduction v/B is done by using a precomputed k = 1/B mod p,
+     thus v1*B+v0 = (v1+k*v0)*B and so on. */
   
   for (j = 0; j < sp_num; j++)
     x[j][offset] = mpn_mod_1 (PTR(mpzvi), SIZ(mpzvi),
