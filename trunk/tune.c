@@ -451,11 +451,25 @@ main (int argc, char **argv)
   gmp_randinit_default (gmp_randstate);
   mpz_init_set_str (M, M_str, 10);
   b = (unsigned long) mpz_sizeinbase (M, 2);
-  
+
   x = init_list (MAX_LEN);
   y = init_list (MAX_LEN);
   z = init_list (MAX_LEN);
   t = init_list (list_mul_mem (MAX_LEN / 2) + 3 * MAX_LEN / 2);
+  
+  mpzspm = mpzspm_init (MAX_LEN, M);
+  if (mpzspm == NULL)
+    {
+      fprintf (stderr, "Error, cannot allocate memory in mpzspm_init\n");
+      exit (1);
+    }
+  mpzspv = mpzspv_init (MAX_LEN, mpzspm);
+  if (mpzspv == NULL)
+    {
+      fprintf (stderr, "Error, cannot allocate memory in mpzspv_init\n");
+      exit (1);
+    }
+  mpzspv_random (mpzspv, 0, MAX_LEN, mpzspm);
   
   for (i = 0; i < MAX_LEN; i++)
     mpz_quick_random (x[i], M, b);
@@ -464,11 +478,6 @@ main (int argc, char **argv)
   for (i = 0; i < MAX_LEN; i++)
     mpz_quick_random (z[i], M, b);    
   
-  mpzspm = mpzspm_init (MAX_LEN, M);
-  mpzspv = mpzspv_init (MAX_LEN, mpzspm);
-  mpzspv_random (mpzspv, 0, MAX_LEN, mpzspm);
-  
- 
   spm = mpzspm->spm[0];
   spv = mpzspv[0];
   
