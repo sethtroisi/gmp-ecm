@@ -182,21 +182,6 @@ void cuda_Main (biguint_t h_N, biguint_t h_3N, biguint_t h_M, digit_t h_invN,
                                    : "=r"(h), "=r"(l) : "r"(a), "r"(b))
 
 
-//  (A > B)?, returns 1(true), -1(false) or 0(a=b) 
-//Assume A and B are normalize (no carry or borrow)
-__device__ int Cuda_Cmp(const biguint_t A, const biguint_t B)
-{
-  int i;
-  for (i = NB_DIGITS-1;i>=0;i--)
-  {
-    if (A[i] > B[i])
-      return 1;
-    else if (A[i] < B[i])
-      return -1;
-  }
-  return 0;
-}
-
 //Assume cy[threadIdx.x] = 0,+/-1
 __device__ void Cuda_Normalize (biguint_t A, dbigint_t cy)
 {
@@ -229,35 +214,15 @@ __device__ void Cuda_Fully_Normalize (biguint_t A, dbigint_t cy)
   
 }
 
-__device__ void Cuda_Add 
-(biguint_t r, dbigint_t cy ,const biguint_t a, const biguint_t b)
-{
-  __add_cc(r[threadIdx.x],a[threadIdx.x],b[threadIdx.x]);
-  __addcy(cy[threadIdx.x]);
-}
-
-__device__ void Cuda_Subc 
-(biguint_t r, dbigint_t cy, const biguint_t a, const biguint_t b)
-{
-  __sub_cc(r[threadIdx.x],a[threadIdx.x],b[threadIdx.x]);
-  __subcy2(cy[threadIdx.x]);
-}
-
-__device__ void Cuda_Sub 
-(biguint_t r, dbigint_t cy, const biguint_t a, const biguint_t b)
-{
-  __sub_cc(r[threadIdx.x],a[threadIdx.x],b[threadIdx.x]);
-  __subcy(cy[threadIdx.x]);
-}
-
 /* Compute Rmod <- A + B */ 
 /* Input: 0 <= A, B < 3*N */ 
 /* Ouput: 0 <= Rmod < 6*N */ 
 __device__ void Cuda_Add_mod
-(biguint_t Rmod, dbigint_t cy, const biguint_t A,const biguint_t B)
+(biguint_t Rmod, dbigint_t cy, const biguint_t A, const biguint_t B)
 {
-  Cuda_Add(Rmod, cy, A, B);
-  Cuda_Fully_Normalize(Rmod, cy); 
+  __add_cc (Rmod[threadIdx.x], A[threadIdx.x], B[threadIdx.x]);
+  __addcy (cy[threadIdx.x]);
+  Cuda_Fully_Normalize (Rmod, cy); 
 }
 
 /* Compute Rmod <- Rmod + B */ 
@@ -268,19 +233,22 @@ __device__ void Cuda_Add_mod
 __device__ void Cuda_Add_mod
 (biguint_t Rmod, dbigint_t cy, const biguint_t A)
 {
-  Cuda_Add(Rmod, cy, Rmod, A);
-  Cuda_Fully_Normalize(Rmod, cy);
+  __add_cc (Rmod[threadIdx.x], Rmod[threadIdx.x], A[threadIdx.x]);
+  __addcy (cy[threadIdx.x]);
+  Cuda_Fully_Normalize (Rmod, cy);
 }
 
 /* Compute Rmod <- Rmod - B */ 
 /* Input: 0 <= Rmod, B < 3*N */ 
 /* Ouput: 0 <= Rmod < 6*N */ 
 __device__ void Cuda_Sub_mod 
-(biguint_t Rmod, dbigint_t cy, const biguint_t A)
+(biguint_t Rmod, dbigint_t cy, const biguint_t B)
 {
-  Cuda_Add (Rmod, cy, Rmod, d_3Ncst);
-  Cuda_Subc (Rmod, cy, Rmod, A);
-  Cuda_Fully_Normalize(Rmod, cy); 
+  __add_cc (Rmod[threadIdx.x], Rmod[threadIdx.x], d_3Ncst[threadIdx.x]);
+  __addcy (cy[threadIdx.x]);
+  __sub_cc (Rmod[threadIdx.x], Rmod[threadIdx.x], B[threadIdx.x]);
+  __subcy2 (cy[threadIdx.x]);
+  Cuda_Fully_Normalize (Rmod, cy); 
 }
 
 /* Perform one step of REDC */ 
@@ -320,12 +288,6 @@ __device__ void Cuda_Dbl_mod
 {
   __add_cc(r[threadIdx.x],a[threadIdx.x],a[threadIdx.x]);
   __addcy2(r[(threadIdx.x+1)%NB_DIGITS]);
-
-  if (Cuda_Cmp (r, d_3Ncst) >= 0) 
-  {
-    Cuda_Sub (r, cy, r, d_3Ncst); 
-    Cuda_Fully_Normalize(r, cy);  
-  }
 }
 
 
@@ -417,10 +379,10 @@ Cuda_Ell_DblAdd (biguint_t *xarg, biguint_t *zarg, biguint_t *x2arg,
   if (threadIdx.x==0)
     b_cy[threadIdx.y][NB_DIGITS]=0; 
 
-  v[threadIdx.x]=x2arg[idx1][threadIdx.x];
-  w[threadIdx.x]=z2arg[idx1][threadIdx.x];
-  temp_r[threadIdx.x]=zarg[idx1][threadIdx.x];
-  u[threadIdx.x]=xarg[idx1][threadIdx.x];
+  w[threadIdx.x]=x2arg[idx1][threadIdx.x];
+  v[threadIdx.x]=z2arg[idx1][threadIdx.x];
+  temp_r[threadIdx.x]=xarg[idx1][threadIdx.x];
+  u[threadIdx.x]=zarg[idx1][threadIdx.x];
 
   Cuda_Add_mod(t, cy, v, w);      /* C=x2+z2 */
   Cuda_Sub_mod(v, cy, w);         /* D=x2-z2 */
