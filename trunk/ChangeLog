@@ -1,4 +1,92 @@
 ------------------------------------------------------------------------
+r1842 | zimmerma | 2012-03-14 18:25:52 +0100 (Wed, 14 Mar 2012) | 5 lines
+Changed paths:
+   M /trunk/configure.in
+   M /trunk/ecm-impl.h
+   M /trunk/ecm-params.h.hppa2.0
+   M /trunk/ecm-params.h.ia64
+   M /trunk/ecm-params.h.mips64el
+   M /trunk/ecm-params.h.powerpc970
+   M /trunk/ecm-params.h.sparc64
+
+updated various tuning parameters
+[configure.in] tuning parameters for ia64 and hppa2.0 were not used!
+               Also fixed check for MPIR
+[ecm-impl.h] fixed // comment
+
+------------------------------------------------------------------------
+r1840 | zimmerma | 2012-03-14 16:46:05 +0100 (Wed, 14 Mar 2012) | 2 lines
+Changed paths:
+   M /trunk/ecm.c
+
+[ecm.c] removed computation of number of MULs and SQRs, to save a few cycles
+
+------------------------------------------------------------------------
+r1839 | bouvierc | 2012-03-14 15:47:08 +0100 (Wed, 14 Mar 2012) | 2 lines
+Changed paths:
+   M /trunk/gpu/gpu_ecm/cudakernel.cu
+
+Change in modular substraction.
+
+------------------------------------------------------------------------
+r1838 | zimmerma | 2012-03-14 15:35:59 +0100 (Wed, 14 Mar 2012) | 2 lines
+Changed paths:
+   M /trunk/tune.c
+
+[tune.c] check for failed memory allocation
+
+------------------------------------------------------------------------
+r1837 | bouvierc | 2012-03-14 15:28:56 +0100 (Wed, 14 Mar 2012) | 4 lines
+Changed paths:
+   M /trunk/gpu/gpu_ecm/cudakernel.cu
+
+Add specific code for mul for CC 2.0 cards.
+Treat differently access to constant variables.
+  -> results in significant speed-up.
+
+------------------------------------------------------------------------
+r1836 | bouvierc | 2012-03-14 15:04:39 +0100 (Wed, 14 Mar 2012) | 3 lines
+Changed paths:
+   M /trunk/gpu/gpu_ecm/cudakernel.cu
+
+Rewriting addition, substraction and multiplication by 2. No comparison is
+needed anymore so Cuda_Cmp is removed.
+
+------------------------------------------------------------------------
+r1835 | bouvierc | 2012-03-14 14:53:30 +0100 (Wed, 14 Mar 2012) | 2 lines
+Changed paths:
+   M /trunk/gpu/gpu_ecm/cudakernel.cu
+
+Rewrite #define for asm statement.
+
+------------------------------------------------------------------------
+r1834 | zimmerma | 2012-03-14 09:27:53 +0100 (Wed, 14 Mar 2012) | 4 lines
+Changed paths:
+   M /trunk/Makefile.am
+   M /trunk/bench_mulredc.c
+
+[bench_mulredc.c] only print to stdout what goes to ecm-params.h so that we can
+		  do ./bench_mulredc >> ecm-params.h
+[Makefile.am] build bench_mulredc by default
+
+------------------------------------------------------------------------
+r1833 | zimmerma | 2012-03-13 21:04:49 +0100 (Tue, 13 Mar 2012) | 2 lines
+Changed paths:
+   M /trunk/ecm-params.h.core2
+
+[ecm-params.h.core2] updated
+
+------------------------------------------------------------------------
+r1832 | zimmerma | 2012-03-13 18:19:44 +0100 (Tue, 13 Mar 2012) | 3 lines
+Changed paths:
+   M /trunk/ChangeLog
+   M /trunk/build.vc10/config.h
+   M /trunk/configure.in
+
+[configure.in,build.vc10/config.h] changed version to 6.4.1-rc3
+[ChangeLog] updated
+
+------------------------------------------------------------------------
 r1831 | zimmerma | 2012-03-13 13:47:38 +0100 (Tue, 13 Mar 2012) | 2 lines
 Changed paths:
    M /trunk/mpzspv.c
