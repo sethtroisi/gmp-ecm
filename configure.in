@@ -449,7 +449,7 @@ AC_PREPROC_IFELSE([AC_LANG_SOURCE([[
 )
 
 dnl Figure out if GMP is MPIR
-AC_MSG_CHECKING([for MPIR])
+AC_MSG_CHECKING([if GMP is MPIR])
 AC_PREPROC_IFELSE([AC_LANG_SOURCE([[
 #include <gmp.h>
 #ifndef __MPIR_VERSION
@@ -457,7 +457,9 @@ AC_PREPROC_IFELSE([AC_LANG_SOURCE([[
 #IRIXdoesnotexitaterrordirective
 #endif
 ]])],
-  [AC_DEFINE([HAVE_MPIR],1,[Define to 1 if GMP is MPIR])])
+  [AC_MSG_RESULT(yes)
+   AC_DEFINE([HAVE_MPIR],1,[Define to 1 if GMP is MPIR])],
+  [AC_MSG_RESULT(no)])
 
 dnl Now choose how to link the GMP library. If we can, we'd prefer to
 dnl link it statically since that makes for faster function calls. To
@@ -596,6 +598,8 @@ case $host in
   mips64el-*-*) config_arch="mips64el" ;;
   armv5tel-*-*) config_arch="armv5tel" ;;
   sparc64-*-*) config_arch="sparc64" ;;
+  ia64-*-*) config_arch="ia64" ;;
+  hppa2.0-*-*) config_arch="hppa2.0" ;;
   *) config_arch="default" ;;
 esac
 
