@@ -80,6 +80,64 @@ mpzspv_clear (mpzspv_t x, mpzspm_t mpzspm)
   free (x);
 }
 
+
+/* If filename == NULL, allocates memory for storage.
+   If filename != NULL, opens a file set */
+
+mpzspv_handle_t
+mpzspv_init_handle (const char *filename, spv_size_t len, mpzspm_t mpzspm)
+{
+  mpzspv_handle_t handle;
+  
+  handle = (mpzspv_handle_t) malloc (sizeof (_mpzspv_handle_t));
+  if (handle == NULL)
+    return NULL;
+  
+  handle->mpzspm = mpzspm;
+
+  if (filename == NULL)
+    {
+      handle->storage = 0;
+      handle->mem = mpzspv_init (len, mpzspm);
+      handle->files = NULL;
+    }
+  else
+    {
+      handle->storage = 1;
+      handle->mem = NULL;
+      handle->files = mpzspv_open_fileset (filename, mpzspm);
+    }
+
+  if (handle->mem == NULL && handle->files == NULL)
+    {
+      free (handle);
+      handle = NULL;
+    }
+
+  return handle;
+}
+
+
+void
+mpzspv_clear_handle (mpzspv_handle_t handle)
+{
+  if (handle->storage == 0)
+    {
+      mpzspv_clear (handle->mem, handle->mpzspm);
+      handle->mem = NULL;
+      handle->mpzspm = NULL;
+    }
+  else 
+    {
+      mpzspv_close_fileset (handle->files, handle->mpzspm);
+      handle->files = NULL;
+      handle->mpzspm = NULL;
+    }
+
+  free (handle);
+}
+
+
 /* check that:
  *  - each of the spv's is at least offset + len long
  *  - the data specified by (offset, len) is correctly normalised in the
@@ -446,13 +504,12 @@ mpzspv_to_mpzv_file (mpzspv_t x, const spv_size_t offset,
 
 
 void
-mpzspv_fromto_mpzv_file (mpzspv_t x, const spv_size_t offset, 
-    FILE **sp_files, const spv_size_t len, 
+mpzspv_fromto_mpzv_file (mpzspv_handle_t x, const spv_size_t offset, 
+    const spv_size_t len, 
     mpz_producerfunc_t producer, void * producer_state, 
-    mpz_consumerfunc_t consumer, void * consumer_state,
-    mpzspm_t mpzspm)
+    mpz_consumerfunc_t consumer, void * consumer_state)
 {
-  const unsigned int sp_num = mpzspm->sp_num;
+  const unsigned int sp_num = x->mpzspm->sp_num;
   spv_size_t blocksize = 16384, len_done = 0, buffer_offset = 0;
   mpzspv_t buffer;
   mpz_t mpz1, mpz2, mt;
@@ -463,16 +520,16 @@ mpzspv_fromto_mpzv_file (mpzspv_t x, const spv_size_t offset,
   mpz_init(mpz2);
   mpz_init(mt);
 
-  if (x != NULL)
+  if (x->storage == 0)
     {
       blocksize = len; /* Do whole thing at once */
-      buffer = x;
+      buffer = x->mem;
       buffer_offset = offset;
     }
   else
     {
       /* Do piecewise, using a temp buffer */
-      buffer = mpzspv_init (blocksize, mpzspm);
+      buffer = mpzspv_init (blocksize, x->mpzspm);
       if (buffer == NULL)
         {
           abort();
@@ -485,9 +542,9 @@ mpzspv_fromto_mpzv_file (mpzspv_t x, const spv_size_t offset,
     spv_size_t i;
 
     /* Read x from disk files */
-    if (consumer != NULL && sp_files != NULL) {
-      mpzspv_seek_and_read (buffer, buffer_offset, sp_files, 
-                            offset + len_done, len_now, mpzspm);
+    if (consumer != NULL && x->storage != 0) {
+      mpzspv_seek_and_read (buffer, buffer_offset, x->files, 
+                            offset + len_done, len_now, x->mpzspm);
     }
 
     for (i = 0; i < len_now; i++)
@@ -501,8 +558,8 @@ mpzspv_fromto_mpzv_file (mpzspv_t x, const spv_size_t offset,
         if (consumer != NULL)
           {
             /* Convert NTT entry to mpz2 */
-            mpzspv_to_mpz (mpz2, buffer, buffer_offset + i, mpzspm, mt);
-            mpz_mod (mpz2, mpz2, mpzspm->modulus);
+            mpzspv_to_mpz (mpz2, buffer, buffer_offset + i, x->mpzspm, mt);
+            mpz_mod (mpz2, mpz2, x->mpzspm->modulus);
             /* Give mpz2 to consumer */
             (*consumer)(consumer_state, mpz2);
           }
@@ -510,15 +567,15 @@ mpzspv_fromto_mpzv_file (mpzspv_t x, const spv_size_t offset,
         if (producer != NULL)
           {
             /* Convert the mpz1 we got from producer to NTT */
-            mpzspv_from_mpzv_slow (buffer, buffer_offset + i, mpz1, mpzspm, 
+            mpzspv_from_mpzv_slow (buffer, buffer_offset + i, mpz1, x->mpzspm, 
                                    mt, sp_num);
           }
       }
 
     /* Write x to disk files */
-    if (producer != NULL && sp_files != NULL) {
-      mpzspv_seek_and_write (buffer, buffer_offset, sp_files, offset + len_done, 
-                             len_now, mpzspm);
+    if (producer != NULL && x->storage != 0) {
+      mpzspv_seek_and_write (buffer, buffer_offset, x->files, offset + len_done, 
+                             len_now, x->mpzspm);
     }
     len_done += len_now;
     /* If we write NTT data to memory, we need to advance the offset to fill 
@@ -531,8 +588,8 @@ mpzspv_fromto_mpzv_file (mpzspv_t x, const spv_size_t offset,
   mpz_clear(mpz2);
   mpz_clear(mt);
 
-  if (x == NULL)
-    mpzspv_clear (buffer, mpzspm);
+  if (x->storage != 0)
+    mpzspv_clear (buffer, x->mpzspm);
 }
 
 
@@ -1467,70 +1524,53 @@ spv_sqr_reciprocal(const spv_size_t n, const spm_t spm, const spv_t spv, const s
 #endif
 }
 
-/* Square the RLP in dft */
-
-void 
-mpzspv_sqr_reciprocal (mpzspv_t dft, const spv_size_t n, 
-                       const mpzspm_t mpzspm)
-{
-#ifdef WANT_ASSERT
-  const spv_size_t log2_n = ceil_log_2 (n);
-  const spv_size_t len = ((spv_size_t) 2) << log2_n;
-#endif
-  int j;
-
-  ASSERT(mpzspm->max_ntt_size % 3UL == 0UL);
-  ASSERT(len % 3UL != 0UL);
-  ASSERT(mpzspm->max_ntt_size % len == 0UL);
-
-#ifdef _OPENMP
-#pragma omp parallel
-  {
-#pragma omp for
-#endif
-    for (j = 0; j < (int) (mpzspm->sp_num); j++)
-      {
-        spv_sqr_reciprocal(n, mpzspm->spm[j], dft[j], mpzspm->max_ntt_size);
-      }
-#ifdef _OPENMP
-    }
-#endif
-}
-
 
 /* Square the RLP stored in files */
 
 void 
-mpzspv_sqr_reciprocal_file (FILE **dft_files, const spv_size_t n, 
-                            const mpzspm_t mpzspm)
+mpzspv_sqr_reciprocal (mpzspv_handle_t x, const spv_size_t n)
 {
   const spv_size_t log2_n = ceil_log_2 (n);
   const spv_size_t len = ((spv_size_t) 2) << log2_n;
   int j;
 
-  ASSERT(mpzspm->max_ntt_size % 3UL == 0UL);
+  ASSERT(x->mpzspm->max_ntt_size % 3UL == 0UL);
   ASSERT(len % 3UL != 0UL);
-  ASSERT(mpzspm->max_ntt_size % len == 0UL);
+  ASSERT(x->mpzspm->max_ntt_size % len == 0UL);
 
 #ifdef _OPENMP
 #pragma omp parallel
   {
 #pragma omp for
 #endif
-    for (j = 0; j < (int) (mpzspm->sp_num); j++)
+    for (j = 0; j < (int) (x->mpzspm->sp_num); j++)
       {
-        spv_t tmp = (spv_t) sp_aligned_malloc (len * sizeof (sp_t));
-
-        if (tmp == NULL)
+        spv_t tmp;
+        
+        if (x->storage != 0)
           {
-            fprintf (stderr, "Cannot allocate tmp memory in "
-                     "mpzspv_sqr_reciprocal_file()\n");
-            abort();
+            tmp = (spv_t) sp_aligned_malloc (len * sizeof (sp_t));
+
+            if (tmp == NULL)
+              {
+                fprintf (stderr, "Cannot allocate tmp memory in "
+                         "mpzspv_sqr_reciprocal_file()\n");
+                abort();
+              }
+            seek_and_read_sp (tmp, n, 0, x->files[j]);
           }
-        seek_and_read_sp (tmp, n, 0, dft_files[j]);
-        spv_sqr_reciprocal (n, mpzspm->spm[j], tmp, mpzspm->max_ntt_size);
-        seek_and_write_sp (tmp, 2 * n - 1, 0, dft_files[j]);
-        sp_aligned_free (tmp);
+        else
+          {
+            tmp = x->mem[j];
+          }
+        
+        spv_sqr_reciprocal (n, x->mpzspm->spm[j], tmp, x->mpzspm->max_ntt_size);
+        
+        if (x->storage != 0)
+          {
+            seek_and_write_sp (tmp, 2 * n - 1, 0, x->files[j]);
+            sp_aligned_free (tmp);
+          }
       }
 #ifdef _OPENMP
     }

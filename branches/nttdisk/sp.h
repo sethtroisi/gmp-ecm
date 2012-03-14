@@ -218,6 +218,15 @@ typedef __mpzspm_struct * mpzspm_t;
 
 typedef spv_t * mpzspv_t;
 
+typedef struct {
+  int storage; /* 0: memory, 1: disk */
+  mpzspm_t mpzspm;
+  mpzspv_t mem; /* NULL if storage == 1 */
+  FILE **files; /* NULL if storage == 0 */
+} _mpzspv_handle_t;
+
+typedef _mpzspv_handle_t *mpzspv_handle_t;
+
 /* Producer function */
 typedef void (*mpz_producerfunc_t)(void *, mpz_t);
 /* Consumer function */
@@ -590,6 +599,8 @@ void mpzspm_print_CRT_primes (int, const char *,
 
 mpzspv_t mpzspv_init (spv_size_t, mpzspm_t);
 void mpzspv_clear (mpzspv_t, mpzspm_t);
+mpzspv_handle_t mpzspv_init_handle (const char *, spv_size_t, mpzspm_t);
+void mpzspv_clear_handle (mpzspv_handle_t);
 int mpzspv_verify (mpzspv_t, spv_size_t, spv_size_t, mpzspm_t);
 void mpzspv_set (mpzspv_t, spv_size_t, mpzspv_t, spv_size_t, spv_size_t,
     mpzspm_t);
@@ -608,8 +619,8 @@ void mpzspv_add (mpzspv_t, spv_size_t, mpzspv_t, spv_size_t, mpzspv_t,
 void mpzspv_to_mpzv (mpzspv_t, spv_size_t, mpzv_t, spv_size_t, mpzspm_t);
 void mpzspv_to_mpzv_file (mpzspv_t, spv_size_t, FILE **sp_files, const mpzv_t, 
      FILE *, spv_size_t, spv_size_t, mpzspm_t);
-void mpzspv_fromto_mpzv_file (mpzspv_t, spv_size_t, FILE **, spv_size_t, 
-    mpz_producerfunc_t, void *, mpz_consumerfunc_t, void *, mpzspm_t mpzspm);
+void mpzspv_fromto_mpzv_file (mpzspv_handle_t, spv_size_t, spv_size_t, 
+    mpz_producerfunc_t, void *, mpz_consumerfunc_t, void *);
 void mpzspv_normalise (mpzspv_t, spv_size_t, spv_size_t, mpzspm_t);
 void mpzspv_pwmul (mpzspv_t, spv_size_t, mpzspv_t, spv_size_t, mpzspv_t, 
     spv_size_t, spv_size_t, mpzspm_t);
@@ -622,8 +633,7 @@ void mpzspv_mul_ntt (mpzspv_t, spv_size_t, mpzspv_t, spv_size_t, spv_size_t,
 void mpzspv_random (mpzspv_t, spv_size_t, spv_size_t, mpzspm_t);
 void mpzspv_to_dct1 (mpzspv_t, mpzspv_t, spv_size_t, spv_size_t, mpzspm_t);
 void mpzspv_to_dct1_file (mpzspv_t, mpzspv_t, FILE **, spv_size_t, spv_size_t, mpzspm_t);
-void mpzspv_sqr_reciprocal (mpzspv_t, spv_size_t, const mpzspm_t);
-void mpzspv_sqr_reciprocal_file (FILE **, spv_size_t, mpzspm_t mpzspm);
+void mpzspv_sqr_reciprocal (mpzspv_handle_t, spv_size_t);
 FILE **mpzspv_open_fileset(const char *, const mpzspm_t);
 void mpzspv_close_fileset(FILE **, const mpzspm_t);
 void mpzspv_read (mpzspv_t, spv_size_t, FILE **, spv_size_t, spv_size_t, mpzspm_t);

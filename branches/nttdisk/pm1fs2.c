@@ -113,8 +113,7 @@ get_chunk (uint64_t *chunk_start, uint64_t *chunk_len, const uint64_t len)
 }
 
 static void 
-ntt_sqr_reciprocal (mpzv_t, const mpzv_t, mpzspv_t, FILE **, const spv_size_t, 
-		    const mpzspm_t);
+ntt_sqr_reciprocal (mpzv_t, const mpzv_t, const spv_size_t, const mpzspv_handle_t);
 
 static void
 print_elapsed_time (int verbosity, long cpu_start, 
@@ -715,7 +714,7 @@ writer_diff (void * const p, const mpz_t r)
 static void
 list_scale_V2_ntt (listz_t R, const listz_t F, const mpres_t Q, 
               const uint64_t deg, mpmod_t modulus, 
-	      mpzspv_t dct, FILE **dct_files, const mpzspm_t ntt_context)
+	      mpzspv_handle_t ntt_handle)
 {
   if (deg == 0)
     {
@@ -732,15 +731,12 @@ list_scale_V2_ntt (listz_t R, const listz_t F, const mpres_t Q,
     state_t state;
     state.mpzv = F;
     state.index = 0;
-    mpzspv_fromto_mpzv_file (dct, (spv_size_t) 0, dct_files, deg + 1, 
-        &reader, &state, NULL, NULL, ntt_context);
+    mpzspv_fromto_mpzv_file (ntt_handle, (spv_size_t) 0, deg + 1, 
+        &reader, &state, NULL, NULL);
   }
   
   /* Compute F^2 in NTT */
-  if (dct_files == NULL)
-    mpzspv_sqr_reciprocal (dct, deg + 1, ntt_context);
-  else
-    mpzspv_sqr_reciprocal_file (dct_files, deg + 1, ntt_context);
+  mpzspv_sqr_reciprocal (ntt_handle, deg + 1);
   
   {
     /* Convert F^2 from NTT, add weights and store in F[0, ..., 2*deg], 
@@ -764,9 +760,8 @@ list_scale_V2_ntt (listz_t R, const listz_t F, const mpres_t Q,
     V (stateV.Vi_1, stateV.V1, (int64_t) start_i - 1, stateV.modulus);
     V (stateV.Vi, stateV.V1, start_i, stateV.modulus);
 
-    mpzspv_fromto_mpzv_file (dct, (spv_size_t) 0, dct_files, l, 
-        &readerV, &stateV, 
-        &writerV, &stateV, ntt_context);
+    mpzspv_fromto_mpzv_file (ntt_handle, (spv_size_t) 0, l, 
+        &readerV, &stateV, &writerV, &stateV);
     
     /* Write the remaining i = deg+1, ..., 2*deg+1 */
     get_chunk (&start_i, &l, deg);
@@ -774,8 +769,8 @@ list_scale_V2_ntt (listz_t R, const listz_t F, const mpres_t Q,
     stateV.index = start_i;
     V (stateV.Vi_1, stateV.V1, (int64_t) start_i - 1, stateV.modulus);
     V (stateV.Vi, stateV.V1, start_i, stateV.modulus);
-    mpzspv_fromto_mpzv_file (dct, (spv_size_t) deg + 1, dct_files, l, 
-        NULL, NULL, &writerV, &stateV, ntt_context);
+    mpzspv_fromto_mpzv_file (ntt_handle, (spv_size_t) deg + 1, l, 
+        NULL, NULL, &writerV, &stateV);
     
     mpres_clear (stateV.V1, stateV.modulus);
     mpres_clear (stateV.Vi_1, stateV.modulus);
@@ -788,10 +783,7 @@ list_scale_V2_ntt (listz_t R, const listz_t F, const mpres_t Q,
                     "; /* PARI list_scale_V2_ntt */\n", OUTPUT_TRACE);
 
   /* Square the weighted F in NTT */
-  if (dct_files == NULL)
-    mpzspv_sqr_reciprocal (dct, deg + 1, ntt_context);
-  else
-    mpzspv_sqr_reciprocal_file (dct_files, deg + 1, ntt_context);
+  mpzspv_sqr_reciprocal (ntt_handle, deg + 1);
   
   /* Convert from NTT and take half the difference from R */
   {
@@ -801,8 +793,8 @@ list_scale_V2_ntt (listz_t R, const listz_t F, const mpres_t Q,
     state.index = 0;
     mpz_init_set (state.modulus, modulus->orig_modulus);
     mpz_init (state.mpz);
-    mpzspv_fromto_mpzv_file (dct, (spv_size_t) 0, dct_files, 2*deg + 1, 
-        NULL, NULL, &writer_diff, &state, ntt_context);
+    mpzspv_fromto_mpzv_file (ntt_handle, (spv_size_t) 0, 2*deg + 1, 
+        NULL, NULL, &writer_diff, &state);
     mpz_clear (state.modulus);
     mpz_clear (state.mpz);
   }
@@ -813,7 +805,7 @@ static void
 list_scale_V2 (listz_t R, const listz_t F, const mpres_t Q, 
               const uint64_t deg, mpmod_t modulus, listz_t tmp, 
               const uint64_t tmplen, 
-	      mpzspv_t dct, FILE **dct_files, const mpzspm_t ntt_context)
+	      mpzspv_handle_t ntt_handle)
 {
   uint64_t i;
   const listz_t G = tmp, H = tmp + 2 * deg + 1, newtmp = tmp + 4 * deg + 2;
@@ -856,8 +848,8 @@ list_scale_V2 (listz_t R, const listz_t F, const mpres_t Q,
       ASSERT_ALWAYS (mpz_sgn (F[i]) >= 0 && mpz_cmp (F[i], modulus->orig_modulus) < 0);
     }
 
-  if (ntt_context != NULL)
-    ntt_sqr_reciprocal (G, F, dct, dct_files, deg + 1, ntt_context);
+  if (ntt_handle != NULL)
+    ntt_sqr_reciprocal (G, F, deg + 1, ntt_handle);
   else
     {
       list_sqr_reciprocal (G, F, deg + 1, modulus->orig_modulus, 
@@ -916,8 +908,8 @@ list_scale_V2 (listz_t R, const listz_t F, const mpres_t Q,
   list_output_poly (H, deg + 1, 0, 1, "H(x) = ", "; /* PARI list_scale_V2 */\n", 
 		    OUTPUT_TRACE);
 
-  if (ntt_context != NULL)
-    ntt_sqr_reciprocal (H, H, dct, dct_files, deg + 1, ntt_context);
+  if (ntt_handle != NULL)
+    ntt_sqr_reciprocal (H, H, deg + 1, ntt_handle);
   else
     {
       list_sqr_reciprocal (H, H, deg + 1, modulus->orig_modulus, 
@@ -1045,7 +1037,7 @@ list_eval_poly (mpz_t r, const listz_t F, const mpz_t x,
 static uint64_t
 poly_from_sets_V (listz_t F, const mpres_t Q, set_list_t *sets, 
 		  listz_t tmp, const uint64_t tmplen, mpmod_t modulus,
-		  mpzspv_t dct, FILE **dct_files, const mpzspm_t ntt_context)
+		  mpzspv_handle_t ntt_handle)
 {
   unsigned long c, i, nr;
   uint64_t deg;
@@ -1101,12 +1093,10 @@ poly_from_sets_V (listz_t F, const mpres_t Q, set_list_t *sets,
 	  ASSERT_ALWAYS (curr_set->elem[0] == -curr_set->elem[1]);
 	  V (Qt, Q, curr_set->elem[0], modulus);
 	  V (Qt, Qt, 2UL, modulus);
-	  if (ntt_context != NULL)
-            list_scale_V2_ntt (F, F, Qt, deg, modulus, dct, 
-                          dct_files, ntt_context);
+	  if (ntt_handle != NULL)
+            list_scale_V2_ntt (F, F, Qt, deg, modulus, ntt_handle);
           else
-            list_scale_V2 (F, F, Qt, deg, modulus, tmp, tmplen, dct, 
-                          dct_files, ntt_context);
+            list_scale_V2 (F, F, Qt, deg, modulus, tmp, tmplen, NULL);
 	  deg *= 2UL;
 	  ASSERT_ALWAYS (mpz_cmp_ui (F[deg], 1UL) == 0); /* Check it's monic */
 	}
@@ -1124,12 +1114,12 @@ poly_from_sets_V (listz_t F, const mpres_t Q, set_list_t *sets,
 	      V (Qt, Q, curr_set->elem[i], modulus);
 	      V (Qt, Qt, 2UL, modulus);
 	      ASSERT_ALWAYS (mpz_cmp_ui (F[deg], 1UL) == 0); /* Check it's monic */
-	      if (ntt_context != NULL)
+	      if (ntt_handle != NULL)
                 list_scale_V2_ntt (F + (2UL * i + 1UL) * (deg + 1UL), F, Qt, deg, 
-                              modulus, dct, dct_files, ntt_context);
+                              modulus, ntt_handle);
               else
                 list_scale_V2 (F + (2UL * i + 1UL) * (deg + 1UL), F, Qt, deg, 
-                              modulus, tmp, tmplen, dct, dct_files, ntt_context);
+                              modulus, tmp, tmplen, NULL);
 	      ASSERT_ALWAYS (mpz_cmp_ui (F[(2UL * i + 1UL) * (deg + 1UL) + 2UL * deg], 
 	              1UL) == 0); /* Check it's monic */
 	    }
@@ -1177,8 +1167,8 @@ build_F_ntt (listz_t F, const mpres_t P_1, set_list_t *S_1,
 	     mpmod_t modulus)
 {
   mpzspm_t F_ntt_context;
-  mpzspv_t F_ntt;
-  FILE **F_files;
+  mpzspv_handle_t ntt_handle;
+  const spv_size_t nttlen = (spv_size_t)1 << ceil_log2 (params->s_1 / 2 + 1);
   uint64_t tmplen;
   listz_t tmp;
   long timestart, realstart;
@@ -1213,17 +1203,15 @@ build_F_ntt (listz_t F, const mpres_t P_1, set_list_t *S_1,
     tmplen /= 2;
   tmplen = 6*tmplen + list_mul_mem (tmplen);
   tmp = init_list2 (tmplen, (unsigned int) abs (modulus->bits));
-  if (filename == NULL)
+  ntt_handle = mpzspv_init_handle (filename, nttlen, F_ntt_context);
+  if (ntt_handle == NULL)
     {
-      F_ntt = mpzspv_init (1UL << ceil_log2 (params->s_1 / 2 + 1), F_ntt_context);
-      F_files = NULL;
-    } else {
-      F_ntt = NULL;
-      F_files = mpzspv_open_fileset (filename, F_ntt_context);
+      outputf (OUTPUT_ERROR, "Could not initialise ntt_handle, presumably out "
+               "of memory\n");
+      return ECM_ERROR;
     }
   
-  i = poly_from_sets_V (F, P_1, S_1, tmp, tmplen, modulus, F_ntt, F_files, 
-                        F_ntt_context);
+  i = poly_from_sets_V (F, P_1, S_1, tmp, tmplen, modulus, ntt_handle);
   ASSERT_ALWAYS(2 * i == params->s_1);
   ASSERT_ALWAYS(mpz_cmp_ui (F[i], 1UL) == 0);
   
@@ -1240,14 +1228,8 @@ build_F_ntt (listz_t F, const mpres_t P_1, set_list_t *S_1,
   
   clear_list (tmp, tmplen);
   tmp = NULL;
-  if (filename == NULL)
-    {
-      mpzspv_clear (F_ntt, F_ntt_context);
-      F_ntt = NULL;
-    } else {
-      mpzspv_close_fileset (F_files, F_ntt_context);
-      F_files = NULL;
-    }
+  mpzspv_clear_handle (ntt_handle);
+  ntt_handle = NULL;
   
   mpzspm_clear (F_ntt_context);
   F_ntt_context = NULL;
@@ -1738,8 +1720,8 @@ mpzspv_init_mt (spv_size_t len, mpzspm_t mpzspm)
 */
 
 static void
-ntt_sqr_reciprocal (mpzv_t R, const mpzv_t S, mpzspv_t dft, FILE **dft_files, 
-		    const spv_size_t n, const mpzspm_t ntt_context)
+ntt_sqr_reciprocal (mpzv_t R, const mpzv_t S, const spv_size_t n, 
+                    const mpzspv_handle_t ntt_handle)
 {
   spv_size_t i;
   state_t read_state, write_state;
@@ -1753,7 +1735,7 @@ ntt_sqr_reciprocal (mpzv_t R, const mpzv_t S, mpzspv_t dft, FILE **dft_files,
   if (n == 1)
     {
       mpz_mul (R[0], S[0], S[0]);
-      mpz_mod (R[0], R[0], ntt_context->modulus);
+      mpz_mod (R[0], R[0], ntt_handle->mpzspm->modulus);
       return;
     }
 
@@ -1762,34 +1744,31 @@ ntt_sqr_reciprocal (mpzv_t R, const mpzv_t S, mpzspv_t dft, FILE **dft_files,
   list_recip_eval1 (S_eval_1, S, n);
   /* Compute (S(1))^2 */
   mpz_mul (S_eval_1, S_eval_1, S_eval_1);
-  mpz_mod (S_eval_1, S_eval_1, ntt_context->modulus);
+  mpz_mod (S_eval_1, S_eval_1, ntt_handle->mpzspm->modulus);
 #endif
 
   /* Fill NTT elements [0 .. n-1] with coefficients */
   // mpzspv_from_mpzv (dft, (spv_size_t) 0, S, n, ntt_context);
   read_state.mpzv = S;
   read_state.index = 0;
-  mpzspv_fromto_mpzv_file (dft, (spv_size_t) 0, dft_files, n, 
-      &reader, &read_state, NULL, NULL, ntt_context);
+  mpzspv_fromto_mpzv_file (ntt_handle, (spv_size_t) 0, n, 
+      &reader, &read_state, NULL, NULL);
   
-  if (dft_files == NULL)
-    mpzspv_sqr_reciprocal (dft, n, ntt_context);
-  else
-    mpzspv_sqr_reciprocal_file (dft_files, n, ntt_context);
+  mpzspv_sqr_reciprocal (ntt_handle, n);
   
   write_state.mpzv = R;
   write_state.index = 0;
-  mpzspv_fromto_mpzv_file (dft, (spv_size_t) 0, dft_files, 2*n - 1, 
-      NULL, NULL, &writer, &write_state, ntt_context);
+  mpzspv_fromto_mpzv_file (ntt_handle, (spv_size_t) 0, 2*n - 1, 
+      NULL, NULL, &writer, &write_state);
   
   for (i = 0; i < 2*n - 1; i++)
-    mpz_mod (R[i], R[i], ntt_context->modulus);
+    mpz_mod (R[i], R[i], ntt_handle->mpzspm->modulus);
 
 #ifdef WANT_ASSERT
   mpz_init (R_eval_1);
   /* Compute (S^2)(1) and compare to (S(1))^2 */
   list_recip_eval1 (R_eval_1, R, 2 * n - 1);
-  mpz_mod (R_eval_1, R_eval_1, ntt_context->modulus);
+  mpz_mod (R_eval_1, R_eval_1, ntt_handle->mpzspm->modulus);
   if (mpz_cmp (R_eval_1, S_eval_1) != 0)
     {
       gmp_fprintf (stderr, "ntt_sqr_reciprocal: (S(1))^2 = %Zd but "
@@ -2012,7 +1991,7 @@ pm1fs2 (mpz_t f, const mpres_t X, mpmod_t modulus,
   mpres_invert (mr, X, modulus);
   mpres_add (mr, mr, X, modulus);
   
-  i = poly_from_sets_V (F, mr, &S_1, tmp, tmplen, modulus, NULL, NULL, NULL);
+  i = poly_from_sets_V (F, mr, &S_1, tmp, tmplen, modulus, NULL);
   ASSERT_ALWAYS(2 * i == params->s_1);
   ASSERT(mpz_cmp_ui (F[i], 1UL) == 0);
   sets_free(&S_1);
@@ -3439,7 +3418,7 @@ pp1fs2 (mpz_t f, const mpres_t X, mpmod_t modulus,
   outputf (OUTPUT_VERBOSE, "Computing F from factored S_1");
   
   timestart = cputime ();
-  i = poly_from_sets_V (F, X, &S_1, tmp, tmplen, modulus, NULL, NULL, NULL);
+  i = poly_from_sets_V (F, X, &S_1, tmp, tmplen, modulus, NULL);
   ASSERT_ALWAYS(2 * i == params->s_1);
   ASSERT(mpz_cmp_ui (F[i], 1UL) == 0);
   sets_free(&S_1);
