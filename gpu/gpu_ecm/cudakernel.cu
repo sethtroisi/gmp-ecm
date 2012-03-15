@@ -186,22 +186,15 @@ void cuda_Main (biguint_t h_N, biguint_t h_3N, biguint_t h_M, digit_t h_invN,
 __device__ void Cuda_Normalize (biguint_t A, dbigint_t cy)
 {
   carry_t cytemp;
-  cytemp = cy[threadIdx.x];
-  cy[threadIdx.x]=0;
-  int tmp = (threadIdx.x + 1) % NB_DIGITS;
+  int tmp = (threadIdx.x - 1) % NB_DIGITS;
+  cytemp = cy[tmp];
 
-  if (cytemp==1)
-  {
-    A[tmp]++;
-    if (A[tmp]==0)
-      cy[tmp]=cytemp;
-  }
-  else if (cytemp==-1) 
-  {
-    if (A[tmp]==0)
-      cy[tmp]=cytemp;
-    A[tmp]--;
-  }
+  __add_cc(A[threadIdx.x], A[threadIdx.x], cytemp);
+  
+  if (cytemp >= 0)
+    __addcy(cy[threadIdx.x]);
+  else /* if (cytemp < 0) */
+    __subcy(cy[threadIdx.x]);
 }
 
 __device__ void Cuda_Fully_Normalize (biguint_t A, dbigint_t cy)
