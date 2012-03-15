@@ -233,7 +233,7 @@ ecm_redc_n (mp_ptr rp, mp_srcptr x0p, mp_size_t xn,
 {
   mp_ptr tp, up, xp;
   mp_size_t nn = n + n;
-  mp_limb_t cy;
+  mp_limb_t cy, cin;
   TMP_DECL(marker);
 
   TMP_MARK(marker);
@@ -257,12 +257,12 @@ ecm_redc_n (mp_ptr rp, mp_srcptr x0p, mp_size_t xn,
      either 0, or a carry out. If xp[n-1] <> 0 or tp[n-1] <> 0, 
      then there is a carry. We use a binary OR, which sets the zero flag
      if and only if both operands are zero. */
-  cy = (mp_limb_t) ((xp[n - 1] | tp[n - 1]) ? 1 : 0);
+  cin = (mp_limb_t) ((xp[n - 1] | tp[n - 1]) ? 1 : 0);
 #ifdef HAVE___GMPN_ADD_NC
-  cy = __gmpn_add_nc (rp, tp + n, xp + n, n, cy);
+  cy = __gmpn_add_nc (rp, tp + n, xp + n, n, cin);
 #else
   cy = mpn_add_n (rp, tp + n, xp + n, n);
-  cy += mpn_add_1 (rp, rp, n, cy);
+  cy += mpn_add_1 (rp, rp, n, cin);
 #endif
   /* since we add at most N-1 to the upper half of {x0p,2n},
      one adjustment is enough */
