@@ -212,8 +212,7 @@ dup_add_batch1 (mpres_t x1, mpres_t z1, mpres_t x2, mpres_t z2,
 
 static void
 dup_add_batch2 (mpres_t x1, mpres_t z1, mpres_t x2, mpres_t z2,
-         mpres_t q, mpres_t t, mpres_t u, mpres_t v, mpres_t w,
-         mpres_t d, mpmod_t n)
+                mpres_t t, mpres_t w, mpres_t d, mpmod_t n)
 {
   /* active: x1 z1 x2 z2 */
   mpresn_addsub (w, z1, x1, z1, n); /* w = x1+z1, z1 = x1-z1 */
@@ -281,7 +280,7 @@ ecm_stage1_batch (mpz_t f, mpres_t x, mpres_t A, mpmod_t n, double B1,
 
   mpres_t x1, z1, x2, z2;
   unsigned long i;
-  mpres_t q, t, u, v, w;
+  mpres_t t, u;
   int ret = ECM_NO_FACTOR_FOUND;
 
   MEMORY_TAG;
@@ -298,12 +297,6 @@ ecm_stage1_batch (mpz_t f, mpres_t x, mpres_t A, mpmod_t n, double B1,
   mpres_init (u, n);
   if (batch == 2)
     {
-      MEMORY_TAG;
-      mpres_init (v, n);
-      MEMORY_TAG;
-      mpres_init (w, n);
-      MEMORY_TAG;
-      mpres_init (q, n);
       MEMORY_TAG;
       mpres_init (d_2, n);
     }
@@ -382,10 +375,10 @@ ecm_stage1_batch (mpz_t f, mpres_t x, mpres_t A, mpmod_t n, double B1,
         {
           if (mpz_tstbit (s, i) == 0) /* (j,j+1) -> (2j,2j+1) */
             /* P2 <- P1+P2    P1 <- 2*P1 */
-            dup_add_batch2 (x1, z1, x2, z2, q, t, u, v , w, d_2, n);
+            dup_add_batch2 (x1, z1, x2, z2, t, u, d_2, n);
           else /* (j,j+1) -> (2j+1,2j+2) */
               /* P1 <- P1+P2     P2 <- 2*P2 */
-            dup_add_batch2 (x2, z2, x1, z1, q, t, u, v, w, d_2, n);
+            dup_add_batch2 (x2, z2, x1, z1, t, u, d_2, n);
         }
     }
 
@@ -409,9 +402,6 @@ ecm_stage1_batch (mpz_t f, mpres_t x, mpres_t A, mpmod_t n, double B1,
   mpz_clear (u);
   if (batch == 2)
     {
-      mpz_clear (v);
-      mpz_clear (w);
-      mpz_clear (q);
       mpz_clear (d_2);
     }
 
