@@ -215,29 +215,43 @@ dup_add_batch2 (mpres_t x1, mpres_t z1, mpres_t x2, mpres_t z2,
          mpres_t q, mpres_t t, mpres_t u, mpres_t v, mpres_t w,
          mpres_t d, mpmod_t n)
 {
-  mpresn_addsub (w, u, x1, z1, n); /* w = x1+/-z1 */
-  mpresn_addsub (t, v, x2, z2, n); /* t = x2+/-z2 */
+  /* active: x1 z1 x2 z2 */
+  mpresn_addsub (w, z1, x1, z1, n); /* w = x1+z1, z1 = x1-z1 */
+  /* active: w z1 x2 z2 */
+  mpresn_addsub (x1, x2, x2, z2, n); /* x1 = x2+z2, x2 = x2-z2 */
+  /* active: w z1 x1 x2 */
 
-  mpresn_mul (t, t, u, n); /* t = (x1-z1)(x2+z2) */
-  mpresn_mul (v, v, w, n); /* v = (x2-z2)(x1+z1) */
-  mpresn_sqr (w, w, n);    /* w = (x1+z1)^2 */
-  mpresn_sqr (u, u, n);    /* u = (x1-z1)^2 */
+  mpresn_mul (z2, w, x2, n); /* w = (x1+z1)(x2-z2) */
+  /* active: w z1 x1 z2 */
+  mpresn_mul (x2, z1, x1, n); /* x2 = (x1-z1)(x2+z2) */
+  /* active: w z1 x2 z2 */
+  mpresn_sqr (t, z1, n);    /* t = (x1-z1)^2 */
+  /* active: w t x2 z2 */
+  mpresn_sqr (z1, w, n);    /* z1 = (x1+z1)^2 */
+  /* active: z1 t x2 z2 */
 
-  mpresn_mul (x1, u, w, n); /* xdup = (x1+z1)^2 * (x1-z1)^2 */
+  mpresn_mul (x1, z1, t, n); /* xdup = (x1+z1)^2 * (x1-z1)^2 */
+  /* active: x1 z1 t x2 z2 */
 
-  mpresn_sub (w, w, u, n);   /* w = (x1+z1)^2 - (x1-z1)^2 */
+  mpresn_sub (w, z1, t, n);   /* w = (x1+z1)^2 - (x1-z1)^2 */
+  /* active: x1 w t x2 z2 */
 
-  mpresn_mul (q, w, d, n); /* q = d * ((x1+z1)^2 - (x1-z1)^2) */
+  mpresn_mul (z1, w, d, n); /* z1 = d * ((x1+z1)^2 - (x1-z1)^2) */
+  /* active: x1 z1 w t x2 z2 */
 
-  mpresn_add (u, u, q, n);  /* u = (x1-z1)^2 - d* ((x1+z1)^2 - (x1-z1)^2) */
-  mpresn_mul (z1, w, u, n); /* zdup = w * [(x1-z1)^2 - d* ((x1+z1)^2 - (x1-z1)^2)] */
+  mpresn_add (t, t, z1, n);  /* t = (x1-z1)^2 - d* ((x1+z1)^2 - (x1-z1)^2) */
+  /* active: x1 w t x2 z2 */
+  mpresn_mul (z1, w, t, n); /* zdup = w * [(x1-z1)^2 - d* ((x1+z1)^2 - (x1-z1)^2)] */
+  /* active: x1 z1 x2 z2 */
 
-  mpresn_add (w, v, t, n);
-  mpresn_sub (v, v, t, n);
+  mpresn_addsub (w, z2, x2, z2, n);
+  /* active: x1 z1 w z2 */
 
-  mpresn_sqr (v, v, n);
   mpresn_sqr (x2, w, n);
-  mpresn_add (z2, v, v, n);
+  /* active: x1 z1 x2 z2 */
+  mpresn_sqr (w, z2, n);
+  /* active: x1 z1 x2 w */
+  mpresn_add (z2, w, w, n);
 }
 
 
