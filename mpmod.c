@@ -225,8 +225,7 @@ base2mod_2 (mpres_t R, const mpres_t S, mp_size_t n, mpz_t modulus)
 
 /* subquadratic REDC, at mpn level.
    {orig,n} is the original modulus.
-   {aux,n} is the auxiliary modulus.
-   Requires xn = 2n or 2n-1 and ABSIZ(orig_modulus)=ABSIZ(aux_modulus)=n.
+   Requires xn = 2n or 2n-1 and ABSIZ(orig_modulus)=n.
  */
 static void
 ecm_redc_n (mp_ptr rp, mp_srcptr x0p, mp_size_t xn,
@@ -258,18 +257,16 @@ ecm_redc_n (mp_ptr rp, mp_srcptr x0p, mp_size_t xn,
      either 0, or a carry out. If xp[n-1] <> 0 or tp[n-1] <> 0, 
      then there is a carry. We use a binary OR, which sets the zero flag
      if and only if both operands are zero. */
+  cy = (mp_limb_t) ((xp[n - 1] | tp[n - 1]) ? 1 : 0);
 #ifdef HAVE___GMPN_ADD_NC
-  cy = __gmpn_add_nc (rp, tp + n, xp + n, n, 
-                      (mp_limb_t) ((xp[n - 1] | tp[n - 1]) ? 1 : 0));
+  cy = __gmpn_add_nc (rp, tp + n, xp + n, n, cy);
 #else
   cy = mpn_add_n (rp, tp + n, xp + n, n);
-  cy += mpn_add_1 (rp, rp, n, (mp_limb_t) ((xp[n - 1] | tp[n - 1]) ? 1 : 0));
+  cy += mpn_add_1 (rp, rp, n, cy);
 #endif
-  /* when N < B^n/4, we don't need to perform this last reduction,
-     if we allow residues in [0, 2N).
-     See for example the slides from David Harvey at Sage Days 35
-     (http://wiki.sagemath.org/SageFlintDays/slides) */
-  if (orig[n-1] >> (GMP_NUMB_BITS - 2) && (cy || mpn_cmp (rp, orig, n) > 0))
+  /* since we add at most N-1 to the upper half of {x0p,2n},
+     one adjustment is enough */
+  if (cy)
     cy -= mpn_sub_n (rp, rp, orig, n);
   ASSERT (cy == 0);
   TMP_FREE(marker);
@@ -741,7 +738,8 @@ ecm_sqrredc_basecase_n (mp_ptr rp, mp_srcptr s1p,
 /* R <- S1 * S2 mod modulus
    i.e. R <- S1*S2/r^nn mod n, where n has nn limbs, and r=2^GMP_NUMB_BITS.
    Same as ecm_redc_basecase previous, but combined with mul
-   Neither input argument must be in modulus->temp1 */
+   Neither input argument must be in modulus->temp1
+*/
 static void 
 ecm_mulredc_basecase (mpres_t R, const mpres_t S1, const mpres_t S2, 
                       mpmod_t modulus)
@@ -2319,7 +2317,9 @@ mpresn_sub (mpres_t R, const mpres_t S1, const mpres_t S2, mpmod_t modulus)
     }
 }
 
-/* (R, T) <- (S1 + S2, S1 - S2) */
+/* (R, T) <- (S1 + S2, S1 - S2)
+   Assume R differs from both S1 and S2.
+ */
 void
 mpresn_addsub (mpres_t R, mpres_t T,
                const mpres_t S1, const mpres_t S2, mpmod_t modulus)
@@ -2331,6 +2331,8 @@ mpresn_addsub (mpres_t R, mpres_t T,
   mp_size_t n = ABSIZ(modulus->orig_modulus);
   ATTRIBUTE_UNUSED mp_limb_t cy;
 
+  ASSERT (R != S1);
+  ASSERT (R != S2);
   ASSERT (SIZ(S1) == n || -SIZ(S1) == n);
   ASSERT (SIZ(S2) == n || -SIZ(S2) == n);
 
