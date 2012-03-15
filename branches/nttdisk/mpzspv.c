@@ -581,7 +581,7 @@ mpzspv_fromto_mpzv_file (mpzspv_handle_t x, const spv_size_t offset,
     /* If we write NTT data to memory, we need to advance the offset to fill 
        the entire array. If we use a temp buffer, we reuse the same buffer 
        each time */
-    if (x != NULL)
+    if (x->storage == 0)
       buffer_offset += len_now;
   }
   mpz_clear(mpz1);
@@ -1663,8 +1663,8 @@ mpzspv_write (mpzspv_t mpzspv, const spv_size_t mpzspv_offset,
     }
 }
 
-void
-mpzspv_print (mpzspv_t mpzspv, const spv_size_t offset, 
+static void
+mpzspv_print_mem (mpzspv_t mpzspv, const spv_size_t offset, 
               const spv_size_t len, const char *prefix, 
               const mpzspm_t mpzspm)
 {
@@ -1688,7 +1688,7 @@ mpzspv_print (mpzspv_t mpzspv, const spv_size_t offset,
     }
 }
 
-void
+static void
 mpzspv_print_file (FILE **files, const spv_size_t offset, 
               const spv_size_t len, const char *prefix, 
               const mpzspm_t mpzspm)
@@ -1714,5 +1714,19 @@ mpzspv_print_file (FILE **files, const spv_size_t offset,
           printf(", %lu", tmp[j]);
         }
       printf (") (mod %lu)\n", mpzspm->spm[i]->sp);
+    }
+}
+
+void
+mpzspv_print (mpzspv_handle_t handle, const spv_size_t offset, 
+              const spv_size_t len, const char *prefix)
+{
+  if (handle->storage == 0)
+    {
+      mpzspv_print_mem (handle->mem, offset, len, prefix, handle->mpzspm);
+    }
+  else
+    {
+      mpzspv_print_file (handle->files, offset, len, prefix, handle->mpzspm);
     }
 }

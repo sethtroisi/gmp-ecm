@@ -638,7 +638,6 @@ FILE **mpzspv_open_fileset(const char *, const mpzspm_t);
 void mpzspv_close_fileset(FILE **, const mpzspm_t);
 void mpzspv_read (mpzspv_t, spv_size_t, FILE **, spv_size_t, spv_size_t, mpzspm_t);
 void mpzspv_write (mpzspv_t, spv_size_t, FILE **, spv_size_t, spv_size_t, mpzspm_t);
-void mpzspv_print (mpzspv_t, spv_size_t, spv_size_t, const char *, mpzspm_t);
-void mpzspv_print_file (FILE **, spv_size_t, spv_size_t, const char *, mpzspm_t);
+void mpzspv_print (mpzspv_handle_t, spv_size_t, spv_size_t, const char *);
 
 #endif /* _SP_H */
