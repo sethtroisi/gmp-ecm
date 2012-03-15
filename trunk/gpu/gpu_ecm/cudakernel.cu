@@ -306,10 +306,10 @@ __device__ void Cuda_Mulmod_step
 /* Input: 0 <= a < 3*N */ 
 /* Ouput: 0 <= r < 3*N */ 
 __device__ void Cuda_Dbl_mod
-(biguint_t r, dbigint_t cy, biguint_t a)
+(biguint_t r, biguint_t a)
 {
-  __add_cc(r[threadIdx.x],a[threadIdx.x],a[threadIdx.x]);
-  __addcy2(r[(threadIdx.x+1)%NB_DIGITS]);
+  asm ("add.cc.u32 %0, %1, %1;" : "=r"(r[threadIdx.x]) : "r"(a[threadIdx.x]));
+  __addcy2(r[threadIdx.x+1]);
 }
 
 
@@ -465,9 +465,9 @@ Cuda_Ell_DblAdd (biguint_t *xarg, biguint_t *zarg, biguint_t *x2arg,
   Cuda_Square_mod(v, cy, v, temp_r, Nthdx, invN); /* (DA-CB)^2 mod N */
 
   /* z0=1 so there is nothing to compute for z0*(DA+CB)^2 */
-  Cuda_Dbl_mod(u, cy, v); /* x0=2 x0*(DA-CB)^2 */
+  Cuda_Dbl_mod(temp_r, v); /* x0=2 x0*(DA-CB)^2 */
   
   x2arg[idx1][threadIdx.x]=w[threadIdx.x];
-  z2arg[idx1][threadIdx.x]=u[threadIdx.x];
+  z2arg[idx1][threadIdx.x]=temp_r[threadIdx.x];
 }
 
