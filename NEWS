@@ -1,3 +1,7 @@
+Changes between ecm-6.4.1 and ecm-7.0:
+* The batch=1 mode is now the default mode. Use -batch=0 to get historical
+  Suyama parametrization.
+
 Changes between ecm-6.4 and ecm-6.4.1:
 * GMP-ECM is now distributed under the GPL version 3 or later for the binary,
   and under the LGPL version 3 or later for the library
