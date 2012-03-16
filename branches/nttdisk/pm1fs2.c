@@ -662,20 +662,6 @@ scale_by_chebyshev (listz_t R1, const listz_t F1,
 */
 
 static void 
-reader (void * const p, mpz_t r)
-{
-  state_t * const state = p;
-  mpz_set (r, state->mpzv[state->index++]);
-}
-
-static void 
-writer (void * const p, const mpz_t r)
-{
-  state_t * const state = p;
-  mpz_set (state->mpzv[state->index++], r);
-}
-
-static void 
 readerV (void * const p, mpz_t r)
 {
   stateV_t * const state = p;
@@ -726,14 +712,8 @@ list_scale_V2_ntt (listz_t R, const listz_t F, const mpres_t Q,
       return;
     }
   
-  {
-    /* Convert F[0, ..., deg] to NTT */
-    state_t state;
-    state.mpzv = F;
-    state.index = 0;
-    mpzspv_fromto_mpzv (ntt_handle, (spv_size_t) 0, deg + 1, 
-        &reader, &state, NULL, NULL);
-  }
+  /* Convert F[0, ..., deg] to NTT */
+  mpzspv_fromto_mpzv (ntt_handle, (spv_size_t) 0, deg + 1, NULL, F, NULL, NULL);
   
   /* Compute F^2 in NTT */
   mpzspv_sqr_reciprocal (ntt_handle, deg + 1);
@@ -1645,7 +1625,6 @@ ntt_sqr_reciprocal (mpzv_t R, const mpzv_t S, const spv_size_t n,
                     const mpzspv_handle_t ntt_handle)
 {
   spv_size_t i;
-  state_t read_state, write_state;
 #ifdef WANT_ASSERT
   mpz_t S_eval_1, R_eval_1;
 #endif
@@ -1669,18 +1648,13 @@ ntt_sqr_reciprocal (mpzv_t R, const mpzv_t S, const spv_size_t n,
 #endif
 
   /* Fill NTT elements [0 .. n-1] with coefficients */
-  // mpzspv_from_mpzv (dft, (spv_size_t) 0, S, n, ntt_context);
-  read_state.mpzv = S;
-  read_state.index = 0;
   mpzspv_fromto_mpzv (ntt_handle, (spv_size_t) 0, n, 
-      &reader, &read_state, NULL, NULL);
+      NULL, S, NULL, NULL);
   
   mpzspv_sqr_reciprocal (ntt_handle, n);
   
-  write_state.mpzv = R;
-  write_state.index = 0;
   mpzspv_fromto_mpzv (ntt_handle, (spv_size_t) 0, 2*n - 1, 
-      NULL, NULL, &writer, &write_state);
+      NULL, NULL, NULL, R);
   
   for (i = 0; i < 2*n - 1; i++)
     mpz_mod (R[i], R[i], ntt_handle->mpzspm->modulus);
