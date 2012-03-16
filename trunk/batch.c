@@ -1,7 +1,7 @@
 /* batch.c - Implemente batch mode for step 1 of ECM
  
 Copyright 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009, 2010, 2011,
-2012 Paul Zimmermann, Alexander Kruppa and Cyril Bouvier.
+2012 Paul Zimmermann, David Cleaver and Cyril Bouvier.
  
 This file is part of the ECM Library.
 
