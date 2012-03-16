@@ -1,7 +1,8 @@
 /* GMP-ECM -- Integer factorization with ECM, P-1 and P+1 methods.
 
 Copyright 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009, 2010, 2011,
-2012 Jim Fougeron, Laurent Fousse, Alexander Kruppa, Paul Zimmermann.
+2012 Jim Fougeron, Laurent Fousse, Alexander Kruppa, Paul Zimmermann, Cyril
+Bouvier.
 
 This program is free software; you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
