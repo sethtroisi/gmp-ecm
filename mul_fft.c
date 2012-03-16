@@ -1,26 +1,26 @@
 /* An implementation in GMP of Scho"nhage's fast multiplication algorithm
-  modulo 2^N+1, by Paul Zimmermann, INRIA Lorraine, February 1998.
+   modulo 2^N+1, by Paul Zimmermann, INRIA Lorraine, February 1998.
 
-   Revised July 2002 and January 2003, Paul Zimmermann.
-   Further revised by Pierrick Gaudry, Paul Zimmermann, and Torbjorn Granlund,
-   March/April and November/December 2006, and also by Alexander Kruppa in
-   December 2006.
+Revised July 2002 and January 2003, Paul Zimmermann.
+Further revised by Pierrick Gaudry, Paul Zimmermann, and Torbjorn Granlund,
+March/April and November/December 2006, and also by Alexander Kruppa in
+December 2006.
 
-   Revised December 2007 for inclusion into GMP-ECM.
+Revised December 2007 for inclusion into GMP-ECM.
 
-   THE CONTENTS OF THIS FILE ARE FOR INTERNAL USE AND THE FUNCTIONS HAVE
-   MUTABLE INTERFACES.  IT IS ONLY SAFE TO REACH THEM THROUGH DOCUMENTED
-   INTERFACES.  IT IS ALMOST GUARANTEED THAT THEY'LL CHANGE OR DISAPPEAR IN
-   A FUTURE GNU MP RELEASE.
+THE CONTENTS OF THIS FILE ARE FOR INTERNAL USE AND THE FUNCTIONS HAVE
+MUTABLE INTERFACES.  IT IS ONLY SAFE TO REACH THEM THROUGH DOCUMENTED
+INTERFACES.  IT IS ALMOST GUARANTEED THAT THEY'LL CHANGE OR DISAPPEAR IN
+A FUTURE GNU MP RELEASE.
 
-Copyright 1998, 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006 Free Software
-Foundation, Inc.
+Copyright 1998, 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008,
+2009, 2010, 2011 Free Software Foundation, Inc.
 
 This file is part of the GNU MP Library.
 
 The GNU MP Library is free software; you can redistribute it and/or modify
 it under the terms of the GNU Lesser General Public License as published by
-the Free Software Foundation; either version 2.1 of the License, or (at your
+the Free Software Foundation; either version 3 of the License, or (at your
 option) any later version.
 
 The GNU MP Library is distributed in the hope that it will be useful, but

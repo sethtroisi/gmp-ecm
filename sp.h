@@ -1,26 +1,27 @@
 /* sp.h - header file for the sp library
 
-  Copyright 2005, 2008, 2010, 2011, 2012 Dave Newman, Jason Papadopoulos and
-                             Paul Zimmermann.
-  Copyright 1991, 1993, 1994, 1995, 1996, 1997, 1999, 2000, 2001, 2002, 2003,
-  2004, 2005, 2010 Free Software Foundation, Inc. (for parts from gmp-impl.h).
+Copyright 2005, 2006, 2007, 2008, 2010, 2011, 2012 Dave Newman, Jason
+Papadopoulos, Paul Zimmermann, Brian Gladman, Alexander Kruppa.
 
-  This file is part of the SP library.
+Copyright 1991, 1993, 1994, 1995, 1996, 1997, 1999, 2000, 2001, 2002, 2003,
+2004, 2005, 2010 Free Software Foundation, Inc. (for parts from gmp-impl.h).
+
+This file is part of the SP library.
   
-  The SP Library is free software; you can redistribute it and/or modify
-  it under the terms of the GNU Lesser General Public License as published by
-  the Free Software Foundation; either version 2.1 of the License, or (at your
-  option) any later version.
+The SP Library is free software; you can redistribute it and/or modify
+it under the terms of the GNU Lesser General Public License as published by
+the Free Software Foundation; either version 3 of the License, or (at your
+option) any later version.
 
-  The SP Library is distributed in the hope that it will be useful, but
-  WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
-  or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU Lesser General Public
-  License for more details.
+The SP Library is distributed in the hope that it will be useful, but
+WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
+or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU Lesser General Public
+License for more details.
 
-  You should have received a copy of the GNU Lesser General Public License
-  along with the SP Library; see the file COPYING.LIB.  If not, write to
-  the Free Software Foundation, Inc., 51 Franklin St, Fifth Floor, Boston,
-  MA 02110-1301, USA.
+You should have received a copy of the GNU Lesser General Public License
+along with the SP Library; see the file COPYING.LIB.  If not, write to
+the Free Software Foundation, Inc., 51 Franklin St, Fifth Floor, Boston,
+MA 02110-1301, USA.
 */
 
 #ifndef _SP_H

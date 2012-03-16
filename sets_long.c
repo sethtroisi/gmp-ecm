@@ -1,28 +1,26 @@
-/* 
-  Functions for sets of long ints, to factor (Z/NZ)* into a set of sums
-  as described in section 5 of "Improved Stage 2 to $P\pm{}1$ Factoring 
-  Algorithms" by Peter L. Montgomery and Alexander Kruppa, ANTS 2008
-  (8th Algorithmic Number Theory Symposium).
+/* Functions for sets of long ints, to factor (Z/NZ)* into a set of sums
+   as described in section 5 of "Improved Stage 2 to $P\pm{}1$ Factoring 
+   Algorithms" by Peter L. Montgomery and Alexander Kruppa, ANTS 2008
+   (8th Algorithmic Number Theory Symposium).
   
-  Copyright 2007, 2008 Alexander Kruppa.
+Copyright 2007, 2008, 2009, 2012 Alexander Kruppa, Paul Zimmermann.
 
-  This file is part of the ECM Library.
+This file is part of the ECM Library.
 
-  The ECM Library is free software; you can redistribute it and/or modify
-  it under the terms of the GNU Lesser General Public License as published by
-  the Free Software Foundation; either version 2.1 of the License, or (at your
-  option) any later version.
+The ECM Library is free software; you can redistribute it and/or modify
+it under the terms of the GNU Lesser General Public License as published by
+the Free Software Foundation; either version 3 of the License, or (at your
+option) any later version.
 
-  The ECM Library is distributed in the hope that it will be useful, but
-  WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
-  or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU Lesser General Public
-  License for more details.
+The ECM Library is distributed in the hope that it will be useful, but
+WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
+or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU Lesser General Public
+License for more details.
 
-  You should have received a copy of the GNU Lesser General Public License
-  along with the ECM Library; see the file COPYING.LIB.  If not, write to
-  the Free Software Foundation, Inc., 51 Franklin St, Fifth Floor, Boston,
-  MA 02110-1301, USA.
-*/
+You should have received a copy of the GNU Lesser General Public License
+along with the ECM Library; see the file COPYING.LIB.  If not, see
+http://www.gnu.org/licenses/ or write to the Free Software Foundation, Inc.,
+51 Franklin St, Fifth Floor, Boston, MA 02110-1301, USA. */
 
 #include "config.h"
 #include "ecm-impl.h"

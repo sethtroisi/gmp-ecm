@@ -1,22 +1,22 @@
-/* GMP-ECM -- Integer factorization with ECM and Pollard 'P-1' methods.
+/* GMP-ECM -- Integer factorization with ECM, P-1 and P+1 methods.
 
-  Copyright 2001, 2002, 2003, 2004, 2005, 2011 Jim Fougeron, Laurent Fousse, Alexander Kruppa, Paul Zimmermann.
+Copyright 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009, 2010, 2011,
+2012 Jim Fougeron, Laurent Fousse, Alexander Kruppa, Paul Zimmermann.
 
-  This program is free software; you can redistribute it and/or modify it
-  under the terms of the GNU General Public License as published by the
-  Free Software Foundation; either version 2 of the License, or (at your
-  option) any later version.
+This program is free software; you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation; either version 3 of the License, or (at your
+option) any later version.
 
-  This program is distributed in the hope that it will be useful, but WITHOUT
-  ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
-  FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License for
-  more details.
+This program is distributed in the hope that it will be useful, but
+WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
+or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License for
+more details.
 
-  You should have received a copy of the GNU General Public License along
-  with this program; see the file COPYING.  If not, write to the Free
-  Software Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA
-  02111-1307, USA.
-*/
+You should have received a copy of the GNU General Public License
+along with this program; see the file COPYING.  If not, see
+http://www.gnu.org/licenses/ or write to the Free Software Foundation, Inc.,
+51 Franklin St, Fifth Floor, Boston, MA 02110-1301, USA. */
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -149,8 +149,8 @@ usage (void)
     printf ("               or can use N as a placeholder for the number being factored.\n");
     printf ("  -printconfig Print compile-time configuration and exit.\n");
 
-    printf ("  -batch[=0|1|2] (default 1) use Montgomery parametrization and batch\n" 
-					  "               computation. Use -batch=0 for classical Suyama curves\n");
+    printf ("  -batch[=1|2] (experimental) use Montgomery parametrization and batch\n" 
+					  "               computation. Option -batch is equivalent to -batch=1\n");
     printf ("  -bsaves file In the batch mode, save s in file.\n");
     printf ("  -bloads file In the batch mode, load s from file.\n");
 
@@ -360,7 +360,7 @@ main (int argc, char *argv[])
   double maxmem = 0.;
   double stage1time = 0.;
   ecm_params params;
-  int batch = -1; /* By default we use the batch=1 mode */
+  int batch = 0; /* By default we don't use batch mode */
   char *savefile_s = NULL;
   char *loadfile_s = NULL;
 #ifdef WANT_SHELLCMD
@@ -489,12 +489,6 @@ main (int argc, char *argv[])
       else if (strcmp (argv[1], "-b") == 0)
         {
 	  breadthfirst = 1;
-	  argv++;
-	  argc--;
-        }
-      else if (strcmp (argv[1], "-batch=0") == 0)
-        {
-	  batch = 0;
 	  argv++;
 	  argc--;
         }
@@ -1359,43 +1353,6 @@ BreadthFirstDoAgain:;
 	  FREE (s, n.ndigits + 1);
 	}
 
-      if ((!breadthfirst && cnt == count) || 
-          (breadthfirst && 1 == breadthfirst_cnt))
-	{
-	  int SomeFactor;
-	  /*  Note, if a factors are found, then n will be adjusted "down" */
-	  SomeFactor = trial_factor (&n, maxtrialdiv, deep);
-	  if (SomeFactor)
-	    {
-	      /* should we increase factors found for trivials ??? */
-	      trial_factor_found = 1;
-	      factsfound += SomeFactor;
-	      if (n.isPrp)
-	        {
-		  printf ("Probable prime cofactor ");
-		  if (n.cpExpr && !decimal_cofactor)
-		    printf ("%s", n.cpExpr);
-		  else
-		    mpz_out_str (stdout, 10, n.n);
-		  printf (" has %u digits\n", n.ndigits);
-		  /* Nothing left to do with this number, so simply continue. */
-		  cnt = 0; /* no more curve to perform */
-		  fflush (stdout);
-		  continue;
-		}
-	      fflush (stdout);
-	      if (!deep)
-		{
-		  /* Note, if we are not in deep mode, then there is no need 
-		     to continue if a factor was found */
-  		  factor_is_prime = 1;
-  		  mpz_set_ui (f,1);
-		  goto OutputFactorStuff;
-		}
-
-	    }
-        }
-
       factor_is_prime = 0;
 
       cnt --; /* one more curve performed */
@@ -1405,8 +1362,6 @@ BreadthFirstDoAgain:;
          If A was given one should check that d fits in one word and that x0=2.
          If A was not given one chooses it at random (and if x0 exists
          it must be 2). */
-      if (batch == -1) /* default mode is now batch=1 for ECM */
-        batch = (method == ECM_ECM) ? 1 : 0; 
       if (batch != 0)
         {
           if (method != ECM_ECM)
