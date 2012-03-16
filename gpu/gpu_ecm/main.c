@@ -36,8 +36,8 @@ int main (int argc, char * argv[])
   int device = -1;
 
   int verbose = 0;
-  FILE *OUTPUT_VERBOSE = NULL;
-  FILE *OUTPUT_VVERBOSE = NULL;
+  FILE *OUTPUT_STD_VERBOSE = NULL;
+  FILE *OUTPUT_STD_VVERBOSE = NULL;
 
   mpz_t N3; /* N3 = 3*N */
   mpz_t w; /* w = 2^(SIZE_DIGIT) */
@@ -145,17 +145,17 @@ int main (int argc, char * argv[])
 
   if (verbose < 2)
 #ifdef _MSC_VER
-    OUTPUT_VVERBOSE=fopen("NUL:","a");
+    OUTPUT_STD_VVERBOSE=fopen("NUL:","a");
 #else
-    OUTPUT_VVERBOSE=fopen("/dev/null","a");
+    OUTPUT_STD_VVERBOSE=fopen("/dev/null","a");
 #endif
   else
-    OUTPUT_VVERBOSE=stdout;
+    OUTPUT_STD_VVERBOSE=stdout;
 
   if (verbose == 1)
-    OUTPUT_VERBOSE=stdout;
+    OUTPUT_STD_VERBOSE=stdout;
   else
-    OUTPUT_VERBOSE = OUTPUT_VVERBOSE;
+    OUTPUT_STD_VERBOSE = OUTPUT_STD_VVERBOSE;
 
   /***********************************************/
   /* Select the GPU and analyse number_of_curves */
@@ -163,7 +163,7 @@ int main (int argc, char * argv[])
 
   begincputime = cputime ();
   number_of_curves = select_and_init_GPU (device, number_of_curves, 
-                                                                OUTPUT_VERBOSE);
+                                                                OUTPUT_STD_VERBOSE);
   fprintf(stdout, "Selecting and initialization of the device s took %.3fs\n", 
                                        (double) (cputime ()-begincputime)/1000);
   /* TRICKS: If initialization of the device is too long (few seconds), */
@@ -209,7 +209,7 @@ int main (int argc, char * argv[])
   begincputime = cputime ();
   compute_s (s, B1);
 
-  fprintf(OUTPUT_VERBOSE, "#s has %lu bits\n", mpz_sizeinbase (s, 2));
+  fprintf(OUTPUT_STD_VERBOSE, "#s has %lu bits\n", mpz_sizeinbase (s, 2));
   fprintf(stdout, "Precomputation of s took %.3fs\n", 
                                        (double) (cputime ()-begincputime)/1000);
   
@@ -310,7 +310,7 @@ int main (int argc, char * argv[])
       mpz_mod (z2p, z2p, n.n); /* z2p = 8+64*d */
   
       if (i == 0 || i == number_of_curves-1)
-        gmp_fprintf(OUTPUT_VVERBOSE,"8+64*d=%Zd\n",z2p);
+        gmp_fprintf(OUTPUT_STD_VVERBOSE,"8+64*d=%Zd\n",z2p);
   
       to_mont_repr (z2p, n);
 
@@ -322,10 +322,10 @@ int main (int argc, char * argv[])
  
     /* Call the wrapper function that call the GPU */
     begingputime=cputime();
-    fprintf(OUTPUT_VERBOSE,"#Begin GPU computation...\n");
+    fprintf(OUTPUT_STD_VERBOSE,"#Begin GPU computation...\n");
     cuda_Main( h_N, h_3N, h_M, h_invN, h_xarray, h_zarray, h_x2array, 
                           h_z2array, s, firstinvd, number_of_curves,
-                          OUTPUT_VERBOSE, OUTPUT_VVERBOSE);
+                          OUTPUT_STD_VERBOSE, OUTPUT_STD_VVERBOSE);
     endgputime=cputime();
  
     /* Analyse results */
@@ -341,10 +341,10 @@ int main (int argc, char * argv[])
   
       if (i==0 || i==number_of_curves-1)
       {
-        fprintf(OUTPUT_VVERBOSE,"\n");
-        fprintf(OUTPUT_VVERBOSE,
+        fprintf(OUTPUT_STD_VVERBOSE,"\n");
+        fprintf(OUTPUT_STD_VVERBOSE,
          "#Looking for factors for the curves with (d*2^32) mod N = %u\n", invd);
-        gmp_fprintf(OUTPUT_VVERBOSE,"  xfin=%Zd\n  zfin=%Zd\n",xp,zp);
+        gmp_fprintf(OUTPUT_STD_VVERBOSE,"  xfin=%Zd\n  zfin=%Zd\n",xp,zp);
       }
       
       ret = findfactor (n, xp, zp);
@@ -353,11 +353,11 @@ int main (int argc, char * argv[])
         write_resumefile_wrapper (savefilename, &n, B1, xp, invd, invw);
       else if (ret==ECM_FACTOR_FOUND)
         //Maybe print A for GMP-ECM
-        fprintf(OUTPUT_VERBOSE, "Factor found with (d*2^32) mod N = %u\n", invd);
+        fprintf(OUTPUT_STD_VERBOSE, "Factor found with (d*2^32) mod N = %u\n", invd);
           
       if (i==0 || i==number_of_curves-1)
       {
-        gmp_fprintf(OUTPUT_VVERBOSE,"  xunif=%Zd\n",xp);
+        gmp_fprintf(OUTPUT_STD_VVERBOSE,"  xunif=%Zd\n",xp);
       }
     }
   

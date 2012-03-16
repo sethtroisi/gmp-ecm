@@ -763,13 +763,19 @@ int  mpn_fft_best_k (mp_size_t, int);
 mp_size_t mpn_fft_next_size (mp_size_t, int);
 
 /* batch.c */
+#define compute_s  __ECM(compute_s )
 void compute_s (mpz_t, unsigned long);
+#define write_s_in_file __ECM(write_s_in_file)
 int write_s_in_file (char *, mpz_t);
+#define read_s_from_file  __ECM(read_s_from_file)
 void read_s_from_file (mpz_t, char *); 
+#define ecm_stage1_batch  __ECM(ecm_stage1_batch)
 int ecm_stage1_batch (mpz_t, mpres_t, mpres_t, mpmod_t, double, double *, 
                                                                 int,  mpz_t);
 
 /* ellparam_batch.c */
+#define get_curve_from_ell_parametrization \
+                                      __ECM(get_curve_from_ell_parametrization )
 int get_curve_from_ell_parametrization (mpz_t, mpres_t, mpz_t, mpmod_t);
 
 /* sets_long.c */

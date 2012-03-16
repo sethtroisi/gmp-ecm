@@ -7,13 +7,7 @@
    Y^2 = X^3 + a/b*X^2 + 1/b^2*X.
 */
 
-#ifdef GPUECM
-#include <stdlib.h>
-#include "ecm-ecm.h"
-#else
 #include "ecm-impl.h"
-#endif
-
 
 #define MAX_HEIGHT 32
 

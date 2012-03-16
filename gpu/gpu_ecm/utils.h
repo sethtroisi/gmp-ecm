@@ -1,4 +1,7 @@
 /* See ecm-ecm.h for explainations */
+
+#include "../../ecm-impl.h"
+
 typedef struct
 {
   char *cpExpr;	
@@ -32,8 +35,6 @@ extern void mpcandi_t_free (mpcandi_t *n);
 /* Require auxi.c and eval.c from trunk/ directory */
 extern int read_number (mpcandi_t *, FILE *, int);
 
-/* Require batch.c and getprime.c from trunk/ directory*/ 
-extern void compute_s (mpz_t s, unsigned int B1);
-
-/* Require random.c from trunk/ directory*/ 
-extern unsigned int get_random_ui (void);
+/* compute_s (mpz_t s, unsigned int B1); */
+/* unsigned int get_random_ui (void);    */
+/*      are defined in ecm-impl.h        */
