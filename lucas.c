@@ -1,32 +1,32 @@
 /* Auxiliary functions to evaluate Lucas sequences.
 
-  Copyright 2002, 2003, 2005 Paul Zimmermann and Alexander Kruppa.
+Copyright 2002, 2003, 2005, 2006, 2008, 2011, 2012
+Paul Zimmermann, Alexander Kruppa, Dave Newman.
 
-  This file is part of the ECM Library.
+This file is part of the ECM Library.
 
-  The ECM Library is free software; you can redistribute it and/or modify
-  it under the terms of the GNU Lesser General Public License as published by
-  the Free Software Foundation; either version 2.1 of the License, or (at your
-  option) any later version.
+The ECM Library is free software; you can redistribute it and/or modify
+it under the terms of the GNU Lesser General Public License as published by
+the Free Software Foundation; either version 3 of the License, or (at your
+option) any later version.
 
-  The ECM Library is distributed in the hope that it will be useful, but
-  WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
-  or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU Lesser General Public
-  License for more details.
+The ECM Library is distributed in the hope that it will be useful, but
+WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
+or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU Lesser General Public
+License for more details.
 
-  You should have received a copy of the GNU Lesser General Public License
-  along with the ECM Library; see the file COPYING.LIB.  If not, write to
-  the Free Software Foundation, Inc., 51 Franklin St, Fifth Floor, Boston,
-  MA 02110-1301, USA.
+You should have received a copy of the GNU Lesser General Public License
+along with the ECM Library; see the file COPYING.LIB.  If not, see
+http://www.gnu.org/licenses/ or write to the Free Software Foundation, Inc.,
+51 Franklin St, Fifth Floor, Boston, MA 02110-1301, USA. */
 
-  References:
+/* References:
 
-  A p+1 Method of Factoring, H. C. Williams, Mathematics of Computation,
-  volume 39, number 159, pages 225-234, 1982.
+A p+1 Method of Factoring, H. C. Williams, Mathematics of Computation,
+volume 39, number 159, pages 225-234, 1982.
 
-  Evaluating recurrences of form X_{m+n} = f(X_m, X_n, X_{m-n}) via
-  Lucas chains, Peter L. Montgomery, December 1983, revised January 1992.
-*/
+Evaluating recurrences of form X_{m+n} = f(X_m, X_n, X_{m-n}) via
+Lucas chains, Peter L. Montgomery, December 1983, revised January 1992. */
 
 #include "ecm-impl.h"
 
