@@ -183,6 +183,10 @@ checkcode $? 8
 echo "((173^173+1)/174)/471462511391940575680645418941" | $ECM -batch=0 -sigma 12345 20000
 checkcode $? 0
 
+# this test was failing on gcc45.fsffrance.org with 6.4.1
+echo "((173^173+1)/174)/471462511391940575680645418941+122" | $ECM -batch=0 -sigma 77 20000
+checkcode $? 6
+
 # the following tests should work on machines which have uint64_t or where
 # unsigned long long has 64 bits (exercises patch from David Cleaver, r1575)
 echo "NOTE: NEXT 3 TESTS WILL FAIL ON SOME 32BIT MACHINES, THIS IS EXPECTED."
