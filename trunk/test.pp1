@@ -120,5 +120,6 @@ echo "6054018161*10^400+417727253109" | $PP1 -x0 4 2e3 2e6; checkcode $? 14
 
 echo 154618728587 | $PP1 -x0 3 -go 36 4294957296-4294967295 1; checkcode $? 8
 
+echo 18446744073709551337 | $PP1 -pp1 -x0 2 70823 714487; checkcode $? 8
+
 echo "All P+1 tests are ok."
-echo ""

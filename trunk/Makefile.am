@@ -115,7 +115,9 @@ ecm-params:	tune$(EXEEXT)
 
 check: ecm$(EXEEXT)
 	$(srcdir)/test.pp1 ./ecm$(EXEEXT)
+        echo ""
 	$(srcdir)/test.pm1 ./ecm$(EXEEXT)
+        echo ""
 	$(srcdir)/test.ecm ./ecm$(EXEEXT)
 
 longcheck: ecm$(EXEEXT)
