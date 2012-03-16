@@ -236,6 +236,8 @@ ecm_redc_n (mp_ptr rp, mp_srcptr x0p, mp_size_t xn,
   mp_limb_t cy, cin;
   TMP_DECL(marker);
 
+  ASSERT((xn == 2 * n) || (xn == 2 * n - 1));
+
   TMP_MARK(marker);
   up = TMP_ALLOC_LIMBS(nn + nn);
   if (xn < nn)
@@ -1918,9 +1920,7 @@ void
 mpres_set_z (mpres_t R, const mpz_t S, mpmod_t modulus)
 {
   if (modulus->repr == ECM_MOD_MPZ || modulus->repr == ECM_MOD_BASE2)
-    {
-      mpz_mod (R, S, modulus->orig_modulus);
-    }
+    mpz_mod (R, S, modulus->orig_modulus);
   else if (modulus->repr == ECM_MOD_MODMULN)
     {
       mpz_mod (modulus->temp2, S, modulus->orig_modulus);
