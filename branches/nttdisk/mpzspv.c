@@ -33,6 +33,9 @@
 #define MPZSPV_MUL_NTT_OPENMP 0
 #define TRACE_ntt_sqr_reciprocal 0
 
+#define IN_MEMORY(x) ((x) != NULL && (x)->storage == 0)
+#define ON_DISK(x) ((x) != NULL && (x)->storage != 0)
+
 static size_t seek_and_read_sp (void *, size_t, size_t, FILE *);
 static size_t seek_and_write_sp (const void *, size_t, size_t, FILE *);
 static void  mpzspv_seek_and_read (mpzspv_t, spv_size_t, FILE **, size_t, 
@@ -121,7 +124,10 @@ mpzspv_init_handle (const char *filename, spv_size_t len, mpzspm_t mpzspm)
 void
 mpzspv_clear_handle (mpzspv_handle_t handle)
 {
-  if (handle->storage == 0)
+  if (handle == NULL)
+    return;
+  
+  if (IN_MEMORY(handle))
     {
       mpzspv_clear (handle->mem, handle->mpzspm);
       handle->mem = NULL;
@@ -504,7 +510,7 @@ mpzspv_to_mpzv_file (mpzspv_t x, const spv_size_t offset,
 
 
 void
-mpzspv_fromto_mpzv_file (mpzspv_handle_t x, const spv_size_t offset, 
+mpzspv_fromto_mpzv (mpzspv_handle_t x, const spv_size_t offset, 
     const spv_size_t len, 
     mpz_producerfunc_t producer, void * producer_state, 
     mpz_consumerfunc_t consumer, void * consumer_state)
@@ -520,7 +526,7 @@ mpzspv_fromto_mpzv_file (mpzspv_handle_t x, const spv_size_t offset,
   mpz_init(mpz2);
   mpz_init(mt);
 
-  if (x->storage == 0)
+  if (IN_MEMORY(x))
     {
       blocksize = len; /* Do whole thing at once */
       buffer = x->mem;
@@ -542,26 +548,38 @@ mpzspv_fromto_mpzv_file (mpzspv_handle_t x, const spv_size_t offset,
     spv_size_t i;
 
     /* Read x from disk files */
-    if (consumer != NULL && x->storage != 0) {
+    if (consumer_state != NULL && ON_DISK(x)) {
       mpzspv_seek_and_read (buffer, buffer_offset, x->files, 
                             offset + len_done, len_now, x->mpzspm);
     }
 
     for (i = 0; i < len_now; i++)
       {
-        if (producer != NULL)
+        if (producer_state != NULL)
           {
-            /* Get new mpz1 from producer */
-            (*producer)(producer_state, mpz1);
+            if (producer)
+              {
+                /* Get new mpz1 from producer */
+                (*producer)(producer_state, mpz1);
+              } else {
+                /* Get new mpz1 from listz_t */
+                mpz_set (mpz1, ((listz_t)producer_state)[len_done + i]);
+              }
           }
         
-        if (consumer != NULL)
+        if (consumer_state != NULL)
           {
             /* Convert NTT entry to mpz2 */
             mpzspv_to_mpz (mpz2, buffer, buffer_offset + i, x->mpzspm, mt);
-            mpz_mod (mpz2, mpz2, x->mpzspm->modulus);
-            /* Give mpz2 to consumer */
-            (*consumer)(consumer_state, mpz2);
+            if (consumer != NULL)
+              {
+                /* Give mpz2 to consumer */
+                mpz_mod (mpz2, mpz2, x->mpzspm->modulus);
+                (*consumer)(consumer_state, mpz2);
+              } else {
+                mpz_mod (((listz_t)consumer_state)[len_done + i], mpz2, 
+                         x->mpzspm->modulus);
+              }
           }
         
         if (producer != NULL)
@@ -573,7 +591,7 @@ mpzspv_fromto_mpzv_file (mpzspv_handle_t x, const spv_size_t offset,
       }
 
     /* Write x to disk files */
-    if (producer != NULL && x->storage != 0) {
+    if (producer_state != NULL && ON_DISK(x)) {
       mpzspv_seek_and_write (buffer, buffer_offset, x->files, offset + len_done, 
                              len_now, x->mpzspm);
     }
@@ -581,14 +599,14 @@ mpzspv_fromto_mpzv_file (mpzspv_handle_t x, const spv_size_t offset,
     /* If we write NTT data to memory, we need to advance the offset to fill 
        the entire array. If we use a temp buffer, we reuse the same buffer 
        each time */
-    if (x->storage == 0)
+    if (IN_MEMORY(x))
       buffer_offset += len_now;
   }
   mpz_clear(mpz1);
   mpz_clear(mpz2);
   mpz_clear(mt);
 
-  if (x->storage != 0)
+  if (!IN_MEMORY(x))
     mpzspv_clear (buffer, x->mpzspm);
 }
 
@@ -1028,11 +1046,11 @@ one_fft_file(spv_t spv, FILE *file, const spv_size_t offset,
 */
 
 void
-mpzspv_mul_ntt_file (mpzspv_t r, const spv_size_t offsetr, FILE **r_files, 
-    mpzspv_t x, const spv_size_t offsetx, const spv_size_t lenx, FILE **x_files,
-    mpzspv_t y, const spv_size_t offsety, const spv_size_t leny, FILE **y_files,
+mpzspv_mul_ntt_file (mpzspv_handle_t r, const spv_size_t offsetr, 
+    mpzspv_handle_t x, const spv_size_t offsetx, const spv_size_t lenx, 
+    mpzspv_handle_t y, const spv_size_t offsety, const spv_size_t leny, 
     const spv_size_t ntt_size, const int monic, const spv_size_t monic_pos, 
-    mpzspm_t mpzspm, const int steps)
+    const int steps)
 {
   const spv_size_t block_len = 16384;
   spv_size_t log2_ntt_size;
@@ -1042,6 +1060,21 @@ mpzspv_mul_ntt_file (mpzspv_t r, const spv_size_t offsetr, FILE **r_files,
   const int do_pwmul = (steps & NTT_MUL_STEP_MUL) != 0;
   const int do_pwmul_dct = (steps & NTT_MUL_STEP_MULDCT) != 0;
   const int do_ifft = (steps & NTT_MUL_STEP_IFFT) != 0;
+
+  mpzspm_t mpzspm = NULL;
+
+  if (x != NULL) 
+    mpzspm = x->mpzspm;
+  if (y != NULL) 
+    {
+      ASSERT_ALWAYS (mpzspm == NULL || y->mpzspm == mpzspm);
+      mpzspm = y->mpzspm;
+    }
+  if (r != NULL)
+    {
+      ASSERT_ALWAYS (mpzspm == NULL || r->mpzspm == mpzspm);
+      mpzspm = r->mpzspm;
+    }
 
   if (x == y && offsetx == offsety && do_fft1 && do_fft2)
     {
@@ -1057,19 +1090,19 @@ mpzspv_mul_ntt_file (mpzspv_t r, const spv_size_t offsetr, FILE **r_files,
       abort();
     }
   
-  if (x != NULL)
+  if (IN_MEMORY(x))
     {
-      ASSERT (mpzspv_verify (x, offsetx, lenx, mpzspm));
-      ASSERT (mpzspv_verify (x, offsetx + ntt_size, 0, mpzspm));
+      ASSERT (mpzspv_verify (x->mem, offsetx, lenx, mpzspm));
+      ASSERT (mpzspv_verify (x->mem, offsetx + ntt_size, 0, mpzspm));
     }
-  if (y != NULL) 
+  if (IN_MEMORY(y)) 
     {
-      ASSERT (mpzspv_verify (y, offsety, leny, mpzspm));
-      ASSERT (mpzspv_verify (y, offsety + ntt_size, 0, mpzspm));
+      ASSERT (mpzspv_verify (y->mem, offsety, leny, mpzspm));
+      ASSERT (mpzspv_verify (y->mem, offsety + ntt_size, 0, mpzspm));
     }
-  if (r != NULL)
+  if (IN_MEMORY(r))
     {
-      ASSERT (mpzspv_verify (r, offsetr + ntt_size, 0, mpzspm));
+      ASSERT (mpzspv_verify (r->mem, offsetr + ntt_size, 0, mpzspm));
     }
   
   log2_ntt_size = ceil_log_2 (ntt_size);
@@ -1095,8 +1128,8 @@ mpzspv_mul_ntt_file (mpzspv_t r, const spv_size_t offsetr, FILE **r_files,
          Same for y. If r is in memory, we can use that as temp storage, so
          long as we don't overwrite input data we still need. */
       
-      if ((do_fft1 && x == NULL) || (do_fft2 && y == NULL) || 
-          (do_ifft && r == NULL))
+      if ((do_fft1 && ON_DISK(x)) || (do_fft2 && ON_DISK(y)) || 
+          (do_ifft && ON_DISK(r)))
         {
           tmp = (spv_t) sp_aligned_malloc (ntt_size * sizeof (sp_t));
           if (tmp == NULL)
@@ -1107,95 +1140,98 @@ mpzspv_mul_ntt_file (mpzspv_t r, const spv_size_t offsetr, FILE **r_files,
             }
         }
 
-      spv_t spvx = (x == NULL) ? tmp : x[i] + offsetx;
-      spv_t spvy = (y == NULL) ? tmp : y[i] + offsety;
-      spv_t spvr = (r == NULL) ? tmp : r[i] + offsetr;
+      spv_t spvx = IN_MEMORY(x) ? x->mem[i] + offsetx : tmp;
+      spv_t spvy = IN_MEMORY(y) ? y->mem[i] + offsety : tmp;
+      spv_t spvr = IN_MEMORY(r) ? r->mem[i] + offsetr : tmp;
 
       if (do_fft1) 
         {
-          one_fft_file(spvx, (x_files != NULL) ? x_files[i] : NULL, offsetx, 
-                       lenx, ntt_size, monic, block_len, spm);
-          if (x == NULL)
-            tmp_content = 'x';
-          if (x_files != NULL)
+          ASSERT_ALWAYS(x != NULL);
+          one_fft_file (spvx, ON_DISK(x) ? x->files[i] : NULL, offsetx, 
+                        lenx, ntt_size, monic, block_len, spm);
+          if (ON_DISK(x))
             {
-              seek_and_write_sp (spvx, ntt_size, offsetx, x_files[i]);
+              tmp_content = 'x';
+              seek_and_write_sp (spvx, ntt_size, offsetx, x->files[i]);
             }
         }
 
       if (do_fft2) 
         {
-          one_fft_file(spvy, (y_files != NULL) ? y_files[i] : NULL, offsety, 
+          ASSERT_ALWAYS(y != NULL);
+          one_fft_file(spvy, ON_DISK(y) ? y->files[i] : NULL, offsety, 
                        leny, ntt_size, monic, block_len, spm);
-          if (y == NULL)
-            tmp_content = 'y';
-          if (y_files != NULL)
+          if (ON_DISK(y))
             {
-              seek_and_write_sp (spvy, ntt_size, offsety, y_files[i]);
+              tmp_content = 'y';
+              seek_and_write_sp (spvy, ntt_size, offsety, y->files[i]);
             }
         }
 
       if (do_pwmul) 
         {
-          if (x_files == NULL && y_files == NULL)
+          ASSERT_ALWAYS(x != NULL && y != NULL && r != NULL);
+          if (IN_MEMORY(x) && IN_MEMORY(y))
             {
               spv_pwmul (spvr, spvx, spvy, ntt_size, spm->sp, spm->mul_c);
             }
-          else if (x_files != NULL && y_files == NULL)
+          else if (ON_DISK(x) && IN_MEMORY(y))
             {
               if (tmp_content == 'x')
                 spv_pwmul (spvr, tmp, spvy, ntt_size, spm->sp, spm->mul_c);
               else
-                add_or_mul_file (spvr, spvy, x_files[i], ntt_size, ntt_size, 
+                add_or_mul_file (spvr, spvy, x->files[i], ntt_size, ntt_size, 
                                  block_len, 1, spm);
             }
-          else if (x_files == NULL && y_files != NULL)
+          else if (IN_MEMORY(x) && ON_DISK(y))
             {
               if (tmp_content == 'y')
                 spv_pwmul (spvr, spvx, tmp, ntt_size, spm->sp, spm->mul_c);
               else
-                add_or_mul_file (spvr, spvx, y_files[i], ntt_size, ntt_size, 
+                add_or_mul_file (spvr, spvx, y->files[i], ntt_size, ntt_size, 
                                  block_len, 1, spm);
             }
           else /* x_files != NULL && y_files != NULL */
             {
               if (tmp_content == 'x')
-                add_or_mul_file (spvr, tmp, y_files[i], ntt_size, ntt_size,
+                add_or_mul_file (spvr, tmp, y->files[i], ntt_size, ntt_size,
                                  block_len, 1, spm);
               else if (tmp_content == 'y')
-                add_or_mul_file (spvr, tmp, x_files[i], ntt_size, ntt_size,
+                add_or_mul_file (spvr, tmp, x->files[i], ntt_size, ntt_size,
                                  block_len, 1, spm);
               else
-                add_or_mul_2file (spvr, x_files[i], y_files[i], ntt_size, 
+                add_or_mul_2file (spvr, x->files[i], y->files[i], ntt_size, 
                                   ntt_size, block_len, 1, spm);
             }
-          if (r == NULL)
+          if (ON_DISK(r))
             tmp_content = 'r';
         }
       else if (do_pwmul_dct)
         {
-          if (x_files != NULL && tmp_content != 'x')
+          ASSERT_ALWAYS(x != NULL && y != NULL && r != NULL);
+          if (ON_DISK(x) && tmp_content != 'x')
             {
-              seek_and_read_sp (spvx, ntt_size, offsetx, x_files[i]);
+              seek_and_read_sp (spvx, ntt_size, offsetx, x->files[i]);
             }
-          if (y_files != NULL)
+          if (ON_DISK(y))
             {
-              mul_dct_file (spvr, spvx, y_files[i], ntt_size, 
+              mul_dct_file (spvr, spvx, y->files[i], ntt_size, 
                                    block_len, spm);
             } else { 
               mul_dct (spvr, spvx, spvy, ntt_size, spm);
             }
-          if (r == NULL)
+          if (ON_DISK(r))
             tmp_content = 'r';
         }
 
       if (do_ifft) 
         {
           ASSERT (sizeof (mp_limb_t) >= sizeof (sp_t));
+          ASSERT_ALWAYS(r != NULL);
 
-          if (r_files != NULL && tmp_content != 'r')
+          if (ON_DISK(r) && tmp_content != 'r')
             {
-              seek_and_read_sp (spvr, ntt_size, offsetr, r_files[i]);
+              seek_and_read_sp (spvr, ntt_size, offsetr, r->files[i]);
             }
           spv_ntt_gfp_dit (spvr, log2_ntt_size, spm);
 
@@ -1208,9 +1244,9 @@ mpzspv_mul_ntt_file (mpzspv_t r, const spv_size_t offsetr, FILE **r_files,
                 1, spm->sp);
         }
 
-      if (r_files != NULL && tmp_content == 'r')
+      if (ON_DISK(r) && tmp_content == 'r')
         {
-          seek_and_write_sp (spvr, ntt_size, offsetr, r_files[i]);
+          seek_and_write_sp (spvr, ntt_size, offsetr, r->files[i]);
         }
       if (tmp != NULL) 
         {
@@ -1229,31 +1265,38 @@ mpzspv_mul_ntt (mpzspv_t r, const spv_size_t offsetr,
     const spv_size_t ntt_size, const int monic, const spv_size_t monic_pos, 
     mpzspm_t mpzspm, const int steps)
 {
-  mpzspv_mul_ntt_file(r, offsetr, NULL, x, offsetx, lenx, NULL, 
-      y, offsety, leny, NULL, ntt_size,  monic,  monic_pos, mpzspm, steps);
+  _mpzspv_handle_t r_handle = {1, mpzspm, r, NULL};
+  _mpzspv_handle_t x_handle = {1, mpzspm, x, NULL};
+  _mpzspv_handle_t y_handle = {1, mpzspm, y, NULL};
+
+  mpzspv_mul_ntt_file((r != NULL) ? &r_handle : NULL, offsetr, 
+                      (x != NULL) ? &x_handle : NULL, offsetx, lenx, 
+                      (y != NULL) ? &y_handle : NULL, offsety, leny, 
+                      ntt_size, monic, monic_pos, steps);
 }
 
 
 /* Computes a DCT-I of the length dctlen. Input is the spvlen coefficients
-   in spv. tmp is temp space and must have space for 2*dctlen-2 sp_t's */
+   in spv. */
 
 void
-mpzspv_to_dct1_file (mpzspv_t dct, const mpzspv_t spv, FILE **file, 
-                     const spv_size_t spvlen, const spv_size_t dctlen, 
-                     const mpzspm_t mpzspm)
+mpzspv_to_dct1 (mpzspv_handle_t dct, const mpzspv_handle_t spv,  
+                const spv_size_t spvlen, const spv_size_t dctlen)
 {
   const spv_size_t ntt_size = 2 * (dctlen - 1); /* Length for the DFT */
   const spv_size_t log2_l = ceil_log_2 (ntt_size);
   int j;
+
+  ASSERT_ALWAYS (dct->mpzspm == spv->mpzspm);
 
 #ifdef _OPENMP
 #pragma omp parallel private(j)
   {
 #pragma omp for
 #endif
-  for (j = 0; j < (int) mpzspm->sp_num; j++)
+  for (j = 0; j < (int) spv->mpzspm->sp_num; j++)
     {
-      const spm_t spm = mpzspm->spm[j];
+      const spm_t spm = spv->mpzspm->spm[j];
       spv_size_t i;
       
       spv_t tmp = (spv_t) sp_aligned_malloc (ntt_size * sizeof (sp_t));
@@ -1264,12 +1307,12 @@ mpzspv_to_dct1_file (mpzspv_t dct, const mpzspv_t spv, FILE **file,
           abort();
         }
 
-      if (file != NULL)
+      if (ON_DISK(spv))
         {
-          seek_and_read_sp (tmp, spvlen, 0, file[j]);
+          seek_and_read_sp (tmp, spvlen, 0, spv->files[j]);
         } else {
           /* Copy spv to tmp */
-          spv_set (tmp, spv[j], spvlen);
+          spv_set (tmp, spv->mem[j], spvlen);
         }
       /* Make a symmetric copy of input coefficients in tmp. E.g., 
          with spv = [3, 2, 1], spvlen = 3, dctlen = 5 (hence ntt_size = 8), 
@@ -1324,15 +1367,15 @@ mpzspv_to_dct1_file (mpzspv_t dct, const mpzspv_t spv, FILE **file,
 
       /* Copy coefficients to dct buffer */
       {
-        spv_t out_buf = (dct != NULL) ? dct[j] : tmp;
+        spv_t out_buf = IN_MEMORY(dct) ? dct->mem[j] : tmp;
         const sp_t coeff_1 = tmp[1];
         for (i = 0; i < ntt_size / 2; i++)
           out_buf[i] = tmp[i * 2];
         out_buf[ntt_size / 2] = coeff_1;
-        if (file != NULL)
+        if (ON_DISK(dct))
           {
             /* Write data back to file */
-            seek_and_write_sp (tmp, dctlen + 1, 0, file[j]);
+            seek_and_write_sp (tmp, dctlen + 1, 0, dct->files[j]);
           }
       }
 
@@ -1341,14 +1384,6 @@ mpzspv_to_dct1_file (mpzspv_t dct, const mpzspv_t spv, FILE **file,
 #ifdef _OPENMP
   }
 #endif
-}
-
-
-void
-mpzspv_to_dct1 (mpzspv_t dct, mpzspv_t spv, const spv_size_t spvlen, 
-                const spv_size_t dctlen, const mpzspm_t mpzspm)
-{
-  mpzspv_to_dct1_file (dct, spv, NULL, spvlen, dctlen, mpzspm);
 }
 
 
@@ -1547,7 +1582,7 @@ mpzspv_sqr_reciprocal (mpzspv_handle_t x, const spv_size_t n)
       {
         spv_t tmp;
         
-        if (x->storage != 0)
+        if (ON_DISK(x))
           {
             tmp = (spv_t) sp_aligned_malloc (len * sizeof (sp_t));
 
@@ -1566,7 +1601,7 @@ mpzspv_sqr_reciprocal (mpzspv_handle_t x, const spv_size_t n)
         
         spv_sqr_reciprocal (n, x->mpzspm->spm[j], tmp, x->mpzspm->max_ntt_size);
         
-        if (x->storage != 0)
+        if (ON_DISK(x))
           {
             seek_and_write_sp (tmp, 2 * n - 1, 0, x->files[j]);
             sp_aligned_free (tmp);
@@ -1721,7 +1756,7 @@ void
 mpzspv_print (mpzspv_handle_t handle, const spv_size_t offset, 
               const spv_size_t len, const char *prefix)
 {
-  if (handle->storage == 0)
+  if (IN_MEMORY(handle))
     {
       mpzspv_print_mem (handle->mem, offset, len, prefix, handle->mpzspm);
     }
