@@ -536,10 +536,7 @@ mpzspv_fromto_mpzv (mpzspv_handle_t x, const spv_size_t offset,
     {
       /* Do piecewise, using a temp buffer */
       buffer = mpzspv_init (blocksize, x->mpzspm);
-      if (buffer == NULL)
-        {
-          abort();
-        }
+      ASSERT_ALWAYS (buffer != NULL);
     }
 
   while (len_done < len)
@@ -582,7 +579,7 @@ mpzspv_fromto_mpzv (mpzspv_handle_t x, const spv_size_t offset,
               }
           }
         
-        if (producer != NULL)
+        if (producer_state != NULL)
           {
             /* Convert the mpz1 we got from producer to NTT */
             mpzspv_from_mpzv_slow (buffer, buffer_offset + i, mpz1, x->mpzspm, 
