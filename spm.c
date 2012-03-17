@@ -90,9 +90,11 @@ nttdata_clear(sp_nttdata_t data)
 }
 
 /* Compute some constants, including a primitive n'th root of unity. 
-   Returns NULL in case of error. */
+   Returns NULL in case of error.
+   k is the number of limbs of the number to factor
+*/
 spm_t
-spm_init (spv_size_t n, sp_t sp)
+spm_init (spv_size_t n, sp_t sp, mp_size_t k)
 {
   sp_t a, b, bd, sc;
   spv_size_t q, nc, ntt_power;
@@ -104,6 +106,26 @@ spm_init (spv_size_t n, sp_t sp)
 
   spm->sp = sp;
   sp_reciprocal (spm->mul_c, sp);
+
+  /* compute spm->invm = -1/p mod B where B = 2^GMP_NUMB_BITS */
+  a = sp_pow (2, GMP_NUMB_BITS, sp, spm->mul_c); /* a = B mod p */
+  a = sp_inv (a, sp, spm->mul_c);                /* a = 1/B mod p */
+  /* a = 1/B mod p thus B*a - 1 = invm*p */
+  a --;
+  b = GMP_NUMB_MASK;
+#if SP_NUMB_BITS == W_TYPE_SIZE - 2
+  a = (a << 2) + (b >> (GMP_NUMB_BITS - 2));
+  b = (b << 2) & GMP_NUMB_MASK;
+  udiv_qrnnd (bd, sc, a, b, sp << 2);
+#else
+  a = (a << 1) + (b >> (GMP_NUMB_BITS - 1));
+  b = (b << 1) & GMP_NUMB_MASK;
+  udiv_qrnnd (bd, sc, a, b, sp << 1);
+#endif
+  spm->invm = bd;
+
+  /* compute spm->Bpow = B^(k+1) mod p */
+  spm->Bpow = sp_pow (2, GMP_NUMB_BITS * (k + 1), sp, spm->mul_c);
 
   /* find an $n$-th primitive root $a$ of unity $(mod sp)$. */
 
