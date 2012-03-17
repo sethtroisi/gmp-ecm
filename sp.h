@@ -149,6 +149,8 @@ typedef struct
 {
   sp_t sp;		/* value of the sp */
   sp_t mul_c;		/* constant used for reduction mod sp */
+  sp_t invm;            /* -1/sp mod 2^GMP_NUMB_BITS */
+  sp_t Bpow;            /* B^(n+1) mod sp where the input N has n limbs */
   sp_t prim_root;
   sp_t inv_prim_root;
   sp_nttdata_t nttdata;
@@ -456,7 +458,7 @@ sp_pow (sp_t x, sp_t a, sp_t m, sp_t d)
     }
 }
 
-/* 1/x mod p */
+/* 1/x mod p where d is p->mul_c */
 #define sp_inv(x,p,d) sp_pow (x, (p) - 2, p, d)
 
 /* x / 2 mod m */
@@ -467,7 +469,7 @@ int sp_prime (sp_t);
 
 /* spm */
 
-spm_t spm_init (spv_size_t, sp_t);
+spm_t spm_init (spv_size_t, sp_t, mp_size_t);
 void spm_clear (spm_t);
 
 /* spv */

@@ -174,27 +174,35 @@ mpzspv_reverse (mpzspv_t x, spv_size_t offset, spv_size_t len, mpzspm_t mpzspm)
     }
 }
 
-#if 0
-/* Return {xp, xn} / B^(xn-1) mod d where B = 2^GMP_NUMB_LIMB.
-   Assume d < B - 1 */
+/* Return {xp, xn} mod p.
+   Assume 2p < B where B = 2^GMP_NUMB_LIMB.
+   We first compute {xp, xn} / B^n mod p using Montgomery reduction,
+   where the number N to factor has n limbs.
+   Then we multiply by B^(n+1) mod p (precomputed) and divide by B mod p.
+   Assume invm = -1/p mod B and Bpow = B^n mod p */
 static mp_limb_t
-ecm_bdiv_r_1 (mp_ptr xp, mp_size_t xn, mp_limb_t d)
+ecm_mod_1 (mp_ptr xp, mp_size_t xn, mp_limb_t p, mp_size_t n,
+           mp_limb_t invm, mp_limb_t Bpow)
 {
-  mp_limb_t di, q, cy, hi, lo, x0, x1;
+  mp_limb_t q, cy, hi, lo, x0, x1;
 
   if (xn == 0)
     return 0;
-  __gmpn_binvert (&di, &d, 1, &x0); /* di = 1/d mod B */
-  di = -di;                         /* -1/d mod B */
+
+  /* the code below assumes xn <= n+1, thus we call mpn_mod_1 otherwise,
+     but this should never (or rarely) happen */
+  if (xn > n + 1)
+    return mpn_mod_1 (xp, xn, p);
+
   x0 = xp[0];
   cy = (mp_limb_t) 0;
-  while (xn > 1)
+  while (n-- > 0)
     {
       /* Invariant: cy is the input carry on xp[1], x0 is xp[0] */
-      x1 = xp[1];
-      q = x0 * di; /* q = -x0/d mod B */
-      umul_ppmm (hi, lo, q, d); /* hi*B + lo = -x0 mod B */
-      /* Add hi*B + lo to x1*B + x0. Since d <= B-2 we have
+      x1 = (xn > 1) ? xp[1] : 0;
+      q = x0 * invm; /* q = -x0/p mod B */
+      umul_ppmm (hi, lo, q, p); /* hi*B + lo = -x0 mod B */
+      /* Add hi*B + lo to x1*B + x0. Since p <= B-2 we have
          hi*B + lo <= (B-1)(B-2) = B^2-3B+2, thus hi <= B-3 */
       hi += cy + (lo != 0); /* cannot overflow */
       x0 = x1 + hi;
@@ -203,12 +211,18 @@ ecm_bdiv_r_1 (mp_ptr xp, mp_size_t xn, mp_limb_t d)
       xp ++;
     }
   if (cy != 0)
-    x0 -= d;
-  while (x0 >= d)
-    x0 -= d;
-  return x0;
+    x0 -= p;
+  /* now x0 = {xp, xn} / B^n mod p */
+  umul_ppmm (x1, x0, x0, Bpow);
+  /* since Bpow < p, x1 <= p-1 */
+  q = x0 * invm;
+  umul_ppmm (hi, lo, q, p);
+  /* hi <= p-1 thus hi+x1+1 < 2p-1 < B */
+  hi = hi + x1 + (lo != 0);
+  while (hi >= p)
+    hi -= p;
+  return hi;
 }
-#endif
 
 /* convert mpzvi to CRT representation, naive version */
 static void
@@ -217,6 +231,7 @@ mpzspv_from_mpzv_slow (mpzspv_t x, const spv_size_t offset, mpz_t mpzvi,
 {
   const unsigned int sp_num = mpzspm->sp_num;
   unsigned int j;
+  mp_size_t n = mpz_size (mpzspm->modulus);
 
   /* GMP's comments on mpn_preinv_mod_1:
    *
@@ -241,8 +256,9 @@ mpzspv_from_mpzv_slow (mpzspv_t x, const spv_size_t offset, mpz_t mpzvi,
      thus v1*B+v0 = (v1+k*v0)*B and so on. */
   
   for (j = 0; j < sp_num; j++)
-    x[j][offset] = mpn_mod_1 (PTR(mpzvi), SIZ(mpzvi),
-                              (mp_limb_t) mpzspm->spm[j]->sp);
+    x[j][offset] = ecm_mod_1 (PTR(mpzvi), SIZ(mpzvi),
+                              (mp_limb_t) mpzspm->spm[j]->sp, n,
+                              mpzspm->spm[j]->invm, mpzspm->spm[j]->Bpow);
   /* The typecast to mp_limb_t assumes that mp_limb_t is at least
      as wide as sp_t */
 }
