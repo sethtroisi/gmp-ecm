@@ -1,7 +1,6 @@
 /* ellparam_batch.c - Parametrization for batch mode 2
  
-Copyright 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009, 2010, 2011,
-2012 Cyril Bouvier.
+Copyright 2012 Cyril Bouvier.
  
 This file is part of the ECM Library.
 
