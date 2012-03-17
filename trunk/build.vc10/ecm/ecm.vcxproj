@@ -211,7 +211,6 @@
     <ClCompile Include="..\..\main.c" />
     <ClCompile Include="..\..\random.c" />
     <ClCompile Include="..\..\resume.c" />
-    <ClCompile Include="..\..\trial.c" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\champions.h" />
