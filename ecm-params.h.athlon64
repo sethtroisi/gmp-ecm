@@ -20,7 +20,7 @@
 #else /* tuning parameters for MPIR, tuned with MPIR 2.5.1 */
 
 /* 0:mulredc 1:mul+redc_1 2:mul+redc_2 3:mul+redc_n */
-#define TUNE_MULREDC_TABLE {0,0,0,0,0,0,1,0,1,1,1,1,1,1,1,1,1,1,1,1,1}
+#define TUNE_MULREDC_TABLE {0,0,0,0,0,0,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1}
 /* 0:mulredc 1:sqr+redc_1 2:sqr+redc_2 3:sqr+redc_n */
 #define TUNE_SQRREDC_TABLE {0,0,0,0,0,0,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1}
 #define MPZMOD_THRESHOLD 21
