@@ -1597,7 +1597,7 @@ build_F_ntt (const mpres_t P_1, set_list_t *S_1,
   /* Allocate all the memory we'll need for building f */
   if (params->file_stem != NULL)
     {
-      filename_f = malloc ((strlen(params->file_stem) + 5) * sizeof (char));
+      filename_f = malloc ((strlen(params->file_stem) + 6) * sizeof (char));
       filename_ntt = malloc ((strlen(params->file_stem) + 3) * sizeof (char));
       if (filename_f == NULL || filename_ntt == NULL)
         goto clear_and_exit;
