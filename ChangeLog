@@ -1,4 +1,325 @@
 ------------------------------------------------------------------------
+r1878 | zimmerma | 2012-03-19 10:11:57 +0100 (Mon, 19 Mar 2012) | 2 lines
+Changed paths:
+   M /trunk/ecm-params.h.athlon64
+   M /trunk/ecm-params.h.core2
+   M /trunk/ecm-params.h.corei5
+
+updated default tuning parameters
+
+------------------------------------------------------------------------
+r1877 | bouvierc | 2012-03-18 22:31:30 +0100 (Sun, 18 Mar 2012) | 2 lines
+Changed paths:
+   D /trunk/gpu/gpu_ecm_cc13
+
+Remove old gpu code.
+
+------------------------------------------------------------------------
+r1876 | brian_gladman | 2012-03-17 22:42:08 +0100 (Sat, 17 Mar 2012) | 1 line
+Changed paths:
+   M /trunk/build.vc10/ecm/ecm.vcxproj
+   M /trunk/build.vc10/ecm/ecm.vcxproj.filters
+
+remove trial.c from VC++ build
+------------------------------------------------------------------------
+r1875 | zimmerma | 2012-03-17 10:36:43 +0100 (Sat, 17 Mar 2012) | 3 lines
+Changed paths:
+   M /trunk/NEWS
+   M /trunk/mpzspm.c
+   M /trunk/mpzspv.c
+   M /trunk/sp.h
+   M /trunk/spm.c
+
+implement new LSB reduction of residues mod small primes in mpzspv.c,
+yields significant speedup
+
+------------------------------------------------------------------------
+r1874 | zimmerma | 2012-03-17 08:08:46 +0100 (Sat, 17 Mar 2012) | 3 lines
+Changed paths:
+   M /trunk/batch.c
+   M /trunk/ellparam_batch.c
+
+[batch.c] fixed copyright years and typo
+[ellparam_batch.c] fixed copyright years
+
+------------------------------------------------------------------------
+r1873 | bouvierc | 2012-03-16 18:38:41 +0100 (Fri, 16 Mar 2012) | 2 lines
+Changed paths:
+   M /trunk/batch.c
+   M /trunk/ellparam_batch.c
+
+Wrong names in the Copyright.
+
+------------------------------------------------------------------------
+r1872 | zimmerma | 2012-03-16 18:35:39 +0100 (Fri, 16 Mar 2012) | 2 lines
+Changed paths:
+   D /trunk/gpu/getprime.c
+   D /trunk/gpu/getprime.h
+   D /trunk/gpu/makefile
+   D /trunk/gpu/modular_arithmetic.c
+   D /trunk/gpu/modular_arithmetic.h
+   D /trunk/gpu/prototype.c
+   D /trunk/gpu/prototype.h
+   D /trunk/gpu/stage1-c.c
+   D /trunk/gpu/stage1.c
+
+removed obsolete files
+
+------------------------------------------------------------------------
+r1871 | bouvierc | 2012-03-16 18:08:34 +0100 (Fri, 16 Mar 2012) | 2 lines
+Changed paths:
+   M /trunk/batch.c
+   M /trunk/ellparam_batch.c
+   M /trunk/main.c
+
+Add licence in batch.c and ellparam_batch.c
+
+------------------------------------------------------------------------
+r1867 | zimmerma | 2012-03-16 17:03:40 +0100 (Fri, 16 Mar 2012) | 2 lines
+Changed paths:
+   M /trunk/Fgw.c
+   M /trunk/Makefile.am
+   M /trunk/NEWS
+   M /trunk/auxarith.c
+   M /trunk/auxi.c
+   M /trunk/auxlib.c
+   M /trunk/b1_ainc.c
+   M /trunk/bestd.c
+   M /trunk/build.vc10/config.h
+   M /trunk/candi.c
+   M /trunk/configure.in
+   D /trunk/countsmooth.c
+   M /trunk/ecm-ecm.h
+   M /trunk/ecm-gmp.h
+   M /trunk/ecm-impl.h
+   M /trunk/ecm.c
+   M /trunk/ecm.h
+   M /trunk/ecm2.c
+   M /trunk/ecm_ntt.c
+   M /trunk/ecmfactor.c
+   M /trunk/eval.c
+   M /trunk/factor.c
+   M /trunk/getprime.c
+   M /trunk/gpu/getprime.c
+   M /trunk/gpu/modular_arithmetic.c
+   M /trunk/gpu/prototype.c
+   M /trunk/gpu/stage1-c.c
+   M /trunk/gpu/stage1.c
+   M /trunk/ks-multiply.c
+   M /trunk/listz.c
+   M /trunk/lucas.c
+   M /trunk/main.c
+   M /trunk/median.c
+   M /trunk/memory.c
+   M /trunk/mpmod.c
+   M /trunk/mpmod.h
+   M /trunk/mpzspm.c
+   M /trunk/mpzspv.c
+   M /trunk/mul_fft.c
+   M /trunk/mul_lo.c
+   A /trunk/nodist/rho.gp (from /trunk/rho.gp:1864)
+   M /trunk/ntt_gfp.c
+   M /trunk/pm1.c
+   M /trunk/pm1fs2.c
+   M /trunk/polyeval.c
+   M /trunk/powerpc64/mulredc.m4
+   M /trunk/powerpc64/mulredc_1_2.m4
+   M /trunk/powerpc64/redc.asm
+   M /trunk/pp1.c
+   M /trunk/random.c
+   M /trunk/resume.c
+   M /trunk/rho.c
+   D /trunk/rho.gp
+   D /trunk/runecm2.c
+   M /trunk/schoen_strass.c
+   M /trunk/sets_long.c
+   M /trunk/sp.c
+   M /trunk/sp.h
+   M /trunk/spm.c
+   M /trunk/spv.c
+   M /trunk/stage2.c
+   M /trunk/test.ecm
+   M /trunk/test.pm1
+   M /trunk/test.pp1
+   M /trunk/testlong.pp1
+   M /trunk/toomcook.c
+   M /trunk/tune.c
+
+updated the copyright headers to GPL 3 and LGPL 3
+
+------------------------------------------------------------------------
+r1866 | zimmerma | 2012-03-16 16:05:59 +0100 (Fri, 16 Mar 2012) | 2 lines
+Changed paths:
+   A /trunk/nodist/countsmooth.c (from /trunk/countsmooth.c:1864)
+   A /trunk/nodist/runecm2.c (from /trunk/runecm2.c:1864)
+
+moved countsmooth.c and runecm2.c to nodist
+
+------------------------------------------------------------------------
+r1865 | zimmerma | 2012-03-16 16:04:58 +0100 (Fri, 16 Mar 2012) | 2 lines
+Changed paths:
+   A /trunk/nodist
+
+[nodist] new directory for non-distributed files
+
+------------------------------------------------------------------------
+r1864 | bouvierc | 2012-03-16 14:50:33 +0100 (Fri, 16 Mar 2012) | 3 lines
+Changed paths:
+   M /trunk/gpu/gpu_ecm/Makefile
+   M /trunk/gpu/gpu_ecm/utils.h
+
+Forgot to commit the new Makefile!
+Now include also directly ecm-ecm.h in gpu/gpu_ecm/utils.h
+
+------------------------------------------------------------------------
+r1863 | bouvierc | 2012-03-16 14:37:12 +0100 (Fri, 16 Mar 2012) | 7 lines
+Changed paths:
+   M /trunk/batch.c
+   M /trunk/ecm-impl.h
+   M /trunk/gpu/gpu_ecm/main.c
+   M /trunk/gpu/gpu_ecm/utils.h
+   M /trunk/random.c
+
+Rewriting Makefile of GPUECM to separate libecm file from ecm-ecm file.
+[Makefile] Separate file from libecm. Goal: linking directly libecm.
+[batch.c] Now only include ecm-impl.h 
+[random.c] No outputf in GPUECM
+[main.c] change #define to avoid conflicts
+
+
+------------------------------------------------------------------------
+r1862 | zimmerma | 2012-03-16 10:21:32 +0100 (Fri, 16 Mar 2012) | 2 lines
+Changed paths:
+   D /trunk/ecmfactor2.c
+
+[ecmfactor2.c] removed unmaintained program
+
+------------------------------------------------------------------------
+r1861 | zimmerma | 2012-03-16 10:16:14 +0100 (Fri, 16 Mar 2012) | 2 lines
+Changed paths:
+   D /trunk/bestdaux.c
+
+[bestdaux.c] removed unused file
+
+------------------------------------------------------------------------
+r1860 | zimmerma | 2012-03-16 10:05:05 +0100 (Fri, 16 Mar 2012) | 2 lines
+Changed paths:
+   D /trunk/trial.c
+
+[trial.c] removed unmaintained and untested file
+
+------------------------------------------------------------------------
+r1859 | zimmerma | 2012-03-16 09:39:46 +0100 (Fri, 16 Mar 2012) | 4 lines
+Changed paths:
+   M /trunk/Makefile.am
+   M /trunk/mpmod.c
+   M /trunk/test.ecm
+
+[test.ecm] added one test
+[mpmod.c] added an ASSERT
+[Makefile.am] missing tab
+
+------------------------------------------------------------------------
+r1858 | zimmerma | 2012-03-16 08:51:11 +0100 (Fri, 16 Mar 2012) | 2 lines
+Changed paths:
+   M /trunk/tune.c
+
+[tune.c] removed trailing blank
+
+------------------------------------------------------------------------
+r1857 | zimmerma | 2012-03-16 08:13:22 +0100 (Fri, 16 Mar 2012) | 4 lines
+Changed paths:
+   M /trunk/Makefile.am
+   M /trunk/test.pm1
+   M /trunk/test.pp1
+
+[test.pp1] added one test and removed blank line at the end
+[test.pm1] removed blank line at the end
+[Makefile.am] added blank line between tests
+
+------------------------------------------------------------------------
+r1856 | bouvierc | 2012-03-15 19:05:05 +0100 (Thu, 15 Mar 2012) | 2 lines
+Changed paths:
+   M /trunk/batch.c
+
+Forgot to remove unused variables.
+
+------------------------------------------------------------------------
+r1855 | zimmerma | 2012-03-15 19:00:20 +0100 (Thu, 15 Mar 2012) | 2 lines
+Changed paths:
+   M /trunk/mpmod.c
+
+[mpmod.c] fixed wrong patch in r1851
+
+------------------------------------------------------------------------
+r1854 | bouvierc | 2012-03-15 16:01:21 +0100 (Thu, 15 Mar 2012) | 2 lines
+Changed paths:
+   M /trunk/gpu/gpu_ecm/cudakernel.cu
+
+Changes in Cuda_Dbl_mod
+
+------------------------------------------------------------------------
+r1853 | bouvierc | 2012-03-15 13:29:24 +0100 (Thu, 15 Mar 2012) | 2 lines
+Changed paths:
+   M /trunk/gpu/gpu_ecm/cudakernel.cu
+
+Rewrite Normalize function.
+
+------------------------------------------------------------------------
+r1852 | bouvierc | 2012-03-15 13:27:47 +0100 (Thu, 15 Mar 2012) | 2 lines
+Changed paths:
+   M /trunk/batch.c
+
+Rewrite dup_add_batch2 with 6 residues (like dup_add_batch1)
+
+------------------------------------------------------------------------
+r1851 | zimmerma | 2012-03-15 12:09:28 +0100 (Thu, 15 Mar 2012) | 5 lines
+Changed paths:
+   M /trunk/batch.c
+   M /trunk/mpmod.c
+
+[mpmod.c] fixed bug in ecm_redc_n (found on gcc45 and gcc61),
+	  probably a new release 6.4.2 is needed
+[batch.c] reduced number of auxiliary variables from 5 to 2 in dup_add_batch1
+	  (remains to do the same in dup_add_batch2)
+
+------------------------------------------------------------------------
+r1850 | zimmerma | 2012-03-15 08:08:05 +0100 (Thu, 15 Mar 2012) | 4 lines
+Changed paths:
+   M /trunk/NEWS
+   M /trunk/build.vc10/config.h
+   M /trunk/configure.in
+   M /trunk/main.c
+   M /trunk/test.ecm
+
+[configure.in,build.vc10/config.h] bump version to 7.0-dev
+[main.c] make batch=1 mode the default one for ECM
+[test.ecm] added -batch=0 where needed
+
+------------------------------------------------------------------------
+r1847 | zimmerma | 2012-03-14 23:19:47 +0100 (Wed, 14 Mar 2012) | 2 lines
+Changed paths:
+   M /trunk/mpzspv.c
+
+[mpzspv.c] added note about possible improvement in mpzspv_from_mpzv_slow()
+
+------------------------------------------------------------------------
+r1846 | zimmerma | 2012-03-14 20:38:17 +0100 (Wed, 14 Mar 2012) | 2 lines
+Changed paths:
+   M /trunk/README.dev
+
+[README.dev] added tag for 6.4.1 release
+
+------------------------------------------------------------------------
+r1844 | zimmerma | 2012-03-14 18:29:22 +0100 (Wed, 14 Mar 2012) | 2 lines
+Changed paths:
+   M /trunk/ChangeLog
+   M /trunk/build.vc10/config.h
+   M /trunk/configure.in
+
+This will be the 6.4.1 release (if all final tests pass)
+
+------------------------------------------------------------------------
 r1842 | zimmerma | 2012-03-14 18:25:52 +0100 (Wed, 14 Mar 2012) | 5 lines
 Changed paths:
    M /trunk/configure.in
