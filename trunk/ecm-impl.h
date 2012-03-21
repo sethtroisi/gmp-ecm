@@ -119,6 +119,8 @@ extern FILE *ECM_STDOUT, *ECM_STDERR;
 #endif
 #endif
 
+/* #define TIMING_CRT */
+
 /* default B2 choice: pow (B1 * METHOD_COST / 6.0, DEFAULT_B2_EXPONENT) */
 #define DEFAULT_B2_EXPONENT 1.43
 #define PM1_COST 1.0 / 6.0

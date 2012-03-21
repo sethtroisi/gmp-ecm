@@ -31,6 +31,10 @@ http://www.gnu.org/licenses/ or write to the Free Software Foundation, Inc.,
 # define ULONG_MAX __GMP_ULONG_MAX
 #endif
 
+#ifdef TIMING_CRT
+extern int mpzspv_from_mpzv_slow_time, mpzspv_to_mpzv_time;
+#endif
+
 /* the following factor takes into account the smaller expected smoothness
    for Montgomery's curves (batch mode) with respect to Suyama's curves */
 #if GMP_NUMB_BITS >= 64
@@ -1294,6 +1298,10 @@ ecm (mpz_t f, mpz_t x, mpz_t sigma, mpz_t n, mpz_t go, double *B1done,
   if (youpi == ECM_NO_FACTOR_FOUND && mpz_cmp (B2, B2min) >= 0)
     youpi = stage2 (f, &P, modulus, dF, k, &root_params, ECM_ECM, 
                     use_ntt, TreeFilename, stop_asap);
+#ifdef TIMING_CRT
+  printf ("mpzspv_from_mpzv_slow: %dms\n", mpzspv_from_mpzv_slow_time);
+  printf ("mpzspv_to_mpzv and mpzspv_normalise: %dms\n", mpzspv_to_mpzv_time);
+#endif
   
 end_of_ecm_rhotable:
   if (test_verbose (OUTPUT_VERBOSE))
