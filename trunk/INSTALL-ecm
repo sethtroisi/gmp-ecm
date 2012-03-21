@@ -181,8 +181,8 @@ Step-by-step instructions, courtesy of Jes Hansen:
    cd ~
 
 7) You are back in your home directory. Now type
-   tar -xvzf ecm-6.4.1.tar.gz
-   cd ecm-6.4.1
+   tar -xvzf ecm-x.y.z.tar.gz
+   cd ecm-x.y.z
    ./configure --with-gmp=/usr/local
    make
 
@@ -197,7 +197,7 @@ In case of a problem, report it to us, with:
 
 - the versions of GMP-ECM and GMP used (first output line), for example:
   
-  GMP-ECM 6.4.1 [configured with GMP 5.0.4, --enable-asm-redc] [P+1]
+  GMP-ECM x.y.z [configured with GMP u.v.w, --enable-asm-redc] [P+1]
 
 - the detailed input enabling us to reproduce the problem, for example:
 
