@@ -310,7 +310,8 @@ mpzspm_init (spv_size_t max_len, mpz_t modulus)
     }
   
   mpz_set_ui (T, 0);
-  
+
+  /* set crt2[i] = -i*P mod modulus */
   for (i = 0; i < mpzspm->sp_num + 2; i++)
     {
       mpz_mod (T, T, modulus);
