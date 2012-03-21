@@ -150,8 +150,8 @@ usage (void)
     printf ("               or can use N as a placeholder for the number being factored.\n");
     printf ("  -printconfig Print compile-time configuration and exit.\n");
 
-    printf ("  -batch[=1|2] (experimental) use Montgomery parametrization and batch\n" 
-					  "               computation. Option -batch is equivalent to -batch=1\n");
+    printf ("  -batch[=0|1|2] (default 1) use Montgomery parametrization and batch\n" 
+            "                 computation. Use -batch=0 for classical Suyama curves\n");
     printf ("  -bsaves file In the batch mode, save s in file.\n");
     printf ("  -bloads file In the batch mode, load s from file.\n");
 
@@ -361,7 +361,7 @@ main (int argc, char *argv[])
   double maxmem = 0.;
   double stage1time = 0.;
   ecm_params params;
-  int batch = 0; /* By default we don't use batch mode */
+  int batch = -1; /* By default we use the batch=1 mode */
   char *savefile_s = NULL;
   char *loadfile_s = NULL;
 #ifdef WANT_SHELLCMD
@@ -492,6 +492,12 @@ main (int argc, char *argv[])
 	  breadthfirst = 1;
 	  argv++;
 	  argc--;
+        }
+      else if (strcmp (argv[1], "-batch=0") == 0)
+        {
+          batch = 0;
+          argv++;
+          argc--;
         }
       else if (strcmp (argv[1], "-batch") == 0 || 
                                             strcmp (argv[1], "-batch=1") == 0)
@@ -1363,6 +1369,8 @@ BreadthFirstDoAgain:;
          If A was given one should check that d fits in one word and that x0=2.
          If A was not given one chooses it at random (and if x0 exists
          it must be 2). */
+      if (batch == -1) /* default mode is now batch=1 for ECM */
+        batch = (method == ECM_ECM) ? 1 : 0;
       if (batch != 0)
         {
           if (method != ECM_ECM)
