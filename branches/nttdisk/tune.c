@@ -1,23 +1,22 @@
-/* Tune program.
+/* Tune program for GMP-ECM.
 
-  Copyright 2003, 2005, 2006, 2008 Paul Zimmermann, Alexander Kruppa, 
-  Dave Newman and Jason Papadopoulos.
+Copyright 2003, 2005, 2006, 2007, 2008, 2009, 2010, 2012 Paul Zimmermann,
+Alexander Kruppa, Dave Newman and Jason Papadopoulos.
 
-  This program is free software; you can redistribute it and/or modify it
-  under the terms of the GNU General Public License as published by the
-  Free Software Foundation; either version 2 of the License, or (at your
-  option) any later version.
+This program is free software; you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation; either version 3 of the License, or (at your
+option) any later version.
 
-  This program is distributed in the hope that it will be useful, but WITHOUT
-  ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
-  FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License for
-  more details.
+This program is distributed in the hope that it will be useful, but
+WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
+or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License for
+more details.
 
-  You should have received a copy of the GNU General Public License along
-  with this program; see the file COPYING.  If not, write to the Free
-  Software Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA
-  02111-1307, USA.
-*/
+You should have received a copy of the GNU General Public License
+along with this program; see the file COPYING.  If not, see
+http://www.gnu.org/licenses/ or write to the Free Software Foundation, Inc.,
+51 Franklin St, Fifth Floor, Boston, MA 02110-1301, USA. */
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -25,7 +24,7 @@
 
 /* 250ms, we (probably) don't need any more precision */
 #define GRANULARITY 250
-#define MAX_LOG2_LEN 18 /* 2 * 131072 */ 
+#define MAX_LOG2_LEN 18 /* 2 * 131072 */
 #define MAX_LEN (1U << max_log2_len)
 #define MAX_LOG2_MPZSPV_NORMALISE_STRIDE (MIN (12, max_log2_len))
 #define M_str "95209938255048826235189575712705128366296557149606415206280987204268594538412191641776798249266895999715600261737863698825644292938050707507901970225804581"
@@ -85,7 +84,6 @@ size_t PREREVERTDIVISION_NTT_THRESHOLD;
 size_t POLYINVERT_NTT_THRESHOLD;
 size_t POLYEVALT_NTT_THRESHOLD;
 size_t MPZSPV_NORMALISE_STRIDE = 256;
-size_t TUNE_MULREDC_THRESH, TUNE_SQRREDC_THRESH;
 
 void
 mpz_quick_random (mpz_t x, mpz_t M, unsigned long b)
@@ -149,8 +147,6 @@ tune_mpres_mul (mp_size_t limbs, int repr)
   return (double) __k / (double) __st;
 }
 
-/* There is no actual mpres_sqr() function (yet), we simply call
-   mpres_mul() with two identical input */
 double
 tune_mpres_sqr (mp_size_t limbs, int repr)
 {
@@ -187,7 +183,7 @@ tune_mpres_sqr (mp_size_t limbs, int repr)
 
   mpres_set_z (x, p, modulus);
 
-  TUNE_FUNC_LOOP (mpres_mul (z, x, x, modulus));
+  TUNE_FUNC_LOOP (mpres_sqr (z, x, modulus));
 
   mpres_clear (x, modulus);
   mpres_clear (z, modulus);
@@ -329,56 +325,6 @@ TUNE_FUNC_START (tune_ecm_mul_lo_n)
   TUNE_FUNC_LOOP (ecm_mul_lo_n (rp, xp, yp, mp_size));
 TUNE_FUNC_END (tune_ecm_mul_lo_n)
 
-double 
-tune_mulredc_asm (size_t n)
-{
-  double r;
-  /* Make ecm_mulredc_basecase() always use asm mulredc code */
-  TUNE_MULREDC_THRESH=20;
-  r = tune_mpres_mul (n, ECM_MOD_MODMULN);
-  if (tune_verbose)
-    fprintf (stderr, "tune_mulredc_asm(%2ld) = %f\n", (long) n, r);
-  return r;
-}
-
-double 
-tune_mulredc_noasm (size_t n)
-{
-  double r;
-  /* Make ecm_mulredc_basecase() never use asm mulredc code */
-  TUNE_MULREDC_THRESH=0;
-  r = tune_mpres_mul (n, ECM_MOD_MODMULN);
-  if (tune_verbose)
-    fprintf (stderr, "tune_mulredc_noasm(%2ld) = %f\n", (long) n, r);
-  return r;
-}
-
-
-double 
-tune_sqrredc_asm (size_t n)
-{
-  double r;
-  /* Make ecm_mulredc_basecase() always use asm mulredc code */
-  TUNE_SQRREDC_THRESH=20;
-  r = tune_mpres_sqr (n, ECM_MOD_MODMULN);
-  if (tune_verbose)
-    fprintf (stderr, "tune_sqrredc_asm(%2ld) = %f\n", (long) n, r);
-  return r;
-}
-
-double 
-tune_sqrredc_noasm (size_t n)
-{
-  double r;
-  /* Make ecm_mulredc_basecase() always use asm mulredc code */
-  TUNE_SQRREDC_THRESH=0;
-  r = tune_mpres_sqr (n, ECM_MOD_MODMULN);
-  if (tune_verbose)
-    fprintf (stderr, "tune_sqrredc_noasm(%2ld) = %f\n", (long) n, r);
-  return r;
-}
-
-
 /* Return the lowest n with min_n <= n < max_n such that
  * f1(t) >= f0(t) for all t in [n, n + k), or return max_n if no such
  * n exists. This function will typically return high values if there
@@ -503,11 +449,25 @@ main (int argc, char **argv)
   gmp_randinit_default (gmp_randstate);
   mpz_init_set_str (M, M_str, 10);
   b = (unsigned long) mpz_sizeinbase (M, 2);
-  
+
   x = init_list (MAX_LEN);
   y = init_list (MAX_LEN);
   z = init_list (MAX_LEN);
   t = init_list (list_mul_mem (MAX_LEN / 2) + 3 * MAX_LEN / 2);
+  
+  mpzspm = mpzspm_init (MAX_LEN, M);
+  if (mpzspm == NULL)
+    {
+      fprintf (stderr, "Error, cannot allocate memory in mpzspm_init\n");
+      exit (1);
+    }
+  mpzspv = mpzspv_init (MAX_LEN, mpzspm);
+  if (mpzspv == NULL)
+    {
+      fprintf (stderr, "Error, cannot allocate memory in mpzspv_init\n");
+      exit (1);
+    }
+  mpzspv_random (mpzspv, 0, MAX_LEN, mpzspm);
   
   for (i = 0; i < MAX_LEN; i++)
     mpz_quick_random (x[i], M, b);
@@ -516,24 +476,9 @@ main (int argc, char **argv)
   for (i = 0; i < MAX_LEN; i++)
     mpz_quick_random (z[i], M, b);    
   
-  mpzspm = mpzspm_init (MAX_LEN, M);
-  mpzspv = mpzspv_init (MAX_LEN, mpzspm);
-  mpzspv_random (mpzspv, 0, MAX_LEN, mpzspm);
-  
- 
   spm = mpzspm->spm[0];
   spv = mpzspv[0];
   
-  TUNE_MULREDC_THRESH = crossover2 (tune_mulredc_asm, tune_mulredc_noasm,
-                                    1, 20, 2);
-  printf ("#define TUNE_MULREDC_THRESH %lu\n", 
-          (unsigned long) TUNE_MULREDC_THRESH);
-
-  TUNE_SQRREDC_THRESH = crossover2 (tune_sqrredc_asm, tune_sqrredc_noasm,
-                                    1, 20, 2);
-  printf ("#define TUNE_SQRREDC_THRESH %lu\n", 
-          (unsigned long) TUNE_SQRREDC_THRESH);
-
   MPZMOD_THRESHOLD = crossover2 (tune_mpres_mul_modmuln, tune_mpres_mul_mpz,
       1, 512, 10);
   

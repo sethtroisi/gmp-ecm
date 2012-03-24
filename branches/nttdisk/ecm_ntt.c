@@ -1,24 +1,24 @@
 /* ecm_ntt.c - high level poly functions to interface between ecm and sp
 
-  Copyright 2005 Dave Newman.
+Copyright 2005, 2006, 2007, 2008, 2009, 2011, 2012 Dave Newman,
+Paul Zimmermann, Alexander Kruppa.
 
-  This file is part of the ECM Library.
-  
-  The ECM Library is free software; you can redistribute it and/or modify
-  it under the terms of the GNU Lesser General Public License as published by
-  the Free Software Foundation; either version 2.1 of the License, or (at your
-  option) any later version.
+This file is part of the ECM Library.
 
-  The ECM Library is distributed in the hope that it will be useful, but
-  WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
-  or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU Lesser General Public
-  License for more details.
+The ECM Library is free software; you can redistribute it and/or modify
+it under the terms of the GNU Lesser General Public License as published by
+the Free Software Foundation; either version 3 of the License, or (at your
+option) any later version.
 
-  You should have received a copy of the GNU Lesser General Public License
-  along with the ECM Library; see the file COPYING.LIB.  If not, write to
-  the Free Software Foundation, Inc., 51 Franklin St, Fifth Floor, Boston,
-  MA 02110-1301, USA.
-*/
+The ECM Library is distributed in the hope that it will be useful, but
+WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
+or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU Lesser General Public
+License for more details.
+
+You should have received a copy of the GNU Lesser General Public License
+along with the ECM Library; see the file COPYING.LIB.  If not, see
+http://www.gnu.org/licenses/ or write to the Free Software Foundation, Inc.,
+51 Franklin St, Fifth Floor, Boston, MA 02110-1301, USA. */
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -127,11 +127,8 @@ ntt_PolyFromRoots_Tree (mpzv_t r, mpzv_t a, spv_size_t len, mpzv_t t,
 	 the possibly negated roots), and advance the destination level 
 	 of the tree to the next level */
       src = *dst;
-#if NEGATED_ROOTS == 1
+      /* we consider x + root[i], which means we consider negated roots */
       list_set (*dst--, a, len);
-#else
-      list_neg (*dst--, a, len, mpzspm->modulus);
-#endif
     }
   
   m = (dolvl == -1) ? 1 : 1 << (ceil_log2 (len) - 1 - dolvl);

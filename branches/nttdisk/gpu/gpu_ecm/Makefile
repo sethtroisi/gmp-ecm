@@ -1,84 +1,74 @@
-BIN=gpu_ecm
+BIN:=gpu_ecm
 
-GMP=/usr
+# put here the PATH to GMP
+GMP_PATH:=/opt/cluster/gmplib
+# put here the path to CUDA
+CUDA_PATH=/opt/cluster/nvidia/cuda-4.1.28/cuda
 
-LDFLAGS=$(GMP)/lib/libgmp.a -lm
-CFLAGS=-O2 -I$(GMP)/include
-NVCCFLAGS=-m64 --compiler-options -fno-strict-aliasing --opencc-options -O2 --ptxas-options=-v
+# CUDA does not support gcc >= 4.6
+# this can be useful if your default gcc is >= 4.6
+# if not just comment the following two lines.
+#CC_BIN:=/tmp/gcc45
+#USE_THIS_CC:=--compiler-bindir $(CC_BIN) 
 
-ifeq ($(keep),1)
-NVCCFLAGS+=-keep -keep-dir keep2
+# Change here the compute capability (can be 2.0 or 1.3)
+COMPUTE_CAPABILITY:=2.0
+
+# (can be -m64 or -m32)
+mOPTION:=-m64
+
+OBJDIR:=obj
+
+OBJ_CU:=$(addprefix $(OBJDIR)/,$(patsubst %.cu,%.cu.o,$(wildcard *.cu)))
+OBJ_C:=$(addprefix $(OBJDIR)/,$(patsubst %.c,%.c.o,$(wildcard *.c)))
+FILES_FROM_LIBECM:=random.c batch.c getprime.c
+FILES_FROM_ECMECM:=getprime.c eval.c candi.c auxi.c resume.c
+OBJ_FROM_LIBECM:=$(addprefix $(OBJDIR)/,$(patsubst %.c,%.l,$(FILES_FROM_LIBECM)))
+OBJ_FROM_ECMECM:=$(addprefix $(OBJDIR)/,$(patsubst %.c,%.o,$(FILES_FROM_ECMECM)))
+OBJ_FILES:=$(OBJ_C) $(OBJ_CU) $(OBJ_FROM_LIBECM) $(OBJ_FROM_ECMECM) 
+
+LDFLAGS:=$(GMP_PATH)/lib/libgmp.a -lm -lgmp
+LDFLAGS+=-L$(CUDA_PATH)/lib64 -L$(CUDA_PATH)/lib -lcudart
+
+CFLAGS:=-O2 -I$(GMP_PATH)/include
+
+NVCCFLAGS:=$(USE_THIS_CC) --compiler-options -fno-strict-aliasing 
+NVCCFLAGS+=$(mOPTION) --ptxas-options=-v
+
+ifeq ($(COMPUTE_CAPABILITY), 2.0)
+  COMPUTECAPABILITY:=-arch=sm_20
+  CFLAGS+=-DCC20
+  #NVCCFLAGS+=--maxrregcount 20
+endif
+ifeq ($(COMPUTE_CAPABILITY), 1.3)
+  COMPUTECAPABILITY:=-arch=sm_13
+  CFLAGS+=-DCC13
+  NVCCFLAGS+=--opencc-options -O2 --maxrregcount 32
 endif
 
+#Only for debug
+KEEP:=-keep -keep-dir=keep
 
-ifeq ($(m),1)
-CFLAGS+=-DMTEST
-endif
+$(BIN): $(OBJ_FILES)
+	gcc -Wall -fPIC $(mOPTION) -o $@ $^ $(LDFLAGS)
 
-ifeq ($(v),0)
-CFLAGS+=-DTEST
-CFLAGS+=-DNB_DIGITS=32
-else
-	ifeq ($(v),1)
-		CFLAGS+=-DNB_DIGITS=4
-	else
-		ifeq ($(v),2)
-			CFLAGS+=-DNB_DIGITS=8
-		else
-			ifeq ($(v),3)
-				CFLAGS+=-DNB_DIGITS=16
-			else
-				CFLAGS+=-DNB_DIGITS=32
-			endif
-		endif
-	endif
-endif
+$(OBJDIR)/%.cu.o : %.cu cudakernel.h def.h | $(OBJDIR)
+	nvcc $(KEEP) $(CFLAGS) $(COMPUTECAPABILITY) $(NVCCFLAGS) -o $@ -c $<
 
-ifeq ($(cc),2)
-COMPUTECAPABILITY=-arch=sm_20
-CFLAGS+=-DCC20
-NVCCFLAGS+=--maxrregcount 20
-else
-COMPUTECAPABILITY=-arch=sm_13
-CFLAGS+=-DCC13
-NVCCFLAGS+=--maxrregcount 32
-endif
+$(OBJDIR)/%.c.o : %.c def.h utils.h | $(OBJDIR)
+	gcc -Wall $(CFLAGS) -o $@ -c $<
 
-ifeq ($(debug),0)
-CFLAGS+= 
-else
-CFLAGS+=-g#-G
-endif
+$(OBJDIR)/%.o : ../../%.c | $(OBJDIR)
+	gcc -Wall $(CFLAGS) -DGPUECM -DVERSION_GPU=\"0.1\" -DOUTSIDE_LIBECM -o $@ -c $<
 
-$(BIN): obj/utils.cu.o obj/main.cu.o obj/cudautils.cu.o obj/cudaarith.cu.o
-	gcc -fPIC -m64 -o $@ $^ $(LDFLAGS) -L/usr/local/cuda/lib64 -lcudart
+$(OBJDIR)/%.l : ../../%.c | $(OBJDIR)
+	gcc -Wall $(CFLAGS) -DGPUECM -DVERSION_GPU=\"0.1\" -o $@ -c $<
 
-obj/utils.cu.o : utils.cu utils.h 
-	nvcc $(CFLAGS) $(COMPUTECAPABILITY) $(NVCCFLAGS) -o $@ -c $<
-
-obj/main.cu.o : main.cu main.h utils.h cudautils.h
-	nvcc $(CFLAGS) $(COMPUTECAPABILITY) $(NVCCFLAGS) -o $@ -c $<
-
-obj/cudautils.cu.o : cudautils.cu main.h cudaarith.h
-	nvcc $(CFLAGS) $(COMPUTECAPABILITY) $(NVCCFLAGS) -o $@ -c $<
-
-obj/cudaarith.cu.o: cudaarith.cu main.h
-	nvcc $(CFLAGS) $(COMPUTECAPABILITY) $(NVCCFLAGS) -o $@ -c $<
-
-s: s.c
-	gcc -I/usr/include -c s.c
-	gcc -o stest s.o $(LDFLAGS)
-
-compute_s: compute_s.c
-	gcc -I/usr/include -c compute_s.c
-	gcc -o compute_s compute_s.o $(LDFLAGS)
-
-#withdouble: obj/withdouble.cu.o objdir
-#obj/withdouble.cu.o : withdouble.cu 
-#	nvcc $(CFLAGS) -arch=sm_20 $(NVCCFLAGS) -o $@ -c $<
+$(OBJDIR): 
+	mkdir $(OBJDIR)
 
 clean: 
-	rm obj/*.cu.o
+	rm -f $(OBJDIR)/*.o
 
-mrproper: clean
-	rm $(BIN)
+distclean: clean
+	rm -f $(BIN)

@@ -1,24 +1,23 @@
 /* Random initialization for P-1 and P+1.
 
-  Copyright 2005 Paul Zimmermann and Alexander Kruppa.
+Copyright 2005, 2006, 2008 Paul Zimmermann, Alexander Kruppa, Dave Newman.
 
-  This file is part of the ECM Library.
+This file is part of the ECM Library.
 
-  The ECM Library is free software; you can redistribute it and/or modify
-  it under the terms of the GNU Lesser General Public License as published by
-  the Free Software Foundation; either version 2.1 of the License, or (at your
-  option) any later version.
+The ECM Library is free software; you can redistribute it and/or modify
+it under the terms of the GNU Lesser General Public License as published by
+the Free Software Foundation; either version 3 of the License, or (at your
+option) any later version.
 
-  The ECM Library is distributed in the hope that it will be useful, but
-  WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
-  or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU Lesser General Public
-  License for more details.
+The ECM Library is distributed in the hope that it will be useful, but
+WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
+or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU Lesser General Public
+License for more details.
 
-  You should have received a copy of the GNU Lesser General Public License
-  along with the ECM Library; see the file COPYING.LIB.  If not, write to
-  the Free Software Foundation, Inc., 51 Franklin St, Fifth Floor, Boston,
-  MA 02110-1301, USA.
-*/
+You should have received a copy of the GNU Lesser General Public License
+along with the ECM Library; see the file COPYING.LIB.  If not, see
+http://www.gnu.org/licenses/ or write to the Free Software Foundation, Inc.,
+51 Franklin St, Fifth Floor, Boston, MA 02110-1301, USA. */
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -113,14 +112,16 @@ get_random_ui (void)
       CryptReleaseContext (Prov, 0);
       if (r)
         {
-#ifndef OUTSIDE_LIBECM /* warning: outputf is not exported from libecm */
+/* warning: outputf is not exported from libecm */
+#if !defined (OUTSIDE_LIBECM) && !defined(GPUECM)
           outputf (OUTPUT_DEVVERBOSE, "Got seed for RNG from CryptGenRandom\n");
 #endif
           return rnd;
         }
     }
   
-#ifndef OUTSIDE_LIBECM /* warning: outputf is not exported from libecm */
+/* warning: outputf is not exported from libecm */
+#if !defined (OUTSIDE_LIBECM) && !defined(GPUECM)
   outputf (OUTPUT_DEVVERBOSE, "Got seed for RNG from GetSystemTime\n");
 #endif
 
@@ -147,7 +148,8 @@ get_random_ui (void)
     {
       if (fread (&t, sizeof (unsigned int), 1, rndfd) == 1)
         {
-#ifndef OUTSIDE_LIBECM /* warning: outputf is not exported from libecm */
+/* warning: outputf is not exported from libecm */
+#if !defined (OUTSIDE_LIBECM) && !defined(GPUECM)
           outputf (OUTPUT_DEVVERBOSE, "Got seed for RNG from /dev/urandom\n");
 #endif
           fclose (rndfd);
@@ -159,14 +161,16 @@ get_random_ui (void)
 #ifdef HAVE_GETTIMEOFDAY
   if (gettimeofday (&tv, NULL) == 0)
     {
-#ifndef OUTSIDE_LIBECM
+/* warning: outputf is not exported from libecm */
+#if !defined (OUTSIDE_LIBECM) && !defined(GPUECM)
       outputf (OUTPUT_DEVVERBOSE, "Got seed for RNG from gettimeofday()\n");
 #endif
       return tv.tv_sec + tv.tv_usec;
     }
 #endif
 
-#ifndef OUTSIDE_LIBECM
+/* warning: outputf is not exported from libecm */
+#if !defined (OUTSIDE_LIBECM) && !defined(GPUECM)
   outputf (OUTPUT_DEVVERBOSE, "Got seed for RNG from time()+getpid()\n");
 #endif
 

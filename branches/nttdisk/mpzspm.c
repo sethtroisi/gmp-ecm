@@ -1,23 +1,23 @@
 /* mpzspm.c - "mpz small prime moduli" - pick a set of small primes large
    enough to represent a mpzv
 
-  Copyright 2005, 2008, 2010 Dave Newman, Jason Papadopoulos, Paul Zimmermann.
+Copyright 2005, 2006, 2007, 2008, 2009, 2010 Dave Newman, Jason Papadopoulos,
+Paul Zimmermann, Alexander Kruppa.
 
-  The SP Library is free software; you can redistribute it and/or modify
-  it under the terms of the GNU Lesser General Public License as published by
-  the Free Software Foundation; either version 2.1 of the License, or (at your
-  option) any later version.
+The SP Library is free software; you can redistribute it and/or modify
+it under the terms of the GNU Lesser General Public License as published by
+the Free Software Foundation; either version 3 of the License, or (at your
+option) any later version.
 
-  The SP Library is distributed in the hope that it will be useful, but
-  WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
-  or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU Lesser General Public
-  License for more details.
+The SP Library is distributed in the hope that it will be useful, but
+WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
+or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU Lesser General Public
+License for more details.
 
-  You should have received a copy of the GNU Lesser General Public License
-  along with the SP Library; see the file COPYING.LIB.  If not, write to
-  the Free Software Foundation, Inc., 51 Franklin St, Fifth Floor, Boston,
-  MA 02110-1301, USA.
-*/
+You should have received a copy of the GNU Lesser General Public License
+along with the SP Library; see the file COPYING.LIB.  If not, write to
+the Free Software Foundation, Inc., 51 Franklin St, Fifth Floor, Boston,
+MA 02110-1301, USA. */
 
 #include <stdio.h> /* for printf */
 #include <stdlib.h>
@@ -227,7 +227,7 @@ mpzspm_init (spv_size_t max_len, mpz_t modulus)
 	  goto error_clear_mpzspm_spm;
 	}
       
-      mpzspm->spm[mpzspm->sp_num] = spm_init (max_len, p);
+      mpzspm->spm[mpzspm->sp_num] = spm_init (max_len, p, mpz_size (modulus));
       if (mpzspm->spm[mpzspm->sp_num] == NULL)
         {
           outputf (OUTPUT_ERROR, "Out of memory in mpzspm_init()\n");
@@ -313,7 +313,8 @@ mpzspm_init (spv_size_t max_len, mpz_t modulus)
     }
   
   mpz_set_ui (T, 0);
-  
+
+  /* set crt2[i] = -i*P mod modulus */
   for (i = 0; i < mpzspm->sp_num + 2; i++)
     {
       mpz_mod (T, T, modulus);

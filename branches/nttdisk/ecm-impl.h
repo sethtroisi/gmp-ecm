@@ -1,22 +1,24 @@
 /* ecm-impl.h - header file for libecm
  
-  Copyright 2001, 2002, 2003, 2004, 2005 Paul Zimmermann and Alexander Kruppa.
+Copyright 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009, 2010, 2011,
+2012 Paul Zimmermann, Alexander Kruppa and Cyril Bouvier.
  
-  This program is free software; you can redistribute it and/or modify it
-  under the terms of the GNU General Public License as published by the
-  Free Software Foundation; either version 2 of the License, or (at your
-  option) any later version.
- 
-  This program is distributed in the hope that it will be useful, but WITHOUT
-  ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
-  FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License for
-  more details.
- 
-  You should have received a copy of the GNU General Public License along
-  with this program; see the file COPYING.  If not, write to the Free
-  Software Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA
-  02111-1307, USA.
-*/
+This file is part of the ECM Library.
+
+The ECM Library is free software; you can redistribute it and/or modify
+it under the terms of the GNU Lesser General Public License as published by
+the Free Software Foundation; either version 3 of the License, or (at your
+option) any later version.
+
+The ECM Library is distributed in the hope that it will be useful, but
+WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
+or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU Lesser General Public
+License for more details.
+
+You should have received a copy of the GNU Lesser General Public License
+along with the ECM Library; see the file COPYING.LIB.  If not, see
+http://www.gnu.org/licenses/ or write to the Free Software Foundation, Inc.,
+51 Franklin St, Fifth Floor, Boston, MA 02110-1301, USA. */
 
 #ifndef _ECM_IMPL_H
 #define _ECM_IMPL_H 1
@@ -76,10 +78,7 @@ extern size_t mpn_mul_lo_threshold[];
 #define ECM_STDERR __ecm_stderr
 extern FILE *ECM_STDOUT, *ECM_STDERR;
 
-/* Whether we build the polynomials in stage 2 as described in the literature 
-   as products of (x - x_i) (NEGATED_ROOTS 0), or as 
-   (x + x_i) (NEGATED_ROOTS 1) */
-#define NEGATED_ROOTS 0
+/* #define TIMING_CRT */
 
 /* default B2 choice: pow (B1 * METHOD_COST / 6.0, DEFAULT_B2_EXPONENT) */
 #define DEFAULT_B2_EXPONENT 1.43
@@ -104,6 +103,9 @@ extern FILE *ECM_STDOUT, *ECM_STDERR;
 #define TOOM4 4
 #define KS 5
 #define NTT 6
+
+/* maximal limb size of assembly mulredc */
+#define MULREDC_ASSEMBLY_MAX 20
 
 /* compile with -DMULT=2 to override default */
 #ifndef MULT
@@ -272,10 +274,8 @@ typedef struct
   int Fermat;         /* If repr = 1 (base 2 number): If modulus is 2^(2^m)+1, 
                          i.e. bits = 2^m, then Fermat = 2^m, 0 otherwise.
                          If repr != 1, undefined */
-  mp_limb_t Nprim[2]; /* For MODMULN */
+  mp_limb_t *Nprim;   /* For MODMULN */
   mpz_t orig_modulus; /* The original modulus N */
-  mpz_t mult_modulus; /* We perform all computations modulo this multiple k*N
-                         of N */
   mpz_t aux_modulus;  /* Used only for MPZ and REDC:
 			 - the auxiliary modulus value (i.e. normalized 
                            modulus, or -1/N (mod 2^bits) for REDC,
@@ -520,6 +520,9 @@ unsigned int ks_wrapmul (listz_t, unsigned int, listz_t, unsigned int,
                          listz_t, unsigned int, mpz_t);
 
 /* mpmod.c */
+/* Define MPRESN_NO_ADJUSTMENT if mpresn_add, mpresn_sub and mpresn_addsub
+   should perform no adjustment step. This yields constraints on N. */
+/* #define MPRESN_NO_ADJUSTMENT */
 #define isbase2 __ECM(isbase2)
 int isbase2 (const mpz_t, const double);
 #define mpmod_init __ECM(mpmod_init)
@@ -602,14 +605,18 @@ int  mpres_is_zero (const mpres_t, mpmod_t);
 void mpresn_mul (mpres_t, const mpres_t, const mpres_t, mpmod_t);
 #define mpresn_addsub __ECM(mpresn_addsub)
 void mpresn_addsub (mpres_t, mpres_t, const mpres_t, const mpres_t, mpmod_t);
+#define mpresn_pad __ECM(mpresn_pad)
+void mpresn_pad (mpres_t R, mpmod_t N);
+#define mpresn_unpad __ECM(mpresn_unpad)
+void mpresn_unpad (mpres_t R);
 #define mpresn_sqr __ECM(mpresn_sqr)
 void mpresn_sqr (mpres_t, const mpres_t, mpmod_t);
 #define mpresn_add __ECM(mpresn_add)
 void mpresn_add (mpres_t, const mpres_t, const mpres_t, mpmod_t);
 #define mpresn_sub __ECM(mpresn_sub)
 void mpresn_sub (mpres_t, const mpres_t, const mpres_t, mpmod_t);
-#define mpresn_mul_ui __ECM(mpresn_mul_ui)
-void mpresn_mul_ui (mpres_t, const mpres_t, const unsigned long, mpmod_t);
+#define mpresn_mul_1 __ECM(mpresn_mul_ui)
+void mpresn_mul_1 (mpres_t, const mpres_t, const mp_limb_t, mpmod_t);
 
 /* mul_lo.c */
 #define ecm_mul_lo_n __ECM(ecm_mul_lo_n)
@@ -714,7 +721,20 @@ int  mpn_fft_best_k (mp_size_t, int);
 mp_size_t mpn_fft_next_size (mp_size_t, int);
 
 /* batch.c */
-int ecm_stage1_batch (mpz_t, mpres_t, mpres_t, mpmod_t, double, double *, mpz_t);
+#define compute_s  __ECM(compute_s )
+void compute_s (mpz_t, unsigned long);
+#define write_s_in_file __ECM(write_s_in_file)
+int write_s_in_file (char *, mpz_t);
+#define read_s_from_file  __ECM(read_s_from_file)
+void read_s_from_file (mpz_t, char *); 
+#define ecm_stage1_batch  __ECM(ecm_stage1_batch)
+int ecm_stage1_batch (mpz_t, mpres_t, mpres_t, mpmod_t, double, double *, 
+                                                                int,  mpz_t);
+
+/* ellparam_batch.c */
+#define get_curve_from_ell_parametrization \
+                                      __ECM(get_curve_from_ell_parametrization )
+int get_curve_from_ell_parametrization (mpz_t, mpres_t, mpz_t, mpmod_t);
 
 /* sets_long.c */
 /* A set of 64-bit ints */

@@ -1,6 +1,8 @@
 /* config.h.in.  Generated from configure.in by autoheader.  */
 
-#define VERSION "6.4"
+#define VERSION "7.0-dev"
+
+#define VERSION_GPU "gpu_ecm-win"
 
 #define PACKAGE_BUGREPORT "ecm-discuss@lists.gforge.inria.fr"
 
@@ -202,9 +204,13 @@
 #undef const
 
 /* How to specify hot-spot attribute, if available */
-#define ATTRIBUTE_HOT 
+#define ATTRIBUTE_HOT
 
 #define HAVE___GMPN_REDC_1 1
+
+#define HAVE___GMPN_REDC_2 1
+
+#define HAVE_ASM_REDC3  1
 
 #define WINDOWS64_ABI   1
 

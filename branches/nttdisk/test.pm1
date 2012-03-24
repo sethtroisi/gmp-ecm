@@ -2,22 +2,23 @@
 
 # test file for P-1 method
 #
-# Copyright 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009 Paul Zimmermann, Alexander Kruppa and Dave Newman.
+# Copyright 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009, 2012
+# Paul Zimmermann, Alexander Kruppa, Dave Newman, Jim Fougeron.
 #
-# This program is free software; you can redistribute it and/or modify it
-# under the terms of the GNU General Public License as published by the
-# Free Software Foundation; either version 2 of the License, or (at your
+# This program is free software; you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation; either version 3 of the License, or (at your
 # option) any later version.
-#
-# This program is distributed in the hope that it will be useful, but WITHOUT
-# ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
-# FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License for
+# 
+# This program is distributed in the hope that it will be useful, but
+# WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
+# or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License for
 # more details.
-#
-# You should have received a copy of the GNU General Public License along
-# with this program; see the file COPYING.  If not, write to the Free
-# Software Foundation, Inc., 51 Franklin St, Fifth Floor, Boston,
-# MA 02110-1301, USA.
+# 
+# You should have received a copy of the GNU General Public License
+# along with this program; see the file COPYING.  If not, see
+# http://www.gnu.org/licenses/ or write to the Free Software Foundation, Inc.,
+# 51 Franklin St, Fifth Floor, Boston, MA 02110-1301, USA.
 
 PM1="$1 -pm1"
 
@@ -90,8 +91,8 @@ echo 504403158265489337 | $PM1 -k 4 8 9007199254740700-9007199254740900; checkco
 echo 6857 | $PM1 840 857; checkcode $? 8
 
 # A test with a larger input number to test modular arithmetic routines not
-# in mulredc*.asm. This input has 1363 bits so it has 22 64 bit words 
-# (43 32 bit words) and cannot use mulredc which handles only up to 20 limbs
+# in mulredc*.asm. This input has 1363 bits so it has 22 64-bit words 
+# (43 32-bit words) and cannot use mulredc which handles only up to 20 limbs
 
 echo "10090030271*10^400+696212088699" | $PM1 2e3 2e6; checkcode $? 14
 
@@ -99,4 +100,3 @@ echo "10090030271*10^400+696212088699" | $PM1 2e3 2e6; checkcode $? 14
 echo "2^(64*2)-1" | $PM1 -redc -x0 -1 2 1; checkcode $? 8
 
 echo "All P-1 tests are ok."
-echo ""

@@ -1,22 +1,22 @@
 /* ecm-ecm.h - private header file for GMP-ECM.
 
-  Copyright 2001, 2002, 2003, 2004, 2005 Paul Zimmermann and Alexander Kruppa.
+Copyright 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009, 2010, 2011,
+2012 Paul Zimmermann, Alexander Kruppa and Cyril Bouvier.
 
-  This program is free software; you can redistribute it and/or modify it
-  under the terms of the GNU General Public License as published by the
-  Free Software Foundation; either version 2 of the License, or (at your
-  option) any later version.
+This program is free software; you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation; either version 3 of the License, or (at your
+option) any later version.
 
-  This program is distributed in the hope that it will be useful, but WITHOUT
-  ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
-  FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License for
-  more details.
+This program is distributed in the hope that it will be useful, but
+WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
+or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License for
+more details.
 
-  You should have received a copy of the GNU General Public License along
-  with this program; see the file COPYING.  If not, write to the Free
-  Software Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA
-  02111-1307, USA.
-*/
+You should have received a copy of the GNU General Public License
+along with this program; see the file COPYING.  If not, see
+http://www.gnu.org/licenses/ or write to the Free Software Foundation, Inc.,
+51 Franklin St, Fifth Floor, Boston, MA 02110-1301, USA. */
 
 #ifndef _ECM_ECM_H
 #define _ECM_ECM_H 1
@@ -68,7 +68,8 @@ typedef struct
 
 /* auxi.c */
 unsigned int nb_digits  (const mpz_t);
-unsigned int get_random_ui (void);
+int probab_prime_p (mpz_t, int);
+int read_number (mpcandi_t*, FILE*, int);
 
 /* Various logging levels */
 /* OUTPUT_ALWAYS means print always, regardless of verbose value */
@@ -139,8 +140,6 @@ int write_resumefile_line (char *, int, double, mpz_t, mpz_t, mpz_t, mpcandi_t *
                            mpz_t, const char *);
 
 /* main.c */
-int read_number (mpcandi_t *n, FILE *, int primetest);
-int probab_prime_p (mpz_t, int);
 int kbnc_z (double *k, unsigned long *b, unsigned long *n, signed long *c,
             mpz_t z);
 int kbnc_str (double *k, unsigned long *b, unsigned long *n, signed long *c,
@@ -148,6 +147,8 @@ int kbnc_str (double *k, unsigned long *b, unsigned long *n, signed long *c,
 
 /* batch.c */
 void compute_s (mpz_t, unsigned long);
+int write_s_in_file (char *, mpz_t);
+void read_s_from_file (mpz_t, char *); 
 
 /* eval.c */
 int eval (mpcandi_t *n, FILE *fd, int bPrp);
@@ -166,6 +167,9 @@ int  mpcandi_t_addfoundfactor_d (mpcandi_t *n, double f);
 void mpgocandi_t_init(mpgocandi_t *go);
 void mpgocandi_t_free(mpgocandi_t *go);
 int  mpgocandi_fixup_with_N(mpgocandi_t *go, mpcandi_t *n);
+
+/* random.c */
+unsigned int get_random_ui (void);
 
 /* random2.c */
 void pp1_random_seed  (mpz_t, mpz_t, gmp_randstate_t);

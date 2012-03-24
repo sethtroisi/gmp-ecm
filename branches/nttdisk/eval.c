@@ -1,22 +1,21 @@
 /* Simple expression parser for GMP-ECM.
 
-  Copyright 2003, 2004, 2005 Jim Fougeron, Paul Zimmermann and Alexander Kruppa.
+Copyright 2003, 2004, 2005, 2006, 2007, 2008, 2012 Jim Fougeron, Paul Zimmermann and Alexander Kruppa.
 
-  This program is free software; you can redistribute it and/or modify it
-  under the terms of the GNU General Public License as published by the
-  Free Software Foundation; either version 2 of the License, or (at your
-  option) any later version.
+This program is free software; you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation; either version 3 of the License, or (at your
+option) any later version.
 
-  This program is distributed in the hope that it will be useful, but WITHOUT
-  ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
-  FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License for
-  more details.
+This program is distributed in the hope that it will be useful, but
+WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
+or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License for
+more details.
 
-  You should have received a copy of the GNU General Public License along
-  with this program; see the file COPYING.  If not, write to the Free
-  Software Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA
-  02111-1307, USA.
-*/
+You should have received a copy of the GNU General Public License
+along with this program; see the file COPYING.  If not, see
+http://www.gnu.org/licenses/ or write to the Free Software Foundation, Inc.,
+51 Franklin St, Fifth Floor, Boston, MA 02110-1301, USA. */
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -194,7 +193,7 @@ JoinLinesLoop:;
   while (*c && !IS_NEWLINE(*c) && *c != ';')
     {
       /* strip space and tabs out here, and then we DON'T have to mess with them in the rest of the parser */
-      if (!isspace(*c))
+      if (!isspace((int) *c))
 	expr[nCurSize++] = *c;
       if (nCurSize == nMaxSize)
       {
@@ -529,7 +528,7 @@ int eval_2 (int bInFuncParams)
 	}
       else            /* Number is decimal value */
 	{
-	  for (i=0;isdigit(expr_str[i]);i++)
+	  for (i=0;isdigit((int) expr_str[i]);i++)
 	    ;
 	  if (!i)         /* No digits found */
 	    {
@@ -580,7 +579,7 @@ int eval_2 (int bInFuncParams)
 	    {
 		num_base = 16;	/* Kick up to hex */
 		expr_str += 2;	/* skip the 0x string of the number */
-		for (i=0;isxdigit(expr_str[i]);i++)
+		for (i=0;isxdigit((int) expr_str[i]);i++)
 	          ;
 	    }
 	  op=expr_str[i];
@@ -623,7 +622,7 @@ MONADIC_SUFFIX_LOOP:;
 	    }
 	  else if ('!' == op)
 	    {
-	      if (!isdigit(*expr_str))
+	      if (!isdigit((int) *expr_str))
 		{
 		  /* If the next char is not a digit, then this is a simple factorial, and not a "multi" factorial */
 		  mpz_set(n_stack[2], n);
@@ -636,7 +635,7 @@ MONADIC_SUFFIX_LOOP:;
 	    }
 	  else if ('#' == op)
 	    {
-	      if (!isdigit(*expr_str))
+	      if (!isdigit((int) *expr_str))
 		{
   		  /* If the next char is not a digit, then this is a simple primorial, and not a "reduced" primorial */
 		  mpz_set(n_stack[2], n);

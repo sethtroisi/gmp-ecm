@@ -29,5 +29,4 @@ extern mp_limb_t mulredc18(mp_limb_t *z, const mp_limb_t *x, const mp_limb_t *y,
 extern mp_limb_t mulredc19(mp_limb_t *z, const mp_limb_t *x, const mp_limb_t *y, const mp_limb_t *m, mp_limb_t inv_m);
 extern mp_limb_t mulredc20(mp_limb_t *z, const mp_limb_t *x, const mp_limb_t *y, const mp_limb_t *m, mp_limb_t inv_m);
 
-
 #endif

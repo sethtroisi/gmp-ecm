@@ -1,29 +1,27 @@
-/* 
-  Implementation of fast stage 2 for P-1 and P+1 as described in
-  "Improved Stage 2 to $P\pm{}1$ Factoring Algorithms" by
-  Peter L. Montgomery and Alexander Kruppa, ANTS 2008 (8th Algorithmic 
-  Number Theory Symposium).
+/* Implementation of fast stage 2 for P-1 and P+1 as described in
+   "Improved Stage 2 to $P\pm{}1$ Factoring Algorithms" by
+   Peter L. Montgomery and Alexander Kruppa, ANTS 2008 (8th Algorithmic 
+   Number Theory Symposium).
    
-  Copyright 2007, 2008 Alexander Kruppa.
-  NTT functions are based on code Copyright 2005 Dave Newman.
+Copyright 2007, 2008, 2009, 2010, 2011, 2012 Alexander Kruppa, Paul Zimmermann.
+NTT functions are based on code Copyright 2005 Dave Newman.
 
-  This file is part of the ECM Library.
+This file is part of the ECM Library.
 
-  The ECM Library is free software; you can redistribute it and/or modify
-  it under the terms of the GNU Lesser General Public License as published by
-  the Free Software Foundation; either version 2.1 of the License, or (at your
-  option) any later version.
+The ECM Library is free software; you can redistribute it and/or modify
+it under the terms of the GNU Lesser General Public License as published by
+the Free Software Foundation; either version 3 of the License, or (at your
+option) any later version.
 
-  The ECM Library is distributed in the hope that it will be useful, but
-  WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
-  or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU Lesser General Public
-  License for more details.
+The ECM Library is distributed in the hope that it will be useful, but
+WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
+or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU Lesser General Public
+License for more details.
 
-  You should have received a copy of the GNU Lesser General Public License
-  along with the ECM Library; see the file COPYING.LIB.  If not, write to
-  the Free Software Foundation, Inc., 51 Franklin St, Fifth Floor, Boston,
-  MA 02110-1301, USA.
-*/
+You should have received a copy of the GNU Lesser General Public License
+along with the ECM Library; see the file COPYING.LIB.  If not, see
+http://www.gnu.org/licenses/ or write to the Free Software Foundation, Inc.,
+51 Franklin St, Fifth Floor, Boston, MA 02110-1301, USA. */
 
 #include "config.h"
 #include <stdio.h>
@@ -747,7 +745,7 @@ V (mpres_t R, const mpres_t S, const int64_t k, mpmod_t modulus)
       mpres_set (R, S, modulus);
       while (po2-- > 0)
         {
-          mpres_mul (R, R, R, modulus);
+          mpres_sqr (R, R, modulus);
           mpres_sub (R, R, V0, modulus);
         }
       mpres_clear (V0, modulus);
@@ -761,7 +759,7 @@ V (mpres_t R, const mpres_t S, const int64_t k, mpmod_t modulus)
 
   /* i = 1. Vi = V_i(S), Vi1 = V_{i+1}(S) */
   mpres_set (Vi, S, modulus);
-  mpres_mul (Vi1, S, S, modulus);
+  mpres_sqr (Vi1, S, modulus);
   mpres_sub (Vi1, Vi1, V0, modulus);
   j >>= 1;
 
@@ -774,7 +772,7 @@ V (mpres_t R, const mpres_t S, const int64_t k, mpmod_t modulus)
 	     V_{i'+1} = V_{2i + 2} = {V_{i+1}}^2 - V_0. */
 	  mpres_mul (Vi, Vi, Vi1, modulus);
 	  mpres_sub (Vi, Vi, S, modulus);
-	  mpres_mul (Vi1, Vi1, Vi1, modulus);
+	  mpres_sqr (Vi1, Vi1, modulus);
 	  mpres_sub (Vi1, Vi1, V0, modulus);
 	}
       else
@@ -785,7 +783,7 @@ V (mpres_t R, const mpres_t S, const int64_t k, mpmod_t modulus)
 	  mpres_mul (Vi1, Vi, Vi1, modulus);
 	  mpres_sub (Vi1, Vi1, S, modulus);
 
-	  mpres_mul (Vi, Vi, Vi, modulus);
+	  mpres_sqr (Vi, Vi, modulus);
 	  mpres_sub (Vi, Vi, V0, modulus);
 	}
       j >>= 1;
@@ -797,7 +795,7 @@ V (mpres_t R, const mpres_t S, const int64_t k, mpmod_t modulus)
 
   while (po2-- > 0)
     {
-      mpres_mul (Vi, Vi, Vi, modulus);
+      mpres_sqr (Vi, Vi, modulus);
       mpres_sub (Vi, Vi, V0, modulus);
     }
 
@@ -1776,7 +1774,7 @@ pm1_sequence_g (listz_t g_mpz, mpzspv_handle_t g_handle, const mpres_t b_1,
     mpz_mul_2exp (t, t, 1UL);
     mpz_add_ui (t, t, 1UL);
     mpres_pow (state.r[1], r, t, state.modulus); /* r[1] = r^{2(-M+i)+1}, i = 0 */
-    mpres_mul (state.r[0], r, r, state.modulus); /* r[0] = r^2 */
+    mpres_sqr (state.r[0], r, state.modulus); /* r[0] = r^2 */
 
     mpz_mul_2exp (t, m_1, 1UL);
     mpz_add_ui (t, t, 1UL);
@@ -1972,7 +1970,7 @@ pm1_sequence_h (listz_handle_t h, mpzspv_handle_t ntt_handle, listz_handle_t f,
        separately in each thread has the advantage of putting it in
        local memory. May not make much difference overall */
 
-    mpres_mul (state.fd[0], invr, invr, state.modulus); /* fd[0] = r^{-2} */
+    mpres_sqr (state.fd[0], invr, state.modulus); /* fd[0] = r^{-2} */
     mpz_set_uint64 (t, offset);
     mpz_mul_2exp (t, t, 1UL);
     mpz_add_ui (t, t, 1UL);                 /* t = 2 * offset + 1 */
@@ -2800,7 +2798,7 @@ gfp_ext_sqr_norm1 (mpres_t r_0, mpres_t r_1, const mpres_t a_0,
   mpres_mul (r_1, a_0, a_1, modulus);
   mpres_add (r_1, r_1, r_1, modulus);       /* r_1 = 2*a_0*a_1 */
   
-  mpres_mul (r_0, a_0, a_0, modulus);
+  mpres_sqr (r_0, a_0, modulus);
   mpres_add (r_0, r_0, r_0, modulus);
   mpres_sub_ui (r_0, r_0, 1UL, modulus);    /* r_0 = 2*a_0^2 - 1 */
 
@@ -3001,7 +2999,7 @@ gfp_ext_rn2 (mpres_t *r_x, mpres_t *r_y, const mpres_t a_x, const mpres_t a_y,
   mpres_add (*V2, a_x, a_x, modulus); /* V2 = a + 1/a  = 2*a_x*/
   V (v[0], *V2, 2 * k + 1, modulus);  /* v[0] = V_{2k+1} (a + 1/a) */
   V (v[1], *V2, 2 * k + 3, modulus);  /* v[0] = V_{2k+3} (a + 1/a) */
-  mpres_mul (*V2, *V2, *V2, modulus); /* V2 = 4*a_x^2 */
+  mpres_sqr (*V2, *V2, modulus); /* V2 = 4*a_x^2 */
   mpres_sub_ui (*V2, *V2, 2UL, modulus); /* V2 = 4*a_x^2 - 2 */
   if (pari)
     {
@@ -3500,7 +3498,7 @@ pp1_sequence_h (listz_t h_x, listz_t h_y, mpzspv_handle_t h_x_ntt, mpzspv_handle
     mpres_add (V2, rn_x, rn_x, modulus); /* V2 = r + 1/r  = 2*rn_x */
     V (v[0], V2, 2 * k + 1, modulus);  /* v[0] = V_{2k+1} (r + 1/r) */
     V (v[1], V2, 2 * k + 3, modulus);  /* v[1] = V_{2k+3} (r + 1/r) */
-    mpres_mul (V2, V2, V2, modulus); /* V2 = 4*a_x^2 */
+    mpres_sqr (V2, V2, modulus); /* V2 = 4*a_x^2 */
     mpres_sub_ui (V2, V2, 2UL, modulus); /* V2 = 4*a_x^2 - 2 */
     if (test_verbose (OUTPUT_TRACE))
       {
@@ -3735,7 +3733,7 @@ pp1fs2 (mpz_t f, const mpres_t X, mpmod_t modulus,
     }
 
   /* Compute Delta and b1_x + b1_y * sqrt(Delta) = X) */
-  mpres_mul (Delta, X, X, modulus);
+  mpres_sqr (Delta, X, modulus);
   mpres_sub_ui (Delta, Delta, 4UL, modulus);
   mpres_div_2exp (b1_x, X, 1, modulus);
   mpres_set_ui (b1_y, 1UL, modulus);
@@ -3957,7 +3955,7 @@ pp1fs2_ntt (mpz_t f, const mpres_t X, mpmod_t modulus,
   mpres_init (Delta, modulus);
 
   /* Compute Delta and b1_x + b1_y * sqrt(Delta) = X) */
-  mpres_mul (Delta, X, X, modulus);
+  mpres_sqr (Delta, X, modulus);
   mpres_sub_ui (Delta, Delta, 4UL, modulus);
   mpres_div_2exp (b1_x, X, 1, modulus);
   mpres_set_ui (b1_y, 1UL, modulus);

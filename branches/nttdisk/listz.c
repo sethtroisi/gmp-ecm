@@ -1,24 +1,24 @@
 /* Arithmetic on lists of residues modulo n.
 
-  Copyright 2001, 2002, 2003, 2004, 2005 Paul Zimmermann and Alexander Kruppa.
+Copyright 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2012
+Paul Zimmermann and Alexander Kruppa.
 
-  This file is part of the ECM Library.
+This file is part of the ECM Library.
 
-  The ECM Library is free software; you can redistribute it and/or modify
-  it under the terms of the GNU Lesser General Public License as published by
-  the Free Software Foundation; either version 2.1 of the License, or (at your
-  option) any later version.
+The ECM Library is free software; you can redistribute it and/or modify
+it under the terms of the GNU Lesser General Public License as published by
+the Free Software Foundation; either version 3 of the License, or (at your
+option) any later version.
 
-  The ECM Library is distributed in the hope that it will be useful, but
-  WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
-  or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU Lesser General Public
-  License for more details.
+The ECM Library is distributed in the hope that it will be useful, but
+WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
+or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU Lesser General Public
+License for more details.
 
-  You should have received a copy of the GNU Lesser General Public License
-  along with the ECM Library; see the file COPYING.LIB.  If not, write to
-  the Free Software Foundation, Inc., 51 Franklin St, Fifth Floor, Boston,
-  MA 02110-1301, USA.
-*/
+You should have received a copy of the GNU Lesser General Public License
+along with the ECM Library; see the file COPYING.LIB.  If not, see
+http://www.gnu.org/licenses/ or write to the Free Software Foundation, Inc.,
+51 Franklin St, Fifth Floor, Boston, MA 02110-1301, USA. */
 
 #include <stdlib.h>
 #include "ecm-impl.h"
@@ -606,10 +606,10 @@ list_mulmod (listz_t a2, listz_t a, listz_t b, listz_t c, unsigned int k,
   list_mod (a2, a, 2 * k - 1, n);
 }
 
-/* puts in G[0]..G[k-1] the coefficients from (x-a[0])...(x-a[k-1])
+/* puts in G[0]..G[k-1] the coefficients from (x+a[0])...(x+a[k-1])
    Warning: doesn't fill the coefficient 1 of G[k], which is implicit.
    Needs k + list_mul_mem(k/2) cells in T.
-   G == a is permissible. T must not overlap with anything else
+   G == a is allowed. T must not overlap with anything else.
 */
 void
 PolyFromRoots (listz_t G, listz_t a, unsigned int k, listz_t T, mpz_t n)
@@ -617,76 +617,25 @@ PolyFromRoots (listz_t G, listz_t a, unsigned int k, listz_t T, mpz_t n)
   unsigned int l, m;
 
   ASSERT (T != G && T != a);
+  ASSERT (k >= 1);
 
-  if (k <= 1)
+  if (k == 1)
     {
-      if (k == 1)
-	{
-#if NEGATED_ROOTS == 1
-	  mpz_mod (G[0], a[0], n);
-#else
-	  mpz_neg (T[0], a[0]);
-	  mpz_mod (G[0], T[0], n);
-#endif
-	}
+      /* we consider x + a[0], which mean we consider negated roots */
+      mpz_mod (G[0], a[0], n);
       return;
     }
 
-#if 0
-  /* (x-a[0]) * (x-a[1]) = x^2 - (a[0]+a[1]) * x + a[0]*a[1]
-     however we construct (x+a[0]) * (x+a[1]) instead, i.e. the
-     polynomial with the opposite roots. This has no consequence if
-     we do it for all polynomials: if F(x) and G(x) have a common root,
-     then so do F(-x) and G(-x). This saves one negation.
-     
-     NOT ANY MORE! We added the mpz_neg()'s  so building the poly from
-     its roots works as one would expect in the FastPM1Stage2 algorithm!
-  */
-  if (k == 2)
-    {
-      mpz_mul (T[0], a[0], a[1]);
-      mpz_add (T[1], a[1], a[0]); /* mpz_add may allocate extra limb */
-#if NEGATED_ROOTS == 0
-      mpz_neg (T[1], T[1]);
-#endif
-      mpz_mod (G[1], T[1], n);
-      mpz_mod (G[0], T[0], n);
-      return;
-    }
-#endif
-  
-  m = k / 2; /* m == 1 */
-  l = k - m; /* l == 2 */
+  m = k / 2; /* m >= 1 */
+  l = k - m; /* l >= 1 */
   
   PolyFromRoots (G, a, l, T, n);
   PolyFromRoots (G + l, a + l, m, T, n);
-#if 0
-  {
-    unsigned int i;
-    outputf (OUTPUT_RESVERBOSE, "N=%Zd;", n);
-    outputf (OUTPUT_RESVERBOSE, "(x^%u ", l);
-    for (i = 0; i < l; i++)
-      outputf (OUTPUT_RESVERBOSE, "+ (Mod(%Zd, N) * x^%u) ", G[i], i);
-    outputf (OUTPUT_RESVERBOSE, ") * ( x^%u", m);
-    for (i = 0; i < m; i++)
-      outputf (OUTPUT_RESVERBOSE, "+ (Mod(%Zd, N) * x^%u) ", G[i + l], i);
-    outputf (OUTPUT_RESVERBOSE, ")  ");
-  }
-#endif
   list_mul (T, G, l, 1, G + l, m, 1, T + k);
   list_mod (G, T, k, n);
-#if 0
-  {
-    unsigned int i;
-    outputf (OUTPUT_RESVERBOSE, " == ( x^%u ", k);
-    for (i = 0; i < k; i++)
-      outputf (OUTPUT_RESVERBOSE, "+ (Mod(%Zd, N) * x^%u) ", G[i], i);
-    outputf (OUTPUT_RESVERBOSE, ")\n");
-  } 
-#endif
 }
 
-/* puts in G[0]..G[k-1] the coefficients from (x-a[0])...(x-a[k-1])
+/* puts in G[0]..G[k-1] the coefficients from (x+a[0])...(x+a[k-1])
    Warning: doesn't fill the coefficient 1 of G[k], which is implicit.
    Needs k + list_mul_mem(k/2) cells in T.
    The product tree is stored in:
@@ -696,8 +645,11 @@ PolyFromRoots (listz_t G, listz_t a, unsigned int k, listz_t T, mpz_t n)
    Tree[lgk-1][0..k-1] (degree 1)
    (then we should have initially Tree[lgk-1] = a).
 
-   depth is the depth (0 at root), dolvl signals that only this level of
-   the tree should be computed (-1: all levels)
+   The parameter dolvl signals that only level 'dolvl' of
+   the tree should be computed (dolvl < 0 means all levels).
+
+   Either Tree <> NULL and TreeFile == NULL, and we write the tree to memory,
+   or Tree == NULL and TreeFile <> NULL, and we write the tree to disk.
 */
 int
 PolyFromRoots_Tree (listz_t G, listz_t a, unsigned int k, listz_t T, 
@@ -707,22 +659,16 @@ PolyFromRoots_Tree (listz_t G, listz_t a, unsigned int k, listz_t T,
   unsigned int l, m;
   listz_t H1, *NextTree;
 
-  if (k <= 1)
+  ASSERT (k >= 1);
+
+  if (k == 1)
     {
-      if (k == 1)
-        {
-#if NEGATED_ROOTS == 1
-	  mpz_mod (G[0], a[0], n);
-#else
-	  mpz_neg (a[0], a[0]);
-	  mpz_mod (G[0], a[0], n);
-          mpz_neg (a[0], a[0]);
-#endif
-        }
+      /* we consider x + a[0], which mean we consider negated roots */
+      mpz_mod (G[0], a[0], n);
       return 0;
     }
 
-  if (Tree == NULL)
+  if (Tree == NULL) /* -treefile case */
     {
       H1 = G;
       NextTree = NULL;
@@ -733,41 +679,17 @@ PolyFromRoots_Tree (listz_t G, listz_t a, unsigned int k, listz_t T,
       NextTree = Tree + 1;
     }
 
-#if 0
-  /* (x-a[0]) * (x-a[1]) = x^2 - (a[0]+a[1]) * x + a[0]*a[1]
-     however we construct (x+a[0]) * (x+a[1]) instead, i.e. the
-     polynomial with the opposite roots. This has no consequence if
-     we do it for all polynomials: if F(x) and G(x) have a common root,
-     then so do F(-x) and G(-x). This saves one negation.
-       
-       NOT ANY MORE! We added the mpz_neg() below so building the poly from
-       its roots works as one would expect in the FastPM1Stage2 algorithm!
-  */
-  if (k == 2)
-    {
-      mpz_set (H1[0], a[0]);
-      mpz_set (H1[1], a[1]);
-      mpz_mul (T[0], a[0], a[1]);
-      mpz_add (G[1], a[1], a[0]);
-#if NEGATED_ROOTS == 0
-      mpz_neg (G[1], G[1]);
-#endif
-      mpz_mod (G[1], G[1], n);
-      mpz_mod (G[0], T[0], n);
-      return 0;
-    }
-#endif
-
   m = k / 2;
   l = k - m;
   
-  if (dolvl < 0 || dolvl > 0)
+  if (dolvl != 0) /* either dolvl < 0 and we need to compute all levels,
+                     or dolvl > 0 and we need first to compute lower levels */
     {
       PolyFromRoots_Tree (H1, a, l, T, dolvl - 1, n, NextTree, TreeFile, sh);
       PolyFromRoots_Tree (H1 + l, a + l, m, T, dolvl - 1, n, NextTree, 
                           TreeFile, sh + l);
     }
-  if (dolvl < 0 || dolvl == 0)
+  if (dolvl <= 0)
     {
       /* Write this level to disk, if requested */
       if (TreeFile != NULL)

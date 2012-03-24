@@ -16,13 +16,18 @@ if ENABLE_ASM_REDC
   MULREDCINCPATH = -I$(srcdir)/$(ASMPATH)
   MULREDCLIBRARY = $(builddir)/$(ASMPATH)/libmulredc.la
 
-  # Add a testing and timing program for the mulredc code
+  # Add a tuning and testing program for the mulredc code
   EXTRA_PROGRAMS += bench_mulredc test_mulredc
   CLEANFILES = bench_mulredc test_mulredc
   bench_mulredc_CPPFLAGS = $(MULREDCINCPATH)
   bench_mulredc_LDADD = $(MULREDCLIBRARY) $(GMPLIB)
   test_mulredc_CPPFLAGS = $(MULREDCINCPATH)
   test_mulredc_LDADD = $(MULREDCLIBRARY) $(GMPLIB)
+else
+  # Add a tuning program for the mulredc code
+  EXTRA_PROGRAMS += bench_mulredc
+  CLEANFILES = bench_mulredc
+  bench_mulredc_LDADD = $(GMPLIB)
 endif
 
 libecm_la_SOURCES = ecm.c ecm2.c pm1.c pp1.c getprime.c listz.c lucas.c \
@@ -30,22 +35,22 @@ libecm_la_SOURCES = ecm.c ecm2.c pm1.c pp1.c getprime.c listz.c lucas.c \
 		   schoen_strass.c ks-multiply.c rho.c bestd.c auxlib.c \
 		   random.c factor.c sp.c spv.c spm.c mpzspm.c mpzspv.c \
 		   ntt_gfp.c ecm_ntt.c pm1fs2.c pm1fs2_param.c mul_fft.c \
-		   sets_long.c auxarith.c batch.c
+		   sets_long.c auxarith.c batch.c ellparam_batch.c
 # Link the asm redc code (if we use it) into libecm.la
 libecm_la_CPPFLAGS = $(MULREDCINCPATH)
 libecm_la_CFLAGS = $(OPENMP_CFLAGS)
 libecm_la_LDFLAGS = '-version-info 0:0:0'
-libecm_la_LIBADD = $(MULREDCLIBRARY) $(GMPLIB)
+libecm_la_LIBADD = $(MULREDCLIBRARY)
 
 bin_PROGRAMS = ecm
-noinst_PROGRAMS = tune ecmfactor ecmfactor2
+noinst_PROGRAMS = tune ecmfactor bench_mulredc
 # Most binaries want to link libecm.la, and the ones which don't will
 # have their own _LDADD which overrides the default LDADD here
 LDADD = libecm.la $(GMPLIB)
 
 ecm_CPPFLAGS = -DOUTSIDE_LIBECM
 ecm_CFLAGS = $(OPENMP_CFLAGS)
-ecm_SOURCES = auxi.c b1_ainc.c candi.c eval.c random.c main.c trial.c \
+ecm_SOURCES = auxi.c b1_ainc.c candi.c eval.c random.c main.c \
               resume.c getprime.c champions.h
 
 tune_SOURCES = mpmod.c tune.c mul_lo.c listz.c auxlib.c ks-multiply.c \
@@ -56,7 +61,6 @@ tune_CPPFLAGS = -DTUNE $(MULREDCINCPATH)
 tune_LDADD = $(MULREDCLIBRARY) $(GMPLIB)
 
 ecmfactor_CFLAGS = $(OPENMP_CFLAGS)
-ecmfactor2_CFLAGS = $(OPENMP_CFLAGS)
 
 rho_SOURCES = rho.c
 rho_CPPFLAGS = -DTESTDRIVE
@@ -84,7 +88,7 @@ endif
 
 include_HEADERS = ecm.h
 noinst_HEADERS = basicdefs.h ecm-impl.h ecm-gmp.h ecm-ecm.h \
-		 sp.h longlong.h ecm-params.h
+		 sp.h longlong.h ecm-params.h mpmod.h
 
 EXTRA_DIST = test.pm1 test.pp1 test.ecm README.lib INSTALL-ecm ecm.xml \
              ecm-params.h.alpha-ev5 ecm-params.h.athlon64 \
@@ -95,11 +99,11 @@ EXTRA_DIST = test.pm1 test.pp1 test.ecm README.lib INSTALL-ecm ecm.xml \
              ecm-params.h.mips64el ecm-params.h.armv5tel \
              ecm-params.h.sparc64 ecm-params.h.ia64 \
              ecm-params.h.hppa2.0 ecm-params.h.alpha-ev56 \
-             ecm-params.h.core2 \
+             ecm-params.h.core2 ecm-params.h.corei5 \
              mul_fft-params.h.athlon64 mul_fft-params.h.pentium3 \
              mul_fft-params.h.default mul_fft-params.h.pentium4
 
-DIST_SUBDIRS = athlon pentium4 x86_64 powerpc64
+DIST_SUBDIRS = athlon pentium4 x86_64 powerpc64 build.vc10
 
 DISTCLEANFILES = config.m4
 
@@ -110,7 +114,9 @@ ecm-params:	tune$(EXEEXT)
 
 check: ecm$(EXEEXT)
 	$(srcdir)/test.pp1 ./ecm$(EXEEXT)
+	echo ""
 	$(srcdir)/test.pm1 ./ecm$(EXEEXT)
+	echo ""
 	$(srcdir)/test.ecm ./ecm$(EXEEXT)
 
 longcheck: ecm$(EXEEXT)

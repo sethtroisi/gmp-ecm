@@ -1,26 +1,27 @@
-/* 
-  Interface code for George Woltman's gwnum library
+/* Interface code for George Woltman's gwnum library
   
-  Copyright 2004, 2005, 2006, 2008, 2011 Paul Zimmermann and Alexander Kruppa.
+Copyright 2004, 2005, 2006, 2008, 2011, 2012 Paul Zimmermann, Alexander Kruppa,
+David Cleaver.
   
-  Contains code based on the GWNUM library, 
-    copyright 2002-2005 George Woltman, Just For Fun Software, Inc.
+Contains code based on the GWNUM library, 
+copyright 2002-2005 George Woltman, Just For Fun Software, Inc.
   
-  This program is free software; you can redistribute it and/or modify it
-  under the terms of the GNU General Public License as published by the
-  Free Software Foundation; either version 2 of the License, or (at your
-  option) any later version.
+This file is part of the ECM Library.
 
-  This program is distributed in the hope that it will be useful, but WITHOUT
-  ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
-  FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License for
-  more details.
+The ECM Library is free software; you can redistribute it and/or modify
+it under the terms of the GNU Lesser General Public License as published by
+the Free Software Foundation; either version 3 of the License, or (at your
+option) any later version.
 
-  You should have received a copy of the GNU General Public License along
-  with this program; see the file COPYING.  If not, write to the Free
-  Software Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA
-  02111-1307, USA.
-*/
+The ECM Library is distributed in the hope that it will be useful, but
+WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
+or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU Lesser General Public
+License for more details.
+
+You should have received a copy of the GNU Lesser General Public License
+along with the ECM Library; see the file COPYING.LIB.  If not, see
+http://www.gnu.org/licenses/ or write to the Free Software Foundation, Inc.,
+51 Franklin St, Fifth Floor, Boston, MA 02110-1301, USA. */
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -320,6 +321,19 @@ kbnc_str (double *k, unsigned long *b, unsigned long *n, signed long *c,
   return 0;
 }
 
+/* this method doesn't care if v is 32 or 64 bits... */
+unsigned long gw_log_2(unsigned long v)
+{
+  unsigned long r = 0; /* r will be lg(v) */
+
+  while (v >>= 1)
+    {
+      r++;
+    }
+
+  return r;
+}
+
 int 
 gw_ecm_stage1 (mpz_t f, curve *P, mpmod_t modulus, 
 	       double B1, double *B1done, mpz_t go, double gw_k,
@@ -348,8 +362,8 @@ gw_ecm_stage1 (mpz_t f, curve *P, mpmod_t modulus,
      plain integers */
 
   /* Allocate enough memory for any residue (mod k*b^n+c) for x, z */
-  mpz_init2 (gw_x, mpz_sizeinbase (modulus->orig_modulus, 2) + 64);
-  mpz_init2 (gw_z, mpz_sizeinbase (modulus->orig_modulus, 2) + 64);
+  mpz_init2 (gw_x, (gw_n+1)*gw_log_2(gw_b)+64);
+  mpz_init2 (gw_z, (gw_n+1)*gw_log_2(gw_b)+64);
   mpz_init (gw_A);
 
   /* mpres_get_z always produces non-negative integers */

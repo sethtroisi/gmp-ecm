@@ -1,24 +1,24 @@
 /* Elliptic Curve Method implementation: stage 2 routines.
 
-  Copyright 2002, 2003, 2004, 2005 Paul Zimmermann and Alexander Kruppa.
+Copyright 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009, 2012 Paul Zimmermann,
+Alexander Kruppa, Pierrick Gaudry, Dave Newman.
 
-  This file is part of the ECM Library.
+This file is part of the ECM Library.
 
-  The ECM Library is free software; you can redistribute it and/or modify
-  it under the terms of the GNU Lesser General Public License as published by
-  the Free Software Foundation; either version 2.1 of the License, or (at your
-  option) any later version.
+The ECM Library is free software; you can redistribute it and/or modify
+it under the terms of the GNU Lesser General Public License as published by
+the Free Software Foundation; either version 3 of the License, or (at your
+option) any later version.
 
-  The ECM Library is distributed in the hope that it will be useful, but
-  WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
-  or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU Lesser General Public
-  License for more details.
+The ECM Library is distributed in the hope that it will be useful, but
+WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
+or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU Lesser General Public
+License for more details.
 
-  You should have received a copy of the GNU Lesser General Public License
-  along with the ECM Library; see the file COPYING.LIB.  If not, write to
-  the Free Software Foundation, Inc., 51 Franklin St, Fifth Floor, Boston,
-  MA 02110-1301, USA.
-*/
+You should have received a copy of the GNU Lesser General Public License
+along with the ECM Library; see the file COPYING.LIB.  If not, see
+http://www.gnu.org/licenses/ or write to the Free Software Foundation, Inc.,
+51 Franklin St, Fifth Floor, Boston, MA 02110-1301, USA. */
 
 #include <stdlib.h>
 #include <math.h>
@@ -180,7 +180,7 @@ multiplyW2n (mpz_t p, point *R, curve *S, mpz_t *q, const unsigned int n,
                 
                 mpres_sub (u, s.y, R[i].y, modulus);   /* U    = y2 - y1 */
                 mpres_mul (T[l], T[l], u, modulus);    /* T[l] = (y2-y1)/(x2-x1) = lambda */
-                mpres_mul (u, T[l], T[l], modulus);    /* U    = lambda^2 */
+                mpres_sqr (u, T[l], modulus);          /* U    = lambda^2 */
                 mpres_sub (u, u, R[i].x, modulus);     /* U    = lambda^2 - x1 */
                 mpres_sub (R[i].x, u, s.x, modulus);   /* x3   = lambda^2 - x1 - x2 */
                 mpres_sub (u, s.x, R[i].x, modulus);   /* U    = x2 - x3 */
@@ -213,11 +213,11 @@ multiplyW2n (mpz_t p, point *R, curve *S, mpz_t *q, const unsigned int n,
 #endif          
 
                                                /* 1/(2*s.y) is in T[k] */
-          mpres_mul (u, s.x, s.x, modulus);    /* U = X^2 */
+          mpres_sqr (u, s.x, modulus);         /* U = X^2 */
           mpres_mul_ui (u, u, 3, modulus);     /* U = 3*X^2 */
           mpres_add (u, u, S->A, modulus);     /* U = 3*X^2 + A */
           mpres_mul (T[k], T[k], u, modulus);  /* T = (3*X^2 + A) / (2*Y) = lambda */
-          mpres_mul (u, T[k], T[k], modulus);  /* U = lambda^2 */
+          mpres_sqr (u, T[k], modulus);        /* U = lambda^2 */
           mpres_sub (u, u, s.x, modulus);      /* U = lambda^2 - X */
           mpres_sub (u, u, s.x, modulus);      /* U = lambda^2 - 2*X = s.x' */
           mpres_sub (v, s.x, u, modulus);      /* V = s.x - s.x' */
@@ -387,11 +387,11 @@ addWnm (mpz_t p, point *X, curve *S, mpmod_t modulus, unsigned int m,
                 /* T_k = 1/(v_0 * ... * v_l) * v_l = 1/(v_0 * ... * v_{l-1}) */
               }
             
-            mpres_mul (T[k + 1], X1->x, X1->x, modulus);
+            mpres_sqr (T[k + 1], X1->x, modulus);
             mpres_mul_ui (T[k + 1], T[k + 1], 3, modulus);
             mpres_add (T[k + 1], T[k + 1], S->A, modulus);
             mpres_mul (T[l], T[k + 1], T[l], modulus); /* T[l] = lambda */
-            mpres_mul (T[k + 1], T[l], T[l], modulus);       /* T1   = lambda^2 */
+            mpres_sqr (T[k + 1], T[l], modulus);       /* T1   = lambda^2 */
             mpres_sub (T[k + 1], T[k + 1], X1->x, modulus);  /* T1   = lambda^2 - x1 */
             mpres_sub (X1->x, T[k + 1], X2->x, modulus);     /* X1.x = lambda^2 - x1 - x2 = x3 */
             mpres_sub (T[k + 1], X2->x, X1->x, modulus);     /* T1   = x2 - x3 */
@@ -408,7 +408,7 @@ addWnm (mpz_t p, point *X, curve *S, mpmod_t modulus, unsigned int m,
 
             mpres_sub (T[k + 1], X2->y, X1->y, modulus);     /* T1   = y2 - y1 */
             mpres_mul (T[l], T[l], T[k + 1], modulus);       /* Tl   = (y2 - y1) / (x2 - x1) = lambda */
-            mpres_mul (T[k + 1], T[l], T[l], modulus);       /* T1   = lambda^2 */
+            mpres_sqr (T[k + 1], T[l], modulus);          /* T1   = lambda^2 */
             mpres_sub (T[k + 1], T[k + 1], X1->x, modulus);  /* T1   = lambda^2 - x1 */
             mpres_sub (X1->x, T[k + 1], X2->x, modulus);     /* X1.x = lambda^2 - x1 - x2 = x3 */
             mpres_sub (T[k + 1], X2->x, X1->x, modulus);     /* T1   = x2 - x3 */
