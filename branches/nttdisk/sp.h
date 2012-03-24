@@ -636,7 +636,7 @@ void mpzspv_mul_ntt (mpzspv_t, spv_size_t, mpzspv_t, spv_size_t, spv_size_t,
 void mpzspv_random (mpzspv_t, spv_size_t, spv_size_t, mpzspm_t);
 void mpzspv_to_dct1 (mpzspv_handle_t, mpzspv_handle_t, spv_size_t, spv_size_t);
 void mpzspv_sqr_reciprocal (mpzspv_handle_t, spv_size_t);
-FILE **mpzspv_open_fileset(const char *, const mpzspm_t);
+FILE **mpzspv_open_fileset(const char *, spv_size_t, const mpzspm_t);
 void mpzspv_close_fileset(FILE **, const mpzspm_t);
 void mpzspv_read (mpzspv_t, spv_size_t, FILE **, spv_size_t, spv_size_t, mpzspm_t);
 void mpzspv_write (mpzspv_t, spv_size_t, FILE **, spv_size_t, spv_size_t, mpzspm_t);
