@@ -1220,9 +1220,9 @@ mpzspv_mul_ntt (mpzspv_t r, const spv_size_t offsetr,
     const spv_size_t ntt_size, const int monic, const spv_size_t monic_pos, 
     mpzspm_t mpzspm, const int steps)
 {
-  _mpzspv_handle_t r_handle = {1, mpzspm, r, NULL};
-  _mpzspv_handle_t x_handle = {1, mpzspm, x, NULL};
-  _mpzspv_handle_t y_handle = {1, mpzspm, y, NULL};
+  _mpzspv_handle_t r_handle = {0, mpzspm, r, NULL};
+  _mpzspv_handle_t x_handle = {0, mpzspm, x, NULL};
+  _mpzspv_handle_t y_handle = {0, mpzspm, y, NULL};
 
   mpzspv_mul_ntt_file((r != NULL) ? &r_handle : NULL, offsetr, 
                       (x != NULL) ? &x_handle : NULL, offsetx, lenx, 
