@@ -1,4 +1,4 @@
-1. How to compile GPU_ECM?
+1. How to compile GPU-ECM?
 
 Open the Makefile and change (if necessary) the values of the following
 variables:
@@ -16,7 +16,7 @@ Please report problems to Cyril.Bouvier@loria.fr
 
 
 
-2. How to use GPU_ECM?
+2. How to use GPU-ECM?
 Type 
 ./gpu_ecm --help 
 to print the following help:
@@ -39,7 +39,16 @@ Options:
 The input file is read with the same functions as in GMP-ECM.
 
 
-3. check.sh
+3. How to do "Step 2" with GMP-ECM ?
+
+Save the results of GPU-ECM in a file by doing:
+./gpu_ecm -save savefile B1 < inputfile
+
+Then, execute GMP-ECM with the _same_ B1 with the resume option:
+ecm -resume savefile B1 
+
+
+4. check.sh
 
 check.sh is a shell program that checks that the output of GPU-ECM is correct.
 
