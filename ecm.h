@@ -118,7 +118,7 @@ int pm1 (mpz_t, mpz_t, mpz_t, mpz_t, double *, double, mpz_t,
 
 /* stage 2 bound */
 #define ECM_DEFAULT_B2 -1
-#define ECM_IS_DEFAULT_B2(x) (mpz_sgn (x) < 0)
+#define ECM_IS_DEFAULT_B2(x) (mpz_cmp_si (x, ECM_DEFAULT_B2) == 0)
 
 #define ECM_DEFAULT_K 0 /* default number of blocks in stage 2. 0 = automatic
                            choice */
