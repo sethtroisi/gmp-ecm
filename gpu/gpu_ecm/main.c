@@ -140,8 +140,13 @@ int main (int argc, char * argv[])
     fprintf(stderr,"Invalid arguments. See gpu_ecm --help.\n");
     exit(EXIT_FAILURE);
   }
-  
-  sscanf(argv[1], "%u", &B1);
+
+  /* scan B1 as double to allow writing 1e6 */
+  {
+    double d;
+    d = strtod (argv[1], NULL);
+    B1 = (unsigned int) d;
+  }
 
   if (verbose < 2)
 #ifdef _MSC_VER
