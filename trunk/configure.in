@@ -536,6 +536,8 @@ return strcmp (buffer, gmp_version);
 
 AC_CHECK_FUNCS([__gmpn_add_nc __gmpn_mod_34lsub1 __gmpn_redc_1 __gmpn_redc_2])
 AC_CHECK_FUNCS([__gmpn_mullo_n __gmpn_redc_n __gmpn_preinv_mod_1])
+AC_CHECK_FUNCS([__gmpn_mul_fft __gmpn_mul_fft_full __gmpn_fft_next_size])
+AC_CHECK_FUNCS([__gmpn_fft_best_k])
 
 LIBS="$LIBS_BACKUP"
 
@@ -636,12 +638,6 @@ LIBS="$LIBS $GWLIB"
 GMP_FINISH
 AC_CONFIG_FILES([Makefile athlon/Makefile pentium4/Makefile x86_64/Makefile powerpc64/Makefile build.vc10/Makefile build.vc10/assembler/Makefile build.vc10/ecm/Makefile build.vc10/libecm/Makefile build.vc10/tune/Makefile build.vc10/bench_mulredc/Makefile])
 AC_CONFIG_LINKS([ecm-params.h:ecm-params.h.$config_arch])
-MUL_FFT_PARAMS="mul_fft-params.h.$config_arch"
-if ! test -f "$MUL_FFT_PARAMS"
-then
-  MUL_FFT_PARAMS="mul_fft-params.h.default"
-fi
-AC_CONFIG_LINKS([mul_fft-params.h:"$MUL_FFT_PARAMS"])
 
 AC_SUBST([XSLDIR])
 AC_SUBST([ASMPATH])
