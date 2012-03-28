@@ -754,18 +754,6 @@ int  gw_ecm_stage1 (mpz_t, curve *, mpmod_t, double, double *, mpz_t,
                     double, unsigned long, unsigned long, signed long);
 #endif
 
-/* mul_fft.h */
-#define mpn_mul_fft __ECM(mpn_mul_fft)
-int  mpn_mul_fft (mp_ptr, mp_size_t, mp_srcptr, mp_size_t, mp_srcptr, 
-                        mp_size_t, int);
-#define mpn_mul_fft_full __ECM(mpn_mul_fft_full)
-void mpn_mul_fft_full (mp_ptr, mp_srcptr, mp_size_t, mp_srcptr, 
-                             mp_size_t);
-#define mpn_fft_best_k __ECM(mpn_fft_best_k)
-int  mpn_fft_best_k (mp_size_t, int);
-#define mpn_fft_next_size __ECM(mpn_fft_next_size)
-mp_size_t mpn_fft_next_size (mp_size_t, int);
-
 /* batch.c */
 #define compute_s  __ECM(compute_s )
 void compute_s (mpz_t, unsigned long);
