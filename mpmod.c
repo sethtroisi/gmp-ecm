@@ -234,11 +234,11 @@ ecm_redc_n (mp_ptr rp, mp_srcptr x0p, mp_size_t xn,
   mp_ptr tp, up, xp;
   mp_size_t nn = n + n;
   mp_limb_t cy, cin;
-  TMP_DECL(marker);
+  TMP_DECL;
 
   ASSERT((xn == 2 * n) || (xn == 2 * n - 1));
 
-  TMP_MARK(marker);
+  TMP_MARK;
   up = TMP_ALLOC_LIMBS(nn + nn);
   if (xn < nn)
     {
@@ -271,7 +271,7 @@ ecm_redc_n (mp_ptr rp, mp_srcptr x0p, mp_size_t xn,
   if (cy)
     cy -= mpn_sub_n (rp, rp, orig, n);
   ASSERT (cy == 0);
-  TMP_FREE(marker);
+  TMP_FREE;
 }
 
 /* REDC. x and t must not be identical, t has limb growth */
@@ -470,9 +470,9 @@ sqrredc (mp_ptr rp, mp_srcptr ap, mp_srcptr np, const mp_size_t n,
   mp_ptr cp;
   mp_size_t i;
   mp_limb_t cy, q;
-  TMP_DECL(marker);
+  TMP_DECL;
 
-  TMP_MARK(marker);
+  TMP_MARK;
   cp = TMP_ALLOC_LIMBS(2*n);
   for (i = 0; i < n; i++)
     umul_ppmm (cp[2*i+1], cp[2*i], ap[i], ap[i]);
@@ -518,7 +518,7 @@ sqrredc (mp_ptr rp, mp_srcptr ap, mp_srcptr np, const mp_size_t n,
  end_sqrredc:
   while (cy)
     cy -= mpn_sub_n (rp, rp, np, n);
-  TMP_FREE(marker);
+  TMP_FREE;
 }
 
 #ifdef HAVE_NATIVE_MULREDC1_N
