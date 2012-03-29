@@ -396,7 +396,7 @@ static void bfly_dif_sp(spv_t x0, spv_t x1, sp_t w,
       t1 = pand(t1, vm);
       t2 = paddd(t2, t0);
       t0 = vw;
-      t1 = paddq(t3, t1);
+      t1 = paddd(t3, t1);
 
       pstore((__m128i *)(x0 + i), t2);
 
