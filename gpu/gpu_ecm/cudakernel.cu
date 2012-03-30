@@ -87,17 +87,13 @@ int select_and_init_GPU (int device, int number_of_curves, FILE *OUTPUT_VERBOSE)
           "%d MPs.\n", device, deviceProp.name, major, minor, MPcount);
 
 
-  cudaSetDeviceFlags(cudaDeviceScheduleAuto); 
-  //cudaSetDeviceFlags(cudaDeviceScheduleYield); 
-  //cudaSetDeviceFlags(cudaDeviceScheduleSpin); //the other make performance
-  //worse
-
   /* number_of_curves should be a multiple of CURVES_BY_BLOCK */
   number_of_curves=(number_of_curves/CURVES_BY_BLOCK)*CURVES_BY_BLOCK;
   if (number_of_curves==0)
     number_of_curves = MPcount * CURVES_BY_MP;
 
   /* First call to a global function initialize the device */
+  errCheck (cudaSetDeviceFlags(cudaDeviceScheduleYield)); 
   Cuda_Init_Device<<<1, 1>>> ();
   errCheck (cudaGetLastError()); 
 
@@ -105,14 +101,29 @@ int select_and_init_GPU (int device, int number_of_curves, FILE *OUTPUT_VERBOSE)
 }
 
 extern "C"
-void cuda_Main (biguint_t h_N, biguint_t h_3N, biguint_t h_M, digit_t h_invN, 
+float cuda_Main (biguint_t h_N, biguint_t h_3N, biguint_t h_M, digit_t h_invN, 
                     biguint_t *h_xarray, biguint_t *h_zarray, 
                     biguint_t *h_x2array, biguint_t *h_z2array, mpz_t s,
                     unsigned int firstinvd, unsigned int number_of_curves, 
                     FILE *OUTPUT_VERBOSE, FILE *OUTPUT_VVERBOSE) 
 { 
+  cudaEvent_t start, stop;
+  cudaEventCreate (&start);
+  cudaEventCreate (&stop);
+  cudaEventRecord (start, 0);
+
   size_t j;
+  int i;
+  float elltime;
   biguint_t *d_xA, *d_zA, *d_xB, *d_zB;
+
+#define MAXEVENTS 2 
+#define DEPTH_EVENT 16 
+  cudaStream_t stream;    // Space for a cuda Stream Handle
+  cudaEvent_t event[MAXEVENTS];   // Space for some cuda Event Handles
+  long nEventsRecorded = 0;   // Remember how many events are recorded
+  long eventrecordix = 0;     // Remember index of next event to record
+  long eventsyncix;       // Remember index of oldest recorded event
 
   size_t array_size = sizeof(biguint_t) * number_of_curves;
 
@@ -121,6 +132,14 @@ void cuda_Main (biguint_t h_N, biguint_t h_3N, biguint_t h_M, digit_t h_invN,
 
   fprintf(OUTPUT_VVERBOSE, "Block: %ux%ux%u Grid: %ux%ux%u\n", dimBlock.x, 
                       dimBlock.y, dimBlock.z, dimGrid.x, dimGrid.y, dimGrid.z);
+
+  /* Create a cuda stream */
+  errCheck (cudaStreamCreate(&stream));
+
+  /* Create a pair of events to pace ourselves */
+  for (i=0; i<MAXEVENTS; i++)
+    errCheck (cudaEventCreateWithFlags (&event[i], 
+                              cudaEventBlockingSync|cudaEventDisableTiming));
 
   cudaMalloc (&d_xA, array_size);
   cudaMalloc (&d_zA, array_size);
@@ -138,26 +157,72 @@ void cuda_Main (biguint_t h_N, biguint_t h_3N, biguint_t h_M, digit_t h_invN,
   cudaMemcpyHtoD (d_xB, h_x2array, array_size);
   cudaMemcpyHtoD (d_zB, h_z2array, array_size);
 
+
   /* Double-and-add loop: it calls the GPU for each bits of s */
   for (j = mpz_sizeinbase (s, 2) - 1; j>0; j-- )
   {
     if (mpz_tstbit (s, j-1) == 1)
-      Cuda_Ell_DblAdd<<<dimGrid,dimBlock>>>(d_xB, d_zB, d_xA, d_zA, firstinvd);
+      Cuda_Ell_DblAdd<<<dimGrid,dimBlock,0,stream>>>(d_xB, d_zB, d_xA, d_zA, firstinvd);
     else
-      Cuda_Ell_DblAdd<<<dimGrid,dimBlock>>>(d_xA, d_zA, d_xB, d_zB, firstinvd);
+      Cuda_Ell_DblAdd<<<dimGrid,dimBlock,0,stream>>>(d_xA, d_zA, d_xB, d_zB, firstinvd);
 
-    //maybe only for debug mode??
-    errCheck (cudaGetLastError()); 
+    /* Pace entry of events. Less overhead to enter an event every few    */
+    /* iterations. But, if you exceed the depth of NVIDIA's kernel queue, */
+    /* it will busy-loop!                                                 */
+    /* Enter an event every DEPTH_EVENT iteration */
+    if (j % DEPTH_EVENT == 0)  
+    {
+      cudaEventRecord(event[eventrecordix], stream); 
+      if (nEventsRecorded == 0)     
+        eventsyncix = eventrecordix; 
+      nEventsRecorded += 1;          
+      eventrecordix = (eventrecordix+1)%MAXEVENTS;  
+    }
+
+    if (nEventsRecorded == MAXEVENTS) 
+    {
+      cudaEventSynchronize(event[eventsyncix]);  
+      nEventsRecorded -= 1;   
+      eventsyncix = (eventsyncix+1)%MAXEVENTS; 
+    }
   }
+
+  /* If an error occurs during the kernel calls in the loop */
+  errCheck (cudaGetLastError()); 
+
+  /* Await for last recorded events */
+  while (nEventsRecorded != 0) 
+  {
+    cudaEventSynchronize(event[eventsyncix]); 
+    nEventsRecorded -= 1;          
+    eventsyncix = (eventsyncix+1)%MAXEVENTS; 
+  } 
 
   /* Get the results back from device memory */
   cudaMemcpyDtoH (h_xarray, d_xA, array_size);
   cudaMemcpyDtoH (h_zarray, d_zA, array_size);
 
+  /* Clean up our events and our stream handle */
+  for (i=0; i<MAXEVENTS; i++)
+    errCheck (cudaEventDestroy(event[i]));
+
+  errCheck (cudaStreamDestroy(stream));
+
+
   cudaFree ((void *) d_xA);
   cudaFree ((void *) d_zA);
   cudaFree ((void *) d_xB);
   cudaFree ((void *) d_zB);
+
+  cudaEventRecord (stop, 0);
+  cudaEventSynchronize (stop);
+
+  cudaEventElapsedTime (&elltime, start, stop);
+
+  errCheck (cudaEventDestroy (start));
+  errCheck (cudaEventDestroy (stop));
+
+  return elltime;
 }
 
 
