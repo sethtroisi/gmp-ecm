@@ -10,7 +10,7 @@
 
  
 extern int select_and_init_GPU (int, int, FILE*);
-extern void cuda_Main (biguint_t, biguint_t, biguint_t, digit_t, biguint_t*, 
+extern float cuda_Main (biguint_t, biguint_t, biguint_t, digit_t, biguint_t*, 
                        biguint_t*, biguint_t*, biguint_t*, mpz_t, unsigned int, 
                        unsigned int, FILE*, FILE*);
 
@@ -18,7 +18,9 @@ int main (int argc, char * argv[])
 {
   int main_ret=EXIT_SUCCESS;
 
-  long begincputime = 0, endcputime = 0, begingputime = 0, endgputime = 0; 
+  long cputime_beginloop = 0, cputime_endloop = 0;
+  long cputime_begingpu  = 0, cputime_endgpu  = 0; 
+  float gputime = 0.0;
 
   unsigned int i;
   unsigned int B1;
@@ -166,11 +168,11 @@ int main (int argc, char * argv[])
   /* Select the GPU and analyse number_of_curves */
   /***********************************************/
 
-  begincputime = cputime ();
+  cputime_beginloop = cputime ();
   number_of_curves = select_and_init_GPU (device, number_of_curves, 
-                                                                OUTPUT_STD_VERBOSE);
-  fprintf(stdout, "Selecting and initialization of the device s took %.3fs\n", 
-                                       (double) (cputime ()-begincputime)/1000);
+                                                           OUTPUT_STD_VERBOSE);
+  fprintf(stdout, "Selection and initialization of the device took %.3fs\n", 
+                                 (double) (cputime ()-cputime_beginloop)/1000);
   /* TRICKS: If initialization of the device is too long (few seconds), */
   /* try running 'nvidia-smi -q -l' on the background .                 */
 
@@ -211,12 +213,12 @@ int main (int argc, char * argv[])
   /****************************/
 
   /* precompute s from B1 */
-  begincputime = cputime ();
+  cputime_beginloop = cputime ();
   compute_s (s, B1);
 
   fprintf(OUTPUT_STD_VERBOSE, "#s has %lu bits\n", mpz_sizeinbase (s, 2));
   fprintf(stdout, "Precomputation of s took %.3fs\n", 
-                                       (double) (cputime ()-begincputime)/1000);
+                                 (double) (cputime ()-cputime_beginloop)/1000);
   
   
   /***********************************************/
@@ -226,7 +228,7 @@ int main (int argc, char * argv[])
   while (read_number(&n, stdin, 0) == 1)
   {
     /* The integer N we try to factor is in n.n */
-    begincputime=cputime();
+    cputime_beginloop = cputime();
 
     if (n.nexprlen == 0)
       gmp_fprintf (stdout, "Input number is %Zd (%u digits)\n", n.n, n.ndigits);
@@ -326,12 +328,12 @@ int main (int argc, char * argv[])
     } 
  
     /* Call the wrapper function that call the GPU */
-    begingputime=cputime();
+    cputime_begingpu = cputime();
     fprintf(OUTPUT_STD_VERBOSE,"#Begin GPU computation...\n");
-    cuda_Main( h_N, h_3N, h_M, h_invN, h_xarray, h_zarray, h_x2array, 
+    gputime=cuda_Main( h_N, h_3N, h_M, h_invN, h_xarray, h_zarray, h_x2array, 
                           h_z2array, s, firstinvd, number_of_curves,
                           OUTPUT_STD_VERBOSE, OUTPUT_STD_VVERBOSE);
-    endgputime=cputime();
+    cputime_endgpu = cputime();
  
     /* Analyse results */
     for (invd = firstinvd; invd < firstinvd+number_of_curves; invd++)
@@ -367,19 +369,19 @@ int main (int argc, char * argv[])
     }
   
 end_main_loop:
-    endcputime=cputime();
-    if (endgputime == 0)
-      endgputime = endcputime;
-    if (begingputime == 0)
-      begingputime = endcputime;
+    cputime_endloop = cputime();
+    if (cputime_endgpu == 0)
+      cputime_endgpu = cputime_endloop;
+    if (cputime_begingpu == 0)
+      cputime_begingpu = cputime_endloop;
 
-    fprintf(stdout, "gpu_ecm took : %.3fs (%.3f+%.3f+%.3f)\n",
-        (double) (endcputime-begincputime)/1000, 
-        (double) (begingputime-begincputime)/1000, 
-        (double) (endgputime-begingputime)/1000, 
-        (double) (endcputime-endgputime)/1000);
-    fprintf(stdout, "Throughput : %.3f\n", 
-        1000 * (double)(number_of_curves)/(double)(endcputime-begincputime));
+    fprintf (stdout, "time GPU: %.3fs\n", (gputime/1000));
+    fprintf(stdout, "time CPU: %.3fs (%.3f+%.3f+%.3f)\n",
+        (double) (cputime_endloop-cputime_beginloop)/1000, 
+        (double) (cputime_begingpu-cputime_beginloop)/1000, 
+        (double) (cputime_endgpu-cputime_begingpu)/1000, 
+        (double) (cputime_endloop-cputime_endgpu)/1000);
+    fprintf(stdout, "Throughput: %.3f\n", 1000 * number_of_curves/gputime);
     }
 
 free_memory_and_exit:
