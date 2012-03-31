@@ -29,6 +29,7 @@ http://www.gnu.org/licenses/ or write to the Free Software Foundation, Inc.,
    Y^2 = X^3 + a/b*X^2 + 1/b^2*X.
 */
 
+#include <stdlib.h>
 #include "ecm-impl.h"
 
 #define MAX_HEIGHT 32
