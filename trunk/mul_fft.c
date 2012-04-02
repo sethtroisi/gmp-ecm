@@ -33,7 +33,7 @@ along with the GNU MP Library.  If not, see http://www.gnu.org/licenses/.  */
 #define TRACE(x)
 #define ASSERT_MPN_ZERO_P(x,y)
 
-#ifndef mpn_mul_fft_full
+#ifndef HAVE___GMPN_MUL_FFT_FULL
 /* multiply {n, nl} by {m, ml}, and put the result in {op, nl+ml} */
 void
 mpn_mul_fft_full (mp_ptr op,
