@@ -4038,7 +4038,7 @@ pp1fs2_ntt (mpz_t f, const mpres_t X, mpmod_t modulus,
 #endif
 	  timestart = cputime ();
 	  realstart = realtime ();
-          mpzspv_mul_ntt_file (g_x_ntt, 0, g_x_ntt, 0, params->l, h_x_ntt, 0, params->l / 2,
+          mpzspv_mul_ntt_file (g_x_ntt, 0, g_x_ntt, 0, params->l, h_x_ntt, 0, params->l / 2 + 1,
               params->l, 0, 0, 
               NTT_MUL_STEP_FFT1 + NTT_MUL_STEP_MULDCT + NTT_MUL_STEP_IFFT);
 	  /* Store the product coefficients we want in R */
@@ -4057,7 +4057,7 @@ pp1fs2_ntt (mpz_t f, const mpres_t X, mpmod_t modulus,
 #endif
 	  timestart = cputime ();
 	  realstart = realtime ();
-          mpzspv_mul_ntt_file (g_y_ntt, 0, g_y_ntt, 0, params->l, h_y_ntt, 0, params->l / 2,
+          mpzspv_mul_ntt_file (g_y_ntt, 0, g_y_ntt, 0, params->l, h_y_ntt, 0, params->l / 2 + 1,
               params->l, 0, 0, 
               NTT_MUL_STEP_FFT1 + NTT_MUL_STEP_MULDCT + NTT_MUL_STEP_IFFT);
 	  print_elapsed_time (OUTPUT_VERBOSE, timestart, realstart);
@@ -4079,7 +4079,7 @@ pp1fs2_ntt (mpz_t f, const mpres_t X, mpmod_t modulus,
 #endif
 	  timestart = cputime ();
 	  realstart = realtime ();
-          mpzspv_mul_ntt_file (g_x_ntt, 0, g_x_ntt, 0, params->l, h_x_ntt, 0, params->l / 2,
+          mpzspv_mul_ntt_file (g_x_ntt, 0, g_x_ntt, 0, params->l, h_x_ntt, 0, params->l / 2 + 1,
               params->l, 0, 0, 
               NTT_MUL_STEP_FFT1 + NTT_MUL_STEP_MULDCT);
 	  print_elapsed_time (OUTPUT_VERBOSE, timestart, realstart);
@@ -4090,7 +4090,7 @@ pp1fs2_ntt (mpz_t f, const mpres_t X, mpmod_t modulus,
 #endif
 	  timestart = cputime ();
 	  realstart = realtime ();
-          mpzspv_mul_ntt_file (g_y_ntt, 0, g_y_ntt, 0, params->l, h_y_ntt, 0, params->l / 2,
+          mpzspv_mul_ntt_file (g_y_ntt, 0, g_y_ntt, 0, params->l, h_y_ntt, 0, params->l / 2 + 1,
               params->l, 0, 0, 
               NTT_MUL_STEP_FFT1 + NTT_MUL_STEP_MULDCT);
 	  print_elapsed_time (OUTPUT_VERBOSE, timestart, realstart);

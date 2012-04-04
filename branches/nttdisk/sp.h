@@ -160,7 +160,6 @@ typedef __sp_nttdata sp_nttdata_t[1];
 /* Which steps to perform in convolution product funtions:
    forward transform, pair-wise multiplication, inverse transform */
 #define NTT_MUL_STEP_FFT1 1
-#define NTT_MUL_STEP_FFT2 2
 #define NTT_MUL_STEP_MUL 4
 #define NTT_MUL_STEP_MULDCT 8
 #define NTT_MUL_STEP_IFFT 16

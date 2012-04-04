@@ -591,13 +591,13 @@ stage2 (mpz_t f, void *X, mpmod_t modulus, unsigned long dF, unsigned long k,
         {
 	  sp_F = mpzspv_init (dF, mpzspm);
 	  mpzspv_from_mpzv (sp_F, 0, F, dF, mpzspm);
-          mpzspv_mul_ntt (NULL, 0, sp_F, 0, dF, NULL, 0, 0, dF, 1, 0, mpzspm, 
+          mpzspv_mul_ntt (sp_F, 0, sp_F, 0, dF, NULL, 0, 0, dF, 1, 0, mpzspm, 
                           NTT_MUL_STEP_FFT1);
 	  
 	  ntt_PolyInvert (invF, F + 1, dF, T, mpzspm);
 	  sp_invF = mpzspv_init (2 * dF, mpzspm);
 	  mpzspv_from_mpzv (sp_invF, 0, invF, dF, mpzspm);
-	  mpzspv_mul_ntt (NULL, 0, sp_invF, 0, dF, NULL, 0, 0, 2 * dF, 0, 0, 
+	  mpzspv_mul_ntt (sp_invF, 0, sp_invF, 0, dF, NULL, 0, 0, 2 * dF, 0, 0, 
 	                  mpzspm, NTT_MUL_STEP_FFT1);
 	}
       else
