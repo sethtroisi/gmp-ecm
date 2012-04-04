@@ -1,9 +1,9 @@
 BIN:=gpu_ecm
 
 # put here the PATH to GMP
-GMP_PATH:=/opt/cluster/gmplib
+GMP_PATH:=/usr
 # put here the path to CUDA
-CUDA_PATH=/opt/cluster/nvidia/cuda-4.1.28/cuda
+CUDA_PATH=/usr/local/cuda
 
 # CUDA does not support gcc >= 4.6
 # this can be useful if your default gcc is >= 4.6
@@ -48,11 +48,12 @@ endif
 
 #Only for debug
 KEEP:=-keep -keep-dir=keep
+KEEPDIR:=keep
 
 $(BIN): $(OBJ_FILES)
 	gcc -Wall -fPIC $(mOPTION) -o $@ $^ $(LDFLAGS)
 
-$(OBJDIR)/%.cu.o : %.cu cudakernel.h def.h | $(OBJDIR)
+$(OBJDIR)/%.cu.o : %.cu cudakernel.h def.h | $(OBJDIR) $(KEEPDIR)
 	nvcc $(KEEP) $(CFLAGS) $(COMPUTECAPABILITY) $(NVCCFLAGS) -o $@ -c $<
 
 $(OBJDIR)/%.c.o : %.c def.h utils.h | $(OBJDIR)
@@ -67,8 +68,18 @@ $(OBJDIR)/%.l : ../../%.c | $(OBJDIR)
 $(OBJDIR): 
 	mkdir $(OBJDIR)
 
+$(KEEPDIR): 
+	mkdir $(KEEPDIR)
+
 clean: 
-	rm -f $(OBJDIR)/*.o
+	rm -f $(OBJDIR)/*.[ol]
+	rm -f $(KEEPDIR)/*
+	rmdir $(OBJDIR)
+	rmdir $(KEEPDIR)
 
 distclean: clean
 	rm -f $(BIN)
+
+#temporarily call check.sh until test.gpuecm works
+check: 
+	./check.sh 
