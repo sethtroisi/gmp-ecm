@@ -236,18 +236,21 @@ float cuda_Main (biguint_t h_N, biguint_t h_3N, biguint_t h_M, digit_t h_invN,
 #define __addc_cc(r,a,b) asm ("addc.cc.u32 %0, %1, %2;": "=r"(r): "r"(a), "r"(b))
 #define __sub_cc(r,a,b) asm ("sub.cc.u32 %0, %1, %2;": "=r"(r): "r"(a), "r"(b)) 
 
-#define __addcy(carry) asm ("addc.s32 %0, 0, 0;" : "=r"(carry)) 
-#define __addcy2(carry) asm ("addc.s32 %0, %0, 0;" : "+r"(carry)) 
+#define __addcy(carry) asm ("addc.s32 %0, 0, 0;": "=r"(carry)) 
+#define __addcy2(carry) asm ("addc.s32 %0, %0, 0;": "+r"(carry)) 
 
-#define __subcy(carry) asm ("subc.s32 %0, 0, 0;" : "=r"(carry)) 
-#define __subcy2(carry) asm ("subc.s32 %0, %0, 0;" : "+r"(carry)) 
+#define __subcy(carry) asm ("subc.s32 %0, 0, 0;": "=r"(carry)) 
+#define __subcy2(carry) asm ("subc.s32 %0, %0, 0;": "+r"(carry)) 
 
-#define __mul(h, l, a, b) asm("mul.hi.u32 %0, %2, %3;\n\t"\
-                              "mul.lo.u32 %1, %2, %3;"\
-                                   : "=r"(h), "=r"(l) : "r"(a), "r"(b))
+#define __mul_lo(r,a,b) asm("mul.lo.u32 %0, %1, %2;": "=r"(r): "r"(a),"r"(b)) 
+#define __mad_lo_cc(r,a,b) asm("mad.lo.cc.u32 %0, %1, %2, %0;":\
+                                                      "+r"(r): "r"(a),"r"(b)) 
+#define __mad_hi_cc(r,a,b) asm("mad.hi.cc.u32 %0, %1, %2, %0;":\
+                                                      "+r"(r): "r"(a),"r"(b)) 
+#define __madc_hi_cc(r,a,b) asm("madc.hi.cc.u32 %0, %1, %2, %0;":\
+                                                  "+r"(r):"r"(a),"r"(b)) 
 
 
-/* Assume cy[threadIdx.x] = 0,+/-1 */
 __device__ void Cuda_Normalize (biguint_t A, dbigint_t cy)
 {
   carry_t cytemp;
@@ -300,10 +303,14 @@ __device__ void Cuda_Add_mod
 __device__ void Cuda_Sub_mod 
 (biguint_t Rmod, dbigint_t cy, const biguint_t B, const digit_t N3thdx)
 {
-  __add_cc (Rmod[threadIdx.x], Rmod[threadIdx.x], N3thdx);
-  __addcy (cy[threadIdx.x]);
-  __sub_cc (Rmod[threadIdx.x], Rmod[threadIdx.x], B[threadIdx.x]);
-  __subcy2 (cy[threadIdx.x]);
+  digit_t temp = Rmod[threadIdx.x];
+  __add_cc (temp, temp, N3thdx);
+  carry_t temp_cy = 0; 
+  __addcy (temp_cy);
+  __sub_cc (temp, temp, B[threadIdx.x]);
+  Rmod[threadIdx.x]=temp;
+  __subcy2 (temp_cy);
+  cy[threadIdx.x]=temp_cy;
   Cuda_Fully_Normalize (Rmod, cy); 
 }
 
@@ -311,61 +318,25 @@ __device__ void Cuda_Sub_mod
 __device__ void Cuda_Mulmod_step
 (dbiguint_t r, dbigint_t cy, digit_t a, digit_t b, const digit_t Nthdx,
  const digit_t invN)
-#ifdef CC13
-{
-  digit_t h,l;
-  int tmp;
-  __mul(h,l,a,b);
-  __add_cc(r[threadIdx.x],r[threadIdx.x],l);
-  __addc_cc(r[threadIdx.x+1],r[threadIdx.x+1],h);
-  __addcy2(cy[threadIdx.x+1]);
-
-
-  __mul(h, l, invN*r[0], Nthdx);
-  __add_cc(r[threadIdx.x],r[threadIdx.x],l);
-  __addc_cc(r[threadIdx.x+1],r[threadIdx.x+1],h);
-  __addcy2(cy[threadIdx.x+1]);
- 
-  //make one round of normalize + a right shift
-  __add_cc(r[threadIdx.x],r[threadIdx.x+1],cy[threadIdx.x]);
-  tmp=(threadIdx.x==NB_DIGITS-1)?cy[threadIdx.x+1]:0;
-  __asm__("addc.s32 %0,%1, 0;" :"=r"(cy[threadIdx.x]): "r"(tmp)); 
-
-  if (threadIdx.x==0)
-  {
-    cy[NB_DIGITS]=0;
-    r[NB_DIGITS]=0;
-  }
-}
-#else /* Use madc which exists only on CC 2.x cards */
 {
   digit_t t;
-  int tmp;
-  asm ("mad.lo.cc.u32 %0, %1, %2, %0;" : "+r"(r[threadIdx.x]) :
-                                                  "r"(a), "r"(b));
-  asm ("madc.hi.cc.u32 %0, %1, %2, %0;" : "+r"(r[threadIdx.x+1]) :
-                                                  "r"(a), "r"(b));
-  __addcy2(cy[threadIdx.x+1]);
+  unsigned int thp1 = (threadIdx.x + 1) % NB_DIGITS;
+  carry_t temp_cy = cy[thp1];
+  __mad_lo_cc(r[threadIdx.x],a,b);
+  __madc_hi_cc(r[threadIdx.x+1],a,b);
+  __addcy2(temp_cy);
 
-  asm ("mul.lo.u32 %0, %1, %2;" : "=r"(t) : "r"(invN), "r"(r[0]));
-  asm ("mad.lo.cc.u32 %0, %1, %2, %0;" : "+r"(r[threadIdx.x]) :
-                                              "r"(t), "r"(Nthdx));
-  asm ("madc.hi.cc.u32 %0, %1, %2, %0;" : "+r"(r[threadIdx.x+1]) : 
-                                              "r"(t), "r"(Nthdx));
-  __addcy2(cy[threadIdx.x+1]);
-
-  //make one round of normalize + a right shift
-  __add_cc(r[threadIdx.x],r[threadIdx.x+1],cy[threadIdx.x]);
-  tmp=(threadIdx.x==NB_DIGITS-1)?cy[threadIdx.x+1]:0;
-  __asm__("addc.s32 %0,%1, 0;" :"=r"(cy[threadIdx.x]): "r"(tmp)); 
-
+  __mul_lo(t, invN, r[0]);
+  __mad_lo_cc(r[threadIdx.x],t,Nthdx);
+  __madc_hi_cc(r[threadIdx.x+1],t,Nthdx);
+  __addcy2(temp_cy);
+  
+  /* make one round of normalize + a right shift at the same time */
+  __add_cc(r[thp1],r[thp1+1],temp_cy);
+  __addcy(cy[thp1]); 
   if (threadIdx.x==0)
-  {
-    cy[NB_DIGITS]=0;
     r[NB_DIGITS]=0;
-  }
 }
-#endif
 
 /* Compute r <- 2*a */ 
 /* Input: 0 <= a < 3*N */ 
@@ -384,52 +355,28 @@ __device__ void Cuda_Dbl_mod
 __device__ void Cuda_Mulint_mod
 (dbiguint_t r, dbigint_t cy, biguint_t A, digit_t b, const digit_t Nthdx,
  const digit_t invN)
-#ifdef CC13
-{
-  digit_t h,l;
-  __mul(h, r[threadIdx.x], A[threadIdx.x], b);
-  __add_cc(r[threadIdx.x+1], r[threadIdx.x+1], h);
-  __addcy(cy[threadIdx.x+1]);
-
-  //h*2^32+l =A[i]*B[threadIDx.x]
-  __mul(h, l, invN*r[0], Nthdx);
-  __add_cc(r[threadIdx.x], r[threadIdx.x],l);
-  __addc_cc(r[threadIdx.x+1], r[threadIdx.x+1],h);
-  __addcy2(cy[threadIdx.x+1]);
-
-  __add_cc(r[threadIdx.x], r[threadIdx.x+1], cy[threadIdx.x]);
-  __addcy(cy[threadIdx.x]);
-
-  if (threadIdx.x==0)
-    r[NB_DIGITS]=0;
-  
-  Cuda_Fully_Normalize(r,cy); 
-}
-#else /* Use madc which exists only on CC 2.x cards */
 {
   digit_t t;
-  asm ("mul.lo.u32 %0, %1, %2;" : "=r"(r[threadIdx.x]) :
-                                                  "r"(A[threadIdx.x]), "r"(b));
-  asm ("mad.hi.cc.u32 %0, %1, %2, %0;" : "+r"(r[threadIdx.x+1]) :
-                                                  "r"(A[threadIdx.x]), "r"(b));
-  __addcy(cy[threadIdx.x+1]);
+  unsigned int thp1= (threadIdx.x + 1) % NB_DIGITS;
+  digit_t temp_a = A[threadIdx.x];
+  carry_t temp_cy = 0;
+  __mul_lo(r[threadIdx.x],temp_a,b);
+  __mad_hi_cc(r[threadIdx.x+1],temp_a,b);
+  __addcy(temp_cy);
 
-  asm ("mul.lo.u32 %0, %1, %2;" : "=r"(t) : "r"(invN), "r"(r[0]));
-  asm ("mad.lo.cc.u32 %0, %1, %2, %0;" : "+r"(r[threadIdx.x]) :
-                                              "r"(t), "r"(Nthdx));
-  asm ("madc.hi.cc.u32 %0, %1, %2, %0;" : "+r"(r[threadIdx.x+1]) :
-                                              "r"(t), "r"(Nthdx));
-  __addcy2(cy[threadIdx.x+1]);
+  __mul_lo(t, invN, r[0]);
+  __mad_lo_cc(r[threadIdx.x],t,Nthdx);
+  __madc_hi_cc(r[threadIdx.x+1],t,Nthdx);
+  __addcy2(temp_cy);
 
-  __add_cc(r[threadIdx.x], r[threadIdx.x+1], cy[threadIdx.x]);
-  __addcy(cy[threadIdx.x]);
-
+  /* make one round of normalize + a right shift at the same time */
+  __add_cc(r[thp1],r[thp1+1],temp_cy);
+  __addcy(cy[thp1]); 
   if (threadIdx.x==0)
     r[NB_DIGITS]=0;
   
   Cuda_Fully_Normalize(r,cy); 
 }
-#endif
 
 /* Compute r <- A*B */ 
 /* Input: 0 <= A, B < 6*N */
@@ -470,16 +417,12 @@ Cuda_Ell_DblAdd (biguint_t *xarg, biguint_t *zarg, biguint_t *x2arg,
                                        biguint_t *z2arg, unsigned int firstinvd)
 {
   __shared__ VOL digit_t b_temp_r[CURVES_BY_BLOCK][NB_DIGITS+1];
-  __shared__ VOL carry_t b_cy[CURVES_BY_BLOCK][NB_DIGITS+1]; 
+  __shared__ VOL carry_t b_cy[CURVES_BY_BLOCK][NB_DIGITS]; 
 
   __shared__ VOL digit_t b_t[CURVES_BY_BLOCK][NB_DIGITS];
   __shared__ VOL digit_t b_u[CURVES_BY_BLOCK][NB_DIGITS];
   __shared__ VOL digit_t b_v[CURVES_BY_BLOCK][NB_DIGITS];
   __shared__ VOL digit_t b_w[CURVES_BY_BLOCK][NB_DIGITS];
-  
-  unsigned int idx1=blockIdx.x*blockDim.y+threadIdx.y;
-  //unsigned int t1=threadIdx.x+1;
-  //unsigned int t2=threadIdx.x+NB_DIGITS;
   
   VOL digit_t *t=b_t[threadIdx.y];
   VOL digit_t *u=b_u[threadIdx.y];
@@ -488,10 +431,10 @@ Cuda_Ell_DblAdd (biguint_t *xarg, biguint_t *zarg, biguint_t *x2arg,
   VOL digit_t *temp_r=b_temp_r[threadIdx.y];
   VOL carry_t *cy=b_cy[threadIdx.y];
 
-  //init
-  b_cy[threadIdx.y][threadIdx.x]=0; 
-  if (threadIdx.x==0)
-    b_cy[threadIdx.y][NB_DIGITS]=0; 
+  /* Init of shared variables */
+  const unsigned int idx1=blockIdx.x*blockDim.y+threadIdx.y;
+  //unsigned int t1=threadIdx.x+1;
+  cy[threadIdx.x]=0; 
 
   w[threadIdx.x]=x2arg[idx1][threadIdx.x];
   v[threadIdx.x]=z2arg[idx1][threadIdx.x];
@@ -535,4 +478,3 @@ Cuda_Ell_DblAdd (biguint_t *xarg, biguint_t *zarg, biguint_t *x2arg,
   x2arg[idx1][threadIdx.x]=w[threadIdx.x];
   z2arg[idx1][threadIdx.x]=temp_r[threadIdx.x];
 }
-
