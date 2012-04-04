@@ -3,14 +3,14 @@ To use the autotools:
 $ aclocal
 $ automake -c -a
 $ autoconf
-$ configure --with-gmp=<directory_where_gmp_is_installed>
+$ ./configure --with-gmp=<directory_where_gmp_is_installed>
 $ make
 $ make check
 
 Alternatively, you can simply type:
 
 $ autoreconf -i
-$ configure --with-gmp=<directory_where_gmp_is_installed>
+$ ./configure --with-gmp=<directory_where_gmp_is_installed>
 $ make
 $ make check
 
