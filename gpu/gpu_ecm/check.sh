@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 
 if [ -z $2 ] ; then
   n=0
@@ -7,7 +7,7 @@ else
 fi
 
 if [ -z $1 ] ; then
-  B1=1024
+  B1=4096
 else
   B1=$1
 fi
@@ -23,7 +23,7 @@ N=780851074980451083207022065351299001484424461908031846796515069313846989720932
 rm -f gpuecm.tmp gpuecm2.tmp ecm.tmp
 
 echo $N | ./gpu_ecm -save gpuecm.tmp -s $s -n $n $B1
-index=`expr $RANDOM % 448` 
+index=`expr $RANDOM % 100` 
 head -n $index gpuecm.tmp | tail -n 1 > gpuecm2.tmp 
 
 
