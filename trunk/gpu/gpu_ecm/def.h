@@ -52,3 +52,5 @@ struct clock2_t
   long computation;
 };
 
+/* Uncomment the next line to print the number of remaining iterations. */
+//#define PRINT_REMAINING_ITER
