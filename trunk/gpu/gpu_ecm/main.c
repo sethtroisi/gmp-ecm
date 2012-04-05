@@ -34,6 +34,8 @@ int main (int argc, char * argv[])
   unsigned int invd;
 
   char *savefilename = NULL;
+  char *inputfilename = NULL;
+  FILE *INPUTFILE = stdin;
 
   int device = -1;
 
@@ -130,6 +132,12 @@ int main (int argc, char * argv[])
       argc-=2;
       argv+=2;
     }
+    else if ((argc > 2) && (strcmp(argv[1],"-inp") == 0))
+    {
+      inputfilename=argv[2];
+      argc-=2;
+      argv+=2;
+    }
     else
     {
       fprintf(stderr,"Unknow option: %s\n",argv[1]);
@@ -208,6 +216,13 @@ int main (int argc, char * argv[])
   h_x2array=(biguint_t *) malloc(number_of_curves*sizeof(biguint_t));
   h_z2array=(biguint_t *) malloc(number_of_curves*sizeof(biguint_t));
   
+  if (inputfilename != NULL)
+  {
+    INPUTFILE=fopen(inputfilename, "r");
+    if (INPUTFILE == NULL)
+      fprintf (stderr, "Cannot open file %s for reading\n", inputfilename);
+  }
+
   /****************************/
   /*Some shared precomputation*/
   /****************************/
@@ -225,7 +240,7 @@ int main (int argc, char * argv[])
   /*Computation for each input number in the file*/
   /***********************************************/
 
-  while (read_number(&n, stdin, 0) == 1)
+  while (read_number(&n, INPUTFILE, 0) == 1)
   {
     /* The integer N we try to factor is in n.n */
     cputime_beginloop = cputime();

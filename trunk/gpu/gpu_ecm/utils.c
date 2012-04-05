@@ -17,11 +17,11 @@ void usage (void)
   printf ("  -save file save residues at end of stage 1 in file\n");
   printf ("  -v         verbose\n");
   printf ("  -vv        very verbose\n");
+  printf ("  -inp file  read input from file instead of stdin\n");
   printf ("  -h, --help prints this help and exit\n");
 }
 
-//FIXME can't use cputime from GMP-ECM because it does not take into account GPU
-//time
+//FIXME use cputime from GMP-ECM 
 long
 cputime ()
 {
