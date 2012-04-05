@@ -12,7 +12,7 @@ C files are compiled with gcc and Cuda files with nvcc (see Makefile)
 check.sh is a shell program that checks that the output of GPU-ECM is correct.
 
 Its usage is:
-./check.sh [B1=1024 [n=0 [s=424242]]]
+./check.sh [B1=4096 [n=0 [s=424242]]]
 where B1, n and s correspond to the option of GPU-ECM.
 
 **********
