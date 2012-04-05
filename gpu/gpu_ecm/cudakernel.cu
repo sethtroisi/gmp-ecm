@@ -153,6 +153,9 @@ float cuda_Main (biguint_t h_N, biguint_t h_3N, biguint_t h_M, digit_t h_invN,
   cudaMemcpyHtoD (d_xB, h_x2array, array_size);
   cudaMemcpyHtoD (d_zB, h_z2array, array_size);
 
+#ifdef PRINT_REMAINING_ITER
+      unsigned int jmod = 100000000;
+#endif
 
   /* Double-and-add loop: it calls the GPU for each bits of s */
   for (j = mpz_sizeinbase (s, 2) - 1; j>0; j-- )
@@ -181,6 +184,15 @@ float cuda_Main (biguint_t h_N, biguint_t h_3N, biguint_t h_M, digit_t h_invN,
       nEventsRecorded -= 1;   
       eventsyncix = (eventsyncix+1)%MAXEVENTS; 
     }
+
+#ifdef PRINT_REMAINING_ITER
+    if (j < 100000000) jmod = 10000000;
+    if (j < 10000000)  jmod =  1000000;
+    if (j < 1000000)   jmod =   100000;
+    if (j < 100000)    jmod =    10000;
+    if (j % jmod == 0)
+      printf("%lu iterations to go\n", j);
+#endif
   }
 
   /* If an error occurs during the kernel calls in the loop */
