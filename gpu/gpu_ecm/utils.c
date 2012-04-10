@@ -158,10 +158,8 @@ void write_resumefile_wrapper (char *filename, mpcandi_t *n, unsigned int B1,
                                mpz_t xp, unsigned int invd, mpz_t invw)
 {
   mpz_t A;
-  mpz_t zero;
   mpz_t two;
   mpz_init (A);
-  mpz_init_set_ui (zero, 0);
   mpz_init_set_ui (two, 2);
 
   mpz_mul_ui(A, invw, invd);
@@ -170,10 +168,9 @@ void write_resumefile_wrapper (char *filename, mpcandi_t *n, unsigned int B1,
   mpz_sub_ui(A, A, 2);
   mpz_mod(A, A, n->n);
 
-  write_resumefile_line (filename, 0, B1, zero, A, xp, n, two, ""); 
+  write_resumefile_line (filename, 0, B1, A, 1, xp, n, two, ""); 
 
   mpz_clear (A);
-  mpz_clear (zero);
   mpz_clear (two);
 }
 
