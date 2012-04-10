@@ -1051,7 +1051,7 @@ ecm (mpz_t f, mpz_t x, mpz_t parameter, mpz_t n, mpz_t go, double *B1done,
   if (parameter_is_A == 0)
     {
       /* if parameter=0, generate it at random */
-      if (mpz_sgn (parameter) <= 0)
+      if (mpz_sgn (parameter) == 0)
         {
           if (batch == 0)
             {

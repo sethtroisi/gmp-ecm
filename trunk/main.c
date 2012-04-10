@@ -152,6 +152,8 @@ usage (void)
 
     printf ("  -batch[=0|1|2] (default 1) use Montgomery parametrization and batch\n" 
             "                 computation. Use -batch=0 for classical Suyama curves\n");
+    printf ("  -tau t       use t as curve generator [ecm batch=2].\n");
+    printf ("  -nu nu       use nu as curve generator [ecm batch=1].\n");
     printf ("  -bsaves file In the batch mode, save s in file.\n");
     printf ("  -bloads file In the batch mode, load s from file.\n");
 
@@ -311,7 +313,7 @@ int
 main (int argc, char *argv[])
 {
   char **argv0 = argv;
-  mpz_t x, sigma, A, f, orig_x0, B2, B2min, startingB2min;
+  mpz_t x, parameter, A, f, orig_x0, B2, B2min, startingB2min;
   mpcandi_t n;
   mpgocandi_t go;
   mpq_t rat_x0;
@@ -322,8 +324,11 @@ main (int argc, char *argv[])
   int method = ECM_ECM, method1;
   int use_ntt = 1;     /* Default, use NTT if input is small enough */
   int specific_x0 = 0, /* 1=starting point supplied by user, 0=random or */
-                       /* compute from sigma */
-      specific_sigma = 0;  /* 1=sigma from command line, 0=make random */
+                       /* compute from 'parameter' */
+      specific_parameter = 0;  /*   0=make random */
+                               /*  10=sigma from command line */
+                               /*  11=nu from command line */
+                               /*  12=tau from command line */
   int factor_is_prime;
         /* If a factor was found, indicate whether factor, cofactor are */
         /* prime. If no factor was found, both are zero. */
@@ -393,7 +398,7 @@ main (int argc, char *argv[])
   mpgocandi_t_init (&go);
 
   /* Init variables we might need to store options */
-  MPZ_INIT (sigma);
+  MPZ_INIT (parameter);
   MPZ_INIT (A);
   MPZ_INIT (B2);
   MPZ_INIT (B2min);
@@ -573,14 +578,37 @@ main (int argc, char *argv[])
         }
       else if ((argc > 2) && (strcmp (argv[1], "-sigma")) == 0)
         {
-          if (mpz_set_str (sigma, argv[2], 0) || mpz_cmp_ui (sigma, 6) < 0)
-	    {
-	      fprintf (stderr, "Error, invalid sigma value: %s\n", argv[2]);
-	      exit (EXIT_FAILURE);
-	    }
-          specific_sigma = 1;
-	  argv += 2;
-	  argc -= 2;
+          if (mpz_set_str (parameter, argv[2], 0) || 
+              mpz_cmp_ui (parameter, 6) < 0)
+            {
+              fprintf (stderr, "Error, invalid sigma value: %s\n", argv[2]);
+              exit (EXIT_FAILURE);
+            }
+          specific_parameter = 10;
+          argv += 2;
+          argc -= 2;
+        }
+      else if ((argc > 2) && (strcmp (argv[1], "-nu")) == 0)
+        {
+          if (mpz_set_str (parameter, argv[2], 0))
+            {
+	            fprintf (stderr, "Error, invalid nu value: %s\n", argv[2]);
+	            exit (EXIT_FAILURE);
+            }
+          specific_parameter = 11;
+          argv += 2;
+          argc -= 2;
+        }
+      else if ((argc > 2) && (strcmp (argv[1], "-tau")) == 0)
+        {
+          if (mpz_set_str (parameter, argv[2], 0))
+            {
+	            fprintf (stderr, "Error, invalid tau value: %s\n", argv[2]);
+	            exit (EXIT_FAILURE);
+            }
+          specific_parameter = 12;
+          argv += 2;
+          argc -= 2;
         }
       else if ((argc > 2) && (strcmp (argv[1], "-A")) == 0)
         {
@@ -1046,10 +1074,11 @@ main (int argc, char *argv[])
       fclose (savefile);
     }
 
-  if (resumefile && (specific_sigma || mpz_sgn (A) || specific_x0))
+  if (resumefile && (specific_parameter || mpz_sgn (A) || specific_x0))
     {
-      printf ("Warning: -sigma, -A and -x0 parameters are ignored when resuming from\nsave files.\n");
-      mpz_set_ui (sigma, 0);
+      printf ("Warning: -sigma, -nu, -tau, -batch, -A and -x0 parameters are\n" 
+              "ignored when resuming from save files.\n");
+      mpz_set_ui (parameter, 0);
       mpz_set_ui (A, 0);
       specific_x0 = 0;
     }
@@ -1059,7 +1088,7 @@ main (int argc, char *argv[])
   MPZ_INIT (x); /* stage 1 residue */
   MPZ_INIT (orig_x0); /* starting point, for save file */
 
-  /* We may need random numbers for sigma/starting point */
+  /* We may need random numbers for sigma/nu/tau and/or starting point */
   gmp_randinit_default (randstate);
   gmp_randseed_ui (randstate, get_random_ui ());
 
@@ -1170,7 +1199,7 @@ BreadthFirstDoAgain:;
 	      fprintf (stderr, "Error, option -c and -resume are incompatible\n");
 	      exit (EXIT_FAILURE);
 	    }
-          if (!read_resumefile_line (&method, x, &n, sigma, A, orig_x0, 
+          if (!read_resumefile_line (&method, x, &n, parameter, A, orig_x0, 
                 &(params->B1done), program, who, rtime, comment, resumefile))
             break;
           
@@ -1271,7 +1300,7 @@ BreadthFirstDoAgain:;
               mpz_clear (inv);
             }
           else /* Make a random starting point for P-1 and P+1. ECM will */
-               /* compute a suitable value from sigma or A if x is zero */
+              /* compute a suitable value from sigma/nu/tau or A if x is zero */
             {
               if (method == ECM_ECM)
                 mpz_set_ui (x, 0);
@@ -1287,12 +1316,12 @@ BreadthFirstDoAgain:;
           /* Make a random sigma if we have neither specific sigma nor A 
              given. Warning: sigma may still contain previous random value
              and thus be nonzero here even if no specific sigma was given */
-          if (method == ECM_ECM && !specific_sigma && !mpz_sgn (A))
-            {
+          //if (method == ECM_ECM && !specific_parameter && !mpz_sgn (A))
+          //  {
               /* Make random sigma, 0 < sigma <= 2^32 */
-              mpz_urandomb (sigma, randstate, 32);
-              mpz_add_ui (sigma, sigma, 6); /* we need sigma >= 6 */
-            }
+          //    mpz_urandomb (sigma, randstate, 32);
+          //    mpz_add_ui (sigma, sigma, 6); /* we need sigma >= 6 */
+          //  }
         }
       if (verbose >= 1)
 	{
@@ -1378,11 +1407,6 @@ BreadthFirstDoAgain:;
               fprintf (stderr, "Error, the -batch option is only valid for ECM\n");
               exit (EXIT_FAILURE);
             }
-          if (mpz_sgn(A) == 0)
-            mpz_set_si (sigma, -1); 
-          else
-            mpz_set_ui (sigma, 0); 
-            
 
           if (mpz_sgn (orig_x0) == 0)
             mpz_set_ui (orig_x0, 2);
@@ -1432,8 +1456,8 @@ BreadthFirstDoAgain:;
       params->method = method; /* may change with resume */
       mpz_set (params->x, x); /* may change with resume */
       /* if parameter is zero, then we use the A value instead */
-      params->parameter_is_A = ((mpz_sgn (sigma) == 0) ? 1 : 0);
-      mpz_set (params->parameter, (params->parameter_is_A) ? A : sigma);
+      params->parameter_is_A = ((mpz_sgn (A) != 0) ? 1 : 0);
+      mpz_set (params->parameter, (params->parameter_is_A) ? A : parameter);
       mpz_set (params->go, go.Candi.n); /* may change if contains N */
       mpz_set (params->B2min, B2min); /* may change with -c */
       /* Here's an ugly hack to pass B2scale to the library somehow.
@@ -1679,8 +1703,9 @@ OutputFactorStuff:;
                                           factor, in case a factor was found */
           /* We write the B1done value to the safe file. This requires that
              a correct B1done is returned by the factoring functions */
-          write_resumefile_line (savefilename, method, params->B1done, sigma, 
-                                 A, x, &n, orig_x0, comment);
+          write_resumefile_line (savefilename, method, params->B1done, 
+                                 params->parameter, params->parameter_is_A, 
+                                 x, &n, orig_x0, comment);
         }
 
       /* advance B1, if autoincrement value had been set during command line parsing */
@@ -1728,7 +1753,7 @@ OutputFactorStuff:;
   mpz_clear (x);
   mpz_clear (f);
   mpcandi_t_free (&n);
-  mpz_clear (sigma);
+  mpz_clear (parameter);
   mpz_clear (A);
   mpq_clear (rat_x0);
   mpgocandi_t_free (&go);

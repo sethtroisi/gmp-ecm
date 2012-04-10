@@ -136,7 +136,7 @@ int trial_factor (mpcandi_t *n, double maxfact, int deep);
 /* resume.c */
 int  read_resumefile_line (int *, mpz_t, mpcandi_t *, mpz_t, mpz_t, mpz_t, double *,
                            char *, char *, char *, char *, FILE *);
-int write_resumefile_line (char *, int, double, mpz_t, mpz_t, mpz_t, mpcandi_t *, 
+int write_resumefile_line (char *, int, double, mpz_t, int, mpz_t, mpcandi_t *, 
                            mpz_t, const char *);
 
 /* main.c */

@@ -385,8 +385,8 @@ error:
 /* Append a residue to the savefile with name given in fn.
    Returns 1 on success, 0 on error */
 int  
-write_resumefile_line (char *fn, int method, double B1, mpz_t sigma, mpz_t A, 
-	mpz_t x, mpcandi_t *n, mpz_t x0, const char *comment)
+write_resumefile_line (char *fn, int method, double B1, mpz_t parameter,
+int parameter_is_A, mpz_t x, mpcandi_t *n, mpz_t x0, const char *comment)
 {
   FILE *file;
   mpz_t checksum;
@@ -446,18 +446,13 @@ write_resumefile_line (char *fn, int method, double B1, mpz_t sigma, mpz_t A,
   else 
     {
       fprintf (file, "ECM");
-      if (mpz_sgn (sigma) != 0)
-        {
+      if (parameter_is_A == 0)
           fprintf (file, "; SIGMA=");
-          mpz_out_str (file, 10, sigma);
-          mpz_mul_ui (checksum, checksum, mpz_fdiv_ui (sigma, CHKSUMMOD));
-        }
-      else if (mpz_sgn (A) != 0)
-        {
+      else
           fprintf (file, "; A=");
-          mpz_out_str (file, 10, A);
-          mpz_mul_ui (checksum, checksum, mpz_fdiv_ui (A, CHKSUMMOD));
-        }
+          
+        mpz_out_str (file, 10, parameter);
+        mpz_mul_ui (checksum, checksum, mpz_fdiv_ui (parameter, CHKSUMMOD));
     }
   
   fprintf (file, "; B1=%.0f; N=", B1);
