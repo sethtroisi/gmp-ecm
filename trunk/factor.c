@@ -30,8 +30,8 @@ ecm_init (ecm_params q)
   q->method = ECM_ECM; /* default method */
   MEMORY_TAG;
   mpz_init_set_ui (q->x, 0);
-  mpz_init_set_ui (q->sigma, 0);
-  q->sigma_is_A = 0;
+  mpz_init_set_ui (q->parameter, 0);
+  q->parameter_is_A = 0;
   mpz_init_set_ui (q->go, 1);
   q->B1done = ECM_DEFAULT_B1_DONE + 1. / 1048576.;
   mpz_init_set_si (q->B2min, -1.0); /* default: B2min will be set to B1 */
@@ -67,7 +67,7 @@ void
 ecm_clear (ecm_params q)
 {
   mpz_clear (q->x);
-  mpz_clear (q->sigma);
+  mpz_clear (q->parameter);
   mpz_clear (q->go);
   mpz_clear (q->B2min);
   mpz_clear (q->B2);
@@ -98,11 +98,11 @@ ecm_factor (mpz_t f, mpz_t n, double B1, ecm_params p)
    p->B1done = B1done;
  
   if (p->method == ECM_ECM)
-    res = ecm (f, p->x, p->sigma, n, p->go, &(p->B1done), B1, p->B2min, p->B2, 
-               B2scale, p->k, p->S, p->verbose, p->repr, p->nobase2step2, p->use_ntt, p->sigma_is_A,
-               p->os, p->es, p->chkfilename, p->TreeFilename, p->maxmem, 
-               p->stage1time, p->rng, p->stop_asap, p->batch, p->batch_s, 
-               p->gw_k, p->gw_b, p->gw_n, p->gw_c);
+    res = ecm (f, p->x, p->parameter, n, p->go, &(p->B1done), B1, p->B2min,
+               p->B2, B2scale, p->k, p->S, p->verbose, p->repr, p->nobase2step2,
+               p->use_ntt, p->parameter_is_A, p->os, p->es, p->chkfilename, 
+               p->TreeFilename, p->maxmem, p->stage1time, p->rng, p->stop_asap, 
+               p->batch, p->batch_s, p->gw_k, p->gw_b, p->gw_n, p->gw_c);
   else if (p->method == ECM_PM1)
     res = pm1 (f, p->x, n, p->go, &(p->B1done), B1, p->B2min, p->B2, B2scale,
                p->k, p->S, p->verbose, p->repr, p->use_ntt, p->os, p->es,

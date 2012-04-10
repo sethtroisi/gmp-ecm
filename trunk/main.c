@@ -1378,7 +1378,11 @@ BreadthFirstDoAgain:;
               fprintf (stderr, "Error, the -batch option is only valid for ECM\n");
               exit (EXIT_FAILURE);
             }
-          mpz_set_ui (sigma, 0); 
+          if (mpz_sgn(A) == 0)
+            mpz_set_si (sigma, -1); 
+          else
+            mpz_set_ui (sigma, 0); 
+            
 
           if (mpz_sgn (orig_x0) == 0)
             mpz_set_ui (orig_x0, 2);
@@ -1388,7 +1392,7 @@ BreadthFirstDoAgain:;
                        " in batch mode.\n");
               exit (EXIT_FAILURE);
             }
-          
+
           mpz_set (x, orig_x0);
         }
       params->batch = batch;
@@ -1427,9 +1431,9 @@ BreadthFirstDoAgain:;
       /* set parameters that may change from one curve to another */
       params->method = method; /* may change with resume */
       mpz_set (params->x, x); /* may change with resume */
-      /* if sigma is zero, then we use the A value instead */
-      params->sigma_is_A = ((mpz_sgn (sigma) == 0 || batch != 0) ? 1 : 0);
-      mpz_set (params->sigma, (params->sigma_is_A) ? A : sigma);
+      /* if parameter is zero, then we use the A value instead */
+      params->parameter_is_A = ((mpz_sgn (sigma) == 0) ? 1 : 0);
+      mpz_set (params->parameter, (params->parameter_is_A) ? A : sigma);
       mpz_set (params->go, go.Candi.n); /* may change if contains N */
       mpz_set (params->B2min, B2min); /* may change with -c */
       /* Here's an ugly hack to pass B2scale to the library somehow.

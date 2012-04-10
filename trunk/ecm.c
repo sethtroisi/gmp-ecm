@@ -818,11 +818,11 @@ print_exptime (double B1, const mpz_t B2, unsigned long dF, unsigned long k,
    Weierstrass form for ECM (when sigma_is_A = -1). */
 void
 print_B1_B2_poly (int verbosity, int method, double B1, double B1done, 
-		  mpz_t B2min_param, mpz_t B2min, mpz_t B2, int S, mpz_t x0,
-		  int sigma_is_A, mpz_t go)
+		  mpz_t B2min_param, mpz_t B2min, mpz_t B2, int S, mpz_t parameter,
+		  int parameter_is_A, mpz_t go, int batch)
 {
   ASSERT ((method == ECM_ECM) || (go == NULL));
-  ASSERT ((-1 <= sigma_is_A) && (sigma_is_A <= 1));
+  ASSERT ((-1 <= parameter_is_A) && (parameter_is_A <= 1));
 
   if (test_verbose (verbosity))
   {
@@ -844,15 +844,22 @@ print_B1_B2_poly (int verbosity, int method, double B1, double B1done,
       /* don't print in resume case, since x0 is saved in resume file */
       if (method == ECM_ECM)
         {
-	  if (sigma_is_A == 1)
-	    outputf (verbosity, ", A=%Zd", x0);
-	  else if (sigma_is_A == 0)
-	    outputf (verbosity, ", sigma=%Zd", x0);
+	  if (parameter_is_A == 1)
+	    outputf (verbosity, ", A=%Zd", parameter);
+	  else if (parameter_is_A == 0)
+      {
+        if (batch == 0)
+	        outputf (verbosity, ", sigma=%Zd", parameter);
+        else if (batch == 1)
+	        outputf (verbosity, ", nu=%Zd", parameter);
+        else if (batch == 2)
+	        outputf (verbosity, ", tau=%Zd", parameter);
+      }
 	  else /* sigma_is_A = -1: curve was given in Weierstrass form */
-	    outputf (verbosity, ", Weierstrass(A=%Zd,y=Zd)", x0, go);
+	    outputf (verbosity, ", Weierstrass(A=%Zd,y=Zd)", parameter, go);
         }
       else if (ECM_IS_DEFAULT_B1_DONE(B1done))
-	  outputf (verbosity, ", x0=%Zd", x0);
+	  outputf (verbosity, ", x0=%Zd", parameter);
       
       outputf (verbosity, "\n");
   }
@@ -877,10 +884,10 @@ print_B1_B2_poly (int verbosity, int method, double B1, double B1done,
 		 ECM_ERROR in case of error.
 */
 int
-ecm (mpz_t f, mpz_t x, mpz_t sigma, mpz_t n, mpz_t go, double *B1done,
+ecm (mpz_t f, mpz_t x, mpz_t parameter, mpz_t n, mpz_t go, double *B1done,
      double B1, mpz_t B2min_parm, mpz_t B2_parm, double B2scale, 
-     unsigned long k, const int S, int verbose, int repr, int nobase2step2, int use_ntt,
-     int sigma_is_A, FILE *os, FILE* es, char *chkfilename,
+     unsigned long k, const int S, int verbose, int repr, int nobase2step2, 
+     int use_ntt, int parameter_is_A, FILE *os, FILE* es, char *chkfilename,
      char *TreeFilename, double maxmem, double stage1time, 
      gmp_randstate_t rng, int (*stop_asap)(void), int batch, mpz_t batch_s,
      ATTRIBUTE_UNUSED double gw_k, ATTRIBUTE_UNUSED unsigned long gw_b,
@@ -1041,67 +1048,74 @@ ecm (mpz_t f, mpz_t x, mpz_t sigma, mpz_t n, mpz_t go, double *B1done,
         }
     }
   
-  if (sigma_is_A == 0)
+  if (parameter_is_A == 0)
     {
-      /* if sigma=0, generate it at random */
-      if (mpz_sgn (sigma) == 0)
+      /* if parameter=0, generate it at random */
+      if (mpz_sgn (parameter) <= 0)
         {
-          mpz_urandomb (sigma, rng, 32);
-          mpz_add_ui (sigma, sigma, 6);
-        }
-
-      /* sigma contains sigma value, A and x values must be computed */
-      youpi = get_curve_from_sigma (f, P.A, P.x, sigma, modulus);
-      if (youpi != ECM_NO_FACTOR_FOUND)
-	  goto end_of_ecm;
-    }
-  else if (sigma_is_A == 1 && batch == 1)
-    {
-      if (mpz_sgn (sigma) == 0)
-        {
-          int i;
-
-          /* We choose a positive integer d' smaller than B=2^GMP_NUMB_BITS
-             and consider d = d'/B and A = 4d-2 */
-          do
-            mpz_urandomb (sigma, rng, 32);  /* generates d' <> 0 */
-          while (mpz_sgn (sigma) == 0);
-          ASSERT((GMP_NUMB_BITS % 2) == 0);
-          if (GMP_NUMB_BITS >= 64)
-            mpz_mul (sigma, sigma, sigma);      /* ensures d' (and thus d) is
-                                                   a square, which increases
-                                                   the success probability */
-          /* divide d' by B to get d */
-          for (i = 0; i < GMP_NUMB_BITS; i++)
+          if (batch == 0)
             {
-              if (mpz_tstbit (sigma, 0) == 1)
-                mpz_add (sigma, sigma, n);
-              mpz_div_2exp (sigma, sigma, 1);
+              mpz_urandomb (parameter, rng, 32);
+              mpz_add_ui (parameter, parameter, 6);
             }
-          mpz_mul_2exp (sigma, sigma, 2);           /* 4d */
-          mpz_sub_ui (sigma, sigma, 2);             /* 4d-2 */
+          else if (batch == 1)
+            {
+              /* We choose a positive integer nu smaller than B=2^GMP_NUMB_BITS
+                and consider d = nu/B and A = 4d-2 */
+              do
+                mpz_urandomb (parameter, rng, 32);  /* generates nu <> 0 */
+              while (mpz_sgn (parameter) == 0);
+              ASSERT((GMP_NUMB_BITS % 2) == 0);
+              if (GMP_NUMB_BITS >= 64)
+                mpz_mul (parameter, parameter, parameter); 
+                                      /* ensures nu (and thus d) is a square, 
+                                      which increases the success probability */
+            }
+          else if (batch == 2)
+            {
+              mpz_urandomb (parameter, rng, 32);
+              mpz_add_ui (parameter, parameter, 2);
+            }
         }
-      
-      mpres_set_z (P.A, sigma, modulus);
-    }
-  else if (sigma_is_A == 1 && batch == 2)
-    {
-      if (mpz_sgn (sigma) == 0)
+
+      if (batch == 0)
         {
-          mpz_urandomb (sigma, rng, 32);
-          mpz_add_ui (sigma, sigma, 2);
-          youpi = get_curve_from_ell_parametrization (f, P.A, sigma, modulus);
-          mpres_get_z (sigma, P.A, modulus);
+          /* parameter contains sigma value, A and x values must be computed */
+          youpi = get_curve_from_sigma (f, P.A, P.x, parameter, modulus);
           if (youpi != ECM_NO_FACTOR_FOUND)
 	          goto end_of_ecm;
         }
-      else    /* sigma contains the A value */
-          mpres_set_z (P.A, sigma, modulus);
+      else if (batch == 1)
+        {
+          int i;
+          mpz_t tmp;
+          mpz_init_set (tmp, parameter);
+          /* parameter contains nu value, A value must be computed */
+          /* divide nu by B to get d */
+          for (i = 0; i < GMP_NUMB_BITS; i++)
+            {
+              if (mpz_tstbit (tmp, 0) == 1)
+                mpz_add (tmp, tmp, n);
+              mpz_div_2exp (tmp, tmp, 1);
+            }
+          mpz_mul_2exp (tmp, tmp, 2);           /* 4d */
+          mpz_sub_ui (tmp, tmp, 2);             /* 4d-2 */
+      
+          mpres_set_z (P.A, tmp, modulus);
+          mpz_clear(tmp);
+        }
+      else if (batch == 2)
+        {
+          /* parameter contains tau value, A value must be computed */
+          youpi=get_curve_from_ell_parametrization(f, P.A, parameter, modulus);
+          if (youpi != ECM_NO_FACTOR_FOUND)
+	          goto end_of_ecm;
+        }
     }
-  else if (sigma_is_A == 1)
+  else if (parameter_is_A == 1)
     {
       /* sigma contains the A value */
-      mpres_set_z (P.A, sigma, modulus);
+      mpres_set_z (P.A, parameter, modulus);
       /* TODO: make a valid, random starting point in case none was given */
       /* Problem: this may be as hard as factoring as we'd need to determine
          whether x^3 + a*x^2 + x is a quadratic residue or not */
@@ -1122,7 +1136,7 @@ ecm (mpz_t f, mpz_t x, mpz_t sigma, mpz_t n, mpz_t go, double *B1done,
 
   /* Print B1, B2, polynomial and sigma */
   print_B1_B2_poly (OUTPUT_NORMAL, ECM_ECM, B1, *B1done, B2min_parm, B2min, 
-		    B2, root_params.S, sigma, sigma_is_A, go);
+		    B2, root_params.S, parameter, parameter_is_A, go, batch);
 
 #if 0
   outputf (OUTPUT_VERBOSE, "b2=%1.0f, dF=%lu, k=%lu, d=%lu, d2=%lu, i0=%Zd\n", 
@@ -1132,11 +1146,11 @@ ecm (mpz_t f, mpz_t x, mpz_t sigma, mpz_t n, mpz_t go, double *B1done,
            dF, k, root_params.d1, root_params.d2, root_params.i0);
 #endif
 
-  if (sigma_is_A == -1) /* Weierstrass form: we perform only Stage 2,
+  if (parameter_is_A == -1) /* Weierstrass form: we perform only Stage 2,
 			   since all curves in Weierstrass form do not
 			   admit a Montgomery form. */
     {
-      mpres_set_z (P.A, sigma, modulus); /* sigma contains A */
+      mpres_set_z (P.A, parameter, modulus); /* parameter contains A */
       mpres_set_z (P.y, go,    modulus); /* go contains y */
       if (mpz_sgn (x) == 0 || mpz_sgn (go) == 0)
         {
