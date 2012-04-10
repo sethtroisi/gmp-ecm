@@ -34,10 +34,14 @@ typedef struct
 {
   int method;     /* factorization method, default is ecm */
   mpz_t x;        /* starting point (if non zero) */
-  mpz_t sigma;    /* contains sigma or A (ecm only) */
-  int sigma_is_A; /* if  1, 'sigma' contains A (Montgomery form),
-		     if  0, 'sigma' contains sigma (Montgomery form),
-		     if -1, 'sigma' contains A, and the input curve is in
+  mpz_t parameter;    /* (ECM only) */ 
+                      /* contains sigma when batch=0 */
+                      /* contains nu when batch=1 */
+                      /* contains tau when batch=2 */
+                      /* May contains A */
+  int parameter_is_A; /* if  1, 'parameter' contains A (Montgomery form),
+		     if  0, 'parameter' contains sigma/tau/nu (Montgomery form),
+		     if -1, 'parameter' contains A, and the input curve is in
 		     Weierstrass form y^2 = x^3 + A*x + B, with y in 'go'. */
   mpz_t go;       /* initial group order to preload (if NULL: do nothing),
 		     or y for Weierstrass form if sigma_is_A = -1. */
