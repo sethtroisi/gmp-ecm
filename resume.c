@@ -326,7 +326,7 @@ read_resumefile_line (int *method, mpz_t x, mpcandi_t *n, mpz_t sigma, mpz_t A,
 #endif
       
       if (!have_method || !have_x || !have_n || !have_b1 ||
-          (method == ECM_ECM && !have_sigma && !have_a))
+          (*method == ECM_ECM && !have_sigma && !have_a))
         {
           fprintf (stderr, "Save file line lacks fields\n");
           continue;
