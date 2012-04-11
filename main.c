@@ -1705,7 +1705,7 @@ OutputFactorStuff:;
              a correct B1done is returned by the factoring functions */
           write_resumefile_line (savefilename, method, params->B1done, 
                                  params->parameter, params->parameter_is_A, 
-                                 x, &n, orig_x0, comment);
+                                 params->batch, x, &n, orig_x0, comment);
         }
 
       /* advance B1, if autoincrement value had been set during command line parsing */

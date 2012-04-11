@@ -168,7 +168,7 @@ void write_resumefile_wrapper (char *filename, mpcandi_t *n, unsigned int B1,
   mpz_sub_ui(A, A, 2);
   mpz_mod(A, A, n->n);
 
-  write_resumefile_line (filename, 0, B1, A, 1, xp, n, two, ""); 
+  write_resumefile_line (filename, 0, B1, A, 1, 1, xp, n, two, ""); 
 
   mpz_clear (A);
   mpz_clear (two);
