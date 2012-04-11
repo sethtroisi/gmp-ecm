@@ -7,7 +7,7 @@ ACLOCAL_AMFLAGS = -I m4
 # (see http://www.gnu.org/software/automake/manual/html_node/Libtool-Convenience-Libraries.html)
 lib_LTLIBRARIES = libecm.la
 
-EXTRA_PROGRAMS = rho batch
+EXTRA_PROGRAMS = rho
 
 # If we want assembly mulredc code, recurse into the right subdirectory
 # and set up variables to include the mulredc library from that subdir
@@ -52,6 +52,13 @@ ecm_CPPFLAGS = -DOUTSIDE_LIBECM
 ecm_CFLAGS = $(OPENMP_CFLAGS)
 ecm_SOURCES = auxi.c b1_ainc.c candi.c eval.c random.c main.c \
               resume.c getprime.c champions.h
+if WANT_CUDA 
+  ecm_LDADD = $(LDADD) $(CUDA_LIB_FLAGS)
+  ecm_SOURCES += cudawrapper.c 
+  ecm_CFLAGS += $(CUDA_INC_FLAGS) -DWANT_GPU
+else
+  ecm_LDADD = $(LDADD)
+endif
 
 tune_SOURCES = mpmod.c tune.c mul_lo.c listz.c auxlib.c ks-multiply.c \
                toomcook.c schoen_strass.c polyeval.c median.c ecm_ntt.c \
@@ -66,8 +73,8 @@ rho_SOURCES = rho.c
 rho_CPPFLAGS = -DTESTDRIVE
 rho_LDADD = -lprimegen $(GMPLIB) $(GSL_LD_FLAGS)
 
-batch_SOURCES = batch.c
-batch_LDADD = $(GMPLIB)
+if WANT_CUDA 
+endif
 
 if MEMORY_DEBUG
   libecm_la_SOURCES += memory.c

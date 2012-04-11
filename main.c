@@ -156,7 +156,9 @@ usage (void)
     printf ("  -nu nu       use nu as curve generator [ecm batch=1].\n");
     printf ("  -bsaves file In the batch mode, save s in file.\n");
     printf ("  -bloads file In the batch mode, load s from file.\n");
-
+#ifdef WANT_GPU
+    printf ("  -gpu         Use GPU-ECM for stage 1.\n");
+#endif
     printf ("  -h, --help   Prints this help and exit.\n");
 }
 
@@ -300,6 +302,13 @@ print_config ()
 #else
   printf ("MPZSPV_NORMALISE_STRIDE undefined\n");
 #endif
+
+#ifdef WANT_GPU
+  printf ("WANT_GPU = %d\n", WANT_GPU);
+#else
+  printf ("WANT_GPU undefined\n");
+#endif
+
 }
 
 
@@ -378,6 +387,9 @@ main (int argc, char *argv[])
   unsigned long gw_b = 0;  /* set default values for gwnum poly k*b^n+c */
   unsigned long gw_n = 0;  /* set default values for gwnum poly k*b^n+c */
   signed long gw_c = 0;    /* set default values for gwnum poly k*b^n+c */
+#endif
+#ifdef WANT_GPU
+  int use_gpu = 0; /* Do we use the GPU for stage 1 (by default no)*/
 #endif
 
   /* check ecm is linked with a compatible library */
@@ -818,6 +830,14 @@ main (int argc, char *argv[])
          argv += 2;
          argc -= 2;
        }
+#endif
+#ifdef WANT_GPU
+      else if (strcmp (argv[1], "-gpu") == 0)
+        {
+          use_gpu = 1;
+	        argv++;
+	        argc--;
+        }
 #endif
       else
 	{
@@ -1543,7 +1563,12 @@ BreadthFirstDoAgain:;
 	}
 
       /* now call the ecm library */
-      result = ecm_factor (f, n.n, B1, params);
+#ifdef WANT_GPU
+      if (use_gpu)
+        result = gpu_ecm_factor (); /* For now dummy function that do nothing */
+      else
+#endif
+        result = ecm_factor (f, n.n, B1, params);
 
       if (result == ECM_ERROR)
         {
