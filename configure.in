@@ -586,6 +586,24 @@ dnl Check for valgrind. GMP-ECM uses exit code 1 to signal error,
 dnl so we make valgrind use that code to signal error, too
 AC_CHECK_PROG([VALGRIND], [valgrind], [valgrind -q --error-exitcode=1])
 
+dnl Check if a GPU version is asked, for which GPU and where CUDA is install.
+dnl See acinclude.m4 for details.
+CU_CHECK_CUDA
+
+# If debug flag is set apply debugging compilation flags, 
+# otherwise build compilation flags
+AS_IF([test "x$DEBUG" = "xtrue"],
+  [NVCC_FLAGS="-g --compiler-options -fno-strict-aliasing"
+  #NVCC_FLAGS+=" -keep -keep-dir gputmp"
+  NVCC_FLAGS+=" --ptxas-options=-v"],
+  [NVCC_FLAGS="-O2 --compiler-options -fno-strict-aliasing"])
+
+# Add architecture to flags
+NVCCFLAGS+=" -arch=$GPU_ARCH"
+
+AC_SUBST(NVCC_FLAGS)
+
+
 case $host in
   athlon*-*-*) config_arch="athlon" ;;
   x86_64*-*-*) config_arch="athlon64" ;;
