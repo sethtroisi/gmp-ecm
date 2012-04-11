@@ -904,11 +904,11 @@ ecm (mpz_t f, mpz_t x, mpz_t parameter, mpz_t n, mpz_t go, double *B1done,
   unsigned long dF;
   root_params_t root_params;
 
-  /*  1: sigma contains A from Montgomery form By^2 = x^3 + Ax^2 + x
-      0: sigma contains 'sigma' from Suyama's parametrization
-     -1: sigma contains A from Weierstrass form y^2 = x^3 + Ax + B,
+  /*  1: parameter contains A from Montgomery form By^2 = x^3 + Ax^2 + x
+      0: parameter contains sigma/nu/tau
+     -1: paraemter contains A from Weierstrass form y^2 = x^3 + Ax + B,
          and go contains B */
-  ASSERT((-1 <= sigma_is_A) && (sigma_is_A <= 1));
+  ASSERT((-1 <= parameter_is_A) && (parameter_is_A <= 1));
 
   set_verbose (verbose);
   ECM_STDOUT = (os == NULL) ? stdout : os;
