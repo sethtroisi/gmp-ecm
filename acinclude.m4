@@ -432,7 +432,7 @@ AS_IF([test "x$is_gpu_asked" = "xyes" ],
         darwin*)
           AS_IF([test -f $cu_dir/lib$lib_suffix/libcudart.dylib], 
             [
-              CUDA_LIB_FLAGS="-L$cu_dir/lib/lib$lib_suffix -lcudart"
+              CUDA_LIB_FLAGS="-L$cu_dir/lib$lib_suffix -lcudart"
               AC_MSG_RESULT([yes])
             ], [
               AC_MSG_ERROR(libcudart.dylib not found)
@@ -441,7 +441,7 @@ AS_IF([test "x$is_gpu_asked" = "xyes" ],
         linux*)
           AS_IF([test -f $cu_dir/lib$lib_suffix/libcudart.so], 
             [
-              CUDA_LIB_FLAGS="-L$cu_dir/lib/lib$lib_suffix -lcudart"
+              CUDA_LIB_FLAGS="-L$cu_dir/lib$lib_suffix -lcudart"
               AC_MSG_RESULT([yes])
             ], [
               AC_MSG_ERROR(libcudart.so not found)
