@@ -599,7 +599,7 @@ AS_IF([test "x$DEBUG" = "xtrue"],
   [NVCC_FLAGS="-O2 --compiler-options -fno-strict-aliasing"])
 
 # Add architecture to flags
-NVCCFLAGS+=" -arch=$GPU_ARCH"
+NVCC_FLAGS+=" -arch=$GPU_ARCH"
 
 AC_SUBST(NVCC_FLAGS)
 
