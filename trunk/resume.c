@@ -386,7 +386,8 @@ error:
    Returns 1 on success, 0 on error */
 int  
 write_resumefile_line (char *fn, int method, double B1, mpz_t parameter,
-int parameter_is_A, mpz_t x, mpcandi_t *n, mpz_t x0, const char *comment)
+int parameter_is_A, int batch, mpz_t x, mpcandi_t *n, mpz_t x0, 
+const char *comment)
 {
   FILE *file;
   mpz_t checksum;
@@ -447,7 +448,14 @@ int parameter_is_A, mpz_t x, mpcandi_t *n, mpz_t x0, const char *comment)
     {
       fprintf (file, "ECM");
       if (parameter_is_A == 0)
-          fprintf (file, "; SIGMA=");
+        {
+          if (batch == 0)
+            fprintf (file, "; SIGMA=");
+          else if (batch == 1)
+            fprintf (file, "; NU=");
+          else if (batch == 2)
+            fprintf (file, "; TAU=");
+        }
       else
           fprintf (file, "; A=");
           
