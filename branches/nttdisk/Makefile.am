@@ -7,7 +7,7 @@ ACLOCAL_AMFLAGS = -I m4
 # (see http://www.gnu.org/software/automake/manual/html_node/Libtool-Convenience-Libraries.html)
 lib_LTLIBRARIES = libecm.la
 
-EXTRA_PROGRAMS = rho batch
+EXTRA_PROGRAMS = rho batch pm1fs2test
 
 # If we want assembly mulredc code, recurse into the right subdirectory
 # and set up variables to include the mulredc library from that subdir
@@ -38,8 +38,8 @@ libecm_la_SOURCES = ecm.c ecm2.c pm1.c pp1.c getprime.c listz.c lucas.c \
 		   sets_long.c auxarith.c batch.c ellparam_batch.c
 # Link the asm redc code (if we use it) into libecm.la
 libecm_la_CPPFLAGS = $(MULREDCINCPATH)
-libecm_la_CFLAGS = $(OPENMP_CFLAGS)
-libecm_la_LDFLAGS = '-version-info 0:0:0'
+libecm_la_CFLAGS = $(OPENMP_CFLAGS) -g
+libecm_la_LDFLAGS = '-version-info 0:0:0' -g
 libecm_la_LIBADD = $(MULREDCLIBRARY)
 
 bin_PROGRAMS = ecm
@@ -49,7 +49,7 @@ noinst_PROGRAMS = tune ecmfactor bench_mulredc
 LDADD = libecm.la $(GMPLIB)
 
 ecm_CPPFLAGS = -DOUTSIDE_LIBECM
-ecm_CFLAGS = $(OPENMP_CFLAGS)
+ecm_CFLAGS = $(OPENMP_CFLAGS) -g
 ecm_SOURCES = auxi.c b1_ainc.c candi.c eval.c random.c main.c \
               resume.c getprime.c champions.h
 
@@ -65,6 +65,11 @@ ecmfactor_CFLAGS = $(OPENMP_CFLAGS)
 rho_SOURCES = rho.c
 rho_CPPFLAGS = -DTESTDRIVE
 rho_LDADD = -lprimegen $(GMPLIB) $(GSL_LD_FLAGS)
+
+pm1fs2test_SOURCES = pm1fs2.c
+pm1fs2test_CPPFLAGS = -DTESTDRIVE
+pm1fs2test_LDADD = libecm.la
+pm1fs2test_LDFLAGS = -g
 
 batch_SOURCES = batch.c
 batch_LDADD = $(GMPLIB)
