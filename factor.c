@@ -55,6 +55,7 @@ ecm_init (ecm_params q)
   q->use_ntt = 1;
   q->stop_asap = NULL;
   q->batch = 0; /* no batch mode by default in library mode */
+  q->gpu = 0; /* no gpu by default in library mode */
   q->batch_B1 = 1.0;
   mpz_init_set_ui(q->batch_s, 1);
   q->gw_k = 0.0;
@@ -102,7 +103,7 @@ ecm_factor (mpz_t f, mpz_t n, double B1, ecm_params p)
                p->B2, B2scale, p->k, p->S, p->verbose, p->repr, p->nobase2step2,
                p->use_ntt, p->parameter_is_A, p->os, p->es, p->chkfilename, 
                p->TreeFilename, p->maxmem, p->stage1time, p->rng, p->stop_asap, 
-               p->batch, p->batch_s, p->gw_k, p->gw_b, p->gw_n, p->gw_c);
+               p->batch, p->batch_s, p->gpu, p->gw_k, p->gw_b, p->gw_n, p->gw_c);
   else if (p->method == ECM_PM1)
     res = pm1 (f, p->x, n, p->go, &(p->B1done), B1, p->B2min, p->B2, B2scale,
                p->k, p->S, p->verbose, p->repr, p->use_ntt, p->os, p->es,
