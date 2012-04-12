@@ -890,7 +890,7 @@ ecm (mpz_t f, mpz_t x, mpz_t parameter, mpz_t n, mpz_t go, double *B1done,
      int use_ntt, int parameter_is_A, FILE *os, FILE* es, char *chkfilename,
      char *TreeFilename, double maxmem, double stage1time, 
      gmp_randstate_t rng, int (*stop_asap)(void), int batch, mpz_t batch_s,
-     ATTRIBUTE_UNUSED double gw_k, ATTRIBUTE_UNUSED unsigned long gw_b,
+     int gpu, ATTRIBUTE_UNUSED double gw_k, ATTRIBUTE_UNUSED unsigned long gw_b,
      ATTRIBUTE_UNUSED unsigned long gw_n, ATTRIBUTE_UNUSED signed long gw_c)
 {
   int youpi = ECM_NO_FACTOR_FOUND;
@@ -1207,13 +1207,22 @@ ecm (mpz_t f, mpz_t x, mpz_t parameter, mpz_t n, mpz_t go, double *B1done,
 
   if (B1 > *B1done)
     {
-      if (batch != 0)
-        /* FIXME: go, stop_asap and chkfilename are ignored in batch mode */
-        youpi = ecm_stage1_batch (f, P.x, P.A, modulus, B1, B1done, batch, 
-                                                            batch_s);
+      if (gpu != 0)
+        {
+          youpi = gpu_ecm();
+          /* For now, we end here. TODO: stage2 (or save in a file) */
+          goto end_of_ecm;
+        }
       else
-        youpi = ecm_stage1 (f, P.x, P.A, modulus, B1, B1done, go, stop_asap,
-                            chkfilename);
+        {
+          if (batch != 0)
+          /* FIXME: go, stop_asap and chkfilename are ignored in batch mode */
+          youpi = ecm_stage1_batch (f, P.x, P.A, modulus, B1, B1done, batch, 
+                                    batch_s);
+          else
+            youpi = ecm_stage1 (f, P.x, P.A, modulus, B1, B1done, go, stop_asap,
+                                chkfilename);
+        }
     }
   
   if (stage1time > 0.)

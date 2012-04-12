@@ -156,7 +156,7 @@ usage (void)
     printf ("  -nu nu       use nu as curve generator [ecm batch=1].\n");
     printf ("  -bsaves file In the batch mode, save s in file.\n");
     printf ("  -bloads file In the batch mode, load s from file.\n");
-#ifdef WANT_GPU
+#ifdef WITH_GPU
     printf ("  -gpu         Use GPU-ECM for stage 1.\n");
 #endif
     printf ("  -h, --help   Prints this help and exit.\n");
@@ -303,10 +303,10 @@ print_config ()
   printf ("MPZSPV_NORMALISE_STRIDE undefined\n");
 #endif
 
-#ifdef WANT_GPU
-  printf ("WANT_GPU = %d\n", WANT_GPU);
+#ifdef WITH_GPU
+  printf ("WITH_GPU = %d\n", WITH_GPU);
 #else
-  printf ("WANT_GPU undefined\n");
+  printf ("WITH_GPU undefined\n");
 #endif
 
 }
@@ -388,9 +388,7 @@ main (int argc, char *argv[])
   unsigned long gw_n = 0;  /* set default values for gwnum poly k*b^n+c */
   signed long gw_c = 0;    /* set default values for gwnum poly k*b^n+c */
 #endif
-#ifdef WANT_GPU
   int use_gpu = 0; /* Do we use the GPU for stage 1 (by default no)*/
-#endif
 
   /* check ecm is linked with a compatible library */
   if (mp_bits_per_limb != GMP_NUMB_BITS)
@@ -831,7 +829,7 @@ main (int argc, char *argv[])
          argc -= 2;
        }
 #endif
-#ifdef WANT_GPU
+#ifdef WITH_GPU
       else if (strcmp (argv[1], "-gpu") == 0)
         {
           use_gpu = 1;
@@ -1046,6 +1044,7 @@ main (int argc, char *argv[])
   params->TreeFilename = TreeFilename;
   params->maxmem = maxmem;
   params->stage1time = stage1time;
+  params->gpu = use_gpu; /* If WITH_GPU is not defined it will always be 0 */
 
   /* -treefile is valid for ECM only */
   if (TreeFilename != NULL && method != ECM_ECM)
@@ -1563,12 +1562,7 @@ BreadthFirstDoAgain:;
 	}
 
       /* now call the ecm library */
-#ifdef WANT_GPU
-      if (use_gpu)
-        result = gpu_ecm_factor (); /* For now dummy function that do nothing */
-      else
-#endif
-        result = ecm_factor (f, n.n, B1, params);
+      result = ecm_factor (f, n.n, B1, params);
 
       if (result == ECM_ERROR)
         {
