@@ -73,9 +73,6 @@ rho_SOURCES = rho.c
 rho_CPPFLAGS = -DTESTDRIVE
 rho_LDADD = -lprimegen $(GMPLIB) $(GSL_LD_FLAGS)
 
-if WANT_CUDA 
-endif
-
 if MEMORY_DEBUG
   libecm_la_SOURCES += memory.c
   tune_SOURCES += memory.c

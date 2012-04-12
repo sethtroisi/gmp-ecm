@@ -353,22 +353,45 @@ AC_DEFUN([CU_CHECK_CUDA],[
 is_gpu_asked="no"
 cu_dir=""
 AC_ARG_ENABLE(gpu, 
-  AS_HELP_STRING([--enable-gpu=ARCH], [Enable the cuda version [default=no]]),
+  AS_HELP_STRING([--enable-gpu=GPU_ARCH], 
+                 [Enable the cuda version [default=no]]),
   [
     AS_IF([test "x$enableval" = "xno"], 
       [
         is_gpu_asked="no"
       ], [
         is_gpu_asked="yes"
+        AC_MSG_NOTICE([GPU version is requested])
 
         # If $enableval is not empty, set CUDA_ARCH to
         # supplied value, else set to default value sm_20
         AS_IF([test "x$enableval" = "xyes"],
           [ 
-            GPU_ARCH="sm_20" 
-          ], [ 
-            dnl TODO check that enablelevel = sm_* with * > 20
-            GPU_ARCH="$enableval"
+            GPU_ARCH="20" 
+            AC_MSG_NOTICE(
+             [GPU version will be optimized for GPU of compute capability 2.0])
+          ], 
+          [ 
+            case "$enableval" in
+              sm_20)
+                GPU_ARCH="20" 
+                AC_MSG_NOTICE(
+              [GPU version will be optimized for GPU of compute capability 2.0])
+              ;;
+              sm_21)
+                GPU_ARCH="21" 
+                AC_MSG_NOTICE(
+              [GPU version will be optimized for GPU of compute capability 2.1])
+              ;;
+              sm_30)
+                GPU_ARCH="30" 
+                AC_MSG_NOTICE(
+              [GPU version will be optimized for GPU of compute capability 3.0])
+                AC_MSG_NOTICE([Warning: Untested GPU architecture!])
+              ;;
+              *)
+                AC_MSG_ERROR(Unknown GPU_ARCH $enableval.)
+            esac
           ] )
     ] )
   ])
@@ -389,8 +412,6 @@ AC_ARG_WITH(cuda,
 
 AS_IF([test "x$is_gpu_asked" = "xyes" ],
   [
-    AC_MSG_NOTICE([the GPU version is requested])
-
     AS_IF([test "$cu_dir" = "" ], 
       [
         dnl TODO try to find it
