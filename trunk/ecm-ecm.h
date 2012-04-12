@@ -175,9 +175,6 @@ unsigned int get_random_ui (void);
 void pp1_random_seed  (mpz_t, mpz_t, gmp_randstate_t);
 void pm1_random_seed  (mpz_t, mpz_t, gmp_randstate_t);
 
-/* cudawrapper.c */
-int gpu_ecm_factor();
-
 /* default number of probable prime tests */
 #define PROBAB_PRIME_TESTS 1
 
