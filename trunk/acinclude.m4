@@ -372,29 +372,33 @@ AC_ARG_ENABLE(gpu,
              [GPU version will be optimized for GPU of compute capability 2.0])
           ], 
           [ 
-            case "$enableval" in
-              sm_20)
-                GPU_ARCH="20" 
-                AC_MSG_NOTICE(
+            AS_CASE(["$enableval"], 
+              ["sm_20"], 
+                [
+                  GPU_ARCH="20" 
+                  AC_MSG_NOTICE(
               [GPU version will be optimized for GPU of compute capability 2.0])
-              ;;
-              sm_21)
-                GPU_ARCH="21" 
-                AC_MSG_NOTICE(
+                ],
+              ["sm_21"], 
+                [
+                  GPU_ARCH="21" 
+                  AC_MSG_NOTICE(
               [GPU version will be optimized for GPU of compute capability 2.1])
-              ;;
-              sm_30)
-                GPU_ARCH="30" 
-                AC_MSG_NOTICE(
+                ],
+              ["sm_30"], 
+                [
+                  GPU_ARCH="30" 
+                  AC_MSG_NOTICE(
               [GPU version will be optimized for GPU of compute capability 3.0])
-                AC_MSG_NOTICE([Warning: Untested GPU architecture!])
-              ;;
-              *)
-                AC_MSG_ERROR(Unknown GPU_ARCH $enableval.)
-            esac
+                  AC_MSG_NOTICE([Warning: Untested GPU architecture!])
+                ],
+                #default
+                [
+                  AC_MSG_ERROR(Unknown GPU_ARCH $enableval.)
+                ] )
           ] )
-    ] )
-  ])
+      ] )
+  ] )
 
 
 AC_ARG_WITH(cuda, 
@@ -402,40 +406,79 @@ AC_ARG_WITH(cuda,
                  [CUDA install directory [default=/usr/local/cuda]]),
   [ 
     cu_dir="$withval" 
-    dnl TODO when withval = no: if gpu_is_asked = yes => ERROR that does not make
-    dnl sense. If gpu_is_asked != yes => That does not make sense either put
-    dnl only a warning not an error
-    AS_IF([test "x$withval" = "xno" ],[AC_MSG_ERROR("ARG has no meaning")])
+    AS_IF([test "x$withval" = "xno" ],
+      [
+        AS_IF([test "x$is_gpu_asked" = "xyes"],
+          [
+            AC_MSG_ERROR([CUDA is needed to run the GPU version.])
+          ],
+          [
+            AC_MSG_NOTICE([GPU version is not requested, --without-cuda will be ignore.])
+          ] )
+      ] )
     AS_IF([test "x$withval" = "xyes" ],[cu_dir=""])
   ], [ ])
 
 
 AS_IF([test "x$is_gpu_asked" = "xyes" ],
   [
-    AS_IF([test "$cu_dir" = "" ], 
-      [
-        dnl TODO try to find it
-        #if not found put default value: /usr/local/cuda
-        cu_dir=/usr/local/cuda
-      ])
-
-    AC_MSG_NOTICE([Using CUDA from $cu_dir])
+    NVCC=""
 
     # If $build_cpu contains "_64", append "64" to CUDA_LIBS
     AS_IF([echo $build_cpu | grep -q "_64"], [lib_suffix="64"], [lib_suffix=""])
 
-    #check that nvcc is in $cu_dir/bin
-    AC_MSG_CHECKING([for CUDA compiler in $cu_dir/bin])
-    AS_IF([test -f $cu_dir/bin/nvcc], 
+    AS_IF([test "$cu_dir" != "" ], [AC_MSG_NOTICE([Using CUDA from $cu_dir])])
+
+
+    #check for nvcc 
+    AS_IF([test "$cu_dir" = "" ], 
       [
-        NVCC="$cu_dir/bin/nvcc" 
-        AC_MSG_RESULT([yes])
-      ], [
-        AC_MSG_ERROR(nvcc not found)
+        #Look for nvcc in $PATH
+        AC_PATH_PROG(NVCC, nvcc, "no")
+        AS_IF([test "x$NVCC" = "xno" ],
+          [
+            AC_MSG_ERROR(nvcc not found)
+          ], [
+            cu_dir=`AS_DIRNAME(["$NVCC"])`  
+            # just to correct a syntax coloration problem ''
+            cu_dir=`echo "$cu_dir" | sed 's|/bin$||'`
+            # just to correct a syntax coloration problem '
+          ] )
+      ],
+      [
+        #check that nvcc is in $cu_dir/bin
+        AC_MSG_CHECKING([for nvcc in $cu_dir/bin])
+        AS_IF([test -f $cu_dir/bin/nvcc], 
+          [
+            NVCC="$cu_dir/bin/nvcc" 
+            AC_MSG_RESULT([yes])
+          ], [
+            AC_MSG_ERROR(nvcc not found)
+          ] )
       ])
 
-    dnl TODO check that nvcc version >= 4.1
+    #check that nvcc version >= 4.1
+    v_nvcc_min="4.1"
+    AC_MSG_CHECKING([if nvcc version >= $v_nvcc_min])
+    dnl TODO make this work
+    #v_nvcc=`$NVCC --version | grep -o "release [0-9].[0-9]" | cut -d " " -f 2`
+    # just to correct a syntax coloration problem ''
+    dnl Not implemented yet
+    v_nvcc="4.1"
+    
+    AS_VERSION_COMPARE($v_nvcc, $v_nvcc_min, 
+                            [v_nvcc_ok=0], [v_nvcc_ok=1], [v_nvcc_ok=1])
+    AS_IF([test "$v_nvcc_ok" = "1"], 
+      [
+        AC_MSG_RESULT([yes])
+      ], [
+        AC_MSG_RESULT([no])
+        AC_MSG_ERROR(nvcc version is $v_nvcc and should be >= $v_nvcc_min)
+      ] )
     dnl TODO check that gcc version is compatible with nvcc version
+    
+    # From now on cu_dir != "". Either it was always the case, either it was
+    # guess from NVCC. 
   
     #check that cuda.h is in $cu_dir/include
     AC_MSG_CHECKING([for cuda.h in $cu_dir/include])
@@ -447,19 +490,11 @@ AS_IF([test "x$is_gpu_asked" = "xyes" ],
         AC_MSG_ERROR(cuda.h not found)
       ])
 
-      #check that cudart is in $cu_dir/lib$lib_suffix
-      AC_MSG_CHECKING([for CUDA libraries in $cu_dir/lib$lib_suffix])
-      case $host_os in
-        darwin*)
-          AS_IF([test -f $cu_dir/lib$lib_suffix/libcudart.dylib], 
-            [
-              CUDA_LIB_FLAGS="-L$cu_dir/lib$lib_suffix -lcudart"
-              AC_MSG_RESULT([yes])
-            ], [
-              AC_MSG_ERROR(libcudart.dylib not found)
-            ])
-        ;;
-        linux*)
+    #check that cudart is in $cu_dir/lib$lib_suffix
+    AC_MSG_CHECKING([for CUDA libraries in $cu_dir/lib$lib_suffix])
+    AS_CASE(["$host_os"],
+      ["linux"*], 
+        [
           AS_IF([test -f $cu_dir/lib$lib_suffix/libcudart.so], 
             [
               CUDA_LIB_FLAGS="-L$cu_dir/lib$lib_suffix -lcudart"
@@ -467,13 +502,22 @@ AS_IF([test "x$is_gpu_asked" = "xyes" ],
             ], [
               AC_MSG_ERROR(libcudart.so not found)
             ])
-        ;;
-      #Default Case
-        *)
-          AC_MSG_ERROR([Your platform is not currently supported]) ;;
-      esac
+        ],
+      ["darwin"],
+        [
+          AS_IF([test -f $cu_dir/lib$lib_suffix/libcudart.dylib], 
+            [
+              CUDA_LIB_FLAGS="-L$cu_dir/lib$lib_suffix -lcudart"
+              AC_MSG_RESULT([yes])
+            ], [
+              AC_MSG_ERROR(libcudart.dylib not found)
+            ])
+        ],
+        #default
+        [
+          AC_MSG_ERROR([Your platform is not currently supported for GPU])
+        ] )
   ] )
-
 #Set this conditional if cuda is wanted
 AM_CONDITIONAL([WANT_CUDA], [test "x$is_gpu_asked" = "xyes" ])
 
