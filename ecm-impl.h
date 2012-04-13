@@ -768,7 +768,7 @@ int get_curve_from_ell_parametrization (mpz_t, mpres_t, mpz_t, mpmod_t);
 
 /* cudawrapper.c */
 #define gpu_ecm __ECM(gpu_ecm)
-int gpu_ecm();
+int gpu_ecm(mpz_t, mpz_t, int, unsigned int);
 
 /* sets_long.c */
 /* A set of long ints */

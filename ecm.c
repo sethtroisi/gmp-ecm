@@ -1209,7 +1209,7 @@ ecm (mpz_t f, mpz_t x, mpz_t parameter, mpz_t n, mpz_t go, double *B1done,
     {
       if (gpu != 0)
         {
-          youpi = gpu_ecm();
+          youpi = gpu_ecm(modulus->orig_modulus, batch_s, 0, 0);
           /* For now, we end here. TODO: stage2 (or save in a file) */
           goto end_of_ecm;
         }
