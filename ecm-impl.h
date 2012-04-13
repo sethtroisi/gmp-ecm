@@ -766,10 +766,6 @@ int ecm_stage1_batch (mpz_t, mpres_t, mpres_t, mpmod_t, double, double *,
                                       __ECM(get_curve_from_ell_parametrization)
 int get_curve_from_ell_parametrization (mpz_t, mpres_t, mpz_t, mpmod_t);
 
-/* cudawrapper.c */
-#define gpu_ecm __ECM(gpu_ecm)
-int gpu_ecm(mpz_t, mpz_t, int, unsigned int);
-
 /* sets_long.c */
 /* A set of long ints */
 typedef struct {

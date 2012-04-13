@@ -1,3 +1,10 @@
+#ifndef _ECM_GPU_H
+#define _ECM_GPU_H 1
+
+#ifndef _DO_NOT_INCLUDE_ECM_IMPL_H
+#include "ecm-impl.h"
+#endif
+
 #ifdef WITH_GPU
 
 #define VERSION_GPUECM "0.1"
@@ -27,3 +34,13 @@ typedef carry_t VOL dbigint_t[NB_DIGITS+1];
 /* Uncomment the next line to print the number of remaining iterations. */
 //#define PRINT_REMAINING_ITER
 #endif
+
+#ifndef _DO_NOT_INCLUDE_ECM_IMPL_H
+
+/* cudawrapper.c */
+#define gpu_ecm __ECM(gpu_ecm)
+int gpu_ecm(mpz_t, mpz_t, int, int*, unsigned int*, unsigned int);
+
+#endif
+
+#endif /* _ECM_GPU_H */

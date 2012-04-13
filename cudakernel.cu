@@ -1,3 +1,5 @@
+/* When compiling the CUDA code, we do not want to include all ecm-impl.h*/
+#define _DO_NOT_INCLUDE_ECM_IMPL_H
 #include "ecm-gpu.h"
 #include <gmp.h>
 #include "cudakernel.h"

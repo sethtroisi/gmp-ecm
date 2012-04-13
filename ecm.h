@@ -73,7 +73,12 @@ typedef struct
   int batch;      /* Batch mode */
   double batch_B1; /* B1 is the limit used to calculate s for batch mode */
   mpz_t batch_s;   /* s is the product of primes up to B1 for batch mode */
-  int gpu;  /* do we use the GPU for stage 1 */
+  int gpu;  /* do we use the GPU for stage 1. */
+            /* If different from 0, the GPU is used */
+            /* Else, the parameters beginning by gpu_* have no meaning */
+  int gpu_device; /* Which device do we use */
+  int gpu_device_init; /* Is the device initialized?*/
+  unsigned int gpu_number_of_curves; 
   double gw_k;         /* use for gwnum stage 1 if input has form k*b^n+c */
   unsigned long gw_b;  /* use for gwnum stage 1 if input has form k*b^n+c */
   unsigned long gw_n;  /* use for gwnum stage 1 if input has form k*b^n+c */
@@ -97,7 +102,7 @@ void ecm_clear (ecm_params);
 int ecm (mpz_t, mpz_t, mpz_t, mpz_t, mpz_t, double *, double, mpz_t, mpz_t,
          double, unsigned long, const int, int, int, int, int, int, FILE*, FILE*,
          char*, char *, double, double, gmp_randstate_t, int (*)(void), int, 
-         mpz_t, int, double, unsigned long, unsigned long, signed long);
+         mpz_t, double, unsigned long, unsigned long, signed long);
 int pp1 (mpz_t, mpz_t, mpz_t, mpz_t, double *, double, mpz_t, mpz_t, 
          double, unsigned long, const int, int, int, int, FILE*, FILE*, char*,
          char *, double, gmp_randstate_t, int (*)(void));
