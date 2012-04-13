@@ -590,17 +590,23 @@ dnl Check if a GPU version is asked, for which GPU and where CUDA is install.
 dnl See acinclude.m4 for details.
 CU_CHECK_CUDA
 
+# Construct NVCC_FLAGS
+NVCC_FLAGS="-DGPU_CC$GPU_ARCH -arch=sm_$GPU_ARCH"
+
+dnl hack ig gcc >= 4.6 (temporary)
+#NVCC_FLAGS+=" --compiler-bindir /tmp/gcc45"
+dnl Temporary
+NVCC_FLAGS+=" --ptxas-options=-v"
+
 # If debug flag is set apply debugging compilation flags, 
 # otherwise build compilation flags
 AS_IF([test "x$DEBUG" = "xtrue"],
-  [NVCC_FLAGS="-g --compiler-options -fno-strict-aliasing"
-  #NVCC_FLAGS+=" -keep -keep-dir gputmp"
+  [#NVCC_FLAGS+=" -keep -keep-dir gputmp"
+  NVCC_FLAGS+=" -g --compiler-options -fno-strict-aliasing"
   NVCC_FLAGS+=" --ptxas-options=-v"],
-  [NVCC_FLAGS="-O2 --compiler-options -fno-strict-aliasing"])
+  [NVCC_FLAGS+=" -O2 --compiler-options -fno-strict-aliasing"])
 
-# Add architecture to flags
-NVCC_FLAGS+=" -arch=sm_$GPU_ARCH"
-CC_ADD_FLAGS_FOR_GPU="-DGPU_CC$GPU_ARCH -DWITH_GPU"
+CC_ADD_FLAGS_FOR_GPU=" -DGPU_CC$GPU_ARCH -DWITH_GPU"
 
 AC_SUBST(NVCC_FLAGS)
 AC_SUBST(CC_ADD_FLAGS_FOR_GPU)
