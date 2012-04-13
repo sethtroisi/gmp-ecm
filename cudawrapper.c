@@ -1,4 +1,3 @@
-#include "ecm-impl.h"
 #include "ecm-gpu.h"
 
 #ifdef WITH_GPU
@@ -102,7 +101,8 @@ void biguint_to_mpz (mpz_t a, biguint_t b)
 #endif
 
 int gpu_ecm (ATTRIBUTE_UNUSED mpz_t N, ATTRIBUTE_UNUSED mpz_t s,
-             ATTRIBUTE_UNUSED int number_of_curves, 
+             ATTRIBUTE_UNUSED int device, ATTRIBUTE_UNUSED int *device_init, 
+             ATTRIBUTE_UNUSED unsigned int *nb_curves, 
              ATTRIBUTE_UNUSED unsigned int firstinvd)
 #ifndef WITH_GPU
 {
@@ -115,6 +115,7 @@ int gpu_ecm (ATTRIBUTE_UNUSED mpz_t N, ATTRIBUTE_UNUSED mpz_t s,
 {
   int main_ret = ECM_NO_FACTOR_FOUND;
   int ret;
+  unsigned int number_of_curves = *nb_curves;
 
   long st;
   unsigned int invd;
@@ -135,14 +136,18 @@ int gpu_ecm (ATTRIBUTE_UNUSED mpz_t N, ATTRIBUTE_UNUSED mpz_t s,
   biguint_t h_N, h_3N, h_M;
 
 
-  st = cputime ();
-  number_of_curves = select_and_init_GPU (-1, number_of_curves, stdout);
-  fprintf(stdout, "Selection and initialization of the device took %ldms\n", 
-                   elltime (st, cputime ()));
-  /* TRICKS: If initialization of the device is too long (few seconds), */
-  /* try running 'nvidia-smi -q -l' on the background .                 */
-  fprintf (stdout,"number_of_curves=%d\n",number_of_curves);
-
+  if (!*device_init)
+    {
+      st = cputime ();
+      number_of_curves = select_and_init_GPU (device, number_of_curves, stdout);
+      fprintf(stdout, "Selection and initialization of the device took %ldms\n", 
+                      elltime (st, cputime ()));
+      /* TRICKS: If initialization of the device is too long (few seconds), */
+      /* try running 'nvidia-smi -q -l' on the background .                 */
+      *device_init = 1;
+      *nb_curves = number_of_curves;
+    }
+  fprintf (stdout,"TMP for debug: number_of_curves=%d\n", number_of_curves);
   /*****************************/
   /* Initialize some variables */
   /*****************************/
