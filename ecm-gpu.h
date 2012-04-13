@@ -1,27 +1,6 @@
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <assert.h>
-#include <time.h>
-
-#ifndef _MSC_VER
-#include <unistd.h>
-#include <sys/resource.h>
-#else
-#include <windows.h>
-#endif
-
-#include <gmp.h>
-
-#ifdef _MSC_VER
-#define __asm__ asm
-#endif
+#ifdef WITH_GPU
 
 #define VERSION_GPUECM "0.1"
-
-#define ECM_FACTOR_FOUND 2
-#define ECM_NO_FACTOR_FOUND 0
-
 
 #ifndef NB_DIGITS
   #define NB_DIGITS 32 //by default
@@ -45,12 +24,6 @@ typedef digit_t VOL biguint_t[NB_DIGITS];
 typedef digit_t VOL dbiguint_t[NB_DIGITS+1];
 typedef carry_t VOL dbigint_t[NB_DIGITS+1];
 
-typedef struct clock2_t clock2_t;
-struct clock2_t
-{
-  long init;
-  long computation;
-};
-
 /* Uncomment the next line to print the number of remaining iterations. */
 //#define PRINT_REMAINING_ITER
+#endif
