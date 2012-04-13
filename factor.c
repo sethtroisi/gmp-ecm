@@ -114,8 +114,8 @@ ecm_factor (mpz_t f, mpz_t n, double B1, ecm_params p)
         }
       else
         {
-          res = gpu_ecm (n, p->batch_s, p->gpu_device, &(p->gpu_device_init), 
-                         &(p->gpu_number_of_curves), 42);
+          res = gpu_ecm (f, n, p->batch_s, B1, p->gpu_device, 
+                         &(p->gpu_device_init), &(p->gpu_number_of_curves), 42);
         }
     }
   else if (p->method == ECM_PM1)
