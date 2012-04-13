@@ -39,7 +39,9 @@ typedef carry_t VOL dbigint_t[NB_DIGITS+1];
 
 /* cudawrapper.c */
 #define gpu_ecm __ECM(gpu_ecm)
-int gpu_ecm(mpz_t, mpz_t, int, int*, unsigned int*, unsigned int);
+int gpu_ecm (mpz_t, mpz_t, mpz_t, double, int, int*, unsigned int*, 
+             unsigned int);
+int gpu_ecm_stage1 (mpz_t, mpz_t, unsigned int, unsigned int, float*);
 
 #endif
 
