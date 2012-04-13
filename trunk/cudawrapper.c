@@ -3,6 +3,8 @@
 #ifdef WITH_GPU
 #include "cuda.h"
 
+#define TWO32 4294967296 /* 2^32 */ 
+
 extern int select_and_init_GPU (int, int, FILE*);
 extern float cuda_Main (biguint_t, biguint_t, biguint_t, digit_t, biguint_t*, 
                         biguint_t*, biguint_t*, biguint_t*, mpz_t, unsigned int, 
@@ -98,29 +100,14 @@ void biguint_to_mpz (mpz_t a, biguint_t b)
   }
 }
 
-#endif
-
-int gpu_ecm (ATTRIBUTE_UNUSED mpz_t N, ATTRIBUTE_UNUSED mpz_t s,
-             ATTRIBUTE_UNUSED int device, ATTRIBUTE_UNUSED int *device_init, 
-             ATTRIBUTE_UNUSED unsigned int *nb_curves, 
-             ATTRIBUTE_UNUSED unsigned int firstinvd)
-#ifndef WITH_GPU
+int gpu_ecm_stage1 (mpz_t N, mpz_t s, unsigned int number_of_curves, 
+                    unsigned int firstinvd, float *gputime)
 {
-  fprintf(stderr, "This version of libecm does not contain the GPU code.\n"
-                  "You should recompile it with ./configure --enable-gpu or\n"
-                  "link a version of libecm which contain the GPU code.\n");
-  exit(EXIT_FAILURE);
-}
-#else
-{
-  int main_ret = ECM_NO_FACTOR_FOUND;
+  int fct_ret = ECM_NO_FACTOR_FOUND;
   int ret;
-  unsigned int number_of_curves = *nb_curves;
 
-  long st;
   unsigned int invd;
   unsigned int i;
-  float gputime = 0.0;
 
   mpz_t N3; /* N3 = 3*N */
   mpz_t w; /* w = 2^(SIZE_DIGIT) */
@@ -135,19 +122,6 @@ int gpu_ecm (ATTRIBUTE_UNUSED mpz_t N, ATTRIBUTE_UNUSED mpz_t s,
   digit_t h_invN;
   biguint_t h_N, h_3N, h_M;
 
-
-  if (!*device_init)
-    {
-      st = cputime ();
-      number_of_curves = select_and_init_GPU (device, number_of_curves, stdout);
-      fprintf(stdout, "Selection and initialization of the device took %ldms\n", 
-                      elltime (st, cputime ()));
-      /* TRICKS: If initialization of the device is too long (few seconds), */
-      /* try running 'nvidia-smi -q -l' on the background .                 */
-      *device_init = 1;
-      *nb_curves = number_of_curves;
-    }
-  fprintf (stdout,"TMP for debug: number_of_curves=%d\n", number_of_curves);
   /*****************************/
   /* Initialize some variables */
   /*****************************/
@@ -218,7 +192,7 @@ int gpu_ecm (ATTRIBUTE_UNUSED mpz_t N, ATTRIBUTE_UNUSED mpz_t s,
   } 
  
   /* Call the wrapper function that call the GPU */
-  gputime=cuda_Main (h_N, h_3N, h_M, h_invN, h_xarray, h_zarray, h_x2array, 
+  *gputime=cuda_Main (h_N, h_3N, h_M, h_invN, h_xarray, h_zarray, h_x2array, 
                      h_z2array, s, firstinvd, number_of_curves,
                      stdout, stdout);
 
@@ -235,6 +209,8 @@ int gpu_ecm (ATTRIBUTE_UNUSED mpz_t N, ATTRIBUTE_UNUSED mpz_t s,
   
     ret = findfactor (N, xp, zp);
 
+    if (ret != ECM_NO_FACTOR_FOUND)
+      fct_ret = ret;
     //if (ret==ECM_NO_FACTOR_FOUND && savefilename != NULL)
     //  write_resumefile_wrapper (savefilename, &n, B1, xp, invd, invw);
     //else if (ret==ECM_FACTOR_FOUND)
@@ -243,10 +219,6 @@ int gpu_ecm (ATTRIBUTE_UNUSED mpz_t N, ATTRIBUTE_UNUSED mpz_t s,
           
     }
   
-  fprintf (stdout, "time GPU: %.3fs\n", (gputime/1000));
-  fprintf (stdout, "Throughput: %.3f\n", 1000 * number_of_curves/gputime);
-
-free_memory_and_exit:
   mpz_clear (N3);
   mpz_clear (invN);
   mpz_clear (invw);
@@ -263,6 +235,112 @@ free_memory_and_exit:
   free ((void *) h_x2array);
   free ((void *) h_z2array);
 
+  return fct_ret;
+}
+#endif
+
+int gpu_ecm (ATTRIBUTE_UNUSED mpz_t f, ATTRIBUTE_UNUSED mpz_t N, 
+             ATTRIBUTE_UNUSED mpz_t s, ATTRIBUTE_UNUSED double B1,
+             ATTRIBUTE_UNUSED int device, ATTRIBUTE_UNUSED int *device_init, 
+             ATTRIBUTE_UNUSED unsigned int *nb_curves, 
+             ATTRIBUTE_UNUSED unsigned int firstinvd)
+#ifndef WITH_GPU
+{
+  fprintf(stderr, "This version of libecm does not contain the GPU code.\n"
+                  "You should recompile it with ./configure --enable-gpu or\n"
+                  "link a version of libecm which contain the GPU code.\n");
+  exit(EXIT_FAILURE);
+}
+#else
+{
+  int main_ret = ECM_NO_FACTOR_FOUND;
+  long st;
+  float gputime = 0.0;
+
+  /* I think it can't fail but i'm not sure. */
+  if (GMP_NUMB_BITS != 32 && GMP_NUMB_BITS != 64) 
+  {
+    fprintf (stderr, "GPU: Error, GMP_NUMB_BITS should be either 32 or 64.\n");
+    exit (EXIT_FAILURE);
+  }
+
+  /* Check that N is not too big */
+  if (mpz_sizeinbase (N, 2) > MAX_BITS-6)
+  {
+    fprintf (stderr, "GPU: Error, input number should be stricly lower"
+                     " than 2^%d\n", MAX_BITS-6);
+    exit (EXIT_FAILURE);
+  }
+
+  /* Check that N is positive and handle special cases (N=1 and N is even) */
+  if (mpz_cmp_ui (N, 0) <= 0)
+  {
+    fprintf (stderr, "GPU: Error, input number should be positive\n");
+    exit (EXIT_FAILURE);
+  }
+  else if (mpz_cmp_ui (N, 1) == 0)
+  {
+    mpz_set_ui (f, 1);
+    main_ret=ECM_FACTOR_FOUND_STEP1;
+    goto end_gpu_ecm;
+  }
+  else if (mpz_divisible_ui_p (N, 2))
+  {
+    mpz_set_ui (f, 2);
+    main_ret=ECM_FACTOR_FOUND_STEP1;
+    goto end_gpu_ecm;
+  }
+  
+  
+  if (!*device_init)
+    {
+      st = cputime ();
+      *nb_curves = select_and_init_GPU (device, *nb_curves, stdout);
+      fprintf(stdout, "Selection and initialization of the device took %ldms\n", 
+                      elltime (st, cputime ()));
+      /* TRICKS: If initialization of the device is too long (few seconds), */
+      /* try running 'nvidia-smi -q -l' on the background .                 */
+      *device_init = 1;
+    }
+  fprintf (stdout,"TMP for debug: number_of_curves=%d\n", *nb_curves);
+
+  if (firstinvd < 2 || firstinvd > TWO32-*nb_curves)
+  {
+    /* firstinvd is in fact firstnu (almost because the GPU is a 32-bit machine
+     * so on 64-bit machine this is not exactly the case). TODO changefirstinv
+     * in firstinvnu everywhere. */
+    fprintf(stderr,"GPU: Error, firstinvd should be bigger than 2 and " 
+                   "smaller than %lu.\n", TWO32-*nb_curves);
+    exit(EXIT_FAILURE);
+  }
+  
+  /* TODO: before beginning stage1: 
+            print B1, firstinv, nb_curves (modify a little 
+              print_B1_B2_poly) 
+  print_B1_B2_poly (int verbosity, int method, double B1, double B1done, 
+		  mpz_t B2min_param, mpz_t B2min, mpz_t B2, int S, mpz_t parameter,
+		  int parameter_is_A, mpz_t go, int batch)
+  In the meantime, we use this temporary printf:
+  */
+  gmp_fprintf (stdout, "Using B1=%1.0f, firstinvd=%u, with %u curves\n", 
+                                          B1, firstinvd, *nb_curves);
+  
+
+  gpu_ecm_stage1 (N, s, *nb_curves, firstinvd, &gputime);
+
+  fprintf (stdout, "time GPU: %.3fs\n", (gputime/1000));
+  fprintf (stdout, "Throughput: %.3f\n", 1000 * (*nb_curves)/gputime);
+
+  /* TODO: print CPU time for stage1 */
+  /* TODO: Do stage2 (compute the parameters first (like in ecm.c) */
+  /* TODO: Save in a file if requested */
+
+
+  end_gpu_ecm:
+
   return main_ret;
 }
 #endif
+
+
+
