@@ -42,6 +42,7 @@ libecm_la_CFLAGS = $(OPENMP_CFLAGS)
 libecm_la_LDFLAGS = '-version-info 0:0:0'
 libecm_la_LIBADD = $(MULREDCLIBRARY)
 if WANT_CUDA 
+  libecm_la_SOURCES += cudakernel.cu
   libecm_la_LIBADD += $(CUDA_LIB_FLAGS)
   libecm_la_CFLAGS += $(CUDA_INC_FLAGS) $(CC_ADD_FLAGS_FOR_GPU)
 endif
@@ -108,6 +109,11 @@ EXTRA_DIST = test.pm1 test.pp1 test.ecm README.lib INSTALL-ecm ecm.xml \
 DIST_SUBDIRS = athlon pentium4 x86_64 powerpc64 build.vc10
 
 DISTCLEANFILES = config.m4
+
+if WANT_CUDA 
+.cu.lo:
+		$(LIBTOOL) --tag=CC --mode=compile $(NVCC) --compile $(CUDA_INC_FLAGS) $(NVCC_FLAGS) -o $@ $^ -static
+endif
 
 ecm-params:	tune$(EXEEXT)
 		@echo Optimising parameters for your system, please be patient.
