@@ -1,4 +1,5 @@
 #include "ecm-gpu.h"
+#include <gmp.h>
 #include "cudakernel.h"
 
 __constant__ __device__ digit_t d_invNcst;

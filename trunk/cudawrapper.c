@@ -8,31 +8,6 @@ extern int select_and_init_GPU (int, int, FILE*);
 extern float cuda_Main (biguint_t, biguint_t, biguint_t, digit_t, biguint_t*, 
                         biguint_t*, biguint_t*, biguint_t*, mpz_t, unsigned int, 
                         unsigned int, FILE*, FILE*);
-#endif
-
-unsigned int findfactor(mpz_t N, mpz_t xfin, mpz_t zfin)
-{
-  mpz_t gcd;
-  mpz_init (gcd);
-
-  mpz_gcd(gcd, zfin, N);
-  
-  if (mpz_cmp_ui (gcd, 1)==0)
-  {
-    mpz_invert (zfin, zfin, N);
-    mpz_mul (xfin, xfin, zfin);
-    mpz_mod (xfin, xfin, N);
-      
-    mpz_clear(gcd);
-    return ECM_NO_FACTOR_FOUND;
-  }
-  else //gcd !=1 (and gcd>0 because N>0) so we found a factor
-  {
-    print_factor_cofactor (N, gcd);
-    mpz_clear(gcd);
-    return ECM_FACTOR_FOUND;
-  }
-}
 
 void print_factor_cofactor (mpz_t N, mpz_t factor)
 {
@@ -56,6 +31,30 @@ void print_factor_cofactor (mpz_t N, mpz_t factor)
 
       mpz_clear(cofactor);
     }
+}
+
+unsigned int findfactor(mpz_t N, mpz_t xfin, mpz_t zfin)
+{
+  mpz_t gcd;
+  mpz_init (gcd);
+
+  mpz_gcd(gcd, zfin, N);
+  
+  if (mpz_cmp_ui (gcd, 1)==0)
+  {
+    mpz_invert (zfin, zfin, N);
+    mpz_mul (xfin, xfin, zfin);
+    mpz_mod (xfin, xfin, N);
+      
+    mpz_clear(gcd);
+    return ECM_NO_FACTOR_FOUND;
+  }
+  else //gcd !=1 (and gcd>0 because N>0) so we found a factor
+  {
+    print_factor_cofactor (N, gcd);
+    mpz_clear(gcd);
+    return ECM_FACTOR_FOUND_STEP1;
+  }
 }
 
 void to_mont_repr (mpz_t x, mpz_t n)
@@ -100,7 +99,11 @@ void biguint_to_mpz (mpz_t a, biguint_t b)
   }
 }
 
-int gpu_ecm(mpz_t N, mpz_t s, int number_of_curves, unsigned int firstinvd)
+#endif
+
+int gpu_ecm (ATTRIBUTE_UNUSED mpz_t N, ATTRIBUTE_UNUSED mpz_t s,
+             ATTRIBUTE_UNUSED int number_of_curves, 
+             ATTRIBUTE_UNUSED unsigned int firstinvd)
 #ifndef WITH_GPU
 {
   fprintf(stderr, "This version of libecm does not contain the GPU code.\n"
