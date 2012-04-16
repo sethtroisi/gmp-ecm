@@ -134,8 +134,8 @@ void tests_memory_set_location (char *, unsigned int);
 int trial_factor (mpcandi_t *n, double maxfact, int deep);
 
 /* resume.c */
-int  read_resumefile_line (int *, mpz_t, mpcandi_t *, mpz_t, mpz_t, mpz_t, double *,
-                           char *, char *, char *, char *, FILE *);
+int  read_resumefile_line (int *, mpz_t, mpcandi_t *, mpz_t, mpz_t, mpz_t, int *,
+                           double *, char *, char *, char *, char *, FILE *);
 int write_resumefile_line (char *, int, double, mpz_t, int, int, mpz_t, 
                            mpcandi_t *, mpz_t, const char *);
 int write_s_in_file (char *, mpz_t);
