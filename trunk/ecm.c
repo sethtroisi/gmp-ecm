@@ -884,15 +884,14 @@ print_B1_B2_poly (int verbosity, int method, double B1, double B1done,
 		 ECM_ERROR in case of error.
 */
 int
-ecm (mpz_t f, mpz_t x, mpz_t parameter, mpz_t n, mpz_t go, double *B1done,
-     double B1, mpz_t B2min_parm, mpz_t B2_parm, double B2scale, 
-     unsigned long k, const int S, int verbose, int repr, int nobase2step2, 
-     int use_ntt, int parameter_is_A, FILE *os, FILE* es, char *chkfilename,
-     char *TreeFilename, double maxmem, double stage1time, 
-     gmp_randstate_t rng, int (*stop_asap)(void), int batch, mpz_t batch_s,
-     double *batch_last_B1_used, ATTRIBUTE_UNUSED double gw_k, 
-     ATTRIBUTE_UNUSED unsigned long gw_b, ATTRIBUTE_UNUSED unsigned long gw_n, 
-     ATTRIBUTE_UNUSED signed long gw_c)
+ecm (mpz_t f, mpz_t x, int batch, mpz_t parameter, mpz_t n, mpz_t go, 
+     double *B1done, double B1, mpz_t B2min_parm, mpz_t B2_parm, double B2scale,
+     unsigned long k, const int S, int verbose, int repr, int nobase2step2, int
+     use_ntt, int parameter_is_A, FILE *os, FILE* es, char *chkfilename, char
+     *TreeFilename, double maxmem, double stage1time, gmp_randstate_t rng, int
+     (*stop_asap)(void), mpz_t batch_s, double *batch_last_B1_used,
+     ATTRIBUTE_UNUSED double gw_k, ATTRIBUTE_UNUSED unsigned long gw_b,
+     ATTRIBUTE_UNUSED unsigned long gw_n, ATTRIBUTE_UNUSED signed long gw_c)
 {
   int youpi = ECM_NO_FACTOR_FOUND;
   int base2 = 0;  /* If n is of form 2^n[+-]1, set base to [+-]n */
