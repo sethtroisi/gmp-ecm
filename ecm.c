@@ -884,10 +884,10 @@ print_B1_B2_poly (int verbosity, int method, double B1, double B1done,
 		 ECM_ERROR in case of error.
 */
 int
-ecm (mpz_t f, mpz_t x, int batch, mpz_t parameter, mpz_t n, mpz_t go, 
+ecm (mpz_t f, mpz_t x, int param, mpz_t sigma, mpz_t n, mpz_t go, 
      double *B1done, double B1, mpz_t B2min_parm, mpz_t B2_parm, double B2scale,
      unsigned long k, const int S, int verbose, int repr, int nobase2step2, int
-     use_ntt, int parameter_is_A, FILE *os, FILE* es, char *chkfilename, char
+     use_ntt, int sigma_is_A, FILE *os, FILE* es, char *chkfilename, char
      *TreeFilename, double maxmem, double stage1time, gmp_randstate_t rng, int
      (*stop_asap)(void), mpz_t batch_s, double *batch_last_B1_used,
      ATTRIBUTE_UNUSED double gw_k, ATTRIBUTE_UNUSED unsigned long gw_b,
@@ -904,11 +904,11 @@ ecm (mpz_t f, mpz_t x, int batch, mpz_t parameter, mpz_t n, mpz_t go,
   unsigned long dF;
   root_params_t root_params;
 
-  /*  1: parameter contains A from Montgomery form By^2 = x^3 + Ax^2 + x
-      0: parameter contains sigma/nu/tau
-     -1: paraemter contains A from Weierstrass form y^2 = x^3 + Ax + B,
+  /*  1: sigma contains A from Montgomery form By^2 = x^3 + Ax^2 + x
+      0: sigma contains sigma/nu/tau
+     -1: sigma contains A from Weierstrass form y^2 = x^3 + Ax + B,
          and go contains B */
-  ASSERT((-1 <= parameter_is_A) && (parameter_is_A <= 1));
+  ASSERT((-1 <= sigma_is_A) && (sigma_is_A <= 1));
 
   set_verbose (verbose);
   ECM_STDOUT = (os == NULL) ? stdout : os;
@@ -925,8 +925,17 @@ ecm (mpz_t f, mpz_t x, int batch, mpz_t parameter, mpz_t n, mpz_t go,
 #endif
 
   /* In batch mode, we force MODMULN */
-  if (batch)
-    repr = ECM_MOD_MODMULN;
+  if (IS_BATCH_MODE(param))
+    {
+      if (repr == ECM_MOD_DEFAULT)
+        repr = ECM_MOD_MODMULN;
+      else if (repr != ECM_MOD_MODMULN)
+        {
+          outputf (OUTPUT_ERROR, "Error, with param %d, repr should be ECM_MOD_MODMULN.\n", 
+                   param);
+          return ECM_ERROR;
+        }
+    }
 
   /* check that B1 is not too large */
   if (B1 > (double) ECM_UINT_MAX)
@@ -937,7 +946,7 @@ ecm (mpz_t f, mpz_t x, int batch, mpz_t parameter, mpz_t n, mpz_t go,
     }
 
   /* Compute s for the batch mode */
-  if (batch && (B1 != *batch_last_B1_used || mpz_cmp_ui (batch_s, 1) <= 0))
+  if (IS_BATCH_MODE(param) && (B1 != *batch_last_B1_used || mpz_cmp_ui (batch_s, 1) <= 0))
     {
       *batch_last_B1_used = B1;
 
@@ -1053,50 +1062,50 @@ ecm (mpz_t f, mpz_t x, int batch, mpz_t parameter, mpz_t n, mpz_t go,
         }
     }
   
-  if (parameter_is_A == 0)
+  if (sigma_is_A == 0)
     {
-      /* if parameter=0, generate it at random */
-      if (mpz_sgn (parameter) == 0)
+      /* if sigma=0, generate it at random */
+      if (mpz_sgn (sigma) == 0)
         {
-          if (batch == 0)
+          if (param == 0)
             {
-              mpz_urandomb (parameter, rng, 32);
-              mpz_add_ui (parameter, parameter, 6);
+              mpz_urandomb (sigma, rng, 32);
+              mpz_add_ui (sigma, sigma, 6);
             }
-          else if (batch == 1)
+          else if (param == 1)
             {
               /* We choose a positive integer nu smaller than B=2^GMP_NUMB_BITS
                 and consider d = nu/B and A = 4d-2 */
               do
-                mpz_urandomb (parameter, rng, 32);  /* generates nu <> 0 */
-              while (mpz_sgn (parameter) == 0);
+                mpz_urandomb (sigma, rng, 32);  /* generates nu <> 0 */
+              while (mpz_sgn (sigma) == 0);
               ASSERT((GMP_NUMB_BITS % 2) == 0);
               if (GMP_NUMB_BITS >= 64)
-                mpz_mul (parameter, parameter, parameter); 
+                mpz_mul (sigma, sigma, sigma); 
                                       /* ensures nu (and thus d) is a square, 
                                       which increases the success probability */
             }
-          else if (batch == 2)
+          else if (param == 2)
             {
-              mpz_urandomb (parameter, rng, 32);
-              mpz_add_ui (parameter, parameter, 2);
+              mpz_urandomb (sigma, rng, 32);
+              mpz_add_ui (sigma, sigma, 2);
             }
         }
 
-      if (batch == 0)
+      if (param == 0)
         {
-          /* parameter contains sigma value, A and x values must be computed */
-          youpi = get_curve_from_sigma (f, P.A, P.x, parameter, modulus);
+          /* sigma contains sigma value, A and x values must be computed */
+          youpi = get_curve_from_sigma (f, P.A, P.x, sigma, modulus);
           if (youpi != ECM_NO_FACTOR_FOUND)
 	          goto end_of_ecm;
         }
-      else if (batch == 1)
+      else if (param == 1)
         {
           int i;
           mpz_t tmp;
-          mpz_init_set (tmp, parameter);
-          /* parameter contains nu value, A value must be computed */
-          /* divide nu by B to get d */
+          mpz_init_set (tmp, sigma);
+          /* sigma contains sigma value, A value must be computed */
+          /* divide sigma by B to get d */
           for (i = 0; i < GMP_NUMB_BITS; i++)
             {
               if (mpz_tstbit (tmp, 0) == 1)
@@ -1109,28 +1118,34 @@ ecm (mpz_t f, mpz_t x, int batch, mpz_t parameter, mpz_t n, mpz_t go,
           mpres_set_z (P.A, tmp, modulus);
           mpz_clear(tmp);
         }
-      else if (batch == 2)
+      else if (param == 2)
         {
-          /* parameter contains tau value, A value must be computed */
-          youpi=get_curve_from_ell_parametrization(f, P.A, parameter, modulus);
+          /* sigma contains sigma value, A value must be computed */
+          youpi=get_curve_from_ell_parametrization(f, P.A, sigma, modulus);
           if (youpi != ECM_NO_FACTOR_FOUND)
 	          goto end_of_ecm;
         }
     }
-  else if (parameter_is_A == 1)
+  else if (sigma_is_A == 1)
     {
       /* sigma contains the A value */
-      mpres_set_z (P.A, parameter, modulus);
+      mpres_set_z (P.A, sigma, modulus);
       /* TODO: make a valid, random starting point in case none was given */
       /* Problem: this may be as hard as factoring as we'd need to determine
          whether x^3 + a*x^2 + x is a quadratic residue or not */
       /* For now, we'll just chicken out. */
+      /* Except for batch mode where we know that x0=2 */
       if (mpz_sgn (x) == 0)
         {
-          outputf (OUTPUT_ERROR, 
-                   "Error, -A requires a starting point (-x0 x).\n");
-	  youpi = ECM_ERROR;
-	  goto end_of_ecm;
+          if (IS_BATCH_MODE(param))
+            mpz_set_ui (x, 2);
+          else
+            {
+              outputf (OUTPUT_ERROR, 
+                          "Error, -A requires a starting point (-x0 x).\n");
+              youpi = ECM_ERROR;
+	            goto end_of_ecm;
+            }
         }
     }
 
@@ -1141,7 +1156,7 @@ ecm (mpz_t f, mpz_t x, int batch, mpz_t parameter, mpz_t n, mpz_t go,
 
   /* Print B1, B2, polynomial and sigma */
   print_B1_B2_poly (OUTPUT_NORMAL, ECM_ECM, B1, *B1done, B2min_parm, B2min, 
-		    B2, root_params.S, parameter, parameter_is_A, go, batch);
+		    B2, root_params.S, sigma, sigma_is_A, go, param);
 
 #if 0
   outputf (OUTPUT_VERBOSE, "b2=%1.0f, dF=%lu, k=%lu, d=%lu, d2=%lu, i0=%Zd\n", 
@@ -1151,11 +1166,11 @@ ecm (mpz_t f, mpz_t x, int batch, mpz_t parameter, mpz_t n, mpz_t go,
            dF, k, root_params.d1, root_params.d2, root_params.i0);
 #endif
 
-  if (parameter_is_A == -1) /* Weierstrass form: we perform only Stage 2,
+  if (sigma_is_A == -1) /* Weierstrass form: we perform only Stage 2,
 			   since all curves in Weierstrass form do not
 			   admit a Montgomery form. */
     {
-      mpres_set_z (P.A, parameter, modulus); /* parameter contains A */
+      mpres_set_z (P.A, sigma, modulus); /* sigma contains A */
       mpres_set_z (P.y, go,    modulus); /* go contains y */
       if (mpz_sgn (x) == 0 || mpz_sgn (go) == 0)
         {
@@ -1193,14 +1208,14 @@ ecm (mpz_t f, mpz_t x, int batch, mpz_t parameter, mpz_t n, mpz_t go,
       else
         {
           rhoinit (256, 10);
-          print_expcurves (B1, B2, dF, k, root_params.S, batch);
+          print_expcurves (B1, B2, dF, k, root_params.S, param);
         }
     }
 
 #ifdef HAVE_GWNUM
   /* We will only use GWNUM for numbers of the form k*b^n+c */
 
-  if (gw_b != 0 && B1 >= *B1done && batch == 0)
+  if (gw_b != 0 && B1 >= *B1done && param == 0)
       youpi = gw_ecm_stage1 (f, &P, modulus, B1, B1done, go, gw_k, gw_b, gw_n, gw_c);
 
   /* At this point B1 == *B1done unless interrupted, or no GWNUM ecm_stage1
@@ -1212,9 +1227,9 @@ ecm (mpz_t f, mpz_t x, int batch, mpz_t parameter, mpz_t n, mpz_t go,
 
   if (B1 > *B1done)
     {
-        if (batch != 0)
+        if (IS_BATCH_MODE(param))
         /* FIXME: go, stop_asap and chkfilename are ignored in batch mode */
-        youpi = ecm_stage1_batch (f, P.x, P.A, modulus, B1, B1done, batch, 
+        youpi = ecm_stage1_batch (f, P.x, P.A, modulus, B1, B1done, param, 
                                   batch_s);
         else
           youpi = ecm_stage1 (f, P.x, P.A, modulus, B1, B1done, go, stop_asap,
@@ -1331,7 +1346,7 @@ end_of_ecm_rhotable:
               (stop_asap == NULL || !(*stop_asap)()))
             print_exptime (B1, B2, dF, k, root_params.S, 
                            (long) (stage1time * 1000.) + 
-                           elltime (st, cputime ()), batch);
+                           elltime (st, cputime ()), param);
           rhoinit (1, 0); /* Free memory of rhotable */
         }
     }
