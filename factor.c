@@ -91,8 +91,8 @@ ecm_factor (mpz_t f, mpz_t n, double B1, ecm_params p)
 
   if (mpz_cmp_ui (n, 0) <= 0)
 	  {
-      fprintf (stderr, "Error, n should be positive.\n");
-	    exit (EXIT_FAILURE);
+      fprintf (p->es, "Error, n should be positive.\n");
+	    return ECM_ERROR;
 	  }
   else if (mpz_cmp_ui (n, 1) == 0)
     {
