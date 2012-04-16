@@ -890,8 +890,9 @@ ecm (mpz_t f, mpz_t x, mpz_t parameter, mpz_t n, mpz_t go, double *B1done,
      int use_ntt, int parameter_is_A, FILE *os, FILE* es, char *chkfilename,
      char *TreeFilename, double maxmem, double stage1time, 
      gmp_randstate_t rng, int (*stop_asap)(void), int batch, mpz_t batch_s,
-     ATTRIBUTE_UNUSED double gw_k, ATTRIBUTE_UNUSED unsigned long gw_b,
-     ATTRIBUTE_UNUSED unsigned long gw_n, ATTRIBUTE_UNUSED signed long gw_c)
+     double *batch_last_B1_used, ATTRIBUTE_UNUSED double gw_k, 
+     ATTRIBUTE_UNUSED unsigned long gw_b, ATTRIBUTE_UNUSED unsigned long gw_n, 
+     ATTRIBUTE_UNUSED signed long gw_c)
 {
   int youpi = ECM_NO_FACTOR_FOUND;
   int base2 = 0;  /* If n is of form 2^n[+-]1, set base to [+-]n */
@@ -928,15 +929,6 @@ ecm (mpz_t f, mpz_t x, mpz_t parameter, mpz_t n, mpz_t go, double *B1done,
   if (batch)
     repr = ECM_MOD_MODMULN;
 
-  /* if n is even, return 2 */
-  if (mpz_divisible_2exp_p (n, 1))
-    {
-      mpz_set_ui (f, 2);
-      return ECM_FACTOR_FOUND_STEP1;
-    }
-
-  /* now n is odd */
-
   /* check that B1 is not too large */
   if (B1 > (double) ECM_UINT_MAX)
     {
@@ -944,6 +936,20 @@ ecm (mpz_t f, mpz_t x, mpz_t parameter, mpz_t n, mpz_t go, double *B1done,
                ECM_UINT_MAX);
       return ECM_ERROR;
     }
+
+  /* Compute s for the batch mode */
+  if (batch && (B1 != *batch_last_B1_used || mpz_cmp_ui (batch_s, 1) <= 0))
+    {
+      *batch_last_B1_used = B1;
+
+      st = cputime ();
+      /* construct the batch exponent */
+      compute_s (batch_s, B1);
+      if (verbose > OUTPUT_NORMAL)
+        fprintf (stdout, "computing prime product of %zu bits took %ldms\n", 
+                mpz_sizeinbase (batch_s, 2), cputime () - st);
+    }
+
 
   st = cputime ();
 

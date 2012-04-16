@@ -71,8 +71,9 @@ typedef struct
   int (*stop_asap) (void); /* Pointer to function, if it returns 0, contine 
                       normally, otherwise exit asap. May be NULL */
   int batch;      /* Batch mode */
-  double batch_B1; /* B1 is the limit used to calculate s for batch mode */
   mpz_t batch_s;   /* s is the product of primes up to B1 for batch mode */
+  double batch_last_B1_used; /* Last B1 used in batch mode. Used to avoid */
+                             /*  computing s when B1 = batch_last_B1_used */
   int gpu;  /* do we use the GPU for stage 1. */
             /* If different from 0, the GPU is used */
             /* Else, the parameters beginning by gpu_* have no meaning */
@@ -102,7 +103,7 @@ void ecm_clear (ecm_params);
 int ecm (mpz_t, mpz_t, mpz_t, mpz_t, mpz_t, double *, double, mpz_t, mpz_t,
          double, unsigned long, const int, int, int, int, int, int, FILE*, FILE*,
          char*, char *, double, double, gmp_randstate_t, int (*)(void), int, 
-         mpz_t, double, unsigned long, unsigned long, signed long);
+         mpz_t, double *, double, unsigned long, unsigned long, signed long);
 int pp1 (mpz_t, mpz_t, mpz_t, mpz_t, double *, double, mpz_t, mpz_t, 
          double, unsigned long, const int, int, int, int, FILE*, FILE*, char*,
          char *, double, gmp_randstate_t, int (*)(void));
