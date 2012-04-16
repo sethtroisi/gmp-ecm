@@ -593,11 +593,28 @@ main (int argc, char *argv[])
         }
       else if ((argc > 2) && (strcmp (argv[1], "-sigma")) == 0)
         {
-          /* Accept stuff like -sigma 2:x for param=2 and sigma=x */
-          if (mpz_set_str (sigma, argv[2], 0)) 
+          /* Accept stuff like '-sigma i:s', this is equivalent to */
+          /* '-param i -sigma s'. If we have only -sigma s and param is not */ 
+          /* yet defined we assumed this is 0 (for compatibility reason) */
+          if (argv[2][1] == ':')
             {
-              fprintf (stderr, "Error, invalid sigma value: %s\n", argv[2]);
-              exit (EXIT_FAILURE);
+              param = argv[2][0] - '0' ;
+              if (mpz_set_str (sigma, argv[2]+2, 0)) 
+                {
+                  fprintf (stderr, "Error, invalid sigma value: %s\n", 
+                           argv[2]+2);
+                  exit (EXIT_FAILURE);
+                }
+            }
+          else
+            {
+              if (param == -1)
+                param = 0; 
+              if (mpz_set_str (sigma, argv[2], 0)) 
+                {
+                  fprintf (stderr, "Error, invalid sigma value: %s\n", argv[2]);
+                  exit (EXIT_FAILURE);
+                }
             }
           specific_sigma = 1;
           argv += 2;
