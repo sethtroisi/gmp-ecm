@@ -138,17 +138,14 @@ int  read_resumefile_line (int *, mpz_t, mpcandi_t *, mpz_t, mpz_t, mpz_t, doubl
                            char *, char *, char *, char *, FILE *);
 int write_resumefile_line (char *, int, double, mpz_t, int, int, mpz_t, 
                            mpcandi_t *, mpz_t, const char *);
+int write_s_in_file (char *, mpz_t);
+void read_s_from_file (mpz_t, char *); 
 
 /* main.c */
 int kbnc_z (double *k, unsigned long *b, unsigned long *n, signed long *c,
             mpz_t z);
 int kbnc_str (double *k, unsigned long *b, unsigned long *n, signed long *c,
               char *z, mpz_t num);
-
-/* batch.c */
-void compute_s (mpz_t, unsigned long);
-int write_s_in_file (char *, mpz_t);
-void read_s_from_file (mpz_t, char *); 
 
 /* eval.c */
 int eval (mpcandi_t *n, FILE *fd, int bPrp);
