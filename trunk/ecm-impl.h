@@ -230,6 +230,9 @@ void tests_memory_set_location (char *, unsigned int);
 /* Interval length for writing checkpoints in stage 1, in milliseconds */
 #define CHKPNT_PERIOD 600000
 
+/* Is the parametrization implies batch mode ? */
+#define IS_BATCH_MODE(p) ( p == 1 || p == 2)
+
 typedef mpz_t mpres_t;
 
 typedef mpz_t* listz_t;
