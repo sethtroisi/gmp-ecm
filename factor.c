@@ -95,6 +95,25 @@ ecm_factor (mpz_t f, mpz_t n, double B1, ecm_params p)
       ecm_init (q);
     }
 
+  if (mpz_cmp_ui (n, 0) <= 0)
+	  {
+      fprintf (stderr, "Error, n should be positive.\n");
+	    exit (EXIT_FAILURE);
+	  }
+  else if (mpz_cmp_ui (n, 1) == 0)
+    {
+      mpz_set_ui (f, 1);
+      res=ECM_FACTOR_FOUND_STEP1;
+      goto end_ecmfactor;
+    }
+  else if (mpz_divisible_ui_p (n, 2))
+    {
+      mpz_set_ui (f, 2);
+      res=ECM_FACTOR_FOUND_STEP1;
+      goto end_ecmfactor;
+    }
+  
+
    /* Ugly hack to pass B2scale to the library somehow. It gets piggy-backed
       onto B1done. The next major release will have to allow for variable
       length parameter structs. */
@@ -134,6 +153,7 @@ ecm_factor (mpz_t f, mpz_t n, double B1, ecm_params p)
       res = ECM_ERROR;
     }
 
+end_ecmfactor:
   if (p_is_null)
     ecm_clear (q);
 
