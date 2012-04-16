@@ -118,7 +118,7 @@ freadstrn (FILE *fd, char *s, char delim, unsigned int len)
 
 int 
 read_resumefile_line (int *method, mpz_t x, mpcandi_t *n, mpz_t sigma, mpz_t A, 
-        mpz_t x0, double *b1, char *program, char *who, char *rtime, 
+        mpz_t x0, int *param, double *b1, char *program, char *who, char *rtime, 
         char *comment, FILE *fd)
 {
   int a, have_method, have_x, have_z, have_n, have_sigma, have_a, have_b1, 
@@ -148,6 +148,9 @@ read_resumefile_line (int *method, mpz_t x, mpcandi_t *n, mpz_t sigma, mpz_t A,
       
       have_method = have_x = have_z = have_n = have_sigma = have_a = 
                     have_b1 = have_qx = have_checksum = 0;
+
+      /* For compatibility reason, param = 0 by default */
+      *param = 0;
 
       /* Set optional fields to zero */
       mpz_set_ui (sigma, 0);
@@ -385,8 +388,8 @@ error:
 /* Append a residue to the savefile with name given in fn.
    Returns 1 on success, 0 on error */
 int  
-write_resumefile_line (char *fn, int method, double B1, mpz_t parameter,
-int parameter_is_A, int batch, mpz_t x, mpcandi_t *n, mpz_t x0, 
+write_resumefile_line (char *fn, int method, double B1, mpz_t sigma,
+int sigma_is_A, int param, mpz_t x, mpcandi_t *n, mpz_t x0, 
 const char *comment)
 {
   FILE *file;
@@ -447,20 +450,18 @@ const char *comment)
   else 
     {
       fprintf (file, "ECM");
-      if (parameter_is_A == 0)
+      if (sigma_is_A == 0)
         {
-          if (batch == 0)
-            fprintf (file, "; SIGMA=");
-          else if (batch == 1)
-            fprintf (file, "; NU=");
-          else if (batch == 2)
-            fprintf (file, "; TAU=");
+          if (param >= 0)
+            fprintf (file, "; PARAM=%d", param);
+
+          fprintf (file, "; SIGMA=");
         }
       else
           fprintf (file, "; A=");
           
-        mpz_out_str (file, 10, parameter);
-        mpz_mul_ui (checksum, checksum, mpz_fdiv_ui (parameter, CHKSUMMOD));
+        mpz_out_str (file, 10, sigma);
+        mpz_mul_ui (checksum, checksum, mpz_fdiv_ui (sigma, CHKSUMMOD));
     }
   
   fprintf (file, "; B1=%.0f; N=", B1);
