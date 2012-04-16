@@ -1205,7 +1205,8 @@ BreadthFirstDoAgain:;
 	      exit (EXIT_FAILURE);
 	    }
           if (!read_resumefile_line (&method, x, &n, sigma, A, orig_x0, 
-                &(params->B1done), program, who, rtime, comment, resumefile))
+              &(params->param), &(params->B1done), program, who, rtime, 
+              comment, resumefile))
             break;
           
           if (mpz_cmp (n.n, resume_lastN) == 0)
