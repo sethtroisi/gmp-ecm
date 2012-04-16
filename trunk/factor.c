@@ -56,12 +56,12 @@ ecm_init (ecm_params q)
   q->use_ntt = 1;
   q->stop_asap = NULL;
   q->batch = 0; /* no batch mode by default in library mode */
+  q->batch_last_B1_used = 1.0;
+  mpz_init_set_ui (q->batch_s, 1);
   q->gpu = 0; /* no gpu by default in library mode */
   q->gpu_device = -1; 
   q->gpu_device_init = 0; 
   q->gpu_number_of_curves = 0; 
-  q->batch_B1 = 1.0;
-  mpz_init_set_ui(q->batch_s, 1);
   q->gw_k = 0.0;
   q->gw_b = 0;
   q->gw_n = 0;
@@ -89,12 +89,6 @@ ecm_factor (mpz_t f, mpz_t n, double B1, ecm_params p)
   ecm_params q;
   double B1done, B2scale;
 
-  if ((p_is_null = (p == NULL)))
-    {
-      p = q;
-      ecm_init (q);
-    }
-
   if (mpz_cmp_ui (n, 0) <= 0)
 	  {
       fprintf (stderr, "Error, n should be positive.\n");
@@ -103,16 +97,19 @@ ecm_factor (mpz_t f, mpz_t n, double B1, ecm_params p)
   else if (mpz_cmp_ui (n, 1) == 0)
     {
       mpz_set_ui (f, 1);
-      res=ECM_FACTOR_FOUND_STEP1;
-      goto end_ecmfactor;
+      return ECM_FACTOR_FOUND_STEP1;
     }
-  else if (mpz_divisible_ui_p (n, 2))
+  else if (mpz_divisible_2exp_p (n, 1))
     {
       mpz_set_ui (f, 2);
-      res=ECM_FACTOR_FOUND_STEP1;
-      goto end_ecmfactor;
+      return ECM_FACTOR_FOUND_STEP1;
     }
   
+  if ((p_is_null = (p == NULL)))
+    {
+      p = q;
+      ecm_init (q);
+    }
 
    /* Ugly hack to pass B2scale to the library somehow. It gets piggy-backed
       onto B1done. The next major release will have to allow for variable
@@ -129,7 +126,8 @@ ecm_factor (mpz_t f, mpz_t n, double B1, ecm_params p)
                p->B2, B2scale, p->k, p->S, p->verbose, p->repr, p->nobase2step2,
                p->use_ntt, p->parameter_is_A, p->os, p->es, p->chkfilename, 
                p->TreeFilename, p->maxmem, p->stage1time, p->rng, p->stop_asap, 
-               p->batch, p->batch_s, p->gw_k, p->gw_b, p->gw_n, p->gw_c);
+               p->batch, p->batch_s, &(p->batch_last_B1_used), p->gw_k, 
+               p->gw_b, p->gw_n, p->gw_c);
         }
       else
         {
@@ -153,7 +151,6 @@ ecm_factor (mpz_t f, mpz_t n, double B1, ecm_params p)
       res = ECM_ERROR;
     }
 
-end_ecmfactor:
   if (p_is_null)
     ecm_clear (q);
 

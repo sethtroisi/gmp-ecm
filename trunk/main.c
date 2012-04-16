@@ -1439,36 +1439,19 @@ BreadthFirstDoAgain:;
           mpz_set (x, orig_x0);
         }
       params->batch = batch;
-      if (params->batch != 0 && params->batch_B1 != B1)
+      
+      if (params->batch != 0 && loadfile_s != NULL)
         {
           int st;
-          params->batch_B1 = B1;
+          params->batch_last_B1_used = B1;
 
-          if (verbose > OUTPUT_NORMAL)
-            printf ("Batch mode %d: ", batch);
           st = cputime ();
-          /* construct the batch exponent */
-          if (loadfile_s != NULL)
-            {
-            /* For now, there is no check that it correspond to the actual B1*/
-              read_s_from_file (params->batch_s, loadfile_s);
-              if (verbose > OUTPUT_NORMAL)
-                printf ("reading prime product of %zu bits took %ldms\n",
+          /* FIXME For now, there is no check that it correspond to */ 
+          /* the actual B1 */
+          read_s_from_file (params->batch_s, loadfile_s);
+          if (verbose > OUTPUT_NORMAL)
+            fprintf (stdout, "reading prime product of %zu bits took %ldms\n",
                     mpz_sizeinbase (params->batch_s, 2), cputime () - st);
-            }
-          else
-            {
-              compute_s (params->batch_s, params->batch_B1);
-              if (verbose > OUTPUT_NORMAL)
-                printf ("computing prime product of %zu bits took %ldms\n",
-                    mpz_sizeinbase (params->batch_s, 2), cputime () - st);
-              if (savefile_s != NULL)
-                {
-                  int ret = write_s_in_file (savefile_s, params->batch_s);
-                  if (verbose > OUTPUT_NORMAL && ret > 0)
-                    printf ("Save s (%u bytes) in %s.\n", ret, savefile_s);
-                }
-            }
         }
 
       /* set parameters that may change from one curve to another */
@@ -1719,6 +1702,14 @@ OutputFactorStuff:;
           write_resumefile_line (savefilename, method, params->B1done, 
                                  params->parameter, params->parameter_is_A, 
                                  params->batch, x, &n, orig_x0, comment);
+        }
+
+      /* Save the batch exponent s if requested */
+      if (params->batch != 0 && savefile_s != NULL)
+        {
+          int ret = write_s_in_file (savefile_s, params->batch_s);
+          if (verbose > OUTPUT_NORMAL && ret > 0)
+            printf ("Save s (%u bytes) in %s.\n", ret, savefile_s);
         }
 
       /* advance B1, if autoincrement value had been set during command line parsing */

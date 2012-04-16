@@ -544,3 +544,66 @@ const char *comment)
 
   return 1;
 }
+
+/* For the batch mode */
+/* Write the batch exponent s in a file */
+/* Return the number of bytes written */
+int
+write_s_in_file (char *fn, mpz_t s)
+{
+  FILE *file;
+  int ret = 0;
+
+#ifdef DEBUG
+  if (fn == NULL)
+    {
+      fprintf (stderr, "write_s_in_file: fn == NULL\n");
+      exit (EXIT_FAILURE);
+    }
+#endif
+  
+  file = fopen (fn, "w");
+  if (file == NULL)
+    {
+      fprintf (stderr, "Could not open file %s for writing\n", fn);
+      return 0;
+    }
+  
+  ret = mpz_out_raw (file, s);
+  
+  fclose (file);
+  return ret;
+}
+
+/* For the batch mode */
+/* read the batch exponent s from a file */
+void
+read_s_from_file (mpz_t s, char *fn) 
+{
+  FILE *file;
+  int ret = 0;
+
+#ifdef DEBUG
+  if (fn == NULL)
+    {
+      fprintf (stderr, "read_s_from_file: fn == NULL\n");
+      exit (EXIT_FAILURE);
+    }
+#endif
+  
+  file = fopen (fn, "r");
+  if (file == NULL)
+    {
+      fprintf (stderr, "Could not open file %s for reading\n", fn);
+      exit (EXIT_FAILURE);
+    }
+ 
+  ret = mpz_inp_raw (s, file);
+  if (ret == 0)
+    {
+      fprintf (stderr, "read_s_from_file: 0 bytes read from %s\n", fn);
+      exit (EXIT_FAILURE);
+    }
+
+  fclose (file);
+}
