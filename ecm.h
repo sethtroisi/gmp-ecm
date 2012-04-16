@@ -34,13 +34,11 @@ typedef struct
 {
   int method;     /* factorization method, default is ecm */
   mpz_t x;        /* starting point (if non zero) */
-  mpz_t parameter;    /* (ECM only) */ 
-                      /* contains sigma when batch=0 */
-                      /* contains nu when batch=1 */
-                      /* contains tau when batch=2 */
+  int param;      /* (ECM only) What parametrization do we used */ 
+  mpz_t sigma;    /* (ECM only) The parameter for the parametrization */ 
                       /* May contains A */
-  int parameter_is_A; /* if  1, 'parameter' contains A (Montgomery form),
-		     if  0, 'parameter' contains sigma/tau/nu (Montgomery form),
+  int sigma_is_A; /* if  1, 'parameter' contains A (Montgomery form),
+		     if  0, 'parameter' contains sigma (Montgomery form),
 		     if -1, 'parameter' contains A, and the input curve is in
 		     Weierstrass form y^2 = x^3 + A*x + B, with y in 'go'. */
   mpz_t go;       /* initial group order to preload (if NULL: do nothing),
@@ -70,7 +68,7 @@ typedef struct
   int use_ntt;     /* set to 1 to use ntt poly code in stage 2 */
   int (*stop_asap) (void); /* Pointer to function, if it returns 0, contine 
                       normally, otherwise exit asap. May be NULL */
-  int batch;      /* Batch mode */
+  /* The batch mode is used for stage 1 when param=1 or param=2)*/
   mpz_t batch_s;   /* s is the product of primes up to B1 for batch mode */
   double batch_last_B1_used; /* Last B1 used in batch mode. Used to avoid */
                              /*  computing s when B1 = batch_last_B1_used */
@@ -100,10 +98,10 @@ void ecm_init (ecm_params);
 void ecm_clear (ecm_params);
 
 /* the following interface is not supported */
-int ecm (mpz_t, mpz_t, mpz_t, mpz_t, mpz_t, double *, double, mpz_t, mpz_t,
+int ecm (mpz_t, mpz_t, int, mpz_t, mpz_t, mpz_t, double *, double, mpz_t, mpz_t,
          double, unsigned long, const int, int, int, int, int, int, FILE*, FILE*,
-         char*, char *, double, double, gmp_randstate_t, int (*)(void), int, 
-         mpz_t, double *, double, unsigned long, unsigned long, signed long);
+         char*, char *, double, double, gmp_randstate_t, int (*)(void), mpz_t, 
+         double *, double, unsigned long, unsigned long, signed long);
 int pp1 (mpz_t, mpz_t, mpz_t, mpz_t, double *, double, mpz_t, mpz_t, 
          double, unsigned long, const int, int, int, int, FILE*, FILE*, char*,
          char *, double, gmp_randstate_t, int (*)(void));
