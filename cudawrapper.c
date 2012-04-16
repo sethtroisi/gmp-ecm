@@ -272,26 +272,6 @@ int gpu_ecm (ATTRIBUTE_UNUSED mpz_t f, ATTRIBUTE_UNUSED mpz_t N,
     exit (EXIT_FAILURE);
   }
 
-  /* Check that N is positive and handle special cases (N=1 and N is even) */
-  if (mpz_cmp_ui (N, 0) <= 0)
-  {
-    fprintf (stderr, "GPU: Error, input number should be positive\n");
-    exit (EXIT_FAILURE);
-  }
-  else if (mpz_cmp_ui (N, 1) == 0)
-  {
-    mpz_set_ui (f, 1);
-    main_ret=ECM_FACTOR_FOUND_STEP1;
-    goto end_gpu_ecm;
-  }
-  else if (mpz_divisible_ui_p (N, 2))
-  {
-    mpz_set_ui (f, 2);
-    main_ret=ECM_FACTOR_FOUND_STEP1;
-    goto end_gpu_ecm;
-  }
-  
-  
   if (!*device_init)
     {
       st = cputime ();
