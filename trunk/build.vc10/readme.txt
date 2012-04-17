@@ -80,17 +80,20 @@ There are three build projects in build.vc10:
     ecm     - the ECM application 
     ecmlib  - the ECM library
     tune    - a program for tuning 
-    
-and each of these has the following configurations:
 
-    win32\release-amd
-    win32\release-intel
-    win32\debug-amd     (not tune)
-    win32\debug-intel   (not tune)
-    x64\release-amd
-    x64\release-intel
-    x64\debug-amd       (not tune)
-    x64\debug-intel     (not tune)
+Before starting a build, these two files
+
+    ecm-params.h
+    mul_fft-params.h
+
+to set the tuning parameters that should be used in the build. Select
+the tuning include files by changing the appropriate '#elif 0' to
+'#elif 1'.  
+
+If you wish to use the win32 AMD assembler files, you also have to use
+the Visual Studio property page to define AMD_ASM (althernively you
+can eidt mulredc.asm and redc.asm in the build.vc10\assembler\ directory
+to include the AMD assembler).
 
 When a version of ecm and ecmlib are built the library and the application
 are put in the directory matching the configuration that has been built:
@@ -125,7 +128,8 @@ file with appropriate parameters for this configuration with a name suuch as:
 
     ecm-params.h.win32.amd.new
 
-To use this file when building ecm and ecmlib, remove the '.new' extension.
+To use this file when building ecm and ecmlib, remove the '.new' extension
+and add a reference to it in the ecm-param.h file in the build.vc10 directory.
 
 Tests
 =====
