@@ -125,6 +125,12 @@ int pm1 (mpz_t, mpz_t, mpz_t, mpz_t, double *, double, mpz_t,
 #define ECM_DEFAULT_B1_DONE 1.0
 #define ECM_IS_DEFAULT_B1_DONE(x) (x <= 1.0)
 
+/* Different paramitrization used in stage 1 of ECM */
+#define ECM_PARAM_DEFAULT -1
+#define ECM_PARAM_SUYAMA 0
+#define ECM_PARAM_BATCH_SMALL_D 1
+#define ECM_PARAM_BATCH_2 2
+
 /* stage 2 bound */
 #define ECM_DEFAULT_B2 -1
 #define ECM_IS_DEFAULT_B2(x) (mpz_cmp_si (x, ECM_DEFAULT_B2) == 0)

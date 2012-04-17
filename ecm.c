@@ -61,76 +61,6 @@ void add3 (mpres_t, mpres_t, mpres_t, mpres_t, mpres_t, mpres_t, mpres_t,
 
 #define mpz_mulmod5(r,s1,s2,m,t) { mpz_mul(t,s1,s2); mpz_mod(r, t, m); }
 
-/* Computes curve parameter A and a starting point (x:1) from a given
-   sigma value.
-   If a factor of n was found during the process, returns 
-   ECM_FACTOR_FOUND_STEP1 (and factor in f), returns ECM_NO_FACTOR_FOUND 
-   otherwise.
-*/
-static int
-get_curve_from_sigma (mpz_t f, mpres_t A, mpres_t x, mpz_t sigma, mpmod_t n)
-{
-  mpres_t t, u, v, b, z;
-  
-  MEMORY_TAG;
-  mpres_init (t, n);
-  MEMORY_TAG;
-  mpres_init (u, n);
-  MEMORY_TAG;
-  mpres_init (v, n);
-  MEMORY_TAG;
-  mpres_init (b, n);
-  MEMORY_TAG;
-  mpres_init (z, n);
-  MEMORY_UNTAG;
-
-  mpres_set_z  (u, sigma, n);
-  mpres_mul_ui (v, u, 4, n);   /* v = (4*sigma) mod n */
-  mpres_sqr (t, u, n);
-  mpres_sub_ui (u, t, 5, n);       /* u = (sigma^2-5) mod n */
-  mpres_sqr (t, u, n);
-  mpres_mul (x, t, u, n);          /* x = (u^3) mod n */
-  mpres_sqr (t, v, n);
-  mpres_mul (z, t, v, n);          /* z = (v^3) mod n */
-  mpres_mul (t, x, v, n);
-  mpres_mul_ui (b, t, 4, n);       /* b = (4*x*v) mod n */
-  mpres_mul_ui (t, u, 3, n);
-  mpres_sub (u, v, u, n);          /* u' = v-u */
-  mpres_add (v, t, v, n);          /* v' = (3*u+v) mod n */
-  mpres_sqr (t, u, n);
-  mpres_mul (u, t, u, n);          /* u'' = ((v-u)^3) mod n */
-  mpres_mul (A, u, v, n);          /* a = (u'' * v') mod n = 
-                                      ((v-u)^3 * (3*u+v)) mod n */
-  
-  /* Normalize b and z to 1 */
-  mpres_mul (v, b, z, n);
-  if (!mpres_invert (u, v, n)) /* u = (b*z)^(-1) (mod n) */
-    {
-      mpres_gcd (f, v, n);
-      mpres_clear (t, n);
-      mpres_clear (u, n);
-      mpres_clear (v, n);
-      mpres_clear (b, n);
-      mpres_clear (z, n);
-      return ECM_FACTOR_FOUND_STEP1;
-    }
-  
-  mpres_mul (v, u, b, n);   /* v = z^(-1) (mod n) */
-  mpres_mul (x, x, v, n);   /* x = x * z^(-1) */
-  
-  mpres_mul (v, u, z, n);   /* v = b^(-1) (mod n) */
-  mpres_mul (t, A, v, n);
-  mpres_sub_ui (A, t, 2, n);
-  
-  mpres_clear (t, n);
-  mpres_clear (u, n);
-  mpres_clear (v, n);
-  mpres_clear (b, n);
-  mpres_clear (z, n);
-
-  return ECM_NO_FACTOR_FOUND;
-}
-
 /* switch from Montgomery's form g*y^2 = x^3 + a*x^2 + x
    to Weierstrass' form          Y^2 = X^3 + A*X + B
    by change of variables x -> g*X-a/3, y -> g*Y.
@@ -818,11 +748,12 @@ print_exptime (double B1, const mpz_t B2, unsigned long dF, unsigned long k,
    Weierstrass form for ECM (when sigma_is_A = -1). */
 void
 print_B1_B2_poly (int verbosity, int method, double B1, double B1done, 
-		  mpz_t B2min_param, mpz_t B2min, mpz_t B2, int S, mpz_t parameter,
-		  int parameter_is_A, mpz_t go, int batch)
+		  mpz_t B2min_param, mpz_t B2min, mpz_t B2, int S, mpz_t sigma,
+		  int sigma_is_A, mpz_t go, int param)
 {
   ASSERT ((method == ECM_ECM) || (go == NULL));
-  ASSERT ((-1 <= parameter_is_A) && (parameter_is_A <= 1));
+  ASSERT ((-1 <= sigma_is_A) && (sigma_is_A <= 1));
+  ASSERT (param != ECM_PARAM_DEFAULT);
 
   if (test_verbose (verbosity))
   {
@@ -844,22 +775,15 @@ print_B1_B2_poly (int verbosity, int method, double B1, double B1done,
       /* don't print in resume case, since x0 is saved in resume file */
       if (method == ECM_ECM)
         {
-	  if (parameter_is_A == 1)
-	    outputf (verbosity, ", A=%Zd", parameter);
-	  else if (parameter_is_A == 0)
-      {
-        if (batch == 0)
-	        outputf (verbosity, ", sigma=%Zd", parameter);
-        else if (batch == 1)
-	        outputf (verbosity, ", nu=%Zd", parameter);
-        else if (batch == 2)
-	        outputf (verbosity, ", tau=%Zd", parameter);
-      }
-	  else /* sigma_is_A = -1: curve was given in Weierstrass form */
-	    outputf (verbosity, ", Weierstrass(A=%Zd,y=Zd)", parameter, go);
+	        if (sigma_is_A == 1)
+	            outputf (verbosity, ", A=%Zd", sigma);
+	        else if (sigma_is_A == 0)
+	            outputf (verbosity, ", sigma=%d:%Zd", param, sigma);
+	        else /* sigma_is_A = -1: curve was given in Weierstrass form */
+	            outputf (verbosity, ", Weierstrass(A=%Zd,y=Zd)", sigma, go);
         }
       else if (ECM_IS_DEFAULT_B1_DONE(B1done))
-	  outputf (verbosity, ", x0=%Zd", parameter);
+	        outputf (verbosity, ", x0=%Zd", sigma);
       
       outputf (verbosity, "\n");
   }
@@ -923,18 +847,26 @@ ecm (mpz_t f, mpz_t x, int param, mpz_t sigma, mpz_t n, mpz_t go,
       return ECM_ERROR;
     }
 #endif
+  
+  if (param == ECM_PARAM_DEFAULT)
+      param = get_default_param (B1, *B1done);
 
-  /* In batch mode, we force MODMULN */
+  /* In batch mode, we force MODMULN and B1done should either the */
+  /* default value or greater than B1 */
   if (IS_BATCH_MODE(param))
     {
       if (repr == ECM_MOD_DEFAULT)
         repr = ECM_MOD_MODMULN;
       else if (repr != ECM_MOD_MODMULN)
         {
-          outputf (OUTPUT_ERROR, "Error, with param %d, repr should be ECM_MOD_MODMULN.\n", 
-                   param);
+          outputf (OUTPUT_ERROR, "Error, with param %d, repr should be " 
+                                 "ECM_MOD_MODMULN.\n", param);
           return ECM_ERROR;
         }
+
+      if (!ECM_IS_DEFAULT_B1_DONE(*B1done) && *B1done < B1)
+          outputf (OUTPUT_ERROR, "Error, cannot resume with param %d, except " 
+                                 "for doing only stage 2");
     }
 
   /* check that B1 is not too large */
@@ -1064,64 +996,31 @@ ecm (mpz_t f, mpz_t x, int param, mpz_t sigma, mpz_t n, mpz_t go,
   
   if (sigma_is_A == 0)
     {
-      /* if sigma=0, generate it at random */
       if (mpz_sgn (sigma) == 0)
+          get_random_parameter (sigma, param, rng);
+      else 
         {
-          if (param == 0)
+          if (is_invalid_parameter (sigma, param))
             {
-              mpz_urandomb (sigma, rng, 32);
-              mpz_add_ui (sigma, sigma, 6);
-            }
-          else if (param == 1)
-            {
-              /* We choose a positive integer nu smaller than B=2^GMP_NUMB_BITS
-                and consider d = nu/B and A = 4d-2 */
-              do
-                mpz_urandomb (sigma, rng, 32);  /* generates nu <> 0 */
-              while (mpz_sgn (sigma) == 0);
-              ASSERT((GMP_NUMB_BITS % 2) == 0);
-              if (GMP_NUMB_BITS >= 64)
-                mpz_mul (sigma, sigma, sigma); 
-                                      /* ensures nu (and thus d) is a square, 
-                                      which increases the success probability */
-            }
-          else if (param == 2)
-            {
-              mpz_urandomb (sigma, rng, 32);
-              mpz_add_ui (sigma, sigma, 2);
+              outputf (OUTPUT_ERROR, "Error, invalid value of sigma.\n");
+              return ECM_ERROR;
             }
         }
-
-      if (param == 0)
+      /* Now sigma contains a valid sigma value, */
+      /* A and x0 values must be computed */
+      if (param == ECM_PARAM_SUYAMA)
         {
-          /* sigma contains sigma value, A and x values must be computed */
-          youpi = get_curve_from_sigma (f, P.A, P.x, sigma, modulus);
+          youpi = get_curve_from_param0 (f, P.A, P.x, sigma, modulus);
           if (youpi != ECM_NO_FACTOR_FOUND)
 	          goto end_of_ecm;
         }
-      else if (param == 1)
+      else if (param == ECM_PARAM_BATCH_SMALL_D)
         {
-          int i;
-          mpz_t tmp;
-          mpz_init_set (tmp, sigma);
-          /* sigma contains sigma value, A value must be computed */
-          /* divide sigma by B to get d */
-          for (i = 0; i < GMP_NUMB_BITS; i++)
-            {
-              if (mpz_tstbit (tmp, 0) == 1)
-                mpz_add (tmp, tmp, n);
-              mpz_div_2exp (tmp, tmp, 1);
-            }
-          mpz_mul_2exp (tmp, tmp, 2);           /* 4d */
-          mpz_sub_ui (tmp, tmp, 2);             /* 4d-2 */
-      
-          mpres_set_z (P.A, tmp, modulus);
-          mpz_clear(tmp);
+          get_curve_from_param1 (P.A, P.x, sigma, modulus);
         }
-      else if (param == 2)
+      else if (param == ECM_PARAM_BATCH_2)
         {
-          /* sigma contains sigma value, A value must be computed */
-          youpi=get_curve_from_ell_parametrization(f, P.A, sigma, modulus);
+          youpi = get_curve_from_param2 (f, P.A, P.x, sigma, modulus);
           if (youpi != ECM_NO_FACTOR_FOUND)
 	          goto end_of_ecm;
         }
@@ -1215,7 +1114,7 @@ ecm (mpz_t f, mpz_t x, int param, mpz_t sigma, mpz_t n, mpz_t go,
 #ifdef HAVE_GWNUM
   /* We will only use GWNUM for numbers of the form k*b^n+c */
 
-  if (gw_b != 0 && B1 >= *B1done && param == 0)
+  if (gw_b != 0 && B1 >= *B1done && param == ECM_PARAM_SUYAMA)
       youpi = gw_ecm_stage1 (f, &P, modulus, B1, B1done, go, gw_k, gw_b, gw_n, gw_c);
 
   /* At this point B1 == *B1done unless interrupted, or no GWNUM ecm_stage1

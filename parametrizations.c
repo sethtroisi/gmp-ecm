@@ -1,4 +1,5 @@
-/* ellparam_batch.c - Parametrization for batch mode 2
+/* parametrizations.c - functions to compute coefficients of the curve from
+parameter and to choose random parameter.
  
 Copyright 2012 Cyril Bouvier.
  
@@ -110,8 +111,8 @@ add_param (mpres_t x, mpres_t y, mpres_t z, int sgn, mpres_t t, mpres_t u,
 }
 
 static void
-addchain_param (mpres_t x, mpres_t y, mpres_t z, unsigned int s, mpres_t t,
-                                    mpres_t u, mpres_t v, mpres_t w, mpmod_t n)
+addchain_param (mpres_t x, mpres_t y, mpres_t z, ecm_uint s, mpres_t t,
+                mpres_t u, mpres_t v, mpres_t w, mpmod_t n)
 {
   if (s == 1)
     {
@@ -141,15 +142,110 @@ addchain_param (mpres_t x, mpres_t y, mpres_t z, unsigned int s, mpres_t t,
     }
 }
 
-/*Parametrization for BATCHMODE 2: generate curves with a point of order 3 and
-  starting point (2:1) 
+/* Parametrization ECM_PARAM_SUYAMA
+   Computes curve coefficient A and a starting point (x:1) from a given
+   sigma value.
+   If a factor of n was found during the process, returns 
+   ECM_FACTOR_FOUND_STEP1 (and factor in f), returns ECM_NO_FACTOR_FOUND 
+   otherwise.
+*/
+int
+get_curve_from_param0 (mpz_t f, mpres_t A, mpres_t x, mpz_t sigma, mpmod_t n)
+{
+  mpres_t t, u, v, b, z;
+  
+  MEMORY_TAG;
+  mpres_init (t, n);
+  MEMORY_TAG;
+  mpres_init (u, n);
+  MEMORY_TAG;
+  mpres_init (v, n);
+  MEMORY_TAG;
+  mpres_init (b, n);
+  MEMORY_TAG;
+  mpres_init (z, n);
+  MEMORY_UNTAG;
+
+  mpres_set_z  (u, sigma, n);
+  mpres_mul_ui (v, u, 4, n);   /* v = (4*sigma) mod n */
+  mpres_sqr (t, u, n);
+  mpres_sub_ui (u, t, 5, n);       /* u = (sigma^2-5) mod n */
+  mpres_sqr (t, u, n);
+  mpres_mul (x, t, u, n);          /* x = (u^3) mod n */
+  mpres_sqr (t, v, n);
+  mpres_mul (z, t, v, n);          /* z = (v^3) mod n */
+  mpres_mul (t, x, v, n);
+  mpres_mul_ui (b, t, 4, n);       /* b = (4*x*v) mod n */
+  mpres_mul_ui (t, u, 3, n);
+  mpres_sub (u, v, u, n);          /* u' = v-u */
+  mpres_add (v, t, v, n);          /* v' = (3*u+v) mod n */
+  mpres_sqr (t, u, n);
+  mpres_mul (u, t, u, n);          /* u'' = ((v-u)^3) mod n */
+  mpres_mul (A, u, v, n);          /* a = (u'' * v') mod n = 
+                                      ((v-u)^3 * (3*u+v)) mod n */
+  
+  /* Normalize b and z to 1 */
+  mpres_mul (v, b, z, n);
+  if (!mpres_invert (u, v, n)) /* u = (b*z)^(-1) (mod n) */
+    {
+      mpres_gcd (f, v, n);
+      mpres_clear (t, n);
+      mpres_clear (u, n);
+      mpres_clear (v, n);
+      mpres_clear (b, n);
+      mpres_clear (z, n);
+      return ECM_FACTOR_FOUND_STEP1;
+    }
+  
+  mpres_mul (v, u, b, n);   /* v = z^(-1) (mod n) */
+  mpres_mul (x, x, v, n);   /* x = x * z^(-1) */
+  
+  mpres_mul (v, u, z, n);   /* v = b^(-1) (mod n) */
+  mpres_mul (t, A, v, n);
+  mpres_sub_ui (A, t, 2, n);
+  
+  mpres_clear (t, n);
+  mpres_clear (u, n);
+  mpres_clear (v, n);
+  mpres_clear (b, n);
+  mpres_clear (z, n);
+
+  return ECM_NO_FACTOR_FOUND;
+}
+
+/* Parametrization ECM_PARAM_BATCH_SMALL_D */
+int 
+get_curve_from_param1 (mpres_t A, mpres_t x0, mpz_t sigma, mpmod_t n)
+{
+  int i;
+  mpz_t tmp;
+  mpz_init_set (tmp, sigma);
+  for (i = 0; i < GMP_NUMB_BITS; i++)
+    {
+      if (mpz_tstbit (tmp, 0) == 1)
+      mpz_add (tmp, tmp, n->orig_modulus);
+      mpz_div_2exp (tmp, tmp, 1);
+    }
+  mpz_mul_2exp (tmp, tmp, 2);           /* 4d */
+  mpz_sub_ui (tmp, tmp, 2);             /* 4d-2 */
+      
+  mpres_set_z (A, tmp, n);
+  mpres_set_ui (x0, 2, n);
+  mpz_clear(tmp);
+
+  return ECM_NO_FACTOR_FOUND;
+}
+
+/* Parametrization ECM_PARAM_BATCH_2: generate curves with a point of 
+  order 3 and starting point (2:1) 
   Compute k*P on y^2=x^3+36 with P=(-3,3); need k>1
   x3 = (3*x+y+6)/(2*(y-3)) and A=-(3*x3^4+6*x3^2-1)/(4*x3^3)*/
+/* TODO s should be a mpz_t */
 int 
-get_curve_from_ell_parametrization (mpz_t f, mpres_t A, mpz_t k, mpmod_t n)
+get_curve_from_param2 (mpz_t f, mpres_t A, mpres_t x0, mpz_t k, mpmod_t n)
 {
   mpres_t t, u, v, w, x, y, z;
-  unsigned int s;
+  ecm_uint s;
 
   MEMORY_TAG;
   mpres_init (t, n);
@@ -241,6 +337,8 @@ get_curve_from_ell_parametrization (mpz_t f, mpres_t A, mpz_t k, mpmod_t n)
   mpres_mul (A, w, t, n);
   mpz_mod (A, A, n->orig_modulus); 
 
+  mpres_set_ui (x0, 2, n);
+
   mpres_clear (t, n);
   mpres_clear (u, n);
   mpres_clear (v, n);
@@ -250,4 +348,71 @@ get_curve_from_ell_parametrization (mpz_t f, mpres_t A, mpz_t k, mpmod_t n)
   mpres_clear (z, n);
 
   return ECM_NO_FACTOR_FOUND;
+}
+
+void 
+get_random_parameter (mpz_t sigma, int param, gmp_randstate_t rng)
+{
+  if (param == ECM_PARAM_SUYAMA)
+    {
+      /* Generate a sigma less than 2^64 and greater than 5 */
+      mpz_urandomb (sigma, rng, 63);
+      mpz_add_ui (sigma, sigma, 6);
+    }
+  /*FIXME*/
+  else if (param == ECM_PARAM_BATCH_SMALL_D)
+    {
+      /* We choose a positive integer nu smaller than B=2^GMP_NUMB_BITS
+      and consider d = sigma/B and A = 4d-2 */
+      do
+        mpz_urandomb (sigma, rng, 32);  /* generates nu <> 0 */
+      while (mpz_sgn (sigma) == 0);
+      ASSERT((GMP_NUMB_BITS % 2) == 0);
+      if (GMP_NUMB_BITS >= 64)
+          mpz_mul (sigma, sigma, sigma); /* ensures nu (and thus d) is a 
+                           square, which increases the success probability */
+     }
+  else if (param == ECM_PARAM_BATCH_2)
+    {
+      /* Generate a sigma less than 2^64 and greater than 1 */
+      mpz_urandomb (sigma, rng, 63);
+      mpz_add_ui (sigma, sigma, 2);
+    }
+}
+
+int
+is_invalid_parameter (mpz_t sigma, int param)
+{
+  mpz_t two64;
+  mpz_init (two64);
+  mpz_ui_pow_ui (two64, 2, 64);
+
+  int ret = 0;
+
+  if (param == ECM_PARAM_SUYAMA)
+    {
+      if (mpz_cmp_ui (sigma, 6) < 0 || mpz_cmp (sigma, two64) >= 0)
+          ret = 1;
+    }
+  else if (param == ECM_PARAM_BATCH_SMALL_D)
+    {
+        ret = 0; /* FIXME */
+    }
+  else if (param == ECM_PARAM_BATCH_2)
+    {
+      if (mpz_cmp_ui (sigma, 2) < 0 || mpz_cmp (sigma, two64) >= 0)
+          ret = 1;
+    }
+  mpz_clear (two64);
+  return ret;
+}
+
+/* TODO: Do better than that */
+int 
+get_default_param (double B1, double B1done)
+{
+  if (ECM_IS_DEFAULT_B1_DONE(B1done))
+      return ECM_PARAM_SUYAMA;
+  else
+      return ECM_PARAM_BATCH_SMALL_D;
 }
