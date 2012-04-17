@@ -1368,16 +1368,6 @@ BreadthFirstDoAgain:;
          
           if (ECM_IS_DEFAULT_B1_DONE(B1done))
             mpz_set (orig_x0, x);
-          
-          /* Make a random sigma if we have neither specific sigma nor A 
-             given. Warning: sigma may still contain previous random value
-             and thus be nonzero here even if no specific sigma was given */
-          //if (method == ECM_ECM && !specific_parameter && !mpz_sgn (A))
-          //  {
-              /* Make random sigma, 0 < sigma <= 2^32 */
-          //    mpz_urandomb (sigma, randstate, 32);
-          //    mpz_add_ui (sigma, sigma, 6); /* we need sigma >= 6 */
-          //  }
         }
       if (verbose >= 1)
 	{
