@@ -5,7 +5,7 @@
 
 #define TWO32 4294967296 /* 2^32 */ 
 
-extern int select_and_init_GPU (int, int, FILE*);
+extern void select_and_init_GPU (int, unsigned int*, int);
 extern float cuda_Main (biguint_t, biguint_t, biguint_t, digit_t, biguint_t*, 
                         biguint_t*, biguint_t*, biguint_t*, mpz_t, unsigned int, 
                         unsigned int, FILE*, FILE*);
@@ -60,7 +60,7 @@ unsigned int findfactor(mpz_t N, mpz_t xfin, mpz_t zfin)
 
 void to_mont_repr (mpz_t x, mpz_t n)
 {
-  mpz_mul_2exp (x, x, MAX_BITS);
+  mpz_mul_2exp (x, x, ECM_GPU_MAX_BITS);
   mpz_mod(x, x, n);
 }
 
@@ -101,12 +101,12 @@ void biguint_to_mpz (mpz_t a, biguint_t b)
 }
 
 int gpu_ecm_stage1 (mpz_t N, mpz_t s, unsigned int number_of_curves, 
-                    unsigned int firstinvd, float *gputime)
+                    unsigned int firstsigma, float *gputime)
 {
   int fct_ret = ECM_NO_FACTOR_FOUND;
   int ret;
 
-  unsigned int invd;
+  unsigned int sigma;
   unsigned int i;
 
   mpz_t N3; /* N3 = 3*N */
@@ -157,7 +157,7 @@ int gpu_ecm_stage1 (mpz_t N, mpz_t s, unsigned int number_of_curves,
   mpz_to_biguint (h_M, M); 
   h_invN = mpz_get_ui (invN); 
    
-  mpz_ui_pow_ui (invB, 2, MAX_BITS); 
+  mpz_ui_pow_ui (invB, 2, ECM_GPU_MAX_BITS); 
   mpz_invert (invB, invB, N); /* Compute invB = 2^(-MAX_BITS) mod N */
 
   mpz_invert (invw, w, N); /* Compute inw = 2^-SIZE_DIGIT % N */
@@ -173,11 +173,11 @@ int gpu_ecm_stage1 (mpz_t N, mpz_t s, unsigned int number_of_curves,
   to_mont_repr (x2p, N);
   
   /* for each curve, compute z2p and put xp, zp, x2p, z2p in the h_*array  */
-  for (invd = firstinvd; invd < firstinvd+number_of_curves; invd++)
+  for (sigma = firstsigma; sigma < firstsigma+number_of_curves; sigma++)
   {
-    i = invd - firstinvd;
+    i = sigma - firstsigma;
 
-    mpz_mul_ui (z2p, invw, invd);
+    mpz_mul_ui (z2p, invw, sigma);
     mpz_mod (z2p, z2p, N);
     mpz_mul_2exp (z2p, z2p, 6);
     mpz_add_ui (z2p, z2p, 8);
@@ -193,13 +193,13 @@ int gpu_ecm_stage1 (mpz_t N, mpz_t s, unsigned int number_of_curves,
  
   /* Call the wrapper function that call the GPU */
   *gputime=cuda_Main (h_N, h_3N, h_M, h_invN, h_xarray, h_zarray, h_x2array, 
-                     h_z2array, s, firstinvd, number_of_curves,
+                     h_z2array, s, firstsigma, number_of_curves,
                      stdout, stdout);
 
   /* Analyse results */
-  for (invd = firstinvd; invd < firstinvd+number_of_curves; invd++)
+  for (sigma = firstsigma; sigma < firstsigma+number_of_curves; sigma++)
   {
-    i = invd - firstinvd;
+    i = sigma - firstsigma;
 
     biguint_to_mpz(xp, h_xarray[i]); 
     biguint_to_mpz(zp, h_zarray[i]); 
@@ -239,11 +239,23 @@ int gpu_ecm_stage1 (mpz_t N, mpz_t s, unsigned int number_of_curves,
 }
 #endif
 
+/*
 int gpu_ecm (ATTRIBUTE_UNUSED mpz_t f, ATTRIBUTE_UNUSED mpz_t N, 
              ATTRIBUTE_UNUSED mpz_t s, ATTRIBUTE_UNUSED double B1,
              ATTRIBUTE_UNUSED int device, ATTRIBUTE_UNUSED int *device_init, 
              ATTRIBUTE_UNUSED unsigned int *nb_curves, 
              ATTRIBUTE_UNUSED unsigned int firstinvd)
+*/
+int
+gpu_ecm (mpz_t f, int param, mpz_t firstsigma, mpz_t n, mpz_t go, 
+         double *B1done, double B1, mpz_t B2min_parm, mpz_t B2_parm, 
+         double B2scale, unsigned long k, const int S, int verbose, int repr,
+         int nobase2step2, int use_ntt, int sigma_is_A, FILE *os, FILE* es, 
+         char *chkfilename, char *TreeFilename, double maxmem, 
+         double stage1time, gmp_randstate_t rng, int (*stop_asap)(void), 
+         mpz_t batch_s, double *batch_last_B1_used, int device, 
+         int *device_init, unsigned int *nb_curves)
+
 #ifndef WITH_GPU
 {
   fprintf(stderr, "This version of libecm does not contain the GPU code.\n"
@@ -257,56 +269,120 @@ int gpu_ecm (ATTRIBUTE_UNUSED mpz_t f, ATTRIBUTE_UNUSED mpz_t N,
   long st;
   float gputime = 0.0;
 
-  /* I think it can't fail but i'm not sure. */
-  if (GMP_NUMB_BITS != 32 && GMP_NUMB_BITS != 64) 
-  {
-    fprintf (stderr, "GPU: Error, GMP_NUMB_BITS should be either 32 or 64.\n");
-    exit (EXIT_FAILURE);
-  }
+  ASSERT((-1 <= sigma_is_A) && (sigma_is_A <= 1));
+  ASSERT((GMP_NUMB_BITS == 32) || (GMP_NUMB_BITS == 64));
+
+  set_verbose (verbose);
+  ECM_STDOUT = (os == NULL) ? stdout : os;
+  ECM_STDERR = (es == NULL) ? stdout : es;
+
 
   /* Check that N is not too big */
-  if (mpz_sizeinbase (N, 2) > MAX_BITS-6)
-  {
-    fprintf (stderr, "GPU: Error, input number should be stricly lower"
-                     " than 2^%d\n", MAX_BITS-6);
-    exit (EXIT_FAILURE);
-  }
+  if (mpz_sizeinbase (n, 2) > ECM_GPU_MAX_BITS-6)
+    {
+      outputf (OUTPUT_ERROR, "GPU: Error, input number should be stricly lower"
+                             " than 2^%d\n", ECM_GPU_MAX_BITS-6);
+      return ECM_ERROR;
+    }
 
+  /* Only param = ECM_PARAM_BATCH_SMALL_D is accepted on GPU */
+  if (param == ECM_PARAM_DEFAULT)
+      param = ECM_PARAM_BATCH_SMALL_D;
+    
+  if (param != ECM_PARAM_BATCH_SMALL_D)
+    {
+      outputf (OUTPUT_ERROR, "GPU: Error, only param = ECM_PARAM_BATCH_SMALL_D "
+                             "is accepted on GPU.\n");
+      return ECM_ERROR;
+    }
+
+  /* check that repr == ECM_MOD_DEFAULT */
+  if (repr != ECM_MOD_DEFAULT)
+    {
+      outputf (OUTPUT_ERROR, "GPU: Error, only repr = ECM_MOD_DEFAULT "
+                             "is accepted on GPU.\n");
+      return ECM_ERROR;
+    }
+ 
+  /* Cannot do resume on GPU */
+  if (!ECM_IS_DEFAULT_B1_DONE(*B1done) && *B1done < B1)
+    {
+      outputf (OUTPUT_ERROR, "GPU: Error, cannot resume on GPU.\n");
+      return ECM_ERROR;
+    }
+
+  /* Compute s */
+  if (B1 != *batch_last_B1_used || mpz_cmp_ui (batch_s, 1) <= 0)
+    {
+      *batch_last_B1_used = B1;
+
+      st = cputime ();
+      /* construct the batch exponent */
+      compute_s (batch_s, B1);
+      outputf (OUTPUT_VERBOSE, "GPU: computing prime product of %zu bits took " 
+                   "%ldms\n", mpz_sizeinbase (batch_s, 2), cputime () - st);
+    }
+
+  /* Initialiaze the GPU if necessary */
   if (!*device_init)
     {
       st = cputime ();
-      *nb_curves = select_and_init_GPU (device, *nb_curves, stdout);
-      fprintf(stdout, "Selection and initialization of the device took %ldms\n", 
-                      elltime (st, cputime ()));
+      if (test_verbose (OUTPUT_VERBOSE))
+          select_and_init_GPU (device, nb_curves, 1);
+      else
+          select_and_init_GPU (device, nb_curves, 0);
+
+      outputf (OUTPUT_VERBOSE, "GPU: Selection and initialization of the device "
+                               "took %ldms\n", elltime (st, cputime ()));
       /* TRICKS: If initialization of the device is too long (few seconds), */
       /* try running 'nvidia-smi -q -l' on the background .                 */
       *device_init = 1;
     }
-  fprintf (stdout,"TMP for debug: number_of_curves=%d\n", *nb_curves);
 
-  if (firstinvd < 2 || firstinvd > TWO32-*nb_curves)
-  {
-    /* firstinvd is in fact firstnu (almost because the GPU is a 32-bit machine
-     * so on 64-bit machine this is not exactly the case). TODO changefirstinv
-     * in firstinvnu everywhere. */
-    fprintf(stderr,"GPU: Error, firstinvd should be bigger than 2 and " 
-                   "smaller than %lu.\n", TWO32-*nb_curves);
-    exit(EXIT_FAILURE);
-  }
-  
-  /* TODO: before beginning stage1: 
+  /* */
+  if (sigma_is_A == -1)
+    {
+      /* Cant do stage 2 on gpu*/
+      outputf (OUTPUT_ERROR, "GPU: Error, cannot do stage 2 on GPU.\n");
+      return ECM_ERROR;
+    }
+  else if (sigma_is_A == 1)
+    {
+      /*compute sigma from A*/
+      outputf (OUTPUT_ERROR, "GPU: Not yet implemented.\n");
+      return ECM_ERROR;
+    }
+
+  if (sigma_is_A == 0 && mpz_sgn(firstsigma) == 0)
+    {
+      /*generate random one*/
+      mpz_set_ui (firstsigma, (get_random_ui() % (TWO32-2-*nb_curves)) + 2 );    
+    }
+  else /* sigma should be in [2, 2^32-nb_curves] */
+    {
+      if (mpz_cmp_ui (firstsigma, 2) < 0 || 
+          mpz_cmp_ui (firstsigma, TWO32-*nb_curves) > 0)
+        {
+          outputf (OUTPUT_ERROR, "GPU: Error, sigma should be bigger than 2 "
+                                 "and smaller than %lu.\n", TWO32-*nb_curves);
+          return ECM_ERROR;
+        }
+    }
+
+  /* TODO: before beginning stage1:
+            go should be NULL (or 1)
             print B1, firstinv, nb_curves (modify a little 
               print_B1_B2_poly) 
-  print_B1_B2_poly (int verbosity, int method, double B1, double B1done, 
-		  mpz_t B2min_param, mpz_t B2min, mpz_t B2, int S, mpz_t parameter,
-		  int parameter_is_A, mpz_t go, int batch)
+  print_B1_B2_poly (OUTPUT_NORMAL, ECM_ECM, B1, *B1done, 
+		  mpz_t B2min_param, mpz_t B2min, mpz_t B2, int S, sigma,
+		  sigma_is_A, go, param)
   In the meantime, we use this temporary printf:
   */
-  gmp_fprintf (stdout, "Using B1=%1.0f, firstinvd=%u, with %u curves\n", 
-                                          B1, firstinvd, *nb_curves);
+  gmp_fprintf (stdout, "Using B1=%1.0f, sigma=%Zd, with %u curves\n", 
+                                          B1, firstsigma, *nb_curves);
   
 
-  gpu_ecm_stage1 (N, s, *nb_curves, firstinvd, &gputime);
+  gpu_ecm_stage1 (n, batch_s, *nb_curves, mpz_get_ui(firstsigma), &gputime);
 
   fprintf (stdout, "time GPU: %.3fs\n", (gputime/1000));
   fprintf (stdout, "Throughput: %.3f\n", 1000 * (*nb_curves)/gputime);

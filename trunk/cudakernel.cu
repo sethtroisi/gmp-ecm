@@ -38,69 +38,71 @@ __global__ void Cuda_Init_Device ()
 }
 
 extern "C" 
-int select_and_init_GPU (int device, int number_of_curves, FILE *OUTPUT_VERBOSE)
+void 
+select_and_init_GPU (int device, unsigned int *number_of_curves, int verbose)
 {
   cudaDeviceProp deviceProp;
   cudaError_t err;
         
-  fprintf(OUTPUT_VERBOSE, "#Compiled for a NVIDIA GPU with " 
-          "compute capability %d.%d.\n", MAJOR, MINOR);
+  if (verbose)
+      fprintf (stdout, "GPU: compiled for a NVIDIA GPU with " 
+                       "compute capability %d.%d.\n", MAJOR, MINOR);
 
   if (device!=-1)
-  {
-    fprintf(OUTPUT_VERBOSE,"#Device %d is required.\n",device);
-
-    err= cudaSetDevice(device);
-    if (err != cudaSuccess)
     {
-      fprintf(stderr, "Error: Could not use device %d\n",device);
-      fprintf(stderr, "Error msg: %s\n", cudaGetErrorString(err));
-      exit(EXIT_FAILURE);
+      if (verbose)
+          fprintf (stdout, "GPU: device %d is required.\n", device);
+
+      err = cudaSetDevice(device);
+      if (err != cudaSuccess)
+        {
+          fprintf (stderr, "GPU: Error: Could not use device %d\n", device);
+          fprintf (stderr, "GPU: Error msg: %s\n", cudaGetErrorString(err));
+          exit(EXIT_FAILURE);
+        }
     }
-  }
   
   err = cudaGetDevice (&device);
   if (err != cudaSuccess)
-  {
-    fprintf(stderr, "Error: no active device\n");
-    fprintf(stderr, "Error msg: %s\n", cudaGetErrorString(err));
-    exit(EXIT_FAILURE);
-  }
+    {
+      fprintf (stderr, "GPU: Error: no active device.\n");
+      fprintf (stderr, "GPU: Error msg: %s\n", cudaGetErrorString(err));
+      exit(EXIT_FAILURE);
+    }
 
   err = cudaGetDeviceProperties (&deviceProp, device);
   if (err != cudaSuccess)
-  {
-    fprintf(stderr, "Error while getting device's properties\n");
-    fprintf(stderr, "Error msg: %s\n", cudaGetErrorString(err));
-    exit(EXIT_FAILURE);
-  }
+    {
+      fprintf (stderr, "GPU: Error while getting device's properties.\n");
+      fprintf (stderr, "GPU: Error msg: %s\n", cudaGetErrorString(err));
+      exit(EXIT_FAILURE);
+    }
 
   int minor = deviceProp.minor;
   int major = deviceProp.major;
   int MPcount = deviceProp.multiProcessorCount;
 
   if (10 * major + minor < 10 * MAJOR + MINOR)
-  {
-    fprintf(stderr, "Error: Device %d have a compute capability of %d.%d " 
-                    "(required %d.%d).\n", device, major, minor, MAJOR, MINOR);
-    exit(EXIT_FAILURE);
-  }
+    {
+      fprintf(stderr, "GPU: Error: device %d have a compute capability of " 
+              "%d.%d (required %d.%d).\n", device, major, minor, MAJOR, MINOR);
+      exit(EXIT_FAILURE);
+    }
 
-  fprintf(OUTPUT_VERBOSE, "#Will use device %d : %s, compute capability %d.%d, "
-          "%d MPs.\n", device, deviceProp.name, major, minor, MPcount);
+  if (verbose)
+      fprintf (stdout, "GPU: will use device %d: %s, compute capability "
+           "%d.%d, %d MPs.\n", device, deviceProp.name, major, minor, MPcount);
 
 
   /* number_of_curves should be a multiple of CURVES_BY_BLOCK */
-  number_of_curves=(number_of_curves/CURVES_BY_BLOCK)*CURVES_BY_BLOCK;
-  if (number_of_curves==0)
-    number_of_curves = MPcount * CURVES_BY_MP;
+  *number_of_curves = (*number_of_curves / CURVES_BY_BLOCK) * CURVES_BY_BLOCK;
+  if (*number_of_curves==0)
+    *number_of_curves = MPcount * CURVES_BY_MP;
 
   /* First call to a global function initialize the device */
-  errCheck (cudaSetDeviceFlags(cudaDeviceScheduleYield)); 
+  errCheck (cudaSetDeviceFlags (cudaDeviceScheduleYield)); 
   Cuda_Init_Device<<<1, 1>>> ();
   errCheck (cudaGetLastError()); 
-
-  return number_of_curves;
 }
 
 extern "C"
