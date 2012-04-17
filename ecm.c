@@ -867,8 +867,11 @@ ecm (mpz_t f, mpz_t x, int param, mpz_t sigma, mpz_t n, mpz_t go,
         }
 
       if (!ECM_IS_DEFAULT_B1_DONE(*B1done) && *B1done < B1)
+        {
           outputf (OUTPUT_ERROR, "Error, cannot resume with param %d, except " 
                                  "for doing only stage 2");
+          return ECM_ERROR;
+        }
     }
 
   /* check that B1 is not too large */
@@ -880,16 +883,16 @@ ecm (mpz_t f, mpz_t x, int param, mpz_t sigma, mpz_t n, mpz_t go,
     }
 
   /* Compute s for the batch mode */
-  if (IS_BATCH_MODE(param) && (B1 != *batch_last_B1_used || mpz_cmp_ui (batch_s, 1) <= 0))
+  if (IS_BATCH_MODE(param) && 
+      (B1 != *batch_last_B1_used || mpz_cmp_ui (batch_s, 1) <= 0))
     {
       *batch_last_B1_used = B1;
 
       st = cputime ();
       /* construct the batch exponent */
       compute_s (batch_s, B1);
-      if (verbose > OUTPUT_NORMAL)
-        fprintf (stdout, "computing prime product of %zu bits took %ldms\n", 
-                mpz_sizeinbase (batch_s, 2), cputime () - st);
+      outputf (OUTPUT_VERBOSE, "computing prime product of %zu bits took " 
+                   "%ldms\n", mpz_sizeinbase (batch_s, 2), cputime () - st);
     }
 
 
