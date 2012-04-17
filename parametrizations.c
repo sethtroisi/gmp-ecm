@@ -221,6 +221,8 @@ get_curve_from_param0 (mpz_t f, mpres_t A, mpres_t x, mpz_t sigma, mpmod_t n)
 int  
 get_curve_from_param1 (mpres_t A, mpres_t x0, mpz_t sigma, mpmod_t n)
 {
+  int i;
+  mpz_t tmp;
   mpz_t two32;
   mpz_init (two32);
   mpz_ui_pow_ui (two32, 2, 32);
@@ -246,8 +248,6 @@ get_curve_from_param1 (mpres_t A, mpres_t x0, mpz_t sigma, mpmod_t n)
     }
   
   /* A=4*d-2 with d = sigma/2^GMP_NUMB_BITS*/
-  int i;
-  mpz_t tmp;
   mpz_init_set (tmp, sigma);
   /* Compute d = sigma/2^GMP_NUMB_BITS */
   for (i = 0; i < GMP_NUMB_BITS; i++)
@@ -412,13 +412,12 @@ get_random_parameter (mpz_t sigma, int param, gmp_randstate_t rng)
 int
 is_invalid_parameter (mpz_t sigma, int param)
 {
+  int ret = 0;
   mpz_t two64, two32;
   mpz_init (two64);
   mpz_init (two32);
   mpz_ui_pow_ui (two64, 2, 64);
   mpz_ui_pow_ui (two32, 2, 32);
-
-  int ret = 0;
 
   if (param == ECM_PARAM_SUYAMA)
     {
