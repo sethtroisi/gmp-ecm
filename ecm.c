@@ -833,6 +833,8 @@ ecm (mpz_t f, mpz_t x, int param, mpz_t sigma, mpz_t n, mpz_t go,
      -1: sigma contains A from Weierstrass form y^2 = x^3 + Ax + B,
          and go contains B */
   ASSERT((-1 <= sigma_is_A) && (sigma_is_A <= 1));
+  ASSERT((-1 <= param) && (param <= 2));
+  ASSERT((GMP_NUMB_BITS == 32) || (GMP_NUMB_BITS == 64));
 
   set_verbose (verbose);
   ECM_STDOUT = (os == NULL) ? stdout : os;
@@ -1016,7 +1018,9 @@ ecm (mpz_t f, mpz_t x, int param, mpz_t sigma, mpz_t n, mpz_t go,
         }
       else if (param == ECM_PARAM_BATCH_SMALL_D)
         {
-          get_curve_from_param1 (P.A, P.x, sigma, modulus);
+          youpi = get_curve_from_param1 (P.A, P.x, sigma, modulus);
+          if (youpi != ECM_NO_FACTOR_FOUND)
+	          goto end_of_ecm;
         }
       else if (param == ECM_PARAM_BATCH_2)
         {
