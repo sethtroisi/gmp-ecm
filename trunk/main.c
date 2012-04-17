@@ -372,7 +372,7 @@ main (int argc, char *argv[])
   double maxmem = 0.;
   double stage1time = 0.;
   ecm_params params;
-  int param = -1; /* -1 means default parametrization */
+  int param = ECM_PARAM_DEFAULT; /* -1 means default parametrization */
   char *savefile_s = NULL;
   char *loadfile_s = NULL;
 #ifdef WANT_SHELLCMD
@@ -608,8 +608,8 @@ main (int argc, char *argv[])
             }
           else
             {
-              if (param == -1)
-                param = 0; 
+              if (param == ECM_PARAM_DEFAULT)
+                param = ECM_PARAM_SUYAMA; 
               if (mpz_set_str (sigma, argv[2], 0)) 
                 {
                   fprintf (stderr, "Error, invalid sigma value: %s\n", argv[2]);
@@ -1093,14 +1093,14 @@ main (int argc, char *argv[])
       fclose (savefile);
     }
 
-  if (resumefile && 
-                (specific_sigma || param != -1 || mpz_sgn (A) || specific_x0))
+  if (resumefile && (specific_sigma || param != ECM_PARAM_DEFAULT || 
+                     mpz_sgn (A) || specific_x0))
     {
       printf ("Warning: -sigma, -param, -A and -x0 parameters are\n" 
               "ignored when resuming from save files.\n");
       mpz_set_ui (sigma, 0);
       specific_sigma = 0;
-      param = -1; 
+      param = ECM_PARAM_DEFAULT; 
       mpz_set_ui (A, 0);
       specific_x0 = 0;
     }
@@ -1421,14 +1421,14 @@ BreadthFirstDoAgain:;
          If A was given one should check that d fits in one word and that x0=2.
          If A was not given one chooses it at random (and if x0 exists
          it must be 2). */
-      if (param != -1 && method != ECM_ECM)
+      if (param != ECM_PARAM_DEFAULT && method != ECM_ECM)
         {
           fprintf (stderr, "Error, the -param option is only valid for ECM\n");
           exit (EXIT_FAILURE);
         }
       params->param = param;
       
-      if ((params->param == 1 || params->param == 2) && loadfile_s != NULL)
+      if ((IS_BATCH_MODE(param)) && loadfile_s != NULL)
         {
           int st;
           params->batch_last_B1_used = B1;
@@ -1693,7 +1693,7 @@ OutputFactorStuff:;
         }
 
       /* Save the batch exponent s if requested */
-      if ((params->param == 1 || params->param == 2) && savefile_s != NULL)
+      if (IS_BATCH_MODE(params->param) && savefile_s != NULL)
         {
           int ret = write_s_in_file (savefile_s, params->batch_s);
           if (verbose > OUTPUT_NORMAL && ret > 0)

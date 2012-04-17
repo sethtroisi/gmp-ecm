@@ -149,8 +149,8 @@ read_resumefile_line (int *method, mpz_t x, mpcandi_t *n, mpz_t sigma, mpz_t A,
       have_method = have_x = have_z = have_n = have_sigma = have_a = 
                     have_b1 = have_qx = have_checksum = 0;
 
-      /* For compatibility reason, param = 0 by default */
-      *param = 0;
+      /* For compatibility reason, param = ECM_PARAM_SUYAMA by default */
+      *param = ECM_PARAM_SUYAMA;
 
       /* Set optional fields to zero */
       mpz_set_ui (sigma, 0);
@@ -452,7 +452,7 @@ const char *comment)
       fprintf (file, "ECM");
       if (sigma_is_A == 0)
         {
-          if (param >= 0)
+          if (param != ECM_PARAM_DEFAULT)
             fprintf (file, "; PARAM=%d", param);
 
           fprintf (file, "; SIGMA=");
