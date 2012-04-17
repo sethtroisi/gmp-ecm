@@ -122,17 +122,24 @@ ecm_factor (mpz_t f, mpz_t n, double B1, ecm_params p)
     {
       if (p->gpu == 0)
         {
-      res = ecm (f, p->x, p->param, p->sigma, n, p->go, &(p->B1done), B1,
-                 p->B2min, p->B2, B2scale, p->k, p->S, p->verbose, p->repr,
-                 p->nobase2step2, p->use_ntt, p->sigma_is_A, p->os, p->es,
-                 p->chkfilename, p->TreeFilename, p->maxmem, p->stage1time,
-                 p->rng, p->stop_asap, p->batch_s, &(p->batch_last_B1_used),
-                 p->gw_k, p->gw_b, p->gw_n, p->gw_c);
+            res = ecm (f, p->x, p->param, p->sigma, n, p->go, &(p->B1done), B1,
+                       p->B2min, p->B2, B2scale, p->k, p->S, p->verbose, 
+                       p->repr, p->nobase2step2, p->use_ntt, p->sigma_is_A,
+                       p->os, p->es, p->chkfilename, p->TreeFilename, p->maxmem,
+                       p->stage1time, p->rng, p->stop_asap, p->batch_s,
+                       &(p->batch_last_B1_used), p->gw_k, p->gw_b, p->gw_n,
+                       p->gw_c);
         }
       else
         {
-          res = gpu_ecm (f, n, p->batch_s, B1, p->gpu_device, 
-                         &(p->gpu_device_init), &(p->gpu_number_of_curves), 42);
+            res = gpu_ecm (f, p->param, p->sigma, n, p->go, &(p->B1done), 
+                           B1, p->B2min, p->B2, B2scale, p->k, p->S,
+                           p->verbose, p->repr, p->nobase2step2, p->use_ntt,
+                           p->sigma_is_A, p->os, p->es, p->chkfilename,
+                           p->TreeFilename, p->maxmem, p->stage1time, p->rng,
+                           p->stop_asap, p->batch_s, &(p->batch_last_B1_used),
+                           p->gpu_device, &(p->gpu_device_init), 
+                           &(p->gpu_number_of_curves));
         }
     }
   else if (p->method == ECM_PM1)
