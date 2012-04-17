@@ -80,16 +80,12 @@
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <PreBuildEvent>
-      <Command>cd $(SolutionDir)
-call file_copy ecm-params.h.win32.intel ..\ecm-params.h
-call file_copy mul_fft-params.h.win32.intel ..\mul_fft-params.h
-call file_copy config.h ..\config.h
-</Command>
+      <Command>copy ..\config.h ..\..\</Command>
     </PreBuildEvent>
     <ClCompile>
       <Optimization>Full</Optimization>
       <IntrinsicFunctions>true</IntrinsicFunctions>
-      <AdditionalIncludeDirectories>..\..\..\$(mp_dir)lib\$(IntDir);..\..\;..\assembler;..\;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>..\;..\..\;..\assembler;..\..\..\$(mp_dir)lib\$(IntDir);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>WIN32;NDEBUG;_LIB;SSE2;USE_ASM_REDC;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
       <PrecompiledHeader>
@@ -101,11 +97,7 @@ call file_copy config.h ..\config.h
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <PreBuildEvent>
-      <Command>cd $(SolutionDir)
-call file_copy ecm-params.h.x64.intel ..\ecm-params.h
-call file_copy mul_fft-params.h.x64.intel ..\mul_fft-params.h
-call file_copy config.h ..\config.h
-</Command>
+      <Command>copy ..\config.h ..\..\</Command>
     </PreBuildEvent>
     <Midl>
       <TargetEnvironment>X64</TargetEnvironment>
@@ -113,7 +105,7 @@ call file_copy config.h ..\config.h
     <ClCompile>
       <Optimization>Full</Optimization>
       <IntrinsicFunctions>true</IntrinsicFunctions>
-      <AdditionalIncludeDirectories>..\..\..\$(mp_dir)lib\$(IntDir);..\..\;..\assembler;..\;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>..\;..\..\;..\assembler;..\..\..\$(mp_dir)lib\$(IntDir);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>WIN32;_WIN64;NDEBUG;_LIB;USE_ASM_REDC;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
       <PrecompiledHeader>
@@ -129,15 +121,11 @@ call file_copy config.h ..\config.h
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <PreBuildEvent>
-      <Command>cd $(SolutionDir)
-call file_copy ecm-params.h.win32.intel ..\ecm-params.h
-call file_copy mul_fft-params.h.win32.intel ..\mul_fft-params.h
-call file_copy config.h ..\config.h
-</Command>
+      <Command>copy ..\config.h ..\..\</Command>
     </PreBuildEvent>
     <ClCompile>
       <Optimization>Disabled</Optimization>
-      <AdditionalIncludeDirectories>..\..\..\$(mp_dir)lib\$(IntDir);..\..\;..\assembler;..\;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>..\;..\..\;..\assembler;..\..\..\$(mp_dir)lib\$(IntDir);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>WIN32;_DEBUG;_LIB;SSE2;USE_ASM_REDC;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <MinimalRebuild>true</MinimalRebuild>
       <BasicRuntimeChecks>EnableFastChecks</BasicRuntimeChecks>
@@ -151,18 +139,14 @@ call file_copy config.h ..\config.h
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <PreBuildEvent>
-      <Command>cd $(SolutionDir)
-call file_copy ecm-params.h.x64.intel ..\ecm-params.h
-call file_copy mul_fft-params.h.x64.intel ..\mul_fft-params.h
-call file_copy config.h ..\config.h
-</Command>
+      <Command>copy ..\config.h ..\..\</Command>
     </PreBuildEvent>
     <Midl>
       <TargetEnvironment>X64</TargetEnvironment>
     </Midl>
     <ClCompile>
       <Optimization>Disabled</Optimization>
-      <AdditionalIncludeDirectories>..\..\..\$(mp_dir)lib\$(IntDir);..\..\;..\assembler;..\;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>..\;..\..\;..\assembler;..\..\..\$(mp_dir)lib\$(IntDir);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>WIN32;_WIN64;_DEBUG;_LIB;USE_ASM_REDC;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <MinimalRebuild>true</MinimalRebuild>
       <BasicRuntimeChecks>EnableFastChecks</BasicRuntimeChecks>
@@ -187,10 +171,10 @@ call file_copy config.h ..\config.h
     <ClCompile Include="..\..\auxlib.c" />
     <ClCompile Include="..\..\batch.c" />
     <ClCompile Include="..\..\bestd.c" />
+    <ClCompile Include="..\..\cudawrapper.c" />
     <ClCompile Include="..\..\ecm.c" />
     <ClCompile Include="..\..\ecm2.c" />
     <ClCompile Include="..\..\ecm_ntt.c" />
-    <ClCompile Include="..\..\ellparam_batch.c" />
     <ClCompile Include="..\..\factor.c" />
     <ClCompile Include="..\..\getprime.c" />
     <ClCompile Include="..\..\ks-multiply.c" />
@@ -206,6 +190,7 @@ call file_copy config.h ..\config.h
     </ClCompile>
     <ClCompile Include="..\..\mul_lo.c" />
     <ClCompile Include="..\..\ntt_gfp.c" />
+    <ClCompile Include="..\..\parametrizations.c" />
     <ClCompile Include="..\..\pm1.c" />
     <ClCompile Include="..\..\pm1fs2.c" />
     <ClCompile Include="..\..\polyeval.c" />
@@ -228,14 +213,14 @@ call file_copy config.h ..\config.h
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\champions.h" />
-    <ClInclude Include="..\config.h" />
+    <ClInclude Include="..\..\config.h" />
     <ClInclude Include="..\..\ecm-ecm.h" />
     <ClInclude Include="..\..\ecm-gmp.h" />
     <ClInclude Include="..\..\ecm-impl.h" />
-    <ClInclude Include="..\..\ecm-params.h" />
     <ClInclude Include="..\..\ecm.h" />
     <ClInclude Include="..\..\longlong.h" />
     <ClInclude Include="..\..\sp.h" />
+    <ClInclude Include="..\ecm-params.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
