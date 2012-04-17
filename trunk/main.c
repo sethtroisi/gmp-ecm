@@ -587,7 +587,26 @@ main (int argc, char *argv[])
         }
       else if ((argc > 2) && (strcmp (argv[1], "-param")) == 0)
         {
-          param = atoi (argv[2]);
+          /* atoi does not allow use to distinct from */ 
+          /* '-param 0' and '-param -otherargs' as it will always return 0 */
+          if (argv[2][0] == '-') 
+            {
+              fprintf (stderr, "Error, invalid param value: %s\n", argv[2]);
+              exit (EXIT_FAILURE);
+            }
+          /* If param was already set (by -sigma i:x), we should check that */
+          /* the same value is passed with -param */ 
+          if (param != ECM_PARAM_DEFAULT)
+            {
+              if (param != atoi (argv[2]))
+                {
+                  fprintf (stderr, "Error, conflict between -sigma and -param "
+                                   "arguments\n");
+                  exit (EXIT_FAILURE);
+                }
+            }
+          else
+              param = atoi (argv[2]);
           argv += 2;
           argc -= 2;
         }
@@ -598,7 +617,21 @@ main (int argc, char *argv[])
           /* yet defined we assumed this is 0 (for compatibility reason) */
           if (argv[2][1] == ':')
             {
-              param = argv[2][0] - '0' ;
+              argv[2][1] = '\0';
+              /* If param was already set (by -param i:x), we should check */
+              /* that the same value is passed with -sigma */ 
+              if (param != ECM_PARAM_DEFAULT)
+                {
+                  if (param != atoi (argv[2]))
+                    {
+                      fprintf (stderr, "Error, conflict between -sigma and "
+                                       "-param arguments\n");
+                      exit (EXIT_FAILURE);
+                    }
+                }
+              else
+                  param = atoi (argv[2]) ;
+
               if (mpz_set_str (sigma, argv[2]+2, 0)) 
                 {
                   fprintf (stderr, "Error, invalid sigma value: %s\n", 
