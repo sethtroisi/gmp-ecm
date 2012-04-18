@@ -447,12 +447,17 @@ is_invalid_parameter (mpz_t sigma, int param)
   return ret;
 }
 
-/* TODO: Do better than that */
 int 
 get_default_param (double B1, double B1done)
 {
   if (ECM_IS_DEFAULT_B1_DONE(B1done))
       return ECM_PARAM_SUYAMA;
   else
-      return ECM_PARAM_BATCH_SMALL_D;
+    {
+      /* TODO: For now the choice is arbitrary, do better than that */
+      if (B1 >= 100000000.0)
+          return ECM_PARAM_BATCH_2;
+      else
+          return ECM_PARAM_BATCH_SMALL_D;
+    }
 }

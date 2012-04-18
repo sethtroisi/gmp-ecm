@@ -746,10 +746,12 @@ print_exptime (double B1, const mpz_t B2, unsigned long dF, unsigned long k,
 
 /* go should be NULL for P+1, and P-1, it contains the y coordinate for the
    Weierstrass form for ECM (when sigma_is_A = -1). */
+/* if gpu != 0 then it contains the number of curves that will be computed on
+   the GPU */
 void
 print_B1_B2_poly (int verbosity, int method, double B1, double B1done, 
 		  mpz_t B2min_param, mpz_t B2min, mpz_t B2, int S, mpz_t sigma,
-		  int sigma_is_A, mpz_t go, int param)
+		  int sigma_is_A, mpz_t go, int param, unsigned int gpu)
 {
   ASSERT ((method == ECM_ECM) || (go == NULL));
   ASSERT ((-1 <= sigma_is_A) && (sigma_is_A <= 1));
@@ -778,8 +780,19 @@ print_B1_B2_poly (int verbosity, int method, double B1, double B1done,
 	        if (sigma_is_A == 1)
 	            outputf (verbosity, ", A=%Zd", sigma);
 	        else if (sigma_is_A == 0)
-	            outputf (verbosity, ", sigma=%d:%Zd", param, sigma);
-	        else /* sigma_is_A = -1: curve was given in Weierstrass form */
+            {
+              if (gpu) /* if not 0, contains number_of_curves */
+                {
+                  outputf (verbosity, ", sigma=%d:%Zd", param, sigma);
+                  mpz_add_ui (sigma, sigma, gpu);
+                  outputf (verbosity, "-%d:%Zd", param, sigma);
+                  mpz_sub_ui (sigma, sigma, gpu);
+                  outputf (verbosity, " (%u curves)", gpu);
+                }
+              else
+                  outputf (verbosity, ", sigma=%d:%Zd", param, sigma);
+	          }
+          else /* sigma_is_A = -1: curve was given in Weierstrass form */
 	            outputf (verbosity, ", Weierstrass(A=%Zd,y=Zd)", sigma, go);
         }
       else if (ECM_IS_DEFAULT_B1_DONE(B1done))
@@ -787,6 +800,86 @@ print_B1_B2_poly (int verbosity, int method, double B1, double B1done,
       
       outputf (verbosity, "\n");
   }
+}
+
+/* Compute parameters for stage 2*/
+int
+set_stage_2_params (mpz_t B2, mpz_t B2_parm, mpz_t B2min, mpz_t B2min_parm, 
+                    root_params_t *root_params, double B1, double B2scale,
+                    unsigned long *k, const int S, int use_ntt, int *po2,
+                    unsigned long *dF, char *TreeFilename, double maxmem, 
+                    int Fermat, mpmod_t modulus)
+{
+  MEMORY_TAG;
+  mpz_init_set (B2min, B2min_parm);
+  MEMORY_TAG;
+  mpz_init_set (B2, B2_parm);
+  
+  MEMORY_TAG;
+  mpz_init (root_params->i0);
+  MEMORY_UNTAG;
+
+  /* set second stage bound B2: when using polynomial multiplication of
+     complexity n^alpha, stage 2 has complexity about B2^(alpha/2), and
+     we want stage 2 to take about half of stage 1, thus we choose
+     B2 = (c*B1)^(2/alpha). Experimentally, c=1/4 seems to work well.
+     For Toom-Cook 3, this gives alpha=log(5)/log(3), and B2 ~ (c*B1)^1.365.
+     For Toom-Cook 4, this gives alpha=log(7)/log(4), and B2 ~ (c*B1)^1.424. */
+
+  /* We take the cost of P+1 stage 1 to be about twice that of P-1.
+     Since nai"ve P+1 and ECM cost respectively 2 and 11 multiplies per
+     addition and duplicate, and both are optimized with PRAC, we can
+     assume the ratio remains about 11/2. */
+
+  /* Also scale B2 by what the user said (or by the default scaling of 1.0) */
+
+  if (ECM_IS_DEFAULT_B2(B2))
+    mpz_set_d (B2, B2scale * pow (ECM_COST * B1, DEFAULT_B2_EXPONENT));
+
+  /* set B2min */
+  if (mpz_sgn (B2min) < 0)
+    mpz_set_d (B2min, B1);
+
+  /* Let bestD determine parameters for root generation and the 
+     effective B2 */
+
+  if (use_ntt)
+    *po2 = 1;
+
+  root_params->d2 = 0; /* Enable automatic choice of d2 */
+  if (bestD (root_params, k, dF, B2min, B2, *po2, use_ntt, maxmem, 
+             (TreeFilename != NULL), modulus) == ECM_ERROR)
+    {
+      return ECM_ERROR;
+    }
+
+  /* Set default degree for Brent-Suyama extension */
+  /* We try to keep the time used by the Brent-Suyama extension
+     at about 10% of the stage 2 time */
+  /* Degree S Dickson polys and x^S are equally fast for ECM, so we go for
+     the better Dickson polys whenever possible. For S == 1, 2, they behave
+     identically. */
+
+  root_params->S = S;
+  if (root_params->S == ECM_DEFAULT_S)
+    {
+      if (Fermat > 0)
+        {
+          /* For Fermat numbers, default is 1 (no Brent-Suyama) */
+          root_params->S = 1;
+        }
+      else
+        {
+          mpz_t t;
+          MEMORY_TAG;
+          mpz_init (t);
+          MEMORY_UNTAG;
+          mpz_sub (t, B2, B2min);
+          root_params->S = choose_S (t);
+          mpz_clear (t);
+        }
+    }
+  return ECM_NO_FACTOR_FOUND;
 }
 
 /* Input: x is starting point or zero
@@ -928,76 +1021,11 @@ ecm (mpz_t f, mpz_t x, int param, mpz_t sigma, mpz_t n, mpz_t go,
   mpres_set_z (P.x, x, modulus);
   mpres_set_ui (P.y, 1, modulus);
   
-  MEMORY_TAG;
-  mpz_init_set (B2min, B2min_parm);
-  MEMORY_TAG;
-  mpz_init_set (B2, B2_parm);
-  
-  MEMORY_TAG;
-  mpz_init (root_params.i0);
-  MEMORY_UNTAG;
-
-  /* set second stage bound B2: when using polynomial multiplication of
-     complexity n^alpha, stage 2 has complexity about B2^(alpha/2), and
-     we want stage 2 to take about half of stage 1, thus we choose
-     B2 = (c*B1)^(2/alpha). Experimentally, c=1/4 seems to work well.
-     For Toom-Cook 3, this gives alpha=log(5)/log(3), and B2 ~ (c*B1)^1.365.
-     For Toom-Cook 4, this gives alpha=log(7)/log(4), and B2 ~ (c*B1)^1.424. */
-
-  /* We take the cost of P+1 stage 1 to be about twice that of P-1.
-     Since nai"ve P+1 and ECM cost respectively 2 and 11 multiplies per
-     addition and duplicate, and both are optimized with PRAC, we can
-     assume the ratio remains about 11/2. */
-
-  /* Also scale B2 by what the user said (or by the default scaling of 1.0) */
-
-  if (ECM_IS_DEFAULT_B2(B2))
-    mpz_set_d (B2, B2scale * pow (ECM_COST * B1, DEFAULT_B2_EXPONENT));
-
-  /* set B2min */
-  if (mpz_sgn (B2min) < 0)
-    mpz_set_d (B2min, B1);
-
-  /* Let bestD determine parameters for root generation and the 
-     effective B2 */
-
-  if (use_ntt)
-    po2 = 1;
-
-  root_params.d2 = 0; /* Enable automatic choice of d2 */
-  if (bestD (&root_params, &k, &dF, B2min, B2, po2, use_ntt, maxmem, 
-             (TreeFilename != NULL), modulus) == ECM_ERROR)
-    {
-      youpi = ECM_ERROR;
+  youpi = set_stage_2_params (B2, B2_parm, B2min, B2min_parm, &root_params, 
+                              B1, B2scale, &k, S, use_ntt, &po2, &dF, 
+                              TreeFilename, maxmem, Fermat, modulus);
+  if (youpi == ECM_ERROR)
       goto end_of_ecm;
-    }
-
-  /* Set default degree for Brent-Suyama extension */
-  /* We try to keep the time used by the Brent-Suyama extension
-     at about 10% of the stage 2 time */
-  /* Degree S Dickson polys and x^S are equally fast for ECM, so we go for
-     the better Dickson polys whenever possible. For S == 1, 2, they behave
-     identically. */
-
-  root_params.S = S;
-  if (root_params.S == ECM_DEFAULT_S)
-    {
-      if (Fermat > 0)
-        {
-          /* For Fermat numbers, default is 1 (no Brent-Suyama) */
-          root_params.S = 1;
-        }
-      else
-        {
-          mpz_t t;
-          MEMORY_TAG;
-          mpz_init (t);
-          MEMORY_UNTAG;
-          mpz_sub (t, B2, B2min);
-          root_params.S = choose_S (t);
-          mpz_clear (t);
-        }
-    }
   
   if (sigma_is_A == 0)
     {
@@ -1062,7 +1090,7 @@ ecm (mpz_t f, mpz_t x, int param, mpz_t sigma, mpz_t n, mpz_t go,
 
   /* Print B1, B2, polynomial and sigma */
   print_B1_B2_poly (OUTPUT_NORMAL, ECM_ECM, B1, *B1done, B2min_parm, B2min, 
-		    B2, root_params.S, sigma, sigma_is_A, go, param);
+		    B2, root_params.S, sigma, sigma_is_A, go, param, 0);
 
 #if 0
   outputf (OUTPUT_VERBOSE, "b2=%1.0f, dF=%lu, k=%lu, d=%lu, d2=%lu, i0=%Zd\n", 
