@@ -131,7 +131,7 @@ float cuda_Main (biguint_t h_N, biguint_t h_3N, biguint_t h_M, digit_t h_invN,
 
   size_t array_size = sizeof(biguint_t) * number_of_curves;
 
-  dim3 dimBlock (NB_DIGITS, CURVES_BY_BLOCK);
+  dim3 dimBlock (ECM_GPU_NB_DIGITS, CURVES_BY_BLOCK);
   dim3 dimGrid (number_of_curves/CURVES_BY_BLOCK);
 
   fprintf(OUTPUT_VVERBOSE, "Block: %ux%ux%u Grid: %ux%ux%u\n", dimBlock.x, 
@@ -268,7 +268,7 @@ __device__ void Cuda_Fully_Normalize (biguint_t A, dbigint_t cy)
 
   while(__any(cy[threadIdx.x])!=0)
   {
-    thm1 = (threadIdx.x - 1) % NB_DIGITS;
+    thm1 = (threadIdx.x - 1) % ECM_GPU_NB_DIGITS;
     cytemp = cy[thm1];
 
     __add_cc(A[threadIdx.x], A[threadIdx.x], cytemp);
@@ -286,7 +286,7 @@ __device__ void Cuda_Fully_Normalize (biguint_t A, dbigint_t cy)
 __device__ void Cuda_Add_mod
 (biguint_t Rmod, dbigint_t cy, const biguint_t A, const biguint_t B)
 {
-  unsigned int thp1 = (threadIdx.x + 1) % NB_DIGITS;
+  unsigned int thp1 = (threadIdx.x + 1) % ECM_GPU_NB_DIGITS;
   __add_cc (Rmod[threadIdx.x], A[threadIdx.x], B[threadIdx.x]);
   __addcy2(Rmod[thp1]); 
   __addcy (cy[thp1]);
@@ -301,7 +301,7 @@ __device__ void Cuda_Add_mod
 __device__ void Cuda_Add_mod
 (biguint_t Rmod, dbigint_t cy, const biguint_t A)
 {
-  unsigned int thp1 = (threadIdx.x + 1) % NB_DIGITS;
+  unsigned int thp1 = (threadIdx.x + 1) % ECM_GPU_NB_DIGITS;
   __add_cc (Rmod[threadIdx.x], Rmod[threadIdx.x], A[threadIdx.x]);
   //__addcy (cy[threadIdx.x]);
   __addcy2(Rmod[thp1]); 
@@ -335,7 +335,7 @@ __device__ void Cuda_Mulmod_step
 {
   digit_t t;
   digit_t reg_hi = 0;
-  unsigned int thp1= (threadIdx.x + 1) % NB_DIGITS;
+  unsigned int thp1= (threadIdx.x + 1) % ECM_GPU_NB_DIGITS;
   carry_t reg_cy = cy[thp1];
 
   __mad_lo_cc(r[threadIdx.x],a,b);
@@ -359,7 +359,7 @@ __device__ void Cuda_Mulmod_step
 __device__ void Cuda_Dbl_mod
 (biguint_t r, biguint_t a)
 {
-  unsigned int thp1= (threadIdx.x + 1) % NB_DIGITS;
+  unsigned int thp1= (threadIdx.x + 1) % ECM_GPU_NB_DIGITS;
   asm ("add.cc.u32 %0, %1, %1;" : "=r"(r[threadIdx.x]) : "r"(a[threadIdx.x]));
   __addcy2(r[thp1]);
 }
@@ -374,7 +374,7 @@ __device__ void Cuda_Mulint_mod
 {
   digit_t t;
   digit_t reg_hi;
-  unsigned int thp1= (threadIdx.x + 1) % NB_DIGITS;
+  unsigned int thp1= (threadIdx.x + 1) % ECM_GPU_NB_DIGITS;
   digit_t reg_A = A[threadIdx.x];
   carry_t reg_cy;
 
@@ -408,7 +408,7 @@ __device__ void Cuda_Mul_mod
 
   r[threadIdx.x]=0;
   
-  for (i=0; i<NB_DIGITS; i++)
+  for (i=0; i<ECM_GPU_NB_DIGITS; i++)
     Cuda_Mulmod_step (r, cy, temp, B[i], Nthdx, invN);
 
   
@@ -432,13 +432,13 @@ __global__ void
 Cuda_Ell_DblAdd (biguint_t *xAarg, biguint_t *zAarg, biguint_t *xBarg, 
                                        biguint_t *zBarg, unsigned int firstinvd)
 {
-  __shared__ VOL digit_t b_temp_r[CURVES_BY_BLOCK][NB_DIGITS];
-  __shared__ VOL carry_t b_cy[CURVES_BY_BLOCK][NB_DIGITS]; 
+  __shared__ VOL digit_t b_temp_r[CURVES_BY_BLOCK][ECM_GPU_NB_DIGITS];
+  __shared__ VOL carry_t b_cy[CURVES_BY_BLOCK][ECM_GPU_NB_DIGITS]; 
 
-  __shared__ VOL digit_t b_t[CURVES_BY_BLOCK][NB_DIGITS];
-  __shared__ VOL digit_t b_u[CURVES_BY_BLOCK][NB_DIGITS];
-  __shared__ VOL digit_t b_v[CURVES_BY_BLOCK][NB_DIGITS];
-  __shared__ VOL digit_t b_w[CURVES_BY_BLOCK][NB_DIGITS];
+  __shared__ VOL digit_t b_t[CURVES_BY_BLOCK][ECM_GPU_NB_DIGITS];
+  __shared__ VOL digit_t b_u[CURVES_BY_BLOCK][ECM_GPU_NB_DIGITS];
+  __shared__ VOL digit_t b_v[CURVES_BY_BLOCK][ECM_GPU_NB_DIGITS];
+  __shared__ VOL digit_t b_w[CURVES_BY_BLOCK][ECM_GPU_NB_DIGITS];
   
   VOL digit_t *t=b_t[threadIdx.y];
   VOL digit_t *u=b_u[threadIdx.y];

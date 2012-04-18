@@ -433,6 +433,8 @@ is_invalid_parameter (mpz_t sigma, int param)
         }
       else if (GMP_NUMB_BITS == 64)
         {
+          /* TODO if sigma < 2^32 nothing to do */
+          /* if sigma >=2^32 sigma sould be a square */ 
           if (mpz_cmp_ui (sigma, 1) < 0 || mpz_cmp (sigma, two64) >= 0)
               ret = 1;
         }

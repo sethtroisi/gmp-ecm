@@ -9,16 +9,16 @@
 
 #define VERSION_GPUECM "0.1"
 
-#ifndef NB_DIGITS
-  #define NB_DIGITS 32 //by default
+#ifndef ECM_GPU_NB_DIGITS
+  #define ECM_GPU_NB_DIGITS 32 //by default
 #endif
 
-#ifndef DIGITS
-  #define DIGITS 0
+#ifndef ECM_GPU_DIGITS
+  #define ECM_GPU_DIGITS 0
 #endif
 
-#if (DIGITS==0)
-  #define SIZE_DIGIT 32
+#if (ECM_GPU_DIGITS==0)
+  #define ECM_GPU_SIZE_DIGIT 32
   typedef unsigned int digit_t;
   typedef int carry_t;
 #endif
@@ -26,10 +26,10 @@
 #define VOL volatile 
 //#define VOL
 
-#define ECM_GPU_MAX_BITS SIZE_DIGIT*NB_DIGITS
-typedef digit_t VOL biguint_t[NB_DIGITS];
-typedef digit_t VOL dbiguint_t[NB_DIGITS+1];
-typedef carry_t VOL dbigint_t[NB_DIGITS+1];
+#define ECM_GPU_MAX_BITS ECM_GPU_SIZE_DIGIT * ECM_GPU_NB_DIGITS
+typedef digit_t VOL biguint_t[ECM_GPU_NB_DIGITS];
+typedef digit_t VOL dbiguint_t[ECM_GPU_NB_DIGITS+1];
+typedef carry_t VOL dbigint_t[ECM_GPU_NB_DIGITS+1];
 
 /* Uncomment the next line to print the number of remaining iterations. */
 //#define PRINT_REMAINING_ITER
@@ -48,7 +48,8 @@ int gpu_ecm (mpz_t, int, mpz_t, mpz_t, mpz_t, double *, double, mpz_t,
 int gpu_ecm ();
 #endif
 #define gpu_ecm_stage1 __ECM(gpu_ecm_stage1)
-int gpu_ecm_stage1 (mpz_t, mpz_t, unsigned int, unsigned int, float*);
+int gpu_ecm_stage1 (mpz_t *, int *, mpz_t, mpz_t, unsigned int, unsigned int, 
+                    float *);
 
 #endif
 
