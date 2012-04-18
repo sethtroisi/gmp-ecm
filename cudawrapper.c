@@ -246,28 +246,38 @@ int gpu_ecm (ATTRIBUTE_UNUSED mpz_t f, ATTRIBUTE_UNUSED mpz_t N,
              ATTRIBUTE_UNUSED unsigned int *nb_curves, 
              ATTRIBUTE_UNUSED unsigned int firstinvd)
 */
+#ifndef WITH_GPU
+int
+gpu_ecm () 
+{
+  fprintf(stderr, "This version of libecm does not contain the GPU code.\n"
+                  "You should recompile it with ./configure --enable-gpu or\n"
+                  "link a version of libecm which contain the GPU code.\n");
+  return ECM_ERROR;
+}
+#else
 int
 gpu_ecm (mpz_t f, int param, mpz_t firstsigma, mpz_t n, mpz_t go, 
          double *B1done, double B1, mpz_t B2min_parm, mpz_t B2_parm, 
          double B2scale, unsigned long k, const int S, int verbose, int repr,
          int nobase2step2, int use_ntt, int sigma_is_A, FILE *os, FILE* es, 
          char *chkfilename, char *TreeFilename, double maxmem, 
-         double stage1time, gmp_randstate_t rng, int (*stop_asap)(void), 
-         mpz_t batch_s, double *batch_last_B1_used, int device, 
-         int *device_init, unsigned int *nb_curves)
-
-#ifndef WITH_GPU
+         int (*stop_asap)(void), mpz_t batch_s, double *batch_last_B1_used, 
+         int device, int *device_init, unsigned int *nb_curves)
 {
-  fprintf(stderr, "This version of libecm does not contain the GPU code.\n"
-                  "You should recompile it with ./configure --enable-gpu or\n"
-                  "link a version of libecm which contain the GPU code.\n");
-  exit(EXIT_FAILURE);
-}
-#else
-{
-  int main_ret = ECM_NO_FACTOR_FOUND;
+  int youpi = ECM_NO_FACTOR_FOUND;
   long st;
   float gputime = 0.0;
+  /* Only for stage 2 */
+  int base2 = 0;  /* If n is of form 2^n[+-]1, set base to [+-]n */
+  int Fermat = 0; /* If base2 > 0 is a power of 2, set Fermat to base2 */
+  int po2 = 0;    /* Whether we should use power-of-2 poly degree */
+  /* Use only in stage 2 */
+  mpmod_t modulus;
+  curve P;
+  mpz_t B2min, B2; /* Local B2, B2min to avoid changing caller's values */
+  unsigned long dF;
+  root_params_t root_params;
 
   ASSERT((-1 <= sigma_is_A) && (sigma_is_A <= 1));
   ASSERT((GMP_NUMB_BITS == 32) || (GMP_NUMB_BITS == 64));
@@ -296,13 +306,33 @@ gpu_ecm (mpz_t f, int param, mpz_t firstsigma, mpz_t n, mpz_t go,
       return ECM_ERROR;
     }
 
-  /* check that repr == ECM_MOD_DEFAULT */
-  if (repr != ECM_MOD_DEFAULT)
+  /* check that repr == ECM_MOD_DEFAULT or ECM_MOD_BASE2 (only for stage 2) */
+  if (repr != ECM_MOD_DEFAULT && repr != ECM_MOD_BASE2)
     {
-      outputf (OUTPUT_ERROR, "GPU: Error, only repr = ECM_MOD_DEFAULT "
-                             "is accepted on GPU.\n");
+      outputf (OUTPUT_ERROR, "GPU: Error, invalid value of repr.\n");
       return ECM_ERROR;
     }
+
+  /* It is only for stage 2, it is not taken into account for GPU code */
+  if (mpmod_init (modulus, n, repr) != 0)
+    return ECM_ERROR;
+
+  /* See what kind of number we have as that may influence optimal parameter 
+     selection. Test for base 2 number. Note: this was already done by
+     mpmod_init. */
+
+  if (modulus->repr == ECM_MOD_BASE2)
+    base2 = modulus->bits;
+
+  /* For a Fermat number (base2 a positive power of 2) */
+  for (Fermat = base2; Fermat > 0 && (Fermat & 1) == 0; Fermat >>= 1);
+  if (Fermat == 1) 
+    {
+      Fermat = base2;
+      po2 = 1;
+    }
+  else
+      Fermat = 0;
  
   /* Cannot do resume on GPU */
   if (!ECM_IS_DEFAULT_B1_DONE(*B1done) && *B1done < B1)
@@ -323,6 +353,21 @@ gpu_ecm (mpz_t f, int param, mpz_t firstsigma, mpz_t n, mpz_t go,
                    "%ldms\n", mpz_sizeinbase (batch_s, 2), cputime () - st);
     }
 
+  /* Set parameters for stage 2 */
+  MEMORY_TAG;
+  mpres_init (P.x, modulus);
+  MEMORY_TAG;
+  mpres_init (P.y, modulus);
+  MEMORY_TAG;
+  mpres_init (P.A, modulus);
+  youpi = set_stage_2_params (B2, B2_parm, B2min, B2min_parm, &root_params, 
+                              B1, B2scale, &k, S, use_ntt, &po2, &dF, 
+                              TreeFilename, maxmem, Fermat, modulus);
+  if (youpi == ECM_ERROR)
+      goto end_gpu_ecm;
+  
+  
+
   /* Initialiaze the GPU if necessary */
   if (!*device_init)
     {
@@ -342,15 +387,17 @@ gpu_ecm (mpz_t f, int param, mpz_t firstsigma, mpz_t n, mpz_t go,
   /* */
   if (sigma_is_A == -1)
     {
-      /* Cant do stage 2 on gpu*/
+      /* Cant do only stage 2 on gpu*/
       outputf (OUTPUT_ERROR, "GPU: Error, cannot do stage 2 on GPU.\n");
-      return ECM_ERROR;
+      youpi= ECM_ERROR;
+      goto end_gpu_ecm;
     }
   else if (sigma_is_A == 1)
     {
       /*compute sigma from A*/
       outputf (OUTPUT_ERROR, "GPU: Not yet implemented.\n");
-      return ECM_ERROR;
+      youpi= ECM_ERROR;
+      goto end_gpu_ecm;
     }
 
   if (sigma_is_A == 0 && mpz_sgn(firstsigma) == 0)
@@ -365,21 +412,21 @@ gpu_ecm (mpz_t f, int param, mpz_t firstsigma, mpz_t n, mpz_t go,
         {
           outputf (OUTPUT_ERROR, "GPU: Error, sigma should be bigger than 2 "
                                  "and smaller than %lu.\n", TWO32-*nb_curves);
-          return ECM_ERROR;
+          youpi= ECM_ERROR;
+          goto end_gpu_ecm;
         }
     }
 
+  print_B1_B2_poly (OUTPUT_NORMAL, ECM_ECM, B1, *B1done,  B2min_parm, B2min, 
+                    B2, S, firstsigma, sigma_is_A, go, param, *nb_curves);
+  outputf (OUTPUT_VERBOSE, "dF=%lu, k=%lu, d=%lu, d2=%lu, i0=%Zd\n", 
+           dF, k, root_params.d1, root_params.d2, root_params.i0);
+
+
   /* TODO: before beginning stage1:
+            from ecm.c copy 1105->call of stage1
             go should be NULL (or 1)
-            print B1, firstinv, nb_curves (modify a little 
-              print_B1_B2_poly) 
-  print_B1_B2_poly (OUTPUT_NORMAL, ECM_ECM, B1, *B1done, 
-		  mpz_t B2min_param, mpz_t B2min, mpz_t B2, int S, sigma,
-		  sigma_is_A, go, param)
-  In the meantime, we use this temporary printf:
   */
-  gmp_fprintf (stdout, "Using B1=%1.0f, sigma=%Zd, with %u curves\n", 
-                                          B1, firstsigma, *nb_curves);
   
 
   gpu_ecm_stage1 (n, batch_s, *nb_curves, mpz_get_ui(firstsigma), &gputime);
@@ -388,13 +435,20 @@ gpu_ecm (mpz_t f, int param, mpz_t firstsigma, mpz_t n, mpz_t go,
   fprintf (stdout, "Throughput: %.3f\n", 1000 * (*nb_curves)/gputime);
 
   /* TODO: print CPU time for stage1 */
-  /* TODO: Do stage2 (compute the parameters first (like in ecm.c) */
+  /* TODO: Do stage2 */
   /* TODO: Save in a file if requested */
 
 
-  end_gpu_ecm:
+end_gpu_ecm:
+  mpres_clear (P.A, modulus);
+  mpres_clear (P.y, modulus);
+  mpres_clear (P.x, modulus);
+  mpmod_clear (modulus);
+  mpz_clear (root_params.i0);
+  mpz_clear (B2);
+  mpz_clear (B2min);
 
-  return main_ret;
+  return youpi;
 }
 #endif
 
