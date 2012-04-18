@@ -1066,7 +1066,7 @@ pm1 (mpz_t f, mpz_t p, mpz_t N, mpz_t go, double *B1done, double B1,
   
   /* Print B1, B2, polynomial and x0 */
   print_B1_B2_poly (OUTPUT_NORMAL, ECM_PM1, B1, *B1done, B2min_parm, B2min, 
-		    B2, (stage2_variant == 0) ? root_params.S : 1, p, 0, NULL, 0);
+		    B2, (stage2_variant == 0) ? root_params.S : 1, p, 0, NULL, 0, 0);
 
   /* If we do a stage 2, print its parameters */
   if (mpz_cmp (B2, B2min) >= 0)
