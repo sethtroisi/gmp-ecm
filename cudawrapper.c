@@ -34,28 +34,32 @@ void print_factor_cofactor (mpz_t N, mpz_t factor)
     }
 }
 
-unsigned int findfactor(mpz_t N, mpz_t xfin, mpz_t zfin)
+int findfactor (mpz_t factor, mpz_t N, mpz_t xfin, mpz_t zfin)
 {
+  int youpi;
   mpz_t gcd;
   mpz_init (gcd);
 
-  mpz_gcd(gcd, zfin, N);
+  mpz_gcd (gcd, zfin, N);
   
-  if (mpz_cmp_ui (gcd, 1)==0)
+  if (mpz_cmp_ui (gcd, 1) == 0)
   {
     mpz_invert (zfin, zfin, N);
     mpz_mul (xfin, xfin, zfin);
     mpz_mod (xfin, xfin, N);
       
-    mpz_clear(gcd);
-    return ECM_NO_FACTOR_FOUND;
+    mpz_set (factor, xfin);
+    youpi = ECM_NO_FACTOR_FOUND;
   }
   else //gcd !=1 (and gcd>0 because N>0) so we found a factor
   {
-    print_factor_cofactor (N, gcd);
-    mpz_clear(gcd);
-    return ECM_FACTOR_FOUND_STEP1;
-  }
+    //print_factor_cofactor (N, gcd);
+      mpz_set (factor, gcd);
+      youpi = ECM_FACTOR_FOUND_STEP1;
+    }
+
+  mpz_clear(gcd);
+  return youpi;
 }
 
 void to_mont_repr (mpz_t x, mpz_t n)
@@ -74,7 +78,7 @@ void mpz_to_biguint (biguint_t a, mpz_t b)
 {
   int i;
 
-  for (i=0;i<NB_DIGITS;i++)
+  for (i=0;i<ECM_GPU_NB_DIGITS;i++)
   {
 #if GMP_NUMB_BITS == 32
     a[i]=mpz_getlimbn(b, i);  
@@ -93,18 +97,18 @@ void biguint_to_mpz (mpz_t a, biguint_t b)
   
   mpz_set_ui(a, 0);
 
-  for (i=NB_DIGITS-1;i>=0;i--)
+  for (i=ECM_GPU_NB_DIGITS-1;i>=0;i--)
   {
     mpz_mul_2exp(a, a, 32);
 	  mpz_add_ui(a , a, b[i]);
   }
 }
 
-int gpu_ecm_stage1 (mpz_t N, mpz_t s, unsigned int number_of_curves, 
-                    unsigned int firstsigma, float *gputime)
+int gpu_ecm_stage1 (mpz_t *factors, int *array_stage_found, mpz_t N, mpz_t s, 
+                    unsigned int number_of_curves, unsigned int firstsigma, 
+                    float *gputime)
 {
-  int fct_ret = ECM_NO_FACTOR_FOUND;
-  int ret;
+  int youpi = ECM_NO_FACTOR_FOUND;
 
   unsigned int sigma;
   unsigned int i;
@@ -143,7 +147,7 @@ int gpu_ecm_stage1 (mpz_t N, mpz_t s, unsigned int number_of_curves,
 
   /*Some computation depending on N */
   mpz_mul_ui (N3, N, 3); /* Compute N3 = 3*N */
-  mpz_ui_pow_ui (w, 2, SIZE_DIGIT); /* Compute w = 2^SIZE_DIGIT */
+  mpz_ui_pow_ui (w, 2, ECM_GPU_SIZE_DIGIT); /* Compute w = 2^SIZE_DIGIT */
     
   mpz_invert (invN, N, w);
   mpz_sub (invN, w, invN); /* Compute invN = -N^-1 mod w */
@@ -207,15 +211,14 @@ int gpu_ecm_stage1 (mpz_t N, mpz_t s, unsigned int number_of_curves,
     from_mont_repr (xp, N, invB);
     from_mont_repr (zp, N, invB);
   
-    ret = findfactor (N, xp, zp);
+    array_stage_found[i] = findfactor (factors[i], N, xp, zp);
 
-    if (ret != ECM_NO_FACTOR_FOUND)
-      fct_ret = ret;
+    if (array_stage_found[i] != ECM_NO_FACTOR_FOUND)
+      {
+        youpi = array_stage_found[i];
+      }
     //if (ret==ECM_NO_FACTOR_FOUND && savefilename != NULL)
     //  write_resumefile_wrapper (savefilename, &n, B1, xp, invd, invw);
-    //else if (ret==ECM_FACTOR_FOUND)
-      /* Maybe print A (or NU now) for GMP-ECM */
-    //  fprintf(OUTPUT_STD_VERBOSE, "Factor found with (d*2^32) mod N = %u\n", invd);
           
     }
   
@@ -235,17 +238,31 @@ int gpu_ecm_stage1 (mpz_t N, mpz_t s, unsigned int number_of_curves,
   free ((void *) h_x2array);
   free ((void *) h_z2array);
 
-  return fct_ret;
+  return youpi;
+}
+
+static void
+A_from_sigma (mpz_t A, unsigned int sigma, mpz_t n)
+{
+  mpz_t tmp;
+  int i;
+  mpz_init_set_ui (tmp, sigma);
+  /* Compute d = sigma/2^ECM_GPU_SIZE_DIGIT */
+  for (i = 0; i < ECM_GPU_SIZE_DIGIT; i++)
+    {
+      if (mpz_tstbit (tmp, 0) == 1)
+      mpz_add (tmp, tmp, n);
+      mpz_div_2exp (tmp, tmp, 1);
+    }
+  mpz_mul_2exp (tmp, tmp, 2);           /* 4d */
+  mpz_sub_ui (tmp, tmp, 2);             /* 4d-2 */
+      
+  mpz_set (A, tmp);
+
+  mpz_clear(tmp);
 }
 #endif
 
-/*
-int gpu_ecm (ATTRIBUTE_UNUSED mpz_t f, ATTRIBUTE_UNUSED mpz_t N, 
-             ATTRIBUTE_UNUSED mpz_t s, ATTRIBUTE_UNUSED double B1,
-             ATTRIBUTE_UNUSED int device, ATTRIBUTE_UNUSED int *device_init, 
-             ATTRIBUTE_UNUSED unsigned int *nb_curves, 
-             ATTRIBUTE_UNUSED unsigned int firstinvd)
-*/
 #ifndef WITH_GPU
 int
 gpu_ecm () 
@@ -265,9 +282,15 @@ gpu_ecm (mpz_t f, int param, mpz_t firstsigma, mpz_t n, mpz_t go,
          int (*stop_asap)(void), mpz_t batch_s, double *batch_last_B1_used, 
          int device, int *device_init, unsigned int *nb_curves)
 {
+  unsigned int i;
   int youpi = ECM_NO_FACTOR_FOUND;
   long st;
+  unsigned int firstsigma_ui;
   float gputime = 0.0;
+  mpz_t tmp_A;
+  mpz_t *factors = NULL; /* Contains either a factor of n either end-of-stage-1
+                         residue (depending of the value of array_stage_found */
+  int *array_stage_found = NULL;
   /* Only for stage 2 */
   int base2 = 0;  /* If n is of form 2^n[+-]1, set base to [+-]n */
   int Fermat = 0; /* If base2 > 0 is a power of 2, set Fermat to base2 */
@@ -360,6 +383,7 @@ gpu_ecm (mpz_t f, int param, mpz_t firstsigma, mpz_t n, mpz_t go,
   mpres_init (P.y, modulus);
   MEMORY_TAG;
   mpres_init (P.A, modulus);
+
   youpi = set_stage_2_params (B2, B2_parm, B2min, B2min_parm, &root_params, 
                               B1, B2scale, &k, S, use_ntt, &po2, &dF, 
                               TreeFilename, maxmem, Fermat, modulus);
@@ -383,8 +407,34 @@ gpu_ecm (mpz_t f, int param, mpz_t firstsigma, mpz_t n, mpz_t go,
       /* try running 'nvidia-smi -q -l' on the background .                 */
       *device_init = 1;
     }
+  
+  /* Init arrays */
+  factors = (mpz_t *) malloc ( *nb_curves * sizeof (mpz_t));
+  if (factors == NULL)
+    {
+      outputf (OUTPUT_ERROR, "GPU: memory allocation of 'factors' fails.\n");
+      youpi = ECM_ERROR;
+      goto end_gpu_ecm;
+    }
 
-  /* */
+  array_stage_found = (int *) malloc ( *nb_curves * sizeof (int));
+  if (array_stage_found == NULL)
+    {
+      outputf (OUTPUT_ERROR, "GPU: memory allocation of 'array_stage_found' "
+                             "fails.\n");
+      youpi = ECM_ERROR;
+      goto end_gpu_ecm;
+    }
+
+  for (i = 0; i < *nb_curves; i++)
+    {
+      mpz_init (factors[i]);
+      array_stage_found[i] = ECM_NO_FACTOR_FOUND;
+    }
+
+
+  /* If a value of sigma is requested, use it (if it is valid) */
+  /* else generate a random one */
   if (sigma_is_A == -1)
     {
       /* Cant do only stage 2 on gpu*/
@@ -416,6 +466,8 @@ gpu_ecm (mpz_t f, int param, mpz_t firstsigma, mpz_t n, mpz_t go,
           goto end_gpu_ecm;
         }
     }
+  firstsigma_ui = mpz_get_ui(firstsigma);
+
 
   print_B1_B2_poly (OUTPUT_NORMAL, ECM_ECM, B1, *B1done,  B2min_parm, B2min, 
                     B2, S, firstsigma, sigma_is_A, go, param, *nb_curves);
@@ -423,21 +475,123 @@ gpu_ecm (mpz_t f, int param, mpz_t firstsigma, mpz_t n, mpz_t go,
            dF, k, root_params.d1, root_params.d2, root_params.i0);
 
 
-  /* TODO: before beginning stage1:
-            from ecm.c copy 1105->call of stage1
-            go should be NULL (or 1)
-  */
+  if (go != NULL && mpz_cmp_ui (go, 1) > 0)
+    {
+      outputf (OUTPUT_ERROR, "GPU: Error, initial group order is %Zd "
+                             "and should be 1 (or NULL)\n", go);
+      youpi= ECM_ERROR;
+      goto end_gpu_ecm;
+    }
+
+  if (test_verbose (OUTPUT_VERBOSE))
+    {
+      if (mpz_cmp_d (B2min, B1) != 0)
+        {
+          outputf (OUTPUT_VERBOSE, 
+            "Can't compute success probabilities for B1 <> B2min\n");
+        }
+      else
+        {
+          rhoinit (256, 10);
+          print_expcurves (B1, B2, dF, k, root_params.S, param);
+        }
+    }
   
+  st = cputime ();
+  youpi = gpu_ecm_stage1 (factors, array_stage_found, n, batch_s, *nb_curves, 
+                          firstsigma_ui, &gputime);
 
-  gpu_ecm_stage1 (n, batch_s, *nb_curves, mpz_get_ui(firstsigma), &gputime);
+  /* TODO: print correct CPU+GPU time for stage1 */
+  outputf (OUTPUT_NORMAL, "Step 1 took %ldms\n", elltime (st, cputime ()));
+  outputf (OUTPUT_NORMAL, "time GPU: %.3fs\n", (gputime/1000));
+  outputf (OUTPUT_VERBOSE, "Throughput: %.3f\n", 1000 * (*nb_curves)/gputime);
 
-  fprintf (stdout, "time GPU: %.3fs\n", (gputime/1000));
-  fprintf (stdout, "Throughput: %.3f\n", 1000 * (*nb_curves)/gputime);
+  /* a factor was found in stage 1 */
+  if (youpi != ECM_NO_FACTOR_FOUND)
+    {
+      if (stop_asap != NULL && (*stop_asap) ())
+        goto end_gpu_ecm_rhotable;
+      else
+        outputf (OUTPUT_VERBOSE, "GPU: factor(s) was (were) found in step 1\n");
+    }
 
-  /* TODO: print CPU time for stage1 */
-  /* TODO: Do stage2 */
-  /* TODO: Save in a file if requested */
+  /* If using 2^k +/-1 modulus and 'nobase2step2' flag is set,
+     set default (-nobase2) modular method and remap P.x, P.y, and P.A */
+  if (modulus->repr == ECM_MOD_BASE2 && nobase2step2)
+    {
+      mpmod_clear (modulus);
 
+      repr = ECM_MOD_NOBASE2;
+      if (mpmod_init (modulus, n, repr) != 0) /* reset modulus for nobase2 */
+        {
+          youpi = ECM_ERROR;
+          goto end_gpu_ecm_rhotable;
+        }
+    }
+
+  MEMORY_TAG;
+  mpz_init (tmp_A);
+
+  for (i = 0; i < *nb_curves; i++)
+    {
+      /*Either a factor has been found in stage 1 either we compute stage 2 */
+      if (array_stage_found[i] == ECM_NO_FACTOR_FOUND) 
+        {
+          if (test_verbose (OUTPUT_RESVERBOSE)) 
+            {
+              outputf (OUTPUT_RESVERBOSE, "x=%Zd\n", factors[i]);
+            }
+      
+          mpres_set_z (P.x, factors[i], modulus);
+          mpres_set_ui (P.y, 1, modulus);
+          A_from_sigma (tmp_A, i+firstsigma_ui, modulus->orig_modulus);
+          mpres_set_z (P.A, tmp_A, modulus);
+      
+          /* compute stage 2 */
+          youpi = montgomery_to_weierstrass (factors[i], P.x, P.y, P.A, modulus);
+  
+          if (test_verbose (OUTPUT_RESVERBOSE) && youpi == ECM_NO_FACTOR_FOUND
+              && mpz_cmp (B2, B2min) >= 0)
+            {
+              mpz_t t;
+
+              MEMORY_TAG;
+              mpz_init (t);
+              MEMORY_UNTAG;
+              mpres_get_z (t, P.x, modulus);
+              outputf (OUTPUT_RESVERBOSE, "After switch to Weierstrass form, "
+                                          "P=(%Zd", t);
+              mpres_get_z (t, P.y, modulus);
+              outputf (OUTPUT_RESVERBOSE, ", %Zd)\n", t);
+              mpres_get_z (t, P.A, modulus);
+              outputf (OUTPUT_RESVERBOSE, "on curve Y^2 = X^3 + %Zd * X + b\n", 
+                       t);
+              mpz_clear (t);
+            }
+  
+          if (youpi == ECM_NO_FACTOR_FOUND && mpz_cmp (B2, B2min) >= 0)
+              youpi = stage2 (factors[i], &P, modulus, dF, k, &root_params, 
+                              ECM_ECM, use_ntt, TreeFilename, stop_asap);
+        }
+      else
+        {
+          outputf (OUTPUT_VERBOSE, "GPU: factor found in step 1 with "
+                                   "sigma=1:%u\n", i+firstsigma_ui);
+        }
+    }
+
+end_gpu_ecm_rhotable:
+  if (test_verbose (OUTPUT_VERBOSE))
+    {
+      if (mpz_cmp_d (B2min, B1) == 0)
+        {
+          if (youpi == ECM_NO_FACTOR_FOUND && 
+              (stop_asap == NULL || !(*stop_asap)()))
+              print_exptime (B1, B2, dF, k, root_params.S, 
+                             (long) elltime (st, cputime ()), param);
+          rhoinit (1, 0); /* Free memory of rhotable */
+        }
+    }
 
 end_gpu_ecm:
   mpres_clear (P.A, modulus);
@@ -447,6 +601,13 @@ end_gpu_ecm:
   mpz_clear (root_params.i0);
   mpz_clear (B2);
   mpz_clear (B2min);
+  mpz_clear (tmp_A);
+
+  for (i = 0; i < *nb_curves; i++)
+      mpz_clear (factors[i]);
+
+  free (array_stage_found);
+  free (factors);
 
   return youpi;
 }
