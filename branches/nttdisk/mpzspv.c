@@ -36,6 +36,7 @@ MA 02110-1301, USA. */
 #define MPZSPV_MUL_NTT_OPENMP 0
 #define TRACE_ntt_sqr_reciprocal 0
 #define TRACE_ntt_mul 0
+#define WANT_PROFILE 0
 
 #define IN_MEMORY(x) ((x) != NULL && (x)->storage == 0)
 #define ON_DISK(x) ((x) != NULL && (x)->storage != 0)
@@ -387,7 +388,7 @@ mpzspv_from_mpzv (mpzspv_t x, const spv_size_t offset, const mpzv_t mpzv,
 
 static inline void
 mpzspv_to_mpz(mpz_t res, const mpzspv_t x, const spv_size_t offset, 
-              const mpzspm_t mpzspm, mpz_t mt)
+              const mpzspm_t mpzspm, mpz_t mt ATTRIBUTE_UNUSED)
 {
   unsigned int i;
   float f = 0.5;
@@ -499,13 +500,27 @@ mpzspv_fromto_mpzv (mpzspv_handle_t x, const spv_size_t offset,
   {
     const spv_size_t len_now = MIN(len - len_done, block_len);
     spv_size_t i;
+#if WANT_PROFILE
+      unsigned long realstart;
+#endif
 
     /* Read x from disk files */
     if (consumer_state != NULL && ON_DISK(x)) {
+#if WANT_PROFILE
+      realstart = realtime();
+#endif
       mpzspv_seek_and_read (buffer, buffer_offset, x->files, 
                             offset + len_done, len_now, x->mpzspm);
+#if WANT_PROFILE
+      printf("mpzspv_mul_ntt_file(): read files from position %" PRISPVSIZE 
+             " started at %lu took %lu ms\n", 
+             offset + len_done, realstart, realtime() - realstart);
+#endif
     }
 
+#if WANT_PROFILE
+    realstart = realtime();
+#endif
     for (i = 0; i < len_now; i++)
       {
         if (producer_state != NULL)
@@ -542,11 +557,23 @@ mpzspv_fromto_mpzv (mpzspv_handle_t x, const spv_size_t offset,
                                    mt, sp_num);
           }
       }
+#if WANT_PROFILE
+    printf("mpzspv_mul_ntt_file(): processing buffer started at %lu took %lu ms\n", 
+           realstart, realtime() - realstart);
+#endif
 
     /* Write x to disk files */
     if (producer_state != NULL && ON_DISK(x)) {
+#if WANT_PROFILE
+      realstart = realtime();
+#endif
       mpzspv_seek_and_write (buffer, buffer_offset, x->files, offset + len_done, 
                              len_now, x->mpzspm);
+#if WANT_PROFILE
+      printf("mpzspv_mul_ntt_file(): write files at position %" PRISPVSIZE 
+             " started at %lu took %lu ms\n", 
+             offset + len_done, realstart, realtime() - realstart);
+#endif
     }
     len_done += len_now;
     /* If we write NTT data to memory, we need to advance the offset to fill 
@@ -743,7 +770,7 @@ add_or_mul_file (spv_t r, const spv_t x, FILE *f, const spv_size_t len,
 
 /* Adds or multiplies sp_t's from two file and stores result in r. 
    Adds if add_or_mul == 0 */
-static void
+static void ATTRIBUTE_UNUSED
 add_or_mul_2file (spv_t r, FILE *f1, FILE *f2, const spv_size_t len, 
     const spv_size_t wrap_size, const spv_size_t block_len, 
     const int add_or_mul, const spm_t spm)
@@ -955,36 +982,6 @@ mul_dct(spv_t r, const spv_t spv, const spv_t dct, const spv_size_t len,
 }
 
 
-static void
-one_fft_file(spv_t spv, FILE *file, const spv_size_t offset, 
-             const spv_size_t len, const spv_size_t ntt_size, const int monic,
-             const spv_size_t block_len, const spm_t spm)
-{
-  spv_size_t log2_ntt_size = ceil_log_2 (ntt_size);
-  if (file != NULL)
-    {
-      seek_and_read_sp (spv, ntt_size, offset, file);
-      if (ntt_size < len)
-        add_or_mul_file (spv, spv, file, len - ntt_size, ntt_size, block_len, 
-                         0, spm);
-    } 
-  else if (ntt_size < len) 
-    {
-      spv_size_t j;
-      for (j = ntt_size; j < len; j += ntt_size)
-        spv_add (spv, spv, spv + j, ntt_size, spm->sp);
-    }
-
-  if (ntt_size > len)
-    spv_set_zero (spv + len, ntt_size - len);
-
-  if (monic)
-    spv[len % ntt_size] = sp_add (spv[len % ntt_size], 1, spm->sp);
-
-  spv_ntt_gfp_dif (spv, log2_ntt_size, spm);
-}
-
-
 /* Do multiplication via NTT. Depending on the value of "steps", does 
    forward transform of, pair-wise multiplication, inverse transform. 
    Input and output spv_t's can be stored in files. 
@@ -1073,6 +1070,9 @@ mpzspv_mul_ntt_file (mpzspv_handle_t r, const spv_size_t offsetr,
       const spv_t spvy = IN_MEMORY(y) ? y->mem[i] + offsety : NULL;
       const spv_t spvr = IN_MEMORY(r) ? r->mem[i] + offsetr : NULL;
       spv_t tmp = NULL;
+#if WANT_PROFILE
+      unsigned long realstart;
+#endif
 
       /* If we do any arithmetic, we need some memory to do it in. 
          If r is in memory, we can use that as temp storage, so long as we 
@@ -1112,6 +1112,9 @@ mpzspv_mul_ntt_file (mpzspv_handle_t r, const spv_size_t offsetr,
             }
           else 
             {
+#if WANT_PROFILE
+              realstart = realtime();
+#endif
 #if defined(_OPENMP) && MPZSPV_MUL_NTT_OPENMP
 #pragma omp critical
 #endif
@@ -1122,6 +1125,10 @@ mpzspv_mul_ntt_file (mpzspv_handle_t r, const spv_size_t offsetr,
                   add_or_mul_file (tmp, tmp, x->files[i], lenx - ntt_size, 
                                    ntt_size, block_len, 0, spm);
               }
+#if WANT_PROFILE
+              printf("mpzspv_mul_ntt_file(): read vector %d started at %lu took %lu ms\n", 
+                     i, realstart, realtime() - realstart);
+#endif
             } 
 
           if (ntt_size > lenx)
@@ -1130,14 +1137,24 @@ mpzspv_mul_ntt_file (mpzspv_handle_t r, const spv_size_t offsetr,
       
       if (do_fft1) 
         {
+#if WANT_PROFILE
+          realstart = realtime();
+#endif
           if (monic)
             tmp[lenx % ntt_size] = sp_add (tmp[lenx % ntt_size], 1, spm->sp);
 
           spv_ntt_gfp_dif (tmp, log2_ntt_size, spm);
+#if WANT_PROFILE
+          printf("mpzspv_mul_ntt_file(): fft on vector %d started at %lu took %lu ms\n", 
+                 i, realstart, realtime() - realstart);
+#endif
         }
 
       if (do_pwmul) 
         {
+#if WANT_PROFILE
+          realstart = realtime();
+#endif
           ASSERT_ALWAYS(y != NULL);
           ASSERT_ALWAYS(leny == ntt_size);
           if (IN_MEMORY(y))
@@ -1145,21 +1162,35 @@ mpzspv_mul_ntt_file (mpzspv_handle_t r, const spv_size_t offsetr,
           else 
             add_or_mul_file (tmp, tmp, y->files[i], ntt_size, ntt_size, 
                              block_len, 1, spm);
+#if WANT_PROFILE
+          printf("mpzspv_mul_ntt_file(): pwmul on vector %d started at %lu took %lu ms\n", 
+                 i, realstart, realtime() - realstart);
+#endif
         }
       else if (do_pwmul_dct)
         {
           ASSERT_ALWAYS(y != NULL);
           ASSERT_ALWAYS(leny == ntt_size / 2 + 1);
+#if WANT_PROFILE
+          realstart = realtime();
+#endif
           if (IN_MEMORY(y))
             mul_dct (tmp, tmp, spvy, ntt_size, spm);
           else
             mul_dct_file (tmp, tmp, y->files[i], ntt_size, block_len, spm);
+#if WANT_PROFILE
+          printf("mpzspv_mul_ntt_file(): pwmuldct on vector %d started at %lu took %lu ms\n", 
+                 i, realstart, realtime() - realstart);
+#endif
         }
 
       if (do_ifft) 
         {
           ASSERT (sizeof (mp_limb_t) >= sizeof (sp_t));
 
+#if WANT_PROFILE
+          realstart = realtime();
+#endif
           spv_ntt_gfp_dit (tmp, log2_ntt_size, spm);
 
           /* spm->sp - (spm->sp - 1) / ntt_size is the inverse of ntt_size */
@@ -1169,6 +1200,10 @@ mpzspv_mul_ntt_file (mpzspv_handle_t r, const spv_size_t offsetr,
           if (monic)
             tmp[monic_pos % ntt_size] = sp_sub (tmp[monic_pos % ntt_size],
                 1, spm->sp);
+#if WANT_PROFILE
+          printf("mpzspv_mul_ntt_file(): ifft on vector %d started at %lu took %lu ms\n", 
+                 i, realstart, realtime() - realstart);
+#endif
         }
 
       if (do_fft1 || do_pwmul || do_pwmul_dct || do_ifft)
@@ -1179,7 +1214,16 @@ mpzspv_mul_ntt_file (mpzspv_handle_t r, const spv_size_t offsetr,
                 spv_set (spvr, tmp, ntt_size);
             }
           else
-            seek_and_write_sp (tmp, ntt_size, offsetr, r->files[i]);
+            {
+#if WANT_PROFILE
+              realstart = realtime();
+#endif
+              seek_and_write_sp (tmp, ntt_size, offsetr, r->files[i]);
+#if WANT_PROFILE
+          printf("mpzspv_mul_ntt_file(): write of vector %d started at %lu took %lu ms\n", 
+                 i, realstart, realtime() - realstart);
+#endif
+            }
 
           if (tmp != spvr)
             sp_aligned_free (tmp);

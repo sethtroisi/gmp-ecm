@@ -145,6 +145,7 @@ typedef const sp_t * spv_tc;
 
 /* length of a spv, and the type used for array offsets */
 typedef unsigned long spv_size_t;
+#define PRISPVSIZE "lu"
 
 typedef struct
 {
