@@ -415,6 +415,14 @@ void print_B1_B2_poly (int, int, double, double, mpz_t, mpz_t, mpz_t, int S,
 int set_stage_2_params (mpz_t, mpz_t, mpz_t, mpz_t, root_params_t *, double, 
                         double, unsigned long *, const int, int, int *,
                         unsigned long *, char *, double, int, mpmod_t);
+#define print_expcurves __ECM(print_expcurves)
+void print_expcurves (double, const mpz_t, unsigned long, unsigned long, int, 
+                      int);
+#define print_exptime __ECM(print_exptime)
+void print_exptime (double, const mpz_t, unsigned long, unsigned long, int, 
+                    double, int);
+#define montgomery_to_weierstrass __ECM(montgomery_to_weierstrass)
+int montgomery_to_weierstrass (mpz_t, mpres_t, mpres_t, mpres_t, mpmod_t);
 
 /* ecm2.c */
 #define ecm_rootsF __ECM(ecm_rootsF)

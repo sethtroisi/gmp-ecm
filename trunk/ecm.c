@@ -69,7 +69,7 @@ void add3 (mpres_t, mpres_t, mpres_t, mpres_t, mpres_t, mpres_t, mpres_t,
    ECM_FACTOR_FOUND_STEP1 and the factor in f, otherwise returns
    ECM_NO_FACTOR_FOUND.
 */
-static int 
+int 
 montgomery_to_weierstrass (mpz_t f, mpres_t x, mpres_t y, mpres_t A, mpmod_t n)
 {
   mpres_t g;
@@ -669,13 +669,23 @@ choose_S (mpz_t B2len)
 #define DIGITS_INCR   5
 #define DIGITS_END   80
 
-static void
+void
 print_expcurves (double B1, const mpz_t B2, unsigned long dF, unsigned long k, 
-                 int S, int batch)
+                 int S, int param)
 {
   double prob;
   int i, j;
   char sep, outs[128];
+  double smoothness_correction;
+  
+  if (param == ECM_PARAM_SUYAMA || param == ECM_PARAM_BATCH_2)
+      smoothness_correction = 1.0; 
+  else if (param == ECM_PARAM_BATCH_SMALL_D)
+      /* FIXME does not depend only on machines architecture */
+      smoothness_correction = BATCH1_EXTRA_SMOOTHNESS;
+  else /* we do not know what param was used, we cannot compute the exact
+  probability. Should this raises an error? For now we put 1*/
+      smoothness_correction = 1.0; 
 
   for (i = DIGITS_START, j = 0; i <= DIGITS_END; i += DIGITS_INCR, j += 3)
     sprintf (outs + j, "%2u%c", i, (i < DIGITS_END) ? '\t' : '\n');
@@ -686,9 +696,8 @@ print_expcurves (double B1, const mpz_t B2, unsigned long dF, unsigned long k,
     {
       sep = (i < DIGITS_END) ? '\t' : '\n';
       prob = ecmprob (B1, mpz_get_d (B2),
-                      /* in batch mode, the extra smoothness is smaller */
-                      pow (10., i - .5) /
-                      ((batch == 1) ? BATCH1_EXTRA_SMOOTHNESS : 1.0),
+                      /* smoothness depends on the parametrization */
+                      pow (10., i - .5) / smoothness_correction,
                       (double) dF * dF * k, S);
       if (prob > 1. / 10000000)
         outputf (OUTPUT_VERBOSE, "%.0f%c", floor (1. / prob + .5), sep);
@@ -699,13 +708,23 @@ print_expcurves (double B1, const mpz_t B2, unsigned long dF, unsigned long k,
     }
 }
 
-static void
+void
 print_exptime (double B1, const mpz_t B2, unsigned long dF, unsigned long k, 
-               int S, double tottime, int batch)
+               int S, double tottime, int param)
 {
   double prob, exptime;
   int i, j;
   char sep, outs[128];
+  double smoothness_correction;
+  
+  if (param == ECM_PARAM_SUYAMA || param == ECM_PARAM_BATCH_2)
+      smoothness_correction = 1.0; 
+  else if (param == ECM_PARAM_BATCH_SMALL_D)
+      /* FIXME does not depend only on machines architecture */
+      smoothness_correction = BATCH1_EXTRA_SMOOTHNESS;
+  else /* we do not know what param was used, we cannot compute the exact
+  probability. Should this raises an error? For now we put 1*/
+      smoothness_correction = 1.0; 
   
   for (i = DIGITS_START, j = 0; i <= DIGITS_END; i += DIGITS_INCR, j += 3)
     sprintf (outs + j, "%2u%c", i, (i < DIGITS_END) ? '\t' : '\n');
@@ -717,8 +736,7 @@ print_exptime (double B1, const mpz_t B2, unsigned long dF, unsigned long k,
       sep = (i < DIGITS_END) ? '\t' : '\n';
       prob = ecmprob (B1, mpz_get_d (B2),
                       /* in batch mode, the extra smoothness is smaller */
-                      pow (10., i - .5) /
-                      ((batch == 1) ? BATCH1_EXTRA_SMOOTHNESS : 1.0),
+                      pow (10., i - .5) / smoothness_correction,
                       (double) dF * dF * k, S);
       exptime = (prob > 0.) ? tottime / prob : HUGE_VAL;
       outputf (OUTPUT_TRACE, "Digits: %d, Total time: %.0f, probability: "
