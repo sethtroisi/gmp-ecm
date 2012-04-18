@@ -68,7 +68,7 @@ rho_LDADD = -lprimegen $(GMPLIB) $(GSL_LD_FLAGS)
 
 pm1fs2test_SOURCES = pm1fs2.c
 pm1fs2test_CPPFLAGS = -DTESTDRIVE
-pm1fs2test_LDADD = libecm.la
+pm1fs2test_LDADD = libecm.la $(GMPLIB)
 pm1fs2test_LDFLAGS = -g
 
 batch_SOURCES = batch.c
