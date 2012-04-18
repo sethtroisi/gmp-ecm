@@ -111,7 +111,7 @@ DIST_SUBDIRS = athlon pentium4 x86_64 powerpc64 build.vc10
 DISTCLEANFILES = config.m4
 
 if WANT_CUDA 
-.cu.lo:
+.cu.lo: cudakernel.h
 		$(LIBTOOL) --tag=CC --mode=compile $(NVCC) --compile $(CUDA_INC_FLAGS) $(NVCC_FLAGS) -o $@ $^ -static
 endif
 
