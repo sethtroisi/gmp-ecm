@@ -135,13 +135,13 @@ addchain_param (mpres_t x, mpres_t y, mpres_t z, mpz_t s, mpres_t t,
   else if (mpz_congruent_ui_p (s, 1, 4))
     {
       mpz_sub_ui (s, s, 1);
-      addchain_param(x, y, z, s-1, t, u, v, w, n);
+      addchain_param(x, y, z, s, t, u, v, w, n);
       add_param (x, y, z, +1, t, u, v, w, n);
     }
   else /* (s % 4 == 3) and s != 3 */
     {
       mpz_add_ui (s, s, 1);
-      addchain_param(x, y, z, s+1, t, u, v, w, n);
+      addchain_param(x, y, z, s, t, u, v, w, n);
       add_param (x, y, z, -1, t, u, v, w, n);
     }
 }
