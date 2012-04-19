@@ -126,6 +126,10 @@ check: ecm$(EXEEXT)
 	$(srcdir)/test.pm1 ./ecm$(EXEEXT)
 	echo ""
 	$(srcdir)/test.ecm ./ecm$(EXEEXT)
+if WANT_CUDA 
+	echo ""
+	$(srcdir)/test.gpuecm ./ecm$(EXEEXT)
+endif
 
 longcheck: ecm$(EXEEXT)
 	$(srcdir)/test.pp1 "$(VALGRIND) ./ecm$(EXEEXT)"
