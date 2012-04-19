@@ -272,9 +272,10 @@ get_curve_from_param1 (mpres_t A, mpres_t x0, mpz_t sigma, mpmod_t n)
   Compute k*P on y^2=x^3+36 with P=(-3,3); need k>1
   x3 = (3*x+y+6)/(2*(y-3)) and A=-(3*x3^4+6*x3^2-1)/(4*x3^3)*/
 int 
-get_curve_from_param2 (mpz_t f, mpres_t A, mpres_t x0, mpz_t k, mpmod_t n)
+get_curve_from_param2 (mpz_t f, mpres_t A, mpres_t x0, mpz_t sigma, mpmod_t n)
 {
   mpres_t t, u, v, w, x, y, z;
+  mpz_t k;
 
   MEMORY_TAG;
   mpres_init (t, n);
@@ -290,7 +291,11 @@ get_curve_from_param2 (mpz_t f, mpres_t A, mpres_t x0, mpz_t k, mpmod_t n)
   mpres_init (y, n);
   MEMORY_TAG;
   mpres_init (z, n);
+  MEMORY_TAG;
+  mpz_init (k);
   MEMORY_UNTAG;
+
+  mpz_set (k, sigma);
 
   addchain_param (x, y, z, k, t, u, v, w, n); 
 
@@ -373,6 +378,7 @@ get_curve_from_param2 (mpz_t f, mpres_t A, mpres_t x0, mpz_t k, mpmod_t n)
   mpres_clear (x, n);
   mpres_clear (y, n);
   mpres_clear (z, n);
+  mpz_clear (k);
 
   return ECM_NO_FACTOR_FOUND;
 }
