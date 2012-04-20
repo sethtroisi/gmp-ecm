@@ -919,6 +919,10 @@ main (int argc, char *argv[])
       out += sprintf (out, ", --enable-asm-redc");
 #endif
 
+#ifdef WITH_GPU
+      out += sprintf (out, ", --enable-gpu");
+#endif
+
 #ifdef WANT_ASSERT
       out += sprintf (out, ", --enable-assert");
 #endif
