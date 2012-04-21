@@ -74,11 +74,6 @@ rho_SOURCES = rho.c
 rho_CPPFLAGS = -DTESTDRIVE
 rho_LDADD = -lprimegen $(GMPLIB) $(GSL_LD_FLAGS)
 
-if MEMORY_DEBUG
-  libecm_la_SOURCES += memory.c
-  tune_SOURCES += memory.c
-endif
-
 if WITH_GWNUM
   gwdata.ld :
 	echo "SECTIONS { .data : { . = ALIGN(0x20); *(_GWDATA) } }" >gwdata.ld

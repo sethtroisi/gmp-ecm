@@ -377,11 +377,8 @@ gpu_ecm (mpz_t f, int param, mpz_t firstsigma, mpz_t n, mpz_t go,
     }
 
   /* Set parameters for stage 2 */
-  MEMORY_TAG;
   mpres_init (P.x, modulus);
-  MEMORY_TAG;
   mpres_init (P.y, modulus);
-  MEMORY_TAG;
   mpres_init (P.A, modulus);
 
   youpi = set_stage_2_params (B2, B2_parm, B2min, B2min_parm, &root_params, 
@@ -529,7 +526,6 @@ gpu_ecm (mpz_t f, int param, mpz_t firstsigma, mpz_t n, mpz_t go,
         }
     }
 
-  MEMORY_TAG;
   mpz_init (tmp_A);
 
   for (i = 0; i < *nb_curves; i++)
@@ -555,9 +551,7 @@ gpu_ecm (mpz_t f, int param, mpz_t firstsigma, mpz_t n, mpz_t go,
             {
               mpz_t t;
 
-              MEMORY_TAG;
               mpz_init (t);
-              MEMORY_UNTAG;
               mpres_get_z (t, P.x, modulus);
               outputf (OUTPUT_RESVERBOSE, "After switch to Weierstrass form, "
                                           "P=(%Zd", t);

@@ -224,7 +224,7 @@ mpcandi_t_addfoundfactor (mpcandi_t *n, mpz_t f, int displaywarning)
       free(n->cpExpr);
       n->cpExpr = cp;
       n->nexprlen += (3+strlen(cp1));
-      FREE (cp1, strlen (cp1) + 1);
+      free (cp1); /* size strlen (cp1) + 1 */
     }
 #if defined (CANDI_DEBUG)
   Candi_Validate("Post (removed factor) mpcandi_t_addfoundfactor_d", n);
