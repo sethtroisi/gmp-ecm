@@ -108,8 +108,8 @@ isbase2 (const mpz_t n, const double threshold)
   int res = 0; 
   mpz_t u, w;
 
-  MPZ_INIT (u);
-  MPZ_INIT (w);
+  mpz_init (u);
+  mpz_init (w);
   lo = mpz_sizeinbase (n, 2) - 1; /* 2^lo <= n < 2^(lo+1) */  
   mpz_set_ui (u, 1UL);
   mpz_mul_2exp (u, u, 2UL * lo);
@@ -912,9 +912,9 @@ mpmod_init_MPZ (mpmod_t modulus, const mpz_t N)
   modulus->bits = n * GMP_NUMB_BITS; /* Number of bits, 
 					rounded up to full limb */
 
-  MPZ_INIT2 (modulus->temp1, 2UL * modulus->bits + GMP_NUMB_BITS);
-  MPZ_INIT2 (modulus->temp2, modulus->bits);
-  MPZ_INIT2 (modulus->aux_modulus, modulus->bits);
+  mpz_init2 (modulus->temp1, 2UL * modulus->bits + GMP_NUMB_BITS);
+  mpz_init2 (modulus->temp2, modulus->bits);
+  mpz_init2 (modulus->aux_modulus, modulus->bits);
   mpz_set_ui (modulus->aux_modulus, 1UL);
   /* we precompute B^(n + ceil(n/2)) mod N, where B=2^GMP_NUMB_BITS */
   mpz_mul_2exp (modulus->aux_modulus, modulus->aux_modulus,
@@ -939,8 +939,8 @@ mpmod_init_BASE2 (mpmod_t modulus, const int base2, const mpz_t N)
   Nbits = mpz_size (N) * GMP_NUMB_BITS; /* Number of bits, rounded
                                            up to full limb */
 
-  MPZ_INIT2 (modulus->temp1, 2UL * Nbits + GMP_NUMB_BITS);
-  MPZ_INIT2 (modulus->temp2, Nbits);
+  mpz_init2 (modulus->temp1, 2UL * Nbits + GMP_NUMB_BITS);
+  mpz_init2 (modulus->temp2, Nbits);
   
   mpz_set_ui (modulus->temp1, 1UL);
   mpz_mul_2exp (modulus->temp1, modulus->temp1, abs (base2));
@@ -986,31 +986,29 @@ mpmod_init_MODMULN (mpmod_t modulus, const mpz_t N)
 {
   int Nbits;
 
-  MEMORY_TAG;
   mpz_init_set (modulus->orig_modulus, N);
-  MEMORY_UNTAG;
   
   modulus->repr = ECM_MOD_MODMULN;
   Nbits = mpz_size (N) * GMP_NUMB_BITS; /* Number of bits, rounded
                                            up to full limb */
   modulus->bits = Nbits;
 
-  MPZ_INIT2 (modulus->temp1, 2UL * Nbits + GMP_NUMB_BITS);
-  MPZ_INIT2 (modulus->temp2, Nbits + 1);
+  mpz_init2 (modulus->temp1, 2UL * Nbits + GMP_NUMB_BITS);
+  mpz_init2 (modulus->temp2, Nbits + 1);
   modulus->Nprim = (mp_limb_t*) malloc (mpz_size (N) * sizeof (mp_limb_t));
 
-  MPZ_INIT2 (modulus->R2, Nbits);
+  mpz_init2 (modulus->R2, Nbits);
   mpz_set_ui (modulus->temp1, 1UL);
   mpz_mul_2exp (modulus->temp1, modulus->temp1, 2 * Nbits);
   mpz_mod (modulus->R2, modulus->temp1, modulus->orig_modulus);
   /* Now R2 = (2^bits)^2 (mod N) */
   
-  MPZ_INIT2 (modulus->R3, Nbits);
+  mpz_init2 (modulus->R3, Nbits);
   mpz_mul_2exp (modulus->temp1, modulus->R2, Nbits);
   mpz_mod (modulus->R3, modulus->temp1, modulus->orig_modulus);
   /* Now R3 = (2^bits)^3 (mod N) */
 
-  MPZ_INIT2 (modulus->multiple, Nbits);
+  mpz_init2 (modulus->multiple, Nbits);
   mpz_set_ui (modulus->temp1, 1UL);
   mpz_mul_2exp (modulus->temp1, modulus->temp1, Nbits);
   /* compute ceil(2^bits / N) */
@@ -1044,9 +1042,9 @@ mpmod_init_REDC (mpmod_t modulus, const mpz_t N)
                                 up to full limb */
   modulus->bits = Nbits;
   
-  MPZ_INIT2 (modulus->temp1, 2 * Nbits + GMP_NUMB_BITS);
-  MPZ_INIT2 (modulus->temp2, Nbits);
-  MPZ_INIT2 (modulus->aux_modulus, Nbits);
+  mpz_init2 (modulus->temp1, 2 * Nbits + GMP_NUMB_BITS);
+  mpz_init2 (modulus->temp2, Nbits);
+  mpz_init2 (modulus->aux_modulus, Nbits);
 
   mpz_set_ui (modulus->temp1, 1UL);
   mpz_mul_2exp (modulus->temp1, modulus->temp1, Nbits);
@@ -1065,18 +1063,18 @@ mpmod_init_REDC (mpmod_t modulus, const mpz_t N)
 		n - ABSIZ(modulus->aux_modulus));
     }
 
-  MPZ_INIT2 (modulus->R2, Nbits);
+  mpz_init2 (modulus->R2, Nbits);
   mpz_set_ui (modulus->temp1, 1UL);
   mpz_mul_2exp (modulus->temp1, modulus->temp1, 2 * Nbits);
   mpz_mod (modulus->R2, modulus->temp1, modulus->orig_modulus);
   /* Now R2 = (2^bits)^2 (mod N) */
   
-  MPZ_INIT2 (modulus->R3, Nbits);
+  mpz_init2 (modulus->R3, Nbits);
   mpz_mul_2exp (modulus->temp1, modulus->R2, Nbits);
   mpz_mod (modulus->R3, modulus->temp1, modulus->orig_modulus);
   /* Now R3 = (2^bits)^3 (mod N) */
   
-  MPZ_INIT (modulus->multiple);
+  mpz_init (modulus->multiple);
   mpz_set_ui (modulus->temp1, 1UL);
   mpz_mul_2exp (modulus->temp1, modulus->temp1, Nbits);
   /* compute ceil(2^bits / N) */
@@ -1116,20 +1114,20 @@ mpmod_init_set (mpmod_t r, const mpmod_t modulus)
   r->bits = modulus->bits;
   r->Fermat = modulus->Fermat;
   mpz_init_set (r->orig_modulus, modulus->orig_modulus);
-  MPZ_INIT2 (r->temp1, 2 * Nbits + GMP_NUMB_BITS);
-  MPZ_INIT2 (r->temp2, Nbits + GMP_NUMB_BITS);
+  mpz_init2 (r->temp1, 2 * Nbits + GMP_NUMB_BITS);
+  mpz_init2 (r->temp2, Nbits + GMP_NUMB_BITS);
   if (modulus->repr == ECM_MOD_MODMULN || modulus->repr == ECM_MOD_REDC)
     {
-      MPZ_INIT2 (r->multiple, Nbits);
-      MPZ_INIT2 (r->R2, Nbits);
-      MPZ_INIT2  (r->R3, Nbits);
+      mpz_init2 (r->multiple, Nbits);
+      mpz_init2 (r->R2, Nbits);
+      mpz_init2  (r->R3, Nbits);
       mpz_set (r->multiple, modulus->multiple);
       mpz_set (r->R2, modulus->R2);
       mpz_set (r->R3, modulus->R3);
     }
   if (modulus->repr == ECM_MOD_REDC || modulus->repr == ECM_MOD_MPZ)
     {
-      MPZ_INIT2 (r->aux_modulus, Nbits);
+      mpz_init2 (r->aux_modulus, Nbits);
       mpz_set (r->aux_modulus, modulus->aux_modulus);
     }
   if (modulus->repr == ECM_MOD_MODMULN)

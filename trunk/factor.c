@@ -29,7 +29,6 @@ void
 ecm_init (ecm_params q)
 {
   q->method = ECM_ECM; /* default method */
-  MEMORY_TAG;
   mpz_init_set_ui (q->x, 0);
   mpz_init_set_ui (q->sigma, 0);
   q->sigma_is_A = 0;
@@ -49,11 +48,8 @@ ecm_init (ecm_params q)
   q->TreeFilename = NULL;
   q->maxmem = 0.0;
   q->stage1time = 0.0;
-  MEMORY_TAG;
   gmp_randinit_default (q->rng);
-  MEMORY_TAG;
   gmp_randseed_ui (q->rng, get_random_ui ());
-  MEMORY_UNTAG;
   q->use_ntt = 1;
   q->stop_asap = NULL;
   q->batch_last_B1_used = 1.0;
