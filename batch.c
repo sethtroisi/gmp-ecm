@@ -241,24 +241,14 @@ ecm_stage1_batch (mpz_t f, mpres_t x, mpres_t A, mpmod_t n, double B1,
   mpres_t t, u;
   int ret = ECM_NO_FACTOR_FOUND;
 
-  MEMORY_TAG;
   mpres_init (x1, n);
-  MEMORY_TAG;
   mpres_init (z1, n);
-  MEMORY_TAG;
   mpres_init (x2, n);
-  MEMORY_TAG;
   mpres_init (z2, n);
-  MEMORY_TAG;
   mpres_init (t, n);
-  MEMORY_TAG;
   mpres_init (u, n);
   if (batch == 2)
-    {
-      MEMORY_TAG;
-      mpres_init (d_2, n);
-    }
-  MEMORY_UNTAG;
+    mpres_init (d_2, n);
 
   /* initialize P */
   mpres_set (x1, x, n);

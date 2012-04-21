@@ -117,19 +117,6 @@ void getprime_seek (double);
 /* b1_ainc.c */
 double calc_B1_AutoIncrement(double cur_B1, double incB1val, int calcInc);
 
-/* memory.c */
-#ifdef MEMORY_DEBUG
-void __gmp_default_free (void *, size_t);
-void *__gmp_default_allocate (size_t);
-void *__gmp_default_reallocate (void *, size_t, size_t);
-void tests_memory_start (void);
-void tests_memory_end   (void);
-void tests_memory_reset (void);
-void tests_free (void *, size_t);
-void tests_memory_status (void);
-void tests_memory_set_location (char *, unsigned int);
-#endif
-
 /* trial.c */
 int trial_factor (mpcandi_t *n, double maxfact, int deep);
 
@@ -181,20 +168,6 @@ void pm1_random_seed  (mpz_t, mpz_t, gmp_randstate_t);
 /* The checksum for savefile is the product of all mandatory fields, modulo
    the greatest prime below 2^32 */
 #define CHKSUMMOD 4294967291U
-
-#ifdef MEMORY_DEBUG
-#define FREE(ptr,size) tests_free(ptr,size)
-#define MEMORY_TAG tests_memory_set_location(__FILE__,__LINE__)
-#define MEMORY_UNTAG tests_memory_set_location("",0)
-#define MPZ_INIT(x)    {MEMORY_TAG;mpz_init(x);MEMORY_UNTAG;}
-#define MPZ_INIT2(x,n) {MEMORY_TAG;mpz_init2(x,n);MEMORY_UNTAG;}
-#else
-#define FREE(ptr,size) free(ptr)
-#define MEMORY_TAG do{}while(0)
-#define MEMORY_UNTAG do{}while(0)
-#define MPZ_INIT(x) mpz_init(x)
-#define MPZ_INIT2(x,n) mpz_init2(x,n)
-#endif
 
 #define ABS(x) ((x) >= 0 ? (x) : -(x))
 

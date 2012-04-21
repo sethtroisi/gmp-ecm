@@ -210,12 +210,6 @@ print_config ()
   printf ("HAVE___GMPN_REDC_1 undefined\n");
 #endif
 
-#ifdef MEMORY_DEBUG
-  printf ("MEMORY_DEBUG = %d\n", MEMORY_DEBUG);
-#else
-  printf ("MEMORY_DEBUG undefined\n");
-#endif
-
 #ifdef USE_ASM_REDC
   printf ("USE_ASM_REDC = %d\n", USE_ASM_REDC);
 #ifdef WINDOWS64_ABI
@@ -395,21 +389,17 @@ main (int argc, char *argv[])
       exit (1);
     }
 
-#ifdef MEMORY_DEBUG
-  tests_memory_start ();
-#endif
-
   ecm_init (params);
 
   /* initialize the group order candidate */
   mpgocandi_t_init (&go);
 
   /* Init variables we might need to store options */
-  MPZ_INIT (sigma);
-  MPZ_INIT (A);
-  MPZ_INIT (B2);
-  MPZ_INIT (B2min);
-  MPZ_INIT (startingB2min);
+  mpz_init (sigma);
+  mpz_init (A);
+  mpz_init (B2);
+  mpz_init (B2min);
+  mpz_init (startingB2min);
   mpq_init (rat_x0);
 
   /* first look for options */
@@ -1143,9 +1133,9 @@ main (int argc, char *argv[])
     }
 
   mpcandi_t_init (&n); /* number(s) to factor */
-  MPZ_INIT (f); /* factor found */
-  MPZ_INIT (x); /* stage 1 residue */
-  MPZ_INIT (orig_x0); /* starting point, for save file */
+  mpz_init (f); /* factor found */
+  mpz_init (x); /* stage 1 residue */
+  mpz_init (orig_x0); /* starting point, for save file */
 
   /* We may need random numbers for sigma/nu/tau and/or starting point */
   gmp_randinit_default (randstate);
@@ -1353,7 +1343,7 @@ BreadthFirstDoAgain:;
 		  exit (EXIT_FAILURE);
 		}
 
-              MPZ_INIT (inv);
+              mpz_init (inv);
               mpz_invert (inv, mpq_denref (rat_x0), n.n);
               mpz_mul (inv, mpq_numref (rat_x0), inv);
               mpz_mod (x, inv, n.n);
@@ -1385,7 +1375,7 @@ BreadthFirstDoAgain:;
                   char *s;
                   s = mpz_get_str (NULL, 10, n.n);
 		  printf ("Input number is %s (%u digits)\n", s, n.ndigits);
-                  FREE (s, n.ndigits + 1);
+                  free (s); /* size n.ndigits + 1 */
 		}
 	      else
 	        {
@@ -1419,7 +1409,7 @@ BreadthFirstDoAgain:;
 		      char *s;
 		      s = mpz_get_str (NULL, 10, n.n);
 		      printf ("Input number is %s (%u digits)\n", s, n.ndigits);
-                      FREE (s, n.ndigits + 1);
+                      free (s); /* size n.ndigits + 1 */
 		    }
 		}
 	    }
@@ -1436,7 +1426,7 @@ BreadthFirstDoAgain:;
 	  fprintf (stderr, "Input number is %s (%u digits)\n"
 	           "****** Warning: input is probably prime ******\n", 
 	           s, n.ndigits);
-	  FREE (s, n.ndigits + 1);
+	  free (s); /* size n.ndigits + 1 */
 	}
 
       factor_is_prime = 0;
@@ -1778,10 +1768,6 @@ OutputFactorStuff:;
   mpgocandi_t_free (&go);
 
   ecm_clear (params);
-
-#ifdef MEMORY_DEBUG
-  tests_memory_end ();
-#endif
 
   /* exit 0 if a factor was found for the last input, except if we exit due
      to a signal */

@@ -171,22 +171,6 @@ extern FILE *ECM_STDOUT, *ECM_STDERR;
 #define ASSERT(expr)   do {} while (0)
 #endif
 
-#ifdef MEMORY_DEBUG
-void tests_free (void *, size_t);
-void tests_memory_set_location (char *, unsigned int);
-#define FREE(ptr,size) tests_free(ptr,size)
-#define MEMORY_TAG tests_memory_set_location(__FILE__,__LINE__)
-#define MEMORY_UNTAG tests_memory_set_location("",0)
-#define MPZ_INIT(x)    {MEMORY_TAG;mpz_init(x);MEMORY_UNTAG;}
-#define MPZ_INIT2(x,n) {MEMORY_TAG;mpz_init2(x,n);MEMORY_UNTAG;}
-#else
-#define FREE(ptr,size) free(ptr)
-#define MEMORY_TAG do{}while(0)
-#define MEMORY_UNTAG do{}while(0)
-#define MPZ_INIT(x) mpz_init(x)
-#define MPZ_INIT2(x,n) mpz_init2(x,n)
-#endif
-
 /* thresholds */
 #define MPN_MUL_LO_THRESHOLD 32
 

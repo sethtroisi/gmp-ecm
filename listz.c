@@ -902,9 +902,7 @@ PrerevertDivision (listz_t a, listz_t b, listz_t invb,
       /* the high part of A * INVB is now in {t+K-2, K-1} */
       if (wrap)
 	{
-	  MEMORY_TAG;
 	  t2 = init_list2 (K - 1, mpz_sizeinbase (n, 2));
-	  MEMORY_UNTAG;
 	  if (t2 == NULL)
 	    {
 	      fprintf (ECM_STDERR, "Error, not enough memory\n");

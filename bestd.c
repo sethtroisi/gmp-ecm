@@ -129,10 +129,10 @@ od:
       return 0;
     }
   
-  MPZ_INIT (i0);
-  MPZ_INIT (i1);
-  MPZ_INIT (j);
-  MPZ_INIT (t);
+  mpz_init (i0);
+  mpz_init (i1);
+  mpz_init (j);
+  mpz_init (t);
   k = *finalk; /* User specified k value passed in via finalk */
 
   /* Look for largest dF we can use while satisfying the maxmem parameter */

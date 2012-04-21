@@ -158,17 +158,11 @@ get_curve_from_param0 (mpz_t f, mpres_t A, mpres_t x, mpz_t sigma, mpmod_t n)
 {
   mpres_t t, u, v, b, z;
   
-  MEMORY_TAG;
   mpres_init (t, n);
-  MEMORY_TAG;
   mpres_init (u, n);
-  MEMORY_TAG;
   mpres_init (v, n);
-  MEMORY_TAG;
   mpres_init (b, n);
-  MEMORY_TAG;
   mpres_init (z, n);
-  MEMORY_UNTAG;
 
   mpres_set_z  (u, sigma, n);
   mpres_mul_ui (v, u, 4, n);   /* v = (4*sigma) mod n */
@@ -277,23 +271,14 @@ get_curve_from_param2 (mpz_t f, mpres_t A, mpres_t x0, mpz_t sigma, mpmod_t n)
   mpres_t t, u, v, w, x, y, z;
   mpz_t k;
 
-  MEMORY_TAG;
   mpres_init (t, n);
-  MEMORY_TAG;
   mpres_init (u, n);
-  MEMORY_TAG;
   mpres_init (v, n);
-  MEMORY_TAG;
   mpres_init (w, n);
-  MEMORY_TAG;
   mpres_init (x, n);
-  MEMORY_TAG;
   mpres_init (y, n);
-  MEMORY_TAG;
   mpres_init (z, n);
-  MEMORY_TAG;
   mpz_init (k);
-  MEMORY_UNTAG;
 
   mpz_set (k, sigma);
 
