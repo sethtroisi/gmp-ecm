@@ -278,7 +278,7 @@ static void
 print_elapsed_time (int verbosity, long cpu_start, 
 		    ATTRIBUTE_UNUSED long real_start)
 {
-#ifdef _OPENMP
+// #ifdef _OPENMP
   if (real_start != 0L)
     {
       outputf (verbosity, " took %lums (%lums real)\n", 
@@ -286,7 +286,7 @@ print_elapsed_time (int verbosity, long cpu_start,
 	       elltime (real_start, realtime()));
       return;
     }
-#endif
+// #endif
   outputf (verbosity, " took %lums\n", elltime (cpu_start, cputime()));
 }
 
@@ -354,71 +354,6 @@ list_output_poly (listz_t l, uint64_t len, int monic, int symmetric,
   /* handle.words is not initialised */
   list_output_poly_file (&handle, len, monic, symmetric, prefix, suffix, 
     verbosity);
-}
-
-static void
-list_output_poly2 (listz_t l, FILE *f, uint64_t len, int monic, int symmetric,
-		  char *prefix, char *suffix, int verbosity, const mpz_t modulus)
-{
-  _listz_handle_t handle;
-  if (f == NULL)
-    {
-      handle.storage = 0;
-      handle.data.mem = l;
-    }
-  else
-    {
-      handle.storage = 1;
-      handle.data.file = f;
-      free(mpz_export (NULL, &handle.words, -1, sizeof(unsigned long), 
-                       -1, 0, modulus));
-    }
-  handle.len = 0;
-  
-  list_output_poly_file (&handle, len, monic, symmetric, prefix, suffix, 
-    verbosity);
-}
-
-/* Multiply P[i] by r^{k(deg-i)}, for 0 <= i <= deg. Needs 3 entries in tmp. */
-/* I.e., let P(x) = x^deg + \sum_{i=0}^{deg - 1} P[i] * x^i. The output is 
-   R(x) = x^deg + \sum_{i=0}^{deg - 1} R[i] * x^i = r^(k deg) P(r^{-k} x). */
-/* The input and output polynomials are monic and have the leading monomial
-   implicit, i.e. not actually stored in the array of coefficients. */
-/* Returns 0 if a modular inversion failed (in which case R is left 
-   unchanged), 1 otherwise */
-
-static int ATTRIBUTE_UNUSED
-list_scale_rev (listz_t R, listz_t S, mpz_t r, long k, uint64_t deg, 
-		mpz_t modulus, listz_t tmp, 
-		ATTRIBUTE_UNUSED const uint64_t tmplen)
-{
-  uint64_t i;
-
-  ASSERT (tmplen >= 3);
-  mpz_powm_ui (tmp[0], r, (unsigned long) labs (k), modulus);
-  if (k < 0)
-    {
-      if (!mpz_invert (tmp[0], tmp[0], modulus)) /* FIXME: get rid of this! */
-	return 0;
-    }
-  /* Here, tmp[0] = r^k */
-  mpz_set (tmp[1], tmp[0]);
-  /* mpz_set (R[deg], S[deg]); Leading monomial is not stored! */
-  for (i = 1; i + 1 <= deg; i++)
-    {
-      /* Here, tmp[1] = r^(ki) */
-      mpz_mul (tmp[2], S[deg-i], tmp[1]);
-      mpz_mod (R[deg-i], tmp[2], modulus);
-      mpz_mul (tmp[2], tmp[1], tmp[0]);  /* FIXME, avoid unnecessary mul */
-      mpz_mod (tmp[1], tmp[2], modulus); /* at end of loop */
-    }
-  if (i <= deg)
-    {
-      mpz_mul (tmp[2], S[deg-i], tmp[1]);
-      mpz_mod (R[deg-i], tmp[2], modulus);
-    }
-
-  return 1;
 }
 
 
@@ -676,42 +611,6 @@ list_mul_reciprocal (listz_t R, listz_t S1, uint64_t l1,
   mpz_clear (sum2);
   mpz_clear (prod);
 #endif
-}
-
-
-/* Multiply a (possibly monic) polynomial A of length k * len with a 
-   (possibly monic) polynomial B of length len. R may be identical to A. */
-
-static void ATTRIBUTE_UNUSED
-list_mul_blocks (listz_t R, const listz_t A, int monicA, const listz_t B, 
-		 int monicB, const uint64_t len, const uint64_t k,
-		 listz_t tmp, ATTRIBUTE_UNUSED const uint64_t tmplen)
-{
-  uint64_t j;
-  
-  if (k == 0 || len == 0)
-    return;
-
-  ASSERT (R != B);
-  ASSERT (tmplen >= 3 * len + list_mul_mem (len));
-
-  /* Do first piece of A */
-  list_mul (tmp, A, len, (monicA && k == 1), B, len, monicB, tmp + 2 * len);
-  list_set (R, tmp, len); /* May overwrite A[0 ... len-1] */
-  list_swap (tmp, tmp + len, len); /* Move high part to tmp[0 ... len-1] */
-  
-  for (j = 1; j < k; j++) /* Process the remaining k-1 pieces of A */
-    {
-      list_mul (tmp + len, 
-		A + j * len, len, (monicA && j + 1 == k),
-		B, len, monicB, tmp + 3 * len);
-      /* Add low part of this product and previous product's high part */
-      list_add (A + j * len, tmp, tmp + len, len);
-      list_swap (tmp, tmp + 2 * len, len); /* Move this product's high 
-					      part to beginning of tmp */
-    }
-
-  list_set (A + j * len, tmp, len); /* Move the high part of last product */
 }
 
 
@@ -1019,31 +918,31 @@ writer_diff_file (void * const p, const mpz_t r)
 
 
 static void
-list_scale_V2_ntt (listz_t R, FILE *R_file, const listz_t F, FILE *F_file, 
+list_scale_V2_ntt (listz_handle_t R, const listz_handle_t F, 
               const mpres_t Q, const uint64_t deg, mpmod_t modulus, 
 	      mpzspv_handle_t ntt_handle)
 {
   if (deg == 0)
     {
-      ASSERT_ALWAYS (F != NULL && R != NULL);
+      ASSERT_ALWAYS (F->storage == 0 && R->storage == 0);
       mpz_t tmp;
       mpz_init (tmp);
-      mpz_mul (tmp, F[0], F[0]);
-      mpz_mod (R[0], tmp, modulus->orig_modulus);
+      mpz_mul (tmp, F->data.mem[0], F->data.mem[0]);
+      mpz_mod (R->data.mem[0], tmp, modulus->orig_modulus);
       mpz_clear (tmp);
       return;
     }
   
-  list_output_poly2 (F, F_file, deg + 1, 0, 1, "list_scale_V2_ntt: F = ", "\n", 
-    OUTPUT_TRACE, modulus->orig_modulus);
+  list_output_poly_file (F, deg + 1, 0, 1, "list_scale_V2_ntt: F = ", "\n", 
+    OUTPUT_TRACE);
   /* Convert F[0, ..., deg] to NTT */
-  if (F != NULL)
-    mpzspv_fromto_mpzv (ntt_handle, (spv_size_t) 0, deg + 1, NULL, F, 
+  if (F->storage == 0)
+    mpzspv_fromto_mpzv (ntt_handle, (spv_size_t) 0, deg + 1, NULL, F->data.mem, 
         NULL, NULL);
   else
     {
       state_file_t state;
-      state.f = F_file;
+      state.f = F->data.file;
       rewind (state.f);
       state.buf = mpz_export (NULL, &state.bufsize, -1, sizeof(unsigned long), 
           -1, 0, modulus->orig_modulus);
@@ -1061,6 +960,9 @@ list_scale_V2_ntt (listz_t R, FILE *R_file, const listz_t F, FILE *F_file,
   if (test_verbose(OUTPUT_TRACE))
     mpzspv_print (ntt_handle, 0, deg + 1, "list_scale_V2_ntt: After squaring ");
 
+#if defined(_OPENMP)
+#pragma omp parallel if (deg > 1000)
+#endif
   {
     /* Convert F^2 from NTT, add weights and store in F[0, ..., 2*deg], 
        at the same time add weights to F[0, ..., deg] and store that in NTT */
@@ -1083,10 +985,10 @@ list_scale_V2_ntt (listz_t R, FILE *R_file, const listz_t F, FILE *F_file,
     V (state.Vi_1, state.V1, (int64_t) start_i - 1, state.modulus);
     V (state.Vi, state.V1, start_i, state.modulus);
 
-    if (F != NULL)
+    if (F->storage == 0)
       {
-        state.mpzv_read = F;
-        state.mpzv_write = R;
+        state.mpzv_read = F->data.mem;
+        state.mpzv_write = R->data.mem;
         state.file_read = NULL;
         state.file_write = NULL;
         mpzspv_fromto_mpzv (ntt_handle, (spv_size_t) 0, l, 
@@ -1097,8 +999,8 @@ list_scale_V2_ntt (listz_t R, FILE *R_file, const listz_t F, FILE *F_file,
         state.mpzv_read = NULL;
         state.mpzv_write = NULL;
         /* FIXME clone file handles, seek to correct position */
-        state.file_read = F_file;
-        state.file_write = R_file;
+        state.file_read = F->data.file;
+        state.file_write = R->data.file;
         rewind (state.file_read);
         rewind (state.file_write);
         mpzspv_fromto_mpzv (ntt_handle, (spv_size_t) 0, l, 
@@ -1111,7 +1013,7 @@ list_scale_V2_ntt (listz_t R, FILE *R_file, const listz_t F, FILE *F_file,
     state.index = start_i;
     V (state.Vi_1, state.V1, (int64_t) start_i - 1, state.modulus);
     V (state.Vi, state.V1, start_i, state.modulus);
-    if (F != NULL)
+    if (F->storage == 0)
       {
         mpzspv_fromto_mpzv (ntt_handle, (spv_size_t) deg + 1, l, 
             NULL, NULL, &writerV, &state);
@@ -1129,8 +1031,8 @@ list_scale_V2_ntt (listz_t R, FILE *R_file, const listz_t F, FILE *F_file,
     free (state.buf);
   }
 
-  list_output_poly2 (R, R_file, 2*deg + 1, 0, 1, "Gw(x) = ", 
-                    "; /* PARI list_scale_V2_ntt */\n", OUTPUT_TRACE, modulus->orig_modulus);
+  list_output_poly_file (R, 2*deg + 1, 0, 1, "Gw(x) = ", 
+      "; /* PARI list_scale_V2_ntt */\n", OUTPUT_TRACE);
 
   /* Square the weighted F in NTT */
   mpzspv_sqr_reciprocal (ntt_handle, deg + 1);
@@ -1144,15 +1046,15 @@ list_scale_V2_ntt (listz_t R, FILE *R_file, const listz_t F, FILE *F_file,
     mpz_init (state.mpz);
     state.buf = mpz_export (NULL, &state.bufsize, -1, sizeof(unsigned long), 
       -1, 0, state.modulus);
-    if (R != NULL)
+    if (R->storage == 0)
       {
-        state.mpzv = R;
+        state.mpzv = R->data.mem;
         state.file = NULL;
         mpzspv_fromto_mpzv (ntt_handle, (spv_size_t) 0, 2*deg + 1, 
             NULL, NULL, &writer_diff, &state);
       } else {
         state.mpzv = NULL;
-        state.file = R_file;
+        state.file = R->data.file;
         rewind (state.file);
         mpzspv_fromto_mpzv (ntt_handle, (spv_size_t) 0, 2*deg + 1, 
             NULL, NULL, &writer_diff_file, &state);
@@ -1161,8 +1063,8 @@ list_scale_V2_ntt (listz_t R, FILE *R_file, const listz_t F, FILE *F_file,
     mpz_clear (state.mpz);
     free (state.buf);
   }
-  list_output_poly2 (R, R_file, deg + 1, 0, 1, "list_scale_V2_ntt: R = ", "\n", 
-    OUTPUT_TRACE, modulus->orig_modulus);
+  list_output_poly_file (R, deg + 1, 0, 1, "list_scale_V2_ntt: R = ", "\n", 
+    OUTPUT_TRACE);
 }
 
 
@@ -1307,62 +1209,9 @@ list_scale_V2 (listz_t R, const listz_t F, const mpres_t Q,
 }
 
 
-#ifdef WANT_ASSERT
-/* Check if l is an (anti-)symmetric, possibly monic, polynomial. 
-   Returns -1 if it is (anti-)symmetric, or the smallest index i where 
-   l[i] != l[len - 1 + monic - i])
-   If anti == 1, the list is checked for symmetry, if it is -1, for
-   antisymmetry.
-   This function is used only if assertions are enabled.
-*/
-
-static long int ATTRIBUTE_UNUSED
-list_is_symmetric (listz_t l, uint64_t len, int monic, int anti, 
-		   mpz_t modulus, mpz_t tmp)
-{
-    unsigned long i;
-
-    ASSERT (monic == 0 || monic == 1);
-    ASSERT (anti == 1 || anti == -1);
-
-    if (monic && anti == 1 && mpz_cmp_ui (l[0], 1) != 0)
-	return 0L;
-
-    if (monic && anti == -1)
-      {
-	mpz_sub_ui (tmp, modulus, 1);
-	if (mpz_cmp (tmp, l[0]) != 0)
-	  return 0L;
-      }
-
-    for (i = monic; i < len / 2; i++)
-      {
-	if (anti == -1)
-	  {
-	    /* Negate (mod modulus) */
-	    if (mpz_sgn (l[i]) == 0)
-	      {
-		if (mpz_sgn (l[len - 1 + monic - i]) != 0)
-		  return (long) i;
-	      }
-	    else
-	      {
-		mpz_sub (tmp, modulus, l[i]);
-		if (mpz_cmp (tmp, l[len - 1 + monic - i]) != 0)
-		  return (long) i;
-	      }
-	  }
-	else if (mpz_cmp (l[i], l[len - 1 + monic - i]) != 0)
-	    return (long) i;
-      }
-
-    return -1L;
-}
-#endif
-
 /* Evaluate a polynomial of degree n-1 with all coefficients given in F[],
    or of degree n with an implicit leading 1 monomial not stored in F[],
-   at x modulo modulus. Result goes in r. tmp needs 2 entries. */
+   at x (mod modulus). Result goes in r. tmp needs 2 entries. */
 
 ATTRIBUTE_UNUSED static void 
 list_eval_poly (mpz_t r, const listz_t F, const mpz_t x, 
@@ -1481,8 +1330,14 @@ poly_from_sets_V (listz_handle_t F_param, const mpres_t Q, set_list_t *sets,
              standard basis, and occupies 
              F[(2 * i + 1) * lenF ... (2 * i + 1) * lenF  + 2 * deg] */
           if (ntt_handle != NULL)
-            list_scale_V2_ntt (F + prod_offset, NULL, F, NULL, Qt, 
-                          deg, modulus, ntt_handle);
+            {
+              _listz_handle_t F_handle = {0, deg + 1, F_param->words, 
+                  .data.mem = F};
+              _listz_handle_t R_handle = {0, 2*deg + 1, F_param->words, 
+                  .data.mem = F + prod_offset};
+              list_scale_V2_ntt (&R_handle, &F_handle, Qt, 
+                            deg, modulus, ntt_handle);
+            }
           else
             list_scale_V2 (F + prod_offset, F, Qt, deg, 
                           modulus, tmp + tmpadd, tmplen - tmpadd, NULL);
@@ -1553,9 +1408,7 @@ poly_from_sets_V (listz_handle_t F_param, const mpres_t Q, set_list_t *sets,
       V (Qt, Qt, 2UL, modulus);
       if (ntt_handle != NULL)
         {
-          listz_t F_mem = (F_param->storage == 0) ? F_param->data.mem : NULL;
-          FILE *F_file = (F_param->storage != 0) ? F_param->data.file : NULL;
-          list_scale_V2_ntt (F_mem, F_file, F_mem, F_file, Qt, deg, modulus, ntt_handle);
+          list_scale_V2_ntt (F_param, F_param, Qt, deg, modulus, ntt_handle);
         }
       else
         list_scale_V2 (F, F, Qt, deg, modulus, tmp, tmplen, NULL);
@@ -4155,6 +4008,7 @@ int main (int argc, char **argv)
   char *filename = NULL;
   int i;
   int do_ntt = 0, do_pwmul = 0, do_intt = 0, do_gcd = 0;
+  long timestart, realstart, timediff, realdiff;
   
   for (i = 1; i < argc; i++)
     {
@@ -4205,9 +4059,20 @@ int main (int argc, char **argv)
    if (do_gcd)
      {
        mpz_t f;
+       uint64_t bytes;
        
        mpz_init (f);
+       timestart = cputime ();
+       realstart = realtime ();
        ntt_gcd (f, NULL, ntt_handle, 0, NULL, len, modulus);
+       timediff = cputime () - timestart;
+       realdiff = realtime () - realstart;
+       
+       printf("GCD took %lu ms, %lu ms elaped\n", timediff, realdiff);
+       bytes = len * mpzspm->sp_num * sizeof(sp_t);
+       printf("%lu * %u * %lu = %lu bytes, %f MB/s\n", 
+               len, mpzspm->sp_num, sizeof(sp_t), bytes, 
+               bytes / (realdiff * 0.001) / 1048576.);
        
        mpz_clear (f);
      }
