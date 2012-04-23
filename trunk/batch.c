@@ -247,7 +247,7 @@ ecm_stage1_batch (mpz_t f, mpres_t x, mpres_t A, mpmod_t n, double B1,
   mpres_init (z2, n);
   mpres_init (t, n);
   mpres_init (u, n);
-  if (batch == 2)
+  if (batch == ECM_PARAM_BATCH_2)
     mpres_init (d_2, n);
 
   /* initialize P */
@@ -255,7 +255,7 @@ ecm_stage1_batch (mpz_t f, mpres_t x, mpres_t A, mpmod_t n, double B1,
   mpres_set_ui (z1, 1, n); /* P1 <- 1P */
 
   /* Compute d=(A+2)/4 from A and d'=B*d thus d' = 2^(GMP_NUMB_BITS-2)*(A+2) */
-  if (batch == 1)
+  if (batch == ECM_PARAM_BATCH_SQUARE || batch == ECM_PARAM_BATCH_32BITS_D)
   {
       mpres_get_z (u, A, n);
       mpz_add_ui (u, u, 2);
@@ -281,7 +281,8 @@ ecm_stage1_batch (mpz_t f, mpres_t x, mpres_t A, mpmod_t n, double B1,
 
   /* Compute 2P : no need to duplicate P, the coordinates are simple. */
   mpres_set_ui (x2, 9, n);
-  if (batch == 1) /* here d = d_1 / GMP_NUMB_BITS */
+  /* here d = d_1 / GMP_NUMB_BITS */
+  if (batch == ECM_PARAM_BATCH_SQUARE || batch == ECM_PARAM_BATCH_32BITS_D)
     {
       /* warning: mpres_set_ui takes an unsigned long which has only 32 bits
          on Windows, while d_1 might have 64 bits */
@@ -304,7 +305,7 @@ ecm_stage1_batch (mpz_t f, mpres_t x, mpres_t A, mpmod_t n, double B1,
   mpresn_pad (z2, n);
 
   /* now perform the double-and-add ladder */
-  if (batch == 1)
+  if (batch == ECM_PARAM_BATCH_SQUARE || batch == ECM_PARAM_BATCH_32BITS_D)
     {
       for (i = mpz_sizeinbase (s, 2) - 1; i-- > 0;)
         {
@@ -316,7 +317,7 @@ ecm_stage1_batch (mpz_t f, mpres_t x, mpres_t A, mpmod_t n, double B1,
             dup_add_batch1 (x2, z2, x1, z1, t, u, d_1, n);
         }
     }
-  else /* batch = 2 */
+  else /* batch = ECM_PARAM_BATCH_2 */
     {
       mpresn_pad (d_2, n);
       for (i = mpz_sizeinbase (s, 2) - 1; i-- > 0;)

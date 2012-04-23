@@ -153,6 +153,9 @@ addchain_param (mpres_t x, mpres_t y, mpres_t z, mpz_t s, mpres_t t,
    ECM_FACTOR_FOUND_STEP1 (and factor in f), returns ECM_NO_FACTOR_FOUND 
    otherwise.
 */
+/* Assume that sigma is valid (try with is_invalid_parameter) */
+/* that it to say for this parametrization: */
+/* 6 <= sigma < 2^64 */
 int
 get_curve_from_param0 (mpz_t f, mpres_t A, mpres_t x, mpz_t sigma, mpmod_t n)
 {
@@ -211,39 +214,22 @@ get_curve_from_param0 (mpz_t f, mpres_t A, mpres_t x, mpz_t sigma, mpmod_t n)
   return ECM_NO_FACTOR_FOUND;
 }
 
-/* Parametrization ECM_PARAM_BATCH_SMALL_D */
+/* Parametrization ECM_PARAM_BATCH_SQUARE */
+/* Assume that sigma is valid (try with is_invalid_parameter) */
+/* that it to say for this parametrization: */
+/* 1 <= sigma < 2^32 */
+/* Only work for 64-bit machine */
 int  
 get_curve_from_param1 (mpres_t A, mpres_t x0, mpz_t sigma, mpmod_t n)
 {
   int i;
   mpz_t tmp;
-  mpz_t two32;
-  mpz_init (two32);
-  mpz_ui_pow_ui (two32, 2, 32);
+  mpz_init (tmp);
 
-  /* If sigma < 2^32, then it was generated on a 32-bits machines */
-  /* To use it on a 64-bits machines one should multiplied it by 2^32 */
-  if (mpz_cmp (sigma, two32) < 0)
-    {
-      if (GMP_NUMB_BITS == 64)
-        {
-          mpz_mul (sigma, sigma, two32);
-        }
-    }
-  else  /* we know that 2^32 <= sigma < 2^64 */
-    {
-      if (GMP_NUMB_BITS == 32)
-        {
-          outputf (OUTPUT_ERROR, "Error, invalid sigma value on "
-                                 "a 32-bits machine, %Zd.\n", sigma);
-          return ECM_ERROR;
-        }
-      /* TODO Check that it is a square */
-    }
+  mpz_mul (tmp, sigma, sigma); /* tmp = sigma^2*/
   
-  /* A=4*d-2 with d = sigma/2^GMP_NUMB_BITS*/
-  mpz_init_set (tmp, sigma);
-  /* Compute d = sigma/2^GMP_NUMB_BITS */
+  /* A=4*d-2 with d = sigma^2/2^GMP_NUMB_BITS*/
+  /* Compute d = sigma^2/2^GMP_NUMB_BITS */
   for (i = 0; i < GMP_NUMB_BITS; i++)
     {
       if (mpz_tstbit (tmp, 0) == 1)
@@ -257,14 +243,16 @@ get_curve_from_param1 (mpres_t A, mpres_t x0, mpz_t sigma, mpmod_t n)
   mpres_set_ui (x0, 2, n);
 
   mpz_clear(tmp);
-  mpz_clear (two32);
   return ECM_NO_FACTOR_FOUND;
 }
 
 /* Parametrization ECM_PARAM_BATCH_2: generate curves with a point of 
   order 3 and starting point (2:1) 
-  Compute k*P on y^2=x^3+36 with P=(-3,3); need k>1
+  Compute sigma*P on y^2=x^3+36 with P=(-3,3)
   x3 = (3*x+y+6)/(2*(y-3)) and A=-(3*x3^4+6*x3^2-1)/(4*x3^3)*/
+/* Assume that sigma is valid (try with is_invalid_parameter) */
+/* that it to say for this parametrization: */
+/* 2 <= sigma < 2^64 */
 int 
 get_curve_from_param2 (mpz_t f, mpres_t A, mpres_t x0, mpz_t sigma, mpmod_t n)
 {
@@ -368,7 +356,47 @@ get_curve_from_param2 (mpz_t f, mpres_t A, mpres_t x0, mpz_t sigma, mpmod_t n)
   return ECM_NO_FACTOR_FOUND;
 }
 
-void 
+/* Parametrization ECM_PARAM_BATCH_32BITS_D */
+/* Assume that sigma is valid (try with is_invalid_parameter) */
+/* that it to say for this parametrization: */
+/* 1 <= sigma < 2^32 */
+int  
+get_curve_from_param3 (mpres_t A, mpres_t x0, mpz_t sigma, mpmod_t n)
+{
+  int i;
+  mpz_t tmp;
+  mpz_t two32;
+  mpz_init (two32);
+  mpz_ui_pow_ui (two32, 2, 32);
+  mpz_init (tmp);
+
+  /* sigma < 2^32 (it was generated for 32-bit machines) */
+  /* To use it on a 64-bits machines one should multiplied it by 2^32 */
+  if (GMP_NUMB_BITS == 64)
+      mpz_mul (tmp, sigma, two32);
+  else  
+      mpz_set (tmp, sigma);
+  
+  /* A=4*d-2 with d = sigma/2^GMP_NUMB_BITS*/
+  /* Compute d = sigma/2^GMP_NUMB_BITS */
+  for (i = 0; i < GMP_NUMB_BITS; i++)
+    {
+      if (mpz_tstbit (tmp, 0) == 1)
+      mpz_add (tmp, tmp, n->orig_modulus);
+      mpz_div_2exp (tmp, tmp, 1);
+    }
+  mpz_mul_2exp (tmp, tmp, 2);           /* 4d */
+  mpz_sub_ui (tmp, tmp, 2);             /* 4d-2 */
+      
+  mpres_set_z (A, tmp, n);
+  mpres_set_ui (x0, 2, n);
+
+  mpz_clear(tmp);
+  mpz_clear (two32);
+  return ECM_NO_FACTOR_FOUND;
+}
+
+void
 get_random_parameter (mpz_t sigma, int param, gmp_randstate_t rng)
 {
   if (param == ECM_PARAM_SUYAMA)
@@ -377,31 +405,28 @@ get_random_parameter (mpz_t sigma, int param, gmp_randstate_t rng)
       mpz_urandomb (sigma, rng, 63);
       mpz_add_ui (sigma, sigma, 6);
     }
-  else if (param == ECM_PARAM_BATCH_SMALL_D)
+  else if (param == ECM_PARAM_BATCH_SQUARE)
     {
       do
         mpz_urandomb (sigma, rng, 32);  /* generates 0 < sigma < 2^32 */
       while (mpz_sgn (sigma) == 0);
-      if (GMP_NUMB_BITS == 64)
-        {
-          /* If sigma is for 64 bits machine, it should be >= 2^32 and square */
-          if (mpz_cmp_ui (sigma, 2^16) < 0)
-            mpz_add_ui (sigma, sigma, 2^16);
-          mpz_mul (sigma, sigma, sigma); /* ensures sigma (and thus d) is a */
-                          /*square, which increases the success probability */
-        }
-        
-     }
+    }
   else if (param == ECM_PARAM_BATCH_2)
     {
       /* Generate a sigma less than 2^64 and greater than 1 */
       mpz_urandomb (sigma, rng, 63);
       mpz_add_ui (sigma, sigma, 2);
     }
+  else if (param == ECM_PARAM_BATCH_32BITS_D)
+    {
+      do
+        mpz_urandomb (sigma, rng, 32);  /* generates 0 < sigma < 2^32 */
+      while (mpz_sgn (sigma) == 0);
+    }
 }
 
 int
-is_invalid_parameter (mpz_t sigma, int param)
+is_invalid_parameter (mpz_t sigma, int param, mpmod_t modulus)
 {
   int ret = 0;
   mpz_t two64, two32;
@@ -410,23 +435,20 @@ is_invalid_parameter (mpz_t sigma, int param)
   mpz_ui_pow_ui (two64, 2, 64);
   mpz_ui_pow_ui (two32, 2, 32);
 
+/* TODO for param 0, 1 and 3, (sigma % N) >= (6|1)*/
   if (param == ECM_PARAM_SUYAMA)
     {
       if (mpz_cmp_ui (sigma, 6) < 0 || mpz_cmp (sigma, two64) >= 0)
           ret = 1;
     }
-  else if (param == ECM_PARAM_BATCH_SMALL_D)
+  else if (param == ECM_PARAM_BATCH_SQUARE)
     {
+      /* Does not work on 32 bits machine */
       if (GMP_NUMB_BITS == 32)
+          ret = 1;
+      else 
         {
           if (mpz_cmp_ui (sigma, 1) < 0 || mpz_cmp (sigma, two32) >= 0)
-              ret = 1;
-        }
-      else if (GMP_NUMB_BITS == 64)
-        {
-          /* TODO if sigma < 2^32 nothing to do */
-          /* if sigma >=2^32 sigma sould be a square */ 
-          if (mpz_cmp_ui (sigma, 1) < 0 || mpz_cmp (sigma, two64) >= 0)
               ret = 1;
         }
     }
@@ -434,6 +456,11 @@ is_invalid_parameter (mpz_t sigma, int param)
     {
       if (mpz_cmp_ui (sigma, 2) < 0 || mpz_cmp (sigma, two64) >= 0)
           ret = 1;
+    }
+  else if (param == ECM_PARAM_BATCH_32BITS_D)
+    {
+        if (mpz_cmp_ui (sigma, 1) < 0 || mpz_cmp (sigma, two32) >= 0)
+            ret = 1;
     }
   mpz_clear (two64);
   mpz_clear (two32);
@@ -443,7 +470,7 @@ is_invalid_parameter (mpz_t sigma, int param)
 int 
 get_default_param (double B1, double B1done)
 {
-  if (ECM_IS_DEFAULT_B1_DONE(B1done))
+  if (!ECM_IS_DEFAULT_B1_DONE(B1done))
       return ECM_PARAM_SUYAMA;
   else
     {
@@ -451,6 +478,11 @@ get_default_param (double B1, double B1done)
       if (B1 >= 100000000.0)
           return ECM_PARAM_BATCH_2;
       else
-          return ECM_PARAM_BATCH_SMALL_D;
+        {
+          if (GMP_NUMB_BITS == 64)
+            return ECM_PARAM_BATCH_SQUARE;
+          else
+            return ECM_PARAM_BATCH_32BITS_D;
+        }
     }
 }
