@@ -833,7 +833,9 @@ static size_t
 seek_and_read_sp (spv_t ptr, const size_t nread, const size_t offset, FILE *f)
 {
   size_t r;
-  if (fseek (f, offset * sizeof(sp_t), SEEK_SET) != 0)
+  const long foffset = offset * sizeof(sp_t);
+  
+  if (ftell(f) != foffset && fseek (f, foffset, SEEK_SET) != 0)
     {
       fprintf (stderr, "seek_and_read(): fseek() returned error %d\n", 
                errno);
@@ -866,7 +868,9 @@ static size_t
 seek_and_write_sp (const spv_t ptr, const size_t nwrite, const size_t offset, FILE *f)
 {
   size_t r;
-  if (fseek (f, offset * sizeof(sp_t), SEEK_SET) != 0)
+  const long foffset = offset * sizeof(sp_t);
+
+  if (ftell(f) != foffset && fseek (f, foffset, SEEK_SET) != 0)
     {
       fprintf (stderr, "seek_and_read(): fseek() returned error %d\n", 
                errno);
