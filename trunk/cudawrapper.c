@@ -5,7 +5,7 @@
 
 #define TWO32 4294967296 /* 2^32 */ 
 
-extern void select_and_init_GPU (int, unsigned int*, int);
+extern int select_and_init_GPU (int, unsigned int*, int);
 extern float cuda_Main (biguint_t, biguint_t, biguint_t, digit_t, biguint_t*, 
                         biguint_t*, biguint_t*, biguint_t*, mpz_t, unsigned int, 
                         unsigned int, FILE*, FILE*);
@@ -347,8 +347,9 @@ gpu_ecm (mpz_t f, int param, mpz_t firstsigma, mpz_t n, mpz_t go,
       st = cputime ();
       /* construct the batch exponent */
       compute_s (batch_s, B1);
-      outputf (OUTPUT_VERBOSE, "computing prime product of %zu bits took " 
-                   "%ldms\n", mpz_sizeinbase (batch_s, 2), cputime () - st);
+      outputf (OUTPUT_VERBOSE, "Computing batch product (of %zu bits) of "
+                               "primes below B1=%1.0f took %ldms\n", 
+                               mpz_sizeinbase (batch_s, 2), B1, cputime () - st);
     }
 
   /* Set parameters for stage 2 */
@@ -371,9 +372,15 @@ gpu_ecm (mpz_t f, int param, mpz_t firstsigma, mpz_t n, mpz_t go,
     {
       st = cputime ();
       if (test_verbose (OUTPUT_VERBOSE))
-          select_and_init_GPU (device, nb_curves, 1);
+          youpi = select_and_init_GPU (device, nb_curves, 1);
       else
-          select_and_init_GPU (device, nb_curves, 0);
+          youpi = select_and_init_GPU (device, nb_curves, 0);
+
+      if (youpi != 0)
+        {
+          youpi = ECM_ERROR;
+          goto end_gpu_ecm;
+        }
 
       outputf (OUTPUT_VERBOSE, "GPU: Selection and initialization of the device "
                                "took %ldms\n", elltime (st, cputime ()));
@@ -503,11 +510,13 @@ gpu_ecm (mpz_t f, int param, mpz_t firstsigma, mpz_t n, mpz_t go,
   
   for (i = 0; i < *nb_curves; i++)
     {
-      //TODO if (stop_asap != NULL && (*stop_asap) ())
       if (test_verbose (OUTPUT_RESVERBOSE)) 
         {
           outputf (OUTPUT_RESVERBOSE, "x=%Zd\n", factors[i]);
         }
+
+      if (stop_asap != NULL && (*stop_asap) ())
+          goto end_gpu_ecm_rhotable;
     
       mpres_set_z (P.x, factors[i], modulus);
       mpres_set_ui (P.y, 1, modulus);

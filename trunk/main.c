@@ -1444,7 +1444,8 @@ BreadthFirstDoAgain:;
           exit (EXIT_FAILURE);
         }
       params->param = param;
-      
+     
+      /*FIXME not necessarly for batch mode maybe for GPU (or PARAM_DEFAULT?)*/
       if ((IS_BATCH_MODE(param)) && loadfile_s != NULL)
         {
           int st;
@@ -1455,8 +1456,10 @@ BreadthFirstDoAgain:;
           /* the actual B1 */
           read_s_from_file (params->batch_s, loadfile_s);
           if (verbose > OUTPUT_NORMAL)
-            fprintf (stdout, "reading prime product of %zu bits took %ldms\n",
-                    mpz_sizeinbase (params->batch_s, 2), cputime () - st);
+            fprintf (stdout, "Reading batch product (of %zu bits) of "
+                             "primes below B1=%1.0f from %s took %ldms\n", 
+                     mpz_sizeinbase (params->batch_s, 2), B1, loadfile_s, 
+                     cputime () - st);
         }
 
       /* set parameters that may change from one curve to another */
