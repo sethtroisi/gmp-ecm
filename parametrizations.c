@@ -467,7 +467,9 @@ get_default_param (int sigma_is_A, mpz_t sigma, mpz_t x, double B1,
       /*if (mpz_cmp_ui (x, 2) == 0)
         return ECM_PARAM_BATCH_??;
       else*/
-        return ECM_PARAM_SUYAMA;
+      /* return ECM_PARAM_SUYAMA; */
+      return ECM_PARAM_DEFAULT; /* For now we keep the default values in order
+      not to compute the expected number of curves */
     }
 
 
