@@ -622,7 +622,7 @@ main (int argc, char *argv[])
               else
                   param = atoi (argv[2]) ;
 
-              if (mpz_set_str (sigma, argv[2]+2, 0)) 
+              if (mpz_set_str (sigma, argv[2]+2, 0) || mpz_sgn (sigma) == 0) 
                 {
                   fprintf (stderr, "Error, invalid sigma value: %s\n", 
                            argv[2]+2);

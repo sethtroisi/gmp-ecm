@@ -763,18 +763,19 @@ int ecm_stage1_batch (mpz_t, mpres_t, mpres_t, mpmod_t, double, double *,
                                                                 int,  mpz_t);
 
 /* parametrizations.c */
-#define get_random_parameter __ECM(get_random_parameter)
-void get_random_parameter (mpz_t, int, gmp_randstate_t);
+#define get_curve_from_random_parameter __ECM(get_curve_from_random_parameter)
+int get_curve_from_random_parameter (mpz_t, mpres_t, mpres_t, mpz_t, int, 
+                                      mpmod_t, gmp_randstate_t);
 #define get_curve_from_param0 __ECM(get_curve_from_param0)
 int get_curve_from_param0 (mpz_t, mpres_t, mpres_t, mpz_t, mpmod_t);
 #define get_curve_from_param1 __ECM(get_curve_from_param1)
 int get_curve_from_param1 (mpres_t, mpres_t, mpz_t, mpmod_t);
 #define get_curve_from_param2 __ECM(get_curve_from_param2)
 int get_curve_from_param2 (mpz_t, mpres_t, mpres_t, mpz_t, mpmod_t);
+#define get_curve_from_param3 __ECM(get_curve_from_param3)
+int get_curve_from_param3 (mpres_t, mpres_t, mpz_t, mpmod_t);
 #define get_default_param __ECM(get_default_param)
-int get_default_param (double, double);
-#define is_invalid_parameter __ECM(is_invalid_parameter)
-int is_invalid_parameter (mpz_t, int, mpmod_t);
+int get_default_param (int ,mpz_t, mpz_t, double, double);
 
 /* sets_long.c */
 /* A set of long ints */

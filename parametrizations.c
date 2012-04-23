@@ -146,26 +146,38 @@ addchain_param (mpres_t x, mpres_t y, mpres_t z, mpz_t s, mpres_t t,
     }
 }
 
-/* Parametrization ECM_PARAM_SUYAMA
-   Computes curve coefficient A and a starting point (x:1) from a given
-   sigma value.
-   If a factor of n was found during the process, returns 
-   ECM_FACTOR_FOUND_STEP1 (and factor in f), returns ECM_NO_FACTOR_FOUND 
-   otherwise.
+/*
+  get_curve_from_param* functions compute curve coefficient A and a starting
+  point (x::1) from a given sigma value 
+   
+  If a factor of n was found during the process, returns 
+  ECM_FACTOR_FOUND_STEP1 (and factor in f). 
+  If a invalid value of sigma is given, returns ECM_ERROR,
+  Returns ECM_NO_FACTOR_FOUND otherwise. 
 */
-/* Assume that sigma is valid (try with is_invalid_parameter) */
-/* that it to say for this parametrization: */
-/* 6 <= sigma < 2^64 */
+
+
+
+/* Parametrization ECM_PARAM_SUYAMA */
+/* (sigma mod N) should be different from 0, 1, 3, 5, 5/3, -1, -3, -5, -5/3 */
 int
 get_curve_from_param0 (mpz_t f, mpres_t A, mpres_t x, mpz_t sigma, mpmod_t n)
 {
   mpres_t t, u, v, b, z;
+  mpz_t tmp;
   
   mpres_init (t, n);
   mpres_init (u, n);
   mpres_init (v, n);
   mpres_init (b, n);
   mpres_init (z, n);
+  mpz_init (tmp);
+
+  mpz_mod (tmp, sigma, n->orig_modulus);
+  /* TODO add -5 -3 -1 and +/- 5/3 */
+  if (mpz_cmp_ui (tmp, 5) == 0 || mpz_cmp_ui (tmp, 3) == 0 || 
+      mpz_cmp_ui (tmp, 1) == 0 || mpz_sgn (tmp) == 0)
+    return ECM_ERROR;
 
   mpres_set_z  (u, sigma, n);
   mpres_mul_ui (v, u, 4, n);   /* v = (4*sigma) mod n */
@@ -195,7 +207,10 @@ get_curve_from_param0 (mpz_t f, mpres_t A, mpres_t x, mpz_t sigma, mpmod_t n)
       mpres_clear (v, n);
       mpres_clear (b, n);
       mpres_clear (z, n);
-      return ECM_FACTOR_FOUND_STEP1;
+      if (mpz_cmp (f, n->orig_modulus) == 0)
+          return ECM_ERROR;
+      else
+          return ECM_FACTOR_FOUND_STEP1;
     }
   
   mpres_mul (v, u, b, n);   /* v = z^(-1) (mod n) */
@@ -210,15 +225,14 @@ get_curve_from_param0 (mpz_t f, mpres_t A, mpres_t x, mpz_t sigma, mpmod_t n)
   mpres_clear (v, n);
   mpres_clear (b, n);
   mpres_clear (z, n);
+  mpz_clear (tmp);
 
   return ECM_NO_FACTOR_FOUND;
 }
 
 /* Parametrization ECM_PARAM_BATCH_SQUARE */
-/* Assume that sigma is valid (try with is_invalid_parameter) */
-/* that it to say for this parametrization: */
-/* 1 <= sigma < 2^32 */
 /* Only work for 64-bit machine */
+/* d = (sigma^2/2^64 mod N) should be different from 0, 1, -1/8 */
 int  
 get_curve_from_param1 (mpres_t A, mpres_t x0, mpz_t sigma, mpmod_t n)
 {
@@ -226,6 +240,8 @@ get_curve_from_param1 (mpres_t A, mpres_t x0, mpz_t sigma, mpmod_t n)
   mpz_t tmp;
   mpz_init (tmp);
 
+  assert (GMP_NUMB_BITS == 64);
+      
   mpz_mul (tmp, sigma, sigma); /* tmp = sigma^2*/
   
   /* A=4*d-2 with d = sigma^2/2^GMP_NUMB_BITS*/
@@ -233,9 +249,15 @@ get_curve_from_param1 (mpres_t A, mpres_t x0, mpz_t sigma, mpmod_t n)
   for (i = 0; i < GMP_NUMB_BITS; i++)
     {
       if (mpz_tstbit (tmp, 0) == 1)
-      mpz_add (tmp, tmp, n->orig_modulus);
+          mpz_add (tmp, tmp, n->orig_modulus);
       mpz_div_2exp (tmp, tmp, 1);
     }
+
+  mpz_mod (tmp, tmp, n->orig_modulus);
+  /* TODO add d!=-1/8*/
+  if (mpz_sgn (tmp) == 0 || mpz_cmp_ui (tmp, 1) == 0)
+      return ECM_ERROR;
+
   mpz_mul_2exp (tmp, tmp, 2);           /* 4d */
   mpz_sub_ui (tmp, tmp, 2);             /* 4d-2 */
       
@@ -246,13 +268,8 @@ get_curve_from_param1 (mpres_t A, mpres_t x0, mpz_t sigma, mpmod_t n)
   return ECM_NO_FACTOR_FOUND;
 }
 
-/* Parametrization ECM_PARAM_BATCH_2: generate curves with a point of 
-  order 3 and starting point (2:1) 
-  Compute sigma*P on y^2=x^3+36 with P=(-3,3)
-  x3 = (3*x+y+6)/(2*(y-3)) and A=-(3*x3^4+6*x3^2-1)/(4*x3^3)*/
-/* Assume that sigma is valid (try with is_invalid_parameter) */
-/* that it to say for this parametrization: */
-/* 2 <= sigma < 2^64 */
+/* Parametrization ECM_PARAM_BATCH_2 */
+/* 2 <= sigma */
 int 
 get_curve_from_param2 (mpz_t f, mpres_t A, mpres_t x0, mpz_t sigma, mpmod_t n)
 {
@@ -269,6 +286,9 @@ get_curve_from_param2 (mpz_t f, mpres_t A, mpres_t x0, mpz_t sigma, mpmod_t n)
   mpz_init (k);
 
   mpz_set (k, sigma);
+
+  if (mpz_cmp_ui (k, 2) < 0)
+      return ECM_ERROR;
 
   addchain_param (x, y, z, k, t, u, v, w, n); 
 
@@ -357,9 +377,7 @@ get_curve_from_param2 (mpz_t f, mpres_t A, mpres_t x0, mpz_t sigma, mpmod_t n)
 }
 
 /* Parametrization ECM_PARAM_BATCH_32BITS_D */
-/* Assume that sigma is valid (try with is_invalid_parameter) */
-/* that it to say for this parametrization: */
-/* 1 <= sigma < 2^32 */
+/* d = (sigma/2^32 mod N) should be different from 0, 1, -1/8 */
 int  
 get_curve_from_param3 (mpres_t A, mpres_t x0, mpz_t sigma, mpmod_t n)
 {
@@ -385,6 +403,12 @@ get_curve_from_param3 (mpres_t A, mpres_t x0, mpz_t sigma, mpmod_t n)
       mpz_add (tmp, tmp, n->orig_modulus);
       mpz_div_2exp (tmp, tmp, 1);
     }
+
+  mpz_mod (tmp, tmp, n->orig_modulus);
+  /* TODO add d!=-1/8*/
+  if (mpz_sgn (tmp) == 0 || mpz_cmp_ui (tmp, 1) == 0)
+      return ECM_ERROR;
+
   mpz_mul_2exp (tmp, tmp, 2);           /* 4d */
   mpz_sub_ui (tmp, tmp, 2);             /* 4d-2 */
       
@@ -396,93 +420,65 @@ get_curve_from_param3 (mpres_t A, mpres_t x0, mpz_t sigma, mpmod_t n)
   return ECM_NO_FACTOR_FOUND;
 }
 
-void
-get_random_parameter (mpz_t sigma, int param, gmp_randstate_t rng)
-{
-  if (param == ECM_PARAM_SUYAMA)
-    {
-      /* Generate a sigma less than 2^64 and greater than 5 */
-      mpz_urandomb (sigma, rng, 63);
-      mpz_add_ui (sigma, sigma, 6);
-    }
-  else if (param == ECM_PARAM_BATCH_SQUARE)
-    {
-      do
-        mpz_urandomb (sigma, rng, 32);  /* generates 0 < sigma < 2^32 */
-      while (mpz_sgn (sigma) == 0);
-    }
-  else if (param == ECM_PARAM_BATCH_2)
-    {
-      /* Generate a sigma less than 2^64 and greater than 1 */
-      mpz_urandomb (sigma, rng, 63);
-      mpz_add_ui (sigma, sigma, 2);
-    }
-  else if (param == ECM_PARAM_BATCH_32BITS_D)
-    {
-      do
-        mpz_urandomb (sigma, rng, 32);  /* generates 0 < sigma < 2^32 */
-      while (mpz_sgn (sigma) == 0);
-    }
-}
-
 int
-is_invalid_parameter (mpz_t sigma, int param, mpmod_t modulus)
+get_curve_from_random_parameter (mpz_t f, mpres_t A, mpres_t x, mpz_t sigma, 
+                                 int param, mpmod_t modulus, gmp_randstate_t rng)
 {
-  int ret = 0;
-  mpz_t two64, two32;
-  mpz_init (two64);
-  mpz_init (two32);
-  mpz_ui_pow_ui (two64, 2, 64);
-  mpz_ui_pow_ui (two32, 2, 32);
-
-/* TODO for param 0, 1 and 3, (sigma % N) >= (6|1)*/
-  if (param == ECM_PARAM_SUYAMA)
+  int ret;
+  do
     {
-      if (mpz_cmp_ui (sigma, 6) < 0 || mpz_cmp (sigma, two64) >= 0)
-          ret = 1;
-    }
-  else if (param == ECM_PARAM_BATCH_SQUARE)
-    {
-      /* Does not work on 32 bits machine */
-      if (GMP_NUMB_BITS == 32)
-          ret = 1;
-      else 
+      if (param == ECM_PARAM_SUYAMA)
         {
-          if (mpz_cmp_ui (sigma, 1) < 0 || mpz_cmp (sigma, two32) >= 0)
-              ret = 1;
+          mpz_urandomb (sigma, rng, 64);
+          ret = get_curve_from_param0 (f, A, x, sigma, modulus);
         }
-    }
-  else if (param == ECM_PARAM_BATCH_2)
-    {
-      if (mpz_cmp_ui (sigma, 2) < 0 || mpz_cmp (sigma, two64) >= 0)
-          ret = 1;
-    }
-  else if (param == ECM_PARAM_BATCH_32BITS_D)
-    {
-        if (mpz_cmp_ui (sigma, 1) < 0 || mpz_cmp (sigma, two32) >= 0)
-            ret = 1;
-    }
-  mpz_clear (two64);
-  mpz_clear (two32);
+      else if (param == ECM_PARAM_BATCH_SQUARE)
+        {
+          mpz_urandomb (sigma, rng, 32);
+          ret = get_curve_from_param1 (A, x, sigma, modulus);
+        }
+      else if (param == ECM_PARAM_BATCH_2)
+        {
+          mpz_urandomb (sigma, rng, 64);
+          ret = get_curve_from_param2 (f, A, x, sigma, modulus);
+        }
+      else if (param == ECM_PARAM_BATCH_32BITS_D)
+        {
+          mpz_urandomb (sigma, rng, 32);
+          ret = get_curve_from_param3 (A, x, sigma, modulus);
+        }
+    } while (ret == ECM_ERROR);
+
   return ret;
 }
 
 int 
-get_default_param (double B1, double B1done)
+get_default_param (int sigma_is_A, mpz_t sigma, mpz_t x, double B1, 
+                   double B1done)
 {
   if (!ECM_IS_DEFAULT_B1_DONE(B1done))
       return ECM_PARAM_SUYAMA;
-  else
+  
+  if (sigma_is_A == 0 && mpz_sgn(sigma) != 0)
+      return ECM_PARAM_SUYAMA;
+
+  if (sigma_is_A == 1)
     {
-      /* TODO: For now the choice is arbitrary, do better than that */
-      if (B1 >= 100000000.0)
-          return ECM_PARAM_BATCH_2;
-      else
-        {
-          if (GMP_NUMB_BITS == 64)
-            return ECM_PARAM_BATCH_SQUARE;
-          else
-            return ECM_PARAM_BATCH_32BITS_D;
-        }
+      /*if (mpz_cmp_ui (x, 2) == 0)
+        return ECM_PARAM_BATCH_??;
+      else*/
+        return ECM_PARAM_SUYAMA;
     }
+
+
+  /* TODO: For now the choice is arbitrary, do better than that */
+  if (B1 >= 100000000.0)
+      return ECM_PARAM_BATCH_2;
+  else
+      {
+        if (GMP_NUMB_BITS == 64)
+          return ECM_PARAM_BATCH_SQUARE;
+        else
+          return ECM_PARAM_BATCH_32BITS_D;
+      }
 }
