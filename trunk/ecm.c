@@ -658,9 +658,8 @@ print_expcurves (double B1, const mpz_t B2, unsigned long dF, unsigned long k,
       smoothness_correction = EXTRA_SMOOTHNESS_SQUARE;
   else if (param == ECM_PARAM_BATCH_32BITS_D)
       smoothness_correction = EXTRA_SMOOTHNESS_32BITS_D;
-  else /* we do not know what param was used, we cannot compute the exact
-  probability. Should this raises an error? For now we put 1*/
-      smoothness_correction = 1.0; 
+  else /* This case should never happen */
+      smoothness_correction = 0.0; 
 
   for (i = DIGITS_START, j = 0; i <= DIGITS_END; i += DIGITS_INCR, j += 3)
     sprintf (outs + j, "%2u%c", i, (i < DIGITS_END) ? '\t' : '\n');
@@ -698,9 +697,8 @@ print_exptime (double B1, const mpz_t B2, unsigned long dF, unsigned long k,
       smoothness_correction = EXTRA_SMOOTHNESS_SQUARE;
   else if (param == ECM_PARAM_BATCH_32BITS_D)
       smoothness_correction = EXTRA_SMOOTHNESS_32BITS_D;
-  else /* we do not know what param was used, we cannot compute the exact
-  probability. Should this raises an error? For now we put 1*/
-      smoothness_correction = 1.0; 
+  else /* This case should never happen */
+      smoothness_correction = 0.0; 
   
   for (i = DIGITS_START, j = 0; i <= DIGITS_END; i += DIGITS_INCR, j += 3)
     sprintf (outs + j, "%2u%c", i, (i < DIGITS_END) ? '\t' : '\n');
@@ -749,7 +747,7 @@ print_B1_B2_poly (int verbosity, int method, double B1, double B1done,
 {
   ASSERT ((method == ECM_ECM) || (go == NULL));
   ASSERT ((-1 <= sigma_is_A) && (sigma_is_A <= 1));
-  ASSERT (param != ECM_PARAM_DEFAULT);
+  ASSERT (param != ECM_PARAM_DEFAULT || sigma_is_A == 1);
 
   if (test_verbose (verbosity))
   {
@@ -1147,6 +1145,11 @@ ecm (mpz_t f, mpz_t x, int param, mpz_t sigma, mpz_t n, mpz_t go,
           outputf (OUTPUT_VERBOSE, 
             "Can't compute success probabilities for B1 <> B2min\n");
         }
+      else if ( param == ECM_PARAM_DEFAULT)
+        {
+          outputf (OUTPUT_VERBOSE, "Can't compute success probabilities " 
+                                   "for unknown parametrization.\n");
+        }
       else
         {
           rhoinit (256, 10);
@@ -1272,7 +1275,7 @@ ecm (mpz_t f, mpz_t x, int param, mpz_t sigma, mpz_t n, mpz_t go,
 end_of_ecm_rhotable:
   if (test_verbose (OUTPUT_VERBOSE))
     {
-      if (mpz_cmp_d (B2min, B1) == 0)
+      if (mpz_cmp_d (B2min, B1) == 0 && param != ECM_PARAM_DEFAULT)
         {
           if (youpi == ECM_NO_FACTOR_FOUND && 
               (stop_asap == NULL || !(*stop_asap)()))
