@@ -1,23 +1,5 @@
 #include <stdio.h>
-#include "sp.h"
-
-typedef uint32_t (*get_num_ntt_const_t)(void);
-
-typedef void (*nttdata_init_t)(spv_t out, 
-				sp_t p, sp_t d,
-				sp_t primroot, sp_t order);
-
-typedef void (*ntt_run_t)(spv_t out, spv_size_t ostride,
-    			  spv_t in, spv_size_t istride,
-			  sp_t p, sp_t d, spv_t ntt_const);
-
-typedef struct
-{
-  uint32_t size;
-  get_num_ntt_const_t get_num_ntt_const;
-  nttdata_init_t nttdata_init;
-  ntt_run_t ntt_run;
-} nttconfig_t;
+#include "ntt-impl.h"
 
 /*---------------------- NTT2 --------------------------------------*/
 
@@ -36,17 +18,47 @@ ntt2_init(spv_t out, sp_t p, sp_t d,
 }
 
 static void
-ntt2_run(spv_t out, spv_size_t ostride,
-    	  spv_t in, spv_size_t istride,
+ntt2_run(spv_t x, spv_size_t stride,
 	  sp_t p, sp_t d, spv_t ntt_const)
 {
   sp_t x0, x1;
 
-  x0 = in[0 * istride];
-  x1 = in[1 * istride];
+  x0 = x[0 * stride];
+  x1 = x[1 * stride];
 
-  out[0 * ostride] = sp_add(x0, x1, p);
-  out[1 * ostride] = sp_sub(x0, x1, p);
+  x[0 * stride] = sp_add(x0, x1, p);
+  x[1 * stride] = sp_sub(x0, x1, p);
+}
+
+static void
+ntt2_pfa_run(spv_t x, spv_size_t stride,
+	  spv_size_t cofactor,
+	  sp_t p, sp_t d, spv_t ntt_const)
+{
+  spv_size_t i, jstart;
+  spv_size_t n = 2 * cofactor * stride;
+  spv_size_t inc = cofactor * stride;
+  spv_size_t inc2 = 2 * stride;
+
+  for (i = jstart = 0; i < cofactor; i++, jstart += inc2)
+    {
+      spv_size_t j0, j1;
+
+      sp_t x0, x1;
+      sp_t t0, t1;
+
+      j0 = jstart;
+      j1 = sp_array_inc(j0, inc, n);
+
+      x0 = x[j0];
+      x1 = x[j1];
+
+      t0 = sp_add(x0, x1, p);
+      t1 = sp_sub(x0, x1, p);
+
+      x[j0] = t0;
+      x[j1] = t1;
+    }
 }
 
 const nttconfig_t ntt2_config = 
@@ -54,7 +66,8 @@ const nttconfig_t ntt2_config =
   2,
   ntt2_get_num_const,
   ntt2_init,
-  ntt2_run
+  ntt2_run,
+  ntt2_pfa_run
 };
 
 /*---------------------- NTT3 --------------------------------------*/
@@ -85,34 +98,78 @@ ntt3_init(spv_t out, sp_t p, sp_t d,
 }
 
 static void
-ntt3_run(spv_t out, spv_size_t ostride,
-    	  spv_t in, spv_size_t istride,
+ntt3_run(spv_t x, spv_size_t stride,
 	  sp_t p, sp_t d, spv_t ntt_const)
 {
   sp_t p0, p1, p2;
   sp_t x0, x1, x2;
   sp_t     t1, t2;
 
-  x0 = in[0 * istride];
-  x1 = in[1 * istride];
-  x2 = in[2 * istride];
+  x0 = x[0 * stride];
+  x1 = x[1 * stride];
+  x2 = x[2 * stride];
 
   t1 = sp_add(x1, x2, p);
   t2 = sp_sub(x1, x2, p);
 
   p0 = sp_add(x0, t1, p);
 
-  p1 = sp_mul(t1, ntt_const[2], p, d);
-  p2 = sp_mul(t2, ntt_const[3], p, d);
+  p1 = sp_mul(t1, ntt_const[1], p, d);
+  p2 = sp_mul(t2, ntt_const[2], p, d);
 
   p1 = sp_add(p0, p1, p);
 
   t1 = sp_add(p1, p2, p);
   t2 = sp_sub(p1, p2, p);
 
-  out[0 * ostride] = p0;
-  out[1 * ostride] = t1;
-  out[2 * ostride] = t2;
+  x[0 * stride] = p0;
+  x[1 * stride] = t1;
+  x[2 * stride] = t2;
+}
+
+static void
+ntt3_pfa_run(spv_t x, spv_size_t stride,
+	  spv_size_t cofactor,
+	  sp_t p, sp_t d, spv_t ntt_const)
+{
+  spv_size_t i, jstart;
+  spv_size_t n = 3 * cofactor * stride;
+  spv_size_t inc = cofactor * stride;
+  spv_size_t inc3 = 3 * stride;
+
+  for (i = jstart = 0; i < cofactor; i++, jstart += inc3)
+    {
+      spv_size_t j0, j1, j2;
+
+      sp_t p0, p1, p2;
+      sp_t x0, x1, x2;
+      sp_t     t1, t2;
+
+      j0 = jstart;
+      j1 = sp_array_inc(j0, inc, n);
+      j2 = sp_array_inc(j0, 2 * inc, n);
+
+      x0 = x[j0];
+      x1 = x[j1];
+      x2 = x[j2];
+
+      t1 = sp_add(x1, x2, p);
+      t2 = sp_sub(x1, x2, p);
+
+      p0 = sp_add(x0, t1, p);
+
+      p1 = sp_mul(t1, ntt_const[1], p, d);
+      p2 = sp_mul(t2, ntt_const[2], p, d);
+
+      p1 = sp_add(p0, p1, p);
+
+      t1 = sp_add(p1, p2, p);
+      t2 = sp_sub(p1, p2, p);
+
+      x[j0] = p0;
+      x[j1] = t1;
+      x[j2] = t2;
+    }
 }
 
 const nttconfig_t ntt3_config = 
@@ -120,7 +177,8 @@ const nttconfig_t ntt3_config =
   3,
   ntt3_get_num_const,
   ntt3_init,
-  ntt3_run
+  ntt3_run,
+  ntt3_pfa_run
 };
 
 /*---------------------- NTT4 --------------------------------------*/
@@ -142,18 +200,17 @@ ntt4_init(spv_t out, sp_t p, sp_t d,
 }
 
 static void
-ntt4_run(spv_t out, spv_size_t ostride,
-    	  spv_t in, spv_size_t istride,
+ntt4_run(spv_t x, spv_size_t stride,
 	  sp_t p, sp_t d, spv_t ntt_const)
 {
   sp_t x0, x1, x2, x3;
   sp_t t0, t1, t2, t3;
   sp_t p0, p1, p2, p3;
 
-  x0 = in[0 * istride];
-  x1 = in[1 * istride];
-  x2 = in[2 * istride];
-  x3 = in[3 * istride];
+  x0 = x[0 * stride];
+  x1 = x[1 * stride];
+  x2 = x[2 * stride];
+  x3 = x[3 * stride];
 
   t0 = sp_add(x0, x2, p);
   t2 = sp_sub(x0, x2, p);
@@ -167,10 +224,57 @@ ntt4_run(spv_t out, spv_size_t ostride,
   p2 = sp_add(t2, t3, p);
   p3 = sp_sub(t2, t3, p);
 
-  out[0 * ostride] = p0;
-  out[1 * ostride] = p2;
-  out[2 * ostride] = p1;
-  out[3 * ostride] = p3;
+  x[0 * stride] = p0;
+  x[1 * stride] = p2;
+  x[2 * stride] = p1;
+  x[3 * stride] = p3;
+}
+
+static void
+ntt4_pfa_run(spv_t x, spv_size_t stride,
+	  spv_size_t cofactor,
+	  sp_t p, sp_t d, spv_t ntt_const)
+{
+  spv_size_t i, jstart;
+  spv_size_t n = 4 * cofactor * stride;
+  spv_size_t inc = cofactor * stride;
+  spv_size_t inc4 = 4 * stride;
+
+  for (i = jstart = 0; i < cofactor; i++, jstart += inc4)
+    {
+      spv_size_t j0, j1, j2, j3;
+
+      sp_t x0, x1, x2, x3;
+      sp_t t0, t1, t2, t3;
+      sp_t p0, p1, p2, p3;
+
+      j0 = jstart;
+      j1 = sp_array_inc(j0, inc, n);
+      j2 = sp_array_inc(j0, 2 * inc, n);
+      j3 = sp_array_inc(j0, 3 * inc, n);
+
+      x0 = x[j0];
+      x1 = x[j1];
+      x2 = x[j2];
+      x3 = x[j3];
+
+      t0 = sp_add(x0, x2, p);
+      t2 = sp_sub(x0, x2, p);
+      t1 = sp_add(x1, x3, p);
+      t3 = sp_sub(x1, x3, p);
+
+      t3 = sp_mul(t3, ntt_const[3], p, d);
+
+      p0 = sp_add(t0, t1, p);
+      p1 = sp_sub(t0, t1, p);
+      p2 = sp_add(t2, t3, p);
+      p3 = sp_sub(t2, t3, p);
+
+      x[j0] = p0;
+      x[j1] = p2;
+      x[j2] = p1;
+      x[j3] = p3;
+    }
 }
 
 const nttconfig_t ntt4_config = 
@@ -178,7 +282,8 @@ const nttconfig_t ntt4_config =
   4,
   ntt4_get_num_const,
   ntt4_init,
-  ntt4_run
+  ntt4_run,
+  ntt4_pfa_run
 };
 
 /*---------------------- NTT5 --------------------------------------*/
@@ -239,19 +344,18 @@ ntt5_init(spv_t out, sp_t p, sp_t d,
 }
 
 static void
-ntt5_run(spv_t out, spv_size_t ostride,
-    	  spv_t in, spv_size_t istride,
+ntt5_run(spv_t x, spv_size_t stride,
 	  sp_t p, sp_t d, spv_t ntt_const)
 {
   sp_t p0, p1, p2, p3, p4, p5;
   sp_t x0, x1, x2, x3, x4;
   sp_t     t1, t2, t3, t4;
 
-  x0 = in[0 * istride];
-  x1 = in[1 * istride];
-  x4 = in[2 * istride];
-  x2 = in[3 * istride];
-  x3 = in[4 * istride];
+  x0 = x[0 * stride];
+  x1 = x[1 * stride];
+  x4 = x[2 * stride];
+  x2 = x[3 * stride];
+  x3 = x[4 * stride];
 
   t1 = sp_add(x1, x3, p);
   t3 = sp_sub(x1, x3, p);
@@ -284,11 +388,11 @@ ntt5_run(spv_t out, spv_size_t ostride,
   p3 = sp_sub(t1, t3, p);
   p4 = sp_sub(t2, t4, p);
 
-  out[0 * ostride] = p0;
-  out[1 * ostride] = p4;
-  out[2 * ostride] = p3;
-  out[3 * ostride] = p1;
-  out[4 * ostride] = p2;
+  x[0 * stride] = p0;
+  x[1 * stride] = p4;
+  x[2 * stride] = p3;
+  x[3 * stride] = p1;
+  x[4 * stride] = p2;
 }
 
 const nttconfig_t ntt5_config = 
@@ -296,7 +400,8 @@ const nttconfig_t ntt5_config =
   5,
   ntt5_get_num_const,
   ntt5_init,
-  ntt5_run
+  ntt5_run,
+  NULL
 };
 
 /*---------------------- NTT6 --------------------------------------*/
@@ -304,7 +409,7 @@ const nttconfig_t ntt5_config =
 static uint32_t 
 ntt6_get_num_const(void)
 {
-  return ntt3_get_num_const();
+  return 6;
 }
 
 static void
@@ -312,19 +417,19 @@ ntt6_init(spv_t out, sp_t p, sp_t d,
 	  sp_t primroot, sp_t order)
 {
   ntt3_init(out, p, d, primroot, order);
+  ntt3_init(out + 3, p, d, primroot, order);
 }
 
 static void
-ntt6_run(spv_t out, spv_size_t ostride,
-    	  spv_t in, spv_size_t istride,
+ntt6_run(spv_t x, spv_size_t stride,
 	  sp_t p, sp_t d, spv_t ntt_const)
 {
   sp_t t0, t1, t2, t3, t4, t5;
 
   {
-    sp_t x0 = in[0 * istride];
-    sp_t x1 = in[2 * istride];
-    sp_t x2 = in[4 * istride];
+    sp_t x0 = x[0 * stride];
+    sp_t x1 = x[2 * stride];
+    sp_t x2 = x[4 * stride];
     sp_t b0, b1, b2;
 
     b1 = sp_add(x1, x2, p);
@@ -342,9 +447,9 @@ ntt6_run(spv_t out, spv_size_t ostride,
     t2 = sp_sub(b1, b2, p);
   }
   {
-    sp_t x5 = in[1 * istride];
-    sp_t x3 = in[3 * istride];
-    sp_t x4 = in[5 * istride];
+    sp_t x5 = x[1 * stride];
+    sp_t x3 = x[3 * stride];
+    sp_t x4 = x[5 * stride];
     sp_t b0, b1, b2;
 
     b1 = sp_add(x4, x5, p);
@@ -352,8 +457,8 @@ ntt6_run(spv_t out, spv_size_t ostride,
 
     b0 = sp_add(x3, b1, p);
 
-    b1 = sp_mul(b1, ntt_const[1], p, d);
-    b2 = sp_mul(b2, ntt_const[2], p, d);
+    b1 = sp_mul(b1, ntt_const[4], p, d);
+    b2 = sp_mul(b2, ntt_const[5], p, d);
 
     b1 = sp_add(b0, b1, p);
 
@@ -365,22 +470,22 @@ ntt6_run(spv_t out, spv_size_t ostride,
     sp_t x0 = sp_add(t0, t3, p);
     sp_t x3 = sp_sub(t0, t3, p);
 
-    out[0 * ostride] = x0;
-    out[3 * ostride] = x3;
+    x[0 * stride] = x0;
+    x[3 * stride] = x3;
   }
   {
     sp_t x1 = sp_add(t1, t4, p);
     sp_t x4 = sp_sub(t1, t4, p);
 
-    out[1 * ostride] = x4;
-    out[4 * ostride] = x1;
+    x[1 * stride] = x4;
+    x[4 * stride] = x1;
   }
   {
     sp_t x2 = sp_add(t2, t5, p);
     sp_t x5 = sp_sub(t2, t5, p);
 
-    out[2 * ostride] = x2;
-    out[5 * ostride] = x5;
+    x[2 * stride] = x2;
+    x[5 * stride] = x5;
   }
 
 }
@@ -390,7 +495,8 @@ const nttconfig_t ntt6_config =
   6,
   ntt6_get_num_const,
   ntt6_init,
-  ntt6_run
+  ntt6_run,
+  NULL
 };
 
 /*---------------------- NTT7 --------------------------------------*/
@@ -490,21 +596,20 @@ ntt7_init(spv_t out, sp_t p, sp_t d,
 }
 
 static void
-ntt7_run(spv_t out, spv_size_t ostride,
-    	  spv_t in, spv_size_t istride,
+ntt7_run(spv_t x, spv_size_t stride,
 	  sp_t p, sp_t d, spv_t ntt_const)
 {
   sp_t x0, x1, x2, x3, x4, x5, x6;
   sp_t     t1, t2, t3, t4, t5, t6, t7, t8;
   sp_t p0, p1, p2, p3, p4, p5, p6, p7, p8;
 
-  x0 = in[0 * istride];
-  x1 = in[1 * istride];
-  x5 = in[2 * istride];
-  x6 = in[3 * istride];
-  x3 = in[4 * istride];
-  x2 = in[5 * istride];
-  x4 = in[6 * istride];
+  x0 = x[0 * stride];
+  x1 = x[1 * stride];
+  x5 = x[2 * stride];
+  x6 = x[3 * stride];
+  x3 = x[4 * stride];
+  x2 = x[5 * stride];
+  x4 = x[6 * stride];
 
   p1 = sp_add(x1, x4, p);
   p2 = sp_add(x2, x5, p);
@@ -564,13 +669,13 @@ ntt7_run(spv_t out, spv_size_t ostride,
   t5 = sp_sub(p2, p5, p);
   t6 = sp_sub(p3, p6, p);
 
-  out[0 * ostride] = p0;
-  out[1 * ostride] = t6;
-  out[2 * ostride] = t4;
-  out[3 * ostride] = t5;
-  out[4 * ostride] = t2;
-  out[5 * ostride] = t1;
-  out[6 * ostride] = t3;
+  x[0 * stride] = p0;
+  x[1 * stride] = t6;
+  x[2 * stride] = t4;
+  x[3 * stride] = t5;
+  x[4 * stride] = t2;
+  x[5 * stride] = t1;
+  x[6 * stride] = t3;
 }
 
 const nttconfig_t ntt7_config = 
@@ -578,7 +683,8 @@ const nttconfig_t ntt7_config =
   7,
   ntt7_get_num_const,
   ntt7_init,
-  ntt7_run
+  ntt7_run,
+  NULL
 };
 
 /*---------------------- NTT8 --------------------------------------*/
@@ -609,22 +715,21 @@ ntt8_init(spv_t out, sp_t p, sp_t d,
 }
 
 static void
-ntt8_run(spv_t out, spv_size_t ostride,
-    	  spv_t in, spv_size_t istride,
+ntt8_run(spv_t x, spv_size_t stride,
 	  sp_t p, sp_t d, spv_t ntt_const)
 {
   sp_t x0, x1, x2, x3, x4, x5, x6, x7;
   sp_t t0, t1, t2, t3, t4, t5, t6, t7; 
   sp_t p0, p1, p2, p3, p4, p5, p6, p7;
 
-  x0 = in[0 * istride];
-  x1 = in[1 * istride];
-  x2 = in[2 * istride];
-  x3 = in[3 * istride];
-  x4 = in[4 * istride];
-  x5 = in[5 * istride];
-  x6 = in[6 * istride];
-  x7 = in[7 * istride];
+  x0 = x[0 * stride];
+  x1 = x[1 * stride];
+  x2 = x[2 * stride];
+  x3 = x[3 * stride];
+  x4 = x[4 * stride];
+  x5 = x[5 * stride];
+  x6 = x[6 * stride];
+  x7 = x[7 * stride];
 
   t0 = sp_add(x0, x4, p);
   t4 = sp_sub(x0, x4, p);
@@ -663,14 +768,14 @@ ntt8_run(spv_t out, spv_size_t ostride,
   t2 = sp_add(p1, p3, p);
   t3 = sp_sub(p1, p3, p);
 
-  out[0 * ostride] = t0;
-  out[1 * ostride] = t4;
-  out[2 * ostride] = t2;
-  out[3 * ostride] = t7;
-  out[4 * ostride] = t1;
-  out[5 * ostride] = t5;
-  out[6 * ostride] = t3;
-  out[7 * ostride] = t6;
+  x[0 * stride] = t0;
+  x[1 * stride] = t4;
+  x[2 * stride] = t2;
+  x[3 * stride] = t7;
+  x[4 * stride] = t1;
+  x[5 * stride] = t5;
+  x[6 * stride] = t3;
+  x[7 * stride] = t6;
 }
 
 const nttconfig_t ntt8_config = 
@@ -678,7 +783,8 @@ const nttconfig_t ntt8_config =
   8,
   ntt8_get_num_const,
   ntt8_init,
-  ntt8_run
+  ntt8_run,
+  NULL
 };
 
 /*---------------------- NTT9 --------------------------------------*/
@@ -773,8 +879,7 @@ ntt9_init(spv_t out, sp_t p, sp_t d,
 }
 
 static void
-ntt9_run(spv_t out, spv_size_t ostride,
-    	  spv_t in, spv_size_t istride,
+ntt9_run(spv_t x, spv_size_t stride,
 	  sp_t p, sp_t d, spv_t ntt_const)
 {
   sp_t x0, x1, x2, x3, x4, x5, x6;
@@ -784,15 +889,15 @@ ntt9_run(spv_t out, spv_size_t ostride,
   sp_t x0e, x1e, t0e, t1e, p0e, p1e, p2e;
 
 
-  x0 = in[0 * istride];
-  x1 = in[1 * istride];
-  x2 = in[2 * istride];
-  x0e = in[3 * istride];
-  x3 = in[4 * istride];
-  x6 = in[5 * istride];
-  x1e = in[6 * istride];
-  x5 = in[7 * istride];
-  x4 = in[8 * istride];
+  x0 = x[0 * stride];
+  x1 = x[1 * stride];
+  x2 = x[2 * stride];
+  x0e = x[3 * stride];
+  x3 = x[4 * stride];
+  x6 = x[5 * stride];
+  x1e = x[6 * stride];
+  x5 = x[7 * stride];
+  x4 = x[8 * stride];
 
   t0e = sp_add(x0e, x1e, p);
   t1e = sp_sub(x0e, x1e, p);
@@ -864,15 +969,15 @@ ntt9_run(spv_t out, spv_size_t ostride,
   t8 = sp_add(p4, p6, p);
   t8 = sp_sub(p2e, t8, p);
 
-  out[0 * ostride] = p0;
-  out[1 * ostride] = t8;
-  out[2 * ostride] = t3;
-  out[3 * ostride] = t2;
-  out[4 * ostride] = t4;
-  out[5 * ostride] = t7;
-  out[6 * ostride] = t1;
-  out[7 * ostride] = t6;
-  out[8 * ostride] = t5;
+  x[0 * stride] = p0;
+  x[1 * stride] = t8;
+  x[2 * stride] = t3;
+  x[3 * stride] = t2;
+  x[4 * stride] = t4;
+  x[5 * stride] = t7;
+  x[6 * stride] = t1;
+  x[7 * stride] = t6;
+  x[8 * stride] = t5;
 }
 
 const nttconfig_t ntt9_config = 
@@ -880,7 +985,8 @@ const nttconfig_t ntt9_config =
   9,
   ntt9_get_num_const,
   ntt9_init,
-  ntt9_run
+  ntt9_run,
+  NULL
 };
 
 /*---------------------- NTT15 --------------------------------------*/
@@ -911,8 +1017,7 @@ ntt15_init(spv_t out, sp_t p, sp_t d,
 }
 
 static void
-ntt15_run(spv_t out, spv_size_t ostride,
-    	  spv_t in, spv_size_t istride,
+ntt15_run(spv_t x, spv_size_t stride,
 	  sp_t p, sp_t d, spv_t ntt_const)
 {
   sp_t a00, a01, a02, a03, a04, 
@@ -920,9 +1025,9 @@ ntt15_run(spv_t out, spv_size_t ostride,
        a10, a11, a12, a13, a14;
 
   {
-    sp_t x00 = in[ 0 * istride];
-    sp_t x01 = in[ 5 * istride];
-    sp_t x02 = in[10 * istride];
+    sp_t x00 = x[ 0 * stride];
+    sp_t x01 = x[ 5 * stride];
+    sp_t x02 = x[10 * stride];
 
     a01 = sp_add(x01, x02, p);
     a02 = sp_sub(x01, x02, p);
@@ -930,9 +1035,9 @@ ntt15_run(spv_t out, spv_size_t ostride,
     a00 = sp_add(x00, a01, p);
   }
   {
-    sp_t x03 = in[ 3 * istride];
-    sp_t x04 = in[ 8 * istride];
-    sp_t x05 = in[13 * istride];
+    sp_t x03 = x[ 3 * stride];
+    sp_t x04 = x[ 8 * stride];
+    sp_t x05 = x[13 * stride];
 
     a04 = sp_add(x04, x05, p);
     a05 = sp_sub(x04, x05, p);
@@ -940,9 +1045,9 @@ ntt15_run(spv_t out, spv_size_t ostride,
     a03 = sp_add(x03, a04, p);
   }
   {
-    sp_t x08 = in[ 1 * istride];
-    sp_t x06 = in[ 6 * istride];
-    sp_t x07 = in[11 * istride];
+    sp_t x08 = x[ 1 * stride];
+    sp_t x06 = x[ 6 * stride];
+    sp_t x07 = x[11 * stride];
 
     a07 = sp_add(x07, x08, p);
     a08 = sp_sub(x07, x08, p);
@@ -950,9 +1055,9 @@ ntt15_run(spv_t out, spv_size_t ostride,
     a06 = sp_add(x06, a07, p);
   }
   {
-    sp_t x11 = in[ 4 * istride];
-    sp_t x09 = in[ 9 * istride];
-    sp_t x10 = in[14 * istride];
+    sp_t x11 = x[ 4 * stride];
+    sp_t x09 = x[ 9 * stride];
+    sp_t x10 = x[14 * stride];
 
     a10 = sp_add(x10, x11, p);
     a11 = sp_sub(x10, x11, p);
@@ -960,9 +1065,9 @@ ntt15_run(spv_t out, spv_size_t ostride,
     a09 = sp_add(x09, a10, p);
   }
   {
-    sp_t x13 = in[ 2 * istride];
-    sp_t x14 = in[ 7 * istride];
-    sp_t x12 = in[12 * istride];
+    sp_t x13 = x[ 2 * stride];
+    sp_t x14 = x[ 7 * stride];
+    sp_t x12 = x[12 * stride];
 
     a13 = sp_add(x13, x14, p);
     a14 = sp_sub(x13, x14, p);
@@ -1122,9 +1227,9 @@ ntt15_run(spv_t out, spv_size_t ostride,
     x01 = sp_add(a01, a02, p);
     x02 = sp_sub(a01, a02, p);
 
-    out[ 0 * ostride] = x00;
-    out[ 5 * ostride] = x02;
-    out[10 * ostride] = x01;
+    x[ 0 * stride] = x00;
+    x[ 5 * stride] = x02;
+    x[10 * stride] = x01;
   }
   {
     sp_t x03, x04, x05;
@@ -1135,9 +1240,9 @@ ntt15_run(spv_t out, spv_size_t ostride,
     x04 = sp_add(a04, a05, p);
     x05 = sp_sub(a04, a05, p);
 
-    out[ 1 * ostride] = x04;
-    out[ 6 * ostride] = x03;
-    out[11 * ostride] = x05;
+    x[ 1 * stride] = x04;
+    x[ 6 * stride] = x03;
+    x[11 * stride] = x05;
   }
   {
     sp_t x06, x07, x08;
@@ -1148,9 +1253,9 @@ ntt15_run(spv_t out, spv_size_t ostride,
     x07 = sp_add(a07, a08, p);
     x08 = sp_sub(a07, a08, p);
 
-    out[ 2 * ostride] = x08;
-    out[ 7 * ostride] = x07;
-    out[12 * ostride] = x06;
+    x[ 2 * stride] = x08;
+    x[ 7 * stride] = x07;
+    x[12 * stride] = x06;
   }
   {
     sp_t x09, x10, x11;
@@ -1161,9 +1266,9 @@ ntt15_run(spv_t out, spv_size_t ostride,
     x10 = sp_add(a10, a11, p);
     x11 = sp_sub(a10, a11, p);
 
-    out[ 3 * ostride] = x09;
-    out[ 8 * ostride] = x11;
-    out[13 * ostride] = x10;
+    x[ 3 * stride] = x09;
+    x[ 8 * stride] = x11;
+    x[13 * stride] = x10;
   }
   {
     sp_t x12, x13, x14;
@@ -1174,9 +1279,9 @@ ntt15_run(spv_t out, spv_size_t ostride,
     x13 = sp_add(a13, a14, p);
     x14 = sp_sub(a13, a14, p);
 
-    out[ 4 * ostride] = x13;
-    out[ 9 * ostride] = x12;
-    out[14 * ostride] = x14;
+    x[ 4 * stride] = x13;
+    x[ 9 * stride] = x12;
+    x[14 * stride] = x14;
   }
 
 }
@@ -1186,7 +1291,8 @@ const nttconfig_t ntt15_config =
   15,
   ntt15_get_num_const,
   ntt15_init,
-  ntt15_run
+  ntt15_run,
+  NULL
 };
 
 /*---------------------- NTT16 --------------------------------------*/
@@ -1204,8 +1310,7 @@ ntt16_init(spv_t out, sp_t p, sp_t d,
 }
 
 static void
-ntt16_run(spv_t out, spv_size_t ostride,
-    	  spv_t in, spv_size_t istride,
+ntt16_run(spv_t x, spv_size_t stride,
 	  sp_t p, sp_t d, spv_t ntt_const)
 {
 }
@@ -1215,7 +1320,8 @@ const nttconfig_t ntt16_config =
   16,
   ntt16_get_num_const,
   ntt16_init,
-  ntt16_run
+  ntt16_run,
+  NULL
 };
 
 /*----------------------- generic ----------------------------------*/
@@ -1268,16 +1374,17 @@ static void do_test(mpzspm_t mpzspm)
   sp_t p = mpzspm->spm[0]->sp;
   sp_t d = mpzspm->spm[0]->mul_c;
   sp_t primroot = mpzspm->spm[0]->prim_root;
-  sp_t inv_primroot = mpzspm->spm[0]->inv_prim_root;
   sp_t order = mpzspm->max_ntt_size;
-  const nttconfig_t * conf = ntt_config[7];
-  spv_size_t len = conf->size;
+
+  const nttconfig_t * pfa1 = ntt_config[1];
+  const nttconfig_t * pfa2 = ntt_config[2];
+  spv_size_t len = pfa1->size * pfa2->size;
   spv_size_t i;
 
-  sp_t tmp[20];
+  sp_t tmp1[20];
+  sp_t tmp2[20];
   sp_t x[20];
   sp_t r[20];
-  sp_t r2[20];
 
   spv_random(x, len, p);
 
@@ -1291,11 +1398,14 @@ static void do_test(mpzspm_t mpzspm)
     printf("ref %" PRIxsp "\n", r[i]);
   printf("\n");
 
-  conf->nttdata_init(tmp, p, d, primroot, order);
-  conf->ntt_run(r2, 1, x, 1, p, d, tmp);
+  pfa1->nttdata_init(tmp1, p, d, primroot, order);
+  pfa2->nttdata_init(tmp2, p, d, primroot, order);
+
+  pfa1->ntt_pfa_run(x, 1, pfa2->size, p, d, tmp1);
+  pfa2->ntt_pfa_run(x, 1, pfa1->size, p, d, tmp2);
 
   for (i = 0; i < len; i++)
-    printf("pfa %" PRIxsp "\n", r2[i]);
+    printf("pfa %" PRIxsp "\n", x[i]);
   printf("\n");
 }
 

@@ -140,8 +140,8 @@ typedef mp_limb_t UDItype;
 typedef sp_t * spv_t;
 typedef const sp_t * spv_tc;
 
-/* length of a spv, and the type used for array offsets */
-typedef unsigned long spv_size_t;
+/* the type used for array offsets */
+typedef size_t spv_size_t;
 
 typedef struct
 {
