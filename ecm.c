@@ -930,12 +930,14 @@ ecm (mpz_t f, mpz_t x, int param, mpz_t sigma, mpz_t n, mpz_t go,
     }
 #endif
  
-  /* If A is given (not sigma)*/
+  /* If the parametrization is not given, choose it.*/
   if (param == ECM_PARAM_DEFAULT)
-      param = get_default_param (B1, *B1done);
+      param = get_default_param (sigma_is_A, sigma, x, B1, *B1done);
 
-  /* In batch mode, we force MODMULN and B1done should either the */
-  /* default value or greater than B1 */
+  /* In batch mode, 
+        we force repr=MODMULN, 
+        B1done should either the default value or greater than B1 
+        x should be either 0 (undetermined) or 2 */
   if (IS_BATCH_MODE(param))
     {
       if (repr == ECM_MOD_DEFAULT)
@@ -961,6 +963,7 @@ ecm (mpz_t f, mpz_t x, int param, mpz_t sigma, mpz_t n, mpz_t go,
           return ECM_ERROR;
         }
     }
+  /* Not in batch mode : if we use the parametrization, x cannot be specified */
   else
     {
       if (sigma_is_A == 0 && mpz_sgn (x) != 0)
@@ -969,6 +972,14 @@ ecm (mpz_t f, mpz_t x, int param, mpz_t sigma, mpz_t n, mpz_t go,
                                  "sigma is given\n");
           return ECM_ERROR;
         }
+    }
+
+  /* check that if ECM_PARAM_BATCH_SQUARE is used, GMP_NUMB_BITS == 64*/
+  if (param == ECM_PARAM_BATCH_SQUARE && GMP_NUMB_BITS == 32)
+    {
+      outputf (OUTPUT_ERROR, "Error, parametrization ECM_PARAM_BATCH_SQUARE "
+                             "works only with GMP_NUMB_BITS=64\n");
+      return ECM_ERROR;
     }
 
   /* check that B1 is not too large */
@@ -1032,46 +1043,34 @@ ecm (mpz_t f, mpz_t x, int param, mpz_t sigma, mpz_t n, mpz_t go,
   if (sigma_is_A == 0)
     {
       if (mpz_sgn (sigma) == 0)
-          get_random_parameter (sigma, param, rng);
-      else 
         {
-          if (is_invalid_parameter (sigma, param, modulus))
+          youpi = get_curve_from_random_parameter (f, P.A, P.x, sigma, param,
+                                                   modulus, rng);
+        }
+      else /* Compute A and x0 from given sigma values */
+        {
+          if (param == ECM_PARAM_SUYAMA)
+              youpi = get_curve_from_param0 (f, P.A, P.x, sigma, modulus);
+          else if (param == ECM_PARAM_BATCH_SQUARE)
+              youpi = get_curve_from_param1 (P.A, P.x, sigma, modulus);
+          else if (param == ECM_PARAM_BATCH_2)
+              youpi = get_curve_from_param2 (f, P.A, P.x, sigma, modulus);
+          else if (param == ECM_PARAM_BATCH_32BITS_D)
+              youpi = get_curve_from_param3 (P.A, P.x, sigma, modulus);
+          else
             {
-              outputf (OUTPUT_ERROR, "Error, invalid value of sigma.\n");
-              return ECM_ERROR;
+              outputf (OUTPUT_ERROR, "Error, invalid parametrization.\n");
+              youpi = ECM_ERROR;
+	            goto end_of_ecm;
             }
-        }
-      /* Now sigma contains a valid sigma value, */
-      /* A and x0 values must be computed */
-      if (param == ECM_PARAM_SUYAMA)
-        {
-          youpi = get_curve_from_param0 (f, P.A, P.x, sigma, modulus);
+      
           if (youpi != ECM_NO_FACTOR_FOUND)
-	          goto end_of_ecm;
-        }
-      else if (param == ECM_PARAM_BATCH_SQUARE)
-        {
-          youpi = get_curve_from_param1 (P.A, P.x, sigma, modulus);
-          if (youpi != ECM_NO_FACTOR_FOUND)
-	          goto end_of_ecm;
-        }
-      else if (param == ECM_PARAM_BATCH_2)
-        {
-          youpi = get_curve_from_param2 (f, P.A, P.x, sigma, modulus);
-          if (youpi != ECM_NO_FACTOR_FOUND)
-	          goto end_of_ecm;
-        }
-      else if (param == ECM_PARAM_BATCH_32BITS_D)
-        {
-          youpi = get_curve_from_param3 (P.A, P.x, sigma, modulus);
-          if (youpi != ECM_NO_FACTOR_FOUND)
-	          goto end_of_ecm;
-        }
-      else
-        {
-          outputf (OUTPUT_ERROR, "Error, invalid parametrization.\n");
-          youpi = ECM_ERROR;
-	        goto end_of_ecm;
+            {
+              if (youpi == ECM_ERROR)
+                  outputf (OUTPUT_ERROR, "Error, invalid value of sigma.\n");
+
+	            goto end_of_ecm;
+            }
         }
     }
   else if (sigma_is_A == 1)
