@@ -1137,7 +1137,7 @@ main (int argc, char *argv[])
   mpz_init (x); /* stage 1 residue */
   mpz_init (orig_x0); /* starting point, for save file */
 
-  /* We may need random numbers for sigma/nu/tau and/or starting point */
+  /* We may need random numbers for sigma and/or starting point */
   gmp_randinit_default (randstate);
   gmp_randseed_ui (randstate, get_random_ui ());
 
@@ -1350,7 +1350,7 @@ BreadthFirstDoAgain:;
               mpz_clear (inv);
             }
           else /* Make a random starting point for P-1 and P+1. ECM will */
-              /* compute a suitable value from sigma/nu/tau or A if x is zero */
+              /* compute a suitable value from sigma or A if x is zero */
             {
               if (method == ECM_ECM)
                 mpz_set_ui (x, 0);

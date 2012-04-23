@@ -215,8 +215,9 @@ extern FILE *ECM_STDOUT, *ECM_STDERR;
 #define CHKPNT_PERIOD 600000
 
 /* Is the parametrization implies batch mode ? */
-#define IS_BATCH_MODE(p) ( p == ECM_PARAM_BATCH_SMALL_D || \
-                           p == ECM_PARAM_BATCH_2)
+#define IS_BATCH_MODE(p) ( p == ECM_PARAM_BATCH_SQUARE || \
+                           p == ECM_PARAM_BATCH_2 || \
+                           p == ECM_PARAM_BATCH_32BITS_D )
 
 typedef mpz_t mpres_t;
 
@@ -773,7 +774,7 @@ int get_curve_from_param2 (mpz_t, mpres_t, mpres_t, mpz_t, mpmod_t);
 #define get_default_param __ECM(get_default_param)
 int get_default_param (double, double);
 #define is_invalid_parameter __ECM(is_invalid_parameter)
-int is_invalid_parameter (mpz_t, int);
+int is_invalid_parameter (mpz_t, int, mpmod_t);
 
 /* sets_long.c */
 /* A set of long ints */

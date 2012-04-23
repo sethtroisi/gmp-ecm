@@ -37,17 +37,15 @@ extern int mpzspv_from_mpzv_slow_time, mpzspv_to_mpzv_time;
 
 /* the following factor takes into account the smaller expected smoothness
    for Montgomery's curves (batch mode) with respect to Suyama's curves */
-#if GMP_NUMB_BITS >= 64
-/* For GMP_NUMB_BITS >= 64 we use A=4d-2 with d a square (see main.c). In that
+/* For param 1 we use A=4d-2 with d a square (see main.c). In that
    case, Cyril Bouvier and Razvan Barbulescu have shown that the average
    expected torsion is that of a generic Suyama curve multiplied by the
    constant 2^(1/3)/(3*3^(1/128)) */
-#define BATCH1_EXTRA_SMOOTHNESS 0.416384512396064
-#else
-/* For A=4d-2 for d a random integer, the average expected torsion is that
-   of a generic Suyama curve multiplied by the constant 1/(3*3^(1/128)) */
-#define BATCH1_EXTRA_SMOOTHNESS 0.330484606500389
-#endif
+#define EXTRA_SMOOTHNESS_SQUARE 0.416384512396064
+/* For A=4d-2 (param 3) for d a random integer, the average expected torsion 
+   is that of a generic Suyama curve multiplied by the constant 
+   1/(3*3^(1/128)) */
+#define EXTRA_SMOOTHNESS_32BITS_D 0.330484606500389
 /******************************************************************************
 *                                                                             *
 *                            Elliptic Curve Method                            *
@@ -656,9 +654,10 @@ print_expcurves (double B1, const mpz_t B2, unsigned long dF, unsigned long k,
   
   if (param == ECM_PARAM_SUYAMA || param == ECM_PARAM_BATCH_2)
       smoothness_correction = 1.0; 
-  else if (param == ECM_PARAM_BATCH_SMALL_D)
-      /* FIXME does not depend only on machines architecture */
-      smoothness_correction = BATCH1_EXTRA_SMOOTHNESS;
+  else if (param == ECM_PARAM_BATCH_SQUARE)
+      smoothness_correction = EXTRA_SMOOTHNESS_SQUARE;
+  else if (param == ECM_PARAM_BATCH_32BITS_D)
+      smoothness_correction = EXTRA_SMOOTHNESS_32BITS_D;
   else /* we do not know what param was used, we cannot compute the exact
   probability. Should this raises an error? For now we put 1*/
       smoothness_correction = 1.0; 
@@ -695,9 +694,10 @@ print_exptime (double B1, const mpz_t B2, unsigned long dF, unsigned long k,
   
   if (param == ECM_PARAM_SUYAMA || param == ECM_PARAM_BATCH_2)
       smoothness_correction = 1.0; 
-  else if (param == ECM_PARAM_BATCH_SMALL_D)
-      /* FIXME does not depend only on machines architecture */
-      smoothness_correction = BATCH1_EXTRA_SMOOTHNESS;
+  else if (param == ECM_PARAM_BATCH_SQUARE)
+      smoothness_correction = EXTRA_SMOOTHNESS_SQUARE;
+  else if (param == ECM_PARAM_BATCH_32BITS_D)
+      smoothness_correction = EXTRA_SMOOTHNESS_32BITS_D;
   else /* we do not know what param was used, we cannot compute the exact
   probability. Should this raises an error? For now we put 1*/
       smoothness_correction = 1.0; 
@@ -914,7 +914,6 @@ ecm (mpz_t f, mpz_t x, int param, mpz_t sigma, mpz_t n, mpz_t go,
      -1: sigma contains A from Weierstrass form y^2 = x^3 + Ax + B,
          and go contains B */
   ASSERT((-1 <= sigma_is_A) && (sigma_is_A <= 1));
-  ASSERT((-1 <= param) && (param <= 2));
   ASSERT((GMP_NUMB_BITS == 32) || (GMP_NUMB_BITS == 64));
 
   set_verbose (verbose);
@@ -1018,7 +1017,7 @@ ecm (mpz_t f, mpz_t x, int param, mpz_t sigma, mpz_t n, mpz_t go,
           get_random_parameter (sigma, param, rng);
       else 
         {
-          if (is_invalid_parameter (sigma, param))
+          if (is_invalid_parameter (sigma, param, modulus))
             {
               outputf (OUTPUT_ERROR, "Error, invalid value of sigma.\n");
               return ECM_ERROR;
@@ -1032,7 +1031,7 @@ ecm (mpz_t f, mpz_t x, int param, mpz_t sigma, mpz_t n, mpz_t go,
           if (youpi != ECM_NO_FACTOR_FOUND)
 	          goto end_of_ecm;
         }
-      else if (param == ECM_PARAM_BATCH_SMALL_D)
+      else if (param == ECM_PARAM_BATCH_SQUARE)
         {
           youpi = get_curve_from_param1 (P.A, P.x, sigma, modulus);
           if (youpi != ECM_NO_FACTOR_FOUND)
@@ -1043,6 +1042,18 @@ ecm (mpz_t f, mpz_t x, int param, mpz_t sigma, mpz_t n, mpz_t go,
           youpi = get_curve_from_param2 (f, P.A, P.x, sigma, modulus);
           if (youpi != ECM_NO_FACTOR_FOUND)
 	          goto end_of_ecm;
+        }
+      else if (param == ECM_PARAM_BATCH_32BITS_D)
+        {
+          youpi = get_curve_from_param3 (P.A, P.x, sigma, modulus);
+          if (youpi != ECM_NO_FACTOR_FOUND)
+	          goto end_of_ecm;
+        }
+      else
+        {
+          outputf (OUTPUT_ERROR, "Error, invalid parametrization.\n");
+          youpi = ECM_ERROR;
+	        goto end_of_ecm;
         }
     }
   else if (sigma_is_A == 1)
