@@ -1120,6 +1120,13 @@ main (int argc, char *argv[])
       fclose (savefile);
     }
 
+  if (specific_sigma && (specific_x0 || mpz_sgn (A)))
+    {
+      fprintf (stderr, "Error, -sigma parameter is incompatible with "
+                       "-A and -x0 parameters.\n");
+      exit (EXIT_FAILURE);
+    }
+
   if (resumefile && (specific_sigma || param != ECM_PARAM_DEFAULT || 
                      mpz_sgn (A) || specific_x0))
     {
