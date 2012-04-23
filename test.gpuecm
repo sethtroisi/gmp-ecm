@@ -43,10 +43,10 @@ checkcode () {
 # 10     Composite factor found, cofactor is a probable prime
 # 14     Probable prime factor found, cofactor is a probable prime
 
-echo 458903930815802071188998938170281707063809443792768383215233 | $ECM -sigma 1:42 10000
+echo 458903930815802071188998938170281707063809443792768383215233 | $ECM -sigma 3:42 10000
 checkcode $? 14
 
-echo "2^349-1" | $ECM -sigma 1:13 587 29383
+echo "2^349-1" | $ECM -sigma 3:13 587 29383
 checkcode $? 6
 
 #echo "2^347-1" | $ECM -sigma 1:1097 3301 229939

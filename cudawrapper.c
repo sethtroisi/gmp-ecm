@@ -10,30 +10,6 @@ extern float cuda_Main (biguint_t, biguint_t, biguint_t, digit_t, biguint_t*,
                         biguint_t*, biguint_t*, biguint_t*, mpz_t, unsigned int, 
                         unsigned int, FILE*, FILE*);
 
-void print_factor_cofactor (mpz_t N, mpz_t factor)
-{
-    gmp_fprintf(stdout,"********** Factor found in step 1: %Zd\n", factor);
-    if (mpz_cmp (factor, N) ==0 )
-      fprintf(stdout, "Found input number N\n");
-    else
-    {
-      mpz_t cofactor;
-      mpz_init (cofactor);
-    
-      mpz_divexact(cofactor, N, factor);
-      
-      gmp_fprintf(stdout,"Found %s factor of %u digits: %Zd\n",
-              mpz_probab_prime_p (factor, 5) ? "probable prime" : "composite", 
-              mpz_sizeinbase (factor, 10), factor);
-     
-      gmp_fprintf(stdout,"%s cofactor %Zd has %u digits\n",
-            mpz_probab_prime_p (cofactor, 5) ? "Probable prime" : "Composite", 
-            cofactor, mpz_sizeinbase (cofactor, 10));
-
-      mpz_clear(cofactor);
-    }
-}
-
 int findfactor (mpz_t factor, mpz_t N, mpz_t xfin, mpz_t zfin)
 {
   int youpi;
@@ -53,7 +29,6 @@ int findfactor (mpz_t factor, mpz_t N, mpz_t xfin, mpz_t zfin)
   }
   else //gcd !=1 (and gcd>0 because N>0) so we found a factor
   {
-    //print_factor_cofactor (N, gcd);
       mpz_set (factor, gcd);
       youpi = ECM_FACTOR_FOUND_STEP1;
     }
@@ -318,13 +293,13 @@ gpu_ecm (mpz_t f, int param, mpz_t firstsigma, mpz_t n, mpz_t go,
       return ECM_ERROR;
     }
 
-  /* Only param = ECM_PARAM_BATCH_SMALL_D is accepted on GPU */
+  /* Only param = ECM_PARAM_BATCH_32BITS_D is accepted on GPU */
   if (param == ECM_PARAM_DEFAULT)
-      param = ECM_PARAM_BATCH_SMALL_D;
+      param = ECM_PARAM_BATCH_32BITS_D;
     
-  if (param != ECM_PARAM_BATCH_SMALL_D)
+  if (param != ECM_PARAM_BATCH_32BITS_D)
     {
-      outputf (OUTPUT_ERROR, "GPU: Error, only param = ECM_PARAM_BATCH_SMALL_D "
+      outputf (OUTPUT_ERROR, "GPU: Error, only param = ECM_PARAM_BATCH_32BITS_D "
                              "is accepted on GPU.\n");
       return ECM_ERROR;
     }
@@ -380,6 +355,8 @@ gpu_ecm (mpz_t f, int param, mpz_t firstsigma, mpz_t n, mpz_t go,
   mpres_init (P.x, modulus);
   mpres_init (P.y, modulus);
   mpres_init (P.A, modulus);
+  mpz_init (tmp_A);
+
 
   youpi = set_stage_2_params (B2, B2_parm, B2min, B2min_parm, &root_params, 
                               B1, B2scale, &k, S, use_ntt, &po2, &dF, 
@@ -503,14 +480,9 @@ gpu_ecm (mpz_t f, int param, mpz_t firstsigma, mpz_t n, mpz_t go,
   outputf (OUTPUT_NORMAL, "time GPU: %.3fs\n", (gputime/1000));
   outputf (OUTPUT_VERBOSE, "Throughput: %.3f\n", 1000 * (*nb_curves)/gputime);
 
-  /* a factor was found in stage 1 */
+  /* was a factor found in stage 1 ? */
   if (youpi != ECM_NO_FACTOR_FOUND)
-    {
-      if (stop_asap != NULL && (*stop_asap) ())
-        goto end_gpu_ecm_rhotable;
-      else
-        outputf (OUTPUT_VERBOSE, "GPU: factor(s) was (were) found in step 1\n");
-    }
+      goto end_gpu_ecm_rhotable;
 
   /* If using 2^k +/-1 modulus and 'nobase2step2' flag is set,
      set default (-nobase2) modular method and remap P.x, P.y, and P.A */
@@ -526,52 +498,47 @@ gpu_ecm (mpz_t f, int param, mpz_t firstsigma, mpz_t n, mpz_t go,
         }
     }
 
-  mpz_init (tmp_A);
-
+  if (mpz_cmp (B2, B2min) < 0)
+      goto end_gpu_ecm_rhotable;
+  
   for (i = 0; i < *nb_curves; i++)
     {
-      /*Either a factor has been found in stage 1 either we compute stage 2 */
-      if (array_stage_found[i] == ECM_NO_FACTOR_FOUND) 
+      //TODO if (stop_asap != NULL && (*stop_asap) ())
+      if (test_verbose (OUTPUT_RESVERBOSE)) 
         {
-          if (test_verbose (OUTPUT_RESVERBOSE)) 
-            {
-              outputf (OUTPUT_RESVERBOSE, "x=%Zd\n", factors[i]);
-            }
-      
-          mpres_set_z (P.x, factors[i], modulus);
-          mpres_set_ui (P.y, 1, modulus);
-          A_from_sigma (tmp_A, i+firstsigma_ui, modulus->orig_modulus);
-          mpres_set_z (P.A, tmp_A, modulus);
-      
-          /* compute stage 2 */
-          youpi = montgomery_to_weierstrass (factors[i], P.x, P.y, P.A, modulus);
+          outputf (OUTPUT_RESVERBOSE, "x=%Zd\n", factors[i]);
+        }
+    
+      mpres_set_z (P.x, factors[i], modulus);
+      mpres_set_ui (P.y, 1, modulus);
+      A_from_sigma (tmp_A, i+firstsigma_ui, modulus->orig_modulus);
+      mpres_set_z (P.A, tmp_A, modulus);
   
-          if (test_verbose (OUTPUT_RESVERBOSE) && youpi == ECM_NO_FACTOR_FOUND
-              && mpz_cmp (B2, B2min) >= 0)
-            {
-              mpz_t t;
+      /* compute stage 2 */
+      youpi = montgomery_to_weierstrass (factors[i], P.x, P.y, P.A, modulus);
 
-              mpz_init (t);
-              mpres_get_z (t, P.x, modulus);
-              outputf (OUTPUT_RESVERBOSE, "After switch to Weierstrass form, "
-                                          "P=(%Zd", t);
-              mpres_get_z (t, P.y, modulus);
-              outputf (OUTPUT_RESVERBOSE, ", %Zd)\n", t);
-              mpres_get_z (t, P.A, modulus);
-              outputf (OUTPUT_RESVERBOSE, "on curve Y^2 = X^3 + %Zd * X + b\n", 
-                       t);
-              mpz_clear (t);
-            }
-  
-          if (youpi == ECM_NO_FACTOR_FOUND && mpz_cmp (B2, B2min) >= 0)
-              youpi = stage2 (factors[i], &P, modulus, dF, k, &root_params, 
-                              ECM_ECM, use_ntt, TreeFilename, stop_asap);
-        }
-      else
+      if (test_verbose (OUTPUT_RESVERBOSE) && youpi == ECM_NO_FACTOR_FOUND
+          && mpz_cmp (B2, B2min) >= 0)
         {
-          outputf (OUTPUT_VERBOSE, "GPU: factor found in step 1 with "
-                                   "sigma=1:%u\n", i+firstsigma_ui);
+          mpz_t t;
+
+          mpz_init (t);
+          mpres_get_z (t, P.x, modulus);
+          outputf (OUTPUT_RESVERBOSE, "After switch to Weierstrass form, "
+                                      "P=(%Zd", t);
+          mpres_get_z (t, P.y, modulus);
+          outputf (OUTPUT_RESVERBOSE, ", %Zd)\n", t);
+          mpres_get_z (t, P.A, modulus);
+          outputf (OUTPUT_RESVERBOSE, "on curve Y^2 = X^3 + %Zd * X + b\n", 
+                       t);
+          mpz_clear (t);
         }
+  
+        youpi = stage2 (factors[i], &P, modulus, dF, k, &root_params, ECM_ECM, 
+                      use_ntt, TreeFilename, stop_asap);
+
+        if (youpi != ECM_NO_FACTOR_FOUND)
+            goto end_gpu_ecm_rhotable;
     }
 
 end_gpu_ecm_rhotable:
@@ -586,6 +553,20 @@ end_gpu_ecm_rhotable:
           rhoinit (1, 0); /* Free memory of rhotable */
         }
     }
+
+  /* If f0, ,fk are the factors found (in stage 1 or 2) 
+     f = f0 + f1*n + .. + fk*n^k */
+  mpz_set_ui (f, 0);
+  for (i = 0; i < *nb_curves; i++)
+  {
+    if (array_stage_found[i] != ECM_NO_FACTOR_FOUND)
+      {
+        /* temporary */
+        mpz_set (f, factors[i]);
+        //mpz_mul (f, f, n);
+        //mpz_add (f, f, factors[i]);
+      }
+  }
 
 end_gpu_ecm:
   mpres_clear (P.A, modulus);

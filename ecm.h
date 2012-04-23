@@ -128,8 +128,9 @@ int pm1 (mpz_t, mpz_t, mpz_t, mpz_t, double *, double, mpz_t,
 /* Different paramitrization used in stage 1 of ECM */
 #define ECM_PARAM_DEFAULT -1
 #define ECM_PARAM_SUYAMA 0
-#define ECM_PARAM_BATCH_SMALL_D 1
+#define ECM_PARAM_BATCH_SQUARE 1
 #define ECM_PARAM_BATCH_2 2
+#define ECM_PARAM_BATCH_32BITS_D 3
 
 /* stage 2 bound */
 #define ECM_DEFAULT_B2 -1
