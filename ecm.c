@@ -910,7 +910,7 @@ ecm (mpz_t f, mpz_t x, int param, mpz_t sigma, mpz_t n, mpz_t go,
   root_params_t root_params;
 
   /*  1: sigma contains A from Montgomery form By^2 = x^3 + Ax^2 + x
-      0: sigma contains sigma/nu/tau
+      0: sigma contains sigma
      -1: sigma contains A from Weierstrass form y^2 = x^3 + Ax + B,
          and go contains B */
   ASSERT((-1 <= sigma_is_A) && (sigma_is_A <= 1));
@@ -929,7 +929,8 @@ ecm (mpz_t f, mpz_t x, int param, mpz_t sigma, mpz_t n, mpz_t go,
       return ECM_ERROR;
     }
 #endif
-  
+ 
+  /* If A is given (not sigma)*/
   if (param == ECM_PARAM_DEFAULT)
       param = get_default_param (B1, *B1done);
 
@@ -949,7 +950,23 @@ ecm (mpz_t f, mpz_t x, int param, mpz_t sigma, mpz_t n, mpz_t go,
       if (!ECM_IS_DEFAULT_B1_DONE(*B1done) && *B1done < B1)
         {
           outputf (OUTPUT_ERROR, "Error, cannot resume with param %d, except " 
-                                 "for doing only stage 2");
+                                 "for doing only stage 2\n");
+          return ECM_ERROR;
+        }
+
+      if (sigma_is_A >= 0 && mpz_sgn (x) != 0 && mpz_cmp_ui (x, 2) != 0)
+        {
+          outputf (OUTPUT_ERROR, "Error, x0 should be equal to 2 with this "
+                                 "parametrization\n");
+          return ECM_ERROR;
+        }
+    }
+  else
+    {
+      if (sigma_is_A == 0 && mpz_sgn (x) != 0)
+        {
+          outputf (OUTPUT_ERROR, "Error, x0 should not be specified when "
+                                 "sigma is given\n");
           return ECM_ERROR;
         }
     }
@@ -1069,7 +1086,7 @@ ecm (mpz_t f, mpz_t x, int param, mpz_t sigma, mpz_t n, mpz_t go,
       if (mpz_sgn (x) == 0)
         {
           if (IS_BATCH_MODE(param))
-            mpz_set_ui (x, 2);
+            mpres_set_ui (P.x, 2, modulus);
           else
             {
               outputf (OUTPUT_ERROR, 
@@ -1078,12 +1095,9 @@ ecm (mpz_t f, mpz_t x, int param, mpz_t sigma, mpz_t n, mpz_t go,
 	            goto end_of_ecm;
             }
         }
+      else
+          mpres_set_z (P.x, x, modulus);
     }
-
-  /* If a nonzero value is given in x, then we use it as the starting point,
-     overwriting the one computing from sigma for sigma_is_A=0. */
-  if (mpz_sgn (x) != 0)
-      mpres_set_z (P.x, x, modulus);
 
   /* Print B1, B2, polynomial and sigma */
   print_B1_B2_poly (OUTPUT_NORMAL, ECM_ECM, B1, *B1done, B2min_parm, B2min, 
