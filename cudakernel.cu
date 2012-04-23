@@ -38,7 +38,7 @@ __global__ void Cuda_Init_Device ()
 }
 
 extern "C" 
-void 
+int 
 select_and_init_GPU (int device, unsigned int *number_of_curves, int verbose)
 {
   cudaDeviceProp deviceProp;
@@ -58,7 +58,7 @@ select_and_init_GPU (int device, unsigned int *number_of_curves, int verbose)
         {
           fprintf (stderr, "GPU: Error: Could not use device %d\n", device);
           fprintf (stderr, "GPU: Error msg: %s\n", cudaGetErrorString(err));
-          exit(EXIT_FAILURE);
+          return -1;
         }
     }
   
@@ -67,7 +67,7 @@ select_and_init_GPU (int device, unsigned int *number_of_curves, int verbose)
     {
       fprintf (stderr, "GPU: Error: no active device.\n");
       fprintf (stderr, "GPU: Error msg: %s\n", cudaGetErrorString(err));
-      exit(EXIT_FAILURE);
+      return -1;
     }
 
   err = cudaGetDeviceProperties (&deviceProp, device);
@@ -75,7 +75,7 @@ select_and_init_GPU (int device, unsigned int *number_of_curves, int verbose)
     {
       fprintf (stderr, "GPU: Error while getting device's properties.\n");
       fprintf (stderr, "GPU: Error msg: %s\n", cudaGetErrorString(err));
-      exit(EXIT_FAILURE);
+      return -1;
     }
 
   int minor = deviceProp.minor;
@@ -87,7 +87,7 @@ select_and_init_GPU (int device, unsigned int *number_of_curves, int verbose)
       fprintf(stderr, "GPU: Error: device %d have a compute capability of " 
               "%d.%d (required %d.%d).\n", device, major, minor, ECM_GPU_MAJOR,
               ECM_GPU_MINOR);
-      exit(EXIT_FAILURE);
+      return -1;
     }
 
   if (verbose)
@@ -105,6 +105,8 @@ select_and_init_GPU (int device, unsigned int *number_of_curves, int verbose)
   errCheck (cudaSetDeviceFlags (cudaDeviceScheduleYield)); 
   Cuda_Init_Device<<<1, 1>>> ();
   errCheck (cudaGetLastError()); 
+ 
+  return 0;
 }
 
 extern "C"
