@@ -55,12 +55,6 @@ if test "x$enable_assert" = xyes; then
   GMP_DEFINE([WANT_ASSERT], 1)
 fi
 
-AC_ARG_ENABLE([shellcmd],
-[AS_HELP_STRING([--enable-shellcmd], [enable shell command execution [[default=no]]])])
-if test "x$enable_shellcmd" = xyes; then
-  AC_DEFINE([WANT_SHELLCMD],1,[Define to 1 if you want shell command execution])
-fi
-
 AC_ARG_ENABLE([gmp-cflags],
 [AS_HELP_STRING([--enable-gmp-cflags], [enable importing CFLAGS from gmp.h [[default=yes]]])],[],[enable_gmp_cflags=yes])
 

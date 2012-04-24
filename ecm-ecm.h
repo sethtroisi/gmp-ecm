@@ -72,7 +72,7 @@ int probab_prime_p (mpz_t, int);
 int read_number (mpcandi_t*, FILE*, int);
 int process_newfactor (mpz_t, int, mpcandi_t*, int, int*, int, unsigned int*, 
                        int*, mpz_t, mpcandi_t*, unsigned int, FILE*, int,
-                       unsigned int, int, int, char*);
+                       unsigned int, int, int);
 
 /* Various logging levels */
 /* OUTPUT_ALWAYS means print always, regardless of verbose value */
