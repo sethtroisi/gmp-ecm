@@ -113,7 +113,7 @@ get_random_ui (void)
       if (r)
         {
 /* warning: outputf is not exported from libecm */
-#if !defined (OUTSIDE_LIBECM) && !defined(GPUECM)
+#if !defined (OUTSIDE_LIBECM)
           outputf (OUTPUT_DEVVERBOSE, "Got seed for RNG from CryptGenRandom\n");
 #endif
           return rnd;
@@ -121,7 +121,7 @@ get_random_ui (void)
     }
   
 /* warning: outputf is not exported from libecm */
-#if !defined (OUTSIDE_LIBECM) && !defined(GPUECM)
+#if !defined (OUTSIDE_LIBECM
   outputf (OUTPUT_DEVVERBOSE, "Got seed for RNG from GetSystemTime\n");
 #endif
 
@@ -149,7 +149,7 @@ get_random_ui (void)
       if (fread (&t, sizeof (unsigned int), 1, rndfd) == 1)
         {
 /* warning: outputf is not exported from libecm */
-#if !defined (OUTSIDE_LIBECM) && !defined(GPUECM)
+#if !defined (OUTSIDE_LIBECM)
           outputf (OUTPUT_DEVVERBOSE, "Got seed for RNG from /dev/urandom\n");
 #endif
           fclose (rndfd);
@@ -162,7 +162,7 @@ get_random_ui (void)
   if (gettimeofday (&tv, NULL) == 0)
     {
 /* warning: outputf is not exported from libecm */
-#if !defined (OUTSIDE_LIBECM) && !defined(GPUECM)
+#if !defined (OUTSIDE_LIBECM)
       outputf (OUTPUT_DEVVERBOSE, "Got seed for RNG from gettimeofday()\n");
 #endif
       return tv.tv_sec + tv.tv_usec;
@@ -170,7 +170,7 @@ get_random_ui (void)
 #endif
 
 /* warning: outputf is not exported from libecm */
-#if !defined (OUTSIDE_LIBECM) && !defined(GPUECM)
+#if !defined (OUTSIDE_LIBECM)
   outputf (OUTPUT_DEVVERBOSE, "Got seed for RNG from time()+getpid()\n");
 #endif
 
