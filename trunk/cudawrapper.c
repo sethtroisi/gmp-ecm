@@ -570,10 +570,8 @@ end_gpu_ecm_rhotable:
   {
     if (array_stage_found[i] != ECM_NO_FACTOR_FOUND)
       {
-        /* temporary */
-        mpz_set (f, factors[i]);
-        //mpz_mul (f, f, n);
-        //mpz_add (f, f, factors[i]);
+        mpz_mul (f, f, n);
+        mpz_add (f, f, factors[i]);
       }
   }
 
