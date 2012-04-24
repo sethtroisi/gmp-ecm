@@ -126,7 +126,7 @@ process_newfactor (mpz_t f, int result, mpcandi_t *n, int method,
                    int *resume_wasPrp, mpz_t resume_lastfac, 
                    mpcandi_t *pCandidates, unsigned int linenum, 
                    FILE *resumefile, int verbose, unsigned int decimal_cofactor,
-                   int deep, int breadthfirst, ATTRIBUTE_UNUSED char *faccmd)
+                   int deep, int breadthfirst)
 {
   int factor_is_prime = 0;
         /* If a factor was found, indicate whether factor, cofactor are */
@@ -149,25 +149,6 @@ process_newfactor (mpz_t f, int result, mpcandi_t *n, int method,
       exit (EXIT_FAILURE);
     }
   
-#ifdef WANT_SHELLCMD
-  if (faccmd != NULL)
-    {
-      FILE *fc;
-      fc = popen (faccmd, "w");
-      if (fc != NULL)
-        {
-          mpz_t cof;
-          mpz_init_set (cof, n->n);
-          mpz_divexact (cof, cof, f);
-          gmp_fprintf (fc, "%Zd\n", n->n);
-          gmp_fprintf (fc, "%Zd\n", f);
-          gmp_fprintf (fc, "%Zd\n", cof);
-          mpz_clear (cof);
-          pclose (fc);
-        }
-    }
-#endif
-
   if (mpz_cmp (f, n->n) != 0)
     {
       /* prints factor found and cofactor on standard output. */
