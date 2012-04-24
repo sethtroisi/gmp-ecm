@@ -70,6 +70,9 @@ typedef struct
 unsigned int nb_digits  (const mpz_t);
 int probab_prime_p (mpz_t, int);
 int read_number (mpcandi_t*, FILE*, int);
+int process_newfactor (mpz_t, int, mpcandi_t*, int, int*, unsigned int*, int*,
+                       mpz_t, mpcandi_t*, unsigned int, FILE*, int, unsigned
+                       int, int, int, char*);
 
 /* Various logging levels */
 /* OUTPUT_ALWAYS means print always, regardless of verbose value */
@@ -116,9 +119,6 @@ void getprime_seek (double);
 
 /* b1_ainc.c */
 double calc_B1_AutoIncrement(double cur_B1, double incB1val, int calcInc);
-
-/* trial.c */
-int trial_factor (mpcandi_t *n, double maxfact, int deep);
 
 /* resume.c */
 int  read_resumefile_line (int *, mpz_t, mpcandi_t *, mpz_t, mpz_t, mpz_t, int *,
