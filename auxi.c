@@ -18,8 +18,17 @@ along with this program; see the file COPYING.  If not, see
 http://www.gnu.org/licenses/ or write to the Free Software Foundation, Inc.,
 51 Franklin St, Fifth Floor, Boston, MA 02110-1301, USA. */
 
-#include <gmp.h>
+
+#include <stdio.h>
+#include "ecm-impl.h"
 #include "ecm-ecm.h"
+
+#ifdef HAVE_GWNUM
+/* For GWNUM_VERSION */
+#include "gwnum.h"
+#endif
+
+#include "champions.h"
 
 /******************************************************************************
 *                                                                             *
@@ -112,28 +121,139 @@ new_line:
 }
 
 int
-probab_prime_p (mpz_t N, int reps)
+process_newfactor (mpz_t f, int result, mpcandi_t *n, 
+                   int method, int *returncode, unsigned int *cnt, 
+                   int *resume_wasPrp, mpz_t resume_lastfac, 
+                   mpcandi_t *pCandidates, unsigned int linenum, 
+                   FILE *resumefile, int verbose, unsigned int decimal_cofactor,
+                   int deep, int breadthfirst, ATTRIBUTE_UNUSED char *faccmd)
 {
+  int factor_is_prime = 0;
+        /* If a factor was found, indicate whether factor, cofactor are */
+        /* prime. If no factor was found, both are zero. */
+  int method1;
+  if (verbose > 0)
+      printf ("********** Factor found in step %u: ", ABS (result));
+  mpz_out_str (stdout, 10, f);
+  if (verbose > 0)
+      printf ("\n");
+
+  /* Complain about non-proper factors (0, negative) */
+  if (mpz_cmp_ui (f, 1) < 0)
+    {
+      fprintf (stderr, "Error: factor found is ");
+      mpz_out_str (stderr, 10, f);
+      fprintf (stderr, "\nPlease report internal errors at <%s>.\n",
+               PACKAGE_BUGREPORT);
+      exit (EXIT_FAILURE);
+    }
+  
 #ifdef WANT_SHELLCMD
-  if (prpcmd != NULL)
+  if (faccmd != NULL)
     {
       FILE *fc;
-      int r;
-      fc = popen (prpcmd, "w");
+      fc = popen (faccmd, "w");
       if (fc != NULL)
         {
-          gmp_fprintf (fc, "%Zd\n", N);
-          r = pclose (fc);
-          if (r == 0) /* Exit status of 0 means success = is a PRP */
-            return 1;
-          else
-            return 0;
-        } else {
-          fprintf (stderr, "Error executing the PRP command\n");
-          exit (EXIT_FAILURE);
+          mpz_t cof;
+          mpz_init_set (cof, n->n);
+          mpz_divexact (cof, cof, f);
+          gmp_fprintf (fc, "%Zd\n", n->n);
+          gmp_fprintf (fc, "%Zd\n", f);
+          gmp_fprintf (fc, "%Zd\n", cof);
+          mpz_clear (cof);
+          pclose (fc);
         }
-    } else
+    }
 #endif
-      return mpz_probab_prime_p (N, reps);
-}
 
+  if (mpz_cmp (f, n->n) != 0)
+    {
+      /* prints factor found and cofactor on standard output. */
+      factor_is_prime = probab_prime_p (f, PROBAB_PRIME_TESTS);
+
+      if (verbose >= 1)
+        {
+          printf ("Found %s factor of %2u digits: ", 
+                  factor_is_prime ? "probable prime" : "composite",
+                  nb_digits (f));
+          mpz_out_str (stdout, 10, f);
+          printf ("\n");
+        }
+      
+      /* 1 for display warning if factor does not divide the current 
+      candidate */
+      mpcandi_t_addfoundfactor (n, f, 1); 
+
+      if (resumefile != NULL)
+        {
+          /* If we are resuming from a save file, add factor to the
+             discovered factors for the current number */
+          mpz_mul (resume_lastfac, resume_lastfac, f);
+          *resume_wasPrp = n->isPrp;
+        }
+
+      if (factor_is_prime)
+        *returncode = (n->isPrp) ? ECM_PRIME_FAC_PRIME_COFAC : 
+                      ECM_PRIME_FAC_COMP_COFAC;
+      else
+        *returncode = (n->isPrp) ? ECM_COMP_FAC_PRIME_COFAC :
+                      ECM_COMP_FAC_COMP_COFAC;
+
+      if (verbose >= 1)
+        {
+          printf ("%s cofactor ",
+          n->isPrp ? "Probable prime" : "Composite");
+          if (n->cpExpr && !decimal_cofactor)
+            printf ("%s", n->cpExpr);
+          else
+            mpz_out_str (stdout, 10, n->n);
+          printf (" has %u digits\n", n->ndigits);
+        }
+      else /* quiet mode: just print a space here, remaining cofactor
+              will be printed after last curve */
+          printf (" ");
+
+      /* check for champions (top ten for each method) */
+      method1 = ((method == ECM_PP1) && (result < 0)) ? 
+                ECM_PM1 : method;
+      if ((verbose > 0) && factor_is_prime && 
+          nb_digits (f) >= champion_digits[method1])
+        {
+          printf ("Report your potential champion to %s\n",
+                  champion_keeper[method1]);
+          printf ("(see %s)\n", champion_url[method1]);
+        }
+
+      /* Take care of fully factoring this number, 
+         in case we are in deep mode */
+      if (n->isPrp)
+        *cnt = 0; /* no more curve to perform */
+
+      if (!deep)
+        {
+          if (breadthfirst)
+          /* I know it may not be prp, but setting this will cause all future loops to NOT 
+          check this candidate again */
+              pCandidates[linenum-1].isPrp = 1;
+          *cnt = 0;
+        }
+      else if (breadthfirst)
+          mpcandi_t_copy (&pCandidates[linenum-1], n);
+    }
+  else
+    {
+      if (breadthfirst)
+      /* I know it may not be prp, but setting this will cause all 
+         future loops to NOT check this candidate again */
+          pCandidates[linenum-1].isPrp = 1;
+      *cnt = 0; /* no more curve to perform */
+      if (verbose > 0)
+          printf ("Found input number N");
+      printf ("\n");
+      *returncode = ECM_INPUT_NUMBER_FOUND;
+    }
+  fflush (stdout);
+
+  return 0;
+}

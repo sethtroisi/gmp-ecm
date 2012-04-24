@@ -53,14 +53,38 @@ http://www.gnu.org/licenses/ or write to the Free Software Foundation, Inc.,
 
 /* #define DEBUG */
 
-#include "champions.h"
-
 /* probab_prime_p() can get called from other modules. Instead of passing
    prpcmd to those functions, we make it static here - this variable will
    be set only in main, and read only in probab_prime_p() */
 #ifdef WANT_SHELLCMD
 static  char *prpcmd = NULL;
 #endif
+
+int
+probab_prime_p (mpz_t N, int reps)
+{
+#ifdef WANT_SHELLCMD
+  if (prpcmd != NULL)
+    {
+      FILE *fc;
+      int r;
+      fc = popen (prpcmd, "w");
+      if (fc != NULL)
+        {
+          gmp_fprintf (fc, "%Zd\n", N);
+          r = pclose (fc);
+          if (r == 0) /* Exit status of 0 means success = is a PRP */
+            return 1;
+          else
+            return 0;
+        } else {
+          fprintf (stderr, "Error executing the PRP command\n");
+          exit (EXIT_FAILURE);
+        }
+    } else
+#endif
+      return mpz_probab_prime_p (N, reps);
+}
 
 static int exit_asap_value = 0;
 static int exit_asap_signalnr = 0; /* Remembers which signal we received */
@@ -145,7 +169,6 @@ usage (void)
     printf ("  -one         Stop processing a candidate if a factor is found (looping mode)\n");
     printf ("  -n           run ecm in \"nice\" mode (below normal priority)\n");
     printf ("  -nn          run ecm in \"very nice\" mode (idle priority)\n");
-    printf ("  -t n         Trial divide candidates before P-1, P+1 or ECM up to n\n");
     printf ("  -ve n        Verbosely show short (< n character) expressions on each loop\n");
     printf ("  -cofdec      Force cofactor output in decimal (even if expressions are used)\n");
     printf ("  -B2scale f   Multiplies the default B2 value by f \n");
@@ -323,15 +346,12 @@ main (int argc, char *argv[])
   int result = 0, returncode = 0;
   int verbose = OUTPUT_NORMAL; /* verbose level */
   int timestamp = 0;
-  int method = ECM_ECM, method1;
+  int method = ECM_ECM;
   int use_ntt = 1;     /* Default, use NTT if input is small enough */
   int specific_x0 = 0, /* 1=starting point supplied by user, 0=random or */
                        /* compute from sigma */
       specific_sigma = 0;  /*   0=make random */
                            /*   1=sigma from command line */
-  int factor_is_prime;
-        /* If a factor was found, indicate whether factor, cofactor are */
-        /* prime. If no factor was found, both are zero. */
   int repr = ECM_MOD_DEFAULT; /* automatic choice */
   int nobase2step2 = 0; /* flag to turn off base 2 arithmetic in ecm stage 2 */
   unsigned long k = ECM_DEFAULT_K; /* default number of blocks in stage 2 */
@@ -355,13 +375,12 @@ main (int argc, char *argv[])
   int breadthfirst = 0;
   unsigned int count = 1; /* number of curves for each number */
   unsigned int cnt = 0;   /* number of remaining curves for current number */
-  unsigned int linenum = 0, factsfound = 0;
+  unsigned int linenum = 0;
   mpcandi_t *pCandidates = NULL;
   unsigned int nCandidates=0, nMaxCandidates=0;
-  int deep=1, trial_factor_found;
+  int deep=1;
   unsigned int displayexpr = 0;
   unsigned int decimal_cofactor = 0;
-  double maxtrialdiv = 0.0;
   double B2scale = 1.0;
   double maxmem = 0.;
   double stage1time = 0.;
@@ -756,17 +775,6 @@ main (int argc, char *argv[])
 	      fprintf (stderr, "Can't find input file %s\n", infilename);
 	      exit (EXIT_FAILURE);
 	    }
-	  argv += 2;
-	  argc -= 2;
-	}
-      else if ((argc > 2) && (strcmp (argv[1], "-t") == 0))
-	{
-	  maxtrialdiv = strtod (argv[2], NULL);
-	  if (maxtrialdiv <= 0.0)
-	    {
-	      fprintf (stderr, "Error, the -t option requires a positive argument\n");
-	      exit (EXIT_FAILURE);
-  	    }
 	  argv += 2;
 	  argc -= 2;
 	}
@@ -1245,7 +1253,6 @@ BreadthFirstDoAgain:;
   while (((breadthfirst && linenum < nCandidates) || cnt > 0 || 
           feof (infile) == 0) && !exit_asap_value)
     {
-      trial_factor_found = 0;
       params->B1done = B1done; /* may change with resume */
       
       if (resumefile != NULL) /* resume case */
@@ -1436,8 +1443,6 @@ BreadthFirstDoAgain:;
 	  free (s); /* size n.ndigits + 1 */
 	}
 
-      factor_is_prime = 0;
-
       cnt --; /* one more curve performed */
 
       mpgocandi_fixup_with_N (&go, &n);
@@ -1599,148 +1604,24 @@ BreadthFirstDoAgain:;
           exit (EXIT_FAILURE);
         }
 
-      if (result == ECM_NO_FACTOR_FOUND)
-	{
-	  if (trial_factor_found)
-	  {
-	    factor_is_prime = 1;
-	    mpz_set_ui (f, 1);
-	    returncode = ECM_NO_FACTOR_FOUND;
-	    goto OutputFactorStuff;
-	  }
-	} else {
-	  factsfound++;
-	  if (verbose > 0)
-	    printf ("********** Factor found in step %u: ", ABS (result));
-          mpz_out_str (stdout, 10, f);
-	  if (verbose > 0)
-            printf ("\n");
-
-          /* Complain about non-proper factors (0, negative) */
-          if (mpz_cmp_ui (f, 1) < 0)
-            {
-              fprintf (stderr, "Error: factor found is ");
-              mpz_out_str (stderr, 10, f);
-              fprintf (stderr, "\nPlease report internal errors at <%s>.\n",
-                       PACKAGE_BUGREPORT);
-              exit (EXIT_FAILURE);
-            }
-          
-#ifdef WANT_SHELLCMD
-	  if (faccmd != NULL)
-	    {
-	      FILE *fc;
-	      fc = popen (faccmd, "w");
-	      if (fc != NULL)
-	        {
-	          mpz_t cof;
-	          mpz_init_set (cof, n.n);
-	          mpz_divexact (cof, cof, f);
-	          gmp_fprintf (fc, "%Zd\n", n.n);
-	          gmp_fprintf (fc, "%Zd\n", f);
-	          gmp_fprintf (fc, "%Zd\n", cof);
-	          mpz_clear (cof);
-	          pclose (fc);
-	        }
-	    }
-#endif
-
-	  if (mpz_cmp (f, n.n) != 0)
-	    {
-	      /* prints factor found and cofactor on standard output. */
-	      factor_is_prime = probab_prime_p (f, PROBAB_PRIME_TESTS);
-
-              if (verbose >= 1)
-                {
-                  printf ("Found %s factor of %2u digits: ", 
-                          factor_is_prime ? "probable prime" : "composite",
-                          nb_digits (f));
-                  mpz_out_str (stdout, 10, f);
-                  printf ("\n");
-                }
-
-	      mpcandi_t_addfoundfactor (&n, f, 1); /* 1 for display warning if factor does not divide the current candidate */
-
-              if (resumefile != NULL)
-                {
-                  /* If we are resuming from a save file, add factor to the
-                     discovered factors for the current number */
-                  mpz_mul (resume_lastfac, resume_lastfac, f);
-                  resume_wasPrp = n.isPrp;
-                }
-
-              if (factor_is_prime)
-                returncode = (n.isPrp) ? ECM_PRIME_FAC_PRIME_COFAC : 
-		                         ECM_PRIME_FAC_COMP_COFAC;
-              else
-                returncode = (n.isPrp) ? ECM_COMP_FAC_PRIME_COFAC :
-		                         ECM_COMP_FAC_COMP_COFAC;
-
-OutputFactorStuff:;
-	      if (verbose >= 1)
-		{
-		  printf ("%s cofactor ",
-			  n.isPrp ? "Probable prime" : "Composite");
-		  if (n.cpExpr && !decimal_cofactor)
-		    printf ("%s", n.cpExpr);
-		  else
-		    mpz_out_str (stdout, 10, n.n);
-		  printf (" has %u digits\n", n.ndigits);
-		}
-              else /* quiet mode: just print a space here, remaining cofactor
-                      will be printed after last curve */
-                printf (" ");
-	      
-              /* check for champions (top ten for each method) */
-	      method1 = ((method == ECM_PP1) && (result < 0))
-		? ECM_PM1 : method;
-	      if ((verbose > 0) && factor_is_prime && 
-                  nb_digits (f) >= champion_digits[method1])
-                {
-                  printf ("Report your potential champion to %s\n",
-                          champion_keeper[method1]);
-                  printf ("(see %s)\n", champion_url[method1]);
-                }
-	      /* Take care of fully factoring this number, in case we are in deep mode */
-	      if (n.isPrp)
-		  cnt = 0; /* no more curve to perform */
-
-	      if (!deep)
-	        {
-		  if (breadthfirst)
-		    /* I know it may not be prp, but setting this will cause all future loops to NOT 
-		       check this candidate again */
-		    pCandidates[linenum-1].isPrp = 1;
-		  cnt = 0;
-	        }
-	      else if (breadthfirst)
-		mpcandi_t_copy (&pCandidates[linenum-1], &n);
-            }
-	  else
-	    {
-	      if (breadthfirst)
-		/* I know it may not be prp, but setting this will cause all 
-		   future loops to NOT check this candidate again */
-		pCandidates[linenum-1].isPrp = 1;
-	      cnt = 0; /* no more curve to perform */
-              if (verbose > 0)
-                printf ("Found input number N");
-              printf ("\n");
-              returncode = ECM_INPUT_NUMBER_FOUND;
-	    }
-	  fflush (stdout);
-	}
+      if (result != ECM_NO_FACTOR_FOUND)
+        {
+          process_newfactor (f, result, &n, method, &returncode, &cnt,
+                             &resume_wasPrp, resume_lastfac, pCandidates,
+                             linenum, resumefile, verbose, decimal_cofactor,
+                             deep, breadthfirst, faccmd);
+	      }
 
       /* if quiet mode, prints remaining cofactor after last curve */
       if ((cnt == 0) && (verbose == 0))
-	{
-	  if (n.cpExpr && !decimal_cofactor)
-	    printf ("%s", n.cpExpr);
-	  else
-	    mpz_out_str (stdout, 10, n.n);
-	  putchar ('\n');
-	  fflush (stdout);
-	}
+        {
+	        if (n.cpExpr && !decimal_cofactor)
+	            printf ("%s", n.cpExpr);
+	        else
+	            mpz_out_str (stdout, 10, n.n);
+	        putchar ('\n');
+	        fflush (stdout);
+	      }
 
       /* Write composite cofactors to savefile if requested */
       /* If no factor was found, we consider cofactor composite and write it */
@@ -1756,27 +1637,27 @@ OutputFactorStuff:;
         }
 
       /* Save the batch exponent s if requested */
-      if (IS_BATCH_MODE(params->param) && savefile_s != NULL)
+      if (savefile_s != NULL)
         {
           int ret = write_s_in_file (savefile_s, params->batch_s);
           if (verbose > OUTPUT_NORMAL && ret > 0)
-            printf ("Save s (%u bytes) in %s.\n", ret, savefile_s);
+            printf ("Save batch product (of %u bytes) in %s.", ret, savefile_s);
         }
 
       /* advance B1, if autoincrement value had been set during command line parsing */
       if (!breadthfirst && autoincrementB1 > 0.0)
-	{
-	  double NewB1;
-	  NewB1 = calc_B1_AutoIncrement (B1, autoincrementB1, autoincrementB1_calc);
-	  if (mpz_cmp_d (B2min, B1) <= 0) /* <= might be better than == */
-	    mpz_set_d (B2min, NewB1);
-	  B1 = NewB1;
-	}
-    }
+	      {
+	        double NewB1;
+	        NewB1 = calc_B1_AutoIncrement (B1, autoincrementB1, autoincrementB1_calc);
+	        if (mpz_cmp_d (B2min, B1) <= 0) /* <= might be better than == */
+	            mpz_set_d (B2min, NewB1);
+	        B1 = NewB1;
+	      }
+      }
 
   /* Allow our "breadthfirst" search to re-run the file again if enough curves have not yet been run */
-  if (breadthfirst == 1 && !exit_asap_value)
-    goto BreadthFirstDoAgain;
+    if (breadthfirst == 1 && !exit_asap_value)
+        goto BreadthFirstDoAgain;
 
   /* NOTE finding a factor may have caused the loop to exit, but what is left 
      on screen is the wrong count of factors (missing the just found factor.  
