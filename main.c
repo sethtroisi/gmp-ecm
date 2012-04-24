@@ -53,37 +53,10 @@ http://www.gnu.org/licenses/ or write to the Free Software Foundation, Inc.,
 
 /* #define DEBUG */
 
-/* probab_prime_p() can get called from other modules. Instead of passing
-   prpcmd to those functions, we make it static here - this variable will
-   be set only in main, and read only in probab_prime_p() */
-#ifdef WANT_SHELLCMD
-static  char *prpcmd = NULL;
-#endif
-
 int
 probab_prime_p (mpz_t N, int reps)
 {
-#ifdef WANT_SHELLCMD
-  if (prpcmd != NULL)
-    {
-      FILE *fc;
-      int r;
-      fc = popen (prpcmd, "w");
-      if (fc != NULL)
-        {
-          gmp_fprintf (fc, "%Zd\n", N);
-          r = pclose (fc);
-          if (r == 0) /* Exit status of 0 means success = is a PRP */
-            return 1;
-          else
-            return 0;
-        } else {
-          fprintf (stderr, "Error executing the PRP command\n");
-          exit (EXIT_FAILURE);
-        }
-    } else
-#endif
-      return mpz_probab_prime_p (N, reps);
+    return mpz_probab_prime_p (N, reps);
 }
 
 static int exit_asap_value = 0;
@@ -153,12 +126,6 @@ usage (void)
     printf ("  -treefile f  [ECM only] store stage 2 data in files f.0, ... \n");
     printf ("  -maxmem n    use at most n MB of memory in stage 2\n");
     printf ("  -stage1time n add n seconds to ECM stage 1 time (for expected time est.)\n");
-#ifdef WANT_SHELLCMD
-    printf ("  -faccmd cmd  execute cmd when factor is found. Input number, factor\n"
-            "               and cofactor are given to cmd via stdin, each on a line\n");
-    printf ("  -prpcmd cmd  use shell command cmd to do prp tests (number via stdin)\n");
-    printf ("  -idlecmd cmd before each curve run cmd and terminate if exit code >0\n");
-#endif
 
     /*printf ("  -extra functions added by JimF\n"); */
     printf ("  -i n         increment B1 by this constant on each run\n");
@@ -248,12 +215,6 @@ print_config ()
   printf ("WANT_ASSERT = %d\n", WANT_ASSERT);
 #else
   printf ("WANT_ASSERT undefined\n");
-#endif
-
-#ifdef WANT_SHELLCMD
-  printf ("WANT_SHELLCMD = %d\n", WANT_SHELLCMD);
-#else
-  printf ("WANT_SHELLCMD undefined\n");
 #endif
 
 #ifdef _OPENMP
@@ -388,10 +349,6 @@ main (int argc, char *argv[])
   int param = ECM_PARAM_DEFAULT; /* -1 means default parametrization */
   char *savefile_s = NULL;
   char *loadfile_s = NULL;
-#ifdef WANT_SHELLCMD
-  char *faccmd = NULL;
-  char *idlecmd = NULL;
-#endif
 #ifdef HAVE_GWNUM
   double gw_k = 0.0;       /* set default values for gwnum poly k*b^n+c */
   unsigned long gw_b = 0;  /* set default values for gwnum poly k*b^n+c */
@@ -840,26 +797,6 @@ main (int argc, char *argv[])
 	  argv += 2;
 	  argc -= 2;
 	}
-#ifdef WANT_SHELLCMD
-     else if ((argc > 2) && (strcmp (argv[1], "-prpcmd") == 0))
-       {
-         prpcmd = argv[2];
-         argv += 2;
-         argc -= 2;
-       }
-     else if ((argc > 2) && (strcmp (argv[1], "-faccmd") == 0))
-       {
-         faccmd = argv[2];
-         argv += 2;
-         argc -= 2;
-       }
-     else if ((argc > 2) && (strcmp (argv[1], "-idlecmd") == 0))
-       {
-         idlecmd = argv[2];
-         argv += 2;
-         argc -= 2;
-       }
-#endif
 #ifdef WITH_GPU
       else if (strcmp (argv[1], "-gpu") == 0)
         {
@@ -1557,29 +1494,6 @@ BreadthFirstDoAgain:;
         }
 #endif
 
-#ifdef WANT_SHELLCMD
-      /* See if the system is currently idle, if -idlecmd was given */
-      if (idlecmd != NULL)
-        {
-          int r;
-          FILE *fc;
-          fc = popen (idlecmd, "r");
-          if (fc == NULL)
-            {
-              fprintf (stderr, "Error executing idle command: %s\n",
-                       idlecmd);
-              exit (EXIT_FAILURE);
-            }
-          r = pclose (fc);
-          if (r != 0) /* If exit status of idle command is non-zero */
-            {
-              printf ("Idle command returned %d, exiting\n", r);
-              breadthfirst = 0; /* Avoid looping due to goto (ugly, FIXME!) */
-              break;
-            }
-        }
-#endif /* WANT_SHELLCMD */
-
       if (timestamp)
         {
           time_t t;
@@ -1606,9 +1520,6 @@ BreadthFirstDoAgain:;
 
       if (result != ECM_NO_FACTOR_FOUND)
         {
-#ifndef WANT_SHELLCMD
-          char *faccmd = NULL;
-#endif
           mpz_t tmp_factor;
           mpz_t tmp_n;
           mpz_init (tmp_factor);
@@ -1626,7 +1537,7 @@ BreadthFirstDoAgain:;
                                  params->gpu, &cnt, &resume_wasPrp,
                                  resume_lastfac, pCandidates, linenum,
                                  resumefile, verbose, decimal_cofactor, deep,
-                                 breadthfirst, faccmd);
+                                 breadthfirst);
 	          } while (params->gpu && mpz_cmp_ui (f, 0));
           mpz_clear (tmp_factor);
           mpz_clear (tmp_n);
