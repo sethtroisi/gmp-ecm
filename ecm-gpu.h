@@ -7,8 +7,6 @@
 
 #ifdef WITH_GPU
 
-#define VERSION_GPUECM "0.1"
-
 #ifndef ECM_GPU_NB_DIGITS
   #define ECM_GPU_NB_DIGITS 32 //by default
 #endif
