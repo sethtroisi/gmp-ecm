@@ -419,6 +419,26 @@ AC_ARG_WITH(cuda,
     AS_IF([test "x$withval" = "xyes" ],[cu_dir=""])
   ])
 
+AC_ARG_WITH(cc-for-cuda, 
+  AS_HELP_STRING([--with-cc-for-cuda=DIR], 
+            [a C compiler compatible with the CUDA compiler nvcc [default=CC]]),
+  [ 
+    cc_for_cuda="$withval" 
+    AS_IF([test "x$cc_for_cuda" = "xno" ],
+      [
+        AS_IF([test "x$is_gpu_asked" = "xyes"],
+          [
+            AC_MSG_ERROR([CUDA is needed to run the GPU version.])
+          ],
+          [
+            AC_MSG_NOTICE([GPU version is not requested, --without-cc-for-cuda will be ignore.])
+          ] )
+      ] )
+    AS_IF([test "x$withval" = "xyes" ],[cc_for_cuda=""])
+  ], [ ])
+
+AC_MSG_NOTICE($CC)
+AC_MSG_NOTICE($cc_for_cuda)
 
 AS_IF([test "x$is_gpu_asked" = "xyes" ],
   [
@@ -475,8 +495,33 @@ AS_IF([test "x$is_gpu_asked" = "xyes" ],
         AC_MSG_RESULT([no])
         AC_MSG_ERROR(nvcc version is $v_nvcc and should be >= $v_nvcc_min)
       ] )
-    dnl TODO check that gcc version is compatible with nvcc version
-    
+
+    dnl check that gcc version is compatible with nvcc version
+    touch conftest.cu
+    nvcc_flags="-c conftest.cu -o conftest.o"
+    AC_MSG_CHECKING([for compatibility between gcc and nvcc])
+    AS_IF([test -n "$cc_for_cuda"], 
+          [nvcc_flags+=" --compiler-bindir $cc_for_cuda"])
+    $NVCC $nvcc_flags > /dev/null 2>&1
+    AS_IF([test "$?" -eq "0"], 
+      [
+        AC_MSG_RESULT([ok])
+      ], [
+        AC_MSG_RESULT([no])
+        AC_MSG_ERROR(gcc version is not compatible with nvcc)
+      ])
+      
+    dnl Check that nvcc version know the required GPU architecture
+    AC_MSG_CHECKING([that nvcc know sm_$GPU_ARCH])
+    $NVCC $nvcc_flags --dryrun -arch=sm_$GPU_ARCH > /dev/null 2>&1
+    AS_IF([test "$?" -eq "0"], 
+      [
+        AC_MSG_RESULT([yes])
+      ], [
+        AC_MSG_RESULT([no])
+        AC_MSG_ERROR(nvcc does not recognize GPU architecture sm_$GPU_ARCH)
+      ])
+
     # From now on cu_dir != "". Either it was always the case, either it was
     # guess from NVCC. 
   
@@ -525,6 +570,7 @@ AC_SUBST(CUDA_INC_FLAGS)
 AC_SUBST(CUDA_LIB_FLAGS)
 AC_SUBST(GPU_ARCH)
 AC_SUBST(NVCC)
+AC_SUBST(cc_for_cuda)
 
 ])
 
