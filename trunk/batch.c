@@ -94,8 +94,6 @@ compute_s (mpz_t s, unsigned long B1)
       mpz_clear (acc[i]);
 }
 
-#ifndef GPUECM
-
 #if 0
 /* this function is useful in debug mode to print non-normalized residues */
 static void
@@ -356,5 +354,3 @@ ecm_stage1_batch (mpz_t f, mpres_t x, mpres_t A, mpmod_t n, double B1,
 
   return ret;
 }
-
-#endif
