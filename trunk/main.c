@@ -1452,21 +1452,57 @@ BreadthFirstDoAgain:;
         }
       params->param = param;
      
-      /*FIXME not necessarly for batch mode maybe for GPU (or PARAM_DEFAULT?)*/
-      if ((IS_BATCH_MODE(param)) && loadfile_s != NULL)
+      if (loadfile_s != NULL)
         {
           int st;
           params->batch_last_B1_used = B1;
 
           st = cputime ();
-          /* FIXME For now, there is no check that it correspond to */ 
-          /* the actual B1 */
           read_s_from_file (params->batch_s, loadfile_s);
           if (verbose > OUTPUT_NORMAL)
             fprintf (stdout, "Reading batch product (of %zu bits) of "
                              "primes below B1=%1.0f from %s took %ldms\n", 
                      mpz_sizeinbase (params->batch_s, 2), B1, loadfile_s, 
                      cputime () - st);
+          /* Some elementaty check that it correspond to the actual B1 */
+          mpz_t tmp, tmp2;
+          mpz_init (tmp);
+          mpz_init (tmp2);
+          /* check that the valuation of 2 is correct */
+          unsigned int val2 = mpz_scan1 (params->batch_s, 0);
+          mpz_ui_pow_ui (tmp, 2, val2);
+          mpz_ui_pow_ui (tmp2, 2, val2+1);
+          if (mpz_cmp_d (tmp, B1) > 0 || mpz_cmp_d (tmp2, B1) <= 0)
+            {
+              fprintf (stderr, "Error, the value of the batch product in %s "
+                       "does not corresponds to B1=%1.0f.\n", loadfile_s, B1);
+              exit (EXIT_FAILURE);
+            }
+
+          /* Check that next_prime (B1) does not divide batch_s */
+          mpz_set_d (tmp, B1);
+          mpz_nextprime (tmp2, tmp);
+          if (mpz_divisible_p (params->batch_s, tmp2))
+            {
+              fprintf (stderr, "Error, the value of the batch product in %s "
+                       "does not corresponds to B1=%1.0f.\n", loadfile_s, B1);
+              exit (EXIT_FAILURE);
+            }
+
+          /* Check that next_prime (sqrt(B1)) divide batch_s only once */
+          mpz_set_d (tmp, sqrt(B1));
+          mpz_nextprime (tmp2, tmp);
+          mpz_mul (tmp, tmp2, tmp2);
+          if (!mpz_divisible_p (params->batch_s, tmp2) || 
+              mpz_divisible_p (params->batch_s, tmp))
+            {
+              fprintf (stderr, "Error, the value of the batch product in %s "
+                       "does not corresponds to B1=%1.0f.\n", loadfile_s, B1);
+              exit (EXIT_FAILURE);
+            }
+
+          mpz_clear (tmp);
+          mpz_clear (tmp2);
         }
 
       /* set parameters that may change from one curve to another */
