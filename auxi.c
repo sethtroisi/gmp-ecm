@@ -121,8 +121,8 @@ new_line:
 }
 
 int
-process_newfactor (mpz_t f, int result, mpcandi_t *n, 
-                   int method, int *returncode, unsigned int *cnt, 
+process_newfactor (mpz_t f, int result, mpcandi_t *n, int method, 
+                   int *returncode, int gpu, unsigned int *cnt, 
                    int *resume_wasPrp, mpz_t resume_lastfac, 
                    mpcandi_t *pCandidates, unsigned int linenum, 
                    FILE *resumefile, int verbose, unsigned int decimal_cofactor,
@@ -132,6 +132,7 @@ process_newfactor (mpz_t f, int result, mpcandi_t *n,
         /* If a factor was found, indicate whether factor, cofactor are */
         /* prime. If no factor was found, both are zero. */
   int method1;
+
   if (verbose > 0)
       printf ("********** Factor found in step %u: ", ABS (result));
   mpz_out_str (stdout, 10, f);
@@ -183,7 +184,10 @@ process_newfactor (mpz_t f, int result, mpcandi_t *n,
       
       /* 1 for display warning if factor does not divide the current 
       candidate */
-      mpcandi_t_addfoundfactor (n, f, 1); 
+      if (gpu)
+          mpcandi_t_addfoundfactor (n, f, 0); 
+      else
+          mpcandi_t_addfoundfactor (n, f, 1); 
 
       if (resumefile != NULL)
         {

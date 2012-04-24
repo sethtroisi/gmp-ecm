@@ -1606,11 +1606,31 @@ BreadthFirstDoAgain:;
 
       if (result != ECM_NO_FACTOR_FOUND)
         {
-          process_newfactor (f, result, &n, method, &returncode, &cnt,
-                             &resume_wasPrp, resume_lastfac, pCandidates,
-                             linenum, resumefile, verbose, decimal_cofactor,
-                             deep, breadthfirst, faccmd);
-	      }
+#ifndef WANT_SHELLCMD
+          char *faccmd = NULL;
+#endif
+          mpz_t tmp_factor;
+          mpz_t tmp_n;
+          mpz_init (tmp_factor);
+          mpz_init_set (tmp_n, n.n);
+          do 
+            {
+              if (params->gpu)
+                {
+                  mpz_fdiv_qr (f, tmp_factor, f, tmp_n);
+                }
+              else
+                  mpz_set (tmp_factor, f);
+
+              process_newfactor (tmp_factor, result, &n, method, &returncode,
+                                 params->gpu, &cnt, &resume_wasPrp,
+                                 resume_lastfac, pCandidates, linenum,
+                                 resumefile, verbose, decimal_cofactor, deep,
+                                 breadthfirst, faccmd);
+	          } while (params->gpu && mpz_cmp_ui (f, 0));
+          mpz_clear (tmp_factor);
+          mpz_clear (tmp_n);
+        }
 
       /* if quiet mode, prints remaining cofactor after last curve */
       if ((cnt == 0) && (verbose == 0))
