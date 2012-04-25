@@ -56,12 +56,19 @@ divert
 
 `include(`config.m4')'
 
-	TEXT
-.align 5 C powerPC 32 byte alignment
 	GLOBL GSYM_PREFIX``''mulredc`'LENGTH
-	TYPE(GSYM_PREFIX``''mulredc``''LENGTH,``function'')
+	GLOBL .GSYM_PREFIX``''mulredc`'LENGTH
 
+	.section ".opd", "aw"
+	.align	3
 GSYM_PREFIX``''mulredc`'LENGTH:
+	.quad	.GSYM_PREFIX``''mulredc`'LENGTH, .TOC.@tocbase, 0
+	.size	GSYM_PREFIX``''mulredc`'LENGTH, 24
+
+	TEXT
+	.align	5	C powerPC 32 byte alignment
+	TYPE(.GSYM_PREFIX``''mulredc``''LENGTH,``@function'')
+.GSYM_PREFIX``''mulredc`'LENGTH:
 ifelse(eval(LENGTH),1,
 `		mulld   r8, r4, r5			C x*y low half T0
 		mulhdu  r9, r4, r5			C x*y high half T1
@@ -141,3 +148,6 @@ eval(LENGTH),2,
 		ldu     r13, 8(r1)
 		addi    r1, r1, 8
 		blr')
+
+	.size	.GSYM_PREFIX``''mulredc`'LENGTH, .-.GSYM_PREFIX``''mulredc`'LENGTH
+
