@@ -8,7 +8,7 @@
 extern int select_and_init_GPU (int, unsigned int*, int);
 extern float cuda_Main (biguint_t, biguint_t, biguint_t, digit_t, biguint_t*, 
                         biguint_t*, biguint_t*, biguint_t*, mpz_t, unsigned int, 
-                        unsigned int, FILE*, FILE*);
+                        unsigned int, int);
 
 int findfactor (mpz_t factor, mpz_t N, mpz_t xfin, mpz_t zfin)
 {
@@ -81,7 +81,7 @@ void biguint_to_mpz (mpz_t a, biguint_t b)
 
 int gpu_ecm_stage1 (mpz_t *factors, int *array_stage_found, mpz_t N, mpz_t s, 
                     unsigned int number_of_curves, unsigned int firstsigma, 
-                    float *gputime)
+                    float *gputime, int verbose)
 {
   int youpi = ECM_NO_FACTOR_FOUND;
 
@@ -173,7 +173,7 @@ int gpu_ecm_stage1 (mpz_t *factors, int *array_stage_found, mpz_t N, mpz_t s,
   /* Call the wrapper function that call the GPU */
   *gputime=cuda_Main (h_N, h_3N, h_M, h_invN, h_xarray, h_zarray, h_x2array, 
                      h_z2array, s, firstsigma, number_of_curves,
-                     stdout, stdout);
+                     (verbose >= OUTPUT_DEVVERBOSE));
 
   /* Analyse results */
   for (sigma = firstsigma; sigma < firstsigma+number_of_curves; sigma++)
@@ -306,10 +306,8 @@ gpu_ecm (mpz_t f, int param, mpz_t firstsigma, mpz_t n, mpz_t go,
 
   /* check that repr == ECM_MOD_DEFAULT or ECM_MOD_BASE2 (only for stage 2) */
   if (repr != ECM_MOD_DEFAULT && repr != ECM_MOD_BASE2)
-    {
-      outputf (OUTPUT_ERROR, "GPU: Error, invalid value of repr.\n");
-      return ECM_ERROR;
-    }
+      outputf (OUTPUT_ERROR, "GPU: Warning, the value of repr will be ignored "
+                             "for step 1 on GPU.\n");
 
   /* It is only for stage 2, it is not taken into account for GPU code */
   if (mpmod_init (modulus, n, repr) != 0)
@@ -480,12 +478,12 @@ gpu_ecm (mpz_t f, int param, mpz_t firstsigma, mpz_t n, mpz_t go,
   
   st = cputime ();
   youpi = gpu_ecm_stage1 (factors, array_stage_found, n, batch_s, *nb_curves, 
-                          firstsigma_ui, &gputime);
+                          firstsigma_ui, &gputime, verbose);
 
-  /* TODO: print correct CPU+GPU time for stage1 */
-  outputf (OUTPUT_NORMAL, "Step 1 took %ldms\n", elltime (st, cputime ()));
-  outputf (OUTPUT_NORMAL, "time GPU: %.3fs\n", (gputime/1000));
-  outputf (OUTPUT_VERBOSE, "Throughput: %.3f\n", 1000 * (*nb_curves)/gputime);
+  outputf (OUTPUT_NORMAL, "Step 1 took %ldms of CPU time / %.0fms of GPU "
+                          "time\n", elltime (st, cputime ()), gputime);
+  outputf (OUTPUT_VERBOSE, "Throughput: %.3f curves by second\n", 
+                           1000 * (*nb_curves)/gputime);
 
   /* was a factor found in stage 1 ? */
   if (youpi != ECM_NO_FACTOR_FOUND)

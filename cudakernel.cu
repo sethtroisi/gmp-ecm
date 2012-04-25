@@ -114,7 +114,7 @@ float cuda_Main (biguint_t h_N, biguint_t h_3N, biguint_t h_M, digit_t h_invN,
                     biguint_t *h_xarray, biguint_t *h_zarray, 
                     biguint_t *h_x2array, biguint_t *h_z2array, mpz_t s,
                     unsigned int firstinvd, unsigned int number_of_curves, 
-                    FILE *OUTPUT_VERBOSE, FILE *OUTPUT_VVERBOSE) 
+                    int is_verbose_enough) 
 { 
   cudaEvent_t start, stop;
   cudaEventCreate (&start);
@@ -138,7 +138,8 @@ float cuda_Main (biguint_t h_N, biguint_t h_3N, biguint_t h_M, digit_t h_invN,
   dim3 dimBlock (ECM_GPU_NB_DIGITS, ECM_GPU_CURVES_BY_BLOCK);
   dim3 dimGrid (number_of_curves/ ECM_GPU_CURVES_BY_BLOCK);
 
-  fprintf(OUTPUT_VVERBOSE, "Block: %ux%ux%u Grid: %ux%ux%u\n", dimBlock.x, 
+  if (is_verbose_enough)
+    fprintf(stdout, "Block: %ux%ux%u Grid: %ux%ux%u\n", dimBlock.x, 
                       dimBlock.y, dimBlock.z, dimGrid.x, dimGrid.y, dimGrid.z);
 
   /* Create a pair of events to pace ourselves */
