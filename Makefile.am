@@ -90,16 +90,12 @@ include_HEADERS = ecm.h
 noinst_HEADERS = ecm-impl.h ecm-gmp.h ecm-ecm.h sp.h longlong.h ecm-params.h \
                  mpmod.h ecm-gpu.h cudakernel.h 
 
-EXTRA_DIST = test.pm1 test.pp1 test.ecm README.lib INSTALL-ecm ecm.xml \
-             ecm-params.h.alpha-ev5 ecm-params.h.athlon64 \
-             ecm-params.h.default ecm-params.h.alpha-ev6 \
-             ecm-params.h.athlon ecm-params.h.powerpc7450 \
-             ecm-params.h.pentium3 ecm-params.h.pentium4 \
-             ecm-params.h.pentium-m ecm-params.h.powerpc970 \
-             ecm-params.h.mips64el ecm-params.h.armv5tel \
-             ecm-params.h.sparc64 ecm-params.h.ia64 \
-             ecm-params.h.hppa2.0 ecm-params.h.alpha-ev56 \
-             ecm-params.h.core2 ecm-params.h.corei5
+EXTRA_DIST = test.pm1 test.pp1 test.ecm README.lib INSTALL-ecm ecm.xml  \
+             pentium4/params.h x86_64/core2/params.h x86_64/k8/params.h \
+             athlon/params.h x86/params.h ia64/params.h arm/params.h    \
+             powerpc64/params.h powerpc32/params.h sparc64/params.h     \
+             hppa/params.h mips/params.h x86_64/corei7/params.h         \
+             generic/params.h
 
 DIST_SUBDIRS = athlon pentium4 x86_64 powerpc64 build.vc10
 
