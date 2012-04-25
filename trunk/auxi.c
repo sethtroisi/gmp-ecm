@@ -121,8 +121,8 @@ new_line:
 }
 
 int
-process_newfactor (mpz_t f, int result, mpcandi_t *n, int method, 
-                   int *returncode, int gpu, unsigned int *cnt, 
+process_newfactor (mpz_t g, int result, mpcandi_t *n, int method, 
+                   int returncode, int gpu, unsigned int *cnt, 
                    int *resume_wasPrp, mpz_t resume_lastfac, 
                    mpcandi_t *pCandidates, unsigned int linenum, 
                    FILE *resumefile, int verbose, unsigned int decimal_cofactor,
@@ -132,12 +132,39 @@ process_newfactor (mpz_t f, int result, mpcandi_t *n, int method,
         /* If a factor was found, indicate whether factor, cofactor are */
         /* prime. If no factor was found, both are zero. */
   int method1;
+  mpz_t f;
+  
+  mpz_init (f);
 
-  if (verbose > 0)
-      printf ("********** Factor found in step %u: ", ABS (result));
-  mpz_out_str (stdout, 10, f);
-  if (verbose > 0)
-      printf ("\n");
+  mpz_gcd (f, g, n->n);
+
+    /* When GPU is not used, the factor should divide n->n */
+    if (mpz_cmp (g, f) != 0 && gpu == 0)
+      {
+        fprintf (stderr, "Error: factor ");
+        mpz_out_str (stderr, 10, f);
+        fprintf (stderr, "does not divide ");
+        mpz_out_str (stderr, 10, n->n);
+        fprintf (stderr, "\nPlease report internal errors at <%s>.\n",
+                 PACKAGE_BUGREPORT);
+        exit (EXIT_FAILURE);
+      }
+    else if (mpz_cmp (g, f) != 0 && gpu != 0 && mpz_cmp_ui (f, 1) == 0)
+    /* On GPU all factors of g were already found */
+      {
+        /* FIXME Maybe print something in very verbose mode */
+        return returncode;
+      }
+    else /* g = f (gpu or not gpu) or g != 1 with gpu */
+      {
+        if (verbose > 0)
+            printf ("********** Factor found in step %u: ", ABS (result));
+        
+        mpz_out_str (stdout, 10, f);
+        
+        if (verbose > 0)
+            printf ("\n");
+      }
 
   /* Complain about non-proper factors (0, negative) */
   if (mpz_cmp_ui (f, 1) < 0)
@@ -178,11 +205,11 @@ process_newfactor (mpz_t f, int result, mpcandi_t *n, int method,
           *resume_wasPrp = n->isPrp;
         }
 
-      if (factor_is_prime)
-        *returncode = (n->isPrp) ? ECM_PRIME_FAC_PRIME_COFAC : 
+      if (factor_is_prime && returncode == 0)
+        returncode = (n->isPrp) ? ECM_PRIME_FAC_PRIME_COFAC : 
                       ECM_PRIME_FAC_COMP_COFAC;
       else
-        *returncode = (n->isPrp) ? ECM_COMP_FAC_PRIME_COFAC :
+        returncode = (n->isPrp) ? ECM_COMP_FAC_PRIME_COFAC :
                       ECM_COMP_FAC_COMP_COFAC;
 
       if (verbose >= 1)
@@ -236,9 +263,9 @@ process_newfactor (mpz_t f, int result, mpcandi_t *n, int method,
       if (verbose > 0)
           printf ("Found input number N");
       printf ("\n");
-      *returncode = ECM_INPUT_NUMBER_FOUND;
+      returncode = ECM_INPUT_NUMBER_FOUND;
     }
   fflush (stdout);
 
-  return 0;
+  return returncode;
 }

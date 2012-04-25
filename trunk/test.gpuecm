@@ -49,17 +49,7 @@ checkcode $? 14
 echo "2^349-1" | $ECM -sigma 3:13 587 29383
 checkcode $? 6
 
-#echo "2^347-1" | $ECM -sigma 1:1097 3301 229939
-#checkcode $? 14
-
-
-#echo 31622776601683791911 | $ECM -param 1 -A 27063318473587686303 11000
-#checkcode $? 0
-
-#echo 18446744073709551557 | $ECM -param 1 -A 312656731337392125 11000
-#checkcode $? 8
-
-#echo 4294967291 | $ECM -param 1 -A 17 1000
-#checkcode $? 8
+echo "2^1018-1" | $ECM -sigma 3:42 1024 0
+checkcode $? 2
 
 echo "All ECM tests with GPU are ok."
