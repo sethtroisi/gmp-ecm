@@ -70,7 +70,7 @@ typedef struct
 unsigned int nb_digits  (const mpz_t);
 int probab_prime_p (mpz_t, int);
 int read_number (mpcandi_t*, FILE*, int);
-int process_newfactor (mpz_t, int, mpcandi_t*, int, int*, int, unsigned int*, 
+int process_newfactor (mpz_t, int, mpcandi_t*, int, int, int, unsigned int*, 
                        int*, mpz_t, mpcandi_t*, unsigned int, FILE*, int,
                        unsigned int, int, int);
 
