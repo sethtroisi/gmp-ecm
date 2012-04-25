@@ -58,6 +58,8 @@ typedef unsigned long ecm_uint;
 #else
 extern size_t MPZMOD_THRESHOLD;
 extern size_t REDC_THRESHOLD;
+#define TUNE_MULREDC_TABLE {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0}
+#define TUNE_SQRREDC_TABLE {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0}
 #endif
 extern size_t mpn_mul_lo_threshold[];
 

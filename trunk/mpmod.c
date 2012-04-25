@@ -613,13 +613,6 @@ mulredc_1 (mp_ptr z, const mp_limb_t x, mp_srcptr y, mp_srcptr m,
 #endif /* ifdef HAVE_NATIVE_MULREDC1_N */
 #endif
 
-#ifndef TUNE_MULREDC_TABLE
-#define TUNE_MULREDC_TABLE {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0}
-#endif
-#ifndef TUNE_SQRREDC_TABLE
-#define TUNE_SQRREDC_TABLE {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0}
-#endif
-
 static int tune_mulredc_table[] = TUNE_MULREDC_TABLE;
 static int tune_sqrredc_table[] = TUNE_SQRREDC_TABLE;
 
