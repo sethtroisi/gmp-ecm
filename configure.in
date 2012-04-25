@@ -598,58 +598,10 @@ AC_SUBST(NVCC_FLAGS)
 AC_SUBST(CC_ADD_FLAGS_FOR_GPU)
 
 
-case $host in
-  athlon*-*-*) config_arch="athlon" ;;
-  x86_64*-*-*) config_arch="athlon64" ;;
-  pentium3-*-*) config_arch="pentium3" ;;
-  pentium4-*-*) config_arch="pentium4" ;;
-  pentium-m-*-*) config_arch="pentium-m" ;;
-  alphaev6*-*-*) config_arch="alpha-ev6" ;;
-  alphaev56*-*-*) config_arch="alpha-ev56" ;;
-  alphaev5*-*-*) config_arch="alpha-ev5" ;;
-  powerpc7450-*-*) config_arch="powerpc7450" ;;
-  powerpc-apple-darwin* | powerpc64-*-*) config_arch="powerpc970" ;;
-  mips64el-*-*) config_arch="mips64el" ;;
-  armv5tel-*-*) config_arch="armv5tel" ;;
-  sparc64-*-*) config_arch="sparc64" ;;
-  ia64-*-*) config_arch="ia64" ;;
-  hppa2.0-*-*) config_arch="hppa2.0" ;;
-  *) config_arch="default" ;;
-esac
-
-# See if this is a Core 2, if we have /proc/cpuinfo 
-core2warn=no
-if test x"$config_arch" = xathlon64; then
-  if test -f /proc/cpuinfo; then
-    if $EGREP -q "Core\(TM\)2" /proc/cpuinfo; then
-      config_arch=core2
-    elif $EGREP -q "Core\(TM\) i5" /proc/cpuinfo; then
-      config_arch=corei5
-    fi;
-  else
-    # No /proc/cpuinfo, tell user about ecm-params.h.core2
-    core2warn=yes
-  fi;
-fi
-
-# See if this is a Pentium 4, if we have /proc/cpuinfo 
-pentium4warn=no
-if test x"$config_arch" = xdefault; then
-  if test -f /proc/cpuinfo; then
-    if $EGREP -q "Pentium\(R\) 4" /proc/cpuinfo; then
-      config_arch=pentium4
-    fi;
-  else
-    # No /proc/cpuinfo, tell user about ecm-params.h.pentium4
-    pentium4warn=yes
-  fi;
-fi
-
 LIBS="$LIBS $GWLIB"
 
 GMP_FINISH
 AC_CONFIG_FILES([Makefile athlon/Makefile pentium4/Makefile x86_64/Makefile powerpc64/Makefile build.vc10/Makefile build.vc10/assembler/Makefile build.vc10/ecm/Makefile build.vc10/libecm/Makefile build.vc10/tune/Makefile build.vc10/bench_mulredc/Makefile])
-AC_CONFIG_LINKS([ecm-params.h:ecm-params.h.$config_arch])
 
 AC_SUBST([XSLDIR])
 AC_SUBST([ASMPATH])
@@ -701,18 +653,4 @@ if test "x$enable_memory_debug" = xyes; then
   AC_MSG_NOTICE([Memory debugging enabled])
 else
   AC_MSG_NOTICE([Memory debugging disabled])
-fi
-
-if test x"$core2warn" = xyes; then
-  AC_MSG_NOTICE([Your cpu was detected as x86_64; if it is a Core 2, please either use the ecm-params.h.core2 file by executing the commands:])
-  AC_MSG_NOTICE([rm ecm-params.h])
-  AC_MSG_NOTICE([ln -s ecm-params.h.core2 ecm-params.h])
-  AC_MSG_NOTICE([or generate a custom ecm-params.h file for your system as described in INSTALL.])
-fi
-
-if test x"$pentium4warn" = xyes; then
-  AC_MSG_NOTICE([Your cpu was detected as default; if it is a Pentium 4, please either use the ecm-params.h.pentium4 file by executing the commands:])
-  AC_MSG_NOTICE([rm ecm-params.h])
-  AC_MSG_NOTICE([ln -s ecm-params.h.pentium4 ecm-params.h])
-  AC_MSG_NOTICE([or generate a custom ecm-params.h file for your system as described in INSTALL.])
 fi

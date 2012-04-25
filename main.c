@@ -170,6 +170,8 @@ print_config ()
    #endif
 #endif /* __MPIR_VERSION */
 
+  printf ("Tuning parameters from %s\n", ECM_TUNE_CASE);
+
 #ifdef GWNUM_VERSION
   printf ("Included GWNUM header files version %s\n", GWNUM_VERSION);
 #else

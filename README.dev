@@ -50,11 +50,12 @@ To make a new release:
         if possible with different compilers (gcc, clang, llvm-gcc, ...)
      Check "make longcheck" works (this uses valgrind).
      Check that configure works outside the source directory.
-     Check the default tuning files ecm-params.h.* on different platforms:
+     Check the default tuning files */params.h (and */*/params.h, see the main
+     file ecm-params.h) on different platforms:
        a) run "make bench_mulredc; ./bench_mulredc"
-       b) put the last 4 lines in the corresponding ecm-params.h file
+       b) put the last 4 lines in the corresponding */params.h file
        c) rune "make tune; ./tune"
-       d) put the corresponding thresholds in the ecm-params.h file
+       d) put the corresponding thresholds in the */params.h file
      Compare the efficiency wrt the previous release with "./ecm 1e6 < c200"
      and "./ecmbench ./ecm".
      Check GMP-ECM compiles and runs with MPIR too (mpir.org).
