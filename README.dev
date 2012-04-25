@@ -45,6 +45,7 @@ Documentation:
 To make a new release:
 
   0) Check all tests pass (test.ecm, test.pm1, test.pp1, testlong.pp1),
+     with or without NTT (./test.ecm "./ecm -no-ntt"),
      check the issues in TODO, and for bugs/patches on ecm.gforge.inria.fr.
      Check no compiler warnings remain (with and without assertions),
         if possible with different compilers (gcc, clang, llvm-gcc, ...)
