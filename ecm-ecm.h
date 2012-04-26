@@ -126,7 +126,7 @@ int  read_resumefile_line (int *, mpz_t, mpcandi_t *, mpz_t, mpz_t, mpz_t, int *
 int write_resumefile_line (char *, int, double, mpz_t, int, int, mpz_t, 
                            mpcandi_t *, mpz_t, const char *);
 int write_s_in_file (char *, mpz_t);
-void read_s_from_file (mpz_t, char *); 
+int read_s_from_file (mpz_t, char *, double); 
 
 /* main.c */
 int kbnc_z (double *k, unsigned long *b, unsigned long *n, signed long *c,
