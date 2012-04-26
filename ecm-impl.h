@@ -137,9 +137,6 @@ extern FILE *ECM_STDOUT, *ECM_STDERR;
    otherwise use polyeval() */
 #define POLYEVALTELLEGEN
 
-/* use Kronecker-Scho"nhage's multiplication */
-#define KS_MULTIPLY
-
 /* define top-level multiplication */
 #define KARA 2
 #define TOOM3 3
@@ -151,15 +148,6 @@ extern FILE *ECM_STDOUT, *ECM_STDERR;
 #define MULREDC_ASSEMBLY_MAX 20
 
 #include "sp.h"
-
-/* compile with -DMULT=2 to override default */
-#ifndef MULT
-#ifdef KS_MULTIPLY
-#define MULT KS
-#else
-#define MULT TOOM4
-#endif
-#endif
 
 #ifdef POLYEVALTELLEGEN
 #define USE_SHORT_PRODUCT
@@ -182,10 +170,7 @@ extern FILE *ECM_STDOUT, *ECM_STDERR;
 /* default number of probable prime tests */
 #define PROBAB_PRIME_TESTS 1
 
-/* kronecker_schonhage() is used instead of toomcook4()
-   when bitsize(poly) >= KS_MUL_THRESHOLD */
-#define KS_MUL_THRESHOLD  1e6
-/* same for median product */
+/* threshold for median product */
 #define KS_TMUL_THRESHOLD 8e5
 
 #define ABS(x) ((x) >= 0 ? (x) : -(x))
@@ -500,9 +485,7 @@ void         list_zero  (listz_t, unsigned int);
 void         list_mul (listz_t, listz_t, unsigned int, int, listz_t,
     unsigned int, int, listz_t);
 #define list_mul_high __ECM(list_mul_high)
-void      list_mul_high (listz_t, listz_t, listz_t, unsigned int, listz_t);
-#define karatsuba __ECM(karatsuba)
-void         karatsuba  (listz_t, listz_t, listz_t, unsigned int, listz_t);
+void      list_mul_high (listz_t, listz_t, listz_t, unsigned int);
 #define list_mulmod __ECM(list_mulmod)
 void        list_mulmod (listz_t, listz_t, listz_t, listz_t, unsigned int,
                          listz_t, mpz_t);
@@ -550,15 +533,9 @@ int polyeval_tellegen (listz_t, unsigned int, listz_t*, listz_t,
 void TUpTree (listz_t, listz_t *, unsigned int, listz_t, int, unsigned int,
 		mpz_t, FILE *);
 
-/* toomcook.c */
-#define toomcook3 __ECM(toomcook3)
-void          toomcook3 (listz_t, listz_t, listz_t, unsigned int, listz_t);
-#define toomcook4 __ECM(toomcook4)
-void          toomcook4 (listz_t, listz_t, listz_t, unsigned int, listz_t);
-
 /* ks-multiply.c */
-#define kronecker_schonhage __ECM(kronecker_schonhage)
-void kronecker_schonhage (listz_t, listz_t, listz_t, unsigned int, listz_t);
+#define list_mult_n __ECM(list_mult_n)
+void list_mult_n (listz_t, listz_t, listz_t, unsigned int);
 #define TMulKS __ECM(TMulKS)
 int TMulKS     (listz_t, unsigned int, listz_t, unsigned int, listz_t,
                 unsigned int, mpz_t, int);
