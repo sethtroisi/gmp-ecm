@@ -131,8 +131,6 @@ usage (void)
     printf ("  -i n         increment B1 by this constant on each run\n");
     printf ("  -I f         auto-calculated increment for B1 multiplied by 'f' scale factor\n");
     printf ("  -inp file    Use file as input (instead of redirecting stdin)\n");
-    printf ("  -b           Use breadth-first mode of file processing\n");
-    printf ("  -d           Use depth-first mode of file processing (default)\n");
     printf ("  -one         Stop processing a candidate if a factor is found (looping mode)\n");
     printf ("  -n           run ecm in \"nice\" mode (below normal priority)\n");
     printf ("  -nn          run ecm in \"very nice\" mode (idle priority)\n");
@@ -334,13 +332,8 @@ main (int argc, char *argv[])
   int primetest = 0, saveappend = 0;
   double autoincrementB1 = 0.0, startingB1;
   unsigned int autoincrementB1_calc = 0;
-  unsigned int breadthfirst_maxcnt=0, breadthfirst_cnt=0;
-  int breadthfirst = 0;
   unsigned int count = 1; /* number of curves for each number */
   unsigned int cnt = 0;   /* number of remaining curves for current number */
-  unsigned int linenum = 0;
-  mpcandi_t *pCandidates = NULL;
-  unsigned int nCandidates=0, nMaxCandidates=0;
   int deep=1;
   unsigned int displayexpr = 0;
   unsigned int decimal_cofactor = 0;
@@ -467,33 +460,6 @@ main (int argc, char *argv[])
 	  argv++;
 	  argc--;
         }
-      else if (strcmp (argv[1], "-b") == 0)
-        {
-	  breadthfirst = 1;
-	  argv++;
-	  argc--;
-        }
-        /*
-      else if (strcmp (argv[1], "-batch=0") == 0)
-        {
-          batch = 0;
-          argv++;
-          argc--;
-        }
-      else if (strcmp (argv[1], "-batch") == 0 || 
-                                            strcmp (argv[1], "-batch=1") == 0)
-        {
-	  batch = 1;
-	  argv++;
-	  argc--;
-        }
-      else if (strcmp (argv[1], "-batch=2") == 0)
-        {
-	  batch = 2;
-	  argv++;
-	  argc--;
-        }
-        */
       else if ((argc > 2) && (strcmp (argv[1], "-bsaves") == 0))
         {
           savefile_s = argv[2];
@@ -515,14 +481,6 @@ main (int argc, char *argv[])
         {
           print_config ();
           exit (EXIT_SUCCESS);
-        }
-      else if (strcmp (argv[1], "-d") == 0)
-        {
-	  /* -1 is a flag used during argv processing where a subsquent -i file will NOT change it.  Then
-	     when done processing args, we change a -1 to a 0 */
-	  breadthfirst = -1;
-	  argv++;
-	  argc--;
         }
       else if (strcmp (argv[1], "-cofdec") == 0)
         {
@@ -726,9 +684,6 @@ main (int argc, char *argv[])
 	{
 	  infilename = argv[2];
 	  infile = fopen (infilename, "r");
-	  /* a -d depth-first switch has already been processed, so DO NOT reset to breadth-first */
-	  if (breadthfirst != -1)
-	    breadthfirst = 1;
 	  if (!infile)
 	    {
 	      fprintf (stderr, "Can't find input file %s\n", infilename);
@@ -820,11 +775,6 @@ main (int argc, char *argv[])
       fprintf (stderr, "Error, S should be even for P-1\n");
       exit (EXIT_FAILURE);
     }
-
-  /* Ok, now we can "reset" the breadthfirst switch so that we do depthfirst 
-     as requested */
-  if (breadthfirst == -1)
-    breadthfirst = 0;
 
   if (argc < 2)
     {
@@ -1118,89 +1068,18 @@ main (int argc, char *argv[])
   if (!infilename)
     infile = stdin;
 
-  if (breadthfirst == 1)
-    {
-      breadthfirst_maxcnt = count;
-      count = 1;
-      breadthfirst_cnt = 0;
-    }
-
-BreadthFirstDoAgain:;
-  if (breadthfirst == 1)
-    {
-      if (breadthfirst_maxcnt > breadthfirst_cnt)
-        {
-	  linenum = 0;
-	  if (breadthfirst_cnt++)
-            {
-	      double NewB1;
-	      NewB1 = calc_B1_AutoIncrement (B1, autoincrementB1, autoincrementB1_calc);
-	      if (mpz_cmp_d (B2min, B1) <= 0) /* floating-point equality is 
-                                  unreliable, a comparison might be better */
-		  mpz_set_d (B2min, NewB1);
-	      B1 = NewB1;
-	    }
-	  else
-            {
-	      /* This is ONLY entered upon the first time through.  We load the entire file here so that we can loop deep, 
-		  or remove a candidate if factor found, or if in deep mode and cofactor is prp (or if original candidate
-		  is prp and we are prp testing) */
-	      nMaxCandidates = 100;
-	      pCandidates = (mpcandi_t*) malloc (nMaxCandidates *
-                                                 sizeof(mpcandi_t));
-              if (pCandidates == NULL)
-                {
-                  fprintf (stderr, "Error: not enough memory\n");
-                  exit (EXIT_FAILURE);
-                }
-
-	      while (!feof (infile))
-		{
-		  if (read_number (&n, infile, primetest))
-		    {
-		      mpcandi_t_init (&pCandidates[nCandidates]);
-		      mpcandi_t_copy (&pCandidates[nCandidates++], &n);
-		      if (nCandidates == nMaxCandidates)
-			{
-			    mpcandi_t *tmp = pCandidates;
-			    pCandidates = (mpcandi_t*) malloc ((nMaxCandidates
-                                                 + 100) * sizeof(mpcandi_t));
-                            if (pCandidates == NULL)
-                              {
-                                fprintf (stderr, "Error: not enough memory\n");
-                                exit (EXIT_FAILURE);
-                              }
-			    /*	perform a "shallow" copy, in which we do NOT need to free any of the 
-				individual elements, but just the array memory */
-			    if (pCandidates)
-			      memcpy (pCandidates, tmp, nMaxCandidates*sizeof(mpcandi_t));
-			    nMaxCandidates += 100;
-			    /* Free the original "array" memory */
-			    free (tmp);
-			}
-		    }
-		}
-	      /*  Now infile is at EOF, but we are in breadthfirst mode, so the main while loop will work with linenum<nCandidates */
-	    }
-	}
-      else
-	{
-	  breadthfirst = 0;
-	}
-    }
-
-  while (((breadthfirst && linenum < nCandidates) || cnt > 0 || 
-          feof (infile) == 0) && !exit_asap_value)
+  while ((cnt > 0 || feof (infile) == 0) && !exit_asap_value)
     {
       params->B1done = B1done; /* may change with resume */
       
       if (resumefile != NULL) /* resume case */
         {
-	  if (count != 1)
-	    {
-	      fprintf (stderr, "Error, option -c and -resume are incompatible\n");
-	      exit (EXIT_FAILURE);
-	    }
+          if (count != 1)
+            {
+              fprintf (stderr, 
+                       "Error, option -c and -resume are incompatible\n");
+              exit (EXIT_FAILURE);
+            }
           if (!read_resumefile_line (&method, x, &n, sigma, A, orig_x0, 
               &(params->param), &(params->B1done), program, who, rtime, 
               comment, resumefile))
@@ -1219,17 +1098,19 @@ BreadthFirstDoAgain:;
               /* If we found a factor in an earlier attempt, divide it out */
               if (mpz_cmp_ui (resume_lastfac, 1) > 0)
                 mpcandi_t_addfoundfactor (&n, resume_lastfac, 1);
-            } else {
+            } 
+          else 
+            {
               /* It's a different number. Set resume_lastN and 
                  resume_lastfac */
               mpz_set (resume_lastN, n.n);
               mpz_set_ui (resume_lastfac, 1);
               resume_wasPrp = n.isPrp;
             }
+  
+          cnt = count; /* i.e. 1 */
 
-	  cnt = count; /* i.e. 1 */
-
-          if (verbose >= 1)
+          if (verbose >= OUTPUT_NORMAL)
             {
               printf ("Resuming ");
               if (method == ECM_ECM)
@@ -1254,35 +1135,31 @@ BreadthFirstDoAgain:;
         }
       else /* no-resume case */
         {
-	  if (cnt) /* nothing to read: reuse old number */
-	    {
+          if (cnt) /* nothing to read: reuse old number */   
+            {
               if (verbose >= OUTPUT_NORMAL)
                 printf ("Run %u out of %u:\n", count - cnt + 1, count);
-	    }
-	  else /* new number */
-	    {
-	      if (!breadthfirst && !read_number (&n, infile, primetest))
-		break;
-	      else if (breadthfirst)
-		mpcandi_t_copy (&n,&pCandidates[linenum]);
-	      linenum++;
-	      cnt = count;
-	      /* reset B1 (and B2min) values, as they could have been advanced on the prior candidate */
-	      if (!breadthfirst)
-		{
-	          B1 = startingB1;
-		  mpz_set (B2min, startingB2min);
-		}
-	    }
+            }
+          else /* new number */
+            {
+              if (!read_number (&n, infile, primetest))
+                break;
 
-	  /* in breadthfirst deep mode, a value of 1 is left after FULLY factoring the number, so we then skip it */
-	  /* Also "blank" lines, or lines that could not be parsed correctly will leave a 1 in this value */
-	  if (n.isPrp)
-	  {
-	    /* n is 0 or 1 (or -1 I guess) so do NOT proceed with it */
-            cnt = 0;
-	    continue;
-	  }
+              cnt = count;
+              /* reset B1 (and B2min) values, as they could have been advanced 
+                 on the prior candidate */
+              B1 = startingB1;
+              mpz_set (B2min, startingB2min);
+            }
+
+            /* "blank" lines, or lines that could not be parsed correctly 
+               will leave a 1 in this value */
+            if (n.isPrp)
+              {
+                /* n is 0 or 1 (or -1 I guess) so do NOT proceed with it */
+                cnt = 0;
+                continue;
+              }
 
           /* Set effective seed for factoring attempt on this number */
 
@@ -1290,11 +1167,11 @@ BreadthFirstDoAgain:;
             {
               mpz_t inv;
 
-	      if (count != 1)
-		{
-		  fprintf (stderr, "Error, option -c is incompatible with -x0\n");
-		  exit (EXIT_FAILURE);
-		}
+            if (count != 1)
+              {
+                fprintf (stderr, "Error, option -c is incompatible with -x0\n");
+                exit (EXIT_FAILURE);
+              }
 
               mpz_init (inv);
               mpz_invert (inv, mpq_denref (rat_x0), n.n);
@@ -1303,7 +1180,7 @@ BreadthFirstDoAgain:;
               mpz_clear (inv);
             }
           else /* Make a random starting point for P-1 and P+1. ECM will */
-              /* compute a suitable value from sigma or A if x is zero */
+               /* compute a suitable value from sigma or A if x is zero */
             {
               if (method == ECM_ECM)
                 mpz_set_ui (x, 0);
@@ -1316,79 +1193,77 @@ BreadthFirstDoAgain:;
           if (ECM_IS_DEFAULT_B1_DONE(B1done))
             mpz_set (orig_x0, x);
         }
-      if (verbose >= 1)
-	{
-	  if ((!breadthfirst && cnt == count) || (breadthfirst && 1 == breadthfirst_cnt))
-	    {
-	      /* first time this candidate has been run (if looping more than once */
-	      if (n.cpExpr && n.nexprlen < MAX_NUMBER_PRINT_LEN)
-		printf ("Input number is %s (%u digits)\n", n.cpExpr, n.ndigits);
-	      else if (n.ndigits < MAX_NUMBER_PRINT_LEN)
-		{
+      if (verbose >= OUTPUT_NORMAL)
+        {
+          if (cnt == count)
+            {
+            /* first time this candidate has been run 
+               (if looping more than once */
+              if (n.cpExpr && n.nexprlen < MAX_NUMBER_PRINT_LEN)
+                printf ("Input number is %s (%u digits)\n", n.cpExpr, 
+                                                                  n.ndigits);
+              else if (n.ndigits < MAX_NUMBER_PRINT_LEN)
+                {
                   char *s;
                   s = mpz_get_str (NULL, 10, n.n);
-		  printf ("Input number is %s (%u digits)\n", s, n.ndigits);
+                  printf ("Input number is %s (%u digits)\n", s, n.ndigits);
                   free (s); /* size n.ndigits + 1 */
-		}
-	      else
-	        {
-	          /* Print only first and last ten digits of the number */
-	          mpz_t t, u;
-	          mpz_init (t);
-	          mpz_init (u);
-	          mpz_ui_pow_ui (u, 5, n.ndigits - 10);
-	          mpz_tdiv_q_2exp (t, n.n, n.ndigits - 10);
-	          mpz_tdiv_q (t, t, u);
-		  gmp_printf ("Input number is %Zd...", t);
-		  mpz_ui_pow_ui (u, 10, 10);
-		  mpz_tdiv_r (t, n.n, u);
-		  gmp_printf ("%Zd (%u digits)\n", t, n.ndigits);
-		  mpz_clear (u);
-		  mpz_clear (t);
+                }
+              else
+                {
+                  /* Print only first and last ten digits of the number */
+                  mpz_t t, u;
+                  mpz_init (t);
+                  mpz_init (u);
+                  mpz_ui_pow_ui (u, 5, n.ndigits - 10);
+                  mpz_tdiv_q_2exp (t, n.n, n.ndigits - 10);
+                  mpz_tdiv_q (t, t, u);
+                  gmp_printf ("Input number is %Zd...", t);
+                  mpz_ui_pow_ui (u, 10, 10);
+                  mpz_tdiv_r (t, n.n, u);
+                  gmp_printf ("%Zd (%u digits)\n", t, n.ndigits);
+                  mpz_clear (u);
+                  mpz_clear (t);
                 }
               
-	      if (n.isPrp)
-		printf ("****** Warning: input is probably prime ******\n");
-	    }
-	  else /* 2nd or more try for same composite */
-	    {
-	      /* Since the expression is usually "so" short, why not just drop it out for ALL loops? */
-	      if (displayexpr)
-		{
-		  if (n.nexprlen && n.nexprlen <= displayexpr)
-		    printf ("Input number is %s (%u digits)\n", n.cpExpr, n.ndigits);
-		  else if (n.ndigits <= displayexpr)
-		    {
-		      char *s;
-		      s = mpz_get_str (NULL, 10, n.n);
-		      printf ("Input number is %s (%u digits)\n", s, n.ndigits);
+              if (n.isPrp)
+                  printf ("****** Warning: input is probably prime ******\n");
+            }
+          else /* 2nd or more try for same composite */
+            {
+              /* Since the expression is usually "so" short, why not just drop it out for ALL loops? */
+              if (displayexpr)
+                {
+                  if (n.nexprlen && n.nexprlen <= displayexpr)
+                      printf ("Input number is %s (%u digits)\n", n.cpExpr, n.ndigits);
+                  else if (n.ndigits <= displayexpr)
+                    {
+                      char *s;
+                      s = mpz_get_str (NULL, 10, n.n);
+                      printf ("Input number is %s (%u digits)\n", s, n.ndigits);
                       free (s); /* size n.ndigits + 1 */
-		    }
-		}
-	    }
-	  fflush (stdout);
-	}
+                    }
+                }
+            }
+          fflush (stdout);
+        }
       /* Even in verbose=0 we should primality check if told to do so, 
          however, we will print to stderr to keep stdout "clean"
          for verbose=0 like behavior */
-      else if (((!breadthfirst && cnt == count) || 
-                (breadthfirst && breadthfirst_cnt==1)) && n.isPrp)
-	{
-	  char *s;
-	  s = mpz_get_str (NULL, 10, n.n);
-	  fprintf (stderr, "Input number is %s (%u digits)\n"
-	           "****** Warning: input is probably prime ******\n", 
-	           s, n.ndigits);
-	  free (s); /* size n.ndigits + 1 */
-	}
+      else if (cnt == count && n.isPrp)
+        {
+          char *s;
+          s = mpz_get_str (NULL, 10, n.n);
+          fprintf (stderr, "Input number is %s (%u digits)\n"
+                           "****** Warning: input is probably prime ******\n", 
+                           s, n.ndigits);
+          free (s); /* size n.ndigits + 1 */
+        }
 
       cnt --; /* one more curve performed */
 
       mpgocandi_fixup_with_N (&go, &n);
-      /* If we are in batch mode:
-         If A was given one should check that d fits in one word and that x0=2.
-         If A was not given one chooses it at random (and if x0 exists
-         it must be 2). */
+
       if (param != ECM_PARAM_DEFAULT && method != ECM_ECM)
         {
           fprintf (stderr, "Error, the -param option is only valid for ECM\n");
@@ -1396,6 +1271,7 @@ BreadthFirstDoAgain:;
         }
       params->param = param;
      
+      /* TODO put this in a functions in a auxiliary file */
       if (loadfile_s != NULL)
         {
           int st;
@@ -1539,10 +1415,9 @@ BreadthFirstDoAgain:;
 
               returncode = process_newfactor (tmp_factor, result, &n, method,
                                  returncode, params->gpu, &cnt, &resume_wasPrp,
-                                 resume_lastfac, pCandidates, linenum,
-                                 resumefile, verbose, decimal_cofactor, deep,
-                                 breadthfirst);
-	          } while (params->gpu && mpz_cmp_ui (f, 0) != 0 
+                                 resume_lastfac, resumefile, verbose, 
+                                 decimal_cofactor, deep);
+            } while (params->gpu && mpz_cmp_ui (f, 0) != 0 
                                  && returncode != ECM_INPUT_NUMBER_FOUND);
           mpz_clear (tmp_factor);
         }
@@ -1550,13 +1425,13 @@ BreadthFirstDoAgain:;
       /* if quiet mode, prints remaining cofactor after last curve */
       if ((cnt == 0) && (verbose == 0))
         {
-	        if (n.cpExpr && !decimal_cofactor)
-	            printf ("%s", n.cpExpr);
-	        else
-	            mpz_out_str (stdout, 10, n.n);
-	        putchar ('\n');
-	        fflush (stdout);
-	      }
+          if (n.cpExpr && !decimal_cofactor)
+            printf ("%s", n.cpExpr);
+          else
+            mpz_out_str (stdout, 10, n.n);
+          putchar ('\n');
+          fflush (stdout);
+        }
 
       /* Write composite cofactors to savefile if requested */
       /* If no factor was found, we consider cofactor composite and write it */
@@ -1604,25 +1479,23 @@ BreadthFirstDoAgain:;
         }
 
       /* advance B1, if autoincrement value had been set during command line parsing */
-      if (!breadthfirst && autoincrementB1 > 0.0)
-	      {
-	        double NewB1;
-	        NewB1 = calc_B1_AutoIncrement (B1, autoincrementB1, autoincrementB1_calc);
-	        if (mpz_cmp_d (B2min, B1) <= 0) /* <= might be better than == */
-	            mpz_set_d (B2min, NewB1);
-	        B1 = NewB1;
-	      }
-      }
+      if (autoincrementB1 > 0.0)
+        {
+          double NewB1;
+          NewB1 = calc_B1_AutoIncrement (B1, autoincrementB1, 
+                                                        autoincrementB1_calc);
+          if (mpz_cmp_d (B2min, B1) <= 0) /* <= might be better than == */
+              mpz_set_d (B2min, NewB1);
+          B1 = NewB1;
+        }
+    } /* end of main loop */
 
-  /* Allow our "breadthfirst" search to re-run the file again if enough curves have not yet been run */
-    if (breadthfirst == 1 && !exit_asap_value)
-        goto BreadthFirstDoAgain;
-
+  /* FIXME the following commentary seems useless ! */
   /* NOTE finding a factor may have caused the loop to exit, but what is left 
      on screen is the wrong count of factors (missing the just found factor.  
      Update the screen to at least specify the current count */
 
-  if (infilename)	/* infile might be stdin, don't fclose that! */
+  if (infilename) /* infile might be stdin, don't fclose that! */
     fclose (infile);
   if (resumefile)
     {
@@ -1630,13 +1503,7 @@ BreadthFirstDoAgain:;
       mpz_clear (resume_lastN);
       mpz_clear (resume_lastfac);
     }
-  if (nCandidates)
-    {
-      while (nCandidates--)
-	mpcandi_t_free (&pCandidates[nCandidates]);
-      free (pCandidates);
-    }
-	  
+
   free_expr ();
 
   gmp_randclear (randstate);
