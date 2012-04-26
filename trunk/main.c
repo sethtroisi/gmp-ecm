@@ -1519,20 +1519,21 @@ BreadthFirstDoAgain:;
                    PACKAGE_BUGREPORT);
           exit (EXIT_FAILURE);
         }
+      
+      mpz_t tmp_n;
+      /* When GPU is used we need to have the value of N before it is 
+        divided by potential factor in f */
+      mpz_init_set (tmp_n, n.n);
 
       if (result != ECM_NO_FACTOR_FOUND)
         {
           returncode = 0;
           mpz_t tmp_factor;
-          mpz_t tmp_n;
           mpz_init (tmp_factor);
-          mpz_init_set (tmp_n, n.n);
           do 
             {
               if (params->gpu)
-                {
                   mpz_fdiv_qr (f, tmp_factor, f, tmp_n);
-                }
               else
                   mpz_set (tmp_factor, f);
 
@@ -1544,7 +1545,6 @@ BreadthFirstDoAgain:;
 	          } while (params->gpu && mpz_cmp_ui (f, 0) != 0 
                                  && returncode != ECM_INPUT_NUMBER_FOUND);
           mpz_clear (tmp_factor);
-          mpz_clear (tmp_n);
         }
 
       /* if quiet mode, prints remaining cofactor after last curve */
@@ -1562,14 +1562,38 @@ BreadthFirstDoAgain:;
       /* If no factor was found, we consider cofactor composite and write it */
       if (savefilename != NULL && !n.isPrp)
         {
-          mpz_mod (x, params->x, n.n); /* Reduce stage 1 residue wrt new co-
-                                          factor, in case a factor was found */
-          /* We write the B1done value to the safe file. This requires that
-             a correct B1done is returned by the factoring functions */
-          write_resumefile_line (savefilename, method, params->B1done, 
-                                 params->sigma, params->sigma_is_A, 
-                                 params->param, x, &n, orig_x0, comment);
+          if (params->gpu == 0)
+            {
+              /* Reduce stage 1 residue wrt new cofactor, in case a factor was 
+                 found */
+              mpz_mod (x, params->x, n.n); 
+              
+              /* We write the B1done value to the safe file. This requires that
+                 a correct B1done is returned by the factoring functions */
+              write_resumefile_line (savefilename, method, params->B1done, 
+                                     params->sigma, params->sigma_is_A, 
+                                     params->param, x, &n, orig_x0, comment);
+            }
+          else
+            {
+              unsigned int i = 0;
+              mpz_add_ui (params->sigma, params->sigma,
+                                         params->gpu_number_of_curves);
+              for (i = 0; i < params->gpu_number_of_curves; i++)
+                {
+                  mpz_sub_ui (params->sigma, params->sigma, 1);
+                  mpz_fdiv_qr (params->x, x, params->x, tmp_n); 
+                  mpz_mod (x, x, n.n);
+                  /* FIXME open and close savefilename at each iteration */
+                  write_resumefile_line (savefilename, method, params->B1done, 
+                                         params->sigma, params->sigma_is_A, 
+                                         params->param, x, &n, orig_x0, 
+                                         comment);
+                }
+            }
         }
+
+      mpz_clear (tmp_n);
 
       /* Save the batch exponent s if requested */
       if (savefile_s != NULL)
