@@ -744,14 +744,12 @@ TMulGen (listz_t b, unsigned int n, listz_t a, unsigned int m,
       return F_mul_trans (b, a, c, m + 1, l + 1, Fermat, tmp);
     }
   
-#ifdef KS_MULTIPLY
   if ((double) n * (double) mpz_sizeinbase (modulus, 2) >= KS_TMUL_THRESHOLD)
     {
       if (TMulKS (b, n, a, m, c, l, modulus, 1)) /* Non-zero means error */
 	return -1;
       return 0; /* We have no mul count so we return 0 */
     }
-#endif
 
   return TToomCookMul (b, n, a, m, c, l, tmp);
 }

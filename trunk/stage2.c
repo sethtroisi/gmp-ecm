@@ -292,11 +292,9 @@ memory_use (unsigned long dF, unsigned int sp_num, unsigned int Ftreelvl,
   mem += (double) Ftreelvl;
   mem *= (double) dF;
   mem += 2. * list_mul_mem (dF); /* Also in T */
-#if (MULT == KS)
-   /* estimated memory for kronecker_schonhage /
-      wrap-case in PrerevertDivision respectively */
+  /* estimated memory for list_mult_n /
+     wrap-case in PrerevertDivision respectively */
   mem += (24.0 + 1.0) * (double) (sp_num ? MIN(MUL_NTT_THRESHOLD, dF) : dF);
-#endif
   mem *= (double) (mpz_size (modulus->orig_modulus)) * sizeof (mp_limb_t)
          + sizeof (mpz_t);
   
