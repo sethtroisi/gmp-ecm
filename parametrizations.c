@@ -453,8 +453,7 @@ get_curve_from_random_parameter (mpz_t f, mpres_t A, mpres_t x, mpz_t sigma,
 }
 
 int 
-get_default_param (int sigma_is_A, mpz_t sigma, mpz_t x, double B1, 
-                   double B1done)
+get_default_param (int sigma_is_A, mpz_t sigma, double B1, double B1done)
 {
   if (!ECM_IS_DEFAULT_B1_DONE(B1done))
       return ECM_PARAM_SUYAMA;
@@ -464,12 +463,9 @@ get_default_param (int sigma_is_A, mpz_t sigma, mpz_t x, double B1,
 
   if (sigma_is_A == 1)
     {
-      /*if (mpz_cmp_ui (x, 2) == 0)
-        return ECM_PARAM_BATCH_??;
-      else*/
-      /* return ECM_PARAM_SUYAMA; */
-      return ECM_PARAM_DEFAULT; /* For now we keep the default values in order
-      not to compute the expected number of curves */
+      /* For now we keep the default values in order not to compute the 
+         expected number of curves. But it will do stage 1 as ECM_PARAM_SUYAMA */
+      return ECM_PARAM_DEFAULT; 
     }
 
 
