@@ -776,9 +776,9 @@ print_B1_B2_poly (int verbosity, int method, double B1, double B1done,
               if (gpu) /* if not 0, contains number_of_curves */
                 {
                   outputf (verbosity, ", sigma=%d:%Zd", param, sigma);
-                  mpz_add_ui (sigma, sigma, gpu);
+                  mpz_add_ui (sigma, sigma, gpu-1);
                   outputf (verbosity, "-%d:%Zd", param, sigma);
-                  mpz_sub_ui (sigma, sigma, gpu);
+                  mpz_sub_ui (sigma, sigma, gpu-1);
                   outputf (verbosity, " (%u curves)", gpu);
                 }
               else
@@ -887,7 +887,7 @@ set_stage_2_params (mpz_t B2, mpz_t B2_parm, mpz_t B2min, mpz_t B2min_parm,
 		 ECM_ERROR in case of error.
 */
 int
-ecm (mpz_t f, mpz_t x, int param, mpz_t sigma, mpz_t n, mpz_t go, 
+ecm (mpz_t f, mpz_t x, int *param, mpz_t sigma, mpz_t n, mpz_t go, 
      double *B1done, double B1, mpz_t B2min_parm, mpz_t B2_parm, double B2scale,
      unsigned long k, const int S, int verbose, int repr, int nobase2step2, int
      use_ntt, int sigma_is_A, FILE *os, FILE* es, char *chkfilename, char
@@ -929,21 +929,21 @@ ecm (mpz_t f, mpz_t x, int param, mpz_t sigma, mpz_t n, mpz_t go,
 #endif
  
   /* If the parametrization is not given, choose it.*/
-  if (param == ECM_PARAM_DEFAULT)
-      param = get_default_param (sigma_is_A, sigma, B1, *B1done);
+  if (*param == ECM_PARAM_DEFAULT)
+      *param = get_default_param (sigma_is_A, sigma, B1, *B1done);
 
   /* In batch mode, 
         we force repr=MODMULN, 
         B1done should either the default value or greater than B1 
         x should be either 0 (undetermined) or 2 */
-  if (IS_BATCH_MODE(param))
+  if (IS_BATCH_MODE(*param))
     {
       if (repr == ECM_MOD_DEFAULT)
         repr = ECM_MOD_MODMULN;
       else if (repr != ECM_MOD_MODMULN)
         {
           outputf (OUTPUT_ERROR, "Error, with param %d, repr should be " 
-                                 "ECM_MOD_MODMULN.\n", param);
+                                 "ECM_MOD_MODMULN.\n", *param);
           return ECM_ERROR;
         }
 
@@ -973,7 +973,7 @@ ecm (mpz_t f, mpz_t x, int param, mpz_t sigma, mpz_t n, mpz_t go,
     }
 
   /* check that if ECM_PARAM_BATCH_SQUARE is used, GMP_NUMB_BITS == 64*/
-  if (param == ECM_PARAM_BATCH_SQUARE && GMP_NUMB_BITS == 32)
+  if (*param == ECM_PARAM_BATCH_SQUARE && GMP_NUMB_BITS == 32)
     {
       outputf (OUTPUT_ERROR, "Error, parametrization ECM_PARAM_BATCH_SQUARE "
                              "works only with GMP_NUMB_BITS=64\n");
@@ -989,7 +989,7 @@ ecm (mpz_t f, mpz_t x, int param, mpz_t sigma, mpz_t n, mpz_t go,
     }
 
   /* Compute s for the batch mode */
-  if (IS_BATCH_MODE(param) && 
+  if (IS_BATCH_MODE(*param) && 
       (B1 != *batch_last_B1_used || mpz_cmp_ui (batch_s, 1) <= 0))
     {
       *batch_last_B1_used = B1;
@@ -1042,18 +1042,18 @@ ecm (mpz_t f, mpz_t x, int param, mpz_t sigma, mpz_t n, mpz_t go,
     {
       if (mpz_sgn (sigma) == 0)
         {
-          youpi = get_curve_from_random_parameter (f, P.A, P.x, sigma, param,
+          youpi = get_curve_from_random_parameter (f, P.A, P.x, sigma, *param,
                                                    modulus, rng);
         }
       else /* Compute A and x0 from given sigma values */
         {
-          if (param == ECM_PARAM_SUYAMA)
+          if (*param == ECM_PARAM_SUYAMA)
               youpi = get_curve_from_param0 (f, P.A, P.x, sigma, modulus);
-          else if (param == ECM_PARAM_BATCH_SQUARE)
+          else if (*param == ECM_PARAM_BATCH_SQUARE)
               youpi = get_curve_from_param1 (P.A, P.x, sigma, modulus);
-          else if (param == ECM_PARAM_BATCH_2)
+          else if (*param == ECM_PARAM_BATCH_2)
               youpi = get_curve_from_param2 (f, P.A, P.x, sigma, modulus);
-          else if (param == ECM_PARAM_BATCH_32BITS_D)
+          else if (*param == ECM_PARAM_BATCH_32BITS_D)
               youpi = get_curve_from_param3 (P.A, P.x, sigma, modulus);
           else
             {
@@ -1082,7 +1082,7 @@ ecm (mpz_t f, mpz_t x, int param, mpz_t sigma, mpz_t n, mpz_t go,
       /* Except for batch mode where we know that x0=2 */
       if (mpz_sgn (x) == 0)
         {
-          if (IS_BATCH_MODE(param))
+          if (IS_BATCH_MODE(*param))
             mpres_set_ui (P.x, 2, modulus);
           else
             {
@@ -1098,7 +1098,7 @@ ecm (mpz_t f, mpz_t x, int param, mpz_t sigma, mpz_t n, mpz_t go,
 
   /* Print B1, B2, polynomial and sigma */
   print_B1_B2_poly (OUTPUT_NORMAL, ECM_ECM, B1, *B1done, B2min_parm, B2min, 
-		    B2, root_params.S, sigma, sigma_is_A, go, param, 0);
+		    B2, root_params.S, sigma, sigma_is_A, go, *param, 0);
 
 #if 0
   outputf (OUTPUT_VERBOSE, "b2=%1.0f, dF=%lu, k=%lu, d=%lu, d2=%lu, i0=%Zd\n", 
@@ -1145,7 +1145,7 @@ ecm (mpz_t f, mpz_t x, int param, mpz_t sigma, mpz_t n, mpz_t go,
           outputf (OUTPUT_VERBOSE, 
             "Can't compute success probabilities for B1 <> B2min\n");
         }
-      else if ( param == ECM_PARAM_DEFAULT)
+      else if (*param == ECM_PARAM_DEFAULT)
         {
           outputf (OUTPUT_VERBOSE, "Can't compute success probabilities " 
                                    "for unknown parametrization.\n");
@@ -1153,7 +1153,7 @@ ecm (mpz_t f, mpz_t x, int param, mpz_t sigma, mpz_t n, mpz_t go,
       else
         {
           rhoinit (256, 10);
-          print_expcurves (B1, B2, dF, k, root_params.S, param);
+          print_expcurves (B1, B2, dF, k, root_params.S, *param);
         }
     }
 
@@ -1172,9 +1172,9 @@ ecm (mpz_t f, mpz_t x, int param, mpz_t sigma, mpz_t n, mpz_t go,
 
   if (B1 > *B1done)
     {
-        if (IS_BATCH_MODE(param))
+        if (IS_BATCH_MODE(*param))
         /* FIXME: go, stop_asap and chkfilename are ignored in batch mode */
-        youpi = ecm_stage1_batch (f, P.x, P.A, modulus, B1, B1done, param, 
+        youpi = ecm_stage1_batch (f, P.x, P.A, modulus, B1, B1done, *param, 
                                   batch_s);
         else
           youpi = ecm_stage1 (f, P.x, P.A, modulus, B1, B1done, go, stop_asap,
@@ -1275,13 +1275,13 @@ ecm (mpz_t f, mpz_t x, int param, mpz_t sigma, mpz_t n, mpz_t go,
 end_of_ecm_rhotable:
   if (test_verbose (OUTPUT_VERBOSE))
     {
-      if (mpz_cmp_d (B2min, B1) == 0 && param != ECM_PARAM_DEFAULT)
+      if (mpz_cmp_d (B2min, B1) == 0 && *param != ECM_PARAM_DEFAULT)
         {
           if (youpi == ECM_NO_FACTOR_FOUND && 
               (stop_asap == NULL || !(*stop_asap)()))
             print_exptime (B1, B2, dF, k, root_params.S, 
                            (long) (stage1time * 1000.) + 
-                           elltime (st, cputime ()), param);
+                           elltime (st, cputime ()), *param);
           rhoinit (1, 0); /* Free memory of rhotable */
         }
     }
