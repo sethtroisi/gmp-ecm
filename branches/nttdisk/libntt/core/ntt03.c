@@ -56,48 +56,103 @@ ntt3_run(spv_t x, spv_size_t stride,
 }
 
 static void
+ntt3_pfa_run_core(spv_t x, spv_size_t start,
+	  spv_size_t inc, spv_size_t n,
+	  sp_t p, sp_t d, spv_t ntt_const)
+{
+  spv_size_t j0, j1, j2;
+  sp_t p0, p1, p2;
+  sp_t x0, x1, x2;
+  sp_t     t1, t2;
+
+  j0 = start;
+  j1 = sp_array_inc(j0, inc, n);
+  j2 = sp_array_inc(j0, 2 * inc, n);
+
+  x0 = x[j0];
+  x1 = x[j1];
+  x2 = x[j2];
+
+  t1 = sp_add(x1, x2, p);
+  t2 = sp_sub(x1, x2, p);
+
+  p0 = sp_add(x0, t1, p);
+
+  p1 = sp_mul(t1, ntt_const[1], p, d);
+  p2 = sp_mul(t2, ntt_const[2], p, d);
+
+  p1 = sp_add(p0, p1, p);
+
+  t1 = sp_add(p1, p2, p);
+  t2 = sp_sub(p1, p2, p);
+
+  x[j0] = p0;
+  x[j1] = t1;
+  x[j2] = t2;
+}
+
+#ifdef HAVE_SSE2
+static void
+ntt3_pfa_run_core_simd(spv_t x, spv_size_t start,
+	  spv_size_t inc, spv_size_t inc2, spv_size_t n,
+	  sp_t p, sp_t d, spv_t ntt_const)
+{
+  spv_size_t j0, j1, j2;
+  sp_simd_t p0, p1, p2;
+  sp_simd_t x0, x1, x2;
+  sp_simd_t     t1, t2;
+
+  j0 = start;
+  j1 = sp_array_inc(j0, inc, n);
+  j2 = sp_array_inc(j0, 2 * inc, n);
+
+  x0 = sp_simd_gather(x, j0, inc2, n);
+  x1 = sp_simd_gather(x, j1, inc2, n);
+  x2 = sp_simd_gather(x, j2, inc2, n);
+
+  t1 = sp_simd_add(x1, x2, p);
+  t2 = sp_simd_sub(x1, x2, p);
+
+  p0 = sp_simd_add(x0, t1, p);
+
+  p1 = sp_simd_mul(t1, ntt_const[1], p, d);
+  p2 = sp_simd_mul(t2, ntt_const[2], p, d);
+
+  p1 = sp_simd_add(p0, p1, p);
+
+  t1 = sp_simd_add(p1, p2, p);
+  t2 = sp_simd_sub(p1, p2, p);
+
+  sp_simd_scatter(p0, x, j0, inc2, n);
+  sp_simd_scatter(t1, x, j1, inc2, n);
+  sp_simd_scatter(t2, x, j2, inc2, n);
+}
+#endif
+
+static void
 ntt3_pfa_run(spv_t x, spv_size_t stride,
 	  spv_size_t cofactor,
 	  sp_t p, sp_t d, spv_t ntt_const)
 {
-  spv_size_t i, jstart;
+  spv_size_t i = 0;
+  spv_size_t incstart = 0;
   spv_size_t n = 3 * cofactor * stride;
   spv_size_t inc = cofactor * stride;
-  spv_size_t inc3 = 3 * stride;
+  spv_size_t inc2 = 3 * stride;
 
-  for (i = jstart = 0; i < cofactor; i++, jstart += inc3)
+#ifdef HAVE_SSE2
+  spv_size_t num_simd = SP_SIMD_VSIZE * (cofactor / SP_SIMD_VSIZE);
+
+  for (i = 0; i < num_simd; i += SP_SIMD_VSIZE)
     {
-      spv_size_t j0, j1, j2;
-
-      sp_t p0, p1, p2;
-      sp_t x0, x1, x2;
-      sp_t     t1, t2;
-
-      j0 = jstart;
-      j1 = sp_array_inc(j0, inc, n);
-      j2 = sp_array_inc(j0, 2 * inc, n);
-
-      x0 = x[j0];
-      x1 = x[j1];
-      x2 = x[j2];
-
-      t1 = sp_add(x1, x2, p);
-      t2 = sp_sub(x1, x2, p);
-
-      p0 = sp_add(x0, t1, p);
-
-      p1 = sp_mul(t1, ntt_const[1], p, d);
-      p2 = sp_mul(t2, ntt_const[2], p, d);
-
-      p1 = sp_add(p0, p1, p);
-
-      t1 = sp_add(p1, p2, p);
-      t2 = sp_sub(p1, p2, p);
-
-      x[j0] = p0;
-      x[j1] = t1;
-      x[j2] = t2;
+      ntt3_pfa_run_core_simd(x, incstart, inc, inc2, n, p, d, ntt_const);
+      incstart += SP_SIMD_VSIZE * inc2;
     }
+#endif
+
+  for (; i < cofactor; i++, incstart += inc2)
+    ntt3_pfa_run_core(x, incstart, inc, n, p, d, ntt_const);
+
 }
 
 const nttconfig_t ntt3_config = 
