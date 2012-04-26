@@ -53,12 +53,6 @@ http://www.gnu.org/licenses/ or write to the Free Software Foundation, Inc.,
 
 /* #define DEBUG */
 
-int
-probab_prime_p (mpz_t N, int reps)
-{
-    return mpz_probab_prime_p (N, reps);
-}
-
 static int exit_asap_value = 0;
 static int exit_asap_signalnr = 0; /* Remembers which signal we received */
 
