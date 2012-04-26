@@ -431,11 +431,11 @@ AC_ARG_WITH(cc-for-cuda,
             AC_MSG_ERROR([CUDA is needed to run the GPU version.])
           ],
           [
-            AC_MSG_NOTICE([GPU version is not requested, --without-cc-for-cuda will be ignore.])
+            AC_MSG_NOTICE([GPU version is not requested, --without-cc-for-cuda will be ignored.])
           ] )
       ] )
     AS_IF([test "x$withval" = "xyes" ],[cc_for_cuda=""])
-  ], [ ])
+  ])
 
 AC_MSG_NOTICE($CC)
 AC_MSG_NOTICE($cc_for_cuda)
