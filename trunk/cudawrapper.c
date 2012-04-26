@@ -192,9 +192,6 @@ int gpu_ecm_stage1 (mpz_t *factors, int *array_stage_found, mpz_t N, mpz_t s,
       {
         youpi = array_stage_found[i];
       }
-    //if (ret==ECM_NO_FACTOR_FOUND && savefilename != NULL)
-    //  write_resumefile_wrapper (savefilename, &n, B1, xp, invd, invw);
-          
     }
   
   mpz_clear (N3);
