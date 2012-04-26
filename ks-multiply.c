@@ -26,31 +26,59 @@ http://www.gnu.org/licenses/ or write to the Free Software Foundation, Inc.,
 
 #define FFT_WRAP /* always defined since mpn_mul_fft is included */
 
+/* Copy at r+i*s the content of A[i*stride] for 0 <= i < l
+   Assume all A[i*stride] are non-negative, and their size is <= s.
+ */
+static void
+pack (mp_ptr r, mpz_t *A, mp_size_t l, mp_size_t stride, mp_size_t s)
+{
+  mp_size_t i, j, m;
+
+  for (i = 0, j = 0; i < l; i++, j += stride, r += s)
+    {
+      m = SIZ(A[j]);
+      ASSERT((0 <= m) && (m <= s));
+      if (m)
+        MPN_COPY (r, PTR(A[j]), m);
+      if (m < s)
+        MPN_ZERO (r + m, s - m);
+    }
+}
+
+/* put in R[i] for 0 <= i < l the content of {t+i*s, s} */
+void
+unpack (mpz_t *R, mp_ptr t, mp_size_t l, mp_size_t s)
+{
+  mp_size_t i, size_tmp;
+  mp_ptr r_ptr;
+
+  for (i = 0; i < l; i++, t += s)
+    {
+      size_tmp = s;
+      MPN_NORMALIZE(t, size_tmp); /* compute the actual size */
+      r_ptr = MPZ_REALLOC (R[i], size_tmp);
+      if (size_tmp)
+        MPN_COPY (r_ptr, t, size_tmp);
+      SIZ(R[i]) = size_tmp;
+    }
+}
+
 /* Puts in R[0..2l-2] the product of A[0..l-1] and B[0..l-1].
-   T must have as much space as for toomcook4 (it is only used when that
-   function is called).
    Notes:
     - this code aligns the coeffs at limb boundaries - if instead we aligned
-      at byte boundaries then we could save up to 3*l bytes in T0 and T1,
+      at byte boundaries then we could save up to 3*l bytes,
       but tests have shown this doesn't give any significant speed increase,
       even for large degree polynomials.
     - this code requires that all coefficients A[] and B[] are nonnegative.
-*/    
+*/
 void
-kronecker_schonhage (listz_t R, listz_t A, listz_t B, unsigned int l,
-                     listz_t T)
+list_mult_n (listz_t R, listz_t A, listz_t B, unsigned int l)
 {
   unsigned long i;
-  mp_size_t s, t = 0, size_t0, size_tmp;
-  mp_ptr t0_ptr, t1_ptr, t2_ptr, r_ptr;
+  mp_size_t s, t = 0, size_t0;
+  mp_ptr t0_ptr, t1_ptr, t2_ptr;
 
-  s = mpz_sizeinbase (A[0], 2);
-  if ((double) l * (double) s < KS_MUL_THRESHOLD)
-    {
-      toomcook4 (R, A, B, l, T);
-      return;
-    }
-
+  /* compute the largest bit-size t of the A[i] and B[i] */
   for (i = 0; i < l; i++)
     {
       if ((s = mpz_sizeinbase (A[i], 2)) > t)
@@ -58,65 +86,38 @@ kronecker_schonhage (listz_t R, listz_t A, listz_t B, unsigned int l,
       if ((s = mpz_sizeinbase (B[i], 2)) > t)
         t = s;
     }
-  /* For n > 0, s = sizeinbase (n, 2)  <==>  2^(s-1) <= n < 2^s. 
+  /* For n > 0, s = sizeinbase (n, 2)     ==> n < 2^s. 
      For n = 0, s = sizeinbase (n, 2) = 1 ==> n < 2^s.
      Hence all A[i], B[i] < 2^t */
   
   /* Each coeff of A(x)*B(x) < l * 2^(2*t), so max number of bits in a 
-     coeff of T[0] * T[1] will be 2 * t + ceil(log_2(l)) */
-  s = t * 2;
-  for (i = l - 1; i; s++, i >>= 1); /* ceil(log_2(l)) = 1+floor(log_2(l-1)) */
+     coeff of the product will be 2 * t + ceil(log_2(l)) */
+  s = 2 * t;
+  for (i = l; i > 1; s++, i = (i + 1) >> 1);
   
   /* work out the corresponding number of limbs */
   s = 1 + (s - 1) / GMP_NUMB_BITS;
 
-  /* Note: s * (l - 1) + ceil(t/GMP_NUMB_BITS) should be faster,
-     but no significant speedup was observed */
   size_t0 = s * l;
 
-  /* allocate one double-buffer to save malloc/MPN_ZERO/free calls */
-  t0_ptr = (mp_ptr) malloc (2 * size_t0 * sizeof (mp_limb_t));
+  /* allocate a single buffer to save malloc/MPN_ZERO/free calls */
+  t0_ptr = (mp_ptr) malloc (4 * size_t0 * sizeof (mp_limb_t));
   if (t0_ptr == NULL)
     {
-      outputf (OUTPUT_ERROR, "Out of memory in kronecker_schonhage()\n");
+      outputf (OUTPUT_ERROR, "Out of memory in list_mult_n()\n");
       exit (1);
     }
   t1_ptr = t0_ptr + size_t0;
+  t2_ptr = t1_ptr + size_t0;
     
-  MPN_ZERO (t0_ptr, 2 * size_t0);
+  pack (t0_ptr, A, l, 1, s);
+  pack (t1_ptr, B, l, 1, s);
 
-  for (i = 0; i < l; i++)
-    {
-      ASSERT(SIZ(A[i]) >= 0);
-      if (SIZ(A[i]))
-        MPN_COPY (t0_ptr + i * s, PTR(A[i]), SIZ(A[i]));
-      ASSERT(SIZ(B[i]) >= 0);
-      if (SIZ(B[i]))
-        MPN_COPY (t1_ptr + i * s, PTR(B[i]), SIZ(B[i]));
-    }
-
-  t2_ptr = (mp_ptr) malloc (2 * size_t0 * sizeof (mp_limb_t));
-  if (t2_ptr == NULL)
-    {
-      free (t0_ptr);
-      outputf (OUTPUT_ERROR, "Out of memory in kronecker_schonhage()\n");
-      exit (1);
-    }
-  
   mpn_mul_n (t2_ptr, t0_ptr, t1_ptr, size_t0);
-  
-  for (i = 0; i < 2 * l - 1; i++)
-    {
-      size_tmp = s;
-      MPN_NORMALIZE(t2_ptr + i * s, size_tmp);
-      r_ptr = MPZ_REALLOC (R[i], size_tmp);
-      if (size_tmp)
-        MPN_COPY (r_ptr, t2_ptr + i * s, size_tmp);
-      SIZ(R[i]) = size_tmp;
-    }
+
+  unpack (R, t2_ptr, 2 * l - 1, s);
 
   free (t0_ptr);
-  free (t2_ptr);
 }
 
 /* Given a[0..m] and c[0..l], puts in b[0..n] the coefficients
