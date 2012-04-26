@@ -386,61 +386,17 @@ error:
 }
 
 
-/* Append a residue to the savefile with name given in fn.
-   Returns 1 on success, 0 on error */
-int  
-write_resumefile_line (char *fn, int method, double B1, mpz_t sigma,
-int sigma_is_A, int param, mpz_t x, mpcandi_t *n, mpz_t x0, 
-const char *comment)
+/* Append a residue in file. */
+static void  
+write_resumefile_line (FILE *file, int method, double B1, mpz_t sigma, 
+                       int sigma_is_A, int param, mpz_t x, mpcandi_t *n, 
+                       mpz_t x0, const char *comment)
 {
-  FILE *file;
   mpz_t checksum;
   time_t t;
   char text[256];
   char *uname, mname[32];
-#if defined(HAVE_FCNTL) && defined(HAVE_FILENO)
-  struct flock lock;
-  int r, fd;
-#endif
 
-#ifdef DEBUG
-  if (fn == NULL)
-    {
-      fprintf (stderr, "write_resumefile_line: fn == NULL\n");
-      exit (EXIT_FAILURE);
-    }
-#endif
-  
-  file = fopen (fn, "a");
-  if (file == NULL)
-    {
-      fprintf (stderr, "Could not open file %s for writing\n", fn);
-      return 0;
-    }
-  
-#if defined(HAVE_FCNTL) && defined(HAVE_FILENO)
-  /* Try to get a lock on the file so several processes can append to
-     the same file safely */
-  
-  /* Supposedly some implementations of fcntl() can get confused over
-     garbage in unused fields in a flock struct, so zero it */
-  memset (&lock, 0, sizeof (struct flock));
-  fd = fileno (file);
-  lock.l_type = F_WRLCK;
-  lock.l_whence = SEEK_SET;
-  lock.l_start = 0;
-  lock.l_len = 1; 
-  /* F_SETLKW: blocking exclusive lock request */
-  r = fcntl (fd, F_SETLKW, &lock);
-  if (r != 0)
-    {
-      fclose (file);
-      return 0;
-    }
-
-  fseek (file, 0, SEEK_END);
-#endif
-  
   mpz_init (checksum);
   mpz_set_d (checksum, B1);
   fprintf (file, "METHOD=");
@@ -530,6 +486,95 @@ const char *comment)
   fprintf (file, " TIME=%s;", text);
   fprintf (file, "\n");
   fflush (file);
+}
+
+/* Call write_resumefile_line for each residue in x.
+   x = x0 + x1*N + ... + xk*N^k, xi are the residues (this is a hack for GPU)
+   FIXME : x0 corresponds to sigma + gpu_curves-1
+           xk corresponds to sigma
+             should be the other way around
+
+   Returns 1 on success, 0 on error */
+int  
+write_resumefile (char *fn, int method, mpz_t N, double B1done, mpz_t sigma,
+                  int sigma_is_A, int param, int gpu, mpz_t x, mpcandi_t *n,
+                  mpz_t orig_x0, unsigned int gpu_curves, const char *comment)
+{
+  FILE *file;
+#if defined(HAVE_FCNTL) && defined(HAVE_FILENO)
+  struct flock lock;
+  int r, fd;
+#endif
+  mpz_t tmp_x;
+  mpz_init (tmp_x);
+  unsigned int i = 0;
+
+  /* first try to open the file */
+#ifdef DEBUG
+  if (fn == NULL)
+    {
+      fprintf (stderr, "write_resumefile: fn == NULL\n");
+      exit (EXIT_FAILURE);
+    }
+#endif
+  
+  file = fopen (fn, "a");
+  if (file == NULL)
+    {
+      fprintf (stderr, "Could not open file %s for writing\n", fn);
+      return 0;
+    }
+  
+#if defined(HAVE_FCNTL) && defined(HAVE_FILENO)
+  /* Try to get a lock on the file so several processes can append to
+     the same file safely */
+  
+  /* Supposedly some implementations of fcntl() can get confused over
+     garbage in unused fields in a flock struct, so zero it */
+  memset (&lock, 0, sizeof (struct flock));
+  fd = fileno (file);
+  lock.l_type = F_WRLCK;
+  lock.l_whence = SEEK_SET;
+  lock.l_start = 0;
+  lock.l_len = 1; 
+  /* F_SETLKW: blocking exclusive lock request */
+  r = fcntl (fd, F_SETLKW, &lock);
+  if (r != 0)
+    {
+      fclose (file);
+      return 0;
+    }
+
+  fseek (file, 0, SEEK_END);
+#endif
+  
+
+  /* Now can call write_resumefile_line to write in the file */
+  if (gpu == 0)
+    {
+      /* Reduce stage 1 residue wrt new cofactor, in case a factor was 
+         found */
+      mpz_mod (tmp_x, x, n->n); 
+      
+      /* We write the B1done value to the safe file. This requires that
+         a correct B1done is returned by the factoring functions */
+      write_resumefile_line (file, method, B1done, sigma, sigma_is_A, param,
+                             tmp_x, n, orig_x0, comment);
+    }
+  else
+    {
+      mpz_add_ui (sigma, sigma, gpu_curves);
+      for (i = 0; i < gpu_curves; i++)
+        {
+          mpz_sub_ui (sigma, sigma, 1);
+          mpz_fdiv_qr (x, tmp_x, x, N); 
+          mpz_mod (tmp_x, tmp_x, n->n);
+          write_resumefile_line (file, method, B1done, sigma, sigma_is_A, param,
+                                 tmp_x, n, orig_x0, comment);
+        }
+    }
+
+  /* closing the file */
 #if defined(HAVE_FCNTL) && defined(HAVE_FILENO)
   lock.l_type = F_UNLCK;
   lock.l_whence = SEEK_SET;
@@ -539,8 +584,9 @@ const char *comment)
 #endif
   fclose (file);
 
-  return 1;
+  return 0;
 }
+
 
 /* For the batch mode */
 /* Write the batch exponent s in a file */

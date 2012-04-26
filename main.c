@@ -1383,35 +1383,11 @@ main (int argc, char *argv[])
       /* If no factor was found, we consider cofactor composite and write it */
       if (savefilename != NULL && !n.isPrp)
         {
-          if (params->gpu == 0)
-            {
-              /* Reduce stage 1 residue wrt new cofactor, in case a factor was 
-                 found */
-              mpz_mod (x, params->x, n.n); 
-              
-              /* We write the B1done value to the safe file. This requires that
-                 a correct B1done is returned by the factoring functions */
-              write_resumefile_line (savefilename, method, params->B1done, 
-                                     params->sigma, params->sigma_is_A, 
-                                     params->param, x, &n, orig_x0, comment);
-            }
-          else
-            {
-              unsigned int i = 0;
-              mpz_add_ui (params->sigma, params->sigma,
-                                         params->gpu_number_of_curves);
-              for (i = 0; i < params->gpu_number_of_curves; i++)
-                {
-                  mpz_sub_ui (params->sigma, params->sigma, 1);
-                  mpz_fdiv_qr (params->x, x, params->x, tmp_n); 
-                  mpz_mod (x, x, n.n);
-                  /* FIXME open and close savefilename at each iteration */
-                  write_resumefile_line (savefilename, method, params->B1done, 
-                                         params->sigma, params->sigma_is_A, 
-                                         params->param, x, &n, orig_x0, 
-                                         comment);
-                }
-            }
+        /* TODO Deal with return code */
+          write_resumefile (savefilename, method, tmp_n, params->B1done, 
+                            params->sigma, params->sigma_is_A, params->param, 
+                            params->gpu, params->x, &n, orig_x0,
+                            params->gpu_number_of_curves, comment);
         }
 
       mpz_clear (tmp_n);
