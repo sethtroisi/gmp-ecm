@@ -124,9 +124,8 @@ int
 process_newfactor (mpz_t g, int result, mpcandi_t *n, int method, 
                    int returncode, int gpu, unsigned int *cnt, 
                    int *resume_wasPrp, mpz_t resume_lastfac, 
-                   mpcandi_t *pCandidates, unsigned int linenum, 
                    FILE *resumefile, int verbose, unsigned int decimal_cofactor,
-                   int deep, int breadthfirst)
+                   int deep)
 {
   int factor_is_prime = 0;
         /* If a factor was found, indicate whether factor, cofactor are */
@@ -243,22 +242,10 @@ process_newfactor (mpz_t g, int result, mpcandi_t *n, int method,
         *cnt = 0; /* no more curve to perform */
 
       if (!deep)
-        {
-          if (breadthfirst)
-          /* I know it may not be prp, but setting this will cause all future loops to NOT 
-          check this candidate again */
-              pCandidates[linenum-1].isPrp = 1;
           *cnt = 0;
-        }
-      else if (breadthfirst)
-          mpcandi_t_copy (&pCandidates[linenum-1], n);
     }
   else
     {
-      if (breadthfirst)
-      /* I know it may not be prp, but setting this will cause all 
-         future loops to NOT check this candidate again */
-          pCandidates[linenum-1].isPrp = 1;
       *cnt = 0; /* no more curve to perform */
       if (verbose > 0)
           printf ("Found input number N");
