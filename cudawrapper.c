@@ -249,7 +249,7 @@ gpu_ecm ()
 }
 #else
 int
-gpu_ecm (mpz_t f, int param, mpz_t firstsigma, mpz_t n, mpz_t go, 
+gpu_ecm (mpz_t f, mpz_t x, int *param, mpz_t firstsigma, mpz_t n, mpz_t go, 
          double *B1done, double B1, mpz_t B2min_parm, mpz_t B2_parm, 
          double B2scale, unsigned long k, const int S, int verbose, int repr,
          int nobase2step2, int use_ntt, int sigma_is_A, FILE *os, FILE* es, 
@@ -294,10 +294,10 @@ gpu_ecm (mpz_t f, int param, mpz_t firstsigma, mpz_t n, mpz_t go,
     }
 
   /* Only param = ECM_PARAM_BATCH_32BITS_D is accepted on GPU */
-  if (param == ECM_PARAM_DEFAULT)
-      param = ECM_PARAM_BATCH_32BITS_D;
+  if (*param == ECM_PARAM_DEFAULT)
+      *param = ECM_PARAM_BATCH_32BITS_D;
     
-  if (param != ECM_PARAM_BATCH_32BITS_D)
+  if (*param != ECM_PARAM_BATCH_32BITS_D)
     {
       outputf (OUTPUT_ERROR, "GPU: Error, only param = ECM_PARAM_BATCH_32BITS_D "
                              "is accepted on GPU.\n");
@@ -449,7 +449,7 @@ gpu_ecm (mpz_t f, int param, mpz_t firstsigma, mpz_t n, mpz_t go,
 
 
   print_B1_B2_poly (OUTPUT_NORMAL, ECM_ECM, B1, *B1done,  B2min_parm, B2min, 
-                    B2, S, firstsigma, sigma_is_A, go, param, *nb_curves);
+                    B2, S, firstsigma, sigma_is_A, go, *param, *nb_curves);
   outputf (OUTPUT_VERBOSE, "dF=%lu, k=%lu, d=%lu, d2=%lu, i0=%Zd\n", 
            dF, k, root_params.d1, root_params.d2, root_params.i0);
 
@@ -472,7 +472,7 @@ gpu_ecm (mpz_t f, int param, mpz_t firstsigma, mpz_t n, mpz_t go,
       else
         {
           rhoinit (256, 10);
-          print_expcurves (B1, B2, dF, k, root_params.S, param);
+          print_expcurves (B1, B2, dF, k, root_params.S, *param);
         }
     }
   
@@ -484,6 +484,17 @@ gpu_ecm (mpz_t f, int param, mpz_t firstsigma, mpz_t n, mpz_t go,
                           "time\n", elltime (st, cputime ()), gputime);
   outputf (OUTPUT_VERBOSE, "Throughput: %.3f curves by second\n", 
                            1000 * (*nb_curves)/gputime);
+
+  *B1done=B1;
+
+  /* If x0, ,xk are the values of x at the end of step 1 
+     x = x0 + x1*n + .. + xk*n^k */
+  mpz_set_ui (x, 0);
+  for (i = 0; i < *nb_curves; i++)
+  {
+    mpz_mul (x, x, n);
+    mpz_add (x, x, factors[i]);
+  }
 
   /* was a factor found in stage 1 ? */
   if (youpi != ECM_NO_FACTOR_FOUND)
@@ -556,7 +567,7 @@ end_gpu_ecm_rhotable:
           if (youpi == ECM_NO_FACTOR_FOUND && 
               (stop_asap == NULL || !(*stop_asap)()))
               print_exptime (B1, B2, dF, k, root_params.S, 
-                             (long) elltime (st, cputime ()), param);
+                             (long) elltime (st, cputime ()), *param);
           rhoinit (1, 0); /* Free memory of rhotable */
         }
     }
