@@ -1068,6 +1068,7 @@ main (int argc, char *argv[])
   if (!infilename)
     infile = stdin;
 
+  /* Main loop */
   while ((cnt > 0 || feof (infile) == 0) && !exit_asap_value)
     {
       params->B1done = B1done; /* may change with resume */
@@ -1198,17 +1199,13 @@ main (int argc, char *argv[])
           if (cnt == count)
             {
             /* first time this candidate has been run 
-               (if looping more than once */
+               (if looping more than once) */
               if (n.cpExpr && n.nexprlen < MAX_NUMBER_PRINT_LEN)
-                printf ("Input number is %s (%u digits)\n", n.cpExpr, 
+                  printf ("Input number is %s (%u digits)\n", n.cpExpr, 
                                                                   n.ndigits);
               else if (n.ndigits < MAX_NUMBER_PRINT_LEN)
-                {
-                  char *s;
-                  s = mpz_get_str (NULL, 10, n.n);
-                  printf ("Input number is %s (%u digits)\n", s, n.ndigits);
-                  free (s); /* size n.ndigits + 1 */
-                }
+                  gmp_printf ("Input number is %Zd (%u digits)\n", 
+                              n.n, n.ndigits);
               else
                 {
                   /* Print only first and last ten digits of the number */
@@ -1231,18 +1228,15 @@ main (int argc, char *argv[])
             }
           else /* 2nd or more try for same composite */
             {
-              /* Since the expression is usually "so" short, why not just drop it out for ALL loops? */
+              /* Since the expression is usually "so" short, why not just drop 
+                 it out for ALL loops? */
               if (displayexpr)
                 {
                   if (n.nexprlen && n.nexprlen <= displayexpr)
                       printf ("Input number is %s (%u digits)\n", n.cpExpr, n.ndigits);
                   else if (n.ndigits <= displayexpr)
-                    {
-                      char *s;
-                      s = mpz_get_str (NULL, 10, n.n);
-                      printf ("Input number is %s (%u digits)\n", s, n.ndigits);
-                      free (s); /* size n.ndigits + 1 */
-                    }
+                      gmp_printf ("Input number is %Zd (%u digits)\n", 
+                                  n.n, n.ndigits);
                 }
             }
           fflush (stdout);
@@ -1251,14 +1245,9 @@ main (int argc, char *argv[])
          however, we will print to stderr to keep stdout "clean"
          for verbose=0 like behavior */
       else if (cnt == count && n.isPrp)
-        {
-          char *s;
-          s = mpz_get_str (NULL, 10, n.n);
-          fprintf (stderr, "Input number is %s (%u digits)\n"
+          gmp_fprintf (stderr, "Input number is %Zd (%u digits)\n"
                            "****** Warning: input is probably prime ******\n", 
-                           s, n.ndigits);
-          free (s); /* size n.ndigits + 1 */
-        }
+                           n.n, n.ndigits);
 
       cnt --; /* one more curve performed */
 
