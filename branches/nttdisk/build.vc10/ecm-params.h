@@ -1,10 +1,28 @@
-#define MPZMOD_THRESHOLD 170
-#define REDC_THRESHOLD 294
-#define MPN_MUL_LO_THRESHOLD_TABLE {0, 0, 0, 0, 0, 0, 0, 1, 7, 8, 1, 1, 8, 1, 1, 10, 1, 1, 1, 1, 1, 1, 1, 16, 1, 1, 16, 16, 1, 1, 16, 1}
-#define NTT_GFP_TWIDDLE_DIF_BREAKOVER 11
-#define NTT_GFP_TWIDDLE_DIT_BREAKOVER 11
-#define MUL_NTT_THRESHOLD 1024
-#define PREREVERTDIVISION_NTT_THRESHOLD 64
-#define POLYINVERT_NTT_THRESHOLD 512
-#define POLYEVALT_NTT_THRESHOLD 512
-#define MPZSPV_NORMALISE_STRIDE 512
+
+#define HAVE_MPIR
+
+#if 0
+# include "ecm-params.h.x64.intel"
+# elif 0
+# include "ecm-params.h.x64.amd"
+#elif 0
+# include "ecm-params.h.win32.intel"
+#elif 0
+# include "ecm-params.h.win32.amd"
+#elif 0
+# include "..\ecm-params.h.athlon"
+#elif 0 
+# include "..\ecm-params.h.athlon64"
+#elif 0
+# include "..\ecm-params.h.core2"
+#elif 1
+# include "..\ecm-params.h.corei5"
+#elif 0
+# include "..\ecm-params.h.pentium3"
+#elif 0
+# include "..\ecm-params.h.pentium4"
+#elif 0
+# include "..\ecm-params.h.pentium-m"
+#else
+# include "..\ecm-params.h.default"
+#endif

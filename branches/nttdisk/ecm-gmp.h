@@ -30,10 +30,10 @@ MA 02110-1301, USA. */
 #define ALLOC(x) ((x)->_mp_alloc)
 #define PTR(x) ((x)->_mp_d)
 #define SIZ(x) ((x)->_mp_size)
-#define TMP_DECL(m)
+#define TMP_DECL
 #define TMP_ALLOC(x) alloca(x)
-#define TMP_MARK(m)
-#define TMP_FREE(m)
+#define TMP_MARK
+#define TMP_FREE
 #define TMP_ALLOC_TYPE(n,type) ((type *) TMP_ALLOC ((n) * sizeof (type)))
 #define TMP_ALLOC_LIMBS(n)     TMP_ALLOC_TYPE(n,mp_limb_t)
 
@@ -154,5 +154,18 @@ mpz_set_int64 (mpz_t m, const int64_t n)
     mpz_set_uint64(m, n);
 }
 
+
+#define mpn_mul_fft __gmpn_mul_fft
+mp_limb_t __gmpn_mul_fft (mp_ptr, mp_size_t, mp_srcptr, mp_size_t, mp_srcptr, 
+                          mp_size_t, int);
+
+#define mpn_mul_fft_full __gmpn_mul_fft_full
+void __gmpn_mul_fft_full (mp_ptr, mp_srcptr, mp_size_t, mp_srcptr, mp_size_t);
+
+#define mpn_fft_next_size __gmpn_fft_next_size
+mp_size_t __gmpn_fft_next_size (mp_size_t, int);
+
+#define mpn_fft_best_k __gmpn_fft_best_k
+int __gmpn_fft_best_k (mp_size_t, int);
 
 #endif /* _ECM_GMP_H */

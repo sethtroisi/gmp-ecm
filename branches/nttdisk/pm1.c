@@ -908,7 +908,7 @@ pm1 (mpz_t f, mpz_t p, mpz_t N, mpz_t go, double *B1done, double B1,
   if (stage2_variant != 0)
     {
       long P_ntt, P_nontt;
-      const unsigned long lmax = 1UL<<28; /* An upper bound */
+      const unsigned long lmax = 1UL << 28; /* An upper bound */
       unsigned long lmax_NTT, lmax_noNTT;
       faststage2_param_t params_ntt, params_nontt, *better_params;
 
@@ -942,7 +942,7 @@ pm1 (mpz_t f, mpz_t p, mpz_t N, mpz_t go, double *B1done, double B1,
           P_ntt = choose_P (B2min, B2, lmax_NTT, k, &params_ntt, 
                             B2min, B2, 1, ECM_PM1);
           if (P_ntt != ECM_ERROR)
-            outputf (OUTPUT_DEVVERBOSE, 
+            outputf (OUTPUT_DEVVERBOSE,
 	             "Parameters for NTT: P=%" PRId64 ", l=%lu\n", 
 	             params_ntt.P, params_ntt.l);
 	}
@@ -965,7 +965,7 @@ pm1 (mpz_t f, mpz_t p, mpz_t N, mpz_t go, double *B1done, double B1,
       else
         P_nontt = ECM_ERROR;
       if (P_nontt != ECM_ERROR)
-        outputf (OUTPUT_DEVVERBOSE, 
+        outputf (OUTPUT_DEVVERBOSE,
                  "Parameters for non-NTT: P=%" PRId64 ", l=%lu\n", 
                  params_nontt.P, params_nontt.l);
       
@@ -981,14 +981,10 @@ pm1 (mpz_t f, mpz_t p, mpz_t N, mpz_t go, double *B1done, double B1,
           return ECM_ERROR;
         }
 
-      /* Now decide wether to take NTT or non-NTT.
-         How to choose the better one is not an easy question.
-         It will depend on the speed ratio between NTT/non-NTT code,
-         their difference in memory use and available memory.
-         For now, we choose the one that uses a longer transform length.
-         FIXME: Write something not brain-dead here */
-      if (use_ntt == 0 || P_ntt == ECM_ERROR ||
-          (use_ntt == 1 && params_nontt.l > params_ntt.l))
+      /* Now decide whether to take NTT or non-NTT. Since the non-NTT code
+         uses more memory, we only use it when -no-ntt was given, or when
+         we can't find good parameters for the NTT code. */
+      if (use_ntt == 0 || P_ntt == ECM_ERROR)
         {
           better_params = &params_nontt;
           use_ntt = 0;
@@ -1071,7 +1067,7 @@ pm1 (mpz_t f, mpz_t p, mpz_t N, mpz_t go, double *B1done, double B1,
   
   /* Print B1, B2, polynomial and x0 */
   print_B1_B2_poly (OUTPUT_NORMAL, ECM_PM1, B1, *B1done, B2min_parm, B2min, 
-		    B2, (stage2_variant == 0) ? root_params.S : 1, p, 0, NULL);
+		    B2, (stage2_variant == 0) ? root_params.S : 1, p, 0, NULL, 0, 0);
 
   /* If we do a stage 2, print its parameters */
   if (mpz_cmp (B2, B2min) >= 0)

@@ -1,0 +1,55 @@
+#!/bin/sh
+
+# test file for ECM on GPU
+#
+# Copyright 2012
+# Jim Fougeron, Alexander Kruppa, Dave Newman, Paul Zimmermann, Cyril Bouvier,
+# David Cleaver.
+#
+# This program is free software; you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation; either version 3 of the License, or (at your
+# option) any later version.
+# 
+# This program is distributed in the hope that it will be useful, but
+# WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
+# or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License for
+# more details.
+# 
+# You should have received a copy of the GNU General Public License
+# along with this program; see the file COPYING.  If not, see
+# http://www.gnu.org/licenses/ or write to the Free Software Foundation, Inc.,
+# 51 Franklin St, Fifth Floor, Boston, MA 02110-1301, USA.
+
+ECM="$1 -gpu"
+
+# Call with "checkcode $? n" to check that return code is n
+# (see test.pm1 for the explanation of the different return codes)              
+checkcode () {
+  if [ $1 != $2 ]
+  then
+    echo "############### ERROR ###############"
+    echo "Expected return code $2 but got $1"
+    exit 1
+  fi
+}
+
+# Exit statues returned by GMP-ECM:
+# 0      Normal program termination, no factor found
+# 1      Error
+# 2      Composite factor found, cofactor is composite
+# 6      Probable prime factor found, cofactor is composite
+# 8      Input number found
+# 10     Composite factor found, cofactor is a probable prime
+# 14     Probable prime factor found, cofactor is a probable prime
+
+echo 458903930815802071188998938170281707063809443792768383215233 | $ECM -sigma 3:42 10000
+checkcode $? 14
+
+echo "2^349-1" | $ECM -sigma 3:13 587 29383
+checkcode $? 6
+
+echo "2^1018-1" | $ECM -sigma 3:42 1024 0
+checkcode $? 2
+
+echo "All ECM tests with GPU are ok."

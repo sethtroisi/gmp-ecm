@@ -21,6 +21,7 @@ http://www.gnu.org/licenses/ or write to the Free Software Foundation, Inc.,
 #include <stdio.h>
 #include <stdlib.h>
 #include <time.h>
+#include <math.h>
 #include <string.h>
 #if !defined (_MSC_VER)
 #include <unistd.h>
@@ -118,7 +119,7 @@ freadstrn (FILE *fd, char *s, char delim, unsigned int len)
 
 int 
 read_resumefile_line (int *method, mpz_t x, mpcandi_t *n, mpz_t sigma, mpz_t A, 
-        mpz_t x0, double *b1, char *program, char *who, char *rtime, 
+        mpz_t x0, int *param, double *b1, char *program, char *who, char *rtime, 
         char *comment, FILE *fd)
 {
   int a, have_method, have_x, have_z, have_n, have_sigma, have_a, have_b1, 
@@ -148,6 +149,9 @@ read_resumefile_line (int *method, mpz_t x, mpcandi_t *n, mpz_t sigma, mpz_t A,
       
       have_method = have_x = have_z = have_n = have_sigma = have_a = 
                     have_b1 = have_qx = have_checksum = 0;
+
+      /* For compatibility reason, param = ECM_PARAM_SUYAMA by default */
+      *param = ECM_PARAM_SUYAMA;
 
       /* Set optional fields to zero */
       mpz_set_ui (sigma, 0);
@@ -326,7 +330,7 @@ read_resumefile_line (int *method, mpz_t x, mpcandi_t *n, mpz_t sigma, mpz_t A,
 #endif
       
       if (!have_method || !have_x || !have_n || !have_b1 ||
-          (method == ECM_ECM && !have_sigma && !have_a))
+          (*method == ECM_ECM && !have_sigma && !have_a))
         {
           fprintf (stderr, "Save file line lacks fields\n");
           continue;
@@ -382,60 +386,17 @@ error:
 }
 
 
-/* Append a residue to the savefile with name given in fn.
-   Returns 1 on success, 0 on error */
-int  
-write_resumefile_line (char *fn, int method, double B1, mpz_t sigma, mpz_t A, 
-	mpz_t x, mpcandi_t *n, mpz_t x0, const char *comment)
+/* Append a residue in file. */
+static void  
+write_resumefile_line (FILE *file, int method, double B1, mpz_t sigma, 
+                       int sigma_is_A, int param, mpz_t x, mpcandi_t *n, 
+                       mpz_t x0, const char *comment)
 {
-  FILE *file;
   mpz_t checksum;
   time_t t;
   char text[256];
   char *uname, mname[32];
-#if defined(HAVE_FCNTL) && defined(HAVE_FILENO)
-  struct flock lock;
-  int r, fd;
-#endif
 
-#ifdef DEBUG
-  if (fn == NULL)
-    {
-      fprintf (stderr, "write_resumefile_line: fn == NULL\n");
-      exit (EXIT_FAILURE);
-    }
-#endif
-  
-  file = fopen (fn, "a");
-  if (file == NULL)
-    {
-      fprintf (stderr, "Could not open file %s for writing\n", fn);
-      return 0;
-    }
-  
-#if defined(HAVE_FCNTL) && defined(HAVE_FILENO)
-  /* Try to get a lock on the file so several processes can append to
-     the same file safely */
-  
-  /* Supposedly some implementations of fcntl() can get confused over
-     garbage in unused fields in a flock struct, so zero it */
-  memset (&lock, 0, sizeof (struct flock));
-  fd = fileno (file);
-  lock.l_type = F_WRLCK;
-  lock.l_whence = SEEK_SET;
-  lock.l_start = 0;
-  lock.l_len = 1; 
-  /* F_SETLKW: blocking exclusive lock request */
-  r = fcntl (fd, F_SETLKW, &lock);
-  if (r != 0)
-    {
-      fclose (file);
-      return 0;
-    }
-
-  fseek (file, 0, SEEK_END);
-#endif
-  
   mpz_init (checksum);
   mpz_set_d (checksum, B1);
   fprintf (file, "METHOD=");
@@ -446,18 +407,18 @@ write_resumefile_line (char *fn, int method, double B1, mpz_t sigma, mpz_t A,
   else 
     {
       fprintf (file, "ECM");
-      if (mpz_sgn (sigma) != 0)
+      if (sigma_is_A == 0)
         {
+          if (param != ECM_PARAM_DEFAULT)
+            fprintf (file, "; PARAM=%d", param);
+
           fprintf (file, "; SIGMA=");
-          mpz_out_str (file, 10, sigma);
-          mpz_mul_ui (checksum, checksum, mpz_fdiv_ui (sigma, CHKSUMMOD));
         }
-      else if (mpz_sgn (A) != 0)
-        {
+      else
           fprintf (file, "; A=");
-          mpz_out_str (file, 10, A);
-          mpz_mul_ui (checksum, checksum, mpz_fdiv_ui (A, CHKSUMMOD));
-        }
+          
+        mpz_out_str (file, 10, sigma);
+        mpz_mul_ui (checksum, checksum, mpz_fdiv_ui (sigma, CHKSUMMOD));
     }
   
   fprintf (file, "; B1=%.0f; N=", B1);
@@ -469,13 +430,8 @@ write_resumefile_line (char *fn, int method, double B1, mpz_t sigma, mpz_t A,
   mpz_out_str (file, 16, x);
   mpz_mul_ui (checksum, checksum, mpz_fdiv_ui (n->n, CHKSUMMOD));
   mpz_mul_ui (checksum, checksum, mpz_fdiv_ui (x, CHKSUMMOD));
-#ifdef GPUECM
-  fprintf (file, "; CHECKSUM=%lu; PROGRAM=GPU-ECM %s;",
-           mpz_fdiv_ui (checksum, CHKSUMMOD), VERSION_GPU);
-#else
   fprintf (file, "; CHECKSUM=%lu; PROGRAM=GMP-ECM %s;",
            mpz_fdiv_ui (checksum, CHKSUMMOD), VERSION);
-#endif
   mpz_clear (checksum);
   
   if (mpz_sgn (x0) != 0)
@@ -530,6 +486,95 @@ write_resumefile_line (char *fn, int method, double B1, mpz_t sigma, mpz_t A,
   fprintf (file, " TIME=%s;", text);
   fprintf (file, "\n");
   fflush (file);
+}
+
+/* Call write_resumefile_line for each residue in x.
+   x = x0 + x1*N + ... + xk*N^k, xi are the residues (this is a hack for GPU)
+   FIXME : x0 corresponds to sigma + gpu_curves-1
+           xk corresponds to sigma
+             should be the other way around
+
+   Returns 1 on success, 0 on error */
+int  
+write_resumefile (char *fn, int method, mpz_t N, double B1done, mpz_t sigma,
+                  int sigma_is_A, int param, int gpu, mpz_t x, mpcandi_t *n,
+                  mpz_t orig_x0, unsigned int gpu_curves, const char *comment)
+{
+  FILE *file;
+#if defined(HAVE_FCNTL) && defined(HAVE_FILENO)
+  struct flock lock;
+  int r, fd;
+#endif
+  mpz_t tmp_x;
+  mpz_init (tmp_x);
+  unsigned int i = 0;
+
+  /* first try to open the file */
+#ifdef DEBUG
+  if (fn == NULL)
+    {
+      fprintf (stderr, "write_resumefile: fn == NULL\n");
+      exit (EXIT_FAILURE);
+    }
+#endif
+  
+  file = fopen (fn, "a");
+  if (file == NULL)
+    {
+      fprintf (stderr, "Could not open file %s for writing\n", fn);
+      return 0;
+    }
+  
+#if defined(HAVE_FCNTL) && defined(HAVE_FILENO)
+  /* Try to get a lock on the file so several processes can append to
+     the same file safely */
+  
+  /* Supposedly some implementations of fcntl() can get confused over
+     garbage in unused fields in a flock struct, so zero it */
+  memset (&lock, 0, sizeof (struct flock));
+  fd = fileno (file);
+  lock.l_type = F_WRLCK;
+  lock.l_whence = SEEK_SET;
+  lock.l_start = 0;
+  lock.l_len = 1; 
+  /* F_SETLKW: blocking exclusive lock request */
+  r = fcntl (fd, F_SETLKW, &lock);
+  if (r != 0)
+    {
+      fclose (file);
+      return 0;
+    }
+
+  fseek (file, 0, SEEK_END);
+#endif
+  
+
+  /* Now can call write_resumefile_line to write in the file */
+  if (gpu == 0)
+    {
+      /* Reduce stage 1 residue wrt new cofactor, in case a factor was 
+         found */
+      mpz_mod (tmp_x, x, n->n); 
+      
+      /* We write the B1done value to the safe file. This requires that
+         a correct B1done is returned by the factoring functions */
+      write_resumefile_line (file, method, B1done, sigma, sigma_is_A, param,
+                             tmp_x, n, orig_x0, comment);
+    }
+  else
+    {
+      mpz_add_ui (sigma, sigma, gpu_curves);
+      for (i = 0; i < gpu_curves; i++)
+        {
+          mpz_sub_ui (sigma, sigma, 1);
+          mpz_fdiv_qr (x, tmp_x, x, N); 
+          mpz_mod (tmp_x, tmp_x, n->n);
+          write_resumefile_line (file, method, B1done, sigma, sigma_is_A, param,
+                                 tmp_x, n, orig_x0, comment);
+        }
+    }
+
+  /* closing the file */
 #if defined(HAVE_FCNTL) && defined(HAVE_FILENO)
   lock.l_type = F_UNLCK;
   lock.l_whence = SEEK_SET;
@@ -539,5 +584,111 @@ write_resumefile_line (char *fn, int method, double B1, mpz_t sigma, mpz_t A,
 #endif
   fclose (file);
 
-  return 1;
+  return 0;
 }
+
+
+/* For the batch mode */
+/* Write the batch exponent s in a file */
+/* Return the number of bytes written */
+int
+write_s_in_file (char *fn, mpz_t s)
+{
+  FILE *file;
+  int ret = 0;
+
+#ifdef DEBUG
+  if (fn == NULL)
+    {
+      fprintf (stderr, "write_s_in_file: fn == NULL\n");
+      exit (EXIT_FAILURE);
+    }
+#endif
+  
+  file = fopen (fn, "w");
+  if (file == NULL)
+    {
+      fprintf (stderr, "Could not open file %s for writing\n", fn);
+      return 0;
+    }
+  
+  ret = mpz_out_raw (file, s);
+  
+  fclose (file);
+  return ret;
+}
+
+/* For the batch mode */
+/* read the batch exponent s from a file */
+int
+read_s_from_file (mpz_t s, char *fn, double B1) 
+{
+  FILE *file;
+  int ret = 0;
+
+#ifdef DEBUG
+  if (fn == NULL)
+    {
+      fprintf (stderr, "read_s_from_file: fn == NULL\n");
+      return 1;
+    }
+#endif
+  
+  file = fopen (fn, "r");
+  if (file == NULL)
+    {
+      fprintf (stderr, "Could not open file %s for reading\n", fn);
+      return 1;
+    }
+ 
+  ret = mpz_inp_raw (s, file);
+  if (ret == 0)
+    {
+      fprintf (stderr, "read_s_from_file: 0 bytes read from %s\n", fn);
+      return 1;
+    }
+
+  fclose (file);
+          
+  /* Some elementaty check that it correspond to the actual B1 */
+  mpz_t tmp, tmp2;
+  mpz_init (tmp);
+  mpz_init (tmp2);
+  /* check that the valuation of 2 is correct */
+  unsigned int val2 = mpz_scan1 (s, 0);
+  mpz_ui_pow_ui (tmp, 2, val2);
+  mpz_ui_pow_ui (tmp2, 2, val2+1);
+  if (mpz_cmp_d (tmp, B1) > 0 || mpz_cmp_d (tmp2, B1) <= 0)
+    {
+      fprintf (stderr, "Error, the value of the batch product in %s "
+               "does not corresponds to B1=%1.0f.\n", fn, B1);
+      return 1;
+    }
+
+  /* Check that next_prime (B1) does not divide batch_s */
+  mpz_set_d (tmp, B1);
+  mpz_nextprime (tmp2, tmp);
+  if (mpz_divisible_p (s, tmp2))
+    {
+      fprintf (stderr, "Error, the value of the batch product in %s "
+               "does not corresponds to B1=%1.0f.\n", fn, B1);
+      return 1;
+    }
+
+  /* Check that next_prime (sqrt(B1)) divide batch_s only once */
+  mpz_set_d (tmp, sqrt(B1));
+  mpz_nextprime (tmp2, tmp);
+  mpz_mul (tmp, tmp2, tmp2);
+  if (!mpz_divisible_p (s, tmp2) || mpz_divisible_p (s, tmp))
+    {
+      fprintf (stderr, "Error, the value of the batch product in %s "
+               "does not corresponds to B1=%1.0f.\n", fn, B1);
+      return 1;
+    }
+
+  mpz_clear (tmp);
+  mpz_clear (tmp2);
+          
+  return 0;
+}
+

@@ -1,4 +1,7 @@
-#include "def.h"
+/* When compiling the CUDA code, we do not want to include all ecm-impl.h*/
+#define _DO_NOT_INCLUDE_ECM_IMPL_H
+#include "ecm-gpu.h"
+#include <gmp.h>
 #include "cudakernel.h"
 
 __constant__ __device__ digit_t d_invNcst;
@@ -35,69 +38,75 @@ __global__ void Cuda_Init_Device ()
 }
 
 extern "C" 
-int select_and_init_GPU (int device, int number_of_curves, FILE *OUTPUT_VERBOSE)
+int 
+select_and_init_GPU (int device, unsigned int *number_of_curves, int verbose)
 {
   cudaDeviceProp deviceProp;
   cudaError_t err;
         
-  fprintf(OUTPUT_VERBOSE, "#Compiled for a NVIDIA GPU with " 
-          "compute capability %d.%d.\n", MAJOR, MINOR);
+  if (verbose)
+      fprintf (stdout, "GPU: compiled for a NVIDIA GPU with compute capability "
+                       "%d.%d.\n", ECM_GPU_MAJOR, ECM_GPU_MINOR);
 
   if (device!=-1)
-  {
-    fprintf(OUTPUT_VERBOSE,"#Device %d is required.\n",device);
-
-    err= cudaSetDevice(device);
-    if (err != cudaSuccess)
     {
-      fprintf(stderr, "Error: Could not use device %d\n",device);
-      fprintf(stderr, "Error msg: %s\n", cudaGetErrorString(err));
-      exit(EXIT_FAILURE);
+      if (verbose)
+          fprintf (stdout, "GPU: device %d is required.\n", device);
+
+      err = cudaSetDevice(device);
+      if (err != cudaSuccess)
+        {
+          fprintf (stderr, "GPU: Error: Could not use device %d\n", device);
+          fprintf (stderr, "GPU: Error msg: %s\n", cudaGetErrorString(err));
+          return -1;
+        }
     }
-  }
   
   err = cudaGetDevice (&device);
   if (err != cudaSuccess)
-  {
-    fprintf(stderr, "Error: no active device\n");
-    fprintf(stderr, "Error msg: %s\n", cudaGetErrorString(err));
-    exit(EXIT_FAILURE);
-  }
+    {
+      fprintf (stderr, "GPU: Error: no active device.\n");
+      fprintf (stderr, "GPU: Error msg: %s\n", cudaGetErrorString(err));
+      return -1;
+    }
 
   err = cudaGetDeviceProperties (&deviceProp, device);
   if (err != cudaSuccess)
-  {
-    fprintf(stderr, "Error while getting device's properties\n");
-    fprintf(stderr, "Error msg: %s\n", cudaGetErrorString(err));
-    exit(EXIT_FAILURE);
-  }
+    {
+      fprintf (stderr, "GPU: Error while getting device's properties.\n");
+      fprintf (stderr, "GPU: Error msg: %s\n", cudaGetErrorString(err));
+      return -1;
+    }
 
   int minor = deviceProp.minor;
   int major = deviceProp.major;
   int MPcount = deviceProp.multiProcessorCount;
 
-  if (10 * major + minor < 10 * MAJOR + MINOR)
-  {
-    fprintf(stderr, "Error: Device %d have a compute capability of %d.%d " 
-                    "(required %d.%d).\n", device, major, minor, MAJOR, MINOR);
-    exit(EXIT_FAILURE);
-  }
+  if (10 * major + minor < 10 * ECM_GPU_MAJOR + ECM_GPU_MINOR)
+    {
+      fprintf(stderr, "GPU: Error: device %d have a compute capability of " 
+              "%d.%d (required %d.%d).\n", device, major, minor, ECM_GPU_MAJOR,
+              ECM_GPU_MINOR);
+      return -1;
+    }
 
-  fprintf(OUTPUT_VERBOSE, "#Will use device %d : %s, compute capability %d.%d, "
-          "%d MPs.\n", device, deviceProp.name, major, minor, MPcount);
+  if (verbose)
+      fprintf (stdout, "GPU: will use device %d: %s, compute capability "
+           "%d.%d, %d MPs.\n", device, deviceProp.name, major, minor, MPcount);
 
 
-  /* number_of_curves should be a multiple of CURVES_BY_BLOCK */
-  number_of_curves=(number_of_curves/CURVES_BY_BLOCK)*CURVES_BY_BLOCK;
-  if (number_of_curves==0)
-    number_of_curves = MPcount * CURVES_BY_MP;
+  /* number_of_curves should be a multiple of ECM_GPU_CURVES_BY_BLOCK */
+  *number_of_curves = 
+        (*number_of_curves / ECM_GPU_CURVES_BY_BLOCK) * ECM_GPU_CURVES_BY_BLOCK;
+  if (*number_of_curves==0)
+    *number_of_curves = MPcount * ECM_GPU_CURVES_BY_MP;
 
   /* First call to a global function initialize the device */
-  errCheck (cudaSetDeviceFlags(cudaDeviceScheduleYield)); 
+  errCheck (cudaSetDeviceFlags (cudaDeviceScheduleYield)); 
   Cuda_Init_Device<<<1, 1>>> ();
   errCheck (cudaGetLastError()); 
-
-  return number_of_curves;
+ 
+  return 0;
 }
 
 extern "C"
@@ -105,7 +114,7 @@ float cuda_Main (biguint_t h_N, biguint_t h_3N, biguint_t h_M, digit_t h_invN,
                     biguint_t *h_xarray, biguint_t *h_zarray, 
                     biguint_t *h_x2array, biguint_t *h_z2array, mpz_t s,
                     unsigned int firstinvd, unsigned int number_of_curves, 
-                    FILE *OUTPUT_VERBOSE, FILE *OUTPUT_VVERBOSE) 
+                    int is_verbose_enough) 
 { 
   cudaEvent_t start, stop;
   cudaEventCreate (&start);
@@ -126,10 +135,11 @@ float cuda_Main (biguint_t h_N, biguint_t h_3N, biguint_t h_M, digit_t h_invN,
 
   size_t array_size = sizeof(biguint_t) * number_of_curves;
 
-  dim3 dimBlock (NB_DIGITS, CURVES_BY_BLOCK);
-  dim3 dimGrid (number_of_curves/CURVES_BY_BLOCK);
+  dim3 dimBlock (ECM_GPU_NB_DIGITS, ECM_GPU_CURVES_BY_BLOCK);
+  dim3 dimGrid (number_of_curves/ ECM_GPU_CURVES_BY_BLOCK);
 
-  fprintf(OUTPUT_VVERBOSE, "Block: %ux%ux%u Grid: %ux%ux%u\n", dimBlock.x, 
+  if (is_verbose_enough)
+    fprintf(stdout, "Block: %ux%ux%u Grid: %ux%ux%u\n", dimBlock.x, 
                       dimBlock.y, dimBlock.z, dimGrid.x, dimGrid.y, dimGrid.z);
 
   /* Create a pair of events to pace ourselves */
@@ -263,7 +273,7 @@ __device__ void Cuda_Fully_Normalize (biguint_t A, dbigint_t cy)
 
   while(__any(cy[threadIdx.x])!=0)
   {
-    thm1 = (threadIdx.x - 1) % NB_DIGITS;
+    thm1 = (threadIdx.x - 1) % ECM_GPU_NB_DIGITS;
     cytemp = cy[thm1];
 
     __add_cc(A[threadIdx.x], A[threadIdx.x], cytemp);
@@ -281,7 +291,7 @@ __device__ void Cuda_Fully_Normalize (biguint_t A, dbigint_t cy)
 __device__ void Cuda_Add_mod
 (biguint_t Rmod, dbigint_t cy, const biguint_t A, const biguint_t B)
 {
-  unsigned int thp1 = (threadIdx.x + 1) % NB_DIGITS;
+  unsigned int thp1 = (threadIdx.x + 1) % ECM_GPU_NB_DIGITS;
   __add_cc (Rmod[threadIdx.x], A[threadIdx.x], B[threadIdx.x]);
   __addcy2(Rmod[thp1]); 
   __addcy (cy[thp1]);
@@ -296,7 +306,7 @@ __device__ void Cuda_Add_mod
 __device__ void Cuda_Add_mod
 (biguint_t Rmod, dbigint_t cy, const biguint_t A)
 {
-  unsigned int thp1 = (threadIdx.x + 1) % NB_DIGITS;
+  unsigned int thp1 = (threadIdx.x + 1) % ECM_GPU_NB_DIGITS;
   __add_cc (Rmod[threadIdx.x], Rmod[threadIdx.x], A[threadIdx.x]);
   //__addcy (cy[threadIdx.x]);
   __addcy2(Rmod[thp1]); 
@@ -330,7 +340,7 @@ __device__ void Cuda_Mulmod_step
 {
   digit_t t;
   digit_t reg_hi = 0;
-  unsigned int thp1= (threadIdx.x + 1) % NB_DIGITS;
+  unsigned int thp1= (threadIdx.x + 1) % ECM_GPU_NB_DIGITS;
   carry_t reg_cy = cy[thp1];
 
   __mad_lo_cc(r[threadIdx.x],a,b);
@@ -354,7 +364,7 @@ __device__ void Cuda_Mulmod_step
 __device__ void Cuda_Dbl_mod
 (biguint_t r, biguint_t a)
 {
-  unsigned int thp1= (threadIdx.x + 1) % NB_DIGITS;
+  unsigned int thp1= (threadIdx.x + 1) % ECM_GPU_NB_DIGITS;
   asm ("add.cc.u32 %0, %1, %1;" : "=r"(r[threadIdx.x]) : "r"(a[threadIdx.x]));
   __addcy2(r[thp1]);
 }
@@ -369,7 +379,7 @@ __device__ void Cuda_Mulint_mod
 {
   digit_t t;
   digit_t reg_hi;
-  unsigned int thp1= (threadIdx.x + 1) % NB_DIGITS;
+  unsigned int thp1= (threadIdx.x + 1) % ECM_GPU_NB_DIGITS;
   digit_t reg_A = A[threadIdx.x];
   carry_t reg_cy;
 
@@ -403,7 +413,7 @@ __device__ void Cuda_Mul_mod
 
   r[threadIdx.x]=0;
   
-  for (i=0; i<NB_DIGITS; i++)
+  for (i=0; i<ECM_GPU_NB_DIGITS; i++)
     Cuda_Mulmod_step (r, cy, temp, B[i], Nthdx, invN);
 
   
@@ -427,13 +437,13 @@ __global__ void
 Cuda_Ell_DblAdd (biguint_t *xAarg, biguint_t *zAarg, biguint_t *xBarg, 
                                        biguint_t *zBarg, unsigned int firstinvd)
 {
-  __shared__ VOL digit_t b_temp_r[CURVES_BY_BLOCK][NB_DIGITS];
-  __shared__ VOL carry_t b_cy[CURVES_BY_BLOCK][NB_DIGITS]; 
+  __shared__ VOL digit_t b_temp_r[ECM_GPU_CURVES_BY_BLOCK][ECM_GPU_NB_DIGITS];
+  __shared__ VOL carry_t b_cy[ECM_GPU_CURVES_BY_BLOCK][ECM_GPU_NB_DIGITS]; 
 
-  __shared__ VOL digit_t b_t[CURVES_BY_BLOCK][NB_DIGITS];
-  __shared__ VOL digit_t b_u[CURVES_BY_BLOCK][NB_DIGITS];
-  __shared__ VOL digit_t b_v[CURVES_BY_BLOCK][NB_DIGITS];
-  __shared__ VOL digit_t b_w[CURVES_BY_BLOCK][NB_DIGITS];
+  __shared__ VOL digit_t b_t[ECM_GPU_CURVES_BY_BLOCK][ECM_GPU_NB_DIGITS];
+  __shared__ VOL digit_t b_u[ECM_GPU_CURVES_BY_BLOCK][ECM_GPU_NB_DIGITS];
+  __shared__ VOL digit_t b_v[ECM_GPU_CURVES_BY_BLOCK][ECM_GPU_NB_DIGITS];
+  __shared__ VOL digit_t b_w[ECM_GPU_CURVES_BY_BLOCK][ECM_GPU_NB_DIGITS];
   
   VOL digit_t *t=b_t[threadIdx.y];
   VOL digit_t *u=b_u[threadIdx.y];

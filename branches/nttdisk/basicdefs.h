@@ -97,7 +97,11 @@ typedef unsigned __int64 uint64_t;
 #include <emmintrin.h>
 
 #define pload  _mm_load_si128
+#define pload_lo64(addr)  (__m128i)_mm_load_sd((double const *)(addr))
+#define pload_hi64(x, addr)  (__m128i)_mm_loadh_pd((__m128d)x, (double const *)(addr))
 #define pstore _mm_store_si128
+#define pstore_lo64(x, addr)  _mm_store_sd((double *)(addr), (__m128d)x)
+#define pstore_hi64(x, addr)  _mm_storeh_pd((double *)(addr), (__m128d)x)
 #define pand _mm_and_si128
 #define pxor _mm_xor_si128
 #define psetzero() _mm_setzero_si128()
@@ -118,8 +122,10 @@ typedef unsigned __int64 uint64_t;
 
 #if defined(_WIN64) || defined(__x86_64__)
 #define pcvt_i64 _mm_cvtsi64_si128
+#define pstore_i64(out, in) out = _mm_cvtsi128_si64(in)
 #else
 #define pcvt_i64(x) _mm_loadl_epi64((__m128i const *)&(x))
+#define pstore_i64(out, in) _mm_storel_epi64((__m128i *)&(out), in)
 #endif
 
 #endif
