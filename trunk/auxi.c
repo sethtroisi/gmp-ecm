@@ -178,7 +178,7 @@ process_newfactor (mpz_t g, int result, mpcandi_t *n, int method,
   if (mpz_cmp (f, n->n) != 0)
     {
       /* prints factor found and cofactor on standard output. */
-      factor_is_prime = probab_prime_p (f, PROBAB_PRIME_TESTS);
+      factor_is_prime = mpz_probab_prime_p (f, PROBAB_PRIME_TESTS);
 
       if (verbose >= 1)
         {
