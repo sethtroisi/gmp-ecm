@@ -79,14 +79,6 @@ pm1fs2test_CPPFLAGS = -DTESTDRIVE
 pm1fs2test_LDADD = libecm.la $(GMPLIB)
 pm1fs2test_LDFLAGS = -g
 
-batch_SOURCES = batch.c
-batch_LDADD = $(GMPLIB)
-
-if MEMORY_DEBUG
-  libecm_la_SOURCES += memory.c
-  tune_SOURCES += memory.c
-endif
-
 if WITH_GWNUM
   gwdata.ld :
 	echo "SECTIONS { .data : { . = ALIGN(0x20); *(_GWDATA) } }" >gwdata.ld
