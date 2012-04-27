@@ -959,9 +959,9 @@ pp1 (mpz_t f, mpz_t p, mpz_t n, mpz_t go, double *B1done, double B1,
       if (stage2_variant != 0)
 	{
 	  /* can't mix 64-bit types and mpz_t on win32 for some reason */
-	  outputf (OUTPUT_VERBOSE, "P = %" PRId64 ", l = %lu, "
-		"s_1 = %" PRId64 ", k = s_2 = %" PRId64 ,
-                 ", m_1 = %Zd\n", faststage2_params.P, faststage2_params.l,
+	  outputf (OUTPUT_VERBOSE, "P = %" PRIu64 ", l = %" PRIu64 ", "
+		"s_1 = %" PRIu64 ", k = s_2 = %" PRIu64, 
+		 faststage2_params.P, faststage2_params.l,
                  faststage2_params.s_1,faststage2_params.s_2);
 	  outputf (OUTPUT_VERBOSE, ", m_1 = %Zd\n", 
 	      	faststage2_params.m_1);
