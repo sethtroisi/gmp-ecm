@@ -3978,13 +3978,13 @@ pp1fs2_ntt (mpz_t f, const mpres_t X, mpmod_t modulus,
   /* Allocate remaining memory for h_ntt */
   if (params->file_stem != NULL)
     {
-      filename = malloc(strlen(params->file_stem) + 4);
-      sprintf(filename, "%s.hx", params->file_stem);
+      filename = malloc(strlen(params->file_stem) + 5);
+      sprintf(filename, "%s.h_x", params->file_stem);
     }
   h_x_ntt = mpzspv_init_handle (filename, params->l / 2 + 1, ntt_context);
   if (params->file_stem != NULL)
     {
-      sprintf(filename, "%s.hy", params->file_stem);
+      sprintf(filename, "%s.h_y", params->file_stem);
     }
   h_y_ntt = mpzspv_init_handle (filename, params->l / 2 + 1, ntt_context);
   free(filename);
@@ -4010,22 +4010,27 @@ pp1fs2_ntt (mpz_t f, const mpres_t X, mpmod_t modulus,
 
   /* compute the forward transform of h and store the distinct coefficients 
      in h_ntt */
-  g_x_ntt = mpzspv_init_handle (NULL, params->l, ntt_context);
   if (twopass)
     {
       char *filename = NULL;
       
-      g_y_ntt = g_x_ntt;
       if (params->file_stem != NULL)
         {
-          filename = malloc(strlen(params->file_stem) + 3);
-          sprintf(filename, "%s.R", params->file_stem);
+          filename = malloc(strlen(params->file_stem) + 5);
+          sprintf(filename, "%s.g_x", params->file_stem);
         }
+      g_x_ntt = mpzspv_init_handle (filename, params->l, ntt_context);
+      g_y_ntt = g_x_ntt;
+      if (params->file_stem != NULL)
+        sprintf(filename, "%s.R", params->file_stem);
       R = listz_handle_init2 (filename, nr, modulus->orig_modulus);
       free (filename);
     }
   else
-    g_y_ntt = mpzspv_init_handle (NULL, params->l, ntt_context);
+    {
+      g_x_ntt = mpzspv_init_handle (NULL, params->l, ntt_context);
+      g_y_ntt = mpzspv_init_handle (NULL, params->l, ntt_context);
+    }
   
   /* Compute DCT-I of h_x and h_y */
   outputf (OUTPUT_VERBOSE, "Computing DCT-I of h_x");
