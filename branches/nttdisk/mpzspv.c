@@ -27,6 +27,7 @@ MA 02110-1301, USA. */
 #include <string.h> /* for memset */
 #ifdef USE_VALGRIND
 #include <valgrind/memcheck.h>
+#include "ecm-gmp.h"
 #endif
 #ifdef HAVE_FCNTL_H
 #include <fcntl.h>
@@ -48,6 +49,15 @@ static void  mpzspv_seek_and_read (mpzspv_t, spv_size_t, FILE **, size_t,
 static void mpzspv_seek_and_write (mpzspv_t, spv_size_t, FILE **, size_t, 
     size_t, mpzspm_t);
 
+
+static inline void
+valgrind_check_mpzinp(const mpz_t m)
+{
+#ifdef USE_VALGRIND
+VALGRIND_CHECK_MEM_IS_ADDRESSABLE(PTR(m), ALLOC(m) * sizeof(mp_limb_t));
+VALGRIND_CHECK_MEM_IS_DEFINED(PTR(m), ABSIZ(m) * sizeof(mp_limb_t));
+#endif
+}
 
 mpzspv_t
 mpzspv_init (spv_size_t len, const mpzspm_t mpzspm)
@@ -271,6 +281,7 @@ mpzspv_from_mpzv_slow (mpzspv_t x, const spv_size_t offset, const mpz_t mpz,
 {
   unsigned int j;
 
+  valgrind_check_mpzinp (mpz);
   if (mpz_sgn (mpz) == 0)
     {
       for (j = 0; j < sp_num; j++)
@@ -302,6 +313,7 @@ mpzspv_from_mpzv_fast (mpzspv_t x, const spv_size_t offset, mpz_t mpzvi,
   unsigned int d = mpzspm->d, ni;
 
   ASSERT (d > i0);
+  valgrind_check_mpzinp (mpzvi);
 
   /* T[0] serves as vector of temporary mpz_t's, since it contains the small
      primes, which are also in mpzspm->spm[j]->sp */
@@ -529,8 +541,10 @@ mpzspv_fromto_mpzv (mpzspv_handle_t x, const spv_size_t offset,
               {
                 /* Get new mpz1 from producer */
                 (*producer)(producer_state, mpz1);
+                valgrind_check_mpzinp (mpz1);
               } else {
                 /* Get new mpz1 from listz_t */
+                valgrind_check_mpzinp (((mpz_t *)producer_state)[len_done + i]);
                 mpz_set (mpz1, ((listz_t)producer_state)[len_done + i]);
               }
           }
