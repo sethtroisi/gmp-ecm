@@ -71,7 +71,19 @@ static inline sp_simd_t sp_simd_gather(spv_t x, spv_size_t start_off,
 					spv_size_t inc, spv_size_t n)
 {
 #if SP_TYPE_BITS == 32
-#error "not done yet"
+
+  spv_size_t j0 = start_off;
+  spv_size_t j1 = sp_array_inc(j0, inc, n);
+  spv_size_t j2 = sp_array_inc(j0, 2 * inc, n);
+  spv_size_t j3 = sp_array_inc(j0, 3 * inc, n);
+  sp_simd_t t0 = pload_lo32(x + j0);
+  sp_simd_t t1 = pload_lo32(x + j1);
+  sp_simd_t t2 = pload_lo32(x + j2);
+  sp_simd_t t3 = pload_lo32(x + j3);
+  sp_simd_t r0 = punpcklo32(t0, t1);
+  sp_simd_t r1 = punpcklo32(t2, t3);
+  return punpcklo64(r0, r1);
+
 #else
 
   spv_size_t j0 = start_off;
@@ -87,7 +99,19 @@ static inline void sp_simd_scatter(sp_simd_t t, spv_t x,
 				spv_size_t inc, spv_size_t n)
 {
 #if SP_TYPE_BITS == 32
-#error "not done yet"
+
+  spv_size_t j0 = start_off;
+  spv_size_t j1 = sp_array_inc(j0, inc, n);
+  spv_size_t j2 = sp_array_inc(j0, 2 * inc, n);
+  spv_size_t j3 = sp_array_inc(j0, 3 * inc, n);
+  pstore_lo32(t, x + j0);
+  t = _mm_srli_si128(t, 4);
+  pstore_lo32(t, x + j1);
+  t = _mm_srli_si128(t, 4);
+  pstore_lo32(t, x + j2);
+  t = _mm_srli_si128(t, 4);
+  pstore_lo32(t, x + j3);
+
 #else
 
   spv_size_t j0 = start_off;

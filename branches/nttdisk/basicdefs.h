@@ -97,9 +97,11 @@ typedef unsigned __int64 uint64_t;
 #include <emmintrin.h>
 
 #define pload  _mm_load_si128
+#define pload_lo32(addr)  (__m128i)_mm_load_ss((float *)(addr))
 #define pload_lo64(addr)  (__m128i)_mm_load_sd((double const *)(addr))
 #define pload_hi64(x, addr)  (__m128i)_mm_loadh_pd((__m128d)x, (double const *)(addr))
 #define pstore _mm_store_si128
+#define pstore_lo32(x, addr)  _mm_store_ss((float *)(addr), (__m128)x)
 #define pstore_lo64(x, addr)  _mm_store_sd((double *)(addr), (__m128d)x)
 #define pstore_hi64(x, addr)  _mm_storeh_pd((double *)(addr), (__m128d)x)
 #define pand _mm_and_si128
