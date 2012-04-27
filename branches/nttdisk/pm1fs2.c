@@ -3986,7 +3986,7 @@ pp1fs2_ntt (mpz_t f, const mpres_t X, mpmod_t modulus,
     {
       sprintf(filename, "%s.hy", params->file_stem);
     }
-  h_y_ntt = mpzspv_init_handle (NULL, params->l / 2 + 1, ntt_context);
+  h_y_ntt = mpzspv_init_handle (filename, params->l / 2 + 1, ntt_context);
   free(filename);
 
   /* Compute the h_j sequence */
