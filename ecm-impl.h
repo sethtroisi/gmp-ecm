@@ -534,6 +534,14 @@ void TUpTree (listz_t, listz_t *, unsigned int, listz_t, int, unsigned int,
 		mpz_t, FILE *);
 
 /* ks-multiply.c */
+#define list_mul_n_basecase __ECM(list_mul_n_basecase)
+void list_mul_n_basecase (listz_t, listz_t, listz_t, unsigned int);
+#define list_mul_tc __ECM(list_mul_tc)
+void list_mul_tc (listz_t, listz_t, unsigned int, listz_t, unsigned int);
+#define list_mul_n_KS1 __ECM(list_mul_n_KS1)
+void list_mul_n_KS1 (listz_t, listz_t, listz_t, unsigned int);
+#define list_mul_n_KS2 __ECM(list_mul_n_KS2)
+void list_mul_n_KS2 (listz_t, listz_t, listz_t, unsigned int);
 #define list_mult_n __ECM(list_mult_n)
 void list_mult_n (listz_t, listz_t, listz_t, unsigned int);
 #define TMulKS __ECM(TMulKS)

@@ -63,7 +63,7 @@ unpack (mpz_t *R, mp_size_t stride, mp_ptr t, mp_size_t l, mp_size_t s)
     }
 }
 
-static void
+void
 list_mul_n_basecase (listz_t R, listz_t A, listz_t B, unsigned int n)
 {
   unsigned int i, j;
@@ -173,8 +173,8 @@ list_mul_tc_interpolate (mpz_t *f, int t)
    fit into uint32_t).
    Assume r, s >= 1.
 */
-static void
-list_mul_tc (listz_t f, listz_t g, int r, listz_t h, int s)
+void
+list_mul_tc (listz_t f, listz_t g, unsigned int r, listz_t h, unsigned int s)
 {
   int t, i, j;
   mpz_t tmp;
@@ -222,8 +222,8 @@ list_mul_tc (listz_t f, listz_t g, int r, listz_t h, int s)
       but tests have shown this doesn't give any significant speed increase,
       even for large degree polynomials.
      - this code requires that all coefficients A[] and B[] are nonnegative. */
-static void
-KS1 (listz_t R, listz_t A, listz_t B, unsigned int l)
+void
+list_mul_n_KS1 (listz_t R, listz_t A, listz_t B, unsigned int l)
 {
   unsigned long i;
   mp_size_t s, t = 0, size_t0;
@@ -275,6 +275,7 @@ KS1 (listz_t R, listz_t A, listz_t B, unsigned int l)
    Reference: Algorithm 2 from "Faster polynomial multiplication via multipoint
    Kronecker substitution", David Harvey, Journal of Symbolic Computation,
    number 44 (2009), pages 1502-1510.
+   Assume n >= 2.
    Notes:
     - this code aligns the coeffs at limb boundaries - if instead we aligned
       at byte boundaries then we could save up to 3*n bytes,
@@ -282,21 +283,15 @@ KS1 (listz_t R, listz_t A, listz_t B, unsigned int l)
       even for large degree polynomials.
      - this code requires that all coefficients A[] and B[] are nonnegative.
 */
-static void
-KS2 (listz_t R, listz_t A, listz_t B, unsigned int n)
+void
+list_mul_n_KS2 (listz_t R, listz_t A, listz_t B, unsigned int n)
 {
   unsigned long i;
   mp_size_t s, s2, t = 0, l, h, ns2;
   mp_ptr tmp, A0, A1, B0, B1, C0, C1;
   int sA, sB;
 
-  if (n == 1)
-    {
-      mpz_mul (R[0], A[0], B[0]);
-      return;
-    }
-
-  /* now n >= 2 */
+  ASSERT_ALWAYS (n >= 2);
 
   /* compute the largest bit-size t of the A[i] and B[i] */
   for (i = 0; i < n; i++)
@@ -400,9 +395,9 @@ list_mult_n (listz_t R, listz_t A, listz_t B, unsigned int n)
   else if (n + n - 2 <= MAX_T) /* n <= 8 for MAX_T = 15 */
     list_mul_tc (R, A, n, B, n);
   else if (0) /* assume KS2 is always faster than KS1 */
-    KS1 (R, A, B, n);
+    list_mul_n_KS1 (R, A, B, n);
   else
-    KS2 (R, A, B, n);
+    list_mul_n_KS2 (R, A, B, n);
 }
 
 /* Given a[0..m] and c[0..l], puts in b[0..n] the coefficients
