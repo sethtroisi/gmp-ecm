@@ -60,8 +60,11 @@ extern size_t MPZMOD_THRESHOLD;
 extern size_t REDC_THRESHOLD;
 #define TUNE_MULREDC_TABLE {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0}
 #define TUNE_SQRREDC_TABLE {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0}
+#define LIST_MUL_TABLE {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0}
 #endif
 extern size_t mpn_mul_lo_threshold[];
+
+#define TUNE_LIST_MUL_N_MAX_SIZE 16
 
 #include <stdio.h> /* needed for "FILE *" */
 #include <limits.h>

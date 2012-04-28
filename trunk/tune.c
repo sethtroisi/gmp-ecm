@@ -417,8 +417,6 @@ print_timings (double (*f0)(size_t), double (*f1)(size_t),
     }
 }
 
-#define TUNE_LIST_MUL_N_MAX_SIZE 16
-
 static void
 tune_list_mul_n ()
 {
@@ -475,7 +473,7 @@ tune_list_mul_n ()
                 : (best[n] == 2) ? "KS1" : "KS2");
     }
   printf ("#define LIST_MUL_TABLE {0");
-  for (n = 0; n < TUNE_LIST_MUL_N_MAX_SIZE; n++)
+  for (n = 1; n < TUNE_LIST_MUL_N_MAX_SIZE; n++)
     printf (",%u", best[n]);
   printf ("}\n");
 }

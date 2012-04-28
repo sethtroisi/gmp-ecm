@@ -390,11 +390,20 @@ list_mul_n_KS2 (listz_t R, listz_t A, listz_t B, unsigned int n)
 void
 list_mult_n (listz_t R, listz_t A, listz_t B, unsigned int n)
 {
-  if (n <= 2)
+  int T[TUNE_LIST_MUL_N_MAX_SIZE] = LIST_MUL_TABLE, best;
+
+  /* See tune_list_mul_n() in tune.c:
+     0 : list_mul_n_basecase
+     1 : list_mul_tc
+     2 : list_mul_n_KS1
+     3 : list_mul_n_KS2 */
+  best = (n < TUNE_LIST_MUL_N_MAX_SIZE) ? T[n] : 3;
+    
+  if (best == 0)
     list_mul_n_basecase (R, A, B, n);
-  else if (n + n - 2 <= MAX_T) /* n <= 8 for MAX_T = 15 */
+  else if (best == 1)
     list_mul_tc (R, A, n, B, n);
-  else if (0) /* assume KS2 is always faster than KS1 */
+  else if (best == 2)
     list_mul_n_KS1 (R, A, B, n);
   else
     list_mul_n_KS2 (R, A, B, n);
