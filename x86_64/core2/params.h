@@ -35,3 +35,5 @@
 #define MPZSPV_NORMALISE_STRIDE 32
 
 #endif
+
+#define LIST_MUL_TABLE {0,0,0,0,0,0,0,0,0,0,3,3,3,3,3,3}
