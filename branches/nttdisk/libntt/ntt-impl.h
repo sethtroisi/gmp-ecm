@@ -186,13 +186,11 @@ static inline sp_simd_t sp_simd_mul(sp_simd_t a, sp_t b, sp_t p, sp_t d)
   vp = pshufd(pcvt_i32(p), 0x00);
   vp2 = pshufd(pcvt_i32(p), 0x44);
   vd = pshufd(pcvt_i32(d), 0x00);
-  t0 = a;
-  t1 = pshufd(pcvt_i32(b), 0x00);
+  t1 = pshufd(pcvt_i32(b), 0x44);
 
-  t2 = pshufd(t0, 0x31);
-  t3 = pshufd(t1, 0x31);
-  t0 = pmuludq(t0, t1);
-  t2 = pmuludq(t2, t3);
+  t2 = pshufd(a, 0x31);
+  t0 = pmuludq(a, t1);
+  t2 = pmuludq(t2, t1);
   t1 = psrlq(t0, 2 * SP_NUMB_BITS - SP_TYPE_BITS);
   t3 = psrlq(t2, 2 * SP_NUMB_BITS - SP_TYPE_BITS);
   t1 = pmuludq(t1, vd);
