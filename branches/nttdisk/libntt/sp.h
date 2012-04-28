@@ -273,8 +273,9 @@ sp_t sp_reciprocal(sp_t p);
 static inline sp_t sp_sub(sp_t a, sp_t b, sp_t m) 
 {
 #if (defined(__GNUC__) || defined(__ICL)) && \
-    (defined(__x86_64__) || defined(__i386__)) && \
-    (SP_TYPE_BITS <= GMP_LIMB_BITS)
+    (defined(__x86_64__) || defined(__i386__))
+
+  #if SP_TYPE_BITS <= GMP_LIMB_BITS
   sp_t t = 0, tr = a;
 
   __asm__ (
@@ -286,6 +287,34 @@ static inline sp_t sp_sub(sp_t a, sp_t b, sp_t m)
   );
 
   return tr + t;
+
+  #else  /* 64-bit sp_t on 32-bit machine */
+
+  mp_limb_t tlo = 0;
+  mp_limb_t thi = 0;
+  mp_limb_t alo = (uint32_t)a;
+  mp_limb_t ahi = (uint32_t)(a >> 32);
+  mp_limb_t blo = (uint32_t)b;
+  mp_limb_t bhi = (uint32_t)(b >> 32);
+  mp_limb_t mlo = (uint32_t)m;
+  mp_limb_t mhi = (uint32_t)(m >> 32);
+
+  __asm__ (
+    "sub %4, %2     \n\t"
+    "sbb %5, %3     \n\t"
+    "cmovc %6, %0   \n\t"
+    "cmovc %7, %1   \n\t"
+    : "+r" (tlo), "+r" (thi), "+r" (alo), "+r" (ahi)
+    : "g" (blo), "g" (bhi), "g" (mlo), "g" (mhi) 
+    : "cc"
+  );
+
+  add_ssaaaa(ahi, alo, ahi, alo, thi, tlo);
+
+  return (sp_t)ahi << 32 | alo;
+
+  #endif
+
 #elif defined(_MSC_VER) && !defined(_WIN64) && (SP_TYPE_BITS == 32)
 
   __asm
@@ -307,8 +336,9 @@ static inline sp_t sp_sub(sp_t a, sp_t b, sp_t m)
 static inline sp_t sp_add(sp_t a, sp_t b, sp_t m) 
 {
 #if (defined(__GNUC__) || defined(__ICL)) && \
-    (defined(__x86_64__) || defined(__i386__)) && \
-    (SP_TYPE_BITS <= GMP_LIMB_BITS)
+    (defined(__x86_64__) || defined(__i386__))
+
+  #if SP_TYPE_BITS <= GMP_LIMB_BITS
   sp_t t = a - m, tr = a + b;
 
   __asm__ (
@@ -320,6 +350,13 @@ static inline sp_t sp_add(sp_t a, sp_t b, sp_t m)
   );
 
   return tr;
+
+  #else  /* 64-bit sp_t on 32-bit machine */
+
+  return sp_sub(a, m - b, m);
+
+  #endif
+
 #elif defined(_MSC_VER) && !defined(_WIN64) && (SP_TYPE_BITS == 32)
   __asm
     {
