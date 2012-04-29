@@ -34,11 +34,9 @@ bfntt(spv_t r, spv_t x, spv_size_t len,
 
 const nttconfig_t * ntt_config[] = 
 {
-  &ntt2_config,
   &ntt3_config,
   &ntt4_config,
   &ntt5_config,
-  &ntt6_config,
   &ntt7_config,
   &ntt8_config,
   &ntt9_config,

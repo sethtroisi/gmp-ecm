@@ -327,11 +327,9 @@ typedef struct
   ntt_pfa_run_t ntt_pfa_run;
 } nttconfig_t;
 
-extern const nttconfig_t ntt2_config;
 extern const nttconfig_t ntt3_config;
 extern const nttconfig_t ntt4_config;
 extern const nttconfig_t ntt5_config;
-extern const nttconfig_t ntt6_config;
 extern const nttconfig_t ntt7_config;
 extern const nttconfig_t ntt8_config;
 extern const nttconfig_t ntt9_config;
