@@ -184,10 +184,6 @@
     <ClCompile Include="..\..\mpmod.c" />
     <ClCompile Include="..\..\mpzspm.c" />
     <ClCompile Include="..\..\mpzspv.c" />
-    <ClCompile Include="..\..\mul_fft.c">
-      <Optimization Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">MaxSpeed</Optimization>
-      <Optimization Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Full</Optimization>
-    </ClCompile>
     <ClCompile Include="..\..\mul_lo.c" />
     <ClCompile Include="..\..\ntt_gfp.c" />
     <ClCompile Include="..\..\parametrizations.c" />
@@ -209,7 +205,6 @@
       <Optimization Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Full</Optimization>
     </ClCompile>
     <ClCompile Include="..\..\stage2.c" />
-    <ClCompile Include="..\..\toomcook.c" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\champions.h" />
