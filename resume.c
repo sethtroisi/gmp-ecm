@@ -501,13 +501,13 @@ write_resumefile (char *fn, int method, mpz_t N, double B1done, mpz_t sigma,
                   mpz_t orig_x0, unsigned int gpu_curves, const char *comment)
 {
   FILE *file;
+  unsigned int i = 0;
 #if defined(HAVE_FCNTL) && defined(HAVE_FILENO)
   struct flock lock;
   int r, fd;
 #endif
   mpz_t tmp_x;
   mpz_init (tmp_x);
-  unsigned int i = 0;
 
   /* first try to open the file */
 #ifdef DEBUG
@@ -624,6 +624,8 @@ int
 read_s_from_file (mpz_t s, char *fn, double B1) 
 {
   FILE *file;
+  mpz_t tmp, tmp2;
+  unsigned int val2;
   int ret = 0;
 
 #ifdef DEBUG
@@ -651,11 +653,10 @@ read_s_from_file (mpz_t s, char *fn, double B1)
   fclose (file);
           
   /* Some elementaty check that it correspond to the actual B1 */
-  mpz_t tmp, tmp2;
   mpz_init (tmp);
   mpz_init (tmp2);
   /* check that the valuation of 2 is correct */
-  unsigned int val2 = mpz_scan1 (s, 0);
+  val2 = mpz_scan1 (s, 0);
   mpz_ui_pow_ui (tmp, 2, val2);
   mpz_ui_pow_ui (tmp2, 2, val2+1);
   if (mpz_cmp_d (tmp, B1) > 0 || mpz_cmp_d (tmp2, B1) <= 0)
