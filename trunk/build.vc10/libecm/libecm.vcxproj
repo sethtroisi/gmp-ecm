@@ -212,10 +212,10 @@
     <ClInclude Include="..\..\ecm-ecm.h" />
     <ClInclude Include="..\..\ecm-gmp.h" />
     <ClInclude Include="..\..\ecm-impl.h" />
+    <ClInclude Include="..\..\ecm-params.h" />
     <ClInclude Include="..\..\ecm.h" />
     <ClInclude Include="..\..\longlong.h" />
     <ClInclude Include="..\..\sp.h" />
-    <ClInclude Include="..\ecm-params.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
