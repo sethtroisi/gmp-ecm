@@ -121,7 +121,7 @@ get_random_ui (void)
     }
   
 /* warning: outputf is not exported from libecm */
-#if !defined (OUTSIDE_LIBECM
+#if !defined (OUTSIDE_LIBECM)
   outputf (OUTPUT_DEVVERBOSE, "Got seed for RNG from GetSystemTime\n");
 #endif
 
