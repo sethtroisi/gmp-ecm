@@ -143,25 +143,6 @@ typedef const sp_t * spv_tc;
 /* the type used for array offsets */
 typedef size_t spv_size_t;
 
-typedef struct
-{
-  spv_t ntt_roots;
-  spv_size_t twiddle_size;
-  spv_t twiddle;
-} __sp_nttdata;
-
-typedef __sp_nttdata sp_nttdata_t[1];
-
-#define MAX_NTT_BLOCK_SIZE 128
-
-/* Which steps to perform in convolution product funtions:
-   forward transform, pair-wise multiplication, inverse transform */
-#define NTT_MUL_STEP_FFT1 1
-#define NTT_MUL_STEP_FFT2 2
-#define NTT_MUL_STEP_MUL 4
-#define NTT_MUL_STEP_MULDCT 8
-#define NTT_MUL_STEP_IFFT 16
-
 /* SPM */
 
 /* small prime modulus - this contains some precomputed constants to
@@ -170,11 +151,12 @@ typedef struct
 {
   sp_t sp;		/* value of the sp */
   sp_t mul_c;		/* constant used for reduction mod sp */
-  sp_t prim_root;
-  sp_t inv_prim_root;
 #if SP_TYPE_BITS > GMP_LIMB_BITS
   mpz_t mp_sp;
 #endif
+
+  void *ntt_data;       /* opaque state for forward NTTs */
+  void *intt_data;      /* opaque state for inverse NTTs */
 } __spm_struct;
 
 typedef __spm_struct * spm_t;

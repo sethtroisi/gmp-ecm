@@ -21,6 +21,7 @@
 
 #include <stdlib.h>
 #include "sp.h"
+#include "ntt-impl.h"
 
 /* Returns the exponent of $q$ in the factorisation of $n$ */
 static uint32_t
@@ -48,7 +49,7 @@ ordpow (const sp_t q, sp_t a, const sp_t sp, const sp_t mul_c)
 spm_t
 spm_init (sp_t n, sp_t sp)
 {
-  sp_t a, b, bd, sc, q, nc;
+  sp_t a, b, inv_b, bd, sc, q, nc;
   spm_t spm = (spm_t) malloc (sizeof (__spm_struct));
   if (spm == NULL)
     return NULL;
@@ -125,10 +126,12 @@ spm_init (sp_t n, sp_t sp)
     }
   
   b = sp_pow (b, sc, sp, spm->mul_c);
+  inv_b = sp_inv (b, sp, spm->mul_c);
 
-  /* turn this into a primitive n'th root of unity mod p */
-  spm->prim_root = b;
-  spm->inv_prim_root = sp_inv (b, sp, spm->mul_c);
+  /* initialize forward and inverse NTTs of size n */
+  spm->ntt_data = ntt_init (n, b, sp, spm->mul_c);
+  spm->intt_data = ntt_init (n, inv_b, sp, spm->mul_c);
+
   return spm;
 }
 
@@ -136,8 +139,10 @@ void
 spm_clear (spm_t spm)
 {
 #if SP_TYPE_BITS > GMP_LIMB_BITS
-  mpz_clear(spm->mp_sp);
+  mpz_clear (spm->mp_sp);
 #endif
+  ntt_free (spm->ntt_data);
+  ntt_free (spm->intt_data);
   free (spm);
 }
 

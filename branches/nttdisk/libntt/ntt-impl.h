@@ -335,4 +335,66 @@ extern const nttconfig_t ntt8_config;
 extern const nttconfig_t ntt9_config;
 extern const nttconfig_t ntt15_config;
 
+/* functions pointers and precomputed data needed by
+   all versions of a codelet */
+
+typedef struct
+{
+  nttconfig_t *config;
+  spv_t ntt_const;
+} codelet_data_t;
+
+
+/* an NTT is built up of one or more passes through
+   the input data */
+
+typedef enum
+{
+  PASS_TYPE_DIRECT,
+  PASS_TYPE_PFA,
+  PASS_TYPE_TWIDDLE
+} pass_type_t;
+
+#define MAX_PFA_CODELETS 6
+#define MAX_PASSES 10
+
+typedef struct
+{
+  pass_type_t type;
+  spv_size_t stride;
+
+  union
+  {
+    struct
+    {
+      codelet_data_t *codelet;
+    } direct;
+
+    struct
+    {
+      uint32_t num_codelets;
+      codelet_data_t *codelets[MAX_PFA_CODELETS];
+    } pfa;
+
+  } d;
+
+} nttpass_t;
+
+/* central repository for all NTT data that shares a
+   modulus and primitive root */
+typedef struct
+{
+  uint32_t num_codelets;
+  uint32_t ntt_size;
+  const codelet_data_t *codelets;
+  spv_t codelet_const;
+
+  nttpass_t *passes;
+} nttdata_t;
+
+/* external interface */
+
+void * ntt_init(sp_t size, sp_t primroot, sp_t p, sp_t d);
+void ntt_free(void *data);
+
 #endif /* _NTT_IMPL_H */
