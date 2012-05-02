@@ -1,6 +1,13 @@
 Changes between GMP-ECM 6.4.2 and GMP-ECM 7.0:
-* The batch=1 mode is now the default mode. Use -batch=0 to get historical
-  Suyama parametrization.
+* remove shell command options.
+* remove -b and -t options (breadth-first mode).
+* Add GPU code for Step 1 (command-line option -gpu).
+* Command line option -param allow to choose the parametrization (valid values
+  are 0, 1, 2 and4). Command-line option -sigma allow to choose the parameter.
+  "-sigma i:s" is a shortcut to "-param i -sigma s".
+* The batch mode is now choosen with -param command-line option.
+  Use -param 0 to get historical Suyama parametrization.
+  The default parametrization depends on others command-line options.
 * For P-1 stage 2, by default the NTT code is always used.
 * Removed --enable-memory-debug configure option (now obsolete with valgrind)
 * Fixed PowerPC64 assembly code with --enable-shared (thanks Leif Leonhardy)
