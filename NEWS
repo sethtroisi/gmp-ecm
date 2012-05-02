@@ -3,7 +3,7 @@ Changes between GMP-ECM 6.4.2 and GMP-ECM 7.0:
 * remove -b and -t options (breadth-first mode).
 * Add GPU code for Step 1 (command-line option -gpu).
 * Command line option -param allow to choose the parametrization (valid values
-  are 0, 1, 2 and4). Command-line option -sigma allow to choose the parameter.
+  are 0, 1, 2 and 3). Command-line option -sigma allow to choose the parameter.
   "-sigma i:s" is a shortcut to "-param i -sigma s".
 * The batch mode is now choosen with -param command-line option.
   Use -param 0 to get historical Suyama parametrization.
