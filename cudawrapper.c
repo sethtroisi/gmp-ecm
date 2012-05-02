@@ -257,6 +257,7 @@ gpu_ecm (mpz_t f, mpz_t x, int *param, mpz_t firstsigma, mpz_t n, mpz_t go,
   unsigned int i;
   int youpi = ECM_NO_FACTOR_FOUND;
   long st, st2;
+  long tottime; /* at the end, total time in ms */
   unsigned int firstsigma_ui;
   float gputime = 0.0;
   mpz_t tmp_A;
@@ -479,11 +480,12 @@ gpu_ecm (mpz_t f, mpz_t x, int *param, mpz_t firstsigma, mpz_t n, mpz_t go,
 
   outputf (OUTPUT_NORMAL, "Computing %u Step 1 took %ldms of CPU time / "
                           "%.0fms of GPU time\n", *nb_curves, 
-                          elltime (st, cputime ()), gputime);
+                                           elltime (st, cputime ()), gputime);
   outputf (OUTPUT_VERBOSE, "Throughput: %.3f curves by second ", 
-                           1000 * (*nb_curves)/gputime);
+                                                 1000 * (*nb_curves)/gputime);
   outputf (OUTPUT_VERBOSE, "(on average %.2fms by Step 1)\n", 
                                                         gputime/(*nb_curves));
+  tottime = (long) gputime;
 
   *B1done=B1;
 
@@ -569,9 +571,10 @@ gpu_ecm (mpz_t f, mpz_t x, int *param, mpz_t firstsigma, mpz_t n, mpz_t go,
   outputf (OUTPUT_NORMAL, "Computing %u Step 2 on CPU took %ldms\n", 
                                                               *nb_curves, st2);
   outputf (OUTPUT_VERBOSE, "Throughput: %.3f Step 2 by second ", 
-             1000 * ((double)(*nb_curves))/((double)st2));
+                                  1000 * ((double)(*nb_curves))/((double)st2));
   outputf (OUTPUT_VERBOSE, "(on average %0.2fms by Step 2)\n", 
                                          ((double) st2)/((double) *nb_curves));
+  tottime += st2;
 
 
 end_gpu_ecm_rhotable:
@@ -582,7 +585,7 @@ end_gpu_ecm_rhotable:
           if (youpi == ECM_NO_FACTOR_FOUND && 
               (stop_asap == NULL || !(*stop_asap)()))
               print_exptime (B1, B2, dF, k, root_params.S, 
-                             (long) elltime (st, cputime ()), *param);
+                             (long) (tottime / *nb_curves), *param);
           rhoinit (1, 0); /* Free memory of rhotable */
         }
     }
