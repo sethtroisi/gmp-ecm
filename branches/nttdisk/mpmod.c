@@ -1760,6 +1760,37 @@ mpres_set_z_for_gcd (mpres_t R, const mpz_t S, mpmod_t modulus)
   ASSERT_NORMALIZED (R);  
 }
 
+/* Compagnon function to mpres_set_z_for_gcd(). It divides by c^n. 
+   In case of MULREDC with k b-bit words, c = 1/2^(b*k), so we multiply 
+   by 2^(n*b*k). The purpose is to fix products of n terms collected by 
+   using mpres_set_z_for_gcd(), so that we can still get the exact residue. */
+   
+void 
+mpres_set_z_for_gcd_fix (mpres_t R, const mpres_t S, const mpz_t n, mpmod_t modulus)
+{
+  switch (modulus->repr)
+    {
+      case ECM_MOD_MODMULN:
+      case ECM_MOD_REDC:
+        {
+          mpres_t po2;
+          mpz_t nb;
+
+          mpz_init (nb);
+          mpres_init (po2, modulus);
+
+          mpz_mul_ui (nb, n, modulus->bits);
+          mpres_set_ui (po2, 2, modulus);
+          mpres_pow (po2, po2, nb, modulus);
+          mpres_mul (R, S, po2, modulus);
+
+          mpz_clear (nb);
+          mpres_clear (po2, modulus);
+        }
+    }
+}
+
+
 /* R <- S / 2^n mod modulus. Does not need to be fast. */
 void 
 mpres_div_2exp (mpres_t R, const mpres_t S, const unsigned int n, 
@@ -2077,13 +2108,58 @@ mpres_out_str (FILE *fd, const unsigned int base, const mpres_t S,
   mpz_out_str (fd, base, modulus->temp2);
 }
 
+
+/* Returns 1 if successful, 0 if not */
+static int
+test_mpres_set_z_for_gcd_fix(const int maxk, mpmod_t modulus)
+{
+  mpres_t m, prod;
+  mpz_t n;
+  int k;
+
+  mpres_init (prod, modulus);
+  mpres_init (m, modulus);
+  mpz_init (n);
+
+  /* m = 1 * c, where c is a constant depending on mod reduction method */
+  mpz_set_ui (n, 1);
+  mpres_set_z_for_gcd (m, n, modulus);
+
+  for (k = 0; k <= maxk; k++)
+    {
+      int i;
+      mpres_set_ui (prod, 1, modulus);
+
+      /* Compute prod = 1 * (1 * c)^k */
+      for (i = 0; i < k; i++)
+        mpres_mul (prod, prod, m, modulus);
+
+      /* Divide prod by c^k */ 
+      mpz_set_ui (n, k);
+      mpres_set_z_for_gcd_fix (prod, prod, n, modulus);
+
+      /* Result should be 1 */
+      mpres_get_z (n, prod, modulus);
+      if (mpz_cmp_ui (n, 1) != 0) {
+        gmp_printf ("Error: test of mpres_set_z_for_gcd_fix() failed, k = %d, n = %Zd\n", k, n);
+        return 0;
+      }
+    }
+
+  mpz_clear (n);
+  mpres_clear (m, modulus);
+  mpres_clear (prod, modulus);
+  return 1;
+}
+
+
 int
 mpmod_selftest (const mpz_t n)
 {
   mpres_t test1, test2;
   mpmod_t modulus;
   
-  printf ("Performing self test\n");
+  printf ("Performing self test of modular arithmetic\n");
   mpmod_init (modulus, n, 0);
   mpres_init (test1, modulus);
   mpres_init (test2, modulus);
@@ -2099,8 +2175,12 @@ mpmod_selftest (const mpz_t n)
    }
   mpres_clear (test1, modulus);
   mpres_clear (test2, modulus);
-  mpmod_clear (modulus);
 
+  if (!test_mpres_set_z_for_gcd_fix(10, modulus))
+    abort();
+
+  mpmod_clear (modulus);
+  
   return 0;
 }
 

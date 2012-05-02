@@ -2068,9 +2068,8 @@ gcd_consumer (void *state_p, const mpz_t s)
 
 static void
 ntt_gcd (mpz_t f, mpz_t *product, mpzspv_handle_t ntt, 
-         const uint64_t ntt_offset, 
-	 const listz_handle_t add, const uint64_t len_param, 
-	 mpmod_t modulus_param)
+         const uint64_t ntt_offset, const listz_handle_t add, 
+         const uint64_t len_param, mpmod_t modulus_param)
 {
   mpres_t totalprod;
   long timestart, realstart;
@@ -2130,6 +2129,14 @@ ntt_gcd (mpz_t f, mpz_t *product, mpzspv_handle_t ntt,
 #ifdef _OPENMP
   }
 #endif
+
+  {
+    mpz_t n;
+    mpz_init (n);
+    mpz_set_ui (n, len_param);
+    mpres_set_z_for_gcd_fix (totalprod, totalprod, n, modulus_param);
+    mpz_clear (n);
+  }
 
   if (product != NULL)
     mpres_get_z (*product, totalprod, modulus_param);
@@ -2306,8 +2313,7 @@ pm1fs2 (mpz_t f, const mpres_t X, mpmod_t modulus,
       }
 
       outputf (OUTPUT_VERBOSE, " took %lums\n", cputime () - timestart);
-      outputf (OUTPUT_RESVERBOSE, "Product of R[i] = %Zd (times some "
-	       "power of 2 if REDC was used! Try -mpzmod)\n", tmp[1]);
+      outputf (OUTPUT_RESVERBOSE, "Product of R[i] = %Zd\n", tmp[1]);
 
       if (mpz_cmp_ui (tmp[0], 1UL) > 0)
 	{
@@ -2545,8 +2551,7 @@ pm1fs2_ntt (mpz_t f, const mpres_t X, mpmod_t modulus,
       /* Compute GCD of N and coefficients of product polynomial */
       ntt_gcd (mt, product_ptr, g_handle, params->s_1 / 2, NULL, nr, modulus);
 
-      outputf (OUTPUT_RESVERBOSE, "Product of R[i] = %Zd (times some "
-	       "power of 2 if REDC was used! Try -mpzmod)\n", product);
+      outputf (OUTPUT_RESVERBOSE, "Product of R[i] = %Zd\n", product);
 
       /* If we found a factor, stop */
       if (mpz_cmp_ui (mt, 1UL) > 0)
@@ -3699,8 +3704,7 @@ pp1fs2 (mpz_t f, const mpres_t X, mpmod_t modulus,
       if (test_verbose(OUTPUT_RESVERBOSE))
       {
 	  mpres_get_z (mt, tmpres[1], modulus);
-	  outputf (OUTPUT_RESVERBOSE, "Product of R[i] = %Zd (times some "
-		   "power of 2 if REDC was used! Try -mpzmod)\n", mt);
+	  outputf (OUTPUT_RESVERBOSE, "Product of R[i] = %Zd\n", mt);
       }
       
       mpres_gcd (mt, tmpres[1], modulus);
@@ -4033,8 +4037,7 @@ pp1fs2_ntt (mpz_t f, const mpres_t X, mpmod_t modulus,
 	  ntt_gcd (mt, product_ptr, g_x_ntt, params->s_1 / 2, NULL, nr, modulus);
 	}
       
-      outputf (OUTPUT_RESVERBOSE, "Product of R[i] = %Zd (times some "
-	       "power of 2 if REDC was used! Try -mpzmod)\n", product);
+      outputf (OUTPUT_RESVERBOSE, "Product of R[i] = %Zd\n", product);
 
       if (mpz_cmp_ui (mt, 1UL) > 0)
 	{
