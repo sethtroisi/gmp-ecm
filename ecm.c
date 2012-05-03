@@ -961,16 +961,6 @@ ecm (mpz_t f, mpz_t x, int *param, mpz_t sigma, mpz_t n, mpz_t go,
           return ECM_ERROR;
         }
     }
-  /* Not in batch mode : if we use the parametrization, x cannot be specified */
-  else
-    {
-      if (sigma_is_A == 0 && mpz_sgn (x) != 0)
-        {
-          outputf (OUTPUT_ERROR, "Error, x0 should not be specified when "
-                                 "sigma is given\n");
-          return ECM_ERROR;
-        }
-    }
 
   /* check that if ECM_PARAM_BATCH_SQUARE is used, GMP_NUMB_BITS == 64*/
   if (*param == ECM_PARAM_BATCH_SQUARE && GMP_NUMB_BITS == 32)
@@ -1029,7 +1019,6 @@ ecm (mpz_t f, mpz_t x, int *param, mpz_t sigma, mpz_t n, mpz_t go,
   mpres_init (P.y, modulus);
   mpres_init (P.A, modulus);
 
-  mpres_set_z (P.x, x, modulus);
   mpres_set_ui (P.y, 1, modulus);
   
   youpi = set_stage_2_params (B2, B2_parm, B2min, B2min_parm, &root_params, 
@@ -1061,6 +1050,10 @@ ecm (mpz_t f, mpz_t x, int *param, mpz_t sigma, mpz_t n, mpz_t go,
               youpi = ECM_ERROR;
 	            goto end_of_ecm;
             }
+      
+          /* If x != 0 we use this value for the starting point */ 
+          if (mpz_sgn(x) != 0)
+              mpres_set_z (P.x, x, modulus);
       
           if (youpi != ECM_NO_FACTOR_FOUND)
             {
