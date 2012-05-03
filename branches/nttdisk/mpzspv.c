@@ -1784,6 +1784,8 @@ mpzspv_print_file (FILE **files, const spv_size_t offset,
         }
       printf (") (mod %lu) (on disk)\n", mpzspm->spm[i]->sp);
     }
+
+    sp_aligned_free (tmp);
 }
 
 void
