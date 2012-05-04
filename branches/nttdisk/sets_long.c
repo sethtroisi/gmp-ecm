@@ -455,6 +455,51 @@ sets_extract (set_list_t *extracted, set_list_t *L,
   ASSERT_ALWAYS (remaining_d == 1);
 }
 
+uint32_t *
+sets_init_iterator (const set_list_t *L)
+{
+  uint32_t *iterator, i;
+  
+  /* We allocate one extra which catches the last carry and thus
+     serves as an indicator that we are done */
+  iterator = malloc ((L->num_sets + 1) * sizeof(uint32_t));
+  if (iterator == NULL)
+    return NULL;
+  for (i = 0; i < L->num_sets + 1; i++)
+    iterator[i] = 0;
+
+  return iterator;
+}
+
+int64_t
+sets_next_iter (uint32_t *iterator, const set_list_t *L)
+{
+  uint32_t i, carry = 1;
+  int64_t sum = 0;
+
+  for (i = 0; i < L->num_sets; i++)
+    {
+      sum += L->sets[i].elem[iterator[i]];
+      iterator[i] += carry;
+      carry = 0;
+      if (iterator[i] == L->sets[i].card)
+        {
+          iterator[i] = 0;
+          carry = 1;
+        }
+    }
+
+  iterator[i] = carry;
+  return sum;
+}
+
+/* Return non-zero if all iterations of the iterator have been done */
+int
+sets_end_of_iter (uint32_t *iterator, const set_list_t *L)
+{
+  return iterator[L->num_sets];
+}
+
 
 #ifdef TESTDRIVE
 
