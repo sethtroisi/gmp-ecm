@@ -230,7 +230,7 @@ spv_pwmul (spv_t r, spv_t x, spv_t y, spv_size_t len, sp_t m, sp_t d)
       t1 = pcmpgtd(psetzero(), t0);
       t1 = pand(t1, vm);
       t0 = paddd(t0, t1);
-      pstore((__m128i *)(r + i), t0);
+      pstore(t0, r + i);
     }
 
   #elif GMP_LIMB_BITS == 32   /* 64-bit sp_t on a 32-bit machine */
@@ -300,7 +300,7 @@ spv_pwmul (spv_t r, spv_t x, spv_t y, spv_size_t len, sp_t m, sp_t d)
       t1 = pshufd(t1, 0xf5);
       t1 = pand(t1, vm);
       t3 = paddq(t3, t1);
-      pstore((__m128i *)(r + i), t3);
+      pstore(t3, r + i);
     }
   #endif
 
@@ -387,7 +387,7 @@ spv_mul_sp (spv_t r, spv_t x, sp_t c, spv_size_t len, sp_t m, sp_t d)
       t1 = pand(t1, vm);
       t0 = paddd(t0, t1);
 
-      pstore((__m128i *)(r + i), t0);
+      pstore(t0, r + i);
     }
 
   #elif GMP_LIMB_BITS == 32   /* 64-bit sp_t on a 32-bit machine */
@@ -458,7 +458,7 @@ spv_mul_sp (spv_t r, spv_t x, sp_t c, spv_size_t len, sp_t m, sp_t d)
       t1 = pshufd(t1, 0xf5);
       t1 = pand(t1, vm);
       t3 = paddq(t3, t1);
-      pstore((__m128i *)(r + i), t3);
+      pstore(t3, r + i);
     }
   #endif
 
