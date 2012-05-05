@@ -151,6 +151,9 @@ typedef struct
 {
   sp_t sp;		/* value of the sp */
   sp_t mul_c;		/* constant used for reduction mod sp */
+  sp_t primroot;
+  sp_t inv_primroot;
+
 #if SP_TYPE_BITS > GMP_LIMB_BITS
   mpz_t mp_sp;
 #endif
@@ -172,7 +175,9 @@ typedef struct
        we make the max size an sp_t to allow 64-bit sp_t a runlength
        that exceeds 2^32 */
     uint32_t sp_num;
-    sp_t max_ntt_size;
+
+    sp_t ntt_size;
+    uint32_t num_ntt_passes;
     
     mpz_t modulus;
     

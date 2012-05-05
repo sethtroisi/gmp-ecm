@@ -125,12 +125,12 @@ spm_init (sp_t n, sp_t sp)
         }
     }
   
-  b = sp_pow (b, sc, sp, spm->mul_c);
-  inv_b = sp_inv (b, sp, spm->mul_c);
+  spm->primroot = sp_pow (b, sc, sp, spm->mul_c);
+  spm->inv_primroot = sp_inv (spm->primroot, sp, spm->mul_c);
 
-  /* initialize forward and inverse NTTs of size n */
-  spm->ntt_data = ntt_init (n, b, sp, spm->mul_c);
-  spm->intt_data = ntt_init (n, inv_b, sp, spm->mul_c);
+  /* initialize forward and inverse NTTs whose sizes divide n */
+  spm->ntt_data = ntt_init (n, spm->primroot, sp, spm->mul_c);
+  spm->intt_data = ntt_init (n, spm->inv_primroot, sp, spm->mul_c);
 
   return spm;
 }

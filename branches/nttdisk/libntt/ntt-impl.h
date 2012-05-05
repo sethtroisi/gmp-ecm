@@ -16,6 +16,10 @@ typedef void (*ntt_pfa_run_t)(spv_t x, spv_size_t stride,
 			  spv_size_t cofactor, 
 			  sp_t p, sp_t d, spv_t ntt_const);
 
+typedef void (*ntt_twiddle_run_t)(spv_t x, spv_size_t stride,
+			  spv_size_t num_transforms, 
+			  sp_t p, sp_t d, spv_t ntt_const);
+
 
 /* a copy of sp_add, but operating on array offsets. These
    are always size_t types, and may have a size different 
@@ -67,7 +71,21 @@ typedef __m128i sp_simd_t;
 
 #define SP_SIMD_VSIZE (128 / SP_TYPE_BITS)
 
-static inline sp_simd_t sp_simd_gather(spv_t x, spv_size_t start_off, 
+static inline sp_simd_t sp_simd_gather(spv_t x);
+{
+#if SP_TYPE_BITS == 32
+
+  return ploadu(x);
+
+#else
+
+  sp_simd_t t = pload_lo64(x);
+  return pload_hi64(t, x + 1);
+
+#endif
+}
+
+static inline sp_simd_t sp_simd_pfa_gather(spv_t x, spv_size_t start_off, 
 					spv_size_t inc, spv_size_t n)
 {
 #if SP_TYPE_BITS == 32
@@ -94,7 +112,21 @@ static inline sp_simd_t sp_simd_gather(spv_t x, spv_size_t start_off,
 #endif
 }
 
-static inline void sp_simd_scatter(sp_simd_t t, spv_t x, 
+static inline void sp_simd_scatter(sp_simd_t t, spv_t x)
+{
+#if SP_TYPE_BITS == 32
+
+  pstoreu(t, x);
+
+#else
+
+  pstore_lo64(t, x);
+  pstore_hi64(t, x + 1);
+
+#endif
+}
+
+static inline void sp_simd_pfa_scatter(sp_simd_t t, spv_t x, 
     				spv_size_t start_off, 
 				spv_size_t inc, spv_size_t n)
 {
@@ -325,22 +357,15 @@ typedef struct
   nttdata_init_t nttdata_init;
   ntt_run_t ntt_run;
   ntt_pfa_run_t ntt_pfa_run;
+  ntt_twiddle_run_t ntt_twiddle_run;
 } nttconfig_t;
-
-extern const nttconfig_t ntt3_config;
-extern const nttconfig_t ntt4_config;
-extern const nttconfig_t ntt5_config;
-extern const nttconfig_t ntt7_config;
-extern const nttconfig_t ntt8_config;
-extern const nttconfig_t ntt9_config;
-extern const nttconfig_t ntt15_config;
 
 /* functions pointers and precomputed data needed by
    all versions of a codelet */
 
 typedef struct
 {
-  nttconfig_t *config;
+  const nttconfig_t *config;
   spv_t ntt_const;
 } codelet_data_t;
 
@@ -385,8 +410,7 @@ typedef struct
 typedef struct
 {
   uint32_t num_codelets;
-  uint32_t ntt_size;
-  const codelet_data_t *codelets;
+  codelet_data_t *codelets;
   spv_t codelet_const;
 
   nttpass_t *passes;
@@ -396,5 +420,8 @@ typedef struct
 
 void * ntt_init(sp_t size, sp_t primroot, sp_t p, sp_t d);
 void ntt_free(void *data);
+
+uint32_t planner_init(spm_t spm, sp_t size, spm_t existing);
+void planner_free(nttpass_t *passes, uint32_t num_passes);
 
 #endif /* _NTT_IMPL_H */

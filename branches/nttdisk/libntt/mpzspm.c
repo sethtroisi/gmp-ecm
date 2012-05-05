@@ -171,7 +171,7 @@ mpzspm_init (sp_t max_len, mpz_t modulus)
 
   mpz_init_set (mpzspm->modulus, modulus);
   
-  mpzspm->max_ntt_size = max_len;
+  mpzspm->ntt_size = max_len;
   
   mpzspm->crt1 = (mpzv_t) malloc (mpzspm->sp_num * sizeof (mpz_t));
   mpzspm->crt2 = (mpzv_t) malloc ((mpzspm->sp_num + 2) * sizeof (mpz_t));
@@ -238,6 +238,9 @@ mpzspm_init (sp_t max_len, mpz_t modulus)
   mpz_clear (T);
 
   mpzspm_product_tree_init (mpzspm);
+
+  mpzspm->num_ntt_passes = planner_init(mpzspm->spm[0], max_len, NULL);
+
   return mpzspm;
 
 clear_mpzspm:

@@ -32,27 +32,19 @@ bfntt(spv_t r, spv_t x, spv_size_t len,
 }
 
 
-const nttconfig_t * ntt_config[] = 
-{
-  &ntt3_config,
-  &ntt4_config,
-  &ntt5_config,
-  &ntt7_config,
-  &ntt8_config,
-  &ntt9_config,
-  &ntt15_config,
-};
-
 static void do_test(mpzspm_t mpzspm)
 {
   sp_t p = mpzspm->spm[0]->sp;
   sp_t d = mpzspm->spm[0]->mul_c;
-  sp_t primroot = mpzspm->spm[0]->prim_root;
-  sp_t order = mpzspm->max_ntt_size;
+  sp_t primroot = mpzspm->spm[0]->primroot;
+  sp_t order = mpzspm->ntt_size;
+  nttdata_t *nttdata = (nttdata_t *)mpzspm->spm[0]->ntt_data;
 
-  const nttconfig_t * pfa1 = ntt_config[1];
-  const nttconfig_t * pfa2 = ntt_config[2];
-  spv_size_t len = pfa1->size * pfa2->size;
+  codelet_data_t * pfa1 = nttdata->codelets + 1;
+  codelet_data_t * pfa2 = nttdata->codelets + 2;
+  const nttconfig_t *config1 = pfa1->config;
+  const nttconfig_t *config2 = pfa2->config;
+  spv_size_t len = config1->size * config2->size;
   spv_size_t i;
 
   sp_t tmp1[20];
@@ -72,11 +64,8 @@ static void do_test(mpzspm_t mpzspm)
     printf("ref %" PRIxsp "\n", r[i]);
   printf("\n");
 
-  pfa1->nttdata_init(tmp1, p, d, primroot, order);
-  pfa2->nttdata_init(tmp2, p, d, primroot, order);
-
-  pfa1->ntt_pfa_run(x, 1, pfa2->size, p, d, tmp1);
-  pfa2->ntt_pfa_run(x, 1, pfa1->size, p, d, tmp2);
+  config1->ntt_pfa_run(x, 1, config2->size, p, d, pfa1->ntt_const);
+  config2->ntt_pfa_run(x, 1, config1->size, p, d, pfa2->ntt_const);
 
   for (i = 0; i < len; i++)
     printf("pfa %" PRIxsp "\n", x[i]);

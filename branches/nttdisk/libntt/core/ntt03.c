@@ -55,6 +55,57 @@ ntt3_run(spv_t x, spv_size_t stride,
   x[2 * stride] = t2;
 }
 
+#ifdef HAVE_SSE2
+static void
+ntt3_run_simd(spv_t x, spv_size_t stride,
+	  sp_t p, sp_t d, spv_t ntt_const)
+{
+  sp_simd_t p0, p1, p2;
+  sp_simd_t x0, x1, x2;
+  sp_simd_t     t1, t2;
+
+  x0 = sp_simd_gather(x + 0 * stride));
+  x1 = sp_simd_gather(x + 1 * stride));
+  x2 = sp_simd_gather(x + 2 * stride));
+
+  t1 = sp_simd_add(x1, x2, p);
+  t2 = sp_simd_sub(x1, x2, p);
+
+  p0 = sp_simd_add(x0, t1, p);
+
+  p1 = sp_simd_mul(t1, ntt_const[1], p, d);
+  p2 = sp_simd_mul(t2, ntt_const[2], p, d);
+
+  p1 = sp_simd_add(p0, p1, p);
+
+  t1 = sp_simd_add(p1, p2, p);
+  t2 = sp_simd_sub(p1, p2, p);
+
+  sp_simd_scatter(p0, x + 0 * stride);
+  sp_simd_scatter(t1, x + 1 * stride);
+  sp_simd_scatter(t2, x + 2 * stride);
+}
+#endif
+
+static void
+ntt3_twiddle_run(spv_t x, spv_size_t stride,
+	  spv_size_t num_transforms,
+	  sp_t p, sp_t d, spv_t ntt_const)
+{
+  spv_size_t i = 0;
+
+#ifdef HAVE_SSE2
+  spv_size_t num_simd = SP_SIMD_VSIZE * (num_transforms / SP_SIMD_VSIZE);
+
+  for (i = 0; i < num_simd; i += SP_SIMD_VSIZE)
+      ntt3_run_simd(x + i, stride, p, d, ntt_const);
+#endif
+
+  for (; i < num_transforms; i++)
+    ntt3_run(x + i, stride, p, d, ntt_const);
+}
+
+
 static void
 ntt3_pfa_run_core(spv_t x, spv_size_t start,
 	  spv_size_t inc, spv_size_t n,
@@ -106,9 +157,9 @@ ntt3_pfa_run_core_simd(spv_t x, spv_size_t start,
   j1 = sp_array_inc(j0, inc, n);
   j2 = sp_array_inc(j0, 2 * inc, n);
 
-  x0 = sp_simd_gather(x, j0, inc2, n);
-  x1 = sp_simd_gather(x, j1, inc2, n);
-  x2 = sp_simd_gather(x, j2, inc2, n);
+  x0 = sp_simd_pfa_gather(x, j0, inc2, n);
+  x1 = sp_simd_pfa_gather(x, j1, inc2, n);
+  x2 = sp_simd_pfa_gather(x, j2, inc2, n);
 
   t1 = sp_simd_add(x1, x2, p);
   t2 = sp_simd_sub(x1, x2, p);
@@ -123,9 +174,9 @@ ntt3_pfa_run_core_simd(spv_t x, spv_size_t start,
   t1 = sp_simd_add(p1, p2, p);
   t2 = sp_simd_sub(p1, p2, p);
 
-  sp_simd_scatter(p0, x, j0, inc2, n);
-  sp_simd_scatter(t1, x, j1, inc2, n);
-  sp_simd_scatter(t2, x, j2, inc2, n);
+  sp_simd_pfa_scatter(p0, x, j0, inc2, n);
+  sp_simd_pfa_scatter(t1, x, j1, inc2, n);
+  sp_simd_pfa_scatter(t2, x, j2, inc2, n);
 }
 #endif
 
@@ -161,6 +212,7 @@ const nttconfig_t ntt3_config =
   ntt3_get_num_const,
   ntt3_init,
   ntt3_run,
-  ntt3_pfa_run
+  ntt3_pfa_run,
+  ntt3_twiddle_run
 };
 
