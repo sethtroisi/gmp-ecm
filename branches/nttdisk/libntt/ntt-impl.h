@@ -71,7 +71,7 @@ typedef __m128i sp_simd_t;
 
 #define SP_SIMD_VSIZE (128 / SP_TYPE_BITS)
 
-static inline sp_simd_t sp_simd_gather(spv_t x);
+static inline sp_simd_t sp_simd_gather(spv_t x)
 {
 #if SP_TYPE_BITS == 32
 
