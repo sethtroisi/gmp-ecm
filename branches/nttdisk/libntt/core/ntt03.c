@@ -64,9 +64,9 @@ ntt3_run_simd(spv_t x, spv_size_t stride,
   sp_simd_t x0, x1, x2;
   sp_simd_t     t1, t2;
 
-  x0 = sp_simd_gather(x + 0 * stride));
-  x1 = sp_simd_gather(x + 1 * stride));
-  x2 = sp_simd_gather(x + 2 * stride));
+  x0 = sp_simd_gather(x + 0 * stride);
+  x1 = sp_simd_gather(x + 1 * stride);
+  x2 = sp_simd_gather(x + 2 * stride);
 
   t1 = sp_simd_add(x1, x2, p);
   t2 = sp_simd_sub(x1, x2, p);
