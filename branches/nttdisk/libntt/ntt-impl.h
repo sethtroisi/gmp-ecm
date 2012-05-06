@@ -65,6 +65,34 @@ static inline spv_size_t sp_array_inc(spv_size_t a, spv_size_t b, spv_size_t m)
 
 sp_t sp_ntt_reciprocal (sp_t w, sp_t p);
 
+/* if the modulus is 2 bits or more smaller than the machine
+   word size, the core NTT routines use a redundant representation 
+   of the transform elements. Modular multiplies do not do their
+   final modular reduction, and inputs to the multiplies are not 
+   reduced mod p either. The transform results are in [0, 2p) */
+
+#if SP_NUMB_BITS < SP_TYPE_BITS - 1
+#define HAVE_PARTIAL_MOD
+#endif
+
+static inline sp_t sp_add_partial(sp_t a, sp_t b, sp_t p)
+{
+#ifdef HAVE_PARTIAL_MOD
+  return a + b;
+#else
+  return sp_add(a, b, p);
+#endif
+}
+
+static inline sp_t sp_sub_partial(sp_t a, sp_t b, sp_t p)
+{
+#ifdef HAVE_PARTIAL_MOD
+  return a - b + p;
+#else
+  return sp_sub(a, b, p);
+#endif
+}
+
 /* perform modular multiplication when the multiplier
    and its generalized inverse are both known and precomputed */
 
@@ -90,8 +118,13 @@ static inline sp_t sp_ntt_mul(sp_t x, sp_t w, sp_t w_inv, sp_t p)
 
 #endif
 
+#ifdef HAVE_PARTIAL_MOD
+  r = x * w - q * (p >> 1);
+  return r;
+#else
   r = x * w - q * p;
   return sp_sub(r, p, p);
+#endif
 }
 
 /*------------------- definitions for SIMD transforms ----------------*/
@@ -213,6 +246,23 @@ static inline sp_simd_t sp_simd_add(sp_simd_t a, sp_simd_t b, sp_t p)
 #endif
 }
 
+static inline sp_simd_t sp_simd_add_partial(sp_simd_t a, sp_simd_t b, sp_t p)
+{
+#ifdef HAVE_PARTIAL_MOD
+
+  #if SP_TYPE_BITS == 32
+  return paddd(a, b);
+  #else
+  return paddq(a, b);
+  #endif
+
+#else
+
+  return sp_simd_add(a, b, p);
+
+#endif
+}
+
 static inline sp_simd_t sp_simd_sub(sp_simd_t a, sp_simd_t b, sp_t p)
 {
 #if SP_TYPE_BITS == 32
@@ -239,6 +289,29 @@ static inline sp_simd_t sp_simd_sub(sp_simd_t a, sp_simd_t b, sp_t p)
 #endif
 }
 
+static inline sp_simd_t sp_simd_sub_partial(sp_simd_t a, sp_simd_t b, sp_t p)
+{
+#ifdef HAVE_PARTIAL_MOD
+
+  #if SP_TYPE_BITS == 32
+
+  sp_simd_t vp = pshufd(pcvt_i32(p), 0x00);
+  return paddd(psubd(a, b), vp);
+
+  #else
+
+  sp_simd_t vp = pshufd(pcvt_i64(p), 0x44);
+  return paddq(psubq(a, b), vp);
+
+  #endif
+
+#else
+
+  return sp_simd_sub(a, b, p);
+
+#endif
+}
+
 
 static inline sp_simd_t sp_simd_ntt_mul(sp_simd_t a, sp_t w, 
 					sp_t w_inv, sp_t p)
@@ -247,7 +320,11 @@ static inline sp_simd_t sp_simd_ntt_mul(sp_simd_t a, sp_t w,
 
   sp_simd_t t0, t1, t2, t3, vp, vw, vwi;
 
+  #ifdef HAVE_PARTIAL_MOD
+  vp = pshufd(pcvt_i32(p >> 1), 0x00);
+  #else
   vp = pshufd(pcvt_i32(p), 0x00);
+  #endif
   vw = pshufd(pcvt_i32(w), 0x00);
   vwi= pshufd(pcvt_i32(w_inv), 0x00);
 
@@ -269,10 +346,15 @@ static inline sp_simd_t sp_simd_ntt_mul(sp_simd_t a, sp_t w,
   t3 = pshufd(t3, 0x08);
   t1 = pshufd(t1, 0x08);
   t3 = punpcklo32(t3, t1);
+
+  #ifdef HAVE_PARTIAL_MOD
+  return t3;
+  #else
   t3 = psubd(t3, vp);
   t0 = pcmpgtd(psetzero(), t3);
   t0 = pand(t0, vp);
   return paddd(t3, t0);
+  #endif
 
 #elif 0 //GMP_LIMB_BITS == 32   /* 64-bit sp_t on a 32-bit machine */
 

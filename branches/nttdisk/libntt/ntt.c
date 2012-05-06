@@ -61,7 +61,7 @@ sp_t sp_ntt_reciprocal (sp_t w, sp_t p)
 /*-------------------------------------------------------------------------*/
 void * ntt_init(sp_t size, sp_t primroot, sp_t p, sp_t recip)
 {
-  uint32_t i, j;
+  uint32_t i, j, k;
   uint32_t num_const;
   spv_t curr_const;
   nttdata_t *d;
@@ -94,24 +94,25 @@ void * ntt_init(sp_t size, sp_t primroot, sp_t p, sp_t recip)
   if (d->codelet_const == NULL)
     goto error_free;
 
-  for (i = 0; i < NUM_CODELETS; i++)
+  for (i = j = 0; i < NUM_CODELETS; i++)
     {
       const nttconfig_t *c = ntt_config[i];
 
       if (size % c->size != 0)
 	continue;
 
-      d->codelets[i].config = c;
-      d->codelets[i].ntt_const = curr_const;
+      d->codelets[j].config = c;
+      d->codelets[j].ntt_const = curr_const;
+      j++;
 
       /* compute the constants, then append their reciprocals */
 
       num_const = c->get_num_ntt_const();
       c->nttdata_init(curr_const, p, recip, primroot, size);
 
-      for (j = 0; j < num_const; j++)
+      for (k = 0; k < num_const; k++)
 	{
-	  curr_const[num_const + j] = sp_ntt_reciprocal(curr_const[j], p);
+	  curr_const[num_const + k] = sp_ntt_reciprocal(curr_const[k], p);
 	}
       curr_const += 2 * num_const;
     }

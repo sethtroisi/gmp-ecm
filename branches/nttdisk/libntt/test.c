@@ -86,6 +86,9 @@ static void do_test(mpzspm_t mpzspm)
       config->ntt_run(x, 1, p, pfa->ntt_const);
 
       for (m = 0; m < len; m++)
+	x[m] = sp_sub(x[m], p, p);
+
+      for (m = 0; m < len; m++)
 	  if (r[m] != x[m])
 		break;
 
@@ -129,6 +132,9 @@ static void do_test(mpzspm_t mpzspm)
 	      			p, pfa1->ntt_const);
 	  config2->ntt_pfa_run(x, 1, len / config2->size, 
 	      			p, pfa2->ntt_const);
+
+	  for (m = 0; m < len; m++)
+	    x[m] = sp_sub(x[m], p, p);
 
 	  for (m = 0; m < len; m++)
 	    {
@@ -192,6 +198,9 @@ static void do_test(mpzspm_t mpzspm)
 	      			p, pfa2->ntt_const);
 	  config3->ntt_pfa_run(x, 1, len / config3->size, 
 	      			p, pfa3->ntt_const);
+
+	  for (m = 0; m < len; m++)
+	    x[m] = sp_sub(x[m], p, p);
 
 	  for (m = 0; m < len; m++)
 	    {

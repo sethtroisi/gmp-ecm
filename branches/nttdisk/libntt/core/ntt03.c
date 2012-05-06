@@ -35,12 +35,16 @@ ntt3_run(spv_t x, spv_size_t stride,
   sp_t x0, x1, x2;
   sp_t     t1, t2;
 
+  #ifdef HAVE_PARTIAL_MOD
+  p *= 2;
+  #endif
+
   x0 = x[0 * stride];
   x1 = x[1 * stride];
   x2 = x[2 * stride];
 
   t1 = sp_add(x1, x2, p);
-  t2 = sp_sub(x1, x2, p);
+  t2 = sp_sub_partial(x1, x2, p);
 
   p0 = sp_add(x0, t1, p);
 
@@ -66,12 +70,16 @@ ntt3_run_simd(spv_t x, spv_size_t stride,
   sp_simd_t x0, x1, x2;
   sp_simd_t     t1, t2;
 
+  #ifdef HAVE_PARTIAL_MOD
+  p *= 2;
+  #endif
+
   x0 = sp_simd_gather(x + 0 * stride);
   x1 = sp_simd_gather(x + 1 * stride);
   x2 = sp_simd_gather(x + 2 * stride);
 
   t1 = sp_simd_add(x1, x2, p);
-  t2 = sp_simd_sub(x1, x2, p);
+  t2 = sp_simd_sub_partial(x1, x2, p);
 
   p0 = sp_simd_add(x0, t1, p);
 
@@ -118,6 +126,10 @@ ntt3_pfa_run_core(spv_t x, spv_size_t start,
   sp_t x0, x1, x2;
   sp_t     t1, t2;
 
+  #ifdef HAVE_PARTIAL_MOD
+  p *= 2;
+  #endif
+
   j0 = start;
   j1 = sp_array_inc(j0, inc, n);
   j2 = sp_array_inc(j0, 2 * inc, n);
@@ -127,7 +139,7 @@ ntt3_pfa_run_core(spv_t x, spv_size_t start,
   x2 = x[j2];
 
   t1 = sp_add(x1, x2, p);
-  t2 = sp_sub(x1, x2, p);
+  t2 = sp_sub_partial(x1, x2, p);
 
   p0 = sp_add(x0, t1, p);
 
@@ -155,6 +167,10 @@ ntt3_pfa_run_core_simd(spv_t x, spv_size_t start,
   sp_simd_t x0, x1, x2;
   sp_simd_t     t1, t2;
 
+  #ifdef HAVE_PARTIAL_MOD
+  p *= 2;
+  #endif
+
   j0 = start;
   j1 = sp_array_inc(j0, inc, n);
   j2 = sp_array_inc(j0, 2 * inc, n);
@@ -164,7 +180,7 @@ ntt3_pfa_run_core_simd(spv_t x, spv_size_t start,
   x2 = sp_simd_pfa_gather(x, j2, inc2, n);
 
   t1 = sp_simd_add(x1, x2, p);
-  t2 = sp_simd_sub(x1, x2, p);
+  t2 = sp_simd_sub_partial(x1, x2, p);
 
   p0 = sp_simd_add(x0, t1, p);
 
