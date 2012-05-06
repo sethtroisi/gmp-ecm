@@ -748,7 +748,7 @@ exit:
       mpz_t tz;
       mpz_init (tz);
       mpres_get_z (tz, R, modulus);
-      gmp_printf ("%Zd\n", tz);
+      gmp_printf ("%Zd /* PARI C V */\n", tz);
       mpz_clear (tz);
     }
 }
@@ -1529,8 +1529,8 @@ build_F_ntt (const mpres_t P_1, set_list_t *S_1,
   ASSERT_ALWAYS(F->storage != 0 || mpz_cmp_ui (F->data.mem[i], 1UL) == 0);
   
   print_elapsed_time (OUTPUT_VERBOSE, timestart, realstart);
-  list_output_poly_file (F, params->s_1 / 2 + 1, 0, 1, "F(x) = ", "\n", 
-    OUTPUT_TRACE);
+  list_output_poly_file (F, params->s_1 / 2 + 1, 0, 1, "F(x) = ", 
+    " /* PARI build_F_ntt */\n", OUTPUT_TRACE);
   
 clear_and_exit:
   if (tmp != NULL)
@@ -1644,7 +1644,7 @@ pm1_sequence_g (listz_t g_mpz, mpzspv_handle_t g_handle, const mpres_t b_1,
     mpres_pow (r, b_1, t, state.modulus);     /* r[0] = b_1^P = r */
     if (test_verbose (OUTPUT_TRACE))
       {
-        mpres_get_z (t, state.r[0], state.modulus);
+        mpres_get_z (t, r, state.modulus);
         outputf (OUTPUT_TRACE, "/* pm1_sequence_g */ r == %Zd /* PARI C */\n", t);
       }
     
@@ -1710,11 +1710,7 @@ pm1_sequence_g (listz_t g_mpz, mpzspv_handle_t g_handle, const mpres_t b_1,
         ASSERT_ALWAYS (g_mpz != NULL);
 
         for (i = 0; i < l; i++)
-          {
-            pm1_sequence_g_prod (&state, g_mpz[offset + i]);
-            outputf (OUTPUT_TRACE, "/* pm1_sequence_g */ g_%lu = %Zd;"
-                     " /* PARI */\n", offset + i, g_mpz[offset + i]);
-          }
+          pm1_sequence_g_prod (&state, g_mpz[offset + i]);
       } else {
         /* NTT version */
         ASSERT_ALWAYS (g_mpz == NULL);
@@ -1736,7 +1732,14 @@ pm1_sequence_g (listz_t g_mpz, mpzspv_handle_t g_handle, const mpres_t b_1,
       uint64_t i;
       for (i = 0; i < l_param; i++)
 	{
-	  outputf (OUTPUT_TRACE, "/* pm1_sequence_g */ g_%" PRIu64
+          if (g_handle == NULL)
+            {
+              outputf (OUTPUT_TRACE, "/* pm1_sequence_g */ g_%" PRIu64 
+                       " = %Zd; /* PARI */\n", i, g_mpz[i]);
+            } else {
+              /* FIXME print values */
+            }
+          outputf (OUTPUT_TRACE, "/* pm1_sequence_g */ g_%" PRIu64
                    " == x_0^(M - %" PRIu64 ") * r^((M - %" PRIu64 ")^2) "
                    "/* PARI C */\n", i, i, i);
 	}
@@ -2148,6 +2151,138 @@ ntt_gcd (mpz_t f, mpz_t *product, mpzspv_handle_t ntt,
 }
 
 
+/* A slow method of evaluating the polynomial on a single point t.
+   We iterate through the elements k_1 of S_1 and collect the product 
+   \prod_{k_1 \in S_1} (x - P_1^{k_1}) (mod x - t)
+   = \prod_{k_1 \in S_1} (t - P_1^{k_1})
+   
+   LATER:
+   = \prod_{k_1 \in S_1, k_1 > 0} (x - P_1^{k_1})(x - P_1^{-k_1}) (mod x - t)
+   = \prod_{k_1 \in S_1, k_1 > 0} x (x+1/x - V_{k_1}(P_1 + 1/P_1)) (mod x - t)
+   = \prod_{k_1 \in S_1, k_1 > 0} ((t+1/t) - V_{k_1}(P_1 + 1/P_1))
+   where both t+1/t and V_{k_1}(P_1 + 1/P_1)) are in the base ring.
+*/
+
+static void 
+pm1_eval_slow (const mpz_t checkval, const set_list_t *S1, const mpz_t b1, 
+               const uint64_t P, const mpz_t m1, const uint64_t m, 
+               const int64_t k2, const mpz_t N)
+{
+  uint32_t *iterator;
+  unsigned long timestart, realstart;
+  mpz_t B, invB, Bk, x0, X, r, e, product, tmp;
+  int extgcd_ok;
+  uint64_t degree = 0;
+  
+  outputf (OUTPUT_VERBOSE, "Recomputing one polynomial value");
+  outputf (OUTPUT_TRACE, "\nN = %Zd; b1 = Mod(%Zd,N); P = %l" PRIu64 
+           "; m1 = %Zd; m = %" PRIu64 "; k2 = %" PRId64 "; /* PARI %s */\n", 
+           N, b1, P, m1, m, k2, __func__);
+
+  timestart = cputime ();
+  realstart = realtime ();
+
+  iterator = sets_init_iterator(S1);
+  ASSERT_ALWAYS(iterator != NULL);
+  mpz_init (B);
+  mpz_init (invB);
+  mpz_init (Bk);
+  mpz_init (e);
+  mpz_init (x0);
+  mpz_init (r);
+  mpz_init (X);
+  mpz_init (tmp);
+  mpz_init (product);
+  mpz_set_ui (product, 1);
+
+  /* See section 8 of ANTS paper */
+  mpz_set_uint64 (tmp, P);
+  mpz_powm (r, b1, tmp, N);
+  mpz_mul_2exp (e, m1, 1);
+  mpz_add_ui (e, e, 1);
+  mpz_mul (e, e, tmp); /* e = (2m_1 + 1)P */
+  mpz_set_int64 (tmp, k2);
+  mpz_mul_2exp (tmp, tmp, 1);
+  mpz_add (e, e, tmp); /* 2k_2 + (2m_1 + 1)P */
+  mpz_powm (x0, b1, e, N); /* x0 = b_1^{2k_2 + (2m_1 + 1)P} */
+  mpz_set_uint64 (e, m);
+  mpz_mul_2exp (e, e, 1);
+  mpz_powm (X, r, e, N);
+  mpz_mul (X, X, x0);
+  mpz_mod (X, X, N);
+
+  outputf (OUTPUT_TRACE, "x0 = Mod(%Zd,N); X = Mod(%Zd, N); /* PARI %s */\n", x0, X, __func__);
+  outputf (OUTPUT_TRACE, "x0 == b1^(2*k2 + (2*m1 + 1)*P) /* PARI C %s */ \n", 
+           __func__);
+  outputf (OUTPUT_TRACE, "X == b1^(2*k2 + (2*(m1+m) + 1)*P) /* PARI C %s */ \n", 
+           __func__);
+
+  mpz_mul (B, b1, b1); /* B = b_1^2 */
+  mpz_mod (B, B, N);
+  /* Precompute inverse to avoid extgcds below */
+  extgcd_ok = mpz_invert (invB, B, N);
+  ASSERT_ALWAYS (extgcd_ok != 0);
+  
+  while (!sets_end_of_iter(iterator, S1))
+    {
+      const int64_t k1 = sets_next_iter(iterator, S1);
+      /* printf ("pm1_eval_slow(): k1 = %" PRId64 "\n", k1); */
+      degree++;
+      
+      if (k1 < 0)
+        {
+          mpz_set_uint64 (e, -k1);
+          mpz_powm (Bk, invB, e, N);
+        } else {
+          mpz_set_uint64 (e, k1);
+          mpz_powm (Bk, B, e, N);
+        }
+      mpz_sub (Bk, X, Bk);
+      mpz_mul (product, product, Bk);
+      mpz_mod (product, product, N);
+    }
+  ASSERT_ALWAYS(degree % 2 == 0);
+  mpz_set_uint64 (e, degree / 2);
+  mpz_neg (e, e);
+  mpz_powm (Bk, X, e, N);
+  mpz_mul (product, product, Bk);
+  mpz_mod (product, product, N);
+  outputf (OUTPUT_TRACE, "F(x0) == Mod(%Zd,N) /* PARI C %s */\n", 
+           product, __func__);
+
+  /* Compute x_0^m r^(m^2) * F(X) */
+  mpz_set_uint64 (e, m);
+  mpz_powm (Bk, x0, e, N);
+  mpz_mul (product, product, Bk);
+  mpz_mod (product, product, N);
+  mpz_mul (e, e, e);
+  mpz_powm (Bk, r, e, N);
+  mpz_mul (product, product, Bk);
+  mpz_mod (product, product, N);
+  outputf (OUTPUT_TRACE, "x0^m * r^(m^2) * F(X) == Mod(%Zd,N) /* PARI C %s */\n", 
+           product, __func__);
+
+  if (mpz_cmp (product, checkval) != 0)
+    {
+      gmp_printf ("Error, slow result = %Zd, multi-point = %Zd\n", product, checkval);
+      abort();
+    }
+
+  mpz_clear (product);
+  mpz_clear (e);
+  mpz_clear (x0);
+  mpz_clear (r);
+  mpz_clear (X);
+  mpz_clear (B);
+  mpz_clear (invB);
+  mpz_clear (Bk);
+  mpz_clear (tmp);
+  free (iterator);    
+
+  print_elapsed_time (OUTPUT_VERBOSE, timestart, realstart);
+}
+
+
 int 
 pm1fs2 (mpz_t f, const mpres_t X, mpmod_t modulus, 
 	const faststage2_param_t *params)
@@ -2476,21 +2611,18 @@ pm1fs2_ntt (mpz_t f, const mpres_t X, mpmod_t modulus,
       return ECM_ERROR;
     }
 
-  sets_free (&S_1);
 
   mpres_clear (Q, modulus);
   
   h_handle = mpzspv_init_handle (h_filename, params->l / 2 + 1, ntt_context);
   free (h_filename);
+  h_filename = NULL;
 
   pm1_sequence_h (NULL, h_handle, F, XP, params->s_1 / 2 + 1, modulus);
 
   listz_handle_clear (F);
   F = NULL;
   mpres_clear (XP, modulus);
-
-  g_handle = mpzspv_init_handle (g_filename, params->l, ntt_context);
-  free (g_filename);
 
   /* Compute the DCT-I of h */
   outputf (OUTPUT_VERBOSE, "Computing DCT-I of h");
@@ -2520,6 +2652,10 @@ pm1fs2_ntt (mpz_t f, const mpres_t X, mpmod_t modulus,
       product_ptr = &product;
     }
 
+  g_handle = mpzspv_init_handle (g_filename, params->l, ntt_context);
+  free (g_filename);
+  g_filename = NULL;
+
   for (l = 0; l < params->s_2; l++)
     {
       const uint64_t M = params->l - 1L - params->s_1 / 2L;
@@ -2546,7 +2682,27 @@ pm1fs2_ntt (mpz_t f, const mpres_t X, mpmod_t modulus,
       print_elapsed_time (OUTPUT_VERBOSE, timestart, realstart);
       
       if (test_verbose (OUTPUT_TRACE))
-        mpzspv_print (g_handle, 0, params->s_1 / 2 + 1, "g_ntt * h_ntt");
+        mpzspv_print (g_handle, 0, params->l, "g_ntt * h_ntt");
+
+      if (0)
+        mpzspv_fromto_mpzv (g_handle, 0, params->l, NULL, NULL, 
+          (mpz_consumerfunc_t) &gmp_printf, "g(x) * h(x) = %Zd\n"); /* hax! */
+
+#ifdef WANT_ASSERT
+      /* Evaluate poly for comparison */
+        {
+          mpz_t checkval;
+          const uint64_t m = 0; /* 0 <= m < nr */
+
+          mpz_init (checkval);
+          mpzspv_fromto_mpzv (g_handle, params->s_1 / 2 + nr - 1 - m, 1, NULL, 
+                              NULL, NULL, &checkval);
+          mpres_get_z (mt, X, modulus);
+          pm1_eval_slow (checkval, &S_1, mt, params->P, params->m_1, m, 
+                         s2_sumset[l], modulus->orig_modulus);
+          mpz_clear (checkval);
+        }
+#endif
 
       /* Compute GCD of N and coefficients of product polynomial */
       ntt_gcd (mt, product_ptr, g_handle, params->s_1 / 2, NULL, nr, modulus);
@@ -2561,6 +2717,8 @@ pm1fs2_ntt (mpz_t f, const mpres_t X, mpmod_t modulus,
 	  break;
 	}
     }
+
+  sets_free (&S_1);
 
   if (test_verbose (OUTPUT_RESVERBOSE))
     {
