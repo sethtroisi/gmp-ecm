@@ -1,9 +1,11 @@
 #include "ntt-impl.h"
 
+#define NC 8
+
 static uint32_t 
 ntt8_get_num_const(void)
 {
-  return 8;
+  return NC;
 }
 
 void
@@ -27,7 +29,7 @@ ntt8_init(spv_t out, sp_t p, sp_t d,
 
 static void
 ntt8_run(spv_t x, spv_size_t stride,
-	  sp_t p, sp_t d, spv_t ntt_const)
+	  sp_t p, spv_t ntt_const)
 {
   sp_t x0, x1, x2, x3, x4, x5, x6, x7;
   sp_t t0, t1, t2, t3, t4, t5, t6, t7; 
@@ -60,10 +62,10 @@ ntt8_run(spv_t x, spv_size_t stride,
   p6 = t6;
   p7 = sp_add(t5, t7, p); 
 
-  p3 = sp_mul(p3, ntt_const[3], p, d);
-  p5 = sp_mul(p5, ntt_const[5], p, d);
-  p6 = sp_mul(p6, ntt_const[6], p, d);
-  p7 = sp_mul(p7, ntt_const[7], p, d);
+  p3 = sp_ntt_mul(p3, ntt_const[3], ntt_const[NC+3], p);
+  p5 = sp_ntt_mul(p5, ntt_const[5], ntt_const[NC+5], p);
+  p6 = sp_ntt_mul(p6, ntt_const[6], ntt_const[NC+6], p);
+  p7 = sp_ntt_mul(p7, ntt_const[7], ntt_const[NC+7], p);
 
   t0 = sp_add(p4, p6, p);
   t1 = sp_sub(p4, p6, p);
@@ -92,7 +94,7 @@ ntt8_run(spv_t x, spv_size_t stride,
 #ifdef HAVE_SSE2
 static void
 ntt8_run_simd(spv_t x, spv_size_t stride,
-	  sp_t p, sp_t d, spv_t ntt_const)
+	  sp_t p, spv_t ntt_const)
 {
   sp_simd_t x0, x1, x2, x3, x4, x5, x6, x7;
   sp_simd_t t0, t1, t2, t3, t4, t5, t6, t7; 
@@ -125,10 +127,10 @@ ntt8_run_simd(spv_t x, spv_size_t stride,
   p6 = t6;
   p7 = sp_simd_add(t5, t7, p); 
 
-  p3 = sp_simd_mul(p3, ntt_const[3], p, d);
-  p5 = sp_simd_mul(p5, ntt_const[5], p, d);
-  p6 = sp_simd_mul(p6, ntt_const[6], p, d);
-  p7 = sp_simd_mul(p7, ntt_const[7], p, d);
+  p3 = sp_simd_ntt_mul(p3, ntt_const[3], ntt_const[NC+3], p);
+  p5 = sp_simd_ntt_mul(p5, ntt_const[5], ntt_const[NC+5], p);
+  p6 = sp_simd_ntt_mul(p6, ntt_const[6], ntt_const[NC+6], p);
+  p7 = sp_simd_ntt_mul(p7, ntt_const[7], ntt_const[NC+7], p);
 
   t0 = sp_simd_add(p4, p6, p);
   t1 = sp_simd_sub(p4, p6, p);
@@ -158,7 +160,7 @@ ntt8_run_simd(spv_t x, spv_size_t stride,
 static void
 ntt8_twiddle_run(spv_t x, spv_size_t stride,
 	  spv_size_t num_transforms,
-	  sp_t p, sp_t d, spv_t ntt_const)
+	  sp_t p, spv_t ntt_const)
 {
   spv_size_t i = 0;
 
@@ -166,17 +168,17 @@ ntt8_twiddle_run(spv_t x, spv_size_t stride,
   spv_size_t num_simd = SP_SIMD_VSIZE * (num_transforms / SP_SIMD_VSIZE);
 
   for (i = 0; i < num_simd; i += SP_SIMD_VSIZE)
-      ntt8_run_simd(x + i, stride, p, d, ntt_const);
+      ntt8_run_simd(x + i, stride, p, ntt_const);
 #endif
 
   for (; i < num_transforms; i++)
-    ntt8_run(x + i, stride, p, d, ntt_const);
+    ntt8_run(x + i, stride, p, ntt_const);
 }
 
 static void
 ntt8_pfa_run_core(spv_t x, spv_size_t start,
 	  spv_size_t inc, spv_size_t n,
-	  sp_t p, sp_t d, spv_t ntt_const)
+	  sp_t p, spv_t ntt_const)
 {
   spv_size_t j0, j1, j2, j3, j4, j5, j6, j7;
   sp_t x0, x1, x2, x3, x4, x5, x6, x7;
@@ -219,10 +221,10 @@ ntt8_pfa_run_core(spv_t x, spv_size_t start,
   p6 = t6;
   p7 = sp_add(t5, t7, p); 
 
-  p3 = sp_mul(p3, ntt_const[3], p, d);
-  p5 = sp_mul(p5, ntt_const[5], p, d);
-  p6 = sp_mul(p6, ntt_const[6], p, d);
-  p7 = sp_mul(p7, ntt_const[7], p, d);
+  p3 = sp_ntt_mul(p3, ntt_const[3], ntt_const[NC+3], p);
+  p5 = sp_ntt_mul(p5, ntt_const[5], ntt_const[NC+5], p);
+  p6 = sp_ntt_mul(p6, ntt_const[6], ntt_const[NC+6], p);
+  p7 = sp_ntt_mul(p7, ntt_const[7], ntt_const[NC+7], p);
 
   t0 = sp_add(p4, p6, p);
   t1 = sp_sub(p4, p6, p);
@@ -252,7 +254,7 @@ ntt8_pfa_run_core(spv_t x, spv_size_t start,
 static void
 ntt8_pfa_run_core_simd(spv_t x, spv_size_t start,
 	  spv_size_t inc, spv_size_t inc2, spv_size_t n,
-	  sp_t p, sp_t d, spv_t ntt_const)
+	  sp_t p, spv_t ntt_const)
 {
   spv_size_t j0, j1, j2, j3, j4, j5, j6, j7;
   sp_simd_t x0, x1, x2, x3, x4, x5, x6, x7;
@@ -295,10 +297,10 @@ ntt8_pfa_run_core_simd(spv_t x, spv_size_t start,
   p6 = t6;
   p7 = sp_simd_add(t5, t7, p); 
 
-  p3 = sp_simd_mul(p3, ntt_const[3], p, d);
-  p5 = sp_simd_mul(p5, ntt_const[5], p, d);
-  p6 = sp_simd_mul(p6, ntt_const[6], p, d);
-  p7 = sp_simd_mul(p7, ntt_const[7], p, d);
+  p3 = sp_simd_ntt_mul(p3, ntt_const[3], ntt_const[NC+3], p);
+  p5 = sp_simd_ntt_mul(p5, ntt_const[5], ntt_const[NC+5], p);
+  p6 = sp_simd_ntt_mul(p6, ntt_const[6], ntt_const[NC+6], p);
+  p7 = sp_simd_ntt_mul(p7, ntt_const[7], ntt_const[NC+7], p);
 
   t0 = sp_simd_add(p4, p6, p);
   t1 = sp_simd_sub(p4, p6, p);
@@ -328,7 +330,7 @@ ntt8_pfa_run_core_simd(spv_t x, spv_size_t start,
 static void
 ntt8_pfa_run(spv_t x, spv_size_t stride,
 	  spv_size_t cofactor,
-	  sp_t p, sp_t d, spv_t ntt_const)
+	  sp_t p, spv_t ntt_const)
 {
   spv_size_t i = 0;
   spv_size_t incstart = 0;
@@ -341,13 +343,13 @@ ntt8_pfa_run(spv_t x, spv_size_t stride,
 
   for (i = 0; i < num_simd; i += SP_SIMD_VSIZE)
     {
-      ntt8_pfa_run_core_simd(x, incstart, inc, inc2, n, p, d, ntt_const);
+      ntt8_pfa_run_core_simd(x, incstart, inc, inc2, n, p, ntt_const);
       incstart += SP_SIMD_VSIZE * inc2;
     }
 #endif
 
   for (; i < cofactor; i++, incstart += inc2)
-    ntt8_pfa_run_core(x, incstart, inc, n, p, d, ntt_const);
+    ntt8_pfa_run_core(x, incstart, inc, n, p, ntt_const);
 
 }
 

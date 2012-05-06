@@ -23,9 +23,45 @@ static const nttconfig_t * ntt_config[] =
 #define NUM_CODELETS (sizeof(ntt_config) / sizeof(ntt_config[0]))
 
 /*-------------------------------------------------------------------------*/
+sp_t sp_ntt_reciprocal (sp_t w, sp_t p)
+{
+    /* compute (w << SP_TYPE_BITS) / p */
+
+#if SP_TYPE_BITS == GMP_LIMB_BITS  /* use GMP functions */
+    mp_limb_t recip, dummy;
+
+    udiv_qrnnd (recip, dummy, w, 0, p);
+    return recip;
+
+#elif SP_TYPE_BITS < GMP_LIMB_BITS  /* ordinary division */
+
+    return ((mp_limb_t)w << SP_TYPE_BITS) / p;
+
+#else  /* worst case: bit-at-a-time */
+
+    sp_t r = w;
+    sp_t q = 0;
+    mp_limb_t i;
+
+    for (i = 0; i < SP_TYPE_BITS; i++)
+      {
+	q += q;
+	r += r;
+	if (r >= p)
+	{
+	  r -= p;
+	  q |= 1;
+	}
+      }
+    return q;
+
+#endif
+}
+
+/*-------------------------------------------------------------------------*/
 void * ntt_init(sp_t size, sp_t primroot, sp_t p, sp_t recip)
 {
-  uint32_t i;
+  uint32_t i, j;
   uint32_t num_const;
   spv_t curr_const;
   nttdata_t *d;
@@ -41,7 +77,8 @@ void * ntt_init(sp_t size, sp_t primroot, sp_t p, sp_t recip)
       if (size % c->size != 0)
 	continue;
 
-      num_const += c->get_num_ntt_const();
+      /* allocate room for each constant and its reciprocal */
+      num_const += 2 * c->get_num_ntt_const();
       d->num_codelets++;
     }
 
@@ -66,8 +103,17 @@ void * ntt_init(sp_t size, sp_t primroot, sp_t p, sp_t recip)
 
       d->codelets[i].config = c;
       d->codelets[i].ntt_const = curr_const;
+
+      /* compute the constants, then append their reciprocals */
+
+      num_const = c->get_num_ntt_const();
       c->nttdata_init(curr_const, p, recip, primroot, size);
-      curr_const += c->get_num_ntt_const();
+
+      for (j = 0; j < num_const; j++)
+	{
+	  curr_const[num_const + j] = sp_ntt_reciprocal(curr_const[j], p);
+	}
+      curr_const += 2 * num_const;
     }
 
   return d;

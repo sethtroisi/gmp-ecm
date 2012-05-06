@@ -10,15 +10,15 @@ typedef void (*nttdata_init_t)(spv_t out,
 				sp_t primroot, sp_t order);
 
 typedef void (*ntt_run_t)(spv_t x, spv_size_t stride,
-			  sp_t p, sp_t d, spv_t ntt_const);
+			  sp_t p, spv_t ntt_const);
 
 typedef void (*ntt_pfa_run_t)(spv_t x, spv_size_t stride,
 			  spv_size_t cofactor, 
-			  sp_t p, sp_t d, spv_t ntt_const);
+			  sp_t p, spv_t ntt_const);
 
 typedef void (*ntt_twiddle_run_t)(spv_t x, spv_size_t stride,
 			  spv_size_t num_transforms, 
-			  sp_t p, sp_t d, spv_t ntt_const);
+			  sp_t p, spv_t ntt_const);
 
 
 /* a copy of sp_add, but operating on array offsets. These
@@ -61,6 +61,37 @@ static inline spv_size_t sp_array_inc(spv_size_t a, spv_size_t b, spv_size_t m)
   return t;
 
 #endif
+}
+
+sp_t sp_ntt_reciprocal (sp_t w, sp_t p);
+
+/* perform modular multiplication when the multiplier
+   and its generalized inverse are both known and precomputed */
+
+static inline sp_t sp_ntt_mul(sp_t x, sp_t w, sp_t w_inv, sp_t p)
+{
+  sp_t r;
+
+#if SP_TYPE_BITS == GMP_LIMB_BITS  /* use GMP functions */
+
+  mp_limb_t q;
+  ATTRIBUTE_UNUSED mp_limb_t tmp;
+  umul_ppmm(q, tmp, x, w_inv);
+
+#elif SP_TYPE_BITS < GMP_LIMB_BITS  /* ordinary multiply */
+
+  mp_limb_t prod = (mp_limb_t)(x) * (mp_limb_t)(w_inv);
+  sp_t q = (sp_t)(prod >> SP_TYPE_BITS);
+
+#else  /* worst case: build product from smaller multiplies */
+
+  sp_t q;
+  sp_wide_mul(q, r, x, w_inv);
+
+#endif
+
+  r = x * w - q * p;
+  return sp_sub(r, p, p);
 }
 
 /*------------------- definitions for SIMD transforms ----------------*/
@@ -209,76 +240,61 @@ static inline sp_simd_t sp_simd_sub(sp_simd_t a, sp_simd_t b, sp_t p)
 }
 
 
-static inline sp_simd_t sp_simd_mul(sp_simd_t a, sp_t b, sp_t p, sp_t d)
+static inline sp_simd_t sp_simd_ntt_mul(sp_simd_t a, sp_t w, 
+					sp_t w_inv, sp_t p)
 {
 #if SP_TYPE_BITS == 32
 
-  __m128i t0, t1, t2, t3, vp, vp2, vd;
+  sp_simd_t t0, t1, t2, t3, vp, vw, vwi;
 
   vp = pshufd(pcvt_i32(p), 0x00);
-  vp2 = pshufd(pcvt_i32(p), 0x44);
-  vd = pshufd(pcvt_i32(d), 0x00);
-  t1 = pshufd(pcvt_i32(b), 0x44);
+  vw = pshufd(pcvt_i32(w), 0x00);
+  vwi= pshufd(pcvt_i32(w_inv), 0x00);
 
-  t2 = pshufd(a, 0x31);
-  t0 = pmuludq(a, t1);
-  t2 = pmuludq(t2, t1);
-  t1 = psrlq(t0, 2 * SP_NUMB_BITS - SP_TYPE_BITS);
-  t3 = psrlq(t2, 2 * SP_NUMB_BITS - SP_TYPE_BITS);
-  t1 = pmuludq(t1, vd);
-  t3 = pmuludq(t3, vd);
+  t0 = pmuludq(a, vwi);
+  t1 = pshufd(a, 0x31);
+  t2 = pmuludq(t1, vwi);
 
-  #if SP_NUMB_BITS < 31
-  t1 = psrlq(t1, 33);
-  t3 = psrlq(t3, 33);
-  t1 = pmuludq(t1, vp);
-  t3 = pmuludq(t3, vp);
-  t0 = psubq(t0, t1);
-  t2 = psubq(t2, t3);
-  #else
-  t1 = pshufd(t1, 0xf5);
-  t3 = pshufd(t3, 0xf5);
-  t1 = pmuludq(t1, vp);
-  t3 = pmuludq(t3, vp);
-  t0 = psubq(t0, t1);
-  t2 = psubq(t2, t3);
+  t3 = pmuludq(a, vw);
+  t1 = pmuludq(t1, vw);
 
-  t0 = psubq(t0, vp2);
-  t2 = psubq(t2, vp2);
-  t1 = pshufd(t0, 0xf5);
-  t3 = pshufd(t2, 0xf5);
-  t1 = pand(t1, vp2);
-  t3 = pand(t3, vp2);
-  t0 = paddq(t0, t1);
-  t2 = paddq(t2, t3);
-  #endif
+  t0 = psrlq(t0, 32);
+  t2 = psrlq(t2, 32);
+  t0 = pmuludq(t0, vp);
+  t2 = pmuludq(t2, vp);
 
-  t0 = pshufd(t0, 0x08);
-  t1 = pshufd(t2, 0x08);
-  t0 = punpcklo32(t0, t1);
-  t0 = psubd(t0, vp);
-  t1 = pcmpgtd(psetzero(), t0);
-  t1 = pand(t1, vp);
-  return paddd(t0, t1);
+  t3 = psubq(t3, t0);
+  t1 = psubq(t1, t2);
 
-#elif GMP_LIMB_BITS == 32   /* 64-bit sp_t on a 32-bit machine */
+  t3 = pshufd(t3, 0x08);
+  t1 = pshufd(t1, 0x08);
+  t3 = punpcklo32(t3, t1);
+  t3 = psubd(t3, vp);
+  t0 = pcmpgtd(psetzero(), t3);
+  t0 = pand(t0, vp);
+  return paddd(t3, t0);
 
-  __m128i t0, t1, t2, t3, t4, t5, vp, vd;
+#elif 0 //GMP_LIMB_BITS == 32   /* 64-bit sp_t on a 32-bit machine */
+
+  sp_simd_t t0, t1, t2, t3, t4, t5, vp, vw, vwi;
 
   vp = pshufd(pcvt_i64(p), 0x44);
-  vd = pshufd(pcvt_i64(d), 0x44);
+  vw = pshufd(pcvt_i64(w), 0x44);
+  vwi = pshufd(pcvt_i64(w_inv), 0x44);
+
   t4 = a;
   t5 = pshufd(pcvt_i64(b), 0x44);
 
-  t3 = pshufd(t4, 0x31);
-  t3 = pmuludq(t3, t5);
-  t2 = pshufd(t5, 0x31);
-  t2 = pmuludq(t2, t4);
+  t3 = pshufd(a, 0x31);
+  t3 = pmuludq(t3, vwi);
+  t2 = pshufd(vwi, 0x31);
+  t2 = pmuludq(t2, a);
+  t3 = paddq(t2, t3);
+
   t1 = pshufd(t4, 0x31);
   t4 = pmuludq(t4, t5);
   t5 = pshufd(t5, 0x31);
   t5 = pmuludq(t5, t1);
-  t3 = paddq(t2, t3);
 
   t0 = t4;
   t4 = psrlq(t4, 32);
@@ -337,8 +353,8 @@ static inline sp_simd_t sp_simd_mul(sp_simd_t a, sp_t b, sp_t p, sp_t d)
   pstore_i64(a0, a);
   pstore_i64(a1, pshufd(a, 0x0e));
 
-  a0 = sp_mul(a0, b, p, d);
-  a1 = sp_mul(a1, b, p, d);
+  a0 = sp_ntt_mul(a0, w, w_inv, p);
+  a1 = sp_ntt_mul(a1, w, w_inv, p);
 
   t0 = pcvt_i64(a0);
   t1 = pcvt_i64(a1);

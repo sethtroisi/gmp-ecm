@@ -70,6 +70,39 @@ static void do_test(mpzspm_t mpzspm)
   sp_t order = mpzspm->ntt_size;
   nttdata_t *nttdata = (nttdata_t *)mpzspm->spm[0]->ntt_data;
 
+  for (i = 0; i < nttdata->num_codelets; i++)
+    {
+      codelet_data_t * pfa = nttdata->codelets + i;
+      const nttconfig_t *config = pfa->config;
+      spv_size_t len = config->size;
+      spv_t x = (spv_t)alloca(len * sizeof(sp_t));
+      spv_t r = (spv_t)alloca(len * sizeof(sp_t));
+      uint64_t start, stop;
+
+      spv_random(x, len, p);
+
+      bfntt(r, x, len, p, d, primroot, order);
+
+      config->ntt_run(x, 1, p, pfa->ntt_const);
+
+      for (m = 0; m < len; m++)
+	  if (r[m] != x[m])
+		break;
+
+      if (m != len)
+	printf("%u: fail", config->size);
+      else
+	printf("%u:", config->size);
+
+      start = read_clock();
+      for (m = 0; m < 100; m++)
+	{
+	  config->ntt_run(x, 1, p, pfa->ntt_const);
+	}
+      stop = read_clock();
+      printf("\t%lf clocks/point\n", (double)(stop - start) / 100 / len);
+    }
+
   /* transform pairs */
 
   for (i = 0; i < nttdata->num_codelets - 1; i++)
@@ -93,9 +126,9 @@ static void do_test(mpzspm_t mpzspm)
 	  bfntt(r, x, len, p, d, primroot, order);
 
 	  config1->ntt_pfa_run(x, 1, len / config1->size, 
-	      			p, d, pfa1->ntt_const);
+	      			p, pfa1->ntt_const);
 	  config2->ntt_pfa_run(x, 1, len / config2->size, 
-	      			p, d, pfa2->ntt_const);
+	      			p, pfa2->ntt_const);
 
 	  for (m = 0; m < len; m++)
 	    {
@@ -117,9 +150,9 @@ static void do_test(mpzspm_t mpzspm)
 	  for (m = 0; m < 100; m++)
 	    {
 	      config1->ntt_pfa_run(x, 1, len / config1->size, 
-		    		    p, d, pfa1->ntt_const);
+		    		    p, pfa1->ntt_const);
 	      config2->ntt_pfa_run(x, 1, len / config2->size, 
-			    	    p, d, pfa2->ntt_const);
+			    	    p, pfa2->ntt_const);
 	    }
 	  stop = read_clock();
 	  printf("\t%lf clocks/point\n", (double)(stop - start) / 100 / len);
@@ -154,11 +187,11 @@ static void do_test(mpzspm_t mpzspm)
 	  bfntt(r, x, len, p, d, primroot, order);
 
 	  config1->ntt_pfa_run(x, 1, len / config1->size, 
-	      			p, d, pfa1->ntt_const);
+	      			p, pfa1->ntt_const);
 	  config2->ntt_pfa_run(x, 1, len / config2->size, 
-	      			p, d, pfa2->ntt_const);
+	      			p, pfa2->ntt_const);
 	  config3->ntt_pfa_run(x, 1, len / config3->size, 
-	      			p, d, pfa3->ntt_const);
+	      			p, pfa3->ntt_const);
 
 	  for (m = 0; m < len; m++)
 	    {
@@ -180,11 +213,11 @@ static void do_test(mpzspm_t mpzspm)
 	  for (m = 0; m < 100; m++)
 	    {
 	      config1->ntt_pfa_run(x, 1, len / config1->size, 
-		    		    p, d, pfa1->ntt_const);
+		    		    p, pfa1->ntt_const);
 	      config2->ntt_pfa_run(x, 1, len / config2->size, 
-			    	    p, d, pfa2->ntt_const);
+			    	    p, pfa2->ntt_const);
 	      config3->ntt_pfa_run(x, 1, len / config3->size, 
-			    	    p, d, pfa3->ntt_const);
+			    	    p, pfa3->ntt_const);
 	    }
 	  stop = read_clock();
 	  printf("\t%lf clocks/point\n", (double)(stop - start) / 100 / len);

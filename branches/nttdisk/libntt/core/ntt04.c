@@ -1,9 +1,11 @@
 #include "ntt-impl.h"
 
+#define NC 4
+
 static uint32_t 
 ntt4_get_num_const(void)
 {
-  return 4;
+  return NC;
 }
 
 void
@@ -18,7 +20,7 @@ ntt4_init(spv_t out, sp_t p, sp_t d,
 
 static void
 ntt4_run(spv_t x, spv_size_t stride,
-	  sp_t p, sp_t d, spv_t ntt_const)
+	  sp_t p, spv_t ntt_const)
 {
   sp_t x0, x1, x2, x3;
   sp_t t0, t1, t2, t3;
@@ -34,7 +36,7 @@ ntt4_run(spv_t x, spv_size_t stride,
   t1 = sp_add(x1, x3, p);
   t3 = sp_sub(x1, x3, p);
 
-  t3 = sp_mul(t3, ntt_const[3], p, d);
+  t3 = sp_ntt_mul(t3, ntt_const[3], ntt_const[NC+3], p);
 
   p0 = sp_add(t0, t1, p);
   p1 = sp_sub(t0, t1, p);
@@ -51,7 +53,7 @@ ntt4_run(spv_t x, spv_size_t stride,
 #ifdef HAVE_SSE2
 static void
 ntt4_run_simd(spv_t x, spv_size_t stride,
-	  sp_t p, sp_t d, spv_t ntt_const)
+	  sp_t p, spv_t ntt_const)
 {
   sp_simd_t x0, x1, x2, x3;
   sp_simd_t t0, t1, t2, t3;
@@ -67,7 +69,7 @@ ntt4_run_simd(spv_t x, spv_size_t stride,
   t1 = sp_simd_add(x1, x3, p);
   t3 = sp_simd_sub(x1, x3, p);
 
-  t3 = sp_simd_mul(t3, ntt_const[3], p, d);
+  t3 = sp_simd_ntt_mul(t3, ntt_const[3], ntt_const[NC+3], p);
 
   p0 = sp_simd_add(t0, t1, p);
   p1 = sp_simd_sub(t0, t1, p);
@@ -85,7 +87,7 @@ ntt4_run_simd(spv_t x, spv_size_t stride,
 static void
 ntt4_twiddle_run(spv_t x, spv_size_t stride,
 	  spv_size_t num_transforms,
-	  sp_t p, sp_t d, spv_t ntt_const)
+	  sp_t p, spv_t ntt_const)
 {
   spv_size_t i = 0;
 
@@ -93,17 +95,17 @@ ntt4_twiddle_run(spv_t x, spv_size_t stride,
   spv_size_t num_simd = SP_SIMD_VSIZE * (num_transforms / SP_SIMD_VSIZE);
 
   for (i = 0; i < num_simd; i += SP_SIMD_VSIZE)
-      ntt4_run_simd(x + i, stride, p, d, ntt_const);
+      ntt4_run_simd(x + i, stride, p, ntt_const);
 #endif
 
   for (; i < num_transforms; i++)
-    ntt4_run(x + i, stride, p, d, ntt_const);
+    ntt4_run(x + i, stride, p, ntt_const);
 }
 
 static void
 ntt4_pfa_run_core(spv_t x, spv_size_t start,
 	  spv_size_t inc, spv_size_t n,
-	  sp_t p, sp_t d, spv_t ntt_const)
+	  sp_t p, spv_t ntt_const)
 {
   spv_size_t j0, j1, j2, j3;
 
@@ -126,7 +128,7 @@ ntt4_pfa_run_core(spv_t x, spv_size_t start,
   t1 = sp_add(x1, x3, p);
   t3 = sp_sub(x1, x3, p);
 
-  t3 = sp_mul(t3, ntt_const[3], p, d);
+  t3 = sp_ntt_mul(t3, ntt_const[3], ntt_const[NC+3], p);
 
   p0 = sp_add(t0, t1, p);
   p1 = sp_sub(t0, t1, p);
@@ -143,7 +145,7 @@ ntt4_pfa_run_core(spv_t x, spv_size_t start,
 static void
 ntt4_pfa_run_core_simd(spv_t x, spv_size_t start,
 	  spv_size_t inc, spv_size_t inc2, spv_size_t n,
-	  sp_t p, sp_t d, spv_t ntt_const)
+	  sp_t p, spv_t ntt_const)
 {
   spv_size_t j0, j1, j2, j3;
   sp_simd_t x0, x1, x2, x3;
@@ -165,7 +167,7 @@ ntt4_pfa_run_core_simd(spv_t x, spv_size_t start,
   t1 = sp_simd_add(x1, x3, p);
   t3 = sp_simd_sub(x1, x3, p);
 
-  t3 = sp_simd_mul(t3, ntt_const[3], p, d);
+  t3 = sp_simd_ntt_mul(t3, ntt_const[3], ntt_const[NC+3], p);
 
   p0 = sp_simd_add(t0, t1, p);
   p1 = sp_simd_sub(t0, t1, p);
@@ -182,7 +184,7 @@ ntt4_pfa_run_core_simd(spv_t x, spv_size_t start,
 static void
 ntt4_pfa_run(spv_t x, spv_size_t stride,
 	  spv_size_t cofactor,
-	  sp_t p, sp_t d, spv_t ntt_const)
+	  sp_t p, spv_t ntt_const)
 {
   spv_size_t i = 0;
   spv_size_t incstart = 0;
@@ -195,13 +197,13 @@ ntt4_pfa_run(spv_t x, spv_size_t stride,
 
   for (i = 0; i < num_simd; i += SP_SIMD_VSIZE)
     {
-      ntt4_pfa_run_core_simd(x, incstart, inc, inc2, n, p, d, ntt_const);
+      ntt4_pfa_run_core_simd(x, incstart, inc, inc2, n, p, ntt_const);
       incstart += SP_SIMD_VSIZE * inc2;
     }
 #endif
 
   for (; i < cofactor; i++, incstart += inc2)
-    ntt4_pfa_run_core(x, incstart, inc, n, p, d, ntt_const);
+    ntt4_pfa_run_core(x, incstart, inc, n, p, ntt_const);
 
 }
 
