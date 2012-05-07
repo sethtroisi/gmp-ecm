@@ -744,6 +744,13 @@ void          sets_sumset_minmax (mpz_t, const set_list_t *, const int);
 void          sets_extract (set_list_t *, set_list_t *, const uint64_t);
 #define sets_get_factored_sorted __ECM(sets_get_factored_sorted)
 void          sets_get_factored_sorted (set_list_t *, const uint64_t);
+#define sets_init_iterator __ECM(sets_init_iterator)
+uint32_t *    sets_init_iterator (const set_list_t *);
+#define sets_next_iter __ECM(sets_next_iter)
+int64_t       sets_next_iter (uint32_t *, const set_list_t *);
+#define sets_end_of_iter __ECM(sets_end_of_iter)
+int           sets_end_of_iter (uint32_t *, const set_list_t *);
+
 
 #if defined (__cplusplus)
 }
