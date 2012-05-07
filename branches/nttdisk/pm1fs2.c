@@ -3843,15 +3843,14 @@ pp1fs2 (mpz_t f, const mpres_t X, mpmod_t modulus,
 	  break;
 	}
       outputf (OUTPUT_VERBOSE, " took %lums\n", cputime () - timestart);
-      for (i = 0; i < nr; i++)
-	  mpz_add (R_x[i], R_x[i], R_y[i]);
       
       timestart = cputime ();
       mpres_set_ui (tmpres[1], 1UL, modulus); /* Accumulate product in 
 						 tmpres[1] */
       for (i = 0; i < nr; i++)
       {
-	  mpres_set_z_for_gcd (tmpres[0], R_x[i], modulus);
+	  mpz_add (mt, R_x[i], R_y[i]);
+	  mpres_set_z_for_gcd (tmpres[0], mt, modulus);
 #define TEST_ZERO_RESULT
 #ifdef TEST_ZERO_RESULT
 	  if (mpres_is_zero (tmpres[0], modulus))
@@ -3859,6 +3858,8 @@ pp1fs2 (mpz_t f, const mpres_t X, mpmod_t modulus,
 #endif
 	  mpres_mul (tmpres[1], tmpres[1], tmpres[0], modulus); 
       }
+      mpz_set_uint64 (mt, nr);
+      mpres_set_z_for_gcd_fix (tmpres[1], tmpres[1], mt, modulus);
       outputf (OUTPUT_VERBOSE, "Computing product of F(g_i)^(1) took %lums\n", 
 	       cputime () - timestart);
       if (test_verbose(OUTPUT_RESVERBOSE))
