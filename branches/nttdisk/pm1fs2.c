@@ -2369,7 +2369,6 @@ pm1fs2 (mpz_t f, const mpres_t X, mpmod_t modulus,
   i = poly_from_sets_V (F, mr, &S_1, tmp, tmplen, modulus, NULL);
   ASSERT_ALWAYS(2 * i == params->s_1);
   ASSERT(mpz_cmp_ui (F->data.mem[i], 1UL) == 0);
-  sets_free(&S_1);
   
   outputf (OUTPUT_VERBOSE, " took %lums\n", cputime () - timestart);
   list_output_poly_file (F, params->s_1 / 2 + 1, 0, 1, "f(x) = ", 
@@ -2428,6 +2427,15 @@ pm1fs2 (mpz_t f, const mpres_t X, mpmod_t modulus,
                                 i, R[i]);
 	}
 
+#ifdef WANT_ASSERT
+      /* Evaluate poly for comparison */
+        {
+          const uint64_t m = 0; /* 0 <= m < nr */
+          mpres_get_z (mt, X, modulus);
+          pm1_eval_slow (R[nr-1-m], &S_1, mt, params->P, params->m_1, m, 
+                         s2_sumset[l], modulus->orig_modulus);
+        }
+#endif
       outputf (OUTPUT_VERBOSE, "Computing product of F(g_i)");
       timestart = cputime ();
 
@@ -2467,6 +2475,7 @@ pm1fs2 (mpz_t f, const mpres_t X, mpmod_t modulus,
   outputf (OUTPUT_DEVVERBOSE, "Highest used temp element is tmp[%lu]\n", i);
 #endif
   
+  sets_free(&S_1);
   free (s2_sumset);
   free (h);
   listz_handle_clear (F);
