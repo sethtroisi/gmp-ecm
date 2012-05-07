@@ -2441,6 +2441,8 @@ pm1fs2 (mpz_t f, const mpres_t X, mpmod_t modulus,
 	    mpres_set_z_for_gcd (tmpres, R[i], modulus);
 	    mpres_mul (tmpprod, tmpprod, tmpres, modulus); 
 	  }
+        mpz_set_uint64 (mt, nr);
+        mpres_set_z_for_gcd_fix (tmpprod, tmpprod, mt, modulus);
         mpres_get_z (tmp[1], tmpprod, modulus); /* For printing */
 	mpres_gcd (tmp[0], tmpprod, modulus);
 	mpres_clear (tmpprod, modulus);
