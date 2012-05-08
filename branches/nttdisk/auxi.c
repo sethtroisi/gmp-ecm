@@ -153,6 +153,7 @@ process_newfactor (mpz_t g, int result, mpcandi_t *n, int method,
     /* On GPU all factors of g were already found */
       {
         /* FIXME Maybe print something in very verbose mode */
+        mpz_clear (f);
         return returncode;
       }
     else /* g = f (gpu or not gpu) or g != 1 with gpu */
@@ -255,5 +256,6 @@ process_newfactor (mpz_t g, int result, mpcandi_t *n, int method,
     }
   fflush (stdout);
 
+  mpz_clear (f);
   return returncode;
 }
