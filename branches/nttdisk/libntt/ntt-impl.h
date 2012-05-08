@@ -114,7 +114,42 @@ static inline sp_t sp_ntt_mul(sp_t x, sp_t w, sp_t w_inv, sp_t p)
 #else  /* worst case: build product from smaller multiplies */
 
   sp_t q;
-  sp_wide_mul(q, r, x, w_inv);
+  mp_limb_t a1 = (mp_limb_t)((x) >> GMP_LIMB_BITS);
+  mp_limb_t a0 = (mp_limb_t)(x);
+  mp_limb_t b1 = (mp_limb_t)((w_inv) >> GMP_LIMB_BITS);
+  mp_limb_t b0 = (mp_limb_t)(w_inv);
+  mp_limb_t a0b0_hi, a0b0_lo;
+  mp_limb_t a0b1_hi, a0b1_lo;
+  mp_limb_t a1b0_hi, a1b0_lo;
+  mp_limb_t a1b1_hi, a1b1_lo;
+  mp_limb_t cy1, cy2;
+
+  umul_ppmm(a0b0_hi, a0b0_lo, a0, b0);
+  umul_ppmm(a0b1_hi, a0b1_lo, a0, b1);
+  umul_ppmm(a1b0_hi, a1b0_lo, a1, b0);
+  umul_ppmm(a1b1_hi, a1b1_lo, a1, b1);
+
+  /* both inputs will usually have all their bits 
+     significant, so carries can propagate the entire 
+     length of the 128-bit product */
+
+  add_ssaaaa(cy1, a0b0_hi,
+      	     0, a0b0_hi,
+	     0, a0b1_lo);
+  add_ssaaaa(cy1, a0b0_hi,
+      	     cy1, a0b0_hi,
+	     0, a1b0_lo);
+  add_ssaaaa(cy2, a1b1_lo,
+      	     0, a1b1_lo,
+	     0, cy1);
+  add_ssaaaa(cy2, a1b1_lo,
+      	     cy2, a1b1_lo,
+	     0, a0b1_hi);
+  add_ssaaaa(cy2, a1b1_lo,
+      	     cy2, a1b1_lo,
+	     0, a1b0_hi);
+
+  q = (sp_t)(a1b1_hi + cy2) << GMP_LIMB_BITS | a1b1_lo;
 
 #endif
 
