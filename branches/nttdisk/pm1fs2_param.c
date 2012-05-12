@@ -872,6 +872,8 @@ choose_P (const mpz_t B2min, const mpz_t B2, const uint64_t lmax,
 	  finalparams->s_1 = s_1;
 	  finalparams->s_2 = s_2;
 	  finalparams->l = l;
+	  mpz_mul_2exp (m_1, m_1, 1);
+	  mpz_add_ui (m_1, m_1, 1);
 	  mpz_set (finalparams->m_1, m_1);
 	}
       if (final_B2min != NULL)

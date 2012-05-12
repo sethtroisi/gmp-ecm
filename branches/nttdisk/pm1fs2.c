@@ -1577,7 +1577,7 @@ pm1_sequence_g_prod (void *state_p, mpz_t r)
 }
 
 /* Compute g_i = x_0^{M-i} * r^{(M-i)^2} for 0 <= i < l. 
-   x_0 = b_1^{2*k_2 + (2*m_1 + 1) * P}. r = b_1^P. 
+   x_0 = b_1^{k_2 + m_1 * P}. r = b_1^P. 
    Stores the result in g[0 ... l] and/or in g_ntt[offset ... offset + l] */
 
 static void
@@ -1650,7 +1650,7 @@ pm1_sequence_g (listz_t g_mpz, mpzspv_handle_t g_handle, const mpres_t b_1,
             outputf (OUTPUT_TRACE, "; m_1 = %Zd; /* PARI */\n", m_1);
             outputf (OUTPUT_TRACE,"/* pm1_sequence_g */ r = b_1^P; /* PARI */\n");
             outputf (OUTPUT_TRACE, "/* pm1_sequence_g */ x_0 = "
-                     "b_1^(% " PRId64 " + (2*m_1 + 1)*P); /* PARI */\n", k_2);
+                     "b_1^(% " PRId64 " + m_1*P); /* PARI */\n", k_2);
           }
       }
 
@@ -1674,19 +1674,17 @@ pm1_sequence_g (listz_t g_mpz, mpzspv_handle_t g_handle, const mpres_t b_1,
     mpres_pow (state.r[1], r, t, state.modulus); /* r[1] = r^{2(-M+i)+1}, i = 0 */
     mpres_sqr (state.r[0], r, state.modulus); /* r[0] = r^2 */
 
-    mpz_mul_2exp (t, m_1, 1UL);
-    mpz_add_ui (t, t, 1UL);
-    mpz_set_uint64 (t1, P);
-    mpz_mul (t, t, t1);
+    mpz_set_uint64 (t, P);
+    mpz_mul (t, t, m_1);
     mpz_set_int64 (t1, k_2);
     mpz_add (t, t, t1);
     if (want_output)
       {
         outputf (OUTPUT_TRACE, "/* pm1_sequence_g */ %" PRId64 , k_2);
-        outputf (OUTPUT_TRACE, " + (2*%Zd + 1)*P == %Zd /* PARI C */\n", m_1, t);
+        outputf (OUTPUT_TRACE, " + %Zd*P == %Zd /* PARI C */\n", m_1, t);
       }
 
-    mpres_pow (x_0, b_1, t, state.modulus);  /* x_0 = b_1^{2*k_2 + (2*m_1 + 1)*P} */
+    mpres_pow (x_0, b_1, t, state.modulus);  /* x_0 = b_1^{2*k_2 + m_1*P} */
     if (want_output && test_verbose (OUTPUT_TRACE))
       {
         mpres_get_z (t, x_0, state.modulus);
@@ -2215,11 +2213,9 @@ pm1_eval_slow (const mpz_t checkval, const set_list_t *S1, const mpz_t b1,
   /* See section 8 of ANTS paper */
   mpz_set_uint64 (tmp, P);
   mpz_powm (r, b1, tmp, N);
-  mpz_mul_2exp (e, m1, 1);
-  mpz_add_ui (e, e, 1);
-  mpz_mul (e, e, tmp); /* e = (2m_1 + 1)P */
+  mpz_mul (e, m1, tmp); /* e = m_1 * P */
   mpz_set_int64 (tmp, k2);
-  mpz_add (e, e, tmp); /* k_2 + (2m_1 + 1)P */
+  mpz_add (e, e, tmp); /* e = k_2 + m_1 P */
   mpz_powm (x0, b1, e, N); /* x0 = b_1^{k_2 + (2m_1 + 1)P} */
   mpz_set_uint64 (e, m);
   mpz_mul_2exp (e, e, 1);
@@ -2228,9 +2224,9 @@ pm1_eval_slow (const mpz_t checkval, const set_list_t *S1, const mpz_t b1,
   mpz_mod (X, X, N);
 
   outputf (OUTPUT_TRACE, "x0 = Mod(%Zd,N); X = Mod(%Zd, N); /* PARI %s */\n", x0, X, __func__);
-  outputf (OUTPUT_TRACE, "x0 == b1^(k_2 + (2*m1 + 1)*P) /* PARI C %s */ \n", 
+  outputf (OUTPUT_TRACE, "x0 == b1^(k_2 + m1*P) /* PARI C %s */ \n", 
            __func__);
-  outputf (OUTPUT_TRACE, "X == b1^(k_2 + (2*(m1+m) + 1)*P) /* PARI C %s */ \n", 
+  outputf (OUTPUT_TRACE, "X == b1^(k_2 + (m1+m)*P) /* PARI C %s */ \n", 
            __func__);
 
   mpz_mul (B, b1, b1); /* B = b_1^2 */
@@ -3080,7 +3076,7 @@ pp1_sequence_g_get_y(void *statep, mpz_t r)
 }
 
 /* Compute g_i = x_0^{M-i} * r^{(M-i)^2} for 0 <= i < l. 
-   x_0 = b_1^{k_2 + (2*m_1 + 1) * P}. r = b_1^P. */
+   x_0 = b_1^{k_2 + m_1 * P}. r = b_1^P. */
 
 static void
 pp1_sequence_g (listz_t g_x, listz_t g_y, mpzspv_handle_t g_x_ntt, 
@@ -3163,7 +3159,7 @@ pp1_sequence_g (listz_t g_x, listz_t g_y, mpzspv_handle_t g_x_ntt,
 	outputf (OUTPUT_TRACE, 
 		 "/* pp1_sequence_g */ r = b_1^P; /* PARI */\n");
 	outputf (OUTPUT_TRACE, "/* pp1_sequence_g */ "
-		 "x_0 = b_1^(k_2 + (2*m_1 + 1) * P); /* PARI */\n");
+		 "x_0 = b_1^(k_2 + m_1 * P); /* PARI */\n");
 	outputf (OUTPUT_TRACE, 
 		 "/* pp1_sequence_g */ addrec(x) = x + 1/x; /* PARI */\n");
       }
@@ -3178,12 +3174,10 @@ pp1_sequence_g (listz_t g_x, listz_t g_y, mpzspv_handle_t g_x_ntt,
       }
     
     /* Compute x0 = x_0 */
-    mpz_mul_2exp (mt, m_1, 1UL);
-    mpz_add_ui (mt, mt, 1UL); /* 2m_1 + 1 */
     mpz_set_uint64 (mt1, P);
-    mpz_mul (mt, mt, mt1); /* (2m_1 + 1) * P */
+    mpz_mul (mt, m_1, mt1); /* m_1 * P */
     mpz_set_int64 (mt1, k_2);
-    mpz_add (mt, mt, mt1); /* mt = k_2 + (2*m_1 + 1) * P */
+    mpz_add (mt, mt, mt1); /* mt = k_2 + m_1 * P */
     gfp_ext_pow_norm1 (x0, b1, mt, Delta, state.modulus, tmplen, tmp);
     if (want_output && test_verbose (OUTPUT_TRACE))
       {
