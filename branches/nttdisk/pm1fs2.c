@@ -43,6 +43,9 @@ http://www.gnu.org/licenses/ or write to the Free Software Foundation, Inc.,
 #ifdef HAVE_FCNTL_H
 #include <fcntl.h>
 #endif
+#ifdef HAVE_AIO_H
+#include <aio.h>
+#endif
 
 /* TODO:
    - move functions into their proper files (i.e. NTT functions etc.)
@@ -63,11 +66,13 @@ typedef struct {
     listz_t mem;
     FILE *file;
   } data;
+  char *filename;
 } _listz_handle_t;
 typedef _listz_handle_t *listz_handle_t;
 
 
 const int pari = 0;
+const int check_eval = 1;
 
 
 /* Init a listz_handle_t to store up to len residues (modulo m). 
@@ -106,9 +111,17 @@ listz_handle_init2 (const char *filename, const uint64_t len, const mpz_t m)
         }
     } else {
       F->storage = 1; /* Disk storage */
-      F->data.file = fopen (filename, "w+");
+      F->filename = (char *) malloc ((strlen (filename) + 1) * sizeof(char));
+      if (F->filename == NULL)
+        {
+          free (F);
+          return NULL;
+        }
+      strcpy (F->filename, filename);
+      F->data.file = fopen (F->filename, "w+");
       if (F->data.file == NULL)
         {
+          free (F->filename);
           free (F);
           return NULL;
         }
@@ -134,6 +147,8 @@ listz_handle_clear (listz_handle_t F)
     {
       fclose (F->data.file);
       F->data.file = NULL;
+      remove (F->filename);
+      free (F->filename);
     }
   free (F);
 }
@@ -2427,15 +2442,15 @@ pm1fs2 (mpz_t f, const mpres_t X, mpmod_t modulus,
                                 i, R[i]);
 	}
 
-#ifdef WANT_ASSERT
       /* Evaluate poly for comparison */
+      if (check_eval)
         {
           const uint64_t m = 0; /* 0 <= m < nr */
           mpres_get_z (mt, X, modulus);
           pm1_eval_slow (R[nr-1-m], &S_1, mt, params->P, params->m_1, m, 
                          s2_sumset[l], modulus->orig_modulus);
         }
-#endif
+
       outputf (OUTPUT_VERBOSE, "Computing product of F(g_i)");
       timestart = cputime ();
 
@@ -2497,6 +2512,19 @@ pm1fs2 (mpz_t f, const mpres_t X, mpmod_t modulus,
   return youpi;
 }
 
+static void
+do_aio_init(const unsigned int sp_num)
+{
+  /* Set the aio library to use only 1 single thread, as the default 
+     of up to 20 threads causes a lot of reads to be executed 
+     concurrently, interrupting each other's long sequential reads */
+  struct aioinit init;
+  memset (&init, 0, sizeof(struct aioinit));
+  init.aio_threads = 1;
+  init.aio_num = sp_num;
+  aio_init (&init);
+}
+  
 
 int 
 pm1fs2_ntt (mpz_t f, const mpres_t X, mpmod_t modulus, 
@@ -2553,6 +2581,7 @@ pm1fs2_ntt (mpz_t f, const mpres_t X, mpmod_t modulus,
 
   if (params->file_stem != NULL)
     {
+      do_aio_init (ntt_context->sp_num);
       g_filename = malloc ((strlen(params->file_stem) + 3) * sizeof (char));
       h_filename = malloc ((strlen(params->file_stem) + 3) * sizeof (char));
       if (g_filename == NULL || h_filename == NULL)
@@ -2699,8 +2728,8 @@ pm1fs2_ntt (mpz_t f, const mpres_t X, mpmod_t modulus,
         mpzspv_fromto_mpzv (g_handle, 0, params->l, NULL, NULL, 
           (mpz_consumerfunc_t) &gmp_printf, "g(x) * h(x) = %Zd\n"); /* hax! */
 
-#ifdef WANT_ASSERT
       /* Evaluate poly for comparison */
+      if (check_eval)
         {
           mpz_t checkval;
           const uint64_t m = 0; /* 0 <= m < nr */
@@ -2713,7 +2742,6 @@ pm1fs2_ntt (mpz_t f, const mpres_t X, mpmod_t modulus,
                          s2_sumset[l], modulus->orig_modulus);
           mpz_clear (checkval);
         }
-#endif
 
       /* Compute GCD of N and coefficients of product polynomial */
       ntt_gcd (mt, product_ptr, g_handle, params->s_1 / 2, NULL, nr, modulus);
@@ -3990,6 +4018,9 @@ pp1fs2_ntt (mpz_t f, const mpres_t X, mpmod_t modulus,
   mpzspm_print_CRT_primes (OUTPUT_DEVVERBOSE, "CRT modulus for evaluation = ", 
 		    ntt_context);
 
+  if (params->file_stem != NULL)
+    do_aio_init(ntt_context->sp_num);
+
   /* Build F */
   F = build_F_ntt (X, &S_1, params, modulus);
   if (F == NULL)
@@ -4247,6 +4278,17 @@ pp1fs2_ntt (mpz_t f, const mpres_t X, mpmod_t modulus,
 }
 
 #ifdef TESTDRIVE
+static void
+testdrive_producer (void * const p, mpz_t r)
+{
+  mpz_t *s = p;
+  mpz_set (r, s[0]);
+  /* Multiply s[0] by 2 (mod s[1]) */
+  mpz_mul_2exp (s[0], s[0], 1);
+  if (mpz_cmp (s[0], s[1]) >= 0)
+    mpz_sub (s[0], s[0], s[1]);
+}
+
 int main (int argc, char **argv)
 {
   uint64_t len = 0;
@@ -4257,7 +4299,7 @@ int main (int argc, char **argv)
   mpzspm_t mpzspm;
   char *filename = NULL;
   int i;
-  int do_ntt = 0, do_pwmul = 0, do_intt = 0, do_gcd = 0;
+  int do_ntt = 0, do_pwmul = 0, do_intt = 0, do_gcd = 0, do_fill = 0;
   long timestart, realstart, timediff, realdiff;
   
   for (i = 1; i < argc; i++)
@@ -4294,12 +4336,17 @@ int main (int argc, char **argv)
           do_gcd = 1;
           continue;
         }
+      if (strcmp (argv[i], "-dofill") == 0)
+        {
+          do_fill = 1;
+          continue;
+        }
       mpz_init (N);
       mpz_set_str (N, argv[i], 10);
       mpmod_init (modulus, N, ECM_MOD_DEFAULT);
     }
-  
-    if (do_ntt || do_pwmul || do_intt || do_gcd)
+
+    if (do_ntt || do_pwmul || do_intt || do_gcd || do_fill)
       {
         ASSERT_ALWAYS (len != 0);
         mpzspm = mpzspm_init (len, N);
@@ -4327,7 +4374,31 @@ int main (int argc, char **argv)
        mpz_clear (f);
      }
 
-    if (do_ntt || do_pwmul || do_intt || do_gcd)
+   if (do_fill)
+     {
+       mpz_t s[2];
+       uint64_t bytes;
+
+       mpz_init (s[0]);
+       mpz_init (s[1]);
+       mpz_set_ui (s[0], 3);
+       mpz_set (s[1], N);
+       timestart = cputime ();
+       realstart = realtime ();
+       mpzspv_fromto_mpzv (ntt_handle, (spv_size_t) 0, len, 
+                           &testdrive_producer, s, NULL, NULL);
+       timediff = cputime () - timestart;
+       realdiff = realtime () - realstart;
+       printf("Fill took %lu ms, %lu ms elaped\n", timediff, realdiff);
+       bytes = len * mpzspm->sp_num * sizeof(sp_t);
+       printf("%lu * %u * %lu = %lu bytes, %f MB/s\n", 
+               len, mpzspm->sp_num, sizeof(sp_t), bytes, 
+               bytes / (realdiff * 0.001) / 1048576.);
+       mpz_clear (s[0]);
+       mpz_clear (s[1]);
+     }
+
+    if (do_ntt || do_pwmul || do_intt || do_gcd || do_fill)
       {
         mpzspv_clear_handle (ntt_handle);
         mpzspm_clear (mpzspm);
