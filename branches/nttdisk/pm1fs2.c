@@ -1591,7 +1591,7 @@ pm1_sequence_g (listz_t g_mpz, mpzspv_handle_t g_handle, const mpres_t b_1,
   outputf (OUTPUT_VERBOSE, "Computing g_i");
   outputf (OUTPUT_DEVVERBOSE, "\npm1_sequence_g: P = %" PRIu64
             ", M_param = %" PRIu64 ", l_param = %" PRIu64 
-            ", k_2 = %" PRId64 , P, M_param, l_param, k_2);
+            ", 2*k_2 = %" PRId64 , P, M_param, l_param, k_2);
   outputf (OUTPUT_DEVVERBOSE, ", m_1 = %Zd\n", m_1);
   timestart = cputime ();
   realstart = realtime ();
@@ -1650,7 +1650,7 @@ pm1_sequence_g (listz_t g_mpz, mpzspv_handle_t g_handle, const mpres_t b_1,
             outputf (OUTPUT_TRACE, "; m_1 = %Zd; /* PARI */\n", m_1);
             outputf (OUTPUT_TRACE,"/* pm1_sequence_g */ r = b_1^P; /* PARI */\n");
             outputf (OUTPUT_TRACE, "/* pm1_sequence_g */ x_0 = "
-                     "b_1^(2*% " PRId64 " + (2*m_1 + 1)*P); /* PARI */\n", k_2);
+                     "b_1^(% " PRId64 " + (2*m_1 + 1)*P); /* PARI */\n", k_2);
           }
       }
 
@@ -1679,10 +1679,10 @@ pm1_sequence_g (listz_t g_mpz, mpzspv_handle_t g_handle, const mpres_t b_1,
     mpz_set_uint64 (t1, P);
     mpz_mul (t, t, t1);
     mpz_set_int64 (t1, k_2);
-    mpz_addmul_ui (t, t1, 2UL);
+    mpz_add (t, t, t1);
     if (want_output)
       {
-        outputf (OUTPUT_TRACE, "/* pm1_sequence_g */ 2*%" PRId64 , k_2);
+        outputf (OUTPUT_TRACE, "/* pm1_sequence_g */ %" PRId64 , k_2);
         outputf (OUTPUT_TRACE, " + (2*%Zd + 1)*P == %Zd /* PARI C */\n", m_1, t);
       }
 
@@ -1958,6 +1958,8 @@ make_S_1_S_2 (set_list_t *S_1, int64_t **s2_sumset_out,
   s2_sumset_size = sets_sumset_size(&S_2);
   s2_sumset = (int64_t *)malloc (s2_sumset_size * sizeof(int64_t));
   sets_sumset (s2_sumset, &S_2);
+  for (i = 0; i < s2_sumset_size; i++)
+    s2_sumset[i] *= 2;
   
   /* Print the sets in devverbose mode */
   if (test_verbose (OUTPUT_DEVVERBOSE))
@@ -2191,7 +2193,7 @@ pm1_eval_slow (const mpz_t checkval, const set_list_t *S1, const mpz_t b1,
   
   outputf (OUTPUT_VERBOSE, "Recomputing one polynomial value");
   outputf (OUTPUT_TRACE, "\nN = %Zd; b1 = Mod(%Zd,N); P = %l" PRIu64 
-           "; m1 = %Zd; m = %" PRIu64 "; k2 = %" PRId64 "; /* PARI %s */\n", 
+           "; m1 = %Zd; m = %" PRIu64 "; k_2 = %" PRId64 "; /* PARI %s */\n", 
            N, b1, P, m1, m, k2, __func__);
 
   timestart = cputime ();
@@ -2217,9 +2219,8 @@ pm1_eval_slow (const mpz_t checkval, const set_list_t *S1, const mpz_t b1,
   mpz_add_ui (e, e, 1);
   mpz_mul (e, e, tmp); /* e = (2m_1 + 1)P */
   mpz_set_int64 (tmp, k2);
-  mpz_mul_2exp (tmp, tmp, 1);
-  mpz_add (e, e, tmp); /* 2k_2 + (2m_1 + 1)P */
-  mpz_powm (x0, b1, e, N); /* x0 = b_1^{2k_2 + (2m_1 + 1)P} */
+  mpz_add (e, e, tmp); /* k_2 + (2m_1 + 1)P */
+  mpz_powm (x0, b1, e, N); /* x0 = b_1^{k_2 + (2m_1 + 1)P} */
   mpz_set_uint64 (e, m);
   mpz_mul_2exp (e, e, 1);
   mpz_powm (X, r, e, N);
@@ -2227,9 +2228,9 @@ pm1_eval_slow (const mpz_t checkval, const set_list_t *S1, const mpz_t b1,
   mpz_mod (X, X, N);
 
   outputf (OUTPUT_TRACE, "x0 = Mod(%Zd,N); X = Mod(%Zd, N); /* PARI %s */\n", x0, X, __func__);
-  outputf (OUTPUT_TRACE, "x0 == b1^(2*k2 + (2*m1 + 1)*P) /* PARI C %s */ \n", 
+  outputf (OUTPUT_TRACE, "x0 == b1^(k_2 + (2*m1 + 1)*P) /* PARI C %s */ \n", 
            __func__);
-  outputf (OUTPUT_TRACE, "X == b1^(2*k2 + (2*(m1+m) + 1)*P) /* PARI C %s */ \n", 
+  outputf (OUTPUT_TRACE, "X == b1^(k_2 + (2*(m1+m) + 1)*P) /* PARI C %s */ \n", 
            __func__);
 
   mpz_mul (B, b1, b1); /* B = b_1^2 */
@@ -2534,7 +2535,8 @@ pm1fs2_ntt (mpz_t f, const mpres_t X, mpmod_t modulus,
   uint64_t l;
   set_list_t S_1; /* This is stored as a set of sets (arithmetic 
                        progressions of prime length */
-  int64_t *s2_sumset; /* set of sums of S_2 */ uint64_t s2_sumset_size;
+  int64_t *s2_sumset; /* set of sums of S_2 */ 
+  uint64_t s2_sumset_size;
   listz_handle_t F;   /* Polynomial F has roots X^{k_1} for k_1 \in S_1, so has 
 		  degree s_1. It is symmetric, so has only s_1 / 2 + 1 
 		  distinct coefficients. The sequence h_j will be stored in 
@@ -3078,7 +3080,7 @@ pp1_sequence_g_get_y(void *statep, mpz_t r)
 }
 
 /* Compute g_i = x_0^{M-i} * r^{(M-i)^2} for 0 <= i < l. 
-   x_0 = b_1^{2*k_2 + (2*m_1 + 1) * P}. r = b_1^P. */
+   x_0 = b_1^{k_2 + (2*m_1 + 1) * P}. r = b_1^P. */
 
 static void
 pp1_sequence_g (listz_t g_x, listz_t g_y, mpzspv_handle_t g_x_ntt, 
@@ -3114,7 +3116,7 @@ pp1_sequence_g (listz_t g_x, listz_t g_y, mpzspv_handle_t g_x_ntt,
     pp1_sequence_g_state_t state;
     gfp_ext_t r, x0, tmp2;
     mpres_t tmp[3];
-    mpz_t mt, mt1, mt2;
+    mpz_t mt, mt1;
     uint64_t i, l, offset, M;
     int want_output = 1;
     const uint64_t tmplen = sizeof(tmp) / sizeof(mpres_t);
@@ -3142,7 +3144,6 @@ pp1_sequence_g (listz_t g_x, listz_t g_y, mpzspv_handle_t g_x_ntt,
       mpres_init (tmp[i], state.modulus);
     mpz_init (mt);
     mpz_init (mt1);
-    mpz_init (mt2);
     
     if (want_output && test_verbose (OUTPUT_TRACE))
       {
@@ -3162,7 +3163,7 @@ pp1_sequence_g (listz_t g_x, listz_t g_y, mpzspv_handle_t g_x_ntt,
 	outputf (OUTPUT_TRACE, 
 		 "/* pp1_sequence_g */ r = b_1^P; /* PARI */\n");
 	outputf (OUTPUT_TRACE, "/* pp1_sequence_g */ "
-		 "x_0 = b_1^(2*k_2 + (2*m_1 + 1) * P); /* PARI */\n");
+		 "x_0 = b_1^(k_2 + (2*m_1 + 1) * P); /* PARI */\n");
 	outputf (OUTPUT_TRACE, 
 		 "/* pp1_sequence_g */ addrec(x) = x + 1/x; /* PARI */\n");
       }
@@ -3177,12 +3178,12 @@ pp1_sequence_g (listz_t g_x, listz_t g_y, mpzspv_handle_t g_x_ntt,
       }
     
     /* Compute x0 = x_0 */
-    mpz_set_int64(mt1, k_2);
-    mpz_set_uint64(mt2, P);
     mpz_mul_2exp (mt, m_1, 1UL);
-    mpz_add_ui (mt, mt, 1UL);
-    mpz_mul (mt, mt, mt2);
-    mpz_addmul_ui (mt, mt1, 2UL); /* mt = 2*k_2 + (2*m_1 + 1) * P */
+    mpz_add_ui (mt, mt, 1UL); /* 2m_1 + 1 */
+    mpz_set_uint64 (mt1, P);
+    mpz_mul (mt, mt, mt1); /* (2m_1 + 1) * P */
+    mpz_set_int64 (mt1, k_2);
+    mpz_add (mt, mt, mt1); /* mt = k_2 + (2*m_1 + 1) * P */
     gfp_ext_pow_norm1 (x0, b1, mt, Delta, state.modulus, tmplen, tmp);
     if (want_output && test_verbose (OUTPUT_TRACE))
       {
@@ -3311,7 +3312,6 @@ pp1_sequence_g (listz_t g_x, listz_t g_y, mpzspv_handle_t g_x_ntt,
       mpres_clear (tmp[i], state.modulus);
     mpz_clear (mt);
     mpz_clear (mt1);
-    mpz_clear (mt2);
     mpmod_clear (state.modulus);
   }
   
