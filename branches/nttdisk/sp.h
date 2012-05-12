@@ -226,6 +226,7 @@ typedef struct {
   mpzspm_t mpzspm;
   mpzspv_t mem; /* NULL if storage == 1 */
   FILE **files; /* NULL if storage == 0 */
+  char **filenames; /* NULL if storage == 0 */
 } _mpzspv_handle_t;
 
 typedef _mpzspv_handle_t *mpzspv_handle_t;
@@ -625,8 +626,6 @@ void mpzspv_to_mpzv_file (mpzspv_t, spv_size_t, FILE **sp_files, const mpzv_t,
 void mpzspv_fromto_mpzv (mpzspv_handle_t, spv_size_t, spv_size_t, 
     mpz_producerfunc_t, void *, mpz_consumerfunc_t, void *);
 void mpzspv_normalise (mpzspv_t, spv_size_t, spv_size_t, mpzspm_t);
-void mpzspv_pwmul (mpzspv_t, spv_size_t, mpzspv_t, spv_size_t, mpzspv_t, 
-    spv_size_t, spv_size_t, mpzspm_t);
 void mpzspv_mul_ntt_file (mpzspv_handle_t, spv_size_t, mpzspv_handle_t, 
     spv_size_t, spv_size_t, mpzspv_handle_t, spv_size_t, spv_size_t, 
     spv_size_t, int, spv_size_t, int);
@@ -636,10 +635,6 @@ void mpzspv_mul_ntt (mpzspv_t, spv_size_t, mpzspv_t, spv_size_t, spv_size_t,
 void mpzspv_random (mpzspv_t, spv_size_t, spv_size_t, mpzspm_t);
 void mpzspv_to_dct1 (mpzspv_handle_t, mpzspv_handle_t, spv_size_t, spv_size_t);
 void mpzspv_sqr_reciprocal (mpzspv_handle_t, spv_size_t);
-FILE **mpzspv_open_fileset(const char *, spv_size_t, const mpzspm_t);
-void mpzspv_close_fileset(FILE **, const mpzspm_t);
-void mpzspv_read (mpzspv_t, spv_size_t, FILE **, spv_size_t, spv_size_t, mpzspm_t);
-void mpzspv_write (mpzspv_t, spv_size_t, FILE **, spv_size_t, spv_size_t, mpzspm_t);
 void mpzspv_print (mpzspv_handle_t, spv_size_t, spv_size_t, const char *);
 
 #endif /* _SP_H */
