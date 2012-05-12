@@ -32,6 +32,9 @@ MA 02110-1301, USA. */
 #ifdef HAVE_FCNTL_H
 #include <fcntl.h>
 #endif
+#ifdef HAVE_AIO_H
+#include <aio.h>
+#endif
 #include "ecm-impl.h"
 
 #define MPZSPV_MUL_NTT_OPENMP 0
@@ -48,14 +51,20 @@ static void  mpzspv_seek_and_read (mpzspv_t, spv_size_t, FILE **, size_t,
     size_t, mpzspm_t);
 static void mpzspv_seek_and_write (mpzspv_t, spv_size_t, FILE **, size_t, 
     size_t, mpzspm_t);
+#ifdef HAVE_AIO_READ
+static int mpzspv_lio_rw (struct aiocb *[], mpzspv_t, spv_size_t, FILE **,  
+                     spv_size_t, spv_size_t, const mpzspm_t, int);
+static int mpzspv_lio_suspend (const struct aiocb *[], const mpzspm_t);
+#endif
 
 
 static inline void
-valgrind_check_mpzinp(const mpz_t m)
+valgrind_check_mpzinp(ATTRIBUTE_UNUSED const mpz_t m)
 {
 #ifdef USE_VALGRIND
-VALGRIND_CHECK_MEM_IS_ADDRESSABLE(PTR(m), ALLOC(m) * sizeof(mp_limb_t));
-VALGRIND_CHECK_MEM_IS_DEFINED(PTR(m), ABSIZ(m) * sizeof(mp_limb_t));
+  VALGRIND_CHECK_MEM_IS_DEFINED(m, sizeof(mpz_t));
+  VALGRIND_CHECK_MEM_IS_ADDRESSABLE(PTR(m), ALLOC(m) * sizeof(mp_limb_t));
+  VALGRIND_CHECK_MEM_IS_DEFINED(PTR(m), ABSIZ(m) * sizeof(mp_limb_t));
 #endif
 }
 
@@ -485,9 +494,18 @@ mpzspv_fromto_mpzv (mpzspv_handle_t x, const spv_size_t offset,
     mpz_consumerfunc_t consumer, void * consumer_state)
 {
   const unsigned int sp_num = x->mpzspm->sp_num;
-  spv_size_t block_len = 16384, len_done = 0, buffer_offset = 0;
-  mpzspv_t buffer;
+  spv_size_t block_len = 1<<16, len_done = 0, read_done = 0, buffer_offset;
   mpz_t mpz1, mpz2, mt;
+#if defined(HAVE_AIO_READ)
+  mpzspv_t buffer[2];
+  struct aiocb **aiocb_list = NULL;
+#else
+  mpzspv_t buffer[1];
+#endif
+  unsigned int nr_buffers;
+  unsigned int work_buffer = 0; /* Which of the two buffers (in case of 
+                                   HAVE_AIO_READ) is used for NTT conversion,
+                                   the other one is used for disk I/O */
 
   ASSERT (sizeof (mp_limb_t) >= sizeof (sp_t));
 
@@ -498,91 +516,193 @@ mpzspv_fromto_mpzv (mpzspv_handle_t x, const spv_size_t offset,
   if (IN_MEMORY(x))
     {
       block_len = len; /* Do whole thing at once */
-      buffer = x->mem;
+      buffer[0] = x->mem;
       buffer_offset = offset;
+      nr_buffers = 1;
     }
   else
     {
       /* Do piecewise, using a temp buffer */
-      buffer = mpzspv_init (block_len, x->mpzspm);
-      ASSERT_ALWAYS (buffer != NULL);
+      unsigned int i;
+      char *env = getenv ("MPZSPV_FROMTO_MPZV_BLOCKLEN");
+      
+      if (env != NULL)
+        {
+          spv_size_t b = strtoul (env, NULL, 10);
+          if (b > 0)
+            block_len = b;
+        }
+      
+#if defined(HAVE_AIO_READ)
+      nr_buffers = 2;
+#else
+      nr_buffers = 1;
+#endif
+      for (i = 0; i < nr_buffers; i++)
+        {
+          buffer[i] = mpzspv_init (block_len, x->mpzspm);
+          ASSERT_ALWAYS (buffer[i] != NULL);
+        }
+      buffer_offset = 0;
+    }
+
+#if defined(HAVE_AIO_READ)
+  if (ON_DISK(x)) 
+    {
+      /* Allocate aiocb array and an array of pointers to it */
+      unsigned int i;
+      aiocb_list = (struct aiocb **) malloc (sp_num * sizeof (struct aiocb *));
+      ASSERT_ALWAYS (aiocb_list != NULL);
+      /* First of the pointers points to malloc-ed memory */
+      aiocb_list[0] = (struct aiocb *) malloc (sp_num * sizeof(struct aiocb));
+      ASSERT_ALWAYS (aiocb_list[0] != NULL);
+      for (i = 0; i < sp_num; i++)
+        aiocb_list[i] = &aiocb_list[0][i];
+    }
+#endif
+
+  if (consumer_state != NULL && ON_DISK(x)) 
+    {
+      /* Read first buffer's worth of data from disk files */
+      const spv_size_t read_now = MIN(len, block_len);
+      if (read_now > 0)
+        {
+#if WANT_PROFILE
+          unsigned long realstart = realtime();
+#endif
+#if defined(HAVE_AIO_READ)
+          int r;
+          r = mpzspv_lio_rw (aiocb_list, buffer[0], 0, x->files, offset, 
+                             read_now, x->mpzspm, 0);
+          ASSERT_ALWAYS (r == 0);
+          r = mpzspv_lio_suspend (aiocb_list, x->mpzspm);
+          ASSERT_ALWAYS (r == 0);
+#else
+          mpzspv_seek_and_read (buffer[0], 0, x->files, offset + 0, read_now, 
+                                x->mpzspm);
+#endif
+#if WANT_PROFILE
+          printf("%s(): read files from position %" PRISPVSIZE 
+                 " started at %lu took %lu ms\n", 
+                 __func__, offset, realstart, realtime() - realstart);
+#endif
+        }
+      read_done += read_now;
     }
 
   while (len_done < len)
-  {
-    const spv_size_t len_now = MIN(len - len_done, block_len);
-    spv_size_t i;
+    {
+      const spv_size_t len_now = MIN(len - len_done, block_len);
+      const spv_size_t read_now = MIN(len - read_done, block_len);
+      spv_size_t i;
 #if WANT_PROFILE
       unsigned long realstart;
 #endif
 
-    /* Read x from disk files */
-    if (consumer_state != NULL && ON_DISK(x)) {
+      /* Read x from disk files */
+      if (consumer_state != NULL && ON_DISK(x) && read_now > 0) 
+        {
+#if WANT_PROFILE
+          unsigned long realstart = realtime();
+#endif
+#if defined(HAVE_AIO_READ)
+          int r;
+          r = mpzspv_lio_rw (aiocb_list, buffer[work_buffer ^ 1], 0, x->files, 
+                             offset + read_done, read_now, x->mpzspm, 0);
+          ASSERT_ALWAYS (r == 0);
+#else
+          mpzspv_seek_and_read (buffer[0], 0, x->files, offset + read_done, 
+                                read_now, x->mpzspm);
+#endif
+#if WANT_PROFILE
+          printf("%s(): scheduling read files from position %" PRISPVSIZE 
+                 " started at %lu took %lu ms\n", 
+                 __func__, offset + read_done, realstart, 
+                 realtime() - realstart);
+#endif
+        }
+
+      /* Do the conversion */
 #if WANT_PROFILE
       realstart = realtime();
 #endif
-      mpzspv_seek_and_read (buffer, buffer_offset, x->files, 
-                            offset + len_done, len_now, x->mpzspm);
+      for (i = 0; i < len_now; i++)
+        {
+          if (producer_state != NULL)
+            {
+              if (producer)
+                {
+                  /* Get new mpz1 from producer */
+                  (*producer)(producer_state, mpz1);
+                  valgrind_check_mpzinp (mpz1);
+                } else {
+                  /* Get new mpz1 from listz_t */
+                  valgrind_check_mpzinp (((mpz_t *)producer_state)[len_done + i]);
+                  mpz_set (mpz1, ((listz_t)producer_state)[len_done + i]);
+                }
+            }
+          
+          if (consumer_state != NULL)
+            {
+              /* Convert NTT entry to mpz2 */
+              mpzspv_to_mpz (mpz2, buffer[work_buffer], buffer_offset + i, 
+                             x->mpzspm, mt);
+              if (consumer != NULL)
+                {
+                  /* Give mpz2 to consumer */
+                  mpz_mod (mpz2, mpz2, x->mpzspm->modulus);
+                  (*consumer)(consumer_state, mpz2);
+                } else {
+                  mpz_mod (((listz_t)consumer_state)[len_done + i], mpz2, 
+                           x->mpzspm->modulus);
+                }
+            }
+          
+          if (producer_state != NULL)
+            {
+              /* Convert the mpz1 we got from producer to NTT */
+              mpzspv_from_mpzv_slow (buffer[work_buffer], buffer_offset + i, 
+                                     mpz1, x->mpzspm, mt, sp_num);
+            }
+        }
 #if WANT_PROFILE
-      printf("mpzspv_mul_ntt_file(): read files from position %" PRISPVSIZE 
-             " started at %lu took %lu ms\n", 
-             offset + len_done, realstart, realtime() - realstart);
-#endif
-    }
-
-#if WANT_PROFILE
-    realstart = realtime();
-#endif
-    for (i = 0; i < len_now; i++)
-      {
-        if (producer_state != NULL)
-          {
-            if (producer)
-              {
-                /* Get new mpz1 from producer */
-                (*producer)(producer_state, mpz1);
-                valgrind_check_mpzinp (mpz1);
-              } else {
-                /* Get new mpz1 from listz_t */
-                valgrind_check_mpzinp (((mpz_t *)producer_state)[len_done + i]);
-                mpz_set (mpz1, ((listz_t)producer_state)[len_done + i]);
-              }
-          }
-        
-        if (consumer_state != NULL)
-          {
-            /* Convert NTT entry to mpz2 */
-            mpzspv_to_mpz (mpz2, buffer, buffer_offset + i, x->mpzspm, mt);
-            if (consumer != NULL)
-              {
-                /* Give mpz2 to consumer */
-                mpz_mod (mpz2, mpz2, x->mpzspm->modulus);
-                (*consumer)(consumer_state, mpz2);
-              } else {
-                mpz_mod (((listz_t)consumer_state)[len_done + i], mpz2, 
-                         x->mpzspm->modulus);
-              }
-          }
-        
-        if (producer_state != NULL)
-          {
-            /* Convert the mpz1 we got from producer to NTT */
-            mpzspv_from_mpzv_slow (buffer, buffer_offset + i, mpz1, x->mpzspm, 
-                                   mt, sp_num);
-          }
-      }
-#if WANT_PROFILE
-    printf("mpzspv_mul_ntt_file(): processing buffer started at %lu took %lu ms\n", 
-           realstart, realtime() - realstart);
+    printf("%s(): processing buffer started at %lu took %lu ms\n", 
+           __func__, realstart, realtime() - realstart);
 #endif
 
-    /* Write x to disk files */
+      if (consumer_state != NULL && ON_DISK(x) && read_now > 0) 
+        {
+          /* Wait for read to complete */
+#if WANT_PROFILE
+          unsigned long realstart = realtime();
+#endif
+#if defined(HAVE_AIO_READ)
+          int r;
+          r = mpzspv_lio_suspend (aiocb_list, x->mpzspm);
+          ASSERT_ALWAYS (r == 0);
+#endif
+#if WANT_PROFILE
+          printf("%s(): suspend of read files from position %" PRISPVSIZE 
+                 " started at %lu took %lu ms\n", 
+                 __func__, offset + read_done, realstart, realtime() - realstart);
+#endif
+          read_done += read_now;
+        }
+
+    /* Write current buffer to disk files */
     if (producer_state != NULL && ON_DISK(x)) {
 #if WANT_PROFILE
-      realstart = realtime();
+      unsigned long realstart = realtime();
 #endif
-      mpzspv_seek_and_write (buffer, buffer_offset, x->files, offset + len_done, 
+#if defined(HAVE_AIO_READ)
+      int r;
+      r = mpzspv_lio_rw (aiocb_list, buffer[work_buffer], 0, x->files, 
+                         offset + len_done, len_now, x->mpzspm, 1);
+      ASSERT_ALWAYS (r == 0);
+#else
+      mpzspv_seek_and_write (buffer[work_buffer], 0, x->files, offset + len_done, 
                              len_now, x->mpzspm);
+#endif
 #if WANT_PROFILE
       printf("mpzspv_mul_ntt_file(): write files at position %" PRISPVSIZE 
              " started at %lu took %lu ms\n", 
@@ -590,6 +710,11 @@ mpzspv_fromto_mpzv (mpzspv_handle_t x, const spv_size_t offset,
 #endif
     }
     len_done += len_now;
+
+    /* Toggle between the two buffers */
+    if (nr_buffers == 2) 
+      work_buffer ^= 1;
+
     /* If we write NTT data to memory, we need to advance the offset to fill 
        the entire array. If we use a temp buffer, we reuse the same buffer 
        each time */
@@ -601,25 +726,24 @@ mpzspv_fromto_mpzv (mpzspv_handle_t x, const spv_size_t offset,
   mpz_clear(mt);
 
   if (!IN_MEMORY(x))
-    mpzspv_clear (buffer, x->mpzspm);
+    {
+      unsigned int i;
+      for (i = 0; i < nr_buffers; i++)
+        {
+          mpzspv_clear (buffer[i], x->mpzspm);
+          buffer[i] = NULL;
+        }
+    }
+
+#if defined(HAVE_AIO_READ)
+  if (ON_DISK(x)) 
+    {
+      free (aiocb_list[0]);
+      free(aiocb_list);
+    }
+#endif
 }
 
-
-void
-mpzspv_pwmul (mpzspv_t r, const spv_size_t r_offset, const mpzspv_t x, 
-    const spv_size_t x_offset, const mpzspv_t y, const spv_size_t y_offset, 
-    const spv_size_t len, const mpzspm_t mpzspm)
-{
-  unsigned int i;
-  
-  ASSERT (mpzspv_verify (r, r_offset + len, 0, mpzspm));
-  ASSERT (mpzspv_verify (x, x_offset, len, mpzspm));
-  ASSERT (mpzspv_verify (y, y_offset, len, mpzspm));
-  
-  for (i = 0; i < mpzspm->sp_num; i++)
-    spv_pwmul (r[i] + r_offset, x[i] + x_offset, y[i] + y_offset,
-	len, mpzspm->spm[i]->sp, mpzspm->spm[i]->mul_c);
-}
 
 /* B&S: ecrt mod m mod p_j.
  *
@@ -904,7 +1028,7 @@ seek_and_write_sp (const spv_t ptr, const size_t nwrite, const size_t offset, FI
 }
 
 
-static void 
+static void ATTRIBUTE_UNUSED 
 mpzspv_seek_and_write (mpzspv_t src, const spv_size_t offset, FILE **sp_files, 
                        const size_t fileoffset, const size_t nwrite, 
                        const mpzspm_t mpzspm)
@@ -1621,7 +1745,7 @@ mpzspv_open_fileset (const char *file_stem, const spv_size_t len,
   const unsigned int spnum = mpzspm->sp_num;
   unsigned int i;
   
-#ifdef HAVE_SETVBUF
+#if defined(HAVE_SETVBUF) && !defined(HAVE_AIO_READ)
   files = (FILE **) malloc (2 * spnum * sizeof(FILE *));
 #else
   files = (FILE **) malloc (spnum * sizeof(FILE *));
@@ -1635,10 +1759,10 @@ mpzspv_open_fileset (const char *file_stem, const spv_size_t len,
   
   for (i = 0; i < spnum; i++)
     {
-#ifdef HAVE_SETVBUF
+#if defined(HAVE_SETVBUF) && !defined(HAVE_AIO_READ)
       void **buffers = (void**)files + spnum;
-#endif
       const size_t bufsize = 1<<22;
+#endif
       
       sprintf (filename, "%s.%u", file_stem, i);
       files[i] = fopen(filename, "r+");
@@ -1664,6 +1788,11 @@ mpzspv_open_fileset (const char *file_stem, const spv_size_t len,
       fallocate (fileno(files[i]), 0, (off_t) 0, len * sizeof(sp_t));
 #endif
 #ifdef HAVE_SETVBUF
+#ifdef HAVE_AIO_READ
+      /* Set to unbuffered mode as we use aio_*() functions for reading
+         in the background */
+      setvbuf (files[i], NULL, _IONBF, 0);
+#else
       /* Allocate a bigger buffer so accesses during conversion from/to
          mpz_t's are more sequential. We need to remember the pointers
          to the buffers so we can free them later. For now we allocate
@@ -1671,6 +1800,7 @@ mpzspv_open_fileset (const char *file_stem, const spv_size_t len,
          to the buffers in the second half. This is ugly - FIXME */
       buffers[i] = malloc (bufsize);
       setvbuf (files[i], (char *)buffers[i], _IOFBF, bufsize);
+#endif
 #endif
     }
   
@@ -1683,7 +1813,7 @@ void
 mpzspv_close_fileset (FILE **files, const mpzspm_t mpzspm)
 {
   unsigned int i;
-#ifdef HAVE_SETVBUF
+#if defined(HAVE_SETVBUF) && !defined(HAVE_AIO_READ)
   void **buffers = (void**)files + mpzspm->sp_num;
 #endif
   
@@ -1696,8 +1826,9 @@ mpzspv_close_fileset (FILE **files, const mpzspm_t mpzspm)
                    errno);
           abort();
         }
+      
       files[i] = NULL;
-#ifdef HAVE_SETVBUF
+#if defined(HAVE_SETVBUF) && !defined(HAVE_AIO_READ)
       free (buffers[i]);
       buffers[i] = NULL;
 #endif
@@ -1706,31 +1837,81 @@ mpzspv_close_fileset (FILE **files, const mpzspm_t mpzspm)
   free (files);
 }
 
-void
-mpzspv_read (mpzspv_t mpzspv, const spv_size_t mpzspv_offset, 
-             FILE **files, const spv_size_t file_offset,
-             const spv_size_t len, const mpzspm_t mpzspm)
+
+#if defined(HAVE_AIO_READ)
+/* If write=0, read data from a set of files and return as soon as the 
+   reads are scheduled 
+   - OR - 
+   if write=1, write data to a set of files and wait until writes are 
+   completed (which usually returns as soon as the writes are in the 
+   system's disk write cache).
+   In both cases, reads/writes "len" entries from/to file position 
+   "file_offset" to/from position "mpzspv_offset" in "mpzspv". All 
+   lengths/positions use one sp_t as the unit. */
+static int 
+mpzspv_lio_rw (struct aiocb *aiocb_list[], mpzspv_t mpzspv, 
+               const spv_size_t mpzspv_offset, FILE **files,  
+               const spv_size_t file_offset, const spv_size_t len, 
+               const mpzspm_t mpzspm, const int write)
 {
   unsigned int i;
+  struct sigevent sev;
+  int r;
   
+  if (0)
+    printf("mpzspv_lio_rw(, , %lu, , %lu, %lu, , %d)\n", 
+           (unsigned long) mpzspv_offset, (unsigned long) file_offset,
+           (unsigned long) len, write);
+  
+  memset (&sev, 0, sizeof(struct sigevent));
+  sev.sigev_notify = SIGEV_NONE;
   for (i = 0; i < mpzspm->sp_num; i++)
     {
-      seek_and_read_sp (mpzspv[i] + mpzspv_offset, len, file_offset, files[i]);
+      memset (aiocb_list[i], 0, sizeof (struct aiocb));
+      aiocb_list[i]->aio_fildes = fileno(files[i]);
+      aiocb_list[i]->aio_offset = file_offset * sizeof(sp_t);
+      aiocb_list[i]->aio_buf = mpzspv[i] + mpzspv_offset;
+      aiocb_list[i]->aio_nbytes = len * sizeof(sp_t);
+      aiocb_list[i]->aio_reqprio = 0;
+      aiocb_list[i]->aio_sigevent = sev;
+      aiocb_list[i]->aio_lio_opcode = write ? LIO_WRITE : LIO_READ;
     }
+  r = lio_listio (write ? LIO_WAIT : LIO_NOWAIT, aiocb_list, mpzspm->sp_num, 
+                  NULL);
+  return r;
 }
 
-void
-mpzspv_write (const mpzspv_t mpzspv, const spv_size_t mpzspv_offset, 
-             FILE **files, const spv_size_t file_offset,
-             const spv_size_t len, const mpzspm_t mpzspm)
+/* Wait until all operations in aiocb_list[] have completed */
+static int 
+mpzspv_lio_suspend (const struct aiocb *aiocb_list[], const mpzspm_t mpzspm)
 {
   unsigned int i;
-  
   for (i = 0; i < mpzspm->sp_num; i++)
     {
-      seek_and_write_sp (mpzspv[i] + mpzspv_offset, len, file_offset, files[i]);
+      int r;
+
+      do {
+        r = aio_suspend (&aiocb_list[i], 1, NULL);
+      } while (r == EAGAIN);
+
+      if (r == EINTR)
+        {
+          fprintf (stderr, "%s(): Got EINTR, unhandled case. FIXME\n", 
+                   __func__);
+          return -1;
+        }
+
+      if (r == -1)
+        {
+          fprintf (stderr, "%s(): Got -1, errno = %d\n", __func__, errno);
+          return -1;
+        }
+
+      ASSERT_ALWAYS (r == 0);
     }
+  return 0;
 }
+#endif
 
 static void
 mpzspv_print_mem (const mpzspv_t mpzspv, const spv_size_t offset, 
