@@ -350,7 +350,7 @@ AC_FUNC_ALLOCA
 AC_HEADER_STDC
 AC_CHECK_HEADERS([math.h limits.h malloc.h strings.h sys/time.h unistd.h io.h signal.h fcntl.h])
 AC_CHECK_HEADERS([windows.h])
-AC_CHECK_HEADERS([ctype.h sys/types.h sys/resource.h])
+AC_CHECK_HEADERS([ctype.h sys/types.h sys/resource.h aio.h])
 
 dnl Checks for library functions that are not in GMP
 AC_FUNC_STRTOD
@@ -361,6 +361,7 @@ AC_CHECK_LIB(m,floor,,AC_MSG_ERROR(required function missing))
 AC_CHECK_LIB(m,sqrt,,AC_MSG_ERROR(required function missing))
 AC_CHECK_LIB(m,fmod,,AC_MSG_ERROR(required function missing))
 AC_CHECK_LIB(m,cos)
+AC_CHECK_LIB(rt,aio_read)
 
 dnl Check for GSL but don't add it to LIBS, since only rho uses it and
 dnl we don't want all other binaries to depend on it. 
@@ -380,7 +381,7 @@ AC_CHECK_FUNCS([isascii memset strchr strlen strncasecmp strstr], [], [AC_MSG_ER
 AC_CHECK_FUNCS([access unlink], [], [AC_MSG_ERROR([required function missing])])
 AC_CHECK_FUNCS([isspace isdigit isxdigit], [], [AC_MSG_ERROR([required function missing])])
 AC_CHECK_FUNCS([time ctime], [], [AC_MSG_ERROR([required function missing])])
-AC_CHECK_FUNCS([setpriority nice gethostname gettimeofday getrusage memmove signal fcntl fileno setvbuf fallocate])
+AC_CHECK_FUNCS([setpriority nice gethostname gettimeofday getrusage memmove signal fcntl fileno setvbuf fallocate aio_read])
 
 dnl FIXME: which win32 library contains these functions?
 dnl AC_CHECK_FUNCS([GetCurrentProcess GetProcessTimes])
