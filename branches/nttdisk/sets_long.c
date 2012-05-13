@@ -105,7 +105,7 @@ sets_max_recurse (mpz_t S, mpz_t tmp, const uint64_t beta)
     {
       k++;
       pk *= p;
-      P /= p; /* P*pk=beta is invariant */
+      P /= p;
     }
   sets_max_recurse (S, tmp, P);
 
@@ -164,8 +164,8 @@ sets_sumset_recurse (int64_t *sum, const set_list_t *sets,
     {
       int64_t elem = curr_set->elem[i];
       /* Test for overflow */
-      ASSERT_ALWAYS (add <= 0 || add + elem > elem);
-      ASSERT_ALWAYS (add >= 0 || add + elem < elem);
+      ASSERT_ALWAYS (add <= 0 || elem <= INT64_MAX - add);
+      ASSERT_ALWAYS (add >= 0 || elem >= INT64_MIN - add);
       j += sets_sumset_recurse (sum + j, sets, 
 		      	which_set + 1, add + elem);
     }
@@ -217,7 +217,7 @@ sets_sumset_minmax (mpz_t sum, const set_list_t *sets, const int minmax)
       extremum = curr_set->elem[0];
       for (j = 1UL; j < curr_set->card; j++)
       	{
-	  int64_t elem = curr_set->elem[j];
+	  const int64_t elem = curr_set->elem[j];
 
 	  if ((minmax == -1 && elem < extremum) ||
 	      (minmax == 1 && elem > extremum))
@@ -231,7 +231,7 @@ sets_sumset_minmax (mpz_t sum, const set_list_t *sets, const int minmax)
 	}
       else
 	{
-	  mpz_set_uint64 (tmp, -extremum);
+	  mpz_set_uint64 (tmp, (uint64_t) (-extremum));
 	  mpz_sub (sum, sum, tmp);
 	}
     }
@@ -416,18 +416,6 @@ sets_extract (set_list_t *extracted, set_list_t *L,
 
   ASSERT_ALWAYS (d > 0UL);
 
-  if (d == 1UL)
-    {
-      /* d == 1 means we need to extract a set of cardinality 1, which we
-         most likely don't have in L. (FIXME: check for set of 
-         cardinality 1?) We return the set containing only zero, which
-         can be added to any set of sets without changing the set of sums */
-
-      sets_add_new (extracted, 1);
-      extracted->sets[extracted->num_sets - 1].elem[0] = 0;
-      return;
-    }
-
   for (i = j = 0; i < L->num_sets; i++)
     {
       uint32_t c = L->sets[i].card;
@@ -437,9 +425,9 @@ sets_extract (set_list_t *extracted, set_list_t *L,
 	  if (extracted->num_sets == extracted->num_sets_alloc)
 	    {
 	      extracted->num_sets_alloc *= 2;
-	      extracted->sets = (set_t *)realloc (extracted->sets, 
-		  			extracted->num_sets_alloc *
-					sizeof(set_t));
+	      extracted->sets = 
+	        (set_t *)realloc (extracted->sets, 
+	                          extracted->num_sets_alloc * sizeof(set_t));
 	    }
 
 	  extracted->sets[extracted->num_sets++] = L->sets[i];
@@ -449,6 +437,13 @@ sets_extract (set_list_t *extracted, set_list_t *L,
 	{
 	  L->sets[j++] = L->sets[i];
 	}
+    }
+
+  /* If we did not extract anything so far, output one set: {0} */
+  if (extracted->num_sets == 0UL)
+    {
+      sets_add_new (extracted, 1);
+      extracted->sets[extracted->num_sets - 1].elem[0] = 0;
     }
 
   L->num_sets = j;
