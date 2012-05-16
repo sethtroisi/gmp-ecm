@@ -125,21 +125,37 @@ __GMP_DECLSPEC mp_limb_t __gmpn_add_nc (mp_ptr, mp_srcptr, mp_srcptr,
 static inline void 
 mpz_set_uint64 (mpz_t m, const uint64_t n)
 {
-#if GMP_LIMB_BITS == 64  /* 64-bit GMP limb */
-  if (sizeof(mp_limb_t) > sizeof(unsigned long))
+  if (sizeof(uint64_t) <= sizeof(unsigned long))
     {
-       mpz_set_ui (m, (unsigned long)(uint32_t)(n >> 32));
-       mpz_mul_2exp (m, m, 32);
-       mpz_add_ui (m, m, (unsigned long)(uint32_t)n);
+      mpz_set_ui(m, (unsigned long)n);
     }
   else
-    mpz_set_ui(m, (unsigned long)n);
+    {
+       /* Read 1 word of 8 bytes in host endianess */
+       mpz_import (m, 1, 1, 8, 0, 0, &n);
+    }
+}
 
-#else                    /* 32-bit GMP limb */
-  mpz_set_ui (m, (unsigned long)(uint32_t)(n >> 32));
-  mpz_mul_2exp (m, m, 32);
-  mpz_add_ui (m, m, (unsigned long)(uint32_t)n);
-#endif
+static inline uint64_t
+mpz_get_uint64 (mpz_t m)
+{
+  uint64_t n;
+
+  ASSERT_ALWAYS (mpz_sgn(m) >= 0);
+  if (sizeof(uint64_t) <= sizeof(unsigned long))
+    {
+      ASSERT_ALWAYS (mpz_fits_ulong_p(m));
+      n = mpz_get_ui(m);
+    }
+  else
+    {
+       size_t count;
+       /* Write 1 word of 8 bytes in host endianess */
+       ASSERT_ALWAYS (mpz_sizeinbase (m, 2) <= 64);
+       mpz_export (&n, &count, 1, 8, 0, 0, m);
+       ASSERT_ALWAYS (count == 1);
+    }
+  return n;
 }
 
 static inline void 
