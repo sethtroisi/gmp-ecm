@@ -85,56 +85,56 @@ smallest_factor (const uint64_t N)
   return N;
 }
 
+
 /* Returns max(S), where S == (Z/\beta Z)* as chosen by
    sets_get_factored_sorted() */
-/* Assumes that S == 0 at recursion entry */
-static void
-sets_max_recurse (mpz_t S, mpz_t tmp, const uint64_t beta)
-{
-  uint64_t P = beta; 
-  uint64_t inc = 0;
-  uint64_t p, pk;
-  uint32_t k;
-  
-  if (beta == 1UL)
-    return;
-  
-  p = smallest_factor (P);
-  k = 1; pk = p; P /= p;
-  while (P % p == 0)
-    {
-      k++;
-      pk *= p;
-      P /= p;
-    }
-  sets_max_recurse (S, tmp, P);
-
-  mpz_set_uint64 (tmp, pk);
-  mpz_mul (S, S, tmp);
-
-  if (p == 2 && k == 1)
-    inc = P;
-  else if (p == 2)
-    inc = P * (pk / 2 - 1);
-  else if (p % 4 == 1)
-    inc = P * ((pk + p) / 2 - 2);
-  else if (p % 4 == 3)
-    inc = P * ((pk - 1) / 2);
-  else
-    abort();
-
-  mpz_set_uint64 (tmp, inc);
-  mpz_add (S, S, tmp);
-}
-
 void
 sets_max (mpz_t S, const uint64_t beta)
 {
+  uint64_t cofactor = beta; 
+  uint64_t inc, p, pk;
+  uint32_t k;
   mpz_t tmp;
 
-  mpz_set_ui (S, 0UL);
+  ASSERT_ALWAYS (beta != 0);
+
   mpz_init (tmp);
-  sets_max_recurse (S, tmp, beta);
+  mpz_set_ui (S, 0);
+
+  /* We write (Z/\beta Z)^{*} = \sum_{p^k || beta} beta / p^k * (Z/p^kZ)^{*} */
+
+  while (cofactor != 1)
+    {
+      unsigned long P;
+
+      p = smallest_factor (cofactor);
+      k = 1; pk = p; cofactor /= p;
+      while (cofactor % p == 0)
+        {
+          k++;
+          pk *= p;
+          cofactor /= p;
+        }
+
+      P = beta / pk;
+      
+      if (p == 2 && k == 1)
+        /* P * {1} */
+        inc = P;
+      else if (p == 2)
+        /* P * {0, ..., +-(2^(k-1)-3), +-(2^(k-1)-1)} */
+        inc = P * (pk / 2 - 1);
+      else if (p % 4 == 1 && P % 2 == 1)
+        inc = P * ((pk + p) / 2 - 2);
+      else if (p % 4 == 3 || (p % 4 == 1 && P % 2 == 0))
+        /* P * ((p+1)/4 {-1,1} + {0, ..., +-(p-3)/4})  */
+        inc = P * ((pk - 1) / 2);
+      else
+        abort();
+
+      mpz_set_uint64 (tmp, inc);
+      mpz_add (S, S, tmp);
+    }
   mpz_clear (tmp);
 }
 
@@ -323,7 +323,7 @@ sort_set_ascending(const void *x, const void *y)
 void
 sets_get_factored_sorted (set_list_t *L, const uint64_t n)
 {
-  uint64_t r, np;
+  uint64_t r, P, pk;
   uint32_t k, p;
   
   ASSERT (n > 0UL);
@@ -331,46 +331,60 @@ sets_get_factored_sorted (set_list_t *L, const uint64_t n)
   r = n;
   while (r > 1)
     {
+      /* Find p^k || r */
       p = smallest_factor (r);
-      for (k = 0; r % p == 0; k++, r /= p); /* Find p^k || r */
-      np = n/p;
-
-      if (p == 2 && k == 1) /* Case 2^1. Deal with it before the */
-        {		       /* while loop below decreases k. */
-	  sets_add_new (L, 1);
-	  L->sets[L->num_sets - 1].elem[0] = np;
+      k = 1; pk = p; r /= p;
+      while (r % p == 0)
+        {
+          k++; pk *= p;
+          r /= p;
         }
+      P = n / pk;
 
       /* If k > 1, do the \sum_{i=1}^{k-1} p^i (Z/pZ) part here.
 	 (Z/pZ) is represented by an arithmetic progression of
 	 common difference 1 and length p. */
 		
-      while (k-- > 1)
+      if (k > 1)
         {
-	  sets_factored_Rn2 (L, p, np);
-	  np /= p;
+          uint64_t Ppi = P*p; /* Ppi = P * P^i */
+          uint32_t i;
+          for (i = 1; i < k; i++, Ppi *= p)
+            sets_factored_Rn2 (L, p, Ppi);
         }
 
-      if (p % 4 == 3)
+      if (p == 2 && k == 1)
+        {
+	  sets_add_new (L, 1);
+	  L->sets[L->num_sets - 1].elem[0] = P;
+        }
+      else if (p == 2)
+        {
+          /* Nothing more to do here, 2^1 was handled separately and 2^k, k>1,
+             was handled by p^i loop */
+        }
+      else if (p % 4 == 3 || (p % 4 == 1 && P % 2 == 0))
         {
 	  /* We can use \hat{S}_p. Factor as 
 	     {-(p+1)/4, (p+1)/4} + C_{(p-1)/2} */
 	  
 	  /* Add the {-(p+1)/4, (p+1)/4} set to L */
-	  sets_factored_Rn2 (L, 2, (p + 1) / 2 * np);
+	  sets_factored_Rn2 (L, 2, (p + 1) / 2 * P);
 
-	  /* Add the np / 2 * R_{(p-1)/2} set to L */
-	  sets_factored_Rn2 (L, (p - 1) / 2, np);
+	  /* Add the P / 2 * R_{(p-1)/2} set to L */
+	  sets_factored_Rn2 (L, (p - 1) / 2, P);
         }
-      else if (p % 4 == 1)
+      else if (p % 4 == 1 && P % 2 == 1)
         {
 	  /* Factor into arithmetic progressions of prime length.
 	     R_{p} = {-p+1, -p+3, ..., p-3, p+1}, i.e.
 	     R_2 = {-1, 1}, R_3 = {-2, 0, 2}, R_4 = {-3, -1, 1, 3}
 	     We have R_{sq} = R_q + q*R_s */
 	  
-	  sets_factored_Rn2 (L, p - 1, 2 * np);
+	  sets_factored_Rn2 (L, p - 1, 2 * P);
         }
+      else
+        abort();
     }
 
   qsort (L->sets, L->num_sets, sizeof(set_t), sort_set_ascending);
