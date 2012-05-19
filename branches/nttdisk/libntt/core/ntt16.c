@@ -769,15 +769,14 @@ ntt16_pfa_run_core_simd(spv_t x, spv_size_t start,
 #endif
 
 static void
-ntt16_pfa_run(spv_t x, spv_size_t stride,
-	  spv_size_t cofactor,
+ntt16_pfa_run(spv_t x, spv_size_t cofactor,
 	  sp_t p, spv_t ntt_const)
 {
   spv_size_t i = 0;
   spv_size_t incstart = 0;
-  spv_size_t n = 16 * cofactor * stride;
-  spv_size_t inc = cofactor * stride;
-  spv_size_t inc2 = 16 * stride;
+  spv_size_t n = 16 * cofactor;
+  spv_size_t inc = cofactor;
+  spv_size_t inc2 = 16;
 
 #ifdef HAVE_SSE2
   spv_size_t num_simd = SP_SIMD_VSIZE * (cofactor / SP_SIMD_VSIZE);

@@ -134,9 +134,9 @@ static void do_test(mpzspm_t mpzspm)
   
 	  bfntt(r, x, len, p, d, primroot, order);
 
-	  config1->ntt_pfa_run(x, 1, len / config1->size, 
+	  config1->ntt_pfa_run(x, len / config1->size, 
 	      			p, pfa1->ntt_const);
-	  config2->ntt_pfa_run(x, 1, len / config2->size, 
+	  config2->ntt_pfa_run(x, len / config2->size, 
 	      			p, pfa2->ntt_const);
 
 	  for (m = 0; m < len; m++)
@@ -164,9 +164,9 @@ static void do_test(mpzspm_t mpzspm)
 	      start = read_clock();
 	      for (n = 0; n < 10; n++)
 		{
-		  config1->ntt_pfa_run(x, 1, len / config1->size, 
+		  config1->ntt_pfa_run(x, len / config1->size, 
 		       			p, pfa1->ntt_const);
-		  config2->ntt_pfa_run(x, 1, len / config2->size, 
+		  config2->ntt_pfa_run(x, len / config2->size, 
 			       		p, pfa2->ntt_const);
 		}
 	      stop = read_clock();
@@ -204,11 +204,11 @@ static void do_test(mpzspm_t mpzspm)
   
 	  bfntt(r, x, len, p, d, primroot, order);
 
-	  config1->ntt_pfa_run(x, 1, len / config1->size, 
+	  config1->ntt_pfa_run(x, len / config1->size, 
 	      			p, pfa1->ntt_const);
-	  config2->ntt_pfa_run(x, 1, len / config2->size, 
+	  config2->ntt_pfa_run(x, len / config2->size, 
 	      			p, pfa2->ntt_const);
-	  config3->ntt_pfa_run(x, 1, len / config3->size, 
+	  config3->ntt_pfa_run(x, len / config3->size, 
 	      			p, pfa3->ntt_const);
 
 	  for (m = 0; m < len; m++)
@@ -236,11 +236,11 @@ static void do_test(mpzspm_t mpzspm)
 	      start = read_clock();
 	      for (n = 0; n < 10; n++)
 		{
-		  config1->ntt_pfa_run(x, 1, len / config1->size, 
+		  config1->ntt_pfa_run(x, len / config1->size, 
 					p, pfa1->ntt_const);
-		  config2->ntt_pfa_run(x, 1, len / config2->size, 
+		  config2->ntt_pfa_run(x, len / config2->size, 
 					p, pfa2->ntt_const);
-		  config3->ntt_pfa_run(x, 1, len / config3->size, 
+		  config3->ntt_pfa_run(x, len / config3->size, 
 					p, pfa3->ntt_const);
 		}
 	      stop = read_clock();
