@@ -8,6 +8,7 @@ extern const nttconfig_t ntt7_config;
 extern const nttconfig_t ntt8_config;
 extern const nttconfig_t ntt9_config;
 extern const nttconfig_t ntt15_config;
+extern const nttconfig_t ntt16_config;
 
 static const nttconfig_t * ntt_config[] = 
 {
@@ -18,6 +19,7 @@ static const nttconfig_t * ntt_config[] =
   &ntt8_config,
   &ntt9_config,
   &ntt15_config,
+  &ntt16_config,
 };
 
 #define NUM_CODELETS (sizeof(ntt_config) / sizeof(ntt_config[0]))
