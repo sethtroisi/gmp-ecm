@@ -1948,7 +1948,7 @@ make_S_1_S_2 (set_list_t *S_1, int64_t **s2_sumset_out,
     mpz_init (t1);
     mpz_init (t2);
     sets_sumset_minmax (t1, S_1, 1);
-    sets_max (t2, params->P);
+    sets_get_factored_sorted (NULL, t2, params->P);
     ASSERT_ALWAYS (mpz_cmp (t1, t2) == 0);
     mpz_clear (t1);
     mpz_clear (t2);
