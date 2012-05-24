@@ -1940,7 +1940,7 @@ make_S_1_S_2 (set_list_t *S_1, int64_t **s2_sumset_out,
   uint64_t s2_sumset_size;
   int64_t *s2_sumset;
 
-  sets_get_factored_sorted (S_1, params->P);
+  sets_get_factored_sorted (S_1, NULL, params->P);
 
   {
     mpz_t t1, t2;
@@ -2174,7 +2174,6 @@ ntt_gcd (mpz_t f, mpz_t *product, mpzspv_handle_t ntt,
    \prod_{k_1 \in S_1} (x - P_1^{k_1}) (mod x - t)
    = \prod_{k_1 \in S_1} (t - P_1^{k_1})
    
-   LATER:
    = \prod_{k_1 \in S_1, k_1 > 0} (x - P_1^{k_1})(x - P_1^{-k_1}) (mod x - t)
    = \prod_{k_1 \in S_1, k_1 > 0} x (x+1/x - V_{k_1}(P_1 + 1/P_1)) (mod x - t)
    = \prod_{k_1 \in S_1, k_1 > 0} ((t+1/t) - V_{k_1}(P_1 + 1/P_1))
@@ -2188,9 +2187,11 @@ pm1_eval_slow (const mpz_t checkval, const set_list_t *S1, const mpz_t b1,
 {
   uint32_t *iterator;
   unsigned long timestart, realstart;
-  mpz_t invB, Bk, x0, X, r, e, product, tmp;
+  mpz_t B1B, V2B, x0, X, X1X, r, e, product, tmp;
   int extgcd_ok;
-  uint64_t degree = 0;
+  uint64_t degree = 0, maxS, i, evenodd[2]; /* even = [0], odd = [1] */
+  char *bitfield;
+  int j;
   
   ASSERT_ALWAYS (mpz_sgn (checkval) >= 0);
   ASSERT_ALWAYS (mpz_cmp (checkval, N) < 0);
@@ -2203,17 +2204,45 @@ pm1_eval_slow (const mpz_t checkval, const set_list_t *S1, const mpz_t b1,
   timestart = cputime ();
   realstart = realtime ();
 
-  iterator = sets_init_iterator(S1);
-  ASSERT_ALWAYS(iterator != NULL);
-  mpz_init (invB);
-  mpz_init (Bk);
   mpz_init (e);
   mpz_init (x0);
   mpz_init (r);
   mpz_init (X);
+  mpz_init (X1X);
+  mpz_init (B1B);
+  mpz_init (V2B);
   mpz_init (tmp);
   mpz_init (product);
   mpz_set_ui (product, 1);
+
+  sets_sumset_minmax (tmp, S1, 1);
+  maxS = mpz_get_uint64 (tmp);
+  bitfield = malloc (maxS / 8 + 1);
+  memset (bitfield, 0, maxS / 8 + 1);
+  ASSERT_ALWAYS(bitfield != NULL);
+  iterator = sets_init_iterator (S1);
+  ASSERT_ALWAYS(iterator != NULL);
+  evenodd[0] = evenodd[1] = 0;
+  while (!sets_end_of_iter (iterator, S1))
+    {
+      const int64_t k1 = sets_next_iter (iterator, S1);
+      if (k1 >= 0)
+        {
+          evenodd[0] |= k1 ^ 1; /* LSB indicates whether there are any even k1 */
+          evenodd[1] |= k1;     /* ... any odd k1 */
+          ASSERT_ALWAYS ((uint64_t) k1 <= maxS);
+          ASSERT_ALWAYS ((bitfield[k1 / 8] & (1 << (k1 % 8))) == 0);
+          /* printf ("pm1_eval_slow(): k1 = %" PRId64 "\n", k1); */
+          bitfield[k1 / 8] |= 1 << (k1 % 8);
+        }
+    }
+  free (iterator);
+  ASSERT_ALWAYS ((bitfield[maxS / 8] & (1 << (maxS % 8))) != 0);
+
+  evenodd[0] &= 1;
+  evenodd[1] &= 1;
+  outputf (OUTPUT_DEVVERBOSE, "\nmaxS = %" PRIu64 ", even = %d, odd = %d\n", 
+          maxS, evenodd[0] != 0 ? 1 : 0, evenodd[1] != 0 ? 1 : 0);
 
   /* See section 8 of ANTS paper */
   mpz_set_uint64 (e, P);
@@ -2230,6 +2259,11 @@ pm1_eval_slow (const mpz_t checkval, const set_list_t *S1, const mpz_t b1,
                               b_1^{k_2 + (m_1 + m) * P} */
   mpz_mod (X, X, N);
 
+  extgcd_ok = mpz_invert (X1X, X, N);
+  ASSERT_ALWAYS (extgcd_ok != 0);
+  mpz_add (X1X, X1X, X);
+  mpz_mod (X1X, X1X, N); /* X1X = X + 1/X */
+
   outputf (OUTPUT_TRACE, 
            "x0 = Mod(%Zd,N); X = Mod(%Zd, N); r = Mod(%Zd, N); /* PARI %s */\n", 
            x0, X, r, __func__);
@@ -2238,46 +2272,69 @@ pm1_eval_slow (const mpz_t checkval, const set_list_t *S1, const mpz_t b1,
   outputf (OUTPUT_TRACE, "X == b1^(k_2 + (m1+m)*P) /* PARI C %s */ \n", 
            __func__);
   outputf (OUTPUT_TRACE, "r == b1^(P/2) /* PARI C %s */ \n", __func__);
+  outputf (OUTPUT_TRACE, "X + 1/X == %Zd /* PARI C %s */ \n", __func__, X1X);
 
-  /* Precompute inverse to avoid extgcds below */
-  extgcd_ok = mpz_invert (invB, b1, N);
+  extgcd_ok = mpz_invert (B1B, b1, N);
   ASSERT_ALWAYS (extgcd_ok != 0);
+  mpz_add (B1B, B1B, b1);
+  mpz_mod (B1B, B1B, N);
+
+  mpz_mul (V2B, B1B, B1B);
+  mpz_sub_ui (V2B, V2B, 2); /* V_2(x) = x^2 - 2, V2B = V_2(B1B) */
   
-  while (!sets_end_of_iter(iterator, S1))
-    {
-      const int64_t k1 = sets_next_iter(iterator, S1);
-      /* printf ("pm1_eval_slow(): k1 = %" PRId64 "\n", k1); */
-      degree++;
-      
-      if (k1 < 0)
-        {
-          mpz_set_uint64 (e, -k1);
-          mpz_powm (Bk, invB, e, N);
-        } else {
-          mpz_set_uint64 (e, k1);
-          mpz_powm (Bk, b1, e, N);
-        }
-      mpz_sub (Bk, X, Bk);
-      mpz_mul (product, product, Bk);
-      mpz_mod (product, product, N);
-    }
-  ASSERT_ALWAYS(degree % 2 == 0);
-  mpz_set_uint64 (e, degree / 2);
-  mpz_neg (e, e);
-  mpz_powm (Bk, X, e, N);
-  mpz_mul (product, product, Bk);
-  mpz_mod (product, product, N);
+  for (j = 0; j < 2; j++)
+    if (evenodd[j] != 0)
+      {
+        mpz_t ViB, Vim2B;
+        /* We start at index i = j (either 0 or 1) */
+        mpz_init (ViB);
+        mpz_init (Vim2B);
+        if (j == 0)
+          {
+            mpz_set_ui (ViB, 2); /* ViB = V_i(B1B) = 2 with i=0 */
+            mpz_set (Vim2B, V2B);  /* Vim2B = V_{i-2}(B1B) = V_2(B1B) with i=0 */
+          } else {
+            mpz_set (ViB, B1B); /* ViB = V_i(B1B) = B1B with i=1 */
+            mpz_set (Vim2B, B1B); /* Vim2B = V_{i-2}(B1B) = B1B with i=1 */
+          }
+
+        for (i = j; i <= maxS; i += 2)
+          {
+            if ((bitfield[i / 8] & (1 << (i % 8))) != 0)
+              {
+                /* printf ("pm1_eval_slow(): i = %" PRId64 "\n", i); */
+                /* Multiply by (X - b1^i)*(X - b1^{-1})/X = 
+                               (X + 1/X - (b1^i + b^1{-i})) =
+                               (X + 1/X - V_i(b1 + b1^{-1})) */
+                degree+=2;
+
+                mpz_sub (tmp, X1X, ViB);
+                mpz_mul (product, product, tmp);
+                mpz_mod (product, product, N);
+              }
+            
+            mpz_mul (tmp, ViB, V2B);
+            mpz_sub (tmp, tmp, Vim2B);
+            mpz_set (Vim2B, ViB);
+            mpz_mod (ViB, tmp, N);
+          }
+        mpz_clear (ViB);
+        mpz_clear (Vim2B);
+      }
+
+  outputf (OUTPUT_DEVVERBOSE, "degree = %" PRIu64 ", maxS / degree = %f\n", 
+           degree, maxS * 1./degree);
   outputf (OUTPUT_TRACE, "F(X) == Mod(%Zd,N) /* PARI C %s */\n", 
            product, __func__);
 
   /* Compute x_0^m r^(m^2) * F(X) */
   mpz_set_uint64 (e, m);
-  mpz_powm (Bk, x0, e, N);
-  mpz_mul (product, product, Bk);
+  mpz_powm (tmp, x0, e, N);
+  mpz_mul (product, product, tmp);
   mpz_mod (product, product, N);
   mpz_mul (e, e, e);
-  mpz_powm (Bk, r, e, N);
-  mpz_mul (product, product, Bk);
+  mpz_powm (tmp, r, e, N);
+  mpz_mul (product, product, tmp);
   mpz_mod (product, product, N);
   outputf (OUTPUT_TRACE, "x0^m * r^(m^2) * F(X) == Mod(%Zd,N) /* PARI C %s */\n", 
            product, __func__);
@@ -2294,11 +2351,13 @@ pm1_eval_slow (const mpz_t checkval, const set_list_t *S1, const mpz_t b1,
   mpz_clear (x0);
   mpz_clear (r);
   mpz_clear (X);
-  mpz_clear (invB);
-  mpz_clear (Bk);
+  mpz_clear (V2B);
+  mpz_clear (B1B);
+  mpz_clear (X1X);
   mpz_clear (tmp);
-  free (iterator);    
-
+  free(bitfield);
+  bitfield = NULL;
+  
   print_elapsed_time (OUTPUT_VERBOSE, timestart, realstart);
 }
 
@@ -4074,7 +4133,7 @@ pp1fs2_ntt (mpz_t f, const mpres_t X, mpmod_t modulus,
                       params->s_1 / 2 + 1, params->P, Delta, modulus);
     } else {
       /* We don't have any function to fill two NTT vectors with values in 
-         lock-step. We'd have to use mpz_t buffers, to fill vectors one entry
+         lock-step. We'd have to use mpz_t buffers, or fill vectors one entry
          at a time (very slow). For now we generate x and y-coordinates 
          separately, even though this causes some extra computation. */
       pp1_sequence_h (NULL, NULL, h_x_ntt, NULL, F, b1, 0L, 

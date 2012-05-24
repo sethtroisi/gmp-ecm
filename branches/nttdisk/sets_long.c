@@ -86,59 +86,6 @@ smallest_factor (const uint64_t N)
 }
 
 
-/* Returns max(S), where S == (Z/\beta Z)* as chosen by
-   sets_get_factored_sorted() */
-void
-sets_max (mpz_t S, const uint64_t beta)
-{
-  uint64_t cofactor = beta; 
-  uint64_t inc, p, pk;
-  uint32_t k;
-  mpz_t tmp;
-
-  ASSERT_ALWAYS (beta != 0);
-
-  mpz_init (tmp);
-  mpz_set_ui (S, 0);
-
-  /* We write (Z/\beta Z)^{*} = \sum_{p^k || beta} beta / p^k * (Z/p^kZ)^{*} */
-
-  while (cofactor != 1)
-    {
-      unsigned long P;
-
-      p = smallest_factor (cofactor);
-      k = 1; pk = p; cofactor /= p;
-      while (cofactor % p == 0)
-        {
-          k++;
-          pk *= p;
-          cofactor /= p;
-        }
-
-      P = beta / pk;
-      
-      if (p == 2 && k == 1)
-        /* P * {1} */
-        inc = P;
-      else if (p == 2)
-        /* P * {0, ..., +-(2^(k-1)-3), +-(2^(k-1)-1)} */
-        inc = P * (pk / 2 - 1);
-      else if (p % 4 == 1 && P % 2 == 1)
-        inc = P * ((pk + p) / 2 - 2);
-      else if (p % 4 == 3 || (p % 4 == 1 && P % 2 == 0))
-        /* P * ((p+1)/4 {-1,1} + {0, ..., +-(p-3)/4})  */
-        inc = P * ((pk - 1) / 2);
-      else
-        abort();
-
-      mpz_set_uint64 (tmp, inc);
-      mpz_add (S, S, tmp);
-    }
-  mpz_clear (tmp);
-}
-
-
 /* Compute the set of sums over the different sets in "*sets".
    The value of "add" is added to each element of the set of sums. 
    "*sum" will have {\prod_{S \in "*sets"} #S} entries and must have
@@ -269,13 +216,25 @@ sets_add_new (set_list_t *L, const uint32_t card)
 */
 
 static void
-sets_factored_Rn2 (set_list_t *L, const uint32_t n, const uint64_t k)
+sets_factored_Rn2 (set_list_t *L, mpz_t max, const uint32_t n, const uint64_t k)
 {
   uint32_t i, q;
   uint64_t m, r;
 
   /* n must be odd, or n and k both even */
   ASSERT_ALWAYS(n % 2 == 1 || k % 2 == 0);
+
+  if (max != NULL)
+    {
+      mpz_t tmp;
+      mpz_init (tmp);
+      mpz_set_uint64 (tmp, k * (n-1) / 2);
+      mpz_add (max, max, tmp);
+      mpz_clear (tmp);
+    }
+
+  if (L == NULL)
+    return;
 
   m = k; /* The multiplier accumulated so far, init to k */
   r = n; /* The remaining cofactor of n */
@@ -318,19 +277,54 @@ sort_set_ascending(const void *x, const void *y)
 /* Return a set L of sets M_i so that M_1 + ... + M_k is congruent to 
    (Z/nZ)*, which is the set of residue classes coprime to n. The M_i all
    have prime cardinality and are sorted by increasing cardinality
+
+   We use that if n=ml, gcd(m,l) == 1, then Z/nZ = l * Z/mZ + m * Z/lZ
 */
 
 void
-sets_get_factored_sorted (set_list_t *L, const uint64_t n)
+sets_get_factored_sorted (set_list_t *L, mpz_t max, const uint64_t n)
 {
-  uint64_t r, P, pk;
-  uint32_t k, p;
+  uint64_t r;
   
   ASSERT (n > 0UL);
 
+  if (max != NULL)
+    mpz_set_ui (max, 0);
+
   r = n;
+
+  /* Special case for 2^i * 3^j, ensuring symmetric sets with small 
+     representatives */
+  if (r % 6 == 0)
+    {
+      uint64_t m, l, po2, po3;
+
+      for (po2 = 1; r % 2 == 0; r /= 2, po2 *= 2);
+      for (po3 = 1; r % 3 == 0; r /= 3, po3 *= 3);
+      m = po2 * po3;
+      l = n / m;
+
+      if (po2 == 2)
+        {
+          /* phi(m) == 2 (mod 4). Z/mZ = {+-1 [,+-5, +-7 [, ...]]} 
+             Use {+-6i} + {+-1}. */
+          sets_factored_Rn2 (L, max, 2, 2 * l);
+          if (m > 6)
+            sets_factored_Rn2 (L, max, m / 6, 6 * l);
+        }
+      else
+        {
+          /* phi(m) == 0 (mod 4). Z/mZ = {+-1 ,+-5[, +-7, +-11[, ...]]} 
+             Use {+-(6i+3)} + 2*{+-1} */
+          sets_factored_Rn2 (L, max, 2, 4 * l);
+          sets_factored_Rn2 (L, max, m / 6, 6 * l);
+        } 
+    }
+
   while (r > 1)
     {
+      uint64_t P, pk;
+      uint32_t k, p;
       /* Find p^k || r */
       p = smallest_factor (r);
       k = 1; pk = p; r /= p;
@@ -343,18 +337,21 @@ sets_get_factored_sorted (set_list_t *L, const uint64_t n)
 
       /* If k > 1, do the \sum_{i=1}^{k-1} p^i (Z/pZ) part here.
 	 (Z/pZ) is represented by an arithmetic progression of
-	 common difference 1 and length p. */
-		
+	 common difference 1 and length p, centered at zero. */
+
       if (k > 1)
         {
           uint64_t Ppi = P*p; /* Ppi = P * P^i */
           uint32_t i;
           for (i = 1; i < k; i++, Ppi *= p)
-            sets_factored_Rn2 (L, p, Ppi);
+            sets_factored_Rn2 (L, max, p, Ppi);
         }
 
       if (p == 2 && k == 1)
         {
+          printf ("n = %lu, r = %lu\n", n, r);
+	  ASSERT_ALWAYS(L != NULL);
+	  ASSERT_ALWAYS(max == NULL);
 	  sets_add_new (L, 1);
 	  L->sets[L->num_sets - 1].elem[0] = P;
         }
@@ -369,10 +366,10 @@ sets_get_factored_sorted (set_list_t *L, const uint64_t n)
 	     {-(p+1)/4, (p+1)/4} + C_{(p-1)/2} */
 	  
 	  /* Add the {-(p+1)/4, (p+1)/4} set to L */
-	  sets_factored_Rn2 (L, 2, (p + 1) / 2 * P);
+	  sets_factored_Rn2 (L, max, 2, (p + 1) / 2 * P);
 
 	  /* Add the P / 2 * R_{(p-1)/2} set to L */
-	  sets_factored_Rn2 (L, (p - 1) / 2, P);
+	  sets_factored_Rn2 (L, max, (p - 1) / 2, P);
         }
       else if (p % 4 == 1 && P % 2 == 1)
         {
@@ -381,13 +378,14 @@ sets_get_factored_sorted (set_list_t *L, const uint64_t n)
 	     R_2 = {-1, 1}, R_3 = {-2, 0, 2}, R_4 = {-3, -1, 1, 3}
 	     We have R_{sq} = R_q + q*R_s */
 	  
-	  sets_factored_Rn2 (L, p - 1, 2 * P);
+	  sets_factored_Rn2 (L, max, p - 1, 2 * P);
         }
       else
         abort();
     }
 
-  qsort (L->sets, L->num_sets, sizeof(set_t), sort_set_ascending);
+  if (L != NULL)
+    qsort (L->sets, L->num_sets, sizeof(set_t), sort_set_ascending);
 }
 
 
@@ -532,7 +530,7 @@ selftest (const uint64_t beta)
   ASSERT_ALWAYS (beta > 0);
 
   sets_init (&L);
-  sets_get_factored_sorted (&L, beta);
+  sets_get_factored_sorted (&L, NULL, beta);
   
 #if 0
   printf("sets = \n");
@@ -555,7 +553,7 @@ selftest (const uint64_t beta)
   /* Also test that max (sumset) == sets_max (beta) */
   mpz_init (max);
   mpz_init (tmp);
-  sets_max (max, beta);
+  sets_get_factored_sorted (NULL, max, beta);
   if (phibeta > 0)
     {
       int64_t maxelem;

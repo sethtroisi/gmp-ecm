@@ -732,8 +732,6 @@ void          sets_init (set_list_t *);
 void          sets_free (set_list_t *);
 #define sets_print __ECM(sets_print)
 void          sets_print (const int, set_list_t *);
-#define sets_max __ECM(sets_max)
-void          sets_max (mpz_t, const uint64_t);
 #define sets_sumset_size __ECM(sets_sumset_size)
 uint64_t      sets_sumset_size (const set_list_t *);
 #define sets_sumset __ECM(sets_sumset)
@@ -743,7 +741,7 @@ void          sets_sumset_minmax (mpz_t, const set_list_t *, const int);
 #define sets_extract __ECM(sets_extract)
 void          sets_extract (set_list_t *, set_list_t *, const uint64_t);
 #define sets_get_factored_sorted __ECM(sets_get_factored_sorted)
-void          sets_get_factored_sorted (set_list_t *, const uint64_t);
+void          sets_get_factored_sorted (set_list_t *, mpz_t, const uint64_t);
 #define sets_init_iterator __ECM(sets_init_iterator)
 uint32_t *    sets_init_iterator (const set_list_t *);
 #define sets_next_iter __ECM(sets_next_iter)
