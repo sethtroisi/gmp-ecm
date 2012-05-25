@@ -908,9 +908,10 @@ pm1 (mpz_t f, mpz_t p, mpz_t N, mpz_t go, double *B1done, double B1,
   if (stage2_variant != 0)
     {
       long P_ntt, P_nontt;
-      const unsigned long lmax = 1UL << 28; /* An upper bound */
+      const unsigned long lmax = 1UL << 30; /* An upper bound */
       unsigned long lmax_NTT, lmax_noNTT;
       faststage2_param_t params_ntt, params_nontt, *better_params;
+      mpz_t effB2min_ntt, effB2_ntt, effB2min_nontt, effB2_nontt;
 
       mpz_init (faststage2_params.m_1);
       faststage2_params.l = 0;
@@ -918,6 +919,10 @@ pm1 (mpz_t f, mpz_t p, mpz_t N, mpz_t go, double *B1done, double B1,
       params_ntt.l = 0;
       mpz_init (params_nontt.m_1);
       params_nontt.l = 0;
+      mpz_init (effB2min_ntt);
+      mpz_init (effB2_ntt);
+      mpz_init (effB2min_nontt);
+      mpz_init (effB2_nontt);
 
       /* Find out what the longest transform length is we can do at all.
 	 If no maxmem is given, the non-NTT can theoretically do any length. */
@@ -936,11 +941,8 @@ pm1 (mpz_t f, mpz_t p, mpz_t N, mpz_t go, double *B1done, double B1,
 	      lmax_NTT = MIN (lmax_NTT, t);
 	    }
 	  outputf (OUTPUT_DEVVERBOSE, "NTT can handle lmax <= %lu\n", lmax_NTT);
-          /* FIXME: if both ntt and no-ntt are tried, but finally ntt is
-             preferred, the last B2 bound computed is that of no-ntt,
-             which is thus wrong */
           P_ntt = choose_P (B2min, B2, lmax_NTT, k, &params_ntt, 
-                            B2min, B2, 1, ECM_PM1);
+                            effB2min_ntt, effB2_ntt, 1, ECM_PM1);
           if (P_ntt != ECM_ERROR)
             outputf (OUTPUT_DEVVERBOSE,
 	             "Parameters for NTT: P=%" PRId64 ", l=%lu\n", 
@@ -961,7 +963,7 @@ pm1 (mpz_t f, mpz_t p, mpz_t N, mpz_t go, double *B1done, double B1,
 	}
       if (use_ntt != 2)
         P_nontt = choose_P (B2min, B2, lmax_noNTT, k, &params_nontt, 
-                            B2min, B2, 0, ECM_PM1);
+                            effB2min_nontt, effB2_nontt, 0, ECM_PM1);
       else
         P_nontt = ECM_ERROR;
       if (P_nontt != ECM_ERROR)
@@ -987,11 +989,15 @@ pm1 (mpz_t f, mpz_t p, mpz_t N, mpz_t go, double *B1done, double B1,
       if (use_ntt == 0 || P_ntt == ECM_ERROR)
         {
           better_params = &params_nontt;
+          mpz_set (B2min, effB2min_nontt);
+          mpz_set (B2, effB2_nontt);
           use_ntt = 0;
         }
       else
         {
           better_params = &params_ntt;
+          mpz_set (B2min, effB2min_ntt);
+          mpz_set (B2, effB2_ntt);
           use_ntt = 1;
         }
 
@@ -1004,6 +1010,10 @@ pm1 (mpz_t f, mpz_t p, mpz_t N, mpz_t go, double *B1done, double B1,
 
       mpz_clear (params_ntt.m_1);
       mpz_clear (params_nontt.m_1);
+      mpz_clear (effB2min_ntt);
+      mpz_clear (effB2_ntt);
+      mpz_clear (effB2min_nontt);
+      mpz_clear (effB2_nontt);
       
       if (maxmem != 0.)
 	  outputf (OUTPUT_VERBOSE, "Using lmax = %lu with%s NTT which takes "
