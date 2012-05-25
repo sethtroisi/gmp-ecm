@@ -2576,8 +2576,9 @@ pm1fs2 (mpz_t f, const mpres_t X, mpmod_t modulus,
 }
 
 static void
-do_aio_init(const unsigned int sp_num)
+do_aio_init(ATTRIBUTE_UNUSED const unsigned int sp_num)
 {
+#ifdef HAVE_AIO_INIT
   /* Set the aio library to use only 1 single thread, as the default 
      of up to 20 threads causes a lot of reads to be executed 
      concurrently, interrupting each other's long sequential reads */
@@ -2586,6 +2587,7 @@ do_aio_init(const unsigned int sp_num)
   init.aio_threads = 1;
   init.aio_num = sp_num;
   aio_init (&init);
+#endif
 }
   
 
