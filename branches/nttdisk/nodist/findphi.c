@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <math.h>
 #include <string.h>
 #include <inttypes.h>
 
@@ -11,8 +12,8 @@
 
 typedef struct {
 	uint32_t p;
-	uint32_t max_power;
-	uint32_t powers[MAX_POWERS];
+	uint32_t max_power; /* The maximum power of p we precompute */
+	uint32_t powers[MAX_POWERS]; /* powers[i] = p^(i+1), 0 <= i < max_power */
 	uint64_t cofactor_max;
 } aprog_t;
 
@@ -48,6 +49,10 @@ typedef struct {
 } phi_score_t;
 
 typedef struct {
+	uint64_t P, phiP;
+} P_phiP_t;
+
+typedef struct {
 	uint32_t num_entries;
 	uint32_t max_entries;
 	phi_score_t *entries;
@@ -67,8 +72,7 @@ heapify(phi_score_t *h, uint32_t index, uint32_t size) {
 	uint32_t c;
 	phi_score_t tmp;
 	for (c = HEAP_LEFT(index); c < (size-1); 
-			index = c, c = HEAP_LEFT(index)) {
-
+	        index = c, c = HEAP_LEFT(index)) {
 		if (h[c].score > h[c+1].score)
 			c++;
 
@@ -113,11 +117,10 @@ save_phi_score(phi_score_heap_t *heap, uint64_t p, double score)
 
 /*------------------------------------------------------------------------*/
 static void
-sieve_add_aprog(sieve_fb_t *s, uint32_t p) 
+sieve_add_aprog(aprog_list_t *list, uint32_t p) 
 {
 	uint32_t i;
 	uint32_t power, power_limit;
-	aprog_list_t *list = &s->aprog_data;
 	aprog_t *a;
 
 	if (list->num_aprogs == list->num_aprogs_alloc) {
@@ -136,47 +139,54 @@ sieve_add_aprog(sieve_fb_t *s, uint32_t p)
 	power_limit = (uint32_t)(-1) / p;
 	i = 1;
 	if (p <= 19) {
-		while (i < MAX_POWERS && power < power_limit) {
+		while (i < MAX_POWERS && power <= power_limit) {
 			power *= p;
 			i++;
 		}
 	}
 
 	a->max_power = i;
-	a->powers[0] = p;
 	power = p;
-	for (i = 1; i < a->max_power; i++) {
-		power *= p;
+	for (i = 0; i < a->max_power; i++) {
 		a->powers[i] = power;
+		power *= p;
 	}
 }
 
 /*------------------------------------------------------------------------*/
-const uint32_t factors[] = {3,5,7,11,13,17,19,23,29,31,37,41,43,
+const uint32_t factors[] = {2,3,5,7,11,13,17,19,23,29,31,37,41,43,
 				  47,53,59,61,67,71,73,79,83,89,97,101,
 				  103,107,109,113,127,131,137,139,149,
 				  151,157,163,167,173,179,181,191,193,
 				  197,199,211,223,227,229,233,239,241,251};
+
+/* Init aprog data for each prime p in factors[] with p <= factor_max */
 void
-sieve_fb_init(sieve_fb_t *s, uint32_t factor_min, uint32_t factor_max)
+aprog_init(aprog_list_t *aprog, uint32_t factor_min, uint32_t factor_max)
 {
 	uint32_t i, p;
-	aprog_list_t *aprog = &s->aprog_data;
+	const uint32_t num_aprogs = sizeof(factors) / sizeof(uint32_t);
 
-	memset(s, 0, sizeof(sieve_fb_t));
+	aprog->num_aprogs_alloc = num_aprogs;
+	aprog->aprogs = (aprog_t *)malloc(num_aprogs * sizeof(aprog_t));
 
-	aprog->num_aprogs_alloc = 100;
-	aprog->aprogs = (aprog_t *)malloc(aprog->num_aprogs_alloc *
-						sizeof(aprog_t));
-
-	for (i = 0; i < sizeof(factors) / sizeof(uint32_t); i++) {
+	for (i = 0; i < num_aprogs; i++) {
 		p = factors[i];
 
 		if (p > factor_max)
 			break;
 
-		sieve_add_aprog(s, p);
+		sieve_add_aprog(aprog, p);
 	}
+}
+
+/*------------------------------------------------------------------------*/
+void
+sieve_fb_init(sieve_fb_t *s, uint32_t factor_min, uint32_t factor_max)
+{
+	memset(s, 0, sizeof(sieve_fb_t));
+
+	aprog_init (&s->aprog_data, factor_min, factor_max);
 }
 
 /*------------------------------------------------------------------------*/
@@ -268,10 +278,105 @@ get_next_enum(sieve_fb_t *s)
 	}
 }
 
+double score_fudge (uint64_t p)
+{
+        /* lim inf phi(p) / p * log(log(p)) = e^-gamma. We compute 
+           p/phi(p) * e^-gamma/log(log(p + 5)), so good p values will have a 
+           value > 1. The +5 is another fudge term to avoid lots of bad 
+           small p surviving */
+        const double expgamma = 1.7810724179901979852365041031071795492;
+        return expgamma * log(log((double)(p + 10)));
+}
+
+/*------------------------------------------------------------------------*/
+
+uint64_t 
+eulerphi_u64 (uint64_t n)
+{
+  uint64_t phi = 1UL, p;
+
+  for (p = 2; p * p <= n; p += 2)
+    {
+      if (n % p == 0)
+	{
+	  phi *= p - 1;
+	  n /= p;
+	  while (n % p == 0)
+	    {
+	      phi *= p;
+	      n /= p;
+	    }
+	}
+
+      if (p == 2)
+	p--;
+    }
+
+  /* now n is prime or 1 */
+
+  return (n == 1) ? phi : phi * (n - 1);
+}
+
+/* Sort by increasing phiP, ties by increasing P */
+int 
+phiP_cmp (const void *a, const void* b) {
+        const uint64_t aP = ((P_phiP_t *)a)->P;
+        const uint64_t bP = ((P_phiP_t *)b)->P;
+        const uint64_t aphiP = ((P_phiP_t *)a)->phiP;
+        const uint64_t bphiP = ((P_phiP_t *)b)->phiP;
+        
+        return (aphiP > bphiP) ? 1 : (aphiP < bphiP) ? -1 : (aP > bP) ? 1 : (aP < bP) ? -1: 0;
+}
+
+int 
+P_cmp (const void *a, const void* b) {
+        const uint64_t aP = ((P_phiP_t *)a)->P;
+        const uint64_t bP = ((P_phiP_t *)b)->P;
+        
+        return (aP > bP) ? 1 : (aP < bP) ? -1: 0;
+}
+
+
+void
+remove_dupes (phi_score_heap_t *heap)
+{
+        P_phiP_t *PphiP;
+        uint32_t i, written;
+  
+        PphiP = (P_phiP_t *) malloc (heap->num_entries * sizeof(P_phiP_t));
+
+        for (i = 0; i < heap->num_entries; i++) {
+                PphiP[i].P = heap->entries[i].p;
+                PphiP[i].phiP = eulerphi_u64(heap->entries[i].p);
+        }
+
+        qsort (PphiP, heap->num_entries, sizeof(P_phiP_t), phiP_cmp);        
+
+        for (i = 1, written = 0; i < heap->num_entries; i++) {
+                if (PphiP[i - 1].phiP > PphiP[i].phiP ||
+                        (PphiP[i - 1].phiP == PphiP[i].phiP && PphiP[i - 1].P > PphiP[i].P))
+                    abort();
+        }
+        
+        for (i = 1, written = 0; i < heap->num_entries; i++) {
+                if (PphiP[i - 1].phiP != PphiP[i].phiP)
+                  PphiP[written++] = PphiP[i - 1];
+        }
+        PphiP[written++] = PphiP[i - 1];
+
+        qsort (PphiP, written, sizeof(P_phiP_t), P_cmp);        
+
+        for (i = 0; i < written; i++) {
+                const uint64_t P = PphiP[i].P;
+                const uint64_t phiP = PphiP[i].phiP;
+                const double ratio = (double) P / (double) PphiP[i].phiP;
+		printf("%" PRIu64 " %" PRIu64 " %.10f %.10f\n", P, phiP, ratio, ratio / score_fudge(P));
+        }
+}
+
 /*------------------------------------------------------------------------*/
 int main(int argc, char **argv) {
 
-        uint32_t i;
 	sieve_fb_t s;
         phi_score_heap_t heap;
 
@@ -296,12 +401,11 @@ int main(int argc, char **argv) {
 		if (p == P_SEARCH_DONE)
 			break;
                 save_phi_score(&heap, p, (double)p / 
-                                 s.p_enum.curr_phi[s.p_enum.num_factors]);
+                                 (double) s.p_enum.curr_phi[s.p_enum.num_factors]
+                                 / score_fudge(p));
 	}
 
-        for (i = 0; i < heap.num_entries; i++)
-		printf("%" PRIu64 " %lf\n", heap.entries[i].p,
-		      			heap.entries[i].score);
+	remove_dupes (&heap);
 
 	return 0;
 }
