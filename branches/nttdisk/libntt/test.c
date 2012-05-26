@@ -156,7 +156,7 @@ static void do_test(mpzspm_t mpzspm)
 	  if (m != len)
 	    printf("%u*%u: fail", config1->size, config2->size);
 	  else
-	    printf("%u*%u:", config1->size, config2->size);
+	    printf("%u %u*%u:", len, config1->size, config2->size);
 
 	  elapsed = (uint64_t)(-1);
 	  for (m = 0; m < 10; m++)
@@ -228,7 +228,7 @@ static void do_test(mpzspm_t mpzspm)
 	  if (m != len)
 	    printf("%u*%u*%u: fail", config1->size, config2->size, config3->size);
 	  else
-	    printf("%u*%u*%u:", config1->size, config2->size, config3->size);
+	    printf("%u %u*%u*%u:", len, config1->size, config2->size, config3->size);
 
 	  elapsed = (uint64_t)(-1);
 	  for (m = 0; m < 10; m++)
