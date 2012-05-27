@@ -71,6 +71,8 @@ mpzv_t x, y, z, t;
 spm_t spm;
 spv_t spv;
 mpzspv_t mpzspv;
+_mpzspv_handle_t _mpzspv_handle;
+mpzspv_handle_t mpzspv_handle = &_mpzspv_handle;
 int tune_verbose;
 int max_log2_len = MAX_LOG2_LEN;
 int min_log2_len = 3;
@@ -304,7 +306,7 @@ TUNE_FUNC_END (tune_polyevalT)
 TUNE_FUNC_START (tune_mpzspv_normalise)
   MPZSPV_NORMALISE_STRIDE = 1 << n;
   
-  TUNE_FUNC_LOOP (mpzspv_normalise (mpzspv, 0,
+  TUNE_FUNC_LOOP (mpzspv_normalise (mpzspv_handle, 0,
     1 << MAX_LOG2_MPZSPV_NORMALISE_STRIDE, mpzspm));
 TUNE_FUNC_END (tune_mpzspv_normalise)
 
@@ -468,6 +470,10 @@ main (int argc, char **argv)
       exit (1);
     }
   mpzspv_random (mpzspv, 0, MAX_LEN, mpzspm);
+  {
+    _mpzspv_handle_t t = {0, mpzspm, mpzspv, NULL, NULL};
+    _mpzspv_handle = t;
+  }
   
   for (i = 0; i < MAX_LEN; i++)
     mpz_quick_random (x[i], M, b);

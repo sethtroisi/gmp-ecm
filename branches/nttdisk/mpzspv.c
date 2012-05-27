@@ -194,16 +194,23 @@ mpzspv_verify (const mpzspv_t x, const spv_size_t offset,
 }
 
 void
-mpzspv_set (mpzspv_t r, const spv_size_t r_offset, const mpzspv_t x, 
+mpzspv_set (mpzspv_handle_t r, const spv_size_t r_offset, const mpzspv_handle_t x, 
     const spv_size_t x_offset, const spv_size_t len, const mpzspm_t mpzspm)
 {
   unsigned int i;
   
-  ASSERT (mpzspv_verify (r, r_offset + len, 0, mpzspm));
-  ASSERT (mpzspv_verify (x, x_offset, len, mpzspm));
+  if (r->storage == 1 || x->storage == 1)
+    {
+      /* Not implemented yet */
+      abort();
+    }
+  
+  ASSERT (mpzspv_verify (r->mem, r_offset + len, 0, mpzspm));
+  ASSERT (mpzspv_verify (x->mem, x_offset, len, mpzspm));
+  ASSERT_ALWAYS (r->mpzspm == x->mpzspm);
   
   for (i = 0; i < mpzspm->sp_num; i++)
-    spv_set (r[i] + r_offset, x[i] + x_offset, len);
+    spv_set (r->mem[i] + r_offset, x->mem[i] + x_offset, len);
 }
 
 void
@@ -753,8 +760,8 @@ mpzspv_fromto_mpzv (mpzspv_handle_t x, const spv_size_t offset,
  *         6 * MPZSPV_NORMALISE_STRIDE sp's
  *         MPZSPV_NORMALISE_STRIDE floats */
 void
-mpzspv_normalise (mpzspv_t x, const spv_size_t offset, const spv_size_t len,
-                  const mpzspm_t mpzspm)
+mpzspv_normalise (mpzspv_handle_t x, const spv_size_t offset, 
+                  const spv_size_t len, const mpzspm_t mpzspm)
 {
   unsigned int i, j, sp_num = mpzspm->sp_num;
   spv_size_t k, l;
@@ -764,10 +771,16 @@ mpzspv_normalise (mpzspv_t x, const spv_size_t offset, const spv_size_t len,
   
   float prime_recip;
   float *f;
-  mpzspv_t t;
+  mpzspv_handle_t t;
   
-  ASSERT (mpzspv_verify (x, offset, len, mpzspm)); 
+  if (x->storage == 1)
+    {
+      /* Not implemented yet */
+      abort();
+    }
   
+  ASSERT (mpzspv_verify (x->mem, offset, len, mpzspm)); 
+
   f = (float *) malloc (MPZSPV_NORMALISE_STRIDE * sizeof (float));
   s = (spv_t) malloc (3 * MPZSPV_NORMALISE_STRIDE * sizeof (sp_t));
   d = (spv_t) malloc (3 * MPZSPV_NORMALISE_STRIDE * sizeof (sp_t));
@@ -776,7 +789,7 @@ mpzspv_normalise (mpzspv_t x, const spv_size_t offset, const spv_size_t len,
       fprintf (stderr, "Cannot allocate memory in mpzspv_normalise\n");
       exit (1);
     }
-  t = mpzspv_init (MPZSPV_NORMALISE_STRIDE, mpzspm);
+  t = mpzspv_init_handle (NULL, MPZSPV_NORMALISE_STRIDE, mpzspm);
   
   memset (s, 0, 3 * MPZSPV_NORMALISE_STRIDE * sizeof (sp_t));
 
@@ -794,9 +807,9 @@ mpzspv_normalise (mpzspv_t x, const spv_size_t offset, const spv_size_t len,
       
           for (k = 0; k < stride; k++)
 	    {
-	      x[i][l + k + offset] = sp_mul (x[i][l + k + offset],
+	      x->mem[i][l + k + offset] = sp_mul (x->mem[i][l + k + offset],
 	          mpzspm->crt3[i], spm[i]->sp, spm[i]->mul_c);
-	      f[k] += (float) x[i][l + k + offset] * prime_recip;
+	      f[k] += (float) x->mem[i][l + k + offset] * prime_recip;
 	    }
         }
       
@@ -811,7 +824,7 @@ mpzspv_normalise (mpzspv_t x, const spv_size_t offset, const spv_size_t len,
 	
           for (j = 0; j < sp_num; j++)
             {
-	      w = x[j] + offset;
+	      w = x->mem[j] + offset;
 	      v = mpzspm->crt4[i][j];
 	    
 	      for (k = 0; k < stride; k++)
@@ -823,12 +836,12 @@ mpzspv_normalise (mpzspv_t x, const spv_size_t offset, const spv_size_t len,
             }      
 
           for (k = 0; k < stride; k++)
-	    t[i][k] = mpn_mod_1 (d + 3 * k, 3, spm[i]->sp);
+	    t->mem[i][k] = mpn_mod_1 (d + 3 * k, 3, spm[i]->sp);
         }	  
       mpzspv_set (x, l + offset, t, 0, stride, mpzspm);
     }
   
-  mpzspv_clear (t, mpzspm);
+  mpzspv_clear_handle (t);
   
   free (s);
   free (d);

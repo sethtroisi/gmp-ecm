@@ -606,7 +606,7 @@ void mpzspv_clear (mpzspv_t, mpzspm_t);
 mpzspv_handle_t mpzspv_init_handle (const char *, spv_size_t, mpzspm_t);
 void mpzspv_clear_handle (mpzspv_handle_t);
 int mpzspv_verify (mpzspv_t, spv_size_t, spv_size_t, mpzspm_t);
-void mpzspv_set (mpzspv_t, spv_size_t, mpzspv_t, spv_size_t, spv_size_t,
+void mpzspv_set (mpzspv_handle_t, spv_size_t, mpzspv_handle_t, spv_size_t, spv_size_t,
     mpzspm_t);
 void mpzspv_revcopy (mpzspv_t, spv_size_t, mpzspv_t, spv_size_t, spv_size_t,
     mpzspm_t);
@@ -625,7 +625,7 @@ void mpzspv_to_mpzv_file (mpzspv_t, spv_size_t, FILE **sp_files, const mpzv_t,
      FILE *, spv_size_t, spv_size_t, mpzspm_t);
 void mpzspv_fromto_mpzv (mpzspv_handle_t, spv_size_t, spv_size_t, 
     mpz_producerfunc_t, void *, mpz_consumerfunc_t, void *);
-void mpzspv_normalise (mpzspv_t, spv_size_t, spv_size_t, mpzspm_t);
+void mpzspv_normalise (mpzspv_handle_t, spv_size_t, spv_size_t, mpzspm_t);
 void mpzspv_mul_ntt_file (mpzspv_handle_t, spv_size_t, mpzspv_handle_t, 
     spv_size_t, spv_size_t, mpzspv_handle_t, spv_size_t, spv_size_t, 
     spv_size_t, int, spv_size_t, int);
