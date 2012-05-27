@@ -215,13 +215,10 @@ ntt_PolyFromRoots_Tree (mpzv_t r, mpzv_t a, spv_size_t len, mpzv_t t,
  *
  * memory: 2 * len mpzspv coeffs */
 void
-ntt_PrerevertDivision (mpzv_t a, mpzv_t b, mpzv_t invb, mpzspv_t sp_b,
-    mpzspv_t sp_invb, spv_size_t len, mpzv_t t, mpzspm_t mpzspm)
+ntt_PrerevertDivision (mpzv_t a, mpzv_t b, mpzv_t invb, mpzspv_handle_t sp_b,
+    mpzspv_handle_t sp_invb, spv_size_t len, mpzv_t t, mpzspm_t mpzspm)
 {
   mpzspv_handle_t x;
-  /* FIXME make paramters use mpzspv_handle_t */
-  _mpzspv_handle_t b_handle = {0, mpzspm, sp_b, NULL, NULL};
-  _mpzspv_handle_t invb_handle = {0, mpzspm, sp_invb, NULL, NULL};
   
   if (len < PREREVERTDIVISION_NTT_THRESHOLD)
     {
@@ -236,14 +233,14 @@ ntt_PrerevertDivision (mpzv_t a, mpzv_t b, mpzv_t invb, mpzspv_t sp_b,
   mpzspv_fromto_mpzv (x, len + 1, len - 1, NULL, a + len, NULL, NULL);
   mpzspv_mul_ntt_file (x, 0, 
                   x, 0, 2 * len, 
-                  &invb_handle, 0, 2 * len, 
+                  sp_invb, 0, 2 * len, 
                   2 * len, 0, 0, 
                   NTT_MUL_STEP_FFT1 + NTT_MUL_STEP_MUL + NTT_MUL_STEP_IFFT);
   mpzspv_normalise (x, 0, len, mpzspm);
   
   mpzspv_mul_ntt_file (x, 0, 
                   x, 0, len, 
-                  &b_handle, 0, len, 
+                  sp_b, 0, len, 
                   len, 0, 0, 
                   NTT_MUL_STEP_FFT1 + NTT_MUL_STEP_MUL + NTT_MUL_STEP_IFFT);
   mpzspv_fromto_mpzv (x, 0, len, NULL, NULL, NULL, t);
@@ -330,7 +327,7 @@ void ntt_PolyInvert (mpzv_t q, mpzv_t b, spv_size_t len, mpzv_t t,
 /* memory: 4 * len mpzspv coeffs */
 int
 ntt_polyevalT (mpzv_t b, spv_size_t len, mpzv_t *Tree, mpzv_t T,
-                   mpzspv_t sp_invF, mpzspm_t mpzspm, char *TreeFilenameStem)
+                   mpzspv_handle_t sp_invF, mpzspm_t mpzspm, char *TreeFilenameStem)
 {
   spv_size_t m, i;
   FILE *TreeFile = NULL;
@@ -340,7 +337,6 @@ ntt_polyevalT (mpzv_t b, spv_size_t len, mpzv_t *Tree, mpzv_t T,
   int level = 0; /* = ceil_log2 (len / m) - 1 */
   mpzspv_handle_t x; 
   mpzspv_handle_t y; 
-  _mpzspv_handle_t invF_handle = {0, mpzspm, sp_invF, NULL, NULL};
 
   x = mpzspv_init_handle (NULL, 2 * len, mpzspm);
   y = mpzspv_init_handle (NULL, 2 * len, mpzspm);
@@ -358,7 +354,7 @@ ntt_polyevalT (mpzv_t b, spv_size_t len, mpzv_t *Tree, mpzv_t T,
   mpzspv_fromto_mpzv (x, 0, len, NULL, b, NULL, NULL);
   mpzspv_mul_ntt_file(x, 0, 
                  x, 0, len, 
-                 &invF_handle, 0, 2 * len, 
+                 sp_invF, 0, 2 * len, 
                  2 * len, 0, 0,
                  NTT_MUL_STEP_FFT1 + NTT_MUL_STEP_MUL + NTT_MUL_STEP_IFFT);
   mpzspv_normalise (x, len - 1, len, mpzspm);

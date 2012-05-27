@@ -601,8 +601,6 @@ void mpzspm_print_CRT_primes (int, const char *,
    and the naive method for fewer moduli. We must have I0_THRESHOLD >= 1. */
 #define I0_THRESHOLD 7
 
-mpzspv_t mpzspv_init (spv_size_t, mpzspm_t);
-void mpzspv_clear (mpzspv_t, mpzspm_t);
 mpzspv_handle_t mpzspv_init_handle (const char *, spv_size_t, mpzspm_t);
 void mpzspv_clear_handle (mpzspv_handle_t);
 int mpzspv_verify (mpzspv_t, spv_size_t, spv_size_t, mpzspm_t);
@@ -611,27 +609,17 @@ void mpzspv_set (mpzspv_handle_t, spv_size_t, mpzspv_handle_t, spv_size_t, spv_s
 void mpzspv_revcopy (mpzspv_t, spv_size_t, mpzspv_t, spv_size_t, spv_size_t,
     mpzspm_t);
 void mpzspv_set_sp (mpzspv_t, spv_size_t, sp_t, spv_size_t, mpzspm_t);
-void mpzspv_from_mpzv (mpzspv_t, spv_size_t, const mpzv_t, 
-		       spv_size_t, mpzspm_t);
-void mpzspv_from_mpzv_file (mpzspv_t, spv_size_t, FILE **, const mpzv_t, FILE *, 
-    spv_size_t, spv_size_t, mpzspm_t);
 void mpzspv_reverse (mpzspv_t, spv_size_t, spv_size_t, mpzspm_t);
 void mpzspv_neg (mpzspv_t, spv_size_t, mpzspv_t, spv_size_t, spv_size_t,
     mpzspm_t);
-void mpzspv_add (mpzspv_t, spv_size_t, mpzspv_t, spv_size_t, mpzspv_t,
-    spv_size_t, spv_size_t, mpzspm_t);
-void mpzspv_to_mpzv (mpzspv_t, spv_size_t, mpzv_t, spv_size_t, mpzspm_t);
-void mpzspv_to_mpzv_file (mpzspv_t, spv_size_t, FILE **sp_files, const mpzv_t, 
-     FILE *, spv_size_t, spv_size_t, mpzspm_t);
+void mpzspv_add (mpzspv_handle_t, spv_size_t, mpzspv_handle_t, spv_size_t, 
+    mpzspv_handle_t, spv_size_t, spv_size_t);
 void mpzspv_fromto_mpzv (mpzspv_handle_t, spv_size_t, spv_size_t, 
     mpz_producerfunc_t, void *, mpz_consumerfunc_t, void *);
 void mpzspv_normalise (mpzspv_handle_t, spv_size_t, spv_size_t, mpzspm_t);
 void mpzspv_mul_ntt_file (mpzspv_handle_t, spv_size_t, mpzspv_handle_t, 
     spv_size_t, spv_size_t, mpzspv_handle_t, spv_size_t, spv_size_t, 
     spv_size_t, int, spv_size_t, int);
-void mpzspv_mul_ntt (mpzspv_t, spv_size_t, mpzspv_t, spv_size_t, spv_size_t, 
-    mpzspv_t, spv_size_t, spv_size_t, spv_size_t, int, spv_size_t, mpzspm_t, 
-    int);
 void mpzspv_random (mpzspv_t, spv_size_t, spv_size_t, mpzspm_t);
 void mpzspv_to_dct1 (mpzspv_handle_t, mpzspv_handle_t, spv_size_t, spv_size_t);
 void mpzspv_sqr_reciprocal (mpzspv_handle_t, spv_size_t);

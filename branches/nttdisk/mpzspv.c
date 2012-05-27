@@ -70,7 +70,7 @@ valgrind_check_mpzinp(ATTRIBUTE_UNUSED const mpz_t m)
 #endif
 }
 
-mpzspv_t
+static mpzspv_t
 mpzspv_init (spv_size_t len, const mpzspm_t mpzspm)
 {
   unsigned int i;
@@ -96,7 +96,7 @@ mpzspv_init (spv_size_t len, const mpzspm_t mpzspm)
   return x;
 }
 
-void
+static void
 mpzspv_clear (mpzspv_t x, const mpzspm_t mpzspm)
 {
   unsigned int i;
@@ -253,19 +253,29 @@ mpzspv_neg (mpzspv_t r, const spv_size_t r_offset, const mpzspv_t x,
 }
 
 void
-mpzspv_add (mpzspv_t r, const spv_size_t r_offset, const mpzspv_t x, 
-            const spv_size_t x_offset, const mpzspv_t y, 
-            const spv_size_t y_offset, const spv_size_t len, 
-            const mpzspm_t mpzspm)
+mpzspv_add (mpzspv_handle_t r, const spv_size_t r_offset, 
+            const mpzspv_handle_t x, const spv_size_t x_offset, 
+            const mpzspv_handle_t y, const spv_size_t y_offset, 
+            const spv_size_t len)
 {
   unsigned int i;
   
-  ASSERT (mpzspv_verify (r, r_offset + len, 0, mpzspm));
-  ASSERT (mpzspv_verify (x, x_offset, len, mpzspm));
+  ASSERT_ALWAYS (r->mpzspm == x->mpzspm);
+  ASSERT_ALWAYS (r->mpzspm == y->mpzspm);
   
-  for (i = 0; i < mpzspm->sp_num; i++)
-    spv_add (r[i] + r_offset, x[i] + x_offset, y[i] + y_offset, len, 
-             mpzspm->spm[i]->sp);
+  if (r->storage == 0 && x->storage == 0 && y->storage == 0)
+    {
+      ASSERT (mpzspv_verify (r->mem, r_offset + len, 0, r->mpzspm));
+      ASSERT (mpzspv_verify (x->mem, x_offset, len, x->mpzspm));
+      for (i = 0; i < r->mpzspm->sp_num; i++)
+        spv_add (r->mem[i] + r_offset, x->mem[i] + x_offset, y->mem[i] + y_offset, len, 
+                 r->mpzspm->spm[i]->sp);
+    }
+  else
+    {
+      /* FIXME: call add_file */
+      abort();
+    }
 }
 
 void
@@ -440,13 +450,6 @@ mpzspv_to_mpz(mpz_t res, const mpzspv_t x, const spv_size_t offset,
     }
 
   mpz_add (res, res, mpzspm->crt2[(unsigned int) f]);
-}
-
-void
-mpzspv_to_mpzv (mpzspv_t x, const spv_size_t offset, mpzv_t mpzv,
-                const spv_size_t len, const mpzspm_t mpzspm)
-{
-  mpzspv_to_mpzv_file (x, offset, NULL, mpzv, NULL, len, len, mpzspm);
 }
 
 
@@ -1394,23 +1397,6 @@ mpzspv_mul_ntt_file (mpzspv_handle_t r, const spv_size_t offsetr,
   if (r != NULL)
     mpzspv_print (r, offsetx, lenx, "r");
 #endif
-}
-
-void
-mpzspv_mul_ntt (mpzspv_t r, const spv_size_t offsetr, 
-    mpzspv_t x, const spv_size_t offsetx, const spv_size_t lenx,
-    mpzspv_t y, const spv_size_t offsety, const spv_size_t leny,
-    const spv_size_t ntt_size, const int monic, const spv_size_t monic_pos, 
-    mpzspm_t mpzspm, const int steps)
-{
-  _mpzspv_handle_t r_handle = {0, mpzspm, r, NULL, NULL};
-  _mpzspv_handle_t x_handle = {0, mpzspm, x, NULL, NULL};
-  _mpzspv_handle_t y_handle = {0, mpzspm, y, NULL, NULL};
-
-  mpzspv_mul_ntt_file((r != NULL) ? &r_handle : NULL, offsetr, 
-                      (x != NULL) ? &x_handle : NULL, offsetx, lenx, 
-                      (y != NULL) ? &y_handle : NULL, offsety, leny, 
-                      ntt_size, monic, monic_pos, steps);
 }
 
 

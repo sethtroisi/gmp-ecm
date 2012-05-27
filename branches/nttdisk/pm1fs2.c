@@ -4298,8 +4298,8 @@ pp1fs2_ntt (mpz_t f, const mpres_t X, mpmod_t modulus,
 #endif
 	  timestart = cputime ();
 	  realstart = realtime ();
-	  mpzspv_add (g_x_ntt->mem, (spv_size_t) 0, g_x_ntt->mem, (spv_size_t) 0, 
-	              g_y_ntt->mem, (spv_size_t) 0, params->l, g_x_ntt->mpzspm);
+	  mpzspv_add (g_x_ntt, (spv_size_t) 0, g_x_ntt, (spv_size_t) 0, 
+	              g_y_ntt, (spv_size_t) 0, params->l);
           mpzspv_mul_ntt_file (g_x_ntt, 0, g_x_ntt, 0, params->l, NULL, 0, 0,
               params->l, 0, 0, NTT_MUL_STEP_IFFT);
 	  print_elapsed_time (OUTPUT_VERBOSE, timestart, realstart);

@@ -70,9 +70,7 @@ mpzspm_t mpzspm;
 mpzv_t x, y, z, t;
 spm_t spm;
 spv_t spv;
-mpzspv_t mpzspv;
-_mpzspv_handle_t _mpzspv_handle;
-mpzspv_handle_t mpzspv_handle = &_mpzspv_handle;
+mpzspv_handle_t mpzspv;
 int tune_verbose;
 int max_log2_len = MAX_LOG2_LEN;
 int min_log2_len = 3;
@@ -306,7 +304,7 @@ TUNE_FUNC_END (tune_polyevalT)
 TUNE_FUNC_START (tune_mpzspv_normalise)
   MPZSPV_NORMALISE_STRIDE = 1 << n;
   
-  TUNE_FUNC_LOOP (mpzspv_normalise (mpzspv_handle, 0,
+  TUNE_FUNC_LOOP (mpzspv_normalise (mpzspv, 0,
     1 << MAX_LOG2_MPZSPV_NORMALISE_STRIDE, mpzspm));
 TUNE_FUNC_END (tune_mpzspv_normalise)
 
@@ -463,17 +461,13 @@ main (int argc, char **argv)
       fprintf (stderr, "Error, cannot allocate memory in mpzspm_init\n");
       exit (1);
     }
-  mpzspv = mpzspv_init (MAX_LEN, mpzspm);
+  mpzspv = mpzspv_init_handle (NULL, MAX_LEN, mpzspm);
   if (mpzspv == NULL)
     {
       fprintf (stderr, "Error, cannot allocate memory in mpzspv_init\n");
       exit (1);
     }
-  mpzspv_random (mpzspv, 0, MAX_LEN, mpzspm);
-  {
-    _mpzspv_handle_t t = {0, mpzspm, mpzspv, NULL, NULL};
-    _mpzspv_handle = t;
-  }
+  mpzspv_random (mpzspv->mem, 0, MAX_LEN, mpzspm);
   
   for (i = 0; i < MAX_LEN; i++)
     mpz_quick_random (x[i], M, b);
@@ -483,7 +477,7 @@ main (int argc, char **argv)
     mpz_quick_random (z[i], M, b);    
   
   spm = mpzspm->spm[0];
-  spv = mpzspv[0];
+  spv = mpzspv->mem[0];
   
   MPZMOD_THRESHOLD = crossover2 (tune_mpres_mul_modmuln, tune_mpres_mul_mpz,
       1, 512, 10);
@@ -550,7 +544,7 @@ main (int argc, char **argv)
   printf ("#define MPZSPV_NORMALISE_STRIDE %lu\n", 
       (unsigned long) MPZSPV_NORMALISE_STRIDE);
 
-  mpzspv_clear (mpzspv, mpzspm);
+  mpzspv_clear_handle (mpzspv);
   mpzspm_clear (mpzspm);
   
   clear_list (x, MAX_LEN);
