@@ -57,11 +57,13 @@ http://www.gnu.org/licenses/ or write to the Free Software Foundation, Inc.,
    happening might indicate a problem in the evalutaion code */
 #define TEST_ZERO_RESULT
 
+/* This type is the basis for file I/O of mpz_t */
+typedef unsigned long file_word_t;
 
 typedef struct {
   int storage; /* memory = 0, file = 1 */
   uint64_t len;
-  size_t words; /* Number of unsigned long in a residue */
+  size_t words; /* Number of file_word_t in a residue */
   union {
     listz_t mem;
     FILE *file;
@@ -90,8 +92,9 @@ listz_handle_init2 (const char *filename, const uint64_t len, const mpz_t m)
   if (F == NULL)
     return NULL;
   
-  /* Find out how many unsigned long words m has */
-  buf = mpz_export (NULL, &F->words, -1, sizeof(unsigned long), -1, 0, m);
+  /* Find out how many file_word_t's  m has */
+  buf = (file_word_t *) mpz_export (NULL, &F->words, -1, sizeof(file_word_t), 
+                                   -1, 0, m);
   if (buf == NULL)
     {
       free (F);
@@ -127,7 +130,7 @@ listz_handle_init2 (const char *filename, const uint64_t len, const mpz_t m)
         }
 #ifdef HAVE_FALLOCATE
       fallocate (fileno(F->data.file), 0, (off_t) 0, 
-                 F->words * sizeof(unsigned long) * len);
+                 F->words * sizeof(file_word_t) * len);
 #endif
     }
 
@@ -155,50 +158,55 @@ listz_handle_clear (listz_handle_t F)
 
 
 static inline void 
-write_residue (FILE *f, const mpz_t r, unsigned long *buf, 
-               const size_t bufsize)
+export_residue (file_word_t *buf, const size_t bufsize, const mpz_t r)
 {
   size_t nr;
 
-  ASSERT_ALWAYS (mpz_sgn (r) >= 0);
-
   /* Export r to buf */
-  mpz_export (buf, &nr, -1, sizeof(unsigned long), 0, 0, r);
+  mpz_export (buf, &nr, -1, sizeof(file_word_t), 0, 0, r);
   ASSERT_ALWAYS (nr <= bufsize);
 
   /* Pad buf with zeroes */
   for ( ; nr < bufsize; nr++)
     buf[nr] = 0;
+}
 
-  nr = fwrite (buf, sizeof(unsigned long), bufsize, f);
+static inline void 
+write_residue (FILE *f, const mpz_t r, file_word_t *buf, const size_t bufsize)
+{
+  size_t nr;
+
+  ASSERT_ALWAYS (mpz_sgn (r) >= 0);
+
+  export_residue (buf, bufsize, r);
+  nr = fwrite (buf, sizeof(file_word_t), bufsize, f);
   ASSERT_ALWAYS (nr == bufsize);
 }
 
 static inline void 
-seek_write_residue (FILE *f, const mpz_t r, unsigned long *buf,
+seek_write_residue (FILE *f, const mpz_t r, file_word_t *buf,
               const size_t bufsize, const size_t index)
 {
-  fseek (f, sizeof(unsigned long) * bufsize * index, SEEK_SET);
+  fseek (f, sizeof(file_word_t) * bufsize * index, SEEK_SET);
   write_residue (f, r, buf, bufsize);
 }
 
 static inline void 
-read_residue (FILE *f, mpz_t r, unsigned long *buf,
-              const size_t bufsize)
+read_residue (FILE *f, mpz_t r, file_word_t *buf, const size_t bufsize)
 {
   size_t nr;
   
-  nr = fread (buf, sizeof(unsigned long), bufsize, f);
+  nr = fread (buf, sizeof(file_word_t), bufsize, f);
   ASSERT_ALWAYS (nr == bufsize);
   
-  mpz_import (r, bufsize, -1, sizeof(unsigned long), 0, 0, buf);
+  mpz_import (r, bufsize, -1, sizeof(file_word_t), 0, 0, buf);
 }
 
 static inline void 
-seek_read_residue (FILE *f, mpz_t r, unsigned long *buf,
+seek_read_residue (FILE *f, mpz_t r, file_word_t *buf,
               const size_t bufsize, const size_t index)
 {
-  fseek (f, sizeof(unsigned long) * bufsize * index, SEEK_SET);
+  fseek (f, sizeof(file_word_t) * bufsize * index, SEEK_SET);
   read_residue (f, r, buf, bufsize);
 }
 
@@ -206,12 +214,12 @@ static void
 write_residues (FILE *f, const listz_t r, const size_t len, 
                 const size_t bufsize)
 {
-  unsigned long *buf;
+  file_word_t *buf;
   size_t i;
 
   /* Let GMP allocate a buffer that is large enough for the modulus,
      hence is large enough for any residue */
-  buf = malloc (bufsize * sizeof(unsigned long));
+  buf = (file_word_t *) malloc (bufsize * sizeof(file_word_t));
   ASSERT_ALWAYS (buf != NULL);
   
   for (i = 0; i < len; i++)
@@ -224,7 +232,7 @@ write_residues (FILE *f, const listz_t r, const size_t len,
 /* Fetches one entry from F (either in memory or file) and stores it in r. */
 
 static inline void
-listz_handle_get (listz_handle_t F, mpz_t r, unsigned long *buf,
+listz_handle_get (listz_handle_t F, mpz_t r, file_word_t *buf, 
     const size_t index)
 {
   if (F->storage == 0)
@@ -236,9 +244,9 @@ listz_handle_get (listz_handle_t F, mpz_t r, unsigned long *buf,
 static inline void
 listz_handle_get2 (listz_handle_t F, mpz_t r, const size_t index)
 {
-  unsigned long *buf = NULL;
+  file_word_t *buf = NULL;
   if (F->storage == 1)
-    buf = malloc (F->words * sizeof (unsigned long));
+    buf = malloc (F->words * sizeof (file_word_t));
   listz_handle_get (F, r, buf, index);
   free(buf);
 }
@@ -246,7 +254,7 @@ listz_handle_get2 (listz_handle_t F, mpz_t r, const size_t index)
 /* Stores the value of r in an entry of F (either in memory or file) */
 
 static inline void
-listz_handle_set (listz_handle_t F, const mpz_t r, unsigned long *buf,
+listz_handle_set (listz_handle_t F, const mpz_t r, file_word_t *buf,
     const size_t index)
 {
   if (F->storage == 0)
@@ -258,7 +266,7 @@ listz_handle_set (listz_handle_t F, const mpz_t r, unsigned long *buf,
 typedef struct {
   listz_handle_t l;
   uint64_t index;
-  unsigned long *buf;
+  file_word_t *buf;
 } listz_handle_state_t;
 
 static void
@@ -341,13 +349,13 @@ list_output_poly_file (const listz_handle_t l, uint64_t len, int monic, int symm
 {
   uint64_t i;
   mpz_t m;
-  unsigned long *buf = NULL;
+  file_word_t *buf = NULL;
 
   if (!test_verbose(verbosity))
     return;
   
   if (l->storage != 0)
-    buf = malloc (l->words * sizeof(unsigned long));
+    buf = (file_word_t *) malloc (l->words * sizeof(file_word_t));
 
   if (prefix != NULL)
     outputf (verbosity, prefix);
@@ -808,9 +816,9 @@ scale_by_chebyshev (listz_t R1, const listz_t F1,
    F(x) = f_0 + sum_{i=1}^{deg} f_i V_i(x+1/x),
    compute F(\gamma x)F(\gamma^{-1} x), with Q = \gamma + 1 / \gamma
 
-   list_scale_V2_ntt() needs no temp space.
+   list_scale_V_ntt() needs no temp space.
    
-   For list_scale_V2(), if NTT is used, needs 4 * deg + 3 entries in tmp.
+   For list_scale_V(), if NTT is used, needs 4 * deg + 3 entries in tmp.
    If no NTT is used, needs 4 * deg + 2 + (memory use of list_sqr_reciprocal)
 */
 
@@ -834,7 +842,7 @@ file_reader (void * const p, mpz_t r)
 typedef struct {
   mpz_t *mpzv_read, *mpzv_write;
   FILE *file_read, *file_write;
-  unsigned long *buf;
+  file_word_t *buf;
   size_t index, bufsize;
   mpres_t V1, Vi, Vi_1, tmp;
   mpmod_t modulus;
@@ -911,7 +919,7 @@ writerV_file (void * const p, const mpz_t r)
 typedef struct {
   mpz_t *mpzv;
   FILE *file;
-  unsigned long *buf;
+  file_word_t *buf;
   size_t index, bufsize;
   mpz_t mpz, modulus;
 } stateD_t;
@@ -962,7 +970,7 @@ writer_diff_file (void * const p, const mpz_t r)
 
 
 static void
-list_scale_V2_ntt (listz_handle_t R, const listz_handle_t F, 
+list_scale_V_ntt (listz_handle_t R, const listz_handle_t F, 
               const mpres_t Q, const uint64_t deg, mpmod_t modulus, 
 	      mpzspv_handle_t ntt_handle)
 {
@@ -977,7 +985,7 @@ list_scale_V2_ntt (listz_handle_t R, const listz_handle_t F,
       return;
     }
   
-  list_output_poly_file (F, deg + 1, 0, 1, "list_scale_V2_ntt: F = ", "\n", 
+  list_output_poly_file (F, deg + 1, 0, 1, "list_scale_V_ntt: F = ", "\n", 
     OUTPUT_TRACE);
   /* Convert F[0, ..., deg] to NTT */
   if (F->storage == 0)
@@ -988,21 +996,21 @@ list_scale_V2_ntt (listz_handle_t R, const listz_handle_t F,
       state_file_t state;
       state.f = F->data.file;
       rewind (state.f);
-      state.buf = mpz_export (NULL, &state.bufsize, -1, sizeof(unsigned long), 
-          -1, 0, modulus->orig_modulus);
+      state.buf = (file_word_t *) mpz_export (NULL, &state.bufsize, -1, 
+          sizeof(file_word_t), -1, 0, modulus->orig_modulus);
       mpzspv_fromto_mpzv (ntt_handle, (spv_size_t) 0, deg + 1, file_reader, 
           &state, NULL, NULL);
       free (state.buf);
     }
   
   if (test_verbose(OUTPUT_TRACE))
-    mpzspv_print (ntt_handle, 0, deg + 1, "list_scale_V2_ntt: Before squaring ");
+    mpzspv_print (ntt_handle, 0, deg + 1, "list_scale_V_ntt: Before squaring ");
   
   /* Compute F^2 in NTT */
   mpzspv_sqr_reciprocal (ntt_handle, deg + 1);
   
   if (test_verbose(OUTPUT_TRACE))
-    mpzspv_print (ntt_handle, 0, deg + 1, "list_scale_V2_ntt: After squaring ");
+    mpzspv_print (ntt_handle, 0, deg + 1, "list_scale_V_ntt: After squaring ");
 
 #if defined(_OPENMP)
 #pragma omp parallel if (deg > 1000)
@@ -1020,8 +1028,8 @@ list_scale_V2_ntt (listz_handle_t R, const listz_handle_t F,
     mpres_init (state.Vi, state.modulus);
     mpres_init (state.tmp, state.modulus);
     mpz_init (state.mpz);
-    state.buf = mpz_export (NULL, &state.bufsize, -1, sizeof(unsigned long), 
-        -1, 0, state.modulus->orig_modulus);
+    state.buf = (file_word_t *) mpz_export (NULL, &state.bufsize, -1, 
+        sizeof(file_word_t), -1, 0, state.modulus->orig_modulus);
     
     /* Read and write i = 0, ..., deg */
     get_chunk (&start_i, &l, deg + 1);
@@ -1076,7 +1084,7 @@ list_scale_V2_ntt (listz_handle_t R, const listz_handle_t F,
   }
 
   list_output_poly_file (R, 2*deg + 1, 0, 1, "Gw(x) = ", 
-      "; /* PARI list_scale_V2_ntt */\n", OUTPUT_TRACE);
+      "; /* PARI list_scale_V_ntt */\n", OUTPUT_TRACE);
 
   /* Square the weighted F in NTT */
   mpzspv_sqr_reciprocal (ntt_handle, deg + 1);
@@ -1088,8 +1096,8 @@ list_scale_V2_ntt (listz_handle_t R, const listz_handle_t F,
     state.index = 0;
     mpz_init_set (state.modulus, modulus->orig_modulus);
     mpz_init (state.mpz);
-    state.buf = mpz_export (NULL, &state.bufsize, -1, sizeof(unsigned long), 
-      -1, 0, state.modulus);
+    state.buf = (file_word_t *) mpz_export (NULL, &state.bufsize, -1, 
+      sizeof(file_word_t), -1, 0, state.modulus);
     if (R->storage == 0)
       {
         state.mpzv = R->data.mem;
@@ -1107,13 +1115,13 @@ list_scale_V2_ntt (listz_handle_t R, const listz_handle_t F,
     mpz_clear (state.mpz);
     free (state.buf);
   }
-  list_output_poly_file (R, deg + 1, 0, 1, "list_scale_V2_ntt: R = ", "\n", 
+  list_output_poly_file (R, deg + 1, 0, 1, "list_scale_V_ntt: R = ", "\n", 
     OUTPUT_TRACE);
 }
 
 
 static void
-list_scale_V2 (listz_t R, const listz_t F, const mpres_t Q, 
+list_scale_V (listz_t R, const listz_t F, const mpres_t Q, 
               const uint64_t deg, mpmod_t modulus, listz_t tmp, 
               const uint64_t tmplen, 
 	      mpzspv_handle_t ntt_handle)
@@ -1133,17 +1141,17 @@ list_scale_V2 (listz_t R, const listz_t F, const mpres_t Q,
       return;
     }
   
-  outputf (OUTPUT_TRACE, "\nN=%Zd; deg = %lu; /* PARI list_scale_V2 */\n", 
+  outputf (OUTPUT_TRACE, "\nN=%Zd; deg = %lu; /* PARI list_scale_V */\n", 
            modulus->orig_modulus, deg);
   if (test_verbose(OUTPUT_TRACE))
     {
       mpres_t out_t;
       mpres_init (out_t, modulus);
       mpres_get_z (out_t, Q, modulus);
-      outputf (OUTPUT_TRACE, "Q = Mod(%Zd,N); /* PARI list_scale_V2 */\n", out_t);
+      outputf (OUTPUT_TRACE, "Q = Mod(%Zd,N); /* PARI list_scale_V */\n", out_t);
       mpres_clear (out_t, modulus);
     }
-  list_output_poly (F, deg + 1, 0, 1, "F(x) = ", "; /* PARI list_scale_V2 */\n", 
+  list_output_poly (F, deg + 1, 0, 1, "F(x) = ", "; /* PARI list_scale_V */\n", 
 		    OUTPUT_TRACE);
 
   /* Make sure newtmplen does not underflow */
@@ -1169,9 +1177,9 @@ list_scale_V2 (listz_t R, const listz_t F, const mpres_t Q,
     }
 
   list_output_poly (G, 2 * deg + 1, 0, 1, "G(x) = ", 
-		    " /* PARI list_scale_V2 */\n", OUTPUT_TRACE);
+		    " /* PARI list_scale_V */\n", OUTPUT_TRACE);
   outputf (OUTPUT_TRACE, "if (G(x) != F(x)^2, print(\"G(x) != F(x)^2 in "
-           "list_scale_V2()\")); /* PARI list_scale_V2 */\n");
+           "list_scale_V()\")); /* PARI list_scale_V */\n");
 
   /* Compute G[i] = V_i(Q) * G[i] for i = 0, ..., 2*deg
      and H[i] = V_i(Q) * F[i] for i = 0, ..., deg. */
@@ -1209,14 +1217,14 @@ list_scale_V2 (listz_t R, const listz_t F, const mpres_t Q,
   }
 
   list_output_poly (G, 2*deg + 1, 0, 1, "Gw(x) = ", 
-                    "; /* PARI list_scale_V2 */\n", OUTPUT_TRACE);
+                    "; /* PARI list_scale_V */\n", OUTPUT_TRACE);
 
   for (i = 0; i <= deg; i++)
     {
       ASSERT_ALWAYS (mpz_sgn (H[i]) >= 0 && mpz_cmp (H[i], modulus->orig_modulus) < 0);
     }
 
-  list_output_poly (H, deg + 1, 0, 1, "H(x) = ", "; /* PARI list_scale_V2 */\n", 
+  list_output_poly (H, deg + 1, 0, 1, "H(x) = ", "; /* PARI list_scale_V */\n", 
 		    OUTPUT_TRACE);
 
   if (ntt_handle != NULL)
@@ -1229,7 +1237,7 @@ list_scale_V2 (listz_t R, const listz_t F, const mpres_t Q,
     }
 
   list_output_poly (H, 2*deg + 1, 0, 1, "H(x)^2 == ", 
-                    " /* PARI list_scale_V2 */\n", OUTPUT_TRACE);
+                    " /* PARI list_scale_V */\n", OUTPUT_TRACE);
 
   for (i = 0; i <= 2 * deg; i++)
     {
@@ -1243,7 +1251,7 @@ list_scale_V2 (listz_t R, const listz_t F, const mpres_t Q,
       ASSERT_ALWAYS (mpz_sgn (R[i]) >= 0 && mpz_cmp(R[i], modulus->orig_modulus) <= 0);
     }
 
-  list_output_poly (R, 2 * deg, 0, 1, "R(x) = ", " /* PARI list_scale_V2 */\n", OUTPUT_TRACE);
+  list_output_poly (R, 2 * deg, 0, 1, "R(x) = ", " /* PARI list_scale_V */\n", OUTPUT_TRACE);
 
 #ifdef WANT_ASSERT
   mpz_mod (R[2 * deg], R[2 * deg], modulus->orig_modulus);
@@ -1297,7 +1305,7 @@ poly_from_sets_V (listz_handle_t F_param, const mpres_t Q, set_list_t *sets,
 		  listz_t tmp, const uint64_t tmplen, mpmod_t modulus,
 		  mpzspv_handle_t ntt_handle)
 {
-  unsigned long nr;
+  uint32_t nr;
   uint64_t deg;
   mpres_t Qt;
   listz_t F = (F_param->storage == 0) ? F_param->data.mem : tmp;
@@ -1377,11 +1385,11 @@ poly_from_sets_V (listz_handle_t F_param, const mpres_t Q, set_list_t *sets,
                   .data.mem = F};
               _listz_handle_t R_handle = {0, 2*deg + 1, F_param->words, 
                   .data.mem = F + prod_offset};
-              list_scale_V2_ntt (&R_handle, &F_handle, Qt, 
+              list_scale_V_ntt (&R_handle, &F_handle, Qt, 
                             deg, modulus, ntt_handle);
             }
           else
-            list_scale_V2 (F + prod_offset, F, Qt, deg, 
+            list_scale_V (F + prod_offset, F, Qt, deg, 
                           modulus, tmp + tmpadd, tmplen - tmpadd, NULL);
           ASSERT_ALWAYS (mpz_cmp_ui (F[prod_offset + prod_len - 1], 1) 
                          == 0); /* Check it's monic */
@@ -1449,10 +1457,10 @@ poly_from_sets_V (listz_handle_t F_param, const mpres_t Q, set_list_t *sets,
       V (Qt, Q, curr_set->elem[0], modulus);
       if (ntt_handle != NULL)
         {
-          list_scale_V2_ntt (F_param, F_param, Qt, deg, modulus, ntt_handle);
+          list_scale_V_ntt (F_param, F_param, Qt, deg, modulus, ntt_handle);
         }
       else
-        list_scale_V2 (F, F, Qt, deg, modulus, tmp, tmplen, NULL);
+        list_scale_V (F, F, Qt, deg, modulus, tmp, tmplen, NULL);
       deg *= 2;
 
       /* Check it's monic */
@@ -1510,7 +1518,7 @@ build_F_ntt (const mpres_t P_1, set_list_t *S_1,
   
   tmplen = params->s_1;
   ASSERT_ALWAYS(tmplen > 0);
-  /* All but one factors of 2 are handled by list_scale_V2_ntt() 
+  /* All but one factors of 2 are handled by list_scale_V_ntt() 
      which needs no temp space */
   while (tmplen % 4 == 0)
     tmplen /= 2;
@@ -1767,7 +1775,7 @@ typedef struct {
   mpres_t fd[3]; /* finite differences table for r^{-i^2}*/
   _listz_handle_t f;
   uint64_t index;
-  unsigned long *buf;
+  file_word_t *buf;
   size_t bufsize;
 } pm1_h_state_t;
 
@@ -1855,8 +1863,8 @@ pm1_sequence_h (listz_handle_t h, mpzspv_handle_t ntt_handle, listz_handle_t f,
     state.index = offset;
     state.f.storage = f->storage;
     state.f.len = f->len;
-    state.buf = mpz_export (NULL, &state.bufsize, -1, sizeof(unsigned long), -1, 0, 
-      state.modulus->orig_modulus);
+    state.buf = (file_word_t *) mpz_export (NULL, &state.bufsize, -1, 
+      sizeof(file_word_t), -1, 0, state.modulus->orig_modulus);
     if (f->storage == 0)
       {
         state.f.data.mem = f->data.mem;
@@ -2057,7 +2065,7 @@ typedef struct {
   mpmod_t modulus;
   mpres_t prod, tmpres;
   mpz_t sum;
-  unsigned long *buf;
+  file_word_t *buf;
   listz_handle_t add;
   uint64_t offset;
 } gcd_state_t;
@@ -2127,7 +2135,7 @@ ntt_gcd (mpz_t f, mpz_t *product, mpzspv_handle_t ntt,
     state.add = add;
     state.offset = thread_offset;
     if (add != NULL)
-      state.buf = (unsigned long *) malloc (add->words * sizeof(unsigned long));
+      state.buf = (file_word_t *) malloc (add->words * sizeof(file_word_t));
     else
       state.buf = NULL;
     
@@ -3399,7 +3407,7 @@ typedef struct {
   mpres_t v[2], V2, tmp;
   mpmod_t modulus;
   listz_handle_t f;
-  unsigned long *buf;
+  file_word_t *buf;
   uint64_t i, offset;
   int want_y;
 } pp1_sequence_h_state_t;
@@ -3683,7 +3691,7 @@ pp1_sequence_h (listz_t h_x, listz_t h_y, mpzspv_handle_t h_x_ntt, mpzspv_handle
     
     state.want_y = want_y;
     state.f = f;
-    state.buf = (unsigned long *) malloc (f->words * sizeof (unsigned long));
+    state.buf = (file_word_t *) malloc (f->words * sizeof (file_word_t));
     ASSERT_ALWAYS (state.buf != NULL);
     state.i = 2;
     state.offset = offset;
@@ -4225,7 +4233,7 @@ pp1fs2_ntt (mpz_t f, const mpres_t X, mpmod_t modulus,
 	    mpzspv_fromto_mpzv (g_x_ntt, params->s_1 / 2, nr, NULL, NULL, NULL, R->data.mem);
           else
             {
-              void *buf = (unsigned long *) malloc (R->words * sizeof(unsigned long));
+              void *buf = (file_word_t *) malloc (R->words * sizeof(file_word_t));
               ASSERT_ALWAYS(buf != NULL);
               listz_handle_state_t state = {R, 0, buf};
               mpzspv_fromto_mpzv (g_x_ntt, params->s_1 / 2, nr, NULL, NULL, &listz_handle_write, &state);
