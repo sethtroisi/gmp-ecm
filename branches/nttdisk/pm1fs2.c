@@ -4245,7 +4245,7 @@ pp1fs2_ntt (mpz_t f, const mpres_t X, mpmod_t modulus,
 	  pp1_sequence_g (NULL, NULL, NULL, g_y_ntt, b1, params->P, 
 			  Delta, M, params->l, params->m_1, s2_sumset[l], 
 			  modulus);
-          ASSERT (g_y_ntt->storage == 1 || mpzspv_verify (g_y_ntt->mem, 0, params->l, g_x_ntt->mpzspm));
+          ASSERT (g_y_ntt->storage == 1 || mpzspv_verify (g_y_ntt, 0, params->l));
 	  
 	  /* Do the convolution product of g_y * (Delta * h_y) */
 	  outputf (OUTPUT_VERBOSE, "Computing g_y*h_y");

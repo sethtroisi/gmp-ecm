@@ -101,8 +101,6 @@ mpzspv_clear (mpzspv_t x, const mpzspm_t mpzspm)
 {
   unsigned int i;
   
-  ASSERT (mpzspv_verify (x, 0, 0, mpzspm));
-  
   for (i = 0; i < mpzspm->sp_num; i++)
     sp_aligned_free (x[i]);
   
@@ -179,23 +177,26 @@ mpzspv_clear_handle (mpzspv_handle_t handle)
  * return 1 for success, 0 for failure */
 
 int
-mpzspv_verify (const mpzspv_t x, const spv_size_t offset, 
-               const spv_size_t len, const mpzspm_t mpzspm)
+mpzspv_verify (const mpzspv_handle_t x, const spv_size_t offset, 
+               const spv_size_t len)
 {
   unsigned int i;
   
-  for (i = 0; i < mpzspm->sp_num; i++)
+  if (x->storage == 0)
     {
-      if (spv_verify (x[i] + offset, len, mpzspm->spm[i]->sp) == 0)
-        return 0;
+      for (i = 0; i < x->mpzspm->sp_num; i++)
+        {
+          if (spv_verify (x->mem[i] + offset, len, x->mpzspm->spm[i]->sp) == 0)
+            return 0;
+        }
     }
 
   return 1;
 }
 
 void
-mpzspv_set (mpzspv_handle_t r, const spv_size_t r_offset, const mpzspv_handle_t x, 
-    const spv_size_t x_offset, const spv_size_t len, const mpzspm_t mpzspm)
+mpzspv_set (mpzspv_handle_t r, const spv_size_t r_offset, 
+    const mpzspv_handle_t x, const spv_size_t x_offset, const spv_size_t len)
 {
   unsigned int i;
   
@@ -205,51 +206,71 @@ mpzspv_set (mpzspv_handle_t r, const spv_size_t r_offset, const mpzspv_handle_t 
       abort();
     }
   
-  ASSERT (mpzspv_verify (r->mem, r_offset + len, 0, mpzspm));
-  ASSERT (mpzspv_verify (x->mem, x_offset, len, mpzspm));
+  ASSERT (mpzspv_verify (r, r_offset + len, 0));
+  ASSERT (mpzspv_verify (x, x_offset, len));
   ASSERT_ALWAYS (r->mpzspm == x->mpzspm);
   
-  for (i = 0; i < mpzspm->sp_num; i++)
+  for (i = 0; i < r->mpzspm->sp_num; i++)
     spv_set (r->mem[i] + r_offset, x->mem[i] + x_offset, len);
 }
 
 void
-mpzspv_revcopy (mpzspv_t r, const spv_size_t r_offset, const mpzspv_t x, 
-    const spv_size_t x_offset, const spv_size_t len, const mpzspm_t mpzspm)
+mpzspv_revcopy (mpzspv_handle_t r, const spv_size_t r_offset, 
+    const mpzspv_handle_t x, const spv_size_t x_offset, const spv_size_t len)
 {
   unsigned int i;
   
-  ASSERT (mpzspv_verify (r, r_offset + len, 0, mpzspm));
-  ASSERT (mpzspv_verify (x, x_offset, len, mpzspm));
+  if (r->storage == 1 || x->storage == 1)
+    {
+      /* Not implemented yet */
+      abort();
+    }
   
-  for (i = 0; i < mpzspm->sp_num; i++)
-    spv_rev (r[i] + r_offset, x[i] + x_offset, len);
+  ASSERT (mpzspv_verify (r, r_offset + len, 0));
+  ASSERT (mpzspv_verify (x, x_offset, len));
+  ASSERT_ALWAYS (r->mpzspm == x->mpzspm);
+  
+  for (i = 0; i < x->mpzspm->sp_num; i++)
+    spv_rev (r->mem[i] + r_offset, x->mem[i] + x_offset, len);
 }
 
 void
-mpzspv_set_sp (mpzspv_t r, const spv_size_t offset, const sp_t c, 
-    const spv_size_t len, const mpzspm_t mpzspm)
+mpzspv_set_sp (mpzspv_handle_t r, const spv_size_t offset, 
+    const sp_t c, const spv_size_t len)
 {
   unsigned int i;
   
-  ASSERT (mpzspv_verify (r, offset + len, 0, mpzspm));
+  if (r->storage == 1)
+    {
+      /* Not implemented yet */
+      abort();
+    }
+  
+  ASSERT (mpzspv_verify (r, offset + len, 0));
   ASSERT (c < SP_MIN); /* not strictly necessary but avoids mod functions */
   
-  for (i = 0; i < mpzspm->sp_num; i++)
-    spv_set_sp (r[i] + offset, c, len);
+  for (i = 0; i < r->mpzspm->sp_num; i++)
+    spv_set_sp (r->mem[i] + offset, c, len);
 }
 
 void
-mpzspv_neg (mpzspv_t r, const spv_size_t r_offset, const mpzspv_t x, 
-    const spv_size_t x_offset, const spv_size_t len, const mpzspm_t mpzspm)
+mpzspv_neg (mpzspv_handle_t r, const spv_size_t r_offset, 
+    const mpzspv_handle_t x, const spv_size_t x_offset, const spv_size_t len)
 {
   unsigned int i;
   
-  ASSERT (mpzspv_verify (r, r_offset + len, 0, mpzspm));
-  ASSERT (mpzspv_verify (x, x_offset, len, mpzspm));
+  if (r->storage == 1 || x->storage == 1)
+    {
+      /* Not implemented yet */
+      abort();
+    }
+
+  ASSERT (mpzspv_verify (r, r_offset + len, 0));
+  ASSERT (mpzspv_verify (x, x_offset, len));
+  ASSERT_ALWAYS (r->mpzspm == x->mpzspm);
   
-  for (i = 0; i < mpzspm->sp_num; i++)
-    spv_neg (r[i] + r_offset, x[i] + x_offset, len, mpzspm->spm[i]->sp);
+  for (i = 0; i < x->mpzspm->sp_num; i++)
+    spv_neg (r->mem[i] + r_offset, x->mem[i] + x_offset, len, x->mpzspm->spm[i]->sp);
 }
 
 void
@@ -265,8 +286,8 @@ mpzspv_add (mpzspv_handle_t r, const spv_size_t r_offset,
   
   if (r->storage == 0 && x->storage == 0 && y->storage == 0)
     {
-      ASSERT (mpzspv_verify (r->mem, r_offset + len, 0, r->mpzspm));
-      ASSERT (mpzspv_verify (x->mem, x_offset, len, x->mpzspm));
+      ASSERT (mpzspv_verify (r, r_offset + len, 0));
+      ASSERT (mpzspv_verify (x, x_offset, len));
       for (i = 0; i < r->mpzspm->sp_num; i++)
         spv_add (r->mem[i] + r_offset, x->mem[i] + x_offset, y->mem[i] + y_offset, len, 
                  r->mpzspm->spm[i]->sp);
@@ -279,19 +300,25 @@ mpzspv_add (mpzspv_handle_t r, const spv_size_t r_offset,
 }
 
 void
-mpzspv_reverse (mpzspv_t x, const spv_size_t offset, const spv_size_t len, 
-                const mpzspm_t mpzspm)
+mpzspv_reverse (mpzspv_handle_t x, const spv_size_t offset, 
+                const spv_size_t len)
 {
   unsigned int i;
   spv_size_t j;
   sp_t t;
   spv_t spv;
   
-  ASSERT (mpzspv_verify (x, offset, len, mpzspm));
-  
-  for (i = 0; i < mpzspm->sp_num; i++)
+  if (x->storage == 1)
     {
-      spv = x[i] + offset;
+      /* Not implemented yet */
+      abort();
+    }
+
+  ASSERT (mpzspv_verify (x, offset, len));
+  
+  for (i = 0; i < x->mpzspm->sp_num; i++)
+    {
+      spv = x->mem[i] + offset;
       for (j = 0; j < len - 1 - j; j++)
         {
 	  t = spv[j];
@@ -309,6 +336,15 @@ mpzspv_from_mpzv_slow (mpzspv_t x, const spv_size_t offset, const mpz_t mpz,
 {
   unsigned int j;
 
+  /* GMP's comments on mpn_preinv_mod_1:
+   *
+   * "This function used to be documented, but is now considered obsolete.  It
+   * continues to exist for binary compatibility, even when not required
+   * internally."
+   *
+   * It doesn't accept 0 as the dividend so we have to treat this case
+   * separately */
+  
   valgrind_check_mpzinp (mpz);
   if (mpz_sgn (mpz) == 0)
     {
@@ -374,53 +410,6 @@ mpzspv_from_mpzv_fast (mpzspv_t x, const spv_size_t offset, mpz_t mpzvi,
       }
 }
 
-/* convert an array of len mpz_t numbers to CRT representation modulo
-   sp_num moduli */
-void
-mpzspv_from_mpzv (mpzspv_t x, const spv_size_t offset, const mpzv_t mpzv,
-    const spv_size_t len, const mpzspm_t mpzspm)
-{
-  const unsigned int sp_num = mpzspm->sp_num;
-  mpz_t rem;
-  long i;
-
-  ASSERT (mpzspv_verify (x, offset + len, 0, mpzspm));
-
-  /* GMP's comments on mpn_preinv_mod_1:
-   *
-   * "This function used to be documented, but is now considered obsolete.  It
-   * continues to exist for binary compatibility, even when not required
-   * internally."
-   *
-   * It doesn't accept 0 as the dividend so we have to treat this case
-   * separately */
-  
-#if defined(_OPENMP)
-#pragma omp parallel private(i,rem) if (len > 16384)
-  {
-#endif
-    /* Multi-threading with dynamic scheduling slows things down */
-
-    mpz_init(rem);
-#if defined(_OPENMP)
-#pragma omp for schedule(static)
-#endif
-    for (i = 0; i < (long) len; i++)
-    {
-      ASSERT(mpz_sgn (mpzv[i]) >= 0); /* We can't handle negative values */
-      if (mpzspm->T == NULL)
-        mpzspv_from_mpzv_slow (x, i + offset, mpzv[i], mpzspm, rem, sp_num);
-      else
-        mpzspv_from_mpzv_fast (x, i + offset, mpzv[i], mpzspm, rem, sp_num);
-    }
-    mpz_clear(rem);
-
-#if defined(_OPENMP)
-  }
-#endif
-}
-
-
 /* See: Daniel J. Bernstein and Jonathan P. Sorenson,
  * Modular Exponentiation via the explicit Chinese Remainder Theorem
  *
@@ -450,52 +439,6 @@ mpzspv_to_mpz(mpz_t res, const mpzspv_t x, const spv_size_t offset,
     }
 
   mpz_add (res, res, mpzspm->crt2[(unsigned int) f]);
-}
-
-
-void
-mpzspv_to_mpzv_file (mpzspv_t x, const spv_size_t offset, 
-    FILE **sp_files, mpzv_t mpzv, FILE * const mpz_file, 
-    const spv_size_t len, const spv_size_t blocklen, const mpzspm_t mpzspm)
-{
-  spv_size_t len_done = 0;
-  mpz_t mt;
-
-  if (!sp_files) {
-    ASSERT (mpzspv_verify (x, offset, len, mpzspm));
-  } else {
-    ASSERT (mpzspv_verify (x, offset + MIN(len, blocklen), 0, mpzspm));
-  }
-  
-#if SP_TYPE_BITS > GMP_LIMB_BITS
-  mpz_init (mt);
-#endif
-
-  while (len_done < len) 
-    {
-      const spv_size_t len_now = MIN(len - len_done, blocklen);
-      spv_size_t l;
-      
-      if (sp_files != NULL) {
-        mpzspv_seek_and_read (x, offset, sp_files, offset + len_done, len_now, mpzspm);
-      }
-      
-      for (l = 0; l < len_now; l++)
-        {
-          mpzspv_to_mpz(mpzv[len_done + l], x, l + offset, mpzspm, mt);
-          
-          /* Write this mpz_t to file, if requested */
-          if (mpz_file != NULL) {
-            if (mpz_out_raw(mpz_file, mpzv[len_done + l]) == 0) {
-              abort();
-            }
-          }
-        }
-      len_done += len_now;
-    }
-#if SP_TYPE_BITS > GMP_LIMB_BITS
-  mpz_clear (mt);
-#endif
 }
 
 
@@ -764,13 +707,13 @@ mpzspv_fromto_mpzv (mpzspv_handle_t x, const spv_size_t offset,
  *         MPZSPV_NORMALISE_STRIDE floats */
 void
 mpzspv_normalise (mpzspv_handle_t x, const spv_size_t offset, 
-                  const spv_size_t len, const mpzspm_t mpzspm)
+                  const spv_size_t len)
 {
-  unsigned int i, j, sp_num = mpzspm->sp_num;
+  unsigned int i, j, sp_num = x->mpzspm->sp_num;
   spv_size_t k, l;
   sp_t v;
   spv_t s, d, w;
-  spm_t *spm = mpzspm->spm;
+  spm_t *spm = x->mpzspm->spm;
   
   float prime_recip;
   float *f;
@@ -782,7 +725,7 @@ mpzspv_normalise (mpzspv_handle_t x, const spv_size_t offset,
       abort();
     }
   
-  ASSERT (mpzspv_verify (x->mem, offset, len, mpzspm)); 
+  ASSERT (mpzspv_verify (x, offset, len)); 
 
   f = (float *) malloc (MPZSPV_NORMALISE_STRIDE * sizeof (float));
   s = (spv_t) malloc (3 * MPZSPV_NORMALISE_STRIDE * sizeof (sp_t));
@@ -792,7 +735,7 @@ mpzspv_normalise (mpzspv_handle_t x, const spv_size_t offset,
       fprintf (stderr, "Cannot allocate memory in mpzspv_normalise\n");
       exit (1);
     }
-  t = mpzspv_init_handle (NULL, MPZSPV_NORMALISE_STRIDE, mpzspm);
+  t = mpzspv_init_handle (NULL, MPZSPV_NORMALISE_STRIDE, x->mpzspm);
   
   memset (s, 0, 3 * MPZSPV_NORMALISE_STRIDE * sizeof (sp_t));
 
@@ -811,7 +754,7 @@ mpzspv_normalise (mpzspv_handle_t x, const spv_size_t offset,
           for (k = 0; k < stride; k++)
 	    {
 	      x->mem[i][l + k + offset] = sp_mul (x->mem[i][l + k + offset],
-	          mpzspm->crt3[i], spm[i]->sp, spm[i]->mul_c);
+	          x->mpzspm->crt3[i], spm[i]->sp, spm[i]->mul_c);
 	      f[k] += (float) x->mem[i][l + k + offset] * prime_recip;
 	    }
         }
@@ -820,7 +763,7 @@ mpzspv_normalise (mpzspv_handle_t x, const spv_size_t offset,
         {
 	  for (k = 0; k < stride; k++)
 	    {
-	      sp_wide_mul (d[3 * k + 1], d[3 * k], mpzspm->crt5[i],
+	      sp_wide_mul (d[3 * k + 1], d[3 * k], x->mpzspm->crt5[i],
 		  (sp_t) f[k]);
               d[3 * k + 2] = 0;
 	    }
@@ -828,7 +771,7 @@ mpzspv_normalise (mpzspv_handle_t x, const spv_size_t offset,
           for (j = 0; j < sp_num; j++)
             {
 	      w = x->mem[j] + offset;
-	      v = mpzspm->crt4[i][j];
+	      v = x->mpzspm->crt4[i][j];
 	    
 	      for (k = 0; k < stride; k++)
 	        sp_wide_mul (s[3 * k + 1], s[3 * k], w[k + l], v);
@@ -841,7 +784,7 @@ mpzspv_normalise (mpzspv_handle_t x, const spv_size_t offset,
           for (k = 0; k < stride; k++)
 	    t->mem[i][k] = mpn_mod_1 (d + 3 * k, 3, spm[i]->sp);
         }	  
-      mpzspv_set (x, l + offset, t, 0, stride, mpzspm);
+      mpzspv_set (x, l + offset, t, 0, stride);
     }
   
   mpzspv_clear_handle (t);
@@ -853,15 +796,21 @@ mpzspv_normalise (mpzspv_handle_t x, const spv_size_t offset,
 
 
 void
-mpzspv_random (mpzspv_t x, const spv_size_t offset, const spv_size_t len, 
-               const mpzspm_t mpzspm)
+mpzspv_random (mpzspv_handle_t x, const spv_size_t offset, 
+               const spv_size_t len)
 {
   unsigned int i;
 
-  ASSERT (mpzspv_verify (x, offset, len, mpzspm));
+  if (x->storage == 1)
+    {
+      /* Not implemented yet */
+      abort();
+    }
+  
+  ASSERT (mpzspv_verify (x, offset, len));
 
-  for (i = 0; i < mpzspm->sp_num; i++)
-    spv_random (x[i] + offset, len, mpzspm->spm[i]->sp);
+  for (i = 0; i < x->mpzspm->sp_num; i++)
+    spv_random (x->mem[i] + offset, len, x->mpzspm->spm[i]->sp);
 }
 
 
@@ -1187,17 +1136,17 @@ mpzspv_mul_ntt_file (mpzspv_handle_t r, const spv_size_t offsetr,
   
   if (IN_MEMORY(x))
     {
-      ASSERT (mpzspv_verify (x->mem, offsetx, lenx, mpzspm));
-      ASSERT (mpzspv_verify (x->mem, offsetx + ntt_size, 0, mpzspm));
+      ASSERT (mpzspv_verify (x, offsetx, lenx));
+      ASSERT (mpzspv_verify (x, offsetx + ntt_size, 0));
     }
   if (IN_MEMORY(y)) 
     {
-      ASSERT (mpzspv_verify (y->mem, offsety, leny, mpzspm));
-      ASSERT (mpzspv_verify (y->mem, offsety + ntt_size, 0, mpzspm));
+      ASSERT (mpzspv_verify (y, offsety, leny));
+      ASSERT (mpzspv_verify (y, offsety + ntt_size, 0));
     }
   if (IN_MEMORY(r))
     {
-      ASSERT (mpzspv_verify (r->mem, offsetr + ntt_size, 0, mpzspm));
+      ASSERT (mpzspv_verify (r, offsetr + ntt_size, 0));
     }
 
 #if TRACE_ntt_mul

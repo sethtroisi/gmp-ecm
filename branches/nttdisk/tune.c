@@ -305,7 +305,7 @@ TUNE_FUNC_START (tune_mpzspv_normalise)
   MPZSPV_NORMALISE_STRIDE = 1 << n;
   
   TUNE_FUNC_LOOP (mpzspv_normalise (mpzspv, 0,
-    1 << MAX_LOG2_MPZSPV_NORMALISE_STRIDE, mpzspm));
+    1 << MAX_LOG2_MPZSPV_NORMALISE_STRIDE));
 TUNE_FUNC_END (tune_mpzspv_normalise)
 
 
@@ -467,7 +467,7 @@ main (int argc, char **argv)
       fprintf (stderr, "Error, cannot allocate memory in mpzspv_init\n");
       exit (1);
     }
-  mpzspv_random (mpzspv->mem, 0, MAX_LEN, mpzspm);
+  mpzspv_random (mpzspv, 0, MAX_LEN);
   
   for (i = 0; i < MAX_LEN; i++)
     mpz_quick_random (x[i], M, b);
