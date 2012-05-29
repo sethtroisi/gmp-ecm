@@ -21,6 +21,8 @@ MA 02110-1301, USA. */
 
 #include "config.h"
 #include <string.h> /* for memset */
+#include <stdio.h>
+#include <errno.h>
 #ifdef USE_VALGRIND
 #include <valgrind/memcheck.h>
 #endif
@@ -32,8 +34,12 @@ MA 02110-1301, USA. */
  * other than for temporary variables. Unless otherwise specified, any
  * of the input pointers can be equal. */
 
+
+/* Test that an spv_t is valid input. It tests that the memory is allocated
+   and contains initialised data (if compiled with USE_VALGRIND) and that
+   all the sp_t values are less than the modulus. */
 int
-spv_verify (const spv_tc x, const spv_size_t len, const sp_t m)
+spv_verify_in (const spv_tc x, const spv_size_t len, const sp_t m)
 {
   spv_size_t i;
 #ifdef USE_VALGRIND
@@ -48,6 +54,24 @@ spv_verify (const spv_tc x, const spv_size_t len, const sp_t m)
       if (x[i] >= m)
         return 0;
     }
+  
+  return 1;
+}
+
+/* Test that an spv_t is valid output. It tests that the memory is allocated
+   (if compiled with USE_VALGRIND). */
+int
+spv_verify_out (ATTRIBUTE_UNUSED const spv_tc x, 
+                ATTRIBUTE_UNUSED const spv_size_t len, 
+                ATTRIBUTE_UNUSED const sp_t m)
+{
+#ifdef USE_VALGRIND
+  if (len > 0)
+    {
+      if (VALGRIND_CHECK_MEM_IS_ADDRESSABLE(x, len * sizeof(sp_t)) != 0)
+        return 0;
+    }
+#endif
   
   return 1;
 }
@@ -496,3 +520,60 @@ spv_random (spv_t x, spv_size_t len, sp_t m)
     x[i] %= m;
 #endif
 }
+
+
+spv_size_t 
+spv_seek_and_read (spv_t ptr, const spv_size_t nread, const spv_size_t offset, 
+                   FILE *f)
+{
+  spv_size_t r;
+  /* FIXME: use 64 bit types portably */
+  const long foffset = offset * sizeof(sp_t);
+  
+  if (ftell(f) != foffset && fseek (f, foffset, SEEK_SET) != 0)
+    {
+      fprintf (stderr, "%s(): fseek() returned error %d\n", 
+               __func__, errno);
+      abort ();
+    }
+  
+  r = fread(ptr, sizeof(sp_t), nread, f);
+  if (r != nread)
+    {
+      fprintf (stderr, "%s(): Error reading data, r = %lu, errno = %d\n",
+               __func__, (unsigned long) r, errno);
+      abort();
+    }
+
+  return r;
+}
+
+
+spv_size_t 
+spv_seek_and_write (const spv_t ptr, const spv_size_t nwrite, 
+                    const spv_size_t offset, FILE *f)
+{
+  spv_size_t r;
+  /* FIXME: use 64 bit types portably */
+  const long foffset = offset * sizeof(sp_t);
+
+  if (ftell(f) != foffset && fseek (f, foffset, SEEK_SET) != 0)
+  {
+    fprintf (stderr, "%s(): fseek() returned error %d\n", 
+             __func__, errno);
+    abort ();
+  }
+  
+  r = fwrite(ptr, sizeof(sp_t), nwrite, f);
+  if (r != nwrite)
+    {
+      fprintf (stderr, "%s(): Error writing data, r = %lu, errno = %d\n",
+               __func__, (unsigned long) r, errno);
+      abort();
+    }
+  fflush(f);
+
+  return r;
+}
+
+

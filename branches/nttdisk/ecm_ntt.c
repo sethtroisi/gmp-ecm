@@ -50,11 +50,11 @@ ntt_mul (mpzv_t r, mpzv_t x, mpzv_t y, spv_size_t len, mpzv_t t,
   mpzspv_fromto_mpzv (v, 0, len, NULL, y, NULL, NULL);
   mpzspv_fromto_mpzv (u, 0, len, NULL, x, NULL, NULL);
 
-  mpzspv_mul_ntt_file(v, 0, 
+  mpzspv_mul_ntt(v, 0, 
                  v, 0, len, 
                  NULL, UNUSED, UNUSED, 
                  2 * len, monic, UNUSED, NTT_MUL_STEP_FFT1);
-  mpzspv_mul_ntt_file(u, 0, 
+  mpzspv_mul_ntt(u, 0, 
                  u, 0, len, 
                  v, 0, 2*len, 
                  2 * len, monic, monic ? 2 * len : 0, 
@@ -93,12 +93,12 @@ ntt_PolyFromRoots (mpzv_t r, mpzv_t a, spv_size_t len, mpzv_t t,
     {
       for (i = 0; i < 2 * len; i += 4 * m)
         {
-	  mpzspv_mul_ntt_file (x, i + 2 * m, 
+	  mpzspv_mul_ntt (x, i + 2 * m, 
 	                  x, i + 2 * m, m, 
 	                  NULL, UNUSED, UNUSED, 
 	                  2 * m, 1, UNUSED, 
 	                  NTT_MUL_STEP_FFT1);
-	  mpzspv_mul_ntt_file (x, i,  
+	  mpzspv_mul_ntt (x, i,  
 	                  x, i, m, 
 	                  x, i + 2 * m, 2 * m, 
 	                  2 * m, 1, 2 * m, 
@@ -185,11 +185,11 @@ ntt_PolyFromRoots_Tree (mpzv_t r, mpzv_t a, spv_size_t len, mpzv_t t,
 	  
 	  mpzspv_fromto_mpzv (x, i, m, NULL, src + i / 2, NULL, NULL);
 	  mpzspv_fromto_mpzv (x, i + 2 * m, m, NULL, src + i / 2 + m, NULL, NULL);
-          mpzspv_mul_ntt_file (x, i + 2 * m, 
+          mpzspv_mul_ntt (x, i + 2 * m, 
                           x, i + 2 * m, m, 
                           NULL, UNUSED, UNUSED, 
                           2 * m, 1, UNUSED, NTT_MUL_STEP_FFT1);
-          mpzspv_mul_ntt_file (x, i, 
+          mpzspv_mul_ntt (x, i, 
                           x, i, m, 
                           x, i + 2 * m, 2*m, 
                           2 * m, 1, 2 * m, 
@@ -231,14 +231,14 @@ ntt_PrerevertDivision (mpzv_t a, mpzv_t b, mpzv_t invb, mpzspv_handle_t sp_b,
   /* y = TOP (TOP (a) * invb) */
   mpzspv_set_sp (x, 0, 0, len + 1);
   mpzspv_fromto_mpzv (x, len + 1, len - 1, NULL, a + len, NULL, NULL);
-  mpzspv_mul_ntt_file (x, 0, 
+  mpzspv_mul_ntt (x, 0, 
                   x, 0, 2 * len, 
                   sp_invb, 0, 2 * len, 
                   2 * len, 0, 0, 
                   NTT_MUL_STEP_FFT1 + NTT_MUL_STEP_MUL + NTT_MUL_STEP_IFFT);
   mpzspv_normalise (x, 0, len);
   
-  mpzspv_mul_ntt_file (x, 0, 
+  mpzspv_mul_ntt (x, 0, 
                   x, 0, len, 
                   sp_b, 0, len, 
                   len, 0, 0, 
@@ -280,11 +280,11 @@ void ntt_PolyInvert (mpzv_t q, mpzv_t b, spv_size_t len, mpzv_t t,
     {
       mpzspv_set (w, 0, x, 1, k);
       mpzspv_set (z, 0, y, len - 2 * k, 2 * k - 1);
-      mpzspv_mul_ntt_file (x, 0, 
+      mpzspv_mul_ntt (x, 0, 
                       x, 0, k + 1, 
                       NULL, UNUSED, UNUSED, 
                       2 * k, 0, 0, NTT_MUL_STEP_FFT1);
-      mpzspv_mul_ntt_file (z, 0, 
+      mpzspv_mul_ntt (z, 0, 
                       z, 0, 2 * k - 1, 
                       x, 0, 2 * k, 
                       2 * k, 0, 0, 
@@ -292,7 +292,7 @@ void ntt_PolyInvert (mpzv_t q, mpzv_t b, spv_size_t len, mpzv_t t,
       mpzspv_normalise (z, k, k);
       mpzspv_neg (z, 0, z, k, k);
       
-      mpzspv_mul_ntt_file (x, 0, 
+      mpzspv_mul_ntt (x, 0, 
                       z, 0, k, 
                       x, 0, 2 * k, 
                       2 * k, 0, 0,  
@@ -352,7 +352,7 @@ ntt_polyevalT (mpzv_t b, spv_size_t len, mpzv_t *Tree, mpzv_t T,
     }
   
   mpzspv_fromto_mpzv (x, 0, len, NULL, b, NULL, NULL);
-  mpzspv_mul_ntt_file(x, 0, 
+  mpzspv_mul_ntt(x, 0, 
                  x, 0, len, 
                  sp_invF, 0, 2 * len, 
                  2 * len, 0, 0,
@@ -392,11 +392,11 @@ ntt_polyevalT (mpzv_t b, spv_size_t len, mpzv_t *Tree, mpzv_t T,
           mpzspv_set_sp (x, 0, 1, 1);
           mpzspv_fromto_mpzv (x, 1, m, NULL, *Tree + i, NULL, NULL);
 	  /* x contains reversed monic poly */
-	  mpzspv_mul_ntt_file (y, i, 
+	  mpzspv_mul_ntt (y, i, 
 	                  y, i, 2 * m, 
 	                  NULL, UNUSED, UNUSED, 
 	                  2 * m, 0, 0, NTT_MUL_STEP_FFT1);
-          mpzspv_mul_ntt_file (x, 0, 
+          mpzspv_mul_ntt (x, 0, 
                           x, 0, m + 1, 
                           y, i, 2 * m, 
                           2 * m, 0, 0, 
@@ -407,7 +407,7 @@ ntt_polyevalT (mpzv_t b, spv_size_t len, mpzv_t *Tree, mpzv_t T,
 	  list_revert (*Tree + i + m, m);
 	  mpzspv_set_sp (x, 2 * m, 1, 1);
 	  mpzspv_fromto_mpzv (x, 2 * m + 1, m, NULL, *Tree + i + m, NULL, NULL);
-          mpzspv_mul_ntt_file(x, 2 * m, 
+          mpzspv_mul_ntt(x, 2 * m, 
                          x, 2 * m, m + 1, 
                          y, i, 2 * m, 
                          2 * m, 0, 0, 

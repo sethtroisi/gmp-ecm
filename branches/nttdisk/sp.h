@@ -27,6 +27,7 @@ MA 02110-1301, USA.
 #ifndef _SP_H
 #define _SP_H
 
+#include <stdio.h>
 #include "basicdefs.h"
 #include "ecm-gmp.h"
 
@@ -554,7 +555,8 @@ void spm_clear (spm_t);
 /* spv */
 
 /* SELF-TEST */
-int spv_verify (spv_tc, spv_size_t, sp_t);
+int spv_verify_in (spv_tc, spv_size_t, sp_t);
+int spv_verify_out (spv_tc, spv_size_t, sp_t);
 
 /* ASSIGNMENT */
 
@@ -578,6 +580,10 @@ void spv_neg (spv_t, spv_t, spv_size_t, sp_t);
 void spv_pwmul (spv_t, spv_t, spv_t, spv_size_t, sp_t, sp_t);
 void spv_pwmul_rev (spv_t, spv_t, spv_t, spv_size_t, sp_t, sp_t);
 void spv_mul_sp (spv_t, spv_t, sp_t, spv_size_t, sp_t, sp_t);
+
+/* file I/O */
+size_t spv_seek_and_read (spv_t, size_t, size_t, FILE *);
+size_t spv_seek_and_write (const spv_t, size_t, size_t, FILE *);
 
 void spv_random (spv_t, spv_size_t, sp_t);
 int spv_cmp (spv_t, spv_t, spv_size_t);
@@ -603,7 +609,8 @@ void mpzspm_print_CRT_primes (int, const char *,
 
 mpzspv_handle_t mpzspv_init_handle (const char *, spv_size_t, mpzspm_t);
 void mpzspv_clear_handle (mpzspv_handle_t);
-int mpzspv_verify (mpzspv_handle_t, spv_size_t, spv_size_t);
+int mpzspv_verify_in (mpzspv_handle_t, spv_size_t, spv_size_t);
+int mpzspv_verify_out (mpzspv_handle_t, spv_size_t, spv_size_t);
 void mpzspv_set (mpzspv_handle_t, spv_size_t, mpzspv_handle_t, spv_size_t, 
     spv_size_t);
 void mpzspv_revcopy (mpzspv_handle_t, spv_size_t, mpzspv_handle_t, spv_size_t, 
@@ -617,7 +624,7 @@ void mpzspv_add (mpzspv_handle_t, spv_size_t, mpzspv_handle_t, spv_size_t,
 void mpzspv_fromto_mpzv (mpzspv_handle_t, spv_size_t, spv_size_t, 
     mpz_producerfunc_t, void *, mpz_consumerfunc_t, void *);
 void mpzspv_normalise (mpzspv_handle_t, spv_size_t, spv_size_t);
-void mpzspv_mul_ntt_file (mpzspv_handle_t, spv_size_t, mpzspv_handle_t, 
+void mpzspv_mul_ntt (mpzspv_handle_t, spv_size_t, mpzspv_handle_t, 
     spv_size_t, spv_size_t, mpzspv_handle_t, spv_size_t, spv_size_t, 
     spv_size_t, int, spv_size_t, int);
 void mpzspv_random (mpzspv_handle_t, spv_size_t, spv_size_t);
