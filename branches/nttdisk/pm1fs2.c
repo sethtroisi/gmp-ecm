@@ -3483,8 +3483,8 @@ pp1_sequence_h (listz_t h_x, listz_t h_y, mpzspv_handle_t h_x_ntt, mpzspv_handle
   if (l_param == 0UL)
     return;
 
-  ASSERT (f->data.mem != h_x);
-  ASSERT (f->data.mem != h_y);
+  ASSERT (f->storage == 0 || f->data.mem != h_x);
+  ASSERT (f->storage == 0 || f->data.mem != h_y);
 
   outputf (OUTPUT_VERBOSE, "Computing %s%s%s", 
 	   (want_x) ? "h_x" : "", 
