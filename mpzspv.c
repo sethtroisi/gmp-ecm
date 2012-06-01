@@ -285,12 +285,31 @@ mpzspv_from_mpzv_fast (mpzspv_t x, const spv_size_t offset, mpz_t mpzvi,
   /* last steps */
   I0 = 1 << i0;
   for (j = 0; j < sp_num; j += I0)
-    for (k = j; k < j + I0 && k < sp_num; k++)
-      x[k][offset] = mpn_mod_1 (PTR(T[0][j]), SIZ(T[0][j]),
-                                (mp_limb_t) mpzspm->spm[k]->sp);
+    {
+      for (k = j; k < j + I0 && k < sp_num; k++)
+        x[k][offset] = mpn_mod_1 (PTR(T[0][j]), SIZ(T[0][j]),
+                                  (mp_limb_t) mpzspm->spm[k]->sp);
+    }
   /* The typecast to mp_limb_t assumes that mp_limb_t is at least
      as wide as sp_t */
 }
+
+
+ATTRIBUTE_UNUSED
+static void
+ntt_print_vec (const char *msg, const spv_t spv, const spv_size_t l, 
+               const sp_t p)
+{
+  spv_size_t i;
+
+  /* Warning: on some computers, for example gcc49.fsffrance.org,
+     "unsigned long" might be shorter than "sp_t" */
+  gmp_printf ("%s [%Nd", msg, (mp_ptr) spv, 1);
+  for (i = 1; i < l; i++)
+    gmp_printf (", %Nd", (mp_ptr) spv + i, 1);
+  printf ("] (mod %llu)\n", p);
+}
+
 
 /* convert an array of len mpz_t numbers to CRT representation modulo
    sp_num moduli */
@@ -303,6 +322,11 @@ mpzspv_from_mpzv (mpzspv_t x, const spv_size_t offset, const mpzv_t mpzv,
 
   ASSERT (mpzspv_verify (x, offset + len, 0, mpzspm));
   ASSERT (sizeof (mp_limb_t) >= sizeof (sp_t));
+
+#ifdef TRACE_mpzspv_from_mpzv
+  for (i = 0; i < (long) len; i++)
+    gmp_printf ("mpzspv_from_mpzv: mpzv[%ld] = %Zd\n", i, mpzv[i]);
+#endif
 
 #if defined(_OPENMP)
 #pragma omp parallel private(i) if (len > 16384)
@@ -329,6 +353,11 @@ mpzspv_from_mpzv (mpzspv_t x, const spv_size_t offset, const mpzv_t mpzv,
     }
 #if defined(_OPENMP)
   }
+#endif
+
+#ifdef TRACE_mpzspv_from_mpzv
+  for (i = 0; i < (long) sp_num; i++)
+    ntt_print_vec ("mpzspv_from_mpzv: ", x[i] + offset, len, mpzspm->spm[i]->sp);
 #endif
 }
 
