@@ -2391,21 +2391,6 @@ mpzspv_init_mt (spv_size_t len, mpzspm_t mpzspm)
 }
 
 
-ATTRIBUTE_UNUSED
-static void
-ntt_print_vec (const char *msg, const spv_t spv, const spv_size_t l)
-{
-  spv_size_t i;
-
-  /* Warning: on some computers, for example gcc49.fsffrance.org,
-     "unsigned long" might be shorter than "sp_t" */
-  gmp_printf ("%s [%Nd", msg, (mp_ptr) spv, 1);
-  for (i = 1; i < l; i++)
-    gmp_printf (", %Nd", (mp_ptr) spv + i, 1);
-  printf ("]\n");
-}
-
-
 /* Square the reciprocal Laurent polynomial S(x) of degree 2*n-2.
    S(x) = s_0 + \sum_{i=1}^{n-1} s_i (x^i + x^{-1}).
    S[i] contains the n coefficients s_i, 0 <= i <= n-1.
