@@ -162,7 +162,11 @@ print_config ()
    #endif
 #endif /* __MPIR_VERSION */
 
+#ifdef ECM_TUNE_CASE
   printf ("Tuning parameters from %s\n", ECM_TUNE_CASE);
+#else
+  printf ("ECM_TUNE_CASE not defined.\n");
+#endif
 
 #ifdef GWNUM_VERSION
   printf ("Included GWNUM header files version %s\n", GWNUM_VERSION);
