@@ -283,12 +283,14 @@ mpzspv_set_sp (mpzspv_handle_t r, const spv_size_t offset,
       /* Not implemented yet */
       abort();
     }
-  
-  ASSERT (mpzspv_verify_out (r, offset, len));
-  ASSERT (c < SP_MIN); /* not strictly necessary but avoids mod functions */
-  
-  for (i = 0; i < r->mpzspm->sp_num; i++)
-    spv_set_sp (r->mem[i] + offset, c, len);
+  else
+    {
+      ASSERT (mpzspv_verify_out (r, offset, len));
+      ASSERT (c < SP_MIN); /* not strictly necessary but avoids mod functions */
+      
+      for (i = 0; i < r->mpzspm->sp_num; i++)
+        spv_set_sp (r->mem[i] + offset, c, len);
+    }
 }
 
 void
@@ -655,7 +657,7 @@ mpzspv_fromto_mpzv (mpzspv_handle_t x, const spv_size_t offset,
         {
           if (producer_state != NULL)
             {
-              if (producer)
+              if (producer != NULL)
                 {
                   /* Get new mpz1 from producer */
                   (*producer)(producer_state, mpz1);
@@ -1376,7 +1378,7 @@ mpzspv_mul_ntt (mpzspv_handle_t r, const spv_size_t offsetr,
 
 
 /* Computes a DCT-I of the length dctlen. Input is the spvlen coefficients
-   in spv. */
+   in spv. FIXME: handle wrap-around in input data */
 
 void
 mpzspv_to_dct1 (mpzspv_handle_t dct, const mpzspv_handle_t spv,  
@@ -1728,29 +1730,20 @@ mpzspv_open_fileset (mpzspv_handle_t handle, const char *file_stem,
       if (handle->filenames[i] == NULL)
         {
           fprintf (stderr, "%s(): could not allocate memory\n", __func__);
-          handle->files[i] = NULL;
-        } else {
-          sprintf (handle->filenames[i], "%s.%u", file_stem, i);
-          handle->files[i] = fopen(handle->filenames[i], "r+");
-          if (handle->files[i] == NULL)
-            handle->files[i] = fopen(handle->filenames[i], "w+");
-          if (handle->files[i] == NULL)
-            {
-              fprintf (stderr, "%s(): error opening %s for writing\n", 
-                       __func__, handle->filenames[i]);
-            }
+          break;
         }
 
+      sprintf (handle->filenames[i], "%s.%u", file_stem, i);
+      handle->files[i] = fopen(handle->filenames[i], "r+");
+      if (handle->files[i] == NULL)
+        handle->files[i] = fopen(handle->filenames[i], "w+");
       if (handle->files[i] == NULL)
         {
-          while (i > 0)
-            {
-              fclose(handle->files[--i]);
-              free (handle->filenames[--i]);
-            }
-          free (handle->filenames);
-          free (handle->files);
-          return -1;
+          fprintf (stderr, "%s(): error opening %s for writing\n", 
+                   __func__, handle->filenames[i]);
+          free (handle->filenames[i]);
+          handle->filenames[i] = NULL;
+          break;
         }
 #ifdef HAVE_FALLOCATE
       /* Tell the file system to allocate space for the file, avoiding 
@@ -1773,7 +1766,24 @@ mpzspv_open_fileset (mpzspv_handle_t handle, const char *file_stem,
 #endif
 #endif
     }
-    
+  
+  if (i < sp_num)
+    {
+      /* Some error occurred. Deallocate everything */
+      while (i-- > 0)
+        {
+          fclose (handle->files[i]);
+          handle->files[i] = NULL;
+          free (handle->filenames[i]);
+          handle->filenames[i] = NULL;
+        }
+      free (handle->filenames);
+      handle->filenames = NULL;
+      free (handle->files);
+      handle->files = NULL;
+      return -1;
+    }
+
     return 0;
 }
 
