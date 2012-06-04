@@ -11,6 +11,8 @@ Changes between GMP-ECM 6.4.2 and GMP-ECM 7.0:
   The default parametrization depends on others command-line options.
 * For P-1 stage 2, by default the NTT code is always used.
 * Fixed PowerPC64 assembly code with --enable-shared (thanks Leif Leonhardy)
+* Fixed bug reported by user "lorgix" on mersenneforum
+  (http://www.mersenneforum.org/showpost.php?p=286385&postcount=280)
 * Speedup in stage 2 with -no-ntt
 
 Changes between GMP-ECM 6.4.1 and GMP-ECM 6.4.2:
