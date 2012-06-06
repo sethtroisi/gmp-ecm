@@ -320,6 +320,11 @@ listz_iterator_read (listz_iterator_t *iter, mpz_t r)
     }
   else
     {
+      /* Try to detect incorrect use of iterator. We allow either read-only, 
+         in which case we must have writeptr == 0 at all times, or sequential
+         update (read-then-write) of each residue, in which case we must have
+         writeptr == readptr here */
+      ASSERT (iter->writeptr == 0 || iter->readptr == iter->writeptr);
       if (iter->readptr == iter->valid)
         {
           listz_iterator_flush (iter);
@@ -343,6 +348,12 @@ listz_iterator_write (listz_iterator_t *iter, const mpz_t r)
     }
   else
     {
+      /* Try to detect incorrect use of iterator. We allow either write-only, 
+         in which case we must have readptr == 0 at all times, or sequential
+         update (read-then-write) of each residue, in which case we must have
+         writeptr + iter->handle->words == readptr */
+      ASSERT (iter->readptr == 0 || 
+              iter->writeptr + iter->handle->words == iter->readptr);
       if (iter->writeptr == iter->bufsize)
         {
           listz_iterator_flush (iter);
