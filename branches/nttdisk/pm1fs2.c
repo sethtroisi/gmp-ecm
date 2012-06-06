@@ -751,8 +751,15 @@ list_scale_V_ntt (listz_handle_t R, const listz_handle_t F,
           }
         else
           state.writebuf = state.readbuf;
+
         mpzspv_fromto_mpzv (ntt_handle, (spv_size_t) 0, l, 
             &readerV_file, &state, &writerV_file, &state);
+
+        if (F != R)
+          listz_iterator_clear (state.writebuf);
+        listz_iterator_clear (state.readbuf);
+        state.readbuf = NULL;
+        state.writebuf = NULL;
       }
     
     /* Write the remaining i = deg+1, ..., 2*deg+1 */
@@ -766,11 +773,14 @@ list_scale_V_ntt (listz_handle_t R, const listz_handle_t F,
         mpzspv_fromto_mpzv (ntt_handle, (spv_size_t) deg + 1, l, 
             NULL, NULL, &writerV, &state);
       } else {
+        state.writebuf = listz_iterator_init (R, state.index);
+        ASSERT_ALWAYS (state.writebuf != NULL);
+
         mpzspv_fromto_mpzv (ntt_handle, (spv_size_t) deg + 1, l, 
             NULL, NULL, &writerV_file, &state);
-        if (F != R)
-          listz_iterator_clear (state.writebuf);
-        listz_iterator_clear (state.readbuf);
+
+        listz_iterator_clear (state.writebuf);
+        state.writebuf = NULL;
       }
     
     mpres_clear (state.V1, state.modulus);
