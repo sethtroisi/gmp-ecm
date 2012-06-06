@@ -223,7 +223,7 @@ inc_verbose ()
 }
 
 int
-outputf (int loglevel, char *format, ...)
+outputf (int loglevel, const char *format, ...)
 {
   va_list ap;
   int n = 0;

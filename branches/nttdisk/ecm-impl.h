@@ -658,7 +658,7 @@ void         set_verbose (int);
 #define inc_verbose __ECM(inc_verbose)
 int          inc_verbose (void);
 #define outputf __ECM(outputf)
-int          outputf (int, char *, ...);
+int          outputf (int, const char *, ...);
 #define writechkfile __ECM(writechkfile)
 void writechkfile (char *, int, double, mpmod_t, mpres_t, mpres_t, mpres_t);
 
