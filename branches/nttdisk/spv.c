@@ -22,6 +22,7 @@ MA 02110-1301, USA. */
 #include "config.h"
 #include <string.h> /* for memset */
 #include <stdio.h>
+#include <stdlib.h>
 #include <errno.h>
 #ifdef USE_VALGRIND
 #include <valgrind/memcheck.h>
