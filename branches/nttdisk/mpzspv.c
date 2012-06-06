@@ -521,6 +521,8 @@ mpzspv_fromto_mpzv (mpzspv_handle_t x, const spv_size_t offset,
     mpz_consumerfunc_t consumer, void * consumer_state)
 {
   const unsigned int sp_num = x->mpzspm->sp_num;
+  const int have_consumer = consumer != NULL || consumer_state != NULL;
+  const int have_producer = producer != NULL || producer_state != NULL;
   spv_size_t block_len = 1<<16, len_done = 0, read_done = 0, buffer_offset;
   mpz_t mpz1, mpz2, mt;
 #if defined(HAVE_AIO_READ)
@@ -588,7 +590,7 @@ mpzspv_fromto_mpzv (mpzspv_handle_t x, const spv_size_t offset,
     }
 #endif
 
-  if (consumer_state != NULL && ON_DISK(x)) 
+  if (have_consumer && ON_DISK(x)) 
     {
       /* Read first buffer's worth of data from disk files */
       const spv_size_t read_now = MIN(len, block_len);
@@ -627,7 +629,7 @@ mpzspv_fromto_mpzv (mpzspv_handle_t x, const spv_size_t offset,
 #endif
 
       /* Read x from disk files */
-      if (consumer_state != NULL && ON_DISK(x) && read_now > 0) 
+      if (have_consumer && ON_DISK(x) && read_now > 0) 
         {
 #if WANT_PROFILE
           unsigned long realstart = realtime();
@@ -655,7 +657,7 @@ mpzspv_fromto_mpzv (mpzspv_handle_t x, const spv_size_t offset,
 #endif
       for (i = 0; i < len_now; i++)
         {
-          if (producer_state != NULL)
+          if (have_producer)
             {
               if (producer != NULL)
                 {
@@ -669,14 +671,14 @@ mpzspv_fromto_mpzv (mpzspv_handle_t x, const spv_size_t offset,
                 }
             }
           
-          if (consumer_state != NULL)
+          if (have_consumer)
             {
               /* Convert NTT entry to mpz2 */
               mpzspv_to_mpz (mpz2, buffer[work_buffer], buffer_offset + i, 
                              x->mpzspm, mt);
               if (consumer != NULL)
                 {
-                  /* Give mpz2 to consumer */
+                  /* Give mpz2 to consumer function */
                   mpz_mod (mpz2, mpz2, x->mpzspm->modulus);
                   (*consumer)(consumer_state, mpz2);
                 } else {
@@ -685,7 +687,7 @@ mpzspv_fromto_mpzv (mpzspv_handle_t x, const spv_size_t offset,
                 }
             }
           
-          if (producer_state != NULL)
+          if (have_producer)
             {
               /* Convert the mpz1 we got from producer to NTT */
               mpzspv_from_mpzv_slow (buffer[work_buffer], buffer_offset + i, 
@@ -697,7 +699,7 @@ mpzspv_fromto_mpzv (mpzspv_handle_t x, const spv_size_t offset,
            __func__, realstart, realtime() - realstart);
 #endif
 
-      if (consumer_state != NULL && ON_DISK(x) && read_now > 0) 
+      if (have_consumer && ON_DISK(x) && read_now > 0) 
         {
           /* Wait for read to complete */
 #if WANT_PROFILE
@@ -717,7 +719,7 @@ mpzspv_fromto_mpzv (mpzspv_handle_t x, const spv_size_t offset,
         }
 
     /* Write current buffer to disk files */
-    if (producer_state != NULL && ON_DISK(x)) {
+    if (have_producer && ON_DISK(x)) {
 #if WANT_PROFILE
       unsigned long realstart = realtime();
 #endif
