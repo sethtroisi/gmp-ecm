@@ -43,7 +43,7 @@ void listz_handle_set (listz_handle_t, const mpz_t, file_word_t *, uint64_t);
 void listz_handle_output_poly (const listz_handle_t, uint64_t, int, int, const char *, const char *, int);
 
 listz_iterator_t *listz_iterator_init (listz_handle_t, uint64_t);
-listz_iterator_t *listz_iterator_init2 (listz_handle_t, uint64_t, uint64_t);
+listz_iterator_t *listz_iterator_init2 (listz_handle_t, uint64_t, size_t);
 void  listz_iterator_clear (listz_iterator_t *);
 void listz_iterator_read (listz_iterator_t *, mpz_t);
 void listz_iterator_write (listz_iterator_t *, const mpz_t);
