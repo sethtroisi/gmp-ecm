@@ -30,6 +30,7 @@ http://www.gnu.org/licenses/ or write to the Free Software Foundation, Inc.,
 #include <limits.h>
 #include "ecm-impl.h"
 #include "sp.h"
+#include "listz_handle.h"
 #include <math.h>
 #ifdef HAVE_ALLOCA_H
 #include <alloca.h>
@@ -40,16 +41,12 @@ http://www.gnu.org/licenses/ or write to the Free Software Foundation, Inc.,
 #ifdef _OPENMP
 #include <omp.h>
 #endif
-#ifdef HAVE_FCNTL_H
-#include <fcntl.h>
-#endif
 #ifdef HAVE_AIO_H
 #include <aio.h>
 #endif
 
 /* TODO:
    - move functions into their proper files (i.e. NTT functions etc.)
-   - later: allow storing NTT vectors on disk
 */
 
 /* Define TEST_ZERO_RESULT to test if any result of the multipoint
@@ -57,231 +54,8 @@ http://www.gnu.org/licenses/ or write to the Free Software Foundation, Inc.,
    happening might indicate a problem in the evalutaion code */
 #define TEST_ZERO_RESULT
 
-/* This type is the basis for file I/O of mpz_t */
-typedef unsigned long file_word_t;
-
-typedef struct {
-  int storage; /* memory = 0, file = 1 */
-  uint64_t len;
-  size_t words; /* Number of file_word_t in a residue */
-  union {
-    listz_t mem;
-    FILE *file;
-  } data;
-  char *filename;
-} _listz_handle_t;
-typedef _listz_handle_t *listz_handle_t;
-
-
 const int pari = 0;
 const int check_eval = 0;
-
-
-/* Init a listz_handle_t to store up to len residues (modulo m). 
-   If filename != NULL, uses disk storage, otherwise memory.
-   Returns NULL if something goes wrong (i.e., if a memory allocation
-   or opening a file fails) */
-
-listz_handle_t 
-listz_handle_init2 (const char *filename, const uint64_t len, const mpz_t m)
-{
-  listz_handle_t F;
-  void *buf;
-
-  F = malloc (sizeof (_listz_handle_t));
-  if (F == NULL)
-    return NULL;
-  
-  /* Find out how many file_word_t's  m has */
-  buf = (file_word_t *) mpz_export (NULL, &F->words, -1, sizeof(file_word_t), 
-                                   -1, 0, m);
-  if (buf == NULL)
-    {
-      free (F);
-      return NULL;
-    }
-  free(buf);
-
-  F->len = len;
-  if (filename == NULL)
-    {
-      F->storage = 0; /* Memory storage */
-      F->data.mem = init_list2 (len, mpz_sizeinbase(m, 2));
-      if (F->data.mem == NULL)
-        {
-          free (F);
-          F = NULL;
-        }
-    } else {
-      F->storage = 1; /* Disk storage */
-      F->filename = (char *) malloc ((strlen (filename) + 1) * sizeof(char));
-      if (F->filename == NULL)
-        {
-          free (F);
-          return NULL;
-        }
-      strcpy (F->filename, filename);
-      F->data.file = fopen (F->filename, "w+");
-      if (F->data.file == NULL)
-        {
-          free (F->filename);
-          free (F);
-          return NULL;
-        }
-#ifdef HAVE_FALLOCATE
-      fallocate (fileno(F->data.file), 0, (off_t) 0, 
-                 F->words * sizeof(file_word_t) * len);
-#endif
-    }
-
-  return F;
-}
-
-
-void 
-listz_handle_clear (listz_handle_t F)
-{
-  if (F->storage == 0)
-    {
-      clear_list (F->data.mem, F->len);
-      F->data.mem = NULL;
-    }
-  else
-    {
-      fclose (F->data.file);
-      F->data.file = NULL;
-      remove (F->filename);
-      free (F->filename);
-    }
-  free (F);
-}
-
-
-static inline void 
-export_residue (file_word_t *buf, const size_t bufsize, const mpz_t r)
-{
-  size_t nr;
-
-  /* Export r to buf */
-  mpz_export (buf, &nr, -1, sizeof(file_word_t), 0, 0, r);
-  ASSERT_ALWAYS (nr <= bufsize);
-
-  /* Pad buf with zeroes */
-  for ( ; nr < bufsize; nr++)
-    buf[nr] = 0;
-}
-
-static inline void 
-write_residue (FILE *f, const mpz_t r, file_word_t *buf, const size_t bufsize)
-{
-  size_t nr;
-
-  ASSERT_ALWAYS (mpz_sgn (r) >= 0);
-
-  export_residue (buf, bufsize, r);
-  nr = fwrite (buf, sizeof(file_word_t), bufsize, f);
-  ASSERT_ALWAYS (nr == bufsize);
-}
-
-static inline void 
-seek_write_residue (FILE *f, const mpz_t r, file_word_t *buf,
-              const size_t bufsize, const size_t index)
-{
-  fseek (f, sizeof(file_word_t) * bufsize * index, SEEK_SET);
-  write_residue (f, r, buf, bufsize);
-}
-
-static inline void 
-read_residue (FILE *f, mpz_t r, file_word_t *buf, const size_t bufsize)
-{
-  size_t nr;
-  
-  nr = fread (buf, sizeof(file_word_t), bufsize, f);
-  ASSERT_ALWAYS (nr == bufsize);
-  
-  mpz_import (r, bufsize, -1, sizeof(file_word_t), 0, 0, buf);
-}
-
-static inline void 
-seek_read_residue (FILE *f, mpz_t r, file_word_t *buf,
-              const size_t bufsize, const size_t index)
-{
-  fseek (f, sizeof(file_word_t) * bufsize * index, SEEK_SET);
-  read_residue (f, r, buf, bufsize);
-}
-
-static void 
-write_residues (FILE *f, const listz_t r, const size_t len, 
-                const size_t bufsize)
-{
-  file_word_t *buf;
-  size_t i;
-
-  /* Let GMP allocate a buffer that is large enough for the modulus,
-     hence is large enough for any residue */
-  buf = (file_word_t *) malloc (bufsize * sizeof(file_word_t));
-  ASSERT_ALWAYS (buf != NULL);
-  
-  for (i = 0; i < len; i++)
-    write_residue (f, r[i], buf, bufsize);
-
-  free (buf);
-}
-
-
-/* Fetches one entry from F (either in memory or file) and stores it in r. */
-
-static inline void
-listz_handle_get (listz_handle_t F, mpz_t r, file_word_t *buf, 
-    const size_t index)
-{
-  if (F->storage == 0)
-    mpz_set (r, F->data.mem[index]);
-  else
-    seek_read_residue (F->data.file, r, buf, F->words, index);
-}
-
-static inline void
-listz_handle_get2 (listz_handle_t F, mpz_t r, const size_t index)
-{
-  file_word_t *buf = NULL;
-  if (F->storage == 1)
-    buf = malloc (F->words * sizeof (file_word_t));
-  listz_handle_get (F, r, buf, index);
-  free(buf);
-}
-
-/* Stores the value of r in an entry of F (either in memory or file) */
-
-static inline void
-listz_handle_set (listz_handle_t F, const mpz_t r, file_word_t *buf,
-    const size_t index)
-{
-  if (F->storage == 0)
-    mpz_set (F->data.mem[index], r);
-  else
-    seek_write_residue (F->data.file, r, buf, F->words, index);
-}
-
-typedef struct {
-  listz_handle_t l;
-  uint64_t index;
-  file_word_t *buf;
-} listz_handle_state_t;
-
-static void
-listz_handle_write (void *statep, const mpz_t m)
-{
-  listz_handle_state_t *state = statep;
-  listz_handle_set (state->l, m, state->buf, state->index++);
-}
-
-static void ATTRIBUTE_UNUSED
-listz_handle_read (void *statep, mpz_t m)
-{
-  listz_handle_state_t *state = statep;
-  listz_handle_get (state->l, m, state->buf, state->index++);
-}
 
 
 /* Some useful PARI functions:
@@ -290,6 +64,20 @@ listz_handle_read (void *statep, mpz_t m)
 
    U(i,X) = { if (i==0, return(0)); if (i==1, return(1)); if(i%2 == 0, return (U (i/2, X) * V(i/2,X))); return (V ((i+1)/2, X) * U( (i-1)/2, X) + 1)}
 */
+
+
+static void
+list_output_poly (listz_t l, uint64_t len, int monic, int symmetric,
+		  char *prefix, char *suffix, int verbosity)
+{
+  _listz_handle_t handle;
+  handle.storage = 0;
+  handle.len = 0;
+  handle.data.mem = l;
+  /* handle.words is not initialised */
+  listz_handle_output_poly (&handle, len, monic, symmetric, prefix, suffix, 
+    verbosity);
+}
 
 
 static void 
@@ -340,72 +128,6 @@ print_elapsed_time (int verbosity, long cpu_start,
     }
 // #endif
   outputf (verbosity, " took %lums\n", elltime (cpu_start, cputime()));
-}
-
-
-static void
-list_output_poly_file (const listz_handle_t l, uint64_t len, int monic, int symmetric,
-		  char *prefix, char *suffix, int verbosity)
-{
-  uint64_t i;
-  mpz_t m;
-  file_word_t *buf = NULL;
-
-  if (!test_verbose(verbosity))
-    return;
-  
-  if (l->storage != 0)
-    buf = (file_word_t *) malloc (l->words * sizeof(file_word_t));
-
-  if (prefix != NULL)
-    outputf (verbosity, prefix);
-
-  if (len == 0)
-    {
-      if (monic)
-	outputf (verbosity, "1\n");
-      else
-	outputf (verbosity, "0\n");
-      return;
-    }
-
-  mpz_init (m);
-  if (monic)
-    {
-      if (symmetric)
-	outputf (verbosity, "(x^%" PRIu64 " + x^-%" PRIu64 ") + ", len, len);
-      else
-	outputf (verbosity, "x^%" PRIu64 " + ", len);
-    }
-  for (i = len - 1; i > 0; i--)
-    {
-      listz_handle_get (l, m, buf, i);
-      if (symmetric)
-        outputf (verbosity, "Mod(%Zd,N) * (x^%" PRIu64 " + x^-%" PRIu64 ") + ", 
-                 m, i, i);
-      else
-        outputf (verbosity, "Mod(%Zd,N) * x^%" PRIu64 " + ", m, i);
-    }
-  listz_handle_get (l, m, buf, 0);
-  outputf (verbosity, "Mod(%Zd,N)", m);
-  if (suffix != NULL)
-    outputf (verbosity, suffix);
-  free (buf);
-  buf = NULL;
-  mpz_clear (m);
-}
-
-static void
-list_output_poly (listz_t l, uint64_t len, int monic, int symmetric,
-		  char *prefix, char *suffix, int verbosity)
-{
-  _listz_handle_t handle;
-  handle.storage = 0;
-  handle.len = 0;
-  handle.data.mem = l;
-  /* handle.words is not initialised */
-  list_output_poly_file (&handle, len, monic, symmetric, prefix, suffix, 
-    verbosity);
 }
 
 
@@ -811,7 +533,6 @@ scale_by_chebyshev (listz_t R1, const listz_t F1,
   mpres_clear (Vt, modulus);
 }
 
-
 /* For a given reciprocal polynomial 
    F(x) = f_0 + sum_{i=1}^{deg} f_i V_i(x+1/x),
    compute F(\gamma x)F(\gamma^{-1} x), with Q = \gamma + 1 / \gamma
@@ -825,25 +546,9 @@ scale_by_chebyshev (listz_t R1, const listz_t F1,
 const int trace_callbacks = 0;
 
 typedef struct {
-  FILE *f;
-  void *buf;
-  size_t bufsize;
-} state_file_t;
-
-static void
-file_reader (void * const p, mpz_t r)
-{
-  state_file_t *state = p;
-  
-  read_residue (state->f, r, state->buf, state->bufsize);
-}
-
-
-typedef struct {
   mpz_t *mpzv_read, *mpzv_write;
-  FILE *file_read, *file_write;
-  file_word_t *buf;
-  size_t index, bufsize;
+  listz_iterator_t *readbuf, *writebuf;
+  size_t index;
   mpres_t V1, Vi, Vi_1, tmp;
   mpmod_t modulus;
   mpz_t mpz;
@@ -867,8 +572,7 @@ readerV_file (void * const p, mpz_t r)
 {
   stateV_t * const state = p;
   
-  seek_read_residue (state->file_read, r, state->buf, state->bufsize, 
-    state->index);
+  listz_iterator_read (state->readbuf, r);
   mpres_mul_z_to_z (r, state->Vi, r, state->modulus);
 
   if (trace_callbacks)
@@ -901,8 +605,7 @@ writerV_file (void * const p, const mpz_t r)
   stateV_t * const state = p;
   
   mpres_mul_z_to_z (state->mpz, state->Vi, r, state->modulus);
-  seek_write_residue (state->file_write, state->mpz, state->buf, 
-    state->bufsize, state->index);
+  listz_iterator_write (state->writebuf, state->mpz);
 
   if (trace_callbacks)
     outputf(OUTPUT_TRACE, "r_%d = %Zd, g_%d = %Zd /* writerV */\n",
@@ -918,9 +621,8 @@ writerV_file (void * const p, const mpz_t r)
 
 typedef struct {
   mpz_t *mpzv;
-  FILE *file;
-  file_word_t *buf;
-  size_t index, bufsize;
+  listz_iterator_t *buf;
+  size_t index;
   mpz_t mpz, modulus;
 } stateD_t;
 
@@ -949,8 +651,7 @@ writer_diff_file (void * const p, const mpz_t r)
 {
   stateD_t * const state = p;
 
-  seek_read_residue (state->file, state->mpz, state->buf, state->bufsize, 
-    state->index);
+  listz_iterator_read (state->buf, state->mpz);
   mpz_sub (state->mpz, r, state->mpz);
 
   if (mpz_odd_p (state->mpz))
@@ -958,8 +659,7 @@ writer_diff_file (void * const p, const mpz_t r)
   ASSERT (mpz_even_p (state->mpz));
   mpz_tdiv_q_2exp (state->mpz, state->mpz, 1);
   mpz_mod (state->mpz, state->mpz, state->modulus);
-  seek_write_residue (state->file, state->mpz, state->buf, state->bufsize, 
-    state->index);
+  listz_iterator_write (state->buf, state->mpz);
 
   if (trace_callbacks)
     outputf(OUTPUT_TRACE, "r_%d = %Zd /* writer_diff */\n",
@@ -985,7 +685,7 @@ list_scale_V_ntt (listz_handle_t R, const listz_handle_t F,
       return;
     }
   
-  list_output_poly_file (F, deg + 1, 0, 1, "list_scale_V_ntt: F = ", "\n", 
+  listz_handle_output_poly (F, deg + 1, 0, 1, "list_scale_V_ntt: F = ", "\n", 
     OUTPUT_TRACE);
   /* Convert F[0, ..., deg] to NTT */
   if (F->storage == 0)
@@ -993,14 +693,12 @@ list_scale_V_ntt (listz_handle_t R, const listz_handle_t F,
         NULL, NULL);
   else
     {
-      state_file_t state;
-      state.f = F->data.file;
-      rewind (state.f);
-      state.buf = (file_word_t *) mpz_export (NULL, &state.bufsize, -1, 
-          sizeof(file_word_t), -1, 0, modulus->orig_modulus);
-      mpzspv_fromto_mpzv (ntt_handle, (spv_size_t) 0, deg + 1, file_reader, 
-          &state, NULL, NULL);
-      free (state.buf);
+      listz_iterator_t *buf;
+      buf = listz_iterator_init (F, 0);
+      ASSERT_ALWAYS (buf != NULL);
+      mpzspv_fromto_mpzv (ntt_handle, (spv_size_t) 0, deg + 1, 
+          (mpz_producerfunc_t)&listz_iterator_read, buf, NULL, NULL);
+      listz_iterator_clear (buf);
     }
   
   if (test_verbose(OUTPUT_TRACE))
@@ -1028,8 +726,6 @@ list_scale_V_ntt (listz_handle_t R, const listz_handle_t F,
     mpres_init (state.Vi, state.modulus);
     mpres_init (state.tmp, state.modulus);
     mpz_init (state.mpz);
-    state.buf = (file_word_t *) mpz_export (NULL, &state.bufsize, -1, 
-        sizeof(file_word_t), -1, 0, state.modulus->orig_modulus);
     
     /* Read and write i = 0, ..., deg */
     get_chunk (&start_i, &l, deg + 1);
@@ -1041,20 +737,20 @@ list_scale_V_ntt (listz_handle_t R, const listz_handle_t F,
       {
         state.mpzv_read = F->data.mem;
         state.mpzv_write = R->data.mem;
-        state.file_read = NULL;
-        state.file_write = NULL;
         mpzspv_fromto_mpzv (ntt_handle, (spv_size_t) 0, l, 
             &readerV, &state, &writerV, &state);
       }
     else
       {
-        state.mpzv_read = NULL;
-        state.mpzv_write = NULL;
-        /* FIXME clone file handles, seek to correct position */
-        state.file_read = F->data.file;
-        state.file_write = R->data.file;
-        rewind (state.file_read);
-        rewind (state.file_write);
+        state.readbuf = listz_iterator_init (F, state.index);
+        ASSERT_ALWAYS (state.readbuf != NULL);
+        if (F != R)
+          {
+            state.writebuf = listz_iterator_init (R, state.index);
+            ASSERT_ALWAYS (state.writebuf != NULL);
+          }
+        else
+          state.writebuf = state.readbuf;
         mpzspv_fromto_mpzv (ntt_handle, (spv_size_t) 0, l, 
             &readerV_file, &state, &writerV_file, &state);
       }
@@ -1072,6 +768,9 @@ list_scale_V_ntt (listz_handle_t R, const listz_handle_t F,
       } else {
         mpzspv_fromto_mpzv (ntt_handle, (spv_size_t) deg + 1, l, 
             NULL, NULL, &writerV_file, &state);
+        if (F != R)
+          listz_iterator_clear (state.writebuf);
+        listz_iterator_clear (state.readbuf);
       }
     
     mpres_clear (state.V1, state.modulus);
@@ -1080,10 +779,9 @@ list_scale_V_ntt (listz_handle_t R, const listz_handle_t F,
     mpres_clear (state.tmp, state.modulus);
     mpmod_clear (state.modulus);
     mpz_clear (state.mpz);
-    free (state.buf);
   }
 
-  list_output_poly_file (R, 2*deg + 1, 0, 1, "Gw(x) = ", 
+  listz_handle_output_poly (R, 2*deg + 1, 0, 1, "Gw(x) = ", 
       "; /* PARI list_scale_V_ntt */\n", OUTPUT_TRACE);
 
   /* Square the weighted F in NTT */
@@ -1096,26 +794,22 @@ list_scale_V_ntt (listz_handle_t R, const listz_handle_t F,
     state.index = 0;
     mpz_init_set (state.modulus, modulus->orig_modulus);
     mpz_init (state.mpz);
-    state.buf = (file_word_t *) mpz_export (NULL, &state.bufsize, -1, 
-      sizeof(file_word_t), -1, 0, state.modulus);
     if (R->storage == 0)
       {
         state.mpzv = R->data.mem;
-        state.file = NULL;
         mpzspv_fromto_mpzv (ntt_handle, (spv_size_t) 0, 2*deg + 1, 
             NULL, NULL, &writer_diff, &state);
       } else {
-        state.mpzv = NULL;
-        state.file = R->data.file;
-        rewind (state.file);
+        state.buf = listz_iterator_init (R, state.index);
+        ASSERT_ALWAYS (state.buf != NULL);
         mpzspv_fromto_mpzv (ntt_handle, (spv_size_t) 0, 2*deg + 1, 
             NULL, NULL, &writer_diff_file, &state);
+        listz_iterator_clear (state.buf);
       }
     mpz_clear (state.modulus);
     mpz_clear (state.mpz);
-    free (state.buf);
   }
-  list_output_poly_file (R, deg + 1, 0, 1, "list_scale_V_ntt: R = ", "\n", 
+  listz_handle_output_poly (R, deg + 1, 0, 1, "list_scale_V_ntt: R = ", "\n", 
     OUTPUT_TRACE);
 }
 
@@ -1437,8 +1131,14 @@ poly_from_sets_V (listz_handle_t F_param, const mpres_t Q, set_list_t *sets,
      a disk file */
   if (F_param->storage != 0)
     {
-      rewind (F_param->data.file);
-      write_residues (F_param->data.file, F, deg + 1, F_param->words);
+      uint64_t i;
+      listz_iterator_t *iter;
+      iter = listz_iterator_init2 (F_param, 0, deg + 1);
+      ASSERT_ALWAYS (iter != NULL);
+      for (i = 0; i < deg + 1; i++)
+        listz_iterator_write (iter, F[i]);
+      listz_iterator_clear (iter);
+      iter = NULL;
       F = NULL;
     }
 
@@ -1450,7 +1150,7 @@ poly_from_sets_V (listz_handle_t F_param, const mpres_t Q, set_list_t *sets,
 
       ASSERT_ALWAYS (c == 2);
       outputf (OUTPUT_DEVVERBOSE, " %lu", c);
-      list_output_poly_file (F_param, deg + 1, 0, 1, "poly_from_sets_V: F = ", "\n", 
+      listz_handle_output_poly (F_param, deg + 1, 0, 1, "poly_from_sets_V: F = ", "\n", 
         OUTPUT_TRACE);
       /* Check it's symmetric */
       ASSERT_ALWAYS (curr_set->elem[0] == -curr_set->elem[1]);
@@ -1508,7 +1208,7 @@ build_F_ntt (const mpres_t P_1, set_list_t *S_1,
       sprintf (filename_ntt, "%s.f", params->file_stem);
     }
   
-  F = listz_handle_init2 (filename_f, params->s_1 / 2 + 1 + 1, 
+  F = listz_handle_init (filename_f, params->s_1 / 2 + 1 + 1, 
     modulus->orig_modulus); /* Another +1 in len because 
     poly_from_sets_V stores the leading 1 monomial for each factor */
   free (filename_f);
@@ -1549,7 +1249,7 @@ build_F_ntt (const mpres_t P_1, set_list_t *S_1,
   ASSERT_ALWAYS(F->storage != 0 || mpz_cmp_ui (F->data.mem[i], 1UL) == 0);
   
   print_elapsed_time (OUTPUT_VERBOSE, timestart, realstart);
-  list_output_poly_file (F, params->s_1 / 2 + 1, 0, 1, "F(x) = ", 
+  listz_handle_output_poly (F, params->s_1 / 2 + 1, 0, 1, "F(x) = ", 
     " /* PARI build_F_ntt */\n", OUTPUT_TRACE);
   
 clear_and_exit:
@@ -1773,10 +1473,9 @@ pm1_sequence_g (listz_t g_mpz, mpzspv_handle_t g_handle, const mpres_t b_1,
 typedef struct {
   mpmod_t modulus;
   mpres_t fd[3]; /* finite differences table for r^{-i^2}*/
-  _listz_handle_t f;
+  listz_t f;
+  listz_iterator_t *buf;
   uint64_t index;
-  file_word_t *buf;
-  size_t bufsize;
 } pm1_h_state_t;
 
 static void
@@ -1784,21 +1483,31 @@ pm1_sequence_h_prod (void *state_p, mpz_t r)
 {
   pm1_h_state_t *state = state_p;
 
-  /* Get a coefficient of F, either from memory or file */
-  if (state->f.storage == 0) {
-    outputf (OUTPUT_TRACE, 
-             "/* pm1_sequence_h */ f_%" PRIu64 " = %Zd; /* PARI */\n", 
-             state->index, state->f.data.mem[state->index]);
-    mpres_mul_z_to_z (r, state->fd[2], state->f.data.mem[state->index], 
-      state->modulus);
-  } else {
-    seek_read_residue (state->f.data.file, r, state->buf, state->bufsize, 
-      state->index);
-    outputf (OUTPUT_TRACE, 
-             "/* pm1_sequence_h */ f_%" PRIu64 " = %Zd; /* PARI */\n", 
-             state->index, r);
-    mpres_mul_z_to_z (r, state->fd[2], r, state->modulus);
-  }
+  outputf (OUTPUT_TRACE, 
+           "/* pm1_sequence_h */ f_%" PRIu64 " = %Zd; /* PARI */\n", 
+           state->index, state->f[state->index]);
+  mpres_mul_z_to_z (r, state->fd[2], state->f[state->index], state->modulus);
+  outputf (OUTPUT_TRACE, 
+           "/* pm1_sequence_h */ h_%" PRIu64 " = %Zd; /* PARI */\n", 
+           state->index, r);
+  mpres_mul (state->fd[2], state->fd[2], state->fd[1], state->modulus); 
+    /* fd[2] = r^{-j^2} */
+  mpres_mul (state->fd[1], state->fd[1], state->fd[0], state->modulus); 
+    /* fd[1] = r^{-2*j-1} */
+  state->index++;
+}
+
+
+static void
+pm1_sequence_h_prod_file (void *state_p, mpz_t r)
+{
+  pm1_h_state_t *state = state_p;
+
+  listz_iterator_read (state->buf, r);
+  outputf (OUTPUT_TRACE, 
+           "/* pm1_sequence_h */ f_%" PRIu64 " = %Zd; /* PARI */\n", 
+           state->index, r);
+  mpres_mul_z_to_z (r, state->fd[2], r, state->modulus);
   outputf (OUTPUT_TRACE, 
            "/* pm1_sequence_h */ h_%" PRIu64 " = %Zd; /* PARI */\n", 
            state->index, r);
@@ -1861,16 +1570,12 @@ pm1_sequence_h (listz_handle_t h, mpzspv_handle_t ntt_handle, listz_handle_t f,
     mpres_init (state.fd[1], state.modulus);
     mpres_init (state.fd[2], state.modulus);
     state.index = offset;
-    state.f.storage = f->storage;
-    state.f.len = f->len;
-    state.buf = (file_word_t *) mpz_export (NULL, &state.bufsize, -1, 
-      sizeof(file_word_t), -1, 0, state.modulus->orig_modulus);
     if (f->storage == 0)
       {
-        state.f.data.mem = f->data.mem;
+        state.f = f->data.mem;
       } else {
-        /* FIXME Clone the file descriptor */
-        state.f.data.file = f->data.file;
+        state.buf = listz_iterator_init (f, 0);
+        ASSERT_ALWAYS (state.buf != NULL);
       }
 
     mpz_init (t);
@@ -1899,7 +1604,10 @@ pm1_sequence_h (listz_handle_t h, mpzspv_handle_t ntt_handle, listz_handle_t f,
         /* mpz version */
         for (i = 0; i < len; i++)
           {
-            pm1_sequence_h_prod (&state, h->data.mem[offset + i]);
+            if (f->storage == 0)
+              pm1_sequence_h_prod (&state, h->data.mem[offset + i]);
+            else
+              pm1_sequence_h_prod_file (&state, h->data.mem[offset + i]);
             outputf (OUTPUT_TRACE, 
                      "/* pm1_sequence_h */ h_%lu = %Zd; /* PARI */\n", 
                      offset + i, h->data.mem[offset + i]);
@@ -1907,15 +1615,20 @@ pm1_sequence_h (listz_handle_t h, mpzspv_handle_t ntt_handle, listz_handle_t f,
       } else {
         /* NTT version */
         /* FIXME: Need to print coefficients to make PARI check below work */
-        mpzspv_fromto_mpzv (ntt_handle, offset, len, 
-                            &pm1_sequence_h_prod, &state, NULL, NULL);
+        if (f->storage == 0)
+          mpzspv_fromto_mpzv (ntt_handle, offset, len, 
+                              &pm1_sequence_h_prod, &state, NULL, NULL);
+        else
+          mpzspv_fromto_mpzv (ntt_handle, offset, len, 
+                              &pm1_sequence_h_prod_file, &state, NULL, NULL);
       }
     
     mpres_clear (state.fd[2], state.modulus);
     mpres_clear (state.fd[1], state.modulus);
     mpres_clear (state.fd[0], state.modulus);
     mpmod_clear (state.modulus);
-    free (state.buf);
+    if (f->storage == 1)
+      listz_iterator_clear (state.buf);
   }
 
   mpres_clear (invr, modulus_parm);
@@ -2065,8 +1778,7 @@ typedef struct {
   mpmod_t modulus;
   mpres_t prod, tmpres;
   mpz_t sum;
-  file_word_t *buf;
-  listz_handle_t add;
+  listz_iterator_t *iter;
   uint64_t offset;
 } gcd_state_t;
 
@@ -2074,9 +1786,9 @@ static void
 gcd_consumer (void *state_p, const mpz_t s)
 {
   gcd_state_t *state = state_p;
-  if (state->add != NULL)
+  if (state->iter != NULL)
     {
-      listz_handle_get (state->add, state->sum, state->buf, state->offset);
+      listz_iterator_read (state->iter, state->sum);
       mpz_add (state->sum, state->sum, s);
       mpres_set_z_for_gcd (state->tmpres, state->sum, state->modulus);
     } else {
@@ -2132,12 +1844,11 @@ ntt_gcd (mpz_t f, mpz_t *product, mpzspv_handle_t ntt,
     mpres_init (state.tmpres, state.modulus);
     mpz_init (state.sum);
     mpres_set_ui (state.prod, 1UL, state.modulus);
-    state.add = add;
     state.offset = thread_offset;
     if (add != NULL)
-      state.buf = (file_word_t *) malloc (add->words * sizeof(file_word_t));
+      state.iter = listz_iterator_init (add, state.offset);
     else
-      state.buf = NULL;
+      state.iter = NULL;
     
     mpzspv_fromto_mpzv (ntt, ntt_offset + thread_offset, len, 
         NULL, NULL, &gcd_consumer, &state);
@@ -2150,7 +1861,8 @@ ntt_gcd (mpz_t f, mpz_t *product, mpzspv_handle_t ntt,
 #else
     mpres_set (totalprod, state.prod, state.modulus);
 #endif
-    free (state.buf);
+    if (add != NULL)
+      listz_iterator_clear (state.iter);
     mpres_clear (state.tmpres, state.modulus);
     mpres_clear (state.prod, state.modulus);
     mpmod_clear (state.modulus);
@@ -2409,7 +2121,7 @@ pm1fs2 (mpz_t f, const mpres_t X, mpmod_t modulus,
   /* Allocate the correct amount of space for each mpz_t or the 
      reallocations will up to double the time for stage 2! */
   mpz_init (mt);
-  F = listz_handle_init2 (NULL, params->s_1 / 2 + 1 + 1, 
+  F = listz_handle_init (NULL, params->s_1 / 2 + 1 + 1, 
     modulus->orig_modulus); /* Another +1 in len because 
     poly_from_sets_V stores the leading 1 monomial for each factor */
   h = malloc ((params->s_1 + 1) * sizeof (mpz_t));
@@ -2458,7 +2170,7 @@ pm1fs2 (mpz_t f, const mpres_t X, mpmod_t modulus,
   ASSERT(mpz_cmp_ui (F->data.mem[i], 1UL) == 0);
   
   outputf (OUTPUT_VERBOSE, " took %lums\n", cputime () - timestart);
-  list_output_poly_file (F, params->s_1 / 2 + 1, 0, 1, "f(x) = ", 
+  listz_handle_output_poly (F, params->s_1 / 2 + 1, 0, 1, "f(x) = ", 
                          "; /* PARI */ \n", OUTPUT_TRACE);
   
   mpz_set_ui (mt, params->P/2);
@@ -3405,11 +3117,11 @@ pp1_sequence_g (listz_t g_x, listz_t g_y, mpzspv_handle_t g_x_ntt,
 typedef struct {
   gfp_ext_t s[3], s2[2];
   mpres_t v[2], V2, tmp;
+  mpz_t Fi;
   mpmod_t modulus;
-  listz_handle_t f;
-  file_word_t *buf;
-  uint64_t i, offset;
-  int want_y;
+  listz_iterator_t *iter;
+  uint64_t i;
+  int want_x, want_y;
 } pp1_sequence_h_state_t;
 
 static void
@@ -3428,9 +3140,10 @@ pp1_sequence_h_get_x (void *statep, mpz_t r)
   mpres_mul (state->s2[imod2]->x, state->s2[imod2 ^ 1]->x, state->v[ imod2 ^ 1], state->modulus);
   mpres_sub (state->s2[imod2]->x, state->s2[imod2]->x, state->s[(imod3 + 1) % 3]->x, state->modulus);
 
-  listz_handle_get (state->f,  state->tmp, state->buf, state->i + state->offset);
-  mpres_mul_z_to_z (r, state->s[imod3]->x, state->tmp, state->modulus);
-  outputf (OUTPUT_DEVVERBOSE, "h_x,%lu = %Zd\n", state->i, r);
+  listz_iterator_read (state->iter, state->Fi);
+  outputf (OUTPUT_TRACE, "f_%lu = %Zd\n", state->i, state->Fi);
+  mpres_mul_z_to_z (r, state->s[imod3]->x, state->Fi, state->modulus);
+  outputf (OUTPUT_TRACE, "h_x,%lu = %Zd\n", state->i, r);
 
   if (!state->want_y)
     {
@@ -3454,9 +3167,11 @@ pp1_sequence_h_get_y (void *statep, mpz_t r)
   mpres_mul (state->s2[imod2]->y, state->s2[1 - imod2]->y, state->v[1 - imod2], state->modulus);
   mpres_sub (state->s2[imod2]->y, state->s2[imod2]->y, state->s[(imod3 + 1) % 3]->y, state->modulus);
 
-  listz_handle_get (state->f,  state->tmp, state->buf, state->i + state->offset);
-  mpres_mul_z_to_z (r, state->s[imod3]->y, state->tmp, state->modulus);
-  outputf (OUTPUT_DEVVERBOSE, "h_y,%lu = %Zd\n", state->i, r);
+  if (!state->want_x)
+    listz_iterator_read (state->iter, state->Fi);
+  outputf (OUTPUT_TRACE, "f_%lu = %Zd\n", state->Fi, r);
+  mpres_mul_z_to_z (r, state->s[imod3]->y, state->Fi, state->modulus);
+  outputf (OUTPUT_TRACE, "h_y,%lu = %Zd\n", state->i, r);
 
   /* v[i] = v[i - 1] * V_2(a + 1/a) - v[i - 2] */
   mpres_mul (state->tmp, state->v[1 - imod2], state->V2, state->modulus);
@@ -3524,7 +3239,7 @@ pp1_sequence_h (listz_t h_x, listz_t h_y, mpzspv_handle_t h_x_ntt, mpzspv_handle
     mpres_t tmp[2];
     mpz_t mt;
     uint64_t l, offset;
-    int64_t k = k_param;
+    int64_t k;
 
     /* When multi-threading, we adjust the parameters for each thread */
     get_chunk (&offset, &l, l_param);
@@ -3537,7 +3252,7 @@ pp1_sequence_h (listz_t h_x, listz_t h_y, mpzspv_handle_t h_x_ntt, mpzspv_handle
     /* Each thread computes r[i + offset] = b1^(-P*(k+i+offset)^2) * f_i 
        for i = 0, 1, ..., l-1, where l is the adjusted length of each thread */
 
-    k += offset;
+    k = k_param + offset;
 
     mpz_init (mt);
     /* Make thread-local copy of modulus */
@@ -3553,6 +3268,7 @@ pp1_sequence_h (listz_t h_x, listz_t h_y, mpzspv_handle_t h_x_ntt, mpzspv_handle
     gfp_ext_init (state.s[2], state.modulus);
     mpres_init (state.V2, state.modulus);
     mpres_init (state.tmp, state.modulus);
+    mpz_init (state.Fi);
     gfp_ext_init (rn, state.modulus);
     gfp_ext_init (tmp2, state.modulus);
     for (i = 0; i < tmplen; i++)
@@ -3689,24 +3405,24 @@ pp1_sequence_h (listz_t h_x, listz_t h_y, mpzspv_handle_t h_x_ntt, mpzspv_handle
     /* Compute the remaining r^((k+i)^2) values according to Peter's 
        recurrence */
     
+    state.want_x = want_x;
     state.want_y = want_y;
-    state.f = f;
-    state.buf = (file_word_t *) malloc (f->words * sizeof (file_word_t));
-    ASSERT_ALWAYS (state.buf != NULL);
     state.i = 2;
-    state.offset = offset;
+    state.iter = listz_iterator_init (f, offset + state.i);
+    ASSERT_ALWAYS (state.iter != NULL);
 
-    if (h_x_ntt != NULL && h_y_ntt == NULL && l > 2)
+    if (h_x_ntt != NULL && h_y_ntt == NULL && l > state.i)
       {
         /* These two cases are for use with -treefile where we handle coordinates separately */
-        mpzspv_fromto_mpzv (h_x_ntt, offset + 2, l - 2, &pp1_sequence_h_get_x, &state, NULL, NULL);
+        mpzspv_fromto_mpzv (h_x_ntt, offset + state.i, l - state.i, &pp1_sequence_h_get_x, &state, NULL, NULL);
       }
-    else if (h_x_ntt == NULL && h_y_ntt != NULL && l > 2)
+    else if (h_x_ntt == NULL && h_y_ntt != NULL && l > state.i)
       {
-        mpzspv_fromto_mpzv (h_y_ntt, offset + 2, l - 2, &pp1_sequence_h_get_y, &state, NULL, NULL);
+        mpzspv_fromto_mpzv (h_y_ntt, offset + state.i, l - state.i, &pp1_sequence_h_get_y, &state, NULL, NULL);
       }
-    else for (i = 2; i < l; i++)
+    else for (i = state.i; i < l; i++)
       {
+        /* FIXME do in-memory NTT properly */
 	if (h_x != NULL || h_x_ntt != NULL)
 	  {
 	    ASSERT (state.i == i);
@@ -3735,8 +3451,8 @@ pp1_sequence_h (listz_t h_x, listz_t h_y, mpzspv_handle_t h_x_ntt, mpzspv_handle
 	  }
       }
     
-    free (state.buf);
     /* Clear the local mpres_t variables */
+    listz_iterator_clear (state.iter);
     for (i = 0; i < 2; i++)
       {
 	gfp_ext_clear (state.s[i], state.modulus);
@@ -3746,6 +3462,7 @@ pp1_sequence_h (listz_t h_x, listz_t h_y, mpzspv_handle_t h_x_ntt, mpzspv_handle
     gfp_ext_clear (state.s[2], state.modulus);
     mpres_clear (state.V2, state.modulus);
     mpres_clear (state.tmp, state.modulus);
+    mpz_clear (state.Fi);
     gfp_ext_clear (rn, state.modulus);
     gfp_ext_clear (tmp2, state.modulus);
     for (i = 0; i < tmplen; i++)
@@ -3821,7 +3538,7 @@ pp1fs2 (mpz_t f, const mpres_t X, mpmod_t modulus,
   lenH = params->s_1 + 1;
   lenG = params->l;
   lenR = nr;
-  F = listz_handle_init2 (NULL, lenF, modulus->orig_modulus);
+  F = listz_handle_init (NULL, lenF, modulus->orig_modulus);
   fh_x = init_list2 (lenF, (unsigned int) abs (modulus->bits));
   fh_y = init_list2 (lenF, (unsigned int) abs (modulus->bits));
   h_x = malloc (lenH * sizeof (mpz_t));
@@ -4170,7 +3887,7 @@ pp1fs2_ntt (mpz_t f, const mpres_t X, mpmod_t modulus,
       g_y_ntt = g_x_ntt;
       if (params->file_stem != NULL)
         sprintf(filename, "%s.R", params->file_stem);
-      R = listz_handle_init2 (filename, nr, modulus->orig_modulus);
+      R = listz_handle_init (filename, nr, modulus->orig_modulus);
       free (filename);
     }
   else
@@ -4233,11 +3950,11 @@ pp1fs2_ntt (mpz_t f, const mpres_t X, mpmod_t modulus,
 	    mpzspv_fromto_mpzv (g_x_ntt, params->s_1 / 2, nr, NULL, NULL, NULL, R->data.mem);
           else
             {
-              void *buf = (file_word_t *) malloc (R->words * sizeof(file_word_t));
-              ASSERT_ALWAYS(buf != NULL);
-              listz_handle_state_t state = {R, 0, buf};
-              mpzspv_fromto_mpzv (g_x_ntt, params->s_1 / 2, nr, NULL, NULL, &listz_handle_write, &state);
-              free(buf);
+              listz_iterator_t *iter;
+              iter = listz_iterator_init (R, 0);
+              ASSERT_ALWAYS(iter != NULL);
+              mpzspv_fromto_mpzv (g_x_ntt, params->s_1 / 2, nr, NULL, NULL, &listz_iterator_write, iter);
+              listz_iterator_clear (iter);
             }
 	  print_elapsed_time (OUTPUT_VERBOSE, timestart, realstart);
 
@@ -4358,9 +4075,31 @@ testdrive_producer (void * const p, mpz_t r)
     mpz_sub (s[0], s[0], s[1]);
 }
 
+static void
+testdrive_print_elapsed (const long timestart, const long realstart, 
+                         const uint64_t len, const unsigned int sp_num, 
+                         const char *name)
+{
+   uint64_t bytes;
+   long timediff = cputime () - timestart;
+   long realdiff = realtime () - realstart;
+   
+   printf("%s took %lu ms, %lu ms elapsed\n", name, timediff, realdiff);
+   bytes = len * sp_num * sizeof(sp_t);
+   printf("%lu * %u * %lu = %lu bytes, %f MB/s\n", 
+           len, sp_num, sizeof(sp_t), bytes, 
+           bytes / (realdiff * 0.001) / 1048576.);
+}
+
+static void
+testdrive_consumer (void * const p, const mpz_t r)
+{
+  return;
+}
+
 int main (int argc, char **argv)
 {
-  uint64_t len = 0;
+  uint64_t len = 0, ntt_size;
   listz_handle_t F;  
   mpzspv_handle_t ntt_handle;
   mpz_t N;
@@ -4368,8 +4107,8 @@ int main (int argc, char **argv)
   mpzspm_t mpzspm;
   char *filename = NULL;
   int i;
-  int do_ntt = 0, do_pwmul = 0, do_intt = 0, do_gcd = 0, do_fill = 0;
-  long timestart, realstart, timediff, realdiff;
+  int do_ntt = 0, do_pwmul = 0, do_intt = 0, do_gcd = 0, do_fill = 0, do_read = 0;
+  long timestart, realstart;
   
   for (i = 1; i < argc; i++)
     {
@@ -4410,44 +4149,28 @@ int main (int argc, char **argv)
           do_fill = 1;
           continue;
         }
+      if (strcmp (argv[i], "-doread") == 0)
+        {
+          do_read = 1;
+          continue;
+        }
       mpz_init (N);
       mpz_set_str (N, argv[i], 10);
       mpmod_init (modulus, N, ECM_MOD_DEFAULT);
     }
 
-    if (do_ntt || do_pwmul || do_intt || do_gcd || do_fill)
+    if (do_ntt || do_pwmul || do_intt || do_gcd || do_fill || do_read)
       {
         ASSERT_ALWAYS (len != 0);
-        mpzspm = mpzspm_init (len, N);
+        ntt_size = 1<<ceil_log2(len);
+        mpzspm = mpzspm_init (ntt_size, N);
         do_aio_init (mpzspm->sp_num);
-        ntt_handle = mpzspv_init_handle (filename, len, mpzspm);
+        ntt_handle = mpzspv_init_handle (filename, ntt_size, mpzspm);
       }
-
-   if (do_gcd)
-     {
-       mpz_t f;
-       uint64_t bytes;
-       
-       mpz_init (f);
-       timestart = cputime ();
-       realstart = realtime ();
-       ntt_gcd (f, NULL, ntt_handle, 0, NULL, len, modulus);
-       timediff = cputime () - timestart;
-       realdiff = realtime () - realstart;
-       
-       printf("GCD took %lu ms, %lu ms elaped\n", timediff, realdiff);
-       bytes = len * mpzspm->sp_num * sizeof(sp_t);
-       printf("%lu * %u * %lu = %lu bytes, %f MB/s\n", 
-               len, mpzspm->sp_num, sizeof(sp_t), bytes, 
-               bytes / (realdiff * 0.001) / 1048576.);
-       
-       mpz_clear (f);
-     }
 
    if (do_fill)
      {
        mpz_t s[2];
-       uint64_t bytes;
 
        mpz_init (s[0]);
        mpz_init (s[1]);
@@ -4457,18 +4180,51 @@ int main (int argc, char **argv)
        realstart = realtime ();
        mpzspv_fromto_mpzv (ntt_handle, (spv_size_t) 0, len, 
                            &testdrive_producer, s, NULL, NULL);
-       timediff = cputime () - timestart;
-       realdiff = realtime () - realstart;
-       printf("Fill took %lu ms, %lu ms elaped\n", timediff, realdiff);
-       bytes = len * mpzspm->sp_num * sizeof(sp_t);
-       printf("%lu * %u * %lu = %lu bytes, %f MB/s\n", 
-               len, mpzspm->sp_num, sizeof(sp_t), bytes, 
-               bytes / (realdiff * 0.001) / 1048576.);
+       testdrive_print_elapsed (timestart, realstart, len, mpzspm->sp_num, 
+                                "Fill");
        mpz_clear (s[0]);
        mpz_clear (s[1]);
      }
 
-    if (do_ntt || do_pwmul || do_intt || do_gcd || do_fill)
+   if (do_read)
+     {
+       timestart = cputime ();
+       realstart = realtime ();
+       mpzspv_fromto_mpzv (ntt_handle, (spv_size_t) 0, len, 
+                           NULL, NULL, &testdrive_consumer, NULL);
+       testdrive_print_elapsed (timestart, realstart, len, mpzspm->sp_num, 
+                                "Read");
+     }
+
+   if (do_ntt || do_pwmul || do_intt)
+     {
+       timestart = cputime ();
+       realstart = realtime ();
+       mpzspv_mul_ntt (ntt_handle, 0, 
+                       ntt_handle, 0, len, 
+                       ntt_handle, 0, ntt_size, 
+                       ntt_size, 0, 0, 
+                       (do_ntt ? NTT_MUL_STEP_FFT1 : 0) + 
+                       (do_pwmul ? NTT_MUL_STEP_MUL : 0) +
+                       (do_intt ? NTT_MUL_STEP_IFFT : 0));
+       testdrive_print_elapsed (timestart, realstart, ntt_size, mpzspm->sp_num, 
+                                "NTT");
+     }
+
+   if (do_gcd)
+     {
+       mpz_t f;
+       
+       mpz_init (f);
+       timestart = cputime ();
+       realstart = realtime ();
+       ntt_gcd (f, NULL, ntt_handle, 0, NULL, len, modulus);
+       testdrive_print_elapsed (timestart, realstart, len, mpzspm->sp_num, 
+                                "GCD");
+       mpz_clear (f);
+     }
+
+    if (do_ntt || do_pwmul || do_intt || do_gcd || do_fill || do_read)
       {
         mpzspv_clear_handle (ntt_handle);
         mpzspm_clear (mpzspm);

@@ -35,7 +35,8 @@ libecm_la_SOURCES = ecm.c ecm2.c pm1.c pp1.c getprime.c listz.c lucas.c \
 		   schoen_strass.c ks-multiply.c rho.c bestd.c auxlib.c \
 		   random.c factor.c sp.c spv.c spm.c mpzspm.c mpzspv.c \
 		   ntt_gfp.c ecm_ntt.c pm1fs2.c pm1fs2_param.c sets_long.c \
-		   auxarith.c batch.c parametrizations.c cudawrapper.c
+		   auxarith.c batch.c parametrizations.c cudawrapper.c \
+		   listz_handle.c
 # Link the asm redc code (if we use it) into libecm.la
 libecm_la_CPPFLAGS = $(MULREDCINCPATH)
 libecm_la_CFLAGS = $(OPENMP_CFLAGS) -g
@@ -93,7 +94,7 @@ endif
 
 include_HEADERS = ecm.h
 noinst_HEADERS = basicdefs.h ecm-impl.h ecm-gmp.h ecm-ecm.h \
-		 sp.h longlong.h ecm-params.h \
+		 sp.h longlong.h ecm-params.h listz_handle.h \
                  mpmod.h ecm-gpu.h cudakernel.h 
 
 EXTRA_DIST = test.pm1 test.pp1 test.ecm README.lib INSTALL-ecm ecm.xml  \
