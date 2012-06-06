@@ -298,7 +298,7 @@ listz_iterator_init2 (listz_handle_t h, const uint64_t firstres,
 listz_iterator_t *  
 listz_iterator_init (listz_handle_t h, const uint64_t firstres)
 {
-  const size_t listz_iterator_nr_buffered = 4;
+  const size_t listz_iterator_nr_buffered = 4096;
   return listz_iterator_init2 (h, firstres, listz_iterator_nr_buffered);
 }
 
