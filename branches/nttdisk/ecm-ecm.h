@@ -96,7 +96,7 @@ int process_newfactor (mpz_t, int, mpcandi_t*, int, int, int, unsigned int*,
 /* auxlib.c */
 int  test_verbose (int);
 void set_verbose (int);
-int  inc_verbose ();
+int  inc_verbose (void);
 
 /* Return codes */
 /* Bit coded values: 1: error (for example out of memory)
@@ -110,8 +110,8 @@ int  inc_verbose ();
 #define ECM_PRIME_FAC_PRIME_COFAC (2+4+8)
 
 /* getprime.c */
-double getprime ();
-void getprime_clear ();
+double getprime (void);
+void getprime_clear (void);
 void getprime_seek (double);
 #define WANT_FREE_PRIME_TABLE(p) (p < 0.0)
 #define FREE_PRIME_TABLE -1.0

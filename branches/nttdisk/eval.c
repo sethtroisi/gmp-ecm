@@ -296,9 +296,10 @@ void eval_power (mpz_t prior_n, mpz_t n,char op)
       nStart = mpz_get_ui(n);
       mpz_set_ui(n,1);
       getprime_clear ();  /* free the prime tables, and reinitialize */
-      p = getprime (nStart);
+      getprime_seek (nStart);
+      p = getprime ();
       /*printf ("Reduced-primorial  %ld#%ld\n", nMax, nStart);*/
-      for (; p <= nMax; p = getprime (p))
+      for (; p <= nMax; p = getprime ())
 	{
 	  /* Unfortunately, the SoE within GMP-ECM does not always start
 	     correctly, so we have to skip the low end stuff by hand */
