@@ -152,7 +152,7 @@ void mpgocandi_t_free(mpgocandi_t *go);
 int  mpgocandi_fixup_with_N(mpgocandi_t *go, mpcandi_t *n);
 
 /* random.c */
-unsigned int get_random_ui (void);
+unsigned long get_random_ul (void);
 
 /* random2.c */
 void pp1_random_seed  (mpz_t, mpz_t, gmp_randstate_t);
