@@ -736,8 +736,8 @@ unsigned long find_factor (const unsigned long);
 void pp1_random_seed  (mpz_t, mpz_t, gmp_randstate_t);
 #define pm1_random_seed __ECM(pm1_random_seed)
 void pm1_random_seed  (mpz_t, mpz_t, gmp_randstate_t);
-#define get_random_ui   __ECM(get_random_ui)
-unsigned int get_random_ui (void);
+#define get_random_ul   __ECM(get_random_ul)
+unsigned long get_random_ul (void);
 
 /* Fgw.c */
 #ifdef HAVE_GWNUM

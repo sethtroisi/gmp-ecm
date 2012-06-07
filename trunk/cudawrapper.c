@@ -430,7 +430,7 @@ gpu_ecm (mpz_t f, mpz_t x, int *param, mpz_t firstsigma, mpz_t n, mpz_t go,
   if (sigma_is_A == 0 && mpz_sgn(firstsigma) == 0)
     {
       /*generate random one*/
-      mpz_set_ui (firstsigma, (get_random_ui() % (TWO32-2-*nb_curves)) + 2 );    
+      mpz_set_ui (firstsigma, (get_random_ul() % (TWO32-2-*nb_curves)) + 2 );    
     }
   else /* sigma should be in [2, 2^32-nb_curves] */
     {
