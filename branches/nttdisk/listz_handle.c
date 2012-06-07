@@ -246,7 +246,7 @@ listz_iterator_flush (listz_iterator_t *iter)
   size_t written;
 
   ASSERT (iter->handle->storage == 1);
-  if (!iter->dirty)
+  if (iter->writeptr == 0)
     return;
 
 #ifdef _OPENMP
@@ -259,7 +259,6 @@ listz_iterator_flush (listz_iterator_t *iter)
                       iter->handle->data.file);
   }
   ASSERT_ALWAYS (written == iter->writeptr);
-  iter->dirty = 0;
   iter->writeptr = 0;
 }
 
@@ -281,7 +280,6 @@ listz_iterator_init2 (listz_handle_t h, const uint64_t firstres,
     {
       iter->offset = firstres * iter->handle->words;
       iter->readptr = iter->writeptr = iter->valid = 0;
-      iter->dirty = 0;
       iter->bufsize = nr_buffered * iter->handle->words;
       iter->buf = malloc (iter->bufsize * sizeof(file_word_t));
       if (iter->buf == NULL) 
@@ -378,6 +376,5 @@ listz_iterator_write (listz_iterator_t *iter, const mpz_t r)
       ASSERT_ALWAYS (mpz_sgn (r) >= 0);
       export_residue (&iter->buf[iter->writeptr], iter->handle->words, r);
       iter->writeptr += iter->handle->words;
-      iter->dirty = 1;
     }
 }

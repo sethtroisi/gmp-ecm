@@ -32,7 +32,6 @@ typedef struct{
                                current buf. If handle is stored in memory,
                                points at the next mpz_t to read or write, 
                                resp. */
-  int dirty;
 } listz_iterator_t;
 
 listz_handle_t listz_handle_init (const char *, uint64_t, const mpz_t);
