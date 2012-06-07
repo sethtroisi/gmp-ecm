@@ -1910,16 +1910,45 @@ ntt_gcd (mpz_t f, mpz_t *product, mpzspv_handle_t ntt,
    where both t+1/t and V_{k_1}(P_1 + 1/P_1)) are in the base ring.
 */
 
+static void
+simple_V (mpz_t r, const mpz_t a, const int i, const mpz_t N)
+{
+  const unsigned int ui = (i >= 0) ? (unsigned int) i : (unsigned int) (-i);
+  unsigned int j;
+  mpz_t Vi, Vim1, t;
+  
+  mpz_init (Vi);
+  mpz_init (Vim1);
+  mpz_init (t);
+  mpz_set (Vim1, a); /* V_{-1}(a) */
+  mpz_set_ui (Vi, 2); /* V_0(a) */
+  for (j = 0; j < ui; j++)
+    {
+      mpz_mul (t, Vi, a);
+      mpz_sub (t, t, Vim1);
+      mpz_set (Vim1, Vi);
+      mpz_mod (Vi, t, N);
+    }
+
+  mpz_set (r, Vi);  
+  mpz_clear (Vi);
+  mpz_clear (Vim1);
+  mpz_clear (t);
+}
+
 static void 
 pm1_eval_slow (const mpz_t checkval, const set_list_t *S1, const mpz_t b1, 
                const uint64_t P, const mpz_t m1, const uint64_t m, 
                const int64_t k2, const mpz_t N)
 {
+#define PM1_EVAL_SLOW_MOD 210
+  const int sievemod = PM1_EVAL_SLOW_MOD;
   uint32_t *iterator;
   unsigned long timestart, realstart;
-  mpz_t B1B, V2B, x0, X, X1X, r, e, product, tmp;
+  mpz_t B1B, VmB, x0, X, X1X, r, e, product, tmp;
   int extgcd_ok;
-  uint64_t degree = 0, maxS, i, evenodd[2]; /* even = [0], odd = [1] */
+  uint64_t degree = 0, maxS, i;
+  char seen[PM1_EVAL_SLOW_MOD];
   char *bitfield;
   int j;
   
@@ -1940,7 +1969,7 @@ pm1_eval_slow (const mpz_t checkval, const set_list_t *S1, const mpz_t b1,
   mpz_init (X);
   mpz_init (X1X);
   mpz_init (B1B);
-  mpz_init (V2B);
+  mpz_init (VmB);
   mpz_init (tmp);
   mpz_init (product);
   mpz_set_ui (product, 1);
@@ -1952,14 +1981,14 @@ pm1_eval_slow (const mpz_t checkval, const set_list_t *S1, const mpz_t b1,
   ASSERT_ALWAYS(bitfield != NULL);
   iterator = sets_init_iterator (S1);
   ASSERT_ALWAYS(iterator != NULL);
-  evenodd[0] = evenodd[1] = 0;
+  memset (seen, 0, sizeof(seen));
+
   while (!sets_end_of_iter (iterator, S1))
     {
       const int64_t k1 = sets_next_iter (iterator, S1);
       if (k1 >= 0)
         {
-          evenodd[0] |= k1 ^ 1; /* LSB indicates whether there are any even k1 */
-          evenodd[1] |= k1;     /* ... any odd k1 */
+          seen[k1 % sievemod] = 1;
           ASSERT_ALWAYS ((uint64_t) k1 <= maxS);
           ASSERT_ALWAYS ((bitfield[k1 / 8] & (1 << (k1 % 8))) == 0);
           /* printf ("pm1_eval_slow(): k1 = %" PRId64 "\n", k1); */
@@ -1969,10 +1998,11 @@ pm1_eval_slow (const mpz_t checkval, const set_list_t *S1, const mpz_t b1,
   free (iterator);
   ASSERT_ALWAYS ((bitfield[maxS / 8] & (1 << (maxS % 8))) != 0);
 
-  evenodd[0] &= 1;
-  evenodd[1] &= 1;
-  outputf (OUTPUT_DEVVERBOSE, "\nmaxS = %" PRIu64 ", even = %d, odd = %d\n", 
-          maxS, evenodd[0] != 0 ? 1 : 0, evenodd[1] != 0 ? 1 : 0);
+  outputf (OUTPUT_DEVVERBOSE, "\nmaxS = %" PRIu64 ", seen = ", maxS);
+  for (j = 0; j < sievemod; j++)
+    if (seen[j])
+      outputf (OUTPUT_DEVVERBOSE, "%d, ", j);
+  outputf (OUTPUT_DEVVERBOSE, "\n");
 
   /* See section 8 of ANTS paper */
   mpz_set_uint64 (e, P);
@@ -2009,26 +2039,19 @@ pm1_eval_slow (const mpz_t checkval, const set_list_t *S1, const mpz_t b1,
   mpz_add (B1B, B1B, b1);
   mpz_mod (B1B, B1B, N);
 
-  mpz_mul (V2B, B1B, B1B);
-  mpz_sub_ui (V2B, V2B, 2); /* V_2(x) = x^2 - 2, V2B = V_2(B1B) */
+  simple_V (VmB, B1B, sievemod, N);
   
-  for (j = 0; j < 2; j++)
-    if (evenodd[j] != 0)
+  for (j = 0; j < sievemod; j++)
+    if (seen[j])
       {
-        mpz_t ViB, Vim2B;
-        /* We start at index i = j (either 0 or 1) */
+        mpz_t ViB, Vim1B;
+        /* We start at index i = j */
         mpz_init (ViB);
-        mpz_init (Vim2B);
-        if (j == 0)
-          {
-            mpz_set_ui (ViB, 2); /* ViB = V_i(B1B) = 2 with i=0 */
-            mpz_set (Vim2B, V2B);  /* Vim2B = V_{i-2}(B1B) = V_2(B1B) with i=0 */
-          } else {
-            mpz_set (ViB, B1B); /* ViB = V_i(B1B) = B1B with i=1 */
-            mpz_set (Vim2B, B1B); /* Vim2B = V_{i-2}(B1B) = B1B with i=1 */
-          }
+        mpz_init (Vim1B);
+        simple_V (ViB, B1B, j, N);
+        simple_V (Vim1B, B1B, j - sievemod, N);
 
-        for (i = j; i <= maxS; i += 2)
+        for (i = j; i <= maxS; i += sievemod)
           {
             if ((bitfield[i / 8] & (1 << (i % 8))) != 0)
               {
@@ -2043,13 +2066,13 @@ pm1_eval_slow (const mpz_t checkval, const set_list_t *S1, const mpz_t b1,
                 mpz_mod (product, product, N);
               }
             
-            mpz_mul (tmp, ViB, V2B);
-            mpz_sub (tmp, tmp, Vim2B);
-            mpz_set (Vim2B, ViB);
+            mpz_mul (tmp, ViB, VmB);
+            mpz_sub (tmp, tmp, Vim1B);
+            mpz_set (Vim1B, ViB);
             mpz_mod (ViB, tmp, N);
           }
         mpz_clear (ViB);
-        mpz_clear (Vim2B);
+        mpz_clear (Vim1B);
       }
 
   outputf (OUTPUT_DEVVERBOSE, "degree = %" PRIu64 ", maxS / degree = %f\n", 
@@ -2081,7 +2104,7 @@ pm1_eval_slow (const mpz_t checkval, const set_list_t *S1, const mpz_t b1,
   mpz_clear (x0);
   mpz_clear (r);
   mpz_clear (X);
-  mpz_clear (V2B);
+  mpz_clear (VmB);
   mpz_clear (B1B);
   mpz_clear (X1X);
   mpz_clear (tmp);
