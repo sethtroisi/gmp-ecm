@@ -252,7 +252,7 @@ mpzspv_set (mpzspv_handle_t r, const spv_size_t r_offset,
 }
 
 void
-mpzspv_revcopy (mpzspv_handle_t r, const spv_size_t r_offset, 
+mpzspv_reverse (mpzspv_handle_t r, const spv_size_t r_offset, 
     const mpzspv_handle_t x, const spv_size_t x_offset, const spv_size_t len)
 {
   unsigned int i;
@@ -370,34 +370,6 @@ mpzspv_add (mpzspv_handle_t r, const spv_size_t r_offset,
     }
 }
 
-void
-mpzspv_reverse (mpzspv_handle_t x, const spv_size_t offset, 
-                const spv_size_t len)
-{
-  unsigned int i;
-  spv_size_t j;
-  sp_t t;
-  spv_t spv;
-  
-  if (x->storage == 1)
-    {
-      /* Not implemented yet */
-      abort();
-    }
-
-  ASSERT (mpzspv_verify_in (x, offset, len));
-  
-  for (i = 0; i < x->mpzspm->sp_num; i++)
-    {
-      spv = x->mem[i] + offset;
-      for (j = 0; j < len - 1 - j; j++)
-        {
-	  t = spv[j];
-	  spv[j] = spv[len - 1 - j];
-	  spv[len - 1 - j] = t;
-	}
-    }
-}
 
 /* convert mpz to CRT representation, naive version */
 static void
@@ -1367,7 +1339,7 @@ mpzspv_mul_ntt (mpzspv_handle_t r, const spv_size_t offsetr,
 }
 
 
-/* Computes a DCT-I of the length dctlen. Input is the spvlen coefficients
+/* Computes a DCT-I of length dctlen. Input is the spvlen coefficients
    in spv. FIXME: handle wrap-around in input data */
 
 void
@@ -1379,6 +1351,8 @@ mpzspv_to_dct1 (mpzspv_handle_t dct, const mpzspv_handle_t spv,
   int j;
 
   ASSERT_ALWAYS (dct->mpzspm == spv->mpzspm);
+  ASSERT (mpzspv_verify_out (dct, 0, dctlen));
+  ASSERT (mpzspv_verify_in (spv, 0, spvlen));
 
 #ifdef _OPENMP
 #pragma omp parallel
@@ -1462,13 +1436,13 @@ mpzspv_to_dct1 (mpzspv_handle_t dct, const mpzspv_handle_t spv,
       {
         spv_t out_buf = IN_MEMORY(dct) ? dct->mem[j] : tmp;
         const sp_t coeff_1 = tmp[1];
-        for (i = 0; i < ntt_size / 2; i++)
+        for (i = 0; i < dctlen - 1; i++)
           out_buf[i] = tmp[i * 2];
-        out_buf[ntt_size / 2] = coeff_1;
+        out_buf[dctlen - 1] = coeff_1;
         if (ON_DISK(dct))
           {
             /* Write data back to file */
-            spv_seek_and_write (tmp, dctlen + 1, 0, dct->files[j]);
+            spv_seek_and_write (tmp, dctlen, 0, dct->files[j]);
           }
       }
 

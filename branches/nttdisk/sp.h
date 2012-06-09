@@ -613,10 +613,9 @@ int mpzspv_verify_in (mpzspv_handle_t, spv_size_t, spv_size_t);
 int mpzspv_verify_out (mpzspv_handle_t, spv_size_t, spv_size_t);
 void mpzspv_set (mpzspv_handle_t, spv_size_t, mpzspv_handle_t, spv_size_t, 
     spv_size_t);
-void mpzspv_revcopy (mpzspv_handle_t, spv_size_t, mpzspv_handle_t, spv_size_t, 
+void mpzspv_reverse (mpzspv_handle_t, spv_size_t, mpzspv_handle_t, spv_size_t, 
     spv_size_t);
 void mpzspv_set_sp (mpzspv_handle_t, spv_size_t, sp_t, spv_size_t);
-void mpzspv_reverse (mpzspv_handle_t, spv_size_t, spv_size_t);
 void mpzspv_neg (mpzspv_handle_t, spv_size_t, mpzspv_handle_t, spv_size_t, 
     spv_size_t);
 void mpzspv_add (mpzspv_handle_t, spv_size_t, mpzspv_handle_t, spv_size_t, 

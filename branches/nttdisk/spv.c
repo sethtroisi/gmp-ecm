@@ -100,10 +100,22 @@ spv_rev (spv_t r, spv_t x, spv_size_t len)
 {
   spv_size_t i;
   
-  ASSERT (r >= x + len || x >= r + len);
+  if (x == r)
+    {
+      for (i = 0; i < len - 1 - i; i++)
+        {
+          sp_t t = x[i];
+          x[i] = x[len - 1 - i];
+          x[len - 1 - i] = t;
+        }
+    }
+  else
+    {
+      ASSERT (r >= x + len || x >= r + len);
 
-  for (i = 0; i < len; i++)
-    r[i] = x[len - 1 - i];
+      for (i = 0; i < len; i++)
+        r[i] = x[len - 1 - i];
+    }
 }
 
 /* r = [y, y, ... ] */

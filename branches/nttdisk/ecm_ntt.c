@@ -359,7 +359,7 @@ ntt_polyevalT (mpzv_t b, spv_size_t len, mpzv_t *Tree, mpzv_t T,
                  NTT_MUL_STEP_FFT1 + NTT_MUL_STEP_MUL + NTT_MUL_STEP_IFFT);
   mpzspv_normalise (x, len - 1, len);
   mpzspv_set (y, 0, x, len - 1, len); /* y = high (b * invF) */
-  mpzspv_reverse (y, 0, len); /* y = rev (high (b * invF)) */
+  mpzspv_reverse (y, 0, y, 0, len); /* y = rev (high (b * invF)) */
   
   for (m = len / 2; m >= POLYEVALT_NTT_THRESHOLD; m /= 2)
     {
