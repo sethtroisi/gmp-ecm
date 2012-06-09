@@ -37,7 +37,6 @@ MA 02110-1301, USA. */
 #endif
 #include "ecm-impl.h"
 
-#define MPZSPV_MUL_NTT_OPENMP 0
 #define TRACE_ntt_sqr_reciprocal 0
 #define TRACE_ntt_mul 0
 #define WANT_PROFILE 0
@@ -906,13 +905,6 @@ spv_add_or_mul_file (spv_t r, const spv_t x, FILE *f, const spv_size_t f_offset,
   ASSERT(wrap_size > 0);
   ASSERT(block_len <= wrap_size); /* We assume at most 1 wrap per block */
 
-  if (fseek (f, f_offset * sizeof(sp_t), SEEK_SET) != 0)
-    {
-      fprintf (stderr, "%s(): fseek() returned error %d\n", 
-               __func__, errno);
-      abort ();
-    }
-
   tmp_block = (spv_t) sp_aligned_malloc (block_len * sizeof (sp_t));
   if (tmp_block == NULL) 
     {
@@ -928,7 +920,7 @@ spv_add_or_mul_file (spv_t r, const spv_t x, FILE *f, const spv_size_t f_offset,
         MIN(nr_now, wrap_size - offset_within_wrap);
       const spv_size_t len_after_wrap = nr_now - len_before_wrap;
 
-      fread (tmp_block, sizeof(sp_t), nr_now, f);
+      spv_seek_and_read (tmp_block, nr_now, f_offset + nr_read, f);
 
       if (add_or_mul == 0)
         spv_add (r + offset_within_wrap, x + nr_read, tmp_block, 
@@ -1197,9 +1189,12 @@ mpzspv_mul_ntt (mpzspv_handle_t r, const spv_size_t offsetr,
   /* Need parallelization at higher level (e.g., handling a branch of the 
      product tree in one thread) to make this worthwhile for ECM */
 
-#if defined(_OPENMP) && MPZSPV_MUL_NTT_OPENMP
+#if defined(_OPENMP)
 #pragma omp parallel if (ntt_size > 32768)
+#endif
   {
+
+#if defined(_OPENMP)
 #pragma omp for
 #endif
   for (i = 0; i < (int) mpzspm->sp_num; i++)
@@ -1254,16 +1249,11 @@ mpzspv_mul_ntt (mpzspv_handle_t r, const spv_size_t offsetr,
 #if WANT_PROFILE
               realstart = realtime();
 #endif
-#if defined(_OPENMP) && MPZSPV_MUL_NTT_OPENMP
-#pragma omp critical
-#endif
-              {
-                spv_seek_and_read (tmp, MIN(ntt_size, lenx), offsetx, 
-                                  x->files[i]);
-                if (ntt_size < lenx)
-                  spv_add_or_mul_file (tmp, tmp, x->files[i], offsetx + lenx, 
-                                   lenx - ntt_size, ntt_size, block_len, 0, spm);
-              }
+              spv_seek_and_read (tmp, MIN(ntt_size, lenx), offsetx, 
+                                 x->files[i]);
+              if (ntt_size < lenx)
+                spv_add_or_mul_file (tmp, tmp, x->files[i], offsetx + lenx, 
+                                 lenx - ntt_size, ntt_size, block_len, 0, spm);
 #if WANT_PROFILE
               printf("%s(): read vector %d started at %lu took %lu ms\n", 
                      __func__, i, realstart, realtime() - realstart);
@@ -1368,9 +1358,7 @@ mpzspv_mul_ntt (mpzspv_handle_t r, const spv_size_t offsetr,
             sp_aligned_free (tmp);
         }
     }
-#if defined(_OPENMP) && MPZSPV_MUL_NTT_OPENMP
   }
-#endif
 
 #if TRACE_ntt_mul
   if (r != NULL)
@@ -1393,8 +1381,11 @@ mpzspv_to_dct1 (mpzspv_handle_t dct, const mpzspv_handle_t spv,
   ASSERT_ALWAYS (dct->mpzspm == spv->mpzspm);
 
 #ifdef _OPENMP
-#pragma omp parallel private(j)
+#pragma omp parallel
+#endif
   {
+
+#ifdef _OPENMP
 #pragma omp for
 #endif
   for (j = 0; j < (int) spv->mpzspm->sp_num; j++)
@@ -1483,9 +1474,7 @@ mpzspv_to_dct1 (mpzspv_handle_t dct, const mpzspv_handle_t spv,
 
       sp_aligned_free(tmp);
     }
-#ifdef _OPENMP
   }
-#endif
 }
 
 
@@ -1655,7 +1644,6 @@ mpzspv_sqr_reciprocal (mpzspv_handle_t x, const spv_size_t n)
 {
   const spv_size_t log2_n = ceil_log_2 (n);
   const spv_size_t len = ((spv_size_t) 2) << log2_n;
-  int j;
 
   ASSERT(x->mpzspm->max_ntt_size % 3UL == 0UL);
   ASSERT(len % 3UL != 0UL);
@@ -1663,7 +1651,11 @@ mpzspv_sqr_reciprocal (mpzspv_handle_t x, const spv_size_t n)
 
 #ifdef _OPENMP
 #pragma omp parallel
+#endif
   {
+    int j;
+
+#ifdef _OPENMP
 #pragma omp for
 #endif
     for (j = 0; j < (int) (x->mpzspm->sp_num); j++)
@@ -1694,9 +1686,7 @@ mpzspv_sqr_reciprocal (mpzspv_handle_t x, const spv_size_t n)
             sp_aligned_free (tmp);
           }
       }
-#ifdef _OPENMP
     }
-#endif
 }
 
 static int 

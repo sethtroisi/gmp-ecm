@@ -5,6 +5,9 @@
 #ifdef HAVE_FCNTL_H
 #include <fcntl.h>
 #endif
+#ifdef _OPENMP
+#include <omp.h>
+#endif
 #include "listz_handle.h"
 
 /* Init a listz_handle_t to store up to len residues (modulo m). 

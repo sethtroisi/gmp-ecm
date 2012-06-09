@@ -531,14 +531,20 @@ spv_seek_and_read (spv_t ptr, const spv_size_t nread, const spv_size_t offset,
   /* FIXME: use 64 bit types portably */
   const long foffset = offset * sizeof(sp_t);
   
-  if (ftell(f) != foffset && fseek (f, foffset, SEEK_SET) != 0)
-    {
-      fprintf (stderr, "%s(): fseek() returned error %d\n", 
-               __func__, errno);
-      abort ();
-    }
-  
-  r = fread(ptr, sizeof(sp_t), nread, f);
+#if defined(_OPENMP)
+#pragma omp critical
+#endif
+  {
+    if (ftell(f) != foffset && fseek (f, foffset, SEEK_SET) != 0)
+      {
+        fprintf (stderr, "%s(): fseek() returned error %d\n", 
+                 __func__, errno);
+        abort ();
+      }
+    
+    r = fread(ptr, sizeof(sp_t), nread, f);
+  }
+
   if (r != nread)
     {
       fprintf (stderr, "%s(): Error reading data, r = %lu, errno = %d\n",
@@ -558,21 +564,29 @@ spv_seek_and_write (const spv_t ptr, const spv_size_t nwrite,
   /* FIXME: use 64 bit types portably */
   const long foffset = offset * sizeof(sp_t);
 
-  if (ftell(f) != foffset && fseek (f, foffset, SEEK_SET) != 0)
+#if defined(_OPENMP)
+#pragma omp critical
+#endif
   {
-    fprintf (stderr, "%s(): fseek() returned error %d\n", 
-             __func__, errno);
-    abort ();
+    if (ftell(f) != foffset && fseek (f, foffset, SEEK_SET) != 0)
+    {
+      fprintf (stderr, "%s(): fseek() returned error %d\n", 
+               __func__, errno);
+      abort ();
+    }
+    
+    r = fwrite(ptr, sizeof(sp_t), nwrite, f);
+
+    if (r == nwrite)
+      fflush(f); /* FIXME: Do we want this flush? */
   }
   
-  r = fwrite(ptr, sizeof(sp_t), nwrite, f);
   if (r != nwrite)
     {
       fprintf (stderr, "%s(): Error writing data, r = %lu, errno = %d\n",
                __func__, (unsigned long) r, errno);
       abort();
     }
-  fflush(f);
 
   return r;
 }

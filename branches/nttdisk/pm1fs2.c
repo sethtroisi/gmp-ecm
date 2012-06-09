@@ -38,7 +38,7 @@ http://www.gnu.org/licenses/ or write to the Free Software Foundation, Inc.,
 #ifdef HAVE_STRING_H
 #include <string.h>
 #endif
-#ifdef _OPENMP
+#if defined(_OPENMP)
 #include <omp.h>
 #endif
 #ifdef HAVE_AIO_H
@@ -83,7 +83,7 @@ list_output_poly (listz_t l, uint64_t len, int monic, int symmetric,
 static void 
 get_chunk (uint64_t *chunk_start, uint64_t *chunk_len, const uint64_t len)
 {
-#ifdef _OPENMP
+#if defined(_OPENMP)
   if(omp_in_parallel())
     {
       const int nr_chunks = omp_get_num_threads();
@@ -118,7 +118,6 @@ static void
 print_elapsed_time (int verbosity, long cpu_start, 
 		    ATTRIBUTE_UNUSED long real_start)
 {
-// #ifdef _OPENMP
   if (real_start != 0L)
     {
       outputf (verbosity, " took %lums (%lums real)\n", 
@@ -126,7 +125,6 @@ print_elapsed_time (int verbosity, long cpu_start,
 	       elltime (real_start, realtime()));
       return;
     }
-// #endif
   outputf (verbosity, " took %lums\n", elltime (cpu_start, cputime()));
 }
 
@@ -622,7 +620,7 @@ writerV_file (void * const p, const mpz_t r)
 typedef struct {
   mpz_t *mpzv;
   listz_iterator_t *buf;
-  size_t index;
+  uint64_t index;
   mpz_t mpz, modulus;
 } stateD_t;
 
@@ -693,12 +691,20 @@ list_scale_V_ntt (listz_handle_t R, const listz_handle_t F,
         NULL, NULL);
   else
     {
-      listz_iterator_t *buf;
-      buf = listz_iterator_init (F, 0);
-      ASSERT_ALWAYS (buf != NULL);
-      mpzspv_fromto_mpzv (ntt_handle, (spv_size_t) 0, deg + 1, 
-          (mpz_producerfunc_t)&listz_iterator_read, buf, NULL, NULL);
-      listz_iterator_clear (buf);
+#if defined(_OPENMP)
+#pragma omp parallel if (deg > 1000)
+#endif
+      {
+        listz_iterator_t *iter;
+        uint64_t l, start_i;
+
+        get_chunk (&start_i, &l, deg + 1);
+        iter = listz_iterator_init (F, start_i);
+        ASSERT_ALWAYS (iter != NULL);
+        mpzspv_fromto_mpzv (ntt_handle, (spv_size_t) start_i, l, 
+            (mpz_producerfunc_t)&listz_iterator_read, iter, NULL, NULL);
+        listz_iterator_clear (iter);
+      }
     }
   
   if (test_verbose(OUTPUT_TRACE))
@@ -717,7 +723,7 @@ list_scale_V_ntt (listz_handle_t R, const listz_handle_t F,
     /* Convert F^2 from NTT, add weights and store in F[0, ..., 2*deg], 
        at the same time add weights to F[0, ..., deg] and store that in NTT */
     stateV_t state;
-    uint64_t l, start_i;
+    uint64_t l;
 
     mpmod_init_set (state.modulus, modulus);
     mpres_init (state.V1, state.modulus);
@@ -728,16 +734,15 @@ list_scale_V_ntt (listz_handle_t R, const listz_handle_t F,
     mpz_init (state.mpz);
     
     /* Read and write i = 0, ..., deg */
-    get_chunk (&start_i, &l, deg + 1);
-    state.index = start_i;
-    V (state.Vi_1, state.V1, (int64_t) start_i - 1, state.modulus);
-    V (state.Vi, state.V1, start_i, state.modulus);
+    get_chunk (&state.index, &l, deg + 1);
+    V (state.Vi_1, state.V1, (int64_t) state.index - 1, state.modulus);
+    V (state.Vi, state.V1, state.index, state.modulus);
 
     if (F->storage == 0)
       {
         state.mpzv_read = F->data.mem;
         state.mpzv_write = R->data.mem;
-        mpzspv_fromto_mpzv (ntt_handle, (spv_size_t) 0, l, 
+        mpzspv_fromto_mpzv (ntt_handle, (spv_size_t) state.index, l, 
             &readerV, &state, &writerV, &state);
       }
     else
@@ -752,7 +757,7 @@ list_scale_V_ntt (listz_handle_t R, const listz_handle_t F,
         else
           state.writebuf = state.readbuf;
 
-        mpzspv_fromto_mpzv (ntt_handle, (spv_size_t) 0, l, 
+        mpzspv_fromto_mpzv (ntt_handle, (spv_size_t) state.index, l, 
             &readerV_file, &state, &writerV_file, &state);
 
         if (F != R)
@@ -763,20 +768,19 @@ list_scale_V_ntt (listz_handle_t R, const listz_handle_t F,
       }
     
     /* Write the remaining i = deg+1, ..., 2*deg+1 */
-    get_chunk (&start_i, &l, deg);
-    start_i += deg + 1;
-    state.index = start_i;
-    V (state.Vi_1, state.V1, (int64_t) start_i - 1, state.modulus);
-    V (state.Vi, state.V1, start_i, state.modulus);
+    get_chunk (&state.index, &l, deg);
+    state.index += deg + 1;
+    V (state.Vi_1, state.V1, (int64_t) state.index - 1, state.modulus);
+    V (state.Vi, state.V1, state.index, state.modulus);
     if (F->storage == 0)
       {
-        mpzspv_fromto_mpzv (ntt_handle, (spv_size_t) deg + 1, l, 
+        mpzspv_fromto_mpzv (ntt_handle, (spv_size_t) state.index, l, 
             NULL, NULL, &writerV, &state);
       } else {
         state.writebuf = listz_iterator_init (R, state.index);
         ASSERT_ALWAYS (state.writebuf != NULL);
 
-        mpzspv_fromto_mpzv (ntt_handle, (spv_size_t) deg + 1, l, 
+        mpzspv_fromto_mpzv (ntt_handle, (spv_size_t) state.index, l, 
             NULL, NULL, &writerV_file, &state);
 
         listz_iterator_clear (state.writebuf);
@@ -798,21 +802,26 @@ list_scale_V_ntt (listz_handle_t R, const listz_handle_t F,
   mpzspv_sqr_reciprocal (ntt_handle, deg + 1);
   
   /* Convert from NTT and take half the difference from R */
+#if defined(_OPENMP)
+#pragma omp parallel if (deg > 1000)
+#endif
   {
     stateD_t state;
+    uint64_t l;
     
-    state.index = 0;
     mpz_init_set (state.modulus, modulus->orig_modulus);
     mpz_init (state.mpz);
+    get_chunk (&state.index, &l, 2*deg + 1);
+
     if (R->storage == 0)
       {
         state.mpzv = R->data.mem;
-        mpzspv_fromto_mpzv (ntt_handle, (spv_size_t) 0, 2*deg + 1, 
+        mpzspv_fromto_mpzv (ntt_handle, (spv_size_t) state.index, l, 
             NULL, NULL, &writer_diff, &state);
       } else {
         state.buf = listz_iterator_init (R, state.index);
         ASSERT_ALWAYS (state.buf != NULL);
-        mpzspv_fromto_mpzv (ntt_handle, (spv_size_t) 0, 2*deg + 1, 
+        mpzspv_fromto_mpzv (ntt_handle, (spv_size_t) state.index, l, 
             NULL, NULL, &writer_diff_file, &state);
         listz_iterator_clear (state.buf);
       }
@@ -888,7 +897,7 @@ list_scale_V (listz_t R, const listz_t F, const mpres_t Q,
   /* Compute G[i] = V_i(Q) * G[i] for i = 0, ..., 2*deg
      and H[i] = V_i(Q) * F[i] for i = 0, ..., deg. */
 
-#if defined(_OPENMP)
+#if defined(WANT_OPENMP) && defined(_OPENMP)
 #pragma omp parallel if (deg > 1000)
 #endif
   {
@@ -1311,8 +1320,8 @@ pm1_sequence_g (listz_t g_mpz, mpzspv_handle_t g_handle, const mpres_t b_1,
   timestart = cputime ();
   realstart = realtime ();
 
-#ifdef _OPENMP
-#pragma omp parallel if (l_param > 100) private(i)
+#if defined(_OPENMP)
+#pragma omp parallel if (l_param > 100)
 #endif
   {
     uint64_t M, l, offset;
@@ -1327,11 +1336,14 @@ pm1_sequence_g (listz_t g_mpz, mpzspv_handle_t g_handle, const mpres_t b_1,
     get_chunk (&offset, &l, l_param);
     M = M_param - offset;
 
-#ifdef _OPENMP
-    outputf (OUTPUT_DEVVERBOSE, 
-             "pm1_sequence_g: thread %d has l = %" PRIu64 
-             ", offset = %" PRIu64 ", M = %" PRIu64 ".\n", 
-             omp_get_thread_num(), l, offset, M);
+#if defined(_OPENMP)
+#pragma omp critical
+    {
+      outputf (OUTPUT_DEVVERBOSE, 
+               "pm1_sequence_g: thread %d has l = %" PRIu64 
+               ", offset = %" PRIu64 ", M = %" PRIu64 ".\n", 
+               omp_get_thread_num(), l, offset, M);
+    }
     
     /* Let only the master thread print stuff */
     want_output = (omp_get_thread_num() == 0);
@@ -1484,7 +1496,7 @@ typedef struct {
   mpmod_t modulus;
   mpres_t fd[3]; /* finite differences table for r^{-i^2}*/
   listz_t f;
-  listz_iterator_t *buf;
+  listz_iterator_t *iter;
   uint64_t index;
 } pm1_h_state_t;
 
@@ -1513,7 +1525,7 @@ pm1_sequence_h_prod_file (void *state_p, mpz_t r)
 {
   pm1_h_state_t *state = state_p;
 
-  listz_iterator_read (state->buf, r);
+  listz_iterator_read (state->iter, r);
   outputf (OUTPUT_TRACE, 
            "/* pm1_sequence_h */ f_%" PRIu64 " = %Zd; /* PARI */\n", 
            state->index, r);
@@ -1560,7 +1572,7 @@ pm1_sequence_h (listz_handle_t h, mpzspv_handle_t ntt_handle, listz_handle_t f,
   timestart = cputime ();
   realstart = realtime ();
 
-#ifdef _OPENMP
+#if defined(_OPENMP)
 #pragma omp parallel if (d > 100)
 #endif
   {
@@ -1570,9 +1582,11 @@ pm1_sequence_h (listz_handle_t h, mpzspv_handle_t ntt_handle, listz_handle_t f,
 
     /* Adjust offset and length for this thread */
     get_chunk (&offset, &len, d);
-#ifdef _OPENMP
-    if (omp_get_thread_num() == 0)
+#if defined(_OPENMP)
+#pragma omp master
+    {
       outputf (OUTPUT_VERBOSE, " using %d threads", omp_get_num_threads());
+    }
 #endif
     
     mpmod_init_set (state.modulus, modulus_parm);
@@ -1584,8 +1598,8 @@ pm1_sequence_h (listz_handle_t h, mpzspv_handle_t ntt_handle, listz_handle_t f,
       {
         state.f = f->data.mem;
       } else {
-        state.buf = listz_iterator_init (f, 0);
-        ASSERT_ALWAYS (state.buf != NULL);
+        state.iter = listz_iterator_init (f, offset);
+        ASSERT_ALWAYS (state.iter != NULL);
       }
 
     mpz_init (t);
@@ -1638,7 +1652,7 @@ pm1_sequence_h (listz_handle_t h, mpzspv_handle_t ntt_handle, listz_handle_t f,
     mpres_clear (state.fd[0], state.modulus);
     mpmod_clear (state.modulus);
     if (f->storage == 1)
-      listz_iterator_clear (state.buf);
+      listz_iterator_clear (state.iter);
   }
 
   mpres_clear (invr, modulus_parm);
@@ -1833,14 +1847,14 @@ ntt_gcd (mpz_t f, mpz_t *product, mpzspv_handle_t ntt,
   mpres_init (totalprod, modulus_param);
   mpres_set_ui (totalprod, 1UL, modulus_param);
 
-#ifdef _OPENMP
+#if defined(_OPENMP)
 #pragma omp parallel if (len_param > 100) shared(totalprod)
-  {
 #endif
+  {
     gcd_state_t state;
     uint64_t len, thread_offset;
 
-#ifdef _OPENMP
+#if defined(_OPENMP)
 #pragma omp master
     {
       outputf (OUTPUT_VERBOSE, " using %d threads", omp_get_num_threads());
@@ -1863,23 +1877,20 @@ ntt_gcd (mpz_t f, mpz_t *product, mpzspv_handle_t ntt,
     mpzspv_fromto_mpzv (ntt, ntt_offset + thread_offset, len, 
         NULL, NULL, &gcd_consumer, &state);
 
-#ifdef _OPENMP
+#if defined(_OPENMP)
 #pragma omp critical
+#endif
     {
       mpres_mul (totalprod, totalprod, state.prod, state.modulus);
     }
-#else
-    mpres_set (totalprod, state.prod, state.modulus);
-#endif
+
     if (add != NULL)
       listz_iterator_clear (state.iter);
     mpres_clear (state.tmpres, state.modulus);
     mpres_clear (state.prod, state.modulus);
     mpmod_clear (state.modulus);
     mpz_clear (state.sum);
-#ifdef _OPENMP
   }
-#endif
 
   {
     mpz_t n;
@@ -2484,9 +2495,6 @@ pm1fs2_ntt (mpz_t f, const mpres_t X, mpmod_t modulus,
 
   /* Compute the DCT-I of h */
   outputf (OUTPUT_VERBOSE, "Computing DCT-I of h");
-#ifdef _OPENMP
-  outputf (OUTPUT_VERBOSE, " using %d threads", omp_get_thread_limit());
-#endif
   if (test_verbose (OUTPUT_TRACE))
     {
       mpzspv_print (h_handle, 0, params->s_1 / 2 + 1, "h_ntt");
@@ -2529,9 +2537,6 @@ pm1fs2_ntt (mpz_t f, const mpres_t X, mpmod_t modulus,
 
       /* Do the convolution */
       outputf (OUTPUT_VERBOSE, "Computing g*h");
-#ifdef _OPENMP
-      outputf (OUTPUT_VERBOSE, " using %d threads", omp_get_thread_limit());
-#endif
       timestart = cputime ();
       realstart = realtime ();
       mpzspv_mul_ntt (g_handle, 0, g_handle, 0, params->l, 
@@ -2925,8 +2930,8 @@ pp1_sequence_g (listz_t g_x, listz_t g_y, mpzspv_handle_t g_x_ntt,
   realstart = realtime ();
 
   /* When multi-threading, we adjust the parameters for each thread */
-#ifdef _OPENMP
-#pragma omp parallel if (l > 100)
+#if defined(_OPENMP)
+#pragma omp parallel if (l_param > 100)
 #endif
   {
     pp1_sequence_g_state_t state;
@@ -2937,7 +2942,7 @@ pp1_sequence_g (listz_t g_x, listz_t g_y, mpzspv_handle_t g_x_ntt,
     int want_output = 1;
     const uint64_t tmplen = sizeof(tmp) / sizeof(mpres_t);
   
-#ifdef _OPENMP
+#if defined(_OPENMP)
     want_output = (omp_get_thread_num() == 0);
     if (want_output)
       outputf (OUTPUT_VERBOSE, " using %d threads", omp_get_num_threads());
@@ -3223,7 +3228,6 @@ pp1_sequence_h (listz_t h_x, listz_t h_y, mpzspv_handle_t h_x_ntt, mpzspv_handle
 		const uint64_t P, const mpres_t Delta, 
 		mpmod_t modulus_param)
 {
-  uint64_t i;
   long timestart, realstart;
   const int want_x = (h_x != NULL || h_x_ntt != NULL);
   const int want_y = (h_y != NULL || h_y_ntt != NULL);
@@ -3244,6 +3248,7 @@ pp1_sequence_h (listz_t h_x, listz_t h_y, mpzspv_handle_t h_x_ntt, mpzspv_handle
   if (test_verbose (OUTPUT_TRACE))
     {
       mpz_t t;
+      uint64_t i;
       mpz_init (t);
       mpres_get_z (t, Delta, modulus_param);
       outputf (OUTPUT_TRACE, "\n/* pp1_sequence_h */ N = %Zd; "
@@ -3262,8 +3267,8 @@ pp1_sequence_h (listz_t h_x, listz_t h_y, mpzspv_handle_t h_x_ntt, mpzspv_handle
       mpz_clear (t);
     }
 
-#ifdef _OPENMP
-#pragma omp parallel if (l_param > 100) private(i)
+#if defined(_OPENMP)
+#pragma omp parallel if (l_param > 100)
 #endif
   {
     const uint64_t tmplen = 2;
@@ -3271,12 +3276,12 @@ pp1_sequence_h (listz_t h_x, listz_t h_y, mpzspv_handle_t h_x_ntt, mpzspv_handle
     gfp_ext_t rn, tmp2;
     mpres_t tmp[2];
     mpz_t mt;
-    uint64_t l, offset;
+    uint64_t i, l, offset;
     int64_t k;
 
     /* When multi-threading, we adjust the parameters for each thread */
     get_chunk (&offset, &l, l_param);
-#ifdef _OPENMP
+#if defined(_OPENMP)
     if (omp_get_thread_num() == 0)
       outputf (OUTPUT_VERBOSE, " using %d threads", omp_get_num_threads());
     outputf (OUTPUT_TRACE, "\n");
@@ -3318,7 +3323,7 @@ pp1_sequence_h (listz_t h_x, listz_t h_y, mpzspv_handle_t h_x_ntt, mpzspv_handle
     gfp_ext_pow_norm1_sl (state.s[0], tmp2, k, Delta, state.modulus, tmplen, tmp);
     if (test_verbose (OUTPUT_TRACE))
       {
-#ifdef _OPENMP
+#if defined(_OPENMP)
 #pragma omp critical
 #endif
 	{
@@ -3341,7 +3346,7 @@ pp1_sequence_h (listz_t h_x, listz_t h_y, mpzspv_handle_t h_x_ntt, mpzspv_handle
 	/* Now s[1] = r^(-(k^2 + 2k + 1)) = r^(-(k+1)^2) */
 	if (test_verbose (OUTPUT_TRACE))
 	  {
-#ifdef _OPENMP
+#if defined(_OPENMP)
 #pragma omp critical
 #endif
 	    {
@@ -3358,7 +3363,7 @@ pp1_sequence_h (listz_t h_x, listz_t h_y, mpzspv_handle_t h_x_ntt, mpzspv_handle
     gfp_ext_mul (state.s2[0], state.s[0], tmp2, Delta, state.modulus, tmplen, tmp);
     if (test_verbose (OUTPUT_TRACE))
       {
-#ifdef _OPENMP
+#if defined(_OPENMP)
 #pragma omp critical
 #endif
 	{
@@ -3372,7 +3377,7 @@ pp1_sequence_h (listz_t h_x, listz_t h_y, mpzspv_handle_t h_x_ntt, mpzspv_handle
     gfp_ext_mul (state.s2[1], state.s[1], tmp2, Delta, state.modulus, tmplen, tmp);
     if (test_verbose (OUTPUT_TRACE))
       {
-#ifdef _OPENMP
+#if defined(_OPENMP)
 #pragma omp critical
 #endif
 	{
@@ -3392,7 +3397,7 @@ pp1_sequence_h (listz_t h_x, listz_t h_y, mpzspv_handle_t h_x_ntt, mpzspv_handle
     mpres_sub_ui (state.V2, state.V2, 2UL, state.modulus); /* V2 = 4*a_x^2 - 2 */
     if (test_verbose (OUTPUT_TRACE))
       {
-#ifdef _OPENMP
+#if defined(_OPENMP)
 #pragma omp critical
 #endif
 	{
@@ -3455,8 +3460,7 @@ pp1_sequence_h (listz_t h_x, listz_t h_y, mpzspv_handle_t h_x_ntt, mpzspv_handle
       }
     else for (i = state.i; i < l; i++)
       {
-        /* FIXME do in-memory NTT properly */
-	if (h_x != NULL || h_x_ntt != NULL)
+	if (state.want_x)
 	  {
 	    ASSERT (state.i == i);
 	    if (h_x != NULL)
@@ -3469,7 +3473,7 @@ pp1_sequence_h (listz_t h_x, listz_t h_y, mpzspv_handle_t h_x_ntt, mpzspv_handle
 	      }
 	  }
 	
-	if (h_y != NULL || h_y_ntt != NULL)
+	if (state.want_y)
 	  {
 	    ASSERT (state.i == i);
 	    /* Same for y coordinate */
@@ -3511,6 +3515,7 @@ pp1_sequence_h (listz_t h_x, listz_t h_y, mpzspv_handle_t h_x_ntt, mpzspv_handle
 
   if (h_x != NULL && h_y != NULL && test_verbose (OUTPUT_TRACE))
     {
+      uint64_t i;
       for (i = 0; i < l_param; i++)
 	gmp_printf ("/* pp1_sequence_h */ (rn^((k+%" PRIu64 ")^2) * f_%" 
 	            PRIu64 ") == "
@@ -3931,18 +3936,12 @@ pp1fs2_ntt (mpz_t f, const mpres_t X, mpmod_t modulus,
   
   /* Compute DCT-I of h_x and h_y */
   outputf (OUTPUT_VERBOSE, "Computing DCT-I of h_x");
-#ifdef _OPENMP
-  outputf (OUTPUT_VERBOSE, " using %d threads", omp_get_thread_limit());
-#endif
   timestart = cputime ();
   realstart = realtime ();
   mpzspv_to_dct1 (h_x_ntt, h_x_ntt, params->s_1 / 2 + 1, params->l / 2 + 1);
   print_elapsed_time (OUTPUT_VERBOSE, timestart, realstart);
 
   outputf (OUTPUT_VERBOSE, "Computing DCT-I of h_y");
-#ifdef _OPENMP
-  outputf (OUTPUT_VERBOSE, " using %d threads", omp_get_thread_limit());
-#endif
   timestart = cputime ();
   realstart = realtime ();
   mpzspv_to_dct1 (h_y_ntt, h_y_ntt, params->s_1 / 2 + 1, params->l / 2 + 1);
@@ -3970,9 +3969,6 @@ pp1fs2_ntt (mpz_t f, const mpres_t X, mpmod_t modulus,
 
 	  /* Do the convolution product of g_x * h_x */
 	  outputf (OUTPUT_VERBOSE, "Computing g_x*h_x");
-#ifdef _OPENMP
-          outputf (OUTPUT_VERBOSE, " using %d threads", omp_get_thread_limit());
-#endif
 	  timestart = cputime ();
 	  realstart = realtime ();
           mpzspv_mul_ntt (g_x_ntt, 0, g_x_ntt, 0, params->l, h_x_ntt, 0, params->l / 2 + 1,
@@ -3999,9 +3995,6 @@ pp1fs2_ntt (mpz_t f, const mpres_t X, mpmod_t modulus,
 	  
 	  /* Do the convolution product of g_y * (Delta * h_y) */
 	  outputf (OUTPUT_VERBOSE, "Computing g_y*h_y");
-#ifdef _OPENMP
-          outputf (OUTPUT_VERBOSE, " using %d threads", omp_get_thread_limit());
-#endif
 	  timestart = cputime ();
 	  realstart = realtime ();
           mpzspv_mul_ntt (g_y_ntt, 0, g_y_ntt, 0, params->l, h_y_ntt, 0, params->l / 2 + 1,
@@ -4021,9 +4014,6 @@ pp1fs2_ntt (mpz_t f, const mpres_t X, mpmod_t modulus,
 			  modulus);
 
 	  outputf (OUTPUT_VERBOSE, "Computing forward NTT of g_x");
-#ifdef _OPENMP
-          outputf (OUTPUT_VERBOSE, " using %d threads", omp_get_thread_limit());
-#endif
 	  timestart = cputime ();
 	  realstart = realtime ();
           mpzspv_mul_ntt (g_x_ntt, 0, g_x_ntt, 0, params->l, h_x_ntt, 0, params->l / 2 + 1,
@@ -4032,9 +4022,6 @@ pp1fs2_ntt (mpz_t f, const mpres_t X, mpmod_t modulus,
 	  print_elapsed_time (OUTPUT_VERBOSE, timestart, realstart);
 	  
 	  outputf (OUTPUT_VERBOSE, "Computing forward NTT of g_y");
-#ifdef _OPENMP
-          outputf (OUTPUT_VERBOSE, " using %d threads", omp_get_thread_limit());
-#endif
 	  timestart = cputime ();
 	  realstart = realtime ();
           mpzspv_mul_ntt (g_y_ntt, 0, g_y_ntt, 0, params->l, h_y_ntt, 0, params->l / 2 + 1,
@@ -4043,9 +4030,6 @@ pp1fs2_ntt (mpz_t f, const mpres_t X, mpmod_t modulus,
 	  print_elapsed_time (OUTPUT_VERBOSE, timestart, realstart);
 	  
 	  outputf (OUTPUT_VERBOSE, "Adding and computing inverse NTT of sum");
-#ifdef _OPENMP
-          outputf (OUTPUT_VERBOSE, " using %d threads", omp_get_thread_limit());
-#endif
 	  timestart = cputime ();
 	  realstart = realtime ();
 	  mpzspv_add (g_x_ntt, (spv_size_t) 0, g_x_ntt, (spv_size_t) 0, 
