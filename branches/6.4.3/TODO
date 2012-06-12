@@ -78,7 +78,7 @@ Table of contents:
 - implement enhanced standard continuation? With graph cover algorithm?
 - parallel/distributed stage 2?
 - add curve selection for torsion group of order 8 or 16, see Montgomery's
-  thesis (request of Peter-Lawrence Montgomery)
+  thesis (request of Peter Lawrence Montgomery)
 - Torbj"orn Granlund suggested faster code for mpn_mod_1(), used extensively
   in NTT. See
     http://lists.gforge.inria.fr/pipermail/ecm-discuss/2008-May/003365.html

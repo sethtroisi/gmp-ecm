@@ -713,7 +713,7 @@ product code, the autoconf/automake tools, and is the maintainer of the
 Debian package;</para>
 <para>Alexander Kruppa &lt;(lastname)al@loria.fr&gt; contributed 
 estimates for probability of success for ECM, 
-the new P+1 and P-1 stage 2 (with P.-L. Montgomery), 
+the new P+1 and P-1 stage 2 (with P. L. Montgomery), 
 new AMD64 asm mulredc code, and some other things;</para>
 <para>Dave Newman &lt;david.(lastname)@jesus.ox.ac.uk&gt;
 contributed the Kronecker-Schoenhage and NTT multiplication code;</para>
