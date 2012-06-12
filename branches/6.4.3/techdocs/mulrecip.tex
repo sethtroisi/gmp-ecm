@@ -1,0 +1,231 @@
+\documentclass{article}
+\usepackage{amsmath}
+\usepackage{amsfonts}
+\usepackage{amssymb}
+\begin{document}
+\newcommand{\Z}{\mathbb{Z}}
+\newcommand{\Zn}[1]{(\Z/{#1}\Z)^{*}}
+\newcommand{\tf}{\tilde{f}}
+\newcommand{\tg}{\tilde{g}}
+\newcommand{\rev}{\textrm{rev}}
+
+\title{Multiplication of reciprocal Laurent polynomials with a discrete 
+       weighted transform}
+\author{A. Kruppa}
+\maketitle
+
+\begin{abstract}
+This note attempts to develop a method for multiplying two reciprocal
+Laurent polynomials of degrees $\leq n - 2$ using two regular polynomial
+multiplications degree $\leq n/2 - 1$ each, or with a weighted DFT of 
+length $n$.
+\end{abstract}
+
+\section{Multiplying reciprocal Laurent polynomials}
+
+Let $f(x)$ be a reciprocal Laurent polynomial
+\begin{displaymath}
+f(x) = f_0 + \sum_{i=1}^{d_f} f_i (x^i + x^{-i})
+\end{displaymath}
+of degree $2d_f$ and $\tf(x) = \tf_0 + \sum_{i=1}^{d_f} \tf_i x^i$ with
+$\tf_0 = f_0 / 2, \tf_i = f_i \textrm{ for } i>0$ a polynomial so that
+$f(x) = \tf(x) + \tf(1/x)$. Likewise for $g(x)$ and $\tg(x)$.
+Their product $h(x) = f(x)g(x)$ is a reciprocal Laurent polynomial of degree
+$2(d_f + d_g)$, $h(x) = h_0 + \sum_{i=1}^{d_f + d_g} h_i (x^i + x^{-i})$.
+
+\subsection{Without DWT}
+
+Let $\rev(\tf(x)) = x^{d_f} \tf(1/x)$ denote the polynomial with 
+reversed sequence of coefficients. We have $\rev(\rev(\tf(x))) = \tf(x)$ and
+$\rev(\tf(x) \tg(x)) = \rev(\tf(x)) \rev(\tg(x))$.
+Let $\lfloor f(x) \rfloor$ denote a 
+polynomial whose coefficients at non-negative exponents of $x$ are equal to 
+those in $f(x)$, and whose coefficients at negative exponents of $x$ are 
+$0$. We have 
+$\lfloor f(x) + g(x) \rfloor = \lfloor f(x) \rfloor + \lfloor g(x) \rfloor$.
+
+Now we can compute the product
+\begin{eqnarray*}
+   &   & f(x)g(x) \\
+   & = & (\tf(x) + \tf(1/x)) (\tg(x) + \tg(1/x)) \\
+   & = & \tf(x) \tg(x) + \tf(x) \tg(1/x) + \tf(1/x)\tg(x) + \tf(1/x)\tg(1/x) \\
+%   & = & \tf(x) \tg(x) + x^{-d_g} \tf(x) \rev(\tg(x)) + x^{-d_f} \rev(\tf(x))\tg(x) + \tf(1/x)\tg(1/x) \\
+   & = & \tf(x) \tg(x) + x^{-d_g} \tf(x) \rev(\tg(x)) + x^{-d_f} \rev(\tf(x) \rev(\tg(x))) + \tf(1/x)\tg(1/x)
+\end{eqnarray*}
+but we only want to store the coefficients at non-negative exponents in the 
+product, so
+\begin{eqnarray*}
+   &   & \lfloor f(x)g(x) \rfloor \\
+   & = & \tf(x) \tg(x) + \lfloor x^{-d_g} \tf(x) \rev(\tg(x)) \rfloor + \lfloor x^{-d_f} \rev(\tf(x) \rev(\tg(x))) \rfloor + \tf_0 \tg_0.
+\end{eqnarray*}
+
+We can compute this with two multiplications of a degree $d_f$ and a 
+degree $d_g$ polynomial, as well as $d_f + d_g + 2$ additions and one doubling
+of the $\tf_0 \tg_0$ term in $\tf(x) \tg(x)$. If an FFT based 
+multiplication routine is used, the forward transform of $\tf$ can be re-used
+directly, and the forward transform of $\tg$ can be reused by observing that
+the $i$-th coefficient in the length $l$ DFT of $\tg(x)$ is 
+$\tg(\omega^i)$, $\omega^l=1$, and in the DFT of $rev(\tg(x))$ is
+$\omega^{id_g} \tg(\omega^{l-i})$, so the coefficients at indices $1 \ldots l-1$ 
+only need to be reversed in order and suitably weighted. (I haven't acrtually 
+tried this idea of re-using the forward transform)
+
+\subsection{With DWT}
+
+The product RLP $h(x)$ of degree $2d_h = 2(d_f+d_g)$ has $d_h + 1$ 
+possibly distinct coefficients in standard basis which we can obtain from
+a discrete weighted FFT convolution of length $l \geq d_h + 1$.
+
+Suppose we compute $\hat{h}(x) = f(x) \cdot g(x) \bmod (x^l - 1/a)$, then
+\begin{eqnarray*}
+  \hat{h}(x) & = & h_0 + \sum_{i=1}^{d_h} h_i (x^i + ax^{l-i}) \\
+             & = & \sum_{i=0}^{d_h} h_i x^i + \sum_{i=1}^{d_h} ah_i x^{l-i}\\
+             & = & \sum_{i=0}^{d_h} h_i x^i + \sum_{i=l-d_h}^{l-1} ah_{l-i} x^i\\
+             & = & \sum_{i=0}^{l-d_h-1} h_i x^i + 
+                   \sum_{i=l-d_h}^{d_h} (h_i + ah_{l-i}) x^i +
+                   \sum_{i=d_h+1}^{l-1} ah_{l-i} x^{i} 
+\end{eqnarray*}
+
+For $l-d_h \leq i < l/2$, $\hat{h}_i = h_i + ah_{l-i}$ and 
+$\hat{h}_{l-i} = ah_i + h_{l-i}$. With $a=1$ as in an unweighted FFT,
+$h_i$ and $h_{n-i}$ cannot be separated as $\hat{h}_i = \hat{h}_{l-i}$. 
+With $a=-1$, they cannot be separated either, as 
+$\hat{h}_i = - \hat{h}_{l-i}$. 
+With, e.g., $a=\sqrt{-1}$, we have
+\begin{eqnarray*}
+a (h_i + ah_{l-i}) - (ah_i + h_{l-i}) & = & (a^2-1) h_{l-i} \\
+ & = & -2 h_{l-i}
+\end{eqnarray*}
+so we can separate $h_i$ and $h_{l-i}$. Hence after processing
+\begin{eqnarray*}
+\hat{h}_{l-i} & := & -(a \hat{h}_i - \hat{h}_{l-i})/2 \\
+\hat{h}_i & := & \hat{h}_i - a\hat{h}_{l-i}
+\end{eqnarray*}
+for $l-d_h \leq i < l/2$, we have the desired coefficients $h_i$ for 
+$0 \leq i \leq d_h$ in $\hat{h}_i$.
+
+
+% Vecdiv(a,b)={if(length(a)!=length(b),error("Vecdiv: vectors of unequal length"));vector(length(a),i,a[i]/b[i])}
+% Vecmul(a,b)={if(length(a)!=length(b),error("Vecdiv: vectors of unequal length"));vector(length(a),i,a[i]*b[i])}
+% Vecdiv(Vecrev(Polrev([f0,f1*w,f2*w^2,f3*w^3,0*w^4,f3*w^-3,f2*w^-2,f1*w^-1])^2 % (x^8-1)), [1,w^1,w^-6,w^-5,w^-4,w^-3,w^-2,w^-1])
+
+% (Vecrev((f0 + f1*(x+1/x) + f2*(x^2+1/x^2) + f3*(x^3+1/x^3) + f4*(x^4+1/x^4))^2 % (x^10-w^10)) - Vecdiv(Vecrev(Polrev(Vecmul([f0,f1,f2,f3,f4,0,f4,f3,f2,f1],[1,w,w^2,w^3,w^4,w^5,w^-4,w^-3,w^-2,w^-1]))^2 % (x^10-1)), [1,w^1,w^2,w^3,w^4,w^5,w^6,w^7,w^8,w^9]))
+
+% (Vecrev(f(x)^2 % (x^10-w^10)) - Vecdiv(Vecrev(Polrev(Vecrev(f(w*x) % (x^10-1)))^2 % (x^10-1)), [1,w^1,w^2,w^3,w^4,w^5,w^6,w^7,w^8,w^9]))
+
+To obtain the desired product $\bmod{(x^l-1/a)}$, we can choose a  
+constant $w^l=1/a$ and compute the product
+$h(wx) \bmod{(x^l-1)} = 
+(f(wx) \bmod{(x^l-1)} \cdot g(wx) \bmod{(x^l-1)}) \bmod {(x^l-1)}$. We have
+\begin{eqnarray*}
+ h(wx) \bmod{(x^l-1)} & = & \sum_{i=0}^{d_h} (w^i h_i x^i + w^{-i} h_i x^{l-i}) \\
+ & = & \sum_{i=0}^{d_h} w^i h_i x^i + \sum_{i=0}^{d_h} w^{-i} h_i x^{l-i} \\
+ & = & \sum_{i=0}^{d_h} w^i h_i x^i + \sum_{i=l-d_h}^l w^{i-l} h_{l-i} x^i \\
+ & = & \sum_{i=0}^{l-d_h-1} w^i h_i x^i + \sum_{i=l-d_h}^l (w^i h_i + w^{i-l} h_{l-i}) x^i \\
+ & = & \sum_{i=0}^{l-d_h-1} w^i h_i x^i + \sum_{i=l-d_h}^l w^i (h_i + a h_{l-i}) x^i
+\end{eqnarray*}
+so dividing the $i$-th coefficient by $w^i$ yields $\hat{h}_i$ as desired.
+
+For example, with two degree $6$ reciprocal Laurent polynomials and a length 
+$8$ convolution, the coefficient vectors of $f(wx) \bmod{(x^8-1)}$ and 
+$g(wx) \bmod{(x^8-1)}$ 
+are $(f_0, w f_1, w^2 f_2, w^3 f_3, 0, w^{-3} f_3, w^{-2} f_2, w^{-1} f_1)$ 
+and \\ 
+$(g_0, w g_1, w^2 g_2, w^3 g_3, 0, w^{-3} g_3, w^{-2} g_2, w^{-1} g_1)$, 
+respectively.
+Their product $\bmod{(x^8-1)}$ has coefficient vector
+\begin{eqnarray*}
+&& (f_0 g_0 + 2(f_1 g_1 + f_2 g_2 + f_3 g_3), \\
+&& (f_1 g_0 + (f_0 + f_2) g_1 + (f_1 + f_3) g_2 + f_2 g_3) w, \\
+&& ((f_2 g_0 + (f_1 + f_3) g_1 + f_0 g_2 + f_1 g_3) w^8 + f_3 g_3)/w^6, \\
+&& ((f_3 g_0 + f_2 g_1 + f_1 g_2 + f_0 g_3) w^8 + f_3 g_2 + f_2 g_3)/w^5, \\
+&& ((f_3 g_1 + f_2 g_2 + f_1 g_3) w^8 + f_3 g_1 + f_2 g_2 + f_1 g_3)/w^4, \\
+ && ((f_3 g_2 + f_2 g_3) w^8 + f_3 g_0 + f_2 g_1 + f_1 g_2 + f_0 g_3)/w^3, \\
+&& (f_3 g_3 w^8 + f_2 g_0 + (f_1 + f_3) g_1 + f_0 g_2 + f_1 g_3)/w^2, \\
+&& (f_1 g_0 + (f_0 + f_2) g_1 + (f_1 + f_3) g_2 + f_2 g_3)/w).
+\end{eqnarray*}
+With 
+\begin{eqnarray*}
+&& h_0 = f_0 g_0 + 2 f_1 g_1 + 2 f_2 g_2 + 2 f_3 g_3 \\
+&& h_1 = f_1 g_0 + (f_0 + f_2) g_1 + (f_1 + f_3) g_2 + f_2 g_3 \\
+&& h_2 = f_2 g_0 + (f_1 + f_3) g_1 + f_0 g_2 + f_1 g_3 \\
+&& h_3 = f_3 g_0 + f_2 g_1 + f_1 g_2 + f_0 g_3 \\
+&& h_4 = f_3 g_1 + f_2 g_2 + f_1 g_3 \\
+&& h_5 = f_3 g_2 + f_2 g_3 \\
+&& h_6 = f_3 g_3 \\
+\end{eqnarray*}
+this vector is equal to
+$(h_0, h_1 w, h_2 w^2 + h_6 w^{-6}, h_3 w^3 + h_5 w^{-5}, h_4 w^4 + h_4 w^{-4},
+  h_5 w^5 + h_3 w^{-3}, h_6 w^6 + h_2 w^{-2}, h_1 w^{-1})$ 
+and after dividing the $i$-th coefficient by $w^i$ is equal to
+$(h_0, h_1, h_2 + h_6 w^{-8}, h_3 + h_5 w^{-8}, h_4 + h_4 w^{-8},
+  h_5 + h_3 w^{-8}, h_6 + h_2 w^{-8}, h_1 w^{-8}) = (h_0, h_1, h_2 + a h_6, 
+h_3 + a h_5, h_4 + a h_4, h_5 + a h_3, h_6 + a h_2, a h_1)$.
+For $0 \leq i < l - d_h = 2$, the coefficients $h_i$ can be read directly. 
+For $l - d_h \leq i \leq l/2$, coefficients $i$ and $l-i$ overlap and must
+be separated as shown above.
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\subsection{With DWT (rewrite)}
+
+Let $Q(X) = q_0 + \sum_{j=1}^{d_q} q_j (X^j + X^{-j})$ be an RLP of degree
+$2d_q \leq 2l-2$ and likewise $R(X)$ an RLP of degreee $2d_r \leq 2l-2$.
+To obtain the product RLP $S(X) = Q(x) R(x)$ of degree $2d_s = 2(d_q+d_r)$,
+we can perform a weighted
+convolution product by computing $\tilde{S}(wx) = Q(wX) R(wX) \bmod{(X^l-1)}$,
+$w^l = \sqrt{-1}$, and separating the wrapped-around coefficients in 
+$\tilde{S}(X)$ to obtain the coefficients of $S(X)$. Since $w$ is a $4l$-th
+root of unity we need to choose NTT primes $p_j \equiv 1 \pmod{4l}$.
+
+With $\tilde{S}(wX) = \sum_{i=0}^{l-1} \tilde{s}_j x^j = S(wX) \bmod (X^l-1)$ 
+we have
+\begin{eqnarray*}
+  \tilde{S}(wX) 
+  & = & \sum_{j=0}^{d_s} (w^j s_j x^j + w^{-j} s_j x^{l-i}) \\
+  & = & \sum_{j=0}^{d_s} w^j s_j x^j + \sum_{j=0}^{d_s} w^{-j} s_j x^{l-i} \\
+  & = & \sum_{j=0}^{d_s} w^j s_j x^j + \sum_{j=l-d_s}^l w^{i-l} s_{l-i} x^i \\
+  & = & \sum_{j=0}^{l - d_s - 1} w^j s_j x^j + 
+        \sum_{j=l-d_s}^l w^j (s_j + w^l s_{l-j}) x^j
+\end{eqnarray*}
+Hence for $0 \leq i < l - d_s$ we can read $s_i$ directly off $\tilde{s}_i$ 
+while the remaining coefficients first need to be separated by using
+$w^l \tilde{s}_j - \tilde{s}_{l-j} = w^l (s_j + w^l s_{l-j}) - 
+(w^l s_j + s_{l-j}) =  (w^{2l}-1) s_{l-j} = -2 s_{l-j}.$
+
+These ideas yield the algorithm shown in figure~\ref{DWTNTT}. Since we need 
+only squaring of RLPs in section \ref{}, we show only the squaring algorithm
+here.
+
+\begin{figure}[ht]
+\begin{center}
+\begin{tabular}{l}
+\hline  
+  Input:  RLP $Q(X) = \sum_{j=0}^{d_q} q_j (x^j + x^{-j})$ of degree $2d_q$ 
+    in standard basis \\
+  Output: RLP $S(X) = \sum_{j=0}^{d_s} s_j (x^j + x^{-j}) = Q(X)^2$ of degree 
+    $2d_s = 4d_q$ \\ in standard basis \\
+  Auxiliary storage: A length $l > 2d_s$ NTT array $M$ with \\
+  separate memory for vectors mod each $p_j$\\
+\hline
+  For each prime $p_j$ \\
+\qquad  Compute $w$ with $w^{2l} \equiv -1 \pmod{p_j}$  \\
+\qquad  For $0 \leq i \leq d_q$ store $w^i q_i \pmod{p_j}$ in $M_i$ \\
+\qquad  For $1 \leq i \leq d_q$ store $w^{-i} q_i \pmod{p_j}$ in $M_{l-i}$ \\
+\qquad Perform forward NTT modulo $p_j$ on $M$, square elementwise and \\
+\qquad \quad perform inverse 
+NTT \\
+\qquad For $1 \leq i \leq d_s$ set $M_i := w^{-i} M_i \pmod{p_j}$ \\
+\qquad For $l - d_s < i \leq l/2$ \\
+\qquad \qquad Set $M_{l-i} := -(w^l M_i - M_{l-i})/2 \pmod{p_j}$ \\
+\qquad \qquad If $i < l/2$ set $M_i := M_i - w^l M_{l-i} \pmod{p_j}$ \\
+ For $0 \leq i \leq d_s$ perform CRT on $M_i$ residues to obtain $s_i$, store
+  in output \\
+\hline
+\end{tabular}
+\end{center}
+\caption{NTT based squaring algorithm for Reciprocal Laurent polynomials}
+\label{DWTNTT}
+\end{figure}
+
+\end{document}
