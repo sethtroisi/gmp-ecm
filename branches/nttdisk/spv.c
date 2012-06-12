@@ -540,18 +540,26 @@ spv_seek_and_read (spv_t ptr, const spv_size_t nread, const spv_size_t offset,
                    FILE *f)
 {
   spv_size_t r;
-  /* FIXME: use 64 bit types portably */
-  const long foffset = offset * sizeof(sp_t);
+  const int64_t foffset;
   
+  ASSERT_ALWAYS (INT64_MAX / sizeof(sp_t) >= offset);
+  foffset = (int64_t) offset * sizeof(sp_t);
+
 #if defined(_OPENMP)
 #pragma omp critical
 #endif
   {
-    if (ftell(f) != foffset && fseek (f, foffset, SEEK_SET) != 0)
+    if (ftell(f) != foffset)
       {
-        fprintf (stderr, "%s(): fseek() returned error %d\n", 
-                 __func__, errno);
-        abort ();
+#ifdef TRACE_SEEK
+        printf ("Seeking to file position %" PRISPVSIZE "\n", foffset);
+#endif
+        if (fseek (f, foffset, SEEK_SET) != 0)
+          {
+            fprintf (stderr, "%s(): fseek() returned error %d\n", 
+                     __func__, errno);
+            abort ();
+          }
       }
     
     r = fread(ptr, sizeof(sp_t), nread, f);
@@ -573,19 +581,27 @@ spv_seek_and_write (const spv_t ptr, const spv_size_t nwrite,
                     const spv_size_t offset, FILE *f)
 {
   spv_size_t r;
-  /* FIXME: use 64 bit types portably */
-  const long foffset = offset * sizeof(sp_t);
+  const int64_t foffset;
+
+  ASSERT_ALWAYS (INT64_MAX / sizeof(sp_t) >= offset);
+  foffset = (int64_t) offset * sizeof(sp_t);
 
 #if defined(_OPENMP)
 #pragma omp critical
 #endif
   {
-    if (ftell(f) != foffset && fseek (f, foffset, SEEK_SET) != 0)
-    {
-      fprintf (stderr, "%s(): fseek() returned error %d\n", 
-               __func__, errno);
-      abort ();
-    }
+    if (ftell(f) != foffset)
+      {
+#ifdef TRACE_SEEK
+        printf ("Seeking to file position %" PRISPVSIZE "\n", foffset);
+#endif
+        if (fseek (f, foffset, SEEK_SET) != 0)
+          {
+            fprintf (stderr, "%s(): fseek() returned error %d\n", 
+                     __func__, errno);
+            abort ();
+          }
+      }
     
     r = fwrite(ptr, sizeof(sp_t), nwrite, f);
 
