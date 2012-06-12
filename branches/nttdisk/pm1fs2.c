@@ -3982,7 +3982,8 @@ pp1fs2_ntt (mpz_t f, const mpres_t X, mpmod_t modulus,
               listz_iterator_t *iter;
               iter = listz_iterator_init (R, 0);
               ASSERT_ALWAYS(iter != NULL);
-              mpzspv_fromto_mpzv (g_x_ntt, params->s_1 / 2, nr, NULL, NULL, &listz_iterator_write, iter);
+              mpzspv_fromto_mpzv (g_x_ntt, params->s_1 / 2, nr, NULL, NULL, 
+                                  &listz_iterator_write, iter);
               listz_iterator_clear (iter);
             }
 	  print_elapsed_time (OUTPUT_VERBOSE, timestart, realstart);
@@ -4085,11 +4086,13 @@ static void
 testdrive_producer (void * const p, mpz_t r)
 {
   mpz_t *s = p;
-  mpz_set (r, s[0]);
+
   /* Multiply s[0] by 2 (mod s[1]) */
   mpz_mul_2exp (s[0], s[0], 1);
   if (mpz_cmp (s[0], s[1]) >= 0)
     mpz_sub (s[0], s[0], s[1]);
+
+  mpz_set (r, s[0]);
 }
 
 static void
@@ -4111,7 +4114,8 @@ testdrive_print_elapsed (const long timestart, const long realstart,
 static void
 testdrive_consumer (void * const p, const mpz_t r)
 {
-  return;
+  if (p != NULL)
+    mpz_set ((mpz_t *)p, r);
 }
 
 int main (int argc, char **argv)
@@ -4173,6 +4177,11 @@ int main (int argc, char **argv)
         }
       mpz_init (N);
       mpz_set_str (N, argv[i], 10);
+      if (mpz_sgn(N) == 0)
+        {
+          printf ("Invalid argument or input number: %s\n", argv[i]);
+          exit (EXIT_FAILURE);
+        }
       mpmod_init (modulus, N, ECM_MOD_DEFAULT);
     }
 
@@ -4187,10 +4196,11 @@ int main (int argc, char **argv)
 
    if (do_fill)
      {
-       mpz_t s[2];
+       mpz_t s[2], t;
 
        mpz_init (s[0]);
        mpz_init (s[1]);
+       mpz_init (t);
        mpz_set_ui (s[0], 3);
        mpz_set (s[1], N);
        timestart = cputime ();
@@ -4199,8 +4209,19 @@ int main (int argc, char **argv)
                            &testdrive_producer, s, NULL, NULL);
        testdrive_print_elapsed (timestart, realstart, len, mpzspm->sp_num, 
                                 "Fill");
+       /* Check that seeking to the last element written, and converting that
+          back to mpz_t, results in the value we wrote */
+       mpzspv_fromto_mpzv (ntt_handle, len - 1, 1, 
+                           NULL, NULL, &testdrive_consumer, &t);
+       if (mpz_cmp (t, s[0]) != 0)
+         {
+           gmp_printf("Error, last element written is %Zd, after reading it is %Zd\n",
+                      s[0], t);
+           abort();
+         }
        mpz_clear (s[0]);
        mpz_clear (s[1]);
+       mpz_clear (t);
      }
 
    if (do_read)
