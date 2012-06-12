@@ -224,6 +224,12 @@
 #undef size_t
 
 #ifdef _MSC_VER
+#  if _MSC_VER < 1600
+#    define int64_t     __int64
+#    define uint64_t    unsigned __int64
+#  endif
 #  define strncasecmp strnicmp
-#  define alloca  _alloca
+#  define alloca      _alloca
+#  define fseek       _fseek64
+#  define ftell       _ftell64
 #endif
