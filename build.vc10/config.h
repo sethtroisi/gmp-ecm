@@ -230,6 +230,6 @@
 #  endif
 #  define strncasecmp strnicmp
 #  define alloca      _alloca
-#  define fseek       _fseek64
-#  define ftell       _ftell64
+#  define fseek64     _fseek64
+#  define ftell64     _ftell64
 #endif
