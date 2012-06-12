@@ -540,7 +540,7 @@ spv_seek_and_read (spv_t ptr, const spv_size_t nread, const spv_size_t offset,
                    FILE *f)
 {
   spv_size_t r;
-  const int64_t foffset;
+  int64_t foffset;
   
   ASSERT_ALWAYS (INT64_MAX / sizeof(sp_t) >= offset);
   foffset = (int64_t) offset * sizeof(sp_t);
@@ -581,7 +581,7 @@ spv_seek_and_write (const spv_t ptr, const spv_size_t nwrite,
                     const spv_size_t offset, FILE *f)
 {
   spv_size_t r;
-  const int64_t foffset;
+  int64_t foffset;
 
   ASSERT_ALWAYS (INT64_MAX / sizeof(sp_t) >= offset);
   foffset = (int64_t) offset * sizeof(sp_t);
