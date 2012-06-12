@@ -99,4 +99,7 @@ echo "10090030271*10^400+696212088699" | $PM1 2e3 2e6; checkcode $? 14
 # check bug fixed in revision 1378
 echo "2^(64*2)-1" | $PM1 -redc -x0 -1 2 1; checkcode $? 8
 
+# check bug fixed in revision 2068
+echo "234^997+997^234" | $PM1 -ntt 100 324; checkcode $? 0
+
 echo "All P-1 tests are ok."
