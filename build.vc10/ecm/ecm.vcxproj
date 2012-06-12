@@ -213,11 +213,14 @@
     <ClCompile Include="..\..\resume.c" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="..\..\..\mpir\lib\x64\release\gmp.h" />
     <ClInclude Include="..\..\champions.h" />
     <ClInclude Include="..\..\ecm-ecm.h" />
     <ClInclude Include="..\..\ecm-gmp.h" />
     <ClInclude Include="..\..\ecm-impl.h" />
+    <ClInclude Include="..\..\ecm-params.h" />
     <ClInclude Include="..\..\ecm.h" />
+    <ClInclude Include="..\..\longlong.h" />
     <ClInclude Include="..\config.h" />
   </ItemGroup>
   <ItemGroup>
