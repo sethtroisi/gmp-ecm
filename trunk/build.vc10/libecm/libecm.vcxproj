@@ -211,6 +211,7 @@
     <ClInclude Include="..\..\config.h" />
     <ClInclude Include="..\..\ecm-ecm.h" />
     <ClInclude Include="..\..\ecm-gmp.h" />
+    <ClInclude Include="..\..\ecm-gpu.h" />
     <ClInclude Include="..\..\ecm-impl.h" />
     <ClInclude Include="..\..\ecm-params.h" />
     <ClInclude Include="..\..\ecm.h" />
