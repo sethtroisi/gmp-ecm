@@ -25,6 +25,7 @@ http://www.gnu.org/licenses/ or write to the Free Software Foundation, Inc.,
 #include <time.h>
 #include <math.h>
 #ifdef _MSC_VER
+#  include <io.h> /* for _access */
 #  include <winsock2.h>
 #endif
 #include "ecm-impl.h"
@@ -1345,8 +1346,8 @@ main (int argc, char *argv[])
 
       if (result != ECM_NO_FACTOR_FOUND)
         {
-          returncode = 0;
           mpz_t tmp_factor;
+          returncode = 0;
           mpz_init (tmp_factor);
           do 
             {
