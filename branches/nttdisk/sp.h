@@ -582,8 +582,8 @@ void spv_pwmul_rev (spv_t, spv_t, spv_t, spv_size_t, sp_t, sp_t);
 void spv_mul_sp (spv_t, spv_t, sp_t, spv_size_t, sp_t, sp_t);
 
 /* file I/O */
-size_t spv_seek_and_read (spv_t, size_t, size_t, FILE *);
-size_t spv_seek_and_write (const spv_t, size_t, size_t, FILE *);
+spv_size_t spv_seek_and_read (spv_t, spv_size_t, spv_size_t, FILE *);
+spv_size_t spv_seek_and_write (const spv_t, spv_size_t, spv_size_t, FILE *);
 
 void spv_random (spv_t, spv_size_t, sp_t);
 int spv_cmp (spv_t, spv_t, spv_size_t);
