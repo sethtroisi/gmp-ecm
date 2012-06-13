@@ -297,7 +297,7 @@ int
 main (int argc, char *argv[])
 {
   char **argv0 = argv;
-  mpz_t x, sigma, A, f, orig_x0, B2, B2min, startingB2min;
+  mpz_t x, sigma, A, f, orig_x0, B2, B2min, startingB2min, tmp_n;
   mpcandi_t n;
   mpgocandi_t go;
   mpq_t rat_x0;
@@ -1339,7 +1339,6 @@ main (int argc, char *argv[])
           exit (EXIT_FAILURE);
         }
       
-      mpz_t tmp_n;
       /* When GPU is used we need to have the value of N before it is 
         divided by potential factor in f */
       mpz_init_set (tmp_n, n.n);

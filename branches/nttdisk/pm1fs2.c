@@ -44,6 +44,9 @@ http://www.gnu.org/licenses/ or write to the Free Software Foundation, Inc.,
 #ifdef HAVE_AIO_H
 #include <aio.h>
 #endif
+#if defined(HAVE_UNISTD_H) && defined (TESTDRIVE)
+#include <unistd.h>
+#endif
 
 /* TODO:
    - move functions into their proper files (i.e. NTT functions etc.)
@@ -674,8 +677,8 @@ list_scale_V_ntt (listz_handle_t R, const listz_handle_t F,
 {
   if (deg == 0)
     {
-      ASSERT_ALWAYS (F->storage == 0 && R->storage == 0);
       mpz_t tmp;
+      ASSERT_ALWAYS (F->storage == 0 && R->storage == 0);
       mpz_init (tmp);
       mpz_mul (tmp, F->data.mem[0], F->data.mem[0]);
       mpz_mod (R->data.mem[0], tmp, modulus->orig_modulus);
@@ -1094,10 +1097,17 @@ poly_from_sets_V (listz_handle_t F_param, const mpres_t Q, set_list_t *sets,
              F[(2 * i + 1) * lenF ... (2 * i + 1) * lenF  + 2 * deg] */
           if (ntt_handle != NULL)
             {
-              _listz_handle_t F_handle = {0, deg + 1, F_param->words, 
-                  .data.mem = F};
-              _listz_handle_t R_handle = {0, 2*deg + 1, F_param->words, 
-                  .data.mem = F + prod_offset};
+              _listz_handle_t F_handle, R_handle;
+
+              F_handle.storage = 0;
+              F_handle.len = deg + 1;
+              F_handle.words = F_param->words;
+              F_handle.data.mem = F;
+              R_handle.storage = 0;
+              R_handle.len = 2*deg + 1;
+              R_handle.words = F_param->words;
+              R_handle.data.mem = F + prod_offset;
+
               list_scale_V_ntt (&R_handle, &F_handle, Qt, 
                             deg, modulus, ntt_handle);
             }
@@ -4097,17 +4107,17 @@ testdrive_producer (void * const p, mpz_t r)
 
 static void
 testdrive_print_elapsed (const long timestart, const long realstart, 
-                         const uint64_t len, const unsigned int sp_num, 
-                         const char *name)
+                         const uint64_t len, const unsigned int words, 
+                         const unsigned int wordsize, const char *name)
 {
    uint64_t bytes;
    long timediff = cputime () - timestart;
    long realdiff = realtime () - realstart;
    
    printf("%s took %lu ms, %lu ms elapsed\n", name, timediff, realdiff);
-   bytes = len * sp_num * sizeof(sp_t);
-   printf("%lu * %u * %lu = %lu bytes, %f MB/s\n", 
-           len, sp_num, sizeof(sp_t), bytes, 
+   bytes = len * words * wordsize;
+   printf("%lu * %u * %u = %lu bytes, %f MB/s\n", 
+           len, words, wordsize, bytes, 
            bytes / (realdiff * 0.001) / 1048576.);
 }
 
@@ -4115,7 +4125,7 @@ static void
 testdrive_consumer (void * const p, const mpz_t r)
 {
   if (p != NULL)
-    mpz_set ((mpz_t *)p, r);
+    mpz_set (*(mpz_t *)p, r);
 }
 
 int main (int argc, char **argv)
@@ -4128,7 +4138,8 @@ int main (int argc, char **argv)
   mpzspm_t mpzspm;
   char *filename = NULL;
   int i;
-  int do_ntt = 0, do_pwmul = 0, do_intt = 0, do_gcd = 0, do_fill = 0, do_read = 0;
+  int do_ntt = 0, do_pwmul = 0, do_intt = 0, do_gcd = 0, fill_ntt = 0, 
+      read_ntt = 0, fill_mpz = 0, read_mpz = 0, from_ntt = 0, from_mpz = 0;
   long timestart, realstart;
   
   for (i = 1; i < argc; i++)
@@ -4165,14 +4176,24 @@ int main (int argc, char **argv)
           do_gcd = 1;
           continue;
         }
-      if (strcmp (argv[i], "-dofill") == 0)
+      if (strcmp (argv[i], "-fillntt") == 0)
         {
-          do_fill = 1;
+          fill_ntt = 1;
           continue;
         }
       if (strcmp (argv[i], "-doread") == 0)
         {
-          do_read = 1;
+          read_ntt = 1;
+          continue;
+        }
+      if (strcmp (argv[i], "-fillmpz") == 0)
+        {
+          fill_mpz = 1;
+          continue;
+        }
+      if (strcmp (argv[i], "-frommpz") == 0)
+        {
+          from_mpz = 1;
           continue;
         }
       mpz_init (N);
@@ -4185,7 +4206,8 @@ int main (int argc, char **argv)
       mpmod_init (modulus, N, ECM_MOD_DEFAULT);
     }
 
-    if (do_ntt || do_pwmul || do_intt || do_gcd || do_fill || do_read)
+    if (do_ntt || do_pwmul || do_intt || do_gcd || fill_ntt || read_ntt || 
+        from_ntt || from_mpz)
       {
         ASSERT_ALWAYS (len != 0);
         ntt_size = 1<<ceil_log2(len);
@@ -4193,8 +4215,21 @@ int main (int argc, char **argv)
         do_aio_init (mpzspm->sp_num);
         ntt_handle = mpzspv_init_handle (filename, ntt_size, mpzspm);
       }
+    
+    if (fill_mpz || read_mpz || from_ntt || from_mpz)
+      {
+        char *mpz_filename = NULL;
+        if (filename != NULL)
+          {
+            mpz_filename = malloc (strlen(filename) + 5);
+            ASSERT_ALWAYS (mpz_filename != NULL);
+            sprintf (mpz_filename, "%s.mpz", filename);
+          }
+        F = listz_handle_init (mpz_filename, len, N);
+        ASSERT_ALWAYS (F != NULL);
+      }
 
-   if (do_fill)
+   if (fill_ntt)
      {
        mpz_t s[2], t;
 
@@ -4207,8 +4242,11 @@ int main (int argc, char **argv)
        realstart = realtime ();
        mpzspv_fromto_mpzv (ntt_handle, (spv_size_t) 0, len, 
                            &testdrive_producer, s, NULL, NULL);
+#if defined(HAVE_UNISTD_H)
+       sync();
+#endif
        testdrive_print_elapsed (timestart, realstart, len, mpzspm->sp_num, 
-                                "Fill");
+                                sizeof (sp_t), "NTT Fill");
        /* Check that seeking to the last element written, and converting that
           back to mpz_t, results in the value we wrote */
        mpzspv_fromto_mpzv (ntt_handle, len - 1, 1, 
@@ -4224,14 +4262,65 @@ int main (int argc, char **argv)
        mpz_clear (t);
      }
 
-   if (do_read)
+   if (fill_mpz)
+     {
+       mpz_t s[2], t;
+       uint64_t i;
+       listz_iterator_t *iter;
+
+       mpz_init (s[0]);
+       mpz_init (s[1]);
+       mpz_init (t);
+       mpz_set_ui (s[0], 3);
+       mpz_set (s[1], N);
+       timestart = cputime ();
+       realstart = realtime ();
+       iter = listz_iterator_init (F, 0);
+       for (i = 0; i < len; i++)
+         {
+           testdrive_producer (s, t);
+           listz_iterator_write (iter, t);
+         }
+#if defined(HAVE_UNISTD_H)
+       sync();
+#endif
+       
+       testdrive_print_elapsed (timestart, realstart, len, F->words, 
+                                sizeof (file_word_t), "MPZ Fill");
+       listz_iterator_clear (iter);
+       mpz_clear (s[0]);
+       mpz_clear (s[1]);
+       mpz_clear (t);
+     }
+
+   if (from_mpz)
+     {
+       listz_iterator_t *iter;
+
+       timestart = cputime ();
+       realstart = realtime ();
+       iter = listz_iterator_init (F, 0);
+       mpzspv_fromto_mpzv (ntt_handle, (spv_size_t) 0, len, 
+                           NULL, NULL, &listz_iterator_read, iter);
+#if defined(HAVE_UNISTD_H)
+       printf ("sync\n");
+       sync();
+#endif
+       testdrive_print_elapsed (timestart, realstart, len, F->words, 
+                                sizeof (file_word_t), "From MPZ read");
+       testdrive_print_elapsed (timestart, realstart, len, mpzspm->sp_num, 
+                                sizeof (sp_t), "From MPZ write");
+       listz_iterator_clear (iter);
+     }
+
+   if (read_ntt)
      {
        timestart = cputime ();
        realstart = realtime ();
        mpzspv_fromto_mpzv (ntt_handle, (spv_size_t) 0, len, 
                            NULL, NULL, &testdrive_consumer, NULL);
        testdrive_print_elapsed (timestart, realstart, len, mpzspm->sp_num, 
-                                "Read");
+                                sizeof (sp_t), "NTT Read");
      }
 
    if (do_ntt || do_pwmul || do_intt)
@@ -4245,8 +4334,11 @@ int main (int argc, char **argv)
                        (do_ntt ? NTT_MUL_STEP_FFT1 : 0) + 
                        (do_pwmul ? NTT_MUL_STEP_MUL : 0) +
                        (do_intt ? NTT_MUL_STEP_IFFT : 0));
+#if defined(HAVE_UNISTD_H)
+       sync();
+#endif
        testdrive_print_elapsed (timestart, realstart, ntt_size, mpzspm->sp_num, 
-                                "NTT");
+                                sizeof (sp_t), "NTT");
      }
 
    if (do_gcd)
@@ -4258,15 +4350,18 @@ int main (int argc, char **argv)
        realstart = realtime ();
        ntt_gcd (f, NULL, ntt_handle, 0, NULL, len, modulus);
        testdrive_print_elapsed (timestart, realstart, len, mpzspm->sp_num, 
-                                "GCD");
+                                sizeof (sp_t), "GCD");
        mpz_clear (f);
      }
 
-    if (do_ntt || do_pwmul || do_intt || do_gcd || do_fill || do_read)
+    if (do_ntt || do_pwmul || do_intt || do_gcd || fill_ntt || read_ntt || 
+        from_ntt || from_mpz)
       {
         mpzspv_clear_handle (ntt_handle);
         mpzspm_clear (mpzspm);
       }
+    if (fill_mpz || read_mpz || from_ntt || from_mpz)
+      listz_handle_clear (F);
    mpz_clear (N);
    mpmod_clear (modulus);
 }

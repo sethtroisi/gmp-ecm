@@ -506,8 +506,8 @@ write_resumefile (char *fn, int method, mpz_t N, double B1done, mpz_t sigma,
   int r, fd;
 #endif
   mpz_t tmp_x;
-  mpz_init (tmp_x);
   unsigned int i = 0;
+  mpz_init (tmp_x);
 
   /* first try to open the file */
 #ifdef DEBUG

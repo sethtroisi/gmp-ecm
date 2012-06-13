@@ -8,7 +8,7 @@
 #ifdef WITH_GPU
 
 #ifndef ECM_GPU_NB_DIGITS
-  #define ECM_GPU_NB_DIGITS 32 //by default
+  #define ECM_GPU_NB_DIGITS 32 /* by default */
 #endif
 
 #ifndef ECM_GPU_DIGITS
@@ -22,7 +22,7 @@
 #endif
 
 #define VOL volatile 
-//#define VOL
+/* #define VOL */
 
 #define ECM_GPU_MAX_BITS ECM_GPU_SIZE_DIGIT * ECM_GPU_NB_DIGITS
 typedef digit_t VOL biguint_t[ECM_GPU_NB_DIGITS];
@@ -30,7 +30,7 @@ typedef digit_t VOL dbiguint_t[ECM_GPU_NB_DIGITS+1];
 typedef carry_t VOL dbigint_t[ECM_GPU_NB_DIGITS+1];
 
 /* Uncomment the next line to print the number of remaining iterations. */
-//#define PRINT_REMAINING_ITER
+/* #define PRINT_REMAINING_ITER */
 #endif
 
 #ifndef _DO_NOT_INCLUDE_ECM_IMPL_H
