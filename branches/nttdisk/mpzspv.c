@@ -575,7 +575,8 @@ mpzspv_fromto_mpzv (mpzspv_handle_t x, const spv_size_t offset,
           r = mpzspv_lio_rw (aiocb_list, buffer[0], 0, x->files, offset, 
                              read_now, x->mpzspm, 0);
           ASSERT_ALWAYS (r == 0);
-          r = mpzspv_lio_suspend (aiocb_list, x->mpzspm);
+          r = mpzspv_lio_suspend ((const struct aiocb **) aiocb_list, 
+                                  x->mpzspm);
           ASSERT_ALWAYS (r == 0);
 #else
           mpzspv_seek_and_read (buffer[0], 0, x->files, offset + 0, read_now, 
@@ -678,7 +679,8 @@ mpzspv_fromto_mpzv (mpzspv_handle_t x, const spv_size_t offset,
 #endif
 #if defined(HAVE_AIO_READ)
           int r;
-          r = mpzspv_lio_suspend (aiocb_list, x->mpzspm);
+          r = mpzspv_lio_suspend ((const struct aiocb **) aiocb_list, 
+                                  x->mpzspm);
           ASSERT_ALWAYS (r == 0);
 #endif
 #if WANT_PROFILE
