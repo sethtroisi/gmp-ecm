@@ -126,6 +126,7 @@
     </ClCompile>
     <ClCompile Include="..\..\mpzspm.c" />
     <ClCompile Include="..\..\mpzspv.c" />
+    <ClCompile Include="..\..\mul_fft.c" />
     <ClCompile Include="..\..\mul_lo.c" />
     <ClCompile Include="..\..\ntt_gfp.c" />
     <ClCompile Include="..\..\polyeval.c" />
@@ -134,6 +135,7 @@
     <ClCompile Include="..\..\sp.c" />
     <ClCompile Include="..\..\spm.c" />
     <ClCompile Include="..\..\spv.c" />
+    <ClCompile Include="..\..\toomcook.c" />
     <ClCompile Include="..\..\tune.c" />
   </ItemGroup>
   <ItemGroup>

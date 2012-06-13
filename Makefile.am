@@ -7,7 +7,7 @@ ACLOCAL_AMFLAGS = -I m4
 # (see http://www.gnu.org/software/automake/manual/html_node/Libtool-Convenience-Libraries.html)
 lib_LTLIBRARIES = libecm.la
 
-EXTRA_PROGRAMS = rho
+EXTRA_PROGRAMS = rho batch
 
 # If we want assembly mulredc code, recurse into the right subdirectory
 # and set up variables to include the mulredc library from that subdir
@@ -31,21 +31,16 @@ else
 endif
 
 libecm_la_SOURCES = ecm.c ecm2.c pm1.c pp1.c getprime.c listz.c lucas.c \
-		   stage2.c mpmod.c mul_lo.c polyeval.c median.c \
+		   stage2.c toomcook.c mpmod.c mul_lo.c polyeval.c median.c \
 		   schoen_strass.c ks-multiply.c rho.c bestd.c auxlib.c \
 		   random.c factor.c sp.c spv.c spm.c mpzspm.c mpzspv.c \
-		   ntt_gfp.c ecm_ntt.c pm1fs2.c sets_long.c \
-		   auxarith.c batch.c parametrizations.c cudawrapper.c
+		   ntt_gfp.c ecm_ntt.c pm1fs2.c mul_fft.c sets_long.c \
+		   auxarith.c batch.c ellparam_batch.c
 # Link the asm redc code (if we use it) into libecm.la
 libecm_la_CPPFLAGS = $(MULREDCINCPATH)
 libecm_la_CFLAGS = $(OPENMP_CFLAGS)
 libecm_la_LDFLAGS = '-version-info 0:0:0'
 libecm_la_LIBADD = $(MULREDCLIBRARY)
-if WANT_CUDA 
-  libecm_la_SOURCES += cudakernel.cu
-  libecm_la_LIBADD += $(CUDA_LIB_FLAGS)
-  libecm_la_CFLAGS += $(CUDA_INC_FLAGS) $(CC_ADD_FLAGS_FOR_GPU)
-endif
 
 bin_PROGRAMS = ecm
 noinst_PROGRAMS = tune ecmfactor bench_mulredc
@@ -55,16 +50,13 @@ LDADD = libecm.la $(GMPLIB)
 
 ecm_CPPFLAGS = -DOUTSIDE_LIBECM
 ecm_CFLAGS = $(OPENMP_CFLAGS)
-if WANT_CUDA 
-  ecm_CFLAGS += $(CC_ADD_FLAGS_FOR_GPU)
-endif
 ecm_SOURCES = auxi.c b1_ainc.c candi.c eval.c random.c main.c \
               resume.c getprime.c champions.h
 
 tune_SOURCES = mpmod.c tune.c mul_lo.c listz.c auxlib.c ks-multiply.c \
-               schoen_strass.c polyeval.c median.c ecm_ntt.c \
+               toomcook.c schoen_strass.c polyeval.c median.c ecm_ntt.c \
 	       ntt_gfp.c mpzspv.c mpzspm.c sp.c spv.c spm.c random.c \
-	       auxarith.c
+	       mul_fft.c auxarith.c
 tune_CPPFLAGS = -DTUNE $(MULREDCINCPATH)
 tune_LDADD = $(MULREDCLIBRARY) $(GMPLIB)
 
@@ -73,6 +65,14 @@ ecmfactor_CFLAGS = $(OPENMP_CFLAGS)
 rho_SOURCES = rho.c
 rho_CPPFLAGS = -DTESTDRIVE
 rho_LDADD = -lprimegen $(GMPLIB) $(GSL_LD_FLAGS)
+
+batch_SOURCES = batch.c
+batch_LDADD = $(GMPLIB)
+
+if MEMORY_DEBUG
+  libecm_la_SOURCES += memory.c
+  tune_SOURCES += memory.c
+endif
 
 if WITH_GWNUM
   gwdata.ld :
@@ -88,23 +88,24 @@ endif
 
 include_HEADERS = ecm.h
 noinst_HEADERS = ecm-impl.h ecm-gmp.h ecm-ecm.h sp.h longlong.h ecm-params.h \
-                 mpmod.h ecm-gpu.h cudakernel.h 
+                 mpmod.h
 
-EXTRA_DIST = test.pm1 test.pp1 test.ecm README.lib INSTALL-ecm ecm.xml  \
-             pentium4/params.h x86_64/core2/params.h x86_64/k8/params.h \
-             athlon/params.h x86/params.h ia64/params.h arm/params.h    \
-             powerpc64/params.h powerpc32/params.h sparc64/params.h     \
-             hppa/params.h mips/params.h x86_64/corei7/params.h         \
-             generic/params.h
+EXTRA_DIST = test.pm1 test.pp1 test.ecm README.lib INSTALL-ecm ecm.xml \
+             ecm-params.h.alpha-ev5 ecm-params.h.athlon64 \
+             ecm-params.h.default ecm-params.h.alpha-ev6 \
+             ecm-params.h.athlon ecm-params.h.powerpc7450 \
+             ecm-params.h.pentium3 ecm-params.h.pentium4 \
+             ecm-params.h.pentium-m ecm-params.h.powerpc970 \
+             ecm-params.h.mips64el ecm-params.h.armv5tel \
+             ecm-params.h.sparc64 ecm-params.h.ia64 \
+             ecm-params.h.hppa2.0 ecm-params.h.alpha-ev56 \
+             ecm-params.h.core2 ecm-params.h.corei5 \
+             mul_fft-params.h.athlon64 mul_fft-params.h.pentium3 \
+             mul_fft-params.h.default mul_fft-params.h.pentium4
 
 DIST_SUBDIRS = athlon pentium4 x86_64 powerpc64 build.vc10
 
 DISTCLEANFILES = config.m4
-
-if WANT_CUDA 
-.cu.lo: cudakernel.h
-		$(LIBTOOL) --tag=CC --mode=compile $(NVCC) --compile $(CUDA_INC_FLAGS) $(NVCC_FLAGS) -o $@ $^ -static
-endif
 
 ecm-params:	tune$(EXEEXT)
 		@echo Optimising parameters for your system, please be patient.
@@ -117,10 +118,6 @@ check: ecm$(EXEEXT)
 	$(srcdir)/test.pm1 ./ecm$(EXEEXT)
 	echo ""
 	$(srcdir)/test.ecm ./ecm$(EXEEXT)
-if WANT_CUDA 
-	echo ""
-	$(srcdir)/test.gpuecm ./ecm$(EXEEXT)
-endif
 
 longcheck: ecm$(EXEEXT)
 	$(srcdir)/test.pp1 "$(VALGRIND) ./ecm$(EXEEXT)"

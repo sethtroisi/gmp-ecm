@@ -22,7 +22,6 @@ MA 02110-1301, USA. */
 #include <stdio.h> /* for stderr */
 #include <stdlib.h>
 #include <string.h> /* for memset */
-#include "ecm-impl.h"
 #include "sp.h"
 
 mpzspv_t
@@ -225,11 +224,6 @@ ecm_mod_1 (mp_ptr xp, mp_size_t xn, mp_limb_t p, mp_size_t n,
   return hi;
 }
 
-#ifdef TIMING_CRT
-int mpzspv_from_mpzv_slow_time = 0;
-int mpzspv_to_mpzv_time = 0;
-#endif
-
 /* convert mpzvi to CRT representation, naive version */
 static void
 mpzspv_from_mpzv_slow (mpzspv_t x, const spv_size_t offset, mpz_t mpzvi,
@@ -239,16 +233,32 @@ mpzspv_from_mpzv_slow (mpzspv_t x, const spv_size_t offset, mpz_t mpzvi,
   unsigned int j;
   mp_size_t n = mpz_size (mpzspm->modulus);
 
-#ifdef TIMING_CRT
-  mpzspv_from_mpzv_slow_time -= cputime ();
-#endif
+  /* GMP's comments on mpn_preinv_mod_1:
+   *
+   * "This function used to be documented, but is now considered obsolete.  It
+   * continues to exist for binary compatibility, even when not required
+   * internally."
+   *
+   * It doesn't accept 0 as the dividend so we have to treat this case
+   * separately */
+
+  /* Note: we can't use the mul_c field for mpn_preinv_mod_1, since on 64-bit
+     it is floor(2^125/sp) where sp has 62 bits, and mpn_preinv_mod_1 needs
+     floor(2^128/(4*sp))-2^64 = floor(2^126/sp)-2^64.
+     On 32-bit it is floor(2^62/sp) where sp has 31 bits, and mpn_preinv_mod_1
+     needs floor(2^64/(2*sp))-2^32 = floor(2^63/sp)-2^32. */
+
+  /* Note: we could improve this as follows. Assume the number N to factor has
+     n limbs. Instead of computing v mod p by reducing v by the high limbs,
+     we first compute v/B^(n-1) mod p by reducing v by the low limbs, then
+     deduce v mod p using a precomputed value of B^(n-1) mod p.
+     The reduction v/B is done by using a precomputed k = 1/B mod p,
+     thus v1*B+v0 = (v1+k*v0)*B and so on. */
+  
   for (j = 0; j < sp_num; j++)
     x[j][offset] = ecm_mod_1 (PTR(mpzvi), SIZ(mpzvi),
                               (mp_limb_t) mpzspm->spm[j]->sp, n,
                               mpzspm->spm[j]->invm, mpzspm->spm[j]->Bpow);
-#ifdef TIMING_CRT
-  mpzspv_from_mpzv_slow_time += cputime ();
-#endif
   /* The typecast to mp_limb_t assumes that mp_limb_t is at least
      as wide as sp_t */
 }
@@ -285,31 +295,12 @@ mpzspv_from_mpzv_fast (mpzspv_t x, const spv_size_t offset, mpz_t mpzvi,
   /* last steps */
   I0 = 1 << i0;
   for (j = 0; j < sp_num; j += I0)
-    {
-      for (k = j; k < j + I0 && k < sp_num; k++)
-        x[k][offset] = mpn_mod_1 (PTR(T[0][j]), SIZ(T[0][j]),
-                                  (mp_limb_t) mpzspm->spm[k]->sp);
-    }
+    for (k = j; k < j + I0 && k < sp_num; k++)
+      x[k][offset] = mpn_mod_1 (PTR(T[0][j]), SIZ(T[0][j]),
+                                (mp_limb_t) mpzspm->spm[k]->sp);
   /* The typecast to mp_limb_t assumes that mp_limb_t is at least
      as wide as sp_t */
 }
-
-
-ATTRIBUTE_UNUSED
-static void
-ntt_print_vec (const char *msg, const spv_t spv, const spv_size_t l, 
-               const sp_t p)
-{
-  spv_size_t i;
-
-  /* Warning: on some computers, for example gcc49.fsffrance.org,
-     "unsigned long" might be shorter than "sp_t" */
-  gmp_printf ("%s [%Nd", msg, (mp_ptr) spv, 1);
-  for (i = 1; i < l; i++)
-    gmp_printf (", %Nd", (mp_ptr) spv + i, 1);
-  printf ("] (mod %llu)\n", p);
-}
-
 
 /* convert an array of len mpz_t numbers to CRT representation modulo
    sp_num moduli */
@@ -322,11 +313,6 @@ mpzspv_from_mpzv (mpzspv_t x, const spv_size_t offset, const mpzv_t mpzv,
 
   ASSERT (mpzspv_verify (x, offset + len, 0, mpzspm));
   ASSERT (sizeof (mp_limb_t) >= sizeof (sp_t));
-
-#ifdef TRACE_mpzspv_from_mpzv
-  for (i = 0; i < (long) len; i++)
-    gmp_printf ("mpzspv_from_mpzv: mpzv[%ld] = %Zd\n", i, mpzv[i]);
-#endif
 
 #if defined(_OPENMP)
 #pragma omp parallel private(i) if (len > 16384)
@@ -354,21 +340,10 @@ mpzspv_from_mpzv (mpzspv_t x, const spv_size_t offset, const mpzv_t mpzv,
 #if defined(_OPENMP)
   }
 #endif
-
-#ifdef TRACE_mpzspv_from_mpzv
-  for (i = 0; i < (long) sp_num; i++)
-    ntt_print_vec ("mpzspv_from_mpzv: ", x[i] + offset, len, mpzspm->spm[i]->sp);
-#endif
 }
 
 /* See: Daniel J. Bernstein and Jonathan P. Sorenson,
- * Modular Exponentiation via the explicit Chinese Remainder Theorem,
- * Theorem 2.1: Let p_1, ..., p_s be pairwise coprime integers. Write
- * P = p_1 * ... * p_s. Let q_1, ..., q_s be integers with
- * q_iP/p_i = 1 mod p_i. Let u be an integer with |u| < P/2. Let u_1, ..., u_s
- * with u = u_i mod p_i. Let t_1, ..., t_s be integers with
- * t_i = u_i q_i mod p_i. Then u = P \alpha - P round(\alpha) where
- * \alpha = \sum_i t_i/p_i
+ * Modular Exponentiation via the explicit Chinese Remainder Theorem
  *
  * memory: MPZSPV_NORMALISE_STRIDE floats */
 void
@@ -390,17 +365,12 @@ mpzspv_to_mpzv (mpzspv_t x, spv_size_t offset, mpzv_t mpzv,
     }
   
   ASSERT (mpzspv_verify (x, offset, len, mpzspm));
-  ASSERT_ALWAYS(mpzspm->sp_num <= 1677721);
-
-#ifdef TIMING_CRT
-  mpzspv_to_mpzv_time -= cputime ();
-#endif
+  
   mpz_init (mt);
   for (l = 0; l < len; l += MPZSPV_NORMALISE_STRIDE)
     {
       spv_size_t stride = MIN (MPZSPV_NORMALISE_STRIDE, len - l);
 
-      /* we apply the above theorem to mpzv[l]...mpzv[l+stride-1] at once */
       for (k = 0; k < stride; k++)
         {
           f[k] = 0.5;
@@ -409,49 +379,33 @@ mpzspv_to_mpzv (mpzspv_t x, spv_size_t offset, mpzv_t mpzv,
   
     for (i = 0; i < mpzspm->sp_num; i++)
       {
-        /* prime_recip = 1/p_i * (1+u)^2 wih |u| <= 2^(-24) where one
-           exponent is due to the sp -> float conversion, and one to the
-           division */
-        prime_recip = 1.0f / (float) spm[i]->sp; /* 1/p_i */
+        prime_recip = 1.0f / (float) spm[i]->sp;
       
         for (k = 0; k < stride; k++)
           {
-            /* crt3[i] = p_i/P mod p_i (q_i in the theorem) */
   	    t = sp_mul (x[i][l + k + offset], mpzspm->crt3[i], spm[i]->sp,
                   spm[i]->mul_c);
-
-            /* crt1[i] = P / p_i mod modulus: we accumulate in mpzv[l + k]
-               the sum of P t_i/p_i = t_i (P/p_i) mod N */
+          
             if (sizeof (sp_t) > sizeof (unsigned long))
               {
                 mpz_set_sp (mt, t);
                 mpz_addmul (mpzv[l + k], mpzspm->crt1[i], mt);
               }
             else
-              mpz_addmul_ui (mpzv[l + k], mpzspm->crt1[i], t);
+              {
+      	        mpz_addmul_ui (mpzv[l + k], mpzspm->crt1[i], t);
+              }
 
-            /* After the conversion from t to float and the multiplication,
-               the value of (float) t * prime_recip = t/p_i * (1+v)^4
-               where |v| <= 2^(-24). Since |t| < p_i, the absolute error
-               is bounded by (1+v^4)-1 <= 5*v. Thus the total error on f[k]
-               is bounded by 5*sp_num*2^(-24). Since we want this to be smaller
-               than 0.5, we need sp_num <= 2^23/5 thus sp_num <= 1677721.
-               This corresponds to a number of at most 15656374 digits on a
-               32-bit machine, and at most 31312749 digits on 64-bit. */
 	    f[k] += (float) t * prime_recip;
           }
       }
 
-    /* crt2[i] = -i*P mod modulus */
     for (k = 0; k < stride; k++)
       mpz_add (mpzv[l + k], mpzv[l + k], mpzspm->crt2[(unsigned int) f[k]]);
   }
   
   mpz_clear (mt);
   free (f);
-#ifdef TIMING_CRT
-  mpzspv_to_mpzv_time += cputime ();
-#endif
 }  
 
 void
@@ -469,7 +423,7 @@ mpzspv_pwmul (mpzspv_t r, spv_size_t r_offset, mpzspv_t x, spv_size_t x_offset,
 	len, mpzspm->spm[i]->sp, mpzspm->spm[i]->mul_c);
 }
 
-/* Bernstein & Sorenson: Explicit CRT mod m mod p_j.
+/* B&S: ecrt mod m mod p_j.
  *
  * memory: MPZSPV_NORMALISE_STRIDE mpzspv coeffs
  *         6 * MPZSPV_NORMALISE_STRIDE sp's
@@ -487,10 +441,7 @@ mpzspv_normalise (mpzspv_t x, spv_size_t offset, spv_size_t len,
   float prime_recip;
   float *f;
   mpzspv_t t;
-
-#ifdef TIMING_CRT
-  mpzspv_to_mpzv_time -= cputime ();
-#endif
+  
   ASSERT (mpzspv_verify (x, offset, len, mpzspm)); 
   
   f = (float *) malloc (MPZSPV_NORMALISE_STRIDE * sizeof (float));
@@ -529,15 +480,14 @@ mpzspv_normalise (mpzspv_t x, spv_size_t offset, spv_size_t len,
         {
 	  for (k = 0; k < stride; k++)
 	    {
-              /* crt5[i] = (-P mod modulus) mod p_i */
-	      umul_ppmm (d[3 * k + 1], d[3 * k], mpzspm->crt5[i], (sp_t) f[k]);
+	      umul_ppmm (d[3 * k + 1], d[3 * k], mpzspm->crt5[i],
+		  (sp_t) f[k]);
               d[3 * k + 2] = 0;
 	    }
 	
           for (j = 0; j < sp_num; j++)
             {
 	      w = x[j] + offset;
-              /* crt4[i][j] = ((P / p[i]) mod modulus) mod p[j] */
 	      v = mpzspm->crt4[i][j];
 	    
 	      for (k = 0; k < stride; k++)
@@ -549,7 +499,7 @@ mpzspv_normalise (mpzspv_t x, spv_size_t offset, spv_size_t len,
             }      
 
           for (k = 0; k < stride; k++)
-            t[i][k] = mpn_mod_1 (d + 3 * k, 3, spm[i]->sp);
+	    t[i][k] = mpn_mod_1 (d + 3 * k, 3, spm[i]->sp);
         }	  
       mpzspv_set (x, l + offset, t, 0, stride, mpzspm);
     }
@@ -559,9 +509,6 @@ mpzspv_normalise (mpzspv_t x, spv_size_t offset, spv_size_t len,
   free (s);
   free (d);
   free (f);
-#ifdef TIMING_CRT
-  mpzspv_to_mpzv_time += cputime ();
-#endif
 }
 
 void

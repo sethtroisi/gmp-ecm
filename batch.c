@@ -93,6 +93,66 @@ compute_s (mpz_t s, unsigned long B1)
   for (i = 0; i < MAX_HEIGHT; i++)
       mpz_clear (acc[i]);
 }
+/* Return the number of bytes written */
+int
+write_s_in_file (char *fn, mpz_t s)
+{
+  FILE *file;
+  int ret = 0;
+
+#ifdef DEBUG
+  if (fn == NULL)
+    {
+      fprintf (stderr, "write_s_in_file: fn == NULL\n");
+      exit (EXIT_FAILURE);
+    }
+#endif
+  
+  file = fopen (fn, "w");
+  if (file == NULL)
+    {
+      fprintf (stderr, "Could not open file %s for writing\n", fn);
+      return 0;
+    }
+  
+  ret = mpz_out_raw (file, s);
+  
+  fclose (file);
+  return ret;
+}
+
+void
+read_s_from_file (mpz_t s, char *fn) 
+{
+  FILE *file;
+  int ret = 0;
+
+#ifdef DEBUG
+  if (fn == NULL)
+    {
+      fprintf (stderr, "read_s_from_file: fn == NULL\n");
+      exit (EXIT_FAILURE);
+    }
+#endif
+  
+  file = fopen (fn, "r");
+  if (file == NULL)
+    {
+      fprintf (stderr, "Could not open file %s for reading\n", fn);
+      exit (EXIT_FAILURE);
+    }
+ 
+  ret = mpz_inp_raw (s, file);
+  if (ret == 0)
+    {
+      fprintf (stderr, "read_s_from_file: 0 bytes read from %s\n", fn);
+      exit (EXIT_FAILURE);
+    }
+
+  fclose (file);
+}
+
+#ifndef GPUECM
 
 #if 0
 /* this function is useful in debug mode to print non-normalized residues */
@@ -239,21 +299,31 @@ ecm_stage1_batch (mpz_t f, mpres_t x, mpres_t A, mpmod_t n, double B1,
   mpres_t t, u;
   int ret = ECM_NO_FACTOR_FOUND;
 
+  MEMORY_TAG;
   mpres_init (x1, n);
+  MEMORY_TAG;
   mpres_init (z1, n);
+  MEMORY_TAG;
   mpres_init (x2, n);
+  MEMORY_TAG;
   mpres_init (z2, n);
+  MEMORY_TAG;
   mpres_init (t, n);
+  MEMORY_TAG;
   mpres_init (u, n);
-  if (batch == ECM_PARAM_BATCH_2)
-    mpres_init (d_2, n);
+  if (batch == 2)
+    {
+      MEMORY_TAG;
+      mpres_init (d_2, n);
+    }
+  MEMORY_UNTAG;
 
   /* initialize P */
   mpres_set (x1, x, n);
   mpres_set_ui (z1, 1, n); /* P1 <- 1P */
 
   /* Compute d=(A+2)/4 from A and d'=B*d thus d' = 2^(GMP_NUMB_BITS-2)*(A+2) */
-  if (batch == ECM_PARAM_BATCH_SQUARE || batch == ECM_PARAM_BATCH_32BITS_D)
+  if (batch == 1)
   {
       mpres_get_z (u, A, n);
       mpz_add_ui (u, u, 2);
@@ -279,8 +349,7 @@ ecm_stage1_batch (mpz_t f, mpres_t x, mpres_t A, mpmod_t n, double B1,
 
   /* Compute 2P : no need to duplicate P, the coordinates are simple. */
   mpres_set_ui (x2, 9, n);
-  /* here d = d_1 / GMP_NUMB_BITS */
-  if (batch == ECM_PARAM_BATCH_SQUARE || batch == ECM_PARAM_BATCH_32BITS_D)
+  if (batch == 1) /* here d = d_1 / GMP_NUMB_BITS */
     {
       /* warning: mpres_set_ui takes an unsigned long which has only 32 bits
          on Windows, while d_1 might have 64 bits */
@@ -303,7 +372,7 @@ ecm_stage1_batch (mpz_t f, mpres_t x, mpres_t A, mpmod_t n, double B1,
   mpresn_pad (z2, n);
 
   /* now perform the double-and-add ladder */
-  if (batch == ECM_PARAM_BATCH_SQUARE || batch == ECM_PARAM_BATCH_32BITS_D)
+  if (batch == 1)
     {
       for (i = mpz_sizeinbase (s, 2) - 1; i-- > 0;)
         {
@@ -315,7 +384,7 @@ ecm_stage1_batch (mpz_t f, mpres_t x, mpres_t A, mpmod_t n, double B1,
             dup_add_batch1 (x2, z2, x1, z1, t, u, d_1, n);
         }
     }
-  else /* batch = ECM_PARAM_BATCH_2 */
+  else /* batch = 2 */
     {
       mpresn_pad (d_2, n);
       for (i = mpz_sizeinbase (s, 2) - 1; i-- > 0;)
@@ -354,3 +423,5 @@ ecm_stage1_batch (mpz_t f, mpres_t x, mpres_t A, mpmod_t n, double B1,
 
   return ret;
 }
+
+#endif

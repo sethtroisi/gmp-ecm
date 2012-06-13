@@ -58,13 +58,8 @@ typedef unsigned long ecm_uint;
 #else
 extern size_t MPZMOD_THRESHOLD;
 extern size_t REDC_THRESHOLD;
-#define TUNE_MULREDC_TABLE {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0}
-#define TUNE_SQRREDC_TABLE {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0}
-#define LIST_MUL_TABLE {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0}
 #endif
 extern size_t mpn_mul_lo_threshold[];
-
-#define TUNE_LIST_MUL_N_MAX_SIZE 16
 
 #include <stdio.h> /* needed for "FILE *" */
 #include <limits.h>
@@ -124,8 +119,6 @@ extern FILE *ECM_STDOUT, *ECM_STDERR;
 #endif
 #endif
 
-/* #define TIMING_CRT */
-
 /* default B2 choice: pow (B1 * METHOD_COST / 6.0, DEFAULT_B2_EXPONENT) */
 #define DEFAULT_B2_EXPONENT 1.43
 #define PM1_COST 1.0 / 6.0
@@ -140,6 +133,9 @@ extern FILE *ECM_STDOUT, *ECM_STDERR;
    otherwise use polyeval() */
 #define POLYEVALTELLEGEN
 
+/* use Kronecker-Scho"nhage's multiplication */
+#define KS_MULTIPLY
+
 /* define top-level multiplication */
 #define KARA 2
 #define TOOM3 3
@@ -151,6 +147,15 @@ extern FILE *ECM_STDOUT, *ECM_STDERR;
 #define MULREDC_ASSEMBLY_MAX 20
 
 #include "sp.h"
+
+/* compile with -DMULT=2 to override default */
+#ifndef MULT
+#ifdef KS_MULTIPLY
+#define MULT KS
+#else
+#define MULT TOOM4
+#endif
+#endif
 
 #ifdef POLYEVALTELLEGEN
 #define USE_SHORT_PRODUCT
@@ -164,6 +169,22 @@ extern FILE *ECM_STDOUT, *ECM_STDERR;
 #define ASSERT(expr)   do {} while (0)
 #endif
 
+#ifdef MEMORY_DEBUG
+void tests_free (void *, size_t);
+void tests_memory_set_location (char *, unsigned int);
+#define FREE(ptr,size) tests_free(ptr,size)
+#define MEMORY_TAG tests_memory_set_location(__FILE__,__LINE__)
+#define MEMORY_UNTAG tests_memory_set_location("",0)
+#define MPZ_INIT(x)    {MEMORY_TAG;mpz_init(x);MEMORY_UNTAG;}
+#define MPZ_INIT2(x,n) {MEMORY_TAG;mpz_init2(x,n);MEMORY_UNTAG;}
+#else
+#define FREE(ptr,size) free(ptr)
+#define MEMORY_TAG do{}while(0)
+#define MEMORY_UNTAG do{}while(0)
+#define MPZ_INIT(x) mpz_init(x)
+#define MPZ_INIT2(x,n) mpz_init2(x,n)
+#endif
+
 /* thresholds */
 #define MPN_MUL_LO_THRESHOLD 32
 
@@ -173,7 +194,10 @@ extern FILE *ECM_STDOUT, *ECM_STDERR;
 /* default number of probable prime tests */
 #define PROBAB_PRIME_TESTS 1
 
-/* threshold for median product */
+/* kronecker_schonhage() is used instead of toomcook4()
+   when bitsize(poly) >= KS_MUL_THRESHOLD */
+#define KS_MUL_THRESHOLD  1e6
+/* same for median product */
 #define KS_TMUL_THRESHOLD 8e5
 
 #define ABS(x) ((x) >= 0 ? (x) : -(x))
@@ -203,11 +227,6 @@ extern FILE *ECM_STDOUT, *ECM_STDERR;
 
 /* Interval length for writing checkpoints in stage 1, in milliseconds */
 #define CHKPNT_PERIOD 600000
-
-/* Is the parametrization implies batch mode ? */
-#define IS_BATCH_MODE(p) ( p == ECM_PARAM_BATCH_SQUARE || \
-                           p == ECM_PARAM_BATCH_2 || \
-                           p == ECM_PARAM_BATCH_32BITS_D )
 
 typedef mpz_t mpres_t;
 
@@ -385,19 +404,7 @@ void duplicate (mpres_t, mpres_t, mpres_t, mpres_t, mpmod_t, mpres_t, mpres_t,
 void ecm_mul (mpres_t, mpres_t, mpz_t, mpmod_t, mpres_t);
 #define print_B1_B2_poly __ECM(print_B1_B2_poly)
 void print_B1_B2_poly (int, int, double, double, mpz_t, mpz_t, mpz_t, int S,  
-                       mpz_t, int, mpz_t, int, unsigned int);
-#define set_stage_2_params __ECM(set_stage_2_params)
-int set_stage_2_params (mpz_t, mpz_t, mpz_t, mpz_t, root_params_t *, double, 
-                        double, unsigned long *, const int, int, int *,
-                        unsigned long *, char *, double, int, mpmod_t);
-#define print_expcurves __ECM(print_expcurves)
-void print_expcurves (double, const mpz_t, unsigned long, unsigned long, int, 
-                      int);
-#define print_exptime __ECM(print_exptime)
-void print_exptime (double, const mpz_t, unsigned long, unsigned long, int, 
-                    double, int);
-#define montgomery_to_weierstrass __ECM(montgomery_to_weierstrass)
-int montgomery_to_weierstrass (mpz_t, mpres_t, mpres_t, mpres_t, mpmod_t);
+                       mpz_t, int, mpz_t);
 
 /* ecm2.c */
 #define ecm_rootsF __ECM(ecm_rootsF)
@@ -488,7 +495,9 @@ void         list_zero  (listz_t, unsigned int);
 void         list_mul (listz_t, listz_t, unsigned int, int, listz_t,
     unsigned int, int, listz_t);
 #define list_mul_high __ECM(list_mul_high)
-void      list_mul_high (listz_t, listz_t, listz_t, unsigned int);
+void      list_mul_high (listz_t, listz_t, listz_t, unsigned int, listz_t);
+#define karatsuba __ECM(karatsuba)
+void         karatsuba  (listz_t, listz_t, listz_t, unsigned int, listz_t);
 #define list_mulmod __ECM(list_mulmod)
 void        list_mulmod (listz_t, listz_t, listz_t, listz_t, unsigned int,
                          listz_t, mpz_t);
@@ -536,17 +545,15 @@ int polyeval_tellegen (listz_t, unsigned int, listz_t*, listz_t,
 void TUpTree (listz_t, listz_t *, unsigned int, listz_t, int, unsigned int,
 		mpz_t, FILE *);
 
+/* toomcook.c */
+#define toomcook3 __ECM(toomcook3)
+void          toomcook3 (listz_t, listz_t, listz_t, unsigned int, listz_t);
+#define toomcook4 __ECM(toomcook4)
+void          toomcook4 (listz_t, listz_t, listz_t, unsigned int, listz_t);
+
 /* ks-multiply.c */
-#define list_mul_n_basecase __ECM(list_mul_n_basecase)
-void list_mul_n_basecase (listz_t, listz_t, listz_t, unsigned int);
-#define list_mul_tc __ECM(list_mul_tc)
-void list_mul_tc (listz_t, listz_t, unsigned int, listz_t, unsigned int);
-#define list_mul_n_KS1 __ECM(list_mul_n_KS1)
-void list_mul_n_KS1 (listz_t, listz_t, listz_t, unsigned int);
-#define list_mul_n_KS2 __ECM(list_mul_n_KS2)
-void list_mul_n_KS2 (listz_t, listz_t, listz_t, unsigned int);
-#define list_mult_n __ECM(list_mult_n)
-void list_mult_n (listz_t, listz_t, listz_t, unsigned int);
+#define kronecker_schonhage __ECM(kronecker_schonhage)
+void kronecker_schonhage (listz_t, listz_t, listz_t, unsigned int, listz_t);
 #define TMulKS __ECM(TMulKS)
 int TMulKS     (listz_t, unsigned int, listz_t, unsigned int, listz_t,
                 unsigned int, mpz_t, int);
@@ -745,27 +752,33 @@ int  gw_ecm_stage1 (mpz_t, curve *, mpmod_t, double, double *, mpz_t,
                     double, unsigned long, unsigned long, signed long);
 #endif
 
+/* mul_fft.h */
+#define mpn_mul_fft __ECM(mpn_mul_fft)
+int  mpn_mul_fft (mp_ptr, mp_size_t, mp_srcptr, mp_size_t, mp_srcptr, 
+                        mp_size_t, int);
+#define mpn_mul_fft_full __ECM(mpn_mul_fft_full)
+void mpn_mul_fft_full (mp_ptr, mp_srcptr, mp_size_t, mp_srcptr, 
+                             mp_size_t);
+#define mpn_fft_best_k __ECM(mpn_fft_best_k)
+int  mpn_fft_best_k (mp_size_t, int);
+#define mpn_fft_next_size __ECM(mpn_fft_next_size)
+mp_size_t mpn_fft_next_size (mp_size_t, int);
+
 /* batch.c */
 #define compute_s  __ECM(compute_s )
 void compute_s (mpz_t, unsigned long);
+#define write_s_in_file __ECM(write_s_in_file)
+int write_s_in_file (char *, mpz_t);
+#define read_s_from_file  __ECM(read_s_from_file)
+void read_s_from_file (mpz_t, char *); 
 #define ecm_stage1_batch  __ECM(ecm_stage1_batch)
 int ecm_stage1_batch (mpz_t, mpres_t, mpres_t, mpmod_t, double, double *, 
                                                                 int,  mpz_t);
 
-/* parametrizations.c */
-#define get_curve_from_random_parameter __ECM(get_curve_from_random_parameter)
-int get_curve_from_random_parameter (mpz_t, mpres_t, mpres_t, mpz_t, int, 
-                                      mpmod_t, gmp_randstate_t);
-#define get_curve_from_param0 __ECM(get_curve_from_param0)
-int get_curve_from_param0 (mpz_t, mpres_t, mpres_t, mpz_t, mpmod_t);
-#define get_curve_from_param1 __ECM(get_curve_from_param1)
-int get_curve_from_param1 (mpres_t, mpres_t, mpz_t, mpmod_t);
-#define get_curve_from_param2 __ECM(get_curve_from_param2)
-int get_curve_from_param2 (mpz_t, mpres_t, mpres_t, mpz_t, mpmod_t);
-#define get_curve_from_param3 __ECM(get_curve_from_param3)
-int get_curve_from_param3 (mpres_t, mpres_t, mpz_t, mpmod_t);
-#define get_default_param __ECM(get_default_param)
-int get_default_param (int, mpz_t, double, double);
+/* ellparam_batch.c */
+#define get_curve_from_ell_parametrization \
+                                      __ECM(get_curve_from_ell_parametrization )
+int get_curve_from_ell_parametrization (mpz_t, mpres_t, mpz_t, mpmod_t);
 
 /* sets_long.c */
 /* A set of long ints */

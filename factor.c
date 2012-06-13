@@ -23,16 +23,15 @@ http://www.gnu.org/licenses/ or write to the Free Software Foundation, Inc.,
 #include <stdio.h>
 #include <math.h>
 #include "ecm-impl.h"
-#include "ecm-gpu.h"
 
 void
 ecm_init (ecm_params q)
 {
   q->method = ECM_ECM; /* default method */
+  MEMORY_TAG;
   mpz_init_set_ui (q->x, 0);
   mpz_init_set_ui (q->sigma, 0);
   q->sigma_is_A = 0;
-  q->param = -1;
   mpz_init_set_ui (q->go, 1);
   q->B1done = ECM_DEFAULT_B1_DONE + 1. / 1048576.;
   mpz_init_set_si (q->B2min, -1.0); /* default: B2min will be set to B1 */
@@ -48,16 +47,16 @@ ecm_init (ecm_params q)
   q->TreeFilename = NULL;
   q->maxmem = 0.0;
   q->stage1time = 0.0;
+  MEMORY_TAG;
   gmp_randinit_default (q->rng);
+  MEMORY_TAG;
   gmp_randseed_ui (q->rng, get_random_ul ());
+  MEMORY_UNTAG;
   q->use_ntt = 1;
   q->stop_asap = NULL;
-  q->batch_last_B1_used = 1.0;
-  mpz_init_set_ui (q->batch_s, 1);
-  q->gpu = 0; /* no gpu by default in library mode */
-  q->gpu_device = -1; 
-  q->gpu_device_init = 0; 
-  q->gpu_number_of_curves = 0; 
+  q->batch = 0; /* no batch mode by default in library mode */
+  q->batch_B1 = 1.0;
+  mpz_init_set_ui(q->batch_s, 1);
   q->gw_k = 0.0;
   q->gw_b = 0;
   q->gw_n = 0;
@@ -85,22 +84,6 @@ ecm_factor (mpz_t f, mpz_t n, double B1, ecm_params p)
   ecm_params q;
   double B1done, B2scale;
 
-  if (mpz_cmp_ui (n, 0) <= 0)
-	  {
-      fprintf (p->es, "Error, n should be positive.\n");
-	    return ECM_ERROR;
-	  }
-  else if (mpz_cmp_ui (n, 1) == 0)
-    {
-      mpz_set_ui (f, 1);
-      return ECM_FACTOR_FOUND_STEP1;
-    }
-  else if (mpz_divisible_2exp_p (n, 1))
-    {
-      mpz_set_ui (f, 2);
-      return ECM_FACTOR_FOUND_STEP1;
-    }
-  
   if ((p_is_null = (p == NULL)))
     {
       p = q;
@@ -115,33 +98,11 @@ ecm_factor (mpz_t f, mpz_t n, double B1, ecm_params p)
    p->B1done = B1done;
  
   if (p->method == ECM_ECM)
-    {
-      if (p->gpu == 0)
-        {
-            res = ecm (f, p->x, &(p->param), p->sigma, n, p->go, &(p->B1done), 
-                       B1, p->B2min, p->B2, B2scale, p->k, p->S, p->verbose, 
-                       p->repr, p->nobase2step2, p->use_ntt, p->sigma_is_A,
-                       p->os, p->es, p->chkfilename, p->TreeFilename, p->maxmem,
-                       p->stage1time, p->rng, p->stop_asap, p->batch_s,
-                       &(p->batch_last_B1_used), p->gw_k, p->gw_b, p->gw_n,
-                       p->gw_c);
-        }
-      else
-        {
-#ifdef WITH_GPU
-            res = gpu_ecm (f, p->x, &(p->param), p->sigma, n, p->go, 
-                           &(p->B1done), B1, p->B2min, p->B2, B2scale, p->k,
-                           p->S, p->verbose, p->repr, p->nobase2step2, 
-                           p->use_ntt, p->sigma_is_A, p->os, p->es,
-                           p->chkfilename, p->TreeFilename, p->maxmem,
-                           p->stop_asap, p->batch_s, &(p->batch_last_B1_used),
-                           p->gpu_device, &(p->gpu_device_init),
-                           &(p->gpu_number_of_curves));
-#else
-            res = gpu_ecm ();
-#endif
-        }
-    }
+    res = ecm (f, p->x, p->sigma, n, p->go, &(p->B1done), B1, p->B2min, p->B2, 
+               B2scale, p->k, p->S, p->verbose, p->repr, p->nobase2step2, p->use_ntt, p->sigma_is_A,
+               p->os, p->es, p->chkfilename, p->TreeFilename, p->maxmem, 
+               p->stage1time, p->rng, p->stop_asap, p->batch, p->batch_s, 
+               p->gw_k, p->gw_b, p->gw_n, p->gw_c);
   else if (p->method == ECM_PM1)
     res = pm1 (f, p->x, n, p->go, &(p->B1done), B1, p->B2min, p->B2, B2scale,
                p->k, p->S, p->verbose, p->repr, p->use_ntt, p->os, p->es,

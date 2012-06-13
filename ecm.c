@@ -31,21 +31,19 @@ http://www.gnu.org/licenses/ or write to the Free Software Foundation, Inc.,
 # define ULONG_MAX __GMP_ULONG_MAX
 #endif
 
-#ifdef TIMING_CRT
-extern int mpzspv_from_mpzv_slow_time, mpzspv_to_mpzv_time;
-#endif
-
 /* the following factor takes into account the smaller expected smoothness
    for Montgomery's curves (batch mode) with respect to Suyama's curves */
-/* For param 1 we use A=4d-2 with d a square (see main.c). In that
+#if GMP_NUMB_BITS >= 64
+/* For GMP_NUMB_BITS >= 64 we use A=4d-2 with d a square (see main.c). In that
    case, Cyril Bouvier and Razvan Barbulescu have shown that the average
    expected torsion is that of a generic Suyama curve multiplied by the
    constant 2^(1/3)/(3*3^(1/128)) */
-#define EXTRA_SMOOTHNESS_SQUARE 0.416384512396064
-/* For A=4d-2 (param 3) for d a random integer, the average expected torsion 
-   is that of a generic Suyama curve multiplied by the constant 
-   1/(3*3^(1/128)) */
-#define EXTRA_SMOOTHNESS_32BITS_D 0.330484606500389
+#define BATCH1_EXTRA_SMOOTHNESS 0.416384512396064
+#else
+/* For A=4d-2 for d a random integer, the average expected torsion is that
+   of a generic Suyama curve multiplied by the constant 1/(3*3^(1/128)) */
+#define BATCH1_EXTRA_SMOOTHNESS 0.330484606500389
+#endif
 /******************************************************************************
 *                                                                             *
 *                            Elliptic Curve Method                            *
@@ -59,6 +57,76 @@ void add3 (mpres_t, mpres_t, mpres_t, mpres_t, mpres_t, mpres_t, mpres_t,
 
 #define mpz_mulmod5(r,s1,s2,m,t) { mpz_mul(t,s1,s2); mpz_mod(r, t, m); }
 
+/* Computes curve parameter A and a starting point (x:1) from a given
+   sigma value.
+   If a factor of n was found during the process, returns 
+   ECM_FACTOR_FOUND_STEP1 (and factor in f), returns ECM_NO_FACTOR_FOUND 
+   otherwise.
+*/
+static int
+get_curve_from_sigma (mpz_t f, mpres_t A, mpres_t x, mpz_t sigma, mpmod_t n)
+{
+  mpres_t t, u, v, b, z;
+  
+  MEMORY_TAG;
+  mpres_init (t, n);
+  MEMORY_TAG;
+  mpres_init (u, n);
+  MEMORY_TAG;
+  mpres_init (v, n);
+  MEMORY_TAG;
+  mpres_init (b, n);
+  MEMORY_TAG;
+  mpres_init (z, n);
+  MEMORY_UNTAG;
+
+  mpres_set_z  (u, sigma, n);
+  mpres_mul_ui (v, u, 4, n);   /* v = (4*sigma) mod n */
+  mpres_sqr (t, u, n);
+  mpres_sub_ui (u, t, 5, n);       /* u = (sigma^2-5) mod n */
+  mpres_sqr (t, u, n);
+  mpres_mul (x, t, u, n);          /* x = (u^3) mod n */
+  mpres_sqr (t, v, n);
+  mpres_mul (z, t, v, n);          /* z = (v^3) mod n */
+  mpres_mul (t, x, v, n);
+  mpres_mul_ui (b, t, 4, n);       /* b = (4*x*v) mod n */
+  mpres_mul_ui (t, u, 3, n);
+  mpres_sub (u, v, u, n);          /* u' = v-u */
+  mpres_add (v, t, v, n);          /* v' = (3*u+v) mod n */
+  mpres_sqr (t, u, n);
+  mpres_mul (u, t, u, n);          /* u'' = ((v-u)^3) mod n */
+  mpres_mul (A, u, v, n);          /* a = (u'' * v') mod n = 
+                                      ((v-u)^3 * (3*u+v)) mod n */
+  
+  /* Normalize b and z to 1 */
+  mpres_mul (v, b, z, n);
+  if (!mpres_invert (u, v, n)) /* u = (b*z)^(-1) (mod n) */
+    {
+      mpres_gcd (f, v, n);
+      mpres_clear (t, n);
+      mpres_clear (u, n);
+      mpres_clear (v, n);
+      mpres_clear (b, n);
+      mpres_clear (z, n);
+      return ECM_FACTOR_FOUND_STEP1;
+    }
+  
+  mpres_mul (v, u, b, n);   /* v = z^(-1) (mod n) */
+  mpres_mul (x, x, v, n);   /* x = x * z^(-1) */
+  
+  mpres_mul (v, u, z, n);   /* v = b^(-1) (mod n) */
+  mpres_mul (t, A, v, n);
+  mpres_sub_ui (A, t, 2, n);
+  
+  mpres_clear (t, n);
+  mpres_clear (u, n);
+  mpres_clear (v, n);
+  mpres_clear (b, n);
+  mpres_clear (z, n);
+
+  return ECM_NO_FACTOR_FOUND;
+}
+
 /* switch from Montgomery's form g*y^2 = x^3 + a*x^2 + x
    to Weierstrass' form          Y^2 = X^3 + A*X + B
    by change of variables x -> g*X-a/3, y -> g*Y.
@@ -67,12 +135,14 @@ void add3 (mpres_t, mpres_t, mpres_t, mpres_t, mpres_t, mpres_t, mpres_t,
    ECM_FACTOR_FOUND_STEP1 and the factor in f, otherwise returns
    ECM_NO_FACTOR_FOUND.
 */
-int 
+static int 
 montgomery_to_weierstrass (mpz_t f, mpres_t x, mpres_t y, mpres_t A, mpmod_t n)
 {
   mpres_t g;
   
+  MEMORY_TAG;
   mpres_init (g, n);
+  MEMORY_UNTAG;
   mpres_add (g, x, A, n);
   mpres_mul (g, g, x, n);
   mpres_add_ui (g, g, 1, n);
@@ -198,13 +268,21 @@ ecm_mul (mpres_t x, mpres_t z, mpz_t e, mpmod_t n, mpres_t b)
   if (mpz_cmp_ui (e, 1) == 0)
     goto ecm_mul_end;
 
+  MEMORY_TAG;
   mpres_init (x0, n);
+  MEMORY_TAG;
   mpres_init (z0, n);
+  MEMORY_TAG;
   mpres_init (x1, n);
+  MEMORY_TAG;
   mpres_init (z1, n);
+  MEMORY_TAG;
   mpres_init (u, n);
+  MEMORY_TAG;
   mpres_init (v, n);
+  MEMORY_TAG;
   mpres_init (w, n);
+  MEMORY_UNTAG;
 
   l = mpz_sizeinbase (e, 2) - 1; /* l >= 1 */
 
@@ -516,19 +594,33 @@ ecm_stage1 (mpz_t f, mpres_t x, mpres_t A, mpmod_t n, double B1,
   int ret = ECM_NO_FACTOR_FOUND;
   long last_chkpnt_time;
 
+  MEMORY_TAG;
   mpres_init (b, n);
+  MEMORY_TAG;
   mpres_init (z, n);
+  MEMORY_TAG;
   mpres_init (u, n);
+  MEMORY_TAG;
   mpres_init (v, n);
+  MEMORY_TAG;
   mpres_init (w, n);
+  MEMORY_TAG;
   mpres_init (xB, n);
+  MEMORY_TAG;
   mpres_init (zB, n);
+  MEMORY_TAG;
   mpres_init (xC, n);
+  MEMORY_TAG;
   mpres_init (zC, n);
+  MEMORY_TAG;
   mpres_init (xT, n);
+  MEMORY_TAG;
   mpres_init (zT, n);
+  MEMORY_TAG;
   mpres_init (xT2, n);
+  MEMORY_TAG;
   mpres_init (zT2, n);
+  MEMORY_UNTAG;
   
   last_chkpnt_time = cputime ();
 
@@ -643,23 +735,13 @@ choose_S (mpz_t B2len)
 #define DIGITS_INCR   5
 #define DIGITS_END   80
 
-void
+static void
 print_expcurves (double B1, const mpz_t B2, unsigned long dF, unsigned long k, 
-                 int S, int param)
+                 int S, int batch)
 {
   double prob;
   int i, j;
   char sep, outs[128];
-  double smoothness_correction;
-  
-  if (param == ECM_PARAM_SUYAMA || param == ECM_PARAM_BATCH_2)
-      smoothness_correction = 1.0; 
-  else if (param == ECM_PARAM_BATCH_SQUARE)
-      smoothness_correction = EXTRA_SMOOTHNESS_SQUARE;
-  else if (param == ECM_PARAM_BATCH_32BITS_D)
-      smoothness_correction = EXTRA_SMOOTHNESS_32BITS_D;
-  else /* This case should never happen */
-      smoothness_correction = 0.0; 
 
   for (i = DIGITS_START, j = 0; i <= DIGITS_END; i += DIGITS_INCR, j += 3)
     sprintf (outs + j, "%2u%c", i, (i < DIGITS_END) ? '\t' : '\n');
@@ -670,8 +752,9 @@ print_expcurves (double B1, const mpz_t B2, unsigned long dF, unsigned long k,
     {
       sep = (i < DIGITS_END) ? '\t' : '\n';
       prob = ecmprob (B1, mpz_get_d (B2),
-                      /* smoothness depends on the parametrization */
-                      pow (10., i - .5) / smoothness_correction,
+                      /* in batch mode, the extra smoothness is smaller */
+                      pow (10., i - .5) /
+                      ((batch == 1) ? BATCH1_EXTRA_SMOOTHNESS : 1.0),
                       (double) dF * dF * k, S);
       if (prob > 1. / 10000000)
         outputf (OUTPUT_VERBOSE, "%.0f%c", floor (1. / prob + .5), sep);
@@ -682,23 +765,13 @@ print_expcurves (double B1, const mpz_t B2, unsigned long dF, unsigned long k,
     }
 }
 
-void
+static void
 print_exptime (double B1, const mpz_t B2, unsigned long dF, unsigned long k, 
-               int S, double tottime, int param)
+               int S, double tottime, int batch)
 {
   double prob, exptime;
   int i, j;
   char sep, outs[128];
-  double smoothness_correction;
-  
-  if (param == ECM_PARAM_SUYAMA || param == ECM_PARAM_BATCH_2)
-      smoothness_correction = 1.0; 
-  else if (param == ECM_PARAM_BATCH_SQUARE)
-      smoothness_correction = EXTRA_SMOOTHNESS_SQUARE;
-  else if (param == ECM_PARAM_BATCH_32BITS_D)
-      smoothness_correction = EXTRA_SMOOTHNESS_32BITS_D;
-  else /* This case should never happen */
-      smoothness_correction = 0.0; 
   
   for (i = DIGITS_START, j = 0; i <= DIGITS_END; i += DIGITS_INCR, j += 3)
     sprintf (outs + j, "%2u%c", i, (i < DIGITS_END) ? '\t' : '\n');
@@ -710,7 +783,8 @@ print_exptime (double B1, const mpz_t B2, unsigned long dF, unsigned long k,
       sep = (i < DIGITS_END) ? '\t' : '\n';
       prob = ecmprob (B1, mpz_get_d (B2),
                       /* in batch mode, the extra smoothness is smaller */
-                      pow (10., i - .5) / smoothness_correction,
+                      pow (10., i - .5) /
+                      ((batch == 1) ? BATCH1_EXTRA_SMOOTHNESS : 1.0),
                       (double) dF * dF * k, S);
       exptime = (prob > 0.) ? tottime / prob : HUGE_VAL;
       outputf (OUTPUT_TRACE, "Digits: %d, Total time: %.0f, probability: "
@@ -738,16 +812,13 @@ print_exptime (double B1, const mpz_t B2, unsigned long dF, unsigned long k,
 
 /* go should be NULL for P+1, and P-1, it contains the y coordinate for the
    Weierstrass form for ECM (when sigma_is_A = -1). */
-/* if gpu != 0 then it contains the number of curves that will be computed on
-   the GPU */
 void
 print_B1_B2_poly (int verbosity, int method, double B1, double B1done, 
-		  mpz_t B2min_param, mpz_t B2min, mpz_t B2, int S, mpz_t sigma,
-		  int sigma_is_A, mpz_t go, int param, unsigned int gpu)
+		  mpz_t B2min_param, mpz_t B2min, mpz_t B2, int S, mpz_t x0,
+		  int sigma_is_A, mpz_t go)
 {
   ASSERT ((method == ECM_ECM) || (go == NULL));
   ASSERT ((-1 <= sigma_is_A) && (sigma_is_A <= 1));
-  ASSERT (param != ECM_PARAM_DEFAULT || sigma_is_A == 1);
 
   if (test_verbose (verbosity))
   {
@@ -769,43 +840,140 @@ print_B1_B2_poly (int verbosity, int method, double B1, double B1done,
       /* don't print in resume case, since x0 is saved in resume file */
       if (method == ECM_ECM)
         {
-	        if (sigma_is_A == 1)
-	            outputf (verbosity, ", A=%Zd", sigma);
-	        else if (sigma_is_A == 0)
-            {
-              if (gpu) /* if not 0, contains number_of_curves */
-                {
-                  outputf (verbosity, ", sigma=%d:%Zd", param, sigma);
-                  mpz_add_ui (sigma, sigma, gpu-1);
-                  outputf (verbosity, "-%d:%Zd", param, sigma);
-                  mpz_sub_ui (sigma, sigma, gpu-1);
-                  outputf (verbosity, " (%u curves)", gpu);
-                }
-              else
-                  outputf (verbosity, ", sigma=%d:%Zd", param, sigma);
-	          }
-          else /* sigma_is_A = -1: curve was given in Weierstrass form */
-	            outputf (verbosity, ", Weierstrass(A=%Zd,y=Zd)", sigma, go);
+	  if (sigma_is_A == 1)
+	    outputf (verbosity, ", A=%Zd", x0);
+	  else if (sigma_is_A == 0)
+	    outputf (verbosity, ", sigma=%Zd", x0);
+	  else /* sigma_is_A = -1: curve was given in Weierstrass form */
+	    outputf (verbosity, ", Weierstrass(A=%Zd,y=Zd)", x0, go);
         }
       else if (ECM_IS_DEFAULT_B1_DONE(B1done))
-	        outputf (verbosity, ", x0=%Zd", sigma);
+	  outputf (verbosity, ", x0=%Zd", x0);
       
       outputf (verbosity, "\n");
   }
 }
 
-/* Compute parameters for stage 2*/
+/* Input: x is starting point or zero
+          sigma is sigma value (if x is set to zero) or 
+            A parameter (if x is non-zero) of curve
+          n is the number to factor
+          go is the initial group order to preload  
+          B1, B2 are the stage 1/stage 2 bounds, respectively
+          B2min the lower bound for stage 2
+          B2scale is the stage 2 scale factor
+          k is the number of blocks to do in stage 2
+          S is the degree of the Suyama-Brent extension for stage 2
+          verbose is verbosity level: 0 no output, 1 normal output,
+            2 diagnostic output.
+          sigma_is_a: If true, the sigma parameter contains the curve's A value
+   Output: f is the factor found.
+   Return value: ECM_FACTOR_FOUND_STEPn if a factor was found,
+                 ECM_NO_FACTOR_FOUND if no factor was found,
+		 ECM_ERROR in case of error.
+*/
 int
-set_stage_2_params (mpz_t B2, mpz_t B2_parm, mpz_t B2min, mpz_t B2min_parm, 
-                    root_params_t *root_params, double B1, double B2scale,
-                    unsigned long *k, const int S, int use_ntt, int *po2,
-                    unsigned long *dF, char *TreeFilename, double maxmem, 
-                    int Fermat, mpmod_t modulus)
+ecm (mpz_t f, mpz_t x, mpz_t sigma, mpz_t n, mpz_t go, double *B1done,
+     double B1, mpz_t B2min_parm, mpz_t B2_parm, double B2scale, 
+     unsigned long k, const int S, int verbose, int repr, int nobase2step2, int use_ntt,
+     int sigma_is_A, FILE *os, FILE* es, char *chkfilename,
+     char *TreeFilename, double maxmem, double stage1time, 
+     gmp_randstate_t rng, int (*stop_asap)(void), int batch, mpz_t batch_s,
+     ATTRIBUTE_UNUSED double gw_k, ATTRIBUTE_UNUSED unsigned long gw_b,
+     ATTRIBUTE_UNUSED unsigned long gw_n, ATTRIBUTE_UNUSED signed long gw_c)
 {
+  int youpi = ECM_NO_FACTOR_FOUND;
+  int base2 = 0;  /* If n is of form 2^n[+-]1, set base to [+-]n */
+  int Fermat = 0; /* If base2 > 0 is a power of 2, set Fermat to base2 */
+  int po2 = 0;    /* Whether we should use power-of-2 poly degree */
+  long st;
+  mpmod_t modulus;
+  curve P;
+  mpz_t B2min, B2; /* Local B2, B2min to avoid changing caller's values */
+  unsigned long dF;
+  root_params_t root_params;
+
+  /*  1: sigma contains A from Montgomery form By^2 = x^3 + Ax^2 + x
+      0: sigma contains 'sigma' from Suyama's parametrization
+     -1: sigma contains A from Weierstrass form y^2 = x^3 + Ax + B,
+         and go contains B */
+  ASSERT((-1 <= sigma_is_A) && (sigma_is_A <= 1));
+
+  set_verbose (verbose);
+  ECM_STDOUT = (os == NULL) ? stdout : os;
+  ECM_STDERR = (es == NULL) ? stdout : es;
+
+#ifdef MPRESN_NO_ADJUSTMENT
+  /* When no adjustment is made in mpresn_ functions, N should be smaller
+     than B^n/16 */
+  if (mpz_sizeinbase (n, 2) > mpz_size (n) * GMP_NUMB_BITS - 4)
+    {
+      outputf (OUTPUT_ERROR, "Error, N should be smaller than B^n/16\n");
+      return ECM_ERROR;
+    }
+#endif
+
+  /* In batch mode, we force MODMULN */
+  if (batch)
+    repr = ECM_MOD_MODMULN;
+
+  /* if n is even, return 2 */
+  if (mpz_divisible_2exp_p (n, 1))
+    {
+      mpz_set_ui (f, 2);
+      return ECM_FACTOR_FOUND_STEP1;
+    }
+
+  /* now n is odd */
+
+  /* check that B1 is not too large */
+  if (B1 > (double) ECM_UINT_MAX)
+    {
+      outputf (OUTPUT_ERROR, "Error, maximal step 1 bound for ECM is %lu.\n", 
+               ECM_UINT_MAX);
+      return ECM_ERROR;
+    }
+
+  st = cputime ();
+
+  if (mpmod_init (modulus, n, repr) != 0)
+    return ECM_ERROR;
+
+  /* See what kind of number we have as that may influence optimal parameter 
+     selection. Test for base 2 number. Note: this was already done by
+     mpmod_init. */
+
+  if (modulus->repr == ECM_MOD_BASE2)
+    base2 = modulus->bits;
+
+  /* For a Fermat number (base2 a positive power of 2) */
+  for (Fermat = base2; Fermat > 0 && (Fermat & 1) == 0; Fermat >>= 1);
+  if (Fermat == 1) 
+    {
+      Fermat = base2;
+      po2 = 1;
+    }
+  else
+      Fermat = 0;
+
+  MEMORY_TAG;
+  mpres_init (P.x, modulus);
+  MEMORY_TAG;
+  mpres_init (P.y, modulus);
+  MEMORY_TAG;
+  mpres_init (P.A, modulus);
+
+  mpres_set_z (P.x, x, modulus);
+  mpres_set_ui (P.y, 1, modulus);
+  
+  MEMORY_TAG;
   mpz_init_set (B2min, B2min_parm);
+  MEMORY_TAG;
   mpz_init_set (B2, B2_parm);
   
-  mpz_init (root_params->i0);
+  MEMORY_TAG;
+  mpz_init (root_params.i0);
+  MEMORY_UNTAG;
 
   /* set second stage bound B2: when using polynomial multiplication of
      complexity n^alpha, stage 2 has complexity about B2^(alpha/2), and
@@ -832,13 +1000,14 @@ set_stage_2_params (mpz_t B2, mpz_t B2_parm, mpz_t B2min, mpz_t B2min_parm,
      effective B2 */
 
   if (use_ntt)
-    *po2 = 1;
+    po2 = 1;
 
-  root_params->d2 = 0; /* Enable automatic choice of d2 */
-  if (bestD (root_params, k, dF, B2min, B2, *po2, use_ntt, maxmem, 
+  root_params.d2 = 0; /* Enable automatic choice of d2 */
+  if (bestD (&root_params, &k, &dF, B2min, B2, po2, use_ntt, maxmem, 
              (TreeFilename != NULL), modulus) == ECM_ERROR)
     {
-      return ECM_ERROR;
+      youpi = ECM_ERROR;
+      goto end_of_ecm;
     }
 
   /* Set default degree for Brent-Suyama extension */
@@ -848,221 +1017,82 @@ set_stage_2_params (mpz_t B2, mpz_t B2_parm, mpz_t B2min, mpz_t B2min_parm,
      the better Dickson polys whenever possible. For S == 1, 2, they behave
      identically. */
 
-  root_params->S = S;
-  if (root_params->S == ECM_DEFAULT_S)
+  root_params.S = S;
+  if (root_params.S == ECM_DEFAULT_S)
     {
       if (Fermat > 0)
         {
           /* For Fermat numbers, default is 1 (no Brent-Suyama) */
-          root_params->S = 1;
+          root_params.S = 1;
         }
       else
         {
           mpz_t t;
+          MEMORY_TAG;
           mpz_init (t);
+          MEMORY_UNTAG;
           mpz_sub (t, B2, B2min);
-          root_params->S = choose_S (t);
+          root_params.S = choose_S (t);
           mpz_clear (t);
         }
     }
-  return ECM_NO_FACTOR_FOUND;
-}
-
-/* Input: x is starting point or zero
-          sigma is sigma value (if x is set to zero) or 
-            A parameter (if x is non-zero) of curve
-          n is the number to factor
-          go is the initial group order to preload  
-          B1, B2 are the stage 1/stage 2 bounds, respectively
-          B2min the lower bound for stage 2
-          B2scale is the stage 2 scale factor
-          k is the number of blocks to do in stage 2
-          S is the degree of the Suyama-Brent extension for stage 2
-          verbose is verbosity level: 0 no output, 1 normal output,
-            2 diagnostic output.
-          sigma_is_a: If true, the sigma parameter contains the curve's A value
-   Output: f is the factor found.
-   Return value: ECM_FACTOR_FOUND_STEPn if a factor was found,
-                 ECM_NO_FACTOR_FOUND if no factor was found,
-		 ECM_ERROR in case of error.
-*/
-int
-ecm (mpz_t f, mpz_t x, int *param, mpz_t sigma, mpz_t n, mpz_t go, 
-     double *B1done, double B1, mpz_t B2min_parm, mpz_t B2_parm, double B2scale,
-     unsigned long k, const int S, int verbose, int repr, int nobase2step2, int
-     use_ntt, int sigma_is_A, FILE *os, FILE* es, char *chkfilename, char
-     *TreeFilename, double maxmem, double stage1time, gmp_randstate_t rng, int
-     (*stop_asap)(void), mpz_t batch_s, double *batch_last_B1_used,
-     ATTRIBUTE_UNUSED double gw_k, ATTRIBUTE_UNUSED unsigned long gw_b,
-     ATTRIBUTE_UNUSED unsigned long gw_n, ATTRIBUTE_UNUSED signed long gw_c)
-{
-  int youpi = ECM_NO_FACTOR_FOUND;
-  int base2 = 0;  /* If n is of form 2^n[+-]1, set base to [+-]n */
-  int Fermat = 0; /* If base2 > 0 is a power of 2, set Fermat to base2 */
-  int po2 = 0;    /* Whether we should use power-of-2 poly degree */
-  long st;
-  mpmod_t modulus;
-  curve P;
-  mpz_t B2min, B2; /* Local B2, B2min to avoid changing caller's values */
-  unsigned long dF;
-  root_params_t root_params;
-
-  /*  1: sigma contains A from Montgomery form By^2 = x^3 + Ax^2 + x
-      0: sigma contains sigma
-     -1: sigma contains A from Weierstrass form y^2 = x^3 + Ax + B,
-         and go contains B */
-  ASSERT((-1 <= sigma_is_A) && (sigma_is_A <= 1));
-  ASSERT((GMP_NUMB_BITS == 32) || (GMP_NUMB_BITS == 64));
-
-  set_verbose (verbose);
-  ECM_STDOUT = (os == NULL) ? stdout : os;
-  ECM_STDERR = (es == NULL) ? stdout : es;
-
-#ifdef MPRESN_NO_ADJUSTMENT
-  /* When no adjustment is made in mpresn_ functions, N should be smaller
-     than B^n/16 */
-  if (mpz_sizeinbase (n, 2) > mpz_size (n) * GMP_NUMB_BITS - 4)
-    {
-      outputf (OUTPUT_ERROR, "Error, N should be smaller than B^n/16\n");
-      return ECM_ERROR;
-    }
-#endif
- 
-  /* If the parametrization is not given, choose it.*/
-  if (*param == ECM_PARAM_DEFAULT)
-      *param = get_default_param (sigma_is_A, sigma, B1, *B1done);
-
-  /* In batch mode, 
-        we force repr=MODMULN, 
-        B1done should either the default value or greater than B1 
-        x should be either 0 (undetermined) or 2 */
-  if (IS_BATCH_MODE(*param))
-    {
-      if (repr == ECM_MOD_DEFAULT)
-        repr = ECM_MOD_MODMULN;
-      else if (repr != ECM_MOD_MODMULN)
-        {
-          outputf (OUTPUT_ERROR, "Error, with param %d, repr should be " 
-                                 "ECM_MOD_MODMULN.\n", *param);
-          return ECM_ERROR;
-        }
-
-      if (!ECM_IS_DEFAULT_B1_DONE(*B1done) && *B1done < B1)
-        {
-          outputf (OUTPUT_ERROR, "Error, cannot resume with param %d, except " 
-                                 "for doing only stage 2\n");
-          return ECM_ERROR;
-        }
-
-      if (sigma_is_A >= 0 && mpz_sgn (x) != 0 && mpz_cmp_ui (x, 2) != 0)
-        {
-          outputf (OUTPUT_ERROR, "Error, x0 should be equal to 2 with this "
-                                 "parametrization\n");
-          return ECM_ERROR;
-        }
-    }
-
-  /* check that if ECM_PARAM_BATCH_SQUARE is used, GMP_NUMB_BITS == 64*/
-  if (*param == ECM_PARAM_BATCH_SQUARE && GMP_NUMB_BITS == 32)
-    {
-      outputf (OUTPUT_ERROR, "Error, parametrization ECM_PARAM_BATCH_SQUARE "
-                             "works only with GMP_NUMB_BITS=64\n");
-      return ECM_ERROR;
-    }
-
-  /* check that B1 is not too large */
-  if (B1 > (double) ECM_UINT_MAX)
-    {
-      outputf (OUTPUT_ERROR, "Error, maximal step 1 bound for ECM is %lu.\n", 
-               ECM_UINT_MAX);
-      return ECM_ERROR;
-    }
-
-  /* Compute s for the batch mode */
-  if (IS_BATCH_MODE(*param) && 
-      (B1 != *batch_last_B1_used || mpz_cmp_ui (batch_s, 1) <= 0))
-    {
-      *batch_last_B1_used = B1;
-
-      st = cputime ();
-      /* construct the batch exponent */
-      compute_s (batch_s, B1);
-      outputf (OUTPUT_VERBOSE, "Computing batch product (of %zu bits) of "
-                               "primes below B1=%1.0f took %ldms\n", 
-               mpz_sizeinbase (batch_s, 2), B1, cputime () - st);
-    }
-
-
-  st = cputime ();
-
-  if (mpmod_init (modulus, n, repr) != 0)
-    return ECM_ERROR;
-
-  /* See what kind of number we have as that may influence optimal parameter 
-     selection. Test for base 2 number. Note: this was already done by
-     mpmod_init. */
-
-  if (modulus->repr == ECM_MOD_BASE2)
-    base2 = modulus->bits;
-
-  /* For a Fermat number (base2 a positive power of 2) */
-  for (Fermat = base2; Fermat > 0 && (Fermat & 1) == 0; Fermat >>= 1);
-  if (Fermat == 1) 
-    {
-      Fermat = base2;
-      po2 = 1;
-    }
-  else
-      Fermat = 0;
-
-  mpres_init (P.x, modulus);
-  mpres_init (P.y, modulus);
-  mpres_init (P.A, modulus);
-
-  mpres_set_ui (P.y, 1, modulus);
-  
-  youpi = set_stage_2_params (B2, B2_parm, B2min, B2min_parm, &root_params, 
-                              B1, B2scale, &k, S, use_ntt, &po2, &dF, 
-                              TreeFilename, maxmem, Fermat, modulus);
-  if (youpi == ECM_ERROR)
-      goto end_of_ecm;
   
   if (sigma_is_A == 0)
     {
+      /* if sigma=0, generate it at random */
       if (mpz_sgn (sigma) == 0)
         {
-          youpi = get_curve_from_random_parameter (f, P.A, P.x, sigma, *param,
-                                                   modulus, rng);
+          mpz_urandomb (sigma, rng, 32);
+          mpz_add_ui (sigma, sigma, 6);
         }
-      else /* Compute A and x0 from given sigma values */
-        {
-          if (*param == ECM_PARAM_SUYAMA)
-              youpi = get_curve_from_param0 (f, P.A, P.x, sigma, modulus);
-          else if (*param == ECM_PARAM_BATCH_SQUARE)
-              youpi = get_curve_from_param1 (P.A, P.x, sigma, modulus);
-          else if (*param == ECM_PARAM_BATCH_2)
-              youpi = get_curve_from_param2 (f, P.A, P.x, sigma, modulus);
-          else if (*param == ECM_PARAM_BATCH_32BITS_D)
-              youpi = get_curve_from_param3 (P.A, P.x, sigma, modulus);
-          else
-            {
-              outputf (OUTPUT_ERROR, "Error, invalid parametrization.\n");
-              youpi = ECM_ERROR;
-	            goto end_of_ecm;
-            }
-      
-          /* If x != 0 we use this value for the starting point */ 
-          if (mpz_sgn(x) != 0)
-              mpres_set_z (P.x, x, modulus);
-      
-          if (youpi != ECM_NO_FACTOR_FOUND)
-            {
-              if (youpi == ECM_ERROR)
-                  outputf (OUTPUT_ERROR, "Error, invalid value of sigma.\n");
 
-	            goto end_of_ecm;
+      /* sigma contains sigma value, A and x values must be computed */
+      youpi = get_curve_from_sigma (f, P.A, P.x, sigma, modulus);
+      if (youpi != ECM_NO_FACTOR_FOUND)
+	  goto end_of_ecm;
+    }
+  else if (sigma_is_A == 1 && batch == 1)
+    {
+      if (mpz_sgn (sigma) == 0)
+        {
+          int i;
+
+          /* We choose a positive integer d' smaller than B=2^GMP_NUMB_BITS
+             and consider d = d'/B and A = 4d-2 */
+          do
+            mpz_urandomb (sigma, rng, 32);  /* generates d' <> 0 */
+          while (mpz_sgn (sigma) == 0);
+          ASSERT((GMP_NUMB_BITS % 2) == 0);
+          if (GMP_NUMB_BITS >= 64)
+            mpz_mul (sigma, sigma, sigma);      /* ensures d' (and thus d) is
+                                                   a square, which increases
+                                                   the success probability */
+          /* divide d' by B to get d */
+          for (i = 0; i < GMP_NUMB_BITS; i++)
+            {
+              if (mpz_tstbit (sigma, 0) == 1)
+                mpz_add (sigma, sigma, n);
+              mpz_div_2exp (sigma, sigma, 1);
             }
+          mpz_mul_2exp (sigma, sigma, 2);           /* 4d */
+          mpz_sub_ui (sigma, sigma, 2);             /* 4d-2 */
         }
+      
+      mpres_set_z (P.A, sigma, modulus);
+    }
+  else if (sigma_is_A == 1 && batch == 2)
+    {
+      if (mpz_sgn (sigma) == 0)
+        {
+          mpz_urandomb (sigma, rng, 32);
+          mpz_add_ui (sigma, sigma, 2);
+          youpi = get_curve_from_ell_parametrization (f, P.A, sigma, modulus);
+          mpres_get_z (sigma, P.A, modulus);
+          if (youpi != ECM_NO_FACTOR_FOUND)
+	          goto end_of_ecm;
+        }
+      else    /* sigma contains the A value */
+          mpres_set_z (P.A, sigma, modulus);
     }
   else if (sigma_is_A == 1)
     {
@@ -1072,26 +1102,23 @@ ecm (mpz_t f, mpz_t x, int *param, mpz_t sigma, mpz_t n, mpz_t go,
       /* Problem: this may be as hard as factoring as we'd need to determine
          whether x^3 + a*x^2 + x is a quadratic residue or not */
       /* For now, we'll just chicken out. */
-      /* Except for batch mode where we know that x0=2 */
       if (mpz_sgn (x) == 0)
         {
-          if (IS_BATCH_MODE(*param))
-            mpres_set_ui (P.x, 2, modulus);
-          else
-            {
-              outputf (OUTPUT_ERROR, 
-                          "Error, -A requires a starting point (-x0 x).\n");
-              youpi = ECM_ERROR;
-	            goto end_of_ecm;
-            }
+          outputf (OUTPUT_ERROR, 
+                   "Error, -A requires a starting point (-x0 x).\n");
+	  youpi = ECM_ERROR;
+	  goto end_of_ecm;
         }
-      else
-          mpres_set_z (P.x, x, modulus);
     }
+
+  /* If a nonzero value is given in x, then we use it as the starting point,
+     overwriting the one computing from sigma for sigma_is_A=0. */
+  if (mpz_sgn (x) != 0)
+      mpres_set_z (P.x, x, modulus);
 
   /* Print B1, B2, polynomial and sigma */
   print_B1_B2_poly (OUTPUT_NORMAL, ECM_ECM, B1, *B1done, B2min_parm, B2min, 
-		    B2, root_params.S, sigma, sigma_is_A, go, *param, 0);
+		    B2, root_params.S, sigma, sigma_is_A, go);
 
 #if 0
   outputf (OUTPUT_VERBOSE, "b2=%1.0f, dF=%lu, k=%lu, d=%lu, d2=%lu, i0=%Zd\n", 
@@ -1120,7 +1147,9 @@ ecm (mpz_t f, mpz_t x, int *param, mpz_t sigma, mpz_t n, mpz_t go,
     {
       mpz_t t;
 
+      MEMORY_TAG;
       mpz_init (t);
+      MEMORY_UNTAG;
       mpres_get_z (t, P.A, modulus);
       outputf (OUTPUT_RESVERBOSE, "A=%Zd\n", t);
       mpres_get_z (t, P.x, modulus);
@@ -1138,22 +1167,17 @@ ecm (mpz_t f, mpz_t x, int *param, mpz_t sigma, mpz_t n, mpz_t go,
           outputf (OUTPUT_VERBOSE, 
             "Can't compute success probabilities for B1 <> B2min\n");
         }
-      else if (*param == ECM_PARAM_DEFAULT)
-        {
-          outputf (OUTPUT_VERBOSE, "Can't compute success probabilities " 
-                                   "for unknown parametrization.\n");
-        }
       else
         {
           rhoinit (256, 10);
-          print_expcurves (B1, B2, dF, k, root_params.S, *param);
+          print_expcurves (B1, B2, dF, k, root_params.S, batch);
         }
     }
 
 #ifdef HAVE_GWNUM
   /* We will only use GWNUM for numbers of the form k*b^n+c */
 
-  if (gw_b != 0 && B1 >= *B1done && param == ECM_PARAM_SUYAMA)
+  if (gw_b != 0 && B1 >= *B1done && batch == 0)
       youpi = gw_ecm_stage1 (f, &P, modulus, B1, B1done, go, gw_k, gw_b, gw_n, gw_c);
 
   /* At this point B1 == *B1done unless interrupted, or no GWNUM ecm_stage1
@@ -1165,13 +1189,13 @@ ecm (mpz_t f, mpz_t x, int *param, mpz_t sigma, mpz_t n, mpz_t go,
 
   if (B1 > *B1done)
     {
-        if (IS_BATCH_MODE(*param))
+      if (batch != 0)
         /* FIXME: go, stop_asap and chkfilename are ignored in batch mode */
-        youpi = ecm_stage1_batch (f, P.x, P.A, modulus, B1, B1done, *param, 
-                                  batch_s);
-        else
-          youpi = ecm_stage1 (f, P.x, P.A, modulus, B1, B1done, go, stop_asap,
-                              chkfilename);
+        youpi = ecm_stage1_batch (f, P.x, P.A, modulus, B1, B1done, batch, 
+                                                            batch_s);
+      else
+        youpi = ecm_stage1 (f, P.x, P.A, modulus, B1, B1done, go, stop_asap,
+                            chkfilename);
     }
   
   if (stage1time > 0.)
@@ -1197,7 +1221,9 @@ ecm (mpz_t f, mpz_t x, int *param, mpz_t sigma, mpz_t n, mpz_t go,
     {
       mpz_t t;
       
+      MEMORY_TAG;
       mpz_init (t);
+      MEMORY_UNTAG;
       mpres_get_z (t, P.x, modulus);
       outputf (OUTPUT_RESVERBOSE, "x=%Zd\n", t);
       mpz_clear (t);
@@ -1214,9 +1240,15 @@ ecm (mpz_t f, mpz_t x, int *param, mpz_t sigma, mpz_t n, mpz_t go,
     {
       mpz_t x_t, y_t, A_t;
 
+      MEMORY_TAG;
       mpz_init (x_t);
+      MEMORY_UNTAG;
+      MEMORY_TAG;
       mpz_init (y_t);
+      MEMORY_UNTAG;
+      MEMORY_TAG;
       mpz_init (A_t);
+      MEMORY_UNTAG;
 
       mpz_mod (x_t, P.x, modulus->orig_modulus);
       mpz_mod (y_t, P.y, modulus->orig_modulus);
@@ -1246,7 +1278,9 @@ ecm (mpz_t f, mpz_t x, int *param, mpz_t sigma, mpz_t n, mpz_t go,
     {
       mpz_t t;
 
+      MEMORY_TAG;
       mpz_init (t);
+      MEMORY_UNTAG;
       mpres_get_z (t, P.x, modulus);
       outputf (OUTPUT_RESVERBOSE, "After switch to Weierstrass form, "
       "P=(%Zd", t);
@@ -1260,21 +1294,17 @@ ecm (mpz_t f, mpz_t x, int *param, mpz_t sigma, mpz_t n, mpz_t go,
   if (youpi == ECM_NO_FACTOR_FOUND && mpz_cmp (B2, B2min) >= 0)
     youpi = stage2 (f, &P, modulus, dF, k, &root_params, ECM_ECM, 
                     use_ntt, TreeFilename, stop_asap);
-#ifdef TIMING_CRT
-  printf ("mpzspv_from_mpzv_slow: %dms\n", mpzspv_from_mpzv_slow_time);
-  printf ("mpzspv_to_mpzv and mpzspv_normalise: %dms\n", mpzspv_to_mpzv_time);
-#endif
   
 end_of_ecm_rhotable:
   if (test_verbose (OUTPUT_VERBOSE))
     {
-      if (mpz_cmp_d (B2min, B1) == 0 && *param != ECM_PARAM_DEFAULT)
+      if (mpz_cmp_d (B2min, B1) == 0)
         {
           if (youpi == ECM_NO_FACTOR_FOUND && 
               (stop_asap == NULL || !(*stop_asap)()))
             print_exptime (B1, B2, dF, k, root_params.S, 
                            (long) (stage1time * 1000.) + 
-                           elltime (st, cputime ()), *param);
+                           elltime (st, cputime ()), batch);
           rhoinit (1, 0); /* Free memory of rhotable */
         }
     }

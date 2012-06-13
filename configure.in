@@ -1,4 +1,4 @@
-m4_define([ECM_VERSION], [7.0-dev])
+m4_define([ECM_VERSION], [6.4.3])
 
 AC_PREREQ([2.57])
 AC_INIT([ecm], ECM_VERSION, [ecm-discuss@lists.gforge.inria.fr])
@@ -49,10 +49,16 @@ fi
 dnl Assertions are enabled by default for beta/rc releases. The last parameter
 dnl of AC_ARG_ENABLE() sets the default value (change also default=...).
 AC_ARG_ENABLE([assert],
-[AS_HELP_STRING([--enable-assert], [enable ASSERT checking [[default=yes]]])],[],[enable_assert=yes])
+[AS_HELP_STRING([--enable-assert], [enable ASSERT checking [[default=no]]])],[],[enable_assert=no])
 if test "x$enable_assert" = xyes; then
   AC_DEFINE([WANT_ASSERT],1,[Define to 1 if you want assertions enabled])
   GMP_DEFINE([WANT_ASSERT], 1)
+fi
+
+AC_ARG_ENABLE([shellcmd],
+[AS_HELP_STRING([--enable-shellcmd], [enable shell command execution [[default=no]]])])
+if test "x$enable_shellcmd" = xyes; then
+  AC_DEFINE([WANT_SHELLCMD],1,[Define to 1 if you want shell command execution])
 fi
 
 AC_ARG_ENABLE([gmp-cflags],
@@ -66,6 +72,13 @@ AC_ARG_ENABLE([sse2],
 
 AC_ARG_ENABLE([asm-redc],
 [AS_HELP_STRING([--enable-asm-redc], [use an asm redc (default=yes on x86_64 and powerpc64, no on others)])])
+
+AC_ARG_ENABLE([memory-debug],
+[AS_HELP_STRING([--enable-memory-debug], [enable memory debugging [[default=no]]])])
+if test "x$enable_memory_debug" = xyes; then
+  AC_DEFINE([MEMORY_DEBUG], 1, [Define to 1 if you want memory debugging])
+fi
+AM_CONDITIONAL([MEMORY_DEBUG], [test "x$enable_memory_debug" = xyes])
 
 AC_ARG_ENABLE([mulredc-svoboda],
 [AS_HELP_STRING([--enable-mulredc-svoboda], [enable Svoboda mulredc [[default=no]]])])
@@ -523,7 +536,6 @@ return strcmp (buffer, gmp_version);
 
 AC_CHECK_FUNCS([__gmpn_add_nc __gmpn_mod_34lsub1 __gmpn_redc_1 __gmpn_redc_2])
 AC_CHECK_FUNCS([__gmpn_mullo_n __gmpn_redc_n __gmpn_preinv_mod_1])
-AC_CHECK_FUNCS([__gmpn_mul_fft __gmpn_fft_next_size __gmpn_fft_best_k])
 
 LIBS="$LIBS_BACKUP"
 
@@ -572,35 +584,64 @@ dnl Check for valgrind. GMP-ECM uses exit code 1 to signal error,
 dnl so we make valgrind use that code to signal error, too
 AC_CHECK_PROG([VALGRIND], [valgrind], [valgrind -q --error-exitcode=1])
 
-dnl Check if a GPU version is asked, for which GPU and where CUDA is install.
-dnl See acinclude.m4 for details.
-CU_CHECK_CUDA
+case $host in
+  athlon*-*-*) config_arch="athlon" ;;
+  x86_64*-*-*) config_arch="athlon64" ;;
+  pentium3-*-*) config_arch="pentium3" ;;
+  pentium4-*-*) config_arch="pentium4" ;;
+  pentium-m-*-*) config_arch="pentium-m" ;;
+  alphaev6*-*-*) config_arch="alpha-ev6" ;;
+  alphaev56*-*-*) config_arch="alpha-ev56" ;;
+  alphaev5*-*-*) config_arch="alpha-ev5" ;;
+  powerpc7450-*-*) config_arch="powerpc7450" ;;
+  powerpc-apple-darwin* | powerpc64-*-*) config_arch="powerpc970" ;;
+  mips64el-*-*) config_arch="mips64el" ;;
+  armv5tel-*-*) config_arch="armv5tel" ;;
+  sparc64-*-*) config_arch="sparc64" ;;
+  ia64-*-*) config_arch="ia64" ;;
+  hppa2.0-*-*) config_arch="hppa2.0" ;;
+  *) config_arch="default" ;;
+esac
 
-# Construct NVCC_FLAGS
-NVCC_FLAGS="-DGPU_CC$GPU_ARCH -DWITH_GPU -arch=sm_$GPU_ARCH"
+# See if this is a Core 2, if we have /proc/cpuinfo 
+core2warn=no
+if test x"$config_arch" = xathlon64; then
+  if test -f /proc/cpuinfo; then
+    if $EGREP -q "Core\(TM\)2" /proc/cpuinfo; then
+      config_arch=core2
+    elif $EGREP -q "Core\(TM\) i5" /proc/cpuinfo; then
+      config_arch=corei5
+    fi;
+  else
+    # No /proc/cpuinfo, tell user about ecm-params.h.core2
+    core2warn=yes
+  fi;
+fi
 
-AS_IF([test -n "$cc_for_cuda"], [NVCC_FLAGS+=" --compiler-bindir $cc_for_cuda"])
-
-NVCC_FLAGS+=" --ptxas-options=-v"
-
-# If debug flag is set apply debugging compilation flags, 
-# otherwise build compilation flags
-AS_IF([test "x$DEBUG" = "xtrue"],
-  [#NVCC_FLAGS+=" -keep -keep-dir gputmp"
-  NVCC_FLAGS+=" -g --compiler-options -fno-strict-aliasing"
-  NVCC_FLAGS+=" --ptxas-options=-v"],
-  [NVCC_FLAGS+=" -O2 --compiler-options -fno-strict-aliasing"])
-
-CC_ADD_FLAGS_FOR_GPU=" -DGPU_CC$GPU_ARCH -DWITH_GPU"
-
-AC_SUBST(NVCC_FLAGS)
-AC_SUBST(CC_ADD_FLAGS_FOR_GPU)
-
+# See if this is a Pentium 4, if we have /proc/cpuinfo 
+pentium4warn=no
+if test x"$config_arch" = xdefault; then
+  if test -f /proc/cpuinfo; then
+    if $EGREP -q "Pentium\(R\) 4" /proc/cpuinfo; then
+      config_arch=pentium4
+    fi;
+  else
+    # No /proc/cpuinfo, tell user about ecm-params.h.pentium4
+    pentium4warn=yes
+  fi;
+fi
 
 LIBS="$LIBS $GWLIB"
 
 GMP_FINISH
 AC_CONFIG_FILES([Makefile athlon/Makefile pentium4/Makefile x86_64/Makefile powerpc64/Makefile build.vc10/Makefile build.vc10/assembler/Makefile build.vc10/ecm/Makefile build.vc10/libecm/Makefile build.vc10/tune/Makefile build.vc10/bench_mulredc/Makefile])
+AC_CONFIG_LINKS([ecm-params.h:ecm-params.h.$config_arch])
+MUL_FFT_PARAMS="mul_fft-params.h.$config_arch"
+if ! test -f "$MUL_FFT_PARAMS"
+then
+  MUL_FFT_PARAMS="mul_fft-params.h.default"
+fi
+AC_CONFIG_LINKS([mul_fft-params.h:"$MUL_FFT_PARAMS"])
 
 AC_SUBST([XSLDIR])
 AC_SUBST([ASMPATH])
@@ -652,4 +693,18 @@ if test "x$enable_memory_debug" = xyes; then
   AC_MSG_NOTICE([Memory debugging enabled])
 else
   AC_MSG_NOTICE([Memory debugging disabled])
+fi
+
+if test x"$core2warn" = xyes; then
+  AC_MSG_NOTICE([Your cpu was detected as x86_64; if it is a Core 2, please either use the ecm-params.h.core2 file by executing the commands:])
+  AC_MSG_NOTICE([rm ecm-params.h])
+  AC_MSG_NOTICE([ln -s ecm-params.h.core2 ecm-params.h])
+  AC_MSG_NOTICE([or generate a custom ecm-params.h file for your system as described in INSTALL.])
+fi
+
+if test x"$pentium4warn" = xyes; then
+  AC_MSG_NOTICE([Your cpu was detected as default; if it is a Pentium 4, please either use the ecm-params.h.pentium4 file by executing the commands:])
+  AC_MSG_NOTICE([rm ecm-params.h])
+  AC_MSG_NOTICE([ln -s ecm-params.h.pentium4 ecm-params.h])
+  AC_MSG_NOTICE([or generate a custom ecm-params.h file for your system as described in INSTALL.])
 fi

@@ -1,18 +1,3 @@
-Changes between GMP-ECM 6.4.2 and GMP-ECM 7.0:
-* The configure --enable-shellcmd option was removed, and also the
-  --enable-memory-debug configure option (now obsolete with valgrind).
-* The -b and -t options were removed (breadth-first mode and trial division).
-* Added GPU code for Step 1 (command-line option -gpu).
-* Command-line option -param allows to choose the parametrization (valid values
-  are 0, 1, 2, 3). Command-line option -sigma allows to choose the parameter.
-  "-sigma i:s" is a shortcut to "-param i -sigma s". Use -param 0 to get
-  historical Suyama parametrization.
-* The batch mode is now chosen with -param command-line option.
-  The default parametrization depends on others command-line options.
-* For P-1 stage 2, by default the NTT code is always used.
-* Fixed PowerPC64 assembly code with --enable-shared (thanks Leif Leonhardy)
-* Speedup in stage 2 with -no-ntt
-
 Changes between GMP-ECM 6.4.2 and GMP-ECM 6.4.3:
 * Fixed bug reported by user "lorgix" on mersenneforum
   (http://www.mersenneforum.org/showpost.php?p=286385&postcount=280)
@@ -25,10 +10,10 @@ Changes between GMP-ECM 6.4.1 and GMP-ECM 6.4.2:
   386 digits on 64-bit computers and 193 digits on 32-bit computers).
 * Speedup in stage 2 with the NTT default mode
 
-Changes between GMP-ECM 6.4 and GMP-ECM 6.4.1:
+Changes between ecm-6.4 and ecm-6.4.1:
 * GMP-ECM is now distributed under the GPL version 3 or later for the binary,
   and under the LGPL version 3 or later for the library
-* Fixed a speed regression with respect to GMP-ECM 6.3
+* Fixed a speed regression with respect to ecm-6.3
   http://lists.gforge.inria.fr/pipermail/ecm-discuss/2012-February/004103.html
 * Fixed a bug with the -treefile option which had been present for a long time
 * Several fixes for the Visual Studio 2010 build
@@ -39,7 +24,7 @@ Changes between GMP-ECM 6.4 and GMP-ECM 6.4.1:
 * New tuning parameters for Intel Core i5
 * New ecmbench utility
 
-Changes between GMP-ECM 6.3 and GMP-ECM 6.4:
+Changes between ecm-6.3 and ecm-6.4:
 * Fixed configure problem with SSE2
   (http://trac.sagemath.org/sage_trac/ticket/10252)
 * Fixed configure bug on 32-bit PowerPC (tried to use 64-bit assembly)
@@ -55,7 +40,7 @@ Changes between GMP-ECM 6.3 and GMP-ECM 6.4:
 * New option -batch with faster Stage 1 (but smaller success probability)
 * Added Visual Studio 2010 build
 
-Changes between GMP-ECM 6.2.3 and GMP-ECM 6.3:
+Changes between ecm-6.2.3 and ecm-6.3:
 * New assembly code for 64-bit PowerPC (thanks to Philip McLaughlin)
 * Allow several processes to write to the same -save file
 * More routines in new P+-1 stage 2 use multi-threading in OpenMP build
@@ -65,7 +50,7 @@ Changes between GMP-ECM 6.2.3 and GMP-ECM 6.3:
   (and presumably other systems)
 * Allow use of x86_64 asm code under MinGW
 
-Changes between GMP-ECM 6.2.2 and GMP-ECM 6.2.3:
+Changes between ecm-6.2.2 and ecm-6.2.3:
 * Fixed incompatibility with GMP 4.3.0 when testing version in configure
 * SSE2 asm code for Visual C added in stage 2 NTT code
 * Small improvement to x86_64 mulredc asm code, slight speedup on Core 2
@@ -76,7 +61,7 @@ Changes between GMP-ECM 6.2.2 and GMP-ECM 6.2.3:
   parameter if input line did not end in newline
 * Assembler mulredc code enabled by default on x86_64
 
-Changes between GMP-ECM 6.2.1 and GMP-ECM 6.2.2:
+Changes between ecm-6.2.1 and ecm-6.2.2:
 * Updated build project files for Visual C by Brian Gladman, also adds
   missing NTT_GFP_TWIDDLE_DI[FT]_BREAKOVER defines in VC parameter file
 * Fixed uninitialised parameter to P-1 probability computation
@@ -91,13 +76,13 @@ Changes between GMP-ECM 6.2.1 and GMP-ECM 6.2.2:
 * Converted binary constants in spv.c and ntt_gfp.c to hexadecimal, 
   some assembler do not support binary constants
 
-Changes between GMP-ECM 6.2 and GMP-ECM 6.2.1:
+Changes between ecm-6.2 and ecm-6.2.1:
 * Default B2 for new P-1 and P+1 stage 2 increased
 * Probabilities for finding factors with P-1 are now printed with -v
 * Fixed compilation problem on IA64, EV56, and ARM
 * Made threshold between recursive and iterative NTT tunable
 
-Changes between GMP-ECM 6.1.3 and GMP-ECM 6.2:
+Changes between ecm-6.1.3 and ecm-6.2:
 * New stage 2 for P-1 and P+1, described in Montgomery and Kruppa,
   Improved Stage 2 to P+-1 Factoring Algorithms, 
   in A. J. van der Poorten and A. Stein (Eds.), ANTS-VIII 2008,
@@ -119,7 +104,7 @@ Changes between GMP-ECM 6.1.3 and GMP-ECM 6.2:
   stage 2 was slower for large inputs. Now defaults to -no-ntt for input
   numbers >30 machine words.
 
-Changes between GMP-ECM 6.1.2 and GMP-ECM 6.1.3:
+Changes between ecm-6.1.2 and ecm-6.1.3:
 * fixed incorrect computation of memory use in stage 2, especially for
   machines that use Kronecker-Schoenhage multiplication even for large
   degrees, such as Core 2.
@@ -130,11 +115,11 @@ Changes between GMP-ECM 6.1.2 and GMP-ECM 6.1.3:
 * fixed bug for modular multiplication modulo Fermat numbers 2^2^n+1, where 
   a result of 2^2^n would be truncated to 0.
 
-Changes between GMP-ECM 6.1.1 and GMP-ECM 6.1.2:
+Changes between ecm-6.1.1 and ecm-6.1.2:
 * changed copyright header from sp.h, to recognize the FSF for parts inspired
   or taken from gmp-impl.h.
 
-Changes between GMP-ECM 6.0.1 and GMP-ECM 6.1:
+Changes between ecm-6.0.1 and ecm-6.1:
 * new assembly code contributed by Pierrick Gaudry for combined mul/redc
 * new Number Theoretic Transform code contributed by Dave Newman for step 2
 * new signal handling and corresponding save files for step 1
@@ -152,7 +137,7 @@ Changes between GMP-ECM 6.0.1 and GMP-ECM 6.1:
 * fixed wrong detection of divisors of 2^n+1 or 2^n-1 
 * fixed memory leaks
 
-Changes between GMP-ECM 6.0 and GMP-ECM 6.0.1:
+Changes between ecm-6.0 and ecm-6.0.1:
 * now checks for availability of snprintf() during configure
 * fixed linking problems with tune and tune2 on PowerPC G5
 * fixed segfault in rho.c
@@ -170,7 +155,7 @@ Changes between GMP-ECM 6.0 and GMP-ECM 6.0.1:
 * free rhotable memory at end of stage 2
 * replaced GSL's dilog_series() in rho.c due to licensing (GPL vs. LGPL)
 
-Changes between GMP-ECM 5.0.3 and GMP-ECM 6.0:
+Changes between ecm-5.0.3 and ecm-6.0:
 * use of the autotools (configure/make)	
 * there is now a documentation in "man" format (ecm.1)
 * added a set of -prp* command line switches which will use an external
@@ -222,7 +207,7 @@ Changes between GMP-ECM 5.0.3 and GMP-ECM 6.0:
 * generation of roots use double sieve idea, increases B2 for given k, dF
 * generation of roots for ECM rewritten to reduce number of extgcds
 
-Changes between GMP-ECM 5.0 and GMP-ECM 5.0.1:
+Changes between ecm-5.0 and ecm-5.0.1:
 * fixed bug when B1 or B2min is too large, and an overflow occurs in step 2,
 	making the computations incorrect. The new limit for B1 or B2min is
 	now around 2^53, and an error occurs when this limit is passed.

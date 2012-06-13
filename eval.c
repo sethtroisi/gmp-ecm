@@ -158,7 +158,7 @@ ChompLine:;
 	  if (!strcmp(s, cpTmpExpr))
 	    cpTmpExpr = NULL;
 	  ret = mpcandi_t_add_candidate (n, t, cpTmpExpr, primetest);
-	  free (s); /* size strlen (s) + 1 */
+	  FREE (s, strlen (s) + 1);
 	}
       mpz_clear(t);
     }
@@ -234,7 +234,7 @@ JoinLinesLoop:;
 	  if (!strcmp(s, cpTmpExpr))
 	    cpTmpExpr = NULL;
 	  ret = mpcandi_t_add_candidate(n, t, cpTmpExpr, primetest);
-	  free (s); /* size strlen (s) + 1 */
+	  FREE (s, strlen (s) + 1);
 	}
       mpz_clear(t);
     }

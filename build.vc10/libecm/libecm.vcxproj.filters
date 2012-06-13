@@ -67,6 +67,9 @@
     <ClCompile Include="..\..\mpzspv.c">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="..\..\mul_fft.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
     <ClCompile Include="..\..\mul_lo.c">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -109,17 +112,20 @@
     <ClCompile Include="..\..\stage2.c">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="..\..\toomcook.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
     <ClCompile Include="..\..\batch.c">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\parametrizations.c">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\cudawrapper.c">
+    <ClCompile Include="..\..\ellparam_batch.c">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="..\config.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
     <ClInclude Include="..\..\ecm-ecm.h">
       <Filter>Header Files</Filter>
     </ClInclude>
@@ -127,6 +133,9 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="..\..\ecm-impl.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\ecm-params.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="..\..\ecm.h">
@@ -139,15 +148,6 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="..\..\champions.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\config.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\ecm-params.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\ecm-gpu.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

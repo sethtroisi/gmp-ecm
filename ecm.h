@@ -34,12 +34,10 @@ typedef struct
 {
   int method;     /* factorization method, default is ecm */
   mpz_t x;        /* starting point (if non zero) */
-  int param;      /* (ECM only) What parametrization do we used */ 
-  mpz_t sigma;    /* (ECM only) The parameter for the parametrization */ 
-                      /* May contains A */
-  int sigma_is_A; /* if  1, 'parameter' contains A (Montgomery form),
-		     if  0, 'parameter' contains sigma (Montgomery form),
-		     if -1, 'parameter' contains A, and the input curve is in
+  mpz_t sigma;    /* contains sigma or A (ecm only) */
+  int sigma_is_A; /* if  1, 'sigma' contains A (Montgomery form),
+		     if  0, 'sigma' contains sigma (Montgomery form),
+		     if -1, 'sigma' contains A, and the input curve is in
 		     Weierstrass form y^2 = x^3 + A*x + B, with y in 'go'. */
   mpz_t go;       /* initial group order to preload (if NULL: do nothing),
 		     or y for Weierstrass form if sigma_is_A = -1. */
@@ -68,16 +66,9 @@ typedef struct
   int use_ntt;     /* set to 1 to use ntt poly code in stage 2 */
   int (*stop_asap) (void); /* Pointer to function, if it returns 0, contine 
                       normally, otherwise exit asap. May be NULL */
-  /* The batch mode is used for stage 1 when param=1 or param=2)*/
+  int batch;      /* Batch mode */
+  double batch_B1; /* B1 is the limit used to calculate s for batch mode */
   mpz_t batch_s;   /* s is the product of primes up to B1 for batch mode */
-  double batch_last_B1_used; /* Last B1 used in batch mode. Used to avoid */
-                             /*  computing s when B1 = batch_last_B1_used */
-  int gpu;  /* do we use the GPU for stage 1. */
-            /* If different from 0, the GPU is used */
-            /* Else, the parameters beginning by gpu_* have no meaning */
-  int gpu_device; /* Which device do we use */
-  int gpu_device_init; /* Is the device initialized?*/
-  unsigned int gpu_number_of_curves; 
   double gw_k;         /* use for gwnum stage 1 if input has form k*b^n+c */
   unsigned long gw_b;  /* use for gwnum stage 1 if input has form k*b^n+c */
   unsigned long gw_n;  /* use for gwnum stage 1 if input has form k*b^n+c */
@@ -98,10 +89,10 @@ void ecm_init (ecm_params);
 void ecm_clear (ecm_params);
 
 /* the following interface is not supported */
-int ecm (mpz_t, mpz_t, int*, mpz_t, mpz_t, mpz_t, double *, double, mpz_t, mpz_t,
+int ecm (mpz_t, mpz_t, mpz_t, mpz_t, mpz_t, double *, double, mpz_t, mpz_t,
          double, unsigned long, const int, int, int, int, int, int, FILE*, FILE*,
-         char*, char *, double, double, gmp_randstate_t, int (*)(void), mpz_t, 
-         double *, double, unsigned long, unsigned long, signed long);
+         char*, char *, double, double, gmp_randstate_t, int (*)(void), int, mpz_t,
+         double, unsigned long, unsigned long, signed long);
 int pp1 (mpz_t, mpz_t, mpz_t, mpz_t, double *, double, mpz_t, mpz_t, 
          double, unsigned long, const int, int, int, int, FILE*, FILE*, char*,
          char *, double, gmp_randstate_t, int (*)(void));
@@ -125,16 +116,9 @@ int pm1 (mpz_t, mpz_t, mpz_t, mpz_t, double *, double, mpz_t,
 #define ECM_DEFAULT_B1_DONE 1.0
 #define ECM_IS_DEFAULT_B1_DONE(x) (x <= 1.0)
 
-/* Different paramitrization used in stage 1 of ECM */
-#define ECM_PARAM_DEFAULT -1
-#define ECM_PARAM_SUYAMA 0
-#define ECM_PARAM_BATCH_SQUARE 1
-#define ECM_PARAM_BATCH_2 2
-#define ECM_PARAM_BATCH_32BITS_D 3
-
 /* stage 2 bound */
 #define ECM_DEFAULT_B2 -1
-#define ECM_IS_DEFAULT_B2(x) (mpz_cmp_si (x, ECM_DEFAULT_B2) == 0)
+#define ECM_IS_DEFAULT_B2(x) (mpz_sgn (x) < 0)
 
 #define ECM_DEFAULT_K 0 /* default number of blocks in stage 2. 0 = automatic
                            choice */

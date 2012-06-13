@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/bin/sh
 
 if [ -z $2 ] ; then
   n=0
@@ -7,7 +7,7 @@ else
 fi
 
 if [ -z $1 ] ; then
-  B1=4096
+  B1=1024
 else
   B1=$1
 fi
@@ -20,12 +20,9 @@ fi
 
 N=780851074980451083207022065351299001484424461908031846796515069313846989720932551324409454457573724028694607215099661331321033861266619279756898656992234612627344143511823522694189489558298076363877298043469771509953319662285499302732028963807960560858768120637464833635395868634144783500288962345010601
 
-rm -f gpuecm.tmp gpuecm2.tmp ecm.tmp
 
 echo $N | ./gpu_ecm -save gpuecm.tmp -s $s -n $n $B1
-index=`expr $RANDOM % 100` 
-head -n $index gpuecm.tmp | tail -n 1 > gpuecm2.tmp 
-
+head -n 100 gpuecm.tmp | tail -n 1 > gpuecm2.tmp 
 
 A=`cut -d ";" -f 2 gpuecm2.tmp | cut -c 4-`
 echo $N | ecm -save ecm.tmp -A $A -x0 2 $B1 0 > /dev/null
@@ -37,7 +34,7 @@ if [ $t -eq $s ] ;then
   echo "Ok! $t"
   rm -f ecm.tmp gpuecm.tmp gpuecm2.tmp
 else
-  echo "Error with lines $index (find $s, expected $t)"
+  echo "Error! $s"
   echo "See ecm.tmp gpuecm2.tmp"
   rm -f gpuecm.tmp
 fi
