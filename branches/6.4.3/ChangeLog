@@ -1,4 +1,39 @@
 ------------------------------------------------------------------------
+r2096 | kruppa | 2012-06-12 17:35:10 +0200 (Tue, 12 Jun 2012) | 2 lines
+Changed paths:
+   M /branches/6.4.3/build.vc10/Makefile.am
+
+Removed bench_mulredc from EXTRA_DIST to avoid including .svn dir in
+distribution
+
+------------------------------------------------------------------------
+r2095 | kruppa | 2012-06-12 17:26:17 +0200 (Tue, 12 Jun 2012) | 2 lines
+Changed paths:
+   M /branches/6.4.3/TODO
+   M /branches/6.4.3/ecm.1
+   M /branches/6.4.3/ecm.xml
+
+Remove incorrect hypen in "Peter Lawrence Montgomery"
+
+------------------------------------------------------------------------
+r2094 | brian_gladman | 2012-06-12 17:23:55 +0200 (Tue, 12 Jun 2012) | 1
+line
+Changed paths:
+   M /branches/6.4.3/build.vc10/tests.py
+
+Add a few more tests that I missed earlier
+
+------------------------------------------------------------------------
+r2093 | brian_gladman | 2012-06-12 16:45:25 +0200 (Tue, 12 Jun 2012) | 1
+line
+Changed paths:
+   M /branches/6.4.3/build.vc10/config.h
+   M /branches/6.4.3/build.vc10/readme.txt
+   M /branches/6.4.3/build.vc10/tests.py
+
+Minor update to Windows files and add new tests
+
+------------------------------------------------------------------------
 r2090 | kruppa | 2012-06-12 14:48:43 +0200 (Tue, 12 Jun 2012) | 2 lines
 Changed paths:
    M /trunk/test.pm1
