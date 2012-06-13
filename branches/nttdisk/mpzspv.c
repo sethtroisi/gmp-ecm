@@ -561,6 +561,7 @@ mpzspv_fromto_mpzv (mpzspv_handle_t x, const spv_size_t offset,
     }
 #endif
 
+#if defined(HAVE_AIO_READ)
   if (have_consumer && ON_DISK(x)) 
     {
       /* Read first buffer's worth of data from disk files */
@@ -570,7 +571,6 @@ mpzspv_fromto_mpzv (mpzspv_handle_t x, const spv_size_t offset,
 #if WANT_PROFILE
           unsigned long realstart = realtime();
 #endif
-#if defined(HAVE_AIO_READ)
           int r;
           r = mpzspv_lio_rw (aiocb_list, buffer[0], 0, x->files, offset, 
                              read_now, x->mpzspm, 0);
@@ -578,18 +578,15 @@ mpzspv_fromto_mpzv (mpzspv_handle_t x, const spv_size_t offset,
           r = mpzspv_lio_suspend ((const struct aiocb **) aiocb_list, 
                                   x->mpzspm);
           ASSERT_ALWAYS (r == 0);
-#else
-          mpzspv_seek_and_read (buffer[0], 0, x->files, offset + 0, read_now, 
-                                x->mpzspm);
-#endif
+          read_done += read_now;
 #if WANT_PROFILE
           printf("%s(): read files from position %" PRISPVSIZE 
                  " started at %lu took %lu ms\n", 
                  __func__, offset, realstart, realtime() - realstart);
 #endif
         }
-      read_done += read_now;
     }
+#endif
 
   while (len_done < len)
     {
