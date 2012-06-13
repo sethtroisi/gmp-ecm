@@ -138,7 +138,6 @@
     <ClCompile Include="..\..\sp.c" />
     <ClCompile Include="..\..\spm.c" />
     <ClCompile Include="..\..\spv.c" />
-    <ClCompile Include="..\..\toomcook.c" />
     <ClCompile Include="..\..\tune.c" />
   </ItemGroup>
   <ItemGroup>

@@ -76,9 +76,6 @@
     <ClCompile Include="..\..\spv.c">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\toomcook.c">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="..\..\tune.c">
       <Filter>Source Files</Filter>
     </ClCompile>

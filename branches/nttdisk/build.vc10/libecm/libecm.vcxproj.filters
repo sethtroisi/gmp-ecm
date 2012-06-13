@@ -67,9 +67,6 @@
     <ClCompile Include="..\..\mpzspv.c">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\mul_fft.c">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="..\..\mul_lo.c">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -115,9 +112,6 @@
     <ClCompile Include="..\..\stage2.c">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\toomcook.c">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="..\..\batch.c">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -125,6 +119,9 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="..\..\cudawrapper.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\listz_handle.c">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>

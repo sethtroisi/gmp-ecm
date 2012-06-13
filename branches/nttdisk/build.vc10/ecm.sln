@@ -12,6 +12,11 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "tune", "tune\tune.vcxproj",
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "bench_mulredc", "bench_mulredc\bench_mulredc.vcxproj", "{4727DE12-787D-432D-B166-BF103B0C3C87}"
 EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "pm1fs2", "pm1fs2\pm1fs2.vcxproj", "{0491D185-3C34-44AF-9C8B-6C9A9B6CEE64}"
+	ProjectSection(ProjectDependencies) = postProject
+		{CD555681-D65B-4173-A29C-B8BF06A4871B} = {CD555681-D65B-4173-A29C-B8BF06A4871B}
+	EndProjectSection
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Win32 = Debug|Win32
@@ -51,6 +56,13 @@ Global
 		{4727DE12-787D-432D-B166-BF103B0C3C87}.Release|Win32.Build.0 = Release|Win32
 		{4727DE12-787D-432D-B166-BF103B0C3C87}.Release|x64.ActiveCfg = Release|x64
 		{4727DE12-787D-432D-B166-BF103B0C3C87}.Release|x64.Build.0 = Release|x64
+		{0491D185-3C34-44AF-9C8B-6C9A9B6CEE64}.Debug|Win32.ActiveCfg = Debug|Win32
+		{0491D185-3C34-44AF-9C8B-6C9A9B6CEE64}.Debug|Win32.Build.0 = Debug|Win32
+		{0491D185-3C34-44AF-9C8B-6C9A9B6CEE64}.Debug|x64.ActiveCfg = Debug|Win32
+		{0491D185-3C34-44AF-9C8B-6C9A9B6CEE64}.Release|Win32.ActiveCfg = Release|x64
+		{0491D185-3C34-44AF-9C8B-6C9A9B6CEE64}.Release|Win32.Build.0 = Release|x64
+		{0491D185-3C34-44AF-9C8B-6C9A9B6CEE64}.Release|x64.ActiveCfg = Release|x64
+		{0491D185-3C34-44AF-9C8B-6C9A9B6CEE64}.Release|x64.Build.0 = Release|x64
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
