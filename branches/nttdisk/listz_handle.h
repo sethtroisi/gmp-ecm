@@ -46,3 +46,5 @@ listz_iterator_t *listz_iterator_init2 (listz_handle_t, uint64_t, size_t);
 void  listz_iterator_clear (listz_iterator_t *);
 void listz_iterator_read (listz_iterator_t *, mpz_t);
 void listz_iterator_write (listz_iterator_t *, const mpz_t);
+void listz_iterator_read_callback (void *, mpz_t);
+void listz_iterator_write_callback (void *, const mpz_t);

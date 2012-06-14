@@ -381,3 +381,23 @@ listz_iterator_write (listz_iterator_t *iter, const mpz_t r)
       iter->writeptr += iter->handle->words;
     }
 }
+
+/* Functions that can be used as callbacks to listz_iterator_read() and 
+   listz_iterator_write(). Note that calling, e.g., listz_iterator_read()
+   by de-referencing a pointer of type mpz_producerfunc_t leads to undefined
+   program behavior according to the C standard, even though it happens to 
+   work fine on x86[_64] architectures at least. On other architectures, 
+   a function pointer or pointers to data structures may carry contextual 
+   information which could be incorrect when de-referencing a function pointer 
+   of the wrong type. */
+void
+listz_iterator_read_callback (void *iter, mpz_t r)
+{
+  listz_iterator_read ((listz_iterator_t *) iter, r);
+}
+
+void
+listz_iterator_write_callback (void *iter, const mpz_t r)
+{
+  listz_iterator_write ((listz_iterator_t *) iter, r);
+}
