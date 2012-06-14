@@ -129,7 +129,10 @@ mpzspm_product_tree_init (mpzspm_t mpzspm)
   T = (mpzv_t*) malloc ((d + 1) * sizeof (mpzv_t));
   T[0] = (mpzv_t) malloc (n * sizeof (mpz_t));
   for (j = 0; j < n; j++)
-    mpz_init_set_ui (T[0][j], (mp_limb_t) mpzspm->spm[j]->sp);
+    {
+      mpz_init (T[0][j]);
+      mpz_set_sp (T[0][j], mpzspm->spm[j]->sp);
+    }
   for (i = 1; i <= d; i++)
     {
       oldn = n;
