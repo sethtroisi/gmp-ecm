@@ -54,7 +54,7 @@ listz_handle_init (const char *filename, const uint64_t len, const mpz_t m)
           return NULL;
         }
       strcpy (F->filename, filename);
-      F->data.file = fopen (F->filename, "w+");
+      F->data.file = fopen (F->filename, "wb+");
       if (F->data.file == NULL)
         {
           free (F->filename);
@@ -105,6 +105,18 @@ export_residue (file_word_t *buf, const size_t bufsize, const mpz_t r)
 }
 
 
+static inline int 
+listz_handle_seek_entry (listz_handle_t F, const uint64_t index)
+{
+  int64_t foffset;
+
+  ASSERT (F->storage == 1);
+  ASSERT (index <= INT64_MAX);
+  ASSERT (index <= INT64_MAX / sizeof(file_word_t) / F->words);
+  foffset = (int64_t) index * F->words * sizeof(file_word_t);
+  return aux_fseek64 (F->data.file, foffset, SEEK_SET);
+}
+
 /* Fetches one entry from F (either in memory or file) and stores it in r. */
 
 void
@@ -121,7 +133,7 @@ listz_handle_get (listz_handle_t F, mpz_t r, file_word_t *buf,
 #pragma omp critical 
 #endif
       {
-        fseek (F->data.file, sizeof(file_word_t) * F->words * index, SEEK_SET);
+        listz_handle_seek_entry (F, index);
         nr = fread (buf, sizeof(file_word_t), F->words, F->data.file);
       }
 
@@ -159,7 +171,7 @@ listz_handle_set (listz_handle_t F, const mpz_t r, file_word_t *buf,
 #pragma omp critical 
 #endif
       {
-        fseek (F->data.file, sizeof(file_word_t) * F->words * index, SEEK_SET);
+        listz_handle_seek_entry (F, index);
         nr = fwrite (buf, sizeof(file_word_t), F->words, F->data.file);
       }
       ASSERT_ALWAYS (nr == F->words);
@@ -224,21 +236,16 @@ listz_handle_output_poly (const listz_handle_t l, const uint64_t len,
 static void 
 listz_iterator_fetch (listz_iterator_t *iter, const uint64_t offset)
 {
-  iter->offset = offset;
   ASSERT (iter->handle->storage == 1);
+  iter->offset = offset;
 #ifdef _OPENMP
 #pragma omp critical 
 #endif
   {
-    fseek (iter->handle->data.file, offset * sizeof(file_word_t), SEEK_SET);
-    iter->valid = fread (iter->buf, sizeof(file_word_t), iter->bufsize, 
-                         iter->handle->data.file);
+    listz_handle_seek_entry (iter->handle, iter->offset);
+    iter->valid = fread (iter->buf, iter->handle->words * sizeof(file_word_t), 
+                         iter->bufsize, iter->handle->data.file);
   }
-  if (iter->valid != iter->bufsize)
-    {
-      /* Check we read an integral number of residues */
-      ASSERT_ALWAYS (iter->valid % iter->handle->words == 0);
-    }
   iter->readptr = 0;
 }
 
@@ -256,10 +263,9 @@ listz_iterator_flush (listz_iterator_t *iter)
 #pragma omp critical 
 #endif
   {
-    fseek (iter->handle->data.file, iter->offset * sizeof(file_word_t), 
-           SEEK_SET);
-    written = fwrite (iter->buf, sizeof(file_word_t), iter->writeptr, 
-                      iter->handle->data.file);
+    listz_handle_seek_entry (iter->handle, iter->offset);
+    written = fwrite (iter->buf, sizeof(file_word_t) * iter->handle->words, 
+                      iter->writeptr, iter->handle->data.file);
   }
   ASSERT_ALWAYS (written == iter->writeptr);
   iter->writeptr = 0;
@@ -278,13 +284,14 @@ listz_iterator_init2 (listz_handle_t h, const uint64_t firstres,
   iter->handle = h;
 
   if (iter->handle->storage == 0)
-    iter->readptr = iter->writeptr = firstres;
+    iter->readptr = iter->writeptr = (size_t) firstres;
   else
     {
-      iter->offset = firstres * iter->handle->words;
+      iter->offset = firstres;
       iter->readptr = iter->writeptr = iter->valid = 0;
-      iter->bufsize = nr_buffered * iter->handle->words;
-      iter->buf = malloc (iter->bufsize * sizeof(file_word_t));
+      iter->bufsize = nr_buffered;
+      iter->buf = malloc (iter->bufsize * iter->handle->words * 
+                          sizeof(file_word_t));
       if (iter->buf == NULL) 
         {
           free (iter);
@@ -321,11 +328,7 @@ listz_iterator_read (listz_iterator_t *iter, mpz_t r)
 {
   if (iter->handle->storage == 0)
     {
-      mpz_set (r, iter->handle->data.mem[iter->readptr++]);
-#if 0
-      gmp_printf ("%s(): offset = %" PRIu64 ", readptr = %" PRIu64 ", r = %Zd\n", 
-                  __func__, iter->offset, iter->readptr, r);
-#endif
+      mpz_set (r, iter->handle->data.mem[iter->readptr]);
     }
   else
     {
@@ -341,13 +344,13 @@ listz_iterator_read (listz_iterator_t *iter, mpz_t r)
           ASSERT_ALWAYS (iter->valid > 0);
         }
       mpz_import (r, iter->handle->words, -1, sizeof(file_word_t), 0, 0, 
-                  &iter->buf[iter->readptr]);
-#if 0
-      gmp_printf ("%s(): offset = %" PRIu64 ", readptr = %" PRIu64 ", r = %Zd\n", 
-                  __func__, iter->offset, iter->readptr, r);
-#endif
-      iter->readptr += iter->handle->words;
+                  &iter->buf[iter->readptr * iter->handle->words]);
     }
+#if 0
+  gmp_printf ("%s(): offset = %" PRIu64 ", readptr = %" PRIu64 ", r = %Zd\n", 
+              __func__, iter->offset, (uint64_t) iter->readptr, r);
+#endif
+  iter->readptr++;
 }
 
 
@@ -356,20 +359,19 @@ listz_iterator_write (listz_iterator_t *iter, const mpz_t r)
 {
 #if 0
   gmp_printf ("%s(): offset = %" PRIu64 ", writeptr = %" PRIu64 ", r = %Zd\n", 
-              __func__, iter->offset, iter->writeptr, r);
+              __func__, iter->offset, (uint64_t) iter->writeptr, r);
 #endif
   if (iter->handle->storage == 0)
     {
-      mpz_set (iter->handle->data.mem[iter->writeptr++], r);
+      mpz_set (iter->handle->data.mem[iter->writeptr], r);
     }
   else
     {
       /* Try to detect incorrect use of iterator. We allow either write-only, 
          in which case we must have readptr == 0 at all times, or sequential
          update (read-then-write) of each residue, in which case we must have
-         writeptr + iter->handle->words == readptr */
-      ASSERT (iter->readptr == 0 || 
-              iter->writeptr + iter->handle->words == iter->readptr);
+         writeptr + 1 == readptr */
+      ASSERT (iter->readptr == 0 || iter->writeptr + 1 == iter->readptr);
       ASSERT (iter->writeptr <= iter->bufsize);
       if (iter->writeptr == iter->bufsize)
         {
@@ -377,9 +379,12 @@ listz_iterator_write (listz_iterator_t *iter, const mpz_t r)
           iter->offset += iter->bufsize;
         }
       ASSERT_ALWAYS (mpz_sgn (r) >= 0);
-      export_residue (&iter->buf[iter->writeptr], iter->handle->words, r);
-      iter->writeptr += iter->handle->words;
+      /* TODO: we may want to allow residues that are not fully reduced 
+         (mod modulus), but only as far as the ECRT reduces them. */
+      export_residue (&iter->buf[iter->writeptr * iter->handle->words], 
+                      iter->handle->words, r);
     }
+  iter->writeptr++;
 }
 
 /* Functions that can be used as callbacks to listz_iterator_read() and 

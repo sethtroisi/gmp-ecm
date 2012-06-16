@@ -549,12 +549,12 @@ spv_seek_and_read (spv_t ptr, const spv_size_t nread, const spv_size_t offset,
 #pragma omp critical
 #endif
   {
-    if (ftell(f) != foffset)
+    if (aux_ftell64(f) != foffset)
       {
 #ifdef TRACE_SEEK
-        printf ("Seeking to file position %" PRISPVSIZE "\n", foffset);
+        printf ("Seeking to file position %" PRId64 "\n", foffset);
 #endif
-        if (fseek (f, foffset, SEEK_SET) != 0)
+        if (aux_fseek64 (f, foffset, SEEK_SET) != 0)
           {
             fprintf (stderr, "%s(): fseek() returned error %d\n", 
                      __func__, errno);
@@ -590,12 +590,12 @@ spv_seek_and_write (const spv_t ptr, const spv_size_t nwrite,
 #pragma omp critical
 #endif
   {
-    if (ftell(f) != foffset)
+    if (aux_ftell64(f) != foffset)
       {
 #ifdef TRACE_SEEK
-        printf ("Seeking to file position %" PRISPVSIZE "\n", foffset);
+        printf ("Seeking to file position %" PRId64 "\n", foffset);
 #endif
-        if (fseek (f, foffset, SEEK_SET) != 0)
+        if (aux_fseek64 (f, foffset, SEEK_SET) != 0)
           {
             fprintf (stderr, "%s(): fseek() returned error %d\n", 
                      __func__, errno);

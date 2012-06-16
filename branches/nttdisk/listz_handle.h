@@ -24,13 +24,14 @@ typedef _listz_handle_t *listz_handle_t;
 typedef struct{
   listz_handle_t handle;
   file_word_t *buf;
-  size_t bufsize; /* Size of buffer, in units of file_word_t's */
+  size_t bufsize; /* Size of buffer, in units of residues */
   uint64_t offset; /* First buffered element's offset relative to 
-                    start of file, units of file_word_t's */
-  size_t valid; /* Number of valid entries in buffer */
-  uint64_t readptr, writeptr; /* In unit of file_word_t's, relative to 
+                    start of file, in units of residues (handle->words * 
+                    sizeof(file_word_t)) */
+  size_t valid; /* Number of valid residues in buffer */
+  size_t readptr, writeptr; /* In unit of residues, relative to 
                                current buf. If handle is stored in memory,
-                               points at the next mpz_t to read or write, 
+                               is index of the next mpz_t to read or write, 
                                resp. */
 } listz_iterator_t;
 
