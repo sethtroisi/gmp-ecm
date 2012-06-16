@@ -83,7 +83,7 @@ static unsigned long sp_max_modulus_bits[32] =
    without running out of primes */
 
 spv_size_t
-mpzspm_max_len (mpz_t modulus)
+mpzspm_max_len (const mpz_t modulus)
 {
   int i;
   size_t b;
@@ -158,7 +158,7 @@ mpzspm_product_tree_init (mpzspm_t mpzspm)
    Returns NULL in case of an error. */
 
 mpzspm_t
-mpzspm_init (spv_size_t max_len, mpz_t modulus)
+mpzspm_init (spv_size_t max_len, const mpz_t modulus)
 {
   unsigned int ub, i, j;
   mpz_t P, S, T, mp, mt; /* mp is p as mpz_t, mt is a temp mpz_t */
@@ -202,10 +202,11 @@ mpzspm_init (spv_size_t max_len, mpz_t modulus)
   /* T is len*modulus^2, the upper bound on output coefficients of a 
      convolution */
   mpz_init (T); 
-  mpz_mul (T, modulus, modulus);
-  mpz_mul_ui (T, T, max_len);
   mpz_init (mp);
   mpz_init (mt);
+  mpz_mul (T, modulus, modulus);
+  mpz_set_uint64 (mt, (uint64_t) max_len);
+  mpz_mul (T, T, mt);
   
   /* find primes congruent to 1 mod max_len so we can do
    * a ntt of size max_len */
@@ -246,7 +247,8 @@ mpzspm_init (spv_size_t max_len, mpz_t modulus)
          theorem 3.1 in Bernstein and Sorenson's paper */
       mpz_mul (T, S, modulus);
       mpz_mul (T, T, T);
-      mpz_mul_ui (T, T, max_len);
+      mpz_set_uint64 (mt, (uint64_t) max_len);
+      mpz_mul (T, T, mt);
       mpz_mul_2exp (T, T, 2UL);
       
       p -= (sp_t) max_len;

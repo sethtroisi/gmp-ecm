@@ -265,7 +265,7 @@ static inline void
 mpz_set_sp (mpz_t m, const sp_t n)
 {
 #if SP_TYPE_BITS == 32
-  mpz_set_ui(m, (unsigned long)(uint32_t)n);
+  mpz_set_ui (m, n);
 #else /* 64-bit sp_t */
   mpz_set_uint64(m, n);
 #endif
@@ -274,14 +274,17 @@ mpz_set_sp (mpz_t m, const sp_t n)
 static inline sp_t 
 mpz_get_sp (const mpz_t n)
 {
+  ASSERT (mpz_sgn(n) >= 0);
 #if SP_TYPE_BITS == 32
 
+  ASSERT (mpz_sizeinbase (n, 2) <= 32);
   return mpz_get_ui(n);
 
 #else /* 64-bit sp_t */
 
   sp_t m = mpz_getlimbn(n, 0);
 
+  ASSERT (mpz_sizeinbase (n, 2) <= 64);
   #if GMP_LIMB_BITS == 32  /* 32-bit GMP limb, 64-bit sp_t */
   if (mpz_size(n) >= 2)
     m |= (sp_t)mpz_getlimbn(n, 1) << 32;
@@ -595,8 +598,8 @@ void spv_ntt_gfp_dit (spv_t, spv_size_t, spm_t);
 
 /* mpzspm */
 
-spv_size_t mpzspm_max_len (mpz_t);
-mpzspm_t mpzspm_init (spv_size_t, mpz_t);
+spv_size_t mpzspm_max_len (const mpz_t);
+mpzspm_t mpzspm_init (spv_size_t, const mpz_t);
 void mpzspm_clear (mpzspm_t);
 void mpzspm_print_CRT_primes (int, const char *, 
 			   const mpzspm_t);

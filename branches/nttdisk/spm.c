@@ -100,7 +100,7 @@ spm_init (spv_size_t n, sp_t sp, mp_size_t fix_me)
   if (spm == NULL)
     return NULL;
 
-  ASSERT (sp % (sp_t) n == (sp_t) 1);
+  ASSERT (sp % (sp_t) n == (sp_t) 1 || n == 1);
 
   spm->sp = sp;
   spm->mul_c = sp_reciprocal (sp);
