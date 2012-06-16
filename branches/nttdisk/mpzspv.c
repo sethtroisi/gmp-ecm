@@ -471,12 +471,14 @@ mpzspv_to_mpz(mpz_t res, const mpzspv_t x, const spv_size_t offset,
       const sp_t t = sp_mul (x[i][offset], mpzspm->crt3[i], 
           mpzspm->spm[i]->sp, mpzspm->spm[i]->mul_c);
 
-#if SP_TYPE_BITS > GMP_LIMB_BITS
-      mpz_set_sp (mt, t);
-      mpz_addmul (res, mpzspm->crt1[i], mt);
-#else
-      mpz_addmul_ui (res, mpzspm->crt1[i], t);
-#endif
+      if (sizeof (unsigned long) < sizeof (sp_t))
+        {
+          mpz_set_sp (mt, t);
+          mpz_addmul (res, mpzspm->crt1[i], mt);
+        } else {
+          ASSERT (t <= ULONG_MAX);
+          mpz_addmul_ui (res, mpzspm->crt1[i], (unsigned long) t);
+        }
 
       f += (float) t * mpzspm->prime_recip[i];
     }
@@ -1699,9 +1701,9 @@ mpzspv_open_fileset (mpzspv_handle_t handle, const char *file_stem,
         }
 
       sprintf (handle->filenames[i], "%s.%u", file_stem, i);
-      handle->files[i] = fopen(handle->filenames[i], "r+");
+      handle->files[i] = fopen(handle->filenames[i], "rb+");
       if (handle->files[i] == NULL)
-        handle->files[i] = fopen(handle->filenames[i], "w+");
+        handle->files[i] = fopen(handle->filenames[i], "wb+");
       if (handle->files[i] == NULL)
         {
           fprintf (stderr, "%s(): error opening %s for writing\n", 
