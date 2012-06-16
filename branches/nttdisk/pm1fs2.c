@@ -1905,7 +1905,7 @@ ntt_gcd (mpz_t f, mpz_t *product, mpzspv_handle_t ntt,
   {
     mpz_t n;
     mpz_init (n);
-    mpz_set_ui (n, len_param);
+    mpz_set_uint64 (n, len_param);
     mpres_set_z_for_gcd_fix (totalprod, totalprod, n, modulus_param);
     mpz_clear (n);
   }
@@ -2227,7 +2227,7 @@ pm1fs2 (mpz_t f, const mpres_t X, mpmod_t modulus,
   listz_handle_output_poly (F, params->s_1 / 2 + 1, 0, 1, "f(x) = ", 
                          "; /* PARI */ \n", OUTPUT_TRACE);
   
-  mpz_set_ui (mt, params->P/2);
+  mpz_set_uint64 (mt, params->P/2);
   mpres_pow (mr, X, mt, modulus); /* mr = X^(P/2) */
   pm1_sequence_h (F, NULL, F, mr, params->s_1 / 2 + 1, modulus); 
 
@@ -2494,7 +2494,7 @@ pm1fs2_ntt (mpz_t f, const mpres_t X, mpmod_t modulus,
 
   /* Compute XP = X^(P/2) */
   mpres_init (XP, modulus);
-  mpz_set_ui (mt, params->P/2);
+  mpz_set_uint64 (mt, params->P/2);
   mpres_pow (XP, X, mt, modulus);
 
   pm1_sequence_h (NULL, h_handle, F, XP, params->s_1 / 2 + 1, modulus);
@@ -4127,7 +4127,7 @@ testdrive_print_elapsed (const long timestart, const long realstart,
    
   printf("%s took %lu ms, %lu ms elapsed\n", name, timediff, realdiff);
   bytes = len * words * wordsize;
-  printf("%lu * %u * %u = %lu bytes, %f MB/s\n", 
+  printf("%" PRIu64 " * %u * %u = %" PRIu64 " bytes, %f MB/s\n", 
           len, words, wordsize, bytes, 
           bytes / (realdiff * 0.001) / 1048576.);
 }
@@ -4151,7 +4151,8 @@ main (int argc, char **argv)
   char *filename = NULL;
   int i, need_mpz, need_ntt;
   int do_ntt = 0, do_pwmul = 0, do_intt = 0, do_gcd = 0, fill_ntt = 0, 
-      read_ntt = 0, fill_mpz = 0, read_mpz = 0, from_ntt = 0, from_mpz = 0;
+      read_ntt = 0, fill_mpz = 0, read_mpz = 0, from_ntt = 0, from_mpz = 0, 
+      keep_mpz = 0, keep_ntt = 0;
   long timestart, realstart;
 
   for (i = 1; i < argc; i++)
@@ -4213,6 +4214,16 @@ main (int argc, char **argv)
           from_ntt = 1;
           continue;
         }
+      if (strcmp (argv[i], "-keepntt") == 0)
+        {
+          keep_ntt = 1;
+          continue;
+        }
+      if (strcmp (argv[i], "-keepmpz") == 0)
+        {
+          keep_mpz = 1;
+          continue;
+        }
       mpz_init (N);
       mpz_set_str (N, argv[i], 10);
       if (mpz_sgn(N) == 0)
@@ -4261,7 +4272,7 @@ main (int argc, char **argv)
       realstart = realtime ();
       mpzspv_fromto_mpzv (ntt_handle, (spv_size_t) 0, len, 
                           &testdrive_producer, s, NULL, NULL);
-#if defined(HAVE_UNISTD_H)
+#if defined(HAVE_SYNC)
       sync();
 #endif
       testdrive_print_elapsed (timestart, realstart, len, mpzspm->sp_num, 
@@ -4300,7 +4311,7 @@ main (int argc, char **argv)
           testdrive_producer (s, t);
           listz_iterator_write (iter, t);
         }
-#if defined(HAVE_UNISTD_H)
+#if defined(HAVE_SYNC)
       sync();
 #endif
       listz_iterator_clear (iter);
@@ -4332,7 +4343,7 @@ main (int argc, char **argv)
       iter = listz_iterator_init (F, 0);
       mpzspv_fromto_mpzv (ntt_handle, (spv_size_t) 0, len, 
                           &listz_iterator_read_callback, iter, NULL, NULL);
-#if defined(HAVE_UNISTD_H)
+#if defined(HAVE_SYNC)
       sync();
 #endif
       listz_iterator_clear (iter);
@@ -4363,7 +4374,7 @@ main (int argc, char **argv)
                       (do_ntt ? NTT_MUL_STEP_FFT1 : 0) + 
                       (do_pwmul ? NTT_MUL_STEP_MUL : 0) +
                       (do_intt ? NTT_MUL_STEP_IFFT : 0));
-#if defined(HAVE_UNISTD_H)
+#if defined(HAVE_SYNC)
       sync();
 #endif
       testdrive_print_elapsed (timestart, realstart, ntt_size, mpzspm->sp_num, 
@@ -4392,7 +4403,7 @@ main (int argc, char **argv)
       iter = listz_iterator_init (F, 0);
       mpzspv_fromto_mpzv (ntt_handle, (spv_size_t) 0, len, 
                           NULL, NULL, &listz_iterator_write_callback, iter);
-#if defined(HAVE_UNISTD_H)
+#if defined(HAVE_SYNC)
       sync();
 #endif
       testdrive_print_elapsed (timestart, realstart, len, mpzspm->sp_num, 
@@ -4402,12 +4413,12 @@ main (int argc, char **argv)
       listz_iterator_clear (iter);
     }
 
-  if (need_ntt)
+  if (need_ntt && !keep_ntt)
     {
       mpzspv_clear_handle (ntt_handle);
       mpzspm_clear (mpzspm);
     }
-  if (need_mpz)
+  if (need_mpz && !keep_mpz)
     listz_handle_clear (F);
   mpz_clear (N);
   mpmod_clear (modulus);
