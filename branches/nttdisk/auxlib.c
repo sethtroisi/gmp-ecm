@@ -290,3 +290,25 @@ writechkfile (char *chkfilename, int method, double p, mpmod_t modulus,
   fflush (chkfile);
   fclose (chkfile);
 }
+
+int 
+aux_fseek64(FILE *f, const int64_t offset, const int whence)
+{
+#ifdef HAVE__FSEEKI64
+  return _fseeki64(f, offset, whence);
+#endif
+#if LONG_MAX == INT64_MAX
+  return fseek (f, (long) offset, whence);
+#endif
+  ASSERT_ALWAYS (offset <= LONG_MAX);
+  return fseek (f, (long) offset, whence);
+}
+
+int64_t 
+aux_ftell64(FILE *f)
+{
+#ifdef HAVE__FSEEKI64
+  return _ftelli64(f);
+#endif
+  return (int64_t) ftell (f);
+}
