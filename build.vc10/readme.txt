@@ -74,11 +74,19 @@ irrespective of which version is being used (they used to be followed by
 version numbers but this meant that the build projects had to be updated
 too frequently). 
 
-There are three build projects in build.vc10:
+The normal (non GPU) build is opened by loading the file ecm.sln (from 
+the build.vc10 directory) into Visual Studio. This provides three build
+projects in build.vc10 for the non GPU build:
 
     ecm     - the ECM application 
     ecmlib  - the ECM library
     tune    - a program for tuning 
+
+To build with a GPU capability the file ecm_gpu.sln   is used instead and
+provides two further build projects:
+
+    ecm_gpu     - the ECM application 
+    ecmlib_gpu  - the ECM library
 
 Build Options
 -------------
@@ -108,33 +116,23 @@ that need to be set:
 3. By default GMP-ECM buids without the GPU code enabled.  If
    you wish to build with a GPU capability you will need to 
    install Nvidia Nsight for Visual Studio. To configure for
-   the GPU build you need to do the following:
+   the GPU build you need to use the GPU projects refferenced
+   above and also do the following:
    
-   a. in the libecm project, use the Visual Studio solution 
-      explorer, right click on the ecm project and select 
-	  build customisations and tick the CUDA build version
-	  that you wish to use. 
-   
-   b. in the libecm project, use the Visual Studio solution 
-      explorer to include the file cudakernel.cu in the build
-	  and set the Item Type (on the General property tab) to
-	  Cuda C/C++ (you need to do this for each configuration
-	  that you intend to build).
-
-   c. Open the config.h fil in the build.vc10 directory and
-      locate the lines:
+   Open the config.h fil in the build.vc10 directory and
+   locate the lines:
 
 	    /* define to build for a GPU */
         #  if 0
         #    define WITH_GPU
         #  endif
 
-	  and change the '#  if 0' to '#  if 1'. 
+   and change the '#  if 0' to '#  if 1'. 
 
 4. You also need to use the Visual Studio solution explorer
-   for the libecm project to select the property pages for
-   CUDA C/C++ to set the device and host properties for the
-   GPU for which you wish to build.
+   for the libecm_gpu project to select the property pages
+   for CUDA C/C++ to set the device and host properties for
+   the GPU for which you wish to build.
 
 Build Configurations
 --------------------
