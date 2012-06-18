@@ -105,29 +105,36 @@ that need to be set:
    you can edit the two files mulredc.asm and redc.asm in the 
    build.vc10\assembler\ directory to include the AMD assembler).
 
-3. GMP-ECM buids with the GPU code enabled, which requires that 
-   the Nvidia Parallel Nsight has been installed for use within
-   Visual Studio.  If you wish to build without the GPU code,
-   you need to do the following:
+3. By default GMP-ECM buids without the GPU code enabled.  If
+   you wish to build with a GPU capability you will need to 
+   install Nvidia Nsight for Visual Studio. To configure for
+   the GPU build you need to do the following:
    
    a. in the libecm project, use the Visual Studio solution 
-      explorer to exclude the file cudakernel.cu from the build 
-
-   b. in the libecm project, use the Visual Studio solution 
       explorer, right click on the ecm project and select 
-	  build customisations and untick the CUDA build items
-	  
-   c. In the ecm project, use the solution explorer to open
-      the projects property pages and go to the C/C++
-	  preprocessor properties and use the Preprocessor
-	  Definitions property to remove the WITH_GPU define
-	  for all of the project configurations you wish to
-	  build.
+	  build customisations and tick the CUDA build version
+	  that you wish to use. 
+   
+   b. in the libecm project, use the Visual Studio solution 
+      explorer to include the file cudakernel.cu in the build
+	  and set the Item Type (on the General property tab) to
+	  Cuda C/C++ (you need to do this for each configuration
+	  that you intend to build).
 
-4. If you wish to use the GPU build, you should use the Visual
-   Studio solution explorer for the libecm project to select
-   the property pages for CUDA C/C++ to set the device and 
-   host properties for the GPU for which you wish to build.
+   c. Open the config.h fil in the build.vc10 directory and
+      locate the lines:
+
+	    /* define to build for a GPU */
+        #  if 0
+        #    define WITH_GPU
+        #  endif
+
+	  and change the '#  if 0' to '#  if 1'. 
+
+4. You also need to use the Visual Studio solution explorer
+   for the libecm project to select the property pages for
+   CUDA C/C++ to set the device and host properties for the
+   GPU for which you wish to build.
 
 Build Configurations
 --------------------
