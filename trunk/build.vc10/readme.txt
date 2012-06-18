@@ -177,6 +177,7 @@ Tests
 =====
 
 The file tests.py is a python script that runs the ECM tests. It runs the
-x64/release-amd version by default but can be edited to test other builds.
+x64/release-amd (non GPU) version by default but can be edited to test other
+builds.
 
     Brian Gladman, 18th June 2012

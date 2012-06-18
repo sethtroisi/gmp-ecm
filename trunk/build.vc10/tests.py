@@ -15,6 +15,7 @@ class Timer() :
 
 test_dir = '..\\bin\\x64\\Release\\'
 # test_dir = '..\\bin\\win32\\Release\\'
+test_gpu = False
 
 ecm = [
   ("2050449353925555290706354283", "-sigma 7 -k 1 30 0-1e6", 14),
@@ -166,6 +167,13 @@ test = [
   ("173357946863134423299822098041421951472072119", "-pp1 -x0 5 992599901 1401995848117", 8 ),
 ]
 
+gpu_test = [
+  
+  ("458903930815802071188998938170281707063809443792768383215233", "-sigma 3:42 10000", 14),
+  ("2^349-1", "-sigma 3:13 587 29383", 6),
+  ("2^1018-1", "-sigma 3:42 1024 0", 2)  
+]
+
 def run_exe(exe, args, inp) :
   al = {'stdin' : PIPE, 'stdout' : PIPE, 'stderr' : STDOUT }
   if sys.platform.startswith('win') :
@@ -177,7 +185,7 @@ def run_exe(exe, args, inp) :
 
 def do_tests(tests) :
     global out
-    exe  = test_dir + "ecm.exe"
+    exe  = test_dir + "ecm_gpu.exe" if tests == gpu_test else "ecm.exe"
     for tt in tests :
         rv = run_exe(exe, tt[1], tt[0])
         if type(tt[2]) == int and rv[0] != tt[2] :
@@ -192,9 +200,12 @@ def do_tests(tests) :
 
 with Timer():
   out = True
-  do_tests(ecm)
-  do_tests(pm1)
-  do_tests(pp1)
-  do_tests(pp1_2)
-  do_tests(c200)
-  do_tests(test)
+  if True:
+    do_tests(ecm)
+    do_tests(pm1)
+    do_tests(pp1)
+    do_tests(pp1_2)
+    do_tests(c200)
+    do_tests(test)
+  if test_gpu:
+    do_tests(gpu_test)
