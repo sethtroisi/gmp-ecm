@@ -146,11 +146,6 @@
     <ClInclude Include="..\..\longlong.h" />
     <ClInclude Include="..\..\sp.h" />
   </ItemGroup>
-  <ItemGroup>
-    <ProjectReference Include="..\libecm\libecm.vcxproj">
-      <Project>{cd555681-d65b-4173-a29c-b8bf06a4871b}</Project>
-    </ProjectReference>
-  </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
     <Import Project="..\vsyasm.targets" />

@@ -230,7 +230,7 @@
 
 /* define to 1 for a build with a GPU capability */
 #  if 0
-#    define WITH_GPU
+#    define WITH_GPU    1
 #  endif
 
 #  if _MSC_VER < 1600
@@ -238,6 +238,7 @@
 #    define uint64_t    unsigned __int64
 #  endif
 #  define strncasecmp strnicmp
+#  define access       _access 
 #  define alloca      _alloca
 #  define fseek64     _fseek64
 #  define ftell64     _ftell64
