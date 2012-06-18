@@ -224,6 +224,10 @@
 #undef size_t
 
 #ifdef _MSC_VER
+
+/* define Windows tuning here */
+#  define __tune_corei7__
+
 #  if _MSC_VER < 1600
 #    define int64_t     __int64
 #    define uint64_t    unsigned __int64
