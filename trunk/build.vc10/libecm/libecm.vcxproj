@@ -44,6 +44,7 @@
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
   <ImportGroup Label="ExtensionSettings">
     <Import Project="..\vsyasm.props" />
+    <Import Project="$(VCTargetsPath)\BuildCustomizations\CUDA 4.2.props" />
   </ImportGroup>
   <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="PropertySheets">
     <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
@@ -94,6 +95,17 @@
       <CompileAs>Default</CompileAs>
     </ClCompile>
     <Lib />
+    <CudaCompile>
+      <CodeGeneration>compute_20,sm_20</CodeGeneration>
+    </CudaCompile>
+    <CudaCompile>
+      <PtxAsOptionV>true</PtxAsOptionV>
+      <AdditionalCompilerOptions>GPU_CC20;WITH_GPU</AdditionalCompilerOptions>
+      <Include>..\;..\..\..\mpir\lib\$(IntDir)</Include>
+      <TargetMachinePlatform>64</TargetMachinePlatform>
+      <MaxRegCount>32</MaxRegCount>
+      <Runtime>MT</Runtime>
+    </CudaCompile>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <PreBuildEvent>
@@ -118,6 +130,15 @@
     <YASM>
       <Defines>_WIN64</Defines>
     </YASM>
+    <CudaCompile>
+      <CodeGeneration>compute_20,sm_20</CodeGeneration>
+      <PtxAsOptionV>true</PtxAsOptionV>
+      <AdditionalCompilerOptions>GPU_CC20;WITH_GPU</AdditionalCompilerOptions>
+      <Include>..\;..\..\..\mpir\lib\$(IntDir)</Include>
+      <TargetMachinePlatform>64</TargetMachinePlatform>
+      <MaxRegCount>32</MaxRegCount>
+      <Runtime>MT</Runtime>
+    </CudaCompile>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <PreBuildEvent>
@@ -136,6 +157,17 @@
       <CompileAs>Default</CompileAs>
     </ClCompile>
     <Lib />
+    <CudaCompile>
+      <CodeGeneration>compute_20,sm_20</CodeGeneration>
+    </CudaCompile>
+    <CudaCompile>
+      <PtxAsOptionV>true</PtxAsOptionV>
+      <AdditionalCompilerOptions>GPU_CC20;WITH_GPU</AdditionalCompilerOptions>
+      <Include>..\;..\..\..\mpir\lib\$(IntDir)</Include>
+      <TargetMachinePlatform>64</TargetMachinePlatform>
+      <MaxRegCount>32</MaxRegCount>
+      <Runtime>MTd</Runtime>
+    </CudaCompile>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <PreBuildEvent>
@@ -161,6 +193,17 @@
     <YASM>
       <Defines>_WIN64</Defines>
     </YASM>
+    <CudaCompile>
+      <CodeGeneration>compute_20,sm_20</CodeGeneration>
+    </CudaCompile>
+    <CudaCompile>
+      <PtxAsOptionV>true</PtxAsOptionV>
+      <AdditionalCompilerOptions>GPU_CC20;WITH_GPU</AdditionalCompilerOptions>
+      <Include>..\;..\..\..\mpir\lib\$(IntDir)</Include>
+      <TargetMachinePlatform>64</TargetMachinePlatform>
+      <MaxRegCount>32</MaxRegCount>
+      <Runtime>MTd</Runtime>
+    </CudaCompile>
   </ItemDefinitionGroup>
   <ItemGroup>
     <YASM Include="..\assembler\mulredc.asm" />
@@ -218,8 +261,26 @@
     <ClInclude Include="..\..\longlong.h" />
     <ClInclude Include="..\..\sp.h" />
   </ItemGroup>
+  <ItemGroup>
+    <CudaCompile Include="..\..\cudakernel.cu">
+      <FileType>Document</FileType>
+      <AdditionalCompilerOptions Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+      </AdditionalCompilerOptions>
+      <Defines Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">WITH_GPU;GPU_CC20</Defines>
+      <AdditionalCompilerOptions Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+      </AdditionalCompilerOptions>
+      <Defines Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">WITH_GPU;GPU_CC20</Defines>
+      <AdditionalCompilerOptions Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+      </AdditionalCompilerOptions>
+      <Defines Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">WITH_GPU;GPU_CC20</Defines>
+      <AdditionalCompilerOptions Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+      </AdditionalCompilerOptions>
+      <Defines Condition="'$(Configuration)|$(Platform)'=='Release|x64'">WITH_GPU;GPU_CC20</Defines>
+    </CudaCompile>
+  </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
     <Import Project="..\vsyasm.targets" />
+    <Import Project="$(VCTargetsPath)\BuildCustomizations\CUDA 4.2.targets" />
   </ImportGroup>
 </Project>
