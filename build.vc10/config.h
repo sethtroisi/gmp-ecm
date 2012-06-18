@@ -228,7 +228,7 @@
 /* define Windows tuning here */
 #  define __tune_corei7__
 
-/* define to build for a GPU */
+/* define to 1 for a build with a GPU capability */
 #  if 0
 #    define WITH_GPU
 #  endif
