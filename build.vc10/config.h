@@ -228,6 +228,11 @@
 /* define Windows tuning here */
 #  define __tune_corei7__
 
+/* define to build for a GPU */
+#  if 0
+#    define WITH_GPU
+#  endif
+
 #  if _MSC_VER < 1600
 #    define int64_t     __int64
 #    define uint64_t    unsigned __int64
