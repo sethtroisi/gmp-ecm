@@ -224,11 +224,11 @@ typedef spv_t * mpzspv_t;
 
 typedef struct {
   int storage; /* 0: memory, 1: disk */
+  spv_size_t len;
   mpzspm_t mpzspm;
   mpzspv_t mem; /* NULL if storage == 1 */
-  FILE **files; /* NULL if storage == 0 */
-  char **filenames; /* NULL if storage == 0 */
-  char **buffers;
+  FILE *file; /* NULL if storage == 0 */
+  char *filename; /* NULL if storage == 0 */
 } _mpzspv_handle_t;
 
 typedef _mpzspv_handle_t *mpzspv_handle_t;
