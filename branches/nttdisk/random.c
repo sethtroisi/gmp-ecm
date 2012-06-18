@@ -143,7 +143,7 @@ get_random_ui (void)
   unsigned int t;
 
   /* Try /dev/urandom */
-  rndfd = fopen ("/dev/urandom", "r");
+  rndfd = fopen ("/dev/urandom", "rb");
   if (rndfd != NULL)
     {
       if (fread (&t, sizeof (unsigned int), 1, rndfd) == 1)
