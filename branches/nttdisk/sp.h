@@ -228,6 +228,7 @@ typedef struct {
   mpzspv_t mem; /* NULL if storage == 1 */
   FILE **files; /* NULL if storage == 0 */
   char **filenames; /* NULL if storage == 0 */
+  char **buffers;
 } _mpzspv_handle_t;
 
 typedef _mpzspv_handle_t *mpzspv_handle_t;

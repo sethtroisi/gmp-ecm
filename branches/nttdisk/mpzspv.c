@@ -1672,13 +1672,16 @@ mpzspv_open_fileset (mpzspv_handle_t handle, const char *file_stem,
   const unsigned int sp_num = mpzspm->sp_num;
   unsigned int i;
   
-#if defined(HAVE_SETVBUF) && !defined(HAVE_AIO_READ)
-  handle->files = (FILE **) malloc (2 * sp_num * sizeof(FILE *));
-#else
   handle->files = (FILE **) malloc (sp_num * sizeof(FILE *));
-#endif
   handle->filenames = (char **) malloc (sp_num * sizeof(char *));
-  if (handle->files == NULL || handle->filenames == NULL)
+#if defined(HAVE_SETVBUF) && !defined(HAVE_AIO_READ)
+  handle->buffers = (char **) malloc (sp_num * sizeof(char *));
+#endif
+  if (handle->files == NULL || handle->filenames == NULL
+#if defined(HAVE_SETVBUF) && !defined(HAVE_AIO_READ)
+      || handle->buffers == NULL
+#endif
+      )
     {
       fprintf (stderr, "%s(): could not allocate memory\n", __func__);
       free (handle->files);
@@ -1689,7 +1692,6 @@ mpzspv_open_fileset (mpzspv_handle_t handle, const char *file_stem,
   for (i = 0; i < sp_num; i++)
     {
 #if defined(HAVE_SETVBUF) && !defined(HAVE_AIO_READ)
-      void **buffers = (void**)handle->files + sp_num;
       const size_t bufsize = 1<<22;
 #endif
       
@@ -1728,8 +1730,11 @@ mpzspv_open_fileset (mpzspv_handle_t handle, const char *file_stem,
          to the buffers so we can free them later. For now we allocate
          twice as much memory for the FILE * array and put the pointers
          to the buffers in the second half. This is ugly - FIXME */
-      buffers[i] = malloc (bufsize);
-      setvbuf (handle->files[i], (char *)buffers[i], _IOFBF, bufsize);
+      handle->buffers[i] = (char *) malloc (bufsize);
+      if (handle->buffers[i] != NULL)
+        {
+          setvbuf (handle->files[i], handle->buffers[i], _IOFBF, bufsize);
+        }
 #endif
 #endif
     }
@@ -1743,11 +1748,19 @@ mpzspv_open_fileset (mpzspv_handle_t handle, const char *file_stem,
           handle->files[i] = NULL;
           free (handle->filenames[i]);
           handle->filenames[i] = NULL;
+#if defined(HAVE_SETVBUF) && !defined(HAVE_AIO_READ)
+          free (handle->buffers[i]);
+          handle->buffers[i] = NULL;
+#endif
         }
       free (handle->filenames);
       handle->filenames = NULL;
       free (handle->files);
       handle->files = NULL;
+#if defined(HAVE_SETVBUF) && !defined(HAVE_AIO_READ)
+      free (handle->buffers);
+      handle->buffers = NULL;
+#endif
       return -1;
     }
 
@@ -1759,9 +1772,6 @@ mpzspv_close_fileset (mpzspv_handle_t handle)
 {
   unsigned int i;
   const mpzspm_t mpzspm = handle->mpzspm;
-#if defined(HAVE_SETVBUF) && !defined(HAVE_AIO_READ)
-  void **buffers = (void**)handle->files + mpzspm->sp_num;
-#endif
   
   for (i = 0; i < mpzspm->sp_num; i++)
     {
@@ -1784,8 +1794,8 @@ mpzspv_close_fileset (mpzspv_handle_t handle)
       handle->filenames[i] = NULL;
       handle->files[i] = NULL;
 #if defined(HAVE_SETVBUF) && !defined(HAVE_AIO_READ)
-      free (buffers[i]);
-      buffers[i] = NULL;
+      free (handle->buffers[i]);
+      handle->buffers[i] = NULL;
 #endif
     }
   
@@ -1793,6 +1803,10 @@ mpzspv_close_fileset (mpzspv_handle_t handle)
   handle->filenames = NULL;
   free (handle->files);
   handle->files = NULL;
+#if defined(HAVE_SETVBUF) && !defined(HAVE_AIO_READ)
+  free (handle->buffers);
+  handle->buffers = NULL;
+#endif
 }
 
 
