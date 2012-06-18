@@ -12,7 +12,6 @@ directory as your Visual C++ compiler, which is typically:
 
 C:\Program Files (x86)\Microsoft Visual Studio 10.0\VC\bin
 
-
 The Multi-Precision Library - GMP and MPIR
 ==========================================
 
@@ -81,19 +80,57 @@ There are three build projects in build.vc10:
     ecmlib  - the ECM library
     tune    - a program for tuning 
 
-Before starting a build, these two files
+Build Options
+-------------
 
-    ecm-params.h
-    mul_fft-params.h
+Before starting a build, there are a number of configuration options
+that need to be set:
 
-to set the tuning parameters that should be used in the build. Select
-the tuning include files by changing the appropriate '#elif 0' to
-'#elif 1'.  
+1. If you wish to compile GMP-ECM for use on a particular processor,
+   select the appropriate define from the file 'ecm-params.h' in the
+   GMP-ECM root directory and decide which of the defines suit your
+   needs (e.g. __tune_corei7__).  Then replace the existing define:
+   
+   /* define Windows tuning here */
+   #  define __tune_corei7__
+ 
+   towards the end of the file config.h file in the 'build.vc10'
+   directory (build.vc10\config.h) with tye chosen define.
 
-If you wish to use the win32 AMD assembler files, you also have to use
-the Visual Studio property page to define AMD_ASM (althernively you
-can eidt mulredc.asm and redc.asm in the build.vc10\assembler\ directory
-to include the AMD assembler).
+2. The file at 'build.vc10\mul_fft-params.h' allows the FFT code to
+   be tuned to 32 or 64-bnit systems by selecting an option by 
+   changing the appropriate '#elif 0' to #elif 1'.   If you wish to 
+   use the win32 AMD assembler files, you also have to use the 
+   Visual Studio property page to define AMD_ASM (alternatively
+   you can edit the two files mulredc.asm and redc.asm in the 
+   build.vc10\assembler\ directory to include the AMD assembler).
+
+3. GMP-ECM buids with the GPU code enabled, which requires that 
+   the Nvidia Parallel Nsight has been installed for use within
+   Visual Studio.  If you wish to build without the GPU code,
+   you need to do the following:
+   
+   a. in the libecm project, use the Visual Studio solution 
+      explorer to exclude the file cudakernel.cu from the build 
+
+   b. in the libecm project, use the Visual Studio solution 
+      explorer, right click on the ecm project and select 
+	  build customisations and untick the CUDA build items
+	  
+   c. In the ecm project, use the solution explorer to open
+      the projects property pages and go to the C/C++
+	  preprocessor properties and use the Preprocessor
+	  Definitions property to remove the WITH_GPU define
+	  for all of the project configurations you wish to
+	  build.
+
+4. If you wish to use the GPU build, you should use the Visual
+   Studio solution explorer for the libecm project to select
+   the property pages for CUDA C/C++ to set the device and 
+   host properties for the GPU for which you wish to build.
+
+Build Configurations
+--------------------
 
 When a version of ecm and ecmlib are built the library and the application
 are put in the directory matching the configuration that has been built:
@@ -137,5 +174,4 @@ Tests
 The file tests.py is a python script that runs the ECM tests. It runs the
 x64/release-amd version by default but can be edited to test other builds.
 
-    Brian Gladman, 3rd January 2012
-
+    Brian Gladman, 18th June 2012
