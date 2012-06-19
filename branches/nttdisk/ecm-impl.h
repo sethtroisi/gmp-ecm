@@ -122,8 +122,6 @@ extern FILE *ECM_STDOUT, *ECM_STDERR;
 /* threshold for median product */
 #define KS_TMUL_THRESHOLD 8e5
 
-#define ABS(x) ((x) >= 0 ? (x) : -(x))
-
 /* getprime */
 #define WANT_FREE_PRIME_TABLE(p) (p < 0.0)
 #define FREE_PRIME_TABLE -1.0

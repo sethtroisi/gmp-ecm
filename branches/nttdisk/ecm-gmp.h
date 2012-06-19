@@ -23,9 +23,14 @@ MA 02110-1301, USA. */
 #ifndef _ECM_GMP_H
 #define _ECM_GMP_H 1
 
+#include "config.h"
 #include "basicdefs.h"
 #include <gmp.h>
+#ifdef USE_VALGRIND
+#include <valgrind/memcheck.h>
+#endif
 
+#define ABS(x) ((x) >= 0 ? (x) : -(x))
 #define ABSIZ(x) ABS (SIZ (x))
 #define ALLOC(x) ((x)->_mp_alloc)
 #define PTR(x) ((x)->_mp_d)
@@ -168,6 +173,30 @@ mpz_set_int64 (mpz_t m, const int64_t n)
     }
   else
     mpz_set_uint64(m, n);
+}
+
+
+/* If USE_VALGRIND is defined, add client check instructions for valgrind.
+   valgrind_check_mpzin() tests that the mpz_t has memory allocated and the 
+   data is well-defined; valgrind_check_mpzout() checks only that memory is 
+   allocated */
+static inline void
+valgrind_check_mpzin (ATTRIBUTE_UNUSED const mpz_t m)
+{
+#ifdef USE_VALGRIND
+  VALGRIND_CHECK_MEM_IS_DEFINED(m, sizeof(mpz_t));
+  VALGRIND_CHECK_MEM_IS_ADDRESSABLE(PTR(m), ALLOC(m) * sizeof(mp_limb_t));
+  VALGRIND_CHECK_MEM_IS_DEFINED(PTR(m), ABSIZ(m) * sizeof(mp_limb_t));
+#endif
+}
+
+static inline void
+valgrind_check_mpzout (ATTRIBUTE_UNUSED const mpz_t m)
+{
+#ifdef USE_VALGRIND
+  VALGRIND_CHECK_MEM_IS_DEFINED(m, sizeof(mpz_t));
+  VALGRIND_CHECK_MEM_IS_ADDRESSABLE(PTR(m), ALLOC(m) * sizeof(mp_limb_t));
+#endif
 }
 
 

@@ -132,9 +132,11 @@ typedef mp_limb_t UDItype;
 #if SP_NUMB_BITS < 32
 typedef uint32_t sp_t;
 #define SP_TYPE_BITS 32
+#define PRISP PRIu32
 #else
 typedef uint64_t sp_t;
 #define SP_TYPE_BITS 64
+#define PRISP PRIu64
 #endif
 
 #define SP_MIN ((sp_t)1 << (SP_NUMB_BITS - 1))
@@ -589,6 +591,7 @@ void spv_mul_sp (spv_t, spv_t, sp_t, spv_size_t, sp_t, sp_t);
 spv_size_t spv_seek_and_read (spv_t, spv_size_t, spv_size_t, FILE *);
 spv_size_t spv_seek_and_write (const spv_t, spv_size_t, spv_size_t, FILE *);
 
+void spv_print_vec (spv_t, sp_t, spv_size_t, const char *, const char *);
 void spv_random (spv_t, spv_size_t, sp_t);
 int spv_cmp (spv_t, spv_t, spv_size_t);
 

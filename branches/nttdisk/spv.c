@@ -567,8 +567,10 @@ spv_seek_and_read (spv_t ptr, const spv_size_t nread, const spv_size_t offset,
 
   if (r != nread)
     {
+      int saved_errno = errno;
+      perror (NULL);
       fprintf (stderr, "%s(): Error reading data, r = %lu, errno = %d\n",
-               __func__, (unsigned long) r, errno);
+               __func__, (unsigned long) r, saved_errno);
       abort();
     }
 
@@ -611,8 +613,10 @@ spv_seek_and_write (const spv_t ptr, const spv_size_t nwrite,
   
   if (r != nwrite)
     {
+      int saved_errno = errno;
+      perror (NULL);
       fprintf (stderr, "%s(): Error writing data, r = %lu, errno = %d\n",
-               __func__, (unsigned long) r, errno);
+               __func__, (unsigned long) r, saved_errno);
       abort();
     }
 
@@ -620,3 +624,13 @@ spv_seek_and_write (const spv_t ptr, const spv_size_t nwrite,
 }
 
 
+void
+spv_print_vec (const spv_t spv, const sp_t m, const spv_size_t l, 
+               const char *prefix, const char *suffix)
+{
+  spv_size_t i;
+  printf ("%s [%lu", prefix, spv[0]);
+  for (i = 1; i < l; i++)
+    printf (", %lu", spv[i]);
+  printf ("] (mod %" PRISP ")%s", m, suffix);
+}

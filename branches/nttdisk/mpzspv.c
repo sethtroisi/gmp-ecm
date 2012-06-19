@@ -25,10 +25,6 @@ MA 02110-1301, USA. */
 #include <stdlib.h>
 #include <errno.h>
 #include <string.h> /* for memset */
-#ifdef USE_VALGRIND
-#include <valgrind/memcheck.h>
-#include "ecm-gmp.h"
-#endif
 #ifdef HAVE_FCNTL_H
 #include <fcntl.h>
 #endif
@@ -44,13 +40,12 @@ MA 02110-1301, USA. */
 #define IN_MEMORY(x) ((x) != NULL && (x)->storage == 0)
 #define ON_DISK(x) ((x) != NULL && (x)->storage != 0)
 
-static void  mpzspv_seek_and_read (mpzspv_t, spv_size_t, FILE *, spv_size_t, 
-    size_t, size_t, mpzspm_t);
-static void mpzspv_seek_and_write (mpzspv_t, spv_size_t, FILE *, spv_size_t, 
-    size_t, size_t, mpzspm_t);
+static void mpzspv_seek_and_read (mpzspv_t, size_t, FILE *, spv_size_t, 
+    spv_size_t, size_t, mpzspm_t);
+static void mpzspv_seek_and_write (mpzspv_t, size_t, FILE *, spv_size_t, 
+    spv_size_t, size_t, mpzspm_t);
 static void spv_add_or_mul_file (spv_t, const spv_t, FILE *, const spv_size_t, 
-    const spv_size_t, const spv_size_t, const spv_size_t, const int, 
-    const spm_t);
+    const spv_size_t, const size_t, const size_t, const int, const spm_t);
 #ifdef HAVE_AIO_READ
 static int mpzspv_lio_rw (struct aiocb *[], mpzspv_t, spv_size_t, FILE *,  
                           spv_size_t, spv_size_t, spv_size_t, const mpzspm_t, 
@@ -58,16 +53,6 @@ static int mpzspv_lio_rw (struct aiocb *[], mpzspv_t, spv_size_t, FILE *,
 static int mpzspv_lio_suspend (const struct aiocb *[], const mpzspm_t);
 #endif
 
-
-static inline void
-valgrind_check_mpzinp(ATTRIBUTE_UNUSED const mpz_t m)
-{
-#ifdef USE_VALGRIND
-  VALGRIND_CHECK_MEM_IS_DEFINED(m, sizeof(mpz_t));
-  VALGRIND_CHECK_MEM_IS_ADDRESSABLE(PTR(m), ALLOC(m) * sizeof(mp_limb_t));
-  VALGRIND_CHECK_MEM_IS_DEFINED(PTR(m), ABSIZ(m) * sizeof(mp_limb_t));
-#endif
-}
 
 static mpzspv_t
 mpzspv_init (spv_size_t len, const mpzspm_t mpzspm)
@@ -194,6 +179,7 @@ mpzspv_clear_handle (mpzspv_handle_t handle)
   if (handle == NULL)
     return;
   
+  ASSERT(mpzspv_verify_out (handle, 0, handle->len));
   if (IN_MEMORY(handle))
     {
       mpzspv_clear (handle->mem, handle->mpzspm);
@@ -435,8 +421,20 @@ mpzspv_add (mpzspv_handle_t r, const spv_size_t r_offset,
 }
 
 
+static inline sp_t 
+mpz_mod_sp (const mpz_t mpz, const mpzspm_t mpzspm, ATTRIBUTE_UNUSED mpz_t rem, 
+            const unsigned int k)
+{
+#if SP_TYPE_BITS > GMP_LIMB_BITS
+  mpz_tdiv_r(rem, mpz, mpzspm->spm[k]->mp_sp);
+  return mpz_get_sp(rem);
+#else
+  return mpn_mod_1 (PTR(mpz), SIZ(mpz), (mp_limb_t) mpzspm->spm[k]->sp);
+#endif
+}
+
 /* convert mpz to CRT representation, naive version */
-static void
+static inline void
 mpzspv_from_mpzv_slow (mpzspv_t x, const spv_size_t offset, const mpz_t mpz, 
                        const mpzspm_t mpzspm, ATTRIBUTE_UNUSED mpz_t rem,
 		       const unsigned int sp_num)
@@ -452,21 +450,14 @@ mpzspv_from_mpzv_slow (mpzspv_t x, const spv_size_t offset, const mpz_t mpz,
    * It doesn't accept 0 as the dividend so we have to treat this case
    * separately */
   
-  valgrind_check_mpzinp (mpz);
+  valgrind_check_mpzin (mpz);
   if (mpz_sgn (mpz) == 0)
     {
       for (j = 0; j < sp_num; j++)
         x[j][offset] = 0;
-    }
-  else for (j = 0; j < sp_num; j++)
-    { 
-#if SP_TYPE_BITS > GMP_LIMB_BITS
-      mpz_tdiv_r(rem, mpz, mpzspm->spm[j]->mp_sp);
-      x[j][offset] = mpz_get_sp(rem);
-#else
-      x[j][offset] = mpn_mod_1 (PTR(mpz), SIZ(mpz),
-                              (mp_limb_t) mpzspm->spm[j]->sp);
-#endif
+    } else {
+      for (j = 0; j < sp_num; j++)
+        x[j][offset] = mpz_mod_sp (mpz, mpzspm, rem, j);
     }
 }
 
@@ -474,25 +465,25 @@ mpzspv_from_mpzv_slow (mpzspv_t x, const spv_size_t offset, const mpz_t mpz,
 /* convert mpzvi to CRT representation, fast version, assumes
    mpzspm->T has been precomputed (see mpzspm.c) */
 static void
-mpzspv_from_mpzv_fast (mpzspv_t x, const spv_size_t offset, mpz_t mpzvi,
+mpzspv_from_mpzv_fast (mpzspv_t x, const spv_size_t offset, const mpz_t mpz,
                        const mpzspm_t mpzspm, 
 		       ATTRIBUTE_UNUSED mpz_t rem,
 		       unsigned int sp_num)
 {
-  unsigned int i, j, k, i0 = I0_THRESHOLD, I0;
+  unsigned int i, j, k, I0;
   mpzv_t *T = mpzspm->T;
   unsigned int d = mpzspm->d, ni;
 
-  ASSERT (d > i0);
-  valgrind_check_mpzinp (mpzvi);
+  ASSERT (d > I0_THRESHOLD);
+  valgrind_check_mpzin (mpz);
 
   /* T[0] serves as vector of temporary mpz_t's, since it contains the small
      primes, which are also in mpzspm->spm[j]->sp */
-  /* initially we split mpzvi in two */
+  /* initially we split mpz in two */
   ni = 1 << (d - 1);
-  mpz_mod (T[0][0], mpzvi, T[d-1][0]);
-  mpz_mod (T[0][ni], mpzvi, T[d-1][1]);
-  for (i = d-1; i-- > i0;)
+  mpz_mod (T[0][0], mpz, T[d-1][0]);
+  mpz_mod (T[0][ni], mpz, T[d-1][1]);
+  for (i = d-1; i-- > I0_THRESHOLD;)
     { /* goes down from depth i+1 to i */
       ni = 1 << i;
       for (j = k = 0; j + ni < sp_num; j += 2*ni, k += 2)
@@ -503,18 +494,18 @@ mpzspv_from_mpzv_fast (mpzspv_t x, const spv_size_t offset, mpz_t mpzvi,
       /* for the last entry T[0][j] if j < sp_num, there is nothing to do */
     }
   /* last steps */
-  I0 = 1 << i0;
+  I0 = 1 << I0_THRESHOLD;
   for (j = 0; j < sp_num; j += I0)
-    for (k = j; k < j + I0 && k < sp_num; k++)
-      {
-#if SP_TYPE_BITS > GMP_LIMB_BITS
-	mpz_tdiv_r(rem, T[0][j], mpzspm->spm[k]->mp_sp);
-	x[k][offset] = mpz_get_sp(rem);
-#else
-	x[k][offset] = mpn_mod_1 (PTR(T[0][j]), SIZ(T[0][j]),
-                                (mp_limb_t) mpzspm->spm[k]->sp);
-#endif
-      }
+    {
+      if (mpz_sgn (T[0][j]) == 0)
+        {
+          for (k = j; k < j + I0 && k < sp_num; k++)
+            x[k][offset] = 0;
+        } else {
+          for (k = j; k < j + I0 && k < sp_num; k++)
+            x[k][offset] = mpz_mod_sp (T[0][j], mpzspm, rem, k);
+        }
+    }
 }
 
 /* See: Daniel J. Bernstein and Jonathan P. Sorenson,
@@ -528,6 +519,7 @@ mpzspv_to_mpz(mpz_t res, const mpzspv_t x, const spv_size_t offset,
 {
   unsigned int i;
   float f = 0.5;
+  valgrind_check_mpzout (res);
   mpz_set_ui (res, 0);
 
   for (i = 0; i < mpzspm->sp_num; i++)
@@ -560,6 +552,9 @@ mpzspv_fromto_mpzv (mpzspv_handle_t x, const spv_size_t offset,
   const unsigned int sp_num = x->mpzspm->sp_num;
   const int have_consumer = consumer != NULL || consumer_state != NULL;
   const int have_producer = producer != NULL || producer_state != NULL;
+  static int tested_slow = 0, force_slow = 0, tested_blocklen = 0;
+  static spv_size_t force_blocklen = 0;
+  int use_slow = (x->mpzspm->T == NULL);
   spv_size_t block_len = 1<<16, len_done = 0, read_done = 0, buffer_offset;
   mpz_t mpz1, mpz2, mt;
 #if defined(HAVE_AIO_READ)
@@ -579,6 +574,19 @@ mpzspv_fromto_mpzv (mpzspv_handle_t x, const spv_size_t offset,
   mpz_init(mpz2);
   mpz_init(mt);
 
+  if (have_producer && !tested_slow)
+    {
+      char *env = getenv ("USE_MPZSPV_FROM_MPZV_SLOW");
+      if (env != NULL)
+        {
+          printf ("%s(): Setting force_slow=1 (use_slow was %d)\n", 
+                  __func__, use_slow);
+          force_slow = 1;
+        }
+      tested_slow = 1;
+    }
+  use_slow |= force_slow;
+
   if (IN_MEMORY(x))
     {
       block_len = len; /* Do whole thing at once */
@@ -590,14 +598,24 @@ mpzspv_fromto_mpzv (mpzspv_handle_t x, const spv_size_t offset,
     {
       /* Do piecewise, using a temp buffer */
       unsigned int i;
-      char *env = getenv ("MPZSPV_FROMTO_MPZV_BLOCKLEN");
-      
-      if (env != NULL)
+      if (!tested_blocklen)
         {
-          spv_size_t b = strtoul (env, NULL, 10);
-          if (b > 0)
-            block_len = b;
+          char *env = getenv ("MPZSPV_FROMTO_MPZV_BLOCKLEN");
+
+          if (env != NULL)
+            {
+              spv_size_t b = strtoul (env, NULL, 10);
+              if (b > 0)
+                {
+                  printf ("%s(): Using block_len = %" PRISPVSIZE " (was %" 
+                          PRISPVSIZE ")\n", __func__, b, block_len);
+                  force_blocklen = b;
+                }
+            }
+          tested_blocklen = 1;
         }
+      if (force_blocklen > 0)
+        block_len = force_blocklen;
       
 #if defined(HAVE_AIO_READ)
       nr_buffers = 2;
@@ -698,10 +716,10 @@ mpzspv_fromto_mpzv (mpzspv_handle_t x, const spv_size_t offset,
                 {
                   /* Get new mpz1 from producer */
                   (*producer)(producer_state, mpz1);
-                  valgrind_check_mpzinp (mpz1);
+                  valgrind_check_mpzin (mpz1);
                 } else {
                   /* Get new mpz1 from listz_t */
-                  valgrind_check_mpzinp (((mpz_t *)producer_state)[len_done + i]);
+                  valgrind_check_mpzin (((mpz_t *)producer_state)[len_done + i]);
                   mpz_set (mpz1, ((listz_t)producer_state)[len_done + i]);
                 }
             }
@@ -711,6 +729,7 @@ mpzspv_fromto_mpzv (mpzspv_handle_t x, const spv_size_t offset,
               /* Convert NTT entry to mpz2 */
               mpzspv_to_mpz (mpz2, buffer[work_buffer], buffer_offset + i, 
                              x->mpzspm, mt);
+              valgrind_check_mpzin (mpz2);
               if (consumer != NULL)
                 {
                   /* Give mpz2 to consumer function */
@@ -725,8 +744,12 @@ mpzspv_fromto_mpzv (mpzspv_handle_t x, const spv_size_t offset,
           if (have_producer)
             {
               /* Convert the mpz1 we got from producer to NTT */
-              mpzspv_from_mpzv_slow (buffer[work_buffer], buffer_offset + i, 
-                                     mpz1, x->mpzspm, mt, sp_num);
+              if (use_slow)
+                mpzspv_from_mpzv_slow (buffer[work_buffer], buffer_offset + i, 
+                                       mpz1, x->mpzspm, mt, sp_num);
+              else
+                mpzspv_from_mpzv_fast (buffer[work_buffer], buffer_offset + i, 
+                                       mpz1, x->mpzspm, mt, sp_num);
             }
         }
 #if WANT_PROFILE
@@ -929,8 +952,8 @@ mpzspv_random (mpzspv_handle_t x, const spv_size_t offset,
    Adds if add_or_mul == 0 */
 static void
 spv_add_or_mul_file (spv_t r, const spv_t x, FILE *f, const spv_size_t f_offset, 
-    const spv_size_t len, const spv_size_t wrap_size, 
-    const spv_size_t block_len_param, const int add_or_mul, const spm_t spm)
+    const spv_size_t len, const size_t wrap_size, const size_t block_len_param, 
+    const int add_or_mul, const spm_t spm)
 {
   const spv_size_t block_len = MIN(len, block_len_param);
   spv_t tmp_block;
@@ -1046,9 +1069,9 @@ spv_add_or_mul_2file (spv_t r, FILE *f1, FILE *f2, const spv_size_t len,
 
 
 static void 
-mpzspv_seek_and_read (mpzspv_t dst, spv_size_t offset, FILE *sp_file, 
-                      const spv_size_t veclen, const size_t fileoffset, 
-                      size_t nread, mpzspm_t mpzspm)
+mpzspv_seek_and_read (mpzspv_t dst, const size_t offset, FILE *sp_file, 
+                      const spv_size_t veclen, const spv_size_t fileoffset, 
+                      const size_t nread, mpzspm_t mpzspm)
 {
   unsigned int j;
   for (j = 0; j < mpzspm->sp_num; j++)
@@ -1059,8 +1082,8 @@ mpzspv_seek_and_read (mpzspv_t dst, spv_size_t offset, FILE *sp_file,
 
 
 static void  
-mpzspv_seek_and_write (mpzspv_t src, const spv_size_t offset, FILE *sp_file, 
-                       const spv_size_t veclen, const size_t fileoffset, 
+mpzspv_seek_and_write (mpzspv_t src, const size_t offset, FILE *sp_file, 
+                       const spv_size_t veclen, const spv_size_t fileoffset, 
                        const size_t nwrite, const mpzspm_t mpzspm)
 {
   unsigned int j;
@@ -1167,7 +1190,7 @@ profile_end (const unsigned long realstart ATTRIBUTE_UNUSED,
 {
 #if WANT_PROFILE
   printf("mpzspv_mul_ntt(): %s %d started at %lu took %lu ms\n", 
-         i, msg, realstart, realtime() - realstart);
+         msg, i, realstart, realtime() - realstart);
 #endif
 }
 
@@ -1240,7 +1263,7 @@ mpzspv_mul_ntt (mpzspv_handle_t r, const spv_size_t offsetr,
   if (x != NULL)
     mpzspv_print (x, offsetx, lenx, "x");
   if (y != NULL)
-    mpzspv_print (y, offsetx, lenx, "y");
+    mpzspv_print (y, offsety, leny, "y");
 #endif
   
   /* Need parallelization at higher level (e.g., handling a branch of the 
@@ -1387,7 +1410,7 @@ mpzspv_mul_ntt (mpzspv_handle_t r, const spv_size_t offsetr,
 
 #if TRACE_ntt_mul
   if (r != NULL)
-    mpzspv_print (r, offsetx, lenx, "r");
+    mpzspv_print (r, offsetr, ntt_size, "r");
 #endif
 }
 
@@ -1505,18 +1528,6 @@ mpzspv_to_dct1 (mpzspv_handle_t dct, const mpzspv_handle_t spv,
 }
 
 
-ATTRIBUTE_UNUSED
-static void
-spv_print_vec (const char *msg, const spv_t spv, const spv_size_t l)
-{
-  spv_size_t i;
-  printf ("%s [%lu", msg, spv[0]);
-  for (i = 1; i < l; i++)
-    printf (", %lu", spv[i]);
-  printf ("]\n");
-}
-
-
 static void
 spv_sqr_reciprocal(const spv_size_t n, const spm_t spm, const spv_t spv, 
                    const sp_t max_ntt_size)
@@ -1533,7 +1544,7 @@ spv_sqr_reciprocal(const spv_size_t n, const spm_t spm, const spv_t spv,
 
 #if TRACE_ntt_sqr_reciprocal
   printf ("%s: NTT vector mod %lu\n", __func__, sp);
-  spv_print_vec ("%s: before weighting:", __func__, spv, n);
+  spv_print_vec (spv, sp, n, "before weighting:", "\n");
 #endif
 
   /* Compute the root for the weight signal, a 3rd primitive root 
@@ -1584,28 +1595,28 @@ spv_sqr_reciprocal(const spv_size_t n, const spm_t spm, const spv_t spv,
     }
 
 #if TRACE_ntt_sqr_reciprocal
-  spv_print_vec ("%s: after weighting:", __func__, spv, len);
+  spv_print_vec (spv, sp, n, "after weighting:", "\n");
 #endif
 
   /* Forward DFT of dft[j] */
   spv_ntt_gfp_dif (spv, log2_len, spm);
 
 #if TRACE_ntt_sqr_reciprocal
-  spv_print_vec ("%s: after forward transform:", __func__, spv, len);
+  spv_print_vec (spv, sp, n, "after forward transform:", "\n");
 #endif
 
   /* Square the transformed vector point-wise */
   spv_pwmul (spv, spv, spv, len, sp, mul_c);
 
 #if TRACE_ntt_sqr_reciprocal
-  spv_print_vec ("%s: after point-wise squaring:", __func__, spv, len);
+  spv_print_vec (spv, sp, n, "after point-wise squaring:", "\n");
 #endif
 
   /* Inverse transform of dft[j] */
   spv_ntt_gfp_dit (spv, log2_len, spm);
 
 #if TRACE_ntt_sqr_reciprocal
-  spv_print_vec ("%s: after inverse transform:", __func__, spv, len);
+  spv_print_vec (spv, sp, n, "after inverse transform:", "\n");
 #endif
 
   /* Un-weight and divide by transform length */
@@ -1624,7 +1635,7 @@ spv_sqr_reciprocal(const spv_size_t n, const spm_t spm, const spv_t spv,
     spv[i + 1] = sp_mul (spv[i + 1], w2, sp, mul_c);
   
 #if TRACE_ntt_sqr_reciprocal
-  spv_print_vec ("%s: after un-weighting:", __func__, spv, len);
+  spv_print_vec (spv, sp, n, "after after un-weighting:", "\n");
 #endif
 
   /* Separate the coefficients of R in the wrapped-around product. */
@@ -1659,7 +1670,7 @@ spv_sqr_reciprocal(const spv_size_t n, const spm_t spm, const spv_t spv,
     }
 
 #if TRACE_ntt_sqr_reciprocal
-  spv_print_vec ("%s: after un-wrapping:", __func__, spv, len);
+  spv_print_vec (spv, sp, n, "after un-wrapping:", "\n");
 #endif
 }
 
@@ -1729,9 +1740,9 @@ mpzspv_sqr_reciprocal (mpzspv_handle_t x, const spv_size_t n)
    lengths/positions use one sp_t as the unit. */
 static int 
 mpzspv_lio_rw (struct aiocb *aiocb_list[], mpzspv_t mpzspv, 
-               const spv_size_t mpzspv_offset, FILE *file,  
+               const size_t mpzspv_offset, FILE *file,  
                const spv_size_t veclen, const spv_size_t file_offset, 
-               const spv_size_t len, const mpzspm_t mpzspm, const int write)
+               const size_t len, const mpzspm_t mpzspm, const int write)
 {
   unsigned int i;
   struct sigevent sev;
@@ -1739,8 +1750,8 @@ mpzspv_lio_rw (struct aiocb *aiocb_list[], mpzspv_t mpzspv,
   int fn;
   
   if (0)
-    printf("%s(, , %lu, , %lu, %lu, , %d)\n", 
-           __func__, (unsigned long) mpzspv_offset, (unsigned long) file_offset,
+    printf("%s(, , %lu, , %" PRISPVSIZE ", %lu, , %d)\n", 
+           __func__, (unsigned long) mpzspv_offset, file_offset,
            (unsigned long) len, write);
   
   memset (&sev, 0, sizeof(struct sigevent));
@@ -1751,7 +1762,7 @@ mpzspv_lio_rw (struct aiocb *aiocb_list[], mpzspv_t mpzspv,
     {
       memset (aiocb_list[i], 0, sizeof (struct aiocb));
       aiocb_list[i]->aio_fildes = fn;
-      aiocb_list[i]->aio_offset = (file_offset + i * veclen) * sizeof(sp_t);
+      aiocb_list[i]->aio_offset = (file_offset + i * veclen) * (off_t) sizeof(sp_t);
       aiocb_list[i]->aio_buf = mpzspv[i] + mpzspv_offset;
       aiocb_list[i]->aio_nbytes = len * sizeof(sp_t);
       aiocb_list[i]->aio_reqprio = 0;
@@ -1823,18 +1834,13 @@ mpzspv_print (mpzspv_handle_t handle, const spv_size_t offset,
 
   for (i = 0; i < handle->mpzspm->sp_num; i++)
     {
-      spv_size_t j;
       if (ON_DISK(handle))
         spv_seek_and_read (tmp, len, offset + i * handle->len, handle->file);
       else
         tmp = handle->mem[i] + offset;
-      printf ("%s (%lu", prefix, tmp[0]);
-      for (j = 1; j < len; j++)
-        {
-          printf(", %lu", tmp[j]);
-        }
-      printf (") (mod %lu) (%s)\n", handle->mpzspm->spm[i]->sp, 
-              IN_MEMORY(handle) ? "in memory" : "on disk");
+
+      spv_print_vec (tmp, handle->mpzspm->spm[i]->sp, len, 
+                     prefix, IN_MEMORY(handle) ? "(in memory)" : "(on disk)");
     }
 
   if (ON_DISK(handle))
