@@ -1106,7 +1106,7 @@ pm1 (mpz_t f, mpz_t p, mpz_t N, mpz_t go, double *B1done, double B1,
       else
         {
           rhoinit (256, 10);
-          print_prob (B1, B2, dF, k, 
+          print_prob (B1, B2, (stage2_variant == 0) ? dF : 0, k, 
                       (stage2_variant == 0) ? root_params.S : 1, go);
         }
     }
