@@ -119,6 +119,7 @@ mpzspm_product_tree_init (mpzspm_t mpzspm)
   unsigned int d, i, j, oldn;
   unsigned int n = mpzspm->sp_num;
   mpzv_t *T;
+  mpz_t mt;
 
   for (i = n, d = 0; i > 1; i = (i + 1) / 2, d ++);
   if (d <= I0_THRESHOLD)
@@ -126,12 +127,13 @@ mpzspm_product_tree_init (mpzspm_t mpzspm)
       mpzspm->T = NULL;
       return;
     }
+  mpz_init (mt);
   T = (mpzv_t*) malloc ((d + 1) * sizeof (mpzv_t));
   T[0] = (mpzv_t) malloc (n * sizeof (mpz_t));
   for (j = 0; j < n; j++)
     {
-      mpz_init (T[0][j]);
-      mpz_set_sp (T[0][j], mpzspm->spm[j]->sp);
+      mpz_set_sp (mt, mpzspm->spm[j]->sp);
+      mpz_init_set (T[0][j], mt);
     }
   for (i = 1; i <= d; i++)
     {
@@ -140,13 +142,24 @@ mpzspm_product_tree_init (mpzspm_t mpzspm)
       T[i] = (mpzv_t) malloc (n * sizeof (mpz_t));
       for (j = 0; j < n; j++)
         {
-          mpz_init (T[i][j]);
           if (2 * j + 1 < oldn)
-            mpz_mul (T[i][j], T[i-1][2*j], T[i-1][2*j+1]);
+            {
+              mpz_mul (mt, T[i-1][2*j], T[i-1][2*j+1]);
+              mpz_init_set (T[i][j], mt);
+              if (0)
+                printf ("T[%u][%u] = T[%u][%u] * T[%u][%u], size %lu bits\n", 
+                        i,j, i-1, 2*j, i-1, 2*j+1, mpz_sizeinbase (mt, 2));
+            }
           else /* oldn is odd */
-            mpz_set (T[i][j], T[i-1][2*j]);
+            {
+              mpz_init_set (T[i][j], T[i-1][2*j]);
+              if (0)
+                printf ("T[%u][%u] = T[%u][%u], size %lu bits\n", 
+                        i,j, i-1, 2*j, mpz_sizeinbase (T[i][j], 2));
+            }
         }
     }
+  mpz_clear (mt);
   mpzspm->T = T;
   mpzspm->d = d;
 }
