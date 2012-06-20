@@ -214,6 +214,8 @@ typedef struct
     /* product tree to speed up conversion from mpz to sp */
     mpzv_t *T;            /* product tree */
     unsigned int d;       /* ceil(log(sp_num)/log(2)) */
+    unsigned int *start_p;
+    mpzv_t remainders; /* Scratch space for remainder tree */
   } __mpzspm_struct;
 
 typedef __mpzspm_struct * mpzspm_t;
@@ -612,7 +614,7 @@ void mpzspm_print_CRT_primes (int, const char *,
 
 /* we use the remainder tree for products of 2^I0_THRESHOLD moduli or more,
    and the naive method for fewer moduli. We must have I0_THRESHOLD >= 1. */
-#define I0_THRESHOLD 7
+#define I0_THRESHOLD 5
 
 mpzspv_handle_t mpzspv_init_handle (const char *, spv_size_t, mpzspm_t);
 void mpzspv_clear_handle (mpzspv_handle_t);

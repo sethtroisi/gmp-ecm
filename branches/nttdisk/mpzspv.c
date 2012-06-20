@@ -429,6 +429,7 @@ mpz_mod_sp (const mpz_t mpz, const mpzspm_t mpzspm, ATTRIBUTE_UNUSED mpz_t rem,
   mpz_tdiv_r(rem, mpz, mpzspm->spm[k]->mp_sp);
   return mpz_get_sp(rem);
 #else
+  ASSERT (mpz_sgn (mpz) > 0);
   return mpn_mod_1 (PTR(mpz), SIZ(mpz), (mp_limb_t) mpzspm->spm[k]->sp);
 #endif
 }
@@ -470,26 +471,28 @@ mpzspv_from_mpzv_fast (mpzspv_t x, const spv_size_t offset, const mpz_t mpz,
 		       ATTRIBUTE_UNUSED mpz_t rem,
 		       unsigned int sp_num)
 {
-  unsigned int i, j, k, I0;
+  unsigned int i, j;
   mpzv_t *T = mpzspm->T;
   unsigned int d = mpzspm->d, ni;
 
-  ASSERT (d > I0_THRESHOLD);
+  ASSERT (d > 0);
   valgrind_check_mpzin (mpz);
 
-  /* T[0] serves as vector of temporary mpz_t's, since it contains the small
-     primes, which are also in mpzspm->spm[j]->sp */
-  /* initially we split mpz in two */
-  ni = 1 << (d - 1);
-  mpz_mod (T[0][0], mpz, T[d-1][0]);
-  mpz_mod (T[0][ni], mpz, T[d-1][1]);
-  for (i = d-1; i-- > I0_THRESHOLD;)
-    { /* goes down from depth i+1 to i */
-      ni = 1 << i;
-      for (j = k = 0; j + ni < sp_num; j += 2*ni, k += 2)
+  i = 1;
+  /* First pass uses mpz as input */
+  for (j = 1U << i; j > 0; j -= 2)
+    {
+      mpz_mod (mpzspm->remainders[j - 1], mpz, T[d - i][j - 1]);
+      mpz_mod (mpzspm->remainders[j - 2], mpz, T[d - i][j - 2]);
+    }
+  i++;
+
+  for ( ; i < d; i++)
+    {
+      for (j = 1U << i; j > 0; j -= 2)
         {
-          mpz_mod (T[0][j+ni], T[0][j], T[i][k+1]);
-          mpz_mod (T[0][j], T[0][j], T[i][k]);
+          mpz_mod (remainder[j - 1], remainders[j/2 - 1], T[d - i][j - 1]);
+          mpz_mod (remainder[j - 2], remainders[j/2 - 1], T[d - i][j - 2]);
         }
       /* for the last entry T[0][j] if j < sp_num, there is nothing to do */
     }

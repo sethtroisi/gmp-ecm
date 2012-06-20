@@ -110,58 +110,140 @@ mpzspm_max_len (const mpz_t modulus)
    T[d][0] = m[0] * ... * m[n-1]
    where d = ceil(log(n)/log(2)).
    If n = 5, T[0]: 1, 1, 1, 1, 1
-             T[1]: 2, 2, 1
-             T[2]: 4, 1
+             T[1]: 2, 1, 1, 1
+             T[2]: 3, 2
 */
+
 static void
 mpzspm_product_tree_init (mpzspm_t mpzspm)
 {
-  unsigned int d, i, j, oldn;
+  const int verbose = 1;
+  unsigned int d, i, j;
   unsigned int n = mpzspm->sp_num;
+  unsigned int *start_p;
   mpzv_t *T;
-  mpz_t mt;
+  mpz_t mt, mt2, all_p;
 
-  for (i = n, d = 0; i > 1; i = (i + 1) / 2, d ++);
-  if (d <= I0_THRESHOLD)
+  if (n < 1U << (I0_THRESHOLD + 1))
     {
       mpzspm->T = NULL;
       return;
     }
+
   mpz_init (mt);
-  T = (mpzv_t*) malloc ((d + 1) * sizeof (mpzv_t));
-  T[0] = (mpzv_t) malloc (n * sizeof (mpz_t));
-  for (j = 0; j < n; j++)
+  mpz_init (mt2);
+
+  /* Product of all p for comparision */
+  mpz_init (all_p);
+  mpz_set_ui (all_p, 1);
+  for (i = 0; i < n; i++)
     {
-      mpz_set_sp (mt, mpzspm->spm[j]->sp);
-      mpz_init_set (T[0][j], mt);
+      mpz_set_sp (mt, mpzspm->spm[i]->sp);
+      mpz_mul (all_p, all_p, mt);
     }
-  for (i = 1; i <= d; i++)
+
+  /* The want a complete binary tree of depth d, thus having 2^d leaves, where 
+     each leaf stores at least 2^I0_THRESHOLD primes, and the number of primes 
+     differs by at most one between leaves. Thus we want the largest power of 
+     two 2^d s.t. 
+     n / 2^d >= 2^I0_THRESHOLD  <=>
+     n / 2^I0_THRESHOLD >= 2^d  <==
+     floor(n / 2^I0_THRESHOLD) >= 2^d
+  */
+
+  j = n >> I0_THRESHOLD;
+  for (d = 0; (j >> d) > 1; d++); /* j=1: d=0, j=2: d=1, j=3: d=1, j=4: d=2 */
+  if (verbose)
+    printf ("%s(): n = %u, d = %u\n", __func__, n, d);
+
+
+  T = (mpzv_t*) malloc ((d + 1) * sizeof (mpzv_t));
+  if (T == NULL)
     {
-      oldn = n;
-      n = (n + 1) / 2;
-      T[i] = (mpzv_t) malloc (n * sizeof (mpz_t));
-      for (j = 0; j < n; j++)
+      mpzspm->T = NULL;
+      return;
+    }
+
+  start_p = (unsigned int *) malloc ((1 << d) * sizeof (unsigned int));
+  if (start_p == NULL)
+    {
+      free(T);
+      mpzspm->T = NULL;
+      return;
+    }
+  start_p[0] = 0;
+
+  mpzspm->remainders = (mpzv_t) malloc ((1 << d) * sizeof (mpz_t));
+  if (mpzspm->remainders == NULL)
+    {
+      free (T);
+      free (start_p);
+      mpzspm->T = NULL;
+      return;
+    }
+  for (i = 0; i < 1U << d; i++)
+    mpz_init (mpzspm->remainders[i]);
+
+
+  for (i = 0; i <= d; i++)
+    {
+      T[i] = (mpzv_t) malloc ((1 << (d-i)) * sizeof (mpz_t));
+      if (T[i] == NULL)
         {
-          if (2 * j + 1 < oldn)
-            {
-              mpz_mul (mt, T[i-1][2*j], T[i-1][2*j+1]);
-              mpz_init_set (T[i][j], mt);
-              if (0)
-                printf ("T[%u][%u] = T[%u][%u] * T[%u][%u], size %lu bits\n", 
-                        i,j, i-1, 2*j, i-1, 2*j+1, mpz_sizeinbase (mt, 2));
-            }
-          else /* oldn is odd */
-            {
-              mpz_init_set (T[i][j], T[i-1][2*j]);
-              if (0)
-                printf ("T[%u][%u] = T[%u][%u], size %lu bits\n", 
-                        i,j, i-1, 2*j, mpz_sizeinbase (T[i][j], 2));
-            }
+          while (i-- > 0)
+            free (T[i]);
+          free (T);
+          mpzspm->T = NULL;
+          return;
         }
     }
+
+  /* Fill the leaf nodes */
+  {
+    const unsigned int l = 1 << d; /* number of leaf nodes */
+
+    for (i = 0; i < l; i++)
+      {
+        unsigned int p_now = n / l + (i < n % l ? 1 : 0);
+        ASSERT_ALWAYS (p_now > 0);
+        mpz_set_ui (mt2, 1);
+        for (j = 0; j < p_now; j++)
+          {
+            mpz_set_sp (mt, mpzspm->spm[start_p[i] + j]->sp);
+            mpz_mul (mt2, mt2, mt);
+          }
+        mpz_init_set (T[0][i], mt2);
+        if (verbose)
+          printf ("%s(): T[0][%u] = p_%u * ... * p_%u, size %lu bits\n", 
+                  __func__, i, start_p[i], start_p[i] + p_now - 1, 
+                  (unsigned long) mpz_sizeinbase (T[0][i], 2));
+        if (i + 1 < l)
+          start_p[i + 1] = start_p[i] + p_now;
+      }
+  }
+
+  /* Fill rest of the tree */
+  for (j = 1; j <= d; j++)
+    {
+      const unsigned int l = 1 << (d-j); /* Number of nodes on this level */
+      for (i = 0; i < l; i++)
+        {
+          mpz_mul (mt, T[j-1][2*i], T[j-1][2*i+1]);
+          mpz_init_set (T[j][i], mt);
+          if (verbose)
+            printf ("%s(): T[%u][%u] = T[%u][%u] * T[%u][%u], size %lu bits\n", 
+                    __func__, j, i, j-1, 2*i, j-1, 2*i+1, 
+                    (unsigned long) mpz_sizeinbase (mt, 2));
+        }
+    }
+
+  ASSERT_ALWAYS (mpz_cmp (T[d][0], all_p) == 0);
+
   mpz_clear (mt);
-  mpzspm->T = T;
+  mpz_clear (mt2);
+  mpz_clear (all_p);
   mpzspm->d = d;
+  mpzspm->T = T;
 }
 
 /* This function initializes a mpzspm_t structure which contains the number
@@ -381,8 +463,7 @@ mpzspm_init (spv_size_t max_len, const mpz_t modulus)
 static void
 mpzspm_product_tree_clear (mpzspm_t mpzspm)
 {
-  unsigned int i, j;
-  unsigned int n = mpzspm->sp_num;
+  unsigned int i;
   unsigned int d = mpzspm->d;
   mpzv_t *T = mpzspm->T;
 
@@ -391,12 +472,16 @@ mpzspm_product_tree_clear (mpzspm_t mpzspm)
 
   for (i = 0; i <= d; i++)
     {
-      for (j = 0; j < n; j++)
+      unsigned int j;
+      for (j = 0; j < 1U << (d - i); j++)
         mpz_clear (T[i][j]);
       free (T[i]);
-      n = (n + 1) / 2;
     }
+  for (i = 0; i < 1U << d; i++)
+    mpz_clear (mpzspm->remainders[i]);
   free (T);
+  free (mpzspm->start_p);
+  free (mpzspm->remainders);
 }
 
 void mpzspm_clear (mpzspm_t mpzspm)
