@@ -114,17 +114,38 @@ mpzspm_max_len (const mpz_t modulus)
              T[2]: 3, 2
 */
 
+#ifndef I0_THRESHOLD
+#define I0_THRESHOLD 7
+#endif
 static void
 mpzspm_product_tree_init (mpzspm_t mpzspm)
 {
-  const int verbose = 1;
+  const int verbose = 0;
+  int i0_threshold = I0_THRESHOLD; /* Code should work correctly with any 
+                                      non-negative value */
   unsigned int d, i, j;
   unsigned int n = mpzspm->sp_num;
   unsigned int *start_p;
   mpzv_t *T;
   mpz_t mt, mt2, all_p;
 
-  if (n < 1U << (I0_THRESHOLD + 1))
+  {
+    char *env = getenv ("MPZSPM_PRODUCT_TREE_THRESHOLD");
+    if (env != NULL)
+      {
+        char *end;
+        int t = strtoul (env, &end, 10);
+        if (*end == '\0')
+          {
+            printf ("%s(): Setting i0_threshold = %d (was %d)\n",
+                    __func__, t, i0_threshold);
+            i0_threshold = t;
+          }
+      }
+  }
+  ASSERT_ALWAYS (i0_threshold >= 0);
+
+  if (n < 1U << (i0_threshold + I0_FIRST))
     {
       mpzspm->T = NULL;
       return;
@@ -133,9 +154,9 @@ mpzspm_product_tree_init (mpzspm_t mpzspm)
   mpz_init (mt);
   mpz_init (mt2);
 
-  /* Product of all p for comparision */
+  /* Product of all p for comparison */
   mpz_init (all_p);
-  mpz_set_ui (all_p, 1);
+  mpz_set_ui (all_p, 1UL);
   for (i = 0; i < n; i++)
     {
       mpz_set_sp (mt, mpzspm->spm[i]->sp);
@@ -143,30 +164,28 @@ mpzspm_product_tree_init (mpzspm_t mpzspm)
     }
 
   /* The want a complete binary tree of depth d, thus having 2^d leaves, where 
-     each leaf stores at least 2^I0_THRESHOLD primes, and the number of primes 
-     differs by at most one between leaves. Thus we want the largest power of 
-     two 2^d s.t. 
-     n / 2^d >= 2^I0_THRESHOLD  <=>
-     n / 2^I0_THRESHOLD >= 2^d  <==
-     floor(n / 2^I0_THRESHOLD) >= 2^d
-  */
+     each leaf stores at least 2^i0_threshold primes, and the number of primes 
+     differs by at most one between leaves. Thus we want the largest d s.t. 
+     floor(n / 2^i0_threshold) >= 2^d */
 
-  j = n >> I0_THRESHOLD;
-  for (d = 0; (j >> d) > 1; d++); /* j=1: d=0, j=2: d=1, j=3: d=1, j=4: d=2 */
+  for (d = 0; n >> (i0_threshold + d) > 1; d++);
   if (verbose)
     printf ("%s(): n = %u, d = %u\n", __func__, n, d);
 
-
+  /* Allocate memory */
   T = (mpzv_t*) malloc ((d + 1) * sizeof (mpzv_t));
   if (T == NULL)
     {
+      fprintf (stderr, "%s(): Could not allocate memory for T\n", __func__);
       mpzspm->T = NULL;
       return;
     }
 
-  start_p = (unsigned int *) malloc ((1 << d) * sizeof (unsigned int));
+  start_p = (unsigned int *) malloc (((1 << d) + 1) * sizeof (unsigned int));
   if (start_p == NULL)
     {
+      fprintf (stderr, "%s(): Could not allocate memory for start_p\n", 
+               __func__);
       free(T);
       mpzspm->T = NULL;
       return;
@@ -176,6 +195,8 @@ mpzspm_product_tree_init (mpzspm_t mpzspm)
   mpzspm->remainders = (mpzv_t) malloc ((1 << d) * sizeof (mpz_t));
   if (mpzspm->remainders == NULL)
     {
+      fprintf (stderr, "%s(): Could not allocate memory for remainders\n", 
+               __func__);
       free (T);
       free (start_p);
       mpzspm->T = NULL;
@@ -184,12 +205,13 @@ mpzspm_product_tree_init (mpzspm_t mpzspm)
   for (i = 0; i < 1U << d; i++)
     mpz_init (mpzspm->remainders[i]);
 
-
   for (i = 0; i <= d; i++)
     {
       T[i] = (mpzv_t) malloc ((1 << (d-i)) * sizeof (mpz_t));
       if (T[i] == NULL)
         {
+          fprintf (stderr, "%s(): Could not allocate memory for T[%u]\n", 
+                   __func__, i);
           while (i-- > 0)
             free (T[i]);
           free (T);
@@ -199,13 +221,21 @@ mpzspm_product_tree_init (mpzspm_t mpzspm)
     }
 
   /* Fill the leaf nodes */
+  /* We have l leaves, where n%l leaves get floor(n/l)+1 primes, and the other 
+     leaves get floor(n/l) primes. We want to spread the n%l "leftover" primes
+     at more-or-less equal distances across the leaf nodes to get a well-
+     balanced tree. We use a Bresenham-like algorithm. */
   {
     const unsigned int l = 1 << d; /* number of leaf nodes */
+    const int dy = n % l;
+    int br = l/2 - dy; /* Error term for Bresenham */
 
     for (i = 0; i < l; i++)
       {
-        unsigned int p_now = n / l + (i < n % l ? 1 : 0);
-        ASSERT_ALWAYS (p_now > 0);
+        const unsigned int add = br < 0 ? 1 : 0; /* Include leftover prime? */
+        const unsigned int p_now = n / l + add;
+        br -= dy - (add ? l : 0);
+        
         mpz_set_ui (mt2, 1);
         for (j = 0; j < p_now; j++)
           {
@@ -214,19 +244,22 @@ mpzspm_product_tree_init (mpzspm_t mpzspm)
           }
         mpz_init_set (T[0][i], mt2);
         if (verbose)
-          printf ("%s(): T[0][%u] = p_%u * ... * p_%u, size %lu bits\n", 
-                  __func__, i, start_p[i], start_p[i] + p_now - 1, 
+          printf ("%s(): T[0][%u] = p_%u * ... * p_%u (add = %d), size %lu bits\n", 
+                  __func__, i, start_p[i], start_p[i] + p_now - 1, add, 
                   (unsigned long) mpz_sizeinbase (T[0][i], 2));
-        if (i + 1 < l)
-          start_p[i + 1] = start_p[i] + p_now;
+        start_p[i + 1] = start_p[i] + p_now;
       }
+    /* We subtract dy l times, and add l dy times, so the final br should the 
+       same as the initialiser was */
+    ASSERT_ALWAYS(br == (int) l/2 - dy);
   }
+
+  ASSERT_ALWAYS(start_p[1U << d] == n);
 
   /* Fill rest of the tree */
   for (j = 1; j <= d; j++)
     {
-      const unsigned int l = 1 << (d-j); /* Number of nodes on this level */
-      for (i = 0; i < l; i++)
+      for (i = 0; i < 1U << (d-j); i++)
         {
           mpz_mul (mt, T[j-1][2*i], T[j-1][2*i+1]);
           mpz_init_set (T[j][i], mt);
@@ -244,6 +277,7 @@ mpzspm_product_tree_init (mpzspm_t mpzspm)
   mpz_clear (all_p);
   mpzspm->d = d;
   mpzspm->T = T;
+  mpzspm->start_p = start_p;
 }
 
 /* This function initializes a mpzspm_t structure which contains the number

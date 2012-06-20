@@ -614,7 +614,7 @@ void mpzspm_print_CRT_primes (int, const char *,
 
 /* we use the remainder tree for products of 2^I0_THRESHOLD moduli or more,
    and the naive method for fewer moduli. We must have I0_THRESHOLD >= 1. */
-#define I0_THRESHOLD 5
+#define I0_FIRST 2
 
 mpzspv_handle_t mpzspv_init_handle (const char *, spv_size_t, mpzspm_t);
 void mpzspv_clear_handle (mpzspv_handle_t);

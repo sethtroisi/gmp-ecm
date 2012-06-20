@@ -465,48 +465,50 @@ mpzspv_from_mpzv_slow (mpzspv_t x, const spv_size_t offset, const mpz_t mpz,
 
 /* convert mpzvi to CRT representation, fast version, assumes
    mpzspm->T has been precomputed (see mpzspm.c) */
+
+/* TODO: use fast reduction with invariant modulus. */
+
 static void
 mpzspv_from_mpzv_fast (mpzspv_t x, const spv_size_t offset, const mpz_t mpz,
-                       const mpzspm_t mpzspm, 
-		       ATTRIBUTE_UNUSED mpz_t rem,
-		       unsigned int sp_num)
+                       const mpzspm_t mpzspm, ATTRIBUTE_UNUSED mpz_t rem)
 {
   unsigned int i, j;
   mpzv_t *T = mpzspm->T;
-  unsigned int d = mpzspm->d, ni;
+  unsigned int d = mpzspm->d;
 
   ASSERT (d > 0);
   valgrind_check_mpzin (mpz);
 
-  i = 1;
+  /* All 0 <= first_i <= d are possible here in principle. We would like to 
+     start off with a modulus about half the size of the input number. Since 
+     T[0][0] is the product of all NTT primes, it is a little larger than the
+     l*N^2, where l is the maximum transform length and N is the modulus for 
+     the polynomial (i.e., the number to factor).
+     Thus T[1][0 ... 1] are about as large as residues (mod N), 
+     and T[2][0 ... 3] are about half as large, so we start with i=2. */
+  i = I0_FIRST;
+  ASSERT (i <= d);
   /* First pass uses mpz as input */
-  for (j = 1U << i; j > 0; j -= 2)
-    {
-      mpz_mod (mpzspm->remainders[j - 1], mpz, T[d - i][j - 1]);
-      mpz_mod (mpzspm->remainders[j - 2], mpz, T[d - i][j - 2]);
-    }
+  for (j = 0; j < 1U << i; j++)
+    mpz_mod (mpzspm->remainders[j], mpz, T[d - i][j]);
   i++;
 
-  for ( ; i < d; i++)
+  for ( ; i <= d; i++)
     {
-      for (j = 1U << i; j > 0; j -= 2)
-        {
-          mpz_mod (remainder[j - 1], remainders[j/2 - 1], T[d - i][j - 1]);
-          mpz_mod (remainder[j - 2], remainders[j/2 - 1], T[d - i][j - 2]);
-        }
-      /* for the last entry T[0][j] if j < sp_num, there is nothing to do */
+      for (j = 1U << i; j-- > 0; )
+        mpz_mod (mpzspm->remainders[j], mpzspm->remainders[j/2], T[d - i][j]);
     }
-  /* last steps */
-  I0 = 1 << I0_THRESHOLD;
-  for (j = 0; j < sp_num; j += I0)
+
+  /* Reduce each leaf node modulo individual primes */
+  for (i = 0; i < 1U << d; i++)
     {
-      if (mpz_sgn (T[0][j]) == 0)
+      if (mpz_sgn (T[0][i]) == 0)
         {
-          for (k = j; k < j + I0 && k < sp_num; k++)
-            x[k][offset] = 0;
+          for (j = mpzspm->start_p[i]; j < mpzspm->start_p[i + 1]; j++)
+            x[j][offset] = 0;
         } else {
-          for (k = j; k < j + I0 && k < sp_num; k++)
-            x[k][offset] = mpz_mod_sp (T[0][j], mpzspm, rem, k);
+          for (j = mpzspm->start_p[i]; j < mpzspm->start_p[i + 1]; j++)
+            x[j][offset] = mpz_mod_sp (mpzspm->remainders[i], mpzspm, rem, j);
         }
     }
 }
@@ -752,7 +754,7 @@ mpzspv_fromto_mpzv (mpzspv_handle_t x, const spv_size_t offset,
                                        mpz1, x->mpzspm, mt, sp_num);
               else
                 mpzspv_from_mpzv_fast (buffer[work_buffer], buffer_offset + i, 
-                                       mpz1, x->mpzspm, mt, sp_num);
+                                       mpz1, x->mpzspm, mt);
             }
         }
 #if WANT_PROFILE
