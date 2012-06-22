@@ -1718,7 +1718,16 @@ mpres_mul_z_to_z (mpz_t R, const mpres_t S1, const mpz_t S2, mpmod_t modulus)
       else
  	{
 	  MPZ_REALLOC (R, modulus->bits / GMP_NUMB_BITS);
-	  ecm_mulredc_basecase (R, S1, S2, modulus);
+	  if (ABSIZ(S2) < modulus->bits / GMP_NUMB_BITS)
+	    {
+	      mpz_t t;
+	      mpz_init2 (t, modulus->bits);
+	      mpz_set (t, S2);
+	      ecm_mulredc_basecase (R, S1, t, modulus);
+	      mpz_clear (t);
+            }
+          else
+            ecm_mulredc_basecase (R, S1, S2, modulus);
           mpz_mod (R, R, modulus->orig_modulus);
  	}
       break;
