@@ -422,23 +422,24 @@ mpzspv_add (mpzspv_handle_t r, const spv_size_t r_offset,
 
 
 static inline sp_t 
-mpz_mod_sp (const mpz_t mpz, const mpzspm_t mpzspm, ATTRIBUTE_UNUSED mpz_t rem, 
+mpz_mod_sp (const mpz_t mpz, const spm_t *spm, ATTRIBUTE_UNUSED mpz_t rem, 
             const unsigned int k)
 {
 #if SP_TYPE_BITS > GMP_LIMB_BITS
-  mpz_tdiv_r(rem, mpz, mpzspm->spm[k]->mp_sp);
+  mpz_tdiv_r(rem, mpz, spm[k]->mp_sp);
   return mpz_get_sp(rem);
 #else
   ASSERT (mpz_sgn (mpz) > 0);
-  return mpn_mod_1 (PTR(mpz), SIZ(mpz), (mp_limb_t) mpzspm->spm[k]->sp);
+  return mpn_mod_1 (PTR(mpz), SIZ(mpz), (mp_limb_t) spm[k]->sp);
 #endif
 }
 
+
 /* convert mpz to CRT representation, naive version */
 static inline void
-mpzspv_from_mpzv_slow (mpzspv_t x, const spv_size_t offset, const mpz_t mpz, 
-                       const mpzspm_t mpzspm, ATTRIBUTE_UNUSED mpz_t rem,
-		       const unsigned int sp_num)
+spv_from_mpz_slow (spv_t x, const spv_size_t offset, 
+                   const size_t sp_per_line, const mpz_t mpz, 
+                   const mpzspm_t mpzspm, ATTRIBUTE_UNUSED mpz_t rem)
 {
   unsigned int j;
 
@@ -452,13 +453,14 @@ mpzspv_from_mpzv_slow (mpzspv_t x, const spv_size_t offset, const mpz_t mpz,
    * separately */
   
   valgrind_check_mpzin (mpz);
-  if (mpz_sgn (mpz) == 0)
+  if (UNLIKELY(mpz_sgn (mpz) == 0))
     {
-      for (j = 0; j < sp_num; j++)
-        x[j][offset] = 0;
+      for (j = 0; j < mpzspm->sp_num; j++)
+        x[j * sp_per_line + offset] = 0;
     } else {
-      for (j = 0; j < sp_num; j++)
-        x[j][offset] = mpz_mod_sp (mpz, mpzspm, rem, j);
+      const spm_t *spm = mpzspm->spm;
+      for (j = 0; j < mpzspm->sp_num; j++)
+        x[j * sp_per_line + offset] = mpz_mod_sp (mpz, spm, rem, j);
     }
 }
 
@@ -469,8 +471,9 @@ mpzspv_from_mpzv_slow (mpzspv_t x, const spv_size_t offset, const mpz_t mpz,
 /* TODO: use fast reduction with invariant modulus. */
 
 static void
-mpzspv_from_mpzv_fast (mpzspv_t x, const spv_size_t offset, const mpz_t mpz,
-                       const mpzspm_t mpzspm, ATTRIBUTE_UNUSED mpz_t rem)
+spv_from_mpz_fast (spv_t x, const spv_size_t offset, 
+                   const size_t sp_per_line, const mpz_t mpz, 
+                   const mpzspm_t mpzspm, ATTRIBUTE_UNUSED mpz_t rem)
 {
   unsigned int i, j;
   mpzv_t *T = mpzspm->T;
@@ -502,13 +505,15 @@ mpzspv_from_mpzv_fast (mpzspv_t x, const spv_size_t offset, const mpz_t mpz,
   /* Reduce each leaf node modulo individual primes */
   for (i = 0; i < 1U << d; i++)
     {
-      if (mpz_sgn (T[0][i]) == 0)
+      const spm_t *spm = mpzspm->spm;
+      if (UNLIKELY(mpz_sgn (T[0][i]) == 0))
         {
           for (j = mpzspm->start_p[i]; j < mpzspm->start_p[i + 1]; j++)
-            x[j][offset] = 0;
+            x[j * sp_per_line + offset] = 0;
         } else {
           for (j = mpzspm->start_p[i]; j < mpzspm->start_p[i + 1]; j++)
-            x[j][offset] = mpz_mod_sp (mpzspm->remainders[i], mpzspm, rem, j);
+            x[j * sp_per_line + offset] = 
+                mpz_mod_sp (mpzspm->remainders[i], spm, rem, j);
         }
     }
 }
@@ -518,9 +523,11 @@ mpzspv_from_mpzv_fast (mpzspv_t x, const spv_size_t offset, const mpz_t mpz,
  *
  * memory: mpzspm->sp_num floats */
 
+
 static inline void
-mpzspv_to_mpz(mpz_t res, const mpzspv_t x, const spv_size_t offset, 
-              const mpzspm_t mpzspm, mpz_t mt ATTRIBUTE_UNUSED)
+spv_to_mpz(mpz_t res, const spv_t x, const spv_size_t offset, 
+           const size_t sp_per_line, const mpzspm_t mpzspm, 
+           mpz_t mt ATTRIBUTE_UNUSED)
 {
   unsigned int i;
   float f = 0.5;
@@ -529,7 +536,7 @@ mpzspv_to_mpz(mpz_t res, const mpzspv_t x, const spv_size_t offset,
 
   for (i = 0; i < mpzspm->sp_num; i++)
     {
-      const sp_t t = sp_mul (x[i][offset], mpzspm->crt3[i], 
+      const sp_t t = sp_mul (x[i * sp_per_line + offset], mpzspm->crt3[i], 
           mpzspm->spm[i]->sp, mpzspm->spm[i]->mul_c);
 
       if (sizeof (unsigned long) < sizeof (sp_t))
@@ -554,14 +561,18 @@ mpzspv_fromto_mpzv (mpzspv_handle_t x, const spv_size_t offset,
     mpz_producerfunc_t producer, void * producer_state, 
     mpz_consumerfunc_t consumer, void * consumer_state)
 {
-  const unsigned int sp_num = x->mpzspm->sp_num;
+  const mpzspm_t mpzspm = x->mpzspm;
+  const unsigned int sp_num = mpzspm->sp_num;
   const int have_consumer = consumer != NULL || consumer_state != NULL;
   const int have_producer = producer != NULL || producer_state != NULL;
   static int tested_slow = 0, force_slow = 0, tested_blocklen = 0;
   static spv_size_t force_blocklen = 0;
-  int use_slow = (x->mpzspm->T == NULL);
+  int use_slow = (mpzspm->T == NULL);
   spv_size_t block_len = 1<<16, len_done = 0, read_done = 0, buffer_offset;
   mpz_t mpz1, mpz2, mt;
+  spv_t cachebuf;
+  /* Process entries in chunks of two cache lines */
+  const size_t sp_per_line = 2 * CACHE_LINE_SIZE / sizeof(sp_t);
 #if defined(HAVE_AIO_READ)
   mpzspv_t buffer[2];
   struct aiocb **aiocb_list = NULL;
@@ -578,6 +589,9 @@ mpzspv_fromto_mpzv (mpzspv_handle_t x, const spv_size_t offset,
   mpz_init(mpz1);
   mpz_init(mpz2);
   mpz_init(mt);
+  ASSERT_ALWAYS (sp_per_line > 0 && block_len % sp_per_line == 0);
+  cachebuf = (spv_t) sp_aligned_malloc (sp_per_line * sizeof(sp_t) * sp_num);
+  ASSERT_ALWAYS (cachebuf != NULL);
 
   if (have_producer && !tested_slow)
     {
@@ -612,6 +626,8 @@ mpzspv_fromto_mpzv (mpzspv_handle_t x, const spv_size_t offset,
               spv_size_t b = strtoul (env, NULL, 10);
               if (b > 0)
                 {
+                  /* Round up to full cache line */
+                  b = (b + sp_per_line - 1) / sp_per_line;
                   printf ("%s(): Using block_len = %" PRISPVSIZE " (was %" 
                           PRISPVSIZE ")\n", __func__, b, block_len);
                   force_blocklen = b;
@@ -629,7 +645,7 @@ mpzspv_fromto_mpzv (mpzspv_handle_t x, const spv_size_t offset,
 #endif
       for (i = 0; i < nr_buffers; i++)
         {
-          buffer[i] = mpzspv_init (block_len, x->mpzspm);
+          buffer[i] = mpzspv_init (block_len, mpzspm);
           ASSERT_ALWAYS (buffer[i] != NULL);
         }
       buffer_offset = 0;
@@ -662,10 +678,10 @@ mpzspv_fromto_mpzv (mpzspv_handle_t x, const spv_size_t offset,
 #endif
           int r;
           r = mpzspv_lio_rw (aiocb_list, buffer[0], 0, x->file, x->len, 
-                             offset, read_now, x->mpzspm, 0);
+                             offset, read_now, mpzspm, 0);
           ASSERT_ALWAYS (r == 0);
           r = mpzspv_lio_suspend ((const struct aiocb **) aiocb_list, 
-                                  x->mpzspm);
+                                  mpzspm);
           ASSERT_ALWAYS (r == 0);
           read_done += read_now;
 #if WANT_PROFILE
@@ -695,11 +711,11 @@ mpzspv_fromto_mpzv (mpzspv_handle_t x, const spv_size_t offset,
 #if defined(HAVE_AIO_READ)
           int r;
           r = mpzspv_lio_rw (aiocb_list, buffer[work_buffer ^ 1], 0, x->file, 
-                             x->len, offset + read_done, read_now, x->mpzspm, 0);
+                             x->len, offset + read_done, read_now, mpzspm, 0);
           ASSERT_ALWAYS (r == 0);
 #else
           mpzspv_seek_and_read (buffer[0], 0, x->file, x->len, 
-                                offset + read_done, read_now, x->mpzspm);
+                                offset + read_done, read_now, mpzspm);
 #endif
 #if WANT_PROFILE
           printf("%s(): scheduling read files from position %" PRISPVSIZE 
@@ -713,50 +729,95 @@ mpzspv_fromto_mpzv (mpzspv_handle_t x, const spv_size_t offset,
 #if WANT_PROFILE
       realstart = realtime();
 #endif
-      for (i = 0; i < len_now; i++)
+      for (i = 0; i < len_now; i += sp_per_line)
         {
-          if (have_producer)
-            {
-              if (producer != NULL)
-                {
-                  /* Get new mpz1 from producer */
-                  (*producer)(producer_state, mpz1);
-                  valgrind_check_mpzin (mpz1);
-                } else {
-                  /* Get new mpz1 from listz_t */
-                  valgrind_check_mpzin (((mpz_t *)producer_state)[len_done + i]);
-                  mpz_set (mpz1, ((listz_t)producer_state)[len_done + i]);
-                }
-            }
-          
+          const unsigned int words_now = MIN(len_now - i, sp_per_line);
+          unsigned int j;
+
           if (have_consumer)
             {
-              /* Convert NTT entry to mpz2 */
-              mpzspv_to_mpz (mpz2, buffer[work_buffer], buffer_offset + i, 
-                             x->mpzspm, mt);
-              valgrind_check_mpzin (mpz2);
-              if (consumer != NULL)
+              /* Copy full cache lines from disk buffer/mpzspv_t to cachebuf */
+              unsigned int k;
+              for (k = 0; k < sp_num; k++)
                 {
-                  /* Give mpz2 to consumer function */
-                  mpz_mod (mpz2, mpz2, x->mpzspm->modulus);
-                  (*consumer)(consumer_state, mpz2);
-                } else {
-                  mpz_mod (((listz_t)consumer_state)[len_done + i], mpz2, 
-                           x->mpzspm->modulus);
+                  if (words_now == sp_per_line)
+                    {
+                      /* Hope for good unrolling here */
+                      for (j = 0; j < sp_per_line; j++)
+                        cachebuf[k * sp_per_line + j] = buffer[work_buffer][k][buffer_offset + i + j];
+                    } else {
+                      for (j = 0; j < words_now; j++)
+                        cachebuf[k * sp_per_line + j] = buffer[work_buffer][k][buffer_offset + i + j];
+                    }
                 }
             }
-          
+
+          for (j = 0; j < words_now; j++)
+            {
+              if (have_producer)
+                {
+                  if (producer != NULL)
+                    {
+                      /* Get new mpz1 from producer */
+                      (*producer)(producer_state, mpz1);
+                      valgrind_check_mpzin (mpz1);
+                    } else {
+                      /* Get new mpz1 from mpzv_t */
+                      valgrind_check_mpzin (((mpzv_t)producer_state)[len_done + i + j]);
+                      mpz_set (mpz1, ((mpzv_t)producer_state)[len_done + i + j]);
+                    }
+                }
+              
+              if (have_consumer)
+                {
+                  /* Convert NTT entry to mpz2 */
+                  spv_to_mpz (mpz2, cachebuf, j, sp_per_line, mpzspm, mt);
+                  valgrind_check_mpzin (mpz2);
+                  if (consumer != NULL)
+                    {
+                      /* Give mpz2 to consumer function */
+                      mpz_mod (mpz2, mpz2, mpzspm->modulus);
+                      (*consumer)(consumer_state, mpz2);
+                    } else {
+                      mpz_mod (((mpzv_t)consumer_state)[len_done + i + j], mpz2, 
+                               mpzspm->modulus);
+                    }
+                }
+              
+              if (have_producer)
+                {
+                  /* Convert the mpz1 we got from producer to NTT */
+                  if (use_slow)
+                    spv_from_mpz_slow (cachebuf, j, sp_per_line, mpz1, 
+                                       mpzspm, mt);
+                  else
+                    spv_from_mpz_fast (cachebuf, j, sp_per_line, mpz1, 
+                                       mpzspm, mt);
+                }
+            }
+
           if (have_producer)
             {
-              /* Convert the mpz1 we got from producer to NTT */
-              if (use_slow)
-                mpzspv_from_mpzv_slow (buffer[work_buffer], buffer_offset + i, 
-                                       mpz1, x->mpzspm, mt, sp_num);
-              else
-                mpzspv_from_mpzv_fast (buffer[work_buffer], buffer_offset + i, 
-                                       mpz1, x->mpzspm, mt);
+              /* Copy full cache lines from cachebuf to disk buffer/mpzspv_t. 
+                 TODO: use non-temporal stores that bypass level 1 cache */
+              unsigned int k;
+              for (k = 0; k < sp_num; k++)
+                {
+                  if (words_now == sp_per_line)
+                    {
+                      /* Hope for good unrolling here */
+                      for (j = 0; j < sp_per_line; j++)
+                        buffer[work_buffer][k][buffer_offset + i + j] = 
+                          cachebuf[k * sp_per_line + j];
+                    } else {
+                      for (j = 0; j < words_now; j++)
+                        buffer[work_buffer][k][buffer_offset + i + j] = 
+                          cachebuf[k * sp_per_line + j];
+                    }
+                }
             }
         }
+
 #if WANT_PROFILE
     printf("%s(): processing buffer started at %lu took %lu ms\n", 
            __func__, realstart, realtime() - realstart);
@@ -771,7 +832,7 @@ mpzspv_fromto_mpzv (mpzspv_handle_t x, const spv_size_t offset,
 #if defined(HAVE_AIO_READ)
           int r;
           r = mpzspv_lio_suspend ((const struct aiocb **) aiocb_list, 
-                                  x->mpzspm);
+                                  mpzspm);
           ASSERT_ALWAYS (r == 0);
 #endif
 #if WANT_PROFILE
@@ -790,11 +851,11 @@ mpzspv_fromto_mpzv (mpzspv_handle_t x, const spv_size_t offset,
 #if defined(HAVE_AIO_READ)
       int r;
       r = mpzspv_lio_rw (aiocb_list, buffer[work_buffer], 0, x->file, 
-                         x->len, offset + len_done, len_now, x->mpzspm, 1);
+                         x->len, offset + len_done, len_now, mpzspm, 1);
       ASSERT_ALWAYS (r == 0);
 #else
       mpzspv_seek_and_write (buffer[work_buffer], 0, x->file, x->len, 
-                             offset + len_done, len_now, x->mpzspm);
+                             offset + len_done, len_now, mpzspm);
 #endif
 #if WANT_PROFILE
       printf("%s(): write files at position %" PRISPVSIZE 
@@ -817,13 +878,14 @@ mpzspv_fromto_mpzv (mpzspv_handle_t x, const spv_size_t offset,
   mpz_clear(mpz1);
   mpz_clear(mpz2);
   mpz_clear(mt);
+  sp_aligned_free(cachebuf);
 
   if (!IN_MEMORY(x))
     {
       unsigned int i;
       for (i = 0; i < nr_buffers; i++)
         {
-          mpzspv_clear (buffer[i], x->mpzspm);
+          mpzspv_clear (buffer[i], mpzspm);
           buffer[i] = NULL;
         }
     }

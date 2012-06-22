@@ -133,8 +133,6 @@ sp_prime (sp_t x)
   return 1;
 }
 
-#define CACHE_LINE_SIZE 64
-
 void *
 sp_aligned_malloc (size_t len)
 {

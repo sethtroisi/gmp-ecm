@@ -161,6 +161,10 @@ typedef __sp_nttdata sp_nttdata_t[1];
 
 #define MAX_NTT_BLOCK_SIZE 128
 
+#ifndef CACHE_LINE_SIZE
+#define CACHE_LINE_SIZE 64
+#endif
+
 /* Which steps to perform in convolution product funtions:
    forward transform, pair-wise multiplication, inverse transform */
 #define NTT_MUL_STEP_FFT1 1
