@@ -282,17 +282,18 @@ mpz_set_sp (mpz_t m, const sp_t n)
 
 static inline sp_t 
 mpz_get_sp (const mpz_t n)
-{ sp_t m;
-  ASSERT (mpz_sgn(n) >= 0);
+{
 #if SP_TYPE_BITS == 32
 
+  ASSERT (mpz_sgn(n) >= 0);
   ASSERT (mpz_sizeinbase (n, 2) <= 32);
   return mpz_get_ui(n);
 
 #else /* 64-bit sp_t */
+  sp_t m;
 
   m = mpz_getlimbn(n, 0);
-
+  ASSERT (mpz_sgn(n) >= 0);
   ASSERT (mpz_sizeinbase (n, 2) <= 64);
   #if GMP_LIMB_BITS == 32  /* 32-bit GMP limb, 64-bit sp_t */
   if (mpz_size(n) >= 2)
