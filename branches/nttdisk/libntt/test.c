@@ -191,14 +191,17 @@ static void do_test(mpzspm_t mpzspm)
 	  const nttconfig_t *config2 = pfa2->config;
 	  const nttconfig_t *config3 = pfa3->config;
 	  spv_size_t len = config1->size * config2->size * config3->size;
-	  spv_t x = (spv_t)alloca(len * sizeof(sp_t));
-	  spv_t r = (spv_t)alloca(len * sizeof(sp_t));
+	  spv_t x;
+	  spv_t r;
 	  uint64_t start, stop, elapsed;
 
 	  if (gcd(config1->size, config2->size) != 1 ||
 	      gcd(config1->size, config3->size) != 1 ||
 	      gcd(config2->size, config3->size) != 1)
 	    continue;
+
+	  x = (spv_t)alloca(len * sizeof(sp_t));
+	  r = (spv_t)alloca(len * sizeof(sp_t));
 
 	  spv_random(x, len, p);
   
