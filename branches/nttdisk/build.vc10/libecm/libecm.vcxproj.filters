@@ -147,10 +147,13 @@
     <ClInclude Include="..\..\champions.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="..\ecm-params.h">
+    <ClInclude Include="..\..\config.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\config.h">
+    <ClInclude Include="..\..\ecm-params.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\ecm-gpu.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

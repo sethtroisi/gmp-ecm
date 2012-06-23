@@ -45,3 +45,7 @@
 #ifndef TUNE_SQRREDC_TABLE
 #define TUNE_SQRREDC_TABLE {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0}
 #endif
+
+#ifndef LIST_MUL_TABLE
+#define LIST_MUL_TABLE {0,0,0,0,0,0,0,0,0,0,3,3,3,3,3,3}
+#endif

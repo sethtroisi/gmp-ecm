@@ -20,7 +20,7 @@
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <ProjectGuid>{CD555681-D65B-4173-A29C-B8BF06A4871B}</ProjectGuid>
-    <RootNamespace>libecm</RootNamespace>
+    <RootNamespace>libecm_gpu</RootNamespace>
     <Keyword>Win32Proj</Keyword>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
@@ -44,6 +44,7 @@
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
   <ImportGroup Label="ExtensionSettings">
     <Import Project="..\vsyasm.props" />
+    <Import Project="$(VCTargetsPath)\BuildCustomizations\CUDA 4.2.props" />
   </ImportGroup>
   <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="PropertySheets">
     <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
@@ -221,7 +222,6 @@
     <ClCompile Include="..\..\getprime.c" />
     <ClCompile Include="..\..\ks-multiply.c" />
     <ClCompile Include="..\..\listz.c" />
-    <ClCompile Include="..\..\listz_handle.c" />
     <ClCompile Include="..\..\lucas.c" />
     <ClCompile Include="..\..\median.c" />
     <ClCompile Include="..\..\mpmod.c" />
@@ -232,7 +232,6 @@
     <ClCompile Include="..\..\parametrizations.c" />
     <ClCompile Include="..\..\pm1.c" />
     <ClCompile Include="..\..\pm1fs2.c" />
-    <ClCompile Include="..\..\pm1fs2_param.c" />
     <ClCompile Include="..\..\polyeval.c" />
     <ClCompile Include="..\..\pp1.c" />
     <ClCompile Include="..\..\random.c" />
@@ -247,7 +246,6 @@
     </ClCompile>
     <ClCompile Include="..\..\spv.c">
       <Optimization Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Full</Optimization>
-      <PreprocessorDefinitions Condition="'$(Configuration)|$(Platform)'=='Release|x64'">%(PreprocessorDefinitions)</PreprocessorDefinitions>
     </ClCompile>
     <ClCompile Include="..\..\stage2.c" />
   </ItemGroup>
@@ -283,5 +281,6 @@
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
     <Import Project="..\vsyasm.targets" />
+    <Import Project="$(VCTargetsPath)\BuildCustomizations\CUDA 4.2.targets" />
   </ImportGroup>
 </Project>

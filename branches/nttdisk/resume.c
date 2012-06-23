@@ -241,6 +241,11 @@ read_resumefile_line (int *method, mpz_t x, mpcandi_t *n, mpz_t sigma, mpz_t A,
               mpz_inp_str (sigma, fd, 0);
               have_sigma = 1;
             }
+          else if (strcmp (tag, "PARAM") == 0)
+            {
+              if (fscanf (fd, "%d", param) != 1)
+                goto error;
+            }
           else if (strcmp (tag, "A") == 0)
             {
               mpz_inp_str (A, fd, 0);
@@ -350,6 +355,7 @@ read_resumefile_line (int *method, mpz_t x, mpcandi_t *n, mpz_t sigma, mpz_t A,
           mpz_mul_ui (checksum, checksum, mpz_fdiv_ui (x, CHKSUMMOD));
           if (have_z)
             mpz_mul_ui (checksum, checksum, mpz_fdiv_ui (z, CHKSUMMOD));
+          mpz_mul_ui (checksum, checksum, (*param+1)%CHKSUMMOD);
           if (mpz_fdiv_ui (checksum, CHKSUMMOD) != saved_checksum)
             {
               fprintf (stderr, "Resume file line has bad checksum %u, expected %lu\n", 
@@ -419,6 +425,8 @@ write_resumefile_line (FILE *file, int method, double B1, mpz_t sigma,
           
         mpz_out_str (file, 10, sigma);
         mpz_mul_ui (checksum, checksum, mpz_fdiv_ui (sigma, CHKSUMMOD));
+        if (param != ECM_PARAM_DEFAULT)
+            mpz_mul_ui (checksum, checksum, (param+1)%CHKSUMMOD);
     }
   
   fprintf (file, "; B1=%.0f; N=", B1);
@@ -501,12 +509,12 @@ write_resumefile (char *fn, int method, mpz_t N, double B1done, mpz_t sigma,
                   mpz_t orig_x0, unsigned int gpu_curves, const char *comment)
 {
   FILE *file;
+  unsigned int i = 0;
 #if defined(HAVE_FCNTL) && defined(HAVE_FILENO)
   struct flock lock;
   int r, fd;
 #endif
   mpz_t tmp_x;
-  unsigned int i = 0;
   mpz_init (tmp_x);
 
   /* first try to open the file */
@@ -650,46 +658,48 @@ read_s_from_file (mpz_t s, char *fn, double B1)
 
   fclose (file);
           
-  /* Some elementaty check that it correspond to the actual B1 */
+  /* An elementary check that it correspond to the actual B1 */
   {
-      mpz_t tmp, tmp2;
-      /* check that the valuation of 2 is correct */
-      unsigned int val2 = mpz_scan1 (s, 0);
-      mpz_init (tmp);
-      mpz_init (tmp2);
-      mpz_ui_pow_ui (tmp, 2, val2);
-      mpz_ui_pow_ui (tmp2, 2, val2+1);
-      if (mpz_cmp_d (tmp, B1) > 0 || mpz_cmp_d (tmp2, B1) <= 0)
-        {
-          fprintf (stderr, "Error, the value of the batch product in %s "
-                   "does not corresponds to B1=%1.0f.\n", fn, B1);
-          return 1;
-        }
+    mpz_t tmp, tmp2;
+    unsigned int val2 = mpz_scan1 (s, 0);
 
-      /* Check that next_prime (B1) does not divide batch_s */
-      mpz_set_d (tmp, B1);
-      mpz_nextprime (tmp2, tmp);
-      if (mpz_divisible_p (s, tmp2))
-        {
-          fprintf (stderr, "Error, the value of the batch product in %s "
-                   "does not corresponds to B1=%1.0f.\n", fn, B1);
-          return 1;
-        }
+    mpz_init (tmp);
+    mpz_init (tmp2);
+    /* check that the valuation of 2 is correct */
+    mpz_ui_pow_ui (tmp, 2, val2);
+    mpz_ui_pow_ui (tmp2, 2, val2+1);
+    if (mpz_cmp_d (tmp, B1) > 0 || mpz_cmp_d (tmp2, B1) <= 0)
+      {
+        fprintf (stderr, "Error, the value of the batch product in %s "
+                 "does not corresponds to B1=%1.0f.\n", fn, B1);
+        return 1;
+      }
 
-      /* Check that next_prime (sqrt(B1)) divide batch_s only once */
-      mpz_set_d (tmp, sqrt(B1));
-      mpz_nextprime (tmp2, tmp);
-      mpz_mul (tmp, tmp2, tmp2);
-      if (!mpz_divisible_p (s, tmp2) || mpz_divisible_p (s, tmp))
-        {
-          fprintf (stderr, "Error, the value of the batch product in %s "
-                   "does not corresponds to B1=%1.0f.\n", fn, B1);
-          return 1;
-        }
+    /* Check that next_prime (B1) does not divide batch_s */
+    mpz_set_d (tmp, B1);
+    mpz_nextprime (tmp2, tmp);
+    if (mpz_divisible_p (s, tmp2))
+      {
+        fprintf (stderr, "Error, the value of the batch product in %s "
+                 "does not corresponds to B1=%1.0f.\n", fn, B1);
+        return 1;
+      }
 
-      mpz_clear (tmp);
-      mpz_clear (tmp2);
-  }          
+    /* Check that next_prime (sqrt(B1)) divide batch_s only once */
+    mpz_set_d (tmp, sqrt(B1));
+    mpz_nextprime (tmp2, tmp);
+    mpz_mul (tmp, tmp2, tmp2);
+    if (!mpz_divisible_p (s, tmp2) || mpz_divisible_p (s, tmp))
+      {
+        fprintf (stderr, "Error, the value of the batch product in %s "
+                 "does not corresponds to B1=%1.0f.\n", fn, B1);
+        return 1;
+      }
+
+    mpz_clear (tmp);
+    mpz_clear (tmp2);
+  }
+          
   return 0;
 }
 

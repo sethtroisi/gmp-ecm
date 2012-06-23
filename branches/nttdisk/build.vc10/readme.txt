@@ -12,7 +12,6 @@ directory as your Visual C++ compiler, which is typically:
 
 C:\Program Files (x86)\Microsoft Visual Studio 10.0\VC\bin
 
-
 The Multi-Precision Library - GMP and MPIR
 ==========================================
 
@@ -75,25 +74,68 @@ irrespective of which version is being used (they used to be followed by
 version numbers but this meant that the build projects had to be updated
 too frequently). 
 
-There are three build projects in build.vc10:
+The normal (non GPU) build is opened by loading the file ecm.sln (from 
+the build.vc10 directory) into Visual Studio. This provides three build
+projects in build.vc10 for the non GPU build:
 
     ecm     - the ECM application 
     ecmlib  - the ECM library
     tune    - a program for tuning 
 
-Before starting a build, these two files
+To build with a GPU capability the file ecm_gpu.sln   is used instead and
+provides two further build projects:
 
-    ecm-params.h
-    mul_fft-params.h
+    ecm_gpu     - the ECM application 
+    ecmlib_gpu  - the ECM library
 
-to set the tuning parameters that should be used in the build. Select
-the tuning include files by changing the appropriate '#elif 0' to
-'#elif 1'.  
+Build Options
+-------------
 
-If you wish to use the win32 AMD assembler files, you also have to use
-the Visual Studio property page to define AMD_ASM (althernively you
-can eidt mulredc.asm and redc.asm in the build.vc10\assembler\ directory
-to include the AMD assembler).
+Before starting a build, there are a number of configuration options
+that need to be set:
+
+1. If you wish to compile GMP-ECM for use on a particular processor,
+   select the appropriate define from the file 'ecm-params.h' in the
+   GMP-ECM root directory and decide which of the defines suit your
+   needs (e.g. __tune_corei7__).  Then replace the existing define:
+   
+   /* define Windows tuning here */
+   #  define __tune_corei7__
+ 
+   towards the end of the file config.h file in the 'build.vc10'
+   directory (build.vc10\config.h) with tye chosen define.
+
+2. The file at 'build.vc10\mul_fft-params.h' allows the FFT code to
+   be tuned to 32 or 64-bnit systems by selecting an option by 
+   changing the appropriate '#elif 0' to #elif 1'.   If you wish to 
+   use the win32 AMD assembler files, you also have to use the 
+   Visual Studio property page to define AMD_ASM (alternatively
+   you can edit the two files mulredc.asm and redc.asm in the 
+   build.vc10\assembler\ directory to include the AMD assembler).
+
+3. By default GMP-ECM buids without the GPU code enabled.  If
+   you wish to build with a GPU capability you will need to 
+   install Nvidia Nsight for Visual Studio. To configure for
+   the GPU build you need to use the GPU projects refferenced
+   above and also do the following:
+   
+   Open the config.h fil in the build.vc10 directory and
+   locate the lines:
+
+	    /* define to build for a GPU */
+        #  if 0
+        #    define WITH_GPU
+        #  endif
+
+   and change the '#  if 0' to '#  if 1'. 
+
+4. You also need to use the Visual Studio solution explorer
+   for the libecm_gpu project to select the property pages
+   for CUDA C/C++ to set the device and host properties for
+   the GPU for which you wish to build.
+
+Build Configurations
+--------------------
 
 When a version of ecm and ecmlib are built the library and the application
 are put in the directory matching the configuration that has been built:
@@ -135,7 +177,7 @@ Tests
 =====
 
 The file tests.py is a python script that runs the ECM tests. It runs the
-x64/release-amd version by default but can be edited to test other builds.
+x64/release-amd (non GPU) version by default but can be edited to test other
+builds.
 
-    Brian Gladman, 3rd January 2012
-
+    Brian Gladman, 18th June 2012

@@ -431,14 +431,11 @@ AC_ARG_WITH(cc-for-cuda,
             AC_MSG_ERROR([CUDA is needed to run the GPU version.])
           ],
           [
-            AC_MSG_NOTICE([GPU version is not requested, --without-cc-for-cuda will be ignore.])
+            AC_MSG_NOTICE([GPU version is not requested, --without-cc-for-cuda will be ignored.])
           ] )
       ] )
     AS_IF([test "x$withval" = "xyes" ],[cc_for_cuda=""])
-  ], [ ])
-
-AC_MSG_NOTICE($CC)
-AC_MSG_NOTICE($cc_for_cuda)
+  ])
 
 AS_IF([test "x$is_gpu_asked" = "xyes" ],
   [
@@ -460,9 +457,9 @@ AS_IF([test "x$is_gpu_asked" = "xyes" ],
             AC_MSG_ERROR(nvcc not found)
           ], [
             cu_dir=`AS_DIRNAME(["$NVCC"])`  
-            # just to correct a syntax coloration problem ''
-            cu_dir=`echo "$cu_dir" | sed 's|/bin$||'`
-            # just to correct a syntax coloration problem '
+            # remove /nvcc ''
+            cu_dir=`AS_DIRNAME(["$cu_dir"])`  
+            # remove /bin  ''
           ] )
       ],
       [
@@ -476,25 +473,6 @@ AS_IF([test "x$is_gpu_asked" = "xyes" ],
             AC_MSG_ERROR(nvcc not found)
           ] )
       ])
-
-    #check that nvcc version >= 4.1
-    v_nvcc_min="4.1"
-    AC_MSG_CHECKING([if nvcc version >= $v_nvcc_min])
-    dnl TODO make this work
-    #v_nvcc=`$NVCC --version | grep -o "release [0-9].[0-9]" | cut -d " " -f 2`
-    # just to correct a syntax coloration problem ''
-    dnl Not implemented yet
-    v_nvcc="4.1"
-    
-    AS_VERSION_COMPARE($v_nvcc, $v_nvcc_min, 
-                            [v_nvcc_ok=0], [v_nvcc_ok=1], [v_nvcc_ok=1])
-    AS_IF([test "$v_nvcc_ok" = "1"], 
-      [
-        AC_MSG_RESULT([yes])
-      ], [
-        AC_MSG_RESULT([no])
-        AC_MSG_ERROR(nvcc version is $v_nvcc and should be >= $v_nvcc_min)
-      ] )
 
     dnl check that gcc version is compatible with nvcc version
     touch conftest.cu
@@ -520,6 +498,20 @@ AS_IF([test "x$is_gpu_asked" = "xyes" ],
       ], [
         AC_MSG_RESULT([no])
         AC_MSG_ERROR(nvcc does not recognize GPU architecture sm_$GPU_ARCH)
+      ])
+
+    dnl check that nvcc know ptx instruction madc
+    echo "__global__ void test (int *a, int b) { 
+          asm(\"mad.lo.cc.u32 %0, %0, %1, %1;\": 
+          \"+r\"(*a) : \"r\"(b));} " > conftest.cu
+    AC_MSG_CHECKING([if nvcc know ptx instruction madc])
+    $NVCC $nvcc_flags -arch=sm_$GPU_ARCH > /dev/null 2>&1
+    AS_IF([test "$?" -eq "0"], 
+      [
+        AC_MSG_RESULT([yes])
+      ], [
+        AC_MSG_RESULT([no])
+        AC_MSG_ERROR([nvcc does not recognize ptx instruction madc, you should upgrade it])
       ])
 
     # From now on cu_dir != "". Either it was always the case, either it was

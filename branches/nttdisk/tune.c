@@ -27,7 +27,8 @@ http://www.gnu.org/licenses/ or write to the Free Software Foundation, Inc.,
 #define MAX_LOG2_LEN 18 /* 2 * 131072 */
 #define MAX_LEN (1U << max_log2_len)
 #define MAX_LOG2_MPZSPV_NORMALISE_STRIDE (MIN (12, max_log2_len))
-#define M_str "95209938255048826235189575712705128366296557149606415206280987204268594538412191641776798249266895999715600261737863698825644292938050707507901970225804581"
+/* we currently optimize GMP-ECM for a 200-digit number */
+#define M_str "29799904256775982671863388319999573561548825027149399972531599612392671227006866151136667908641695103422986028076864929902803267437351318167549013218980573566942647077444419419003164546362008247462049"
 
 #define ELAPSED elltime (__st, cputime () )
 #define TUNE_FUNC_START(x)                   \
@@ -86,11 +87,9 @@ size_t POLYEVALT_NTT_THRESHOLD;
 size_t MPZSPV_NORMALISE_STRIDE = 256;
 
 void
-mpz_quick_random (mpz_t x, mpz_t M, unsigned long b)
+mpz_quick_random (mpz_t x, mpz_t M)
 {
-  mpz_urandomb (x, gmp_randstate, b);
-  if (mpz_cmp (x, M) >= 0)
-    mpz_sub (x, x, M);
+  mpz_urandomm (x, gmp_randstate, M);
 }
 
 
@@ -417,11 +416,71 @@ print_timings (double (*f0)(size_t), double (*f1)(size_t),
     }
 }
 
+static void
+tune_list_mul_n ()
+{
+  size_t n;
+  unsigned int __i, __k = 1, best[TUNE_LIST_MUL_N_MAX_SIZE];
+  long __st;
+  double st[4];
+
+  ASSERT_ALWAYS (2 * TUNE_LIST_MUL_N_MAX_SIZE <= MAX_LEN);
+
+  if (tune_verbose)
+    printf ("Tuning list_mul_n\n");
+  best[0] = 0;
+  for (n = 1; n < TUNE_LIST_MUL_N_MAX_SIZE; n++)
+    {
+      if (tune_verbose)
+        printf ("%zu:", n);
+      __k = 1;
+      TUNE_FUNC_LOOP(list_mul_n_basecase(z, x, y, n));
+      st[0] = (double) __st / (double) __k;
+      if (tune_verbose)
+        printf (" basecase:%.2e", st[0]);
+      best[n] = 0;
+      if (n <= 8)
+        {
+          __k = 1;
+          TUNE_FUNC_LOOP(list_mul_tc(z, x, n, y, n));
+          st[1] = (double) __st / (double) __k;
+          if (tune_verbose)
+            printf (" tc:%.2e", st[1]);
+          if (st[1] < st[best[n]])
+            best[n] = 1;
+        }
+      __k = 1;
+      TUNE_FUNC_LOOP(list_mul_n_KS1(z, x, y, n));
+      st[2] = (double) __st / (double) __k;
+      if (tune_verbose)
+        printf (" KS1:%.2e", st[2]);
+      if (st[2] < st[best[n]])
+        best[n] = 2;
+      if (n >= 2)
+        {
+          __k = 1;
+          TUNE_FUNC_LOOP(list_mul_n_KS2(z, x, y, n));
+          st[3] = (double) __st / (double) __k;
+          if (tune_verbose)
+            printf (" KS2:%.2e", st[3]);
+          if (st[3] < st[best[n]])
+            best[n] = 3;
+        }
+      if (tune_verbose)     
+        printf (" best:%s\n", (best[n] == 0) ? "basecase"
+                : (best[n] == 1) ? "tc"
+                : (best[n] == 2) ? "KS1" : "KS2");
+    }
+  printf ("#define LIST_MUL_TABLE {0");
+  for (n = 1; n < TUNE_LIST_MUL_N_MAX_SIZE; n++)
+    printf (",%u", best[n]);
+  printf ("}\n");
+}
+
 int
 main (int argc, char **argv)
 {
   spv_size_t i;
-  unsigned long b;
 
   while (argc > 1)
     {
@@ -448,7 +507,6 @@ main (int argc, char **argv)
   
   gmp_randinit_default (gmp_randstate);
   mpz_init_set_str (M, M_str, 10);
-  b = (unsigned long) mpz_sizeinbase (M, 2);
 
   x = init_list (MAX_LEN);
   y = init_list (MAX_LEN);
@@ -470,11 +528,13 @@ main (int argc, char **argv)
   mpzspv_random (mpzspv, 0, MAX_LEN);
   
   for (i = 0; i < MAX_LEN; i++)
-    mpz_quick_random (x[i], M, b);
+    mpz_quick_random (x[i], M);
   for (i = 0; i < MAX_LEN; i++)
-    mpz_quick_random (y[i], M, b);
+    mpz_quick_random (y[i], M);
   for (i = 0; i < MAX_LEN; i++)
-    mpz_quick_random (z[i], M, b);    
+    mpz_quick_random (z[i], M);    
+  
+  tune_list_mul_n ();
   
   spm = mpzspm->spm[0];
   spv = mpzspv->mem[0];
@@ -555,6 +615,6 @@ main (int argc, char **argv)
   mpz_clear (M);
   
   gmp_randclear (gmp_randstate);
-  
+
   return 0;
 }

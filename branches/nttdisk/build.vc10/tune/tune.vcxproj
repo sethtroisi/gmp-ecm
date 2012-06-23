@@ -126,10 +126,6 @@
     </ClCompile>
     <ClCompile Include="..\..\mpzspm.c" />
     <ClCompile Include="..\..\mpzspv.c" />
-    <ClCompile Include="..\..\mul_fft.c">
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">true</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
-    </ClCompile>
     <ClCompile Include="..\..\mul_lo.c" />
     <ClCompile Include="..\..\ntt_gfp.c" />
     <ClCompile Include="..\..\polyeval.c" />
@@ -149,11 +145,6 @@
     <ClInclude Include="..\..\ecm.h" />
     <ClInclude Include="..\..\longlong.h" />
     <ClInclude Include="..\..\sp.h" />
-  </ItemGroup>
-  <ItemGroup>
-    <ProjectReference Include="..\libecm\libecm.vcxproj">
-      <Project>{cd555681-d65b-4173-a29c-b8bf06a4871b}</Project>
-    </ProjectReference>
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

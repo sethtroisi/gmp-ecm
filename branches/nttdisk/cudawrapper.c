@@ -256,7 +256,8 @@ gpu_ecm (mpz_t f, mpz_t x, int *param, mpz_t firstsigma, mpz_t n, mpz_t go,
 {
   unsigned int i;
   int youpi = ECM_NO_FACTOR_FOUND;
-  long st;
+  long st, st2;
+  long tottime; /* at the end, total time in ms */
   unsigned int firstsigma_ui;
   float gputime = 0.0;
   mpz_t tmp_A;
@@ -429,7 +430,7 @@ gpu_ecm (mpz_t f, mpz_t x, int *param, mpz_t firstsigma, mpz_t n, mpz_t go,
   if (sigma_is_A == 0 && mpz_sgn(firstsigma) == 0)
     {
       /*generate random one*/
-      mpz_set_ui (firstsigma, (get_random_ui() % (TWO32-2-*nb_curves)) + 2 );    
+      mpz_set_ui (firstsigma, (get_random_ul() % (TWO32-2-*nb_curves)) + 2 );    
     }
   else /* sigma should be in [2, 2^32-nb_curves] */
     {
@@ -477,10 +478,14 @@ gpu_ecm (mpz_t f, mpz_t x, int *param, mpz_t firstsigma, mpz_t n, mpz_t go,
   youpi = gpu_ecm_stage1 (factors, array_stage_found, n, batch_s, *nb_curves, 
                           firstsigma_ui, &gputime, verbose);
 
-  outputf (OUTPUT_NORMAL, "Step 1 took %ldms of CPU time / %.0fms of GPU "
-                          "time\n", elltime (st, cputime ()), gputime);
-  outputf (OUTPUT_VERBOSE, "Throughput: %.3f curves by second\n", 
-                           1000 * (*nb_curves)/gputime);
+  outputf (OUTPUT_NORMAL, "Computing %u Step 1 took %ldms of CPU time / "
+                          "%.0fms of GPU time\n", *nb_curves, 
+                                           elltime (st, cputime ()), gputime);
+  outputf (OUTPUT_VERBOSE, "Throughput: %.3f curves by second ", 
+                                                 1000 * (*nb_curves)/gputime);
+  outputf (OUTPUT_VERBOSE, "(on average %.2fms by Step 1)\n", 
+                                                        gputime/(*nb_curves));
+  tottime = (long) gputime;
 
   *B1done=B1;
 
@@ -513,6 +518,11 @@ gpu_ecm (mpz_t f, mpz_t x, int *param, mpz_t firstsigma, mpz_t n, mpz_t go,
 
   if (mpz_cmp (B2, B2min) < 0)
       goto end_gpu_ecm_rhotable;
+
+  /* It is a hack to avoid very verbose Step 2 
+    (without it, stage2() prints a least a line by curves)*/
+  set_verbose (0);
+  st2 = cputime ();
   
   for (i = 0; i < *nb_curves; i++)
     {
@@ -556,6 +566,17 @@ gpu_ecm (mpz_t f, mpz_t x, int *param, mpz_t firstsigma, mpz_t n, mpz_t go,
             goto end_gpu_ecm_rhotable;
     }
 
+  set_verbose (verbose);
+  st2 = elltime (st2, cputime ());
+  outputf (OUTPUT_NORMAL, "Computing %u Step 2 on CPU took %ldms\n", 
+                                                              *nb_curves, st2);
+  outputf (OUTPUT_VERBOSE, "Throughput: %.3f Step 2 by second ", 
+                                  1000 * ((double)(*nb_curves))/((double)st2));
+  outputf (OUTPUT_VERBOSE, "(on average %0.2fms by Step 2)\n", 
+                                         ((double) st2)/((double) *nb_curves));
+  tottime += st2;
+
+
 end_gpu_ecm_rhotable:
   if (test_verbose (OUTPUT_VERBOSE))
     {
@@ -564,7 +585,7 @@ end_gpu_ecm_rhotable:
           if (youpi == ECM_NO_FACTOR_FOUND && 
               (stop_asap == NULL || !(*stop_asap)()))
               print_exptime (B1, B2, dF, k, root_params.S, 
-                             (long) elltime (st, cputime ()), *param);
+                             (long) (tottime / *nb_curves), *param);
           rhoinit (1, 0); /* Free memory of rhotable */
         }
     }

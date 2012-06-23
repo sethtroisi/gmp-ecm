@@ -298,7 +298,7 @@ int
 main (int argc, char *argv[])
 {
   char **argv0 = argv;
-  mpz_t x, sigma, A, f, orig_x0, B2, B2min, startingB2min, tmp_n;
+  mpz_t seed, x, sigma, A, f, orig_x0, B2, B2min, startingB2min, tmp_n;
   mpcandi_t n;
   mpgocandi_t go;
   mpq_t rat_x0;
@@ -365,6 +365,7 @@ main (int argc, char *argv[])
   mpgocandi_t_init (&go);
 
   /* Init variables we might need to store options */
+  mpz_init (seed);
   mpz_init (sigma);
   mpz_init (A);
   mpz_init (B2);
@@ -1035,7 +1036,15 @@ main (int argc, char *argv[])
 
   /* We may need random numbers for sigma and/or starting point */
   gmp_randinit_default (randstate);
-  gmp_randseed_ui (randstate, get_random_ui ());
+  mpz_set_ui (seed, get_random_ul ());
+  if (mpz_sizeinbase (seed, 2) <= 32)
+    {
+      mpz_mul_2exp (seed, seed, 32);
+      mpz_add_ui (seed, seed, get_random_ul ());
+    }
+  if (verbose >= 3)
+    gmp_printf ("Random seed: %Zd\n", seed);
+  gmp_randseed (randstate, seed);
 
 
   /* Install signal handlers */
@@ -1241,8 +1250,6 @@ main (int argc, char *argv[])
                            "****** Warning: input is probably prime ******\n", 
                            n.n, n.ndigits);
 
-      cnt --; /* one more curve performed */
-
       mpgocandi_fixup_with_N (&go, &n);
 
       if (param != ECM_PARAM_DEFAULT && method != ECM_ECM)
@@ -1340,6 +1347,16 @@ main (int argc, char *argv[])
           exit (EXIT_FAILURE);
         }
       
+      if (!params->gpu)
+          cnt --; /* one more curve performed */
+      else
+        {
+          if (cnt <= params->gpu_number_of_curves)
+              cnt = 0;
+          else
+              cnt -= params->gpu_number_of_curves; 
+        }
+
       /* When GPU is used we need to have the value of N before it is 
         divided by potential factor in f */
       mpz_init_set (tmp_n, n.n);
@@ -1347,6 +1364,7 @@ main (int argc, char *argv[])
       if (result != ECM_NO_FACTOR_FOUND)
         {
           mpz_t tmp_factor;
+          returncode = 0;
           returncode = 0;
           mpz_init (tmp_factor);
           do 
@@ -1434,6 +1452,7 @@ main (int argc, char *argv[])
   mpz_clear (sigma);
   mpz_clear (A);
   mpq_clear (rat_x0);
+  mpz_clear (seed);
   mpgocandi_t_free (&go);
 
   ecm_clear (params);

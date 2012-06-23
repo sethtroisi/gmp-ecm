@@ -53,8 +53,11 @@ extern size_t MPZMOD_THRESHOLD;
 extern size_t REDC_THRESHOLD;
 #define TUNE_MULREDC_TABLE {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0}
 #define TUNE_SQRREDC_TABLE {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0}
+#define LIST_MUL_TABLE {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0}
 #endif
 extern size_t mpn_mul_lo_threshold[];
+
+#define TUNE_LIST_MUL_N_MAX_SIZE 16
 
 #if  defined (__STDC__)                                 \
   || defined (__cplusplus)                              \
@@ -486,6 +489,14 @@ void TUpTree (listz_t, listz_t *, unsigned int, listz_t, int, unsigned int,
 		mpz_t, FILE *);
 
 /* ks-multiply.c */
+#define list_mul_n_basecase __ECM(list_mul_n_basecase)
+void list_mul_n_basecase (listz_t, listz_t, listz_t, unsigned int);
+#define list_mul_tc __ECM(list_mul_tc)
+void list_mul_tc (listz_t, listz_t, unsigned int, listz_t, unsigned int);
+#define list_mul_n_KS1 __ECM(list_mul_n_KS1)
+void list_mul_n_KS1 (listz_t, listz_t, listz_t, unsigned int);
+#define list_mul_n_KS2 __ECM(list_mul_n_KS2)
+void list_mul_n_KS2 (listz_t, listz_t, listz_t, unsigned int);
 #define list_mult_n __ECM(list_mult_n)
 void list_mult_n (listz_t, listz_t, listz_t, unsigned int);
 #define TMulKS __ECM(TMulKS)
@@ -683,8 +694,8 @@ unsigned long find_factor (const unsigned long);
 void pp1_random_seed  (mpz_t, mpz_t, gmp_randstate_t);
 #define pm1_random_seed __ECM(pm1_random_seed)
 void pm1_random_seed  (mpz_t, mpz_t, gmp_randstate_t);
-#define get_random_ui   __ECM(get_random_ui)
-unsigned int get_random_ui (void);
+#define get_random_ul   __ECM(get_random_ul)
+unsigned long get_random_ul (void);
 
 /* Fgw.c */
 #ifdef HAVE_GWNUM

@@ -226,12 +226,21 @@
 #undef size_t
 
 #ifdef _MSC_VER
+
+/* define Windows tuning here */
+#  define __tune_corei7__
+
+/* define to 1 for a build with a GPU capability */
+#  if 0
+#    define WITH_GPU    1
+#  endif
+
 #  if _MSC_VER < 1600
 #    define int64_t     __int64
 #    define uint64_t    unsigned __int64
 #  endif
-#  define __func__ __FUNCTION__
 #  define strncasecmp strnicmp
+#  define access       _access 
 #  define alloca      _alloca
 #  define fseek64     _fseek64
 #  define ftell64     _ftell64

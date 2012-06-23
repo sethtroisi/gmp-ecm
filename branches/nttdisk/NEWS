@@ -1,8 +1,22 @@
 Changes between GMP-ECM 6.4.2 and GMP-ECM 7.0:
-* The batch=1 mode is now the default mode. Use -batch=0 to get historical
-  Suyama parametrization.
+* The configure --enable-shellcmd option was removed, and also the
+  --enable-memory-debug configure option (now obsolete with valgrind).
+* The -b and -t options were removed (breadth-first mode and trial division).
+* Added GPU code for Step 1 (command-line option -gpu).
+* Command-line option -param allows to choose the parametrization (valid values
+  are 0, 1, 2, 3). Command-line option -sigma allows to choose the parameter.
+  "-sigma i:s" is a shortcut to "-param i -sigma s". Use -param 0 to get
+  historical Suyama parametrization.
+* The batch mode is now chosen with -param command-line option.
+  The default parametrization depends on others command-line options.
 * For P-1 stage 2, by default the NTT code is always used.
 * Fixed PowerPC64 assembly code with --enable-shared (thanks Leif Leonhardy)
+* Speedup in stage 2 with -no-ntt
+
+Changes between GMP-ECM 6.4.2 and GMP-ECM 6.4.3:
+* Fixed bug reported by user "lorgix" on mersenneforum
+  (http://www.mersenneforum.org/showpost.php?p=286385&postcount=280)
+* Use 64-bit value for random seed under Windows
 
 Changes between GMP-ECM 6.4.1 and GMP-ECM 6.4.2:
 * Corrected the copyright headers

@@ -93,11 +93,11 @@ pp1_random_seed (mpz_t seed, mpz_t n, gmp_randstate_t randstate)
   mpz_clear (q);
 }
 
-/* Produces a random unsigned int value */
+/* Produces a random unsigned long value */
 
 #if defined (_MSC_VER) || defined (__MINGW32__)
-unsigned int 
-get_random_ui (void)
+unsigned long 
+get_random_ul (void)
 {
   SYSTEMTIME tv;
   HCRYPTPROV Prov;
@@ -106,9 +106,9 @@ get_random_ui (void)
     CRYPT_VERIFYCONTEXT))
     {
       int r;
-      unsigned int rnd;
+      unsigned long rnd;
     
-      r = CryptGenRandom (Prov, sizeof (unsigned int), (void *) &rnd);
+      r = CryptGenRandom (Prov, sizeof (unsigned long), (void *) &rnd);
       CryptReleaseContext (Prov, 0);
       if (r)
         {
@@ -128,25 +128,25 @@ get_random_ui (void)
   GetSystemTime (&tv);
   /* This gets us 27 bits of somewhat "random" data based on the time clock.
      It would probably do the program justice if a better random mixing was done
-     in the non-MinGW get_random_ui if /dev/random does not exist */
+     in the non-MinGW get_random_ul if /dev/random does not exist */
   return ((tv.wHour<<22)+(tv.wMinute<<16)+(tv.wSecond<<10)+tv.wMilliseconds) ^
          ((tv.wMilliseconds<<17)+(tv.wMinute<<11)+(tv.wHour<<6)+tv.wSecond);
 }
 
 #else
 
-unsigned int 
-get_random_ui (void)
+unsigned long 
+get_random_ul (void)
 {
   FILE *rndfd;
   struct timeval tv;
-  unsigned int t;
+  unsigned long t;
 
   /* Try /dev/urandom */
   rndfd = fopen ("/dev/urandom", "rb");
   if (rndfd != NULL)
     {
-      if (fread (&t, sizeof (unsigned int), 1, rndfd) == 1)
+      if (fread (&t, sizeof (unsigned long), 1, rndfd) == 1)
         {
 /* warning: outputf is not exported from libecm */
 #if !defined (OUTSIDE_LIBECM)
@@ -165,7 +165,8 @@ get_random_ui (void)
 #if !defined (OUTSIDE_LIBECM)
       outputf (OUTPUT_DEVVERBOSE, "Got seed for RNG from gettimeofday()\n");
 #endif
-      return tv.tv_sec + tv.tv_usec;
+      return (unsigned long) tv.tv_sec + 
+             (unsigned long) tv.tv_usec * 2147483629UL;
     }
 #endif
 
@@ -175,8 +176,7 @@ get_random_ui (void)
 #endif
 
   /* Multiply one value by a large prime to get a bit of avalance effect */
-  return time (NULL) + getpid () * 2147483629;
+  return (unsigned long) time (NULL) + 
+         (unsigned long) getpid () * 2147483629UL;
 }
 #endif
-
-
