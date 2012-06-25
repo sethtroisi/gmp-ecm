@@ -1,4 +1,7 @@
 #include <gmp.h>
+#ifdef HAVE_AIO_H
+#include <aio.h>
+#endif
 #include "basicdefs.h"
 #include "ecm-impl.h"
 
@@ -23,6 +26,9 @@ typedef _listz_handle_t *listz_handle_t;
 
 typedef struct{
   listz_handle_t handle;
+#ifdef HAVE_AIO_READ
+  struct aiocb cb;
+#endif
   file_word_t *buf;
   size_t bufsize; /* Size of buffer, in units of residues */
   uint64_t offset; /* First buffered element's offset relative to 

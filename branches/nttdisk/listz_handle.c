@@ -1,4 +1,5 @@
 #define _GNU_SOURCE
+#define WANT_AIO
 #include "config.h"
 #include <stdlib.h>
 #include <stdio.h>
@@ -8,7 +9,13 @@
 #ifdef _OPENMP
 #include <omp.h>
 #endif
+#if defined(HAVE_AIO_READ) && defined(WANT_AIO)
+/* For EAGAIN etc. */
+#include <errno.h>
+#endif
 #include "listz_handle.h"
+
+// #define TRACE_ITER yes
 
 /* Init a listz_handle_t to store up to len residues (modulo m). 
    If filename != NULL, uses disk storage, otherwise memory.
@@ -25,7 +32,7 @@ listz_handle_init (const char *filename, const uint64_t len, const mpz_t m)
   if (F == NULL)
     return NULL;
   
-  /* Find out how many file_word_t's  m has */
+  /* Find out how many file_word_t's m has */
   buf = (file_word_t *) mpz_export (NULL, &F->words, -1, sizeof(file_word_t), 
                                    -1, 0, m);
   if (buf == NULL)
@@ -64,6 +71,11 @@ listz_handle_init (const char *filename, const uint64_t len, const mpz_t m)
 #ifdef HAVE_FALLOCATE
       fallocate (fileno(F->data.file), 0, (off_t) 0, 
                  F->words * sizeof(file_word_t) * len);
+#endif
+#if defined(HAVE_SETVBUF) && defined(HAVE_AIO_READ)
+      /* Set to unbuffered mode as we use aio_*() functions for reading
+         in the background */
+      setvbuf (F->data.file, NULL, _IONBF, 0);
 #endif
     }
 
@@ -117,68 +129,13 @@ listz_handle_seek_entry (listz_handle_t F, const uint64_t index)
   return aux_fseek64 (F->data.file, foffset, SEEK_SET);
 }
 
-/* Fetches one entry from F (either in memory or file) and stores it in r. */
 
-void
-listz_handle_get (listz_handle_t F, mpz_t r, file_word_t *buf, 
-    const uint64_t index)
-{
-  if (F->storage == 0)
-    mpz_set (r, F->data.mem[index]);
-  else
-    {
-      size_t nr;
-
-#ifdef _OPENMP
-#pragma omp critical 
-#endif
-      {
-        listz_handle_seek_entry (F, index);
-        nr = fread (buf, sizeof(file_word_t), F->words, F->data.file);
-      }
-
-      ASSERT_ALWAYS (nr == F->words);
-      mpz_import (r, F->words, -1, sizeof(file_word_t), 0, 0, buf);
-    }
-}
-
-void
-listz_handle_get2 (listz_handle_t F, mpz_t r, const uint64_t index)
-{
-  file_word_t *buf = NULL;
-  if (F->storage == 1)
-    buf = malloc (F->words * sizeof (file_word_t));
-  listz_handle_get (F, r, buf, index);
-  free(buf);
-}
-
-
-/* Stores the value of r in an entry of F (either in memory or file) */
-
-void
-listz_handle_set (listz_handle_t F, const mpz_t r, file_word_t *buf,
-    const uint64_t index)
-{
-  if (F->storage == 0)
-    mpz_set (F->data.mem[index], r);
-  else
-    {
-      size_t nr;
-
-      ASSERT_ALWAYS (mpz_sgn (r) >= 0);
-      export_residue (buf, F->words, r);
-#ifdef _OPENMP
-#pragma omp critical 
-#endif
-      {
-        listz_handle_seek_entry (F, index);
-        nr = fwrite (buf, sizeof(file_word_t), F->words, F->data.file);
-      }
-      ASSERT_ALWAYS (nr == F->words);
-    }
-}
-
-
+/* Output a polynomial of degree len-1, or a monic polynomial of degree len.
+   In either case, len is the number of coefficients read from "l".
+   If symmetric == 1, then the polynomial is printed as a reciprocal Laurent
+   polynomial where the coefficients stored in l (and perhaps the leading 
+   monomial) are in standard basis. */
+   
 void
 listz_handle_output_poly (const listz_handle_t l, const uint64_t len, 
                           const int monic, const int symmetric, 
@@ -187,14 +144,11 @@ listz_handle_output_poly (const listz_handle_t l, const uint64_t len,
 {
   uint64_t i;
   mpz_t m;
-  file_word_t *buf = NULL;
+  listz_iterator_t *iter;
 
   if (!test_verbose(verbosity))
     return;
   
-  if (l->storage != 0)
-    buf = (file_word_t *) malloc (l->words * sizeof(file_word_t));
-
   if (prefix != NULL)
     outputf (verbosity, prefix);
 
@@ -208,6 +162,16 @@ listz_handle_output_poly (const listz_handle_t l, const uint64_t len,
     }
 
   mpz_init (m);
+  iter = listz_iterator_init (l, 0);
+  for (i = 0; i < len; i++)
+    {
+      listz_iterator_read (iter, m);
+      if (symmetric)
+        outputf (verbosity, "Mod(%Zd,N) * (x^%" PRIu64 " + x^-%" PRIu64 ") + ", 
+                 m, i, i);
+      else
+        outputf (verbosity, "Mod(%Zd,N) * x^%" PRIu64 " + ", m, i);
+    }
   if (monic)
     {
       if (symmetric)
@@ -215,21 +179,9 @@ listz_handle_output_poly (const listz_handle_t l, const uint64_t len,
       else
 	outputf (verbosity, "x^%" PRIu64 " + ", len);
     }
-  for (i = len - 1; i > 0; i--)
-    {
-      listz_handle_get (l, m, buf, i);
-      if (symmetric)
-        outputf (verbosity, "Mod(%Zd,N) * (x^%" PRIu64 " + x^-%" PRIu64 ") + ", 
-                 m, i, i);
-      else
-        outputf (verbosity, "Mod(%Zd,N) * x^%" PRIu64 " + ", m, i);
-    }
-  listz_handle_get (l, m, buf, 0);
-  outputf (verbosity, "Mod(%Zd,N)", m);
+  listz_iterator_clear (iter);
   if (suffix != NULL)
     outputf (verbosity, suffix);
-  free (buf);
-  buf = NULL;
   mpz_clear (m);
 }
 
@@ -238,6 +190,19 @@ listz_iterator_fetch (listz_iterator_t *iter, const uint64_t offset)
 {
   ASSERT (iter->handle->storage == 1);
   iter->offset = offset;
+#if defined(HAVE_AIO_READ) && defined(WANT_AIO)
+  iter->cb.aio_offset = (off_t) offset * iter->handle->words * sizeof(file_word_t);
+  iter->cb.aio_buf = iter->buf;
+  iter->cb.aio_nbytes = iter->bufsize * iter->handle->words * sizeof(file_word_t);
+  {
+    int r = aio_read (&iter->cb);
+    if (r != 0)
+      {
+        fprintf (stderr, "%s(): aio_read() returned %d\n", __func__, r);
+        abort ();
+      }
+  }
+#else /* ifdef HAVE_AIO_READ */
 #ifdef _OPENMP
 #pragma omp critical 
 #endif
@@ -246,29 +211,83 @@ listz_iterator_fetch (listz_iterator_t *iter, const uint64_t offset)
     iter->valid = fread (iter->buf, iter->handle->words * sizeof(file_word_t), 
                          iter->bufsize, iter->handle->data.file);
   }
-  iter->readptr = 0;
+#endif /* ifdef HAVE_AIO_READ else */
+}
+
+
+static size_t 
+listz_iterator_suspend (struct aiocb * const cb)
+{
+#if defined(HAVE_AIO_READ) && defined(WANT_AIO)
+  int r;
+  ssize_t s;
+  
+  do {
+    const struct aiocb * aiocb_list[1] = {cb};
+    r = aio_suspend (aiocb_list, 1, NULL);
+  } while (r == EAGAIN || r == EINTR);
+  if (r != 0)
+    {
+      fprintf (stderr, "%s(): aio_suspend() returned error, errno = %d\n",
+               __func__, errno);
+      abort ();
+    }
+
+  s = aio_return (cb);
+  if (s < 0)
+    {
+      fprintf (stderr, "%s(): aio_return() returned error code %ld\n", 
+               __func__, (long int) s);
+      abort();
+    }
+  return (size_t) s;
+#else
+  return 0;
+#endif  
 }
 
 
 static void 
 listz_iterator_flush (listz_iterator_t *iter)
 {
-  size_t written;
 
   ASSERT (iter->handle->storage == 1);
   if (iter->writeptr == 0)
     return;
 
+#if defined(HAVE_AIO_READ) && defined(WANT_AIO)
+  {
+    size_t nbytes, written;
+    int r;
+
+    iter->cb.aio_offset = 
+        (off_t) iter->offset * iter->handle->words * sizeof(file_word_t);
+    iter->cb.aio_buf = iter->buf;
+    nbytes = iter->writeptr * iter->handle->words * sizeof(file_word_t);
+    iter->cb.aio_nbytes = nbytes;
+    r = aio_write (&iter->cb);
+    if (r != 0)
+      {
+        fprintf (stderr, "%s(): aio_write() returned error, errno = %d\n", 
+                 __func__, errno);
+        abort ();
+      }
+    written = listz_iterator_suspend (&iter->cb);
+    ASSERT_ALWAYS (written == nbytes);
+  }
+#else
 #ifdef _OPENMP
 #pragma omp critical 
 #endif
   {
+    size_t written;
     listz_handle_seek_entry (iter->handle, iter->offset);
     written = fwrite (iter->buf, sizeof(file_word_t) * iter->handle->words, 
                       iter->writeptr, iter->handle->data.file);
+    ASSERT_ALWAYS (written == iter->writeptr);
+    fflush (iter->handle->data.file);
   }
-  ASSERT_ALWAYS (written == iter->writeptr);
-  iter->writeptr = 0;
+#endif
 }
 
 
@@ -297,6 +316,12 @@ listz_iterator_init2 (listz_handle_t h, const uint64_t firstres,
           free (iter);
           return NULL;
         }
+#if defined(HAVE_AIO_READ) && defined(WANT_AIO)
+      memset (&iter->cb, 0, sizeof(struct aiocb));
+      iter->cb.aio_fildes = fileno (h->data.file);
+      iter->cb.aio_reqprio = 0;
+      iter->cb.aio_sigevent.sigev_notify = SIGEV_NONE;
+#endif
     }
 
   return iter;
@@ -317,6 +342,7 @@ listz_iterator_clear (listz_iterator_t *iter)
   if (iter->handle->storage == 1)
     {
       listz_iterator_flush (iter);
+      iter->writeptr = 0;
       free (iter->buf);
     }
   free (iter);
@@ -329,6 +355,10 @@ listz_iterator_read (listz_iterator_t *iter, mpz_t r)
   if (iter->handle->storage == 0)
     {
       mpz_set (r, iter->handle->data.mem[iter->readptr]);
+#if defined(TRACE_ITER)
+      gmp_printf ("%s(): readptr = %" PRIu64 ", r = %Zd (in memory)\n", 
+                  __func__, (uint64_t) iter->readptr, r);
+#endif
     }
   else
     {
@@ -340,16 +370,27 @@ listz_iterator_read (listz_iterator_t *iter, mpz_t r)
       if (iter->readptr == iter->valid)
         {
           listz_iterator_flush (iter);
+          iter->writeptr = 0;
           listz_iterator_fetch (iter, iter->offset + iter->valid);
+          iter->readptr = 0;
+#if defined(HAVE_AIO_READ) && defined(WANT_AIO)
+          {
+            ssize_t s = listz_iterator_suspend (&iter->cb);
+            iter->valid = s / (iter->handle->words * sizeof(file_word_t));
+            ASSERT_ALWAYS (0 <= s && 
+                iter->valid * (iter->handle->words * sizeof(file_word_t)) == (size_t) s);
+          }
+#endif
           ASSERT_ALWAYS (iter->valid > 0);
         }
       mpz_import (r, iter->handle->words, -1, sizeof(file_word_t), 0, 0, 
                   &iter->buf[iter->readptr * iter->handle->words]);
-    }
-#if 0
-  gmp_printf ("%s(): offset = %" PRIu64 ", readptr = %" PRIu64 ", r = %Zd\n", 
-              __func__, iter->offset, (uint64_t) iter->readptr, r);
+#if defined(TRACE_ITER)
+      gmp_printf ("%s(): offset = %" PRIu64 ", readptr = %" PRIu64 
+                   ", r = %Zd (on disk)\n", 
+                  __func__, iter->offset, (uint64_t) iter->readptr, r);
 #endif
+    }
   iter->readptr++;
 }
 
@@ -357,12 +398,12 @@ listz_iterator_read (listz_iterator_t *iter, mpz_t r)
 void
 listz_iterator_write (listz_iterator_t *iter, const mpz_t r)
 {
-#if 0
-  gmp_printf ("%s(): offset = %" PRIu64 ", writeptr = %" PRIu64 ", r = %Zd\n", 
-              __func__, iter->offset, (uint64_t) iter->writeptr, r);
-#endif
   if (iter->handle->storage == 0)
     {
+#if defined(TRACE_ITER)
+      gmp_printf ("%s(): writeptr = %" PRIu64 ", r = %Zd\n", 
+                  __func__, (uint64_t) iter->writeptr, r);
+#endif
       mpz_set (iter->handle->data.mem[iter->writeptr], r);
     }
   else
@@ -373,9 +414,15 @@ listz_iterator_write (listz_iterator_t *iter, const mpz_t r)
          writeptr + 1 == readptr */
       ASSERT (iter->readptr == 0 || iter->writeptr + 1 == iter->readptr);
       ASSERT (iter->writeptr <= iter->bufsize);
+#if defined(TRACE_ITER)
+      gmp_printf ("%s(): offset = %" PRIu64 ", writeptr = %" PRIu64 
+                  ", r = %Zd (on disk)\n", 
+                  __func__, iter->offset, (uint64_t) iter->writeptr, r);
+#endif
       if (iter->writeptr == iter->bufsize)
         {
           listz_iterator_flush (iter);
+          iter->writeptr = 0;
           iter->offset += iter->bufsize;
         }
       ASSERT_ALWAYS (mpz_sgn (r) >= 0);
@@ -388,13 +435,13 @@ listz_iterator_write (listz_iterator_t *iter, const mpz_t r)
 }
 
 /* Functions that can be used as callbacks to listz_iterator_read() and 
-   listz_iterator_write(). Note that calling, e.g., listz_iterator_read()
-   by de-referencing a pointer of type mpz_producerfunc_t leads to undefined
-   program behavior according to the C standard, even though it happens to 
-   work fine on x86[_64] architectures at least. On other architectures, 
-   a function pointer or pointers to data structures may carry contextual 
-   information which could be incorrect when de-referencing a function pointer 
-   of the wrong type. */
+   listz_iterator_write() in mpzspv_fromto_mpzv(). Note that calling, e.g., 
+   listz_iterator_read() by de-referencing a pointer of type mpz_producerfunc_t
+   leads to undefined program behavior according to the C standard, even though
+   it happens to work fine on x86[_64] architectures at least. On other 
+   architectures, a function pointer may carry contextual information which 
+   could be incorrect when de-referencing a function pointer of the wrong type. 
+*/
 void
 listz_iterator_read_callback (void *iter, mpz_t r)
 {
