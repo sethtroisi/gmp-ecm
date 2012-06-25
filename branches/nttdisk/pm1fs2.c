@@ -1193,8 +1193,13 @@ poly_from_sets_V (listz_handle_t F_param, const mpres_t Q, set_list_t *sets,
       deg *= 2;
 
       /* Check it's monic */
-      listz_handle_get2 (F_param, tmp[0], deg);
-      ASSERT_ALWAYS (mpz_cmp_ui (tmp[0], 1UL) == 0);
+      {
+        listz_iterator_t *iter = listz_iterator_init2 (F_param, deg, 1);
+        ASSERT_ALWAYS (iter != NULL);
+        listz_iterator_read (iter, tmp[0]);
+        listz_iterator_clear (iter);
+        ASSERT_ALWAYS (mpz_cmp_ui (tmp[0], 1UL) == 0);
+      }
     }
 
   mpres_clear (Qt, modulus);
@@ -3221,7 +3226,7 @@ pp1_sequence_h_get_y (void *statep, mpz_t r)
 
   if (!state->want_x)
     listz_iterator_read (state->iter, state->Fi);
-  outputf (OUTPUT_TRACE, "f_%lu = %Zd\n", state->Fi, r);
+  outputf (OUTPUT_TRACE, "f_%lu = %Zd\n", state->i, state->Fi);
   mpres_mul_z_to_z (r, state->s[imod3]->y, state->Fi, state->modulus);
   outputf (OUTPUT_TRACE, "h_y,%lu = %Zd\n", state->i, r);
 
@@ -3263,7 +3268,10 @@ pp1_sequence_h (listz_t h_x, listz_t h_y, mpzspv_handle_t h_x_ntt, mpzspv_handle
     {
       mpz_t t;
       uint64_t i;
+      listz_iterator_t *iter;
+
       mpz_init (t);
+      iter = listz_iterator_init (f, 0);
       mpres_get_z (t, Delta, modulus_param);
       outputf (OUTPUT_TRACE, "\n/* pp1_sequence_h */ N = %Zd; "
 	       "Delta = %Zd; ", modulus_param->orig_modulus, t);
@@ -3273,12 +3281,13 @@ pp1_sequence_h (listz_t h_x, listz_t h_y, mpzspv_handle_t h_x_ntt, mpzspv_handle
       outputf (OUTPUT_TRACE, "; r = b_1^(P/2); rn = b_1^(-P/2); /* PARI */\n");
       for (i = 0; i < l_param; i++)
         {
-          listz_handle_get2 (f, t, i);
+          listz_iterator_read (iter, t);
           outputf (OUTPUT_TRACE, 
                    "/* pp1_sequence_h */ f_%" PRIu64 " = %Zd; /* PARI */\n", 
                    i, t);
          }
       mpz_clear (t);
+      listz_iterator_clear (iter);
     }
 
 #if defined(_OPENMP)
@@ -3429,29 +3438,34 @@ pp1_sequence_h (listz_t h_x, listz_t h_y, mpzspv_handle_t h_x_ntt, mpzspv_handle
 	}
       }
     
-    for (i = 0; i < 2UL && i < l; i++)
+    state.want_x = want_x;
+    state.want_y = want_y;
+    state.iter = listz_iterator_init (f, offset);
+    ASSERT_ALWAYS (state.iter != NULL);
+
+    for (state.i = 0; state.i < 2UL && state.i < l; state.i++)
       {
 	/* Multiply the 2nd coordinate by Delta, so that after the polynomial
 	   multipoint evaluation we get x1 + Delta*x2 */
-	mpres_mul (state.s[i]->y, state.s[i]->y, Delta, state.modulus);
-	mpres_mul (state.s2[i]->y, state.s2[i]->y, Delta, state.modulus);
+	mpres_mul (state.s[state.i]->y, state.s[state.i]->y, Delta, state.modulus);
+	mpres_mul (state.s2[state.i]->y, state.s2[state.i]->y, Delta, state.modulus);
 
-        listz_handle_get2 (f, tmp[0], i + offset);
+        listz_iterator_read (state.iter, tmp[0]);
 
 	if (h_x != NULL)
-          mpres_mul_z_to_z (h_x[i + offset], state.s[i]->x, tmp[0], state.modulus);
+          mpres_mul_z_to_z (h_x[state.i + offset], state.s[state.i]->x, tmp[0], state.modulus);
 	if (h_y != NULL)
-          mpres_mul_z_to_z (h_y[i + offset], state.s[i]->y, tmp[0], state.modulus);
+          mpres_mul_z_to_z (h_y[state.i + offset], state.s[state.i]->y, tmp[0], state.modulus);
 	if (h_x_ntt != NULL)
 	  {
-	    mpres_mul_z_to_z (mt, state.s[i]->x, tmp[0], state.modulus);
-            mpzspv_fromto_mpzv (h_x_ntt, i + offset, 1, 
+	    mpres_mul_z_to_z (mt, state.s[state.i]->x, tmp[0], state.modulus);
+            mpzspv_fromto_mpzv (h_x_ntt, state.i + offset, 1, 
                                 NULL, &mt, NULL, NULL);
 	  }
 	if (h_y_ntt != NULL)
 	  {
-	    mpres_mul_z_to_z (mt, state.s[i]->y, tmp[0], state.modulus);
-            mpzspv_fromto_mpzv (h_y_ntt, i + offset, 1, 
+	    mpres_mul_z_to_z (mt, state.s[state.i]->y, tmp[0], state.modulus);
+            mpzspv_fromto_mpzv (h_y_ntt, state.i + offset, 1, 
                                 NULL, &mt, NULL, NULL);
 	  }
       }
@@ -3459,12 +3473,6 @@ pp1_sequence_h (listz_t h_x, listz_t h_y, mpzspv_handle_t h_x_ntt, mpzspv_handle
     /* Compute the remaining r^((k+i)^2) values according to Peter's 
        recurrence */
     
-    state.want_x = want_x;
-    state.want_y = want_y;
-    state.i = 2;
-    state.iter = listz_iterator_init (f, offset + state.i);
-    ASSERT_ALWAYS (state.iter != NULL);
-
     if (h_x_ntt != NULL && h_y_ntt == NULL && l > state.i)
       {
         /* These two cases are for use with -treefile where we handle coordinates separately */
@@ -3476,33 +3484,31 @@ pp1_sequence_h (listz_t h_x, listz_t h_y, mpzspv_handle_t h_x_ntt, mpzspv_handle
         mpzspv_fromto_mpzv (h_y_ntt, offset + state.i, l - state.i, 
                             &pp1_sequence_h_get_y, &state, NULL, NULL);
       }
-    else for (i = state.i; i < l; i++)
+    else for ( ; state.i < l; )
       {
 	if (state.want_x)
 	  {
-	    ASSERT (state.i == i);
 	    if (h_x != NULL)
 	      {
-	        pp1_sequence_h_get_x (&state, h_x[i + offset]); 
+	        pp1_sequence_h_get_x (&state, h_x[state.i + offset]); 
               }
 	    if (h_x_ntt != NULL)
 	      {
-		mpzspv_fromto_mpzv (h_x_ntt, i + offset, 1, 
+		mpzspv_fromto_mpzv (h_x_ntt, state.i + offset, 1, 
 		                    &pp1_sequence_h_get_x, &state, NULL, NULL);
 	      }
 	  }
 	
 	if (state.want_y)
 	  {
-	    ASSERT (state.i == i);
 	    /* Same for y coordinate */
 	    if (h_y != NULL)
 	      {
-	        pp1_sequence_h_get_y (&state, h_y[i + offset]);
+	        pp1_sequence_h_get_y (&state, h_y[state.i + offset]);
               }
 	    if (h_y_ntt != NULL)
 	      {
-		mpzspv_fromto_mpzv (h_y_ntt, i + offset, 1, 
+		mpzspv_fromto_mpzv (h_y_ntt, state.i + offset, 1, 
 		                    &pp1_sequence_h_get_y, &state, NULL, NULL);
 	      }
 	  }
@@ -3991,7 +3997,8 @@ pp1fs2_ntt (mpz_t f, const mpres_t X, mpmod_t modulus,
 	  outputf (OUTPUT_VERBOSE, "Computing g_x*h_x");
 	  timestart = cputime ();
 	  realstart = realtime ();
-          mpzspv_mul_ntt (g_x_ntt, 0, g_x_ntt, 0, params->l, h_x_ntt, 0, params->l / 2 + 1,
+          mpzspv_mul_ntt (g_x_ntt, 0, g_x_ntt, 0, params->l, 
+              h_x_ntt, 0, params->l / 2 + 1,
               params->l, 0, 0, 
               NTT_MUL_STEP_FFT1 + NTT_MUL_STEP_MULDCT + NTT_MUL_STEP_IFFT);
 	  /* Store the product coefficients we want in R */
@@ -4019,7 +4026,8 @@ pp1fs2_ntt (mpz_t f, const mpres_t X, mpmod_t modulus,
 	  outputf (OUTPUT_VERBOSE, "Computing g_y*h_y");
 	  timestart = cputime ();
 	  realstart = realtime ();
-          mpzspv_mul_ntt (g_y_ntt, 0, g_y_ntt, 0, params->l, h_y_ntt, 0, params->l / 2 + 1,
+          mpzspv_mul_ntt (g_y_ntt, 0, g_y_ntt, 0, params->l, 
+              h_y_ntt, 0, params->l / 2 + 1,
               params->l, 0, 0, 
               NTT_MUL_STEP_FFT1 + NTT_MUL_STEP_MULDCT + NTT_MUL_STEP_IFFT);
 	  print_elapsed_time (OUTPUT_VERBOSE, timestart, realstart);
@@ -4038,7 +4046,8 @@ pp1fs2_ntt (mpz_t f, const mpres_t X, mpmod_t modulus,
 	  outputf (OUTPUT_VERBOSE, "Computing forward NTT of g_x");
 	  timestart = cputime ();
 	  realstart = realtime ();
-          mpzspv_mul_ntt (g_x_ntt, 0, g_x_ntt, 0, params->l, h_x_ntt, 0, params->l / 2 + 1,
+          mpzspv_mul_ntt (g_x_ntt, 0, g_x_ntt, 0, params->l, 
+              h_x_ntt, 0, params->l / 2 + 1,
               params->l, 0, 0, 
               NTT_MUL_STEP_FFT1 + NTT_MUL_STEP_MULDCT);
 	  print_elapsed_time (OUTPUT_VERBOSE, timestart, realstart);
@@ -4046,7 +4055,8 @@ pp1fs2_ntt (mpz_t f, const mpres_t X, mpmod_t modulus,
 	  outputf (OUTPUT_VERBOSE, "Computing forward NTT of g_y");
 	  timestart = cputime ();
 	  realstart = realtime ();
-          mpzspv_mul_ntt (g_y_ntt, 0, g_y_ntt, 0, params->l, h_y_ntt, 0, params->l / 2 + 1,
+          mpzspv_mul_ntt (g_y_ntt, 0, g_y_ntt, 0, params->l, 
+              h_y_ntt, 0, params->l / 2 + 1,
               params->l, 0, 0, 
               NTT_MUL_STEP_FFT1 + NTT_MUL_STEP_MULDCT);
 	  print_elapsed_time (OUTPUT_VERBOSE, timestart, realstart);
@@ -4238,11 +4248,20 @@ main (int argc, char **argv)
       from_ntt || from_mpz;
   if (need_ntt)
     {
+      char *lastp = NULL;
       ASSERT_ALWAYS (len != 0);
       ntt_size = 1<<ceil_log2(len);
       mpzspm = mpzspm_init (ntt_size, N);
       do_aio_init (mpzspm->sp_num);
       ntt_handle = mpzspv_init_handle (filename, ntt_size, mpzspm);
+      ASSERT_ALWAYS (ntt_handle != NULL);
+      if (0)
+      for (i = 0; i < mpzspm->sp_num; i++)
+        {
+          printf ("ntt_handle->mem[%d] = %p, diff = %lx\n", 
+                  i, (void*) ntt_handle->mem[i], abs((char *) ntt_handle->mem[i] - lastp));
+          lastp = (char *) ntt_handle->mem[i];
+        }
     }
   
   need_mpz = fill_mpz || read_mpz || from_ntt || from_mpz;
