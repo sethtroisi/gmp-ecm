@@ -1907,7 +1907,7 @@ mpzspv_print (mpzspv_handle_t handle, const spv_size_t offset,
         tmp = handle->mem[i] + offset;
 
       spv_print_vec (tmp, handle->mpzspm->spm[i]->sp, len, 
-                     prefix, IN_MEMORY(handle) ? "(in memory)" : "(on disk)");
+                     prefix, IN_MEMORY(handle) ? "(in memory)\n" : "(on disk)\n");
     }
 
   if (ON_DISK(handle))
