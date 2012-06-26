@@ -92,71 +92,97 @@ static inline sp_t sp_sub_partial(sp_t a, sp_t b, sp_t p)
 #endif
 }
 
-/* perform modular multiplication when the multiplier
-   and its generalized inverse are both known and precomputed */
+/* low half multiply */
 
-static inline sp_t sp_ntt_mul(sp_t x, sp_t w, sp_t w_inv, sp_t p)
+static inline sp_t sp_ntt_mul_lo(sp_t a, sp_t b)
 {
-  sp_t r;
+#if SP_TYPE_BITS <= GMP_LIMB_BITS
 
+  return a * b;
+
+#else  /* build product from smaller multiplies */
+
+  mp_limb_t a1 = (mp_limb_t)((a) >> GMP_LIMB_BITS);
+  mp_limb_t a0 = (mp_limb_t)(a);
+  mp_limb_t b1 = (mp_limb_t)((b) >> GMP_LIMB_BITS);
+  mp_limb_t b0 = (mp_limb_t)(b);
+  mp_limb_t a0b0_hi, a0b0_lo;
+
+  umul_ppmm(a0b0_hi, a0b0_lo, a0, b0);
+
+  return (sp_t)(a0b0_hi + a0 * b1 + 
+      		a1 * b0) << GMP_LIMB_BITS | a0b0_lo;
+#endif
+}
+
+/* high half multiply */
+
+static inline sp_t sp_ntt_mul_hi(sp_t a, sp_t b)
+{
 #if SP_TYPE_BITS == GMP_LIMB_BITS  /* use GMP functions */
 
-  mp_limb_t q;
-  ATTRIBUTE_UNUSED mp_limb_t tmp;
-  umul_ppmm(q, tmp, x, w_inv);
+  mp_limb_t hi;
+  ATTRIBUTE_UNUSED mp_limb_t lo;
+  umul_ppmm(hi, lo, a, b);
+
+  return hi;
 
 #elif SP_TYPE_BITS < GMP_LIMB_BITS  /* ordinary multiply */
 
-  mp_limb_t prod = (mp_limb_t)(x) * (mp_limb_t)(w_inv);
-  sp_t q = (sp_t)(prod >> SP_TYPE_BITS);
+  mp_limb_t prod = (mp_limb_t)(a) * (mp_limb_t)(b);
+  return (sp_t)(prod >> SP_TYPE_BITS);
 
-#else  /* worst case: build product from smaller multiplies */
+#else  /* build product from smaller multiplies */
 
-  sp_t q;
-  mp_limb_t a1 = (mp_limb_t)((x) >> GMP_LIMB_BITS);
-  mp_limb_t a0 = (mp_limb_t)(x);
-  mp_limb_t b1 = (mp_limb_t)((w_inv) >> GMP_LIMB_BITS);
-  mp_limb_t b0 = (mp_limb_t)(w_inv);
+  mp_limb_t a1 = (mp_limb_t)((a) >> GMP_LIMB_BITS);
+  mp_limb_t a0 = (mp_limb_t)(a);
+  mp_limb_t b1 = (mp_limb_t)((b) >> GMP_LIMB_BITS);
+  mp_limb_t b0 = (mp_limb_t)(b);
   mp_limb_t a0b0_hi, a0b0_lo;
   mp_limb_t a0b1_hi, a0b1_lo;
   mp_limb_t a1b0_hi, a1b0_lo;
   mp_limb_t a1b1_hi, a1b1_lo;
-  mp_limb_t cy1, cy2;
+  mp_limb_t cy;
 
   umul_ppmm(a0b0_hi, a0b0_lo, a0, b0);
   umul_ppmm(a0b1_hi, a0b1_lo, a0, b1);
   umul_ppmm(a1b0_hi, a1b0_lo, a1, b0);
   umul_ppmm(a1b1_hi, a1b1_lo, a1, b1);
 
-  /* both inputs will usually have all their bits 
-     significant, so carries can propagate the entire 
-     length of the 128-bit product */
-
-  add_ssaaaa(cy1, a0b0_hi,
+  add_ssaaaa(cy, a0b0_hi,
       	     0, a0b0_hi,
 	     0, a0b1_lo);
-  add_ssaaaa(cy1, a0b0_hi,
-      	     cy1, a0b0_hi,
+  add_ssaaaa(cy, a0b0_hi,
+      	     cy, a0b0_hi,
 	     0, a1b0_lo);
-  add_ssaaaa(cy2, a1b1_lo,
-      	     0, a1b1_lo,
-	     0, cy1);
-  add_ssaaaa(cy2, a1b1_lo,
-      	     cy2, a1b1_lo,
+  add_ssaaaa(a1b1_hi, a1b1_lo,
+      	     a1b1_hi, a1b1_lo,
+	     0, cy);
+  add_ssaaaa(a1b1_hi, a1b1_lo,
+      	     a1b1_hi, a1b1_lo,
 	     0, a0b1_hi);
-  add_ssaaaa(cy2, a1b1_lo,
-      	     cy2, a1b1_lo,
+  add_ssaaaa(a1b1_hi, a1b1_lo,
+      	     a1b1_hi, a1b1_lo,
 	     0, a1b0_hi);
 
-  q = (sp_t)(a1b1_hi + cy2) << GMP_LIMB_BITS | a1b1_lo;
+  return (sp_t)a1b1_hi << GMP_LIMB_BITS | a1b1_lo;
 
 #endif
+}
+
+/* perform modular multiplication when the multiplier
+   and its generalized inverse are both known and precomputed */
+
+static inline sp_t sp_ntt_mul(sp_t x, sp_t w, sp_t w_inv, sp_t p)
+{
+  sp_t q = sp_ntt_mul_hi(x, w_inv);
 
 #ifdef HAVE_PARTIAL_MOD
-  r = x * w - q * (p >> 1);
-  return r;
+  //return sp_ntt_mul_lo(x, w) - sp_ntt_mul_lo(q, p >> 1);
+  return x * w - q * (p >> 1);
 #else
-  r = x * w - q * p;
+  //sp_t r = sp_ntt_mul_lo(x, w) - sp_ntt_mul_lo(q, p);
+  sp_t r = x * w - q * p;
   return sp_sub(r, p, p);
 #endif
 }
