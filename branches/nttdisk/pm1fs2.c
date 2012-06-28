@@ -4162,7 +4162,7 @@ main (int argc, char **argv)
   int i, need_mpz, need_ntt;
   int do_ntt = 0, do_pwmul = 0, do_intt = 0, do_gcd = 0, fill_ntt = 0, 
       read_ntt = 0, fill_mpz = 0, read_mpz = 0, from_ntt = 0, from_mpz = 0, 
-      keep_mpz = 0, keep_ntt = 0;
+      fromto_mpz = 0, keep_mpz = 0, keep_ntt = 0, print_mpz = 0, print_ntt = 0;
   long timestart, realstart;
 
   for (i = 1; i < argc; i++)
@@ -4219,6 +4219,11 @@ main (int argc, char **argv)
           from_mpz = 1;
           continue;
         }
+      if (strcmp (argv[i], "-fromtompz") == 0)
+        {
+          fromto_mpz = 1;
+          continue;
+        }
       if (strcmp (argv[i], "-fromntt") == 0)
         {
           from_ntt = 1;
@@ -4234,6 +4239,16 @@ main (int argc, char **argv)
           keep_mpz = 1;
           continue;
         }
+      if (strcmp (argv[i], "-printmpz") == 0)
+        {
+          print_mpz = 1;
+          continue;
+        }
+      if (strcmp (argv[i], "-printntt") == 0)
+        {
+          print_ntt = 1;
+          continue;
+        }
       mpz_init (N);
       mpz_set_str (N, argv[i], 10);
       if (mpz_sgn(N) == 0)
@@ -4245,7 +4260,7 @@ main (int argc, char **argv)
     }
 
   need_ntt = do_ntt || do_pwmul || do_intt || do_gcd || fill_ntt || read_ntt || 
-      from_ntt || from_mpz;
+      from_ntt || from_mpz || fromto_mpz || print_ntt;
   if (need_ntt)
     {
       char *lastp = NULL;
@@ -4264,7 +4279,8 @@ main (int argc, char **argv)
         }
     }
   
-  need_mpz = fill_mpz || read_mpz || from_ntt || from_mpz;
+  need_mpz = fill_mpz || read_mpz || from_ntt || from_mpz || fromto_mpz || 
+      print_mpz;
   if (need_mpz)
     {
       char *mpz_filename = NULL;
@@ -4372,6 +4388,26 @@ main (int argc, char **argv)
                                sizeof (sp_t), "From MPZ write");
     }
 
+  if (fromto_mpz)
+    {
+      listz_iterator_t *iter;
+
+      timestart = cputime ();
+      realstart = realtime ();
+      iter = listz_iterator_init (F, 0);
+      mpzspv_fromto_mpzv (ntt_handle, (spv_size_t) 0, len, 
+                          &listz_iterator_read_callback, iter, 
+                          &listz_iterator_write_callback, iter);
+#if defined(HAVE_SYNC)
+      sync();
+#endif
+      listz_iterator_clear (iter);
+      testdrive_print_elapsed (timestart, realstart, len, F->words, 
+                               sizeof (file_word_t), "From/To MPZ read");
+      testdrive_print_elapsed (timestart, realstart, len, mpzspm->sp_num, 
+                               sizeof (sp_t), "From/To MPZ write");
+    }
+
   if (read_ntt)
     {
       timestart = cputime ();
@@ -4411,6 +4447,16 @@ main (int argc, char **argv)
       testdrive_print_elapsed (timestart, realstart, len, mpzspm->sp_num, 
                                sizeof (sp_t), "GCD");
       mpz_clear (f);
+    }
+
+  if (print_mpz)
+    {
+      listz_handle_output_poly (F, len, 0, 0, "F = ", "\n", 0);
+    }
+
+  if (print_ntt)
+    {
+      mpzspv_print (ntt_handle, 0, len, "NTT = ");
     }
 
   if (from_ntt)
