@@ -1,5 +1,5 @@
 #define _GNU_SOURCE
-#define WANT_AIO
+// #define WANT_AIO
 #include "config.h"
 #include <stdlib.h>
 #include <stdio.h>
@@ -185,6 +185,10 @@ listz_handle_output_poly (const listz_handle_t l, const uint64_t len,
   mpz_clear (m);
 }
 
+
+/* Iterator functions for sequential access to elements of a
+   list_handle_t. */
+
 static void 
 listz_iterator_fetch (listz_iterator_t *iter, const uint64_t offset)
 {
@@ -192,8 +196,9 @@ listz_iterator_fetch (listz_iterator_t *iter, const uint64_t offset)
   iter->offset = offset;
 #if defined(HAVE_AIO_READ) && defined(WANT_AIO)
   iter->cb.aio_offset = (off_t) offset * iter->handle->words * sizeof(file_word_t);
-  iter->cb.aio_buf = iter->buf;
+  iter->cb.aio_buf = iter->buf[iter->active_buffer];
   iter->cb.aio_nbytes = iter->bufsize * iter->handle->words * sizeof(file_word_t);
+  ASSERT_ALWAYS (iter->cb_valid == 0);
   {
     int r = aio_read (&iter->cb);
     if (r != 0)
@@ -201,6 +206,7 @@ listz_iterator_fetch (listz_iterator_t *iter, const uint64_t offset)
         fprintf (stderr, "%s(): aio_read() returned %d\n", __func__, r);
         abort ();
       }
+    iter->cb_valid = 1;
   }
 #else /* ifdef HAVE_AIO_READ */
 #ifdef _OPENMP
@@ -215,13 +221,15 @@ listz_iterator_fetch (listz_iterator_t *iter, const uint64_t offset)
 }
 
 
-static size_t 
-listz_iterator_suspend (struct aiocb * const cb)
-{
 #if defined(HAVE_AIO_READ) && defined(WANT_AIO)
+static size_t 
+listz_iterator_suspend (listz_iterator_t *iter)
+{
+  struct aiocb * const cb = &iter->cb;
   int r;
   ssize_t s;
   
+  ASSERT_ALWAYS (iter->cb_valid);
   do {
     const struct aiocb * aiocb_list[1] = {cb};
     r = aio_suspend (aiocb_list, 1, NULL);
@@ -240,11 +248,10 @@ listz_iterator_suspend (struct aiocb * const cb)
                __func__, (long int) s);
       abort();
     }
+  iter->cb_valid = 0;
   return (size_t) s;
-#else
-  return 0;
-#endif  
 }
+#endif  
 
 
 static void 
@@ -262,9 +269,10 @@ listz_iterator_flush (listz_iterator_t *iter)
 
     iter->cb.aio_offset = 
         (off_t) iter->offset * iter->handle->words * sizeof(file_word_t);
-    iter->cb.aio_buf = iter->buf;
+    iter->cb.aio_buf = iter->buf[iter->active_buffer];
     nbytes = iter->writeptr * iter->handle->words * sizeof(file_word_t);
     iter->cb.aio_nbytes = nbytes;
+    ASSERT_ALWAYS (iter->cb_valid == 0);
     r = aio_write (&iter->cb);
     if (r != 0)
       {
@@ -272,7 +280,8 @@ listz_iterator_flush (listz_iterator_t *iter)
                  __func__, errno);
         abort ();
       }
-    written = listz_iterator_suspend (&iter->cb);
+    iter->cb_valid = 1;
+    written = listz_iterator_suspend (iter);
     ASSERT_ALWAYS (written == nbytes);
   }
 #else
@@ -288,6 +297,7 @@ listz_iterator_flush (listz_iterator_t *iter)
     fflush (iter->handle->data.file);
   }
 #endif
+  iter->writeptr = 0;
 }
 
 
@@ -309,6 +319,35 @@ listz_iterator_init2 (listz_handle_t h, const uint64_t firstres,
       iter->offset = firstres;
       iter->readptr = iter->writeptr = iter->valid = 0;
       iter->bufsize = nr_buffered;
+#if defined(HAVE_AIO_READ) && defined(WANT_AIO)
+      iter->buf[0] = malloc (iter->bufsize * iter->handle->words * 
+                             sizeof(file_word_t));
+      iter->buf[1] = malloc (iter->bufsize * iter->handle->words * 
+                             sizeof(file_word_t));
+      if (iter->buf[0] == NULL || iter->buf[1] == NULL) 
+        {
+          free (iter->buf[0]);
+          free (iter->buf[1]);
+          free (iter);
+          return NULL;
+        }
+#ifdef _OPENMP
+#pragma omp critical 
+#endif
+      {
+        /* Prevent other access to the file which would lead to data 
+           corruption */
+        iter->hidden_file = h->data.file;
+        h->data.file = NULL;
+      }
+      ASSERT_ALWAYS (iter->hidden_file != NULL);
+      iter->active_buffer = 0;
+      memset (&iter->cb, 0, sizeof(struct aiocb));
+      iter->cb.aio_fildes = fileno (iter->hidden_file);
+      iter->cb.aio_reqprio = 0;
+      iter->cb.aio_sigevent.sigev_notify = SIGEV_NONE;
+      iter->cb_valid = 0;
+#else
       iter->buf = malloc (iter->bufsize * iter->handle->words * 
                           sizeof(file_word_t));
       if (iter->buf == NULL) 
@@ -316,11 +355,6 @@ listz_iterator_init2 (listz_handle_t h, const uint64_t firstres,
           free (iter);
           return NULL;
         }
-#if defined(HAVE_AIO_READ) && defined(WANT_AIO)
-      memset (&iter->cb, 0, sizeof(struct aiocb));
-      iter->cb.aio_fildes = fileno (h->data.file);
-      iter->cb.aio_reqprio = 0;
-      iter->cb.aio_sigevent.sigev_notify = SIGEV_NONE;
 #endif
     }
 
@@ -331,7 +365,7 @@ listz_iterator_init2 (listz_handle_t h, const uint64_t firstres,
 listz_iterator_t *  
 listz_iterator_init (listz_handle_t h, const uint64_t firstres)
 {
-  const size_t listz_iterator_nr_buffered = 4096;
+  const size_t listz_iterator_nr_buffered = 1<<16;
   return listz_iterator_init2 (h, firstres, listz_iterator_nr_buffered);
 }
 
@@ -341,9 +375,20 @@ listz_iterator_clear (listz_iterator_t *iter)
 {
   if (iter->handle->storage == 1)
     {
+#if defined(HAVE_AIO_READ) && defined(WANT_AIO)
+      if (iter->valid > 0)
+        {
+          listz_iterator_suspend (iter);
+        }
+#endif
       listz_iterator_flush (iter);
-      iter->writeptr = 0;
+#if defined(HAVE_AIO_READ) && defined(WANT_AIO)
+      iter->handle->data.file = iter->hidden_file;
+      free (iter->buf[0]);
+      free (iter->buf[1]);
+#else
       free (iter->buf);
+#endif
     }
   free (iter);
 }
@@ -367,24 +412,36 @@ listz_iterator_read (listz_iterator_t *iter, mpz_t r)
          update (read-then-write) of each residue, in which case we must have
          writeptr == readptr here */
       ASSERT (iter->writeptr == 0 || iter->readptr == iter->writeptr);
+
       if (iter->readptr == iter->valid)
         {
-          listz_iterator_flush (iter);
-          iter->writeptr = 0;
-          listz_iterator_fetch (iter, iter->offset + iter->valid);
-          iter->readptr = 0;
 #if defined(HAVE_AIO_READ) && defined(WANT_AIO)
-          {
-            ssize_t s = listz_iterator_suspend (&iter->cb);
-            iter->valid = s / (iter->handle->words * sizeof(file_word_t));
-            ASSERT_ALWAYS (0 <= s && 
-                iter->valid * (iter->handle->words * sizeof(file_word_t)) == (size_t) s);
-          }
+          if (iter->valid == 0)
+            {
+              /* We never read data before. We have to fetch data for the 
+                 current buffer and wait for it to finish, then issue a fetch 
+                 for the next buffer */
+              listz_iterator_fetch (iter, iter->offset);
+              iter->active_buffer ^= 1;
+            }
+          iter->valid = listz_iterator_suspend (iter) 
+              / sizeof(file_word_t) / iter->handle->words;
 #endif
+          listz_iterator_flush (iter);
+          listz_iterator_fetch (iter, iter->offset + iter->valid);
+#if defined(HAVE_AIO_READ) && defined(WANT_AIO)
+          iter->active_buffer ^= 1;
+#endif
+          iter->readptr = 0;
           ASSERT_ALWAYS (iter->valid > 0);
         }
+#if defined(HAVE_AIO_READ) && defined(WANT_AIO)
+      mpz_import (r, iter->handle->words, -1, sizeof(file_word_t), 0, 0, 
+                  &iter->buf[iter->active_buffer][iter->readptr * iter->handle->words]);
+#else
       mpz_import (r, iter->handle->words, -1, sizeof(file_word_t), 0, 0, 
                   &iter->buf[iter->readptr * iter->handle->words]);
+#endif
 #if defined(TRACE_ITER)
       gmp_printf ("%s(): offset = %" PRIu64 ", readptr = %" PRIu64 
                    ", r = %Zd (on disk)\n", 
@@ -421,15 +478,23 @@ listz_iterator_write (listz_iterator_t *iter, const mpz_t r)
 #endif
       if (iter->writeptr == iter->bufsize)
         {
+#if defined(TRACE_ITER)
+          printf ("%s(): flushing %zu entries from buffer %d\n", 
+                  iter->writeptr, iter->active_buffer);
+#endif
           listz_iterator_flush (iter);
-          iter->writeptr = 0;
           iter->offset += iter->bufsize;
         }
       ASSERT_ALWAYS (mpz_sgn (r) >= 0);
       /* TODO: we may want to allow residues that are not fully reduced 
          (mod modulus), but only as far as the ECRT reduces them. */
+#if defined(HAVE_AIO_READ) && defined(WANT_AIO)
+      export_residue (&iter->buf[iter->active_buffer][iter->writeptr * iter->handle->words], 
+                      iter->handle->words, r);
+#else
       export_residue (&iter->buf[iter->writeptr * iter->handle->words], 
                       iter->handle->words, r);
+#endif
     }
   iter->writeptr++;
 }

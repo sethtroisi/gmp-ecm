@@ -5,6 +5,11 @@
 #include "basicdefs.h"
 #include "ecm-impl.h"
 
+/* Defining WANT_AIO makes iterators use a double buffer with aio_() functions
+   for file access. Unfortunately this does not seem to be faster than plain
+   fread()/fwrite(). */
+// #define WANT_AIO 1
+
 /* This type is the basis for file I/O of mpz_t */
 typedef unsigned long file_word_t;
 
@@ -26,10 +31,15 @@ typedef _listz_handle_t *listz_handle_t;
 
 typedef struct{
   listz_handle_t handle;
-#ifdef HAVE_AIO_READ
+#if defined(HAVE_AIO_READ) && defined(WANT_AIO)
   struct aiocb cb;
-#endif
+  file_word_t *buf[2];
+  int active_buffer;
+  int cb_valid;
+  FILE *hidden_file;
+#else
   file_word_t *buf;
+#endif
   size_t bufsize; /* Size of buffer, in units of residues */
   uint64_t offset; /* First buffered element's offset relative to 
                     start of file, in units of residues (handle->words * 
