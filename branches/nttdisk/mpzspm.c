@@ -123,10 +123,10 @@ mpzspm_product_tree_init (mpzspm_t mpzspm)
   const int verbose = 0;
   int i0_threshold = I0_THRESHOLD; /* Code should work correctly with any 
                                       non-negative value */
-  unsigned int d, i, j;
+  unsigned int d, i;
   unsigned int n = mpzspm->sp_num;
   unsigned int *start_p;
-  mpzv_t *T;
+  mpzv_t T;
   mpz_t mt, mt2, all_p;
 
   {
@@ -168,12 +168,16 @@ mpzspm_product_tree_init (mpzspm_t mpzspm)
      differs by at most one between leaves. Thus we want the largest d s.t. 
      floor(n / 2^i0_threshold) >= 2^d */
 
+  /* The tree is stored in a single array: root node (depth 0) at T[0], 
+     and generally the 2^d nodes of depth d at T[2^d-1], ..., T[2^(d+1) - 2].
+     The two children of the node T[i] are T[2*i+1] and T[2*i+2]. */
+
   for (d = 0; n >> (i0_threshold + d) > 1; d++);
   if (verbose)
     printf ("%s(): n = %u, d = %u\n", __func__, n, d);
 
-  /* Allocate memory */
-  T = (mpzv_t*) malloc ((d + 1) * sizeof (mpzv_t));
+  /* Allocate memory, 2^(d+1)-1 nodes in total */
+  T = (mpzv_t) malloc (((2 << d) - 1) * sizeof (mpz_t));
   if (T == NULL)
     {
       fprintf (stderr, "%s(): Could not allocate memory for T\n", __func__);
@@ -205,21 +209,6 @@ mpzspm_product_tree_init (mpzspm_t mpzspm)
   for (i = 0; i < 1U << d; i++)
     mpz_init (mpzspm->remainders[i]);
 
-  for (i = 0; i <= d; i++)
-    {
-      T[i] = (mpzv_t) malloc ((1 << (d-i)) * sizeof (mpz_t));
-      if (T[i] == NULL)
-        {
-          fprintf (stderr, "%s(): Could not allocate memory for T[%u]\n", 
-                   __func__, i);
-          while (i-- > 0)
-            free (T[i]);
-          free (T);
-          mpzspm->T = NULL;
-          return;
-        }
-    }
-
   /* Fill the leaf nodes */
   /* We have l leaves, where n%l leaves get floor(n/l)+1 primes, and the other 
      leaves get floor(n/l) primes. We want to spread the n%l "leftover" primes
@@ -234,19 +223,21 @@ mpzspm_product_tree_init (mpzspm_t mpzspm)
       {
         const unsigned int add = br < 0 ? 1 : 0; /* Include leftover prime? */
         const unsigned int p_now = n / l + add;
+        unsigned int j;
         br -= dy - (add ? l : 0);
         
         mpz_set_ui (mt2, 1);
+        /* Collect product of primes */
         for (j = 0; j < p_now; j++)
           {
             mpz_set_sp (mt, mpzspm->spm[start_p[i] + j]->sp);
             mpz_mul (mt2, mt2, mt);
           }
-        mpz_init_set (T[0][i], mt2);
+        mpz_init_set (T[l - 1 + i], mt2);
         if (verbose)
-          printf ("%s(): T[0][%u] = p_%u * ... * p_%u (add = %d), size %lu bits\n", 
-                  __func__, i, start_p[i], start_p[i] + p_now - 1, add, 
-                  (unsigned long) mpz_sizeinbase (T[0][i], 2));
+          printf ("%s(): Tree[%u][%u] = p_%u * ... * p_%u (add = %d), size %lu bits\n", 
+                  __func__, d, i, start_p[i], start_p[i] + p_now - 1, add, 
+                  (unsigned long) mpz_sizeinbase (T[l - 1 + i], 2));
         start_p[i + 1] = start_p[i] + p_now;
       }
     /* We subtract dy l times, and add l dy times, so the final br should the 
@@ -256,21 +247,18 @@ mpzspm_product_tree_init (mpzspm_t mpzspm)
 
   ASSERT_ALWAYS(start_p[1U << d] == n);
 
-  /* Fill rest of the tree */
-  for (j = 1; j <= d; j++)
+  /* Fill rest of the tree, starting at last node of depth d-1, i.e., T[2^d-2] */
+  for (i = (1<<d) - 1; i-- > 0; )
     {
-      for (i = 0; i < 1U << (d-j); i++)
-        {
-          mpz_mul (mt, T[j-1][2*i], T[j-1][2*i+1]);
-          mpz_init_set (T[j][i], mt);
-          if (verbose)
-            printf ("%s(): T[%u][%u] = T[%u][%u] * T[%u][%u], size %lu bits\n", 
-                    __func__, j, i, j-1, 2*i, j-1, 2*i+1, 
-                    (unsigned long) mpz_sizeinbase (mt, 2));
-        }
+      mpz_mul (mt, T[2*i+1], T[2*i+2]);
+      mpz_init_set (T[i], mt);
+      if (verbose)
+        printf ("%s():  T[%u] = T[%u] * T[%u], size %lu bits\n", 
+                __func__, i, 2*i+1, 2*i+2, 
+                (unsigned long) mpz_sizeinbase (mt, 2));
     }
 
-  ASSERT_ALWAYS (mpz_cmp (T[d][0], all_p) == 0);
+  ASSERT_ALWAYS (mpz_cmp (T[0], all_p) == 0);
 
   mpz_clear (mt);
   mpz_clear (mt2);
@@ -499,20 +487,15 @@ mpzspm_product_tree_clear (mpzspm_t mpzspm)
 {
   unsigned int i;
   unsigned int d = mpzspm->d;
-  mpzv_t *T = mpzspm->T;
+  mpzv_t T = mpzspm->T;
 
   if (T == NULL) /* use the slow method */
     return;
 
-  for (i = 0; i <= d; i++)
-    {
-      unsigned int j;
-      for (j = 0; j < 1U << (d - i); j++)
-        mpz_clear (T[i][j]);
-      free (T[i]);
-    }
   for (i = 0; i < 1U << d; i++)
     mpz_clear (mpzspm->remainders[i]);
+  for (i = 0; i < (2U << d) - 1; i++)
+    mpz_clear (T[i]);
   free (T);
   free (mpzspm->start_p);
   free (mpzspm->remainders);

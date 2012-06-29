@@ -476,8 +476,8 @@ spv_from_mpz_fast (spv_t x, const spv_size_t offset,
                    const mpzspm_t mpzspm, ATTRIBUTE_UNUSED mpz_t rem)
 {
   unsigned int i, j;
-  mpzv_t *T = mpzspm->T;
-  unsigned int d = mpzspm->d;
+  const mpzv_t T = mpzspm->T, r = mpzspm->remainders;
+  const unsigned int d = mpzspm->d;
 
   ASSERT (d > 0);
   valgrind_check_mpzin (mpz);
@@ -493,27 +493,26 @@ spv_from_mpz_fast (spv_t x, const spv_size_t offset,
   ASSERT (i <= d);
   /* First pass uses mpz as input */
   for (j = 0; j < 1U << i; j++)
-    mpz_mod (mpzspm->remainders[j], mpz, T[d - i][j]);
+    mpz_mod (r[j], mpz, T[(1U << i) - 1 + j]);
   i++;
 
   for ( ; i <= d; i++)
     {
       for (j = 1U << i; j-- > 0; )
-        mpz_mod (mpzspm->remainders[j], mpzspm->remainders[j/2], T[d - i][j]);
+        mpz_mod (r[j], r[j/2], T[(1U << i) - 1 + j]);
     }
 
   /* Reduce each leaf node modulo individual primes */
   for (i = 0; i < 1U << d; i++)
     {
       const spm_t *spm = mpzspm->spm;
-      if (UNLIKELY(mpz_sgn (T[0][i]) == 0))
+      if (UNLIKELY(mpz_sgn (r[i]) == 0))
         {
           for (j = mpzspm->start_p[i]; j < mpzspm->start_p[i + 1]; j++)
             x[j * sp_per_line + offset] = 0;
         } else {
           for (j = mpzspm->start_p[i]; j < mpzspm->start_p[i + 1]; j++)
-            x[j * sp_per_line + offset] = 
-                mpz_mod_sp (mpzspm->remainders[i], spm, rem, j);
+            x[j * sp_per_line + offset] = mpz_mod_sp (r[i], spm, rem, j);
         }
     }
 }

@@ -216,7 +216,8 @@ typedef struct
     float *prime_recip;
 
     /* product tree to speed up conversion from mpz to sp */
-    mpzv_t *T;            /* product tree */
+    mpzv_t T;             /* product tree */
+    spv_t fixfactors;     /* Factors to fix residues after paired reduction */
     unsigned int d;       /* ceil(log(sp_num)/log(2)) */
     unsigned int *start_p;
     mpzv_t remainders; /* Scratch space for remainder tree */
