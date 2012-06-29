@@ -1444,7 +1444,10 @@ list_scale_V (listz_t R, const listz_t F, const mpres_t Q,
     
     l = (deg - 1) / nr_chunks + 1; /* l = ceil (deg / nr_chunks) */
     start_i = thread_nr * l + 1;
-    l = MIN(l, deg + 1 - start_i);
+    if (start_i <= deg + 1)
+      l = MIN(l, deg + 1 - start_i);
+    else
+      l = 0;
 
     mpmod_init_set (modulus_local, modulus);
     mpres_init (Vi_1, modulus_local);
@@ -1506,7 +1509,10 @@ list_scale_V (listz_t R, const listz_t F, const mpres_t Q,
     
     l = (deg - 1) / nr_chunks + 1; /* l = ceil(deg / nr_chunks) */
     start_i = thread_nr * l + 1UL;
-    l = MIN(l, deg + 1 - start_i);
+    if (start_i <= deg + 1)
+      l = MIN(l, deg + 1 - start_i);
+    else
+      l = 0;
     
     mpmod_init_set (modulus_local, modulus);
     mpres_init (Ui_1, modulus_local);
@@ -2005,11 +2011,13 @@ pm1_sequence_g (listz_t g_mpz, mpzspv_t g_ntt, const mpres_t b_1,
     
     l = (l_param - 1) / nr_chunks + 1; /* = ceil(l_param / nr_chunks) */
     offset = thread_nr * l;
+    if (offset <= l_param)
+      l = MIN(l, l_param - offset);
+    else
+      l = 0;
     outputf (OUTPUT_DEVVERBOSE, 
              "pm1_sequence_g: thread %d has l = %lu, offset = %lu.\n", 
              thread_nr, l, offset);
-    ASSERT_ALWAYS (l_param >= offset);
-    l = MIN(l, l_param - offset);
     M = M_param - (long) offset;
     
     /* Let only the master thread print stuff */
@@ -2207,7 +2215,10 @@ pm1_sequence_h (listz_t h, mpzspv_t h_ntt, mpz_t *f, const mpres_t r,
 
       chunklen = (len - 1UL) / (unsigned long) nr_chunks + 1UL;
       offset = chunklen * (unsigned long) thread_nr;
-      len = MIN(chunklen, len - offset);
+      if (offset <= len)
+        len = MIN(chunklen, len - offset);
+      else
+        len = 0;
     }
 #endif
     
@@ -2455,7 +2466,7 @@ ntt_sqr_reciprocal (mpzv_t R, const mpzv_t S, mpzspv_t dft,
       
       chunklen = (chunklen - 1) / (spv_size_t) nr_chunks + 1;
       offset = (spv_size_t) thread_nr * chunklen;
-      if (2*n - 1 > offset)
+      if (offset <= 2*n - 1)
         chunklen = MIN(chunklen, (2*n - 1) - offset);
       else
         chunklen = 0UL;
@@ -2530,8 +2541,10 @@ ntt_gcd (mpz_t f, mpz_t *product, mpzspv_t ntt, const unsigned long ntt_offset,
 
     len = (len_param - 1) / nr_chunks + 1;
     thread_offset = thread_nr * len;
-    ASSERT (len_param >= thread_offset);
-    len = MIN(len, len_param - thread_offset);
+    if (thread_offset <= len_param)
+      len = MIN(len, len_param - thread_offset);
+    else
+      len = 0;
 #pragma omp master
     {
       outputf (OUTPUT_VERBOSE, " using %d threads", nr_chunks);
@@ -3417,8 +3430,10 @@ pp1_sequence_g (listz_t g_x, listz_t g_y, mpzspv_t g_x_ntt, mpzspv_t g_y_ntt,
 
     l = (l_param - 1) / nr_chunks + 1;
     offset = thread_nr * l;
-    ASSERT_ALWAYS (l_param >= offset);
-    l = MIN(l, l_param - offset);
+    if (offset <= l_param)
+      l = MIN(l, l_param - offset);
+    else
+      l = 0;
     M = M_param - (long) offset;
 
     want_output = (omp_get_thread_num() == 0);
@@ -3714,8 +3729,10 @@ pp1_sequence_h (listz_t h_x, listz_t h_y, mpzspv_t h_x_ntt, mpzspv_t h_y_ntt,
 
     l = (l_param - 1) / nr_chunks + 1;
     offset = thread_nr * l;
-    ASSERT_ALWAYS (l_param >= offset);
-    l = MIN(l, l_param - offset);
+    if (offset <= l_param)
+      l = MIN(l, l_param - offset);
+    else
+      l = 0;
 
     if (thread_nr == 0)
       outputf (OUTPUT_VERBOSE, " using %d threads", nr_chunks);
