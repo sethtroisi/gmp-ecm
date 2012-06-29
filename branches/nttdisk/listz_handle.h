@@ -35,7 +35,6 @@ typedef struct{
   struct aiocb cb;
   file_word_t *buf[2];
   int active_buffer;
-  int cb_valid;
   FILE *hidden_file;
 #else
   file_word_t *buf;

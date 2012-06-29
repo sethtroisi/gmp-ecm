@@ -1,5 +1,4 @@
 #define _GNU_SOURCE
-// #define WANT_AIO
 #include "config.h"
 #include <stdlib.h>
 #include <stdio.h>
@@ -198,7 +197,6 @@ listz_iterator_fetch (listz_iterator_t *iter, const uint64_t offset)
   iter->cb.aio_offset = (off_t) offset * iter->handle->words * sizeof(file_word_t);
   iter->cb.aio_buf = iter->buf[iter->active_buffer];
   iter->cb.aio_nbytes = iter->bufsize * iter->handle->words * sizeof(file_word_t);
-  ASSERT_ALWAYS (iter->cb_valid == 0);
   {
     int r = aio_read (&iter->cb);
     if (r != 0)
@@ -206,7 +204,6 @@ listz_iterator_fetch (listz_iterator_t *iter, const uint64_t offset)
         fprintf (stderr, "%s(): aio_read() returned %d\n", __func__, r);
         abort ();
       }
-    iter->cb_valid = 1;
   }
 #else /* ifdef HAVE_AIO_READ */
 #ifdef _OPENMP
@@ -223,13 +220,11 @@ listz_iterator_fetch (listz_iterator_t *iter, const uint64_t offset)
 
 #if defined(HAVE_AIO_READ) && defined(WANT_AIO)
 static size_t 
-listz_iterator_suspend (listz_iterator_t *iter)
+listz_iterator_suspend (struct aiocb * const cb)
 {
-  struct aiocb * const cb = &iter->cb;
   int r;
   ssize_t s;
   
-  ASSERT_ALWAYS (iter->cb_valid);
   do {
     const struct aiocb * aiocb_list[1] = {cb};
     r = aio_suspend (aiocb_list, 1, NULL);
@@ -248,7 +243,6 @@ listz_iterator_suspend (listz_iterator_t *iter)
                __func__, (long int) s);
       abort();
     }
-  iter->cb_valid = 0;
   return (size_t) s;
 }
 #endif  
@@ -272,7 +266,6 @@ listz_iterator_flush (listz_iterator_t *iter)
     iter->cb.aio_buf = iter->buf[iter->active_buffer];
     nbytes = iter->writeptr * iter->handle->words * sizeof(file_word_t);
     iter->cb.aio_nbytes = nbytes;
-    ASSERT_ALWAYS (iter->cb_valid == 0);
     r = aio_write (&iter->cb);
     if (r != 0)
       {
@@ -280,8 +273,7 @@ listz_iterator_flush (listz_iterator_t *iter)
                  __func__, errno);
         abort ();
       }
-    iter->cb_valid = 1;
-    written = listz_iterator_suspend (iter);
+    written = listz_iterator_suspend (&iter->cb);
     ASSERT_ALWAYS (written == nbytes);
   }
 #else
@@ -294,7 +286,6 @@ listz_iterator_flush (listz_iterator_t *iter)
     written = fwrite (iter->buf, sizeof(file_word_t) * iter->handle->words, 
                       iter->writeptr, iter->handle->data.file);
     ASSERT_ALWAYS (written == iter->writeptr);
-    fflush (iter->handle->data.file);
   }
 #endif
   iter->writeptr = 0;
@@ -346,7 +337,6 @@ listz_iterator_init2 (listz_handle_t h, const uint64_t firstres,
       iter->cb.aio_fildes = fileno (iter->hidden_file);
       iter->cb.aio_reqprio = 0;
       iter->cb.aio_sigevent.sigev_notify = SIGEV_NONE;
-      iter->cb_valid = 0;
 #else
       iter->buf = malloc (iter->bufsize * iter->handle->words * 
                           sizeof(file_word_t));
@@ -378,7 +368,7 @@ listz_iterator_clear (listz_iterator_t *iter)
 #if defined(HAVE_AIO_READ) && defined(WANT_AIO)
       if (iter->valid > 0)
         {
-          listz_iterator_suspend (iter);
+          listz_iterator_suspend (&iter->cb);
         }
 #endif
       listz_iterator_flush (iter);
@@ -391,6 +381,40 @@ listz_iterator_clear (listz_iterator_t *iter)
 #endif
     }
   free (iter);
+}
+
+
+/* Outside of listz_iterator_newbuf() we have:
+   If iter->valid == 0, then there is no outstanding read request
+   If iter->valid != 0, then there is an outstanding read request for the 
+     non-active buffer
+   There is no outstanding write request
+   If there is an outstanding read request, then iter->offset is the start 
+     position in the file (in units of residues) of that read request
+*/
+
+static inline void 
+listz_iterator_switchbuf (listz_iterator_t *iter)
+{
+#if defined(HAVE_AIO_READ) && defined(WANT_AIO)
+  if (iter->valid == 0)
+    {
+      /* We never read data before. We have to fetch data for the 
+         current buffer and wait for it to finish, then issue a fetch 
+         for the next buffer */
+      listz_iterator_fetch (iter, iter->offset);
+      iter->active_buffer ^= 1;
+    }
+  iter->valid = listz_iterator_suspend (&iter->cb) 
+      / sizeof(file_word_t) / iter->handle->words;
+#endif
+  listz_iterator_flush (iter);
+  listz_iterator_fetch (iter, iter->offset + iter->valid);
+#if defined(HAVE_AIO_READ) && defined(WANT_AIO)
+  iter->active_buffer ^= 1;
+#endif
+  iter->readptr = 0;
+  ASSERT_ALWAYS (iter->valid > 0);
 }
 
 
@@ -414,27 +438,8 @@ listz_iterator_read (listz_iterator_t *iter, mpz_t r)
       ASSERT (iter->writeptr == 0 || iter->readptr == iter->writeptr);
 
       if (iter->readptr == iter->valid)
-        {
-#if defined(HAVE_AIO_READ) && defined(WANT_AIO)
-          if (iter->valid == 0)
-            {
-              /* We never read data before. We have to fetch data for the 
-                 current buffer and wait for it to finish, then issue a fetch 
-                 for the next buffer */
-              listz_iterator_fetch (iter, iter->offset);
-              iter->active_buffer ^= 1;
-            }
-          iter->valid = listz_iterator_suspend (iter) 
-              / sizeof(file_word_t) / iter->handle->words;
-#endif
-          listz_iterator_flush (iter);
-          listz_iterator_fetch (iter, iter->offset + iter->valid);
-#if defined(HAVE_AIO_READ) && defined(WANT_AIO)
-          iter->active_buffer ^= 1;
-#endif
-          iter->readptr = 0;
-          ASSERT_ALWAYS (iter->valid > 0);
-        }
+        listz_iterator_switchbuf (iter);
+
 #if defined(HAVE_AIO_READ) && defined(WANT_AIO)
       mpz_import (r, iter->handle->words, -1, sizeof(file_word_t), 0, 0, 
                   &iter->buf[iter->active_buffer][iter->readptr * iter->handle->words]);
