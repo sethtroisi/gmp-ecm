@@ -127,6 +127,14 @@ __GMP_DECLSPEC mp_limb_t __gmpn_add_nc (mp_ptr, mp_srcptr, mp_srcptr,
   void __gmpn_mullo_n (mp_ptr, mp_srcptr, mp_srcptr, mp_size_t);
 #endif
 
+#if defined(HAVE___GMPN_MOD_1S_4P_CPS)
+  void __gmpn_mod_1s_4p_cps (mp_limb_t [7], mp_limb_t);
+#endif
+
+#if defined(HAVE___GMPN_MOD_1S_4P)
+  mp_limb_t __gmpn_mod_1s_4p (mp_srcptr, mp_size_t, mp_limb_t, mp_limb_t [7]);
+#endif
+
 static inline void 
 mpz_set_uint64 (mpz_t m, const uint64_t n)
 {

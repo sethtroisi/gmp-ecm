@@ -186,6 +186,10 @@ typedef struct
   sp_t inv_prim_root;
   sp_nttdata_t nttdata;
   sp_nttdata_t inttdata;
+#if defined(HAVE___GMPN_MOD_1S_4P_CPS)
+  /* Precomputed constants for mpn_mod_1_1p() */
+  mp_limb_t cps[7];
+#endif
   spv_t scratch1;
   spv_t scratch2;
 #if SP_TYPE_BITS > GMP_LIMB_BITS
@@ -216,8 +220,7 @@ typedef struct
     float *prime_recip;
 
     /* product tree to speed up conversion from mpz to sp */
-    mpzv_t T;             /* product tree */
-    spv_t fixfactors;     /* Factors to fix residues after paired reduction */
+    mpzv_t T, preinv;     /* product tree */
     unsigned int d;       /* ceil(log(sp_num)/log(2)) */
     unsigned int *start_p;
     mpzv_t remainders; /* Scratch space for remainder tree */

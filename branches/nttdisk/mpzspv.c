@@ -422,16 +422,28 @@ mpzspv_add (mpzspv_handle_t r, const spv_size_t r_offset,
 
 
 static inline sp_t 
-mpz_mod_sp (const mpz_t mpz, const spm_t *spm, ATTRIBUTE_UNUSED mpz_t rem, 
-            const unsigned int k)
+mpz_mod_spm (const mpz_t mpz, const spm_t spm, ATTRIBUTE_UNUSED mpz_t rem)
 {
+  sp_t r;
 #if SP_TYPE_BITS > GMP_LIMB_BITS
-  mpz_tdiv_r(rem, mpz, spm[k]->mp_sp);
-  return mpz_get_sp(rem);
+  mpz_tdiv_r(rem, mpz, spm->mp_sp);
+  r = mpz_get_sp(rem);
 #else
-  ASSERT (mpz_sgn (mpz) > 0);
-  return mpn_mod_1 (PTR(mpz), SIZ(mpz), (mp_limb_t) spm[k]->sp);
+#if defined(HAVE___GMPN_MOD_1S_4P_CPS) && defined(HAVE___GMPN_MOD_1S_4P)
+#ifdef USE_VALGRIND
+  VALGRIND_CHECK_MEM_IS_DEFINED(spm->cps, sizeof(spm->cps));
 #endif
+  ASSERT (mpz_sgn (mpz) > 0);
+  // ASSERT (spm->sp << spm->cps[1] >= 1UL << (8*sizeof(unsigned long) - 1));
+  r = __gmpn_mod_1s_4p (PTR(mpz), SIZ(mpz), 
+      (mp_limb_t) spm->sp << spm->cps[1], spm->cps);
+  // ASSERT (r == mpn_mod_1 (PTR(mpz), SIZ(mpz), (mp_limb_t) spm->sp));
+#else
+  ASSERT (mpz_sgn (mpz) >= 0);
+  r = mpn_mod_1 (PTR(mpz), SIZ(mpz), (mp_limb_t) spm->sp);
+#endif
+#endif
+  return r;
 }
 
 
@@ -443,15 +455,6 @@ spv_from_mpz_slow (spv_t x, const spv_size_t offset,
 {
   unsigned int j;
 
-  /* GMP's comments on mpn_preinv_mod_1:
-   *
-   * "This function used to be documented, but is now considered obsolete.  It
-   * continues to exist for binary compatibility, even when not required
-   * internally."
-   *
-   * It doesn't accept 0 as the dividend so we have to treat this case
-   * separately */
-  
   valgrind_check_mpzin (mpz);
   if (UNLIKELY(mpz_sgn (mpz) == 0))
     {
@@ -460,7 +463,7 @@ spv_from_mpz_slow (spv_t x, const spv_size_t offset,
     } else {
       const spm_t *spm = mpzspm->spm;
       for (j = 0; j < mpzspm->sp_num; j++)
-        x[j * sp_per_line + offset] = mpz_mod_sp (mpz, spm, rem, j);
+        x[j * sp_per_line + offset] = mpz_mod_spm (mpz, spm[j], rem);
     }
 }
 
@@ -470,14 +473,34 @@ spv_from_mpz_slow (spv_t x, const spv_size_t offset,
 
 /* TODO: use fast reduction with invariant modulus. */
 
+static inline void
+preinv_mod (mpz_t r, const mpz_t a, const mpz_t m, const mpz_t i,
+            mpz_t mt, mpz_t mt2)
+{
+  const unsigned int b = mpz_sizeinbase (m, 2);
+  
+  mpz_tdiv_q_2exp (mt, a, b);
+  mpz_mul (mt2, mt, i);
+  mpz_tdiv_q_2exp (mt, mt2, b);
+  mpz_mul (mt2, mt, m);
+  mpz_sub (r, a, mt2);
+  if (0)
+    printf ("preinv_mod(): s(a) = %lu, s(m) = %lu, s(i) = %lu, s(r) = %lu\n",
+            mpz_sizeinbase (a, 2), mpz_sizeinbase (m, 2), mpz_sizeinbase (i, 2), 
+            mpz_sizeinbase (r, 2));
+}
+
 static void
 spv_from_mpz_fast (spv_t x, const spv_size_t offset, 
                    const size_t sp_per_line, const mpz_t mpz, 
                    const mpzspm_t mpzspm, ATTRIBUTE_UNUSED mpz_t rem)
 {
+  const int use_preinv = 0; /* Current code is just a test, needs much better 
+                               implementation to be competitive */
   unsigned int i, j;
   const mpzv_t T = mpzspm->T, r = mpzspm->remainders;
   const unsigned int d = mpzspm->d;
+  mpz_t mt, mt2;
 
   ASSERT (d > 0);
   valgrind_check_mpzin (mpz);
@@ -491,15 +514,32 @@ spv_from_mpz_fast (spv_t x, const spv_size_t offset,
      and T[2][0 ... 3] are about half as large, so we start with i=2. */
   i = I0_FIRST;
   ASSERT (i <= d);
+  if (use_preinv)
+    {
+      mpz_init (mt);
+      mpz_init (mt2);
+    }
   /* First pass uses mpz as input */
   for (j = 0; j < 1U << i; j++)
-    mpz_mod (r[j], mpz, T[(1U << i) - 1 + j]);
+    if (use_preinv)
+      preinv_mod (r[j], mpz, T[(1U << i) - 1 + j], mpzspm->preinv[(1U << i) - 1 + j], mt, mt2);
+    else
+      mpz_tdiv_r (r[j], mpz, T[(1U << i) - 1 + j]);
   i++;
 
   for ( ; i <= d; i++)
     {
       for (j = 1U << i; j-- > 0; )
-        mpz_mod (r[j], r[j/2], T[(1U << i) - 1 + j]);
+        if (use_preinv)
+          preinv_mod (r[j], r[j/2],  T[(1U << i) - 1 + j], mpzspm->preinv[(1U << i) - 1 + j], mt, mt2);
+        else
+          mpz_tdiv_r (r[j], r[j/2], T[(1U << i) - 1 + j]);
+    }
+
+  if (use_preinv)
+    {
+      mpz_clear (mt);
+      mpz_clear (mt2);
     }
 
   /* Reduce each leaf node modulo individual primes */

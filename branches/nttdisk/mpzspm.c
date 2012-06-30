@@ -126,7 +126,7 @@ mpzspm_product_tree_init (mpzspm_t mpzspm)
   unsigned int d, i;
   unsigned int n = mpzspm->sp_num;
   unsigned int *start_p;
-  mpzv_t T;
+  mpzv_t T, preinv;
   mpz_t mt, mt2, all_p;
 
   {
@@ -185,12 +185,22 @@ mpzspm_product_tree_init (mpzspm_t mpzspm)
       return;
     }
 
+  preinv = (mpzv_t) malloc (((2 << d) - 1) * sizeof (mpz_t));
+  if (preinv == NULL)
+    {
+      fprintf (stderr, "%s(): Could not allocate memory for preinv\n", __func__);
+      free (T);
+      mpzspm->T = NULL;
+      return;
+    }
+
   start_p = (unsigned int *) malloc (((1 << d) + 1) * sizeof (unsigned int));
   if (start_p == NULL)
     {
       fprintf (stderr, "%s(): Could not allocate memory for start_p\n", 
                __func__);
       free(T);
+      free (preinv);
       mpzspm->T = NULL;
       return;
     }
@@ -202,6 +212,7 @@ mpzspm_product_tree_init (mpzspm_t mpzspm)
       fprintf (stderr, "%s(): Could not allocate memory for remainders\n", 
                __func__);
       free (T);
+      free (preinv);
       free (start_p);
       mpzspm->T = NULL;
       return;
@@ -260,11 +271,30 @@ mpzspm_product_tree_init (mpzspm_t mpzspm)
 
   ASSERT_ALWAYS (mpz_cmp (T[0], all_p) == 0);
 
+  /* Precompute all the reciprocals */
+  for (i = 0; i < (2U << d) - 1; i++)
+    {
+      const unsigned int b = mpz_sizeinbase (T[i], 2);
+      /* 2^(b-1) <= T[i] <= 2^b - 1 */
+      mpz_set_ui (mt, 1UL);
+      mpz_mul_2exp (mt, mt, 2*b);
+      /* mt = 2^(2b) */
+      mpz_tdiv_q (mt2, mt, T[i]);
+      /*  mt2 = floor (2^(2b) / T[i])
+          2^(2b) / T[i] - 1 < mt2 <= 2^(2b) / T[i]
+          2^b + 1/(2^b - 1) < mt2 <= 2^(b+1)
+          mt2 = 2^(b+1) if T[i] = 2^(b+1), won't happen
+      */
+      ASSERT (mpz_sizeinbase(mt2, 2) == b + 1);
+      mpz_init_set (preinv[i], mt2);
+    }
+
   mpz_clear (mt);
   mpz_clear (mt2);
   mpz_clear (all_p);
   mpzspm->d = d;
   mpzspm->T = T;
+  mpzspm->preinv = preinv;
   mpzspm->start_p = start_p;
 }
 
@@ -432,6 +462,10 @@ mpzspm_init (spv_size_t max_len, const mpz_t modulus)
       mpzspm->crt5[i] = mpz_get_sp (mt);
 
       mpzspm->prime_recip[i] = 1.0f / (float) p;
+      
+#if defined(HAVE___GMPN_MOD_1S_4P_CPS)
+      __gmpn_mod_1s_4p_cps (mpzspm->spm[i]->cps, p);
+#endif
     }
   
   mpz_set_ui (T, 0);
@@ -487,16 +521,19 @@ mpzspm_product_tree_clear (mpzspm_t mpzspm)
 {
   unsigned int i;
   unsigned int d = mpzspm->d;
-  mpzv_t T = mpzspm->T;
 
-  if (T == NULL) /* use the slow method */
+  if (mpzspm->T == NULL) /* use the slow method */
     return;
 
   for (i = 0; i < 1U << d; i++)
     mpz_clear (mpzspm->remainders[i]);
   for (i = 0; i < (2U << d) - 1; i++)
-    mpz_clear (T[i]);
-  free (T);
+    {
+      mpz_clear (mpzspm->T[i]);
+      mpz_clear (mpzspm->preinv[i]);
+    }
+  free (mpzspm->T);
+  free (mpzspm->preinv);
   free (mpzspm->start_p);
   free (mpzspm->remainders);
 }
