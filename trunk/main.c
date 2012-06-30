@@ -813,6 +813,10 @@ main (int argc, char *argv[])
       out += sprintf (out, ", --enable-assert");
 #endif
 
+#ifdef _OPENMP
+      out += sprintf (out, ", --enable-openmp");
+#endif
+
       printf ("%s] [", out0);
       switch (method)
 	{
