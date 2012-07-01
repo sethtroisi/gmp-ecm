@@ -477,11 +477,9 @@ static inline sp_t sp_udiv_rem(sp_t nh, sp_t nl, sp_t d, sp_t di)
   sp_wide_mul (q2, tmp, q1, di);
   sp_wide_mul (dqh, dql, q2, d);
 
-  tmp = nl;
-  nl = tmp - dql;
-  nh = nh - dqh - (nl > tmp);
+  sub_ddmmss (nh, nl, nh, nl, dqh, dql);
   if (nh)
-	  nl -= d;
+    nl -= d;
   nl = sp_sub(nl, d, d);
   return sp_sub(nl, d, d);
 }
