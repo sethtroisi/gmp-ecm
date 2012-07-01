@@ -10,14 +10,14 @@ typedef void (*nttdata_init_t)(spv_t out,
 				sp_t primroot, sp_t order);
 
 typedef void (*ntt_run_t)(spv_t x, spv_size_t stride,
-			  sp_t p, spv_t ntt_const);
+			  sp_t p, sp_t d, spv_t ntt_const);
 
 typedef void (*ntt_pfa_run_t)(spv_t x, spv_size_t cofactor, 
 			  sp_t p, spv_t ntt_const);
 
 typedef void (*ntt_twiddle_run_t)(spv_t x, spv_size_t stride,
 			  spv_size_t num_transforms, 
-			  sp_t p, spv_t ntt_const);
+			  sp_t p, sp_t d, spv_t ntt_const);
 
 
 /* a copy of sp_add, but operating on array offsets. These
@@ -62,8 +62,6 @@ static inline spv_size_t sp_array_inc(spv_size_t a, spv_size_t b, spv_size_t m)
 #endif
 }
 
-sp_t sp_ntt_reciprocal (sp_t w, sp_t p);
-
 /* if the modulus is 2 bits or more smaller than the machine
    word size, the core NTT routines use a redundant representation 
    of the transform elements. Modular multiplies do not do their
@@ -92,9 +90,15 @@ static inline sp_t sp_sub_partial(sp_t a, sp_t b, sp_t p)
 #endif
 }
 
+/*--------------------------------------------------------------------*/
+/* perform modular multiplication when the multiplier
+   and its generalized inverse are both known and precomputed */
+
+sp_t sp_ntt_reciprocal (sp_t w, sp_t p);
+
 /* low half multiply */
 
-static inline sp_t sp_ntt_mul_lo(sp_t a, sp_t b)
+static inline sp_t sp_mul_lo(sp_t a, sp_t b)
 {
 #if SP_TYPE_BITS <= GMP_LIMB_BITS
 
@@ -117,7 +121,7 @@ static inline sp_t sp_ntt_mul_lo(sp_t a, sp_t b)
 
 /* high half multiply */
 
-static inline sp_t sp_ntt_mul_hi(sp_t a, sp_t b)
+static inline sp_t sp_mul_hi(sp_t a, sp_t b)
 {
 #if SP_TYPE_BITS == GMP_LIMB_BITS  /* use GMP functions */
 
@@ -170,18 +174,15 @@ static inline sp_t sp_ntt_mul_hi(sp_t a, sp_t b)
 #endif
 }
 
-/* perform modular multiplication when the multiplier
-   and its generalized inverse are both known and precomputed */
-
 static inline sp_t sp_ntt_mul(sp_t x, sp_t w, sp_t w_inv, sp_t p)
 {
-  sp_t q = sp_ntt_mul_hi(x, w_inv);
+  sp_t q = sp_mul_hi(x, w_inv);
 
 #ifdef HAVE_PARTIAL_MOD
-  //return sp_ntt_mul_lo(x, w) - sp_ntt_mul_lo(q, p >> 1);
+  //return sp_mul_lo(x, w) - sp_mul_lo(q, p >> 1);
   return x * w - q * (p >> 1);
 #else
-  //sp_t r = sp_ntt_mul_lo(x, w) - sp_ntt_mul_lo(q, p);
+  //sp_t r = sp_mul_lo(x, w) - sp_mul_lo(q, p);
   sp_t r = x * w - q * p;
   return sp_sub(r, p, p);
 #endif
@@ -372,6 +373,144 @@ static inline sp_simd_t sp_simd_sub_partial(sp_simd_t a, sp_simd_t b, sp_t p)
 #endif
 }
 
+
+static inline sp_simd_t sp_simd_mul(sp_simd_t a, sp_t w, 
+					sp_t p, sp_t d)
+{
+#if SP_NUMB_BITS < 32
+
+  sp_simd_t t0, t1, t2, t3, vp, vp2, vd, vw;
+
+  vp = pshufd(pcvt_i32(p), 0x00);
+  vp2 = pshufd(pcvt_i32(p), 0x44);
+  vw = pshufd(pcvt_i32(w), 0x00);
+  vd = pshufd(pcvt_i32(d), 0x00);
+
+  t0 = a;
+  t1 = vw;
+  t2 = pshufd(t0, 0x31);
+  t3 = pshufd(t1, 0x31);
+  t0 = pmuludq(t0, t1);
+  t2 = pmuludq(t2, t3);
+  t1 = psrlq(t0, 2 * SP_NUMB_BITS - SP_TYPE_BITS);
+  t3 = psrlq(t2, 2 * SP_NUMB_BITS - SP_TYPE_BITS);
+  t1 = pmuludq(t1, vd);
+  t3 = pmuludq(t3, vd);
+
+  #if SP_NUMB_BITS < 31
+  t1 = psrlq(t1, 33);
+  t3 = psrlq(t3, 33);
+  t1 = pmuludq(t1, vp);
+  t3 = pmuludq(t3, vp);
+  t0 = psubq(t0, t1);
+  t2 = psubq(t2, t3);
+  #else
+  t1 = pshufd(t1, 0xf5);
+  t3 = pshufd(t3, 0xf5);
+  t1 = pmuludq(t1, vp);
+  t3 = pmuludq(t3, vp);
+  t0 = psubq(t0, t1);
+  t2 = psubq(t2, t3);
+
+  t0 = psubq(t0, vp2);
+  t2 = psubq(t2, vp2);
+  t1 = pshufd(t0, 0xf5);
+  t3 = pshufd(t2, 0xf5);
+  t1 = pand(t1, vp2);
+  t3 = pand(t3, vp2);
+  t0 = paddq(t0, t1);
+  t2 = paddq(t2, t3);
+  #endif
+
+  t0 = pshufd(t0, 0x08);
+  t1 = pshufd(t2, 0x08);
+  t0 = punpcklo32(t0, t1);
+
+  return sp_simd_sub(t0, vp, p);
+
+#elif GMP_LIMB_BITS == 32   /* 64-bit sp_t on a 32-bit machine */
+
+  sp_simd_t t0, t1, t2, t3, t4, t5, vp, vd, vw;
+
+  vp = pshufd(pcvt_i64(p), 0x44);
+  vw = pshufd(pcvt_i64(w), 0x44);
+  vd = pshufd(pcvt_i64(d), 0x44);
+
+  t4 = a;
+  t5 = vw;
+
+  t3 = pshufd(t4, 0x31);
+  t3 = pmuludq(t3, t5);
+  t2 = pshufd(t5, 0x31);
+  t2 = pmuludq(t2, t4);
+  t1 = pshufd(t4, 0x31);
+  t4 = pmuludq(t4, t5);
+  t5 = pshufd(t5, 0x31);
+  t5 = pmuludq(t5, t1);
+  t3 = paddq(t2, t3);
+
+  t0 = t4;
+  t4 = psrlq(t4, 32);
+  t1 = t3;
+  t3 = psllq(t3, 32);
+  t3 = paddq(t3, t0);
+  t4 = paddq(t4, t1);
+  t4 = psrlq(t4, 32);
+  t4 = paddq(t4, t5);
+
+  t0 = t3;
+  t4 = psllq(t4, 2*(SP_TYPE_BITS - SP_NUMB_BITS));
+  t0 = psrlq(t0, 2*SP_NUMB_BITS - SP_TYPE_BITS);
+  t4 = paddq(t4, t0);
+
+  t5 = pshufd(t4, 0x31);
+  t5 = pmuludq(t5, vd);
+  t2 = pshufd(vd, 0x31);
+  t2 = pmuludq(t2, t4);
+  t1 = pshufd(t4, 0x31);
+  t4 = pmuludq(t4, vd);
+  t0 = pshufd(vd, 0x31);
+  t1 = pmuludq(t1, t0);
+  t5 = paddq(t5, t2);
+
+  t4 = psrlq(t4, 32);
+  t5 = paddq(t5, t4);
+  t5 = psrlq(t5, 32);
+  t1 = paddq(t1, t5);
+  t1 = psrlq(t1, 1);
+
+  t5 = pshufd(t1, 0x31);
+  t5 = pmuludq(t5, vp);
+  t2 = pshufd(vp, 0x31);
+  t2 = pmuludq(t2, t1);
+  t1 = pmuludq(t1, vp);
+  t5 = paddq(t5, t2);
+  t5 = psllq(t5, 32);
+  t1 = paddq(t1, t5);
+
+  t3 = psubq(t3, t1);
+  return sp_simd_sub(t3, vp, p);
+
+#else
+
+  /* there's no way the SSE2 unit can keep up with a
+     64-bit multiplier in the ALU */
+
+  sp_simd_t t0, t1;
+  sp_t a0, a1;
+
+  pstore_i64(a0, a);
+  pstore_i64(a1, pshufd(a, 0x0e));
+
+  a0 = sp_mul(a0, w, p, d);
+  a1 = sp_mul(a1, w, p, d);
+
+  t0 = pcvt_i64(a0);
+  t1 = pcvt_i64(a1);
+  return punpcklo64(t0, t1);
+
+#endif
+}
 
 static inline sp_simd_t sp_simd_ntt_mul(sp_simd_t a, sp_t w, 
 					sp_t w_inv, sp_t p)
