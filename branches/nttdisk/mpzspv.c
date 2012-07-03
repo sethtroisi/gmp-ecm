@@ -552,7 +552,7 @@ spv_from_mpz_fast (spv_t x, const spv_size_t offset,
             x[j * sp_per_line + offset] = 0;
         } else {
           for (j = mpzspm->start_p[i]; j < mpzspm->start_p[i + 1]; j++)
-            x[j * sp_per_line + offset] = mpz_mod_sp (r[i], spm, rem, j);
+            x[j * sp_per_line + offset] = mpz_mod_spm (r[i], spm[j], rem);
         }
     }
 }
