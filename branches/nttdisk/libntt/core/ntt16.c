@@ -62,7 +62,7 @@ ntt16_init(spv_t out, sp_t p, sp_t d,
 
 static void
 ntt16_run(spv_t x, spv_size_t stride,
-	  sp_t p, sp_t d, spv_t ntt_const)
+	  sp_t p, spv_t ntt_const)
 {
   sp_t x0, x1, x2, x3, x4, x5, x6, x7,
        x8, x9, x10, x11, x12, x13, x14, x15;
@@ -70,6 +70,10 @@ ntt16_run(spv_t x, spv_size_t stride,
        t8, t9, t10, t11, t12, t13, t14, t15, t16, t17;
   sp_t p0, p1, p2, p3, p4, p5, p6, p7,
        p8, p9, p10, p11, p12, p13, p14, p15, p16, p17;
+
+  #ifdef HAVE_PARTIAL_MOD
+  p *= 2;
+  #endif
 
   x0 = x[0 * stride];
   x1 = x[1 * stride];
@@ -97,7 +101,7 @@ ntt16_run(spv_t x, spv_size_t stride,
   t3 = sp_add(x3, x11, p);
   t11 = sp_sub(x3, x11, p);
   t4 = sp_add(x4, x12, p);
-  t12 = sp_sub(x4, x12, p);
+  t12 = sp_sub_partial(x4, x12, p);
   t5 = sp_add(x5, x13, p);
   t13 = sp_sub(x13, x5, p);
   t6 = sp_add(x6, x14, p);
@@ -110,13 +114,13 @@ ntt16_run(spv_t x, spv_size_t stride,
   p1 = sp_add(t1, t5, p);
   p5 = sp_sub(t1, t5, p);
   p2 = sp_add(t2, t6, p);
-  p6 = sp_sub(t2, t6, p);
+  p6 = sp_sub_partial(t2, t6, p);
   p3 = sp_add(t3, t7, p);
   p7 = sp_sub(t3, t7, p);
   p8 = t8;
   p9 = t12;
-  p10 = sp_add(t10, t14, p);
-  p11 = sp_sub(t10, t14, p);
+  p10 = sp_add_partial(t10, t14, p);
+  p11 = sp_sub_partial(t10, t14, p);
   p12 = sp_add(t9, t15, p);
   p13 = sp_sub(t9, t15, p);
   p14 = sp_add(t13, t11, p);
@@ -125,11 +129,11 @@ ntt16_run(spv_t x, spv_size_t stride,
   t0 = sp_add(p0, p2, p);
   t1 = sp_sub(p0, p2, p);
   t2 = sp_add(p1, p3, p);
-  t3 = sp_sub(p1, p3, p);
+  t3 = sp_sub_partial(p1, p3, p);
   t4 = p4;
   t5 = p6;
-  t6 = sp_sub(p5, p7, p);
-  t7 = sp_add(p5, p7, p); 
+  t6 = sp_sub_partial(p5, p7, p);
+  t7 = sp_add_partial(p5, p7, p); 
   t8 = p8;
   t9 = p9;
   t10 = p10;
@@ -138,22 +142,22 @@ ntt16_run(spv_t x, spv_size_t stride,
   t13 = p13;
   t14 = p14;
   t15 = p15;
-  t16 = sp_add(p12, p14, p);
-  t17 = sp_add(p13, p15, p);
+  t16 = sp_add_partial(p12, p14, p);
+  t17 = sp_add_partial(p13, p15, p);
 
-  t3 = sp_mul(t3, ntt_const[3], p, d);
-  t5 = sp_mul(t5, ntt_const[5], p, d);
-  t6 = sp_mul(t6, ntt_const[6], p, d);
-  t7 = sp_mul(t7, ntt_const[7], p, d);
-  t9 = sp_mul(t9, ntt_const[9], p, d);
-  t10 = sp_mul(t10, ntt_const[10], p, d);
-  t11 = sp_mul(t11, ntt_const[11], p, d);
-  t12 = sp_mul(t12, ntt_const[12], p, d);
-  t13 = sp_mul(t13, ntt_const[13], p, d);
-  t14 = sp_mul(t14, ntt_const[14], p, d);
-  t15 = sp_mul(t15, ntt_const[15], p, d);
-  t16 = sp_mul(t16, ntt_const[16], p, d);
-  t17 = sp_mul(t17, ntt_const[17], p, d);
+  t3 = sp_ntt_mul(t3, ntt_const[3], ntt_const[NC+3], p);
+  t5 = sp_ntt_mul(t5, ntt_const[5], ntt_const[NC+5], p);
+  t6 = sp_ntt_mul(t6, ntt_const[6], ntt_const[NC+6], p);
+  t7 = sp_ntt_mul(t7, ntt_const[7], ntt_const[NC+7], p);
+  t9 = sp_ntt_mul(t9, ntt_const[9], ntt_const[NC+9], p);
+  t10 = sp_ntt_mul(t10, ntt_const[10], ntt_const[NC+10], p);
+  t11 = sp_ntt_mul(t11, ntt_const[11], ntt_const[NC+11], p);
+  t12 = sp_ntt_mul(t12, ntt_const[12], ntt_const[NC+12], p);
+  t13 = sp_ntt_mul(t13, ntt_const[13], ntt_const[NC+13], p);
+  t14 = sp_ntt_mul(t14, ntt_const[14], ntt_const[NC+14], p);
+  t15 = sp_ntt_mul(t15, ntt_const[15], ntt_const[NC+15], p);
+  t16 = sp_ntt_mul(t16, ntt_const[16], ntt_const[NC+16], p);
+  t17 = sp_ntt_mul(t17, ntt_const[17], ntt_const[NC+17], p);
 
   p0 = sp_add(t4, t5, p);
   p1 = sp_sub(t4, t5, p);
@@ -221,7 +225,7 @@ ntt16_run(spv_t x, spv_size_t stride,
 #ifdef HAVE_SSE2
 static void
 ntt16_run_simd(spv_t x, spv_size_t stride,
-	  sp_t p, sp_t d, spv_t ntt_const)
+	  sp_t p, spv_t ntt_const)
 {
   sp_simd_t x0, x1, x2, x3, x4, x5, x6, x7,
             x8, x9, x10, x11, x12, x13, x14, x15;
@@ -229,6 +233,10 @@ ntt16_run_simd(spv_t x, spv_size_t stride,
             t8, t9, t10, t11, t12, t13, t14, t15, t16, t17;
   sp_simd_t p0, p1, p2, p3, p4, p5, p6, p7,
             p8, p9, p10, p11, p12, p13, p14, p15, p16, p17;
+
+  #ifdef HAVE_PARTIAL_MOD
+  p *= 2;
+  #endif
 
   x0 = sp_simd_gather(x + 0 * stride);
   x1 = sp_simd_gather(x + 1 * stride);
@@ -256,7 +264,7 @@ ntt16_run_simd(spv_t x, spv_size_t stride,
   t3 = sp_simd_add(x3, x11, p);
   t11 = sp_simd_sub(x3, x11, p);
   t4 = sp_simd_add(x4, x12, p);
-  t12 = sp_simd_sub(x4, x12, p);
+  t12 = sp_simd_sub_partial(x4, x12, p);
   t5 = sp_simd_add(x5, x13, p);
   t13 = sp_simd_sub(x13, x5, p);
   t6 = sp_simd_add(x6, x14, p);
@@ -269,13 +277,13 @@ ntt16_run_simd(spv_t x, spv_size_t stride,
   p1 = sp_simd_add(t1, t5, p);
   p5 = sp_simd_sub(t1, t5, p);
   p2 = sp_simd_add(t2, t6, p);
-  p6 = sp_simd_sub(t2, t6, p);
+  p6 = sp_simd_sub_partial(t2, t6, p);
   p3 = sp_simd_add(t3, t7, p);
   p7 = sp_simd_sub(t3, t7, p);
   p8 = t8;
   p9 = t12;
-  p10 = sp_simd_add(t10, t14, p);
-  p11 = sp_simd_sub(t10, t14, p);
+  p10 = sp_simd_add_partial(t10, t14, p);
+  p11 = sp_simd_sub_partial(t10, t14, p);
   p12 = sp_simd_add(t9, t15, p);
   p13 = sp_simd_sub(t9, t15, p);
   p14 = sp_simd_add(t13, t11, p);
@@ -284,11 +292,11 @@ ntt16_run_simd(spv_t x, spv_size_t stride,
   t0 = sp_simd_add(p0, p2, p);
   t1 = sp_simd_sub(p0, p2, p);
   t2 = sp_simd_add(p1, p3, p);
-  t3 = sp_simd_sub(p1, p3, p);
+  t3 = sp_simd_sub_partial(p1, p3, p);
   t4 = p4;
   t5 = p6;
-  t6 = sp_simd_sub(p5, p7, p);
-  t7 = sp_simd_add(p5, p7, p); 
+  t6 = sp_simd_sub_partial(p5, p7, p);
+  t7 = sp_simd_add_partial(p5, p7, p); 
   t8 = p8;
   t9 = p9;
   t10 = p10;
@@ -297,22 +305,22 @@ ntt16_run_simd(spv_t x, spv_size_t stride,
   t13 = p13;
   t14 = p14;
   t15 = p15;
-  t16 = sp_simd_add(p12, p14, p);
-  t17 = sp_simd_add(p13, p15, p);
+  t16 = sp_simd_add_partial(p12, p14, p);
+  t17 = sp_simd_add_partial(p13, p15, p);
 
-  t3 = sp_simd_mul(t3, ntt_const[3], p, d);
-  t5 = sp_simd_mul(t5, ntt_const[5], p, d);
-  t6 = sp_simd_mul(t6, ntt_const[6], p, d);
-  t7 = sp_simd_mul(t7, ntt_const[7], p, d);
-  t9 = sp_simd_mul(t9, ntt_const[9], p, d);
-  t10 = sp_simd_mul(t10, ntt_const[10], p, d);
-  t11 = sp_simd_mul(t11, ntt_const[11], p, d);
-  t12 = sp_simd_mul(t12, ntt_const[12], p, d);
-  t13 = sp_simd_mul(t13, ntt_const[13], p, d);
-  t14 = sp_simd_mul(t14, ntt_const[14], p, d);
-  t15 = sp_simd_mul(t15, ntt_const[15], p, d);
-  t16 = sp_simd_mul(t16, ntt_const[16], p, d);
-  t17 = sp_simd_mul(t17, ntt_const[17], p, d);
+  t3 = sp_simd_ntt_mul(t3, ntt_const[3], ntt_const[NC+3], p);
+  t5 = sp_simd_ntt_mul(t5, ntt_const[5], ntt_const[NC+5], p);
+  t6 = sp_simd_ntt_mul(t6, ntt_const[6], ntt_const[NC+6], p);
+  t7 = sp_simd_ntt_mul(t7, ntt_const[7], ntt_const[NC+7], p);
+  t9 = sp_simd_ntt_mul(t9, ntt_const[9], ntt_const[NC+9], p);
+  t10 = sp_simd_ntt_mul(t10, ntt_const[10], ntt_const[NC+10], p);
+  t11 = sp_simd_ntt_mul(t11, ntt_const[11], ntt_const[NC+11], p);
+  t12 = sp_simd_ntt_mul(t12, ntt_const[12], ntt_const[NC+12], p);
+  t13 = sp_simd_ntt_mul(t13, ntt_const[13], ntt_const[NC+13], p);
+  t14 = sp_simd_ntt_mul(t14, ntt_const[14], ntt_const[NC+14], p);
+  t15 = sp_simd_ntt_mul(t15, ntt_const[15], ntt_const[NC+15], p);
+  t16 = sp_simd_ntt_mul(t16, ntt_const[16], ntt_const[NC+16], p);
+  t17 = sp_simd_ntt_mul(t17, ntt_const[17], ntt_const[NC+17], p);
 
   p0 = sp_simd_add(t4, t5, p);
   p1 = sp_simd_sub(t4, t5, p);
@@ -380,7 +388,7 @@ ntt16_run_simd(spv_t x, spv_size_t stride,
 static void
 ntt16_twiddle_run(spv_t x, spv_size_t stride,
 	  spv_size_t num_transforms,
-	  sp_t p, sp_t d, spv_t ntt_const)
+	  sp_t p, spv_t ntt_const)
 {
   spv_size_t i = 0;
 
@@ -388,11 +396,11 @@ ntt16_twiddle_run(spv_t x, spv_size_t stride,
   spv_size_t num_simd = SP_SIMD_VSIZE * (num_transforms / SP_SIMD_VSIZE);
 
   for (i = 0; i < num_simd; i += SP_SIMD_VSIZE)
-      ntt16_run_simd(x + i, stride, p, d, ntt_const);
+      ntt16_run_simd(x + i, stride, p, ntt_const);
 #endif
 
   for (; i < num_transforms; i++)
-    ntt16_run(x + i, stride, p, d, ntt_const);
+    ntt16_run(x + i, stride, p, ntt_const);
 }
 
 

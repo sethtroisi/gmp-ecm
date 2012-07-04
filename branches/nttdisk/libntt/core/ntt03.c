@@ -29,23 +29,27 @@ ntt3_init(spv_t out, sp_t p, sp_t d,
 
 static void
 ntt3_run(spv_t x, spv_size_t stride,
-	  sp_t p, sp_t d, spv_t ntt_const)
+	  sp_t p, spv_t ntt_const)
 {
   sp_t p0, p1, p2;
   sp_t x0, x1, x2;
   sp_t     t1, t2;
+
+  #ifdef HAVE_PARTIAL_MOD
+  p *= 2;
+  #endif
 
   x0 = x[0 * stride];
   x1 = x[1 * stride];
   x2 = x[2 * stride];
 
   t1 = sp_add(x1, x2, p);
-  t2 = sp_sub(x1, x2, p);
+  t2 = sp_sub_partial(x1, x2, p);
 
   p0 = sp_add(x0, t1, p);
 
-  p1 = sp_mul(t1, ntt_const[1], p, d);
-  p2 = sp_mul(t2, ntt_const[2], p, d);
+  p1 = sp_ntt_mul(t1, ntt_const[1], ntt_const[NC+1], p);
+  p2 = sp_ntt_mul(t2, ntt_const[2], ntt_const[NC+2], p);
 
   p1 = sp_add(p0, p1, p);
 
@@ -60,23 +64,27 @@ ntt3_run(spv_t x, spv_size_t stride,
 #ifdef HAVE_SSE2
 static void
 ntt3_run_simd(spv_t x, spv_size_t stride,
-	  sp_t p, sp_t d, spv_t ntt_const)
+	  sp_t p, spv_t ntt_const)
 {
   sp_simd_t p0, p1, p2;
   sp_simd_t x0, x1, x2;
   sp_simd_t     t1, t2;
+
+  #ifdef HAVE_PARTIAL_MOD
+  p *= 2;
+  #endif
 
   x0 = sp_simd_gather(x + 0 * stride);
   x1 = sp_simd_gather(x + 1 * stride);
   x2 = sp_simd_gather(x + 2 * stride);
 
   t1 = sp_simd_add(x1, x2, p);
-  t2 = sp_simd_sub(x1, x2, p);
+  t2 = sp_simd_sub_partial(x1, x2, p);
 
   p0 = sp_simd_add(x0, t1, p);
 
-  p1 = sp_simd_mul(t1, ntt_const[1], p, d);
-  p2 = sp_simd_mul(t2, ntt_const[2], p, d);
+  p1 = sp_simd_ntt_mul(t1, ntt_const[1], ntt_const[NC+1], p);
+  p2 = sp_simd_ntt_mul(t2, ntt_const[2], ntt_const[NC+2], p);
 
   p1 = sp_simd_add(p0, p1, p);
 
@@ -92,7 +100,7 @@ ntt3_run_simd(spv_t x, spv_size_t stride,
 static void
 ntt3_twiddle_run(spv_t x, spv_size_t stride,
 	  spv_size_t num_transforms,
-	  sp_t p, sp_t d, spv_t ntt_const)
+	  sp_t p, spv_t ntt_const)
 {
   spv_size_t i = 0;
 
@@ -100,11 +108,11 @@ ntt3_twiddle_run(spv_t x, spv_size_t stride,
   spv_size_t num_simd = SP_SIMD_VSIZE * (num_transforms / SP_SIMD_VSIZE);
 
   for (i = 0; i < num_simd; i += SP_SIMD_VSIZE)
-      ntt3_run_simd(x + i, stride, p, d, ntt_const);
+      ntt3_run_simd(x + i, stride, p, ntt_const);
 #endif
 
   for (; i < num_transforms; i++)
-    ntt3_run(x + i, stride, p, d, ntt_const);
+    ntt3_run(x + i, stride, p, ntt_const);
 }
 
 
