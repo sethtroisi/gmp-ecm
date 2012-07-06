@@ -60,7 +60,9 @@ listz_handle_init (const char *filename, const uint64_t len, const mpz_t m)
           return NULL;
         }
       strcpy (F->filename, filename);
-      F->data.file = fopen (F->filename, "wb+");
+      F->data.file = fopen (F->filename, "rb+");
+      if (F->data.file == NULL)
+        F->data.file = fopen (F->filename, "wb+");
       if (F->data.file == NULL)
         {
           free (F->filename);

@@ -103,7 +103,7 @@ get_chunk (uint64_t *chunk_start, uint64_t *chunk_len, const uint64_t len)
 
       l = (len - 1) / nr_chunks + 1; /* l = ceil(len / nr_chunks) */
       s = thread_nr * l;
-      l = MIN(l, (len > s) ? len - s : 0);
+      l = MIN(l, len - MIN(s, len));
       *chunk_start = s;
       *chunk_len = l;
       return;
@@ -1210,6 +1210,27 @@ poly_from_sets_V (listz_handle_t F_param, const mpres_t Q, set_list_t *sets,
 
 
 static listz_handle_t 
+init_F (const faststage2_param_t *params, mpmod_t modulus)
+{
+  listz_handle_t F = NULL;
+  char *filename_f = NULL;
+
+  if (params->file_stem != NULL)
+    {
+      filename_f = malloc ((strlen(params->file_stem) + 6) * sizeof (char));
+      if (filename_f == NULL)
+        return NULL;
+      sprintf (filename_f, "%s.fmpz", params->file_stem);
+    }
+  
+  F = listz_handle_init (filename_f, params->s_1 / 2 + 1 + 1, 
+    modulus->orig_modulus); /* Another +1 in len because 
+    poly_from_sets_V stores the leading 1 monomial for each factor */
+  free (filename_f);
+  return F;
+}
+
+static listz_handle_t 
 build_F_ntt (const mpres_t P_1, set_list_t *S_1, 
 	     const faststage2_param_t *params, 
 	     mpmod_t modulus)
@@ -1220,33 +1241,27 @@ build_F_ntt (const mpres_t P_1, set_list_t *S_1,
   uint64_t tmplen;
   listz_t tmp = NULL;
   listz_handle_t F = NULL;
-  char *filename_f = NULL, *filename_ntt = NULL;
+  char *filename_ntt = NULL;
   long timestart, realstart;
   unsigned long i;
 
   timestart = cputime ();
   realstart = realtime ();
   
+  /* Allocate all the memory we'll need for building f */
+  F = init_F (params, modulus);
+
   /* Precompute the small primes, primitive roots and inverses etc. for 
      the NTT. The code to multiply wants a 3*k-th root of unity, where 
      k is the smallest power of 2 with k > s_1/2 */
   
-  /* Allocate all the memory we'll need for building f */
   if (params->file_stem != NULL)
     {
-      filename_f = malloc ((strlen(params->file_stem) + 6) * sizeof (char));
       filename_ntt = malloc ((strlen(params->file_stem) + 3) * sizeof (char));
-      if (filename_f == NULL || filename_ntt == NULL)
+      if (filename_ntt == NULL)
         goto clear_and_exit;
-      sprintf (filename_f, "%s.fmpz", params->file_stem);
       sprintf (filename_ntt, "%s.f", params->file_stem);
     }
-  
-  F = listz_handle_init (filename_f, params->s_1 / 2 + 1 + 1, 
-    modulus->orig_modulus); /* Another +1 in len because 
-    poly_from_sets_V stores the leading 1 monomial for each factor */
-  free (filename_f);
-
   F_ntt_context = mpzspm_init (3UL << ceil_log2 (params->s_1 / 2 + 1), 
 			       modulus->orig_modulus);
   
@@ -2392,8 +2407,9 @@ pm1fs2_ntt (mpz_t f, const mpres_t X, mpmod_t modulus,
   mpz_t mt;   /* All-purpose temp mpz_t */
   mpz_t product; /* Product of each multi-point evaluation */
   mpz_t *product_ptr = NULL;
-  mpres_t XP, Q; /* XP = X^P, Q = 1 + 1/X */
+  mpres_t Q; /* Q = 1 + 1/X */
   int youpi = ECM_NO_FACTOR_FOUND;
+  int reuse_F = 0, reuse_h = 0, reuse_h_dct = 0;
   long timetotalstart, realtotalstart, timestart, realstart;
 
   timetotalstart = cputime ();
@@ -2479,17 +2495,23 @@ pm1fs2_ntt (mpz_t f, const mpres_t X, mpmod_t modulus,
   }
 #endif
 
-  F = build_F_ntt (Q, &S_1, params, modulus);
-  if (F == NULL)
+  if (!reuse_F && !reuse_h)
     {
-      sets_free (&S_1);
-      free (s2_sumset);
-      mpz_clear (mt);
-      mpres_clear (Q, modulus);
-      mpzspm_clear (ntt_context);
-      return ECM_ERROR;
+      F = build_F_ntt (Q, &S_1, params, modulus);
+      if (F == NULL)
+        {
+          sets_free (&S_1);
+          free (s2_sumset);
+          mpz_clear (mt);
+          mpres_clear (Q, modulus);
+          mpzspm_clear (ntt_context);
+          return ECM_ERROR;
+        }
     }
-
+  else if (reuse_F && !reuse_h)
+    {
+      init_F (params, modulus);
+    }
 
   mpres_clear (Q, modulus);
   
@@ -2497,30 +2519,40 @@ pm1fs2_ntt (mpz_t f, const mpres_t X, mpmod_t modulus,
   free (h_filename);
   h_filename = NULL;
 
-  /* Compute XP = X^(P/2) */
-  mpres_init (XP, modulus);
-  mpz_set_uint64 (mt, params->P/2);
-  mpres_pow (XP, X, mt, modulus);
-
-  pm1_sequence_h (NULL, h_handle, F, XP, params->s_1 / 2 + 1, modulus);
-
-  listz_handle_clear (F);
-  F = NULL;
-  mpres_clear (XP, modulus);
-
-  /* Compute the DCT-I of h */
-  outputf (OUTPUT_VERBOSE, "Computing DCT-I of h");
-  if (test_verbose (OUTPUT_TRACE))
+  if (!reuse_h)
     {
-      mpzspv_print (h_handle, 0, params->s_1 / 2 + 1, "h_ntt");
+      mpres_t XP;
+      /* Compute XP = X^(P/2) */
+      mpres_init (XP, modulus);
+      mpz_set_uint64 (mt, params->P/2);
+      mpres_pow (XP, X, mt, modulus);
+
+      pm1_sequence_h (NULL, h_handle, F, XP, params->s_1 / 2 + 1, modulus);
+      mpres_clear (XP, modulus);
     }
 
-  timestart = cputime ();
-  realstart = realtime ();
-  
-  mpzspv_to_dct1 (h_handle, h_handle, params->s_1 / 2 + 1, params->l / 2 + 1);
+  if (!reuse_F && !reuse_h)
+    {
+      listz_handle_clear (F);
+      F = NULL;
+    }
 
-  print_elapsed_time (OUTPUT_VERBOSE, timestart, realstart);
+  /* Compute the DCT-I of h */
+  if (!reuse_h_dct)
+    {
+      outputf (OUTPUT_VERBOSE, "Computing DCT-I of h");
+      if (test_verbose (OUTPUT_TRACE))
+        {
+          mpzspv_print (h_handle, 0, params->s_1 / 2 + 1, "h_ntt");
+        }
+
+      timestart = cputime ();
+      realstart = realtime ();
+      
+      mpzspv_to_dct1 (h_handle, h_handle, params->s_1 / 2 + 1, params->l / 2 + 1);
+
+      print_elapsed_time (OUTPUT_VERBOSE, timestart, realstart);
+    }
   
   if (test_verbose (OUTPUT_TRACE))
     {
