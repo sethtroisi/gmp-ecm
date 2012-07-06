@@ -135,16 +135,19 @@ longcheck: ecm$(EXEEXT)
 	$(srcdir)/test.pp1 "$(VALGRIND) ./ecm$(EXEEXT) -modmuln"
 	$(srcdir)/test.pp1 "$(VALGRIND) ./ecm$(EXEEXT) -redc"
 	$(srcdir)/test.pp1 "$(VALGRIND) ./ecm$(EXEEXT) -mpzmod"
+	$(srcdir)/test.pp1 "$(VALGRIND) ./ecm$(EXEEXT) -treefile tree"
 	$(srcdir)/test.pm1 "$(VALGRIND) ./ecm$(EXEEXT)"
 	$(srcdir)/test.pm1 "$(VALGRIND) ./ecm$(EXEEXT) -no-ntt"
 	$(srcdir)/test.pm1 "$(VALGRIND) ./ecm$(EXEEXT) -modmuln"
 	$(srcdir)/test.pm1 "$(VALGRIND) ./ecm$(EXEEXT) -redc"
 	$(srcdir)/test.pm1 "$(VALGRIND) ./ecm$(EXEEXT) -mpzmod"
+	$(srcdir)/test.pm1 "$(VALGRIND) ./ecm$(EXEEXT) -treefile tree"
 	$(srcdir)/test.ecm "$(VALGRIND) ./ecm$(EXEEXT)"
 	$(srcdir)/test.ecm "$(VALGRIND) ./ecm$(EXEEXT) -no-ntt"
 	$(srcdir)/test.ecm "$(VALGRIND) ./ecm$(EXEEXT) -modmuln"
 	$(srcdir)/test.ecm "$(VALGRIND) ./ecm$(EXEEXT) -redc"
 	$(srcdir)/test.ecm "$(VALGRIND) ./ecm$(EXEEXT) -mpzmod"
+	$(srcdir)/test.ecm "$(VALGRIND) ./ecm$(EXEEXT) -treefile tree"
 
 ## to be sure ecm.1 is considered as source
 ## (cf section "Man pages" in the automake manual)
