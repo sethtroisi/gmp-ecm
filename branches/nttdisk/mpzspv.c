@@ -44,8 +44,6 @@ static void mpzspv_seek_and_read (mpzspv_t, size_t, FILE *, spv_size_t,
     spv_size_t, size_t, mpzspm_t);
 static void mpzspv_seek_and_write (mpzspv_t, size_t, FILE *, spv_size_t, 
     spv_size_t, size_t, mpzspm_t);
-static void spv_add_or_mul_file (spv_t, const spv_t, FILE *, const spv_size_t, 
-    const spv_size_t, const size_t, const size_t, const int, const spm_t);
 #ifdef HAVE_AIO_READ
 static int mpzspv_lio_rw (struct aiocb *[], mpzspv_t, spv_size_t, FILE *,  
                           spv_size_t, spv_size_t, spv_size_t, const mpzspm_t, 
@@ -195,17 +193,14 @@ mpzspv_clear_handle (mpzspv_handle_t handle)
           fprintf (stderr, 
                    "%s(): fclose() set error code %d\n", 
                    __func__, saved_errno);
-          abort();
-        }
-      
-      if (remove (handle->filename) != 0)
+        } 
+      else if (remove (handle->filename) != 0)
         {
          int saved_errno = errno;
           perror (NULL);
           fprintf (stderr, 
                    "%s(): remove() set error code %d\n", 
                    __func__, saved_errno);
-          abort();
         }
       free (handle->filename);
       handle->filename = NULL;
@@ -266,40 +261,63 @@ mpzspv_verify_out (const mpzspv_handle_t x, const spv_size_t offset,
   return 1;
 }
 
+
+static inline spv_t
+get_mem (mpzspv_handle_t r, const unsigned int i)
+{
+  return IN_MEMORY(r) ? r->mem[i] : NULL;
+}
+
+
+static inline FILE *
+get_file (mpzspv_handle_t r, ATTRIBUTE_UNUSED const unsigned int i)
+{
+  return ON_DISK(r) ? r->file : NULL;
+}
+
+
+/* Returns the adjusted offset of vector i within the file if the NTT vectors 
+   are stored on disk. If they are stored in memory, or if r == NULL, returns 
+   the unmodified offset. */
+static inline spv_size_t
+adjust_offset (mpzspv_handle_t r, const unsigned int i, 
+             const spv_size_t offset)
+{
+  return offset + (ON_DISK(r) ? i * r->len : 0);
+}
+
+
+static inline void
+mpzspv_elementwise (mpzspv_handle_t r, const spv_size_t r_offset,
+    const mpzspv_handle_t x, const spv_size_t x_offset,
+    const mpzspv_handle_t y, const spv_size_t y_offset,
+    const spv_size_t len, const int operation)
+{
+  unsigned int i;
+
+  ASSERT (r != NULL);
+  ASSERT (mpzspv_verify_out (r, r_offset, len));
+  ASSERT (x == NULL || r->mpzspm == x->mpzspm);
+  ASSERT (x == NULL || mpzspv_verify_in (x, x_offset, len));
+  ASSERT (y == NULL || r->mpzspm == y->mpzspm);
+  ASSERT (y == NULL || mpzspv_verify_in (y, y_offset, len));
+
+  for (i = 0; i < r->mpzspm->sp_num; i++)
+    spv_elementwise (get_mem (r, i), get_file (r, i), adjust_offset (r, i, r_offset), 
+                     get_mem (x, i), get_file (x, i), adjust_offset (x, i, x_offset),
+                     get_mem (y, i), get_file (y, i), adjust_offset (y, i, y_offset), 
+                     r->mpzspm->spm[i]->sp, r->mpzspm->spm[i]->mul_c, len, operation);
+}
+
+
 void
 mpzspv_set (mpzspv_handle_t r, const spv_size_t r_offset, 
     const mpzspv_handle_t x, const spv_size_t x_offset, const spv_size_t len)
 {
-  
-  ASSERT_ALWAYS (r->mpzspm == x->mpzspm);
-
-  if (r->storage == 0 && x->storage == 0)
-    {
-      unsigned int i;
-      ASSERT (mpzspv_verify_out (r, r_offset, len));
-      ASSERT (mpzspv_verify_in (x, x_offset, len));
-      
-      for (i = 0; i < r->mpzspm->sp_num; i++)
-        spv_set (r->mem[i] + r_offset, x->mem[i] + x_offset, len);
-    }
-  else if (r->storage == 0 && x->storage == 1)
-    {
-      ASSERT (mpzspv_verify_out (r, r_offset, len));
-      mpzspv_seek_and_read (r->mem, r_offset, x->file, x->len, x_offset, len, 
-                            x->mpzspm);
-    }
-  else if (r->storage == 1 && x->storage == 0)
-    {
-      ASSERT (mpzspv_verify_in (x, x_offset, len));
-      mpzspv_seek_and_write (x->mem, x_offset, r->file, r->len, r_offset, 
-                             len, x->mpzspm);
-    }
-  else
-    {
-      /* File to file transfer not implemented - probably not needed */
-      abort();
-    }  
+  mpzspv_elementwise (r, r_offset, x, x_offset, NULL, 0, len, 
+                      SPV_ELEMENTWISE_SET);
 }
+
 
 void
 mpzspv_reverse (mpzspv_handle_t r, const spv_size_t r_offset, 
@@ -315,11 +333,17 @@ mpzspv_reverse (mpzspv_handle_t r, const spv_size_t r_offset,
   
   ASSERT (mpzspv_verify_out (r, r_offset, len));
   ASSERT (mpzspv_verify_in (x, x_offset, len));
-  ASSERT_ALWAYS (r->mpzspm == x->mpzspm);
-  
-  for (i = 0; i < x->mpzspm->sp_num; i++)
-    spv_rev (r->mem[i] + r_offset, x->mem[i] + x_offset, len);
+  if (r->mpzspm == x->mpzspm)
+    {
+      for (i = 0; i < x->mpzspm->sp_num; i++)
+        spv_rev (r->mem[i] + r_offset, x->mem[i] + x_offset, len);
+    }
+  else 
+    {
+      abort();
+    }
 }
+
 
 void
 mpzspv_set_sp (mpzspv_handle_t r, const spv_size_t offset, 
@@ -327,39 +351,20 @@ mpzspv_set_sp (mpzspv_handle_t r, const spv_size_t offset,
 {
   unsigned int i;
   
-  if (r->storage == 1)
-    {
-      /* Not implemented yet */
-      abort();
-    }
-  else
-    {
-      ASSERT (mpzspv_verify_out (r, offset, len));
-      ASSERT (c < SP_MIN); /* not strictly necessary but avoids mod functions */
-      
-      for (i = 0; i < r->mpzspm->sp_num; i++)
-        spv_set_sp (r->mem[i] + offset, c, len);
-    }
+  for (i = 0; i < r->mpzspm->sp_num; i++)
+    spv_elementwise ((r->storage == 0) ? r->mem[i] : NULL, 
+                     (r->storage == 1) ? r->file : NULL, offset, 
+                     &c, NULL, 0, NULL, NULL, 0, 
+                     r->mpzspm->spm[i]->sp, r->mpzspm->spm[i]->mul_c,
+                     len, SPV_ELEMENTWISE_SETSP);
 }
 
 void
 mpzspv_neg (mpzspv_handle_t r, const spv_size_t r_offset, 
     const mpzspv_handle_t x, const spv_size_t x_offset, const spv_size_t len)
 {
-  unsigned int i;
-  
-  if (r->storage == 1 || x->storage == 1)
-    {
-      /* Not implemented yet */
-      abort();
-    }
-
-  ASSERT (mpzspv_verify_out (r, r_offset, len));
-  ASSERT (mpzspv_verify_in (x, x_offset, len));
-  ASSERT_ALWAYS (r->mpzspm == x->mpzspm);
-  
-  for (i = 0; i < x->mpzspm->sp_num; i++)
-    spv_neg (r->mem[i] + r_offset, x->mem[i] + x_offset, len, x->mpzspm->spm[i]->sp);
+  mpzspv_elementwise (r, r_offset, x, x_offset, NULL, 0, len, 
+                      SPV_ELEMENTWISE_NEG);
 }
 
 void
@@ -368,56 +373,17 @@ mpzspv_add (mpzspv_handle_t r, const spv_size_t r_offset,
             const mpzspv_handle_t y, const spv_size_t y_offset, 
             const spv_size_t len)
 {
-  const size_t block_size = 65536;
-  
-  ASSERT_ALWAYS (r->mpzspm == x->mpzspm);
-  ASSERT_ALWAYS (r->mpzspm == y->mpzspm);
-  
-  if (r->storage == 0 && x->storage == 0 && y->storage == 0)
-    {
-      unsigned int i;
+  mpzspv_elementwise (r, r_offset, x, x_offset, y, y_offset, len, 
+                      SPV_ELEMENTWISE_ADD);
+}
 
-      ASSERT (mpzspv_verify_out (r, r_offset, len));
-      ASSERT (mpzspv_verify_in (x, x_offset, len));
-      ASSERT (mpzspv_verify_in (y, y_offset, len));
 
-      for (i = 0; i < r->mpzspm->sp_num; i++)
-        spv_add (r->mem[i] + r_offset, x->mem[i] + x_offset, y->mem[i] + y_offset, len, 
-                 r->mpzspm->spm[i]->sp);
-    }
-  else if (r->storage == 0 && x->storage == 0 && y->storage == 1)
-    {
-      unsigned int i;
-
-      ASSERT (mpzspv_verify_out (r, r_offset, len));
-      ASSERT (mpzspv_verify_in (x, x_offset, len));
-
-      for (i = 0; i < r->mpzspm->sp_num; i++)
-        {
-          spv_add_or_mul_file (r->mem[i] + r_offset, x->mem[i] + x_offset, 
-              y->file, y_offset + i * y->len, len, len, block_size, 0, 
-              r->mpzspm->spm[i]);
-        }
-    }
-  else if (r->storage == 0 && x->storage == 1 && y->storage == 0)
-    {
-      unsigned int i;
-
-      ASSERT (mpzspv_verify_out (r, r_offset, len));
-      ASSERT (mpzspv_verify_in (y, y_offset, len));
-
-      for (i = 0; i < r->mpzspm->sp_num; i++)
-        {
-          spv_add_or_mul_file (r->mem[i] + r_offset, y->mem[i] + y_offset, 
-              x->file, x_offset + i * x->len, len, len, block_size, 0, 
-              r->mpzspm->spm[i]);
-        }
-    }
-  else
-    {
-      /* FIXME: call add_file */
-      abort();
-    }
+void
+mpzspv_random (mpzspv_handle_t x, const spv_size_t offset, 
+               const spv_size_t len)
+{
+  mpzspv_elementwise (x, offset, NULL, 0, NULL, 0, len, 
+                      SPV_ELEMENTWISE_RANDOM);
 }
 
 
@@ -434,10 +400,11 @@ mpz_mod_spm (const mpz_t mpz, const spm_t spm, ATTRIBUTE_UNUSED mpz_t rem)
   VALGRIND_CHECK_MEM_IS_DEFINED(spm->cps, sizeof(spm->cps));
 #endif
   ASSERT (mpz_sgn (mpz) > 0);
-  // ASSERT (spm->sp << spm->cps[1] >= 1UL << (8*sizeof(unsigned long) - 1));
+  /* __gmpn_mod_1s_4p() does not like input value of zero */
+  /* ASSERT (spm->sp << spm->cps[1] >= (mp_limb_t)1 << (8*sizeof(mp_limb_t) - 1)); */ 
   r = __gmpn_mod_1s_4p (PTR(mpz), SIZ(mpz), 
       (mp_limb_t) spm->sp << spm->cps[1], spm->cps);
-  // ASSERT (r == mpn_mod_1 (PTR(mpz), SIZ(mpz), (mp_limb_t) spm->sp));
+  /* ASSERT (r == mpn_mod_1 (PTR(mpz), SIZ(mpz), (mp_limb_t) spm->sp)); */
 #else
   ASSERT (mpz_sgn (mpz) >= 0);
   r = mpn_mod_1 (PTR(mpz), SIZ(mpz), (mp_limb_t) spm->sp);
@@ -1034,146 +1001,6 @@ mpzspv_normalise (mpzspv_handle_t x, const spv_size_t offset,
 }
 
 
-void
-mpzspv_random (mpzspv_handle_t x, const spv_size_t offset, 
-               const spv_size_t len)
-{
-  unsigned int i;
-
-  if (x->storage == 1)
-    {
-      /* Not implemented yet */
-      abort();
-    }
-  
-  ASSERT (mpzspv_verify_out (x, offset, len));
-
-  for (i = 0; i < x->mpzspm->sp_num; i++)
-    spv_random (x->mem[i] + offset, len, x->mpzspm->spm[i]->sp);
-}
-
-
-/* Adds or multiplies sp_t's from x and a file and stores result in r. 
-   r[i] = x[i] + f[i] (+ x[i + wrap_size] + f[i + wrap_size] ...)
-   Adds if add_or_mul == 0 */
-static void
-spv_add_or_mul_file (spv_t r, const spv_t x, FILE *f, const spv_size_t f_offset, 
-    const spv_size_t len, const size_t wrap_size, const size_t block_len_param, 
-    const int add_or_mul, const spm_t spm)
-{
-  const spv_size_t block_len = MIN(len, block_len_param);
-  spv_t tmp_block;
-  spv_size_t nr_read = 0;
-
-  if (len == 0)
-    return; 
-
-  ASSERT(block_len > 0);
-  ASSERT(wrap_size > 0);
-  ASSERT(block_len <= wrap_size); /* We assume at most 1 wrap per block */
-
-  tmp_block = (spv_t) sp_aligned_malloc (block_len * sizeof (sp_t));
-  if (tmp_block == NULL) 
-    {
-      fprintf (stderr, "%s(): could not allocate memory\n", __func__);
-      abort();
-    }
-
-  while (nr_read < len)
-    {
-      const spv_size_t nr_now = MIN(len - nr_read, block_len);
-      const spv_size_t offset_within_wrap = nr_read % wrap_size;
-      const spv_size_t len_before_wrap = 
-        MIN(nr_now, wrap_size - offset_within_wrap);
-      const spv_size_t len_after_wrap = nr_now - len_before_wrap;
-
-      spv_seek_and_read (tmp_block, nr_now, f_offset + nr_read, f);
-
-      if (add_or_mul == 0)
-        spv_add (r + offset_within_wrap, x + nr_read, tmp_block, 
-                 len_before_wrap, spm->sp);
-      else
-        spv_pwmul (r + offset_within_wrap, x + nr_read, tmp_block, 
-                   len_before_wrap, spm->sp, spm->mul_c);
-
-      if (len_after_wrap != 0)
-        {
-          if (add_or_mul == 0)
-            spv_add (r, x + nr_read + len_before_wrap, 
-                     tmp_block + len_before_wrap, len_after_wrap, 
-                     spm->sp);
-          else
-            spv_pwmul (r, x + nr_read + len_before_wrap, 
-                       tmp_block + len_before_wrap, len_after_wrap, 
-                       spm->sp, spm->mul_c);
-        }
-      nr_read += nr_now;
-    }
-  sp_aligned_free (tmp_block);
-}
-
-
-/* Adds or multiplies sp_t's from two file and stores result in r. 
-   Adds if add_or_mul == 0 */
-static void ATTRIBUTE_UNUSED
-spv_add_or_mul_2file (spv_t r, FILE *f1, FILE *f2, const spv_size_t len, 
-    const spv_size_t wrap_size, const spv_size_t block_len, 
-    const int add_or_mul, const spm_t spm)
-{
-  spv_t tmp_block1, tmp_block2;
-  spv_size_t nr_read = 0;
-
-  if (len == 0)
-    return; 
-
-  ASSERT(block_len > 0);
-  ASSERT(wrap_size > 0);
-  ASSERT(block_len <= wrap_size); /* We assume at most 1 wrap per block */
-
-  tmp_block1 = (spv_t) sp_aligned_malloc (block_len * sizeof (sp_t));
-  tmp_block2 = (spv_t) sp_aligned_malloc (block_len * sizeof (sp_t));
-  if (tmp_block1 == NULL || tmp_block2 == NULL) 
-    {
-      fprintf (stderr, "%s(): could not allocate memory\n", __func__);
-      abort();
-    }
-
-  while (nr_read < len)
-    {
-      const spv_size_t nr_now = MIN(len - nr_read, block_len);
-      const spv_size_t offset_within_wrap = nr_read % wrap_size;
-      const spv_size_t len_before_wrap = 
-        MIN(nr_now, wrap_size - offset_within_wrap);
-      const spv_size_t len_after_wrap = nr_now - len_before_wrap;
-
-      fread (tmp_block1, sizeof(sp_t), nr_now, f1);
-      fread (tmp_block2, sizeof(sp_t), nr_now, f2);
-
-      if (add_or_mul == 0)
-        spv_add (r + offset_within_wrap, tmp_block1, tmp_block2, 
-                 len_before_wrap, spm->sp);
-      else
-        spv_pwmul (r + offset_within_wrap, tmp_block1, tmp_block2, 
-                   len_before_wrap, spm->sp, spm->mul_c);
-
-      if (len_after_wrap != 0)
-        {
-          if (add_or_mul == 0)
-            spv_add (r, tmp_block1 + len_before_wrap, 
-                     tmp_block2 + len_before_wrap, len_after_wrap, spm->sp);
-          else
-            spv_pwmul (r, tmp_block1 + len_before_wrap, 
-                       tmp_block2 + len_before_wrap, len_after_wrap, spm->sp, 
-                       spm->mul_c);
-        }
-      nr_read += nr_now;
-    }
-  
-  sp_aligned_free (tmp_block1);
-  sp_aligned_free (tmp_block2);
-}
-
-
 static void 
 mpzspv_seek_and_read (mpzspv_t dst, const size_t offset, FILE *sp_file, 
                       const spv_size_t veclen, const spv_size_t fileoffset, 
@@ -1430,12 +1257,18 @@ mpzspv_mul_ntt (mpzspv_handle_t r, const spv_size_t offsetr,
             }
           else 
             {
+              spv_size_t done = ntt_size;
               profile_start (&realstart);
               spv_seek_and_read (tmp, MIN(ntt_size, lenx), offsetx + i * x->len, 
                                  x->file);
-              if (ntt_size < lenx)
-                spv_add_or_mul_file (tmp, tmp, x->file, offsetx + lenx + i * x->len, 
-                                 lenx - ntt_size, ntt_size, block_len, 0, spm);
+              while (done < lenx)
+                {
+                  spv_size_t do_now = MIN (ntt_size, lenx - done);
+                  spv_elementwise (tmp, NULL, 0, tmp, NULL, 0, NULL, x->file, 
+                      adjust_offset(x, i, offsetx + done), spm->sp, spm->mul_c, 
+                      ntt_size, SPV_ELEMENTWISE_ADD);
+                  done += do_now;
+                }
               profile_end (realstart, i, "read vector");
             } 
 
@@ -1458,11 +1291,9 @@ mpzspv_mul_ntt (mpzspv_handle_t r, const spv_size_t offsetr,
           profile_start (&realstart);
           ASSERT_ALWAYS(y != NULL);
           ASSERT_ALWAYS(leny == ntt_size);
-          if (IN_MEMORY(y))
-            spv_pwmul (tmp, tmp, spvy, ntt_size, spm->sp, spm->mul_c);
-          else 
-            spv_add_or_mul_file (tmp, tmp, y->file, offsety + i * y->len, 
-                                 ntt_size, ntt_size, block_len, 1, spm);
+          spv_elementwise (tmp, NULL, 0, tmp, NULL, 0, get_mem(y, i), 
+                           get_file(y, i), adjust_offset(y, i, offsety), 
+                           spm->sp, spm->mul_c, ntt_size, SPV_ELEMENTWISE_MUL);
           profile_end (realstart, i, "pwmul on vector");
         }
       else if (do_pwmul_dct)

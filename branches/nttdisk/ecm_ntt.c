@@ -299,7 +299,9 @@ void ntt_PolyInvert (mpzv_t q, mpzv_t b, spv_size_t len, mpzv_t t,
                       NTT_MUL_STEP_FFT1 + NTT_MUL_STEP_MUL + NTT_MUL_STEP_IFFT);
       if (2 * k < len)
 	mpzspv_normalise (x, k, k);
-      mpzspv_set (x, 1, x, k, k); /* legal overlap */
+      mpzspv_set (x, 1, x, k, 1); /* Avoid overlap */
+      if (k > 1)
+        mpzspv_set (x, 2, x, k + 1, k - 1);
       mpzspv_set (x, k + 1, w, 0, MIN(k, len / 2 - 1));
     }
 

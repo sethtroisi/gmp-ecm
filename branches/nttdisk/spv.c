@@ -77,9 +77,213 @@ spv_verify_out (ATTRIBUTE_UNUSED const spv_tc x,
   return 1;
 }
 
+
+/* Wrapper function for element-wise operations. 
+   Input and output operands can be on disk. */
+
+void 
+spv_elementwise(
+  spv_t r, FILE *r_file, const spv_size_t r_offset, 
+  spv_tc x, FILE *x_file, const spv_size_t x_offset, 
+  spv_tc y, FILE *y_file, const spv_size_t y_offset, 
+  const sp_t p, const sp_t d, const spv_size_t len, const int operation)
+{
+  spv_size_t buf_len, done = 0;
+  spv_t buf_r, buf[2];
+  spv_tc buf_x, buf_y;
+  int xyf, rx, ry;
+
+  ASSERT(r != NULL || r_file != NULL);
+  ASSERT(r == NULL || r_file == NULL);
+  ASSERT(x == NULL || x_file == NULL);
+  ASSERT(y == NULL || y_file == NULL);
+
+  /* We allow no overlap between input and output except identical data */
+  ASSERT (r == NULL || x == NULL || r + r_offset == x + x_offset || 
+          r + r_offset + len <= x + x_offset || 
+          r + r_offset >= x + x_offset + len);
+  ASSERT (r_file == NULL || x_file == NULL || r_file != x_file || 
+          r_offset == x_offset || r_offset + len <= x_offset || 
+          r_offset >= x_offset + len);
+  ASSERT (r == NULL || y == NULL || r + r_offset == y + y_offset || 
+          r + r_offset + len <= y + y_offset || 
+          r + r_offset >= y + y_offset + len);
+  ASSERT (r_file == NULL || y_file == NULL || r_file != y_file || 
+          r_offset == y_offset || r_offset + len <= y_offset || 
+          r_offset >= y_offset + len);
+
+  if (operation != SPV_ELEMENTWISE_RANDOM)
+    {
+      ASSERT(x != NULL || x_file != NULL);
+    }
+  if (operation == SPV_ELEMENTWISE_SET || 
+      operation == SPV_ELEMENTWISE_NEG || operation == SPV_ELEMENTWISE_SETSP)
+    {
+      ASSERT(y == NULL && y_file == NULL);
+    }
+  else
+    {
+      ASSERT(y != NULL || y_file != NULL);
+    }
+
+
+  /*
+      storage r x y:  0 = in memory, 1 = on disk
+      Alias rx ry xy: whether any input pointer/file and offset of one input 
+                      operand are equal to those of another  
+      Alloc bufs?:    how many temp buffers we need to allocate
+      Data in r x y:  Where we put the data for processing. 
+                      r,x,y = input vector r,x,y, resp
+                      0 = allocated buffer 0, 1 = allocated buffer 1
+      xyf = (ON_DISK(x) && ON_DISK(y) && x != y). 
+           This simplifies the conditions for where to store buf_y
+      
+      storage	Alias	 Alloc	Data in	xyf	Notes
+      r x y 	rx ry xy bufs?	r x y		
+      -------------------------------------------------------------------
+      0 0 0	any	 no	r x y	0	work in-place
+
+      0 0 1	0 0 0	 no	r x r	0	read y-data to r
+      0 0 1	1 0 0	 1 buf	r x 0	0	Can't read y to r or we'd overwrite x-data, so read y-data to buffer 0
+
+      0 1 0	0 0 0	 no	r r y	0	read x-data to r
+      0 1 0	0 1 0	 1 buf	r 0 y	0	Can't read x-data to r or we'd overwrite y-data, so read x-data to buffer 0
+
+      0 1 1	0 0 0	 1 buf	r r 0	1	read x-data to r, y-data to buffer 0
+      0 1 1	0 0 1	 no	r r r	0	read x-data to r, use as y-data as well
+
+      1 0 0	0 0 0	 1 buf	0 x y	0	write r-data from buffer 0
+      1 0 0	0 0 1	 1 buf	0 x y	0	write r-data from buffer 0
+
+      1 0 1	0 0 0	 1 buf	0 x 0	0	read y-data to buffer 0, write r-data from buffer 0
+      1 0 1	0 1 0	 1 buf	0 x 0	0	read y-data to buffer 0, write r-data from buffer 0
+
+      1 1 0	0 0 0	 1 buf	0 0 y	0	read x-data to buffer 0, write r-data from buffer 0
+      1 1 0	1 0 0	 1 buf	0 0 y	0	read x-data to buffer 0, write r-data from buffer 0
+
+      1 1 1	0 0 0	 2 bufs	0 0 1	1	read x-data to buffer 0, read y-data to buffer 1, write r-data from buffer 0
+      1 1 1	1 0 0	 2 bufs	0 0 1	1	read x-data to buffer 0, read y-data to buffer 1, write r-data from buffer 0
+      1 1 1	0 1 0	 2 bufs	0 0 1	1	read x-data to buffer 0, read y-data to buffer 1, write r-data from buffer 0
+      1 1 1	0 0 1	 1 bufs	0 0 0	0	read x-data to buffer 0, use as y-data as well, write r-data from buffer 0
+      1 1 1	1 1 1	 1 buf	0 0 0	0	read x-data to buffer 0, use as y-data as well, write r-data from buffer 0
+
+      nr_buffers > 0  <==>  ON_DISK(r) || (ON_DISK(x) || ON_DISK(y)) && (r == x || r == y) || ON_DISK(y) && xyf
+      nr_buffers = 2  <==>  y = buf[1]  <==>  ON_DISK(r) && ON_DISK(y) && xyf
+
+      buf_r = (!ON_DISK(r)) ? r : buf[0];
+      buf_x = (!ON_DISK(x)) ? x : (r == y) ? buf[0] : buf_r;
+      buf_y = (!ON_DISK(y)) ? y : 
+              Case: ON_DISK(y) == 1 && ON_DISK(r) == 0
+                (x == r || xyf) ? buf[0]: buf_r
+              Case: ON_DISK(y) == 1 && ON_DISK(r) == 1
+               xyf ? buf[1] : buf_r;
+  */
+
+  /* xyf is non-zero iff x and y are both on disk but don't refer to the same 
+     data, i.e., are in separate files or at different offsets */
+  xyf = (x_file != NULL && y_file != NULL && 
+         (x_file != y_file || x_offset != y_offset));
+  /* Non-zero iff r and x (resp. y) are both in memory and refer 
+     to the same data */
+  rx = (r != NULL && x != NULL && r == x && r_offset == x_offset);
+  ry = (r != NULL && y != NULL && r == y && r_offset == y_offset);
+
+  buf_len = len;
+  buf[0] = buf[1] = NULL;
+  if (r_file != NULL || 
+      ((x_file != NULL || y_file != NULL) && (rx || ry)) || 
+      xyf)
+    {
+      buf_len = MIN (65536, len);
+      buf[0] = (spv_t) sp_aligned_malloc (buf_len * sizeof (sp_t));
+    }
+
+  if (r_file != NULL && xyf)
+    buf[1] = (spv_t) sp_aligned_malloc (buf_len * sizeof (sp_t));
+
+  buf_r = (r_file == NULL) ? (r + r_offset) : buf[0];
+  buf_x = (x_file == NULL) ? (x + x_offset) : (ry) ? buf[0] : buf_r;
+  buf_y = (y_file == NULL) ? (y + y_offset) : (r_file != NULL && xyf) ? buf[1] : 
+            (r_file == NULL && (rx || xyf)) ? buf[0] : buf_r;
+  
+  while (done < len)
+    {
+      spv_size_t do_now = MIN(buf_len, len - done);
+      if (x_file != NULL)
+        {
+          /* This is stupid but buf_x is a const sp_t *, so we can't use this 
+             pointer as an argument to fread(). We need to find a non-const 
+             pointer which we can use instead */
+          spv_t t = (buf_x == r) ? r : (buf_x == buf[0]) ? buf[0] : NULL;
+          spv_seek_and_read (t, do_now, x_offset + done, x_file);
+        }
+      if (y_file != NULL)
+        {
+          spv_t t = (buf_y == r) ? r : (buf_y == buf[0]) ? buf[0] : 
+                    (buf_y == buf[1]) ? buf[1] : NULL;
+          spv_seek_and_read (t, do_now, y_offset + done, y_file);
+        }
+
+      /* Do operation */
+      switch (operation)
+        {
+          case SPV_ELEMENTWISE_SET: {
+                spv_set (buf_r, buf_x, do_now);
+                break;
+              }
+          case SPV_ELEMENTWISE_ADD: {
+                spv_add (buf_r, buf_x, buf_y, do_now, p);
+                break;
+              }
+          case SPV_ELEMENTWISE_SUB: {
+                spv_sub (buf_r, buf_x, buf_y, do_now, p);
+                break;
+              }
+          case SPV_ELEMENTWISE_NEG: {
+                spv_neg (buf_r, buf_x, do_now, p);
+                break;
+              }
+          case SPV_ELEMENTWISE_MUL: {
+                spv_pwmul (buf_r, buf_x, buf_y, do_now, p, d);
+                break;
+              }
+          case SPV_ELEMENTWISE_SETSP: {
+                ASSERT_ALWAYS (x != NULL);
+                spv_set_sp (buf_r, x[x_offset], do_now);
+                break;
+              }
+          case SPV_ELEMENTWISE_RANDOM: {
+                spv_random (buf_r, do_now, p);
+                break;
+              }
+        }
+      
+      if (buf_r != buf[0])
+        buf_r += do_now;
+      else
+        spv_seek_and_write (buf_r, do_now, r_offset + done, r_file);
+
+      if (buf_x != buf[0])
+        buf_x += do_now;
+      if (buf_y != buf[0] && buf_y != buf[1])
+        buf_y += do_now;
+
+      done += do_now;
+    }
+  
+  if (buf[0] != NULL)
+    sp_aligned_free (buf[0]);
+  if (buf[1] != NULL)
+    sp_aligned_free (buf[1]);
+
+  if (r_file != NULL)
+    fflush (r_file);
+}
+
+
 /* r = x */
 void
-spv_set (spv_t r, spv_t x, spv_size_t len)
+spv_set (spv_t r, spv_tc x, spv_size_t len)
 {
 #ifdef HAVE_MEMMOVE  
   /* memmove doesn't rely on the assertion below */
@@ -104,9 +308,9 @@ spv_rev (spv_t r, spv_t x, spv_size_t len)
     {
       for (i = 0; i < len - 1 - i; i++)
         {
-          sp_t t = x[i];
-          x[i] = x[len - 1 - i];
-          x[len - 1 - i] = t;
+          sp_t t = r[i];
+          r[i] = r[len - 1 - i];
+          r[len - 1 - i] = t;
         }
     }
   else
@@ -135,7 +339,7 @@ spv_set_zero (spv_t r, spv_size_t len)
 }
 
 int
-spv_cmp (spv_t x, spv_t y, spv_size_t len)
+spv_cmp (spv_tc x, spv_tc y, spv_size_t len)
 {
   spv_size_t i;
 
@@ -148,7 +352,7 @@ spv_cmp (spv_t x, spv_t y, spv_size_t len)
 
 /* r = x + y */
 void
-spv_add (spv_t r, spv_t x, spv_t y, spv_size_t len, sp_t m)
+spv_add (spv_t r, spv_tc x, spv_tc y, spv_size_t len, sp_t m)
 {
   spv_size_t i;
   
@@ -161,7 +365,7 @@ spv_add (spv_t r, spv_t x, spv_t y, spv_size_t len, sp_t m)
 
 /* r = [x[0] + y, x[1] + y, ... ] */
 void
-spv_add_sp (spv_t r, spv_t x, sp_t c, spv_size_t len, sp_t m)
+spv_add_sp (spv_t r, spv_tc x, sp_t c, spv_size_t len, sp_t m)
 {
   spv_size_t i;
 
@@ -171,7 +375,7 @@ spv_add_sp (spv_t r, spv_t x, sp_t c, spv_size_t len, sp_t m)
 
 /* r = x - y */
 void
-spv_sub (spv_t r, spv_t x, spv_t y, spv_size_t len, sp_t m)
+spv_sub (spv_t r, spv_tc x, spv_tc y, spv_size_t len, sp_t m)
 {
   spv_size_t i;
   
@@ -184,7 +388,7 @@ spv_sub (spv_t r, spv_t x, spv_t y, spv_size_t len, sp_t m)
 
 /* r = [x[0] - y, x[1] - y, ... ] */
 void
-spv_sub_sp (spv_t r, spv_t x, sp_t c, spv_size_t len, sp_t m)
+spv_sub_sp (spv_t r, spv_tc x, sp_t c, spv_size_t len, sp_t m)
 {
   spv_size_t i;
 
@@ -194,7 +398,7 @@ spv_sub_sp (spv_t r, spv_t x, sp_t c, spv_size_t len, sp_t m)
 
 /* r = [-x[0], -x[1], ... ] */
 void
-spv_neg (spv_t r, spv_t x, spv_size_t len, sp_t m)
+spv_neg (spv_t r, spv_tc x, spv_size_t len, sp_t m)
 {
   spv_size_t i;
 
@@ -205,7 +409,7 @@ spv_neg (spv_t r, spv_t x, spv_size_t len, sp_t m)
 /* Pointwise multiplication
  * r = [x[0] * y[0], x[1] * y[1], ... ] */
 void
-spv_pwmul (spv_t r, spv_t x, spv_t y, spv_size_t len, sp_t m, sp_t d)
+spv_pwmul (spv_t r, spv_tc x, spv_tc y, spv_size_t len, sp_t m, sp_t d)
 {
   spv_size_t i = 0;
   
@@ -350,7 +554,7 @@ spv_pwmul (spv_t r, spv_t x, spv_t y, spv_size_t len, sp_t m, sp_t d)
 /* Pointwise multiplication, second input is read in reverse
  * r = [x[0] * y[len - 1], x[1] * y[len - 2], ... x[len - 1] * y[0]] */
 void
-spv_pwmul_rev (spv_t r, spv_t x, spv_t y, spv_size_t len, sp_t m, sp_t d)
+spv_pwmul_rev (spv_t r, spv_tc x, spv_tc y, spv_size_t len, sp_t m, sp_t d)
 {
   spv_size_t i;
   
@@ -361,9 +565,9 @@ spv_pwmul_rev (spv_t r, spv_t x, spv_t y, spv_size_t len, sp_t m, sp_t d)
     r[i] = sp_mul (x[i], y[len - 1 - i], m, d);
 }
 
-/* dst = src * y */
+/* dst = src * c */
 void
-spv_mul_sp (spv_t r, spv_t x, sp_t c, spv_size_t len, sp_t m, sp_t d)
+spv_mul_sp (spv_t r, spv_tc x, sp_t c, spv_size_t len, sp_t m, sp_t d)
 {
   spv_size_t i = 0;
   

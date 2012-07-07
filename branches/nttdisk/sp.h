@@ -165,6 +165,15 @@ typedef __sp_nttdata sp_nttdata_t[1];
 #define CACHE_LINE_SIZE 64
 #endif
 
+/* Elementwise operations that can be performed by spv_elementwise() */
+#define SPV_ELEMENTWISE_SET 0
+#define SPV_ELEMENTWISE_ADD 1
+#define SPV_ELEMENTWISE_SUB 2
+#define SPV_ELEMENTWISE_NEG 3
+#define SPV_ELEMENTWISE_MUL 4
+#define SPV_ELEMENTWISE_SETSP 5
+#define SPV_ELEMENTWISE_RANDOM 6
+
 /* Which steps to perform in convolution product funtions:
    forward transform, pair-wise multiplication, inverse transform */
 #define NTT_MUL_STEP_FFT1 1
@@ -483,7 +492,8 @@ static inline sp_t sp_add(sp_t a, sp_t b, sp_t m)
      * initial remainder fits in a word and also that at
      * most one correction is necessary */
 
-static inline sp_t sp_udiv_rem(sp_t nh, sp_t nl, sp_t d, sp_t di)
+static inline sp_t 
+sp_udiv_rem(sp_t nh, sp_t nl, sp_t d, sp_t di)
 {
   sp_t r, q1, q2;
   ATTRIBUTE_UNUSED sp_t tmp;
@@ -497,7 +507,8 @@ static inline sp_t sp_udiv_rem(sp_t nh, sp_t nl, sp_t d, sp_t di)
 
 #else    /* big modulus; no shortcuts allowed */
 
-static inline sp_t sp_udiv_rem(sp_t nh, sp_t nl, sp_t d, sp_t di)
+static inline sp_t 
+sp_udiv_rem(sp_t nh, sp_t nl, sp_t d, sp_t di)
 {
   sp_t q1, q2, dqh, dql;
   ATTRIBUTE_UNUSED sp_t tmp;
@@ -575,9 +586,12 @@ void spm_clear (spm_t);
 int spv_verify_in (spv_tc, spv_size_t, sp_t);
 int spv_verify_out (spv_tc, spv_size_t, sp_t);
 
+void spv_elementwise(spv_t, FILE *, spv_size_t, spv_tc, FILE *, spv_size_t, 
+    spv_tc, FILE *, spv_size_t, sp_t, sp_t, spv_size_t, int);
+
 /* ASSIGNMENT */
 
-void spv_set (spv_t, spv_t, spv_size_t);
+void spv_set (spv_t, spv_tc, spv_size_t);
 void spv_rev (spv_t, spv_t, spv_size_t);
 void spv_set_sp (spv_t, sp_t, spv_size_t);
 void spv_set_zero (spv_t, spv_size_t);
@@ -585,18 +599,18 @@ void spv_set_zero (spv_t, spv_size_t);
 /* ARITHMETIC */
 
 /* add */
-void spv_add (spv_t, spv_t, spv_t, spv_size_t, sp_t);
-void spv_add_sp (spv_t, spv_t, sp_t, spv_size_t, sp_t);
+void spv_add (spv_t, spv_tc, spv_tc, spv_size_t, sp_t);
+void spv_add_sp (spv_t, spv_tc, sp_t, spv_size_t, sp_t);
 
 /* subtract */
-void spv_sub (spv_t, spv_t, spv_t, spv_size_t, sp_t);
-void spv_sub_sp (spv_t, spv_t, sp_t, spv_size_t, sp_t);
-void spv_neg (spv_t, spv_t, spv_size_t, sp_t);
+void spv_sub (spv_t, spv_tc, spv_tc, spv_size_t, sp_t);
+void spv_sub_sp (spv_t, spv_tc, sp_t, spv_size_t, sp_t);
+void spv_neg (spv_t, spv_tc, spv_size_t, sp_t);
 
 /* pointwise multiplication */
-void spv_pwmul (spv_t, spv_t, spv_t, spv_size_t, sp_t, sp_t);
-void spv_pwmul_rev (spv_t, spv_t, spv_t, spv_size_t, sp_t, sp_t);
-void spv_mul_sp (spv_t, spv_t, sp_t, spv_size_t, sp_t, sp_t);
+void spv_pwmul (spv_t, spv_tc, spv_tc, spv_size_t, sp_t, sp_t);
+void spv_pwmul_rev (spv_t, spv_tc, spv_tc, spv_size_t, sp_t, sp_t);
+void spv_mul_sp (spv_t, spv_tc, sp_t, spv_size_t, sp_t, sp_t);
 
 /* file I/O */
 spv_size_t spv_seek_and_read (spv_t, spv_size_t, spv_size_t, FILE *);
@@ -604,7 +618,7 @@ spv_size_t spv_seek_and_write (const spv_t, spv_size_t, spv_size_t, FILE *);
 
 void spv_print_vec (spv_t, sp_t, spv_size_t, const char *, const char *);
 void spv_random (spv_t, spv_size_t, sp_t);
-int spv_cmp (spv_t, spv_t, spv_size_t);
+int spv_cmp (spv_tc, spv_tc, spv_size_t);
 
 /* ntt_gfp */
 
