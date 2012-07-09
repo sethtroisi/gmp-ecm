@@ -40,15 +40,17 @@ MA 02110-1301, USA. */
 #define IN_MEMORY(x) ((x) != NULL && (x)->storage == 0)
 #define ON_DISK(x) ((x) != NULL && (x)->storage != 0)
 
-static void mpzspv_seek_and_read (mpzspv_t, size_t, FILE *, spv_size_t, 
-    spv_size_t, size_t, mpzspm_t);
-static void mpzspv_seek_and_write (mpzspv_t, size_t, FILE *, spv_size_t, 
-    spv_size_t, size_t, mpzspm_t);
+static void mpzspv_normalise (mpzspv_t, spv_size_t, spv_size_t, mpzspm_t);
 #ifdef HAVE_AIO_READ
 static int mpzspv_lio_rw (struct aiocb *[], mpzspv_t, spv_size_t, FILE *,  
                           spv_size_t, spv_size_t, spv_size_t, const mpzspm_t, 
                           int);
 static int mpzspv_lio_suspend (const struct aiocb *[], const mpzspm_t);
+#else
+static void mpzspv_seek_and_read (mpzspv_t, size_t, FILE *, spv_size_t, 
+    spv_size_t, size_t, mpzspm_t);
+static void mpzspv_seek_and_write (mpzspv_t, size_t, FILE *, spv_size_t, 
+    spv_size_t, size_t, mpzspm_t);
 #endif
 
 
@@ -333,15 +335,10 @@ mpzspv_reverse (mpzspv_handle_t r, const spv_size_t r_offset,
   
   ASSERT (mpzspv_verify_out (r, r_offset, len));
   ASSERT (mpzspv_verify_in (x, x_offset, len));
-  if (r->mpzspm == x->mpzspm)
-    {
-      for (i = 0; i < x->mpzspm->sp_num; i++)
-        spv_rev (r->mem[i] + r_offset, x->mem[i] + x_offset, len);
-    }
-  else 
-    {
-      abort();
-    }
+  ASSERT_ALWAYS (r->mpzspm == x->mpzspm);
+
+  for (i = 0; i < x->mpzspm->sp_num; i++)
+    spv_rev (r->mem[i] + r_offset, x->mem[i] + x_offset, len);
 }
 
 
@@ -824,6 +821,12 @@ mpzspv_fromto_mpzv (mpzspv_handle_t x, const spv_size_t offset,
             }
         }
 
+      /* If we have neither producer or consumer, we normalise the NTT vectors */
+      if (!have_producer && !have_consumer)
+        {
+          mpzspv_normalise (buffer[work_buffer], buffer_offset, len_now, mpzspm);
+        }
+
 #if WANT_PROFILE
     printf("%s(): processing buffer started at %lu took %lu ms\n", 
            __func__, realstart, realtime() - realstart);
@@ -911,28 +914,19 @@ mpzspv_fromto_mpzv (mpzspv_handle_t x, const spv_size_t offset,
  * memory: MPZSPV_NORMALISE_STRIDE mpzspv coeffs
  *         6 * MPZSPV_NORMALISE_STRIDE sp's
  *         MPZSPV_NORMALISE_STRIDE floats */
-void
-mpzspv_normalise (mpzspv_handle_t x, const spv_size_t offset, 
-                  const spv_size_t len)
+static void
+mpzspv_normalise (mpzspv_t x, const spv_size_t offset, 
+                  const spv_size_t len, mpzspm_t mpzspm)
 {
-  unsigned int i, j, sp_num = x->mpzspm->sp_num;
+  unsigned int i, j, sp_num = mpzspm->sp_num;
   spv_size_t k, l;
   sp_t v;
   spv_t s, d, w;
-  spm_t *spm = x->mpzspm->spm;
+  spm_t *spm = mpzspm->spm;
   
-  float prime_recip;
   float *f;
-  mpzspv_handle_t t;
+  mpzspv_t t;
   
-  if (x->storage == 1)
-    {
-      /* Not implemented yet */
-      abort();
-    }
-  
-  ASSERT (mpzspv_verify_in (x, offset, len)); 
-
   f = (float *) malloc (MPZSPV_NORMALISE_STRIDE * sizeof (float));
   s = (spv_t) malloc (3 * MPZSPV_NORMALISE_STRIDE * sizeof (sp_t));
   d = (spv_t) malloc (3 * MPZSPV_NORMALISE_STRIDE * sizeof (sp_t));
@@ -941,7 +935,7 @@ mpzspv_normalise (mpzspv_handle_t x, const spv_size_t offset,
       fprintf (stderr, "%s(): Cannot allocate memory\n", __func__);
       exit (1);
     }
-  t = mpzspv_init_handle (NULL, MPZSPV_NORMALISE_STRIDE, x->mpzspm);
+  t = mpzspv_init (MPZSPV_NORMALISE_STRIDE, mpzspm);
   
   memset (s, 0, 3 * MPZSPV_NORMALISE_STRIDE * sizeof (sp_t));
 
@@ -955,13 +949,11 @@ mpzspv_normalise (mpzspv_handle_t x, const spv_size_t offset,
       
       for (i = 0; i < sp_num; i++)
         {
-          prime_recip = 1.0f / (float) spm[i]->sp;
-      
           for (k = 0; k < stride; k++)
 	    {
-	      x->mem[i][l + k + offset] = sp_mul (x->mem[i][l + k + offset],
-	          x->mpzspm->crt3[i], spm[i]->sp, spm[i]->mul_c);
-	      f[k] += (float) x->mem[i][l + k + offset] * prime_recip;
+	      x[i][l + k + offset] = sp_mul (x[i][l + k + offset],
+	          mpzspm->crt3[i], spm[i]->sp, spm[i]->mul_c);
+	      f[k] += (float) x[i][l + k + offset] * mpzspm->prime_recip[i];
 	    }
         }
       
@@ -969,15 +961,15 @@ mpzspv_normalise (mpzspv_handle_t x, const spv_size_t offset,
         {
 	  for (k = 0; k < stride; k++)
 	    {
-	      sp_wide_mul (d[3 * k + 1], d[3 * k], x->mpzspm->crt5[i],
+	      sp_wide_mul (d[3 * k + 1], d[3 * k], mpzspm->crt5[i],
 		  (sp_t) f[k]);
               d[3 * k + 2] = 0;
 	    }
 	
           for (j = 0; j < sp_num; j++)
             {
-	      w = x->mem[j] + offset;
-	      v = x->mpzspm->crt4[i][j];
+	      w = x[j] + offset;
+	      v = mpzspm->crt4[i][j];
 	    
 	      for (k = 0; k < stride; k++)
 	        sp_wide_mul (s[3 * k + 1], s[3 * k], w[k + l], v);
@@ -988,19 +980,21 @@ mpzspv_normalise (mpzspv_handle_t x, const spv_size_t offset,
             }      
 
           for (k = 0; k < stride; k++)
-	    t->mem[i][k] = mpn_mod_1 (d + 3 * k, 3, spm[i]->sp);
-        }	  
-      mpzspv_set (x, l + offset, t, 0, stride);
+	    t[i][k] = mpn_mod_1 (d + 3 * k, 3, spm[i]->sp);
+        }
+
+      for (i = 0; i < sp_num; i++)
+        spv_set (x[i] + l + offset, t[i], stride);
     }
   
-  mpzspv_clear_handle (t);
+  mpzspv_clear (t, mpzspm);
   
   free (s);
   free (d);
   free (f);
 }
 
-
+#ifndef HAVE_AIO_READ
 static void 
 mpzspv_seek_and_read (mpzspv_t dst, const size_t offset, FILE *sp_file, 
                       const spv_size_t veclen, const spv_size_t fileoffset, 
@@ -1025,6 +1019,7 @@ mpzspv_seek_and_write (mpzspv_t src, const size_t offset, FILE *sp_file,
     spv_seek_and_write (src[j] + offset, nwrite, fileoffset + j * veclen, sp_file);
   }
 }
+#endif
 
 static void
 mul_dct_file (const spv_t r, const spv_t spv, FILE *dct_file, const spv_size_t offset,

@@ -105,7 +105,7 @@ ntt_PolyFromRoots (mpzv_t r, mpzv_t a, spv_size_t len, mpzv_t t,
 	                  NTT_MUL_STEP_FFT1 + NTT_MUL_STEP_MUL + NTT_MUL_STEP_IFFT);
 	  
 	  if (2 * m < len)
-	    mpzspv_normalise (x, i, 2 * m);
+	    mpzspv_fromto_mpzv (x, i, 2 * m, NULL, NULL, NULL, NULL);
 	}	  
     }
   
@@ -236,7 +236,7 @@ ntt_PrerevertDivision (mpzv_t a, mpzv_t b, mpzv_t invb, mpzspv_handle_t sp_b,
                   sp_invb, 0, 2 * len, 
                   2 * len, 0, 0, 
                   NTT_MUL_STEP_FFT1 + NTT_MUL_STEP_MUL + NTT_MUL_STEP_IFFT);
-  mpzspv_normalise (x, 0, len);
+  mpzspv_fromto_mpzv (x, 0, len, NULL, NULL, NULL, NULL);
   
   mpzspv_mul_ntt (x, 0, 
                   x, 0, len, 
@@ -289,7 +289,7 @@ void ntt_PolyInvert (mpzv_t q, mpzv_t b, spv_size_t len, mpzv_t t,
                       x, 0, 2 * k, 
                       2 * k, 0, 0, 
                       NTT_MUL_STEP_FFT1 + NTT_MUL_STEP_MUL + NTT_MUL_STEP_IFFT);
-      mpzspv_normalise (z, k, k);
+      mpzspv_fromto_mpzv (z, k, k, NULL, NULL, NULL, NULL);
       mpzspv_neg (z, 0, z, k, k);
       
       mpzspv_mul_ntt (x, 0, 
@@ -298,7 +298,7 @@ void ntt_PolyInvert (mpzv_t q, mpzv_t b, spv_size_t len, mpzv_t t,
                       2 * k, 0, 0,  
                       NTT_MUL_STEP_FFT1 + NTT_MUL_STEP_MUL + NTT_MUL_STEP_IFFT);
       if (2 * k < len)
-	mpzspv_normalise (x, k, k);
+        mpzspv_fromto_mpzv (x, k, k, NULL, NULL, NULL, NULL);
       mpzspv_set (x, 1, x, k, 1); /* Avoid overlap */
       if (k > 1)
         mpzspv_set (x, 2, x, k + 1, k - 1);
@@ -359,7 +359,7 @@ ntt_polyevalT (mpzv_t b, spv_size_t len, mpzv_t *Tree, mpzv_t T,
                  sp_invF, 0, 2 * len, 
                  2 * len, 0, 0,
                  NTT_MUL_STEP_FFT1 + NTT_MUL_STEP_MUL + NTT_MUL_STEP_IFFT);
-  mpzspv_normalise (x, len - 1, len);
+  mpzspv_fromto_mpzv (x, len-1, len, NULL, NULL, NULL, NULL);
   mpzspv_set (y, 0, x, len - 1, len); /* y = high (b * invF) */
   mpzspv_reverse (y, 0, y, 0, len); /* y = rev (high (b * invF)) */
   
@@ -404,7 +404,7 @@ ntt_polyevalT (mpzv_t b, spv_size_t len, mpzv_t *Tree, mpzv_t T,
                           2 * m, 0, 0, 
                           NTT_MUL_STEP_FFT1 + NTT_MUL_STEP_MUL + NTT_MUL_STEP_IFFT);
           if (m > POLYEVALT_NTT_THRESHOLD)
-	    mpzspv_normalise (x, m, m);
+	    mpzspv_fromto_mpzv (x, m, m, NULL, NULL, NULL, NULL);
 	    
 	  list_revert (*Tree + i + m, m);
 	  mpzspv_set_sp (x, 2 * m, 1, 1);
@@ -415,7 +415,7 @@ ntt_polyevalT (mpzv_t b, spv_size_t len, mpzv_t *Tree, mpzv_t T,
                          2 * m, 0, 0, 
                          NTT_MUL_STEP_FFT1 + NTT_MUL_STEP_MUL + NTT_MUL_STEP_IFFT);
 	  if (m > POLYEVALT_NTT_THRESHOLD)
-	    mpzspv_normalise (x, 3 * m, m);
+	    mpzspv_fromto_mpzv (x, 3 * m, m, NULL, NULL, NULL, NULL);
 	  
 	  mpzspv_set (y, i, x, 3 * m, m);
 	  mpzspv_set (y, i + m, x, m, m);

@@ -303,8 +303,8 @@ TUNE_FUNC_END (tune_polyevalT)
 TUNE_FUNC_START (tune_mpzspv_normalise)
   MPZSPV_NORMALISE_STRIDE = 1 << n;
   
-  TUNE_FUNC_LOOP (mpzspv_normalise (mpzspv, 0,
-    1 << MAX_LOG2_MPZSPV_NORMALISE_STRIDE));
+  TUNE_FUNC_LOOP (mpzspv_fromto_mpzv (mpzspv, 0,
+    1 << MAX_LOG2_MPZSPV_NORMALISE_STRIDE, NULL, NULL, NULL, NULL));
 TUNE_FUNC_END (tune_mpzspv_normalise)
 
 
