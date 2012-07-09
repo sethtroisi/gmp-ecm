@@ -217,7 +217,7 @@ spv_elementwise(
           spv_t t = (buf_x == r) ? r : (buf_x == buf[0]) ? buf[0] : NULL;
           spv_seek_and_read (t, do_now, x_offset + done, x_file);
         }
-      if (y_file != NULL)
+      if (y_file != NULL && !(x_file == y_file && x_offset == y_offset))
         {
           spv_t t = (buf_y == r) ? r : (buf_y == buf[0]) ? buf[0] : 
                     (buf_y == buf[1]) ? buf[1] : NULL;
