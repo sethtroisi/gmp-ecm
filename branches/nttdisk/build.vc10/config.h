@@ -227,6 +227,8 @@
 
 #ifdef _MSC_VER
 
+#define __func__ __FUNCTION__
+
 /* define Windows tuning here */
 #  define __tune_corei7__
 
