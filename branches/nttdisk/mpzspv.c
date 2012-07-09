@@ -45,7 +45,7 @@ static void mpzspv_normalise (mpzspv_t, spv_size_t, spv_size_t, mpzspm_t);
 static int mpzspv_lio_rw (struct aiocb *[], mpzspv_t, spv_size_t, FILE *,  
                           spv_size_t, spv_size_t, spv_size_t, const mpzspm_t, 
                           int);
-static int mpzspv_lio_suspend (const struct aiocb *[], const mpzspm_t);
+static int mpzspv_lio_suspend (struct aiocb * const[], const mpzspm_t);
 #else
 static void mpzspv_seek_and_read (mpzspv_t, size_t, FILE *, spv_size_t, 
     spv_size_t, size_t, mpzspm_t);
@@ -681,10 +681,9 @@ mpzspv_fromto_mpzv (mpzspv_handle_t x, const spv_size_t offset,
 #endif
           int r;
           r = mpzspv_lio_rw (aiocb_list, buffer[0], 0, x->file, x->len, 
-                             offset, read_now, mpzspm, 0);
+                             offset, read_now, mpzspm, LIO_READ);
           ASSERT_ALWAYS (r == 0);
-          r = mpzspv_lio_suspend ((const struct aiocb **) aiocb_list, 
-                                  mpzspm);
+          r = mpzspv_lio_suspend (aiocb_list, mpzspm);
           ASSERT_ALWAYS (r == 0);
           read_done += read_now;
 #if WANT_PROFILE
@@ -714,7 +713,8 @@ mpzspv_fromto_mpzv (mpzspv_handle_t x, const spv_size_t offset,
 #if defined(HAVE_AIO_READ)
           int r;
           r = mpzspv_lio_rw (aiocb_list, buffer[work_buffer ^ 1], 0, x->file, 
-                             x->len, offset + read_done, read_now, mpzspm, 0);
+                             x->len, offset + read_done, read_now, mpzspm, 
+                             LIO_READ);
           ASSERT_ALWAYS (r == 0);
 #else
           mpzspv_seek_and_read (buffer[0], 0, x->file, x->len, 
@@ -840,8 +840,7 @@ mpzspv_fromto_mpzv (mpzspv_handle_t x, const spv_size_t offset,
 #endif
 #if defined(HAVE_AIO_READ)
           int r;
-          r = mpzspv_lio_suspend ((const struct aiocb **) aiocb_list, 
-                                  mpzspm);
+          r = mpzspv_lio_suspend (aiocb_list, mpzspm);
           ASSERT_ALWAYS (r == 0);
 #endif
 #if WANT_PROFILE
@@ -860,7 +859,10 @@ mpzspv_fromto_mpzv (mpzspv_handle_t x, const spv_size_t offset,
 #if defined(HAVE_AIO_READ)
       int r;
       r = mpzspv_lio_rw (aiocb_list, buffer[work_buffer], 0, x->file, 
-                         x->len, offset + len_done, len_now, mpzspm, 1);
+                         x->len, offset + len_done, len_now, mpzspm, 
+                         LIO_WRITE);
+      ASSERT_ALWAYS (r == 0);
+      r = mpzspv_lio_suspend (aiocb_list, mpzspm);
       ASSERT_ALWAYS (r == 0);
 #else
       mpzspv_seek_and_write (buffer[work_buffer], 0, x->file, x->len, 
@@ -1672,19 +1674,22 @@ mpzspv_sqr_reciprocal (mpzspv_handle_t x, const spv_size_t n)
    lengths/positions use one sp_t as the unit. */
 static int 
 mpzspv_lio_rw (struct aiocb *aiocb_list[], mpzspv_t mpzspv, 
-               const size_t mpzspv_offset, FILE *file,  
+               const size_t mpzspv_offset, FILE *file, 
                const spv_size_t veclen, const spv_size_t file_offset, 
-               const size_t len, const mpzspm_t mpzspm, const int write)
+               const size_t len, const mpzspm_t mpzspm, const int opcode)
 {
   unsigned int i;
   struct sigevent sev;
   int r;
   int fn;
   
+  ASSERT_ALWAYS (opcode == LIO_READ || opcode == LIO_WRITE || 
+                 opcode == LIO_NOP);
+
   if (0)
     printf("%s(, , %lu, , %" PRISPVSIZE ", %lu, , %d)\n", 
            __func__, (unsigned long) mpzspv_offset, file_offset,
-           (unsigned long) len, write);
+           (unsigned long) len, opcode);
   
   memset (&sev, 0, sizeof(struct sigevent));
   sev.sigev_notify = SIGEV_NONE;
@@ -1699,43 +1704,83 @@ mpzspv_lio_rw (struct aiocb *aiocb_list[], mpzspv_t mpzspv,
       aiocb_list[i]->aio_nbytes = len * sizeof(sp_t);
       aiocb_list[i]->aio_reqprio = 0;
       aiocb_list[i]->aio_sigevent = sev;
-      aiocb_list[i]->aio_lio_opcode = write ? LIO_WRITE : LIO_READ;
+      aiocb_list[i]->aio_lio_opcode = opcode;
     }
-  r = lio_listio (write ? LIO_WAIT : LIO_NOWAIT, aiocb_list, mpzspm->sp_num, 
-                  NULL);
+  r = lio_listio (LIO_NOWAIT, aiocb_list, mpzspm->sp_num, NULL);
   return r;
 }
 
 /* Wait until all operations in aiocb_list[] have completed */
 static int 
-mpzspv_lio_suspend (const struct aiocb *aiocb_list[], const mpzspm_t mpzspm)
+mpzspv_lio_suspend (struct aiocb * const aiocb_list[], const mpzspm_t mpzspm)
 {
   unsigned int i;
+
   for (i = 0; i < mpzspm->sp_num; i++)
     {
-      int r;
+      /* To avoid warning about mismatch in const-ness */
+      const struct aiocb *const p = aiocb_list[i];
+      int r, err;
+      ssize_t ret;
 
-      do {
-        r = aio_suspend (&aiocb_list[i], 1, NULL);
-      } while (r == EAGAIN);
-
-      if (r != 0)
+      r = aio_suspend (&p, 1, NULL);
+      while (r != 0)
         {
-          int saved_errno = errno;
-          if (saved_errno == EINTR)
+          if (errno == EINTR)
             {
-              fprintf (stderr, "%s(): Got EINTR, unhandled case. FIXME\n", 
-                       __func__);
-              return -1;
+              err = aio_error (aiocb_list[i]);
+              if (err == 0 || err == EINPROGRESS)
+                {
+                  /* This should not happen if aio_suspend() set 
+                     errno == EINTR */
+                  fprintf (stderr, "%s(): Error, aio_suspend() returned set "
+                           "errno = EINTR but aio_error() returned %d\n", 
+                           __func__, err);
+                  return r;
+                }
+              else if (err == ECANCELED)
+                {
+                  /* This transfer was interrupted. Re-issue it sychroneously.
+                     FIXME: do we have to fill in the aiocb struct again? */
+                  r = lio_listio (LIO_WAIT, &aiocb_list[i], 1, NULL);
+                  /* The lio_listio () call with mode = LIO_WAIT sets r and 
+                     errno like aio_suspend() would */
+                }
+              else 
+                {
+                  perror (NULL);
+                  fprintf (stderr, "mpzspv_lio_suspend(): Error, aio_suspend() "
+                           "set errno = EINTR and aio_error() returned %d\n", 
+                           err);
+                  return r;
+                }
             }
-
-          fprintf (stderr, "%s(): Got -1, errno = %d\n", 
-                   __func__, saved_errno);
-          return -1;
+          else
+            {
+              perror (NULL);
+              fprintf (stderr, "%s(): aio_suspend() returned %d\n", __func__, r);
+              return r;
+            }
         }
-
-      ASSERT_ALWAYS (r == 0);
+        
+        err = aio_error (aiocb_list[i]);
+        if (err != 0)
+          {
+            fprintf (stderr, "%s(): Error, aio_error() returned %d\n", 
+                     __func__, err);
+            return -1;
+          }
+        
+        ret = aio_return (aiocb_list[i]);
+        if (ret < 0 || (size_t) ret != aiocb_list[i]->aio_nbytes)
+          {
+            fprintf (stderr, "%s(): Error, transfer was for %" PRIuSIZE 
+                     " bytes, but aio_return() returned %" PRIdSIZE "\n", 
+                     __func__, aiocb_list[i]->aio_nbytes, ret);
+            return -1;
+          }
     }
+
   return 0;
 }
 #endif
