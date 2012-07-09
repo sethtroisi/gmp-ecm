@@ -223,7 +223,12 @@
 /* Define to `unsigned int' if <sys/types.h> does not define. */
 #undef size_t
 
+#define PRIdSIZE "Id"
+#define PRIuSIZE "Iu"
+
 #ifdef _MSC_VER
+
+#define __func__ __FUNCTION__
 
 /* define Windows tuning here */
 #  define __tune_corei7__
