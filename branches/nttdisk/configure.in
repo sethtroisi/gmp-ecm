@@ -180,6 +180,9 @@ AC_HEADER_TIME
 dnl Define size_t to something useable if standard headers don't
 AC_TYPE_SIZE_T
 
+dnl Use "zu" for the size_t format string, and "zd" for ssize_t
+AC_DEFINE([PRIuSIZE], "zu", [Define to the format string for a size_t])
+AC_DEFINE([PRIdSIZE], "zd", [Define to the format string for an ssize_t])
 
 dnl If OpenMP is enabled, check which command line parameter (if any)
 dnl if required to make the compiler enable OpenMP
