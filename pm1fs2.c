@@ -2101,10 +2101,13 @@ pm1_sequence_g (listz_t g_mpz, mpzspv_t g_ntt, const mpres_t b_1,
   mpres_get_z (t, r[2], modulus);
   outputf (OUTPUT_TRACE, "/* pm1_sequence_g */ g_%lu = %Zd; /* PARI */\n", 
 	   offset, t);
-  if (g_mpz != NULL)
-    mpz_set (g_mpz[offset], t);
-  if (g_ntt != NULL)
-    mpzspv_from_mpzv (g_ntt, offset, &t, 1UL, ntt_context);
+  if (l > 0)
+    {
+      if (g_mpz != NULL)
+        mpz_set (g_mpz[offset], t);
+      if (g_ntt != NULL)
+        mpzspv_from_mpzv (g_ntt, offset, &t, 1UL, ntt_context);
+    }
 
   /* So here we have for i = 0
      r[2] = x_0^(M-i) * r^{(M-i)^2}
@@ -3511,19 +3514,22 @@ pp1_sequence_g (listz_t g_x, listz_t g_y, mpzspv_t g_x_ntt, mpzspv_t g_y_ntt,
 		 tmplen, tmp); /* v[0,1] = r^M * x_0 */
     gfp_ext_pow_norm1_sl (r1_x[0], r1_y[0], v[0], v[1], M, Delta, modulus, 
 			  tmplen, tmp); /* r1[0] = (r^M * x_0)^M */
-    if (g_x != NULL)
-      mpres_get_z (g_x[offset], r1_x[0], modulus);
-    if (g_y != NULL)
-      mpres_get_z (g_y[offset], r1_y[0], modulus);
-    if (g_x_ntt != NULL)
+    if (l > 0)
       {
-	mpres_get_z (mt, r1_x[0], modulus);
-	mpzspv_from_mpzv (g_x_ntt, offset, &mt, 1UL, ntt_context);
-      }
-    if (g_y_ntt != NULL)
-      {
-	mpres_get_z (mt, r1_y[0], modulus);
-	mpzspv_from_mpzv (g_y_ntt, offset, &mt, 1UL, ntt_context);
+        if (g_x != NULL)
+          mpres_get_z (g_x[offset], r1_x[0], modulus);
+        if (g_y != NULL)
+          mpres_get_z (g_y[offset], r1_y[0], modulus);
+        if (g_x_ntt != NULL)
+          {
+            mpres_get_z (mt, r1_x[0], modulus);
+            mpzspv_from_mpzv (g_x_ntt, offset, &mt, 1UL, ntt_context);
+          }
+        if (g_y_ntt != NULL)
+          {
+            mpres_get_z (mt, r1_y[0], modulus);
+            mpzspv_from_mpzv (g_y_ntt, offset, &mt, 1UL, ntt_context);
+          }
       }
     
     
@@ -3535,19 +3541,22 @@ pp1_sequence_g (listz_t g_x, listz_t g_y, mpzspv_t g_x_ntt, mpzspv_t g_y_ntt,
 		 tmplen, tmp);
     gfp_ext_pow_norm1_sl (r1_x[1], r1_y[1], v[0], v[1], M - 1, Delta, 
 			  modulus, tmplen, tmp);
-    if (g_x != NULL)
-      mpres_get_z (g_x[offset + 1], r1_x[1], modulus);
-    if (g_y != NULL)
-      mpres_get_z (g_y[offset + 1], r1_y[1], modulus);
-    if (g_x_ntt != NULL)
+    if (l > 1)
       {
-	mpres_get_z (mt, r1_x[1], modulus);
-	mpzspv_from_mpzv (g_x_ntt, offset + 1, &mt, 1UL, ntt_context);
-      }
-    if (g_y_ntt != NULL)
-      {
-	mpres_get_z (mt, r1_y[1], modulus);
-	mpzspv_from_mpzv (g_y_ntt, offset + 1, &mt, 1UL, ntt_context);
+        if (g_x != NULL)
+          mpres_get_z (g_x[offset + 1], r1_x[1], modulus);
+        if (g_y != NULL)
+          mpres_get_z (g_y[offset + 1], r1_y[1], modulus);
+        if (g_x_ntt != NULL)
+          {
+            mpres_get_z (mt, r1_x[1], modulus);
+            mpzspv_from_mpzv (g_x_ntt, offset + 1, &mt, 1UL, ntt_context);
+          }
+        if (g_y_ntt != NULL)
+          {
+            mpres_get_z (mt, r1_y[1], modulus);
+            mpzspv_from_mpzv (g_y_ntt, offset + 1, &mt, 1UL, ntt_context);
+          }
       }
     
     
