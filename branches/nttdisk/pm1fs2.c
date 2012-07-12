@@ -406,7 +406,7 @@ V (mpres_t R, const mpres_t S, const int64_t k, mpmod_t modulus)
       mpz_t tz;
       mpz_init (tz);
       mpres_get_z (tz, S, modulus);
-      gmp_printf ("\nChebyshev_V(%ld, Mod(%Zd,N)) == ", (long)k, tz);
+      gmp_printf ("\nChebyshev_V(%" PRId64 ", Mod(%Zd,N)) == ", k, tz);
       mpz_clear (tz);
     }
 
@@ -4306,7 +4306,7 @@ main (int argc, char **argv)
       for (i = 0; i < mpzspm->sp_num; i++)
         {
           printf ("ntt_handle->mem[%d] = %p, diff = %lx\n", 
-                  i, (void*) ntt_handle->mem[i], abs((char *) ntt_handle->mem[i] - lastp));
+                  i, (void*) ntt_handle->mem[i], labs((char *) ntt_handle->mem[i] - lastp));
           lastp = (char *) ntt_handle->mem[i];
         }
     }
@@ -4370,6 +4370,8 @@ main (int argc, char **argv)
       mpz_init (t);
       mpz_set_ui (s[0], 3);
       mpz_set (s[1], N);
+      if (1)
+        mpz_powm_ui (s[0], s[0], 12345678, N);
       timestart = cputime ();
       realstart = realtime ();
       iter = listz_iterator_init (F, 0);

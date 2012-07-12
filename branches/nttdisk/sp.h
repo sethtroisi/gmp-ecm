@@ -165,6 +165,10 @@ typedef __sp_nttdata sp_nttdata_t[1];
 #define CACHE_LINE_SIZE 64
 #endif
 
+#if defined(HAVE___GMPN_REDC_N)
+/* #define REDC_PREINV_MOD 1 */
+#endif
+
 /* Elementwise operations that can be performed by spv_elementwise() */
 #define SPV_ELEMENTWISE_SET 0
 #define SPV_ELEMENTWISE_ADD 1
@@ -231,7 +235,9 @@ typedef struct
     /* product tree to speed up conversion from mpz to sp */
     mpzv_t T, preinv;     /* product tree */
     unsigned int d;       /* ceil(log(sp_num)/log(2)) */
-    unsigned int *start_p;
+    unsigned int *start_p, *redcbits;
+    spv_t fixfactors; /* Constants by which we multiply the leaves of a 
+                         remainder tree */
     mpzv_t remainders; /* Scratch space for remainder tree */
   } __mpzspm_struct;
 

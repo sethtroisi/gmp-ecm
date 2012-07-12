@@ -125,8 +125,9 @@ mpzspm_product_tree_init (mpzspm_t mpzspm)
                                       non-negative value */
   unsigned int d, i;
   unsigned int n = mpzspm->sp_num;
-  unsigned int *start_p;
-  mpzv_t T, preinv;
+  unsigned int *start_p, *redcbits = NULL;
+  spv_t fixfactors = NULL;
+  mpzv_t T = NULL, preinv = NULL;
   mpz_t mt, mt2, all_p;
 
   {
@@ -170,7 +171,8 @@ mpzspm_product_tree_init (mpzspm_t mpzspm)
 
   /* The tree is stored in a single array: root node (depth 0) at T[0], 
      and generally the 2^d nodes of depth d at T[2^d-1], ..., T[2^(d+1) - 2].
-     The two children of the node T[i] are T[2*i+1] and T[2*i+2]. */
+     The two children of the node T[i] are T[2*i+1] and T[2*i+2]; the parent 
+     node if T[i] is T[(i-1) / 2] for i > 0. */
 
   for (d = 0; n >> (i0_threshold + d) > 1; d++);
   if (verbose)
@@ -178,47 +180,55 @@ mpzspm_product_tree_init (mpzspm_t mpzspm)
 
   /* Allocate memory, 2^(d+1)-1 nodes in total */
   T = (mpzv_t) malloc (((2 << d) - 1) * sizeof (mpz_t));
-  if (T == NULL)
-    {
-      fprintf (stderr, "%s(): Could not allocate memory for T\n", __func__);
-      mpzspm->T = NULL;
-      return;
-    }
-
   preinv = (mpzv_t) malloc (((2 << d) - 1) * sizeof (mpz_t));
-  if (preinv == NULL)
-    {
-      fprintf (stderr, "%s(): Could not allocate memory for preinv\n", __func__);
-      free (T);
-      mpzspm->T = NULL;
-      return;
-    }
-
   start_p = (unsigned int *) malloc (((1 << d) + 1) * sizeof (unsigned int));
-  if (start_p == NULL)
+  redcbits = (unsigned int *) malloc (((2 << d) - 1) * sizeof (unsigned int));
+  mpzspm->remainders = (mpzv_t) malloc ((1 << d) * sizeof (mpz_t));
+
+  if (T == NULL || preinv == NULL || start_p == NULL || redcbits == NULL || 
+      mpzspm->remainders == NULL)
     {
-      fprintf (stderr, "%s(): Could not allocate memory for start_p\n", 
+      fprintf (stderr, "%s(): Could not allocate memory\n", 
                __func__);
       free(T);
+      T = NULL;
       free (preinv);
+      preinv = NULL;
+      free (start_p);
+      start_p = NULL;
+      free (redcbits);
+      redcbits = NULL;
+      free (mpzspm->remainders);
+      mpzspm->remainders = NULL;
       mpzspm->T = NULL;
       return;
     }
   start_p[0] = 0;
+  for (i = 0; i < 1U << d; i++)
+    mpz_init (mpzspm->remainders[i]);
 
-  mpzspm->remainders = (mpzv_t) malloc ((1 << d) * sizeof (mpz_t));
-  if (mpzspm->remainders == NULL)
+#ifdef REDC_PREINV_MOD
+  fixfactors = (spv_t) malloc (n * sizeof (sp_t));
+  if (fixfactors == NULL)
     {
-      fprintf (stderr, "%s(): Could not allocate memory for remainders\n", 
+      fprintf (stderr, "%s(): Could not allocate memory for fixfactors\n", 
                __func__);
-      free (T);
+      free(T);
+      T = NULL;
       free (preinv);
+      preinv = NULL;
       free (start_p);
+      start_p = NULL;
+      free (redcbits);
+      redcbits = NULL;
+      free (mpzspm->remainders);
+      mpzspm->remainders = NULL;
       mpzspm->T = NULL;
       return;
     }
-  for (i = 0; i < 1U << d; i++)
-    mpz_init (mpzspm->remainders[i]);
+  for (i = 0; i < n; i++)
+    fixfactors[i] = (sp_t) 1;
+#endif
 
   /* Fill the leaf nodes */
   /* We have l leaves, where n%l leaves get floor(n/l)+1 primes, and the other 
@@ -274,7 +284,48 @@ mpzspm_product_tree_init (mpzspm_t mpzspm)
   /* Precompute all the reciprocals */
   for (i = 0; i < (2U << d) - 1; i++)
     {
+#ifdef REDC_PREINV_MOD
+      /* 
+          We process a residue $a (mod p)$ of $r$ bits, which is bounded by 
+          by the modulus $p$ in parent node of the product tree: $a < p$. 
+          We want a (mod m), and use an inverse $-1/m (mod 2^b)$.
+          REDC computes $(a+i*m) / 2^b$, and a possible final subtraction of m,
+          so we require $(a+i*m) / 2^b < 2m$.
+          This is ensured if we choose $(p + 2^b*m) / 2^b < 2m$, or $p/m < 2^b$
+      */
+      mp_size_t words;
+      unsigned int b;
+
+      if (i == 0)
+        {
+          b = mpz_sizeinbase (T[i], 2);
+        } else {
+          ASSERT (mpz_divisible_p(T[(i - 1) / 2], T[i]));
+          /* This is actually just the other sibling */
+          mpz_divexact (mt, T[(i - 1) / 2], T[i]);
+          b = mpz_sizeinbase (mt, 2);
+        }
+      words = b / GMP_NUMB_BITS + 1;
+      b = words * GMP_NUMB_BITS;
+      redcbits[i] = b;
+      if (ALLOC(T[i]) < words)
+        {
+          mp_size_t j;
+          mpz_realloc2 (T[i], b);
+          ASSERT_ALWAYS (mpz_sgn(T[i]) > 0);
+          ASSERT_ALWAYS (ALLOC(T[i]) >= words);
+          for (j = ABSIZ(T[i]); j < words; j++)
+            PTR(T[i])[j] = (mp_limb_t) 0;
+        }
+      
+      mpz_set_ui (mt, 1UL);
+      mpz_mul_2exp (mt, mt, b);
+      mpz_invert (mt2, T[i], mt); /* mt2 = T^{-1} (mod 2^b) */
+      mpz_sub (mt2, mt, mt2);   /* mt2 = -T^{-1} (mod 2^b) */
+      mpz_init_set (preinv[i], mt2);
+#else
       const unsigned int b = mpz_sizeinbase (T[i], 2);
+      redcbits[i] = b;
       /* 2^(b-1) <= T[i] <= 2^b - 1 */
       mpz_set_ui (mt, 1UL);
       mpz_mul_2exp (mt, mt, 2*b);
@@ -287,7 +338,10 @@ mpzspm_product_tree_init (mpzspm_t mpzspm)
       */
       ASSERT (mpz_sizeinbase(mt2, 2) == b + 1);
       mpz_init_set (preinv[i], mt2);
+#endif
     }
+  for (i = 0; i < 1U << d; i++)
+    mpz_init2 (mpzspm->remainders[i], redcbits[0]);
 
   mpz_clear (mt);
   mpz_clear (mt2);
@@ -296,6 +350,8 @@ mpzspm_product_tree_init (mpzspm_t mpzspm)
   mpzspm->T = T;
   mpzspm->preinv = preinv;
   mpzspm->start_p = start_p;
+  mpzspm->fixfactors = fixfactors;
+  mpzspm->redcbits = redcbits;
 }
 
 /* This function initializes a mpzspm_t structure which contains the number
@@ -536,6 +592,10 @@ mpzspm_product_tree_clear (mpzspm_t mpzspm)
   free (mpzspm->preinv);
   free (mpzspm->start_p);
   free (mpzspm->remainders);
+  free (mpzspm->redcbits);
+#ifdef REDC_PREINV_MOD
+  free (mpzspm->fixfactors);
+#endif
 }
 
 void mpzspm_clear (mpzspm_t mpzspm)

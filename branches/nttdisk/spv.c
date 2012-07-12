@@ -833,8 +833,8 @@ spv_print_vec (const spv_t spv, const sp_t m, const spv_size_t l,
                const char *prefix, const char *suffix)
 {
   spv_size_t i;
-  printf ("%s [%lu", prefix, spv[0]);
+  printf ("%s [%" PRISP, prefix, spv[0]);
   for (i = 1; i < l; i++)
-    printf (", %lu", spv[i]);
+    printf (", %" PRISP, spv[i]);
   printf ("] (mod %" PRISP ")%s", m, suffix);
 }

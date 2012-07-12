@@ -33,6 +33,7 @@ MA 02110-1301, USA. */
 #endif
 #include "ecm-impl.h"
 
+#define TRACE_FUNC 0
 #define TRACE_ntt_sqr_reciprocal 0
 #define TRACE_ntt_mul 0
 #define WANT_PROFILE 0
@@ -439,19 +440,51 @@ spv_from_mpz_slow (spv_t x, const spv_size_t offset,
 
 static inline void
 preinv_mod (mpz_t r, const mpz_t a, const mpz_t m, const mpz_t i,
-            mpz_t mt, mpz_t mt2)
+            mpz_t *mt, const unsigned int b)
 {
-  const unsigned int b = mpz_sizeinbase (m, 2);
+#if defined(REDC_PREINV_MOD)
+  const mp_size_t words = (mp_size_t) b / GMP_NUMB_BITS;
   
-  mpz_tdiv_q_2exp (mt, a, b);
-  mpz_mul (mt2, mt, i);
-  mpz_tdiv_q_2exp (mt, mt2, b);
-  mpz_mul (mt2, mt, m);
-  mpz_sub (r, a, mt2);
+  ASSERT (mpz_sizeinbase(i, 2) <= b);
+  ASSERT (mpz_sgn (a) >= 0);
+  ASSERT (mpz_sgn (i) >= 0);
+  ASSERT (mpz_sgn (m) >= 0);
+  ASSERT (b % GMP_NUMB_BITS == 0);
+  ASSERT (ALLOC(i) >= words);
+  ASSERT (ALLOC(m) >= words);
+  ASSERT (ALLOC(r) >= words);
+
+#if defined(WANT_ASSERT)
+  {
+    mp_size_t j;
+    for (j = ABSIZ(i); j < words; j++)
+      ASSERT (PTR(i)[j] == (mp_limb_t) 0);
+    for (j = ABSIZ(m); j < words; j++)
+      ASSERT (PTR(m)[j] == (mp_limb_t) 0);
+  }
+#endif
+
+  mpz_set (mt[0], a);
+  {
+    mp_size_t j;
+    ASSERT (ALLOC(mt[0]) >= 2*words);
+    for (j = ABSIZ(mt[0]); j < 2*words; j++)
+      PTR(mt[0])[j] = (mp_limb_t) 0;
+  }
+  __gmpn_redc_n (PTR(r), PTR(mt[0]), PTR(m), words, PTR(i));  
+  SIZ(r) = words;
+  MPN_NORMALIZE(PTR(r), SIZ(r));
+#else
+  mpz_tdiv_q_2exp (mt[0], a, b);
+  mpz_mul (mt[1], mt[0], i);
+  mpz_tdiv_q_2exp (mt[0], mt[1], b);
+  mpz_mul (mt[1], mt[0], m);
+  mpz_sub (r, a, mt[1]);
   if (0)
     printf ("preinv_mod(): s(a) = %lu, s(m) = %lu, s(i) = %lu, s(r) = %lu\n",
             mpz_sizeinbase (a, 2), mpz_sizeinbase (m, 2), mpz_sizeinbase (i, 2), 
             mpz_sizeinbase (r, 2));
+#endif
 }
 
 static void
@@ -464,47 +497,55 @@ spv_from_mpz_fast (spv_t x, const spv_size_t offset,
   unsigned int i, j;
   const mpzv_t T = mpzspm->T, r = mpzspm->remainders;
   const unsigned int d = mpzspm->d;
-  mpz_t mt, mt2;
+  mpz_t mt[2];
 
+#if TRACE_FUNC
+  gmp_printf ("%s(%p, %" PRISPVSIZE ", %" PRIuSIZE ", %p, %p)\n", 
+              __func__, x, offset, sp_per_line, mpz, mpzspm);
+#endif
   ASSERT (d > 0);
   valgrind_check_mpzin (mpz);
 
+  for (j = 0; use_preinv && j < 2; j++)
+    mpz_init2 (mt[j], mpzspm->redcbits[0]);
+
   /* All 0 <= first_i <= d are possible here in principle. We would like to 
      start off with a modulus about half the size of the input number. Since 
-     T[0][0] is the product of all NTT primes, it is a little larger than the
+     T[0][0] is the product of all NTT primes, it is a little larger than 
      l*N^2, where l is the maximum transform length and N is the modulus for 
      the polynomial (i.e., the number to factor).
      Thus T[1][0 ... 1] are about as large as residues (mod N), 
      and T[2][0 ... 3] are about half as large, so we start with i=2. */
+
   i = I0_FIRST;
   ASSERT (i <= d);
-  if (use_preinv)
-    {
-      mpz_init (mt);
-      mpz_init (mt2);
-    }
   /* First pass uses mpz as input */
   for (j = 0; j < 1U << i; j++)
-    if (use_preinv)
-      preinv_mod (r[j], mpz, T[(1U << i) - 1 + j], mpzspm->preinv[(1U << i) - 1 + j], mt, mt2);
-    else
-      mpz_tdiv_r (r[j], mpz, T[(1U << i) - 1 + j]);
+    {
+      const size_t n = (1U << i) - 1 + j;
+      if (use_preinv)
+        preinv_mod (r[j], mpz, T[n], mpzspm->preinv[n], mt, 
+                    mpzspm->redcbits[n]);
+      else
+        mpz_tdiv_r (r[j], mpz, T[n]);
+    }
   i++;
 
   for ( ; i <= d; i++)
     {
       for (j = 1U << i; j-- > 0; )
-        if (use_preinv)
-          preinv_mod (r[j], r[j/2],  T[(1U << i) - 1 + j], mpzspm->preinv[(1U << i) - 1 + j], mt, mt2);
-        else
-          mpz_tdiv_r (r[j], r[j/2], T[(1U << i) - 1 + j]);
+        {
+          const size_t n = (1U << i) - 1 + j;
+          if (use_preinv)
+            preinv_mod (r[j], r[j/2],  T[n], mpzspm->preinv[n], mt, 
+                        mpzspm->redcbits[n]);
+          else
+            mpz_tdiv_r (r[j], r[j/2], T[n]);
+        }
     }
 
-  if (use_preinv)
-    {
-      mpz_clear (mt);
-      mpz_clear (mt2);
-    }
+  for (j = 0; use_preinv && j < 2; j++)
+    mpz_clear (mt[j]);
 
   /* Reduce each leaf node modulo individual primes */
   for (i = 0; i < 1U << d; i++)
@@ -515,8 +556,21 @@ spv_from_mpz_fast (spv_t x, const spv_size_t offset,
           for (j = mpzspm->start_p[i]; j < mpzspm->start_p[i + 1]; j++)
             x[j * sp_per_line + offset] = 0;
         } else {
-          for (j = mpzspm->start_p[i]; j < mpzspm->start_p[i + 1]; j++)
-            x[j * sp_per_line + offset] = mpz_mod_spm (r[i], spm[j], rem);
+          if (mpzspm->fixfactors != NULL)
+            {
+              for (j = mpzspm->start_p[i]; j < mpzspm->start_p[i + 1]; j++)
+                {
+                  const sp_t t = mpz_mod_spm (r[i], spm[j], rem);
+                  x[j * sp_per_line + offset] = sp_mul (t, mpzspm->fixfactors[j], 
+                      mpzspm->spm[j]->sp, mpzspm->spm[j]->mul_c);
+                }
+            }
+          else
+            {
+              for (j = mpzspm->start_p[i]; j < mpzspm->start_p[i + 1]; j++)
+                x[j * sp_per_line + offset] = mpz_mod_spm (r[i], spm[j], rem);
+            }
+            
         }
     }
 }
@@ -586,6 +640,12 @@ mpzspv_fromto_mpzv (mpzspv_handle_t x, const spv_size_t offset,
   unsigned int work_buffer = 0; /* Which of the two buffers (in case of 
                                    HAVE_AIO_READ) is used for NTT conversion,
                                    the other one is used for disk I/O */
+
+#if TRACE_FUNC
+  gmp_printf ("%s(%p, %" PRISPVSIZE ", %" PRISPVSIZE ", %p, %p, %p, %p)\n", 
+              __func__, x, offset, len, producer, producer_state, consumer, 
+              consumer_state);
+#endif
 
   ASSERT (sizeof (mp_limb_t) >= sizeof (sp_t));
 
@@ -1182,14 +1242,14 @@ mpzspv_mul_ntt (mpzspv_handle_t r, const spv_size_t offsetr,
     }
 
 #if TRACE_ntt_mul
-  printf ("%s (r = {%d, %p, %p, %p}, offsetr = %lu, "
-          "x = {%d, %p, %p, %p}, offsetx = %lu, lenx = %lu, "
-          "y = {%d, %p, %p, %p}, offsety = %lu, leny = %lu, "
-          "ntt_size = %lu, monic = %d, monic_pos = %lu, steps = %d)\n", __func__, 
-          r ? r->storage : 0, r ? r->mpzspm : NULL, r ? r->mem : NULL, r ? r->file : NULL, (unsigned long) offsetr, 
-          x ? x->storage : 0, x ? x->mpzspm : NULL, x ? x->mem : NULL, x ? x->file : NULL, (unsigned long) offsetx, (unsigned long) lenx,
-          y ? y->storage : 0, y ? y->mpzspm : NULL, y ? y->mem : NULL, y ? y->file : NULL, (unsigned long) offsety, (unsigned long) leny, 
-          (unsigned long) ntt_size, monic, (unsigned long) monic_pos, steps);
+  printf ("%s (r = {%d, %p, %p, %p}, offsetr = %" PRISPVSIZE ", "
+          "x = {%d, %p, %p, %p}, offsetx = %" PRISPVSIZE ", lenx = %" PRISPVSIZE ", "
+          "y = {%d, %p, %p, %p}, offsety = %" PRISPVSIZE ", leny = %" PRISPVSIZE ", "
+          "ntt_size = %" PRISPVSIZE ", monic = %d, monic_pos = %" PRISPVSIZE ", steps = %d)\n", __func__, 
+          r ? r->storage : 0, r ? r->mpzspm : NULL, r ? r->mem : NULL, r ? r->file : NULL, offsetr, 
+          x ? x->storage : 0, x ? x->mpzspm : NULL, x ? x->mem : NULL, x ? x->file : NULL, offsetx, lenx,
+          y ? y->storage : 0, y ? y->mpzspm : NULL, y ? y->mem : NULL, y ? y->file : NULL, offsety, leny, 
+          ntt_size, monic, monic_pos, steps);
   if (x != NULL)
     mpzspv_print (x, offsetx, lenx, "x");
   if (y != NULL)
@@ -1687,9 +1747,8 @@ mpzspv_lio_rw (struct aiocb *aiocb_list[], mpzspv_t mpzspv,
                  opcode == LIO_NOP);
 
   if (0)
-    printf("%s(, , %lu, , %" PRISPVSIZE ", %lu, , %d)\n", 
-           __func__, (unsigned long) mpzspv_offset, file_offset,
-           (unsigned long) len, opcode);
+    printf("%s(, , %" PRIuSIZE ", , %" PRISPVSIZE ", %" PRIuSIZE ", , %d)\n", 
+           __func__, mpzspv_offset, file_offset, len, opcode);
   
   memset (&sev, 0, sizeof(struct sigevent));
   sev.sigev_notify = SIGEV_NONE;
