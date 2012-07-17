@@ -144,12 +144,12 @@ ecm_factor (mpz_t f, mpz_t n, double B1, ecm_params p)
     }
   else if (p->method == ECM_PM1)
     res = pm1 (f, p->x, n, p->go, &(p->B1done), B1, p->B2min, p->B2, B2scale,
-               p->k, p->S, p->verbose, p->repr, p->use_ntt, p->os, p->es,
+               p->k, p->verbose, p->repr, p->use_ntt, p->os, p->es,
                p->chkfilename, p->TreeFilename, p->maxmem, p->rng, 
                p->stop_asap);
   else if (p->method == ECM_PP1)
     res = pp1 (f, p->x, n, p->go, &(p->B1done), B1, p->B2min, p->B2, B2scale,
-               p->k, p->S, p->verbose, p->repr, p->use_ntt, p->os, p->es,
+               p->k, p->verbose, p->repr, p->use_ntt, p->os, p->es,
                p->chkfilename, p->TreeFilename, p->maxmem, p->rng, 
                p->stop_asap);
   else

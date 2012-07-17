@@ -278,18 +278,6 @@ void     getprime_clear ();
 #define getprime_seek __ECM(getprime_seek)
 void getprime_seek (double);
 
-/* pm1.c */
-#define pm1_rootsF __ECM(pm1_rootsF)
-int     pm1_rootsF       (mpz_t, listz_t, root_params_t *, unsigned long, 
-                          mpres_t *, listz_t, mpmod_t);
-#define pm1_rootsG_init __ECM(pm1_rootsG_init)
-pm1_roots_state_t* pm1_rootsG_init  (mpres_t *, root_params_t *, mpmod_t);
-#define pm1_rootsG __ECM(pm1_rootsG)
-int     pm1_rootsG       (mpz_t, listz_t, unsigned long, pm1_roots_state_t *, 
-                          listz_t, mpmod_t);
-#define pm1_rootsG_clear __ECM(pm1_rootsG_clear)
-void    pm1_rootsG_clear (pm1_roots_state_t *, mpmod_t);
-
 /* pm1fs2_param.c */
 #define choose_P __ECM(choose_P)
 long    choose_P (const mpz_t, const mpz_t, const uint64_t,
@@ -372,22 +360,10 @@ int     ecm_findmatch (unsigned long *, const unsigned long, root_params_t *,
 void  pp1_mul_prac     (mpres_t, ecm_uint, mpmod_t, mpres_t, mpres_t,
                         mpres_t, mpres_t, mpres_t);
 
-/* pp1.c */
-#define pp1_rootsF __ECM(pp1_rootsF)
-int   pp1_rootsF       (listz_t, root_params_t *, unsigned long, mpres_t *, 
-                        listz_t, mpmod_t);
-#define pp1_rootsG __ECM(pp1_rootsG)
-int   pp1_rootsG   (listz_t, unsigned long, pp1_roots_state_t *, mpmod_t, 
-                    mpres_t*);
-#define pp1_rootsG_init __ECM(pp1_rootsG_init)
-pp1_roots_state_t* pp1_rootsG_init (mpres_t*, root_params_t *, mpmod_t);
-#define pp1_rootsG_clear __ECM(pp1_rootsG_clear)
-void  pp1_rootsG_clear (pp1_roots_state_t *, mpmod_t);
-
 /* stage2.c */
 #define stage2 __ECM(stage2)
 int          stage2     (mpz_t, void *, mpmod_t, unsigned long, unsigned long,
-                         root_params_t *, int, int, char *, int (*)(void));
+                         root_params_t *, int, char *, int (*)(void));
 #define init_progression_coeffs __ECM(init_progression_coeffs)
 listz_t init_progression_coeffs (mpz_t, const unsigned long, const unsigned long, 
 				 const unsigned int, const unsigned int, 
