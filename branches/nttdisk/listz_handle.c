@@ -84,6 +84,34 @@ listz_handle_init (const char *filename, const uint64_t len, const mpz_t m)
 }
 
 
+listz_handle_t 
+listz_handle_from_listz (const listz_t l, const uint64_t len, const mpz_t m)
+{
+  listz_handle_t F;
+  void *buf;
+
+  F = malloc (sizeof (_listz_handle_t));
+  if (F == NULL)
+    return NULL;
+  
+  /* Find out how many file_word_t's m has */
+  buf = (file_word_t *) mpz_export (NULL, &F->words, -1, sizeof(file_word_t), 
+                                   -1, 0, m);
+  if (buf == NULL)
+    {
+      free (F);
+      return NULL;
+    }
+  free(buf);
+
+  F->len = len;
+  F->storage = 0; /* Memory storage */
+  F->data.mem = l;
+
+  return F;
+}
+
+
 void 
 listz_handle_clear (listz_handle_t F)
 {

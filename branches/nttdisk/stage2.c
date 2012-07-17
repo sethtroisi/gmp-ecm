@@ -33,6 +33,7 @@ http://www.gnu.org/licenses/ or write to the Free Software Foundation, Inc.,
 
 #include "ecm-impl.h"
 #include "sp.h"
+#include "listz_handle.h"
 
 extern unsigned int Fermat;
 
@@ -579,14 +580,47 @@ stage2 (mpz_t f, void *X, mpmod_t modulus, unsigned long dF, unsigned long k,
       
       if (use_ntt)
         {
-	  sp_F = mpzspv_init_handle (NULL, dF, mpzspm);
-	  mpzspv_fromto_mpzv (sp_F, 0, dF, NULL, F, NULL, NULL);
+          char *filename_F = NULL, *filename_invF = NULL;
+	  if (TreeFilename == NULL)
+	    {
+	      sp_F = mpzspv_init_handle (NULL, dF, mpzspm);
+	      mpzspv_fromto_mpzv (sp_F, 0, dF, NULL, F, NULL, NULL);
+            } else {
+              listz_handle_t handle;
+              listz_iterator_t *iter;
+
+              filename_F = malloc (strlen (TreeFilename) + 3);
+              filename_invF = malloc (strlen (TreeFilename) + 6);
+              sprintf (filename_F, "%s.F", TreeFilename);
+              sprintf (filename_invF, "%s.invF", TreeFilename);
+
+              handle = listz_handle_from_listz (F, dF, modulus->orig_modulus);
+              iter = listz_iterator_init (handle, 0);
+
+	      sp_F = mpzspv_init_handle (filename_F, dF, mpzspm);
+              mpzspv_fromto_mpzv (sp_F, 0, dF, &listz_iterator_read_callback, iter, NULL, NULL);
+
+              listz_iterator_clear (iter);
+              free (handle);
+            }
           mpzspv_mul_ntt (sp_F, 0, sp_F, 0, dF, NULL, 0, 0, dF, 1, 0, 
                           NTT_MUL_STEP_FFT1);
 	  
 	  ntt_PolyInvert (invF, F + 1, dF, T, mpzspm);
-	  sp_invF = mpzspv_init_handle (NULL, 2 * dF, mpzspm);
-	  mpzspv_fromto_mpzv (sp_invF, 0, dF, NULL, invF, NULL, NULL);
+	  sp_invF = mpzspv_init_handle (filename_invF, 2 * dF, mpzspm);
+	  if (TreeFilename == NULL)
+	    {
+	      mpzspv_fromto_mpzv (sp_invF, 0, dF, NULL, invF, NULL, NULL);
+            } else {
+              listz_handle_t handle;
+              listz_iterator_t *iter;
+
+              handle = listz_handle_from_listz (invF, dF, modulus->orig_modulus);
+              iter = listz_iterator_init (handle, 0);
+              mpzspv_fromto_mpzv (sp_invF, 0, dF, &listz_iterator_read_callback, iter, NULL, NULL);
+              listz_iterator_clear (iter);
+              free (handle);
+            }
 	  mpzspv_mul_ntt (sp_invF, 0, sp_invF, 0, dF, NULL, 0, 0, 2 * dF, 0, 0, 
 	                  NTT_MUL_STEP_FFT1);
 	}

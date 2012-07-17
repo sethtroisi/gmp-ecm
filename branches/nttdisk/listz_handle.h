@@ -51,6 +51,7 @@ typedef struct{
 } listz_iterator_t;
 
 listz_handle_t listz_handle_init (const char *, uint64_t, const mpz_t);
+listz_handle_t listz_handle_from_listz (listz_t, uint64_t, const mpz_t);
 void listz_handle_clear (listz_handle_t);
 void listz_handle_get (listz_handle_t, mpz_t, file_word_t *, uint64_t);
 void listz_handle_get2 (listz_handle_t, mpz_t, uint64_t);
