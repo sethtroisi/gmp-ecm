@@ -215,16 +215,10 @@ ntt_PolyFromRoots_Tree (mpzv_t r, mpzv_t a, spv_size_t len, mpzv_t t,
  *
  * memory: 2 * len mpzspv coeffs */
 void
-ntt_PrerevertDivision (mpzv_t a, mpzv_t b, mpzv_t invb, mpzspv_handle_t sp_b,
+ntt_PrerevertDivision (mpzv_t a, mpzspv_handle_t sp_b, 
     mpzspv_handle_t sp_invb, spv_size_t len, mpzv_t t, mpzspm_t mpzspm)
 {
   mpzspv_handle_t x;
-  
-  if (len < PREREVERTDIVISION_NTT_THRESHOLD)
-    {
-      PrerevertDivision (a, b, invb, len, t, mpzspm->modulus);
-      return;
-    }
   
   x = mpzspv_init_handle (NULL, 2 * len, mpzspm);
 
@@ -329,7 +323,7 @@ void ntt_PolyInvert (mpzv_t q, mpzv_t b, spv_size_t len, mpzv_t t,
 /* memory: 4 * len mpzspv coeffs */
 int
 ntt_polyevalT (mpzv_t b, spv_size_t len, mpzv_t *Tree, mpzv_t T,
-                   mpzspv_handle_t sp_invF, mpzspm_t mpzspm, char *TreeFilenameStem)
+               mpzspv_handle_t sp_invF, mpzspm_t mpzspm, char *TreeFilenameStem)
 {
   spv_size_t m, i;
   FILE *TreeFile = NULL;

@@ -574,56 +574,81 @@ stage2 (mpz_t f, void *X, mpmod_t modulus, unsigned long dF, unsigned long k,
       
       if (use_ntt)
         {
-          char *filename_F = NULL, *filename_invF = NULL;
 	  if (TreeFilename == NULL)
 	    {
 	      sp_F = mpzspv_init_handle (NULL, dF, mpzspm);
 	      mpzspv_fromto_mpzv (sp_F, 0, dF, NULL, F, NULL, NULL);
             } else {
+              char *filename_F = NULL;
               listz_handle_t handle;
               listz_iterator_t *iter;
 
               filename_F = malloc (strlen (TreeFilename) + 3);
-              filename_invF = malloc (strlen (TreeFilename) + 6);
               sprintf (filename_F, "%s.F", TreeFilename);
-              sprintf (filename_invF, "%s.invF", TreeFilename);
 
               handle = listz_handle_from_listz (F, dF, modulus->orig_modulus);
               iter = listz_iterator_init (handle, 0);
 
 	      sp_F = mpzspv_init_handle (filename_F, dF, mpzspm);
-              mpzspv_fromto_mpzv (sp_F, 0, dF, &listz_iterator_read_callback, iter, NULL, NULL);
+              mpzspv_fromto_mpzv (sp_F, 0, dF, &listz_iterator_read_callback, 
+                                  iter, NULL, NULL);
 
               listz_iterator_clear (iter);
               free (handle);
+              free (filename_F);
             }
           mpzspv_mul_ntt (sp_F, 0, sp_F, 0, dF, NULL, 0, 0, dF, 1, 0, 
                           NTT_MUL_STEP_FFT1);
-	  
+	}
+
+      if (use_ntt)
+        {
+          /* Compute reciprocal of F */
 	  ntt_PolyInvert (invF, F + 1, dF, T, mpzspm);
-	  sp_invF = mpzspv_init_handle (filename_invF, 2 * dF, mpzspm);
+
+	  /* Convert it to NTT form */
 	  if (TreeFilename == NULL)
 	    {
+	      sp_invF = mpzspv_init_handle (NULL, 2 * dF, mpzspm);
 	      mpzspv_fromto_mpzv (sp_invF, 0, dF, NULL, invF, NULL, NULL);
             } else {
+              char *filename_invF = NULL;
               listz_handle_t handle;
               listz_iterator_t *iter;
 
+              filename_invF = malloc (strlen (TreeFilename) + 6);
+              sprintf (filename_invF, "%s.invF", TreeFilename);
+
+	      sp_invF = mpzspv_init_handle (filename_invF, 2 * dF, mpzspm);
               handle = listz_handle_from_listz (invF, dF, modulus->orig_modulus);
               iter = listz_iterator_init (handle, 0);
+
               mpzspv_fromto_mpzv (sp_invF, 0, dF, &listz_iterator_read_callback, iter, NULL, NULL);
+
               listz_iterator_clear (iter);
               free (handle);
+              free (filename_invF);
             }
+
+          if (dF >= PREREVERTDIVISION_NTT_THRESHOLD)
+            {
+              /* Code below never uses invF, only sp_invF again */
+              clear_list (invF, dF + 1);
+              invF = NULL;
+            }
+          
 	  mpzspv_mul_ntt (sp_invF, 0, sp_invF, 0, dF, NULL, 0, 0, 2 * dF, 0, 0, 
 	                  NTT_MUL_STEP_FFT1);
-	}
+        }
       else
-        PolyInvert (invF, F + 1, dF, T, n);
-      
+        {
+          PolyInvert (invF, F + 1, dF, T, n);
+        }
+
       /* now invF[0..dF-1] = Quo(x^(2dF-1), F) */
       outputf (OUTPUT_VERBOSE, "Computing 1/F took %ldms\n",
 	       elltime (st, cputime ()));
+      
       
       /* ----------------------------------------------
          |   F    |  invF  |   G   |         T        |
@@ -767,10 +792,9 @@ stage2 (mpz_t f, void *X, mpmod_t modulus, unsigned long dF, unsigned long k,
 
 	  st = cputime ();
 
-          if (use_ntt)
+          if (use_ntt && dF >= PREREVERTDIVISION_NTT_THRESHOLD)
 	    {
-	      ntt_PrerevertDivision (H, F, invF + 1, sp_F, sp_invF, dF,
-		  T + 2 * dF, mpzspm);
+	      ntt_PrerevertDivision (H, sp_F, sp_invF, dF, T + 2 * dF, mpzspm);
 	    }
 	  else
 	    {
@@ -808,7 +832,8 @@ stage2 (mpz_t f, void *X, mpmod_t modulus, unsigned long dF, unsigned long k,
       goto clear_fd;
     }
 #else
-  clear_list (invF, dF + 1);
+  if (invF != NULL)
+    clear_list (invF, dF + 1);
   invF = NULL;
   polyeval (T, dF, Tree, T + dF + 1, n, 0);
 #endif
@@ -844,7 +869,8 @@ clear_fd:
 clear_G:
   clear_list (G, dF);
 clear_invF:
-  clear_list (invF, dF + 1);
+  if (invF != NULL)
+    clear_list (invF, dF + 1);
 
   if (use_ntt)
     {

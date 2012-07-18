@@ -238,7 +238,7 @@ TUNE_FUNC_END (tune_list_mul)
 TUNE_FUNC_START (tune_ntt_PrerevertDivision)
   PREREVERTDIVISION_NTT_THRESHOLD = 0;
 
-  TUNE_FUNC_LOOP (ntt_PrerevertDivision (z, x, y, mpzspv, mpzspv,
+  TUNE_FUNC_LOOP (ntt_PrerevertDivision (z, mpzspv, mpzspv,
     1 << n, t, mpzspm));
 TUNE_FUNC_END (tune_ntt_PrerevertDivision)
 
