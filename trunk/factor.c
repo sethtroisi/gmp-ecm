@@ -32,7 +32,7 @@ ecm_init (ecm_params q)
   mpz_init_set_ui (q->x, 0);
   mpz_init_set_ui (q->sigma, 0);
   q->sigma_is_A = 0;
-  q->param = -1;
+  q->param = ECM_PARAM_DEFAULT;
   mpz_init_set_ui (q->go, 1);
   q->B1done = ECM_DEFAULT_B1_DONE + 1. / 1048576.;
   mpz_init_set_si (q->B2min, -1.0); /* default: B2min will be set to B1 */
