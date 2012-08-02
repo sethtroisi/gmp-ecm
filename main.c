@@ -1267,7 +1267,8 @@ main (int argc, char *argv[])
           fprintf (stderr, "Error, the -param option is only valid for ECM\n");
           exit (EXIT_FAILURE);
         }
-      params->param = param;
+      if (params->param == ECM_PARAM_DEFAULT)
+          params->param = param;
     
       /* load batch product s from a file */
       if (loadfile_s != NULL)
