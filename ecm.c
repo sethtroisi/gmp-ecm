@@ -956,9 +956,12 @@ ecm (mpz_t f, mpz_t x, int *param, mpz_t sigma, mpz_t n, mpz_t go,
 
       if (sigma_is_A >= 0 && mpz_sgn (x) != 0 && mpz_cmp_ui (x, 2) != 0)
         {
-          outputf (OUTPUT_ERROR, "Error, x0 should be equal to 2 with this "
-                                 "parametrization\n");
-          return ECM_ERROR;
+          if (ECM_IS_DEFAULT_B1_DONE(*B1done))
+            {
+              outputf (OUTPUT_ERROR, "Error, x0 should be equal to 2 with this "
+                                     "parametrization\n");
+              return ECM_ERROR;
+            }
         }
     }
 
@@ -979,7 +982,7 @@ ecm (mpz_t f, mpz_t x, int *param, mpz_t sigma, mpz_t n, mpz_t go,
     }
 
   /* Compute s for the batch mode */
-  if (IS_BATCH_MODE(*param) && 
+  if (IS_BATCH_MODE(*param) && ECM_IS_DEFAULT_B1_DONE(*B1done) &&
       (B1 != *batch_last_B1_used || mpz_cmp_ui (batch_s, 1) <= 0))
     {
       *batch_last_B1_used = B1;
@@ -991,7 +994,6 @@ ecm (mpz_t f, mpz_t x, int *param, mpz_t sigma, mpz_t n, mpz_t go,
                                "primes below B1=%1.0f took %ldms\n", 
                mpz_sizeinbase (batch_s, 2), B1, cputime () - st);
     }
-
 
   st = cputime ();
 
