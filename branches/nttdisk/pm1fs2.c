@@ -131,6 +131,17 @@ print_elapsed_time (int verbosity, long cpu_start,
   outputf (verbosity, " took %lums\n", elltime (cpu_start, cputime()));
 }
 
+static void
+output_storage (const char *dataname, const char *filename)
+{
+  if (filename == NULL)
+    {
+      outputf (OUTPUT_DEVVERBOSE, "Storing %s in memory\n", dataname);
+    } else {
+      outputf (OUTPUT_DEVVERBOSE, "Storing %s in file %s\n", 
+               dataname, filename);
+    }
+}
 
 /* Same, but does squaring which makes things easier */
 
@@ -1219,10 +1230,16 @@ init_F (const faststage2_param_t *params, mpmod_t modulus)
     {
       filename_f = malloc ((strlen(params->file_stem) + 6) * sizeof (char));
       if (filename_f == NULL)
-        return NULL;
+        {
+          outputf (OUTPUT_ERROR, 
+                   "%s(): could not allocate memory for filename_f\n", 
+                   __func__);
+          return NULL;
+        }
       sprintf (filename_f, "%s.fmpz", params->file_stem);
     }
   
+  output_storage ("MPZ data of F", filename_f);
   F = listz_handle_init (filename_f, params->s_1 / 2 + 1 + 1, 
     modulus->orig_modulus); /* Another +1 in len because 
     poly_from_sets_V stores the leading 1 monomial for each factor */
@@ -1259,15 +1276,22 @@ build_F_ntt (const mpres_t P_1, set_list_t *S_1,
     {
       filename_ntt = malloc ((strlen(params->file_stem) + 3) * sizeof (char));
       if (filename_ntt == NULL)
-        goto clear_and_exit;
+        {
+          outputf (OUTPUT_ERROR,  
+                   "%s(): could not allocate memory for filename_ntt\n",
+                   __func__);
+          goto clear_and_exit;
+        }
       sprintf (filename_ntt, "%s.f", params->file_stem);
     }
+    
+  output_storage ("NTT data of F", filename_ntt);
   F_ntt_context = mpzspm_init (3UL << ceil_log2 (params->s_1 / 2 + 1), 
 			       modulus->orig_modulus);
   
   tmplen = params->s_1;
   ASSERT_ALWAYS(tmplen > 0);
-  /* All but one factors of 2 are handled by list_scale_V_ntt() 
+  /* All factors of 2 but one are handled by list_scale_V_ntt() 
      which needs no temp space */
   while (tmplen % 4 == 0)
     tmplen /= 2;
@@ -1279,7 +1303,7 @@ build_F_ntt (const mpres_t P_1, set_list_t *S_1,
   if (F == NULL || F_ntt_context == NULL || tmp == NULL || 
       ntt_handle == NULL)
     {
-      outputf (OUTPUT_ERROR, "build_F_ntt(): Could not allocate memory\n");
+      outputf (OUTPUT_ERROR, "%s(): Could not allocate memory\n", __func__);
       if (F != NULL)
         {
           listz_handle_clear (F);
@@ -2403,7 +2427,7 @@ pm1fs2_ntt (mpz_t f, const mpres_t X, mpmod_t modulus,
 		  need s_1 / 2 + 1 entries. */
   mpzspm_t ntt_context;
   mpzspv_handle_t g_handle, h_handle;
-  char *h_filename = NULL, *g_filename = NULL;
+  char *filename_h = NULL, *filename_g = NULL;
   mpz_t mt;   /* All-purpose temp mpz_t */
   mpz_t product; /* Product of each multi-point evaluation */
   mpz_t *product_ptr = NULL;
@@ -2427,8 +2451,8 @@ pm1fs2_ntt (mpz_t f, const mpres_t X, mpmod_t modulus,
   ntt_context = mpzspm_init (params->l, modulus->orig_modulus);
   if (ntt_context == NULL)
     {
-      outputf (OUTPUT_ERROR, "Could not initialise ntt_context, "
-               "presumably out of memory\n");
+      outputf (OUTPUT_ERROR, "%s(): Could not initialise ntt_context, "
+               "presumably out of memory\n", __func__);
       return ECM_ERROR;
     }
 
@@ -2443,19 +2467,19 @@ pm1fs2_ntt (mpz_t f, const mpres_t X, mpmod_t modulus,
   if (params->file_stem != NULL)
     {
       do_aio_init (ntt_context->sp_num);
-      g_filename = malloc ((strlen(params->file_stem) + 3) * sizeof (char));
-      h_filename = malloc ((strlen(params->file_stem) + 3) * sizeof (char));
-      if (g_filename == NULL || h_filename == NULL)
+      filename_g = malloc ((strlen(params->file_stem) + 3) * sizeof (char));
+      filename_h = malloc ((strlen(params->file_stem) + 3) * sizeof (char));
+      if (filename_g == NULL || filename_h == NULL)
         {
-          fprintf (stderr, 
-                   "pm1fs2_ntt(): could not allocate memory for filename\n");
-          free (g_filename);
-          free (h_filename);
+          outputf (OUTPUT_ERROR, 
+                   "%s(): could not allocate memory for filename\n", __func__);
+          free (filename_g);
+          free (filename_h);
           mpzspm_clear (ntt_context);
           return ECM_ERROR;
         }
-      sprintf (g_filename, "%s.g", params->file_stem);
-      sprintf (h_filename, "%s.h", params->file_stem);
+      sprintf (filename_g, "%s.g", params->file_stem);
+      sprintf (filename_h, "%s.h", params->file_stem);
     }
 
   /* Compute Q = X + 1/X */
@@ -2515,9 +2539,10 @@ pm1fs2_ntt (mpz_t f, const mpres_t X, mpmod_t modulus,
 
   mpres_clear (Q, modulus);
   
-  h_handle = mpzspv_init_handle (h_filename, params->l / 2 + 1, ntt_context);
-  free (h_filename);
-  h_filename = NULL;
+  output_storage ("NTT data of h", filename_h);
+  h_handle = mpzspv_init_handle (filename_h, params->l / 2 + 1, ntt_context);
+  free (filename_h);
+  filename_h = NULL;
 
   if (!reuse_h)
     {
@@ -2565,9 +2590,10 @@ pm1fs2_ntt (mpz_t f, const mpres_t X, mpmod_t modulus,
       product_ptr = &product;
     }
 
-  g_handle = mpzspv_init_handle (g_filename, params->l, ntt_context);
-  free (g_filename);
-  g_filename = NULL;
+  output_storage ("NTT data of g", filename_g);
+  g_handle = mpzspv_init_handle (filename_g, params->l, ntt_context);
+  free (filename_g);
+  filename_g = NULL;
 
   for (l = 0; l < params->s_2 && youpi == ECM_NO_FACTOR_FOUND; l++)
     {
@@ -3745,8 +3771,8 @@ pp1fs2 (mpz_t f, const mpres_t X, mpmod_t modulus,
       if (TMulGen (R_x, nr - 1, h_x, params->s_1, g_x, params->l - 1, tmp,
 		   modulus->orig_modulus) < 0)
 	{
-	  outputf (OUTPUT_ERROR, "TMulGen returned error code (probably out "
-		   "of memory)\n");
+	  outputf (OUTPUT_ERROR, "%s(): TMulGen returned error code (probably "
+	           "out of memory)\n", __func__);
 	  youpi = ECM_ERROR;
 	  break;
 	}
@@ -3756,8 +3782,8 @@ pp1fs2 (mpz_t f, const mpres_t X, mpmod_t modulus,
       if (TMulGen (R_y, nr - 1, h_y, params->s_1, g_y, params->l - 1, tmp,
 		   modulus->orig_modulus) < 0)
 	{
-	  outputf (OUTPUT_ERROR, "TMulGen returned error code (probably out "
-		   "of memory)\n");
+	  outputf (OUTPUT_ERROR, "%s(): TMulGen returned error code (probably "
+	           "out of memory)\n", __func__);
 	  youpi = ECM_ERROR;
 	  break;
 	}
@@ -3889,8 +3915,8 @@ pp1fs2_ntt (mpz_t f, const mpres_t X, mpmod_t modulus,
 
   if (ntt_context == NULL)
     {
-      outputf (OUTPUT_ERROR, "Could not initialise ntt_context, "
-               "presumably out of memory\n");
+      outputf (OUTPUT_ERROR, "%s(): Could not initialise ntt_context, "
+               "presumably out of memory\n", __func__);
       mpz_clear (mt);
       sets_free (&S_1);
       free (s2_sumset);
@@ -3941,11 +3967,13 @@ pp1fs2_ntt (mpz_t f, const mpres_t X, mpmod_t modulus,
       filename = malloc(strlen(params->file_stem) + 5);
       sprintf(filename, "%s.h_x", params->file_stem);
     }
+  output_storage ("NTT data of h.x", filename);
   h_x_ntt = mpzspv_init_handle (filename, params->l / 2 + 1, ntt_context);
   if (params->file_stem != NULL)
     {
       sprintf(filename, "%s.h_y", params->file_stem);
     }
+  output_storage ("NTT data of h.y", filename);
   h_y_ntt = mpzspv_init_handle (filename, params->l / 2 + 1, ntt_context);
   free(filename);
 
@@ -3983,6 +4011,7 @@ pp1fs2_ntt (mpz_t f, const mpres_t X, mpmod_t modulus,
       g_y_ntt = g_x_ntt;
       if (params->file_stem != NULL)
         sprintf(filename, "%s.R", params->file_stem);
+      output_storage ("MPZ data of R", filename);
       R = listz_handle_init (filename, nr, modulus->orig_modulus);
       free (filename);
     }
@@ -4315,14 +4344,14 @@ main (int argc, char **argv)
       print_mpz;
   if (need_mpz)
     {
-      char *mpz_filename = NULL;
+      char *filename_mpz = NULL;
       if (filename != NULL)
         {
-          mpz_filename = malloc (strlen(filename) + 5);
-          ASSERT_ALWAYS (mpz_filename != NULL);
-          sprintf (mpz_filename, "%s.mpz", filename);
+          filename_mpz = malloc (strlen(filename) + 5);
+          ASSERT_ALWAYS (filename_mpz != NULL);
+          sprintf (filename_mpz, "%s.mpz", filename);
         }
-      F = listz_handle_init (mpz_filename, len, N);
+      F = listz_handle_init (filename_mpz, len, N);
       ASSERT_ALWAYS (F != NULL);
     }
 
