@@ -574,61 +574,29 @@ stage2 (mpz_t f, void *X, mpmod_t modulus, unsigned long dF, unsigned long k,
       
       if (use_ntt)
         {
-	  if (TreeFilename == NULL)
+          char *filename_F = NULL;
+          char *filename_invF = NULL;
+          
+	  if (TreeFilename != NULL)
 	    {
-	      sp_F = mpzspv_init_handle (NULL, dF, mpzspm);
-	      mpzspv_fromto_mpzv (sp_F, 0, dF, NULL, F, NULL, NULL);
-            } else {
-              char *filename_F = NULL;
-              listz_handle_t handle;
-              listz_iterator_t *iter;
-
               filename_F = malloc (strlen (TreeFilename) + 3);
+              filename_invF = malloc (strlen (TreeFilename) + 6);
               sprintf (filename_F, "%s.F", TreeFilename);
-
-              handle = listz_handle_from_listz (F, dF, modulus->orig_modulus);
-              iter = listz_iterator_init (handle, 0);
-
-	      sp_F = mpzspv_init_handle (filename_F, dF, mpzspm);
-              mpzspv_fromto_mpzv (sp_F, 0, dF, &listz_iterator_read_callback, 
-                                  iter, NULL, NULL);
-
-              listz_iterator_clear (iter);
-              free (handle);
-              free (filename_F);
+              sprintf (filename_invF, "%s.invF", TreeFilename);
             }
+	  sp_F = mpzspv_init_handle (filename_F, dF, mpzspm);
+          free (filename_F);
+	  mpzspv_fromto_mpzv (sp_F, 0, dF, NULL, F, NULL, NULL);
           mpzspv_mul_ntt (sp_F, 0, sp_F, 0, dF, NULL, 0, 0, dF, 1, 0, 
                           NTT_MUL_STEP_FFT1);
-	}
 
-      if (use_ntt)
-        {
           /* Compute reciprocal of F */
 	  ntt_PolyInvert (invF, F + 1, dF, T, mpzspm);
 
 	  /* Convert it to NTT form */
-	  if (TreeFilename == NULL)
-	    {
-	      sp_invF = mpzspv_init_handle (NULL, 2 * dF, mpzspm);
-	      mpzspv_fromto_mpzv (sp_invF, 0, dF, NULL, invF, NULL, NULL);
-            } else {
-              char *filename_invF = NULL;
-              listz_handle_t handle;
-              listz_iterator_t *iter;
-
-              filename_invF = malloc (strlen (TreeFilename) + 6);
-              sprintf (filename_invF, "%s.invF", TreeFilename);
-
-	      sp_invF = mpzspv_init_handle (filename_invF, 2 * dF, mpzspm);
-              handle = listz_handle_from_listz (invF, dF, modulus->orig_modulus);
-              iter = listz_iterator_init (handle, 0);
-
-              mpzspv_fromto_mpzv (sp_invF, 0, dF, &listz_iterator_read_callback, iter, NULL, NULL);
-
-              listz_iterator_clear (iter);
-              free (handle);
-              free (filename_invF);
-            }
+	  sp_invF = mpzspv_init_handle (filename_invF, 2 * dF, mpzspm);
+          free (filename_invF);
+          mpzspv_fromto_mpzv (sp_invF, 0, dF, NULL, invF, NULL, NULL);
 
           if (dF >= PREREVERTDIVISION_NTT_THRESHOLD)
             {
