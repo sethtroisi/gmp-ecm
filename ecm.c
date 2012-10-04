@@ -1035,6 +1035,12 @@ ecm (mpz_t f, mpz_t x, int *param, mpz_t sigma, mpz_t n, mpz_t go,
         {
           youpi = get_curve_from_random_parameter (f, P.A, P.x, sigma, *param,
                                                    modulus, rng);
+
+          if (youpi == ECM_ERROR)
+            {
+              outputf (OUTPUT_ERROR, "Error, invalid parametrization.\n");
+	            goto end_of_ecm;
+            }
         }
       else /* Compute A and x0 from given sigma values */
         {

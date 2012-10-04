@@ -447,6 +447,8 @@ get_curve_from_random_parameter (mpz_t f, mpres_t A, mpres_t x, mpz_t sigma,
           mpz_urandomb (sigma, rng, 32);
           ret = get_curve_from_param3 (A, x, sigma, modulus);
         }
+      else
+        return ECM_ERROR;
     } while (ret == ECM_ERROR);
 
   return ret;
