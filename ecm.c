@@ -938,7 +938,7 @@ ecm (mpz_t f, mpz_t x, int *param, mpz_t sigma, mpz_t n, mpz_t go,
         x should be either 0 (undetermined) or 2 */
   if (IS_BATCH_MODE(*param))
     {
-      if (repr == ECM_MOD_DEFAULT)
+      if (repr == ECM_MOD_DEFAULT || repr == ECM_MOD_NOBASE2)
         repr = ECM_MOD_MODMULN;
       else if (repr != ECM_MOD_MODMULN)
         {
