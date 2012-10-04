@@ -516,7 +516,7 @@ main (int argc, char *argv[])
           /* '-param 0' and '-param -otherargs' as it will always return 0 */
           if (argv[2][0] == '-') 
             {
-              fprintf (stderr, "Error, invalid param value: %s\n", argv[2]);
+              fprintf (stderr, "Error, invalid -param value: %s\n", argv[2]);
               exit (EXIT_FAILURE);
             }
           /* If param was already set (by -sigma i:x), we should check that */
@@ -1270,7 +1270,7 @@ main (int argc, char *argv[])
       else if (param != ECM_PARAM_DEFAULT && !IS_BATCH_MODE(param) 
                                           && param != ECM_PARAM_SUYAMA)
         {
-          fprintf (stderr, "Error, invalid value for the -param option\n");
+          fprintf (stderr, "Error, invalid -param value: %d\n", param);
           exit (EXIT_FAILURE);
         }
       if (params->param == ECM_PARAM_DEFAULT)
