@@ -1267,6 +1267,12 @@ main (int argc, char *argv[])
           fprintf (stderr, "Error, the -param option is only valid for ECM\n");
           exit (EXIT_FAILURE);
         }
+      else if (param != ECM_PARAM_DEFAULT && !IS_BATCH_MODE(param) 
+                                          && param != ECM_PARAM_SUYAMA)
+        {
+          fprintf (stderr, "Error, invalid value for the -param option\n");
+          exit (EXIT_FAILURE);
+        }
       if (params->param == ECM_PARAM_DEFAULT)
           params->param = param;
     
