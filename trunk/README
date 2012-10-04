@@ -7,11 +7,13 @@ Table of contents of this file:
 3. Extra factors and Brent-Suyama's extension.
 4. Memory usage.
 5. Expression syntax reference for GMP-ECM's syntax parser.
-6. Options -save, -resume and -chkpnt.
-7. Working with very large numbers (the -prp* options).
-8. How to get the best of GMP-ECM?
-9. Record factors.
-10. Known problems.
+6. Options -param, -sigma, -x0, -A.
+7. Options -save, -resume and -chkpnt.
+8. Working with very large numbers (the -prp* options).
+9. How to get the best of GMP-ECM?
+10. GMP-ECM and GPU.
+11. Record factors.
+12. Known problems.
 
 ##############################################################################
 
@@ -166,19 +168,28 @@ time to find factors of different sizes in verbose mode (option -v). This
 makes it easy to further optimize parameters for a certain factor size if 
 desired: simply try to minimize the expected time.
 
-(lengthy NOTE: The order of an elliptic curve with Montgomery parameteriza-
-tion, as used by GMP-ECM, is known to be divisible by 12. Therefore one can 
-assume that the probability that the order is B1,B2 smooth should be about as 
-great as for a random integer 1/12th in value. However, Montgomery observed 
-that the order behaves even nicer than that: heuristically, it seems that the 
-order is as likely to be smooth as a random integer about 1/23.4 in value. 
-This is the value we use in GMP-ECM and the computed probabilities match 
-those observed in experiments very well. This however means that the so 
-computed values for the expected number of curves for given B1,B2 values and 
-factor sizes do not match those published in the literature where a factor of 
-only 1/12 was used. The factor GMP-ECM uses is defined as ECM_EXTRA_SMOOTHNESS 
-in rho.c, you can change it to 12.0 if you want to reproduce the more 
-pessimistic values found in the literature.)
+(lengthy NOTE: The order of an elliptic curve with Montgomery parameterization
+is known to be divisible by 4. Depending on the parametrization that is used
+(see Section 6) this number is increased in different ways. Let us call T the
+known torsion (depending on the parametrization). One can assume that the
+probability that the order is B1,B2 smooth should be about as great as for a
+random integer 1/Tth in value.  However, Montgomery observed that the order
+behaves even nicer than that: heuristically, it seems that the order is as more
+likely to be smooth than a random integer about 1/Tth. In "Finding ECM-Friendly
+Curves through a Study of Galois Properties", Barbulescu, Bos, Bouvier,
+Kleinjung and Montgomery showed how to computed the average valuation that
+should be used instead of the average valuation of random number.  This is the
+values we use in GMP-ECM and the computed probabilities match those observed in
+experiments very well. This however means that the so computed values for the
+expected number of curves for given B1,B2 values and factor sizes may not match
+those published in the previous literature.
+The factor GMP-ECM uses is defined as ECM_EXTRA_SMOOTHNESS in rho.c,
+EXTRA_SMOOTHNESS_SQUARE and EXTRA_SMOOTHNESS 32BITS_D in ecm.c depending on the
+parametrization. You can change it to
+  ECM_EXTRA_SMOOTHNESS 3.0
+  EXTRA_SMOOTHNESS_SQUARE 0.333333333
+  EXTRA_SMOOTHNESS 32BITS_D 0.333333333  
+if you want to reproduce the more pessimistic values found in the literature.)
 
 In summary, we advise the following method:
 
@@ -301,10 +312,6 @@ Estimated memory usage: 27M
 ...
 Step 2 took 25456ms
 
-NOTE that in -b "breadth-first" mode, GMP-ECM reads all candidate numbers in 
-the input stream and keeps them in memory, so if there are many large numbers
-to be tested, the memory requirement will increase noticeably.
-
 ##############################################################################
 
 5. Expression syntax reference for GMP-ECM's syntax parser.
@@ -359,7 +366,53 @@ Probable prime cofactor (3*2^210+1)/1358437 has 58 digits
 
 ##############################################################################
 
-6. Options -save, -resume and -chkpnt.
+6. Options -param, -sigma, -x0, -A.
+
+This section explains the behavior of the options 'param', 'sigma', 'x0' and 'A'
+when GMP-ECM is used to run ECM. In stage 1, the elliptic used are of the
+following form : b*y^2 = x^3 + a*x^2 + x. The starting point in ( x0 : : 1).
+
+The -param option is used to choose the parametrization from which the curves
+are taken. It can take 4 values (s is the parameter):
+    0: use Suyama parametrization. It was the parametrization used previous
+    versions of GMP-ECM.
+	                         u = s^2-5, v = 4*s,
+                      a = (v-u)^3*(3*u+v)/(4*u^3*v)-2,
+	                               x0=u^3/v^3.
+    1: (only for 64-bit machine) 
+                                a=4*s^2-2,
+                                  x0 = 2.
+    2: use an elliptic parametrization to compute d(s) such that the curve has 
+       a 6-torsion point.
+                                a=4*d(s)-2,
+                                  x0 = 2.
+    3: it is mostly use for the gpu computation.
+                                 a = 4*s-2,
+                                  x0 = 2.
+        
+Generally, the parameter s is chosen randomly but the -sigma option can be used 
+to choose its value.
+
+In the case where only "-sigma s" is used, "-param 0" is assumed in order to be
+compatible with older version of GMP-ECM. The above is also true when resuming
+from a file (see Section 7). In the case where only "-param p" is used, the
+parameter is chosen at random by the ecm library. In the case where neither
+"-sigma" nor "-param" is used, the choice of the parametrization is left to ecm
+library and the parameter is chosen at random. In the case where the two
+options are used, "-param p -sigma s" can be shorten in "-sigma p:s".
+
+The curve can also be chosen with the -A option which directly specifies the
+values of the coefficient a of the curve. In this case the -x0 option is
+mandatory.
+
+The -x0 option can be used to override the x0 value in the case where param=0
+and is mandatory in the case the curve is given with the -A option. In the case
+where param=1, param=2 or param=3, x0 must be equal to 2, so this should not be
+used.
+
+##############################################################################
+
+7. Options -save, -resume and -chkpnt.
 
 These -save and -resume options are useful to save the current state of the 
 computation after step 1, or to exchange data with other software. It allows 
@@ -411,7 +464,8 @@ The format used is the following:
   - a line contains assignments <id>=<value> separated by semi-colons ';'
   - possible values for <id> are 
     - METHOD (value = ECM or P-1 or P+1)
-    - SIGMA (value = ECM sigma parameter) [ECM only]
+    - PARAM (value = ECM parametrization) [ECM only] (see Section 6)
+    - SIGMA (value = ECM sigma parameter) [ECM only] (see Section 6)
     - B1 (first step bound)
     - N (composite number to factor)
     - X (value at the end of step 1)
@@ -421,8 +475,8 @@ The format used is the following:
     - X0 (initial point for ECM, or initial residue for P-1/P+1) [optional]
     - WHO (who performed step 1) 
     - TIME (date and time of first step)
-  SIGMA and X0 would be optional, and would be mainly be used in case of a
-  factor is found, to be able to reproduce the factorization.
+  PARAM, SIGMA and X0 would be optional, and would be mainly be used in case of
+  a factor is found, to be able to reproduce the factorization.
   For ECM, one of the SIGMA or A values must be present, so that the
   computation can be continued on the correct curve.
   The B1 and X values satisfy the condition that X is a lcm(1,2,...,B1)-th
@@ -483,7 +537,7 @@ factors, however.
 
 ##############################################################################
 
-7. Executing shell commands
+8. Executing shell commands
 
 You can tell GMP-ECM to execute shell commands when a factor is found or 
 to run an external program for PRP testing. This feature is not compiled 
@@ -519,7 +573,7 @@ system is idle again.
 
 ##############################################################################
 
-8. How to get the best of GMP-ECM?
+9. How to get the best of GMP-ECM?
 
 [this part has to be rewritten, beginning of new part]
 
@@ -651,7 +705,14 @@ parameters "-k 1 <B1> 48e9", "-k 3 <B1> 35e9" or "-k 4 <B1> 46e9".
 
 ##############################################################################
 
-9. Record factors.
+10. GMP-ECM and GPU
+
+The stage 1 of ECM can be computed on a Nvidia GPU.
+More details are given in README.gpu
+
+##############################################################################
+
+11. Record factors.
 
 If you find a very large factor, the program will print a message like:
 
@@ -668,7 +729,7 @@ P+1: http://www.loria.fr/~zimmerma/records/Pplus1.html
 
 ##############################################################################
 
-10. Known problems.
+12. Known problems.
 
 On some machines, GMP-ECM uses the clock() function to measure the cpu time
 used by step 1 and 2. Since that function returns a 32-bit integer, there
