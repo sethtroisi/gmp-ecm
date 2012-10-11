@@ -124,6 +124,10 @@ Instructions to install GMP-ECM:
 
 ============================================================================
 
+To install GMP-ECM with support of NVIDIA Graphics Cards: see README.gpu
+
+============================================================================
+
 Known problems:
 
 * [reported by Sam Rawlins] with MinGW under Windows XP (32-bit), the
