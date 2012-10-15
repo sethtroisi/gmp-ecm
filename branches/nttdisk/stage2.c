@@ -338,7 +338,7 @@ stage2 (mpz_t f, void *X, mpmod_t modulus, unsigned long dF, unsigned long k,
   listz_t F, G, H, T;
   int youpi = ECM_NO_FACTOR_FOUND;
   long st, st0;
-  void *rootsG_state = NULL;
+  ecm_roots_state_t *rootsG_state = NULL;
   listz_t *Tree = NULL; /* stores the product tree for F */
   unsigned int treefiles_used = 0; /* Number of tree files currently in use */
   unsigned int lgk; /* ceil(log(k)/log(2)) */
@@ -452,7 +452,7 @@ stage2 (mpz_t f, void *X, mpmod_t modulus, unsigned long dF, unsigned long k,
             {
               /* clear already allocated Tree[i] */
               while (i)
-              clear_list (Tree[--i], dF);
+                clear_list (Tree[--i], dF);
               free (Tree);
               youpi = ECM_ERROR;
               goto clear_T;
@@ -531,25 +531,22 @@ stage2 (mpz_t f, void *X, mpmod_t modulus, unsigned long dF, unsigned long k,
       else
 	PolyFromRoots_Tree (F, F, dF, T, -1, n, Tree, NULL, 0);
     }
+  mpz_set_ui (F[dF], 1);
   
+  outputf (OUTPUT_VERBOSE, "Building F from its roots took %ldms\n", 
+           elltime (st, cputime ()));
   
   if (test_verbose (OUTPUT_TRACE))
     {
       unsigned long j;
-      for (j = 0; j < dF; j++)
+      for (j = 0; j <= dF; j++)
 	outputf (OUTPUT_TRACE, "F[%lu] = %Zd\n", j, F[j]);
     }
-  outputf (OUTPUT_VERBOSE, "Building F from its roots took %ldms\n", 
-           elltime (st, cputime ()));
 
   if (stop_asap != NULL && (*stop_asap)())
     goto free_Tree_i;
 
-
   /* needs dF+list_mul_mem(dF/2) cells in T */
-
-  mpz_set_ui (F[dF], 1); /* the leading monic coefficient needs to be stored
-                             explicitly for PrerevertDivision */
 
   /* ----------------------------------------------
      |   F    |  invF  |   G   |         T        |
@@ -584,13 +581,13 @@ stage2 (mpz_t f, void *X, mpmod_t modulus, unsigned long dF, unsigned long k,
               sprintf (filename_F, "%s.F", TreeFilename);
               sprintf (filename_invF, "%s.invF", TreeFilename);
             }
-	  sp_F = mpzspv_init_handle (filename_F, dF, mpzspm);
+	  sp_F = mpzspv_init_handle (filename_F, dF + 1, mpzspm);
           free (filename_F);
-	  mpzspv_fromto_mpzv (sp_F, 0, dF, NULL, F, NULL, NULL);
-          mpzspv_mul_ntt (sp_F, 0, sp_F, 0, dF, NULL, 0, 0, dF, 1, 0, 
-                          NTT_MUL_STEP_FFT1);
+	  mpzspv_fromto_mpzv (sp_F, 0, dF + 1, NULL, F, NULL, NULL);
+          mpzspv_mul_ntt (sp_F, 0, sp_F, 0, dF + 1, NULL, 0, 0, dF, 0, 0, 
+                          NTT_MUL_STEP_FFT1); /* Leading 1 wraps around */
 
-          /* Compute reciprocal of F */
+          /* Compute reciprocal of F[1, ..., dF] */
 	  ntt_PolyInvert (invF, F + 1, dF, T, mpzspm);
 
 	  /* Convert it to NTT form */
@@ -631,8 +628,8 @@ stage2 (mpz_t f, void *X, mpmod_t modulus, unsigned long dF, unsigned long k,
 
   /* start computing G with roots at i0*d, (i0+1)*d, (i0+2)*d, ... 
      where i0*d <= B2min < (i0+1)*d */
-  G = init_list2 (dF, mpz_sizeinbase (modulus->orig_modulus, 2) + 
-                      3 * GMP_NUMB_BITS);
+  G = init_list2 (dF + 1, mpz_sizeinbase (modulus->orig_modulus, 2) + 
+                          3 * GMP_NUMB_BITS);
   if (G == NULL)
     {
       youpi = ECM_ERROR;
@@ -643,7 +640,7 @@ stage2 (mpz_t f, void *X, mpmod_t modulus, unsigned long dF, unsigned long k,
   rootsG_state = ecm_rootsG_init (f, (curve *) X, root_params, dF, k, 
                                   modulus);
 
-  /* rootsG_state=NULL if an error occurred or (ecm only) a factor was found */
+  /* rootsG_state=NULL if an error occurred or a factor was found */
   if (rootsG_state == NULL)
     {
       /* ecm: f = -1 if an error occurred */
@@ -657,8 +654,7 @@ stage2 (mpz_t f, void *X, mpmod_t modulus, unsigned long dF, unsigned long k,
   for (i = 0; i < k; i++)
     {
       /* needs dF+1 cells in T+dF */
-      youpi = ecm_rootsG (f, G, dF, (ecm_roots_state_t *) rootsG_state, 
-                          modulus);
+      youpi = ecm_rootsG (f, G, dF, rootsG_state, modulus);
 
       if (test_verbose (OUTPUT_TRACE))
 	{
@@ -674,8 +670,8 @@ stage2 (mpz_t f, void *X, mpmod_t modulus, unsigned long dF, unsigned long k,
           goto clear_fd;
         }
 
-    if (stop_asap != NULL && (*stop_asap)())
-      goto clear_fd;
+      if (stop_asap != NULL && (*stop_asap)())
+        goto clear_fd;
 
   /* -----------------------------------------------
      |   F    |  invF  |   G    |         T        |
@@ -689,22 +685,22 @@ stage2 (mpz_t f, void *X, mpmod_t modulus, unsigned long dF, unsigned long k,
         ntt_PolyFromRoots (G, G, dF, T + dF, mpzspm);
       else
         PolyFromRoots (G, G, dF, T + dF, n);
-
-      if (test_verbose (OUTPUT_TRACE))
-	{
-	  unsigned long j;
-	  outputf (OUTPUT_TRACE, "G(x) = x^%lu ", dF);
-	  for (j = 0; j < dF; j++)
-	    outputf (OUTPUT_TRACE, "+ (%Zd * x^%lu)", G[j], j);
-	  outputf (OUTPUT_TRACE, "\n");
-	}
+      mpz_set_ui (G[dF], 1);
 
       /* needs 2*dF+list_mul_mem(dF/2) cells in T */
       outputf (OUTPUT_VERBOSE, "Building G from its roots took %ldms\n", 
                elltime (st, cputime ()));
 
-    if (stop_asap != NULL && (*stop_asap)())
-      goto clear_fd;
+      if (test_verbose (OUTPUT_TRACE))
+	{
+	  unsigned long j;
+	  for (j = 0; j <= dF; j++)
+	    outputf (OUTPUT_TRACE, "+ (%Zd * x^%lu)", G[j], j);
+	  outputf (OUTPUT_TRACE, "\n");
+	}
+
+      if (stop_asap != NULL && (*stop_asap)())
+        goto clear_fd;
 
   /* -----------------------------------------------
      |   F    |  invF  |   G    |         T        |
@@ -715,7 +711,7 @@ stage2 (mpz_t f, void *X, mpmod_t modulus, unsigned long dF, unsigned long k,
       if (i == 0)
         {
           list_sub (H, G, F, dF); /* coefficients 1 of degree cancel,
-                                     thus T is of degree < dF */
+                                     thus H is of degree < dF */
           list_mod (H, H, dF, n);
           /* ------------------------------------------------
              |   F    |  invF  |    G    |         T        |
@@ -783,7 +779,7 @@ stage2 (mpz_t f, void *X, mpmod_t modulus, unsigned long dF, unsigned long k,
   
   clear_list (F, dF + 1);
   F = NULL;
-  clear_list (G, dF);
+  clear_list (G, dF + 1);
   G = NULL;
   st = cputime ();
 #ifdef POLYEVALTELLEGEN
@@ -832,10 +828,11 @@ stage2 (mpz_t f, void *X, mpmod_t modulus, unsigned long dF, unsigned long k,
     }
 
 clear_fd:
-  ecm_rootsG_clear ((ecm_roots_state_t *) rootsG_state, modulus);
+  ecm_rootsG_clear (rootsG_state, modulus);
 
 clear_G:
-  clear_list (G, dF);
+  if (G != NULL)
+    clear_list (G, dF + 1);
 clear_invF:
   if (invF != NULL)
     clear_list (invF, dF + 1);
