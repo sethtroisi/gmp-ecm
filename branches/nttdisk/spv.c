@@ -121,6 +121,12 @@ spv_elementwise(
     {
       ASSERT(y == NULL && y_file == NULL);
     }
+  else if (operation == SPV_ELEMENTWISE_ADDSP || 
+           operation == SPV_ELEMENTWISE_SUBSP)
+    {
+      /* The single sp_t that gets added/subtracted must be in memory */
+      ASSERT(y != NULL && y_file == NULL);
+    }
   else
     {
       ASSERT(y != NULL || y_file != NULL);
@@ -235,8 +241,16 @@ spv_elementwise(
                 spv_add (buf_r, buf_x, buf_y, do_now, p);
                 break;
               }
+          case SPV_ELEMENTWISE_ADDSP: {
+                spv_add_sp (buf_r, buf_x, y[y_offset], do_now, p);
+                break;
+              }
           case SPV_ELEMENTWISE_SUB: {
                 spv_sub (buf_r, buf_x, buf_y, do_now, p);
+                break;
+              }
+          case SPV_ELEMENTWISE_SUBSP: {
+                spv_sub_sp (buf_r, buf_x, y[y_offset], do_now, p);
                 break;
               }
           case SPV_ELEMENTWISE_NEG: {

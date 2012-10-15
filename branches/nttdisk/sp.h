@@ -176,7 +176,9 @@ typedef __sp_nttdata sp_nttdata_t[1];
 #define SPV_ELEMENTWISE_NEG 3
 #define SPV_ELEMENTWISE_MUL 4
 #define SPV_ELEMENTWISE_SETSP 5
-#define SPV_ELEMENTWISE_RANDOM 6
+#define SPV_ELEMENTWISE_ADDSP 6
+#define SPV_ELEMENTWISE_SUBSP 7
+#define SPV_ELEMENTWISE_RANDOM 8
 
 /* Which steps to perform in convolution product funtions:
    forward transform, pair-wise multiplication, inverse transform */

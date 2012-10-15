@@ -350,8 +350,7 @@ mpzspv_set_sp (mpzspv_handle_t r, const spv_size_t offset,
   unsigned int i;
   
   for (i = 0; i < r->mpzspm->sp_num; i++)
-    spv_elementwise ((r->storage == 0) ? r->mem[i] : NULL, 
-                     (r->storage == 1) ? r->file : NULL, offset, 
+    spv_elementwise (get_mem (r, i), get_file (r, i), offset, 
                      &c, NULL, 0, NULL, NULL, 0, 
                      r->mpzspm->spm[i]->sp, r->mpzspm->spm[i]->mul_c,
                      len, SPV_ELEMENTWISE_SETSP);
@@ -373,6 +372,49 @@ mpzspv_add (mpzspv_handle_t r, const spv_size_t r_offset,
 {
   mpzspv_elementwise (r, r_offset, x, x_offset, y, y_offset, len, 
                       SPV_ELEMENTWISE_ADD);
+}
+
+
+void
+mpzspv_sub (mpzspv_handle_t r, const spv_size_t r_offset, 
+            const mpzspv_handle_t x, const spv_size_t x_offset, 
+            const mpzspv_handle_t y, const spv_size_t y_offset, 
+            const spv_size_t len)
+{
+  mpzspv_elementwise (r, r_offset, x, x_offset, y, y_offset, len, 
+                      SPV_ELEMENTWISE_SUB);
+}
+
+
+void
+mpzspv_add_sp (mpzspv_handle_t r, const spv_size_t r_offset, 
+               const mpzspv_handle_t x, const spv_size_t x_offset, 
+               const sp_t y, const spv_size_t len)
+{
+  unsigned int i;
+  
+  for (i = 0; i < r->mpzspm->sp_num; i++)
+    spv_elementwise (get_mem (r, i), get_file (r, i), r_offset, 
+                     get_mem (x, i), get_file (x, i), x_offset, 
+                     &y, NULL, 0, 
+                     r->mpzspm->spm[i]->sp, r->mpzspm->spm[i]->mul_c,
+                     len, SPV_ELEMENTWISE_ADDSP);
+}
+
+
+void
+mpzspv_sub_sp (mpzspv_handle_t r, const spv_size_t r_offset, 
+               const mpzspv_handle_t x, const spv_size_t x_offset, 
+               const sp_t y, const spv_size_t len)
+{
+  unsigned int i;
+  
+  for (i = 0; i < r->mpzspm->sp_num; i++)
+    spv_elementwise (get_mem (r, i), get_file (r, i), r_offset, 
+                     get_mem (x, i), get_file (x, i), x_offset, 
+                     &y, NULL, 0, 
+                     r->mpzspm->spm[i]->sp, r->mpzspm->spm[i]->mul_c,
+                     len, SPV_ELEMENTWISE_SUBSP);
 }
 
 
