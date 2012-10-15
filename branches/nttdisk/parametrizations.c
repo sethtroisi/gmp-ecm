@@ -207,6 +207,7 @@ get_curve_from_param0 (mpz_t f, mpres_t A, mpres_t x, mpz_t sigma, mpmod_t n)
       mpres_clear (v, n);
       mpres_clear (b, n);
       mpres_clear (z, n);
+      mpz_clear (tmp);
       if (mpz_cmp (f, n->orig_modulus) == 0)
           return ECM_ERROR;
       else
