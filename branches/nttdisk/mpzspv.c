@@ -1323,7 +1323,7 @@ mpzspv_mul_ntt (mpzspv_handle_t r, const spv_size_t offsetr,
                   spv_size_t do_now = MIN (ntt_size, lenx - done);
                   spv_elementwise (tmp, NULL, 0, tmp, NULL, 0, NULL, x->file, 
                       adjust_offset(x, i, offsetx + done), spm->sp, spm->mul_c, 
-                      ntt_size, SPV_ELEMENTWISE_ADD);
+                      do_now, SPV_ELEMENTWISE_ADD);
                   done += do_now;
                 }
               profile_end (realstart, i, "read vector");
