@@ -660,6 +660,12 @@ void mpzspv_neg (mpzspv_handle_t, spv_size_t, mpzspv_handle_t, spv_size_t,
     spv_size_t);
 void mpzspv_add (mpzspv_handle_t, spv_size_t, mpzspv_handle_t, spv_size_t, 
     mpzspv_handle_t, spv_size_t, spv_size_t);
+void mpzspv_sub (mpzspv_handle_t, spv_size_t, mpzspv_handle_t, spv_size_t, 
+    mpzspv_handle_t, spv_size_t, spv_size_t);
+void mpzspv_add_sp (mpzspv_handle_t, spv_size_t, mpzspv_handle_t, spv_size_t, 
+    sp_t, spv_size_t);
+void mpzspv_sub_sp (mpzspv_handle_t, spv_size_t, mpzspv_handle_t, spv_size_t, 
+    sp_t, spv_size_t);
 void mpzspv_fromto_mpzv (mpzspv_handle_t, spv_size_t, spv_size_t, 
     mpz_producerfunc_t, void *, mpz_consumerfunc_t, void *);
 void mpzspv_mul_ntt (mpzspv_handle_t, spv_size_t, mpzspv_handle_t, 
