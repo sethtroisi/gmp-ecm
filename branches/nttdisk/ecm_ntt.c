@@ -33,14 +33,14 @@ http://www.gnu.org/licenses/ or write to the Free Software Foundation, Inc.,
 
 /* memory: 4 * len mpspv coeffs */
 void
-ntt_mul (mpzv_t r, mpzv_t x, mpzv_t y, spv_size_t len, mpzv_t t,
-    int monic, mpzspm_t mpzspm)
+ntt_mul (mpzv_t r, mpzv_t x, mpzv_t y, spv_size_t len, mpzv_t t, 
+         mpzspm_t mpzspm)
 {
   mpzspv_handle_t u, v;
   
   if (len < MUL_NTT_THRESHOLD)
     {
-      list_mul (r, x, len, monic, y, len, monic, t);
+      list_mul (r, x, len, 0, y, len, 0, t);
       return;
     }
 
@@ -53,13 +53,13 @@ ntt_mul (mpzv_t r, mpzv_t x, mpzv_t y, spv_size_t len, mpzv_t t,
   mpzspv_mul_ntt(v, 0, 
                  v, 0, len, 
                  NULL, UNUSED, UNUSED, 
-                 2 * len, monic, UNUSED, NTT_MUL_STEP_FFT1);
+                 2 * len, NTT_MUL_STEP_FFT1);
   mpzspv_mul_ntt(u, 0, 
                  u, 0, len, 
                  v, 0, 2*len, 
-                 2 * len, monic, monic ? 2 * len : 0, 
+                 2 * len, 
                  NTT_MUL_STEP_FFT1 + NTT_MUL_STEP_MUL + NTT_MUL_STEP_IFFT);
-  mpzspv_fromto_mpzv (u, 0, 2 * len - 1 + monic, NULL, NULL, NULL, r);
+  mpzspv_fromto_mpzv (u, 0, 2 * len - 1, NULL, NULL, NULL, r);
   
   mpzspv_clear_handle (u);
   mpzspv_clear_handle (v);
@@ -93,17 +93,21 @@ ntt_PolyFromRoots (mpzv_t r, mpzv_t a, spv_size_t len, mpzv_t t,
     {
       for (i = 0; i < 2 * len; i += 4 * m)
         {
+          mpzspv_set_sp (x, i + 3 * m, (sp_t) 1, 1);
 	  mpzspv_mul_ntt (x, i + 2 * m, 
-	                  x, i + 2 * m, m, 
+	                  x, i + 2 * m, m + 1, 
 	                  NULL, UNUSED, UNUSED, 
-	                  2 * m, 1, UNUSED, 
+	                  2 * m, 
 	                  NTT_MUL_STEP_FFT1);
-	  mpzspv_mul_ntt (x, i,  
-	                  x, i, m, 
+          mpzspv_set_sp (x, i + m, (sp_t) 1, 1);
+	  mpzspv_mul_ntt (x, i, 
+	                  x, i, m + 1, 
 	                  x, i + 2 * m, 2 * m, 
-	                  2 * m, 1, 2 * m, 
+	                  2 * m, 
 	                  NTT_MUL_STEP_FFT1 + NTT_MUL_STEP_MUL + NTT_MUL_STEP_IFFT);
-	  
+          /* Subtract wrapped-around product 1*1 of leading monomials */
+	  mpzspv_sub_sp (x, i, x, i, (sp_t) 1, 1);
+
 	  if (2 * m < len)
 	    mpzspv_fromto_mpzv (x, i, 2 * m, NULL, NULL, NULL, NULL);
 	}	  
@@ -185,15 +189,20 @@ ntt_PolyFromRoots_Tree (mpzv_t r, mpzv_t a, spv_size_t len, mpzv_t t,
 	  
 	  mpzspv_fromto_mpzv (x, i, m, NULL, src + i / 2, NULL, NULL);
 	  mpzspv_fromto_mpzv (x, i + 2 * m, m, NULL, src + i / 2 + m, NULL, NULL);
+	  
+	  mpzspv_set_sp (x, i + 3 * m, (sp_t) 1, 1);
           mpzspv_mul_ntt (x, i + 2 * m, 
-                          x, i + 2 * m, m, 
+                          x, i + 2 * m, m + 1, 
                           NULL, UNUSED, UNUSED, 
-                          2 * m, 1, UNUSED, NTT_MUL_STEP_FFT1);
+                          2 * m, NTT_MUL_STEP_FFT1);
+	  mpzspv_set_sp (x, i + m, (sp_t) 1, 1);
           mpzspv_mul_ntt (x, i, 
-                          x, i, m, 
+                          x, i, m + 1, 
                           x, i + 2 * m, 2*m, 
-                          2 * m, 1, 2 * m, 
+                          2 * m, 
                           NTT_MUL_STEP_FFT1 + NTT_MUL_STEP_MUL + NTT_MUL_STEP_IFFT);
+          /* Subtract wrapped-around product 1*1 of leading monomials */
+          mpzspv_sub_sp (x, i, x, i, (sp_t) 1, 1);
           mpzspv_fromto_mpzv (x, i, 2 * m, NULL, NULL, NULL, *dst + i / 2);
 
           /* we only do the mod reduction to reduce the file size a bit */
@@ -228,14 +237,14 @@ ntt_PrerevertDivision (mpzv_t a, mpzspv_handle_t sp_b,
   mpzspv_mul_ntt (x, 0, 
                   x, 0, 2 * len, 
                   sp_invb, 0, 2 * len, 
-                  2 * len, 0, 0, 
+                  2 * len, 
                   NTT_MUL_STEP_FFT1 + NTT_MUL_STEP_MUL + NTT_MUL_STEP_IFFT);
   mpzspv_fromto_mpzv (x, 0, len, NULL, NULL, NULL, NULL);
   
   mpzspv_mul_ntt (x, 0, 
                   x, 0, len, 
                   sp_b, 0, len, 
-                  len, 0, 0, 
+                  len, 
                   NTT_MUL_STEP_FFT1 + NTT_MUL_STEP_MUL + NTT_MUL_STEP_IFFT);
   mpzspv_fromto_mpzv (x, 0, len, NULL, NULL, NULL, t);
   
@@ -277,11 +286,11 @@ void ntt_PolyInvert (mpzv_t q, mpzv_t b, spv_size_t len, mpzv_t t,
       mpzspv_mul_ntt (x, 0, 
                       x, 0, k + 1, 
                       NULL, UNUSED, UNUSED, 
-                      2 * k, 0, 0, NTT_MUL_STEP_FFT1);
+                      2 * k, NTT_MUL_STEP_FFT1);
       mpzspv_mul_ntt (z, 0, 
                       z, 0, 2 * k - 1, 
                       x, 0, 2 * k, 
-                      2 * k, 0, 0, 
+                      2 * k, 
                       NTT_MUL_STEP_FFT1 + NTT_MUL_STEP_MUL + NTT_MUL_STEP_IFFT);
       mpzspv_fromto_mpzv (z, k, k, NULL, NULL, NULL, NULL);
       mpzspv_neg (z, 0, z, k, k);
@@ -289,7 +298,7 @@ void ntt_PolyInvert (mpzv_t q, mpzv_t b, spv_size_t len, mpzv_t t,
       mpzspv_mul_ntt (x, 0, 
                       z, 0, k, 
                       x, 0, 2 * k, 
-                      2 * k, 0, 0,  
+                      2 * k, 
                       NTT_MUL_STEP_FFT1 + NTT_MUL_STEP_MUL + NTT_MUL_STEP_IFFT);
       if (2 * k < len)
         mpzspv_fromto_mpzv (x, k, k, NULL, NULL, NULL, NULL);
@@ -351,7 +360,7 @@ ntt_polyevalT (mpzv_t b, spv_size_t len, mpzv_t *Tree, mpzv_t T,
   mpzspv_mul_ntt(x, 0, 
                  x, 0, len, 
                  sp_invF, 0, 2 * len, 
-                 2 * len, 0, 0,
+                 2 * len, 
                  NTT_MUL_STEP_FFT1 + NTT_MUL_STEP_MUL + NTT_MUL_STEP_IFFT);
   mpzspv_fromto_mpzv (x, len-1, len, NULL, NULL, NULL, NULL);
   mpzspv_set (y, 0, x, len - 1, len); /* y = high (b * invF) */
@@ -391,11 +400,11 @@ ntt_polyevalT (mpzv_t b, spv_size_t len, mpzv_t *Tree, mpzv_t T,
 	  mpzspv_mul_ntt (y, i, 
 	                  y, i, 2 * m, 
 	                  NULL, UNUSED, UNUSED, 
-	                  2 * m, 0, 0, NTT_MUL_STEP_FFT1);
+	                  2 * m, NTT_MUL_STEP_FFT1);
           mpzspv_mul_ntt (x, 0, 
                           x, 0, m + 1, 
                           y, i, 2 * m, 
-                          2 * m, 0, 0, 
+                          2 * m, 
                           NTT_MUL_STEP_FFT1 + NTT_MUL_STEP_MUL + NTT_MUL_STEP_IFFT);
           if (m > POLYEVALT_NTT_THRESHOLD)
 	    mpzspv_fromto_mpzv (x, m, m, NULL, NULL, NULL, NULL);
@@ -406,7 +415,7 @@ ntt_polyevalT (mpzv_t b, spv_size_t len, mpzv_t *Tree, mpzv_t T,
           mpzspv_mul_ntt(x, 2 * m, 
                          x, 2 * m, m + 1, 
                          y, i, 2 * m, 
-                         2 * m, 0, 0, 
+                         2 * m, 
                          NTT_MUL_STEP_FFT1 + NTT_MUL_STEP_MUL + NTT_MUL_STEP_IFFT);
 	  if (m > POLYEVALT_NTT_THRESHOLD)
 	    mpzspv_fromto_mpzv (x, 3 * m, m, NULL, NULL, NULL, NULL);

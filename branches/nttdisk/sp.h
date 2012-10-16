@@ -670,7 +670,7 @@ void mpzspv_fromto_mpzv (mpzspv_handle_t, spv_size_t, spv_size_t,
     mpz_producerfunc_t, void *, mpz_consumerfunc_t, void *);
 void mpzspv_mul_ntt (mpzspv_handle_t, spv_size_t, mpzspv_handle_t, 
     spv_size_t, spv_size_t, mpzspv_handle_t, spv_size_t, spv_size_t, 
-    spv_size_t, int, spv_size_t, int);
+    spv_size_t, int);
 void mpzspv_random (mpzspv_handle_t, spv_size_t, spv_size_t);
 void mpzspv_to_dct1 (mpzspv_handle_t, mpzspv_handle_t, spv_size_t, spv_size_t);
 void mpzspv_sqr_reciprocal (mpzspv_handle_t, spv_size_t);

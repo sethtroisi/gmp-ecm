@@ -1237,8 +1237,7 @@ void
 mpzspv_mul_ntt (mpzspv_handle_t r, const spv_size_t offsetr, 
     mpzspv_handle_t x, const spv_size_t offsetx, const spv_size_t lenx, 
     mpzspv_handle_t y, const spv_size_t offsety, const spv_size_t leny, 
-    const spv_size_t ntt_size, const int monic, const spv_size_t monic_pos, 
-    const int steps)
+    const spv_size_t ntt_size, const int steps)
 {
   const spv_size_t block_len = 16384;
   const spv_size_t log2_ntt_size = ceil_log_2 (ntt_size);
@@ -1287,11 +1286,11 @@ mpzspv_mul_ntt (mpzspv_handle_t r, const spv_size_t offsetr,
   printf ("%s (r = {%d, %p, %p, %p}, offsetr = %" PRISPVSIZE ", "
           "x = {%d, %p, %p, %p}, offsetx = %" PRISPVSIZE ", lenx = %" PRISPVSIZE ", "
           "y = {%d, %p, %p, %p}, offsety = %" PRISPVSIZE ", leny = %" PRISPVSIZE ", "
-          "ntt_size = %" PRISPVSIZE ", monic = %d, monic_pos = %" PRISPVSIZE ", steps = %d)\n", __func__, 
+          "ntt_size = %" PRISPVSIZE ", steps = %d)\n", __func__, 
           r ? r->storage : 0, r ? r->mpzspm : NULL, r ? r->mem : NULL, r ? r->file : NULL, offsetr, 
           x ? x->storage : 0, x ? x->mpzspm : NULL, x ? x->mem : NULL, x ? x->file : NULL, offsetx, lenx,
           y ? y->storage : 0, y ? y->mpzspm : NULL, y ? y->mem : NULL, y ? y->file : NULL, offsety, leny, 
-          ntt_size, monic, monic_pos, steps);
+          ntt_size, steps);
   if (x != NULL)
     mpzspv_print (x, offsetx, lenx, "x");
   if (y != NULL)
@@ -1378,8 +1377,6 @@ mpzspv_mul_ntt (mpzspv_handle_t r, const spv_size_t offsetr,
       if (do_fft1) 
         {
           profile_start (&realstart);
-          if (monic)
-            tmp[lenx % ntt_size] = sp_add (tmp[lenx % ntt_size], 1, spm->sp);
 
           spv_ntt_gfp_dif (tmp, log2_ntt_size, spm);
           profile_end (realstart, i, "fft on vector");
@@ -1418,9 +1415,6 @@ mpzspv_mul_ntt (mpzspv_handle_t r, const spv_size_t offsetr,
           spv_mul_sp (tmp, tmp, spm->sp - (spm->sp - 1) / ntt_size,
                       ntt_size, spm->sp, spm->mul_c);
 
-          if (monic)
-            tmp[monic_pos % ntt_size] = sp_sub (tmp[monic_pos % ntt_size],
-                1, spm->sp);
           profile_end (realstart, i, "ifft on vector");
         }
 

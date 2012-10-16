@@ -584,7 +584,7 @@ stage2 (mpz_t f, void *X, mpmod_t modulus, unsigned long dF, unsigned long k,
 	  sp_F = mpzspv_init_handle (filename_F, dF + 1, mpzspm);
           free (filename_F);
 	  mpzspv_fromto_mpzv (sp_F, 0, dF + 1, NULL, F, NULL, NULL);
-          mpzspv_mul_ntt (sp_F, 0, sp_F, 0, dF + 1, NULL, 0, 0, dF, 0, 0, 
+          mpzspv_mul_ntt (sp_F, 0, sp_F, 0, dF + 1, NULL, 0, 0, dF, 
                           NTT_MUL_STEP_FFT1); /* Leading 1 wraps around */
 
           /* Compute reciprocal of F[1, ..., dF] */
@@ -602,7 +602,7 @@ stage2 (mpz_t f, void *X, mpmod_t modulus, unsigned long dF, unsigned long k,
               invF = NULL;
             }
           
-	  mpzspv_mul_ntt (sp_invF, 0, sp_invF, 0, dF, NULL, 0, 0, 2 * dF, 0, 0, 
+	  mpzspv_mul_ntt (sp_invF, 0, sp_invF, 0, dF, NULL, 0, 0, 2 * dF, 
 	                  NTT_MUL_STEP_FFT1);
         }
       else
@@ -736,7 +736,7 @@ stage2 (mpz_t f, void *X, mpmod_t modulus, unsigned long dF, unsigned long k,
 	     requires 3dF-1+list_mul_mem(dF) cells in T */
           if (use_ntt)
 	    {
-	      ntt_mul (T + dF, G, H, dF, T + 3 * dF, 0, mpzspm);
+	      ntt_mul (T + dF, G, H, dF, T + 3 * dF, mpzspm);
 	      list_mod (H, T + dF, 2 * dF, n);
 	    }
 	  else

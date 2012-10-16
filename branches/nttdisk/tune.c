@@ -226,7 +226,7 @@ TUNE_FUNC_END (tune_spv_ntt_gfp_dit_recursive)
 TUNE_FUNC_START (tune_ntt_mul)
   MUL_NTT_THRESHOLD = 0;
 
-  TUNE_FUNC_LOOP (ntt_mul (z, x, y, 1 << n, NULL, 1, mpzspm));
+  TUNE_FUNC_LOOP (ntt_mul (z, x, y, 1 << n, NULL, mpzspm));
 TUNE_FUNC_END (tune_ntt_mul)
 
 

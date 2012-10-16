@@ -2613,7 +2613,7 @@ pm1fs2_ntt (mpz_t f, const mpres_t X, mpmod_t modulus,
       timestart = cputime ();
       realstart = realtime ();
       mpzspv_mul_ntt (g_handle, 0, g_handle, 0, params->l, 
-          h_handle, 0, params->l / 2 + 1, params->l, 0, 0, 
+          h_handle, 0, params->l / 2 + 1, params->l, 
           NTT_MUL_STEP_FFT1 + NTT_MUL_STEP_MULDCT + NTT_MUL_STEP_IFFT);
       print_elapsed_time (OUTPUT_VERBOSE, timestart, realstart);
       
@@ -4060,7 +4060,7 @@ pp1fs2_ntt (mpz_t f, const mpres_t X, mpmod_t modulus,
 	  realstart = realtime ();
           mpzspv_mul_ntt (g_x_ntt, 0, g_x_ntt, 0, params->l, 
               h_x_ntt, 0, params->l / 2 + 1,
-              params->l, 0, 0, 
+              params->l, 
               NTT_MUL_STEP_FFT1 + NTT_MUL_STEP_MULDCT + NTT_MUL_STEP_IFFT);
 	  /* Store the product coefficients we want in R */
 	  if (R->storage == 0)
@@ -4089,7 +4089,7 @@ pp1fs2_ntt (mpz_t f, const mpres_t X, mpmod_t modulus,
 	  realstart = realtime ();
           mpzspv_mul_ntt (g_y_ntt, 0, g_y_ntt, 0, params->l, 
               h_y_ntt, 0, params->l / 2 + 1,
-              params->l, 0, 0, 
+              params->l, 
               NTT_MUL_STEP_FFT1 + NTT_MUL_STEP_MULDCT + NTT_MUL_STEP_IFFT);
 	  print_elapsed_time (OUTPUT_VERBOSE, timestart, realstart);
 	  
@@ -4109,7 +4109,7 @@ pp1fs2_ntt (mpz_t f, const mpres_t X, mpmod_t modulus,
 	  realstart = realtime ();
           mpzspv_mul_ntt (g_x_ntt, 0, g_x_ntt, 0, params->l, 
               h_x_ntt, 0, params->l / 2 + 1,
-              params->l, 0, 0, 
+              params->l, 
               NTT_MUL_STEP_FFT1 + NTT_MUL_STEP_MULDCT);
 	  print_elapsed_time (OUTPUT_VERBOSE, timestart, realstart);
 	  
@@ -4118,7 +4118,7 @@ pp1fs2_ntt (mpz_t f, const mpres_t X, mpmod_t modulus,
 	  realstart = realtime ();
           mpzspv_mul_ntt (g_y_ntt, 0, g_y_ntt, 0, params->l, 
               h_y_ntt, 0, params->l / 2 + 1,
-              params->l, 0, 0, 
+              params->l, 
               NTT_MUL_STEP_FFT1 + NTT_MUL_STEP_MULDCT);
 	  print_elapsed_time (OUTPUT_VERBOSE, timestart, realstart);
 	  
@@ -4128,7 +4128,7 @@ pp1fs2_ntt (mpz_t f, const mpres_t X, mpmod_t modulus,
 	  mpzspv_add (g_x_ntt, (spv_size_t) 0, g_x_ntt, (spv_size_t) 0, 
 	              g_y_ntt, (spv_size_t) 0, params->l);
           mpzspv_mul_ntt (g_x_ntt, 0, g_x_ntt, 0, params->l, NULL, 0, 0,
-              params->l, 0, 0, NTT_MUL_STEP_IFFT);
+              params->l, NTT_MUL_STEP_IFFT);
 	  print_elapsed_time (OUTPUT_VERBOSE, timestart, realstart);
 	  
 	  ntt_gcd (mt, product_ptr, g_x_ntt, params->s_1 / 2, NULL, nr, modulus);
@@ -4488,7 +4488,7 @@ main (int argc, char **argv)
       mpzspv_mul_ntt (ntt_handle, 0, 
                       ntt_handle, 0, len, 
                       ntt_handle, 0, ntt_size, 
-                      ntt_size, 0, 0, 
+                      ntt_size, 
                       (do_ntt ? NTT_MUL_STEP_FFT1 : 0) + 
                       (do_pwmul ? NTT_MUL_STEP_MUL : 0) +
                       (do_intt ? NTT_MUL_STEP_IFFT : 0));
