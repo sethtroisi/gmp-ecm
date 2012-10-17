@@ -143,11 +143,18 @@ __GMP_DECLSPEC mp_limb_t __gmpn_add_nc (mp_ptr, mp_srcptr, mp_srcptr,
 mp_limb_t __gmpn_mul_fft (mp_ptr, mp_size_t, mp_srcptr, mp_size_t, mp_srcptr, 
                           mp_size_t, int);
 
+#define mpn_mulmod_bnm1 __gmpn_mulmod_bnm1
+void mpn_mulmod_bnm1 (mp_ptr, mp_size_t, mp_srcptr, mp_size_t, mp_srcptr, 
+                      mp_size_t, mp_ptr);
+
 #define mpn_mul_fft_full __gmpn_mul_fft_full
 void __gmpn_mul_fft_full (mp_ptr, mp_srcptr, mp_size_t, mp_srcptr, mp_size_t);
 
 #define mpn_fft_next_size __gmpn_fft_next_size
 mp_size_t __gmpn_fft_next_size (mp_size_t, int);
+
+#define mpn_mulmod_bnm1_next_size __gmpn_mulmod_bnm1_next_size
+mp_size_t mpn_mulmod_bnm1_next_size (mp_size_t);
 
 #define mpn_fft_best_k __gmpn_fft_best_k
 int __gmpn_fft_best_k (mp_size_t, int);

@@ -307,7 +307,7 @@ ntt_print_vec (const char *msg, const spv_t spv, const spv_size_t l,
   gmp_printf ("%s [%Nd", msg, (mp_ptr) spv, 1);
   for (i = 1; i < l; i++)
     gmp_printf (", %Nd", (mp_ptr) spv + i, 1);
-  printf ("] (mod %llu)\n", p);
+  printf ("] (mod %llu)\n", (long long unsigned int) p);
 }
 
 
