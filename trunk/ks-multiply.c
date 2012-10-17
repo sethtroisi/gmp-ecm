@@ -24,7 +24,9 @@ http://www.gnu.org/licenses/ or write to the Free Software Foundation, Inc.,
 #include "ecm-gmp.h" /* for MPZ_REALLOC and MPN_COPY */
 #include "ecm-impl.h"
 
-#define FFT_WRAP /* always defined since mpn_mulmod_bnm1 is included */
+#if defined(HAVE___GMPN_MULMOD_BNM1) && defined(HAVE___GMPN_MULMOD_BNM1_NEXT_SIZE)
+#define FFT_WRAP /* use the wrap-around trick */
+#endif
 
 /* Copy at r+i*s the content of A[i*stride] for 0 <= i < l
    Assume all A[i*stride] are non-negative, and their size is <= s.
@@ -529,7 +531,7 @@ TMulKS (listz_t b, unsigned int n, listz_t a, unsigned int m,
       mpn_mulmod_bnm1 (bp, bn, cp, cn, ap, an, tp);
     free (tp);
   }
-#else
+#else /* FFT_WRAP is not defined */
   bp = (mp_ptr) malloc (bn * sizeof (mp_limb_t));
   if (bp == NULL)
     {
@@ -587,6 +589,7 @@ ks_wrapmul_m (unsigned int m0, unsigned int k, mpz_t n)
   mp_size_t t, s;
   unsigned long i, m;
 
+#ifdef FFT_WRAP
   t = mpz_sizeinbase (n, 2);
   s = t * 2 + 1;
   for (i = k - 1; i; s++, i >>= 1);
@@ -596,6 +599,9 @@ ks_wrapmul_m (unsigned int m0, unsigned int k, mpz_t n)
     i = mpn_mulmod_bnm1_next_size (i + 1);
   m = i / s;
   return m;
+#else
+  return ~ (unsigned int) 0;
+#endif
 }
 
 /* multiply in R[] A[0]+A[1]*x+...+A[k-1]*x^(k-1)
@@ -654,11 +660,15 @@ ks_wrapmul (listz_t R, unsigned int m0,
     if (SIZ(B[i]))
       MPN_COPY (t1_ptr + i * s, PTR(B[i]), SIZ(B[i]));
 
+#ifdef FFT_WRAP
   i = mpn_mulmod_bnm1_next_size (m0 * s);
   /* the following loop ensures we don't cut in the middle of a
      coefficient */
   while (i % s)
     i = mpn_mulmod_bnm1_next_size (i + 1);
+#else
+  ASSERT_ALWAYS(0); /* ks_wrapmul should not be called in that case */
+#endif
   m = i / s;
   ASSERT(m <= 2 * m0 - 3 + list_mul_mem (m0 - 1));
 
@@ -678,7 +688,9 @@ ks_wrapmul (listz_t R, unsigned int m0,
         free (t1_ptr);
         return 0;
       }
+#ifdef FFT_WRAP
     mpn_mulmod_bnm1 (t2_ptr, i, t0_ptr, size_t0, t1_ptr, size_t1, tp);
+#endif
     free (tp);
   }
   
