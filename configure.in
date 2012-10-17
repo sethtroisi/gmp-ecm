@@ -524,6 +524,7 @@ return strcmp (buffer, gmp_version);
 AC_CHECK_FUNCS([__gmpn_add_nc __gmpn_mod_34lsub1 __gmpn_redc_1 __gmpn_redc_2])
 AC_CHECK_FUNCS([__gmpn_mullo_n __gmpn_redc_n __gmpn_preinv_mod_1])
 AC_CHECK_FUNCS([__gmpn_mul_fft __gmpn_fft_next_size __gmpn_fft_best_k])
+AC_CHECK_FUNCS([__gmpn_mulmod_bnm1 __gmpn_mulmod_bnm1_next_size])
 
 LIBS="$LIBS_BACKUP"
 

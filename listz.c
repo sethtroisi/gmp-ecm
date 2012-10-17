@@ -643,6 +643,7 @@ PrerevertDivision (listz_t a, listz_t b, listz_t invb,
 {
   int po2, wrap;
   listz_t t2 = NULL;
+
   wrap = ks_wrapmul_m (K + 1, K + 1, n) <= 2 * K - 1 + list_mul_mem (K);
 
   /* Q <- high(high(A) * INVB) with a short product */
@@ -710,9 +711,9 @@ PrerevertDivision (listz_t a, listz_t b, listz_t invb,
           m = ks_wrapmul (t, K + 1, b, K + 1, t2, K - 1, n);
           clear_list (t2, K - 1);
           /* coefficients of degree m..2K-2 wrap around,
-             i.e. were subtracted to 0..2K-2-m */
+             i.e. were added to 0..2K-2-m */
           if (m < 2 * K - 1) /* otherwise product is exact */
-            list_add (t, t, a + m, 2 * K - 1 - m);
+            list_sub (t, t, a + m, 2 * K - 1 - m);
         }
       else
         list_mult_n (t, a + K, b, K);

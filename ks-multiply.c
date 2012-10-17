@@ -24,7 +24,7 @@ http://www.gnu.org/licenses/ or write to the Free Software Foundation, Inc.,
 #include "ecm-gmp.h" /* for MPZ_REALLOC and MPN_COPY */
 #include "ecm-impl.h"
 
-#define FFT_WRAP /* always defined since mpn_mul_fft is included */
+#define FFT_WRAP /* always defined since mpn_mulmod_bnm1 is included */
 
 /* Copy at r+i*s the content of A[i*stride] for 0 <= i < l
    Assume all A[i*stride] are non-negative, and their size is <= s.
@@ -422,22 +422,20 @@ list_mult_n (listz_t R, listz_t A, listz_t B, unsigned int n)
    Assumes n <= l.
 
    Return non-zero if an error occurred.
-*/
 
-#undef TEST_OLD_S
+   low(b) is the coefficients of degree 0 to m-1 of a*c (or rev(a)*c)
+   mid(b) is the coefficients of degree m to m+n of a*c
+   high(b) is the coefficients of degree m+n+1 to m+l+1 of a*c
+*/
 
 int
 TMulKS (listz_t b, unsigned int n, listz_t a, unsigned int m,
         listz_t c, unsigned int l, mpz_t modulus, int rev)
 {
-  unsigned long i, s = 0, t, k;
+  unsigned long i, s = 0, t;
   mp_ptr ap, bp, cp;
   mp_size_t an, bn, cn;
   int ret = 0; /* default return value */
-#ifdef TEST_OLD_S
-  unsigned long s_old = 0, k_old;
-  mp_size_t bn_old;
-#endif
 #ifdef DEBUG
   long st = cputime ();
   fprintf (ECM_STDOUT, "n=%u m=%u l=%u bits=%u n*bits=%u: ", n, m, l,
@@ -448,7 +446,7 @@ TMulKS (listz_t b, unsigned int n, listz_t a, unsigned int m,
   if (l > n + m)
     l = n + m; /* otherwise, c has too many coeffs */
 
-  /* compute max bits of a[] and c[] */
+  /* make coefficients a[] and c[] non-negative and compute max #bits */
   for (i = 0; i <= m; i++)
     {
       if (mpz_sgn (a[i]) < 0)
@@ -465,13 +463,7 @@ TMulKS (listz_t b, unsigned int n, listz_t a, unsigned int m,
     }
 
 #ifdef FFT_WRAP
-  s ++; /* need one extra bit to determine sign of low(b) - high(b) */
-#endif
-
-#ifdef TEST_OLD_S
-  /* We used max(m,l) before. We compute the corresponding s for 
-     comparison. */
-  for (s_old = 2 * s, i = (m > l) ? m : l; i; s_old++, i >>= 1);
+  s ++; /* need one extra bit to prevent carry of low(b) + high(b) */
 #endif
 
   /* max coeff has 2*s+ceil(log2(min(m+1,l+1))) bits,
@@ -480,9 +472,6 @@ TMulKS (listz_t b, unsigned int n, listz_t a, unsigned int m,
 
   /* corresponding number of limbs */
   s = 1 + (s - 1) / GMP_NUMB_BITS;
-#ifdef TEST_OLD_S
-  s_old = 1 + (s_old - 1) / GMP_NUMB_BITS;
-#endif
 
   an = (m + 1) * s;
   cn = (l + 1) * s;
@@ -517,29 +506,29 @@ TMulKS (listz_t b, unsigned int n, listz_t a, unsigned int m,
   /* the product rev(a) * c has m+l+1 coefficients.
      We throw away the first m and the last l-n <= m.
      If we compute mod (m+n+1) * s limbs, we are ok */
-  k = mpn_fft_best_k ((m + n + 1) * s, 0);
-  bn = mpn_fft_next_size ((m + n + 1) * s, k);
-#ifdef TEST_OLD_S
-  k_old = mpn_fft_best_k ((m + n + 1) * s_old, 0);
-  if (k != k_old)
-    outputf (OUTPUT_ERROR, 
-             "Got different FFT transform length, k = %lu, k_old : %lu\n",
-             k, k_old);    
-  bn_old = mpn_fft_next_size ((m + n + 1) * s_old, k_old);
-  if (bn != bn_old)
-    outputf (OUTPUT_ERROR, "Got different FFT size, bn = %d, bn_old : %d\n",
-             (int) bn, (int) bn_old);
-#endif
+  bn = mpn_mulmod_bnm1_next_size ((m + n + 1) * s);
   
-  bp = (mp_ptr) malloc ((bn + 1) * sizeof (mp_limb_t));
+  bp = (mp_ptr) malloc (bn * sizeof (mp_limb_t));
   if (bp == NULL)
     {
       ret = 1;
       goto TMulKS_free_cp;
     }
-  mpn_mul_fft (bp, bn, ap, an, cp, cn, k);
-  if (m && bp[m * s - 1] >> (GMP_NUMB_BITS - 1)) /* lo(b)-hi(b) is negative */
-    mpn_add_1 (bp + m * s, bp + m * s, (n + 1) * s, (mp_limb_t) 1);
+  {
+    mp_ptr tp;
+    tp = (mp_ptr) malloc ((2 * bn + 4) * sizeof (mp_limb_t));
+    if (tp == NULL)
+      {
+        ret = 1;
+        goto TMulKS_free_cp;
+      }
+    /* mpn_mulmod_bnm1 requires that the first operand is larger */
+    if (an >= cn)
+      mpn_mulmod_bnm1 (bp, bn, ap, an, cp, cn, tp);
+    else
+      mpn_mulmod_bnm1 (bp, bn, cp, cn, ap, an, tp);
+    free (tp);
+  }
 #else
   bp = (mp_ptr) malloc (bn * sizeof (mp_limb_t));
   if (bp == NULL)
@@ -596,16 +585,15 @@ unsigned int
 ks_wrapmul_m (unsigned int m0, unsigned int k, mpz_t n)
 {
   mp_size_t t, s;
-  unsigned long i, fft_k, m;
+  unsigned long i, m;
 
   t = mpz_sizeinbase (n, 2);
   s = t * 2 + 1;
   for (i = k - 1; i; s++, i >>= 1);
   s = 1 + (s - 1) / GMP_NUMB_BITS;
-  fft_k = mpn_fft_best_k (m0 * s, 0);
-  i = mpn_fft_next_size (m0 * s, fft_k);
+  i = mpn_mulmod_bnm1_next_size (m0 * s);
   while (i % s)
-    i = mpn_fft_next_size (i + 1, fft_k);
+    i = mpn_mulmod_bnm1_next_size (i + 1);
   m = i / s;
   return m;
 }
@@ -623,10 +611,9 @@ ks_wrapmul (listz_t R, unsigned int m0,
             listz_t B, unsigned int l,
 	    mpz_t n)
 {
-  unsigned long i, fft_k, m, t;
+  unsigned long i, m, t;
   mp_size_t s, size_t0, size_t1, size_tmp;
   mp_ptr t0_ptr, t1_ptr, t2_ptr, r_ptr, tp;
-  int negative;
 
   ASSERT(k >= l);
 
@@ -667,12 +654,11 @@ ks_wrapmul (listz_t R, unsigned int m0,
     if (SIZ(B[i]))
       MPN_COPY (t1_ptr + i * s, PTR(B[i]), SIZ(B[i]));
 
-  fft_k = mpn_fft_best_k (m0 * s, 0);
-  i = mpn_fft_next_size (m0 * s, fft_k);
+  i = mpn_mulmod_bnm1_next_size (m0 * s);
   /* the following loop ensures we don't cut in the middle of a
      coefficient */
   while (i % s)
-    i = mpn_fft_next_size (i + 1, fft_k);
+    i = mpn_mulmod_bnm1_next_size (i + 1);
   m = i / s;
   ASSERT(m <= 2 * m0 - 3 + list_mul_mem (m0 - 1));
 
@@ -684,29 +670,26 @@ ks_wrapmul (listz_t R, unsigned int m0,
       return 0;
     }
 
-  mpn_mul_fft (t2_ptr, i, t0_ptr, size_t0, t1_ptr, size_t1, fft_k);
+  {
+    mp_ptr tp = malloc ((2 * i + 4) * sizeof (mp_limb_t));
+    if (tp == NULL)
+      {
+        free (t0_ptr);
+        free (t1_ptr);
+        return 0;
+      }
+    mpn_mulmod_bnm1 (t2_ptr, i, t0_ptr, size_t0, t1_ptr, size_t1, tp);
+    free (tp);
+  }
   
-  for (i = 0, tp = t2_ptr, negative = 0; i < m; i++)
+  for (i = 0, tp = t2_ptr; i < m; i++, tp += s)
     {
       size_tmp = s;
-      if (negative) /* previous was negative, add 1 */
-	mpn_add_1 (tp, tp, s, (mp_limb_t) 1);
-      /* no need to check return value of mpn_add_1: if 1, then {tp, s}
-         is now identically 0, and should remain so */
       MPN_NORMALIZE(tp, size_tmp);
-      if ((size_tmp == s) && (tp[s - 1] >> (GMP_NUMB_BITS - 1)))
-	{
-	  negative = 1;
-	  mpn_com_n (tp, tp, s);
-	  mpn_add_1 (tp, tp, s, (mp_limb_t) 1);
-	}
-      else
-	negative = 0;
       r_ptr = MPZ_REALLOC (R[i], size_tmp);
       if (size_tmp)
         MPN_COPY (r_ptr, tp, size_tmp);
-      SIZ(R[i]) = (negative) ? -size_tmp : size_tmp;
-      tp += s;
+      SIZ(R[i]) = size_tmp;
     }
 
   free (t0_ptr);
