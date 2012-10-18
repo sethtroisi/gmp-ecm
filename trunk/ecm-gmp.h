@@ -147,7 +147,7 @@ int __gmpn_mulmod_Bexpp1_fft(mp_ptr op, mp_size_t pl, mp_srcptr n, mp_size_t nl,
 
 /* WARNING - these defintions map the internal interface of the MPIR FFT 
    to the GMP interface - they work in this context but the parameters for
-   the mpn_fft_next_size and the ff_adjust_limbs functions have different
+   the mpn_fft_next_size and the fft_adjust_limbs functions have different
    semantics, which means that these definitions may fail if used in other
    circumstances */
 
