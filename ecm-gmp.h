@@ -139,6 +139,24 @@ __GMP_DECLSPEC mp_limb_t __gmpn_add_nc (mp_ptr, mp_srcptr, mp_srcptr,
   void __gmpn_mullo_n (mp_ptr, mp_srcptr, mp_srcptr, mp_size_t);
 #endif
 
+#if defined( __MPIR_RELEASE ) && __MPIR_RELEASE == 20600
+
+#define mpn_mulmod_Bexpp1_fft __gmpn_mulmod_Bexpp1_fft
+int __gmpn_mulmod_Bexpp1_fft(mp_ptr op, mp_size_t pl, mp_srcptr n, mp_size_t nl, 
+							 mp_srcptr m, mp_size_t ml);
+
+/* WARNING - these defintions map the internal interface of the MPIR FFT 
+   to the GMP interface - they work in this context but the parameters for
+   the mpn_fft_next_size and the ff_adjust_limbs functions have different
+   semantics, which means that these definitions may fail if used in other
+   circumstances */
+
+#define mpn_fft_best_k(n, k)             (0) 
+#define mpn_fft_next_size(n, k)          fft_adjust_limbs(n)
+#define mpn_mul_fft(bp,bn,ap,an,cp,cn,k) mpn_mulmod_Bexpp1_fft(bp,bn,ap,an,cp,cn)
+
+#else
+
 #define mpn_mul_fft __gmpn_mul_fft
 mp_limb_t __gmpn_mul_fft (mp_ptr, mp_size_t, mp_srcptr, mp_size_t, mp_srcptr, 
                           mp_size_t, int);
@@ -158,5 +176,7 @@ mp_size_t mpn_mulmod_bnm1_next_size (mp_size_t);
 
 #define mpn_fft_best_k __gmpn_fft_best_k
 int __gmpn_fft_best_k (mp_size_t, int);
+
+#endif
 
 #endif /* _ECM_GMP_H */
