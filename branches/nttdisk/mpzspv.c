@@ -732,7 +732,7 @@ mpzspv_fromto_mpzv (mpzspv_handle_t x, const spv_size_t offset,
               if (b > 0)
                 {
                   /* Round up to full cache line */
-                  b = (b + sp_per_line - 1) / sp_per_line;
+                  b = ((b - 1) / sp_per_line + 1) * sp_per_line;
                   printf ("%s(): Using block_len = %" PRISPVSIZE " (was %" 
                           PRISPVSIZE ")\n", __func__, b, block_len);
                   force_blocklen = b;
