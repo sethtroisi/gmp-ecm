@@ -90,6 +90,7 @@ usage (void)
     printf ("  B2           stage 2 bound (or interval B2min-B2max)\n");
     printf ("\nOptions:\n");
     printf ("  -x0 x        use x as initial point\n"); 
+    printf ("  -y0 y        use y as initial point (Weierstrass form)\n"); 
     printf ("  -param i     which parametrization should be used [ecm].\n");
     printf ("  -sigma s     use s as parameter to compute curve's coefficients"
           "\n               can use -sigma i:s to specify -param i at the same"
@@ -297,10 +298,10 @@ int
 main (int argc, char *argv[])
 {
   char **argv0 = argv;
-  mpz_t seed, x, sigma, A, f, orig_x0, B2, B2min, startingB2min, tmp_n;
+  mpz_t seed, x, y, sigma, A, f, orig_x0, orig_y0, B2, B2min, startingB2min, tmp_n;
   mpcandi_t n;
   mpgocandi_t go;
-  mpq_t rat_x0;
+  mpq_t rat_x0, rat_y0;
   double B1, B1done;
   int result = 0, returncode = 0;
   int verbose = OUTPUT_NORMAL; /* verbose level */
@@ -309,6 +310,7 @@ main (int argc, char *argv[])
   int use_ntt = 1;     /* Default, use NTT if input is small enough */
   int specific_x0 = 0, /* 1=starting point supplied by user, 0=random or */
                        /* compute from sigma */
+      specific_y0 = 0, /* 1 for Weierstrass form */
       specific_sigma = 0;  /*   0=make random */
                            /*   1=sigma from command line */
   int repr = ECM_MOD_DEFAULT; /* automatic choice */
@@ -371,6 +373,7 @@ main (int argc, char *argv[])
   mpz_init (B2min);
   mpz_init (startingB2min);
   mpq_init (rat_x0);
+  mpq_init (rat_y0);
 
   /* first look for options */
   while ((argc > 1) && (argv[1][0] == '-'))
@@ -507,6 +510,17 @@ main (int argc, char *argv[])
               exit (EXIT_FAILURE);
             }
           specific_x0 = 1;
+	  argv += 2;
+	  argc -= 2;
+        }
+      else if ((argc > 2) && (strcmp (argv[1], "-y0")) == 0)
+        {
+          if (mpq_set_str (rat_y0, argv[2], 0))
+            {
+              fprintf (stderr, "Error, invalid starting point: %s\n", argv[2]);
+              exit (EXIT_FAILURE);
+            }
+          specific_y0 = 1;
 	  argv += 2;
 	  argc -= 2;
         }
@@ -1042,7 +1056,9 @@ main (int argc, char *argv[])
   mpcandi_t_init (&n); /* number(s) to factor */
   mpz_init (f); /* factor found */
   mpz_init (x); /* stage 1 residue */
+  mpz_init (y); /* stage 1 for ECM_W */
   mpz_init (orig_x0); /* starting point, for save file */
+  mpz_init (orig_y0); /* starting point, for save file */
 
   /* We may need random numbers for sigma and/or starting point */
   gmp_randinit_default (randstate);
@@ -1092,7 +1108,7 @@ main (int argc, char *argv[])
                        "Error, option -c and -resume are incompatible\n");
               exit (EXIT_FAILURE);
             }
-          if (!read_resumefile_line (&method, x, &n, sigma, A, orig_x0, 
+          if (!read_resumefile_line (&method, x, y, &n, sigma, A, orig_x0, 
               &(params->param), &(params->B1done), program, who, rtime, 
               comment, resumefile))
             break;
@@ -1189,6 +1205,12 @@ main (int argc, char *argv[])
               mpz_invert (inv, mpq_denref (rat_x0), n.n);
               mpz_mul (inv, mpq_numref (rat_x0), inv);
               mpz_mod (x, inv, n.n);
+	      if (specific_y0)
+		{
+		  mpz_invert (inv, mpq_denref (rat_y0), n.n);
+		  mpz_mul (inv, mpq_numref (rat_y0), inv);
+		  mpz_mod (y, inv, n.n);
+		}
               mpz_clear (inv);
             }
           else /* Make a random starting point for P-1 and P+1. ECM will */
@@ -1203,7 +1225,7 @@ main (int argc, char *argv[])
             }
          
           if (ECM_IS_DEFAULT_B1_DONE(B1done))
-            mpz_set (orig_x0, x);
+	    mpz_set (orig_x0, x); // FIXME: do the same for y?
         }
       if (verbose >= OUTPUT_NORMAL)
         {
@@ -1296,9 +1318,13 @@ main (int argc, char *argv[])
       /* set parameters that may change from one curve to another */
       params->method = method; /* may change with resume */
       mpz_set (params->x, x); /* may change with resume */
+      mpz_set (params->y, y); /* may change with resume */
       /* if A is not zero, we use it */
       params->sigma_is_A = ((mpz_sgn (A) != 0) ? 1 : 0);
       mpz_set (params->sigma, (params->sigma_is_A) ? A : sigma);
+      if(specific_y0)
+	  /* to use Weierstrass stuff */
+	  params->sigma_is_A = -1;
       mpz_set (params->go, go.Candi.n); /* may change if contains N */
       mpz_set (params->B2min, B2min); /* may change with -c */
       /* Here's an ugly hack to pass B2scale to the library somehow.
@@ -1417,7 +1443,7 @@ main (int argc, char *argv[])
         /* TODO Deal with return code */
           write_resumefile (savefilename, method, tmp_n, params->B1done, 
                             params->sigma, params->sigma_is_A, params->param, 
-                            params->gpu, params->x, &n, orig_x0,
+                            params->gpu, params->x, params->y, &n, orig_x0,
                             params->gpu_number_of_curves, comment);
         }
 
@@ -1459,15 +1485,18 @@ main (int argc, char *argv[])
   gmp_randclear (randstate);
 
   mpz_clear (orig_x0);
+  mpz_clear (orig_y0);
   mpz_clear (startingB2min);
   mpz_clear (B2min);
   mpz_clear (B2);
   mpz_clear (x);
+  mpz_clear (y);
   mpz_clear (f);
   mpcandi_t_free (&n);
   mpz_clear (sigma);
   mpz_clear (A);
   mpq_clear (rat_x0);
+  mpq_clear (rat_y0);
   mpz_clear (seed);
   mpgocandi_t_free (&go);
 

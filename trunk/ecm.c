@@ -497,7 +497,7 @@ prac (mpres_t xA, mpres_t zA, ecm_uint k, mpmod_t n, mpres_t b,
           g*y^2*z = x^3 + a*x^2*z + x*z^2
           n is the number to factor
 	  B1 is the stage 1 bound
-   Output: If a factor is found, it is returned in x.
+   Output: If a factor is found, it is returned in f.
            Otherwise, x contains the x-coordinate of the point computed
            in stage 1 (with z coordinate normalized to 1).
 	   B1done is set to B1 if stage 1 completed normally,
@@ -579,7 +579,7 @@ ecm_stage1 (mpz_t f, mpres_t x, mpres_t A, mpmod_t n, double B1,
       if (chkfilename != NULL && p > last_chkpnt_p + 10000. && 
           elltime (last_chkpnt_time, cputime ()) > CHKPNT_PERIOD)
         {
-          writechkfile (chkfilename, ECM_ECM, MAX(p, *B1done), n, A, x, z);
+	  writechkfile (chkfilename, ECM_ECM, MAX(p, *B1done), n, A, x, NULL, z);
           last_chkpnt_p = p;
           last_chkpnt_time = cputime ();
         }
@@ -594,7 +594,7 @@ ecm_stage1 (mpz_t f, mpres_t x, mpres_t A, mpmod_t n, double B1,
       *B1done = p;
 
   if (chkfilename != NULL)
-    writechkfile (chkfilename, ECM_ECM, *B1done, n, A, x, z);
+    writechkfile (chkfilename, ECM_ECM, *B1done, n, A, x, NULL, z);
   getprime_clear (); /* free the prime tables, and reinitialize */
 
   if (!mpres_invert (u, z, n)) /* Factor found? */
@@ -617,6 +617,356 @@ ecm_stage1 (mpz_t f, mpres_t x, mpres_t A, mpmod_t n, double B1,
   mpres_clear (u, n);
   mpres_clear (z, n);
   mpres_clear (b, n);
+
+  return ret;
+}
+
+/******************** Weierstrass section ********************/
+
+/* We use the affine law; Montgomery stuff does no harm... */
+
+void
+pt_w_set_to_zero(mpres_t x, mpres_t y, mpres_t z, mpmod_t n)
+{
+    mpres_set_ui (x, 0, n);
+    mpres_set_ui (y, 1, n);
+    mpres_set_ui (z, 0, n);
+}
+
+int
+pt_w_is_zero(mpres_t z, mpmod_t n)
+{
+    return mpres_is_zero(z, n);
+}
+
+int
+pt_w_is_equal(mpres_t x0, mpres_t y0, mpres_t z0,
+	      mpres_t x1, mpres_t y1, mpres_t z1)
+{
+    return (mpz_cmp(x0, x1) == 0 && mpz_cmp(y0, y1) == 0 && mpz_cmp(z0, z1));
+}
+
+void
+pt_w_assign(mpres_t x0, mpres_t y0, mpres_t z0,
+	    mpres_t x, mpres_t y, mpres_t z,
+	    mpmod_t n)
+{
+  mpres_set (x0, x, n);
+  mpres_set (y0, y, n);
+  mpres_set (z0, z, n);
+}
+
+static void
+print_mpz_from_mpres(mpres_t x, mpmod_t n)
+{
+    mpz_t tmp;
+
+    mpz_init(tmp);
+    mpres_get_z(tmp, x, n);
+    gmp_printf("%Zd", tmp);
+    mpz_clear(tmp);
+}
+
+void
+pt_w_print(mpres_t x, mpres_t y, mpres_t z, mpmod_t n)
+{
+    printf("[");
+    print_mpz_from_mpres(x, n);
+    printf(", ");
+    print_mpz_from_mpres(y, n);
+    printf(", ");
+    gmp_printf("%Zd", z);
+    printf("]");
+}
+
+int
+pt_w_common(mpres_t x0, mpres_t y0, mpres_t z0,
+	    mpres_t x1, mpres_t y1,
+	    mpres_t x2,
+	    mpmod_t n, mpres_t num, mpres_t den, mpres_t inv)
+{
+    if(mpres_invert(inv, den, n) == 0){
+	mpres_gcd(x0, den, n);
+	return 0;
+    }
+    mpres_mul(inv, inv, num, n);
+    mpres_mul(num, inv, inv, n);
+    mpres_sub(den, num, x1, n);
+    mpres_sub(den, den, x2, n);
+    mpres_sub(num, x1, den, n);
+    mpres_mul(num, num, inv, n);
+    mpres_sub(y0, num, y1, n);
+    mpres_set(x0, den, n);
+    mpz_set_ui(z0, 1); /* just in case */
+    return 1;
+}
+
+int
+pt_w_duplicate(mpres_t x0, mpres_t y0, mpres_t z0,
+	       mpres_t x, mpres_t y, mpres_t z,
+	       mpmod_t n, mpres_t A, mpres_t num, mpres_t den, mpres_t inv)
+{
+    if(pt_w_is_zero(z, n))
+      {
+	pt_w_assign(x0, y0, z0, x, y, z, n);
+	return 1;
+      }
+    /* num <- 3*x^2+A */
+    mpres_mul_ui(num, x, 3, n);
+    mpres_mul(num, num, x, n);
+    mpres_add(num, num, A, n);
+    /* den <- 2*y */
+    mpres_add(den, y, y, n);
+    return pt_w_common(x0, y0, z0, x, y, x, n, num, den, inv);
+}
+
+int
+pt_w_add(mpres_t x0, mpres_t y0, mpres_t z0,
+	 mpres_t x1, mpres_t y1, mpres_t z1,
+	 mpres_t x2, mpres_t y2, mpres_t z2,
+	 mpmod_t n, mpres_t A, mpres_t num, mpres_t den, mpres_t inv)
+{
+    if(pt_w_is_zero(z1, n)){
+	pt_w_assign(x0, y0, z0, x2, y2, z2, n);
+	return 1;
+    }
+    else if(pt_w_is_zero(z2, n)){
+	pt_w_assign(x0, y0, z0, x1, y1, z1, n);
+	return 1;
+    }
+    else if(pt_w_is_equal(x1, y1, z1, x2, y2, z2))
+	return pt_w_duplicate(x0, y0, z0, x1, y1, z1, n, A, num, den, inv);
+    else{
+	mpres_sub(num, y1, y2, n);
+	mpres_sub(den, x1, x2, n);
+	return pt_w_common(x0, y0, z0, x1, y1, x2, n, num, den, inv);
+    }
+}
+
+/* multiply P=(x:y:z) by e and puts the result in (x:y:z).
+   Return value: 0 if a factor is found, and the factor is in x,
+                 1 otherwise.
+*/
+int
+pt_w_mul (mpres_t x, mpres_t y, mpres_t z, mpz_t e, mpmod_t n, mpres_t A,
+	  mpres_t num, mpres_t den, mpres_t inv)
+{
+  size_t l;
+  int negated = 0, status = 1;
+  mpres_t x0, y0, z0;
+
+  if(pt_w_is_zero(z, n))
+    return 1;
+
+  if (mpz_sgn (e) == 0)
+    {
+      pt_w_set_to_zero(x, y, z, n);
+      return 1;
+    }
+
+  /* The negative of a point (x:y:z) is (x:-y:z) */
+  if (mpz_sgn (e) < 0)
+    {
+      negated = 1;
+      mpz_neg (e, e);
+      mpres_neg (y, y, n); /* since the point is non-zero */
+    }
+
+  if (mpz_cmp_ui (e, 1) == 0)
+    goto pt_w_mul_end;
+
+  l = mpz_sizeinbase (e, 2) - 1; /* l >= 1 */
+
+  mpres_init (x0, n);
+  mpres_init (y0, n);
+  mpres_init (z0, n);
+  pt_w_assign(x0, y0, z0, x, y, z, n);
+
+  while (l-- > 0)
+    {
+	if(pt_w_duplicate (x0, y0, z0, x0, y0, z0, n, A, num, den, inv) == 0)
+	  {
+	    status = 0;
+	    break;
+	  }
+	if (mpz_tstbit (e, l))
+	  {
+	    if(pt_w_add (x0, y0, z0, x0, y0, z0, x, y, z, n, A, num, den, inv) == 0)
+	      {
+		status = 0;
+		break;
+	      }
+	  }
+    }
+
+  mpres_set (x, x0, n);
+  mpres_set (y, y0, n);
+  mpres_set (z, z0, n);
+
+  mpres_clear (x0, n);
+  mpres_clear (y0, n);
+  mpres_clear (z0, n);
+
+pt_w_mul_end:
+
+  /* Undo negation to avoid changing the caller's e value */
+  if (negated)
+    mpz_neg (e, e);
+  return status;
+}
+
+/* Input: (x, y) is initial point
+          A is curve parameter in Weierstrass's form:
+          Y^2 = X^3 + A*X + B, where B = y^2-(x^3+A*x) is implicit
+          n is the number to factor
+	  B1 is the stage 1 bound
+   Output: If a factor is found, it is returned in f.
+           Otherwise, (x, y) contains the point computed in stage 1.
+	   B1done is set to B1 if stage 1 completed normally,
+	   or to the largest prime processed if interrupted, but never
+	   to a smaller value than B1done was upon function entry.
+   Return value: ECM_FACTOR_FOUND_STEP1 if a factor, otherwise 
+           ECM_NO_FACTOR_FOUND
+*/
+static int
+ecm_stage1_W (mpz_t f, mpres_t x, mpres_t y, mpres_t A, mpmod_t n, 
+	      double B1, double *B1done, mpz_t go, int (*stop_asap)(void), 
+	      char *chkfilename)
+{
+  mpres_t z, xB, yB, zB, num, den, inv;
+  double p, r, last_chkpnt_p;
+  int ret = ECM_NO_FACTOR_FOUND;
+  long last_chkpnt_time;
+
+  mpres_init (z, n);
+  mpres_init (xB, n);
+  mpres_init (yB, n);
+  mpres_init (zB, n);
+  mpres_init (num, n);
+  mpres_init (den, n);
+  mpres_init (inv, n);
+  
+  last_chkpnt_time = cputime ();
+
+  mpz_set_ui (z, 1); /* this z is just a flag for pt != O_E */
+#if 0
+  printf("A:="); print_mpz_from_mpres(A, n); printf(";\n");
+  printf("x0:="); print_mpz_from_mpres(x, n); printf(";\n");
+  printf("y0:="); print_mpz_from_mpres(y, n); printf(";\n");
+  printf("E:=[A, y0^2-x0^3-A*x0];\n");
+  printf("P:=[x0, y0, 1];\n");
+#endif
+
+  /* preload group order */
+  if (go != NULL){
+      if(pt_w_mul (x, y, z, go, n, A, num, den, inv) == 0){
+	  mpz_set(f, x);
+	  ret = ECM_FACTOR_FOUND_STEP1;
+	  goto end_of_stage1_w;
+      }
+  }
+#if 0
+  printf("goP:="); pt_w_print(x, y, z, n); printf(";\n");
+#endif
+  /* prac() wants multiplicands > 2 */
+  for (r = 2.0; r <= B1; r *= 2.0)
+      if (r > *B1done)
+	{
+	  if(pt_w_duplicate (x, y, z, x, y, z, n, A, num, den, inv) == 0)
+	    {
+		mpz_set(f, x);
+		ret = ECM_FACTOR_FOUND_STEP1;
+		goto end_of_stage1_w;
+	    }
+#if 0
+	  printf("P%ld:=", (long)r); pt_w_print(x, y, z, n); printf(";\n");
+#endif
+	}
+  
+  /* We'll do 3 manually, too (that's what ecm4 did..) */
+  for (r = 3.0; r <= B1; r *= 3.0)
+    if (r > *B1done)
+      {
+	if(pt_w_duplicate (xB, yB, zB, x, y, z, n, A, num, den, inv) == 0)
+	  {
+	    mpz_set(f, xB);
+	    ret = ECM_FACTOR_FOUND_STEP1;
+	    goto end_of_stage1_w;
+	  }
+#if 0
+	printf("dup:="); pt_w_print(xB, yB, zB, n); printf(";\n");
+#endif
+	if(pt_w_add (x, y, z, x, y, z, xB, yB, zB, n, A, num, den, inv) == 0)
+	  {
+	      mpz_set(f, x);
+	      ret = ECM_FACTOR_FOUND_STEP1;
+	      goto end_of_stage1_w;
+	  }
+#if 0
+	printf("Q%ld:=", (long)r); pt_w_print(x, y, z, n); printf(";\n");
+#endif
+      }
+  
+  last_chkpnt_p = 3.;
+  p = getprime (); /* Puts 3.0 into p. Next call gives 5.0 */
+  for (p = getprime (); p <= B1; p = getprime ())
+    {
+      for (r = p; r <= B1; r *= p)
+	if (r > *B1done)
+	  {
+	    mpz_set_ui(xB, (ecm_uint) p);
+	    if(pt_w_mul (x, y, z, xB, n, A, num, den, inv) == 0)
+	      {
+		mpz_set(f, x);
+		ret = ECM_FACTOR_FOUND_STEP1;
+		goto end_of_stage1_w;
+	      }
+#if 0
+	    printf("R%ld:=", (long)p); pt_w_print(x, y, z, n); printf(";\n");
+#endif
+	  }
+
+      if (mpres_is_zero (z, n))
+        {
+          outputf (OUTPUT_VERBOSE, "Reached point at infinity, %.0f divides "
+                   "group order\n", p);
+          break;
+        }
+
+      if (stop_asap != NULL && (*stop_asap) ())
+        {
+          outputf (OUTPUT_NORMAL, "Interrupted at prime %.0f\n", p);
+          break;
+        }
+
+      if (chkfilename != NULL && p > last_chkpnt_p + 10000. && 
+          elltime (last_chkpnt_time, cputime ()) > CHKPNT_PERIOD)
+        {
+	  writechkfile (chkfilename, ECM_ECM, MAX(p, *B1done), n, A, x, y, z);
+          last_chkpnt_p = p;
+          last_chkpnt_time = cputime ();
+        }
+    }
+ end_of_stage1_w:
+  /* If stage 1 finished normally, p is the smallest prime >B1 here.
+     In that case, set to B1 */
+  if (p > B1)
+      p = B1;
+  
+  if (p > *B1done)
+      *B1done = p;
+
+  if (chkfilename != NULL)
+    writechkfile (chkfilename, ECM_ECM, *B1done, n, A, x, y, z);
+  getprime_clear (); /* free the prime tables, and reinitialize */
+
+  mpres_clear (zB, n);
+  mpres_clear (yB, n);
+  mpres_clear (xB, n);
+  mpres_clear (z, n);
+  mpres_clear (num, n);
+  mpres_clear (den, n);
+  mpres_clear (inv, n);
 
   return ret;
 }
@@ -747,7 +1097,7 @@ print_B1_B2_poly (int verbosity, int method, double B1, double B1done,
 {
   ASSERT ((method == ECM_ECM) || (go == NULL));
   ASSERT ((-1 <= sigma_is_A) && (sigma_is_A <= 1));
-  ASSERT (param != ECM_PARAM_DEFAULT || sigma_is_A == 1);
+  ASSERT (param != ECM_PARAM_DEFAULT || sigma_is_A == 1 || sigma_is_A == -1);
 
   if (test_verbose (verbosity))
   {
@@ -869,6 +1219,7 @@ set_stage_2_params (mpz_t B2, mpz_t B2_parm, mpz_t B2min, mpz_t B2min_parm,
 }
 
 /* Input: x is starting point or zero
+          y is used for Weierstrass curves (even in Step1)
           sigma is sigma value (if x is set to zero) or 
             A parameter (if x is non-zero) of curve
           n is the number to factor
@@ -887,7 +1238,7 @@ set_stage_2_params (mpz_t B2, mpz_t B2_parm, mpz_t B2min, mpz_t B2min_parm,
 		 ECM_ERROR in case of error.
 */
 int
-ecm (mpz_t f, mpz_t x, int *param, mpz_t sigma, mpz_t n, mpz_t go, 
+ecm (mpz_t f, mpz_t x, mpz_t y, int *param, mpz_t sigma, mpz_t n, mpz_t go, 
      double *B1done, double B1, mpz_t B2min_parm, mpz_t B2_parm, double B2scale,
      unsigned long k, const int S, int verbose, int repr, int nobase2step2, int
      use_ntt, int sigma_is_A, FILE *os, FILE* es, char *chkfilename, char
@@ -897,6 +1248,7 @@ ecm (mpz_t f, mpz_t x, int *param, mpz_t sigma, mpz_t n, mpz_t go,
      ATTRIBUTE_UNUSED unsigned long gw_n, ATTRIBUTE_UNUSED signed long gw_c)
 {
   int youpi = ECM_NO_FACTOR_FOUND;
+  int weierstrass = 0; /* do we use a curve in Weiestrass form? */
   int base2 = 0;  /* If n is of form 2^n[+-]1, set base to [+-]n */
   int Fermat = 0; /* If base2 > 0 is a power of 2, set Fermat to base2 */
   int po2 = 0;    /* Whether we should use power-of-2 poly degree */
@@ -910,7 +1262,7 @@ ecm (mpz_t f, mpz_t x, int *param, mpz_t sigma, mpz_t n, mpz_t go,
   /*  1: sigma contains A from Montgomery form By^2 = x^3 + Ax^2 + x
       0: sigma contains sigma
      -1: sigma contains A from Weierstrass form y^2 = x^3 + Ax + B,
-         and go contains B */
+         and y contains y */
   ASSERT((-1 <= sigma_is_A) && (sigma_is_A <= 1));
   ASSERT((GMP_NUMB_BITS == 32) || (GMP_NUMB_BITS == 64));
 
@@ -1109,12 +1461,19 @@ ecm (mpz_t f, mpz_t x, int *param, mpz_t sigma, mpz_t n, mpz_t go,
            dF, k, root_params.d1, root_params.d2, root_params.i0);
 #endif
 
-  if (sigma_is_A == -1) /* Weierstrass form: we perform only Stage 2,
-			   since all curves in Weierstrass form do not
-			   admit a Montgomery form. */
+  if (sigma_is_A == -1) /* Weierstrass form. It is known that
+			   all curves in Weierstrass form do not
+			   admit a Montgomery form. However, we could
+			   be interested in performing some plain Step 1
+			   on a some special curves.
+			*/
     {
+      weierstrass = 1;
       mpres_set_z (P.A, sigma, modulus); /* sigma contains A */
-      mpres_set_z (P.y, go,    modulus); /* go contains y */
+      mpres_set_z (P.x, x,    modulus);
+      mpres_set_z (P.y, y,    modulus);
+#if 0 /* FM */
+      /* FIXME: this is not a good test */
       if (mpz_sgn (x) == 0 || mpz_sgn (go) == 0)
         {
           outputf (OUTPUT_ERROR, "Error, sigma_is_A=-1 requires x and y.\n");
@@ -1122,6 +1481,7 @@ ecm (mpz_t f, mpz_t x, int *param, mpz_t sigma, mpz_t n, mpz_t go,
 	  goto end_of_ecm;
         }
       goto hecm;
+#endif
     }
 
   if (test_verbose (OUTPUT_RESVERBOSE))
@@ -1177,9 +1537,14 @@ ecm (mpz_t f, mpz_t x, int *param, mpz_t sigma, mpz_t n, mpz_t go,
         /* FIXME: go, stop_asap and chkfilename are ignored in batch mode */
         youpi = ecm_stage1_batch (f, P.x, P.A, modulus, B1, B1done, *param, 
                                   batch_s);
-        else
-          youpi = ecm_stage1 (f, P.x, P.A, modulus, B1, B1done, go, stop_asap,
-                              chkfilename);
+        else{
+	    if(weierstrass == 0)
+		youpi = ecm_stage1 (f, P.x, P.A, modulus, B1, B1done, go, 
+				    stop_asap, chkfilename);
+	    else
+		youpi = ecm_stage1_W (f, P.x, P.y, P.A, modulus, B1, B1done, 
+				      go, stop_asap, chkfilename);
+	}
     }
   
   if (stage1time > 0.)
@@ -1246,8 +1611,9 @@ ecm (mpz_t f, mpz_t x, int *param, mpz_t sigma, mpz_t n, mpz_t go,
       mpz_clear (A_t);
     }
 
-  youpi = montgomery_to_weierstrass (f, P.x, P.y, P.A, modulus);
- hecm:
+  if(weierstrass == 0)
+      youpi = montgomery_to_weierstrass (f, P.x, P.y, P.A, modulus);
+  /* hecm:*/
   
   if (test_verbose (OUTPUT_RESVERBOSE) && youpi == ECM_NO_FACTOR_FOUND && 
       mpz_cmp (B2, B2min) >= 0)

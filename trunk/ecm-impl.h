@@ -715,7 +715,7 @@ int          inc_verbose (void);
 #define outputf __ECM(outputf)
 int          outputf (int, char *, ...);
 #define writechkfile __ECM(writechkfile)
-void writechkfile (char *, int, double, mpmod_t, mpres_t, mpres_t, mpres_t);
+void writechkfile (char *, int, double, mpmod_t, mpres_t, mpres_t, mpres_t, mpres_t);
 
 /* auxarith.c */
 #define gcd __ECM(gcd)
