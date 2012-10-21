@@ -280,13 +280,18 @@ writechkfile (char *chkfilename, int method, double p, mpmod_t modulus,
   gmp_fprintf (chkfile, " X=0x%Zx;", t);
   if (method == ECM_ECM)
     {
-      if(y != NULL)
-	{
+	if (y != NULL) /* this should mean Weierstrass form */
+	  {
+	    /* actually, we want to print (x:y:1) */
 	    mpres_get_z (t, y, modulus);
 	    gmp_fprintf (chkfile, " Y=0x%Zx;", t);
-	}
-      mpres_get_z (t, z, modulus);
-      gmp_fprintf (chkfile, " Z=0x%Zx;", t);
+	    fprintf (chkfile, " Z=0x1;");
+	  }
+	else /* one day, we could have some homogeneous form to deal with */
+	  {
+	    mpres_get_z (t, z, modulus);
+	    gmp_fprintf (chkfile, " Z=0x%Zx;", t);
+	  }
       mpres_get_z (t, A, modulus);
       gmp_fprintf (chkfile, " A=0x%Zx;", t);
     }
