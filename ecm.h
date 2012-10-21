@@ -33,7 +33,7 @@ extern "C" {
 typedef struct
 {
   int method;     /* factorization method, default is ecm */
-  mpz_t x;        /* starting point (if non zero) */
+  mpz_t x, y;        /* starting point (if non zero) */
   int param;      /* (ECM only) What parametrization do we used */ 
   mpz_t sigma;    /* (ECM only) The parameter for the parametrization */ 
                       /* May contains A */
@@ -98,7 +98,7 @@ void ecm_init (ecm_params);
 void ecm_clear (ecm_params);
 
 /* the following interface is not supported */
-int ecm (mpz_t, mpz_t, int*, mpz_t, mpz_t, mpz_t, double *, double, mpz_t, mpz_t,
+    int ecm (mpz_t, mpz_t, mpz_t, int*, mpz_t, mpz_t, mpz_t, double *, double, mpz_t, mpz_t,
          double, unsigned long, const int, int, int, int, int, int, FILE*, FILE*,
          char*, char *, double, double, gmp_randstate_t, int (*)(void), mpz_t, 
          double *, double, unsigned long, unsigned long, signed long);

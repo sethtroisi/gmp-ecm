@@ -118,12 +118,13 @@ freadstrn (FILE *fd, char *s, char delim, unsigned int len)
 */
 
 int 
-read_resumefile_line (int *method, mpz_t x, mpcandi_t *n, mpz_t sigma, mpz_t A, 
-        mpz_t x0, int *param, double *b1, char *program, char *who, char *rtime, 
-        char *comment, FILE *fd)
+read_resumefile_line (int *method, mpz_t x, mpz_t y, mpcandi_t *n, 
+		      mpz_t sigma, mpz_t A, mpz_t x0, int *param, 
+		      double *b1, char *program, char *who, char *rtime, 
+		      char *comment, FILE *fd)
 {
-  int a, have_method, have_x, have_z, have_n, have_sigma, have_a, have_b1, 
-      have_checksum, have_qx;
+  int a, have_method, have_x, have_y, have_z, have_n, have_sigma, have_a, 
+      have_b1, have_checksum, have_qx;
   unsigned int saved_checksum;
   char tag[16];
   mpz_t z;
@@ -147,7 +148,7 @@ read_resumefile_line (int *method, mpz_t x, mpcandi_t *n, mpz_t sigma, mpz_t A,
       if (feof (fd))
         break;
       
-      have_method = have_x = have_z = have_n = have_sigma = have_a = 
+      have_method = have_x = have_y = have_z = have_n = have_sigma = have_a = 
                     have_b1 = have_qx = have_checksum = 0;
 
       /* For compatibility reason, param = ECM_PARAM_SUYAMA by default */
@@ -204,6 +205,11 @@ read_resumefile_line (int *method, mpz_t x, mpcandi_t *n, mpz_t sigma, mpz_t A,
             {
               mpz_inp_str (x, fd, 0);
               have_x = 1;
+            }
+          else if (strcmp (tag, "Y") == 0)
+            {
+              mpz_inp_str (y, fd, 0);
+              have_y = 1;
             }
           else if (strcmp (tag, "Z") == 0)
             {
@@ -367,6 +373,8 @@ read_resumefile_line (int *method, mpz_t x, mpcandi_t *n, mpz_t sigma, mpz_t A,
         }
 
       mpz_mod (x, x, n->n);
+      if (have_y)
+	mpz_mod(y, y, n->n);
       if (have_z)	/* Must normalize */
         {
           if (!mpz_invert (z, z, n->n)) /* Factor found? */
@@ -395,8 +403,8 @@ error:
 /* Append a residue in file. */
 static void  
 write_resumefile_line (FILE *file, int method, double B1, mpz_t sigma, 
-                       int sigma_is_A, int param, mpz_t x, mpcandi_t *n, 
-                       mpz_t x0, const char *comment)
+                       int sigma_is_A, int param, mpz_t x, mpz_t y,
+		       mpcandi_t *n, mpz_t x0, const char *comment)
 {
   mpz_t checksum;
   time_t t;
@@ -505,8 +513,9 @@ write_resumefile_line (FILE *file, int method, double B1, mpz_t sigma,
    Returns 1 on success, 0 on error */
 int  
 write_resumefile (char *fn, int method, mpz_t N, double B1done, mpz_t sigma,
-                  int sigma_is_A, int param, int gpu, mpz_t x, mpcandi_t *n,
-                  mpz_t orig_x0, unsigned int gpu_curves, const char *comment)
+                  int sigma_is_A, int param, int gpu, mpz_t x, mpz_t y,
+		  mpcandi_t *n, mpz_t orig_x0, unsigned int gpu_curves,
+		  const char *comment)
 {
   FILE *file;
   unsigned int i = 0;
@@ -566,8 +575,9 @@ write_resumefile (char *fn, int method, mpz_t N, double B1done, mpz_t sigma,
       
       /* We write the B1done value to the safe file. This requires that
          a correct B1done is returned by the factoring functions */
+      /* FIXME: case y != NULL */
       write_resumefile_line (file, method, B1done, sigma, sigma_is_A, param,
-                             tmp_x, n, orig_x0, comment);
+                             tmp_x, NULL, n, orig_x0, comment);
     }
   else
     {
@@ -578,7 +588,7 @@ write_resumefile (char *fn, int method, mpz_t N, double B1done, mpz_t sigma,
           mpz_fdiv_qr (x, tmp_x, x, N); 
           mpz_mod (tmp_x, tmp_x, n->n);
           write_resumefile_line (file, method, B1done, sigma, sigma_is_A, param,
-                                 tmp_x, n, orig_x0, comment);
+                                 tmp_x, NULL, n, orig_x0, comment);
         }
     }
 
