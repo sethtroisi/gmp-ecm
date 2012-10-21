@@ -245,7 +245,7 @@ outputf (int loglevel, char *format, ...)
 
 void
 writechkfile (char *chkfilename, int method, double p, mpmod_t modulus, 
-              mpres_t A, mpres_t x, mpres_t z)
+              mpres_t A, mpres_t x, mpres_t y, mpres_t z)
 {
   FILE *chkfile;
   char *methodname;
@@ -280,6 +280,11 @@ writechkfile (char *chkfilename, int method, double p, mpmod_t modulus,
   gmp_fprintf (chkfile, " X=0x%Zx;", t);
   if (method == ECM_ECM)
     {
+      if(y != NULL)
+	{
+	    mpres_get_z (t, y, modulus);
+	    gmp_fprintf (chkfile, " Y=0x%Zx;", t);
+	}
       mpres_get_z (t, z, modulus);
       gmp_fprintf (chkfile, " Z=0x%Zx;", t);
       mpres_get_z (t, A, modulus);

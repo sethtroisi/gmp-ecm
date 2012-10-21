@@ -120,10 +120,10 @@ void getprime_seek (double);
 double calc_B1_AutoIncrement(double cur_B1, double incB1val, int calcInc);
 
 /* resume.c */
-int  read_resumefile_line (int *, mpz_t, mpcandi_t *, mpz_t, mpz_t, mpz_t, int *,
+int  read_resumefile_line (int *, mpz_t, mpz_t, mpcandi_t *, mpz_t, mpz_t, mpz_t, int *,
                            double *, char *, char *, char *, char *, FILE *);
 int write_resumefile (char *, int, mpz_t, double, mpz_t, int, int, int, mpz_t, 
-                      mpcandi_t *, mpz_t, unsigned int, const char *);
+		      mpz_t, mpcandi_t *, mpz_t, unsigned int, const char *);
 int write_s_in_file (char *, mpz_t);
 int read_s_from_file (mpz_t, char *, double); 
 

@@ -463,7 +463,7 @@ get_default_param (int sigma_is_A, mpz_t sigma, double B1, double B1done)
   if (sigma_is_A == 0 && mpz_sgn(sigma) != 0)
       return ECM_PARAM_SUYAMA;
 
-  if (sigma_is_A == 1)
+  if (sigma_is_A == 1 || sigma_is_A == -1)
     {
       /* For now we keep the default values in order not to compute the 
          expected number of curves. But it will do stage 1 as ECM_PARAM_SUYAMA */
