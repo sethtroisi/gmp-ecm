@@ -1118,8 +1118,8 @@ main (int argc, char *argv[])
               exit (EXIT_FAILURE);
             }
           if (!read_resumefile_line (&method, x, y, &n, sigma, A, orig_x0, 
-              &(params->param), &(params->B1done), program, who, rtime, 
-              comment, resumefile))
+	      orig_y0, &(params->param), &(params->B1done), program, who, 
+	      rtime, comment, resumefile))
             break;
           
           if (mpz_cmp (n.n, resume_lastN) == 0)
@@ -1462,7 +1462,8 @@ main (int argc, char *argv[])
         /* TODO Deal with return code */
           write_resumefile (savefilename, method, tmp_n, params->B1done, 
                             params->sigma, params->sigma_is_A, params->param, 
-                            params->gpu, params->x, params->y, &n, orig_x0,
+                            params->gpu, params->x, params->y, &n, 
+			    orig_x0, orig_y0,
                             params->gpu_number_of_curves, comment);
         }
 
