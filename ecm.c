@@ -32,7 +32,8 @@ http://www.gnu.org/licenses/ or write to the Free Software Foundation, Inc.,
 #endif
 
 #ifdef TIMING_CRT
-extern int mpzspv_from_mpzv_slow_time, mpzspv_to_mpzv_time;
+extern int mpzspv_from_mpzv_slow_time, mpzspv_to_mpzv_time,
+  mpzspv_normalise_time;
 #endif
 
 /* the following factor takes into account the smaller expected smoothness
@@ -1141,7 +1142,7 @@ print_B1_B2_poly (int verbosity, int method, double B1, double B1done,
                   outputf (verbosity, ", sigma=%d:%Zd", param, sigma);
 	          }
           else /* sigma_is_A = -1: curve was given in Weierstrass form */
-	            outputf (verbosity, ", Weierstrass(A=%Zd,y=Zd)", sigma, go);
+            outputf (verbosity, ", Weierstrass(A=%Zd,y=%Zd)", sigma, go);
         }
       else if (ECM_IS_DEFAULT_B1_DONE(B1done))
 	        outputf (verbosity, ", x0=%Zd", sigma);
@@ -1642,7 +1643,8 @@ ecm (mpz_t f, mpz_t x, mpz_t y, int *param, mpz_t sigma, mpz_t n, mpz_t go,
                     use_ntt, TreeFilename, stop_asap);
 #ifdef TIMING_CRT
   printf ("mpzspv_from_mpzv_slow: %dms\n", mpzspv_from_mpzv_slow_time);
-  printf ("mpzspv_to_mpzv and mpzspv_normalise: %dms\n", mpzspv_to_mpzv_time);
+  printf ("mpzspv_to_mpzv: %dms\n", mpzspv_to_mpzv_time);
+  printf ("mpzspv_normalise: %dms\n", mpzspv_normalise_time);
 #endif
   
 end_of_ecm_rhotable:
