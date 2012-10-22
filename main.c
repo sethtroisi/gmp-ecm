@@ -301,7 +301,7 @@ main (int argc, char *argv[])
   mpz_t seed, x, y, sigma, A, f, orig_x0, orig_y0, B2, B2min, startingB2min, tmp_n;
   mpcandi_t n;
   mpgocandi_t go;
-  mpq_t rat_x0, rat_y0;
+  mpq_t rat_x0, rat_y0, rat_A;
   double B1, B1done;
   int result = 0, returncode = 0;
   int verbose = OUTPUT_NORMAL; /* verbose level */
@@ -373,6 +373,7 @@ main (int argc, char *argv[])
   mpz_init (B2);
   mpz_init (B2min);
   mpz_init (startingB2min);
+  mpq_init (rat_A);
   mpq_init (rat_x0);
   mpq_init (rat_y0);
 
@@ -595,7 +596,7 @@ main (int argc, char *argv[])
         }
       else if ((argc > 2) && (strcmp (argv[1], "-A")) == 0)
         {
-          if (mpz_set_str (A, argv[2], 0))
+          if (mpq_set_str (rat_A, argv[2], 0))
 	    {
 	      fprintf (stderr, "Error, invalid A value: %s\n", argv[2]);
               exit (EXIT_FAILURE);
@@ -1198,6 +1199,16 @@ main (int argc, char *argv[])
               }
 
           /* Set effective seed for factoring attempt on this number */
+	  /* TODO: take care to the invertible cases */
+	  if (specific_A)
+	    {
+		mpz_t invA;
+		mpz_init (invA);
+		mpz_invert (invA, mpq_denref (rat_A), n.n);
+		mpz_mul (invA, mpq_numref (rat_A), invA);
+		mpz_mod (A, invA, n.n);
+		mpz_clear (invA);
+	    }
 
           if (specific_x0) /* convert rational value to integer */
             {
@@ -1503,6 +1514,7 @@ main (int argc, char *argv[])
   mpcandi_t_free (&n);
   mpz_clear (sigma);
   mpz_clear (A);
+  mpq_clear (rat_A);
   mpq_clear (rat_x0);
   mpq_clear (rat_y0);
   mpz_clear (seed);
