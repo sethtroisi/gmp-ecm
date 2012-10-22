@@ -374,8 +374,8 @@ and 'A' when GMP-ECM is used to run ECM.
 a) when -y0 is not used
 ------------------------
 
-In stage 1, the elliptic used are of the
-following form : b*y^2 = x^3 + a*x^2 + x. The starting point in ( x0 : : 1).
+In stage 1, the elliptic curves used are of the following form :
+b*y^2 = x^3 + a*x^2 + x. The starting point in ( x0 : : 1).
 
 The -param option is used to choose the parametrization from which the curves
 are taken. It can take 4 values (s is the parameter):
@@ -417,12 +417,13 @@ used.
 
 b) when -y0 is used
 --------------------
-The use may want to use to try a specific curve in Weiestrass form, also
-in Step 1. When 'y0' is used in conjonction with 'x0' and 'A' (and 'x0' and
+
+The user may want to use a specific curve in Weierstrass form, also
+in Step 1. When 'y0' is used together with 'x0' and 'A' (both 'x0' and
 'A' *must* be present), GMP-ECM will consider that (x0, y0) is a point 
 on E: Y^2 = X^3 + A * X + B, where B = y0^2-x0^3-A*x0 mod N. For the time
 being, GMP-ECM will use a crude implementation of the affine law over E.
-Step 2 is used as usual, since it already uses the Weierstrass form.
+Step 2 is performed as usual, since it already uses the Weierstrass form.
 The options of Section 7 apply.
 
 Applications include using curves with some exotic prescribed torsion
