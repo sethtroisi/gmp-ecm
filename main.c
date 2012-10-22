@@ -311,6 +311,7 @@ main (int argc, char *argv[])
   int specific_x0 = 0, /* 1=starting point supplied by user, 0=random or */
                        /* compute from sigma */
       specific_y0 = 0, /* 1 for Weierstrass form */
+      specific_A = 0,  /* one may want its own A, including A=0 */
       specific_sigma = 0;  /*   0=make random */
                            /*   1=sigma from command line */
   int repr = ECM_MOD_DEFAULT; /* automatic choice */
@@ -599,6 +600,7 @@ main (int argc, char *argv[])
 	      fprintf (stderr, "Error, invalid A value: %s\n", argv[2]);
               exit (EXIT_FAILURE);
 	    }
+	  specific_A = 1;
 	  argv += 2;
 	  argc -= 2;
         }
@@ -1034,15 +1036,21 @@ main (int argc, char *argv[])
       fclose (savefile);
     }
 
-  if (specific_sigma && (specific_x0 || mpz_sgn (A)))
+  if (specific_sigma && (specific_x0 || specific_A))
     {
       fprintf (stderr, "Error, -sigma parameter is incompatible with "
                        "-A and -x0 parameters.\n");
       exit (EXIT_FAILURE);
     }
 
+  if (specific_y0 && (!specific_x0 || !specific_A))
+    {
+      fprintf (stderr, "Error, -y0 must be used with -A and -x0 parameters.\n");
+      exit (EXIT_FAILURE);
+    }
+
   if (resumefile && (specific_sigma || param != ECM_PARAM_DEFAULT || 
-                     mpz_sgn (A) || specific_x0))
+                     specific_A || specific_x0))
     {
       printf ("Warning: -sigma, -param, -A and -x0 parameters are\n" 
               "ignored when resuming from save files.\n");
@@ -1225,7 +1233,7 @@ main (int argc, char *argv[])
             }
          
           if (ECM_IS_DEFAULT_B1_DONE(B1done))
-	    mpz_set (orig_x0, x); // FIXME: do the same for y?
+	    mpz_set (orig_x0, x); /* FIXME: do the same for y?*/
         }
       if (verbose >= OUTPUT_NORMAL)
         {
@@ -1320,7 +1328,7 @@ main (int argc, char *argv[])
       mpz_set (params->x, x); /* may change with resume */
       mpz_set (params->y, y); /* may change with resume */
       /* if A is not zero, we use it */
-      params->sigma_is_A = ((mpz_sgn (A) != 0) ? 1 : 0);
+      params->sigma_is_A = specific_A;
       mpz_set (params->sigma, (params->sigma_is_A) ? A : sigma);
       if(specific_y0)
 	  /* to use Weierstrass stuff */
