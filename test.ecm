@@ -204,6 +204,10 @@ echo 2432902008176640001 | $ECM -A 1 -x0 20/3 -y0 10 100000; checkcode $? 14
 echo 2432902008176640001 | $ECM -A 1 -x0 20 -y0 10 100; checkcode $? 0
 # succeeds
 echo 2432902008176640001 | $ECM -A 1 -x0 20 -y0 10 -go 6449 100; checkcode $? 14
+# we can use A = 0
+echo 2432902008176640001 | $ECM -A 0 -x0 20 -y0 10 100000; checkcode $? 14
+# or x0 = 0
+echo 2432902008176640001 | $ECM -A 1 -x0 0 -y0 10 100000; checkcode $? 14
 
 $ECM -printconfig | grep Tuning
 
