@@ -193,6 +193,18 @@ echo 10000000000000000000000000000000000000121 | $ECM -param 0 -sigma 61 -go 119
 echo 10000000000000000000000000000000000000121 | $ECM -param 0 -sigma 266 -go 218187387944803649 9405629;  checkcode $? 8
 echo 10000000000000000000000000000000000000121 | $ECM -param 0 -sigma 291 -go 5994496018878137 4372759;  checkcode $? 8
 
+##### tests for the Weierstrass form
+# factored with Step 1
+echo 2432902008176640001 | $ECM -A 1 -x0 20 -y0 10 100000; checkcode $? 14
+# unfactored
+echo 2432902008176640001 | $ECM -A 1 -x0 20/3 -y0 10 10000 20000; checkcode $? 0
+# factored with default Step 2
+echo 2432902008176640001 | $ECM -A 1 -x0 20/3 -y0 10 100000; checkcode $? 14
+# fails
+echo 2432902008176640001 | $ECM -A 1 -x0 20 -y0 10 100; checkcode $? 0
+# succeeds
+echo 2432902008176640001 | $ECM -A 1 -x0 20 -y0 10 -go 6449 100; checkcode $? 14
+
 $ECM -printconfig | grep Tuning
 
 echo "All ECM tests are ok."
