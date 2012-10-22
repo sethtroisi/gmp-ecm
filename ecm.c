@@ -711,12 +711,18 @@ pt_w_duplicate(mpres_t x0, mpres_t y0, mpres_t z0,
 	pt_w_assign(x0, y0, z0, x, y, z, n);
 	return 1;
       }
+    /* den <- 2*y */
+    mpres_add(den, y, y, n);
+    if(mpres_is_zero(y, n))
+      {
+	/* y = 0 <=> P is a [2]-torsion point */
+	pt_w_assign(x0, y0, z0, x, y, z, n);
+	return 1;
+      }
     /* num <- 3*x^2+A */
     mpres_mul_ui(num, x, 3, n);
     mpres_mul(num, num, x, n);
     mpres_add(num, num, A, n);
-    /* den <- 2*y */
-    mpres_add(den, y, y, n);
     return pt_w_common(x0, y0, z0, x, y, x, n, num, den, inv);
 }
 
