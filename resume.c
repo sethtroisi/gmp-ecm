@@ -119,7 +119,7 @@ freadstrn (FILE *fd, char *s, char delim, unsigned int len)
 
 int 
 read_resumefile_line (int *method, mpz_t x, mpz_t y, mpcandi_t *n, 
-		      mpz_t sigma, mpz_t A, mpz_t x0, int *param, 
+		      mpz_t sigma, mpz_t A, mpz_t x0, mpz_t y0, int *param, 
 		      double *b1, char *program, char *who, char *rtime, 
 		      char *comment, FILE *fd)
 {
@@ -225,6 +225,10 @@ read_resumefile_line (int *method, mpz_t x, mpz_t y, mpcandi_t *n,
           else if (strcmp (tag, "X0") == 0)
             {
               mpz_inp_str (x0, fd, 0);
+            }
+          else if (strcmp (tag, "Y0") == 0)
+            {
+              mpz_inp_str (y0, fd, 0);
             }
           else if (strcmp (tag, "CHECKSUM") == 0)
             {
@@ -404,7 +408,7 @@ error:
 static void  
 write_resumefile_line (FILE *file, int method, double B1, mpz_t sigma, 
                        int sigma_is_A, int param, mpz_t x, mpz_t y,
-		       mpcandi_t *n, mpz_t x0, const char *comment)
+		       mpcandi_t *n, mpz_t x0, mpz_t y0, const char *comment)
 {
   mpz_t checksum;
   time_t t;
@@ -450,10 +454,16 @@ write_resumefile_line (FILE *file, int method, double B1, mpz_t sigma,
            mpz_fdiv_ui (checksum, CHKSUMMOD), VERSION);
   mpz_clear (checksum);
   
-  if (mpz_sgn (x0) != 0)
+  if (mpz_sgn (x0) != 0) /* FIXME: pb if x0 == 0 */
     {
       fprintf (file, " X0=0x");
       mpz_out_str (file, 16, x0);
+      fprintf (file, ";");
+    }
+  if (mpz_sgn (y0) != 0) /* FIXME: pb if y0 == 0 */
+    {
+      fprintf (file, " Y0=0x");
+      mpz_out_str (file, 16, y0);
       fprintf (file, ";");
     }
   
@@ -514,8 +524,8 @@ write_resumefile_line (FILE *file, int method, double B1, mpz_t sigma,
 int  
 write_resumefile (char *fn, int method, mpz_t N, double B1done, mpz_t sigma,
                   int sigma_is_A, int param, int gpu, mpz_t x, mpz_t y,
-		  mpcandi_t *n, mpz_t orig_x0, unsigned int gpu_curves,
-		  const char *comment)
+		  mpcandi_t *n, mpz_t orig_x0, mpz_t orig_y0, 
+		  unsigned int gpu_curves, const char *comment)
 {
   FILE *file;
   unsigned int i = 0;
@@ -577,7 +587,7 @@ write_resumefile (char *fn, int method, mpz_t N, double B1done, mpz_t sigma,
          a correct B1done is returned by the factoring functions */
       /* FIXME: case y != NULL */
       write_resumefile_line (file, method, B1done, sigma, sigma_is_A, param,
-                             tmp_x, NULL, n, orig_x0, comment);
+                             tmp_x, NULL, n, orig_x0, orig_y0, comment);
     }
   else
     {
@@ -587,8 +597,9 @@ write_resumefile (char *fn, int method, mpz_t N, double B1done, mpz_t sigma,
           mpz_sub_ui (sigma, sigma, 1);
           mpz_fdiv_qr (x, tmp_x, x, N); 
           mpz_mod (tmp_x, tmp_x, n->n);
-          write_resumefile_line (file, method, B1done, sigma, sigma_is_A, param,
-                                 tmp_x, NULL, n, orig_x0, comment);
+          write_resumefile_line (file, method, B1done, sigma, sigma_is_A, 
+				 param, tmp_x, NULL, n, orig_x0, orig_y0, 
+				 comment);
         }
     }
 
