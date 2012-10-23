@@ -228,6 +228,7 @@ ecm_mod_1 (mp_ptr xp, mp_size_t xn, mp_limb_t p, mp_size_t n,
 #ifdef TIMING_CRT
 int mpzspv_from_mpzv_slow_time = 0;
 int mpzspv_to_mpzv_time = 0;
+int mpzspv_normalise_time = 0;
 #endif
 
 /* convert mpzvi to CRT representation, naive version */
@@ -361,7 +362,9 @@ mpzspv_from_mpzv (mpzspv_t x, const spv_size_t offset, const mpzv_t mpzv,
 #endif
 }
 
-/* See: Daniel J. Bernstein and Jonathan P. Sorenson,
+/* Convert the len residues x[][offset..offset+len-1] from "spv" (RNS) format
+ * to mpz_t format.
+ * See: Daniel J. Bernstein and Jonathan P. Sorenson,
  * Modular Exponentiation via the explicit Chinese Remainder Theorem,
  * Theorem 2.1: Let p_1, ..., p_s be pairwise coprime integers. Write
  * P = p_1 * ... * p_s. Let q_1, ..., q_s be integers with
@@ -370,6 +373,7 @@ mpzspv_from_mpzv (mpzspv_t x, const spv_size_t offset, const mpzv_t mpzv,
  * t_i = u_i q_i mod p_i. Then u = P \alpha - P round(\alpha) where
  * \alpha = \sum_i t_i/p_i
  *
+ * time: O(len * sp_num^2) where sp_num is proportional to the modulus size
  * memory: MPZSPV_NORMALISE_STRIDE floats */
 void
 mpzspv_to_mpzv (mpzspv_t x, spv_size_t offset, mpzv_t mpzv,
@@ -403,12 +407,14 @@ mpzspv_to_mpzv (mpzspv_t x, spv_size_t offset, mpzv_t mpzv,
       /* we apply the above theorem to mpzv[l]...mpzv[l+stride-1] at once */
       for (k = 0; k < stride; k++)
         {
-          f[k] = 0.5;
+          f[k] = 0.5; /* this is performed len times */
           mpz_set_ui (mpzv[k + l], 0);
         }
   
     for (i = 0; i < mpzspm->sp_num; i++)
       {
+        /* this loop is performed len*sp_num/MPZSPV_NORMALISE_STRIDE times */
+
         /* prime_recip = 1/p_i * (1+u)^2 wih |u| <= 2^(-24) where one
            exponent is due to the sp -> float conversion, and one to the
            division */
@@ -416,12 +422,16 @@ mpzspv_to_mpzv (mpzspv_t x, spv_size_t offset, mpzv_t mpzv,
       
         for (k = 0; k < stride; k++)
           {
+            /* this loop is performed len*sp_num times */
+
             /* crt3[i] = p_i/P mod p_i (q_i in the theorem) */
   	    t = sp_mul (x[i][l + k + offset], mpzspm->crt3[i], spm[i]->sp,
                   spm[i]->mul_c);
 
             /* crt1[i] = P / p_i mod modulus: we accumulate in mpzv[l + k]
-               the sum of P t_i/p_i = t_i (P/p_i) mod N */
+               the sum of P t_i/p_i = t_i (P/p_i) mod N.
+               If N has n limbs, crt1[i] has n limbs too,
+               thus mpzv[l+k] has about n limbs */
             if (sizeof (sp_t) > sizeof (unsigned long))
               {
                 mpz_set_sp (mt, t);
@@ -469,8 +479,12 @@ mpzspv_pwmul (mpzspv_t r, spv_size_t r_offset, mpzspv_t x, spv_size_t x_offset,
 	len, mpzspm->spm[i]->sp, mpzspm->spm[i]->mul_c);
 }
 
-/* Bernstein & Sorenson: Explicit CRT mod m mod p_j.
+/* Normalise the vector x[][offset..offset+len-1] of RNS residues modulo the
+ * input modulus N.
  *
+ * Reference: Bernstein & Sorenson: Explicit CRT mod m mod p_j, Theorem 4.1.
+ *
+ * time:   O(len * sp_num^2)
  * memory: MPZSPV_NORMALISE_STRIDE mpzspv coeffs
  *         6 * MPZSPV_NORMALISE_STRIDE sp's
  *         MPZSPV_NORMALISE_STRIDE floats */
@@ -483,16 +497,15 @@ mpzspv_normalise (mpzspv_t x, spv_size_t offset, spv_size_t len,
   sp_t v;
   spv_t s, d, w;
   spm_t *spm = mpzspm->spm;
-  
   float prime_recip;
   float *f;
   mpzspv_t t;
 
 #ifdef TIMING_CRT
-  mpzspv_to_mpzv_time -= cputime ();
+  mpzspv_normalise_time -= cputime ();
 #endif
-  ASSERT (mpzspv_verify (x, offset, len, mpzspm)); 
-  
+  ASSERT (mpzspv_verify (x, offset, len, mpzspm));
+
   f = (float *) malloc (MPZSPV_NORMALISE_STRIDE * sizeof (float));
   s = (spv_t) malloc (3 * MPZSPV_NORMALISE_STRIDE * sizeof (sp_t));
   d = (spv_t) malloc (3 * MPZSPV_NORMALISE_STRIDE * sizeof (sp_t));
@@ -511,16 +524,20 @@ mpzspv_normalise (mpzspv_t x, spv_size_t offset, spv_size_t len,
       
       /* FIXME: use B&S Theorem 2.2 */
       for (k = 0; k < stride; k++)
-	f[k] = 0.5;
+	f[k] = 0.5; /* this is executed len times */
       
       for (i = 0; i < sp_num; i++)
         {
+          /* this loop is performed len*sp_num/MPZSPV_NORMALISE_STRIDE times */
           prime_recip = 1.0f / (float) spm[i]->sp;
       
           for (k = 0; k < stride; k++)
 	    {
+              /* this is executed len*sp_num times,
+                 crt3[i] = p_i/P mod p_i (q_i in Theorem 3.1) */
 	      x[i][l + k + offset] = sp_mul (x[i][l + k + offset],
 	          mpzspm->crt3[i], spm[i]->sp, spm[i]->mul_c);
+              /* now x[i] is t_i in Theorem 3.1 */
 	      f[k] += (float) x[i][l + k + offset] * prime_recip;
 	    }
         }
@@ -529,25 +546,35 @@ mpzspv_normalise (mpzspv_t x, spv_size_t offset, spv_size_t len,
         {
 	  for (k = 0; k < stride; k++)
 	    {
+              /* this is executed len*sp_num times */
+
               /* crt5[i] = (-P mod modulus) mod p_i */
 	      umul_ppmm (d[3 * k + 1], d[3 * k], mpzspm->crt5[i], (sp_t) f[k]);
+              /* {d+3*k,2} = ((-P mod modulus) mod p_i) * round(sum(t_j/p_j)),
+                 this accounts for the right term in Theorem 4.1 */
               d[3 * k + 2] = 0;
 	    }
 	
           for (j = 0; j < sp_num; j++)
             {
+              /* this is executed len*sp_num^2/MPZSPV_NORMALISE_STRIDE times */
 	      w = x[j] + offset;
               /* crt4[i][j] = ((P / p[i]) mod modulus) mod p[j] */
 	      v = mpzspm->crt4[i][j];
 	    
 	      for (k = 0; k < stride; k++)
+                /* this is executed len*sp_num^2 times, and computes the left
+                   term in Theorem 4.1 */
 	        umul_ppmm (s[3 * k + 1], s[3 * k], w[k + l], v);
  	      
-	      /* this mpn_add_n accounts for about a third of the function's
-	       * runtime */
+	      /* This mpn_add_n adds in parallel all "stride" contributions,
+                 and accounts for about a third of the function's runtime.
+                 Since d has size O(stride), the cumulated complexity of this
+                 call is O(len*sp_num^2) */
 	      mpn_add_n (d, d, s, 3 * stride);
             }      
 
+          /* we finally reduce the contribution modulo each p_i */
           for (k = 0; k < stride; k++)
             t[i][k] = mpn_mod_1 (d + 3 * k, 3, spm[i]->sp);
         }	  
@@ -560,7 +587,7 @@ mpzspv_normalise (mpzspv_t x, spv_size_t offset, spv_size_t len,
   free (d);
   free (f);
 #ifdef TIMING_CRT
-  mpzspv_to_mpzv_time += cputime ();
+  mpzspv_normalise_time += cputime ();
 #endif
 }
 
