@@ -1095,16 +1095,16 @@ print_exptime (double B1, const mpz_t B2, unsigned long dF, unsigned long k,
     }
 }
 
-/* go should be NULL for P+1, and P-1, it contains the y coordinate for the
+/* y should be NULL for P+1, and P-1, it contains the y coordinate for the
    Weierstrass form for ECM (when sigma_is_A = -1). */
 /* if gpu != 0 then it contains the number of curves that will be computed on
    the GPU */
 void
 print_B1_B2_poly (int verbosity, int method, double B1, double B1done, 
 		  mpz_t B2min_param, mpz_t B2min, mpz_t B2, int S, mpz_t sigma,
-		  int sigma_is_A, mpz_t go, int param, unsigned int gpu)
+		  int sigma_is_A, mpz_t y, int param, unsigned int gpu)
 {
-  ASSERT ((method == ECM_ECM) || (go == NULL));
+  ASSERT ((method == ECM_ECM) || (y == NULL));
   ASSERT ((-1 <= sigma_is_A) && (sigma_is_A <= 1));
   ASSERT (param != ECM_PARAM_DEFAULT || sigma_is_A == 1 || sigma_is_A == -1);
 
@@ -1144,7 +1144,7 @@ print_B1_B2_poly (int verbosity, int method, double B1, double B1done,
                   outputf (verbosity, ", sigma=%d:%Zd", param, sigma);
 	          }
           else /* sigma_is_A = -1: curve was given in Weierstrass form */
-            outputf (verbosity, ", Weierstrass(A=%Zd,y=%Zd)", sigma, go);
+            outputf (verbosity, ", Weierstrass(A=%Zd,y=%Zd)", sigma, y);
         }
       else if (ECM_IS_DEFAULT_B1_DONE(B1done))
         /* in case of P-1 or P+1, we store the initial point in sigma */
@@ -1460,7 +1460,7 @@ ecm (mpz_t f, mpz_t x, mpz_t y, int *param, mpz_t sigma, mpz_t n, mpz_t go,
 
   /* Print B1, B2, polynomial and sigma */
   print_B1_B2_poly (OUTPUT_NORMAL, ECM_ECM, B1, *B1done, B2min_parm, B2min, 
-		    B2, root_params.S, sigma, sigma_is_A, go, *param, 0);
+		    B2, root_params.S, sigma, sigma_is_A, y, *param, 0);
 
 #if 0
   outputf (OUTPUT_VERBOSE, "b2=%1.0f, dF=%lu, k=%lu, d=%lu, d2=%lu, i0=%Zd\n", 
