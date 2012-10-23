@@ -1,7 +1,7 @@
 /* Pollard 'P-1' algorithm.
 
-Copyright 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009, 2010, 2011
-Paul Zimmermann and Alexander Kruppa.
+Copyright 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009, 2010, 2011,
+2012, Paul Zimmermann and Alexander Kruppa.
 
 This file is part of the ECM Library.
 
