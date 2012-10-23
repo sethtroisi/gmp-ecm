@@ -453,14 +453,20 @@ write_resumefile_line (FILE *file, int method, double B1, mpz_t sigma,
   fprintf (file, "; CHECKSUM=%lu; PROGRAM=GMP-ECM %s;",
            mpz_fdiv_ui (checksum, CHKSUMMOD), VERSION);
   mpz_clear (checksum);
+  if (y != NULL)
+    {
+      fprintf (file, " Y=0x");
+      mpz_out_str (file, 16, y);
+      fprintf (file, ";");
+    }
   
-  if (mpz_sgn (x0) != 0) /* FIXME: pb if x0 == 0 */
+  if (x0 != NULL)
     {
       fprintf (file, " X0=0x");
       mpz_out_str (file, 16, x0);
       fprintf (file, ";");
     }
-  if (mpz_sgn (y0) != 0) /* FIXME: pb if y0 == 0 */
+  if (y0 != NULL)
     {
       fprintf (file, " Y0=0x");
       mpz_out_str (file, 16, y0);
@@ -533,8 +539,9 @@ write_resumefile (char *fn, int method, mpz_t N, double B1done, mpz_t sigma,
   struct flock lock;
   int r, fd;
 #endif
-  mpz_t tmp_x;
+  mpz_t tmp_x, tmp_y;
   mpz_init (tmp_x);
+  mpz_init (tmp_y);
 
   /* first try to open the file */
 #ifdef DEBUG
@@ -582,12 +589,22 @@ write_resumefile (char *fn, int method, mpz_t N, double B1done, mpz_t sigma,
       /* Reduce stage 1 residue wrt new cofactor, in case a factor was 
          found */
       mpz_mod (tmp_x, x, n->n); 
-      
+
       /* We write the B1done value to the safe file. This requires that
          a correct B1done is returned by the factoring functions */
-      /* FIXME: case y != NULL */
-      write_resumefile_line (file, method, B1done, sigma, sigma_is_A, param,
-                             tmp_x, NULL, n, orig_x0, orig_y0, comment);
+      if (y == NULL)
+	{
+	  write_resumefile_line (file, method, B1done, sigma, sigma_is_A, 
+				 param, tmp_x, NULL, n, orig_x0, orig_y0,
+				 comment);
+	}
+      else
+	{
+	  mpz_mod (tmp_y, y, n->n);
+	  write_resumefile_line (file, method, B1done, sigma, sigma_is_A, 
+				 param, tmp_x, tmp_y, n, orig_x0, orig_y0,
+				 comment);
+	}
     }
   else
     {
@@ -612,6 +629,9 @@ write_resumefile (char *fn, int method, mpz_t N, double B1done, mpz_t sigma,
   fcntl (fd, F_SETLKW, &lock); /* F_SETLKW: blocking lock request */
 #endif
   fclose (file);
+
+  mpz_clear (tmp_x);
+  mpz_clear (tmp_y);
 
   return 0;
 }

@@ -1243,8 +1243,12 @@ main (int argc, char *argv[])
                 pm1_random_seed (x, n.n, randstate);
             }
          
-          if (ECM_IS_DEFAULT_B1_DONE(B1done))
-	    mpz_set (orig_x0, x); /* FIXME: do the same for y?*/
+          if (ECM_IS_DEFAULT_B1_DONE(B1done)) /* first time */
+	    {
+	      mpz_set (orig_x0, x);
+	      if (specific_y0)
+		mpz_set (orig_y0, y);  
+	    }
         }
       if (verbose >= OUTPUT_NORMAL)
         {
