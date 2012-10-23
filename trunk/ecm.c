@@ -650,7 +650,7 @@ pt_w_is_equal(mpres_t x0, mpres_t y0, mpres_t z0,
 void
 pt_w_assign(mpres_t x0, mpres_t y0, mpres_t z0,
 	    mpres_t x, mpres_t y, mpres_t z,
-	    mpmod_t n)
+	    ATTRIBUTE_UNUSED mpmod_t n)
 {
   mpres_set (x0, x, n);
   mpres_set (y0, y, n);
@@ -832,7 +832,7 @@ pt_w_mul_end:
 	   B1done is set to B1 if stage 1 completed normally,
 	   or to the largest prime processed if interrupted, but never
 	   to a smaller value than B1done was upon function entry.
-   Return value: ECM_FACTOR_FOUND_STEP1 if a factor, otherwise 
+   Return value: ECM_FACTOR_FOUND_STEP1 if a factor is found, otherwise 
            ECM_NO_FACTOR_FOUND
 */
 static int
@@ -841,7 +841,7 @@ ecm_stage1_W (mpz_t f, mpres_t x, mpres_t y, mpres_t A, mpmod_t n,
 	      char *chkfilename)
 {
   mpres_t z, xB, yB, zB, num, den, inv;
-  double p, r, last_chkpnt_p;
+  double p = 0.0, r, last_chkpnt_p;
   int ret = ECM_NO_FACTOR_FOUND;
   long last_chkpnt_time;
 
@@ -865,13 +865,15 @@ ecm_stage1_W (mpz_t f, mpres_t x, mpres_t y, mpres_t A, mpmod_t n,
 #endif
 
   /* preload group order */
-  if (go != NULL){
-      if(pt_w_mul (x, y, z, go, n, A, num, den, inv) == 0){
-	  mpz_set(f, x);
+  if (go != NULL)
+    {
+      if (pt_w_mul (x, y, z, go, n, A, num, den, inv) == 0)
+        {
+	  mpz_set (f, x);
 	  ret = ECM_FACTOR_FOUND_STEP1;
 	  goto end_of_stage1_w;
-      }
-  }
+        }
+    }
 #if 0
   printf("goP:="); pt_w_print(x, y, z, n); printf(";\n");
 #endif
@@ -955,7 +957,7 @@ ecm_stage1_W (mpz_t f, mpres_t x, mpres_t y, mpres_t A, mpmod_t n,
         }
     }
  end_of_stage1_w:
-  /* If stage 1 finished normally, p is the smallest prime >B1 here.
+  /* If stage 1 finished normally, p is the smallest prime > B1 here.
      In that case, set to B1 */
   if (p > B1)
       p = B1;
@@ -1145,7 +1147,8 @@ print_B1_B2_poly (int verbosity, int method, double B1, double B1done,
             outputf (verbosity, ", Weierstrass(A=%Zd,y=%Zd)", sigma, go);
         }
       else if (ECM_IS_DEFAULT_B1_DONE(B1done))
-	        outputf (verbosity, ", x0=%Zd", sigma);
+        /* in case of P-1 or P+1, we store the initial point in sigma */
+        outputf (verbosity, ", x0=%Zd", sigma);
       
       outputf (verbosity, "\n");
   }
