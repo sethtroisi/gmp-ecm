@@ -214,6 +214,7 @@ echo 2432902008176640001 | $ECM -A 1 -x0 20 -y0 0 100000; checkcode $? 8
 echo 2432902008176640001 | $ECM -A 1 -x0 0 -y0 0 100000; checkcode $? 8
 # for A rational
 echo 2432902008176640001 | $ECM -A 1/2 -x0 20 -y0 10 10000; checkcode $? 14
+# what if we find a factor during initialization
 echo 2432902008176640001 | $ECM -A 1/20639383 -x0 20 -y0 10 10000; checkcode $? 14
 echo 2432902008176640001 | $ECM -A 1 -x0 20/20639383 -y0 10 10000; checkcode $? 14
 echo 2432902008176640001 | $ECM -A 1/2 -x0 20 -y0 10/20639383 10000; checkcode $? 14
