@@ -422,7 +422,7 @@ The user may want to use a specific curve in Weierstrass form, also
 in Step 1. When 'y0' is used together with 'x0' and 'A' (both 'x0' and
 'A' *must* be present), GMP-ECM will consider that (x0, y0) is a point 
 on E: Y^2 = X^3 + A * X + B, where B = y0^2-x0^3-A*x0 mod N. For the time
-being, GMP-ECM will use a crude implementation of the affine law over E.
+being, GMP-ECM uses a crude implementation of the affine law over E.
 Step 2 is performed as usual, since it already uses the Weierstrass form.
 The options of Section 7 apply.
 

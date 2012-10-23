@@ -287,6 +287,33 @@ print_config ()
 
 }
 
+/* r <- q mod N. 
+   Return value: 1 if den invertible, 0 if factor found; in this case
+   gcd(den(q), N) is put in r.
+ */
+int
+mod_from_rat(mpz_t r, mpq_t q, mpz_t N, int verbose)
+{
+    mpz_t inv;
+ 
+    mpz_init (inv);
+    if (mpz_invert (inv, mpq_denref (q), N) == 0)
+      {
+	mpz_gcd(r, mpq_denref (q), N);
+	if (verbose > 0){
+	    printf ("Holly cow!\n");
+	    printf ("********** Factor found during init\n");
+	}
+	mpz_out_str (stdout, 10, r);
+	if (verbose > 0)
+	    printf ("\n");
+	return 0;
+      }
+    mpz_mul (inv, mpq_numref (q), inv);
+    mpz_mod (r, inv, N);
+    mpz_clear (inv);
+    return 1;
+}
 
 /******************************************************************************
 *                                                                             *
@@ -1199,38 +1226,27 @@ main (int argc, char *argv[])
               }
 
           /* Set effective seed for factoring attempt on this number */
-	  /* TODO: take care to the invertible cases */
 	  if (specific_A)
 	    {
-		mpz_t invA;
-		mpz_init (invA);
-		mpz_invert (invA, mpq_denref (rat_A), n.n);
-		mpz_mul (invA, mpq_numref (rat_A), invA);
-		mpz_mod (A, invA, n.n);
-		mpz_clear (invA);
+		if (mod_from_rat(A, rat_A, n.n, verbose) == 0)
+		    exit(-1); /* FIXME */
 	    }
-
+	  
           if (specific_x0) /* convert rational value to integer */
-            {
-              mpz_t inv;
+	    {
+	      if (count != 1)
+		{
+		  fprintf (stderr, "Error, option -c is incompatible with -x0\n");
+		  exit (EXIT_FAILURE);
+                }
 
-            if (count != 1)
-              {
-                fprintf (stderr, "Error, option -c is incompatible with -x0\n");
-                exit (EXIT_FAILURE);
-              }
-
-              mpz_init (inv);
-              mpz_invert (inv, mpq_denref (rat_x0), n.n);
-              mpz_mul (inv, mpq_numref (rat_x0), inv);
-              mpz_mod (x, inv, n.n);
+	      if (mod_from_rat(x, rat_x0, n.n, verbose) == 0)
+		  exit(-1); /* FIXME */
 	      if (specific_y0)
 		{
-		  mpz_invert (inv, mpq_denref (rat_y0), n.n);
-		  mpz_mul (inv, mpq_numref (rat_y0), inv);
-		  mpz_mod (y, inv, n.n);
-		}
-              mpz_clear (inv);
+		  if (mod_from_rat(y, rat_y0, n.n, verbose) == 0)
+		      exit(-1); /* FIXME */
+	      }
             }
           else /* Make a random starting point for P-1 and P+1. ECM will */
                /* compute a suitable value from sigma or A if x is zero */
