@@ -294,25 +294,43 @@ print_config ()
 int
 mod_from_rat(mpz_t r, mpq_t q, mpz_t N, int verbose)
 {
-    mpz_t inv;
+    mpz_t inv, C;
+    int factor_is_prime, cofactor_is_prime, ret;
  
     mpz_init (inv);
     if (mpz_invert (inv, mpq_denref (q), N) == 0)
       {
 	mpz_gcd(r, mpq_denref (q), N);
 	if (verbose > 0){
-	    printf ("Holly cow!\n");
-	    printf ("********** Factor found during init\n");
+	    printf ("********** Factor found during init!!!\n");
 	}
 	mpz_out_str (stdout, 10, r);
 	if (verbose > 0)
 	    printf ("\n");
-	return 0;
+	if (mpz_cmp(r, N) == 0)
+	  ret = ECM_INPUT_NUMBER_FOUND;
+	else
+	  {
+	    factor_is_prime = mpz_probab_prime_p (r, PROBAB_PRIME_TESTS);
+	    mpz_init (C);
+	    mpz_tdiv_q (C, N, r);
+	    cofactor_is_prime = mpz_probab_prime_p (C, PROBAB_PRIME_TESTS);
+	    mpz_clear (C);
+	    if (factor_is_prime)
+		ret = cofactor_is_prime ? ECM_PRIME_FAC_PRIME_COFAC :
+		    ECM_PRIME_FAC_COMP_COFAC;
+	    else
+		ret = cofactor_is_prime ? ECM_COMP_FAC_PRIME_COFAC :
+		    ECM_COMP_FAC_COMP_COFAC;
+	  }
       }
-    mpz_mul (inv, mpq_numref (q), inv);
-    mpz_mod (r, inv, N);
+    else
+      {
+	mpz_mul (inv, mpq_numref (q), inv);
+	mpz_mod (r, inv, N);
+      }
     mpz_clear (inv);
-    return 1;
+    return ret;
 }
 
 /******************************************************************************
@@ -1228,8 +1246,9 @@ main (int argc, char *argv[])
           /* Set effective seed for factoring attempt on this number */
 	  if (specific_A)
 	    {
-		if (mod_from_rat(A, rat_A, n.n, verbose) == 0)
-		    exit(-1); /* FIXME */
+		returncode = mod_from_rat(A, rat_A, n.n, verbose);
+		if(returncode != 0)
+		    return returncode;
 	    }
 	  
           if (specific_x0) /* convert rational value to integer */
@@ -1240,13 +1259,16 @@ main (int argc, char *argv[])
 		  exit (EXIT_FAILURE);
                 }
 
-	      if (mod_from_rat(x, rat_x0, n.n, verbose) == 0)
-		  exit(-1); /* FIXME */
+	      returncode = mod_from_rat(x, rat_x0, n.n, verbose);
+	      if(returncode != 0)
+		  return returncode;
+
 	      if (specific_y0)
 		{
-		  if (mod_from_rat(y, rat_y0, n.n, verbose) == 0)
-		      exit(-1); /* FIXME */
-	      }
+		  returncode = mod_from_rat(y, rat_y0, n.n, verbose);
+		  if (returncode != 0)
+		    return returncode;
+		}
             }
           else /* Make a random starting point for P-1 and P+1. ECM will */
                /* compute a suitable value from sigma or A if x is zero */
