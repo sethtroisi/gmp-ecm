@@ -629,8 +629,8 @@ ecm_stage1 (mpz_t f, mpres_t x, mpres_t A, mpmod_t n, double B1,
 #define EC_W_LAW_AFFINE      1 /* Montgomery residues do no harm... */
 #define EC_W_LAW_PROJECTIVE  2 /* see corresponding section of EFDB */
 
-#define EC_W_LAW EC_W_LAW_AFFINE
-/*#define EC_W_LAW EC_W_LAW_PROJECTIVE*/
+/*#define EC_W_LAW EC_W_LAW_AFFINE*/
+#define EC_W_LAW EC_W_LAW_PROJECTIVE
 
 #if EC_W_LAW == EC_W_LAW_AFFINE
 #define EC_W_NBUFS 3
@@ -1128,6 +1128,8 @@ ecm_stage1_W (mpz_t f, mpres_t x, mpres_t y, mpres_t A, mpmod_t n,
   if(mpz_sgn(z) == 0){
       /* too bad */
       pt_w_set_to_zero(x, y, z, n);
+      mpz_set(f, n->orig_modulus);
+      ret = ECM_FACTOR_FOUND_STEP1;
   }
   else if (!mpres_invert (xB, z, n)) /* Factor found? */
     {

@@ -42,7 +42,6 @@ checkcode () {
 # 8      Input number found
 # 10     Composite factor found, cofactor is a probable prime
 # 14     Probable prime factor found, cofactor is a probable prime
-
 # try primes < d in stage 2. Curve with sigma=7, mod 30210181 has order
 # 2^4 * 3^3 * 29 * 2411
 echo 2050449353925555290706354283 | $ECM -param 0 -sigma 7 -k 1 30 0-1e6; checkcode $? 14
