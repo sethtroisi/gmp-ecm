@@ -624,7 +624,19 @@ ecm_stage1 (mpz_t f, mpres_t x, mpres_t A, mpmod_t n, double B1,
 
 /******************** Weierstrass section ********************/
 
-/* We use the affine law; Montgomery stuff does no harm... */
+#define DEBUG_EC_W 0
+
+#define EC_W_LAW_AFFINE      1 /* Montgomery residues do no harm... */
+#define EC_W_LAW_PROJECTIVE  2 /* see corresponding section of EFDB */
+
+#define EC_W_LAW EC_W_LAW_AFFINE
+/*#define EC_W_LAW EC_W_LAW_PROJECTIVE*/
+
+#if EC_W_LAW == EC_W_LAW_AFFINE
+#define EC_W_NBUFS 3
+#elif EC_W_LAW == EC_W_LAW_PROJECTIVE
+#define EC_W_NBUFS 6
+#endif
 
 void
 pt_w_set_to_zero(mpres_t x, mpres_t y, mpres_t z, mpmod_t n)
@@ -640,12 +652,16 @@ pt_w_is_zero(mpres_t z, mpmod_t n)
     return mpres_is_zero(z, n);
 }
 
+#if EC_W_LAW == EC_W_LAW_AFFINE
 int
 pt_w_is_equal(mpres_t x0, mpres_t y0, mpres_t z0,
 	      mpres_t x1, mpres_t y1, mpres_t z1)
 {
     return (mpz_cmp(x0, x1) == 0 && mpz_cmp(y0, y1) == 0 && mpz_cmp(z0, z1));
 }
+#elif EC_W_LAW == EC_W_LAW_PROJECTIVE
+/* if need be, this is easy to write */
+#endif
 
 void
 pt_w_assign(mpres_t x0, mpres_t y0, mpres_t z0,
@@ -676,10 +692,15 @@ pt_w_print(mpres_t x, mpres_t y, mpres_t z, mpmod_t n)
     printf(", ");
     print_mpz_from_mpres(y, n);
     printf(", ");
+#if EC_W_LAW == EC_W_LAW_AFFINE
     gmp_printf("%Zd", z);
+#else
+    print_mpz_from_mpres(z, n);
+#endif
     printf("]");
 }
 
+#if EC_W_LAW == EC_W_LAW_AFFINE
 int
 pt_w_common(mpres_t x0, mpres_t y0, mpres_t z0,
 	    mpres_t x1, mpres_t y1,
@@ -701,53 +722,162 @@ pt_w_common(mpres_t x0, mpres_t y0, mpres_t z0,
     mpz_set_ui(z0, 1); /* just in case */
     return 1;
 }
+#endif
 
+/* [x0, y0, z0] <- [2] * [x, y, z] */
 int
-pt_w_duplicate(mpres_t x0, mpres_t y0, mpres_t z0,
-	       mpres_t x, mpres_t y, mpres_t z,
-	       mpmod_t n, mpres_t A, mpres_t num, mpres_t den, mpres_t inv)
+pt_w_duplicate(mpres_t x3, mpres_t y3, mpres_t z3,
+	       mpres_t x1, mpres_t y1, mpres_t z1,
+	       mpmod_t n, mpres_t A, mpres_t *buf)
 {
-    if(pt_w_is_zero(z, n))
+    if(pt_w_is_zero(z1, n))
       {
-	pt_w_assign(x0, y0, z0, x, y, z, n);
+	pt_w_assign(x3, y3, z3, x1, y1, z1, n);
 	return 1;
       }
-    /* den <- 2*y */
-    mpres_add(den, y, y, n);
-    if(mpres_is_zero(y, n))
+#if EC_W_LAW == EC_W_LAW_AFFINE
+    /* buf[1] <- 2*y1 */
+    mpres_add(buf[1], y1, y1, n);
+    if(mpres_is_zero(y1, n))
       {
-	/* y = 0 <=> P is a [2]-torsion point */
-	pt_w_assign(x0, y0, z0, x, y, z, n);
+	/* y1 = 0 <=> P is a [2]-torsion point */
+	pt_w_assign(x3, y3, z3, x1, y1, z1, n);
 	return 1;
       }
-    /* num <- 3*x^2+A */
-    mpres_mul_ui(num, x, 3, n);
-    mpres_mul(num, num, x, n);
-    mpres_add(num, num, A, n);
-    return pt_w_common(x0, y0, z0, x, y, x, n, num, den, inv);
+    /* buf[0] <- 3*x^2+A */
+    mpres_mul_ui(buf[0], x1, 3, n);
+    mpres_mul(buf[0], buf[0], x1, n);
+    mpres_add(buf[0], buf[0], A, n);
+    return pt_w_common(x3, y3, z3, x1, y1, x1, n, buf[0], buf[1], buf[2]);
+#elif EC_W_LAW == EC_W_LAW_PROJECTIVE
+    /* source is dbl-2007-bl: 5M + 6S + 1*a + 7add + 3*2 + 1*3 */
+    /* mapping: h = buf[0], w = buf[1], s = buf[2], RR = buf[3], B = buf[4];*/
+    /*  h:=X1^2 mod p;	    # S*/
+    mpres_sqr(buf[0], x1, n);
+    /*	w:=Z1^2 mod p;*/
+    mpres_sqr(buf[1], z1, n);
+    /*	w:=a*w mod p;*/
+    mpres_mul(buf[1], buf[1], A, n);
+    /*	s:=3*h mod p;	    # *3*/
+    mpres_mul_ui(buf[2], buf[0], 3, n);
+    /*	w:=w+s mod p;*/
+    mpres_add(buf[1], buf[1], buf[2], n);
+    /*	s:=Y1*Z1 mod p;*/
+    mpres_mul(buf[2], y1, z1, n);
+    /*	s:=2*s mod p;*/
+    mpres_mul_ui(buf[2], buf[2], 2, n);
+    /*	Z3:=s^2 mod p;*/
+    mpres_sqr(z3, buf[2], n);
+    /*	Z3:=s*Z3 mod p;*/
+    mpres_mul(z3, z3, buf[2], n);
+    /*	RR:=Y1*s mod p;	    # M*/
+    mpres_mul(buf[3], y1, buf[2], n);
+    /*	B:=X1+RR mod p;    # add*/
+    mpres_add(buf[4], x1, buf[3], n);
+    /*	B:=B^2 mod p;*/
+    mpres_sqr(buf[4], buf[4], n);
+    /*	RR:=RR^2 mod p;	    # S*/
+    mpres_sqr(buf[3], buf[3], n);
+    /*	B:=B-h mod p;*/
+    mpres_sub(buf[4], buf[4], buf[0], n);
+    /*	B:=B-RR mod p;*/
+    mpres_sub(buf[4], buf[4], buf[3], n);
+    /*	h:=w^2 mod p;*/
+    mpres_sqr(buf[0], buf[1], n);
+    /*	X3:=2*B mod p;*/
+    mpres_mul_ui(x3, buf[4], 2, n);
+    /*	h:=h-X3 mod p;*/
+    mpres_sub(buf[0], buf[0], x3, n);
+    /*	X3:=h*s mod p;	    # M*/
+    mpres_mul(x3, buf[0], buf[2], n);
+    /*	s:=B-h mod p;*/
+    mpres_sub(buf[2], buf[4], buf[0], n);
+    /*	s:=w*s mod p;*/
+    mpres_mul(buf[2], buf[2], buf[1], n);
+    /*	Y3:=2*RR mod p;*/
+    mpres_mul_ui(y3, buf[3], 2, n);
+    /*	Y3:=s-Y3 mod p;*/
+    mpres_sub(y3, buf[2], y3, n);
+    return 1;
+#endif
 }
 
+/* [x3, y3, z3] <- [x1, y1, z1] + [x2, y2, z2] */
 int
-pt_w_add(mpres_t x0, mpres_t y0, mpres_t z0,
+pt_w_add(mpres_t x3, mpres_t y3, mpres_t z3,
 	 mpres_t x1, mpres_t y1, mpres_t z1,
 	 mpres_t x2, mpres_t y2, mpres_t z2,
-	 mpmod_t n, mpres_t A, mpres_t num, mpres_t den, mpres_t inv)
+	 mpmod_t n, mpres_t A, mpres_t *buf)
 {
     if(pt_w_is_zero(z1, n)){
-	pt_w_assign(x0, y0, z0, x2, y2, z2, n);
+	pt_w_assign(x3, y3, z3, x2, y2, z2, n);
 	return 1;
     }
     else if(pt_w_is_zero(z2, n)){
-	pt_w_assign(x0, y0, z0, x1, y1, z1, n);
+	pt_w_assign(x3, y3, z3, x1, y1, z1, n);
 	return 1;
     }
+#if EC_W_LAW == EC_W_LAW_AFFINE
     else if(pt_w_is_equal(x1, y1, z1, x2, y2, z2))
-	return pt_w_duplicate(x0, y0, z0, x1, y1, z1, n, A, num, den, inv);
+	return pt_w_duplicate(x3, y3, z3, x1, y1, z1, n, A, buf);
     else{
-	mpres_sub(num, y1, y2, n);
-	mpres_sub(den, x1, x2, n);
-	return pt_w_common(x0, y0, z0, x1, y1, x2, n, num, den, inv);
+	mpres_sub(buf[0], y1, y2, n);
+	mpres_sub(buf[1], x1, x2, n);
+	return pt_w_common(x3, y3, z3, x1, y1, x2, n, buf[0], buf[1], buf[2]);
     }
+#elif EC_W_LAW == EC_W_LAW_PROJECTIVE
+    /* Cohen-Miyaji-Ono: 12M+2S+6add+1*2 */
+    /* mapping: y1z2 = buf, AA = buf+1, u = buf+2, v = buf+3, R = buf+4, */
+    /* vvv = buf+5; */
+    /*  Y1Z2:=Y1*Z2 mod p;	# M*/
+    mpres_mul(buf[0], y1, z2, n);
+    /*	A:=X1*Z2 mod p;	# M*/
+    mpres_mul(buf[1], x1, z2, n);
+    /*	u:=Y2*Z1 mod p;*/
+    mpres_mul(buf[2], y2, z1, n);
+    /*	u:=u-Y1Z2 mod p;*/
+    mpres_sub(buf[2], buf[2], buf[0], n);
+    /*	v:=X2*Z1 mod p;*/
+    mpres_mul(buf[3], x2, z1, n);
+    /*	v:=v-A mod p;*/
+    mpres_sub(buf[3], buf[3], buf[1], n);
+    if(mpz_sgn(buf[2]) == 0 && mpz_sgn(buf[3]) == 0){
+	/* u = 0 <=> Y2*Z1 = Y1*Z2 <=> Y2/Z2 = Y1/Z1*/
+	/* v = 0 <=> X2*Z1 = X1*Z2 <=> X2/Z2 = X1/Z1*/
+	return pt_w_duplicate(x3, y3, z3, x1, y1, z1, n, A, buf);
+    }
+    /*	Z3:=Z1*Z2 mod p;	# M*/
+    mpres_mul(z3, z1, z2, n);
+    /*	X3:=u^2 mod p;*/
+    mpres_sqr(x3, buf[2], n);
+    /*	X3:=X3*Z3 mod p;*/
+    mpres_mul(x3, x3, z3, n);
+    /*	R:=v^2 mod p;*/
+    mpres_sqr(buf[4], buf[3], n);
+    /*	vvv:=v*R mod p;*/
+    mpres_mul(buf[5], buf[3], buf[4], n);
+    /*	R:=R*A mod p;*/
+    mpres_mul(buf[4], buf[4], buf[1], n);
+    /*	Y3:=2*R mod p; 		# *2*/
+    mpres_mul_ui(y3, buf[4], 2, n);
+    /*	A:=X3-vvv mod p;*/
+    mpres_sub(buf[1], x3, buf[5], n);
+    /*	A:=A-Y3 mod p;*/
+    mpres_sub(buf[1], buf[1], y3, n);
+    /*	X3:=v*A mod p;		# M*/
+    mpres_mul(x3, buf[3], buf[1], n);
+    /*	Y3:=R-A mod p;*/
+    mpres_sub(y3, buf[4], buf[1], n);
+    /*	Y3:=u*Y3 mod p;*/
+    mpres_mul(y3, y3, buf[2], n);
+    /*	A:=vvv*Y1Z2 mod p;*/
+    mpres_mul(buf[1], buf[5], buf[0], n);
+    /*	Y3:=Y3-A mod p;*/
+    mpres_sub(y3, y3, buf[1], n);
+    /*	Z3:=vvv*Z3 mod p;	# M*/
+    mpres_mul(z3, z3, buf[5], n);
+    return 1;
+#endif
 }
 
 /* multiply P=(x:y:z) by e and puts the result in (x:y:z).
@@ -756,7 +886,7 @@ pt_w_add(mpres_t x0, mpres_t y0, mpres_t z0,
 */
 int
 pt_w_mul (mpres_t x, mpres_t y, mpres_t z, mpz_t e, mpmod_t n, mpres_t A,
-	  mpres_t num, mpres_t den, mpres_t inv)
+	  mpres_t *buf)
 {
   size_t l;
   int negated = 0, status = 1;
@@ -791,21 +921,36 @@ pt_w_mul (mpres_t x, mpres_t y, mpres_t z, mpz_t e, mpmod_t n, mpres_t A,
 
   while (l-- > 0)
     {
-	if(pt_w_duplicate (x0, y0, z0, x0, y0, z0, n, A, num, den, inv) == 0)
+	if(pt_w_duplicate (x0, y0, z0, x0, y0, z0, n, A, buf) == 0)
 	  {
 	    status = 0;
 	    break;
 	  }
+#if DEBUG_EC_W >= 2
+	printf("Rdup:="); pt_w_print(x0, y0, z0, n); printf(";\n");
+#endif
 	if (mpz_tstbit (e, l))
 	  {
-	    if(pt_w_add (x0, y0, z0, x0, y0, z0, x, y, z, n, A, num, den, inv) == 0)
+	    if(pt_w_add (x0, y0, z0, x0, y0, z0, x, y, z, n, A, buf) == 0)
 	      {
 		status = 0;
 		break;
 	      }
+#if DEBUG_EC_W >= 2
+	    printf("Radd:="); pt_w_print(x0, y0, z0, n); printf(";\n");
+#endif
 	  }
     }
 
+#if EC_W_LAW == EC_W_LAW_PROJECTIVE
+  /* not clear! Perhaps it has sense to normalize P? */
+  mpres_gcd(z, z0, n);
+  if(mpz_cmp_ui(z, 1) != 0){
+      /* factor found, even n... */
+      mpres_set(x0, z, n);
+      status = 0;
+  }
+#endif
   mpres_set (x, x0, n);
   mpres_set (y, y0, n);
   mpres_set (z, z0, n);
@@ -813,6 +958,7 @@ pt_w_mul (mpres_t x, mpres_t y, mpres_t z, mpz_t e, mpmod_t n, mpres_t A,
   mpres_clear (x0, n);
   mpres_clear (y0, n);
   mpres_clear (z0, n);
+
 
 pt_w_mul_end:
 
@@ -840,23 +986,27 @@ ecm_stage1_W (mpz_t f, mpres_t x, mpres_t y, mpres_t A, mpmod_t n,
 	      double B1, double *B1done, mpz_t go, int (*stop_asap)(void), 
 	      char *chkfilename)
 {
-  mpres_t z, xB, yB, zB, num, den, inv;
+  mpres_t z, xB, yB, zB, buf[EC_W_NBUFS];
   double p = 0.0, r, last_chkpnt_p;
   int ret = ECM_NO_FACTOR_FOUND;
   long last_chkpnt_time;
+  int i;
 
   mpres_init (z, n);
   mpres_init (xB, n);
   mpres_init (yB, n);
   mpres_init (zB, n);
-  mpres_init (num, n);
-  mpres_init (den, n);
-  mpres_init (inv, n);
+  for(i = 0; i < EC_W_NBUFS; i++)
+      mpres_init (buf[i], n);
   
   last_chkpnt_time = cputime ();
 
-  mpz_set_ui (z, 1); /* this z is just a flag for pt != O_E */
-#if 0
+#if EC_W_LAW == EC_W_LAW_AFFINE
+  mpz_set_ui (z, 1);
+#else
+  mpres_set_ui(z, 1, n);
+#endif
+#if DEBUG_EC_W >= 1
   printf("A:="); print_mpz_from_mpres(A, n); printf(";\n");
   printf("x0:="); print_mpz_from_mpres(x, n); printf(";\n");
   printf("y0:="); print_mpz_from_mpres(y, n); printf(";\n");
@@ -867,27 +1017,28 @@ ecm_stage1_W (mpz_t f, mpres_t x, mpres_t y, mpres_t A, mpmod_t n,
   /* preload group order */
   if (go != NULL)
     {
-      if (pt_w_mul (x, y, z, go, n, A, num, den, inv) == 0)
+      if (pt_w_mul (x, y, z, go, n, A, buf) == 0)
         {
 	  mpz_set (f, x);
 	  ret = ECM_FACTOR_FOUND_STEP1;
 	  goto end_of_stage1_w;
         }
     }
-#if 0
+#if DEBUG_EC_W >= 1
+  gmp_printf("go:=%Zd;\n", go);
   printf("goP:="); pt_w_print(x, y, z, n); printf(";\n");
 #endif
   /* prac() wants multiplicands > 2 */
   for (r = 2.0; r <= B1; r *= 2.0)
       if (r > *B1done)
 	{
-	  if(pt_w_duplicate (x, y, z, x, y, z, n, A, num, den, inv) == 0)
+	  if(pt_w_duplicate (x, y, z, x, y, z, n, A, buf) == 0)
 	    {
 		mpz_set(f, x);
 		ret = ECM_FACTOR_FOUND_STEP1;
 		goto end_of_stage1_w;
 	    }
-#if 0
+#if DEBUG_EC_W >= 1
 	  printf("P%ld:=", (long)r); pt_w_print(x, y, z, n); printf(";\n");
 #endif
 	}
@@ -896,23 +1047,24 @@ ecm_stage1_W (mpz_t f, mpres_t x, mpres_t y, mpres_t A, mpmod_t n,
   for (r = 3.0; r <= B1; r *= 3.0)
     if (r > *B1done)
       {
-	if(pt_w_duplicate (xB, yB, zB, x, y, z, n, A, num, den, inv) == 0)
+	if(pt_w_duplicate (xB, yB, zB, x, y, z, n, A, buf) == 0)
 	  {
 	    mpz_set(f, xB);
 	    ret = ECM_FACTOR_FOUND_STEP1;
 	    goto end_of_stage1_w;
 	  }
-#if 0
+#if DEBUG_EC_W >= 1
 	printf("dup:="); pt_w_print(xB, yB, zB, n); printf(";\n");
 #endif
-	if(pt_w_add (x, y, z, x, y, z, xB, yB, zB, n, A, num, den, inv) == 0)
+	if(pt_w_add (x, y, z, x, y, z, xB, yB, zB, n, A, buf) == 0)
 	  {
 	      mpz_set(f, x);
 	      ret = ECM_FACTOR_FOUND_STEP1;
 	      goto end_of_stage1_w;
 	  }
-#if 0
+#if DEBUG_EC_W >= 1
 	printf("Q%ld:=", (long)r); pt_w_print(x, y, z, n); printf(";\n");
+	printf("Q:=Q%ld;\n", (long)r);
 #endif
       }
   
@@ -921,17 +1073,20 @@ ecm_stage1_W (mpz_t f, mpres_t x, mpres_t y, mpres_t A, mpmod_t n,
   for (p = getprime (); p <= B1; p = getprime ())
     {
       for (r = p; r <= B1; r *= p)
+	  /*	printf("## p = %ld\n", (long)p);*/
 	if (r > *B1done)
 	  {
 	    mpz_set_ui(xB, (ecm_uint) p);
-	    if(pt_w_mul (x, y, z, xB, n, A, num, den, inv) == 0)
+	    if(pt_w_mul (x, y, z, xB, n, A, buf) == 0)
 	      {
 		mpz_set(f, x);
 		ret = ECM_FACTOR_FOUND_STEP1;
 		goto end_of_stage1_w;
 	      }
-#if 0
-	    printf("R%ld:=", (long)p); pt_w_print(x, y, z, n); printf(";\n");
+#if DEBUG_EC_W >= 1
+	    printf("R%ld:=", (long)r); pt_w_print(x, y, z, n); printf(";\n");
+	    printf("Q:=EcmMult(%ld, Q, E, N);\n", (long)r);
+	    printf("(Q[1]*R%ld[3]-Q[3]*R%ld[1]) mod N;\n",(long)r,(long)r);
 #endif
 	  }
 
@@ -969,13 +1124,30 @@ ecm_stage1_W (mpz_t f, mpres_t x, mpres_t y, mpres_t A, mpmod_t n,
     writechkfile (chkfilename, ECM_ECM, *B1done, n, A, x, y, z);
   getprime_clear (); /* free the prime tables, and reinitialize */
 
+#if EC_W_LAW == EC_W_LAW_PROJECTIVE
+  if(mpz_sgn(z) == 0){
+      /* too bad */
+      pt_w_set_to_zero(x, y, z, n);
+  }
+  else if (!mpres_invert (xB, z, n)) /* Factor found? */
+    {
+      mpres_gcd (f, z, n);
+      ret = ECM_FACTOR_FOUND_STEP1;
+    }
+  else
+    {
+      /* normalize to get (x:y:1) */
+      mpres_mul (x, x, xB, n);
+      mpres_mul (y, y, xB, n);
+    }
+#endif
+
   mpres_clear (zB, n);
   mpres_clear (yB, n);
   mpres_clear (xB, n);
   mpres_clear (z, n);
-  mpres_clear (num, n);
-  mpres_clear (den, n);
-  mpres_clear (inv, n);
+  for(i = 0; i < EC_W_NBUFS; i++)
+      mpres_clear (buf[i], n);
 
   return ret;
 }
