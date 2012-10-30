@@ -942,14 +942,16 @@ pt_w_mul (mpres_t x, mpres_t y, mpres_t z, mpz_t e, mpmod_t n, mpres_t A,
 	  }
     }
 
+#if 0
 #if EC_W_LAW == EC_W_LAW_PROJECTIVE
   /* not clear! Perhaps it has sense to normalize P? */
-  mpres_gcd(z, z0, n);
+  mpres_gcd(z, z0, n); /* very costly */
   if(mpz_cmp_ui(z, 1) != 0){
       /* factor found, even n... */
       mpres_set(x0, z, n);
       status = 0;
   }
+#endif
 #endif
   mpres_set (x, x0, n);
   mpres_set (y, y0, n);
@@ -958,7 +960,6 @@ pt_w_mul (mpres_t x, mpres_t y, mpres_t z, mpz_t e, mpmod_t n, mpres_t A,
   mpres_clear (x0, n);
   mpres_clear (y0, n);
   mpres_clear (z0, n);
-
 
 pt_w_mul_end:
 
@@ -1073,7 +1074,7 @@ ecm_stage1_W (mpz_t f, mpres_t x, mpres_t y, mpres_t A, mpmod_t n,
   for (p = getprime (); p <= B1; p = getprime ())
     {
       for (r = p; r <= B1; r *= p)
-	  /*	printf("## p = %ld\n", (long)p);*/
+	  /*	  printf("## p = %ld\n", (long)p);*/
 	if (r > *B1done)
 	  {
 	    mpz_set_ui(xB, (ecm_uint) p);
