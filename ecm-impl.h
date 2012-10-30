@@ -224,6 +224,7 @@ typedef struct
 {
   mpres_t x;
   mpres_t y;
+  mpres_t z;
   mpres_t A;
 } __curve_struct;
 typedef __curve_struct curve;
