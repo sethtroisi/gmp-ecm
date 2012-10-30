@@ -29,7 +29,7 @@ main (int argc, char *argv[])
   int res;
   double B1;
 
-  if (argc != 3)
+  if (argc < 3)
     {
       fprintf (stderr, "Usage: ecmfactor <number> <B1>\n");
       exit (1);
@@ -49,7 +49,6 @@ main (int argc, char *argv[])
   mpz_init (f); /* for potential factor */
 
   printf ("Performing one curve with B1=%1.0f\n", B1);
-
   res = ecm_factor (f, n, B1, NULL);
 
   if (res > 0)
