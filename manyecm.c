@@ -320,29 +320,66 @@ mod_from_rat(mpz_t r, mpq_t q, mpz_t N)
 
 #ifdef ONE_CURVE_AT_A_TIME
 int
-one_curve_at_a_time(mpz_t f, curve *tEP, int nc, mpz_t n, double B1)
+one_curve_at_a_time(mpz_t f, curve *tEP, int nc, mpz_t N, double B1)
 {
     ecm_params params;
-    int ret, i;
+    int ret = 0, i;
+    mpz_t C;
 
     ecm_init(params);
     params->sigma_is_A = -1;
+    mpz_init (C);
     /* process curves one at a time */
     for(i = 0; i < nc; i++){
 	params->B1done = 1.0;
 	mpz_set (params->x, tEP[i].x);
 	mpz_set (params->y, tEP[i].y);
 	mpz_set (params->sigma, tEP[i].A); /* humf */
-	ret = ecm_factor(f, n, B1, params);
+	ret = ecm_factor(f, N, B1, params);
 	if(ret > 0){ /* humf */
+	    int factor_is_prime, cofactor_is_prime;
+
 	    printf("******************** Factor found with E[%d]: ", i);
 	    mpz_out_str (stdout, 10, f);
 	    printf ("\n");
+	    if(mpz_cmp(N, f) == 0)
+		continue;
+	    factor_is_prime = mpz_probab_prime_p (f, PROBAB_PRIME_TESTS);
+	    mpz_tdiv_q (C, N, f);
+	    cofactor_is_prime = mpz_probab_prime_p (C, PROBAB_PRIME_TESTS);
+	    if (factor_is_prime)
+		ret = cofactor_is_prime ? ECM_PRIME_FAC_PRIME_COFAC :
+		    ECM_PRIME_FAC_COMP_COFAC;
+	    else
+		ret = cofactor_is_prime ? ECM_COMP_FAC_PRIME_COFAC :
+		    ECM_COMP_FAC_COMP_COFAC;
+	    gmp_printf("f=%Zd is ", f);
+	    if(factor_is_prime)
+		printf("PRP\n");
+	    else
+		printf("COMPOSITE\n");
+	    gmp_printf("C=%Zd is ", C);
+	    if(cofactor_is_prime)
+		printf("PRP\n");
+	    else
+		printf("COMPOSITE\n");
+	    if(factor_is_prime && cofactor_is_prime)
+		break;
+	    else if(factor_is_prime){
+		mpz_set(N, C);
+	    }
+	    else if(cofactor_is_prime){
+		mpz_set(N, f);
+	    }
+	    else{
+		/* FIXME: f and C are composite! */
+	    }
 	}
 	else if(ret == ECM_ERROR){
 	    printf("Error for curve %d\n", i);
 	}
     }
+    mpz_clear (C);
     ecm_clear(params);
     return ret;
 }
@@ -482,12 +519,12 @@ process_many_curves(mpz_t f, mpz_t n, double B1, char *fic_EP)
     FILE *ifile = fopen(fic_EP, "r");
     int nc = 0, i, ret = 0;
     char bufA[1024], bufx[1024], bufy[1024];
-    ecm_params params;
     mpq_t q;
 #ifndef ONE_CURVE_AT_A_TIME
+    ecm_params params;
     mpmod_t modulus;
-#endif
     double B1done;
+#endif
 
     mpq_init(q);
     while(fscanf(ifile, "%s %s %s", bufA, bufx, bufy) != EOF){
@@ -528,45 +565,97 @@ process_many_curves(mpz_t f, mpz_t n, double B1, char *fic_EP)
     return ret;
 }
 
+static void
+usage (void)
+{
+}
+
 int
 main (int argc, char *argv[])
 {
   mpz_t n, f;
-  int res;
-  double B1;
+  int res = 0;
+  double B1 = 0.0;
+  char *infilename = NULL, *curvesname = NULL;
+  char buf[10000];
+  FILE *infile = NULL;
 
-  if (argc != 4)
-    {
-      fprintf (stderr, "Usage: ecmfactor <number> <fic_EP> <B1>\n");
-      exit (1);
-    }
+  /* first look for options */
+  while ((argc > 1) && (argv[1][0] == '-')){
+      if (strcmp (argv[1], "-h") == 0 || strcmp (argv[1], "--help") == 0){
+          usage ();
+          exit (EXIT_SUCCESS);
+      }
+      else if ((argc > 2) && (strcmp (argv[1], "-B1") == 0)){
+	  B1 = atof(argv[2]);
+	  argv += 2;
+	  argc -= 2;
+      }
+      else if ((argc > 2) && (strcmp (argv[1], "-inp") == 0)){
+	  infilename = argv[2];
+	  if(strcmp(infilename, "-") == 0)
+	      infile = stdin;
+	  else{
+	      infile = fopen (infilename, "r");
+	      if (!infile){
+		  fprintf (stderr, "Can't find input file %s\n", infilename);
+		  exit (EXIT_FAILURE);
+	      }
+	  }
+	  argv += 2;
+	  argc -= 2;
+      }
+      else if ((argc > 2) && (strcmp (argv[1], "-curves") == 0)){
+	  curvesname = argv[2];
+	  argv += 2;
+	  argc -= 2;
+      }
+      else{
+	  fprintf (stderr, "Unknown option: %s\n", argv[1]);
+	  exit (EXIT_FAILURE);
+      }
+  }
+  if(infile == NULL){
+      fprintf (stderr, "No input file given\n");
+      exit (EXIT_FAILURE);
+  }
+  if(curvesname == NULL){
+      fprintf (stderr, "No curve file given\n");
+      exit (EXIT_FAILURE);
+  }
 
   mpz_init (n);
-
-  /* read number on command line */
-  if (mpz_set_str (n, argv[1], 10))
-    {
-      fprintf (stderr, "Invalid number: %s\n", argv[1]);
-      exit (1);
-    }
-
-  B1 = atof (argv[3]);
-
   mpz_init (f); /* for potential factor */
-
-  printf ("Using all curves from %s with B1=%1.0f\n", argv[2], B1);
-  res = process_many_curves(f, n, B1, argv[2]);
-
-  if (res > 0)
-    {
-      printf ("found factor in step %u: ", res);
-      mpz_out_str (stdout, 10, f);
-      printf ("\n");
-    }
-  else if (res == ECM_NO_FACTOR_FOUND)
-    printf ("found no factor\n");
-  else
-    printf ("error\n");
+  while(fscanf(infile, "%s", buf) != EOF){
+      /* read number */
+      if(buf[0] == '#'){
+	  /* skip till end of line */
+	  printf("%s", buf);
+	  char c;
+	  while((c = getc(infile)) != '\n')
+	      printf("%c", c);
+	  printf("\n");
+	  continue;
+      }
+      if(mpz_set_str (n, buf, 10)){
+	  fprintf (stderr, "Invalid number: %s\n", argv[1]);
+	  exit (1);
+      }
+      printf ("Using all curves from %s with B1=%1.0f\n", curvesname, B1);
+      res = process_many_curves(f, n, B1, curvesname);
+      if (res > 0)
+	  {
+	      printf ("found factor in step %u: ", res);
+	      mpz_out_str (stdout, 10, f);
+	      printf ("\n");
+	  }
+      else if (res == ECM_NO_FACTOR_FOUND)
+	  printf ("found no factor\n");
+      else
+	  printf ("error\n");
+  }
+  if(infile != stdin)
+      fclose(infile);
 
   mpz_clear (f);
   mpz_clear (n);
