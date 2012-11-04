@@ -583,6 +583,7 @@ all_curves_at_once(mpz_t f, curve *tEP, int nEP, mpmod_t n,
 #endif
   getprime_clear (); /* free the prime tables, and reinitialize */
 
+  /* put results back */
   pt_many_assign(tEP, tEQ, nEP, n);
   /* normalize all points */
   for(i = 0; i < nEP; i++)
@@ -625,7 +626,8 @@ process_many_curves(mpz_t f, mpz_t n, double B1, curve *tEP, int nEP)
     curve tEQ[NCURVE_MAX];
 #endif
     int ret = 0, i;
-
+    long st = cputime ();
+    
 #ifdef ONE_CURVE_AT_A_TIME
     ret = one_curve_at_a_time(f, tEP, nEP, n, B1);
 #else
@@ -638,6 +640,7 @@ process_many_curves(mpz_t f, mpz_t n, double B1, curve *tEP, int nEP)
     }
     B1done = 1.0;
     ret = all_curves_at_once(f, tEQ, nEP, modulus, B1, &B1done, NULL, NULL);
+    /* TODO: call 2nd phase from ecm.c */
     for(i = 0; i < nEP; i++){
 	mpres_clear(tEQ[i].x, modulus);
 	mpres_clear(tEQ[i].y, modulus); 
@@ -645,6 +648,7 @@ process_many_curves(mpz_t f, mpz_t n, double B1, curve *tEP, int nEP)
 	mpres_clear(tEQ[i].A, modulus); 
     }
 #endif
+    printf("# Step 1 took %ldms\n", elltime (st, cputime ()));
     return ret;
 }
 
@@ -860,9 +864,9 @@ main (int argc, char *argv[])
       }
       if(curvesname != NULL){
 	  if(ncurves == 0)
-	      printf ("Using all");
+	      printf ("# Using all");
 	  else
-	      printf("Using only %d", ncurves);
+	      printf("# Using only %d", ncurves);
 	  printf(" curves from %s with B1=%1.0f\n", curvesname, B1);
 	  res = process_many_curves_from_file(f, n, B1, curvesname, ncurves);
       }
