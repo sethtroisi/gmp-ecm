@@ -117,13 +117,15 @@ pt_many_print(curve *tEP, int nEP, mpmod_t n)
 
 /* Computes inv[i] = 1/x[i] using only one inversion, a la Montgomery.
    If takeit[i] = 0, do not compute 1/x[i] (it is probably 0, or irrelevant).
-   We should have inv != x. 
+   We should have inv != x.
+   x[nx] is a buffer.
 */
 int
 compute_all_inverses(mpres_t *inv, mpres_t *x, int nx, mpmod_t n, char *takeit)
 {
     int i;
 
+#if 0
     /* plain version, to debug the architecture */
     for(i = 0; i < nx; i++){
 	if(takeit[i] == 0)
@@ -138,8 +140,43 @@ compute_all_inverses(mpres_t *inv, mpres_t *x, int nx, mpmod_t n, char *takeit)
 	    return 0;
 	}
     }
-#if DEBUG_MANY_EC >= 0
-    printf("# checking inverses\n");
+#else
+    /* Montgomery's trick */
+    for(i = 0; i < nx; i++){
+	if(takeit[i] == 0){
+	    if(i == 0)
+		mpres_set_ui(inv[i], 1, n);
+	    else
+		mpres_set(inv[i], inv[i-1], n);
+	}
+	else{
+	    if(i == 0)
+		mpres_set(inv[i], x[i], n);
+	    else
+		mpres_mul(inv[i], inv[i-1], x[i], n);
+	}
+    }
+    /* invert */
+    if(!mpres_invert(x[nx], inv[nx-1], n)){
+	mpres_gcd(inv[0], inv[nx-1], n);
+#if DEBUG_MANY_EC >= 1
+	printf("Factor[%d]: ", i);
+	mpz_out_str (stdout, 10, inv[0]);
+	printf ("\n");
+#endif
+	return 0;
+    }
+    /* get inverses back */
+    /* say inv = 1/(x1*x2*x3) */
+    for(i = nx-1; i > 0; i--)
+	if(takeit[i] == 1){
+	    mpres_mul(inv[i], x[nx], inv[i-1], n); /* 1/x3 = inv * (x1*x2) */
+	    mpres_mul(x[nx], x[nx], x[i], n); /* inv = 1/(x1*x2) */
+	}
+    mpres_set(inv[0], x[nx], n);
+#endif
+#if DEBUG_MANY_EC >= 1
+    /*    printf("# checking inverses\n"); */
     mpres_t tmp;
     mpres_init(tmp, n);
     for(i = 0; i < nx; i++){
@@ -443,7 +480,7 @@ all_curves_at_once(mpz_t f, curve *tEP, int nEP, mpmod_t n,
 		   char *chkfilename)
 {
   curve tEQ[NCURVE_MAX], tER[NCURVE_MAX];
-  mpz_t num[NCURVE_MAX], den[NCURVE_MAX], inv[NCURVE_MAX], e;
+  mpz_t num[NCURVE_MAX], den[NCURVE_MAX+1], inv[NCURVE_MAX], e;
   double p = 0.0, r, last_chkpnt_p;
   int ret = ECM_NO_FACTOR_FOUND;
   long last_chkpnt_time;
@@ -467,6 +504,7 @@ all_curves_at_once(mpz_t f, curve *tEP, int nEP, mpmod_t n,
       mpres_init(den[i], n);
       mpres_init(inv[i], n);
   }
+  mpres_init(den[nEP], n); /* to be used as buffer in compute_all_inverses */
   
   last_chkpnt_time = cputime ();
 
@@ -562,12 +600,13 @@ all_curves_at_once(mpz_t f, curve *tEP, int nEP, mpmod_t n,
       mpres_clear(den[i], n);
       mpres_clear(inv[i], n);
   }
+  mpres_clear(den[nEP], n);
   return ret;
 }
 #endif
 
 int
-read_and_prepare(mpz_t f, mpres_t x, mpq_t q, char *buf, mpz_t n)
+read_and_prepare(mpz_t f, mpz_t x, mpq_t q, char *buf, mpz_t n)
 {
     mpq_set_str(q, buf, 10);
     if(mod_from_rat(x, q, n) == 0){
@@ -583,6 +622,7 @@ process_many_curves(mpz_t f, mpz_t n, double B1, curve *tEP, int nEP)
 #ifndef ONE_CURVE_AT_A_TIME
     mpmod_t modulus;
     double B1done;
+    curve tEQ[NCURVE_MAX];
 #endif
     int ret = 0, i;
 
@@ -591,13 +631,19 @@ process_many_curves(mpz_t f, mpz_t n, double B1, curve *tEP, int nEP)
 #else
     mpmod_init(modulus, n, ECM_MOD_DEFAULT);
     for(i = 0; i < nEP; i++){
-	mpres_set_z(tEP[i].x, tEP[i].x, modulus);
-	mpres_set_z(tEP[i].y, tEP[i].y, modulus);
-	mpres_set_z(tEP[i].z, tEP[i].z, modulus);
-	mpres_set_z(tEP[i].A, tEP[i].A, modulus);
+       mpres_init(tEQ[i].x, modulus); mpres_set_z(tEQ[i].x, tEP[i].x, modulus);
+       mpres_init(tEQ[i].y, modulus); mpres_set_z(tEQ[i].y, tEP[i].y, modulus);
+       mpres_init(tEQ[i].z, modulus); mpres_set_z(tEQ[i].z, tEP[i].z, modulus);
+       mpres_init(tEQ[i].A, modulus); mpres_set_z(tEQ[i].A, tEP[i].A, modulus);
     }
     B1done = 1.0;
-    ret = all_curves_at_once(f, tEP, nEP, modulus, B1, &B1done, NULL, NULL);
+    ret = all_curves_at_once(f, tEQ, nEP, modulus, B1, &B1done, NULL, NULL);
+    for(i = 0; i < nEP; i++){
+	mpres_clear(tEQ[i].x, modulus);
+	mpres_clear(tEQ[i].y, modulus); 
+	mpres_clear(tEQ[i].z, modulus); 
+	mpres_clear(tEQ[i].A, modulus); 
+    }
 #endif
     return ret;
 }
