@@ -119,6 +119,8 @@ pt_many_print(curve *tEP, int nEP, mpmod_t n)
    If takeit[i] = 0, do not compute 1/x[i] (it is probably 0, or irrelevant).
    We should have inv != x.
    x[nx] is a buffer.
+   When a factor is found, the i s.t. x[i] is not invertible are looked for
+   and the corresponding values of takeit put to -1.
 */
 int
 compute_all_inverses(mpres_t *inv, mpres_t *x, int nx, mpmod_t n, char *takeit)
@@ -164,6 +166,19 @@ compute_all_inverses(mpres_t *inv, mpres_t *x, int nx, mpmod_t n, char *takeit)
 	mpz_out_str (stdout, 10, inv[0]);
 	printf ("\n");
 #endif
+	/* identifying the x[i]'s */
+	for(i = 0; i < nx; i++){
+	    mpres_gcd(x[nx], x[i], n);
+	    if(mpz_cmp_ui(x[nx], 1) != 0){
+#if DEBUG_MANY_EC >= 0
+		printf("# x[%d] not invertible: ", i);
+		mpz_out_str (stdout, 10, x[nx]);
+		printf ("\n");
+#endif
+		/* ONE DAY: if x[nx] != inv[0], we have another factor! */
+		takeit[i] = -1;
+	    }
+	}
 	return 0;
     }
     /* get inverses back */
@@ -197,7 +212,7 @@ pt_many_common(curve *tER, curve *tEP, curve *tEQ, int nEP, mpmod_t n,
     int i;
 
     if(compute_all_inverses(inv, den, nEP, n, takeit) == 0){
-	mpz_set(tER[0].x, inv[0]);
+	mpz_set(num[nEP], inv[0]);
 	return 0;
     }
     for(i = 0; i < nEP; i++){
@@ -318,7 +333,7 @@ pt_many_add(curve *tER, curve *tEP, curve *tEQ, int nEP, mpmod_t n,
 }
 
 /* tEQ[i] <- e * tEP[i]; we must have tEQ != tEP */
-/* If a factor is found, it is put back in tEQ[0].x */
+/* If a factor is found, it is put back in num[nEP]. */
 int
 pt_many_mul(curve *tEQ, curve *tEP, int nEP, mpz_t e, mpmod_t n, 
 	    mpres_t *num, mpres_t *den, mpres_t *inv, char *ok)
@@ -479,130 +494,127 @@ all_curves_at_once(mpz_t f, curve *tEP, int nEP, mpmod_t n,
 		   double B1, double *B1done, int (*stop_asap)(void),
 		   char *chkfilename)
 {
-  curve tEQ[NCURVE_MAX], tER[NCURVE_MAX];
-  mpz_t num[NCURVE_MAX], den[NCURVE_MAX+1], inv[NCURVE_MAX], e;
-  double p = 0.0, r, last_chkpnt_p;
-  int ret = ECM_NO_FACTOR_FOUND;
-  long last_chkpnt_time;
-  int i;
-  char *ok = (char *)malloc(nEP * sizeof(char));
-
-  mpz_init(e);
-  memset(ok, 1, nEP);
-  for(i = 0; i < nEP; i++){
-      mpres_init(tEQ[i].A, n); mpres_set(tEQ[i].A, tEP[i].A, n);
-      mpres_init(tEQ[i].x, n); mpres_set(tEQ[i].x, tEP[i].x, n);
-      mpres_init(tEQ[i].y, n); mpres_set(tEQ[i].y, tEP[i].y, n);
-      mpres_init(tEQ[i].z, n); mpres_set(tEQ[i].z, tEP[i].z, n);
-
-      mpres_init(tER[i].A, n); mpres_set(tER[i].A, tEP[i].A, n);
-      mpres_init(tER[i].x, n);
-      mpres_init(tER[i].y, n);
-      mpres_init(tER[i].z, n);
-
-      mpres_init(num[i], n);
-      mpres_init(den[i], n);
-      mpres_init(inv[i], n);
-  }
-  mpres_init(den[nEP], n); /* to be used as buffer in compute_all_inverses */
-  
-  last_chkpnt_time = cputime ();
-
+    curve tEQ[NCURVE_MAX], tER[NCURVE_MAX];
+    mpz_t num[NCURVE_MAX+1], den[NCURVE_MAX+1], inv[NCURVE_MAX], e;
+    double p = 0.0, r, last_chkpnt_p;
+    int ret = ECM_NO_FACTOR_FOUND;
+    long last_chkpnt_time;
+    int i;
+    char *ok = (char *)malloc(nEP * sizeof(char));
+    
+    mpz_init(e);
+    memset(ok, 1, nEP);
+    for(i = 0; i < nEP; i++){
+	mpres_init(tEQ[i].A, n); mpres_set(tEQ[i].A, tEP[i].A, n);
+	mpres_init(tEQ[i].x, n); mpres_set(tEQ[i].x, tEP[i].x, n);
+	mpres_init(tEQ[i].y, n); mpres_set(tEQ[i].y, tEP[i].y, n);
+	mpres_init(tEQ[i].z, n); mpres_set(tEQ[i].z, tEP[i].z, n);
+	
+	mpres_init(tER[i].A, n); mpres_set(tER[i].A, tEP[i].A, n);
+	mpres_init(tER[i].x, n);
+	mpres_init(tER[i].y, n);
+	mpres_init(tER[i].z, n);
+	
+	mpres_init(num[i], n);
+	mpres_init(den[i], n);
+	mpres_init(inv[i], n);
+    }
+    mpres_init(num[nEP], n); /* to be used as buffer in compute_all_inverses */
+    mpres_init(den[nEP], n); /* to be used as buffer in compute_all_inverses */
+    
+    last_chkpnt_time = cputime ();
+    
 #if DEBUG_MANY_EC >= 2
-  printf("Initial points:\n");
-  pt_many_print(tEP, nEP, n);
+    printf("Initial points:\n");
+    pt_many_print(tEP, nEP, n);
 #endif
-  for (r = 2.0; r <= B1; r *= 2.0)
-      if (r > *B1done)
-	{
-	  if(pt_many_duplicate (tEQ, tEQ, nEP, n, num, den, inv, ok) == 0)
-	    {
-		mpz_set(f, tEQ[0].x);
+    for (r = 2.0; r <= B1; r *= 2.0)
+	if (r > *B1done){
+	    if(pt_many_duplicate (tEQ, tEQ, nEP, n, num, den, inv, ok) == 0){
+		mpz_set(f, num[nEP]);
 		ret = ECM_FACTOR_FOUND_STEP1;
 		goto end_of_all;
 	    }
 #if DEBUG_MANY_EC >= 2
-	  printf("P%ld:=", (long)r); pt_many_print(tEQ, nEP, n); printf(";\n");
+	    printf("P%ld:=", (long)r); pt_many_print(tEQ, nEP, n); printf(";\n");
 #endif
 	}
-  
-  last_chkpnt_p = 3.;
-  for (p = getprime (); p <= B1; p = getprime ())
-    {
-      for (r = p; r <= B1; r *= p)
+
+    /* TODO: what if a factor is found? */
+
+    last_chkpnt_p = 3.;
+    for (p = getprime (); p <= B1; p = getprime ()){
+	for (r = p; r <= B1; r *= p){
 #if DEBUG_MANY_EC >= 1
-	printf("## p = %ld\n", (long)p);
+	    printf("## p = %ld\n", (long)p);
 #endif
-	if (r > *B1done)
-	  {
-	    mpz_set_ui(e, (ecm_uint) p);
-	    if(pt_many_mul(tER, tEQ, nEP, e, n, num, den, inv, ok) == 0)
-	      {
-		mpz_set(f, tER[0].x);
-		ret = ECM_FACTOR_FOUND_STEP1;
-		goto end_of_all;
-	      }
+	    if (r > *B1done){
+		mpz_set_ui(e, (ecm_uint) p);
+		if(pt_many_mul(tER, tEQ, nEP, e, n, num, den, inv, ok) == 0){
+		    mpz_set(f, num[nEP]);
+		    ret = ECM_FACTOR_FOUND_STEP1;
+		    goto end_of_all;
+		}
 #if DEBUG_MANY_EC >= 2
-	    pt_many_print(tER, nEP, n);
+		pt_many_print(tER, nEP, n);
 #endif
-	    for(i = 0; i < nEP; i++)
-		if(pt_is_zero(tER+i, n))
-		    ok[i] = 0;
-	    pt_many_assign(tEQ, tER, nEP, n); /* TODO: use pointers */
-	  }
-
-      if (stop_asap != NULL && (*stop_asap) ())
-        {
-          outputf (OUTPUT_NORMAL, "Interrupted at prime %.0f\n", p);
-          break;
-        }
-
+		for(i = 0; i < nEP; i++)
+		    if(pt_is_zero(tER+i, n))
+			ok[i] = 0;
+		pt_many_assign(tEQ, tER, nEP, n); /* TODO: use pointers */
+	    }
+	    if (stop_asap != NULL && (*stop_asap) ()){
+		outputf (OUTPUT_NORMAL, "Interrupted at prime %.0f\n", p);
+		break;
+	    }
+	    
 #if 0
-      /* WARNING: not activated yet */
-      if (chkfilename != NULL && p > last_chkpnt_p + 10000. && 
-          elltime (last_chkpnt_time, cputime ()) > CHKPNT_PERIOD)
-        {
-	  writechkfile (chkfilename, ECM_ECM, MAX(p, *B1done), n, A, x, y, z);
-          last_chkpnt_p = p;
-          last_chkpnt_time = cputime ();
-        }
+	    /* WARNING: not activated yet */
+	    if (chkfilename != NULL && p > last_chkpnt_p + 10000. && 
+		elltime (last_chkpnt_time, cputime ()) > CHKPNT_PERIOD){
+		writechkfile (chkfilename, ECM_ECM, MAX(p, *B1done), n, A, x, y, z);
+		last_chkpnt_p = p;
+		last_chkpnt_time = cputime ();
+	    }
 #endif
+	}
     }
  end_of_all:
-  /* If stage 1 finished normally, p is the smallest prime > B1 here.
-     In that case, set to B1 */
-  if (p > B1)
-      p = B1;
-  
-  if (p > *B1done)
-      *B1done = p;
-
+    /* If stage 1 finished normally, p is the smallest prime > B1 here.
+       In that case, set to B1 */
+    if (p > B1)
+	p = B1;
+    
+    if (p > *B1done)
+	*B1done = p;
+    
 #if 0
-  if (chkfilename != NULL)
-    writechkfile (chkfilename, ECM_ECM, *B1done, n, A, x, y, z);
+    if (chkfilename != NULL)
+	writechkfile (chkfilename, ECM_ECM, *B1done, n, A, x, y, z);
 #endif
-  getprime_clear (); /* free the prime tables, and reinitialize */
-
-  /* put results back */
-  pt_many_assign(tEP, tEQ, nEP, n);
-  /* normalize all points */
-  for(i = 0; i < nEP; i++)
-      if(pt_is_zero(tEP+i, n))
-	  pt_set_to_zero(tEP+i, n);
-  /* clear temporary variables */
-  mpz_clear(e);
-  free(ok);
-  for(i = 0; i < nEP; i++){
-      mpres_clear(tEQ[i].A, n);
-      mpres_clear(tEQ[i].x, n);
-      mpres_clear(tEQ[i].y, n);
-      mpres_clear(tEQ[i].z, n);
-      mpres_clear(num[i], n);
-      mpres_clear(den[i], n);
-      mpres_clear(inv[i], n);
-  }
-  mpres_clear(den[nEP], n);
-  return ret;
+    getprime_clear (); /* free the prime tables, and reinitialize */
+    
+    /* put results back */
+    pt_many_assign(tEP, tEQ, nEP, n);
+    /* normalize all points */
+    for(i = 0; i < nEP; i++)
+	if(pt_is_zero(tEP+i, n))
+	    pt_set_to_zero(tEP+i, n);
+    /* clear temporary variables */
+    mpz_clear(e);
+    free(ok);
+    for(i = 0; i < nEP; i++){
+	mpres_clear(tEQ[i].A, n);
+	mpres_clear(tEQ[i].x, n);
+	mpres_clear(tEQ[i].y, n);
+	mpres_clear(tEQ[i].z, n);
+	mpres_clear(num[i], n);
+	mpres_clear(den[i], n);
+	mpres_clear(inv[i], n);
+    }
+    mpres_clear(num[nEP], n);
+    mpres_clear(den[nEP], n);
+    return ret;
 }
 #endif
 
