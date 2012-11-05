@@ -14,7 +14,7 @@
 #endif
 #include "listz_handle.h"
 
-// #define TRACE_ITER yes
+/* #define TRACE_ITER yes */
 
 /* Init a listz_handle_t to store up to len residues (modulo m). 
    If filename != NULL, uses disk storage, otherwise memory.
@@ -194,19 +194,21 @@ listz_handle_output_poly (const listz_handle_t l, const uint64_t len,
   iter = listz_iterator_init (l, 0);
   for (i = 0; i < len; i++)
     {
+      const uint64_t deg = len - ((monic != 0) ? 0U : 1U);
+      const plus = (i < deg) ? " + " : "";
       listz_iterator_read (iter, m);
       if (symmetric)
-        outputf (verbosity, "Mod(%Zd,N) * (x^%" PRIu64 " + x^-%" PRIu64 ") + ", 
-                 m, i, i);
+        outputf (verbosity, "Mod(%Zd,N) * (x^%" PRIu64 " + x^-%" PRIu64 ")%s", 
+                 m, i, i, plus);
       else
-        outputf (verbosity, "Mod(%Zd,N) * x^%" PRIu64 " + ", m, i);
+        outputf (verbosity, "Mod(%Zd,N) * x^%" PRIu64 "%s", m, i, plus);
     }
   if (monic)
     {
       if (symmetric)
-	outputf (verbosity, "(x^%" PRIu64 " + x^-%" PRIu64 ") + ", len, len);
+	outputf (verbosity, "(x^%" PRIu64 " + x^-%" PRIu64 ")", len, len);
       else
-	outputf (verbosity, "x^%" PRIu64 " + ", len);
+	outputf (verbosity, "x^%" PRIu64, len);
     }
   listz_iterator_clear (iter);
   if (suffix != NULL)

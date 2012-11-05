@@ -8,7 +8,7 @@
 /* Defining WANT_AIO makes iterators use a double buffer with aio_() functions
    for file access. Unfortunately this does not seem to be faster than plain
    fread()/fwrite(). */
-// #define WANT_AIO 1
+/* #define WANT_AIO 1 */ 
 
 /* This type is the basis for file I/O of mpz_t */
 typedef unsigned long file_word_t;
