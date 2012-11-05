@@ -232,14 +232,15 @@ ntt_PrerevertDivision (mpzv_t a, mpzspv_handle_t sp_b,
   x = mpzspv_init_handle (NULL, 2 * len, mpzspm);
 
   /* y = TOP (TOP (a) * invb) */
-  mpzspv_set_sp (x, 0, 0, len + 1);
-  mpzspv_fromto_mpzv (x, len + 1, len - 1, NULL, a + len, NULL, NULL);
+  mpzspv_fromto_mpzv (x, 0, len, NULL, a + len, NULL, NULL);
   mpzspv_mul_ntt (x, 0, 
-                  x, 0, 2 * len, 
+                  x, 0, len, 
                   sp_invb, 0, 2 * len, 
                   2 * len, 
                   NTT_MUL_STEP_FFT1 + NTT_MUL_STEP_MUL + NTT_MUL_STEP_IFFT);
-  mpzspv_fromto_mpzv (x, 0, len, NULL, NULL, NULL, NULL);
+  mpzspv_fromto_mpzv (x, len - 1, len, NULL, NULL, NULL, NULL);
+  mpzspv_set (x, 0, x, len - 1, 1);  /* In two pieces to avoid overlap */
+  mpzspv_set (x, 1, x, len, len - 1);
   
   mpzspv_mul_ntt (x, 0, 
                   x, 0, len, 
@@ -249,13 +250,16 @@ ntt_PrerevertDivision (mpzv_t a, mpzspv_handle_t sp_b,
   mpzspv_fromto_mpzv (x, 0, len, NULL, NULL, NULL, t);
   
   mpzspv_clear_handle (x);
- 
-  list_sub (t, t, a + len, len - 1);
+  
+  list_sub (t, t, a + len, len);
   list_sub (a, a, t, len);
   /* can we avoid this mod without risking overflow later? */
   list_mod (a, a, len, mpzspm->modulus);
 }
 
+/* Put in q[0, len - 1] coefficients s.t.
+   q[0, len - 1] * b[0, len - 1] \in x^(2k-2) + O(x^(k-2))
+   Here O(x^n) means the set of polynomials of degree at most n. */
 /* memory: 7/2 * len mpzspv coeffs */
 void ntt_PolyInvert (mpzv_t q, mpzv_t b, spv_size_t len, mpzv_t t,
     mpzspm_t mpzspm)
@@ -266,7 +270,7 @@ void ntt_PolyInvert (mpzv_t q, mpzv_t b, spv_size_t len, mpzv_t t,
   if (len < POLYINVERT_NTT_THRESHOLD)
     {
       PolyInvert (q, b, len, t, mpzspm->modulus);
-      return;
+      goto test_and_exit;
     }
 
   PolyInvert (q + len - k, b + len - k, k, t, mpzspm->modulus);
@@ -276,15 +280,17 @@ void ntt_PolyInvert (mpzv_t q, mpzv_t b, spv_size_t len, mpzv_t t,
   y = mpzspv_init_handle (NULL, len, mpzspm);
   z = mpzspv_init_handle (NULL, len, mpzspm);
   
-  mpzspv_fromto_mpzv (x, 0, k + 1, NULL, q + len - k - 1, NULL, NULL);
+  mpzspv_fromto_mpzv (x, 0, k, NULL, q + len - k, NULL, NULL);
+  ASSERT_ALWAYS (mpz_cmp_ui(b[len - 1], 1UL) == 0);
+  /* This discards the leading 1 of b */
   mpzspv_fromto_mpzv (y, 0, len - 1, NULL, b, NULL, NULL);
   
   for (; k < len; k *= 2)
     {
-      mpzspv_set (w, 0, x, 1, k);
+      mpzspv_set (w, 0, x, 0, k);
       mpzspv_set (z, 0, y, len - 2 * k, 2 * k - 1);
       mpzspv_mul_ntt (x, 0, 
-                      x, 0, k + 1, 
+                      x, 0, k, 
                       NULL, UNUSED, UNUSED, 
                       2 * k, NTT_MUL_STEP_FFT1);
       mpzspv_mul_ntt (z, 0, 
@@ -293,7 +299,8 @@ void ntt_PolyInvert (mpzv_t q, mpzv_t b, spv_size_t len, mpzv_t t,
                       2 * k, 
                       NTT_MUL_STEP_FFT1 + NTT_MUL_STEP_MUL + NTT_MUL_STEP_IFFT);
       mpzspv_fromto_mpzv (z, k, k, NULL, NULL, NULL, NULL);
-      mpzspv_neg (z, 0, z, k, k);
+      mpzspv_neg (z, 0, z, k - 1, 1); /* In two pieces to avoid overlap */
+      mpzspv_neg (z, 1, z, k, k - 1);
       
       mpzspv_mul_ntt (x, 0, 
                       z, 0, k, 
@@ -301,31 +308,40 @@ void ntt_PolyInvert (mpzv_t q, mpzv_t b, spv_size_t len, mpzv_t t,
                       2 * k, 
                       NTT_MUL_STEP_FFT1 + NTT_MUL_STEP_MUL + NTT_MUL_STEP_IFFT);
       if (2 * k < len)
-        mpzspv_fromto_mpzv (x, k, k, NULL, NULL, NULL, NULL);
-      mpzspv_set (x, 1, x, k, 1); /* Avoid overlap */
+        mpzspv_fromto_mpzv (x, k - 1, k, NULL, NULL, NULL, NULL);
+      mpzspv_set (x, 0, x, k - 1, 1); /* In two pieces to avoid overlap */
       if (k > 1)
-        mpzspv_set (x, 2, x, k + 1, k - 1);
-      mpzspv_set (x, k + 1, w, 0, MIN(k, len / 2 - 1));
+        mpzspv_set (x, 1, x, k, k - 1);
+      mpzspv_set (x, k, w, 0, MIN(k, len / 2 - 1));
     }
 
-  mpzspv_fromto_mpzv (x, 1, len - POLYINVERT_NTT_THRESHOLD / 2, NULL, NULL, NULL, q);
+  mpzspv_fromto_mpzv (x, 0, len - POLYINVERT_NTT_THRESHOLD / 2, NULL, NULL, NULL, q);
  
-#if defined DEBUG
-  ntt_mul (t, q, b, len, NULL, 0, mpzspm);
-  list_mod (t, t, 2 * len - 1, mpzspm->modulus);
-  
-  spv_size_t i;
-  for (i = len - 1; i < 2 * len - 2; i++)
-    if (mpz_cmp_ui (t[i], 0))
-      printf ("error in ntt_PolyInvert\n");
-  if (mpz_cmp_ui (t[2 * len - 2], 1))
-    printf ("error in ntt_PolyInvert-\n");
-#endif
-
   mpzspv_clear_handle (w);
   mpzspv_clear_handle (x);
   mpzspv_clear_handle (y);
   mpzspv_clear_handle (z);
+
+test_and_exit: {}
+#if defined DEBUG
+  ntt_mul (t, q, b, len, NULL, mpzspm);
+  list_mod (t, t, 2 * len - 1, mpzspm->modulus);
+  
+  {
+  spv_size_t i;
+  for (i = len - 1; i < 2 * len - 2; i++)
+    if (mpz_cmp_ui (t[i], 0))
+      {
+        fprintf (stderr, "error in ntt_PolyInvert %" PRISPVSIZE "\n", i);
+        abort();
+      }
+  }
+  if (mpz_cmp_ui (t[2 * len - 2], 1))
+    {
+      fprintf (stderr, "error in ntt_PolyInvert\n");
+      abort();
+    }
+#endif
 }
 
 
