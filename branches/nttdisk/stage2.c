@@ -721,10 +721,6 @@ stage2 (mpz_t f, void *X, mpmod_t modulus, unsigned long dF, unsigned long k,
         }
       else
 	{
-          /* since F and G are monic of same degree, G mod F = G - F */
-          list_sub (G, G, F, dF);
-          list_mod (G, G, dF, n);
-
           /* ------------------------------------------------
              |   F    |  invF  |    G    |         T        |
              ------------------------------------------------
@@ -734,13 +730,35 @@ stage2 (mpz_t f, void *X, mpmod_t modulus, unsigned long dF, unsigned long k,
 	  st = cputime ();
 	  /* previous G mod F is in H, with degree < dF, i.e. dF coefficients:
 	     requires 3dF-1+list_mul_mem(dF) cells in T */
-          if (use_ntt)
+          if (use_ntt && dF >= PREREVERTDIVISION_NTT_THRESHOLD)
 	    {
-	      ntt_mul (T + dF, G, H, dF, T + 3 * dF, mpzspm);
-	      list_mod (H, T + dF, 2 * dF, n);
+	      mpzspv_handle_t u, v;
+	      
+              ASSERT_ALWAYS (mpz_cmp_ui (G[dF], 1UL) == 0);
+              
+              u = mpzspv_init_handle (NULL, 2 * dF, mpzspm);
+              v = mpzspv_init_handle (NULL, 2 * dF, mpzspm);
+              
+              mpzspv_fromto_mpzv (v, 0, dF + 1, NULL, G, NULL, NULL);
+              mpzspv_fromto_mpzv (u, 0, dF,     NULL, H, NULL, NULL);
+
+              mpzspv_mul_ntt(v, 0, v, 0, dF + 1, NULL, 0, 0, 
+                             2 * dF, NTT_MUL_STEP_FFT1);
+              mpzspv_mul_ntt(u, 0, u, 0, dF, v, 0, 2*dF, 2 * dF, 
+                             NTT_MUL_STEP_FFT1 + NTT_MUL_STEP_MUL + NTT_MUL_STEP_IFFT);
+              mpzspv_fromto_mpzv (u, 0, 2 * dF, NULL, NULL, NULL, H);
+              list_mod (H, H, 2 * dF, n);
+              
+              mpzspv_clear_handle (u);
+              mpzspv_clear_handle (v);
 	    }
 	  else
-	    list_mulmod (H, T + dF, G, H, dF, T + 3 * dF, n);
+	    {
+	      list_sub (G, G, F, dF);
+	      list_mod (G, G, dF, n);
+	      list_mulmod (H, T + dF, G, H, dF, T + 3 * dF, n);
+	      mpz_set_ui (H[2*dF - 1], 0);
+            }
 
           outputf (OUTPUT_VERBOSE, "Computing G * H took %ldms\n", 
                    elltime (st, cputime ()));
