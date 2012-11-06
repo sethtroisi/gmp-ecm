@@ -363,7 +363,10 @@ void  pp1_mul_prac     (mpres_t, ecm_uint, mpmod_t, mpres_t, mpres_t,
 /* stage2.c */
 #define stage2 __ECM(stage2)
 int          stage2     (mpz_t, void *, mpmod_t, unsigned long, unsigned long,
-                         root_params_t *, int, char *, int (*)(void));
+                         root_params_t *, char *, int (*)(void));
+#define stage2_ntt __ECM(stage2_ntt)
+int          stage2_ntt (mpz_t, void *, mpmod_t, unsigned long, unsigned long,
+                         root_params_t *, char *, int (*)(void));
 #define init_progression_coeffs __ECM(init_progression_coeffs)
 listz_t init_progression_coeffs (mpz_t, const unsigned long, const unsigned long, 
 				 const unsigned int, const unsigned int, 
@@ -442,7 +445,7 @@ void  ntt_mul (mpzv_t, mpzv_t, mpzv_t, spv_size_t, mpzv_t, mpzspm_t);
 void  ntt_PrerevertDivision (mpzv_t, mpzspv_handle_t, mpzspv_handle_t,
 		spv_size_t, mpzv_t, mpzspm_t);
 #define ntt_PolyInvert __ECM(ntt_PolyInvert)
-void	     ntt_PolyInvert (mpzv_t, mpzv_t, spv_size_t, mpzv_t, mpzspm_t);
+void	     ntt_PolyInvert (mpzspv_handle_t, mpzv_t, spv_size_t, mpzv_t, mpzspm_t);
 
 #define PrerevertDivision __ECM(PrerevertDivision)
 int   PrerevertDivision (listz_t, listz_t, listz_t, unsigned int, listz_t,

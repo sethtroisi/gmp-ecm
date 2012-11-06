@@ -330,8 +330,7 @@ memory_use (unsigned long dF, unsigned int sp_num, unsigned int Ftreelvl,
 */
 int
 stage2 (mpz_t f, void *X, mpmod_t modulus, unsigned long dF, unsigned long k, 
-        root_params_t *root_params, int use_ntt, char *TreeFilename, 
-        int (*stop_asap)(void))
+        root_params_t *root_params, char *TreeFilename, int (*stop_asap)(void))
 {
   unsigned long i, sizeT;
   mpz_t n;
@@ -344,8 +343,6 @@ stage2 (mpz_t f, void *X, mpmod_t modulus, unsigned long dF, unsigned long k,
   unsigned int lgk; /* ceil(log(k)/log(2)) */
   listz_t invF = NULL;
   double mem;
-  mpzspm_t mpzspm = NULL;
-  mpzspv_handle_t sp_F = NULL, sp_invF = NULL;
   
   /* check alloc. size of f */
   mpres_realloc (f, modulus);
@@ -356,28 +353,11 @@ stage2 (mpz_t f, void *X, mpmod_t modulus, unsigned long dF, unsigned long k,
   if (modulus->repr == ECM_MOD_BASE2 && modulus->Fermat > 0)
     {
       Fermat = modulus->Fermat;
-      use_ntt = 0; /* don't use NTT for Fermat numbers */
-    }
-
-  if (use_ntt)
-    {
-      mpzspm = mpzspm_init (2 * dF, modulus->orig_modulus);
-  
-      if (mpzspm == NULL)
-        {
-          outputf (OUTPUT_ERROR, "Could not initialise mpzspm, "
-                   "presumably out of memory\n");
-          return ECM_ERROR;
-        }
-
-      outputf (OUTPUT_VERBOSE,
-	  "Using %u small primes for NTT\n", mpzspm->sp_num);
     }
 
   lgk = ceil_log2 (dF);
 
-  mem = memory_use (dF, use_ntt ? mpzspm->sp_num : 0,
-      (TreeFilename == NULL) ? lgk : 0, modulus);
+  mem = memory_use (dF, 0, (TreeFilename == NULL) ? lgk : 0, modulus);
 
   if (mem < 1e4)
     outputf (OUTPUT_VERBOSE, "Estimated memory usage: %1.0f\n", mem);
@@ -494,26 +474,13 @@ stage2 (mpz_t f, void *X, mpmod_t modulus, unsigned long dF, unsigned long k,
             }
 	  treefiles_used++;
 	  
-	  if (use_ntt)
-	    {
-	      if (ntt_PolyFromRoots_Tree (F, F, dF, T, i - 1, mpzspm, NULL,
-		    TreeFile) == ECM_ERROR)
-                {
-                  fclose (TreeFile);
-                  youpi = ECM_ERROR;
-                  goto free_Tree_i;
-		}
+          if (PolyFromRoots_Tree (F, F, dF, T, i - 1, n, NULL,
+                TreeFile, 0) == ECM_ERROR)
+            {
+              fclose (TreeFile);
+              youpi = ECM_ERROR;
+              goto free_Tree_i;
             }
-	  else
-	    {
-	      if (PolyFromRoots_Tree (F, F, dF, T, i - 1, n, NULL,
-		    TreeFile, 0) == ECM_ERROR)
-   	        {
-                  fclose (TreeFile);
-                  youpi = ECM_ERROR;
-                  goto free_Tree_i;
-		}
-	    }
 
           if (fclose (TreeFile) != 0)
             {
@@ -526,10 +493,7 @@ stage2 (mpz_t f, void *X, mpmod_t modulus, unsigned long dF, unsigned long k,
   else
     {
       /* TODO: how to check for stop_asap() here? */
-      if (use_ntt)
-        ntt_PolyFromRoots_Tree (F, F, dF, T, -1, mpzspm, Tree, NULL);
-      else
-	PolyFromRoots_Tree (F, F, dF, T, -1, n, Tree, NULL, 0);
+      PolyFromRoots_Tree (F, F, dF, T, -1, n, Tree, NULL, 0);
     }
   mpz_set_ui (F[dF], 1);
   
@@ -569,46 +533,7 @@ stage2 (mpz_t f, void *X, mpmod_t modulus, unsigned long dF, unsigned long k,
 	}
       st = cputime ();
       
-      if (use_ntt)
-        {
-          char *filename_F = NULL;
-          char *filename_invF = NULL;
-          
-	  if (TreeFilename != NULL)
-	    {
-              filename_F = malloc (strlen (TreeFilename) + 3);
-              filename_invF = malloc (strlen (TreeFilename) + 6);
-              sprintf (filename_F, "%s.F", TreeFilename);
-              sprintf (filename_invF, "%s.invF", TreeFilename);
-            }
-	  sp_F = mpzspv_init_handle (filename_F, dF + 1, mpzspm);
-          free (filename_F);
-	  mpzspv_fromto_mpzv (sp_F, 0, dF + 1, NULL, F, NULL, NULL);
-          mpzspv_mul_ntt (sp_F, 0, sp_F, 0, dF + 1, NULL, 0, 0, dF, 
-                          NTT_MUL_STEP_FFT1); /* Leading 1 wraps around */
-
-          /* Compute reciprocal of F[1, ..., dF] */
-	  ntt_PolyInvert (invF, F + 1, dF, T, mpzspm);
-
-	  /* Convert it to NTT form */
-	  sp_invF = mpzspv_init_handle (filename_invF, 2 * dF, mpzspm);
-          free (filename_invF);
-          mpzspv_fromto_mpzv (sp_invF, 0, dF, NULL, invF, NULL, NULL);
-
-          if (dF >= PREREVERTDIVISION_NTT_THRESHOLD)
-            {
-              /* Code below never uses invF, only sp_invF again */
-              clear_list (invF, dF + 1);
-              invF = NULL;
-            }
-          
-	  mpzspv_mul_ntt (sp_invF, 0, sp_invF, 0, dF, NULL, 0, 0, 2 * dF, 
-	                  NTT_MUL_STEP_FFT1);
-        }
-      else
-        {
-          PolyInvert (invF, F + 1, dF, T, n);
-        }
+      PolyInvert (invF, F + 1, dF, T, n);
 
       /* now invF[0..dF-1] = Quo(x^(2dF-1), F) */
       outputf (OUTPUT_VERBOSE, "Computing 1/F took %ldms\n",
@@ -681,10 +606,7 @@ stage2 (mpz_t f, void *X, mpmod_t modulus, unsigned long dF, unsigned long k,
 
       st = cputime ();
 
-      if (use_ntt)
-        ntt_PolyFromRoots (G, G, dF, T + dF, mpzspm);
-      else
-        PolyFromRoots (G, G, dF, T + dF, n);
+      PolyFromRoots (G, G, dF, T + dF, n);
       mpz_set_ui (G[dF], 1);
 
       /* needs 2*dF+list_mul_mem(dF/2) cells in T */
@@ -730,35 +652,10 @@ stage2 (mpz_t f, void *X, mpmod_t modulus, unsigned long dF, unsigned long k,
 	  st = cputime ();
 	  /* previous G mod F is in H, with degree < dF, i.e. dF coefficients:
 	     requires 3dF-1+list_mul_mem(dF) cells in T */
-          if (use_ntt && dF >= PREREVERTDIVISION_NTT_THRESHOLD)
-	    {
-	      mpzspv_handle_t u, v;
-	      
-              ASSERT_ALWAYS (mpz_cmp_ui (G[dF], 1UL) == 0);
-              
-              u = mpzspv_init_handle (NULL, 2 * dF, mpzspm);
-              v = mpzspv_init_handle (NULL, 2 * dF, mpzspm);
-              
-              mpzspv_fromto_mpzv (v, 0, dF + 1, NULL, G, NULL, NULL);
-              mpzspv_fromto_mpzv (u, 0, dF,     NULL, H, NULL, NULL);
-
-              mpzspv_mul_ntt(v, 0, v, 0, dF + 1, NULL, 0, 0, 
-                             2 * dF, NTT_MUL_STEP_FFT1);
-              mpzspv_mul_ntt(u, 0, u, 0, dF, v, 0, 2*dF, 2 * dF, 
-                             NTT_MUL_STEP_FFT1 + NTT_MUL_STEP_MUL + NTT_MUL_STEP_IFFT);
-              mpzspv_fromto_mpzv (u, 0, 2 * dF, NULL, NULL, NULL, H);
-              list_mod (H, H, 2 * dF, n);
-              
-              mpzspv_clear_handle (u);
-              mpzspv_clear_handle (v);
-	    }
-	  else
-	    {
-	      list_sub (G, G, F, dF);
-	      list_mod (G, G, dF, n);
-	      list_mulmod (H, T + dF, G, H, dF, T + 3 * dF, n);
-	      mpz_set_ui (H[2*dF - 1], 0);
-            }
+          list_sub (G, G, F, dF);
+          list_mod (G, G, dF, n);
+          list_mulmod (H, T + dF, G, H, dF, T + 3 * dF, n);
+          mpz_set_ui (H[2*dF - 1], 0);
 
           outputf (OUTPUT_VERBOSE, "Computing G * H took %ldms\n", 
                    elltime (st, cputime ()));
@@ -774,18 +671,11 @@ stage2 (mpz_t f, void *X, mpmod_t modulus, unsigned long dF, unsigned long k,
 
 	  st = cputime ();
 
-          if (use_ntt && dF >= PREREVERTDIVISION_NTT_THRESHOLD)
-	    {
-	      ntt_PrerevertDivision (H, sp_F, sp_invF, dF, T + 2 * dF, mpzspm);
-	    }
-	  else
-	    {
-	      if (PrerevertDivision (H, F, invF + 1, dF, T + 2 * dF, n))
-	        {
-	          youpi = ECM_ERROR;
-	          goto clear_fd;
-	        }
-	    }
+          if (PrerevertDivision (H, F, invF + 1, dF, T + 2 * dF, n))
+            {
+              youpi = ECM_ERROR;
+              goto clear_fd;
+            }
           
 	  outputf (OUTPUT_VERBOSE, "Reducing  G * H mod F took %ldms\n", 
                    elltime (st, cputime ()));
@@ -801,12 +691,8 @@ stage2 (mpz_t f, void *X, mpmod_t modulus, unsigned long dF, unsigned long k,
   G = NULL;
   st = cputime ();
 #ifdef POLYEVALTELLEGEN
-  if (use_ntt)
-    youpi = ntt_polyevalT (T, dF, Tree, T + dF + 1, sp_invF,
-	mpzspm, TreeFilename);
-  else
-    youpi = polyeval_tellegen (T, dF, Tree, T + dF + 1, sizeT - dF - 1, invF,
-	n, TreeFilename);
+  youpi = polyeval_tellegen (T, dF, Tree, T + dF + 1, sizeT - dF - 1, invF,
+      n, TreeFilename);
   
   if (youpi)
     {
@@ -855,11 +741,499 @@ clear_invF:
   if (invF != NULL)
     clear_list (invF, dF + 1);
 
-  if (use_ntt)
+free_Tree_i:
+  if (Tree != NULL)
     {
-      mpzspv_clear_handle (sp_F);
-      mpzspv_clear_handle (sp_invF);
+      for (i = 0; i < lgk; i++)
+        clear_list (Tree[i], dF);
+      free (Tree);
     }
+  if (TreeFilename != NULL && treefiles_used > 0)
+    {
+      /* Unlink any treefiles still in use */
+      char *fullname = (char *) malloc (strlen (TreeFilename) + 1 + 2 + 1);
+      if (fullname == NULL)
+        {
+          fprintf (stderr, "Cannot allocate memory in stage2\n");
+          exit (1);
+        }
+      for (i = 0; i < treefiles_used; i++)
+        {
+          sprintf (fullname, "%s.%lu", TreeFilename, i);
+          outputf (OUTPUT_DEVVERBOSE, "Unlinking %s\n", fullname);
+          if (unlink (fullname) != 0)
+            outputf (OUTPUT_ERROR, "Could not delete %s\n", fullname);
+        }
+      free (fullname);
+    }
+  mpz_clear (n);
+
+clear_T:
+  clear_list (T, sizeT);
+clear_F:
+  clear_list (F, dF + 1);
+
+clear_i0:
+
+  if (Fermat)
+    F_clear ();
+  
+
+  if (stop_asap == NULL || !(*stop_asap)())
+    {
+      st0 = elltime (st0, cputime ());
+      outputf (OUTPUT_NORMAL, "Step 2 took %ldms\n", st0);
+    }
+
+  return youpi;
+}
+
+
+/* NTT variant of stage 2 */
+
+int 
+stage2_ntt (mpz_t f, void *X, mpmod_t modulus, unsigned long dF, unsigned long k, 
+            root_params_t *root_params, char *TreeFilename, 
+            int (*stop_asap)(void))
+{
+  unsigned long i, sizeT;
+  mpz_t n;
+  listz_t F, G, H, T;
+  int youpi = ECM_NO_FACTOR_FOUND;
+  long st, st0;
+  ecm_roots_state_t *rootsG_state = NULL;
+  listz_t *Tree = NULL; /* stores the product tree for F */
+  unsigned int treefiles_used = 0; /* Number of tree files currently in use */
+  unsigned int lgk; /* ceil(log(k)/log(2)) */
+  double mem;
+  mpzspm_t mpzspm = NULL;
+  mpzspv_handle_t sp_F = NULL, sp_invF = NULL;
+  
+  /* check alloc. size of f */
+  mpres_realloc (f, modulus);
+
+  st0 = cputime ();
+
+  Fermat = 0;
+
+  mpzspm = mpzspm_init (2 * dF, modulus->orig_modulus);
+
+  if (mpzspm == NULL)
+    {
+      outputf (OUTPUT_ERROR, "Could not initialise mpzspm, "
+               "presumably out of memory\n");
+      return ECM_ERROR;
+    }
+
+  outputf (OUTPUT_VERBOSE,
+      "Using %u small primes for NTT\n", mpzspm->sp_num);
+
+  lgk = ceil_log2 (dF);
+
+  mem = memory_use (dF, mpzspm->sp_num, (TreeFilename == NULL) ? lgk : 0, 
+                    modulus);
+
+  if (mem < 1e4)
+    outputf (OUTPUT_VERBOSE, "Estimated memory usage: %1.0f\n", mem);
+  else if (mem < 1e7)
+    outputf (OUTPUT_VERBOSE, "Estimated memory usage: %1.0fK\n", mem / 1024.);
+  else if (mem < 1e10)
+    outputf (OUTPUT_VERBOSE, "Estimated memory usage: %1.0fM\n", 
+             mem / 1048576.);
+  else
+    outputf (OUTPUT_VERBOSE, "Estimated memory usage: %1.0fG\n", 
+             mem / 1073741824.);
+
+  F = init_list2 (dF + 1, mpz_sizeinbase (modulus->orig_modulus, 2) + 
+                          3 * GMP_NUMB_BITS);
+  if (F == NULL)
+    {
+      youpi = ECM_ERROR;
+      goto clear_i0;
+    }
+
+  youpi = ecm_rootsF (f, F, root_params, dF, (curve*) X, modulus);
+
+  if (youpi != ECM_NO_FACTOR_FOUND)
+    {
+      if (youpi != ECM_ERROR)
+	youpi = ECM_FACTOR_FOUND_STEP2;
+      goto clear_F;
+    }
+  if (stop_asap != NULL && (*stop_asap)())
+    goto clear_F;
+
+  if (test_verbose (OUTPUT_TRACE))
+    {
+      unsigned long j;
+      for (j = 0; j < dF; j++)
+	outputf (OUTPUT_TRACE, "f_%lu = %Zd\n", j, F[j]);
+    }
+
+  sizeT = 3 * dF + list_mul_mem (dF);
+  if (dF > 3)
+    sizeT += dF;
+  T = init_list2 (sizeT, 2 * mpz_sizeinbase (modulus->orig_modulus, 2) + 
+                         3 * GMP_NUMB_BITS);
+  if (T == NULL)
+    {
+      youpi = ECM_ERROR;
+      goto clear_F;
+    }
+  H = T;
+
+  /* ----------------------------------------------
+     |   F    |  invF  |   G   |         T        |
+     ----------------------------------------------
+     | rootsF |  ???   |  ???  |      ???         |
+     ---------------------------------------------- */
+
+  if (TreeFilename == NULL)
+    {
+      Tree = (listz_t*) malloc (lgk * sizeof (listz_t));
+      if (Tree == NULL)
+        {
+          outputf (OUTPUT_ERROR, "Error: not enough memory\n");
+          youpi = ECM_ERROR;
+          goto clear_T;
+        }
+      for (i = 0; i < lgk; i++)
+        {
+          Tree[i] = init_list2 (dF, mpz_sizeinbase (modulus->orig_modulus, 2) 
+                                    + GMP_NUMB_BITS);
+          if (Tree[i] == NULL)
+            {
+              /* clear already allocated Tree[i] */
+              while (i)
+                clear_list (Tree[--i], dF);
+              free (Tree);
+              youpi = ECM_ERROR;
+              goto clear_T;
+            }
+        }
+    }
+  else
+    Tree = NULL;
+  
+#ifdef TELLEGEN_DEBUG
+  outputf (OUTPUT_ALWAYS, "Roots = ");
+  print_list (os, F, dF);
+#endif
+  mpz_init_set (n, modulus->orig_modulus);
+  st = cputime ();
+  if (TreeFilename != NULL)
+    {
+      FILE *TreeFile;
+      char *fullname = (char *) malloc (strlen (TreeFilename) + 1 + 2 + 1);
+      if (fullname == NULL)
+        {
+          fprintf (stderr, "Cannot allocate memory in stage2\n");
+          exit (1);
+        }
+      
+      for (i = lgk; i > 0; i--)
+        {
+          if (stop_asap != NULL && (*stop_asap)())
+            goto free_Tree_i;
+          sprintf (fullname, "%s.%lu", TreeFilename, i - 1);
+          
+	  TreeFile = fopen (fullname, "wb");
+          if (TreeFile == NULL)
+            {
+              outputf (OUTPUT_ERROR, 
+                       "Error opening file for product tree of F\n");
+              youpi = ECM_ERROR;
+              goto free_Tree_i;
+            }
+	  treefiles_used++;
+	  
+          if (ntt_PolyFromRoots_Tree (F, F, dF, T, i - 1, mpzspm, NULL,
+                TreeFile) == ECM_ERROR)
+            {
+              fclose (TreeFile);
+              youpi = ECM_ERROR;
+              goto free_Tree_i;
+            }
+
+          if (fclose (TreeFile) != 0)
+            {
+              youpi = ECM_ERROR;
+              goto free_Tree_i;
+            }
+        }
+      free (fullname);
+    }
+  else
+    {
+      /* TODO: how to check for stop_asap() here? */
+      ntt_PolyFromRoots_Tree (F, F, dF, T, -1, mpzspm, Tree, NULL);
+    }
+  mpz_set_ui (F[dF], 1);
+  
+  outputf (OUTPUT_VERBOSE, "Building F from its roots took %ldms\n", 
+           elltime (st, cputime ()));
+  
+  if (test_verbose (OUTPUT_TRACE))
+    {
+      unsigned long j;
+      for (j = 0; j <= dF; j++)
+	outputf (OUTPUT_TRACE, "F[%lu] = %Zd\n", j, F[j]);
+    }
+
+  if (stop_asap != NULL && (*stop_asap)())
+    goto free_Tree_i;
+
+  /* needs dF+list_mul_mem(dF/2) cells in T */
+
+  /* ----------------------------------------------
+     |   F    |  invF  |   G   |         T        |
+     ----------------------------------------------
+     |  F(x)  |  ???   |  ???  |      ???         |
+     ---------------------------------------------- */
+
+  st = cputime ();
+  
+  char *filename_F = NULL;
+  char *filename_invF = NULL;
+  
+  if (TreeFilename != NULL)
+    {
+      filename_F = malloc (strlen (TreeFilename) + 3);
+      filename_invF = malloc (strlen (TreeFilename) + 6);
+      sprintf (filename_F, "%s.F", TreeFilename);
+      sprintf (filename_invF, "%s.invF", TreeFilename);
+    }
+  sp_F = mpzspv_init_handle (filename_F, dF + 1, mpzspm);
+  free (filename_F);
+  mpzspv_fromto_mpzv (sp_F, 0, dF + 1, NULL, F, NULL, NULL);
+  mpzspv_mul_ntt (sp_F, 0, sp_F, 0, dF + 1, NULL, 0, 0, dF, 
+                  NTT_MUL_STEP_FFT1); /* Leading 1 wraps around */
+
+  /* Compute reciprocal of F[1, ..., dF] */
+  sp_invF = mpzspv_init_handle (filename_invF, 2 * dF, mpzspm);
+  free (filename_invF);
+  ntt_PolyInvert (sp_invF, F + 1, dF, T, mpzspm);
+
+  mpzspv_mul_ntt (sp_invF, 0, sp_invF, 0, dF, NULL, 0, 0, 2 * dF, 
+                  NTT_MUL_STEP_FFT1);
+
+  /* now invF[0..dF-1] = Quo(x^(2dF-2), trunc(F/x)) */
+  outputf (OUTPUT_VERBOSE, "Computing 1/F took %ldms\n",
+           elltime (st, cputime ()));
+  
+  
+  /* ----------------------------------------------
+     |   F    |  invF  |   G   |         T        |
+     ----------------------------------------------
+     |  F(x)  | 1/F(x) |  ???  |      ???         |
+     ---------------------------------------------- */
+
+  if (stop_asap != NULL && (*stop_asap)())
+    goto clear_invF;
+
+
+  /* start computing G with roots at i0*d, (i0+1)*d, (i0+2)*d, ... 
+     where i0*d <= B2min < (i0+1)*d */
+  G = init_list2 (dF + 1, mpz_sizeinbase (modulus->orig_modulus, 2) + 
+                          3 * GMP_NUMB_BITS);
+  if (G == NULL)
+    {
+      youpi = ECM_ERROR;
+      goto clear_invF;
+    }
+
+  st = cputime ();
+  rootsG_state = ecm_rootsG_init (f, (curve *) X, root_params, dF, k, 
+                                  modulus);
+
+  /* rootsG_state=NULL if an error occurred or a factor was found */
+  if (rootsG_state == NULL)
+    {
+      /* ecm: f = -1 if an error occurred */
+      youpi = (mpz_cmp_si (f, -1)) ? ECM_FACTOR_FOUND_STEP2 : ECM_ERROR;
+      goto clear_G;
+    }
+
+  if (stop_asap != NULL && (*stop_asap)())
+    goto clear_fd;
+
+  for (i = 0; i < k; i++)
+    {
+      /* needs dF+1 cells in T+dF */
+      youpi = ecm_rootsG (f, G, dF, rootsG_state, modulus);
+
+      if (test_verbose (OUTPUT_TRACE))
+	{
+	  unsigned long j;
+	  for (j = 0; j < dF; j++)
+	    outputf (OUTPUT_TRACE, "g_%lu = %Zd\n", j, G[j]);
+	}
+
+      ASSERT(youpi != ECM_ERROR); /* xxx_rootsG cannot fail */
+      if (youpi) /* factor found */
+        {
+          youpi = ECM_FACTOR_FOUND_STEP2;
+          goto clear_fd;
+        }
+
+      if (stop_asap != NULL && (*stop_asap)())
+        goto clear_fd;
+
+  /* -----------------------------------------------
+     |   F    |  invF  |   G    |         T        |
+     -----------------------------------------------
+     |  F(x)  | 1/F(x) | rootsG |      ???         |
+     ----------------------------------------------- */
+
+      st = cputime ();
+
+      ntt_PolyFromRoots (G, G, dF, T + dF, mpzspm);
+      mpz_set_ui (G[dF], 1);
+
+      /* needs 2*dF+list_mul_mem(dF/2) cells in T */
+      outputf (OUTPUT_VERBOSE, "Building G from its roots took %ldms\n", 
+               elltime (st, cputime ()));
+
+      if (test_verbose (OUTPUT_TRACE))
+	{
+	  unsigned long j;
+	  for (j = 0; j <= dF; j++)
+	    outputf (OUTPUT_TRACE, "+ (%Zd * x^%lu)", G[j], j);
+	  outputf (OUTPUT_TRACE, "\n");
+	}
+
+      if (stop_asap != NULL && (*stop_asap)())
+        goto clear_fd;
+
+  /* -----------------------------------------------
+     |   F    |  invF  |   G    |         T        |
+     -----------------------------------------------
+     |  F(x)  | 1/F(x) |  G(x)  |      ???         |
+     ----------------------------------------------- */
+
+      if (i == 0)
+        {
+          list_sub (G, G, F, dF + 1); /* coefficients 1 of degree cancel,
+                                         thus H is of degree < dF */
+          list_mod (G, G, dF, n);
+          list_set (H, G, dF);
+          /* ------------------------------------------------
+             |   F    |  invF  |    G    |         T        |
+             ------------------------------------------------
+             |  F(x)  | 1/F(x) |  ???    |G(x)-F(x)|  ???   |
+             ------------------------------------------------ */
+        }
+      else
+	{
+          /* ------------------------------------------------
+             |   F    |  invF  |    G    |         T        |
+             ------------------------------------------------
+             |  F(x)  | 1/F(x) |   G(x)  |  H(x)  |         |
+             ------------------------------------------------ */
+
+	  st = cputime ();
+	  /* previous G mod F is in H, with degree < dF, i.e. dF coefficients:
+	     requires 3dF-1+list_mul_mem(dF) cells in T */
+
+          mpzspv_handle_t u, v;
+          
+          ASSERT_ALWAYS (mpz_cmp_ui (G[dF], 1UL) == 0);
+          
+          u = mpzspv_init_handle (NULL, 2 * dF, mpzspm);
+          v = mpzspv_init_handle (NULL, 2 * dF, mpzspm);
+          
+          mpzspv_fromto_mpzv (v, 0, dF + 1, NULL, G, NULL, NULL);
+          mpzspv_fromto_mpzv (u, 0, dF,     NULL, H, NULL, NULL);
+
+          mpzspv_mul_ntt(v, 0, v, 0, dF + 1, NULL, 0, 0, 
+                         2 * dF, NTT_MUL_STEP_FFT1);
+          mpzspv_mul_ntt(u, 0, u, 0, dF, v, 0, 2*dF, 2 * dF, 
+                         NTT_MUL_STEP_FFT1 + NTT_MUL_STEP_MUL + NTT_MUL_STEP_IFFT);
+          mpzspv_fromto_mpzv (u, 0, 2 * dF, NULL, NULL, NULL, H);
+          list_mod (H, H, 2 * dF, n);
+          
+          mpzspv_clear_handle (u);
+          mpzspv_clear_handle (v);
+
+          outputf (OUTPUT_VERBOSE, "Computing G * H took %ldms\n", 
+                   elltime (st, cputime ()));
+
+          if (stop_asap != NULL && (*stop_asap)())
+            goto clear_fd;
+
+          /* ------------------------------------------------
+             |   F    |  invF  |    G    |         T        |
+             ------------------------------------------------
+             |  F(x)  | 1/F(x) |   G(x)  | G * H  |         |
+             ------------------------------------------------ */
+
+	  st = cputime ();
+
+          ntt_PrerevertDivision (H, sp_F, sp_invF, dF, T + 2 * dF, mpzspm);
+          
+	  outputf (OUTPUT_VERBOSE, "Reducing  G * H mod F took %ldms\n", 
+                   elltime (st, cputime ()));
+
+          if (stop_asap != NULL && (*stop_asap)())
+            goto clear_fd;
+	}
+    }
+  
+  clear_list (F, dF + 1);
+  F = NULL;
+  clear_list (G, dF + 1);
+  G = NULL;
+  st = cputime ();
+#ifdef POLYEVALTELLEGEN
+  youpi = ntt_polyevalT (T, dF, Tree, T + dF + 1, sp_invF,
+      mpzspm, TreeFilename);
+  
+  if (youpi)
+    {
+      outputf (OUTPUT_ERROR, "Error, not enough memory\n");
+      goto clear_fd;
+    }
+#else
+  if (invF != NULL)
+    clear_list (invF, dF + 1);
+  invF = NULL;
+  polyeval (T, dF, Tree, T + dF + 1, n, 0);
+#endif
+  treefiles_used = 0; /* Polyeval deletes treefiles by itself */
+
+  if (test_verbose (OUTPUT_TRACE))
+    {
+      unsigned long j;
+      for (j = 0; j < dF; j++)
+	outputf (OUTPUT_TRACE, "G(x_%lu) = %Zd\n", j, T[j]);
+    }
+
+  outputf (OUTPUT_VERBOSE, "Computing polyeval(F,G) took %ldms\n", 
+           elltime (st, cputime ()));
+
+  st = cputime ();
+  list_mulup (T, dF, n, T[dF]);
+  outputf (OUTPUT_VERBOSE, "Computing product of all F(g_i) took %ldms\n", 
+           elltime (st, cputime ()));
+
+  mpz_gcd (f, T[dF - 1], n);
+  if (mpz_cmp_ui (f, 1) > 0)
+    {
+      youpi = ECM_FACTOR_FOUND_STEP2;
+    } else {
+      /* Here, mpz_cmp_ui (f, 1) == 0, i.e. no factor was found */
+      outputf (OUTPUT_RESVERBOSE, "Product of G(f_i) = %Zd\n", T[0]);
+    }
+
+clear_fd:
+  ecm_rootsG_clear (rootsG_state, modulus);
+
+clear_G:
+  if (G != NULL)
+    clear_list (G, dF + 1);
+clear_invF:
+  mpzspv_clear_handle (sp_F);
+  mpzspv_clear_handle (sp_invF);
 
 free_Tree_i:
   if (Tree != NULL)
@@ -895,13 +1269,8 @@ clear_F:
 
 clear_i0:
 
-  if (use_ntt)
-    mpzspm_clear (mpzspm);
+  mpzspm_clear (mpzspm);
   
-  if (Fermat)
-    F_clear ();
-  
-
   if (stop_asap == NULL || !(*stop_asap)())
     {
       st0 = elltime (st0, cputime ());

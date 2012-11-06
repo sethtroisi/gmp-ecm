@@ -251,7 +251,7 @@ TUNE_FUNC_END (tune_PrerevertDivision)
 TUNE_FUNC_START (tune_ntt_PolyInvert)
   POLYINVERT_NTT_THRESHOLD = 1 << n;
   
-  TUNE_FUNC_LOOP (ntt_PolyInvert (z, x, 1 << n, t, mpzspm));
+  TUNE_FUNC_LOOP (ntt_PolyInvert (mpzspv, x, 1 << n, t, mpzspm));
 TUNE_FUNC_END (tune_ntt_PolyInvert)
 
 
