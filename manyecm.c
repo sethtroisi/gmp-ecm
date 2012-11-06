@@ -12,7 +12,7 @@
 #include "mpmod.h"
 
 #define DEBUG_MANY_EC 0
-/* #define ONE_CURVE_AT_A_TIME */ /* PROTECTION */
+/* #define ONE_CURVE_AT_A_TIME*/ /* PROTECTION */
 
 #define NCURVE_MAX 1000
 
@@ -116,11 +116,11 @@ pt_many_print(curve *tEP, int nEP, mpmod_t n)
 }
 
 /* Computes inv[i] = 1/x[i] using only one inversion, a la Montgomery.
-   If takeit[i] = 0, do not compute 1/x[i] (it is probably 0, or irrelevant).
+   If takeit[i] != 1, do not compute 1/x[i] (it is probably 0, or irrelevant).
    We should have inv != x.
    x[nx] is a buffer.
    When a factor is found, the i s.t. x[i] is not invertible are looked for
-   and the corresponding values of takeit put to -1.
+   and the corresponding values of takeit put to 2.
 */
 int
 compute_all_inverses(mpres_t *inv, mpres_t *x, int nx, mpmod_t n, char *takeit)
@@ -130,7 +130,7 @@ compute_all_inverses(mpres_t *inv, mpres_t *x, int nx, mpmod_t n, char *takeit)
 #if 0
     /* plain version, to debug the architecture */
     for(i = 0; i < nx; i++){
-	if(takeit[i] == 0)
+	if(takeit[i] != 1)
 	    continue;
 	if(!mpres_invert(inv[i], x[i], n)){
 	    mpres_gcd(inv[0], x[i], n);
@@ -145,7 +145,7 @@ compute_all_inverses(mpres_t *inv, mpres_t *x, int nx, mpmod_t n, char *takeit)
 #else
     /* Montgomery's trick */
     for(i = 0; i < nx; i++){
-	if(takeit[i] == 0){
+	if(takeit[i] != 1){
 	    if(i == 0)
 		mpres_set_ui(inv[i], 1, n);
 	    else
@@ -176,7 +176,7 @@ compute_all_inverses(mpres_t *inv, mpres_t *x, int nx, mpmod_t n, char *takeit)
 		printf ("\n");
 #endif
 		/* ONE DAY: if x[nx] != inv[0], we have another factor! */
-		takeit[i] = -1;
+		takeit[i] = 2;
 	    }
 	}
 	return 0;
@@ -216,7 +216,7 @@ pt_many_common(curve *tER, curve *tEP, curve *tEQ, int nEP, mpmod_t n,
 	return 0;
     }
     for(i = 0; i < nEP; i++){
-	if(takeit[i] == 0)
+	if(takeit[i] != 1)
 	    continue;
 	/* l:=(inv[i]*num[i]) mod N; */
 	mpres_mul(num[i], num[i], inv[i], n);
@@ -262,6 +262,7 @@ pt_many_duplicate(curve *tEQ, curve *tEP, int nEP, mpmod_t n,
 	}
     }
     res = pt_many_common(tEQ, tEP, tEP, nEP, n, num, den, inv, takeit);
+    /* TODO: case takeit[i] == 2 */
     free(takeit);
     return res;
 }
@@ -328,6 +329,7 @@ pt_many_add(curve *tER, curve *tEP, curve *tEQ, int nEP, mpmod_t n,
 	}
     }
     res = pt_many_common(tER, tEP, tEQ, nEP, n, num, den, inv, takeit);
+    /* TODO: case takeit[i] == 2 */
     free(takeit);
     return res;
 }
@@ -415,9 +417,23 @@ mod_from_rat(mpz_t r, mpq_t q, mpz_t N)
     return ret;
 }
 
+/* fall back on traditional ECM.
+ */
+int
+process_one_curve(mpz_t f, mpz_t N, double B1, ecm_params params, curve EP)
+{
+    int ret;
+
+    mpz_set (params->x, EP.x);
+    mpz_set (params->y, EP.y);
+    mpz_set (params->sigma, EP.A); /* humf */
+    ret = ecm_factor(f, N, B1, params);
+    return ret;
+}
+
 #ifdef ONE_CURVE_AT_A_TIME
 int
-one_curve_at_a_time(mpz_t f, curve *tEP, int nc, mpz_t N, double B1)
+one_curve_at_a_time(mpz_t f, char *ok, curve *tEP, int nc, mpz_t N, double B1)
 {
     ecm_params params;
     int ret = 0, i;
@@ -429,13 +445,11 @@ one_curve_at_a_time(mpz_t f, curve *tEP, int nc, mpz_t N, double B1)
     /* process curves one at a time */
     for(i = 0; i < nc; i++){
 	params->B1done = 1.0;
-	mpz_set (params->x, tEP[i].x);
-	mpz_set (params->y, tEP[i].y);
-	mpz_set (params->sigma, tEP[i].A); /* humf */
-	ret = ecm_factor(f, N, B1, params);
+	ret = process_one_curve(f, N, B1, params, tEP[i]);
 	if(ret > 0){ /* humf */
 	    int factor_is_prime, cofactor_is_prime;
 
+	    ok[i] = 0;
 	    if(mpz_cmp(N, f) == 0){
 		printf("# found input number, proceeding to next curve\n");
 		continue;
@@ -472,9 +486,9 @@ one_curve_at_a_time(mpz_t f, curve *tEP, int nc, mpz_t N, double B1)
 	    }
 	    else{
 		printf("## restarting with f\n");
-		one_curve_at_a_time(N, tEP, nc, f, B1);
+		one_curve_at_a_time(N, ok, tEP, nc, f, B1);
 		printf("## restarting with C\n");
-		one_curve_at_a_time(N, tEP, nc, C, B1);
+		one_curve_at_a_time(N, ok, tEP, nc, C, B1);
 	    }
 	}
 	else if(ret == ECM_ERROR){
@@ -490,7 +504,7 @@ one_curve_at_a_time(mpz_t f, curve *tEP, int nc, mpz_t N, double B1)
    Copied from classical ecm_stage1.
  */
 int
-all_curves_at_once(mpz_t f, curve *tEP, int nEP, mpmod_t n, 
+all_curves_at_once(mpz_t f, char *ok, curve *tEP, int nEP, mpmod_t n, 
 		   double B1, double *B1done, int (*stop_asap)(void),
 		   char *chkfilename)
 {
@@ -500,10 +514,8 @@ all_curves_at_once(mpz_t f, curve *tEP, int nEP, mpmod_t n,
     int ret = ECM_NO_FACTOR_FOUND;
     long last_chkpnt_time;
     int i;
-    char *ok = (char *)malloc(nEP * sizeof(char));
     
     mpz_init(e);
-    memset(ok, 1, nEP);
     for(i = 0; i < nEP; i++){
 	mpres_init(tEQ[i].A, n); mpres_set(tEQ[i].A, tEP[i].A, n);
 	mpres_init(tEQ[i].x, n); mpres_set(tEQ[i].x, tEP[i].x, n);
@@ -539,8 +551,6 @@ all_curves_at_once(mpz_t f, curve *tEP, int nEP, mpmod_t n,
 	    printf("P%ld:=", (long)r); pt_many_print(tEQ, nEP, n); printf(";\n");
 #endif
 	}
-
-    /* TODO: what if a factor is found? */
 
     last_chkpnt_p = 3.;
     for (p = getprime (); p <= B1; p = getprime ()){
@@ -602,7 +612,6 @@ all_curves_at_once(mpz_t f, curve *tEP, int nEP, mpmod_t n,
 	    pt_set_to_zero(tEP+i, n);
     /* clear temporary variables */
     mpz_clear(e);
-    free(ok);
     for(i = 0; i < nEP; i++){
 	mpres_clear(tEQ[i].A, n);
 	mpres_clear(tEQ[i].x, n);
@@ -637,11 +646,14 @@ process_many_curves(mpz_t f, mpz_t n, double B1, curve *tEP, int nEP)
     double B1done;
     curve tEQ[NCURVE_MAX];
 #endif
+    ecm_params params;
+    char *ok = (char *)malloc(nEP * sizeof(char));
     int ret = 0, i;
     long st = cputime ();
     
+    memset(ok, 1, nEP);
 #ifdef ONE_CURVE_AT_A_TIME
-    ret = one_curve_at_a_time(f, tEP, nEP, n, B1);
+    ret = one_curve_at_a_time(f, ok, tEP, nEP, n, B1);
 #else
     mpmod_init(modulus, n, ECM_MOD_DEFAULT);
     for(i = 0; i < nEP; i++){
@@ -651,8 +663,24 @@ process_many_curves(mpz_t f, mpz_t n, double B1, curve *tEP, int nEP)
        mpres_init(tEQ[i].A, modulus); mpres_set_z(tEQ[i].A, tEP[i].A, modulus);
     }
     B1done = 1.0;
-    ret = all_curves_at_once(f, tEQ, nEP, modulus, B1, &B1done, NULL, NULL);
-    /* TODO: call 2nd phase from ecm.c */
+    ret = all_curves_at_once(f, ok, tEQ, nEP, modulus, B1, &B1done, NULL, NULL);
+    printf("# Step 1 took %ldms\n", elltime (st, cputime ()));
+
+    if(ret != ECM_NO_FACTOR_FOUND){
+	ecm_init(params);
+	params->sigma_is_A = -1;
+	params->B1done = B1;
+	for(i = 0; i < nEP; i++){
+	    if(ok[i] == 0)
+		continue;
+	    /* TODO: clear params? */
+	    printf("# Entering Step 2 for E[%d]\n", i);
+	    st = cputime ();
+	    ret = process_one_curve(f, n, B1, params, tEP[i]);
+	    printf("# Step 2 for E[%d] took %ldms\n",i,elltime(st, cputime()));
+	}
+	ecm_clear(params);
+    }
     for(i = 0; i < nEP; i++){
 	mpres_clear(tEQ[i].x, modulus);
 	mpres_clear(tEQ[i].y, modulus); 
@@ -660,7 +688,7 @@ process_many_curves(mpz_t f, mpz_t n, double B1, curve *tEP, int nEP)
 	mpres_clear(tEQ[i].A, modulus); 
     }
 #endif
-    printf("# Step 1 took %ldms\n", elltime (st, cputime ()));
+    free(ok);
     return ret;
 }
 
