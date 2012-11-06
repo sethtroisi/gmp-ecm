@@ -782,61 +782,116 @@ process_many_curves_from_file(mpz_t f, mpz_t n, double B1, char *fic_EP,
     return ret;
 }
 
+void
+mod_div_2(mpz_t x, mpz_t n)
+{
+    if(mpz_tstbit(x, 0)){
+	/* x is odd, x/2 = (x+N)/2 */
+	mpz_add(x, x, n);
+	mpz_div_2exp(x, x, 1);
+    }
+    else
+	/* x is even, x/2 is easy */
+	mpz_div_2exp(x, x, 1);
+}
+
+/* From a curve in Weierstrass form to a short form 
+   WE:=[0,(1/4*c^2+1/4-1/2*c-b),0,(1/2*c*b-1/2*b),1/4*b^2]);
+   and (x0, y0) is a point on it.
+   We compute first
+   a2 = 1/4*c^2+1/4-1/2*c-b = ((c-1)/2)^2-b
+   a4 = 1/2*c*b-1/2*b = b*(c-1)/2
+   a6 = (b/2)^2
+   and then send it to short Weierstrass form:
+   Y^2 = X^3 + A * X + B
+   A = (a4-1/3*a2^2)
+   B = -1/3*a4*a2+a6+2/27*a2^3 (unused, really)
+*/
+void
+W2W(curve *EP, mpz_t b, mpz_t c, mpz_t x0, mpz_t y0, mpz_t n)
+{
+    mpz_t a2, a4;
+
+    mpz_init(a2);
+    mpz_init(a4);
+    /* first conversion */
+    mpz_sub_si(a4, c, 1);
+    mod_div_2(a4, n);
+    mpz_mul(a2, a4, a4);
+    mpz_sub(a2, a2, b);
+    mpz_mod(a2, a2, n);
+    mpz_mul(a4, a4, b);
+    mpz_mod(a4, a4, n);
+#if 0 /* not needed */
+    {
+	mpz_init(a6);
+	mpz_set(a6, b);
+	mod_div_2(a6, n);
+	mpz_mul(a6, a6, a6);
+	mpz_mod(a6, a6, n);
+	mpz_clear(a6);
+    }
+#endif
+    gmp_printf("a2:=%Zd;\n", a2);
+    gmp_printf("a4:=%Zd;\n", a4);
+    /* second conversion */
+    mpz_set_si(EP->x, 3);
+    mpz_invert(EP->x, EP->x, n);
+    mpz_mul(EP->x, EP->x, a2);
+    mpz_mod(EP->x, EP->x, n);
+    /* A = a4-1/3*a2^2 = a4 - a2 * (a2/3) */
+    mpz_mul(a2, a2, EP->x);
+    mpz_mod(a2, a2, n);
+    mpz_sub(EP->A, a4, a2);
+    mpz_mod(EP->A, EP->A, n);
+    /* xx0 = x0 + a2/3 */
+    mpz_add(EP->x, EP->x, x0);
+    mpz_mod(EP->x, EP->x, n);
+    mpz_set(EP->y, y0);
+    mpz_mod(EP->y, EP->y, n);
+    mpz_set_ui(EP->z, 1);
+    gmp_printf("A:=%Zd;\n", EP->A);
+    gmp_printf("x0:=%Zd;\n", EP->x);
+    gmp_printf("y0:=%Zd;\n", EP->y);
+    mpz_clear(a2);
+    mpz_clear(a4);
+}
+
 /* Kubert: put b = c. */
 int
 build_curves_with_torsion_Z5(mpz_t f, mpz_t n, curve *tEP,
 			     int smin, int smax, int nEP)
 {
     int s, ret = ECM_NO_FACTOR_FOUND, nc = 0;
-    mpz_t x0, y0, c, a2, a4, a6;
+    mpz_t x0, y0, c;
 
     mpz_init(x0);
     mpz_init(y0);
     mpz_init(c);
-    mpz_init(a2);
-    mpz_init(a4);
-    mpz_init(a6);
     for(s = smin; s < smax; s++){
 	mpz_set_si(x0, s);
 	/* c:=1/2*x0*(4*x0+1)/(3*x0+1); */
-	mpz_mul_si(a2, x0, 3);
-	mpz_add_si(a4, a2, 1);
-	mpz_add(a4, a4, a4);
-	if(mpz_invert(c, a4, n) == 0){
+	mpz_mul_si(y0, x0, 3);
+	mpz_add_si(y0, y0, 1);
+	mpz_add(y0, y0, y0);
+	if(mpz_invert(c, y0, n) == 0){
 	    /* factor found! */
-	    mpz_gcd(f, a2, n);
+	    mpz_gcd(f, y0, n);
 	    ret = ECM_FACTOR_FOUND_STEP1;
 	    break;
 	}
 	mpz_mul(c, c, x0);
-	mpz_add(a2, a2, x0);
-	mpz_mul(c, c, a2);
+	mpz_add(y0, y0, x0);
+	mpz_mul(c, c, y0);
 	mpz_mod(c, c, n);
 	/* y0:=x0*(x0+1)*(4*x0+1)/4/(3*x0+1) = (x0+1)*c/2 */
-	if(mpz_tstbit(c, 0)){
-	    /* c is odd, c/2 = (c+N)/2 */
-	    mpz_add(a6, c, n);
-	    mpz_div_2exp(a6, a6, 1);
-	}
-	else
-	    /* c is even, c/2 is easy */
-	    mpz_div_2exp(a6, c, 1);
 	mpz_add_si(y0, x0, 1);
-	mpz_mul(y0, y0, a6);
+	mpz_mul(y0, y0, c);
 	mpz_mod(y0, y0, n);
-	/* (x0, y0) is a point on E(c, c) */
-	/* WE:=EllipticCurve([0, (c^2-6*c+1)/4, 0, c*(c-1)/2, c^2/4]); */
-	/* WE = [0, (c/2)^2-3*(c/2)+1/4, 0, (c/2)*(c-1), (c/2)^2] */
-	mpz_mul_si(a2, a6, -3);
-	mpz_sub_si(a4, c, 1);
-	mpz_mul(a4, a4, a6);
-	mpz_mod(a4, a4, n);
-	mpz_mul(a6, a6, a6);
-	mpz_mod(a6, a6, n);
-	mpz_add(a2, a2, a6);
-	/* a2 += 1/4 */
+	mod_div_2(y0, n);
 	/* P:=WE![x0, y0, 1]; */
 	/* convert to short Weierstrass form */
+	W2W(tEP+nc, c, c, x0, y0, n);
 	nc++;
 	if(nc >= nEP)
 	    break;
@@ -844,9 +899,6 @@ build_curves_with_torsion_Z5(mpz_t f, mpz_t n, curve *tEP,
     mpz_clear(x0);
     mpz_clear(y0);
     mpz_clear(c);
-    mpz_clear(a2);
-    mpz_clear(a4);
-    mpz_clear(a6);
     return ret;
 }
 
@@ -1039,5 +1091,5 @@ main (int argc, char *argv[])
   mpz_clear (f);
   mpz_clear (n);
 
-  return 0;
+  return res;
 }
