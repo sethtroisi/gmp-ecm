@@ -67,8 +67,8 @@ ntt_mul (mpzv_t r, mpzv_t x, mpzv_t y, spv_size_t len, mpzv_t t,
 
 /* memory: 2 * len mpzspv coeffs */
 void
-ntt_PolyFromRoots (mpzv_t r, mpzv_t a, spv_size_t len, mpzv_t t,
-    mpzspm_t mpzspm)
+ntt_PolyFromRoots (mpzspv_handle_t r, spv_size_t offset_r, mpzv_t a, 
+    spv_size_t len, mpzv_t t, mpzspm_t mpzspm)
 {
   mpzspv_handle_t x;
   spv_size_t i, m;
@@ -77,7 +77,9 @@ ntt_PolyFromRoots (mpzv_t r, mpzv_t a, spv_size_t len, mpzv_t t,
 
   if (len <= MUL_NTT_THRESHOLD)
   {
-    PolyFromRoots (r, a, len, t, mpzspm->modulus);
+    /* FIXME: This modifies the input array */
+    PolyFromRoots (a, a, len, t, mpzspm->modulus);
+    mpzspv_fromto_mpzv (r, offset_r, len, NULL, a, NULL, NULL);
     return;
   }
   
@@ -85,8 +87,9 @@ ntt_PolyFromRoots (mpzv_t r, mpzv_t a, spv_size_t len, mpzv_t t,
   
   for (i = 0; i < len; i += MUL_NTT_THRESHOLD)
     {
-      PolyFromRoots (r, a + i, MUL_NTT_THRESHOLD, t, mpzspm->modulus);
-      mpzspv_fromto_mpzv (x, 2 * i, MUL_NTT_THRESHOLD, NULL, r, NULL, NULL);
+      /* FIXME: This modifies the input array */
+      PolyFromRoots (a + i, a + i, MUL_NTT_THRESHOLD, t, mpzspm->modulus);
+      mpzspv_fromto_mpzv (x, 2 * i, MUL_NTT_THRESHOLD, NULL, a + i, NULL, NULL);
     }
   
   for (m = MUL_NTT_THRESHOLD; m < len; m *= 2)
@@ -108,13 +111,11 @@ ntt_PolyFromRoots (mpzv_t r, mpzv_t a, spv_size_t len, mpzv_t t,
           /* Subtract wrapped-around product 1*1 of leading monomials */
 	  mpzspv_sub_sp (x, i, x, i, (sp_t) 1, 1);
 
-	  if (2 * m < len)
-	    mpzspv_fromto_mpzv (x, i, 2 * m, NULL, NULL, NULL, NULL);
+          mpzspv_fromto_mpzv (x, i, 2 * m, NULL, NULL, NULL, NULL);
 	}	  
     }
   
-  mpzspv_fromto_mpzv (x, 0, len, NULL, NULL, NULL, r);
-
+  mpzspv_set (r, offset_r, x, 0, len);
   mpzspv_clear_handle (x);
 }
 
@@ -223,37 +224,48 @@ ntt_PolyFromRoots_Tree (mpzv_t r, mpzv_t a, spv_size_t len, mpzv_t t,
  *
  * memory: 2 * len mpzspv coeffs */
 void
-ntt_PrerevertDivision (mpzv_t a, mpzspv_handle_t sp_b, 
-    mpzspv_handle_t sp_invb, spv_size_t len, mpzv_t t, mpzspm_t mpzspm)
+ntt_PrerevertDivision (mpzspv_handle_t a, mpzspv_handle_t sp_b, 
+    mpzspv_handle_t sp_invb, spv_size_t len, mpzspm_t mpzspm)
 {
-  mpzspv_handle_t x;
+  mpzspv_handle_t sum;
   
-  x = mpzspv_init_handle (NULL, 2 * len, mpzspm);
+  sum = mpzspv_init_handle (NULL, len, mpzspm);
 
-  /* y = TOP (TOP (a) * invb) */
-  mpzspv_fromto_mpzv (x, 0, len, NULL, a + len, NULL, NULL);
-  mpzspv_mul_ntt (x, 0, 
-                  x, 0, len, 
+  /* sum = a mod (x^len - 1) */
+  mpzspv_add (sum, 0, a, 0, a, len, len);
+
+  /* a = TOP (TOP (a) * invb) = trunc(a/f) */
+  mpzspv_set (a, 0, a, len, len);
+  mpzspv_mul_ntt (a, 0, 
+                  a, 0, len, 
                   sp_invb, 0, 2 * len, 
                   2 * len, 
                   NTT_MUL_STEP_FFT1 + NTT_MUL_STEP_MUL + NTT_MUL_STEP_IFFT);
-  mpzspv_fromto_mpzv (x, len - 1, len, NULL, NULL, NULL, NULL);
-  mpzspv_set (x, 0, x, len - 1, 1);  /* In two pieces to avoid overlap */
-  mpzspv_set (x, 1, x, len, len - 1);
+  mpzspv_fromto_mpzv (a, len - 1, len, NULL, NULL, NULL, NULL);
+  mpzspv_set (a, 0, a, len - 1, 1);  /* In two pieces to avoid overlap */
+  mpzspv_set (a, 1, a, len, len - 1);
   
-  mpzspv_mul_ntt (x, 0, 
-                  x, 0, len, 
+  /* a := (trunc(a/f) * f) mod (x^len - 1) */
+  mpzspv_mul_ntt (a, 0, 
+                  a, 0, len, 
                   sp_b, 0, len, 
                   len, 
                   NTT_MUL_STEP_FFT1 + NTT_MUL_STEP_MUL + NTT_MUL_STEP_IFFT);
-  mpzspv_fromto_mpzv (x, 0, len, NULL, NULL, NULL, t);
+
+  /* a := (a - trunc(a/f) * f) mod (x^len - 1) = a mod f */
+  mpzspv_sub (a, 0, sum, 0, a, 0, len);
+  /* Add modulus to ensure difference is non-negative */
+  mpzspv_add_mpz (a, 0, a, 0, mpzspm->modulus, len);
+  mpzspv_fromto_mpzv (a, 0, len, NULL, NULL, NULL, NULL);
   
-  mpzspv_clear_handle (x);
+  mpzspv_clear_handle (sum);
   
+#if 0
   list_sub (t, t, a + len, len);
   list_sub (a, a, t, len);
   /* can we avoid this mod without risking overflow later? */
   list_mod (a, a, len, mpzspm->modulus);
+#endif
 }
 
 void
@@ -268,11 +280,11 @@ cmp_mpz (void *s, const mpz_t r)
    q[0, len - 1] * b[0, len - 1] \in x^(2k-2) + O(x^(k-2))
    Here O(x^n) means the set of polynomials of degree at most n. */
 /* memory: 7/2 * len mpzspv coeffs */
-void ntt_PolyInvert (mpzspv_handle_t r, mpzv_t b, spv_size_t len, mpzv_t t,
-    mpzspm_t mpzspm)
+void ntt_PolyInvert (mpzspv_handle_t r, mpzspv_handle_t sp_b, 
+    spv_size_t offset_b, spv_size_t len, mpzspm_t mpzspm)
 {
   spv_size_t k = 1;
-  mpzspv_handle_t w, x, y, z;
+  mpzspv_handle_t w, x, z;
   const int alloc_x = !mpzspv_handle_in_memory(r);
   
   w = mpzspv_init_handle (NULL, len / 2, mpzspm);
@@ -280,20 +292,17 @@ void ntt_PolyInvert (mpzspv_handle_t r, mpzv_t b, spv_size_t len, mpzv_t t,
     x = mpzspv_init_handle (NULL, len, mpzspm);
   else
     x = r;
-  y = mpzspv_init_handle (NULL, len, mpzspm);
   z = mpzspv_init_handle (NULL, len, mpzspm);
   
   /* We assume that b is monic, thus the degree-0 approximation of the 
      reciprocal is 1 */
-  ASSERT_ALWAYS (mpz_cmp_ui(b[len - 1], 1UL) == 0);
   mpzspv_set_sp (x, 0, (sp_t) 1, 1);
   /* This discards the leading 1 of b */
-  mpzspv_fromto_mpzv (y, 0, len - 1, NULL, b, NULL, NULL);
   
   for (; k < len; k *= 2)
     {
       mpzspv_set (w, 0, x, 0, k);
-      mpzspv_set (z, 0, y, len - 2 * k, 2 * k - 1);
+      mpzspv_set (z, 0, sp_b, offset_b + len - 2 * k, 2 * k - 1);
       mpzspv_mul_ntt (x, 0, 
                       x, 0, k, 
                       NULL, UNUSED, UNUSED, 
@@ -325,7 +334,6 @@ void ntt_PolyInvert (mpzspv_handle_t r, mpzv_t b, spv_size_t len, mpzv_t t,
   mpzspv_clear_handle (w);
   if (alloc_x)
     mpzspv_clear_handle (x);
-  mpzspv_clear_handle (y);
   mpzspv_clear_handle (z);
 
 #if defined DEBUG
@@ -352,7 +360,7 @@ void ntt_PolyInvert (mpzspv_handle_t r, mpzv_t b, spv_size_t len, mpzv_t t,
 
 /* memory: 4 * len mpzspv coeffs */
 int
-ntt_polyevalT (mpzv_t b, spv_size_t len, mpzv_t *Tree, mpzv_t T,
+ntt_polyevalT (mpzv_t r, mpzspv_handle_t sp_b, spv_size_t len, mpzv_t *Tree, mpzv_t T,
                mpzspv_handle_t sp_invF, mpzspm_t mpzspm, char *TreeFilenameStem)
 {
   spv_size_t m, i;
@@ -377,7 +385,7 @@ ntt_polyevalT (mpzv_t b, spv_size_t len, mpzv_t *Tree, mpzv_t T,
         }
     }
   
-  mpzspv_fromto_mpzv (x, 0, len, NULL, b, NULL, NULL);
+  mpzspv_set (x, 0, sp_b, 0, len);
   mpzspv_mul_ntt(x, 0, 
                  x, 0, len, 
                  sp_invF, 0, 2 * len, 
@@ -483,6 +491,6 @@ ntt_polyevalT (mpzv_t b, spv_size_t len, mpzv_t *Tree, mpzv_t T,
   
   if (TreeFilenameStem)
     free (TreeFilename);
-  list_swap (b, T, len);
+  list_set (r, T, len);
   return 0;
 }

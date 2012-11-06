@@ -238,8 +238,8 @@ TUNE_FUNC_END (tune_list_mul)
 TUNE_FUNC_START (tune_ntt_PrerevertDivision)
   PREREVERTDIVISION_NTT_THRESHOLD = 0;
 
-  TUNE_FUNC_LOOP (ntt_PrerevertDivision (z, mpzspv, mpzspv,
-    1 << n, t, mpzspm));
+  TUNE_FUNC_LOOP (ntt_PrerevertDivision (mpzspv, mpzspv, mpzspv,
+    1 << n, mpzspm));
 TUNE_FUNC_END (tune_ntt_PrerevertDivision)
 
 
@@ -251,7 +251,7 @@ TUNE_FUNC_END (tune_PrerevertDivision)
 TUNE_FUNC_START (tune_ntt_PolyInvert)
   POLYINVERT_NTT_THRESHOLD = 1 << n;
   
-  TUNE_FUNC_LOOP (ntt_PolyInvert (mpzspv, x, 1 << n, t, mpzspm));
+  TUNE_FUNC_LOOP (ntt_PolyInvert (mpzspv, mpzspv, 0, 1 << n, mpzspm));
 TUNE_FUNC_END (tune_ntt_PolyInvert)
 
 
@@ -275,7 +275,7 @@ TUNE_FUNC_START (tune_ntt_polyevalT)
 
   POLYEVALT_NTT_THRESHOLD = 1 << n;
 
-  TUNE_FUNC_LOOP (ntt_polyevalT (z, 1 << n, Tree, t, mpzspv, mpzspm, NULL));
+  TUNE_FUNC_LOOP (ntt_polyevalT (z, mpzspv, 1 << n, Tree, t, mpzspv, mpzspm, NULL));
 
   free (Tree);
 TUNE_FUNC_END (tune_ntt_polyevalT) 

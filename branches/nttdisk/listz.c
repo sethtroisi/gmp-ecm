@@ -82,6 +82,21 @@ clear_list (listz_t p, unsigned int n)
   free (p);
 }
 
+void
+output_list (const int verbose, const listz_t p, const unsigned int n, 
+             const char *prefix, const char *suffix)
+{
+  unsigned int i;
+
+  if (!test_verbose(verbose))
+    return;
+
+  outputf (verbose, prefix);
+  for (i = 0; i < n; i++)
+    outputf (verbose, "%s%Zd * x^%u", (i > 0) ? " + " : "", p[i], i);
+  outputf (verbose, suffix);
+}
+
 #ifdef DEBUG
 /* prints a list of n coefficients as a polynomial */
 void

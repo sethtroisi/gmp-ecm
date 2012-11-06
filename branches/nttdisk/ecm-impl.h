@@ -391,6 +391,9 @@ void         clear_list (listz_t, unsigned int);
 int          list_inp_raw (listz_t, FILE *, unsigned int);
 #define list_out_raw __ECM(list_out_raw)
 int          list_out_raw (FILE *, listz_t, unsigned int);
+#define output_list __ECM(output_list)
+void         output_list (int, const listz_t, unsigned int, const char *, 
+                          const char *);
 #define print_list __ECM(print_list)
 void         print_list (listz_t, unsigned int);
 #define list_set __ECM(list_set)
@@ -430,22 +433,23 @@ void      PolyFromRoots (listz_t, listz_t, unsigned int, listz_t, mpz_t);
 #define PolyFromRoots_Tree __ECM(PolyFromRoots_Tree)
 int       PolyFromRoots_Tree (listz_t, listz_t, unsigned int, listz_t, int, 
                          mpz_t, listz_t*, FILE*, unsigned int);
-
 #define ntt_PolyFromRoots __ECM(ntt_PolyFromRoots)
-void	  ntt_PolyFromRoots (mpzv_t, mpzv_t, spv_size_t, mpzv_t, mpzspm_t);
+void	  ntt_PolyFromRoots (mpzspv_handle_t, spv_size_t, mpzv_t, spv_size_t, 
+    mpzv_t, mpzspm_t);
 #define ntt_PolyFromRoots_Tree __ECM(ntt_PolyFromRoots_Tree)
 int       ntt_PolyFromRoots_Tree (mpzv_t, mpzv_t, spv_size_t, mpzv_t,
                          int, mpzspm_t, mpzv_t *, FILE *);
 #define ntt_polyevalT __ECM(ntt_polyevalT)
-int  ntt_polyevalT (mpzv_t, spv_size_t, mpzv_t *, mpzv_t, mpzspv_handle_t,
-		mpzspm_t, char *);
+int  ntt_polyevalT (mpzv_t, mpzspv_handle_t, spv_size_t, mpzv_t *, mpzv_t, 
+    mpzspv_handle_t, mpzspm_t, char *);
 #define ntt_mul __ECM(ntt_mul)
 void  ntt_mul (mpzv_t, mpzv_t, mpzv_t, spv_size_t, mpzv_t, mpzspm_t);
 #define ntt_PrerevertDivision __ECM(ntt_PrerevertDivision)
-void  ntt_PrerevertDivision (mpzv_t, mpzspv_handle_t, mpzspv_handle_t,
-		spv_size_t, mpzv_t, mpzspm_t);
+void  ntt_PrerevertDivision (mpzspv_handle_t, mpzspv_handle_t, mpzspv_handle_t,
+		spv_size_t, mpzspm_t);
 #define ntt_PolyInvert __ECM(ntt_PolyInvert)
-void	     ntt_PolyInvert (mpzspv_handle_t, mpzv_t, spv_size_t, mpzv_t, mpzspm_t);
+void	     ntt_PolyInvert (mpzspv_handle_t, mpzspv_handle_t, spv_size_t, 
+                spv_size_t, mpzspm_t);
 
 #define PrerevertDivision __ECM(PrerevertDivision)
 int   PrerevertDivision (listz_t, listz_t, listz_t, unsigned int, listz_t,
