@@ -267,6 +267,17 @@ typedef void (*mpz_producerfunc_t)(void *, mpz_t);
 /* Consumer function */
 typedef void (*mpz_consumerfunc_t)(void *, const mpz_t);
 
+static inline int
+mpzspv_handle_in_memory (const mpzspv_handle_t x) {
+  return x != NULL && x->storage == 0;
+}
+
+static inline int
+mpzspv_handle_on_disk (const mpzspv_handle_t x) {
+  return x != NULL && x->storage == 1;
+}
+
+
 /*************
  * FUNCTIONS *
  *************/

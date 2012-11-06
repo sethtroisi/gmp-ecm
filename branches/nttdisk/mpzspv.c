@@ -38,9 +38,6 @@ MA 02110-1301, USA. */
 #define TRACE_ntt_mul 0
 #define WANT_PROFILE 0
 
-#define IN_MEMORY(x) ((x) != NULL && (x)->storage == 0)
-#define ON_DISK(x) ((x) != NULL && (x)->storage != 0)
-
 static void mpzspv_normalise (mpzspv_t, spv_size_t, spv_size_t, mpzspm_t);
 #ifdef HAVE_AIO_READ
 static int mpzspv_lio_rw (struct aiocb *[], mpzspv_t, spv_size_t, FILE *,  
@@ -181,7 +178,7 @@ mpzspv_clear_handle (mpzspv_handle_t handle)
     return;
   
   ASSERT(mpzspv_verify_out (handle, 0, handle->len));
-  if (IN_MEMORY(handle))
+  if (mpzspv_handle_in_memory(handle))
     {
       mpzspv_clear (handle->mem, handle->mpzspm);
       handle->mem = NULL;
@@ -268,14 +265,14 @@ mpzspv_verify_out (const mpzspv_handle_t x, const spv_size_t offset,
 static inline spv_t
 get_mem (mpzspv_handle_t r, const unsigned int i)
 {
-  return IN_MEMORY(r) ? r->mem[i] : NULL;
+  return mpzspv_handle_in_memory(r) ? r->mem[i] : NULL;
 }
 
 
 static inline FILE *
 get_file (mpzspv_handle_t r, ATTRIBUTE_UNUSED const unsigned int i)
 {
-  return ON_DISK(r) ? r->file : NULL;
+  return mpzspv_handle_on_disk(r) ? r->file : NULL;
 }
 
 
@@ -286,7 +283,7 @@ static inline spv_size_t
 adjust_offset (mpzspv_handle_t r, const unsigned int i, 
              const spv_size_t offset)
 {
-  return offset + (ON_DISK(r) ? i * r->len : 0);
+  return offset + (mpzspv_handle_on_disk(r) ? i * r->len : 0);
 }
 
 
@@ -350,7 +347,7 @@ mpzspv_set_sp (mpzspv_handle_t r, const spv_size_t offset,
   unsigned int i;
   
   for (i = 0; i < r->mpzspm->sp_num; i++)
-    spv_elementwise (get_mem (r, i), get_file (r, i), offset, 
+    spv_elementwise (get_mem (r, i), get_file (r, i), adjust_offset (r, i, offset), 
                      &c, NULL, 0, NULL, NULL, 0, 
                      r->mpzspm->spm[i]->sp, r->mpzspm->spm[i]->mul_c,
                      len, SPV_ELEMENTWISE_SETSP);
@@ -394,8 +391,8 @@ mpzspv_add_sp (mpzspv_handle_t r, const spv_size_t r_offset,
   unsigned int i;
   
   for (i = 0; i < r->mpzspm->sp_num; i++)
-    spv_elementwise (get_mem (r, i), get_file (r, i), r_offset, 
-                     get_mem (x, i), get_file (x, i), x_offset, 
+    spv_elementwise (get_mem (r, i), get_file (r, i), adjust_offset (r, i, r_offset), 
+                     get_mem (x, i), get_file (x, i), adjust_offset (x, i, x_offset), 
                      &y, NULL, 0, 
                      r->mpzspm->spm[i]->sp, r->mpzspm->spm[i]->mul_c,
                      len, SPV_ELEMENTWISE_ADDSP);
@@ -410,8 +407,8 @@ mpzspv_sub_sp (mpzspv_handle_t r, const spv_size_t r_offset,
   unsigned int i;
   
   for (i = 0; i < r->mpzspm->sp_num; i++)
-    spv_elementwise (get_mem (r, i), get_file (r, i), r_offset, 
-                     get_mem (x, i), get_file (x, i), x_offset, 
+    spv_elementwise (get_mem (r, i), get_file (r, i), adjust_offset (r, i, r_offset), 
+                     get_mem (x, i), get_file (x, i), adjust_offset (x, i, x_offset), 
                      &y, NULL, 0, 
                      r->mpzspm->spm[i]->sp, r->mpzspm->spm[i]->mul_c,
                      len, SPV_ELEMENTWISE_SUBSP);
@@ -664,6 +661,8 @@ mpzspv_fromto_mpzv (mpzspv_handle_t x, const spv_size_t offset,
   const unsigned int sp_num = mpzspm->sp_num;
   const int have_consumer = consumer != NULL || consumer_state != NULL;
   const int have_producer = producer != NULL || producer_state != NULL;
+  const int read_from_x = have_consumer || !have_producer; /* We read if we convert from NTT, or if we normalize */
+  const int write_to_x = have_producer || !have_consumer; /* We write if we convert to NTT, or if we normalize */
   static int tested_slow = 0, force_slow = 0, tested_blocklen = 0;
   static spv_size_t force_blocklen = 0;
   int use_slow = (mpzspm->T == NULL);
@@ -691,6 +690,14 @@ mpzspv_fromto_mpzv (mpzspv_handle_t x, const spv_size_t offset,
 
   ASSERT (sizeof (mp_limb_t) >= sizeof (sp_t));
 
+  if (read_from_x) {
+    ASSERT(mpzspv_verify_in (x, offset, len));
+  }
+
+  if (write_to_x) {
+    ASSERT(mpzspv_verify_out (x, offset, len));
+  }
+
   mpz_init(mpz1);
   mpz_init(mpz2);
   mpz_init(mt);
@@ -711,7 +718,7 @@ mpzspv_fromto_mpzv (mpzspv_handle_t x, const spv_size_t offset,
     }
   use_slow |= force_slow;
 
-  if (IN_MEMORY(x))
+  if (mpzspv_handle_in_memory(x))
     {
       block_len = len; /* Do whole thing at once */
       buffer[0] = x->mem;
@@ -742,6 +749,8 @@ mpzspv_fromto_mpzv (mpzspv_handle_t x, const spv_size_t offset,
         }
       if (force_blocklen > 0)
         block_len = force_blocklen;
+
+      block_len = MIN(block_len, len);
       
 #if defined(HAVE_AIO_READ)
       nr_buffers = 2;
@@ -757,7 +766,7 @@ mpzspv_fromto_mpzv (mpzspv_handle_t x, const spv_size_t offset,
     }
 
 #if defined(HAVE_AIO_READ)
-  if (ON_DISK(x)) 
+  if (mpzspv_handle_on_disk(x)) 
     {
       /* Allocate aiocb array and an array of pointers to it */
       unsigned int i;
@@ -772,7 +781,7 @@ mpzspv_fromto_mpzv (mpzspv_handle_t x, const spv_size_t offset,
 #endif
 
 #if defined(HAVE_AIO_READ)
-  if (have_consumer && ON_DISK(x)) 
+  if (read_from_x && mpzspv_handle_on_disk(x)) 
     {
       /* Read first buffer's worth of data from disk files */
       const spv_size_t read_now = MIN(len, block_len);
@@ -807,7 +816,7 @@ mpzspv_fromto_mpzv (mpzspv_handle_t x, const spv_size_t offset,
 #endif
 
       /* Read x from disk files */
-      if (have_consumer && ON_DISK(x) && read_now > 0) 
+      if (read_from_x && mpzspv_handle_on_disk(x) && read_now > 0) 
         {
 #if WANT_PROFILE
           unsigned long realstart = realtime();
@@ -934,7 +943,7 @@ mpzspv_fromto_mpzv (mpzspv_handle_t x, const spv_size_t offset,
            __func__, realstart, realtime() - realstart);
 #endif
 
-      if (have_consumer && ON_DISK(x) && read_now > 0) 
+      if (read_from_x && mpzspv_handle_on_disk(x) && read_now > 0) 
         {
           /* Wait for read to complete */
 #if WANT_PROFILE
@@ -954,7 +963,7 @@ mpzspv_fromto_mpzv (mpzspv_handle_t x, const spv_size_t offset,
         }
 
     /* Write current buffer to disk files */
-    if (have_producer && ON_DISK(x)) {
+    if (write_to_x && mpzspv_handle_on_disk(x)) {
 #if WANT_PROFILE
       unsigned long realstart = realtime();
 #endif
@@ -985,7 +994,7 @@ mpzspv_fromto_mpzv (mpzspv_handle_t x, const spv_size_t offset,
     /* If we write NTT data to memory, we need to advance the offset to fill 
        the entire array. If we use a temp buffer, we reuse the same buffer 
        each time */
-    if (IN_MEMORY(x))
+    if (mpzspv_handle_in_memory(x))
       buffer_offset += len_now;
   }
   mpz_clear(mpz1);
@@ -993,7 +1002,7 @@ mpzspv_fromto_mpzv (mpzspv_handle_t x, const spv_size_t offset,
   mpz_clear(mt);
   sp_aligned_free(cachebuf);
 
-  if (!IN_MEMORY(x))
+  if (!mpzspv_handle_in_memory(x))
     {
       unsigned int i;
       for (i = 0; i < nr_buffers; i++)
@@ -1004,10 +1013,10 @@ mpzspv_fromto_mpzv (mpzspv_handle_t x, const spv_size_t offset,
     }
 
 #if defined(HAVE_AIO_READ)
-  if (ON_DISK(x)) 
+  if (mpzspv_handle_on_disk(x)) 
     {
       free (aiocb_list[0]);
-      free(aiocb_list);
+      free (aiocb_list);
     }
 #endif
 }
@@ -1030,7 +1039,13 @@ mpzspv_normalise (mpzspv_t x, const spv_size_t offset,
   
   float *f;
   mpzspv_t t;
-  
+
+#ifdef WANT_ASSERT
+  for (i = 0; i < mpzspm->sp_num; i++)
+    {
+      ASSERT(spv_verify_in (x[i] + offset, len, mpzspm->spm[i]->sp));
+    }
+#endif  
   f = (float *) malloc (MPZSPV_NORMALISE_STRIDE * sizeof (float));
   s = (spv_t) malloc (3 * MPZSPV_NORMALISE_STRIDE * sizeof (sp_t));
   d = (spv_t) malloc (3 * MPZSPV_NORMALISE_STRIDE * sizeof (sp_t));
@@ -1269,15 +1284,15 @@ mpzspv_mul_ntt (mpzspv_handle_t r, const spv_size_t offsetr,
       abort();
     }
   
-  if (IN_MEMORY(x))
+  if (mpzspv_handle_in_memory(x))
     {
       ASSERT (mpzspv_verify_in (x, offsetx, lenx));
     }
-  if (IN_MEMORY(y)) 
+  if (mpzspv_handle_in_memory(y)) 
     {
       ASSERT (mpzspv_verify_in (y, offsety, leny));
     }
-  if (IN_MEMORY(r))
+  if (mpzspv_handle_in_memory(r))
     {
       ASSERT (mpzspv_verify_out (r, offsetr, ntt_size));
     }
@@ -1311,9 +1326,9 @@ mpzspv_mul_ntt (mpzspv_handle_t r, const spv_size_t offsetr,
   for (i = 0; i < (int) mpzspm->sp_num; i++)
     {
       const spm_t spm = mpzspm->spm[i];
-      const spv_t spvx = IN_MEMORY(x) ? x->mem[i] + offsetx : NULL;
-      const spv_t spvy = IN_MEMORY(y) ? y->mem[i] + offsety : NULL;
-      const spv_t spvr = IN_MEMORY(r) ? r->mem[i] + offsetr : NULL;
+      const spv_t spvx = mpzspv_handle_in_memory(x) ? x->mem[i] + offsetx : NULL;
+      const spv_t spvy = mpzspv_handle_in_memory(y) ? y->mem[i] + offsety : NULL;
+      const spv_t spvr = mpzspv_handle_in_memory(r) ? r->mem[i] + offsetr : NULL;
       spv_t tmp = NULL;
       unsigned long realstart;
 
@@ -1324,7 +1339,7 @@ mpzspv_mul_ntt (mpzspv_handle_t r, const spv_size_t offsetr,
       /* This test does not check whether r+offsetr and y+offsety point to
          non-overlapping memory; it simply takes r==y as not allowing r for
          temp space */
-      if (IN_MEMORY(r) && !(IN_MEMORY(y) && r->mem == y->mem))
+      if (mpzspv_handle_in_memory(r) && !(mpzspv_handle_in_memory(y) && r->mem == y->mem))
         tmp = spvr;
       else
         {
@@ -1342,7 +1357,7 @@ mpzspv_mul_ntt (mpzspv_handle_t r, const spv_size_t offsetr,
       if (do_fft1 || do_pwmul || do_pwmul_dct || do_ifft)
         {
           ASSERT_ALWAYS(x != NULL && r != NULL);
-          if (IN_MEMORY(x))
+          if (mpzspv_handle_in_memory(x))
             {
               spv_size_t j;
               if (tmp != spvx)
@@ -1397,7 +1412,7 @@ mpzspv_mul_ntt (mpzspv_handle_t r, const spv_size_t offsetr,
           ASSERT_ALWAYS(y != NULL);
           ASSERT_ALWAYS(leny == ntt_size / 2 + 1);
           profile_start (&realstart);
-          if (IN_MEMORY(y))
+          if (mpzspv_handle_in_memory(y))
             mul_dct (tmp, tmp, spvy, ntt_size, spm);
           else
             mul_dct_file (tmp, tmp, y->file, i * y->len, ntt_size, block_len, spm);
@@ -1420,7 +1435,7 @@ mpzspv_mul_ntt (mpzspv_handle_t r, const spv_size_t offsetr,
 
       if (do_fft1 || do_pwmul || do_pwmul_dct || do_ifft)
         {
-          if (IN_MEMORY(r))
+          if (mpzspv_handle_in_memory(r))
             {
               if (tmp != spvr)
                 spv_set (spvr, tmp, ntt_size);
@@ -1480,7 +1495,7 @@ mpzspv_to_dct1 (mpzspv_handle_t dct, const mpzspv_handle_t spv,
           abort();
         }
 
-      if (ON_DISK(spv))
+      if (mpzspv_handle_on_disk(spv))
         {
           spv_seek_and_read (tmp, spvlen, j * spv->len, spv->file);
         } else {
@@ -1540,12 +1555,12 @@ mpzspv_to_dct1 (mpzspv_handle_t dct, const mpzspv_handle_t spv,
 
       /* Copy coefficients to dct buffer */
       {
-        spv_t out_buf = IN_MEMORY(dct) ? dct->mem[j] : tmp;
+        spv_t out_buf = mpzspv_handle_in_memory(dct) ? dct->mem[j] : tmp;
         const sp_t coeff_1 = tmp[1];
         for (i = 0; i < dctlen - 1; i++)
           out_buf[i] = tmp[i * 2];
         out_buf[dctlen - 1] = coeff_1;
-        if (ON_DISK(dct))
+        if (mpzspv_handle_on_disk(dct))
           {
             /* Write data back to file */
             spv_seek_and_write (tmp, dctlen, j * dct->len, dct->file);
@@ -1730,7 +1745,7 @@ mpzspv_sqr_reciprocal (mpzspv_handle_t x, const spv_size_t n)
       {
         spv_t tmp;
         
-        if (ON_DISK(x))
+        if (mpzspv_handle_on_disk(x))
           {
             tmp = (spv_t) sp_aligned_malloc (len * sizeof (sp_t));
 
@@ -1748,7 +1763,7 @@ mpzspv_sqr_reciprocal (mpzspv_handle_t x, const spv_size_t n)
         
         spv_sqr_reciprocal (n, x->mpzspm->spm[j], tmp, x->mpzspm->max_ntt_size);
         
-        if (ON_DISK(x))
+        if (mpzspv_handle_on_disk(x))
           {
             spv_seek_and_write (tmp, 2 * n - 1, j * x->len, x->file);
             sp_aligned_free (tmp);
@@ -1894,7 +1909,7 @@ mpzspv_print (mpzspv_handle_t handle, const spv_size_t offset,
       return;
     }
   
-  if (ON_DISK(handle))
+  if (mpzspv_handle_on_disk(handle))
     {
       tmp = (spv_t) sp_aligned_malloc (len * sizeof (sp_t));
       if (tmp == NULL)
@@ -1906,15 +1921,15 @@ mpzspv_print (mpzspv_handle_t handle, const spv_size_t offset,
 
   for (i = 0; i < handle->mpzspm->sp_num; i++)
     {
-      if (ON_DISK(handle))
+      if (mpzspv_handle_on_disk(handle))
         spv_seek_and_read (tmp, len, offset + i * handle->len, handle->file);
       else
         tmp = handle->mem[i] + offset;
 
       spv_print_vec (tmp, handle->mpzspm->spm[i]->sp, len, 
-                     prefix, IN_MEMORY(handle) ? "(in memory)\n" : "(on disk)\n");
+                     prefix, mpzspv_handle_in_memory(handle) ? "(in memory)\n" : "(on disk)\n");
     }
 
-  if (ON_DISK(handle))
+  if (mpzspv_handle_on_disk(handle))
     sp_aligned_free (tmp);
 }
