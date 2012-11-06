@@ -39,6 +39,7 @@ MA 02110-1301, USA. */
 #define WANT_PROFILE 0
 
 static void mpzspv_normalise (mpzspv_t, spv_size_t, spv_size_t, mpzspm_t);
+static sp_t mpz_mod_spm (const mpz_t, const spm_t, mpz_t);
 #ifdef HAVE_AIO_READ
 static int mpzspv_lio_rw (struct aiocb *[], mpzspv_t, spv_size_t, FILE *,  
                           spv_size_t, spv_size_t, spv_size_t, const mpzspm_t, 
@@ -412,6 +413,28 @@ mpzspv_sub_sp (mpzspv_handle_t r, const spv_size_t r_offset,
                      &y, NULL, 0, 
                      r->mpzspm->spm[i]->sp, r->mpzspm->spm[i]->mul_c,
                      len, SPV_ELEMENTWISE_SUBSP);
+}
+
+
+void
+mpzspv_add_mpz (mpzspv_handle_t r, const spv_size_t r_offset, 
+                const mpzspv_handle_t x, const spv_size_t x_offset, 
+                const mpz_t y, const spv_size_t len)
+{
+  unsigned int i;
+  mpz_t rem;
+
+  mpz_init (rem);
+  for (i = 0; i < r->mpzspm->sp_num; i++)
+    {
+      const spm_t spm = r->mpzspm->spm[i];
+      const sp_t s = mpz_mod_spm (y, spm, rem);
+      spv_elementwise (get_mem (r, i), get_file (r, i), adjust_offset (r, i, r_offset), 
+                       get_mem (x, i), get_file (x, i), adjust_offset (x, i, x_offset), 
+                       &s, NULL, 0, 
+                       spm->sp, spm->mul_c, len, SPV_ELEMENTWISE_ADDSP);
+    }
+  mpz_clear (rem);
 }
 
 

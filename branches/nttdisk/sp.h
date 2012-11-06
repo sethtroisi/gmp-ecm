@@ -675,6 +675,8 @@ void mpzspv_sub (mpzspv_handle_t, spv_size_t, mpzspv_handle_t, spv_size_t,
     mpzspv_handle_t, spv_size_t, spv_size_t);
 void mpzspv_add_sp (mpzspv_handle_t, spv_size_t, mpzspv_handle_t, spv_size_t, 
     sp_t, spv_size_t);
+void mpzspv_add_mpz (mpzspv_handle_t, spv_size_t, mpzspv_handle_t, spv_size_t, 
+    const mpz_t, spv_size_t);
 void mpzspv_sub_sp (mpzspv_handle_t, spv_size_t, mpzspv_handle_t, spv_size_t, 
     sp_t, spv_size_t);
 void mpzspv_fromto_mpzv (mpzspv_handle_t, spv_size_t, spv_size_t, 
