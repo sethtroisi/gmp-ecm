@@ -3,6 +3,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <math.h>
 
 #include <gmp.h> /* GMP header file */
 #include "ecm.h" /* ecm header file */
@@ -16,6 +17,33 @@
 
 #define NCURVE_MAX 1000
 
+/********** stolen by lazyness **********/
+
+/* returns the number of decimal digits of n */
+unsigned int
+nb_digits (const mpz_t n)
+{
+  mpz_t x;
+  unsigned int size;
+
+  size = mpz_sizeinbase (n, 10);
+
+  /* the GMP documentation says mpz_sizeinbase returns the exact value,
+     or one too big, thus:
+     (a) either n < 10^(size-1), and n has size-1 digits
+     (b) or n >= size-1, and n has size digits
+     Note: mpz_sizeinbase returns 1 for n=0, thus we always have size >= 1.
+  */
+				    
+  mpz_init (x);
+  mpz_ui_pow_ui (x, 10, size - 1);
+  if (mpz_cmpabs (n, x) < 0)
+    size --;
+  mpz_clear (x);
+
+  return size;
+}
+
 /********** group law on points **********/
 
 #define pt_is_equal(EP, EQ) (mpz_cmp((EP)->x, (EQ)->x) == 0 \
@@ -23,7 +51,7 @@
 			     && mpz_cmp((EP)->z, (EQ)->z) == 0)
 
 int
-pt_is_zero(curve *EP, mpmod_t n)
+pt_is_zero(curve *EP, ATTRIBUTE_UNUSED mpmod_t n)
 {
     return mpz_sgn(EP->z) == 0;
 }
@@ -37,7 +65,7 @@ pt_set_to_zero(curve *EP, mpmod_t n)
 }
 
 void
-pt_assign(curve *EQ, curve *EP, mpmod_t n)
+pt_assign(curve *EQ, curve *EP, ATTRIBUTE_UNUSED mpmod_t n)
 {
     mpres_set(EQ->x, EP->x, n);
     mpres_set(EQ->y, EP->y, n);
@@ -432,9 +460,6 @@ process_one_curve(mpz_t f, mpz_t N, double B1, ecm_params params, curve EP)
 
     mpz_set_si(params->B2, ECM_DEFAULT_B2); /* compute it automatically from B1 */
     mpz_set_si(params->B2min, ECM_DEFAULT_B2); /* will be set to B1 */
-#if DEBUG_MANY_EC >= 2
-    params->verbose = 2;
-#endif
     mpz_set(params->x, EP.x);
     mpz_set(params->y, EP.y);
     mpz_set(params->sigma, EP.A); /* humf */
@@ -443,7 +468,7 @@ process_one_curve(mpz_t f, mpz_t N, double B1, ecm_params params, curve EP)
 }
 
 int
-conclude_on_factor(mpz_t N, mpz_t f)
+conclude_on_factor(mpz_t N, mpz_t f, int verbose)
 {
     mpz_t C;
     int factor_is_prime, cofactor_is_prime, ret;
@@ -462,16 +487,18 @@ conclude_on_factor(mpz_t N, mpz_t f)
     else
 	ret = cofactor_is_prime ? ECM_COMP_FAC_PRIME_COFAC :
 	    ECM_COMP_FAC_COMP_COFAC;
-    gmp_printf("f=%Zd is ", f);
-    if(factor_is_prime)
-	printf("PRP\n");
-    else
-	printf("COMPOSITE\n");
-    gmp_printf("C=%Zd is ", C);
-    if(cofactor_is_prime)
-	printf("PRP\n");
-    else
-	printf("COMPOSITE\n");
+    if (verbose >= 1)
+      {
+        printf ("Found %s factor of %2u digits: ", 
+		factor_is_prime ? "probable prime" : "composite",
+		nb_digits (f));
+	mpz_out_str (stdout, 10, f);
+	printf ("\n");
+	printf ("%s cofactor ",
+		cofactor_is_prime ? "Probable prime" : "Composite");
+	mpz_out_str (stdout, 10, C);
+	printf (" has %u digits\n", nb_digits(C));
+      }
     mpz_clear(C);
     return ret;
 }
@@ -493,7 +520,7 @@ one_curve_at_a_time(mpz_t f, char *ok, curve *tEP, int nc, mpz_t N, double B1)
 	ret = process_one_curve(f, N, B1, params, tEP[i]);
 	if(ret > 0){ /* humf */
 	    ok[i] = 0;
-	    ret = conclude_on_factor(N, f);
+	    ret = conclude_on_factor(N, f, params->verbose);
 	}
 	else if(ret == ECM_ERROR){
 	    printf("Error for curve %d\n", i);
@@ -655,6 +682,12 @@ process_many_curves(mpz_t f, mpz_t n, double B1, curve *tEP, int nEP)
     int ret = 0, i;
     long st = cputime ();
     
+    ecm_init(params);
+#if DEBUG_MANY_EC >= 2
+    params->verbose = 2;
+#else
+    params->verbose = 1;
+#endif
     memset(ok, 1, nEP);
 #ifdef ONE_CURVE_AT_A_TIME
     ret = one_curve_at_a_time(f, ok, tEP, nEP, n, B1);
@@ -671,10 +704,9 @@ process_many_curves(mpz_t f, mpz_t n, double B1, curve *tEP, int nEP)
     printf("# Step 1 took %ldms\n", elltime (st, cputime ()));
 
     if(ret != ECM_NO_FACTOR_FOUND){
-	ret = conclude_on_factor(n, f);
+	ret = conclude_on_factor(n, f, params->verbose);
     }
     else{
-	ecm_init(params);
 	params->sigma_is_A = -1;
 	params->B1done = B1;
 	for(i = 0; i < nEP; i++){
@@ -694,11 +726,10 @@ process_many_curves(mpz_t f, mpz_t n, double B1, curve *tEP, int nEP)
 		printf("## factor found in Step 2: ");
 		mpz_out_str (stdout, 10, f);
 		printf ("\n");
-		ret = conclude_on_factor(n, f);
+		ret = conclude_on_factor(n, f, params->verbose);
 		break;
 	    }
 	}
-	ecm_clear(params);
     }
     for(i = 0; i < nEP; i++){
 	mpres_clear(tEQ[i].x, modulus);
@@ -706,6 +737,7 @@ process_many_curves(mpz_t f, mpz_t n, double B1, curve *tEP, int nEP)
 	mpres_clear(tEQ[i].z, modulus); 
 	mpres_clear(tEQ[i].A, modulus); 
     }
+    ecm_clear(params);
 #endif
     free(ok);
     return ret;
