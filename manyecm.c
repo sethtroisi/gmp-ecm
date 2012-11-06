@@ -587,7 +587,7 @@ all_curves_at_once(mpz_t f, char *ok, curve *tEP, int nEP, mpmod_t n,
     for (p = getprime (); p <= B1; p = getprime ()){
 	for (r = p; r <= B1; r *= p){
 #if DEBUG_MANY_EC >= 1
-	    printf("## p = %ld\n", (long)p);
+	    printf("## p = %ld at %ldms\n", (long)p, cputime());
 #endif
 	    if (r > *B1done){
 		mpz_set_ui(e, (ecm_uint) p);
@@ -782,6 +782,74 @@ process_many_curves_from_file(mpz_t f, mpz_t n, double B1, char *fic_EP,
     return ret;
 }
 
+/* Kubert: put b = c. */
+int
+build_curves_with_torsion_Z5(mpz_t f, mpz_t n, curve *tEP,
+			     int smin, int smax, int nEP)
+{
+    int s, ret = ECM_NO_FACTOR_FOUND, nc = 0;
+    mpz_t x0, y0, c, a2, a4, a6;
+
+    mpz_init(x0);
+    mpz_init(y0);
+    mpz_init(c);
+    mpz_init(a2);
+    mpz_init(a4);
+    mpz_init(a6);
+    for(s = smin; s < smax; s++){
+	mpz_set_si(x0, s);
+	/* c:=1/2*x0*(4*x0+1)/(3*x0+1); */
+	mpz_mul_si(a2, x0, 3);
+	mpz_add_si(a4, a2, 1);
+	mpz_add(a4, a4, a4);
+	if(mpz_invert(c, a4, n) == 0){
+	    /* factor found! */
+	    mpz_gcd(f, a2, n);
+	    ret = ECM_FACTOR_FOUND_STEP1;
+	    break;
+	}
+	mpz_mul(c, c, x0);
+	mpz_add(a2, a2, x0);
+	mpz_mul(c, c, a2);
+	mpz_mod(c, c, n);
+	/* y0:=x0*(x0+1)*(4*x0+1)/4/(3*x0+1) = (x0+1)*c/2 */
+	if(mpz_tstbit(c, 0)){
+	    /* c is odd, c/2 = (c+N)/2 */
+	    mpz_add(a6, c, n);
+	    mpz_div_2exp(a6, a6, 1);
+	}
+	else
+	    /* c is even, c/2 is easy */
+	    mpz_div_2exp(a6, c, 1);
+	mpz_add_si(y0, x0, 1);
+	mpz_mul(y0, y0, a6);
+	mpz_mod(y0, y0, n);
+	/* (x0, y0) is a point on E(c, c) */
+	/* WE:=EllipticCurve([0, (c^2-6*c+1)/4, 0, c*(c-1)/2, c^2/4]); */
+	/* WE = [0, (c/2)^2-3*(c/2)+1/4, 0, (c/2)*(c-1), (c/2)^2] */
+	mpz_mul_si(a2, a6, -3);
+	mpz_sub_si(a4, c, 1);
+	mpz_mul(a4, a4, a6);
+	mpz_mod(a4, a4, n);
+	mpz_mul(a6, a6, a6);
+	mpz_mod(a6, a6, n);
+	mpz_add(a2, a2, a6);
+	/* a2 += 1/4 */
+	/* P:=WE![x0, y0, 1]; */
+	/* convert to short Weierstrass form */
+	nc++;
+	if(nc >= nEP)
+	    break;
+    }
+    mpz_clear(x0);
+    mpz_clear(y0);
+    mpz_clear(c);
+    mpz_clear(a2);
+    mpz_clear(a4);
+    mpz_clear(a6);
+    return ret;
+}
+
 /* Assuming we can generate curves with given torsion using parameter s
    in interval [smin..smax].
 */
@@ -789,12 +857,11 @@ int
 build_curves_with_torsion(mpz_t f, mpz_t n, curve *tEP, char *torsion, 
 			  int smin, int smax, int nEP)
 {
-    curve E;
     int ret = 0;
 
     /* over Q: see Atkin-Morain, Math. Comp., 1993 */
-    if(strcmp(torsion, "Z5") == 0){
-    }
+    if(strcmp(torsion, "Z5") == 0)
+	return build_curves_with_torsion_Z5(f, n, tEP, smin, smax, nEP);
     else if(strcmp(torsion, "Z7") == 0){
     }
     else if(strcmp(torsion, "Z9") == 0){
@@ -938,12 +1005,13 @@ main (int argc, char *argv[])
 
   mpz_init (n);
   mpz_init (f); /* for potential factor */
+  setlinebuf(stdout);
   while(fscanf(infile, "%s", buf) != EOF){
       /* read number */
       if(buf[0] == '#'){
+	  char c;
 	  /* print till end of line */
 	  printf("%s", buf);
-	  char c;
 	  while((c = getc(infile)) != '\n')
 	      printf("%c", c);
 	  printf("\n");
@@ -964,7 +1032,6 @@ main (int argc, char *argv[])
       else if(torsion != NULL){
 	  res = process_curves_with_torsion(f, n, B1, torsion, smin, smax, ncurves);
       }
-      fflush(stdout);
   }
   if(infile != stdin)
       fclose(infile);
