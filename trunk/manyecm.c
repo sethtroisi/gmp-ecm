@@ -422,12 +422,57 @@ mod_from_rat(mpz_t r, mpq_t q, mpz_t N)
 int
 process_one_curve(mpz_t f, mpz_t N, double B1, ecm_params params, curve EP)
 {
+    double B2scale = 1.0;
     int ret;
 
-    mpz_set (params->x, EP.x);
-    mpz_set (params->y, EP.y);
-    mpz_set (params->sigma, EP.A); /* humf */
+    /* Taken from main.c; no comment */
+    /* Here's an ugly hack to pass B2scale to the library somehow.
+       It gets piggy-backed onto B1done */
+    params->B1done = params->B1done + floor (B2scale * 128.) / 134217728.; 
+
+    mpz_set_si(params->B2, ECM_DEFAULT_B2); /* compute it automatically from B1 */
+    mpz_set_si(params->B2min, ECM_DEFAULT_B2); /* will be set to B1 */
+#if DEBUG_MANY_EC >= 2
+    params->verbose = 2;
+#endif
+    mpz_set(params->x, EP.x);
+    mpz_set(params->y, EP.y);
+    mpz_set(params->sigma, EP.A); /* humf */
     ret = ecm_factor(f, N, B1, params);
+    return ret;
+}
+
+int
+conclude_on_factor(mpz_t N, mpz_t f)
+{
+    mpz_t C;
+    int factor_is_prime, cofactor_is_prime, ret;
+
+    if(mpz_cmp(N, f) == 0){
+	printf("# found input number, proceeding to next curve\n");
+	return ECM_INPUT_NUMBER_FOUND;
+    }
+    factor_is_prime = mpz_probab_prime_p (f, PROBAB_PRIME_TESTS);
+    mpz_init(C);
+    mpz_tdiv_q(C, N, f);
+    cofactor_is_prime = mpz_probab_prime_p (C, PROBAB_PRIME_TESTS);
+    if (factor_is_prime)
+	ret = cofactor_is_prime ? ECM_PRIME_FAC_PRIME_COFAC :
+	    ECM_PRIME_FAC_COMP_COFAC;
+    else
+	ret = cofactor_is_prime ? ECM_COMP_FAC_PRIME_COFAC :
+	    ECM_COMP_FAC_COMP_COFAC;
+    gmp_printf("f=%Zd is ", f);
+    if(factor_is_prime)
+	printf("PRP\n");
+    else
+	printf("COMPOSITE\n");
+    gmp_printf("C=%Zd is ", C);
+    if(cofactor_is_prime)
+	printf("PRP\n");
+    else
+	printf("COMPOSITE\n");
+    mpz_clear(C);
     return ret;
 }
 
@@ -447,49 +492,8 @@ one_curve_at_a_time(mpz_t f, char *ok, curve *tEP, int nc, mpz_t N, double B1)
 	params->B1done = 1.0;
 	ret = process_one_curve(f, N, B1, params, tEP[i]);
 	if(ret > 0){ /* humf */
-	    int factor_is_prime, cofactor_is_prime;
-
 	    ok[i] = 0;
-	    if(mpz_cmp(N, f) == 0){
-		printf("# found input number, proceeding to next curve\n");
-		continue;
-	    }
-	    printf("******************** Factor found with E[%d]: ", i);
-	    mpz_out_str (stdout, 10, f);
-	    printf ("\n");
-	    factor_is_prime = mpz_probab_prime_p (f, PROBAB_PRIME_TESTS);
-	    mpz_tdiv_q (C, N, f);
-	    cofactor_is_prime = mpz_probab_prime_p (C, PROBAB_PRIME_TESTS);
-	    if (factor_is_prime)
-		ret = cofactor_is_prime ? ECM_PRIME_FAC_PRIME_COFAC :
-		    ECM_PRIME_FAC_COMP_COFAC;
-	    else
-		ret = cofactor_is_prime ? ECM_COMP_FAC_PRIME_COFAC :
-		    ECM_COMP_FAC_COMP_COFAC;
-	    gmp_printf("f=%Zd is ", f);
-	    if(factor_is_prime)
-		printf("PRP\n");
-	    else
-		printf("COMPOSITE\n");
-	    gmp_printf("C=%Zd is ", C);
-	    if(cofactor_is_prime)
-		printf("PRP\n");
-	    else
-		printf("COMPOSITE\n");
-	    if(factor_is_prime && cofactor_is_prime)
-		break;
-	    else if(factor_is_prime){
-		mpz_set(N, C);
-	    }
-	    else if(cofactor_is_prime){
-		mpz_set(N, f);
-	    }
-	    else{
-		printf("## restarting with f\n");
-		one_curve_at_a_time(N, ok, tEP, nc, f, B1);
-		printf("## restarting with C\n");
-		one_curve_at_a_time(N, ok, tEP, nc, C, B1);
-	    }
+	    ret = conclude_on_factor(N, f);
 	}
 	else if(ret == ECM_ERROR){
 	    printf("Error for curve %d\n", i);
@@ -667,17 +671,32 @@ process_many_curves(mpz_t f, mpz_t n, double B1, curve *tEP, int nEP)
     printf("# Step 1 took %ldms\n", elltime (st, cputime ()));
 
     if(ret != ECM_NO_FACTOR_FOUND){
+	ret = conclude_on_factor(n, f);
+    }
+    else{
 	ecm_init(params);
 	params->sigma_is_A = -1;
 	params->B1done = B1;
 	for(i = 0; i < nEP; i++){
 	    if(ok[i] == 0)
 		continue;
-	    /* TODO: clear params? */
+#if DEBUG_MANY_EC >= 1
 	    printf("# Entering Step 2 for E[%d]\n", i);
+#endif
 	    st = cputime ();
+	    mpres_get_z(tEP[i].x, tEQ[i].x, modulus);
+	    mpres_get_z(tEP[i].y, tEQ[i].y, modulus);
+	    mpres_get_z(tEP[i].z, tEQ[i].z, modulus);
+	    mpres_get_z(tEP[i].A, tEQ[i].A, modulus);
 	    ret = process_one_curve(f, n, B1, params, tEP[i]);
 	    printf("# Step 2 for E[%d] took %ldms\n",i,elltime(st, cputime()));
+	    if(ret != ECM_NO_FACTOR_FOUND){
+		printf("## factor found in Step 2: ");
+		mpz_out_str (stdout, 10, f);
+		printf ("\n");
+		ret = conclude_on_factor(n, f);
+		break;
+	    }
 	}
 	ecm_clear(params);
     }
@@ -913,16 +932,7 @@ main (int argc, char *argv[])
       else if(torsion != NULL){
 	  res = process_curves_with_torsion(f, n, B1, torsion, smin, smax, ncurves);
       }
-      if (res > 0)
-	  {
-	      printf ("found factor in step %u: ", res);
-	      mpz_out_str (stdout, 10, f);
-	      printf ("\n");
-	  }
-      else if (res == ECM_NO_FACTOR_FOUND)
-	  printf ("found no factor\n");
-      else
-	  printf ("error\n");
+      fflush(stdout);
   }
   if(infile != stdin)
       fclose(infile);

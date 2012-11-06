@@ -1416,7 +1416,7 @@ set_stage_2_params (mpz_t B2, mpz_t B2_parm, mpz_t B2min, mpz_t B2min_parm,
           S is the degree of the Suyama-Brent extension for stage 2
           verbose is verbosity level: 0 no output, 1 normal output,
             2 diagnostic output.
-          sigma_is_a: If true, the sigma parameter contains the curve's A value
+          sigma_is_A: If true, the sigma parameter contains the curve's A value
    Output: f is the factor found.
    Return value: ECM_FACTOR_FOUND_STEPn if a factor was found,
                  ECM_NO_FACTOR_FOUND if no factor was found,
