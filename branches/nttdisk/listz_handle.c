@@ -195,7 +195,7 @@ listz_handle_output_poly (const listz_handle_t l, const uint64_t len,
   for (i = 0; i < len; i++)
     {
       const uint64_t deg = len - ((monic != 0) ? 0U : 1U);
-      const plus = (i < deg) ? " + " : "";
+      const char *plus = (i < deg) ? " + " : "";
       listz_iterator_read (iter, m);
       if (symmetric)
         outputf (verbosity, "Mod(%Zd,N) * (x^%" PRIu64 " + x^-%" PRIu64 ")%s", 
