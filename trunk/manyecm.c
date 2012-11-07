@@ -721,13 +721,11 @@ process_many_curves(mpz_t f, mpz_t n, double B1, curve *tEP, int nEP)
 #if DEBUG_MANY_EC >= 1
 	    printf("# Entering Step 2 for E[%d]\n", i);
 #endif
-	    st = cputime ();
 	    mpres_get_z(tEP[i].x, tEQ[i].x, modulus);
 	    mpres_get_z(tEP[i].y, tEQ[i].y, modulus);
 	    mpres_get_z(tEP[i].z, tEQ[i].z, modulus);
 	    mpres_get_z(tEP[i].A, tEQ[i].A, modulus);
 	    ret = process_one_curve(f, n, B1, params, tEP[i]);
-	    printf("# Step 2 for E[%d] took %ldms\n",i,elltime(st, cputime()));
 	    if(ret != ECM_NO_FACTOR_FOUND){
 		printf("## factor found in Step 2: ");
 		mpz_out_str (stdout, 10, f);
@@ -821,11 +819,14 @@ W2W(curve *EP, mpz_t a2, mpz_t a4, mpz_t x0, mpz_t y0, mpz_t n)
     mpz_set(EP->y, y0);
     mpz_mod(EP->y, EP->y, n);
     mpz_set_ui(EP->z, 1);
+#if DEBUG_MANY_EC >= 2
     gmp_printf("N:=%Zd;\n", n);
     gmp_printf("A:=%Zd;\n", EP->A);
     gmp_printf("x0:=%Zd;\n", EP->x);
     gmp_printf("y0:=%Zd;\n", EP->y);
     printf("B:=(y0^2-x0^3-A*x0) mod N;\n");
+    exit(-1);
+#endif
 }
 
 /* From a curve in Weierstrass form to a short form 
@@ -863,8 +864,10 @@ K2W(curve *EP, mpz_t b, mpz_t c, mpz_t x0, mpz_t y0, mpz_t n)
 	mpz_clear(a6);
     }
 #endif
+#if DEBUG_MANY_EC >= 2
     gmp_printf("a2:=%Zd;\n", a2);
     gmp_printf("a4:=%Zd;\n", a4);
+#endif
     /* second conversion */
     W2W(EP, a2, a4, x0, y0, n);
     mpz_clear(a2);
@@ -886,7 +889,6 @@ build_curves_with_torsion_Z5(mpz_t f, mpz_t n, curve *tEP,
     for(s = smin; s < smax; s++){
 	mpz_set_si(x0, s);
 	/* c:=1/2*x0*(4*x0+1)/(3*x0+1); */
-	printf("cr:=1/2*x0*(4*x0+1)/(3*x0+1);\n");
 	/* y0 <- 2*(3*x0+1) */
 	mpz_mul_si(y0, x0, 3);
 	mpz_add_si(y0, y0, 1);
@@ -905,7 +907,10 @@ build_curves_with_torsion_Z5(mpz_t f, mpz_t n, curve *tEP,
 	mpz_mul(y0, y0, c);
 	mpz_mod(y0, y0, n);
 	mod_div_2(y0, n);
+#if DEBUG_MANY_EC >= 2
 	gmp_printf("x0:=%Zd;\nc:=%Zd;\ny0:=%Zd;\n", x0, c, y0);
+	printf("cr:=1/2*x0*(4*x0+1)/(3*x0+1);\n");
+#endif
 	/* P:=WE![x0, y0, 1]; */
 	/* convert to short Weierstrass form */
 	K2W(tEP+nc, c, c, x0, y0, n);
@@ -918,6 +923,59 @@ build_curves_with_torsion_Z5(mpz_t f, mpz_t n, curve *tEP,
     mpz_clear(c);
     mpz_clear(tmp);
     return ret;
+}
+
+int
+build_curves_with_torsion_Z3xZ3(mpz_t n, curve *tEP,
+				int smin, int smax, int nEP)
+{
+    mpz_t a2, a4, x0, y0;
+    int T, nc = 0;
+
+    mpz_init(x0);
+    mpz_init(y0);
+    mpz_init(a2);
+    mpz_init(a4);
+    for(T = smin; T < smax; T++){
+	/* x0 <- T^6 */
+	mpz_ui_pow_ui(x0, T, 6);
+	mpz_mod(x0, x0, n);
+	/* a2:=T^6+108;*/
+	mpz_add_ui(a2, x0, 108);
+	mpz_mod(a2, a2, n);
+	/* a4:=144*T^6+3888; */
+	mpz_mul_ui(a4, x0, 144);
+	mpz_add_ui(a4, a4, 3888);
+	mpz_mod(a4, a4, n);
+#if 0
+	{
+	    mpz_t a6;
+	    /* a6:=64*T^12+3456*T^6+46656; */
+	    mpz_init(a6);
+	    mpz_mul_ui(a6, x0, 64);
+	    mpz_add_ui(a6, a6, 3456);
+	    mpz_mul(a6, a6, x0);
+	    mpz_add_ui(a6, a6, 46656);
+	    mpz_mod(a6, a6, n);
+	    mpz_clear(a6);
+	}
+#endif
+	/* P:=E![0, 8*T^6+216, 1] has infinite order.*/
+	/* convert to short Weierstrass form */
+	mpz_mul_ui(y0, x0, 8);
+	mpz_add_ui(y0, y0, 216);
+	mpz_mod(y0, y0, n);
+	mpz_set_ui(x0, 0);
+	W2W(tEP+nc, a2, a4, x0, y0, n);
+	nc++;
+	if(nc >= nEP)
+	    break;
+    }
+    mpz_clear(x0);
+    mpz_clear(y0);
+    mpz_clear(a2);
+    mpz_clear(a4);
+    return ECM_NO_FACTOR_FOUND;
 }
 
 /* Assuming we can generate curves with given torsion using parameter s
@@ -941,8 +999,8 @@ build_curves_with_torsion(mpz_t f, mpz_t n, curve *tEP, char *torsion,
     else if(strcmp(torsion, "Z2xZ8") == 0){
     }
     /* no longer over Q */
-    else if(strcmp(torsion, "Z3xZ3") == 0){ /* over Q(sqrt(-3)) */
-    }
+    else if(strcmp(torsion, "Z3xZ3") == 0) /* over Q(sqrt(-3)) */
+	return build_curves_with_torsion_Z3xZ3(n, tEP, smin, smax, nEP);
     else{
 	printf("Unknown torsion group: %s\n", torsion);
 	ret = ECM_ERROR;
