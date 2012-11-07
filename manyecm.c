@@ -1,4 +1,6 @@
-/* manyecm.c - ECM with many curves in parallel */
+/* manyecm.c - ECM with many curves in parallel 
+   Author: F. Morain
+*/
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -978,6 +980,88 @@ build_curves_with_torsion_Z3xZ3(mpz_t n, curve *tEP,
     return ECM_NO_FACTOR_FOUND;
 }
 
+/* Original source is Brier + Clavier.
+   We can build curves in Montgomery form directly... 
+   Useful if one knows that all p | n are 1 mod 4 (Cunningham, etc.).
+*/
+int
+build_curves_with_torsion_Z4xZ4(mpz_t f, mpz_t n, curve *tEP,
+				int smin, int smax, int nEP)
+{
+    mpz_t tau, lambda, nu2, tmp, b, x0;
+    int nu, nc = 0, ret = ECM_NO_FACTOR_FOUND;
+
+    mpz_init(tau);
+    mpz_init(lambda);
+    mpz_init(nu2);
+    mpz_init(tmp);
+    mpz_init(b);
+    mpz_init(x0);
+    for(nu = smin; nu < smax; nu++){
+	mpz_set_ui(nu2, nu*nu);
+	/* tau:=(nu^2+3)/2/nu; */
+	mpz_add_si(lambda, nu2, 3);
+	mpz_set_si(tmp, 2*nu);
+	mod_from_rat2(tau, lambda, tmp, n);
+	/* lambda:=8*nu^3; */
+	mpz_mul_si(lambda, nu2, 8*nu);
+	mpz_mod(lambda, lambda, n);
+	/* A:=-27*lambda^4*(tau^8+14*tau^4+1); */
+	/* B:=54*lambda^6*(tau^12-33*tau^8-33*tau^4+1); */
+	/* x0:=3*(3*nu^12+34*nu^10+117*nu^8+316*nu^6+1053*nu^4+2754*nu^2+2187); */
+	/* y0:=27*(nu^2-3)*(nu^2+1)*(nu^2+9)*(nu^6+5*nu^4+15*nu^2+27)^2; */
+	/* P = (x0, y0) is a point on Y^2 = X^3+A*X+B */
+
+	/* Montgomery form: there are several b possible */
+	/* b:=1/9/lambda^2/(tau^4-1); */
+	mpz_powm_ui(x0, tau, 4, n);
+	mpz_sub_si(x0, x0, 1);
+	mpz_mod(x0, x0, n);
+	mpz_mul(tmp, x0, lambda);
+	mpz_mul(tmp, tmp, lambda);
+	mpz_mul_si(tmp, tmp, 9);
+	if(mpz_invert(b, tmp, n) == 0){
+	    printf("Factor found durint init of Z4xZ4\n");
+	    mpz_gcd(f, tmp, n);
+	    ret = ECM_FACTOR_FOUND_STEP1;
+	    break;
+	}
+	/* a:=-2*(tau^4+1)/(tau^4-1); */
+	mpz_add_si(tmp, x0, 2);
+	mpz_mul_si(tmp, tmp, -2);
+	mpz_mod(tmp, tmp, n);
+	mod_from_rat2(tEP[nc].A, tmp, x0, n);
+	/* now compute real x0 */
+	/* x0:=3*(3*nu^12+34*nu^10+117*nu^8+316*nu^6+1053*nu^4+2754*nu^2+2187); */
+	mpz_set_si(x0, 3);
+	mpz_mul(x0, x0, nu2); mpz_add_si(x0, x0, 34);
+	mpz_mul(x0, x0, nu2); mpz_add_si(x0, x0, 117);
+	mpz_mul(x0, x0, nu2); mpz_add_si(x0, x0, 316);
+	mpz_mul(x0, x0, nu2); mpz_add_si(x0, x0, 1053);
+	mpz_mul(x0, x0, nu2); mpz_add_si(x0, x0, 2754);
+	mpz_mul(x0, x0, nu2); mpz_add_si(x0, x0, 2187);
+	mpz_mul_si(x0, x0, 3);
+	mpz_mod(x0, x0, n);
+	/* x:=b*x0-a/3; not needed: y:=b*y0 */
+	mpz_set_si(tmp, 3);
+	mod_from_rat2(tEP[nc].x, tEP[nc].A, tmp, n);
+	mpz_mul(b, b, x0);
+	mpz_mod(b, b, n);
+	mpz_sub(tEP[nc].x, tEP[nc].x, b);
+	mpz_mod(tEP[nc].x, tEP[nc].x, n);
+	nc++;
+	if(nc >= nEP)
+	    break;
+    }
+    mpz_clear(tau);
+    mpz_clear(lambda);
+    mpz_clear(nu2);
+    mpz_clear(tmp);
+    mpz_clear(b);
+    mpz_clear(x0);
+    return ret;
+}
+
 /* Assuming we can generate curves with given torsion using parameter s
    in interval [smin..smax].
 */
@@ -1001,6 +1085,8 @@ build_curves_with_torsion(mpz_t f, mpz_t n, curve *tEP, char *torsion,
     /* no longer over Q */
     else if(strcmp(torsion, "Z3xZ3") == 0) /* over Q(sqrt(-3)) */
 	return build_curves_with_torsion_Z3xZ3(n, tEP, smin, smax, nEP);
+    else if(strcmp(torsion, "Z4xZ4") == 0) /* over Q(sqrt(-1)) */
+	return build_curves_with_torsion_Z4xZ4(f, n, tEP, smin, smax, nEP);
     else{
 	printf("Unknown torsion group: %s\n", torsion);
 	ret = ECM_ERROR;
