@@ -15,7 +15,6 @@
 #include "mpmod.h"
 
 #define DEBUG_MANY_EC 0
-/* #define ONE_CURVE_AT_A_TIME*/ /* PROTECTION */
 
 #define NCURVE_MAX 1000
 
@@ -454,6 +453,8 @@ mod_from_rat(mpz_t r, mpq_t q, mpz_t N)
 }
 
 /* fall back on traditional ECM.
+   We decide between Weierstrass and Montgomery by inspection of y: it is
+   Weierstrass iff y == NULL.
  */
 int
 process_one_curve(mpz_t f, mpz_t N, double B1, ecm_params params, curve EP)
@@ -469,8 +470,14 @@ process_one_curve(mpz_t f, mpz_t N, double B1, ecm_params params, curve EP)
     mpz_set_si(params->B2, ECM_DEFAULT_B2); /* compute it automatically from B1 */
     mpz_set_si(params->B2min, ECM_DEFAULT_B2); /* will be set to B1 */
     mpz_set(params->x, EP.x);
-    mpz_set(params->y, EP.y);
     mpz_set(params->sigma, EP.A); /* humf */
+
+    if(EP.y->_mp_alloc == 0) /* humf */
+	params->sigma_is_A = 1;
+    else{
+	params->sigma_is_A = -1;
+	mpz_set(params->y, EP.y);
+    }
     ret = ecm_factor(f, N, B1, params);
     return ret;
 }
@@ -511,7 +518,6 @@ conclude_on_factor(mpz_t N, mpz_t f, int verbose)
     return ret;
 }
 
-#ifdef ONE_CURVE_AT_A_TIME
 int
 one_curve_at_a_time(mpz_t f, char *ok, curve *tEP, int nc, mpz_t N, double B1)
 {
@@ -520,7 +526,7 @@ one_curve_at_a_time(mpz_t f, char *ok, curve *tEP, int nc, mpz_t N, double B1)
     mpz_t C;
 
     ecm_init(params);
-    params->sigma_is_A = -1;
+    params->verbose = 1;
     mpz_init (C);
     /* process curves one at a time */
     for(i = 0; i < nc; i++){
@@ -538,7 +544,7 @@ one_curve_at_a_time(mpz_t f, char *ok, curve *tEP, int nc, mpz_t N, double B1)
     ecm_clear(params);
     return ret;
 }
-#else
+
 /* Using parallelism.
    Copied from classical ecm_stage1.
  */
@@ -664,7 +670,6 @@ all_curves_at_once(mpz_t f, char *ok, curve *tEP, int nEP, mpmod_t n,
     mpres_clear(den[nEP], n);
     return ret;
 }
-#endif
 
 int
 read_and_prepare(mpz_t f, mpz_t x, mpq_t q, char *buf, mpz_t n)
@@ -678,28 +683,27 @@ read_and_prepare(mpz_t f, mpz_t x, mpq_t q, char *buf, mpz_t n)
 }
 
 int
-process_many_curves(mpz_t f, mpz_t n, double B1, curve *tEP, int nEP)
+process_many_curves(mpz_t f, mpz_t n, double B1, curve *tEP, int nEP,
+		    int onebyone)
 {
-#ifndef ONE_CURVE_AT_A_TIME
     mpmod_t modulus;
     double B1done;
     curve tEQ[NCURVE_MAX];
-#endif
     ecm_params params;
     char *ok = (char *)malloc(nEP * sizeof(char));
     int ret = 0, i;
     long st = cputime ();
     
     ecm_init(params);
-#if DEBUG_MANY_EC >= 2
+#if DEBUG_MANY_EC >= 0
     params->verbose = 2;
 #else
     params->verbose = 1;
 #endif
     memset(ok, 1, nEP);
-#ifdef ONE_CURVE_AT_A_TIME
-    ret = one_curve_at_a_time(f, ok, tEP, nEP, n, B1);
-#else
+    if(onebyone)
+	return one_curve_at_a_time(f, ok, tEP, nEP, n, B1);
+    /* take everybody */
     mpmod_init(modulus, n, ECM_MOD_DEFAULT);
     for(i = 0; i < nEP; i++){
        mpres_init(tEQ[i].x, modulus); mpres_set_z(tEQ[i].x, tEP[i].x, modulus);
@@ -744,14 +748,13 @@ process_many_curves(mpz_t f, mpz_t n, double B1, curve *tEP, int nEP)
 	mpres_clear(tEQ[i].A, modulus); 
     }
     ecm_clear(params);
-#endif
     free(ok);
     return ret;
 }
 
 int
 process_many_curves_from_file(mpz_t f, mpz_t n, double B1, char *fic_EP,
-			      int ncurves)
+			      int ncurves, int onebyone)
 {
     curve tEP[NCURVE_MAX];
     FILE *ifile = fopen(fic_EP, "r");
@@ -775,7 +778,7 @@ process_many_curves_from_file(mpz_t f, mpz_t n, double B1, char *fic_EP,
 	if(ncurves != 0 && nEP == ncurves)
 	    break;
     }
-    ret = process_many_curves(f, n, B1, tEP, nEP);
+    ret = process_many_curves(f, n, B1, tEP, nEP, onebyone);
     for(i = 0; i < nEP; i++){
 	mpz_clear(tEP[i].x);
 	mpz_clear(tEP[i].y);
@@ -1042,12 +1045,20 @@ build_curves_with_torsion_Z4xZ4(mpz_t f, mpz_t n, curve *tEP,
 	mpz_mul(x0, x0, nu2); mpz_add_si(x0, x0, 2187);
 	mpz_mul_si(x0, x0, 3);
 	mpz_mod(x0, x0, n);
+#if DEBUG_MANY_EC >= 2
+	gmp_printf("N:=%Zd;\n", n);
+	printf("nu:=%d;\n", nu);
+	gmp_printf("tau:=%Zd;\n", tau);
+	gmp_printf("lambda:=%Zd;\n", lambda);
+	gmp_printf("a:=%Zd;\n", tEP[nc].A);
+	gmp_printf("x0:=%Zd;\n", x0);
+#endif
 	/* x:=b*x0-a/3; not needed: y:=b*y0 */
 	mpz_set_si(tmp, 3);
 	mod_from_rat2(tEP[nc].x, tEP[nc].A, tmp, n);
 	mpz_mul(b, b, x0);
 	mpz_mod(b, b, n);
-	mpz_sub(tEP[nc].x, tEP[nc].x, b);
+	mpz_sub(tEP[nc].x, b, tEP[nc].x);
 	mpz_mod(tEP[nc].x, tEP[nc].x, n);
 	nc++;
 	if(nc >= nEP)
@@ -1104,17 +1115,25 @@ process_curves_with_torsion(mpz_t f, mpz_t n, double B1, char *torsion,
     for(i = 0; i < nEP; i++){
 	mpz_init(tEP[i].A);
 	mpz_init(tEP[i].x);
-	mpz_init(tEP[i].y);
-	mpz_init(tEP[i].z);
+	if(strcmp(torsion, "Z4xZ4") != 0){
+	    mpz_init(tEP[i].y);
+	    mpz_init(tEP[i].z);
+	}
     }
     if(build_curves_with_torsion(f, n, tEP, torsion, smin, smax, nEP) 
-       == ECM_NO_FACTOR_FOUND)
-	ret = process_many_curves(f, n, B1, tEP, nEP);
+       == ECM_NO_FACTOR_FOUND){
+	if(strcmp(torsion, "Z4xZ4") == 0)
+	    ret = process_many_curves(f, n, B1, tEP, nEP, 1);
+	else
+	    ret = process_many_curves(f, n, B1, tEP, nEP, 0);
+    }
     for(i = 0; i < nEP; i++){
 	mpz_clear(tEP[i].A);
 	mpz_clear(tEP[i].x);
-	mpz_clear(tEP[i].y);
-	mpz_clear(tEP[i].z);
+	if(strcmp(torsion, "Z4xZ4") != 0){
+	    mpz_clear(tEP[i].y);
+	    mpz_clear(tEP[i].z);
+	}
     }
     return ret;
 }
@@ -1134,7 +1153,7 @@ int
 main (int argc, char *argv[])
 {
   mpz_t n, f;
-  int res = 0, smin = -1, smax = -1, ncurves = 0, method = ECM_ECM;
+  int res = 0, smin = -1, smax = -1, ncurves = 0, method = ECM_ECM, onebyone;
   double B1 = 0.0;
   char *infilename = NULL, *curvesname = NULL, *torsion = NULL;
   char buf[10000];
@@ -1250,7 +1269,9 @@ main (int argc, char *argv[])
 	  else
 	      printf("# Using only %d", ncurves);
 	  printf(" curves from %s with B1=%1.0f\n", curvesname, B1);
-	  res = process_many_curves_from_file(f, n, B1, curvesname, ncurves);
+	  onebyone = 0;
+	  res = process_many_curves_from_file(f, n, B1, curvesname, ncurves,
+					      onebyone);
       }
       else if(torsion != NULL){
 	  res = process_curves_with_torsion(f, n, B1, torsion, smin, smax, ncurves);
