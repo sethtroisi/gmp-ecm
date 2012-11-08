@@ -452,6 +452,19 @@ mod_from_rat(mpz_t r, mpq_t q, mpz_t N)
     return mod_from_rat2(r, mpq_numref(q), mpq_denref (q), N);
 }
 
+int
+mod_from_rat_str(mpz_t r, char *str, mpz_t N)
+{
+    mpq_t q;
+    int ret;
+
+    mpq_init(q);
+    mpq_set_str(q, str, 10);
+    ret = mod_from_rat2(r, mpq_numref(q), mpq_denref (q), N);
+    mpq_clear(q);
+    return ret;
+}
+
 /* fall back on traditional ECM.
    We decide between Weierstrass and Montgomery by inspection of y: it is
    Weierstrass iff y == NULL.
@@ -535,6 +548,7 @@ one_curve_at_a_time(mpz_t f, char *ok, curve *tEP, int nc, mpz_t N, double B1)
 	if(ret > 0){ /* humf */
 	    ok[i] = 0;
 	    ret = conclude_on_factor(N, f, params->verbose);
+	    break;
 	}
 	else if(ret == ECM_ERROR){
 	    printf("Error for curve %d\n", i);
@@ -930,6 +944,98 @@ build_curves_with_torsion_Z5(mpz_t f, mpz_t n, curve *tEP,
     return ret;
 }
 
+/* INPUT: 
+   T^2 = S^3 + A * S + B
+   => quartic Y^2 = X^4 - 6 * A2 * X^2 + 4 * A1 * X + A0, with
+   X = (T-A1/2)/(S-A2), Y = -X^2 + 2 * S + A2.
+   => quartic y^2 = f(x) = a4*x^4+...+a0, where
+   x = x0+y0/(X-cte), where cte = f'(x0)/4/y0
+   y = Y/y0*(x-x0)^2 = Y*y0/(X-cte)^2
+   OUTPUT: x, y
+ */
+int
+cubic_to_quartic(mpz_t f, mpz_t n, mpz_t x, mpz_t y,
+		 mpz_t s, mpz_t t, mpz_t A2, mpz_t A1div2,
+		 mpz_t x0, mpz_t y0, mpz_t cte)
+{
+    mpz_t X, Y;
+    int ret = 1;
+
+    mpz_init(X);
+    mpz_init(Y);
+    /* 1st move */
+    mpz_sub(x, t, A1div2);
+    mpz_sub(y, s, A2);
+    if(mod_from_rat2(X, x, y, n) == 0){
+	printf("inverse found");
+	mpz_set(f, X);
+	ret = 0;
+    }
+    else{
+	mpz_mul(Y, X, X);
+	mpz_sub(Y, A2, Y);
+	mpz_add(Y, Y, s);
+	mpz_add(Y, Y, s);
+	mpz_mod(Y, Y, n);
+	/* 2nd move */
+	mpz_sub(X, X, cte);
+	mpz_mod(X, X, n);
+	if(mpz_invert(f, X, n) == 0){
+	    printf("inverse found");
+	    ret = 0;
+	}
+	else{
+	    /* x <- y0/(X-cte) */
+	    mpz_mul(x, f, y0);
+	    mpz_mod(x, x, n);
+	    /* y <- x/(X-cte) = y0/(X-cte)^2 */
+	    mpz_mul(y, x, f);
+	    mpz_mod(y, y, n);
+	    mpz_mul(y, y, Y);
+	    mpz_mod(y, y, n);
+	    mpz_add(x, x, x0);
+	    mpz_mod(x, x, n);
+	}
+    }
+    mpz_clear(X);
+    mpz_clear(Y);
+    return ret;
+}
+
+int
+build_curves_with_torsion_Z7(mpz_t f, mpz_t n, curve *tEP,
+			     int smin, int smax, int nEP)
+{
+    int s, ret = ECM_NO_FACTOR_FOUND, nc = 0;
+    mpz_t A2, A1div2, x0, y0, cte;
+    curve EP[1]; /* blourk */
+
+    /* HERE! */
+    /* Eaux = "1295/48", "-1079/864" */
+    /* Paux = "2185/12", "-2458" */
+    mpz_init(A2);
+    mod_from_rat_str(A2, "1/12", n);
+    mpz_init_set_str(A1div2, "-1", 10);
+    mpz_mod(A1div2, A1div2, n);
+    mpz_init_set_str(x0, "-1", 10);
+    mpz_mod(x0, x0, n);
+    mpz_init_set_str(y0, "8", 10);
+    mpz_mod(y0, y0, n);
+    mpz_init(cte);
+    mod_from_rat_str(cte, "-7/2", n);
+    for(s = smin; s < smax; s++){
+	nc++;
+	if(nc >= nEP)
+	    break;
+    }
+    mpz_clear(A2);
+    mpz_clear(A1div2);
+    mpz_clear(x0);
+    mpz_clear(y0);
+    mpz_clear(cte);
+    return ret;
+}
+
 int
 build_curves_with_torsion_Z3xZ3(mpz_t n, curve *tEP,
 				int smin, int smax, int nEP)
@@ -1085,8 +1191,8 @@ build_curves_with_torsion(mpz_t f, mpz_t n, curve *tEP, char *torsion,
     /* over Q: see Atkin-Morain, Math. Comp., 1993 */
     if(strcmp(torsion, "Z5") == 0)
 	return build_curves_with_torsion_Z5(f, n, tEP, smin, smax, nEP);
-    else if(strcmp(torsion, "Z7") == 0){
-    }
+    else if(strcmp(torsion, "Z7") == 0)
+	return build_curves_with_torsion_Z7(f, n, tEP, smin, smax, nEP);
     else if(strcmp(torsion, "Z9") == 0){
     }
     else if(strcmp(torsion, "Z10") == 0){
