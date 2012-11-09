@@ -707,7 +707,6 @@ dump_curves(curve *tEP, int nEP, mpz_t n, mpz_t f)
     for(i = 0; i < nEP; i++){
 	gmp_printf("P[%d]:=[%Zd, %Zd, %Zd];\n", i+1, 
 		   tEP[i].x, tEP[i].y, tEP[i].z); 
-	printf(";\n");
 	gmp_printf("A[%d]:=%Zd;\n", i+1, tEP[i].A);
 	printf("B[%d]:=P[%d][2]^2-P[%d][1]^3-A[%d]*P[%d][1];\n", 
 	       i+1, i+1, i+1, i+1, i+1);
@@ -1272,7 +1271,7 @@ build_curves_with_torsion_Z9(mpz_t fac, mpz_t n, curve *tEP,
 	    break;
 	pt_many_assign(EP, EQ, 1, modulus);
     }
-#if DEBUG_MANY_EC >= 0
+#if DEBUG_MANY_EC >= 2
     printf("Curves built\n");
     pt_many_print(tEP, nEP, modulus);
 #endif
