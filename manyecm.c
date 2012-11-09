@@ -697,6 +697,25 @@ read_and_prepare(mpz_t f, mpz_t x, mpq_t q, char *buf, mpz_t n)
     return 1;
 }
 
+/* f is a (probable) prime factor of n. tEP is in plain mod n form. */
+void
+dump_curves(curve *tEP, int nEP, mpz_t n, mpz_t f)
+{
+    int i;
+
+    gmp_printf("p:=%Zd; F:=GF(p); P:=[]; A:=[]; B:=[]; E:=[];\n", f);
+    for(i = 0; i < nEP; i++){
+	gmp_printf("P[%d]:=[%Zd, %Zd, %Zd];\n", i+1, 
+		   tEP[i].x, tEP[i].y, tEP[i].z); 
+	printf(";\n");
+	gmp_printf("A[%d]:=%Zd;\n", i+1, tEP[i].A);
+	printf("B[%d]:=P[%d][2]^2-P[%d][1]^3-A[%d]*P[%d][1];\n", 
+	       i+1, i+1, i+1, i+1, i+1);
+	printf("E[%d]:=EllipticCurve([F!A[%d], F!B[%d]]);\n", i+1, i+1, i+1);
+	printf("Factorization(#E[%d]);\n", i+1);
+    }
+}
+
 int
 process_many_curves(mpz_t f, mpz_t n, double B1, curve *tEP, int nEP,
 		    int onebyone)
@@ -732,6 +751,11 @@ process_many_curves(mpz_t f, mpz_t n, double B1, curve *tEP, int nEP,
 
     if(ret != ECM_NO_FACTOR_FOUND){
 	ret = conclude_on_factor(n, f, params->verbose);
+#if DEBUG_MANY_EC >= 1
+	if(ret == ECM_PRIME_FAC_PRIME_COFAC || ret == ECM_PRIME_FAC_COMP_COFAC)
+	    /* output Magma lines to check #E's mod f */
+	    dump_curves(tEP, nEP, modulus, f);
+#endif
     }
     else{
 	params->sigma_is_A = -1;
