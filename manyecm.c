@@ -710,7 +710,7 @@ process_many_curves(mpz_t f, mpz_t n, double B1, curve *tEP, int nEP,
     long st = cputime ();
     
     ecm_init(params);
-#if DEBUG_MANY_EC >= 0
+#if DEBUG_MANY_EC >= 2
     params->verbose = 2;
 #else
     params->verbose = 1;
@@ -868,11 +868,14 @@ K2W(curve *EP, mpz_t b, mpz_t c, mpz_t x0, mpz_t y0, mpz_t n)
     mpz_init(a2);
     mpz_init(a4);
     /* first conversion */
+    /** a4 <- (c-1)/2 **/
     mpz_sub_si(a4, c, 1);
     mod_div_2(a4, n);
+    /** a2 <- a4^2-b **/
     mpz_mul(a2, a4, a4);
     mpz_sub(a2, a2, b);
     mpz_mod(a2, a2, n);
+    /** a4 <- a4*b **/
     mpz_mul(a4, a4, b);
     mpz_mod(a4, a4, n);
 #if 0 /* not needed */
@@ -886,6 +889,8 @@ K2W(curve *EP, mpz_t b, mpz_t c, mpz_t x0, mpz_t y0, mpz_t n)
     }
 #endif
 #if DEBUG_MANY_EC >= 2
+    gmp_printf("b:=%Zd;\n", b);
+    gmp_printf("c:=%Zd;\n", c);
     gmp_printf("a2:=%Zd;\n", a2);
     gmp_printf("a4:=%Zd;\n", a4);
 #endif
@@ -1006,40 +1011,42 @@ cubic_to_quartic(mpz_t f, mpz_t n, mpz_t x, mpz_t y,
 
 int
 build_curves_with_torsion_Z7(mpz_t f, mpz_t n, curve *tEP,
-			     int smin, int smax, int nEP)
+			     int umin, int umax, int nEP)
 {
-    int s, ret = ECM_NO_FACTOR_FOUND, nc = 0;
-    mpz_t A2, A1div2, x0, y0, cte, num[2], den[2], inv[1], d, c, b;
+    int u, ret = ECM_NO_FACTOR_FOUND, nc = 0;
+    mpz_t A2, A1div2, x0, y0, cte, num[2], den[2], inv[1], d, c, b, kx0, ky0;
     mpmod_t modulus;
     curve EP[1], EQ[1]; /* blourk */
     char ok[1];
 
     ok[0] = 1;
     mpmod_init(modulus, n, ECM_MOD_DEFAULT);
-    for(s = 0; s < 2; s++){
-	mpres_init(num[s], modulus);
-	mpres_init(den[s], modulus);
+    for(u = 0; u < 2; u++){
+	mpres_init(num[u], modulus);
+	mpres_init(den[u], modulus);
     }
     mpres_init(inv[0], modulus);
     /* Eaux = "1295/48", "-1079/864" */
     /* Paux = "2185/12", "-2458" */
     mpres_init(EP[0].A, modulus);
-    mod_from_rat_str(f, "1295/48", n); mpres_get_z(EP[0].A, f, modulus);
+    mod_from_rat_str(f, "1295/48", n); mpres_set_z(EP[0].A, f, modulus);
     mpres_init(EP[0].x, modulus);
-    mod_from_rat_str(f, "2185/12", n); mpres_get_z(EP[0].x, f, modulus);
+    mod_from_rat_str(f, "2185/12", n); mpres_set_z(EP[0].x, f, modulus);
     mpres_init(EP[0].y, modulus);
-    mpz_set_str(f, "-2458", 10); mpres_get_z(EP[0].y, f, modulus);
+    mpz_set_str(f, "-2458", 10); mpres_set_z(EP[0].y, f, modulus);
     mpres_init(EP[0].z, modulus);
     mpres_set_ui(EP[0].z, 1, modulus);
-    printf("Initial P is\n"); 
-    pt_many_print(EP, 1, modulus);
-    printf("\n");
+#if DEBUG_MANY_EC >= 2
+    printf("P:=");
+    pt_print(EP[0], modulus);
+    printf(";\n");
+#endif
 
     mpres_init(EQ[0].x, modulus);
     mpres_init(EQ[0].y, modulus);
     mpres_init(EQ[0].z, modulus);
     mpres_init(EQ[0].A, modulus);
-    pt_many_assign(EP, EQ, 1, modulus);
+    mpres_set(EQ[0].A, EP[0].A, modulus);
 
     mpz_init(A2);
     mod_from_rat_str(A2, "1/12", n);
@@ -1055,25 +1062,37 @@ build_curves_with_torsion_Z7(mpz_t f, mpz_t n, curve *tEP,
     mpz_init(d);
     mpz_init(c);
     mpz_init(b);
-    for(s = smin; s < smax; s++){
+    mpz_init(kx0);
+    mpz_init(ky0);
+    for(u = umin; u < umax; u++){
 	/* update Qaux */
-	mpz_set_ui(d, s);
+	mpz_set_ui(d, u);
 	if(pt_many_mul(EQ, EP, 1, d, modulus, num, den, inv, ok) == 0){
 	    printf("found factor during update of Q\n");
 	    mpz_set(f, num[1]);
 	    ret = ECM_FACTOR_FOUND_STEP1;
 	    break;
 	}
+#if DEBUG_MANY_EC >= 2
+	printf("(s, t)[%d]:=", u);
+	pt_print(EQ[0], modulus);
+	printf(";\n");
+#endif
+	mpres_get_z(b, EQ[0].x, modulus);
+	mpres_get_z(c, EQ[0].y, modulus);
+	if(cubic_to_quartic(f, n, d, ky0, b, c, A2, A1div2, x0, y0, cte) == 0){
+	    printf("found factor during cubic_2_quartic\n");
+	    ret = ECM_FACTOR_FOUND_STEP1;
+	    break;
+	}
 	/* d:=x; */
-	mpres_set_z(d, EQ[0].x, modulus);
 	/* x0:=-2*d; */
-	mpz_mul_si(x0, d, -2);
-	mpz_mod(x0, x0, n);
+	mpz_mul_si(kx0, d, -2);
+	mpz_mod(kx0, kx0, n);
 	/* y0:=d*y/2; */
-	mpres_set_z(y0, EQ[0].y, modulus);
-	mpz_mul(y0, y0, d);
-	mpz_mod(y0, y0, n);
-	mod_div_2(y0, n);
+	mpz_mul(ky0, ky0, d);
+	mpz_mod(ky0, ky0, n);
+	mod_div_2(ky0, n);
 	/* c:=d^2-d; */
 	mpz_mul(c, d, d);
 	mpz_sub(c, c, d);
@@ -1081,13 +1100,16 @@ build_curves_with_torsion_Z7(mpz_t f, mpz_t n, curve *tEP,
 	/* b:=c*d; */
 	mpz_mul(b, c, d);
 	mpz_mod(b, b, n);
-	K2W(tEP+nc, b, c, x0, y0, n);
+	K2W(tEP+nc, b, c, kx0, ky0, n);
 	nc++;
 	if(nc >= nEP)
 	    break;
 	pt_many_assign(EP, EQ, 1, modulus);
     }
+#if DEBUG_MANY_EC >= 2
+    printf("Curves built\n");
     pt_many_print(tEP, nEP, modulus);
+#endif
     mpz_clear(A2);
     mpz_clear(A1div2);
     mpz_clear(x0);
@@ -1097,9 +1119,9 @@ build_curves_with_torsion_Z7(mpz_t f, mpz_t n, curve *tEP,
     mpres_clear(EP[0].x, modulus);
     mpres_clear(EP[0].y, modulus);
     mpres_clear(EP[0].z, modulus);
-    for(s = 0; s < 2; s++){
-	mpres_clear(num[s], modulus);
-	mpres_clear(den[s], modulus);
+    for(u = 0; u < 2; u++){
+	mpres_clear(num[u], modulus);
+	mpres_clear(den[u], modulus);
     }
     mpres_clear(inv[0], modulus);
     mpres_clear(EP[0].x, modulus);
@@ -1114,6 +1136,8 @@ build_curves_with_torsion_Z7(mpz_t f, mpz_t n, curve *tEP,
     mpz_clear(d);
     mpz_clear(c);
     mpz_clear(b);
+    mpz_clear(kx0);
+    mpz_clear(ky0);
     return ret;
 }
 
