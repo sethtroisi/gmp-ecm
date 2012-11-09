@@ -1471,71 +1471,95 @@ build_curves_with_torsion_Z10(mpz_t fac, mpz_t n, curve *tEP,
     return ret;
 }
 
-/* HERE: adapt from Z4xZ4 code to get a Montgomery form */
+/* Warning: b and a have the Montgomery meaning in this function. */
 int
-build_curves_with_torsion_Z2xZ8(mpz_t fac, mpz_t n, curve *tEP,
+build_curves_with_torsion_Z2xZ8(mpz_t f, mpz_t n, curve *tEP,
 				int umin, int umax, int nEP)
 {
-    int nu, nc = 0, ret = ECM_NO_FACTOR_FOUND;
-#if 0
-    mpz_t tau, lambda, nu2, tmp, b, x0;
+    int u, nc = 0, ret = ECM_NO_FACTOR_FOUND;
+    mpz_t num[2], den[2], inv[1], tmp, a, b, alpha, beta, c, d, x0;
+    mpmod_t modulus;
+    curve EP[1], EQ[1]; /* blourk */
+    char ok[1];
 
-    mpz_init(tau);
-    mpz_init(lambda);
-    mpz_init(nu2);
+    mpz_init(alpha);
+    mpz_init(beta);
     mpz_init(tmp);
+    mpz_init(a);
     mpz_init(b);
+    mpz_init(c);
+    mpz_init(d);
     mpz_init(x0);
-    for(nu = smin; nu < smax; nu++){
-	mpz_set_ui(nu2, nu*nu);
-	/* tau:=(nu^2+3)/2/nu; */
-	mpz_add_si(lambda, nu2, 3);
-	mpz_set_si(tmp, 2*nu);
-	mod_from_rat2(tau, lambda, tmp, n);
-	/* lambda:=8*nu^3; */
-	mpz_mul_si(lambda, nu2, 8*nu);
-	mpz_mod(lambda, lambda, n);
-	/* A:=-27*lambda^4*(tau^8+14*tau^4+1); */
-	/* B:=54*lambda^6*(tau^12-33*tau^8-33*tau^4+1); */
-	/* x0:=3*(3*nu^12+34*nu^10+117*nu^8+316*nu^6+1053*nu^4+2754*nu^2+2187); */
-	/* y0:=27*(nu^2-3)*(nu^2+1)*(nu^2+9)*(nu^6+5*nu^4+15*nu^2+27)^2; */
-	/* P = (x0, y0) is a point on Y^2 = X^3+A*X+B */
+    ok[0] = 1;
+    mpmod_init(modulus, n, ECM_MOD_DEFAULT);
+    for(u = 0; u < 2; u++){
+	mpres_init(num[u], modulus);
+	mpres_init(den[u], modulus);
+    }
+    mpres_init(inv[0], modulus);
+    /* Eaux = [-8, -32] */
+    /* Paux = [12, 40, 1] */
+    mpres_init(EP[0].A, modulus);
+    mpz_set_str(f, "-8", 10); mpres_set_z(EP[0].A, f, modulus);
+    mpres_init(EP[0].x, modulus);
+    mpz_set_str(f, "12", 10); mpres_set_z(EP[0].x, f, modulus);
+    mpres_init(EP[0].y, modulus);
+    mpz_set_str(f, "40", 10); mpres_set_z(EP[0].y, f, modulus);
+    mpres_init(EP[0].z, modulus);
+    mpres_set_ui(EP[0].z, 1, modulus);
 
-	/* Montgomery form: there are several b possible */
-	/* b:=1/9/lambda^2/(tau^4-1); */
-	mpz_powm_ui(x0, tau, 4, n);
-	mpz_sub_si(x0, x0, 1);
-	mpz_mod(x0, x0, n);
-	mpz_mul(tmp, x0, lambda);
-	mpz_mul(tmp, tmp, lambda);
-	mpz_mul_si(tmp, tmp, 9);
-	if(mpz_invert(b, tmp, n) == 0){
-	    printf("Factor found durint init of Z4xZ4\n");
-	    mpz_gcd(f, tmp, n);
+    mpres_init(EQ[0].x, modulus);
+    mpres_init(EQ[0].y, modulus);
+    mpres_init(EQ[0].z, modulus);
+    mpres_init(EQ[0].A, modulus);
+    mpres_set(EQ[0].A, EP[0].A, modulus);
+
+    for(u = umin; u < umax; u++){
+	/* update Qaux */
+	mpz_set_ui(d, u);
+	if(pt_many_mul(EQ, EP, 1, d, modulus, num, den, inv, ok) == 0){
+	    printf("found factor in Z10 (update of Q)\n");
+	    mpz_set(f, num[1]);
 	    ret = ECM_FACTOR_FOUND_STEP1;
 	    break;
 	}
-	/* a:=-2*(tau^4+1)/(tau^4-1); */
-	mpz_add_si(tmp, x0, 2);
-	mpz_mul_si(tmp, tmp, -2);
-	mpz_mod(tmp, tmp, n);
-	mod_from_rat2(tEP[nc].A, tmp, x0, n);
-	/* now compute real x0 */
-	/* x0:=3*(3*nu^12+34*nu^10+117*nu^8+316*nu^6+1053*nu^4+2754*nu^2+2187); */
-	mpz_set_si(x0, 3);
-	mpz_mul(x0, x0, nu2); mpz_add_si(x0, x0, 34);
-	mpz_mul(x0, x0, nu2); mpz_add_si(x0, x0, 117);
-	mpz_mul(x0, x0, nu2); mpz_add_si(x0, x0, 316);
-	mpz_mul(x0, x0, nu2); mpz_add_si(x0, x0, 1053);
-	mpz_mul(x0, x0, nu2); mpz_add_si(x0, x0, 2754);
-	mpz_mul(x0, x0, nu2); mpz_add_si(x0, x0, 2187);
-	mpz_mul_si(x0, x0, 3);
-	mpz_mod(x0, x0, n);
+#if DEBUG_MANY_EC >= 2
+	printf("(s, t)[%d]:=", u);
+	pt_print(EQ[0], modulus);
+	printf(";\n");
+#endif
+	mpres_get_z(a, EQ[0].x, modulus);
+	mpz_sub_si(a, a, 9);
+	mpres_get_z(b, EQ[0].y, modulus);
+	mpz_add_si(b, b, 25);
+	if(mod_from_rat2(beta, b, a, n) == 0){
+            printf("found factor in Z2xZ8 (beta)\n");
+	    mpz_set(f, beta);
+	    ret = ECM_FACTOR_FOUND_STEP1;
+            break;
+	}
+	mpz_add_si(tmp, beta, 1);
+	if(!mpz_invert(alpha, tmp, n)){
+            printf("found factor in Z2xZ8 (alpha)\n");
+	    mpz_set(f, alpha);
+	    ret = ECM_FACTOR_FOUND_STEP1;
+            break;
+	}
+	/* d:=8*alpha^2-1; */
+	mpz_mul(d, alpha, alpha);
+	mpz_mul_si(d, d, 8);
+	mpz_sub_si(d, d, 1);
+	mpz_mod(d, d, n);
+#if 0 /* HERE */
+	d:=2*alpha*(4*alpha+1)/d;
+	if d eq 0 then return false, [], [], []; end if;
+	c:=(2*d-1)*(d-1)/d;
+#endif
+
+	mpz_mul(b, c, d);
+	mpz_mod(b, b, n);
 #if DEBUG_MANY_EC >= 2
 	gmp_printf("N:=%Zd;\n", n);
-	printf("nu:=%d;\n", nu);
-	gmp_printf("tau:=%Zd;\n", tau);
-	gmp_printf("lambda:=%Zd;\n", lambda);
 	gmp_printf("a:=%Zd;\n", tEP[nc].A);
 	gmp_printf("x0:=%Zd;\n", x0);
 #endif
@@ -1549,14 +1573,38 @@ build_curves_with_torsion_Z2xZ8(mpz_t fac, mpz_t n, curve *tEP,
 	nc++;
 	if(nc >= nEP)
 	    break;
+	pt_many_assign(EP, EQ, 1, modulus);
     }
-    mpz_clear(tau);
-    mpz_clear(lambda);
-    mpz_clear(nu2);
-    mpz_clear(tmp);
-    mpz_clear(b);
-    mpz_clear(x0);
+#if DEBUG_MANY_EC >= 2
+    printf("Curves built\n");
+    pt_many_print(tEP, nEP, modulus);
 #endif
+    mpres_clear(EP[0].A, modulus);
+    mpres_clear(EP[0].x, modulus);
+    mpres_clear(EP[0].y, modulus);
+    mpres_clear(EP[0].z, modulus);
+    for(u = 0; u < 2; u++){
+	mpres_clear(num[u], modulus);
+	mpres_clear(den[u], modulus);
+    }
+    mpres_clear(inv[0], modulus);
+    mpres_clear(EP[0].x, modulus);
+    mpres_clear(EP[0].y, modulus);
+    mpres_clear(EP[0].z, modulus);
+    mpres_clear(EP[0].A, modulus);
+    mpres_clear(EQ[0].x, modulus);
+    mpres_clear(EQ[0].y, modulus);
+    mpres_clear(EQ[0].z, modulus);
+    mpres_clear(EQ[0].A, modulus);
+    mpmod_clear(modulus);
+    mpz_clear(tmp);
+    mpz_clear(a);
+    mpz_clear(b);
+    mpz_clear(c);
+    mpz_clear(d);
+    mpz_clear(alpha);
+    mpz_clear(beta);
+    mpz_clear(x0);
     return ret;
 }
 
