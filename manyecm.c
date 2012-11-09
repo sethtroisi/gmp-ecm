@@ -750,7 +750,7 @@ process_many_curves(mpz_t f, mpz_t n, double B1, curve *tEP, int nEP,
 
     if(ret != ECM_NO_FACTOR_FOUND){
 	ret = conclude_on_factor(n, f, params->verbose);
-#if DEBUG_MANY_EC >= 1
+#if DEBUG_MANY_EC >= 2
 	if(ret == ECM_PRIME_FAC_PRIME_COFAC || ret == ECM_PRIME_FAC_COMP_COFAC)
 	    /* output Magma lines to check #E's mod f */
 	    dump_curves(tEP, nEP, modulus, f);
@@ -845,6 +845,7 @@ mod_div_2(mpz_t x, mpz_t n)
 
 /* A = (a4-1/3*a2^2)
    B = -1/3*a4*a2+a6+2/27*a2^3 (unused, really)
+   X = x+a2/3
 */
 void
 W2W(curve *EP, mpz_t a2, mpz_t a4, mpz_t x0, mpz_t y0, mpz_t n)
@@ -853,11 +854,12 @@ W2W(curve *EP, mpz_t a2, mpz_t a4, mpz_t x0, mpz_t y0, mpz_t n)
     mpz_set_si(EP->y, 3);
     mod_from_rat2(EP->x, a2, EP->y, n);
     /* A = a4-1/3*a2^2 = a4 - a2 * (a2/3) */
+    /** a2 <- a2^2/3 **/
     mpz_mul(a2, a2, EP->x);
     mpz_mod(a2, a2, n);
     mpz_sub(EP->A, a4, a2);
     mpz_mod(EP->A, EP->A, n);
-    /* xx0 = x0 + a2/3 */
+    /* wx0 = x0 + a2/3 */
     mpz_add(EP->x, EP->x, x0);
     mpz_mod(EP->x, EP->x, n);
     mpz_set(EP->y, y0);
@@ -866,9 +868,10 @@ W2W(curve *EP, mpz_t a2, mpz_t a4, mpz_t x0, mpz_t y0, mpz_t n)
 #if DEBUG_MANY_EC >= 2
     gmp_printf("N:=%Zd;\n", n);
     gmp_printf("A:=%Zd;\n", EP->A);
-    gmp_printf("x0:=%Zd;\n", EP->x);
+    gmp_printf("x0:=%Zd;\n", x0);
+    gmp_printf("wx0:=%Zd;\n", EP->x);
     gmp_printf("y0:=%Zd;\n", EP->y);
-    printf("B:=(y0^2-x0^3-A*x0) mod N;\n");
+    printf("B:=(y0^2-wx0^3-A*wx0) mod N;\n");
     exit(-1);
 #endif
 }
@@ -1245,16 +1248,16 @@ build_curves_with_torsion_Z9(mpz_t fac, mpz_t n, curve *tEP,
 	mpz_add_si(d, d, 1);
 	mpz_mod(d, d, n);
 	/* c:=f*(d-1); */
-	mpz_sub_ui(c, d, 1);
+	mpz_sub_si(c, d, 1);
 	mpz_mul(c, c, f);
 	mpz_mod(c, c, n);
 	/* kx0:=(2*f-1)*f^2; */
 	/** b <- f^2 **/
 	mpz_mul(b, f, f);
 	mpz_mod(b, b, n);
-	mpz_mul_ui(kx0, f, 2);
-	mpz_sub_ui(kx0, kx0, 1);
-	mpz_mul(kx0, b, f);
+	mpz_mul_si(kx0, f, 2);
+	mpz_sub_si(kx0, kx0, 1);
+	mpz_mul(kx0, kx0, b);
 	mpz_mod(kx0, kx0, n);
 	/* ky0:=y*f^4/2; */
 	/** b <- b^2 = f^4 **/
@@ -1353,10 +1356,8 @@ build_curves_with_torsion_Z10(mpz_t fac, mpz_t n, curve *tEP,
     mpz_init(A1div2);
     mod_from_rat_str(A1div2, "-1/2", n);
     mpz_mod(A1div2, A1div2, n);
-    mpz_init_set_str(x0, "0", 10);
-    mpz_mod(x0, x0, n);
-    mpz_init_set_str(y0, "1", 10);
-    mpz_mod(y0, y0, n);
+    mpz_init_set_si(x0, 0);
+    mpz_init_set_si(y0, 1);
     mpz_init_set_si(cte, -2);
     mpz_mod(cte, cte, n);
 
@@ -1413,7 +1414,9 @@ build_curves_with_torsion_Z10(mpz_t fac, mpz_t n, curve *tEP,
 	mpz_sub_si(fac, f, 3);
 	mpz_mul(fac, fac, f);
 	mpz_add_si(fac, fac, 1);
-	mpz_mul_si(fac, fac, 2); /* den */
+	mpz_mul(fac, fac, fac);
+	mpz_mul_si(fac, fac, 2); 
+	mpz_mod(fac, fac, n);    /* den */
 	if(mod_from_rat2(ky0, kx0, fac, n) == 0){
             printf("inverse found in Z10 (ky0)\n");
             ret = ECM_FACTOR_FOUND_STEP1;
