@@ -699,7 +699,7 @@ read_and_prepare(mpz_t f, mpz_t x, mpq_t q, char *buf, mpz_t n)
 
 /* f is a (probable) prime factor of n. tEP is in plain mod n form. */
 void
-dump_curves(curve *tEP, int nEP, mpz_t n, mpz_t f)
+dump_curves(curve *tEP, int nEP, mpz_t f)
 {
     int i;
 
@@ -753,7 +753,7 @@ process_many_curves(mpz_t f, mpz_t n, double B1, curve *tEP, int nEP,
 #if DEBUG_MANY_EC >= 2
 	if(ret == ECM_PRIME_FAC_PRIME_COFAC || ret == ECM_PRIME_FAC_COMP_COFAC)
 	    /* output Magma lines to check #E's mod f */
-	    dump_curves(tEP, nEP, modulus, f);
+	    dump_curves(tEP, nEP, f);
 #endif
     }
     else{
@@ -907,10 +907,12 @@ K2W24(mpz_t a2, mpz_t a4, mpz_t b, mpz_t c, mpz_t n)
     }
 #endif
 #if DEBUG_MANY_EC >= 2
+    gmp_printf("N:=%Zd;\n", n);
     gmp_printf("b:=%Zd;\n", b);
     gmp_printf("c:=%Zd;\n", c);
     gmp_printf("a2:=%Zd;\n", a2);
     gmp_printf("a4:=%Zd;\n", a4);
+    gmp_printf("a6:=RatMod(b^2/4, N);\n", a4);
 #endif
 }
 
@@ -1547,9 +1549,9 @@ build_curves_with_torsion_Z2xZ8(mpz_t f, mpz_t n, curve *tEP,
             break;
 	}
 	mpz_add_si(tmp, beta, 1);
-	if(!mpz_invert(alpha, tmp, n)){
+	if(mpz_invert(alpha, tmp, n) == 0){
             printf("found factor in Z2xZ8 (alpha)\n");
-	    mpz_set(f, alpha);
+	    mpz_gcd(f, tmp, n);
 	    ret = ECM_FACTOR_FOUND_STEP1;
             break;
 	}
@@ -1641,6 +1643,7 @@ build_curves_with_torsion_Z2xZ8(mpz_t f, mpz_t n, curve *tEP,
 	mpz_mod(tmp, tmp, n);
 	if(mpz_invert(f, tmp, n) == 0){
 	    printf("found factor in Z2xZ8 (mb)\n");
+	    mpz_gcd(f, tmp, n);
             ret = ECM_FACTOR_FOUND_STEP1;
             break;
 	}
