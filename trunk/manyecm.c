@@ -234,7 +234,9 @@ compute_all_inverses(mpres_t *inv, mpres_t *x, int nx, mpmod_t n, char *takeit)
     return 1;
 }
 
-/* NOTE: we can have tER = tEP or tEQ */
+/* NOTE: we can have tER = tEP or tEQ.
+   In case a factor is found, it is put in num[nEP].
+ */
 int
 pt_many_common(curve *tER, curve *tEP, curve *tEQ, int nEP, mpmod_t n, 
 	       mpres_t *num, mpres_t *den, mpres_t *inv, char *takeit)
@@ -263,6 +265,7 @@ pt_many_common(curve *tER, curve *tEP, curve *tEQ, int nEP, mpmod_t n,
     return 1;
 }
 
+/*   In case a factor is found, it is put in num[nEP]. */
 int
 pt_many_duplicate(curve *tEQ, curve *tEP, int nEP, mpmod_t n, 
 		  mpres_t *num, mpres_t *den, mpres_t *inv, char *ok)
@@ -297,7 +300,7 @@ pt_many_duplicate(curve *tEQ, curve *tEP, int nEP, mpmod_t n,
     return res;
 }
 
-/* R[i] <- P[i] + Q[i], or a factor is found which is put in tER[0]->x. */
+/* R[i] <- P[i] + Q[i], or a factor is found which is put in num[nEP]. */
 int
 pt_many_add(curve *tER, curve *tEP, curve *tEQ, int nEP, mpmod_t n, 
 	    mpres_t *num, mpres_t *den, mpres_t *inv, char *ok)
@@ -364,6 +367,111 @@ pt_many_add(curve *tER, curve *tEP, curve *tEQ, int nEP, mpmod_t n,
     return res;
 }
 
+/* tER != tEP */
+static int
+pt_many_sub(curve *tER, curve *tEQ, curve *tEP, int nEP, mpmod_t n, 
+		mpres_t *num, mpres_t *den, mpres_t *inv, char *ok)
+{
+    int i, res;
+
+    for(i = 0; i < nEP; i++)
+	if(ok[i] == 1)
+	    pt_neg(tEP+i, n);
+    res = pt_many_add(tER, tEQ, tEP, nEP, n, num, den, inv, ok);
+    for(i = 0; i < nEP; i++)
+	if(ok[i] == 1)
+	    pt_neg(tEP+i, n);
+    return res;
+}
+
+/* Ordinary binary left-right addition */
+static int
+pt_many_mul_plain(curve *tEQ, curve *tEP, int nEP, mpz_t e, mpmod_t n, 
+		  mpres_t *num, mpres_t *den, mpres_t *inv, char *ok)
+{
+  size_t l = mpz_sizeinbase (e, 2) - 1; /* l >= 1 */
+  int status = 1;
+
+  pt_many_assign(tEQ, tEP, nEP, n);
+  while (l-- > 0)
+    {
+	if(pt_many_duplicate (tEQ, tEQ, nEP, n, num, den, inv, ok) == 0)
+	  {
+	    status = 0;
+	    break;
+	  }
+#if DEBUG_MANY_EC >= 2
+	printf("Rdup:="); pt_many_print(tEQ, nEP, n); printf(";\n");
+#endif
+	if (mpz_tstbit (e, l))
+	  {
+	      if(pt_many_add (tEQ, tEP, tEQ, nEP, n, num, den, inv, ok) == 0)
+	      {
+		status = 0;
+		break;
+	      }
+#if DEBUG_MANY_EC >= 2
+	      printf("Radd:="); pt_many_print(tEQ, nEP, n); printf(";\n");
+#endif
+	  }
+    }
+  return status;
+}
+
+/* Ordinary binary left-right addition; see Solinas00. Morally, we use
+ w = 2. */
+static int
+pt_many_mul_add_sub(curve *tEQ, curve *tEP, int nEP, long c, mpmod_t n, 
+		    mpres_t *num, mpres_t *den, mpres_t *inv, char *ok)
+{
+    long u, S[64];
+    int j, iS = 0, status = 1;
+
+    /* build NAF_w(c) */
+    while(c > 0){
+	if((c & 1) == 1){
+	    /* c is odd */
+	    u = c & (long)3;
+	    if(u == 3)
+		u = -1;
+	}
+	else
+	    u = 0;
+	S[iS++] = u;
+	c >>= 1;
+    }
+    /* use it */
+    pt_many_set_to_zero(tEQ, nEP, n);
+    for(j = iS-1; j >= 0; j--){
+	if(pt_many_duplicate(tEQ, tEQ, nEP, n, num, den, inv, ok) == 0){
+	    status = 0;
+	    break;
+	}
+#if DEBUG_MANY_EC >= 2
+	printf("Rdup:="); pt_many_print(tEQ, nEP, n); printf(";\n");
+#endif
+	if(S[j] == 1){
+	    if(pt_many_add(tEQ, tEQ, tEP, nEP, n, num, den, inv, ok) == 0){
+		status = 0;
+		break;
+	    }
+#if DEBUG_MANY_EC >= 2
+	    printf("Radd:="); pt_many_print(tEQ, nEP, n); printf(";\n");
+#endif
+	}
+	else if(S[j] == -1){
+	    if(pt_many_sub(tEQ, tEQ, tEP, nEP, n, num, den, inv, ok) == 0){
+		status = 0;
+		break;
+	    }
+#if DEBUG_MANY_EC >= 2
+	    printf("Rsub:="); pt_many_print(tEQ, nEP, n); printf(";\n");
+#endif
+	}
+    }
+  return status;
+}
+
 /* tEQ[i] <- e * tEP[i]; we must have tEQ != tEP */
 /* If a factor is found, it is put back in num[nEP]. */
 int
@@ -391,31 +499,12 @@ pt_many_mul(curve *tEQ, curve *tEP, int nEP, mpz_t e, mpmod_t n,
     goto pt_many_mul_end;
 
   l = mpz_sizeinbase (e, 2) - 1; /* l >= 1 */
+  if(l < 32)
+      status = pt_many_mul_add_sub(tEQ, tEP, nEP, mpz_get_si(e), n,
+				   num, den, inv, ok);
+  else
+      status = pt_many_mul_plain(tEQ, tEP, nEP, e, n, num, den, inv, ok);
 
-  pt_many_assign(tEQ, tEP, nEP, n);
-
-  while (l-- > 0)
-    {
-	if(pt_many_duplicate (tEQ, tEQ, nEP, n, num, den, inv, ok) == 0)
-	  {
-	    status = 0;
-	    break;
-	  }
-#if DEBUG_MANY_EC >= 2
-	printf("Rdup:="); pt_many_print(tEQ, nEP, n); printf(";\n");
-#endif
-	if (mpz_tstbit (e, l))
-	  {
-	      if(pt_many_add (tEQ, tEP, tEQ, nEP, n, num, den, inv, ok) == 0)
-	      {
-		status = 0;
-		break;
-	      }
-#if DEBUG_MANY_EC >= 2
-	      printf("Radd:="); pt_many_print(tEQ, nEP, n); printf(";\n");
-#endif
-	  }
-    }
 
 pt_many_mul_end:
 
@@ -638,15 +727,15 @@ all_curves_at_once(mpz_t f, char *ok, curve *tEP, int nEP, mpmod_t n,
 		break;
 	    }
 	    
-#if 0
 	    /* WARNING: not activated yet */
 	    if (chkfilename != NULL && p > last_chkpnt_p + 10000. && 
 		elltime (last_chkpnt_time, cputime ()) > CHKPNT_PERIOD){
+#if 0 /* TODO: make this work for many curves */
 		writechkfile (chkfilename, ECM_ECM, MAX(p, *B1done), n, A, x, y, z);
+#endif
 		last_chkpnt_p = p;
 		last_chkpnt_time = cputime ();
 	    }
-#endif
 	}
     }
  end_of_all:
@@ -2038,18 +2127,21 @@ main (int argc, char *argv[])
 	  fprintf (stderr, "Invalid number: %s\n", argv[1]);
 	  exit (1);
       }
-      if(curvesname != NULL){
-	  if(ncurves == 0)
-	      printf ("# Using all");
-	  else
-	      printf("# Using only %d", ncurves);
-	  printf(" curves from %s with B1=%1.0f\n", curvesname, B1);
-	  onebyone = 0;
-	  res = process_many_curves_from_file(f, n, B1, curvesname, ncurves,
-					      onebyone);
-      }
-      else if(torsion != NULL){
-	  res = process_curves_with_torsion(f, n, B1, torsion, smin, smax, ncurves);
+      if(method == ECM_ECM){
+	  if(curvesname != NULL){
+	      if(ncurves == 0)
+		  printf ("# Using all");
+	      else
+		  printf("# Using only %d", ncurves);
+	      printf(" curves from %s with B1=%1.0f\n", curvesname, B1);
+	      onebyone = 0;
+	      res = process_many_curves_from_file(f, n, B1, curvesname, 
+						  ncurves, onebyone);
+	  }
+	  else if(torsion != NULL){
+	      res = process_curves_with_torsion(f, n, B1, torsion, 
+						smin, smax, ncurves);
+	  }
       }
   }
   if(infile != stdin)
