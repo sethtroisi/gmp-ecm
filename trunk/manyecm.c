@@ -912,7 +912,7 @@ K2W24(mpz_t a2, mpz_t a4, mpz_t b, mpz_t c, mpz_t n)
     gmp_printf("c:=%Zd;\n", c);
     gmp_printf("a2:=%Zd;\n", a2);
     gmp_printf("a4:=%Zd;\n", a4);
-    gmp_printf("a6:=RatMod(b^2/4, N);\n", a4);
+    printf("a6:=RatMod(b^2/4, N);\n");
 #endif
 }
 
