@@ -704,7 +704,7 @@ all_curves_at_once(mpz_t f, char *ok, curve *tEP, int nEP, mpmod_t n,
     last_chkpnt_p = 3.;
     for (p = getprime (); p <= B1; p = getprime ()){
 	for (r = p; r <= B1; r *= p){
-#if DEBUG_MANY_EC >= 1
+#if DEBUG_MANY_EC >= 2
 	    printf("## p = %ld at %ldms\n", (long)p, cputime());
 #endif
 	    if (r > *B1done){
@@ -887,11 +887,28 @@ process_many_curves_from_file(mpz_t f, mpz_t n, double B1, char *fic_EP,
     curve tEP[NCURVE_MAX];
     FILE *ifile = fopen(fic_EP, "r");
     int nEP = 0, i, ret = 0;
-    char bufA[1024], bufx[1024], bufy[1024];
+    char bufA[1024], bufx[1024], bufy[1024], c, Etype[NCURVE_MAX];
     mpq_t q;
 
     mpq_init(q);
-    while(fscanf(ifile, "%s %s %s", bufA, bufx, bufy) != EOF){
+    while(fscanf(ifile, "%s", bufA) != EOF){
+	if(bufA[0] == '#'){
+	    /* skip line and print it */
+	    printf("%s", bufA);
+	    while((c = getc(ifile)) != '\n')
+		printf("%c", c);
+	    printf("\n");
+	    continue;
+	}
+	else
+	    Etype[nEP] = bufA[0];
+	if(Etype[nEP] == 'W'){
+	    if(fscanf(ifile, "%s %s %s", bufA, bufx, bufy) == EOF)
+		break;
+	}
+	else if(Etype[nEP] == 'M')
+	    if(fscanf(ifile, "%s %s", bufA, bufx) == EOF)
+		break;
 	mpz_init(tEP[nEP].A);
 	if(read_and_prepare(f, tEP[nEP].A, q, bufA, n) == 0)
 	    goto process_end;
@@ -899,13 +916,16 @@ process_many_curves_from_file(mpz_t f, mpz_t n, double B1, char *fic_EP,
 	if(read_and_prepare(f, tEP[nEP].x, q, bufx, n) == 0)
 	    goto process_end;
 	mpz_init(tEP[nEP].y);
-	if(read_and_prepare(f, tEP[nEP].y, q, bufy, n) == 0)
-	    goto process_end;
+	if(Etype[nEP] == 'W'){
+	    if(read_and_prepare(f, tEP[nEP].y, q, bufy, n) == 0)
+		goto process_end;
+	}
 	mpz_init_set_ui(tEP[nEP].z, 1);
 	nEP++;
 	if(ncurves != 0 && nEP == ncurves)
 	    break;
     }
+    /* TODO: process Montgomery curves first */
     ret = process_many_curves(f, n, B1, tEP, nEP, onebyone);
     for(i = 0; i < nEP; i++){
 	mpz_clear(tEP[i].x);
