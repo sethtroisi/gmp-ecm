@@ -21,11 +21,11 @@ instructions of INSTALL-ecm until the 'configure' step. Then add the
 This will configure the code for NVIDIA GPU of compute capability 2.0. You can
 specify for which compute capability you want to compite the code:
 
-  $ ./configure --enable-gpu=20     # for NVIDIA GPU of compute capability 2.0
+  $ ./configure --enable-gpu=sm_20   # for NVIDIA GPU of compute capability 2.0
   or
-  $ ./configure --enable-gpu=21     # for NVIDIA GPU of compute capability 2.1
+  $ ./configure --enable-gpu=sm_21   # for NVIDIA GPU of compute capability 2.1
   or
-  $ ./configure --enable-gpu=30     # for NVIDIA GPU of compute capability 3.0
+  $ ./configure --enable-gpu=sm_30   # for NVIDIA GPU of compute capability 3.0
   
 By default, GMP-ECM will look for cuda in /usr/local/cuda, but you can specified
 an other directory:
