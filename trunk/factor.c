@@ -69,6 +69,7 @@ void
 ecm_clear (ecm_params q)
 {
   mpz_clear (q->x);
+  mpz_clear (q->y);
   mpz_clear (q->sigma);
   mpz_clear (q->go);
   mpz_clear (q->B2min);
