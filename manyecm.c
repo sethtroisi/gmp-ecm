@@ -565,7 +565,6 @@ process_one_curve(mpz_t f, mpz_t N, double B1, ecm_params params, curve EP,
 {
     double B2scale = 1.0;
     int ret;
-    mpz_t N0;
 
     /* Taken from main.c; no comment */
     /* Here's an ugly hack to pass B2scale to the library somehow.
@@ -583,12 +582,7 @@ process_one_curve(mpz_t f, mpz_t N, double B1, ecm_params params, curve EP,
 	params->sigma_is_A = -1;
 	mpz_set(params->y, EP.y);
     }
-    mpz_init_set(N0, N);
     ret = ecm_factor(f, N, B1, params);
-    if(mpz_cmp(N, N0) != 0){
-	printf("Gasp!\n");
-    }
-    mpz_clear(N0);
     return ret;
 }
 
@@ -823,6 +817,8 @@ dump_curves(curve *tEP, int nEP, mpz_t f)
            ECM_INPUT_NUMBER_FOUND
            ECM_PRIME_FAC_PRIME_COFAC
 	   ECM_PRIME_FAC_COMP_COFAC
+	   ECM_COMP_FAC_COMP_COFAC
+	   ECM_COMP_FAC_PRIME_COFAC
 */
 int
 process_many_curves(mpz_t f, mpz_t n, double B1, curve *tEP, int nEP,
@@ -837,7 +833,7 @@ process_many_curves(mpz_t f, mpz_t n, double B1, curve *tEP, int nEP,
     long st = cputime ();
     
     memset(ok, 1, nEP);
-    if(onebyone){
+    if(onebyone != 0){
 	ret = one_curve_at_a_time(f, ok, tEP, nEP, n, B1, mtyform);
 	free(ok);
 	return ret;
@@ -1996,6 +1992,10 @@ build_curves_with_torsion_Z4xZ4(mpz_t f, mpz_t n, curve *tEP,
     mpz_clear(tmp);
     mpz_clear(b);
     mpz_clear(x0);
+    if(nc < nEP){
+	printf("Not enough curves generated\n");
+	return ECM_ERROR;
+    }
     return ret;
 }
 
@@ -2035,15 +2035,18 @@ build_curves_with_torsion(mpz_t f, mpz_t n, curve *tEP, char *torsion,
    OUTPUT: ECM_NO_FACTOR_FOUND
            ECM_PRIME_FAC_PRIME_COFAC
 	   ECM_PRIME_FAC_COMP_COFAC
+	   ECM_COMP_FAC_COMP_COFAC
+	   ECM_COMP_FAC_PRIME_COFAC
 */
 int
 process_many_curves_with_torsion(mpz_t tf[], int *nf, mpz_t n, double B1, 
 				 char *torsion, int smin, int smax, int nEP)
 {
     curve tEP[NCURVE_MAX];
-    int ret = 0, i, mtyform;
+    int ret = 0, i, mtyform, onebyone;
 
     mtyform = strcmp(torsion, "Z4xZ4") == 0 || strcmp(torsion, "Z2xZ8") == 0;
+    onebyone = mtyform;
     for(i = 0; i < nEP; i++){
 	mpz_init(tEP[i].A);
 	mpz_init(tEP[i].x);
@@ -2054,12 +2057,8 @@ process_many_curves_with_torsion(mpz_t tf[], int *nf, mpz_t n, double B1,
     }
     while(1){
 	ret = build_curves_with_torsion(tf[*nf],n,tEP,torsion,smin,smax,nEP);
-	if(ret == ECM_NO_FACTOR_FOUND){
-	    if(mtyform != 0)
-		ret = process_many_curves(tf[*nf],n,B1,tEP,nEP,1,mtyform);
-	    else
-		ret = process_many_curves(tf[*nf],n,B1,tEP,nEP,0,mtyform);
-	}
+	if(ret == ECM_NO_FACTOR_FOUND)
+	    ret = process_many_curves(tf[*nf],n,B1,tEP,nEP,onebyone,mtyform);
 	else{
 	    printf("Quid? %d\n", ret);
 	}
@@ -2070,6 +2069,17 @@ process_many_curves_with_torsion(mpz_t tf[], int *nf, mpz_t n, double B1,
 	else if(ret == ECM_PRIME_FAC_COMP_COFAC){
 	    printf("# start again with n/f\n");
 	    mpz_tdiv_q(n, n, tf[*nf]);
+	    *nf += 1;
+	}
+	else if(ret == ECM_COMP_FAC_PRIME_COFAC){
+	    mpz_t C;
+
+	    printf("# start again with f\n");
+	    mpz_init(C);
+	    mpz_tdiv_q(C, n, tf[*nf]);
+	    mpz_set(n, tf[*nf]);
+	    mpz_set(tf[*nf], C);
+	    mpz_clear(C);
 	    *nf += 1;
 	}
 	else if(ret == ECM_COMP_FAC_COMP_COFAC){
@@ -2228,10 +2238,12 @@ main (int argc, char *argv[])
 		  printf("# Using only %d", ncurves);
 	      printf(" curves from %s with B1=%1.0f\n", curvesname, B1);
 	      onebyone = 0;
+	      nf = 0;
 	      res = process_many_curves_from_file(tf, &nf, n, B1, curvesname, 
 						  ncurves, onebyone);
 	  }
 	  else if(torsion != NULL){
+	      nf = 0;
 	      res = process_many_curves_with_torsion(tf, &nf, n, B1, torsion, 
 						     smin, smax, ncurves);
 	  }
