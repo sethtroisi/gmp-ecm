@@ -664,7 +664,7 @@ pt_w_is_equal(mpres_t x0, mpres_t y0, mpres_t z0,
 #endif
 
 void
-pt_w_assign(mpres_t x0, mpres_t y0, mpres_t z0,
+pt_w_set(mpres_t x0, mpres_t y0, mpres_t z0,
 	    mpres_t x, mpres_t y, mpres_t z,
 	    ATTRIBUTE_UNUSED mpmod_t n)
 {
@@ -732,7 +732,7 @@ pt_w_duplicate(mpres_t x3, mpres_t y3, mpres_t z3,
 {
     if(pt_w_is_zero(z1, n))
       {
-	pt_w_assign(x3, y3, z3, x1, y1, z1, n);
+	pt_w_set(x3, y3, z3, x1, y1, z1, n);
 	return 1;
       }
 #if EC_W_LAW == EC_W_LAW_AFFINE
@@ -741,7 +741,7 @@ pt_w_duplicate(mpres_t x3, mpres_t y3, mpres_t z3,
     if(mpres_is_zero(y1, n))
       {
 	/* y1 = 0 <=> P is a [2]-torsion point */
-	pt_w_assign(x3, y3, z3, x1, y1, z1, n);
+	pt_w_set(x3, y3, z3, x1, y1, z1, n);
 	return 1;
       }
     /* buf[0] <- 3*x^2+A */
@@ -810,11 +810,11 @@ pt_w_add(mpres_t x3, mpres_t y3, mpres_t z3,
 	 mpmod_t n, mpres_t A, mpres_t *buf)
 {
     if(pt_w_is_zero(z1, n)){
-	pt_w_assign(x3, y3, z3, x2, y2, z2, n);
+	pt_w_set(x3, y3, z3, x2, y2, z2, n);
 	return 1;
     }
     else if(pt_w_is_zero(z2, n)){
-	pt_w_assign(x3, y3, z3, x1, y1, z1, n);
+	pt_w_set(x3, y3, z3, x1, y1, z1, n);
 	return 1;
     }
 #if EC_W_LAW == EC_W_LAW_AFFINE
@@ -880,6 +880,21 @@ pt_w_add(mpres_t x3, mpres_t y3, mpres_t z3,
 #endif
 }
 
+/* [x3, y3, z3] <- [x1, y1, z1] - [x2, y2, z2]; P3 != P1, P3 != P1. */
+int
+pt_w_sub(mpres_t x3, mpres_t y3, mpres_t z3,
+	 mpres_t x1, mpres_t y1, mpres_t z1,
+	 mpres_t x2, mpres_t y2, mpres_t z2,
+	 mpmod_t n, mpres_t A, mpres_t *buf)
+{
+    int res;
+
+    mpres_neg(y2, y2, n);
+    res = pt_w_add(x3, y3, z3, x1, y1, z1, x2, y2, z2, n, A, buf);
+    mpres_neg(y2, y2, n);
+    return res;
+}
+
 /* multiply P=(x:y:z) by e and puts the result in (x:y:z).
    Return value: 0 if a factor is found, and the factor is in x,
                  1 otherwise.
@@ -917,7 +932,7 @@ pt_w_mul (mpres_t x, mpres_t y, mpres_t z, mpz_t e, mpmod_t n, mpres_t A,
   mpres_init (x0, n);
   mpres_init (y0, n);
   mpres_init (z0, n);
-  pt_w_assign(x0, y0, z0, x, y, z, n);
+  pt_w_set(x0, y0, z0, x, y, z, n);
 
   while (l-- > 0)
     {
@@ -967,6 +982,181 @@ pt_w_mul_end:
   if (negated)
     mpz_neg (e, e);
   return status;
+}
+
+/* build NAF_w(c) */
+int
+build_NAF(long *S, long c, int w)
+{
+    long u, twowm1 = ((long)1 << w)-1;
+    long hwm1 = ((long)1)<<(w-1), hw = ((long)1)<<w;
+    int iS = 0;
+
+    while(c > 0){
+	if((c & 1) == 1){
+	    /* c is odd */
+	    /* u <- mods(c, 2^w) */
+	    u = c & (long)twowm1;
+	    if(u >= hwm1)
+		u -= hw;
+	    c -= u;
+	}
+	else
+	    u = 0;
+	S[iS++] = u;
+	c >>= 1;
+    }
+    return iS;
+}
+
+/* Checks that x1/z1 = x2/z2 and y1/z1 = y2/z2.
+   OUTPUT: 1 if equals, 0 otherwise.
+ */
+int
+pt_w_cmp(mpres_t x1, mpres_t y1, mpres_t z1,
+	 mpres_t x2, mpres_t y2, mpres_t z2,
+	 mpmod_t n)
+{
+    if(pt_w_is_zero(z1, n))
+	return pt_w_is_zero(z2, n);
+    else if(pt_w_is_zero(z2, n))
+	return pt_w_is_zero(z1, n);
+    else{
+	mpres_t tmp1, tmp2;
+	int cmp = 1;
+
+	mpres_init(tmp1, n);
+	mpres_init(tmp2, n);
+	mpres_mul(tmp1, x1, z2, n);
+	mpres_mul(tmp2, x2, z1, n);
+	mpres_sub(tmp1, tmp1, tmp2, n);
+	if(mpres_is_zero(tmp1, n) == 0)
+	    cmp = 0;
+	else{
+	    mpres_mul(tmp1, y1, z2, n);
+	    mpres_mul(tmp2, y2, z1, n);
+	    mpres_sub(tmp1,tmp1, tmp2, n);
+	    cmp = mpres_is_zero(tmp1, n);
+	}
+	mpres_clear(tmp1, n);
+	mpres_clear(tmp2, n);
+	return cmp;
+    }
+}
+
+#define EC_ADD_SUB_WMAX 10
+
+/* multiply P=(x:y:z) by e and puts the result in (x:y:z).
+   Return value: 0 if a factor is found, and the factor is in x,
+                 1 otherwise.
+   See Solinas 2000 for the most plug-and-play presentation.		 
+*/
+int
+pt_w_mul_add_sub_si (mpres_t x, mpres_t y, mpres_t z, long c, mpmod_t n, 
+		     mpres_t A, mpres_t *buf)
+{
+    int negated = 0, status = 1, iS = 0, j, w = 2;
+    mpres_t x0, y0, z0;
+    mpres_t ix[EC_ADD_SUB_WMAX], iy[EC_ADD_SUB_WMAX], iz[EC_ADD_SUB_WMAX];
+    long S[64], cc;
+    
+    if(pt_w_is_zero(z, n))
+	return 1;
+    
+    if(c == 0){
+	pt_w_set_to_zero(x, y, z, n);
+	return 1;
+    }
+    
+    /* The negative of a point (x:y:z) is (x:-y:z) */
+    if(c < 0){
+	negated = 1;
+	c = -c;
+	mpres_neg(y, y, n); /* since the point is non-zero */
+    }
+    
+    if(c == 1L)
+	return 1;
+
+    iS = build_NAF(S, c, w);
+  
+    mpres_init (x0, n);
+    mpres_init (y0, n);
+    mpres_init (z0, n);
+    pt_w_set_to_zero(x0, y0, z0, n);
+
+    cc = 0;
+    for(j = iS-1; j >= 0; j--){
+	cc <<= 1;
+	if(pt_w_duplicate(x0, y0, z0, x0, y0, z0, n, A, buf) == 0){
+	    status = 0;
+	    break;
+	}
+#if DEBUG_EC_W >= 2
+	printf("Rdup:="); pt_w_print(x0, y0, z0, n); printf(";\n");
+#endif
+	if(S[j] == 1){
+	    cc++;
+	    if(pt_w_add(x0, y0, z0, x0, y0, z0, x, y, z, n, A, buf) == 0){
+		status = 0;
+		break;
+	    }
+#if DEBUG_EC_W >= 2
+	    printf("Radd:="); pt_w_print(x0, y0, z0, n); printf(";\n");
+#endif
+	}
+	else if(S[j] == -1){
+	    /* add(-y) = sub(y) */
+	    cc--;
+	    if(pt_w_sub(x0, y0, z0, x0, y0, z0, x, y, z, n, A, buf) == 0){
+		status = 0;
+		break;
+	    }
+	}
+    }
+#if 0
+#if EC_W_LAW == EC_W_LAW_PROJECTIVE
+    /* not clear! Perhaps it has sense to normalize P? */
+    mpres_gcd(z, z0, n); /* very costly */
+    if(mpz_cmp_ui(z, 1) != 0){
+	/* factor found, even n... */
+	mpres_set(x0, z, n);
+	status = 0;
+    }
+#endif
+#endif
+#if DEBUG_EC_W >= 0
+    {
+	mpres_t xx, yy, zz;
+	mpz_t e;
+
+	assert(cc == c);
+	mpz_init_set_si(e, c);
+	mpres_init(xx, n); mpres_set(xx, x, n);
+	mpres_init(yy, n); mpres_set(yy, y, n);
+	mpres_init(zz, n); mpres_set(zz, z, n);
+	pt_w_mul(xx, yy, zz, e, n, A, buf);
+	if(pt_w_cmp(x0, y0, z0, xx, yy, zz, n) != 1){
+	    printf("PB\n");
+	    printf("as:="); pt_w_print(x0, y0, z0, n); printf(";\n");
+	    printf("lo:="); pt_w_print(xx, yy, zz, n); printf(";\n");
+	    exit(-1);
+	}
+	mpz_clear(e);
+	mpres_clear(xx, n);
+	mpres_clear(yy, n);
+	mpres_clear(zz, n);
+    }
+#endif
+    mpres_set (x, x0, n);
+    mpres_set (y, y0, n);
+    mpres_set (z, z0, n);
+    
+    mpres_clear (x0, n);
+    mpres_clear (y0, n);
+    mpres_clear (z0, n);
+    
+    return status;
 }
 
 /* Input: (x, y) is initial point
@@ -1044,41 +1234,14 @@ ecm_stage1_W (mpz_t f, mpres_t x, mpres_t y, mpres_t A, mpmod_t n,
 #endif
 	}
   
-  /* We'll do 3 manually, too (that's what ecm4 did..) */
-  for (r = 3.0; r <= B1; r *= 3.0)
-    if (r > *B1done)
-      {
-	if(pt_w_duplicate (xB, yB, zB, x, y, z, n, A, buf) == 0)
-	  {
-	    mpz_set(f, xB);
-	    ret = ECM_FACTOR_FOUND_STEP1;
-	    goto end_of_stage1_w;
-	  }
-#if DEBUG_EC_W >= 1
-	printf("dup:="); pt_w_print(xB, yB, zB, n); printf(";\n");
-#endif
-	if(pt_w_add (x, y, z, x, y, z, xB, yB, zB, n, A, buf) == 0)
-	  {
-	      mpz_set(f, x);
-	      ret = ECM_FACTOR_FOUND_STEP1;
-	      goto end_of_stage1_w;
-	  }
-#if DEBUG_EC_W >= 1
-	printf("Q%ld:=", (long)r); pt_w_print(x, y, z, n); printf(";\n");
-	printf("Q:=Q%ld;\n", (long)r);
-#endif
-      }
-  
   last_chkpnt_p = 3.;
-  p = getprime (); /* Puts 3.0 into p. Next call gives 5.0 */
   for (p = getprime (); p <= B1; p = getprime ())
     {
       for (r = p; r <= B1; r *= p)
 	  /*	  printf("## p = %ld\n", (long)p);*/
 	if (r > *B1done)
 	  {
-	    mpz_set_ui(xB, (ecm_uint) p);
-	    if(pt_w_mul (x, y, z, xB, n, A, buf) == 0)
+	    if(pt_w_mul_add_sub_si (x, y, z, (long)p, n, A, buf) == 0)
 	      {
 		mpz_set(f, x);
 		ret = ECM_FACTOR_FOUND_STEP1;
