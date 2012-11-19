@@ -421,11 +421,11 @@ pt_many_mul_plain(curve *tEQ, curve *tEP, int nEP, mpz_t e, mpmod_t n,
 /* Ordinary binary left-right addition; see Solinas00. Morally, we use
  w = 2. */
 static int
-pt_many_mul_add_sub(curve *tEQ, curve *tEP, int nEP, long c, mpmod_t n, 
-		    mpres_t *num, mpres_t *den, mpres_t *inv, char *ok)
+pt_many_mul_add_sub_si(curve *tEQ, curve *tEP, int nEP, long c, mpmod_t n, 
+		       mpres_t *num, mpres_t *den, mpres_t *inv, char *ok)
 {
     long u, S[64];
-    int j, iS = 0, status = 1;
+    int j, iS = 0, status = 1, w = 2;
 
     /* build NAF_w(c) */
     while(c > 0){
@@ -500,8 +500,8 @@ pt_many_mul(curve *tEQ, curve *tEP, int nEP, mpz_t e, mpmod_t n,
 
   l = mpz_sizeinbase (e, 2) - 1; /* l >= 1 */
   if(l < 32)
-      status = pt_many_mul_add_sub(tEQ, tEP, nEP, mpz_get_si(e), n,
-				   num, den, inv, ok);
+      status = pt_many_mul_add_sub_si(tEQ, tEP, nEP, mpz_get_si(e), n,
+				      num, den, inv, ok);
   else
       status = pt_many_mul_plain(tEQ, tEP, nEP, e, n, num, den, inv, ok);
 
@@ -556,8 +556,8 @@ mod_from_rat_str(mpz_t r, char *str, mpz_t N)
 }
 
 /* fall back on traditional ECM.
-   We decide between Weierstrass and Montgomery by inspection of y: it is
-   Weierstrass iff y == NULL.
+   We decide between Weierstrass and Montgomery using mtyform.
+   TODO: use chkfile also.
  */
 int
 process_one_curve(mpz_t f, mpz_t N, double B1, ecm_params params, curve EP,
@@ -1912,13 +1912,14 @@ build_curves_with_torsion_Z4xZ4(mpz_t f, mpz_t n, curve *tEP,
     mpz_init(tmp);
     mpz_init(b);
     mpz_init(x0);
+    printf("# s:");
     for(nu = smin; nu < smax; nu++){
 	mpz_set_ui(nu2, nu*nu);
 	/* tau:=(nu^2+3)/2/nu; */
 	mpz_add_si(lambda, nu2, 3);
 	mpz_set_si(tmp, 2*nu);
 	if(mod_from_rat2(tau, lambda, tmp, n) == 0){
-            printf("Factor found durint init of Z4xZ4 (tau)\n");
+            printf("\nFactor found durint init of Z4xZ4 (tau)\n");
 	    mpz_set(f, tau);
 	    ret = ECM_FACTOR_FOUND_STEP1;
 	    break;
@@ -1941,7 +1942,7 @@ build_curves_with_torsion_Z4xZ4(mpz_t f, mpz_t n, curve *tEP,
 	mpz_mul(tmp, tmp, lambda);
 	mpz_mul_si(tmp, tmp, 9);
 	if(mpz_invert(b, tmp, n) == 0){
-	    printf("Factor found durint init of Z4xZ4 (b)\n");
+	    printf("\nFactor found durint init of Z4xZ4 (b)\n");
 	    mpz_gcd(f, tmp, n);
 	    ret = ECM_FACTOR_FOUND_STEP1;
 	    break;
@@ -1951,7 +1952,7 @@ build_curves_with_torsion_Z4xZ4(mpz_t f, mpz_t n, curve *tEP,
 	mpz_mul_si(tmp, tmp, -2);
 	mpz_mod(tmp, tmp, n);
 	if(mod_from_rat2(tEP[nc].A, tmp, x0, n) == 0){
-	    printf("Factor found durint init of Z4xZ4 (a)\n");
+	    printf("\nFactor found durint init of Z4xZ4 (a)\n");
 	    mpz_set(f, tEP[nc].A);
 	    ret = ECM_FACTOR_FOUND_STEP1;
 	    break;
@@ -1982,10 +1983,12 @@ build_curves_with_torsion_Z4xZ4(mpz_t f, mpz_t n, curve *tEP,
 	mpz_mod(b, b, n);
 	mpz_sub(tEP[nc].x, b, tEP[nc].x);
 	mpz_mod(tEP[nc].x, tEP[nc].x, n);
+	printf(" %d", nu);
 	nc++;
 	if(nc >= nEP)
 	    break;
     }
+    printf("\n");
     mpz_clear(tau);
     mpz_clear(lambda);
     mpz_clear(nu2);
@@ -2046,7 +2049,7 @@ process_many_curves_with_torsion(mpz_t tf[], int *nf, mpz_t n, double B1,
     int ret = 0, i, mtyform, onebyone;
 
     mtyform = strcmp(torsion, "Z4xZ4") == 0 || strcmp(torsion, "Z2xZ8") == 0;
-    onebyone = mtyform;
+    onebyone = 1; /* mtyform; */
     for(i = 0; i < nEP; i++){
 	mpz_init(tEP[i].A);
 	mpz_init(tEP[i].x);
