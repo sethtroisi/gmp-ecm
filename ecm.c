@@ -1905,7 +1905,7 @@ ecm (mpz_t f, mpz_t x, mpz_t y, int *param, mpz_t sigma, mpz_t n, mpz_t go,
       outputf (OUTPUT_RESVERBOSE, "A=%Zd\n", t);
       mpres_get_z (t, P.x, modulus);
       outputf (OUTPUT_RESVERBOSE, "starting point: x0=%Zd\n", t);
-      if (sigma_is_A == -1)
+      if (Etype == ECM_ETYPE_WEIERSTRASS)
 	{
           mpres_get_z (t, P.y, modulus);
 	  outputf (OUTPUT_RESVERBOSE, " y0=%Zd\n", t);
@@ -1979,7 +1979,7 @@ ecm (mpz_t f, mpz_t x, mpz_t y, int *param, mpz_t sigma, mpz_t n, mpz_t go,
      before P.x is (perhaps) converted to Weierstrass form */
   
   mpres_get_z (x, P.x, modulus);
-  if (sigma_is_A == -1)
+  if (Etype == ECM_ETYPE_WEIERSTRASS)
     mpres_get_z (y, P.y, modulus);  
 
   if (youpi != ECM_NO_FACTOR_FOUND)
@@ -1992,7 +1992,7 @@ ecm (mpz_t f, mpz_t x, mpz_t y, int *param, mpz_t sigma, mpz_t n, mpz_t go,
       mpz_init (t);
       mpres_get_z (t, P.x, modulus);
       outputf (OUTPUT_RESVERBOSE, "x=%Zd\n", t);
-      if (sigma_is_A == -1)
+      if (Etype == ECM_ETYPE_WEIERSTRASS)
 	{
 	  mpres_get_z (t, P.y, modulus);
 	  outputf (OUTPUT_RESVERBOSE, "y=%Zd\n", t);
