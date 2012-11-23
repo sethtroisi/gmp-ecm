@@ -802,7 +802,7 @@ pt_w_duplicate(mpres_t x3, mpres_t y3, mpres_t z3,
 #endif
 }
 
-/* [x3, y3, z3] <- [x1, y1, z1] + [x2, y2, z2] */
+/* [x3, y3, z3] <- [x1, y1, z1] + [x2, y2, z2]; P3 can be either P1 or P2. */
 int
 pt_w_add(mpres_t x3, mpres_t y3, mpres_t z3,
 	 mpres_t x1, mpres_t y1, mpres_t z1,
@@ -984,14 +984,20 @@ pt_w_mul_end:
   return status;
 }
 
-/* build NAF_w(c) */
+/* build NAF_w(c) = (u_{ell-1}, ..., u_0).
+   When w = 2, we have 2^ell < 3*e < 2^(ell+1).
+   TODO: have this work for e > long.
+*/
 int
-build_NAF(long *S, long c, int w)
+build_NAF(long *S, mpz_t e, int w)
 {
     long u, twowm1 = ((long)1 << w)-1;
     long hwm1 = ((long)1)<<(w-1), hw = ((long)1)<<w;
     int iS = 0;
+#if 1
+    long c;
 
+    c = mpz_get_si(e);
     while(c > 0){
 	if((c & 1) == 1){
 	    /* c is odd */
@@ -1006,6 +1012,31 @@ build_NAF(long *S, long c, int w)
 	S[iS++] = u;
 	c >>= 1;
     }
+#else
+    mpz_t c;
+
+    mpz_init_set(c, e);
+    /* we operate on windows of size w, starting from lower order bits.
+       This version copies the long-version one... Some more bit-fiddling
+       might be used to replace the shift at the end of the loop.
+     */
+    while(mpz_sgn(c) != 0){
+	if(mpz_tstbit(c) == 1){
+	    /* c is odd */
+	    /* u <- mods(c, 2^w) */
+	    u = (long)(mpz_get_si(c) & (unsigned long)twowm1);
+	    if(u >= hwm1)
+		u -= hw;
+	    mpz_sub_si(c, c, u);
+	    /* at this point, c = 0 mod 2^w */
+	}
+	else
+	    u = 0;
+	S[iS++] = u;
+	/* c >>= 1; */
+	mpz_cdiv_q_2exp(c, c, 1);
+    }
+#endif
     return iS;
 }
 
@@ -1044,7 +1075,8 @@ pt_w_cmp(mpres_t x1, mpres_t y1, mpres_t z1,
     }
 }
 
-#define EC_ADD_SUB_WMAX 10
+#define EC_ADD_SUB_WMAX 6
+#define EC_ADD_SUB_2_WMAX (1 << EC_ADD_SUB_WMAX)
 
 /* multiply P=(x:y:z) by e and puts the result in (x:y:z).
    Return value: 0 if a factor is found, and the factor is in x,
@@ -1052,42 +1084,70 @@ pt_w_cmp(mpres_t x1, mpres_t y1, mpres_t z1,
    See Solinas 2000 for the most plug-and-play presentation.		 
 */
 int
-pt_w_mul_add_sub_si (mpres_t x, mpres_t y, mpres_t z, long c, mpmod_t n, 
-		     mpres_t A, mpres_t *buf)
+pt_w_mul_add_sub (mpres_t x, mpres_t y, mpres_t z, mpz_t e, mpmod_t n, 
+		  mpres_t A, mpres_t *buf)
 {
-    int negated = 0, status = 1, iS = 0, j, w = 2;
+    int negated = 0, status = 1, iS = 0, j, w, k, i;
     mpres_t x0, y0, z0;
-    mpres_t ix[EC_ADD_SUB_WMAX], iy[EC_ADD_SUB_WMAX], iz[EC_ADD_SUB_WMAX];
-    long S[64], cc;
+    mpres_t ix[EC_ADD_SUB_2_WMAX],iy[EC_ADD_SUB_2_WMAX],iz[EC_ADD_SUB_2_WMAX];
+    long S[64];
     
     if(pt_w_is_zero(z, n))
 	return 1;
     
-    if(c == 0){
+    if(mpz_sgn(e) == 0){
 	pt_w_set_to_zero(x, y, z, n);
 	return 1;
     }
     
     /* The negative of a point (x:y:z) is (x:-y:z) */
-    if(c < 0){
+    if(mpz_sgn (e) < 0){
 	negated = 1;
-	c = -c;
+	mpz_neg (e, e);
 	mpres_neg(y, y, n); /* since the point is non-zero */
     }
     
-    if(c == 1L)
+    if (mpz_cmp_ui (e, 1) == 0)
 	return 1;
 
-    iS = build_NAF(S, c, w);
-  
     mpres_init (x0, n);
     mpres_init (y0, n);
     mpres_init (z0, n);
+
+    w = 3; /* TODO: do better? */
+
+    k = (1 << (w-2)) - 1;
+    for(i = 0; i <= k; i++){
+	mpres_init(ix[i], n);
+	mpres_init(iy[i], n);
+	mpres_init(iz[i], n);
+    }
+    mpres_set(ix[0], x, n);
+    mpres_set(iy[0], y, n);
+    mpres_set(iz[0], z, n);
+    if(k > 0){
+	/* P[k] <- [2]*P */
+	if(pt_w_duplicate(ix[k], iy[k], iz[k], x, y, z, n, A, buf) == 0){
+	    mpres_set(x0, ix[k], n);
+            status = 0;
+	    goto pt_w_mul_add_sub_end;
+        }
+	for(i = 1; i <= k; i++){
+	    if(pt_w_add(ix[i],iy[i],iz[i],
+			ix[i-1],iy[i-1],iz[i-1],
+			ix[k],iy[k],iz[k],n,A,buf) == 0){
+		mpres_set(x0, ix[i], n);
+                status = 0;
+		goto pt_w_mul_add_sub_end;
+	    }
+	}
+	/* at this point, P[i] = (2*i+1) P */
+    }
+  
+    iS = build_NAF(S, e, w);
     pt_w_set_to_zero(x0, y0, z0, n);
 
-    cc = 0;
     for(j = iS-1; j >= 0; j--){
-	cc <<= 1;
 	if(pt_w_duplicate(x0, y0, z0, x0, y0, z0, n, A, buf) == 0){
 	    status = 0;
 	    break;
@@ -1095,22 +1155,30 @@ pt_w_mul_add_sub_si (mpres_t x, mpres_t y, mpres_t z, long c, mpmod_t n,
 #if DEBUG_EC_W >= 2
 	printf("Rdup:="); pt_w_print(x0, y0, z0, n); printf(";\n");
 #endif
-	if(S[j] == 1){
-	    cc++;
-	    if(pt_w_add(x0, y0, z0, x0, y0, z0, x, y, z, n, A, buf) == 0){
-		status = 0;
-		break;
-	    }
+	if(S[j] != 0){
+	    i = abs(S[j]) >> 1; /* (abs(S[j])-1)/2 */
+	    if(S[j] > 0){
+		if(pt_w_add(x0, y0, z0, 
+			    x0, y0, z0, 
+			    ix[i], iy[i], iz[i], n, A, buf) == 0){
+		    status = 0;
+		    break;
+		}
 #if DEBUG_EC_W >= 2
-	    printf("Radd:="); pt_w_print(x0, y0, z0, n); printf(";\n");
+		printf("Radd:="); pt_w_print(x0, y0, z0, n); printf(";\n");
 #endif
-	}
-	else if(S[j] == -1){
-	    /* add(-y) = sub(y) */
-	    cc--;
-	    if(pt_w_sub(x0, y0, z0, x0, y0, z0, x, y, z, n, A, buf) == 0){
-		status = 0;
-		break;
+	    }
+	    else{
+		/* add(-y) = sub(y) */
+		if(pt_w_sub(x0, y0, z0, 
+			    x0, y0, z0, 
+			    ix[i], iy[i], iz[i], n, A, buf) == 0){
+		    status = 0;
+		    break;
+		}
+#if DEBUG_EC_W >= 2
+		printf("Rsub:="); pt_w_print(x0, y0, z0, n); printf(";\n");
+#endif
 	    }
 	}
     }
@@ -1125,12 +1193,11 @@ pt_w_mul_add_sub_si (mpres_t x, mpres_t y, mpres_t z, long c, mpmod_t n,
     }
 #endif
 #endif
-#if DEBUG_EC_W >= 0
+#if DEBUG_EC_W >= 2
     {
 	mpres_t xx, yy, zz;
 	mpz_t e;
 
-	assert(cc == c);
 	mpz_init_set_si(e, c);
 	mpres_init(xx, n); mpres_set(xx, x, n);
 	mpres_init(yy, n); mpres_set(yy, y, n);
@@ -1148,6 +1215,7 @@ pt_w_mul_add_sub_si (mpres_t x, mpres_t y, mpres_t z, long c, mpmod_t n,
 	mpres_clear(zz, n);
     }
 #endif
+ pt_w_mul_add_sub_end:
     mpres_set (x, x0, n);
     mpres_set (y, y0, n);
     mpres_set (z, z0, n);
@@ -1156,6 +1224,15 @@ pt_w_mul_add_sub_si (mpres_t x, mpres_t y, mpres_t z, long c, mpmod_t n,
     mpres_clear (y0, n);
     mpres_clear (z0, n);
     
+    for(i = 0; i <= k; i++){
+	mpres_clear(ix[i], n);
+	mpres_clear(iy[i], n);
+	mpres_clear(iz[i], n);
+    }
+
+    /* Undo negation to avoid changing the caller's e value */
+    if (negated)
+	mpz_neg (e, e);
     return status;
 }
 
@@ -1177,145 +1254,133 @@ ecm_stage1_W (mpz_t f, mpres_t x, mpres_t y, mpres_t A, mpmod_t n,
 	      double B1, double *B1done, mpz_t go, int (*stop_asap)(void), 
 	      char *chkfilename)
 {
-  mpres_t z, xB, yB, zB, buf[EC_W_NBUFS];
-  double p = 0.0, r, last_chkpnt_p;
-  int ret = ECM_NO_FACTOR_FOUND;
-  long last_chkpnt_time;
-  int i;
-
-  mpres_init (z, n);
-  mpres_init (xB, n);
-  mpres_init (yB, n);
-  mpres_init (zB, n);
-  for(i = 0; i < EC_W_NBUFS; i++)
-      mpres_init (buf[i], n);
-  
-  last_chkpnt_time = cputime ();
-
+    mpres_t z, xB, yB, zB, buf[EC_W_NBUFS];
+    double p = 0.0, r, last_chkpnt_p;
+    int ret = ECM_NO_FACTOR_FOUND;
+    long last_chkpnt_time;
+    int i;
+    
+    mpres_init (z, n);
+    mpres_init (xB, n);
+    mpres_init (yB, n);
+    mpres_init (zB, n);
+    for(i = 0; i < EC_W_NBUFS; i++)
+	mpres_init (buf[i], n);
+    
+    last_chkpnt_time = cputime ();
+    
 #if EC_W_LAW == EC_W_LAW_AFFINE
-  mpz_set_ui (z, 1);
+    mpz_set_ui (z, 1);
 #else
-  mpres_set_ui(z, 1, n);
+    mpres_set_ui(z, 1, n);
 #endif
 #if DEBUG_EC_W >= 1
-  printf("A:="); print_mpz_from_mpres(A, n); printf(";\n");
-  printf("x0:="); print_mpz_from_mpres(x, n); printf(";\n");
-  printf("y0:="); print_mpz_from_mpres(y, n); printf(";\n");
-  printf("E:=[A, y0^2-x0^3-A*x0];\n");
-  printf("P:=[x0, y0, 1];\n");
+    printf("A:="); print_mpz_from_mpres(A, n); printf(";\n");
+    printf("x0:="); print_mpz_from_mpres(x, n); printf(";\n");
+    printf("y0:="); print_mpz_from_mpres(y, n); printf(";\n");
+    printf("E:=[A, y0^2-x0^3-A*x0];\n");
+    printf("P:=[x0, y0, 1];\n");
 #endif
-
-  /* preload group order */
-  if (go != NULL)
-    {
-      if (pt_w_mul (x, y, z, go, n, A, buf) == 0)
-        {
-	  mpz_set (f, x);
-	  ret = ECM_FACTOR_FOUND_STEP1;
-	  goto end_of_stage1_w;
+    
+    /* preload group order */
+    if (go != NULL){
+	if (pt_w_mul (x, y, z, go, n, A, buf) == 0){
+	    mpz_set (f, x);
+	    ret = ECM_FACTOR_FOUND_STEP1;
+	    goto end_of_stage1_w;
         }
     }
 #if DEBUG_EC_W >= 1
-  gmp_printf("go:=%Zd;\n", go);
-  printf("goP:="); pt_w_print(x, y, z, n); printf(";\n");
+    gmp_printf("go:=%Zd;\n", go);
+    printf("goP:="); pt_w_print(x, y, z, n); printf(";\n");
 #endif
-  /* prac() wants multiplicands > 2 */
-  for (r = 2.0; r <= B1; r *= 2.0)
-      if (r > *B1done)
-	{
-	  if(pt_w_duplicate (x, y, z, x, y, z, n, A, buf) == 0)
-	    {
+    /* prac() wants multiplicands > 2 */
+    for (r = 2.0; r <= B1; r *= 2.0)
+	if (r > *B1done){
+	    if(pt_w_duplicate (x, y, z, x, y, z, n, A, buf) == 0){
 		mpz_set(f, x);
 		ret = ECM_FACTOR_FOUND_STEP1;
 		goto end_of_stage1_w;
 	    }
 #if DEBUG_EC_W >= 1
-	  printf("P%ld:=", (long)r); pt_w_print(x, y, z, n); printf(";\n");
+	    printf("P%ld:=", (long)r); pt_w_print(x, y, z, n); printf(";\n");
 #endif
 	}
-  
-  last_chkpnt_p = 3.;
-  for (p = getprime (); p <= B1; p = getprime ())
-    {
-      for (r = p; r <= B1; r *= p)
-	  /*	  printf("## p = %ld\n", (long)p);*/
-	if (r > *B1done)
-	  {
-	    if(pt_w_mul_add_sub_si (x, y, z, (long)p, n, A, buf) == 0)
-	      {
-		mpz_set(f, x);
-		ret = ECM_FACTOR_FOUND_STEP1;
-		goto end_of_stage1_w;
-	      }
+
+    last_chkpnt_p = 3.;
+    for (p = getprime (); p <= B1; p = getprime ()){
+	for (r = p; r <= B1; r *= p){
+	    if (r > *B1done){
+		mpz_set_ui(f, (ecm_uint)p);
+		if(pt_w_mul_add_sub (x, y, z, f, n, A, buf) == 0){
+		    mpz_set(f, x);
+		    ret = ECM_FACTOR_FOUND_STEP1;
+		    goto end_of_stage1_w;
+		}
 #if DEBUG_EC_W >= 1
-	    printf("R%ld:=", (long)r); pt_w_print(x, y, z, n); printf(";\n");
-	    printf("Q:=EcmMult(%ld, Q, E, N);\n", (long)r);
-	    printf("(Q[1]*R%ld[3]-Q[3]*R%ld[1]) mod N;\n",(long)r,(long)r);
+		printf("R%ld:=", (long)r); pt_w_print(x, y, z, n); printf(";\n");
+		printf("Q:=EcmMult(%ld, Q, E, N);\n", (long)r);
+		printf("(Q[1]*R%ld[3]-Q[3]*R%ld[1]) mod N;\n",(long)r,(long)r);
 #endif
-	  }
-
-      if (mpres_is_zero (z, n))
-        {
-          outputf (OUTPUT_VERBOSE, "Reached point at infinity, %.0f divides "
-                   "group order\n", p);
-          break;
-        }
-
-      if (stop_asap != NULL && (*stop_asap) ())
-        {
-          outputf (OUTPUT_NORMAL, "Interrupted at prime %.0f\n", p);
-          break;
-        }
-
-      if (chkfilename != NULL && p > last_chkpnt_p + 10000. && 
-          elltime (last_chkpnt_time, cputime ()) > CHKPNT_PERIOD)
-        {
-	  writechkfile (chkfilename, ECM_ECM, MAX(p, *B1done), n, A, x, y, z);
-          last_chkpnt_p = p;
-          last_chkpnt_time = cputime ();
-        }
+	    }
+	}
+	if (mpres_is_zero (z, n)){
+	    outputf (OUTPUT_VERBOSE, "Reached point at infinity, %.0f divides "
+		     "group order\n", p);
+	    break;
+	}
+	
+	if (stop_asap != NULL && (*stop_asap) ()){
+	    outputf (OUTPUT_NORMAL, "Interrupted at prime %.0f\n", p);
+	    break;
+	}
+	
+	if (chkfilename != NULL && p > last_chkpnt_p + 10000. && 
+	    elltime (last_chkpnt_time, cputime ()) > CHKPNT_PERIOD){
+	    writechkfile (chkfilename, ECM_ECM, MAX(p, *B1done), n, A, x, y, z);
+	    last_chkpnt_p = p;
+	    last_chkpnt_time = cputime ();
+	}
     }
  end_of_stage1_w:
-  /* If stage 1 finished normally, p is the smallest prime > B1 here.
-     In that case, set to B1 */
-  if (p > B1)
-      p = B1;
-  
-  if (p > *B1done)
-      *B1done = p;
-
-  if (chkfilename != NULL)
-    writechkfile (chkfilename, ECM_ECM, *B1done, n, A, x, y, z);
-  getprime_clear (); /* free the prime tables, and reinitialize */
-
+    /* If stage 1 finished normally, p is the smallest prime > B1 here.
+       In that case, set to B1 */
+    if (p > B1)
+	p = B1;
+    
+    if (p > *B1done)
+	*B1done = p;
+    
+    if (chkfilename != NULL)
+	writechkfile (chkfilename, ECM_ECM, *B1done, n, A, x, y, z);
+    getprime_clear (); /* free the prime tables, and reinitialize */
+    
 #if EC_W_LAW == EC_W_LAW_PROJECTIVE
-  if(mpz_sgn(z) == 0){
-      /* too bad */
-      pt_w_set_to_zero(x, y, z, n);
-      mpz_set(f, n->orig_modulus);
-      ret = ECM_FACTOR_FOUND_STEP1;
-  }
-  else if (!mpres_invert (xB, z, n)) /* Factor found? */
-    {
-      mpres_gcd (f, z, n);
-      ret = ECM_FACTOR_FOUND_STEP1;
+    if(mpz_sgn(z) == 0){
+	/* too bad */
+	pt_w_set_to_zero(x, y, z, n);
+	mpz_set(f, n->orig_modulus);
+	ret = ECM_FACTOR_FOUND_STEP1;
     }
-  else
-    {
-      /* normalize to get (x:y:1) */
-      mpres_mul (x, x, xB, n);
-      mpres_mul (y, y, xB, n);
+    else if (!mpres_invert (xB, z, n)){ /* Factor found? */
+	mpres_gcd (f, z, n);
+	ret = ECM_FACTOR_FOUND_STEP1;
+    }
+    else{
+	/* normalize to get (x:y:1) */
+	mpres_mul (x, x, xB, n);
+	mpres_mul (y, y, xB, n);
     }
 #endif
-
-  mpres_clear (zB, n);
-  mpres_clear (yB, n);
-  mpres_clear (xB, n);
-  mpres_clear (z, n);
-  for(i = 0; i < EC_W_NBUFS; i++)
-      mpres_clear (buf[i], n);
-
-  return ret;
+    
+    mpres_clear (zB, n);
+    mpres_clear (yB, n);
+    mpres_clear (xB, n);
+    mpres_clear (z, n);
+    for(i = 0; i < EC_W_NBUFS; i++)
+	mpres_clear (buf[i], n);
+    
+    return ret;
 }
 
 /* choose "optimal" S according to step 2 range B2 */
@@ -1579,7 +1644,7 @@ set_stage_2_params (mpz_t B2, mpz_t B2_parm, mpz_t B2min, mpz_t B2min_parm,
           S is the degree of the Suyama-Brent extension for stage 2
           verbose is verbosity level: 0 no output, 1 normal output,
             2 diagnostic output.
-          sigma_is_A: If true, the sigma parameter contains the curve's A value
+	  Etype contains the type of curve used
    Output: f is the factor found.
    Return value: ECM_FACTOR_FOUND_STEPn if a factor was found,
                  ECM_NO_FACTOR_FOUND if no factor was found,
@@ -1597,7 +1662,7 @@ ecm (mpz_t f, mpz_t x, mpz_t y, int *param, mpz_t sigma, mpz_t n, mpz_t go,
      ATTRIBUTE_UNUSED unsigned long gw_n, ATTRIBUTE_UNUSED signed long gw_c)
 {
   int youpi = ECM_NO_FACTOR_FOUND;
-  int weierstrass = 0; /* do we use a curve in Weiestrass form? */
+  int Etype = ECM_ETYPE_MONTGOMERY; /* default type for E */
   int base2 = 0;  /* If n is of form 2^n[+-]1, set base to [+-]n */
   int Fermat = 0; /* If base2 > 0 is a power of 2, set Fermat to base2 */
   int po2 = 0;    /* Whether we should use power-of-2 poly degree */
@@ -1815,7 +1880,7 @@ ecm (mpz_t f, mpz_t x, mpz_t y, int *param, mpz_t sigma, mpz_t n, mpz_t go,
 			   on a some special curves.
 			*/
     {
-      weierstrass = 1;
+      Etype = ECM_ETYPE_WEIERSTRASS;
       mpres_set_z (P.A, sigma, modulus); /* sigma contains A */
       mpres_set_z (P.x, x,    modulus);
       mpres_set_z (P.y, y,    modulus);
@@ -1890,7 +1955,7 @@ ecm (mpz_t f, mpz_t x, mpz_t y, int *param, mpz_t sigma, mpz_t n, mpz_t go,
         youpi = ecm_stage1_batch (f, P.x, P.A, modulus, B1, B1done, *param, 
                                   batch_s);
         else{
-	    if(weierstrass == 0)
+	    if(Etype == ECM_ETYPE_MONTGOMERY)
 		youpi = ecm_stage1 (f, P.x, P.A, modulus, B1, B1done, go, 
 				    stop_asap, chkfilename);
 	    else
@@ -1970,7 +2035,7 @@ ecm (mpz_t f, mpz_t x, mpz_t y, int *param, mpz_t sigma, mpz_t n, mpz_t go,
       mpz_clear (A_t);
     }
 
-  if(weierstrass == 0)
+  if(Etype == ECM_ETYPE_MONTGOMERY)
       youpi = montgomery_to_weierstrass (f, P.x, P.y, P.A, modulus);
   /* hecm:*/
   

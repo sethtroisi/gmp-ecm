@@ -132,6 +132,11 @@ int pm1 (mpz_t, mpz_t, mpz_t, mpz_t, double *, double, mpz_t,
 #define ECM_PARAM_BATCH_2 2
 #define ECM_PARAM_BATCH_32BITS_D 3
 
+/* type of curve used in stage 1 of ECM */
+#define ECM_ETYPE_MONTGOMERY 1
+#define ECM_ETYPE_WEIERSTRASS 2
+#define ECM_ETYPE_HESSIAN 3
+
 /* stage 2 bound */
 #define ECM_DEFAULT_B2 -1
 #define ECM_IS_DEFAULT_B2(x) (mpz_cmp_si (x, ECM_DEFAULT_B2) == 0)
