@@ -626,18 +626,6 @@ ecm_stage1 (mpz_t f, mpres_t x, mpres_t A, mpmod_t n, double B1,
 
 #define DEBUG_EC_W 0
 
-#define EC_W_LAW_AFFINE      1 /* Montgomery residues do no harm... */
-#define EC_W_LAW_PROJECTIVE  2 /* see corresponding section of EFDB */
-
-/*#define EC_W_LAW EC_W_LAW_AFFINE*/
-#define EC_W_LAW EC_W_LAW_PROJECTIVE
-
-#if EC_W_LAW == EC_W_LAW_AFFINE
-#define EC_W_NBUFS 3
-#elif EC_W_LAW == EC_W_LAW_PROJECTIVE
-#define EC_W_NBUFS 6
-#endif
-
 void
 pt_w_set_to_zero(mpres_t x, mpres_t y, mpres_t z, mpmod_t n)
 {
@@ -728,7 +716,7 @@ pt_w_common(mpres_t x0, mpres_t y0, mpres_t z0,
 int
 pt_w_duplicate(mpres_t x3, mpres_t y3, mpres_t z3,
 	       mpres_t x1, mpres_t y1, mpres_t z1,
-	       mpmod_t n, mpres_t A, mpres_t *buf)
+	       mpmod_t n, ec_curve_t E)
 {
     if(pt_w_is_zero(z1, n))
       {
@@ -737,7 +725,7 @@ pt_w_duplicate(mpres_t x3, mpres_t y3, mpres_t z3,
       }
 #if EC_W_LAW == EC_W_LAW_AFFINE
     /* buf[1] <- 2*y1 */
-    mpres_add(buf[1], y1, y1, n);
+    mpres_add(E->buf[1], y1, y1, n);
     if(mpres_is_zero(y1, n))
       {
 	/* y1 = 0 <=> P is a [2]-torsion point */
@@ -745,59 +733,59 @@ pt_w_duplicate(mpres_t x3, mpres_t y3, mpres_t z3,
 	return 1;
       }
     /* buf[0] <- 3*x^2+A */
-    mpres_mul_ui(buf[0], x1, 3, n);
-    mpres_mul(buf[0], buf[0], x1, n);
-    mpres_add(buf[0], buf[0], A, n);
-    return pt_w_common(x3, y3, z3, x1, y1, x1, n, buf[0], buf[1], buf[2]);
+    mpres_mul_ui(E->buf[0], x1, 3, n);
+    mpres_mul(E->buf[0], E->buf[0], x1, n);
+    mpres_add(E->buf[0], E->buf[0], A, n);
+    return pt_w_common(x3, y3, z3, x1, y1, x1, n, E->buf[0], E->buf[1], E->buf[2]);
 #elif EC_W_LAW == EC_W_LAW_PROJECTIVE
     /* source is dbl-2007-bl: 5M + 6S + 1*a + 7add + 3*2 + 1*3 */
     /* mapping: h = buf[0], w = buf[1], s = buf[2], RR = buf[3], B = buf[4];*/
     /*  h:=X1^2 mod p;	    # S*/
-    mpres_sqr(buf[0], x1, n);
+    mpres_sqr(E->buf[0], x1, n);
     /*	w:=Z1^2 mod p;*/
-    mpres_sqr(buf[1], z1, n);
+    mpres_sqr(E->buf[1], z1, n);
     /*	w:=a*w mod p;*/
-    mpres_mul(buf[1], buf[1], A, n);
+    mpres_mul(E->buf[1], E->buf[1], E->A, n);
     /*	s:=3*h mod p;	    # *3*/
-    mpres_mul_ui(buf[2], buf[0], 3, n);
+    mpres_mul_ui(E->buf[2], E->buf[0], 3, n);
     /*	w:=w+s mod p;*/
-    mpres_add(buf[1], buf[1], buf[2], n);
+    mpres_add(E->buf[1], E->buf[1], E->buf[2], n);
     /*	s:=Y1*Z1 mod p;*/
-    mpres_mul(buf[2], y1, z1, n);
+    mpres_mul(E->buf[2], y1, z1, n);
     /*	s:=2*s mod p;*/
-    mpres_mul_ui(buf[2], buf[2], 2, n);
+    mpres_mul_ui(E->buf[2], E->buf[2], 2, n);
     /*	Z3:=s^2 mod p;*/
-    mpres_sqr(z3, buf[2], n);
+    mpres_sqr(z3, E->buf[2], n);
     /*	Z3:=s*Z3 mod p;*/
-    mpres_mul(z3, z3, buf[2], n);
+    mpres_mul(z3, z3, E->buf[2], n);
     /*	RR:=Y1*s mod p;	    # M*/
-    mpres_mul(buf[3], y1, buf[2], n);
+    mpres_mul(E->buf[3], y1, E->buf[2], n);
     /*	B:=X1+RR mod p;    # add*/
-    mpres_add(buf[4], x1, buf[3], n);
+    mpres_add(E->buf[4], x1, E->buf[3], n);
     /*	B:=B^2 mod p;*/
-    mpres_sqr(buf[4], buf[4], n);
+    mpres_sqr(E->buf[4], E->buf[4], n);
     /*	RR:=RR^2 mod p;	    # S*/
-    mpres_sqr(buf[3], buf[3], n);
+    mpres_sqr(E->buf[3], E->buf[3], n);
     /*	B:=B-h mod p;*/
-    mpres_sub(buf[4], buf[4], buf[0], n);
+    mpres_sub(E->buf[4], E->buf[4], E->buf[0], n);
     /*	B:=B-RR mod p;*/
-    mpres_sub(buf[4], buf[4], buf[3], n);
+    mpres_sub(E->buf[4], E->buf[4], E->buf[3], n);
     /*	h:=w^2 mod p;*/
-    mpres_sqr(buf[0], buf[1], n);
+    mpres_sqr(E->buf[0], E->buf[1], n);
     /*	X3:=2*B mod p;*/
-    mpres_mul_ui(x3, buf[4], 2, n);
+    mpres_mul_ui(x3, E->buf[4], 2, n);
     /*	h:=h-X3 mod p;*/
-    mpres_sub(buf[0], buf[0], x3, n);
+    mpres_sub(E->buf[0], E->buf[0], x3, n);
     /*	X3:=h*s mod p;	    # M*/
-    mpres_mul(x3, buf[0], buf[2], n);
+    mpres_mul(x3, E->buf[0], E->buf[2], n);
     /*	s:=B-h mod p;*/
-    mpres_sub(buf[2], buf[4], buf[0], n);
+    mpres_sub(E->buf[2], E->buf[4], E->buf[0], n);
     /*	s:=w*s mod p;*/
-    mpres_mul(buf[2], buf[2], buf[1], n);
+    mpres_mul(E->buf[2], E->buf[2], E->buf[1], n);
     /*	Y3:=2*RR mod p;*/
-    mpres_mul_ui(y3, buf[3], 2, n);
+    mpres_mul_ui(y3, E->buf[3], 2, n);
     /*	Y3:=s-Y3 mod p;*/
-    mpres_sub(y3, buf[2], y3, n);
+    mpres_sub(y3, E->buf[2], y3, n);
     return 1;
 #endif
 }
@@ -807,7 +795,7 @@ int
 pt_w_add(mpres_t x3, mpres_t y3, mpres_t z3,
 	 mpres_t x1, mpres_t y1, mpres_t z1,
 	 mpres_t x2, mpres_t y2, mpres_t z2,
-	 mpmod_t n, mpres_t A, mpres_t *buf)
+	 mpmod_t n, ec_curve_t E)
 {
     if(pt_w_is_zero(z1, n)){
 	pt_w_set(x3, y3, z3, x2, y2, z2, n);
@@ -819,63 +807,64 @@ pt_w_add(mpres_t x3, mpres_t y3, mpres_t z3,
     }
 #if EC_W_LAW == EC_W_LAW_AFFINE
     else if(pt_w_is_equal(x1, y1, z1, x2, y2, z2))
-	return pt_w_duplicate(x3, y3, z3, x1, y1, z1, n, A, buf);
+	return pt_w_duplicate(x3, y3, z3, x1, y1, z1, n, E);
     else{
-	mpres_sub(buf[0], y1, y2, n);
-	mpres_sub(buf[1], x1, x2, n);
-	return pt_w_common(x3, y3, z3, x1, y1, x2, n, buf[0], buf[1], buf[2]);
+	mpres_sub(E->buf[0], y1, y2, n);
+	mpres_sub(E->buf[1], x1, x2, n);
+	return pt_w_common(x3, y3, z3, x1, y1, x2, n, 
+			   E->buf[0], E->buf[1], E->buf[2]);
     }
 #elif EC_W_LAW == EC_W_LAW_PROJECTIVE
     /* Cohen-Miyaji-Ono: 12M+2S+6add+1*2 */
     /* mapping: y1z2 = buf, AA = buf+1, u = buf+2, v = buf+3, R = buf+4, */
     /* vvv = buf+5; */
     /*  Y1Z2:=Y1*Z2 mod p;	# M*/
-    mpres_mul(buf[0], y1, z2, n);
+    mpres_mul(E->buf[0], y1, z2, n);
     /*	A:=X1*Z2 mod p;	# M*/
-    mpres_mul(buf[1], x1, z2, n);
+    mpres_mul(E->buf[1], x1, z2, n);
     /*	u:=Y2*Z1 mod p;*/
-    mpres_mul(buf[2], y2, z1, n);
+    mpres_mul(E->buf[2], y2, z1, n);
     /*	u:=u-Y1Z2 mod p;*/
-    mpres_sub(buf[2], buf[2], buf[0], n);
+    mpres_sub(E->buf[2], E->buf[2], E->buf[0], n);
     /*	v:=X2*Z1 mod p;*/
-    mpres_mul(buf[3], x2, z1, n);
+    mpres_mul(E->buf[3], x2, z1, n);
     /*	v:=v-A mod p;*/
-    mpres_sub(buf[3], buf[3], buf[1], n);
-    if(mpz_sgn(buf[2]) == 0 && mpz_sgn(buf[3]) == 0){
+    mpres_sub(E->buf[3], E->buf[3], E->buf[1], n);
+    if(mpz_sgn(E->buf[2]) == 0 && mpz_sgn(E->buf[3]) == 0){
 	/* u = 0 <=> Y2*Z1 = Y1*Z2 <=> Y2/Z2 = Y1/Z1*/
 	/* v = 0 <=> X2*Z1 = X1*Z2 <=> X2/Z2 = X1/Z1*/
-	return pt_w_duplicate(x3, y3, z3, x1, y1, z1, n, A, buf);
+	return pt_w_duplicate(x3, y3, z3, x1, y1, z1, n, E);
     }
     /*	Z3:=Z1*Z2 mod p;	# M*/
     mpres_mul(z3, z1, z2, n);
     /*	X3:=u^2 mod p;*/
-    mpres_sqr(x3, buf[2], n);
+    mpres_sqr(x3, E->buf[2], n);
     /*	X3:=X3*Z3 mod p;*/
     mpres_mul(x3, x3, z3, n);
     /*	R:=v^2 mod p;*/
-    mpres_sqr(buf[4], buf[3], n);
+    mpres_sqr(E->buf[4], E->buf[3], n);
     /*	vvv:=v*R mod p;*/
-    mpres_mul(buf[5], buf[3], buf[4], n);
+    mpres_mul(E->buf[5], E->buf[3], E->buf[4], n);
     /*	R:=R*A mod p;*/
-    mpres_mul(buf[4], buf[4], buf[1], n);
+    mpres_mul(E->buf[4], E->buf[4], E->buf[1], n);
     /*	Y3:=2*R mod p; 		# *2*/
-    mpres_mul_ui(y3, buf[4], 2, n);
+    mpres_mul_ui(y3, E->buf[4], 2, n);
     /*	A:=X3-vvv mod p;*/
-    mpres_sub(buf[1], x3, buf[5], n);
+    mpres_sub(E->buf[1], x3, E->buf[5], n);
     /*	A:=A-Y3 mod p;*/
-    mpres_sub(buf[1], buf[1], y3, n);
+    mpres_sub(E->buf[1], E->buf[1], y3, n);
     /*	X3:=v*A mod p;		# M*/
-    mpres_mul(x3, buf[3], buf[1], n);
+    mpres_mul(x3, E->buf[3], E->buf[1], n);
     /*	Y3:=R-A mod p;*/
-    mpres_sub(y3, buf[4], buf[1], n);
+    mpres_sub(y3, E->buf[4], E->buf[1], n);
     /*	Y3:=u*Y3 mod p;*/
-    mpres_mul(y3, y3, buf[2], n);
+    mpres_mul(y3, y3, E->buf[2], n);
     /*	A:=vvv*Y1Z2 mod p;*/
-    mpres_mul(buf[1], buf[5], buf[0], n);
+    mpres_mul(E->buf[1], E->buf[5], E->buf[0], n);
     /*	Y3:=Y3-A mod p;*/
-    mpres_sub(y3, y3, buf[1], n);
+    mpres_sub(y3, y3, E->buf[1], n);
     /*	Z3:=vvv*Z3 mod p;	# M*/
-    mpres_mul(z3, z3, buf[5], n);
+    mpres_mul(z3, z3, E->buf[5], n);
     return 1;
 #endif
 }
@@ -885,12 +874,12 @@ int
 pt_w_sub(mpres_t x3, mpres_t y3, mpres_t z3,
 	 mpres_t x1, mpres_t y1, mpres_t z1,
 	 mpres_t x2, mpres_t y2, mpres_t z2,
-	 mpmod_t n, mpres_t A, mpres_t *buf)
+	 mpmod_t n, ec_curve_t E)
 {
     int res;
 
     mpres_neg(y2, y2, n);
-    res = pt_w_add(x3, y3, z3, x1, y1, z1, x2, y2, z2, n, A, buf);
+    res = pt_w_add(x3, y3, z3, x1, y1, z1, x2, y2, z2, n, E);
     mpres_neg(y2, y2, n);
     return res;
 }
@@ -900,8 +889,7 @@ pt_w_sub(mpres_t x3, mpres_t y3, mpres_t z3,
                  1 otherwise.
 */
 int
-pt_w_mul (mpres_t x, mpres_t y, mpres_t z, mpz_t e, mpmod_t n, mpres_t A,
-	  mpres_t *buf)
+pt_w_mul (mpres_t x, mpres_t y, mpres_t z, mpz_t e, mpmod_t n, ec_curve_t E)
 {
   size_t l;
   int negated = 0, status = 1;
@@ -936,7 +924,7 @@ pt_w_mul (mpres_t x, mpres_t y, mpres_t z, mpz_t e, mpmod_t n, mpres_t A,
 
   while (l-- > 0)
     {
-	if(pt_w_duplicate (x0, y0, z0, x0, y0, z0, n, A, buf) == 0)
+	if(pt_w_duplicate (x0, y0, z0, x0, y0, z0, n, E) == 0)
 	  {
 	    status = 0;
 	    break;
@@ -946,7 +934,7 @@ pt_w_mul (mpres_t x, mpres_t y, mpres_t z, mpz_t e, mpmod_t n, mpres_t A,
 #endif
 	if (mpz_tstbit (e, l))
 	  {
-	    if(pt_w_add (x0, y0, z0, x0, y0, z0, x, y, z, n, A, buf) == 0)
+	    if(pt_w_add (x0, y0, z0, x0, y0, z0, x, y, z, n, E) == 0)
 	      {
 		status = 0;
 		break;
@@ -1085,7 +1073,7 @@ pt_w_cmp(mpres_t x1, mpres_t y1, mpres_t z1,
 */
 int
 pt_w_mul_add_sub (mpres_t x, mpres_t y, mpres_t z, mpz_t e, mpmod_t n, 
-		  mpres_t A, mpres_t *buf)
+		  ec_curve_t E)
 {
     int negated = 0, status = 1, iS = 0, j, w, k, i;
     mpres_t x0, y0, z0;
@@ -1127,7 +1115,7 @@ pt_w_mul_add_sub (mpres_t x, mpres_t y, mpres_t z, mpz_t e, mpmod_t n,
     mpres_set(iz[0], z, n);
     if(k > 0){
 	/* P[k] <- [2]*P */
-	if(pt_w_duplicate(ix[k], iy[k], iz[k], x, y, z, n, A, buf) == 0){
+	if(pt_w_duplicate(ix[k], iy[k], iz[k], x, y, z, n, E) == 0){
 	    mpres_set(x0, ix[k], n);
             status = 0;
 	    goto pt_w_mul_add_sub_end;
@@ -1135,7 +1123,7 @@ pt_w_mul_add_sub (mpres_t x, mpres_t y, mpres_t z, mpz_t e, mpmod_t n,
 	for(i = 1; i <= k; i++){
 	    if(pt_w_add(ix[i],iy[i],iz[i],
 			ix[i-1],iy[i-1],iz[i-1],
-			ix[k],iy[k],iz[k],n,A,buf) == 0){
+			ix[k],iy[k],iz[k],n,E) == 0){
 		mpres_set(x0, ix[i], n);
                 status = 0;
 		goto pt_w_mul_add_sub_end;
@@ -1148,7 +1136,7 @@ pt_w_mul_add_sub (mpres_t x, mpres_t y, mpres_t z, mpz_t e, mpmod_t n,
     pt_w_set_to_zero(x0, y0, z0, n);
 
     for(j = iS-1; j >= 0; j--){
-	if(pt_w_duplicate(x0, y0, z0, x0, y0, z0, n, A, buf) == 0){
+	if(pt_w_duplicate(x0, y0, z0, x0, y0, z0, n, E) == 0){
 	    status = 0;
 	    break;
 	}
@@ -1156,11 +1144,11 @@ pt_w_mul_add_sub (mpres_t x, mpres_t y, mpres_t z, mpz_t e, mpmod_t n,
 	printf("Rdup:="); pt_w_print(x0, y0, z0, n); printf(";\n");
 #endif
 	if(S[j] != 0){
-	    i = abs(S[j]) >> 1; /* (abs(S[j])-1)/2 */
+	    i = abs(S[j]) >> 1; /* (abs(S[j])-1)/2, S[j] is always odd */
 	    if(S[j] > 0){
 		if(pt_w_add(x0, y0, z0, 
 			    x0, y0, z0, 
-			    ix[i], iy[i], iz[i], n, A, buf) == 0){
+			    ix[i], iy[i], iz[i], n, E) == 0){
 		    status = 0;
 		    break;
 		}
@@ -1172,7 +1160,7 @@ pt_w_mul_add_sub (mpres_t x, mpres_t y, mpres_t z, mpz_t e, mpmod_t n,
 		/* add(-y) = sub(y) */
 		if(pt_w_sub(x0, y0, z0, 
 			    x0, y0, z0, 
-			    ix[i], iy[i], iz[i], n, A, buf) == 0){
+			    ix[i], iy[i], iz[i], n, E) == 0){
 		    status = 0;
 		    break;
 		}
@@ -1202,7 +1190,7 @@ pt_w_mul_add_sub (mpres_t x, mpres_t y, mpres_t z, mpz_t e, mpmod_t n,
 	mpres_init(xx, n); mpres_set(xx, x, n);
 	mpres_init(yy, n); mpres_set(yy, y, n);
 	mpres_init(zz, n); mpres_set(zz, z, n);
-	pt_w_mul(xx, yy, zz, e, n, A, buf);
+	pt_w_mul(xx, yy, zz, e, n, E);
 	if(pt_w_cmp(x0, y0, z0, xx, yy, zz, n) != 1){
 	    printf("PB\n");
 	    printf("as:="); pt_w_print(x0, y0, z0, n); printf(";\n");
@@ -1236,6 +1224,28 @@ pt_w_mul_add_sub (mpres_t x, mpres_t y, mpres_t z, mpz_t e, mpmod_t n,
     return status;
 }
 
+void
+ec_curve_init(ec_curve_t E, mpres_t A, int type, mpmod_t n)
+{
+    int i;
+
+    E->type = type;
+    mpres_init(E->A, n);
+    mpres_set(E->A, A, n);
+    for(i = 0; i < EC_W_NBUFS; i++)
+	mpres_init (E->buf[i], n);
+}
+
+void
+ec_curve_clear(ec_curve_t E, mpmod_t n)
+{
+    int i;
+
+    mpres_clear(E->A, n);
+    for(i = 0; i < EC_W_NBUFS; i++)
+	mpres_clear (E->buf[i], n);
+}
+
 /* Input: (x, y) is initial point
           A is curve parameter in Weierstrass's form:
           Y^2 = X^3 + A*X + B, where B = y^2-(x^3+A*x) is implicit
@@ -1254,18 +1264,18 @@ ecm_stage1_W (mpz_t f, mpres_t x, mpres_t y, mpres_t A, mpmod_t n,
 	      double B1, double *B1done, mpz_t go, int (*stop_asap)(void), 
 	      char *chkfilename)
 {
-    mpres_t z, xB, yB, zB, buf[EC_W_NBUFS];
+    mpres_t z, xB, yB, zB;
+    ec_curve_t E;
     double p = 0.0, r, last_chkpnt_p;
     int ret = ECM_NO_FACTOR_FOUND;
     long last_chkpnt_time;
-    int i;
     
     mpres_init (z, n);
     mpres_init (xB, n);
     mpres_init (yB, n);
     mpres_init (zB, n);
-    for(i = 0; i < EC_W_NBUFS; i++)
-	mpres_init (buf[i], n);
+
+    ec_curve_init(E, A, ECM_EC_TYPE_WEIERSTRASS, n);
     
     last_chkpnt_time = cputime ();
     
@@ -1284,7 +1294,7 @@ ecm_stage1_W (mpz_t f, mpres_t x, mpres_t y, mpres_t A, mpmod_t n,
     
     /* preload group order */
     if (go != NULL){
-	if (pt_w_mul (x, y, z, go, n, A, buf) == 0){
+	if (pt_w_mul (x, y, z, go, n, E) == 0){
 	    mpz_set (f, x);
 	    ret = ECM_FACTOR_FOUND_STEP1;
 	    goto end_of_stage1_w;
@@ -1297,7 +1307,7 @@ ecm_stage1_W (mpz_t f, mpres_t x, mpres_t y, mpres_t A, mpmod_t n,
     /* prac() wants multiplicands > 2 */
     for (r = 2.0; r <= B1; r *= 2.0)
 	if (r > *B1done){
-	    if(pt_w_duplicate (x, y, z, x, y, z, n, A, buf) == 0){
+	    if(pt_w_duplicate (x, y, z, x, y, z, n, E) == 0){
 		mpz_set(f, x);
 		ret = ECM_FACTOR_FOUND_STEP1;
 		goto end_of_stage1_w;
@@ -1312,7 +1322,7 @@ ecm_stage1_W (mpz_t f, mpres_t x, mpres_t y, mpres_t A, mpmod_t n,
 	for (r = p; r <= B1; r *= p){
 	    if (r > *B1done){
 		mpz_set_ui(f, (ecm_uint)p);
-		if(pt_w_mul_add_sub (x, y, z, f, n, A, buf) == 0){
+		if(pt_w_mul_add_sub (x, y, z, f, n, E) == 0){
 		    mpz_set(f, x);
 		    ret = ECM_FACTOR_FOUND_STEP1;
 		    goto end_of_stage1_w;
@@ -1377,8 +1387,7 @@ ecm_stage1_W (mpz_t f, mpres_t x, mpres_t y, mpres_t A, mpmod_t n,
     mpres_clear (yB, n);
     mpres_clear (xB, n);
     mpres_clear (z, n);
-    for(i = 0; i < EC_W_NBUFS; i++)
-	mpres_clear (buf[i], n);
+    ec_curve_clear(E, n);
     
     return ret;
 }
@@ -1644,7 +1653,7 @@ set_stage_2_params (mpz_t B2, mpz_t B2_parm, mpz_t B2min, mpz_t B2min_parm,
           S is the degree of the Suyama-Brent extension for stage 2
           verbose is verbosity level: 0 no output, 1 normal output,
             2 diagnostic output.
-	  Etype contains the type of curve used
+	  sigma_is_A: If true, the sigma parameter contains the curve's A value
    Output: f is the factor found.
    Return value: ECM_FACTOR_FOUND_STEPn if a factor was found,
                  ECM_NO_FACTOR_FOUND if no factor was found,
@@ -1662,7 +1671,7 @@ ecm (mpz_t f, mpz_t x, mpz_t y, int *param, mpz_t sigma, mpz_t n, mpz_t go,
      ATTRIBUTE_UNUSED unsigned long gw_n, ATTRIBUTE_UNUSED signed long gw_c)
 {
   int youpi = ECM_NO_FACTOR_FOUND;
-  int Etype = ECM_ETYPE_MONTGOMERY; /* default type for E */
+  int Etype = ECM_EC_TYPE_MONTGOMERY; /* default type for E */
   int base2 = 0;  /* If n is of form 2^n[+-]1, set base to [+-]n */
   int Fermat = 0; /* If base2 > 0 is a power of 2, set Fermat to base2 */
   int po2 = 0;    /* Whether we should use power-of-2 poly degree */
@@ -1880,7 +1889,7 @@ ecm (mpz_t f, mpz_t x, mpz_t y, int *param, mpz_t sigma, mpz_t n, mpz_t go,
 			   on a some special curves.
 			*/
     {
-      Etype = ECM_ETYPE_WEIERSTRASS;
+      Etype = ECM_EC_TYPE_WEIERSTRASS;
       mpres_set_z (P.A, sigma, modulus); /* sigma contains A */
       mpres_set_z (P.x, x,    modulus);
       mpres_set_z (P.y, y,    modulus);
@@ -1905,7 +1914,7 @@ ecm (mpz_t f, mpz_t x, mpz_t y, int *param, mpz_t sigma, mpz_t n, mpz_t go,
       outputf (OUTPUT_RESVERBOSE, "A=%Zd\n", t);
       mpres_get_z (t, P.x, modulus);
       outputf (OUTPUT_RESVERBOSE, "starting point: x0=%Zd\n", t);
-      if (Etype == ECM_ETYPE_WEIERSTRASS)
+      if (Etype == ECM_EC_TYPE_WEIERSTRASS)
 	{
           mpres_get_z (t, P.y, modulus);
 	  outputf (OUTPUT_RESVERBOSE, " y0=%Zd\n", t);
@@ -1955,7 +1964,7 @@ ecm (mpz_t f, mpz_t x, mpz_t y, int *param, mpz_t sigma, mpz_t n, mpz_t go,
         youpi = ecm_stage1_batch (f, P.x, P.A, modulus, B1, B1done, *param, 
                                   batch_s);
         else{
-	    if(Etype == ECM_ETYPE_MONTGOMERY)
+	    if(Etype == ECM_EC_TYPE_MONTGOMERY)
 		youpi = ecm_stage1 (f, P.x, P.A, modulus, B1, B1done, go, 
 				    stop_asap, chkfilename);
 	    else
@@ -1979,7 +1988,7 @@ ecm (mpz_t f, mpz_t x, mpz_t y, int *param, mpz_t sigma, mpz_t n, mpz_t go,
      before P.x is (perhaps) converted to Weierstrass form */
   
   mpres_get_z (x, P.x, modulus);
-  if (Etype == ECM_ETYPE_WEIERSTRASS)
+  if (Etype == ECM_EC_TYPE_WEIERSTRASS)
     mpres_get_z (y, P.y, modulus);  
 
   if (youpi != ECM_NO_FACTOR_FOUND)
@@ -1992,7 +2001,7 @@ ecm (mpz_t f, mpz_t x, mpz_t y, int *param, mpz_t sigma, mpz_t n, mpz_t go,
       mpz_init (t);
       mpres_get_z (t, P.x, modulus);
       outputf (OUTPUT_RESVERBOSE, "x=%Zd\n", t);
-      if (Etype == ECM_ETYPE_WEIERSTRASS)
+      if (Etype == ECM_EC_TYPE_WEIERSTRASS)
 	{
 	  mpres_get_z (t, P.y, modulus);
 	  outputf (OUTPUT_RESVERBOSE, "y=%Zd\n", t);
@@ -2035,7 +2044,7 @@ ecm (mpz_t f, mpz_t x, mpz_t y, int *param, mpz_t sigma, mpz_t n, mpz_t go,
       mpz_clear (A_t);
     }
 
-  if(Etype == ECM_ETYPE_MONTGOMERY)
+  if(Etype == ECM_EC_TYPE_MONTGOMERY)
       youpi = montgomery_to_weierstrass (f, P.x, P.y, P.A, modulus);
   /* hecm:*/
   

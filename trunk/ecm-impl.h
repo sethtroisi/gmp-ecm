@@ -224,10 +224,44 @@ typedef struct
 {
   mpres_t x;
   mpres_t y;
-  mpres_t z;
   mpres_t A;
 } __curve_struct;
 typedef __curve_struct curve;
+
+/* type of curve used in stage 1 of ECM */
+#define ECM_EC_TYPE_MONTGOMERY 1
+#define ECM_EC_TYPE_WEIERSTRASS 2
+#define ECM_EC_TYPE_HESSIAN 3
+
+#define EC_W_LAW_AFFINE      1 /* Montgomery residues do no harm... */
+#define EC_W_LAW_PROJECTIVE  2 /* see corresponding section of EFDB */
+
+/*#define EC_W_LAW EC_W_LAW_AFFINE*/
+#define EC_W_LAW EC_W_LAW_PROJECTIVE
+
+#if EC_W_LAW == EC_W_LAW_AFFINE
+#define EC_W_NBUFS 3
+#elif EC_W_LAW == EC_W_LAW_PROJECTIVE
+#define EC_W_NBUFS 6
+#endif
+
+typedef struct
+{
+  int type;                /* using the preceding flags */
+  mpres_t A;               /* for MONTGOMERY: b*y^2=x^3+A*x^2+x 
+			      for WEIERSTRASS: y^2=x^3+A*x+B
+			      for HESSIAN: U^3+V^3+W^3=3*A*U*V*W */
+  mpres_t buf[EC_W_NBUFS]; /* used in the addition laws */
+} __ec_curve_struct;
+typedef __ec_curve_struct ec_curve_t[1];
+
+typedef struct
+{
+  mpres_t x;
+  mpres_t y;
+  mpres_t z;
+} __ec_point_struct;
+typedef __ec_point_struct ec_point_t[1];
 
 typedef struct
 {
@@ -244,9 +278,6 @@ typedef struct
   mpz_t m_1;
 } __faststage2_param_t;
 typedef __faststage2_param_t faststage2_param_t;
-
-#define EC_MONTGOMERY_FORM 0
-#define EC_WEIERSTRASS_FORM 1
 
 typedef struct
 {
