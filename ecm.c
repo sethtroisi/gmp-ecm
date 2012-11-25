@@ -1265,6 +1265,7 @@ ec_curve_init(ec_curve_t E, mpmod_t n)
     int i;
 
     E->type = ECM_EC_TYPE_MONTGOMERY;
+    mpres_init(E->A, n);
     for(i = 0; i < EC_W_NBUFS; i++)
 	mpres_init (E->buf[i], n);
 }
@@ -1276,7 +1277,6 @@ ec_curve_init_set(ec_curve_t E, mpres_t A, int type, mpmod_t n)
 
     ec_curve_init(E, n);
     E->type = type;
-    mpres_init(E->A, n);
     mpres_set(E->A, A, n);
 }
 
