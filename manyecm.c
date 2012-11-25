@@ -852,12 +852,11 @@ process_many_curves(mpz_t f, mpz_t n, double B1, ec_curve_t *tE,
     /* take everybody */
     mpmod_init(modulus, n, ECM_MOD_DEFAULT);
     for(i = 0; i < nEP; i++){
-       mpres_init(tQ[i]->x, modulus); mpres_set_z(tQ[i]->x, tP[i]->x, modulus);
-       mpres_init(tQ[i]->y, modulus); mpres_set_z(tQ[i]->y, tP[i]->y, modulus);
-       mpres_init(tQ[i]->z, modulus); mpres_set_z(tQ[i]->z, tP[i]->z, modulus);
+	ec_point_init(tQ[i], tE[i], modulus);
+	ec_point_set(tQ[i], tP[i], tE[i], modulus);
     }
     B1done = 1.0;
-    ret = all_curves_at_once(f, ok, tQ, tE, nEP, modulus, B1, &B1done, NULL, NULL);
+    ret = all_curves_at_once(f, ok, tE, tQ, nEP, modulus, B1, &B1done, NULL, NULL);
     printf("# Step 1 took %ldms\n", elltime (st, cputime ()));
 
     if(ret != ECM_NO_FACTOR_FOUND){
@@ -891,9 +890,7 @@ process_many_curves(mpz_t f, mpz_t n, double B1, ec_curve_t *tE,
 	}
     }
     for(i = 0; i < nEP; i++){
-	mpres_clear(tQ[i]->x, modulus);
-	mpres_clear(tQ[i]->y, modulus); 
-	mpres_clear(tQ[i]->z, modulus); 
+	ec_point_clear(tQ[i], tE[i], modulus);
     }
     ecm_clear(params);
     mpmod_clear(modulus);
@@ -1186,47 +1183,35 @@ cubic_to_quartic(mpz_t f, mpz_t n, mpz_t x, mpz_t y,
     return ret;
 }
 
+/* tE[i], tP[i] are built in raw modular form, not Montgomery form. */
 int
 build_curves_with_torsion_Z7(mpz_t f, mpz_t n, ec_curve_t *tE, ec_point_t *tP,
 			     int umin, int umax, int nEP)
 {
     int u, ret = ECM_NO_FACTOR_FOUND, nc = 0;
     mpz_t A2, A1div2, x0, y0, cte, num[2], den[2], inv[1], d, c, b, kx0, ky0;
+    mpres_t tmp;
     mpmod_t modulus;
-    ec_curve_t E[1];
-    ec_point_t P[1], Q[1];
-    char ok[1];
+    ec_curve_t E;
+    ec_point_t P, Q;
 
-    ok[0] = 1;
     mpmod_init(modulus, n, ECM_MOD_DEFAULT);
-    for(u = 0; u < 2; u++){
-	mpres_init(num[u], modulus);
-	mpres_init(den[u], modulus);
-    }
-    mpres_init(inv[0], modulus);
     /* Eaux = "1295/48", "-1079/864" */
     /* Paux = "2185/12", "-2458" */
-#if 0 /* TODO: clean this! */
-    mpres_init(EP[0].A, modulus);
-    mod_from_rat_str(f, "1295/48", n); mpres_set_z(EP[0].A, f, modulus);
-    mpres_init(EP[0]->x, modulus);
-    mod_from_rat_str(f, "2185/12", n); mpres_set_z(EP[0]->x, f, modulus);
-    mpres_init(EP[0]->y, modulus);
-    mpz_set_str(f, "-2458", 10); mpres_set_z(EP[0]->y, f, modulus);
-    mpres_init(EP[0]->z, modulus);
-    mpres_set_ui(EP[0]->z, 1, modulus);
+    mpres_init(tmp, modulus);
+    mod_from_rat_str(f, "1295/48", n);
+    mpres_set_z(tmp, f, modulus);
+    ec_curve_init_set(E, tmp, ECM_EC_TYPE_WEIERSTRASS, modulus);
+    ec_point_init(P, E, modulus);
+    mod_from_rat_str(f, "2185/12", n); mpres_set_z(P->x, f, modulus);
+    mpz_set_str(f, "-2458", 10); mpres_set_z(P->y, f, modulus);
+    mpres_set_ui(P->z, 1, modulus);
 #if DEBUG_MANY_EC >= 2
     printf("P:=");
-    pt_print(EP[0], modulus);
+    pt_print(P, modulus);
     printf(";\n");
 #endif
-
-    mpres_init(EQ[0]->x, modulus);
-    mpres_init(EQ[0]->y, modulus);
-    mpres_init(EQ[0]->z, modulus);
-    mpres_init(EQ[0].A, modulus);
-    mpres_set(EQ[0].A, EP[0].A, modulus);
-
+    ec_point_init(Q, E, modulus);
     mpz_init(A2);
     mod_from_rat_str(A2, "1/12", n);
     mpz_init_set_str(A1div2, "-1", 10);
@@ -1246,19 +1231,21 @@ build_curves_with_torsion_Z7(mpz_t f, mpz_t n, ec_curve_t *tE, ec_point_t *tP,
     for(u = umin; u < umax; u++){
 	/* update Qaux */
 	mpz_set_ui(d, u);
-	if(pt_many_mul(EQ, EP, 1, d, modulus, num, den, inv, ok) == 0){
+	/* TODO: replace with ec_point_add, one of these days */
+	if(ec_point_mul(Q, d, P, E, modulus) == 0){
 	    printf("found factor during update of Q\n");
-	    mpz_set(f, num[1]);
+	    mpz_set(f, Q->x);
 	    ret = ECM_FACTOR_FOUND_STEP1;
 	    break;
 	}
 #if DEBUG_MANY_EC >= 2
 	printf("(s, t)[%d]:=", u);
-	pt_print(EQ[0], modulus);
+	pt_print(Q, modulus);
 	printf(";\n");
 #endif
-	mpres_get_z(b, EQ[0]->x, modulus);
-	mpres_get_z(c, EQ[0]->y, modulus);
+	/* come back to plain (not Montgomery) residues */
+	mpres_get_z(b, Q->x, modulus);
+	mpres_get_z(c, Q->y, modulus);
 	if(cubic_to_quartic(f, n, d, ky0, b, c, A2, A1div2, x0, y0, cte) == 0){
 	    printf("found factor in Z7 (cubic_2_quartic)\n");
 	    ret = ECM_FACTOR_FOUND_STEP1;
@@ -1279,45 +1266,29 @@ build_curves_with_torsion_Z7(mpz_t f, mpz_t n, ec_curve_t *tE, ec_point_t *tP,
 	/* b:=c*d; */
 	mpz_mul(b, c, d);
 	mpz_mod(b, b, n);
-	K2W4(tEP+nc, b, c, kx0, ky0, n);
+	K2W4(tE[nc], tP[nc], b, c, kx0, ky0, n);
 	nc++;
 	if(nc >= nEP)
 	    break;
-	pt_many_assign(EP, EQ, 1, modulus);
     }
 #if DEBUG_MANY_EC >= 2
     printf("Curves built\n");
-    pt_many_print(tEP, nEP, modulus);
+    pt_many_print(tE, tP, nEP, modulus);
 #endif
     mpz_clear(A2);
     mpz_clear(A1div2);
     mpz_clear(x0);
     mpz_clear(y0);
     mpz_clear(cte);
-    mpres_clear(EP[0].A, modulus);
-    mpres_clear(EP[0]->x, modulus);
-    mpres_clear(EP[0]->y, modulus);
-    mpres_clear(EP[0]->z, modulus);
-    for(u = 0; u < 2; u++){
-	mpres_clear(num[u], modulus);
-	mpres_clear(den[u], modulus);
-    }
-    mpres_clear(inv[0], modulus);
-    mpres_clear(EP[0]->x, modulus);
-    mpres_clear(EP[0]->y, modulus);
-    mpres_clear(EP[0]->z, modulus);
-    mpres_clear(EP[0].A, modulus);
-    mpres_clear(EQ[0]->x, modulus);
-    mpres_clear(EQ[0]->y, modulus);
-    mpres_clear(EQ[0]->z, modulus);
-    mpres_clear(EQ[0].A, modulus);
+    ec_point_clear(P, E, modulus);
+    ec_point_clear(Q, E, modulus);
+    ec_curve_clear(E, modulus);
     mpmod_clear(modulus);
     mpz_clear(d);
     mpz_clear(c);
     mpz_clear(b);
     mpz_clear(kx0);
     mpz_clear(ky0);
-#endif
     return ret;
 }
 

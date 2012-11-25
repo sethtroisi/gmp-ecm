@@ -889,7 +889,7 @@ pt_w_sub(mpres_t x3, mpres_t y3, mpres_t z3,
                  1 otherwise.
 */
 int
-pt_w_mul (mpres_t x, mpres_t y, mpres_t z, mpz_t e, mpmod_t n, ec_curve_t E)
+pt_w_mul (mpres_t x, mpres_t y, mpres_t z, mpz_t e, ec_curve_t E, mpmod_t n)
 {
   size_t l;
   int negated = 0, status = 1;
@@ -1190,7 +1190,7 @@ pt_w_mul_add_sub (mpres_t x, mpres_t y, mpres_t z, mpz_t e, mpmod_t n,
 	mpres_init(xx, n); mpres_set(xx, x, n);
 	mpres_init(yy, n); mpres_set(yy, y, n);
 	mpres_init(zz, n); mpres_set(zz, z, n);
-	pt_w_mul(xx, yy, zz, e, n, E);
+	pt_w_mul(xx, yy, zz, e, E, n);
 	if(pt_w_cmp(x0, y0, z0, xx, yy, zz, n) != 1){
 	    printf("PB\n");
 	    printf("as:="); pt_w_print(x0, y0, z0, n); printf(";\n");
@@ -1224,16 +1224,60 @@ pt_w_mul_add_sub (mpres_t x, mpres_t y, mpres_t z, mpz_t e, mpmod_t n,
     return status;
 }
 
+/* TODO: change this according to E->type */
 void
-ec_curve_init(ec_curve_t E, mpres_t A, int type, mpmod_t n)
+ec_point_init(ec_point_t P, ec_curve_t E, mpmod_t n)
+{
+    mpres_init(P->x, n);
+    mpres_init(P->y, n);
+    mpres_init(P->z, n);
+}
+
+/* TODO: change this according to E->type */
+void
+ec_point_clear(ec_point_t P, ec_curve_t E, mpmod_t n)
+{
+    mpres_clear(P->x, n);
+    mpres_clear(P->y, n);
+    mpres_clear(P->z, n);
+}
+
+/* TODO: should depend on E->type... */
+void
+ec_point_set(ec_point_t Q, ec_point_t P, ec_curve_t E, mpmod_t n)
+{
+    mpres_set(Q->x, P->x, n);
+    mpres_set(Q->y, P->y, n);
+    mpres_set(Q->z, P->z, n);
+}
+
+/* TODO: should depend on E->type... */
+int
+ec_point_mul(ec_point_t Q, mpz_t d, ec_point_t P, ec_curve_t E, mpmod_t n)
+{
+    ec_point_set(Q, P, E, n); /* humf */
+    return pt_w_mul(Q->x, Q->y, Q->z, d, E, n);
+}
+
+void
+ec_curve_init(ec_curve_t E, mpmod_t n)
 {
     int i;
 
+    E->type = ECM_EC_TYPE_MONTGOMERY;
+    for(i = 0; i < EC_W_NBUFS; i++)
+	mpres_init (E->buf[i], n);
+}
+
+void
+ec_curve_init_set(ec_curve_t E, mpres_t A, int type, mpmod_t n)
+{
+    int i;
+
+    ec_curve_init(E, n);
     E->type = type;
     mpres_init(E->A, n);
     mpres_set(E->A, A, n);
-    for(i = 0; i < EC_W_NBUFS; i++)
-	mpres_init (E->buf[i], n);
 }
 
 void
@@ -1275,7 +1319,7 @@ ecm_stage1_W (mpz_t f, mpres_t x, mpres_t y, mpres_t A, mpmod_t n,
     mpres_init (yB, n);
     mpres_init (zB, n);
 
-    ec_curve_init(E, A, ECM_EC_TYPE_WEIERSTRASS, n);
+    ec_curve_init_set(E, A, ECM_EC_TYPE_WEIERSTRASS, n);
     
     last_chkpnt_time = cputime ();
     
@@ -1294,7 +1338,7 @@ ecm_stage1_W (mpz_t f, mpres_t x, mpres_t y, mpres_t A, mpmod_t n,
     
     /* preload group order */
     if (go != NULL){
-	if (pt_w_mul (x, y, z, go, n, E) == 0){
+	if (pt_w_mul (x, y, z, go, E, n) == 0){
 	    mpz_set (f, x);
 	    ret = ECM_FACTOR_FOUND_STEP1;
 	    goto end_of_stage1_w;
