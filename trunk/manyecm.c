@@ -647,7 +647,7 @@ dump_curves(ec_curve_t *tE, ec_point_t *tP, int nEP, mpz_t f)
 	    printf("Factorization(#E[%d]);\n", i+1);
 	}
 	else
-	    printf("Case %d NYI in dump_curves\n");
+	    printf("Case %d NYI in dump_curves\n", tE[i]->type);
     }
 }
 
@@ -2182,7 +2182,6 @@ main (int argc, char *argv[])
   mpz_init (n);
   for(i = 0; i < NFMAX; i++)
       mpz_init(tf[i]); /* for potential factors */
-  setlinebuf(stdout);
   while(fscanf(infile, "%s", buf) != EOF){
       /* read number */
       if(buf[0] == '#'){
