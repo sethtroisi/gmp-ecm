@@ -1383,9 +1383,11 @@ main (int argc, char *argv[])
       /* if A is not zero, we use it */
       params->sigma_is_A = specific_A;
       mpz_set (params->sigma, (params->sigma_is_A) ? A : sigma);
-      if(specific_y0)
+      if(specific_y0){
 	  /* to use Weierstrass stuff */
 	  params->sigma_is_A = -1;
+	  params->Etype = ECM_EC_TYPE_WEIERSTRASS;
+      }
       mpz_set (params->go, go.Candi.n); /* may change if contains N */
       mpz_set (params->B2min, B2min); /* may change with -c */
       /* Here's an ugly hack to pass B2scale to the library somehow.
