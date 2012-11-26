@@ -96,6 +96,7 @@ usage (void)
           "\n               can use -sigma i:s to specify -param i at the same"
                                                               " time [ecm]\n");
     printf ("  -A a         use a as curve coefficient [ecm]\n");
+    printf ("  -H D         use D as curve coefficient [ecm Hessian form]\n");
     printf ("  -k n         perform >= n steps in stage 2\n");
     printf ("  -power n     use x^n for Brent-Suyama's extension\n");
     printf ("  -dickson n   use n-th Dickson's polynomial for Brent-Suyama's extension\n");
@@ -357,6 +358,7 @@ main (int argc, char *argv[])
                        /* compute from sigma */
       specific_y0 = 0, /* 1 for Weierstrass form */
       specific_A = 0,  /* one may want its own A, including A=0 */
+      specific_H = 0,  /* one may want its own H for Hessian form */
       specific_sigma = 0;  /*   0=make random */
                            /*   1=sigma from command line */
   int repr = ECM_MOD_DEFAULT; /* automatic choice */
@@ -647,6 +649,17 @@ main (int argc, char *argv[])
               exit (EXIT_FAILURE);
 	    }
 	  specific_A = 1;
+	  argv += 2;
+	  argc -= 2;
+        }
+      else if ((argc > 2) && (strcmp (argv[1], "-H")) == 0)
+        {
+          if (mpq_set_str (rat_A, argv[2], 0))
+	    {
+	      fprintf (stderr, "Error, invalid H value: %s\n", argv[2]);
+              exit (EXIT_FAILURE);
+	    }
+	  specific_A = specific_H = 1; /* humf */
 	  argv += 2;
 	  argc -= 2;
         }
@@ -1386,7 +1399,10 @@ main (int argc, char *argv[])
       if(specific_y0){
 	  /* to use Weierstrass stuff */
 	  params->sigma_is_A = -1;
-	  params->Etype = ECM_EC_TYPE_WEIERSTRASS;
+	  if(specific_H == 0)
+	      params->Etype = ECM_EC_TYPE_WEIERSTRASS;
+	  else
+	      params->Etype = ECM_EC_TYPE_HESSIAN;
       }
       mpz_set (params->go, go.Candi.n); /* may change if contains N */
       mpz_set (params->B2min, B2min); /* may change with -c */
