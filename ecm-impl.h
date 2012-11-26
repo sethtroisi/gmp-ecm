@@ -421,7 +421,7 @@ void duplicate (mpres_t, mpres_t, mpres_t, mpres_t, mpmod_t, mpres_t, mpres_t,
 void ecm_mul (mpres_t, mpres_t, mpz_t, mpmod_t, mpres_t);
 #define print_B1_B2_poly __ECM(print_B1_B2_poly)
 void print_B1_B2_poly (int, int, double, double, mpz_t, mpz_t, mpz_t, int S,  
-                       mpz_t, int, mpz_t, int, unsigned int);
+                       mpz_t, int, int, mpz_t, int, unsigned int);
 #define set_stage_2_params __ECM(set_stage_2_params)
 int set_stage_2_params (mpz_t, mpz_t, mpz_t, mpz_t, root_params_t *, double, 
                         double, unsigned long *, const int, int, int *,
