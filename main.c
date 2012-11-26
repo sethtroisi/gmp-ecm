@@ -295,7 +295,7 @@ int
 mod_from_rat(mpz_t r, mpq_t q, mpz_t N, int verbose)
 {
     mpz_t inv, C;
-    int factor_is_prime, cofactor_is_prime, ret;
+    int factor_is_prime, cofactor_is_prime, ret = ECM_NO_FACTOR_FOUND;
  
     mpz_init (inv);
     if (mpz_invert (inv, mpq_denref (q), N) == 0)
@@ -1247,7 +1247,7 @@ main (int argc, char *argv[])
 	  if (specific_A)
 	    {
 		returncode = mod_from_rat(A, rat_A, n.n, verbose);
-		if(returncode != 0)
+		if(returncode != ECM_NO_FACTOR_FOUND)
 		    return returncode;
 	    }
 	  
@@ -1260,13 +1260,13 @@ main (int argc, char *argv[])
                 }
 
 	      returncode = mod_from_rat(x, rat_x0, n.n, verbose);
-	      if(returncode != 0)
+	      if(returncode != ECM_NO_FACTOR_FOUND)
 		  return returncode;
 
 	      if (specific_y0)
 		{
 		  returncode = mod_from_rat(y, rat_y0, n.n, verbose);
-		  if (returncode != 0)
+		  if (returncode != ECM_NO_FACTOR_FOUND)
 		    return returncode;
 		}
             }
