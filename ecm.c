@@ -1065,6 +1065,178 @@ pt_w_cmp(mpres_t x1, mpres_t y1, mpres_t z1,
     }
 }
 
+/******************** Hessian form ********************/
+
+/* U^3+V^3+W^3 = 3*D*U*V*W, D^3 <> 1.
+   O_H = [1:-1:0]
+   -[u:v:w] = [v:u:w]
+   Warning: there can exist two other points at infinity, namely
+   [1:-omega:0] and [1:-omega^2:0] where omega^3 = 1.
+*/
+int
+hessian_is_zero(ec_point_t P, ATTRIBUTE_UNUSED ec_curve_t E, mpmod_t n)
+{
+    mpres_t tmp;
+    int ret;
+
+    if(mpz_sgn(P->z) != 0)
+	return 0;
+    mpres_init(tmp, n);
+    mpres_add(tmp, P->x, P->y, n);
+    ret = mpz_sgn(tmp) == 0;
+#if 0
+    if(ret)
+	gmp_printf("found a third root of unity? %Zd/%Zd\n", P->x, P->y);
+#endif
+    mpres_clear(tmp, n);
+    return ret;
+}
+
+void
+hessian_set_to_zero(ec_point_t P, ATTRIBUTE_UNUSED ec_curve_t E, mpmod_t n)
+{
+    mpres_set_si(P->x,  1, n);
+    mpres_set_si(P->y, -1, n);
+    mpres_set_si(P->z,  0, n);
+}
+
+void
+hessian_print(ec_point_t P, ATTRIBUTE_UNUSED ec_curve_t E, mpmod_t n)
+{
+    pt_w_print(P->x, P->y, P->z, n);
+}
+
+/* -[u:v:w] = [v:u:w] */
+void
+hessian_negate(ec_point_t P, ATTRIBUTE_UNUSED ec_curve_t E, ATTRIBUTE_UNUSED mpmod_t n)
+{
+    mpz_swap(P->x, P->y); /* humf */
+}
+
+/* TODO: decrease the number of buffers? */
+int
+hessian_duplicate(ec_point_t R, ec_point_t P, 
+		  ATTRIBUTE_UNUSED ec_curve_t E, mpmod_t n)
+{
+    /* A = buf[0], ..., G = buf[6], H = buf[7], J = buf[8] */
+    /* A:=P[1]^2 mod N; */
+    mpres_mul(E->buf[0], P->x, P->x, n);
+    /* B:=P[2]^2 mod N; */
+    mpres_mul(E->buf[1], P->y, P->y, n);
+    /* C:=P[3]^2 mod N; */
+    mpres_mul(E->buf[2], P->z, P->z, n);
+    /* D:=(A+B) mod N; */
+    mpres_add(E->buf[3], E->buf[0], E->buf[1], n);
+    /* E:=(A+C) mod N; */
+    mpres_add(E->buf[4], E->buf[0], E->buf[2], n);
+    /* F:=(B+C) mod N; */
+    mpres_add(E->buf[5], E->buf[1], E->buf[2], n);
+    /* G:=((P[1]+P[2])^2-D) mod N; */
+    mpres_add(E->buf[6], P->x, P->y, n);
+    mpres_mul(E->buf[6], E->buf[6], E->buf[6], n);
+    mpres_sub(E->buf[6], E->buf[6], E->buf[3], n);
+    /* H:=((P[1]+P[3])^2-E) mod N; */
+    mpres_add(E->buf[7], P->x, P->z, n);
+    mpres_mul(E->buf[7], E->buf[7], E->buf[7], n);
+    mpres_sub(E->buf[7], E->buf[7], E->buf[4], n);
+    /* J:=((P[2]+P[3])^2-F) mod N; */
+    mpres_add(E->buf[8], P->y, P->z, n);
+    mpres_mul(E->buf[8], E->buf[8], E->buf[8], n);
+    mpres_sub(E->buf[8], E->buf[8], E->buf[5], n);
+    /* R->x = ((J-G)*(H+2*E)) mod N */
+    mpres_sub(E->buf[0], E->buf[8], E->buf[6], n);
+    mpres_add(E->buf[1], E->buf[7], E->buf[4], n);
+    mpres_add(E->buf[1], E->buf[1], E->buf[4], n);
+    mpres_mul(R->x, E->buf[0], E->buf[1], n);
+    /* R->y = ((G-H)*(J+2*F)) mod N */
+    mpres_sub(E->buf[0], E->buf[6], E->buf[7], n);
+    mpres_add(E->buf[1], E->buf[8], E->buf[5], n);
+    mpres_add(E->buf[1], E->buf[1], E->buf[5], n);
+    mpres_mul(R->y, E->buf[0], E->buf[1], n);
+    /* R->z = ((H-J)*(G+2*D)) mod N */
+    mpres_sub(E->buf[0], E->buf[7], E->buf[8], n);
+    mpres_add(E->buf[1], E->buf[6], E->buf[3], n);
+    mpres_add(E->buf[1], E->buf[1], E->buf[3], n);
+    mpres_mul(R->z, E->buf[0], E->buf[1], n);
+    return 1;
+}
+
+/* TODO: reduce the number of buffers? */
+int
+hessian_plus(ec_point_t R, ec_point_t P, ec_point_t Q, 
+	     ATTRIBUTE_UNUSED ec_curve_t E, mpmod_t n)
+{
+    /* P = [T1,T2,T3], Q = [T4,T5,T6] */
+    /* P = Q <=> T1/T3=T4/T6 and T2/T3=T5/T6 
+             <=> T1*T6=T3*T4 and T2*T6=T3*T5
+     */
+    /* T1 = buf[0], ..., T7 = buf[6] */
+    /* T7:=(T1*T6) mod N; */
+    mpres_mul(E->buf[6], P->x, Q->z, n);
+    /* T1:=(T1*T5) mod N; */
+    mpres_mul(E->buf[0], P->x, Q->y, n);
+    /* T5:=(T3*T5) mod N; */
+    mpres_mul(E->buf[4], P->z, Q->y, n);
+    /* T3:=(T3*T4) mod N; */
+    mpres_mul(E->buf[2], P->z, Q->x, n);
+    /* T4:=(T2*T4) mod N; */
+    mpres_mul(E->buf[3], P->y, Q->x, n);
+    /* T2:=(T2*T6) mod N; */
+    mpres_mul(E->buf[1], P->y, Q->z, n);
+
+    if(mpz_cmp(E->buf[6], E->buf[2]) == 0 
+       && mpz_cmp(E->buf[4], E->buf[1]) == 0)
+	/* as a matter of that, P = Q and we need duplicate */
+	return hessian_duplicate(R, P, E, n);
+
+    /* T6:=(T2*T7) mod N; */
+    mpres_mul(E->buf[5], E->buf[1], E->buf[6], n);
+    /* T2:=(T2*T4) mod N; */
+    mpres_mul(E->buf[1], E->buf[1], E->buf[3], n);
+    /* T4:=(T3*T4) mod N; */
+    mpres_mul(E->buf[3], E->buf[2], E->buf[3], n);
+    /* T3:=(T3*T5) mod N; */
+    mpres_mul(E->buf[2], E->buf[2], E->buf[4], n);
+    /* T5:=(T1*T5) mod N; */
+    mpres_mul(E->buf[4], E->buf[0], E->buf[4], n);
+    /* T1:=(T1*T7) mod N; */
+    mpres_mul(E->buf[0], E->buf[0], E->buf[6], n);
+    /* T1:=(T1-T4) mod N; */
+    mpres_sub(R->y, E->buf[0], E->buf[3], n);
+    /* T2:=(T2-T5) mod N; */
+    mpres_sub(R->x, E->buf[1], E->buf[4], n);
+    /* T3:=(T3-T6) mod N; */
+    mpres_sub(R->z, E->buf[2], E->buf[5], n);
+    /* return [T2, T1, T3]; */
+    return 1;
+}
+
+int
+hessian_add(ec_point_t R, ec_point_t P, ec_point_t Q, ec_curve_t E, mpmod_t n)
+{
+    if(hessian_is_zero(P, E, n)){
+	ec_point_set(R, Q, E, n);
+	return 1;
+    }
+    else if(hessian_is_zero(Q, E, n)){
+	ec_point_set(R, P, E, n);
+	return 1;
+    }
+    else
+	return hessian_plus(R, P, Q, E, n);
+}
+
+int
+hessian_sub(ec_point_t R, ec_point_t P, ec_point_t Q, ec_curve_t E, mpmod_t n)
+{
+    int ret;
+
+    hessian_negate(Q, E, n);
+    ret = hessian_add(R, P, Q, E, n);
+    hessian_negate(Q, E, n);
+    return ret;
+}
+
 /******************** generic ec's ********************/
 
 int
@@ -1072,6 +1244,8 @@ ec_point_is_zero(ec_point_t P, ec_curve_t E, mpmod_t n)
 {
     if(E->type == ECM_EC_TYPE_WEIERSTRASS)
 	return pt_w_is_zero(P->z, n);
+    else if(E->type == ECM_EC_TYPE_HESSIAN)
+	return hessian_is_zero(P, E, n);
     return 0;
 }
 
@@ -1080,6 +1254,8 @@ ec_point_set_to_zero(ec_point_t P, ec_curve_t E, mpmod_t n)
 {
     if(E->type == ECM_EC_TYPE_WEIERSTRASS)
 	pt_w_set_to_zero(P, n);
+    else if(E->type == ECM_EC_TYPE_HESSIAN)
+	hessian_set_to_zero(P, E, n);
 }
 
 int
@@ -1088,14 +1264,23 @@ ec_point_add(ec_point_t R, ec_point_t P, ec_point_t Q, ec_curve_t E, mpmod_t n)
     if(E->type == ECM_EC_TYPE_WEIERSTRASS)
 	return pt_w_add(R->x, R->y, R->z, P->x, P->y, P->z, Q->x, Q->y, Q->z,
 			n, E);
+    else if(E->type == ECM_EC_TYPE_HESSIAN)
+	return hessian_add(R, P, Q, E, n);
+    else
+	return -1;
 }
 
+/* R <- P-Q */
 int
 ec_point_sub(ec_point_t R, ec_point_t P, ec_point_t Q, ec_curve_t E, mpmod_t n)
 {
     if(E->type == ECM_EC_TYPE_WEIERSTRASS)
 	return pt_w_sub(R->x, R->y, R->z, P->x, P->y, P->z, Q->x, Q->y, Q->z,
 			n, E);
+    else if(E->type == ECM_EC_TYPE_HESSIAN)
+	return hessian_sub(R, P, Q, E, n);
+    else
+	return -1;
 }
 
 int
@@ -1103,6 +1288,10 @@ ec_point_duplicate(ec_point_t R, ec_point_t P, ec_curve_t E, mpmod_t n)
 {
     if(E->type == ECM_EC_TYPE_WEIERSTRASS)
 	return pt_w_duplicate(R->x, R->y, R->z, P->x, P->y, P->z, n, E);
+    else if(E->type == ECM_EC_TYPE_HESSIAN)
+	return hessian_duplicate(R, P, E, n);
+    else
+	return -1;
 }
 
 void
@@ -1111,6 +1300,8 @@ ec_point_negate(ec_point_t P, ec_curve_t E, mpmod_t n)
     if(ec_point_is_zero(P, E, n) != 0){
 	if(E->type == ECM_EC_TYPE_WEIERSTRASS)
 	    mpres_neg(P->y, P->y, n);
+	else if(E->type == ECM_EC_TYPE_HESSIAN)
+	    hessian_negate(P, E, n);
     }
 }
 
@@ -1187,7 +1378,7 @@ ec_point_mul_add_sub (ec_point_t Q, mpz_t e, ec_point_t P,
 	    break;
 	}
 #if DEBUG_EC_W >= 2
-	printf("Rdup:="); pt_w_print(x0, y0, z0, n); printf(";\n");
+	printf("Rdup:="); ec_point_print(P0, E, n); printf(";\n");
 #endif
 	if(S[j] != 0){
 	    i = abs(S[j]) >> 1; /* (abs(S[j])-1)/2, S[j] is always odd */
@@ -1197,7 +1388,7 @@ ec_point_mul_add_sub (ec_point_t Q, mpz_t e, ec_point_t P,
 		    break;
 		}
 #if DEBUG_EC_W >= 2
-		printf("Radd:="); pt_w_print(x0, y0, z0, n); printf(";\n");
+		printf("Radd:="); ec_point_print(P0, E, n); printf(";\n");
 #endif
 	    }
 	    else{
@@ -1207,7 +1398,7 @@ ec_point_mul_add_sub (ec_point_t Q, mpz_t e, ec_point_t P,
 		    break;
 		}
 #if DEBUG_EC_W >= 2
-		printf("Rsub:="); pt_w_print(x0, y0, z0, n); printf(";\n");
+		printf("Rsub:="); ec_point_print(P0, E, n); printf(";\n");
 #endif
 	    }
 	}
@@ -1257,7 +1448,6 @@ ec_point_mul_add_sub (ec_point_t Q, mpz_t e, ec_point_t P,
     return status;
 }
 
-/* TODO: change this according to E->type */
 void
 ec_point_init(ec_point_t P, ec_curve_t E, mpmod_t n)
 {
@@ -1271,11 +1461,13 @@ ec_point_init(ec_point_t P, ec_curve_t E, mpmod_t n)
 	mpres_set_ui(P->z, 1, n);
 #endif
     }
+    else if(E->type == ECM_EC_TYPE_HESSIAN)
+	mpres_set_ui(P->z, 1, n);
 }
 
 /* TODO: change this according to E->type */
 void
-ec_point_clear(ec_point_t P, ec_curve_t E, mpmod_t n)
+ec_point_clear(ec_point_t P, ATTRIBUTE_UNUSED ec_curve_t E, mpmod_t n)
 {
     mpres_clear(P->x, n);
     mpres_clear(P->y, n);
@@ -1285,20 +1477,16 @@ ec_point_clear(ec_point_t P, ec_curve_t E, mpmod_t n)
 void
 ec_point_print(ec_point_t P, ec_curve_t E, mpmod_t n)
 {
-    if(E->type == ECM_EC_TYPE_WEIERSTRASS){
+    if(E->type == ECM_EC_TYPE_WEIERSTRASS)
 	pt_w_print(P->x, P->y, P->z, n);
-    }
-    else if(E->type == ECM_EC_TYPE_HESSIAN){
-	printf("u:="); print_mpz_from_mpres(P->x, n); printf(";\n");
-	printf("v:="); print_mpz_from_mpres(P->y, n); printf(";\n");
-	printf("w:="); print_mpz_from_mpres(P->z, n); printf(";\n");
-	printf("P:=[u, v, w];\n");
-    }
+    else if(E->type == ECM_EC_TYPE_HESSIAN)
+	hessian_print(P, E, n);
 }
 
 /* TODO: should depend on E->type... */
 void
-ec_point_set(ec_point_t Q, ec_point_t P, ec_curve_t E, mpmod_t n)
+ec_point_set(ec_point_t Q, ec_point_t P,
+	     ATTRIBUTE_UNUSED ec_curve_t E, ATTRIBUTE_UNUSED mpmod_t n)
 {
     mpres_set(Q->x, P->x, n);
     mpres_set(Q->y, P->y, n);
@@ -1325,8 +1513,6 @@ ec_curve_init(ec_curve_t E, mpmod_t n)
 void
 ec_curve_init_set(ec_curve_t E, mpres_t A, int type, mpmod_t n)
 {
-    int i;
-
     ec_curve_init(E, n);
     E->type = type;
     mpres_set(E->A, A, n);
@@ -1437,13 +1623,13 @@ ecm_stage1_W (mpz_t f, int Etype, mpres_t x, mpres_t y, mpres_t A, mpmod_t n,
 		    goto end_of_stage1_w;
 		}
 #if DEBUG_EC_W >= 1
-		printf("R%ld:=", (long)r); ec_point_print(P, E, n); printf(";\n");
+		printf("R%ld:=", (long)r); ec_point_print(Q, E, n); printf(";\n");
 		printf("Q:=EcmMult(%ld, Q, E, N);\n", (long)r);
 		printf("(Q[1]*R%ld[3]-Q[3]*R%ld[1]) mod N;\n",(long)r,(long)r);
 #endif
 	    }
+	    ec_point_set(P, Q, E, n);
 	}
-	ec_point_set(P, Q, E, n);
 	if (mpres_is_zero (P->z, n)){
 	    outputf (OUTPUT_VERBOSE, "Reached point at infinity, %.0f divides "
 		     "group order\n", p);
