@@ -41,6 +41,7 @@ typedef struct
 		     if  0, 'parameter' contains sigma (Montgomery form),
 		     if -1, 'parameter' contains A, and the input curve is in
 		     Weierstrass form y^2 = x^3 + A*x + B, with y in 'go'. */
+  int Etype;
   mpz_t go;       /* initial group order to preload (if NULL: do nothing),
 		     or y for Weierstrass form if sigma_is_A = -1. */
   double B1done;  /* step 1 was already done up to B1done */
@@ -99,7 +100,7 @@ void ecm_clear (ecm_params);
 
 /* the following interface is not supported */
     int ecm (mpz_t, mpz_t, mpz_t, int*, mpz_t, mpz_t, mpz_t, double *, double, mpz_t, mpz_t,
-         double, unsigned long, const int, int, int, int, int, int, FILE*, FILE*,
+	 double, unsigned long, const int, int, int, int, int, int, int, FILE*, FILE*,
          char*, char *, double, double, gmp_randstate_t, int (*)(void), mpz_t, 
          double *, double, unsigned long, unsigned long, signed long);
 int pp1 (mpz_t, mpz_t, mpz_t, mpz_t, double *, double, mpz_t, mpz_t, 

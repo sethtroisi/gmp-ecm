@@ -627,11 +627,11 @@ ecm_stage1 (mpz_t f, mpres_t x, mpres_t A, mpmod_t n, double B1,
 #define DEBUG_EC_W 0
 
 void
-pt_w_set_to_zero(mpres_t x, mpres_t y, mpres_t z, mpmod_t n)
+pt_w_set_to_zero(ec_point_t P, mpmod_t n)
 {
-    mpres_set_ui (x, 0, n);
-    mpres_set_ui (y, 1, n);
-    mpres_set_ui (z, 0, n);
+    mpres_set_ui (P->x, 0, n);
+    mpres_set_ui (P->y, 1, n);
+    mpres_set_ui (P->z, 0, n);
 }
 
 int
@@ -884,6 +884,7 @@ pt_w_sub(mpres_t x3, mpres_t y3, mpres_t z3,
     return res;
 }
 
+#if 0 /* TODO: make this work again? */
 /* multiply P=(x:y:z) by e and puts the result in (x:y:z).
    Return value: 0 if a factor is found, and the factor is in x,
                  1 otherwise.
@@ -971,6 +972,7 @@ pt_w_mul_end:
     mpz_neg (e, e);
   return status;
 }
+#endif
 
 /* build NAF_w(c) = (u_{ell-1}, ..., u_0).
    When w = 2, we have 2^ell < 3*e < 2^(ell+1).
@@ -1063,28 +1065,79 @@ pt_w_cmp(mpres_t x1, mpres_t y1, mpres_t z1,
     }
 }
 
+/******************** generic ec's ********************/
+
+int
+ec_point_is_zero(ec_point_t P, ec_curve_t E, mpmod_t n)
+{
+    if(E->type == ECM_EC_TYPE_WEIERSTRASS)
+	return pt_w_is_zero(P->z, n);
+    return 0;
+}
+
+void
+ec_point_set_to_zero(ec_point_t P, ec_curve_t E, mpmod_t n)
+{
+    if(E->type == ECM_EC_TYPE_WEIERSTRASS)
+	pt_w_set_to_zero(P, n);
+}
+
+int
+ec_point_add(ec_point_t R, ec_point_t P, ec_point_t Q, ec_curve_t E, mpmod_t n)
+{
+    if(E->type == ECM_EC_TYPE_WEIERSTRASS)
+	return pt_w_add(R->x, R->y, R->z, P->x, P->y, P->z, Q->x, Q->y, Q->z,
+			n, E);
+}
+
+int
+ec_point_sub(ec_point_t R, ec_point_t P, ec_point_t Q, ec_curve_t E, mpmod_t n)
+{
+    if(E->type == ECM_EC_TYPE_WEIERSTRASS)
+	return pt_w_sub(R->x, R->y, R->z, P->x, P->y, P->z, Q->x, Q->y, Q->z,
+			n, E);
+}
+
+int
+ec_point_duplicate(ec_point_t R, ec_point_t P, ec_curve_t E, mpmod_t n)
+{
+    if(E->type == ECM_EC_TYPE_WEIERSTRASS)
+	return pt_w_duplicate(R->x, R->y, R->z, P->x, P->y, P->z, n, E);
+}
+
+void
+ec_point_negate(ec_point_t P, ec_curve_t E, mpmod_t n)
+{
+    if(ec_point_is_zero(P, E, n) != 0){
+	if(E->type == ECM_EC_TYPE_WEIERSTRASS)
+	    mpres_neg(P->y, P->y, n);
+    }
+}
+
 #define EC_ADD_SUB_WMAX 6
 #define EC_ADD_SUB_2_WMAX (1 << EC_ADD_SUB_WMAX)
 
-/* multiply P=(x:y:z) by e and puts the result in (x:y:z).
-   Return value: 0 if a factor is found, and the factor is in x,
+/* multiply P=(x:y:z) by e and puts the result in Q.
+   Return value: 0 if a factor is found, and the factor is in Q->x,
                  1 otherwise.
    See Solinas 2000 for the most plug-and-play presentation.		 
 */
 int
-pt_w_mul_add_sub (mpres_t x, mpres_t y, mpres_t z, mpz_t e, mpmod_t n, 
-		  ec_curve_t E)
+ec_point_mul_add_sub (ec_point_t Q, mpz_t e, ec_point_t P,
+		      ec_curve_t E, mpmod_t n)
 {
     int negated = 0, status = 1, iS = 0, j, w, k, i;
-    mpres_t x0, y0, z0;
-    mpres_t ix[EC_ADD_SUB_2_WMAX],iy[EC_ADD_SUB_2_WMAX],iz[EC_ADD_SUB_2_WMAX];
+    ec_point_t P0;
+    ec_point_t iP[EC_ADD_SUB_2_WMAX];
     long S[64];
     
-    if(pt_w_is_zero(z, n))
+    if(ec_point_is_zero(P, E, n)){
+	ec_point_set(Q, P, E, n);
 	return 1;
+    }
     
     if(mpz_sgn(e) == 0){
-	pt_w_set_to_zero(x, y, z, n);
+	ec_point_set_to_zero(Q, E, n);
 	return 1;
     }
     
@@ -1092,51 +1145,44 @@ pt_w_mul_add_sub (mpres_t x, mpres_t y, mpres_t z, mpz_t e, mpmod_t n,
     if(mpz_sgn (e) < 0){
 	negated = 1;
 	mpz_neg (e, e);
-	mpres_neg(y, y, n); /* since the point is non-zero */
+	ec_point_negate(P, E, n);
     }
     
-    if (mpz_cmp_ui (e, 1) == 0)
+    if (mpz_cmp_ui (e, 1) == 0){
+	ec_point_set(Q, P, E, n);
 	return 1;
+    }
 
-    mpres_init (x0, n);
-    mpres_init (y0, n);
-    mpres_init (z0, n);
+    ec_point_init(P0, E, n);
 
     w = 3; /* TODO: do better? */
 
     k = (1 << (w-2)) - 1;
-    for(i = 0; i <= k; i++){
-	mpres_init(ix[i], n);
-	mpres_init(iy[i], n);
-	mpres_init(iz[i], n);
-    }
-    mpres_set(ix[0], x, n);
-    mpres_set(iy[0], y, n);
-    mpres_set(iz[0], z, n);
+    for(i = 0; i <= k; i++)
+	ec_point_init(iP[i], E, n);
+    ec_point_set(iP[0], P, E, n);
     if(k > 0){
 	/* P[k] <- [2]*P */
-	if(pt_w_duplicate(ix[k], iy[k], iz[k], x, y, z, n, E) == 0){
-	    mpres_set(x0, ix[k], n);
+	if(ec_point_duplicate(iP[k], P, E, n) == 0){
+	    mpres_set(P0->x, iP[k]->x, n);
             status = 0;
-	    goto pt_w_mul_add_sub_end;
+	    goto ec_point_mul_add_sub_end;
         }
 	for(i = 1; i <= k; i++){
-	    if(pt_w_add(ix[i],iy[i],iz[i],
-			ix[i-1],iy[i-1],iz[i-1],
-			ix[k],iy[k],iz[k],n,E) == 0){
-		mpres_set(x0, ix[i], n);
+	    if(ec_point_add(iP[i], iP[i-1], iP[k], E, n) == 0){
+		mpres_set(P0->x, iP[i]->x, n);
                 status = 0;
-		goto pt_w_mul_add_sub_end;
+		goto ec_point_mul_add_sub_end;
 	    }
 	}
 	/* at this point, P[i] = (2*i+1) P */
     }
   
     iS = build_NAF(S, e, w);
-    pt_w_set_to_zero(x0, y0, z0, n);
+    ec_point_set_to_zero(P0, E, n);
 
     for(j = iS-1; j >= 0; j--){
-	if(pt_w_duplicate(x0, y0, z0, x0, y0, z0, n, E) == 0){
+	if(ec_point_duplicate(P0, P0, E, n) == 0){
 	    status = 0;
 	    break;
 	}
@@ -1146,9 +1192,7 @@ pt_w_mul_add_sub (mpres_t x, mpres_t y, mpres_t z, mpz_t e, mpmod_t n,
 	if(S[j] != 0){
 	    i = abs(S[j]) >> 1; /* (abs(S[j])-1)/2, S[j] is always odd */
 	    if(S[j] > 0){
-		if(pt_w_add(x0, y0, z0, 
-			    x0, y0, z0, 
-			    ix[i], iy[i], iz[i], n, E) == 0){
+		if(ec_point_add(P0, P0, iP[i], E, n) == 0){
 		    status = 0;
 		    break;
 		}
@@ -1157,10 +1201,8 @@ pt_w_mul_add_sub (mpres_t x, mpres_t y, mpres_t z, mpz_t e, mpmod_t n,
 #endif
 	    }
 	    else{
-		/* add(-y) = sub(y) */
-		if(pt_w_sub(x0, y0, z0, 
-			    x0, y0, z0, 
-			    ix[i], iy[i], iz[i], n, E) == 0){
+		/* add(-P) = sub(P) */
+		if(ec_point_sub(P0, P0, iP[i], E, n) == 0){
 		    status = 0;
 		    break;
 		}
@@ -1203,20 +1245,11 @@ pt_w_mul_add_sub (mpres_t x, mpres_t y, mpres_t z, mpz_t e, mpmod_t n,
 	mpres_clear(zz, n);
     }
 #endif
- pt_w_mul_add_sub_end:
-    mpres_set (x, x0, n);
-    mpres_set (y, y0, n);
-    mpres_set (z, z0, n);
-    
-    mpres_clear (x0, n);
-    mpres_clear (y0, n);
-    mpres_clear (z0, n);
-    
-    for(i = 0; i <= k; i++){
-	mpres_clear(ix[i], n);
-	mpres_clear(iy[i], n);
-	mpres_clear(iz[i], n);
-    }
+ ec_point_mul_add_sub_end:
+    ec_point_set(Q, P0, E, n);
+    ec_point_clear(P0, E, n);
+    for(i = 0; i <= k; i++)
+	ec_point_clear(iP[i], E, n);
 
     /* Undo negation to avoid changing the caller's e value */
     if (negated)
@@ -1231,6 +1264,13 @@ ec_point_init(ec_point_t P, ec_curve_t E, mpmod_t n)
     mpres_init(P->x, n);
     mpres_init(P->y, n);
     mpres_init(P->z, n);
+    if(E->type == ECM_EC_TYPE_WEIERSTRASS){    
+#if EC_W_LAW == EC_W_LAW_AFFINE
+	mpz_set_ui (P->z, 1);
+#else
+	mpres_set_ui(P->z, 1, n);
+#endif
+    }
 }
 
 /* TODO: change this according to E->type */
@@ -1242,6 +1282,20 @@ ec_point_clear(ec_point_t P, ec_curve_t E, mpmod_t n)
     mpres_clear(P->z, n);
 }
 
+void
+ec_point_print(ec_point_t P, ec_curve_t E, mpmod_t n)
+{
+    if(E->type == ECM_EC_TYPE_WEIERSTRASS){
+	pt_w_print(P->x, P->y, P->z, n);
+    }
+    else if(E->type == ECM_EC_TYPE_HESSIAN){
+	printf("u:="); print_mpz_from_mpres(P->x, n); printf(";\n");
+	printf("v:="); print_mpz_from_mpres(P->y, n); printf(";\n");
+	printf("w:="); print_mpz_from_mpres(P->z, n); printf(";\n");
+	printf("P:=[u, v, w];\n");
+    }
+}
+
 /* TODO: should depend on E->type... */
 void
 ec_point_set(ec_point_t Q, ec_point_t P, ec_curve_t E, mpmod_t n)
@@ -1251,12 +1305,10 @@ ec_point_set(ec_point_t Q, ec_point_t P, ec_curve_t E, mpmod_t n)
     mpres_set(Q->z, P->z, n);
 }
 
-/* TODO: should depend on E->type... */
 int
-ec_point_mul(ec_point_t Q, mpz_t d, ec_point_t P, ec_curve_t E, mpmod_t n)
+ec_point_mul(ec_point_t Q, mpz_t e, ec_point_t P, ec_curve_t E, mpmod_t n)
 {
-    ec_point_set(Q, P, E, n); /* humf */
-    return pt_w_mul(Q->x, Q->y, Q->z, d, E, n);
+    return ec_point_mul_add_sub(Q, e, P, E, n);
 }
 
 void
@@ -1264,7 +1316,7 @@ ec_curve_init(ec_curve_t E, mpmod_t n)
 {
     int i;
 
-    E->type = ECM_EC_TYPE_MONTGOMERY;
+    E->type = ECM_EC_TYPE_MONTGOMERY; /* default */
     mpres_init(E->A, n);
     for(i = 0; i < EC_W_NBUFS; i++)
 	mpres_init (E->buf[i], n);
@@ -1290,9 +1342,26 @@ ec_curve_clear(ec_curve_t E, mpmod_t n)
 	mpres_clear (E->buf[i], n);
 }
 
-/* Input: (x, y) is initial point
-          A is curve parameter in Weierstrass's form:
-          Y^2 = X^3 + A*X + B, where B = y^2-(x^3+A*x) is implicit
+void
+ec_curve_print(ec_curve_t E, mpmod_t n)
+{
+    if(E->type == ECM_EC_TYPE_WEIERSTRASS){    
+	printf("A:="); print_mpz_from_mpres(E->A, n); printf(";\n");
+	printf("E:=[A, y0^2-x0^3-A*x0];\n");
+    }
+    else if(E->type == ECM_EC_TYPE_HESSIAN){
+	printf("D:="); print_mpz_from_mpres(E->A, n); printf(";\n");
+	printf("E:=[D];\n");
+    }
+}
+
+/* Input: when Etype == ECM_EC_TYPE_WEIERSTRASS:
+            (x, y) is initial point
+            A is curve parameter in Weierstrass's form:
+            Y^2 = X^3 + A*X + B, where B = y^2-(x^3+A*x) is implicit
+	  when Etype == ECM_EC_TYPE_HESSIAN:
+	    (x, y) is initial point
+	    A is curve parameter in Hessian form: X^3+Y^3+Z^3=3*A*X*Y*Z
           n is the number to factor
 	  B1 is the stage 1 bound
    Output: If a factor is found, it is returned in f.
@@ -1304,60 +1373,56 @@ ec_curve_clear(ec_curve_t E, mpmod_t n)
            ECM_NO_FACTOR_FOUND
 */
 static int
-ecm_stage1_W (mpz_t f, mpres_t x, mpres_t y, mpres_t A, mpmod_t n, 
+ecm_stage1_W (mpz_t f, int Etype, mpres_t x, mpres_t y, mpres_t A, mpmod_t n, 
 	      double B1, double *B1done, mpz_t go, int (*stop_asap)(void), 
 	      char *chkfilename)
 {
-    mpres_t z, xB, yB, zB;
+    mpres_t xB;
     ec_curve_t E;
+    ec_point_t P, Q;
     double p = 0.0, r, last_chkpnt_p;
     int ret = ECM_NO_FACTOR_FOUND;
     long last_chkpnt_time;
     
-    mpres_init (z, n);
     mpres_init (xB, n);
-    mpres_init (yB, n);
-    mpres_init (zB, n);
 
-    ec_curve_init_set(E, A, ECM_EC_TYPE_WEIERSTRASS, n);
+    ec_curve_init_set(E, A, Etype, n);
+    ec_point_init(P, E, n);
+    mpres_set(P->x, x, n);
+    mpres_set(P->y, y, n);
+    ec_point_init(Q, E, n);
     
     last_chkpnt_time = cputime ();
-    
-#if EC_W_LAW == EC_W_LAW_AFFINE
-    mpz_set_ui (z, 1);
-#else
-    mpres_set_ui(z, 1, n);
-#endif
+
 #if DEBUG_EC_W >= 1
-    printf("A:="); print_mpz_from_mpres(A, n); printf(";\n");
-    printf("x0:="); print_mpz_from_mpres(x, n); printf(";\n");
-    printf("y0:="); print_mpz_from_mpres(y, n); printf(";\n");
-    printf("E:=[A, y0^2-x0^3-A*x0];\n");
-    printf("P:=[x0, y0, 1];\n");
+    ec_curve_print(E, n);
+    printf("P:="); ec_point_print(P, E, n); printf(";\n");
 #endif
-    
     /* preload group order */
     if (go != NULL){
-	if (pt_w_mul (x, y, z, go, E, n) == 0){
+	if (ec_point_mul (Q, go, P, E, n) == 0){
 	    mpz_set (f, x);
 	    ret = ECM_FACTOR_FOUND_STEP1;
 	    goto end_of_stage1_w;
         }
+	ec_point_set(P, Q, E, n);
     }
 #if DEBUG_EC_W >= 1
     gmp_printf("go:=%Zd;\n", go);
-    printf("goP:="); pt_w_print(x, y, z, n); printf(";\n");
+    printf("goP:="); ec_point_print(P, E, n); printf(";\n");
 #endif
-    /* prac() wants multiplicands > 2 */
     for (r = 2.0; r <= B1; r *= 2.0)
 	if (r > *B1done){
-	    if(pt_w_duplicate (x, y, z, x, y, z, n, E) == 0){
-		mpz_set(f, x);
+	    if(ec_point_duplicate (Q, P, E, n) == 0){
+		mpz_set(f, Q->x);
 		ret = ECM_FACTOR_FOUND_STEP1;
 		goto end_of_stage1_w;
 	    }
+	    ec_point_set(P, Q, E, n);
 #if DEBUG_EC_W >= 1
-	    printf("P%ld:=", (long)r); pt_w_print(x, y, z, n); printf(";\n");
+	    printf("P%ld:=", (long)r); ec_point_print(P, E, n); printf(";\n");
+	    printf("Q:=EcmMult(2, Q, E, N);\n");
+	    printf("(Q[1]*P%ld[3]-Q[3]*P%ld[1]) mod N;\n",(long)r,(long)r);
 #endif
 	}
 
@@ -1366,19 +1431,20 @@ ecm_stage1_W (mpz_t f, mpres_t x, mpres_t y, mpres_t A, mpmod_t n,
 	for (r = p; r <= B1; r *= p){
 	    if (r > *B1done){
 		mpz_set_ui(f, (ecm_uint)p);
-		if(pt_w_mul_add_sub (x, y, z, f, n, E) == 0){
-		    mpz_set(f, x);
+		if(ec_point_mul_add_sub (Q, f, P, E, n) == 0){
+		    mpz_set(f, Q->x);
 		    ret = ECM_FACTOR_FOUND_STEP1;
 		    goto end_of_stage1_w;
 		}
 #if DEBUG_EC_W >= 1
-		printf("R%ld:=", (long)r); pt_w_print(x, y, z, n); printf(";\n");
+		printf("R%ld:=", (long)r); ec_point_print(P, E, n); printf(";\n");
 		printf("Q:=EcmMult(%ld, Q, E, N);\n", (long)r);
 		printf("(Q[1]*R%ld[3]-Q[3]*R%ld[1]) mod N;\n",(long)r,(long)r);
 #endif
 	    }
 	}
-	if (mpres_is_zero (z, n)){
+	ec_point_set(P, Q, E, n);
+	if (mpres_is_zero (P->z, n)){
 	    outputf (OUTPUT_VERBOSE, "Reached point at infinity, %.0f divides "
 		     "group order\n", p);
 	    break;
@@ -1391,7 +1457,8 @@ ecm_stage1_W (mpz_t f, mpres_t x, mpres_t y, mpres_t A, mpmod_t n,
 	
 	if (chkfilename != NULL && p > last_chkpnt_p + 10000. && 
 	    elltime (last_chkpnt_time, cputime ()) > CHKPNT_PERIOD){
-	    writechkfile (chkfilename, ECM_ECM, MAX(p, *B1done), n, A, x, y, z);
+	    writechkfile (chkfilename, ECM_ECM, MAX(p, *B1done), 
+			  n, E->A, P->x, P->y, P->z);
 	    last_chkpnt_p = p;
 	    last_chkpnt_time = cputime ();
 	}
@@ -1406,31 +1473,33 @@ ecm_stage1_W (mpz_t f, mpres_t x, mpres_t y, mpres_t A, mpmod_t n,
 	*B1done = p;
     
     if (chkfilename != NULL)
-	writechkfile (chkfilename, ECM_ECM, *B1done, n, A, x, y, z);
+	writechkfile (chkfilename, ECM_ECM, *B1done, n, E->A, P->x, P->y,P->z);
     getprime_clear (); /* free the prime tables, and reinitialize */
     
 #if EC_W_LAW == EC_W_LAW_PROJECTIVE
-    if(mpz_sgn(z) == 0){
+    if(mpz_sgn(P->z) == 0){ /* TODO: not for Hessian stuff */
 	/* too bad */
-	pt_w_set_to_zero(x, y, z, n);
+	ec_point_set_to_zero(P, E, n);
 	mpz_set(f, n->orig_modulus);
 	ret = ECM_FACTOR_FOUND_STEP1;
     }
-    else if (!mpres_invert (xB, z, n)){ /* Factor found? */
-	mpres_gcd (f, z, n);
+    else if (!mpres_invert (xB, P->z, n)){ /* Factor found? */
+	mpres_gcd (f, P->z, n);
 	ret = ECM_FACTOR_FOUND_STEP1;
     }
     else{
 	/* normalize to get (x:y:1) */
-	mpres_mul (x, x, xB, n);
-	mpres_mul (y, y, xB, n);
+	mpres_mul (P->x, P->x, xB, n);
+	mpres_mul (P->y, P->y, xB, n);
     }
 #endif
+
+    mpres_set(x, P->x, n);
+    mpres_set(y, P->y, n);
     
-    mpres_clear (zB, n);
-    mpres_clear (yB, n);
     mpres_clear (xB, n);
-    mpres_clear (z, n);
+    ec_point_clear(P, E, n);
+    ec_point_clear(Q, E, n);
     ec_curve_clear(E, n);
     
     return ret;
@@ -1698,6 +1767,7 @@ set_stage_2_params (mpz_t B2, mpz_t B2_parm, mpz_t B2min, mpz_t B2min_parm,
           verbose is verbosity level: 0 no output, 1 normal output,
             2 diagnostic output.
 	  sigma_is_A: If true, the sigma parameter contains the curve's A value
+	  Etype
    Output: f is the factor found.
    Return value: ECM_FACTOR_FOUND_STEPn if a factor was found,
                  ECM_NO_FACTOR_FOUND if no factor was found,
@@ -1707,15 +1777,15 @@ set_stage_2_params (mpz_t B2, mpz_t B2_parm, mpz_t B2min, mpz_t B2min_parm,
 int
 ecm (mpz_t f, mpz_t x, mpz_t y, int *param, mpz_t sigma, mpz_t n, mpz_t go, 
      double *B1done, double B1, mpz_t B2min_parm, mpz_t B2_parm, double B2scale,
-     unsigned long k, const int S, int verbose, int repr, int nobase2step2, int
-     use_ntt, int sigma_is_A, FILE *os, FILE* es, char *chkfilename, char
+     unsigned long k, const int S, int verbose, int repr, int nobase2step2, 
+     int use_ntt, int sigma_is_A, int Etype, 
+     FILE *os, FILE* es, char *chkfilename, char
      *TreeFilename, double maxmem, double stage1time, gmp_randstate_t rng, int
      (*stop_asap)(void), mpz_t batch_s, double *batch_last_B1_used,
      ATTRIBUTE_UNUSED double gw_k, ATTRIBUTE_UNUSED unsigned long gw_b,
      ATTRIBUTE_UNUSED unsigned long gw_n, ATTRIBUTE_UNUSED signed long gw_c)
 {
   int youpi = ECM_NO_FACTOR_FOUND;
-  int Etype = ECM_EC_TYPE_MONTGOMERY; /* default type for E */
   int base2 = 0;  /* If n is of form 2^n[+-]1, set base to [+-]n */
   int Fermat = 0; /* If base2 > 0 is a power of 2, set Fermat to base2 */
   int po2 = 0;    /* Whether we should use power-of-2 poly degree */
@@ -1926,14 +1996,13 @@ ecm (mpz_t f, mpz_t x, mpz_t y, int *param, mpz_t sigma, mpz_t n, mpz_t go,
            dF, k, root_params.d1, root_params.d2, root_params.i0);
 #endif
 
-  if (sigma_is_A == -1) /* Weierstrass form. It is known that
-			   all curves in Weierstrass form do not
-			   admit a Montgomery form. However, we could
+  if (sigma_is_A == -1) /* Weierstrass or Hessian form. 
+			   It is known that all curves in Weierstrass form do
+			   not admit a Montgomery form. However, we could
 			   be interested in performing some plain Step 1
 			   on a some special curves.
 			*/
     {
-      Etype = ECM_EC_TYPE_WEIERSTRASS;
       mpres_set_z (P.A, sigma, modulus); /* sigma contains A */
       mpres_set_z (P.x, x,    modulus);
       mpres_set_z (P.y, y,    modulus);
@@ -2012,8 +2081,8 @@ ecm (mpz_t f, mpz_t x, mpz_t y, int *param, mpz_t sigma, mpz_t n, mpz_t go,
 		youpi = ecm_stage1 (f, P.x, P.A, modulus, B1, B1done, go, 
 				    stop_asap, chkfilename);
 	    else
-		youpi = ecm_stage1_W (f, P.x, P.y, P.A, modulus, B1, B1done, 
-				      go, stop_asap, chkfilename);
+		youpi = ecm_stage1_W (f, Etype, P.x, P.y, P.A, modulus, 
+				      B1, B1done, go, stop_asap, chkfilename);
 	}
     }
   
