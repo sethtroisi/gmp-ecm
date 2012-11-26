@@ -33,6 +33,7 @@ ecm_init (ecm_params q)
   mpz_init_set_ui (q->y, 0);
   mpz_init_set_ui (q->sigma, 0);
   q->sigma_is_A = 0;
+  q->Etype = ECM_EC_TYPE_MONTGOMERY;
   q->param = ECM_PARAM_DEFAULT;
   mpz_init_set_ui (q->go, 1);
   q->B1done = ECM_DEFAULT_B1_DONE + 1. / 1048576.;
@@ -123,7 +124,8 @@ ecm_factor (mpz_t f, mpz_t n, double B1, ecm_params p)
             res = ecm (f, p->x, p->y, &(p->param), p->sigma, n, p->go,
 		       &(p->B1done), 
                        B1, p->B2min, p->B2, B2scale, p->k, p->S, p->verbose, 
-                       p->repr, p->nobase2step2, p->use_ntt, p->sigma_is_A,
+                       p->repr, p->nobase2step2, p->use_ntt, 
+		       p->sigma_is_A, p->Etype,
                        p->os, p->es, p->chkfilename, p->TreeFilename, p->maxmem,
                        p->stage1time, p->rng, p->stop_asap, p->batch_s,
                        &(p->batch_last_B1_used), p->gw_k, p->gw_b, p->gw_n,
