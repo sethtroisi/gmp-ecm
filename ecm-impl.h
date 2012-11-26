@@ -239,11 +239,7 @@ typedef __curve_struct curve;
 /*#define EC_W_LAW EC_W_LAW_AFFINE*/
 #define EC_W_LAW EC_W_LAW_PROJECTIVE
 
-#if EC_W_LAW == EC_W_LAW_AFFINE
-#define EC_W_NBUFS 3
-#elif EC_W_LAW == EC_W_LAW_PROJECTIVE
-#define EC_W_NBUFS 6
-#endif
+#define EC_W_NBUFS 9 /* for Hessian form */
 
 typedef struct
 {
