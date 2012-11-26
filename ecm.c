@@ -1237,7 +1237,174 @@ hessian_sub(ec_point_t R, ec_point_t P, ec_point_t Q, ec_curve_t E, mpmod_t n)
     return ret;
 }
 
+/* switch from X^3+Y^3+1=3*D*X*Y to Y^2=X^3+A*X+B
+   A:=-27*D*(D^3+8);
+   B:=54*(D^6-20*D^3-8);
+   xi:=12*(D^3-1)/(D*u+v+1);
+   x:=-9*D^2+xi*u;
+   y:=3*xi*(v-1);
+   If a factor is found during the inversion, it is put in f and
+   ECM_FACTOR_FOUND_STEP1 is returned. Otherwise, ECM_NO_FACTOR_FOUND is
+   returned.
+ */
+int
+hessian_to_weierstrass(mpz_t f, mpres_t x, mpres_t y, mpres_t D, mpmod_t n)
+{
+    mpres_t D3, A, xi, tmp1, tmp2;
+    int ret = ECM_NO_FACTOR_FOUND;
+
+#if DEBUG_EC_W >= 0
+    printf("P:=[");
+    print_mpz_from_mpres(x, n);
+    printf(", ");
+    print_mpz_from_mpres(y, n);
+    printf(", 1];\n");
+    printf("A:=");
+    print_mpz_from_mpres(D, n);
+    printf(";\n");
+#endif
+    /* D3 <- D^3 */
+    mpres_init(D3, n);
+    mpres_mul(D3, D, D, n);
+    mpres_mul(D3, D3, D, n);
+    /* finish A */
+    mpres_init(A, n);
+    mpres_add_ui(A, D3, 8, n);
+    mpres_mul(A, A, D, n);
+    mpres_mul_ui(A, A, 27, n);
+    mpres_neg(A, A, n);
+    /* compute xi */
+    mpres_init(xi, n);
+    mpres_init(tmp1, n);
+    mpres_mul(tmp1, D, x, n);
+    mpres_add(tmp1, tmp1, y, n);
+    mpres_add_ui(tmp1, tmp1, 1, n);
+    mpres_init(tmp2, n);
+    mpres_sub_ui(tmp2, D3, 1, n);
+    mpres_mul_ui(tmp2, tmp2, 12, n);
+    if(mpres_invert(xi, tmp1, n) == 0){
+	mpres_gcd(f, tmp1, n);
+	ret = ECM_FACTOR_FOUND_STEP1;
+    }
+    else{
+	mpres_mul(xi, xi, tmp2, n);
+	/* compute x */
+	mpres_mul(tmp1, D, D, n);
+	mpres_mul_ui(tmp1, tmp1, 9, n);
+	mpres_mul(tmp2, xi, x, n);
+	mpres_sub(x, tmp2, tmp1, n);
+	/* compute y */
+	mpres_sub_ui(tmp1, y, 1, n);
+	mpres_mul(tmp1, tmp1, xi, n);
+	mpres_mul_ui(y, tmp1, 3, n);
+	mpres_set(D, A, n);
+#if DEBUG_EC_W >= 0
+	printf("WP:=[");
+	print_mpz_from_mpres(x, n);
+	printf(", ");
+	print_mpz_from_mpres(y, n);
+	printf(", 1];\n");
+	printf("WA:=");
+	print_mpz_from_mpres(D, n);
+	printf(";\nWB:=(WP[2]^2-WP[1]^3-WA*WP[1]) mod N;WE:=[WA, WB];\n");
+#endif
+    }
+    mpres_clear(A, n);
+    mpres_clear(D3, n);
+    mpres_clear(xi, n);
+    mpres_clear(tmp1, n);
+    mpres_clear(tmp2, n);
+    return ret;
+}
+
 /******************** generic ec's ********************/
+
+void
+ec_point_init(ec_point_t P, ec_curve_t E, mpmod_t n)
+{
+    mpres_init(P->x, n);
+    mpres_init(P->y, n);
+    mpres_init(P->z, n);
+    if(E->type == ECM_EC_TYPE_WEIERSTRASS){    
+#if EC_W_LAW == EC_W_LAW_AFFINE
+	mpz_set_ui (P->z, 1);
+#else
+	mpres_set_ui(P->z, 1, n);
+#endif
+    }
+    else if(E->type == ECM_EC_TYPE_HESSIAN)
+	mpres_set_ui(P->z, 1, n);
+}
+
+/* TODO: change this according to E->type */
+void
+ec_point_clear(ec_point_t P, ATTRIBUTE_UNUSED ec_curve_t E, mpmod_t n)
+{
+    mpres_clear(P->x, n);
+    mpres_clear(P->y, n);
+    mpres_clear(P->z, n);
+}
+
+void
+ec_point_print(ec_point_t P, ec_curve_t E, mpmod_t n)
+{
+    if(E->type == ECM_EC_TYPE_WEIERSTRASS)
+	pt_w_print(P->x, P->y, P->z, n);
+    else if(E->type == ECM_EC_TYPE_HESSIAN)
+	hessian_print(P, E, n);
+}
+
+/* TODO: should depend on E->type... */
+void
+ec_point_set(ec_point_t Q, ec_point_t P,
+	     ATTRIBUTE_UNUSED ec_curve_t E, ATTRIBUTE_UNUSED mpmod_t n)
+{
+    mpres_set(Q->x, P->x, n);
+    mpres_set(Q->y, P->y, n);
+    mpres_set(Q->z, P->z, n);
+}
+
+void
+ec_curve_init(ec_curve_t E, mpmod_t n)
+{
+    int i;
+
+    E->type = ECM_EC_TYPE_MONTGOMERY; /* default */
+    mpres_init(E->A, n);
+    for(i = 0; i < EC_W_NBUFS; i++)
+	mpres_init (E->buf[i], n);
+}
+
+void
+ec_curve_init_set(ec_curve_t E, mpres_t A, int type, mpmod_t n)
+{
+    ec_curve_init(E, n);
+    E->type = type;
+    mpres_set(E->A, A, n);
+}
+
+void
+ec_curve_clear(ec_curve_t E, mpmod_t n)
+{
+    int i;
+
+    mpres_clear(E->A, n);
+    for(i = 0; i < EC_W_NBUFS; i++)
+	mpres_clear (E->buf[i], n);
+}
+
+void
+ec_curve_print(ec_curve_t E, mpmod_t n)
+{
+    if(E->type == ECM_EC_TYPE_WEIERSTRASS){    
+	printf("A:="); print_mpz_from_mpres(E->A, n); printf(";\n");
+	printf("E:=[A, y0^2-x0^3-A*x0];\n");
+    }
+    else if(E->type == ECM_EC_TYPE_HESSIAN){
+	printf("D:="); print_mpz_from_mpres(E->A, n); printf(";\n");
+	printf("E:=[D];\n");
+    }
+}
 
 int
 ec_point_is_zero(ec_point_t P, ec_curve_t E, mpmod_t n)
@@ -1437,108 +1604,23 @@ ec_point_mul_add_sub (ec_point_t Q, mpz_t e, ec_point_t P,
     }
 #endif
  ec_point_mul_add_sub_end:
+    /* Undo negation to avoid changing the caller's e value */
+    if (negated){
+	ec_point_negate(P, E, n);
+	mpz_neg (e, e);
+    }
     ec_point_set(Q, P0, E, n);
     ec_point_clear(P0, E, n);
     for(i = 0; i <= k; i++)
 	ec_point_clear(iP[i], E, n);
 
-    /* Undo negation to avoid changing the caller's e value */
-    if (negated)
-	mpz_neg (e, e);
     return status;
-}
-
-void
-ec_point_init(ec_point_t P, ec_curve_t E, mpmod_t n)
-{
-    mpres_init(P->x, n);
-    mpres_init(P->y, n);
-    mpres_init(P->z, n);
-    if(E->type == ECM_EC_TYPE_WEIERSTRASS){    
-#if EC_W_LAW == EC_W_LAW_AFFINE
-	mpz_set_ui (P->z, 1);
-#else
-	mpres_set_ui(P->z, 1, n);
-#endif
-    }
-    else if(E->type == ECM_EC_TYPE_HESSIAN)
-	mpres_set_ui(P->z, 1, n);
-}
-
-/* TODO: change this according to E->type */
-void
-ec_point_clear(ec_point_t P, ATTRIBUTE_UNUSED ec_curve_t E, mpmod_t n)
-{
-    mpres_clear(P->x, n);
-    mpres_clear(P->y, n);
-    mpres_clear(P->z, n);
-}
-
-void
-ec_point_print(ec_point_t P, ec_curve_t E, mpmod_t n)
-{
-    if(E->type == ECM_EC_TYPE_WEIERSTRASS)
-	pt_w_print(P->x, P->y, P->z, n);
-    else if(E->type == ECM_EC_TYPE_HESSIAN)
-	hessian_print(P, E, n);
-}
-
-/* TODO: should depend on E->type... */
-void
-ec_point_set(ec_point_t Q, ec_point_t P,
-	     ATTRIBUTE_UNUSED ec_curve_t E, ATTRIBUTE_UNUSED mpmod_t n)
-{
-    mpres_set(Q->x, P->x, n);
-    mpres_set(Q->y, P->y, n);
-    mpres_set(Q->z, P->z, n);
 }
 
 int
 ec_point_mul(ec_point_t Q, mpz_t e, ec_point_t P, ec_curve_t E, mpmod_t n)
 {
     return ec_point_mul_add_sub(Q, e, P, E, n);
-}
-
-void
-ec_curve_init(ec_curve_t E, mpmod_t n)
-{
-    int i;
-
-    E->type = ECM_EC_TYPE_MONTGOMERY; /* default */
-    mpres_init(E->A, n);
-    for(i = 0; i < EC_W_NBUFS; i++)
-	mpres_init (E->buf[i], n);
-}
-
-void
-ec_curve_init_set(ec_curve_t E, mpres_t A, int type, mpmod_t n)
-{
-    ec_curve_init(E, n);
-    E->type = type;
-    mpres_set(E->A, A, n);
-}
-
-void
-ec_curve_clear(ec_curve_t E, mpmod_t n)
-{
-    int i;
-
-    mpres_clear(E->A, n);
-    for(i = 0; i < EC_W_NBUFS; i++)
-	mpres_clear (E->buf[i], n);
-}
-
-void
-ec_curve_print(ec_curve_t E, mpmod_t n)
-{
-    if(E->type == ECM_EC_TYPE_WEIERSTRASS){    
-	printf("A:="); print_mpz_from_mpres(E->A, n); printf(";\n");
-	printf("E:=[A, y0^2-x0^3-A*x0];\n");
-    }
-    else if(E->type == ECM_EC_TYPE_HESSIAN){
-	printf("D:="); print_mpz_from_mpres(E->A, n); printf(";\n");
-	printf("E:=[D];\n");
-    }
 }
 
 /* Input: when Etype == ECM_EC_TYPE_WEIERSTRASS:
@@ -1587,7 +1669,7 @@ ecm_stage1_W (mpz_t f, int Etype, mpres_t x, mpres_t y, mpres_t A, mpmod_t n,
     /* preload group order */
     if (go != NULL){
 	if (ec_point_mul (Q, go, P, E, n) == 0){
-	    mpz_set (f, x);
+	    mpz_set (f, Q->x);
 	    ret = ECM_FACTOR_FOUND_STEP1;
 	    goto end_of_stage1_w;
         }
@@ -1614,9 +1696,9 @@ ecm_stage1_W (mpz_t f, int Etype, mpres_t x, mpres_t y, mpres_t A, mpmod_t n,
 
     last_chkpnt_p = 3.;
     for (p = getprime (); p <= B1; p = getprime ()){
+	mpz_set_ui(f, (ecm_uint)p);
 	for (r = p; r <= B1; r *= p){
 	    if (r > *B1done){
-		mpz_set_ui(f, (ecm_uint)p);
 		if(ec_point_mul_add_sub (Q, f, P, E, n) == 0){
 		    mpz_set(f, Q->x);
 		    ret = ECM_FACTOR_FOUND_STEP1;
@@ -1627,10 +1709,10 @@ ecm_stage1_W (mpz_t f, int Etype, mpres_t x, mpres_t y, mpres_t A, mpmod_t n,
 		printf("Q:=EcmMult(%ld, Q, E, N);\n", (long)r);
 		printf("(Q[1]*R%ld[3]-Q[3]*R%ld[1]) mod N;\n",(long)r,(long)r);
 #endif
+		ec_point_set(P, Q, E, n);
 	    }
-	    ec_point_set(P, Q, E, n);
 	}
-	if (mpres_is_zero (P->z, n)){
+	if (ec_point_is_zero (P, E, n)){
 	    outputf (OUTPUT_VERBOSE, "Reached point at infinity, %.0f divides "
 		     "group order\n", p);
 	    break;
@@ -1661,24 +1743,24 @@ ecm_stage1_W (mpz_t f, int Etype, mpres_t x, mpres_t y, mpres_t A, mpmod_t n,
     if (chkfilename != NULL)
 	writechkfile (chkfilename, ECM_ECM, *B1done, n, E->A, P->x, P->y,P->z);
     getprime_clear (); /* free the prime tables, and reinitialize */
-    
-#if EC_W_LAW == EC_W_LAW_PROJECTIVE
-    if(mpz_sgn(P->z) == 0){ /* TODO: not for Hessian stuff */
+
+    if(ec_point_is_zero(P, E, n) == 1){
 	/* too bad */
 	ec_point_set_to_zero(P, E, n);
 	mpz_set(f, n->orig_modulus);
 	ret = ECM_FACTOR_FOUND_STEP1;
     }
-    else if (!mpres_invert (xB, P->z, n)){ /* Factor found? */
-	mpres_gcd (f, P->z, n);
-	ret = ECM_FACTOR_FOUND_STEP1;
-    }
     else{
-	/* normalize to get (x:y:1) */
-	mpres_mul (P->x, P->x, xB, n);
-	mpres_mul (P->y, P->y, xB, n);
+	if (!mpres_invert (xB, P->z, n)){ /* Factor found? */
+	    mpres_gcd (f, P->z, n);
+	    ret = ECM_FACTOR_FOUND_STEP1;
+	}
+	else{
+	    /* normalize to get (x:y:1) valid in W or H form... */
+	    mpres_mul (P->x, P->x, xB, n);
+	    mpres_mul (P->y, P->y, xB, n);
+	}
     }
-#endif
 
     mpres_set(x, P->x, n);
     mpres_set(y, P->y, n);
@@ -1813,7 +1895,8 @@ print_exptime (double B1, const mpz_t B2, unsigned long dF, unsigned long k,
 void
 print_B1_B2_poly (int verbosity, int method, double B1, double B1done, 
 		  mpz_t B2min_param, mpz_t B2min, mpz_t B2, int S, mpz_t sigma,
-		  int sigma_is_A, mpz_t y, int param, unsigned int gpu)
+		  int sigma_is_A, int Etype, 
+		  mpz_t y, int param, unsigned int gpu)
 {
   ASSERT ((method == ECM_ECM) || (y == NULL));
   ASSERT ((-1 <= sigma_is_A) && (sigma_is_A <= 1));
@@ -1839,23 +1922,27 @@ print_B1_B2_poly (int verbosity, int method, double B1, double B1done,
       /* don't print in resume case, since x0 is saved in resume file */
       if (method == ECM_ECM)
         {
-	        if (sigma_is_A == 1)
-	            outputf (verbosity, ", A=%Zd", sigma);
-	        else if (sigma_is_A == 0)
-            {
-              if (gpu) /* if not 0, contains number_of_curves */
-                {
-                  outputf (verbosity, ", sigma=%d:%Zd", param, sigma);
-                  mpz_add_ui (sigma, sigma, gpu-1);
-                  outputf (verbosity, "-%d:%Zd", param, sigma);
-                  mpz_sub_ui (sigma, sigma, gpu-1);
-                  outputf (verbosity, " (%u curves)", gpu);
-                }
-              else
-                  outputf (verbosity, ", sigma=%d:%Zd", param, sigma);
-	          }
-          else /* sigma_is_A = -1: curve was given in Weierstrass form */
-            outputf (verbosity, ", Weierstrass(A=%Zd,y=%Zd)", sigma, y);
+	    if (sigma_is_A == 1)
+		outputf (verbosity, ", A=%Zd", sigma);
+	    else if (sigma_is_A == 0)
+	      {
+		if (gpu) /* if not 0, contains number_of_curves */
+		  {
+		    outputf (verbosity, ", sigma=%d:%Zd", param, sigma);
+		    mpz_add_ui (sigma, sigma, gpu-1);
+		    outputf (verbosity, "-%d:%Zd", param, sigma);
+		    mpz_sub_ui (sigma, sigma, gpu-1);
+		    outputf (verbosity, " (%u curves)", gpu);
+		  }
+		else
+		    outputf (verbosity, ", sigma=%d:%Zd", param, sigma);
+	      }
+	    else{
+		if (Etype == ECM_EC_TYPE_WEIERSTRASS)
+		  outputf (verbosity, ", Weierstrass(A=%Zd,y=%Zd)", sigma, y);
+		else if (Etype == ECM_EC_TYPE_HESSIAN)
+		  outputf (verbosity, ", Hessian(D=%Zd,y=%Zd)", sigma, y);
+	    }
         }
       else if (ECM_IS_DEFAULT_B1_DONE(B1done))
         /* in case of P-1 or P+1, we store the initial point in sigma */
@@ -2172,7 +2259,7 @@ ecm (mpz_t f, mpz_t x, mpz_t y, int *param, mpz_t sigma, mpz_t n, mpz_t go,
 
   /* Print B1, B2, polynomial and sigma */
   print_B1_B2_poly (OUTPUT_NORMAL, ECM_ECM, B1, *B1done, B2min_parm, B2min, 
-		    B2, root_params.S, sigma, sigma_is_A, y, *param, 0);
+		    B2, root_params.S, sigma, sigma_is_A, Etype, y, *param, 0);
 
 #if 0
   outputf (OUTPUT_VERBOSE, "b2=%1.0f, dF=%lu, k=%lu, d=%lu, d2=%lu, i0=%Zd\n", 
@@ -2287,7 +2374,7 @@ ecm (mpz_t f, mpz_t x, mpz_t y, int *param, mpz_t sigma, mpz_t n, mpz_t go,
      before P.x is (perhaps) converted to Weierstrass form */
   
   mpres_get_z (x, P.x, modulus);
-  if (Etype == ECM_EC_TYPE_WEIERSTRASS)
+  if (Etype == ECM_EC_TYPE_WEIERSTRASS || Etype == ECM_EC_TYPE_HESSIAN)
     mpres_get_z (y, P.y, modulus);  
 
   if (youpi != ECM_NO_FACTOR_FOUND)
@@ -2345,6 +2432,8 @@ ecm (mpz_t f, mpz_t x, mpz_t y, int *param, mpz_t sigma, mpz_t n, mpz_t go,
 
   if(Etype == ECM_EC_TYPE_MONTGOMERY)
       youpi = montgomery_to_weierstrass (f, P.x, P.y, P.A, modulus);
+  else if(Etype == ECM_EC_TYPE_HESSIAN)
+      youpi = hessian_to_weierstrass (f, P.x, P.y, P.A, modulus);
   /* hecm:*/
   
   if (test_verbose (OUTPUT_RESVERBOSE) && youpi == ECM_NO_FACTOR_FOUND && 
