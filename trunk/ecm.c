@@ -1253,7 +1253,7 @@ hessian_to_weierstrass(mpz_t f, mpres_t x, mpres_t y, mpres_t D, mpmod_t n)
     mpres_t D3, A, xi, tmp1, tmp2;
     int ret = ECM_NO_FACTOR_FOUND;
 
-#if DEBUG_EC_W >= 0
+#if DEBUG_EC_W >= 1
     printf("P:=[");
     print_mpz_from_mpres(x, n);
     printf(", ");
@@ -1298,7 +1298,7 @@ hessian_to_weierstrass(mpz_t f, mpres_t x, mpres_t y, mpres_t D, mpmod_t n)
 	mpres_mul(tmp1, tmp1, xi, n);
 	mpres_mul_ui(y, tmp1, 3, n);
 	mpres_set(D, A, n);
-#if DEBUG_EC_W >= 0
+#if DEBUG_EC_W >= 1
 	printf("WP:=[");
 	print_mpz_from_mpres(x, n);
 	printf(", ");
@@ -1314,6 +1314,42 @@ hessian_to_weierstrass(mpz_t f, mpres_t x, mpres_t y, mpres_t D, mpmod_t n)
     mpres_clear(xi, n);
     mpres_clear(tmp1, n);
     mpres_clear(tmp2, n);
+    return ret;
+}
+
+int
+mult_by_3(mpz_t f, mpres_t x, mpres_t y, mpres_t A, mpmod_t n)
+{
+    ec_curve_t E;
+    ec_point_t P, Q;
+    int ret = ECM_NO_FACTOR_FOUND;
+    mpz_t e;
+
+    ec_curve_init_set(E, A, ECM_EC_TYPE_WEIERSTRASS, n);
+    ec_point_init(P, E, n);
+    mpres_set(P->x, x, n);
+    mpres_set(P->y, y, n);
+    mpres_set_ui(P->z, 1, n);
+    ec_point_init(Q, E, n);
+    mpz_init_set_ui(e, 3);
+    if(ec_point_mul(Q, e, P, E, n) == 0)
+	mpz_set(f, Q->x);
+    else{
+	/* normalize */
+	if(mpres_invert(y, Q->z, n) == 0){
+	    printf("factor found in mul_by_3\n");
+	    mpres_gcd(f, Q->z, n);
+	    ret = ECM_FACTOR_FOUND_STEP1;
+	}
+	else{
+	    mpres_mul(x, y, Q->x, n);
+	    mpres_mul(y, y, Q->y, n);
+	}
+    }
+    mpz_clear(e);
+    ec_point_clear(Q, E, n);
+    ec_point_clear(P, E, n);
+    ec_curve_clear(E, n);
     return ret;
 }
 
@@ -2432,8 +2468,12 @@ ecm (mpz_t f, mpz_t x, mpz_t y, int *param, mpz_t sigma, mpz_t n, mpz_t go,
 
   if(Etype == ECM_EC_TYPE_MONTGOMERY)
       youpi = montgomery_to_weierstrass (f, P.x, P.y, P.A, modulus);
-  else if(Etype == ECM_EC_TYPE_HESSIAN)
+  else if(Etype == ECM_EC_TYPE_HESSIAN){
       youpi = hessian_to_weierstrass (f, P.x, P.y, P.A, modulus);
+      if(youpi == ECM_NO_FACTOR_FOUND)
+	  /* due that non-trivial kernel */
+	  youpi = mult_by_3(f, P.x, P.y, P.A, modulus);
+  }
   /* hecm:*/
   
   if (test_verbose (OUTPUT_RESVERBOSE) && youpi == ECM_NO_FACTOR_FOUND && 
