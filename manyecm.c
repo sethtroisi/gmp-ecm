@@ -907,18 +907,17 @@ process_many_curves(mpz_t f, mpmod_t n, double B1, ec_curve_t *tE,
 }
 
 int
-process_many_curves_from_file(mpz_t tf[], int *nf, mpz_t n, double B1, 
-			      char *fic_EP, int ncurves, int onebyone)
+read_curves_from_file(int *nE, ec_curve_t *tE, ec_point_t *tP, 
+		      mpz_t *tf, int *nf,
+		      mpmod_t n, char *fic_EP, int ncurves)
 {
-    ec_curve_t tE[NCURVE_MAX];
-    ec_point_t tP[NCURVE_MAX];
     FILE *ifile = fopen(fic_EP, "r");
-    int nE = 0, i, ret = 0;
     char bufA[1024], bufx[1024], bufy[1024], c, Etype;
     mpq_t q;
+    int ret = 1;
 
+    *nE = 0;
     mpq_init(q);
-#if 0 /* TODO; clean this, man! */
     while(fscanf(ifile, "%s", bufA) != EOF){
 	if(bufA[0] == '#'){
 	    /* skip line and print it */
@@ -930,53 +929,76 @@ process_many_curves_from_file(mpz_t tf[], int *nf, mpz_t n, double B1,
 	}
 	else
 	    Etype = bufA[0];
+	ec_curve_init(tE[*nE], n);
 	if(Etype == 'W'){
 	    if(fscanf(ifile, "%s %s %s", bufA, bufx, bufy) == EOF)
 		break;
+	    tE[*nE]->type = ECM_EC_TYPE_WEIERSTRASS;
 	}
-	else if(Etype == 'M')
+	else if(Etype == 'H'){
+	    if(fscanf(ifile, "%s %s %s", bufA, bufx, bufy) == EOF)
+		break;
+	    tE[*nE]->type = ECM_EC_TYPE_HESSIAN;
+	}
+	else if(Etype == 'M'){
 	    if(fscanf(ifile, "%s %s", bufA, bufx) == EOF)
 		break;
-	ec_curve_init(E, A, ECM_EC_TYPE_WEIERSTRASS, n);
-
-	mpz_init(tEP[nE].A);
-	if(read_and_prepare(tf[*nf], tEP[nE].A, q, bufA, n) == 0){
+	    tE[*nE]->type = ECM_EC_TYPE_MONTGOMERY;
+	}
+	mpz_init(tE[*nE]->A);
+	if(read_and_prepare(tf[*nf], tE[*nE]->A, q, bufA, n->orig_modulus) == 0){
+	    ret = 0;
 	    *nf += 1;
 	    goto process_end;
 	}
-	mpz_init(tEP[nE]->x);
-	if(read_and_prepare(tf[*nf], tEP[nE]->x, q, bufx, n) == 0){
+	ec_point_init(tP[*nE], tE[*nE], n);
+	mpz_init(tP[*nE]->x);
+	if(read_and_prepare(tf[*nf], tP[*nE]->x, q, bufx, n->orig_modulus) == 0){
+	    ret = 0;
             *nf+= 1;
 	    goto process_end;
 	}
-	mpz_init(tEP[nE]->y);
-	if(Etype[nE] == 'W'){
-	    if(read_and_prepare(tf[*nf], tEP[nE]->y, q, bufy, n) == 0){
+	mpz_init(tP[*nE]->y);
+	if((Etype == 'W') || (Etype == 'H')){
+	    if(read_and_prepare(tf[*nf], tP[*nE]->y, q, bufy, n->orig_modulus) == 0){
+		ret = 0;
 		*nf+= 1;
 		goto process_end;
 	    }
 	}
-	mpz_init_set_ui(tEP[nE]->z, 1);
-	nE++;
-	if(ncurves != 0 && nE == ncurves)
+	mpz_init_set_ui(tP[*nE]->z, 1);
+	*nE += 1;
+	if(ncurves != 0 && *nE == ncurves)
 	    break;
     }
-    /* TODO: process Montgomery curves first */
-    ret = process_many_curves(tf[0], n, B1, tEP, nE, onebyone, 0);
+ process_end:
+    fclose(ifile);
+    mpq_clear(q);
+    return ret;
+}
+
+int
+process_many_curves_from_file(mpz_t tf[], int *nf, mpz_t n, double B1, 
+			      char *fic_EP, int ncurves, int onebyone)
+{
+    ec_curve_t tE[NCURVE_MAX];
+    ec_point_t tP[NCURVE_MAX];
+    mpmod_t modulus;
+    int nE, i, ret = 0;
+
+    mpmod_init(modulus, n, ECM_MOD_DEFAULT);
+    ret = read_curves_from_file(&nE, tE, tP, tf, nf, modulus, fic_EP, ncurves);
+    /* TODO: process Montgomery curves first? */
+    ret = process_many_curves(tf[0], modulus, B1, tE, tP, nE, onebyone, 0);
     if(ret == ECM_PRIME_FAC_PRIME_COFAC ||
        ret == ECM_PRIME_FAC_COMP_COFAC ||
        ret == ECM_COMP_FAC_COMP_COFAC)
 	*nf += 1; /* FIXME: do better */
     for(i = 0; i < nE; i++){
-	mpz_clear(tEP[i]->x);
-	mpz_clear(tEP[i]->y);
-	mpz_clear(tEP[i]->z);
-	mpz_clear(tEP[i].A);
+	ec_point_clear(tP[i], tE[i], modulus);
+	ec_curve_clear(tE[i], modulus);
     }
- process_end:
-    fclose(ifile);
-    mpq_clear(q);
-#endif
+    mpmod_clear(modulus);
     return ret;
 }
 
@@ -2195,6 +2217,7 @@ process_many_curves_with_torsion(mpz_t tf[], int *nf, mpz_t n, double B1,
 	    ec_curve_clear(tE[i], modulus);
 	}
 	mpmod_clear(modulus);
+	/* TODO: make this a function, to be reused in from_file */
 	/* inspect result */
 	if(ret == ECM_PRIME_FAC_PRIME_COFAC){
 	    *nf += 1;

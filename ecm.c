@@ -1549,7 +1549,10 @@ ec_point_mul_add_sub (ec_point_t Q, mpz_t e, ec_point_t P,
 
     ec_point_init(P0, E, n);
 
-    w = 3; /* TODO: do better? */
+    if(mpz_cmp_si(e, 16) <= 0)
+	w = 2;
+    else
+	w = 3; /* TODO: do better? */
 
     k = (1 << (w-2)) - 1;
     for(i = 0; i <= k; i++)
