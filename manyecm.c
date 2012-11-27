@@ -1911,6 +1911,107 @@ build_curves_with_torsion_Z3xZ3(mpz_t f, mpmod_t n,
     return ret;
 }
 
+/* For a small price, add a 2-torsion point. */
+int
+build_curves_with_torsion_Z3xZ6(mpz_t f, mpmod_t n, 
+				ec_curve_t *tE, ec_point_t *tP,
+				int umin, int umax, int nE)
+{
+    int u, nc = 0, ret = ECM_NO_FACTOR_FOUND;
+    ec_curve_t E;
+    ec_point_t P, Q;
+    mpres_t tmp, num, den, tk, sk;
+    mpz_t t;
+
+    mpz_init(t);
+    mpz_init(num);
+    mpz_init(den);
+    mpz_init(tk);
+    mpz_init(sk);
+    /* Eaux:=EllipticCurve([0, -4]); */
+    /* Paux:=Eaux![2, 2, 1]; */
+    mpres_init(tmp, n);
+    mpres_set_ui(tmp, 0, n);
+    ec_curve_init_set(E, tmp, ECM_EC_TYPE_WEIERSTRASS, n);
+    ec_point_init(P, E, n);
+    mpz_set_str(f, "2", 10);
+    mpres_set_z(P->x, f, n);
+    mpz_set_str(f, "2", 10);
+    mpres_set_z(P->y, f, n);
+    mpres_set_ui(P->z, 1, n);
+
+    ec_point_init(Q, E, n);
+    for(u = umin; u < umax; u++){
+	/* update Qaux */
+	mpz_set_ui(f, u);
+	if(ec_point_mul(Q, f, P, E, n) == 0){
+	    printf("found factor in Z3xZ6 (update of Q)\n");
+	    mpz_set(f, Q->x);
+	    ret = ECM_FACTOR_FOUND_STEP1;
+	    break;
+	}
+#if DEBUG_MANY_EC >= 2
+	printf("(s, t)[%d]:=", u);
+	pt_print(Q, n);
+	printf(";\n");
+#endif
+	mpres_get_z(tk, Q->x, n);
+	mpres_get_z(sk, Q->y, n);
+	mpres_get_z(t, Q->z, n);
+	if(mpz_invert(f, t, n->orig_modulus) == 0){
+	    printf("found factor in Z3xZ6 (normalization)\n");
+	    mpz_gcd(f, t, n->orig_modulus);
+	    break;
+	}
+	mpz_mul(tk, tk, f);
+	mpz_mod(tk, tk, n->orig_modulus);
+	mpz_mul(sk, sk, f);
+	mpz_mod(sk, sk, n->orig_modulus);
+	/* t:=RatMod(-tk/2, N); */
+	mpz_mul_si(t, tk, -1);
+	mod_div_2(t, n->orig_modulus);
+	/* D:=RatMod((2*t^3+1)/3/t^2, N); */
+	mpz_mul(den, t, t);
+	mpz_mod(den, den, n->orig_modulus);
+	mpz_mul(num, den, t);
+	mpz_mul_si(num, num, 2);
+	mpz_add_si(num, num, 1);
+	mpz_mod(num, num, n->orig_modulus);
+	mpz_mul_si(den, den, 3);
+	mpz_mod(den, den, n->orig_modulus);
+	if(mod_from_rat2(tE[nc]->A, num, den, n->orig_modulus) == 0){
+            printf("found factor in Z3xZ6 (D)\n");
+            mpz_set(f, tE[nc]->A);
+            ret = ECM_FACTOR_FOUND_STEP1;
+            break;
+        }
+#if DEBUG_MANY_EC >= 1
+	gmp_printf("D%d:=%Zd;\n", nc, tE[nc]->A);
+#endif
+	tE[nc]->type = ECM_EC_TYPE_HESSIAN;
+	/* u0:=RatMod(sk/tk, N); */
+	if(mod_from_rat2(tP[nc]->x, sk, tk, n->orig_modulus) == 0){
+            printf("found factor in Z3xZ6 (u0)\n");
+            mpz_set(f, tP[nc]->x);
+            ret = ECM_FACTOR_FOUND_STEP1;
+            break;
+        }
+	/* v0:=-1; */
+	mpz_sub_si(tP[nc]->y, n->orig_modulus, 1);
+        mpz_set_ui(tP[nc]->z, 1);
+	nc++;
+	if(nc >= nE)
+	    break;
+    }
+    mpz_clear(t);
+    mpz_clear(num);
+    mpz_clear(den);
+    mpz_clear(sk);
+    mpz_clear(tk);
+    mpres_clear(tmp, n);
+    return ret;
+}
+
 /* Original source is Brier + Clavier.
    We can build curves in Montgomery form directly... 
    Useful if one knows that all p | n are 1 mod 4 (Cunningham, etc.).
@@ -2044,6 +2145,8 @@ build_curves_with_torsion(mpz_t f, mpmod_t n, ec_curve_t *tE, ec_point_t *tP,
 	return build_curves_with_torsion_Z3xZ3_DuNa(n, tE, tP, smin, smax, nE);
     else if(strcmp(torsion, "Z3xZ3") == 0) /* over Q(sqrt(-3)) */
 	return build_curves_with_torsion_Z3xZ3(f, n, tE, tP, smin, smax, nE);
+    else if(strcmp(torsion, "Z3xZ6") == 0) /* over Q(sqrt(-3)) */
+	return build_curves_with_torsion_Z3xZ6(f, n, tE, tP, smin, smax, nE);
     else if(strcmp(torsion, "Z4xZ4") == 0) /* over Q(sqrt(-1)) */
 	return build_curves_with_torsion_Z4xZ4(f, n, tE, tP, smin, smax, nE);
     else{
