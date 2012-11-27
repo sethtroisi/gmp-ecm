@@ -218,7 +218,12 @@ echo 2432902008176640001 | $ECM -A 1/20639383 -x0 20 -y0 10 10000; checkcode $? 
 echo 2432902008176640001 | $ECM -A 1 -x0 20/20639383 -y0 10 10000; checkcode $? 14
 echo 2432902008176640001 | $ECM -A 1/2 -x0 20 -y0 10/20639383 10000; checkcode $? 14
 # Hessian form: X^3+Y^3+Z^3=3*D*X*Y*Z (torsion group Z3xZ3 over Q(sqrt(-3)))
-# echo 2432902008176640001 | $ECM -H 2 -x0 2 -y0 3 9000; checkcode $? 14
+# found in Step 1
+echo 2432902008176640001 | $ECM -H 2 -x0 2 -y0 3 9000; checkcode $? 14
+# found in Step 2
+echo 2432902008176640001 | $ECM -H 2 -x0 2 -y0 3 100 9000; checkcode $? 14
+# no factor found
+echo 2432902008176640001 | $ECM -H 2 -x0 2 -y0 3 1000 2000; checkcode $? 0
 
 $ECM -printconfig | grep Tuning
 
