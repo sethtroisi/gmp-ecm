@@ -2174,6 +2174,64 @@ build_curves_with_torsion_Z4xZ4(mpz_t f, mpmod_t n, ec_curve_t *tE,
     return ret;
 }
 
+/* coeffs = {deg, c_deg, ..., c_0} */
+void
+mpz_eval_poly(mpz_t y, long* coeffs, mpz_t x, mpz_t n)
+{
+    int deg, i;
+
+    deg = coeffs[0];
+    /* Horner's rule */
+    mpz_set_si(y, coeffs[1]);
+    for(i = 2; i <= deg+1; i++){
+	mpz_mul(y, y, x);
+	mpz_add_si(y, y, coeffs[i]);
+	mpz_mod(y, y, n);
+    }
+}
+
+/* Source: Brier+Clavier or Kohel or Silverberg or Klein. */
+int
+build_curves_with_torsion_Z5xZ5(mpmod_t n, ec_curve_t *tE,
+				ec_point_t *tP,
+				int smin, int smax, int nE)
+{
+    int u, nc = 0, ret = ECM_NO_FACTOR_FOUND;
+    long polyA[] = {4, 1, -228, 494, 228, 1}; /* deg, c_deg, ..., c_0 */
+    long polyB[] = {6, 1, 522, -10005, 0, -10005, -522, 1};
+    mpz_t t, num, den, B;
+
+    mpz_init(t);
+    mpz_init(num);
+    mpz_init(den);
+    mpz_init(B);
+    printf("# s:");
+    for(u = smin; u < smax; u++){
+	mpz_set_ui(t, u);
+	mpz_powm_ui(t, t, 5, n->orig_modulus);
+	ec_curve_init(tE[nc], n);
+	tE[nc]->type = ECM_EC_TYPE_WEIERSTRASS;
+	/* A = -(t^4-228*t^3+494*t^2+228*t+1)/48; */
+	mpz_eval_poly(num, polyA, t, n->orig_modulus);
+	mpz_sub_si(den, n->orig_modulus, 48);
+	mod_from_rat2(tE[nc]->A, num, den, n->orig_modulus);
+	/* B = (t^6+522*t^5-10005*t^4-10005*t^2-522*t+1)/864 */
+	mpz_eval_poly(num, polyB, t, n->orig_modulus);
+	mpz_set_si(den, 864);
+	mod_from_rat2(B, num, den, n->orig_modulus);
+	ec_point_init(tP[nc], tE[nc], n);
+	/* TODO: finish */
+	nc++;
+	if(nc >= nE)
+	    break;
+    }
+    mpz_clear(t);
+    mpz_clear(num);
+    mpz_clear(den);
+    mpz_clear(B);
+    return ret;
+}
+
 /* Assuming we can generate curves with given torsion using parameter s
    in interval [smin..smax].
 */
@@ -2205,6 +2263,9 @@ build_curves_with_torsion(mpz_t f, mpmod_t n, ec_curve_t *tE, ec_point_t *tP,
     /** interesting when p = 1 mod 4 **/
     else if(strcmp(torsion, "Z4xZ4") == 0) /* over Q(sqrt(-1)) */
 	return build_curves_with_torsion_Z4xZ4(f, n, tE, tP, smin, smax, nE);
+    /** interesting when p = 1 mod 5 **/
+    else if(strcmp(torsion, "Z5xZ5") == 0) /* over Q(zeta5) */
+	return build_curves_with_torsion_Z5xZ5(n, tE, tP, smin, smax, nE);
     else{
 	printf("Unknown torsion group: %s\n", torsion);
 	ret = ECM_ERROR;
