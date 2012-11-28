@@ -563,12 +563,11 @@ mod_from_rat_str(mpz_t r, char *str, mpz_t N)
 }
 
 /* fall back on traditional ECM.
-   We decide between Weierstrass and Montgomery using mtyform.
    TODO: use chkfile also.
  */
 int
 process_one_curve(mpz_t f, mpz_t N, double B1, ecm_params params, 
-		  ec_curve_t E, ec_point_t P, int mtyform)
+		  ec_curve_t E, ec_point_t P)
 {
     double B2scale = 1.0;
     int ret;
@@ -583,7 +582,7 @@ process_one_curve(mpz_t f, mpz_t N, double B1, ecm_params params,
     mpz_set(params->x, P->x);
     mpz_set(params->sigma, E->A); /* humf */
 
-    if(mtyform != 0)
+    if(E->type == ECM_EC_TYPE_MONTGOMERY)
 	params->sigma_is_A = 1;
     else{
 	params->sigma_is_A = -1;
@@ -653,7 +652,7 @@ dump_curves(ec_curve_t *tE, ec_point_t *tP, int nE, mpz_t f)
 
 int
 one_curve_at_a_time(mpz_t f, char *ok, ec_curve_t *tE, ec_point_t *tP, int nE,
-		    mpz_t N, double B1, int mtyform)
+		    mpz_t N, double B1)
 {
     ecm_params params;
     int ret = 0, i;
@@ -668,7 +667,7 @@ one_curve_at_a_time(mpz_t f, char *ok, ec_curve_t *tE, ec_point_t *tP, int nE,
 	if(mpz_cmp_ui(N, 1) == 0){
 	    printf("N[%d] == 1!\n", i);
 	}
-	ret = process_one_curve(f, N, B1, params, tE[i], tP[i], mtyform);
+	ret = process_one_curve(f, N, B1, params, tE[i], tP[i]);
 	if(ret > 0){ /* humf */
 	    ok[i] = 0;
 	    ret = conclude_on_factor(N, f, params->verbose);
@@ -837,7 +836,7 @@ read_and_prepare(mpz_t f, mpz_t x, mpq_t q, char *buf, mpz_t n)
 */
 int
 process_many_curves(mpz_t f, mpmod_t n, double B1, ec_curve_t *tE, 
-		    ec_point_t *tP, int nE, int onebyone, int mtyform)
+		    ec_point_t *tP, int nE, int onebyone)
 {
     double B1done;
     ec_point_t tQ[NCURVE_MAX];
@@ -848,7 +847,7 @@ process_many_curves(mpz_t f, mpmod_t n, double B1, ec_curve_t *tE,
     
     memset(ok, 1, nE);
     if(onebyone != 0){
-	ret = one_curve_at_a_time(f,ok,tE,tP,nE,n->orig_modulus,B1,mtyform);
+	ret = one_curve_at_a_time(f,ok,tE,tP,nE,n->orig_modulus,B1);
 	free(ok);
 	return ret;
     }
@@ -888,7 +887,7 @@ process_many_curves(mpz_t f, mpmod_t n, double B1, ec_curve_t *tE,
 	    mpres_get_z(tP[i]->y, tQ[i]->y, n);
 	    mpres_get_z(tP[i]->z, tQ[i]->z, n);
 	    ret = process_one_curve(f, n->orig_modulus, B1, params,
-				    tE[i], tP[i], mtyform);
+				    tE[i], tP[i]);
 	    if(ret != ECM_NO_FACTOR_FOUND){
 		printf("## factor found in Step 2: ");
 		mpz_out_str (stdout, 10, f);
@@ -914,7 +913,7 @@ read_curves_from_file(int *nE, ec_curve_t *tE, ec_point_t *tP,
     FILE *ifile = fopen(fic_EP, "r");
     char bufA[1024], bufx[1024], bufy[1024], c, Etype;
     mpq_t q;
-    int ret = 1;
+    int ret = ECM_NO_FACTOR_FOUND;
 
     *nE = 0;
     mpq_init(q);
@@ -944,6 +943,10 @@ read_curves_from_file(int *nE, ec_curve_t *tE, ec_point_t *tP,
 	    if(fscanf(ifile, "%s %s", bufA, bufx) == EOF)
 		break;
 	    tE[*nE]->type = ECM_EC_TYPE_MONTGOMERY;
+	}
+	else{
+	    printf("Unknown curve type: %c\n", Etype);
+	    return ECM_ERROR;
 	}
 	mpz_init(tE[*nE]->A);
 	if(read_and_prepare(tf[*nf], tE[*nE]->A, q, bufA, n->orig_modulus) == 0){
@@ -989,7 +992,7 @@ process_many_curves_from_file(mpz_t tf[], int *nf, mpz_t n, double B1,
     mpmod_init(modulus, n, ECM_MOD_DEFAULT);
     ret = read_curves_from_file(&nE, tE, tP, tf, nf, modulus, fic_EP, ncurves);
     /* TODO: process Montgomery curves first? */
-    ret = process_many_curves(tf[0], modulus, B1, tE, tP, nE, onebyone, 0);
+    ret = process_many_curves(tf[0], modulus, B1, tE, tP, nE, onebyone);
     if(ret == ECM_PRIME_FAC_PRIME_COFAC ||
        ret == ECM_PRIME_FAC_COMP_COFAC ||
        ret == ECM_COMP_FAC_COMP_COFAC)
@@ -1147,6 +1150,9 @@ build_curves_with_torsion_Z5(mpz_t f, mpmod_t n,
 #endif
 	/* P:=WE![x0, y0, 1]; */
 	/* convert to short Weierstrass form */
+	ec_curve_init(tE[nc], n);
+	tE[nc]->type = ECM_EC_TYPE_WEIERSTRASS;
+	ec_point_init(tP[nc], tE[nc], n);
 	K2W4(tE[nc], tP[nc], c, c, x0, y0, n->orig_modulus);
 	nc++;
 	if(nc >= nE)
@@ -1311,6 +1317,10 @@ build_curves_with_torsion_Z7(mpz_t f, mpmod_t n,
 	/* b:=c*d; */
 	mpz_mul(b, c, d);
 	mpz_mod(b, b, n->orig_modulus);
+	/* to short Weierstrass form */
+	ec_curve_init(tE[nc], n);
+	tE[nc]->type = ECM_EC_TYPE_WEIERSTRASS;
+	ec_point_init(tP[nc], tE[nc], n);
 	K2W4(tE[nc], tP[nc], b, c, kx0, ky0, n->orig_modulus);
 #if DEBUG_MANY_EC >= 2
 	gmp_printf("E[%d]:=[%Zd];\n", nc, tE[nc]->A);
@@ -1441,6 +1451,10 @@ build_curves_with_torsion_Z9(mpz_t fac, mpmod_t n, ec_curve_t *tE,
 	/* b:=c*d; */
 	mpz_mul(b, c, d);
 	mpz_mod(b, b, n->orig_modulus);
+	/* to short Weierstrass form */
+	ec_curve_init(tE[nc], n);
+	tE[nc]->type = ECM_EC_TYPE_WEIERSTRASS;
+	ec_point_init(tP[nc], tE[nc], n);
 	K2W4(tE[nc], tP[nc], b, c, kx0, ky0, n->orig_modulus);
 	nc++;
 	if(nc >= nE)
@@ -1587,6 +1601,10 @@ build_curves_with_torsion_Z10(mpz_t fac, mpmod_t n, ec_curve_t *tE,
 	/* b:=c*d; */
 	mpz_mul(b, c, d);
 	mpz_mod(b, b, n->orig_modulus);
+	/* to short Weierstrass form */
+	ec_curve_init(tE[nc], n);
+	tE[nc]->type = ECM_EC_TYPE_WEIERSTRASS;
+	ec_point_init(tP[nc], tE[nc], n);
 	K2W4(tE[nc], tP[nc], b, c, kx0, ky0, n->orig_modulus);
 	nc++;
 	if(nc >= nE)
@@ -1769,6 +1787,10 @@ build_curves_with_torsion_Z2xZ8(mpz_t f, mpmod_t n,
 	mpz_mul(f, f, d); mpz_add_si(f, f, 16);
 	mpz_mul(f, f, d); mpz_add_si(f, f, -8);
 	mpz_mul(f, f, d); mpz_add_si(f, f, 1);
+	/* to Montgomery form */
+	ec_curve_init(tE[nc], n);
+	tE[nc]->type = ECM_EC_TYPE_MONTGOMERY;
+	ec_point_init(tP[nc], tE[nc], n);
 	if(mod_from_rat2(tE[nc]->A, f, tmp, n->orig_modulus) == 0){
             printf("found factor in Z2xZ8 (ma)\n");
 	    mpz_set(f, tE[nc]->A);
@@ -1869,6 +1891,9 @@ build_curves_with_torsion_Z3xZ3_DuNa(mpmod_t n, ec_curve_t *tE, ec_point_t *tP,
 	mpz_add_ui(y0, y0, 216);
 	mpz_mod(y0, y0, n->orig_modulus);
 	mpz_set_ui(x0, 0);
+	ec_curve_init(tE[nc], n);
+	tE[nc]->type = ECM_EC_TYPE_WEIERSTRASS;
+	ec_point_init(tP[nc], tE[nc], n);
 	W2W(tE[nc], tP[nc], a2, a4, x0, y0, n->orig_modulus);
 	nc++;
 	if(nc >= nE)
@@ -1916,8 +1941,9 @@ build_curves_with_torsion_Z3xZ3(mpz_t f, mpmod_t n,
             ret = ECM_FACTOR_FOUND_STEP1;
             break;
 	}
+	ec_curve_init_set(tE[nc], D, ECM_EC_TYPE_HESSIAN, n);
+	ec_point_init(tP[nc], tE[nc], n);
 	mpz_set(tE[nc]->A, D);
-	tE[nc]->type = ECM_EC_TYPE_HESSIAN;
 	mpz_set(tP[nc]->x, u0);
 	mpz_set(tP[nc]->y, v0);
 	mpz_set_ui(tP[nc]->z, 1);
@@ -2001,6 +2027,9 @@ build_curves_with_torsion_Z3xZ6(mpz_t f, mpmod_t n,
 	mpz_mod(num, num, n->orig_modulus);
 	mpz_mul_si(den, den, 3);
 	mpz_mod(den, den, n->orig_modulus);
+	ec_curve_init(tE[nc], n);
+	tE[nc]->type = ECM_EC_TYPE_HESSIAN;
+	ec_point_init(tP[nc], tE[nc], n);
 	if(mod_from_rat2(tE[nc]->A, num, den, n->orig_modulus) == 0){
             printf("found factor in Z3xZ6 (D)\n");
             mpz_set(f, tE[nc]->A);
@@ -2010,7 +2039,6 @@ build_curves_with_torsion_Z3xZ6(mpz_t f, mpmod_t n,
 #if DEBUG_MANY_EC >= 1
 	gmp_printf("D%d:=%Zd;\n", nc, tE[nc]->A);
 #endif
-	tE[nc]->type = ECM_EC_TYPE_HESSIAN;
 	/* u0:=RatMod(sk/tk, N); */
 	if(mod_from_rat2(tP[nc]->x, sk, tk, n->orig_modulus) == 0){
             printf("found factor in Z3xZ6 (u0)\n");
@@ -2091,6 +2119,10 @@ build_curves_with_torsion_Z4xZ4(mpz_t f, mpmod_t n, ec_curve_t *tE,
 	mpz_add_si(tmp, x0, 2);
 	mpz_mul_si(tmp, tmp, -2);
 	mpz_mod(tmp, tmp, n->orig_modulus);
+        /* to Montgomery form */
+        ec_curve_init(tE[nc], n);
+        tE[nc]->type = ECM_EC_TYPE_MONTGOMERY;
+        ec_point_init(tP[nc], tE[nc], n);
 	if(mod_from_rat2(tE[nc]->A, tmp, x0, n->orig_modulus) == 0){
 	    printf("\nFactor found durint init of Z4xZ4 (a)\n");
 	    mpz_set(f, tE[nc]->A);
@@ -2163,12 +2195,14 @@ build_curves_with_torsion(mpz_t f, mpmod_t n, ec_curve_t *tE, ec_point_t *tP,
     else if(strcmp(torsion, "Z2xZ8") == 0)
 	return build_curves_with_torsion_Z2xZ8(f, n, tE, tP, smin, smax, nE);
     /* no longer over Q */
+    /** interesting when p = 1 mod 3 **/
     else if(strcmp(torsion, "Z3xZ3_DuNa") == 0) /* over Q(sqrt(-3)) */
 	return build_curves_with_torsion_Z3xZ3_DuNa(n, tE, tP, smin, smax, nE);
     else if(strcmp(torsion, "Z3xZ3") == 0) /* over Q(sqrt(-3)) */
 	return build_curves_with_torsion_Z3xZ3(f, n, tE, tP, smin, smax, nE);
     else if(strcmp(torsion, "Z3xZ6") == 0) /* over Q(sqrt(-3)) */
 	return build_curves_with_torsion_Z3xZ6(f, n, tE, tP, smin, smax, nE);
+    /** interesting when p = 1 mod 4 **/
     else if(strcmp(torsion, "Z4xZ4") == 0) /* over Q(sqrt(-1)) */
 	return build_curves_with_torsion_Z4xZ4(f, n, tE, tP, smin, smax, nE);
     else{
@@ -2184,32 +2218,34 @@ build_curves_with_torsion(mpz_t f, mpmod_t n, ec_curve_t *tE, ec_point_t *tP,
 	   ECM_PRIME_FAC_COMP_COFAC
 	   ECM_COMP_FAC_COMP_COFAC
 	   ECM_COMP_FAC_PRIME_COFAC
+  One ring to run them all.
 */
 int
-process_many_curves_with_torsion(mpz_t tf[], int *nf, mpz_t n, double B1, 
-				 char *torsion, int smin, int smax, int nE)
+process_many_curves_loop(mpz_t tf[], int *nf, mpz_t n, double B1, 
+			 char *fic_EP,
+			 char *torsion, int smin, int smax, int nE)
 {
     ec_curve_t tE[NCURVE_MAX];
     ec_point_t tP[NCURVE_MAX];
     mpmod_t modulus;
-    int ret = 0, i, mtyform, onebyone;
+    int ret = 0, i, onebyone;
 
-    mtyform = strcmp(torsion, "Z4xZ4") == 0 || strcmp(torsion, "Z2xZ8") == 0;
     onebyone = 1; /* mtyform; */
     while(1){
 	/* cheating with the content of tE and tP */
 	mpmod_init(modulus, n, ECM_MOD_DEFAULT);
-	for(i = 0; i < nE; i++){
-	    ec_curve_init(tE[i], modulus);
-	    ec_point_init(tP[i], tE[i], modulus);
-	}
-	ret = build_curves_with_torsion(tf[*nf],modulus,tE,tP,
-					torsion,smin,smax,nE);
+	if(fic_EP != NULL)
+	    ret = read_curves_from_file(&nE, tE, tP, tf, nf, modulus, 
+					fic_EP, nE);
+	else
+	    ret = build_curves_with_torsion(tf[*nf],modulus,tE,tP,
+					    torsion,smin,smax,nE);
 	if(ret == ECM_NO_FACTOR_FOUND)
 	    ret = process_many_curves(tf[*nf],modulus,B1,tE,tP,nE,
-				      onebyone,mtyform);
+				      onebyone);
 	else{
 	    printf("Quid? %d\n", ret);
+	    break;
 	}
 	/* clear curves */
 	for(i = 0; i < nE; i++){
@@ -2217,7 +2253,6 @@ process_many_curves_with_torsion(mpz_t tf[], int *nf, mpz_t n, double B1,
 	    ec_curve_clear(tE[i], modulus);
 	}
 	mpmod_clear(modulus);
-	/* TODO: make this a function, to be reused in from_file */
 	/* inspect result */
 	if(ret == ECM_PRIME_FAC_PRIME_COFAC){
 	    *nf += 1;
@@ -2257,7 +2292,8 @@ usage (char *cmd)
     printf(" -torsion T -smin smin -smax smax\n");
     printf("  -inp file_N    numbers to be factored, one per line\n");
     printf("                 file_N can be '-', in which case stdin is used\n");
-    printf("  -curves file_C curves to be used, format 'A x0 y0' per line\n");
+    printf("  -curves file_C curves to be used, format '[M|W|H] A x0 y0' per line\n");
+    printf("                 M=Montgomery, W=Weierstrass, H=Hessian\n");
     printf("  -h, --help   Prints this help and exit.\n");
 }
 
@@ -2267,7 +2303,7 @@ int
 main (int argc, char *argv[])
 {
   mpz_t n, tf[NFMAX];
-  int res = 0, smin = -1, smax = -1, ncurves = 0, method = ECM_ECM, onebyone;
+  int res = 0, smin = -1, smax = -1, ncurves = 0, method = ECM_ECM;
   int nf = 0, i;
   double B1 = 0.0;
   char *infilename = NULL, *curvesname = NULL, *torsion = NULL;
@@ -2379,22 +2415,10 @@ main (int argc, char *argv[])
 	  exit (1);
       }
       if(method == ECM_ECM){
-	  if(curvesname != NULL){
-	      if(ncurves == 0)
-		  printf ("# Using all");
-	      else
-		  printf("# Using only %d", ncurves);
-	      printf(" curves from %s with B1=%1.0f\n", curvesname, B1);
-	      onebyone = 0;
-	      nf = 0;
-	      res = process_many_curves_from_file(tf, &nf, n, B1, curvesname, 
-						  ncurves, onebyone);
-	  }
-	  else if(torsion != NULL){
-	      nf = 0;
-	      res = process_many_curves_with_torsion(tf, &nf, n, B1, torsion, 
-						     smin, smax, ncurves);
-	  }
+	  nf = 0;
+	  res = process_many_curves_loop(tf, &nf, n, B1,
+					 curvesname,
+					 torsion, smin, smax, ncurves);
       }
   }
   if(infile != stdin)
