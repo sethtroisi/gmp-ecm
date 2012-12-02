@@ -431,7 +431,8 @@ pt_many_mul_add_sub_si(ec_point_t *tQ, ec_point_t *tP, ec_curve_t *tE, int nE,
 		       mpres_t *num, mpres_t *den, mpres_t *inv, char *ok)
 {
     long u, S[64];
-    int j, iS = 0, status = 1, w = 2;
+    int j, iS = 0, status = 1;
+    ATTRIBUTE_UNUSED int w = 2;
 
     /* build NAF_w(c) */
     while(c > 0){
@@ -635,6 +636,12 @@ dump_curves(ec_curve_t *tE, ec_point_t *tP, int nE, mpz_t f)
     int i;
 
     gmp_printf("p:=%Zd; F:=GF(p); P:=[]; A:=[]; B:=[]; E:=[];\n", f);
+    printf("CheckE:=procedure(E)\n");
+    printf("    printf \"#E=%%o\\n\", Factorization(#E);\n");
+    printf("    gen:=Generators(E);\n");
+    printf("    printf \"ords=%%o\\n\", ");
+    printf("[Factorization(Order(g)) : g in gen];\n");
+    printf("end procedure;\n");
     for(i = 0; i < nE; i++){
 	if(tE[i]->type == ECM_EC_TYPE_WEIERSTRASS){
 	    gmp_printf("P[%d]:=[%Zd, %Zd, %Zd];\n", i+1, 
@@ -643,9 +650,7 @@ dump_curves(ec_curve_t *tE, ec_point_t *tP, int nE, mpz_t f)
 	    printf("B[%d]:=P[%d][2]^2-P[%d][1]^3-A[%d]*P[%d][1];\n", 
 		   i+1, i+1, i+1, i+1, i+1);
 	    printf("E[%d]:=EllipticCurve([F!A[%d], F!B[%d]]);\n", i+1, i+1, i+1);
-	    printf("Factorization(#E[%d]);\n", i+1);
-	    printf("gen:=Generators(E[%d]);\n", i+1);
-	    printf("[Factorization(Order(g)) : g in gen];\n");
+	    printf("CheckE(E[%d]);\n", i+1);
 	}
 	else
 	    printf("Case %d NYI in dump_curves\n", tE[i]->type);
@@ -872,7 +877,7 @@ process_many_curves(mpz_t f, mpmod_t n, double B1, ec_curve_t *tE,
 	ret = conclude_on_factor(n->orig_modulus, f, params->verbose);
 #if DEBUG_MANY_EC >= 2
 	if(ret == ECM_PRIME_FAC_PRIME_COFAC || ret == ECM_PRIME_FAC_COMP_COFAC)
-	    /* output Magma lines to check #E's mod f */
+	    /* output Magma lines to check properties of E mod f */
 	    dump_curves(tE, tP, nE, f);
 #endif
     }
@@ -2314,7 +2319,7 @@ build_curves_with_torsion_Z2xZ10(mpz_t f, mpmod_t n, ec_curve_t *tE,
     int u, nc = 0, ret = ECM_NO_FACTOR_FOUND;
     long poly1[] = {3, 2, -3, 1, 0}; /* deg, c_deg, ..., c_0 */
     long poly2[] = {2, 1, -3, 1}; /* deg, c_deg, ..., c_0 */
-    long polydisc[] = {3, 8, -8, 0, 1};
+    ATTRIBUTE_UNUSED long polydisc[] = {3, 8, -8, 0, 1};
     long x0;
     mpz_t t, num, den, b, c, B;
 
@@ -2360,9 +2365,9 @@ build_curves_with_torsion_Z2xZ10(mpz_t f, mpmod_t n, ec_curve_t *tE,
 #if DEBUG_MANY_EC >= 2
         gmp_printf("A:=%Zd;\n", tE[nc]->A);
         gmp_printf("B:=%Zd;\n", B);
-#endif
 	mpz_eval_poly(num, polydisc, t, n->orig_modulus);
 	gmp_printf("# disc:=%Zd;\n", num);
+#endif
 	x0 = 0;
 	ec_force_point(tE[nc], tP[nc], B, &x0, n->orig_modulus);
 	nc++;
