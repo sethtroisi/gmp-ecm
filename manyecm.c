@@ -644,6 +644,8 @@ dump_curves(ec_curve_t *tE, ec_point_t *tP, int nE, mpz_t f)
 		   i+1, i+1, i+1, i+1, i+1);
 	    printf("E[%d]:=EllipticCurve([F!A[%d], F!B[%d]]);\n", i+1, i+1, i+1);
 	    printf("Factorization(#E[%d]);\n", i+1);
+	    printf("gen:=Generators(E[%d]);\n", i+1);
+	    printf("[Factorization(Order(g)) : g in gen];\n");
 	}
 	else
 	    printf("Case %d NYI in dump_curves\n", tE[i]->type);
@@ -1020,36 +1022,60 @@ mod_div_2(mpz_t x, mpz_t n)
 
 /* Weierstrass (a2, a4, a6) to (A, B)
    A = (a4-1/3*a2^2)
-   B = -1/3*a4*a2+a6+2/27*a2^3 (unused, really)
+   B = -1/3*a4*a2 + 2/27*a2^3 + a6
+     = -1/3*a2*(a4-2/9*a2^2) + a6
    X = x+a2/3
+   INPUT: if x0 == NULL, we have no point to translate
+          if B == NULL, we do not need and we do not compute B
 */
 void
-W2W(ec_curve_t E, ec_point_t P, mpz_t a2, mpz_t a4, mpz_t x0, mpz_t y0, mpz_t n)
+W2W(ec_curve_t E, mpz_t B, ec_point_t P, mpz_t a2, mpz_t a4, mpz_t a6, 
+    mpz_t x0, mpz_t y0, mpz_t n)
 {
-    /* x <- a2/3 */
-    mpz_set_si(P->y, 3);
-    mod_from_rat2(P->x, a2, P->y, n);
+    mpz_t tmp1, tmp2, tmp3;
+
+    mpz_init(tmp1);
+    mpz_init(tmp2);
+    /* tmp2 <- a2/3 */
+    mpz_init_set_si(tmp3, 3);
+    mod_from_rat2(tmp2, a2, tmp3, n);
+    if(x0 != NULL){
+	/* wx0 = x0 + a2/3 */
+	mpz_add(P->x, tmp2, x0);
+	mpz_mod(P->x, P->x, n);
+	mpz_set(P->y, y0);
+	mpz_mod(P->y, P->y, n);
+	mpz_set_ui(P->z, 1);
+    }
     /* A = a4-1/3*a2^2 = a4 - a2 * (a2/3) */
-    /** a2 <- a2^2/3 **/
-    mpz_mul(a2, a2, P->x);
-    mpz_mod(a2, a2, n);
-    mpz_sub(E->A, a4, a2);
+    /** tmp1 <- tmp2*a2 = a2^2/3 */
+    mpz_mul(tmp1, a2, tmp2);
+    mpz_mod(tmp1, tmp1, n);
+    mpz_sub(E->A, a4, tmp1);
     mpz_mod(E->A, E->A, n);
-    /* wx0 = x0 + a2/3 */
-    mpz_add(P->x, P->x, x0);
-    mpz_mod(P->x, P->x, n);
-    mpz_set(P->y, y0);
-    mpz_mod(P->y, P->y, n);
-    mpz_set_ui(P->z, 1);
+    if(B != NULL){
+	/* B = -1/3*a2*(a4-2/9*a2^2) + a6 */
+	/** B <- 2/9*a2^2 = 2 * (a2^2/3) / 3 **/
+	mod_from_rat2(B, tmp1, tmp3, n);
+	mpz_mul_si(B, B, 2);
+	mpz_sub(B, a4, B);
+	mpz_mul(B, B, tmp2);
+	mpz_sub(B, a6, B);
+	mpz_mod(B, B, n);
+    }
 #if DEBUG_MANY_EC >= 2
     gmp_printf("N:=%Zd;\n", n);
     gmp_printf("A:=%Zd;\n", E->A);
-    gmp_printf("x0:=%Zd;\n", x0);
-    gmp_printf("wx0:=%Zd;\n", P->x);
-    gmp_printf("y0:=%Zd;\n", P->y);
-    printf("B:=(y0^2-wx0^3-A*wx0) mod N;\n");
-    exit(-1);
+    if(x0 != NULL){
+	gmp_printf("x0:=%Zd;\n", x0);
+	gmp_printf("wx0:=%Zd;\n", P->x);
+	gmp_printf("y0:=%Zd;\n", P->y);
+	printf("B:=(y0^2-wx0^3-A*wx0) mod N;\n");
+    }
 #endif
+    mpz_clear(tmp1);
+    mpz_clear(tmp2);
+    mpz_clear(tmp3);
 }
 
 /* From a curve in Weierstrass form to a short form 
@@ -1060,7 +1086,7 @@ W2W(ec_curve_t E, ec_point_t P, mpz_t a2, mpz_t a4, mpz_t x0, mpz_t y0, mpz_t n)
    a6 = (b/2)^2
 */
 void
-K2W24(mpz_t a2, mpz_t a4, mpz_t b, mpz_t c, mpz_t n)
+K2W246(mpz_t a2, mpz_t a4, mpz_t a6, mpz_t b, mpz_t c, mpz_t n, int compute_a6)
 {
     /** a4 <- (c-1)/2 **/
     mpz_sub_si(a4, c, 1);
@@ -1072,16 +1098,12 @@ K2W24(mpz_t a2, mpz_t a4, mpz_t b, mpz_t c, mpz_t n)
     /** a4 <- a4*b **/
     mpz_mul(a4, a4, b);
     mpz_mod(a4, a4, n);
-#if 0 /* not needed */
-    {
-	mpz_init(a6);
+    if(compute_a6 != 0){
 	mpz_set(a6, b);
 	mod_div_2(a6, n);
 	mpz_mul(a6, a6, a6);
 	mpz_mod(a6, a6, n);
-	mpz_clear(a6);
     }
-#endif
 #if DEBUG_MANY_EC >= 2
     gmp_printf("N:=%Zd;\n", n);
     gmp_printf("b:=%Zd;\n", b);
@@ -1089,6 +1111,8 @@ K2W24(mpz_t a2, mpz_t a4, mpz_t b, mpz_t c, mpz_t n)
     gmp_printf("a2:=%Zd;\n", a2);
     gmp_printf("a4:=%Zd;\n", a4);
     printf("a6:=RatMod(b^2/4, N);\n");
+    if(compute_a6 != 0)
+	gmp_printf("a6:=%Zd;\n", a6);
 #endif
 }
 
@@ -1097,17 +1121,23 @@ K2W24(mpz_t a2, mpz_t a4, mpz_t b, mpz_t c, mpz_t n)
    Y^2 = X^3 + A * X + B
 */
 void
-K2W4(ec_curve_t E, ec_point_t P, mpz_t b, mpz_t c, mpz_t x0, mpz_t y0, mpz_t n)
+kubert_to_weierstrass(ec_curve_t E, mpz_t B, ec_point_t P, mpz_t b, mpz_t c, 
+		      mpz_t x0, mpz_t y0, mpz_t n)
 {
-    mpz_t a2, a4;
+    mpz_t a2, a4, a6;
+    int compute_a6 = (B != NULL);
 
     mpz_init(a2);
     mpz_init(a4);
-    K2W24(a2, a4, b, c, n);
+    if(compute_a6)
+	mpz_init(a6);
+    K2W246(a2, a4, a6, b, c, n, compute_a6);
     /* second conversion */
-    W2W(E, P, a2, a4, x0, y0, n);
+    W2W(E, B, P, a2, a4, a6, x0, y0, n);
     mpz_clear(a2);
     mpz_clear(a4);
+    if(compute_a6)
+	mpz_clear(a6);
 }
 
 /* Kubert: put b = c. */
@@ -1153,7 +1183,7 @@ build_curves_with_torsion_Z5(mpz_t f, mpmod_t n,
 	ec_curve_init(tE[nc], n);
 	tE[nc]->type = ECM_EC_TYPE_WEIERSTRASS;
 	ec_point_init(tP[nc], tE[nc], n);
-	K2W4(tE[nc], tP[nc], c, c, x0, y0, n->orig_modulus);
+	kubert_to_weierstrass(tE[nc], NULL, tP[nc], c, c, x0, y0, n->orig_modulus);
 	nc++;
 	if(nc >= nE)
 	    break;
@@ -1321,7 +1351,7 @@ build_curves_with_torsion_Z7(mpz_t f, mpmod_t n,
 	ec_curve_init(tE[nc], n);
 	tE[nc]->type = ECM_EC_TYPE_WEIERSTRASS;
 	ec_point_init(tP[nc], tE[nc], n);
-	K2W4(tE[nc], tP[nc], b, c, kx0, ky0, n->orig_modulus);
+	kubert_to_weierstrass(tE[nc], NULL, tP[nc], b, c, kx0, ky0, n->orig_modulus);
 #if DEBUG_MANY_EC >= 2
 	gmp_printf("E[%d]:=[%Zd];\n", nc, tE[nc]->A);
 	gmp_printf("P[%d]:=[%Zd, %Zd, %Zd];\n", 
@@ -1455,7 +1485,7 @@ build_curves_with_torsion_Z9(mpz_t fac, mpmod_t n, ec_curve_t *tE,
 	ec_curve_init(tE[nc], n);
 	tE[nc]->type = ECM_EC_TYPE_WEIERSTRASS;
 	ec_point_init(tP[nc], tE[nc], n);
-	K2W4(tE[nc], tP[nc], b, c, kx0, ky0, n->orig_modulus);
+	kubert_to_weierstrass(tE[nc], NULL, tP[nc], b, c, kx0, ky0, n->orig_modulus);
 	nc++;
 	if(nc >= nE)
 	    break;
@@ -1605,7 +1635,7 @@ build_curves_with_torsion_Z10(mpz_t fac, mpmod_t n, ec_curve_t *tE,
 	ec_curve_init(tE[nc], n);
 	tE[nc]->type = ECM_EC_TYPE_WEIERSTRASS;
 	ec_point_init(tP[nc], tE[nc], n);
-	K2W4(tE[nc], tP[nc], b, c, kx0, ky0, n->orig_modulus);
+	kubert_to_weierstrass(tE[nc], NULL, tP[nc], b, c, kx0, ky0, n->orig_modulus);
 	nc++;
 	if(nc >= nE)
 	    break;
@@ -1770,7 +1800,7 @@ build_curves_with_torsion_Z2xZ8(mpz_t f, mpmod_t n,
             ret = ECM_FACTOR_FOUND_STEP1;
             break;
         }
-	K2W24(f, a, b, c, n->orig_modulus);
+	K2W246(f, a, NULL, b, c, n->orig_modulus, 0);
 	/* wx0:=kx0+a2/3; */
         mpz_set_si(tmp, 3);
 	mod_from_rat2(wx0, f, tmp, n->orig_modulus);
@@ -1894,7 +1924,7 @@ build_curves_with_torsion_Z3xZ3_DuNa(mpmod_t n, ec_curve_t *tE, ec_point_t *tP,
 	ec_curve_init(tE[nc], n);
 	tE[nc]->type = ECM_EC_TYPE_WEIERSTRASS;
 	ec_point_init(tP[nc], tE[nc], n);
-	W2W(tE[nc], tP[nc], a2, a4, x0, y0, n->orig_modulus);
+	W2W(tE[nc], NULL, tP[nc], a2, a4, NULL, x0, y0, n->orig_modulus);
 	nc++;
 	if(nc >= nE)
 	    break;
@@ -2190,6 +2220,46 @@ mpz_eval_poly(mpz_t y, long* coeffs, mpz_t x, mpz_t n)
     }
 }
 
+void
+ec_force_point(ec_curve_t E, ec_point_t P, mpz_t B, long *x0, mpz_t n)
+{
+    mpz_t lambda;
+
+    mpz_init(lambda);
+    while(1){
+	*x0 += 1;
+	/* lambda <- x0^3+A*x0+B = (x0^2+A)*x0+B */
+	mpz_set_si(lambda, *x0);
+	mpz_mul_si(lambda, lambda, *x0);
+	mpz_add(lambda, lambda, E->A);
+	mpz_mul_si(lambda, lambda, *x0);
+	mpz_add(lambda, lambda, B);
+	mpz_mod(lambda, lambda, n);
+#if 0
+	gmp_printf("lambda:=%Zd;\n", lambda);
+	printf("# jac=%d\n", mpz_jacobi(lambda, n));
+#endif
+	/* P */
+	mpz_mul_si(P->x, lambda, *x0);
+	mpz_mod(P->x, P->x, n);
+	mpz_mul(P->y, lambda, lambda);
+	mpz_mod(P->y, P->y, n);
+	/* modify E */
+	mpz_mul(E->A, E->A, P->y);
+	mpz_mod(E->A, E->A, n);
+	/* not really needed */
+	mpz_mul(B, B, P->y);
+	mpz_mul(B, B, lambda);
+	mpz_mod(B, B, n);
+	break;
+    }
+#if DEBUG_MANY_EC >= 2
+    gmp_printf("newA:=%Zd;\n", E->A);
+    gmp_printf("newB:=%Zd;\n", B);
+#endif
+    mpz_clear(lambda);
+}
+
 /* Source: Brier+Clavier or Kohel or Silverberg or Klein. */
 int
 build_curves_with_torsion_Z5xZ5(mpmod_t n, ec_curve_t *tE,
@@ -2199,6 +2269,7 @@ build_curves_with_torsion_Z5xZ5(mpmod_t n, ec_curve_t *tE,
     int u, nc = 0, ret = ECM_NO_FACTOR_FOUND;
     long polyA[] = {4, 1, -228, 494, 228, 1}; /* deg, c_deg, ..., c_0 */
     long polyB[] = {6, 1, 522, -10005, 0, -10005, -522, 1};
+    long x0;
     mpz_t t, num, den, B;
 
     mpz_init(t);
@@ -2207,6 +2278,7 @@ build_curves_with_torsion_Z5xZ5(mpmod_t n, ec_curve_t *tE,
     mpz_init(B);
     printf("# s:");
     for(u = smin; u < smax; u++){
+	printf(" %d", u);
 	mpz_set_ui(t, u);
 	mpz_powm_ui(t, t, 5, n->orig_modulus);
 	ec_curve_init(tE[nc], n);
@@ -2220,14 +2292,89 @@ build_curves_with_torsion_Z5xZ5(mpmod_t n, ec_curve_t *tE,
 	mpz_set_si(den, 864);
 	mod_from_rat2(B, num, den, n->orig_modulus);
 	ec_point_init(tP[nc], tE[nc], n);
-	/* TODO: finish */
+	x0 = 0;
+	ec_force_point(tE[nc], tP[nc], B, &x0, n->orig_modulus);
 	nc++;
 	if(nc >= nE)
 	    break;
     }
+    printf("\n");
     mpz_clear(t);
     mpz_clear(num);
     mpz_clear(den);
+    mpz_clear(B);
+    return ret;
+}
+
+int
+build_curves_with_torsion_Z2xZ10(mpz_t f, mpmod_t n, ec_curve_t *tE,
+				 ec_point_t *tP,
+				 int smin, int smax, int nE)
+{
+    int u, nc = 0, ret = ECM_NO_FACTOR_FOUND;
+    long poly1[] = {3, 2, -3, 1, 0}; /* deg, c_deg, ..., c_0 */
+    long poly2[] = {2, 1, -3, 1}; /* deg, c_deg, ..., c_0 */
+    long polydisc[] = {3, 8, -8, 0, 1};
+    long x0;
+    mpz_t t, num, den, b, c, B;
+
+    mpz_init(t);
+    mpz_init(num);
+    mpz_init(den);
+    mpz_init(b);
+    mpz_init(c);
+    mpz_init(B);
+    printf("# s:");
+    for(u = smin; u < smax; u++){
+	printf(" %d", u);
+	mpz_set_ui(t, u);
+	/* num = t*(2*t^2-3*t+1) */
+	mpz_eval_poly(num, poly1, t, n->orig_modulus);
+	/* den = t^2-3*t+1 */
+	mpz_eval_poly(den, poly2, t, n->orig_modulus);
+	/* b:=RatMod(t^3*(2*t^2-3*t+1)/(t^2-3*t+1)^2, N); */
+	/* c:=RatMod(-t*(2*t^2-3*t+1)/(t^2-3*t+1), N); */
+	if(mpz_invert(f, den, n->orig_modulus) == 0){
+	    printf("# factor found in Z2xZ10 (den)\n");
+	    ret = ECM_FACTOR_FOUND_STEP1;
+	    break;
+	}
+	mpz_mul(c, num, f);
+	mpz_mod(c, c, n->orig_modulus);
+	mpz_mul(b, c, f);
+	mpz_mul(b, b, t);
+	mpz_mul(b, b, t);
+	mpz_mod(b, b, n->orig_modulus);
+	mpz_mul_si(c, c, -1);
+	mpz_mod(c, c, n->orig_modulus);
+#if DEBUG_MANY_EC >= 2
+	gmp_printf("t:=%Zd;\n", t);
+	gmp_printf("b:=%Zd;\n", b);
+	gmp_printf("c:=%Zd;\n", c);
+#endif	
+	ec_curve_init(tE[nc], n);
+	tE[nc]->type = ECM_EC_TYPE_WEIERSTRASS;
+	ec_point_init(tP[nc], tE[nc], n);
+	/* transform with no input point */
+	kubert_to_weierstrass(tE[nc],B,NULL,b,c,NULL,NULL,n->orig_modulus);
+#if DEBUG_MANY_EC >= 2
+        gmp_printf("A:=%Zd;\n", tE[nc]->A);
+        gmp_printf("B:=%Zd;\n", B);
+#endif
+	mpz_eval_poly(num, polydisc, t, n->orig_modulus);
+	gmp_printf("# disc:=%Zd;\n", num);
+	x0 = 0;
+	ec_force_point(tE[nc], tP[nc], B, &x0, n->orig_modulus);
+	nc++;
+	if(nc >= nE)
+	    break;
+    }
+    printf("\n");
+    mpz_clear(t);
+    mpz_clear(num);
+    mpz_clear(den);
+    mpz_clear(b);
+    mpz_clear(c);
     mpz_clear(B);
     return ret;
 }
@@ -2266,6 +2413,9 @@ build_curves_with_torsion(mpz_t f, mpmod_t n, ec_curve_t *tE, ec_point_t *tP,
     /** interesting when p = 1 mod 5 **/
     else if(strcmp(torsion, "Z5xZ5") == 0) /* over Q(zeta5) */
 	return build_curves_with_torsion_Z5xZ5(n, tE, tP, smin, smax, nE);
+    /** new idea **/
+    else if(strcmp(torsion, "Z2xZ10") == 0)
+	return build_curves_with_torsion_Z2xZ10(f, n, tE, tP, smin, smax, nE);
     else{
 	printf("Unknown torsion group: %s\n", torsion);
 	ret = ECM_ERROR;
@@ -2456,6 +2606,9 @@ main (int argc, char *argv[])
       fprintf (stderr, "You must provide ncurves != 0 with -torsion.\n");
       exit (EXIT_FAILURE);
   }
+
+  if(torsion != NULL)
+      printf("GMP-ECM [torsion=%s:%d-%d]\n", torsion, smin, smax);
 
   mpz_init (n);
   for(i = 0; i < NFMAX; i++)
