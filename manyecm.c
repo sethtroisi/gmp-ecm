@@ -2387,6 +2387,78 @@ build_curves_with_torsion_Z2xZ10(mpz_t f, mpmod_t n, ec_curve_t *tE,
     return ret;
 }
 
+int
+build_curves_with_torsion_Z2xZ12(mpz_t f, mpmod_t n, ec_curve_t *tE,
+				 ec_point_t *tP,
+				 int smin, int smax, int nE)
+{
+    int u, nc = 0, ret = ECM_NO_FACTOR_FOUND;
+    long x0;
+    mpz_t t, num, den, b, c, B;
+
+    mpz_init(t);
+    mpz_init(num);
+    mpz_init(den);
+    mpz_init(b);
+    mpz_init(c);
+    mpz_init(B);
+#if DEBUG_MANY_EC >= 2
+    printf("info:=[];\n");
+#endif
+    for(u = smin; u < smax; u++){
+#if DEBUG_MANY_EC >= 2
+	printf("info[%d]:=\"Z2xZ12:%d\";\n", nc+1, u);
+#endif
+	mpz_set_ui(t, u);
+	/* num = 1-t^2 */
+	/* den = t^2*(t^2+3) */
+	/* c:=RatMod(num/den, N); */
+	mpz_mul(num, t, t);
+	mpz_mod(num, num, n->orig_modulus);
+	mpz_add_si(den, num, 3);
+	mpz_mul(den, den, num);
+	mpz_mod(den, den, n->orig_modulus);
+	mpz_neg(num, num);
+	mpz_add_si(num, num, 1);
+	mpz_mod(num, num, n->orig_modulus);
+	if(mod_from_rat2(c, num, den, n->orig_modulus) == 0){
+	    printf("# factor found in Z2xZ12 (den)\n");
+	    mpz_set(f, c);
+	    ret = ECM_FACTOR_FOUND_STEP1;
+	    break;
+	}
+	mpz_mul(b, c, c);
+	mpz_add(b, b, c);
+	mpz_mod(b, b, n->orig_modulus);
+#if DEBUG_MANY_EC >= 2
+	gmp_printf("t:=%Zd;\n", t);
+	gmp_printf("b:=%Zd;\n", b);
+	gmp_printf("c:=%Zd;\n", c);
+#endif	
+	ec_curve_init(tE[nc], n);
+	tE[nc]->type = ECM_EC_TYPE_WEIERSTRASS;
+	ec_point_init(tP[nc], tE[nc], n);
+	/* transform with no input point */
+	kubert_to_weierstrass(tE[nc],B,NULL,b,c,NULL,NULL,n->orig_modulus);
+#if DEBUG_MANY_EC >= 2
+        gmp_printf("A:=%Zd;\n", tE[nc]->A);
+        gmp_printf("B:=%Zd;\n", B);
+#endif
+	x0 = 0;
+	ec_force_point(tE[nc], tP[nc], B, &x0, n->orig_modulus);
+	nc++;
+	if(nc >= nE)
+	    break;
+    }
+    mpz_clear(t);
+    mpz_clear(num);
+    mpz_clear(den);
+    mpz_clear(b);
+    mpz_clear(c);
+    mpz_clear(B);
+    return ret;
+}
+
 /* Assuming we can generate curves with given torsion using parameter s
    in interval [smin..smax].
 */
@@ -2424,6 +2496,8 @@ build_curves_with_torsion(mpz_t f, mpmod_t n, ec_curve_t *tE, ec_point_t *tP,
     /** new idea **/
     else if(strcmp(torsion, "Z2xZ10") == 0)
 	return build_curves_with_torsion_Z2xZ10(f, n, tE, tP, smin, smax, nE);
+    else if(strcmp(torsion, "Z2xZ12") == 0)
+	return build_curves_with_torsion_Z2xZ12(f, n, tE, tP, smin, smax, nE);
     else{
 	printf("Unknown torsion group: %s\n", torsion);
 	ret = ECM_ERROR;
