@@ -587,6 +587,7 @@ process_one_curve(mpz_t f, mpz_t N, double B1, ecm_params params,
 	params->sigma_is_A = 1;
     else{
 	params->sigma_is_A = -1;
+	params->Etype = E->type;
 	mpz_set(params->y, P->y);
     }
     ret = ecm_factor(f, N, B1, params);
