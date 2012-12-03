@@ -2569,9 +2569,18 @@ process_many_curves_loop(mpz_t tf[], int *nf, mpz_t n, double B1,
 	    *nf += 1;
 	}
 	else if(ret == ECM_COMP_FAC_COMP_COFAC){
-	    printf("# start again with n/f, forgetting about f\n");
-	    mpz_tdiv_q(n, n, tf[*nf]);
+	    mpz_t f;
+	    int ret2;
+
+	    mpz_init_set(f, tf[*nf]);
+	    gmp_printf("# recursive call for f=%Zd\n", f);
+	    ret2 = process_many_curves_loop(tf, nf, f, B1, fic_EP,
+					    torsion, smin, smax, nE);
+	    /* there is always some cofactor to store */
+	    mpz_set(tf[*nf], f);
 	    *nf += 1;
+	    printf("# start again with n/f\n");
+	    mpz_tdiv_q(n, n, f);
 	}
 	else /* something happened */
 	    break;
