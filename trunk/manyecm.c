@@ -636,8 +636,8 @@ dump_curves(ec_curve_t *tE, ec_point_t *tP, int nE, mpz_t f)
     int i;
 
     gmp_printf("p:=%Zd; F:=GF(p); P:=[]; A:=[]; B:=[]; E:=[];\n", f);
-    printf("CheckE:=procedure(E)\n");
-    printf("    printf \"#E=%%o\\n\", Factorization(#E);\n");
+    printf("CheckE:=procedure(E, info)\n");
+    printf("    printf \"#E[%%o]=%%o\\n\", info, Factorization(#E);\n");
     printf("    gen:=Generators(E);\n");
     printf("    printf \"ords=%%o\\n\", ");
     printf("[Factorization(Order(g)) : g in gen];\n");
@@ -650,7 +650,7 @@ dump_curves(ec_curve_t *tE, ec_point_t *tP, int nE, mpz_t f)
 	    printf("B[%d]:=P[%d][2]^2-P[%d][1]^3-A[%d]*P[%d][1];\n", 
 		   i+1, i+1, i+1, i+1, i+1);
 	    printf("E[%d]:=EllipticCurve([F!A[%d], F!B[%d]]);\n", i+1, i+1, i+1);
-	    printf("CheckE(E[%d]);\n", i+1);
+	    printf("CheckE(E[%d], info[%d]);\n", i+1, i+1);
 	}
 	else
 	    printf("Case %d NYI in dump_curves\n", tE[i]->type);
@@ -2329,9 +2329,13 @@ build_curves_with_torsion_Z2xZ10(mpz_t f, mpmod_t n, ec_curve_t *tE,
     mpz_init(b);
     mpz_init(c);
     mpz_init(B);
-    printf("# s:");
+#if DEBUG_MANY_EC >= 2
+    printf("info:=[];\n");
+#endif
     for(u = smin; u < smax; u++){
-	printf(" %d", u);
+#if DEBUG_MANY_EC >= 2
+	printf("info[%d]:=\"Z2xZ10:%d\";\n", nc+1, u);
+#endif
 	mpz_set_ui(t, u);
 	/* num = t*(2*t^2-3*t+1) */
 	mpz_eval_poly(num, poly1, t, n->orig_modulus);
@@ -2374,7 +2378,6 @@ build_curves_with_torsion_Z2xZ10(mpz_t f, mpmod_t n, ec_curve_t *tE,
 	if(nc >= nE)
 	    break;
     }
-    printf("\n");
     mpz_clear(t);
     mpz_clear(num);
     mpz_clear(den);
