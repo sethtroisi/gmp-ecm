@@ -1520,11 +1520,8 @@ main (int argc, char *argv[])
       if (savefilename != NULL && !n.isPrp)
         {
         /* TODO Deal with return code */
-          write_resumefile (savefilename, method, tmp_n, params->B1done, 
-                            params->sigma, params->sigma_is_A, params->param, 
-                            params->gpu, params->x, params->y, &n, 
-			    orig_x0, orig_y0,
-                            params->gpu_number_of_curves, comment);
+	    write_resumefile (savefilename, method, tmp_n, params, &n, 
+			      orig_x0, orig_y0, comment);
         }
 
       mpz_clear (tmp_n);
