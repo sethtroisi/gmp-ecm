@@ -528,10 +528,9 @@ write_resumefile_line (FILE *file, int method, double B1, mpz_t sigma,
 
    Returns 1 on success, 0 on error */
 int  
-write_resumefile (char *fn, int method, mpz_t N, double B1done, mpz_t sigma,
-                  int sigma_is_A, int param, int gpu, mpz_t x, mpz_t y,
+write_resumefile (char *fn, int method, mpz_t N, ecm_params params,
 		  mpcandi_t *n, mpz_t orig_x0, mpz_t orig_y0, 
-		  unsigned int gpu_curves, const char *comment)
+		  const char *comment)
 {
   FILE *file;
   unsigned int i = 0;
@@ -584,38 +583,41 @@ write_resumefile (char *fn, int method, mpz_t N, double B1done, mpz_t sigma,
   
 
   /* Now can call write_resumefile_line to write in the file */
-  if (gpu == 0)
+  if (params->gpu == 0)
     {
       /* Reduce stage 1 residue wrt new cofactor, in case a factor was 
          found */
-      mpz_mod (tmp_x, x, n->n); 
+      mpz_mod (tmp_x, params->x, n->n); 
 
       /* We write the B1done value to the safe file. This requires that
          a correct B1done is returned by the factoring functions */
-      if (y == NULL)
+      if (params->y == NULL)
 	{
-	  write_resumefile_line (file, method, B1done, sigma, sigma_is_A, 
-				 param, tmp_x, NULL, n, orig_x0, orig_y0,
+	  write_resumefile_line (file, method, params->B1done, params->sigma,
+				 params->sigma_is_A, params->param, 
+				 tmp_x, NULL, n, orig_x0, orig_y0,
 				 comment);
 	}
       else
 	{
-	  mpz_mod (tmp_y, y, n->n);
-	  write_resumefile_line (file, method, B1done, sigma, sigma_is_A, 
-				 param, tmp_x, tmp_y, n, orig_x0, orig_y0,
+	  mpz_mod (tmp_y, params->y, n->n);
+	  write_resumefile_line (file, method, params->B1done, params->sigma,
+				 params->sigma_is_A, params->param, 
+				 tmp_x, tmp_y, n, orig_x0, orig_y0,
 				 comment);
 	}
     }
   else
     {
-      mpz_add_ui (sigma, sigma, gpu_curves);
-      for (i = 0; i < gpu_curves; i++)
+      mpz_add_ui (params->sigma, params->sigma, params->gpu_number_of_curves);
+      for (i = 0; i < params->gpu_number_of_curves; i++)
         {
-          mpz_sub_ui (sigma, sigma, 1);
-          mpz_fdiv_qr (x, tmp_x, x, N); 
+          mpz_sub_ui (params->sigma, params->sigma, 1);
+          mpz_fdiv_qr (params->x, tmp_x, params->x, N); 
           mpz_mod (tmp_x, tmp_x, n->n);
-          write_resumefile_line (file, method, B1done, sigma, sigma_is_A, 
-				 param, tmp_x, NULL, n, orig_x0, orig_y0, 
+          write_resumefile_line (file, method, params->B1done, params->sigma,
+				 params->sigma_is_A, params->param, 
+				 tmp_x, NULL, n, orig_x0, orig_y0, 
 				 comment);
         }
     }

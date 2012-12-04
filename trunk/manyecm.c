@@ -660,7 +660,7 @@ dump_curves(ec_curve_t *tE, ec_point_t *tP, int nE, mpz_t f)
 
 int
 one_curve_at_a_time(mpz_t f, char *ok, ec_curve_t *tE, ec_point_t *tP, int nE,
-		    mpz_t N, double B1)
+		    mpz_t N, double B1, char *savefilename)
 {
     ecm_params params;
     int ret = 0, i;
@@ -676,6 +676,7 @@ one_curve_at_a_time(mpz_t f, char *ok, ec_curve_t *tE, ec_point_t *tP, int nE,
 	    printf("N[%d] == 1!\n", i);
 	}
 	ret = process_one_curve(f, N, B1, params, tE[i], tP[i]);
+	/* TODO: use savefilename */
 	if(ret > 0){ /* humf */
 	    ok[i] = 0;
 	    ret = conclude_on_factor(N, f, params->verbose);
@@ -844,7 +845,7 @@ read_and_prepare(mpz_t f, mpz_t x, mpq_t q, char *buf, mpz_t n)
 */
 int
 process_many_curves(mpz_t f, mpmod_t n, double B1, ec_curve_t *tE, 
-		    ec_point_t *tP, int nE, int onebyone)
+		    ec_point_t *tP, int nE, int onebyone, char *savefilename)
 {
     double B1done;
     ec_point_t tQ[NCURVE_MAX];
@@ -855,7 +856,8 @@ process_many_curves(mpz_t f, mpmod_t n, double B1, ec_curve_t *tE,
     
     memset(ok, 1, nE);
     if(onebyone != 0){
-	ret = one_curve_at_a_time(f,ok,tE,tP,nE,n->orig_modulus,B1);
+	ret = one_curve_at_a_time(f, ok, tE, tP, nE,
+				  n->orig_modulus, B1, savefilename);
 	free(ok);
 	return ret;
     }
@@ -988,6 +990,7 @@ read_curves_from_file(int *nE, ec_curve_t *tE, ec_point_t *tP,
     return ret;
 }
 
+#if 0 /* obsolete: remove? */
 int
 process_many_curves_from_file(mpz_t tf[], int *nf, mpz_t n, double B1, 
 			      char *fic_EP, int ncurves, int onebyone)
@@ -1012,6 +1015,7 @@ process_many_curves_from_file(mpz_t tf[], int *nf, mpz_t n, double B1,
     mpmod_clear(modulus);
     return ret;
 }
+#endif
 
 void
 mod_div_2(mpz_t x, mpz_t n)
@@ -2517,7 +2521,8 @@ build_curves_with_torsion(mpz_t f, mpmod_t n, ec_curve_t *tE, ec_point_t *tP,
 int
 process_many_curves_loop(mpz_t tf[], int *nf, mpz_t n, double B1, 
 			 char *fic_EP,
-			 char *torsion, int smin, int smax, int nE)
+			 char *torsion, int smin, int smax, int nE,
+			 char *savefilename)
 {
     ec_curve_t tE[NCURVE_MAX];
     ec_point_t tP[NCURVE_MAX];
@@ -2536,7 +2541,7 @@ process_many_curves_loop(mpz_t tf[], int *nf, mpz_t n, double B1,
 					    torsion,smin,smax,nE);
 	if(ret == ECM_NO_FACTOR_FOUND)
 	    ret = process_many_curves(tf[*nf],modulus,B1,tE,tP,nE,
-				      onebyone);
+				      onebyone,savefilename);
 	else{
 	    printf("Quid? %d\n", ret);
 	    break;
@@ -2577,7 +2582,8 @@ process_many_curves_loop(mpz_t tf[], int *nf, mpz_t n, double B1,
 	    mpz_tdiv_q(n, n, f);
 	    gmp_printf("# recursive call for f=%Zd\n", f);
 	    ret2 = process_many_curves_loop(tf, nf, f, B1, fic_EP,
-					    torsion, smin, smax, nE);
+					    torsion, smin, smax, nE,
+					    savefilename);
 	    /* there is always some cofactor to store */
 	    mpz_set(tf[*nf], f);
 	    *nf += 1;
@@ -2613,6 +2619,8 @@ main (int argc, char *argv[])
   char *infilename = NULL, *curvesname = NULL, *torsion = NULL;
   char buf[10000];
   FILE *infile = NULL;
+  char *savefilename = NULL;
+  int saveappend = 0;
 
   /* first look for options */
   while ((argc > 1) && (argv[1][0] == '-')){
@@ -2666,6 +2674,20 @@ main (int argc, char *argv[])
 	  argv += 2;
 	  argc -= 2;
       }
+      else if ((argc > 2) && (strcmp (argv[1], "-save") == 0))
+	{
+	  savefilename = argv[2];
+	  saveappend = 0;
+	  argv += 2;
+	  argc -= 2;
+	}
+      else if ((argc > 2) && (strcmp (argv[1], "-savea") == 0))
+	{
+	  savefilename = argv[2];
+	  saveappend = 1;
+	  argv += 2;
+	  argc -= 2;
+	}
       else if (strcmp (argv[1], "-pm1") == 0)
 	{
 	  method = ECM_PM1;
@@ -2725,7 +2747,8 @@ main (int argc, char *argv[])
 	  nf = 0;
 	  res = process_many_curves_loop(tf, &nf, n, B1,
 					 curvesname,
-					 torsion, smin, smax, ncurves);
+					 torsion, smin, smax, ncurves,
+					 savefilename);
 #if 0	  
 	  printf("List of factors:\n");
 	  for(i = 0; i < nf; i++)
