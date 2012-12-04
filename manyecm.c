@@ -2573,6 +2573,8 @@ process_many_curves_loop(mpz_t tf[], int *nf, mpz_t n, double B1,
 	    int ret2;
 
 	    mpz_init_set(f, tf[*nf]);
+	    /* update n right now */
+	    mpz_tdiv_q(n, n, f);
 	    gmp_printf("# recursive call for f=%Zd\n", f);
 	    ret2 = process_many_curves_loop(tf, nf, f, B1, fic_EP,
 					    torsion, smin, smax, nE);
@@ -2580,7 +2582,6 @@ process_many_curves_loop(mpz_t tf[], int *nf, mpz_t n, double B1,
 	    mpz_set(tf[*nf], f);
 	    *nf += 1;
 	    printf("# start again with n/f\n");
-	    mpz_tdiv_q(n, n, f);
 	}
 	else /* something happened */
 	    break;
@@ -2725,6 +2726,11 @@ main (int argc, char *argv[])
 	  res = process_many_curves_loop(tf, &nf, n, B1,
 					 curvesname,
 					 torsion, smin, smax, ncurves);
+#if 0	  
+	  printf("List of factors:\n");
+	  for(i = 0; i < nf; i++)
+	      gmp_printf("%Zd\n", tf[i]);
+#endif
       }
   }
   if(infile != stdin)
