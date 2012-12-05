@@ -121,7 +121,7 @@ double calc_B1_AutoIncrement(double cur_B1, double incB1val, int calcInc);
 
 /* resume.c */
 int  read_resumefile_line (int *, mpz_t, mpz_t, mpcandi_t *, mpz_t, mpz_t, 
-			   mpz_t, mpz_t, int *,
+			   mpz_t, mpz_t, int *, int *,
                            double *, char *, char *, char *, char *, FILE *);
 int write_resumefile (char *, int, mpz_t, ecm_params params,
 		      mpcandi_t *, mpz_t, mpz_t, 

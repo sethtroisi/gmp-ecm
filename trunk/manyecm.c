@@ -1,4 +1,4 @@
-/* manyecm.c - ECM with many curves in parallel 
+/* manyecm.c - ECM with many curves with many torsion and/or in parallel 
    Author: F. Morain
 */
 
@@ -8,8 +8,8 @@
 #include <math.h>
 
 #include <gmp.h> /* GMP header file */
-#include "ecm.h" /* ecm header file */
 
+#include "ecm.h" /* ecm header file */
 #include "ecm-impl.h"
 #include "ecm-ecm.h"
 #include "mpmod.h"
@@ -18,6 +18,7 @@
 
 #define NCURVE_MAX 1000
 
+#if 0
 /********** stolen by lazyness **********/
 
 /* returns the number of decimal digits of n */
@@ -44,6 +45,7 @@ nb_digits (const mpz_t n)
 
   return size;
 }
+#endif
 
 /********** group law on points **********/
 
@@ -663,9 +665,13 @@ one_curve_at_a_time(mpz_t f, char *ok, ec_curve_t *tE, ec_point_t *tP, int nE,
 		    mpz_t N, double B1, char *savefilename)
 {
     ecm_params params;
-    int ret = 0, i;
+    int ret = 0, i, saveit;
+    mpcandi_t candi;
+    char comment[256] = "";
     mpz_t C;
 
+    mpcandi_t_init(&candi);
+    mpcandi_t_add_candidate(&candi, N, NULL, 0);
     ecm_init(params);
     params->verbose = 1;
     mpz_init (C);
@@ -676,12 +682,15 @@ one_curve_at_a_time(mpz_t f, char *ok, ec_curve_t *tE, ec_point_t *tP, int nE,
 	    printf("N[%d] == 1!\n", i);
 	}
 	ret = process_one_curve(f, N, B1, params, tE[i], tP[i]);
+	saveit = 1;
 	/* TODO: use savefilename */
 	if(ret > 0){ /* humf */
 	    ok[i] = 0;
 	    ret = conclude_on_factor(N, f, params->verbose);
-	    if(ret == ECM_INPUT_NUMBER_FOUND)
+	    if(ret == ECM_INPUT_NUMBER_FOUND){
 		printf("# proceeding to next curve\n");
+		saveit = 0;
+	    }
 	    else{
 #if DEBUG_MANY_EC >= 2
 		if(ret == ECM_PRIME_FAC_PRIME_COFAC 
@@ -695,9 +704,15 @@ one_curve_at_a_time(mpz_t f, char *ok, ec_curve_t *tE, ec_point_t *tP, int nE,
 	else if(ret == ECM_ERROR){
 	    printf("Error for curve %d\n", i);
 	}
+	if(saveit){
+	    write_resumefile(savefilename, ECM_ECM, N, params, &candi, 
+			     tP[i]->x, tP[i]->y, comment);
+	}
+
     }
     mpz_clear (C);
     ecm_clear(params);
+    mpcandi_t_free(&candi);
     return ret;
 }
 
