@@ -133,6 +133,11 @@ int pm1 (mpz_t, mpz_t, mpz_t, mpz_t, double *, double, mpz_t,
 #define ECM_PARAM_BATCH_2 2
 #define ECM_PARAM_BATCH_32BITS_D 3
 
+/* More ec forms */
+#define ECM_EC_TYPE_MONTGOMERY 1
+#define ECM_EC_TYPE_WEIERSTRASS 2
+#define ECM_EC_TYPE_HESSIAN 3
+
 /* stage 2 bound */
 #define ECM_DEFAULT_B2 -1
 #define ECM_IS_DEFAULT_B2(x) (mpz_cmp_si (x, ECM_DEFAULT_B2) == 0)

@@ -70,6 +70,9 @@ tune_LDADD = $(MULREDCLIBRARY) $(GMPLIB)
 
 ecmfactor_CFLAGS = $(OPENMP_CFLAGS)
 
+manyecm_CPPFLAGS = -DOUTSIDE_LIBECM
+manyecm_SOURCES = auxi.c b1_ainc.c candi.c eval.c random.c manyecm.c \
+              resume.c getprime.c
 manyecm_CFLAGS = $(OPENMP_CFLAGS)
 
 rho_SOURCES = rho.c
