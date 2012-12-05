@@ -119,8 +119,8 @@ freadstrn (FILE *fd, char *s, char delim, unsigned int len)
 
 int 
 read_resumefile_line (int *method, mpz_t x, mpz_t y, mpcandi_t *n, 
-		      mpz_t sigma, mpz_t A, mpz_t x0, mpz_t y0,
-		      int *Etype, int *param, 
+		      mpz_t sigma, mpz_t A,
+		      mpz_t x0, mpz_t y0, int *Etype, int *param, 
 		      double *b1, char *program, char *who, char *rtime, 
 		      char *comment, FILE *fd)
 {
@@ -399,7 +399,7 @@ read_resumefile_line (int *method, mpz_t x, mpz_t y, mpcandi_t *n,
           mpz_mul (z, z, x);
           mpz_mod (x, z, n->n);
         }
-        
+
       return 1;
       
 error:
