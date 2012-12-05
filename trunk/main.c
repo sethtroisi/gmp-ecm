@@ -1175,12 +1175,20 @@ main (int argc, char *argv[])
                        "Error, option -c and -resume are incompatible\n");
               exit (EXIT_FAILURE);
             }
-          if (!read_resumefile_line (&method, x, y, &n, sigma, A, orig_x0, 
-				     orig_y0, &(params->Etype), 
+          if (!read_resumefile_line (&method, x, y, &n, sigma, A, 
+				     orig_x0, orig_y0, &(params->Etype), 
 				     &(params->param), &(params->B1done), 
 				     program, who, rtime, comment, resumefile))
             break;
-          
+
+	  if (params->Etype == ECM_EC_TYPE_WEIERSTRASS
+	      || params->Etype == ECM_EC_TYPE_HESSIAN)
+	      params->sigma_is_A = -1;
+	  else
+	    {
+	      params->sigma_is_A = (mpz_sgn(sigma) == 0); /* sure? */
+	    }
+
           if (mpz_cmp (n.n, resume_lastN) == 0)
             {
               /* Aha, we're trying the same number again. */
@@ -1394,17 +1402,21 @@ main (int argc, char *argv[])
       params->method = method; /* may change with resume */
       mpz_set (params->x, x); /* may change with resume */
       mpz_set (params->y, y); /* may change with resume */
-      /* if A is not zero, we use it */
-      params->sigma_is_A = specific_A;
+      /* already set when resumefile was read */
+      if(resumefile == NULL)
+	{
+	  /* if A is not zero, we use it */
+	  params->sigma_is_A = specific_A;
+	  if(specific_y0)
+	    {
+	      params->sigma_is_A = -1;
+	      if(specific_H == 0)
+		  params->Etype = ECM_EC_TYPE_WEIERSTRASS;
+	      else
+		  params->Etype = ECM_EC_TYPE_HESSIAN;
+	    }
+	}
       mpz_set (params->sigma, (params->sigma_is_A) ? A : sigma);
-      if(specific_y0){
-	  /* to use Weierstrass stuff */
-	  params->sigma_is_A = -1;
-	  if(specific_H == 0)
-	      params->Etype = ECM_EC_TYPE_WEIERSTRASS;
-	  else
-	      params->Etype = ECM_EC_TYPE_HESSIAN;
-      }
       mpz_set (params->go, go.Candi.n); /* may change if contains N */
       mpz_set (params->B2min, B2min); /* may change with -c */
       /* Here's an ugly hack to pass B2scale to the library somehow.

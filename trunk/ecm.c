@@ -2151,7 +2151,7 @@ ecm (mpz_t f, mpz_t x, mpz_t y, int *param, mpz_t sigma, mpz_t n, mpz_t go,
       if (!ECM_IS_DEFAULT_B1_DONE(*B1done) && *B1done < B1)
         {
           outputf (OUTPUT_ERROR, "Error, cannot resume with param %d, except " 
-                                 "for doing only stage 2\n");
+		                 "for doing only stage 2\n", *param);
           return ECM_ERROR;
         }
 
