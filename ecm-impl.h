@@ -229,10 +229,6 @@ typedef struct
 typedef __curve_struct curve;
 
 /* type of curve used in stage 1 of ECM */
-#define ECM_EC_TYPE_MONTGOMERY 1
-#define ECM_EC_TYPE_WEIERSTRASS 2
-#define ECM_EC_TYPE_HESSIAN 3
-
 #define EC_W_LAW_AFFINE      1 /* Montgomery residues do no harm... */
 #define EC_W_LAW_PROJECTIVE  2 /* see corresponding section of EFDB */
 

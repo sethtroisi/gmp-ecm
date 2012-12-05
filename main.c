@@ -1123,7 +1123,7 @@ main (int argc, char *argv[])
   mpcandi_t_init (&n); /* number(s) to factor */
   mpz_init (f); /* factor found */
   mpz_init (x); /* stage 1 residue */
-  mpz_init (y); /* stage 1 for ECM_W */
+  mpz_init (y); /* stage 1 for ECM_W or ECM_H */
   mpz_init (orig_x0); /* starting point, for save file */
   mpz_init (orig_y0); /* starting point, for save file */
 
@@ -1176,8 +1176,9 @@ main (int argc, char *argv[])
               exit (EXIT_FAILURE);
             }
           if (!read_resumefile_line (&method, x, y, &n, sigma, A, orig_x0, 
-	      orig_y0, &(params->param), &(params->B1done), program, who, 
-	      rtime, comment, resumefile))
+				     orig_y0, &(params->Etype), 
+				     &(params->param), &(params->B1done), 
+				     program, who, rtime, comment, resumefile))
             break;
           
           if (mpz_cmp (n.n, resume_lastN) == 0)
