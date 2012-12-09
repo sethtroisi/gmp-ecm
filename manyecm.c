@@ -617,17 +617,46 @@ dump_curves(ec_curve_t *tE, ec_point_t *tP, int nE, mpz_t f)
     printf("[Factorization(Order(g)) : g in gen];\n");
     printf("end procedure;\n");
     for(i = 0; i < nE; i++){
-	if(tE[i]->type == ECM_EC_TYPE_WEIERSTRASS){
+	if(tE[i]->type == ECM_EC_TYPE_MONTGOMERY){
+	    mpmod_t fmod;
+	    mpres_t x, y, A;
+	    mpz_t tmp;
+
+	    mpz_init(tmp);
+	    mpmod_init(fmod, f, ECM_MOD_DEFAULT);
+	    mpres_init(x, fmod);
+	    mpres_get_z(x, tP[i]->x, fmod);
+	    mpres_init(y, fmod);
+	    mpres_init(A, fmod);
+	    mpres_get_z(A, tE[i]->A, fmod);
+	    if(montgomery_to_weierstrass(tmp, x, y, A, fmod) == ECM_FACTOR_FOUND_STEP1){
+		printf("GASP in dump!\n");
+	    }
+	    printf("P[%d]:=[", i+1); print_mpz_from_mpres(x, fmod);
+	    printf(", "); print_mpz_from_mpres(y,fmod);
+	    printf(", 1];\n");
+	    printf("A[%d]:=", i+1);
+	    print_mpz_from_mpres(A, fmod);
+	    printf(";\n");
+	    mpres_clear(x, fmod);
+	    mpres_clear(y, fmod);
+	    mpres_clear(A, fmod);
+	    mpmod_clear(fmod);
+	    mpz_clear(tmp);
+	}
+	else if(tE[i]->type == ECM_EC_TYPE_WEIERSTRASS){
 	    gmp_printf("P[%d]:=[%Zd, %Zd, %Zd];\n", i+1, 
 		       tP[i]->x, tP[i]->y, tP[i]->z); 
 	    gmp_printf("A[%d]:=%Zd;\n", i+1, tE[i]->A);
-	    printf("B[%d]:=P[%d][2]^2-P[%d][1]^3-A[%d]*P[%d][1];\n", 
-		   i+1, i+1, i+1, i+1, i+1);
-	    printf("E[%d]:=EllipticCurve([F!A[%d], F!B[%d]]);\n", i+1, i+1, i+1);
-	    printf("CheckE(E[%d], info[%d]);\n", i+1, i+1);
 	}
-	else
+	else{
 	    printf("Case %d NYI in dump_curves\n", tE[i]->type);
+	    break;
+	}
+	printf("B[%d]:=P[%d][2]^2-P[%d][1]^3-A[%d]*P[%d][1];\n", 
+	       i+1, i+1, i+1, i+1, i+1);
+	printf("E[%d]:=EllipticCurve([F!A[%d], F!B[%d]]);\n", i+1, i+1, i+1);
+	printf("CheckE(E[%d], info[%d]);\n", i+1, i+1);
     }
 }
 
@@ -654,13 +683,16 @@ one_curve_at_a_time(mpz_t f, char *ok, ec_curve_t *tE, ec_point_t *tP, int nE,
 	}
 	ret = process_one_curve(f, N, B1, params, tE[i], tP[i]);
 	saveit = (savefilename != NULL);
-	/* TODO: use savefilename */
 	if(ret > 0){ /* humf */
 	    ok[i] = 0;
 	    ret = conclude_on_factor(N, f, params->verbose);
 	    if(ret == ECM_INPUT_NUMBER_FOUND){
+		printf("# B1done=%.0f\n", params->B1done);
 		printf("# proceeding to next curve\n");
 		saveit = 0;
+#if DEBUG_MANY_EC >= 2
+		dump_curves(tE, tP, nE, f);
+#endif
 	    }
 	    else{
 #if DEBUG_MANY_EC >= 2
