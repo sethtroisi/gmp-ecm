@@ -690,7 +690,7 @@ one_curve_at_a_time(mpz_t f, char *ok, ec_curve_t *tE, ec_point_t *tP, int nE,
 		printf("# B1done=%.0f\n", params->B1done);
 		printf("# proceeding to next curve\n");
 		saveit = 0;
-#if DEBUG_MANY_EC >= 0
+#if DEBUG_MANY_EC >= 2
 		dump_curves(tE, tP, nE, f);
 #endif
 	    }
