@@ -625,10 +625,10 @@ dump_curves(ec_curve_t *tE, ec_point_t *tP, int nE, mpz_t f)
 	    mpz_init(tmp);
 	    mpmod_init(fmod, f, ECM_MOD_DEFAULT);
 	    mpres_init(x, fmod);
-	    mpres_get_z(x, tP[i]->x, fmod);
+	    mpres_set_z(x, tP[i]->x, fmod);
 	    mpres_init(y, fmod);
 	    mpres_init(A, fmod);
-	    mpres_get_z(A, tE[i]->A, fmod);
+	    mpres_set_z(A, tE[i]->A, fmod);
 	    if(montgomery_to_weierstrass(tmp, x, y, A, fmod) == ECM_FACTOR_FOUND_STEP1){
 		printf("GASP in dump!\n");
 	    }
@@ -690,7 +690,7 @@ one_curve_at_a_time(mpz_t f, char *ok, ec_curve_t *tE, ec_point_t *tP, int nE,
 		printf("# B1done=%.0f\n", params->B1done);
 		printf("# proceeding to next curve\n");
 		saveit = 0;
-#if DEBUG_MANY_EC >= 2
+#if DEBUG_MANY_EC >= 0
 		dump_curves(tE, tP, nE, f);
 #endif
 	    }
