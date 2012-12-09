@@ -512,7 +512,7 @@ ecm_stage1 (mpz_t f, mpres_t x, mpres_t A, mpmod_t n, double B1,
             double *B1done, mpz_t go, int (*stop_asap)(void), 
             char *chkfilename)
 {
-  mpres_t b, z, u, v, w, xB, zB, xC, zC, xT, zT, xT2, zT2;
+  mpres_t b, z, u, v, w, xB, zB, xC, zC, xT, zT, xT2, zT2, zold;
   double p, r, last_chkpnt_p;
   int ret = ECM_NO_FACTOR_FOUND;
   long last_chkpnt_time;
@@ -530,6 +530,7 @@ ecm_stage1 (mpz_t f, mpres_t x, mpres_t A, mpmod_t n, double B1,
   mpres_init (zT, n);
   mpres_init (xT2, n);
   mpres_init (zT2, n);
+  mpres_init (zold, n);
   
   last_chkpnt_time = cputime ();
 
@@ -559,6 +560,7 @@ ecm_stage1 (mpz_t f, mpres_t x, mpres_t A, mpmod_t n, double B1,
   p = getprime (); /* Puts 3.0 into p. Next call gives 5.0 */
   for (p = getprime (); p <= B1; p = getprime ())
     {
+      mpres_set(zold, z, n);
       for (r = p; r <= B1; r *= p)
 	if (r > *B1done)
 	  prac (x, z, (ecm_uint) p, n, b, u, v, w, xB, zB, xC, zC, xT,
@@ -568,6 +570,8 @@ ecm_stage1 (mpz_t f, mpres_t x, mpres_t A, mpmod_t n, double B1,
         {
           outputf (OUTPUT_VERBOSE, "Reached point at infinity, %.0f divides "
                    "group orders\n", p);
+	  /* when z = 0, it might be that gcd(zold, n) was already > 1 */
+	  mpres_set(z, zold, n);
           break;
         }
 
@@ -618,6 +622,7 @@ ecm_stage1 (mpz_t f, mpres_t x, mpres_t A, mpmod_t n, double B1,
   mpres_clear (u, n);
   mpres_clear (z, n);
   mpres_clear (b, n);
+  mpres_clear (zold, n);
 
   return ret;
 }
