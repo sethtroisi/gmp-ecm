@@ -571,7 +571,9 @@ ecm_stage1 (mpz_t f, mpres_t x, mpres_t A, mpmod_t n, double B1,
           outputf (OUTPUT_VERBOSE, "Reached point at infinity, %.0f divides "
                    "group orders\n", p);
 	  /* when z = 0, it might be that gcd(zold, n) was already > 1 */
+#if 0 /* temporarily left out */
 	  mpres_set(z, zold, n);
+#endif
           break;
         }
 
