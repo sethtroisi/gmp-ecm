@@ -18,35 +18,6 @@
 
 #define NCURVE_MAX 1000
 
-#if 0
-/********** stolen by lazyness **********/
-
-/* returns the number of decimal digits of n */
-unsigned int
-nb_digits (const mpz_t n)
-{
-  mpz_t x;
-  unsigned int size;
-
-  size = mpz_sizeinbase (n, 10);
-
-  /* the GMP documentation says mpz_sizeinbase returns the exact value,
-     or one too big, thus:
-     (a) either n < 10^(size-1), and n has size-1 digits
-     (b) or n >= size-1, and n has size digits
-     Note: mpz_sizeinbase returns 1 for n=0, thus we always have size >= 1.
-  */
-				    
-  mpz_init (x);
-  mpz_ui_pow_ui (x, 10, size - 1);
-  if (mpz_cmpabs (n, x) < 0)
-    size --;
-  mpz_clear (x);
-
-  return size;
-}
-#endif
-
 /********** group law on points **********/
 
 #define pt_is_equal(P, Q) (mpz_cmp((P)->x, (Q)->x) == 0 \
@@ -682,7 +653,7 @@ one_curve_at_a_time(mpz_t f, char *ok, ec_curve_t *tE, ec_point_t *tP, int nE,
 	    printf("N[%d] == 1!\n", i);
 	}
 	ret = process_one_curve(f, N, B1, params, tE[i], tP[i]);
-	saveit = 1;
+	saveit = (savefilename != NULL);
 	/* TODO: use savefilename */
 	if(ret > 0){ /* humf */
 	    ok[i] = 0;

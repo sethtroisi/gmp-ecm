@@ -567,7 +567,7 @@ ecm_stage1 (mpz_t f, mpres_t x, mpres_t A, mpmod_t n, double B1,
       if (mpres_is_zero (z, n))
         {
           outputf (OUTPUT_VERBOSE, "Reached point at infinity, %.0f divides "
-                   "group order\n", p);
+                   "group orders\n", p);
           break;
         }
 
@@ -1753,7 +1753,7 @@ ecm_stage1_W (mpz_t f, int Etype, mpres_t x, mpres_t y, mpres_t A, mpmod_t n,
 	}
 	if (ec_point_is_zero (P, E, n)){
 	    outputf (OUTPUT_VERBOSE, "Reached point at infinity, %.0f divides "
-		     "group order\n", p);
+		     "group orders\n", p);
 	    break;
 	}
 	
