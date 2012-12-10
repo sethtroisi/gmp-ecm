@@ -540,19 +540,24 @@ mod_from_rat_str(mpz_t r, char *str, mpz_t N)
    TODO: use chkfile also.
  */
 int
-process_one_curve(mpz_t f, mpz_t N, double B1, ecm_params params, 
-		  ec_curve_t E, ec_point_t P)
+process_one_curve(mpz_t f, mpz_t N, double B1, double B2scale,
+		  ecm_params params, ec_curve_t E, ec_point_t P)
 {
-    double B2scale = 1.0;
     int ret;
+
+    if(B2scale < 0)
+	B2scale = 1.0;
 
     /* Taken from main.c; no comment */
     /* Here's an ugly hack to pass B2scale to the library somehow.
        It gets piggy-backed onto B1done */
     params->B1done = params->B1done + floor (B2scale * 128.) / 134217728.; 
 
-    mpz_set_si(params->B2, ECM_DEFAULT_B2); /* compute it automatically from B1 */
-    mpz_set_si(params->B2min, ECM_DEFAULT_B2); /* will be set to B1 */
+    /* compute it automatically from B1: no freedom on B2! */
+    mpz_set_si(params->B2, ECM_DEFAULT_B2); 
+    /* will be set to B1 */
+    mpz_set_si(params->B2min, ECM_DEFAULT_B2);
+
     mpz_set(params->x, P->x);
     mpz_set(params->sigma, E->A); /* humf */
 
@@ -662,11 +667,11 @@ dump_curves(ec_curve_t *tE, ec_point_t *tP, int nE, mpz_t f)
 
 int
 one_curve_at_a_time(mpz_t f, char *ok, ec_curve_t *tE, ec_point_t *tP, int nE,
-		    mpz_t N, double B1, char *savefilename)
+		    mpz_t N, double B1, double B2, char *savefilename)
 {
     ecm_params params;
-    double tmpB1;
-    int ret = 0, i, saveit;
+    double tmpB1, B2scale;
+    int ret = 0, i, saveit, nbit;
     mpcandi_t candi;
     char comment[256] = "";
     mpz_t C;
@@ -679,17 +684,27 @@ one_curve_at_a_time(mpz_t f, char *ok, ec_curve_t *tE, ec_point_t *tP, int nE,
     /* process curves one at a time */
     for(i = 0; i < nE; i++){
 	tmpB1 = B1;
+	B2scale = 1.0;
+	nbit = 0;
 	while(1){
 	    params->B1done = 1.0;
-	    ret = process_one_curve(f, N, tmpB1, params, tE[i], tP[i]);
+	    ret = process_one_curve(f,N,tmpB1,B2scale,params,tE[i],tP[i]);
 	    if(mpz_cmp(f, N) == 0){
 		printf("# B1done=%.0f\n", params->B1done);
 #if DEBUG_MANY_EC >= 2
-		dump_curves(tE, tP, nE, f);
+		printf("infos:=[\"E%d\"];\n", i);
+		dump_curves(tE+i, tP+i, 1, f);
 #endif
-		if(params->B1done == tmpB1)
-		    /* TODO: do better one day */
-		    break;
+		if(params->B1done == tmpB1){
+		    if(ret == ECM_FACTOR_FOUND_STEP2){
+			B2scale /= 2;
+			printf("# trying new B2scale=%f\n", B2scale);
+			nbit++;
+			if(nbit == 5) /* caution, Lemmy! */
+			    break;
+			/* TODO: dichotomy? */
+		    }
+		}
 		else{
 		    tmpB1 = params->B1done - 1;
 		    printf("# trying again with B1=%.0f\n", tmpB1);
@@ -875,7 +890,7 @@ read_and_prepare(mpz_t f, mpz_t x, mpq_t q, char *buf, mpz_t n)
 	   ECM_COMP_FAC_PRIME_COFAC
 */
 int
-process_many_curves(mpz_t f, mpmod_t n, double B1, ec_curve_t *tE, 
+process_many_curves(mpz_t f, mpmod_t n, double B1, double B2, ec_curve_t *tE, 
 		    ec_point_t *tP, int nE, int onebyone, char *savefilename)
 {
     double B1done;
@@ -888,7 +903,7 @@ process_many_curves(mpz_t f, mpmod_t n, double B1, ec_curve_t *tE,
     memset(ok, 1, nE);
     if(onebyone != 0){
 	ret = one_curve_at_a_time(f, ok, tE, tP, nE,
-				  n->orig_modulus, B1, savefilename);
+				  n->orig_modulus, B1, B2, savefilename);
 	free(ok);
 	return ret;
     }
@@ -927,7 +942,7 @@ process_many_curves(mpz_t f, mpmod_t n, double B1, ec_curve_t *tE,
 	    mpres_get_z(tP[i]->x, tQ[i]->x, n);
 	    mpres_get_z(tP[i]->y, tQ[i]->y, n);
 	    mpres_get_z(tP[i]->z, tQ[i]->z, n);
-	    ret = process_one_curve(f, n->orig_modulus, B1, params,
+	    ret = process_one_curve(f, n->orig_modulus, B1, -1, params,
 				    tE[i], tP[i]);
 	    if(ret != ECM_NO_FACTOR_FOUND){
 		printf("## factor found in Step 2: ");
@@ -2550,7 +2565,7 @@ build_curves_with_torsion(mpz_t f, mpmod_t n, ec_curve_t *tE, ec_point_t *tP,
   One ring to run them all.
 */
 int
-process_many_curves_loop(mpz_t tf[], int *nf, mpz_t n, double B1, 
+process_many_curves_loop(mpz_t tf[], int *nf, mpz_t n, double B1, double B2,
 			 char *fic_EP,
 			 char *torsion, int smin, int smax, int nE,
 			 char *savefilename)
@@ -2571,7 +2586,7 @@ process_many_curves_loop(mpz_t tf[], int *nf, mpz_t n, double B1,
 	    ret = build_curves_with_torsion(tf[*nf],modulus,tE,tP,
 					    torsion,smin,smax,nE);
 	if(ret == ECM_NO_FACTOR_FOUND)
-	    ret = process_many_curves(tf[*nf],modulus,B1,tE,tP,nE,
+	    ret = process_many_curves(tf[*nf],modulus,B1,B2,tE,tP,nE,
 				      onebyone,savefilename);
 	else{
 	    printf("Quid? %d\n", ret);
@@ -2612,7 +2627,7 @@ process_many_curves_loop(mpz_t tf[], int *nf, mpz_t n, double B1,
 	    /* update n right now */
 	    mpz_tdiv_q(n, n, f);
 	    gmp_printf("# recursive call for f=%Zd\n", f);
-	    ret2 = process_many_curves_loop(tf, nf, f, B1, fic_EP,
+	    ret2 = process_many_curves_loop(tf, nf, f, B1, B2, fic_EP,
 					    torsion, smin, smax, nE,
 					    savefilename);
 	    /* there is always some cofactor to store */
@@ -2629,7 +2644,7 @@ process_many_curves_loop(mpz_t tf[], int *nf, mpz_t n, double B1,
 static void
 usage (char *cmd)
 {
-    printf("Usage: %s -inp file_N -B1 B1 -curves file_C", cmd);
+    printf("Usage: %s -inp file_N -B1 B1 -B2 B2 -curves file_C", cmd);
     printf(" -torsion T -smin smin -smax smax\n");
     printf("  -inp file_N    numbers to be factored, one per line\n");
     printf("                 file_N can be '-', in which case stdin is used\n");
@@ -2646,7 +2661,7 @@ main (int argc, char *argv[])
   mpz_t n, tf[NFMAX];
   int res = 0, smin = -1, smax = -1, ncurves = 0, method = ECM_ECM;
   int nf = 0, i;
-  double B1 = 0.0;
+  double B1 = 0.0, B2 = -1.0;
   char *infilename = NULL, *curvesname = NULL, *torsion = NULL;
   char buf[10000];
   FILE *infile = NULL;
@@ -2661,6 +2676,11 @@ main (int argc, char *argv[])
       }
       else if ((argc > 2) && (strcmp (argv[1], "-B1") == 0)){
 	  B1 = atof(argv[2]);
+	  argv += 2;
+	  argc -= 2;
+      }
+      else if ((argc > 2) && (strcmp (argv[1], "-B2") == 0)){
+	  B2 = atof(argv[2]);
 	  argv += 2;
 	  argc -= 2;
       }
@@ -2776,7 +2796,7 @@ main (int argc, char *argv[])
       }
       if(method == ECM_ECM){
 	  nf = 0;
-	  res = process_many_curves_loop(tf, &nf, n, B1,
+	  res = process_many_curves_loop(tf, &nf, n, B1, B2,
 					 curvesname,
 					 torsion, smin, smax, ncurves,
 					 savefilename);
