@@ -667,7 +667,7 @@ dump_curves(ec_curve_t *tE, ec_point_t *tP, int nE, mpz_t f)
 
 int
 one_curve_at_a_time(mpz_t f, char *ok, ec_curve_t *tE, ec_point_t *tP, int nE,
-		    mpz_t N, double B1, double B2, char *savefilename)
+		    mpz_t N, double B1, char *savefilename)
 {
     ecm_params params;
     double tmpB1, B2scale;
@@ -890,7 +890,7 @@ read_and_prepare(mpz_t f, mpz_t x, mpq_t q, char *buf, mpz_t n)
 	   ECM_COMP_FAC_PRIME_COFAC
 */
 int
-process_many_curves(mpz_t f, mpmod_t n, double B1, double B2, ec_curve_t *tE, 
+process_many_curves(mpz_t f, mpmod_t n, double B1, ec_curve_t *tE, 
 		    ec_point_t *tP, int nE, int onebyone, char *savefilename)
 {
     double B1done;
@@ -903,7 +903,7 @@ process_many_curves(mpz_t f, mpmod_t n, double B1, double B2, ec_curve_t *tE,
     memset(ok, 1, nE);
     if(onebyone != 0){
 	ret = one_curve_at_a_time(f, ok, tE, tP, nE,
-				  n->orig_modulus, B1, B2, savefilename);
+				  n->orig_modulus, B1, savefilename);
 	free(ok);
 	return ret;
     }
@@ -2565,7 +2565,7 @@ build_curves_with_torsion(mpz_t f, mpmod_t n, ec_curve_t *tE, ec_point_t *tP,
   One ring to run them all.
 */
 int
-process_many_curves_loop(mpz_t tf[], int *nf, mpz_t n, double B1, double B2,
+process_many_curves_loop(mpz_t tf[], int *nf, mpz_t n, double B1,
 			 char *fic_EP,
 			 char *torsion, int smin, int smax, int nE,
 			 char *savefilename)
@@ -2586,7 +2586,7 @@ process_many_curves_loop(mpz_t tf[], int *nf, mpz_t n, double B1, double B2,
 	    ret = build_curves_with_torsion(tf[*nf],modulus,tE,tP,
 					    torsion,smin,smax,nE);
 	if(ret == ECM_NO_FACTOR_FOUND)
-	    ret = process_many_curves(tf[*nf],modulus,B1,B2,tE,tP,nE,
+	    ret = process_many_curves(tf[*nf],modulus,B1,tE,tP,nE,
 				      onebyone,savefilename);
 	else{
 	    printf("Quid? %d\n", ret);
@@ -2627,7 +2627,7 @@ process_many_curves_loop(mpz_t tf[], int *nf, mpz_t n, double B1, double B2,
 	    /* update n right now */
 	    mpz_tdiv_q(n, n, f);
 	    gmp_printf("# recursive call for f=%Zd\n", f);
-	    ret2 = process_many_curves_loop(tf, nf, f, B1, B2, fic_EP,
+	    ret2 = process_many_curves_loop(tf, nf, f, B1, fic_EP,
 					    torsion, smin, smax, nE,
 					    savefilename);
 	    /* there is always some cofactor to store */
@@ -2644,7 +2644,7 @@ process_many_curves_loop(mpz_t tf[], int *nf, mpz_t n, double B1, double B2,
 static void
 usage (char *cmd)
 {
-    printf("Usage: %s -inp file_N -B1 B1 -B2 B2 -curves file_C", cmd);
+    printf("Usage: %s -inp file_N -B1 B1 -curves file_C", cmd);
     printf(" -torsion T -smin smin -smax smax\n");
     printf("  -inp file_N    numbers to be factored, one per line\n");
     printf("                 file_N can be '-', in which case stdin is used\n");
@@ -2661,12 +2661,11 @@ main (int argc, char *argv[])
   mpz_t n, tf[NFMAX];
   int res = 0, smin = -1, smax = -1, ncurves = 0, method = ECM_ECM;
   int nf = 0, i;
-  double B1 = 0.0, B2 = -1.0;
+  double B1 = 0.0;
   char *infilename = NULL, *curvesname = NULL, *torsion = NULL;
   char buf[10000];
   FILE *infile = NULL;
   char *savefilename = NULL;
-  int saveappend = 0;
 
   /* first look for options */
   while ((argc > 1) && (argv[1][0] == '-')){
@@ -2676,11 +2675,6 @@ main (int argc, char *argv[])
       }
       else if ((argc > 2) && (strcmp (argv[1], "-B1") == 0)){
 	  B1 = atof(argv[2]);
-	  argv += 2;
-	  argc -= 2;
-      }
-      else if ((argc > 2) && (strcmp (argv[1], "-B2") == 0)){
-	  B2 = atof(argv[2]);
 	  argv += 2;
 	  argc -= 2;
       }
@@ -2728,14 +2722,6 @@ main (int argc, char *argv[])
       else if ((argc > 2) && (strcmp (argv[1], "-save") == 0))
 	{
 	  savefilename = argv[2];
-	  saveappend = 0;
-	  argv += 2;
-	  argc -= 2;
-	}
-      else if ((argc > 2) && (strcmp (argv[1], "-savea") == 0))
-	{
-	  savefilename = argv[2];
-	  saveappend = 1;
 	  argv += 2;
 	  argc -= 2;
 	}
@@ -2796,7 +2782,7 @@ main (int argc, char *argv[])
       }
       if(method == ECM_ECM){
 	  nf = 0;
-	  res = process_many_curves_loop(tf, &nf, n, B1, B2,
+	  res = process_many_curves_loop(tf, &nf, n, B1,
 					 curvesname,
 					 torsion, smin, smax, ncurves,
 					 savefilename);
