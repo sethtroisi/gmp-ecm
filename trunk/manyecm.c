@@ -665,6 +665,7 @@ one_curve_at_a_time(mpz_t f, char *ok, ec_curve_t *tE, ec_point_t *tP, int nE,
 		    mpz_t N, double B1, char *savefilename)
 {
     ecm_params params;
+    double tmpB1;
     int ret = 0, i, saveit;
     mpcandi_t candi;
     char comment[256] = "";
@@ -677,11 +678,26 @@ one_curve_at_a_time(mpz_t f, char *ok, ec_curve_t *tE, ec_point_t *tP, int nE,
     mpz_init (C);
     /* process curves one at a time */
     for(i = 0; i < nE; i++){
-	params->B1done = 1.0;
-	if(mpz_cmp_ui(N, 1) == 0){
-	    printf("N[%d] == 1!\n", i);
+	tmpB1 = B1;
+	while(1){
+	    params->B1done = 1.0;
+	    ret = process_one_curve(f, N, tmpB1, params, tE[i], tP[i]);
+	    if(mpz_cmp(f, N) == 0){
+		printf("# B1done=%.0f\n", params->B1done);
+#if DEBUG_MANY_EC >= 2
+		dump_curves(tE, tP, nE, f);
+#endif
+		if(params->B1done == tmpB1)
+		    /* TODO: do better one day */
+		    break;
+		else{
+		    tmpB1 = params->B1done - 1;
+		    printf("# trying again with B1=%.0f\n", tmpB1);
+		}
+	    }
+	    else
+		break;
 	}
-	ret = process_one_curve(f, N, B1, params, tE[i], tP[i]);
 	saveit = (savefilename != NULL);
 	if(ret > 0){ /* humf */
 	    ok[i] = 0;
@@ -690,9 +706,6 @@ one_curve_at_a_time(mpz_t f, char *ok, ec_curve_t *tE, ec_point_t *tP, int nE,
 		printf("# B1done=%.0f\n", params->B1done);
 		printf("# proceeding to next curve\n");
 		saveit = 0;
-#if DEBUG_MANY_EC >= 2
-		dump_curves(tE, tP, nE, f);
-#endif
 	    }
 	    else{
 #if DEBUG_MANY_EC >= 2
