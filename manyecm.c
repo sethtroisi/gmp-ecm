@@ -670,8 +670,8 @@ one_curve_at_a_time(mpz_t f, char *ok, ec_curve_t *tE, ec_point_t *tP, int nE,
 		    mpz_t N, double B1, char *savefilename)
 {
     ecm_params params;
-    double tmpB1, B2scale;
-    int ret = 0, i, saveit, nbit;
+    double tmpB1, B2scale, B2sg, B2sd;
+    int ret = 0, i, saveit, nhit;
     mpcandi_t candi;
     char comment[256] = "";
     mpz_t C;
@@ -685,7 +685,7 @@ one_curve_at_a_time(mpz_t f, char *ok, ec_curve_t *tE, ec_point_t *tP, int nE,
     for(i = 0; i < nE; i++){
 	tmpB1 = B1;
 	B2scale = 1.024;
-	nbit = 0;
+	nhit = 0;
 	while(1){
 	    params->B1done = 1.0;
 	    ret = process_one_curve(f,N,tmpB1,B2scale,params,tE[i],tP[i]);
@@ -696,14 +696,22 @@ one_curve_at_a_time(mpz_t f, char *ok, ec_curve_t *tE, ec_point_t *tP, int nE,
 		dump_curves(tE+i, tP+i, 1, f);
 #endif
 		if(params->B1done == tmpB1){
-		    if(ret == ECM_FACTOR_FOUND_STEP2){
-			B2scale /= 2;
-			printf("# trying new B2scale=%f\n", B2scale);
-			nbit++;
-			if(nbit == 10) /* caution, Lemmy! */
-			    break;
-			/* TODO: dichotomy? */
+		    if(nhit == 0){
+			B2sd = B2scale;
+			B2sg = 0;
 		    }
+		    nhit++;
+		    if(nhit == 10) /* caution, Lemmy! */
+			break;
+		    if(ret == ECM_FACTOR_FOUND_STEP2){
+			B2sd = (B2sd+B2sg)/2;
+			B2scale = B2sd;
+		    }
+		    else{
+			B2sg = (B2sd+B2sg)/2;
+			B2scale = B2sg;
+		    }
+		    printf("# trying new B2scale[%d]=%f\n", nhit, B2scale);
 		}
 		else{
 		    tmpB1 = params->B1done - 1;
