@@ -684,7 +684,7 @@ one_curve_at_a_time(mpz_t f, char *ok, ec_curve_t *tE, ec_point_t *tP, int nE,
     /* process curves one at a time */
     for(i = 0; i < nE; i++){
 	tmpB1 = B1;
-	B2scale = 1.0;
+	B2scale = 1.024;
 	nbit = 0;
 	while(1){
 	    params->B1done = 1.0;
@@ -700,7 +700,7 @@ one_curve_at_a_time(mpz_t f, char *ok, ec_curve_t *tE, ec_point_t *tP, int nE,
 			B2scale /= 2;
 			printf("# trying new B2scale=%f\n", B2scale);
 			nbit++;
-			if(nbit == 5) /* caution, Lemmy! */
+			if(nbit == 10) /* caution, Lemmy! */
 			    break;
 			/* TODO: dichotomy? */
 		    }
@@ -2544,7 +2544,7 @@ build_curves_with_torsion(mpz_t f, mpmod_t n, ec_curve_t *tE, ec_point_t *tP,
     /** interesting when p = 1 mod 5 **/
     else if(strcmp(torsion, "Z5xZ5") == 0) /* over Q(zeta5) */
 	return build_curves_with_torsion_Z5xZ5(n, tE, tP, smin, smax, nE);
-    /** new idea **/
+    /** forcing points: is this really interesting? **/
     else if(strcmp(torsion, "Z2xZ10") == 0)
 	return build_curves_with_torsion_Z2xZ10(f, n, tE, tP, smin, smax, nE);
     else if(strcmp(torsion, "Z2xZ12") == 0)
