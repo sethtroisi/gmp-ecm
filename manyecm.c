@@ -553,8 +553,10 @@ process_one_curve(mpz_t f, mpz_t N, double B1, double B2scale,
        It gets piggy-backed onto B1done */
     params->B1done = params->B1done + floor (B2scale * 128.) / 134217728.; 
 
+#if 0
     /* compute it automatically from B1: no freedom on B2! */
     mpz_set_si(params->B2, ECM_DEFAULT_B2); 
+#endif
     /* will be set to B1 */
     mpz_set_si(params->B2min, ECM_DEFAULT_B2);
 
@@ -671,7 +673,7 @@ one_curve_at_a_time(mpz_t f, char *ok, ec_curve_t *tE, ec_point_t *tP, int nE,
 {
     ecm_params params;
     double tmpB1, B2scale, B2sg, B2sd;
-    int ret = 0, i, saveit, nhit;
+    int ret = 0, i, saveit, nhit, nhitmax = 8;
     mpcandi_t candi;
     char comment[256] = "";
     mpz_t C;
@@ -684,41 +686,54 @@ one_curve_at_a_time(mpz_t f, char *ok, ec_curve_t *tE, ec_point_t *tP, int nE,
     /* process curves one at a time */
     for(i = 0; i < nE; i++){
 	tmpB1 = B1;
-	B2scale = 1.024;
+	B2scale = 1.0;
 	nhit = 0;
 	while(1){
-	    params->B1done = 1.0;
-	    ret = process_one_curve(f,N,tmpB1,B2scale,params,tE[i],tP[i]);
-	    if(mpz_cmp(f, N) == 0){
-		printf("# B1done=%.0f\n", params->B1done);
 #if DEBUG_MANY_EC >= 2
-		printf("infos:=[\"E%d\"];\n", i);
-		dump_curves(tE+i, tP+i, 1, f);
+	    printf("infos:=[\"E%d\"];\n", i);
+	    dump_curves(tE+i, tP+i, 1, N);
 #endif
-		if(params->B1done == tmpB1){
-		    if(nhit == 0){
-			B2sd = B2scale;
-			B2sg = 0;
-		    }
-		    nhit++;
-		    if(nhit == 10) /* caution, Lemmy! */
-			break;
-		    if(ret == ECM_FACTOR_FOUND_STEP2){
-			B2sd = (B2sd+B2sg)/2;
-			B2scale = B2sd;
-		    }
-		    else{
-			B2sg = (B2sd+B2sg)/2;
-			B2scale = B2sg;
-		    }
-		    printf("# trying new B2scale[%d]=%f\n", nhit, B2scale);
+	    params->B1done = 1.0;
+	    if(nhit > 0){
+		B2scale = (B2sd+B2sg)/2;
+		printf("# trying new B2scale[%d]=%f\n", nhit, B2scale);
+	    }
+	    ret = process_one_curve(f,N,tmpB1,B2scale,params,tE[i],tP[i]);
+	    if(ret == ECM_NO_FACTOR_FOUND){
+		if(nhit == 0)
+		    /* no factor found in any step */
+		    break;
+		else{
+		    /* we are in some recursive step */
+		    printf("# B1done=%.0f\n", params->B1done);
+		    if(params->B1done == tmpB1)
+			/* dichotomy for step 2 */
+			B2sg = B2scale;
 		}
+	    }
+	    else if(ret == ECM_FACTOR_FOUND_STEP1){
+		if(mpz_cmp(f, N) != 0)
+		    /* non-trivial factor found */
+		    break;
 		else{
 		    tmpB1 = params->B1done - 1;
 		    printf("# trying again with B1=%.0f\n", tmpB1);
 		}
 	    }
+	    else if(ret == ECM_FACTOR_FOUND_STEP2){
+		if(mpz_cmp(f, N) != 0)
+		    /* non-trivial factor found */
+		    break;
+		else{
+		    if(nhit == 0)
+			B2sg = 0;
+		    B2sd = B2scale;
+		}
+	    }
 	    else
+		break;
+	    nhit++;
+	    if(nhit == nhitmax) /* caution, Lemmy! */
 		break;
 	}
 	saveit = (savefilename != NULL);
