@@ -540,13 +540,11 @@ mod_from_rat_str(mpz_t r, char *str, mpz_t N)
    TODO: use chkfile also.
  */
 int
-process_one_curve(mpz_t f, mpz_t N, double B1, double B2scale,
+process_one_curve(mpz_t f, mpz_t N, double B1,
 		  ecm_params params, ec_curve_t E, ec_point_t P)
 {
     int ret;
-
-    if(B2scale < 0)
-	B2scale = 1.0;
+    double B2scale = 1.0;
 
     /* Taken from main.c; no comment */
     /* Here's an ugly hack to pass B2scale to the library somehow.
@@ -672,8 +670,8 @@ one_curve_at_a_time(mpz_t f, char *ok, ec_curve_t *tE, ec_point_t *tP, int nE,
 		    mpz_t N, double B1, char *savefilename)
 {
     ecm_params params;
-    double tmpB1, B2scale, B2sg, B2sd;
-    int ret = 0, i, saveit, nhit, nhitmax = 8;
+    double tmpB1, tmpB2, B2g, B2d, B2 = 1e9;
+    int ret = 0, i, saveit, nhit, nhitmax = 16;
     mpcandi_t candi;
     char comment[256] = "";
     mpz_t C;
@@ -686,7 +684,7 @@ one_curve_at_a_time(mpz_t f, char *ok, ec_curve_t *tE, ec_point_t *tP, int nE,
     /* process curves one at a time */
     for(i = 0; i < nE; i++){
 	tmpB1 = B1;
-	B2scale = 1.0;
+	tmpB2 = B2;
 	nhit = 0;
 	while(1){
 #if DEBUG_MANY_EC >= 2
@@ -694,11 +692,12 @@ one_curve_at_a_time(mpz_t f, char *ok, ec_curve_t *tE, ec_point_t *tP, int nE,
 	    dump_curves(tE+i, tP+i, 1, N);
 #endif
 	    params->B1done = 1.0;
+	    mpz_set_d(params->B2, tmpB2);
 	    if(nhit > 0){
-		B2scale = (B2sd+B2sg)/2;
-		printf("# trying new B2scale[%d]=%f\n", nhit, B2scale);
+		tmpB2 = (B2d+B2g)/2;
+		printf("# trying new B2[%d]=%lf\n", nhit, tmpB2);
 	    }
-	    ret = process_one_curve(f,N,tmpB1,B2scale,params,tE[i],tP[i]);
+	    ret = process_one_curve(f,N,tmpB1,params,tE[i],tP[i]);
 	    if(ret == ECM_NO_FACTOR_FOUND){
 		if(nhit == 0)
 		    /* no factor found in any step */
@@ -708,7 +707,7 @@ one_curve_at_a_time(mpz_t f, char *ok, ec_curve_t *tE, ec_point_t *tP, int nE,
 		    printf("# B1done=%.0f\n", params->B1done);
 		    if(params->B1done == tmpB1)
 			/* dichotomy for step 2 */
-			B2sg = B2scale;
+			B2g = tmpB2;
 		}
 	    }
 	    else if(ret == ECM_FACTOR_FOUND_STEP1){
@@ -726,8 +725,8 @@ one_curve_at_a_time(mpz_t f, char *ok, ec_curve_t *tE, ec_point_t *tP, int nE,
 		    break;
 		else{
 		    if(nhit == 0)
-			B2sg = 0;
-		    B2sd = B2scale;
+			B2g = 0;
+		    B2d = tmpB2;
 		}
 	    }
 	    else
@@ -965,7 +964,7 @@ process_many_curves(mpz_t f, mpmod_t n, double B1, ec_curve_t *tE,
 	    mpres_get_z(tP[i]->x, tQ[i]->x, n);
 	    mpres_get_z(tP[i]->y, tQ[i]->y, n);
 	    mpres_get_z(tP[i]->z, tQ[i]->z, n);
-	    ret = process_one_curve(f, n->orig_modulus, B1, -1, params,
+	    ret = process_one_curve(f, n->orig_modulus, B1, params,
 				    tE[i], tP[i]);
 	    if(ret != ECM_NO_FACTOR_FOUND){
 		printf("## factor found in Step 2: ");
