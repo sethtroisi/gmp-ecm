@@ -366,6 +366,7 @@ mpzspv_from_mpzv (mpzspv_t x, const spv_size_t offset, const mpzv_t mpzv,
  * to mpz_t format.
  * See: Daniel J. Bernstein and Jonathan P. Sorenson,
  * Modular Exponentiation via the explicit Chinese Remainder Theorem,
+ * Mathematics of Computation 2007,
  * Theorem 2.1: Let p_1, ..., p_s be pairwise coprime integers. Write
  * P = p_1 * ... * p_s. Let q_1, ..., q_s be integers with
  * q_iP/p_i = 1 mod p_i. Let u be an integer with |u| < P/2. Let u_1, ..., u_s
