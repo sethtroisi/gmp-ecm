@@ -979,7 +979,7 @@ pt_w_mul_end:
    TODO: have this work for e > long.
 */
 int
-build_NAF(long *S, mpz_t e, int w)
+build_NAF(short *S, mpz_t e, int w)
 {
     long u, twowm1 = ((long)1 << w)-1;
     long hwm1 = ((long)1)<<(w-1), hw = ((long)1)<<w;
@@ -1011,7 +1011,7 @@ build_NAF(long *S, mpz_t e, int w)
        might be used to replace the shift at the end of the loop.
      */
     while(mpz_sgn(c) != 0){
-	if(mpz_tstbit(c) == 1){
+	if(mpz_tstbit(c, 0) == 1){
 	    /* c is odd */
 	    /* u <- mods(c, 2^w) */
 	    u = (long)(mpz_get_si(c) & (unsigned long)twowm1);
@@ -1022,10 +1022,12 @@ build_NAF(long *S, mpz_t e, int w)
 	}
 	else
 	    u = 0;
-	S[iS++] = u;
+	printf("S[%d] <- %d\n", iS, (int)u);
+	S[iS++] = (short)u;
 	/* c >>= 1; */
 	mpz_cdiv_q_2exp(c, c, 1);
     }
+    mpz_clear(c);
 #endif
     return iS;
 }
@@ -1523,7 +1525,7 @@ ec_point_mul_add_sub (ec_point_t Q, mpz_t e, ec_point_t P,
     int negated = 0, status = 1, iS = 0, j, w, k, i;
     ec_point_t P0;
     ec_point_t iP[EC_ADD_SUB_2_WMAX];
-    long S[64];
+    short *S;
     
     if(ec_point_is_zero(P, E, n)){
 	ec_point_set(Q, P, E, n);
@@ -1535,14 +1537,13 @@ ec_point_mul_add_sub (ec_point_t Q, mpz_t e, ec_point_t P,
 	return 1;
     }
     
-    /* The negative of a point (x:y:z) is (x:-y:z) */
     if(mpz_sgn (e) < 0){
 	negated = 1;
-	mpz_neg (e, e);
+	mpz_neg(e, e);
 	ec_point_negate(P, E, n);
     }
     
-    if (mpz_cmp_ui (e, 1) == 0){
+    if (mpz_cmp_ui(e, 1) == 0){
 	ec_point_set(Q, P, E, n);
 	return 1;
     }
@@ -1554,6 +1555,11 @@ ec_point_mul_add_sub (ec_point_t Q, mpz_t e, ec_point_t P,
     else
 	w = 3; /* TODO: do better? */
 
+#if 1
+    S = (short *)malloc(64 * sizeof(short));
+#else
+    S = (short *)malloc(mpz_sizeinbase(e, (1<<w)) * sizeof(short));
+#endif
     k = (1 << (w-2)) - 1;
     for(i = 0; i <= k; i++)
 	ec_point_init(iP[i], E, n);
@@ -1646,13 +1652,13 @@ ec_point_mul_add_sub (ec_point_t Q, mpz_t e, ec_point_t P,
     /* Undo negation to avoid changing the caller's e value */
     if (negated){
 	ec_point_negate(P, E, n);
-	mpz_neg (e, e);
+	mpz_neg(e, e);
     }
     ec_point_set(Q, P0, E, n);
     ec_point_clear(P0, E, n);
     for(i = 0; i <= k; i++)
 	ec_point_clear(iP[i], E, n);
-
+    free(S);
     return status;
 }
 
@@ -1671,6 +1677,7 @@ ec_point_mul(ec_point_t Q, mpz_t e, ec_point_t P, ec_curve_t E, mpmod_t n)
 	    A is curve parameter in Hessian form: X^3+Y^3+Z^3=3*A*X*Y*Z
           n is the number to factor
 	  B1 is the stage 1 bound
+	  batch_s = prod(p^e <= B1) if != 1
    Output: If a factor is found, it is returned in f.
            Otherwise, (x, y) contains the point computed in stage 1.
 	   B1done is set to B1 if stage 1 completed normally,
@@ -1681,8 +1688,8 @@ ec_point_mul(ec_point_t Q, mpz_t e, ec_point_t P, ec_curve_t E, mpmod_t n)
 */
 static int
 ecm_stage1_W (mpz_t f, int Etype, mpres_t x, mpres_t y, mpres_t A, mpmod_t n, 
-	      double B1, double *B1done, mpz_t go, int (*stop_asap)(void), 
-	      char *chkfilename)
+	      double B1, double *B1done, mpz_t batch_s, mpz_t go, 
+	      int (*stop_asap)(void), char *chkfilename)
 {
     mpres_t xB;
     ec_curve_t E;
@@ -1718,57 +1725,67 @@ ecm_stage1_W (mpz_t f, int Etype, mpres_t x, mpres_t y, mpres_t A, mpmod_t n,
     gmp_printf("go:=%Zd;\n", go);
     printf("goP:="); ec_point_print(P, E, n); printf(";\n");
 #endif
-    for (r = 2.0; r <= B1; r *= 2.0)
-	if (r > *B1done){
-	    if(ec_point_duplicate (Q, P, E, n) == 0){
-		mpz_set(f, Q->x);
-		ret = ECM_FACTOR_FOUND_STEP1;
-		goto end_of_stage1_w;
-	    }
-	    ec_point_set(P, Q, E, n);
-#if DEBUG_EC_W >= 1
-	    printf("P%ld:=", (long)r); ec_point_print(P, E, n); printf(";\n");
-	    printf("Q:=EcmMult(2, Q, E, N);\n");
-	    printf("(Q[1]*P%ld[3]-Q[3]*P%ld[1]) mod N;\n",(long)r,(long)r);
-#endif
-	}
-
-    last_chkpnt_p = 3.;
-    for (p = getprime (); p <= B1; p = getprime ()){
-	mpz_set_ui(f, (ecm_uint)p);
-	for (r = p; r <= B1; r *= p){
+    if(mpz_cmp_ui(batch_s, 1) == 0){
+	/* traditional approach: obsolete? */
+	for (r = 2.0; r <= B1; r *= 2.0)
 	    if (r > *B1done){
-		if(ec_point_mul_add_sub (Q, f, P, E, n) == 0){
+		if(ec_point_duplicate (Q, P, E, n) == 0){
 		    mpz_set(f, Q->x);
 		    ret = ECM_FACTOR_FOUND_STEP1;
 		    goto end_of_stage1_w;
 		}
-#if DEBUG_EC_W >= 1
-		printf("R%ld:=", (long)r); ec_point_print(Q, E, n); printf(";\n");
-		printf("Q:=EcmMult(%ld, Q, E, N);\n", (long)r);
-		printf("(Q[1]*R%ld[3]-Q[3]*R%ld[1]) mod N;\n",(long)r,(long)r);
-#endif
 		ec_point_set(P, Q, E, n);
+#if DEBUG_EC_W >= 1
+		printf("P%ld:=", (long)r); ec_point_print(P, E, n); printf(";\n");
+		printf("Q:=EcmMult(2, Q, E, N);\n");
+		printf("(Q[1]*P%ld[3]-Q[3]*P%ld[1]) mod N;\n",(long)r,(long)r);
+#endif
+	    }
+	
+	last_chkpnt_p = 3.;
+	for (p = getprime (); p <= B1; p = getprime ()){
+	    mpz_set_ui(f, (ecm_uint)p);
+	    for (r = p; r <= B1; r *= p){
+		if (r > *B1done){
+		    if(ec_point_mul_add_sub (Q, f, P, E, n) == 0){
+			mpz_set(f, Q->x);
+			ret = ECM_FACTOR_FOUND_STEP1;
+			goto end_of_stage1_w;
+		    }
+#if DEBUG_EC_W >= 1
+		    printf("R%ld:=", (long)r); ec_point_print(Q, E, n); printf(";\n");
+		    printf("Q:=EcmMult(%ld, Q, E, N);\n", (long)r);
+		    printf("(Q[1]*R%ld[3]-Q[3]*R%ld[1]) mod N;\n",(long)r,(long)r);
+#endif
+		    ec_point_set(P, Q, E, n);
+		}
+	    }
+	    if (ec_point_is_zero (P, E, n)){
+		outputf (OUTPUT_VERBOSE, "Reached point at infinity, %.0f divides "
+			 "group orders\n", p);
+		break;
+	    }
+	    
+	    if (stop_asap != NULL && (*stop_asap) ()){
+		outputf (OUTPUT_NORMAL, "Interrupted at prime %.0f\n", p);
+		break;
+	    }
+	    
+	    if (chkfilename != NULL && p > last_chkpnt_p + 10000. && 
+		elltime (last_chkpnt_time, cputime ()) > CHKPNT_PERIOD){
+		writechkfile (chkfilename, ECM_ECM, MAX(p, *B1done), 
+			      n, E->A, P->x, P->y, P->z);
+		last_chkpnt_p = p;
+		last_chkpnt_time = cputime ();
 	    }
 	}
-	if (ec_point_is_zero (P, E, n)){
-	    outputf (OUTPUT_VERBOSE, "Reached point at infinity, %.0f divides "
-		     "group orders\n", p);
-	    break;
-	}
-	
-	if (stop_asap != NULL && (*stop_asap) ()){
-	    outputf (OUTPUT_NORMAL, "Interrupted at prime %.0f\n", p);
-	    break;
-	}
-	
-	if (chkfilename != NULL && p > last_chkpnt_p + 10000. && 
-	    elltime (last_chkpnt_time, cputime ()) > CHKPNT_PERIOD){
-	    writechkfile (chkfilename, ECM_ECM, MAX(p, *B1done), 
-			  n, E->A, P->x, P->y, P->z);
-	    last_chkpnt_p = p;
-	    last_chkpnt_time = cputime ();
-	}
+    }
+    else{
+	/* batch mode, isn't it? */
+	if (ec_point_mul (Q, batch_s, P, E, n) == 0){
+	    mpz_set (f, Q->x);
+	    ret = ECM_FACTOR_FOUND_STEP1;
+        }
     }
  end_of_stage1_w:
     /* If stage 1 finished normally, p is the smallest prime > B1 here.
@@ -2394,7 +2411,8 @@ ecm (mpz_t f, mpz_t x, mpz_t y, int *param, mpz_t sigma, mpz_t n, mpz_t go,
 				    stop_asap, chkfilename);
 	    else
 		youpi = ecm_stage1_W (f, Etype, P.x, P.y, P.A, modulus, 
-				      B1, B1done, go, stop_asap, chkfilename);
+				      B1, B1done, batch_s,
+				      go, stop_asap, chkfilename);
 	}
     }
   

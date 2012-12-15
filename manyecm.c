@@ -670,7 +670,7 @@ one_curve_at_a_time(mpz_t f, char *ok, ec_curve_t *tE, ec_point_t *tP, int nE,
 		    mpz_t N, double B1, char *savefilename)
 {
     ecm_params params;
-    double tmpB1, tmpB2, B2g, B2d, B2 = 1e9;
+    double tmpB1, tmpB2, B2g, B2d, B2 = 1e9, tp;
     int ret = 0, i, saveit, nhit, nhitmax = 16;
     mpcandi_t candi;
     char comment[256] = "";
@@ -681,6 +681,12 @@ one_curve_at_a_time(mpz_t f, char *ok, ec_curve_t *tE, ec_point_t *tP, int nE,
     ecm_init(params);
     params->verbose = 1;
     mpz_init (C);
+    tp = cputime();
+#if 0
+    compute_s(params->batch_s, (unsigned long)B1);
+    printf("# computing prod(p^e <= %.0lf): %ldms\n",
+	   B1, elltime(tp, cputime()));
+#endif
     /* process curves one at a time */
     for(i = 0; i < nE; i++){
 	tmpB1 = B1;
