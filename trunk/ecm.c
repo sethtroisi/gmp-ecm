@@ -974,8 +974,11 @@ pt_w_mul_end:
 }
 #endif
 
+#define SOLINAS
+
 /* build NAF_w(c) = (u_{ell-1}, ..., u_0).
    When w = 2, we have 2^ell < 3*e < 2^(ell+1).
+   NAF are easily built from right to left and exploited from left to right.
    TODO: have this work for e > long.
 */
 int
@@ -984,10 +987,13 @@ build_NAF(short *S, mpz_t e, int w)
     long u, twowm1 = ((long)1 << w)-1;
     long hwm1 = ((long)1)<<(w-1), hw = ((long)1)<<w;
     int iS = 0;
+    short nz = 0;
 #if 1
     long c;
 
     c = mpz_get_si(e);
+# ifdef SOLINAS
+    /* Salinas output form */
     while(c > 0){
 	if((c & 1) == 1){
 	    /* c is odd */
@@ -996,12 +1002,38 @@ build_NAF(short *S, mpz_t e, int w)
 	    if(u >= hwm1)
 		u -= hw;
 	    c -= u;
+	    /* now c = 0 mod 2^w */
 	}
 	else
 	    u = 0;
 	S[iS++] = u;
 	c >>= 1;
     }
+# else
+    /* new coding output */
+    while(c > 0){
+	if((c & 1) == 1){
+	    if(nz != 0){
+		S[iS++] = nz; /* hope for nz < 2^15 or 2^16...! */
+		nz = 0;
+	    }
+	    /* c is odd => we extract w bits */
+	    /* u <- mods(c, 2^w) */
+	    u = c & (long)twowm1;
+	    if(u >= hwm1)
+		u -= hw;
+	    S[iS++] = (short)u;
+	    c -= u;
+	    /* now c = 0 mod 2^w */
+	    c >>= w;
+	    nz = w;
+	}
+	else{
+	    nz++;
+	    c >>= 1;
+	}
+    }
+# endif
 #else
     mpz_t c;
 
@@ -1017,6 +1049,8 @@ build_NAF(short *S, mpz_t e, int w)
 	    u = (long)(mpz_get_si(c) & (unsigned long)twowm1);
 	    if(u >= hwm1)
 		u -= hw;
+	    /* if u > 0, then c -= u does not cause a carry to propagate */
+	    /* perhaps not even when u < 0??? */
 	    mpz_sub_si(c, c, u);
 	    /* at this point, c = 0 mod 2^w */
 	}
@@ -1522,7 +1556,7 @@ int
 ec_point_mul_add_sub (ec_point_t Q, mpz_t e, ec_point_t P,
 		      ec_curve_t E, mpmod_t n)
 {
-    int negated = 0, status = 1, iS = 0, j, w, k, i;
+    int negated = 0, status = 1, iS = 0, j, w, k, i, eps;
     ec_point_t P0;
     ec_point_t iP[EC_ADD_SUB_2_WMAX];
     short *S;
@@ -1584,7 +1618,9 @@ ec_point_mul_add_sub (ec_point_t Q, mpz_t e, ec_point_t P,
     iS = build_NAF(S, e, w);
     ec_point_set_to_zero(P0, E, n);
 
+    eps = 1; /* means doubling */
     for(j = iS-1; j >= 0; j--){
+# ifdef SOLINAS
 	if(ec_point_duplicate(P0, P0, E, n) == 0){
 	    status = 0;
 	    break;
@@ -1614,6 +1650,42 @@ ec_point_mul_add_sub (ec_point_t Q, mpz_t e, ec_point_t P,
 #endif
 	    }
 	}
+# else
+	eps = -eps;
+	if(eps < 0){
+	    /* means add or subtract */
+	    i = abs(S[j]) >> 1; /* (abs(S[j])-1)/2, S[j] is always odd */
+	    if(S[j] > 0){
+		if(ec_point_add(P0, P0, iP[i], E, n) == 0){
+		    status = 0;
+		    break;
+		}
+#if DEBUG_EC_W >= 2
+		printf("Radd:="); ec_point_print(P0, E, n); printf(";\n");
+#endif
+	    }
+	    else{
+		/* add(-P) = sub(P) */
+		if(ec_point_sub(P0, P0, iP[i], E, n) == 0){
+		    status = 0;
+		    break;
+		}
+#if DEBUG_EC_W >= 2
+		printf("Rsub:="); ec_point_print(P0, E, n); printf(";\n");
+#endif
+	    }
+	}
+	else{
+	    /* means doubling */
+	    for(i = 0; i < S[j]; i++)
+		if(ec_point_duplicate(P0, P0, E, n) == 0){
+		    status = 0;
+		    break;
+		}
+	    if(status == 0)
+		break;
+	}
+# endif
     }
 #if 0
 #if EC_W_LAW == EC_W_LAW_PROJECTIVE
