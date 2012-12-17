@@ -965,7 +965,7 @@ pt_w_mul_end:
   return status;
 }
 
-#define SOLINAS
+/*#define SOLINAS*/
 
 /* build NAF_w(c) = (u_{ell-1}, ..., u_0).
    When w = 2, we have 2^ell < 3*e < 2^(ell+1).
@@ -1030,14 +1030,13 @@ build_NAF(short *S, mpz_t e, int w)
     long u, hwm1 = ((long)1)<<(w-1), hw = ((long)1)<<w;
     mp_limb_t twowm1 = ((mp_limb_t)1 << w)-1;
     int iS = 0;
-    short nz = 0;
+    short nz;
+    mpz_t c;
 
     if(mpz_size(e) == 1)
 	return build_NAF_ui(S, mpz_getlimbn(e, 0), w);
-#ifdef SOLINAS
-    mpz_t c;
-
     mpz_init_set(c, e);
+#ifdef SOLINAS
     /* we operate on windows of size w, starting from lower order bits.
        This version copies the long-version one... Some more bit-fiddling
        might be used to replace the shift at the end of the loop.
@@ -1046,7 +1045,7 @@ build_NAF(short *S, mpz_t e, int w)
 	if(mpz_tstbit(c, 0) == 1){
 	    /* c is odd */
 	    /* u <- mods(c, 2^w) */
-	    u = (long)(mpz_get_si(c) & twowm1);
+	    u = (long)(mpz_get_ui(c) & twowm1);
 	    if(u >= hwm1)
 		u -= hw;
 	    /* if u > 0, then c -= u does not cause a carry to propagate */
@@ -1060,8 +1059,33 @@ build_NAF(short *S, mpz_t e, int w)
 	/* c >>= 1; */
 	mpz_cdiv_q_2exp(c, c, 1);
     }
-    mpz_clear(c);
+#else
+    /* new coding output */
+    nz = 0;
+    while(mpz_sgn(c) != 0){
+	if(mpz_tstbit(c, 0) == 1){
+	    if(nz != 0){
+		S[iS++] = nz; /* hope for nz < 2^15 or 2^16...! */
+		nz = 0;
+	    }
+	    /* c is odd => we extract w bits */
+	    /* u <- mods(c, 2^w) */
+	    u = (long)(mpz_get_ui(c) & twowm1);
+	    if(u >= hwm1)
+		u -= hw;
+	    S[iS++] = (short)u;
+	    mpz_sub_si(c, c, u); /* can propagate a carry far away if u < 0 */
+	    /* now c = 0 mod 2^w */
+	    mpz_cdiv_q_2exp(c, c, w);
+	    nz = w;
+	}
+	else{
+	    nz++;
+	    mpz_cdiv_q_2exp(c, c, 1);
+	}
+    }
 #endif
+    mpz_clear(c);
     return iS;
 }
 
