@@ -965,31 +965,27 @@ pt_w_mul_end:
   return status;
 }
 
-/* #define SOLINAS */
+#define SOLINAS
 
 /* build NAF_w(c) = (u_{ell-1}, ..., u_0).
    When w = 2, we have 2^ell < 3*e < 2^(ell+1).
    NAF are easily built from right to left and exploited from left to right.
-   TODO: have this work for e > long.
 */
 int
-build_NAF(short *S, mpz_t e, int w)
+build_NAF_ui(short *S, mp_limb_t c, int w)
 {
-    long u, twowm1 = ((long)1 << w)-1;
-    long hwm1 = ((long)1)<<(w-1), hw = ((long)1)<<w;
+    long u, hwm1 = ((long)1)<<(w-1), hw = ((long)1)<<w;
+    mp_limb_t twowm1 = ((mp_limb_t)1 << w)-1;
     int iS = 0;
     short nz = 0;
-#if 1
-    long c;
 
-    c = mpz_get_si(e);
-# ifdef SOLINAS
+#ifdef SOLINAS
     /* Salinas output form */
-    while(c > 0){
+    while(c != 0){
 	if((c & 1) == 1){
 	    /* c is odd */
 	    /* u <- mods(c, 2^w) */
-	    u = c & (long)twowm1;
+	    u = (long)(c & twowm1);
 	    if(u >= hwm1)
 		u -= hw;
 	    c -= u;
@@ -997,12 +993,12 @@ build_NAF(short *S, mpz_t e, int w)
 	}
 	else
 	    u = 0;
-	S[iS++] = u;
+	S[iS++] = (short)u;
 	c >>= 1;
     }
-# else
+#else
     /* new coding output */
-    while(c > 0){
+    while(c != 0){
 	if((c & 1) == 1){
 	    if(nz != 0){
 		S[iS++] = nz; /* hope for nz < 2^15 or 2^16...! */
@@ -1010,7 +1006,7 @@ build_NAF(short *S, mpz_t e, int w)
 	    }
 	    /* c is odd => we extract w bits */
 	    /* u <- mods(c, 2^w) */
-	    u = c & (long)twowm1;
+	    u = (long)(c & twowm1);
 	    if(u >= hwm1)
 		u -= hw;
 	    S[iS++] = (short)u;
@@ -1024,8 +1020,21 @@ build_NAF(short *S, mpz_t e, int w)
 	    c >>= 1;
 	}
     }
-# endif
-#else
+#endif
+    return iS;
+}
+
+int
+build_NAF(short *S, mpz_t e, int w)
+{
+    long u, hwm1 = ((long)1)<<(w-1), hw = ((long)1)<<w;
+    mp_limb_t twowm1 = ((mp_limb_t)1 << w)-1;
+    int iS = 0;
+    short nz = 0;
+
+    if(mpz_size(e) == 1)
+	return build_NAF_ui(S, mpz_getlimbn(e, 0), w);
+#ifdef SOLINAS
     mpz_t c;
 
     mpz_init_set(c, e);
@@ -1037,17 +1046,16 @@ build_NAF(short *S, mpz_t e, int w)
 	if(mpz_tstbit(c, 0) == 1){
 	    /* c is odd */
 	    /* u <- mods(c, 2^w) */
-	    u = (long)(mpz_get_si(c) & (unsigned long)twowm1);
+	    u = (long)(mpz_get_si(c) & twowm1);
 	    if(u >= hwm1)
 		u -= hw;
 	    /* if u > 0, then c -= u does not cause a carry to propagate */
-	    /* perhaps not even when u < 0??? */
-	    mpz_sub_si(c, c, u);
+	    mpz_sub_si(c, c, u); /* carry may propagate */
 	    /* at this point, c = 0 mod 2^w */
 	}
 	else
 	    u = 0;
-	printf("S[%d] <- %d\n", iS, (int)u);
+	printf("S[%d] <- %d\n", iS, (short)u);
 	S[iS++] = (short)u;
 	/* c >>= 1; */
 	mpz_cdiv_q_2exp(c, c, 1);
