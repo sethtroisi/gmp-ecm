@@ -39,8 +39,8 @@ libecm_la_SOURCES = ecm.c ecm2.c pm1.c pp1.c getprime.c listz.c lucas.c \
 # Link the asm redc code (if we use it) into libecm.la
 libecm_la_CPPFLAGS = $(MULREDCINCPATH)
 libecm_la_CFLAGS = $(OPENMP_CFLAGS)
-libecm_la_LDFLAGS = '-version-info 0:0:0'
-libecm_la_LIBADD = $(MULREDCLIBRARY)
+libecm_la_LDFLAGS = $(LIBECM_LDFLAGS) -version-info 0:0:0
+libecm_la_LIBADD = $(MULREDCLIBRARY) $(GMPLIB)
 if WANT_CUDA 
   libecm_la_SOURCES += cudakernel.cu
   libecm_la_LIBADD += $(CUDA_LIB_FLAGS)
