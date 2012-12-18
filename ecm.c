@@ -1027,7 +1027,7 @@ build_NAF_ui(short *S, mp_limb_t c, int w)
 int
 build_NAF(short *S, mpz_t e, int w)
 {
-    long u, hwm1 = ((long)1)<<(w-1), hw = ((long)1)<<w;
+    long u, hwm1 = ((long)1)<<(w-1), hw = ((long)1)<<w, tp = cputime();
     mp_limb_t twowm1 = ((mp_limb_t)1 << w)-1;
     int iS = 0;
     short nz;
@@ -1086,6 +1086,7 @@ build_NAF(short *S, mpz_t e, int w)
     }
 #endif
     mpz_clear(c);
+    printf("# Time(NAF)=%ld\n", elltime(tp, cputime()));
     return iS;
 }
 
@@ -1579,7 +1580,7 @@ int
 ec_point_mul_add_sub (ec_point_t Q, mpz_t e, ec_point_t P,
 		      ec_curve_t E, mpmod_t n)
 {
-    int negated = 0, status = 1, iS = 0, j, w, k, i, eps;
+    int negated = 0, status = 1, iS = 0, j, w, k, i, eps, Slen;
     ec_point_t P0;
     ec_point_t iP[EC_ADD_SUB_2_WMAX];
     short *S;
@@ -1615,7 +1616,9 @@ ec_point_mul_add_sub (ec_point_t Q, mpz_t e, ec_point_t P,
 #if 1
     S = (short *)malloc(64 * sizeof(short));
 #else
-    S = (short *)malloc(mpz_sizeinbase(e, (1<<w)) * sizeof(short));
+    Slen = 2 * mpz_sizeinbase(e, 2);
+    printf("# Slen=%d\n", Slen);
+    S = (short *)malloc(Slen * sizeof(short));
 #endif
     k = (1 << (w-2)) - 1;
     for(i = 0; i <= k; i++)
@@ -1881,6 +1884,7 @@ ecm_stage1_W (mpz_t f, int Etype, mpres_t x, mpres_t y, mpres_t A, mpmod_t n,
 	    mpz_set (f, Q->x);
 	    ret = ECM_FACTOR_FOUND_STEP1;
         }
+	p = B1;
     }
  end_of_stage1_w:
     /* If stage 1 finished normally, p is the smallest prime > B1 here.
