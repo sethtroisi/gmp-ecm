@@ -154,7 +154,7 @@ AM_PROG_CC_C_O
 # Don't make a shared library by default. Enable building a shared library
 # by specifying "--enable-shared" on the ./configure command line
 LT_PREREQ([2.2.6])
-LT_INIT([disable-shared])
+LT_INIT([disable-shared,win32-dll])
 
 
 dnl Checks for typedefs, structures, and compiler characteristics.
@@ -527,6 +527,50 @@ AC_CHECK_FUNCS([__gmpn_mul_fft __gmpn_fft_next_size __gmpn_fft_best_k])
 AC_CHECK_FUNCS([__gmpn_mulmod_bnm1 __gmpn_mulmod_bnm1_next_size])
 
 LIBS="$LIBS_BACKUP"
+
+
+dnl Copied from MPFR 3.1.1 and modified.
+dnl Configs for Windows DLLs.
+dnl libtool requires "-no-undefined" for win32 dll
+dnl
+dnl "-Wl,output-def" is used to get a .def file for use by MS lib to make
+dnl a .lib import library, described in the manual.
+dnl
+dnl -version-info is set to 0.0.0 in Makefile.am, so we just use 0 in the
+dnl .def file filename as well
+dnl
+dnl Incidentally, libtool does generate an import library libecm.dll.a,
+dnl but it's "ar" format and cannot be used by the MS linker.  There
+dnl doesn't seem to be any GNU tool for generating or converting to .lib.
+case $host in
+  *-*-cygwin* | *-*-mingw* | *-*-pw32* | *-*-os2*)
+   AC_MSG_CHECKING(for DLL/static GMP)
+   if test "$enable_shared" = yes; then
+     LIBECM_LDFLAGS="$LIBECM_LDFLAGS -no-undefined -Wl,--output-def,.libs/libecm-0.def"
+     AC_COMPILE_IFELSE([AC_LANG_PROGRAM([[
+#include "gmp.h"
+#if !__GMP_LIBGMP_DLL
+# error "Dead man"
+error
+#endif
+     ]], [[]])],[AC_MSG_RESULT(DLL)],[
+  AC_MSG_RESULT(static)
+  AC_MSG_ERROR([gmp.h isn't a DLL: use --enable-static --disable-shared]) ])
+   else
+     AC_COMPILE_IFELSE([AC_LANG_PROGRAM([[
+#include "gmp.h"
+#if __GMP_LIBGMP_DLL
+# error "Dead man"
+error
+#endif
+     ]], [[]])],[AC_MSG_RESULT(static)],[
+  AC_MSG_RESULT(DLL)
+  AC_MSG_ERROR([gmp.h is a DLL: use --disable-static --enable-shared]) ])
+  fi
+  ;;
+esac
+AC_SUBST([LIBECM_LDFLAGS])
+
 
 dnl Check if the compiler understands some __attribute__ directives
 AC_MSG_CHECKING([whether compiler knows __attribute__((hot))])
