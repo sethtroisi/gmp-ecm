@@ -665,12 +665,40 @@ dump_curves(ec_curve_t *tE, ec_point_t *tP, int nE, mpz_t f)
     }
 }
 
+/* We can probably hack so that s contains the coding of a NAF */
+int
+compute_s_4_add_sub(mpz_t s, unsigned long B1)
+{
+    mpz_t t;
+    long tp;
+    short *S;
+    int iS, Slen, w;
+
+    mpz_init(t);
+    tp = cputime();
+    compute_s(t, B1);
+    printf("# computing prod(p^e <= %lu): %ldms\n", B1, elltime(tp,cputime()));
+    Slen = 2 * mpz_sizeinbase(t, 2);
+    S = (short *)malloc(Slen * sizeof(short));
+    w = get_add_sub_w(t);
+    iS = build_NAF(S, Slen, t, w);
+    printf("# NAF has %d terms (Slen=%d)\n", iS, Slen);
+    if(iS == -1){
+	printf("build_NAF: Slen=%d too small\n", Slen);
+	return 0;
+    }
+    mpz_set(s, t);
+    mpz_clear(t);
+    free(S);
+    return 1;
+}
+
 int
 one_curve_at_a_time(mpz_t f, char *ok, ec_curve_t *tE, ec_point_t *tP, int nE,
 		    mpz_t N, double B1, char *savefilename)
 {
     ecm_params params;
-    double tmpB1, tmpB2, B2g, B2d, B2 = 1e9, tp;
+    double tmpB1, tmpB2, B2g, B2d, B2 = 1e9;
     int ret = 0, i, saveit, nhit, nhitmax = 16;
     mpcandi_t candi;
     char comment[256] = "";
@@ -681,11 +709,8 @@ one_curve_at_a_time(mpz_t f, char *ok, ec_curve_t *tE, ec_point_t *tP, int nE,
     ecm_init(params);
     params->verbose = 1;
     mpz_init (C);
-    tp = cputime();
 #if 0
-    compute_s(params->batch_s, (unsigned long)B1);
-    printf("# computing prod(p^e <= %.0lf): %ldms\n",
-	   B1, elltime(tp, cputime()));
+    compute_s_4_add_sub(params->batch_s, (unsigned long)B1);
 #endif
     /* process curves one at a time */
     for(i = 0; i < nE; i++){

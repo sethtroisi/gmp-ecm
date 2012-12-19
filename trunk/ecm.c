@@ -970,9 +970,11 @@ pt_w_mul_end:
 /* build NAF_w(c) = (u_{ell-1}, ..., u_0).
    When w = 2, we have 2^ell < 3*e < 2^(ell+1).
    NAF are easily built from right to left and exploited from left to right.
+   OUTPUT: iS such that S[0..iS[ was filled
+           -1 if Slen is too small
 */
 int
-build_NAF_ui(short *S, mp_limb_t c, int w)
+build_NAF_ui(short *S, int Slen, mp_limb_t c, int w)
 {
     long u, hwm1 = ((long)1)<<(w-1), hw = ((long)1)<<w;
     mp_limb_t twowm1 = ((mp_limb_t)1 << w)-1;
@@ -995,6 +997,8 @@ build_NAF_ui(short *S, mp_limb_t c, int w)
 	    u = 0;
 	S[iS++] = (short)u;
 	c >>= 1;
+	if(iS == Slen && c != 0)
+	    return -1;
     }
 #else
     /* new coding output */
@@ -1014,6 +1018,8 @@ build_NAF_ui(short *S, mp_limb_t c, int w)
 	    /* now c = 0 mod 2^w */
 	    c >>= w;
 	    nz = w;
+	    if(iS == Slen && c != 0)
+		return -1;
 	}
 	else{
 	    nz++;
@@ -1024,8 +1030,12 @@ build_NAF_ui(short *S, mp_limb_t c, int w)
     return iS;
 }
 
+/*
+   OUTPUT: iS such that S[0..iS[ was filled
+           -1 if Slen is too small
+*/
 int
-build_NAF(short *S, mpz_t e, int w)
+build_NAF(short *S, int Slen, mpz_t e, int w)
 {
     long u, hwm1 = ((long)1)<<(w-1), hw = ((long)1)<<w, tp = cputime();
     mp_limb_t twowm1 = ((mp_limb_t)1 << w)-1;
@@ -1034,7 +1044,7 @@ build_NAF(short *S, mpz_t e, int w)
     mpz_t c;
 
     if(mpz_size(e) == 1)
-	return build_NAF_ui(S, mpz_getlimbn(e, 0), w);
+	return build_NAF_ui(S, Slen, mpz_getlimbn(e, 0), w);
     mpz_init_set(c, e);
 #ifdef SOLINAS
     /* we operate on windows of size w, starting from lower order bits.
@@ -1058,6 +1068,10 @@ build_NAF(short *S, mpz_t e, int w)
 	S[iS++] = (short)u;
 	/* c >>= 1; */
 	mpz_cdiv_q_2exp(c, c, 1);
+	if(iS == Slen && mpz_sgn(c) != 0){
+	    iS = -1;
+	    break;
+	}
     }
 #else
     /* new coding output */
@@ -1078,6 +1092,10 @@ build_NAF(short *S, mpz_t e, int w)
 	    /* now c = 0 mod 2^w */
 	    mpz_cdiv_q_2exp(c, c, w);
 	    nz = w;
+	    if(iS == Slen && mpz_sgn(c) != 0){
+		iS = -1;
+		break;
+	    }
 	}
 	else{
 	    nz++;
@@ -1571,55 +1589,24 @@ ec_point_negate(ec_point_t P, ec_curve_t E, mpmod_t n)
 #define EC_ADD_SUB_WMAX 6
 #define EC_ADD_SUB_2_WMAX (1 << EC_ADD_SUB_WMAX)
 
-/* multiply P=(x:y:z) by e and puts the result in Q.
-   Return value: 0 if a factor is found, and the factor is in Q->x,
-                 1 otherwise.
-   See Solinas 2000 for the most plug-and-play presentation.		 
-*/
+/* TODO: do better */
 int
-ec_point_mul_add_sub (ec_point_t Q, mpz_t e, ec_point_t P,
-		      ec_curve_t E, mpmod_t n)
+get_add_sub_w(mpz_t e)
 {
-    int negated = 0, status = 1, iS = 0, j, w, k, i, eps, Slen;
+    if(mpz_cmp_si(e, 16) <= 0)
+	return 2;
+    else
+	return 3;
+}
+
+int
+ec_point_mul_add_sub_with_S(ec_point_t Q, ec_point_t P, ec_curve_t E,
+			    mpmod_t n, int w, short *S, int iS)
+{
     ec_point_t P0;
     ec_point_t iP[EC_ADD_SUB_2_WMAX];
-    short *S;
-    
-    if(ec_point_is_zero(P, E, n)){
-	ec_point_set(Q, P, E, n);
-	return 1;
-    }
-    
-    if(mpz_sgn(e) == 0){
-	ec_point_set_to_zero(Q, E, n);
-	return 1;
-    }
-    
-    if(mpz_sgn (e) < 0){
-	negated = 1;
-	mpz_neg(e, e);
-	ec_point_negate(P, E, n);
-    }
-    
-    if (mpz_cmp_ui(e, 1) == 0){
-	ec_point_set(Q, P, E, n);
-	return 1;
-    }
+    int status = 1, i, j, k, eps;
 
-    ec_point_init(P0, E, n);
-
-    if(mpz_cmp_si(e, 16) <= 0)
-	w = 2;
-    else
-	w = 3; /* TODO: do better? */
-
-#if 1
-    S = (short *)malloc(64 * sizeof(short));
-#else
-    Slen = 2 * mpz_sizeinbase(e, 2);
-    printf("# Slen=%d\n", Slen);
-    S = (short *)malloc(Slen * sizeof(short));
-#endif
     k = (1 << (w-2)) - 1;
     for(i = 0; i <= k; i++)
 	ec_point_init(iP[i], E, n);
@@ -1641,13 +1628,7 @@ ec_point_mul_add_sub (ec_point_t Q, mpz_t e, ec_point_t P,
 	/* at this point, P[i] = (2*i+1) P */
     }
   
-    iS = build_NAF(S, e, w);
-#if DEBUG_EC_W >= 2
-    gmp_printf("addsub[%Zd=>%d]:", e, iS);
-    for(j = iS-1; j >= 0; j--)
-	printf(" %d", S[j]);
-    printf("\n");
-#endif
+    ec_point_init(P0, E, n);
     ec_point_set_to_zero(P0, E, n);
 
     eps = 1; /* means doubling */
@@ -1730,6 +1711,65 @@ ec_point_mul_add_sub (ec_point_t Q, mpz_t e, ec_point_t P,
     }
 #endif
 #endif
+ ec_point_mul_add_sub_end:
+    ec_point_set(Q, P0, E, n);
+    ec_point_clear(P0, E, n);
+    for(i = 0; i <= k; i++)
+	ec_point_clear(iP[i], E, n);
+    return status;
+}
+
+/* multiply P=(x:y:z) by e and puts the result in Q.
+   Return value: 0 if a factor is found, and the factor is in Q->x,
+                 1 otherwise.
+   See Solinas 2000 for the most plug-and-play presentation.		 
+*/
+int
+ec_point_mul_add_sub (ec_point_t Q, mpz_t e, ec_point_t P,
+		      ec_curve_t E, mpmod_t n)
+{
+    int negated = 0, status = 1, iS = 0, w, Slen;
+    short *S;
+    
+    if(ec_point_is_zero(P, E, n)){
+	ec_point_set(Q, P, E, n);
+	return 1;
+    }
+    
+    if(mpz_sgn(e) == 0){
+	ec_point_set_to_zero(Q, E, n);
+	return 1;
+    }
+    
+    if(mpz_sgn (e) < 0){
+	negated = 1;
+	mpz_neg(e, e);
+	ec_point_negate(P, E, n);
+    }
+    
+    if (mpz_cmp_ui(e, 1) == 0){
+	ec_point_set(Q, P, E, n);
+	return 1;
+    }
+
+    w = get_add_sub_w(e);
+
+    Slen = 2 * mpz_sizeinbase(e, 2);
+    /*    printf("# Slen=%d\n", Slen); */
+    S = (short *)malloc(Slen * sizeof(short));
+    iS = build_NAF(S, Slen, e, w);
+    if(iS == -1){
+	printf("build_NAF: Slen=%d too small\n", Slen);
+	return -1;
+    }
+#if DEBUG_EC_W >= 2
+    gmp_printf("addsub[%Zd=>%d]:", e, iS);
+    for(j = iS-1; j >= 0; j--)
+	printf(" %d", S[j]);
+    printf("\n");
+#endif
+    status = ec_point_mul_add_sub_with_S(Q, P, E, n, w, S, iS);
+    free(S);
 #if DEBUG_EC_W >= 2
     {
 	ec_point_t PP;
@@ -1737,26 +1777,20 @@ ec_point_mul_add_sub (ec_point_t Q, mpz_t e, ec_point_t P,
 	ec_point_init(PP, E, n);
 	ec_point_set(PP, P, E, n);
 	pt_w_mul(PP, e, E, n);
-	if(pt_w_cmp(P0->x, P0->y, P0->z, PP->x, PP->y, PP->z, n) != 1){
+	if(pt_w_cmp(Q->x, Q->y, Q->z, PP->x, PP->y, PP->z, n) != 1){
 	    printf("PB\n");
-	    printf("as:="); pt_w_print(P0->x, P0->y, P0->z, n); printf(";\n");
+	    printf("as:="); pt_w_print(Q->x, Q->y, Q->z, n); printf(";\n");
 	    printf("lo:="); pt_w_print(PP->x, PP->y, PP->z, n); printf(";\n");
 	    exit(-1);
 	}
 	ec_point_clear(PP, E, n);
     }
 #endif
- ec_point_mul_add_sub_end:
     /* Undo negation to avoid changing the caller's e value */
     if (negated){
 	ec_point_negate(P, E, n);
 	mpz_neg(e, e);
     }
-    ec_point_set(Q, P0, E, n);
-    ec_point_clear(P0, E, n);
-    for(i = 0; i <= k; i++)
-	ec_point_clear(iP[i], E, n);
-    free(S);
     return status;
 }
 
@@ -1884,6 +1918,7 @@ ecm_stage1_W (mpz_t f, int Etype, mpres_t x, mpres_t y, mpres_t A, mpmod_t n,
 	    mpz_set (f, Q->x);
 	    ret = ECM_FACTOR_FOUND_STEP1;
         }
+	ec_point_set(P, Q, E, n);
 	p = B1;
     }
  end_of_stage1_w:
