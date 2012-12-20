@@ -1586,17 +1586,62 @@ ec_point_negate(ec_point_t P, ec_curve_t E, mpmod_t n)
     }
 }
 
-#define EC_ADD_SUB_WMAX 6
+#define EC_ADD_SUB_WMAX 10
 #define EC_ADD_SUB_2_WMAX (1 << EC_ADD_SUB_WMAX)
 
 /* TODO: do better */
 int
 get_add_sub_w(mpz_t e)
 {
-    if(mpz_cmp_si(e, 16) <= 0)
+    size_t l = mpz_sizeinbase(e, 2);
+
+    if(l <= 16)
 	return 2;
-    else
+    else if(l <= 32)
 	return 3;
+    else if(l <= 128)
+	return 4;
+    else if(l <= 1024)
+	return 5;
+    else if(l <= 10240)
+	return 6;
+    else if(l <= 102400)
+	return 7;
+    else if(l <= 1024000)
+	return 8;
+    else
+	return 9;
+}
+
+/* pack everybody */
+void
+add_sub_pack(mpz_t s, int w, short *S, int iS)
+{
+    int nsh, cte = sizeof(mp_limb_t)/sizeof(short);
+    short *tmp;
+
+    nsh = iS / cte;
+    if(iS % cte != 0)
+	nsh++;
+    nsh *= cte;
+    nsh += 4;
+    /* coding */
+    tmp = (short *)malloc(nsh * sizeof(short));
+    tmp[0] = w;
+    tmp[1] = iS / (1 << 16);
+    tmp[2] = iS % (1 << 16);
+    memcpy(tmp+4, S, iS * sizeof(short));
+    s->_mp_d = (mp_limb_t *)tmp; /* humf */
+}
+
+void add_sub_unpack(int *w, short **S, int *iS, mpz_t s)
+{
+    short *T;
+
+    T = (short *)s->_mp_d; /* humf */
+    *w = (int)T[0];
+    *iS = (((int)T[1]) << 16) + (int)T[2];
+    *S = T+4;
 }
 
 int
@@ -1913,8 +1958,11 @@ ecm_stage1_W (mpz_t f, int Etype, mpres_t x, mpres_t y, mpres_t A, mpmod_t n,
 	}
     }
     else{
-	/* batch mode, isn't it? */
-	if (ec_point_mul (Q, batch_s, P, E, n) == 0){
+	/* batch mode and special coding... */
+	short *S = NULL;
+	int w, iS;
+	add_sub_unpack(&w, &S, &iS, batch_s);
+	if (ec_point_mul_add_sub_with_S(Q, P, E, n, w, S, iS) == 0){
 	    mpz_set (f, Q->x);
 	    ret = ECM_FACTOR_FOUND_STEP1;
         }
