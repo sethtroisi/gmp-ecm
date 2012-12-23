@@ -1033,6 +1033,12 @@ build_NAF_ui(short *S, int Slen, mp_limb_t c, int w)
 /*
    OUTPUT: iS such that S[0..iS[ was filled
            -1 if Slen is too small
+   The Solinas version is too slow for big entries, since it requires too
+   many shifts.
+   At the end of the process, we will have written
+   e = 2^t0 * (2*d0+1 + 2^t1 *(2*d1+1 + 2^t2 * (2*d2+1+... + 2^ts*(2*ds+1) )
+   where ti >= w and -2^(w-1)+1 <= 2*di+1 < 2^(w-1)+1.
+   S will contain: [[ts, 2*ds+1], ..., [t1, 2*d1+1], [t0, 2*d0+1]].
 */
 int
 build_NAF(short *S, int Slen, mpz_t e, int w)
