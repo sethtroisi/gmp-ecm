@@ -1121,14 +1121,105 @@ build_NAF(short *S, int Slen, mpz_t e, int w)
    After that, we rewrite the chain in the usual form.
 */
 int
-build_Muir_chain(short *S, int Slen, mpz_t e, int w)
+build_Muir_chain(short *a, int Slen, mpz_t e, int w)
 {
+    mp_limb_t C = 0, newC, mask = (((mp_limb_t)1) << w)-1;
+    size_t nbitsC = 0, nbitsnewC, inde = 0, lene = mpz_size(e), tmp;
+    int ell = 0, i;
+    short Delta = 0, bi, bim1, bhat, *b;
+    short r = (short)(1 << w), rover2 = (short)(1 << (w-1));
+
+    /* fill in b */
+    b = (short *)malloc(Slen * sizeof(short));
+    for(inde = 0; inde < lene; inde++){
+	/* treat digits of e one at a time */
+	newC = mpz_getlimbn(e, inde);
+	if(inde < lene-1)
+	    nbitsnewC = GMP_NUMB_BITS;
+	else{
+	    for(nbitsnewC = 0; nbitsnewC < GMP_NUMB_BITS; nbitsnewC++)
+		if(newC == 0)
+		    break;
+		else
+		    newC >>= 1;
+	    newC = mpz_getlimbn(e, inde);
+	}
+	b[ell] = C;
+	tmp = w-nbitsC;
+	if(tmp > 0){
+	    /* taking (w-nbitsC) LSB of newC */
+	    b[ell] += (short)((newC & ((((mp_limb_t)1) << tmp)-1)) << nbitsC);
+	    newC >>= tmp;
+	    /* printf("b[%d]=%d\n", ell-1, b[ell-1]); */
+	}
+	ell++;
+	C = newC;
+	nbitsC = nbitsnewC-tmp;
+	while(nbitsC >= (size_t)w){
+	    b[ell++] = (short)(C & mask);
+	    /* printf("b[%d]=%d\n", ell-1, b[ell-1]); */
+	    C >>= w;
+	    nbitsC -= w;
+	}
+    }
+    if(nbitsC != 0){
+	b[ell++] = (short)C;
+	/*	printf("b[%d]=%d\n", ell-1, b[ell-1]);*/
+    }
+#if 0
+    printf("e_2:="); mpz_out_str(stdout, 2, e); printf("\n");
+    gmp_printf("e:=%Zd;\n", e);
+    printf("w:=%d; m:=convert(e, base, %d);\n", w, r);
+    printf("tmp:=[%d", b[0]);
+    for(i = 1; i < ell; i++)
+	printf(", %d", b[i]);
+    printf("];\nevalb(m = tmp);\n");
+#endif
+    /* execute Algorithm R */
+    a[ell] = 0;
+    for(i = ell-1; i >= 0; i--){
+	if(i > 0) bim1 = b[i-1]; else bim1 = 0;
+	bhat = bi + Delta;
+	if(bhat == -1 || bhat == 0)
+	    bhat = 0;
+	else{
+	    if(bim1 >= rover2){
+		Delta = -r;
+		bhat++;
+	    }
+	    else
+		Delta = 0;
+	}
+	if(bhat == r){
+	    a[i+1] = 1;
+	    a[i] = 0;
+	}
+	else{
+	    if(bhat == -r){
+		a[i+1] = -1;
+		a[i] = 0;
+	    }
+	    else
+		a[i] = bhat;
+	}
+    }
+    if(Delta == -r)
+	a[0] = -1;
+    /* make ell the real number of digits of a[] */
+    if(a[ell] != 0)
+	ell++;
+    /* TODO: crunch a */
+    return ell;
 }
 
 int
 build_add_sub_chain(short *S, int Slen, mpz_t e, int w)
 {
+#if 1
     return build_NAF(S, Slen, e, w);
+#else
+    return build_Muir_chain(S, Slen, e, w);
+#endif
 }
 
 /* Checks that x1/z1 = x2/z2 and y1/z1 = y2/z2.
