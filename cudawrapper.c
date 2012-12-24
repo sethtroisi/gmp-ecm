@@ -447,7 +447,8 @@ gpu_ecm (mpz_t f, mpz_t x, int *param, mpz_t firstsigma, mpz_t n, mpz_t go,
 
 
   print_B1_B2_poly (OUTPUT_NORMAL, ECM_ECM, B1, *B1done,  B2min_parm, B2min, 
-                    B2, S, firstsigma, sigma_is_A, go, *param, *nb_curves);
+                    B2, S, firstsigma, sigma_is_A, ECM_EC_TYPE_MONTGOMERY,
+		    go, *param, *nb_curves);
   outputf (OUTPUT_VERBOSE, "dF=%lu, k=%lu, d=%lu, d2=%lu, i0=%Zd\n", 
            dF, k, root_params.d1, root_params.d2, root_params.i0);
 
