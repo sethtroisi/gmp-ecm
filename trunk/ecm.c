@@ -22,6 +22,7 @@ http://www.gnu.org/licenses/ or write to the Free Software Foundation, Inc.,
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include "ecm-impl.h"
 #include <math.h>
 
@@ -1112,6 +1113,22 @@ build_NAF(short *S, int Slen, mpz_t e, int w)
     mpz_clear(c);
     printf("# Time(NAF)=%ld\n", elltime(tp, cputime()));
     return iS;
+}
+
+/* We use algorithm R from Muir07
+   write e = (b_{ell-1}, ..., b_0) in base r = 2^w, 0 <= b_i < r
+   an addition subtraction chain will be (a_ell, ..., a_0), |a_i| < r.
+   After that, we rewrite the chain in the usual form.
+*/
+int
+build_Muir_chain(short *S, int Slen, mpz_t e, int w)
+{
+}
+
+int
+build_add_sub_chain(short *S, int Slen, mpz_t e, int w)
+{
+    return build_NAF(S, Slen, e, w);
 }
 
 /* Checks that x1/z1 = x2/z2 and y1/z1 = y2/z2.
@@ -2395,7 +2412,7 @@ ecm (mpz_t f, mpz_t x, mpz_t y, int *param, mpz_t sigma, mpz_t n, mpz_t go,
 
       st = cputime ();
       /* construct the batch exponent */
-      compute_s (batch_s, B1);
+      compute_s (batch_s, B1, 0);
       outputf (OUTPUT_VERBOSE, "Computing batch product (of %zu bits) of "
                                "primes below B1=%1.0f took %ldms\n", 
                mpz_sizeinbase (batch_s, 2), B1, cputime () - st);
