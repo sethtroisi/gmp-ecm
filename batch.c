@@ -41,11 +41,11 @@ http://www.gnu.org/licenses/ or write to the Free Software Foundation, Inc.,
 #endif
 
 void
-compute_s (mpz_t s, unsigned long B1)
+compute_s (mpz_t s, unsigned long B1, long disc)
 {
   mpz_t acc[MAX_HEIGHT]; /* To accumulate products of prime powers */
   unsigned int i, j;
-  unsigned long pi = 2, pp, maxpp;
+  unsigned long pi = 2, pp, maxpp, qi;
 
   ASSERT_ALWAYS (B1 < MAX_B1_BATCH);
 
@@ -55,10 +55,22 @@ compute_s (mpz_t s, unsigned long B1)
   i = 0;
   while (pi <= B1)
     {
-      pp = pi;
-      maxpp = B1 / pi;
+      pp = qi = pi;
+      maxpp = B1 / qi;
+      if(disc == -4 && (qi & 3) == 3){
+	  /* non splitting primes can occur in even powers only */
+	  if(qi <= maxpp){
+	      /* qi <= B1/qi => qi^2 <= B1 */
+	      qi *= qi;
+	  }
+	  else{
+	      /* qi is too large, do not increment i */
+	      pi = getprime (pi);
+	      continue;
+	  }
+      }
       while (pp <= maxpp)
-          pp *= pi;
+          pp *= qi;
 
       if ((i & 1) == 0)
           mpz_set_ui (acc[0], pp);
