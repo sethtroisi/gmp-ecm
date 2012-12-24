@@ -678,12 +678,12 @@ compute_s_4_add_sub(mpz_t s, unsigned long B1, long disc)
 
     mpz_init(t);
     tp = cputime();
-    compute_s(t, B1);
+    compute_s(t, B1, disc);
     printf("# computing prod(p^e <= %lu): %ldms\n", B1, elltime(tp,cputime()));
     w = get_add_sub_w(t);
     Slen = 2 * mpz_sizeinbase(t, 2); /* HERE! */
     S = (short *)malloc(Slen * sizeof(short));
-    iS = build_NAF(S, Slen, t, w);
+    iS = build_add_sub_chain(S, Slen, t, w);
     printf("# NAF has %d terms (w=%d, Slen=%d)\n", iS, w, Slen);
     if(iS == -1){
 	printf("build_NAF: Slen=%d too small\n", Slen);
@@ -712,7 +712,7 @@ one_curve_at_a_time(mpz_t f, char *ok, ec_curve_t *tE, ec_point_t *tP, int nE,
     ecm_init(params);
     params->verbose = 1;
     mpz_init (C);
-#if 0
+#if 1
     compute_s_4_add_sub(params->batch_s, (unsigned long)B1, disc);
 #endif
     /* process curves one at a time */
