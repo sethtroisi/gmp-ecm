@@ -698,9 +698,9 @@ compute_s_4_add_sub(mpz_t s, unsigned long B1, long disc)
 /* TODO: better control of B2 + dichotomy (cf. #B2) */
 int
 one_curve_at_a_time(mpz_t f, char *ok, ec_curve_t *tE, ec_point_t *tP, int nE,
-		    mpz_t N, double B1, char *savefilename, long disc)
+		    mpz_t N, ecm_params params, double B1, 
+		    char *savefilename)
 {
-    ecm_params params;
     double tmpB1, tmpB2, B2g = 0, B2d = 0, B2 = 0; /* 1e9; #B2 */
     int ret = 0, i, saveit, nhit, nhitmax = 1; /* #B2 */
     mpcandi_t candi;
@@ -709,12 +709,7 @@ one_curve_at_a_time(mpz_t f, char *ok, ec_curve_t *tE, ec_point_t *tP, int nE,
 
     mpcandi_t_init(&candi);
     mpcandi_t_add_candidate(&candi, N, NULL, 0);
-    ecm_init(params);
-    params->verbose = 1;
-    mpz_init (C);
-#if 1
-    compute_s_4_add_sub(params->batch_s, (unsigned long)B1, disc);
-#endif
+    mpz_init(C);
     /* process curves one at a time */
     for(i = 0; i < nE; i++){
 	tmpB1 = B1;
@@ -731,7 +726,7 @@ one_curve_at_a_time(mpz_t f, char *ok, ec_curve_t *tE, ec_point_t *tP, int nE,
 #endif
 	    if(nhit > 0){
 		tmpB2 = (B2d+B2g)/2;
-		printf("# trying new B2[%d]=%lf\n", nhit, tmpB2);
+		printf("# trying new B2[%d]=%f\n", nhit, tmpB2);
 	    }
 	    ret = process_one_curve(f,N,tmpB1,params,tE[i],tP[i]);
 	    if(ret == ECM_NO_FACTOR_FOUND){
@@ -800,7 +795,6 @@ one_curve_at_a_time(mpz_t f, char *ok, ec_curve_t *tE, ec_point_t *tP, int nE,
 
     }
     mpz_clear (C);
-    ecm_clear(params);
     mpcandi_t_free(&candi);
     return ret;
 }
@@ -948,30 +942,23 @@ read_and_prepare(mpz_t f, mpz_t x, mpq_t q, char *buf, mpz_t n)
 	   ECM_COMP_FAC_PRIME_COFAC
 */
 int
-process_many_curves(mpz_t f, mpmod_t n, double B1, ec_curve_t *tE, 
-		    ec_point_t *tP, int nE, int onebyone, char *savefilename,
-		    long disc)
+process_many_curves(mpz_t f, mpmod_t n, double B1, 
+		    ec_curve_t *tE, ec_point_t *tP, int nE, 
+		    ecm_params params, int onebyone, char *savefilename)
 {
     double B1done;
     ec_point_t tQ[NCURVE_MAX];
-    ecm_params params;
     char *ok = (char *)malloc(nE * sizeof(char));
     int ret = 0, i;
     long st = cputime ();
     
     memset(ok, 1, nE);
     if(onebyone != 0){
-	ret = one_curve_at_a_time(f, ok, tE, tP, nE,
-				  n->orig_modulus, B1, savefilename, disc);
+	ret = one_curve_at_a_time(f, ok, tE, tP, nE, n->orig_modulus, params,
+				  B1, savefilename);
 	free(ok);
 	return ret;
     }
-    ecm_init(params);
-#if DEBUG_MANY_EC >= 2
-    params->verbose = 2;
-#else
-    params->verbose = 1;
-#endif
     /* take everybody */
     for(i = 0; i < nE; i++){
 	ec_point_init(tQ[i], tE[i], n);
@@ -1012,10 +999,8 @@ process_many_curves(mpz_t f, mpmod_t n, double B1, ec_curve_t *tE,
 	    }
 	}
     }
-    for(i = 0; i < nE; i++){
+    for(i = 0; i < nE; i++)
 	ec_point_clear(tQ[i], tE[i], n);
-    }
-    ecm_clear(params);
     free(ok);
     return ret;
 }
@@ -2660,7 +2645,8 @@ build_curves_with_CM(mpz_t f, mpmod_t n, ec_curve_t *tE, ec_point_t *tP,
   One ring to run them all.
 */
 int
-process_many_curves_loop(mpz_t tf[], int *nf, mpz_t n, double B1,
+process_many_curves_loop(mpz_t tf[], int *nf, mpz_t n, double B1, 
+			 ecm_params params,
 			 char *fic_EP,
 			 char *torsion, int smin, int smax, int nE,
 			 long disc,
@@ -2684,8 +2670,8 @@ process_many_curves_loop(mpz_t tf[], int *nf, mpz_t n, double B1,
 	else if(disc != 0)
 	    ret = build_curves_with_CM(tf[*nf], modulus, tE, tP, disc);
 	if(ret == ECM_NO_FACTOR_FOUND)
-	    ret = process_many_curves(tf[*nf],modulus,B1,tE,tP,nE,
-				      onebyone,savefilename,disc);
+	    ret = process_many_curves(tf[*nf],modulus,B1,tE,tP,nE,params,
+				      onebyone,savefilename);
 	else{
 	    printf("Quid? %d\n", ret);
 	    break;
@@ -2725,9 +2711,9 @@ process_many_curves_loop(mpz_t tf[], int *nf, mpz_t n, double B1,
 	    /* update n right now */
 	    mpz_tdiv_q(n, n, f);
 	    gmp_printf("# recursive call for f=%Zd\n", f);
-	    ret2 = process_many_curves_loop(tf, nf, f, B1, fic_EP,
-					    torsion, smin, smax, nE, disc,
-					    savefilename);
+	    ret2 = process_many_curves_loop(tf, nf, f, B1, params, fic_EP,
+					    torsion, smin, smax, nE,
+					    disc, savefilename);
 	    /* there is always some cofactor to store */
 	    mpz_set(tf[*nf], f);
 	    *nf += 1;
@@ -2756,125 +2742,134 @@ usage (char *cmd)
 int
 main (int argc, char *argv[])
 {
-  mpz_t n, tf[NFMAX];
-  int res = 0, smin = -1, smax = -1, ncurves = 0, method = ECM_ECM;
-  int nf = 0, i;
-  double B1 = 0.0;
-  long disc = 0;
-  char *infilename = NULL, *curvesname = NULL, *torsion = NULL;
-  char buf[10000];
-  FILE *infile = NULL;
-  char *savefilename = NULL;
+    mpz_t n, tf[NFMAX];
+    int res = 0, smin = -1, smax = -1, ncurves = 0, method = ECM_ECM;
+    int nf = 0, i;
+    double B1 = 0.0;
+    long disc = 0;
+    char *infilename = NULL, *curvesname = NULL, *torsion = NULL;
+    char buf[10000];
+    FILE *infile = NULL;
+    char *savefilename = NULL;
+    ecm_params params;
 
-  /* first look for options */
-  while ((argc > 1) && (argv[1][0] == '-')){
-      if (strcmp (argv[1], "-h") == 0 || strcmp (argv[1], "--help") == 0){
-          usage (argv[0]);
-          exit (EXIT_SUCCESS);
-      }
-      else if ((argc > 2) && (strcmp (argv[1], "-B1") == 0)){
-	  B1 = atof(argv[2]);
-	  argv += 2;
-	  argc -= 2;
-      }
-      else if ((argc > 2) && (strcmp (argv[1], "-inp") == 0)){
-	  infilename = argv[2];
-	  if(strcmp(infilename, "-") == 0)
-	      infile = stdin;
-	  else{
-	      infile = fopen (infilename, "r");
-	      if (!infile){
-		  fprintf (stderr, "Can't find input file %s\n", infilename);
-		  exit (EXIT_FAILURE);
+    /* first look for options */
+    while ((argc > 1) && (argv[1][0] == '-')){
+	if (strcmp (argv[1], "-h") == 0 || strcmp (argv[1], "--help") == 0){
+	    usage (argv[0]);
+	    exit (EXIT_SUCCESS);
+	}
+	else if ((argc > 2) && (strcmp (argv[1], "-B1") == 0)){
+	    B1 = atof(argv[2]);
+	    argv += 2;
+	    argc -= 2;
+	}
+	else if ((argc > 2) && (strcmp (argv[1], "-inp") == 0)){
+	    infilename = argv[2];
+	    if(strcmp(infilename, "-") == 0)
+		infile = stdin;
+	    else{
+		infile = fopen (infilename, "r");
+		if (!infile){
+		    fprintf (stderr, "Can't find input file %s\n", infilename);
+		    exit (EXIT_FAILURE);
 	      }
-	  }
-	  argv += 2;
-	  argc -= 2;
-      }
-      else if ((argc > 2) && (strcmp (argv[1], "-curves") == 0)){
-	  curvesname = argv[2];
-	  argv += 2;
-	  argc -= 2;
-      }
-      /* one may restrict the number of curves used from file */
-      else if ((argc > 2) && (strcmp (argv[1], "-ncurves") == 0)){
-	  ncurves = atoi(argv[2]);
-	  argv += 2;
-	  argc -= 2;
-      }
-      /** torsion related parameters **/
-      else if ((argc > 2) && (strcmp (argv[1], "-torsion") == 0)){
-	  torsion = argv[2];
-	  argv += 2;
-	  argc -= 2;
-      }
-      else if ((argc > 2) && (strcmp (argv[1], "-smin") == 0)){
-	  smin = atoi(argv[2]);
-	  argv += 2;
-	  argc -= 2;
-      }
-      else if ((argc > 2) && (strcmp (argv[1], "-smax") == 0)){
-	  smax = atoi(argv[2]);
-	  argv += 2;
-	  argc -= 2;
-      }
-      else if ((argc > 2) && (strcmp (argv[1], "-disc") == 0)){
-	  disc = atol(argv[2]);
-	  ncurves = 1;
-	  argv += 2;
-	  argc -= 2;
-      }
-      else if ((argc > 2) && (strcmp (argv[1], "-save") == 0))
-	{
-	  savefilename = argv[2];
-	  argv += 2;
-	  argc -= 2;
+	    }
+	    argv += 2;
+	    argc -= 2;
 	}
-      else if (strcmp (argv[1], "-pm1") == 0)
-	{
-	  method = ECM_PM1;
-	  argv++;
-	  argc--;
+	else if ((argc > 2) && (strcmp (argv[1], "-curves") == 0)){
+	    curvesname = argv[2];
+	    argv += 2;
+	    argc -= 2;
 	}
-      else if (strcmp (argv[1], "-pp1") == 0)
-	{
-	  method = ECM_PP1;
-	  argv++;
-	  argc--;
+	/* one may restrict the number of curves used from file */
+	else if ((argc > 2) && (strcmp (argv[1], "-ncurves") == 0)){
+	    ncurves = atoi(argv[2]);
+	    argv += 2;
+	    argc -= 2;
 	}
-      else{
-	  fprintf (stderr, "Unknown option: %s\n", argv[1]);
-	  exit (EXIT_FAILURE);
-      }
-  }
-  if(infile == NULL){
-      fprintf (stderr, "No input file given\n");
-      exit (EXIT_FAILURE);
-  }
-  if(curvesname == NULL && torsion == NULL && disc == 0){
-      fprintf (stderr, "No curve file given\n");
-      exit (EXIT_FAILURE);
-  }
-  if(curvesname != NULL && torsion != NULL){
-      fprintf (stderr, "Cannot have -curves and -torsion at the same time.\n");
-      exit (EXIT_FAILURE);
-  }
-  if((disc != 0) && ((torsion != NULL) || (curvesname != NULL))){
-      fprintf (stderr, "Cannot have -disc and -curves or -torsion at the same time.\n");
-      exit (EXIT_FAILURE);
-  }
-  if(torsion != NULL && ncurves == 0){
-      fprintf (stderr, "You must provide ncurves != 0 with -torsion.\n");
-      exit (EXIT_FAILURE);
-  }
-
-  if(torsion != NULL)
-      printf("GMP-ECM [torsion=%s:%d-%d]\n", torsion, smin, smax);
-
-  mpz_init (n);
-  for(i = 0; i < NFMAX; i++)
-      mpz_init(tf[i]); /* for potential factors */
-  while(fscanf(infile, "%s", buf) != EOF){
+	/** torsion related parameters **/
+	else if ((argc > 2) && (strcmp (argv[1], "-torsion") == 0)){
+	    torsion = argv[2];
+	    argv += 2;
+	    argc -= 2;
+	}
+	else if ((argc > 2) && (strcmp (argv[1], "-smin") == 0)){
+	    smin = atoi(argv[2]);
+	    argv += 2;
+	    argc -= 2;
+	}
+	else if ((argc > 2) && (strcmp (argv[1], "-smax") == 0)){
+	    smax = atoi(argv[2]);
+	    argv += 2;
+	    argc -= 2;
+	}
+	else if ((argc > 2) && (strcmp (argv[1], "-disc") == 0)){
+	    disc = atol(argv[2]);
+	    ncurves = 1;
+	    argv += 2;
+	    argc -= 2;
+	}
+	else if ((argc > 2) && (strcmp (argv[1], "-save") == 0)){
+	    savefilename = argv[2];
+	    argv += 2;
+	    argc -= 2;
+	}
+	else if (strcmp (argv[1], "-pm1") == 0){
+	    method = ECM_PM1;
+	    argv++;
+	    argc--;
+	}
+	else if (strcmp (argv[1], "-pp1") == 0){
+	    method = ECM_PP1;
+	    argv++;
+	    argc--;
+	}
+	else{
+	    fprintf (stderr, "Unknown option: %s\n", argv[1]);
+	    exit (EXIT_FAILURE);
+	}
+    }
+    if(infile == NULL){
+	fprintf (stderr, "No input file given\n");
+	exit (EXIT_FAILURE);
+    }
+    if(curvesname == NULL && torsion == NULL && disc == 0){
+	fprintf (stderr, "No curve file given\n");
+	exit (EXIT_FAILURE);
+    }
+    if(curvesname != NULL && torsion != NULL){
+	fprintf (stderr, "Cannot have -curves and -torsion at the same time.\n");
+	exit (EXIT_FAILURE);
+    }
+    if((disc != 0) && ((torsion != NULL) || (curvesname != NULL))){
+	fprintf (stderr, "Cannot have -disc and -curves or -torsion at the same time.\n");
+	exit (EXIT_FAILURE);
+    }
+    if(torsion != NULL && ncurves == 0){
+	fprintf (stderr, "You must provide ncurves != 0 with -torsion.\n");
+	exit (EXIT_FAILURE);
+    }
+    
+    if(torsion != NULL)
+	printf("GMP-ECM [torsion=%s:%d-%d]\n", torsion, smin, smax);
+    if(disc != 0)
+	printf("GMP-ECM [CM=%ld]\n", disc);
+    
+    mpz_init (n);
+    for(i = 0; i < NFMAX; i++)
+	mpz_init(tf[i]); /* for potential factors */
+    ecm_init(params);
+#if DEBUG_MANY_EC >= 2
+    params->verbose = 2;
+#else
+    params->verbose = 1;
+#endif
+#if 1
+    compute_s_4_add_sub(params->batch_s, (unsigned long)B1, disc);
+#endif
+    while(fscanf(infile, "%s", buf) != EOF){
       /* read number */
       if(buf[0] == '#'){
 	  char c;
@@ -2891,7 +2886,7 @@ main (int argc, char *argv[])
       }
       if(method == ECM_ECM){
 	  nf = 0;
-	  res = process_many_curves_loop(tf, &nf, n, B1,
+	  res = process_many_curves_loop(tf, &nf, n, B1, params,
 					 curvesname,
 					 torsion, smin, smax, ncurves,
 					 disc,
@@ -2902,12 +2897,13 @@ main (int argc, char *argv[])
 	      gmp_printf("%Zd\n", tf[i]);
 #endif
       }
-  }
-  if(infile != stdin)
-      fclose(infile);
-  for(i = 0; i < NFMAX; i++)
-      mpz_clear (tf[i]);
-  mpz_clear (n);
-
-  return res;
+    }
+    ecm_clear(params);
+    if(infile != stdin)
+	fclose(infile);
+    for(i = 0; i < NFMAX; i++)
+	mpz_clear (tf[i]);
+    mpz_clear (n);
+    
+    return res;
 }
