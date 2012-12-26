@@ -2627,9 +2627,31 @@ build_curves_with_CM(mpz_t f, mpmod_t n, ec_curve_t *tE, ec_point_t *tP,
 	mod_from_rat_str(f, "4/3", n->orig_modulus);
 	mpres_set_z(tP[0]->x, f, n);
     }
-    /* D = -8: E_c: Y^2 = X^3+4*c*X^2+2*c^2*X => Montgomery when 2 = z^2 
-       c = 1 => rank = 1, generator is (-1 : -1 : 1)
-     */
+    else if(disc == -7){
+	/* E = y^2 = x^3 - 2222640*x - 1568294784
+	   P = (2052 : 50112 : 1) */
+	tE[0]->type = ECM_EC_TYPE_WEIERSTRASS;
+	mpres_set_si(tE[0]->A, -2222640, n);
+        mpres_set_si(tP[0]->x, 2052, n);
+        mpres_set_si(tP[0]->y, 50112, n);
+    }
+    else if(disc == -8){
+	/* D = -8: E_c: Y^2 = X^3+4*c*X^2+2*c^2*X => Montgomery when 2 = z^2 
+	   c = 1 => rank = 1, generator is (-1 : -1 : 1)
+	*/
+	tE[0]->type = ECM_EC_TYPE_WEIERSTRASS;
+	mpres_set_si(tE[0]->A, -4320, n);
+        mpres_set_si(tP[0]->x, 12, n);
+        mpres_set_si(tP[0]->y, -216, n);
+    }
+    else if(disc == -11){
+	/*     E:=EllipticCurve([0, 0, 0, -2^5*3*11, 2^4*7*11^2]);
+	       [ (33 : 121 : 1) ] */
+	tE[0]->type = ECM_EC_TYPE_WEIERSTRASS;
+	mpres_set_si(tE[0]->A, -1056, n);
+	mpres_set_si(tP[0]->x, 33, n);
+        mpres_set_si(tP[0]->y, 121, n);
+    }
     else{
 	printf("Discriminant %ld unknown\n", disc);
 	ret = ECM_ERROR;
