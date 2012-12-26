@@ -681,7 +681,8 @@ compute_s_4_add_sub(mpz_t s, unsigned long B1, long disc)
     compute_s(t, B1, disc);
     printf("# computing prod(p^e <= %lu): %ldms\n", B1, elltime(tp,cputime()));
     w = get_add_sub_w(t);
-    Slen = 2 * mpz_sizeinbase(t, 2); /* HERE! */
+    /* Slen = 2 * log_{2^w}(t) = 2*log_2(t)/w = 2 * 64 * size(t)/w */
+    Slen = (2 * GMP_NUMB_BITS * mpz_size(t)) / w;
     S = (short *)malloc(Slen * sizeof(short));
     iS = build_add_sub_chain(S, Slen, t, w);
     printf("# NAF has %d terms (w=%d, Slen=%d)\n", iS, w, Slen);
