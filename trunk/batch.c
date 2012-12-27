@@ -40,8 +40,13 @@ http://www.gnu.org/licenses/ or write to the Free Software Foundation, Inc.,
 #define MAX_B1_BATCH 50685770167UL
 #endif
 
+/* If forbiddenres != NULL, forbiddenres = "m r_1 ... r_k -1" indicating that
+   if p = r_i mod m, then p^2 should be considered instead of p. This has
+   only a sense for CM curves. We assume r_1 < r_2 < ... < r_k.
+   Typical example: "4 3 -1" for curves Y^2 = X^3 + a * X.
+*/
 void
-compute_s (mpz_t s, unsigned long B1, long disc)
+compute_s (mpz_t s, unsigned long B1, int *forbiddenres)
 {
   mpz_t acc[MAX_HEIGHT]; /* To accumulate products of prime powers */
   unsigned int i, j;
@@ -57,16 +62,23 @@ compute_s (mpz_t s, unsigned long B1, long disc)
     {
       pp = qi = pi;
       maxpp = B1 / qi;
-      if(disc == -4 && (qi & 3) == 3){
+      if(forbiddenres != NULL && pi > 2){
 	  /* non splitting primes can occur in even powers only */
-	  if(qi <= maxpp){
-	      /* qi <= B1/qi => qi^2 <= B1 */
-	      qi *= qi;
-	  }
-	  else{
-	      /* qi is too large, do not increment i */
-	      pi = getprime (pi);
-	      continue;
+	  int rp = (int)(pi % forbiddenres[0]);
+	  for(j = 1; forbiddenres[j] >= 0; j++)
+	      if(rp >= forbiddenres[j])
+		  break;
+	  if(rp == forbiddenres[j]){
+	      /*	      printf("p=%lu is forbidden\n", pi);*/
+	      if(qi <= maxpp){
+		  /* qi <= B1/qi => qi^2 <= B1, let it go */
+		  qi *= qi;
+	      }
+	      else{
+		  /* qi is too large, do not increment i */
+		  pi = getprime (pi);
+		  continue;
+	      }
 	  }
       }
       while (pp <= maxpp)
