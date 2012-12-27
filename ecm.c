@@ -2503,7 +2503,7 @@ ecm (mpz_t f, mpz_t x, mpz_t y, int *param, mpz_t sigma, mpz_t n, mpz_t go,
 
       st = cputime ();
       /* construct the batch exponent */
-      compute_s (batch_s, B1, 0);
+      compute_s (batch_s, B1, NULL);
       outputf (OUTPUT_VERBOSE, "Computing batch product (of %zu bits) of "
                                "primes below B1=%1.0f took %ldms\n", 
                mpz_sizeinbase (batch_s, 2), B1, cputime () - st);
