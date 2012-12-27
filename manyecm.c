@@ -2675,13 +2675,20 @@ build_curves_with_CM(mpz_t f, mpmod_t n, ec_curve_t *tE, ec_point_t *tP,
 	mpres_set_si(tP[0]->y, 4, n);
     }
     else if(disc == -4){
+#if 1
 	/* Y^2 = X^3 + 9 * X has rank 1 and a 4-torsion point */
 	/* a generator is (4 : 10 : 1) */
+	tE[0]->type = ECM_EC_TYPE_WEIERSTRASS;
+        mpres_set_ui(tE[0]->A, 9, n);
+        mpres_set_si(tP[0]->x, 4, n);
+        mpres_set_si(tP[0]->y, 10, n);
+#else /* one day, use this? */
 	/* => 1/3*y^2 = x^3 + x, gen = (4/3, 10/3) */
 	tE[0]->type = ECM_EC_TYPE_MONTGOMERY;
 	mpres_set_ui(tE[0]->A, 0, n);
 	mod_from_rat_str(f, "4/3", n->orig_modulus);
 	mpres_set_z(tP[0]->x, f, n);
+#endif
     }
     else if(disc == -7){
 	/* E = y^2 = x^3 - 2222640*x - 1568294784
