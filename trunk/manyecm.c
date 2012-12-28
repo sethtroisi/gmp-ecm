@@ -2813,6 +2813,78 @@ process_many_curves_loop(mpz_t tf[], int *nf, mpz_t n, double B1,
     return ret;
 }
 
+/* Assume b^n = 1 mod N. */
+int
+odd_square_root_mod_N(mpz_t f, int b, int n, int q, mpz_t N)
+{
+    mpz_t zeta, tmp, tmp2;
+    int np = n, e = 0, *tab, x, ret = ECM_NO_FACTOR_FOUND;
+
+    while(np % q == 0){
+	e++;
+	np /= q;
+    }
+    printf("# n = %d = %d^%d * %d\n", n, q, e, np);
+    mpz_init_set_ui(zeta, b);
+    mpz_powm_ui(zeta, zeta, np, N);
+    if(mpz_cmp_ui(zeta, 1) == 0){
+	printf("# missed: zeta == 1\n");
+    }
+    else{
+	/* look for k s.t. zeta^{q^k} = 1 */
+	mpz_init_set(tmp, zeta);
+	do{
+	    mpz_set(zeta, tmp);
+	    mpz_powm_ui(tmp, tmp, q, N);
+	} while(mpz_cmp_ui(tmp, 1) != 0);
+	gmp_printf("# zeta_%d = %Zd\n", q, zeta);
+	mpz_sub_si(f, zeta, 1);
+	mpz_gcd(f, f, N);
+	if(mpz_cmp_ui(f, 1) != 0){
+	    printf("# Factor found (gcd(zeta-1, N)): ");
+	    mpz_out_str(stdout, 10, f);
+	    printf("\n");
+	    ret = ECM_FACTOR_FOUND_STEP1;
+	    goto end_of_odd_sqrt;
+	}
+	/* compute eta0 = sum zeta^R */
+	tab = (int *)malloc((q+1) * sizeof(int));
+	memset(tab, 0, (q+1) * sizeof(int));
+	for(x = 1; x < q; x++)
+	    tab[(x*x) % q] = 1;
+	mpz_set_ui(tmp, 0);
+	mpz_init(tmp2);
+	for(x = 1; x < q; x++)
+	    if(tab[x] == 1){
+		mpz_powm_ui(tmp2, zeta, x, N);
+		mpz_add(tmp, tmp, tmp2);
+	    }
+	mpz_add(tmp, tmp, tmp);
+	mpz_add_ui(tmp, tmp, 1);
+	mpz_mod(tmp, tmp, N);
+	mpz_mul(tmp2, tmp, tmp);
+	if(q % 4 == 1){
+	    gmp_printf("# sqrt(%d) = %Zd\n", q, tmp);
+	    mpz_sub_si(tmp2, tmp2, q);
+	}
+	else{
+	    gmp_printf("# sqrt(-%d) = %Zd\n", q, tmp);
+	    mpz_add_si(tmp2, tmp2, q);
+	}
+	mpz_mod(tmp2, tmp2, N);
+	if(mpz_sgn(tmp2) != 0){
+	    gmp_printf("Bad check: %Zd\n", tmp2);
+	    gmp_printf("N:=%Zd;\n", N);
+	}
+	mpz_clear(tmp);
+	mpz_clear(tmp2);
+	free(tab);
+    }
+ end_of_odd_sqrt:
+    mpz_clear(zeta);
+    return ret;
+}
+
 /* Consider M = b^n+1 if n > 0, M = b^(-n)-1 otherwise.
    N is supposed to be a *primitive* cofactor of M.
    Then find a special cocktail of CM curves a` la Atkin.
@@ -2821,8 +2893,24 @@ int
 process_special_blend(mpz_t tf[], int *nf, mpz_t N, int b, int n, double B1, 
 		      ecm_params params, char *savefilename)
 {
-    int sgn = 1, disc1 = 0, iq, q;
-    int tabq[] = {3, 5, 7, 11, 0};
+    int sgn = 1, disc1 = 0, q, nn, disc, i, j, ret = ECM_NO_FACTOR_FOUND;
+    int tabd[][3] = {{-3, 5, 0}, {-4, 5, 0}, {8, -3, 0}, {5, -7, 0},
+		     {-8, 5, 0}, {-3, 17, 0}, {-4, 13, 0}, {8, -11, 0},
+		     {-7, 13, 0}, {5, -23, 0}, {-3, 41, 0},
+#if 0
+148, 187, 232, 235, 267, 403, 427,
+		     /* h = g = 4 */
+		  84, 120, 132, 168, 195, 228, 280, 312, 340, 372, 408, 
+		  435, 483, 520, 532, 555, 595, 627, 708, 715, 760, 795,
+		  1012, 1435,
+		     /* h = g = 8 */
+		  420, 660, 840, 1092, 1155, 1320, 1380, 1428, 1540, 1848, 
+		  1995, 3003, 3315,
+		     /* h = g = 16 */
+		  5460
+#endif
+		     {0, 0, 0}
+    };
 
     if(n < 0){
 	sgn = -1;
@@ -2835,6 +2923,7 @@ process_special_blend(mpz_t tf[], int *nf, mpz_t N, int b, int n, double B1,
 	}
     }
     else{
+	nn = 2 * n;
 	if(n % 2 == 0){
 	    /* b^(2*k) = -1 mod N => (b^k)^2 = -1 mod N */
 	    disc1 = -4;
@@ -2848,24 +2937,36 @@ process_special_blend(mpz_t tf[], int *nf, mpz_t N, int b, int n, double B1,
 	}
     }
     /* each odd prime factor q of n can lead to sqrt(q*) */
-    printf("# Factors of n=%d:", n);
-    for(iq = 0; tabq[iq] != 0; iq++){
-	q = tabq[iq];
-	if(n % q == 0)
-	    printf(" %d", q);
+    printf("# Using factors of n=%d\n", n);
+    for(i = 0; tabd[i][0] != 0; i++){
+	disc = tabd[i][0];
+	for(j = 1; tabd[i][j] != 0; j++)
+	    disc *= tabd[i][j];
+	if(n % abs(disc) == 0){
+	    printf("I can use tabd[%d] = %d\n", i, disc);
+	    for(j = 0; tabd[i][j] != 0; j++){
+		q = tabd[i][j];
+		if(abs(q) % 2 == 1){
+		    ret = odd_square_root_mod_N(tf[*nf], b, nn, abs(q), N);
+		    if(ret != ECM_NO_FACTOR_FOUND)
+			break;
+		}
+		else{
+		    printf("# I cannot use even primes right now!\n");
+		}
+	    }
+	}
+	if(ret != ECM_NO_FACTOR_FOUND)
+	    break;
     }
-    printf("\n");
-    if(disc1 != 0){
+    if(ret != ECM_NO_FACTOR_FOUND && disc1 != 0){
 	printf("# We can use disc=%d\n", disc1);
 	return process_many_curves_loop(tf, nf, N, B1, params,
 					NULL, NULL, 0, 0, 1,
 					disc1,
 					savefilename);
     }
-    else{
-	printf("# No disc suggested\n");
-	return ECM_ERROR;
-    }
+    return ret;
 }
 
 static void
@@ -2879,7 +2980,6 @@ usage (char *cmd)
     printf("                 M=Montgomery, W=Weierstrass, H=Hessian\n");
     printf("  -disc D        uses CM curves with discriminant D\n");
     printf("  -b b           for numbers b^n+/-1 (activates some special code)\n");
-    printf("  -n n           the n in b^n+/1, n > 0 for +1, n < 0 for -1\n");
     printf("  -h, --help     Prints this help and exit.\n");
 }
 
@@ -2962,11 +3062,6 @@ main(int argc, char *argv[])
 	    argv += 2;
 	    argc -= 2;
 	}
-	else if ((argc > 2) && (strcmp (argv[1], "-n") == 0)){
-	    n = atoi(argv[2]);
-	    argv += 2;
-	    argc -= 2;
-	}
 	else if ((argc > 2) && (strcmp (argv[1], "-save") == 0)){
 	    savefilename = argv[2];
 	    argv += 2;
@@ -3007,15 +3102,11 @@ main(int argc, char *argv[])
 	fprintf (stderr, "You must provide ncurves != 0 with -torsion.\n");
 	exit (EXIT_FAILURE);
     }
-    if(b != 0 && infile != stdin){
-	fprintf (stderr, "You cannot have -b and not stdin at the same time.\n");
-	exit (EXIT_FAILURE);
-    }
     
     if(torsion != NULL)
 	printf("GMP-ECM [torsion=%s:%d-%d]\n", torsion, smin, smax);
     if(disc != 0)
-	printf("GMP-ECM [CM=%ld]\n", disc);
+	printf("GMP-ECM [CM=%d]\n", disc);
     
     mpz_init (N);
     for(i = 0; i < NFMAX; i++)
@@ -3029,12 +3120,6 @@ main(int argc, char *argv[])
 #if 1
     compute_s_4_add_sub(params->batch_s, (unsigned long)B1, disc);
 #endif
-    if(b != 0){
-	if(n > 0)
-	    printf("You must provide a cofactor of %d^%d+1\n", b, n);
-	else
-	    printf("You must provide a cofactor of %d^%d-1\n", b, -n);
-    }
     while(fscanf(infile, "%s", buf) != EOF){
       /* read number */
       if(buf[0] == '#'){
@@ -3045,6 +3130,12 @@ main(int argc, char *argv[])
 	      printf("%c", c);
 	  printf("\n");
 	  continue;
+      }
+      if(b != 0){
+	  /* line should be: "b n N" */
+	  b = atoi(buf);
+	  fscanf(infile, "%d", &n);
+	  fscanf(infile, "%s", buf);
       }
       if(mpz_set_str (N, buf, 10)){
 	  fprintf (stderr, "Invalid number: %s\n", argv[1]);
