@@ -2657,14 +2657,16 @@ build_curves_with_torsion(mpz_t f, mpmod_t n, ec_curve_t *tE, ec_point_t *tP,
     return ret;
 }
 
+/* TODO: add some twist */
 int
-build_curves_with_CM(mpz_t f, mpmod_t n, ec_curve_t *tE, ec_point_t *tP, 
-		     long disc)
+build_curves_with_CM(mpz_t f, int *nE, ec_curve_t *tE, ec_point_t *tP, 
+		     long disc, mpmod_t n)
 {
     int ret = ECM_NO_FACTOR_FOUND;
 
     ec_curve_init(tE[0], n);
     ec_point_init(tP[0], tE[0], n);
+    *nE = 1;
     if(disc == -3){
 	/* D = -3 => E: Y^2 = X^3 + 8 has rank 1, generator (2 : 4 : 1)
 	   f4 = P2*P4, disc(P2) = 3*2^4
@@ -2735,7 +2737,7 @@ process_many_curves_loop(mpz_t tf[], int *nf, mpz_t n, double B1,
 			 ecm_params params,
 			 char *fic_EP,
 			 char *torsion, int smin, int smax, int nE,
-			 long disc,
+			 int disc,
 			 char *savefilename)
 {
     ec_curve_t tE[NCURVE_MAX];
@@ -2754,7 +2756,7 @@ process_many_curves_loop(mpz_t tf[], int *nf, mpz_t n, double B1,
 	    ret = build_curves_with_torsion(tf[*nf],modulus,tE,tP,
 					    torsion,smin,smax,nE);
 	else if(disc != 0)
-	    ret = build_curves_with_CM(tf[*nf], modulus, tE, tP, disc);
+	    ret = build_curves_with_CM(tf[*nf], &nE, tE, tP, disc, modulus);
 	if(ret == ECM_NO_FACTOR_FOUND)
 	    ret = process_many_curves(tf[*nf],modulus,B1,tE,tP,nE,params,
 				      onebyone,savefilename);
@@ -2811,6 +2813,61 @@ process_many_curves_loop(mpz_t tf[], int *nf, mpz_t n, double B1,
     return ret;
 }
 
+/* Consider M = b^n+1 if n > 0, M = b^(-n)-1 otherwise.
+   N is supposed to be a *primitive* cofactor of M.
+   Then find a special cocktail of CM curves a` la Atkin.
+ */
+int
+process_special_blend(mpz_t tf[], int *nf, mpz_t N, int b, int n, double B1, 
+		      ecm_params params, char *savefilename)
+{
+    int sgn = 1, disc1 = 0, iq, q;
+    int tabq[] = {3, 5, 7, 11, 0};
+
+    if(n < 0){
+	sgn = -1;
+	n = -n;
+    }
+    /* look for discriminants of class number 1, hence rational CM curves */
+    if(sgn == -1){
+	if(n % 2 == 1){
+	    /* b^(2*k+1) = 1 mod N => (b^(k+1))^2 = b mod N */
+	}
+    }
+    else{
+	if(n % 2 == 0){
+	    /* b^(2*k) = -1 mod N => (b^k)^2 = -1 mod N */
+	    disc1 = -4;
+	}
+	else{
+	    /* b^(2*k+1) = -1 mod N => (b^(k+1))^2 = -b mod N */
+	    if(b == 2)
+		disc1 = -8;
+	    else if(b == 3 || b == 7 || b == 11)
+		disc1 = -b;
+	}
+    }
+    /* each odd prime factor q of n can lead to sqrt(q*) */
+    printf("# Factors of n=%d:", n);
+    for(iq = 0; tabq[iq] != 0; iq++){
+	q = tabq[iq];
+	if(n % q == 0)
+	    printf(" %d", q);
+    }
+    printf("\n");
+    if(disc1 != 0){
+	printf("# We can use disc=%d\n", disc1);
+	return process_many_curves_loop(tf, nf, N, B1, params,
+					NULL, NULL, 0, 0, 1,
+					disc1,
+					savefilename);
+    }
+    else{
+	printf("# No disc suggested\n");
+	return ECM_ERROR;
+    }
+}
+
 static void
 usage (char *cmd)
 {
@@ -2820,19 +2877,22 @@ usage (char *cmd)
     printf("                 file_N can be '-', in which case stdin is used\n");
     printf("  -curves file_C curves to be used, format '[M|W|H] A x0 y0' per line\n");
     printf("                 M=Montgomery, W=Weierstrass, H=Hessian\n");
-    printf("  -h, --help   Prints this help and exit.\n");
+    printf("  -disc D        uses CM curves with discriminant D\n");
+    printf("  -b b           for numbers b^n+/-1 (activates some special code)\n");
+    printf("  -n n           the n in b^n+/1, n > 0 for +1, n < 0 for -1\n");
+    printf("  -h, --help     Prints this help and exit.\n");
 }
 
 #define NFMAX 100
 
 int
-main (int argc, char *argv[])
+main(int argc, char *argv[])
 {
-    mpz_t n, tf[NFMAX];
+    mpz_t N, tf[NFMAX];
     int res = 0, smin = -1, smax = -1, ncurves = 0, method = ECM_ECM;
     int nf = 0, i;
     double B1 = 0.0;
-    long disc = 0;
+    int disc = 0, b = 0, n = 0;
     char *infilename = NULL, *curvesname = NULL, *torsion = NULL;
     char buf[10000];
     FILE *infile = NULL;
@@ -2897,6 +2957,16 @@ main (int argc, char *argv[])
 	    argv += 2;
 	    argc -= 2;
 	}
+	else if ((argc > 2) && (strcmp (argv[1], "-b") == 0)){
+	    b = atoi(argv[2]);
+	    argv += 2;
+	    argc -= 2;
+	}
+	else if ((argc > 2) && (strcmp (argv[1], "-n") == 0)){
+	    n = atoi(argv[2]);
+	    argv += 2;
+	    argc -= 2;
+	}
 	else if ((argc > 2) && (strcmp (argv[1], "-save") == 0)){
 	    savefilename = argv[2];
 	    argv += 2;
@@ -2921,7 +2991,7 @@ main (int argc, char *argv[])
 	fprintf (stderr, "No input file given\n");
 	exit (EXIT_FAILURE);
     }
-    if(curvesname == NULL && torsion == NULL && disc == 0){
+    if(curvesname == NULL && torsion == NULL && disc == 0 && b == 0){
 	fprintf (stderr, "No curve file given\n");
 	exit (EXIT_FAILURE);
     }
@@ -2937,13 +3007,17 @@ main (int argc, char *argv[])
 	fprintf (stderr, "You must provide ncurves != 0 with -torsion.\n");
 	exit (EXIT_FAILURE);
     }
+    if(b != 0 && infile != stdin){
+	fprintf (stderr, "You cannot have -b and not stdin at the same time.\n");
+	exit (EXIT_FAILURE);
+    }
     
     if(torsion != NULL)
 	printf("GMP-ECM [torsion=%s:%d-%d]\n", torsion, smin, smax);
     if(disc != 0)
 	printf("GMP-ECM [CM=%ld]\n", disc);
     
-    mpz_init (n);
+    mpz_init (N);
     for(i = 0; i < NFMAX; i++)
 	mpz_init(tf[i]); /* for potential factors */
     ecm_init(params);
@@ -2955,6 +3029,12 @@ main (int argc, char *argv[])
 #if 1
     compute_s_4_add_sub(params->batch_s, (unsigned long)B1, disc);
 #endif
+    if(b != 0){
+	if(n > 0)
+	    printf("You must provide a cofactor of %d^%d+1\n", b, n);
+	else
+	    printf("You must provide a cofactor of %d^%d-1\n", b, -n);
+    }
     while(fscanf(infile, "%s", buf) != EOF){
       /* read number */
       if(buf[0] == '#'){
@@ -2966,30 +3046,34 @@ main (int argc, char *argv[])
 	  printf("\n");
 	  continue;
       }
-      if(mpz_set_str (n, buf, 10)){
+      if(mpz_set_str (N, buf, 10)){
 	  fprintf (stderr, "Invalid number: %s\n", argv[1]);
 	  exit (1);
       }
+      if(b != 0){
+	  nf = 0;
+	  res = process_special_blend(tf,&nf,N,b,n,B1,params,savefilename);
+      }
       if(method == ECM_ECM){
 	  nf = 0;
-	  res = process_many_curves_loop(tf, &nf, n, B1, params,
+	  res = process_many_curves_loop(tf, &nf, N, B1, params,
 					 curvesname,
 					 torsion, smin, smax, ncurves,
 					 disc,
 					 savefilename);
-#if 0	  
-	  printf("List of factors:\n");
-	  for(i = 0; i < nf; i++)
-	      gmp_printf("%Zd\n", tf[i]);
-#endif
       }
     }
+#if 0	  
+    printf("List of factors:\n");
+    for(i = 0; i < nf; i++)
+	gmp_printf("%Zd\n", tf[i]);
+#endif
     ecm_clear(params);
     if(infile != stdin)
 	fclose(infile);
     for(i = 0; i < NFMAX; i++)
 	mpz_clear (tf[i]);
-    mpz_clear (n);
+    mpz_clear (N);
     
     return res;
 }
