@@ -2657,11 +2657,43 @@ build_curves_with_torsion(mpz_t f, mpmod_t n, ec_curve_t *tE, ec_point_t *tP,
     return ret;
 }
 
+static int
+adjust_CM(mpz_t f, ec_curve_t E, ec_point_t P, mpz_t N, mpz_t j)
+{
+    mpz_t k;
+    long x0;
+    int ret = ECM_NO_FACTOR_FOUND;
+
+    /* k = j/(1728-j) */
+    mpz_init_set_si(k, 1728);
+    mpz_sub(k, k, j);
+    mpz_mod(k, k, N);
+    if(mpz_invert(f, k, N) == 0){
+	printf("# factor found (adjust_CM)\n");
+	mpz_gcd(f, k, N);
+	ret = ECM_FACTOR_FOUND_STEP1;
+    }
+    else{
+	mpz_mul(k, f, j);
+	mpz_mod(k, k, N);
+	/* a = 3*k, b = 2*k */
+	mpz_set(E->A, k);
+	mpz_add(j, k, k);
+	mpz_mod(j, j, N);
+	mpz_add(E->A, E->A, j);
+	mpz_mod(E->A, E->A, N);
+	x0 = 0;
+	ec_force_point(E, P, j, &x0, N);
+    }
+    return ret;
+}
+
 /* TODO: add some twist */
 int
 build_curves_with_CM(mpz_t f, int *nE, ec_curve_t *tE, ec_point_t *tP, 
-		     long disc, mpmod_t n)
+		     int disc, mpmod_t n, mpz_t *sqroots)
 {
+    mpz_t j;
     int ret = ECM_NO_FACTOR_FOUND;
 
     ec_curve_init(tE[0], n);
@@ -2717,8 +2749,22 @@ build_curves_with_CM(mpz_t f, int *nE, ec_curve_t *tE, ec_point_t *tP,
 	mpres_set_si(tP[0]->x, 33, n);
         mpres_set_si(tP[0]->y, 121, n);
     }
+    /* class number 2 */
+    else if(disc == -15){
+	/* it must be that sqroots[0] contains sqrt(5) mod N */
+	/* j = -(191025+85995*sqrt(5))/2 */
+	tE[0]->type = ECM_EC_TYPE_WEIERSTRASS;
+	mpz_init_set_si(j, 85995);
+	mpz_mul(j, j, sqroots[0]);
+	mpz_add_si(j, j, 191025);
+	mpz_neg(j, j);
+	mpz_mod(j, j, n->orig_modulus);
+	mod_div_2(j, n->orig_modulus);
+	ret = adjust_CM(f, tE[0], tP[0], n->orig_modulus, j);
+	mpz_clear(j);
+    }
     else{
-	printf("Discriminant %ld unknown\n", disc);
+	printf("Unknown discriminant: %d\n", disc);
 	ret = ECM_ERROR;
     }
     return ret;
@@ -2737,7 +2783,7 @@ process_many_curves_loop(mpz_t tf[], int *nf, mpz_t n, double B1,
 			 ecm_params params,
 			 char *fic_EP,
 			 char *torsion, int smin, int smax, int nE,
-			 int disc,
+			 int disc, mpz_t *sqroots,
 			 char *savefilename)
 {
     ec_curve_t tE[NCURVE_MAX];
@@ -2756,7 +2802,7 @@ process_many_curves_loop(mpz_t tf[], int *nf, mpz_t n, double B1,
 	    ret = build_curves_with_torsion(tf[*nf],modulus,tE,tP,
 					    torsion,smin,smax,nE);
 	else if(disc != 0)
-	    ret = build_curves_with_CM(tf[*nf], &nE, tE, tP, disc, modulus);
+	    ret = build_curves_with_CM(tf[*nf],&nE,tE,tP,disc,modulus,sqroots);
 	if(ret == ECM_NO_FACTOR_FOUND)
 	    ret = process_many_curves(tf[*nf],modulus,B1,tE,tP,nE,params,
 				      onebyone,savefilename);
@@ -2801,7 +2847,7 @@ process_many_curves_loop(mpz_t tf[], int *nf, mpz_t n, double B1,
 	    gmp_printf("# recursive call for f=%Zd\n", f);
 	    ret2 = process_many_curves_loop(tf, nf, f, B1, params, fic_EP,
 					    torsion, smin, smax, nE,
-					    disc, savefilename);
+					    disc, sqroots, savefilename);
 	    /* there is always some cofactor to store */
 	    mpz_set(tf[*nf], f);
 	    *nf += 1;
@@ -2815,7 +2861,7 @@ process_many_curves_loop(mpz_t tf[], int *nf, mpz_t n, double B1,
 
 /* Assume b^n = 1 mod N. */
 int
-odd_square_root_mod_N(mpz_t f, int b, int n, int q, mpz_t N)
+odd_square_root_mod_N(mpz_t f, mpz_t *sqroots, int b, int n, int q, mpz_t N)
 {
     mpz_t zeta, tmp, tmp2;
     int np = n, e = 0, *tab, x, ret = ECM_NO_FACTOR_FOUND;
@@ -2837,7 +2883,7 @@ odd_square_root_mod_N(mpz_t f, int b, int n, int q, mpz_t N)
 	    mpz_set(zeta, tmp);
 	    mpz_powm_ui(tmp, tmp, q, N);
 	} while(mpz_cmp_ui(tmp, 1) != 0);
-	gmp_printf("# zeta_%d = %Zd\n", q, zeta);
+	/*	gmp_printf("# zeta_%d = %Zd\n", q, zeta);*/
 	mpz_sub_si(f, zeta, 1);
 	mpz_gcd(f, f, N);
 	if(mpz_cmp_ui(f, 1) != 0){
@@ -2872,9 +2918,12 @@ odd_square_root_mod_N(mpz_t f, int b, int n, int q, mpz_t N)
 	    mpz_add_si(tmp2, tmp2, q);
 	}
 	mpz_mod(tmp2, tmp2, N);
-	if(mpz_sgn(tmp2) != 0){
+	if(mpz_sgn(tmp2) == 0)
+	    mpz_init_set(sqroots[0], tmp);
+	else{
 	    gmp_printf("Bad check: %Zd\n", tmp2);
 	    gmp_printf("N:=%Zd;\n", N);
+	    ret = ECM_ERROR;
 	}
 	mpz_clear(tmp);
 	mpz_clear(tmp2);
@@ -2888,16 +2937,18 @@ odd_square_root_mod_N(mpz_t f, int b, int n, int q, mpz_t N)
 /* Consider M = b^n+1 if n > 0, M = b^(-n)-1 otherwise.
    N is supposed to be a *primitive* cofactor of M.
    Then find a special cocktail of CM curves a` la Atkin.
+   TODO: solve the B1 choice problem...! Force disc?
  */
 int
 process_special_blend(mpz_t tf[], int *nf, mpz_t N, int b, int n, double B1, 
 		      ecm_params params, char *savefilename)
 {
     int sgn = 1, disc1 = 0, q, nn, disc, i, j, ret = ECM_NO_FACTOR_FOUND;
-    int tabd[][3] = {{-3, 5, 0}, {-4, 5, 0}, {8, -3, 0}, {5, -7, 0},
+    int tabd[][3] = {{-3, 5, 0},
+#if 0
+ {-4, 5, 0}, {8, -3, 0}, {5, -7, 0},
 		     {-8, 5, 0}, {-3, 17, 0}, {-4, 13, 0}, {8, -11, 0},
 		     {-7, 13, 0}, {5, -23, 0}, {-3, 41, 0},
-#if 0
 148, 187, 232, 235, 267, 403, 427,
 		     /* h = g = 4 */
 		  84, 120, 132, 168, 195, 228, 280, 312, 340, 372, 408, 
@@ -2911,6 +2962,7 @@ process_special_blend(mpz_t tf[], int *nf, mpz_t N, int b, int n, double B1,
 #endif
 		     {0, 0, 0}
     };
+    mpz_t sqroots[10];
 
     if(n < 0){
 	sgn = -1;
@@ -2943,11 +2995,12 @@ process_special_blend(mpz_t tf[], int *nf, mpz_t N, int b, int n, double B1,
 	for(j = 1; tabd[i][j] != 0; j++)
 	    disc *= tabd[i][j];
 	if(n % abs(disc) == 0){
-	    printf("I can use tabd[%d] = %d\n", i, disc);
+	    /* for the time being, works only for h = 2 */
+	    printf("# I can use tabd[%d] = %d\n", i, disc);
 	    for(j = 0; tabd[i][j] != 0; j++){
 		q = tabd[i][j];
 		if(abs(q) % 2 == 1){
-		    ret = odd_square_root_mod_N(tf[*nf], b, nn, abs(q), N);
+		    ret = odd_square_root_mod_N(tf[*nf],sqroots,b,nn,abs(q),N);
 		    if(ret != ECM_NO_FACTOR_FOUND)
 			break;
 		}
@@ -2955,22 +3008,29 @@ process_special_blend(mpz_t tf[], int *nf, mpz_t N, int b, int n, double B1,
 		    printf("# I cannot use even primes right now!\n");
 		}
 	    }
+	    if(ret == ECM_NO_FACTOR_FOUND){
+		printf("# Let us use disc=%d\n", disc);
+		ret = process_many_curves_loop(tf, nf, N, B1, params,
+					       NULL, NULL, 0, 0, 1,
+					       disc, sqroots,
+					       savefilename);
+	    }
 	}
 	if(ret != ECM_NO_FACTOR_FOUND)
 	    break;
     }
-    if(ret != ECM_NO_FACTOR_FOUND && disc1 != 0){
-	printf("# We can use disc=%d\n", disc1);
+    if(ret == ECM_NO_FACTOR_FOUND && disc1 != 0){
+	printf("# Let us use disc=%d\n", disc1);
 	return process_many_curves_loop(tf, nf, N, B1, params,
 					NULL, NULL, 0, 0, 1,
-					disc1,
+					disc1, NULL,
 					savefilename);
     }
     return ret;
 }
 
 static void
-usage (char *cmd)
+usage(char *cmd)
 {
     printf("Usage: %s -inp file_N -B1 B1 -curves file_C", cmd);
     printf(" -torsion T -smin smin -smax smax\n");
@@ -3150,7 +3210,7 @@ main(int argc, char *argv[])
 	  res = process_many_curves_loop(tf, &nf, N, B1, params,
 					 curvesname,
 					 torsion, smin, smax, ncurves,
-					 disc,
+					 disc, NULL,
 					 savefilename);
       }
     }
