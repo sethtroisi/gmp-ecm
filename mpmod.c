@@ -50,6 +50,20 @@ static void ecm_mulredc_basecase (mpres_t, const mpres_t, const mpres_t,
 static void base2mod (mpres_t, const mpres_t, mpres_t, mpmod_t) ATTRIBUTE_HOT;
 static void REDC (mpres_t, const mpres_t, mpz_t, mpmod_t);
 
+/* Up from GMP 5.1.0, mpn_redc{1,2} do not subtract the modulus if needed,
+   but return the carry of the final addition */
+#if ECM_VERSION_NUM(__GNU_MP_VERSION,__GNU_MP_VERSION_MINOR,__GNU_MP_VERSION_PATCHLEVEL) < ECM_VERSION_NUM(5,1,0)
+#define REDC1(rp,cp,np,nn,invm) __gmpn_redc_1(rp,cp,np,nn,invm)
+#define REDC2(rp,cp,np,nn,invm) __gmpn_redc_2(rp,cp,np,nn,invm)
+#else
+#define REDC1(rp,cp,np,nn,invm)                  \
+  if (__gmpn_redc_1 (rp,cp,np,nn,invm))          \
+    mpn_sub_n (rp, rp, np, nn)
+#define REDC2(rp,cp,np,nn,invm)                  \
+  if (__gmpn_redc_2 (rp,cp,np,nn,invm))          \
+    mpn_sub_n (rp, rp, np, nn)
+#endif
+
 #if 0 /* PZ: commented out, since I don't see how to use this code.
          Indeed, we need a large enough value of K to get significant
          timings; however, for small B1 a too large value of K will
@@ -316,10 +330,10 @@ redc_basecase_n (mp_ptr rp, mp_ptr cp, mp_srcptr np, const mp_size_t nn,
                  const mp_ptr invm)
 {
 #ifdef HAVE___GMPN_REDC_2
-  __gmpn_redc_2 (rp, cp, np, nn, invm);
+  REDC2(rp, cp, np, nn, invm);
 #else /* HAVE___GMPN_REDC_2 is not defined */
 #ifdef HAVE___GMPN_REDC_1
-  __gmpn_redc_1 (rp, cp, np, nn, invm[0]);
+  REDC1(rp, cp, np, nn, invm[0]);
 #else /* neither HAVE___GMPN_REDC_2 nor HAVE___GMPN_REDC_1 is defined */
   mp_limb_t cy;
   mp_size_t j;
@@ -343,7 +357,6 @@ redc_basecase_n (mp_ptr rp, mp_ptr cp, mp_srcptr np, const mp_size_t nn,
     }
 #endif /* HAVE___GMPN_REDC_1 */
 #endif /* HAVE___GMPN_REDC_2 */
-  /* Note: both mpn_redc_1 and mpn_redc_2 subtract N if needed */
 }
 
 /* r <- c/R^nn mod n, where n has nn limbs, and R=2^GMP_NUMB_BITS.
@@ -635,13 +648,13 @@ ecm_mulredc_basecase_n (mp_ptr rp, mp_srcptr s1p, mp_srcptr s2p,
         case MPMOD_MUL_REDC1: /* mpn_mul_n + __gmpn_redc_1 */
 #ifdef HAVE___GMPN_REDC_1
           mpn_mul_n (tmp, s1p, s2p, nn);
-          __gmpn_redc_1 (rp, tmp, np, nn, invm[0]);
+          REDC1(rp, tmp, np, nn, invm[0]);
           break;
 #endif /* otherwise go through to the next available mode */
         case MPMOD_MUL_REDC2: /* mpn_mul_n + __gmpn_redc_2 */
 #ifdef HAVE___GMPN_REDC_2
           mpn_mul_n (tmp, s1p, s2p, nn);
-          __gmpn_redc_2 (rp, tmp, np, nn, invm);
+          REDC2(rp, tmp, np, nn, invm);
           break;
 #endif /* otherwise go through to the next available mode */
         case MPMOD_MUL_REDCN: /* mpn_mul_n + __gmpn_redc_n */
@@ -692,13 +705,13 @@ ecm_sqrredc_basecase_n (mp_ptr rp, mp_srcptr s1p,
         case MPMOD_MUL_REDC1: /* mpn_sqr + __gmpn_redc_1 */
 #ifdef HAVE___GMPN_REDC_1
           mpn_sqr (tmp, s1p, nn);
-          __gmpn_redc_1 (rp, tmp, np, nn, invm[0]);
+          REDC1(rp, tmp, np, nn, invm[0]);
           break;
 #endif /* otherwise go through to the next available mode */
         case MPMOD_MUL_REDC2: /* mpn_sqr + __gmpn_redc_2 */
 #ifdef HAVE___GMPN_REDC_2
           mpn_sqr (tmp, s1p, nn);
-          __gmpn_redc_2 (rp, tmp, np, nn, invm);
+          REDC2(rp, tmp, np, nn, invm);
           break;
 #endif /* otherwise go through to the next available mode */
         case MPMOD_MUL_REDCN: /* mpn_sqr + __gmpn_redc_n */
