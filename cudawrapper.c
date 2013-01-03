@@ -342,7 +342,7 @@ gpu_ecm (mpz_t f, mpz_t x, int *param, mpz_t firstsigma, mpz_t n, mpz_t go,
 
       st = cputime ();
       /* construct the batch exponent */
-      compute_s (batch_s, B1);
+      compute_s (batch_s, B1, NULL);
       outputf (OUTPUT_VERBOSE, "Computing batch product (of %zu bits) of "
                                "primes below B1=%1.0f took %ldms\n", 
                                mpz_sizeinbase (batch_s, 2), B1, cputime () - st);
@@ -445,13 +445,14 @@ gpu_ecm (mpz_t f, mpz_t x, int *param, mpz_t firstsigma, mpz_t n, mpz_t go,
     }
   firstsigma_ui = mpz_get_ui(firstsigma);
 
-
+  mpz_t y;
+  mpz_init_set_ui (y, 1);
   print_B1_B2_poly (OUTPUT_NORMAL, ECM_ECM, B1, *B1done,  B2min_parm, B2min, 
                     B2, S, firstsigma, sigma_is_A, ECM_EC_TYPE_MONTGOMERY,
 		    go, *param, *nb_curves);
   outputf (OUTPUT_VERBOSE, "dF=%lu, k=%lu, d=%lu, d2=%lu, i0=%Zd\n", 
            dF, k, root_params.d1, root_params.d2, root_params.i0);
-
+  mpz_clear (y);
 
   if (go != NULL && mpz_cmp_ui (go, 1) > 0)
     {
