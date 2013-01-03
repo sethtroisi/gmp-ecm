@@ -30,12 +30,12 @@ specify for which compute capability you want to compite the code:
 By default, GMP-ECM will look for cuda in /usr/local/cuda, but you can specified
 an other directory:
 
-  $ ./configure --enable gpu --with-cuda=/PATH/DIR
+  $ ./configure --enable-gpu --with-cuda=/PATH/DIR
 
-Some version does are not compatible with recent version of gcc. To specify
+Some version of CUDA are not compatible with recent version of gcc. To specify
 which C compiler is called by the CUDA compiler nvcc, type:
 
-  $ ./configure --enable gpu --with-cc-for-cuda=/PATH/DIR 
+  $ ./configure --enable-gpu --with-cc-for-cuda=/PATH/DIR 
   
 The values of this parameter is directly passed to nvcc via the option
 "--compiler-bindir". By default, GMP-ECM let nvcc chooses what C compiler it
