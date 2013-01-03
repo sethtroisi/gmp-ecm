@@ -141,6 +141,8 @@ usage (void)
     printf ("  -bloads file In the batch mode, load s from file.\n");
 #ifdef WITH_GPU
     printf ("  -gpu         Use GPU-ECM for stage 1.\n");
+    printf ("  -gpudevice n Use device n to execute GPU code (by default, "
+                                                          "CUDA chooses)\n");
 #endif
     printf ("  -h, --help   Prints this help and exit.\n");
 }
@@ -399,6 +401,8 @@ main (int argc, char *argv[])
   signed long gw_c = 0;    /* set default values for gwnum poly k*b^n+c */
 #endif
   int use_gpu = 0; /* Do we use the GPU for stage 1 (by default no)*/
+  int gpudevice = -1; /* Which device do we use for GPU code (by default CUDA */
+                      /* chooses)                                             */
 
   /* check ecm is linked with a compatible library */
   if (mp_bits_per_limb != GMP_NUMB_BITS)
@@ -835,6 +839,12 @@ main (int argc, char *argv[])
 	        argv++;
 	        argc--;
         }
+      else if ((argc > 2) && (strcmp (argv[1], "-gpudevice") == 0))
+        {
+          gpudevice = atoi (argv[2]);
+          argv += 2;
+          argc -= 2;
+        }
 #endif
       else
 	{
@@ -1047,6 +1057,8 @@ main (int argc, char *argv[])
   params->maxmem = maxmem;
   params->stage1time = stage1time;
   params->gpu = use_gpu; /* If WITH_GPU is not defined it will always be 0 */
+  params->gpu_device = gpudevice; /* If WITH_GPU is not defined or    */
+                                  /* use_gpu = 0, it has no meaning   */
 
   /* -treefile is valid for ECM only */
   if (TreeFilename != NULL && method != ECM_ECM)
