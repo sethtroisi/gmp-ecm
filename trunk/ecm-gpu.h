@@ -26,8 +26,7 @@
 
 #define ECM_GPU_MAX_BITS ECM_GPU_SIZE_DIGIT * ECM_GPU_NB_DIGITS
 typedef digit_t VOL biguint_t[ECM_GPU_NB_DIGITS];
-typedef digit_t VOL dbiguint_t[ECM_GPU_NB_DIGITS+1];
-typedef carry_t VOL dbigint_t[ECM_GPU_NB_DIGITS+1];
+typedef carry_t VOL bigint_t[ECM_GPU_NB_DIGITS];
 
 /* Uncomment the next line to print the number of remaining iterations. */
 //#define PRINT_REMAINING_ITER
