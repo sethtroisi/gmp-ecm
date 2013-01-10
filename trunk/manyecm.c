@@ -736,6 +736,9 @@ compute_s_4_add_sub(mpz_t s, unsigned long B1, int disc)
     compute_s(t, B1, forbiddenres);
     free(forbiddenres);
     printf("# computing prod(p^e <= %lu): %ldms\n", B1, elltime(tp,cputime()));
+#if 1 /* keeping it simple for the time being */
+    mpz_set(s, t);
+#else
     w = get_add_sub_w(t);
     /* Slen = 2 * log_{2^w}(t) = 2*log_2(t)/w = 2 * 64 * size(t)/w */
     Slen = (2 * GMP_NUMB_BITS * mpz_size(t)) / w;
@@ -747,6 +750,7 @@ compute_s_4_add_sub(mpz_t s, unsigned long B1, int disc)
 	return 0;
     }
     add_sub_pack(s, w, S, iS);
+#endif
     mpz_clear(t);
     free(S);
     return 1;
