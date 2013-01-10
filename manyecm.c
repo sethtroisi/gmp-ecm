@@ -750,9 +750,9 @@ compute_s_4_add_sub(mpz_t s, unsigned long B1, int disc)
 	return 0;
     }
     add_sub_pack(s, w, S, iS);
+    free(S);
 #endif
     mpz_clear(t);
-    free(S);
     return 1;
 }
 
@@ -2730,6 +2730,7 @@ build_curves_with_CM(mpz_t f, int *nE, ec_curve_t *tE, ec_point_t *tP,
     }
     else if(disc == -7){
 	/* E = y^2 = x^3 - 2222640*x - 1568294784
+	           = x^3 - 5*7*(2^2*3^2*7)^2*x - 2*7^2*(2^2*3^2*7)^3
 	   P = (2052 : 50112 : 1) */
 	tE[0]->type = ECM_EC_TYPE_WEIERSTRASS;
 	mpres_set_si(tE[0]->A, -2222640, n);
@@ -2739,6 +2740,7 @@ build_curves_with_CM(mpz_t f, int *nE, ec_curve_t *tE, ec_point_t *tP,
     else if(disc == -8){
 	/* D = -8: E_c: Y^2 = X^3+4*c*X^2+2*c^2*X => Montgomery when 2 = z^2 
 	   c = 1 => rank = 1, generator is (-1 : -1 : 1)
+	   alt.: [-2*3*5*cc^2, 2^3*7*cc^3], here with cc=12
 	*/
 	tE[0]->type = ECM_EC_TYPE_WEIERSTRASS;
 	mpres_set_si(tE[0]->A, -4320, n);
@@ -2771,6 +2773,7 @@ build_curves_with_CM(mpz_t f, int *nE, ec_curve_t *tE, ec_point_t *tP,
 	printf("Unknown discriminant: %d\n", disc);
 	ret = ECM_ERROR;
     }
+    tE[0]->disc = disc;
     return ret;
 }
 
@@ -2843,15 +2846,14 @@ process_many_curves_loop(mpz_t tf[], int *nf, mpz_t n, double B1,
 	}
 	else if(ret == ECM_COMP_FAC_COMP_COFAC){
 	    mpz_t f;
-	    int ret2;
 
 	    mpz_init_set(f, tf[*nf]);
 	    /* update n right now */
 	    mpz_tdiv_q(n, n, f);
 	    gmp_printf("# recursive call for f=%Zd\n", f);
-	    ret2 = process_many_curves_loop(tf, nf, f, B1, params, fic_EP,
-					    torsion, smin, smax, nE,
-					    disc, sqroots, savefilename);
+	    process_many_curves_loop(tf, nf, f, B1, params, fic_EP,
+				     torsion, smin, smax, nE,
+				     disc, sqroots, savefilename);
 	    /* there is always some cofactor to store */
 	    mpz_set(tf[*nf], f);
 	    *nf += 1;

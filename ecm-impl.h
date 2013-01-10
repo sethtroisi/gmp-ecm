@@ -242,6 +242,7 @@ typedef __curve_struct curve;
 typedef struct
 {
   int type;                /* using the preceding flags */
+  int disc;                /* in case E is known to have CM by Q(sqrt(disc)) */
   mpres_t A;               /* for MONTGOMERY: b*y^2=x^3+A*x^2+x 
 			      for WEIERSTRASS: y^2=x^3+A*x+B
 			      for HESSIAN: U^3+V^3+W^3=3*A*U*V*W */

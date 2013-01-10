@@ -2795,7 +2795,7 @@ ecm (mpz_t f, mpz_t x, mpz_t y, int *param, mpz_t sigma, mpz_t n, mpz_t go,
   else if(Etype == ECM_EC_TYPE_HESSIAN){
       youpi = hessian_to_weierstrass (f, P.x, P.y, P.A, modulus);
       if(youpi == ECM_NO_FACTOR_FOUND)
-	  /* due that non-trivial kernel */
+	  /* due to that non-trivial kernel(?) */
 	  youpi = mult_by_3(f, P.x, P.y, P.A, modulus);
   }
   /* hecm:*/
