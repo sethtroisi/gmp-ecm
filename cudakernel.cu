@@ -16,6 +16,7 @@ __device__ biguint_t d_Mcst;
                                     (void *) h, size, cudaMemcpyHostToDevice))
 #define cudaMemcpyDtoH(h, d, size) errCheck (cudaMemcpy ((void *) h, \
                                     (void *) d, size, cudaMemcpyDeviceToHost))
+#define cudaMemcpyCst(d, h, size) errCheck (cudaMemcpyToSymbol (d, h, size))
 
 
 /******************************/
@@ -123,7 +124,7 @@ float cuda_Main (biguint_t h_N, biguint_t h_3N, biguint_t h_M, digit_t h_invN,
 
   size_t j;
   int i;
-  float elltime;
+  float elltime = 0.0;
   biguint_t *d_xA, *d_zA, *d_xB, *d_zB;
 
 #define MAXEVENTS 2 
@@ -153,10 +154,10 @@ float cuda_Main (biguint_t h_N, biguint_t h_3N, biguint_t h_M, digit_t h_invN,
   cudaMalloc (&d_zB, array_size);
 
   /* Copy into the gpu memory */
-  cudaMemcpyToSymbol (d_invNcst, (void *) &h_invN, sizeof(digit_t));
-  cudaMemcpyToSymbol (d_Ncst, (void *) h_N, sizeof(biguint_t));
-  cudaMemcpyToSymbol (d_3Ncst, (void *) h_3N, sizeof(biguint_t));
-  cudaMemcpyToSymbol (d_Mcst, (void *) h_M, sizeof(biguint_t));
+  cudaMemcpyCst (d_invNcst, (void *) &h_invN, sizeof(digit_t));
+  cudaMemcpyCst (d_Ncst, (void *) h_N, sizeof(biguint_t));
+  cudaMemcpyCst (d_3Ncst, (void *) h_3N, sizeof(biguint_t));
+  cudaMemcpyCst (d_Mcst, (void *) h_M, sizeof(biguint_t));
 
   cudaMemcpyHtoD (d_xA, h_xarray, array_size);
   cudaMemcpyHtoD (d_zA, h_zarray, array_size);
@@ -214,7 +215,7 @@ float cuda_Main (biguint_t h_N, biguint_t h_3N, biguint_t h_M, digit_t h_invN,
     cudaEventSynchronize(event[eventsyncix]); 
     nEventsRecorded -= 1;          
     eventsyncix = (eventsyncix+1)%MAXEVENTS; 
-  } 
+  }
 
   /* Get the results back from device memory */
   cudaMemcpyDtoH (h_xarray, d_xA, array_size);
@@ -266,7 +267,7 @@ float cuda_Main (biguint_t h_N, biguint_t h_3N, biguint_t h_M, digit_t h_invN,
                                                   "+r"(r):"r"(a),"r"(b)) 
 
 
-__device__ void Cuda_Fully_Normalize (biguint_t A, dbigint_t cy)
+__device__ void Cuda_Fully_Normalize (biguint_t A, bigint_t cy)
 {
   carry_t cytemp;
   unsigned int thm1;
@@ -289,7 +290,7 @@ __device__ void Cuda_Fully_Normalize (biguint_t A, dbigint_t cy)
 /* Input: 0 <= A, B < 3*N */ 
 /* Ouput: 0 <= Rmod < 6*N */ 
 __device__ void Cuda_Add_mod
-(biguint_t Rmod, dbigint_t cy, const biguint_t A, const biguint_t B)
+(biguint_t Rmod, bigint_t cy, const biguint_t A, const biguint_t B)
 {
   unsigned int thp1 = (threadIdx.x + 1) % ECM_GPU_NB_DIGITS;
   __add_cc (Rmod[threadIdx.x], A[threadIdx.x], B[threadIdx.x]);
@@ -304,7 +305,7 @@ __device__ void Cuda_Add_mod
 /* Ouput: 0 <= Rmod < 6*N */ 
 /* (except when it follows Cuda_Mulint_mod, 0 <= Rmod < 10*N) */ 
 __device__ void Cuda_Add_mod
-(biguint_t Rmod, dbigint_t cy, const biguint_t A)
+(biguint_t Rmod, bigint_t cy, const biguint_t A)
 {
   unsigned int thp1 = (threadIdx.x + 1) % ECM_GPU_NB_DIGITS;
   __add_cc (Rmod[threadIdx.x], Rmod[threadIdx.x], A[threadIdx.x]);
@@ -318,7 +319,7 @@ __device__ void Cuda_Add_mod
 /* Input: 0 <= Rmod, B < 3*N */ 
 /* Ouput: 0 <= Rmod < 6*N */ 
 __device__ void Cuda_Sub_mod 
-(biguint_t Rmod, dbigint_t cy, const biguint_t B, const digit_t N3thdx)
+(biguint_t Rmod, bigint_t cy, const biguint_t B, const digit_t N3thdx)
 {
   digit_t reg_Rmod = Rmod[threadIdx.x];
   carry_t reg_cy = 0; 
@@ -335,7 +336,7 @@ __device__ void Cuda_Sub_mod
 
 /* Perform one step of REDC */ 
 __device__ void Cuda_Mulmod_step
-(dbiguint_t r, dbigint_t cy, digit_t a, digit_t b, const digit_t Nthdx,
+(biguint_t r, bigint_t cy, digit_t a, digit_t b, const digit_t Nthdx,
  const digit_t invN)
 {
   digit_t t;
@@ -374,7 +375,7 @@ __device__ void Cuda_Dbl_mod
 /* Input: 0 < b < 2^SIZE_DIGIT, 0 <= A < 6*N */ 
 /* Ouput: 0 <= r < 7*N */ 
 __device__ void Cuda_Mulint_mod
-(dbiguint_t r, dbigint_t cy, biguint_t A, digit_t b, const digit_t Nthdx,
+(biguint_t r, bigint_t cy, biguint_t A, digit_t b, const digit_t Nthdx,
  const digit_t invN)
 {
   digit_t t;
@@ -404,7 +405,7 @@ __device__ void Cuda_Mulint_mod
 /* (except when it follows Cuda_Mulint_mod, 0 <= A < 6*N, 0 < B < 10*N ) */ 
 /* Ouput: 0 <= r < 3*N */ 
 __device__ void Cuda_Mul_mod 
-(biguint_t mul, dbigint_t cy, const biguint_t A, const biguint_t B, dbiguint_t r,
+(biguint_t mul, bigint_t cy, const biguint_t A, const biguint_t B, biguint_t r,
  const digit_t Nthdx, const digit_t invN)
 {
 
@@ -422,7 +423,7 @@ __device__ void Cuda_Mul_mod
 }
 
 __device__ void Cuda_Square_mod 
-(biguint_t mul, dbigint_t cy, const biguint_t A, dbiguint_t r, 
+(biguint_t mul, bigint_t cy, const biguint_t A, biguint_t r, 
  const digit_t Nthdx, const digit_t invN)
 {
   Cuda_Mul_mod (mul, cy, A, A, r, Nthdx, invN);
