@@ -885,87 +885,6 @@ pt_w_sub(mpres_t x3, mpres_t y3, mpres_t z3,
     return res;
 }
 
-/* multiply P=(x:y:z) by e and puts the result in (x:y:z).
-   Return value: 0 if a factor is found, and the factor is in x,
-                 1 otherwise.
-*/
-int
-pt_w_mul (ec_point_t P, mpz_t e, ec_curve_t E, mpmod_t n)
-{
-  size_t l;
-  int negated = 0, status = 1;
-  ec_point_t P0;
-
-  if(pt_w_is_zero(P->z, n))
-    return 1;
-
-  if (mpz_sgn (e) == 0)
-    {
-      pt_w_set_to_zero(P, n);
-      return 1;
-    }
-
-  /* The negative of a point (x:y:z) is (x:-y:z) */
-  if (mpz_sgn (e) < 0)
-    {
-      negated = 1;
-      mpz_neg (e, e);
-      mpres_neg (P->y, P->y, n); /* since the point is non-zero */
-    }
-
-  if (mpz_cmp_ui (e, 1) == 0)
-    goto pt_w_mul_end;
-
-  l = mpz_sizeinbase (e, 2) - 1; /* l >= 1 */
-
-  ec_point_init(P0, E, n);
-  ec_point_set(P0, P, E, n);
-
-  while (l-- > 0)
-    {
-	if(pt_w_duplicate(P0->x, P0->y, P0->z, P0->x, P0->y, P0->z, n, E) == 0)
-	  {
-	    status = 0;
-	    break;
-	  }
-#if DEBUG_EC_W >= 2
-	printf("Rdup:="); pt_w_print(P0->x, P0->y, P0->z, n); printf(";\n");
-#endif
-	if (mpz_tstbit (e, l))
-	  {
-	    if(pt_w_add (P0->x, P0->y, P0->z, P0->x, P0->y, P0->z, 
-			 P->x, P->y, P->z, n, E) == 0)
-	      {
-		status = 0;
-		break;
-	      }
-#if DEBUG_EC_W >= 2
-	    printf("Radd:="); pt_w_print(P0->x, P0->y, P0->z, n);printf(";\n");
-#endif
-	  }
-    }
-
-#if 0
-#if EC_W_LAW == EC_W_LAW_PROJECTIVE
-  /* not clear! Perhaps it has sense to normalize P? */
-  mpres_gcd(z, P0->z, n); /* very costly */
-  if(mpz_cmp_ui(z, 1) != 0){
-      /* factor found, even n... */
-      mpres_set(x0, z, n);
-      status = 0;
-  }
-#endif
-#endif
-  ec_point_set(P, P0, E, n);
-  ec_point_clear(P0, E, n);
-pt_w_mul_end:
-
-  /* Undo negation to avoid changing the caller's e value */
-  if (negated)
-    mpz_neg (e, e);
-  return status;
-}
-
 /*#define SOLINAS*/
 
 /* build NAF_w(c) = (u_{ell-1}, ..., u_0).
@@ -1095,6 +1014,7 @@ build_NAF(short *S, int Slen, mpz_t e, int w)
 	    if(u >= hwm1)
 		u -= hw;
 	    S[iS++] = (short)u;
+	    /*	    printf("iS=%d // Slen=%d\n", iS, Slen);*/
 	    mpz_sub_si(c, c, u); /* can propagate a carry far away if u < 0 */
 	    /* now c = 0 mod 2^w */
 	    mpz_cdiv_q_2exp(c, c, w);
@@ -1700,6 +1620,81 @@ ec_point_negate(ec_point_t P, ec_curve_t E, mpmod_t n)
     }
 }
 
+/* multiply P=(x:y:z) by e and puts the result in (x:y:z).
+   Return value: 0 if a factor is found, and the factor is in x,
+                 1 otherwise.
+*/
+int
+ec_point_mul_plain (ec_point_t Q, mpz_t e, ec_point_t P, ec_curve_t E, mpmod_t n)
+{
+  size_t l;
+  int negated = 0, status = 1;
+  ec_point_t P0;
+
+  if(ec_point_is_zero(P, E, n)){
+      ec_point_set(Q, P, E, n);
+      return 1;
+  }
+
+  if (mpz_sgn (e) == 0)
+    {
+      ec_point_set_to_zero(Q, E, n);
+      return 1;
+    }
+
+  /* The negative of a point (x:y:z) is (x:-y:z) */
+  if (mpz_sgn (e) < 0)
+    {
+      negated = 1;
+      mpz_neg (e, e);
+      ec_point_negate(P, E, n); /* since the point is non-zero */
+    }
+
+  if (mpz_cmp_ui (e, 1) == 0){
+      ec_point_set(Q, P, E, n);
+      goto ec_point_mul_plain_end;
+  }
+
+  l = mpz_sizeinbase (e, 2) - 1; /* l >= 1 */
+
+  ec_point_init(P0, E, n);
+  ec_point_set(P0, P, E, n);
+
+  while (l-- > 0)
+    {
+	if(ec_point_duplicate(P0, P0, E, n) == 0)
+	  {
+	    status = 0;
+	    break;
+	  }
+#if DEBUG_EC_W >= 2
+	printf("Rdup:="); ec_point_print(P0, E, n); printf(";\n");
+#endif
+	if (mpz_tstbit (e, l))
+	  {
+	      if(ec_point_add (P0, P0, P, E, n) == 0)
+	      {
+		status = 0;
+		break;
+	      }
+#if DEBUG_EC_W >= 2
+	      printf("Radd:="); ec_point_print(P0, E, n);printf(";\n");
+#endif
+	  }
+    }
+
+  ec_point_set(Q, P0, E, n);
+  ec_point_clear(P0, E, n);
+ec_point_mul_plain_end:
+
+  /* Undo negation to avoid changing the caller's e value */
+  if (negated){
+    mpz_neg (e, e);
+    ec_point_negate(P, E, n);
+  }
+  return status;
+}
+
 #define EC_ADD_SUB_WMAX 10
 #define EC_ADD_SUB_2_WMAX (1 << EC_ADD_SUB_WMAX)
 
@@ -1935,7 +1930,7 @@ ec_point_mul_add_sub (ec_point_t Q, mpz_t e, ec_point_t P,
 
 	ec_point_init(PP, E, n);
 	ec_point_set(PP, P, E, n);
-	pt_w_mul(PP, e, E, n);
+	ec_point_mul_plain(PP, e, E, n);
 	if(pt_w_cmp(Q->x, Q->y, Q->z, PP->x, PP->y, PP->z, n) != 1){
 	    printf("PB\n");
 	    printf("as:="); pt_w_print(Q->x, Q->y, Q->z, n); printf(";\n");
@@ -1956,7 +1951,11 @@ ec_point_mul_add_sub (ec_point_t Q, mpz_t e, ec_point_t P,
 int
 ec_point_mul(ec_point_t Q, mpz_t e, ec_point_t P, ec_curve_t E, mpmod_t n)
 {
+#if 1 /* keeping it simple */
+    return ec_point_mul_plain(Q, e, P, E, n);
+#else
     return ec_point_mul_add_sub(Q, e, P, E, n);
+#endif
 }
 
 /* Input: when Etype == ECM_EC_TYPE_WEIERSTRASS:
@@ -1999,7 +1998,7 @@ ecm_stage1_W (mpz_t f, int Etype, mpres_t x, mpres_t y, mpres_t A, mpmod_t n,
     
     last_chkpnt_time = cputime ();
 
-#if DEBUG_EC_W >= 1
+#if DEBUG_EC_W >= 3
     ec_curve_print(E, n);
     printf("P:="); ec_point_print(P, E, n); printf(";\n");
 #endif
@@ -2072,6 +2071,13 @@ ecm_stage1_W (mpz_t f, int Etype, mpres_t x, mpres_t y, mpres_t A, mpmod_t n,
 	}
     }
     else{
+#if 1 /* keeping it simple */
+	if (ec_point_mul (Q, batch_s, P, E, n) == 0){
+	    mpz_set (f, Q->x);
+	    ret = ECM_FACTOR_FOUND_STEP1;
+	    goto end_of_stage1_w;
+        }
+#else
 	/* batch mode and special coding... */
 	short *S = NULL;
 	int w, iS;
@@ -2080,6 +2086,7 @@ ecm_stage1_W (mpz_t f, int Etype, mpres_t x, mpres_t y, mpres_t A, mpmod_t n,
 	    mpz_set (f, Q->x);
 	    ret = ECM_FACTOR_FOUND_STEP1;
         }
+#endif
 	ec_point_set(P, Q, E, n);
 	p = B1;
     }
