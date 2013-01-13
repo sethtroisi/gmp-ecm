@@ -885,261 +885,202 @@ pt_w_sub(mpres_t x3, mpres_t y3, mpres_t z3,
     return res;
 }
 
-/*#define SOLINAS*/
-
-/* build NAF_w(c) = (u_{ell-1}, ..., u_0).
-   When w = 2, we have 2^ell < 3*e < 2^(ell+1).
-   NAF are easily built from right to left and exploited from left to right.
-   OUTPUT: iS such that S[0..iS[ was filled
-           -1 if Slen is too small
-*/
+/* Morain/Olivos */
 int
-build_NAF_ui(short *S, int Slen, mp_limb_t c, int w)
+MO_automaton(char *T, size_t *IT, mpz_t e, size_t le)
 {
-    long u, hwm1 = ((long)1)<<(w-1), hw = ((long)1)<<w;
-    mp_limb_t twowm1 = ((mp_limb_t)1 << w)-1;
-    int iS = 0;
-    short nz = 0;
+    size_t ie, iT = 0;
+    int state = 0, res = 1, bz;
 
-#ifdef SOLINAS
-    /* Salinas output form */
-    while(c != 0){
-	if((c & 1) == 1){
-	    /* c is odd */
-	    /* u <- mods(c, 2^w) */
-	    u = (long)(c & twowm1);
-	    if(u >= hwm1)
-		u -= hw;
-	    c -= u;
-	    /* now c = 0 mod 2^w */
-	}
-	else
-	    u = 0;
-	S[iS++] = (short)u;
-	c >>= 1;
-	if(iS == Slen && c != 0)
-	    return -1;
-    }
-#else
-    /* new coding output */
-    while(c != 0){
-	if((c & 1) == 1){
-	    if(nz != 0){
-		S[iS++] = nz; /* hope for nz < 2^15 or 2^16...! */
-		nz = 0;
-	    }
-	    /* c is odd => we extract w bits */
-	    /* u <- mods(c, 2^w) */
-	    u = (long)(c & twowm1);
-	    if(u >= hwm1)
-		u -= hw;
-	    S[iS++] = (short)u;
-	    c -= u; /* can propagate a carry far away if u < 0 */
-	    /* now c = 0 mod 2^w */
-	    c >>= w;
-	    nz = w;
-	    if(iS == Slen && c != 0)
-		return -1;
-	}
-	else{
-	    nz++;
-	    c >>= 1;
-	}
-    }
-#endif
-    return iS;
-}
-
-/*
-   OUTPUT: iS such that S[0..iS[ was filled
-           -1 if Slen is too small
-   The Solinas version is too slow for big entries, since it requires too
-   many shifts.
-   At the end of the process, we will have written
-   e = 2^t0 * (2*d0+1 + 2^t1 *(2*d1+1 + 2^t2 * (2*d2+1+... + 2^ts*(2*ds+1) )
-   where ti >= w and -2^(w-1)+1 <= 2*di+1 < 2^(w-1)+1.
-   S will contain: [[ts, 2*ds+1], ..., [t1, 2*d1+1], [t0, 2*d0+1]].
-*/
-int
-build_NAF(short *S, int Slen, mpz_t e, int w)
-{
-    long u, hwm1 = ((long)1)<<(w-1), hw = ((long)1)<<w, tp = cputime();
-    mp_limb_t twowm1 = ((mp_limb_t)1 << w)-1;
-    int iS = 0;
-    short nz;
-    mpz_t c;
-
-    if(mpz_size(e) == 1)
-	return build_NAF_ui(S, Slen, mpz_getlimbn(e, 0), w);
-    mpz_init_set(c, e);
-#ifdef SOLINAS
-    /* we operate on windows of size w, starting from lower order bits.
-       This version copies the long-version one... Some more bit-fiddling
-       might be used to replace the shift at the end of the loop.
-     */
-    while(mpz_sgn(c) != 0){
-	if(mpz_tstbit(c, 0) == 1){
-	    /* c is odd */
-	    /* u <- mods(c, 2^w) */
-	    u = (long)(mpz_get_ui(c) & twowm1);
-	    if(u >= hwm1)
-		u -= hw;
-	    /* if u > 0, then c -= u does not cause a carry to propagate */
-	    mpz_sub_si(c, c, u); /* carry may propagate */
-	    /* at this point, c = 0 mod 2^w */
-	}
-	else
-	    u = 0;
-	printf("S[%d] <- %d\n", iS, (short)u);
-	S[iS++] = (short)u;
-	/* c >>= 1; */
-	mpz_cdiv_q_2exp(c, c, 1);
-	if(iS == Slen && mpz_sgn(c) != 0){
-	    iS = -1;
+    for(ie = 0; ie < le; ie++){
+	bz = mpz_tstbit(e, ie) == 0;
+	switch(state){
+	case 0:
+	    if(bz)
+		T[iT++] = 0;
+	    else
+		state = 1;
 	    break;
+	case 1:
+	    if(bz){
+		T[iT++] = 1;
+		T[iT++] = 0;
+		state = 0;
+	    }
+	    else{
+		T[iT++] = -1;
+                T[iT++] = 0;
+                state = 11;
+	    }
+	    break;
+	case 11:
+	    if(bz)
+		state = 110;
+	    else{
+		T[iT++] = 0;
+		state = 11;
+	    }
+	    break;
+	case 110:
+	    if(bz){
+		T[iT++] = 1;
+                T[iT++] = 0;
+                state = 0;
+	    }
+	    else{
+		T[iT++] = -1;
+                T[iT++] = 0;
+                state = 11;
+	    }
 	}
     }
-#else
-    /* new coding output */
-    nz = 0;
-    while(mpz_sgn(c) != 0){
-	if(mpz_tstbit(c, 0) == 1){
-	    if(nz != 0){
-		S[iS++] = nz; /* hope for nz < 2^15 or 2^16...! */
-		nz = 0;
-	    }
-	    /* c is odd => we extract w bits */
-	    /* u <- mods(c, 2^w) */
-	    u = (long)(mpz_get_ui(c) & twowm1);
-	    if(u >= hwm1)
-		u -= hw;
-	    S[iS++] = (short)u;
-	    /*	    printf("iS=%d // Slen=%d\n", iS, Slen);*/
-	    mpz_sub_si(c, c, u); /* can propagate a carry far away if u < 0 */
-	    /* now c = 0 mod 2^w */
-	    mpz_cdiv_q_2exp(c, c, w);
-	    nz = w;
-	    if(iS == Slen && mpz_sgn(c) != 0){
-		iS = -1;
+    if(state == 1 || state == 11)
+	T[iT++] = 1;
+    else if(state == 110)
+	res = 0;
+    *IT = iT;
+    return res;
+}
+
+/* Do we have eval(T) == e? */
+int
+MO_check(char *T, size_t iT, mpz_t e)
+{
+    mpz_t tmp;
+    int i, ok;
+
+    mpz_init_set_ui(tmp, 0);
+    for(i = ((int)iT)-1; i >= 0; i--){
+	mpz_mul_2exp(tmp, tmp, 1);
+	mpz_add_si(tmp, tmp, (int)T[i]);
+    }
+    gmp_printf("e:=%Zd;\n", e);
+    gmp_printf("t:=%Zd;\n", tmp);
+    ok = mpz_cmp(tmp, e) == 0;
+    mpz_clear(tmp);
+    return ok;
+}
+
+/* Do we have eval(T) == e? */
+int
+Split_check(short *S, int iS, mpz_t e)
+{
+    mpz_t tmp;
+    int i, ok;
+
+    mpz_init_set_ui(tmp, 0);
+    for(i = 0; i < iS; i += 2){
+	mpz_add_si(tmp, tmp, (int)S[i+1]);
+	mpz_mul_2exp(tmp, tmp, (int)S[i]);
+    }
+    gmp_printf("e:=%Zd;\n", e);
+    gmp_printf("t:=%Zd;\n", tmp);
+    ok = mpz_cmp(tmp, e) == 0;
+    mpz_clear(tmp);
+    return ok;
+}
+
+/* Adapted from Koyama and Tsuroka, CRYPTO'92, using less space. */
+int
+Split(short *S, int Slen, char *T, size_t iT, int w)
+{
+    int i = (int)iT-1, iS = 0, gap, j, k, lW;
+    short W;
+
+    while(i >= w-1){
+	/* next scan: T[i-w+1..i] */
+	/* exclude right zeros */
+	gap = 0;
+	for(j = i-w+1; j <= i; j++){
+	    if(T[j] != 0)
 		break;
-	    }
+	    gap++;
 	}
-	else{
-	    nz++;
-	    mpz_cdiv_q_2exp(c, c, 1);
+	lW = i-j+1;
+	W = 0;
+	/* at this point, T[j] <> 0 */
+	for(k = j; k <= i; k++)
+	    W = W+T[k]*(((short)1<<(k-j)));
+	i = i-w;
+	/* exclude left zeros and update power of 2 */
+	while((i >= 0) && (T[i] == 0)){
+	    i--;
+	    gap++;
 	}
+	S[iS] = gap;
+	S[iS+1] = W;
+	if(iS >= 2)
+	    S[iS-2] += lW;
+	iS += 2;
     }
-#endif
-    mpz_clear(c);
-    printf("# Time(NAF)=%ld\n", elltime(tp, cputime()));
+    /* at this point, we have to examine T[0..i] */
+    if(i >= 0){
+	/* exclude right zeros */
+	gap = 0;
+	for(j = 0; j <= i; j++){
+	    if(T[j] != 0)
+		break;
+	    gap++;
+	}
+	lW = i-j+1;
+	W = 0;
+	/* at this point, T[j] <> 0 */
+	for(k = j; k <= i; k++)
+	    W = W+T[k]*(((short)1) << (k-j));
+	S[iS] = gap;
+	S[iS+1] = W;
+	if(iS >= 2)
+	    S[iS-2] += lW;
+	iS += 2;
+    }
     return iS;
 }
 
-/* We use algorithm R from Muir07
-   write e = (b_{ell-1}, ..., b_0) in base r = 2^w, 0 <= b_i < r
-   an addition subtraction chain will be (a_ell, ..., a_0), |a_i| < r.
-   After that, we rewrite the chain in the usual form.
-*/
 int
-build_Muir_chain(short *a, int Slen, mpz_t e, int w)
+build_MO_chain(short *S, int Slen, mpz_t e, int w)
 {
-    mp_limb_t C = 0, newC, mask = (((mp_limb_t)1) << w)-1;
-    size_t nbitsC = 0, nbitsnewC, inde = 0, lene = mpz_size(e), tmp;
-    int ell = 0, i;
-    short Delta = 0, bi, bim1, bhat, *b;
-    short r = (short)(1 << w), rover2 = (short)(1 << (w-1));
+    /* first use automata */
+    size_t le = mpz_sizeinbase(e, 2), iT = 0, i;
+    long tp = cputime();
+    char *T = (char *)malloc((2*le) * sizeof(char)); /* humf */
+    int iS;
 
-    /* fill in b */
-    b = (short *)malloc(Slen * sizeof(short));
-    for(inde = 0; inde < lene; inde++){
-	/* treat digits of e one at a time */
-	newC = mpz_getlimbn(e, inde);
-	if(inde < lene-1)
-	    nbitsnewC = GMP_NUMB_BITS;
-	else{
-	    for(nbitsnewC = 0; nbitsnewC < GMP_NUMB_BITS; nbitsnewC++)
-		if(newC == 0)
-		    break;
-		else
-		    newC >>= 1;
-	    newC = mpz_getlimbn(e, inde);
-	}
-	b[ell] = C;
-	tmp = w-nbitsC;
-	if(tmp > 0){
-	    /* taking (w-nbitsC) LSB of newC */
-	    b[ell] += (short)((newC & ((((mp_limb_t)1) << tmp)-1)) << nbitsC);
-	    newC >>= tmp;
-	    /* printf("b[%d]=%d\n", ell-1, b[ell-1]); */
-	}
-	ell++;
-	C = newC;
-	nbitsC = nbitsnewC-tmp;
-	while(nbitsC >= (size_t)w){
-	    b[ell++] = (short)(C & mask);
-	    /* printf("b[%d]=%d\n", ell-1, b[ell-1]); */
-	    C >>= w;
-	    nbitsC -= w;
-	}
-    }
-    if(nbitsC != 0){
-	b[ell++] = (short)C;
-	/*	printf("b[%d]=%d\n", ell-1, b[ell-1]);*/
-    }
-#if 0
-    printf("e_2:="); mpz_out_str(stdout, 2, e); printf("\n");
-    gmp_printf("e:=%Zd;\n", e);
-    printf("w:=%d; m:=convert(e, base, %d);\n", w, r);
-    printf("tmp:=[%d", b[0]);
-    for(i = 1; i < ell; i++)
-	printf(", %d", b[i]);
-    printf("];\nevalb(m = tmp);\n");
+    MO_automaton(T, &iT, e, le);
+#if DEBUG_EC_W >= 2
+    /* check value of T */
+    gmp_printf("# signed digits(%Zd):", e);
+    for(i = 0; i < iT; i++)
+	printf(" %d", T[i]);
+    printf("\n");
+    if(MO_check(T, iT, e) == 0)
+	printf("#!# Error in MO\n");
+    else
+	printf("# good check in MO\n");
 #endif
-    /* execute Algorithm R */
-    a[ell] = 0;
-    for(i = ell-1; i >= 0; i--){
-	if(i > 0) bim1 = b[i-1]; else bim1 = 0;
-	bhat = bi + Delta;
-	if(bhat == -1 || bhat == 0)
-	    bhat = 0;
-	else{
-	    if(bim1 >= rover2){
-		Delta = -r;
-		bhat++;
-	    }
-	    else
-		Delta = 0;
-	}
-	if(bhat == r){
-	    a[i+1] = 1;
-	    a[i] = 0;
-	}
-	else{
-	    if(bhat == -r){
-		a[i+1] = -1;
-		a[i] = 0;
-	    }
-	    else
-		a[i] = bhat;
-	}
-    }
-    if(Delta == -r)
-	a[0] = -1;
-    /* make ell the real number of digits of a[] */
-    if(a[ell] != 0)
-	ell++;
-    /* TODO: crunch a */
-    return ell;
+    printf("# le = %ld, iT = %ld, time = %ldms\n",le,iT,elltime(tp,cputime()));
+    /* compact T to fill in S */
+    tp = cputime();
+    iS = Split(S, Slen, T, iT, w);
+    printf("# time = %ldms\n", elltime(tp, cputime()));
+#if DEBUG_EC_W >= 2
+    printf("S =");
+    for(i = 0; i < iS; i++)
+	printf(" %d", S[i]);
+    printf("\n");
+    if(Split_check(S, iS, e) == 0)
+        printf("#!# Error in Split\n");
+    else
+        printf("# good check in Split\n");
+
+#endif
+    free(T);
+    return iS;
 }
 
 int
 build_add_sub_chain(short *S, int Slen, mpz_t e, int w)
 {
-#if 1
-    return build_NAF(S, Slen, e, w);
-#else
-    return build_Muir_chain(S, Slen, e, w);
-#endif
+    return build_MO_chain(S, Slen, e, w);
 }
 
 /* Checks that x1/z1 = x2/z2 and y1/z1 = y2/z2.
@@ -1163,13 +1104,17 @@ pt_w_cmp(mpres_t x1, mpres_t y1, mpres_t z1,
 	mpres_mul(tmp1, x1, z2, n);
 	mpres_mul(tmp2, x2, z1, n);
 	mpres_sub(tmp1, tmp1, tmp2, n);
-	if(mpres_is_zero(tmp1, n) == 0)
+	if(mpres_is_zero(tmp1, n) == 0){
+	    printf("x1/z1 != x2/z2\n");
 	    cmp = 0;
+	}
 	else{
 	    mpres_mul(tmp1, y1, z2, n);
 	    mpres_mul(tmp2, y2, z1, n);
 	    mpres_sub(tmp1,tmp1, tmp2, n);
 	    cmp = mpres_is_zero(tmp1, n);
+	    if(cmp == 0)
+		printf("y1/z1 != y2/z2\n");
 	}
 	mpres_clear(tmp1, n);
 	mpres_clear(tmp2, n);
@@ -1787,37 +1732,6 @@ ec_point_mul_add_sub_with_S(ec_point_t Q, ec_point_t P, ec_curve_t E,
 
     eps = 1; /* means doubling */
     for(j = iS-1; j >= 0; j--){
-# ifdef SOLINAS
-	if(ec_point_duplicate(P0, P0, E, n) == 0){
-	    status = 0;
-	    break;
-	}
-#if DEBUG_EC_W >= 2
-	printf("Rdup:="); ec_point_print(P0, E, n); printf(";\n");
-#endif
-	if(S[j] != 0){
-	    i = abs(S[j]) >> 1; /* (abs(S[j])-1)/2, S[j] is always odd */
-	    if(S[j] > 0){
-		if(ec_point_add(P0, P0, iP[i], E, n) == 0){
-		    status = 0;
-		    break;
-		}
-#if DEBUG_EC_W >= 2
-		printf("Radd:="); ec_point_print(P0, E, n); printf(";\n");
-#endif
-	    }
-	    else{
-		/* add(-P) = sub(P) */
-		if(ec_point_sub(P0, P0, iP[i], E, n) == 0){
-		    status = 0;
-		    break;
-		}
-#if DEBUG_EC_W >= 2
-		printf("Rsub:="); ec_point_print(P0, E, n); printf(";\n");
-#endif
-	    }
-	}
-# else
 	eps = -eps;
 	if(eps < 0){
 	    /* means add or subtract */
@@ -1852,7 +1766,6 @@ ec_point_mul_add_sub_with_S(ec_point_t Q, ec_point_t P, ec_curve_t E,
 	    if(status == 0)
 		break;
 	}
-# endif
     }
 #if 0
 #if EC_W_LAW == EC_W_LAW_PROJECTIVE
@@ -1882,7 +1795,7 @@ int
 ec_point_mul_add_sub (ec_point_t Q, mpz_t e, ec_point_t P,
 		      ec_curve_t E, mpmod_t n)
 {
-    int negated = 0, status = 1, iS = 0, w, Slen;
+    int negated = 0, status = 1, iS = 0, w, Slen, j;
     short *S;
     
     if(ec_point_is_zero(P, E, n)){
@@ -1911,7 +1824,7 @@ ec_point_mul_add_sub (ec_point_t Q, mpz_t e, ec_point_t P,
     Slen = 2 * mpz_sizeinbase(e, 2);
     /*    printf("# Slen=%d\n", Slen); */
     S = (short *)malloc(Slen * sizeof(short));
-    iS = build_NAF(S, Slen, e, w);
+    iS = build_add_sub_chain(S, Slen, e, w);
     if(iS == -1){
 	printf("build_NAF: Slen=%d too small\n", Slen);
 	return -1;
@@ -1921,6 +1834,7 @@ ec_point_mul_add_sub (ec_point_t Q, mpz_t e, ec_point_t P,
     for(j = iS-1; j >= 0; j--)
 	printf(" %d", S[j]);
     printf("\n");
+    printf("P:="); ec_point_print(P, E, n); printf(";\n");
 #endif
     status = ec_point_mul_add_sub_with_S(Q, P, E, n, w, S, iS);
     free(S);
@@ -1929,12 +1843,12 @@ ec_point_mul_add_sub (ec_point_t Q, mpz_t e, ec_point_t P,
 	ec_point_t PP;
 
 	ec_point_init(PP, E, n);
-	ec_point_set(PP, P, E, n);
-	ec_point_mul_plain(PP, e, E, n);
+	printf("P:="); ec_point_print(P, E, n); printf(";\n");
+	ec_point_mul_plain(PP, e, P, E, n);
 	if(pt_w_cmp(Q->x, Q->y, Q->z, PP->x, PP->y, PP->z, n) != 1){
 	    printf("PB\n");
-	    printf("as:="); pt_w_print(Q->x, Q->y, Q->z, n); printf(";\n");
-	    printf("lo:="); pt_w_print(PP->x, PP->y, PP->z, n); printf(";\n");
+	    printf("as:="); ec_point_print(Q, E, n); printf(";\n");
+	    printf("lo:="); ec_point_print(PP, E, n); printf(";\n");
 	    exit(-1);
 	}
 	ec_point_clear(PP, E, n);
@@ -2037,7 +1951,7 @@ ecm_stage1_W (mpz_t f, int Etype, mpres_t x, mpres_t y, mpres_t A, mpmod_t n,
 	    mpz_set_ui(f, (ecm_uint)p);
 	    for (r = p; r <= B1; r *= p){
 		if (r > *B1done){
-		    if(ec_point_mul_add_sub (Q, f, P, E, n) == 0){
+		    if(ec_point_mul (Q, f, P, E, n) == 0){
 			mpz_set(f, Q->x);
 			ret = ECM_FACTOR_FOUND_STEP1;
 			goto end_of_stage1_w;
