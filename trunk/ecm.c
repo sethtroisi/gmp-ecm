@@ -980,7 +980,9 @@ Split_check(short *S, int iS, mpz_t e)
     return ok;
 }
 
-/* Adapted from Koyama and Tsuroka, CRYPTO'92, using less space. */
+/* Adapted from Koyama and Tsuroka, CRYPTO'92, using less space. 
+   S is filled in left-to-right from T.
+*/
 int
 Split(short *S, int Slen, char *T, size_t iT, int w)
 {
@@ -1036,6 +1038,16 @@ Split(short *S, int Slen, char *T, size_t iT, int w)
     return iS;
 }
 
+/*
+   OUTPUT: iS such that S[0..iS[ was filled
+           -1 if Slen is too small
+   The Solinas version is too slow for big entries, since it requires too
+   many shifts.
+   At the end of the process, we will have written
+   e = 2^t0 * (2*d0+1 + 2^t1 *(2*d1+1 + 2^t2 * (2*d2+1+... + 2^ts*(2*ds+1) )
+   where ti >= w and -2^(w-1)+1 <= 2*di+1 < 2^(w-1)+1.
+   S will contain: [[ts, 2*ds+1], ..., [t1, 2*d1+1], [t0, 2*d0+1]].
+*/
 int
 build_MO_chain(short *S, int Slen, mpz_t e, int w)
 {
@@ -1698,13 +1710,16 @@ void add_sub_unpack(int *w, short **S, int *iS, mpz_t s)
     *S = T+4;
 }
 
+/* INPUT: S = [[ts, 2*ds+1], ..., [t1, 2*d1+1], [t0, 2*d0+1]] for
+   e = 2^t0 * (2*d0+1 + 2^t1 *(2*d1+1 + 2^t2 * (2*d2+1+... + 2^ts*(2*ds+1) ).
+*/
 int
 ec_point_mul_add_sub_with_S(ec_point_t Q, ec_point_t P, ec_curve_t E,
 			    mpmod_t n, int w, short *S, int iS)
 {
     ec_point_t P0;
     ec_point_t iP[EC_ADD_SUB_2_WMAX];
-    int status = 1, i, j, k, eps;
+    int status = 1, i, j, k;
 
     k = (1 << (w-2)) - 1;
     for(i = 0; i <= k; i++)
@@ -1730,42 +1745,40 @@ ec_point_mul_add_sub_with_S(ec_point_t Q, ec_point_t P, ec_curve_t E,
     ec_point_init(P0, E, n);
     ec_point_set_to_zero(P0, E, n);
 
-    eps = 1; /* means doubling */
-    for(j = iS-1; j >= 0; j--){
-	eps = -eps;
-	if(eps < 0){
-	    /* means add or subtract */
-	    i = abs(S[j]) >> 1; /* (abs(S[j])-1)/2, S[j] is always odd */
-	    if(S[j] > 0){
-		if(ec_point_add(P0, P0, iP[i], E, n) == 0){
-		    status = 0;
-		    break;
-		}
-#if DEBUG_EC_W >= 2
-		printf("Radd:="); ec_point_print(P0, E, n); printf(";\n");
-#endif
+    /* S = [[ts, 2*ds+1], ... */
+    for(j = 0; j < iS; j += 2){
+	i = abs(S[j+1]) >> 1; /* (abs(S[j+1])-1)/2, S[j+1] is always odd */
+	if(S[j+1] > 0){
+	    if(ec_point_add(P0, P0, iP[i], E, n) == 0){
+		status = 0;
+		break;
 	    }
-	    else{
-		/* add(-P) = sub(P) */
-		if(ec_point_sub(P0, P0, iP[i], E, n) == 0){
-		    status = 0;
-		    break;
-		}
 #if DEBUG_EC_W >= 2
-		printf("Rsub:="); ec_point_print(P0, E, n); printf(";\n");
+	    printf("Radd:="); ec_point_print(P0, E, n); printf(";\n");
 #endif
-	    }
 	}
 	else{
-	    /* means doubling */
-	    for(i = 0; i < S[j]; i++)
-		if(ec_point_duplicate(P0, P0, E, n) == 0){
-		    status = 0;
-		    break;
-		}
-	    if(status == 0)
+	    /* add(-P) = sub(P) */
+	    if(ec_point_sub(P0, P0, iP[i], E, n) == 0){
+		status = 0;
 		break;
+	    }
+#if DEBUG_EC_W >= 2
+	    printf("Rsub:="); ec_point_print(P0, E, n); printf(";\n");
+#endif
 	}
+	/* now multiply */
+	for(i = 0; i < S[j]; i++){
+	    if(ec_point_duplicate(P0, P0, E, n) == 0){
+		status = 0;
+		break;
+	    }
+#if DEBUG_EC_W >= 2
+	    printf("Rdup:="); ec_point_print(P0, E, n); printf(";\n");
+#endif
+	}
+	if(status == 0)
+	    break;
     }
 #if 0
 #if EC_W_LAW == EC_W_LAW_PROJECTIVE
@@ -1838,12 +1851,11 @@ ec_point_mul_add_sub (ec_point_t Q, mpz_t e, ec_point_t P,
 #endif
     status = ec_point_mul_add_sub_with_S(Q, P, E, n, w, S, iS);
     free(S);
-#if DEBUG_EC_W >= 2
+#if DEBUG_EC_W >= 0
     {
 	ec_point_t PP;
 
 	ec_point_init(PP, E, n);
-	printf("P:="); ec_point_print(P, E, n); printf(";\n");
 	ec_point_mul_plain(PP, e, P, E, n);
 	if(pt_w_cmp(Q->x, Q->y, Q->z, PP->x, PP->y, PP->z, n) != 1){
 	    printf("PB\n");
