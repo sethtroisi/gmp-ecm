@@ -1014,6 +1014,8 @@ Split(short *S, int Slen, char *T, size_t iT, int w)
 	if(iS >= 2)
 	    S[iS-2] += lW;
 	iS += 2;
+	if(iS > Slen)
+	    return -1;
     }
     /* at this point, we have to examine T[0..i] */
     if(i >= 0){
@@ -1034,6 +1036,8 @@ Split(short *S, int Slen, char *T, size_t iT, int w)
 	if(iS >= 2)
 	    S[iS-2] += lW;
 	iS += 2;
+	if(iS > Slen)
+	    return -1;
     }
     return iS;
 }
@@ -1052,29 +1056,29 @@ int
 build_MO_chain(short *S, int Slen, mpz_t e, int w)
 {
     /* first use automata */
-    size_t le = mpz_sizeinbase(e, 2), iT = 0, i;
+    size_t le = mpz_sizeinbase(e, 2), iT = 0;
     long tp = cputime();
     char *T = (char *)malloc((2*le) * sizeof(char)); /* humf */
-    int iS;
+    int i, iS;
 
     MO_automaton(T, &iT, e, le);
 #if DEBUG_EC_W >= 2
     /* check value of T */
     gmp_printf("# signed digits(%Zd):", e);
-    for(i = 0; i < iT; i++)
+    for(i = 0; i < (int)iT; i++)
 	printf(" %d", T[i]);
     printf("\n");
     if(MO_check(T, iT, e) == 0)
 	printf("#!# Error in MO\n");
     else
 	printf("# good check in MO\n");
-#endif
     printf("# le = %ld, iT = %ld, time = %ldms\n",le,iT,elltime(tp,cputime()));
+#endif
     /* compact T to fill in S */
     tp = cputime();
     iS = Split(S, Slen, T, iT, w);
-    printf("# time = %ldms\n", elltime(tp, cputime()));
 #if DEBUG_EC_W >= 2
+    printf("# time = %ldms\n", elltime(tp, cputime()));
     printf("S =");
     for(i = 0; i < iS; i++)
 	printf(" %d", S[i]);
@@ -1577,8 +1581,8 @@ ec_point_negate(ec_point_t P, ec_curve_t E, mpmod_t n)
     }
 }
 
-/* multiply P=(x:y:z) by e and puts the result in (x:y:z).
-   Return value: 0 if a factor is found, and the factor is in x,
+/* Q <- [e]*P
+   Return value: 0 if a factor is found, and the factor is in Q->x,
                  1 otherwise.
 */
 int
@@ -1617,15 +1621,22 @@ ec_point_mul_plain (ec_point_t Q, mpz_t e, ec_point_t P, ec_curve_t E, mpmod_t n
   ec_point_init(P0, E, n);
   ec_point_set(P0, P, E, n);
 
+#if DEBUG_EC_W >= 2
+  printf("P:="); ec_point_print(P, E, n); printf(";\n");
+#endif
   while (l-- > 0)
     {
-	if(ec_point_duplicate(P0, P0, E, n) == 0)
+#if DEBUG_EC_W >= 2
+	printf("P0:="); ec_point_print(P0, E, n); printf(";\n");
+#endif
+	if(ec_point_duplicate (P0, P0, E, n) == 0)
 	  {
 	    status = 0;
 	    break;
 	  }
 #if DEBUG_EC_W >= 2
 	printf("Rdup:="); ec_point_print(P0, E, n); printf(";\n");
+	printf("dup:=ProjEcmDouble(P0, E, N); ProjEcmEqual(dup, Rdup, N);\n");
 #endif
 	if (mpz_tstbit (e, l))
 	  {
@@ -1636,6 +1647,7 @@ ec_point_mul_plain (ec_point_t Q, mpz_t e, ec_point_t P, ec_curve_t E, mpmod_t n
 	      }
 #if DEBUG_EC_W >= 2
 	      printf("Radd:="); ec_point_print(P0, E, n);printf(";\n");
+	      printf("Padd:=ProjEcmAdd(P, Rdup, E, N); ProjEcmEqual(Padd, Radd, N);\n");
 #endif
 	  }
     }
@@ -1711,7 +1723,8 @@ void add_sub_unpack(int *w, short **S, int *iS, mpz_t s)
 }
 
 /* INPUT: S = [[ts, 2*ds+1], ..., [t1, 2*d1+1], [t0, 2*d0+1]] for
-   e = 2^t0 * (2*d0+1 + 2^t1 *(2*d1+1 + 2^t2 * (2*d2+1+... + 2^ts*(2*ds+1) ).
+   e = 2^t0 * (2*d0+1 + 2^t1 *(2*d1+1 + 2^t2 * (2*d2+1+... + 2^ts*(2*ds+1) ),
+   with -2^(w-1)+1 <= 2*di+1 < 2^{w-1}.
 */
 int
 ec_point_mul_add_sub_with_S(ec_point_t Q, ec_point_t P, ec_curve_t E,
@@ -1721,7 +1734,8 @@ ec_point_mul_add_sub_with_S(ec_point_t Q, ec_point_t P, ec_curve_t E,
     ec_point_t iP[EC_ADD_SUB_2_WMAX];
     int status = 1, i, j, k;
 
-    k = (1 << (w-2)) - 1;
+    /* iP[i] <- (2*i+1) * P */
+    k = (1 << (w-1)) - 1;
     for(i = 0; i <= k; i++)
 	ec_point_init(iP[i], E, n);
     ec_point_set(iP[0], P, E, n);
@@ -1745,16 +1759,25 @@ ec_point_mul_add_sub_with_S(ec_point_t Q, ec_point_t P, ec_curve_t E,
     ec_point_init(P0, E, n);
     ec_point_set_to_zero(P0, E, n);
 
+#if DEBUG_EC_W >= 2
+    printf("P:="); ec_point_print(P, E, n); printf(";\n");
+#endif
     /* S = [[ts, 2*ds+1], ... */
     for(j = 0; j < iS; j += 2){
+#if DEBUG_EC_W >= 2
+	printf("P0:="); ec_point_print(P0, E, n); printf(";\n");
+#endif
 	i = abs(S[j+1]) >> 1; /* (abs(S[j+1])-1)/2, S[j+1] is always odd */
+	assert(i <= k);
 	if(S[j+1] > 0){
 	    if(ec_point_add(P0, P0, iP[i], E, n) == 0){
 		status = 0;
 		break;
 	    }
 #if DEBUG_EC_W >= 2
+	    printf("iP%d:=", i); ec_point_print(iP[i], E, n); printf(";\n");
 	    printf("Radd:="); ec_point_print(P0, E, n); printf(";\n");
+	    printf("Q:=ProjEcmAdd(P0, iP%d, E, N); ProjEcmEqual(Q, Radd, N);\n", i);
 #endif
 	}
 	else{
@@ -1851,19 +1874,42 @@ ec_point_mul_add_sub (ec_point_t Q, mpz_t e, ec_point_t P,
 #endif
     status = ec_point_mul_add_sub_with_S(Q, P, E, n, w, S, iS);
     free(S);
-#if DEBUG_EC_W >= 0
-    {
+#if DEBUG_EC_W >= 2
+    if(status == 0){
+	printf("Not checking, since a factor was found!\n");
+    }
+    else{
 	ec_point_t PP;
+	mpz_t f;
+	int res;
 
+	mpz_init(f);
 	ec_point_init(PP, E, n);
-	ec_point_mul_plain(PP, e, P, E, n);
-	if(pt_w_cmp(Q->x, Q->y, Q->z, PP->x, PP->y, PP->z, n) != 1){
-	    printf("PB\n");
-	    printf("as:="); ec_point_print(Q, E, n); printf(";\n");
-	    printf("lo:="); ec_point_print(PP, E, n); printf(";\n");
-	    exit(-1);
+	res = ec_point_mul_plain(PP, e, P, E, n);
+	if(res == 0){
+	    printf("Factor found during ec_point_mul_plain...!\n");
+	}
+	else if(pt_w_cmp(Q->x, Q->y, Q->z, PP->x, PP->y, PP->z, n) != 1){
+	    mpz_gcd(f, PP->z, n->orig_modulus);
+	    if(mpz_cmp_ui(f, 1) != 0){
+		gmp_printf("non trivial gcd from plain: %Zd\n", f);
+		mpz_gcd(f, Q->z, n->orig_modulus);
+		gmp_printf("gcd from addsub: %Zd\n", f);
+	    }
+	    else{
+		printf("PB\n");
+		gmp_printf("N:=%Zd;\n", n->orig_modulus);
+		gmp_printf("e:=%Zd;\n", e);
+		printf("P:="); ec_point_print(P, E, n); printf(";\n");
+		printf("x0:=P[1]/P[3] mod N; y0:=P[2]/P[3] mod N;\n");
+		ec_curve_print(E, n); printf("E:=E mod N;\n");
+		printf("addsub:="); ec_point_print(Q, E, n); printf(";\n");
+		printf("plain:="); ec_point_print(PP, E, n); printf(";\n");
+		exit(-1);
+	    }
 	}
 	ec_point_clear(PP, E, n);
+	mpz_clear(f);
     }
 #endif
     /* Undo negation to avoid changing the caller's e value */
@@ -1877,7 +1923,7 @@ ec_point_mul_add_sub (ec_point_t Q, mpz_t e, ec_point_t P,
 int
 ec_point_mul(ec_point_t Q, mpz_t e, ec_point_t P, ec_curve_t E, mpmod_t n)
 {
-#if 1 /* keeping it simple */
+#if 0 /* keeping it simple */
     return ec_point_mul_plain(Q, e, P, E, n);
 #else
     return ec_point_mul_add_sub(Q, e, P, E, n);
