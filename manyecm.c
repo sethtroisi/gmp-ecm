@@ -2694,13 +2694,12 @@ adjust_CM(mpz_t f, ec_curve_t E, ec_point_t P, mpz_t N, mpz_t j)
     return ret;
 }
 
-/* TODO: add some twist */
 int
 build_curves_with_CM(mpz_t f, int *nE, ec_curve_t *tE, ec_point_t *tP, 
 		     int disc, mpmod_t n, mpz_t *sqroots)
 {
     mpz_t j;
-    int ret = ECM_NO_FACTOR_FOUND;
+    int i, ret = ECM_NO_FACTOR_FOUND;
 
     ec_curve_init(tE[0], n);
     ec_point_init(tP[0], tE[0], n);
@@ -2709,10 +2708,36 @@ build_curves_with_CM(mpz_t f, int *nE, ec_curve_t *tE, ec_point_t *tP,
 	/* D = -3 => E: Y^2 = X^3 + 8 has rank 1, generator (2 : 4 : 1)
 	   f4 = P2*P4, disc(P2) = 3*2^4
 	*/
-	tE[0]->type = ECM_EC_TYPE_WEIERSTRASS;
-	mpres_set_ui(tE[0]->A, 0, n);
+	mpz_t zeta6, tmp;
+
+	for(i = 0; i < 3; i++){
+	    tE[i]->type = ECM_EC_TYPE_WEIERSTRASS;
+	    mpres_set_ui(tE[i]->A, 0, n);
+	    if(i > 0){
+		ec_curve_init(tE[i], n);
+		ec_point_init(tP[i], tE[i], n);
+	    }
+	}
 	mpres_set_si(tP[0]->x, 2, n);
 	mpres_set_si(tP[0]->y, 4, n);
+
+	/* compute zeta6 from sqrt(-3) */
+	mpz_init(zeta6);
+	mpz_init(tmp);
+	mpz_sub_si(zeta6, sqroots[0], 1);
+	mod_div_2(zeta6, n->orig_modulus);
+	mpz_powm_ui(tmp, zeta6, 3, n->orig_modulus);
+	mpz_add_si(tmp, tmp, 1);
+	mpz_mod(tmp, tmp, n->orig_modulus);
+	gmp_printf("# zeta6^3+1=%Zd\n", tmp);
+#if 0
+	/* first twist */
+	/* zeta6*y^2 = x^3+8 => (zeta6^2*y)^2 = (zeta6*x)^3+8*zeta6^3 */
+
+	*nE = 3;
+#endif
+	mpz_clear(zeta6);
+	mpz_clear(tmp);
     }
     else if(disc == -4){
 #if 1
@@ -2979,23 +3004,29 @@ process_special_blend(mpz_t tf[], int *nf, mpz_t N, int b, int n, double B1,
     /* look for discriminants of class number 1, hence rational CM curves */
     if(sgn == -1){
 	if(n % 2 == 1){
-	    /* b^(2*k+1) = 1 mod N => (b^(k+1))^2 = b mod N */
+	    /* b^(2*n+1) = 1 mod N => (b^(n+1))^2 = b mod N */
 	}
     }
     else{
 	nn = 2 * n;
 	if(n % 2 == 0){
-	    /* b^(2*k) = -1 mod N => (b^k)^2 = -1 mod N */
+	    /* b^(2*n) = -1 mod N => (b^n)^2 = -1 mod N */
 	    disc1 = -4;
 	}
 	else{
-	    /* b^(2*k+1) = -1 mod N => (b^(k+1))^2 = -b mod N */
+	    /* b^(2*n+1) = -1 mod N => (b^(n+1))^2 = -b mod N */
 	    if(b == 2)
 		disc1 = -8;
 	    else if(b == 3 || b == 7 || b == 11)
 		disc1 = -b;
+	    if(disc1 != 0){
+		/* set squareroot of -b */
+		mpz_init_set_si(sqroots[0], b);
+		mpz_powm_ui(sqroots[0], sqroots[0], n+1, N);
+	    }
 	}
     }
+#if 0 /* TMP, TMP, time to try the use of twists */
     /* each odd prime factor q of n can lead to sqrt(q*) */
     printf("# Using factors of n=%d\n", n);
     for(i = 0; tabd[i][0] != 0; i++){
@@ -3027,6 +3058,7 @@ process_special_blend(mpz_t tf[], int *nf, mpz_t N, int b, int n, double B1,
 	if(ret != ECM_NO_FACTOR_FOUND)
 	    break;
     }
+#endif
     if(ret == ECM_NO_FACTOR_FOUND && disc1 != 0){
 	printf("# Let us use disc=%d\n", disc1);
 	return process_many_curves_loop(tf, nf, N, B1, params,
