@@ -2043,7 +2043,7 @@ ecm_stage1_W (mpz_t f, int Etype, mpres_t x, mpres_t y, mpres_t A, mpmod_t n,
 	}
     }
     else{
-#if 1 /* keeping it simple */
+#if 0 /* keeping it simple */
 	if (ec_point_mul (Q, batch_s, P, E, n) == 0){
 	    mpz_set (f, Q->x);
 	    ret = ECM_FACTOR_FOUND_STEP1;
