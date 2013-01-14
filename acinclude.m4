@@ -390,6 +390,12 @@ AC_ARG_ENABLE(gpu,
                   GPU_ARCH="30" 
                   AC_MSG_NOTICE(
               [GPU version will be optimized for GPU of compute capability 3.0])
+                ],
+              ["sm_35"], 
+                [
+                  GPU_ARCH="35" 
+                  AC_MSG_NOTICE(
+              [GPU version will be optimized for GPU of compute capability 3.5])
                   AC_MSG_NOTICE([Warning: Untested GPU architecture!])
                 ],
                 #default
