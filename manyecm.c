@@ -736,15 +736,17 @@ compute_s_4_add_sub(mpz_t s, unsigned long B1, int disc)
     compute_s(t, B1, forbiddenres);
     free(forbiddenres);
     printf("# computing prod(p^e <= %lu): %ldms\n", B1, elltime(tp,cputime()));
-#if 1 /* keeping it simple for the time being */
+#if 0 /* keeping it simple for the time being */
     mpz_set(s, t);
 #else
+    tp = cputime();
     w = get_add_sub_w(t);
     /* Slen = 2 * log_{2^w}(t) = 2*log_2(t)/w = 2 * 64 * size(t)/w */
     Slen = (2 * GMP_NUMB_BITS * mpz_size(t)) / w;
     S = (short *)malloc(Slen * sizeof(short));
     iS = build_add_sub_chain(S, Slen, t, w);
-    printf("# NAF has %d terms (w=%d, Slen=%d)\n", iS, w, Slen);
+    printf("# NAF has %d terms (w=%d, Slen=%d): %ld\n", iS, w, Slen,
+	   elltime(tp,cputime()));
     if(iS == -1){
 	printf("build_NAF: Slen=%d too small\n", Slen);
 	return 0;
@@ -3065,7 +3067,12 @@ main(int argc, char *argv[])
     char *savefilename = NULL;
     ecm_params params;
 
-    /* first look for options */
+    /* print args */
+    printf("ARGS: %s", argv[0]);
+    for(i = 1; i < argc; i++)
+	printf(" %s", argv[i]);
+    printf("\n");
+    /* look for options */
     while ((argc > 1) && (argv[1][0] == '-')){
 	if (strcmp (argv[1], "-h") == 0 || strcmp (argv[1], "--help") == 0){
 	    usage (argv[0]);
