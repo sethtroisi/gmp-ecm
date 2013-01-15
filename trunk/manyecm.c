@@ -3013,7 +3013,7 @@ process_special_blend(mpz_t tf[], int *nf, mpz_t N, int b, int n, int discref,
 	sgn = -1;
 	n = -n;
     }
-    /* look for discriminants of class number 1, hence rational CM curves */
+    /* try discriminants of class number 1, hence rational CM curves */
     if(sgn == -1){
 	if(n % 2 == 1){
 	    /* b^(2*k+1) = 1 mod N => (b^(k+1))^2 = b mod N */
@@ -3041,6 +3041,18 @@ process_special_blend(mpz_t tf[], int *nf, mpz_t N, int b, int n, int discref,
 	    }
 	}
     }
+    if(disc1 == discref){
+	printf("# Let us use disc=%d\n", disc1);
+	ret = process_many_curves_loop(tf, nf, N, B1, params,
+				       NULL, NULL, 0, 0, 1,
+				       disc1, sqroots,
+				       savefilename);
+	mpz_clear(sqroots[0]); /* really? */
+	if(ret != ECM_NO_FACTOR_FOUND)
+	    return ret;
+    }
+    if(disc1 != 0)
+	mpz_clear(sqroots[0]); /* really? */
     /* each odd prime factor q of n can lead to sqrt(q*) */
     for(i = 0; tabd[i][0] != 0; i++){
 	disc = tabd[i][0];
@@ -3070,13 +3082,6 @@ process_special_blend(mpz_t tf[], int *nf, mpz_t N, int b, int n, int discref,
 	}
 	if(ret != ECM_NO_FACTOR_FOUND)
 	    break;
-    }
-    if(ret == ECM_NO_FACTOR_FOUND && disc1 == discref){
-	printf("# Let us use disc=%d\n", disc1);
-	return process_many_curves_loop(tf, nf, N, B1, params,
-					NULL, NULL, 0, 0, 1,
-					disc1, sqroots,
-					savefilename);
     }
     return ret;
 }
