@@ -2979,11 +2979,11 @@ odd_square_root_mod_N(mpz_t f, mpz_t *sqroots, int b, int n, int q, mpz_t N)
 /* Consider M = b^n+1 if n > 0, M = b^(-n)-1 otherwise.
    N is supposed to be a *primitive* cofactor of M.
    Then find a special cocktail of CM curves a` la Atkin.
-   TODO: solve the B1 choice problem...! Force disc?
+   To solve the B1 problem, only consider (b, n)'s s.t. disc(b, n) = discref.
  */
 int
-process_special_blend(mpz_t tf[], int *nf, mpz_t N, int b, int n, double B1, 
-		      ecm_params params, char *savefilename)
+process_special_blend(mpz_t tf[], int *nf, mpz_t N, int b, int n, int discref,
+		      double B1, ecm_params params, char *savefilename)
 {
     int sgn = 1, disc1 = 0, q, nn, disc, i, j, ret = ECM_NO_FACTOR_FOUND;
     int tabd[][3] = {{-3, 5, 0},
@@ -3071,7 +3071,7 @@ process_special_blend(mpz_t tf[], int *nf, mpz_t N, int b, int n, double B1,
 	    break;
     }
 #endif
-    if(ret == ECM_NO_FACTOR_FOUND && disc1 != 0){
+    if(ret == ECM_NO_FACTOR_FOUND && disc1 == discref){
 	printf("# Let us use disc=%d\n", disc1);
 	return process_many_curves_loop(tf, nf, N, B1, params,
 					NULL, NULL, 0, 0, 1,
@@ -3260,9 +3260,9 @@ main(int argc, char *argv[])
       }
       if(b != 0){
 	  nf = 0;
-	  res = process_special_blend(tf,&nf,N,b,n,B1,params,savefilename);
+	  res = process_special_blend(tf,&nf,N,b,n,disc,B1,params,savefilename);
       }
-      if(method == ECM_ECM){
+      else if(method == ECM_ECM){
 	  nf = 0;
 	  res = process_many_curves_loop(tf, &nf, N, B1, params,
 					 curvesname,
@@ -3280,8 +3280,8 @@ main(int argc, char *argv[])
     if(infile != stdin)
 	fclose(infile);
     for(i = 0; i < NFMAX; i++)
-	mpz_clear (tf[i]);
-    mpz_clear (N);
+	mpz_clear(tf[i]);
+    mpz_clear(N);
     
     return res;
 }
