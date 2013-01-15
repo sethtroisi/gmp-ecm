@@ -143,6 +143,8 @@ usage (void)
     printf ("  -gpu         Use GPU-ECM for stage 1.\n");
     printf ("  -gpudevice n Use device n to execute GPU code (by default, "
                                                           "CUDA chooses)\n");
+    printf ("  -gpucurves n Compute on n curves in parallel on the GPU (by "
+                                                  "default, CUDA chooses)\n");
 #endif
     printf ("  -h, --help   Prints this help and exit.\n");
 }
@@ -403,6 +405,8 @@ main (int argc, char *argv[])
   int use_gpu = 0; /* Do we use the GPU for stage 1 (by default no)*/
   int gpudevice = -1; /* Which device do we use for GPU code (by default CUDA */
                       /* chooses)                                             */
+  unsigned int gpucurves = 0; /* How many curves do we want for GPU code */ 
+                              /* (by default CUDA chooses)               */
 
   /* check ecm is linked with a compatible library */
   if (mp_bits_per_limb != GMP_NUMB_BITS)
@@ -845,6 +849,12 @@ main (int argc, char *argv[])
           argv += 2;
           argc -= 2;
         }
+      else if ((argc > 2) && (strcmp (argv[1], "-gpucurves") == 0))
+        {
+          gpucurves = atoi (argv[2]);
+          argv += 2;
+          argc -= 2;
+        }
 #endif
       else
 	{
@@ -1059,6 +1069,8 @@ main (int argc, char *argv[])
   params->gpu = use_gpu; /* If WITH_GPU is not defined it will always be 0 */
   params->gpu_device = gpudevice; /* If WITH_GPU is not defined or    */
                                   /* use_gpu = 0, it has no meaning   */
+  params->gpu_number_of_curves = gpucurves; /* If WITH_GPU is not defined or */
+                                            /* use_gpu = 0, it has no meaning*/
 
   /* -treefile is valid for ECM only */
   if (TreeFilename != NULL && method != ECM_ECM)
