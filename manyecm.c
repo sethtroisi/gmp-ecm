@@ -2672,9 +2672,9 @@ int
 build_curves_with_CM(mpz_t f, int *nE, ec_curve_t *tE, ec_point_t *tP, 
 		     int disc, mpmod_t n, mpz_t *sqroots)
 {
-    mpz_t j;
+    mpz_t j, tmp;
     long x0;
-    int i, ret = ECM_NO_FACTOR_FOUND;
+    int i, ret = ECM_NO_FACTOR_FOUND, imax;
 
     ec_curve_init(tE[0], n);
     ec_point_init(tP[0], tE[0], n);
@@ -2684,9 +2684,9 @@ build_curves_with_CM(mpz_t f, int *nE, ec_curve_t *tE, ec_point_t *tP,
 	/* D = -3 => E: Y^2 = X^3 + 8 has rank 1, generator (2 : 4 : 1)
 	   f4 = P2*P4, disc(P2) = 3*2^4
 	*/
-	mpz_t zeta6, tmp;
+	imax = (sqroots == NULL ? 1 : 6);
 
-	for(i = 0; i < 6; i++){
+	for(i = 0; i < imax; i++){
 	    if(i > 0){
 		ec_curve_init(tE[i], n);
 		ec_point_init(tP[i], tE[i], n);
@@ -2698,35 +2698,65 @@ build_curves_with_CM(mpz_t f, int *nE, ec_curve_t *tE, ec_point_t *tP,
 	mpz_set_si(tP[0]->x, 2);
 	mpz_set_si(tP[0]->y, 4);
 
-	/* TODO: use complex twists? */
-	/* compute zeta6 from sqrt(-3) */
-	mpz_init(zeta6);
-	mpz_init(tmp);
-	mpz_add_si(zeta6, sqroots[0], 1);
-	mod_div_2(zeta6, n->orig_modulus);
-	mpz_powm_ui(tmp, zeta6, 3, n->orig_modulus);
-	mpz_add_si(tmp, tmp, 1);
-	mpz_mod(tmp, tmp, n->orig_modulus);
-	gmp_printf("# zeta6^3+1=%Zd\n", tmp);
-	mpz_set_ui(tmp, 8);
-	for(i = 1; i < 6; i++){
-	    mpz_mul(tmp, tmp, zeta6);
+	if(sqroots != NULL){
+	    /* TODO: use complex twists? */
+	    mpz_t zeta6;
+	    /* compute zeta6 from sqrt(-3) */
+	    mpz_init(zeta6);
+	    mpz_init(tmp);
+	    mpz_add_si(zeta6, sqroots[0], 1);
+	    mod_div_2(zeta6, n->orig_modulus);
+	    mpz_powm_ui(tmp, zeta6, 3, n->orig_modulus);
+	    mpz_add_si(tmp, tmp, 1);
 	    mpz_mod(tmp, tmp, n->orig_modulus);
-	    x0 = 0;
-	    ec_force_point(tE[i], tP[i], tmp, &x0, n->orig_modulus);
+	    gmp_printf("# zeta6^3+1=%Zd\n", tmp);
+	    mpz_set_ui(tmp, 8);
+	    for(i = 1; i < imax; i++){
+		mpz_mul(tmp, tmp, zeta6);
+		mpz_mod(tmp, tmp, n->orig_modulus);
+		x0 = 0;
+		/* works since tE[i]->A is always 0... */
+		ec_force_point(tE[i], tP[i], tmp, &x0, n->orig_modulus);
+	    }
+	    *nE = 6;
+	    mpz_clear(zeta6);
+	    mpz_clear(tmp);
 	}
-	*nE = 6;
-	mpz_clear(zeta6);
-	mpz_clear(tmp);
     }
     else if(disc == -4){
 #if 1
 	/* Y^2 = X^3 + 9 * X has rank 1 and a 4-torsion point */
 	/* a generator is (4 : 10 : 1) */
-	tE[0]->type = ECM_EC_TYPE_WEIERSTRASS;
+	imax = (sqroots == NULL ? 1 : 4);
+
+	for(i = 0; i < imax; i++){
+	    if(i > 0){
+		ec_curve_init(tE[i], n);
+		ec_point_init(tP[i], tE[i], n);
+	    }
+	    tE[i]->type = ECM_EC_TYPE_WEIERSTRASS;
+	    tE[i]->disc = -4;
+	}
         mpz_set_ui(tE[0]->A, 9);
         mpz_set_si(tP[0]->x, 4);
         mpz_set_si(tP[0]->y, 10);
+	if(sqroots != NULL){
+	    /* sqroots[0] = sqrt(-1) */
+	    mpz_init(tmp);
+	    mpz_mul(tmp, sqroots[0], sqroots[0]);
+	    mpz_add_si(tmp, tmp, 1);
+	    mpz_mod(tmp, tmp, n->orig_modulus);
+	    gmp_printf("# zeta4^2+1=%Zd\n", tmp);
+	    for(i = 1; i < imax; i++){
+		mpz_mul(tmp, tE[i-1]->A, sqroots[0]);
+		mpz_mod(tE[i]->A, tmp, n->orig_modulus);
+		x0 = 1; /* x0 = 0 is bad, since this is a 2-torsion point */
+		mpz_set_si(tmp, 0);
+		ec_force_point(tE[i], tP[i], tmp, &x0, n->orig_modulus);
+	    }
+	    *nE = 4;
+	    mpz_clear(tmp);
+	}
 #else /* one day, use this? */
 	/* => 1/3*y^2 = x^3 + x, gen = (4/3, 10/3) */
 	tE[0]->type = ECM_EC_TYPE_MONTGOMERY;
@@ -2983,17 +3013,20 @@ process_special_blend(mpz_t tf[], int *nf, mpz_t N, int b, int n, double B1,
     /* look for discriminants of class number 1, hence rational CM curves */
     if(sgn == -1){
 	if(n % 2 == 1){
-	    /* b^(2*n+1) = 1 mod N => (b^(n+1))^2 = b mod N */
+	    /* b^(2*k+1) = 1 mod N => (b^(k+1))^2 = b mod N */
 	}
     }
     else{
 	nn = 2 * n;
 	if(n % 2 == 0){
-	    /* b^(2*n) = -1 mod N => (b^n)^2 = -1 mod N */
+	    /* b^(2*k) = -1 mod N => (b^k)^2 = -1 mod N */
 	    disc1 = -4;
+	    /* set squareroot of -1 */
+	    mpz_init_set_si(sqroots[0], b);
+	    mpz_powm_ui(sqroots[0], sqroots[0], n>>1, N);
 	}
 	else{
-	    /* b^(2*n+1) = -1 mod N => (b^(n+1))^2 = -b mod N */
+	    /* b^(2*k+1) = -1 mod N => (b^(k+1))^2 = -b mod N */
 	    if(b == 2)
 		disc1 = -8;
 	    else if(b == 3 || b == 7 || b == 11)
@@ -3001,7 +3034,7 @@ process_special_blend(mpz_t tf[], int *nf, mpz_t N, int b, int n, double B1,
 	    if(disc1 != 0){
 		/* set squareroot of -b */
 		mpz_init_set_si(sqroots[0], b);
-		mpz_powm_ui(sqroots[0], sqroots[0], n+1, N);
+		mpz_powm_ui(sqroots[0], sqroots[0], (n>>1)+1, N);
 	    }
 	}
     }
