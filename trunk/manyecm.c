@@ -661,7 +661,7 @@ dump_curves(ec_curve_t *tE, ec_point_t *tP, int nE, mpz_t f)
 	printf("B[%d]:=P[%d][2]^2-P[%d][1]^3-A[%d]*P[%d][1];\n", 
 	       i+1, i+1, i+1, i+1, i+1);
 	printf("E[%d]:=EllipticCurve([F!A[%d], F!B[%d]]);\n", i+1, i+1, i+1);
-	printf("CheckE(E[%d], info[%d]);\n", i+1, i+1);
+	printf("CheckE(E[%d], infos[%d]);\n", i+1, i+1);
     }
 }
 
@@ -745,7 +745,7 @@ compute_s_4_add_sub(mpz_t s, unsigned long B1, int disc)
     Slen = (2 * GMP_NUMB_BITS * mpz_size(t)) / w;
     S = (short *)malloc(Slen * sizeof(short));
     iS = build_add_sub_chain(S, Slen, t, w);
-    printf("# NAF has %d terms (w=%d, Slen=%d): %ld\n", iS, w, Slen,
+    printf("# NAF has %d terms (w=%d, Slen=%d): %ldms\n", iS, w, Slen,
 	   elltime(tp,cputime()));
     if(iS == -1){
 	printf("build_NAF: Slen=%d too small\n", Slen);
@@ -1142,33 +1142,6 @@ read_curves_from_file(int *nE, ec_curve_t *tE, ec_point_t *tP,
     mpq_clear(q);
     return ret;
 }
-
-#if 0 /* obsolete: remove? */
-int
-process_many_curves_from_file(mpz_t tf[], int *nf, mpz_t n, double B1, 
-			      char *fic_EP, int ncurves, int onebyone)
-{
-    ec_curve_t tE[NCURVE_MAX];
-    ec_point_t tP[NCURVE_MAX];
-    mpmod_t modulus;
-    int nE, i, ret = 0;
-
-    mpmod_init(modulus, n, ECM_MOD_DEFAULT);
-    ret = read_curves_from_file(&nE, tE, tP, tf, nf, modulus, fic_EP, ncurves);
-    /* TODO: process Montgomery curves first? */
-    ret = process_many_curves(tf[0], modulus, B1, tE, tP, nE, onebyone);
-    if(ret == ECM_PRIME_FAC_PRIME_COFAC ||
-       ret == ECM_PRIME_FAC_COMP_COFAC ||
-       ret == ECM_COMP_FAC_COMP_COFAC)
-	*nf += 1; /* FIXME: do better */
-    for(i = 0; i < nE; i++){
-	ec_point_clear(tP[i], tE[i], modulus);
-	ec_curve_clear(tE[i], modulus);
-    }
-    mpmod_clear(modulus);
-    return ret;
-}
-#endif
 
 void
 mod_div_2(mpz_t x, mpz_t n)
@@ -2694,15 +2667,18 @@ adjust_CM(mpz_t f, ec_curve_t E, ec_point_t P, mpz_t N, mpz_t j)
     return ret;
 }
 
+/* Curves are built mod N, not in nres */
 int
 build_curves_with_CM(mpz_t f, int *nE, ec_curve_t *tE, ec_point_t *tP, 
 		     int disc, mpmod_t n, mpz_t *sqroots)
 {
     mpz_t j;
+    long x0;
     int i, ret = ECM_NO_FACTOR_FOUND;
 
     ec_curve_init(tE[0], n);
     ec_point_init(tP[0], tE[0], n);
+    tE[0]->disc = disc;
     *nE = 1;
     if(disc == -3){
 	/* D = -3 => E: Y^2 = X^3 + 8 has rank 1, generator (2 : 4 : 1)
@@ -2710,32 +2686,36 @@ build_curves_with_CM(mpz_t f, int *nE, ec_curve_t *tE, ec_point_t *tP,
 	*/
 	mpz_t zeta6, tmp;
 
-	for(i = 0; i < 3; i++){
-	    tE[i]->type = ECM_EC_TYPE_WEIERSTRASS;
-	    mpres_set_ui(tE[i]->A, 0, n);
+	for(i = 0; i < 6; i++){
 	    if(i > 0){
 		ec_curve_init(tE[i], n);
 		ec_point_init(tP[i], tE[i], n);
 	    }
+	    tE[i]->type = ECM_EC_TYPE_WEIERSTRASS;
+	    mpz_set_ui(tE[i]->A, 0);
+	    tE[i]->disc = -3;
 	}
-	mpres_set_si(tP[0]->x, 2, n);
-	mpres_set_si(tP[0]->y, 4, n);
+	mpz_set_si(tP[0]->x, 2);
+	mpz_set_si(tP[0]->y, 4);
 
+	/* TODO: use complex twists? */
 	/* compute zeta6 from sqrt(-3) */
 	mpz_init(zeta6);
 	mpz_init(tmp);
-	mpz_sub_si(zeta6, sqroots[0], 1);
+	mpz_add_si(zeta6, sqroots[0], 1);
 	mod_div_2(zeta6, n->orig_modulus);
 	mpz_powm_ui(tmp, zeta6, 3, n->orig_modulus);
 	mpz_add_si(tmp, tmp, 1);
 	mpz_mod(tmp, tmp, n->orig_modulus);
 	gmp_printf("# zeta6^3+1=%Zd\n", tmp);
-#if 0
-	/* first twist */
-	/* zeta6*y^2 = x^3+8 => (zeta6^2*y)^2 = (zeta6*x)^3+8*zeta6^3 */
-
-	*nE = 3;
-#endif
+	mpz_set_ui(tmp, 8);
+	for(i = 1; i < 6; i++){
+	    mpz_mul(tmp, tmp, zeta6);
+	    mpz_mod(tmp, tmp, n->orig_modulus);
+	    x0 = 0;
+	    ec_force_point(tE[i], tP[i], tmp, &x0, n->orig_modulus);
+	}
+	*nE = 6;
 	mpz_clear(zeta6);
 	mpz_clear(tmp);
     }
@@ -2744,9 +2724,9 @@ build_curves_with_CM(mpz_t f, int *nE, ec_curve_t *tE, ec_point_t *tP,
 	/* Y^2 = X^3 + 9 * X has rank 1 and a 4-torsion point */
 	/* a generator is (4 : 10 : 1) */
 	tE[0]->type = ECM_EC_TYPE_WEIERSTRASS;
-        mpres_set_ui(tE[0]->A, 9, n);
-        mpres_set_si(tP[0]->x, 4, n);
-        mpres_set_si(tP[0]->y, 10, n);
+        mpz_set_ui(tE[0]->A, 9);
+        mpz_set_si(tP[0]->x, 4);
+        mpz_set_si(tP[0]->y, 10);
 #else /* one day, use this? */
 	/* => 1/3*y^2 = x^3 + x, gen = (4/3, 10/3) */
 	tE[0]->type = ECM_EC_TYPE_MONTGOMERY;
@@ -2760,9 +2740,9 @@ build_curves_with_CM(mpz_t f, int *nE, ec_curve_t *tE, ec_point_t *tP,
 	           = x^3 - 5*7*(2^2*3^2*7)^2*x - 2*7^2*(2^2*3^2*7)^3
 	   P = (2052 : 50112 : 1) */
 	tE[0]->type = ECM_EC_TYPE_WEIERSTRASS;
-	mpres_set_si(tE[0]->A, -2222640, n);
-        mpres_set_si(tP[0]->x, 2052, n);
-        mpres_set_si(tP[0]->y, 50112, n);
+	mpz_set_si(tE[0]->A, -2222640);
+        mpz_set_si(tP[0]->x, 2052);
+        mpz_set_si(tP[0]->y, 50112);
     }
     else if(disc == -8){
 	/* D = -8: E_c: Y^2 = X^3+4*c*X^2+2*c^2*X => Montgomery when 2 = z^2 
@@ -2770,17 +2750,17 @@ build_curves_with_CM(mpz_t f, int *nE, ec_curve_t *tE, ec_point_t *tP,
 	   alt.: [-2*3*5*cc^2, 2^3*7*cc^3], here with cc=12
 	*/
 	tE[0]->type = ECM_EC_TYPE_WEIERSTRASS;
-	mpres_set_si(tE[0]->A, -4320, n);
-        mpres_set_si(tP[0]->x, 12, n);
-        mpres_set_si(tP[0]->y, -216, n);
+	mpz_set_si(tE[0]->A, -4320);
+        mpz_set_si(tP[0]->x, 12);
+        mpz_set_si(tP[0]->y, -216);
     }
     else if(disc == -11){
 	/*     E:=EllipticCurve([0, 0, 0, -2^5*3*11, 2^4*7*11^2]);
 	       [ (33 : 121 : 1) ] */
 	tE[0]->type = ECM_EC_TYPE_WEIERSTRASS;
-	mpres_set_si(tE[0]->A, -1056, n);
-	mpres_set_si(tP[0]->x, 33, n);
-        mpres_set_si(tP[0]->y, 121, n);
+	mpz_set_si(tE[0]->A, -1056);
+	mpz_set_si(tP[0]->x, 33);
+        mpz_set_si(tP[0]->y, 121);
     }
     /* class number 2 */
     else if(disc == -15){
@@ -2800,7 +2780,6 @@ build_curves_with_CM(mpz_t f, int *nE, ec_curve_t *tE, ec_point_t *tP,
 	printf("Unknown discriminant: %d\n", disc);
 	ret = ECM_ERROR;
     }
-    tE[0]->disc = disc;
     return ret;
 }
 
@@ -3063,7 +3042,7 @@ process_special_blend(mpz_t tf[], int *nf, mpz_t N, int b, int n, double B1,
 	printf("# Let us use disc=%d\n", disc1);
 	return process_many_curves_loop(tf, nf, N, B1, params,
 					NULL, NULL, 0, 0, 1,
-					disc1, NULL,
+					disc1, sqroots,
 					savefilename);
     }
     return ret;
@@ -3100,7 +3079,7 @@ main(int argc, char *argv[])
     ecm_params params;
 
     /* print args */
-    printf("ARGS: %s", argv[0]);
+    printf("# ARGS: %s", argv[0]);
     for(i = 1; i < argc; i++)
 	printf(" %s", argv[i]);
     printf("\n");
