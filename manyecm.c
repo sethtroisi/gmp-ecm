@@ -2929,7 +2929,7 @@ odd_square_root_mod_N(mpz_t f, mpz_t *sqroots, int b, int n, int q, mpz_t N)
 	mpz_sub_si(f, zeta, 1);
 	mpz_gcd(f, f, N);
 	if(mpz_cmp_ui(f, 1) != 0){
-	    printf("# Factor found (gcd(zeta-1, N)): ");
+	    printf("# Factor found (gcd(zeta_%d-1, N)): ", q);
 	    mpz_out_str(stdout, 10, f);
 	    printf("\n");
 	    ret = ECM_FACTOR_FOUND_STEP1;
@@ -2986,12 +2986,15 @@ process_special_blend(mpz_t tf[], int *nf, mpz_t N, int b, int n, int discref,
 		      double B1, ecm_params params, char *savefilename)
 {
     int sgn = 1, disc1 = 0, q, nn, disc, i, j, ret = ECM_NO_FACTOR_FOUND;
-    int tabd[][3] = {{-3, 5, 0},
+    int tabd[][4] = {{-15, -3, 5, 0}, 
 #if 0
- {-4, 5, 0}, {8, -3, 0}, {5, -7, 0},
-		     {-8, 5, 0}, {-3, 17, 0}, {-4, 13, 0}, {8, -11, 0},
-		     {-7, 13, 0}, {5, -23, 0}, {-3, 41, 0},
-148, 187, 232, 235, 267, 403, 427,
+		     {-20, -4, 5, 0}, {-24, 8, -3, 0},
+		     {-35, 5, -7, 0}, {-40, -8, 5, 0}, {-51, -3, 17, 0},
+		     {-52, -4, 13, 0}, {-88, 8, -11, 0},
+		     {-91, -7, 13, 0}, {-115, 5, -23, 0}, {-123, -3, 41, 0},
+		     {-148, 0, 0, 0}, {-187, 0, 0, 0}, 
+		     {-232, 0, 0, 0}, {-235, 0, 0, 0},
+		     {-267, 0, 0, 0}, {-403, 0, 0, 0}, {-427, 0, 0, 0},
 		     /* h = g = 4 */
 		  84, 120, 132, 168, 195, 228, 280, 312, 340, 372, 408, 
 		  435, 483, 520, 532, 555, 595, 627, 708, 715, 760, 795,
@@ -3038,17 +3041,15 @@ process_special_blend(mpz_t tf[], int *nf, mpz_t N, int b, int n, int discref,
 	    }
 	}
     }
-#if 0 /* TMP, TMP, time to try the use of twists */
     /* each odd prime factor q of n can lead to sqrt(q*) */
-    printf("# Using factors of n=%d\n", n);
     for(i = 0; tabd[i][0] != 0; i++){
 	disc = tabd[i][0];
-	for(j = 1; tabd[i][j] != 0; j++)
-	    disc *= tabd[i][j];
+	if(disc != discref)
+	    continue;
 	if(n % abs(disc) == 0){
 	    /* for the time being, works only for h = 2 */
 	    printf("# I can use tabd[%d] = %d\n", i, disc);
-	    for(j = 0; tabd[i][j] != 0; j++){
+	    for(j = 1; tabd[i][j] != 0; j++){
 		q = tabd[i][j];
 		if(abs(q) % 2 == 1){
 		    ret = odd_square_root_mod_N(tf[*nf],sqroots,b,nn,abs(q),N);
@@ -3070,7 +3071,6 @@ process_special_blend(mpz_t tf[], int *nf, mpz_t N, int b, int n, int discref,
 	if(ret != ECM_NO_FACTOR_FOUND)
 	    break;
     }
-#endif
     if(ret == ECM_NO_FACTOR_FOUND && disc1 == discref){
 	printf("# Let us use disc=%d\n", disc1);
 	return process_many_curves_loop(tf, nf, N, B1, params,
