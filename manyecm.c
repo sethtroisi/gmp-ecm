@@ -51,7 +51,7 @@ process_one_curve(mpz_t f, mpz_t N, double B1,
 	params->sigma_is_A = 1;
     else{
 	params->sigma_is_A = -1;
-	params->Etype = E->type;
+	params->E = E;
 	mpz_set(params->y, P->y);
     }
     ret = ecm_factor(f, N, B1, params);
@@ -698,7 +698,9 @@ process_many_curves_loop(mpz_t tf[], int *nf, mpz_t n, double B1,
 
     onebyone = 1; /* mtyform; */
     while(1){
-	/* cheating with the content of tE and tP */
+	/* cheating with the content of tE and tP that are first defined
+	   over Z/nZ without residues
+	 */
 	mpmod_init(modulus, n, ECM_MOD_DEFAULT);
 	if(fic_EP != NULL)
 	    ret = read_curves_from_file(&nE, tE, tP, tf, nf, modulus, 

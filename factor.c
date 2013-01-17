@@ -28,12 +28,16 @@ http://www.gnu.org/licenses/ or write to the Free Software Foundation, Inc.,
 void
 ecm_init (ecm_params q)
 {
+  __ec_curve_struct *ptrE = (__ec_curve_struct *)malloc(sizeof(__ec_curve_struct));
+
   q->method = ECM_ECM; /* default method */
   mpz_init_set_ui (q->x, 0);
   mpz_init_set_ui (q->y, 0);
   mpz_init_set_ui (q->sigma, 0);
   q->sigma_is_A = 0;
-  q->Etype = ECM_EC_TYPE_MONTGOMERY;
+  mpz_init(ptrE->A);
+  ptrE->type = ECM_EC_TYPE_MONTGOMERY;
+  q->E = ptrE;
   q->param = ECM_PARAM_DEFAULT;
   mpz_init_set_ui (q->go, 1);
   q->B1done = ECM_DEFAULT_B1_DONE + 1. / 1048576.;
@@ -125,7 +129,7 @@ ecm_factor (mpz_t f, mpz_t n, double B1, ecm_params p)
 		       &(p->B1done), 
                        B1, p->B2min, p->B2, B2scale, p->k, p->S, p->verbose, 
                        p->repr, p->nobase2step2, p->use_ntt, 
-		       p->sigma_is_A, p->Etype,
+		       p->sigma_is_A, p->E,
                        p->os, p->es, p->chkfilename, p->TreeFilename, p->maxmem,
                        p->stage1time, p->rng, p->stop_asap, p->batch_s,
                        &(p->batch_last_B1_used), p->gw_k, p->gw_b, p->gw_n,
