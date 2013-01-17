@@ -102,6 +102,7 @@ build_curves_with_CM(mpz_t f, int *nE, ec_curve_t *tE, ec_point_t *tP,
 	    *nE = 6;
 	    mpz_clear(zeta6);
 	    mpz_clear(tmp);
+	    mpz_set(tE[0]->sq[0], sqroots[0]);
 	}
     }
     else if(disc == -4){
@@ -137,6 +138,7 @@ build_curves_with_CM(mpz_t f, int *nE, ec_curve_t *tE, ec_point_t *tP,
 	    }
 	    *nE = 4;
 	    mpz_clear(tmp);
+	    mpz_set(tE[0]->sq[0], sqroots[0]);
 	}
 #else /* one day, use this? */
 	/* => 1/3*y^2 = x^3 + x, gen = (4/3, 10/3) */

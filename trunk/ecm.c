@@ -646,23 +646,18 @@ ecm_stage1 (mpz_t f, mpres_t x, mpres_t A, mpmod_t n, double B1,
            ECM_NO_FACTOR_FOUND
 */
 static int
-ecm_stage1_W (mpz_t f, int Etype, mpres_t x, mpres_t y, mpres_t A, mpmod_t n, 
+ecm_stage1_W (mpz_t f, ec_curve_t E, ec_point_t P, mpmod_t n, 
 	      double B1, double *B1done, mpz_t batch_s, mpz_t go, 
 	      int (*stop_asap)(void), char *chkfilename)
 {
     mpres_t xB;
-    ec_curve_t E;
-    ec_point_t P, Q;
+    ec_point_t Q;
     double p = 0.0, r, last_chkpnt_p;
     int ret = ECM_NO_FACTOR_FOUND;
     long last_chkpnt_time;
     
     mpres_init (xB, n);
 
-    ec_curve_init_set(E, A, Etype, n);
-    ec_point_init(P, E, n);
-    mpres_set(P->x, x, n);
-    mpres_set(P->y, y, n);
     ec_point_init(Q, E, n);
     
     last_chkpnt_time = cputime ();
@@ -790,13 +785,8 @@ ecm_stage1_W (mpz_t f, int Etype, mpres_t x, mpres_t y, mpres_t A, mpmod_t n,
 	}
     }
 
-    mpres_set(x, P->x, n);
-    mpres_set(y, P->y, n);
-    
     mpres_clear (xB, n);
-    ec_point_clear(P, E, n);
     ec_point_clear(Q, E, n);
-    ec_curve_clear(E, n);
     
     return ret;
 }
@@ -1079,7 +1069,7 @@ int
 ecm (mpz_t f, mpz_t x, mpz_t y, int *param, mpz_t sigma, mpz_t n, mpz_t go, 
      double *B1done, double B1, mpz_t B2min_parm, mpz_t B2_parm, double B2scale,
      unsigned long k, const int S, int verbose, int repr, int nobase2step2, 
-     int use_ntt, int sigma_is_A, int Etype, 
+     int use_ntt, int sigma_is_A, ec_curve_t E,
      FILE *os, FILE* es, char *chkfilename, char
      *TreeFilename, double maxmem, double stage1time, gmp_randstate_t rng, int
      (*stop_asap)(void), mpz_t batch_s, double *batch_last_B1_used,
@@ -1287,7 +1277,8 @@ ecm (mpz_t f, mpz_t x, mpz_t y, int *param, mpz_t sigma, mpz_t n, mpz_t go,
 
   /* Print B1, B2, polynomial and sigma */
   print_B1_B2_poly (OUTPUT_NORMAL, ECM_ECM, B1, *B1done, B2min_parm, B2min, 
-		    B2, root_params.S, sigma, sigma_is_A, Etype, y, *param, 0);
+		    B2, root_params.S, sigma, sigma_is_A, E->type,
+		    y, *param, 0);
 
 #if 0
   outputf (OUTPUT_VERBOSE, "b2=%1.0f, dF=%lu, k=%lu, d=%lu, d2=%lu, i0=%Zd\n", 
@@ -1301,7 +1292,7 @@ ecm (mpz_t f, mpz_t x, mpz_t y, int *param, mpz_t sigma, mpz_t n, mpz_t go,
 			   It is known that all curves in Weierstrass form do
 			   not admit a Montgomery form. However, we could
 			   be interested in performing some plain Step 1
-			   on a some special curves.
+			   on some special curves.
 			*/
     {
       mpres_set_z (P.A, sigma, modulus); /* sigma contains A */
@@ -1328,7 +1319,7 @@ ecm (mpz_t f, mpz_t x, mpz_t y, int *param, mpz_t sigma, mpz_t n, mpz_t go,
       outputf (OUTPUT_RESVERBOSE, "A=%Zd\n", t);
       mpres_get_z (t, P.x, modulus);
       outputf (OUTPUT_RESVERBOSE, "starting point: x0=%Zd\n", t);
-      if (Etype == ECM_EC_TYPE_WEIERSTRASS)
+      if (E->type == ECM_EC_TYPE_WEIERSTRASS)
 	{
           mpres_get_z (t, P.y, modulus);
 	  outputf (OUTPUT_RESVERBOSE, " y0=%Zd\n", t);
@@ -1375,16 +1366,26 @@ ecm (mpz_t f, mpz_t x, mpz_t y, int *param, mpz_t sigma, mpz_t n, mpz_t go,
     {
         if (IS_BATCH_MODE(*param))
         /* FIXME: go, stop_asap and chkfilename are ignored in batch mode */
-        youpi = ecm_stage1_batch (f, P.x, P.A, modulus, B1, B1done, *param, 
-                                  batch_s);
+	    youpi = ecm_stage1_batch (f, P.x, P.A, modulus, B1, B1done, 
+				      *param, batch_s);
         else{
-	    if(Etype == ECM_EC_TYPE_MONTGOMERY)
+	    if(E->type == ECM_EC_TYPE_MONTGOMERY)
 		youpi = ecm_stage1 (f, P.x, P.A, modulus, B1, B1done, go, 
 				    stop_asap, chkfilename);
-	    else
-		youpi = ecm_stage1_W (f, Etype, P.x, P.y, P.A, modulus, 
-				      B1, B1done, batch_s,
+	    else{
+		ec_point_t PP;
+
+		mpres_set(E->A, P.A, modulus);
+		ec_point_init(PP, E, modulus);
+		mpres_set(PP->x, P.x, modulus);
+		mpres_set(PP->y, P.y, modulus);
+		youpi = ecm_stage1_W (f, E, PP, modulus, B1, B1done, batch_s,
 				      go, stop_asap, chkfilename);
+		mpres_set(P.x, PP->x, modulus);
+		mpres_set(P.y, PP->y, modulus);
+		
+		ec_point_clear(PP, E, modulus);
+	    }
 	}
     }
   
@@ -1403,7 +1404,7 @@ ecm (mpz_t f, mpz_t x, mpz_t y, int *param, mpz_t sigma, mpz_t n, mpz_t go,
      before P.x is (perhaps) converted to Weierstrass form */
   
   mpres_get_z (x, P.x, modulus);
-  if (Etype == ECM_EC_TYPE_WEIERSTRASS || Etype == ECM_EC_TYPE_HESSIAN)
+  if (E->type == ECM_EC_TYPE_WEIERSTRASS || E->type == ECM_EC_TYPE_HESSIAN)
     mpres_get_z (y, P.y, modulus);  
 
   if (youpi != ECM_NO_FACTOR_FOUND)
@@ -1416,7 +1417,7 @@ ecm (mpz_t f, mpz_t x, mpz_t y, int *param, mpz_t sigma, mpz_t n, mpz_t go,
       mpz_init (t);
       mpres_get_z (t, P.x, modulus);
       outputf (OUTPUT_RESVERBOSE, "x=%Zd\n", t);
-      if (Etype == ECM_EC_TYPE_WEIERSTRASS)
+      if (E->type == ECM_EC_TYPE_WEIERSTRASS)
 	{
 	  mpres_get_z (t, P.y, modulus);
 	  outputf (OUTPUT_RESVERBOSE, "y=%Zd\n", t);
@@ -1459,9 +1460,9 @@ ecm (mpz_t f, mpz_t x, mpz_t y, int *param, mpz_t sigma, mpz_t n, mpz_t go,
       mpz_clear (A_t);
     }
 
-  if(Etype == ECM_EC_TYPE_MONTGOMERY)
+  if(E->type == ECM_EC_TYPE_MONTGOMERY)
       youpi = montgomery_to_weierstrass (f, P.x, P.y, P.A, modulus);
-  else if(Etype == ECM_EC_TYPE_HESSIAN){
+  else if(E->type == ECM_EC_TYPE_HESSIAN){
       youpi = hessian_to_weierstrass (f, P.x, P.y, P.A, modulus);
       if(youpi == ECM_NO_FACTOR_FOUND)
 	  /* due to that non-trivial kernel(?) */
