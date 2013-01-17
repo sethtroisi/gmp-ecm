@@ -1200,13 +1200,13 @@ main (int argc, char *argv[])
               exit (EXIT_FAILURE);
             }
           if (!read_resumefile_line (&method, x, y, &n, sigma, A, 
-				     orig_x0, orig_y0, &(params->Etype), 
+				     orig_x0, orig_y0, &(params->E->type), 
 				     &(params->param), &(params->B1done), 
 				     program, who, rtime, comment, resumefile))
             break;
 
-	  if (params->Etype == ECM_EC_TYPE_WEIERSTRASS
-	      || params->Etype == ECM_EC_TYPE_HESSIAN)
+	  if (params->E->type == ECM_EC_TYPE_WEIERSTRASS
+	      || params->E->type == ECM_EC_TYPE_HESSIAN)
 	      params->sigma_is_A = -1;
 	  else
 	    {
@@ -1435,9 +1435,9 @@ main (int argc, char *argv[])
 	    {
 	      params->sigma_is_A = -1;
 	      if(specific_H == 0)
-		  params->Etype = ECM_EC_TYPE_WEIERSTRASS;
+		  params->E->type = ECM_EC_TYPE_WEIERSTRASS;
 	      else
-		  params->Etype = ECM_EC_TYPE_HESSIAN;
+		  params->E->type = ECM_EC_TYPE_HESSIAN;
 	    }
 	}
       mpz_set (params->sigma, (params->sigma_is_A) ? A : sigma);

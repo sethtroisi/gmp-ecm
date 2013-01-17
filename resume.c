@@ -603,7 +603,7 @@ write_resumefile (char *fn, int method, mpz_t N, ecm_params params,
       if (params->y == NULL)
 	{
 	  write_resumefile_line (file, method, params->B1done, params->sigma,
-				 params->sigma_is_A, params->Etype, 
+				 params->sigma_is_A, params->E->type, 
 				 params->param, 
 				 tmp_x, NULL, n, orig_x0, orig_y0,
 				 comment);
@@ -612,7 +612,7 @@ write_resumefile (char *fn, int method, mpz_t N, ecm_params params,
 	{
 	  mpz_mod (tmp_y, params->y, n->n);
 	  write_resumefile_line (file, method, params->B1done, params->sigma,
-				 params->sigma_is_A, params->Etype,
+				 params->sigma_is_A, params->E->type,
 				 params->param, 
 				 tmp_x, tmp_y, n, orig_x0, orig_y0,
 				 comment);
@@ -627,7 +627,7 @@ write_resumefile (char *fn, int method, mpz_t N, ecm_params params,
           mpz_fdiv_qr (params->x, tmp_x, params->x, N); 
           mpz_mod (tmp_x, tmp_x, n->n);
           write_resumefile_line (file, method, params->B1done, params->sigma,
-				 params->sigma_is_A, params->Etype,
+				 params->sigma_is_A, params->E->type,
 				 params->param, 
 				 tmp_x, NULL, n, orig_x0, orig_y0, 
 				 comment);

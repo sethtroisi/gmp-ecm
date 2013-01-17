@@ -30,6 +30,35 @@ http://www.gnu.org/licenses/ or write to the Free Software Foundation, Inc.,
 extern "C" {
 #endif
 
+/* type of curve used in stage 1 of ECM */
+#define EC_W_LAW_AFFINE      1 /* Montgomery residues do no harm... */
+#define EC_W_LAW_PROJECTIVE  2 /* see corresponding section of EFDB */
+
+/*#define EC_W_LAW EC_W_LAW_AFFINE*/
+#define EC_W_LAW EC_W_LAW_PROJECTIVE
+
+#define EC_W_NBUFS 9 /* for Hessian form */
+
+typedef struct
+{
+  int type;                /* using the preceding flags */
+  mpz_t A;               /* for MONTGOMERY: b*y^2=x^3+A*x^2+x 
+			      for WEIERSTRASS: y^2=x^3+A*x+B
+			      for HESSIAN: U^3+V^3+W^3=3*A*U*V*W */
+  mpz_t buf[EC_W_NBUFS]; /* used in the addition laws */
+  int disc;                /* in case E is known to have CM by Q(sqrt(disc)) */
+  mpz_t sq[10];          /* for CM curves, we might have squareroots */
+} __ec_curve_struct;
+typedef __ec_curve_struct ec_curve_t[1];
+
+typedef struct
+{
+  mpz_t x;
+  mpz_t y;
+  mpz_t z;
+} __ec_point_struct;
+typedef __ec_point_struct ec_point_t[1];
+
 typedef struct
 {
   int method;     /* factorization method, default is ecm */
@@ -41,7 +70,7 @@ typedef struct
 		     if  0, 'parameter' contains sigma (Montgomery form),
 		     if -1, 'parameter' contains A, and the input curve is in
 		     Weierstrass form y^2 = x^3 + A*x + B, with y in 'go'. */
-  int Etype;
+  __ec_curve_struct *E;   /* the curve, particularly useful for CM ones */
   mpz_t go;       /* initial group order to preload (if NULL: do nothing),
 		     or y for Weierstrass form if sigma_is_A = -1. */
   double B1done;  /* step 1 was already done up to B1done */
@@ -100,7 +129,8 @@ void ecm_clear (ecm_params);
 
 /* the following interface is not supported */
     int ecm (mpz_t, mpz_t, mpz_t, int*, mpz_t, mpz_t, mpz_t, double *, double, mpz_t, mpz_t,
-	 double, unsigned long, const int, int, int, int, int, int, int, FILE*, FILE*,
+	 double, unsigned long, const int, int, int, int, int, int, 
+	 ec_curve_t,  FILE* os, FILE* es,
          char*, char *, double, double, gmp_randstate_t, int (*)(void), mpz_t, 
          double *, double, unsigned long, unsigned long, signed long);
 int pp1 (mpz_t, mpz_t, mpz_t, mpz_t, double *, double, mpz_t, mpz_t, 
