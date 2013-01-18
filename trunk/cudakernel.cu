@@ -254,22 +254,23 @@ float cuda_Main (biguint_t h_N, biguint_t h_3N, biguint_t h_M, digit_t h_invN,
 /* Device code */
 /***************/
 
+#define ASM asm __volatile__
 
-#define __add_cc(r,a,b) asm ("add.cc.u32 %0, %1, %2;": "=r"(r): "r"(a), "r"(b)) 
-#define __addc_cc(r,a,b) asm ("addc.cc.u32 %0, %1, %2;": "=r"(r): "r"(a), "r"(b))
-#define __sub_cc(r,a,b) asm ("sub.cc.u32 %0, %1, %2;": "=r"(r): "r"(a), "r"(b)) 
+#define __add_cc(r,a,b) ASM ("add.cc.u32 %0, %1, %2;": "=r"(r): "r"(a), "r"(b)) 
+#define __addc_cc(r,a,b) ASM ("addc.cc.u32 %0, %1, %2;": "=r"(r): "r"(a), "r"(b))
+#define __sub_cc(r,a,b) ASM ("sub.cc.u32 %0, %1, %2;": "=r"(r): "r"(a), "r"(b)) 
 
-#define __addcy(carry) asm __volatile__ ("addc.s32 %0, 0, 0;": "=r"(carry)) 
-#define __addcy2(carry) asm ("addc.cc.s32 %0, %0, 0;": "+r"(carry)) 
+#define __addcy(carry) ASM ("addc.s32 %0, 0, 0;": "=r"(carry)) 
+#define __addcy2(carry) ASM ("addc.cc.s32 %0, %0, 0;": "+r"(carry)) 
 
-#define __subcy(carry) asm __volatile__ ("subc.s32 %0, 0, 0;": "=r"(carry)) 
-#define __subcy2(carry) asm ("subc.s32 %0, %0, 0;": "+r"(carry)) 
+#define __subcy(carry) ASM ("subc.s32 %0, 0, 0;": "=r"(carry)) 
+#define __subcy2(carry) ASM ("subc.s32 %0, %0, 0;": "+r"(carry)) 
 
-#define __mul_lo(r,a,b) asm("mul.lo.u32 %0, %1, %2;": "=r"(r): "r"(a),"r"(b)) 
-#define __mul_hi(r,a,b) asm("mul.hi.u32 %0, %1, %2;": "=r"(r): "r"(a),"r"(b)) 
-#define __mad_lo_cc(r,a,b) asm("mad.lo.cc.u32 %0, %1, %2, %0;":\
+#define __mul_lo(r,a,b) ASM("mul.lo.u32 %0, %1, %2;": "=r"(r): "r"(a),"r"(b)) 
+#define __mul_hi(r,a,b) ASM("mul.hi.u32 %0, %1, %2;": "=r"(r): "r"(a),"r"(b)) 
+#define __mad_lo_cc(r,a,b) ASM("mad.lo.cc.u32 %0, %1, %2, %0;":\
                                                       "+r"(r): "r"(a),"r"(b)) 
-#define __madc_hi_cc(r,a,b) asm("madc.hi.cc.u32 %0, %1, %2, %0;":\
+#define __madc_hi_cc(r,a,b) ASM("madc.hi.cc.u32 %0, %1, %2, %0;":\
                                                   "+r"(r):"r"(a),"r"(b)) 
 //#if defined(GPU_CC30)
 //#include "cudakernel_cc_3.0.cu"
