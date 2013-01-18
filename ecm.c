@@ -1069,7 +1069,7 @@ int
 ecm (mpz_t f, mpz_t x, mpz_t y, int *param, mpz_t sigma, mpz_t n, mpz_t go, 
      double *B1done, double B1, mpz_t B2min_parm, mpz_t B2_parm, double B2scale,
      unsigned long k, const int S, int verbose, int repr, int nobase2step2, 
-     int use_ntt, int sigma_is_A, ec_curve_t E,
+     int use_ntt, int sigma_is_A, ec_curve_t zE,
      FILE *os, FILE* es, char *chkfilename, char
      *TreeFilename, double maxmem, double stage1time, gmp_randstate_t rng, int
      (*stop_asap)(void), mpz_t batch_s, double *batch_last_B1_used,
@@ -1082,6 +1082,7 @@ ecm (mpz_t f, mpz_t x, mpz_t y, int *param, mpz_t sigma, mpz_t n, mpz_t go,
   int po2 = 0;    /* Whether we should use power-of-2 poly degree */
   long st;
   mpmod_t modulus;
+  ec_curve_t E;
   curve P;
   mpz_t B2min, B2; /* Local B2, B2min to avoid changing caller's values */
   unsigned long dF;
@@ -1200,6 +1201,8 @@ ecm (mpz_t f, mpz_t x, mpz_t y, int *param, mpz_t sigma, mpz_t n, mpz_t go,
   mpres_init (P.x, modulus);
   mpres_init (P.y, modulus);
   mpres_init (P.A, modulus);
+
+  ec_curve_set_z(E, zE, modulus);
 
   youpi = set_stage_2_params (B2, B2_parm, B2min, B2min_parm, &root_params, 
                               B1, B2scale, &k, S, use_ntt, &po2, &dF, 
