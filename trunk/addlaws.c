@@ -1350,6 +1350,19 @@ ec_curve_init_set(ec_curve_t E, mpres_t A, int type, mpmod_t n)
 }
 
 void
+ec_curve_set_z(ec_curve_t E, ec_curve_t zE, mpmod_t n)
+{
+    ec_curve_init(E, n);
+    E->type = zE->type;
+    mpres_set_z(E->A, zE->A, n);
+    E->disc = zE->disc;
+    if(E->disc != 0){
+	mpres_init(E->sq[0], n);
+	mpres_set_z(E->sq[0], zE->sq[0], n);
+    }
+}
+
+void
 ec_curve_clear(ec_curve_t E, mpmod_t n)
 {
     int i;

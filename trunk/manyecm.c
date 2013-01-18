@@ -58,6 +58,11 @@ process_one_curve(mpz_t f, mpz_t N, double B1,
     return ret;
 }
 
+/* OUTPUT: ECM_PRIME_FAC_PRIME_COFAC if f prp, N/f prp
+           ECM_PRIME_FAC_COMP_COFAC if f prp, N/f composite
+	   ECM_COMP_FAC_PRIME_COFAC if f composite, N/f prp
+           ECM_COMP_FAC_COMP_COFAC if f composite, N/f composite
+ */
 int
 conclude_on_factor(mpz_t N, mpz_t f, int verbose)
 {
@@ -101,11 +106,13 @@ dump_curves(ec_curve_t *tE, ec_point_t *tP, int nE, mpz_t f)
     int i;
 
     gmp_printf("p:=%Zd; F:=GF(p); P:=[]; A:=[]; B:=[]; E:=[];\n", f);
-    printf("CheckE:=procedure(E, info)\n");
+    printf("CheckE:=procedure(E, P, info)\n");
     printf("    printf \"#E[%%o]=%%o\\n\", info, Factorization(#E);\n");
     printf("    gen:=Generators(E);\n");
     printf("    printf \"ords=%%o\\n\", ");
     printf("[Factorization(Order(g)) : g in gen];\n");
+    printf("    printf \"ord(P)=%%o\\n\", ");
+    printf("Factorization(Order(E!P));\n");
     printf("end procedure;\n");
     for(i = 0; i < nE; i++){
 	if(tE[i]->type == ECM_EC_TYPE_MONTGOMERY){
@@ -147,7 +154,7 @@ dump_curves(ec_curve_t *tE, ec_point_t *tP, int nE, mpz_t f)
 	printf("B[%d]:=P[%d][2]^2-P[%d][1]^3-A[%d]*P[%d][1];\n", 
 	       i+1, i+1, i+1, i+1, i+1);
 	printf("E[%d]:=EllipticCurve([F!A[%d], F!B[%d]]);\n", i+1, i+1, i+1);
-	printf("CheckE(E[%d], infos[%d]);\n", i+1, i+1);
+	printf("CheckE(E[%d], P[%d], infos[%d]);\n", i+1, i+1, i+1);
     }
 }
 
@@ -325,11 +332,14 @@ one_curve_at_a_time(mpz_t f, char *ok, ec_curve_t *tE, ec_point_t *tP, int nE,
 		saveit = 0;
 	    }
 	    else{
-#if DEBUG_MANY_EC >= 2
+#if DEBUG_MANY_EC >= 0
 		if(ret == ECM_PRIME_FAC_PRIME_COFAC 
-		   || ret == ECM_PRIME_FAC_COMP_COFAC)
+		   || ret == ECM_PRIME_FAC_COMP_COFAC){
 		    /* output Magma lines to check #E's mod f */
-		    dump_curves(tE, tP, nE, f);
+		    /*dump_curves(tE, tP, nE, f);*/
+		    printf("infos:=[\"E%d\"];\n", i);
+		    dump_curves(tE+i, tP+i, 1, f);
+		}
 #endif
 		break;
 	    }

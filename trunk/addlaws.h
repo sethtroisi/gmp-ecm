@@ -38,6 +38,7 @@ void ec_point_set(ec_point_t Q, ec_point_t P,
 		  ATTRIBUTE_UNUSED ec_curve_t E, ATTRIBUTE_UNUSED mpmod_t n);
 void ec_curve_init(ec_curve_t E, mpmod_t n);
 void ec_curve_init_set(ec_curve_t E, mpres_t A, int type, mpmod_t n);
+void ec_curve_set_z(ec_curve_t E, ec_curve_t zE, mpmod_t n);
 void ec_curve_clear(ec_curve_t E, mpmod_t n);
 void ec_curve_print(ec_curve_t E, mpmod_t n);
 int ec_point_is_zero(ec_point_t P, ec_curve_t E, mpmod_t n);
