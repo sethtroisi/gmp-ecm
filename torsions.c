@@ -1295,6 +1295,7 @@ ec_force_point(ec_curve_t E, ec_point_t P, mpz_t B, long *x0, mpz_t n)
 	mpz_mod(P->x, P->x, n);
 	mpz_mul(P->y, lambda, lambda);
 	mpz_mod(P->y, P->y, n);
+        mpz_set_si(P->z, 1);
 	/* modify E */
 	mpz_mul(E->A, E->A, P->y);
 	mpz_mod(E->A, E->A, n);

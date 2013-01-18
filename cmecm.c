@@ -102,7 +102,7 @@ build_curves_with_CM(mpz_t f, int *nE, ec_curve_t *tE, ec_point_t *tP,
 	    *nE = 6;
 	    mpz_clear(zeta6);
 	    mpz_clear(tmp);
-	    mpz_set(tE[0]->sq[0], sqroots[0]);
+	    mpz_init_set(tE[0]->sq[0], sqroots[0]);
 	}
     }
     else if(disc == -4){
@@ -122,6 +122,7 @@ build_curves_with_CM(mpz_t f, int *nE, ec_curve_t *tE, ec_point_t *tP,
         mpz_set_ui(tE[0]->A, 9);
         mpz_set_si(tP[0]->x, 4);
         mpz_set_si(tP[0]->y, 10);
+        mpz_set_si(tP[0]->z, 1);
 	if(sqroots != NULL){
 	    /* sqroots[0] = sqrt(-1) */
 	    mpz_init(tmp);
@@ -138,7 +139,7 @@ build_curves_with_CM(mpz_t f, int *nE, ec_curve_t *tE, ec_point_t *tP,
 	    }
 	    *nE = 4;
 	    mpz_clear(tmp);
-	    mpz_set(tE[0]->sq[0], sqroots[0]);
+	    mpz_init_set(tE[0]->sq[0], sqroots[0]);
 	}
 #else /* one day, use this? */
 	/* => 1/3*y^2 = x^3 + x, gen = (4/3, 10/3) */
@@ -156,6 +157,7 @@ build_curves_with_CM(mpz_t f, int *nE, ec_curve_t *tE, ec_point_t *tP,
 	mpz_set_si(tE[0]->A, -2222640);
         mpz_set_si(tP[0]->x, 2052);
         mpz_set_si(tP[0]->y, 50112);
+        mpz_set_si(tP[0]->z, 1);
     }
     else if(disc == -8){
 	/* D = -8: E_c: Y^2 = X^3+4*c*X^2+2*c^2*X => Montgomery when 2 = z^2 
@@ -166,6 +168,7 @@ build_curves_with_CM(mpz_t f, int *nE, ec_curve_t *tE, ec_point_t *tP,
 	mpz_set_si(tE[0]->A, -4320);
         mpz_set_si(tP[0]->x, 12);
         mpz_set_si(tP[0]->y, -216);
+        mpz_set_si(tP[0]->z, 1);
     }
     else if(disc == -11){
 	/*     E:=EllipticCurve([0, 0, 0, -2^5*3*11, 2^4*7*11^2]);
@@ -174,12 +177,14 @@ build_curves_with_CM(mpz_t f, int *nE, ec_curve_t *tE, ec_point_t *tP,
 	mpz_set_si(tE[0]->A, -1056);
 	mpz_set_si(tP[0]->x, 33);
         mpz_set_si(tP[0]->y, 121);
+        mpz_set_si(tP[0]->z, 1);
     }
     /* class number 2 */
     else if(disc == -15){
 	/* it must be that sqroots[0] contains sqrt(5) mod N */
 	/* j = -(191025+85995*sqrt(5))/2 */
 	tE[0]->type = ECM_EC_TYPE_WEIERSTRASS;
+	mpz_init_set(tE[0]->sq[0], sqroots[0]);
 	mpz_init_set_si(j, 85995);
 	mpz_mul(j, j, sqroots[0]);
 	mpz_add_si(j, j, 191025);
