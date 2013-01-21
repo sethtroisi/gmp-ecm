@@ -26,6 +26,8 @@ http://www.gnu.org/licenses/ or write to the Free Software Foundation, Inc.,
 #include <stdio.h> /* for FILE */
 #include <gmp.h>
 
+#undef ECM_VERSION
+
 #ifdef __cplusplus
 extern "C" {
 #endif
