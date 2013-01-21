@@ -1370,6 +1370,7 @@ ec_curve_clear(ec_curve_t E, mpmod_t n)
     mpres_clear(E->A, n);
     for(i = 0; i < EC_W_NBUFS; i++)
 	mpres_clear (E->buf[i], n);
+    /* TODO: case of sq */
 }
 
 void

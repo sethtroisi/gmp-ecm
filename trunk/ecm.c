@@ -782,12 +782,237 @@ ecm_stage1_W (mpz_t f, ec_curve_t E, ec_point_t P, mpmod_t n,
 	    /* normalize to get (x:y:1) valid in W or H form... */
 	    mpres_mul (P->x, P->x, xB, n);
 	    mpres_mul (P->y, P->y, xB, n);
+	    mpres_set_ui (P->z, 1, n);
 	}
     }
 
     mpres_clear (xB, n);
     ec_point_clear(Q, E, n);
     
+    return ret;
+}
+
+/* Find if some x_u = xt_v where [u]P=(x_u, ...), [v]Q=(xt_v, ...). 
+   This is a naive version.
+   A priori, #v < #u, so we precompute all v.
+   One looks for u^2+d*v^2 with umin <= u <= umax, vmin <= v <= vmax,
+   where umax = sqrt(cof*B2-d*vmin^2), vmax = sqrt((cof*B2-umin^2)/d).
+*/
+static
+int LoopCM(mpz_t f, ec_curve_t E, ec_point_t P, ec_point_t Q,
+	   mpmod_t modulus, mpz_t B2, int cof, int d, mpres_t omega,
+	   unsigned long umin, unsigned long du,
+	   unsigned long vmin, unsigned long dv)
+{
+    int ret = ECM_NO_FACTOR_FOUND, compute_uP = 1;
+    ec_point_t uP, duP, vQ, dvQ;
+    mpz_ptr xtv, ztv; /* suboptimal? */
+    mpz_t tmp, xu, zu, tmp2, omega5;
+    long tp = cputime();
+    unsigned long umax, vmax, u, v, iv, vsup, nv;
+
+    mpz_init(tmp);
+    mpz_init(tmp2);
+    /* u <= sqrt(cof*B2-d*vmin^2) */
+    mpz_set(tmp, B2);
+    mpz_mul_si(tmp, tmp, cof);
+    mpz_set_ui(tmp2, vmin);
+    mpz_mul_ui(tmp2, tmp2, vmin);
+    mpz_mul_ui(tmp2, tmp2, d);
+    mpz_sub(tmp, tmp, tmp2);
+    mpz_sqrt(tmp, tmp);
+    gmp_printf("# umax=%Zd\n", tmp);
+    if(mpz_fits_ulong_p(tmp) == 0)
+	gmp_printf("#!# Gasp: umax=%Zd too large\n", tmp);
+    umax = mpz_get_ui(tmp);
+    /* v <= sqrt((cof*B2-umin^2)/d) */
+    mpz_set(tmp, B2);
+    mpz_mul_si(tmp, tmp, cof);
+    mpz_set_ui(tmp2, umin);
+    mpz_mul_ui(tmp2, tmp2, umin);
+    mpz_sub(tmp, tmp, tmp2);
+    mpz_fdiv_q_ui(tmp, tmp, d);
+    mpz_sqrt(tmp, tmp);
+    gmp_printf("# vmax=%Zd\n", tmp);
+    if(mpz_fits_ulong_p(tmp) == 0)
+	gmp_printf("#!# Gasp: vmax=%Zd too large\n", tmp);
+    vmax = mpz_get_ui(tmp);
+
+    /* precompute all v's */
+    nv = 1 + ((vmax-vmin)/dv);
+    xtv = (mpz_ptr)malloc(nv * sizeof(__mpz_struct));
+    ztv = (mpz_ptr)malloc(nv * sizeof(__mpz_struct));
+    ec_point_init(vQ, E, modulus);
+    mpz_set_ui(tmp, vmin);
+    ec_point_mul(vQ, tmp, Q, E, modulus);
+    ec_point_init(dvQ, E, modulus);
+    mpz_set_ui(tmp, dv);
+    ec_point_mul(dvQ, tmp, Q, E, modulus);
+    for(v = vmin, iv = 0; v <= vmax; v += dv, iv++){
+	mpz_init(xtv+iv);
+	mpres_get_z(xtv+iv, vQ->x, modulus);
+	mpz_init(ztv+iv);
+	mpres_get_z(ztv+iv, vQ->z, modulus);
+	ec_point_add(vQ, vQ, dvQ, E, modulus);
+    }
+    ec_point_clear(vQ, E, modulus);
+    ec_point_clear(dvQ, E, modulus);
+    printf("# computing %lu (// %lu) additions: %ldms\n", iv, nv,
+	   elltime(tp, cputime()));
+
+    /* compute all uP */
+    tp = cputime();
+    compute_uP = !(d == 3 && du == 1 && dv == 1);
+    ec_point_init(uP, E, modulus);
+    mpz_set_ui(tmp, umin);
+    ec_point_mul(uP, tmp, P, E, modulus);
+    ec_point_init(duP, E, modulus);
+    mpz_set_ui(tmp, du);
+    ec_point_mul(duP, tmp, P, E, modulus);
+    if(compute_uP == 0){
+	/* omega5 = omega^5 = 1/omega */
+	mpz_init(omega5);
+	mpres_get_z(omega5, omega, modulus);
+	mpz_powm_ui(omega5, omega5, 5, modulus->orig_modulus);
+    }
+
+    mpz_init(xu);
+    mpz_init(zu);
+    mpz_set_ui(f, 1);
+    for(u = umin; u <= umax; u += du){
+	if(compute_uP || u > vmax){
+	    mpres_get_z(xu, uP->x, modulus);
+	    mpres_get_z(zu, uP->z, modulus);
+	}
+	else{
+	    /* [omega5]Q = [omega^6]P = P */
+	    mpz_set(xu, xtv+(u-1));
+	    mpz_mul(xu, xu, omega5);
+	    mpz_mod(xu, xu, modulus->orig_modulus);
+	    mpz_set(zu, ztv+(u-1));
+	}
+	/* d*v^2 <= B2-u^2 */
+	mpz_set_ui(tmp, u);
+	mpz_mul_ui(tmp, tmp, u);
+	mpz_sub(tmp, B2, tmp);
+	if(d != 1)
+	    mpz_fdiv_q_ui(tmp, tmp, d);
+	mpz_sqrt(tmp, tmp);
+	if(mpz_fits_ulong_p(tmp) == 0)
+	    gmp_printf("#!# Gasp: vmax=%Zd too large\n", tmp);
+	vsup = mpz_get_ui(tmp);
+	/*	printf("# u = %lu => vsup = %lu\n", u, vsup);*/
+	for(v = vmin, iv = 0; v <= vsup; v += dv, iv++){
+	    /* xu/zu = xtv/ztv <=> xu*ztv-xtv*zu = 0 */
+	    mpz_mul(tmp, xu, ztv+iv);
+	    mpz_mul(tmp2, zu, xtv+iv);
+	    mpz_sub(tmp, tmp, tmp2);
+	    if(mpz_sgn(tmp) == 0){
+		printf("[%ld]P = [%ld]Q?\n", u, v);
+		ec_curve_print(E, modulus);
+		exit(-1);
+	    }
+	    mpz_mul(f, f, tmp);
+	    mpz_mod(f, f, modulus->orig_modulus);
+	}
+	mpz_gcd(f, f, modulus->orig_modulus);
+	if(mpz_cmp_ui(f, 1) != 0){
+	    gmp_printf("# Youpi: u=%ld, f=%Zd\n", u, f);
+	    ret = ECM_FACTOR_FOUND_STEP2;
+	    break;
+	}
+	if(compute_uP || u > vmax)
+	    ec_point_add(uP, uP, duP, E, modulus);
+	if(compute_uP == 0 && u == (vmax+1)){
+	    /* compute next point */
+	    mpz_set_ui(tmp, vmax+1);
+	    ec_point_mul(uP, tmp, P, E, modulus);
+	}
+    }
+    mpz_clear(xu);
+    mpz_clear(zu);
+    mpz_clear(tmp);
+    mpz_clear(tmp2);
+    ec_point_clear(uP, E, modulus);
+    ec_point_clear(duP, E, modulus);
+    if(compute_uP == 0)
+	mpz_clear(omega5);
+    for(v = vmin, iv = 0; v <= vmax; v += dv, iv++){
+	mpz_clear(xtv+iv);
+	mpz_clear(ztv+iv);
+    }
+    free(xtv);
+    free(ztv);
+    printf("# using all [u]P: %ldms\n", elltime(tp, cputime()));
+    return ret;
+}
+
+/* Testing CM stage2 in a very naive way, for the time being. */
+int stage2_CM(mpz_t f, ec_curve_t E, ec_point_t P, mpmod_t modulus, 
+	      unsigned long dF, mpz_t B2, mpz_t B2min)
+{
+    int ret = ECM_NO_FACTOR_FOUND;
+    ec_point_t Q;
+    mpz_t tmp;
+    unsigned long umin, du, vmin, dv;
+    mpres_t omega;
+
+    printf("PE:="); ec_point_print(P, E, modulus); printf(";\n");
+    if (dF == 0)
+	return ECM_NO_FACTOR_FOUND;
+
+    mpz_init(tmp);
+    if(E->disc == -3){
+	/* case where pi = U+V*omega, U and V with the same parity */
+	/* omega = (1+sqrt(-3))/2 */
+	mpres_init(omega, modulus);
+	mpres_set(omega, E->sq[0], modulus);
+	mpres_add_ui(omega, omega, 1, modulus);
+	mpres_div_2exp(omega, omega, 1, modulus);
+	/* 1st case: u^2+3*v^2 <= B2, no restriction on u, v */
+	/* we can easily compute [v][omega]P as [omega]([v]P) */
+	umin = 1;
+	du = 1;
+	vmin = 1;
+	dv = 1;
+
+	/* Q = [omega](P) = [omega*P.x, P.y, 1] */
+	gmp_printf("N:=%Zd;\n", modulus->orig_modulus);
+	printf("zeta3:=");print_mpz_from_mpres(E->sq[0],modulus);printf(";\n");
+	ec_point_init(Q, E, modulus);
+	mpres_mul(Q->x, P->x, omega, modulus);
+	mpres_set(Q->y, P->y, modulus);
+	mpres_set_ui(Q->z, 1, modulus);
+	ret = LoopCM(f,E,P,Q,modulus,B2,1,3,omega,umin,du,vmin,dv);
+
+	if(ret == ECM_NO_FACTOR_FOUND){
+	    /* 2nd case: u^2+3*v^2 <= 4*B2, u and v odd */
+	    /* we can easily compute [v][omega]P as [omega]([v]P) */
+	}
+	ec_point_clear(Q, E, modulus);
+	mpres_clear(omega, modulus);
+    }
+    else if(E->disc == -4){
+	/* case where pi = u+v*zeta4, u odd, v even */
+	umin = 1;
+	du = 2;
+	vmin = 2;
+	dv = 2;
+
+	/* Q = [zeta4](P) = [-P.x, zeta4*P.y, 1] */
+	gmp_printf("N:=%Zd;\n", modulus->orig_modulus);
+	printf("zeta4:=");print_mpz_from_mpres(E->sq[0],modulus);printf(";\n");
+	ec_point_init(Q, E, modulus);
+	mpres_neg(Q->x, P->x, modulus);
+	mpres_mul(Q->y, P->y, E->sq[0], modulus);
+	mpres_set_ui(Q->z, 1, modulus);
+	ret = LoopCM(f,E,P,Q,modulus,B2,1,1,E->sq[0],umin,du,vmin,dv);
+	ec_point_clear(Q, E, modulus);
+    }
+    else{
+	printf("# stage2_CM not ready for disc=%d\n", E->disc);
+    }
+    mpz_clear(tmp);
     return ret;
 }
 
@@ -1082,11 +1307,13 @@ ecm (mpz_t f, mpz_t x, mpz_t y, int *param, mpz_t sigma, mpz_t n, mpz_t go,
   int po2 = 0;    /* Whether we should use power-of-2 poly degree */
   long st;
   mpmod_t modulus;
-  ec_curve_t E;
   curve P;
+  ec_curve_t E;
+  ec_point_t PE;
   mpz_t B2min, B2; /* Local B2, B2min to avoid changing caller's values */
   unsigned long dF;
   root_params_t root_params;
+  int is_E_CM = 0;
 
   /*  1: sigma contains A from Montgomery form By^2 = x^3 + Ax^2 + x
       0: sigma contains sigma
@@ -1202,6 +1429,7 @@ ecm (mpz_t f, mpz_t x, mpz_t y, int *param, mpz_t sigma, mpz_t n, mpz_t go,
   mpres_init (P.y, modulus);
   mpres_init (P.A, modulus);
 
+  is_E_CM = (zE->disc != 0) && (mpz_cmp_ui(zE->sq[0], 1) != 0);
   ec_curve_set_z(E, zE, modulus);
 
   youpi = set_stage_2_params (B2, B2_parm, B2min, B2min_parm, &root_params, 
@@ -1376,18 +1604,14 @@ ecm (mpz_t f, mpz_t x, mpz_t y, int *param, mpz_t sigma, mpz_t n, mpz_t go,
 		youpi = ecm_stage1 (f, P.x, P.A, modulus, B1, B1done, go, 
 				    stop_asap, chkfilename);
 	    else{
-		ec_point_t PP;
-
 		mpres_set(E->A, P.A, modulus);
-		ec_point_init(PP, E, modulus);
-		mpres_set(PP->x, P.x, modulus);
-		mpres_set(PP->y, P.y, modulus);
-		youpi = ecm_stage1_W (f, E, PP, modulus, B1, B1done, batch_s,
+		ec_point_init(PE, E, modulus);
+		mpres_set(PE->x, P.x, modulus);
+		mpres_set(PE->y, P.y, modulus);
+		youpi = ecm_stage1_W (f, E, PE, modulus, B1, B1done, batch_s,
 				      go, stop_asap, chkfilename);
-		mpres_set(P.x, PP->x, modulus);
-		mpres_set(P.y, PP->y, modulus);
-		
-		ec_point_clear(PP, E, modulus);
+		mpres_set(P.x, PE->x, modulus);
+		mpres_set(P.y, PE->y, modulus);
 	    }
 	}
     }
@@ -1488,10 +1712,18 @@ ecm (mpz_t f, mpz_t x, mpz_t y, int *param, mpz_t sigma, mpz_t n, mpz_t go,
       outputf (OUTPUT_RESVERBOSE, "on curve Y^2 = X^3 + %Zd * X + b\n", t);
       mpz_clear (t);
     }
+
+  /*  is_E_CM = 0;*/
   
-  if (youpi == ECM_NO_FACTOR_FOUND && mpz_cmp (B2, B2min) >= 0)
-    youpi = stage2 (f, &P, modulus, dF, k, &root_params, ECM_ECM, 
-                    use_ntt, TreeFilename, stop_asap);
+  if (youpi == ECM_NO_FACTOR_FOUND && mpz_cmp (B2, B2min) >= 0){
+      if(is_E_CM == 0)
+	  youpi = stage2 (f, &P, modulus, dF, k, &root_params, ECM_ECM, 
+			  use_ntt, TreeFilename, stop_asap);
+      else{ /* temporary trial */
+	  youpi = stage2_CM(f, E, PE, modulus, dF, B2, B2min);
+	  ec_point_clear(PE, E, modulus); /* FIXME */
+      }
+  }
 #ifdef TIMING_CRT
   printf ("mpzspv_from_mpzv_slow: %dms\n", mpzspv_from_mpzv_slow_time);
   printf ("mpzspv_to_mpzv: %dms\n", mpzspv_to_mpzv_time);
@@ -1513,6 +1745,7 @@ end_of_ecm_rhotable:
     }
 
 end_of_ecm:
+  ec_curve_clear(E, modulus);
   mpres_clear (P.A, modulus);
   mpres_clear (P.y, modulus);
   mpres_clear (P.x, modulus);

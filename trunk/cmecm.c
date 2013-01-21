@@ -60,6 +60,7 @@ build_curves_with_CM(mpz_t f, int *nE, ec_curve_t *tE, ec_point_t *tP,
     ec_curve_init(tE[0], n);
     ec_point_init(tP[0], tE[0], n);
     tE[0]->disc = disc;
+    mpz_init_set_ui(tE[0]->sq[0], 1);
     *nE = 1;
     if(disc == -3){
 	/* D = -3 => E: Y^2 = X^3 + 8 has rank 1, generator (2 : 4 : 1)
@@ -78,6 +79,7 @@ build_curves_with_CM(mpz_t f, int *nE, ec_curve_t *tE, ec_point_t *tP,
 	}
 	mpz_set_si(tP[0]->x, 2);
 	mpz_set_si(tP[0]->y, 4);
+	mpz_set_si(tP[0]->z, 1);
 
 	if(sqroots != NULL){
 	    /* TODO: use complex twists? */
@@ -102,7 +104,8 @@ build_curves_with_CM(mpz_t f, int *nE, ec_curve_t *tE, ec_point_t *tP,
 	    *nE = 6;
 	    mpz_clear(zeta6);
 	    mpz_clear(tmp);
-	    mpz_init_set(tE[0]->sq[0], sqroots[0]);
+            for(i = 0; i < imax; i++)
+		mpz_set(tE[i]->sq[0], sqroots[0]);
 	}
     }
     else if(disc == -4){
@@ -139,7 +142,8 @@ build_curves_with_CM(mpz_t f, int *nE, ec_curve_t *tE, ec_point_t *tP,
 	    }
 	    *nE = 4;
 	    mpz_clear(tmp);
-	    mpz_init_set(tE[0]->sq[0], sqroots[0]);
+	    for(i = 0; i < imax; i++)
+		mpz_set(tE[i]->sq[0], sqroots[0]);
 	}
 #else /* one day, use this? */
 	/* => 1/3*y^2 = x^3 + x, gen = (4/3, 10/3) */
@@ -184,7 +188,7 @@ build_curves_with_CM(mpz_t f, int *nE, ec_curve_t *tE, ec_point_t *tP,
 	/* it must be that sqroots[0] contains sqrt(5) mod N */
 	/* j = -(191025+85995*sqrt(5))/2 */
 	tE[0]->type = ECM_EC_TYPE_WEIERSTRASS;
-	mpz_init_set(tE[0]->sq[0], sqroots[0]);
+	mpz_set(tE[0]->sq[0], sqroots[0]);
 	mpz_init_set_si(j, 85995);
 	mpz_mul(j, j, sqroots[0]);
 	mpz_add_si(j, j, 191025);
