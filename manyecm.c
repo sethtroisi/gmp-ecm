@@ -921,9 +921,11 @@ process_special_blend(mpz_t tf[], int *nf, mpz_t N, int b, int n, int discref,
 				       NULL, NULL, 0, 0, 1,
 				       disc1, sqroots,
 				       savefilename);
-	mpz_clear(sqroots[0]); /* really? */
-	if(ret != ECM_NO_FACTOR_FOUND)
+	if(ret != ECM_NO_FACTOR_FOUND){
+	    if(disc1 != 0)
+		mpz_clear(sqroots[0]); /* really? */
 	    return ret;
+	}
     }
     if(disc1 != 0)
 	mpz_clear(sqroots[0]); /* really? */
