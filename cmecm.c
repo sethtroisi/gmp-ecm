@@ -92,7 +92,10 @@ build_curves_with_CM(mpz_t f, int *nE, ec_curve_t *tE, ec_point_t *tP,
 	    mpz_powm_ui(tmp, zeta6, 3, n->orig_modulus);
 	    mpz_add_si(tmp, tmp, 1);
 	    mpz_mod(tmp, tmp, n->orig_modulus);
-	    gmp_printf("# zeta6^3+1=%Zd\n", tmp);
+	    if(mpz_sgn(tmp) != 0){
+		gmp_printf("# zeta6^3+1=%Zd\n", tmp);
+		exit(-1);
+	    }
 	    mpz_set_ui(tmp, 8);
 	    for(i = 1; i < imax; i++){
 		mpz_mul(tmp, tmp, zeta6);
@@ -132,7 +135,10 @@ build_curves_with_CM(mpz_t f, int *nE, ec_curve_t *tE, ec_point_t *tP,
 	    mpz_mul(tmp, sqroots[0], sqroots[0]);
 	    mpz_add_si(tmp, tmp, 1);
 	    mpz_mod(tmp, tmp, n->orig_modulus);
-	    gmp_printf("# zeta4^2+1=%Zd\n", tmp);
+	    if(mpz_sgn(tmp) != 0){
+		gmp_printf("# zeta4^2+1=%Zd\n", tmp);
+		exit(-1);
+	    }
 	    for(i = 1; i < imax; i++){
 		mpz_mul(tmp, tE[i-1]->A, sqroots[0]);
 		mpz_mod(tE[i]->A, tmp, n->orig_modulus);
