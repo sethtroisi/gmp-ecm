@@ -850,6 +850,45 @@ odd_square_root_mod_N(mpz_t f, mpz_t *sqroots, int b, int n, int q, mpz_t N)
     return ret;
 }
 
+/* b^(2*k) = -1 => (b^k)^2 = -1 mod N */
+static
+int psb_even(mpz_t sqroots[], int b, int k, mpz_t N)
+{
+    /* set squareroot of -1 */
+    mpz_init_set_si(sqroots[0], b);
+    mpz_powm_ui(sqroots[0], sqroots[0], k, N);
+    if(k % 2 == 0){
+	/* zeta8 = b^(k/2) = (1+zeta4)/sqrt(2) 
+	   => sqrt(2) = (1+zeta4)/zeta8 */
+	mpz_init_set_si(sqroots[1], b);
+	mpz_powm_ui(sqroots[1], sqroots[1], k>>1, N);
+	mpz_invert(sqroots[1], sqroots[1], N);
+	mpz_add_si(sqroots[0], sqroots[0], 1);
+	mpz_mul(sqroots[1], sqroots[1], sqroots[0]);
+	mpz_mod(sqroots[1], sqroots[1], N);
+	mpz_sub_si(sqroots[0], sqroots[0], 1);
+    }
+    return -4;
+}
+
+/* b^(2*k+1) = -1 => (b^(k+1))^2 = -b mod N */
+static
+int psb_odd(mpz_t sqroots[], int b, int k, mpz_t N)
+{
+    int disc1 = 0;
+
+    if(b == 2)
+	disc1 = -8;
+    else if(b == 3 || b == 7 || b == 11)
+	disc1 = -b;
+    if(disc1 != 0){
+	/* set squareroot of -b */
+	mpz_init_set_si(sqroots[0], b);
+	mpz_powm_ui(sqroots[0], sqroots[0], k+1, N);
+    }
+    return disc1;
+}
+
 /* Consider M = b^n+1 if n > 0, M = b^(-n)-1 otherwise.
    N is supposed to be a *primitive* cofactor of M.
    Then find a special cocktail of CM curves a` la Atkin.
@@ -905,17 +944,23 @@ process_special_blend(mpz_t tf[], int *nf, mpz_t N, int b, int n, int discref,
 		k <<= 1;
 	    }
 	    /* at this point, b^k == 1 */
-	    gmp_printf("%d^%d = 1 mod %Zd;\n", b, k, N);
+	    gmp_printf("# %d^%d = 1 mod %Zd;\n", b, k, N);
 	    if(k % 2 == 1){
-		/* b^(2*k+1) = 1 mod N => (b^(k+1))^2 = b mod N */
+		/* b^(2*r+1) = 1 mod N => (b^(r+1))^2 = b mod N */
 		printf("# case k=%d odd\n", k);
 	    }
 	    else{
-		/* k even and minimal */
+		/* b^(2*r) = 1 */
 		mpz_add_si(tmp2, tmp2, 1);
 		if(mpz_cmp(tmp2, N) == 0){
-		    /* case b^(2*(k/2)) = -1 */
-		    printf("%d^%d = -1 mod N;\n", b, k>>1);
+		    /* case b^r = -1 */
+		    printf("# %d^%d = -1 mod N;\n", b, k>>1);
+		    if(k % 4 == 0)
+			/* b^(2*s) = -1 */
+			disc1 = psb_even(sqroots, b, k>>2, N);
+		    else
+			/* b^(2*s+1) = -1 */
+			disc1 = psb_odd(sqroots, b, k>>2, N);
 		}
 		else{
 		    /* we have a factor, since tmp2^2 = 1, tmp2 != -1 */
@@ -931,38 +976,13 @@ process_special_blend(mpz_t tf[], int *nf, mpz_t N, int b, int n, int discref,
 	}
     }
     else{
-	nn = 2 * n;
-	if(n % 2 == 0){
+	nn = 2 * n; /* used below */
+	if(n % 2 == 0)
 	    /* b^(2*k) = -1 mod N => (b^k)^2 = -1 mod N */
-	    k = n >> 1;
-	    disc1 = -4;
-	    /* set squareroot of -1 */
-	    mpz_init_set_si(sqroots[0], b);
-	    mpz_powm_ui(sqroots[0], sqroots[0], k, N);
-	    if(k % 2 == 0){
-		/* zeta8 = b^(k/2) = (1+zeta4)/sqrt(2) 
-		 => sqrt(2) = (1+zeta4)/zeta8 */
-		mpz_init_set_si(sqroots[1], b);
-		mpz_powm_ui(sqroots[1], sqroots[1], k>>1, N);
-		mpz_invert(sqroots[1], sqroots[1], N);
-		mpz_add_si(sqroots[0], sqroots[0], 1);
-		mpz_mul(sqroots[1], sqroots[1], sqroots[0]);
-		mpz_mod(sqroots[1], sqroots[1], N);
-		mpz_sub_si(sqroots[0], sqroots[0], 1);
-	    }
-	}
-	else{
+	    disc1 = psb_even(sqroots, b, n>>1, N);
+	else
 	    /* b^(2*k+1) = -1 mod N => (b^(k+1))^2 = -b mod N */
-	    if(b == 2)
-		disc1 = -8;
-	    else if(b == 3 || b == 7 || b == 11)
-		disc1 = -b;
-	    if(disc1 != 0){
-		/* set squareroot of -b */
-		mpz_init_set_si(sqroots[0], b);
-		mpz_powm_ui(sqroots[0], sqroots[0], (n>>1)+1, N);
-	    }
-	}
+	    disc1 = psb_odd(sqroots, b, n>>1, N);
     }
     if(disc1 == discref){
 	printf("# Let us use disc=%d\n", disc1);
@@ -1021,7 +1041,7 @@ usage(char *cmd)
     printf("  -curves file_C curves to be used, format '[M|W|H] A x0 y0' per line\n");
     printf("                 M=Montgomery, W=Weierstrass, H=Hessian\n");
     printf("  -disc D        uses CM curves with discriminant D\n");
-    printf("  -b b           for numbers b^n+/-1 (activates some special code)\n");
+    printf("  -b b           for numbers b^n+/-1 (activates some special code; b=1 for any b in the file)\n");
     printf("  -h, --help     Prints this help and exit.\n");
 }
 
@@ -1032,7 +1052,7 @@ main(int argc, char *argv[])
 {
     mpz_t N, tf[NFMAX];
     int res = 0, smin = -1, smax = -1, ncurves = 0, method = ECM_ECM;
-    int nf = 0, i;
+    int nf = 0, i, bb;
     double B1 = 0.0;
     int disc = 0, b = 0, n = 0;
     char *infilename = NULL, *curvesname = NULL, *torsion = NULL;
@@ -1179,7 +1199,7 @@ main(int argc, char *argv[])
       }
       if(b != 0){
 	  /* line should be: "b n[+/-/L/M] N" */
-	  int bb = atoi(buf);
+	  bb = atoi(buf);
 	  /* decode */
 	  fscanf(infile, "%s", buf);
 	  c = buf[strlen(buf)-1];
@@ -1193,7 +1213,7 @@ main(int argc, char *argv[])
 	  }
 	  /* read N */
 	  fscanf(infile, "%s", buf);
-	  if(bb != b)
+	  if((b > 1) && (bb != b))
 	      continue;
       }
       if(mpz_set_str (N, buf, 10)){
@@ -1202,7 +1222,8 @@ main(int argc, char *argv[])
       }
       if(b != 0){
 	  nf = 0;
-	  res = process_special_blend(tf,&nf,N,b,n,disc,B1,params,savefilename);
+	  res = process_special_blend(tf,&nf,N,bb,n,disc,B1,
+				      params,savefilename);
       }
       else if(method == ECM_ECM){
 	  nf = 0;
