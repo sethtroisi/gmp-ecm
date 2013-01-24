@@ -987,7 +987,7 @@ main(int argc, char *argv[])
     double B1 = 0.0;
     int disc = 0, b = 0, n = 0;
     char *infilename = NULL, *curvesname = NULL, *torsion = NULL;
-    char buf[10000];
+    char buf[10000], c;
     FILE *infile = NULL;
     char *savefilename = NULL;
     ecm_params params;
@@ -1121,7 +1121,6 @@ main(int argc, char *argv[])
     while(fscanf(infile, "%s", buf) != EOF){
       /* read number */
       if(buf[0] == '#'){
-	  char c;
 	  /* print till end of line */
 	  printf("%s", buf);
 	  while((c = getc(infile)) != '\n')
@@ -1130,10 +1129,23 @@ main(int argc, char *argv[])
 	  continue;
       }
       if(b != 0){
-	  /* line should be: "b n N" */
-	  b = atoi(buf);
-	  fscanf(infile, "%d", &n);
+	  /* line should be: "b n[+/-/L/M] N" */
+	  int bb = atoi(buf);
+	  /* decode */
 	  fscanf(infile, "%s", buf);
+	  c = buf[strlen(buf)-1];
+	  buf[strlen(buf)-1] = '\0';
+	  n = atoi(buf);
+	  if(c == '-')
+	      n = -n;
+	  else if(c != '+'){
+	      printf("#!# Unknown suffix: %c\n", c);
+	      break;
+	  }
+	  /* read N */
+	  fscanf(infile, "%s", buf);
+	  if(bb != b)
+	      continue;
       }
       if(mpz_set_str (N, buf, 10)){
 	  fprintf (stderr, "Invalid number: %s\n", argv[1]);
