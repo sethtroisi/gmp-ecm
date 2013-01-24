@@ -859,7 +859,8 @@ int
 process_special_blend(mpz_t tf[], int *nf, mpz_t N, int b, int n, int discref,
 		      double B1, ecm_params params, char *savefilename)
 {
-    int sgn = 1, disc1 = 0, q, nn, disc, i, j, ret = ECM_NO_FACTOR_FOUND;
+    int sgn = 1, disc1 = 0, q, nn, disc, i, j, k;
+    int ret = ECM_NO_FACTOR_FOUND;
     int tabd[][4] = {{-15, -3, 5, 0}, 
 #if 0
 		     {-20, -4, 5, 0}, {-24, 8, -3, 0},
@@ -881,7 +882,7 @@ process_special_blend(mpz_t tf[], int *nf, mpz_t N, int b, int n, int discref,
 #endif
 		     {0, 0, 0}
     };
-    mpz_t sqroots[10];
+    mpz_t sqroots[10], tmp, tmp2;
 
     if(n < 0){
 	sgn = -1;
@@ -889,7 +890,43 @@ process_special_blend(mpz_t tf[], int *nf, mpz_t N, int b, int n, int discref,
     }
     /* try discriminants of class number 1, hence rational CM curves */
     if(sgn == -1){
-	if(n % 2 == 1){
+	if(n % 2 == 0){
+	    /* b^(2*k) = 1 => try to find smallest power */
+	    k = n >> 1;
+	    while(k % 2 == 0)
+		k >>= 1;
+	    mpz_init_set_si(tmp, b);
+	    mpz_powm_ui(tmp, tmp, k, N);
+	    mpz_init_set_si(tmp2, 0);
+	    while(mpz_cmp_ui(tmp, 1) != 0){
+		mpz_set(tmp2, tmp);
+		mpz_mul(tmp, tmp, tmp);
+		mpz_mod(tmp, tmp, N);
+		k <<= 1;
+	    }
+	    /* at this point, b^k == 1 */
+	    gmp_printf("%d^%d = 1 mod %Zd;\n", b, k, N);
+	    if(k % 2 == 1){
+		/* b^(2*k+1) = 1 mod N => (b^(k+1))^2 = b mod N */
+		printf("# case k=%d odd\n", k);
+	    }
+	    else{
+		/* k even and minimal */
+		mpz_add_si(tmp2, tmp2, 1);
+		if(mpz_cmp(tmp2, N) == 0){
+		    /* case b^(2*(k/2)) = -1 */
+		    printf("%d^%d = -1 mod N;\n", b, k>>1);
+		}
+		else{
+		    /* we have a factor, since tmp2^2 = 1, tmp2 != -1 */
+		    mpz_sub_si(tmp2, tmp2, 1);
+		    mpz_gcd(tf[0], tmp2, N);
+		    gmp_printf("Factor!! %Zd\n", tf[0]);
+		    return ECM_FACTOR_FOUND_STEP1;
+		}
+	    }
+	}
+	else{
 	    /* b^(2*k+1) = 1 mod N => (b^(k+1))^2 = b mod N */
 	}
     }
@@ -897,10 +934,22 @@ process_special_blend(mpz_t tf[], int *nf, mpz_t N, int b, int n, int discref,
 	nn = 2 * n;
 	if(n % 2 == 0){
 	    /* b^(2*k) = -1 mod N => (b^k)^2 = -1 mod N */
+	    k = n >> 1;
 	    disc1 = -4;
 	    /* set squareroot of -1 */
 	    mpz_init_set_si(sqroots[0], b);
-	    mpz_powm_ui(sqroots[0], sqroots[0], n>>1, N);
+	    mpz_powm_ui(sqroots[0], sqroots[0], k, N);
+	    if(k % 2 == 0){
+		/* zeta8 = b^(k/2) = (1+zeta4)/sqrt(2) 
+		 => sqrt(2) = (1+zeta4)/zeta8 */
+		mpz_init_set_si(sqroots[1], b);
+		mpz_powm_ui(sqroots[1], sqroots[1], k>>1, N);
+		mpz_invert(sqroots[1], sqroots[1], N);
+		mpz_add_si(sqroots[0], sqroots[0], 1);
+		mpz_mul(sqroots[1], sqroots[1], sqroots[0]);
+		mpz_mod(sqroots[1], sqroots[1], N);
+		mpz_sub_si(sqroots[0], sqroots[0], 1);
+	    }
 	}
 	else{
 	    /* b^(2*k+1) = -1 mod N => (b^(k+1))^2 = -b mod N */
