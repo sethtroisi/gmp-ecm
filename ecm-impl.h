@@ -227,6 +227,9 @@ typedef struct
   mpres_t x;
   mpres_t y;
   mpres_t A;
+  /* for CM curves */
+  int disc;
+  mpres_t sq[10];
 } __curve_struct;
 typedef __curve_struct curve;
 

@@ -1713,17 +1713,19 @@ ecm (mpz_t f, mpz_t x, mpz_t y, int *param, mpz_t sigma, mpz_t n, mpz_t go,
       mpz_clear (t);
     }
 
-  /*  is_E_CM = 0;*/
-  
-  if (youpi == ECM_NO_FACTOR_FOUND && mpz_cmp (B2, B2min) >= 0){
-      if(is_E_CM == 0)
-	  youpi = stage2 (f, &P, modulus, dF, k, &root_params, ECM_ECM, 
-			  use_ntt, TreeFilename, stop_asap);
-      else{ /* temporary trial */
-	  youpi = stage2_CM(f, E, PE, modulus, dF, B2, B2min);
-	  ec_point_clear(PE, E, modulus); /* FIXME */
-      }
+  if(is_E_CM){
+      P.disc = E->disc;
+      mpres_set(P.sq[0], E->sq[0], modulus);
+#if 0      
+      /* temporary trial */
+      youpi = stage2_CM(f, E, PE, modulus, dF, B2, B2min);
+      ec_point_clear(PE, E, modulus); /* FIXME */
+#endif
   }
+  
+  if (youpi == ECM_NO_FACTOR_FOUND && mpz_cmp (B2, B2min) >= 0)
+      youpi = stage2 (f, &P, modulus, dF, k, &root_params, ECM_ECM, 
+		      use_ntt, TreeFilename, stop_asap);
 #ifdef TIMING_CRT
   printf ("mpzspv_from_mpzv_slow: %dms\n", mpzspv_from_mpzv_slow_time);
   printf ("mpzspv_to_mpzv: %dms\n", mpzspv_to_mpzv_time);
@@ -1753,6 +1755,8 @@ end_of_ecm:
   mpz_clear (root_params.i0);
   mpz_clear (B2);
   mpz_clear (B2min);
+  if(is_E_CM)
+      mpres_clear(P.sq[0], modulus);
 
   return youpi;
 }

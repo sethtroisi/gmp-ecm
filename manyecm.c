@@ -852,7 +852,7 @@ odd_square_root_mod_N(mpz_t f, mpz_t *sqroots, int b, int n, int q, mpz_t N)
 
 /* b^(2*k) = -1 => (b^k)^2 = -1 mod N */
 static
-int psb_even(mpz_t sqroots[], int b, int k, mpz_t N)
+int psb_minus_even(mpz_t sqroots[], int b, int k, mpz_t N)
 {
     /* set squareroot of -1 */
     mpz_init_set_si(sqroots[0], b);
@@ -873,7 +873,7 @@ int psb_even(mpz_t sqroots[], int b, int k, mpz_t N)
 
 /* b^(2*k+1) = -1 => (b^(k+1))^2 = -b mod N */
 static
-int psb_odd(mpz_t sqroots[], int b, int k, mpz_t N)
+int psb_minus_odd(mpz_t sqroots[], int b, int k, mpz_t N)
 {
     int disc1 = 0;
 
@@ -887,6 +887,79 @@ int psb_odd(mpz_t sqroots[], int b, int k, mpz_t N)
 	mpz_powm_ui(sqroots[0], sqroots[0], k+1, N);
     }
     return disc1;
+}
+
+/* OUTPUT: ECM_NO_FACTOR_FOUND or ECM_FACTOR_FOUND_STEP1 in very rare cases! */
+static
+int prepare_squareroots(int *disc1, mpz_t f, mpz_t sqroots[], int b, int n, int sgn, mpz_t N)
+{
+    int k, discr = 0, ret = ECM_NO_FACTOR_FOUND;
+    mpz_t tmp, tmp2;
+
+    if(sgn == -1){
+	/* b^n = 1 mod N */
+	if(n % 2 == 0){
+	    /* b^(2*k) = 1 => try to find smallest power */
+	    k = n >> 1;
+	    while(k % 2 == 0)
+		k >>= 1;
+	    mpz_init_set_si(tmp, b);
+	    mpz_powm_ui(tmp, tmp, k, N);
+	    mpz_init_set_si(tmp2, 0);
+	    while(mpz_cmp_ui(tmp, 1) != 0){
+		mpz_set(tmp2, tmp);
+		mpz_mul(tmp, tmp, tmp);
+		mpz_mod(tmp, tmp, N);
+		k <<= 1;
+	    }
+	    /* at this point, b^k == 1 */
+	    gmp_printf("# %d^%d = 1 mod %Zd;\n", b, k, N);
+	    if(k % 2 == 1){
+		/* b^(2*r+1) = 1 mod N => (b^(r+1))^2 = b mod N */
+		printf("# case k=%d odd\n", k);
+	    }
+	    else{
+		/* b^(2*r) = 1 */
+		mpz_add_si(tmp2, tmp2, 1);
+		if(mpz_cmp(tmp2, N) == 0){
+		    /* case b^r = -1 */
+		    printf("# %d^%d = -1 mod N;\n", b, k>>1);
+		    if(k % 4 == 0)
+			/* b^(2*s) = -1 */
+			discr = psb_minus_even(sqroots, b, k>>2, N);
+		    else
+			/* b^(2*s+1) = -1 */
+			discr = psb_minus_odd(sqroots, b, k>>2, N);
+		}
+		else{
+		    /* we have a factor, since tmp2^2 = 1, tmp2 != -1, +1 */
+		    mpz_sub_si(tmp2, tmp2, 1);
+		    mpz_gcd(f, tmp2, N);
+		    gmp_printf("Factor!! %Zd\n", f);
+		    return ECM_FACTOR_FOUND_STEP1;
+		}
+	    }
+	    mpz_clear(tmp);
+	    mpz_clear(tmp2);
+	}
+	else{
+	    /* b^(2*k+1) = 1 mod N => (b^(k+1))^2 = b mod N */
+	    k = n>>1;
+	    mpz_init_set_si(sqroots[0], b);
+	    mpz_powm_ui(sqroots[0], sqroots[0], k+1, N);
+	}
+    }
+    else{
+	/* b^n = -1 mod N */
+	if(n % 2 == 0)
+	    /* b^(2*k) = -1 mod N => (b^k)^2 = -1 mod N */
+	    discr = psb_minus_even(sqroots, b, n>>1, N);
+	else
+	    /* b^(2*k+1) = -1 mod N => (b^(k+1))^2 = -b mod N */
+	    discr = psb_minus_odd(sqroots, b, n>>1, N);
+    }
+    *disc1 = discr;
+    return ret;
 }
 
 /* Consider M = b^n+1 if n > 0, M = b^(-n)-1 otherwise.
@@ -921,69 +994,16 @@ process_special_blend(mpz_t tf[], int *nf, mpz_t N, int b, int n, int discref,
 #endif
 		     {0, 0, 0}
     };
-    mpz_t sqroots[10], tmp, tmp2;
+    mpz_t sqroots[10];
 
     if(n < 0){
 	sgn = -1;
 	n = -n;
     }
     /* try discriminants of class number 1, hence rational CM curves */
-    if(sgn == -1){
-	if(n % 2 == 0){
-	    /* b^(2*k) = 1 => try to find smallest power */
-	    k = n >> 1;
-	    while(k % 2 == 0)
-		k >>= 1;
-	    mpz_init_set_si(tmp, b);
-	    mpz_powm_ui(tmp, tmp, k, N);
-	    mpz_init_set_si(tmp2, 0);
-	    while(mpz_cmp_ui(tmp, 1) != 0){
-		mpz_set(tmp2, tmp);
-		mpz_mul(tmp, tmp, tmp);
-		mpz_mod(tmp, tmp, N);
-		k <<= 1;
-	    }
-	    /* at this point, b^k == 1 */
-	    gmp_printf("# %d^%d = 1 mod %Zd;\n", b, k, N);
-	    if(k % 2 == 1){
-		/* b^(2*r+1) = 1 mod N => (b^(r+1))^2 = b mod N */
-		printf("# case k=%d odd\n", k);
-	    }
-	    else{
-		/* b^(2*r) = 1 */
-		mpz_add_si(tmp2, tmp2, 1);
-		if(mpz_cmp(tmp2, N) == 0){
-		    /* case b^r = -1 */
-		    printf("# %d^%d = -1 mod N;\n", b, k>>1);
-		    if(k % 4 == 0)
-			/* b^(2*s) = -1 */
-			disc1 = psb_even(sqroots, b, k>>2, N);
-		    else
-			/* b^(2*s+1) = -1 */
-			disc1 = psb_odd(sqroots, b, k>>2, N);
-		}
-		else{
-		    /* we have a factor, since tmp2^2 = 1, tmp2 != -1 */
-		    mpz_sub_si(tmp2, tmp2, 1);
-		    mpz_gcd(tf[0], tmp2, N);
-		    gmp_printf("Factor!! %Zd\n", tf[0]);
-		    return ECM_FACTOR_FOUND_STEP1;
-		}
-	    }
-	}
-	else{
-	    /* b^(2*k+1) = 1 mod N => (b^(k+1))^2 = b mod N */
-	}
-    }
-    else{
-	nn = 2 * n; /* used below */
-	if(n % 2 == 0)
-	    /* b^(2*k) = -1 mod N => (b^k)^2 = -1 mod N */
-	    disc1 = psb_even(sqroots, b, n>>1, N);
-	else
-	    /* b^(2*k+1) = -1 mod N => (b^(k+1))^2 = -b mod N */
-	    disc1 = psb_odd(sqroots, b, n>>1, N);
-    }
+    ret = prepare_squareroots(&disc1, tf[0], sqroots, b, n, sgn, N);
+    if(ret != ECM_NO_FACTOR_FOUND)
+	return ret;
     if(disc1 == discref){
 	printf("# Let us use disc=%d\n", disc1);
 	ret = process_many_curves_loop(tf, nf, N, B1, params,
@@ -998,6 +1018,8 @@ process_special_blend(mpz_t tf[], int *nf, mpz_t N, int b, int n, int discref,
     }
     if(disc1 != 0)
 	mpz_clear(sqroots[0]); /* really? */
+#if 0 /* not ready yet */
+	nn = 2 * n; /* used below */
     /* each odd prime factor q of n can lead to sqrt(q*) */
     for(i = 0; tabd[i][0] != 0; i++){
 	disc = tabd[i][0];
@@ -1028,6 +1050,7 @@ process_special_blend(mpz_t tf[], int *nf, mpz_t N, int b, int n, int discref,
 	if(ret != ECM_NO_FACTOR_FOUND)
 	    break;
     }
+#endif
     return ret;
 }
 
@@ -1052,7 +1075,7 @@ main(int argc, char *argv[])
 {
     mpz_t N, tf[NFMAX];
     int res = 0, smin = -1, smax = -1, ncurves = 0, method = ECM_ECM;
-    int nf = 0, i, bb;
+    int nf = 0, i, bb = 0;
     double B1 = 0.0;
     int disc = 0, b = 0, n = 0;
     char *infilename = NULL, *curvesname = NULL, *torsion = NULL;
@@ -1207,12 +1230,17 @@ main(int argc, char *argv[])
 	  n = atoi(buf);
 	  if(c == '-')
 	      n = -n;
+	  else if(c == 'L' || c == 'M'){
+	      if(bb == 5)
+		  n = -n;
+	  }
 	  else if(c != '+'){
-	      printf("#!# Unknown suffix: %c\n", c);
+	      printf("#!# unknown suffix: %c\n", c);
 	      break;
 	  }
 	  /* read N */
 	  fscanf(infile, "%s", buf);
+	  printf("# I read: b=%d n=%d c=%c\n", bb, n, c);
 	  if((b > 1) && (bb != b))
 	      continue;
       }
@@ -1220,18 +1248,20 @@ main(int argc, char *argv[])
 	  fprintf (stderr, "Invalid number: %s\n", argv[1]);
 	  exit (1);
       }
-      if(b != 0){
-	  nf = 0;
-	  res = process_special_blend(tf,&nf,N,bb,n,disc,B1,
-				      params,savefilename);
-      }
-      else if(method == ECM_ECM){
-	  nf = 0;
-	  res = process_many_curves_loop(tf, &nf, N, B1, params,
-					 curvesname,
-					 torsion, smin, smax, ncurves,
-					 disc, NULL,
-					 savefilename);
+      if(method == ECM_ECM){
+	  if(b != 0){
+	      nf = 0;
+	      res = process_special_blend(tf,&nf,N,bb,n,disc,B1,
+					  params,savefilename);
+	  }
+	  if(res == ECM_NO_FACTOR_FOUND){
+	      nf = 0;
+	      res = process_many_curves_loop(tf, &nf, N, B1, params,
+					     curvesname,
+					     torsion, smin, smax, ncurves,
+					     disc, NULL,
+					     savefilename);
+	  }
       }
     }
 #if 0	  
