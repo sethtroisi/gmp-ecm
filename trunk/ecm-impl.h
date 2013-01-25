@@ -24,7 +24,9 @@ http://www.gnu.org/licenses/ or write to the Free Software Foundation, Inc.,
 #define _ECM_IMPL_H 1
 
 #include "config.h"
+#include "basicdefs.h"
 #include "ecm.h"
+#include "sp.h"
 
 #ifdef HAVE_SYS_TYPES_H
 #include <sys/types.h> /* needed for size_t */
@@ -94,37 +96,6 @@ extern size_t mpn_mul_lo_threshold[];
 #define ECM_STDOUT __ecm_stdout
 #define ECM_STDERR __ecm_stderr
 extern FILE *ECM_STDOUT, *ECM_STDERR;
-
-/* Warnings about unused parameters by gcc can be suppressed by prefixing 
-   parameter with ATTRIBUTE_UNUSED when parameter can't be removed, i.e. 
-   for interface consistency reasons */
-#ifdef __GNUC__
-#if    __GNUC__ >= 3
-#define ATTRIBUTE_UNUSED __attribute__ ((unused))
-#else
-#define ATTRIBUTE_UNUSED
-#endif
-#define ATTRIBUTE_CONST __attribute__ ((const))
-#else
-#define ATTRIBUTE_UNUSED
-#define ATTRIBUTE_CONST
-#endif
-
-#ifndef LIKELY
-#if defined(__GNUC__)
-#define LIKELY(x) __builtin_expect ((x) != 0, 1)
-#else
-#define LIKELY(x) x
-#endif
-#endif
-
-#ifndef UNLIKELY
-#if defined(__GNUC__)
-#define UNLIKELY(x) __builtin_expect ((x) != 0, 0)
-#else
-#define UNLIKELY(x) x
-#endif
-#endif
 
 /* #define TIMING_CRT */
 
@@ -470,6 +441,9 @@ void         clear_list (listz_t, unsigned int);
 int          list_inp_raw (listz_t, FILE *, unsigned int);
 #define list_out_raw __ECM(list_out_raw)
 int          list_out_raw (FILE *, listz_t, unsigned int);
+#define output_list __ECM(output_list)
+void         output_list (int, const listz_t, unsigned int, const char *, 
+                          const char *);
 #define print_list __ECM(print_list)
 void         print_list (listz_t, unsigned int);
 #define list_set __ECM(list_set)
@@ -723,9 +697,13 @@ void         set_verbose (int);
 #define inc_verbose __ECM(inc_verbose)
 int          inc_verbose (void);
 #define outputf __ECM(outputf)
-int          outputf (int, char *, ...);
+int          outputf (int, const char *, ...);
 #define writechkfile __ECM(writechkfile)
 void writechkfile (char *, int, double, mpmod_t, mpres_t, mpres_t, mpres_t, mpres_t);
+#define aux_fseek64 __ECM(aux_fseek64)
+int aux_fseek64(FILE *, const int64_t, const int);
+#define aux_ftell64 __ECM(aux_ftell64)
+int64_t aux_ftell64(FILE *);
 
 /* auxarith.c */
 #define gcd __ECM(gcd)
