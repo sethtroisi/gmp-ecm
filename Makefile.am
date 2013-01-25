@@ -36,11 +36,11 @@ libecm_la_SOURCES = ecm.c ecm2.c pm1.c pp1.c getprime.c listz.c lucas.c \
 		   random.c factor.c sp.c spv.c spm.c mpzspm.c mpzspv.c \
 		   ntt_gfp.c ecm_ntt.c pm1fs2.c sets_long.c \
 		   auxarith.c batch.c parametrizations.c cudawrapper.c \
-		   addlaws.c
+		   listz_handle.c addlaws.c
 # Link the asm redc code (if we use it) into libecm.la
 libecm_la_CPPFLAGS = $(MULREDCINCPATH)
-libecm_la_CFLAGS = $(OPENMP_CFLAGS)
-libecm_la_LDFLAGS = $(LIBECM_LDFLAGS) -version-info 0:0:0
+libecm_la_CFLAGS = $(OPENMP_CFLAGS) -g
+libecm_la_LDFLAGS = $(LIBECM_LDFLAGS) -version-info 0:0:0 -g
 libecm_la_LIBADD = $(MULREDCLIBRARY) $(GMPLIB)
 if WANT_CUDA 
   libecm_la_SOURCES += cudakernel.cu
@@ -55,7 +55,7 @@ noinst_PROGRAMS = tune ecmfactor bench_mulredc manyecm
 LDADD = libecm.la $(GMPLIB)
 
 ecm_CPPFLAGS = -DOUTSIDE_LIBECM
-ecm_CFLAGS = $(OPENMP_CFLAGS)
+ecm_CFLAGS = $(OPENMP_CFLAGS) -g
 if WANT_CUDA 
   ecm_CFLAGS += $(CC_ADD_FLAGS_FOR_GPU)
 endif
@@ -93,7 +93,7 @@ if WITH_GWNUM
 endif
 
 include_HEADERS = ecm.h
-noinst_HEADERS = ecm-impl.h ecm-gmp.h ecm-ecm.h sp.h longlong.h ecm-params.h \
+noinst_HEADERS = basicdefs.h ecm-impl.h ecm-gmp.h ecm-ecm.h sp.h longlong.h ecm-params.h \
                  mpmod.h ecm-gpu.h cudakernel.h addlaws.h
 
 EXTRA_DIST = test.pm1 test.pp1 test.ecm README.lib INSTALL-ecm ecm.xml  \
@@ -134,16 +134,19 @@ longcheck: ecm$(EXEEXT)
 	$(srcdir)/test.pp1 "$(VALGRIND) ./ecm$(EXEEXT) -modmuln"
 	$(srcdir)/test.pp1 "$(VALGRIND) ./ecm$(EXEEXT) -redc"
 	$(srcdir)/test.pp1 "$(VALGRIND) ./ecm$(EXEEXT) -mpzmod"
+	$(srcdir)/test.pp1 "$(VALGRIND) ./ecm$(EXEEXT) -treefile tree"
 	$(srcdir)/test.pm1 "$(VALGRIND) ./ecm$(EXEEXT)"
 	$(srcdir)/test.pm1 "$(VALGRIND) ./ecm$(EXEEXT) -no-ntt"
 	$(srcdir)/test.pm1 "$(VALGRIND) ./ecm$(EXEEXT) -modmuln"
 	$(srcdir)/test.pm1 "$(VALGRIND) ./ecm$(EXEEXT) -redc"
 	$(srcdir)/test.pm1 "$(VALGRIND) ./ecm$(EXEEXT) -mpzmod"
+	$(srcdir)/test.pm1 "$(VALGRIND) ./ecm$(EXEEXT) -treefile tree"
 	$(srcdir)/test.ecm "$(VALGRIND) ./ecm$(EXEEXT)"
 	$(srcdir)/test.ecm "$(VALGRIND) ./ecm$(EXEEXT) -no-ntt"
 	$(srcdir)/test.ecm "$(VALGRIND) ./ecm$(EXEEXT) -modmuln"
 	$(srcdir)/test.ecm "$(VALGRIND) ./ecm$(EXEEXT) -redc"
 	$(srcdir)/test.ecm "$(VALGRIND) ./ecm$(EXEEXT) -mpzmod"
+	$(srcdir)/test.ecm "$(VALGRIND) ./ecm$(EXEEXT) -treefile tree"
 
 ## to be sure ecm.1 is considered as source
 ## (cf section "Man pages" in the automake manual)
