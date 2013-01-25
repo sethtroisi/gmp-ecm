@@ -1715,6 +1715,7 @@ ecm (mpz_t f, mpz_t x, mpz_t y, int *param, mpz_t sigma, mpz_t n, mpz_t go,
 
   if(is_E_CM){
       P.disc = E->disc;
+      mpres_init(P.sq[0], modulus);
       mpres_set(P.sq[0], E->sq[0], modulus);
 #if 0      
       /* temporary trial */
@@ -1731,6 +1732,8 @@ ecm (mpz_t f, mpz_t x, mpz_t y, int *param, mpz_t sigma, mpz_t n, mpz_t go,
   printf ("mpzspv_to_mpzv: %dms\n", mpzspv_to_mpzv_time);
   printf ("mpzspv_normalise: %dms\n", mpzspv_normalise_time);
 #endif
+  if(is_E_CM)
+      mpres_clear(P.sq[0], modulus);
   
 end_of_ecm_rhotable:
   if (test_verbose (OUTPUT_VERBOSE))
@@ -1751,12 +1754,9 @@ end_of_ecm:
   mpres_clear (P.A, modulus);
   mpres_clear (P.y, modulus);
   mpres_clear (P.x, modulus);
-  mpmod_clear (modulus);
   mpz_clear (root_params.i0);
   mpz_clear (B2);
   mpz_clear (B2min);
-  if(is_E_CM)
-      mpres_clear(P.sq[0], modulus);
-
+  mpmod_clear (modulus);
   return youpi;
 }
