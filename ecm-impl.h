@@ -555,6 +555,8 @@ void mpres_sqr (mpres_t, const mpres_t, mpmod_t) ATTRIBUTE_HOT;
 void mpres_mul_z_to_z (mpz_t, const mpres_t, const mpz_t, mpmod_t);
 #define mpres_set_z_for_gcd __ECM(mpres_set_z_for_gcd)
 void mpres_set_z_for_gcd (mpres_t, const mpz_t, mpmod_t);
+#define mpres_set_z_for_gcd_fix __ECM(mpres_set_z_for_gcd_fix)
+void mpres_set_z_for_gcd_fix (mpres_t, const mpres_t, const mpz_t, mpmod_t);
 #define mpres_div_2exp __ECM(mpres_div_2exp)
 void mpres_div_2exp (mpres_t, const mpres_t, const unsigned int, mpmod_t);
 #define mpres_add_ui __ECM(mpres_add_ui)
