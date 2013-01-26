@@ -318,7 +318,6 @@ memory_use (unsigned long dF, unsigned int sp_num, unsigned int Ftreelvl,
            k0 is the number of blocks (if 0, use default)
            S is the exponent for Brent-Suyama's extension
            invtrick is non-zero iff one uses x+1/x instead of x.
-           method: ECM_ECM, ECM_PM1 or ECM_PP1
            Cf "Speeding the Pollard and Elliptic Curve Methods
                of Factorization", Peter Montgomery, Math. of Comp., 1987,
                page 257: using x^(i^e)+1/x^(i^e) instead of x^(i^(2e))
@@ -330,8 +329,8 @@ memory_use (unsigned long dF, unsigned int sp_num, unsigned int Ftreelvl,
 */
 int
 stage2 (mpz_t f, void *X, mpmod_t modulus, unsigned long dF, unsigned long k, 
-        root_params_t *root_params, int method, int use_ntt, 
-        char *TreeFilename, int (*stop_asap)(void))
+        root_params_t *root_params, int use_ntt, char *TreeFilename, 
+        int (*stop_asap)(void))
 {
   unsigned long i, sizeT;
   mpz_t n;
@@ -411,12 +410,7 @@ stage2 (mpz_t f, void *X, mpmod_t modulus, unsigned long dF, unsigned long k,
   H = T;
 
   /* needs dF+1 cells in T */
-  if (method == ECM_PM1)
-    youpi = pm1_rootsF (f, F, root_params, dF, (mpres_t*) X, T, modulus);
-  else if (method == ECM_PP1)
-    youpi = pp1_rootsF (F, root_params, dF, (mpres_t*) X, T, modulus);
-  else 
-    youpi = ecm_rootsF (f, F, root_params, dF, (curve*) X, modulus);
+  youpi = ecm_rootsF (f, F, root_params, dF, (curve*) X, modulus);
 
   if (youpi != ECM_NO_FACTOR_FOUND)
     {
@@ -617,26 +611,16 @@ stage2 (mpz_t f, void *X, mpmod_t modulus, unsigned long dF, unsigned long k,
     }
 
   st = cputime ();
-  if (method == ECM_PM1)
-    rootsG_state = pm1_rootsG_init ((mpres_t *) X, root_params, modulus);
-  else if (method == ECM_PP1)
-    rootsG_state = pp1_rootsG_init ((mpres_t *) X, root_params, modulus);
-  else /* ECM_ECM */
-    rootsG_state = ecm_rootsG_init (f, (curve *) X, root_params, dF, k, 
-                                    modulus);
+  rootsG_state = ecm_rootsG_init (f, (curve *) X, root_params, dF, k, 
+                                  modulus);
 
   /* rootsG_state=NULL if an error occurred or (ecm only) a factor was found */
   if (rootsG_state == NULL)
     {
       /* ecm: f = -1 if an error occurred */
-      youpi = (method == ECM_ECM && mpz_cmp_si (f, -1)) ? 
-              ECM_FACTOR_FOUND_STEP2 : ECM_ERROR;
+      youpi = (mpz_cmp_si (f, -1)) ? ECM_FACTOR_FOUND_STEP2 : ECM_ERROR;
       goto clear_G;
     }
-
-  if (method != ECM_ECM) /* ecm_rootsG_init prints itself */
-    outputf (OUTPUT_VERBOSE, "Initializing table of differences for G "
-             "took %ldms\n", elltime (st, cputime ()));
 
   if (stop_asap != NULL && (*stop_asap)())
     goto clear_fd;
@@ -644,15 +628,8 @@ stage2 (mpz_t f, void *X, mpmod_t modulus, unsigned long dF, unsigned long k,
   for (i = 0; i < k; i++)
     {
       /* needs dF+1 cells in T+dF */
-      if (method == ECM_PM1)
-	youpi = pm1_rootsG (f, G, dF, (pm1_roots_state_t *) rootsG_state, 
-			    T + dF, modulus);
-      else if (method == ECM_PP1)
-        youpi = pp1_rootsG (G, dF, (pp1_roots_state_t *) rootsG_state, modulus,
-                            (mpres_t *) X);
-      else
-	youpi = ecm_rootsG (f, G, dF, (ecm_roots_state_t *) rootsG_state, 
-			    modulus);
+      youpi = ecm_rootsG (f, G, dF, (ecm_roots_state_t *) rootsG_state, 
+                          modulus);
 
       if (test_verbose (OUTPUT_TRACE))
 	{
@@ -820,69 +797,13 @@ stage2 (mpz_t f, void *X, mpmod_t modulus, unsigned long dF, unsigned long k,
   if (mpz_cmp_ui (f, 1) > 0)
     {
       youpi = ECM_FACTOR_FOUND_STEP2;
-      if (method == ECM_ECM && test_verbose (OUTPUT_RESVERBOSE))
-        {
-          /* Find out for which i*X, (i,d)==1, a factor was found */
-          /* Note that the factor we found may be composite */
-          /* TBD: use binary search */
-          unsigned long j, k;
-          mpz_set (T[dF], f);
-          for (k = 0, j = 1; k < dF; j += 6)
-            {
-              if (gcd (j, root_params->d1) > 1)
-                continue;
-              mpz_gcd (T[dF + 1], T[k], T[dF]);
-              if (mpz_cmp_ui (T[dF + 1], 1) > 0)
-                {
-                  int sgn;
-                  /* Find i so that $f(i d1) X = +-f(j d2) X$ over GF(f) */
-                  sgn = ecm_findmatch (&i, j, root_params, (curve *)X, 
-                                       modulus, f);
-                  
-                  if (sgn != 0)
-                    {
-                      mpz_add_ui (T[dF + 2], root_params->i0, i);
-                      outputf (OUTPUT_RESVERBOSE, 
-                               "Divisor %Zd first occurs in T[%lu] = "
-                               "((f(%Zd*%lu)%cf(%lu*%lu))*X)_x\n", T[dF + 1], k, 
-                               T[dF + 2], root_params->d1, sgn < 0 ? '+' : '-',
-                               j, root_params->d2);
-                      
-                      mpz_mul_ui (T[dF + 2], T[dF + 2], root_params->d1);
-                      if (sgn < 0)
-                        mpz_add_ui (T[dF + 2], T[dF + 2], j * root_params->d2);
-                      else
-                        mpz_sub_ui (T[dF + 2], T[dF + 2], j * root_params->d2);
-                      mpz_abs (T[dF + 2], T[dF + 2]);
-                      
-                      outputf (OUTPUT_RESVERBOSE, "Maybe largest group order "
-                               "factor is or divides %Zd\n", T[dF + 2]);
-                    }
-                  else
-                    {
-                      outputf (OUTPUT_RESVERBOSE, 
-                               "Divisor %Zd first occurs in T[%lu], but could "
-                               "not determine associated i\n", 
-                               T[dF + 1], k);
-                    }
-                  /* Don't report this divisor again */
-                  mpz_divexact (T[dF], T[dF], T[dF + 1]);
-                }
-              k++;
-            }
-        }
     } else {
       /* Here, mpz_cmp_ui (f, 1) == 0, i.e. no factor was found */
       outputf (OUTPUT_RESVERBOSE, "Product of G(f_i) = %Zd\n", T[0]);
     }
 
 clear_fd:
-  if (method == ECM_PM1)
-    pm1_rootsG_clear ((pm1_roots_state_t *) rootsG_state, modulus);
-  else if (method == ECM_PP1)
-    pp1_rootsG_clear ((pp1_roots_state_t *) rootsG_state, modulus);
-  else /* ECM_ECM */
-    ecm_rootsG_clear ((ecm_roots_state_t *) rootsG_state, modulus);
+  ecm_rootsG_clear ((ecm_roots_state_t *) rootsG_state, modulus);
 
 clear_G:
   clear_list (G, dF);
