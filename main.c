@@ -296,7 +296,7 @@ print_config ()
    Return value: 1 if den invertible, 0 if factor found; in this case
    gcd(den(q), N) is put in r.
  */
-int
+static int
 mod_from_rat(mpz_t r, mpq_t q, mpz_t N, int verbose)
 {
     mpz_t inv, C;
