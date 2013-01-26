@@ -1489,15 +1489,19 @@ ecm (mpz_t f, mpz_t x, mpz_t y, int *param, mpz_t sigma, mpz_t n, mpz_t go,
       mpz_clear (t);
     }
 
+  P.disc = 0;
   if(is_E_CM){
+#if 0
+      /* use CM stuff whenever ready! */
       P.disc = E->disc;
+#endif
       mpres_init(P.sq[0], modulus);
       mpres_set(P.sq[0], E->sq[0], modulus);
   }
   
   if (youpi == ECM_NO_FACTOR_FOUND && mpz_cmp (B2, B2min) >= 0)
     youpi = stage2 (f, &P, modulus, dF, k, &root_params, use_ntt, 
-                    TreeFilename, stop_asap);
+                    TreeFilename, stop_asap, B1, B2);
 #ifdef TIMING_CRT
   printf ("mpzspv_from_mpzv_slow: %dms\n", mpzspv_from_mpzv_slow_time);
   printf ("mpzspv_to_mpzv: %dms\n", mpzspv_to_mpzv_time);

@@ -34,6 +34,8 @@ http://www.gnu.org/licenses/ or write to the Free Software Foundation, Inc.,
 #include "ecm-impl.h"
 #include "sp.h"
 
+#include "cmecm.h"
+
 extern unsigned int Fermat;
 
 /* r <- Dickson(n,a)(x) */
@@ -330,7 +332,7 @@ memory_use (unsigned long dF, unsigned int sp_num, unsigned int Ftreelvl,
 int
 stage2 (mpz_t f, void *X, mpmod_t modulus, unsigned long dF, unsigned long k, 
         root_params_t *root_params, int use_ntt, char *TreeFilename, 
-        int (*stop_asap)(void))
+        int (*stop_asap)(void), double B1, mpz_t B2)
 {
   unsigned long i, sizeT;
   mpz_t n;
@@ -373,6 +375,11 @@ stage2 (mpz_t f, void *X, mpmod_t modulus, unsigned long dF, unsigned long k,
 	  "Using %u small primes for NTT\n", mpzspm->sp_num);
     }
 
+  if(((curve *)X)->disc != 0){
+      /* CM case, we override dF */
+      dF = compute_dF_CM(B2, ((curve *)X)->disc);
+  }
+
   lgk = ceil_log2 (dF);
 
   mem = memory_use (dF, use_ntt ? mpzspm->sp_num : 0,
@@ -410,7 +417,7 @@ stage2 (mpz_t f, void *X, mpmod_t modulus, unsigned long dF, unsigned long k,
   H = T;
 
   /* needs dF+1 cells in T */
-  youpi = ecm_rootsF (f, F, root_params, dF, (curve*) X, modulus);
+  youpi = ecm_rootsF (f, F, root_params, dF, (curve*) X, modulus, B1, B2);
 
   if (youpi != ECM_NO_FACTOR_FOUND)
     {
