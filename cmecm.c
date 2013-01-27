@@ -448,32 +448,37 @@ int stage2_CM(mpz_t f, ec_curve_t E, ec_point_t P, mpmod_t modulus,
 
 /********** fast version **********/
 
+/* u^2+d*v^2 <= cof*B2 => number of v's is <= number of u's. 
+   As a matter of fact, dF should be a power of 2.
+*/
 unsigned long
 compute_dF_CM(mpz_t B2, int disc)
 {
     mpz_t tmp;
-    unsigned long umax, dF = 0;
+    unsigned long vmax, dF = 0;
 
     if(disc == -4){
 	/* u^2 + v^2 <= B2, u odd, v even */
 	mpz_init_set(tmp, B2);
-	mpz_sub_si(tmp, tmp, 4);
+	mpz_sub_si(tmp, tmp, 1);
 	mpz_sqrt(tmp, tmp);
-	umax = mpz_get_ui(tmp);
-	/* largest u must be odd */
-	if(umax % 2 == 0)
-	    umax--;
-	/* 1 <= u <= umax => 0 <= (u-1)/2 <= (umax-1)/2 */
-	dF = 1 + (umax>>1);
+	vmax = mpz_get_ui(tmp);
+	/* largest v must be even */
+	if(vmax % 2 == 1)
+	    vmax--;
+	/* 2 <= v <= vmax => 0 <= (v-2)/2 <= (vmax-2)/2=(vmax/2)-1 */
+	vmax >>= 1;
+	/* find smallest power of 2 >= vmax */
+	for(dF = 1; dF < vmax; dF <<= 1);
 	mpz_clear(tmp);
     }
     return dF;
 }
 
-/* F[i] <- ([i*dk]P)_x for kmin <= k <= kmax. */
+/* F[i] <- ([kmin+i*dk]P)_x for 0 <= i < dF. */
 int all_multiples(mpz_t f, listz_t F, unsigned long dF, 
 		  ec_curve_t E, ec_point_t P, mpmod_t modulus,
-		  unsigned long kmin, unsigned long kmax, unsigned long dk)
+		  unsigned long kmin, unsigned long dk)
 {
     int ret = ECM_NO_FACTOR_FOUND;
     ec_point_t kP, dkP;
@@ -497,9 +502,8 @@ int all_multiples(mpz_t f, listz_t F, unsigned long dF,
 	ret = ECM_FACTOR_FOUND_STEP2;
 	goto end_of_all_multiples;
     }
-    for(k = kmin, ik = 0; k <= kmax; k += dk, ik++){
+    for(k = kmin, ik = 0; ik < dF; k += dk, ik++){
 	/* F[ik] <= kP_x */
-	assert(ik < dF);
 	mpres_get_z(F[ik], kP->x, modulus);
 	if(ec_point_add(kP, kP, dkP, E, modulus) == 0){
 	    printf("# factor found when adding dkP\n");
@@ -515,42 +519,40 @@ int all_multiples(mpz_t f, listz_t F, unsigned long dF,
     return ret;
 }
 
+void
+apply_CM(ec_point_t omegaP, int disc, mpz_t sq[], ec_point_t P, mpmod_t modulus)
+{
+    if(disc == -4){
+	/* Q = [zeta4](P) = [-P.x, zeta4*P.y, 1] */
+	gmp_printf("N:=%Zd;\n", modulus->orig_modulus);
+	printf("zeta4:=");print_mpz_from_mpres(sq[0],modulus);printf(";\n");
+	mpres_neg(omegaP->x, P->x, modulus);
+	mpres_mul(omegaP->y, P->y, sq[0], modulus);
+	mpres_set_ui(omegaP->z, 1, modulus);
+    }
+}
+
 int ecm_rootsF_CM(mpz_t f, listz_t F, unsigned long dF, curve *C, 
-		  mpmod_t modulus, double B1, mpz_t B2)
+		  mpmod_t modulus)
 {
     int ret = ECM_NO_FACTOR_FOUND;
     ec_curve_t E;
-    ec_point_t P;
-    unsigned long umax;
-    mpz_t tmp;
+    ec_point_t P, omegaP;
 
-    printf("# Entering ecm_rootsF_CM\n");
+    printf("# Entering ecm_rootsF_CM with disc=%d\n", C->disc);
     ec_curve_init(E, modulus);
     E->type = ECM_EC_TYPE_WEIERSTRASS;
     mpres_set(E->A, C->A, modulus);
     ec_point_init(P, E, modulus);
     mpres_set(P->x, C->x, modulus);
     mpres_set(P->y, C->y, modulus);
+    ec_point_init(omegaP, E, modulus);
     if(C->disc == -4){
-	/* u odd, v even, B1 < u^2+v^2 <= B2 */
-	/* 1 <= u^2 <= B2-4 */
-	mpz_init_set(tmp, B2);
-	mpz_sub_si(tmp, tmp, 4);
-	mpz_sqrt(tmp, tmp);
-	if(mpz_fits_ulong_p(tmp) == 0){
-            gmp_printf("#!# Gasp: umax=%Zd too large\n", tmp);
-	    ret = ECM_ERROR;
-	}
-	else{
-	    umax = mpz_get_ui(tmp);
-	    ret = all_multiples(f, F, dF, E, P, modulus, 1, umax, 2);
-	}
-	mpz_clear(tmp);
+	apply_CM(omegaP, C->disc, C->sq, P, modulus);
+	ret = all_multiples(f, F, dF, E, omegaP, modulus, 2, 2);
     }
+    ec_point_clear(omegaP, E, modulus);
     ec_point_clear(P, E, modulus);
     ec_curve_clear(E, modulus);
-
-    exit(-1);
-
     return ret;
 }
