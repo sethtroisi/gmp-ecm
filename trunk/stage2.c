@@ -337,7 +337,7 @@ stage2 (mpz_t f, void *X, mpmod_t modulus, unsigned long dF, unsigned long k,
   unsigned long i, sizeT;
   mpz_t n;
   listz_t F, G, H, T;
-  int youpi = ECM_NO_FACTOR_FOUND;
+  int youpi = ECM_NO_FACTOR_FOUND, disc = ((curve *)X)->disc;
   long st, st0;
   void *rootsG_state = NULL;
   listz_t *Tree = NULL; /* stores the product tree for F */
@@ -375,9 +375,10 @@ stage2 (mpz_t f, void *X, mpmod_t modulus, unsigned long dF, unsigned long k,
 	  "Using %u small primes for NTT\n", mpzspm->sp_num);
     }
 
-  if(((curve *)X)->disc != 0){
+  if(disc != 0){
       /* CM case, we override dF */
-      dF = compute_dF_CM(B2, ((curve *)X)->disc);
+      dF = compute_dF_CM(B2, disc);
+      root_params->S = 1; /* use x^S = x in rootsG! */
   }
 
   lgk = ceil_log2 (dF);
@@ -607,8 +608,11 @@ stage2 (mpz_t f, void *X, mpmod_t modulus, unsigned long dF, unsigned long k,
     goto clear_invF;
 
 
-  /* start computing G with roots at i0*d, (i0+1)*d, (i0+2)*d, ... 
-     where i0*d <= B2min < (i0+1)*d */
+  /* start computing G with dF roots.
+
+     In the non CM case, roots are at i0*d, (i0+1)*d, (i0+2)*d, ... 
+     where i0*d <= B2min < (i0+1)*d .
+  */
   G = init_list2 (dF, mpz_sizeinbase (modulus->orig_modulus, 2) + 
                       3 * GMP_NUMB_BITS);
   if (G == NULL)

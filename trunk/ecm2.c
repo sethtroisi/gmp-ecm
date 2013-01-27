@@ -456,7 +456,7 @@ ecm_rootsF (mpz_t f, listz_t F, root_params_t *root_params,
   st = cputime ();
 
   if(s->disc != 0){
-      youpi = ecm_rootsF_CM(f, F, dF, s, modulus, B1, B2);
+      youpi = ecm_rootsF_CM(f, F, dF, s, modulus);
       goto exit_ecm_rootsF;
   }
 
