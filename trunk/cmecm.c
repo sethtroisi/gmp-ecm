@@ -556,3 +556,86 @@ int ecm_rootsF_CM(mpz_t f, listz_t F, unsigned long dF, curve *C,
     ec_curve_clear(E, modulus);
     return ret;
 }
+
+ecm_roots_state_t *
+ecm_rootsG_init_CM (mpz_t f, curve *X, root_params_t *root_params, 
+		    unsigned long dF, unsigned long blocks, mpmod_t modulus)
+{
+    ecm_roots_state_t *state = NULL;
+    progression_params_t *params; /* for less typing */
+    ec_curve_t E;
+    ec_point_t P, duP;
+    unsigned long umin, du;
+    mpz_t tmp;
+    int k;
+    
+    state = (ecm_roots_state_t *) malloc (sizeof (ecm_roots_state_t));
+    if (state == NULL)
+	{
+	    mpz_set_si (f, -1);
+	    return NULL;
+	}
+    /* really needed for CM? */
+    params = &(state->params);
+    /* If S < 0, use degree |S| Dickson poly, otherwise use x^S */
+    params->dickson_a = (root_params->S < 0) ? -1 : 0;
+    params->S = abs (root_params->S);
+    state->X = X;
+
+    state->fd = (point *) malloc (2 * sizeof (point));
+    if (state->fd == NULL)
+      {
+	free (state);
+	mpz_set_si (f, -1);
+	return NULL;
+      }
+    for(k = 0; k < 2; k++){
+	mpres_init (state->fd[k].x, modulus);
+	mpres_init (state->fd[k].y, modulus);
+    }
+
+    if(X->disc == -4){
+	umin = 1;
+	du = 2;
+    }
+
+    /* conversions */
+    ec_curve_init(E, modulus);
+    mpres_set(E->A, X->A, modulus);
+    ec_point_init(P, E, modulus);
+    ec_point_init(duP, E, modulus);
+
+    mpres_set(P->x, X->x, modulus);
+    mpres_set(P->y, X->y, modulus);
+    mpres_set_ui(P->z, 1, modulus);
+
+    /* HERE: we should be using affine Weierstrass stuff */
+
+    /* fd[0] <- [umin]*P */
+    mpz_init_set_ui(tmp, umin);
+    ec_point_mul(duP, tmp, P, E, modulus);
+    mpres_set(state->fd[0].x, duP->x, modulus);
+    mpres_set(state->fd[0].y, duP->y, modulus);
+
+    /* fd[1] <- [du]*P */
+    mpz_set_ui(tmp, du);
+    ec_point_mul(duP, tmp, P, E, modulus);
+    mpres_set(state->fd[1].x, duP->x, modulus);
+    mpres_set(state->fd[1].y, duP->y, modulus);
+
+    ec_point_clear(P, E, modulus);
+    ec_point_clear(duP, E, modulus);
+    ec_curve_clear(E, modulus);
+    mpz_clear(tmp);
+    return state;
+}
+
+/* Compute "next" polynomial G. For block i, this means computing
+   [umin+du*(i*dF)..umin+du*((i+1)*dF)[ * P on E, or adding duP.
+   We need to store [umin+du*(i*dF)]*P and duP in 'state'.
+*/
+int 
+ecm_rootsG_CM (mpz_t f, listz_t G, unsigned long dF, ecm_roots_state_t *state, 
+	       mpmod_t modulus)
+{
+}

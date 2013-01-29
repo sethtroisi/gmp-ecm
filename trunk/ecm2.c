@@ -629,6 +629,9 @@ ecm_rootsG_init (mpz_t f, curve *X, root_params_t *root_params,
   double bestnr;
   long st = 0;
 
+  if(X->disc != 0)
+      return ecm_rootsG_init_CM(f, X, root_params, dF, blocks, modulus);
+
   ASSERT (gcd (root_params->d1, root_params->d2) == 1UL);
 
   if (test_verbose (OUTPUT_VERBOSE))
