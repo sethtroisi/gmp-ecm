@@ -1489,8 +1489,6 @@ ecm (mpz_t f, mpz_t x, mpz_t y, int *param, mpz_t sigma, mpz_t n, mpz_t go,
       mpz_clear (t);
     }
 
-  printf("dF = %ld\n", dF);
-
   P.disc = 0;
   if(is_E_CM){
 #if 0
