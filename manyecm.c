@@ -1255,7 +1255,8 @@ main(int argc, char *argv[])
 	      res = process_special_blend(tf,&nf,N,bb,n,disc,B1,
 					  params,savefilename);
 	  }
-	  if(res == ECM_NO_FACTOR_FOUND){
+	  if(res == ECM_NO_FACTOR_FOUND
+	     && (curvesname != NULL || torsion != NULL)){
 	      nf = 0;
 	      res = process_many_curves_loop(tf, &nf, N, B1, params,
 					     curvesname,
