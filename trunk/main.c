@@ -1205,7 +1205,8 @@ main (int argc, char *argv[])
 				     program, who, rtime, comment, resumefile))
             break;
 
-	  if (params->E->type == ECM_EC_TYPE_WEIERSTRASS
+	  if (params->E->type == ECM_EC_TYPE_WEIERSTRASS_AFF
+	      || params->E->type == ECM_EC_TYPE_WEIERSTRASS_HOM
 	      || params->E->type == ECM_EC_TYPE_HESSIAN)
 	      params->sigma_is_A = -1;
 	  else
@@ -1435,7 +1436,7 @@ main (int argc, char *argv[])
 	    {
 	      params->sigma_is_A = -1;
 	      if(specific_H == 0)
-		  params->E->type = ECM_EC_TYPE_WEIERSTRASS;
+		  params->E->type = ECM_EC_TYPE_WEIERSTRASS_HOM;
 	      else
 		  params->E->type = ECM_EC_TYPE_HESSIAN;
 	    }
