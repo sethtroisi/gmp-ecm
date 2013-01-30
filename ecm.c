@@ -627,7 +627,7 @@ ecm_stage1 (mpz_t f, mpres_t x, mpres_t A, mpmod_t n, double B1,
 
 #define DEBUG_EC_W 0
 
-/* Input: when Etype == ECM_EC_TYPE_WEIERSTRASS:
+/* Input: when Etype == ECM_EC_TYPE_WEIERSTRASS*:
             (x, y) is initial point
             A is curve parameter in Weierstrass's form:
             Y^2 = X^3 + A*X + B, where B = y^2-(x^3+A*x) is implicit
@@ -957,7 +957,8 @@ print_B1_B2_poly (int verbosity, int method, double B1, double B1done,
 		    outputf (verbosity, ", sigma=%d:%Zd", param, sigma);
 	      }
 	    else{
-		if (Etype == ECM_EC_TYPE_WEIERSTRASS)
+		if (Etype == ECM_EC_TYPE_WEIERSTRASS_AFF
+		    || Etype == ECM_EC_TYPE_WEIERSTRASS_HOM)
 		  outputf (verbosity, ", Weierstrass(A=%Zd,y=%Zd)", sigma, y);
 		else if (Etype == ECM_EC_TYPE_HESSIAN)
 		  outputf (verbosity, ", Hessian(D=%Zd,y=%Zd)", sigma, y);
@@ -1326,7 +1327,8 @@ ecm (mpz_t f, mpz_t x, mpz_t y, int *param, mpz_t sigma, mpz_t n, mpz_t go,
       outputf (OUTPUT_RESVERBOSE, "A=%Zd\n", t);
       mpres_get_z (t, P.x, modulus);
       outputf (OUTPUT_RESVERBOSE, "starting point: x0=%Zd\n", t);
-      if (E->type == ECM_EC_TYPE_WEIERSTRASS)
+      if (E->type == ECM_EC_TYPE_WEIERSTRASS_AFF
+	  || E->type == ECM_EC_TYPE_WEIERSTRASS_HOM)
 	{
           mpres_get_z (t, P.y, modulus);
 	  outputf (OUTPUT_RESVERBOSE, " y0=%Zd\n", t);
@@ -1407,7 +1409,9 @@ ecm (mpz_t f, mpz_t x, mpz_t y, int *param, mpz_t sigma, mpz_t n, mpz_t go,
      before P.x is (perhaps) converted to Weierstrass form */
   
   mpres_get_z (x, P.x, modulus);
-  if (E->type == ECM_EC_TYPE_WEIERSTRASS || E->type == ECM_EC_TYPE_HESSIAN)
+  if (E->type == ECM_EC_TYPE_WEIERSTRASS_AFF || 
+      E->type == ECM_EC_TYPE_WEIERSTRASS_HOM || 
+      E->type == ECM_EC_TYPE_HESSIAN)
     mpres_get_z (y, P.y, modulus);  
 
   if (youpi != ECM_NO_FACTOR_FOUND)
@@ -1420,7 +1424,8 @@ ecm (mpz_t f, mpz_t x, mpz_t y, int *param, mpz_t sigma, mpz_t n, mpz_t go,
       mpz_init (t);
       mpres_get_z (t, P.x, modulus);
       outputf (OUTPUT_RESVERBOSE, "x=%Zd\n", t);
-      if (E->type == ECM_EC_TYPE_WEIERSTRASS)
+      if (E->type == ECM_EC_TYPE_WEIERSTRASS_AFF
+	  || E->type == ECM_EC_TYPE_WEIERSTRASS_HOM)
 	{
 	  mpres_get_z (t, P.y, modulus);
 	  outputf (OUTPUT_RESVERBOSE, "y=%Zd\n", t);
