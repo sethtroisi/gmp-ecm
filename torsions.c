@@ -232,7 +232,7 @@ build_curves_with_torsion_Z5(mpz_t f, mpmod_t n,
 	/* P:=WE![x0, y0, 1]; */
 	/* convert to short Weierstrass form */
 	ec_curve_init(tE[nc], n);
-	tE[nc]->type = ECM_EC_TYPE_WEIERSTRASS;
+	tE[nc]->type = ECM_EC_TYPE_WEIERSTRASS_HOM;
 	ec_point_init(tP[nc], tE[nc], n);
 	kubert_to_weierstrass(tE[nc], NULL, tP[nc], c, c, x0, y0, n->orig_modulus);
 	nc++;
@@ -320,7 +320,7 @@ build_curves_with_torsion_Z7(mpz_t f, mpmod_t n,
     mpres_init(tmp, n);
     mod_from_rat_str(f, "1295/48", n->orig_modulus);
     mpres_set_z(tmp, f, n);
-    ec_curve_init_set(E, tmp, ECM_EC_TYPE_WEIERSTRASS, n);
+    ec_curve_init_set(E, tmp, ECM_EC_TYPE_WEIERSTRASS_HOM, n);
     ec_point_init(P, E, n);
     mod_from_rat_str(f, "2185/12", n->orig_modulus);
     mpres_set_z(P->x, f, n);
@@ -400,7 +400,7 @@ build_curves_with_torsion_Z7(mpz_t f, mpmod_t n,
 	mpz_mod(b, b, n->orig_modulus);
 	/* to short Weierstrass form */
 	ec_curve_init(tE[nc], n);
-	tE[nc]->type = ECM_EC_TYPE_WEIERSTRASS;
+	tE[nc]->type = ECM_EC_TYPE_WEIERSTRASS_HOM;
 	ec_point_init(tP[nc], tE[nc], n);
 	kubert_to_weierstrass(tE[nc], NULL, tP[nc], b, c, kx0, ky0, n->orig_modulus);
 #if DEBUG_TORSION >= 2
@@ -445,7 +445,7 @@ build_curves_with_torsion_Z9(mpz_t fac, mpmod_t n, ec_curve_t *tE,
     mpres_init(tmp, n);
     mpz_init_set_str(f, "-9", 10);
     mpres_set_z(tmp, f, n);
-    ec_curve_init_set(E, tmp, ECM_EC_TYPE_WEIERSTRASS, n);
+    ec_curve_init_set(E, tmp, ECM_EC_TYPE_WEIERSTRASS_HOM, n);
     ec_point_init(P, E, n);
     mpz_set_str(f, "1", 10); 
     mpres_set_z(P->x, f, n);
@@ -534,7 +534,7 @@ build_curves_with_torsion_Z9(mpz_t fac, mpmod_t n, ec_curve_t *tE,
 	mpz_mod(b, b, n->orig_modulus);
 	/* to short Weierstrass form */
 	ec_curve_init(tE[nc], n);
-	tE[nc]->type = ECM_EC_TYPE_WEIERSTRASS;
+	tE[nc]->type = ECM_EC_TYPE_WEIERSTRASS_HOM;
 	ec_point_init(tP[nc], tE[nc], n);
 	kubert_to_weierstrass(tE[nc], NULL, tP[nc], b, c, kx0, ky0, n->orig_modulus);
 	nc++;
@@ -579,7 +579,7 @@ build_curves_with_torsion_Z10(mpz_t fac, mpmod_t n, ec_curve_t *tE,
     mpres_init(tmp, n);
     mod_from_rat_str(f, "2/3", n->orig_modulus);
     mpres_set_z(tmp, f, n);
-    ec_curve_init_set(E, tmp, ECM_EC_TYPE_WEIERSTRASS, n);
+    ec_curve_init_set(E, tmp, ECM_EC_TYPE_WEIERSTRASS_HOM, n);
     ec_point_init(P, E, n);
     mod_from_rat_str(f, "2/3", n->orig_modulus);
     mpres_set_z(P->x, f, n);
@@ -684,7 +684,7 @@ build_curves_with_torsion_Z10(mpz_t fac, mpmod_t n, ec_curve_t *tE,
 	mpz_mod(b, b, n->orig_modulus);
 	/* to short Weierstrass form */
 	ec_curve_init(tE[nc], n);
-	tE[nc]->type = ECM_EC_TYPE_WEIERSTRASS;
+	tE[nc]->type = ECM_EC_TYPE_WEIERSTRASS_HOM;
 	ec_point_init(tP[nc], tE[nc], n);
 	kubert_to_weierstrass(tE[nc], NULL, tP[nc], b, c, kx0, ky0, n->orig_modulus);
 	nc++;
@@ -740,7 +740,7 @@ build_curves_with_torsion_Z2xZ8(mpz_t f, mpmod_t n,
     mpres_init(tmp2, n);
     mpz_set_str(f, "-8", 10); 
     mpres_set_z(tmp2, f, n);
-    ec_curve_init_set(E, tmp2, ECM_EC_TYPE_WEIERSTRASS, n);
+    ec_curve_init_set(E, tmp2, ECM_EC_TYPE_WEIERSTRASS_HOM, n);
     ec_point_init(P, E, n);
     mpz_set_str(f, "12", 10); 
     mpres_set_z(P->x, f, n);
@@ -973,7 +973,7 @@ build_curves_with_torsion_Z3xZ3_DuNa(mpmod_t n, ec_curve_t *tE, ec_point_t *tP,
 	mpz_mod(y0, y0, n->orig_modulus);
 	mpz_set_ui(x0, 0);
 	ec_curve_init(tE[nc], n);
-	tE[nc]->type = ECM_EC_TYPE_WEIERSTRASS;
+	tE[nc]->type = ECM_EC_TYPE_WEIERSTRASS_HOM;
 	ec_point_init(tP[nc], tE[nc], n);
 	W2W(tE[nc], NULL, tP[nc], a2, a4, NULL, x0, y0, n->orig_modulus);
 	nc++;
@@ -1061,7 +1061,7 @@ build_curves_with_torsion_Z3xZ6(mpz_t f, mpmod_t n,
     /* Paux:=Eaux![2, 2, 1]; */
     mpres_init(tmp, n);
     mpres_set_ui(tmp, 0, n);
-    ec_curve_init_set(E, tmp, ECM_EC_TYPE_WEIERSTRASS, n);
+    ec_curve_init_set(E, tmp, ECM_EC_TYPE_WEIERSTRASS_HOM, n);
     ec_point_init(P, E, n);
     mpz_set_str(f, "2", 10);
     mpres_set_z(P->x, f, n);
@@ -1334,7 +1334,7 @@ build_curves_with_torsion_Z5xZ5(mpmod_t n, ec_curve_t *tE,
 	mpz_set_ui(t, u);
 	mpz_powm_ui(t, t, 5, n->orig_modulus);
 	ec_curve_init(tE[nc], n);
-	tE[nc]->type = ECM_EC_TYPE_WEIERSTRASS;
+	tE[nc]->type = ECM_EC_TYPE_WEIERSTRASS_HOM;
 	/* A = -(t^4-228*t^3+494*t^2+228*t+1)/48; */
 	mpz_eval_poly(num, polyA, t, n->orig_modulus);
 	mpz_sub_si(den, n->orig_modulus, 48);
@@ -1409,7 +1409,7 @@ build_curves_with_torsion_Z2xZ10(mpz_t f, mpmod_t n, ec_curve_t *tE,
 	gmp_printf("c:=%Zd;\n", c);
 #endif	
 	ec_curve_init(tE[nc], n);
-	tE[nc]->type = ECM_EC_TYPE_WEIERSTRASS;
+	tE[nc]->type = ECM_EC_TYPE_WEIERSTRASS_HOM;
 	ec_point_init(tP[nc], tE[nc], n);
 	/* transform with no input point */
 	kubert_to_weierstrass(tE[nc],B,NULL,b,c,NULL,NULL,n->orig_modulus);
@@ -1483,7 +1483,7 @@ build_curves_with_torsion_Z2xZ12(mpz_t f, mpmod_t n, ec_curve_t *tE,
 	gmp_printf("c:=%Zd;\n", c);
 #endif	
 	ec_curve_init(tE[nc], n);
-	tE[nc]->type = ECM_EC_TYPE_WEIERSTRASS;
+	tE[nc]->type = ECM_EC_TYPE_WEIERSTRASS_HOM;
 	ec_point_init(tP[nc], tE[nc], n);
 	/* transform with no input point */
 	kubert_to_weierstrass(tE[nc],B,NULL,b,c,NULL,NULL,n->orig_modulus);

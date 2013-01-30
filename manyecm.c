@@ -142,7 +142,8 @@ dump_curves(ec_curve_t *tE, ec_point_t *tP, int nE, mpz_t f)
 	    mpmod_clear(fmod);
 	    mpz_clear(tmp);
 	}
-	else if(tE[i]->type == ECM_EC_TYPE_WEIERSTRASS){
+	else if(tE[i]->type == ECM_EC_TYPE_WEIERSTRASS_AFF
+		|| tE[i]->type == ECM_EC_TYPE_WEIERSTRASS_HOM){
 	    gmp_printf("P[%d]:=[%Zd, %Zd, %Zd];\n", i+1, 
 		       tP[i]->x, tP[i]->y, tP[i]->z); 
 	    gmp_printf("A[%d]:=%Zd;\n", i+1, tE[i]->A);
@@ -591,7 +592,7 @@ read_curves_from_file(int *nE, ec_curve_t *tE, ec_point_t *tP,
 	if(Etype == 'W'){
 	    if(fscanf(ifile, "%s %s %s", bufA, bufx, bufy) == EOF)
 		break;
-	    tE[*nE]->type = ECM_EC_TYPE_WEIERSTRASS;
+	    tE[*nE]->type = ECM_EC_TYPE_WEIERSTRASS_HOM;
 	}
 	else if(Etype == 'H'){
 	    if(fscanf(ifile, "%s %s %s", bufA, bufx, bufy) == EOF)

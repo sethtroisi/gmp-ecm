@@ -74,7 +74,7 @@ build_curves_with_CM(mpz_t f, int *nE, ec_curve_t *tE, ec_point_t *tP,
 		ec_curve_init(tE[i], n);
 		ec_point_init(tP[i], tE[i], n);
 	    }
-	    tE[i]->type = ECM_EC_TYPE_WEIERSTRASS;
+	    tE[i]->type = ECM_EC_TYPE_WEIERSTRASS_HOM;
 	    mpz_set_ui(tE[i]->A, 0);
 	    tE[i]->disc = -3;
 	}
@@ -123,7 +123,7 @@ build_curves_with_CM(mpz_t f, int *nE, ec_curve_t *tE, ec_point_t *tP,
 		ec_curve_init(tE[i], n);
 		ec_point_init(tP[i], tE[i], n);
 	    }
-	    tE[i]->type = ECM_EC_TYPE_WEIERSTRASS;
+	    tE[i]->type = ECM_EC_TYPE_WEIERSTRASS_HOM;
 	    tE[i]->disc = -4;
 	}
         mpz_set_ui(tE[0]->A, 9);
@@ -164,7 +164,7 @@ build_curves_with_CM(mpz_t f, int *nE, ec_curve_t *tE, ec_point_t *tP,
 	/* E = y^2 = x^3 - 2222640*x - 1568294784
 	           = x^3 - 5*7*(2^2*3^2*7)^2*x - 2*7^2*(2^2*3^2*7)^3
 	   P = (2052 : 50112 : 1) */
-	tE[0]->type = ECM_EC_TYPE_WEIERSTRASS;
+	tE[0]->type = ECM_EC_TYPE_WEIERSTRASS_HOM;
 	mpz_set_si(tE[0]->A, -2222640);
         mpz_set_si(tP[0]->x, 2052);
         mpz_set_si(tP[0]->y, 50112);
@@ -175,7 +175,7 @@ build_curves_with_CM(mpz_t f, int *nE, ec_curve_t *tE, ec_point_t *tP,
 	   c = 1 => rank = 1, generator is (-1 : -1 : 1)
 	   alt.: [-2*3*5*cc^2, 2^3*7*cc^3], here with cc=12
 	*/
-	tE[0]->type = ECM_EC_TYPE_WEIERSTRASS;
+	tE[0]->type = ECM_EC_TYPE_WEIERSTRASS_HOM;
 	mpz_set_si(tE[0]->A, -4320);
         mpz_set_si(tP[0]->x, 12);
         mpz_set_si(tP[0]->y, -216);
@@ -184,7 +184,7 @@ build_curves_with_CM(mpz_t f, int *nE, ec_curve_t *tE, ec_point_t *tP,
     else if(disc == -11){
 	/*     E:=EllipticCurve([0, 0, 0, -2^5*3*11, 2^4*7*11^2]);
 	       [ (33 : 121 : 1) ] */
-	tE[0]->type = ECM_EC_TYPE_WEIERSTRASS;
+	tE[0]->type = ECM_EC_TYPE_WEIERSTRASS_HOM;
 	mpz_set_si(tE[0]->A, -1056);
 	mpz_set_si(tP[0]->x, 33);
         mpz_set_si(tP[0]->y, 121);
@@ -194,7 +194,7 @@ build_curves_with_CM(mpz_t f, int *nE, ec_curve_t *tE, ec_point_t *tP,
     else if(disc == -15){
 	/* it must be that sqroots[0] contains sqrt(5) mod N */
 	/* j = -(191025+85995*sqrt(5))/2 */
-	tE[0]->type = ECM_EC_TYPE_WEIERSTRASS;
+	tE[0]->type = ECM_EC_TYPE_WEIERSTRASS_HOM;
 	mpz_set(tE[0]->sq[0], sqroots[0]);
 	mpz_init_set_si(j, 85995);
 	mpz_mul(j, j, sqroots[0]);
@@ -541,7 +541,7 @@ int ecm_rootsF_CM(mpz_t f, listz_t F, unsigned long dF, curve *C,
 
     printf("# Entering ecm_rootsF_CM with disc=%d\n", C->disc);
     ec_curve_init(E, modulus);
-    E->type = ECM_EC_TYPE_WEIERSTRASS;
+    E->type = ECM_EC_TYPE_WEIERSTRASS_HOM;
     mpres_set(E->A, C->A, modulus);
     ec_point_init(P, E, modulus);
     mpres_set(P->x, C->x, modulus);
@@ -609,7 +609,8 @@ ecm_rootsG_init_CM (mpz_t f, curve *X, root_params_t *root_params,
     mpres_set(P->y, X->y, modulus);
     mpres_set_ui(P->z, 1, modulus);
 
-    /* HERE: we should be using affine Weierstrass stuff */
+    /* use affine Weierstrass */
+    E->type = ECM_EC_TYPE_WEIERSTRASS_AFF;
 
     /* fd[0] <- [umin]*P */
     mpz_init_set_ui(tmp, umin);
