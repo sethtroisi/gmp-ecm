@@ -539,7 +539,7 @@ int ecm_rootsF_CM(mpz_t f, listz_t F, unsigned long dF, curve *C,
     ec_curve_t E;
     ec_point_t P, omegaP;
 
-    printf("# Entering ecm_rootsF_CM with disc=%d\n", C->disc);
+    printf("# Entering ecm_rootsF_CM with disc=%d dF=%ld\n", C->disc, dF);
     ec_curve_init(E, modulus);
     E->type = ECM_EC_TYPE_WEIERSTRASS_HOM;
     mpres_set(E->A, C->A, modulus);
@@ -570,11 +570,10 @@ ecm_rootsG_init_CM (mpz_t f, curve *X, root_params_t *root_params,
     int k;
     
     state = (ecm_roots_state_t *) malloc (sizeof (ecm_roots_state_t));
-    if (state == NULL)
-	{
-	    mpz_set_si (f, -1);
-	    return NULL;
-	}
+    if(state == NULL){
+	mpz_set_si (f, -1);
+	return NULL;
+    }
     /* really needed for CM? */
     params = &(state->params);
     /* If S < 0, use degree |S| Dickson poly, otherwise use x^S */
@@ -583,22 +582,21 @@ ecm_rootsG_init_CM (mpz_t f, curve *X, root_params_t *root_params,
     state->X = X;
 
     state->fd = (point *) malloc (2 * sizeof (point));
-    if (state->fd == NULL)
-      {
+    if(state->fd == NULL){
 	free (state);
 	mpz_set_si (f, -1);
 	return NULL;
-      }
+    }
     for(k = 0; k < 2; k++){
 	mpres_init (state->fd[k].x, modulus);
 	mpres_init (state->fd[k].y, modulus);
     }
-
+    
     if(X->disc == -4){
 	umin = 1;
 	du = 2;
     }
-
+    
     /* conversions */
     ec_curve_init(E, modulus);
     mpres_set(E->A, X->A, modulus);
