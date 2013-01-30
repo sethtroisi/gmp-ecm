@@ -609,7 +609,7 @@ ecm_rootsG_init_CM (mpz_t f, curve *X, root_params_t *root_params,
     mpres_set(P->y, X->y, modulus);
     mpres_set_ui(P->z, 1, modulus);
 
-    /* use affine Weierstrass */
+    /* use affine Weierstrass for these two computations */
     E->type = ECM_EC_TYPE_WEIERSTRASS_AFF;
 
     /* fd[0] <- [umin]*P */
@@ -639,4 +639,44 @@ int
 ecm_rootsG_CM (mpz_t f, listz_t G, unsigned long dF, ecm_roots_state_t *state, 
 	       mpmod_t modulus)
 {
+    ec_curve_t E;
+    ec_point_t uP, duP;
+    unsigned long i;
+    int ret = ECM_NO_FACTOR_FOUND;
+
+    /* conversions */
+    ec_curve_init(E, modulus);
+    mpres_set(E->A, state->X->A, modulus);
+    ec_point_init(uP, E, modulus);
+    ec_point_init(duP, E, modulus);
+
+    mpres_set(uP->x, state->fd[0].x, modulus);
+    mpres_set(uP->y, state->fd[0].y, modulus);
+    mpres_set_ui(uP->z, 1, modulus);
+
+    mpres_set(duP->x, state->fd[1].x, modulus);
+    mpres_set(duP->y, state->fd[1].y, modulus);
+    mpres_set_ui(duP->z, 1, modulus);
+
+    /* use affine Weierstrass for these two computations */
+    E->type = ECM_EC_TYPE_WEIERSTRASS_AFF;
+
+    for(i = 0; i < dF; i++){
+	mpres_get_z(G[i], uP->x, modulus);
+	if(ec_point_add(uP, uP, duP, E, modulus) == 0){
+	    printf("# factor found for i=%ld\n", i);
+	    mpz_set(f, uP->x);
+	    ret = ECM_FACTOR_FOUND_STEP2;
+	    break;
+	}
+    }
+
+    /* put back last point */
+    mpres_set(state->fd[0].x, uP->x, modulus);
+    mpres_set(state->fd[0].y, uP->y, modulus);
+
+    ec_point_clear(uP, E, modulus);
+    ec_point_clear(duP, E, modulus);
+    ec_curve_clear(E, modulus);
+    return ret;
 }

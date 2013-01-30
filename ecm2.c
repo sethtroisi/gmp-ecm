@@ -860,7 +860,7 @@ ecm_rootsG (mpz_t f, listz_t G, unsigned long dF, ecm_roots_state_t *state,
       params->next ++;
       params->rsieve ++;
     }
-  
+
   outputf (OUTPUT_VERBOSE, "Computing roots of G took %ldms",
 	   elltime (st, cputime ()));
   outputf (OUTPUT_DEVVERBOSE, ", %lu muls and %lu extgcds", muls, gcds);

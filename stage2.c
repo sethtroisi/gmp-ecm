@@ -639,8 +639,12 @@ stage2 (mpz_t f, void *X, mpmod_t modulus, unsigned long dF, unsigned long k,
   for (i = 0; i < k; i++)
     {
       /* needs dF+1 cells in T+dF */
-      youpi = ecm_rootsG (f, G, dF, (ecm_roots_state_t *) rootsG_state, 
-                          modulus);
+      if(disc == 0)
+	  youpi = ecm_rootsG (f, G, dF, (ecm_roots_state_t *) rootsG_state, 
+			      modulus);
+      else
+	  youpi = ecm_rootsG_CM (f, G, dF, (ecm_roots_state_t *) rootsG_state, 
+			      modulus);
 
       if (test_verbose (OUTPUT_TRACE))
 	{
