@@ -1284,9 +1284,10 @@ ecm (mpz_t f, mpz_t x, mpz_t y, int *param, mpz_t sigma, mpz_t n, mpz_t go,
     }
 
   /* Print B1, B2, polynomial and sigma */
-  print_B1_B2_poly (OUTPUT_NORMAL, ECM_ECM, B1, *B1done, B2min_parm, B2min, 
-		    B2, root_params.S, sigma, sigma_is_A, E->type,
-		    y, *param, 0);
+  if(E->disc == 0)
+      print_B1_B2_poly (OUTPUT_NORMAL, ECM_ECM, B1, *B1done, B2min_parm, B2min, 
+			B2, root_params.S, sigma, sigma_is_A, E->type,
+			y, *param, 0);
 
 #if 0
   outputf (OUTPUT_VERBOSE, "b2=%1.0f, dF=%lu, k=%lu, d=%lu, d2=%lu, i0=%Zd\n", 
