@@ -1006,7 +1006,7 @@ process_special_blend(mpz_t tf[], int *nf, mpz_t N, int b, int n, int discref,
     if(ret != ECM_NO_FACTOR_FOUND)
 	return ret;
     if(disc1 == discref){
-	printf("# Let us use disc=%d\n", disc1);
+	printf("# Let us use disc=%d with B1=%1.0f\n", disc1, B1);
 	ret = process_many_curves_loop(tf, nf, N, B1, params,
 				       NULL, NULL, 0, 0, 1,
 				       disc1, sqroots,
