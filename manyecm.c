@@ -1206,7 +1206,8 @@ main(int argc, char *argv[])
 #if DEBUG_MANY_EC >= 2
     params->verbose = 2;
 #else
-    params->verbose = OUTPUT_DEVVERBOSE;
+    /*    params->verbose = OUTPUT_DEVVERBOSE;*/
+    params->verbose = OUTPUT_NORMAL;
 #endif
 #if 1
     compute_s_4_add_sub(params->batch_s, (unsigned long)B1, disc);
