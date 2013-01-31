@@ -790,9 +790,11 @@ ecm_rootsG_clear (ecm_roots_state_t *state, ATTRIBUTE_UNUSED mpmod_t modulus)
     }
   free (state->fd);
   
-  for (k = 0; k < state->size_T; k++)
-    mpres_clear (state->T[k], modulus);
-  free (state->T);
+  if(state->size_T != 0){
+      for (k = 0; k < state->size_T; k++)
+	  mpres_clear (state->T[k], modulus);
+      free (state->T);
+  }
   
   free (state);
 }

@@ -361,8 +361,8 @@ stage2 (mpz_t f, void *X, mpmod_t modulus, unsigned long dF, unsigned long k,
     }
 
   if(disc != 0){
-      /* CM case, we override dF */
-      dF = compute_dF_CM(B2, disc);
+      /* CM case, we override dF and k */
+      set_stage2_params_CM(&dF, &k, B2, disc);
       root_params->S = 1; /* use x^S = x in rootsG! */
   }
 

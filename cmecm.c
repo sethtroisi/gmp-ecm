@@ -18,6 +18,8 @@
 #include "torsions.h"
 #include "cmecm.h"
 
+#define DEBUG_CMECM 0
+
 static int
 adjust_CM(mpz_t f, ec_curve_t E, ec_point_t P, mpz_t N, mpz_t j)
 {
@@ -407,8 +409,10 @@ int stage2_CM(mpz_t f, ec_curve_t E, ec_point_t P, mpmod_t modulus,
 	dv = 1;
 
 	/* Q = [omega](P) = [omega*P.x, P.y, 1] */
+#if DEBUG_CMECM >= 0
 	gmp_printf("N:=%Zd;\n", modulus->orig_modulus);
 	printf("zeta3:=");print_mpz_from_mpres(E->sq[0],modulus);printf(";\n");
+#endif
 	ec_point_init(Q, E, modulus);
 	mpres_mul(Q->x, P->x, omega, modulus);
 	mpres_set(Q->y, P->y, modulus);
@@ -430,8 +434,6 @@ int stage2_CM(mpz_t f, ec_curve_t E, ec_point_t P, mpmod_t modulus,
 	dv = 2;
 
 	/* Q = [zeta4](P) = [-P.x, zeta4*P.y, 1] */
-	gmp_printf("N:=%Zd;\n", modulus->orig_modulus);
-	printf("zeta4:=");print_mpz_from_mpres(E->sq[0],modulus);printf(";\n");
 	ec_point_init(Q, E, modulus);
 	mpres_neg(Q->x, P->x, modulus);
 	mpres_mul(Q->y, P->y, E->sq[0], modulus);
@@ -451,11 +453,11 @@ int stage2_CM(mpz_t f, ec_curve_t E, ec_point_t P, mpmod_t modulus,
 /* u^2+d*v^2 <= cof*B2 => number of v's is <= number of u's. 
    As a matter of fact, dF should be a power of 2.
 */
-unsigned long
-compute_dF_CM(mpz_t B2, int disc)
+void
+set_stage2_params_CM(unsigned long *pdF, unsigned long *pk, mpz_t B2, int disc)
 {
     mpz_t tmp;
-    unsigned long vmax, dF = 0;
+    unsigned long umax, vmax, dF = 0, k = 0;
 
     if(disc == -4){
 	/* u^2 + v^2 <= B2, u odd, v even */
@@ -470,9 +472,19 @@ compute_dF_CM(mpz_t B2, int disc)
 	vmax >>= 1;
 	/* find smallest power of 2 >= vmax */
 	for(dF = 1; dF < vmax; dF <<= 1);
+
+	mpz_init_set(tmp, B2);
+	mpz_sub_si(tmp, tmp, 4);
+	mpz_sqrt(tmp, tmp);
+	umax = mpz_get_ui(tmp);
+	if(umax % 2 == 0)
+	    umax--;
+	for(k = 1; k*dF < umax; k++);
 	mpz_clear(tmp);
     }
-    return dF;
+    *pdF = dF;
+    *pk = k;
+    printf("# Overridden params: dF=%ld, k=%ld\n", dF, k);
 }
 
 /* F[i] <- ([kmin+i*dk]P)_x for 0 <= i < dF. */
@@ -504,6 +516,11 @@ int all_multiples(mpz_t f, listz_t F, unsigned long dF,
     }
     for(k = kmin, ik = 0; ik < dF; k += dk, ik++){
 	/* F[ik] <= kP_x */
+#if 0
+	if(k == 4570){
+	    printf("[4570]*[i]*P="); ec_point_print(kP, E, modulus); printf("\n");
+	}
+#endif
 	mpres_get_z(F[ik], kP->x, modulus);
 	if(ec_point_add(kP, kP, dkP, E, modulus) == 0){
 	    printf("# factor found when adding dkP\n");
@@ -524,8 +541,10 @@ apply_CM(ec_point_t omegaP, int disc, mpz_t sq[], ec_point_t P, mpmod_t modulus)
 {
     if(disc == -4){
 	/* Q = [zeta4](P) = [-P.x, zeta4*P.y, 1] */
+#if DEBUG_CMECM >= 1
 	gmp_printf("N:=%Zd;\n", modulus->orig_modulus);
 	printf("zeta4:=");print_mpz_from_mpres(sq[0],modulus);printf(";\n");
+#endif
 	mpres_neg(omegaP->x, P->x, modulus);
 	mpres_mul(omegaP->y, P->y, sq[0], modulus);
 	mpres_set_ui(omegaP->z, 1, modulus);
@@ -541,7 +560,7 @@ int ecm_rootsF_CM(mpz_t f, listz_t F, unsigned long dF, curve *C,
 
     printf("# Entering ecm_rootsF_CM with disc=%d dF=%ld\n", C->disc, dF);
     ec_curve_init(E, modulus);
-    E->type = ECM_EC_TYPE_WEIERSTRASS_HOM;
+    E->type = ECM_EC_TYPE_WEIERSTRASS_AFF;
     mpres_set(E->A, C->A, modulus);
     ec_point_init(P, E, modulus);
     mpres_set(P->x, C->x, modulus);
@@ -565,9 +584,8 @@ ecm_rootsG_init_CM (mpz_t f, curve *X, root_params_t *root_params,
     progression_params_t *params; /* for less typing */
     ec_curve_t E;
     ec_point_t P, duP;
-    unsigned long umin, du;
+    unsigned long umin, du, k;
     mpz_t tmp;
-    int k;
     
     state = (ecm_roots_state_t *) malloc (sizeof (ecm_roots_state_t));
     if(state == NULL){
@@ -581,13 +599,16 @@ ecm_rootsG_init_CM (mpz_t f, curve *X, root_params_t *root_params,
     params->S = abs (root_params->S);
     state->X = X;
 
-    state->fd = (point *) malloc (2 * sizeof (point));
+    state->T = NULL;
+    state->size_T = 0;
+    state->params.size_fd = 2;
+    state->fd = (point *) malloc (state->params.size_fd * sizeof (point));
     if(state->fd == NULL){
 	free (state);
 	mpz_set_si (f, -1);
 	return NULL;
     }
-    for(k = 0; k < 2; k++){
+    for(k = 0; k < state->params.size_fd; k++){
 	mpres_init (state->fd[k].x, modulus);
 	mpres_init (state->fd[k].y, modulus);
     }
