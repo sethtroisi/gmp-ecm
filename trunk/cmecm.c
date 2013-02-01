@@ -581,7 +581,7 @@ ecm_roots_state_t *
 ecm_rootsG_init_CM (mpz_t f, curve *X, root_params_t *root_params, 
 		    unsigned long dF, unsigned long blocks, mpmod_t modulus)
 {
-    ecm_roots_state_t *state = NULL;
+    ecm_roots_state_t *state;
     progression_params_t *params; /* for less typing */
     ec_curve_t E;
     ec_point_t P, duP;
