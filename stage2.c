@@ -418,7 +418,7 @@ stage2 (mpz_t f, void *X, mpmod_t modulus, unsigned long dF, unsigned long k,
   H = T;
 
   /* needs dF+1 cells in T */
-  youpi = ecm_rootsF (f, F, root_params, dF, (curve*) X, modulus, B1, B2);
+  youpi = ecm_rootsF (f, F, root_params, dF, (curve*) X, modulus);
 
   if (youpi != ECM_NO_FACTOR_FOUND)
     {

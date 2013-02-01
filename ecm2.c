@@ -439,7 +439,7 @@ addWnm (mpz_t p, point *X, curve *S, mpmod_t modulus, unsigned int m,
 
 int
 ecm_rootsF (mpz_t f, listz_t F, root_params_t *root_params, 
-            unsigned long dF, curve *s, mpmod_t modulus, double B1, mpz_t B2)
+            unsigned long dF, curve *s, mpmod_t modulus)
 {
   unsigned long i;
   unsigned long muls = 0, gcds = 0;
