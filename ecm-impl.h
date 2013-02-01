@@ -364,7 +364,7 @@ int montgomery_to_weierstrass (mpz_t, mpres_t, mpres_t, mpres_t, mpmod_t);
 /* ecm2.c */
 #define ecm_rootsF __ECM(ecm_rootsF)
 int     ecm_rootsF       (mpz_t, listz_t, root_params_t *, unsigned long, 
-                          curve *, mpmod_t, double, mpz_t);
+                          curve *, mpmod_t);
 #define ecm_rootsG_init __ECM(ecm_rootsG_init)
 ecm_roots_state_t* ecm_rootsG_init (mpz_t, curve *, root_params_t *, 
                                     unsigned long, unsigned long, mpmod_t);
