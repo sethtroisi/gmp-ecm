@@ -60,7 +60,7 @@ build_curves_with_CM(mpz_t f, int *nE, ec_curve_t *tE, ec_point_t *tP,
     long x0;
     int i, ret = ECM_NO_FACTOR_FOUND, imax;
 
-    ec_curve_init(tE[0], n);
+    ec_curve_init(tE[0], ECM_EC_TYPE_WEIERSTRASS_AFF, n);
     ec_point_init(tP[0], tE[0], n);
     tE[0]->disc = disc;
     mpz_init_set_ui(tE[0]->sq[0], 1);
@@ -72,11 +72,12 @@ build_curves_with_CM(mpz_t f, int *nE, ec_curve_t *tE, ec_point_t *tP,
 	imax = (sqroots == NULL ? 1 : 6);
 
 	for(i = 0; i < imax; i++){
-	    if(i > 0){
-		ec_curve_init(tE[i], n);
+	    if(i == 0)
+		tE[i]->type = ECM_EC_TYPE_WEIERSTRASS_HOM;
+	    else{
+		ec_curve_init(tE[i], ECM_EC_TYPE_WEIERSTRASS_HOM, n);
 		ec_point_init(tP[i], tE[i], n);
 	    }
-	    tE[i]->type = ECM_EC_TYPE_WEIERSTRASS_HOM;
 	    mpz_set_ui(tE[i]->A, 0);
 	    tE[i]->disc = -3;
 	}
@@ -121,11 +122,12 @@ build_curves_with_CM(mpz_t f, int *nE, ec_curve_t *tE, ec_point_t *tP,
 	imax = (sqroots == NULL ? 1 : 4);
 
 	for(i = 0; i < imax; i++){
-	    if(i > 0){
-		ec_curve_init(tE[i], n);
+	    if(i == 0)
+		tE[i]->type = ECM_EC_TYPE_WEIERSTRASS_HOM;
+	    else{
+		ec_curve_init(tE[i], ECM_EC_TYPE_WEIERSTRASS_HOM, n);
 		ec_point_init(tP[i], tE[i], n);
 	    }
-	    tE[i]->type = ECM_EC_TYPE_WEIERSTRASS_HOM;
 	    tE[i]->disc = -4;
 	}
         mpz_set_ui(tE[0]->A, 9);
@@ -559,8 +561,7 @@ int ecm_rootsF_CM(mpz_t f, listz_t F, unsigned long dF, curve *C,
     ec_point_t P, omegaP;
 
     printf("# Entering ecm_rootsF_CM with disc=%d dF=%ld\n", C->disc, dF);
-    ec_curve_init(E, modulus);
-    E->type = ECM_EC_TYPE_WEIERSTRASS_AFF;
+    ec_curve_init(E, ECM_EC_TYPE_WEIERSTRASS_AFF, modulus);
     mpres_set(E->A, C->A, modulus);
     ec_point_init(P, E, modulus);
     mpres_set(P->x, C->x, modulus);
@@ -619,7 +620,7 @@ ecm_rootsG_init_CM (mpz_t f, curve *X, root_params_t *root_params,
     }
     
     /* conversions */
-    ec_curve_init(E, modulus);
+    ec_curve_init(E, ECM_EC_TYPE_WEIERSTRASS_AFF, modulus);
     mpres_set(E->A, X->A, modulus);
     ec_point_init(P, E, modulus);
     ec_point_init(duP, E, modulus);
@@ -627,9 +628,6 @@ ecm_rootsG_init_CM (mpz_t f, curve *X, root_params_t *root_params,
     mpres_set(P->x, X->x, modulus);
     mpres_set(P->y, X->y, modulus);
     mpres_set_ui(P->z, 1, modulus);
-
-    /* use affine Weierstrass for these two computations */
-    E->type = ECM_EC_TYPE_WEIERSTRASS_AFF;
 
     /* fd[0] <- [umin]*P */
     mpz_init_set_ui(tmp, umin);
@@ -664,7 +662,7 @@ ecm_rootsG_CM (mpz_t f, listz_t G, unsigned long dF, ecm_roots_state_t *state,
     int ret = ECM_NO_FACTOR_FOUND;
 
     /* conversions */
-    ec_curve_init(E, modulus);
+    ec_curve_init(E, ECM_EC_TYPE_WEIERSTRASS_AFF, modulus);
     mpres_set(E->A, state->X->A, modulus);
     ec_point_init(uP, E, modulus);
     ec_point_init(duP, E, modulus);
@@ -676,9 +674,6 @@ ecm_rootsG_CM (mpz_t f, listz_t G, unsigned long dF, ecm_roots_state_t *state,
     mpres_set(duP->x, state->fd[1].x, modulus);
     mpres_set(duP->y, state->fd[1].y, modulus);
     mpres_set_ui(duP->z, 1, modulus);
-
-    /* use affine Weierstrass for these two computations */
-    E->type = ECM_EC_TYPE_WEIERSTRASS_AFF;
 
     for(i = 0; i < dF; i++){
 	mpres_get_z(G[i], uP->x, modulus);
