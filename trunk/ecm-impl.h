@@ -292,14 +292,6 @@ typedef struct
 } __mpmod_struct;
 typedef __mpmod_struct mpmod_t[1];
 
-void ec_point_init(ec_point_t P, ec_curve_t E, mpmod_t n);
-void ec_point_clear(ec_point_t P, ec_curve_t E, mpmod_t n);
-void ec_point_set(ec_point_t Q, ec_point_t P, ec_curve_t E, mpmod_t n);
-int ec_point_mul(ec_point_t Q, mpz_t d, ec_point_t P, ec_curve_t E, mpmod_t n);
-void ec_curve_init(ec_curve_t E, mpmod_t n);
-void ec_curve_init_set(ec_curve_t E, mpres_t A, int type, mpmod_t n);
-void ec_curve_clear(ec_curve_t E, mpmod_t n);
-
 #if defined (__cplusplus)
 extern "C" {
 #endif  

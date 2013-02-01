@@ -588,7 +588,7 @@ read_curves_from_file(int *nE, ec_curve_t *tE, ec_point_t *tP,
 	}
 	else
 	    Etype = bufA[0];
-	ec_curve_init(tE[*nE], n);
+	ec_curve_init(tE[*nE], ECM_EC_TYPE_WEIERSTRASS_AFF, n);
 	if(Etype == 'W'){
 	    if(fscanf(ifile, "%s %s %s", bufA, bufx, bufy) == EOF)
 		break;

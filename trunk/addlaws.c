@@ -1244,7 +1244,7 @@ mult_by_3(mpz_t f, mpres_t x, mpres_t y, mpres_t A, mpmod_t n)
     int ret = ECM_NO_FACTOR_FOUND;
     mpz_t e;
 
-    ec_curve_init_set(E, A, ECM_EC_TYPE_WEIERSTRASS_AFF, n);
+    ec_curve_init_set(E, ECM_EC_TYPE_WEIERSTRASS_AFF, A, n);
     ec_point_init(P, E, n);
     mpres_set(P->x, x, n);
     mpres_set(P->y, y, n);
@@ -1310,29 +1310,27 @@ ec_point_set(ec_point_t Q, ec_point_t P,
 }
 
 void
-ec_curve_init(ec_curve_t E, mpmod_t n)
+ec_curve_init(ec_curve_t E, int etype, mpmod_t n)
 {
     int i;
 
-    E->type = ECM_EC_TYPE_MONTGOMERY; /* default */
+    E->type = etype;
     mpres_init(E->A, n);
     for(i = 0; i < EC_W_NBUFS; i++)
 	mpres_init (E->buf[i], n);
 }
 
 void
-ec_curve_init_set(ec_curve_t E, mpres_t A, int type, mpmod_t n)
+ec_curve_init_set(ec_curve_t E, int etype, mpres_t A, mpmod_t n)
 {
-    ec_curve_init(E, n);
-    E->type = type;
+    ec_curve_init(E, etype, n);
     mpres_set(E->A, A, n);
 }
 
 void
 ec_curve_set_z(ec_curve_t E, ec_curve_t zE, mpmod_t n)
 {
-    ec_curve_init(E, n);
-    E->type = zE->type;
+    ec_curve_init(E, zE->type, n);
     mpres_set_z(E->A, zE->A, n);
     E->disc = zE->disc;
     if(E->disc != 0){
