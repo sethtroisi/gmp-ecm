@@ -644,7 +644,7 @@ stage2 (mpz_t f, void *X, mpmod_t modulus, unsigned long dF, unsigned long k,
 			      modulus);
       else
 	  youpi = ecm_rootsG_CM (f, G, dF, (ecm_roots_state_t *) rootsG_state, 
-			      modulus);
+				 modulus);
 
       if (test_verbose (OUTPUT_TRACE))
 	{

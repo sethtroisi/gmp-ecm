@@ -462,10 +462,12 @@ set_stage2_params_CM(unsigned long *pdF, unsigned long *pk, mpz_t B2, int disc)
     unsigned long umax, vmax, dF = 0, k = 0;
 
     if(disc == -4){
-	/* u^2 + v^2 <= B2, u odd, v even */
+	/* tmp <- floor(sqrt(B2-1)) */
 	mpz_init_set(tmp, B2);
 	mpz_sub_si(tmp, tmp, 1);
 	mpz_sqrt(tmp, tmp);
+#if CMECM_D_4 == 0 /* standard version */
+	/* u^2 + v^2 <= B2, u odd, v even */
 	vmax = mpz_get_ui(tmp);
 	/* largest v must be even */
 	if(vmax % 2 == 1)
@@ -482,6 +484,13 @@ set_stage2_params_CM(unsigned long *pdF, unsigned long *pk, mpz_t B2, int disc)
 	if(umax % 2 == 0)
 	    umax--;
 	for(k = 1; k*dF < umax; k++);
+#else /* faster */
+	/* u^2 + v^2 <= B2, u > v > 0 */
+	umax = mpz_get_ui(tmp);
+	/* find smallest power of 2 >= umax */
+	for(dF = 1; dF < umax; dF <<= 1);
+	k = 1;
+#endif
 	mpz_clear(tmp);
     }
     *pdF = dF;
@@ -569,7 +578,14 @@ int ecm_rootsF_CM(mpz_t f, listz_t F, unsigned long dF, curve *C,
     ec_point_init(omegaP, E, modulus);
     if(C->disc == -4){
 	apply_CM(omegaP, C->disc, C->sq, P, modulus);
+#if CMECM_D_4 == 0
 	ret = all_multiples(f, F, dF, E, omegaP, modulus, 2, 2);
+#else /* TODO: replace omegaP with P... 
+	 in the pedestrian version, one evaluates [v][zeta4]P in F
+	 and [u]P in G, whereas we can share everything...!
+       */
+	ret = all_multiples(f, F, dF, E, omegaP, modulus, 1, 1);
+#endif
     }
     ec_point_clear(omegaP, E, modulus);
     ec_point_clear(P, E, modulus);
@@ -615,8 +631,14 @@ ecm_rootsG_init_CM (mpz_t f, curve *X, root_params_t *root_params,
     }
     
     if(X->disc == -4){
+#if CMECM_D_4 == 0
 	umin = 1;
 	du = 2;
+#else
+	printf("# Case D=-4 suboptimal, man!\n");
+	umin = 1;
+	du = 1;
+#endif
     }
     
     /* conversions */
