@@ -635,9 +635,14 @@ ecm_rootsG_init_CM (mpz_t f, curve *X, root_params_t *root_params,
 	umin = 1;
 	du = 2;
 #else
+# if 0
 	printf("# Case D=-4 suboptimal, man!\n");
 	umin = 1;
 	du = 1;
+# else
+	printf("# Skipping stuff in rootsG_init_CM\n");
+	return state;
+# endif
 #endif
     }
     
