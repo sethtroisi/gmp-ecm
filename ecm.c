@@ -1209,9 +1209,12 @@ ecm (mpz_t f, mpz_t x, mpz_t y, int *param, mpz_t sigma, mpz_t n, mpz_t go,
   is_E_CM = (zE->disc != 0) && (mpz_cmp_ui(zE->sq[0], 1) != 0);
   ec_curve_set_z(E, zE, modulus);
 
-  youpi = set_stage_2_params (B2, B2_parm, B2min, B2min_parm, &root_params, 
-                              B1, B2scale, &k, S, use_ntt, &po2, &dF, 
-                              TreeFilename, maxmem, Fermat, modulus);
+  youpi = set_stage_2_params (B2, B2_parm, B2min, B2min_parm, 
+			      &root_params, B1, B2scale, &k, S, use_ntt,
+			      &po2, &dF, TreeFilename, maxmem, Fermat,modulus);
+  if(is_E_CM != 0 && !ECM_IS_DEFAULT_B2(B2_parm))
+      mpz_init_set(B2, B2_parm);
+
   if (youpi == ECM_ERROR)
       goto end_of_ecm;
   
@@ -1507,7 +1510,7 @@ ecm (mpz_t f, mpz_t x, mpz_t y, int *param, mpz_t sigma, mpz_t n, mpz_t go,
   
   if (youpi == ECM_NO_FACTOR_FOUND && mpz_cmp (B2, B2min) >= 0)
     youpi = stage2 (f, &P, modulus, dF, k, &root_params, use_ntt, 
-                    TreeFilename, stop_asap, B1, B2);
+                    TreeFilename, stop_asap, B2);
 #ifdef TIMING_CRT
   printf ("mpzspv_from_mpzv_slow: %dms\n", mpzspv_from_mpzv_slow_time);
   printf ("mpzspv_to_mpzv: %dms\n", mpzspv_to_mpzv_time);
