@@ -93,10 +93,10 @@ ecm_factor (mpz_t f, mpz_t n, double B1, ecm_params p)
   double B1done, B2scale;
 
   if (mpz_cmp_ui (n, 0) <= 0)
-	  {
+    {
       fprintf (p->es, "Error, n should be positive.\n");
 	    return ECM_ERROR;
-	  }
+    }
   else if (mpz_cmp_ui (n, 1) == 0)
     {
       mpz_set_ui (f, 1);
