@@ -727,9 +727,38 @@ compute_G_from_F(listz_t G, listz_t F, unsigned long dF, curve *X,
 {
     int ret = ECM_NO_FACTOR_FOUND;
     unsigned long j;
+    mpz_t tmp;
 
     if(X->disc == -3){
-	/* [omega](X, Y) = (zeta6*X, Y), hence G(X) = F(zeta6*X) */
+	/* [omega](X, Y) = (omega*X, Y), hence G(X) = F(omega*X) */
+	printf("# making G(X) = F(omega*X)\n");
+	mpz_init(tmp);
+	/* get back sqrt(-3) */
+	mpres_get_z(tmp, X->sq[0], modulus);
+	/* omega = (-1+sqrt(-3))/2 */
+	mpz_sub_si(tmp, tmp, 1);
+	mod_div_2(tmp, modulus->orig_modulus);
+#if 0
+	{
+	    mpz_t tmp2;
+	    mpz_init(tmp2);
+	    gmp_printf("omega=%Zd\n", tmp);
+	    mpz_powm_ui(tmp2, tmp, 3, modulus->orig_modulus);
+	    gmp_printf("omega^3=%Zd\n", tmp2);
+	    mpz_clear(tmp2);
+	}
+#endif
+	for(j = 1; j < dF; j += 3){
+	    mpz_mul(G[j], G[j], tmp);
+	    mpz_mod(G[j], G[j], modulus->orig_modulus);
+	}
+	/* tmp <- omega^2 */
+	mpz_mul(tmp, tmp, modulus->orig_modulus);
+	for(j = 2; j < dF; j += 3){
+	    mpz_mul(G[j], G[j], tmp);
+	    mpz_mod(G[j], G[j], modulus->orig_modulus);
+	}
+	mpz_clear(tmp);
     }    
     else if(X->disc == -4){
 	/* [omega](X, Y) = (-X, zeta4*Y), hence G(X) = F(-X) */

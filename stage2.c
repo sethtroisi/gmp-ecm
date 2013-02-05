@@ -644,7 +644,7 @@ stage2 (mpz_t f, void *X, mpmod_t modulus, unsigned long dF, unsigned long k,
 			      modulus);
       else
 #if CMECM_FAST == 1
-	  if(disc == -4){
+	  if(disc == -3 || disc == -4){
 	      compute_G_from_F(G, F, dF, (curve *) X, modulus);
 	      goto got_G;
 	  }
