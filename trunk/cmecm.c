@@ -719,20 +719,23 @@ ecm_rootsG_CM (mpz_t f, listz_t G, unsigned long dF, ecm_roots_state_t *state,
     return ret;
 }
 
-/* Given F(X) = prod(X-x_u), compute G(X) = F([omega]*X).
+/* 
+   Given F(X) = prod(X-x_u), compute G(X) = prod(X-(omega*P)_x), which
+   is G(X) = F([omega]*X) made monic.
  */
 int
 compute_G_from_F(listz_t G, listz_t F, unsigned long dF, curve *X,
 		 mpmod_t modulus)
 {
     int ret = ECM_NO_FACTOR_FOUND;
-    unsigned long j;
-    mpz_t tmp;
+    unsigned long j, ex;
+    mpz_t tmp, tmp2;
 
     if(X->disc == -3){
 	/* [omega](X, Y) = (omega*X, Y), hence G(X) = F(omega*X) */
 	printf("# making G(X) = F(omega*X)\n");
 	mpz_init(tmp);
+	mpz_init(tmp2);
 	/* get back sqrt(-3) */
 	mpres_get_z(tmp, X->sq[0], modulus);
 	/* omega = (-1+sqrt(-3))/2 */
@@ -740,30 +743,38 @@ compute_G_from_F(listz_t G, listz_t F, unsigned long dF, curve *X,
 	mod_div_2(tmp, modulus->orig_modulus);
 #if 0
 	{
-	    mpz_t tmp2;
-	    mpz_init(tmp2);
 	    gmp_printf("omega=%Zd\n", tmp);
 	    mpz_powm_ui(tmp2, tmp, 3, modulus->orig_modulus);
 	    gmp_printf("omega^3=%Zd\n", tmp2);
-	    mpz_clear(tmp2);
 	}
 #endif
-	for(j = 0; j < dF; j += 3)
-	    mpz_set(G[j], F[j]);
-	for(j = 1; j < dF; j += 3){
-	    mpz_mul(G[j], F[j], tmp);
-	    mpz_mod(G[j], G[j], modulus->orig_modulus);
-	}
-	/* tmp <- omega^2 */
-	mpz_mul(tmp, tmp, modulus->orig_modulus);
-	for(j = 2; j < dF; j += 3){
-	    mpz_mul(G[j], F[j], tmp);
-	    mpz_mod(G[j], G[j], modulus->orig_modulus);
+	/* tmp2 <- omega^2 */
+	mpz_powm_ui(tmp2, tmp, 2, modulus->orig_modulus);
+	/* F(omega*X) = omega^dF*X^dF+...+omega*c1*X+c0 */
+	/* => G(X) = X^dF + ... + omega^(1-dF)*c1*X+c0*omega^(-dF) */
+	ex = dF % 3;
+	if(ex) ex = 3-ex; /* ex = -dF mod 3 */
+	/* [X^j]G = omega^(-dFmod3+j)[X^j]F */
+	for(j = 0; j < dF; j++){
+	    if(ex == 0)
+		mpz_set(G[j], F[j]);
+	    else if(ex == 1){
+		mpz_mul(G[j], F[j], tmp);
+		mpz_mod(G[j], G[j], modulus->orig_modulus);
+	    }
+	    else{ /* ex == 2 */
+		mpz_mul(G[j], F[j], tmp2);
+		mpz_mod(G[j], G[j], modulus->orig_modulus);
+	    }
+	    ex++;
+	    if(ex == 3) ex = 0;
 	}
 	mpz_clear(tmp);
+	mpz_clear(tmp2);
     }    
     else if(X->disc == -4){
 	/* [omega](X, Y) = (-X, zeta4*Y), hence G(X) = F(-X) */
+	assert(dF % 2 == 0); /* lazy? */
 	printf("# making G(X) = F(-X)\n");
 	for (j = 0; j < dF; j ++){
 	    mpz_set(G[j], F[j]);
