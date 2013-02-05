@@ -748,14 +748,16 @@ compute_G_from_F(listz_t G, listz_t F, unsigned long dF, curve *X,
 	    mpz_clear(tmp2);
 	}
 #endif
+	for(j = 0; j < dF; j += 3)
+	    mpz_set(G[j], F[j]);
 	for(j = 1; j < dF; j += 3){
-	    mpz_mul(G[j], G[j], tmp);
+	    mpz_mul(G[j], F[j], tmp);
 	    mpz_mod(G[j], G[j], modulus->orig_modulus);
 	}
 	/* tmp <- omega^2 */
 	mpz_mul(tmp, tmp, modulus->orig_modulus);
 	for(j = 2; j < dF; j += 3){
-	    mpz_mul(G[j], G[j], tmp);
+	    mpz_mul(G[j], F[j], tmp);
 	    mpz_mod(G[j], G[j], modulus->orig_modulus);
 	}
 	mpz_clear(tmp);
