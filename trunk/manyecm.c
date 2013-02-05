@@ -1077,7 +1077,7 @@ main(int argc, char *argv[])
     mpz_t N, tf[NFMAX], B2;
     int res = 0, smin = -1, smax = -1, ncurves = 0, method = ECM_ECM;
     int nf = 0, i, bb = 0;
-    double B1 = 0.0;
+    double B1 = 0.0, dB2 = 0.0;
     int disc = 0, b = 0, n = 0;
     char *infilename = NULL, *curvesname = NULL, *torsion = NULL;
     char buf[10000], c;
@@ -1103,7 +1103,8 @@ main(int argc, char *argv[])
 	    argc -= 2;
 	}
 	else if ((argc > 2) && (strcmp (argv[1], "-B2") == 0)){
-	    mpz_set_str(B2, argv[2], 10);
+	    dB2 = atof(argv[2]);
+	    mpz_set_d(B2, dB2);
 	    argv += 2;
 	    argc -= 2;
 	}
