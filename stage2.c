@@ -643,19 +643,9 @@ stage2 (mpz_t f, void *X, mpmod_t modulus, unsigned long dF, unsigned long k,
 	  youpi = ecm_rootsG (f, G, dF, (ecm_roots_state_t *) rootsG_state, 
 			      modulus);
       else
-#if CMECM_D_4 == 1
+#if CMECM_FAST == 1
 	  if(disc == -4){
-	      /* we are using G(X) = F(-X), so skip many things! */
-	      printf("# making G(X) = F(-X)\n");
-	      unsigned long j;
-	      for (j = 0; j < dF; j ++){
-		  mpz_set(G[j], F[j]);
-		  if(j & 1){
-		      /* [X^j]G = -[X^j]F */
-		      if(mpz_sgn(G[j]) != 0)
-			  mpz_sub(G[j], modulus->orig_modulus, G[j]);
-		  }
-	      }
+	      compute_G_from_F(G, F, dF, (curve *) X, modulus);
 	      goto got_G;
 	  }
 	  else

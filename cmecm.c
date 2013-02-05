@@ -461,12 +461,20 @@ set_stage2_params_CM(unsigned long *pdF, unsigned long *pk, mpz_t B2, int disc)
     mpz_t tmp;
     unsigned long umax, vmax, dF = 0, k = 0;
 
-    if(disc == -4){
+    mpz_init(tmp);
+    if(disc == -3){
+	/* U^2+3*V^2 <= 4*B2 */
+	/* tmp <- floor(sqrt(4*B2-3)) */
+	mpz_mul_2exp(tmp, B2, 2);
+	mpz_sub_si(tmp, tmp, 3);
+	mpz_sqrt(tmp, tmp);
+    }
+    else if(disc == -4){
 	/* tmp <- floor(sqrt(B2-1)) */
-	mpz_init_set(tmp, B2);
+	mpz_set(tmp, B2);
 	mpz_sub_si(tmp, tmp, 1);
 	mpz_sqrt(tmp, tmp);
-#if CMECM_D_4 == 0 /* standard version */
+#if CMECM_FAST == 0 /* standard version */
 	/* u^2 + v^2 <= B2, u odd, v even */
 	vmax = mpz_get_ui(tmp);
 	/* largest v must be even */
@@ -486,16 +494,16 @@ set_stage2_params_CM(unsigned long *pdF, unsigned long *pk, mpz_t B2, int disc)
 	for(k = 1; k*dF < umax; k++);
 #else /* faster */
 	/* u^2 + v^2 <= B2, u > v > 0 */
-	umax = mpz_get_ui(tmp);
-	/* find smallest power of 2 >= umax */
-	for(dF = 1; dF < umax; dF <<= 1);
-	k = 1;
 #endif
-	mpz_clear(tmp);
     }
+    umax = mpz_get_ui(tmp);
+    /* find smallest power of 2 >= umax */
+    for(dF = 1; dF < umax; dF <<= 1);
+    k = 1;
+    mpz_clear(tmp);
     *pdF = dF;
     *pk = k;
-    printf("# Overridden params: dF=%ld, k=%ld\n", dF, k);
+    printf("# Overridden params for D=%d: dF=%ld, k=%ld\n", disc, dF, k);
 }
 
 /* F[i] <- ([kmin+i*dk]P)_x for 0 <= i < dF. */
@@ -576,17 +584,12 @@ int ecm_rootsF_CM(mpz_t f, listz_t F, unsigned long dF, curve *C,
     mpres_set(P->x, C->x, modulus);
     mpres_set(P->y, C->y, modulus);
     ec_point_init(omegaP, E, modulus);
-    if(C->disc == -4){
-	apply_CM(omegaP, C->disc, C->sq, P, modulus);
-#if CMECM_D_4 == 0
-	ret = all_multiples(f, F, dF, E, omegaP, modulus, 2, 2);
-#else /* TODO: replace omegaP with P... 
-	 in the pedestrian version, one evaluates [v][zeta4]P in F
-	 and [u]P in G, whereas we can share everything...!
-       */
-	ret = all_multiples(f, F, dF, E, omegaP, modulus, 1, 1);
+#if CMECM_FAST == 0
+    apply_CM(omegaP, C->disc, C->sq, P, modulus);
+    ret = all_multiples(f, F, dF, E, omegaP, modulus, 2, 2);
+#else /* we don't need another hero! */
+    ret = all_multiples(f, F, dF, E, P, modulus, 1, 1);
 #endif
-    }
     ec_point_clear(omegaP, E, modulus);
     ec_point_clear(P, E, modulus);
     ec_curve_clear(E, modulus);
@@ -630,21 +633,15 @@ ecm_rootsG_init_CM (mpz_t f, curve *X, root_params_t *root_params,
 	mpres_init (state->fd[k].y, modulus);
     }
     
+#if CMECM_FAST == 0
     if(X->disc == -4){
-#if CMECM_D_4 == 0
 	umin = 1;
 	du = 2;
-#else
-# if 0
-	printf("# Case D=-4 suboptimal, man!\n");
-	umin = 1;
-	du = 1;
-# else
-	printf("# Skipping stuff in rootsG_init_CM\n");
-	return state;
-# endif
-#endif
     }
+#else
+    printf("# Skipping stuff in rootsG_init_CM for disc=%d\n", X->disc);
+    return state;
+#endif
     
     /* conversions */
     ec_curve_init(E, ECM_EC_TYPE_WEIERSTRASS_AFF, modulus);
@@ -719,5 +716,32 @@ ecm_rootsG_CM (mpz_t f, listz_t G, unsigned long dF, ecm_roots_state_t *state,
     ec_point_clear(uP, E, modulus);
     ec_point_clear(duP, E, modulus);
     ec_curve_clear(E, modulus);
+    return ret;
+}
+
+/* Given F(X) = prod(X-x_u), compute G(X) = F([omega]*X).
+ */
+int
+compute_G_from_F(listz_t G, listz_t F, unsigned long dF, curve *X,
+		 mpmod_t modulus)
+{
+    int ret = ECM_NO_FACTOR_FOUND;
+    unsigned long j;
+
+    if(X->disc == -3){
+	/* [omega](X, Y) = (zeta6*X, Y), hence G(X) = F(zeta6*X) */
+    }    
+    else if(X->disc == -4){
+	/* [omega](X, Y) = (-X, zeta4*Y), hence G(X) = F(-X) */
+	printf("# making G(X) = F(-X)\n");
+	for (j = 0; j < dF; j ++){
+	    mpz_set(G[j], F[j]);
+	    if(j & 1){
+		/* [X^j]G = -[X^j]F */
+		if(mpz_sgn(G[j]) != 0)
+		    mpz_sub(G[j], modulus->orig_modulus, G[j]);
+	    }
+	}
+    }
     return ret;
 }
