@@ -80,7 +80,10 @@
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <PreBuildEvent>
-      <Command>copy ..\config.h ..\..\</Command>
+      <Command>cd ..\
+gen_ecm_h
+copy config.h ..\
+</Command>
     </PreBuildEvent>
     <ClCompile>
       <Optimization>Full</Optimization>
@@ -108,7 +111,10 @@
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <PreBuildEvent>
-      <Command>copy ..\config.h ..\..\</Command>
+      <Command>cd ..\
+gen_ecm_h
+copy config.h ..\
+</Command>
     </PreBuildEvent>
     <Midl>
       <TargetEnvironment>X64</TargetEnvironment>
@@ -141,7 +147,10 @@
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <PreBuildEvent>
-      <Command>copy ..\config.h ..\..\</Command>
+      <Command>cd ..\
+gen_ecm_h
+copy config.h ..\
+</Command>
     </PreBuildEvent>
     <ClCompile>
       <Optimization>Disabled</Optimization>
@@ -170,7 +179,10 @@
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <PreBuildEvent>
-      <Command>copy ..\config.h ..\..\</Command>
+      <Command>cd ..\
+gen_ecm_h
+copy config.h ..\
+</Command>
     </PreBuildEvent>
     <Midl>
       <TargetEnvironment>X64</TargetEnvironment>
@@ -209,10 +221,12 @@
     <YASM Include="..\assembler\redc.asm" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="..\..\addlaws.c" />
     <ClCompile Include="..\..\auxarith.c" />
     <ClCompile Include="..\..\auxlib.c" />
     <ClCompile Include="..\..\batch.c" />
     <ClCompile Include="..\..\bestd.c" />
+    <ClCompile Include="..\..\cmecm.c" />
     <ClCompile Include="..\..\cudawrapper.c" />
     <ClCompile Include="..\..\ecm.c" />
     <ClCompile Include="..\..\ecm2.c" />
@@ -221,6 +235,7 @@
     <ClCompile Include="..\..\getprime.c" />
     <ClCompile Include="..\..\ks-multiply.c" />
     <ClCompile Include="..\..\listz.c" />
+    <ClCompile Include="..\..\listz_handle.c" />
     <ClCompile Include="..\..\lucas.c" />
     <ClCompile Include="..\..\median.c" />
     <ClCompile Include="..\..\mpmod.c" />
@@ -247,9 +262,12 @@
       <Optimization Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Full</Optimization>
     </ClCompile>
     <ClCompile Include="..\..\stage2.c" />
+    <ClCompile Include="..\..\torsions.c" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="..\..\addlaws.h" />
     <ClInclude Include="..\..\champions.h" />
+    <ClInclude Include="..\..\cmecm.h" />
     <ClInclude Include="..\..\config.h" />
     <ClInclude Include="..\..\ecm-ecm.h" />
     <ClInclude Include="..\..\ecm-gmp.h" />
@@ -257,8 +275,10 @@
     <ClInclude Include="..\..\ecm-impl.h" />
     <ClInclude Include="..\..\ecm-params.h" />
     <ClInclude Include="..\..\ecm.h" />
+    <ClInclude Include="..\..\listz_handle.h" />
     <ClInclude Include="..\..\longlong.h" />
     <ClInclude Include="..\..\sp.h" />
+    <ClInclude Include="..\..\torsions.h" />
   </ItemGroup>
   <ItemGroup>
     <CudaCompile Include="..\..\cudakernel.cu">
