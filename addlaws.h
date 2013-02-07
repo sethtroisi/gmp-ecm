@@ -30,6 +30,8 @@ int hessian_to_weierstrass(mpz_t f, mpres_t x, mpres_t y, mpres_t D, mpmod_t n);
 
 int build_MO_chain(short *S, int Slen, mpz_t e, int w);
 int build_add_sub_chain(short *S, int Slen, mpz_t e, int w);
+int compute_s_4_add_sub(mpz_t s, unsigned long B1, int disc);
+
 int mult_by_3(mpz_t f, mpres_t x, mpres_t y, mpres_t A, mpmod_t n);
 void ec_point_init(ec_point_t P, ec_curve_t E, mpmod_t n);
 void ec_point_clear(ec_point_t P, ATTRIBUTE_UNUSED ec_curve_t E, mpmod_t n);
