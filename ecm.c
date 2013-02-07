@@ -1206,7 +1206,7 @@ ecm (mpz_t f, mpz_t x, mpz_t y, int *param, mpz_t sigma, mpz_t n, mpz_t go,
   mpres_init (P.y, modulus);
   mpres_init (P.A, modulus);
 
-  is_E_CM = (zE->disc != 0) && (mpz_cmp_ui(zE->sq[0], 1) != 0);
+  is_E_CM = (zE->disc != 0);
   ec_curve_set_z(E, zE, modulus);
 
   youpi = set_stage_2_params (B2, B2_parm, B2min, B2min_parm, 

@@ -50,9 +50,9 @@ process_one_curve(mpz_t f, mpz_t N, double B1, mpz_t B2,
 	params->sigma_is_A = 1;
     else{
 	params->sigma_is_A = -1;
-	params->E = E;
 	mpz_set(params->y, P->y);
     }
+    params->E = E;
     ret = ecm_factor(f, N, B1, params);
     return ret;
 }
