@@ -1,5 +1,6 @@
 void mod_div_2(mpz_t x, mpz_t n);
 int mod_from_rat(mpz_t r, mpq_t q, mpz_t N);
+int mod_from_rat2(mpz_t r, mpz_t num, mpz_t den, mpz_t N);
 void ec_force_point(ec_curve_t E, ec_point_t P, mpz_t B, long *x0, mpz_t n);
 
 int
