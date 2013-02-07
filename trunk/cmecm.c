@@ -116,7 +116,7 @@ build_curves_with_CM(mpz_t f, int *nE, ec_curve_t *tE, ec_point_t *tP,
 	}
     }
     else if(disc == -4){
-#if 1
+#if 0
 	/* Y^2 = X^3 + 9 * X has rank 1 and a 4-torsion point */
 	/* a generator is (4 : 10 : 1) */
 	imax = (sqroots == NULL ? 1 : 4);
@@ -156,12 +156,34 @@ build_curves_with_CM(mpz_t f, int *nE, ec_curve_t *tE, ec_point_t *tP,
 	    for(i = 0; i < imax; i++)
 		mpz_init_set(tE[i]->sq[0], sqroots[0]);
 	}
-#else /* one day, use this? */
-	/* => 1/3*y^2 = x^3 + x, gen = (4/3, 10/3) */
-	tE[0]->type = ECM_EC_TYPE_MONTGOMERY;
-	mpres_set_ui(tE[0]->A, 0, n);
-	mod_from_rat_str(f, "4/3", n->orig_modulus);
-	mpres_set_z(tP[0]->x, f, n);
+#else /* Montgomery form curves, we do not need zeta4 */
+	/* Y^2 = X^3+k^2*X -> (1/k)*y^2 = x^3+x, x=X/k, y=Y/k */
+	/* k=3, gen=(4, 10) => 1/3*y^2 = x^3 + x, gen = (4/3, 10/3) */
+	/* {k, num, den} on E.W; divide by k to obtain E.M */
+	long data4[][3] = {{3, 4, 1}, {7, 16, 9}, {10, 5, 1}, {11, 4900, 9},
+			   {14, 2, 1}, {15, 36, 1}, {17, 144, 1},
+			   {19, 722500, 77841}, {23, 7056, 121},
+			   {26, 13, 9}, {31, 1787598400, 32798529},
+			   {35, 225, 4}, {39, 2025, 4},
+			   {0, 0, 0}};
+	for(i = 0; data4[i][0] != 0; i++){
+	    ec_curve_init(tE[i], ECM_EC_TYPE_MONTGOMERY, n);
+	    ec_point_init(tP[i], tE[i], n);
+	    tE[i]->disc = -4;
+	    mpz_init_set_ui(tE[i]->sq[0], 1);
+	    /* compute abscissa of generator in Montgomery form */
+	    mpz_set_ui(tE[i]->A, data4[i][1]);
+	    mpz_set_ui(f, data4[i][2]);
+	    /* do not forget to divide by k */
+	    mpz_mul_ui(f, f, data4[i][0]);
+	    if(mod_from_rat2(tP[i]->x, tE[i]->A, f, n->orig_modulus) == 0){
+		printf("# factor found during Montgomery preparation\n");
+		mpz_set(f, tP[i]->x);
+	    }
+	    mpz_set_ui(tE[i]->A, 0);
+	}
+	printf("# using %d curves in Montgomery form for disc=-4\n", i);
+	*nE = i;
 #endif
     }
     else if(disc == -7){

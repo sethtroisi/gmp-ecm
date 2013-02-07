@@ -1774,3 +1774,96 @@ ec_point_mul(ec_point_t Q, mpz_t e, ec_point_t P, ec_curve_t E, mpmod_t n)
 #endif
 }
 
+int *
+compute_forbidden_res(int disc)
+{
+    int *t = NULL;
+
+    if(disc == 0)
+	return NULL;
+    if(disc == -3){
+	/* we do not want p = 2 mod 3 */
+	t = (int *)malloc(3 * sizeof(int));
+	t[0] = 3;
+	t[1] = 2;
+	t[2] = -1;
+    }
+    else if(disc == -4){
+	/* we do not want p = 3 mod 4 */
+	t = (int *)malloc(3 * sizeof(int));
+	t[0] = 4;
+	t[1] = 3;
+	t[2] = -1;
+    }
+    else if(disc == -8){
+	/* (-2/p) = -1 <=> p = 5 or 7 mod 8 */
+	t = (int *)malloc(4 * sizeof(int));
+	t[0] = 8;
+	t[1] = 5;
+	t[2] = 7;
+	t[3] = -1;
+    }
+    else if(disc == -7 || disc == -11){
+	/* (-d/p) = (p/d) when d is 3 mod 4 */
+	int x, i, d = -disc;
+
+	/* initialize */
+	t = (int *)malloc(d * sizeof(int));
+	memset(t, 0, d * sizeof(int));
+	/* crude, but sufficient */
+	for(x = 0; x < d; x++)
+	    t[(x*x)%d] = 1;
+	/* x = 0 is always ok */
+	t[0] = d;
+	i = 1;
+	for(x = 1; x < d; x++)
+	    if(t[x] == 0)
+		t[i++] = x;
+	t[i++] = -1;
+#if 0
+	for(x = 0; x < i; x++)
+	    printf(" %d", t[x]);
+	printf("\n");
+#endif
+    }
+    return t;
+}
+
+/* We can probably hack so that s contains the coding of a NAF, containing
+   w, iS, S.
+*/
+int
+compute_s_4_add_sub(mpz_t s, unsigned long B1, int disc)
+{
+    mpz_t t;
+    long tp;
+    short *S;
+    int iS, Slen, w, *forbiddenres = compute_forbidden_res(disc);
+
+    mpz_init(t);
+    tp = cputime();
+    compute_s(t, B1, forbiddenres);
+    free(forbiddenres);
+    printf("# computing prod(p^e <= %lu): %ldms\n", B1, elltime(tp,cputime()));
+#if 0 /* keeping it simple for the time being */
+    mpz_set(s, t);
+#else
+    tp = cputime();
+    w = get_add_sub_w(t);
+    /* Slen = 2 * log_{2^w}(t) = 2*log_2(t)/w = 2 * 64 * size(t)/w */
+    Slen = (2 * GMP_NUMB_BITS * mpz_size(t)) / w;
+    S = (short *)malloc(Slen * sizeof(short));
+    iS = build_add_sub_chain(S, Slen, t, w);
+    printf("# NAF has %d terms (w=%d, Slen=%d): %ldms\n", iS, w, Slen,
+	   elltime(tp,cputime()));
+    if(iS == -1){
+	printf("build_NAF: Slen=%d too small\n", Slen);
+	return 0;
+    }
+    add_sub_pack(s, w, S, iS);
+    free(S);
+#endif
+    mpz_clear(t);
+    return 1;
+}
+
