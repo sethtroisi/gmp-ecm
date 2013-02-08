@@ -526,7 +526,28 @@ set_stage2_params_CM(unsigned long *pdF, unsigned long *pk, mpz_t B2, int disc)
 	k = 1;
 #endif
     }
-    else if(disc == -8){
+    else{
+	int D8 = abs(disc) % 8, Dp;
+
+	if(D8 == 0){
+	    Dp = abs(disc)/4;
+	    /* u^2+D'*v^2 <= B2, D' even, u odd, v any */
+	    /* vmax = floor(sqrt((B2-1)/Dp)) */
+	    mpz_set(tmp, B2);
+	    mpz_sub_si(tmp, tmp, 1);
+	    mpz_fdiv_q_ui(tmp, tmp, Dp);
+	    mpz_sqrt(tmp, tmp);
+	    vmax = mpz_get_ui(tmp);
+	    for(dF = 1; dF < vmax; dF <<= 1);
+	    /* umax = floor(sqrt(B2-Dp)) */
+	    mpz_set(tmp, B2);
+            mpz_sub_si(tmp, tmp, Dp);
+	    mpz_sqrt(tmp, tmp);
+            umax = mpz_get_ui(tmp);
+	    if(umax % 2 == 0)
+		umax--;
+	    for(k = 1; k*dF < umax; k++);
+	}
     }
     mpz_clear(tmp);
     *pdF = dF;
@@ -599,6 +620,8 @@ apply_CM(ec_point_t omegaP, int disc, mpz_t sq[], ec_point_t P, mpmod_t modulus)
 	mpres_set_ui(omegaP->z, 1, modulus);
     }
     else if(disc == -8){
+	printf("# Case [sqrt(-2)] NYI\n");
+	exit(-1);
     }
 }
 
@@ -609,6 +632,7 @@ int ecm_rootsF_CM(mpz_t f, listz_t F, unsigned long dF, curve *C,
     long tp;
     ec_curve_t E;
     ec_point_t P, omegaP;
+    unsigned long vmin = 1, dv = 1;
 
 #if 0
     printf("# Entering ecm_rootsF_CM with disc=%d dF=%ld\n", C->disc, dF);
@@ -629,8 +653,11 @@ int ecm_rootsF_CM(mpz_t f, listz_t F, unsigned long dF, curve *C,
     }
     else{
 	apply_CM(omegaP, C->disc, C->sq, P, modulus);
-	/* working for D = 0 mod 8, since then v is anything */
-	ret = all_multiples(f, F, dF, E, omegaP, modulus, 1, 1);
+	if(abs(C->disc) % 8 == 0){
+	    vmin = 1;
+	    dv = 1;
+	}
+	ret = all_multiples(f, F, dF, E, omegaP, modulus, vmin, dv);
     }
     printf("# computing %ld ec_adds: %ldms\n", dF, elltime(tp, cputime()));
     ec_point_clear(omegaP, E, modulus);
@@ -647,7 +674,7 @@ ecm_rootsG_init_CM (mpz_t f, curve *X, root_params_t *root_params,
     progression_params_t *params; /* for less typing */
     ec_curve_t E;
     ec_point_t P, duP;
-    unsigned long umin, du, k;
+    unsigned long umin = 1, du = 1, k;
     mpz_t tmp;
     
     state = (ecm_roots_state_t *) malloc (sizeof (ecm_roots_state_t));
@@ -676,15 +703,19 @@ ecm_rootsG_init_CM (mpz_t f, curve *X, root_params_t *root_params,
 	mpres_init (state->fd[k].y, modulus);
     }
     
+    if(X->disc == -3 || X->disc == -4){
 #if CMECM_FAST == 0
-    if(X->disc == -4){
 	umin = 1;
 	du = 2;
-    }
 #else
     /*    printf("# Skipping stuff in rootsG_init_CM for disc=%d\n", X->disc);*/
     return state;
 #endif
+    }
+    else if(abs(X->disc) % 8 == 0){
+	umin = 1;
+	du = 2;
+    }
     
     /* conversions */
     ec_curve_init(E, ECM_EC_TYPE_WEIERSTRASS_AFF, modulus);
