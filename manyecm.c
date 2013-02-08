@@ -796,6 +796,15 @@ int psb_minus_odd(mpz_t sqroots[], int b, int k, mpz_t N)
     return disc1;
 }
 
+/* b^(2*k+1) = 1 mod N => (b^(k+1))^2 = b mod N */
+static
+int psb_plus_odd(mpz_t sqroots[], int b, int k, mpz_t N)
+{
+    mpz_init_set_si(sqroots[0], b);
+    mpz_powm_ui(sqroots[0], sqroots[0], k+1, N);
+    return b;
+}
+
 /* OUTPUT: ECM_NO_FACTOR_FOUND or ECM_FACTOR_FOUND_STEP1 in very rare cases! */
 static
 int prepare_squareroots(int *disc1, mpz_t f, mpz_t sqroots[], int b, int n, int sgn, mpz_t N)
@@ -821,10 +830,9 @@ int prepare_squareroots(int *disc1, mpz_t f, mpz_t sqroots[], int b, int n, int 
 	    }
 	    /* at this point, b^k == 1 */
 	    gmp_printf("# %d^%d = 1 mod %Zd;\n", b, k, N);
-	    if(k % 2 == 1){
+	    if(k % 2 == 1)
 		/* b^(2*r+1) = 1 mod N => (b^(r+1))^2 = b mod N */
-		printf("# case k=%d odd\n", k);
-	    }
+		discr = psb_plus_odd(sqroots, b, n>>1, N);
 	    else{
 		/* b^(2*r) = 1 */
 		mpz_add_si(tmp2, tmp2, 1);
@@ -849,12 +857,9 @@ int prepare_squareroots(int *disc1, mpz_t f, mpz_t sqroots[], int b, int n, int 
 	    mpz_clear(tmp);
 	    mpz_clear(tmp2);
 	}
-	else{
+	else
 	    /* b^(2*k+1) = 1 mod N => (b^(k+1))^2 = b mod N */
-	    k = n>>1;
-	    mpz_init_set_si(sqroots[0], b);
-	    mpz_powm_ui(sqroots[0], sqroots[0], k+1, N);
-	}
+	    discr = psb_plus_odd(sqroots, b, n>>1, N);
     }
     else{
 	/* b^n = -1 mod N */
