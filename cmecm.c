@@ -490,6 +490,10 @@ set_stage2_params_CM(unsigned long *pdF, unsigned long *pk, mpz_t B2, int disc)
 	mpz_mul_2exp(tmp, B2, 2);
 	mpz_sub_si(tmp, tmp, 3);
 	mpz_sqrt(tmp, tmp);
+	umax = mpz_get_ui(tmp);
+	/* find smallest power of 2 >= umax */
+	for(dF = 1; dF < umax; dF <<= 1);
+	k = 1;
     }
     else if(disc == -4){
 	/* tmp <- floor(sqrt(B2-1)) */
@@ -516,16 +520,17 @@ set_stage2_params_CM(unsigned long *pdF, unsigned long *pk, mpz_t B2, int disc)
 	for(k = 1; k*dF < umax; k++);
 #else /* faster */
 	/* u^2 + v^2 <= B2, u > v > 0 */
+	umax = mpz_get_ui(tmp);
+	/* find smallest power of 2 >= umax */
+	for(dF = 1; dF < umax; dF <<= 1);
+	k = 1;
 #endif
     }
-    umax = mpz_get_ui(tmp);
-    /* find smallest power of 2 >= umax */
-    for(dF = 1; dF < umax; dF <<= 1);
-    k = 1;
+    else if(disc == -8){
+    }
     mpz_clear(tmp);
     *pdF = dF;
     *pk = k;
-    printf("# Overridden params for D=%d: dF=%ld, k=%ld\n", disc, dF, k);
 }
 
 /* F[i] <- ([kmin+i*dk]P)_x for 0 <= i < dF. */
@@ -564,7 +569,7 @@ int all_multiples(mpz_t f, listz_t F, unsigned long dF,
 #endif
 	mpres_get_z(F[ik], kP->x, modulus);
 	if(ec_point_add(kP, kP, dkP, E, modulus) == 0){
-	    printf("# factor found when adding dkP\n");
+	    printf("# factor found when adding dkP for k=%ld\n", k);
 	    mpz_set(f, kP->x);
 	    ret = ECM_FACTOR_FOUND_STEP2;
 	    break;
@@ -580,7 +585,10 @@ int all_multiples(mpz_t f, listz_t F, unsigned long dF,
 void
 apply_CM(ec_point_t omegaP, int disc, mpz_t sq[], ec_point_t P, mpmod_t modulus)
 {
-    if(disc == -4){
+    if(disc == -3){
+	/* Q = [omega](P) = [omega*P.x, P.y, 1] */
+    }
+    else if(disc == -4){
 	/* Q = [zeta4](P) = [-P.x, zeta4*P.y, 1] */
 #if DEBUG_CMECM >= 1
 	gmp_printf("N:=%Zd;\n", modulus->orig_modulus);
@@ -590,28 +598,41 @@ apply_CM(ec_point_t omegaP, int disc, mpz_t sq[], ec_point_t P, mpmod_t modulus)
 	mpres_mul(omegaP->y, P->y, sq[0], modulus);
 	mpres_set_ui(omegaP->z, 1, modulus);
     }
+    else if(disc == -8){
+    }
 }
 
 int ecm_rootsF_CM(mpz_t f, listz_t F, unsigned long dF, curve *C, 
 		  mpmod_t modulus)
 {
     int ret = ECM_NO_FACTOR_FOUND;
+    long tp;
     ec_curve_t E;
     ec_point_t P, omegaP;
 
+#if 0
     printf("# Entering ecm_rootsF_CM with disc=%d dF=%ld\n", C->disc, dF);
+#endif
     ec_curve_init(E, ECM_EC_TYPE_WEIERSTRASS_AFF, modulus);
     mpres_set(E->A, C->A, modulus);
     ec_point_init(P, E, modulus);
     mpres_set(P->x, C->x, modulus);
     mpres_set(P->y, C->y, modulus);
     ec_point_init(omegaP, E, modulus);
+    tp = cputime();
+    if(C->disc == -3 || C->disc == -4){
 #if CMECM_FAST == 0
-    apply_CM(omegaP, C->disc, C->sq, P, modulus);
-    ret = all_multiples(f, F, dF, E, omegaP, modulus, 2, 2);
+	printf("#!# not working anymore\n");
 #else /* we don't need another hero! */
-    ret = all_multiples(f, F, dF, E, P, modulus, 1, 1);
+	ret = all_multiples(f, F, dF, E, P, modulus, 1, 1);
 #endif
+    }
+    else{
+	apply_CM(omegaP, C->disc, C->sq, P, modulus);
+	/* working for D = 0 mod 8, since then v is anything */
+	ret = all_multiples(f, F, dF, E, omegaP, modulus, 1, 1);
+    }
+    printf("# computing %ld ec_adds: %ldms\n", dF, elltime(tp, cputime()));
     ec_point_clear(omegaP, E, modulus);
     ec_point_clear(P, E, modulus);
     ec_curve_clear(E, modulus);
@@ -661,7 +682,7 @@ ecm_rootsG_init_CM (mpz_t f, curve *X, root_params_t *root_params,
 	du = 2;
     }
 #else
-    printf("# Skipping stuff in rootsG_init_CM for disc=%d\n", X->disc);
+    /*    printf("# Skipping stuff in rootsG_init_CM for disc=%d\n", X->disc);*/
     return state;
 #endif
     
@@ -754,8 +775,8 @@ compute_G_from_F(listz_t G, listz_t F, unsigned long dF, curve *X,
     mpz_t tmp, tmp2;
 
     if(X->disc == -3){
-	/* [omega](X, Y) = (omega*X, Y), hence G(X) = F(omega*X) */
-	printf("# making G(X) = F(omega*X)\n");
+	/* [omega](X, Y) = (omega*X, Y), hence G(X) = F(omega*X)/omega^dF */
+	/*printf("# making G(X) = F(omega*X)\n");*/
 	mpz_init(tmp);
 	mpz_init(tmp2);
 	/* get back sqrt(-3) */
@@ -797,7 +818,7 @@ compute_G_from_F(listz_t G, listz_t F, unsigned long dF, curve *X,
     else if(X->disc == -4){
 	/* [omega](X, Y) = (-X, zeta4*Y), hence G(X) = F(-X) */
 	assert(dF % 2 == 0); /* lazy? */
-	printf("# making G(X) = F(-X)\n");
+	/*printf("# making G(X) = F(-X)\n");*/
 	for (j = 0; j < dF; j ++){
 	    mpz_set(G[j], F[j]);
 	    if(j & 1){
