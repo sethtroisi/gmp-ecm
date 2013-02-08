@@ -1176,7 +1176,7 @@ main(int argc, char *argv[])
 					  params,savefilename);
 	  }
 	  if(res == ECM_NO_FACTOR_FOUND
-	     && (curvesname != NULL || torsion != NULL)){
+	     && (curvesname != NULL || torsion != NULL || disc != 0)){
 	      nf = 0;
 	      res = process_many_curves_loop(tf, &nf, N, B1, B2, params,
 					     curvesname,
