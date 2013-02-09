@@ -1132,65 +1132,66 @@ main(int argc, char *argv[])
     compute_s_4_add_sub(params->batch_s, (unsigned long)B1, disc);
 #endif
     while(fscanf(infile, "%s", buf) != EOF){
-      /* read number */
-      if(buf[0] == '#'){
-	  /* print till end of line */
-	  printf("%s", buf);
-	  while((c = getc(infile)) != '\n')
-	      printf("%c", c);
-	  printf("\n");
-	  continue;
-      }
-      if(b != 0){
-	  /* line should be: "b n[+/-/L/M] N" */
-	  bb = atoi(buf);
-	  /* decode */
-	  fscanf(infile, "%s", buf);
-	  c = buf[strlen(buf)-1];
-	  buf[strlen(buf)-1] = '\0';
-	  n = atoi(buf);
-	  if(c == '-')
-	      n = -n;
-	  else if(c == 'L' || c == 'M'){
-	      if(bb == 5)
-		  n = -n;
-	  }
-	  else if(c != '+'){
-	      printf("#!# unknown suffix: %c\n", c);
-	      break;
-	  }
-	  /* read N */
-	  fscanf(infile, "%s", buf);
-	  printf("# I read: b=%d n=%d c=%c\n", bb, n, c);
-	  if((b > 1) && (bb != b))
-	      continue;
-      }
-      if(mpz_set_str (N, buf, 10)){
-	  fprintf (stderr, "Invalid number: %s\n", argv[1]);
-	  exit (1);
-      }
-      if(method == ECM_ECM){
-	  if(b != 0){
-	      nf = 0;
-	      res = process_special_blend(tf,&nf,N,bb,n,disc,B1,B2,
-					  params,savefilename);
-	  }
-	  if(res == ECM_NO_FACTOR_FOUND
-	     && (curvesname != NULL || torsion != NULL || disc != 0)){
-	      nf = 0;
-	      res = process_many_curves_loop(tf, &nf, N, B1, B2, params,
-					     curvesname,
-					     torsion, smin, smax, ncurves,
-					     disc, NULL,
-					     savefilename);
-	  }
-      }
-    }
+	/* read number */
+	if(buf[0] == '#'){
+	    /* print till end of line */
+	    printf("%s", buf);
+	    while((c = getc(infile)) != '\n')
+		printf("%c", c);
+	    printf("\n");
+	    continue;
+	}
+	if(b != 0){
+	    /* line should be: "b n[+/-/L/M] N" */
+	    bb = atoi(buf);
+	    /* decode */
+	    fscanf(infile, "%s", buf);
+	    c = buf[strlen(buf)-1];
+	    buf[strlen(buf)-1] = '\0';
+	    n = atoi(buf);
+	    if(c == '-')
+		n = -n;
+	    else if(c == 'L' || c == 'M'){
+		if(bb == 5)
+		    n = -n;
+	    }
+	    else if(c != '+'){
+		printf("#!# unknown suffix: %c\n", c);
+		break;
+	    }
+	    /* read N */
+	    fscanf(infile, "%s", buf);
+	    printf("# I read: b=%d n=%d c=%c\n", bb, n, c);
+	    if((b > 1) && (bb != b))
+		continue;
+	}
+	if(mpz_set_str (N, buf, 10)){
+	    fprintf (stderr, "Invalid number: %s\n", argv[1]);
+	    exit (1);
+	}
+	res = ECM_NO_FACTOR_FOUND;
+	if(method == ECM_ECM){
+	    if(b != 0){
+		nf = 0;
+		res = process_special_blend(tf,&nf,N,bb,n,disc,B1,B2,
+					    params,savefilename);
+	    }
+	    if(res == ECM_NO_FACTOR_FOUND
+	       && (curvesname != NULL || torsion != NULL || disc != 0)){
+		nf = 0;
+		res = process_many_curves_loop(tf, &nf, N, B1, B2, params,
+					       curvesname,
+					       torsion, smin, smax, ncurves,
+					       disc, NULL,
+					       savefilename);
+	    }
+	}
 #if 0	  
-    printf("List of factors:\n");
-    for(i = 0; i < nf; i++)
-	gmp_printf("%Zd\n", tf[i]);
+	printf("List of factors:\n");
+	for(i = 0; i < nf; i++)
+	    gmp_printf("%Zd\n", tf[i]);
 #endif
+    }
     ecm_clear(params);
     if(infile != stdin)
 	fclose(infile);
