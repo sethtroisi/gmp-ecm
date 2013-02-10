@@ -360,6 +360,11 @@ stage2 (mpz_t f, void *X, mpmod_t modulus, unsigned long dF, unsigned long k,
       use_ntt = 0; /* don't use NTT for Fermat numbers */
     }
 
+  if(mpz_cmp_ui(((curve *)X)->sq[0], 1) == 0){
+      disc = 0;
+      ((curve *)X)->disc = 0; /* humf */
+  }
+
   if(disc != 0){
       /* CM case, we override dF and k */
       set_stage2_params_CM(&dF, &k, B2, disc);
