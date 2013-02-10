@@ -710,6 +710,11 @@ apply_CM(ec_point_t omegaP, int disc, mpz_t sq[], ec_point_t P, mpmod_t modulus)
 	long num[] = {2, -1, 4*12, -18*12*12};
 	long den[] = {1, 2, -8*12};
 
+	mpres_t tmp;
+	mpres_init(tmp, modulus);
+	mpres_mul(tmp, sq[0], sq[0], modulus);
+	mpres_add_ui(tmp, tmp, 2, modulus);
+	printf("sq^2+2="); print_mpz_from_mpres(tmp, modulus); printf(";\n");
 	ret = eval_CM_mult(omegaP, P, num, den, sq, modulus);
     }
     return ret;
