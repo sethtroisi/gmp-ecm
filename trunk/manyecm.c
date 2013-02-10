@@ -104,8 +104,8 @@ dump_curves(ec_curve_t *tE, ec_point_t *tP, int nE, mpz_t f)
 {
     int i;
 
-    gmp_printf("p:=%Zd; F:=GF(p); P:=[]; A:=[]; B:=[]; E:=[];\n", f);
-    printf("CheckE:=procedure(E, P, info)\n");
+    gmp_printf("p:=%Zd; F:=GF(p); P:=[]; A:=[]; B:=[]; E:=[]; D:=[];\n", f);
+    printf("CheckE:=procedure(E, D, P, info)\n");
     printf("    printf \"#E[%%o]=%%o\\n\", info, Factorization(#E);\n");
     printf("    gen:=Generators(E);\n");
     printf("    printf \"ords=%%o\\n\", ");
@@ -114,6 +114,7 @@ dump_curves(ec_curve_t *tE, ec_point_t *tP, int nE, mpz_t f)
     printf("Factorization(Order(E!P));\n");
     printf("end procedure;\n");
     for(i = 0; i < nE; i++){
+	printf("D[%d]:=%d;\n", i+1, tE[i]->disc);
 	if(tE[i]->type == ECM_EC_TYPE_MONTGOMERY){
 	    mpmod_t fmod;
 	    mpres_t x, y, A;
@@ -154,7 +155,7 @@ dump_curves(ec_curve_t *tE, ec_point_t *tP, int nE, mpz_t f)
 	printf("B[%d]:=P[%d][2]^2-P[%d][1]^3-A[%d]*P[%d][1];\n", 
 	       i+1, i+1, i+1, i+1, i+1);
 	printf("E[%d]:=EllipticCurve([F!A[%d], F!B[%d]]);\n", i+1, i+1, i+1);
-	printf("CheckE(E[%d], P[%d], infos[%d]);\n", i+1, i+1, i+1);
+	printf("CheckE(E[%d], D[%d], P[%d], infos[%d]);\n",i+1,i+1,i+1,i+1);
     }
 }
 

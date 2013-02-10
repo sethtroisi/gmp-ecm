@@ -603,9 +603,96 @@ int all_multiples(mpz_t f, listz_t F, unsigned long dF,
     return ret;
 }
 
+/* coeffs = {deg, c_deg, ..., c_0} */
 void
+mpres_eval_poly(mpres_t y, long* coeffs, mpres_t x, mpmod_t modulus)
+{
+    int deg, i;
+
+    deg = coeffs[0];
+    /* Horner's rule */
+    mpres_set_si(y, coeffs[1], modulus);
+    for(i = 2; i <= deg+1; i++){
+	mpres_mul(y, y, x, modulus);
+	if(coeffs[i] > 0)
+	    mpres_add_ui(y, y, coeffs[i], modulus);
+	else
+	    mpres_sub_ui(y, y, -coeffs[i], modulus);
+    }
+}
+
+/* coeffs = {deg, c_deg, ..., c_0} */
+void
+mpres_eval_diff(mpres_t y, long* coeffs, mpres_t x, mpmod_t modulus)
+{
+    long *tmp, i, deg;
+
+    deg = coeffs[0];
+    tmp = (long *)malloc((deg+1) * sizeof(long));
+    tmp[0] = deg-1;
+    for(i = 1; i <= deg; i++)
+	tmp[i] = coeffs[i] * (deg-i+1);
+    mpres_eval_poly(y, tmp, x, modulus);
+    free(tmp);
+}
+
+int
+eval_CM_mult(ec_point_t omegaP, ec_point_t P, long *num, long *den,
+	     mpz_t sq[], mpmod_t modulus)
+{
+    int ret = 1;
+    mpres_t nn, dd, inv, tmp;
+
+    mpres_init(nn, modulus);
+    mpres_eval_poly(nn, num, P->x, modulus);
+    mpres_init(dd, modulus);
+    mpres_eval_poly(dd, den, P->x, modulus);
+#if DEBUG_CMECM >= 1
+    printf("x:="); print_mpz_from_mpres(P->x, modulus); printf(";\n");
+    printf("nn:="); print_mpz_from_mpres(nn, modulus); printf(";\n");
+    printf("dd:="); print_mpz_from_mpres(dd, modulus); printf(";\n");
+#endif
+    mpres_init(inv, modulus);
+    mpres_init(tmp, modulus);
+    if(mpres_invert(inv, dd, modulus) == 0){
+	mpres_gcd(omegaP->x, dd, modulus);
+	ret = 0;
+    }
+    else{
+	/* omX <- num/den */
+	mpres_mul(omegaP->x, nn, inv, modulus);
+	/* omY <- dnum/den-num*dden/den^2 */
+	mpres_eval_diff(omegaP->y, num, P->x, modulus);
+	mpres_eval_diff(tmp, den, P->x, modulus);
+	mpres_mul(tmp, tmp, nn, modulus);
+	mpres_mul(tmp, tmp, inv, modulus);
+	mpres_sub(omegaP->y, omegaP->y, tmp, modulus);
+	mpres_mul(omegaP->y, omegaP->y, inv, modulus);
+	mpres_invert(inv, sq[0], modulus);
+	mpres_mul(omegaP->y, omegaP->y, inv, modulus);
+	mpres_mul(omegaP->y, omegaP->y, P->y, modulus);
+#if DEBUG_CMECM >= 1
+	printf("omX:="); 
+	print_mpz_from_mpres(omegaP->x, modulus);
+	printf(";\n");
+	printf("y:="); print_mpz_from_mpres(P->y, modulus); printf(";\n");
+	printf("omY:="); 
+	print_mpz_from_mpres(omegaP->y, modulus);
+	printf(";\n");
+#endif
+    }
+    mpres_clear(nn, modulus);
+    mpres_clear(dd, modulus);
+    mpres_clear(inv, modulus);
+    mpres_clear(tmp, modulus);
+    return ret;
+}
+
+int
 apply_CM(ec_point_t omegaP, int disc, mpz_t sq[], ec_point_t P, mpmod_t modulus)
 {
+    int ret = 1;
+
     if(disc == -3){
 	/* Q = [omega](P) = [omega*P.x, P.y, 1] */
     }
@@ -620,9 +707,12 @@ apply_CM(ec_point_t omegaP, int disc, mpz_t sq[], ec_point_t P, mpmod_t modulus)
 	mpres_set_ui(omegaP->z, 1, modulus);
     }
     else if(disc == -8){
-	printf("# Case [sqrt(-2)] NYI\n");
-	exit(-1);
+	long num[] = {2, -1, 4*12, -18*12*12};
+	long den[] = {1, 2, -8*12};
+
+	ret = eval_CM_mult(omegaP, P, num, den, sq, modulus);
     }
+    return ret;
 }
 
 int ecm_rootsF_CM(mpz_t f, listz_t F, unsigned long dF, curve *C, 
