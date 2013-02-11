@@ -806,8 +806,8 @@ int psb_minus_odd(mpz_t sqroots[], int b, int k, mpz_t N)
 }
 
 /* b^(2*k+1) = 1 mod N => (b^(k+1))^2 = b mod N */
-static
-int psb_plus_odd(mpz_t sqroots[], int b, int k, mpz_t N)
+static int
+psb_plus_odd(mpz_t sqroots[], int b, int k, mpz_t N)
 {
     printf("# got sqrt(%d)\n", b);
     mpz_init_set_si(sqroots[0], b);
@@ -816,8 +816,9 @@ int psb_plus_odd(mpz_t sqroots[], int b, int k, mpz_t N)
 }
 
 /* OUTPUT: ECM_NO_FACTOR_FOUND or ECM_FACTOR_FOUND_STEP1 in very rare cases! */
-static
-int prepare_squareroots(int *disc1, mpz_t f, mpz_t sqroots[], int b, int n, int sgn, mpz_t N)
+static int
+prepare_squareroots_from_powers(int *disc1, mpz_t f, mpz_t sqroots[], int b,
+				int n, int sgn, mpz_t N)
 {
     int k, discr = 0, ret = ECM_NO_FACTOR_FOUND;
     mpz_t tmp, tmp2;
@@ -881,6 +882,30 @@ int prepare_squareroots(int *disc1, mpz_t f, mpz_t sqroots[], int b, int n, int 
 	    discr = psb_minus_odd(sqroots, b, n>>1, N);
     }
     *disc1 = discr;
+    return ret;
+}
+
+static int
+prepare_squareroots(int *disc1, mpz_t f, mpz_t sqroots[], int b,
+		    int n, int sgn, mpz_t N)
+{
+    int ret = prepare_squareroots_from_powers(disc1, f, sqroots, b, n, sgn, N);
+    int tabq[] = {3, 5, 7, 11, 13, 19, 0}, q, iq, qs;
+
+    if(ret != ECM_NO_FACTOR_FOUND)
+	return ret;
+#if 0
+    if(*disc1 != 0)
+	/* for the time being, stop if some discriminant was found */
+	return ret;
+#endif
+    /* let's find some squareroots using small powers of n */
+    for(iq = 0; tabq[iq] != 0; iq++){
+	q = tabq[iq];
+	qs = (q % 4 == 1 ? q : -q);
+	if(n % q == 0)
+	    printf("# I can find sqrt(%d)\n", qs);
+    }
     return ret;
 }
 
