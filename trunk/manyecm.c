@@ -53,6 +53,7 @@ process_one_curve(mpz_t f, mpz_t N, double B1, mpz_t B2,
 	mpz_set(params->y, P->y);
     }
     params->E = E;
+
     ret = ecm_factor(f, N, B1, params);
     return ret;
 }
@@ -106,12 +107,18 @@ dump_curves(ec_curve_t *tE, ec_point_t *tP, int nE, mpz_t f)
 
     gmp_printf("p:=%Zd; F:=GF(p); P:=[]; A:=[]; B:=[]; E:=[]; D:=[];\n", f);
     printf("CheckE:=procedure(E, D, P, info)\n");
+    printf("    K:=QuadraticField(D); OK:=MaximalOrder(K);\n");
     printf("    printf \"#E[%%o]=%%o\\n\", info, Factorization(#E);\n");
     printf("    gen:=Generators(E);\n");
     printf("    printf \"ords=%%o\\n\", ");
     printf("[Factorization(Order(g)) : g in gen];\n");
-    printf("    printf \"ord(P)=%%o\\n\", ");
-    printf("Factorization(Order(E!P));\n");
+    printf("    lf:=Factorization(Order(E!P));\n");
+    printf("    printf \"ord(P)=%%o\\n\", lf;\n");
+    printf("    for i:=1 to #lf do\n");
+    printf("        lfi:=Factorization(lf[i][1]*OK);\n");
+    printf("        ok,gen:=IsPrincipal(lfi[1][1]);\n");
+    printf("        print lf[i], ok, gen;\n");
+    printf("    end for;\n");
     printf("end procedure;\n");
     for(i = 0; i < nE; i++){
 	printf("D[%d]:=%d;\n", i+1, tE[i]->disc);
@@ -762,12 +769,13 @@ odd_square_root_mod_N(mpz_t f, mpz_t *sqroots, int b, int n, int q, mpz_t N)
 static
 int psb_minus_even(mpz_t sqroots[], int b, int k, mpz_t N)
 {
-    /* set squareroot of -1 */
+    printf("# got sqrt(-1)\n");
     mpz_init_set_si(sqroots[0], b);
     mpz_powm_ui(sqroots[0], sqroots[0], k, N);
     if(k % 2 == 0){
 	/* zeta8 = b^(k/2) = (1+zeta4)/sqrt(2) 
 	   => sqrt(2) = (1+zeta4)/zeta8 */
+	printf("# got sqrt(2)\n");
 	mpz_init_set_si(sqroots[1], b);
 	mpz_powm_ui(sqroots[1], sqroots[1], k>>1, N);
 	mpz_invert(sqroots[1], sqroots[1], N);
@@ -790,7 +798,7 @@ int psb_minus_odd(mpz_t sqroots[], int b, int k, mpz_t N)
     else if(b == 3 || b == 7 || b == 11)
 	disc1 = -b;
     if(disc1 != 0){
-	/* set squareroot of -b */
+	printf("# got sqrt(-%d)\n", b);
 	mpz_init_set_si(sqroots[0], b);
 	mpz_powm_ui(sqroots[0], sqroots[0], k+1, N);
     }
@@ -801,6 +809,7 @@ int psb_minus_odd(mpz_t sqroots[], int b, int k, mpz_t N)
 static
 int psb_plus_odd(mpz_t sqroots[], int b, int k, mpz_t N)
 {
+    printf("# got sqrt(%d)\n", b);
     mpz_init_set_si(sqroots[0], b);
     mpz_powm_ui(sqroots[0], sqroots[0], k+1, N);
     return b;
@@ -881,7 +890,8 @@ int prepare_squareroots(int *disc1, mpz_t f, mpz_t sqroots[], int b, int n, int 
    To solve the B1 problem, only consider (b, n)'s s.t. disc(b, n) = discref.
  */
 int
-process_special_blend(mpz_t tf[], int *nf, mpz_t N, int b, int n, int discref,
+process_special_blend(mpz_t tf[], int *nf, int *tried, 
+		      mpz_t N, int b, int n, int discref,
 		      double B1, mpz_t B2, 
 		      ecm_params params, char *savefilename)
 {
@@ -920,6 +930,7 @@ process_special_blend(mpz_t tf[], int *nf, mpz_t N, int b, int n, int discref,
 	return ret;
     if(disc1 == discref){
 	gmp_printf("# Let us use disc=%d with B1=%1.0f B2=%Zd\n",disc1,B1,B2);
+	*tried = 1;
 	ret = process_many_curves_loop(tf, nf, N, B1, B2, params,
 				       NULL, NULL, 0, 0, 1,
 				       disc1, sqroots,
@@ -988,7 +999,7 @@ int
 main(int argc, char *argv[])
 {
     mpz_t N, tf[NFMAX], B2;
-    int res = 0, smin = -1, smax = -1, ncurves = 0, method = ECM_ECM;
+    int res = 0, smin = -1, smax = -1, ncurves = 0, method = ECM_ECM, tried;
     int nf = 0, i, bb = 0;
     double B1 = 0.0, dB2 = 0.0;
     int disc = 0, b = 0, n = 0;
@@ -1171,13 +1182,14 @@ main(int argc, char *argv[])
 	    exit (1);
 	}
 	res = ECM_NO_FACTOR_FOUND;
+	tried = 0;
 	if(method == ECM_ECM){
 	    if(b != 0){
 		nf = 0;
-		res = process_special_blend(tf,&nf,N,bb,n,disc,B1,B2,
+		res = process_special_blend(tf,&nf,&tried,N,bb,n,disc,B1,B2,
 					    params,savefilename);
 	    }
-	    if(res == ECM_NO_FACTOR_FOUND
+	    if(res == ECM_NO_FACTOR_FOUND && !tried
 	       && (curvesname != NULL || torsion != NULL || disc != 0)){
 		nf = 0;
 		res = process_many_curves_loop(tf, &nf, N, B1, B2, params,

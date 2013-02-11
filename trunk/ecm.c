@@ -1505,7 +1505,10 @@ ecm (mpz_t f, mpz_t x, mpz_t y, int *param, mpz_t sigma, mpz_t n, mpz_t go,
       P.disc = E->disc;
 #endif
       mpres_init(P.sq[0], modulus);
-      mpres_set(P.sq[0], E->sq[0], modulus);
+      if(mpz_cmp_ui(zE->sq[0], 1) == 0) /* humf */
+	  mpz_set_ui(P.sq[0], 1);
+      else
+	  mpres_set(P.sq[0], E->sq[0], modulus);
   }
   
   if (youpi == ECM_NO_FACTOR_FOUND && mpz_cmp (B2, B2min) >= 0)
