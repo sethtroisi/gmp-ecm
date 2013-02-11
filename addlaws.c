@@ -903,9 +903,12 @@ build_MO_chain(short *S, int Slen, mpz_t e, int w)
 {
     /* first use automata */
     size_t le = mpz_sizeinbase(e, 2), iT = 0;
+#if DEBUG_ADD_LAWS >= 2
     long tp = cputime();
+    int i;
+#endif
     char *T = (char *)malloc((2*le) * sizeof(char)); /* humf */
-    int i, iS;
+    int iS;
 
     MO_automaton(T, &iT, e, le);
 #if DEBUG_ADD_LAWS >= 2
@@ -919,9 +922,9 @@ build_MO_chain(short *S, int Slen, mpz_t e, int w)
     else
 	printf("# good check in MO\n");
     printf("# le = %ld, iT = %ld, time = %ldms\n",le,iT,elltime(tp,cputime()));
+    tp = cputime();
 #endif
     /* compact T to fill in S */
-    tp = cputime();
     iS = Split(S, Slen, T, iT, w);
 #if DEBUG_ADD_LAWS >= 2
     printf("# time = %ldms\n", elltime(tp, cputime()));
@@ -1675,7 +1678,10 @@ int
 ec_point_mul_add_sub (ec_point_t Q, mpz_t e, ec_point_t P,
 		      ec_curve_t E, mpmod_t n)
 {
-    int negated = 0, status = 1, iS = 0, w, Slen, j;
+    int negated = 0, status = 1, iS = 0, w, Slen;
+#if DEBUG_ADD_LAWS >= 2
+    int j;
+#endif
     short *S;
     
     if(ec_point_is_zero(P, E, n)){
