@@ -165,6 +165,7 @@ build_curves_with_CM(mpz_t f, int *nE, ec_curve_t *tE, ec_point_t *tP,
 	   {k, num, den} on E.W; divide by k to obtain E.M.
 	   Remark this imposes 4 | #E, so not all classes are possible...!
 	*/
+	{
 	long data4[][3] = {{3, 4, 1}, {7, 16, 9}, {10, 5, 1}, {11, 4900, 9},
 #if 0
 			   {14, 2, 1}, {15, 36, 1}, {17, 144, 1},
@@ -188,6 +189,7 @@ build_curves_with_CM(mpz_t f, int *nE, ec_curve_t *tE, ec_point_t *tP,
 		mpz_set(f, tP[i]->x);
 	    }
 	    mpz_set_ui(tE[i]->A, 0);
+	}
 	}
 	printf("# using %d curves in Montgomery form for disc=-4\n", i);
 	*nE = i;
