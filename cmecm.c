@@ -116,6 +116,17 @@ build_curves_with_CM(mpz_t f, int *nE, ec_curve_t *tE, ec_point_t *tP,
 	}
     }
     else if(disc == -4){
+	mpz_init(tmp);
+	if(sqroots != NULL){
+	    /* sqroots[0] = sqrt(-1) */
+	    mpz_mul(tmp, sqroots[0], sqroots[0]);
+	    mpz_add_si(tmp, tmp, 1);
+	    mpz_mod(tmp, tmp, n->orig_modulus);
+	    if(mpz_sgn(tmp) != 0){
+		gmp_printf("# zeta4^2+1=%Zd\n", tmp);
+		exit(-1);
+	    }
+	}
 #if 0
 	/* Y^2 = X^3 + 9 * X has rank 1 and a 4-torsion point */
 	/* a generator is (4 : 10 : 1) */
@@ -136,14 +147,6 @@ build_curves_with_CM(mpz_t f, int *nE, ec_curve_t *tE, ec_point_t *tP,
         mpz_set_si(tP[0]->z, 1);
 	if(sqroots != NULL){
 	    /* sqroots[0] = sqrt(-1) */
-	    mpz_init(tmp);
-	    mpz_mul(tmp, sqroots[0], sqroots[0]);
-	    mpz_add_si(tmp, tmp, 1);
-	    mpz_mod(tmp, tmp, n->orig_modulus);
-	    if(mpz_sgn(tmp) != 0){
-		gmp_printf("# zeta4^2+1=%Zd\n", tmp);
-		exit(-1);
-	    }
 	    for(i = 1; i < imax; i++){
 		mpz_mul(tmp, tE[i-1]->A, sqroots[0]);
 		mpz_mod(tE[i]->A, tmp, n->orig_modulus);
@@ -152,19 +155,23 @@ build_curves_with_CM(mpz_t f, int *nE, ec_curve_t *tE, ec_point_t *tP,
 		ec_force_point(tE[i], tP[i], tmp, &x0, n->orig_modulus);
 	    }
 	    *nE = 4;
-	    mpz_clear(tmp);
 	    for(i = 0; i < imax; i++)
 		mpz_init_set(tE[i]->sq[0], sqroots[0]);
 	}
-#else /* Montgomery form curves, we do not need zeta4 */
-	/* Y^2 = X^3+k^2*X -> (1/k)*y^2 = x^3+x, x=X/k, y=Y/k */
-	/* k=3, gen=(4, 10) => 1/3*y^2 = x^3 + x, gen = (4/3, 10/3) */
-	/* {k, num, den} on E.W; divide by k to obtain E.M */
+#else 
+	/* Montgomery form curves, we do not need zeta4
+	   Y^2 = X^3+k^2*X -> (1/k)*y^2 = x^3+x, x=X/k, y=Y/k
+	   k=3, gen=(4, 10) => 1/3*y^2 = x^3 + x, gen = (4/3, 10/3)
+	   {k, num, den} on E.W; divide by k to obtain E.M.
+	   Remark this imposes 4 | #E, so not all classes are possible...!
+	*/
 	long data4[][3] = {{3, 4, 1}, {7, 16, 9}, {10, 5, 1}, {11, 4900, 9},
+#if 0
 			   {14, 2, 1}, {15, 36, 1}, {17, 144, 1},
 			   {19, 722500, 77841}, {23, 7056, 121},
 			   {26, 13, 9}, {31, 1787598400, 32798529},
 			   {35, 225, 4}, {39, 2025, 4},
+#endif
 			   {0, 0, 0}};
 	for(i = 0; data4[i][0] != 0; i++){
 	    ec_curve_init(tE[i], ECM_EC_TYPE_MONTGOMERY, n);
@@ -185,6 +192,7 @@ build_curves_with_CM(mpz_t f, int *nE, ec_curve_t *tE, ec_point_t *tP,
 	printf("# using %d curves in Montgomery form for disc=-4\n", i);
 	*nE = i;
 #endif
+	mpz_clear(tmp);
     }
     else if(disc == -7){
 	/* E = y^2 = x^3 - 2222640*x - 1568294784
@@ -405,7 +413,7 @@ int LoopCM(mpz_t f, ec_curve_t E, ec_point_t P, ec_point_t Q,
 
 /* Testing CM stage2 in a very naive way, for the time being. */
 int stage2_CM(mpz_t f, ec_curve_t E, ec_point_t P, mpmod_t modulus, 
-	      unsigned long dF, mpz_t B2, mpz_t B2min)
+	      unsigned long dF, mpz_t B2, ATTRIBUTE_UNUSED mpz_t B2min)
 {
     int ret = ECM_NO_FACTOR_FOUND;
     ec_point_t Q;
@@ -763,7 +771,8 @@ int ecm_rootsF_CM(mpz_t f, listz_t F, unsigned long dF, curve *C,
 
 ecm_roots_state_t *
 ecm_rootsG_init_CM (mpz_t f, curve *X, root_params_t *root_params, 
-		    unsigned long dF, unsigned long blocks, mpmod_t modulus)
+		    ATTRIBUTE_UNUSED unsigned long dF, 
+		    ATTRIBUTE_UNUSED unsigned long blocks, mpmod_t modulus)
 {
     ecm_roots_state_t *state;
     progression_params_t *params; /* for less typing */
