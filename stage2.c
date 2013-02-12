@@ -365,7 +365,11 @@ stage2 (mpz_t f, void *X, mpmod_t modulus, unsigned long dF, unsigned long k,
       disc = 0;
       ((curve *)X)->disc = 0; /* humf */
   }
-
+  /* be careful, other discriminants are not ready for use */
+  if(disc != -3 && disc != -4 && disc != -8){
+      disc = 0;
+      ((curve *)X)->disc = 0; /* humf */
+  }
   if(disc != 0){
       /* CM case, we override dF and k */
       set_stage2_params_CM(&dF, &k, B2, disc);

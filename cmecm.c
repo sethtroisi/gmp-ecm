@@ -58,7 +58,7 @@ build_curves_with_CM(mpz_t f, int *nE, ec_curve_t *tE, ec_point_t *tP,
 {
     mpz_t j, tmp;
     long x0;
-    int i, ret = ECM_NO_FACTOR_FOUND, imax;
+    int i, ret = ECM_NO_FACTOR_FOUND, imax, found = 0;
 
     ec_curve_init(tE[0], ECM_EC_TYPE_WEIERSTRASS_AFF, n);
     ec_point_init(tP[0], tE[0], n);
@@ -69,6 +69,7 @@ build_curves_with_CM(mpz_t f, int *nE, ec_curve_t *tE, ec_point_t *tP,
 	/* D = -3 => E: Y^2 = X^3 + 8 has rank 1, generator (2 : 4 : 1)
 	   f4 = P2*P4, disc(P2) = 3*2^4
 	*/
+	found = 1;
 	imax = (sqroots == NULL ? 1 : 6);
 
 	for(i = 0; i < imax; i++){
@@ -116,6 +117,7 @@ build_curves_with_CM(mpz_t f, int *nE, ec_curve_t *tE, ec_point_t *tP,
 	}
     }
     else if(disc == -4){
+	found = 1;
 	mpz_init(tmp);
 	if(sqroots != NULL){
 	    /* sqroots[0] = sqrt(-1) */
@@ -196,52 +198,61 @@ build_curves_with_CM(mpz_t f, int *nE, ec_curve_t *tE, ec_point_t *tP,
 #endif
 	mpz_clear(tmp);
     }
-    else if(disc == -7){
-	/* E = y^2 = x^3 - 2222640*x - 1568294784
-	           = x^3 - 5*7*(2^2*3^2*7)^2*x - 2*7^2*(2^2*3^2*7)^3
-	   P = (2052 : 50112 : 1) */
-	tE[0]->type = ECM_EC_TYPE_WEIERSTRASS_HOM;
-	mpz_set_si(tE[0]->A, -2222640);
-        mpz_set_si(tP[0]->x, 2052);
-        mpz_set_si(tP[0]->y, 50112);
-        mpz_set_si(tP[0]->z, 1);
-    }
-    else if(disc == -8){
+    if(found == 0){
+	/* {D, A, B, x0, y0} */
 	/* D = -8: E_c: Y^2 = X^3+4*c*X^2+2*c^2*X => Montgomery when 2 = z^2 
 	   c = 1 => rank = 1, generator is (-1 : -1 : 1)
 	   alt.: [-2*3*5*cc^2, 2^3*7*cc^3], here with cc=12
 	*/
-	tE[0]->type = ECM_EC_TYPE_WEIERSTRASS_HOM;
-	mpz_set_si(tE[0]->A, -4320);
-        mpz_set_si(tP[0]->x, 12);
-        mpz_set_si(tP[0]->y, -216);
-        mpz_set_si(tP[0]->z, 1);
+	long h1_data[][5] = {{-7, -2222640, -1568294784, 2052, 50112},
+			     {-8, -4320, 96768, 12, -216},
+			     {-11, -1056, 13552, 33, 121},
+			     {0, 0, 0, 0, 0}};
+	int i1;
+
+	for(i1 = 0; h1_data[i1][0] != 0; i1++){
+	    if(h1_data[i1][0] == disc){
+		tE[0]->type = ECM_EC_TYPE_WEIERSTRASS_HOM;
+		mpz_set_si(tE[0]->A, h1_data[i1][1]);
+		mpz_set_si(tP[0]->x, h1_data[i1][3]);
+		mpz_set_si(tP[0]->y, h1_data[i1][4]);
+		mpz_set_si(tP[0]->z, 1);
+		found = 1;
+		break;
+	    }
+	}
     }
-    else if(disc == -11){
-	/*     E:=EllipticCurve([0, 0, 0, -2^5*3*11, 2^4*7*11^2]);
-	       [ (33 : 121 : 1) ] */
-	tE[0]->type = ECM_EC_TYPE_WEIERSTRASS_HOM;
-	mpz_set_si(tE[0]->A, -1056);
-	mpz_set_si(tP[0]->x, 33);
-        mpz_set_si(tP[0]->y, 121);
-        mpz_set_si(tP[0]->z, 1);
+    if(found == 0){
+	/* class number 2 */
+	/* {D, q1, den, a0, a1} s.t. D = q1*(-q2), j = (a0+a1*sqrt(q1))/den */
+	long h2_data[][5] = {{-15, 5, 2, -191025, -85995},
+			     {0, 0, 0, 0, 0}};
+	int i2;
+
+	if(sqroots == NULL){
+	    printf("# missing sqroot for disc=%d\n", disc);
+	    return ret;
+	}
+	for(i2 = 0; h2_data[i2][0] != 0; i2++){
+	    if(h2_data[i2][0] == disc){
+		/* it must be that sqroots[0] contains sqrt(q1) mod N */
+		/* j = (a0+a1*sqrt(q1))/den */
+		tE[0]->type = ECM_EC_TYPE_WEIERSTRASS_HOM;
+		mpz_set(tE[0]->sq[0], sqroots[0]);
+		mpz_init_set_si(j, h2_data[i2][4]);
+		mpz_mul(j, j, sqroots[0]);
+		mpz_add_si(j, j, h2_data[i2][3]);
+		mpz_mod(j, j, n->orig_modulus);
+		if(h2_data[i2][2] == 2)
+		    mod_div_2(j, n->orig_modulus);
+		ret = adjust_CM(f, tE[0], tP[0], n->orig_modulus, j);
+		mpz_clear(j);
+		found = 1;
+		break;
+	    }
+	}
     }
-    /* class number 2 */
-    else if(disc == -15){
-	/* it must be that sqroots[0] contains sqrt(5) mod N */
-	/* j = -(191025+85995*sqrt(5))/2 */
-	tE[0]->type = ECM_EC_TYPE_WEIERSTRASS_HOM;
-	mpz_set(tE[0]->sq[0], sqroots[0]);
-	mpz_init_set_si(j, 85995);
-	mpz_mul(j, j, sqroots[0]);
-	mpz_add_si(j, j, 191025);
-	mpz_neg(j, j);
-	mpz_mod(j, j, n->orig_modulus);
-	mod_div_2(j, n->orig_modulus);
-	ret = adjust_CM(f, tE[0], tP[0], n->orig_modulus, j);
-	mpz_clear(j);
-    }
-    else{
+    if(found == 0){
 	printf("Unknown discriminant: %d\n", disc);
 	ret = ECM_ERROR;
     }
