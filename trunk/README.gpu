@@ -1,4 +1,4 @@
-This is the README file for  GPU version of GMP-ECM.
+This is the README file for GPU version of GMP-ECM.
 The GPU code will only work with NVIDIA GPU of compute capability greater
 than 2.0.
 
@@ -12,14 +12,14 @@ Table of contents of this file
 
 1. How to enable GPU code in GMP-ECM
 
-By default the GPU code is not enable, to enable it you have to follow the 
+By default the GPU code is not enabled, to enable it you have to follow the 
 instructions of INSTALL-ecm until the 'configure' step. Then add the
 "--enable-gpu" argument to configure:
 	
-  $ ./configure --enable-gpu
+  $ ./configure --enable-gpu [other options]
 
 This will configure the code for NVIDIA GPU of compute capability 2.0. You can
-specify for which compute capability you want to compite the code:
+specify for which compute capability you want to compile the code:
 
   $ ./configure --enable-gpu=sm_20   # for NVIDIA GPU of compute capability 2.0
   or
@@ -27,25 +27,25 @@ specify for which compute capability you want to compite the code:
   or
   $ ./configure --enable-gpu=sm_30   # for NVIDIA GPU of compute capability 3.0
   
-By default, GMP-ECM will look for cuda in /usr/local/cuda, but you can specified
+By default, GMP-ECM will look for cuda in /usr/local/cuda, but you can specify
 an other directory:
 
   $ ./configure --enable-gpu --with-cuda=/PATH/DIR
 
-Some version of CUDA are not compatible with recent version of gcc. To specify
-which C compiler is called by the CUDA compiler nvcc, type:
+Some versions of CUDA are not compatible with recent versions of gcc.
+To specify which C compiler is called by the CUDA compiler nvcc, type:
 
   $ ./configure --enable-gpu --with-cc-for-cuda=/PATH/DIR 
   
-The values of this parameter is directly passed to nvcc via the option
-"--compiler-bindir". By default, GMP-ECM let nvcc chooses what C compiler it
+The value of this parameter is directly passed to nvcc via the option
+"--compiler-bindir". By default, GMP-ECM lets nvcc choose what C compiler it
 uses.
 
 Then, to compile the code, type:
 
   $ make
 
-And to chech that the program works correctly, type:
+And to check that the program works correctly, type:
 
   $ make check
 
@@ -53,18 +53,17 @@ And to chech that the program works correctly, type:
 
 2. Basic Usage
 
-To compute the step 1 of GMP-ECM on GPU, just add the -gpu option:
+To use your GPU for step 1, just add the -gpu option:
 
   $ echo "(2^835+1)/33" | ./ecm -gpu 1e4
 
 It will compute step 1 on the GPU (the number of curves by default cannot be
-changed for now), and then performs step 2 on the CPU (not in parallel).
+changed for now), and then perform step 2 on the CPU (not in parallel).
 
 The only parametrization compatible with GPU code is "-param 3". 
 
 You can save the end of step 1 with "-save" and then load the file to execute
-step 2. But you cannot load the file to continue step 1 with a bigger B1.
+step 2. But you cannot resume to continue step 1 with a bigger B1.
 
 The options "-mpzmod", "-modmuln", "-redc", "-nobase2" and "-base2" have no
-effect on step 1, if the "-gpu" option is activated, but will apply for 
-step 2.
+effect on step 1, if the "-gpu" option is activated, but will apply for step 2.
