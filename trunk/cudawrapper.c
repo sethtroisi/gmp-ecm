@@ -526,6 +526,8 @@ gpu_ecm (mpz_t f, mpz_t x, int *param, mpz_t firstsigma, mpz_t n, mpz_t go,
   set_verbose (0);
   st2 = cputime ();
   
+  P.disc = 0; /* For stage2 this needs to be 0, in order not to use CM stuff */
+
   for (i = 0; i < *nb_curves; i++)
     {
       if (test_verbose (OUTPUT_RESVERBOSE)) 
@@ -561,8 +563,8 @@ gpu_ecm (mpz_t f, mpz_t x, int *param, mpz_t firstsigma, mpz_t n, mpz_t go,
           mpz_clear (t);
         }
   
-        youpi = stage2 (factors[i], &P, modulus, dF, k, &root_params, ECM_ECM, 
-                      use_ntt, TreeFilename, stop_asap);
+        youpi = stage2 (factors[i], &P, modulus, dF, k, &root_params, use_ntt, 
+                        TreeFilename, stop_asap, B2);
 
         if (youpi != ECM_NO_FACTOR_FOUND)
             goto end_gpu_ecm_rhotable;
