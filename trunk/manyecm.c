@@ -914,7 +914,7 @@ prepare_squareroots(mpz_t f, int *tsq, mpz_t sqroots[],
 	q = tabq[iq];
 	qs = (q % 4 == 1 ? q : -q);
 	if(n % q == 0){
-	    printf("# I can find sqrt(%d)\n", qs);
+	    /*	    printf("# I can find sqrt(%d)\n", qs);*/
 	    /* make sure that b^nn = 1 */
 	    nn = (sgn == -1 ? n : 2*n);
 	    ret = odd_square_root_mod_N(f, &status, sqroots+isq, b, nn, q, N);
@@ -1021,7 +1021,7 @@ process_special_blend(mpz_t tf[], int *nf, int *tried,
     tsq[0] = 0;
     ret = prepare_squareroots(tf[0], tsq, sqroots, b, n, sgn, N);
     if(ret != ECM_NO_FACTOR_FOUND)
-	return ret;
+	return conclude_on_factor(N, tf[0], 1);
     mpz_init_set_ui(sq2[0], 1);
     for(i = 0; tabd[i][0] != 0; i++){
 	disc = tabd[i][0];
