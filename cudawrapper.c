@@ -191,6 +191,8 @@ int gpu_ecm_stage1 (mpz_t *factors, int *array_stage_found, mpz_t N, mpz_t s,
     if (array_stage_found[i] != ECM_NO_FACTOR_FOUND)
       {
         youpi = array_stage_found[i];
+        outputf(OUTPUT_RESVERBOSE, "GPU: factor %Zd found with curve %u "
+                "(-sigma 3:%u)\n", factors[i], i, sigma);
       }
     }
   
@@ -445,14 +447,11 @@ gpu_ecm (mpz_t f, mpz_t x, int *param, mpz_t firstsigma, mpz_t n, mpz_t go,
     }
   firstsigma_ui = mpz_get_ui(firstsigma);
 
-  mpz_t y;
-  mpz_init_set_ui (y, 1);
-  print_B1_B2_poly (OUTPUT_NORMAL, ECM_ECM, B1, *B1done,  B2min_parm, B2min, 
+  print_B1_B2_poly (OUTPUT_NORMAL, ECM_ECM, B1, *B1done,  B2min_parm, B2min,
                     B2, S, firstsigma, sigma_is_A, ECM_EC_TYPE_MONTGOMERY,
-		    go, *param, *nb_curves);
+                    go, *param, *nb_curves);
   outputf (OUTPUT_VERBOSE, "dF=%lu, k=%lu, d=%lu, d2=%lu, i0=%Zd\n", 
            dF, k, root_params.d1, root_params.d2, root_params.i0);
-  mpz_clear (y);
 
   if (go != NULL && mpz_cmp_ui (go, 1) > 0)
     {
@@ -521,9 +520,6 @@ gpu_ecm (mpz_t f, mpz_t x, int *param, mpz_t firstsigma, mpz_t n, mpz_t go,
   if (mpz_cmp (B2, B2min) < 0)
       goto end_gpu_ecm_rhotable;
 
-  /* It is a hack to avoid very verbose Step 2 
-    (without it, stage2() prints a least a line by curves)*/
-  set_verbose (0);
   st2 = cputime ();
   
   P.disc = 0; /* For stage2 this needs to be 0, in order not to use CM stuff */
@@ -563,14 +559,18 @@ gpu_ecm (mpz_t f, mpz_t x, int *param, mpz_t firstsigma, mpz_t n, mpz_t go,
           mpz_clear (t);
         }
   
+        /* It is a hack to avoid very verbose Step 2 
+          (without it, stage2() prints a least a line by curves) */
+        if (!test_verbose(OUTPUT_VERBOSE)) 
+          set_verbose (0);
         youpi = stage2 (factors[i], &P, modulus, dF, k, &root_params, use_ntt, 
                         TreeFilename, stop_asap, B2);
+        set_verbose (verbose);
 
         if (youpi != ECM_NO_FACTOR_FOUND)
             goto end_gpu_ecm_rhotable;
     }
 
-  set_verbose (verbose);
   st2 = elltime (st2, cputime ());
   outputf (OUTPUT_NORMAL, "Computing %u Step 2 on CPU took %ldms\n", 
                                                               *nb_curves, st2);
