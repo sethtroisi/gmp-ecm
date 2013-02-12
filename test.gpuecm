@@ -21,7 +21,7 @@
 # http://www.gnu.org/licenses/ or write to the Free Software Foundation, Inc.,
 # 51 Franklin St, Fifth Floor, Boston, MA 02110-1301, USA.
 
-ECM="$1 -gpu"
+ECM="$1 -gpu -gpucurves 1"
 
 # Call with "checkcode $? n" to check that return code is n
 # (see test.pm1 for the explanation of the different return codes)              
@@ -43,13 +43,21 @@ checkcode () {
 # 10     Composite factor found, cofactor is a probable prime
 # 14     Probable prime factor found, cofactor is a probable prime
 
-echo 458903930815802071188998938170281707063809443792768383215233 | $ECM -sigma 3:42 10000
+#test for stage 1 on GPU
+N="458903930815802071188998938170281707063809443792768383215233"
+echo $N | $ECM -sigma 3:227 125 0
 checkcode $? 14
 
-echo "2^349-1" | $ECM -sigma 3:13 587 29383
+#test for stage 1 on GPU
+echo "2^349-1" | $ECM -sigma 3:279 587 0
 checkcode $? 6
 
-echo "2^1018-1" | $ECM -sigma 3:42 1024 0
+#2^1018-1 is the maximun number that can be used
+echo "2^1018-1" | $ECM -sigma 3:92 4 0
 checkcode $? 2
+
+#test for when stage 2 on CPU is needed
+echo "2^349-1" | $ECM -sigma 3:13 587 1261
+checkcode $? 8
 
 echo "All ECM tests with GPU are ok."
