@@ -6,8 +6,7 @@ Instructions to install GMP-ECM:
    Remark: GNU MP is already installed in most Linux distributions.
    However it is often an old version, moreover without processor-specific
    optimizations. If you care about efficiency, be sure to install the
-   latest version of GNU MP (5.0.5 as of May 2012), and to compile it
-   for your particular processor.
+   latest version of GNU MP, and to compile it for your particular processor.
    Warning: make sure you have only one version of GMP installed on your
    system at a given time. Frequently, after compiling GMP from source
    and installing it without removing the distribution's GMP package,
@@ -164,9 +163,9 @@ Step-by-step instructions, courtesy of Jes Hansen:
    Now you get an icon on the desktop where you can start the MinSys. Do
    this, because is creates your home folder. Then exit it again.
 
-4) Download the latest version of GMP (in May 2012 the latest
-   version is 5.0.5, this will be assumed for the rest of this document) 
-   in .tar.gz format from http://gmplib.org/ and place it in your 
+4) Download the latest version of GMP (in February 2013 the latest
+   version is 5.1.1, this will be assumed for the rest of this document) 
+   in .tar.bz2 format from http://gmplib.org/ and place it in your 
    newly created home folder. The home folder is in C:\GNU\msys\home and 
    has the same name as your Windows login name.
 
@@ -174,15 +173,15 @@ Step-by-step instructions, courtesy of Jes Hansen:
    http://ecm.gforge.inria.fr/ and place it in your home folder as well.
 
 6) Start the MinSys up again from the desktop and type 
-   tar -xvzf gmp-5.0.5.tar.gz
+   tar -xvjf gmp-5.0.5.tar.bz2
    cd gmp-5.0.5
    ./configure
    make install
    cd ~
 
 7) You are back in your home directory. Now type
-   tar -xvzf ecm-x.y.z.tar.gz
-   cd ecm-x.y.z
+   tar -xvzf ecm-6.4.4.tar.gz
+   cd ecm-6.4.4
    ./configure --with-gmp=/usr/local
    make
 
@@ -197,7 +196,7 @@ In case of a problem, report it to us, with:
 
 - the versions of GMP-ECM and GMP used (first output line), for example:
   
-  GMP-ECM x.y.z [configured with GMP u.v.w, --enable-asm-redc] [P+1]
+  GMP-ECM 6.4.4 [configured with GMP 5.1.1, --enable-asm-redc] [P+1]
 
 - the detailed input enabling us to reproduce the problem, for example:
 

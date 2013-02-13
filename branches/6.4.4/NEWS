@@ -1,3 +1,6 @@
+Changes between GMP-ECM 6.4.3 and GMP-ECM 6.4.4:
+* Fix to deal with change of semantics of internal GMP functions in GMP 5.1
+
 Changes between GMP-ECM 6.4.2 and GMP-ECM 6.4.3:
 * Fixed bug reported by user "lorgix" on mersenneforum
   (http://www.mersenneforum.org/showpost.php?p=286385&postcount=280)
