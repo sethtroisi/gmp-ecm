@@ -57,11 +57,13 @@ static void REDC (mpres_t, const mpres_t, mpz_t, mpmod_t);
 #define REDC2(rp,cp,np,nn,invm) __gmpn_redc_2(rp,cp,np,nn,invm)
 #else
 #define REDC1(rp,cp,np,nn,invm)                  \
-  if (__gmpn_redc_1 (rp,cp,np,nn,invm))          \
-    mpn_sub_n (rp, rp, np, nn)
+  do {if (__gmpn_redc_1 (rp,cp,np,nn,invm))      \
+    mpn_sub_n (rp, rp, np, nn);                  \
+  } while(0)
 #define REDC2(rp,cp,np,nn,invm)                  \
-  if (__gmpn_redc_2 (rp,cp,np,nn,invm))          \
-    mpn_sub_n (rp, rp, np, nn)
+  do {if (__gmpn_redc_2 (rp,cp,np,nn,invm))      \
+    mpn_sub_n (rp, rp, np, nn);                  \
+  while (0)
 #endif
 
 #if 0 /* PZ: commented out, since I don't see how to use this code.
