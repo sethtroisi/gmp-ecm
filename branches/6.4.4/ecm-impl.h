@@ -76,6 +76,8 @@ extern size_t mpn_mul_lo_threshold[];
 #define __ECM_HAVE_TOKEN_PASTE  0
 #endif
 
+#define ECM_VERSION_NUM(a,b,c) (((a) << 16L) | ((b) << 8) | (c))
+
 #ifndef __ECM
 #if __ECM_HAVE_TOKEN_PASTE
 #define __ECM(x) __ecm_##x

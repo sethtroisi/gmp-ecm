@@ -124,11 +124,11 @@ __GMP_DECLSPEC mp_limb_t __gmpn_add_nc (mp_ptr, mp_srcptr, mp_srcptr,
 #endif
 
 #if defined(HAVE___GMPN_REDC_1)
-  void __gmpn_redc_1 (mp_ptr, mp_ptr, mp_srcptr, mp_size_t, mp_limb_t);
+  mp_limb_t __gmpn_redc_1 (mp_ptr, mp_ptr, mp_srcptr, mp_size_t, mp_limb_t);
 #endif
 
 #if defined(HAVE___GMPN_REDC_2)
-  void __gmpn_redc_2 (mp_ptr, mp_ptr, mp_srcptr, mp_size_t, mp_srcptr);
+  mp_limb_t __gmpn_redc_2 (mp_ptr, mp_ptr, mp_srcptr, mp_size_t, mp_srcptr);
 #endif
 
 #if defined(HAVE___GMPN_REDC_N)
