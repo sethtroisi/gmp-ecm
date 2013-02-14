@@ -184,7 +184,7 @@ print_config ()
 #endif
 
 #ifdef HAVE_SSE2
-  printf ("HAVE_SSE2 = %d\n$", HAVE_SSE2);
+  printf ("HAVE_SSE2 = %d\n", HAVE_SSE2);
 #else
   printf ("HAVE_SSE2 undefined\n");
 #endif
