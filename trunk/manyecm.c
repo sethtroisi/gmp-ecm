@@ -853,7 +853,7 @@ prepare_squareroots_from_powers(mpz_t f, int *tsq,
 	    gmp_printf("# %d^%d = 1 mod %Zd;\n", b, k, N);
 	    if(k % 2 == 1)
 		/* b^(2*r+1) = 1 mod N => (b^(r+1))^2 = b mod N */
-		psb_plus_odd(tsq, sqroots, b, n>>1, N);
+		psb_plus_odd(tsq, sqroots, b, k>>1, N);
 	    else{
 		/* b^(2*r) = 1 */
 		mpz_add_si(tmp2, tmp2, 1);
@@ -985,7 +985,7 @@ process_special_blend(mpz_t tf[], int *nf, int *tried,
 		      double B1, mpz_t B2, 
 		      ecm_params params, char *savefilename)
 {
-    int sgn = 1, disc1 = 0, i;
+    int sgn = 1, i;
     int ret = ECM_NO_FACTOR_FOUND;
     int tabd[][4] = {{-3, -3, 0, 0}, {-4, -4, 0, 0}, {-7, -7, 0, 0}, 
 		     {-8, -8, 0, 0}, {-11, -11, 0, 0},
@@ -1012,7 +1012,7 @@ process_special_blend(mpz_t tf[], int *nf, int *tried,
 		     {0, 0, 0, 0}
     };
     mpz_t sqroots[10], sq2[10];
-    int tsq[10], isq, disc;
+    int tsq[10], disc;
 
     if(n < 0){
 	sgn = -1;
