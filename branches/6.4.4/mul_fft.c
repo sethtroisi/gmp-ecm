@@ -60,13 +60,16 @@ MA 02110-1301, USA. */
    /* Throughout this file, Mp is chosen so that 
       ord_{2^Nprime + 1}(sqrt(2)^Mp) == 2^k */
 
+#include "config.h"
 #include <stdio.h>
 #include <stdlib.h> /* for abort() */
 #include <limits.h> /* for LONG_MAX */
 #include <assert.h>
-#include "config.h"
 #ifdef HAVE_ALLOCA_H
 #include <alloca.h>
+#endif
+#ifdef HAVE_MALLOC_H
+#include <malloc.h>
 #endif
 #include "gmp.h"
 #include "mul_fft-params.h"
