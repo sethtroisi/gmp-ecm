@@ -34,25 +34,35 @@ extern "C" {
 
 #define EC_W_NBUFS 9 /* for Hessian form */
 
+/* More ec forms */
+#define ECM_EC_TYPE_MONTGOMERY 1
+#define ECM_EC_TYPE_WEIERSTRASS 2
+#define ECM_EC_TYPE_HESSIAN 3
+
+/* which type of law used */
+#define ECM_LAW_AFFINE 1
+#define ECM_LAW_HOMOGENEOUS 2
+
 typedef struct
 {
-  int type;                /* using the preceding flags */
+  int type;              
+  int law;
   mpz_t A;               /* for MONTGOMERY: b*y^2=x^3+A*x^2+x 
 			      for WEIERSTRASS*: y^2=x^3+A*x+B
 			      for HESSIAN: U^3+V^3+W^3=3*A*U*V*W */
   mpz_t buf[EC_W_NBUFS]; /* used in the addition laws */
   int disc;                /* in case E is known to have CM by Q(sqrt(disc)) */
   mpz_t sq[10];          /* for CM curves, we might have squareroots */
-} __ec_curve_struct;
-typedef __ec_curve_struct ec_curve_t[1];
+} __ell_curve_struct;
+typedef __ell_curve_struct ell_curve_t[1];
 
 typedef struct
 {
   mpz_t x;
   mpz_t y;
   mpz_t z;
-} __ec_point_struct;
-typedef __ec_point_struct ec_point_t[1];
+} __ell_point_struct;
+typedef __ell_point_struct ell_point_t[1];
 
 typedef struct
 {
@@ -65,7 +75,7 @@ typedef struct
 		     if  0, 'parameter' contains sigma (Montgomery form),
 		     if -1, 'parameter' contains A, and the input curve is in
 		     Weierstrass form y^2 = x^3 + A*x + B, with y in 'go'. */
-  __ec_curve_struct *E;   /* the curve, particularly useful for CM ones */
+  __ell_curve_struct *E;   /* the curve, particularly useful for CM ones */
   mpz_t go;       /* initial group order to preload (if NULL: do nothing),
 		     or y for Weierstrass form if sigma_is_A = -1. */
   double B1done;  /* step 1 was already done up to B1done */
@@ -125,7 +135,7 @@ void ecm_clear (ecm_params);
 /* the following interface is not supported */
 int ecm (mpz_t, mpz_t, mpz_t, int*, mpz_t, mpz_t, mpz_t, double *, double, mpz_t, mpz_t,
          double, unsigned long, int, int, int, int, int, int, 
-	 ec_curve_t,  FILE* os, FILE* es,
+	 ell_curve_t,  FILE* os, FILE* es,
          char*, char *, double, double, gmp_randstate_t, int (*)(void), mpz_t, 
          double *, double, unsigned long, unsigned long, signed long);
 int pp1 (mpz_t, mpz_t, mpz_t, mpz_t, double *, double, mpz_t, mpz_t, 
@@ -157,12 +167,6 @@ int pm1 (mpz_t, mpz_t, mpz_t, mpz_t, double *, double, mpz_t,
 #define ECM_PARAM_BATCH_SQUARE 1
 #define ECM_PARAM_BATCH_2 2
 #define ECM_PARAM_BATCH_32BITS_D 3
-
-/* More ec forms */
-#define ECM_EC_TYPE_MONTGOMERY 1
-#define ECM_EC_TYPE_WEIERSTRASS_AFF 2
-#define ECM_EC_TYPE_WEIERSTRASS_HOM 3
-#define ECM_EC_TYPE_HESSIAN 4
 
 /* stage 2 bound */
 #define ECM_DEFAULT_B2 -1

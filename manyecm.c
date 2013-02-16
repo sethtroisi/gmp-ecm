@@ -27,7 +27,7 @@
  */
 int
 process_one_curve(mpz_t f, mpz_t N, double B1, mpz_t B2,
-		  ecm_params params, ec_curve_t E, ec_point_t P)
+		  ecm_params params, ell_curve_t E, ell_point_t P)
 {
     int ret;
     double B2scale = 1.0;
@@ -101,7 +101,7 @@ conclude_on_factor(mpz_t N, mpz_t f, int verbose)
 
 /* f is a (probable) prime factor of n. tP is in plain mod n form. */
 void
-dump_curves(ec_curve_t *tE, ec_point_t *tP, int nE, mpz_t f)
+dump_curves(ell_curve_t *tE, ell_point_t *tP, int nE, mpz_t f)
 {
     int i;
 
@@ -149,8 +149,7 @@ dump_curves(ec_curve_t *tE, ec_point_t *tP, int nE, mpz_t f)
 	    mpmod_clear(fmod);
 	    mpz_clear(tmp);
 	}
-	else if(tE[i]->type == ECM_EC_TYPE_WEIERSTRASS_AFF
-		|| tE[i]->type == ECM_EC_TYPE_WEIERSTRASS_HOM){
+	else if(tE[i]->type == ECM_EC_TYPE_WEIERSTRASS){
 	    gmp_printf("P[%d]:=[%Zd, %Zd, %Zd];\n", i+1, 
 		       tP[i]->x, tP[i]->y, tP[i]->z); 
 	    gmp_printf("A[%d]:=%Zd;\n", i+1, tE[i]->A);
@@ -168,7 +167,7 @@ dump_curves(ec_curve_t *tE, ec_point_t *tP, int nE, mpz_t f)
 
 /* TODO: better control of B2 + dichotomy (cf. #B2) */
 int
-one_curve_at_a_time(mpz_t f, char *ok, ec_curve_t *tE, ec_point_t *tP, int nE,
+one_curve_at_a_time(mpz_t f, char *ok, ell_curve_t *tE, ell_point_t *tP, int nE,
 		    mpz_t N, ecm_params params, double B1, mpz_t B2,
 		    char *savefilename)
 {
@@ -280,11 +279,11 @@ one_curve_at_a_time(mpz_t f, char *ok, ec_curve_t *tE, ec_point_t *tP, int nE,
    Copied from classical ecm_stage1.
  */
 int
-all_curves_at_once(mpz_t f, char *ok, ec_curve_t *tE, ec_point_t *tP, int nE,
+all_curves_at_once(mpz_t f, char *ok, ell_curve_t *tE, ell_point_t *tP, int nE,
 		   mpmod_t n, double B1, double *B1done, 
 		   int (*stop_asap)(void), char *chkfilename)
 {
-    ec_point_t tQ[NCURVE_MAX], tR[NCURVE_MAX];
+    ell_point_t tQ[NCURVE_MAX], tR[NCURVE_MAX];
     mpz_t num[NCURVE_MAX+1], den[NCURVE_MAX+1], inv[NCURVE_MAX], e;
     double p = 0.0, r, last_chkpnt_p;
     int ret = ECM_NO_FACTOR_FOUND;
@@ -420,11 +419,11 @@ read_and_prepare(mpz_t f, mpz_t x, mpq_t q, char *buf, mpz_t n)
 */
 int
 process_many_curves(mpz_t f, mpmod_t n, double B1, mpz_t B2,
-		    ec_curve_t *tE, ec_point_t *tP, int nE, 
+		    ell_curve_t *tE, ell_point_t *tP, int nE, 
 		    ecm_params params, int onebyone, char *savefilename)
 {
     double B1done;
-    ec_point_t tQ[NCURVE_MAX];
+    ell_point_t tQ[NCURVE_MAX];
     char *ok = (char *)malloc(nE * sizeof(char));
     int ret = 0, i;
     long st = cputime ();
@@ -438,8 +437,8 @@ process_many_curves(mpz_t f, mpmod_t n, double B1, mpz_t B2,
     }
     /* take everybody */
     for(i = 0; i < nE; i++){
-	ec_point_init(tQ[i], tE[i], n);
-	ec_point_set(tQ[i], tP[i], tE[i], n);
+	ell_point_init(tQ[i], tE[i], n);
+	ell_point_set(tQ[i], tP[i], tE[i], n);
     }
     B1done = 1.0;
     ret = all_curves_at_once(f, ok, tE, tQ, nE, n, B1, &B1done, NULL, NULL);
@@ -477,13 +476,13 @@ process_many_curves(mpz_t f, mpmod_t n, double B1, mpz_t B2,
 	}
     }
     for(i = 0; i < nE; i++)
-	ec_point_clear(tQ[i], tE[i], n);
+	ell_point_clear(tQ[i], tE[i], n);
     free(ok);
     return ret;
 }
 
 int
-read_curves_from_file(int *nE, ec_curve_t *tE, ec_point_t *tP, 
+read_curves_from_file(int *nE, ell_curve_t *tE, ell_point_t *tP, 
 		      mpz_t *tf, int *nf,
 		      mpmod_t n, char *fic_EP, int ncurves)
 {
@@ -505,11 +504,12 @@ read_curves_from_file(int *nE, ec_curve_t *tE, ec_point_t *tP,
 	}
 	else
 	    Etype = bufA[0];
-	ec_curve_init(tE[*nE], ECM_EC_TYPE_WEIERSTRASS_AFF, n);
+	ell_curve_init(tE[*nE],ECM_EC_TYPE_WEIERSTRASS,ECM_LAW_HOMOGENEOUS,n);
 	if(Etype == 'W'){
 	    if(fscanf(ifile, "%s %s %s", bufA, bufx, bufy) == EOF)
 		break;
-	    tE[*nE]->type = ECM_EC_TYPE_WEIERSTRASS_HOM;
+	    tE[*nE]->type = ECM_EC_TYPE_WEIERSTRASS;
+	    tE[*nE]->law = ECM_LAW_AFFINE;
 	}
 	else if(Etype == 'H'){
 	    if(fscanf(ifile, "%s %s %s", bufA, bufx, bufy) == EOF)
@@ -531,7 +531,7 @@ read_curves_from_file(int *nE, ec_curve_t *tE, ec_point_t *tP,
 	    *nf += 1;
 	    goto process_end;
 	}
-	ec_point_init(tP[*nE], tE[*nE], n);
+	ell_point_init(tP[*nE], tE[*nE], n);
 	mpz_init(tP[*nE]->x);
 	if(read_and_prepare(tf[*nf], tP[*nE]->x, q, bufx, n->orig_modulus) == 0){
 	    ret = 0;
@@ -561,7 +561,7 @@ read_curves_from_file(int *nE, ec_curve_t *tE, ec_point_t *tP,
    in interval [smin..smax].
 */
 int
-build_curves_with_torsion(mpz_t f, mpmod_t n, ec_curve_t *tE, ec_point_t *tP,
+build_curves_with_torsion(mpz_t f, mpmod_t n, ell_curve_t *tE, ell_point_t *tP,
 			  char *torsion, int smin, int smax, int nE)
 {
     int ret = 0;
@@ -619,8 +619,8 @@ process_many_curves_loop(mpz_t tf[], int *nf, mpz_t n, double B1, mpz_t B2,
 			 int disc, mpz_t *sqroots,
 			 char *savefilename)
 {
-    ec_curve_t tE[NCURVE_MAX];
-    ec_point_t tP[NCURVE_MAX];
+    ell_curve_t tE[NCURVE_MAX];
+    ell_point_t tP[NCURVE_MAX];
     mpmod_t modulus;
     int ret = 0, i, onebyone;
 
@@ -647,8 +647,8 @@ process_many_curves_loop(mpz_t tf[], int *nf, mpz_t n, double B1, mpz_t B2,
 	}
 	/* clear curves */
 	for(i = 0; i < nE; i++){
-	    ec_point_clear(tP[i], tE[i], modulus);
-	    ec_curve_clear(tE[i], modulus);
+	    ell_point_clear(tP[i], tE[i], modulus);
+	    ell_curve_clear(tE[i], modulus);
 	}
 	mpmod_clear(modulus);
 	/* inspect result */

@@ -28,7 +28,7 @@ http://www.gnu.org/licenses/ or write to the Free Software Foundation, Inc.,
 void
 ecm_init (ecm_params q)
 {
-  __ec_curve_struct *ptrE = (__ec_curve_struct *)malloc(sizeof(__ec_curve_struct));
+  __ell_curve_struct *ptrE = (__ell_curve_struct *)malloc(sizeof(__ell_curve_struct));
 
   q->method = ECM_ECM; /* default method */
   mpz_init_set_ui (q->x, 0);

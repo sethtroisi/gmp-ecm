@@ -21,7 +21,7 @@
 #define DEBUG_CMECM 0
 
 static int
-adjust_CM(mpz_t f, ec_curve_t E, ec_point_t P, mpz_t N, mpz_t j)
+adjust_CM(mpz_t f, ell_curve_t E, ell_point_t P, mpz_t N, mpz_t j)
 {
     mpz_t k;
     long x0;
@@ -53,15 +53,15 @@ adjust_CM(mpz_t f, ec_curve_t E, ec_point_t P, mpz_t N, mpz_t j)
 
 /* Curves are built mod N, not in nres */
 int
-build_curves_with_CM(mpz_t f, int *nE, ec_curve_t *tE, ec_point_t *tP, 
+build_curves_with_CM(mpz_t f, int *nE, ell_curve_t *tE, ell_point_t *tP, 
 		     int disc, mpmod_t n, mpz_t *sqroots)
 {
     mpz_t j, tmp;
     long x0;
     int i, ret = ECM_NO_FACTOR_FOUND, imax, found = 0;
 
-    ec_curve_init(tE[0], ECM_EC_TYPE_WEIERSTRASS_AFF, n);
-    ec_point_init(tP[0], tE[0], n);
+    ell_curve_init(tE[0], ECM_EC_TYPE_WEIERSTRASS, ECM_LAW_AFFINE, n);
+    ell_point_init(tP[0], tE[0], n);
     tE[0]->disc = disc;
     mpz_init_set_ui(tE[0]->sq[0], 1);
     *nE = 1;
@@ -73,11 +73,13 @@ build_curves_with_CM(mpz_t f, int *nE, ec_curve_t *tE, ec_point_t *tP,
 	imax = (sqroots == NULL ? 1 : 6);
 
 	for(i = 0; i < imax; i++){
-	    if(i == 0)
-		tE[i]->type = ECM_EC_TYPE_WEIERSTRASS_HOM;
+	    if(i == 0){
+		tE[i]->type = ECM_EC_TYPE_WEIERSTRASS;
+		tE[i]->law = ECM_LAW_HOMOGENEOUS;
+	    }
 	    else{
-		ec_curve_init(tE[i], ECM_EC_TYPE_WEIERSTRASS_HOM, n);
-		ec_point_init(tP[i], tE[i], n);
+		ell_curve_init(tE[i], ECM_EC_TYPE_WEIERSTRASS, ECM_LAW_HOMOGENEOUS, n);
+		ell_point_init(tP[i], tE[i], n);
 	    }
 	    mpz_set_ui(tE[i]->A, 0);
 	    tE[i]->disc = -3;
@@ -135,11 +137,13 @@ build_curves_with_CM(mpz_t f, int *nE, ec_curve_t *tE, ec_point_t *tP,
 	imax = (sqroots == NULL ? 1 : 4);
 
 	for(i = 0; i < imax; i++){
-	    if(i == 0)
-		tE[i]->type = ECM_EC_TYPE_WEIERSTRASS_HOM;
+	    if(i == 0){
+		tE[i]->type = ECM_EC_TYPE_WEIERSTRASS;
+		tE[i]->law = ECM_LAW_HOMOGENEOUS;
+	    }
 	    else{
-		ec_curve_init(tE[i], ECM_EC_TYPE_WEIERSTRASS_HOM, n);
-		ec_point_init(tP[i], tE[i], n);
+		ell_curve_init(tE[i], ECM_EC_TYPE_WEIERSTRASS, ECM_LAW_HOMOGENEOUS, n);
+		ell_point_init(tP[i], tE[i], n);
 	    }
 	    tE[i]->disc = -4;
 	}
@@ -177,8 +181,8 @@ build_curves_with_CM(mpz_t f, int *nE, ec_curve_t *tE, ec_point_t *tP,
 #endif
 			   {0, 0, 0}};
 	for(i = 0; data4[i][0] != 0; i++){
-	    ec_curve_init(tE[i], ECM_EC_TYPE_MONTGOMERY, n);
-	    ec_point_init(tP[i], tE[i], n);
+	    ell_curve_init(tE[i], ECM_EC_TYPE_MONTGOMERY, ECM_LAW_HOMOGENEOUS, n);
+	    ell_point_init(tP[i], tE[i], n);
 	    tE[i]->disc = -4;
 	    mpz_init_set_ui(tE[i]->sq[0], 1);
 	    /* compute abscissa of generator in Montgomery form */
@@ -212,7 +216,8 @@ build_curves_with_CM(mpz_t f, int *nE, ec_curve_t *tE, ec_point_t *tP,
 
 	for(i1 = 0; h1_data[i1][0] != 0; i1++){
 	    if(h1_data[i1][0] == disc){
-		tE[0]->type = ECM_EC_TYPE_WEIERSTRASS_HOM;
+		tE[0]->type = ECM_EC_TYPE_WEIERSTRASS;
+		tE[0]->law = ECM_LAW_HOMOGENEOUS;
 		mpz_set_si(tE[0]->A, h1_data[i1][1]);
 		mpz_set_si(tP[0]->x, h1_data[i1][3]);
 		mpz_set_si(tP[0]->y, h1_data[i1][4]);
@@ -237,7 +242,8 @@ build_curves_with_CM(mpz_t f, int *nE, ec_curve_t *tE, ec_point_t *tP,
 	    if(h2_data[i2][0] == disc){
 		/* it must be that sqroots[0] contains sqrt(q1) mod N */
 		/* j = (a0+a1*sqrt(q1))/den */
-		tE[0]->type = ECM_EC_TYPE_WEIERSTRASS_HOM;
+		tE[0]->type = ECM_EC_TYPE_WEIERSTRASS;
+		tE[0]->type = ECM_LAW_HOMOGENEOUS;
 		mpz_set(tE[0]->sq[0], sqroots[0]);
 		mpz_init_set_si(j, h2_data[i2][4]);
 		mpz_mul(j, j, sqroots[0]);
@@ -276,13 +282,13 @@ build_curves_with_CM(mpz_t f, int *nE, ec_curve_t *tE, ec_point_t *tP,
    where umax = sqrt(cof*B2-d*vmin^2), vmax = sqrt((cof*B2-umin^2)/d).
 */
 static
-int LoopCM(mpz_t f, ec_curve_t E, ec_point_t P, ec_point_t Q,
+int LoopCM(mpz_t f, ell_curve_t E, ell_point_t P, ell_point_t Q,
 	   mpmod_t modulus, mpz_t B2, int cof, int d, mpres_t omega,
 	   unsigned long umin, unsigned long du,
 	   unsigned long vmin, unsigned long dv)
 {
     int ret = ECM_NO_FACTOR_FOUND, compute_uP = 1;
-    ec_point_t uP, duP, vQ, dvQ;
+    ell_point_t uP, duP, vQ, dvQ;
     mpz_ptr xtv, ztv; /* suboptimal? */
     mpz_t tmp, xu, zu, tmp2, omega5;
     long tp = cputime();
@@ -319,33 +325,33 @@ int LoopCM(mpz_t f, ec_curve_t E, ec_point_t P, ec_point_t Q,
     nv = 1 + ((vmax-vmin)/dv);
     xtv = (mpz_ptr)malloc(nv * sizeof(__mpz_struct));
     ztv = (mpz_ptr)malloc(nv * sizeof(__mpz_struct));
-    ec_point_init(vQ, E, modulus);
+    ell_point_init(vQ, E, modulus);
     mpz_set_ui(tmp, vmin);
-    ec_point_mul(vQ, tmp, Q, E, modulus);
-    ec_point_init(dvQ, E, modulus);
+    ell_point_mul(vQ, tmp, Q, E, modulus);
+    ell_point_init(dvQ, E, modulus);
     mpz_set_ui(tmp, dv);
-    ec_point_mul(dvQ, tmp, Q, E, modulus);
+    ell_point_mul(dvQ, tmp, Q, E, modulus);
     for(v = vmin, iv = 0; v <= vmax; v += dv, iv++){
 	mpz_init(xtv+iv);
 	mpres_get_z(xtv+iv, vQ->x, modulus);
 	mpz_init(ztv+iv);
 	mpres_get_z(ztv+iv, vQ->z, modulus);
-	ec_point_add(vQ, vQ, dvQ, E, modulus);
+	ell_point_add(vQ, vQ, dvQ, E, modulus);
     }
-    ec_point_clear(vQ, E, modulus);
-    ec_point_clear(dvQ, E, modulus);
+    ell_point_clear(vQ, E, modulus);
+    ell_point_clear(dvQ, E, modulus);
     printf("# computing %lu (// %lu) additions: %ldms\n", iv, nv,
 	   elltime(tp, cputime()));
 
     /* compute all uP */
     tp = cputime();
     compute_uP = !(d == 3 && du == 1 && dv == 1);
-    ec_point_init(uP, E, modulus);
+    ell_point_init(uP, E, modulus);
     mpz_set_ui(tmp, umin);
-    ec_point_mul(uP, tmp, P, E, modulus);
-    ec_point_init(duP, E, modulus);
+    ell_point_mul(uP, tmp, P, E, modulus);
+    ell_point_init(duP, E, modulus);
     mpz_set_ui(tmp, du);
-    ec_point_mul(duP, tmp, P, E, modulus);
+    ell_point_mul(duP, tmp, P, E, modulus);
     if(compute_uP == 0){
 	/* omega5 = omega^5 = 1/omega */
 	mpz_init(omega5);
@@ -386,7 +392,7 @@ int LoopCM(mpz_t f, ec_curve_t E, ec_point_t P, ec_point_t Q,
 	    mpz_sub(tmp, tmp, tmp2);
 	    if(mpz_sgn(tmp) == 0){
 		printf("[%ld]P = [%ld]Q?\n", u, v);
-		ec_curve_print(E, modulus);
+		ell_curve_print(E, modulus);
 		exit(-1);
 	    }
 	    mpz_mul(f, f, tmp);
@@ -399,19 +405,19 @@ int LoopCM(mpz_t f, ec_curve_t E, ec_point_t P, ec_point_t Q,
 	    break;
 	}
 	if(compute_uP || u > vmax)
-	    ec_point_add(uP, uP, duP, E, modulus);
+	    ell_point_add(uP, uP, duP, E, modulus);
 	if(compute_uP == 0 && u == (vmax+1)){
 	    /* compute next point */
 	    mpz_set_ui(tmp, vmax+1);
-	    ec_point_mul(uP, tmp, P, E, modulus);
+	    ell_point_mul(uP, tmp, P, E, modulus);
 	}
     }
     mpz_clear(xu);
     mpz_clear(zu);
     mpz_clear(tmp);
     mpz_clear(tmp2);
-    ec_point_clear(uP, E, modulus);
-    ec_point_clear(duP, E, modulus);
+    ell_point_clear(uP, E, modulus);
+    ell_point_clear(duP, E, modulus);
     if(compute_uP == 0)
 	mpz_clear(omega5);
     for(v = vmin, iv = 0; v <= vmax; v += dv, iv++){
@@ -425,16 +431,16 @@ int LoopCM(mpz_t f, ec_curve_t E, ec_point_t P, ec_point_t Q,
 }
 
 /* Testing CM stage2 in a very naive way, for the time being. */
-int stage2_CM(mpz_t f, ec_curve_t E, ec_point_t P, mpmod_t modulus, 
+int stage2_CM(mpz_t f, ell_curve_t E, ell_point_t P, mpmod_t modulus, 
 	      unsigned long dF, mpz_t B2, ATTRIBUTE_UNUSED mpz_t B2min)
 {
     int ret = ECM_NO_FACTOR_FOUND;
-    ec_point_t Q;
+    ell_point_t Q;
     mpz_t tmp;
     unsigned long umin, du, vmin, dv;
     mpres_t omega;
 
-    printf("PE:="); ec_point_print(P, E, modulus); printf(";\n");
+    printf("PE:="); ell_point_print(P, E, modulus); printf(";\n");
     if (dF == 0)
 	return ECM_NO_FACTOR_FOUND;
 
@@ -458,7 +464,7 @@ int stage2_CM(mpz_t f, ec_curve_t E, ec_point_t P, mpmod_t modulus,
 	gmp_printf("N:=%Zd;\n", modulus->orig_modulus);
 	printf("zeta3:=");print_mpz_from_mpres(E->sq[0],modulus);printf(";\n");
 #endif
-	ec_point_init(Q, E, modulus);
+	ell_point_init(Q, E, modulus);
 	mpres_mul(Q->x, P->x, omega, modulus);
 	mpres_set(Q->y, P->y, modulus);
 	mpres_set_ui(Q->z, 1, modulus);
@@ -468,7 +474,7 @@ int stage2_CM(mpz_t f, ec_curve_t E, ec_point_t P, mpmod_t modulus,
 	    /* 2nd case: u^2+3*v^2 <= 4*B2, u and v odd */
 	    /* we can easily compute [v][omega]P as [omega]([v]P) */
 	}
-	ec_point_clear(Q, E, modulus);
+	ell_point_clear(Q, E, modulus);
 	mpres_clear(omega, modulus);
     }
     else if(E->disc == -4){
@@ -479,12 +485,12 @@ int stage2_CM(mpz_t f, ec_curve_t E, ec_point_t P, mpmod_t modulus,
 	dv = 2;
 
 	/* Q = [zeta4](P) = [-P.x, zeta4*P.y, 1] */
-	ec_point_init(Q, E, modulus);
+	ell_point_init(Q, E, modulus);
 	mpres_neg(Q->x, P->x, modulus);
 	mpres_mul(Q->y, P->y, E->sq[0], modulus);
 	mpres_set_ui(Q->z, 1, modulus);
 	ret = LoopCM(f,E,P,Q,modulus,B2,1,1,E->sq[0],umin,du,vmin,dv);
-	ec_point_clear(Q, E, modulus);
+	ell_point_clear(Q, E, modulus);
     }
     else{
 	printf("# stage2_CM not ready for disc=%d\n", E->disc);
@@ -577,26 +583,26 @@ set_stage2_params_CM(unsigned long *pdF, unsigned long *pk, mpz_t B2, int disc)
 
 /* F[i] <- ([kmin+i*dk]P)_x for 0 <= i < dF. */
 int all_multiples(mpz_t f, listz_t F, unsigned long dF, 
-		  ec_curve_t E, ec_point_t P, mpmod_t modulus,
+		  ell_curve_t E, ell_point_t P, mpmod_t modulus,
 		  unsigned long kmin, unsigned long dk)
 {
     int ret = ECM_NO_FACTOR_FOUND;
-    ec_point_t kP, dkP;
+    ell_point_t kP, dkP;
     unsigned long k, ik;
     mpz_t tmp;
 
     mpz_init(tmp);
-    ec_point_init(kP, E, modulus);
+    ell_point_init(kP, E, modulus);
     mpz_set_ui(tmp, kmin);
-    if(ec_point_mul(kP, tmp, P, E, modulus) == 0){
+    if(ell_point_mul(kP, tmp, P, E, modulus) == 0){
 	printf("# factor found at strange place 1\n");
 	mpz_set(f, kP->x);
 	ret = ECM_FACTOR_FOUND_STEP2;
 	goto end_of_all_multiples;
     }
-    ec_point_init(dkP, E, modulus);
+    ell_point_init(dkP, E, modulus);
     mpz_set_ui(tmp, dk);
-    if(ec_point_mul(dkP, tmp, P, E, modulus) == 0){
+    if(ell_point_mul(dkP, tmp, P, E, modulus) == 0){
 	printf("# factor found at strange place 2\n");
 	mpz_set(f, dkP->x);
 	ret = ECM_FACTOR_FOUND_STEP2;
@@ -606,20 +612,20 @@ int all_multiples(mpz_t f, listz_t F, unsigned long dF,
 	/* F[ik] <= kP_x */
 #if 0
 	if(k == 4570){
-	    printf("[4570]*[i]*P="); ec_point_print(kP, E, modulus); printf("\n");
+	    printf("[4570]*[i]*P="); ell_point_print(kP, E, modulus); printf("\n");
 	}
 #endif
 	mpres_get_z(F[ik], kP->x, modulus);
-	if(ec_point_add(kP, kP, dkP, E, modulus) == 0){
+	if(ell_point_add(kP, kP, dkP, E, modulus) == 0){
 	    printf("# factor found when adding dkP for k=%ld\n", k);
 	    mpz_set(f, kP->x);
 	    ret = ECM_FACTOR_FOUND_STEP2;
 	    break;
 	}
     }
-    ec_point_clear(dkP, E, modulus);
+    ell_point_clear(dkP, E, modulus);
  end_of_all_multiples:
-    ec_point_clear(kP, E, modulus);
+    ell_point_clear(kP, E, modulus);
     mpz_clear(tmp);
     return ret;
 }
@@ -658,7 +664,7 @@ mpres_eval_diff(mpres_t y, long* coeffs, mpres_t x, mpmod_t modulus)
 }
 
 int
-eval_CM_mult(ec_point_t omegaP, ec_point_t P, long *num, long *den,
+eval_CM_mult(ell_point_t omegaP, ell_point_t P, long *num, long *den,
 	     mpz_t sq[], mpmod_t modulus)
 {
     int ret = 1;
@@ -710,7 +716,7 @@ eval_CM_mult(ec_point_t omegaP, ec_point_t P, long *num, long *den,
 }
 
 int
-apply_CM(ec_point_t omegaP, int disc, mpz_t sq[], ec_point_t P, mpmod_t modulus)
+apply_CM(ell_point_t omegaP, int disc, mpz_t sq[], ell_point_t P, mpmod_t modulus)
 {
     int ret = 1;
 
@@ -746,19 +752,19 @@ int ecm_rootsF_CM(mpz_t f, listz_t F, unsigned long dF, curve *C,
 {
     int ret = ECM_NO_FACTOR_FOUND;
     long tp;
-    ec_curve_t E;
-    ec_point_t P, omegaP;
+    ell_curve_t E;
+    ell_point_t P, omegaP;
     unsigned long vmin = 1, dv = 1;
 
 #if 0
     printf("# Entering ecm_rootsF_CM with disc=%d dF=%ld\n", C->disc, dF);
 #endif
-    ec_curve_init(E, ECM_EC_TYPE_WEIERSTRASS_AFF, modulus);
+    ell_curve_init(E, ECM_EC_TYPE_WEIERSTRASS, ECM_LAW_AFFINE, modulus);
     mpres_set(E->A, C->A, modulus);
-    ec_point_init(P, E, modulus);
+    ell_point_init(P, E, modulus);
     mpres_set(P->x, C->x, modulus);
     mpres_set(P->y, C->y, modulus);
-    ec_point_init(omegaP, E, modulus);
+    ell_point_init(omegaP, E, modulus);
     tp = cputime();
     if(C->disc == -3 || C->disc == -4){
 #if CMECM_FAST == 0
@@ -776,9 +782,9 @@ int ecm_rootsF_CM(mpz_t f, listz_t F, unsigned long dF, curve *C,
 	ret = all_multiples(f, F, dF, E, omegaP, modulus, vmin, dv);
     }
     printf("# computing %ld ec_adds: %ldms\n", dF, elltime(tp, cputime()));
-    ec_point_clear(omegaP, E, modulus);
-    ec_point_clear(P, E, modulus);
-    ec_curve_clear(E, modulus);
+    ell_point_clear(omegaP, E, modulus);
+    ell_point_clear(P, E, modulus);
+    ell_curve_clear(E, modulus);
     return ret;
 }
 
@@ -789,8 +795,8 @@ ecm_rootsG_init_CM (mpz_t f, curve *X, root_params_t *root_params,
 {
     ecm_roots_state_t *state;
     progression_params_t *params; /* for less typing */
-    ec_curve_t E;
-    ec_point_t P, duP;
+    ell_curve_t E;
+    ell_point_t P, duP;
     unsigned long umin = 1, du = 1, k;
     mpz_t tmp;
     
@@ -835,10 +841,10 @@ ecm_rootsG_init_CM (mpz_t f, curve *X, root_params_t *root_params,
     }
     
     /* conversions */
-    ec_curve_init(E, ECM_EC_TYPE_WEIERSTRASS_AFF, modulus);
+    ell_curve_init(E, ECM_EC_TYPE_WEIERSTRASS, ECM_LAW_AFFINE, modulus);
     mpres_set(E->A, X->A, modulus);
-    ec_point_init(P, E, modulus);
-    ec_point_init(duP, E, modulus);
+    ell_point_init(P, E, modulus);
+    ell_point_init(duP, E, modulus);
 
     mpres_set(P->x, X->x, modulus);
     mpres_set(P->y, X->y, modulus);
@@ -846,19 +852,19 @@ ecm_rootsG_init_CM (mpz_t f, curve *X, root_params_t *root_params,
 
     /* fd[0] <- [umin]*P */
     mpz_init_set_ui(tmp, umin);
-    ec_point_mul(duP, tmp, P, E, modulus);
+    ell_point_mul(duP, tmp, P, E, modulus);
     mpres_set(state->fd[0].x, duP->x, modulus);
     mpres_set(state->fd[0].y, duP->y, modulus);
 
     /* fd[1] <- [du]*P */
     mpz_set_ui(tmp, du);
-    ec_point_mul(duP, tmp, P, E, modulus);
+    ell_point_mul(duP, tmp, P, E, modulus);
     mpres_set(state->fd[1].x, duP->x, modulus);
     mpres_set(state->fd[1].y, duP->y, modulus);
 
-    ec_point_clear(P, E, modulus);
-    ec_point_clear(duP, E, modulus);
-    ec_curve_clear(E, modulus);
+    ell_point_clear(P, E, modulus);
+    ell_point_clear(duP, E, modulus);
+    ell_curve_clear(E, modulus);
     mpz_clear(tmp);
     return state;
 }
@@ -871,16 +877,16 @@ int
 ecm_rootsG_CM (mpz_t f, listz_t G, unsigned long dF, ecm_roots_state_t *state, 
 	       mpmod_t modulus)
 {
-    ec_curve_t E;
-    ec_point_t uP, duP;
+    ell_curve_t E;
+    ell_point_t uP, duP;
     unsigned long i;
     int ret = ECM_NO_FACTOR_FOUND;
 
     /* conversions */
-    ec_curve_init(E, ECM_EC_TYPE_WEIERSTRASS_AFF, modulus);
+    ell_curve_init(E, ECM_EC_TYPE_WEIERSTRASS, ECM_LAW_AFFINE, modulus);
     mpres_set(E->A, state->X->A, modulus);
-    ec_point_init(uP, E, modulus);
-    ec_point_init(duP, E, modulus);
+    ell_point_init(uP, E, modulus);
+    ell_point_init(duP, E, modulus);
 
     mpres_set(uP->x, state->fd[0].x, modulus);
     mpres_set(uP->y, state->fd[0].y, modulus);
@@ -892,7 +898,7 @@ ecm_rootsG_CM (mpz_t f, listz_t G, unsigned long dF, ecm_roots_state_t *state,
 
     for(i = 0; i < dF; i++){
 	mpres_get_z(G[i], uP->x, modulus);
-	if(ec_point_add(uP, uP, duP, E, modulus) == 0){
+	if(ell_point_add(uP, uP, duP, E, modulus) == 0){
 	    printf("# factor found for i=%ld\n", i);
 	    mpz_set(f, uP->x);
 	    ret = ECM_FACTOR_FOUND_STEP2;
@@ -904,9 +910,9 @@ ecm_rootsG_CM (mpz_t f, listz_t G, unsigned long dF, ecm_roots_state_t *state,
     mpres_set(state->fd[0].x, uP->x, modulus);
     mpres_set(state->fd[0].y, uP->y, modulus);
 
-    ec_point_clear(uP, E, modulus);
-    ec_point_clear(duP, E, modulus);
-    ec_curve_clear(E, modulus);
+    ell_point_clear(uP, E, modulus);
+    ell_point_clear(duP, E, modulus);
+    ell_curve_clear(E, modulus);
     return ret;
 }
 

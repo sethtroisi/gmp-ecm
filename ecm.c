@@ -646,51 +646,51 @@ ecm_stage1 (mpz_t f, mpres_t x, mpres_t A, mpmod_t n, double B1,
            ECM_NO_FACTOR_FOUND
 */
 static int
-ecm_stage1_W (mpz_t f, ec_curve_t E, ec_point_t P, mpmod_t n, 
+ecm_stage1_W (mpz_t f, ell_curve_t E, ell_point_t P, mpmod_t n, 
 	      double B1, double *B1done, mpz_t batch_s, mpz_t go, 
 	      int (*stop_asap)(void), char *chkfilename)
 {
     mpres_t xB;
-    ec_point_t Q;
+    ell_point_t Q;
     double p = 0.0, r, last_chkpnt_p;
     int ret = ECM_NO_FACTOR_FOUND;
     long last_chkpnt_time;
     
     mpres_init (xB, n);
 
-    ec_point_init(Q, E, n);
+    ell_point_init(Q, E, n);
     
     last_chkpnt_time = cputime ();
 
 #if DEBUG_EC_W >= 3
-    ec_curve_print(E, n);
-    printf("P:="); ec_point_print(P, E, n); printf(";\n");
+    ell_curve_print(E, n);
+    printf("P:="); ell_point_print(P, E, n); printf(";\n");
 #endif
     /* preload group order */
     if (go != NULL){
-	if (ec_point_mul (Q, go, P, E, n) == 0){
+	if (ell_point_mul (Q, go, P, E, n) == 0){
 	    mpz_set (f, Q->x);
 	    ret = ECM_FACTOR_FOUND_STEP1;
 	    goto end_of_stage1_w;
         }
-	ec_point_set(P, Q, E, n);
+	ell_point_set(P, Q, E, n);
     }
 #if DEBUG_EC_W >= 1
     gmp_printf("go:=%Zd;\n", go);
-    printf("goP:="); ec_point_print(P, E, n); printf(";\n");
+    printf("goP:="); ell_point_print(P, E, n); printf(";\n");
 #endif
     if(mpz_cmp_ui(batch_s, 1) == 0){
 	/* traditional approach: obsolete? */
 	for (r = 2.0; r <= B1; r *= 2.0)
 	    if (r > *B1done){
-		if(ec_point_duplicate (Q, P, E, n) == 0){
+		if(ell_point_duplicate (Q, P, E, n) == 0){
 		    mpz_set(f, Q->x);
 		    ret = ECM_FACTOR_FOUND_STEP1;
 		    goto end_of_stage1_w;
 		}
-		ec_point_set(P, Q, E, n);
+		ell_point_set(P, Q, E, n);
 #if DEBUG_EC_W >= 1
-		printf("P%ld:=", (long)r); ec_point_print(P, E, n); printf(";\n");
+		printf("P%ld:=", (long)r); ell_point_print(P, E, n); printf(";\n");
 		printf("Q:=EcmMult(2, Q, E, N);\n");
 		printf("(Q[1]*P%ld[3]-Q[3]*P%ld[1]) mod N;\n",(long)r,(long)r);
 #endif
@@ -701,20 +701,20 @@ ecm_stage1_W (mpz_t f, ec_curve_t E, ec_point_t P, mpmod_t n,
 	    mpz_set_ui(f, (ecm_uint)p);
 	    for (r = p; r <= B1; r *= p){
 		if (r > *B1done){
-		    if(ec_point_mul (Q, f, P, E, n) == 0){
+		    if(ell_point_mul (Q, f, P, E, n) == 0){
 			mpz_set(f, Q->x);
 			ret = ECM_FACTOR_FOUND_STEP1;
 			goto end_of_stage1_w;
 		    }
 #if DEBUG_EC_W >= 1
-		    printf("R%ld:=", (long)r); ec_point_print(Q, E, n); printf(";\n");
+		    printf("R%ld:=", (long)r); ell_point_print(Q, E, n); printf(";\n");
 		    printf("Q:=EcmMult(%ld, Q, E, N);\n", (long)r);
 		    printf("(Q[1]*R%ld[3]-Q[3]*R%ld[1]) mod N;\n",(long)r,(long)r);
 #endif
-		    ec_point_set(P, Q, E, n);
+		    ell_point_set(P, Q, E, n);
 		}
 	    }
-	    if (ec_point_is_zero (P, E, n)){
+	    if (ell_point_is_zero (P, E, n)){
 		outputf (OUTPUT_VERBOSE, "Reached point at infinity, %.0f divides "
 			 "group orders\n", p);
 		break;
@@ -736,7 +736,7 @@ ecm_stage1_W (mpz_t f, ec_curve_t E, ec_point_t P, mpmod_t n,
     }
     else{
 #if 0 /* keeping it simple */
-	if (ec_point_mul (Q, batch_s, P, E, n) == 0){
+	if (ell_point_mul (Q, batch_s, P, E, n) == 0){
 	    mpz_set (f, Q->x);
 	    ret = ECM_FACTOR_FOUND_STEP1;
 	    goto end_of_stage1_w;
@@ -746,12 +746,12 @@ ecm_stage1_W (mpz_t f, ec_curve_t E, ec_point_t P, mpmod_t n,
 	short *S = NULL;
 	int w, iS;
 	add_sub_unpack(&w, &S, &iS, batch_s);
-	if (ec_point_mul_add_sub_with_S(Q, P, E, n, w, S, iS) == 0){
+	if (ell_point_mul_add_sub_with_S(Q, P, E, n, w, S, iS) == 0){
 	    mpz_set (f, Q->x);
 	    ret = ECM_FACTOR_FOUND_STEP1;
         }
 #endif
-	ec_point_set(P, Q, E, n);
+	ell_point_set(P, Q, E, n);
 	p = B1;
     }
  end_of_stage1_w:
@@ -767,9 +767,9 @@ ecm_stage1_W (mpz_t f, ec_curve_t E, ec_point_t P, mpmod_t n,
 	writechkfile (chkfilename, ECM_ECM, *B1done, n, E->A, P->x, P->y,P->z);
     getprime_clear (); /* free the prime tables, and reinitialize */
 
-    if(ec_point_is_zero(P, E, n) == 1){
+    if(ell_point_is_zero(P, E, n) == 1){
 	/* too bad */
-	ec_point_set_to_zero(P, E, n);
+	ell_point_set_to_zero(P, E, n);
 	mpz_set(f, n->orig_modulus);
 	ret = ECM_FACTOR_FOUND_STEP1;
     }
@@ -787,7 +787,7 @@ ecm_stage1_W (mpz_t f, ec_curve_t E, ec_point_t P, mpmod_t n,
     }
 
     mpres_clear (xB, n);
-    ec_point_clear(Q, E, n);
+    ell_point_clear(Q, E, n);
     
     return ret;
 }
@@ -957,8 +957,7 @@ print_B1_B2_poly (int verbosity, int method, double B1, double B1done,
 		    outputf (verbosity, ", sigma=%d:%Zd", param, sigma);
 	      }
 	    else{
-		if (Etype == ECM_EC_TYPE_WEIERSTRASS_AFF
-		    || Etype == ECM_EC_TYPE_WEIERSTRASS_HOM)
+		if (Etype == ECM_EC_TYPE_WEIERSTRASS)
 		  outputf (verbosity, ", Weierstrass(A=%Zd,y=%Zd)", sigma, y);
 		else if (Etype == ECM_EC_TYPE_HESSIAN)
 		  outputf (verbosity, ", Hessian(D=%Zd,y=%Zd)", sigma, y);
@@ -1071,7 +1070,7 @@ int
 ecm (mpz_t f, mpz_t x, mpz_t y, int *param, mpz_t sigma, mpz_t n, mpz_t go, 
      double *B1done, double B1, mpz_t B2min_parm, mpz_t B2_parm, double B2scale,
      unsigned long k, const int S, int verbose, int repr, int nobase2step2, 
-     int use_ntt, int sigma_is_A, ec_curve_t zE,
+     int use_ntt, int sigma_is_A, ell_curve_t zE,
      FILE *os, FILE* es, char *chkfilename, char
      *TreeFilename, double maxmem, double stage1time, gmp_randstate_t rng, int
      (*stop_asap)(void), mpz_t batch_s, double *batch_last_B1_used,
@@ -1085,8 +1084,8 @@ ecm (mpz_t f, mpz_t x, mpz_t y, int *param, mpz_t sigma, mpz_t n, mpz_t go,
   long st;
   mpmod_t modulus;
   curve P;
-  ec_curve_t E;
-  ec_point_t PE;
+  ell_curve_t E;
+  ell_point_t PE;
   mpz_t B2min, B2; /* Local B2, B2min to avoid changing caller's values */
   unsigned long dF;
   root_params_t root_params;
@@ -1207,7 +1206,7 @@ ecm (mpz_t f, mpz_t x, mpz_t y, int *param, mpz_t sigma, mpz_t n, mpz_t go,
   mpres_init (P.A, modulus);
 
   is_E_CM = (zE->disc != 0);
-  ec_curve_set_z(E, zE, modulus);
+  ell_curve_set_z(E, zE, modulus);
 
   youpi = set_stage_2_params (B2, B2_parm, B2min, B2min_parm, 
 			      &root_params, B1, B2scale, &k, S, use_ntt,
@@ -1331,8 +1330,7 @@ ecm (mpz_t f, mpz_t x, mpz_t y, int *param, mpz_t sigma, mpz_t n, mpz_t go,
       outputf (OUTPUT_RESVERBOSE, "A=%Zd\n", t);
       mpres_get_z (t, P.x, modulus);
       outputf (OUTPUT_RESVERBOSE, "starting point: x0=%Zd\n", t);
-      if (E->type == ECM_EC_TYPE_WEIERSTRASS_AFF
-	  || E->type == ECM_EC_TYPE_WEIERSTRASS_HOM)
+      if (E->type == ECM_EC_TYPE_WEIERSTRASS)
 	{
           mpres_get_z (t, P.y, modulus);
 	  outputf (OUTPUT_RESVERBOSE, " y0=%Zd\n", t);
@@ -1387,7 +1385,7 @@ ecm (mpz_t f, mpz_t x, mpz_t y, int *param, mpz_t sigma, mpz_t n, mpz_t go,
 				    stop_asap, chkfilename);
 	    else{
 		mpres_set(E->A, P.A, modulus);
-		ec_point_init(PE, E, modulus);
+		ell_point_init(PE, E, modulus);
 		mpres_set(PE->x, P.x, modulus);
 		mpres_set(PE->y, P.y, modulus);
 		youpi = ecm_stage1_W (f, E, PE, modulus, B1, B1done, batch_s,
@@ -1413,9 +1411,7 @@ ecm (mpz_t f, mpz_t x, mpz_t y, int *param, mpz_t sigma, mpz_t n, mpz_t go,
      before P.x is (perhaps) converted to Weierstrass form */
   
   mpres_get_z (x, P.x, modulus);
-  if (E->type == ECM_EC_TYPE_WEIERSTRASS_AFF || 
-      E->type == ECM_EC_TYPE_WEIERSTRASS_HOM || 
-      E->type == ECM_EC_TYPE_HESSIAN)
+  if (E->type == ECM_EC_TYPE_WEIERSTRASS || E->type == ECM_EC_TYPE_HESSIAN)
     mpres_get_z (y, P.y, modulus);  
 
   if (youpi != ECM_NO_FACTOR_FOUND)
@@ -1428,8 +1424,7 @@ ecm (mpz_t f, mpz_t x, mpz_t y, int *param, mpz_t sigma, mpz_t n, mpz_t go,
       mpz_init (t);
       mpres_get_z (t, P.x, modulus);
       outputf (OUTPUT_RESVERBOSE, "x=%Zd\n", t);
-      if (E->type == ECM_EC_TYPE_WEIERSTRASS_AFF
-	  || E->type == ECM_EC_TYPE_WEIERSTRASS_HOM)
+      if (E->type == ECM_EC_TYPE_WEIERSTRASS)
 	{
 	  mpres_get_z (t, P.y, modulus);
 	  outputf (OUTPUT_RESVERBOSE, "y=%Zd\n", t);
@@ -1537,7 +1532,7 @@ end_of_ecm_rhotable:
     }
 
 end_of_ecm:
-  ec_curve_clear(E, modulus);
+  ell_curve_clear(E, modulus);
   mpres_clear (P.A, modulus);
   mpres_clear (P.y, modulus);
   mpres_clear (P.x, modulus);
