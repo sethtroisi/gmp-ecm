@@ -1205,8 +1205,7 @@ main (int argc, char *argv[])
 				     program, who, rtime, comment, resumefile))
             break;
 
-	  if (params->E->type == ECM_EC_TYPE_WEIERSTRASS_AFF
-	      || params->E->type == ECM_EC_TYPE_WEIERSTRASS_HOM
+	  if (params->E->type == ECM_EC_TYPE_WEIERSTRASS
 	      || params->E->type == ECM_EC_TYPE_HESSIAN)
 	      params->sigma_is_A = -1;
 	  else
@@ -1435,10 +1434,14 @@ main (int argc, char *argv[])
 	  if(specific_y0)
 	    {
 	      params->sigma_is_A = -1;
-	      if(specific_H == 0)
-		  params->E->type = ECM_EC_TYPE_WEIERSTRASS_HOM;
-	      else
+	      if(specific_H == 0){
+		  params->E->type = ECM_EC_TYPE_WEIERSTRASS;
+		  params->E->law = ECM_LAW_HOMOGENEOUS;
+	      }
+	      else{
 		  params->E->type = ECM_EC_TYPE_HESSIAN;
+		  params->E->law = ECM_LAW_HOMOGENEOUS;
+	      }
 	    }
 	}
       mpz_set (params->sigma, (params->sigma_is_A) ? A : sigma);
