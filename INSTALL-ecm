@@ -107,7 +107,7 @@ Instructions to install GMP-ECM:
    $ ./configure --prefix=<my_installation_directory>
 
    The ecm binary will go in <my_installation_directory>/bin,
-   its man page in <my_installation_directory>/man/man1,
+   its man page in <my_installation_directory>/share/man/man1,
    the ecm library in <my_installation_directory>/lib,
    and the corresponding header file in <my_installation_directory>/include.
 
