@@ -142,7 +142,7 @@ typedef unsigned __int64 uint64_t;
 #elif defined (_MSC_VER)
 # include <malloc.h>
 # define alloca _alloca
-#elif HAVE_ALLOCA_H || defined (sun)
+#elif defined(HAVE_ALLOCA_H) || defined (sun)
 # include <alloca.h>
 #elif defined (_AIX) || defined (_IBMR2)
 #pragma alloca
