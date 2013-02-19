@@ -1,4 +1,4 @@
-Changes between GMP-ECM 6.4.2 and GMP-ECM 7.0:
+Changes between GMP-ECM 6.4.4 and GMP-ECM 7.0:
 * The configure --enable-shellcmd option was removed, and also the
   --enable-memory-debug configure option (now obsolete with valgrind).
 * The -b and -t options were removed (breadth-first mode and trial division).
@@ -11,8 +11,11 @@ Changes between GMP-ECM 6.4.2 and GMP-ECM 7.0:
   The default parametrization depends on others command-line options.
 * Now possible to give curves in Weierstrass forms for Stage 1 (see README).
 * For P-1 stage 2, by default the NTT code is always used.
-* Fixed PowerPC64 assembly code with --enable-shared (thanks Leif Leonhardy)
 * Speedup in stage 2 with -no-ntt
+
+Changes between GMP-ECM 6.4.3 and GMP-ECM 6.4.4:
+* Fixed PowerPC64 assembly code with --enable-shared (thanks Leif Leonhardy)
+* Fix to deal with change of semantics of internal GMP functions in GMP 5.1
 
 Changes between GMP-ECM 6.4.2 and GMP-ECM 6.4.3:
 * Fixed bug reported by user "lorgix" on mersenneforum
