@@ -125,7 +125,7 @@ __GMP_DECLSPEC mp_limb_t __gmpn_add_nc (mp_ptr, mp_srcptr, mp_srcptr,
 
 #define ECM_VERSION_NUM(a,b,c) (((a) << 16L) | ((b) << 8) | (c))
 
-#if !defined( __MPIR_RELEASE ) && ECM_VERSION_NUM(__GNU_MP_VERSION,__GNU_MP_VERSION_MINOR,__GNU_MP_VERSION_PATCHLEVEL) < ECM_VERSION_NUM(5,1,0)
+#if !defined( __MPIR_RELEASE ) && ECM_VERSION_NUM(__GNU_MP_VERSION,__GNU_MP_VERSION_MINOR,__GNU_MP_VERSION_PATCHLEVEL) >= ECM_VERSION_NUM(5,1,0)
 #define MPN_REDC12_RETURNS_CARRY 1
 #endif
 
