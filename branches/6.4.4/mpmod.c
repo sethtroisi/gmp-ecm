@@ -52,18 +52,26 @@ static void REDC (mpres_t, const mpres_t, mpz_t, mpmod_t);
 
 /* Up from GMP 5.1.0, mpn_redc{1,2} do not subtract the modulus if needed,
    but return the carry of the final addition */
-#if ECM_VERSION_NUM(__GNU_MP_VERSION,__GNU_MP_VERSION_MINOR,__GNU_MP_VERSION_PATCHLEVEL) < ECM_VERSION_NUM(5,1,0)
-#define REDC1(rp,cp,np,nn,invm) __gmpn_redc_1(rp,cp,np,nn,invm)
-#define REDC2(rp,cp,np,nn,invm) __gmpn_redc_2(rp,cp,np,nn,invm)
-#else
+#ifdef HAVE___GMPN_REDC_1
+#ifdef MPN_REDC12_RETURNS_CARRY
 #define REDC1(rp,cp,np,nn,invm)                  \
   do {if (__gmpn_redc_1 (rp,cp,np,nn,invm))      \
     mpn_sub_n (rp, rp, np, nn);                  \
   } while(0)
+#else
+#define REDC1(rp,cp,np,nn,invm) __gmpn_redc_1(rp,cp,np,nn,invm)
+#endif
+#endif
+
+#ifdef HAVE___GMPN_REDC_2
+#ifdef MPN_REDC12_RETURNS_CARRY
 #define REDC2(rp,cp,np,nn,invm)                  \
   do {if (__gmpn_redc_2 (rp,cp,np,nn,invm))      \
     mpn_sub_n (rp, rp, np, nn);                  \
   } while (0)
+#else
+#define REDC2(rp,cp,np,nn,invm) __gmpn_redc_2(rp,cp,np,nn,invm)
+#endif
 #endif
 
 #if 0 /* PZ: commented out, since I don't see how to use this code.

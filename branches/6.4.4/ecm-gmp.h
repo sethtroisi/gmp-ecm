@@ -123,12 +123,27 @@ __GMP_DECLSPEC mp_limb_t __gmpn_add_nc (mp_ptr, mp_srcptr, mp_srcptr,
 #endif
 #endif
 
-#if defined(HAVE___GMPN_REDC_1)
-  mp_limb_t __gmpn_redc_1 (mp_ptr, mp_ptr, mp_srcptr, mp_size_t, mp_limb_t);
+#define ECM_VERSION_NUM(a,b,c) (((a) << 16L) | ((b) << 8) | (c))
+
+#if !defined( __MPIR_RELEASE ) && ECM_VERSION_NUM(__GNU_MP_VERSION,__GNU_MP_VERSION_MINOR,__GNU_MP_VERSION_PATCHLEVEL) < ECM_VERSION_NUM(5,1,0)
+#define MPN_REDC12_RETURNS_CARRY 1
 #endif
 
-#if defined(HAVE___GMPN_REDC_2)
+/* GMP currently does not define prototypes for these, but MPIR does */
+#if defined(HAVE___GMPN_REDC_1) && !defined( __MPIR_RELEASE )
+#ifdef MPN_REDC12_RETURNS_CARRY
+  mp_limb_t __gmpn_redc_1 (mp_ptr, mp_ptr, mp_srcptr, mp_size_t, mp_limb_t);
+#else
+  void __gmpn_redc_1 (mp_ptr, mp_ptr, mp_srcptr, mp_size_t, mp_limb_t);
+#endif
+#endif
+
+#if defined(HAVE___GMPN_REDC_2) && !defined( __MPIR_RELEASE )
+#ifdef MPN_REDC12_RETURNS_CARRY
   mp_limb_t __gmpn_redc_2 (mp_ptr, mp_ptr, mp_srcptr, mp_size_t, mp_srcptr);
+#else
+  void __gmpn_redc_2 (mp_ptr, mp_ptr, mp_srcptr, mp_size_t, mp_srcptr);
+#endif
 #endif
 
 #if defined(HAVE___GMPN_REDC_N)
