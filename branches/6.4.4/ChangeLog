@@ -1,4 +1,27 @@
 ------------------------------------------------------------------------
+r2419 | zimmerma | 2013-02-19 20:58:19 +0100 (Tue, 19 Feb 2013) | 2 lines
+
+[INSTALL-ecm] updated
+
+------------------------------------------------------------------------
+r2417 | zimmerma | 2013-02-19 20:42:03 +0100 (Tue, 19 Feb 2013) | 2 lines
+
+[NEWS] updated
+
+------------------------------------------------------------------------
+r2416 | kruppa | 2013-02-19 19:42:04 +0100 (Tue, 19 Feb 2013) | 5 lines
+
+Merged r1971 from trunk:
+  applied patch from Leif Leonhardy to make the assembly code work with
+  --enable-shared (see http://trac.sagemath.org/sage_trac/ticket/11705)
+
+
+------------------------------------------------------------------------
+r2414 | kruppa | 2013-02-19 17:36:35 +0100 (Tue, 19 Feb 2013) | 2 lines
+
+Updated changelog
+
+------------------------------------------------------------------------
 r2413 | kruppa | 2013-02-19 16:15:15 +0100 (Tue, 19 Feb 2013) | 2 lines
 
 Test was backwards :(
