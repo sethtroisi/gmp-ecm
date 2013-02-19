@@ -1,4 +1,5 @@
 Changes between GMP-ECM 6.4.3 and GMP-ECM 6.4.4:
+* Fixed PowerPC64 assembly code with --enable-shared (thanks Leif Leonhardy)
 * Fix to deal with change of semantics of internal GMP functions in GMP 5.1
 
 Changes between GMP-ECM 6.4.2 and GMP-ECM 6.4.3:
