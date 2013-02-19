@@ -106,7 +106,7 @@ Instructions to install GMP-ECM:
    $ ./configure --prefix=<my_installation_directory>
 
    The ecm binary will go in <my_installation_directory>/bin,
-   its man page in <my_installation_directory>/man/man1,
+   its man page in <my_installation_directory>/share/man/man1,
    the ecm library in <my_installation_directory>/lib,
    and the corresponding header file in <my_installation_directory>/include.
 
@@ -173,8 +173,8 @@ Step-by-step instructions, courtesy of Jes Hansen:
    http://ecm.gforge.inria.fr/ and place it in your home folder as well.
 
 6) Start the MinSys up again from the desktop and type 
-   tar -xvjf gmp-5.0.5.tar.bz2
-   cd gmp-5.0.5
+   tar -xvjf gmp-5.1.1.tar.bz2
+   cd gmp-5.1.1
    ./configure
    make install
    cd ~
