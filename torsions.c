@@ -76,6 +76,7 @@ mod_from_rat_str(mpz_t r, char *str, mpz_t N)
    B = -1/3*a4*a2 + 2/27*a2^3 + a6
      = -1/3*a2*(a4-2/9*a2^2) + a6
    X = x+a2/3
+   Y = y
    INPUT: if x0 == NULL, we have no point to translate
           if B == NULL, we do not need and we do not compute B
 */
@@ -114,7 +115,7 @@ W2W(ell_curve_t E, mpz_t B, ell_point_t P, mpz_t a2, mpz_t a4, mpz_t a6,
 	mpz_sub(B, a6, B);
 	mpz_mod(B, B, n);
     }
-#if DEBUG_TORSION >= 2
+#if DEBUG_TORSION >= 0
     gmp_printf("N:=%Zd;\n", n);
     gmp_printf("A:=%Zd;\n", E->A);
     if(x0 != NULL){
@@ -129,7 +130,7 @@ W2W(ell_curve_t E, mpz_t B, ell_point_t P, mpz_t a2, mpz_t a4, mpz_t a6,
     mpz_clear(tmp3);
 }
 
-/* From a curve in Weierstrass form to a short form 
+/* From a curve in Kubert form to a Weiestrass form 
    WE:=[0,(1/4*c^2+1/4-1/2*c-b),0,(1/2*c*b-1/2*b),1/4*b^2]);
    We compute:
    a2 = 1/4*c^2+1/4-1/2*c-b = ((c-1)/2)^2-b
@@ -168,8 +169,10 @@ K2W246(mpz_t a2, mpz_t a4, mpz_t a6, mpz_t b, mpz_t c, mpz_t n, int compute_a6)
 }
 
 /* 
-   Sends Kubert curve E(b, c) with point (x0, y0) to short Weierstrass form:
+   Sends Kubert curve E(b, c): y^2+(1-c)*x*y-b*y = x^3-b*x^2
+   with point (x0, y0) to short Weierstrass form:
    Y^2 = X^3 + A * X + B
+   Y0 = (y0+(1-b)*x0-b)/2
 */
 void
 kubert_to_weierstrass(ell_curve_t E, mpz_t B, ell_point_t P, mpz_t b, mpz_t c, 
@@ -182,6 +185,8 @@ kubert_to_weierstrass(ell_curve_t E, mpz_t B, ell_point_t P, mpz_t b, mpz_t c,
     mpz_init(a4);
     if(compute_a6)
 	mpz_init(a6);
+    /* ((y+(1-b)*x-b)/2)^2=x^3+a2*x^2+a4*x+a6 */
+    /* HERE: adapt y too!!!!! */
     K2W246(a2, a4, a6, b, c, n, compute_a6);
     /* second conversion */
     W2W(E, B, P, a2, a4, a6, x0, y0, n);
