@@ -20,7 +20,7 @@
 
 #define DEBUG_MANY_EC 0
 
-#define NCURVE_MAX 1000
+#define NCURVE_MAX 2000
 
 /* fall back on traditional ECM.
    TODO: use chkfile also.
@@ -1190,6 +1190,10 @@ main(int argc, char *argv[])
     if(torsion != NULL && ncurves == 0){
 	fprintf (stderr, "You must provide ncurves != 0 with -torsion.\n");
 	exit (EXIT_FAILURE);
+    }
+    if(ncurves > NCURVE_MAX){
+      fprintf(stderr, "Too many curves: %d\n", ncurves);
+      exit (EXIT_FAILURE);
     }
     
     if(torsion != NULL)
