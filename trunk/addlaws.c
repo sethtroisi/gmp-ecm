@@ -1617,12 +1617,12 @@ ell_point_mul_add_sub_with_S(ell_point_t Q, ell_point_t P, ell_curve_t E,
     ell_point_init(P0, E, n);
     ell_point_set_to_zero(P0, E, n);
 
-#if DEBUG_ADD_LAWS >= 0
+#if DEBUG_ADD_LAWS >= 2
     printf("P:="); ell_point_print(P, E, n); printf(";\n");
 #endif
     /* S = [[ts, 2*ds+1], ... */
     for(j = 0; j < iS; j += 2){
-#if DEBUG_ADD_LAWS >= 0
+#if DEBUG_ADD_LAWS >= 2
 	printf("P0:="); ell_point_print(P0, E, n); printf(";\n");
 #endif
 	i = abs(S[j+1]) >> 1; /* (abs(S[j+1])-1)/2, S[j+1] is always odd */
@@ -1632,7 +1632,7 @@ ell_point_mul_add_sub_with_S(ell_point_t Q, ell_point_t P, ell_curve_t E,
 		status = 0;
 		break;
 	    }
-#if DEBUG_ADD_LAWS >= 0
+#if DEBUG_ADD_LAWS >= 2
 	    printf("iP%d:=", i); ell_point_print(iP[i], E, n); printf(";\n");
 	    printf("Radd:="); ell_point_print(P0, E, n); printf(";\n");
 	    printf("Q:=ProjEcmAdd(P0, iP%d, E, N); ProjEcmEqual(Q, Radd, N);\n", i);
@@ -1644,7 +1644,7 @@ ell_point_mul_add_sub_with_S(ell_point_t Q, ell_point_t P, ell_curve_t E,
 		status = 0;
 		break;
 	    }
-#if DEBUG_ADD_LAWS >= 0
+#if DEBUG_ADD_LAWS >= 2
 	    printf("Rsub:="); ell_point_print(P0, E, n); printf(";\n");
 #endif
 	}
@@ -1654,7 +1654,7 @@ ell_point_mul_add_sub_with_S(ell_point_t Q, ell_point_t P, ell_curve_t E,
 		status = 0;
 		break;
 	    }
-#if DEBUG_ADD_LAWS >= 0
+#if DEBUG_ADD_LAWS >= 2
 	    printf("Rdup:="); ell_point_print(P0, E, n); printf(";\n");
 #endif
 	}
