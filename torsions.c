@@ -736,13 +736,13 @@ build_curves_with_torsion_Z2xZ8(mpz_t f, mpmod_t n,
     mpres_init(tmp2, n);
     mpz_set_str(f, "-8", 10); 
     mpres_set_z(tmp2, f, n);
-    ell_curve_init_set(E, ECM_EC_TYPE_WEIERSTRASS, ECM_LAW_HOMOGENEOUS, tmp2, n);
+    ell_curve_init_set(E, ECM_EC_TYPE_WEIERSTRASS, ECM_LAW_AFFINE, tmp2, n);
     ell_point_init(P, E, n);
     mpz_set_str(f, "12", 10); 
     mpres_set_z(P->x, f, n);
     mpz_set_str(f, "40", 10);
     mpres_set_z(P->y, f, n);
-    mpres_set_ui(P->z, 1, n);
+    mpz_set_ui(P->z, 1);
 
     ell_point_init(Q, E, n);
     for(u = umin; u < umax; u++){
@@ -754,13 +754,14 @@ build_curves_with_torsion_Z2xZ8(mpz_t f, mpmod_t n,
 	    ret = ECM_FACTOR_FOUND_STEP1;
 	    break;
 	}
-#if DEBUG_TORSION >= 2
+#if DEBUG_TORSION >= 0
 	printf("(s, t)[%d]:=", u);
 	pt_print(Q, n);
 	printf(";\n");
 #endif
 	mpres_get_z(a, Q->x, n);
 	mpres_get_z(b, Q->y, n);
+#if 0 /* useless in affine form? */
 	mpres_get_z(d, Q->z, n);
 	if(mpz_invert(f, d, n->orig_modulus) == 0){
 	    printf("found factor in Z2xZ8 (normalization)\n");
@@ -768,8 +769,9 @@ build_curves_with_torsion_Z2xZ8(mpz_t f, mpmod_t n,
 	    break;
 	}
 	mpz_mul(a, a, f);
-	mpz_mod(wx0, a, n->orig_modulus);
 	mpz_mul(b, b, f);
+#endif
+	mpz_mod(wx0, a, n->orig_modulus);
 	mpz_sub_si(a, a, 9);
 	mpz_mod(a, a, n->orig_modulus);
 	mpz_add_si(b, b, 25);

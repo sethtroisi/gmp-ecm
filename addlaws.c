@@ -283,9 +283,9 @@ pt_many_add(ell_point_t *tR, ell_point_t *tP, ell_point_t *tQ, ell_curve_t *tE,
     memcpy(takeit, ok, nE);
 #if DEBUG_ADD_LAWS >= 2
     printf("In pt_many_add, adding\n");
-    pt_many_print(tP, nE, n);
+    pt_many_print(tE, tP, nE, n);
     printf("and\n");
-    pt_many_print(tQ, nE, n);
+    pt_many_print(tE, tQ, nE, n);
 #endif
     for(i = 0; i < nE; i++){
 	if(ok[i] == 0)
@@ -375,7 +375,7 @@ pt_many_mul_plain(ell_point_t *tQ, ell_point_t *tP, ell_curve_t *tE,
 	    break;
 	  }
 #if DEBUG_ADD_LAWS >= 2
-	printf("Rdup:="); pt_many_print(tQ, nE, n); printf(";\n");
+	printf("Rdup:="); pt_many_print(tE, tQ, nE, n); printf(";\n");
 #endif
 	if (mpz_tstbit (e, l))
 	  {
@@ -385,7 +385,7 @@ pt_many_mul_plain(ell_point_t *tQ, ell_point_t *tP, ell_curve_t *tE,
 		break;
 	      }
 #if DEBUG_ADD_LAWS >= 2
-	      printf("Radd:="); pt_many_print(tQ, nE, n); printf(";\n");
+	      printf("Radd:="); pt_many_print(tE, tQ, nE, n); printf(";\n");
 #endif
 	  }
     }
@@ -424,7 +424,7 @@ pt_many_mul_add_sub_si(ell_point_t *tQ, ell_point_t *tP, ell_curve_t *tE, int nE
 	    break;
 	}
 #if DEBUG_ADD_LAWS >= 2
-	printf("Rdup:="); pt_many_print(tQ, nE, n); printf(";\n");
+	printf("Rdup:="); pt_many_print(tE, tQ, nE, n); printf(";\n");
 #endif
 	if(S[j] == 1){
 	    if(pt_many_add(tQ, tQ, tP, tE, nE, n, num, den, inv, ok) == 0){
@@ -432,7 +432,7 @@ pt_many_mul_add_sub_si(ell_point_t *tQ, ell_point_t *tP, ell_curve_t *tE, int nE
 		break;
 	    }
 #if DEBUG_ADD_LAWS >= 2
-	    printf("Radd:="); pt_many_print(tQ, nE, n); printf(";\n");
+	    printf("Radd:="); pt_many_print(tE, tQ, nE, n); printf(";\n");
 #endif
 	}
 	else if(S[j] == -1){
@@ -441,7 +441,7 @@ pt_many_mul_add_sub_si(ell_point_t *tQ, ell_point_t *tP, ell_curve_t *tE, int nE
 		break;
 	    }
 #if DEBUG_ADD_LAWS >= 2
-	    printf("Rsub:="); pt_many_print(tQ, nE, n); printf(";\n");
+	    printf("Rsub:="); pt_many_print(tE, tQ, nE, n); printf(";\n");
 #endif
 	}
     }
@@ -498,9 +498,9 @@ pt_many_mul_end:
 void
 pt_w_set_to_zero(ell_point_t P, mpmod_t n)
 {
-    mpres_set_ui (P->x, 0, n);
-    mpres_set_ui (P->y, 1, n);
-    mpres_set_ui (P->z, 0, n);
+    mpres_set_ui(P->x, 0, n);
+    mpres_set_ui(P->y, 1, n);
+    mpres_set_ui(P->z, 0, n);
 }
 
 int
@@ -514,9 +514,9 @@ pt_w_set(mpres_t x0, mpres_t y0, mpres_t z0,
 	    mpres_t x, mpres_t y, mpres_t z,
 	    ATTRIBUTE_UNUSED mpmod_t n)
 {
-  mpres_set (x0, x, n);
-  mpres_set (y0, y, n);
-  mpres_set (z0, z, n);
+  mpres_set(x0, x, n);
+  mpres_set(y0, y, n);
+  mpres_set(z0, z, n);
 }
 
 void
@@ -562,11 +562,10 @@ pt_w_duplicate(mpres_t x3, mpres_t y3, mpres_t z3,
 	       mpres_t x1, mpres_t y1, mpres_t z1,
 	       mpmod_t n, ell_curve_t E)
 {
-    if(pt_w_is_zero(z1, n))
-      {
-	pt_w_set(x3, y3, z3, x1, y1, z1, n);
-	return 1;
-      }
+    if(pt_w_is_zero(z1, n)){
+      pt_w_set(x3, y3, z3, x1, y1, z1, n);
+      return 1;
+    }
     if(E->type == ECM_EC_TYPE_WEIERSTRASS && E->law == ECM_LAW_AFFINE){
 	/* buf[1] <- 2*y1 */
 	mpres_add(E->buf[1], y1, y1, n);
@@ -666,6 +665,10 @@ pt_w_add(mpres_t x3, mpres_t y3, mpres_t z3,
 	/* Cohen-Miyaji-Ono: 12M+2S+6add+1*2 */
 	/* mapping: y1z2 = buf, AA = buf+1, u = buf+2, v = buf+3, R = buf+4, */
 	/* vvv = buf+5; */
+      printf("y1="); print_mpz_from_mpres(y1, n); printf("\n");
+      printf("y2="); print_mpz_from_mpres(y2, n); printf("\n");
+      printf("z1="); print_mpz_from_mpres(z1, n); printf("\n");
+      printf("z2="); print_mpz_from_mpres(z2, n); printf("\n");
 	/*  Y1Z2:=Y1*Z2 mod p;	# M*/
 	mpres_mul(E->buf[0], y1, z2, n);
 	/*	A:=X1*Z2 mod p;	# M*/
@@ -1277,11 +1280,12 @@ ell_point_init(ell_point_t P, ell_curve_t E, mpmod_t n)
     mpres_init(P->x, n);
     mpres_init(P->y, n);
     mpres_init(P->z, n);
-    if(E->type == ECM_EC_TYPE_WEIERSTRASS && E->law == ECM_LAW_AFFINE)
-	mpz_set_ui (P->z, 1);
-    else if(E->type == ECM_EC_TYPE_WEIERSTRASS 
-	    && E->law == ECM_LAW_HOMOGENEOUS)
+    if(E->type == ECM_EC_TYPE_WEIERSTRASS){
+      if(E->law == ECM_LAW_AFFINE)
+	mpz_set_ui(P->z, 1); /* humf */
+      else if(E->law == ECM_LAW_HOMOGENEOUS)
 	mpres_set_ui(P->z, 1, n);
+    }
     else if(E->type == ECM_EC_TYPE_HESSIAN)
 	mpres_set_ui(P->z, 1, n);
 }
@@ -1613,12 +1617,12 @@ ell_point_mul_add_sub_with_S(ell_point_t Q, ell_point_t P, ell_curve_t E,
     ell_point_init(P0, E, n);
     ell_point_set_to_zero(P0, E, n);
 
-#if DEBUG_ADD_LAWS >= 2
+#if DEBUG_ADD_LAWS >= 0
     printf("P:="); ell_point_print(P, E, n); printf(";\n");
 #endif
     /* S = [[ts, 2*ds+1], ... */
     for(j = 0; j < iS; j += 2){
-#if DEBUG_ADD_LAWS >= 2
+#if DEBUG_ADD_LAWS >= 0
 	printf("P0:="); ell_point_print(P0, E, n); printf(";\n");
 #endif
 	i = abs(S[j+1]) >> 1; /* (abs(S[j+1])-1)/2, S[j+1] is always odd */
@@ -1628,7 +1632,7 @@ ell_point_mul_add_sub_with_S(ell_point_t Q, ell_point_t P, ell_curve_t E,
 		status = 0;
 		break;
 	    }
-#if DEBUG_ADD_LAWS >= 2
+#if DEBUG_ADD_LAWS >= 0
 	    printf("iP%d:=", i); ell_point_print(iP[i], E, n); printf(";\n");
 	    printf("Radd:="); ell_point_print(P0, E, n); printf(";\n");
 	    printf("Q:=ProjEcmAdd(P0, iP%d, E, N); ProjEcmEqual(Q, Radd, N);\n", i);
@@ -1640,7 +1644,7 @@ ell_point_mul_add_sub_with_S(ell_point_t Q, ell_point_t P, ell_curve_t E,
 		status = 0;
 		break;
 	    }
-#if DEBUG_ADD_LAWS >= 2
+#if DEBUG_ADD_LAWS >= 0
 	    printf("Rsub:="); ell_point_print(P0, E, n); printf(";\n");
 #endif
 	}
@@ -1650,7 +1654,7 @@ ell_point_mul_add_sub_with_S(ell_point_t Q, ell_point_t P, ell_curve_t E,
 		status = 0;
 		break;
 	    }
-#if DEBUG_ADD_LAWS >= 2
+#if DEBUG_ADD_LAWS >= 0
 	    printf("Rdup:="); ell_point_print(P0, E, n); printf(";\n");
 #endif
 	}
