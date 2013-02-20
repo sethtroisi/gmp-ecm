@@ -754,7 +754,7 @@ build_curves_with_torsion_Z2xZ8(mpz_t f, mpmod_t n,
 	    ret = ECM_FACTOR_FOUND_STEP1;
 	    break;
 	}
-#if DEBUG_TORSION >= 0
+#if DEBUG_TORSION >= 2
 	printf("(s, t)[%d]:=", u);
 	pt_print(Q, n);
 	printf(";\n");
