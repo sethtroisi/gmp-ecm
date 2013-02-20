@@ -1251,7 +1251,7 @@ main(int argc, char *argv[])
 	res = ECM_NO_FACTOR_FOUND;
 	tried = 0;
 	if(method == ECM_ECM){
-	    if(b != 0){
+	    if(b != 0 && disc != 0){
 		nf = 0;
 		res = process_special_blend(tf,&nf,&tried,N,bb,n,disc,B1,B2,
 					    params,savefilename);
