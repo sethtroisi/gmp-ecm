@@ -324,16 +324,16 @@ build_curves_with_torsion_Z7(mpz_t f, mpmod_t n,
     mpres_init(tmp, n);
     mod_from_rat_str(f, "1295/48", n->orig_modulus);
     mpres_set_z(tmp, f, n);
-    ell_curve_init_set(E, ECM_EC_TYPE_WEIERSTRASS, ECM_LAW_HOMOGENEOUS, tmp, n);
+    ell_curve_init_set(E, ECM_EC_TYPE_WEIERSTRASS, ECM_LAW_AFFINE, tmp, n);
     ell_point_init(P, E, n);
     mod_from_rat_str(f, "2185/12", n->orig_modulus);
     mpres_set_z(P->x, f, n);
     mpz_set_str(f, "-2458", 10);
     mpres_set_z(P->y, f, n);
-    mpres_set_ui(P->z, 1, n);
+    mpz_set_ui(P->z, 1);
 #if DEBUG_TORSION >= 2
     printf("Paux:=");
-    pt_print(P, n);
+    pt_print(E, P, n);
     printf(";\n");
 #endif
     mpz_init(A2);
@@ -371,6 +371,7 @@ build_curves_with_torsion_Z7(mpz_t f, mpmod_t n,
 	/* come back to plain (not Montgomery) residues */
 	mpres_get_z(b, Q->x, n);
 	mpres_get_z(c, Q->y, n);
+#if 0
 	mpres_get_z(d, Q->z, n);
 	if(mpz_invert(f, d, n->orig_modulus) == 0){
 	    printf("found factor in Z7 (normalization)\n");
@@ -381,6 +382,7 @@ build_curves_with_torsion_Z7(mpz_t f, mpmod_t n,
 	mpz_mod(b, b, n->orig_modulus);
 	mpz_mul(c, c, f);
 	mpz_mod(c, c, n->orig_modulus);
+#endif
 	if(cubic_to_quartic(f, n->orig_modulus, d, ky0, b, c, 
 			    A2, A1div2, x0, y0, cte) == 0){
 	    printf("found factor in Z7 (cubic_2_quartic)\n");
@@ -455,10 +457,10 @@ build_curves_with_torsion_Z9(mpz_t fac, mpmod_t n, ell_curve_t *tE,
     mpz_set_str(f, "1", 10);
     mpres_set_z(P->y, f, n);
     mpres_init(P->z, n);
-    mpres_set_ui(P->z, 1, n);
+    mpz_set_ui(P->z, 1);
 #if DEBUG_TORSION >= 2
     printf("Paux:=");
-    pt_print(P, n);
+    pt_print(E, P, n);
     printf(";\n");
 #endif
     mpz_init_set_ui(A2, 0);
@@ -492,6 +494,7 @@ build_curves_with_torsion_Z9(mpz_t fac, mpmod_t n, ell_curve_t *tE,
 #endif
 	mpres_get_z(b, Q->x, n);
 	mpres_get_z(c, Q->y, n);
+#if 0
 	mpres_get_z(d, Q->z, n);
 	if(mpz_invert(fac, d, n->orig_modulus) == 0){
 	    printf("found factor in Z9 (normalization)\n");
@@ -502,6 +505,7 @@ build_curves_with_torsion_Z9(mpz_t fac, mpmod_t n, ell_curve_t *tE,
 	mpz_mod(b, b, n->orig_modulus);
 	mpz_mul(c, c, fac);
 	mpz_mod(c, c, n->orig_modulus);
+#endif
 	if(cubic_to_quartic(fac, n->orig_modulus, f, ky0, b, c, 
 			    A2, A1div2, x0, y0, cte) == 0){
 	    printf("found factor in Z9 (cubic_2_quartic)\n");
@@ -587,10 +591,10 @@ build_curves_with_torsion_Z10(mpz_t fac, mpmod_t n, ell_curve_t *tE,
     mpres_set_z(P->x, f, n);
     mod_from_rat_str(f, "1/2", n->orig_modulus);
     mpres_set_z(P->y, f, n);
-    mpres_set_ui(P->z, 1, n);
+    mpz_set_ui(P->z, 1);
 #if DEBUG_TORSION >= 2
     printf("P:=");
-    pt_print(P, n);
+    pt_print(E, P, n);
     printf(";\n");
 #endif
 
@@ -626,6 +630,7 @@ build_curves_with_torsion_Z10(mpz_t fac, mpmod_t n, ell_curve_t *tE,
 #endif
 	mpres_get_z(b, Q->x, n);
 	mpres_get_z(c, Q->y, n);
+#if 0
 	mpres_get_z(d, Q->z, n);
 	if(mpz_invert(fac, d, n->orig_modulus) == 0){
 	    printf("found factor in Z10 (normalization)\n");
@@ -636,6 +641,7 @@ build_curves_with_torsion_Z10(mpz_t fac, mpmod_t n, ell_curve_t *tE,
 	mpz_mod(b, b, n->orig_modulus);
 	mpz_mul(c, c, fac);
 	mpz_mod(c, c, n->orig_modulus);
+#endif
 	if(cubic_to_quartic(fac, n->orig_modulus, f, ky0, b, c, 
 			    A2, A1div2, x0, y0, cte) == 0){
 	    printf("found factor in Z10 (cubic_2_quartic)\n");
@@ -1069,13 +1075,13 @@ build_curves_with_torsion_Z3xZ6(mpz_t f, mpmod_t n,
     /* Paux:=Eaux![2, 2, 1]; */
     mpres_init(tmp, n);
     mpres_set_ui(tmp, 0, n);
-    ell_curve_init_set(E, ECM_EC_TYPE_WEIERSTRASS, ECM_LAW_HOMOGENEOUS,tmp, n);
+    ell_curve_init_set(E, ECM_EC_TYPE_WEIERSTRASS, ECM_LAW_AFFINE, tmp, n);
     ell_point_init(P, E, n);
     mpz_set_str(f, "2", 10);
     mpres_set_z(P->x, f, n);
     mpz_set_str(f, "2", 10);
     mpres_set_z(P->y, f, n);
-    mpres_set_ui(P->z, 1, n);
+    mpz_set_ui(P->z, 1);
 
     ell_point_init(Q, E, n);
     for(u = umin; u < umax; u++){
@@ -1089,11 +1095,12 @@ build_curves_with_torsion_Z3xZ6(mpz_t f, mpmod_t n,
 	}
 #if DEBUG_TORSION >= 2
 	printf("(s, t)[%d]:=", u);
-	pt_print(Q, n);
+	pt_print(E, Q, n);
 	printf(";\n");
 #endif
 	mpres_get_z(tk, Q->x, n);
 	mpres_get_z(sk, Q->y, n);
+#if 0 /* useless in affine form? */
 	mpres_get_z(t, Q->z, n);
 	if(mpz_invert(f, t, n->orig_modulus) == 0){
 	    printf("found factor in Z3xZ6 (normalization)\n");
@@ -1104,6 +1111,7 @@ build_curves_with_torsion_Z3xZ6(mpz_t f, mpmod_t n,
 	mpz_mod(tk, tk, n->orig_modulus);
 	mpz_mul(sk, sk, f);
 	mpz_mod(sk, sk, n->orig_modulus);
+#endif
 	/* t:=RatMod(-tk/2, N); */
 	mpz_mul_si(t, tk, -1);
 	mod_div_2(t, n->orig_modulus);
