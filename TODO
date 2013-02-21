@@ -100,6 +100,10 @@ Table of contents:
 3) documentation
 
 4) installation
+- don't check for gslcblas (HAVE_LIBGSLCBLAS) since we don't use it
+- instead of checking always for GSL, check it only when requested by
+  the user with --with-cblas
+  (cf http://trac.sagemath.org/sage_trac/ticket/14151#comment:20)
 - check for __builtin_constant_p and __builtin_expect at configure time
 - [suggested by Peter Montgomery] add the possibility to compile a "fat"
   binary, which automatically selects the best mulredc assembly code
