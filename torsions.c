@@ -115,7 +115,7 @@ W2W(ell_curve_t E, mpz_t B, ell_point_t P, mpz_t a2, mpz_t a4, mpz_t a6,
 	mpz_sub(B, a6, B);
 	mpz_mod(B, B, n);
     }
-#if DEBUG_TORSION >= 0
+#if DEBUG_TORSION >= 2
     gmp_printf("N:=%Zd;\n", n);
     gmp_printf("A:=%Zd;\n", E->A);
     if(x0 != NULL){
@@ -130,7 +130,9 @@ W2W(ell_curve_t E, mpz_t B, ell_point_t P, mpz_t a2, mpz_t a4, mpz_t a6,
     mpz_clear(tmp3);
 }
 
-/* From a curve in Kubert form to a Weiestrass form 
+/* From a curve in Kubert form Y^2+(1-c)*X*Y-b*Y = X^3-b*X^2
+   to a Weiestrass form y^2 = X^3 + a2 * X^2 + a4 * X + a6
+   where y = (Y+(1-b)*X-b)/2
    WE:=[0,(1/4*c^2+1/4-1/2*c-b),0,(1/2*c*b-1/2*b),1/4*b^2]);
    We compute:
    a2 = 1/4*c^2+1/4-1/2*c-b = ((c-1)/2)^2-b
@@ -138,7 +140,7 @@ W2W(ell_curve_t E, mpz_t B, ell_point_t P, mpz_t a2, mpz_t a4, mpz_t a6,
    a6 = (b/2)^2
 */
 void
-K2W246(mpz_t a2, mpz_t a4, mpz_t a6, mpz_t b, mpz_t c, mpz_t n, int compute_a6)
+KW2W246(mpz_t a2, mpz_t a4, mpz_t a6, mpz_t b, mpz_t c, mpz_t n, int compute_a6)
 {
     /** a4 <- (c-1)/2 **/
     mpz_sub_si(a4, c, 1);
@@ -172,7 +174,6 @@ K2W246(mpz_t a2, mpz_t a4, mpz_t a6, mpz_t b, mpz_t c, mpz_t n, int compute_a6)
    Sends Kubert curve E(b, c): y^2+(1-c)*x*y-b*y = x^3-b*x^2
    with point (x0, y0) to short Weierstrass form:
    Y^2 = X^3 + A * X + B
-   Y0 = (y0+(1-b)*x0-b)/2
 */
 void
 kubert_to_weierstrass(ell_curve_t E, mpz_t B, ell_point_t P, mpz_t b, mpz_t c, 
@@ -186,8 +187,7 @@ kubert_to_weierstrass(ell_curve_t E, mpz_t B, ell_point_t P, mpz_t b, mpz_t c,
     if(compute_a6)
 	mpz_init(a6);
     /* ((y+(1-b)*x-b)/2)^2=x^3+a2*x^2+a4*x+a6 */
-    /* HERE: adapt y too!!!!! */
-    K2W246(a2, a4, a6, b, c, n, compute_a6);
+    KW2W246(a2, a4, a6, b, c, n, compute_a6);
     /* second conversion */
     W2W(E, B, P, a2, a4, a6, x0, y0, n);
     mpz_clear(a2);
@@ -736,6 +736,7 @@ build_curves_with_torsion_Z2xZ8(mpz_t f, mpmod_t n,
     mpz_init(kx0);
     mpz_init(ky0);
     mpz_init(wx0);
+
     /* Eaux = [-8, -32] */
     /* Paux = [12, 40, 1] */
     mpres_init(tmp2, n);
@@ -761,7 +762,7 @@ build_curves_with_torsion_Z2xZ8(mpz_t f, mpmod_t n,
 	}
 #if DEBUG_TORSION >= 2
 	printf("(s, t)[%d]:=", u);
-	pt_print(Q, n);
+	pt_print(E, Q, n);
 	printf(";\n");
 #endif
 	mpres_get_z(a, Q->x, n);
@@ -854,7 +855,12 @@ build_curves_with_torsion_Z2xZ8(mpz_t f, mpmod_t n,
             ret = ECM_FACTOR_FOUND_STEP1;
             break;
         }
-	K2W246(f, a, NULL, b, c, n->orig_modulus, 0);
+	KW2W246(f, a, NULL, b, c, n->orig_modulus, 0);
+#if DEBUG_TORSION >= 2
+	gmp_printf("kwx0:=%Zd;\n", kx0);
+	gmp_printf("kwy0:=%Zd;\n", ky0);
+	printf("(kwy0^2-(kwx0^3+a2*kwx0^2+a4*kwx0+a6)) mod N;\n");
+#endif
 	/* wx0:=kx0+a2/3; */
         mpz_set_si(tmp, 3);
 	mod_from_rat2(wx0, f, tmp, n->orig_modulus);
@@ -871,6 +877,7 @@ build_curves_with_torsion_Z2xZ8(mpz_t f, mpmod_t n,
 	mpz_mul(f, f, d); mpz_add_si(f, f, 16);
 	mpz_mul(f, f, d); mpz_add_si(f, f, -8);
 	mpz_mul(f, f, d); mpz_add_si(f, f, 1);
+
 	/* to Montgomery form */
 	ell_curve_init(tE[nc], ECM_EC_TYPE_MONTGOMERY, ECM_LAW_HOMOGENEOUS,n);
 	ell_point_init(tP[nc], tE[nc], n);

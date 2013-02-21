@@ -88,14 +88,17 @@ print_mpz_from_mpres(mpres_t x, mpmod_t n)
 }
 
 void
-pt_print(ell_point_t P, mpmod_t n)
+pt_print(ell_curve_t E, ell_point_t P, mpmod_t n)
 {
     printf("[");
     print_mpz_from_mpres(P->x, n);
     printf(", ");
     print_mpz_from_mpres(P->y, n);
     printf(", ");
-    print_mpz_from_mpres(P->z, n);
+    if(E->type == ECM_EC_TYPE_WEIERSTRASS && E->law == ECM_LAW_AFFINE)
+	gmp_printf("%Zd", P->z);
+    else
+	print_mpz_from_mpres(P->z, n);
     printf("]");
 }
 
@@ -106,7 +109,7 @@ pt_many_print(ell_curve_t *tE, ell_point_t *tP, int nE, mpmod_t n)
 
     for(i = 0; i < nE; i++){
 	printf("%d: ", i);
-	pt_print(tP[i], n);
+	pt_print(tE[i], tP[i], n);
 	printf(" on E.A=");
 	print_mpz_from_mpres(tE[i]->A, n);
 	printf("\n");
