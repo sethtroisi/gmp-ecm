@@ -374,20 +374,6 @@ AC_CHECK_LIB(m,fmod,,AC_MSG_ERROR(required function missing))
 AC_CHECK_LIB(m,cos)
 AC_CHECK_LIB(rt,aio_read)
 
-dnl Check for GSL but don't add it to LIBS, since only rho uses it and
-dnl we don't want all other binaries to depend on it. 
-dnl If found, pass link flags to Makefile via GSL_LD_FLAGS
-GSL_LD_FLAGS=
-dnl Check if "-lgslcblas" works. If yes, check if "-lgsl -lgslcblas" works.
-dnl If both work, put "-lgsl -lgslcblas" in GSL_LD_FLAGS
-AC_CHECK_LIB([gslcblas],[cblas_dgemm], dnl
- [AC_CHECK_LIB([gsl],[gsl_blas_dgemm], dnl
-  [AC_DEFINE([HAVE_LIBGSL],1,[Define to 1 if you have the `gsl' library (-lgsl).])
-   AC_DEFINE([HAVE_LIBGSLCBLAS],1,[Define to 1 if you have the `gslcblas' library (-lgslcblas).])
-   GSL_LD_FLAGS="-lgsl -lgslcblas"], [], dnl
-   dnl Here comes the "OTHER-LIBRARIES" field for AC_CHECK_LIB [gsl]:
-   [-lgslcblas])])
-
 AC_CHECK_FUNCS([isascii memset strchr strlen strncasecmp strstr], [], [AC_MSG_ERROR([required function missing])])
 AC_CHECK_FUNCS([access unlink], [], [AC_MSG_ERROR([required function missing])])
 AC_CHECK_FUNCS([isspace isdigit isxdigit], [], [AC_MSG_ERROR([required function missing])])
