@@ -142,7 +142,6 @@ usage (void)
     printf ("  -one         Stop processing a candidate if a factor is found (looping mode)\n");
     printf ("  -n           run ecm in \"nice\" mode (below normal priority)\n");
     printf ("  -nn          run ecm in \"very nice\" mode (idle priority)\n");
-    printf ("  -t n         Trial divide candidates before P-1, P+1 or ECM up to n\n");
     printf ("  -ve n        Verbosely show short (< n character) expressions on each loop\n");
     printf ("  -cofdec      Force cofactor output in decimal (even if expressions are used)\n");
     printf ("  -B2scale f   Multiplies the default B2 value by f \n");
@@ -356,7 +355,6 @@ main (int argc, char *argv[])
   int deep=1, trial_factor_found;
   unsigned int displayexpr = 0;
   unsigned int decimal_cofactor = 0;
-  double maxtrialdiv = 0.0;
   double B2scale = 1.0;
   double maxmem = 0.;
   double stage1time = 0.;
@@ -690,17 +688,6 @@ main (int argc, char *argv[])
 	      fprintf (stderr, "Can't find input file %s\n", infilename);
 	      exit (EXIT_FAILURE);
 	    }
-	  argv += 2;
-	  argc -= 2;
-	}
-      else if ((argc > 2) && (strcmp (argv[1], "-t") == 0))
-	{
-	  maxtrialdiv = strtod (argv[2], NULL);
-	  if (maxtrialdiv <= 0.0)
-	    {
-	      fprintf (stderr, "Error, the -t option requires a positive argument\n");
-	      exit (EXIT_FAILURE);
-  	    }
 	  argv += 2;
 	  argc -= 2;
 	}
