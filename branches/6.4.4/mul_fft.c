@@ -1607,7 +1607,7 @@ mpn_fft_fft_bailey_decompose (mp_ptr A, mp_ptr *Ap, mp_size_t k,
   const mp_size_t K2 = 1 << k2;
   mp_size_t omegai;
   mp_ptr *BufA; 
-  mp_ptr T, tmp;
+  mp_ptr T, tmp = NULL;
   const int Kl = l << k;
     
   TMP_DECL;
@@ -1621,7 +1621,7 @@ mpn_fft_fft_bailey_decompose (mp_ptr A, mp_ptr *Ap, mp_size_t k,
 
   if (nl > Kl)
     {
-      tmp = TMP_ALLOC_LIMBS(Kl + 1);
+      tmp = __GMP_ALLOCATE_FUNC_LIMBS(Kl + 1);
       ASSERT(tmp != NULL);
       mpn_mul_fft_reduce (tmp, /* A, */ n, nl, Kl, /* l, */ b);
       n = tmp;
@@ -1643,6 +1643,12 @@ mpn_fft_fft_bailey_decompose (mp_ptr A, mp_ptr *Ap, mp_size_t k,
        moved around. */
     for (j = 0; j < K1; ++j)
       Ap[i+K2*j] = BufA[j];
+  }
+
+  if (tmp != NULL) {
+    __GMP_FREE_FUNC_LIMBS(tmp, Kl + 1);
+    tmp = NULL;
+    n = NULL; /* n is now likewise invalid */
   }
 
   omegai = omega<<k1;
