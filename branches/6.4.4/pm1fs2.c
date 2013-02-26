@@ -2691,7 +2691,6 @@ pm1fs2 (mpz_t f, const mpres_t X, mpmod_t modulus,
   timestart = cputime ();
   
   /* First compute X + 1/X */
-  mpres_init (mr, modulus);
   mpres_invert (mr, X, modulus);
   mpres_add (mr, mr, X, modulus);
   
