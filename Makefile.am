@@ -154,6 +154,6 @@ dist_man_MANS = ecm.1
 ## the manpage. If they were not found, this rule is omitted and make will
 ## never try to rebuild the man page, which would result in an error anyway.
 if MAKE_MANPAGE
-ecm.1: ecm.xml
-	xsltproc -o ecm.1 $(XSLDIR)/manpages/docbook.xsl ecm.xml
+ecm.1: $(srcdir)/ecm.xml
+	xsltproc -o ecm.1 $(XSLDIR)/manpages/docbook.xsl $(srcdir)/ecm.xml
 endif
