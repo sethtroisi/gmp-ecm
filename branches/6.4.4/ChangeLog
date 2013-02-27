@@ -1,4 +1,42 @@
 ------------------------------------------------------------------------
+r2438 | kruppa | 2013-02-27 16:16:07 +0100 (Wed, 27 Feb 2013) | 3 lines
+
+Remove -t option from man page
+Makefile should look for ecm.xml in $(source)/
+
+------------------------------------------------------------------------
+r2436 | kruppa | 2013-02-26 19:46:56 +0100 (Tue, 26 Feb 2013) | 2 lines
+
+Replaced several alloca() by malloc() to avoid segfault with very large P+-1
+stage 2
+
+------------------------------------------------------------------------
+r2435 | kruppa | 2013-02-26 19:44:05 +0100 (Tue, 26 Feb 2013) | 2 lines
+
+Removed memory lead due to surplus mpres_init()
+
+------------------------------------------------------------------------
+r2434 | zimmerma | 2013-02-22 15:07:14 +0100 (Fri, 22 Feb 2013) | 2 lines
+
+[main.c] removed -t option (should have been removed in r1860)
+
+------------------------------------------------------------------------
+r2433 | kruppa | 2013-02-22 13:26:09 +0100 (Fri, 22 Feb 2013) | 3 lines
+
+Use malloc() instead of alloca() for tmp in mpn_fft_fft_bailey_decompose() 
+to avoid segfault with very large stage 2
+
+------------------------------------------------------------------------
+r2422 | zimmerma | 2013-02-19 21:04:41 +0100 (Tue, 19 Feb 2013) | 2 lines
+
+[champions.h] updated for ECM
+
+------------------------------------------------------------------------
+r2421 | zimmerma | 2013-02-19 21:02:29 +0100 (Tue, 19 Feb 2013) | 2 lines
+
+[ChangeLog] updated
+
+------------------------------------------------------------------------
 r2419 | zimmerma | 2013-02-19 20:58:19 +0100 (Tue, 19 Feb 2013) | 2 lines
 
 [INSTALL-ecm] updated
