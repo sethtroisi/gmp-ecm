@@ -1,13 +1,22 @@
 '\" t
 .\"     Title: ECM
 .\"    Author: [see the "AUTHORS" section]
-.\" Generator: DocBook XSL Stylesheets v1.75.2 <http://docbook.sf.net/>
-.\"      Date: 06/12/2012
+.\" Generator: DocBook XSL Stylesheets v1.76.1 <http://docbook.sf.net/>
+.\"      Date: 02/27/2013
 .\"    Manual: April 22, 2003
 .\"    Source: April 22, 2003
 .\"  Language: English
 .\"
-.TH "ECM" "1" "06/12/2012" "April 22, 2003" "April 22, 2003"
+.TH "ECM" "1" "02/27/2013" "April 22, 2003" "April 22, 2003"
+.\" -----------------------------------------------------------------
+.\" * Define some portability stuff
+.\" -----------------------------------------------------------------
+.\" ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+.\" http://bugs.debian.org/507673
+.\" http://lists.gnu.org/archive/html/groff/2009-02/msg00013.html
+.\" ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+.ie \n(.g .ds Aq \(aq
+.el       .ds Aq '
 .\" -----------------------------------------------------------------
 .\" * set default formatting
 .\" -----------------------------------------------------------------
@@ -90,13 +99,6 @@ Perform P\-1 instead of the default method (ECM)\&.
 .RS 4
 Perform P+1 instead of the default method (ECM)\&.
 .RE
-.PP
-\fB\-t \fR\fB\fIn\fR\fR
-.RS 4
-Perform trial division up to
-\fIn\fR, before P\-1, P+1 or ECM\&. In loop mode (see option
-\fB\-c\fR), trial division is only performed in the first run\&.
-.RE
 .SH "GROUP AND INITIAL POINT PARAMETERS"
 .PP
 \fB\-x0 \fR\fB\fIx\fR\fR
@@ -165,8 +167,8 @@ Stores some tables of data in disk files to reduce the amount of memory occupied
 \fB\-power \fR\fB\fIn\fR\fR
 .RS 4
 [ECM, P\-1] Use x^\fIn\fR
-for Brent\-Suyama\'s extension (\fB\-power 1\fR
-disables Brent\-Suyama\'s extension)\&. The default polynomial is chosen depending on the method and B2\&. For P\-1 and P+1, disables the fast stage 2\&. For P\-1,
+for Brent\-Suyama\*(Aqs extension (\fB\-power 1\fR
+disables Brent\-Suyama\*(Aqs extension)\&. The default polynomial is chosen depending on the method and B2\&. For P\-1 and P+1, disables the fast stage 2\&. For P\-1,
 \fIn\fR
 must be even\&.
 .RE
@@ -174,7 +176,7 @@ must be even\&.
 \fB\-dickson \fR\fB\fIn\fR\fR
 .RS 4
 [ECM, P\-1] Use degree\-\fIn\fR
-Dickson\'s polynomial for Brent\-Suyama\'s extension\&. For P\-1 and P+1, disables the fast stage 2\&. Like for
+Dickson\*(Aqs polynomial for Brent\-Suyama\*(Aqs extension\&. For P\-1 and P+1, disables the fast stage 2\&. Like for
 \fB\-power\fR,
 \fIn\fR
 must be even for P\-1\&.
@@ -219,17 +221,17 @@ Several algorithms are available for modular multiplication\&. The program tries
 .PP
 \fB\-mpzmod\fR
 .RS 4
-Use GMP\'s mpz_mod function (sub\-quadratic for large inputs, but induces some overhead for small ones)\&.
+Use GMP\*(Aqs mpz_mod function (sub\-quadratic for large inputs, but induces some overhead for small ones)\&.
 .RE
 .PP
 \fB\-modmuln\fR
 .RS 4
-Use Montgomery\'s multiplication (quadratic version)\&. Usually best method for small input\&.
+Use Montgomery\*(Aqs multiplication (quadratic version)\&. Usually best method for small input\&.
 .RE
 .PP
 \fB\-redc\fR
 .RS 4
-Use Montgomery\'s multiplication (sub\-quadratic version)\&. Theoretically optimal for large input\&.
+Use Montgomery\*(Aqs multiplication (sub\-quadratic version)\&. Theoretically optimal for large input\&.
 .RE
 .PP
 \fB\-nobase2\fR
@@ -248,7 +250,7 @@ Force use of special base\-2 code, input number must divide 2^\fIn\fR+1 if
 .RE
 .SH "FILE I/O"
 .PP
-The following options enable one to perform step 1 and step 2 separately, either on different machines, at different times, or using different software (in particular, George Woltman\'s Prime95/mprime program can produce step 1 output suitable for resuming with GMP\-ECM)\&. It can also be useful to split step 2 into several runs, using the
+The following options enable one to perform step 1 and step 2 separately, either on different machines, at different times, or using different software (in particular, George Woltman\*(Aqs Prime95/mprime program can produce step 1 output suitable for resuming with GMP\-ECM)\&. It can also be useful to split step 2 into several runs, using the
 \fIB2min\-B2max\fR
 option\&.
 .PP
@@ -397,7 +399,7 @@ These optins allow for executing shell commands to supplement functionality to G
 .RS 4
 Execute command
 \fIcmd\fR
-to test primality if factors and cofactors instead of GMP\-ECM\'s own functions\&. The number to test is passed via stdin\&. An exit code of 0 is interpreted as
+to test primality if factors and cofactors instead of GMP\-ECM\*(Aqs own functions\&. The number to test is passed via stdin\&. An exit code of 0 is interpreted as
 \(lqprobably prime\(rq, a non\-zero exit code as
 \(lqcomposite\(rq\&.
 .RE
@@ -412,8 +414,8 @@ whenever a factor is found by P\-1, P+1 or ECM\&. The input number, factor and c
 .RS 4
 .\}
 .nf
-ecm \-faccmd \'mail \-s \(lq$HOSTNAME found a factor\(rq
-                me@myaddress\&.com\' 11e6 < cunningham\&.in
+ecm \-faccmd \*(Aqmail \-s \(lq$HOSTNAME found a factor\(rq
+                me@myaddress\&.com\*(Aq 11e6 < cunningham\&.in
 .fi
 .if n \{\
 .RE
