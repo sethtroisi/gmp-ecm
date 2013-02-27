@@ -1,4 +1,192 @@
 ------------------------------------------------------------------------
+r2438 | kruppa | 2013-02-27 16:16:07 +0100 (Wed, 27 Feb 2013) | 3 lines
+
+Remove -t option from man page
+Makefile should look for ecm.xml in $(source)/
+
+------------------------------------------------------------------------
+r2436 | kruppa | 2013-02-26 19:46:56 +0100 (Tue, 26 Feb 2013) | 2 lines
+
+Replaced several alloca() by malloc() to avoid segfault with very large P+-1
+stage 2
+
+------------------------------------------------------------------------
+r2435 | kruppa | 2013-02-26 19:44:05 +0100 (Tue, 26 Feb 2013) | 2 lines
+
+Removed memory lead due to surplus mpres_init()
+
+------------------------------------------------------------------------
+r2434 | zimmerma | 2013-02-22 15:07:14 +0100 (Fri, 22 Feb 2013) | 2 lines
+
+[main.c] removed -t option (should have been removed in r1860)
+
+------------------------------------------------------------------------
+r2433 | kruppa | 2013-02-22 13:26:09 +0100 (Fri, 22 Feb 2013) | 3 lines
+
+Use malloc() instead of alloca() for tmp in mpn_fft_fft_bailey_decompose() 
+to avoid segfault with very large stage 2
+
+------------------------------------------------------------------------
+r2422 | zimmerma | 2013-02-19 21:04:41 +0100 (Tue, 19 Feb 2013) | 2 lines
+
+[champions.h] updated for ECM
+
+------------------------------------------------------------------------
+r2421 | zimmerma | 2013-02-19 21:02:29 +0100 (Tue, 19 Feb 2013) | 2 lines
+
+[ChangeLog] updated
+
+------------------------------------------------------------------------
+r2419 | zimmerma | 2013-02-19 20:58:19 +0100 (Tue, 19 Feb 2013) | 2 lines
+
+[INSTALL-ecm] updated
+
+------------------------------------------------------------------------
+r2417 | zimmerma | 2013-02-19 20:42:03 +0100 (Tue, 19 Feb 2013) | 2 lines
+
+[NEWS] updated
+
+------------------------------------------------------------------------
+r2416 | kruppa | 2013-02-19 19:42:04 +0100 (Tue, 19 Feb 2013) | 5 lines
+
+Merged r1971 from trunk:
+  applied patch from Leif Leonhardy to make the assembly code work with
+  --enable-shared (see http://trac.sagemath.org/sage_trac/ticket/11705)
+
+
+------------------------------------------------------------------------
+r2414 | kruppa | 2013-02-19 17:36:35 +0100 (Tue, 19 Feb 2013) | 2 lines
+
+Updated changelog
+
+------------------------------------------------------------------------
+r2413 | kruppa | 2013-02-19 16:15:15 +0100 (Tue, 19 Feb 2013) | 2 lines
+
+Test was backwards :(
+
+------------------------------------------------------------------------
+r2412 | kruppa | 2013-02-19 16:10:27 +0100 (Tue, 19 Feb 2013) | 2 lines
+
+Define correct __gmpn_redc_{12} prototype for GMP <5.1. Define REDC{12}
+macros only if the functions exist.
+
+------------------------------------------------------------------------
+r2411 | kruppa | 2013-02-19 13:29:43 +0100 (Tue, 19 Feb 2013) | 2 lines
+
+Use defined() for HAVE_ALLOCA_H test
+
+------------------------------------------------------------------------
+r2407 | kruppa | 2013-02-15 14:22:50 +0100 (Fri, 15 Feb 2013) | 2 lines
+
+MinGW has alloca() prototype in malloc.h
+
+------------------------------------------------------------------------
+r2406 | kruppa | 2013-02-14 13:08:03 +0100 (Thu, 14 Feb 2013) | 3 lines
+
+Merging r2344:
+Remove stray '$'
+
+------------------------------------------------------------------------
+r2405 | kruppa | 2013-02-13 19:18:14 +0100 (Wed, 13 Feb 2013) | 2 lines
+
+Update version numbers for 6.4.4
+
+------------------------------------------------------------------------
+r2404 | kruppa | 2013-02-13 18:31:09 +0100 (Wed, 13 Feb 2013) | 2 lines
+
+Fixed typo
+
+------------------------------------------------------------------------
+r2402 | kruppa | 2013-02-13 17:55:16 +0100 (Wed, 13 Feb 2013) | 2 lines
+
+Merge r2401 into 6.4.4 branch
+
+------------------------------------------------------------------------
+r2400 | kruppa | 2013-02-13 17:49:56 +0100 (Wed, 13 Feb 2013) | 2 lines
+
+Merge of commit r2320
+
+------------------------------------------------------------------------
+r2399 | kruppa | 2013-02-13 17:42:57 +0100 (Wed, 13 Feb 2013) | 1 line
+
+Branch for patchlevel release 6.4.4
+
+------------------------------------------------------------------------
+r2096 | kruppa | 2012-06-12 17:35:10 +0200 (Tue, 12 Jun 2012) | 2 lines
+Changed paths:
+   M /branches/6.4.3/build.vc10/Makefile.am
+
+Removed bench_mulredc from EXTRA_DIST to avoid including .svn dir in
+distribution
+
+------------------------------------------------------------------------
+r2095 | kruppa | 2012-06-12 17:26:17 +0200 (Tue, 12 Jun 2012) | 2 lines
+Changed paths:
+   M /branches/6.4.3/TODO
+   M /branches/6.4.3/ecm.1
+   M /branches/6.4.3/ecm.xml
+
+Remove incorrect hypen in "Peter Lawrence Montgomery"
+
+------------------------------------------------------------------------
+r2094 | brian_gladman | 2012-06-12 17:23:55 +0200 (Tue, 12 Jun 2012) | 1
+line
+Changed paths:
+   M /branches/6.4.3/build.vc10/tests.py
+
+Add a few more tests that I missed earlier
+
+------------------------------------------------------------------------
+r2093 | brian_gladman | 2012-06-12 16:45:25 +0200 (Tue, 12 Jun 2012) | 1
+line
+Changed paths:
+   M /branches/6.4.3/build.vc10/config.h
+   M /branches/6.4.3/build.vc10/readme.txt
+   M /branches/6.4.3/build.vc10/tests.py
+
+Minor update to Windows files and add new tests
+
+------------------------------------------------------------------------
+r2090 | kruppa | 2012-06-12 14:48:43 +0200 (Tue, 12 Jun 2012) | 2 lines
+Changed paths:
+   M /trunk/test.pm1
+
+Added test for bug fixed in revision 2068
+
+------------------------------------------------------------------------
+r2088 | kruppa | 2012-06-12 14:16:03 +0200 (Tue, 12 Jun 2012) | 2 lines
+Changed paths:
+   M /trunk/NEWS
+
+Updated for 6.4.3 release
+
+------------------------------------------------------------------------
+r2082 | kruppa | 2012-06-07 14:20:20 +0200 (Thu, 07 Jun 2012) | 2 lines
+Changed paths:
+   M /trunk/cudawrapper.c
+   M /trunk/ecm-ecm.h
+   M /trunk/ecm-impl.h
+   M /trunk/factor.c
+   M /trunk/main.c
+   M /trunk/random.c
+
+Make random value more 64-bit-like, following suggestion by Jayson King
+
+------------------------------------------------------------------------
+r2072 | zimmerma | 2012-06-04 10:33:24 +0200 (Mon, 04 Jun 2012) | 2 lines
+Changed paths:
+   M /trunk/NEWS
+
+[NEWS] added item
+
+------------------------------------------------------------------------
+r2068 | kruppa | 2012-06-01 23:15:44 +0200 (Fri, 01 Jun 2012) | 2 lines
+Changed paths:
+   M /trunk/mpzspm.c
+
+Replace mpz_init_set_ui() by mpz_set_sp() so it works under Windows
+
+------------------------------------------------------------------------
 r1878 | zimmerma | 2012-03-19 10:11:57 +0100 (Mon, 19 Mar 2012) | 2 lines
 Changed paths:
    M /trunk/ecm-params.h.athlon64

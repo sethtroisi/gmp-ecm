@@ -176,8 +176,6 @@ F_mulmod (mpz_t R, mpz_t S1, mpz_t S2, unsigned int n)
       /* in case the reallocation fails, _mpz_realloc sets the value to 0 */
       ASSERT_ALWAYS (mpz_cmp_ui (gt, 0) != 0);
       k = mpn_fft_best_k (n2, S1 == S2);
-      /* the following cannot be changed to use mpn_mulmod_bnm1 since we
-         are precisely multiplying modulo a Fermat number */
       mpn_mul_fft (PTR(gt), n2, PTR(S1), ABSIZ(S1), PTR(S2), ABSIZ(S2), k);
       MPN_NORMALIZE(PTR(gt), n2);
       SIZ(gt) = ((SIZ(S1) ^ SIZ(S2)) >= 0) ? n2 : -n2;

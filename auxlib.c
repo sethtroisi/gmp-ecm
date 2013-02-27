@@ -223,13 +223,14 @@ inc_verbose ()
 }
 
 int
-outputf (int loglevel, const char *format, ...)
+outputf (int loglevel, char *format, ...)
 {
   va_list ap;
   int n = 0;
   
   va_start (ap, format);
 
+  MEMORY_TAG; /* For gmp_*printf's temp allocs */
   if (loglevel != OUTPUT_ERROR && loglevel <= VERBOSE)
     {
       n = gmp_vfprintf (ECM_STDOUT, format, ap);
@@ -237,6 +238,8 @@ outputf (int loglevel, const char *format, ...)
     }
   else if (loglevel == OUTPUT_ERROR)
     n = gmp_vfprintf (ECM_STDERR, format, ap);
+  MEMORY_UNTAG;
+  
   
   va_end (ap);
   
@@ -245,7 +248,7 @@ outputf (int loglevel, const char *format, ...)
 
 void
 writechkfile (char *chkfilename, int method, double p, mpmod_t modulus, 
-              mpres_t A, mpres_t x, mpres_t y, mpres_t z)
+              mpres_t A, mpres_t x, mpres_t z)
 {
   FILE *chkfile;
   char *methodname;
@@ -280,18 +283,8 @@ writechkfile (char *chkfilename, int method, double p, mpmod_t modulus,
   gmp_fprintf (chkfile, " X=0x%Zx;", t);
   if (method == ECM_ECM)
     {
-	if (y != NULL) /* this should mean Weierstrass form */
-	  {
-	    /* actually, we want to print (x:y:1) */
-	    mpres_get_z (t, y, modulus);
-	    gmp_fprintf (chkfile, " Y=0x%Zx;", t);
-	    fprintf (chkfile, " Z=0x1;");
-	  }
-	else /* one day, we could have some homogeneous form to deal with */
-	  {
-	    mpres_get_z (t, z, modulus);
-	    gmp_fprintf (chkfile, " Z=0x%Zx;", t);
-	  }
+      mpres_get_z (t, z, modulus);
+      gmp_fprintf (chkfile, " Z=0x%Zx;", t);
       mpres_get_z (t, A, modulus);
       gmp_fprintf (chkfile, " A=0x%Zx;", t);
     }
@@ -299,26 +292,4 @@ writechkfile (char *chkfilename, int method, double p, mpmod_t modulus,
   mpz_clear (t);
   fflush (chkfile);
   fclose (chkfile);
-}
-
-int 
-aux_fseek64(FILE *f, const int64_t offset, const int whence)
-{
-#ifdef HAVE__FSEEKI64
-  return _fseeki64(f, offset, whence);
-#endif
-#if LONG_MAX == INT64_MAX
-  return fseek (f, (long) offset, whence);
-#endif
-  ASSERT_ALWAYS (offset <= LONG_MAX);
-  return fseek (f, (long) offset, whence);
-}
-
-int64_t 
-aux_ftell64(FILE *f)
-{
-#ifdef HAVE__FSEEKI64
-  return _ftelli64(f);
-#endif
-  return (int64_t) ftell (f);
 }

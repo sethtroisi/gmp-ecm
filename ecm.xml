@@ -99,16 +99,6 @@ subject to the number of blocks <replaceable>k</replaceable>.</para>
   </listitem>
   </varlistentry>
 
-  <varlistentry>
-  <term><option>-t <replaceable>n</replaceable></option></term>
-  <listitem>
-<para>Perform trial division up to <replaceable>n</replaceable>,
-before P-1, P+1 or ECM.  In loop mode (see option <option>-c</option>),
-trial division is only performed in the first run.
-</para>
-  </listitem>
-  </varlistentry>
-
 </variablelist>
 </refsect1>
 
@@ -713,7 +703,7 @@ product code, the autoconf/automake tools, and is the maintainer of the
 Debian package;</para>
 <para>Alexander Kruppa &lt;(lastname)al@loria.fr&gt; contributed 
 estimates for probability of success for ECM, 
-the new P+1 and P-1 stage 2 (with P.-L. Montgomery), 
+the new P+1 and P-1 stage 2 (with P. L. Montgomery), 
 new AMD64 asm mulredc code, and some other things;</para>
 <para>Dave Newman &lt;david.(lastname)@jesus.ox.ac.uk&gt;
 contributed the Kronecker-Schoenhage and NTT multiplication code;</para>

@@ -29,13 +29,37 @@ http://www.gnu.org/licenses/ or write to the Free Software Foundation, Inc.,
 #define ASSERTD(x)
 #endif
 
+#if (MULT == KS)
+  #define LIST_MULT_N kronecker_schonhage
+  #define WRAP /* use wrap-around multiplication for low short product */
+#elif (MULT == TOOM4)
+  #define LIST_MULT_N toomcook4
+#elif (MULT == TOOM3)
+  #define LIST_MULT_N toomcook3
+#elif (MULT == KARA)
+  #define LIST_MULT_N karatsuba
+#else
+  #error "MULT is neither KS, TOOM4, nor TOOM3, nor KARA"
+#endif
+
 extern unsigned int Fermat;
 
-/* returns a bound on the auxiliary memory needed by list_mult_n */
+/* returns a bound on the auxiliary memory needed by LIST_MULT_N */
 int
 list_mul_mem (unsigned int len)
 {
-  return 2 * len;
+  unsigned int mem;
+
+  mem = 2 * len;
+#if defined(TOOMCOOK3) || defined(TOOMCOOK4)
+  while (len > 3)
+    {
+      mem += 2;
+      len = (len + 2) / 3; /* ceil(len/3) */
+    }
+  mem += 4;
+#endif
+  return mem;
 }
 
 /* creates a list of n integers, return NULL if error */
@@ -80,21 +104,6 @@ clear_list (listz_t p, unsigned int n)
   for (i = 0; i < n; i++)
     mpz_clear (p[i]);
   free (p);
-}
-
-void
-output_list (const int verbose, const listz_t p, const unsigned int n, 
-             const char *prefix, const char *suffix)
-{
-  unsigned int i;
-
-  if (!test_verbose(verbose))
-    return;
-
-  outputf (verbose, prefix);
-  for (i = 0; i < n; i++)
-    outputf (verbose, "%s%Zd * x^%u", (i > 0) ? " + " : "", p[i], i);
-  outputf (verbose, suffix);
 }
 
 #ifdef DEBUG
@@ -290,15 +299,218 @@ list_zero (listz_t p, unsigned int n)
     mpz_set_ui (p[i], 0);
 }
 
+#ifndef KS_MULTIPLY
+/* puts in a[0]..a[K-1] the K low terms of the product 
+   of b[0..K-1] and c[0..K-1].
+   Assumes K >= 1, and a[0..2K-2] exist.
+   Needs space for list_mul_mem(K) in t.
+*/
+static void
+list_mul_low (listz_t a, listz_t b, listz_t c, unsigned int K, listz_t t,
+	      mpz_t n)
+{
+  unsigned int p, q;
+
+  ASSERT(K > 0);
+  switch (K)
+    {
+    case 1:
+      mpz_mul (a[0], b[0], c[0]);
+      return;
+    case 2:
+      mpz_mul (a[0], b[0], c[0]);
+      mpz_mul (a[1], b[0], c[1]);
+      mpz_addmul (a[1], b[1], c[0]);
+      return;
+    case 3:
+      karatsuba (a, b, c, 2, t);
+      mpz_addmul (a[2], b[2], c[0]);
+      mpz_addmul (a[2], b[0], c[2]);
+      return;
+    default:
+      /* MULT is 2 for Karatsuba, 3 for Toom3, 4 for Toom4 */
+      for (p = 1; MULT * p <= K; p *= MULT); /* p = greatest power of MULT <=K */
+      p = (K / p) * p;
+      ASSERTD(list_check(b,p,n) && list_check(c,p,n));
+      LIST_MULT_N (a, b, c, p, t);
+      if ((q = K - p))
+        {
+          list_mul_low (t, b + p, c, q, t + 2 * q - 1, n);
+          list_add (a + p, a + p, t, q);
+          list_mul_low (t, c + p, b, q, t + 2 * q - 1, n);
+          list_add (a + p, a + p, t, q);
+        }
+    }
+}
+#endif
+
 /* puts in a[K-1]..a[2K-2] the K high terms of the product 
    of b[0..K-1] and c[0..K-1].
    Assumes K >= 1, and a[0..2K-2] exist.
    Needs space for list_mul_mem(K) in t.
 */
 void
-list_mul_high (listz_t a, listz_t b, listz_t c, unsigned int K)
+list_mul_high (listz_t a, listz_t b, listz_t c, unsigned int K, listz_t t)
 {
-  list_mult_n (a, b, c, K);
+#ifdef KS_MULTIPLY /* ks is faster */
+  LIST_MULT_N (a, b, c, K, t);
+#else
+  unsigned int p, q;
+
+  ASSERT(K > 0);
+  switch (K)
+    {
+    case 1:
+      mpz_mul (a[0], b[0], c[0]);
+      return;
+      
+    case 2:
+      mpz_mul (a[2], b[1], c[1]);
+      mpz_mul (a[1], b[1], c[0]);
+      mpz_addmul (a[1], b[0], c[1]);
+      return;
+
+    case 3:
+      karatsuba (a + 2, b + 1, c + 1, 2, t);
+      mpz_addmul (a[2], b[0], c[2]);
+      mpz_addmul (a[2], b[2], c[0]);
+      return;
+
+    default:
+      /* MULT is 2 for Karatsuba, 3 for Toom3, 4 for Toom4 */
+      for (p = 1; MULT * p <= K; p *= MULT);
+      p = (K / p) * p;
+      q = K - p;
+      LIST_MULT_N (a + 2 * q, b + q, c + q, p, t);
+      if (q)
+        {
+          list_mul_high (t, b + p, c, q, t + 2 * q - 1);
+          list_add (a + K - 1, a + K - 1, t + q - 1, q);
+          list_mul_high (t, c + p, b, q, t + 2 * q - 1);
+          list_add (a + K - 1, a + K - 1, t + q - 1, q);
+        }
+    }
+#endif
+}
+
+/* Puts in a[0..2K-2] the product of b[0..K-1] and c[0..K-1].
+   The auxiliary memory M(K) necessary in T satisfies:
+   M(1)=0, M(K) = max(3*l-1,2*l-2+M(l)) <= 2*K-1 where l = ceil(K/2).
+   Assumes K >= 1.
+*/
+void
+karatsuba (listz_t a, listz_t b, listz_t c, unsigned int K, listz_t t)
+{
+  if (K == 1)
+    {
+      mpz_mul (a[0], b[0], c[0]);
+    }
+  else if (K == 2) /* basic Karatsuba scheme */
+    {
+      mpz_add (t[0], b[0], b[1]); /* t0 = b_0 + b_1 */
+      mpz_add (a[1], c[0], c[1]); /* a1 = c_0 + c_1 */
+      mpz_mul (a[1], a[1], t[0]); /* a1 = b_0*c_0 + b_0*c_1 + b_1*c_0 + b_1*c_1 */
+      mpz_mul (a[0], b[0], c[0]); /* a0 = b_0 * c_0 */
+      mpz_mul (a[2], b[1], c[1]); /* a2 = b_1 * c_1 */
+      mpz_sub (a[1], a[1], a[0]); /* a1 = b_0*c_1 + b_1*c_0 + b_1*c_1 */
+      mpz_sub (a[1], a[1], a[2]); /* a1 = b_0*c_1 + b_1*c_0 */
+    }
+  else if (K == 3)
+    {
+      /* implement Weimerskirch/Paar trick in 6 muls and 13 adds
+         http://www.crypto.ruhr-uni-bochum.de/Publikationen/texte/kaweb.pdf */
+      /* diagonal terms */
+      mpz_mul (a[0], b[0], c[0]);
+      mpz_mul (a[2], b[1], c[1]);
+      mpz_mul (a[4], b[2], c[2]);
+      /* (0,1) rectangular term */
+      mpz_add (t[0], b[0], b[1]);
+      mpz_add (t[1], c[0], c[1]);
+      mpz_mul (a[1], t[0], t[1]);
+      mpz_sub (a[1], a[1], a[0]);
+      mpz_sub (a[1], a[1], a[2]);
+      /* (1,2) rectangular term */
+      mpz_add (t[0], b[1], b[2]);
+      mpz_add (t[1], c[1], c[2]);
+      mpz_mul (a[3], t[0], t[1]);
+      mpz_sub (a[3], a[3], a[2]);
+      mpz_sub (a[3], a[3], a[4]);
+      /* (0,2) rectangular term */
+      mpz_add (t[0], b[0], b[2]);
+      mpz_add (t[1], c[0], c[2]);
+      mpz_mul (t[2], t[0], t[1]);
+      mpz_sub (t[2], t[2], a[0]);
+      mpz_sub (t[2], t[2], a[4]);
+      mpz_add (a[2], a[2], t[2]);
+    }
+  else
+    { 
+      unsigned int i, k, l;
+      listz_t z;
+
+      k = K / 2;
+      l = K - k;
+
+      z = t + 2 * l - 1;
+
+      /* improved code with 7*k-3 additions, 
+         contributed by Philip McLaughlin <mpbjr@qwest.net> */
+      for (i = 0; i < k; i++)
+        {
+          mpz_sub (z[i], b[i], b[l+i]);
+          mpz_sub (a[i], c[i], c[l+i]);
+        }
+
+      if (l > k) /* case K odd */
+        {
+          mpz_set (z[k], b[k]);
+          mpz_set (a[k], c[k]);
+        }
+
+      /* as b[0..l-1] + b[l..K-1] is stored in t[2l-1..3l-2], we need
+         here at least 3l-1 entries in t */
+
+      karatsuba (t, z, a, l, a + l); /* fills t[0..2l-2] */
+       
+      /* trick: save t[2l-2] in a[2l-1] to enable M(K) <= 2*K-1 */
+      z = t + 2 * l - 2;
+      mpz_set (a[2*l-1], t[2*l-2]);
+
+      karatsuba (a, b, c, l, z); /* fill a[0..2l-2] */
+      karatsuba (a + 2 * l, b + l, c + l, k, z); /* fills a[2l..2K-2] */
+
+      mpz_set (t[2*l-2], a[2*l-1]); /* restore t[2*l-2] */
+      mpz_set_ui (a[2*l-1], 0);
+
+      /*
+	      l          l-1     1    l          2k-1-l
+        _________________________________________________
+	|    a0    |     a1    |0|    a2    |     a3    |
+        -------------------------------------------------
+              l          l-1
+        ________________________
+	|    t0    |     t1    |
+        ------------------------
+
+	We want to replace [a1, a2] by [a1 + a0 + a2 - t0, a2 + a1 + a3 - t1]
+	i.e. [a12 + a0 - t0, a12 + a3 - t1] where a12 = a1 + a2.
+       */
+
+      list_add (a + 2 * l, a + 2 * l, a + l, l-1); /* a[2l..3l-1] <- a1+a2 */
+      if (k > 1)
+        {
+          list_add (a + l, a + 2 * l, a, l); /* a[l..2l-1] <- a0 + a1 + a2 */
+          list_add (a + 2 * l, a + 2 * l, a + 3 * l, 2 * k - 1 - l);
+        }
+      else /* k=1, i.e. K=2 or K=3, and a2 has only one entry */
+        {
+          mpz_add (a[l], a[2*l], a[0]);
+          if (K == 3)
+            mpz_set (a[l+1], a[1]);
+        }
+
+      list_sub (a + l, a + l, t, 2 * l - 1);
+    }
 }
 
 /* multiplies b[0]+...+b[k-1]*x^(k-1)+x^k by c[0]+...+c[l-1]*x^(l-1)+x^l
@@ -336,7 +548,7 @@ list_mul (listz_t a, listz_t b, unsigned int k, int monic_b,
         F_mul (a, b, c, l, DEFAULT, Fermat, t);
     }
   else
-    list_mult_n (a, b, c, l); /* set a[0]...a[2l-2] */
+    LIST_MULT_N (a, b, c, l, t); /* set a[0]...a[2l-2] */
 
   if (k > l) /* multiply b[l]*x^l by c[0]+...+c[l-1]*x^(l-1) */
     {
@@ -389,7 +601,7 @@ list_mulmod (listz_t a2, listz_t a, listz_t b, listz_t c, unsigned int k,
   if (i == 1 && Fermat)
     F_mul (a, b, c, k, DEFAULT, Fermat, t);
   else
-    list_mult_n (a, b, c, k); /* set a[0]...a[2l-2] */
+    LIST_MULT_N (a, b, c, k, t); /* set a[0]...a[2l-2] */
 
   list_mod (a2, a, 2 * k - 1, n);
 }
@@ -511,7 +723,9 @@ PolyInvert (listz_t q, listz_t b, unsigned int K, listz_t t, mpz_t n)
     {
       int k, l, po2, use_middle_product = 0;
 
+#ifdef KS_MULTIPLY
       use_middle_product = 1;
+#endif
 
       k = K / 2;
       l = K - k;
@@ -541,7 +755,7 @@ PolyInvert (listz_t q, listz_t b, unsigned int K, listz_t t, mpz_t n)
         }
       else
         {
-          list_mult_n (t, q + k, b, l); /* t[0..2l-1] = Q1 * B0 */
+          LIST_MULT_N (t, q + k, b, l, t + 2 * l - 1); /* t[0..2l-1] = Q1 * B0 */
           list_neg (t, t + l - 1, k, n);
       
           if (k > 1)
@@ -557,7 +771,7 @@ PolyInvert (listz_t q, listz_t b, unsigned int K, listz_t t, mpz_t n)
       if (po2)
         F_mul (t + k, t, q + l, k, DEFAULT, Fermat, t + 3 * k);
       else
-        list_mult_n (t + k, t, q + l, k);
+        LIST_MULT_N (t + k, t, q + l, k, t + 3 * k - 1);
       list_mod (q, t + 2 * k - 1, k, n);
     }
 }
@@ -602,7 +816,7 @@ RecursiveDivision (listz_t q, listz_t a, listz_t b, unsigned int K,
       if (po2 && Fermat)
         F_mul (t, q + l, b, k, DEFAULT, Fermat, t + K); /* sets t[0..2*k-2]*/
       else
-        list_mult_n (t, q + l, b, k); /* sets t[0..2*k-2] */
+        LIST_MULT_N (t, q + l, b, k, t + K - 1); /* sets t[0..2*k-2] */
       list_sub (a + l, a + l, t, 2 * k - 1);
       if (k < l) /* don't forget to subtract q[k] * b[0..k-1] */
         {
@@ -621,7 +835,7 @@ RecursiveDivision (listz_t q, listz_t a, listz_t b, unsigned int K,
       if (po2 && Fermat)
         F_mul (t, q, b, k, DEFAULT, Fermat, t + K);
       else
-        list_mult_n (t, q, b, k);
+        LIST_MULT_N (t, q, b, k, t + K - 1);
       list_sub (a, a, t, 2 * k - 1);
       if (k < l) /* don't forget to subtract q[0..k-1] * b[k] */
         {
@@ -658,8 +872,11 @@ PrerevertDivision (listz_t a, listz_t b, listz_t invb,
 {
   int po2, wrap;
   listz_t t2 = NULL;
-
+#ifdef WRAP
   wrap = ks_wrapmul_m (K + 1, K + 1, n) <= 2 * K - 1 + list_mul_mem (K);
+#else
+  wrap = 0;
+#endif
 
   /* Q <- high(high(A) * INVB) with a short product */
   for (po2 = K; (po2 & 1) == 0; po2 >>= 1);
@@ -681,11 +898,13 @@ PrerevertDivision (listz_t a, listz_t b, listz_t invb,
     }
   else /* non-Fermat case */
     {
-      list_mul_high (t, a + K, invb, K - 1);
+      list_mul_high (t, a + K, invb, K - 1, t + 2 * K - 3);
       /* the high part of A * INVB is now in {t+K-2, K-1} */
       if (wrap)
 	{
+	  MEMORY_TAG;
 	  t2 = init_list2 (K - 1, mpz_sizeinbase (n, 2));
+	  MEMORY_UNTAG;
 	  if (t2 == NULL)
 	    {
 	      fprintf (ECM_STDERR, "Error, not enough memory\n");
@@ -717,6 +936,7 @@ PrerevertDivision (listz_t a, listz_t b, listz_t invb,
     }
   else /* non-Fermat case */
     {
+#ifdef KS_MULTIPLY /* ks is faster */
       if (wrap)
         /* Q = {t2, K-1}, B = {b, K+1}
            We know that Q*B vanishes with the coefficients of degree
@@ -726,12 +946,15 @@ PrerevertDivision (listz_t a, listz_t b, listz_t invb,
           m = ks_wrapmul (t, K + 1, b, K + 1, t2, K - 1, n);
           clear_list (t2, K - 1);
           /* coefficients of degree m..2K-2 wrap around,
-             i.e. were added to 0..2K-2-m */
+             i.e. were subtracted to 0..2K-2-m */
           if (m < 2 * K - 1) /* otherwise product is exact */
-            list_sub (t, t, a + m, 2 * K - 1 - m);
+            list_add (t, t, a + m, 2 * K - 1 - m);
         }
       else
-        list_mult_n (t, a + K, b, K);
+        LIST_MULT_N (t, a + K, b, K, t + 2 * K - 1);
+#else
+      list_mul_low (t, a + K, b, K, t + 2 * K - 1, n);
+#endif
     }
 
   /* now {t, K} contains the low K terms from Q*B */

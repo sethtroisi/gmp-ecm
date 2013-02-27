@@ -24,17 +24,33 @@ MA 02110-1301, USA. */
 #define _ECM_GMP_H 1
 
 #include "config.h"
-#include "basicdefs.h"
 #include <gmp.h>
+
+#ifndef alloca
+#ifdef __GNUC__
+# define alloca __builtin_alloca
+#elif defined (__DECC)
+# define alloca(x) __ALLOCA(x)
+#elif defined (_MSC_VER)
+# include <malloc.h>
+# define alloca _alloca
+#elif defined(HAVE_ALLOCA_H) || defined (sun)
+# include <alloca.h>
+#elif defined (_AIX) || defined (_IBMR2)
+#pragma alloca
+#else
+  char *alloca ();
+#endif
+#endif
 
 #define ABSIZ(x) ABS (SIZ (x))
 #define ALLOC(x) ((x)->_mp_alloc)
 #define PTR(x) ((x)->_mp_d)
 #define SIZ(x) ((x)->_mp_size)
-#define TMP_DECL
+#define TMP_DECL(m)
 #define TMP_ALLOC(x) alloca(x)
-#define TMP_MARK
-#define TMP_FREE
+#define TMP_MARK(m)
+#define TMP_FREE(m)
 #define TMP_ALLOC_TYPE(n,type) ((type *) TMP_ALLOC ((n) * sizeof (type)))
 #define TMP_ALLOC_LIMBS(n)     TMP_ALLOC_TYPE(n,mp_limb_t)
 
@@ -137,78 +153,5 @@ __GMP_DECLSPEC mp_limb_t __gmpn_add_nc (mp_ptr, mp_srcptr, mp_srcptr,
 #if defined(HAVE___GMPN_MULLO_N)
   void __gmpn_mullo_n (mp_ptr, mp_srcptr, mp_srcptr, mp_size_t);
 #endif
-
-#if defined( __MPIR_RELEASE ) && __MPIR_RELEASE == 20600
-
-#define mpn_mulmod_Bexpp1_fft __gmpn_mulmod_Bexpp1_fft
-int __gmpn_mulmod_Bexpp1_fft(mp_ptr op, mp_size_t pl, mp_srcptr n, mp_size_t nl, 
-							 mp_srcptr m, mp_size_t ml);
-
-/* WARNING - these defintions map the internal interface of the MPIR FFT 
-   to the GMP interface - they work in this context but the parameters for
-   the mpn_fft_next_size and the fft_adjust_limbs functions have different
-   semantics, which means that these definitions may fail if used in other
-   circumstances */
-
-#define mpn_fft_best_k(n, k)             (0) 
-#define mpn_fft_next_size(n, k)          fft_adjust_limbs(n)
-#define mpn_mul_fft(bp,bn,ap,an,cp,cn,k) mpn_mulmod_Bexpp1_fft(bp,bn,ap,an,cp,cn)
-
-#else
-
-#define mpn_mul_fft __gmpn_mul_fft
-mp_limb_t __gmpn_mul_fft (mp_ptr, mp_size_t, mp_srcptr, mp_size_t, mp_srcptr, 
-                          mp_size_t, int);
-
-#define mpn_mulmod_bnm1 __gmpn_mulmod_bnm1
-void mpn_mulmod_bnm1 (mp_ptr, mp_size_t, mp_srcptr, mp_size_t, mp_srcptr, 
-                      mp_size_t, mp_ptr);
-
-#define mpn_mul_fft_full __gmpn_mul_fft_full
-void __gmpn_mul_fft_full (mp_ptr, mp_srcptr, mp_size_t, mp_srcptr, mp_size_t);
-
-#define mpn_fft_next_size __gmpn_fft_next_size
-mp_size_t __gmpn_fft_next_size (mp_size_t, int);
-
-#define mpn_mulmod_bnm1_next_size __gmpn_mulmod_bnm1_next_size
-mp_size_t mpn_mulmod_bnm1_next_size (mp_size_t);
-
-#define mpn_fft_best_k __gmpn_fft_best_k
-int __gmpn_fft_best_k (mp_size_t, int);
-
-#endif
-
-static inline void 
-mpz_set_uint64 (mpz_t m, const uint64_t n)
-{
-#if GMP_LIMB_BITS == 64  /* 64-bit GMP limb */
-  if (sizeof(mp_limb_t) > sizeof(unsigned long))
-    {
-       mpz_set_ui (m, (unsigned long)(uint32_t)(n >> 32));
-       mpz_mul_2exp (m, m, 32);
-       mpz_add_ui (m, m, (unsigned long)(uint32_t)n);
-    }
-  else
-    mpz_set_ui(m, (unsigned long)n);
-
-#else                    /* 32-bit GMP limb */
-  mpz_set_ui (m, (unsigned long)(uint32_t)(n >> 32));
-  mpz_mul_2exp (m, m, 32);
-  mpz_add_ui (m, m, (unsigned long)(uint32_t)n);
-#endif
-}
-
-static inline void 
-mpz_set_int64 (mpz_t m, const int64_t n)
-{
-  if (n < 0)
-    {
-      mpz_set_uint64(m, -n);
-      mpz_neg(m, m);
-    }
-  else
-    mpz_set_uint64(m, n);
-}
-
 
 #endif /* _ECM_GMP_H */

@@ -1,7 +1,7 @@
 /* Dickman's rho function (to compute probability of success of ecm).
 
-Copyright 2004, 2005, 2006, 2008, 2009, 2010, 2011, 2012, 2013
-Alexander Kruppa, Paul Zimmermann.
+Copyright 2004, 2005, 2006, 2008, 2009, 2010, 2011 Alexander Kruppa,
+Paul Zimmermann.
 
 This file is part of the ECM Library.
 
@@ -20,9 +20,6 @@ along with the ECM Library; see the file COPYING.LIB.  If not, see
 http://www.gnu.org/licenses/ or write to the Free Software Foundation, Inc.,
 51 Franklin St, Fifth Floor, Boston, MA 02110-1301, USA. */
 
-/* define TESTDRIVE to compile rho as a stand-alone program, in which case
-   you need to have libgsl installed */
-
 #include "config.h"
 #if defined(TESTDRIVE)
 #define _ISOC99_SOURCE 1
@@ -36,7 +33,7 @@ http://www.gnu.org/licenses/ or write to the Free Software Foundation, Inc.,
 #include <string.h>
 #include "primegen.h"
 #endif
-#if defined(TESTDRIVE)
+#if defined(TESTDRIVE) && defined(HAVE_LIBGSL)
 #include <gsl/gsl_math.h>
 #include <gsl/gsl_sf_expint.h>
 #include <gsl/gsl_integration.h>
@@ -243,7 +240,7 @@ Buchstab_Psi(const unsigned long x, const unsigned long y)
 #endif /* TESTDRIVE */
 
 
-#if defined(TESTDRIVE)
+#if defined(TESTDRIVE) && defined(HAVE_LIBGSL)
 static double
 Li (const double x)
 {
@@ -318,7 +315,7 @@ rhoexact (double x)
 }
 
 
-#if defined(TESTDRIVE)
+#if defined(TESTDRIVE) && defined(HAVE_LIBGSL)
 
 /* The Buchstab omega(x) function, exact for x <= 4 where it can be 
    evaluated without numerical integration, and approximated by 
@@ -739,7 +736,7 @@ pm1prob_rm (double B1, double B2, double N, double nr, int S, unsigned long r,
    This function estimates the \Phi(x,y) function via eq. (48) of the 1st
    edition resp. equation (6.49) of the 3rd edition of Tenenbaum's book. */
 
-#if defined(TESTDRIVE)
+#if defined(TESTDRIVE) && defined(HAVE_LIBGSL)
 
 static double 
 integrand1 (double x, double *y)

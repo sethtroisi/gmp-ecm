@@ -132,8 +132,8 @@ isbase2 (const mpz_t n, const double threshold)
   int res = 0; 
   mpz_t u, w;
 
-  mpz_init (u);
-  mpz_init (w);
+  MPZ_INIT (u);
+  MPZ_INIT (w);
   lo = mpz_sizeinbase (n, 2) - 1; /* 2^lo <= n < 2^(lo+1) */  
   mpz_set_ui (u, 1UL);
   mpz_mul_2exp (u, u, 2UL * lo);
@@ -258,11 +258,11 @@ ecm_redc_n (mp_ptr rp, mp_srcptr x0p, mp_size_t xn,
   mp_ptr tp, up, xp;
   mp_size_t nn = n + n;
   mp_limb_t cy, cin;
-  TMP_DECL;
+  TMP_DECL(marker);
 
   ASSERT((xn == 2 * n) || (xn == 2 * n - 1));
 
-  TMP_MARK;
+  TMP_MARK(marker);
   up = TMP_ALLOC_LIMBS(nn + nn);
   if (xn < nn)
     {
@@ -295,7 +295,7 @@ ecm_redc_n (mp_ptr rp, mp_srcptr x0p, mp_size_t xn,
   if (cy)
     cy -= mpn_sub_n (rp, rp, orig, n);
   ASSERT (cy == 0);
-  TMP_FREE;
+  TMP_FREE(marker);
 }
 
 /* REDC. x and t must not be identical, t has limb growth */
@@ -493,9 +493,9 @@ sqrredc (mp_ptr rp, mp_srcptr ap, mp_srcptr np, const mp_size_t n,
   mp_ptr cp;
   mp_size_t i;
   mp_limb_t cy, q;
-  TMP_DECL;
+  TMP_DECL(marker);
 
-  TMP_MARK;
+  TMP_MARK(marker);
   cp = TMP_ALLOC_LIMBS(2*n);
   for (i = 0; i < n; i++)
     umul_ppmm (cp[2*i+1], cp[2*i], ap[i], ap[i]);
@@ -541,7 +541,7 @@ sqrredc (mp_ptr rp, mp_srcptr ap, mp_srcptr np, const mp_size_t n,
  end_sqrredc:
   while (cy)
     cy -= mpn_sub_n (rp, rp, np, n);
-  TMP_FREE;
+  TMP_FREE(marker);
 }
 
 #ifdef HAVE_NATIVE_MULREDC1_N
@@ -634,6 +634,13 @@ mulredc_1 (mp_ptr z, const mp_limb_t x, mp_srcptr y, mp_srcptr m,
     }
 }
 #endif /* ifdef HAVE_NATIVE_MULREDC1_N */
+#endif
+
+#ifndef TUNE_MULREDC_TABLE
+#define TUNE_MULREDC_TABLE {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0}
+#endif
+#ifndef TUNE_SQRREDC_TABLE
+#define TUNE_SQRREDC_TABLE {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0}
 #endif
 
 static int tune_mulredc_table[] = TUNE_MULREDC_TABLE;
@@ -928,9 +935,9 @@ mpmod_init_MPZ (mpmod_t modulus, const mpz_t N)
   modulus->bits = n * GMP_NUMB_BITS; /* Number of bits, 
 					rounded up to full limb */
 
-  mpz_init2 (modulus->temp1, 2UL * modulus->bits + GMP_NUMB_BITS);
-  mpz_init2 (modulus->temp2, modulus->bits);
-  mpz_init2 (modulus->aux_modulus, modulus->bits);
+  MPZ_INIT2 (modulus->temp1, 2UL * modulus->bits + GMP_NUMB_BITS);
+  MPZ_INIT2 (modulus->temp2, modulus->bits);
+  MPZ_INIT2 (modulus->aux_modulus, modulus->bits);
   mpz_set_ui (modulus->aux_modulus, 1UL);
   /* we precompute B^(n + ceil(n/2)) mod N, where B=2^GMP_NUMB_BITS */
   mpz_mul_2exp (modulus->aux_modulus, modulus->aux_modulus,
@@ -955,8 +962,8 @@ mpmod_init_BASE2 (mpmod_t modulus, const int base2, const mpz_t N)
   Nbits = mpz_size (N) * GMP_NUMB_BITS; /* Number of bits, rounded
                                            up to full limb */
 
-  mpz_init2 (modulus->temp1, 2UL * Nbits + GMP_NUMB_BITS);
-  mpz_init2 (modulus->temp2, Nbits);
+  MPZ_INIT2 (modulus->temp1, 2UL * Nbits + GMP_NUMB_BITS);
+  MPZ_INIT2 (modulus->temp2, Nbits);
   
   mpz_set_ui (modulus->temp1, 1UL);
   mpz_mul_2exp (modulus->temp1, modulus->temp1, abs (base2));
@@ -1002,29 +1009,31 @@ mpmod_init_MODMULN (mpmod_t modulus, const mpz_t N)
 {
   int Nbits;
 
+  MEMORY_TAG;
   mpz_init_set (modulus->orig_modulus, N);
+  MEMORY_UNTAG;
   
   modulus->repr = ECM_MOD_MODMULN;
   Nbits = mpz_size (N) * GMP_NUMB_BITS; /* Number of bits, rounded
                                            up to full limb */
   modulus->bits = Nbits;
 
-  mpz_init2 (modulus->temp1, 2UL * Nbits + GMP_NUMB_BITS);
-  mpz_init2 (modulus->temp2, Nbits + 1);
+  MPZ_INIT2 (modulus->temp1, 2UL * Nbits + GMP_NUMB_BITS);
+  MPZ_INIT2 (modulus->temp2, Nbits + 1);
   modulus->Nprim = (mp_limb_t*) malloc (mpz_size (N) * sizeof (mp_limb_t));
 
-  mpz_init2 (modulus->R2, Nbits);
+  MPZ_INIT2 (modulus->R2, Nbits);
   mpz_set_ui (modulus->temp1, 1UL);
   mpz_mul_2exp (modulus->temp1, modulus->temp1, 2 * Nbits);
   mpz_mod (modulus->R2, modulus->temp1, modulus->orig_modulus);
   /* Now R2 = (2^bits)^2 (mod N) */
   
-  mpz_init2 (modulus->R3, Nbits);
+  MPZ_INIT2 (modulus->R3, Nbits);
   mpz_mul_2exp (modulus->temp1, modulus->R2, Nbits);
   mpz_mod (modulus->R3, modulus->temp1, modulus->orig_modulus);
   /* Now R3 = (2^bits)^3 (mod N) */
 
-  mpz_init2 (modulus->multiple, Nbits);
+  MPZ_INIT2 (modulus->multiple, Nbits);
   mpz_set_ui (modulus->temp1, 1UL);
   mpz_mul_2exp (modulus->temp1, modulus->temp1, Nbits);
   /* compute ceil(2^bits / N) */
@@ -1058,9 +1067,9 @@ mpmod_init_REDC (mpmod_t modulus, const mpz_t N)
                                 up to full limb */
   modulus->bits = Nbits;
   
-  mpz_init2 (modulus->temp1, 2 * Nbits + GMP_NUMB_BITS);
-  mpz_init2 (modulus->temp2, Nbits);
-  mpz_init2 (modulus->aux_modulus, Nbits);
+  MPZ_INIT2 (modulus->temp1, 2 * Nbits + GMP_NUMB_BITS);
+  MPZ_INIT2 (modulus->temp2, Nbits);
+  MPZ_INIT2 (modulus->aux_modulus, Nbits);
 
   mpz_set_ui (modulus->temp1, 1UL);
   mpz_mul_2exp (modulus->temp1, modulus->temp1, Nbits);
@@ -1079,18 +1088,18 @@ mpmod_init_REDC (mpmod_t modulus, const mpz_t N)
 		n - ABSIZ(modulus->aux_modulus));
     }
 
-  mpz_init2 (modulus->R2, Nbits);
+  MPZ_INIT2 (modulus->R2, Nbits);
   mpz_set_ui (modulus->temp1, 1UL);
   mpz_mul_2exp (modulus->temp1, modulus->temp1, 2 * Nbits);
   mpz_mod (modulus->R2, modulus->temp1, modulus->orig_modulus);
   /* Now R2 = (2^bits)^2 (mod N) */
   
-  mpz_init2 (modulus->R3, Nbits);
+  MPZ_INIT2 (modulus->R3, Nbits);
   mpz_mul_2exp (modulus->temp1, modulus->R2, Nbits);
   mpz_mod (modulus->R3, modulus->temp1, modulus->orig_modulus);
   /* Now R3 = (2^bits)^3 (mod N) */
   
-  mpz_init (modulus->multiple);
+  MPZ_INIT (modulus->multiple);
   mpz_set_ui (modulus->temp1, 1UL);
   mpz_mul_2exp (modulus->temp1, modulus->temp1, Nbits);
   /* compute ceil(2^bits / N) */
@@ -1130,20 +1139,20 @@ mpmod_init_set (mpmod_t r, const mpmod_t modulus)
   r->bits = modulus->bits;
   r->Fermat = modulus->Fermat;
   mpz_init_set (r->orig_modulus, modulus->orig_modulus);
-  mpz_init2 (r->temp1, 2 * Nbits + GMP_NUMB_BITS);
-  mpz_init2 (r->temp2, Nbits + GMP_NUMB_BITS);
+  MPZ_INIT2 (r->temp1, 2 * Nbits + GMP_NUMB_BITS);
+  MPZ_INIT2 (r->temp2, Nbits + GMP_NUMB_BITS);
   if (modulus->repr == ECM_MOD_MODMULN || modulus->repr == ECM_MOD_REDC)
     {
-      mpz_init2 (r->multiple, Nbits);
-      mpz_init2 (r->R2, Nbits);
-      mpz_init2  (r->R3, Nbits);
+      MPZ_INIT2 (r->multiple, Nbits);
+      MPZ_INIT2 (r->R2, Nbits);
+      MPZ_INIT2  (r->R3, Nbits);
       mpz_set (r->multiple, modulus->multiple);
       mpz_set (r->R2, modulus->R2);
       mpz_set (r->R3, modulus->R3);
     }
   if (modulus->repr == ECM_MOD_REDC || modulus->repr == ECM_MOD_MPZ)
     {
-      mpz_init2 (r->aux_modulus, Nbits);
+      MPZ_INIT2 (r->aux_modulus, Nbits);
       mpz_set (r->aux_modulus, modulus->aux_modulus);
     }
   if (modulus->repr == ECM_MOD_MODMULN)
@@ -1742,16 +1751,7 @@ mpres_mul_z_to_z (mpz_t R, const mpres_t S1, const mpz_t S2, mpmod_t modulus)
       else
  	{
 	  MPZ_REALLOC (R, modulus->bits / GMP_NUMB_BITS);
-	  if (ABSIZ(S2) < modulus->bits / GMP_NUMB_BITS)
-	    {
-	      mpz_t t;
-	      mpz_init2 (t, modulus->bits);
-	      mpz_set (t, S2);
-	      ecm_mulredc_basecase (R, S1, t, modulus);
-	      mpz_clear (t);
-            }
-          else
-            ecm_mulredc_basecase (R, S1, S2, modulus);
+	  ecm_mulredc_basecase (R, S1, S2, modulus);
           mpz_mod (R, R, modulus->orig_modulus);
  	}
       break;
@@ -1792,37 +1792,6 @@ mpres_set_z_for_gcd (mpres_t R, const mpz_t S, mpmod_t modulus)
   mpz_mod (R, S, modulus->orig_modulus);
   ASSERT_NORMALIZED (R);  
 }
-
-/* Compagnon function to mpres_set_z_for_gcd(). It divides by c^n. 
-   In case of MULREDC with k b-bit words, c = 1/2^(b*k), so we multiply 
-   by 2^(n*b*k). The purpose is to fix products of n terms collected by 
-   using mpres_set_z_for_gcd(), so that we can still get the exact residue. */
-   
-void 
-mpres_set_z_for_gcd_fix (mpres_t R, const mpres_t S, const mpz_t n, mpmod_t modulus)
-{
-  switch (modulus->repr)
-    {
-      case ECM_MOD_MODMULN:
-      case ECM_MOD_REDC:
-        {
-          mpres_t po2;
-          mpz_t nb;
-
-          mpz_init (nb);
-          mpres_init (po2, modulus);
-
-          mpz_mul_ui (nb, n, modulus->bits);
-          mpres_set_ui (po2, 2, modulus);
-          mpres_pow (po2, po2, nb, modulus);
-          mpres_mul (R, S, po2, modulus);
-
-          mpz_clear (nb);
-          mpres_clear (po2, modulus);
-        }
-    }
-}
-
 
 /* R <- S / 2^n mod modulus. Does not need to be fast. */
 void 
@@ -2141,58 +2110,13 @@ mpres_out_str (FILE *fd, const unsigned int base, const mpres_t S,
   mpz_out_str (fd, base, modulus->temp2);
 }
 
-
-/* Returns 1 if successful, 0 if not */
-static int
-test_mpres_set_z_for_gcd_fix(const int maxk, mpmod_t modulus)
-{
-  mpres_t m, prod;
-  mpz_t n;
-  int k;
-
-  mpres_init (prod, modulus);
-  mpres_init (m, modulus);
-  mpz_init (n);
-
-  /* m = 1 * c, where c is a constant depending on mod reduction method */
-  mpz_set_ui (n, 1);
-  mpres_set_z_for_gcd (m, n, modulus);
-
-  for (k = 0; k <= maxk; k++)
-    {
-      int i;
-      mpres_set_ui (prod, 1, modulus);
-
-      /* Compute prod = 1 * (1 * c)^k */
-      for (i = 0; i < k; i++)
-        mpres_mul (prod, prod, m, modulus);
-
-      /* Divide prod by c^k */ 
-      mpz_set_ui (n, k);
-      mpres_set_z_for_gcd_fix (prod, prod, n, modulus);
-
-      /* Result should be 1 */
-      mpres_get_z (n, prod, modulus);
-      if (mpz_cmp_ui (n, 1) != 0) {
-        gmp_printf ("Error: test of mpres_set_z_for_gcd_fix() failed, k = %d, n = %Zd\n", k, n);
-        return 0;
-      }
-    }
-
-  mpz_clear (n);
-  mpres_clear (m, modulus);
-  mpres_clear (prod, modulus);
-  return 1;
-}
-
-
 int
 mpmod_selftest (const mpz_t n)
 {
   mpres_t test1, test2;
   mpmod_t modulus;
   
-  printf ("Performing self test of modular arithmetic\n");
+  printf ("Performing self test\n");
   mpmod_init (modulus, n, 0);
   mpres_init (test1, modulus);
   mpres_init (test2, modulus);
@@ -2208,12 +2132,8 @@ mpmod_selftest (const mpz_t n)
    }
   mpres_clear (test1, modulus);
   mpres_clear (test2, modulus);
-
-  if (!test_mpres_set_z_for_gcd_fix(10, modulus))
-    abort();
-
   mpmod_clear (modulus);
-  
+
   return 0;
 }
 

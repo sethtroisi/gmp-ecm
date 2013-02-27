@@ -1444,10 +1444,7 @@ list_scale_V (listz_t R, const listz_t F, const mpres_t Q,
     
     l = (deg - 1) / nr_chunks + 1; /* l = ceil (deg / nr_chunks) */
     start_i = thread_nr * l + 1;
-    if (start_i <= deg + 1)
-      l = MIN(l, deg + 1 - start_i);
-    else
-      l = 0;
+    l = MIN(l, deg + 1 - start_i);
 
     mpmod_init_set (modulus_local, modulus);
     mpres_init (Vi_1, modulus_local);
@@ -1509,10 +1506,7 @@ list_scale_V (listz_t R, const listz_t F, const mpres_t Q,
     
     l = (deg - 1) / nr_chunks + 1; /* l = ceil(deg / nr_chunks) */
     start_i = thread_nr * l + 1UL;
-    if (start_i <= deg + 1)
-      l = MIN(l, deg + 1 - start_i);
-    else
-      l = 0;
+    l = MIN(l, deg + 1 - start_i);
     
     mpmod_init_set (modulus_local, modulus);
     mpres_init (Ui_1, modulus_local);
@@ -2011,13 +2005,11 @@ pm1_sequence_g (listz_t g_mpz, mpzspv_t g_ntt, const mpres_t b_1,
     
     l = (l_param - 1) / nr_chunks + 1; /* = ceil(l_param / nr_chunks) */
     offset = thread_nr * l;
-    if (offset <= l_param)
-      l = MIN(l, l_param - offset);
-    else
-      l = 0;
     outputf (OUTPUT_DEVVERBOSE, 
              "pm1_sequence_g: thread %d has l = %lu, offset = %lu.\n", 
              thread_nr, l, offset);
+    ASSERT_ALWAYS (l_param >= offset);
+    l = MIN(l, l_param - offset);
     M = M_param - (long) offset;
     
     /* Let only the master thread print stuff */
@@ -2101,13 +2093,10 @@ pm1_sequence_g (listz_t g_mpz, mpzspv_t g_ntt, const mpres_t b_1,
   mpres_get_z (t, r[2], modulus);
   outputf (OUTPUT_TRACE, "/* pm1_sequence_g */ g_%lu = %Zd; /* PARI */\n", 
 	   offset, t);
-  if (l > 0)
-    {
-      if (g_mpz != NULL)
-        mpz_set (g_mpz[offset], t);
-      if (g_ntt != NULL)
-        mpzspv_from_mpzv (g_ntt, offset, &t, 1UL, ntt_context);
-    }
+  if (g_mpz != NULL)
+    mpz_set (g_mpz[offset], t);
+  if (g_ntt != NULL)
+    mpzspv_from_mpzv (g_ntt, offset, &t, 1UL, ntt_context);
 
   /* So here we have for i = 0
      r[2] = x_0^(M-i) * r^{(M-i)^2}
@@ -2218,10 +2207,7 @@ pm1_sequence_h (listz_t h, mpzspv_t h_ntt, mpz_t *f, const mpres_t r,
 
       chunklen = (len - 1UL) / (unsigned long) nr_chunks + 1UL;
       offset = chunklen * (unsigned long) thread_nr;
-      if (offset <= len)
-        len = MIN(chunklen, len - offset);
-      else
-        len = 0;
+      len = MIN(chunklen, len - offset);
     }
 #endif
     
@@ -2405,6 +2391,21 @@ mpzspv_init_mt (spv_size_t len, mpzspm_t mpzspm)
 }
 
 
+ATTRIBUTE_UNUSED
+static void
+ntt_print_vec (const char *msg, const spv_t spv, const spv_size_t l)
+{
+  spv_size_t i;
+
+  /* Warning: on some computers, for example gcc49.fsffrance.org,
+     "unsigned long" might be shorter than "sp_t" */
+  gmp_printf ("%s [%Nd", msg, (mp_ptr) spv, 1);
+  for (i = 1; i < l; i++)
+    gmp_printf (", %Nd", (mp_ptr) spv + i, 1);
+  printf ("]\n");
+}
+
+
 /* Square the reciprocal Laurent polynomial S(x) of degree 2*n-2.
    S(x) = s_0 + \sum_{i=1}^{n-1} s_i (x^i + x^{-1}).
    S[i] contains the n coefficients s_i, 0 <= i <= n-1.
@@ -2469,7 +2470,7 @@ ntt_sqr_reciprocal (mpzv_t R, const mpzv_t S, mpzspv_t dft,
       
       chunklen = (chunklen - 1) / (spv_size_t) nr_chunks + 1;
       offset = (spv_size_t) thread_nr * chunklen;
-      if (offset <= 2*n - 1)
+      if (2*n - 1 > offset)
         chunklen = MIN(chunklen, (2*n - 1) - offset);
       else
         chunklen = 0UL;
@@ -2544,10 +2545,8 @@ ntt_gcd (mpz_t f, mpz_t *product, mpzspv_t ntt, const unsigned long ntt_offset,
 
     len = (len_param - 1) / nr_chunks + 1;
     thread_offset = thread_nr * len;
-    if (thread_offset <= len_param)
-      len = MIN(len, len_param - thread_offset);
-    else
-      len = 0;
+    ASSERT (len_param >= thread_offset);
+    len = MIN(len, len_param - thread_offset);
 #pragma omp master
     {
       outputf (OUTPUT_VERBOSE, " using %d threads", nr_chunks);
@@ -2557,8 +2556,10 @@ ntt_gcd (mpz_t f, mpz_t *product, mpzspv_t ntt, const unsigned long ntt_offset,
     /* Make a private copy of the mpmod_t struct */
     mpmod_init_set (modulus, modulus_param);
 
+    MEMORY_TAG;
     R = init_list2 (Rlen, (mpz_size (modulus->orig_modulus) + 2) * 
                            GMP_NUMB_BITS);
+    MEMORY_UNTAG;
     mpres_init (tmpres, modulus);
     mpres_init (tmpprod, modulus);
     mpres_set_ui (tmpprod, 1UL, modulus);
@@ -2602,14 +2603,6 @@ ntt_gcd (mpz_t f, mpz_t *product, mpzspv_t ntt, const unsigned long ntt_offset,
 #ifdef _OPENMP
   }
 #endif
-
-  {
-    mpz_t n;
-    mpz_init (n);
-    mpz_set_ui (n, len_param);
-    mpres_set_z_for_gcd_fix (totalprod, totalprod, n, modulus_param);
-    mpz_clear (n);
-  }
 
   if (product != NULL)
     mpres_get_z (*product, totalprod, modulus_param);
@@ -2833,7 +2826,8 @@ pm1fs2 (mpz_t f, const mpres_t X, mpmod_t modulus,
       }
 
       outputf (OUTPUT_VERBOSE, " took %lums\n", cputime () - timestart);
-      outputf (OUTPUT_RESVERBOSE, "Product of R[i] = %Zd\n", tmp[1]);
+      outputf (OUTPUT_RESVERBOSE, "Product of R[i] = %Zd (times some "
+	       "power of 2 if REDC was used! Try -mpzmod)\n", tmp[1]);
 
       if (mpz_cmp_ui (tmp[0], 1UL) > 0)
 	{
@@ -3032,7 +3026,8 @@ pm1fs2_ntt (mpz_t f, const mpres_t X, mpmod_t modulus,
       ntt_gcd (mt, product_ptr, g_ntt, params->s_1 / 2, NULL, nr, ntt_context, 
 	       modulus);
 
-      outputf (OUTPUT_RESVERBOSE, "Product of R[i] = %Zd\n", product);
+      outputf (OUTPUT_RESVERBOSE, "Product of R[i] = %Zd (times some "
+	       "power of 2 if REDC was used! Try -mpzmod)\n", product);
 
       /* If we found a factor, stop */
       if (mpz_cmp_ui (mt, 1UL) > 0)
@@ -3438,10 +3433,8 @@ pp1_sequence_g (listz_t g_x, listz_t g_y, mpzspv_t g_x_ntt, mpzspv_t g_y_ntt,
 
     l = (l_param - 1) / nr_chunks + 1;
     offset = thread_nr * l;
-    if (offset <= l_param)
-      l = MIN(l, l_param - offset);
-    else
-      l = 0;
+    ASSERT_ALWAYS (l_param >= offset);
+    l = MIN(l, l_param - offset);
     M = M_param - (long) offset;
 
     want_output = (omp_get_thread_num() == 0);
@@ -3519,22 +3512,19 @@ pp1_sequence_g (listz_t g_x, listz_t g_y, mpzspv_t g_x_ntt, mpzspv_t g_y_ntt,
 		 tmplen, tmp); /* v[0,1] = r^M * x_0 */
     gfp_ext_pow_norm1_sl (r1_x[0], r1_y[0], v[0], v[1], M, Delta, modulus, 
 			  tmplen, tmp); /* r1[0] = (r^M * x_0)^M */
-    if (l > 0)
+    if (g_x != NULL)
+      mpres_get_z (g_x[offset], r1_x[0], modulus);
+    if (g_y != NULL)
+      mpres_get_z (g_y[offset], r1_y[0], modulus);
+    if (g_x_ntt != NULL)
       {
-        if (g_x != NULL)
-          mpres_get_z (g_x[offset], r1_x[0], modulus);
-        if (g_y != NULL)
-          mpres_get_z (g_y[offset], r1_y[0], modulus);
-        if (g_x_ntt != NULL)
-          {
-            mpres_get_z (mt, r1_x[0], modulus);
-            mpzspv_from_mpzv (g_x_ntt, offset, &mt, 1UL, ntt_context);
-          }
-        if (g_y_ntt != NULL)
-          {
-            mpres_get_z (mt, r1_y[0], modulus);
-            mpzspv_from_mpzv (g_y_ntt, offset, &mt, 1UL, ntt_context);
-          }
+	mpres_get_z (mt, r1_x[0], modulus);
+	mpzspv_from_mpzv (g_x_ntt, offset, &mt, 1UL, ntt_context);
+      }
+    if (g_y_ntt != NULL)
+      {
+	mpres_get_z (mt, r1_y[0], modulus);
+	mpzspv_from_mpzv (g_y_ntt, offset, &mt, 1UL, ntt_context);
       }
     
     
@@ -3546,22 +3536,19 @@ pp1_sequence_g (listz_t g_x, listz_t g_y, mpzspv_t g_x_ntt, mpzspv_t g_y_ntt,
 		 tmplen, tmp);
     gfp_ext_pow_norm1_sl (r1_x[1], r1_y[1], v[0], v[1], M - 1, Delta, 
 			  modulus, tmplen, tmp);
-    if (l > 1)
+    if (g_x != NULL)
+      mpres_get_z (g_x[offset + 1], r1_x[1], modulus);
+    if (g_y != NULL)
+      mpres_get_z (g_y[offset + 1], r1_y[1], modulus);
+    if (g_x_ntt != NULL)
       {
-        if (g_x != NULL)
-          mpres_get_z (g_x[offset + 1], r1_x[1], modulus);
-        if (g_y != NULL)
-          mpres_get_z (g_y[offset + 1], r1_y[1], modulus);
-        if (g_x_ntt != NULL)
-          {
-            mpres_get_z (mt, r1_x[1], modulus);
-            mpzspv_from_mpzv (g_x_ntt, offset + 1, &mt, 1UL, ntt_context);
-          }
-        if (g_y_ntt != NULL)
-          {
-            mpres_get_z (mt, r1_y[1], modulus);
-            mpzspv_from_mpzv (g_y_ntt, offset + 1, &mt, 1UL, ntt_context);
-          }
+	mpres_get_z (mt, r1_x[1], modulus);
+	mpzspv_from_mpzv (g_x_ntt, offset + 1, &mt, 1UL, ntt_context);
+      }
+    if (g_y_ntt != NULL)
+      {
+	mpres_get_z (mt, r1_y[1], modulus);
+	mpzspv_from_mpzv (g_y_ntt, offset + 1, &mt, 1UL, ntt_context);
       }
     
     
@@ -3743,10 +3730,8 @@ pp1_sequence_h (listz_t h_x, listz_t h_y, mpzspv_t h_x_ntt, mpzspv_t h_y_ntt,
 
     l = (l_param - 1) / nr_chunks + 1;
     offset = thread_nr * l;
-    if (offset <= l_param)
-      l = MIN(l, l_param - offset);
-    else
-      l = 0;
+    ASSERT_ALWAYS (l_param >= offset);
+    l = MIN(l, l_param - offset);
 
     if (thread_nr == 0)
       outputf (OUTPUT_VERBOSE, " using %d threads", nr_chunks);
@@ -4189,7 +4174,8 @@ pp1fs2 (mpz_t f, const mpres_t X, mpmod_t modulus,
       if (test_verbose(OUTPUT_RESVERBOSE))
       {
 	  mpres_get_z (mt, tmpres[1], modulus);
-	  outputf (OUTPUT_RESVERBOSE, "Product of R[i] = %Zd\n", mt);
+	  outputf (OUTPUT_RESVERBOSE, "Product of R[i] = %Zd (times some "
+		   "power of 2 if REDC was used! Try -mpzmod)\n", mt);
       }
       
       mpres_gcd (mt, tmpres[1], modulus);
@@ -4299,7 +4285,9 @@ pp1fs2_ntt (mpz_t f, const mpres_t X, mpmod_t modulus,
   /* Allocate memory for F with correct amount of space for each mpz_t */
   lenF = params->s_1 / 2 + 1 + 1; /* Another +1 because poly_from_sets_V stores
 				     the leading 1 monomial for each factor */
+  MEMORY_TAG;
   F = init_list2 (lenF, (unsigned int) abs (modulus->bits) + GMP_NUMB_BITS);
+  MEMORY_UNTAG;
   
   /* Build F */
   if (build_F_ntt (F, X, S_1, params, modulus) == ECM_ERROR)
@@ -4351,8 +4339,10 @@ pp1fs2_ntt (mpz_t f, const mpres_t X, mpmod_t modulus,
   if (twopass)
     {
       g_y_ntt = g_x_ntt;
+      MEMORY_TAG;
       R = init_list2 (nr, (mpz_size (modulus->orig_modulus) + 2) *  
                           GMP_NUMB_BITS);
+      MEMORY_UNTAG;
     }
   else
     g_y_ntt = mpzspv_init (params->l, ntt_context);
@@ -4475,7 +4465,8 @@ pp1fs2_ntt (mpz_t f, const mpres_t X, mpmod_t modulus,
 		   ntt_context, modulus);
 	}
       
-      outputf (OUTPUT_RESVERBOSE, "Product of R[i] = %Zd\n", product);
+      outputf (OUTPUT_RESVERBOSE, "Product of R[i] = %Zd (times some "
+	       "power of 2 if REDC was used! Try -mpzmod)\n", product);
 
       if (mpz_cmp_ui (mt, 1UL) > 0)
 	{

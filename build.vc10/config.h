@@ -1,6 +1,6 @@
 /* config.h.in.  Generated from configure.in by autoheader.  */
 
-#define VERSION "7.0-dev"
+#define VERSION "6.4.4"
 
 #define VERSION_GPU "gpu_ecm-win"
 
@@ -223,27 +223,12 @@
 /* Define to `unsigned int' if <sys/types.h> does not define. */
 #undef size_t
 
-#define PRIdSIZE "Id"
-#define PRIuSIZE "Iu"
-
 #ifdef _MSC_VER
-
-#define __func__ __FUNCTION__
-
-/* define Windows tuning here */
-#  define __tune_corei7__
-
-/* define to 1 for a build with a GPU capability */
-#  if 0
-#    define WITH_GPU    1
-#  endif
-
 #  if _MSC_VER < 1600
 #    define int64_t     __int64
 #    define uint64_t    unsigned __int64
 #  endif
 #  define strncasecmp strnicmp
-#  define access       _access 
 #  define alloca      _alloca
 #  define fseek64     _fseek64
 #  define ftell64     _ftell64

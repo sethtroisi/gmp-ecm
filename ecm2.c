@@ -23,7 +23,6 @@ http://www.gnu.org/licenses/ or write to the Free Software Foundation, Inc.,
 #include <stdlib.h>
 #include <math.h>
 #include "ecm-impl.h"
-#include "cmecm.h"
 
 /* R_i <- q_i * S, 0 <= i < n, where q_i are large integers, S is a point on
    an elliptic curve. Uses max(bits in q_i) modular inversions (one less if 
@@ -64,8 +63,8 @@ multiplyW2n (mpz_t p, point *R, curve *S, mpz_t *q, const unsigned int n,
       return ECM_NO_FACTOR_FOUND;
     }
   
-  mpz_init2 (flag, n);
-  mpz_init2 (signs, n);
+  MPZ_INIT2 (flag, n);
+  MPZ_INIT2 (signs, n);
   mpres_init (s.x, modulus);
   mpres_init (s.y, modulus);
   mpres_set (s.x, S->x, modulus);
@@ -455,11 +454,6 @@ ecm_rootsF (mpz_t f, listz_t F, root_params_t *root_params,
 
   st = cputime ();
 
-  if(s->disc != 0){
-      youpi = ecm_rootsF_CM(f, F, dF, s, modulus);
-      goto exit_ecm_rootsF;
-  }
-
   /* Relative cost of point add during init and computing roots assumed =1 */
   init_roots_params (params, root_params->S, root_params->d1, root_params->d2, 
 		     1.0);
@@ -470,7 +464,7 @@ ecm_rootsF (mpz_t f, listz_t F, root_params_t *root_params,
 	   params->dickson_a);
 
   /* Init finite differences tables */
-  mpz_init (t); /* t = 0 */
+  MPZ_INIT (t); /* t = 0 */
   coeffs = init_progression_coeffs (t, params->dsieve, root_params->d2, 
 				    1, 6, params->S, params->dickson_a);
   mpz_clear (t);
@@ -500,8 +494,11 @@ ecm_rootsF (mpz_t f, listz_t F, root_params_t *root_params,
   for (i = 0; i < params->size_fd; i++)
     {
       outputf (OUTPUT_TRACE, "ecm_rootsF: coeffs[%d] = %Zd\n", i, coeffs[i]);
+      MEMORY_TAG;
       mpres_init (state.fd[i].x, modulus);
+      MEMORY_TAG;
       mpres_init (state.fd[i].y, modulus);
+      MEMORY_UNTAG;
     }
 
   state.T = (mpres_t *) malloc ((params->size_fd + 4) * sizeof (mpres_t));
@@ -511,7 +508,11 @@ ecm_rootsF (mpz_t f, listz_t F, root_params_t *root_params,
       goto ecm_rootsF_clearfdi;
     }
   for (i = 0 ; i < params->size_fd + 4; i++)
-    mpres_init (state.T[i], modulus);
+    {
+      MEMORY_TAG;
+      mpres_init (state.T[i], modulus);
+      MEMORY_UNTAG;
+    }
 
   /* Multiply fd[] = s * coeffs[] */
 
@@ -629,9 +630,6 @@ ecm_rootsG_init (mpz_t f, curve *X, root_params_t *root_params,
   double bestnr;
   long st = 0;
 
-  if(X->disc != 0)
-      return ecm_rootsG_init_CM(f, X, root_params, dF, blocks, modulus);
-
   ASSERT (gcd (root_params->d1, root_params->d2) == 1UL);
 
   if (test_verbose (OUTPUT_VERBOSE))
@@ -709,8 +707,11 @@ ecm_rootsG_init (mpz_t f, curve *X, root_params_t *root_params,
     }
   for (k = 0; k < params->size_fd; k++)
     {
+      MEMORY_TAG;
       mpres_init (state->fd[k].x, modulus);
+      MEMORY_TAG;
       mpres_init (state->fd[k].y, modulus);
+      MEMORY_UNTAG;
     }
   
   state->size_T = params->size_fd + 4;
@@ -728,7 +729,11 @@ ecm_rootsG_init (mpz_t f, curve *X, root_params_t *root_params,
       return NULL;
     }
   for (k = 0; k < state->size_T; k++)
-    mpres_init (state->T[k], modulus);
+    {
+      MEMORY_TAG;
+      mpres_init (state->T[k], modulus);
+      MEMORY_UNTAG;
+    }
 
   for (k = params->S + 1; k < params->size_fd; k += params->S + 1)
      mpz_set_ui (coeffs[k + params->S], 1);
@@ -790,11 +795,9 @@ ecm_rootsG_clear (ecm_roots_state_t *state, ATTRIBUTE_UNUSED mpmod_t modulus)
     }
   free (state->fd);
   
-  if(state->size_T != 0){
-      for (k = 0; k < state->size_T; k++)
-	  mpres_clear (state->T[k], modulus);
-      free (state->T);
-  }
+  for (k = 0; k < state->size_T; k++)
+    mpres_clear (state->T[k], modulus);
+  free (state->T);
   
   free (state);
 }
@@ -862,7 +865,7 @@ ecm_rootsG (mpz_t f, listz_t G, unsigned long dF, ecm_roots_state_t *state,
       params->next ++;
       params->rsieve ++;
     }
-
+  
   outputf (OUTPUT_VERBOSE, "Computing roots of G took %ldms",
 	   elltime (st, cputime ()));
   outputf (OUTPUT_DEVVERBOSE, ", %lu muls and %lu extgcds", muls, gcds);

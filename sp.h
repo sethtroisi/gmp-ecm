@@ -29,8 +29,6 @@ MA 02110-1301, USA.
 
 #include "config.h"
 #include <stdlib.h>
-#include "basicdefs.h"
-#include "ecm-gmp.h"
 
 #ifdef HAVE_SYS_TYPES_H
 #include <sys/types.h> /* needed for size_t */
@@ -108,27 +106,12 @@ typedef mp_limb_t UDItype;
  * simplifies modular reductions)
  *
  * For a residue x modulo a sp p, we require 0 <= x < p */
+typedef UWtype sp_t;
 
-#ifndef SP_NUMB_BITS
-   #if GMP_LIMB_BITS == 64
-      #define SP_NUMB_BITS 62
-   #elif GMP_LIMB_BITS == 32
-      #define SP_NUMB_BITS 31
-   #endif
-#endif
-
-#if SP_NUMB_BITS < 30 || SP_NUMB_BITS > 63
-#error "invalid choice of small prime size"
-#endif
-
-#if SP_NUMB_BITS < 32
-typedef uint32_t sp_t;
-#define SP_TYPE_BITS 32
-#define PRISP PRIu32
+#if W_TYPE_SIZE <= 32
+#define SP_NUMB_BITS (W_TYPE_SIZE - 1)
 #else
-typedef uint64_t sp_t;
-#define SP_TYPE_BITS 64
-#define PRISP PRIu64
+#define SP_NUMB_BITS (W_TYPE_SIZE - 2)
 #endif
 
 #define SP_MIN ((sp_t)1 << (SP_NUMB_BITS - 1))
@@ -209,6 +192,17 @@ typedef __mpzspm_struct * mpzspm_t;
 
 typedef spv_t * mpzspv_t;
 
+#define MAX(x,y) (((x)<(y))?(y):(x))
+#define MIN(x,y) (((x)<(y))?(x):(y))
+
+#define SIZ(x) ((x)->_mp_size)
+#define PTR(x) ((x)->_mp_d)
+
+/* expanding macros and then turning them 
+   into strings requires two levels of macro-izing */
+
+#define _(x) #x
+#define STRING(x) _(x)
 
 /*************
  * FUNCTIONS *
@@ -238,11 +232,27 @@ ceil_log_2 (spv_size_t x)
 static inline void 
 mpz_set_sp (mpz_t m, const sp_t n)
 {
-#if SP_TYPE_BITS == 32
-  mpz_set_ui(m, (unsigned long)(uint32_t)n);
-#else /* 64-bit sp_t */
-  mpz_set_uint64(m, n);
-#endif
+  /* Is sizeof() a safe way of determining whether the conversion 
+     is lossless? */
+  if (sizeof (sp_t) <= sizeof (unsigned long))
+    {
+      mpz_set_ui (m, (unsigned long) n);
+    }
+  else if (sizeof (sp_t) == 8 && sizeof (unsigned long) == 4)
+    {
+      /* We want to right-shift by 32 bits on a 64 bit system here.
+	 Putting a shift amount of 32 as a constant causes a compiler 
+	 warning on 32 bit systems. So we put sizeof (sp_t) * 4
+	 which always evaluates to 32 in this branch of the code, and 
+	 does not cause a compiler warning if sp_t is only 4 bytes wide. */
+      mpz_set_ui (m, (unsigned long) (n >> (sizeof (sp_t) * 4)));
+      mpz_mul_2exp (m, m, 32UL);
+      mpz_add_ui (m, m, (unsigned long int) (n & 4294967295UL));
+    }
+  else
+    {
+      abort ();
+    }
 }
 
 static inline sp_t 

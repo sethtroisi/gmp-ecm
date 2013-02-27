@@ -49,6 +49,9 @@
     <ClCompile Include="..\..\mpzspv.c">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="..\..\mul_fft.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
     <ClCompile Include="..\..\mul_lo.c">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -71,6 +74,9 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="..\..\spv.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\toomcook.c">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="..\..\tune.c">
