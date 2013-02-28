@@ -48,6 +48,8 @@ int
 build_curves_with_torsion_Z2xZ12(mpz_t f, mpmod_t n, ell_curve_t *tE,
 				 ell_point_t *tP,
 				 int smin, int smax, int nE);
-
-
-
+int
+build_curves_with_torsion_Z11(mpz_t f, mpmod_t n, 
+			      ell_curve_t *tE, ell_point_t *tP,
+			      int smin, int smax, int nE,
+			      int disc, mpz_t *sqroots);
