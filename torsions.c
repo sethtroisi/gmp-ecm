@@ -1517,3 +1517,28 @@ build_curves_with_torsion_Z2xZ12(mpz_t f, mpmod_t n, ell_curve_t *tE,
     return ret;
 }
 
+/***** From Rabarison10 *****/
+
+/* Operate over Q(sqrt(d)); one must have sqroots[0] = sqrt(d) mod n. */
+int
+build_curves_with_torsion_Z11(mpz_t f, mpmod_t n, 
+			      ell_curve_t *tE, ell_point_t *tP,
+			      int smin, int smax, int nE,
+			      int d, mpz_t *sqroots)
+{
+    int ret = ECM_NO_FACTOR_FOUND, u, nc = 0;
+    long x0;
+
+    for(u = smin; u < smax; u++){
+#if DEBUG_TORSION >= 2
+	printf("info[%d]:=\"Z11:%d\";\n", nc+1, u);
+#endif
+	/* HERE */
+	x0 = 0;
+	ec_force_point(tE[nc], tP[nc], NULL, &x0, n->orig_modulus);
+	nc++;
+	if(nc >= nE)
+	    break;
+    }
+    return ret;
+}

@@ -1,4 +1,4 @@
-/* manyecm.c - ECM with many curves with many torsion and/or in parallel 
+/* multiecm.c - ECM with many curves with many torsion and/or in parallel 
    Author: F. Morain
 */
 
@@ -18,7 +18,7 @@
 #include "torsions.h"
 #include "cmecm.h"
 
-#define DEBUG_MANY_EC 0
+#define DEBUG_MULTI_EC 0
 
 #define NCURVE_MAX 2000
 
@@ -186,7 +186,7 @@ one_curve_at_a_time(mpz_t f, char *ok, ell_curve_t *tE, ell_point_t *tP, int nE,
 	tmpB2 = dB2;
 	nhit = 0;
 	while(1){
-#if DEBUG_MANY_EC >= 2
+#if DEBUG_MULTI_EC >= 2
 	    printf("infos:=[\"E%d\"];\n", i);
 	    dump_curves(tE+i, tP+i, 1, N);
 #endif
@@ -246,7 +246,7 @@ one_curve_at_a_time(mpz_t f, char *ok, ell_curve_t *tE, ell_point_t *tP, int nE,
 		saveit = 0;
 	    }
 	    else{
-#if DEBUG_MANY_EC >= 0
+#if DEBUG_MULTI_EC >= 0
 		if(ret == ECM_PRIME_FAC_PRIME_COFAC 
 		   || ret == ECM_PRIME_FAC_COMP_COFAC){
 		    /* output Magma lines to check #E's mod f */
@@ -266,7 +266,7 @@ one_curve_at_a_time(mpz_t f, char *ok, ell_curve_t *tE, ell_point_t *tP, int nE,
 	}
 
     }
-#if DEBUG_MANY_EC >= 2
+#if DEBUG_MULTI_EC >= 2
     printf("# let's debug all curves\n");
     dump_curves(tE, tP, nE, N);
 #endif
@@ -309,7 +309,7 @@ all_curves_at_once(mpz_t f, char *ok, ell_curve_t *tE, ell_point_t *tP, int nE,
     
     last_chkpnt_time = cputime ();
     
-#if DEBUG_MANY_EC >= 2
+#if DEBUG_MULTI_EC >= 2
     printf("Initial points:\n");
     pt_many_print(tP, nE, n);
 #endif
@@ -320,7 +320,7 @@ all_curves_at_once(mpz_t f, char *ok, ell_curve_t *tE, ell_point_t *tP, int nE,
 		ret = ECM_FACTOR_FOUND_STEP1;
 		goto end_of_all;
 	    }
-#if DEBUG_MANY_EC >= 2
+#if DEBUG_MULTI_EC >= 2
 	    printf("P%ld:=", (long)r); pt_many_print(tQ, nE, n); printf(";\n");
 #endif
 	}
@@ -328,7 +328,7 @@ all_curves_at_once(mpz_t f, char *ok, ell_curve_t *tE, ell_point_t *tP, int nE,
     last_chkpnt_p = 3.;
     for (p = getprime (); p <= B1; p = getprime ()){
 	for (r = p; r <= B1; r *= p){
-#if DEBUG_MANY_EC >= 2
+#if DEBUG_MULTI_EC >= 2
 	    printf("## p = %ld at %ldms\n", (long)p, cputime());
 #endif
 	    if (r > *B1done){
@@ -338,7 +338,7 @@ all_curves_at_once(mpz_t f, char *ok, ell_curve_t *tE, ell_point_t *tP, int nE,
 		    ret = ECM_FACTOR_FOUND_STEP1;
 		    goto end_of_all;
 		}
-#if DEBUG_MANY_EC >= 2
+#if DEBUG_MULTI_EC >= 2
 		pt_many_print(tR, nE, n);
 #endif
 		for(i = 0; i < nE; i++)
@@ -446,7 +446,7 @@ process_many_curves(mpz_t f, mpmod_t n, double B1, mpz_t B2,
 
     if(ret != ECM_NO_FACTOR_FOUND){
 	ret = conclude_on_factor(n->orig_modulus, f, params->verbose);
-#if DEBUG_MANY_EC >= 2
+#if DEBUG_MULTI_EC >= 2
 	if(ret == ECM_PRIME_FAC_PRIME_COFAC || ret == ECM_PRIME_FAC_COMP_COFAC)
 	    /* output Magma lines to check properties of E mod f */
 	    dump_curves(tE, tP, nE, f);
@@ -458,7 +458,7 @@ process_many_curves(mpz_t f, mpmod_t n, double B1, mpz_t B2,
 	for(i = 0; i < nE; i++){
 	    if(ok[i] == 0)
 		continue;
-#if DEBUG_MANY_EC >= 1
+#if DEBUG_MULTI_EC >= 1
 	    printf("# Entering Step 2 for E[%d]\n", i);
 #endif
 	    mpres_get_z(tP[i]->x, tQ[i]->x, n);
@@ -562,7 +562,8 @@ read_curves_from_file(int *nE, ell_curve_t *tE, ell_point_t *tP,
 */
 int
 build_curves_with_torsion(mpz_t f, mpmod_t n, ell_curve_t *tE, ell_point_t *tP,
-			  char *torsion, int smin, int smax, int nE)
+			  char *torsion, int smin, int smax, int nE,
+			  int disc, mpz_t *sqroots)
 {
     int ret = 0;
 
@@ -585,17 +586,22 @@ build_curves_with_torsion(mpz_t f, mpmod_t n, ell_curve_t *tE, ell_point_t *tP,
 	return build_curves_with_torsion_Z3xZ3(f, n, tE, tP, smin, smax, nE);
     else if(strcmp(torsion, "Z3xZ6") == 0) /* over Q(sqrt(-3)) */
 	return build_curves_with_torsion_Z3xZ6(f, n, tE, tP, smin, smax, nE);
+    else if(strcmp(torsion, "Z11") == 0)
+	return build_curves_with_torsion_Z11(f, n, tE, tP, smin, smax, nE,
+					     disc, sqroots);
     /** interesting when p = 1 mod 4 **/
     else if(strcmp(torsion, "Z4xZ4") == 0) /* over Q(sqrt(-1)) */
 	return build_curves_with_torsion_Z4xZ4(f, n, tE, tP, smin, smax, nE);
     /** interesting when p = 1 mod 5 **/
     else if(strcmp(torsion, "Z5xZ5") == 0) /* over Q(zeta5) */
 	return build_curves_with_torsion_Z5xZ5(n, tE, tP, smin, smax, nE);
+#if 0
     /** forcing points: is this really interesting? **/
     else if(strcmp(torsion, "Z2xZ10") == 0)
 	return build_curves_with_torsion_Z2xZ10(f, n, tE, tP, smin, smax, nE);
     else if(strcmp(torsion, "Z2xZ12") == 0)
 	return build_curves_with_torsion_Z2xZ12(f, n, tE, tP, smin, smax, nE);
+#endif
     else{
 	printf("Unknown torsion group: %s\n", torsion);
 	ret = ECM_ERROR;
@@ -635,7 +641,7 @@ process_many_curves_loop(mpz_t tf[], int *nf, mpz_t n, double B1, mpz_t B2,
 					fic_EP, nE);
 	else if(torsion != NULL)
 	    ret = build_curves_with_torsion(tf[*nf],modulus,tE,tP,
-					    torsion,smin,smax,nE);
+					    torsion,smin,smax,nE,disc,sqroots);
 	else if(disc != 0)
 	    ret = build_curves_with_CM(tf[*nf],&nE,tE,tP,disc,modulus,sqroots);
 	if(ret == ECM_NO_FACTOR_FOUND)
@@ -978,12 +984,17 @@ rebuild_squareroot(mpz_t sq2[], int *tsq, mpz_t sqroots[], int *tqs, mpz_t N)
    N is supposed to be a *primitive* cofactor of M.
    Then find a special cocktail of CM curves a` la Atkin.
    To solve the B1 problem, only consider (b, n)'s s.t. disc(b, n) = discref.
+
+   When torsion != NULL, this means we are using some curves over
+   Q(sqrt(discref)).
+
  */
 int
 process_special_blend(mpz_t tf[], int *nf, int *tried, 
-		      mpz_t N, int b, int n, int discref,
-		      double B1, mpz_t B2, 
-		      ecm_params params, char *savefilename)
+		      mpz_t N, int b, int n, double B1, mpz_t B2, 
+		      ecm_params params, char *savefilename,
+		      int discref,
+		      char *torsion, int smin, int smax, int ncurves)
 {
     int sgn = 1, i;
     int ret = ECM_NO_FACTOR_FOUND;
@@ -1011,7 +1022,7 @@ process_special_blend(mpz_t tf[], int *nf, int *tried,
 #endif
 		     {0, 0, 0, 0}
     };
-    mpz_t sqroots[10], sq2[10];
+    mpz_t sqroots[10], sqd[10];
     int tsq[10], disc;
 
     if(n < 0){
@@ -1022,25 +1033,29 @@ process_special_blend(mpz_t tf[], int *nf, int *tried,
     ret = prepare_squareroots(tf[0], tsq, sqroots, b, n, sgn, N);
     if(ret != ECM_NO_FACTOR_FOUND)
 	return conclude_on_factor(N, tf[0], 1);
-    mpz_init_set_ui(sq2[0], 1);
+    mpz_init_set_ui(sqd[0], 1);
     for(i = 0; tabd[i][0] != 0; i++){
 	disc = tabd[i][0];
 	if(disc != discref || n % abs(disc) != 0)
 	    continue;
 	/* rebuild sqrt(disc) */
-	if(rebuild_squareroot(sq2, tsq, sqroots, tabd[i], N)){
-	    gmp_printf("# Let us use disc=%d with B1=%1.0f B2=%Zd\n",
-		       disc, B1, B2);
+	if(rebuild_squareroot(sqd, tsq, sqroots, tabd[i], N)){
+	    if(torsion == NULL)
+		printf("# Using CM curves with disc=%d", disc);
+	    else
+		printf("# Using curves with torsion %s and disc=%d",
+		       torsion, disc);
+	    gmp_printf(" together  with B1=%1.0f B2=%Zd\n", B1, B2);
+		
 	    *tried = 1;
-	    ret = process_many_curves_loop(tf, nf, N, B1, B2, params,
-					   NULL, NULL, 0, 0, 1,
-					   disc, sq2,
-					   savefilename);
+	    ret = process_many_curves_loop(tf, nf, N, B1, B2, params,NULL, 
+					   torsion, smin, smax, ncurves,
+					   disc, sqd, savefilename);
 	    if(ret != ECM_NO_FACTOR_FOUND)
 		break;
 	}
     }
-    mpz_clear(sq2[0]);
+    mpz_clear(sqd[0]);
     for(i = 0; tsq[i] != 0; i++)
 	mpz_clear(sqroots[i]);
     return ret;
@@ -1057,6 +1072,7 @@ usage(char *cmd)
     printf("                 M=Montgomery, W=Weierstrass, H=Hessian\n");
     printf("  -disc D        uses CM curves with discriminant D\n");
     printf("  -b b           for numbers b^n+/-1 (activates some special code; b=1 for any b in the file)\n");
+    printf("  -format format where format = \"bn\" or \"plain\" (default)\n");
     printf("  -h, --help     Prints this help and exit.\n");
 }
 
@@ -1073,10 +1089,11 @@ main(int argc, char *argv[])
     char *infilename = NULL, *curvesname = NULL, *torsion = NULL;
     char buf[10000], c;
     FILE *infile = NULL;
-    char *savefilename = NULL;
+    char *savefilename = NULL, format[20];
     ecm_params params;
 
     /* print args */
+    sprintf(format, "plain");
     printf("# ARGS: %s", argv[0]);
     for(i = 1; i < argc; i++)
 	printf(" %s", argv[i]);
@@ -1151,6 +1168,11 @@ main(int argc, char *argv[])
 	    argv += 2;
 	    argc -= 2;
 	}
+	else if ((argc > 2) && (strcmp (argv[1], "-format") == 0)){
+	    sprintf(format, "%s", argv[2]);
+	    argv += 2;
+	    argc -= 2;
+	}
 	else if ((argc > 2) && (strcmp (argv[1], "-save") == 0)){
 	    savefilename = argv[2];
 	    argv += 2;
@@ -1183,10 +1205,6 @@ main(int argc, char *argv[])
 	fprintf (stderr, "Cannot have -curves and -torsion at the same time.\n");
 	exit (EXIT_FAILURE);
     }
-    if((disc != 0) && ((torsion != NULL) || (curvesname != NULL))){
-	fprintf (stderr, "Cannot have -disc and -curves or -torsion at the same time.\n");
-	exit (EXIT_FAILURE);
-    }
     if(torsion != NULL && ncurves == 0){
 	fprintf (stderr, "You must provide ncurves != 0 with -torsion.\n");
 	exit (EXIT_FAILURE);
@@ -1205,7 +1223,7 @@ main(int argc, char *argv[])
     for(i = 0; i < NFMAX; i++)
 	mpz_init(tf[i]); /* for potential factors */
     ecm_init(params);
-#if DEBUG_MANY_EC >= 2
+#if DEBUG_MULTI_EC >= 2
     params->verbose = 2;
 #else
     /*    params->verbose = OUTPUT_DEVVERBOSE;*/
@@ -1224,7 +1242,7 @@ main(int argc, char *argv[])
 	    printf("\n");
 	    continue;
 	}
-	if(b != 0){
+	if(strcmp(format, "bn") == 0){
 	    /* line should be: "b n[+/-/L/M] N" */
 	    bb = atoi(buf);
 	    /* decode */
@@ -1255,14 +1273,14 @@ main(int argc, char *argv[])
 	res = ECM_NO_FACTOR_FOUND;
 	tried = 0;
 	if(method == ECM_ECM){
-	    if(b != 0 && disc != 0){
-		nf = 0;
-		res = process_special_blend(tf,&nf,&tried,N,bb,n,disc,B1,B2,
-					    params,savefilename);
+	    nf = 0;
+	    if(strcmp(format, "bn") == 0 && disc != 0){
+		res = process_special_blend(tf,&nf,&tried,N,bb,n,B1,B2,
+					    params,savefilename,disc,
+					    torsion, smin, smax, ncurves);
 	    }
 	    if(res == ECM_NO_FACTOR_FOUND && !tried
 	       && (curvesname != NULL || torsion != NULL || disc != 0)){
-		nf = 0;
 		res = process_many_curves_loop(tf, &nf, N, B1, B2, params,
 					       curvesname,
 					       torsion, smin, smax, ncurves,
@@ -1270,7 +1288,7 @@ main(int argc, char *argv[])
 					       savefilename);
 	    }
 	}
-#if 0	  
+#if DEBUG_MULTI_EC >= 2
 	printf("List of factors:\n");
 	for(i = 0; i < nf; i++)
 	    gmp_printf("%Zd\n", tf[i]);
