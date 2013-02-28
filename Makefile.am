@@ -49,7 +49,7 @@ if WANT_CUDA
 endif
 
 bin_PROGRAMS = ecm
-noinst_PROGRAMS = tune ecmfactor bench_mulredc manyecm
+noinst_PROGRAMS = tune ecmfactor bench_mulredc multiecm
 # Most binaries want to link libecm.la, and the ones which don't will
 # have their own _LDADD which overrides the default LDADD here
 LDADD = libecm.la $(GMPLIB)
@@ -71,10 +71,10 @@ tune_LDADD = $(MULREDCLIBRARY) $(GMPLIB)
 
 ecmfactor_CFLAGS = $(OPENMP_CFLAGS)
 
-manyecm_CPPFLAGS = -DOUTSIDE_LIBECM
-manyecm_SOURCES = auxi.c b1_ainc.c candi.c eval.c random.c manyecm.c \
+multiecm_CPPFLAGS = -DOUTSIDE_LIBECM
+multiecm_SOURCES = auxi.c b1_ainc.c candi.c eval.c random.c multiecm.c \
               resume.c getprime.c addlaws.c torsions.c cmecm.c
-manyecm_CFLAGS = $(OPENMP_CFLAGS)
+multiecm_CFLAGS = $(OPENMP_CFLAGS)
 
 rho_SOURCES = rho.c
 rho_CPPFLAGS = -DTESTDRIVE
