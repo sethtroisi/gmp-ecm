@@ -71,6 +71,48 @@ mod_from_rat_str(mpz_t r, char *str, mpz_t N)
     return ret;
 }
 
+/* From a curve in long form y^2+a1*x*y+a3*y = x^3+a2*x^2+a4*x+a6
+   to a medium Weiestrass form Y^2 = X^3 + A2 * X^2 + A4 * X + A6
+   where X = x, Y = (y+a1*X+a3)/2
+   A2 = 1/4*a1^2+a2
+   A4 = 1/2*a1*a3+a4
+   A6 = 1/4*a3^2+a6
+*/
+void
+LongWeierstrassToMediumWeierstrass(mpz_t A2, mpz_t A4, mpz_t A6, 
+				   mpz_t X, mpz_t Y,
+				   mpz_t a1, mpz_t a3, mpz_t a2,
+				   mpz_t a4, mpz_t a6, mpz_t x, mpz_t y,
+				   mpz_t n)
+{
+    /** A4 <- a1/2 **/
+    mpz_set(A4, a1);
+    mod_div_2(A4, n);
+    /** A2 <- A4^2+a2 **/
+    mpz_mul(A2, A4, A4);
+    mpz_add(A2, A2, a2);
+    mpz_mod(A2, A2, n);
+    /** finish A4 **/
+    mpz_mul(A4, A4, a3);
+    mpz_add(A4, A4, a4);
+    mpz_mod(A4, A4, n);
+    /** A6 **/
+    mpz_mul(A6, a3, a3);
+    mpz_mod(A6, A6, n);
+    mod_div_2(A6, n);
+    mod_div_2(A6, n);
+    mpz_add(A6, A6, a6);
+    mpz_mod(A6, A6, n);
+    if(X != NULL && x != NULL)
+	mpz_set(X, x);
+    if(Y != NULL && y != NULL){
+	mpz_mul(Y, a1, x);
+	mpz_add(Y, Y, a3);
+	mpz_add(Y, Y, y);
+	mod_div_2(Y, n);
+    }
+}
+
 /* Weierstrass (a2, a4, a6) to (A, B)
    A = (a4-1/3*a2^2)
    B = -1/3*a4*a2 + 2/27*a2^3 + a6
@@ -81,8 +123,9 @@ mod_from_rat_str(mpz_t r, char *str, mpz_t N)
           if B == NULL, we do not need and we do not compute B
 */
 void
-W2W(ell_curve_t E, mpz_t B, ell_point_t P, mpz_t a2, mpz_t a4, mpz_t a6, 
-    mpz_t x0, mpz_t y0, mpz_t n)
+MediumWeierstrassToShortWeierstrass(mpz_t A, mpz_t B, mpz_t X, mpz_t Y,
+				    mpz_t a2, mpz_t a4, mpz_t a6, 
+				    mpz_t x0, mpz_t y0, mpz_t n)
 {
     mpz_t tmp1, tmp2, tmp3;
 
@@ -91,20 +134,21 @@ W2W(ell_curve_t E, mpz_t B, ell_point_t P, mpz_t a2, mpz_t a4, mpz_t a6,
     /* tmp2 <- a2/3 */
     mpz_init_set_si(tmp3, 3);
     mod_from_rat2(tmp2, a2, tmp3, n);
-    if(x0 != NULL){
+    if(X != NULL && x0 != NULL){
 	/* wx0 = x0 + a2/3 */
-	mpz_add(P->x, tmp2, x0);
-	mpz_mod(P->x, P->x, n);
-	mpz_set(P->y, y0);
-	mpz_mod(P->y, P->y, n);
-	mpz_set_ui(P->z, 1);
+	mpz_add(X, tmp2, x0);
+	mpz_mod(X, X, n);
+    }
+    if(Y != NULL && y0 != NULL){
+	mpz_set(Y, y0);
+	mpz_mod(Y, Y, n);
     }
     /* A = a4-1/3*a2^2 = a4 - a2 * (a2/3) */
     /** tmp1 <- tmp2*a2 = a2^2/3 */
     mpz_mul(tmp1, a2, tmp2);
     mpz_mod(tmp1, tmp1, n);
-    mpz_sub(E->A, a4, tmp1);
-    mpz_mod(E->A, E->A, n);
+    mpz_sub(A, a4, tmp1);
+    mpz_mod(A, A, n);
     if(B != NULL){
 	/* B = -1/3*a2*(a4-2/9*a2^2) + a6 */
 	/** B <- 2/9*a2^2 = 2 * (a2^2/3) / 3 **/
@@ -117,11 +161,13 @@ W2W(ell_curve_t E, mpz_t B, ell_point_t P, mpz_t a2, mpz_t a4, mpz_t a6,
     }
 #if DEBUG_TORSION >= 2
     gmp_printf("N:=%Zd;\n", n);
-    gmp_printf("A:=%Zd;\n", E->A);
-    if(x0 != NULL){
+    gmp_printf("A:=%Zd;\n", A);
+    if(X != NULL && x0 != NULL){
 	gmp_printf("x0:=%Zd;\n", x0);
-	gmp_printf("wx0:=%Zd;\n", P->x);
-	gmp_printf("y0:=%Zd;\n", P->y);
+	gmp_printf("wx0:=%Zd;\n", X);
+    }
+    if(Y != NULL && y0 != NULL){
+	gmp_printf("y0:=%Zd;\n", Y);
 	printf("B:=(y0^2-wx0^3-A*wx0) mod N;\n");
     }
 #endif
@@ -130,14 +176,39 @@ W2W(ell_curve_t E, mpz_t B, ell_point_t P, mpz_t a2, mpz_t a4, mpz_t a6,
     mpz_clear(tmp3);
 }
 
+
+/* Eaux, Paux <- shortW */
+void
+LongWeierstrassToShortWeierstrass(mpz_t A, mpz_t B, mpz_t XX, mpz_t YY,
+				  mpz_t a1, mpz_t a3, mpz_t a2,
+				  mpz_t a4, mpz_t a6, mpz_t x, mpz_t y,
+				  mpz_t n)
+{
+    mpz_t A2, A4, A6, X, Y;
+
+    mpz_init(A2);
+    mpz_init(A4);
+    mpz_init(A6);
+    mpz_init(X);
+    mpz_init(Y);
+    LongWeierstrassToMediumWeierstrass(A2,A4,A6,X,Y,a1,a3,a2,a4,a6,x,y,n);
+    MediumWeierstrassToShortWeierstrass(A, B, XX, YY, A2, A4, A6, X, Y, n);
+    mpz_clear(A2);
+    mpz_clear(A4);
+    mpz_clear(A6);
+    mpz_clear(X);
+    mpz_clear(Y);
+}
+
 /* From a curve in Kubert form Y^2+(1-c)*X*Y-b*Y = X^3-b*X^2
    to a Weiestrass form y^2 = X^3 + a2 * X^2 + a4 * X + a6
-   where y = (Y+(1-b)*X-b)/2
+   where y = (Y+(1-c)*X-b)/2
    WE:=[0,(1/4*c^2+1/4-1/2*c-b),0,(1/2*c*b-1/2*b),1/4*b^2]);
    We compute:
    a2 = 1/4*c^2+1/4-1/2*c-b = ((c-1)/2)^2-b
    a4 = 1/2*c*b-1/2*b = b*(c-1)/2
    a6 = (b/2)^2
+   TODO: rewrite this with MediumW, etc.
 */
 void
 KW2W246(mpz_t a2, mpz_t a4, mpz_t a6, mpz_t b, mpz_t c, mpz_t n, int compute_a6)
@@ -186,10 +257,10 @@ kubert_to_weierstrass(ell_curve_t E, mpz_t B, ell_point_t P, mpz_t b, mpz_t c,
     mpz_init(a4);
     if(compute_a6)
 	mpz_init(a6);
-    /* ((y+(1-b)*x-b)/2)^2=x^3+a2*x^2+a4*x+a6 */
+    /* ((y+(1-c)*x-b)/2)^2=x^3+a2*x^2+a4*x+a6 */
     KW2W246(a2, a4, a6, b, c, n, compute_a6);
     /* second conversion */
-    W2W(E, B, P, a2, a4, a6, x0, y0, n);
+    MediumWeierstrassToShortWeierstrass(E->A,B,P->x,P->y,a2,a4,a6,x0,y0,n);
     mpz_clear(a2);
     mpz_clear(a4);
     if(compute_a6)
@@ -989,7 +1060,10 @@ build_curves_with_torsion_Z3xZ3_DuNa(mpmod_t n, ell_curve_t *tE, ell_point_t *tP
 	mpz_set_ui(x0, 0);
 	ell_curve_init(tE[nc], ECM_EC_TYPE_WEIERSTRASS, ECM_LAW_HOMOGENEOUS,n);
 	ell_point_init(tP[nc], tE[nc], n);
-	W2W(tE[nc], NULL, tP[nc], a2, a4, NULL, x0, y0, n->orig_modulus);
+	MediumWeierstrassToShortWeierstrass(tE[nc]->A, NULL,
+					    tP[nc]->x, tP[nc]->y,
+					    a2, a4, NULL, x0, y0,
+					    n->orig_modulus);
 	nc++;
 	if(nc >= nE)
 	    break;
@@ -1527,18 +1601,90 @@ build_curves_with_torsion_Z11(mpz_t f, mpmod_t n,
 			      int d, mpz_t *sqroots)
 {
     int ret = ECM_NO_FACTOR_FOUND, u, nc = 0;
+    ell_curve_t Eaux;
+    ell_point_t Paux, kPaux;
     long x0;
+    mpz_t aux1, aux2, aux3, aux4, aux6, xaux, yaux, s, t, b, c;
 
+    /* Eaux = [a1, a3, a2, a4, a6] */
+    mpz_init_set_si(aux1, 0);
+    mpz_init_set_si(aux3, -1);
+    mpz_init_set_si(aux2, -1);
+    mpz_init_set_si(aux4, 0);
+    mpz_init_set_si(aux6, 0);
+    /* use points on Eaux */
+    if(d == 2){
+	/* Paux = [1/2, (2-Z)/4, 1]; */
+	mpz_init(xaux);
+	mod_from_rat_str(xaux, "1/2", n->orig_modulus);
+	mpz_init_set_si(yaux, 2);
+	mpz_sub(yaux, yaux, sqroots[0]);
+	mpz_mod(yaux, yaux, n->orig_modulus);
+	mod_div_2(yaux, n->orig_modulus);
+	mod_div_2(yaux, n->orig_modulus);
+    }
+    mpz_init(t);
+    mpz_init(s);
+    mpz_init(b);
+    mpz_init(c);
+    /* make Eaux in short Weierstrass form */
+    ell_curve_init(Eaux, ECM_EC_TYPE_WEIERSTRASS, ECM_LAW_AFFINE, n);
+    ell_point_init(Paux, Eaux, n);
+    LongWeierstrassToShortWeierstrass(b, NULL, t, s, 
+				      aux1, aux3, aux2, aux4, aux6,
+				      xaux, yaux, n->orig_modulus);
+    /* make it mpres */
+    mpres_set_z(Eaux->A, b, n);
+    mpres_set_z(Paux->x, t, n);
+    mpres_set_z(Paux->y, s, n);
+    mpz_set_ui(Paux->z, 1);
+    mpz_clear(aux1);
+    mpz_clear(aux3);
+    mpz_clear(aux2);
+    mpz_clear(aux4);
+    mpz_clear(aux6);
+    mpz_clear(xaux);
+    mpz_clear(yaux);
+    ell_point_init(kPaux, Eaux, n);
     for(u = smin; u < smax; u++){
 #if DEBUG_TORSION >= 2
 	printf("info[%d]:=\"Z11:%d\";\n", nc+1, u);
 #endif
-	/* HERE */
+	mpz_set_ui(t, u);
+	if(ell_point_mul(kPaux, t, Paux, Eaux, n) == 0){
+	    printf("# found factor during update(Z11)\n");
+	    mpz_set(f, kPaux->x);
+            ret = ECM_FACTOR_FOUND_STEP1;
+            break;
+	}
+	mpres_get_z(t, kPaux->x, n);
+	mpres_get_z(s, kPaux->y, n);
+	/* b:=s*(s-1)*(s-t)/t mod N;
+	   a:=(s*t+t-s^2)/t mod N; */
+	if(mpz_invert(c, t, n->orig_modulus) == 0){
+	    printf("# found factor during inversion(Z11)\n");
+	    mpz_gcd(f, t, n->orig_modulus);
+	    ret = ECM_FACTOR_FOUND_STEP1;
+	    break;
+	}
+	/* HERE: tbc */
+	/* c:=1-a mod N; */
+	mpz_sub_si(c, c, 1);
+	mpz_neg(c, c);
+	mpz_mod(c, c, n->orig_modulus);
+	/* E:=QEcFromKubertForm(-b, c) mod N; */
+	mpz_neg(b, b);
+	mpz_mod(b, b, n->orig_modulus);
+	kubert_to_weierstrass(tE[nc],NULL,NULL,b,c,NULL,NULL,n->orig_modulus);
 	x0 = 0;
 	ec_force_point(tE[nc], tP[nc], NULL, &x0, n->orig_modulus);
 	nc++;
 	if(nc >= nE)
 	    break;
     }
+    mpz_clear(t);
+    mpz_clear(s);
+    mpz_clear(b);
+    mpz_clear(c);
     return ret;
 }
