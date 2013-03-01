@@ -241,6 +241,7 @@ copy config.h ..\
     <ClCompile Include="..\..\mpmod.c" />
     <ClCompile Include="..\..\mpzspm.c" />
     <ClCompile Include="..\..\mpzspv.c" />
+    <ClCompile Include="..\..\multiecm.c" />
     <ClCompile Include="..\..\mul_lo.c" />
     <ClCompile Include="..\..\ntt_gfp.c" />
     <ClCompile Include="..\..\parametrizations.c" />

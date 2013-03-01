@@ -130,6 +130,9 @@
     <ClCompile Include="..\..\torsions.c">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="..\..\multiecm.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\ecm-ecm.h">
