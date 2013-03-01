@@ -586,6 +586,7 @@ build_curves_with_torsion(mpz_t f, mpmod_t n, ell_curve_t *tE, ell_point_t *tP,
 	return build_curves_with_torsion_Z3xZ3(f, n, tE, tP, smin, smax, nE);
     else if(strcmp(torsion, "Z3xZ6") == 0) /* over Q(sqrt(-3)) */
 	return build_curves_with_torsion_Z3xZ6(f, n, tE, tP, smin, smax, nE);
+    /* over some quadratic fields */
     else if(strcmp(torsion, "Z11") == 0)
 	return build_curves_with_torsion_Z11(f, n, tE, tP, smin, smax, nE,
 					     disc, sqroots);
@@ -1033,6 +1034,16 @@ process_special_blend(mpz_t tf[], int *nf, int *tried,
     ret = prepare_squareroots(tf[0], tsq, sqroots, b, n, sgn, N);
     if(ret != ECM_NO_FACTOR_FOUND)
 	return conclude_on_factor(N, tf[0], 1);
+    if(torsion != NULL){
+	printf("# Using curves with torsion %s and disc=%d", torsion, discref);
+	gmp_printf(" together with B1=%1.0f B2=%Zd\n", B1, B2);
+	*tried = 1;
+	ret = process_many_curves_loop(tf, nf, N, B1, B2, params, NULL,
+				       torsion, smin, smax, ncurves,
+				       discref, sqroots, savefilename);
+	/* TODO: improve this? */
+	return ret;
+    }
     mpz_init_set_ui(sqd[0], 1);
     for(i = 0; tabd[i][0] != 0; i++){
 	disc = tabd[i][0];
@@ -1040,16 +1051,11 @@ process_special_blend(mpz_t tf[], int *nf, int *tried,
 	    continue;
 	/* rebuild sqrt(disc) */
 	if(rebuild_squareroot(sqd, tsq, sqroots, tabd[i], N)){
-	    if(torsion == NULL)
-		printf("# Using CM curves with disc=%d", disc);
-	    else
-		printf("# Using curves with torsion %s and disc=%d",
-		       torsion, disc);
+	    printf("# Using CM curves with disc=%d", disc);
 	    gmp_printf(" together  with B1=%1.0f B2=%Zd\n", B1, B2);
-		
 	    *tried = 1;
 	    ret = process_many_curves_loop(tf, nf, N, B1, B2, params,NULL, 
-					   torsion, smin, smax, ncurves,
+					   NULL, 0, 0, 1,
 					   disc, sqd, savefilename);
 	    if(ret != ECM_NO_FACTOR_FOUND)
 		break;
