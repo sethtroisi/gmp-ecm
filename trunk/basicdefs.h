@@ -89,6 +89,12 @@ typedef unsigned __int64 uint64_t;
 #define MAX(x,y) (((x)<(y))?(y):(x))
 #define MIN(x,y) (((x)<(y))?(x):(y))
 
+/* expanding macros and then turning them 
+   into strings requires two levels of macro-izing */
+
+#define _(x) #x
+#define STRING(x) _(x)
+
 /* include (hopefully standard) SSE2 interface, along
    with mnemonics for the small part of the ISA that 
    we need */
