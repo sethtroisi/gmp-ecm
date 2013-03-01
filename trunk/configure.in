@@ -517,7 +517,7 @@ printf ("(%s/%s) ", buffer, gmp_version);
 return strcmp (buffer, gmp_version);
 ]])], [AC_MSG_RESULT([yes])],
    [AC_MSG_RESULT([no])
-    AC_MSG_ERROR(['gmp.h' and 'libgmp' have different versions, you have to reinstall GMP properly.])],
+    AC_MSG_ERROR(['gmp.h' and 'libgmp' have different versions, you have to reinstall GMP properly, or use the --with-gmp parameter to tell configure the path to the GMP library and header you want to use])],
    [AC_MSG_RESULT([cross-compiling: cannot test])]
 )
 
