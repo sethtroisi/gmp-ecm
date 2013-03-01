@@ -668,10 +668,12 @@ pt_w_add(mpres_t x3, mpres_t y3, mpres_t z3,
 	/* Cohen-Miyaji-Ono: 12M+2S+6add+1*2 */
 	/* mapping: y1z2 = buf, AA = buf+1, u = buf+2, v = buf+3, R = buf+4, */
 	/* vvv = buf+5; */
-      printf("y1="); print_mpz_from_mpres(y1, n); printf("\n");
-      printf("y2="); print_mpz_from_mpres(y2, n); printf("\n");
-      printf("z1="); print_mpz_from_mpres(z1, n); printf("\n");
-      printf("z2="); print_mpz_from_mpres(z2, n); printf("\n");
+#if DEBUG_ADD_LAWS >= 2
+	printf("y1="); print_mpz_from_mpres(y1, n); printf("\n");
+	printf("y2="); print_mpz_from_mpres(y2, n); printf("\n");
+	printf("z1="); print_mpz_from_mpres(z1, n); printf("\n");
+	printf("z2="); print_mpz_from_mpres(z2, n); printf("\n");
+#endif
 	/*  Y1Z2:=Y1*Z2 mod p;	# M*/
 	mpres_mul(E->buf[0], y1, z2, n);
 	/*	A:=X1*Z2 mod p;	# M*/
