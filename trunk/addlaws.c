@@ -111,7 +111,7 @@ pt_many_print(ell_curve_t *tE, ell_point_t *tP, int nE, mpmod_t n)
 	printf("%d: ", i);
 	pt_print(tE[i], tP[i], n);
 	printf(" on E.A=");
-	print_mpz_from_mpres(tE[i]->A, n);
+	print_mpz_from_mpres(tE[i]->a4, n);
 	printf("\n");
     }
 }
@@ -264,7 +264,7 @@ pt_many_duplicate(ell_point_t *tQ, ell_point_t *tP, ell_curve_t *tE, int nE,
 	else{
 	    mpres_sqr(num[i], tP[i]->x, n);
 	    mpres_mul_ui(num[i], num[i], 3, n);
-	    mpres_add(num[i], num[i], tE[i]->A, n);
+	    mpres_add(num[i], num[i], tE[i]->a4, n);
 	    mpres_mul_ui(den[i], tP[i]->y, 2, n);
 	}
     }
@@ -320,7 +320,7 @@ pt_many_add(ell_point_t *tR, ell_point_t *tP, ell_point_t *tQ, ell_curve_t *tE,
 		/* ordinary doubling */
 		mpres_sqr(num[i], tP[i]->x, n);
 		mpres_mul_ui(num[i], num[i], 3, n);
-		mpres_add(num[i], num[i], tE[i]->A, n);
+		mpres_add(num[i], num[i], tE[i]->a4, n);
 		mpres_mul_ui(den[i], tP[i]->y, 2, n);
 	    }
 	}
@@ -580,7 +580,7 @@ pt_w_duplicate(mpres_t x3, mpres_t y3, mpres_t z3,
 	/* buf[0] <- 3*x^2+A */
 	mpres_mul_ui(E->buf[0], x1, 3, n);
 	mpres_mul(E->buf[0], E->buf[0], x1, n);
-	mpres_add(E->buf[0], E->buf[0], E->A, n);
+	mpres_add(E->buf[0], E->buf[0], E->a4, n);
 	return pt_w_common_aff(x3, y3, z3, x1, y1, x1, n, 
 			       E->buf[0], E->buf[1], E->buf[2]);
     }
@@ -593,7 +593,7 @@ pt_w_duplicate(mpres_t x3, mpres_t y3, mpres_t z3,
 	/*	w:=Z1^2 mod p;*/
 	mpres_sqr(E->buf[1], z1, n);
 	/*	w:=a*w mod p;*/
-	mpres_mul(E->buf[1], E->buf[1], E->A, n);
+	mpres_mul(E->buf[1], E->buf[1], E->a4, n);
 	/*	s:=3*h mod p;	    # *3*/
 	mpres_mul_ui(E->buf[2], E->buf[0], 3, n);
 	/*	w:=w+s mod p;*/
@@ -1330,7 +1330,7 @@ ell_curve_init(ell_curve_t E, int etype, int law, mpmod_t n)
 
     E->type = etype;
     E->law = law;
-    mpres_init(E->A, n);
+    mpres_init(E->a4, n);
     for(i = 0; i < EC_W_NBUFS; i++)
 	mpres_init (E->buf[i], n);
 }
@@ -1339,14 +1339,14 @@ void
 ell_curve_init_set(ell_curve_t E, int etype, int law, mpres_t A, mpmod_t n)
 {
     ell_curve_init(E, etype, law, n);
-    mpres_set(E->A, A, n);
+    mpres_set(E->a4, A, n);
 }
 
 void
 ell_curve_set_z(ell_curve_t E, ell_curve_t zE, mpmod_t n)
 {
     ell_curve_init(E, zE->type, zE->law, n);
-    mpres_set_z(E->A, zE->A, n);
+    mpres_set_z(E->a4, zE->a4, n);
     E->disc = zE->disc;
     if(E->disc != 0){
 	mpres_init(E->sq[0], n);
@@ -1359,7 +1359,7 @@ ell_curve_clear(ell_curve_t E, mpmod_t n)
 {
     int i;
 
-    mpres_clear(E->A, n);
+    mpres_clear(E->a4, n);
     for(i = 0; i < EC_W_NBUFS; i++)
 	mpres_clear (E->buf[i], n);
     /* TODO: case of sq */
@@ -1369,11 +1369,11 @@ void
 ell_curve_print(ell_curve_t E, mpmod_t n)
 {
     if(E->type == ECM_EC_TYPE_WEIERSTRASS){
-	printf("A:="); print_mpz_from_mpres(E->A, n); printf(";\n");
+	printf("A:="); print_mpz_from_mpres(E->a4, n); printf(";\n");
 	printf("E:=[A, y0^2-x0^3-A*x0];\n");
     }
     else if(E->type == ECM_EC_TYPE_HESSIAN){
-	printf("D:="); print_mpz_from_mpres(E->A, n); printf(";\n");
+	printf("D:="); print_mpz_from_mpres(E->a4, n); printf(";\n");
 	printf("E:=[D];\n");
     }
 }

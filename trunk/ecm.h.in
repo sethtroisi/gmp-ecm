@@ -35,9 +35,10 @@ extern "C" {
 #define EC_W_NBUFS 9 /* for Hessian form */
 
 /* More ec forms */
-#define ECM_EC_TYPE_MONTGOMERY 1
-#define ECM_EC_TYPE_WEIERSTRASS 2
-#define ECM_EC_TYPE_HESSIAN 3
+#define ECM_EC_TYPE_MONTGOMERY           1
+#define ECM_EC_TYPE_WEIERSTRASS          2
+#define ECM_EC_TYPE_HESSIAN              3
+#define ECM_EC_TYPE_WEIERSTRASS_COMPLETE 4
 
 /* which type of law used */
 #define ECM_LAW_AFFINE 1
@@ -47,9 +48,10 @@ typedef struct
 {
   int type;              
   int law;
-  mpz_t A;               /* for MONTGOMERY: b*y^2=x^3+A*x^2+x 
-			      for WEIERSTRASS*: y^2=x^3+A*x+B
+  mpz_t a4;               /* for MONTGOMERY: b*y^2=x^3+A*x^2+x 
+			      for WEIERSTRASS: y^2=x^3+A*x+B
 			      for HESSIAN: U^3+V^3+W^3=3*A*U*V*W */
+  mpz_t a1, a3, a2, a6;  /* for complete WEIERSTRASS */
   mpz_t buf[EC_W_NBUFS]; /* used in the addition laws */
   int disc;                /* in case E is known to have CM by Q(sqrt(disc)) */
   mpz_t sq[10];          /* for CM curves, we might have squareroots */

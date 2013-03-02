@@ -728,7 +728,7 @@ ecm_stage1_W (mpz_t f, ell_curve_t E, ell_point_t P, mpmod_t n,
 	    if (chkfilename != NULL && p > last_chkpnt_p + 10000. && 
 		elltime (last_chkpnt_time, cputime ()) > CHKPNT_PERIOD){
 		writechkfile (chkfilename, ECM_ECM, MAX(p, *B1done), 
-			      n, E->A, P->x, P->y, P->z);
+			      n, E->a4, P->x, P->y, P->z);
 		last_chkpnt_p = p;
 		last_chkpnt_time = cputime ();
 	    }
@@ -764,7 +764,7 @@ ecm_stage1_W (mpz_t f, ell_curve_t E, ell_point_t P, mpmod_t n,
 	*B1done = p;
     
     if (chkfilename != NULL)
-	writechkfile (chkfilename, ECM_ECM, *B1done, n, E->A, P->x, P->y,P->z);
+	writechkfile (chkfilename, ECM_ECM, *B1done, n, E->a4, P->x, P->y,P->z);
     getprime_clear (); /* free the prime tables, and reinitialize */
 
     if(ell_point_is_zero(P, E, n) == 1){
@@ -1384,7 +1384,7 @@ ecm (mpz_t f, mpz_t x, mpz_t y, int *param, mpz_t sigma, mpz_t n, mpz_t go,
 		youpi = ecm_stage1 (f, P.x, P.A, modulus, B1, B1done, go, 
 				    stop_asap, chkfilename);
 	    else{
-		mpres_set(E->A, P.A, modulus);
+		mpres_set(E->a4, P.A, modulus);
 		ell_point_init(PE, E, modulus);
 		mpres_set(PE->x, P.x, modulus);
 		mpres_set(PE->y, P.y, modulus);
