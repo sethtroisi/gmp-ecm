@@ -40,11 +40,11 @@ adjust_CM(mpz_t f, ell_curve_t E, ell_point_t P, mpz_t N, mpz_t j)
 	mpz_mul(k, f, j);
 	mpz_mod(k, k, N);
 	/* a = 3*k, b = 2*k */
-	mpz_set(E->A, k);
+	mpz_set(E->a4, k);
 	mpz_add(j, k, k);
 	mpz_mod(j, j, N);
-	mpz_add(E->A, E->A, j);
-	mpz_mod(E->A, E->A, N);
+	mpz_add(E->a4, E->a4, j);
+	mpz_mod(E->a4, E->a4, N);
 	x0 = 0;
 	ec_force_point(E, P, j, &x0, N);
     }
@@ -81,7 +81,7 @@ build_curves_with_CM(mpz_t f, int *nE, ell_curve_t *tE, ell_point_t *tP,
 		ell_curve_init(tE[i], ECM_EC_TYPE_WEIERSTRASS, ECM_LAW_HOMOGENEOUS, n);
 		ell_point_init(tP[i], tE[i], n);
 	    }
-	    mpz_set_ui(tE[i]->A, 0);
+	    mpz_set_ui(tE[i]->a4, 0);
 	    tE[i]->disc = -3;
 	}
 	mpz_set_si(tP[0]->x, 2);
@@ -108,7 +108,7 @@ build_curves_with_CM(mpz_t f, int *nE, ell_curve_t *tE, ell_point_t *tP,
 		mpz_mul(tmp, tmp, zeta6);
 		mpz_mod(tmp, tmp, n->orig_modulus);
 		x0 = 0;
-		/* works since tE[i]->A is always 0... */
+		/* works since tE[i]->a4 is always 0... */
 		ec_force_point(tE[i], tP[i], tmp, &x0, n->orig_modulus);
 	    }
 	    *nE = 6;
@@ -147,15 +147,15 @@ build_curves_with_CM(mpz_t f, int *nE, ell_curve_t *tE, ell_point_t *tP,
 	    }
 	    tE[i]->disc = -4;
 	}
-        mpz_set_ui(tE[0]->A, 9);
+        mpz_set_ui(tE[0]->a4, 9);
         mpz_set_si(tP[0]->x, 4);
         mpz_set_si(tP[0]->y, 10);
         mpz_set_si(tP[0]->z, 1);
 	if(sqroots != NULL){
 	    /* sqroots[0] = sqrt(-1) */
 	    for(i = 1; i < imax; i++){
-		mpz_mul(tmp, tE[i-1]->A, sqroots[0]);
-		mpz_mod(tE[i]->A, tmp, n->orig_modulus);
+		mpz_mul(tmp, tE[i-1]->a4, sqroots[0]);
+		mpz_mod(tE[i]->a4, tmp, n->orig_modulus);
 		x0 = 1; /* x0 = 0 is bad, since this is a 2-torsion point */
 		mpz_set_si(tmp, 0);
 		ec_force_point(tE[i], tP[i], tmp, &x0, n->orig_modulus);
@@ -186,15 +186,15 @@ build_curves_with_CM(mpz_t f, int *nE, ell_curve_t *tE, ell_point_t *tP,
 	    tE[i]->disc = -4;
 	    mpz_init_set_ui(tE[i]->sq[0], 1);
 	    /* compute abscissa of generator in Montgomery form */
-	    mpz_set_ui(tE[i]->A, data4[i][1]);
+	    mpz_set_ui(tE[i]->a4, data4[i][1]);
 	    mpz_set_ui(f, data4[i][2]);
 	    /* do not forget to divide by k */
 	    mpz_mul_ui(f, f, data4[i][0]);
-	    if(mod_from_rat2(tP[i]->x, tE[i]->A, f, n->orig_modulus) == 0){
+	    if(mod_from_rat2(tP[i]->x, tE[i]->a4, f, n->orig_modulus) == 0){
 		printf("# factor found during Montgomery preparation\n");
 		mpz_set(f, tP[i]->x);
 	    }
-	    mpz_set_ui(tE[i]->A, 0);
+	    mpz_set_ui(tE[i]->a4, 0);
 	}
 	}
 	printf("# using %d curves in Montgomery form for disc=-4\n", i);
@@ -218,7 +218,7 @@ build_curves_with_CM(mpz_t f, int *nE, ell_curve_t *tE, ell_point_t *tP,
 	    if(h1_data[i1][0] == disc){
 		tE[0]->type = ECM_EC_TYPE_WEIERSTRASS;
 		tE[0]->law = ECM_LAW_HOMOGENEOUS;
-		mpz_set_si(tE[0]->A, h1_data[i1][1]);
+		mpz_set_si(tE[0]->a4, h1_data[i1][1]);
 		mpz_set_si(tP[0]->x, h1_data[i1][3]);
 		mpz_set_si(tP[0]->y, h1_data[i1][4]);
 		mpz_set_si(tP[0]->z, 1);
@@ -760,7 +760,7 @@ int ecm_rootsF_CM(mpz_t f, listz_t F, unsigned long dF, curve *C,
     printf("# Entering ecm_rootsF_CM with disc=%d dF=%ld\n", C->disc, dF);
 #endif
     ell_curve_init(E, ECM_EC_TYPE_WEIERSTRASS, ECM_LAW_AFFINE, modulus);
-    mpres_set(E->A, C->A, modulus);
+    mpres_set(E->a4, C->A, modulus);
     ell_point_init(P, E, modulus);
     mpres_set(P->x, C->x, modulus);
     mpres_set(P->y, C->y, modulus);
@@ -842,7 +842,7 @@ ecm_rootsG_init_CM (mpz_t f, curve *X, root_params_t *root_params,
     
     /* conversions */
     ell_curve_init(E, ECM_EC_TYPE_WEIERSTRASS, ECM_LAW_AFFINE, modulus);
-    mpres_set(E->A, X->A, modulus);
+    mpres_set(E->a4, X->A, modulus);
     ell_point_init(P, E, modulus);
     ell_point_init(duP, E, modulus);
 
@@ -884,7 +884,7 @@ ecm_rootsG_CM (mpz_t f, listz_t G, unsigned long dF, ecm_roots_state_t *state,
 
     /* conversions */
     ell_curve_init(E, ECM_EC_TYPE_WEIERSTRASS, ECM_LAW_AFFINE, modulus);
-    mpres_set(E->A, state->X->A, modulus);
+    mpres_set(E->a4, state->X->A, modulus);
     ell_point_init(uP, E, modulus);
     ell_point_init(duP, E, modulus);
 
