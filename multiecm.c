@@ -44,7 +44,7 @@ process_one_curve(mpz_t f, mpz_t N, double B1, mpz_t B2,
     mpz_set_si(params->B2min, ECM_DEFAULT_B2);
 
     mpz_set(params->x, P->x);
-    mpz_set(params->sigma, E->A); /* humf */
+    mpz_set(params->sigma, E->a4); /* humf */
 
     if(E->type == ECM_EC_TYPE_MONTGOMERY)
 	params->sigma_is_A = 1;
@@ -133,7 +133,7 @@ dump_curves(ell_curve_t *tE, ell_point_t *tP, int nE, mpz_t f)
 	    mpres_set_z(x, tP[i]->x, fmod);
 	    mpres_init(y, fmod);
 	    mpres_init(A, fmod);
-	    mpres_set_z(A, tE[i]->A, fmod);
+	    mpres_set_z(A, tE[i]->a4, fmod);
 	    if(montgomery_to_weierstrass(tmp, x, y, A, fmod) == ECM_FACTOR_FOUND_STEP1){
 		printf("GASP in dump!\n");
 	    }
@@ -152,7 +152,7 @@ dump_curves(ell_curve_t *tE, ell_point_t *tP, int nE, mpz_t f)
 	else if(tE[i]->type == ECM_EC_TYPE_WEIERSTRASS){
 	    gmp_printf("P[%d]:=[%Zd, %Zd, %Zd];\n", i+1, 
 		       tP[i]->x, tP[i]->y, tP[i]->z); 
-	    gmp_printf("A[%d]:=%Zd;\n", i+1, tE[i]->A);
+	    gmp_printf("A[%d]:=%Zd;\n", i+1, tE[i]->a4);
 	}
 	else{
 	    printf("Case %d NYI in dump_curves\n", tE[i]->type);
@@ -525,8 +525,8 @@ read_curves_from_file(int *nE, ell_curve_t *tE, ell_point_t *tP,
 	    printf("Unknown curve type: %c\n", Etype);
 	    return ECM_ERROR;
 	}
-	mpz_init(tE[*nE]->A);
-	if(read_and_prepare(tf[*nf], tE[*nE]->A, q, bufA, n->orig_modulus) == 0){
+	mpz_init(tE[*nE]->a4);
+	if(read_and_prepare(tf[*nf], tE[*nE]->a4, q, bufA, n->orig_modulus) == 0){
 	    ret = 0;
 	    *nf += 1;
 	    goto process_end;
