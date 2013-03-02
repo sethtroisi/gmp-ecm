@@ -595,12 +595,14 @@ pt_w_duplicate(mpres_t x3, mpres_t y3, mpres_t z3,
 	    mpres_set_ui(z3, 0, n);
 	    return 1;
 	}
-	/* buf[0] <- 3*x^2+2*a2*x+a4 = (3*x+2*a2)*x+a4 */
+	/* buf[0] <- 3*x^2+2*a2*x+a4-a1*y = (3*x+2*a2)*x+a4-a1*y */
 	mpres_mul_ui(E->buf[0], x1, 3, n);
 	mpres_add(E->buf[0], E->buf[0], E->a2, n);
 	mpres_add(E->buf[0], E->buf[0], E->a2, n);
 	mpres_mul(E->buf[0], E->buf[0], x1, n);
 	mpres_add(E->buf[0], E->buf[0], E->a4, n);
+	mpres_mul(E->buf[2], E->a1, y1, n);
+	mpres_sub(E->buf[0], E->buf[0], E->buf[2], n);
 	return pt_w_common_aff(x3, y3, z3, x1, y1, x1, E->a1, E->a2, n, 
 			       E->buf[0], E->buf[1], E->buf[2]);
     }
