@@ -247,4 +247,5 @@
 #  define alloca      _alloca
 #  define fseek64     _fseek64
 #  define ftell64     _ftell64
+#  define omp_get_thread_limit omp_get_max_threads
 #endif
