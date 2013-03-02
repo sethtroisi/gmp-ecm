@@ -1649,13 +1649,14 @@ build_curves_with_torsion_Z11(mpz_t f, mpmod_t n,
     /* make Eaux in short Weierstrass form */
     ell_curve_init(Eaux, ECM_EC_TYPE_WEIERSTRASS, ECM_LAW_AFFINE, n);
     ell_point_init(Paux, Eaux, n);
-    LongWeierstrassToShortWeierstrass(b, B, t, s, 
-				      aux1, aux3, aux2, aux4, aux6,
-				      xaux, yaux, n->orig_modulus);
     /* make it mpres */
-    mpres_set_z(Eaux->a4, b, n);
-    mpres_set_z(Paux->x, t, n);
-    mpres_set_z(Paux->y, s, n);
+    mpres_set_z(Eaux->a1, aux1, n);
+    mpres_set_z(Eaux->a3, aux3, n);
+    mpres_set_z(Eaux->a2, aux2, n);
+    mpres_set_z(Eaux->a4, aux4, n);
+    mpres_set_z(Eaux->a6, aux6, n);
+    mpres_set_z(Paux->x, xaux, n);
+    mpres_set_z(Paux->y, yaux, n);
     mpz_set_ui(Paux->z, 1);
     mpz_clear(aux1);
     mpz_clear(aux3);
@@ -1676,7 +1677,6 @@ build_curves_with_torsion_Z11(mpz_t f, mpmod_t n,
             ret = ECM_FACTOR_FOUND_STEP1;
             break;
 	}
-	/* TODO: translate back!!!!!!! */
 	mpres_get_z(t, kPaux->x, n);
 	mpres_get_z(s, kPaux->y, n);
 	/* b:=s*(s-1)*(s-t)/t mod N;
