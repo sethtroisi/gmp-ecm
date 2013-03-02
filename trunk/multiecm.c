@@ -109,15 +109,12 @@ dump_curves(ell_curve_t *tE, ell_point_t *tP, int nE, mpz_t f)
     printf("CheckE:=procedure(E, D, P, info)\n");
     printf("    K:=QuadraticField(D); OK:=MaximalOrder(K);\n");
     printf("    printf \"#E[%%o]=%%o\\n\", info, Factorization(#E);\n");
-    printf("    gen:=Generators(E);\n");
-    printf("    printf \"ords=%%o\\n\", ");
-    printf("[Factorization(Order(g)) : g in gen];\n");
-    printf("    lf:=Factorization(Order(E!P));\n");
-    printf("    printf \"ord(P)=%%o\\n\", lf;\n");
+    printf("    gen:=Generators(E); printf \"ords=%%o\\n\", ");
+    printf("[Factorization(Order(g)):g in gen];\n");
+    printf("    lf:=Factorization(Order(E!P)); printf \"ord(P)=%%o\\n\", lf;\n");
     printf("    for i:=1 to #lf do\n");
     printf("        lfi:=Factorization(lf[i][1]*OK);\n");
-    printf("        ok,gen:=IsPrincipal(lfi[1][1]);\n");
-    printf("        print lf[i], ok, gen;\n");
+    printf("        ok,gen:=IsPrincipal(lfi[1][1]); print lf[i], ok, gen;\n");
     printf("    end for;\n");
     printf("end procedure;\n");
     for(i = 0; i < nE; i++){

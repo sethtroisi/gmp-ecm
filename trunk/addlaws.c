@@ -537,20 +537,33 @@ pt_w_print(mpres_t x, mpres_t y, mpres_t z, ell_curve_t E, mpmod_t n)
     printf("]");
 }
 
-int
+/* [x0, y0, z0] <- [x1, y1, z1] + [x2, y2, z2] using lambda=num/den
+   with buffer inv.
+
+   (lambda*x+mu)^2+a1*x*(lambda*x+mu)+a3*(lambda*x+mu)=x^3+a2*x^2+...
+   x^3+(a2-lambda^2-a1*lambda)*x^2+... = 0
+   x1+x2+x3 = lambda^2+a1*lambda-a2.
+ */
+static int
 pt_w_common_aff(mpres_t x0, mpres_t y0, mpres_t z0,
 		mpres_t x1, mpres_t y1,
-		mpres_t x2,
+		mpres_t x2, mpres_t a1, mpres_t a2,
 		mpmod_t n, mpres_t num, mpres_t den, mpres_t inv)
 {
     if(mpres_invert(inv, den, n) == 0){
 	mpres_gcd(x0, den, n);
 	return 0;
     }
+    /** inv <- lambda **/
     mpres_mul(inv, inv, num, n);
-    mpres_mul(num, inv, inv, n);
+    /** num <- (lambda+a1)*lambda **/
+    mpres_add(num, inv, a1, n);
+    mpres_mul(num, num, inv, n);
+    mpres_sub(num, num, a2, n);
+    /** x0 = den <- num-x1-x2 **/
     mpres_sub(den, num, x1, n);
     mpres_sub(den, den, x2, n);
+    /** y0 = num <- lambda*(x1-x0)-y1 **/
     mpres_sub(num, x1, den, n);
     mpres_mul(num, num, inv, n);
     mpres_sub(y0, num, y1, n);
@@ -559,7 +572,7 @@ pt_w_common_aff(mpres_t x0, mpres_t y0, mpres_t z0,
     return 1;
 }
 
-/* [x0, y0, z0] <- [2] * [x, y, z] */
+/* [x3, y3, z3] <- [2] * [x1, y1, z1] */
 int
 pt_w_duplicate(mpres_t x3, mpres_t y3, mpres_t z3,
 	       mpres_t x1, mpres_t y1, mpres_t z1,
@@ -570,18 +583,25 @@ pt_w_duplicate(mpres_t x3, mpres_t y3, mpres_t z3,
       return 1;
     }
     if(E->type == ECM_EC_TYPE_WEIERSTRASS && E->law == ECM_LAW_AFFINE){
-	/* buf[1] <- 2*y1 */
-	mpres_add(E->buf[1], y1, y1, n);
-	if(mpres_is_zero(y1, n)){
-	    /* y1 = 0 <=> P is a [2]-torsion point */
-	    pt_w_set(x3, y3, z3, x1, y1, z1, n);
+	/* buf[1] <- 2*y1+a1*x1+a3 */
+	mpres_mul(E->buf[1], E->a1, x1, n);
+	mpres_add(E->buf[1], E->buf[1], E->a3, n);
+	mpres_add(E->buf[1], E->buf[1], y1, n);
+	mpres_add(E->buf[1], E->buf[1], y1, n);
+	if(mpres_is_zero(E->buf[1], n)){
+	    /* buf1 = 0 <=> P is a [2]-torsion point */
+	    mpres_set_ui(x3, 0, n);
+	    mpres_set_ui(y3, 1, n);
+	    mpres_set_ui(z3, 0, n);
 	    return 1;
 	}
-	/* buf[0] <- 3*x^2+A */
+	/* buf[0] <- 3*x^2+2*a2*x+a4 = (3*x+2*a2)*x+a4 */
 	mpres_mul_ui(E->buf[0], x1, 3, n);
+	mpres_add(E->buf[0], E->buf[0], E->a2, n);
+	mpres_add(E->buf[0], E->buf[0], E->a2, n);
 	mpres_mul(E->buf[0], E->buf[0], x1, n);
 	mpres_add(E->buf[0], E->buf[0], E->a4, n);
-	return pt_w_common_aff(x3, y3, z3, x1, y1, x1, n, 
+	return pt_w_common_aff(x3, y3, z3, x1, y1, x1, E->a1, E->a2, n, 
 			       E->buf[0], E->buf[1], E->buf[2]);
     }
     else if(E->type == ECM_EC_TYPE_WEIERSTRASS 
@@ -660,7 +680,7 @@ pt_w_add(mpres_t x3, mpres_t y3, mpres_t z3,
 	else{
 	    mpres_sub(E->buf[0], y1, y2, n);
 	    mpres_sub(E->buf[1], x1, x2, n);
-	    return pt_w_common_aff(x3, y3, z3, x1, y1, x2, n, 
+	    return pt_w_common_aff(x3, y3, z3, x1, y1, x2, E->a1, E->a2, n, 
 				   E->buf[0], E->buf[1], E->buf[2]);
 	}
     else if(E->type == ECM_EC_TYPE_WEIERSTRASS 
@@ -1330,7 +1350,16 @@ ell_curve_init(ell_curve_t E, int etype, int law, mpmod_t n)
 
     E->type = etype;
     E->law = law;
+    mpres_init(E->a1, n);
+    mpres_init(E->a3, n);
+    mpres_init(E->a2, n);
     mpres_init(E->a4, n);
+    mpres_init(E->a6, n);
+    mpres_set_ui(E->a1, 0, n);
+    mpres_set_ui(E->a3, 0, n);
+    mpres_set_ui(E->a2, 0, n);
+    mpres_set_ui(E->a4, 0, n);
+    mpres_set_ui(E->a6, 0, n);
     for(i = 0; i < EC_W_NBUFS; i++)
 	mpres_init (E->buf[i], n);
 }
