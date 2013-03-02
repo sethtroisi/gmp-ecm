@@ -81,8 +81,8 @@
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <PreBuildEvent>
       <Command>cd ..\
+out_copy_rename config.h ..\ config.h
 gen_ecm_h
-copy config.h ..\
 </Command>
     </PreBuildEvent>
     <ClCompile>
@@ -95,6 +95,7 @@ copy config.h ..\
       </PrecompiledHeader>
       <WarningLevel>Level3</WarningLevel>
       <CompileAs>Default</CompileAs>
+      <OpenMPSupport>true</OpenMPSupport>
     </ClCompile>
     <Lib />
     <CudaCompile>
@@ -112,8 +113,8 @@ copy config.h ..\
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <PreBuildEvent>
       <Command>cd ..\
+out_copy_rename config.h ..\ config.h
 gen_ecm_h
-copy config.h ..\
 </Command>
     </PreBuildEvent>
     <Midl>
@@ -129,6 +130,7 @@ copy config.h ..\
       </PrecompiledHeader>
       <WarningLevel>Level3</WarningLevel>
       <CompileAs>Default</CompileAs>
+      <OpenMPSupport>true</OpenMPSupport>
     </ClCompile>
     <Lib />
     <Lib />
@@ -148,8 +150,8 @@ copy config.h ..\
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <PreBuildEvent>
       <Command>cd ..\
+out_copy_rename config.h ..\ config.h
 gen_ecm_h
-copy config.h ..\
 </Command>
     </PreBuildEvent>
     <ClCompile>
@@ -163,6 +165,7 @@ copy config.h ..\
       </PrecompiledHeader>
       <WarningLevel>Level3</WarningLevel>
       <CompileAs>Default</CompileAs>
+      <OpenMPSupport>true</OpenMPSupport>
     </ClCompile>
     <Lib />
     <CudaCompile>
@@ -180,8 +183,8 @@ copy config.h ..\
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <PreBuildEvent>
       <Command>cd ..\
+out_copy_rename config.h ..\ config.h
 gen_ecm_h
-copy config.h ..\
 </Command>
     </PreBuildEvent>
     <Midl>
@@ -198,6 +201,7 @@ copy config.h ..\
       </PrecompiledHeader>
       <WarningLevel>Level3</WarningLevel>
       <CompileAs>Default</CompileAs>
+      <OpenMPSupport>true</OpenMPSupport>
     </ClCompile>
     <Lib />
     <Lib />
