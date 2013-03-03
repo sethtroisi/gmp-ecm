@@ -86,7 +86,7 @@ To make a new release:
              -m "Tagging r1307 as version 6.2.1"
 
      Version 6.2 is r1290, 6.2.1 is r1307, 6.3 is r1501, 6.4 is r1672,
-     6.4.1 is r1844, 6.4.2 is r1882.
+     6.4.1 is r1844, 6.4.2 is r1882, 6.4.3 is r2100, 6.4.4 is r2439.
 
 To see the differences between a given tag and the current version:
 
