@@ -543,11 +543,12 @@ pt_w_print(mpres_t x, mpres_t y, mpres_t z, ell_curve_t E, mpmod_t n)
    (lambda*x+mu)^2+a1*x*(lambda*x+mu)+a3*(lambda*x+mu)=x^3+a2*x^2+...
    x^3+(a2-lambda^2-a1*lambda)*x^2+... = 0
    x1+x2+x3 = lambda^2+a1*lambda-a2.
+   y3 = lambda(x1-x3)-y1-a1*x3-a3
  */
 static int
 pt_w_common_aff(mpres_t x0, mpres_t y0, mpres_t z0,
 		mpres_t x1, mpres_t y1,
-		mpres_t x2, mpres_t a1, mpres_t a2,
+		mpres_t x2, mpres_t a1, mpres_t a3, mpres_t a2,
 		mpmod_t n, mpres_t num, mpres_t den, mpres_t inv)
 {
     if(mpres_invert(inv, den, n) == 0){
@@ -563,10 +564,14 @@ pt_w_common_aff(mpres_t x0, mpres_t y0, mpres_t z0,
     /** x0 = den <- num-x1-x2 **/
     mpres_sub(den, num, x1, n);
     mpres_sub(den, den, x2, n);
-    /** y0 = num <- lambda*(x1-x0)-y1 **/
+    /** y0 = num <- lambda*(x1-x0)-(y1+a1*x0+a3) **/
     mpres_sub(num, x1, den, n);
     mpres_mul(num, num, inv, n);
     mpres_sub(y0, num, y1, n);
+    mpres_sub(y0, y0, a3, n);
+    mpres_mul(x0, a1, den, n);
+    mpres_sub(y0, y0, x0, n);
+    /** finish **/
     mpres_set(x0, den, n);
     mpz_set_ui(z0, 1); /* just in case */
     return 1;
@@ -603,7 +608,7 @@ pt_w_duplicate(mpres_t x3, mpres_t y3, mpres_t z3,
 	mpres_add(E->buf[0], E->buf[0], E->a4, n);
 	mpres_mul(E->buf[2], E->a1, y1, n);
 	mpres_sub(E->buf[0], E->buf[0], E->buf[2], n);
-	return pt_w_common_aff(x3, y3, z3, x1, y1, x1, E->a1, E->a2, n, 
+	return pt_w_common_aff(x3, y3, z3, x1, y1, x1, E->a1, E->a3, E->a2, n, 
 			       E->buf[0], E->buf[1], E->buf[2]);
     }
     else if(E->type == ECM_EC_TYPE_WEIERSTRASS 
@@ -682,8 +687,8 @@ pt_w_add(mpres_t x3, mpres_t y3, mpres_t z3,
 	else{
 	    mpres_sub(E->buf[0], y1, y2, n);
 	    mpres_sub(E->buf[1], x1, x2, n);
-	    return pt_w_common_aff(x3, y3, z3, x1, y1, x2, E->a1, E->a2, n, 
-				   E->buf[0], E->buf[1], E->buf[2]);
+	    return pt_w_common_aff(x3, y3, z3, x1, y1, x2, E->a1, E->a3, E->a2,
+				   n, E->buf[0], E->buf[1], E->buf[2]);
 	}
     else if(E->type == ECM_EC_TYPE_WEIERSTRASS 
 	    && E->law == ECM_LAW_HOMOGENEOUS){
@@ -748,7 +753,10 @@ pt_w_add(mpres_t x3, mpres_t y3, mpres_t z3,
     return 0;
 }
 
-/* [x3, y3, z3] <- [x1, y1, z1] - [x2, y2, z2]; P3 != P1, P3 != P1. */
+/* [x3, y3, z3] <- [x1, y1, z1] - [x2, y2, z2]; P3 != P1, P3 != P2. 
+   -P2 ~ -(x2/z2, y2/z2, 1) = (x2/z2, -y2/z2-a1*x/z2-a3, 1) 
+                            ~ (x2, -y2-a1*x2-a3*z2, z2).
+*/
 int
 pt_w_sub(mpres_t x3, mpres_t y3, mpres_t z3,
 	 mpres_t x1, mpres_t y1, mpres_t z1,
@@ -757,9 +765,20 @@ pt_w_sub(mpres_t x3, mpres_t y3, mpres_t z3,
 {
     int res;
 
-    mpres_neg(y2, y2, n);
-    res = pt_w_add(x3, y3, z3, x1, y1, z1, x2, y2, z2, n, E);
-    mpres_neg(y2, y2, n);
+    if(E->law == ECM_LAW_HOMOGENEOUS){
+	/* WARNING: does not work for complete equation! */
+	mpres_neg(y2, y2, n);
+	res = pt_w_add(x3, y3, z3, x1, y1, z1, x2, y2, z2, n, E);
+	mpres_neg(y2, y2, n);
+    }
+    else if(E->law == ECM_LAW_AFFINE){
+	/* buf[3] not used in law, so use it */
+	mpres_mul(E->buf[3], E->a1, x2, n);
+	mpres_add(E->buf[3], E->buf[3], E->a3, n);
+	mpres_add(E->buf[3], E->buf[3], y2, n);
+	mpres_neg(E->buf[3], E->buf[3], n);
+	res = pt_w_add(x3, y3, z3, x1, y1, z1, x2, E->buf[3], z2, n, E);
+    }
     return res;
 }
 

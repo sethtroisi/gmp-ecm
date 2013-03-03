@@ -1679,6 +1679,9 @@ build_curves_with_torsion_Z11(mpz_t f, mpmod_t n,
 	}
 	mpres_get_z(t, kPaux->x, n);
 	mpres_get_z(s, kPaux->y, n);
+#if DEBUG_TORSION >= 2
+	gmp_printf("t:=%Zd;\ns:=%Zd; (s^2-s-(t^3-t^2)) mod N;\n", t, s);
+#endif
 	/* b:=s*(s-1)*(s-t)/t mod N;
 	   a:=(s*t+t-s^2)/t mod N = (t-s*(s-t))/t; */
 	if(mpz_invert(tmp, t, n->orig_modulus) == 0){
