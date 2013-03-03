@@ -1162,7 +1162,6 @@ main(int argc, char *argv[])
 	}
 	else if ((argc > 2) && (strcmp (argv[1], "-disc") == 0)){
 	    disc = atol(argv[2]);
-	    ncurves = 1;
 	    argv += 2;
 	    argc -= 2;
 	}
@@ -1217,10 +1216,16 @@ main(int argc, char *argv[])
       exit (EXIT_FAILURE);
     }
     
-    if(torsion != NULL)
-	printf("GMP-ECM [torsion=%s:%d-%d]\n", torsion, smin, smax);
-    if(disc != 0)
+    if(torsion != NULL){
+	if(disc == 0)
+	    printf("GMP-ECM [torsion=%s:%d-%d]\n", torsion, smin, smax);
+	else
+	    printf("GMP-ECM [torsion=%s:%d-%d;%d]\n",torsion,smin,smax,disc);
+    }
+    else if(disc != 0){
 	printf("GMP-ECM [CM=%d]\n", disc);
+	ncurves = 1; /* FIXME */
+    }
     
     mpz_init (N);
     for(i = 0; i < NFMAX; i++)
