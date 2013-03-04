@@ -109,6 +109,8 @@ dump_curves(ell_curve_t *tE, ell_point_t *tP, int nE, mpz_t f)
     printf("CheckE:=procedure(E, D, P, info)\n");
     printf("    K:=QuadraticField(D); OK:=MaximalOrder(K);\n");
     printf("    printf \"#E[%%o]=%%o\\n\", info, Factorization(#E);\n");
+    printf("    tw:=Twists(E); Et:=tw[2];\n");
+    printf("    printf \"#Et[%%o]=%%o\\n\", info, Factorization(#Et);\n");
     printf("    gen:=Generators(E); printf \"ords=%%o\\n\", ");
     printf("[Factorization(Order(g)):g in gen];\n");
     printf("    lf:=Factorization(Order(E!P)); printf \"ord(P)=%%o\\n\", lf;\n");
@@ -585,8 +587,8 @@ build_curves_with_torsion(mpz_t f, mpmod_t n, ell_curve_t *tE, ell_point_t *tP,
 	return build_curves_with_torsion_Z3xZ6(f, n, tE, tP, smin, smax, nE);
     /* over some quadratic fields */
     else if(strcmp(torsion, "Z11") == 0)
-	return build_curves_with_torsion_Z11(f, n, tE, tP, smin, smax, nE,
-					     disc, sqroots);
+	return build_curves_with_X1M(f, n, 11, tE, tP, smin, smax, nE,
+				     disc, sqroots);
     /** interesting when p = 1 mod 4 **/
     else if(strcmp(torsion, "Z4xZ4") == 0) /* over Q(sqrt(-1)) */
 	return build_curves_with_torsion_Z4xZ4(f, n, tE, tP, smin, smax, nE);
