@@ -1220,7 +1220,7 @@ main(int argc, char *argv[])
 	if(disc == 0)
 	    printf("GMP-ECM [torsion=%s:%d-%d]\n", torsion, smin, smax);
 	else
-	    printf("GMP-ECM [torsion=%s:%d-%d;%d]\n",torsion,smin,smax,disc);
+	    printf("GMP-ECM [torsion=%s:%d-%d;d=%d]\n",torsion,smin,smax,disc);
     }
     else if(disc != 0){
 	printf("GMP-ECM [CM=%d]\n", disc);
