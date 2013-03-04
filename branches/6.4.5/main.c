@@ -56,10 +56,10 @@ http://www.gnu.org/licenses/ or write to the Free Software Foundation, Inc.,
 #include "champions.h"
 
 /* probab_prime_p() can get called from other modules. Instead of passing
-   prpcmd to those functions, we make it static here - this variable will
+   prpcmd to those functions, we define it here globally - this variable will
    be set only in main, and read only in probab_prime_p() */
 #ifdef WANT_SHELLCMD
-static  char *prpcmd = NULL;
+char *prpcmd = NULL;
 #endif
 
 static int exit_asap_value = 0;
