@@ -1608,7 +1608,7 @@ build_curves_with_torsion_Z2xZ12(mpz_t f, mpmod_t n, ell_curve_t *tE,
     return ret;
 }
 
-/***** From Rabarison10 *****/
+/***** From Rabarison10: Z/MZ for M = 11, 14, 15 *****/
 
 /* format: "den x0 x1" represents (x0+x1*Z)/den */
 static int
@@ -1655,37 +1655,109 @@ point_from_quad_str(mpz_t x, mpz_t y,
 }
 
 static int
-get_point_for_Z11(mpz_t xaux, mpz_t yaux, int d, mpz_t *sqroots, mpz_t N)
+get_point_for_X1M(mpz_t xaux, mpz_t yaux, int M, int d, mpz_t *sqroots, mpz_t N)
 {
-    char *tab[][3] = {{"-10", "250 -241 0", "12500 -4961 6250"},
-		      {"-7", "8 5 1", "16 11 -1"},
-		      {"-6", "6 -25 0", "36 18 -139"},
-		      {"-2", "2 -1 0", "4 2 -1"},
-		      {"2", "2 1 0", "4 2 -1"},
-		      {"6", "1 18 -7", "1 103 -42"},
-		      {"7", "1 5 -2", "1 16 -6"},
-		      {"10", "10 9 0", "50 50 -13"},
-		      {"0", "", ""}};
-    int i, di, ret = ECM_NO_FACTOR_FOUND, found = 0;
+    char *tab[][4] = {{"11", "-10", "250 -241 0", "12500 -4961 6250"},
+		      {"11", "-7", "8 5 1", "16 11 -1"},
+		      {"11", "-6", "6 -25 0", "36 18 -139"},
+		      {"11", "-2", "2 -1 0", "4 2 -1"},
+		      {"11", "2", "2 1 0", "4 2 -1"},
+		      {"11", "6", "1 18 -7", "1 103 -42"},
+		      {"11", "7", "1 5 -2", "1 16 -6"},
+		      {"11", "10", "10 9 0", "50 50 -13"},
+		      {"15", "3", "2 -1 0", "4 -1 -1"},
+		      {"0", "0", "", ""}};
+    int i, Mi, di, ret = ECM_NO_FACTOR_FOUND, found = 0;
 
     for(i = 0; strcmp(tab[i][0], "0") != 0; i++){
-	di = atoi(tab[i][0]);
-	if(di == d){
-	    ret = point_from_quad_str(xaux, yaux, tab[i][1], tab[i][2],
+	Mi = atoi(tab[i][0]);
+	di = atoi(tab[i][1]);
+	if(Mi == M && di == d){
+	    ret = point_from_quad_str(xaux, yaux, tab[i][2], tab[i][3],
 				      sqroots[0],N);
 	    found = 1;
 	    break;
 	}
     }
+    if(found == 0)
+	ret = ECM_ERROR;
+    return ret;
+}
+
+static void
+get_curve_for_X1M(mpz_t a1, mpz_t a3, mpz_t a2, mpz_t a4, mpz_t a6, int M)
+{
+    int tab[][6] = {{11, 0, -1, -1, 0, 0},
+		    {15, 1, 1, 1, 0, 0},
+		    {0, 0, 0, 0, 0, 0}};
+    int i;
+
+    for(i = 0; tab[i][0] != 0; i++){
+	if(tab[i][0] == M){
+	    mpz_init_set_si(a1, tab[i][1]);
+	    mpz_init_set_si(a3, tab[i][2]);
+	    mpz_init_set_si(a2, tab[i][3]);
+	    mpz_init_set_si(a4, tab[i][4]);
+	    mpz_init_set_si(a6, tab[i][5]);
+	    break;
+	}
+    }
+}
+
+static int
+get_b_c_from_X1M(mpz_t f, mpz_t b, mpz_t c, int M, mpz_t t, mpz_t s, mpz_t N)
+{
+    int ret = ECM_NO_FACTOR_FOUND;
+    mpz_t tmp;
+
+    mpz_init(tmp);
+    if(M == 11){
+	/* b:=s*(s-1)*(s-t)/t mod N;
+	   a:=(s*t+t-s^2)/t mod N = (t-s*(s-t))/t; */
+	if(mpz_invert(tmp, t, N) == 0){
+	    printf("# found factor during inversion(Z11)\n");
+	    mpz_gcd(f, t, N);
+	    mpz_clear(tmp);
+	    return ECM_FACTOR_FOUND_STEP1;
+	}
+	/** b <- s*(s-t) **/
+	mpz_sub(b, s, t);
+	mpz_mul(b, b, s);
+	/** c <- t-s*(s-t) **/
+	mpz_sub(c, t, b);
+	mpz_mul(c, c, tmp);
+	mpz_mod(c, c, N);
+	/** b <- b/t*(s-1) **/
+	mpz_mul(b, b, tmp);
+	mpz_sub_si(tmp, s, 1);
+	mpz_mul(b, b, tmp);
+	mpz_mod(b, b, N);
+    }
+    else if(M == 15){
+#if 0
+	b:=t*(t^4-2*t^2-t-1)*s+t^3*(t+1)*(t^3+3*t^2+t+1) mod N;
+	b:=b/(t+1)^6/(t^2+t+1) mod N;
+	a:=(t^2-t)*s+(t^5+5*t^4+9*t^3+7*t^2+4*t+1) mod N;
+	a:=a/(t+1)^3/(t^2+t+1) mod N;
+#endif
+    }
+    /* c:=1-a mod N; */
+    mpz_sub_si(c, c, 1);
+    mpz_neg(c, c);
+    mpz_mod(c, c, N);
+    /* E:=QEcFromKubertForm(-b, c) mod N; */
+    mpz_neg(b, b);
+    mpz_mod(b, b, N);
+    mpz_clear(tmp);
     return ret;
 }
 
 /* Operate over Q(sqrt(d)); one must have sqroots[0] = sqrt(d) mod n. */
 int
-build_curves_with_torsion_Z11(mpz_t f, mpmod_t n, 
-			      ell_curve_t *tE, ell_point_t *tP,
-			      int smin, int smax, int nE,
-			      int d, mpz_t *sqroots)
+build_curves_with_X1M(mpz_t f, mpmod_t n, int M,
+		      ell_curve_t *tE, ell_point_t *tP,
+		      int smin, int smax, int nE,
+		      int d, mpz_t *sqroots)
 {
     int ret = ECM_NO_FACTOR_FOUND, u, nc = 0, i;
     ell_curve_t Eaux;
@@ -1696,19 +1768,15 @@ build_curves_with_torsion_Z11(mpz_t f, mpmod_t n,
     /* use points on Eaux */
     mpz_init(xaux);
     mpz_init(yaux);
-    if(get_point_for_Z11(xaux, yaux, d, sqroots, n->orig_modulus) 
+    if(get_point_for_X1M(xaux, yaux, M, d, sqroots, n->orig_modulus) 
        != ECM_NO_FACTOR_FOUND){
-	printf("# factor found in get_point_for_Z11\n");
+	printf("# factor found in get_point_for_X1M\n");
 	mpz_clear(xaux);
 	mpz_clear(yaux);
 	return ret;
     }
     /* Eaux = [a1, a3, a2, a4, a6] */
-    mpz_init_set_si(aux1, 0);
-    mpz_init_set_si(aux3, -1);
-    mpz_init_set_si(aux2, -1);
-    mpz_init_set_si(aux4, 0);
-    mpz_init_set_si(aux6, 0);
+    get_curve_for_X1M(aux1, aux3, aux2, aux4, aux6, M);
     mpz_init(t);
     mpz_init(s);
     mpz_init(b);
@@ -1737,11 +1805,11 @@ build_curves_with_torsion_Z11(mpz_t f, mpmod_t n,
     ell_point_init(kPaux, Eaux, n);
     for(u = smin; u < smax; u++){
 #if DEBUG_TORSION >= 2
-	printf("info[%d]:=\"Z11:%d\";\n", nc+1, u);
+	printf("info[%d]:=\"Z%d:%d\";\n", M, nc+1, u);
 #endif
 	mpz_set_si(t, u);
 	if(ell_point_mul(kPaux, t, Paux, Eaux, n) == 0){
-	    printf("# found factor during update(Z11)\n");
+	    printf("# found factor during update(X1M)\n");
 	    mpz_set(f, kPaux->x);
             ret = ECM_FACTOR_FOUND_STEP1;
             break;
@@ -1749,35 +1817,12 @@ build_curves_with_torsion_Z11(mpz_t f, mpmod_t n,
 	mpres_get_z(t, kPaux->x, n);
 	mpres_get_z(s, kPaux->y, n);
 #if DEBUG_TORSION >= 2
+	/* check that (t, s) is a point on Eaux: FIXME */
 	gmp_printf("t:=%Zd;\ns:=%Zd; (s^2-s-(t^3-t^2)) mod N;\n", t, s);
 #endif
-	/* b:=s*(s-1)*(s-t)/t mod N;
-	   a:=(s*t+t-s^2)/t mod N = (t-s*(s-t))/t; */
-	if(mpz_invert(tmp, t, n->orig_modulus) == 0){
-	    printf("# found factor during inversion(Z11)\n");
-	    mpz_gcd(f, t, n->orig_modulus);
-	    ret = ECM_FACTOR_FOUND_STEP1;
+	ret = get_b_c_from_X1M(f, b, c, M, t, s, n->orig_modulus);
+	if(ret != ECM_NO_FACTOR_FOUND)
 	    break;
-	}
-	/** b <- s*(s-t) **/
-	mpz_sub(b, s, t);
-	mpz_mul(b, b, s);
-	/** c <- t-s*(s-t) **/
-	mpz_sub(c, t, b);
-	mpz_mul(c, c, tmp);
-	mpz_mod(c, c, n->orig_modulus);
-	/** b <- b/t*(s-1) **/
-	mpz_mul(b, b, tmp);
-	mpz_sub_si(tmp, s, 1);
-	mpz_mul(b, b, tmp);
-	mpz_mod(b, b, n->orig_modulus);
-	/* c:=1-a mod N; */
-	mpz_sub_si(c, c, 1);
-	mpz_neg(c, c);
-	mpz_mod(c, c, n->orig_modulus);
-	/* E:=QEcFromKubertForm(-b, c) mod N; */
-	mpz_neg(b, b);
-	mpz_mod(b, b, n->orig_modulus);
 	/* forcing this number of twist candidates */
 	x0 = 0;
 	for(i = 0; i < 3; i++){
