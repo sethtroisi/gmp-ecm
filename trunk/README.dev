@@ -40,6 +40,16 @@ Documentation:
 - to generate pdf:
   $ xmlto pdf ecm.xml
 
+Note: we currently keep ecm.1 in the repository, even though it is a 
+generated file and not a source. This is to avoid having a dependency
+on xsltproc and docbook in every build; these tools are not usually
+installed by default in distributions. It does not seem to be possible
+to set up the Makefile so ecm.1 is required only for "make install" and
+"make dist". We need to list ecm.1 in one of the automake _MANS primaries 
+to get it installed in the proper man page directory, and when it is 
+listed in any _MANS primary, it is automatically added to the "am-all" 
+target which is processed by "make" or "make all".
+
 ##############################################################################
 
 To make a new release:
