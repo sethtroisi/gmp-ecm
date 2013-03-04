@@ -1657,7 +1657,8 @@ point_from_quad_str(mpz_t x, mpz_t y,
 static int
 get_point_for_X1M(mpz_t xaux, mpz_t yaux, int M, int d, mpz_t *sqroots, mpz_t N)
 {
-    char *tab[][4] = {{"11", "-10", "250 -241 0", "12500 -4961 6250"},
+    char *tab[][4] = { /* Table 1 */
+	              {"11", "-10", "250 -241 0", "12500 -4961 6250"},
 		      {"11", "-7", "8 5 1", "16 11 -1"},
 		      {"11", "-6", "6 -25 0", "36 18 -139"},
 		      {"11", "-2", "2 -1 0", "4 2 -1"},
@@ -1665,7 +1666,15 @@ get_point_for_X1M(mpz_t xaux, mpz_t yaux, int M, int d, mpz_t *sqroots, mpz_t N)
 		      {"11", "6", "1 18 -7", "1 103 -42"},
 		      {"11", "7", "1 5 -2", "1 16 -6"},
 		      {"11", "10", "10 9 0", "50 50 -13"},
+		      /* Table 2 */
+		      {"14", "3", "1 3 -2", "1 -10 6"},
+		      /* Table 3 */
+		      {"15", "-10", "4 -13 0", "8 9 -12"},
+		      {"15", "-7", "8 -5 -1", "16 5 1"},
+		      {"15", "-6", "4 -5 0", "8 1 -2"},
 		      {"15", "3", "2 -1 0", "4 -1 -1"},
+		      {"15", "7", "4 3 0", "8 -7 4"},
+		      {"15", "10", "4 -3 0", "8 -1 1"},
 		      {"0", "0", "", ""}};
     int i, Mi, di, ret = ECM_NO_FACTOR_FOUND, found = 0;
 
@@ -1688,6 +1697,7 @@ static void
 get_curve_for_X1M(mpz_t a1, mpz_t a3, mpz_t a2, mpz_t a4, mpz_t a6, int M)
 {
     int tab[][6] = {{11, 0, -1, -1, 0, 0},
+		    {14, 1, 1, 0, -1, 0},
 		    {15, 1, 1, 1, 0, 0},
 		    {0, 0, 0, 0, 0, 0}};
     int i;
@@ -1732,6 +1742,47 @@ get_b_c_from_X1M(mpz_t f, mpz_t b, mpz_t c, int M, mpz_t t, mpz_t s, mpz_t N)
 	mpz_sub_si(tmp, s, 1);
 	mpz_mul(b, b, tmp);
 	mpz_mod(b, b, N);
+    }
+    else if(M == 14){
+	/* b:=(2*t^5-2*t^4-2*t^3+3*t^2-t)*s-t^7+2*t^6-t^5-t^4+2*t^3-t^2;
+	   a:=(-t^3+2*t^2-t)*s+t^4-4*t^2+1; */
+	long b1[] = {5, 2, -2, -2, 3, -1, 0};
+	long b0[] = {7, -1, 2, -1, -1, 2, -1, 0, 0};
+	long a1[] = {3, -1, 2, -1, 0};
+	long a0[] = {4, 1, 0, -4, 0, 1};
+	long den[] = {4, 1, -1, -3, 0, 1};
+	mpz_t tmp2;
+
+	/* b:=b/(t+1)^2/(t^3-2*t^2-t+1)^2 mod N;
+	   a:=a/(t+1)/(t^3-2*t^2-t+1) mod N; */
+	/** numerator of b **/
+	mpz_eval_poly(b, b1, t, N);
+	mpz_mul(b, b, s);
+	mpz_eval_poly(c, b0, t, N);
+	mpz_add(b, b, c);
+	mpz_mod(b, b, N);
+	/** numerator of a **/
+	mpz_eval_poly(c, a1, t, N);
+	mpz_mul(c, c, s);
+	mpz_eval_poly(tmp, a0, t, N);
+	mpz_add(c, c, tmp);
+	mpz_mod(c, c, N);
+	/** tmp <- (t+1)*(t^3-2*t^2-t+1) = t^4-t^3-3*t^2+1 **/
+	mpz_eval_poly(tmp, den, t, N);
+	mpz_init(tmp2);
+	if(mpz_invert(tmp2, tmp, N) == 0){
+	    printf("# found factor during inversion(Z14)\n");
+	    mpz_gcd(f, tmp2, N);
+	    ret = ECM_FACTOR_FOUND_STEP1;
+	}
+	else{
+	    mpz_mul(c, c, tmp2);
+	    mpz_mod(c, c, N);
+	    mpz_mul(b, b, tmp2);
+	    mpz_mul(b, b, tmp2);
+	    mpz_mod(b, b, N);
+	}
+	mpz_clear(tmp2);
     }
     else if(M == 15){
 	/* b:=t*(t^4-2*t^2-t-1)*s+t^3*(t+1)*(t^3+3*t^2+t+1) mod N;
@@ -1863,6 +1914,8 @@ build_curves_with_X1M(mpz_t f, mpmod_t n, int M,
 	/* check that (t, s) is a point on Eaux: FIXME */
 	if(M == 11)
 	    gmp_printf("t:=%Zd;\ns:=%Zd; (s^2-s-(t^3-t^2)) mod N;\n", t, s);
+	else if(M == 14)
+	    gmp_printf("t:=%Zd;\ns:=%Zd; (s^2+s*t+s-(t^3-t)) mod N;\n", t, s);
 	else if(M == 15)
 	    gmp_printf("t:=%Zd;\ns:=%Zd; (s^2+s*t+s-(t^3+t^2)) mod N;\n",t,s);
 #endif

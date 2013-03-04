@@ -592,6 +592,9 @@ build_curves_with_torsion(mpz_t f, mpmod_t n, ell_curve_t *tE, ell_point_t *tP,
     else if(strcmp(torsion, "Z15") == 0)
 	return build_curves_with_X1M(f, n, 15, tE, tP, smin, smax, nE,
 				     disc, sqroots);
+    else if(strcmp(torsion, "Z14") == 0)
+	return build_curves_with_X1M(f, n, 14, tE, tP, smin, smax, nE,
+				     disc, sqroots);
     /** interesting when p = 1 mod 4 **/
     else if(strcmp(torsion, "Z4xZ4") == 0) /* over Q(sqrt(-1)) */
 	return build_curves_with_torsion_Z4xZ4(f, n, tE, tP, smin, smax, nE);
