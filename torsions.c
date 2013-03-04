@@ -1611,7 +1611,7 @@ build_curves_with_torsion_Z2xZ12(mpz_t f, mpmod_t n, ell_curve_t *tE,
 /***** From Rabarison10 *****/
 
 static int
-get_point_for_Z11(mpz_t xaux, mpz_t yaux, int d, mpz_t N)
+get_point_for_Z11(mpz_t xaux, mpz_t yaux, int d, mpz_t *sqroots, mpz_t N)
 {
     if(abs(d) == 2){
 	if(d == -2)
@@ -1674,7 +1674,7 @@ build_curves_with_torsion_Z11(mpz_t f, mpmod_t n,
     /* use points on Eaux */
     mpz_init(xaux);
     mpz_init(yaux);
-    get_point_for_Z11(xaux, yaux, d, n->orig_modulus);
+    get_point_for_Z11(xaux, yaux, d, sqroots, n->orig_modulus);
     mpz_init(t);
     mpz_init(s);
     mpz_init(b);
