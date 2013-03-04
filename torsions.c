@@ -1610,46 +1610,74 @@ build_curves_with_torsion_Z2xZ12(mpz_t f, mpmod_t n, ell_curve_t *tE,
 
 /***** From Rabarison10 *****/
 
+/* format: "den x0 x1" represents (x0+x1*Z)/den */
+static int
+mpz_from_quad_str(mpz_t x, char *strx, mpz_t sq, mpz_t N)
+{
+    mpz_t den, x0, x1;
+    int ret = ECM_NO_FACTOR_FOUND;
+
+    mpz_init(den);
+    mpz_init(x0);
+    mpz_init(x1);
+    gmp_sscanf(strx, "%Zd %Zd %Zd", x, x0, x1);
+    if(mpz_invert(den, x, N) == 0){
+	mpz_gcd(x, x, N);
+	ret = ECM_FACTOR_FOUND_STEP1;
+    }
+    else{
+	mpz_mul(x, x1, sq);
+	mpz_add(x, x, x0);
+	mpz_mul(x, x, den);
+	mpz_mod(x, x, N);
+    }
+    mpz_clear(den);
+    mpz_clear(x0);
+    mpz_clear(x1);
+    return ret;
+}
+
+/* If a factor is found, it is put in x. */
+static int
+point_from_quad_str(mpz_t x, mpz_t y,
+		    char *strx, char *stry,
+		    mpz_t sq, mpz_t N)
+{
+    int ret;
+
+    ret = mpz_from_quad_str(x, strx, sq, N);
+    if(ret != ECM_NO_FACTOR_FOUND)
+	return ret;
+    ret = mpz_from_quad_str(y, stry, sq, N);
+    if(ret != ECM_NO_FACTOR_FOUND)
+	mpz_set(x, y);
+    return ret;
+}
+
 static int
 get_point_for_Z11(mpz_t xaux, mpz_t yaux, int d, mpz_t *sqroots, mpz_t N)
 {
-    if(abs(d) == 2){
-	if(d == -2)
-	    /* Paux = [-1/2, (2-Z)/4, 1]; */
-	    mod_from_rat_str(xaux, "-1/2", N);
-	else
-	    /* Paux = [1/2, (2-Z)/4, 1]; */
-	    mod_from_rat_str(xaux, "1/2", N);
-	mpz_set_si(yaux, 2);
-	mpz_sub(yaux, yaux, sqroots[0]);
-	mpz_mod(yaux, yaux, N);
-	mod_div_2(yaux, N);
-	mod_div_2(yaux, N);
+    char *tab[][3] = {{"-10", "250 -241 0", "12500 -4961 6250"},
+		      {"-7", "8 5 1", "16 11 -1"},
+		      {"-6", "6 -25 0", "36 18 -139"},
+		      {"-2", "2 -1 0", "4 2 -1"},
+		      {"2", "2 1 0", "4 2 -1"},
+		      {"6", "1 18 -7", "1 103 -42"},
+		      {"7", "1 5 -2", "1 16 -6"},
+		      {"10", "10 9 0", "50 50 -13"},
+		      {"0", "", ""}};
+    int i, di, ret = ECM_NO_FACTOR_FOUND, found = 0;
+
+    for(i = 0; strcmp(tab[i][0], "0") != 0; i++){
+	di = atoi(tab[i][0]);
+	if(di == d){
+	    ret = point_from_quad_str(xaux, yaux, tab[i][1], tab[i][2],
+				      sqroots[0],N);
+	    found = 1;
+	    break;
+	}
     }
-    switch(d){
-    case -10:
-	/* Paux = [-241/250, -4961/12500*Z+1/2, 1] */
-	break;
-    case -7:
-	/* Paux = [(Z+5)/8, (11-Z)/16, 1] */
-	break;
-    case -6:
-	/* Paux = [-25/6, (18-139*Z)/36, 1] */
-	break;
-    case 6:
-	/* Paux = [-7*Z+18, -42*Z+103, 1] */
-	break;
-    case 7:
-	/* Paux = [-2*Z+5, -6*Z+16, 1] */
-	break;
-    case 10:
-	/* Paux = [9/10, (50-13*Z)/50, 1] */
-	break;
-    default:
-	printf("Unknown discriminant: %d\n", d);
-	return 0;
-    }
-    return 1;
+    return ret;
 }
 
 /* Operate over Q(sqrt(d)); one must have sqroots[0] = sqrt(d) mod n. */
@@ -1665,16 +1693,22 @@ build_curves_with_torsion_Z11(mpz_t f, mpmod_t n,
     long x0;
     mpz_t aux1, aux2, aux3, aux4, aux6, xaux, yaux, s, t, b, c, tmp, B;
 
+    /* use points on Eaux */
+    mpz_init(xaux);
+    mpz_init(yaux);
+    if(get_point_for_Z11(xaux, yaux, d, sqroots, n->orig_modulus) 
+       != ECM_NO_FACTOR_FOUND){
+	printf("# factor found in get_point_for_Z11\n");
+	mpz_clear(xaux);
+	mpz_clear(yaux);
+	return ret;
+    }
     /* Eaux = [a1, a3, a2, a4, a6] */
     mpz_init_set_si(aux1, 0);
     mpz_init_set_si(aux3, -1);
     mpz_init_set_si(aux2, -1);
     mpz_init_set_si(aux4, 0);
     mpz_init_set_si(aux6, 0);
-    /* use points on Eaux */
-    mpz_init(xaux);
-    mpz_init(yaux);
-    get_point_for_Z11(xaux, yaux, d, sqroots, n->orig_modulus);
     mpz_init(t);
     mpz_init(s);
     mpz_init(b);
