@@ -1610,6 +1610,48 @@ build_curves_with_torsion_Z2xZ12(mpz_t f, mpmod_t n, ell_curve_t *tE,
 
 /***** From Rabarison10 *****/
 
+static int
+get_point_for_Z11(mpz_t xaux, mpz_t yaux, int d, mpz_t N)
+{
+    if(abs(d) == 2){
+	if(d == -2)
+	    /* Paux = [-1/2, (2-Z)/4, 1]; */
+	    mod_from_rat_str(xaux, "-1/2", N);
+	else
+	    /* Paux = [1/2, (2-Z)/4, 1]; */
+	    mod_from_rat_str(xaux, "1/2", N);
+	mpz_set_si(yaux, 2);
+	mpz_sub(yaux, yaux, sqroots[0]);
+	mpz_mod(yaux, yaux, N);
+	mod_div_2(yaux, N);
+	mod_div_2(yaux, N);
+    }
+    switch(d){
+    case -10:
+	/* Paux = [-241/250, -4961/12500*Z+1/2, 1] */
+	break;
+    case -7:
+	/* Paux = [(Z+5)/8, (11-Z)/16, 1] */
+	break;
+    case -6:
+	/* Paux = [-25/6, (18-139*Z)/36, 1] */
+	break;
+    case 6:
+	/* Paux = [-7*Z+18, -42*Z+103, 1] */
+	break;
+    case 7:
+	/* Paux = [-2*Z+5, -6*Z+16, 1] */
+	break;
+    case 10:
+	/* Paux = [9/10, (50-13*Z)/50, 1] */
+	break;
+    default:
+	printf("Unknown discriminant: %d\n", d);
+	return 0;
+    }
+    return 1;
+}
+
 /* Operate over Q(sqrt(d)); one must have sqroots[0] = sqrt(d) mod n. */
 int
 build_curves_with_torsion_Z11(mpz_t f, mpmod_t n, 
@@ -1630,16 +1672,9 @@ build_curves_with_torsion_Z11(mpz_t f, mpmod_t n,
     mpz_init_set_si(aux4, 0);
     mpz_init_set_si(aux6, 0);
     /* use points on Eaux */
-    if(d == 2){
-	/* Paux = [1/2, (2-Z)/4, 1]; */
-	mpz_init(xaux);
-	mod_from_rat_str(xaux, "1/2", n->orig_modulus);
-	mpz_init_set_si(yaux, 2);
-	mpz_sub(yaux, yaux, sqroots[0]);
-	mpz_mod(yaux, yaux, n->orig_modulus);
-	mod_div_2(yaux, n->orig_modulus);
-	mod_div_2(yaux, n->orig_modulus);
-    }
+    mpz_init(xaux);
+    mpz_init(yaux);
+    get_point_for_Z11(xaux, yaux, d, n->orig_modulus);
     mpz_init(t);
     mpz_init(s);
     mpz_init(b);
