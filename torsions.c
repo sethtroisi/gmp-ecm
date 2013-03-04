@@ -1734,12 +1734,55 @@ get_b_c_from_X1M(mpz_t f, mpz_t b, mpz_t c, int M, mpz_t t, mpz_t s, mpz_t N)
 	mpz_mod(b, b, N);
     }
     else if(M == 15){
-#if 0
-	b:=t*(t^4-2*t^2-t-1)*s+t^3*(t+1)*(t^3+3*t^2+t+1) mod N;
-	b:=b/(t+1)^6/(t^2+t+1) mod N;
-	a:=(t^2-t)*s+(t^5+5*t^4+9*t^3+7*t^2+4*t+1) mod N;
-	a:=a/(t+1)^3/(t^2+t+1) mod N;
-#endif
+	/* b:=t*(t^4-2*t^2-t-1)*s+t^3*(t+1)*(t^3+3*t^2+t+1) mod N;
+	   a:=(t^2-t)*s+(t^5+5*t^4+9*t^3+7*t^2+4*t+1) mod N; */
+	long b1[] = {5, 1, 0, -2, -1, -1, 0};
+	long b0[] = {7, 1, 4, 4, 2, 1, 0, 0, 0};
+	long a1[] = {2, 1, -1, 0};
+	long a0[] = {5, 1, 5, 9, 7, 4, 1};
+	mpz_t tmp2, tmp3;
+
+	/** numerator of b **/
+	mpz_eval_poly(b, b1, t, N);
+	mpz_mul(b, b, s);
+	mpz_eval_poly(c, b0, t, N);
+	mpz_add(b, b, c);
+	mpz_mod(b, b, N);
+	/** numerator of a **/
+	mpz_eval_poly(c, a1, t, N);
+	mpz_mul(c, c, s);
+	mpz_eval_poly(tmp, a0, t, N);
+	mpz_add(c, c, tmp);
+	mpz_mod(c, c, N);
+	/* b:=b/(t+1)^6/(t^2+t+1) mod N;
+	   a:=a/(t+1)^3/(t^2+t+1) mod N; */
+	mpz_init_set(tmp2, t);
+	mpz_add_si(tmp2, tmp2, 1);
+	/** tmp <- (t+1)^3 **/
+	mpz_powm_ui(tmp, tmp2, 3, N);
+	/** tmp2 <- tmp^2 = (t+1)^6 **/
+	mpz_mul(tmp2, tmp, tmp);
+	mpz_init_set(tmp3, t);
+	mpz_mul(tmp3, tmp3, t);
+	mpz_add(tmp3, tmp3, t);
+	mpz_add_si(tmp3, tmp3, 1);
+	/** tmp2 <- (t+1)^6*(t^2+t+1) **/
+	mpz_mul(tmp2, tmp2, tmp3);
+	mpz_mod(tmp2, tmp2, N);
+	if(mpz_invert(tmp3, tmp2, N) == 0){
+	    printf("# found factor during inversion(Z15)\n");
+	    mpz_gcd(f, tmp2, N);
+	    ret = ECM_FACTOR_FOUND_STEP1;
+	}
+	else{
+	    mpz_mul(b, b, tmp3);
+	    mpz_mod(b, b, N);
+	    mpz_mul(c, c, tmp3);
+	    mpz_mul(c, c, tmp);
+	    mpz_mod(c, c, N);
+	}
+	mpz_clear(tmp2);
+	mpz_clear(tmp3);
     }
     /* c:=1-a mod N; */
     mpz_sub_si(c, c, 1);
@@ -1818,7 +1861,10 @@ build_curves_with_X1M(mpz_t f, mpmod_t n, int M,
 	mpres_get_z(s, kPaux->y, n);
 #if DEBUG_TORSION >= 2
 	/* check that (t, s) is a point on Eaux: FIXME */
-	gmp_printf("t:=%Zd;\ns:=%Zd; (s^2-s-(t^3-t^2)) mod N;\n", t, s);
+	if(M == 11)
+	    gmp_printf("t:=%Zd;\ns:=%Zd; (s^2-s-(t^3-t^2)) mod N;\n", t, s);
+	else if(M == 15)
+	    gmp_printf("t:=%Zd;\ns:=%Zd; (s^2+s*t+s-(t^3+t^2)) mod N;\n",t,s);
 #endif
 	ret = get_b_c_from_X1M(f, b, c, M, t, s, n->orig_modulus);
 	if(ret != ECM_NO_FACTOR_FOUND)
