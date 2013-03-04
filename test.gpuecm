@@ -44,8 +44,7 @@ checkcode () {
 # 14     Probable prime factor found, cofactor is a probable prime
 
 #test for stage 1 on GPU
-N="458903930815802071188998938170281707063809443792768383215233"
-echo $N | $ECM -sigma 3:227 125 0
+echo 458903930815802071188998938170281707063809443792768383215233 | $ECM -sigma 3:227 125 0
 checkcode $? 14
 
 #test for stage 1 on GPU
