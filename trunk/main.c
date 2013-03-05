@@ -1072,13 +1072,6 @@ main (int argc, char *argv[])
   params->gpu_number_of_curves = gpucurves; /* If WITH_GPU is not defined or */
                                             /* use_gpu = 0, it has no meaning*/
 
-  /* -treefile is valid for ECM only */
-  if (TreeFilename != NULL && method != ECM_ECM)
-    {
-      fprintf (stderr, "Error: the -treefile option is for ECM only\n");
-      exit (EXIT_FAILURE);
-    }
-
   /* Open resume file for reading, if resuming is requested */
   if (resumefilename != NULL)
     {
