@@ -501,9 +501,12 @@ write_resumefile_line (FILE *file, int method, double B1, mpz_t sigma,
       strcpy(mname, "localPC");
     else
       {
-        for (i = 0; i < sizeof(mname)-1; ++i)
+        if (size > sizeof(mname) - 1)
+          size = sizeof(mname) - 1;
+
+        for (i = 0; i < size; ++i)
           mname[i] = T[i];
-        mname[sizeof(mname)-1] = 0;
+        mname[i] = 0;
       }
   }
 #else
