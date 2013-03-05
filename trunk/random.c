@@ -143,7 +143,7 @@ get_random_ul (void)
   unsigned long t;
 
   /* Try /dev/urandom */
-  rndfd = fopen ("/dev/urandom", "r");
+  rndfd = fopen ("/dev/urandom", "rb");
   if (rndfd != NULL)
     {
       if (fread (&t, sizeof (unsigned long), 1, rndfd) == 1)
