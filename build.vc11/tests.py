@@ -92,6 +92,8 @@ def do_tests(tests, gpu=False):
     print('  all tests passed')
 
 with Timer():
+  if os.path.exists('test.pm1.save'):
+    os.remove('test.pm1.save')
   out = False
   do_tests(get_tests("..\\test.ecm"))
   do_tests(get_tests("..\\test.pm1"))
