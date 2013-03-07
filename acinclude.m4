@@ -339,6 +339,19 @@ else
 fi    
 ])
 
+# A test program to check whether the compiler can compile SSE2 instructions 
+# as inline assembly
+AC_DEFUN([ECM_C_INLINESSE2_PROG], dnl
+[AC_LANG_PROGRAM([], dnl
+[#if (defined(__GNUC__) || defined(__ICL)) && defined(__i386__)
+/* On some machines, a program without constraints may pass without -msse2 but
+   those with constraints in spv.c fail, thus we test with constraints here. */
+asm volatile ("pmuludq %%xmm2, %%xmm0" : : :"%xmm0");
+#else
+#error
+#IRIXdoesnotexitaterrordirective
+#endif])])
+
 
 dnl  CU_CHECK_CUDA
 dnl  Check if a GPU version is asked, for which GPU and where CUDA is install.

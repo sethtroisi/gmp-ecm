@@ -286,38 +286,17 @@ dnl for them by default and let the tests below check if it works
     ;;
   esac
 fi
-# If the necessary predefines (__GNUC__ or __ICL, and __i386__)
-# are not set, SSE2 will never be compiled in, and we switch off
-# the SSE2 flag
-if test "x$enable_sse2" = xyes; then
-  AC_PREPROC_IFELSE([AC_LANG_PROGRAM([
-#if !defined(__GNUC__) && !defined(__ICL) || !defined(__i386__)
-#error
-#IRIXdoesnotexitaterrordirective
-#endif])], [], dnl Necessary predefines are present. Nothing to do
-  [ dnl Necessary predefines are not present. Switch off SSE2
-    AC_MSG_NOTICE([Not using GCC or ICC, or not a 32-bit x86. SSE2 disabled])
-    enable_sse2=no])
-fi
+
 if test "x$enable_sse2" = xyes; then
   # See if we need -msse2 to enable SSE2 instructions
-  AC_MSG_CHECKING([for SSE2 support])
-  m4_define([SSE2_TEST_PROG], [AC_LANG_PROGRAM([], dnl
-[#if (defined(__GNUC__) || defined(__ICL)) && defined(__i386__)
-/* On some machines, a program without constraints may pass without -msse2 but
-   those with constraints in spv.c fail, thus we test with constraints here. */
-asm volatile ("pmuludq %%xmm2, %%xmm0" : : :"%xmm0");
-#else
-#error
-#IRIXdoesnotexitaterrordirective
-#endif])])
-  AC_COMPILE_IFELSE([SSE2_TEST_PROG], dnl
+  AC_MSG_CHECKING([for SSE2 support with inline assembly])
+  AC_RUN_IFELSE([ECM_C_INLINESSE2_PROG], dnl
    [ dnl SSE2 works, nothing to be done
      AC_MSG_RESULT([yes])], dnl
    [ dnl SSE2 does not work, try again with -msse2
     OLDCFLAGS="$CFLAGS"
     CFLAGS="$CFLAGS -msse2"
-    AC_COMPILE_IFELSE([SSE2_TEST_PROG], dnl
+    AC_RUN_IFELSE([ECM_C_INLINESSE2_PROG], dnl
       [ dnl works now, keep CFLAGS like this
         AC_MSG_RESULT([yes, with -msse2])], dnl
       [ dnl still didn't work, switch off SSE2
