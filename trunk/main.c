@@ -1426,6 +1426,14 @@ main (int argc, char *argv[])
 	  params->sigma_is_A = specific_A;
 	  if(specific_y0)
 	    {
+	      /* compute B = y^2-x^3-A*x = y^2 - (x^2+A)*x */
+	      mpz_mul(params->E->a6, y, y);
+	      mpz_mul(params->E->a4, x, x);
+	      mpz_add(params->E->a4, params->E->a4, A);
+	      mpz_mul(params->E->a4, params->E->a4, x);
+	      mpz_sub(params->E->a6, params->E->a6, params->E->a4);
+	      mpz_mod(params->E->a6, params->E->a6, n.n);
+	      mpz_set(params->E->a4, A);
 	      params->sigma_is_A = -1;
 	      if(specific_H == 0){
 		  params->E->type = ECM_EC_TYPE_WEIERSTRASS;

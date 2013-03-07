@@ -1384,7 +1384,6 @@ ecm (mpz_t f, mpz_t x, mpz_t y, int *param, mpz_t sigma, mpz_t n, mpz_t go,
 		youpi = ecm_stage1 (f, P.x, P.A, modulus, B1, B1done, go, 
 				    stop_asap, chkfilename);
 	    else{
-		mpres_set(E->a4, P.A, modulus);
 		ell_point_init(PE, E, modulus);
 		mpres_set(PE->x, P.x, modulus);
 		mpres_set(PE->y, P.y, modulus);
