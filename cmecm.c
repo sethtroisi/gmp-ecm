@@ -45,8 +45,9 @@ adjust_CM(mpz_t f, ell_curve_t E, ell_point_t P, mpz_t N, mpz_t j)
 	mpz_mod(j, j, N);
 	mpz_add(E->a4, E->a4, j);
 	mpz_mod(E->a4, E->a4, N);
+	mpz_set(E->a6, j);
 	x0 = 0;
-	ec_force_point(E, P, j, &x0, N);
+	ec_force_point(E, P, &x0, N);
     }
     return ret;
 }
@@ -109,7 +110,8 @@ build_curves_with_CM(mpz_t f, int *nE, ell_curve_t *tE, ell_point_t *tP,
 		mpz_mod(tmp, tmp, n->orig_modulus);
 		x0 = 0;
 		/* works since tE[i]->a4 is always 0... */
-		ec_force_point(tE[i], tP[i], tmp, &x0, n->orig_modulus);
+		mpz_set(tE[i]->a6, tmp);
+		ec_force_point(tE[i], tP[i], &x0, n->orig_modulus);
 	    }
 	    *nE = 6;
 	    mpz_clear(zeta6);
@@ -157,8 +159,8 @@ build_curves_with_CM(mpz_t f, int *nE, ell_curve_t *tE, ell_point_t *tP,
 		mpz_mul(tmp, tE[i-1]->a4, sqroots[0]);
 		mpz_mod(tE[i]->a4, tmp, n->orig_modulus);
 		x0 = 1; /* x0 = 0 is bad, since this is a 2-torsion point */
-		mpz_set_si(tmp, 0);
-		ec_force_point(tE[i], tP[i], tmp, &x0, n->orig_modulus);
+		mpz_set_si(tE[i]->a6, 0);
+		ec_force_point(tE[i], tP[i], &x0, n->orig_modulus);
 	    }
 	    *nE = 4;
 	    for(i = 0; i < imax; i++)

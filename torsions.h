@@ -1,7 +1,7 @@
 void mod_div_2(mpz_t x, mpz_t n);
 int mod_from_rat(mpz_t r, mpq_t q, mpz_t N);
 int mod_from_rat2(mpz_t r, mpz_t num, mpz_t den, mpz_t N);
-void ec_force_point(ell_curve_t E, ell_point_t P, mpz_t B, long *x0, mpz_t n);
+void ec_force_point(ell_curve_t E, ell_point_t P, long *x0, mpz_t n);
 
 int
 build_curves_with_torsion_Z5(mpz_t f, mpmod_t n, 

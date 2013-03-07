@@ -543,30 +543,30 @@ pt_w_print(mpres_t x, mpres_t y, mpres_t z, ell_curve_t E, mpmod_t n)
    (lambda*x+mu)^2+a1*x*(lambda*x+mu)+a3*(lambda*x+mu)=x^3+a2*x^2+...
    x^3+(a2-lambda^2-a1*lambda)*x^2+... = 0
    x1+x2+x3 = lambda^2+a1*lambda-a2.
-   y3 = lambda(x1-x3)-y1-a1*x3-a3
+   y3 = lambda*(x1-x3)-y1-a1*x3-a3
  */
 static int
 pt_w_common_aff(mpres_t x0, mpres_t y0, mpres_t z0,
 		mpres_t x1, mpres_t y1,
 		mpres_t x2, mpres_t a1, mpres_t a3, mpres_t a2,
-		mpmod_t n, mpres_t num, mpres_t den, mpres_t inv)
+		mpmod_t n, mpres_t num, mpres_t den, mpres_t lambda)
 {
-    if(mpres_invert(inv, den, n) == 0){
+    if(mpres_invert(lambda, den, n) == 0){
 	mpres_gcd(x0, den, n);
 	return 0;
     }
-    /** inv <- lambda **/
-    mpres_mul(inv, inv, num, n);
+    /** lambda = num/den **/
+    mpres_mul(lambda, lambda, num, n);
     /** num <- (lambda+a1)*lambda **/
-    mpres_add(num, inv, a1, n);
-    mpres_mul(num, num, inv, n);
+    mpres_add(num, lambda, a1, n);
+    mpres_mul(num, num, lambda, n);
     mpres_sub(num, num, a2, n);
     /** x0 = den <- num-x1-x2 **/
     mpres_sub(den, num, x1, n);
     mpres_sub(den, den, x2, n);
     /** y0 = num <- lambda*(x1-x0)-(y1+a1*x0+a3) **/
     mpres_sub(num, x1, den, n);
-    mpres_mul(num, num, inv, n);
+    mpres_mul(num, num, lambda, n);
     mpres_sub(y0, num, y1, n);
     mpres_sub(y0, y0, a3, n);
     mpres_mul(x0, a1, den, n);
@@ -766,7 +766,7 @@ pt_w_sub(mpres_t x3, mpres_t y3, mpres_t z3,
     int res;
 
     if(E->law == ECM_LAW_HOMOGENEOUS){
-	/* WARNING: does not work for complete equation! */
+	/* FIXME: does not work for complete equation! */
 	mpres_neg(y2, y2, n);
 	res = pt_w_add(x3, y3, z3, x1, y1, z1, x2, y2, z2, n, E);
 	mpres_neg(y2, y2, n);
@@ -1396,7 +1396,11 @@ void
 ell_curve_set_z(ell_curve_t E, ell_curve_t zE, mpmod_t n)
 {
     ell_curve_init(E, zE->type, zE->law, n);
+    mpres_set_z(E->a1, zE->a1, n);
+    mpres_set_z(E->a3, zE->a3, n);
+    mpres_set_z(E->a2, zE->a2, n);
     mpres_set_z(E->a4, zE->a4, n);
+    mpres_set_z(E->a6, zE->a6, n);
     E->disc = zE->disc;
     if(E->disc != 0){
 	mpres_init(E->sq[0], n);
@@ -1419,8 +1423,11 @@ void
 ell_curve_print(ell_curve_t E, mpmod_t n)
 {
     if(E->type == ECM_EC_TYPE_WEIERSTRASS){
-	printf("A:="); print_mpz_from_mpres(E->a4, n); printf(";\n");
-	printf("E:=[A, y0^2-x0^3-A*x0];\n");
+	printf("["); print_mpz_from_mpres(E->a1, n);
+	printf(", "); print_mpz_from_mpres(E->a3, n);
+	printf(", "); print_mpz_from_mpres(E->a2, n);
+	printf(", "); print_mpz_from_mpres(E->a4, n);
+	printf(", "); print_mpz_from_mpres(E->a6, n); printf("];\n");
     }
     else if(E->type == ECM_EC_TYPE_HESSIAN){
 	printf("D:="); print_mpz_from_mpres(E->a4, n); printf(";\n");
@@ -1445,6 +1452,83 @@ ell_point_set_to_zero(ell_point_t P, ell_curve_t E, mpmod_t n)
 	pt_w_set_to_zero(P, n);
     else if(E->type == ECM_EC_TYPE_HESSIAN)
 	hessian_set_to_zero(P, E, n);
+}
+
+int
+ell_point_is_on_curve(ell_point_t P, ell_curve_t E, mpmod_t n)
+{
+    int ok = 1;
+
+    if(ell_point_is_zero(P, E, n))
+	return 1;
+    if(E->type == ECM_EC_TYPE_WEIERSTRASS){
+	mpres_t tmp1, tmp2;
+
+	mpres_init(tmp1, n);
+	mpres_init(tmp2, n);
+	if(E->law == ECM_LAW_AFFINE){
+	    /* y^2+a1*x*y+a3*y = x^3+a2*x^2+a4*x+a6? */
+	    mpres_mul(tmp1, E->a1, P->x, n);
+	    mpres_add(tmp1, tmp1, P->y, n);
+	    mpres_add(tmp1, tmp1, E->a3, n);
+	    mpres_mul(tmp1, tmp1, P->y, n);
+	    
+	    mpres_add(tmp2, E->a2, P->x, n);
+	    mpres_mul(tmp2, tmp2, P->x, n);
+	    mpres_add(tmp2, tmp2, E->a4, n);
+	    mpres_mul(tmp2, tmp2, P->x, n);
+	    mpres_add(tmp2, tmp2, E->a6, n);
+	}
+	else{
+	    /* y^2*z+a1*x*y*z+a3*y*z^2 = x^3+a2*x^2*z+a4*x*z^2+a6*z^3? */
+	    /* y*z*(y+a1*x+a3*z) = ((x+a2*z)*x+a4*z^2)*x+a6*z^3? */
+	    mpres_t tmp3;
+
+	    mpres_mul(tmp1, E->a1, P->x, n);
+	    mpres_add(tmp1, tmp1, P->y, n);
+	    mpres_mul(tmp2, E->a3, P->z, n);
+	    mpres_add(tmp1, tmp1, tmp2, n);
+	    mpres_mul(tmp1, tmp1, P->y, n);
+	    mpres_mul(tmp1, tmp1, P->z, n);
+
+	    mpres_init(tmp3, n);
+	    mpres_mul(tmp2, E->a2, P->z, n);	    
+	    mpres_add(tmp2, tmp2, P->x, n);
+	    mpres_mul(tmp2, tmp2, P->x, n);
+	    mpres_mul(tmp3, E->a4, P->z, n);
+	    mpres_mul(tmp3, tmp3, P->z, n);
+	    mpres_add(tmp2, tmp2, tmp3, n);
+	    mpres_mul(tmp2, tmp2, P->x, n);
+	    mpres_mul(tmp3, P->z, P->z, n);
+	    mpres_mul(tmp3, tmp3, P->z, n);
+	    mpres_mul(tmp3, tmp3, E->a6, n);
+	    mpres_add(tmp2, tmp2, tmp3, n);
+	    mpres_clear(tmp3, n);
+	}
+
+	ok = mpres_equal(tmp1, tmp2, n);
+
+	mpres_clear(tmp1, n);
+	mpres_clear(tmp2, n);
+    }
+    else if(E->type == ECM_EC_TYPE_HESSIAN){
+	/* TODO */
+    }
+    return ok;
+}
+
+static void
+ell_point_check(ell_point_t P, ell_curve_t E, mpmod_t n)
+{
+    if(ell_point_is_on_curve(P, E, n) == 0){
+	printf("Point not on curve\n");
+	printf("E:=");
+	ell_curve_print(E, n);
+	printf("P:=");
+	pt_print(E, P, n);
+	printf("\n");
+	exit(-1);
+    }
 }
 
 int
@@ -1487,8 +1571,22 @@ void
 ell_point_negate(ell_point_t P, ell_curve_t E, mpmod_t n)
 {
     if(ell_point_is_zero(P, E, n) != 0){
-	if(E->type == ECM_EC_TYPE_WEIERSTRASS)
-	    mpres_neg(P->y, P->y, n);
+	if(E->type == ECM_EC_TYPE_WEIERSTRASS){
+	    if(E->law == ECM_LAW_HOMOGENEOUS){
+		/* FIXME: does not work for complete equation! */
+		mpres_neg(P->y, P->y, n);
+	    }
+	    else if(E->law == ECM_LAW_AFFINE){
+		/* (-P).y = -P.y-a1*P.x-a3 */
+		if(mpz_sgn(E->a1) != 0
+		   || mpz_sgn(E->a3) != 0
+		   || mpz_sgn(E->a2) != 0){ /* FIXME */
+		    printf("GROUMF\n");
+		    exit(-1);
+		}
+		mpres_neg(P->y, P->y, n);
+	    }
+	}
 	else if(E->type == ECM_EC_TYPE_HESSIAN)
 	    hessian_negate(P, E, n);
     }
@@ -1559,7 +1657,7 @@ ell_point_mul_plain (ell_point_t Q, mpz_t e, ell_point_t P, ell_curve_t E, mpmod
 		break;
 	      }
 #if DEBUG_ADD_LAWS >= 2
-	      printf("Radd:="); ell_point_print(P0, E, n);printf(";\n");
+	      printf("Radd:="); ell_point_print(P0, E, n); printf(";\n");
 	      printf("Padd:=ProjEcmAdd(P, Rdup, E, N); ProjEcmEqual(Padd, Radd, N);\n");
 #endif
 	  }
@@ -1652,6 +1750,10 @@ ell_point_mul_add_sub_with_S(ell_point_t Q, ell_point_t P, ell_curve_t E,
     for(i = 0; i <= k; i++)
 	ell_point_init(iP[i], E, n);
     ell_point_set(iP[0], P, E, n);
+#if DEBUG_ADD_LAWS >= 2
+    ell_point_check(iP[0], E, n);
+    printf("P:="); ell_point_print(P, E, n); printf(";\n");
+#endif
     if(k > 0){
 	/* P[k] <- [2]*P */
 	if(ell_point_duplicate(iP[k], P, E, n) == 0){
@@ -1659,12 +1761,18 @@ ell_point_mul_add_sub_with_S(ell_point_t Q, ell_point_t P, ell_curve_t E,
             status = 0;
 	    goto ell_point_mul_add_sub_end;
         }
+#if DEBUG_ADD_LAWS >= 2
+	ell_point_check(iP[k], E, n);
+#endif
 	for(i = 1; i <= k; i++){
 	    if(ell_point_add(iP[i], iP[i-1], iP[k], E, n) == 0){
 		mpres_set(P0->x, iP[i]->x, n);
                 status = 0;
 		goto ell_point_mul_add_sub_end;
 	    }
+#if DEBUG_ADD_LAWS >= 2
+	    ell_point_check(iP[i], E, n);
+#endif
 	}
 	/* at this point, P[i] = (2*i+1) P */
     }
@@ -1718,6 +1826,12 @@ ell_point_mul_add_sub_with_S(ell_point_t Q, ell_point_t P, ell_curve_t E,
     }
  ell_point_mul_add_sub_end:
     ell_point_set(Q, P0, E, n);
+#if DEBUG_ADD_LAWS >= 2
+    if(ell_point_is_on_curve(Q, E, n) == 0){
+	printf("Pb with Q\n");
+	exit(-1);
+    }
+#endif
     ell_point_clear(P0, E, n);
     for(i = 0; i <= k; i++)
 	ell_point_clear(iP[i], E, n);
