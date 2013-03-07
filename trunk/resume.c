@@ -495,7 +495,7 @@ write_resumefile_line (FILE *file, int method, double B1, mpz_t sigma,
     "spill" over to the rest of the function. */
   {
     DWORD size;
-    /* x86_64-w64-mingw32-gcc (GCC) 4.8.0 20121031 (experimental) has infinie 
+    /* x86_64-w64-mingw32-gcc (GCC) 4.8.0 20121031 (experimental) has infinite
        for loop below with -O2, volatile seems to fix it */
     volatile size_t i;
     TCHAR T[MAX_COMPUTERNAME_LENGTH+2];
