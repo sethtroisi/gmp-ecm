@@ -497,7 +497,10 @@ write_resumefile_line (char *fn, int method, double B1, mpz_t sigma, mpz_t A,
   /* dummy block, so that the vars needed here don't need to
     "spill" over to the rest of the function. */
   {
-    DWORD size, i;
+    DWORD size;
+    /* x86_64-w64-mingw32-gcc (GCC) 4.8.0 20121031 (experimental) has infinie 
+       for loop below with -O2, volatile seems to fix it */
+    volatile size_t i;
     TCHAR T[MAX_COMPUTERNAME_LENGTH+2];
     size=MAX_COMPUTERNAME_LENGTH+1;
     if (!GetComputerName(T, &size))
