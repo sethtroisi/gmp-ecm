@@ -35,7 +35,8 @@ ecm_init (ecm_params q)
   mpz_init_set_ui (q->y, 0);
   mpz_init_set_ui (q->sigma, 0);
   q->sigma_is_A = 0;
-  mpz_init(ptrE->a4);
+  mpz_init_set_ui(ptrE->a4, 0);
+  mpz_init_set_ui(ptrE->a6, 0);
   ptrE->type = ECM_EC_TYPE_MONTGOMERY;
   ptrE->disc = 0;
   q->E = ptrE;

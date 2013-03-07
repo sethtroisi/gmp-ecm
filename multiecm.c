@@ -53,6 +53,7 @@ process_one_curve(mpz_t f, mpz_t N, double B1, mpz_t B2,
 	mpz_set(params->y, P->y);
     }
     params->E = E;
+    gmp_printf("a4:=%Zd;\na6:=%Zd;\n", E->a4, E->a6);
 
     ret = ecm_factor(f, N, B1, params);
     return ret;
@@ -105,7 +106,6 @@ dump_curves(ell_curve_t *tE, ell_point_t *tP, int nE, mpz_t f)
 {
     int i;
 
-    gmp_printf("p:=%Zd; F:=GF(p); P:=[]; A:=[]; B:=[]; E:=[]; D:=[];\n", f);
     printf("CheckE:=procedure(E, D, P, info)\n");
     printf("    K:=QuadraticField(D); OK:=MaximalOrder(K);\n");
     printf("    printf \"#E[%%o]=%%o\\n\", info, Factorization(#E);\n");
@@ -119,6 +119,7 @@ dump_curves(ell_curve_t *tE, ell_point_t *tP, int nE, mpz_t f)
     printf("        ok,gen:=IsPrincipal(lfi[1][1]); print lf[i], ok, gen;\n");
     printf("    end for;\n");
     printf("end procedure;\n");
+    gmp_printf("p:=%Zd; F:=GF(p); P:=[]; A:=[]; B:=[]; E:=[]; D:=[];\n", f);
     for(i = 0; i < nE; i++){
 	printf("D[%d]:=%d;\n", i+1, tE[i]->disc);
 	if(tE[i]->type == ECM_EC_TYPE_MONTGOMERY){
