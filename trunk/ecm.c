@@ -662,9 +662,11 @@ ecm_stage1_W (mpz_t f, ell_curve_t E, ell_point_t P, mpmod_t n,
     
     last_chkpnt_time = cputime ();
 
-#if DEBUG_EC_W >= 3
-    ell_curve_print(E, n);
-    printf("P:="); ell_point_print(P, E, n); printf(";\n");
+#if DEBUG_EC_W >= 2
+    gmp_printf("N:=%Zd;\n", n->orig_modulus);
+    printf("E:="); ell_curve_print(E, n);
+    printf("E:=[E[4], E[5]];\n");
+    printf("P:="); ell_point_print(P, E, n); printf("; Q:=P;\n");
 #endif
     /* preload group order */
     if (go != NULL){
@@ -680,7 +682,7 @@ ecm_stage1_W (mpz_t f, ell_curve_t E, ell_point_t P, mpmod_t n,
     printf("goP:="); ell_point_print(P, E, n); printf(";\n");
 #endif
     if(mpz_cmp_ui(batch_s, 1) == 0){
-	/* traditional approach: obsolete? */
+	printf("# Using traditional approach to Step 1\n");
 	for (r = 2.0; r <= B1; r *= 2.0)
 	    if (r > *B1done){
 		if(ell_point_duplicate (Q, P, E, n) == 0){
@@ -689,7 +691,7 @@ ecm_stage1_W (mpz_t f, ell_curve_t E, ell_point_t P, mpmod_t n,
 		    goto end_of_stage1_w;
 		}
 		ell_point_set(P, Q, E, n);
-#if DEBUG_EC_W >= 1
+#if DEBUG_EC_W >= 2
 		printf("P%ld:=", (long)r); ell_point_print(P, E, n); printf(";\n");
 		printf("Q:=EcmMult(2, Q, E, N);\n");
 		printf("(Q[1]*P%ld[3]-Q[3]*P%ld[1]) mod N;\n",(long)r,(long)r);
@@ -706,17 +708,17 @@ ecm_stage1_W (mpz_t f, ell_curve_t E, ell_point_t P, mpmod_t n,
 			ret = ECM_FACTOR_FOUND_STEP1;
 			goto end_of_stage1_w;
 		    }
-#if DEBUG_EC_W >= 1
-		    printf("R%ld:=", (long)r); ell_point_print(Q, E, n); printf(";\n");
-		    printf("Q:=EcmMult(%ld, Q, E, N);\n", (long)r);
+#if DEBUG_EC_W >= 2
+		    printf("R%ld:=", (long)r); ell_point_print(Q, E, n);
+		    printf(";\nQ:=EcmMult(%ld, Q, E, N);\n", (long)p);
 		    printf("(Q[1]*R%ld[3]-Q[3]*R%ld[1]) mod N;\n",(long)r,(long)r);
 #endif
 		    ell_point_set(P, Q, E, n);
 		}
 	    }
 	    if (ell_point_is_zero (P, E, n)){
-		outputf (OUTPUT_VERBOSE, "Reached point at infinity, %.0f divides "
-			 "group orders\n", p);
+		outputf (OUTPUT_VERBOSE, "Reached point at infinity, "
+			 "%.0f divides group orders\n", p);
 		break;
 	    }
 	    
@@ -735,7 +737,7 @@ ecm_stage1_W (mpz_t f, ell_curve_t E, ell_point_t P, mpmod_t n,
 	}
     }
     else{
-#if 0 /* keeping it simple */
+#if USE_ADD_SUB_CHAINS == 0 /* keeping it simple */
 	if (ell_point_mul (Q, batch_s, P, E, n) == 0){
 	    mpz_set (f, Q->x);
 	    ret = ECM_FACTOR_FOUND_STEP1;
