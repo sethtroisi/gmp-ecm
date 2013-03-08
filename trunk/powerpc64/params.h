@@ -1,10 +1,10 @@
-/* these values were determined on gcc110.fsffrance.org with ecm-6.4.1-rc3,
-   gmp-5.0.2, and gcc 4.6.2, CFLAGS="-m64 -O3" */
+/* these values were determined on gcc110.fsffrance.org with ecm-6.4.4,
+   gmp-5.1.1, and gcc 4.7.2, CFLAGS="-m64 -mtune=power7 -O3" */
 
 /* 0:mulredc 1:mul+redc_1 2:mul+redc_2 3:mul+redc_n */
-#define TUNE_MULREDC_TABLE {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0}
+#define TUNE_MULREDC_TABLE {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,2,1}
 /* 0:mulredc 1:sqr+redc_1 2:sqr+redc_2 3:sqr+redc_n */
-#define TUNE_SQRREDC_TABLE {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0}
+#define TUNE_SQRREDC_TABLE {0,0,0,0,0,0,0,0,0,0,1,1,1,1,1,1,1,1,2,1,1}
 
 #define MPZMOD_THRESHOLD 75
 #define REDC_THRESHOLD 512
