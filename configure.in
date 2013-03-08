@@ -290,13 +290,13 @@ fi
 if test "x$enable_sse2" = xyes; then
   # See if we need -msse2 to enable SSE2 instructions
   AC_MSG_CHECKING([for SSE2 support with inline assembly])
-  AC_RUN_IFELSE([ECM_C_INLINESSE2_PROG], dnl
+  ECM_RUN_IFELSE([ECM_C_INLINESSE2_PROG], dnl
    [ dnl SSE2 works, nothing to be done
      AC_MSG_RESULT([yes])], dnl
    [ dnl SSE2 does not work, try again with -msse2
     OLDCFLAGS="$CFLAGS"
     CFLAGS="$CFLAGS -msse2"
-    AC_RUN_IFELSE([ECM_C_INLINESSE2_PROG], dnl
+    ECM_RUN_IFELSE([ECM_C_INLINESSE2_PROG], dnl
       [ dnl works now, keep CFLAGS like this
         AC_MSG_RESULT([yes, with -msse2])], dnl
       [ dnl still didn't work, switch off SSE2
