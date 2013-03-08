@@ -339,6 +339,14 @@ else
 fi    
 ])
 
+# If we are not cross-compiling, do AC_RUN_IFELSE. If we are cross-compiling,
+# do AC_COMPILE_IFELSE
+AC_DEFUN([ECM_RUN_IFELSE], dnl
+  [AC_RUN_IFELSE]([[$1]], [[$2]], [[$3]], dnl ok
+    [[AC_COMPILE_IFELSE]]([[[$1]]], [[[$2]]], [[[$3]]]) dnl
+  ) dnl
+)
+
 # A test program to check whether the compiler can compile SSE2 instructions 
 # as inline assembly. If HAVE_SSE2 is defined, the code also includes
 # emmintrin.h, which may need -sse2 to function
