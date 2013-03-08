@@ -846,13 +846,16 @@ MO_check(char *T, size_t iT, mpz_t e)
     mpz_t tmp;
     int i, ok;
 
+    printf("# Entering MO_check...\n");
     mpz_init_set_ui(tmp, 0);
     for(i = ((int)iT)-1; i >= 0; i--){
 	mpz_mul_2exp(tmp, tmp, 1);
 	mpz_add_si(tmp, tmp, (int)T[i]);
     }
+#if DEBUG_ADD_LAWS >= 2
     gmp_printf("e:=%Zd;\n", e);
     gmp_printf("t:=%Zd;\n", tmp);
+#endif
     ok = mpz_cmp(tmp, e) == 0;
     mpz_clear(tmp);
     return ok;
@@ -870,8 +873,10 @@ Split_check(short *S, int iS, mpz_t e)
 	mpz_add_si(tmp, tmp, (int)S[i+1]);
 	mpz_mul_2exp(tmp, tmp, (int)S[i]);
     }
+#if DEBUG_ADD_LAWS >= 2
     gmp_printf("e:=%Zd;\n", e);
     gmp_printf("t:=%Zd;\n", tmp);
+#endif
     ok = mpz_cmp(tmp, e) == 0;
     mpz_clear(tmp);
     return ok;
@@ -954,7 +959,7 @@ build_MO_chain(short *S, int Slen, mpz_t e, int w)
 {
     /* first use automata */
     size_t le = mpz_sizeinbase(e, 2), iT = 0;
-#if DEBUG_ADD_LAWS >= 2
+#if DEBUG_ADD_LAWS >= 0
     long tp = cputime();
     int i;
 #endif
@@ -968,6 +973,8 @@ build_MO_chain(short *S, int Slen, mpz_t e, int w)
     for(i = 0; i < (int)iT; i++)
 	printf(" %d", T[i]);
     printf("\n");
+#endif
+#if DEBUG_ADD_LAWS >= 2
     if(MO_check(T, iT, e) == 0)
 	printf("#!# Error in MO\n");
     else
@@ -983,6 +990,8 @@ build_MO_chain(short *S, int Slen, mpz_t e, int w)
     for(i = 0; i < iS; i++)
 	printf(" %d", S[i]);
     printf("\n");
+#endif
+#if DEBUG_ADD_LAWS >= 2
     if(Split_check(S, iS, e) == 0)
         printf("#!# Error in Split\n");
     else
@@ -2020,7 +2029,7 @@ compute_s_4_add_sub(mpz_t s, unsigned long B1, int disc)
     compute_s(t, B1, forbiddenres);
     free(forbiddenres);
     printf("# computing prod(p^e <= %lu): %ldms\n", B1, elltime(tp,cputime()));
-#if 0 /* keeping it simple for the time being */
+#if USE_ADD_SUB_CHAINS == 0 /* keeping it simple for the time being */
     mpz_set(s, t);
 #else
     tp = cputime();
