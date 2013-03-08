@@ -1,3 +1,5 @@
+#define USE_ADD_SUB_CHAINS 1
+
 #define pt_is_equal(P, Q) (mpz_cmp((P)->x, (Q)->x) == 0 \
 	                     && mpz_cmp((P)->y, (Q)->y) == 0 \
 			     && mpz_cmp((P)->z, (Q)->z) == 0)

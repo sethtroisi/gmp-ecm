@@ -19,6 +19,7 @@
 #include "cmecm.h"
 
 #define DEBUG_MULTI_EC 0
+#define MULTI_USE_ADD_SUB 1
 
 #define NCURVE_MAX 2000
 
@@ -53,7 +54,6 @@ process_one_curve(mpz_t f, mpz_t N, double B1, mpz_t B2,
 	mpz_set(params->y, P->y);
     }
     params->E = E;
-    gmp_printf("a4:=%Zd;\na6:=%Zd;\n", E->a4, E->a6);
 
     ret = ecm_factor(f, N, B1, params);
     return ret;
@@ -134,8 +134,9 @@ dump_curves(ell_curve_t *tE, ell_point_t *tP, int nE, mpz_t f)
 	    mpres_init(y, fmod);
 	    mpres_init(A, fmod);
 	    mpres_set_z(A, tE[i]->a4, fmod);
-	    if(montgomery_to_weierstrass(tmp, x, y, A, fmod) == ECM_FACTOR_FOUND_STEP1){
-		printf("GASP in dump!\n");
+	    if(montgomery_to_weierstrass(tmp, x, y, A, fmod) 
+	       == ECM_FACTOR_FOUND_STEP1){
+		printf("GASP while dumping a Montgomery form curve!\n");
 	    }
 	    printf("P[%d]:=[", i+1); print_mpz_from_mpres(x, fmod);
 	    printf(", "); print_mpz_from_mpres(y,fmod);
@@ -153,13 +154,12 @@ dump_curves(ell_curve_t *tE, ell_point_t *tP, int nE, mpz_t f)
 	    gmp_printf("P[%d]:=[%Zd, %Zd, %Zd];\n", i+1, 
 		       tP[i]->x, tP[i]->y, tP[i]->z); 
 	    gmp_printf("A[%d]:=%Zd;\n", i+1, tE[i]->a4);
+	    gmp_printf("B[%d]:=%Zd;\n", i+1, tE[i]->a6);
 	}
 	else{
 	    printf("Case %d NYI in dump_curves\n", tE[i]->type);
 	    break;
 	}
-	printf("B[%d]:=P[%d][2]^2-P[%d][1]^3-A[%d]*P[%d][1];\n", 
-	       i+1, i+1, i+1, i+1, i+1);
 	printf("E[%d]:=EllipticCurve([F!A[%d], F!B[%d]]);\n", i+1, i+1, i+1);
 	printf("CheckE(E[%d], D[%d], P[%d], infos[%d]);\n",i+1,i+1,i+1,i+1);
     }
@@ -1041,13 +1041,18 @@ process_special_blend(mpz_t tf[], int *nf, int *tried,
     if(ret != ECM_NO_FACTOR_FOUND)
 	return conclude_on_factor(N, tf[0], 1);
     if(torsion != NULL){
-	printf("# Using curves with torsion %s and disc=%d", torsion, discref);
-	gmp_printf(" together with B1=%1.0f B2=%Zd\n", B1, B2);
-	*tried = 1;
-	ret = process_many_curves_loop(tf, nf, N, B1, B2, params, NULL,
-				       torsion, smin, smax, ncurves,
-				       discref, sqroots, savefilename);
-	/* TODO: improve this? */
+	if(tsq[0] != discref)
+	    printf("#W# tsq[0]=%d != discref\n", tsq[0]);
+	else{
+	    printf("# Using curves with torsion %s and disc=%d",
+		   torsion, discref);
+	    gmp_printf(" together with B1=%1.0f B2=%Zd\n", B1, B2);
+	    *tried = 1;
+	    ret = process_many_curves_loop(tf, nf, N, B1, B2, params, NULL,
+					   torsion, smin, smax, ncurves,
+					   discref, sqroots, savefilename);
+	    /* TODO: improve this? */
+	}
 	return ret;
     }
     mpz_init_set_ui(sqd[0], 1);
@@ -1246,7 +1251,7 @@ main(int argc, char *argv[])
     /*    params->verbose = OUTPUT_DEVVERBOSE;*/
     params->verbose = OUTPUT_NORMAL;
 #endif
-#if 1
+#if MULTI_USE_ADD_SUB
     compute_s_4_add_sub(params->batch_s, (unsigned long)B1, disc);
 #endif
     while(fscanf(infile, "%s", buf) != EOF){
