@@ -1232,9 +1232,10 @@ main(int argc, char *argv[])
     
     if(torsion != NULL){
 	if(disc == 0)
-	    printf("GMP-ECM [torsion=%s:%d-%d]\n", torsion, smin, smax);
+	    printf("# GMP-ECM [torsion=%s:%d-%d]\n", torsion, smin, smax);
 	else
-	    printf("GMP-ECM [torsion=%s:%d-%d;d=%d]\n",torsion,smin,smax,disc);
+	    printf("# GMP-ECM [torsion=%s:%d-%d;d=%d]\n",
+		   torsion, smin, smax, disc);
     }
     else if(disc != 0){
 	printf("GMP-ECM [CM=%d]\n", disc);
@@ -1252,7 +1253,10 @@ main(int argc, char *argv[])
     params->verbose = OUTPUT_NORMAL;
 #endif
 #if MULTI_USE_ADD_SUB
-    compute_s_4_add_sub(params->batch_s, (unsigned long)B1, disc);
+    if(torsion == NULL)
+	compute_s_4_add_sub(params->batch_s, (unsigned long)B1, disc);
+    else
+	compute_s_4_add_sub(params->batch_s, (unsigned long)B1, 0);
 #endif
     while(fscanf(infile, "%s", buf) != EOF){
 	/* read number */
@@ -1284,7 +1288,7 @@ main(int argc, char *argv[])
 	    }
 	    /* read N */
 	    fscanf(infile, "%s", buf);
-	    printf("# I read: b=%d n=%d c=%c\n", bb, n, c);
+	    printf("# I read: b=%d n=%d c=%c\n", bb, abs(n), c);
 	    if((b > 1) && (bb != b))
 		continue;
 	}

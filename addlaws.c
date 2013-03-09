@@ -324,7 +324,7 @@ pt_many_add(ell_point_t *tR, ell_point_t *tP, ell_point_t *tQ, ell_curve_t *tE,
 		mpres_mul_ui(den[i], tP[i]->y, 2, n);
 	    }
 	}
-	else if(mpz_cmp(tQ[i]->x, tP[i]->x) == 0){
+	else if(mpres_equal(tQ[i]->x, tP[i]->x, n)){
 	    mpres_add(num[i], tQ[i]->x, tP[i]->x, n);
 	    if(mpz_sgn(num[i]) == 0){
 		takeit[i] = 0;
@@ -682,7 +682,7 @@ pt_w_add(mpres_t x3, mpres_t y3, mpres_t z3,
 	return 1;
     }
     if(E->type == ECM_EC_TYPE_WEIERSTRASS && E->law == ECM_LAW_AFFINE)
-	if(mpz_cmp(x1, x2) == 0 && mpz_cmp(y1, y2) == 0)
+	if(mpres_equal(x1, x2, n) && mpres_equal(y1, y2, n))
 	    return pt_w_duplicate(x3, y3, z3, x1, y1, z1, n, E);
 	else{
 	    mpres_sub(E->buf[0], y1, y2, n);
@@ -959,7 +959,7 @@ build_MO_chain(short *S, int Slen, mpz_t e, int w)
 {
     /* first use automata */
     size_t le = mpz_sizeinbase(e, 2), iT = 0;
-#if DEBUG_ADD_LAWS >= 0
+#if DEBUG_ADD_LAWS >= 2
     long tp = cputime();
     int i;
 #endif
@@ -1166,8 +1166,8 @@ hessian_plus(ell_point_t R, ell_point_t P, ell_point_t Q,
     /* T2:=(T2*T6) mod N; */
     mpres_mul(E->buf[1], P->y, Q->z, n);
 
-    if(mpz_cmp(E->buf[6], E->buf[2]) == 0 
-       && mpz_cmp(E->buf[4], E->buf[1]) == 0)
+    if(mpres_equal(E->buf[6], E->buf[2], n)
+       && mpres_equal(E->buf[4], E->buf[1], n))
 	/* as a matter of that, P = Q and we need duplicate */
 	return hessian_duplicate(R, P, E, n);
 
@@ -1541,6 +1541,44 @@ ell_point_check(ell_point_t P, ell_curve_t E, mpmod_t n)
 }
 
 int
+ell_point_equal(ell_point_t P, ell_point_t Q, ell_curve_t E, mpmod_t n)
+{
+    int ret = 1;
+
+    if(E->type == ECM_EC_TYPE_WEIERSTRASS){
+	if(E->law == ECM_LAW_AFFINE)
+	    return mpres_equal(P->x, Q->x, n) 
+		   && mpres_equal(P->y, Q->y, n)
+		   && mpres_equal(P->z, Q->z, n);
+	else if(E->law == ECM_LAW_HOMOGENEOUS){
+	    mpres_t tmp1, tmp2;
+
+	    mpres_init(tmp1, n);
+	    mpres_init(tmp2, n);
+	    mpres_mul(tmp1, P->x, Q->z, n);
+	    mpres_mul(tmp2, P->z, Q->x, n);
+	    if(mpres_equal(tmp1, tmp2, n) == 0){
+		printf("Px/Pz != Qx/Qz\n");
+		ret = 0;
+		exit(-1);
+	    }
+	    else{
+		mpres_mul(tmp1, P->y, Q->z, n);
+		mpres_mul(tmp2, P->z, Q->y, n);
+		if(mpres_equal(tmp1, tmp2, n) == 0){
+		    printf("Py/Pz != Qy/Qz\n");
+		    ret = 0;
+		    exit(-1);
+		}
+	    }
+	    mpres_clear(tmp1, n);
+	    mpres_clear(tmp2, n);
+	}
+    }
+    return ret;
+}
+
+int
 ell_point_add(ell_point_t R, ell_point_t P, ell_point_t Q, ell_curve_t E, mpmod_t n)
 {
     if(E->type == ECM_EC_TYPE_WEIERSTRASS)
@@ -1706,9 +1744,9 @@ get_add_sub_w(mpz_t e)
     else if(l <= 102400)
 	return 7;
     else if(l <= 1024000)
-	return 8;
+	return 7;
     else
-	return 9;
+	return 7;
 }
 
 /* pack everybody */
@@ -1753,6 +1791,17 @@ ell_point_mul_add_sub_with_S(ell_point_t Q, ell_point_t P, ell_curve_t E,
     ell_point_t P0;
     ell_point_t iP[EC_ADD_SUB_2_WMAX];
     int status = 1, i, j, k;
+#if DEBUG_ADD_LAWS >= 2
+    mpz_t ex;
+    unsigned long cpt = 0;
+    long tp;
+    ell_point_t QQ;
+
+    tp = cputime();
+    /* to reconstruct the exponent to check mults */
+    mpz_init_set_ui(ex, 0);
+    ell_point_init(QQ, E, n);
+#endif
 
     /* iP[i] <- (2*i+1) * P */
     k = (1 << (w-1)) - 1;
@@ -1761,6 +1810,8 @@ ell_point_mul_add_sub_with_S(ell_point_t Q, ell_point_t P, ell_curve_t E,
     ell_point_set(iP[0], P, E, n);
 #if DEBUG_ADD_LAWS >= 2
     ell_point_check(iP[0], E, n);
+    gmp_printf("N:=%Zd;\n", n->orig_modulus);
+    printf("E:="); ell_curve_print(E, n); printf(";\n");
     printf("P:="); ell_point_print(P, E, n); printf(";\n");
 #endif
     if(k > 0){
@@ -1795,7 +1846,7 @@ ell_point_mul_add_sub_with_S(ell_point_t Q, ell_point_t P, ell_curve_t E,
     /* S = [[ts, 2*ds+1], ... */
     for(j = 0; j < iS; j += 2){
 #if DEBUG_ADD_LAWS >= 2
-	printf("P0:="); ell_point_print(P0, E, n); printf(";\n");
+	printf("P0:="); ell_point_print(P0, E, n); printf(":\n");
 #endif
 	i = abs(S[j+1]) >> 1; /* (abs(S[j+1])-1)/2, S[j+1] is always odd */
 	assert(i <= k);
@@ -1805,9 +1856,11 @@ ell_point_mul_add_sub_with_S(ell_point_t Q, ell_point_t P, ell_curve_t E,
 		break;
 	    }
 #if DEBUG_ADD_LAWS >= 2
-	    printf("iP%d:=", i); ell_point_print(iP[i], E, n); printf(";\n");
-	    printf("Radd:="); ell_point_print(P0, E, n); printf(";\n");
-	    printf("Q:=ProjEcmAdd(P0, iP%d, E, N); ProjEcmEqual(Q, Radd, N);\n", i);
+	    printf("iP%d:=", i); ell_point_print(iP[i], E, n); printf(":\n");
+	    printf("Radd:="); ell_point_print(P0, E, n); printf(":\n");
+	    printf("Q:=ProjEcmAdd(P0, iP%d, E, N): ", i);
+	    printf("printf(\"CHK%lu: %%a\\n\", ProjEcmEqual(Q, Radd, N));\n",
+		   cpt++);
 #endif
 	}
 	else{
@@ -1817,9 +1870,17 @@ ell_point_mul_add_sub_with_S(ell_point_t Q, ell_point_t P, ell_curve_t E,
 		break;
 	    }
 #if DEBUG_ADD_LAWS >= 2
-	    printf("Rsub:="); ell_point_print(P0, E, n); printf(";\n");
+	    printf("iP%d:=", i); ell_point_print(iP[i], E, n); printf(":\n");
+	    printf("Rsub:="); ell_point_print(P0, E, n); printf(":\n");
+	    printf("S:=ProjEcmNegate(iP%d, N):\n", i);
+	    printf("Q:=ProjEcmAdd(P0, S, E, N): ");
+	    printf("printf(\"CHK%lu: %%a\\n\", ProjEcmEqual(Q, Rsub, N));\n",
+		   cpt++);
 #endif
 	}
+#if DEBUG_ADD_LAWS >= 2
+	ell_point_check(P0, E, n);
+#endif
 	/* now multiply */
 	for(i = 0; i < S[j]; i++){
 	    if(ell_point_duplicate(P0, P0, E, n) == 0){
@@ -1827,20 +1888,45 @@ ell_point_mul_add_sub_with_S(ell_point_t Q, ell_point_t P, ell_curve_t E,
 		break;
 	    }
 #if DEBUG_ADD_LAWS >= 2
-	    printf("Rdup:="); ell_point_print(P0, E, n); printf(";\n");
+	    printf("Rdup:="); ell_point_print(P0, E, n); printf(":\n");
+	    printf("Q:=ProjEcmDouble(P0, E, N): ");
+	    printf("printf(\"CHK%lu: %%a\\n\", ProjEcmEqual(Q, Rdup, N));\n",
+		   cpt++);
 #endif
 	}
+#if DEBUG_ADD_LAWS >= 2
+	mpz_add_si(ex, ex, (int)S[j+1]);
+	mpz_mul_2exp(ex, ex, (int)S[j]);
+#endif
+#if DEBUG_ADD_LAWS >= 2
+	ell_point_check(P0, E, n);
+	ell_point_mul_plain(QQ, ex, P, E, n);
+	if(ell_point_equal(QQ, P0, E, n) == 0){
+	    gmp_printf("ex:=%Zd;\n", ex);
+	    printf("P0:="); ell_point_print(P0, E, n); printf(";\n");
+	    printf("QQ:="); ell_point_print(QQ, E, n); printf(";\n");
+	    exit(-1);
+	}
+#endif
 	if(status == 0)
 	    break;
     }
  ell_point_mul_add_sub_end:
-    ell_point_set(Q, P0, E, n);
 #if DEBUG_ADD_LAWS >= 2
-    if(ell_point_is_on_curve(Q, E, n) == 0){
-	printf("Pb with Q\n");
+    printf("# time[addsub%d] = %ldms\n", w, elltime(tp, cputime()));
+    printf("Checking with [ex]*P with %ld bits\n", (long)mpz_sizeinbase(ex,2));
+    tp = cputime();
+    ell_point_mul_plain(QQ, ex, P, E, n);
+    if(ell_point_equal(QQ, P0, E, n) == 0){
+	gmp_printf("ex:=%Zd;\n", ex);
+	printf("P0:="); ell_point_print(P0, E, n); printf(";\n");
+	printf("QQ:="); ell_point_print(QQ, E, n); printf(";\n");
 	exit(-1);
     }
+    printf("# time[plain] = %ldms\n", elltime(tp, cputime()));
+    mpz_clear(ex);
 #endif
+    ell_point_set(Q, P0, E, n);
     ell_point_clear(P0, E, n);
     for(i = 0; i <= k; i++)
 	ell_point_clear(iP[i], E, n);
