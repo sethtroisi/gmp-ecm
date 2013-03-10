@@ -1526,6 +1526,7 @@ ell_point_is_on_curve(ell_point_t P, ell_curve_t E, mpmod_t n)
     return ok;
 }
 
+#if DEBUG_ADD_LAWS >= 1
 static void
 ell_point_check(ell_point_t P, ell_curve_t E, mpmod_t n)
 {
@@ -1539,6 +1540,7 @@ ell_point_check(ell_point_t P, ell_curve_t E, mpmod_t n)
 	exit(-1);
     }
 }
+#endif
 
 int
 ell_point_equal(ell_point_t P, ell_point_t Q, ell_curve_t E, mpmod_t n)
@@ -1754,7 +1756,7 @@ void
 add_sub_pack(mpz_t s, int w, short *S, int iS)
 {
     int nsh, cte = sizeof(mp_limb_t)/sizeof(short);
-    short *tmp;
+    unsigned short *tmp;
 
     nsh = iS / cte;
     if(iS % cte != 0)
@@ -1762,22 +1764,23 @@ add_sub_pack(mpz_t s, int w, short *S, int iS)
     nsh *= cte;
     nsh += 4;
     /* coding */
-    tmp = (short *)malloc(nsh * sizeof(short));
+    tmp = (unsigned short *)malloc(nsh * sizeof(unsigned short));
     tmp[0] = w;
     tmp[1] = iS / (1 << 16);
     tmp[2] = iS % (1 << 16);
-    memcpy(tmp+4, S, iS * sizeof(short));
+    memcpy(tmp+4, S, iS * sizeof(unsigned short));
     s->_mp_d = (mp_limb_t *)tmp; /* humf */
 }
 
 void add_sub_unpack(int *w, short **S, int *iS, mpz_t s)
 {
-    short *T;
+    unsigned short *T;
 
-    T = (short *)s->_mp_d; /* humf */
+    T = (unsigned short *)s->_mp_d; /* humf */
     *w = (int)T[0];
-    *iS = (((int)T[1]) << 16) + (int)T[2];
-    *S = T+4;
+    *iS = (int)((((unsigned int)T[1]) << 16) + (unsigned int)T[2]);
+    *S = (short *)(T+4);
+    printf("# iS_unpack = %d\n", *iS);
 }
 
 /* INPUT: S = [[ts, 2*ds+1], ..., [t1, 2*d1+1], [t0, 2*d0+1]] for
