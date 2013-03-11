@@ -381,6 +381,26 @@ static inline sp_t sp_udiv_rem(sp_t nh, sp_t nl, sp_t d, sp_t di)
   sp_t r;
   mp_limb_t q1, q2;
   ATTRIBUTE_UNUSED mp_limb_t tmp;
+
+#if SP_NUMB_BITS == 30
+#warning SP_NUMB_BITS == 30
+#elif SP_NUMB_BITS == 32
+#warning SP_NUMB_BITS == 32
+#elif SP_NUMB_BITS == 62
+#warning SP_NUMB_BITS == 62
+#elif SP_NUMB_BITS == 64
+#warning SP_NUMB_BITS == 64
+#else
+#warning SP_NUMB_BITS is none of 30,32,62,64
+#endif
+
+#if W_TYPE_SIZE == 32
+#warning W_TYPE_SIZE == 32
+#elif W_TYPE_SIZE == 64
+#warning W_TYPE_SIZE == 64
+#else
+#warning W_TYPE_SIZE is neither 32 not 64
+#endif
   q1 = nh << (2*(W_TYPE_SIZE - SP_NUMB_BITS)) |
 	    nl >> (2*SP_NUMB_BITS - W_TYPE_SIZE);
   umul_ppmm (q2, tmp, q1, di);
