@@ -1,8 +1,9 @@
 Architecture-specifc assembly code is stored in different subdirectories.
-Currently (March 2006), these are
-  pentium4
-  x86_64
+Currently (March 2013), these are
   athlon
+  pentium4
+  powerpc64
+  x86_64
 
 The code for pentium4 uses MMX/SSE2 instructions, and therefore can not
 run on old x86. The code in the 'athlon' subdir is pure i486 and can
