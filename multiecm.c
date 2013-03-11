@@ -144,6 +144,8 @@ dump_curves(ell_curve_t *tE, ell_point_t *tP, int nE, mpz_t f)
 	    printf("A[%d]:=", i+1);
 	    print_mpz_from_mpres(A, fmod);
 	    printf(";\n");
+	    printf("B[%d]:=(P[%d][2]^2-P[%d][1]^3-A*P[%d][1]) mod N;\n", 
+		   i+1, i+1, i+1, i+1);
 	    mpres_clear(x, fmod);
 	    mpres_clear(y, fmod);
 	    mpres_clear(A, fmod);
@@ -1238,7 +1240,7 @@ main(int argc, char *argv[])
 		   torsion, smin, smax, disc);
     }
     else if(disc != 0){
-	printf("GMP-ECM [CM=%d]\n", disc);
+	printf("# GMP-ECM [CM=%d]\n", disc);
 	ncurves = 1; /* FIXME */
     }
     
