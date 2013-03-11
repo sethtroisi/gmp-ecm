@@ -21,3 +21,7 @@ play with.
 
 At configure, if asm-redc is enabled, symbolic links are done to the
 .asm files in the appropriate directory. 
+
+Note (added March 11, 2013): on most architectures those asm files are not used
+any more, since using mpn_mul_n or mpn_sqr and mpn_redc{1,2,n} is faster (see
+the bench_mulredc program and the params.h files).
