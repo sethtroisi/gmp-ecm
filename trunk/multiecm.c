@@ -592,11 +592,11 @@ build_curves_with_torsion(mpz_t f, mpmod_t n, ell_curve_t *tE, ell_point_t *tP,
     else if(strcmp(torsion, "Z11") == 0)
 	return build_curves_with_X1M(f, n, 11, tE, tP, smin, smax, nE,
 				     disc, sqroots);
-    else if(strcmp(torsion, "Z15") == 0)
-	return build_curves_with_X1M(f, n, 15, tE, tP, smin, smax, nE,
-				     disc, sqroots);
     else if(strcmp(torsion, "Z14") == 0)
 	return build_curves_with_X1M(f, n, 14, tE, tP, smin, smax, nE,
+				     disc, sqroots);
+    else if(strcmp(torsion, "Z15") == 0)
+	return build_curves_with_X1M(f, n, 15, tE, tP, smin, smax, nE,
 				     disc, sqroots);
     /** interesting when p = 1 mod 4 **/
     else if(strcmp(torsion, "Z4xZ4") == 0) /* over Q(sqrt(-1)) */
@@ -1080,6 +1080,33 @@ process_special_blend(mpz_t tf[], int *nf, int *tried,
     return ret;
 }
 
+static char *
+best_M_d(int *disc, int b, int n)
+{
+    int sgn = 1, i, M = -1, Mi, di;
+
+    if(n < 0){
+	n = -n;
+	sgn = -1;
+    }
+    if(sgn == -1){
+	/* b^(2*k+1) = 1 mod N => (b^(k+1))^2 = b mod N */
+	*disc = b;
+	for(i = 0; strcmp(XM_data[i][0] , "0") != 0; i++){
+	    Mi = atoi(XM_data[i][0]);
+	    di = atoi(XM_data[i][1]);
+	    if(di == *disc)
+		M = Mi;
+	}
+	if(M != -1){
+	    char *tmp = (char *)malloc(4 * sizeof(char));
+	    sprintf(tmp, "Z%d", M);
+	    return tmp;
+	}
+    }
+    return NULL;
+}
+
 static void
 usage(char *cmd)
 {
@@ -1092,6 +1119,7 @@ usage(char *cmd)
     printf("  -disc D        uses CM curves with discriminant D\n");
     printf("  -b b           for numbers b^n+/-1 (activates some special code; b=1 for any b in the file)\n");
     printf("  -format format where format = \"bn\" or \"plain\" (default)\n");
+    printf("  -X1            select best X1(M) for b^n+/-1\n");
     printf("  -h, --help     Prints this help and exit.\n");
 }
 
@@ -1104,7 +1132,7 @@ main(int argc, char *argv[])
     int res = 0, smin = -1, smax = -1, ncurves = 0, method = ECM_ECM, tried;
     int nf = 0, i, bb = 0;
     double B1 = 0.0, dB2 = 0.0;
-    int disc = 0, b = 0, n = 0;
+    int disc = 0, b = 0, n = 0, useX1 = 0;
     char *infilename = NULL, *curvesname = NULL, *torsion = NULL;
     char buf[10000], c;
     FILE *infile = NULL;
@@ -1201,6 +1229,11 @@ main(int argc, char *argv[])
 	    argv++;
 	    argc--;
 	}
+	else if (strcmp (argv[1], "-X1") == 0){
+	    useX1 = 1;
+	    argv++;
+	    argc--;
+	}
 	else if (strcmp (argv[1], "-pp1") == 0){
 	    method = ECM_PP1;
 	    argv++;
@@ -1231,7 +1264,7 @@ main(int argc, char *argv[])
       fprintf(stderr, "Too many curves: %d\n", ncurves);
       exit (EXIT_FAILURE);
     }
-    
+
     if(torsion != NULL){
 	if(disc == 0)
 	    printf("# GMP-ECM [torsion=%s:%d-%d]\n", torsion, smin, smax);
@@ -1243,6 +1276,8 @@ main(int argc, char *argv[])
 	printf("# GMP-ECM [CM=%d]\n", disc);
 	ncurves = 1; /* FIXME */
     }
+    else if(useX1)
+	printf("# GMP-ECM [X1:%d-%d]\n", smin, smax);
     
     mpz_init (N);
     for(i = 0; i < NFMAX; i++)
@@ -1255,10 +1290,10 @@ main(int argc, char *argv[])
     params->verbose = OUTPUT_NORMAL;
 #endif
 #if MULTI_USE_ADD_SUB
-    if(torsion == NULL)
-	compute_s_4_add_sub(params->batch_s, (unsigned long)B1, disc);
-    else
+    if(torsion != NULL || useX1)
 	compute_s_4_add_sub(params->batch_s, (unsigned long)B1, 0);
+    else
+	compute_s_4_add_sub(params->batch_s, (unsigned long)B1, disc);
 #endif
     while(fscanf(infile, "%s", buf) != EOF){
 	/* read number */
@@ -1293,6 +1328,14 @@ main(int argc, char *argv[])
 	    printf("# I read: b=%d n=%d c=%c\n", bb, abs(n), c);
 	    if((b > 1) && (bb != b))
 		continue;
+	    if(useX1){
+		/* select best (M, d) */
+		torsion = best_M_d(&disc, bb, n);
+		if(torsion == NULL){
+		    printf("# no level found for this number, sorry\n");
+		    continue;
+		}
+	    }
 	}
 	if(mpz_set_str (N, buf, 10)){
 	    fprintf (stderr, "Invalid number: %s\n", argv[1]);
