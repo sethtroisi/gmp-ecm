@@ -1248,8 +1248,9 @@ main(int argc, char *argv[])
 	fprintf (stderr, "No input file given\n");
 	exit (EXIT_FAILURE);
     }
-    if(curvesname == NULL && torsion == NULL && disc == 0 && b == 0){
-	fprintf (stderr, "No curve file given\n");
+    if(curvesname == NULL && torsion == NULL && disc == 0 && b == 0 
+       && useX1 == 0){
+	fprintf (stderr, "Not enough parameters\n");
 	exit (EXIT_FAILURE);
     }
     if(curvesname != NULL && torsion != NULL){
