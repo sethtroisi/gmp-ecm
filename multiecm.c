@@ -1089,9 +1089,15 @@ best_M_d(int *disc, int b, int n)
 	n = -n;
 	sgn = -1;
     }
-    if(sgn == -1){
+    *disc = 0;
+    if(sgn == -1)
 	/* b^(2*k+1) = 1 mod N => (b^(k+1))^2 = b mod N */
 	*disc = b;
+    else if(sgn == 1 && (n % 2 == 1))
+	/* b^(2*k+1) = -1 mod N => (b^(k+1))^2 = -b mod N */
+	*disc = -b;
+    /* TODO: case of b with a square prime factor */
+    if(*disc != 0){
 	for(i = 0; strcmp(XM_data[i][0] , "0") != 0; i++){
 	    Mi = atoi(XM_data[i][0]);
 	    di = atoi(XM_data[i][1]);
