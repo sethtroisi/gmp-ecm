@@ -838,17 +838,18 @@ psb_plus_odd(int *tsq, mpz_t sqroots[], int b, int k, mpz_t N)
     tsq[1] = 0;
 }
 
-/* OUTPUT: ECM_NO_FACTOR_FOUND or ECM_FACTOR_FOUND_STEP1 in very rare cases! */
+/* N | b^n+c
+   OUTPUT: ECM_NO_FACTOR_FOUND or ECM_FACTOR_FOUND_STEP1 in very rare cases! 
+*/
 static int
-prepare_squareroots_from_powers(mpz_t f, int *tsq, 
-				mpz_t sqroots[], int b,
-				int n, int sgn, mpz_t N)
+prepare_squareroots_from_powers(mpz_t f, int *tsq, mpz_t sqroots[], 
+				int b, int n, int c, mpz_t N)
 {
     int k, ret = ECM_NO_FACTOR_FOUND;
     mpz_t tmp, tmp2;
 
     tsq[0] = 0;
-    if(sgn == -1){
+    if(c == -1){
 	/* b^n = 1 mod N */
 	if(n % 2 == 0){
 	    /* b^(2*k) = 1 => try to find smallest power */
@@ -897,7 +898,7 @@ prepare_squareroots_from_powers(mpz_t f, int *tsq,
 	    /* b^(2*k+1) = 1 mod N => (b^(k+1))^2 = b mod N */
 	    psb_plus_odd(tsq, sqroots, b, n>>1, N);
     }
-    else{
+    else if(c == 1){
 	/* b^n = -1 mod N */
 	if(n % 2 == 0)
 	    /* b^(2*k) = -1 mod N => (b^k)^2 = -1 mod N */
@@ -906,18 +907,27 @@ prepare_squareroots_from_powers(mpz_t f, int *tsq,
 	    /* b^(2*k+1) = -1 mod N => (b^(k+1))^2 = -b mod N */
 	    psb_minus_odd(tsq, sqroots, b, n>>1, N);
     }
+    else if(c < 0){
+	/* b^n = -c mod N */
+	if(n % 2 == 0){
+	    /* (b^k)^2 = -c */
+	    tsq[0] = -c; /* FIXME: case c non squarefree? */
+	    mpz_init_set_si(sqroots[0], b);
+	    mpz_powm_ui(sqroots[0], sqroots[0], n>>1, N);
+	}
+    }
     return ret;
 }
 
-/* N is a cofactor of b^n+sgn. */
+/* N is a cofactor of b^n+c. */
 static int
 prepare_squareroots(mpz_t f, int *tsq, mpz_t sqroots[], 
-		    int b, int n, int sgn, mpz_t N)
+		    int b, int n, int c, mpz_t N)
 {
     int ret, tabq[] = {3, 5, 7, 11, 13, 19, 0}, q, iq, qs, isq, nn, status;
 
     tsq[0] = 0;
-    ret = prepare_squareroots_from_powers(f,tsq,sqroots,b,n,sgn,N);
+    ret = prepare_squareroots_from_powers(f,tsq,sqroots,b,n,c,N);
     if(ret != ECM_NO_FACTOR_FOUND)
 	return ret;
     printf("# I already found squareroots for:");
@@ -925,18 +935,20 @@ prepare_squareroots(mpz_t f, int *tsq, mpz_t sqroots[],
 	printf(" %d", tsq[isq]);
     printf("\n");
     /* let's find some squareroots using small odd prime divisors of n */
-    for(iq = 0; tabq[iq] != 0; iq++){
-	q = tabq[iq];
-	qs = (q % 4 == 1 ? q : -q);
-	if(n % q == 0){
-	    /*	    printf("# I can find sqrt(%d)\n", qs);*/
-	    /* make sure that b^nn = 1 */
-	    nn = (sgn == -1 ? n : 2*n);
-	    ret = odd_square_root_mod_N(f, &status, sqroots+isq, b, nn, q, N);
-	    if(ret != ECM_NO_FACTOR_FOUND)
-		break;
-	    if(status == 1)
-		tsq[isq++] = qs;
+    if(abs(c) == 1){
+	for(iq = 0; tabq[iq] != 0; iq++){
+	    q = tabq[iq];
+	    qs = (q % 4 == 1 ? q : -q);
+	    if(n % q == 0){
+		/*	    printf("# I can find sqrt(%d)\n", qs);*/
+		/* make sure that b^nn = 1 */
+		nn = (c == -1 ? n : 2*n);
+		ret = odd_square_root_mod_N(f,&status,sqroots+isq,b,nn,q,N);
+		if(ret != ECM_NO_FACTOR_FOUND)
+		    break;
+		if(status == 1)
+		    tsq[isq++] = qs;
+	    }
 	}
     }
     tsq[isq] = 0;
@@ -1000,12 +1012,12 @@ rebuild_squareroot(mpz_t sq2[], int *tsq, mpz_t sqroots[], int *tqs, mpz_t N)
  */
 int
 process_special_blend(mpz_t tf[], int *nf, int *tried, 
-		      mpz_t N, int b, int n, double B1, mpz_t B2, 
+		      mpz_t N, int b, int n, int c, double B1, mpz_t B2, 
 		      ecm_params params, char *savefilename,
 		      int discref,
 		      char *torsion, int smin, int smax, int ncurves)
 {
-    int sgn = 1, i;
+    int i;
     int ret = ECM_NO_FACTOR_FOUND;
     int tabd[][4] = {{-3, -3, 0, 0}, {-4, -4, 0, 0}, {-7, -7, 0, 0}, 
 		     {-8, -8, 0, 0}, {-11, -11, 0, 0},
@@ -1034,12 +1046,8 @@ process_special_blend(mpz_t tf[], int *nf, int *tried,
     mpz_t sqroots[10], sqd[10];
     int tsq[10], disc;
 
-    if(n < 0){
-	sgn = -1;
-	n = -n;
-    }
     tsq[0] = 0;
-    ret = prepare_squareroots(tf[0], tsq, sqroots, b, n, sgn, N);
+    ret = prepare_squareroots(tf[0], tsq, sqroots, b, n, c, N);
     if(ret != ECM_NO_FACTOR_FOUND)
 	return conclude_on_factor(N, tf[0], 1);
     if(torsion != NULL){
@@ -1080,22 +1088,21 @@ process_special_blend(mpz_t tf[], int *nf, int *tried,
     return ret;
 }
 
+/* for N | b^n+c */
 static char *
-best_M_d(int *disc, int b, int n)
+best_M_d(int *disc, int b, int n, int c)
 {
-    int sgn = 1, i, M = -1, Mi, di;
+    int i, M = -1, Mi, di;
 
-    if(n < 0){
-	n = -n;
-	sgn = -1;
-    }
     *disc = 0;
-    if(sgn == -1)
+    if(c == -1)
 	/* b^(2*k+1) = 1 mod N => (b^(k+1))^2 = b mod N */
 	*disc = b;
-    else if(sgn == 1 && (n % 2 == 1))
+    else if(c == 1 && (n % 2 == 1))
 	/* b^(2*k+1) = -1 mod N => (b^(k+1))^2 = -b mod N */
 	*disc = -b;
+    else if(c < 0 && (n % 2 == 0))
+	*disc = -c;
     /* TODO: case of b with a square prime factor */
     if(*disc != 0){
 	for(i = 0; strcmp(XM_data[i][0] , "0") != 0; i++){
@@ -1138,9 +1145,9 @@ main(int argc, char *argv[])
     int res = 0, smin = -1, smax = -1, ncurves = 0, method = ECM_ECM, tried;
     int nf = 0, i, bb = 0;
     double B1 = 0.0, dB2 = 0.0;
-    int disc = 0, b = 0, n = 0, useX1 = 0;
+    int disc = 0, b = 0, n = 0, useX1 = 0, c;
     char *infilename = NULL, *curvesname = NULL, *torsion = NULL;
-    char buf[10000], c;
+    char buf[10000], ch;
     FILE *infile = NULL;
     char *savefilename = NULL, format[20];
     ecm_params params;
@@ -1307,37 +1314,50 @@ main(int argc, char *argv[])
 	if(buf[0] == '#'){
 	    /* print till end of line */
 	    printf("%s", buf);
-	    while((c = getc(infile)) != '\n')
-		printf("%c", c);
+	    while((ch = getc(infile)) != '\n')
+		printf("%c", ch);
 	    printf("\n");
 	    continue;
 	}
-	if(strcmp(format, "bn") == 0){
-	    /* line should be: "b n[+/-/L/M] N" */
+	if(strcmp(format, "bn") == 0 || strcmp(format, "bnc") == 0){
+	    /* line should be: "b n[+/-/L/M] N" 
+	       or "b n[+/-]c N"
+	     */
 	    bb = atoi(buf);
 	    /* decode */
 	    fscanf(infile, "%s", buf);
-	    c = buf[strlen(buf)-1];
-	    buf[strlen(buf)-1] = '\0';
-	    n = atoi(buf);
-	    if(c == '-')
-		n = -n;
-	    else if(c == 'L' || c == 'M'){
-		if(bb == 5)
-		    n = -n;
+	    if(strcmp(format, "bn") == 0){
+		/* buf = "n[+/-/L/M]" */
+		ch = buf[strlen(buf)-1];
+		buf[strlen(buf)-1] = '\0';
+		n = atoi(buf);
+		c = 1;
+		if(ch == '-')
+		    c = -1;
+		else if(ch == 'L' || ch == 'M'){
+		    if(bb == 5)
+			c = -1;
+		}
+		else if(ch != '+'){
+		    printf("#!# unknown suffix: %c\n", ch);
+		    break;
+		}
+		printf("# I read: b=%d n=%d c=%d\n", bb, n, c);
 	    }
-	    else if(c != '+'){
-		printf("#!# unknown suffix: %c\n", c);
-		break;
+	    else if(strcmp(format, "bnc") == 0){
+		/* buf = "n[+/-]c" */
+		sscanf(buf, "%d%c%d", &n, &ch, &c);
+		if(ch == '-')
+		    c = -c;
+		printf("# I read: b=%d n=%d c=%d\n", bb, n, c);
 	    }
 	    /* read N */
 	    fscanf(infile, "%s", buf);
-	    printf("# I read: b=%d n=%d c=%c\n", bb, abs(n), c);
 	    if((b > 1) && (bb != b))
 		continue;
 	    if(useX1){
 		/* select best (M, d) */
-		torsion = best_M_d(&disc, bb, n);
+		torsion = best_M_d(&disc, bb, n, c);
 		if(torsion == NULL){
 		    printf("# no level found for this number, sorry\n");
 		    continue;
@@ -1352,8 +1372,9 @@ main(int argc, char *argv[])
 	tried = 0;
 	if(method == ECM_ECM){
 	    nf = 0;
-	    if(strcmp(format, "bn") == 0 && disc != 0){
-		res = process_special_blend(tf,&nf,&tried,N,bb,n,B1,B2,
+	    if((strcmp(format, "bn") == 0 || strcmp(format, "bnc") == 0)
+	       && disc != 0){
+		res = process_special_blend(tf,&nf,&tried,N,bb,n,c,B1,B2,
 					    params,savefilename,disc,
 					    torsion, smin, smax, ncurves);
 	    }
