@@ -361,7 +361,7 @@ stage2 (mpz_t f, void *X, mpmod_t modulus, unsigned long dF, unsigned long k,
     }
 
   /* we can use disc = -4 even if zeta4 is unknown */
-  if(disc != -4 && mpz_cmp_ui(((curve *)X)->sq[0], 1) == 0){
+  if(disc != 0 && disc != -4 && mpz_cmp_ui(((curve *)X)->sq[0], 1) == 0){
       disc = 0;
       ((curve *)X)->disc = 0; /* humf */
   }

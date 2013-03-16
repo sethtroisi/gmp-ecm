@@ -822,7 +822,6 @@ psb_minus_odd(int *tsq, mpz_t sqroots[], int b, int k, mpz_t N)
 {
     /* printf("# got sqrt(-%d)\n", b);*/
     tsq[0] = -b;
-    tsq[1] = 0;
     mpz_init_set_si(sqroots[0], b);
     mpz_powm_ui(sqroots[0], sqroots[0], k+1, N);
 }
@@ -835,7 +834,6 @@ psb_plus_odd(int *tsq, mpz_t sqroots[], int b, int k, mpz_t N)
     mpz_init_set_si(sqroots[0], b);
     mpz_powm_ui(sqroots[0], sqroots[0], k+1, N);
     tsq[0] = b;
-    tsq[1] = 0;
 }
 
 /* N | b^n+c
@@ -849,6 +847,7 @@ prepare_squareroots_from_powers(mpz_t f, int *tsq, mpz_t sqroots[],
     mpz_t tmp, tmp2;
 
     tsq[0] = 0;
+    tsq[1] = 0;
     if(c == -1){
 	/* b^n = 1 mod N */
 	if(n % 2 == 0){
@@ -907,13 +906,19 @@ prepare_squareroots_from_powers(mpz_t f, int *tsq, mpz_t sqroots[],
 	    /* b^(2*k+1) = -1 mod N => (b^(k+1))^2 = -b mod N */
 	    psb_minus_odd(tsq, sqroots, b, n>>1, N);
     }
-    else if(c < 0){
+    else{
 	/* b^n = -c mod N */
 	if(n % 2 == 0){
 	    /* (b^k)^2 = -c */
 	    tsq[0] = -c; /* FIXME: case c non squarefree? */
 	    mpz_init_set_si(sqroots[0], b);
 	    mpz_powm_ui(sqroots[0], sqroots[0], n>>1, N);
+	}
+	else{
+	    /* (b^(k+1))^2 = -c*b */
+	    tsq[0] = -c*b; /* FIXME: case c non squarefree? */
+	    mpz_init_set_si(sqroots[0], b);
+	    mpz_powm_ui(sqroots[0], sqroots[0], (n+1) >>1, N);
 	}
     }
     return ret;
@@ -950,8 +955,8 @@ prepare_squareroots(mpz_t f, int *tsq, mpz_t sqroots[],
 		    tsq[isq++] = qs;
 	    }
 	}
+	tsq[isq] = 0;
     }
-    tsq[isq] = 0;
     return ret;
 }
 
@@ -1101,8 +1106,12 @@ best_M_d(int *disc, int b, int n, int c)
     else if(c == 1 && (n % 2 == 1))
 	/* b^(2*k+1) = -1 mod N => (b^(k+1))^2 = -b mod N */
 	*disc = -b;
-    else if(c < 0 && (n % 2 == 0))
-	*disc = -c;
+    else{ /* FIXME: squarefree part of -c or -b*c */
+	if(n % 2 == 0)
+	    *disc = -c;
+	else
+	    *disc = -b*c;
+    }
     /* TODO: case of b with a square prime factor */
     if(*disc != 0){
 	for(i = 0; strcmp(XM_data[i][0] , "0") != 0; i++){
@@ -1218,7 +1227,7 @@ main(int argc, char *argv[])
 	    argc -= 2;
 	}
 	else if ((argc > 2) && (strcmp (argv[1], "-disc") == 0)){
-	    disc = atol(argv[2]);
+	    disc = atoi(argv[2]);
 	    argv += 2;
 	    argc -= 2;
 	}
@@ -1279,7 +1288,7 @@ main(int argc, char *argv[])
       exit (EXIT_FAILURE);
     }
 
-    if(torsion != NULL){
+    if(torsion != NULL || useX1){
 	if(disc == 0)
 	    printf("# GMP-ECM [torsion=%s:%d-%d]\n", torsion, smin, smax);
 	else
@@ -1342,14 +1351,18 @@ main(int argc, char *argv[])
 		    printf("#!# unknown suffix: %c\n", ch);
 		    break;
 		}
+#if DEBUG_MULTI_EC >= 2
 		printf("# I read: b=%d n=%d c=%d\n", bb, n, c);
+#endif
 	    }
 	    else if(strcmp(format, "bnc") == 0){
 		/* buf = "n[+/-]c" */
 		sscanf(buf, "%d%c%d", &n, &ch, &c);
 		if(ch == '-')
 		    c = -c;
+#if DEBUG_MULTI_EC >= 2
 		printf("# I read: b=%d n=%d c=%d\n", bb, n, c);
+#endif
 	    }
 	    /* read N */
 	    fscanf(infile, "%s", buf);
