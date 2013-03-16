@@ -763,7 +763,7 @@ pt_w_sub(mpres_t x3, mpres_t y3, mpres_t z3,
 	 mpres_t x2, mpres_t y2, mpres_t z2,
 	 mpmod_t n, ell_curve_t E)
 {
-    int res;
+    int res = 1;
 
     if(E->law == ECM_LAW_HOMOGENEOUS){
 	/* FIXME: does not work for complete equation! */
@@ -1780,7 +1780,9 @@ void add_sub_unpack(int *w, short **S, int *iS, mpz_t s)
     *w = (int)T[0];
     *iS = (int)((((unsigned int)T[1]) << 16) + (unsigned int)T[2]);
     *S = (short *)(T+4);
+#if DEBUG_ADD_LAWS >= 2
     printf("# iS_unpack = %d\n", *iS);
+#endif
 }
 
 /* INPUT: S = [[ts, 2*ds+1], ..., [t1, 2*d1+1], [t0, 2*d0+1]] for
