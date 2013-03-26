@@ -73,17 +73,15 @@
     <OutDir Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">$(SolutionDir)..\lib\$(Platform)\$(Configuration)\</OutDir>
     <OutDir Condition="'$(Configuration)|$(Platform)'=='Release|x64'">$(SolutionDir)..\lib\$(Platform)\$(Configuration)\</OutDir>
     <IntDir Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">$(Platform)\$(Configuration)\</IntDir>
-    <TargetName Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">ecmlib</TargetName>
     <IntDir Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">$(Platform)\$(Configuration)\</IntDir>
     <IntDir Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">$(Platform)\$(Configuration)\</IntDir>
     <IntDir Condition="'$(Configuration)|$(Platform)'=='Release|x64'">$(Platform)\$(Configuration)\</IntDir>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <PreBuildEvent>
-      <Command>cd ..\
-out_copy_rename config.h ..\ config.h
-gen_ecm_h
-</Command>
+      <Command>run
+
+.bat</Command>
     </PreBuildEvent>
     <ClCompile>
       <Optimization>Full</Optimization>
@@ -112,10 +110,7 @@ gen_ecm_h
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <PreBuildEvent>
-      <Command>cd ..\
-out_copy_rename config.h ..\ config.h
-gen_ecm_h
-</Command>
+      <Command>..\run</Command>
     </PreBuildEvent>
     <Midl>
       <TargetEnvironment>X64</TargetEnvironment>
@@ -149,10 +144,9 @@ gen_ecm_h
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <PreBuildEvent>
-      <Command>cd ..\
-out_copy_rename config.h ..\ config.h
-gen_ecm_h
-</Command>
+      <Command>run
+
+.bat</Command>
     </PreBuildEvent>
     <ClCompile>
       <Optimization>Disabled</Optimization>
@@ -182,10 +176,7 @@ gen_ecm_h
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <PreBuildEvent>
-      <Command>cd ..\
-out_copy_rename config.h ..\ config.h
-gen_ecm_h
-</Command>
+      <Command>..\run</Command>
     </PreBuildEvent>
     <Midl>
       <TargetEnvironment>X64</TargetEnvironment>
