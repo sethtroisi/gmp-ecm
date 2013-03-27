@@ -876,6 +876,14 @@ main (int argc, char *argv[])
       exit (EXIT_FAILURE);
     }
 
+  if (strcmp(ecm_version(), ECM_VERSION) != 0)
+    {
+      fprintf (stderr, "Error, library version %s differs from header "
+               "version %s with which this file was compiled\n",
+               ecm_version(), ECM_VERSION);
+      exit(EXIT_FAILURE);
+    }
+
   /* start of the program */
   if (verbose >= 1)
     {
@@ -890,7 +898,7 @@ main (int argc, char *argv[])
 #endif /* __MPIR_VERSION */
 
       out += sprintf (out, "GMP-ECM %s [configured with %s",
-                      VERSION, Gmp_version);
+                      ecm_version(), Gmp_version);
 
 #ifdef HAVE_GWNUM
       out += sprintf (out, ", GWNUM %s", GWNUM_VERSION);
