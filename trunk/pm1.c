@@ -679,13 +679,12 @@ pm1 (mpz_t f, mpz_t p, mpz_t N, mpz_t go, double *B1done, double B1,
         }
     }
 
-
   mpres_init (x, modulus);
   mpres_set_z (x, p, modulus);
 
   st = cputime ();
 
-  if (B1 > *B1done)
+  if (B1 > *B1done || mpz_cmp_ui (go, 1) > 0)
     youpi = pm1_stage1 (f, x, modulus, B1, B1done, go, stop_asap, chkfilename);
 
   st = elltime (st, cputime ());
