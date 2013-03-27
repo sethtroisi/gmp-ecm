@@ -1375,7 +1375,7 @@ ecm (mpz_t f, mpz_t x, mpz_t y, int *param, mpz_t sigma, mpz_t n, mpz_t go,
     goto end_of_ecm_rhotable;
 #endif
 
-  if (B1 > *B1done)
+  if (B1 > *B1done || mpz_cmp_ui (go, 1) > 0)
     {
         if (IS_BATCH_MODE(*param))
         /* FIXME: go, stop_asap and chkfilename are ignored in batch mode */
