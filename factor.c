@@ -25,6 +25,14 @@ http://www.gnu.org/licenses/ or write to the Free Software Foundation, Inc.,
 #include "ecm-impl.h"
 #include "ecm-gpu.h"
 
+
+const char *
+ecm_version ()
+{
+  static const char *version = ECM_VERSION;
+  return version;
+}
+
 void
 ecm_init (ecm_params q)
 {
