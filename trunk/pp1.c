@@ -444,7 +444,7 @@ pp1 (mpz_t f, mpz_t p, mpz_t n, mpz_t go, double *B1done, double B1,
       goto clear_and_exit;
     }
 
-  if (B1 > *B1done)
+  if (B1 > *B1done || mpz_cmp_ui (go, 1) > 0)
     youpi = pp1_stage1 (f, a, modulus, B1, B1done, go, stop_asap, 
                         chkfilename);
 
