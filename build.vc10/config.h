@@ -1,6 +1,6 @@
 /* config.h.in.  Generated from configure.in by autoheader.  */
 
-#define VERSION "7.0-dev"
+#define VERSION ECM_VERSION
 
 #define VERSION_GPU "gpu_ecm-win"
 
