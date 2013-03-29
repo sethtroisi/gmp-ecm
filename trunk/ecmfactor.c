@@ -70,5 +70,5 @@ main (int argc, char *argv[])
   mpz_clear (f);
   mpz_clear (n);
 
-  return 0;
+  return res;
 }
