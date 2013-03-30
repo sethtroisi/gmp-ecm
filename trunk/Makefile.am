@@ -36,7 +36,7 @@ libecm_la_SOURCES = ecm.c ecm2.c pm1.c pp1.c getprime.c listz.c lucas.c \
 		   random.c factor.c sp.c spv.c spm.c mpzspm.c mpzspv.c \
 		   ntt_gfp.c ecm_ntt.c pm1fs2.c sets_long.c \
 		   auxarith.c batch.c parametrizations.c cudawrapper.c \
-		   listz_handle.c addlaws.c torsions.c cmecm.c
+		   listz_handle.c addlaws.c torsions.c
 # Link the asm redc code (if we use it) into libecm.la
 libecm_la_CPPFLAGS = $(MULREDCINCPATH)
 libecm_la_CFLAGS = $(OPENMP_CFLAGS) -g
@@ -73,7 +73,7 @@ ecmfactor_CFLAGS = $(OPENMP_CFLAGS)
 
 multiecm_CPPFLAGS = -DOUTSIDE_LIBECM
 multiecm_SOURCES = auxi.c b1_ainc.c candi.c eval.c random.c multiecm.c \
-              resume.c getprime.c addlaws.c torsions.c cmecm.c
+              resume.c getprime.c addlaws.c torsions.c
 multiecm_CFLAGS = $(OPENMP_CFLAGS)
 
 rho_SOURCES = rho.c

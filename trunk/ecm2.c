@@ -23,7 +23,6 @@ http://www.gnu.org/licenses/ or write to the Free Software Foundation, Inc.,
 #include <stdlib.h>
 #include <math.h>
 #include "ecm-impl.h"
-#include "cmecm.h"
 
 /* R_i <- q_i * S, 0 <= i < n, where q_i are large integers, S is a point on
    an elliptic curve. Uses max(bits in q_i) modular inversions (one less if 
@@ -455,11 +454,6 @@ ecm_rootsF (mpz_t f, listz_t F, root_params_t *root_params,
 
   st = cputime ();
 
-  if(s->disc != 0){
-      youpi = ecm_rootsF_CM(f, F, dF, s, modulus);
-      goto exit_ecm_rootsF;
-  }
-
   /* Relative cost of point add during init and computing roots assumed =1 */
   init_roots_params (params, root_params->S, root_params->d1, root_params->d2, 
 		     1.0);
@@ -628,9 +622,6 @@ ecm_rootsG_init (mpz_t f, curve *X, root_params_t *root_params,
   unsigned int T_inv;
   double bestnr;
   long st = 0;
-
-  if(X->disc != 0)
-      return ecm_rootsG_init_CM(f, X, root_params, dF, blocks, modulus);
 
   ASSERT (gcd (root_params->d1, root_params->d2) == 1UL);
 
