@@ -16,7 +16,6 @@
 
 #include "addlaws.h"
 #include "torsions.h"
-#include "cmecm.h"
 
 #define DEBUG_MULTI_EC 0
 #define MULTI_USE_ADD_SUB 1
@@ -651,8 +650,14 @@ process_many_curves_loop(mpz_t tf[], int *nf, mpz_t n, double B1, mpz_t B2,
 	else if(torsion != NULL)
 	    ret = build_curves_with_torsion(tf[*nf],modulus,tE,tP,
 					    torsion,smin,smax,nE,disc,sqroots);
-	else if(disc != 0)
+	else if(disc != 0){
+#if 0
 	    ret = build_curves_with_CM(tf[*nf],&nE,tE,tP,disc,modulus,sqroots);
+#else
+	    printf("Sorry, disabled right now!\n");
+	    exit(-1);
+#endif
+	}
 	if(ret == ECM_NO_FACTOR_FOUND)
 	    ret = process_many_curves(tf[*nf],modulus,B1,B2,tE,tP,nE,params,
 				      onebyone,savefilename);
