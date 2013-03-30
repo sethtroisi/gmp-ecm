@@ -180,7 +180,6 @@
     <ClCompile Include="..\..\auxlib.c" />
     <ClCompile Include="..\..\batch.c" />
     <ClCompile Include="..\..\bestd.c" />
-    <ClCompile Include="..\..\cmecm.c" />
     <ClCompile Include="..\..\cudawrapper.c" />
     <ClCompile Include="..\..\ecm.c" />
     <ClCompile Include="..\..\ecm2.c" />
@@ -222,7 +221,6 @@
   <ItemGroup>
     <ClInclude Include="..\..\addlaws.h" />
     <ClInclude Include="..\..\champions.h" />
-    <ClInclude Include="..\..\cmecm.h" />
     <ClInclude Include="..\..\config.h" />
     <ClInclude Include="..\..\ecm-ecm.h" />
     <ClInclude Include="..\..\ecm-gmp.h" />

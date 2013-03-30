@@ -121,9 +121,6 @@
     <ClCompile Include="..\..\addlaws.c">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\cmecm.c">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="..\..\listz_handle.c">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -166,9 +163,6 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="..\..\addlaws.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\cmecm.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="..\..\listz_handle.h">
