@@ -76,18 +76,21 @@ def do_tests(tests, gpu=False):
   exe  = test_dir + ("ecm_gpu.exe" if gpu else "ecm.exe")
   err_cnt = 0
   for ix, tt in enumerate(tests):
+    print(tt[1], tt[0], end='')
     rv = run_exe(exe, tt[1], tt[0])
     if type(tt[2]) == int and rv[0] != tt[2]:
-      print("*** ERROR in test {:d}: {:d} {:d} ***".format(ix, rv[0], tt[2]))
+      print(" - *** ERROR in test {:d}: {:d} {:d} ***".format(ix, rv[0], tt[2]))
       err_cnt += 1
     elif type(tt[2]) == tuple and rv[0] != tt[2][0] and rv[0] != tt[2][1]:
-      print("*** ERROR in test {:d}: {:d} {:s} ***".format(ix, rv[0], tt[2]))
+      print(" - *** ERROR in test {:d}: {:d} {:s} ***".format(ix, rv[0], tt[2]))
       err_cnt += 1
+    else:
+      print(" - passed")
     if out:
       op = rv[1].rsplit('\r\n')
       for i in op :
         print(i)
-        
+
   if not err_cnt:
     print('  all tests passed')
 
@@ -98,6 +101,6 @@ with Timer():
   do_tests(get_tests("..\\test.ecm"))
   do_tests(get_tests("..\\test.pm1"))
   do_tests(get_tests("..\\test.pp1"))
-# do_tests(get_tests("..\\testlong.pp1"))
+  do_tests(get_tests("..\\testlong.pp1"))
   if test_gpu:
     do_tests(get_tests("..\\test.gpuecm"))
