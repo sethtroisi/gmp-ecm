@@ -34,8 +34,6 @@ http://www.gnu.org/licenses/ or write to the Free Software Foundation, Inc.,
 #include "ecm-impl.h"
 #include "sp.h"
 
-#include "cmecm.h"
-
 extern unsigned int Fermat;
 
 /* r <- Dickson(n,a)(x) */
@@ -337,7 +335,7 @@ stage2 (mpz_t f, void *X, mpmod_t modulus, unsigned long dF, unsigned long k,
   unsigned long i, sizeT;
   mpz_t n;
   listz_t F, G, H, T;
-  int youpi = ECM_NO_FACTOR_FOUND, disc = ((curve *)X)->disc;
+  int youpi = ECM_NO_FACTOR_FOUND;
   long st, st0;
   void *rootsG_state = NULL;
   listz_t *Tree = NULL; /* stores the product tree for F */
@@ -359,22 +357,6 @@ stage2 (mpz_t f, void *X, mpmod_t modulus, unsigned long dF, unsigned long k,
       Fermat = modulus->Fermat;
       use_ntt = 0; /* don't use NTT for Fermat numbers */
     }
-
-  /* we can use disc = -4 even if zeta4 is unknown */
-  if(disc != 0 && disc != -4 && mpz_cmp_ui(((curve *)X)->sq[0], 1) == 0){
-      disc = 0;
-      ((curve *)X)->disc = 0; /* humf */
-  }
-  /* be careful, other discriminants are not ready for use */
-  if(disc != -3 && disc != -4 && disc != -8){
-      disc = 0;
-      ((curve *)X)->disc = 0; /* humf */
-  }
-  if(disc != 0){
-      /* CM case, we override dF and k */
-      set_stage2_params_CM(&dF, &k, B2, disc);
-      root_params->S = 1; /* use x^S = x in rootsG! */
-  }
 
   if (use_ntt)
     {
@@ -649,20 +631,8 @@ stage2 (mpz_t f, void *X, mpmod_t modulus, unsigned long dF, unsigned long k,
   for (i = 0; i < k; i++)
     {
       /* needs dF+1 cells in T+dF */
-      if(disc == 0)
-	  youpi = ecm_rootsG (f, G, dF, (ecm_roots_state_t *) rootsG_state, 
+	youpi = ecm_rootsG (f, G, dF, (ecm_roots_state_t *) rootsG_state, 
 			      modulus);
-      else
-#if CMECM_FAST == 1
-	  if(disc == -3 || disc == -4){
-	      compute_G_from_F(G, F, dF, (curve *) X, modulus);
-	      goto got_G;
-	  }
-	  else
-#endif
-	      youpi = ecm_rootsG_CM (f, G, dF,
-				     (ecm_roots_state_t *) rootsG_state, 
-				     modulus);
 
       if (test_verbose (OUTPUT_TRACE))
 	{
