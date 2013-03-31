@@ -1091,7 +1091,6 @@ ecm (mpz_t f, mpz_t x, mpz_t y, int *param, mpz_t sigma, mpz_t n, mpz_t go,
   mpz_t B2min, B2; /* Local B2, B2min to avoid changing caller's values */
   unsigned long dF;
   root_params_t root_params;
-  int is_E_CM = 0;
 
   /*  1: sigma contains A from Montgomery form By^2 = x^3 + Ax^2 + x
       0: sigma contains sigma
@@ -1207,13 +1206,12 @@ ecm (mpz_t f, mpz_t x, mpz_t y, int *param, mpz_t sigma, mpz_t n, mpz_t go,
   mpres_init (P.y, modulus);
   mpres_init (P.A, modulus);
 
-  is_E_CM = (zE->disc != 0);
   ell_curve_set_z(E, zE, modulus);
 
   youpi = set_stage_2_params (B2, B2_parm, B2min, B2min_parm, 
 			      &root_params, B1, B2scale, &k, S, use_ntt,
 			      &po2, &dF, TreeFilename, maxmem, Fermat,modulus);
-  if(is_E_CM != 0 && !ECM_IS_DEFAULT_B2(B2_parm))
+  if(!ECM_IS_DEFAULT_B2(B2_parm))
       mpz_init_set(B2, B2_parm);
 
   if (youpi == ECM_ERROR)
@@ -1494,18 +1492,7 @@ ecm (mpz_t f, mpz_t x, mpz_t y, int *param, mpz_t sigma, mpz_t n, mpz_t go,
       mpz_clear (t);
     }
 
-  P.disc = 0;
-  if(is_E_CM){
-#if 1
-      /* use CM stuff whenever ready! */
-      P.disc = E->disc;
-#endif
-      mpres_init(P.sq[0], modulus);
-      if(mpz_cmp_ui(zE->sq[0], 1) == 0) /* humf */
-	  mpz_set_ui(P.sq[0], 1);
-      else
-	  mpres_set(P.sq[0], E->sq[0], modulus);
-  }
+  P.disc = 0; /* FIXME: should disappear one day */
   
   if (youpi == ECM_NO_FACTOR_FOUND && mpz_cmp (B2, B2min) >= 0)
     youpi = stage2 (f, &P, modulus, dF, k, &root_params, use_ntt, 
@@ -1515,8 +1502,6 @@ ecm (mpz_t f, mpz_t x, mpz_t y, int *param, mpz_t sigma, mpz_t n, mpz_t go,
   printf ("mpzspv_to_mpzv: %dms\n", mpzspv_to_mpzv_time);
   printf ("mpzspv_normalise: %dms\n", mpzspv_normalise_time);
 #endif
-  if(is_E_CM)
-      mpres_clear(P.sq[0], modulus);
   
 end_of_ecm_rhotable:
   if (test_verbose (OUTPUT_VERBOSE))
