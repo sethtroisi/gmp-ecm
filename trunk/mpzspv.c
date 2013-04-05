@@ -488,7 +488,10 @@ mpzspv_pwmul (mpzspv_t r, spv_size_t r_offset, mpzspv_t x, spv_size_t x_offset,
  * time:   O(len * sp_num^2)
  * memory: MPZSPV_NORMALISE_STRIDE mpzspv coeffs
  *         6 * MPZSPV_NORMALISE_STRIDE sp's
- *         MPZSPV_NORMALISE_STRIDE floats */
+ *         MPZSPV_NORMALISE_STRIDE floats
+ * For a subquadratic version: look at Section 23 of
+ * http://cr.yp.to/papers.html#multapps
+*/
 void
 mpzspv_normalise (mpzspv_t x, spv_size_t offset, spv_size_t len,
     mpzspm_t mpzspm)

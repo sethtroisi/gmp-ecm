@@ -564,7 +564,7 @@ gpu_ecm (mpz_t f, mpz_t x, int *param, mpz_t firstsigma, mpz_t n, mpz_t go,
         if (!test_verbose(OUTPUT_VERBOSE)) 
           set_verbose (0);
         youpi = stage2 (factors[i], &P, modulus, dF, k, &root_params, use_ntt, 
-                        TreeFilename, stop_asap, B2);
+                        TreeFilename, stop_asap);
         set_verbose (verbose);
 
         if (youpi != ECM_NO_FACTOR_FOUND)

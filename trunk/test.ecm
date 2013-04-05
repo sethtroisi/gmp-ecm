@@ -194,36 +194,36 @@ echo 10000000000000000000000000000000000000121 | $ECM -param 0 -sigma 291 -go 59
 
 ##### tests for the Weierstrass form
 # factored with Step 1
-echo 2432902008176640001 | $ECM -A 1 -x0 20 -y0 10 100000; checkcode $? 14
+echo 2432902008176640001 | $ECM -param 5 -A 1 -x0 20 -y0 10 100000; checkcode $? 14
 # unfactored
-echo 2432902008176640001 | $ECM -A 1 -x0 20/3 -y0 10 10000 20000; checkcode $? 0
+echo 2432902008176640001 | $ECM -param 5 -A 1 -x0 20/3 -y0 10 10000 20000; checkcode $? 0
 # factored with default Step 2
-echo 2432902008176640001 | $ECM -A 1 -x0 20/3 -y0 10 100000; checkcode $? 14
+echo 2432902008176640001 | $ECM -param 5 -A 1 -x0 20/3 -y0 10 100000; checkcode $? 14
 # fails
-echo 2432902008176640001 | $ECM -A 1 -x0 20 -y0 10 100; checkcode $? 0
+echo 2432902008176640001 | $ECM -param 5 -A 1 -x0 20 -y0 10 100; checkcode $? 0
 # succeeds
-echo 2432902008176640001 | $ECM -A 1 -x0 20 -y0 10 -go 6449 100; checkcode $? 14
+echo 2432902008176640001 | $ECM -param 5 -A 1 -x0 20 -y0 10 -go 6449 100; checkcode $? 14
 # we can use A = 0
-echo 2432902008176640001 | $ECM -A 0 -x0 20 -y0 10 10000; checkcode $? 14
+echo 2432902008176640001 | $ECM -param 5 -A 0 -x0 20 -y0 10 10000; checkcode $? 14
 # or x0 = 0
-echo 2432902008176640001 | $ECM -A 1 -x0 0 -y0 10 100000; checkcode $? 14
+echo 2432902008176640001 | $ECM -param 5 -A 1 -x0 0 -y0 10 100000; checkcode $? 14
 # or y0 = 0, though it is a bit non-sensic (since [2](x0, y0) = OE)
-echo 2432902008176640001 | $ECM -A 1 -x0 20 -y0 0 100000; checkcode $? 8
+echo 2432902008176640001 | $ECM -param 5 -A 1 -x0 20 -y0 0 100000; checkcode $? 8
 # or x0 = y0 = 0, though it is a bit non-sensic (since [2](x0, y0) = OE)
-echo 2432902008176640001 | $ECM -A 1 -x0 0 -y0 0 100000; checkcode $? 8
+echo 2432902008176640001 | $ECM -param 5 -A 1 -x0 0 -y0 0 100000; checkcode $? 8
 # for A rational
-echo 2432902008176640001 | $ECM -A 1/2 -x0 20 -y0 10 10000; checkcode $? 14
+echo 2432902008176640001 | $ECM -param 5 -A 1/2 -x0 20 -y0 10 10000; checkcode $? 14
 # what if we find a factor during initialization
-echo 2432902008176640001 | $ECM -A 1/20639383 -x0 20 -y0 10 10000; checkcode $? 14
-echo 2432902008176640001 | $ECM -A 1 -x0 20/20639383 -y0 10 10000; checkcode $? 14
-echo 2432902008176640001 | $ECM -A 1/2 -x0 20 -y0 10/20639383 10000; checkcode $? 14
+echo 2432902008176640001 | $ECM -param 5 -A 1/20639383 -x0 20 -y0 10 10000; checkcode $? 14
+echo 2432902008176640001 | $ECM -param 5 -A 1 -x0 20/20639383 -y0 10 10000; checkcode $? 14
+echo 2432902008176640001 | $ECM -param 5 -A 1/2 -x0 20 -y0 10/20639383 10000; checkcode $? 14
 # Hessian form: X^3+Y^3+Z^3=3*D*X*Y*Z (torsion group Z3xZ3 over Q(sqrt(-3)))
 # found in Step 1
-echo 2432902008176640001 | $ECM -H 2 -x0 2 -y0 3 9000; checkcode $? 14
+echo 2432902008176640001 | $ECM -param 6 -A 2 -x0 2 -y0 3 9000; checkcode $? 14
 # found in Step 2
-echo 2432902008176640001 | $ECM -H 2 -x0 2 -y0 3 100 9000; checkcode $? 14
+echo 2432902008176640001 | $ECM -param 6 -A 2 -x0 2 -y0 3 100 9000; checkcode $? 14
 # no factor found
-echo 2432902008176640001 | $ECM -H 2 -x0 2 -y0 3 1000 2000; checkcode $? 0
+echo 2432902008176640001 | $ECM -param 6 -A 2 -x0 2 -y0 3 1000 2000; checkcode $? 0
 
 $ECM -printconfig | grep Tuning
 
