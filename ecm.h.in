@@ -170,6 +170,9 @@ int pm1 (mpz_t, mpz_t, mpz_t, mpz_t, double *, double, mpz_t,
 #define ECM_PARAM_BATCH_SQUARE 1
 #define ECM_PARAM_BATCH_2 2
 #define ECM_PARAM_BATCH_32BITS_D 3
+/* we keep 4 as spare */
+#define ECM_PARAM_WEIERSTRASS 5
+#define ECM_PARAM_HESSIAN 6
 
 /* stage 2 bound */
 #define ECM_DEFAULT_B2 -1
