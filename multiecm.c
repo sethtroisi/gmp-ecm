@@ -1165,6 +1165,7 @@ main(int argc, char *argv[])
     FILE *infile = NULL;
     char *savefilename = NULL, format[20];
     ecm_params params;
+    int ret;
 
     /* print args */
     sprintf(format, "plain");
@@ -1339,7 +1340,8 @@ main(int argc, char *argv[])
 	     */
 	    bb = atoi(buf);
 	    /* decode */
-	    fscanf(infile, "%s", buf);
+	    ret = fscanf(infile, "%s", buf);
+            ASSERT_ALWAYS(ret != EOF);
 	    if(strcmp(format, "bn") == 0){
 		/* buf = "n[+/-/L/M]" */
 		ch = buf[strlen(buf)-1];
@@ -1370,7 +1372,8 @@ main(int argc, char *argv[])
 #endif
 	    }
 	    /* read N */
-	    fscanf(infile, "%s", buf);
+	    ret = fscanf(infile, "%s", buf);
+            ASSERT_ALWAYS(ret != EOF);
 	    if((b > 1) && (bb != b))
 		continue;
 	    if(useX1){
