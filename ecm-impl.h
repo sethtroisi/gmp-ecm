@@ -175,7 +175,7 @@ extern FILE *ECM_STDOUT, *ECM_STDERR;
 /* Interval length for writing checkpoints in stage 1, in milliseconds */
 #define CHKPNT_PERIOD 600000
 
-/* Is the parametrization implies batch mode ? */
+/* Does the parametrization imply batch mode ? */
 #define IS_BATCH_MODE(p) ( p == ECM_PARAM_BATCH_SQUARE || \
                            p == ECM_PARAM_BATCH_2 || \
                            p == ECM_PARAM_BATCH_32BITS_D )
@@ -383,7 +383,7 @@ void  pp1_mul_prac     (mpres_t, ecm_uint, mpmod_t, mpres_t, mpres_t,
 /* stage2.c */
 #define stage2 __ECM(stage2)
 int          stage2     (mpz_t, void *, mpmod_t, unsigned long, unsigned long,
-                         root_params_t *, int, char *, int (*)(void), mpz_t);
+                         root_params_t *, int, char *, int (*)(void));
 #define init_progression_coeffs __ECM(init_progression_coeffs)
 listz_t init_progression_coeffs (mpz_t, const unsigned long, const unsigned long, 
 				 const unsigned int, const unsigned int, 

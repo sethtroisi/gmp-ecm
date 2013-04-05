@@ -330,7 +330,7 @@ memory_use (unsigned long dF, unsigned int sp_num, unsigned int Ftreelvl,
 int
 stage2 (mpz_t f, void *X, mpmod_t modulus, unsigned long dF, unsigned long k, 
         root_params_t *root_params, int use_ntt, char *TreeFilename, 
-        int (*stop_asap)(void), mpz_t B2)
+        int (*stop_asap)(void))
 {
   unsigned long i, sizeT;
   mpz_t n;
@@ -664,7 +664,6 @@ stage2 (mpz_t f, void *X, mpmod_t modulus, unsigned long dF, unsigned long k,
       else
         PolyFromRoots (G, G, dF, T + dF, n);
 
-    got_G:
       if (test_verbose (OUTPUT_TRACE))
 	{
 	  unsigned long j;

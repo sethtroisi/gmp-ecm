@@ -91,12 +91,11 @@ usage (void)
     printf ("\nOptions:\n");
     printf ("  -x0 x        use x as initial point\n"); 
     printf ("  -y0 y        use y as initial point (Weierstrass form)\n"); 
-    printf ("  -param i     which parametrization should be used [ecm].\n");
+    printf ("  -param i     which parametrization should be used [ecm]\n");
     printf ("  -sigma s     use s as parameter to compute curve's coefficients"
           "\n               can use -sigma i:s to specify -param i at the same"
                                                               " time [ecm]\n");
-    printf ("  -A a         use a as curve coefficient [ecm]\n");
-    printf ("  -H D         use D as curve coefficient [ecm Hessian form]\n");
+    printf ("  -A A         use A as a curve coefficient [ecm, see README]\n");
     printf ("  -k n         perform >= n steps in stage 2\n");
     printf ("  -power n     use x^n for Brent-Suyama's extension\n");
     printf ("  -dickson n   use n-th Dickson's polynomial for Brent-Suyama's extension\n");
@@ -306,9 +305,12 @@ mod_from_rat(mpz_t r, mpq_t q, mpz_t N, int verbose)
     if (mpz_invert (inv, mpq_denref (q), N) == 0)
       {
 	mpz_gcd(r, mpq_denref (q), N);
-	if (verbose > 0){
-	    printf ("********** Factor found during init!!!\n");
-	}
+	if (verbose > 0)
+          {
+            if (verbose > 1)
+              printf ("Warning: factor found during initialization\n");
+            printf ("********** Factor found during step 1: ");
+          }
 	mpz_out_str (stdout, 10, r);
 	if (verbose > 0)
 	    printf ("\n");
@@ -360,9 +362,8 @@ main (int argc, char *argv[])
   int use_ntt = 1;     /* Default, use NTT if input is small enough */
   int specific_x0 = 0, /* 1=starting point supplied by user, 0=random or */
                        /* compute from sigma */
-      specific_y0 = 0, /* 1 for Weierstrass form */
+      specific_y0 = 0, /* was y0 given by the user? */
       specific_A = 0,  /* one may want its own A, including A=0 */
-      specific_H = 0,  /* one may want its own H for Hessian form */
       specific_sigma = 0;  /*   0=make random */
                            /*   1=sigma from command line */
   int repr = ECM_MOD_DEFAULT; /* automatic choice */
@@ -657,17 +658,6 @@ main (int argc, char *argv[])
               exit (EXIT_FAILURE);
 	    }
 	  specific_A = 1;
-	  argv += 2;
-	  argc -= 2;
-        }
-      else if ((argc > 2) && (strcmp (argv[1], "-H")) == 0)
-        {
-          if (mpq_set_str (rat_A, argv[2], 0))
-	    {
-	      fprintf (stderr, "Error, invalid H value: %s\n", argv[2]);
-              exit (EXIT_FAILURE);
-	    }
-	  specific_A = specific_H = 1; /* humf */
 	  argv += 2;
 	  argc -= 2;
         }
@@ -1398,7 +1388,8 @@ main (int argc, char *argv[])
           exit (EXIT_FAILURE);
         }
       else if (param != ECM_PARAM_DEFAULT && !IS_BATCH_MODE(param) 
-                                          && param != ECM_PARAM_SUYAMA)
+               && param != ECM_PARAM_SUYAMA && param != ECM_PARAM_WEIERSTRASS
+               && param != ECM_PARAM_HESSIAN)
         {
           fprintf (stderr, "Error, invalid -param value: %d\n", param);
           exit (EXIT_FAILURE);
@@ -1428,11 +1419,11 @@ main (int argc, char *argv[])
       mpz_set (params->x, x); /* may change with resume */
       mpz_set (params->y, y); /* may change with resume */
       /* already set when resumefile was read */
-      if(resumefile == NULL)
+      if (resumefile == NULL)
 	{
 	  /* if A is not zero, we use it */
 	  params->sigma_is_A = specific_A;
-	  if(specific_y0)
+	  if (params->param == ECM_PARAM_WEIERSTRASS)
 	    {
 	      /* compute B = y^2-x^3-A*x = y^2 - (x^2+A)*x */
 	      mpz_mul(params->E->a6, y, y);
@@ -1443,15 +1434,16 @@ main (int argc, char *argv[])
 	      mpz_mod(params->E->a6, params->E->a6, n.n);
 	      mpz_set(params->E->a4, A);
 	      params->sigma_is_A = -1;
-	      if(specific_H == 0){
-		  params->E->type = ECM_EC_TYPE_WEIERSTRASS;
-		  params->E->law = ECM_LAW_HOMOGENEOUS;
-	      }
-	      else{
-		  params->E->type = ECM_EC_TYPE_HESSIAN;
-		  params->E->law = ECM_LAW_HOMOGENEOUS;
-	      }
-	    }
+              params->E->type = ECM_EC_TYPE_WEIERSTRASS;
+              params->E->law = ECM_LAW_HOMOGENEOUS;
+            }
+          else if (params->param == ECM_PARAM_HESSIAN)
+            {
+	      mpz_set(params->E->a4, A);
+	      params->sigma_is_A = -1;
+              params->E->type = ECM_EC_TYPE_HESSIAN;
+              params->E->law = ECM_LAW_HOMOGENEOUS;
+            }
 	}
       mpz_set (params->sigma, (params->sigma_is_A) ? A : sigma);
       mpz_set (params->go, go.Candi.n); /* may change if contains N */

@@ -70,6 +70,9 @@ void add3 (mpres_t, mpres_t, mpres_t, mpres_t, mpres_t, mpres_t, mpres_t,
    If a factor is found during the modular inverse, returns 
    ECM_FACTOR_FOUND_STEP1 and the factor in f, otherwise returns
    ECM_NO_FACTOR_FOUND.
+
+   The input value of y is the y0 value in the initial equation:
+   g*y0^2 = x0^3 + a*x0^2 + x0.
 */
 int 
 montgomery_to_weierstrass (mpz_t f, mpres_t x, mpres_t y, mpres_t A, mpmod_t n)
@@ -682,7 +685,7 @@ ecm_stage1_W (mpz_t f, ell_curve_t E, ell_point_t P, mpmod_t n,
     printf("goP:="); ell_point_print(P, E, n); printf(";\n");
 #endif
     if(mpz_cmp_ui(batch_s, 1) == 0){
-	printf("# Using traditional approach to Step 1\n");
+        outputf (OUTPUT_VERBOSE, "Using traditional approach to Step 1\n");
 	for (r = 2.0; r <= B1; r *= 2.0)
 	    if (r > *B1done){
 		if(ell_point_duplicate (Q, P, E, n) == 0){
@@ -1206,13 +1209,13 @@ ecm (mpz_t f, mpz_t x, mpz_t y, int *param, mpz_t sigma, mpz_t n, mpz_t go,
   mpres_init (P.y, modulus);
   mpres_init (P.A, modulus);
 
-  ell_curve_set_z(E, zE, modulus);
+  ell_curve_set_z (E, zE, modulus);
 
   youpi = set_stage_2_params (B2, B2_parm, B2min, B2min_parm, 
 			      &root_params, B1, B2scale, &k, S, use_ntt,
 			      &po2, &dF, TreeFilename, maxmem, Fermat,modulus);
   if(!ECM_IS_DEFAULT_B2(B2_parm))
-      mpz_init_set(B2, B2_parm);
+      mpz_init_set (B2, B2_parm);
 
   if (youpi == ECM_ERROR)
       goto end_of_ecm;
@@ -1309,16 +1312,6 @@ ecm (mpz_t f, mpz_t x, mpz_t y, int *param, mpz_t sigma, mpz_t n, mpz_t go,
       mpres_set_z (P.A, sigma, modulus); /* sigma contains A */
       mpres_set_z (P.x, x,    modulus);
       mpres_set_z (P.y, y,    modulus);
-#if 0 /* FM */
-      /* FIXME: this is not a good test */
-      if (mpz_sgn (x) == 0 || mpz_sgn (go) == 0)
-        {
-          outputf (OUTPUT_ERROR, "Error, sigma_is_A=-1 requires x and y.\n");
-	  youpi = ECM_ERROR;
-	  goto end_of_ecm;
-        }
-      goto hecm;
-#endif
     }
 
   if (test_verbose (OUTPUT_RESVERBOSE))
@@ -1351,7 +1344,7 @@ ecm (mpz_t f, mpz_t x, mpz_t y, int *param, mpz_t sigma, mpz_t n, mpz_t go,
       else if (*param == ECM_PARAM_DEFAULT)
         {
           outputf (OUTPUT_VERBOSE, "Can't compute success probabilities " 
-                                   "for unknown parametrization.\n");
+                                   "for this parametrization.\n");
         }
       else
         {
@@ -1466,15 +1459,15 @@ ecm (mpz_t f, mpz_t x, mpz_t y, int *param, mpz_t sigma, mpz_t n, mpz_t go,
       mpz_clear (A_t);
     }
 
-  if(E->type == ECM_EC_TYPE_MONTGOMERY)
+  if (E->type == ECM_EC_TYPE_MONTGOMERY)
       youpi = montgomery_to_weierstrass (f, P.x, P.y, P.A, modulus);
-  else if(E->type == ECM_EC_TYPE_HESSIAN){
+  else if (E->type == ECM_EC_TYPE_HESSIAN)
+    {
       youpi = hessian_to_weierstrass (f, P.x, P.y, P.A, modulus);
       if(youpi == ECM_NO_FACTOR_FOUND)
-	  /* due to that non-trivial kernel(?) */
-	  youpi = mult_by_3(f, P.x, P.y, P.A, modulus);
-  }
-  /* hecm:*/
+        /* due to that non-trivial kernel(?) */
+        youpi = mult_by_3(f, P.x, P.y, P.A, modulus);
+    }
   
   if (test_verbose (OUTPUT_RESVERBOSE) && youpi == ECM_NO_FACTOR_FOUND && 
       mpz_cmp (B2, B2min) >= 0)
@@ -1496,7 +1489,7 @@ ecm (mpz_t f, mpz_t x, mpz_t y, int *param, mpz_t sigma, mpz_t n, mpz_t go,
   
   if (youpi == ECM_NO_FACTOR_FOUND && mpz_cmp (B2, B2min) >= 0)
     youpi = stage2 (f, &P, modulus, dF, k, &root_params, use_ntt, 
-                    TreeFilename, stop_asap, B2);
+                    TreeFilename, stop_asap);
 #ifdef TIMING_CRT
   printf ("mpzspv_from_mpzv_slow: %dms\n", mpzspv_from_mpzv_slow_time);
   printf ("mpzspv_to_mpzv: %dms\n", mpzspv_to_mpzv_time);
