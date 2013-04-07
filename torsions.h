@@ -55,3 +55,5 @@ build_curves_with_X1M(mpz_t f, mpmod_t n, int M,
 		      int disc, mpz_t *sqroots);
 
 extern char *XM_data[][4];
+
+int build_curves_with_torsion(mpz_t f, mpmod_t n, ell_curve_t *tE, ell_point_t *tP, char *torsion, int smin, int smax, int nE, int disc, mpz_t *sqroots);
