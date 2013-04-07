@@ -558,65 +558,6 @@ read_curves_from_file(int *nE, ell_curve_t *tE, ell_point_t *tP,
     return ret;
 }
 
-/* Assuming we can generate curves with given torsion using parameter s
-   in interval [smin..smax].
-*/
-int
-build_curves_with_torsion(mpz_t f, mpmod_t n, ell_curve_t *tE, ell_point_t *tP,
-			  char *torsion, int smin, int smax, int nE,
-			  int disc, mpz_t *sqroots)
-{
-    int ret = 0;
-
-    /* over Q: see Atkin-Morain, Math. Comp., 1993 */
-    if(strcmp(torsion, "Z5") == 0)
-	return build_curves_with_torsion_Z5(f, n, tE, tP, smin, smax, nE);
-    else if(strcmp(torsion, "Z7") == 0)
-	return build_curves_with_torsion_Z7(f, n, tE, tP, smin, smax, nE);
-    else if(strcmp(torsion, "Z9") == 0)
-	return build_curves_with_torsion_Z9(f, n, tE, tP, smin, smax, nE);
-    else if(strcmp(torsion, "Z10") == 0)
-	return build_curves_with_torsion_Z10(f, n, tE, tP, smin, smax, nE);
-    else if(strcmp(torsion, "Z2xZ8") == 0)
-	return build_curves_with_torsion_Z2xZ8(f, n, tE, tP, smin, smax, nE);
-    /* no longer over Q */
-    /** interesting when p = 1 mod 3 **/
-    else if(strcmp(torsion, "Z3xZ3_DuNa") == 0) /* over Q(sqrt(-3)) */
-	return build_curves_with_torsion_Z3xZ3_DuNa(n, tE, tP, smin, smax, nE);
-    else if(strcmp(torsion, "Z3xZ3") == 0) /* over Q(sqrt(-3)) */
-	return build_curves_with_torsion_Z3xZ3(f, n, tE, tP, smin, smax, nE);
-    else if(strcmp(torsion, "Z3xZ6") == 0) /* over Q(sqrt(-3)) */
-	return build_curves_with_torsion_Z3xZ6(f, n, tE, tP, smin, smax, nE);
-    /* over some quadratic fields */
-    else if(strcmp(torsion, "Z11") == 0)
-	return build_curves_with_X1M(f, n, 11, tE, tP, smin, smax, nE,
-				     disc, sqroots);
-    else if(strcmp(torsion, "Z14") == 0)
-	return build_curves_with_X1M(f, n, 14, tE, tP, smin, smax, nE,
-				     disc, sqroots);
-    else if(strcmp(torsion, "Z15") == 0)
-	return build_curves_with_X1M(f, n, 15, tE, tP, smin, smax, nE,
-				     disc, sqroots);
-    /** interesting when p = 1 mod 4 **/
-    else if(strcmp(torsion, "Z4xZ4") == 0) /* over Q(sqrt(-1)) */
-	return build_curves_with_torsion_Z4xZ4(f, n, tE, tP, smin, smax, nE);
-    /** interesting when p = 1 mod 5 **/
-    else if(strcmp(torsion, "Z5xZ5") == 0) /* over Q(zeta5) */
-	return build_curves_with_torsion_Z5xZ5(n, tE, tP, smin, smax, nE);
-#if 0
-    /** forcing points: is this really interesting? **/
-    else if(strcmp(torsion, "Z2xZ10") == 0)
-	return build_curves_with_torsion_Z2xZ10(f, n, tE, tP, smin, smax, nE);
-    else if(strcmp(torsion, "Z2xZ12") == 0)
-	return build_curves_with_torsion_Z2xZ12(f, n, tE, tP, smin, smax, nE);
-#endif
-    else{
-	printf("Unknown torsion group: %s\n", torsion);
-	ret = ECM_ERROR;
-    }
-    return ret;
-}
-
 /* 
    OUTPUT: ECM_NO_FACTOR_FOUND
            ECM_PRIME_FAC_PRIME_COFAC
