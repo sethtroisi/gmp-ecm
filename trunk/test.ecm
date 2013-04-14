@@ -225,6 +225,9 @@ echo 2432902008176640001 | $ECM -param 6 -A 2 -x0 2 -y0 3 100 9000; checkcode $?
 # no factor found
 echo 2432902008176640001 | $ECM -param 6 -A 2 -x0 2 -y0 3 1000 2000; checkcode $? 0
 
+##### tests for curves with specific torsion
+echo 4722366482800925736961 | $ECM -torsion Z5 -sigma 2 1e5; checkcode $? 14
+
 $ECM -printconfig | grep Tuning
 
 echo "All ECM tests are ok."
