@@ -436,7 +436,7 @@ as usual, since it already uses the Weierstrass form.
 The options of Section 7 apply.
 
 Applications include using curves with some exotic prescribed torsion
-subgroup, or CM (Complex Multiplication) curves.
+subgroup (see d below), or CM (Complex Multiplication) curves.
 
 c) with param = 6: curves in Hessian form
 -----------------------------------------
@@ -461,6 +461,7 @@ will generate a curve E over the rationals with torsion group Z/5Z and a point
 of infinite order, both generated from parameter sigma = 2.
 
 Available torsion groups (over the rationals) are: Z5, Z7, Z9, Z10, Z2xZ8.
+Reference is Atkin/Morain, Math. Comp., 1993.
 
 ##############################################################################
 
