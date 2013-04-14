@@ -96,6 +96,8 @@ usage (void)
           "\n               can use -sigma i:s to specify -param i at the same"
                                                               " time [ecm]\n");
     printf ("  -A A         use A as a curve coefficient [ecm, see README]\n");
+    printf ("  -torsion T   to generate a curve with torsion group T"
+	                                                "[ecm, see README]\n");
     printf ("  -k n         perform >= n steps in stage 2\n");
     printf ("  -power n     use x^n for Brent-Suyama's extension\n");
     printf ("  -dickson n   use n-th Dickson's polynomial for Brent-Suyama's extension\n");
@@ -376,7 +378,7 @@ main (int argc, char *argv[])
                 default (0): automatic choice. */
   gmp_randstate_t randstate;
   char *savefilename = NULL, *resumefilename = NULL, *infilename = NULL;
-  char *TreeFilename = NULL, *chkfilename = NULL;
+  char *TreeFilename = NULL, *chkfilename = NULL, *torsion = NULL;
   char rtime[256] = "", who[256] = "", comment[256] = "", program[256] = "";
   FILE *resumefile = NULL, *infile = NULL;
   mpz_t resume_lastN, resume_lastfac; /* When resuming residues from a file,
@@ -658,6 +660,12 @@ main (int argc, char *argv[])
               exit (EXIT_FAILURE);
 	    }
 	  specific_A = 1;
+	  argv += 2;
+	  argc -= 2;
+        }
+      else if ((argc > 2) && (strcmp (argv[1], "-torsion")) == 0)
+        {
+	  torsion = argv[2];
 	  argv += 2;
 	  argc -= 2;
         }
@@ -1423,27 +1431,35 @@ main (int argc, char *argv[])
 	{
 	  /* if A is not zero, we use it */
 	  params->sigma_is_A = specific_A;
-	  if (params->param == ECM_PARAM_WEIERSTRASS)
+	  if (specific_A)
 	    {
-	      /* compute B = y^2-x^3-A*x = y^2 - (x^2+A)*x */
-	      mpz_mul(params->E->a6, y, y);
-	      mpz_mul(params->E->a4, x, x);
-	      mpz_add(params->E->a4, params->E->a4, A);
-	      mpz_mul(params->E->a4, params->E->a4, x);
-	      mpz_sub(params->E->a6, params->E->a6, params->E->a4);
-	      mpz_mod(params->E->a6, params->E->a6, n.n);
-	      mpz_set(params->E->a4, A);
-	      params->sigma_is_A = -1;
-              params->E->type = ECM_EC_TYPE_WEIERSTRASS;
-              params->E->law = ECM_LAW_HOMOGENEOUS;
-            }
-          else if (params->param == ECM_PARAM_HESSIAN)
-            {
-	      mpz_set(params->E->a4, A);
-	      params->sigma_is_A = -1;
-              params->E->type = ECM_EC_TYPE_HESSIAN;
-              params->E->law = ECM_LAW_HOMOGENEOUS;
-            }
+	      if (params->param == ECM_PARAM_WEIERSTRASS)
+		{
+		    /* compute B = y^2-x^3-A*x = y^2 - (x^2+A)*x */
+		    mpz_mul(params->E->a6, y, y);
+		    mpz_mul(params->E->a4, x, x);
+		    mpz_add(params->E->a4, params->E->a4, A);
+		    mpz_mul(params->E->a4, params->E->a4, x);
+		    mpz_sub(params->E->a6, params->E->a6, params->E->a4);
+		    mpz_mod(params->E->a6, params->E->a6, n.n);
+		    mpz_set(params->E->a4, A);
+		    params->sigma_is_A = -1;
+		    params->E->type = ECM_EC_TYPE_WEIERSTRASS;
+		    params->E->law = ECM_LAW_HOMOGENEOUS;
+		}
+	      else if (params->param == ECM_PARAM_HESSIAN)
+		{
+		    mpz_set(params->E->a4, A);
+		    params->sigma_is_A = -1;
+		    params->E->type = ECM_EC_TYPE_HESSIAN;
+		    params->E->law = ECM_LAW_HOMOGENEOUS;
+		}
+	    }
+	  else if (torsion != NULL)
+	    {
+		result = build_curves_with_torsion2(f, n.n, params->E, x, y,
+						    torsion, sigma);
+	    }
 	}
       mpz_set (params->sigma, (params->sigma_is_A) ? A : sigma);
       mpz_set (params->go, go.Candi.n); /* may change if contains N */

@@ -7,7 +7,7 @@ Table of contents of this file:
 3. Extra factors and Brent-Suyama's extension.
 4. Memory usage.
 5. Expression syntax reference for GMP-ECM's syntax parser.
-6. Options -param, -sigma, -x0, -A, -H.
+6. Options -param, -sigma, -x0, -A, -torsion.
 7. Options -save, -resume and -chkpnt.
 8. Working with very large numbers (the -prp* options).
 9. How to get the best of GMP-ECM?
@@ -366,10 +366,10 @@ Probable prime cofactor (3*2^210+1)/1358437 has 58 digits
 
 ##############################################################################
 
-6. Options -param, -sigma, -x0, -y0, -A, -H.
+6. Options -param, -sigma, -x0, -y0, -A, -torsion
 
-This section explains the behavior of the options 'param', 'sigma', 'x0', 'y0'
-and 'A' when GMP-ECM is used to run ECM.
+This section explains the behavior of the options 'param', 'sigma', 'x0', 'y0',
+'A' and 'torsion' when GMP-ECM is used to run ECM.
 
 The parameters A, x0 and y0 can have integer or rational values, for example
 -A 22/7 -x0 1/3 -y0 2/7.
@@ -449,6 +449,18 @@ used with
 
 where (x0, y0) is a base point on the curve. Since p = 1 mod 3 is quite
 frequent, a try at this version is not unthinkable in general.
+
+d) -torsion:
+------------
+This option enables the user to ask for a given curve with specific torsion
+group (over the rationals). For instance
+
+      	    	 -torsion Z5 -sigma 2
+
+will generate a curve E over the rationals with torsion group Z/5Z and a point
+of infinite order, both generated from parameter sigma = 2.
+
+Available torsion groups (over the rationals) are: Z5, Z7, Z9, Z10, Z2xZ8.
 
 ##############################################################################
 

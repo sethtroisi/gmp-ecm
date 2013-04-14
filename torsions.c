@@ -1993,7 +1993,7 @@ build_curves_with_X1M(mpz_t f, mpmod_t n, int M,
 }
 
 /* Assuming we can generate curves with given torsion using parameter s
-   in interval [smin..smax].
+   in interval [smin..smax[.
 */
 int
 build_curves_with_torsion(mpz_t f, mpmod_t n, ell_curve_t *tE, ell_point_t *tP,
@@ -2051,3 +2051,28 @@ build_curves_with_torsion(mpz_t f, mpmod_t n, ell_curve_t *tE, ell_point_t *tP,
     return ret;
 }
 
+int
+build_curves_with_torsion2(mpz_t f, mpz_t n, ell_curve_t E, 
+			   mpz_t x, mpz_t y, char *torsion, 
+			   mpz_t sigma)
+{
+    ell_curve_t tE[1];
+    ell_point_t tP[1];
+    mpmod_t modulus;
+    int ret, smin, smax;
+
+    smin = (int)mpz_get_si(sigma);
+    smax = smin + 1;
+    mpmod_init(modulus, n, ECM_MOD_DEFAULT);
+    ret = build_curves_with_torsion(f, modulus, tE, tP, torsion, smin, smax, 1,
+				    0, NULL);
+    mpres_get_z(E->a2, tE[0]->a2, modulus);
+    mpres_get_z(E->a4, tE[0]->a4, modulus);
+    mpres_get_z(E->a6, tE[0]->a6, modulus);
+    mpz_set(x, tP[0]->x);
+    mpz_set(y, tP[0]->y);
+    ell_point_clear(tP[0], tE[0], modulus);
+    ell_curve_clear(tE[0], modulus);
+    mpmod_clear(modulus);
+    return ret;
+}
