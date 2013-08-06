@@ -15,7 +15,8 @@ class Timer() :
 
 test_dir = '..\\bin\\x64\\Release\\'
 # test_dir = '..\\bin\\win32\\Release\\'
-test_gpu = False
+test_normal = False
+test_gpu = True
 
 def get_tests(filename):
   print('running tests in {:s}'.format(filename))
@@ -98,9 +99,10 @@ with Timer():
   if os.path.exists('test.pm1.save'):
     os.remove('test.pm1.save')
   out = False
-  do_tests(get_tests("..\\test.ecm"))
-  do_tests(get_tests("..\\test.pm1"))
-  do_tests(get_tests("..\\test.pp1"))
-  do_tests(get_tests("..\\testlong.pp1"))
+  if test_normal:
+    do_tests(get_tests("..\\test.ecm"))
+    do_tests(get_tests("..\\test.pm1"))
+    do_tests(get_tests("..\\test.pp1"))
+    do_tests(get_tests("..\\testlong.pp1"))
   if test_gpu:
-    do_tests(get_tests("..\\test.gpuecm"))
+    do_tests(get_tests("..\\test.gpuecm"), gpu=True)

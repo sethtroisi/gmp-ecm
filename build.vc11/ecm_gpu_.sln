@@ -4,6 +4,9 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "libecm_gpu", "libecm_gpu\libecm_gpu.vcxproj", "{3DCDD03F-7F5E-4C3C-BC19-F5C6531EAC00}"
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "ecm_gpu", "ecm_gpu\ecm_gpu.vcxproj", "{1B353D8B-9808-4EB3-A5E7-075D751757AD}"
+	ProjectSection(ProjectDependencies) = postProject
+		{3DCDD03F-7F5E-4C3C-BC19-F5C6531EAC00} = {3DCDD03F-7F5E-4C3C-BC19-F5C6531EAC00}
+	EndProjectSection
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
