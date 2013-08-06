@@ -53,10 +53,10 @@ are in a common parent directory as follows:
 
   Parent Directory
     MPIR (or GMP)
-      build.vc10    -- MPIR (or GMP) build files
+      build.vc11    -- MPIR (or GMP) build files
       ...
     GMP-ECM
-      buid.vc10     -- ECM build files 
+      buid.vc11     -- ECM build files 
       
 The root directories for GMP and GMP-ECM are assumed to have these names
 irrespective of which version is being used (they used to be followed by 
@@ -64,21 +64,25 @@ version numbers but this meant that the build projects had to be updated
 too frequently). 
 
 The normal (non GPU) build is opened by loading the file ecm.sln (from 
-the build.vc10 directory) into Visual Studio. This provides three build
-projects in build.vc10 for the non GPU build:
+the build.vc11 directory) into Visual Studio. This provides three build
+projects in build.vc11 for the non GPU build:
 
     ecm     - the ECM application 
     ecmlib  - the ECM library
     tune    - a program for tuning 
 
-To build with a GPU capability the file ecm_gpu.sln   is used instead and
-provides two further build projects:
+The GPU build is opened by loading the file ecm.sln (from  the build.vc11
+directory) into Visual Studio. This provides two build projects in 
+build.vc11:
 
     ecm_gpu     - the ECM application 
     ecmlib_gpu  - the ECM library
 
-Build Options
--------------
+In all cases you have to choose either a win32 or x64 build and either a
+Release or Debug configuration. 
+
+The non GPU Build
+-----------------
 
 Before starting a build, there are a number of configuration options
 that need to be set:
@@ -91,10 +95,10 @@ that need to be set:
    /* define Windows tuning here */
    #  define __tune_corei7__
  
-   towards the end of the file config.h file in the 'build.vc10'
-   directory (build.vc10\config.h) with tye chosen define.
+   towards the end of the file config.h file in the 'build.vc11'
+   directory (build.vc11\config.h) with the chosen define.
 
-2. The file at 'build.vc10\mul_fft-params.h' allows the FFT code to
+2. The file at 'build.vc11\mul_fft-params.h' allows the FFT code to
    be tuned to 32 or 64-bnit systems by selecting an option by 
    changing the appropriate '#elif 0' to #elif 1'.   If you wish to 
    use the win32 AMD assembler files, you also have to use the 
@@ -102,26 +106,25 @@ that need to be set:
    you can edit the two files mulredc.asm and redc.asm in the 
    build.vc11\assembler\ directory to include the AMD assembler).
 
-3. By default GMP-ECM buids without the GPU code enabled.  If
-   you wish to build with a GPU capability you will need to 
-   install Nvidia Nsight for Visual Studio. To configure for
-   the GPU build you need to use the GPU projects refferenced
-   above and also do the following:
+The GPU Build
+-------------
+
+1. If you wish to build with a GPU capability you will need to 
+   install Nvidia Nsight for Visual Studio and the CUDA Toolkit
+   v5.5.  You then build the libecm_gpu and ecm_gpu projects
    
-   Open the config.h fil in the build.vc10 directory and
-   locate the lines:
-
-	    /* define to build for a GPU */
-        #  if 0
-        #    define WITH_GPU
-        #  endif
-
-   and change the '#  if 0' to '#  if 1'. 
-
-4. You also need to use the Visual Studio solution explorer
-   for the libecm_gpu project to select the property pages
-   for CUDA C/C++ to set the device and host properties for
-   the GPU for which you wish to build.
+2. The choices above for the non GPU build aslo apply when
+   building for a GPU based system. 
+   
+   By default, the GPU  configuration is "compute_30,sm_30". If
+   you need to change this, select libecm_gpu and ecm_gpu and 
+   set the propertiesfor "CUDA C/C++|Device|Code Generation" for
+   your GPU capability. 
+   
+   Also under "C/C++|Preprocessor|Preprocessor Definitions" for 
+   both these projects, change the current definition GPU_CC30 to 
+   that for your GPU capability (GPU_CC20, GPU_CC21, GPU_CC30 or 
+   GPU_CC35).
 
 Build Configurations
 --------------------
@@ -130,7 +133,7 @@ When a version of ecm and ecmlib are built the library and the application
 are put in the directory matching the configuration that has been built:
 
     GMP-ECM
-      build.vc10    -- ECM build files 
+      build.vc11    -- ECM build files 
       lib           -- ECM static library files
       dll           -- ECM dynamic library files
       bin           -- ECM executable files
@@ -147,7 +150,7 @@ If you don't want assembler support you need to change the define:
 
 #define NATIVE_REDC   1         
 
-in config.h (in the build.vc10 subdirectory) to: 
+in config.h (in the build.vc11 subdirectory) to: 
 
 #undef NATIVE_REDC
 
@@ -166,4 +169,4 @@ The file test.py is a python script that runs the ECM tests. It runs the
 x64/release-amd (non GPU) version by default but can be edited to test other
 builds.
 
-    Brian Gladman, March 2013
+    Brian Gladman, August 2013

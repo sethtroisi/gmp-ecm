@@ -254,7 +254,11 @@ float cuda_Main (biguint_t h_N, biguint_t h_3N, biguint_t h_M, digit_t h_invN,
 /* Device code */
 /***************/
 
-#define ASM asm __volatile__
+#if defined(_MSC_VER)
+#  define ASM asm volatile
+#else
+#  define ASM asm __volatile__
+#endif
 
 #define __add_cc(r,a,b) ASM ("add.cc.u32 %0, %1, %2;": "=r"(r): "r"(a), "r"(b)) 
 #define __addc_cc(r,a,b) ASM ("addc.cc.u32 %0, %1, %2;": "=r"(r): "r"(a), "r"(b))
