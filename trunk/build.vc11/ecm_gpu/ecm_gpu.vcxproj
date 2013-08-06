@@ -88,7 +88,7 @@
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <FavorSizeOrSpeed>Speed</FavorSizeOrSpeed>
       <AdditionalIncludeDirectories>..\;..\..\;..\assembler;..\..\..\$(mp_dir)lib\$(IntDir);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
-      <PreprocessorDefinitions>WIN32;WITH_GPU;GPU_CC30;NDEBUG;_CONSOLE;OUTSIDE_LIBECM;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>WIN32;WITH_GPU;GPU_CC20;NDEBUG;_CONSOLE;OUTSIDE_LIBECM;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
       <PrecompiledHeader>
       </PrecompiledHeader>
@@ -109,7 +109,7 @@
       <TargetMachine>MachineX86</TargetMachine>
     </Link>
     <CudaCompile>
-      <CodeGeneration>compute_30,sm_30</CodeGeneration>
+      <CodeGeneration>compute_20,sm_20</CodeGeneration>
       <AdditionalCompilerOptions>
       </AdditionalCompilerOptions>
       <TargetMachinePlatform>32</TargetMachinePlatform>
@@ -128,7 +128,7 @@
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <FavorSizeOrSpeed>Speed</FavorSizeOrSpeed>
       <AdditionalIncludeDirectories>..\..\..\$(mp_dir)lib\$(IntDir);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
-      <PreprocessorDefinitions>WIN32;WITH_GPU;GPU_CC30;_WIN64;NDEBUG;_CONSOLE;OUTSIDE_LIBECM;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>WIN32;WITH_GPU;GPU_CC20;_WIN64;NDEBUG;_CONSOLE;OUTSIDE_LIBECM;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
       <PrecompiledHeader>
       </PrecompiledHeader>
@@ -154,7 +154,7 @@
     <ClCompile>
       <Optimization>Disabled</Optimization>
       <AdditionalIncludeDirectories>..\;..\..\;..\assembler;..\..\..\$(mp_dir)lib\$(IntDir);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
-      <PreprocessorDefinitions>WIN32;WITH_GPU;GPU_CC30;_DEBUG;_CONSOLE;OUTSIDE_LIBECM;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>WIN32;WITH_GPU;GPU_CC20;_DEBUG;_CONSOLE;OUTSIDE_LIBECM;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <MinimalRebuild>true</MinimalRebuild>
       <BasicRuntimeChecks>EnableFastChecks</BasicRuntimeChecks>
       <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
@@ -175,7 +175,7 @@
       <TargetMachine>MachineX86</TargetMachine>
     </Link>
     <CudaCompile>
-      <CodeGeneration>compute_30,sm_30</CodeGeneration>
+      <CodeGeneration>compute_20,sm_20</CodeGeneration>
       <AdditionalCompilerOptions>
       </AdditionalCompilerOptions>
       <TargetMachinePlatform>32</TargetMachinePlatform>
@@ -192,7 +192,7 @@
     <ClCompile>
       <Optimization>Disabled</Optimization>
       <AdditionalIncludeDirectories>..\;..\..\;..\assembler;..\..\..\$(mp_dir)lib\$(IntDir);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
-      <PreprocessorDefinitions>WIN32;WITH_GPU;GPU_CC30;_WIN64;_DEBUG;_CONSOLE;OUTSIDE_LIBECM;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>WIN32;WITH_GPU;GPU_CC20;_WIN64;_DEBUG;_CONSOLE;OUTSIDE_LIBECM;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <MinimalRebuild>true</MinimalRebuild>
       <BasicRuntimeChecks>EnableFastChecks</BasicRuntimeChecks>
       <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
@@ -215,7 +215,7 @@
       <StackCommitSize>65536</StackCommitSize>
     </Link>
     <CudaCompile>
-      <CodeGeneration>compute_30,sm_30</CodeGeneration>
+      <CodeGeneration>compute_20,sm_20</CodeGeneration>
       <AdditionalCompilerOptions>
       </AdditionalCompilerOptions>
       <TargetMachinePlatform>64</TargetMachinePlatform>
@@ -230,11 +230,11 @@
       <AdditionalIncludeDirectories>..\;..\..\;..\assembler;..\..\..\$(mp_dir)lib\$(IntDir);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
-      <AdditionalDependencies>..\..\..\$(mp_dir)lib\$(IntDir)$(mp_lib);advapi32.lib;ws2_32.lib;cudart.lib</AdditionalDependencies>
+      <AdditionalDependencies>..\..\..\$(mp_dir)lib\$(IntDir)$(mp_lib);..\..\lib\$(IntDir)libecm_gpu.lib;advapi32.lib;ws2_32.lib;cudart.lib</AdditionalDependencies>
       <GenerateDebugInformation>true</GenerateDebugInformation>
     </Link>
     <CudaCompile>
-      <CodeGeneration>compute_30,sm_30</CodeGeneration>
+      <CodeGeneration>compute_20,sm_20</CodeGeneration>
       <AdditionalCompilerOptions>
       </AdditionalCompilerOptions>
       <TargetMachinePlatform>64</TargetMachinePlatform>
