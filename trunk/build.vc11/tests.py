@@ -15,7 +15,7 @@ class Timer() :
 
 test_dir = '..\\bin\\x64\\Release\\'
 # test_dir = '..\\bin\\win32\\Release\\'
-test_normal = False
+test_normal = True
 test_gpu = True
 
 def get_tests(filename):
@@ -72,8 +72,7 @@ def run_exe(exe, args, inp) :
   ret = p.poll()
   return (ret, res)
 
-def do_tests(tests, gpu=False):
-  global out
+def do_tests(tests, gpu=False, out=False):
   exe  = test_dir + ("ecm_gpu.exe" if gpu else "ecm.exe")
   err_cnt = 0
   for ix, tt in enumerate(tests):
@@ -98,7 +97,6 @@ def do_tests(tests, gpu=False):
 with Timer():
   if os.path.exists('test.pm1.save'):
     os.remove('test.pm1.save')
-  out = False
   if test_normal:
     do_tests(get_tests("..\\test.ecm"))
     do_tests(get_tests("..\\test.pm1"))
