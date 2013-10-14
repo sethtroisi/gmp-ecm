@@ -104,7 +104,7 @@ ecm_factor (mpz_t f, mpz_t n, double B1, ecm_params p)
   int res; /* return value */
   int p_is_null;
   ecm_params q;
-  double B1done, B2scale, oldB1done;
+  double B1done, B2scale;
 
   if (mpz_cmp_ui (n, 0) <= 0)
     {
@@ -127,8 +127,6 @@ ecm_factor (mpz_t f, mpz_t n, double B1, ecm_params p)
       p = q;
       ecm_init (q);
     }
-  else /* save original value */
-    oldB1done = p->B1done;
 
    /* Ugly hack to pass B2scale to the library somehow. It gets piggy-backed
       onto B1done. The next major release will have to allow for variable
@@ -185,8 +183,10 @@ ecm_factor (mpz_t f, mpz_t n, double B1, ecm_params p)
 
   if (p_is_null)
     ecm_clear (q);
-  else /* restore original value */
-    p->B1done = oldB1done;
+  else /* restore original B2scale value */
+       /* Here's an ugly hack to pass B2scale to the library somehow.
+          It gets piggy-backed onto B1done */
+      p->B1done = p->B1done + floor (B2scale * 128.) / 134217728.; 
 
   return res;
 }
