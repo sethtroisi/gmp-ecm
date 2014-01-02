@@ -1355,7 +1355,7 @@ ecm (mpz_t f, mpz_t x, mpz_t y, int *param, mpz_t sigma, mpz_t n, mpz_t go,
 #ifdef HAVE_GWNUM
   /* We will only use GWNUM for numbers of the form k*b^n+c */
 
-  if (gw_b != 0 && B1 >= *B1done && param == ECM_PARAM_SUYAMA)
+  if (gw_b != 0 && B1 >= *B1done && *param == ECM_PARAM_SUYAMA)
       youpi = gw_ecm_stage1 (f, &P, modulus, B1, B1done, go, gw_k, gw_b, gw_n, gw_c);
 
   /* At this point B1 == *B1done unless interrupted, or no GWNUM ecm_stage1
