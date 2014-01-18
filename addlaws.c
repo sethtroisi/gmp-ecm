@@ -863,10 +863,11 @@ MO_check(char *T, size_t iT, mpz_t e)
 
 /* Do we have eval(T) == e? */
 int
-Split_check(short *S, int iS, mpz_t e)
+Split_check(short *S, size_t iS, mpz_t e)
 {
     mpz_t tmp;
-    int i, ok;
+    size_t i;
+    int ok;
 
     mpz_init_set_ui(tmp, 0);
     for(i = 0; i < iS; i += 2){
@@ -886,10 +887,11 @@ Split_check(short *S, int iS, mpz_t e)
    S is filled in left-to-right from T.
 */
 int
-Split(short *S, int Slen, char *T, size_t iT, int w)
+Split(short *S, size_t Slen, char *T, size_t iT, int w0)
 {
-    int i = (int)iT-1, iS = 0, gap, j, k, lW;
-    short W;
+    size_t i = iT-1, j, k, lW, iS = 0, w = (size_t)w0;
+    int gap;
+    short W, nomorei = 0;
 
     while(i >= w-1){
 	/* next scan: T[i-w+1..i] */
@@ -904,12 +906,28 @@ Split(short *S, int Slen, char *T, size_t iT, int w)
 	W = 0;
 	/* at this point, T[j] <> 0 */
 	for(k = j; k <= i; k++)
-	    W = W+T[k]*(((short)1<<(k-j)));
-	i = i-w;
-	/* exclude left zeros and update power of 2 */
-	while((i >= 0) && (T[i] == 0)){
-	    i--;
-	    gap++;
+	    W += T[k]*(((short)1<<(k-j)));
+#if 0
+	i = i-w; // new i >= -1
+#endif
+	if(i >= w){
+	    i = i-w;
+	    /* exclude left zeros and update power of 2 */
+#if 0
+	    while((i >= 0) && (T[i] == 0)){
+#endif
+	    while(T[i] == 0){
+		gap++;
+		if(i == 0){
+		    nomorei = 1;
+		    break;
+		}
+		i--;
+	    }
+	}
+	else{
+	    // case i = w-1
+	    nomorei = 1;
 	}
 	S[iS] = gap;
 	S[iS+1] = W;
@@ -917,10 +935,12 @@ Split(short *S, int Slen, char *T, size_t iT, int w)
 	    S[iS-2] += lW;
 	iS += 2;
 	if(iS > Slen)
-	    return -1;
+	    return 0;
+	if(nomorei)
+	    break;
     }
     /* at this point, we have to examine T[0..i] */
-    if(i >= 0){
+    if(nomorei == 0){
 	/* exclude right zeros */
 	gap = 0;
 	for(j = 0; j <= i; j++){
@@ -932,14 +952,14 @@ Split(short *S, int Slen, char *T, size_t iT, int w)
 	W = 0;
 	/* at this point, T[j] <> 0 */
 	for(k = j; k <= i; k++)
-	    W = W+T[k]*(((short)1) << (k-j));
+	    W += T[k]*(((short)1) << (k-j));
 	S[iS] = gap;
 	S[iS+1] = W;
 	if(iS >= 2)
 	    S[iS-2] += lW;
 	iS += 2;
 	if(iS > Slen)
-	    return -1;
+	    return 0;
     }
     return iS;
 }
@@ -955,16 +975,15 @@ Split(short *S, int Slen, char *T, size_t iT, int w)
    S will contain: [[ts, 2*ds+1], ..., [t1, 2*d1+1], [t0, 2*d0+1]].
 */
 int
-build_MO_chain(short *S, int Slen, mpz_t e, int w)
+build_MO_chain(short *S, size_t Slen, mpz_t e, int w)
 {
     /* first use automata */
-    size_t le = mpz_sizeinbase(e, 2), iT = 0;
+    size_t le = mpz_sizeinbase(e, 2), iT = 0, iS = 0;
 #if DEBUG_ADD_LAWS >= 2
     long tp = cputime();
     int i;
 #endif
     char *T = (char *)malloc((2*le) * sizeof(char)); /* humf */
-    int iS;
 
     MO_automaton(T, &iT, e, le);
 #if DEBUG_ADD_LAWS >= 2
@@ -992,8 +1011,10 @@ build_MO_chain(short *S, int Slen, mpz_t e, int w)
     printf("\n");
 #endif
 #if DEBUG_ADD_LAWS >= 2
-    if(Split_check(S, iS, e) == 0)
+    if(Split_check(S, iS, e) == 0){
         printf("#!# Error in Split\n");
+	exit(-1);
+    }
     else
         printf("# good check in Split\n");
 
@@ -1003,7 +1024,7 @@ build_MO_chain(short *S, int Slen, mpz_t e, int w)
 }
 
 int
-build_add_sub_chain(short *S, int Slen, mpz_t e, int w)
+build_add_sub_chain(short *S, size_t Slen, mpz_t e, int w)
 {
     return build_MO_chain(S, Slen, e, w);
 }
@@ -1944,10 +1965,11 @@ ell_point_mul_add_sub_with_S(ell_point_t Q, ell_point_t P, ell_curve_t E,
    See Solinas 2000 for the most plug-and-play presentation.		 
 */
 int
-ell_point_mul_add_sub (ell_point_t Q, mpz_t e, ell_point_t P,
+ell_point_mul_add_sub(ell_point_t Q, mpz_t e, ell_point_t P,
 		      ell_curve_t E, mpmod_t n)
 {
-    int negated = 0, status = 1, iS = 0, w, Slen;
+    size_t iS = 0, Slen, w;
+    int negated = 0, status = 1;
 #if DEBUG_ADD_LAWS >= 2
     int j;
 #endif
@@ -1977,11 +1999,11 @@ ell_point_mul_add_sub (ell_point_t Q, mpz_t e, ell_point_t P,
     w = get_add_sub_w(e);
 
     Slen = 2 * mpz_sizeinbase(e, 2);
-    /*    printf("# Slen=%d\n", Slen); */
+    printf("# Slen=%lu\n", Slen);
     S = (short *)malloc(Slen * sizeof(short));
     iS = build_add_sub_chain(S, Slen, e, w);
-    if(iS == -1){
-	printf("build_NAF: Slen=%d too small\n", Slen);
+    if(iS == 0){
+	printf("build_NAF: Slen=%lu too small\n", Slen);
 	return -1;
     }
 #if DEBUG_ADD_LAWS >= 2
@@ -2113,7 +2135,8 @@ compute_s_4_add_sub(mpz_t s, unsigned long B1, int disc)
     mpz_t t;
     long tp;
     short *S;
-    int iS, Slen, w, *forbiddenres = compute_forbidden_res(disc);
+    size_t Slen, iS;
+    int w, *forbiddenres = compute_forbidden_res(disc);
 
     mpz_init(t);
     tp = cputime();
@@ -2129,10 +2152,10 @@ compute_s_4_add_sub(mpz_t s, unsigned long B1, int disc)
     Slen = (2 * GMP_NUMB_BITS * mpz_size(t)) / w;
     S = (short *)malloc(Slen * sizeof(short));
     iS = build_add_sub_chain(S, Slen, t, w);
-    printf("# NAF has %d terms (w=%d, Slen=%d): %ldms\n", iS, w, Slen,
+    printf("# NAF has %lu terms (w=%d, Slen=%lu): %ldms\n", iS, w, Slen,
 	   elltime(tp,cputime()));
-    if(iS == -1){
-	printf("build_NAF: Slen=%d too small\n", Slen);
+    if(iS == 0){
+	printf("build_NAF: Slen=%lu too small\n", Slen);
 	return 0;
     }
     add_sub_pack(s, w, S, iS);
