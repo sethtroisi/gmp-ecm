@@ -24,6 +24,16 @@ http://www.gnu.org/licenses/ or write to the Free Software Foundation, Inc.,
 #include "ecm-impl.h"
 #include "ecm-ecm.h"
 
+#ifdef HAVE_APRCL
+#include "aprtcle/mpz_aprcl.h"
+#define ECM_FAC_PRIME APRTCLE_PRIME
+#define ECM_FAC_PRP APRTCLE_PRP
+#else
+#define mpz_aprtcle(x,y) mpz_probab_prime_p(x,PROBAB_PRIME_TESTS)
+#define ECM_FAC_PRIME 2
+#define ECM_FAC_PRP 1
+#endif
+
 #ifdef HAVE_GWNUM
 /* For GWNUM_VERSION */
 #include "gwnum.h"
@@ -131,6 +141,7 @@ process_newfactor (mpz_t g, int result, mpcandi_t *n, int method,
   int factor_is_prime = 0;
         /* If a factor was found, indicate whether factor, cofactor are */
         /* prime. If no factor was found, both are zero. */
+  int cofactor_is_prime = 0;
   int method1;
   mpz_t f;
   
@@ -180,13 +191,17 @@ process_newfactor (mpz_t g, int result, mpcandi_t *n, int method,
   if (mpz_cmp (f, n->n) != 0)
     {
       /* prints factor found and cofactor on standard output. */
-      factor_is_prime = mpz_probab_prime_p (f, PROBAB_PRIME_TESTS);
+      /* the second argument here tells aprtcle to not print primality proving progress info */
+      factor_is_prime = mpz_aprtcle (f, 0);
 
       if (verbose >= 1)
         {
-          printf ("Found %s factor of %2u digits: ", 
-                  factor_is_prime ? "probable prime" : "composite",
-                  nb_digits (f));
+          if (factor_is_prime == ECM_FAC_PRIME)
+            printf ("Found prime factor of %2u digits: ", nb_digits (f));
+          else if (factor_is_prime == ECM_FAC_PRP)
+            printf ("Found probable prime factor of %2u digits: ", nb_digits (f));
+          else
+            printf ("Found composite factor of %2u digits: ", nb_digits (f));
           mpz_out_str (stdout, 10, f);
           printf ("\n");
         }
@@ -215,8 +230,26 @@ process_newfactor (mpz_t g, int result, mpcandi_t *n, int method,
 
       if (verbose >= 1)
         {
-          printf ("%s cofactor ",
-          n->isPrp ? "Probable prime" : "Composite");
+#ifdef HAVE_APRCL
+#define APRCL_CUTOFF 400
+          if (n->ndigits > APRCL_CUTOFF)
+            {
+              printf ("Proving primality of %u digit cofactor may take a while...\n", n->ndigits);
+              /* the second argument here tells aprtcle to print primality proving progress info */
+              cofactor_is_prime = mpz_aprtcle (n->n, 1);
+              printf ("\n");
+            }
+          else
+#endif
+            cofactor_is_prime = mpz_aprtcle (n->n, 0);
+
+          if (cofactor_is_prime == ECM_FAC_PRIME)
+            printf ("Prime cofactor ");
+          else if (cofactor_is_prime == ECM_FAC_PRP)
+            printf ("Probable prime cofactor ");
+          else
+            printf ("Composite cofactor ");
+
           if (n->cpExpr && !decimal_cofactor)
             printf ("%s", n->cpExpr);
           else
