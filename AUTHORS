@@ -3,6 +3,8 @@ For example, <xxx dot yyy at zzz dot to> should read <xxx.yyy@xxx.to>.
 
 Cyril Bouvier <Cyril dot Bouvier at inria dot fr>
         contributed the batch mode and GPU for stage 1
+David Cleaver <wraithx at morpheus dot net>
+        contributed the APRCL code
 Pierrick Gaudry <gaudry at lix dot polytechnique dot fr>
 	contributed efficient assembly code for combined mul/redc.
 Brian Gladman <brg at gladman dot plus dot com>
