@@ -36,7 +36,8 @@ libecm_la_SOURCES = ecm.c ecm2.c pm1.c pp1.c getprime.c listz.c lucas.c \
 		   random.c factor.c sp.c spv.c spm.c mpzspm.c mpzspv.c \
 		   ntt_gfp.c ecm_ntt.c pm1fs2.c sets_long.c \
 		   auxarith.c batch.c parametrizations.c cudawrapper.c \
-		   listz_handle.c addlaws.c torsions.c
+		   listz_handle.c addlaws.c torsions.c \
+		   aprtcle/mpz_aprcl.c
 # Link the asm redc code (if we use it) into libecm.la
 libecm_la_CPPFLAGS = $(MULREDCINCPATH)
 libecm_la_CFLAGS = $(OPENMP_CFLAGS) -g
@@ -49,7 +50,7 @@ if WANT_CUDA
 endif
 
 bin_PROGRAMS = ecm
-noinst_PROGRAMS = tune ecmfactor bench_mulredc multiecm
+noinst_PROGRAMS = tune ecmfactor bench_mulredc multiecm aprcl
 # Most binaries want to link libecm.la, and the ones which don't will
 # have their own _LDADD which overrides the default LDADD here
 LDADD = libecm.la $(GMPLIB)
@@ -60,7 +61,7 @@ if WANT_CUDA
   ecm_CFLAGS += $(CC_ADD_FLAGS_FOR_GPU)
 endif
 ecm_SOURCES = auxi.c b1_ainc.c candi.c eval.c random.c main.c \
-              resume.c getprime.c champions.h
+              resume.c getprime.c champions.h aprtcle/mpz_aprcl.c
 
 tune_SOURCES = mpmod.c tune.c mul_lo.c listz.c auxlib.c ks-multiply.c \
                schoen_strass.c polyeval.c median.c ecm_ntt.c \
@@ -73,8 +74,12 @@ ecmfactor_CFLAGS = $(OPENMP_CFLAGS)
 
 multiecm_CPPFLAGS = -DOUTSIDE_LIBECM
 multiecm_SOURCES = auxi.c b1_ainc.c candi.c eval.c random.c multiecm.c \
-              resume.c getprime.c addlaws.c torsions.c
+              resume.c getprime.c addlaws.c torsions.c aprtcle/mpz_aprcl.c
 multiecm_CFLAGS = $(OPENMP_CFLAGS)
+
+aprcl_CFLAGS = -Wall
+aprcl_SOURCES = aprtcle/mpz_aprcl.c aprtcle/aprcl.c
+aprcl_LDADD = $(GMPLIB)
 
 rho_SOURCES = rho.c
 rho_CPPFLAGS = -DTESTDRIVE
@@ -94,7 +99,8 @@ endif
 
 include_HEADERS = ecm.h
 noinst_HEADERS = basicdefs.h ecm-impl.h ecm-gmp.h ecm-ecm.h sp.h longlong.h ecm-params.h \
-                 mpmod.h ecm-gpu.h cudakernel.h addlaws.h
+                 mpmod.h ecm-gpu.h cudakernel.h addlaws.h \
+                 aprtcle/mpz_aprcl.h aprtcle/jacobi_sum.h
 
 EXTRA_DIST = test.pm1 test.pp1 test.ecm README.lib INSTALL-ecm ecm.xml  \
              pentium4/params.h x86_64/core2/params.h x86_64/k8/params.h \
@@ -103,7 +109,7 @@ EXTRA_DIST = test.pm1 test.pp1 test.ecm README.lib INSTALL-ecm ecm.xml  \
              hppa/params.h mips/params.h x86_64/corei7/params.h         \
              generic/params.h
 
-DIST_SUBDIRS = athlon pentium4 x86_64 powerpc64 build.vc10
+DIST_SUBDIRS = athlon pentium4 x86_64 powerpc64 build.vc10 aprtcle
 
 DISTCLEANFILES = config.m4
 
