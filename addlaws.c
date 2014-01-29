@@ -1999,7 +1999,9 @@ ell_point_mul_add_sub(ell_point_t Q, mpz_t e, ell_point_t P,
     w = get_add_sub_w(e);
 
     Slen = 2 * mpz_sizeinbase(e, 2);
+#if DEBUG_ADD_LAWS >= 2
     printf("# Slen=%lu\n", Slen);
+#endif
     S = (short *)malloc(Slen * sizeof(short));
     iS = build_add_sub_chain(S, Slen, e, w);
     if(iS == 0){
