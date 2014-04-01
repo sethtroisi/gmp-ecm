@@ -180,6 +180,13 @@ extern FILE *ECM_STDOUT, *ECM_STDERR;
                            p == ECM_PARAM_BATCH_2 || \
                            p == ECM_PARAM_BATCH_32BITS_D )
 
+/* for MPIR define GMP internal functions as their MPIR equivalents */
+#if defined( __MPIR_RELEASE ) && __MPIR_RELEASE >= 20600
+#  define mpn_fft_best_k(n,k) (0)
+#  define mpn_fft_next_size(n,k) fft_adjust_limbs(n)
+#  define mpn_mul_fft(bp,bn,ap,an,cp,cn,k) mpn_mulmod_Bexpp1(bp,bn,ap,an,cp,cn)
+#endif
+
 typedef mpz_t mpres_t;
 
 typedef mpz_t* listz_t;
