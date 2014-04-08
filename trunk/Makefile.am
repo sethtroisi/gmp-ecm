@@ -109,7 +109,7 @@ EXTRA_DIST = test.pm1 test.pp1 test.ecm README.lib INSTALL-ecm ecm.xml  \
              hppa/params.h mips/params.h x86_64/corei7/params.h         \
              generic/params.h
 
-DIST_SUBDIRS = athlon pentium4 x86_64 powerpc64 build.vc10 aprtcle
+DIST_SUBDIRS = athlon pentium4 x86_64 powerpc64 aprtcle
 
 DISTCLEANFILES = config.m4
 
