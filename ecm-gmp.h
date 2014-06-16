@@ -138,21 +138,19 @@ __GMP_DECLSPEC mp_limb_t __gmpn_add_nc (mp_ptr, mp_srcptr, mp_srcptr,
   void __gmpn_mullo_n (mp_ptr, mp_srcptr, mp_srcptr, mp_size_t);
 #endif
 
-#if defined( __MPIR_RELEASE ) && __MPIR_RELEASE == 20600
+#if defined( __MPIR_RELEASE ) && __MPIR_RELEASE >= 20600
 
-#define mpn_mulmod_Bexpp1_fft __gmpn_mulmod_Bexpp1_fft
-int __gmpn_mulmod_Bexpp1_fft(mp_ptr op, mp_size_t pl, mp_srcptr n, mp_size_t nl, 
-							 mp_srcptr m, mp_size_t ml);
-
-/* WARNING - these defintions map the internal interface of the MPIR FFT 
-   to the GMP interface - they work in this context but the parameters for
-   the mpn_fft_next_size and the fft_adjust_limbs functions have different
-   semantics, which means that these definitions may fail if used in other
-   circumstances */
-
-#define mpn_fft_best_k(n, k)             (0) 
-#define mpn_fft_next_size(n, k)          fft_adjust_limbs(n)
-#define mpn_mul_fft(bp,bn,ap,an,cp,cn,k) mpn_mulmod_Bexpp1_fft(bp,bn,ap,an,cp,cn)
+#if __MPIR_RELEASE == 20600
+#error MPIR 2.6 does not support GMP-ECM, please use an alternative version
+#endif
+/* WARNING - the following two defintions map the internal interface
+   of the new FFT in MPIR 2.6 (and later) to the GMP FFT interface -
+   they work in this context but the parameters for mpn_fft_next_size
+   and fft_adjust_limbs have different semantics, which means that
+   these definitions may fail if used in other circumstances 
+*/
+#  define mpn_fft_best_k(n, k)             (0) 
+#  define mpn_fft_next_size(n, k)          fft_adjust_limbs(n)
 
 #else
 
