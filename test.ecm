@@ -165,18 +165,6 @@ checkcode $? 14
 echo 911962091 | $ECM -sigma 2:14 50000
 checkcode $? 8
 
-echo 31622776601683791911 | $ECM -param 1 -A 27063318473587686303 11000
-checkcode $? 0
-
-# non-regression test for bug fixed by changeset r1819 on 64-bit
-# (this also produces a small d' on 32-bit, thus can be used with param=1)
-echo 18446744073709551557 | $ECM -param 1 -A 312656731337392125 11000
-checkcode $? 8
-
-# non-regression test for bug fixed by changeset r1819 on 32-bit
-echo 4294967291 | $ECM -param 1 -A 17 1000
-checkcode $? 8
-
 # this example would fail with the old Fgw.c when using gwnum (fixed by David Cleaver, r1734)
 echo "((173^173+1)/174)/471462511391940575680645418941" | $ECM -param 0 -sigma 12345 20000
 checkcode $? 0
@@ -184,13 +172,6 @@ checkcode $? 0
 # this test was failing on gcc45.fsffrance.org with 6.4.1
 echo "((173^173+1)/174)/471462511391940575680645418941+122" | $ECM -param 0 -sigma 77 20000
 checkcode $? 6
-
-# the following tests should work on machines which have uint64_t or where
-# unsigned long long has 64 bits (exercises patch from David Cleaver, r1575)
-echo "NOTE: NEXT 3 TESTS WILL FAIL ON SOME 32BIT MACHINES, THIS IS EXPECTED."
-echo 10000000000000000000000000000000000000121 | $ECM -param 0 -sigma 61 -go 1195504287780095287 2950307;  checkcode $? 8
-echo 10000000000000000000000000000000000000121 | $ECM -param 0 -sigma 266 -go 218187387944803649 9405629;  checkcode $? 8
-echo 10000000000000000000000000000000000000121 | $ECM -param 0 -sigma 291 -go 5994496018878137 4372759;  checkcode $? 8
 
 ##### tests for the Weierstrass form
 # factored with Step 1
@@ -227,6 +208,28 @@ echo 2432902008176640001 | $ECM -param 6 -A 2 -x0 2 -y0 3 1000 2000; checkcode $
 
 ##### tests for curves with specific torsion
 echo 4722366482800925736961 | $ECM -torsion Z5 -sigma 2 1e5; checkcode $? 14
+
+# the following tests should work on machines which have uint64_t or where
+# unsigned long long has 64 bits (exercises patch from David Cleaver, r1575)
+echo "NOTE: NEXT TESTS WILL FAIL ON SOME 32BIT MACHINES, THIS IS EXPECTED."
+
+echo 10000000000000000000000000000000000000121 | $ECM -param 0 -sigma 61 -go 1195504287780095287 2950307;  checkcode $? 8
+
+echo 10000000000000000000000000000000000000121 | $ECM -param 0 -sigma 266 -go 218187387944803649 9405629;  checkcode $? 8
+
+echo 10000000000000000000000000000000000000121 | $ECM -param 0 -sigma 291 -go 5994496018878137 4372759;  checkcode $? 8
+
+echo 31622776601683791911 | $ECM -param 1 -A 27063318473587686303 11000
+checkcode $? 0
+
+# non-regression test for bug fixed by changeset r1819 on 64-bit
+# (this also produces a small d' on 32-bit, thus can be used with param=1)
+echo 18446744073709551557 | $ECM -param 1 -A 312656731337392125 11000
+checkcode $? 8
+
+# non-regression test for bug fixed by changeset r1819 on 32-bit
+echo 4294967291 | $ECM -param 1 -A 17 1000
+checkcode $? 8
 
 $ECM -printconfig | grep Tuning
 
