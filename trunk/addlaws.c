@@ -784,7 +784,7 @@ pt_w_sub(mpres_t x3, mpres_t y3, mpres_t z3,
 
 /* Morain/Olivos */
 int
-MO_automaton(char *T, size_t *IT, mpz_t e, size_t le)
+MO_automaton(signed char *T, size_t *IT, mpz_t e, size_t le)
 {
     size_t ie, iT = 0;
     int state = 0, res = 1, bz;
@@ -841,7 +841,7 @@ MO_automaton(char *T, size_t *IT, mpz_t e, size_t le)
 
 /* Do we have eval(T) == e? */
 int
-MO_check(char *T, size_t iT, mpz_t e)
+MO_check(signed char *T, size_t iT, mpz_t e)
 {
     mpz_t tmp;
     int i, ok;
@@ -887,7 +887,7 @@ Split_check(short *S, size_t iS, mpz_t e)
    S is filled in left-to-right from T.
 */
 int
-Split(short *S, size_t Slen, char *T, size_t iT, int w0)
+Split(short *S, size_t Slen, signed char *T, size_t iT, int w0)
 {
     size_t i = iT-1, j, k, lW, iS = 0, w = (size_t)w0;
     int gap;
@@ -981,9 +981,9 @@ build_MO_chain(short *S, size_t Slen, mpz_t e, int w)
     size_t le = mpz_sizeinbase(e, 2), iT = 0, iS = 0;
 #if DEBUG_ADD_LAWS >= 2
     long tp = cputime();
-    int i;
+    size_t i;
 #endif
-    char *T = (char *)malloc((2*le) * sizeof(char)); /* humf */
+    signed char *T = (signed char *)malloc((2*le) * sizeof(signed char)); /* humf */
 
     MO_automaton(T, &iT, e, le);
 #if DEBUG_ADD_LAWS >= 2
