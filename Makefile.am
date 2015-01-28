@@ -1,6 +1,7 @@
 ## Process this file with automake to produce Makefile.in
 
 ACLOCAL_AMFLAGS = -I m4
+AUTOMAKE_OPTIONS = subdir-objects
 
 # to not install libecm.la, we could write noinst_LTLIBRARIES instead of
 # lib_LTLIBRARIES below, however then libecm.a is not installed either
