@@ -26,9 +26,6 @@ http://www.gnu.org/licenses/ or write to the Free Software Foundation, Inc.,
 
 #define CASCADE_THRES 3
 #define CASCADE_MAX 50000000.0
-#ifndef POWM_THRESHOLD
-#define POWM_THRESHOLD 100
-#endif
 
 typedef struct {
   unsigned int size;
@@ -445,8 +442,6 @@ pm1 (mpz_t f, mpz_t p, mpz_t N, mpz_t go, double *B1done, double B1,
      gmp_randstate_t rng, int (*stop_asap)(void))
 {
   int youpi = ECM_NO_FACTOR_FOUND;
-  int base2 = 0;
-  int Nbits, smallbase;
   long st;
   mpmod_t modulus;
   mpres_t x;
@@ -481,55 +476,8 @@ pm1 (mpz_t f, mpz_t p, mpz_t N, mpz_t go, double *B1done, double B1,
   if (mpz_sgn (B2min) < 0)
     mpz_set_d (B2min, B1);
 
-  if (repr != ECM_MOD_DEFAULT && repr != ECM_MOD_NOBASE2)
-    {
-      if (repr == ECM_MOD_MODMULN)
-        mpmod_init_MODMULN (modulus, N);
-      else if (repr == ECM_MOD_REDC)
-        mpmod_init_REDC (modulus, N);
-      else if (abs (repr) > 16)
-        {
-          if (mpmod_init_BASE2 (modulus, repr, N) == ECM_ERROR)
-            return ECM_ERROR;
-        }
-      else
-        mpmod_init_MPZ (modulus, N);
-    }
-  else /* automatic choice */
-    {
-      /* Find a good arithmetic for this number */
-      Nbits = mpz_sizeinbase (N, 2);
-      base2 = (repr == 0) ? isbase2 (N, BASE2_THRESHOLD) : 0;
-      smallbase = mpz_fits_uint_p (p);
-
-      /* TODO: make dependent on Nbits and base2 */
-      if (base2)
-        {
-          mpmod_init_BASE2 (modulus, base2, N);
-        }
-
-      else if (mpz_size (N) <= 2 * POWM_THRESHOLD && smallbase && B1 <= 1e6)
-      /* Below POWM_THRESHOLD, mpz_powm uses MODMULN reduction, too, but 
-         without special code for small bases which makes our MODMULN
-         faster. Above POWM_THRESHOLD mpz_powm uses faster mod reduction,
-         at about 2*POWM_THRESHOLD it catches up with our smallbase-MODMULN
-         and then is faster until REDC takes over. */
-        {
-	  outputf (OUTPUT_VERBOSE, "Using MODMULN\n");
-          mpmod_init_MODMULN (modulus, N);
-        }
-      else if (Nbits > 50000 ||  (Nbits > 3500 && smallbase))
-        {
-	  outputf (OUTPUT_VERBOSE, "Using REDC\n");
-          mpmod_init_REDC (modulus, N);
-        }
-      else
-        {
-	  outputf (OUTPUT_VERBOSE, "Using mpz_powm\n");
-          mpmod_init_MPZ (modulus, N);
-        }
-    }
-  
+  /* choice of modular arithmetic */
+  mpmod_init (modulus, N, repr);
 
   /* Determine parameters (polynomial degree etc.) */
 
