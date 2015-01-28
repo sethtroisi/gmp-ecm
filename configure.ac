@@ -5,8 +5,7 @@ AC_INIT([ecm], ECM_VERSION_AC, [ecm-discuss@lists.gforge.inria.fr])
 
 AC_CONFIG_MACRO_DIR([m4])
 GMP_INIT([config.m4])
-AM_INIT_AUTOMAKE([1.10])
-AM_INIT_AUTOMAKE([ecm], ECM_VERSION_AC)
+AM_INIT_AUTOMAKE
 AC_CANONICAL_HOST
 
 AC_CONFIG_HEADERS([config.h ecm.h])

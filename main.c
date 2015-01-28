@@ -1457,8 +1457,8 @@ main (int argc, char *argv[])
 	    }
 	  else if (torsion != NULL)
 	    {
-		result = build_curves_with_torsion2(f, n.n, params->E, x, y,
-						    torsion, sigma);
+              result = build_curves_with_torsion2 (f, n.n, params->E, x, y,
+                                                   torsion, sigma);
 	    }
 	}
       mpz_set (params->sigma, (params->sigma_is_A) ? A : sigma);
