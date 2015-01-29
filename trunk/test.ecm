@@ -38,16 +38,20 @@ checkcode () {
 # 0      Normal program termination, no factor found
 # 1      Error
 # 2      Composite factor found, cofactor is composite
-# 6      Probable prime factor found, cofactor is composite
+# 6      (Probable) prime factor found, cofactor is composite
 # 8      Input number found
-# 10     Composite factor found, cofactor is a probable prime
-# 14     Probable prime factor found, cofactor is a probable prime
+# 10     Composite factor found, cofactor is a (probable) prime
+# 14     (Probable) prime factor found, cofactor is a (probable) prime
+
 # try primes < d in stage 2. Curve with sigma=7, mod 30210181 has order
 # 2^4 * 3^3 * 29 * 2411
 echo 2050449353925555290706354283 | $ECM -param 0 -sigma 7 -k 1 30 0-1e6; checkcode $? 14
 
 # check the -treefile option
 echo 2050449353925555290706354283 | $ECM -param 0 -treefile tree -sigma 7 -k 1 30 0-1e6; checkcode $? 14
+
+# check the -I f option
+echo 2050449353925555290706354283 | $ECM -param 0 -sigma 7 -I 1 -c 3 100; checkcode $? 14
 
 # Check a stage 2 of length 1. g1=1822795201 g2=968809 g3=567947
 echo 212252637915375215854013140804296246361 | $ECM -param 0 -sigma 781683988 -go 550232165123 63421 1822795201-1822795201; checkcode $? 8
