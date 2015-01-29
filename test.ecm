@@ -34,6 +34,15 @@ checkcode () {
   fi
 }
 
+case "$ECM"
+in
+*redc*) MUL="redc"
+  ;;
+*mpzmod*) MUL="mpzmod"
+  ;;
+*) MUL="modmuln"
+esac
+
 # Exit statues returned by GMP-ECM:
 # 0      Normal program termination, no factor found
 # 1      Error
@@ -141,25 +150,28 @@ echo 493671084022010320922697718944221569774262937898523672663031469122444419595
 
 echo "10090030271*10^400+696212088699" | $ECM -param 0 -sigma 3923937547 1e3 1e6; checkcode $? 14
 
-# To test param=1
-echo 458903930815802071188998938170281707063809443792768383215233 | $ECM -sigma 3:42 10000
-checkcode $? 14
+# those tests with params=1, 2 or 3 don't work with -redc
+if [ "$MUL" != "redc" && "$MUL" != "mpzmod" ]; then
 
-# same with param=2
+echo 31622776601683791911 | $ECM -param 1 -A 27063318473587686303 11000
+checkcode $? 0
+
+# non-regression test for bug fixed by changeset r1819 on 64-bit
+# (this also produces a small d' on 32-bit, thus can be used with param=1)
+echo 18446744073709551557 | $ECM -param 1 -A 312656731337392125 11000
+checkcode $? 8
+
+# non-regression test for bug fixed by changeset r1819 on 32-bit
+echo 4294967291 | $ECM -param 1 -A 17 1000
+checkcode $? 8
+
+# same with param=2, works only with ECM_MOD_MODMULN
 echo 458903930815802071188998938170281707063809443792768383215233 | $ECM -sigma 2:142 10000
 checkcode $? 14
-
-# test for param=1
-echo "2^349-1" | $ECM -sigma 3:13 587 29383
-checkcode $? 6
 
 # test for param=2
 echo "2^349-1" | $ECM -sigma 2:9 587 29383
 checkcode $? 6
-
-# another param=1 test 
-echo "2^347-1" | $ECM -sigma 3:1097 3301 229939
-checkcode $? 14
 
 # another param=2 test
 echo "2^347-1" | $ECM -param 2 -A 292897222300654795048417351458499833714895857628156011078988080472621879897670335421898676171177982 3301 229939
@@ -168,6 +180,20 @@ checkcode $? 14
 # To test param mode 2
 echo 911962091 | $ECM -sigma 2:14 50000
 checkcode $? 8
+
+# To test param=3
+echo 458903930815802071188998938170281707063809443792768383215233 | $ECM -sigma 3:42 10000
+checkcode $? 14
+
+# test for param=3
+echo "2^349-1" | $ECM -sigma 3:13 587 29383
+checkcode $? 6
+
+# another param=3 test
+echo "2^347-1" | $ECM -sigma 3:1097 3301 229939
+checkcode $? 14
+
+fi
 
 # this example would fail with the old Fgw.c when using gwnum (fixed by David Cleaver, r1734)
 echo "((173^173+1)/174)/471462511391940575680645418941" | $ECM -param 0 -sigma 12345 20000
@@ -222,18 +248,6 @@ echo 10000000000000000000000000000000000000121 | $ECM -param 0 -sigma 61 -go 119
 echo 10000000000000000000000000000000000000121 | $ECM -param 0 -sigma 266 -go 218187387944803649 9405629;  checkcode $? 8
 
 echo 10000000000000000000000000000000000000121 | $ECM -param 0 -sigma 291 -go 5994496018878137 4372759;  checkcode $? 8
-
-echo 31622776601683791911 | $ECM -param 1 -A 27063318473587686303 11000
-checkcode $? 0
-
-# non-regression test for bug fixed by changeset r1819 on 64-bit
-# (this also produces a small d' on 32-bit, thus can be used with param=1)
-echo 18446744073709551557 | $ECM -param 1 -A 312656731337392125 11000
-checkcode $? 8
-
-# non-regression test for bug fixed by changeset r1819 on 32-bit
-echo 4294967291 | $ECM -param 1 -A 17 1000
-checkcode $? 8
 
 $ECM -printconfig | grep Tuning
 
