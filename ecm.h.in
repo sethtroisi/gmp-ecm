@@ -137,15 +137,15 @@ void ecm_clear (ecm_params);
 
 /* the following interface is not supported */
 int ecm (mpz_t, mpz_t, mpz_t, int*, mpz_t, mpz_t, mpz_t, double *, double, mpz_t, mpz_t,
-         double, unsigned long, int, int, int, int, int, int, 
+         unsigned long, int, int, int, int, int, int, 
 	 ell_curve_t,  FILE* os, FILE* es,
          char*, char *, double, double, gmp_randstate_t, int (*)(void), mpz_t, 
          double *, double, unsigned long, unsigned long, signed long);
 int pp1 (mpz_t, mpz_t, mpz_t, mpz_t, double *, double, mpz_t, mpz_t, 
-         double, unsigned long, int, int, int, FILE*, FILE*, char*,
+         unsigned long, int, int, int, FILE*, FILE*, char*,
          char *, double, gmp_randstate_t, int (*)(void));
 int pm1 (mpz_t, mpz_t, mpz_t, mpz_t, double *, double, mpz_t, 
-         mpz_t, double, unsigned long, int, int, int, FILE*, 
+         mpz_t, unsigned long, int, int, int, FILE*, 
 	 FILE*, char *, char*, double, gmp_randstate_t, int (*)(void));
 
 /* different methods implemented */
