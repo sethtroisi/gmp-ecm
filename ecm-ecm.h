@@ -172,31 +172,4 @@ void pm1_random_seed  (mpz_t, mpz_t, gmp_randstate_t);
 
 #define ABS(x) ((x) >= 0 ? (x) : -(x))
 
-/* could go in auxi.c as a function */
-#ifdef HAVE_SETPRIORITY
-# include <sys/time.h>
-# ifdef HAVE_SYS_RESOURCE_H
-#  include <sys/resource.h>
-# endif
-# define NICE20 setpriority (PRIO_PROCESS, 0, 20)
-
-#elif defined(HAVE_NICE)
-# ifdef HAVE_UNISTD_H
-#  include <unistd.h>
-# endif
-# define NICE20 nice (20)
-
-#elif defined(HAVE_WINDOWS_H)
-# include <windows.h>
-# define NICE20 do { \
-   SetPriorityClass (GetCurrentProcess (), IDLE_PRIORITY_CLASS); \
-   SetThreadPriority (GetCurrentThread (), THREAD_PRIORITY_IDLE); \
-   } while (0)
-
-#else
-# warning "Can't find a way to change priority"
-# define NICE20 do {} while (0)
-#endif
-
-
 #endif /* _ECM_ECM_H */

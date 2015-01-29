@@ -131,7 +131,6 @@ usage (void)
     printf ("  -I f         increment B1 by f*sqrt(B1) on each run\n");
     printf ("  -inp file    Use file as input (instead of redirecting stdin)\n");
     printf ("  -one         Stop processing a candidate if a factor is found (looping mode)\n");
-    printf ("  -nn          run ecm in \"very nice\" mode (idle priority)\n");
     printf ("  -go val      Preload with group order val, which can be a simple expression,\n");
     printf ("               or can use N as a placeholder for the number being factored.\n");
     printf ("  -printconfig Print compile-time configuration and exit.\n");
@@ -538,12 +537,6 @@ main (int argc, char *argv[])
         {
           print_config ();
           exit (EXIT_SUCCESS);
-        }
-      else if (strcmp (argv[1], "-nn") == 0)
-        {
-          NICE20;
-	  argv++;
-	  argc--;
         }
       else if ((argc > 2) && (strcmp (argv[1], "-x0")) == 0)
         {
