@@ -129,7 +129,6 @@ usage (void)
     printf ("  -I f         auto-calculated increment for B1 multiplied by 'f' scale factor\n");
     printf ("  -inp file    Use file as input (instead of redirecting stdin)\n");
     printf ("  -one         Stop processing a candidate if a factor is found (looping mode)\n");
-    printf ("  -n           run ecm in \"nice\" mode (below normal priority)\n");
     printf ("  -nn          run ecm in \"very nice\" mode (idle priority)\n");
     printf ("  -ve n        Verbosely show short (< n character) expressions on each loop\n");
     printf ("  -cofdec      Force cofactor output in decimal (even if expressions are used)\n");
@@ -547,12 +546,6 @@ main (int argc, char *argv[])
       else if (strcmp (argv[1], "-cofdec") == 0)
         {
 	  decimal_cofactor = 1;
-	  argv++;
-	  argc--;
-        }
-      else if (strcmp (argv[1], "-n") == 0)
-        {
-          NICE10;
 	  argv++;
 	  argc--;
         }
