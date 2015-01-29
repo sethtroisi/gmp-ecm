@@ -85,7 +85,7 @@ conclude_on_factor(mpz_t N, mpz_t f, int verbose)
 	    ECM_COMP_FAC_COMP_COFAC;
     if (verbose >= 1)
       {
-        printf ("Found %s factor of %2u digits: ", 
+        printf ("Found %s factor of %u digits: ", 
 		factor_is_prime ? "probable prime" : "composite",
 		nb_digits (f));
 	mpz_out_str (stdout, 10, f);
