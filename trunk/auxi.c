@@ -137,8 +137,7 @@ int
 process_newfactor (mpz_t g, int result, mpcandi_t *n, int method, 
                    int returncode, int gpu, unsigned int *cnt, 
                    int *resume_wasPrp, mpz_t resume_lastfac, 
-                   FILE *resumefile, int verbose, unsigned int decimal_cofactor,
-                   int deep)
+                   FILE *resumefile, int verbose, int deep)
 {
   int factor_is_prime = 0;
         /* If a factor was found, indicate whether factor, cofactor are */
@@ -258,7 +257,7 @@ process_newfactor (mpz_t g, int result, mpcandi_t *n, int method,
           else
             printf ("Composite cofactor ");
 
-          if (n->cpExpr && !decimal_cofactor)
+          if (n->cpExpr)
             printf ("%s", n->cpExpr);
           else
             mpz_out_str (stdout, 10, n->n);

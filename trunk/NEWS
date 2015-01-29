@@ -14,7 +14,7 @@ Changes between GMP-ECM 6.4.4 and GMP-ECM 7.0:
 * Speedup in stage 2 with -no-ntt
 * New primality proving code with APRCL (contributed by David Cleaver)
   with --enable-aprcl (default=yes)
-* Removed some options that were unused or not tested (-n, -ve).
+* Removed some options that were unused or not tested (-n, -ve, -cofdec).
 
 Changes between GMP-ECM 6.4.3 and GMP-ECM 6.4.4:
 * Fixed PowerPC64 assembly code with --enable-shared (thanks Leif Leonhardy)
