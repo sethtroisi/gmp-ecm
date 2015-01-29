@@ -179,22 +179,16 @@ void pm1_random_seed  (mpz_t, mpz_t, gmp_randstate_t);
 # ifdef HAVE_SYS_RESOURCE_H
 #  include <sys/resource.h>
 # endif
-# define NICE10 setpriority (PRIO_PROCESS, 0, 10)
 # define NICE20 setpriority (PRIO_PROCESS, 0, 20)
 
 #elif defined(HAVE_NICE)
 # ifdef HAVE_UNISTD_H
 #  include <unistd.h>
 # endif
-# define NICE10 nice (10)
 # define NICE20 nice (20)
 
 #elif defined(HAVE_WINDOWS_H)
 # include <windows.h>
-# define NICE10 do { \
-   SetPriorityClass (GetCurrentProcess (), BELOW_NORMAL_PRIORITY_CLASS); \
-   SetThreadPriority (GetCurrentThread (), THREAD_PRIORITY_BELOW_NORMAL); \
-   } while (0)
 # define NICE20 do { \
    SetPriorityClass (GetCurrentProcess (), IDLE_PRIORITY_CLASS); \
    SetThreadPriority (GetCurrentThread (), THREAD_PRIORITY_IDLE); \
@@ -202,7 +196,6 @@ void pm1_random_seed  (mpz_t, mpz_t, gmp_randstate_t);
 
 #else
 # warning "Can't find a way to change priority"
-# define NICE10 do {} while (0)
 # define NICE20 do {} while (0)
 #endif
 
