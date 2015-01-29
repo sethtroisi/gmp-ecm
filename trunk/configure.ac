@@ -373,7 +373,7 @@ AC_CHECK_FUNCS([isascii memset strchr strlen strncasecmp strstr], [], [AC_MSG_ER
 AC_CHECK_FUNCS([access unlink], [], [AC_MSG_ERROR([required function missing])])
 AC_CHECK_FUNCS([isspace isdigit isxdigit], [], [AC_MSG_ERROR([required function missing])])
 AC_CHECK_FUNCS([time ctime], [], [AC_MSG_ERROR([required function missing])])
-AC_CHECK_FUNCS([setpriority nice gethostname gettimeofday getrusage memmove signal fcntl fileno setvbuf fallocate aio_read aio_init])
+AC_CHECK_FUNCS([gethostname gettimeofday getrusage memmove signal fcntl fileno setvbuf fallocate aio_read aio_init])
 
 dnl Test for some Windows-specific functions that are available under MinGW
 dnl FIXME: which win32 library contains these functions?
