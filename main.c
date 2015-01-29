@@ -132,7 +132,6 @@ usage (void)
     printf ("  -inp file    Use file as input (instead of redirecting stdin)\n");
     printf ("  -one         Stop processing a candidate if a factor is found (looping mode)\n");
     printf ("  -nn          run ecm in \"very nice\" mode (idle priority)\n");
-    printf ("  -ve n        Verbosely show short (< n character) expressions on each loop\n");
     printf ("  -cofdec      Force cofactor output in decimal (even if expressions are used)\n");
     printf ("  -B2scale f   Multiplies the default B2 value by f \n");
     printf ("  -go val      Preload with group order val, which can be a simple expression,\n");
@@ -391,7 +390,6 @@ main (int argc, char *argv[])
   unsigned int count = 1; /* number of curves for each number */
   unsigned int cnt = 0;   /* number of remaining curves for current number */
   int deep=1;
-  unsigned int displayexpr = 0;
   unsigned int decimal_cofactor = 0;
   double B2scale = 1.0;
   double maxmem = 0.;
@@ -767,17 +765,6 @@ main (int argc, char *argv[])
 	  argv += 2;
 	  argc -= 2;
 	}
-      else if ((argc > 2) && (strcmp (argv[1], "-ve") == 0))
-        {
-	  displayexpr = atoi (argv[2]);
-	  if (displayexpr == 0)
-	    {
-	      fprintf (stderr, "Error, the -ve option requires a number argument\n");
-	      exit (EXIT_FAILURE);
-  	    }
-	  argv += 2;
-	  argc -= 2;
-        }
       else if ((argc > 2) && (strcmp (argv[1], "-B2scale") == 0))
 	{
 	  B2scale = atof (argv[2]);
@@ -1359,19 +1346,6 @@ main (int argc, char *argv[])
               
               if (n.isPrp)
                   printf ("****** Warning: input is probably prime ******\n");
-            }
-          else /* 2nd or more try for same composite */
-            {
-              /* Since the expression is usually "so" short, why not just drop 
-                 it out for ALL loops? */
-              if (displayexpr)
-                {
-                  if (n.nexprlen && n.nexprlen <= displayexpr)
-                      printf ("Input number is %s (%u digits)\n", n.cpExpr, n.ndigits);
-                  else if (n.ndigits <= displayexpr)
-                      gmp_printf ("Input number is %Zd (%u digits)\n", 
-                                  n.n, n.ndigits);
-                }
             }
           fflush (stdout);
         }
