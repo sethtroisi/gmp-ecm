@@ -126,7 +126,7 @@ usage (void)
 
     /*printf ("  -extra functions added by JimF\n"); */
     printf ("  -i n         increment B1 by this constant on each run\n");
-    printf ("  -I f         auto-calculated increment for B1 multiplied by 'f' scale factor\n");
+    printf ("  -I f         increment B1 by f*sqrt(B1) on each run\n");
     printf ("  -inp file    Use file as input (instead of redirecting stdin)\n");
     printf ("  -one         Stop processing a candidate if a factor is found (looping mode)\n");
     printf ("  -nn          run ecm in \"very nice\" mode (idle priority)\n");
