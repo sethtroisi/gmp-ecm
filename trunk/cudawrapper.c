@@ -250,7 +250,7 @@ gpu_ecm ()
 int
 gpu_ecm (mpz_t f, mpz_t x, int *param, mpz_t firstsigma, mpz_t n, mpz_t go, 
          double *B1done, double B1, mpz_t B2min_parm, mpz_t B2_parm, 
-         double B2scale, unsigned long k, const int S, int verbose, int repr,
+         unsigned long k, const int S, int verbose, int repr,
          int nobase2step2, int use_ntt, int sigma_is_A, FILE *os, FILE* es, 
          char *chkfilename, char *TreeFilename, double maxmem, 
          int (*stop_asap)(void), mpz_t batch_s, double *batch_last_B1_used, 
@@ -357,8 +357,8 @@ gpu_ecm (mpz_t f, mpz_t x, int *param, mpz_t firstsigma, mpz_t n, mpz_t go,
   mpz_init (tmp_A);
 
 
-  youpi = set_stage_2_params (B2, B2_parm, B2min, B2min_parm, &root_params, 
-                              B1, B2scale, &k, S, use_ntt, &po2, &dF, 
+  youpi = set_stage_2_params (B2, B2_parm, B2min, B2min_parm, &root_params,
+                              B1, &k, S, use_ntt, &po2, &dF,
                               TreeFilename, maxmem, Fermat, modulus);
   if (youpi == ECM_ERROR)
       goto end_gpu_ecm;

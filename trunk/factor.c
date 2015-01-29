@@ -54,7 +54,7 @@ ecm_init (ecm_params q)
   q->E = ptrE;
   q->param = ECM_PARAM_DEFAULT;
   mpz_init_set_ui (q->go, 1);
-  q->B1done = ECM_DEFAULT_B1_DONE + 1. / 1048576.;
+  q->B1done = ECM_DEFAULT_B1_DONE;
   mpz_init_set_si (q->B2min, -1.0); /* default: B2min will be set to B1 */
   mpz_init_set_si (q->B2, ECM_DEFAULT_B2);
   q->k = ECM_DEFAULT_K;
@@ -104,7 +104,6 @@ ecm_factor (mpz_t f, mpz_t n, double B1, ecm_params p)
   int res; /* return value */
   int p_is_null;
   ecm_params q;
-  double B1done, B2scale;
 
   if (mpz_cmp_ui (n, 0) <= 0)
     {
@@ -128,20 +127,13 @@ ecm_factor (mpz_t f, mpz_t n, double B1, ecm_params p)
       ecm_init (q);
     }
 
-   /* Ugly hack to pass B2scale to the library somehow. It gets piggy-backed
-      onto B1done. The next major release will have to allow for variable
-      length parameter structs. */
-   B1done = floor (p->B1done);
-   B2scale = (p->B1done - B1done) * 1048576.;
-   p->B1done = B1done;
- 
   if (p->method == ECM_ECM)
     {
       if (p->gpu == 0)
         {
             res = ecm (f, p->x, p->y, &(p->param), p->sigma, n, p->go,
-		       &(p->B1done), 
-                       B1, p->B2min, p->B2, B2scale, p->k, p->S, p->verbose, 
+		       &(p->B1done),
+                       B1, p->B2min, p->B2, p->k, p->S, p->verbose,
                        p->repr, p->nobase2step2, p->use_ntt, 
 		       p->sigma_is_A, p->E,
                        p->os, p->es, p->chkfilename, p->TreeFilename, p->maxmem,
@@ -153,7 +145,7 @@ ecm_factor (mpz_t f, mpz_t n, double B1, ecm_params p)
         {
 #ifdef WITH_GPU
             res = gpu_ecm (f, p->x, &(p->param), p->sigma, n, p->go, 
-                           &(p->B1done), B1, p->B2min, p->B2, B2scale, p->k,
+                           &(p->B1done), B1, p->B2min, p->B2, p->k,
                            p->S, p->verbose, p->repr, p->nobase2step2, 
                            p->use_ntt, p->sigma_is_A, p->os, p->es,
                            p->chkfilename, p->TreeFilename, p->maxmem,
@@ -166,14 +158,14 @@ ecm_factor (mpz_t f, mpz_t n, double B1, ecm_params p)
         }
     }
   else if (p->method == ECM_PM1)
-    res = pm1 (f, p->x, n, p->go, &(p->B1done), B1, p->B2min, p->B2, B2scale,
+    res = pm1 (f, p->x, n, p->go, &(p->B1done), B1, p->B2min, p->B2,
                p->k, p->verbose, p->repr, p->use_ntt, p->os, p->es,
-               p->chkfilename, p->TreeFilename, p->maxmem, p->rng, 
+               p->chkfilename, p->TreeFilename, p->maxmem, p->rng,
                p->stop_asap);
   else if (p->method == ECM_PP1)
-    res = pp1 (f, p->x, n, p->go, &(p->B1done), B1, p->B2min, p->B2, B2scale,
+    res = pp1 (f, p->x, n, p->go, &(p->B1done), B1, p->B2min, p->B2,
                p->k, p->verbose, p->repr, p->use_ntt, p->os, p->es,
-               p->chkfilename, p->TreeFilename, p->maxmem, p->rng, 
+               p->chkfilename, p->TreeFilename, p->maxmem, p->rng,
                p->stop_asap);
   else
     {
@@ -183,10 +175,6 @@ ecm_factor (mpz_t f, mpz_t n, double B1, ecm_params p)
 
   if (p_is_null)
     ecm_clear (q);
-  else /* restore original B2scale value */
-       /* Here's an ugly hack to pass B2scale to the library somehow.
-          It gets piggy-backed onto B1done */
-      p->B1done = p->B1done + floor (B2scale * 128.) / 134217728.; 
 
   return res;
 }

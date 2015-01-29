@@ -30,12 +30,6 @@ process_one_curve(mpz_t f, mpz_t N, double B1, mpz_t B2,
 		  ecm_params params, ell_curve_t E, ell_point_t P)
 {
     int ret;
-    double B2scale = 1.0;
-
-    /* Taken from main.c; no comment */
-    /* Here's an ugly hack to pass B2scale to the library somehow.
-       It gets piggy-backed onto B1done */
-    params->B1done = params->B1done + floor (B2scale * 128.) / 134217728.; 
 
     /* if B2 = ECM_DEFAULT_B2, compute it automatically from B1: 
        no freedom on B2! */
