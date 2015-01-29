@@ -132,7 +132,6 @@ usage (void)
     printf ("  -inp file    Use file as input (instead of redirecting stdin)\n");
     printf ("  -one         Stop processing a candidate if a factor is found (looping mode)\n");
     printf ("  -nn          run ecm in \"very nice\" mode (idle priority)\n");
-    printf ("  -cofdec      Force cofactor output in decimal (even if expressions are used)\n");
     printf ("  -B2scale f   Multiplies the default B2 value by f \n");
     printf ("  -go val      Preload with group order val, which can be a simple expression,\n");
     printf ("               or can use N as a placeholder for the number being factored.\n");
@@ -390,7 +389,6 @@ main (int argc, char *argv[])
   unsigned int count = 1; /* number of curves for each number */
   unsigned int cnt = 0;   /* number of remaining curves for current number */
   int deep=1;
-  unsigned int decimal_cofactor = 0;
   double B2scale = 1.0;
   double maxmem = 0.;
   double stage1time = 0.;
@@ -542,12 +540,6 @@ main (int argc, char *argv[])
         {
           print_config ();
           exit (EXIT_SUCCESS);
-        }
-      else if (strcmp (argv[1], "-cofdec") == 0)
-        {
-	  decimal_cofactor = 1;
-	  argv++;
-	  argc--;
         }
       else if (strcmp (argv[1], "-nn") == 0)
         {
@@ -1524,8 +1516,7 @@ main (int argc, char *argv[])
 
               returncode = process_newfactor (tmp_factor, result, &n, method,
                                  returncode, params->gpu, &cnt, &resume_wasPrp,
-                                 resume_lastfac, resumefile, verbose, 
-                                 decimal_cofactor, deep);
+                                 resume_lastfac, resumefile, verbose, deep);
             } while (params->gpu && mpz_cmp_ui (f, 0) != 0 
                                  && returncode != ECM_INPUT_NUMBER_FOUND);
           mpz_clear (tmp_factor);
@@ -1534,7 +1525,7 @@ main (int argc, char *argv[])
       /* if quiet mode, prints remaining cofactor after last curve */
       if ((cnt == 0) && (verbose == 0))
         {
-          if (n.cpExpr && !decimal_cofactor)
+          if (n.cpExpr)
             printf ("%s", n.cpExpr);
           else
             mpz_out_str (stdout, 10, n.n);

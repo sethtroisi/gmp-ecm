@@ -70,8 +70,7 @@ typedef struct
 unsigned int nb_digits  (const mpz_t);
 int read_number (mpcandi_t*, FILE*, int);
 int process_newfactor (mpz_t, int, mpcandi_t*, int, int, int, unsigned int*, 
-                       int*, mpz_t, FILE*, int,
-                       unsigned int, int);
+                       int*, mpz_t, FILE*, int, int);
 
 /* Various logging levels */
 /* OUTPUT_ALWAYS means print always, regardless of verbose value */
