@@ -8,7 +8,7 @@ cd ecm
 autoreconf -i
 ./configure
 make CFLAGS="-O0 -g -fprofile-arcs -ftest-coverage"
-make longcheck
+make longcheck VALGRIND=
 geninfo --no-checksum --ignore-errors gcov,source -q --output-filename ecm.info ./ --no-external
 rm -rf $t
 genhtml -o $t/ ecm.info
