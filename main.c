@@ -51,6 +51,8 @@ http://www.gnu.org/licenses/ or write to the Free Software Foundation, Inc.,
 /* Used in print_config() */
 #include "ecm-params.h"
 
+#include "torsions.h" /* to benefit from more torsion groups */
+
 /* #define DEBUG */
 
 static int exit_asap_value = 0;
@@ -297,7 +299,7 @@ print_config ()
    gcd(den(q), N) is put in r.
  */
 static int
-mod_from_rat(mpz_t r, mpq_t q, mpz_t N, int verbose)
+mod_from_mpq(mpz_t r, mpq_t q, mpz_t N, int verbose)
 {
     mpz_t inv, C;
     int factor_is_prime, cofactor_is_prime, ret = ECM_NO_FACTOR_FOUND;
@@ -1284,7 +1286,7 @@ main (int argc, char *argv[])
           /* Set effective seed for factoring attempt on this number */
 	  if (specific_A)
 	    {
-		returncode = mod_from_rat(A, rat_A, n.n, verbose);
+		returncode = mod_from_mpq(A, rat_A, n.n, verbose);
 		if(returncode != ECM_NO_FACTOR_FOUND)
 		    return returncode;
 	    }
@@ -1297,13 +1299,13 @@ main (int argc, char *argv[])
 		  exit (EXIT_FAILURE);
                 }
 
-	      returncode = mod_from_rat(x, rat_x0, n.n, verbose);
+	      returncode = mod_from_mpq(x, rat_x0, n.n, verbose);
 	      if(returncode != ECM_NO_FACTOR_FOUND)
 		  return returncode;
 
 	      if (specific_y0)
 		{
-		  returncode = mod_from_rat(y, rat_y0, n.n, verbose);
+		  returncode = mod_from_mpq(y, rat_y0, n.n, verbose);
 		  if (returncode != ECM_NO_FACTOR_FOUND)
 		    return returncode;
 		}

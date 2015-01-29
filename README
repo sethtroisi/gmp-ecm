@@ -460,8 +460,15 @@ group (over the rationals). For instance
 will generate a curve E over the rationals with torsion group Z/5Z and a point
 of infinite order, both generated from parameter sigma = 2.
 
-Available torsion groups (over the rationals) are: Z5, Z7, Z9, Z10, Z2xZ8.
-Reference is Atkin/Morain, Math. Comp., 1993.
+Available torsion groups (over the rationals) are: 
+* Z5: for sigma != 0, -1/2, -1/3, -1/4, cf. [1]
+* Z7: [1]
+* Z9: [1]
+* Z10: [1]
+* Z2xZ8: [1]
+* Z3xZ3
+* Z4xZ4
+References: [1] Atkin/Morain, Math. Comp., 1993.
 
 ##############################################################################
 
