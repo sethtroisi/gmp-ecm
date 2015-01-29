@@ -38,7 +38,7 @@ typedef carry_t VOL bigint_t[ECM_GPU_NB_DIGITS];
 #define gpu_ecm __ECM(gpu_ecm)
 #ifdef WITH_GPU
 int gpu_ecm (mpz_t, mpz_t, int*, mpz_t, mpz_t, mpz_t, double *, double, mpz_t, 
-             mpz_t, double, unsigned long, const int, int, int, int, int, int,
+             mpz_t, unsigned long, const int, int, int, int, int, int,
              FILE*, FILE*, char*, char *, double, int (*)(void), mpz_t, 
              double *, int, int*, unsigned int*);
 #else

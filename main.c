@@ -132,7 +132,6 @@ usage (void)
     printf ("  -inp file    Use file as input (instead of redirecting stdin)\n");
     printf ("  -one         Stop processing a candidate if a factor is found (looping mode)\n");
     printf ("  -nn          run ecm in \"very nice\" mode (idle priority)\n");
-    printf ("  -B2scale f   Multiplies the default B2 value by f \n");
     printf ("  -go val      Preload with group order val, which can be a simple expression,\n");
     printf ("               or can use N as a placeholder for the number being factored.\n");
     printf ("  -printconfig Print compile-time configuration and exit.\n");
@@ -389,7 +388,6 @@ main (int argc, char *argv[])
   unsigned int count = 1; /* number of curves for each number */
   unsigned int cnt = 0;   /* number of remaining curves for current number */
   int deep=1;
-  double B2scale = 1.0;
   double maxmem = 0.;
   double stage1time = 0.;
   ecm_params params;
@@ -754,14 +752,6 @@ main (int argc, char *argv[])
 	      fprintf (stderr, "Can't find input file %s\n", infilename);
 	      exit (EXIT_FAILURE);
 	    }
-	  argv += 2;
-	  argc -= 2;
-	}
-      else if ((argc > 2) && (strcmp (argv[1], "-B2scale") == 0))
-	{
-	  B2scale = atof (argv[2]);
-	  if (verbose >= 2)
-	    printf ("Scaling B2 values by a factor of %.4f\n", B2scale);
 	  argv += 2;
 	  argc -= 2;
 	}
@@ -1425,9 +1415,6 @@ main (int argc, char *argv[])
       mpz_set (params->sigma, (params->sigma_is_A) ? A : sigma);
       mpz_set (params->go, go.Candi.n); /* may change if contains N */
       mpz_set (params->B2min, B2min); /* may change with -c */
-      /* Here's an ugly hack to pass B2scale to the library somehow.
-         It gets piggy-backed onto B1done */
-      params->B1done = params->B1done + floor (B2scale * 128.) / 134217728.; 
       /* Default, for P-1/P+1 with old stage 2 and ECM, use NTT only 
          for small input */
       if (use_ntt == 1 && (method == ECM_ECM || S != ECM_DEFAULT_S)) 

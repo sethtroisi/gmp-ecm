@@ -436,7 +436,7 @@ print_prob (double B1, const mpz_t B2, unsigned long dF, unsigned long k,
 */
 int
 pm1 (mpz_t f, mpz_t p, mpz_t N, mpz_t go, double *B1done, double B1,
-     mpz_t B2min_parm, mpz_t B2_parm, double B2scale, unsigned long k, 
+     mpz_t B2min_parm, mpz_t B2_parm, unsigned long k, 
      int verbose, int repr, int use_ntt, FILE *os, FILE *es, 
      char *chkfilename, char *TreeFilename, double maxmem, 
      gmp_randstate_t rng, int (*stop_asap)(void))
@@ -469,8 +469,7 @@ pm1 (mpz_t f, mpz_t p, mpz_t N, mpz_t go, double *B1done, double B1,
   
   /* Set default B2. See ecm.c for comments */
   if (ECM_IS_DEFAULT_B2(B2))
-    mpz_set_d (B2, B2scale * pow (B1 * PM1FS2_COST, 
-               PM1FS2_DEFAULT_B2_EXPONENT));
+    mpz_set_d (B2, pow (B1 * PM1FS2_COST, PM1FS2_DEFAULT_B2_EXPONENT));
   
   /* set B2min */
   if (mpz_sgn (B2min) < 0)

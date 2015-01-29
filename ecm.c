@@ -979,7 +979,7 @@ print_B1_B2_poly (int verbosity, int method, double B1, double B1done,
 /* Compute parameters for stage 2*/
 int
 set_stage_2_params (mpz_t B2, mpz_t B2_parm, mpz_t B2min, mpz_t B2min_parm, 
-                    root_params_t *root_params, double B1, double B2scale,
+                    root_params_t *root_params, double B1,
                     unsigned long *k, const int S, int use_ntt, int *po2,
                     unsigned long *dF, char *TreeFilename, double maxmem, 
                     int Fermat, mpmod_t modulus)
@@ -1004,7 +1004,7 @@ set_stage_2_params (mpz_t B2, mpz_t B2_parm, mpz_t B2min, mpz_t B2min_parm,
   /* Also scale B2 by what the user said (or by the default scaling of 1.0) */
 
   if (ECM_IS_DEFAULT_B2(B2))
-    mpz_set_d (B2, B2scale * pow (ECM_COST * B1, DEFAULT_B2_EXPONENT));
+    mpz_set_d (B2, pow (ECM_COST * B1, DEFAULT_B2_EXPONENT));
 
   /* set B2min */
   if (mpz_sgn (B2min) < 0)
@@ -1058,7 +1058,6 @@ set_stage_2_params (mpz_t B2, mpz_t B2_parm, mpz_t B2min, mpz_t B2min_parm,
           go is the initial group order to preload  
           B1, B2 are the stage 1/stage 2 bounds, respectively
           B2min the lower bound for stage 2
-          B2scale is the stage 2 scale factor
           k is the number of blocks to do in stage 2
           S is the degree of the Suyama-Brent extension for stage 2
           verbose is verbosity level: 0 no output, 1 normal output,
@@ -1073,7 +1072,7 @@ set_stage_2_params (mpz_t B2, mpz_t B2_parm, mpz_t B2min, mpz_t B2min_parm,
 */
 int
 ecm (mpz_t f, mpz_t x, mpz_t y, int *param, mpz_t sigma, mpz_t n, mpz_t go, 
-     double *B1done, double B1, mpz_t B2min_parm, mpz_t B2_parm, double B2scale,
+     double *B1done, double B1, mpz_t B2min_parm, mpz_t B2_parm,
      unsigned long k, const int S, int verbose, int repr, int nobase2step2, 
      int use_ntt, int sigma_is_A, ell_curve_t zE,
      FILE *os, FILE* es, char *chkfilename, char
@@ -1211,8 +1210,8 @@ ecm (mpz_t f, mpz_t x, mpz_t y, int *param, mpz_t sigma, mpz_t n, mpz_t go,
 
   ell_curve_set_z (E, zE, modulus);
 
-  youpi = set_stage_2_params (B2, B2_parm, B2min, B2min_parm, 
-			      &root_params, B1, B2scale, &k, S, use_ntt,
+  youpi = set_stage_2_params (B2, B2_parm, B2min, B2min_parm,
+			      &root_params, B1, &k, S, use_ntt,
 			      &po2, &dF, TreeFilename, maxmem, Fermat,modulus);
   if(!ECM_IS_DEFAULT_B2(B2_parm))
       mpz_init_set (B2, B2_parm);
