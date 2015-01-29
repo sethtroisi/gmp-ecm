@@ -1285,8 +1285,8 @@ build_curves_with_torsion_Z4xZ4(mpz_t f, mpmod_t n, ell_curve_t *tE,
 	/* y0:=27*(nu^2-3)*(nu^2+1)*(nu^2+9)*(nu^6+5*nu^4+15*nu^2+27)^2; */
 	/* P = (x0, y0) is a point on Y^2 = X^3+A*X+B */
 
-	/* Montgomery form: there are several b possible */
-	/* b:=1/9/lambda^2/(tau^4-1); */
+	/* Montgomery form: there are several mb possible */
+	/* mb:=1/9/lambda^2/(tau^4-1); */
 	mpz_powm_ui(x0, tau, 4, n->orig_modulus);
 	mpz_sub_si(x0, x0, 1);
 	mpz_mod(x0, x0, n->orig_modulus);
@@ -1299,7 +1299,7 @@ build_curves_with_torsion_Z4xZ4(mpz_t f, mpmod_t n, ell_curve_t *tE,
 	    ret = ECM_FACTOR_FOUND_STEP1;
 	    break;
 	}
-	/* a:=-2*(tau^4+1)/(tau^4-1); */
+	/* ma:=-2*(tau^4+1)/(tau^4-1); */
 	mpz_add_si(tmp, x0, 2);
 	mpz_mul_si(tmp, tmp, -2);
 	mpz_mod(tmp, tmp, n->orig_modulus);
@@ -1356,6 +1356,21 @@ build_curves_with_torsion_Z4xZ4(mpz_t f, mpmod_t n, ell_curve_t *tE,
     }
     return ret;
 }
+
+/* Original source is Brier + Clavier.
+   We can build curves in Montgomery form directly... 
+   Useful if one knows that all p | n are 1 mod 4 (Cunningham, etc.).
+   We build on Z4xZ4.
+*/
+#if 0
+int
+build_curves_with_torsion_Z4xZ8(mpz_t f, mpmod_t n, ell_curve_t *tE,
+				ell_point_t *tP,
+				int smin, int smax, int nE)
+{
+    /* HERE! */
+}
+#endif
 
 /* coeffs = {deg, c_deg, ..., c_0} */
 void
