@@ -53,5 +53,8 @@ echo "(2^9941+1)/3" | $ECM -param 0 -go 400643 -sigma 883077734 66643 88572719; 
 echo "(2^23209+1)/389100550245753" | $ECM -param 0 -sigma 1403722985 -go "1043173*1363273*1577143" 29411 1046754883; checkcode $? 6
 
 # from https://groups.google.com/forum/#!topic/Mersenneplustwo/XKAkqQ3_ni4
+# first check that primality test of cofactor is not too expensive
+# (here we find the factor 3 in step 1)
+echo "2^2582657+1" | $ECM -param 0 -sigma 1483035008190041 46 481199; checkcode $? 2
 
 echo "All ECM tests are ok."
