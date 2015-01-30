@@ -85,42 +85,6 @@ mpcandi_t_free (mpcandi_t *n)
 #endif
 }
 
-/* performs a safe "deep" copy */
-int
-mpcandi_t_copy (mpcandi_t *to, mpcandi_t *from)
-{
-#if defined (CANDI_DEBUG)
-  Candi_Validate("Pre mpcandi_t_copy", to);
-  Candi_Validate("Pre mpcandi_t_copy", from);
-#endif
-  if (to == from)
-     return 1;
-  if (to->cpExpr)
-    free(to->cpExpr);
-  to->cpExpr = NULL;
-  if (from->cpExpr)
-    {
-      to->cpExpr = (char *) malloc(from->nexprlen+1);
-      if (to->cpExpr == NULL)
-        {
-          fprintf (stderr, "Error: not enough memory\n");
-          exit (EXIT_FAILURE);
-        }
-      strcpy(to->cpExpr, from->cpExpr);
-    }
-  to->nexprlen = from->nexprlen;
-  mpz_set(to->n, from->n);
-  to->isPrp = from->isPrp;
-  to->ndigits = from->ndigits;
-
-#if defined (CANDI_DEBUG)
-  Candi_Validate("Post mpcandi_t_copy", to);
-  Candi_Validate("Post mpcandi_t_copy", from);
-#endif
-
-  return 1;
-}
-
 int
 mpcandi_t_add_candidate (mpcandi_t *n, mpz_t c, const char *cpExpr,
 			 int primetest)
@@ -159,36 +123,10 @@ mpcandi_t_add_candidate (mpcandi_t *n, mpz_t c, const char *cpExpr,
 }
 
 int
-mpcandi_t_addfoundfactor_d (mpcandi_t *n, double f)
-{
-#if defined (CANDI_DEBUG)
-  Candi_Validate("Pre mpcandi_t_addfoundfactor_d", n);
-#endif
-  int ret;
-  mpz_t t;
-  mpz_init_set_d(t,f);
-  /* do not display a warning if this factor does not divide the remaining
-     cofactor. This function is called repeatedly (until it fails) to remove
-     all traces of 
-     the prime factor.  It is highly likely that these smaller factors will be
-     non square-free within the candidate when starting.  A return of zero is 
-     exprected by the calling trial divider, as that tells it that all residue 
-     of the factor has been eliminated */
-  ret = mpcandi_t_addfoundfactor (n, t, 0);
-  mpz_clear (t);
-
-#if defined (CANDI_DEBUG)
-  Candi_Validate("Post mpcandi_t_addfoundfactor_d", n);
-#endif
-
-  return ret;
-}
-
-int
 mpcandi_t_addfoundfactor (mpcandi_t *n, mpz_t f, int displaywarning)
 {
 #if defined (CANDI_DEBUG)
-  Candi_Validate("Pre mpcandi_t_addfoundfactor_d", n);
+  Candi_Validate("Pre mpcandi_t_addfoundfactor", n);
 #endif
   char *cp, *cp1;
 
@@ -201,7 +139,7 @@ mpcandi_t_addfoundfactor (mpcandi_t *n, mpz_t f, int displaywarning)
         gmp_fprintf (stderr, "ECM logic ERROR. Trying to remove a "
                      "non-factor %Zd\n", f);
 #if defined (CANDI_DEBUG)
-      Candi_Validate("Post (no factor removed) mpcandi_t_addfoundfactor_d", n);
+      Candi_Validate("Post (no factor removed) mpcandi_t_addfoundfactor", n);
 #endif
       return 0;
     }
@@ -227,7 +165,7 @@ mpcandi_t_addfoundfactor (mpcandi_t *n, mpz_t f, int displaywarning)
       free (cp1); /* size strlen (cp1) + 1 */
     }
 #if defined (CANDI_DEBUG)
-  Candi_Validate("Post (removed factor) mpcandi_t_addfoundfactor_d", n);
+  Candi_Validate("Post (removed factor) mpcandi_t_addfoundfactor", n);
 #endif
   return 1;
 }

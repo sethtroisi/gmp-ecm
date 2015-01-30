@@ -86,7 +86,10 @@ by another one.
 
 Note: if a factor of P-1 if known, you can specify it with -go. For example
 it is known that the Fermat number 2^(2^n)+1 has factors of the form
-k*2^(n+2)+1, thus 2^(n+2) is a known factor of P-1.
+k*2^(n+2)+1, thus 2^(n+2) is a known factor of P-1. The -go expression has
+a special placeholder 'N' which stands for the input number, for example:
+
+$ echo "2^(2^12)+1" | ecm -go "N-1" -pm1 1e6
 
 The P+1 method works well when the input number has a prime factor P such
 that P+1 is "smooth". For P=4190453151940208656715582382315221647, we have
@@ -344,8 +347,8 @@ syntax that is handled:
 8.  Simple factorial using the exclamation point !  character.  Example is
     53! == 1*2*3*4...*52*53. Example: echo '53!+1' | ./ecm 1e2
 9.  Multi-factorial as in: n!m with an example:  15!3 == 15.12.9.6.3.
-10. Simple Primorial using the # character  with example of 11# == 2*3*5*7*11
-11. Reduced Primorial   n#m  with example of 17#5 == 5.7.11.13.17
+10. Simple Primorial using the # character with example of 11# == 2*3*5*7*11
+11. Reduced Primorial n#m with example of 17#5 == 5.7.11.13.17
 12. Functions are possible with the expression parser. Currently, the only 
     available function is Phi(x,n), however other functions should be easy
     to add in the future.
