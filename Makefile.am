@@ -62,7 +62,8 @@ if WANT_CUDA
   ecm_CFLAGS += $(CC_ADD_FLAGS_FOR_GPU)
 endif
 ecm_SOURCES = auxi.c b1_ainc.c candi.c eval.c random.c main.c \
-              resume.c getprime.c champions.h aprtcle/mpz_aprcl.c
+              resume.c getprime.c champions.h aprtcle/mpz_aprcl.c \
+              memusage.c
 
 tune_SOURCES = mpmod.c tune.c mul_lo.c listz.c auxlib.c ks-multiply.c \
                schoen_strass.c polyeval.c median.c ecm_ntt.c \
