@@ -85,6 +85,10 @@ There is no need to run P-1 several times with the same B1 and B2 as there
 is for ECM, since a factor found with one seed will (almost always) be found 
 by another one.
 
+Note: if a factor of P-1 if known, you can specify it with -go. For example
+it is known that the Fermat number 2^(2^n)+1 has factors of the form
+k*2^(n+2)+1, thus 2^(n+2) is a known factor of P-1.
+
 The P+1 method works well when the input number has a prime factor P such
 that P+1 is "smooth". For P=4190453151940208656715582382315221647, we have
 P+1 = 2^4 * 283 * 2423 * 21881 * 39839 * 1414261 * 2337233 * 132554351, so
