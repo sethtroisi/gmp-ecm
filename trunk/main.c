@@ -1585,5 +1585,9 @@ main (int argc, char *argv[])
     returncode = 143;
 #endif
 
+  /* print memory usage */
+  if (verbose > 1)
+    printf ("Peak memory usage: %ldMB\n", PeakMemusage () >> 10);
+
   return returncode;
 }
