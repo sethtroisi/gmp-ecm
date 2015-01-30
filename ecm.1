@@ -378,43 +378,6 @@ could be used when trying to factor the same number simultaneously on 10 identic
 .PP
 These options allow for executing shell commands to supplement functionality to GMP\-ECM\&.
 .PP
-\fB\-prpcmd \fR\fB\fIcmd\fR\fR
-.RS 4
-Execute command
-\fIcmd\fR
-to test primality if factors and cofactors instead of GMP\-ECM\'s own functions\&. The number to test is passed via stdin\&. An exit code of 0 is interpreted as
-\(lqprobably prime\(rq, a non\-zero exit code as
-\(lqcomposite\(rq\&.
-.RE
-.PP
-\fB\-faccmd \fR\fB\fIcmd\fR\fR
-.RS 4
-Executes command
-\fIcmd\fR
-whenever a factor is found by P\-1, P+1 or ECM\&. The input number, factor and cofactor are passed via stdin, each on a line\&. This could be used i\&.e\&. to mail new factors automatically:
-.sp
-.if n \{\
-.RS 4
-.\}
-.nf
-ecm \-faccmd \'mail \-s \(lq$HOSTNAME found a factor\(rq
-                me@myaddress\&.com\' 11e6 < cunningham\&.in
-.fi
-.if n \{\
-.RE
-.\}
-.sp
-.RE
-.PP
-\fB\-idlecmd \fR\fB\fIcmd\fR\fR
-.RS 4
-Executes command
-\fIcmd\fR
-before each ECM curve, P\-1 or P+1 attempt on a number is started\&. If the exit status of
-\fIcmd\fR
-is non\-zero, GMP\-ECM terminates immediately, otherwise it continues normally\&. GMP\-ECM is stopped while
-\fIcmd\fR
-runs, offering a way for letting GMP\-ECM sleep for example while the system is otherwise busy\&.
 .RE
 .SH "MISCELLANEOUS"
 .PP
