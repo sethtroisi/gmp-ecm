@@ -99,9 +99,10 @@ if WITH_GWNUM
 endif
 
 include_HEADERS = ecm.h
-noinst_HEADERS = basicdefs.h ecm-impl.h ecm-gmp.h ecm-ecm.h sp.h longlong.h ecm-params.h \
-                 mpmod.h ecm-gpu.h cudakernel.h addlaws.h \
-                 aprtcle/mpz_aprcl.h aprtcle/jacobi_sum.h
+noinst_HEADERS = basicdefs.h ecm-impl.h ecm-gmp.h ecm-ecm.h sp.h longlong.h \
+	         ecm-params.h mpmod.h ecm-gpu.h cudakernel.h addlaws.h \
+                 listz_handle.h torsions.h aprtcle/mpz_aprcl.h \
+                 aprtcle/jacobi_sum.h
 
 EXTRA_DIST = test.pm1 test.pp1 test.ecm README.lib INSTALL-ecm ecm.xml  \
              pentium4/params.h x86_64/core2/params.h x86_64/k8/params.h \
