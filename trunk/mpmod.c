@@ -1309,7 +1309,7 @@ mpres_ui_pow (mpres_t R, const unsigned long BASE, const mpres_t EXP,
       size_t expidx;
       mp_limb_t bitmask, expbits;
 
-      expidx = mpz_size (EXP) -1;           /* point at most significant limb */
+      expidx = mpz_size (EXP) - 1;         /* point at most significant limb */
       expbits = mpz_getlimbn (EXP, expidx); /* get most significant limb */
       bitmask = (mp_limb_t) 1 << (GMP_NUMB_BITS - 1);
 
