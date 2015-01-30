@@ -108,4 +108,7 @@ echo "2^(64*2)-1" | $PM1 -redc -x0 -1 2 1; checkcode $? 8
 # check bug fixed in revision 2068
 echo "234^997+997^234" | $PM1 -ntt 100 324; checkcode $? 0
 
+# check go with 'N' placeholder
+echo "2^(2^12)+1" | $PM1 -go "N-1" 1e6; checkcode $? 2
+
 echo "All P-1 tests are ok."
