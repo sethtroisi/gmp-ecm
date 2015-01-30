@@ -640,7 +640,7 @@ AC_SUBST(CC_ADD_FLAGS_FOR_GPU)
 LIBS="$LIBS $GWLIB"
 
 GMP_FINISH
-AC_CONFIG_FILES([Makefile athlon/Makefile pentium4/Makefile x86_64/Makefile powerpc64/Makefile])
+AC_CONFIG_FILES([Makefile athlon/Makefile pentium4/Makefile x86_64/Makefile powerpc64/Makefile aprtcle/Makefile])
 
 AC_SUBST([XSLDIR])
 AC_SUBST([ASMPATH])
