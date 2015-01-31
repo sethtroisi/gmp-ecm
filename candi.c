@@ -108,12 +108,19 @@ mpcandi_t_add_candidate (mpcandi_t *n, mpz_t c, const char *cpExpr,
       strcpy (n->cpExpr, cpExpr);
     }
   mpz_set (n->n, c);
+  n->ndigits = nb_digits (c);
   if (primetest)
-    n->isPrp = mpz_probab_prime_p (c, PROBAB_PRIME_TESTS);
+    {
+      if (n->ndigits < APRCL_CUTOFF)
+        n->isPrp = mpz_aprtcle (c, 0);
+      if (n->ndigits < APRCL_CUTOFF2)
+        n->isPrp = mpz_aprtcle (c, 1);
+      else
+        n->isPrp = mpz_probab_prime_p (c, PROBAB_PRIME_TESTS);
+    }
   else
     n->isPrp = 0; /* there is a candidate there now, and the user did not
 		     tell us to prp it, so assume it is composite */
-  n->ndigits = nb_digits (c);
 
 #if defined (CANDI_DEBUG)
   Candi_Validate("Post mpcandi_t_add_candidate", n);
@@ -147,7 +154,12 @@ mpcandi_t_addfoundfactor (mpcandi_t *n, mpz_t f, int displaywarning)
   /* remove f from n->n */
   mpz_divexact (n->n, n->n, f);
   n->ndigits = nb_digits (n->n);
-  n->isPrp = mpz_probab_prime_p (n->n, PROBAB_PRIME_TESTS);
+  if (n->ndigits < APRCL_CUTOFF)
+    n->isPrp = mpz_aprtcle (n->n, 0);
+  if (n->ndigits < APRCL_CUTOFF2)
+    n->isPrp = mpz_aprtcle (n->n, 1);
+  else
+    n->isPrp = mpz_probab_prime_p (n->n, PROBAB_PRIME_TESTS);
   if (n->cpExpr != NULL)
     {
       /* If there is an expression, then lets preserve it */
