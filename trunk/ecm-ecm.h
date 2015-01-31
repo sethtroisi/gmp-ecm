@@ -175,4 +175,24 @@ long PeakMemusage (void);
 
 #define ABS(x) ((x) >= 0 ? (x) : -(x))
 
+#ifdef HAVE_APRCL
+#include "aprtcle/mpz_aprcl.h"
+#define ECM_FAC_PRIME APRTCLE_PRIME
+#define ECM_FAC_PRP APRTCLE_PRP
+#else
+#define mpz_aprtcle(x,y) mpz_probab_prime_p(x,PROBAB_PRIME_TESTS)
+#define ECM_FAC_PRIME 2 /* mpz_probab_prime_p and aprcl returns 2 when
+                           a number is definitely prime */
+#define ECM_FAC_PRP 1   /* mpz_probab_prime_p and aprcl returns 1 when
+                           a number is a probable prime */
+#endif
+
+/* Cutoff value: Show APRCL progress only if n has more digits than cutoff */
+#define APRCL_CUTOFF 400   /* for more than APRCL_CUTOFF digits, print
+                              progress */
+/* Cutoff value: Use APRCL if n has fewer digits than cutoff2
+                 Use mpz_probab_prime_p if n has more digits than cutoff2 */
+#define APRCL_CUTOFF2 1000 /* for more than APRCL_CUTOFF2 digits, perform
+                              a pseudo-primality test */
+
 #endif /* _ECM_ECM_H */

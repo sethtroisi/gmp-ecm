@@ -24,18 +24,6 @@ http://www.gnu.org/licenses/ or write to the Free Software Foundation, Inc.,
 #include "ecm-impl.h"
 #include "ecm-ecm.h"
 
-#ifdef HAVE_APRCL
-#include "aprtcle/mpz_aprcl.h"
-#define ECM_FAC_PRIME APRTCLE_PRIME
-#define ECM_FAC_PRP APRTCLE_PRP
-#else
-#define mpz_aprtcle(x,y) mpz_probab_prime_p(x,PROBAB_PRIME_TESTS)
-#define ECM_FAC_PRIME 2 /* mpz_probab_prime_p returns 2 when a number is
-                           definitely prime */
-#define ECM_FAC_PRP 1   /* mpz_probab_prime_p returns 1 when a number is
-                           a probable prime */
-#endif
-
 #ifdef HAVE_GWNUM
 /* For GWNUM_VERSION */
 #include "gwnum.h"
@@ -231,23 +219,6 @@ process_newfactor (mpz_t g, int result, mpcandi_t *n, int method,
 
       if (verbose >= 1)
         {
-#ifdef HAVE_APRCL
-#define APRCL_CUTOFF 400   /* for more than APRCL_CUTOFF digits, print
-                              progress */
-#define APRCL_CUTOFF2 1000 /* for more than APRCL_CUTOFF2 digits, perform
-                              a pseudo-primality test */
-          if (n->ndigits > APRCL_CUTOFF2)
-            cofactor_is_prime = n->isPrp; /* from mpcandi_t_addfoundfactor */
-          else if (n->ndigits > APRCL_CUTOFF)
-            {
-              printf ("Proving primality of %u-digit cofactor may take a while...\n", n->ndigits);
-              /* the second argument here tells aprtcle to print primality proving progress info */
-              cofactor_is_prime = mpz_aprtcle (n->n, 1);
-              printf ("\n");
-            }
-          else
-            cofactor_is_prime = mpz_aprtcle (n->n, 0);
-#endif
           cofactor_is_prime = n->isPrp; /* from mpcandi_t_addfoundfactor */
 
           if (cofactor_is_prime == ECM_FAC_PRIME)

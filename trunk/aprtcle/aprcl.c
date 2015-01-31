@@ -1,4 +1,4 @@
-/* Copyright 2012,2013 David Cleaver
+/* Copyright 2012-2015 David Cleaver
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Lesser General Public License as published by
@@ -83,7 +83,7 @@ int main(int argc, char* argv[])
     printf("    Where <num> is a number to test for primality\n");
     printf(" %s -inp <file>\n", argv[0]);
     printf("    Where <file> contains one or more numbers to test for primality\n");
-    printf(" Note: This program returns the APR-CL and BPSW status of the input number(s).\n");
+    printf(" Note: This program returns the APR-CL and MPZ PRP status of the input number(s).\n");
     printf(" Note: This program will also print out timing information for each check.\n");
     printf(" Note: All input numbers are assumed to be base-10 numbers.\n");
     return 0;
@@ -124,9 +124,9 @@ int main(int argc, char* argv[])
       printf("===============================================================================\n");
       dig = b10_digits(test);
       gmp_printf("Testing: %Zd (%d digits)\n", test, dig); fflush(stdout);
-      printf("Running the BPSW PRP test...\n"); fflush(stdout);
+      printf("Running the MPZ PRP test with 5 iterations...\n"); fflush(stdout);
       t0 = ttime(0);
-      ret_b = mpz_bpsw_prp(test);
+      ret_b = mpz_probab_prime_p(test, 5);
       t1 = ttime(t0);
 
       printf("Running the APRCL prime test...\n"); fflush(stdout);
@@ -134,13 +134,13 @@ int main(int argc, char* argv[])
       ret_a = mpz_aprtcle(test, 1);
       t2 = ttime(t0);
 
-      printf("\n BPSW took %.4f seconds\n", t1);
-      if (ret_b == PRP_COMPOSITE)
-        printf(" BPSW says the number is COMPOSITE\n");
-      else if (ret_b == PRP_PRP)
-        printf(" BPSW says the number is PRP\n");
-      else if (ret_b == PRP_PRIME)
-        printf(" BPSW says the number is PRIME\n");
+      printf("\n MPZ PRP took %.4f seconds\n", t1);
+      if (ret_b == APRTCLE_COMPOSITE)
+        printf(" MPZ PRP says the number is COMPOSITE\n");
+      else if (ret_b == APRTCLE_PRP)
+        printf(" MPZ PRP says the number is PRP\n");
+      else if (ret_b == APRTCLE_PRIME)
+        printf(" MPZ PRP says the number is PRIME\n");
 
       printf("APRCL took %.4f seconds\n", t2);
       if (ret_a == APRTCLE_COMPOSITE)
@@ -150,11 +150,11 @@ int main(int argc, char* argv[])
       else if (ret_a == APRTCLE_PRIME)
         printf("APRCL says the number is PRIME\n");
 
-      if ((ret_b == PRP_COMPOSITE && ret_a != APRTCLE_COMPOSITE) ||
-          (ret_b != PRP_COMPOSITE && ret_a == APRTCLE_COMPOSITE))
+      if ((ret_b == APRTCLE_COMPOSITE && ret_a != APRTCLE_COMPOSITE) ||
+          (ret_b != APRTCLE_COMPOSITE && ret_a == APRTCLE_COMPOSITE))
       {
         printf(" *** ATTENTION *** ATTENTION *** ATTENTION *** ATTENTION ***\n");
-        printf("BPSW and APRCL do not agree on the status of this number!!!\n");
+        printf("MPZ PRP and APRCL do not agree on the status of this number!!!\n");
         printf("Please report this to http://www.mersenneforum.org/showthread.php?t=18353\n");
         gmp_printf("N = %Zd\n", test);
       }
@@ -172,9 +172,9 @@ int main(int argc, char* argv[])
 
     dig = b10_digits(test);
     gmp_printf("Testing: %Zd (%d digits)\n", test, dig); fflush(stdout);
-    printf("Running the BPSW PRP test...\n"); fflush(stdout);
+    printf("Running the MPZ PRP test with 5 iterations...\n"); fflush(stdout);
     t0 = ttime(0);
-    ret_b = mpz_bpsw_prp(test);
+    ret_b = mpz_probab_prime_p(test, 5);
     t1 = ttime(t0);
 
     printf("Running the APRCL prime test...\n"); fflush(stdout);
@@ -182,13 +182,13 @@ int main(int argc, char* argv[])
     ret_a = mpz_aprtcle(test, 1);
     t2 = ttime(t0);
 
-    printf("\n BPSW took %.4f seconds\n", t1);
-    if (ret_b == PRP_COMPOSITE)
-      printf(" BPSW says the number is COMPOSITE\n");
-    else if (ret_b == PRP_PRP)
-      printf(" BPSW says the number is PRP\n");
-    else if (ret_b == PRP_PRIME)
-      printf(" BPSW says the number is PRIME\n");
+    printf("\n MPZ PRP took %.4f seconds\n", t1);
+    if (ret_b == APRTCLE_COMPOSITE)
+      printf(" MPZ PRP says the number is COMPOSITE\n");
+    else if (ret_b == APRTCLE_PRP)
+      printf(" MPZ PRP says the number is PRP\n");
+    else if (ret_b == APRTCLE_PRIME)
+      printf(" MPZ PRP says the number is PRIME\n");
 
     printf("APRCL took %.4f seconds\n", t2);
     if (ret_a == APRTCLE_COMPOSITE)
@@ -198,11 +198,11 @@ int main(int argc, char* argv[])
     else if (ret_a == APRTCLE_PRIME)
       printf("APRCL says the number is PRIME\n");
 
-    if ((ret_b == PRP_COMPOSITE && ret_a != APRTCLE_COMPOSITE) ||
-        (ret_b != PRP_COMPOSITE && ret_a == APRTCLE_COMPOSITE))
+    if ((ret_b == APRTCLE_COMPOSITE && ret_a != APRTCLE_COMPOSITE) ||
+        (ret_b != APRTCLE_COMPOSITE && ret_a == APRTCLE_COMPOSITE))
     {
       printf(" *** ATTENTION *** ATTENTION *** ATTENTION *** ATTENTION ***\n");
-      printf("BPSW and APRCL do not agree on the status of this number!!!\n");
+      printf("MPZ PRP and APRCL do not agree on the status of this number!!!\n");
       printf("Please report this to http://www.mersenneforum.org/showthread.php?t=18353\n");
       gmp_printf("N = %Zd\n", test);
     }

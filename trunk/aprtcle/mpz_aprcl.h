@@ -1,4 +1,4 @@
-/* Copyright 2011,2012,2013 David Cleaver
+/* Copyright 2011-2015 David Cleaver
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Lesser General Public License as published by
@@ -24,113 +24,6 @@ typedef unsigned long long u64_t;
 #endif
 
 #include "jacobi_sum.h"
-
-/*
- * The PRP functions presented here are based on the paper:
- * Grantham, Jon. Frobenius Pseudoprimes. Math. Comp. 70 (2001), 873-891.
- */
-
-/*************************************************************/
-/*************************************************************/
-/* These are the definitions for the probable prime routines */
-/*************************************************************/
-/*************************************************************/
-#define PRP_ERROR -1
-#define PRP_COMPOSITE 0
-#define PRP_PRP 1
-#define PRP_PRIME 2
-
-/* ******************************************************************
- * mpz_prp: (also called a Fermat pseudoprime)
- * A "pseudoprime" to the base a is a composite number n such that,
- * (a,n)=1 and a^(n-1) = 1 mod n
- * ******************************************************************/
-int mpz_prp(mpz_t n, mpz_t a);
-
-/* *************************************************************************
- * mpz_euler_prp: (also called a Solovay-Strassen pseudoprime)
- * An "Euler pseudoprime" to the base a is an odd composite number n with,
- * (a,n)=1 such that a^((n-1)/2)=(a/n) mod n [(a/n) is the Jacobi symbol]
- * *************************************************************************/
-int mpz_euler_prp(mpz_t n, mpz_t a);
-
-/* *********************************************************************************************
- * mpz_sprp: (also called a Miller-Rabin pseudoprime)
- * A "strong pseudoprime" to the base a is an odd composite n = (2^r)*s+1 with s odd such that
- * either a^s == 1 mod n, or a^((2^t)*s) == -1 mod n, for some integer t, with 0 <= t < r.
- * *********************************************************************************************/
-int mpz_sprp(mpz_t n, mpz_t a);
-
-/* *************************************************************************
- * mpz_fibonacci_prp:
- * A "Fibonacci pseudoprime" with parameters (P,Q), P > 0, Q=+/-1, is a
- * composite n for which V_n == P mod n
- * [V is the Lucas V sequence with parameters P,Q]
- * *************************************************************************/
-int mpz_fibonacci_prp(mpz_t n, long int p, long int q);
-
-/* *******************************************************************************
- * mpz_lucas_prp:
- * A "Lucas pseudoprime" with parameters (P,Q) is a composite n with D=P^2-4Q,
- * (n,2QD)=1 such that U_(n-(D/n)) == 0 mod n [(D/n) is the Jacobi symbol]
- * *******************************************************************************/
-int mpz_lucas_prp(mpz_t n, long int p, long int q);
-
-/* *********************************************************************************************
- * mpz_stronglucas_prp:
- * A "strong Lucas pseudoprime" with parameters (P,Q) is a composite n = (2^r)*s+(D/n), where
- * s is odd, D=P^2-4Q, and (n,2QD)=1 such that either U_s == 0 mod n or V_((2^t)*s) == 0 mod n
- * for some t, 0 <= t < r. [(D/n) is the Jacobi symbol]
- * *********************************************************************************************/
-int mpz_stronglucas_prp(mpz_t n, long int p, long int q);
-
-/* *******************************************************************************************
- * mpz_extrastronglucas_prp:
- * Let U_n = LucasU(p,1), V_n = LucasV(p,1), and D=p^2-4.
- * An "extra strong Lucas pseudoprime" to the base p is a composite n = (2^r)*s+(D/n), where
- * s is odd and (n,2D)=1, such that either U_s == 0 mod n and V_s == +/-2 mod n, or
- * V_((2^t)*s) == 0 mod n for some t with 0 <= t < r-1 [(D/n) is the Jacobi symbol]
- * *******************************************************************************************/
-int mpz_extrastronglucas_prp(mpz_t n, long int p);
-
-/* ***********************************************************************************************
- * mpz_selfridge_prp:
- * A "Lucas-Selfridge pseudoprime" n is a "Lucas pseudoprime" using Selfridge parameters of:
- * Find the first element D in the sequence {5, -7, 9, -11, 13, ...} such that Jacobi(D,n) = -1
- * Then use P=1 and Q=(1-D)/4 in the Lucas pseudoprime test.
- * Make sure n is not a perfect square, otherwise the search for D will only stop when D=n.
- * ***********************************************************************************************/
-int mpz_selfridge_prp(mpz_t n);
-
-/* *********************************************************************************************************
- * mpz_strongselfridge_prp:
- * A "strong Lucas-Selfridge pseudoprime" n is a "strong Lucas pseudoprime" using Selfridge parameters of:
- * Find the first element D in the sequence {5, -7, 9, -11, 13, ...} such that Jacobi(D,n) = -1
- * Then use P=1 and Q=(1-D)/4 in the strong Lucase pseudoprime test.
- * Make sure n is not a perfect square, otherwise the search for D will only stop when D=n.
- * **********************************************************************************************************/
-int mpz_strongselfridge_prp(mpz_t n);
-
-/* **********************************************************************************
- * mpz_bpsw_prp:
- * A "Baillie-Pomerance-Selfridge-Wagstaff pseudoprime" is a composite n such that
- * n is a strong pseudoprime to the base 2 and
- * n is a Lucas pseudoprime using the Selfridge parameters.
- * **********************************************************************************/
-int mpz_bpsw_prp(mpz_t n);
-
-/* ****************************************************************************************
- * mpz_strongbpsw_prp:
- * A "strong Baillie-Pomerance-Selfridge-Wagstaff pseudoprime" is a composite n such that
- * n is a strong pseudoprime to the base 2 and
- * n is a strong Lucas pseudoprime using the Selfridge parameters.
- * ****************************************************************************************/
-int mpz_strongbpsw_prp(mpz_t n);
-
-
-
-
-
 
 /*******************************************************/
 /*******************************************************/
