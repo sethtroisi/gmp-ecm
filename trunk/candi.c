@@ -113,7 +113,7 @@ mpcandi_t_add_candidate (mpcandi_t *n, mpz_t c, const char *cpExpr,
     {
       if (n->ndigits < APRCL_CUTOFF)
         n->isPrp = mpz_aprtcle (c, 0);
-      if (n->ndigits < APRCL_CUTOFF2)
+      else if (n->ndigits < APRCL_CUTOFF2)
         n->isPrp = mpz_aprtcle (c, 1);
       else
         n->isPrp = mpz_probab_prime_p (c, PROBAB_PRIME_TESTS);
@@ -156,7 +156,7 @@ mpcandi_t_addfoundfactor (mpcandi_t *n, mpz_t f, int displaywarning)
   n->ndigits = nb_digits (n->n);
   if (n->ndigits < APRCL_CUTOFF)
     n->isPrp = mpz_aprtcle (n->n, 0);
-  if (n->ndigits < APRCL_CUTOFF2)
+  else if (n->ndigits < APRCL_CUTOFF2)
     n->isPrp = mpz_aprtcle (n->n, 1);
   else
     n->isPrp = mpz_probab_prime_p (n->n, PROBAB_PRIME_TESTS);
