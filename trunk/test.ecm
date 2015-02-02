@@ -195,6 +195,10 @@ checkcode $? 14
 
 fi
 
+# test to exercise the Phi code in eval.c
+echo "Phi(101,30)" | $ECM -sigma 0:12023436370081639188 1e5
+checkcode $? 14
+
 # this example would fail with the old Fgw.c when using gwnum (fixed by David Cleaver, r1734)
 echo "((173^173+1)/174)/471462511391940575680645418941" | $ECM -param 0 -sigma 12345 20000
 checkcode $? 0

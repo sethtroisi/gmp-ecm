@@ -192,7 +192,7 @@ long PeakMemusage (void);
                               progress */
 /* Cutoff value: Use APRCL if n has fewer digits than cutoff2
                  Use mpz_probab_prime_p if n has more digits than cutoff2 */
-#define APRCL_CUTOFF2 1000 /* for more than APRCL_CUTOFF2 digits, perform
+#define APRCL_CUTOFF2 500 /* for more than APRCL_CUTOFF2 digits, perform
                               a pseudo-primality test */
 
 #endif /* _ECM_ECM_H */
