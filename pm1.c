@@ -475,7 +475,10 @@ pm1 (mpz_t f, mpz_t p, mpz_t N, mpz_t go, double *B1done, double B1,
   /* choice of modular arithmetic: if default choice, choose mpzmod which
      is always faster, since mpz_powm uses base-k sliding window exponentiation
      and mpres_pow does not */
-  mpmod_init (modulus, N, (repr == ECM_MOD_DEFAULT) ? ECM_MOD_MPZ : repr);
+  if (repr == ECM_MOD_DEFAULT && isbase2 (N, BASE2_THRESHOLD) == 0)
+    mpmod_init (modulus, N, ECM_MOD_MPZ);
+  else
+    mpmod_init (modulus, N, repr);
 
   /* Determine parameters (polynomial degree etc.) */
 
