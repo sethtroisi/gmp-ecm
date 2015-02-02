@@ -100,11 +100,7 @@ mpcandi_t_add_candidate (mpcandi_t *n, mpz_t c, const char *cpExpr,
     {
       n->nexprlen = strlen (cpExpr);
       n->cpExpr = (char *) malloc (n->nexprlen + 1);
-      if (n->cpExpr == NULL)
-        {
-          fprintf (stderr, "Error: not enough memory\n");
-          exit (EXIT_FAILURE);
-        }
+      ASSERT_ALWAYS (n->cpExpr != NULL);
       strcpy (n->cpExpr, cpExpr);
     }
   mpz_set (n->n, c);
@@ -165,11 +161,7 @@ mpcandi_t_addfoundfactor (mpcandi_t *n, mpz_t f, int displaywarning)
       /* If there is an expression, then lets preserve it */
       cp1 = mpz_get_str (NULL, 10, f);
       cp = (char *) malloc(n->nexprlen+1 + 3 + strlen(cp1));  /* +1 for null, +3 for ()/ */
-      if (cp == NULL)
-        {
-          fprintf (stderr, "Error: not enough memory\n");
-          exit (EXIT_FAILURE);
-        }
+      ASSERT_ALWAYS (cp != NULL);
       sprintf (cp, "(%s)/%s", n->cpExpr, cp1);
       free(n->cpExpr);
       n->cpExpr = cp;
@@ -227,11 +219,7 @@ mpgocandi_fixup_with_N (mpgocandi_t *go, mpcandi_t *n)
   cp = go->cpOrigExpr;
   len = NumNs * mpz_sizeinbase (n->n, 10) + strlen (cp) + 100;
   numbuf = (char *) malloc(len);
-  if (numbuf == NULL)
-    {
-      fprintf (stderr, "Error: not enough memory\n");
-      exit (EXIT_FAILURE);
-    }
+  ASSERT_ALWAYS (numbuf != NULL);
   cpo = numbuf;
   while (*cp)
     {
