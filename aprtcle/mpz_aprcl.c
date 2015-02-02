@@ -474,14 +474,6 @@ void JacobiSum(int mode, int P, int PL, int Q)
   for (I = 0; I < PL; I++)
     mpz_set_si(aiJ0[I], sls[jpqs[a].index+I]);
 }
-/* ============================================================================================== */
-
-int mpz_aprcl(mpz_t N)
-{
-  /* Just return the status of the input */
-  /* Do not print out any progress information */
-  return mpz_aprtcle(N, APRTCLE_VERBOSE0);
-}
 
 /* ============================================================================================== */
 
@@ -524,8 +516,6 @@ int mpz_aprtcle(mpz_t N, int verbose)
   NumberLength = mpz_sizeinbase(N, 10);
   if (NumberLength > 7000)
   {
-    if (verbose >= APRTCLE_VERBOSE2)
-      printf(" Info: Number too large, returning mpz_probab_prime_p(N)\n");
     return mpz_probab_prime_p(N, 1); // mpz_probab_prime_p mpz_bpsw_prp
   }
 
@@ -595,8 +585,6 @@ MainStart:
       if (i >= NP)
       { /* too big */
         free_vars();
-        if (verbose >= APRTCLE_VERBOSE2)
-          printf(" ERROR: Not enough primes in P to fully process T, returning mpz_probab_prime_p(N)\n");
         return mpz_probab_prime_p(N, 1);
       }
 
@@ -1020,8 +1008,6 @@ MainStart:
             if (W != P - 1)
             {
               /* Not prime */
-              if (verbose >= APRTCLE_VERBOSE2)
-                {printf("Failed: W != P - 1 : H=%d : W=%d : P-1=%d\n", H, W, P-1); fflush(stdout);}
               free_vars();
               return APRTCLE_COMPOSITE;
             }
@@ -1038,8 +1024,6 @@ MainStart:
             if (I == PM)
             {
               /* Not prime */
-              if (verbose >= APRTCLE_VERBOSE2)
-                {printf("Failed: I == PM : I=%d : PM=%d\n", I, PM); fflush(stdout);}
               free_vars();
               return APRTCLE_COMPOSITE;
             }
@@ -1051,11 +1035,6 @@ MainStart:
               if (mpz_cmp_ui(biTmp, 0) != 0)/* (!BigNbrIsZero(biTmp)) */
               {
                 /* Not prime */
-                if (verbose >= APRTCLE_VERBOSE2)
-                {
-                  printf("Failed: biTmp != 0 (1)\n");
-                  gmp_printf("biTmp=%Zd\n", biTmp); fflush(stdout);
-                }
                 free_vars();
                 return APRTCLE_COMPOSITE;
               }
@@ -1097,11 +1076,6 @@ MainStart:
           if (mpz_cmp_ui(biTmp, 0) != 0)/* (!BigNbrIsZero(biTmp)) */
           {
             /* Not prime */
-            if (verbose >= APRTCLE_VERBOSE2)
-            {
-              printf("Failed: biTmp != 0 (2)\n");
-              gmp_printf("biTmp = %Zd\n", biTmp); fflush(stdout);
-            }
             free_vars();
             return APRTCLE_COMPOSITE;
           }
@@ -1128,8 +1102,6 @@ MainStart:
           LEVELnow++;
           if (LEVELnow == LEVELmax)
           {
-            if (verbose >= APRTCLE_VERBOSE2)
-              {printf("APR-CL cannot tell: lvlnow == lvlmax, returning mpz_probab_prime_p(N)\n"); fflush(stdout);}
             free_vars();
             return mpz_probab_prime_p(N, 1); /* Cannot tell */
           }
@@ -1156,8 +1128,6 @@ MainStart:
               goto MainStart;
             }
           } /* end for J */
-          if (verbose >= APRTCLE_VERBOSE2)
-            {printf("Failed: APR-CL error, returning mpz_probab_prime_p(N)\n"); fflush(stdout);}
           free_vars();
           return mpz_probab_prime_p(N, 1); /* Program error */
         } /* end if */
@@ -1186,17 +1156,13 @@ MainStart:
       if (mpz_divisible_p(TestNbr, biR) && mpz_cmp(biR, TestNbr) < 0) /* biR < N and biR | TestNbr */
       {
         /* Number is composite */
-        if (verbose >= APRTCLE_VERBOSE2)
-          {gmp_printf(" *** Found factor: %Zd\n", biR); fflush(stdout);}
         free_vars();
         return APRTCLE_COMPOSITE;
       }
     } /* End for U */
     /* This should never be reached. */
-    if (verbose >= APRTCLE_VERBOSE2)
-      {printf("Failed: APR-CL error with final test, returning mpz_probab_prime_p(N)\n"); fflush(stdout);}
     free_vars();
-    return mpz_probab_prime_p(N, 1); /* Program error */
+    return mpz_probab_prime_p(N, 1);
   }
 }
 
