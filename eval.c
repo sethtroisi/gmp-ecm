@@ -70,11 +70,11 @@ static int  eval_2 (int bInFuncParams);
 #endif
 #endif
 
-/**************************************/
-/* Main expression evalation function */
-/* This is the function that the app  */
-/* calls to read the expression line  */
-/**************************************/
+/***************************************/
+/* Main expression evaluation function */
+/* This is the function that the app   */
+/* calls to read the expression line   */
+/***************************************/
 int eval (mpcandi_t *n, FILE *fd, int primetest)
 {
   int ret;
