@@ -681,10 +681,6 @@ unsigned long gcd (unsigned long, unsigned long);
 unsigned long eulerphi (unsigned long);
 #define ceil_log2 __ECM(ceil_log2)
 unsigned int  ceil_log2  (unsigned long);
-#define is_prime __ECM(is_prime)
-int           is_prime (const unsigned long);
-#define next_prime __ECM(next_prime)
-unsigned long next_prime (const unsigned long);
 #define find_factor __ECM(find_factor)
 unsigned long find_factor (const unsigned long);
 
