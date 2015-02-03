@@ -87,47 +87,6 @@ ceil_log2 (unsigned long n)
   return k;
 }
 
-
-/* Simple, slow methods for testing / finding primes */
-int 
-is_prime (const unsigned long n)
-{
-  unsigned long i;
-
-  if (n < 2UL)
-    return 0;
-
-  if (n % 2UL == 0UL)
-    return n == 2UL;
-
-  for (i = 3UL; i*i <= n; i += 2UL)
-    if (n % i == 0UL)
-      return 0;
-  
-  return 1;
-}
-
-
-/* Returns the smallest prime larger than n */
-unsigned long
-next_prime (const unsigned long n)
-{
-  unsigned long m;
-
-  if (n < 2UL)
-    return 2UL;
-  
-  if (n == 2UL)
-    return 3UL;
-
-  m = n + 2UL;
-  while (! is_prime (m))
-    m += 2UL;
-
-  return m;
-}
-
-
 /* Returns the smallest prime factor of N. If N == 1, return 1. */
 unsigned long
 find_factor (const unsigned long N)
