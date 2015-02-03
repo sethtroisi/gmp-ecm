@@ -116,7 +116,7 @@ ChompLine:;
         }
 
       /* strip space and tabs out here, and then we DON'T have to mess with them in the rest of the parser */
-      if (!isspace (c))
+      if (!isspace (c) && c != '"' && c != '\'')
 	expr[nCurSize++] = (char) c;
 
       if (nCurSize == nMaxSize)
@@ -193,7 +193,7 @@ JoinLinesLoop:;
   while (*c && !IS_NEWLINE(*c) && *c != ';')
     {
       /* strip space and tabs out here, and then we DON'T have to mess with them in the rest of the parser */
-      if (!isspace((int) *c))
+      if (!isspace((int) *c) && *c != '"' && *c != '\'')
 	expr[nCurSize++] = *c;
       if (nCurSize == nMaxSize)
       {
