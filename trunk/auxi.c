@@ -139,16 +139,8 @@ process_newfactor (mpz_t g, int result, mpcandi_t *n, int method,
   mpz_gcd (f, g, n->n);
 
     /* When GPU is not used, the factor should divide n->n */
-    if (mpz_cmp (g, f) != 0 && gpu == 0)
-      {
-        fprintf (stderr, "Error: factor ");
-        mpz_out_str (stderr, 10, f);
-        fprintf (stderr, "does not divide ");
-        mpz_out_str (stderr, 10, n->n);
-        fprintf (stderr, "\nPlease report internal errors at <%s>.\n",
-                 PACKAGE_BUGREPORT);
-        exit (EXIT_FAILURE);
-      }
+    if (gpu == 0)
+      ASSERT_ALWAYS(mpz_cmp (g, f) == 0);
     else if (mpz_cmp (g, f) != 0 && gpu != 0 && mpz_cmp_ui (f, 1) == 0)
     /* On GPU all factors of g were already found */
       {
@@ -168,14 +160,7 @@ process_newfactor (mpz_t g, int result, mpcandi_t *n, int method,
       }
 
   /* Complain about non-proper factors (0, negative) */
-  if (mpz_cmp_ui (f, 1) < 0)
-    {
-      fprintf (stderr, "Error: factor found is ");
-      mpz_out_str (stderr, 10, f);
-      fprintf (stderr, "\nPlease report internal errors at <%s>.\n",
-               PACKAGE_BUGREPORT);
-      exit (EXIT_FAILURE);
-    }
+  ASSERT_ALWAYS(mpz_cmp_ui (f, 1) >= 1);
   
   if (mpz_cmp (f, n->n) != 0)
     {
