@@ -90,6 +90,14 @@ C=$?
 /bin/rm -f test.pm1.save
 checkcode $C 8
 
+### same with -savea
+echo 25591172394760497166702530699464321 | $PM1 -savea test.pm1.save 100000
+checkcode $? 0
+$PM1 -resume test.pm1.save 120557 2007301
+C=$?
+/bin/rm -f test.pm1.save
+checkcode $C 8
+
 # bug in ecm-5.0 (overflow in fin_diff_coeff)
 echo 504403158265489337 | $PM1 -k 4 8 9007199254740700-9007199254740900; checkcode $? 8
 

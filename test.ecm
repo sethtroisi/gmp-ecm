@@ -56,11 +56,52 @@ esac
 # 2^4 * 3^3 * 29 * 2411
 echo 2050449353925555290706354283 | $ECM -param 0 -sigma 7 -k 1 30 0-1e6; checkcode $? 14
 
+# check -I option
+echo 2050449353925555290706354283 | $ECM -param 0 -sigma 7 -k 1 -I 1 -c 2 3 0-1e6; checkcode $? 14
+
+# exercise the -timestamp option
+echo 2050449353925555290706354283 | $ECM -timestamp -param 0 -sigma 7 -k 1 30 0-1e6; checkcode $? 14
+
+# exercise the -stage1time option
+echo 2050449353925555290706354283 | $ECM -stage1time 17 -param 0 -sigma 7 -k 1 30 0-1e6; checkcode $? 14
+
+# exercise the -primetest option
+echo 2050449353925555290706354283 | $ECM -primetest -param 0 -sigma 7 -k 1 30 0-1e6; checkcode $? 14
+
+# exercise the -q option
+echo 2050449353925555290706354283 | $ECM -q -param 0 -sigma 7 -k 1 30 0-1e6; checkcode $? 14
+
+# exercise the -v option
+echo 2050449353925555290706354283 | $ECM -v -param 0 -sigma 7 -k 1 30 0-1e6; checkcode $? 14
+
+# exercise the -v -v option
+echo 2050449353925555290706354283 | $ECM -v -v -param 0 -sigma 7 -k 1 30 0-1e6; checkcode $? 14
+
+# exercise the -v -v -v option
+echo 2050449353925555290706354283 | $ECM -v -v -v -param 0 -sigma 7 -k 1 30 0-1e6; checkcode $? 14
+
+# exercise the -v -v -v -v option
+echo 2050449353925555290706354283 | $ECM -v -v -v -v -param 0 -sigma 7 -k 1 30 0-1e6; checkcode $? 14
+
 # check the -treefile option
 echo 2050449353925555290706354283 | $ECM -param 0 -treefile tree -sigma 7 -k 1 30 0-1e6; checkcode $? 14
 
 # check the -I f option
 echo 2050449353925555290706354283 | $ECM -param 0 -sigma 7 -I 1 -c 3 100; checkcode $? 14
+
+# check the -chkpnt option
+echo 2050449353925555290706354283 | $ECM -chkpnt test.ecm.chk -param 0 -sigma 7 30 0-1e6
+$ECM -resume test.ecm.chk -param 0 -sigma 7 30 0-1e6
+C=$?
+/bin/rm -f test.ecm.chk
+checkcode $C 14
+
+# check the -inp option
+echo 2050449353925555290706354283 > test.ecm.inp
+$ECM -inp test.ecm.inp -param 0 -sigma 7 -I 1 -c 3 100
+C=$?
+/bin/rm -f test.ecm.inp
+checkcode $C 14
 
 # Check a stage 2 of length 1. g1=1822795201 g2=968809 g3=567947
 echo 212252637915375215854013140804296246361 | $ECM -param 0 -sigma 781683988 -go 550232165123 63421 1822795201-1822795201; checkcode $? 8
@@ -78,6 +119,15 @@ echo 145152979917007299777325725119 | $ECM -param 0 -sigma 711387948 924 117751;
 # with sigma=262763035 is 2^3*3*5*47*59*241*601*743*937
 
 echo "2^919-1" | $ECM -param 0 -sigma 262763035 937 1; checkcode $? 6
+
+# idem with -nobase2
+echo "2^919-1" | $ECM -nobase2 -param 0 -sigma 262763035 937 1; checkcode $? 6
+
+# idem with -nobase2s2
+echo "2^919-1" | $ECM -nobase2s2 -param 0 -sigma 262763035 937 1; checkcode $? 6
+
+# idem with -base2 -919
+echo "2^919-1" | $ECM -base2 -919 -param 0 -sigma 262763035 937 1; checkcode $? 6
 
 # Test a 2^n-1 number, factor found in stage 2. Order mod 33554520197234177
 # with sigma=1691973485 is 2^6*3*11*29*59*73*263*283*1709
