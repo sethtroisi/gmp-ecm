@@ -126,7 +126,6 @@ usage (void)
     printf ("  -maxmem n    use at most n MB of memory in stage 2\n");
     printf ("  -stage1time n add n seconds to ECM stage 1 time (for expected time est.)\n");
 
-    /*printf ("  -extra functions added by JimF\n"); */
     printf ("  -i n         increment B1 by this constant on each run\n");
     printf ("  -I f         increment B1 by f*sqrt(B1) on each run\n");
     printf ("  -inp file    Use file as input (instead of redirecting stdin)\n");
@@ -135,8 +134,8 @@ usage (void)
     printf ("               or can use N as a placeholder for the number being factored.\n");
     printf ("  -printconfig Print compile-time configuration and exit.\n");
 
-    printf ("  -bsaves file In the batch mode, save s in file.\n");
-    printf ("  -bloads file In the batch mode, load s from file.\n");
+    printf ("  -bsaves file With -param 1-3, save stage 1 exponent in file.\n");
+    printf ("  -bloads file With -param 1-3, load stage 1 exponent from file.\n");
 #ifdef WITH_GPU
     printf ("  -gpu         Use GPU-ECM for stage 1.\n");
     printf ("  -gpudevice n Use device n to execute GPU code (by default, "
@@ -836,7 +835,7 @@ main (int argc, char *argv[])
       fprintf (stderr, "Error, library version %s differs from header "
                "version %s with which this file was compiled\n",
                ecm_version(), ECM_VERSION);
-      exit(EXIT_FAILURE);
+      exit (EXIT_FAILURE);
     }
 
   /* start of the program */
@@ -1348,7 +1347,12 @@ main (int argc, char *argv[])
         }
       if (params->param == ECM_PARAM_DEFAULT)
           params->param = param;
-    
+
+      /* this is a hack to produce an error in ecm() when -bsaves is used
+         but we are not in batch mode */
+      if (savefile_s != NULL)
+        mpz_set_ui (params->batch_s, 2);
+
       /* load batch product s from a file */
       if (loadfile_s != NULL)
         {
@@ -1529,8 +1533,8 @@ main (int argc, char *argv[])
         {
           int ret = write_s_in_file (savefile_s, params->batch_s);
           if (verbose >= OUTPUT_VERBOSE && ret > 0)
-              printf ("Save batch product (of %u bytes) in %s.", ret, 
-                                                                 savefile_s);
+              printf ("Saved batch product (of %u bytes) in %s\n", ret, 
+                      savefile_s);
         }
 
       /* advance B1, if autoincrement value had been set during command line 
