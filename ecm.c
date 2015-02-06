@@ -1115,7 +1115,7 @@ ecm (mpz_t f, mpz_t x, mpz_t y, int *param, mpz_t sigma, mpz_t n, mpz_t go,
     }
 #endif
  
-  /* If the parametrization is not given, choose it.*/
+  /* If the parametrization is not given, choose it. */
   if (*param == ECM_PARAM_DEFAULT)
       *param = get_default_param (sigma_is_A, sigma, B1, *B1done);
 
@@ -1166,6 +1166,13 @@ ecm (mpz_t f, mpz_t x, mpz_t y, int *param, mpz_t sigma, mpz_t n, mpz_t go,
       outputf (OUTPUT_ERROR, "Error, maximal step 1 bound for ECM is %lu.\n", 
                ECM_UINT_MAX);
       return ECM_ERROR;
+    }
+
+  /* loading stage 1 exponent makes sense only in batch mode */
+  if (!IS_BATCH_MODE(*param) && mpz_cmp_ui (batch_s, 1) > 0)
+    {
+      fprintf (stderr, "Error, -bsaves/-bloads makes sense in batch mode only\n");
+      exit (EXIT_FAILURE);
     }
 
   /* Compute s for the batch mode */
