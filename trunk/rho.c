@@ -688,10 +688,11 @@ pm1prob (double B1, double B2, double N, double nr, int S, const mpz_t go)
   return prob (B1, B2, N, nr, S, smoothness);
 }
 
+#if defined(TESTDRIVE)
 
 /* Compute probability for primes p == r (mod m) */
 
-double
+static double
 pm1prob_rm (double B1, double B2, double N, double nr, int S, unsigned long r,
             unsigned long m)
 {
@@ -738,8 +739,6 @@ pm1prob_rm (double B1, double B2, double N, double nr, int S, unsigned long r,
    "Introduction the analytical and probabilistic number theory", III.6.
    This function estimates the \Phi(x,y) function via eq. (48) of the 1st
    edition resp. equation (6.49) of the 3rd edition of Tenenbaum's book. */
-
-#if defined(TESTDRIVE)
 
 static double 
 integrand1 (double x, double *y)
