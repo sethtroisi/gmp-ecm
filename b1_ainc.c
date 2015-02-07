@@ -20,11 +20,9 @@ http://www.gnu.org/licenses/ or write to the Free Software Foundation, Inc.,
 #include "ecm-ecm.h"
 #include <math.h>
 
-/* return a new value of B1:
-   if calcInc = 0 (-i n option), return cur_B1 + incB1val
-   if calcInc = 1 (-I f option), return cur_B1 + incB1val * sqrt(cur_B1) */
+/* return a new value of B1: cur_B1 + incB1val * sqrt(cur_B1) */
 double
-calc_B1_AutoIncrement (double cur_B1, double incB1val, int calcInc)
+calc_B1_AutoIncrement (double cur_B1, double incB1val)
 {
-  return cur_B1 + ((calcInc == 0) ? incB1val : incB1val * sqrt (cur_B1));
+  return cur_B1 + incB1val * sqrt (cur_B1);
 }
