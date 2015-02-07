@@ -195,12 +195,6 @@ realtime ()
 #endif
 }
 
-int 
-get_verbose ()
-{
-  return VERBOSE;
-}
-
 /* Tests if loglevel gets printed with the current verbose setting */
 
 int 
@@ -213,13 +207,6 @@ void
 set_verbose (int v)
 {
   VERBOSE = v;
-}
-
-int 
-inc_verbose ()
-{
-  VERBOSE ++;
-  return VERBOSE;
 }
 
 int
