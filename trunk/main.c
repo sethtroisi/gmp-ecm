@@ -126,7 +126,6 @@ usage (void)
     printf ("  -maxmem n    use at most n MB of memory in stage 2\n");
     printf ("  -stage1time n add n seconds to ECM stage 1 time (for expected time est.)\n");
 
-    printf ("  -i n         increment B1 by this constant on each run\n");
     printf ("  -I f         increment B1 by f*sqrt(B1) on each run\n");
     printf ("  -inp file    Use file as input (instead of redirecting stdin)\n");
     printf ("  -one         Stop processing a candidate if a factor is found (looping mode)\n");
@@ -382,7 +381,6 @@ main (int argc, char *argv[])
   int resume_wasPrp = 0; /* 1 if resume_lastN/resume_lastfac is a PRP */
   int primetest = 0, saveappend = 0;
   double autoincrementB1 = 0.0, startingB1;
-  unsigned int autoincrementB1_calc = 0;
   unsigned int count = 1; /* number of curves for each number */
   unsigned int cnt = 0;   /* number of remaining curves for current number */
   int deep=1;
@@ -712,21 +710,9 @@ main (int argc, char *argv[])
 	  argv += 2;
 	  argc -= 2;
 	}
-      else if ((argc > 2) && (strcmp (argv[1], "-i") == 0))
-	{
-	  autoincrementB1 = strtod (argv[2], NULL);
-	  if (autoincrementB1 < 1.0)
-	    {
-	      fprintf (stderr, "Error, the -i n option requires n >= 1\n");
-	      exit (EXIT_FAILURE);
-  	    }
-	  argv += 2;
-	  argc -= 2;
-	}
       else if ((argc > 2) && (strcmp (argv[1], "-I") == 0))
 	{
 	  autoincrementB1 = strtod (argv[2], NULL);
-	  autoincrementB1_calc = 1;
 	  if (autoincrementB1 <= 0.0)
 	    {
 	      fprintf (stderr, "Error, the -I f option requires f > 0\n");
@@ -1542,8 +1528,7 @@ main (int argc, char *argv[])
       if (autoincrementB1 > 0.0)
         {
           double NewB1;
-          NewB1 = calc_B1_AutoIncrement (B1, autoincrementB1, 
-                                                        autoincrementB1_calc);
+          NewB1 = calc_B1_AutoIncrement (B1, autoincrementB1);
           if (mpz_cmp_d (B2min, B1) <= 0) /* <= might be better than == */
               mpz_set_d (B2min, NewB1);
           B1 = NewB1;
