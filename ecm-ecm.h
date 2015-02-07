@@ -95,7 +95,6 @@ int process_newfactor (mpz_t, int, mpcandi_t*, int, int, int, unsigned int*,
 /* auxlib.c */
 int  test_verbose (int);
 void set_verbose (int);
-int  inc_verbose ();
 
 /* Return codes */
 /* Bit coded values: 1: error (for example out of memory)
