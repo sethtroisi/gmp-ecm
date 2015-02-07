@@ -659,12 +659,8 @@ long         realtime    (void);
 long         elltime    (long, long);
 #define test_verbose __ECM(test_verbose)
 int          test_verbose (int);
-#define get_verbose __ECM(get_verbose)
-int          get_verbose (void);
 #define set_verbose __ECM(set_verbose)
 void         set_verbose (int);
-#define inc_verbose __ECM(inc_verbose)
-int          inc_verbose (void);
 #define outputf __ECM(outputf)
 int          outputf (int, const char *, ...);
 #define writechkfile __ECM(writechkfile)
