@@ -275,7 +275,21 @@ get_curve_from_param1 (mpres_t A, mpres_t x0, mpz_t sigma, mpmod_t n)
   using Jacobian coordinates; formulae were found at
       https://hyperelliptic.org/EFD/g1p/auto-shortw-jacobian-0.html
   Then we let x3 = (3*x+y+6)/(2*(y-3)), A = -(3*x3^4+6*x3^2-1)/(4*x3^3) and
-  x0 = 2 */
+  x0 = 2. The Sage code below gives the factored group order:
+
+  def FindGroupOrderParam2(p,sigma):
+   K = GF(p)
+   E = EllipticCurve(K,[0,36])
+   P = sigma*E(-3,3)
+   x,y = P.xy()
+   x3 = (3*x+y+6)/(2*(y-3))
+   A = -(3*x3^4+6*x3^2-1)/(4*x3^3)
+   d = K((A+2)/4)
+   a = K(4*d-2)
+   b = K(16*d+2)
+   E = EllipticCurve(K,[0,a/b,0,1/b^2,0])
+   return factor(E.cardinality())
+*/
 int 
 get_curve_from_param2 (mpz_t f, mpres_t A, mpres_t x0, mpz_t sigma, mpmod_t n)
 {
