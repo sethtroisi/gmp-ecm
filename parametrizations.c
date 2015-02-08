@@ -271,6 +271,11 @@ get_curve_from_param1 (mpres_t A, mpres_t x0, mpz_t sigma, mpmod_t n)
 
 /* Parametrization ECM_PARAM_BATCH_2 */
 /* 2 <= sigma */
+/* Compute (x:y:z) = sigma*(-3:3:1) on the elliptic curve y^2 = x^3 + 36
+  using Jacobian coordinates; formulae were found at
+      https://hyperelliptic.org/EFD/g1p/auto-shortw-jacobian-0.html
+  Then we let x3 = (3*x+y+6)/(2*(y-3)), A = -(3*x3^4+6*x3^2-1)/(4*x3^3) and
+  x0 = 2 */
 int 
 get_curve_from_param2 (mpz_t f, mpres_t A, mpres_t x0, mpz_t sigma, mpmod_t n)
 {
