@@ -91,7 +91,7 @@ echo 2050449353925555290706354283 | $ECM -param 0 -sigma 7 -I 1 -c 3 100; checkc
 
 # check the -chkpnt option
 echo 2050449353925555290706354283 | $ECM -chkpnt test.ecm.chk -param 0 -sigma 7 30 0-1e6
-$ECM -resume test.ecm.chk -param 0 -sigma 7 30 0-1e6
+$ECM -resume test.ecm.chk 30 0-1e6
 C=$?
 /bin/rm -f test.ecm.chk
 checkcode $C 14
