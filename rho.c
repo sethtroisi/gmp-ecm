@@ -307,14 +307,12 @@ rhoexact (double x)
   ASSERT(x <= 3.);
   if (x <= 0.)
     return 0.;
-  if (x <= 1.)
+  else if (x <= 1.)
     return 1.;
-  if (x <= 2.)
+  else if (x <= 2.)
     return 1. - log (x);
-  if (x <= 3.) /* 2 < x <= 3 thus -2 <= 1-x < -1 */
+  else /* 2 < x <= 3 thus -2 <= 1-x < -1 */
     return 1. - log (x) * (1. - log (x - 1.)) + dilog (1. - x) + 0.5 * M_PI_SQR_6;
-  
-  return 0.; /* x > 3. and asserting not enabled: bail out with 0. */
 }
 
 
@@ -372,11 +370,7 @@ rhoinit (int parm_invh, int parm_tablemax)
   tablemax = parm_tablemax;
   
   rhotable = (double *) malloc (parm_invh * parm_tablemax * sizeof (double));
-  if (rhotable == NULL)
-    {
-      fprintf (stderr, "Cannot allocate memory in rhoinit\n");
-      exit (1);
-    }
+  ASSERT_ALWAYS(rhotable != NULL);
   
   for (i = 0; i < (3 < parm_tablemax ? 3 : parm_tablemax) * invh; i++)
     rhotable[i] = rhoexact (i * h);
@@ -405,20 +399,20 @@ rhoinit (int parm_invh, int parm_tablemax)
     }
 }
 
+/* assumes alpha < tablemax */
 static double
 dickmanrho (double alpha)
 {
+  ASSERT(alpha < tablemax);
+
   if (alpha <= 3.)
      return rhoexact (alpha);
-  if (alpha < tablemax)
-    {
-      int a = floor (alpha * invh);
-      double rho1 = rhotable[a];
-      double rho2 = (a + 1) < tablemax * invh ? rhotable[a + 1] : 0;
-      return rho1 + (rho2 - rho1) * (alpha * invh - (double)a);
-    }
-  
-  return 0.;
+  {
+    int a = floor (alpha * invh);
+    double rho1 = rhotable[a];
+    double rho2 = (a + 1) < tablemax * invh ? rhotable[a + 1] : 0;
+    return rho1 + (rho2 - rho1) * (alpha * invh - (double) a);
+  }
 }
 
 #if 0
@@ -452,10 +446,8 @@ dickmanrhosigma_i (int ai, double x)
 static double
 dickmanlocal (double alpha, double x)
 {
-  if (alpha <= 0.)
-    return 0.;
   if (alpha <= 1.)
-    return 1.;
+    return rhoexact (alpha);
   if (alpha < tablemax)
     return dickmanrho (alpha) - M_EULER * dickmanrho (alpha - 1.) / log (x);
   return 0.;
