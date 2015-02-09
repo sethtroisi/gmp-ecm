@@ -144,6 +144,7 @@ ecm_factor (mpz_t f, mpz_t n, double B1, ecm_params p)
                        &(p->batch_last_B1_used), p->gw_k, p->gw_b, p->gw_n,
                        p->gw_c);
         }
+#ifdef WITH_GPU
       else
         {
           res = gpu_ecm (f, p->x, &(p->param), p->sigma, n, p->go, 
@@ -155,6 +156,7 @@ ecm_factor (mpz_t f, mpz_t n, double B1, ecm_params p)
                          p->gpu_device, &(p->gpu_device_init),
                          &(p->gpu_number_of_curves));
         }
+#endif
     }
   else if (p->method == ECM_PM1)
     res = pm1 (f, p->x, n, p->go, &(p->B1done), B1, p->B2min, p->B2,
