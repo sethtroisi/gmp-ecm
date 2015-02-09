@@ -235,18 +235,7 @@ A_from_sigma (mpz_t A, unsigned int sigma, mpz_t n)
 
   mpz_clear(tmp);
 }
-#endif
 
-#ifndef WITH_GPU
-int
-gpu_ecm () 
-{
-  fprintf(stderr, "This version of libecm does not contain the GPU code.\n"
-                  "You should recompile it with ./configure --enable-gpu or\n"
-                  "link a version of libecm which contain the GPU code.\n");
-  return ECM_ERROR;
-}
-#else
 int
 gpu_ecm (mpz_t f, mpz_t x, int *param, mpz_t firstsigma, mpz_t n, mpz_t go, 
          double *B1done, double B1, mpz_t B2min_parm, mpz_t B2_parm, 
