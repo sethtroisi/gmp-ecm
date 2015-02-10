@@ -466,6 +466,9 @@ group (over the rationals). For instance
 will generate a curve E over the rationals with torsion group Z/5Z and a point
 of infinite order, both generated from parameter sigma = 2.
 
+Note that in the present case, -param is overriden by whatever "good" form
+the curves are built with that prescribed torsion.
+
 Available torsion groups (over the rationals) are: 
 * Z5: for sigma != 0, -1/2, -1/3, -1/4, cf. [1]
 * Z7: [1]
