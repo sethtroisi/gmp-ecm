@@ -132,6 +132,7 @@ LongWeierstrassToMediumWeierstrass(mpz_t A2, mpz_t A4, mpz_t A6,
    Y = y
    INPUT: if x0 == NULL, we have no point to translate
           if B == NULL, we do not need and we do not compute B
+   REM: we assume gcd(n, 3) = 1.
 */
 void
 MediumWeierstrassToShortWeierstrass(mpz_t A, mpz_t B, mpz_t X, mpz_t Y,
@@ -281,9 +282,13 @@ kubert_to_weierstrass(ell_curve_t E, ell_point_t P, mpz_t b, mpz_t c,
     mpz_clear(a6);
 }
 
-/* Kubert: put b = c. */
+/* Kubert: put b = c. 
+   SIDE EFFECT: tE[0..nE[ and tP[0..nE[ receive a curve of torsion Z5
+                and a point on it using parameters [smin..smax[.
+   OUTPUT: ECM_NO_FACTOR_FOUND or ECM_FACTOR_FOUND_STEP1 if a factor is found.
+*/
 int
-build_curves_with_torsion_Z5(mpz_t f, mpmod_t n, 
+build_curves_with_torsion_Z5(mpz_t f, mpmod_t n,
 			     ell_curve_t *tE, ell_point_t *tP,
 			     int smin, int smax, int nE)
 {
@@ -305,7 +310,7 @@ build_curves_with_torsion_Z5(mpz_t f, mpmod_t n,
 	mpz_mul(tmp, tmp, x0);
 	mpz_add(y0, y0, y0);
 	if(mod_from_rat2(c, tmp, y0, n->orig_modulus) == 0){
-	    /* factor found! */
+	    printf("factor found during Z5_init\n");
 	    mpz_gcd(f, c, n->orig_modulus);
 	    ret = ECM_FACTOR_FOUND_STEP1;
 	    break;
@@ -336,13 +341,15 @@ build_curves_with_torsion_Z5(mpz_t f, mpmod_t n,
 }
 
 /* INPUT: 
-   T^2 = S^3 + A * S + B
+     T^2 = S^3 + A * S + B
    => quartic Y^2 = X^4 - 6 * A2 * X^2 + 4 * A1 * X + A0, with
-   X = (T-A1/2)/(S-A2), Y = -X^2 + 2 * S + A2.
+     X = (T-A1/2)/(S-A2), Y = -X^2 + 2 * S + A2.
    => quartic y^2 = f(x) = a4*x^4+...+a0, where
-   x = x0+y0/(X-cte), where cte = f'(x0)/4/y0
-   y = Y/y0*(x-x0)^2 = Y*y0/(X-cte)^2
-   OUTPUT: x, y
+     x = x0+y0/(X-cte), where cte = f'(x0)/4/y0
+     y = Y/y0*(x-x0)^2 = Y*y0/(X-cte)^2
+   SIDE EFFECT: x, y
+   OUTPUT: 1 if no pb occurred,
+           0 if a factor was found and put in f
  */
 int
 cubic_to_quartic(mpz_t f, mpz_t n, mpz_t x, mpz_t y,
@@ -371,6 +378,7 @@ cubic_to_quartic(mpz_t f, mpz_t n, mpz_t x, mpz_t y,
 	mpz_sub(X, X, cte);
 	mpz_mod(X, X, n);
 	if(mpz_invert(f, X, n) == 0){
+	    mpz_gcd(f, X, n);
 	    ret = 0;
 	}
 	else{
@@ -391,7 +399,13 @@ cubic_to_quartic(mpz_t f, mpz_t n, mpz_t x, mpz_t y,
     return ret;
 }
 
-/* tE[i], tP[i] are built in raw modular form, not Montgomery form. */
+/* 
+   SIDE EFFECT: tE[0..nE[ and tP[0..nE[ receive a curve of torsion Z7
+                and a point on it using parameters [umin..umax[.
+   OUTPUT: ECM_NO_FACTOR_FOUND or ECM_FACTOR_FOUND_STEP1 if a factor is found.
+   tE[i], tP[i] are built in raw modular form, not Montgomery form. 
+   REM: we assume gcd(n, 6).
+*/
 int
 build_curves_with_torsion_Z7(mpz_t f, mpmod_t n, 
 			     ell_curve_t *tE, ell_point_t *tP,
@@ -443,14 +457,14 @@ build_curves_with_torsion_Z7(mpz_t f, mpmod_t n,
 	mpz_set_ui(d, u);
 	/* TODO: replace with ell_point_add, one of these days */
 	if(ell_point_mul(Q, d, P, E, n) == 0){
-	    printf("found factor during update of Q\n");
+	    printf("found factor during update of Q in Z7\n");
 	    mpz_set(f, Q->x);
 	    ret = ECM_FACTOR_FOUND_STEP1;
 	    break;
 	}
 #if DEBUG_TORSION >= 2
 	printf("(s, t)[%d]:=", u);
-	pt_print(Q, n);
+	pt_print(E, Q, n);
 	printf(";\n");
 #endif
 	/* come back to plain (not Montgomery) residues */
@@ -1505,6 +1519,7 @@ build_curves_with_torsion_Z2xZ10(mpz_t f, mpmod_t n, ell_curve_t *tE,
 	/* c:=RatMod(-t*(2*t^2-3*t+1)/(t^2-3*t+1), N); */
 	if(mpz_invert(f, den, n->orig_modulus) == 0){
 	    printf("# factor found in Z2xZ10 (den)\n");
+	    mpz_gcd(f, den, n->orig_modulus);
 	    ret = ECM_FACTOR_FOUND_STEP1;
 	    break;
 	}
@@ -2066,6 +2081,11 @@ build_curves_with_torsion(mpz_t f, mpmod_t n, ell_curve_t *tE, ell_point_t *tP,
     return ret;
 }
 
+/* E is a curve with given torsion and (x, y) a point on E mod n.
+   OUTPUT: ECM_NO_FACTOR_FOUND if everything went ok
+           ECM_FACTOR_FOUND_STEP1 in case a factor was found when building E.
+   
+ */
 int
 build_curves_with_torsion2(mpz_t f, mpz_t n, ell_curve_t E, 
 			   mpz_t x, mpz_t y, char *torsion, 
@@ -2081,13 +2101,17 @@ build_curves_with_torsion2(mpz_t f, mpz_t n, ell_curve_t E,
     mpmod_init(modulus, n, ECM_MOD_DEFAULT);
     ret = build_curves_with_torsion(f, modulus, tE, tP, torsion, smin, smax, 1,
 				    0, NULL);
-    mpres_get_z(E->a2, tE[0]->a2, modulus);
-    mpres_get_z(E->a4, tE[0]->a4, modulus);
-    mpres_get_z(E->a6, tE[0]->a6, modulus);
-    mpz_set(x, tP[0]->x);
-    mpz_set(y, tP[0]->y);
-    ell_point_clear(tP[0], tE[0], modulus);
-    ell_curve_clear(tE[0], modulus);
+    if(ret == ECM_NO_FACTOR_FOUND){
+	E->type = tE[0]->type;
+	E->law = tE[0]->law;
+	mpres_get_z(E->a2, tE[0]->a2, modulus);
+	mpres_get_z(E->a4, tE[0]->a4, modulus);
+	mpres_get_z(E->a6, tE[0]->a6, modulus);
+	mpz_set(x, tP[0]->x);
+	mpz_set(y, tP[0]->y);
+	ell_point_clear(tP[0], tE[0], modulus);
+	ell_curve_clear(tE[0], modulus);
+    }
     mpmod_clear(modulus);
     return ret;
 }

@@ -1064,6 +1064,8 @@ set_stage_2_params (mpz_t B2, mpz_t B2_parm, mpz_t B2min, mpz_t B2min_parm,
             2 diagnostic output.
 	  sigma_is_A: If true, the sigma parameter contains the curve's A value
 	  Etype
+	  zE is a curve that is used when a special torsion group was used; in
+	    that case, (x, y) must be a point on E.
    Output: f is the factor found.
    Return value: ECM_FACTOR_FOUND_STEPn if a factor was found,
                  ECM_NO_FACTOR_FOUND if no factor was found,
@@ -1249,7 +1251,7 @@ ecm (mpz_t f, mpz_t x, mpz_t y, int *param, mpz_t sigma, mpz_t n, mpz_t go,
               youpi = get_curve_from_param2 (f, P.A, P.x, sigma, modulus);
           else if (*param == ECM_PARAM_BATCH_32BITS_D)
               youpi = get_curve_from_param3 (P.A, P.x, sigma, modulus);
-          else
+          else if (*param != ECM_PARAM_TORSION)
             {
               outputf (OUTPUT_ERROR, "Error, invalid parametrization.\n");
               youpi = ECM_ERROR;
@@ -1257,9 +1259,10 @@ ecm (mpz_t f, mpz_t x, mpz_t y, int *param, mpz_t sigma, mpz_t n, mpz_t go,
             }
       
           /* If x != 0 we use this value for the starting point */ 
-          if (mpz_sgn(x) != 0) /* humf */
+          if (mpz_sgn(x) != 0){ /* humf */
               mpres_set_z (P.x, x, modulus);
-      
+              mpres_set_z (P.y, y, modulus);
+	  }      
           if (youpi != ECM_NO_FACTOR_FOUND)
             {
               if (youpi == ECM_ERROR)
