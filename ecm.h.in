@@ -173,6 +173,7 @@ int pm1 (mpz_t, mpz_t, mpz_t, mpz_t, double *, double, mpz_t,
 /* we keep 4 as spare */
 #define ECM_PARAM_WEIERSTRASS 5
 #define ECM_PARAM_HESSIAN 6
+#define ECM_PARAM_TORSION 7
 
 /* stage 2 bound */
 #define ECM_DEFAULT_B2 -1
