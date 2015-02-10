@@ -470,18 +470,6 @@ build_curves_with_torsion_Z7(mpz_t f, mpmod_t n,
 	/* come back to plain (not Montgomery) residues */
 	mpres_get_z(b, Q->x, n);
 	mpres_get_z(c, Q->y, n);
-#if 0
-	mpres_get_z(d, Q->z, n);
-	if(mpz_invert(f, d, n->orig_modulus) == 0){
-	    printf("found factor in Z7 (normalization)\n");
-	    mpz_gcd(f, d, n->orig_modulus);
-	    break;
-	}
-	mpz_mul(b, b, f);
-	mpz_mod(b, b, n->orig_modulus);
-	mpz_mul(c, c, f);
-	mpz_mod(c, c, n->orig_modulus);
-#endif
 	if(cubic_to_quartic(f, n->orig_modulus, d, ky0, b, c, 
 			    A2, A1div2, x0, y0, cte) == 0){
 	    printf("found factor in Z7 (cubic_2_quartic)\n");
@@ -533,6 +521,13 @@ build_curves_with_torsion_Z7(mpz_t f, mpmod_t n,
     return ret;
 }
 
+/* 
+   SIDE EFFECT: tE[0..nE[ and tP[0..nE[ receive a curve of torsion Z9
+                and a point on it using parameters [umin..umax[.
+   OUTPUT: ECM_NO_FACTOR_FOUND or ECM_FACTOR_FOUND_STEP1 if a factor is found.
+   tE[i], tP[i] are built in raw modular form, not Montgomery form. 
+   REM: we assume gcd(n, 6).
+*/
 int
 build_curves_with_torsion_Z9(mpz_t fac, mpmod_t n, ell_curve_t *tE, 
 			     ell_point_t *tP, int umin, int umax, int nE)
@@ -593,18 +588,6 @@ build_curves_with_torsion_Z9(mpz_t fac, mpmod_t n, ell_curve_t *tE,
 #endif
 	mpres_get_z(b, Q->x, n);
 	mpres_get_z(c, Q->y, n);
-#if 0
-	mpres_get_z(d, Q->z, n);
-	if(mpz_invert(fac, d, n->orig_modulus) == 0){
-	    printf("found factor in Z9 (normalization)\n");
-	    mpz_gcd(fac, d, n->orig_modulus);
-	    break;
-	}
-	mpz_mul(b, b, fac);
-	mpz_mod(b, b, n->orig_modulus);
-	mpz_mul(c, c, fac);
-	mpz_mod(c, c, n->orig_modulus);
-#endif
 	if(cubic_to_quartic(fac, n->orig_modulus, f, ky0, b, c, 
 			    A2, A1div2, x0, y0, cte) == 0){
 	    printf("found factor in Z9 (cubic_2_quartic)\n");
