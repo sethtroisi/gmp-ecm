@@ -98,7 +98,7 @@ usage (void)
           "\n               can use -sigma i:s to specify -param i at the same"
                                                               " time [ecm]\n");
     printf ("  -A A         use A as a curve coefficient [ecm, see README]\n");
-    printf ("  -torsion T   to generate a curve with torsion group T"
+    printf ("  -torsion T   to generate a curve with torsion group T "
 	                                                "[ecm, see README]\n");
     printf ("  -k n         perform >= n steps in stage 2\n");
     printf ("  -power n     use x^n for Brent-Suyama's extension\n");
@@ -352,7 +352,7 @@ main (int argc, char *argv[])
   mpgocandi_t go;
   mpq_t rat_x0, rat_y0, rat_A;
   double B1, B1done;
-  int result = 0, returncode = 0;
+  int result = ECM_NO_FACTOR_FOUND, returncode = 0;
   int verbose = OUTPUT_NORMAL; /* verbose level */
   int timestamp = 0;
   int method = ECM_ECM;
@@ -1391,7 +1391,9 @@ main (int argc, char *argv[])
 	    }
 	  else if (torsion != NULL)
 	    {
-              result = build_curves_with_torsion2 (f, n.n, params->E, x, y,
+	      params->param = ECM_PARAM_TORSION;
+	      result = build_curves_with_torsion2 (f, n.n, params->E, 
+						   params->x, params->y,
                                                    torsion, sigma);
 	    }
 	}
@@ -1449,7 +1451,9 @@ main (int argc, char *argv[])
 #endif
       
       /* now call the ecm library */
-      result = ecm_factor (f, n.n, B1, params);
+      if(result == ECM_NO_FACTOR_FOUND)
+	  /* if torsion was used, some factor may have been found... */
+	  result = ecm_factor (f, n.n, B1, params);
 
       if (result == ECM_ERROR)
         {
