@@ -731,7 +731,7 @@ read_s_from_file (mpz_t s, char *fn, double B1)
   if (mpz_cmp_d (tmp, B1) > 0 || mpz_cmp_d (tmp2, B1) <= 0)
     {
       fprintf (stderr, "Error, the value of the batch product in %s "
-               "does not corresponds to B1=%1.0f.\n", fn, B1);
+               "does not correspond to B1=%1.0f.\n", fn, B1);
       return 1;
     }
 
@@ -741,7 +741,7 @@ read_s_from_file (mpz_t s, char *fn, double B1)
   if (mpz_divisible_p (s, tmp2))
     {
       fprintf (stderr, "Error, the value of the batch product in %s "
-               "does not corresponds to B1=%1.0f.\n", fn, B1);
+               "does not correspond to B1=%1.0f.\n", fn, B1);
       return 1;
     }
 
@@ -752,7 +752,7 @@ read_s_from_file (mpz_t s, char *fn, double B1)
   if (!mpz_divisible_p (s, tmp2) || mpz_divisible_p (s, tmp))
     {
       fprintf (stderr, "Error, the value of the batch product in %s "
-               "does not corresponds to B1=%1.0f.\n", fn, B1);
+               "does not correspond to B1=%1.0f.\n", fn, B1);
       return 1;
     }
 
