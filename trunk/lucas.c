@@ -1,6 +1,6 @@
 /* Auxiliary functions to evaluate Lucas sequences.
 
-Copyright 2002, 2003, 2005, 2006, 2008, 2011, 2012
+Copyright 2002, 2003, 2005, 2006, 2008, 2011, 2012, 2015
 Paul Zimmermann, Alexander Kruppa, Dave Newman.
 
 This file is part of the ECM Library.
@@ -30,12 +30,6 @@ Lucas chains, Peter L. Montgomery, December 1983, revised January 1992. */
 
 #include "ecm-impl.h"
 
-/* the following constant were tested experimentally: in theory, we should
-   have ADD = 2*DUP in the basecase range, and ADD = 3/2*DUP in the FFT range.
-   Only the ratio ADD/DUP counts. */
-#define ADD 3 /* cost of add3:      one modular multiply */
-#define DUP 2 /* cost of duplicate: one square */
-
 /* P <- V_2(Q) */
 static void
 pp1_duplicate (mpres_t P, mpres_t Q, mpmod_t n)
@@ -55,91 +49,6 @@ pp1_add3 (mpres_t P, mpres_t Q, mpres_t R, mpres_t S, mpmod_t n, mpres_t t)
   mpres_sub (P, t, S, n);
 }
 
-/* returns the number of modular multiplications for computing
-   V_n from V_r * V_{n-r} - V_{n-2r}.
-   ADD is the cost of an addition
-   DUP is the cost of a duplicate
-*/
-static unsigned int
-lucas_cost_pp1 (ecm_uint n, double v)
-{
-  unsigned int c;
-  ecm_uint d, e, r;
-
-  d = n;
-  r = (ecm_uint) ((double) d / v + 0.5);
-  if (r >= n)
-    return (ADD * n);
-  d = n - r;
-  e = 2 * r - n;
-  c = DUP + ADD; /* initial duplicate and final addition */
-  while (d != e)
-    {
-      if (d < e)
-        {
-          r = d;
-          d = e;
-          e = r;
-        }
-      if (d - e <= e / 4 && ((d + e) % 3) == 0)
-        { /* condition 1 */
-          d = (2 * d - e) / 3;
-          e = (e - d) / 2;
-          c += 3 * ADD; /* 3 additions */
-        }
-      else if (d - e <= e / 4 && (d - e) % 6 == 0)
-        { /* condition 2 */
-          d = (d - e) / 2;
-          c += ADD + DUP; /* one addition, one duplicate */
-        }
-      else if ((d + 3) / 4 <= e)
-        { /* condition 3 */
-          d -= e;
-          c += ADD; /* one addition */
-        }
-      else if ((d + e) % 2 == 0)
-        { /* condition 4 */
-          d = (d - e) / 2;
-          c += ADD + DUP; /* one addition, one duplicate */
-        } 
-      /* now d+e is odd */
-      else if (d % 2 == 0)
-        { /* condition 5 */
-          d /= 2;
-          c += ADD + DUP; /* one addition, one duplicate */
-        }
-      /* now d is odd and e even */
-      else if (d % 3 == 0)
-        { /* condition 6 */
-          d = d / 3 - e;
-          c += 3 * ADD + DUP; /* three additions, one duplicate */
-        }
-      else if ((d + e) % 3 == 0)
-        { /* condition 7 */
-          d = (d - 2 * e) / 3;
-          c += 3 * ADD + DUP; /* three additions, one duplicate */
-        }
-      else if ((d - e) % 3 == 0)
-        { /* condition 8 */
-          d = (d - e) / 3;
-          c += 3 * ADD + DUP; /* three additions, one duplicate */
-        }
-      else /* necessarily e is even */
-        { /* condition 9 */
-          e /= 2;
-          c += ADD + DUP; /* one addition, one duplicate */
-        }
-    }
-  
-  return c;
-}
-
-
-#define NV 4
-
-/* #define SWAP(x,y) { __mpz_struct *tmp = x; x = y; y = tmp; } */
-#define SWAP mpres_swap
-
 /* computes V_k(P) from P=A and puts the result in P=A. Assumes k>2.
    Uses auxiliary variables t, B, C, T, T2.
 */
@@ -147,23 +56,17 @@ void
 pp1_mul_prac (mpres_t A, ecm_uint k, mpmod_t n, mpres_t t, mpres_t B,
               mpres_t C, mpres_t T, mpres_t T2)
 {
-  ecm_uint d, e, r, i = 0;
-  static double val[NV] =
-    {0.61803398874989485, 0.5801787282954641, 0.6179144065288179 , 0.6180796684698958};
-    /* 1/GR,              5/(GR+7) (2),       1429/(GR+2311) (8),  3739/(6051-GR) (9) */
+  ecm_uint d, e, r;
+  static double val = 0.61803398874989485; /* 1/(golden ratio) */
 
-  /* chooses the best value of v */
-  for (d = 0, r = ADD * k; d < NV; d++)
-    {
-      e = lucas_cost_pp1 (k, val[d]);
-      if (e < r)
-        {
-          r = e;
-          i = d;
-        }
-    }
+  /* Note: we used to use several (4) values of "val", but:
+     (1) the code to estimate the best value was buggy;
+     (2) even after fixing the bug, the overhead to choose the
+         best value was larger than the corresponding gain (for a c155
+         and B1=10^7). */
+
   d = k;
-  r = (ecm_uint) ((double) d * val[i] + 0.5);
+  r = (ecm_uint) ((double) d * val + 0.5);
   
   /* first iteration always begins by Condition 3, then a swap */
   d = k - r;
@@ -200,7 +103,7 @@ pp1_mul_prac (mpres_t A, ecm_uint k, mpmod_t n, mpres_t t, mpres_t B,
         { /* condition 3 */
           d -= e;
           pp1_add3 (C, B, A, C, n, t); /* C = f(B,A,C) */
-          SWAP (B, C, n);
+          mpres_swap (B, C, n);
         }
       else if ((d + e) % 2 == 0)
         { /* condition 4 */
@@ -223,7 +126,7 @@ pp1_mul_prac (mpres_t A, ecm_uint k, mpmod_t n, mpres_t t, mpres_t B,
           pp1_add3 (T2, A, B, C, n, t);  /* T2 = f(A,B,C) */
           pp1_add3 (A,  T, A, A, n, t);  /* A = f(T,A,A) */
           pp1_add3 (C,  T, T2, C, n, t); /* C = f(T,T2,C) */
-          SWAP (B, C, n);
+          mpres_swap (B, C, n);
         }
       else if ((d + e) % 3 == 0) /* d+e <= val[i]*k < k < 2^32 */
         { /* condition 7 */
@@ -238,7 +141,7 @@ pp1_mul_prac (mpres_t A, ecm_uint k, mpmod_t n, mpres_t t, mpres_t B,
           d = (d - e) / 3;
           pp1_add3 (T, A, B, C, n, t); /* T1 = f(A,B,C) */
           pp1_add3 (C, C, A, B, n, t); /* C = f(A,C,B) */
-          SWAP (B, T, n);          /* swap B and T */
+          mpres_swap (B, T, n);          /* swap B and T */
           pp1_duplicate (T, A, n);
           pp1_add3 (A, A, T, A, n, t); /* A = 3*A */
         }
