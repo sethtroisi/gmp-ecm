@@ -37,6 +37,7 @@ http://www.gnu.org/licenses/ or write to the Free Software Foundation, Inc.,
 
 extern unsigned int Fermat;
 
+#ifndef POLYEVALTELLEGEN
 /* algorithm polyeval from section 3.7 of Peter Montgomery's dissertation.
 Input: 
    G - an array of k elements of R, G[i], 0 <= i < k
@@ -111,6 +112,7 @@ polyeval (listz_t G, unsigned int k, listz_t *Tree, listz_t T, mpz_t n,
   list_set (G + l, T, m);
   polyeval (G + l, m, Tree + 1, T, n, sh + l);
 }
+#endif
 
 #if defined(DEBUG) || defined(DEBUG_TREEDATA)
 void
@@ -320,11 +322,7 @@ polyeval_tellegen (listz_t b, unsigned int k, listz_t *Tree, listz_t tmp,
         unsigned int lgk, i;
         FILE *TreeFile;
 	char *fullname = (char *) malloc (strlen (TreeFilename) + 1 + 2 + 1);
-        if (fullname == NULL)
-          {
-            fprintf (stderr, "Cannot allocate memory in polyeval_tellegen\n");
-            exit (1);
-          }
+        ASSERT_ALWAYS(fullname != NULL);
 
 	lgk = ceil_log2 (k);
         for (i = 0; i < lgk; i++)
