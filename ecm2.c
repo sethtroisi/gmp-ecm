@@ -29,6 +29,7 @@ http://www.gnu.org/licenses/ or write to the Free Software Foundation, Inc.,
    max(q_i) is a power of 2). Needs up to n+2 cells in T.
    Returns whether factor was found or not found, factor goes into p. 
    No error can occur.
+   We should have n > 0.
 */
 
 static int
@@ -49,10 +50,9 @@ multiplyW2n (mpz_t p, point *R, curve *S, mpz_t *q, const unsigned int n,
   mpz_t __dummy; /* used for local computations */
 #endif
 
-  if (n == 0)
-    return ECM_NO_FACTOR_FOUND;
+  ASSERT(n > 0);
   
-  /* Is S the neutral element ? */
+  /* Is S the neutral element? */
   if (mpres_is_zero (S->x, modulus) && mpres_is_zero (S->y, modulus))
     {
       for (i = 0; i < n; i++)

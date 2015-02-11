@@ -6,7 +6,7 @@ cd $d
 svn checkout svn://scm.gforge.inria.fr/svnroot/ecm/trunk ecm
 cd ecm
 autoreconf -i
-./configure
+./configure --disable-assert
 make CFLAGS="-O0 -g -fprofile-arcs -ftest-coverage"
 make longcheck VALGRIND=
 geninfo --no-checksum --ignore-errors gcov,source -q --output-filename ecm.info ./ --no-external
