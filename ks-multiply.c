@@ -98,125 +98,6 @@ list_mul_n_basecase (listz_t R, listz_t A, listz_t B, unsigned int n)
       }
 }
 
-static uint64_t
-gcd_uint64 (uint64_t a, uint64_t b)
-{
-  uint64_t t;
-
-  ASSERT (b != 0);
-
-  if (a >= b)
-    a %= b;
-
-  while (a > 0)
-    {
-      /* Here 0 < a < b */
-      t = b % a; /* 0 <= t < a */
-      b = a;
-      a = t; /* 0 <= a < b */
-    }
-
-  return b;
-}
-
-/* Given f[0]...f[t] that contain respectively f(0), ..., f(t),
-   put in f[0]...f[t] the coefficients of f.
-   Assumes t <= MAX_T.
-*/
-static void
-list_mul_tc_interpolate (mpz_t *f, int t)
-{
-#define MAX_T 15
-  uint64_t M[MAX_T+1][MAX_T+1], g, h;
-  int i, j, k;
-
-  ASSERT_ALWAYS (t <= MAX_T); /* Ensures that all M[i][j] fit in uint64_t,
-                                 and similarly for all intermediate
-                                 computations on M[i][j]. This avoids the
-                                 use of mpz_t to store the M[i][j]. */
-
-  /* initialize M[i][j] = i^j */
-  for (i = 0; i <= t; i++)
-    for (j = 0; j <= t; j++)
-      M[i][j] = (j == 0) ? 1 : i * M[i][j-1];
-
-  /* forward Gauss: zero the under-diagonal coefficients while going down */
-  for (i = 1; i <= t; i++)
-    for (j = 0; j < i; j++)
-      if (M[i][j] != 0)
-        {
-          g = gcd_uint64 (M[i][j], M[j][j]);
-          h = M[i][j] / g;
-          g = M[j][j] / g;
-          /* f[i] <- g*f[i] - h*f[j] */
-          mpz_mul_ui (f[i], f[i], g);
-          mpz_submul_ui (f[i], f[j], h);
-          for (k = j; k <= t; k++)
-            M[i][k] = g * M[i][k] - h * M[j][k];
-        }
-
-  /* now zero upper-diagonal coefficients while going up */
-  for (i = t; i >= 0; i--)
-    {
-      for (j = i + 1; j <= t; j++)
-        /* f[i] = f[i] - M[i][j] * f[j] */
-        mpz_submul_ui (f[i], f[j], M[i][j]);
-      ASSERT (mpz_divisible_ui_p (f[i], M[i][i]));
-      mpz_divexact_ui (f[i], f[i], M[i][i]);
-    }
-}
-
-/* Generic Toom-Cook implementation: stores in f[0..r+s-2] the coefficients
-   of g*h, where g has r coefficients and h has s coefficients, and their
-   coefficients are in g[0..r-1] and h[0..s-1].
-   Assume f differs from g and h, and f[0..r+s-2] are already allocated.
-   Assume r + s - 2 <= MAX_T (MAX_T = 15 ensures all the matrix coefficients
-   in the inversion fit into uint64_t, and those used in mpz_mul_ui calls
-   fit into uint32_t).
-   Assume r, s >= 1.
-*/
-void
-list_mul_tc (listz_t f, listz_t g, unsigned int r, listz_t h, unsigned int s)
-{
-  int t, i, j;
-  mpz_t tmp;
-
-  ASSERT_ALWAYS(r >= 1 && s >= 1);
-
-  r -= 1;    /* degree of g */
-  s -= 1;    /* degree of h */
-  t = r + s; /* product has t+1 coefficients */
-
-  ASSERT_ALWAYS (t <= MAX_T);
-
-  mpz_init (tmp);
-
-  /* first store g(i)*h(i) in f[i] for 0 <= i <= t */
-  for (i = 0; i <= t; i++)
-    {
-      /* f[i] <- g(i) */
-      mpz_set (f[i], g[r]);
-      for (j = r - 1; j >= 0; j--)
-        {
-          mpz_mul_ui (f[i], f[i], i);
-          mpz_add (f[i], f[i], g[j]);
-        }
-      /* tmp <- h(i) */
-      mpz_set (tmp, h[s]);
-      for (j = s - 1; j >= 0; j--)
-        {
-          mpz_mul_ui (tmp, tmp, i);
-          mpz_add (tmp, tmp, h[j]);
-        }
-      /* f[i] <- g(i)*h(i) */
-      mpz_mul (f[i], f[i], tmp);
-    }
-
-  list_mul_tc_interpolate (f, t);
-
-  mpz_clear (tmp);
-}
-
 /* Classical one-point Kronecker-Schoenhage substitution.
    Notes:
     - this code aligns the coeffs at limb boundaries - if instead we aligned
@@ -396,15 +277,12 @@ list_mult_n (listz_t R, listz_t A, listz_t B, unsigned int n)
 
   /* See tune_list_mul_n() in tune.c:
      0 : list_mul_n_basecase
-     1 : list_mul_tc
      2 : list_mul_n_KS1
      3 : list_mul_n_KS2 */
   best = (n < TUNE_LIST_MUL_N_MAX_SIZE) ? T[n] : 3;
     
   if (best == 0)
     list_mul_n_basecase (R, A, B, n);
-  else if (best == 1)
-    list_mul_tc (R, A, n, B, n);
   else if (best == 2)
     list_mul_n_KS1 (R, A, B, n);
   else
