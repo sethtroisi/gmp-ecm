@@ -440,16 +440,6 @@ tune_list_mul_n ()
       if (tune_verbose)
         printf (" basecase:%.2e", st[0]);
       best[n] = 0;
-      if (n <= 8)
-        {
-          __k = 1;
-          TUNE_FUNC_LOOP(list_mul_tc(z, x, n, y, n));
-          st[1] = (double) __st / (double) __k;
-          if (tune_verbose)
-            printf (" tc:%.2e", st[1]);
-          if (st[1] < st[best[n]])
-            best[n] = 1;
-        }
       __k = 1;
       TUNE_FUNC_LOOP(list_mul_n_KS1(z, x, y, n));
       st[2] = (double) __st / (double) __k;
@@ -469,7 +459,6 @@ tune_list_mul_n ()
         }
       if (tune_verbose)     
         printf (" best:%s\n", (best[n] == 0) ? "basecase"
-                : (best[n] == 1) ? "tc"
                 : (best[n] == 2) ? "KS1" : "KS2");
     }
   printf ("#define LIST_MUL_TABLE {0");
