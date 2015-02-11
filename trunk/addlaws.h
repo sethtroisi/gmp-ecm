@@ -12,6 +12,7 @@ void pt_neg(ell_point_t P, mpmod_t n);
 void pt_many_set_to_zero(ell_point_t *tP, int nE, mpmod_t n);
 void pt_many_neg(ell_point_t *tP, int nE, mpmod_t n);
 void pt_many_assign(ell_point_t *tQ, ell_point_t *tP, int nE, mpmod_t n);
+void pt_many_print(ell_curve_t *tE, ell_point_t *tP, int nE, mpmod_t n);
 void print_mpz_from_mpres(mpres_t x, mpmod_t n);
 int pt_many_duplicate(ell_point_t *tQ, ell_point_t *tP, ell_curve_t *tE, int nE, mpmod_t n, mpres_t *num, mpres_t *den, mpres_t *inv, char *ok);
 int pt_many_mul(ell_point_t *tQ, ell_point_t *tP, ell_curve_t *tE, int nE,
@@ -35,6 +36,7 @@ void ell_curve_init_set(ell_curve_t E, int type, int law, mpres_t A, mpmod_t n);
 void ell_curve_set_z(ell_curve_t E, ell_curve_t zE, mpmod_t n);
 void ell_curve_clear(ell_curve_t E, mpmod_t n);
 void ell_curve_print(ell_curve_t E, mpmod_t n);
+int ell_point_is_on_curve(ell_point_t P, ell_curve_t E, mpmod_t n);
 int ell_point_is_zero(ell_point_t P, ell_curve_t E, mpmod_t n);
 void ell_point_set_to_zero(ell_point_t P, ell_curve_t E, mpmod_t n);
 int ell_point_add(ell_point_t R, ell_point_t P, ell_point_t Q, ell_curve_t E, mpmod_t n);

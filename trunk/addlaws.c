@@ -1514,28 +1514,29 @@ ell_point_is_on_curve(ell_point_t P, ell_curve_t E, mpmod_t n)
 	    /* y*z*(y+a1*x+a3*z) = ((x+a2*z)*x+a4*z^2)*x+a6*z^3? */
 	    mpres_t tmp3;
 
-	    mpres_mul(tmp1, E->a1, P->x, n);
-	    mpres_add(tmp1, tmp1, P->y, n);
-	    mpres_mul(tmp2, E->a3, P->z, n);
-	    mpres_add(tmp1, tmp1, tmp2, n);
-	    mpres_mul(tmp1, tmp1, P->y, n);
-	    mpres_mul(tmp1, tmp1, P->z, n);
+	    mpres_mul(tmp1, E->a1, P->x, n);  /* a1*x */
+	    mpres_add(tmp1, tmp1, P->y, n);   /* a1*x+y */
+	    mpres_mul(tmp2, E->a3, P->z, n);  /* a3*z */
+	    mpres_add(tmp1, tmp1, tmp2, n);   /* y+a1*x+a3*z */
+	    mpres_mul(tmp1, tmp1, P->y, n);   /* y*(...) */
+	    mpres_mul(tmp1, tmp1, P->z, n);   /* lhs */
 
 	    mpres_init(tmp3, n);
-	    mpres_mul(tmp2, E->a2, P->z, n);	    
-	    mpres_add(tmp2, tmp2, P->x, n);
-	    mpres_mul(tmp2, tmp2, P->x, n);
-	    mpres_mul(tmp3, E->a4, P->z, n);
-	    mpres_mul(tmp3, tmp3, P->z, n);
-	    mpres_add(tmp2, tmp2, tmp3, n);
-	    mpres_mul(tmp2, tmp2, P->x, n);
-	    mpres_mul(tmp3, P->z, P->z, n);
-	    mpres_mul(tmp3, tmp3, P->z, n);
-	    mpres_mul(tmp3, tmp3, E->a6, n);
-	    mpres_add(tmp2, tmp2, tmp3, n);
+	    mpres_mul(tmp2, E->a2, P->z, n);  /* a2*z */
+	    mpres_add(tmp2, tmp2, P->x, n);   /* x+a2*z */
+	    mpres_mul(tmp2, tmp2, P->x, n);   /* (x+a2*z)*x */
+	    mpres_mul(tmp3, E->a4, P->z, n);  /* a4*z */
+	    mpres_mul(tmp3, tmp3, P->z, n);   /* a4*z^2 */
+	    mpres_add(tmp2, tmp2, tmp3, n);   /* (x+a2*z)*x+a4*z^2 */
+	    mpres_mul(tmp2, tmp2, P->x, n);   /* (...)*x */
+	    mpres_mul(tmp3, P->z, P->z, n);   /* z^2 */
+	    mpres_mul(tmp3, tmp3, P->z, n);   /* z^3 */
+	    mpres_mul(tmp3, tmp3, E->a6, n);  /* a6*z^3 */
+	    mpres_add(tmp2, tmp2, tmp3, n);   /* rhs */
 	    mpres_clear(tmp3, n);
 	}
 
+	/*	gmp_printf("lhs=%Zd rhs=%Zd\n", tmp1, tmp2);*/
 	ok = mpres_equal(tmp1, tmp2, n);
 
 	mpres_clear(tmp1, n);
