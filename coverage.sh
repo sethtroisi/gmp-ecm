@@ -9,6 +9,10 @@ autoreconf -i
 ./configure --disable-assert
 make CFLAGS="-O0 -g -fprofile-arcs -ftest-coverage"
 make longcheck VALGRIND=
+make bench_mulredc
+./bench_mulredc
+make tune
+./tune -v
 geninfo --no-checksum --ignore-errors gcov,source -q --output-filename ecm.info ./ --no-external
 rm -rf $t
 genhtml -o $t/ ecm.info
