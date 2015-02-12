@@ -19,6 +19,8 @@ along with the ECM Library; see the file COPYING.LIB.  If not, see
 http://www.gnu.org/licenses/ or write to the Free Software Foundation, Inc.,
 51 Franklin St, Fifth Floor, Boston, MA 02110-1301, USA. */
 
+#ifndef _MSC_VER
+
 #include <stdio.h>
 #include <sys/types.h>
 #include <unistd.h>
@@ -60,3 +62,17 @@ PeakMemusage (void)
     }
 }
 
+#else
+
+#include <windows.h>
+#include <psapi.h>
+
+long
+PeakMemusage(void)
+{
+    PROCESS_MEMORY_COUNTERS info;
+    GetProcessMemoryInfo(GetCurrentProcess(), &info, sizeof(info));
+    return (long)(info.PeakWorkingSetSize >> 10);
+}
+
+#endif

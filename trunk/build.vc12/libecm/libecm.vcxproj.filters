@@ -136,6 +136,9 @@
     <ClCompile Include="..\..\aprtcle\mpz_aprcl.c">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="..\..\memusage.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\ecm-ecm.h">
