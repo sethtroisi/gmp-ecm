@@ -65,6 +65,7 @@ unpack (mpz_t *R, mp_size_t stride, mp_ptr t, mp_size_t l, mp_size_t s)
     }
 }
 
+/* R <- A * B where A = A[0] + A[1]*x + ... + A[n-1]*x^(n-1), idem for B */
 void
 list_mul_n_basecase (listz_t R, listz_t A, listz_t B, unsigned int n)
 {
@@ -76,18 +77,6 @@ list_mul_n_basecase (listz_t R, listz_t A, listz_t B, unsigned int n)
       return;
     }
 
-  if (n == 2) /* Karatsuba */
-    {
-      mpz_add (R[0], A[0], A[1]);
-      mpz_add (R[2], B[0], B[1]);
-      mpz_mul (R[1], R[0], R[2]);
-      mpz_mul (R[0], A[0], B[0]);
-      mpz_mul (R[2], A[1], B[1]);
-      mpz_sub (R[1], R[1], R[0]);
-      mpz_sub (R[1], R[1], R[2]);
-      return;
-    }
-
   for (i = 0; i < n; i++)
     for (j = 0; j < n; j++)
       {
@@ -96,6 +85,109 @@ list_mul_n_basecase (listz_t R, listz_t A, listz_t B, unsigned int n)
         else
           mpz_addmul (R[i+j], A[i], B[j]);
       }
+}
+
+static void
+list_mul_n_kara2 (listz_t R, listz_t A, listz_t B)
+{
+  mpz_add (R[0], A[0], A[1]);
+  mpz_add (R[2], B[0], B[1]);
+  mpz_mul (R[1], R[0], R[2]);
+  mpz_mul (R[0], A[0], B[0]);
+  mpz_mul (R[2], A[1], B[1]);
+  mpz_sub (R[1], R[1], R[0]);
+  mpz_sub (R[1], R[1], R[2]);
+}
+
+/* R[0..4] <- A[0..2] * B[0..2] in 7 multiplies */
+static void
+list_mul_n_kara3 (listz_t R, listz_t A, listz_t B, listz_t T)
+{
+  mpz_add (T[0], A[0], A[2]);
+  mpz_add (R[0], B[0], B[2]);
+  mpz_mul (R[2], T[0], R[0]); /* (A0+A2)*(B0+B2) */
+  mpz_mul (R[3], T[0], B[1]); /* (A0+A2)*B1 */
+  mpz_mul (R[4], A[1], R[0]); /* A1*(B0+B2) */
+  mpz_add (R[3], R[3], R[4]); /* (A0+A2)*B1+A1*(B0+B2) */
+  list_mul_n_kara2 (T, A, B);
+  mpz_sub (R[2], R[2], T[0]); /* A0*A2+A2*B0+A2*B2 */
+  mpz_sub (R[3], R[3], T[1]); /* A2*B1+A1*B2 */
+  mpz_add (R[2], R[2], T[2]); /* A0*A2+A2*B0+A2*B2+A1*B1 */
+  mpz_swap (R[0], T[0]);      /* A0*B0 */
+  mpz_swap (R[1], T[1]);      /* A0*B1+A1*B0 */
+  mpz_mul (R[4], A[2], B[2]); /* A2*B2 */
+  mpz_sub (R[2], R[2], R[4]); /* A0*A2+A2*B0+A1*B1 */
+}
+
+/* Assume n >= 2. T is a scratch space of enough entries. */
+static void
+list_mul_n_karatsuba_aux (listz_t R, listz_t A, listz_t B, unsigned int n,
+                          listz_t T)
+{
+  unsigned int h, l;
+
+  if (n == 1)
+    {
+      list_mul_n_basecase (R, A, B, n);
+      return;
+    }
+
+  if (n == 2)
+    {
+      list_mul_n_kara2 (R, A, B);
+      return;
+    }
+
+  if (n == 3)
+    {
+      list_mul_n_kara3 (R, A, B, T);
+      return;
+    }
+
+  h = n / 2;
+  l = n - h;
+  list_add (R, A, A + l, h);
+  list_add (R + l, B, B + l, h);
+  if (h < l)
+    {
+      mpz_set (R[h], A[h]);
+      mpz_set (R[l + h], B[h]);
+    }
+  list_mul_n_karatsuba_aux (T, R, R + l, l, T + 2 * l - 1);
+  list_mul_n_karatsuba_aux (R, A, B, l, T + 2 * l - 1);
+  /* {R,2l-1} = Al * Bl */
+  list_mul_n_karatsuba_aux (R + 2 * l, A + l, B + l, h, T + 2 * l - 1);
+  /* {R+2l,2h-1} = Ah * Bh */
+  /* T will contain Al*Bh+Ah*Bl, it thus suffices to compute its low n-1
+     coefficients */
+  list_sub (T, T, R, n - 1);
+  list_sub (T, T, R + 2 * l, 2 * h - 1);
+  mpz_set_ui (R[2 * l - 1], 0);
+  list_add (R + l, R + l, T, n - 1);
+}
+
+static unsigned int
+list_mul_n_mem (unsigned int n)
+{
+  if (n == 1)
+    return 0;
+  else
+    {
+      unsigned int k = (n + 1) / 2;
+      return 2 * k - 1 + list_mul_n_mem (k);
+    }
+}
+
+void
+list_mul_n_karatsuba (listz_t R, listz_t A, listz_t B, unsigned int n)
+{
+  listz_t T;
+  unsigned int s;
+
+  s = list_mul_n_mem (n);
+  T = init_list (s);
+  list_mul_n_karatsuba_aux (R, A, B, n, T);
+  clear_list (T, s);
 }
 
 /* Classical one-point Kronecker-Schoenhage substitution.
@@ -280,9 +372,11 @@ list_mult_n (listz_t R, listz_t A, listz_t B, unsigned int n)
      2 : list_mul_n_KS1
      3 : list_mul_n_KS2 */
   best = (n < TUNE_LIST_MUL_N_MAX_SIZE) ? T[n] : 3;
-    
+
   if (best == 0)
     list_mul_n_basecase (R, A, B, n);
+  else if (best == 1)
+    list_mul_n_karatsuba (R, A, B, n);
   else if (best == 2)
     list_mul_n_KS1 (R, A, B, n);
   else

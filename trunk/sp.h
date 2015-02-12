@@ -475,20 +475,15 @@ void spv_set_zero (spv_t, spv_size_t);
 
 /* add */
 void spv_add (spv_t, spv_t, spv_t, spv_size_t, sp_t);
-void spv_add_sp (spv_t, spv_t, sp_t, spv_size_t, sp_t);
 
 /* subtract */
-void spv_sub (spv_t, spv_t, spv_t, spv_size_t, sp_t);
-void spv_sub_sp (spv_t, spv_t, sp_t, spv_size_t, sp_t);
 void spv_neg (spv_t, spv_t, spv_size_t, sp_t);
 
 /* pointwise multiplication */
 void spv_pwmul (spv_t, spv_t, spv_t, spv_size_t, sp_t, sp_t);
-void spv_pwmul_rev (spv_t, spv_t, spv_t, spv_size_t, sp_t, sp_t);
 void spv_mul_sp (spv_t, spv_t, sp_t, spv_size_t, sp_t, sp_t);
 
 void spv_random (spv_t, spv_size_t, sp_t);
-int spv_cmp (spv_t, spv_t, spv_size_t);
 
 /* ntt_gfp */
 

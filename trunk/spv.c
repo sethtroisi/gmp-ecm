@@ -33,6 +33,7 @@ MA 02110-1301, USA. */
  * other than for temporary variables. Unless otherwise specified, any
  * of the input pointers can be equal. */
 
+#ifdef WANT_ASSERT
 int
 spv_verify (spv_t x, spv_size_t len, const sp_t m)
 {
@@ -52,6 +53,7 @@ spv_verify (spv_t x, spv_size_t len, const sp_t m)
   
   return 1;
 }
+#endif
 
 /* r = x */
 void
@@ -98,18 +100,6 @@ spv_set_zero (spv_t r, spv_size_t len)
   memset (r, 0, len * sizeof (sp_t));
 }
 
-int
-spv_cmp (spv_t x, spv_t y, spv_size_t len)
-{
-  spv_size_t i;
-
-  for (i = 0; i < len; i++)
-    if (x[i] != y[i])
-      return 1;
-
-  return 0;
-}
-
 /* r = x + y */
 void
 spv_add (spv_t r, spv_t x, spv_t y, spv_size_t len, sp_t m)
@@ -121,39 +111,6 @@ spv_add (spv_t r, spv_t x, spv_t y, spv_size_t len, sp_t m)
   
   for (i = 0; i < len; i++)
     r[i] = sp_add (x[i], y[i], m);
-}
-
-/* r = [x[0] + y, x[1] + y, ... ] */
-void
-spv_add_sp (spv_t r, spv_t x, sp_t c, spv_size_t len, sp_t m)
-{
-  spv_size_t i;
-
-  for (i = 0; i < len; i++)
-    r[i] = sp_add (x[i], c, m);
-}
-
-/* r = x - y */
-void
-spv_sub (spv_t r, spv_t x, spv_t y, spv_size_t len, sp_t m)
-{
-  spv_size_t i;
-  
-  ASSERT (r >= x + len || x >= r);
-  ASSERT (r >= y + len || y >= r);
-   
-  for (i = 0; i < len; i++)
-    r[i] = sp_sub (x[i], y[i], m);
-}
-
-/* r = [x[0] - y, x[1] - y, ... ] */
-void
-spv_sub_sp (spv_t r, spv_t x, sp_t c, spv_size_t len, sp_t m)
-{
-  spv_size_t i;
-
-  for (i = 0; i < len; i++)
-    r[i] = sp_sub (x[i], c, m);
 }
 
 /* r = [-x[0], -x[1], ... ] */
@@ -322,20 +279,6 @@ spv_pwmul (spv_t r, spv_t x, spv_t y, spv_size_t len, sp_t m, sp_t d)
 
   for (; i < len; i++)
     r[i] = sp_mul (x[i], y[i], m, d);
-}
-
-/* Pointwise multiplication, second input is read in reverse
- * r = [x[0] * y[len - 1], x[1] * y[len - 2], ... x[len - 1] * y[0]] */
-void
-spv_pwmul_rev (spv_t r, spv_t x, spv_t y, spv_size_t len, sp_t m, sp_t d)
-{
-  spv_size_t i;
-  
-  ASSERT (r >= x + len || x >= r);
-  ASSERT (r >= y + len || y >= r);
-
-  for (i = 0; i < len; i++)
-    r[i] = sp_mul (x[i], y[len - 1 - i], m, d);
 }
 
 /* dst = src * y */
