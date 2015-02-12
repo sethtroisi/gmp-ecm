@@ -188,6 +188,7 @@
     <ClCompile Include="..\..\listz_handle.c" />
     <ClCompile Include="..\..\lucas.c" />
     <ClCompile Include="..\..\median.c" />
+    <ClCompile Include="..\..\memusage.c" />
     <ClCompile Include="..\..\mpmod.c" />
     <ClCompile Include="..\..\mpzspm.c" />
     <ClCompile Include="..\..\mpzspv.c" />
