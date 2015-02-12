@@ -1176,7 +1176,11 @@ mpres_pow_mul (mpres_t a, const mpres_t b, const mpres_t c, mpmod_t modulus)
 void 
 mpres_pow (mpres_t R, const mpres_t BASE, const mpz_t EXP, mpmod_t modulus)
 {
-  ASSERT_NORMALIZED (BASE);
+    size_t k, expnbits, K, lw, n0, i;
+    mpres_t *B;
+    mp_limb_t w;
+
+    ASSERT_NORMALIZED(BASE);
 
   if (modulus->repr == ECM_MOD_MPZ)
     mpz_powm (R, BASE, EXP, modulus->orig_modulus);
@@ -1205,16 +1209,15 @@ mpres_pow (mpres_t R, const mpres_t BASE, const mpz_t EXP, mpmod_t modulus)
       /* here the most significant limb with any set bits is in expbits, */
       /* bitmask is set to mask in the msb of expbits */
 
-      size_t k = 1; /* sliding window size */
-      size_t expnbits = mpz_sizeinbase (EXP, 2);
+      k = 1; /* sliding window size */
+      expnbits = mpz_sizeinbase (EXP, 2);
       /* the average number of multiplications is 2^(k-1) + expnbits / (k+1) */
       while ((1 << (k-1)) + expnbits / (k + 1) > (1 << k) + expnbits / (k + 2))
         k ++;
       /* precompute BASE^i for i = 2, 3, 5, ..., 2^k-1 */
-      mpres_t *B;
-      size_t K = 1UL << (k - 1);
+      K = 1UL << (k - 1);
       B = malloc (K * sizeof (mpres_t));
-      for (size_t i = 0; i < K; i++)
+      for (i = 0; i < K; i++)
         {
           mpres_init (B[i], modulus);
           mpres_realloc (B[i], modulus);
@@ -1228,10 +1231,10 @@ mpres_pow (mpres_t R, const mpres_t BASE, const mpz_t EXP, mpmod_t modulus)
       
       mpz_set (modulus->temp2, BASE);
       bitmask >>= 1;
-      mp_limb_t w = 0; /* invariant: temp2 has to be multiplied by BASE^w */
-      size_t lw = 0;   /* number of bits in w */
+      w = 0; /* invariant: temp2 has to be multiplied by BASE^w */
+      lw = 0;   /* number of bits in w */
       expnbits --;     /* number of remaining bits to deal with */
-      size_t n0 = 0;   /* smallest bit index of current window */
+      n0 = 0;   /* smallest bit index of current window */
 
       while (1) 
         {
@@ -1272,7 +1275,7 @@ mpres_pow (mpres_t R, const mpres_t BASE, const mpz_t EXP, mpmod_t modulus)
       if (w != 0)
         mpres_pow_mul (modulus->temp2, (w == 1) ? BASE : B[w/2],
                        modulus->temp2, modulus);
-      for (size_t i = 0; i < K; i++)
+      for (i = 0; i < K; i++)
         mpres_clear (B[i], modulus);
       free (B);
       mpz_set (R, modulus->temp2);
