@@ -441,6 +441,13 @@ tune_list_mul_n ()
         printf (" basecase:%.2e", st[0]);
       best[n] = 0;
       __k = 1;
+      TUNE_FUNC_LOOP(list_mul_n_karatsuba(z, x, y, n));
+      st[1] = (double) __st / (double) __k;
+      if (tune_verbose)
+        printf (" karatsuba:%.2e", st[1]);
+      if (st[1] < st[0])
+        best[n] = 1;
+      __k = 1;
       TUNE_FUNC_LOOP(list_mul_n_KS1(z, x, y, n));
       st[2] = (double) __st / (double) __k;
       if (tune_verbose)
@@ -459,6 +466,7 @@ tune_list_mul_n ()
         }
       if (tune_verbose)     
         printf (" best:%s\n", (best[n] == 0) ? "basecase"
+                : (best[n] == 1) ? "kara"
                 : (best[n] == 2) ? "KS1" : "KS2");
     }
   printf ("#define LIST_MUL_TABLE {0");

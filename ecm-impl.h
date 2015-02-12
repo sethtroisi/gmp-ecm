@@ -66,7 +66,7 @@ extern size_t REDC_THRESHOLD;
 #endif
 extern size_t mpn_mul_lo_threshold[];
 
-#define TUNE_LIST_MUL_N_MAX_SIZE 16
+#define TUNE_LIST_MUL_N_MAX_SIZE 32
 
 #include <stdio.h> /* needed for "FILE *" */
 #include <limits.h>
@@ -487,8 +487,8 @@ void TUpTree (listz_t, listz_t *, unsigned int, listz_t, int, unsigned int,
 /* ks-multiply.c */
 #define list_mul_n_basecase __ECM(list_mul_n_basecase)
 void list_mul_n_basecase (listz_t, listz_t, listz_t, unsigned int);
-#define list_mul_tc __ECM(list_mul_tc)
-void list_mul_tc (listz_t, listz_t, unsigned int, listz_t, unsigned int);
+#define list_mul_n_karatsuba __ECM(list_mul_n_karatsuba)
+void list_mul_n_karatsuba (listz_t, listz_t, listz_t, unsigned int);
 #define list_mul_n_KS1 __ECM(list_mul_n_KS1)
 void list_mul_n_KS1 (listz_t, listz_t, listz_t, unsigned int);
 #define list_mul_n_KS2 __ECM(list_mul_n_KS2)
