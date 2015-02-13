@@ -82,11 +82,7 @@ int eval (mpcandi_t *n, FILE *fd, int primetest)
   int c;
   char *expr = (char *) malloc (nMaxSize + 1);
 
-  if (expr == NULL)
-    {
-      fprintf (stderr, "Error: not enough memory\n");
-      exit (EXIT_FAILURE);
-    }
+  ASSERT_ALWAYS (expr != NULL);
 /* Lines ending in '\\' are "joined" as a single longer line */
 JoinLinesLoop:;
   c = fgetc (fd);
@@ -124,12 +120,7 @@ ChompLine:;
 	char *cp;
 	nMaxSize += nMaxSize / 2;
 	cp = (char *) realloc (expr, nMaxSize + 1);
-	if (!cp)
-	{
-	  free (expr);
-	  fprintf (stderr, "Severe warning!, out of core memory reading number!\n");
-	  exit (EXIT_FAILURE);
-	}
+        ASSERT_ALWAYS (cp != NULL);
 	expr = cp;
       }
       c = fgetc (fd);
@@ -173,11 +164,7 @@ int eval_str (mpcandi_t *n, char *cp, int primetest, char **EndChar)
   char *c;
   char *expr = (char *) malloc(nMaxSize+1);
 
-  if (expr == NULL)
-    {
-      fprintf (stderr, "Error: not enough memory\n");
-      exit (EXIT_FAILURE);
-    }
+  ASSERT_ALWAYS (expr != NULL);
 /* Lines ending in '\\' are "joined" as a single longer line */
   c = cp;
 JoinLinesLoop:;
@@ -198,14 +185,9 @@ JoinLinesLoop:;
       if (nCurSize == nMaxSize)
       {
 	char *cp;
-	nMaxSize += 5000;
+	nMaxSize += nMaxSize / 2;
 	cp = (char *) realloc (expr, nMaxSize + 1);
-	if (!cp)
-	{
-	  free(expr);
-	  fprintf(stderr, "Severe warning!, out of core memory reading number!\n");
-	  exit (EXIT_FAILURE);
-	}
+        ASSERT_ALWAYS (cp != NULL);
 	expr = cp;
       }
       ++c;
