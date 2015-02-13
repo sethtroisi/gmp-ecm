@@ -83,7 +83,6 @@ int eval (mpcandi_t *n, FILE *fd, int primetest)
   char *expr = (char *) malloc (nMaxSize + 1);
 
   ASSERT_ALWAYS (expr != NULL);
-/* Lines ending in '\\' are "joined" as a single longer line */
 JoinLinesLoop:;
   c = fgetc (fd);
   if (c == '#')
@@ -130,12 +129,6 @@ ChompLine:;
     ret = 0;
   else
     {
-      if (expr[nCurSize-1] == '\\')
-	{
-	  /* remove the '\\' char, and then process the next line */
-	  expr[--nCurSize] = 0;
-	  goto JoinLinesLoop;
-	}
       if (c == ';')
 	ungetc (c, fd);
       mpz_init (t);
@@ -165,7 +158,6 @@ int eval_str (mpcandi_t *n, char *cp, int primetest, char **EndChar)
   char *expr = (char *) malloc(nMaxSize+1);
 
   ASSERT_ALWAYS (expr != NULL);
-/* Lines ending in '\\' are "joined" as a single longer line */
   c = cp;
 JoinLinesLoop:;
   if (*c == '#')
@@ -197,12 +189,6 @@ JoinLinesLoop:;
     ret = 0;
   else
     {
-      if (expr[nCurSize-1] == '\\')
-	{
-	  /* remove the '\\' char, and then process the next line */
-	  expr[--nCurSize] = 0;
-	  goto JoinLinesLoop;
-	}
       if (*c != ';')
 	++c;
       mpz_init(t);
@@ -243,7 +229,7 @@ void eval_power (mpz_t prior_n, mpz_t n,char op)
     mpz_pow_ui(n,prior_n,mpz_get_ui(n));
   else if ('!'==op)	/* simple factorial  (syntax n!    example: 7! == 1*2*3*4*5*6*7) */
     mpz_fac_ui(n,mpz_get_ui(n));
-  else if ('@'==op)	/* Multi factorial   (syntax n!prior_n.  example: 15!3 == 15*12*9*6*3) */
+  else if ('@'==op)	/* Multi factorial   (syntax n@prior_n.  example: 15@3 == 15*12*9*6*3) */
     {
       long nCur;
       unsigned long nDecr;
