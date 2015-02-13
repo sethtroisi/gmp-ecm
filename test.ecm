@@ -307,13 +307,13 @@ echo 2432902008176640001 | $ECM -param 6 -A 2 -x0 2 -y0 3 1000 2000; checkcode $
 ##### tests for curves with specific torsion
 echo 4722366482800925736961 | $ECM -torsion Z5 -sigma 2 1e5; checkcode $? 14
 ## a factor is to be found during initialization
-echo 12787261 | ./ecm -torsion Z5 -sigma 1000 1e2; checkcode $? 14
+echo 12787261 | $ECM -torsion Z5 -sigma 1000 1e2; checkcode $? 14
 ## a factor is to be found during initialization
-#echo 123041 | ./ecm -torsion Z7 -sigma 2 1e2; checkcode $? 14
+#echo 123041 | $ECM -torsion Z7 -sigma 2 1e2; checkcode $? 14
 ## a factor is found
-#echo 13290059 | ./ecm -torsion Z7 -sigma 4 1e2; checkcode $? 14
+#echo 13290059 | $ECM -torsion Z7 -sigma 4 1e2; checkcode $? 14
 ## in step 2
-#echo 2432902008176640001 | ./ecm -torsion Z7 -sigma 1 1e3 1e8; checkcode $? 14
+#echo 2432902008176640001 | $ECM -torsion Z7 -sigma 1 1e3 1e8; checkcode $? 14
 
 # the following tests should work on machines which have uint64_t or where
 # unsigned long long has 64 bits (exercises patch from David Cleaver, r1575)
