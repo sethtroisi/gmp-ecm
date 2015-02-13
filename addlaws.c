@@ -2067,7 +2067,7 @@ ell_point_mul_add_sub(ell_point_t Q, mpz_t e, ell_point_t P,
 int
 ell_point_mul(ell_point_t Q, mpz_t e, ell_point_t P, ell_curve_t E, mpmod_t n)
 {
-#if 0 /* keeping it simple */
+#if 1 /* keeping it simple */
     return ell_point_mul_plain(Q, e, P, E, n);
 #else
     return ell_point_mul_add_sub(Q, e, P, E, n);
