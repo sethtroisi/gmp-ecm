@@ -82,21 +82,6 @@ clear_list (listz_t p, unsigned int n)
   free (p);
 }
 
-void
-output_list (const int verbose, const listz_t p, const unsigned int n, 
-             const char *prefix, const char *suffix)
-{
-  unsigned int i;
-
-  if (!test_verbose(verbose))
-    return;
-
-  outputf (verbose, prefix);
-  for (i = 0; i < n; i++)
-    outputf (verbose, "%s%Zd * x^%u", (i > 0) ? " + " : "", p[i], i);
-  outputf (verbose, suffix);
-}
-
 #ifdef DEBUG
 /* prints a list of n coefficients as a polynomial */
 void
@@ -233,6 +218,7 @@ list_sub (listz_t p, listz_t q, listz_t r, unsigned int l)
     mpz_sub (p[i], q[i], r[i]);
 }
 
+#ifndef POLYEVALTELLEGEN
 /* p[i] <- q[i] * r mod m */
 void
 list_mul_z (listz_t p, listz_t q, mpz_t r, unsigned int n, mpz_t m)
@@ -245,25 +231,7 @@ list_mul_z (listz_t p, listz_t q, mpz_t r, unsigned int n, mpz_t m)
       mpz_mod (p[i], p[i], m);
     }
 }
-
-/* p <- gcd(n, l[0]*l[1]*...*l[k-1],
-   returns non-zero iff p is non trivial.
-   Clobbers l[0] */
-int
-list_gcd (mpz_t p, listz_t l, unsigned int k, mpz_t n)
-{
-  unsigned int i;
-  
-  for (i = 1; i < k; i++)
-    {
-      mpz_mul (l[0], l[0], l[i]);
-      mpz_mod (l[0], l[0], n);
-    }
-  mpz_gcd (p, l[0], n);
-
-  return mpz_cmp_ui (p, 1);
-}
-
+#endif
 
 /* Multiply up the integers in l, modulo n. Each entry becomes the
    product (mod n) of itself and all previous entries */
@@ -562,6 +530,7 @@ PolyInvert (listz_t q, listz_t b, unsigned int K, listz_t t, mpz_t n)
     }
 }
 
+#ifndef POLYEVALTELLEGEN
 /*
   divides a[0]+a[1]*x+...+a[2K-1]*x^(2K-1)
   By b[0]+b[1]*x+...+b[K-1]*x^(K-1)+x^K
@@ -637,6 +606,7 @@ RecursiveDivision (listz_t q, listz_t a, listz_t b, unsigned int K,
         list_mod (a, a, K, n);
     }
 }
+#endif
 
 /*
   Returns in a[0]+a[1]*x+...+a[K-1]*x^(K-1)
@@ -686,11 +656,7 @@ PrerevertDivision (listz_t a, listz_t b, listz_t invb,
       if (wrap)
 	{
 	  t2 = init_list2 (K - 1, mpz_sizeinbase (n, 2));
-	  if (t2 == NULL)
-	    {
-	      fprintf (ECM_STDERR, "Error, not enough memory\n");
-	      return ECM_ERROR;
-	    }
+          ASSERT_ALWAYS(t2 != NULL);
 	  list_mod (t2, t + K - 2, K - 1, n);
 	}
       else /* we can store in high(A) which is no longer needed */
@@ -738,41 +704,5 @@ PrerevertDivision (listz_t a, listz_t b, listz_t invb,
   list_sub (a, a, t, K);
   list_mod (a, a, K, n);
 
-  return 0;
-}
-
-/* Puts in inv[0..l-1] the inverses of a[0..l-1] (mod n), using 3*(l-1) 
-   multiplies and one gcdext.
-   Returns 1 if a factor was found (stored in t), 0 otherwise.
-*/
-int
-list_invert (listz_t inv, listz_t a, unsigned long l, mpz_t t, mpmod_t modulus)
-{
-  unsigned long i;
-  
-  if (l == 0)
-    return 0;
-  
-  mpz_set (inv[0], a[0]);
-  
-  for (i = 1; i < l; i++)
-    {
-      mpz_mul (t, inv[i-1], a[i]);
-      mpz_mod (inv[i], t, modulus->orig_modulus); /* inv[i] = a[0]*...*a[i] */
-    }
-  
-  mpz_gcdext (t, inv[l-1], NULL, inv[l-1], modulus->orig_modulus);
-  
-  if (mpz_cmp_ui (t, 1) != 0)
-    return 1;
-  
-  for (i = l-1; i > 0; i--)
-    {
-      mpz_mul (t, inv[i], inv[i-1]); /* t = (a[0]*...*a[i])^(-1) * (a[0]*...*a[i-1]) = a[i]^(-1) */
-      mpz_mul (inv[i-1], inv[i], a[i]); /* inv[i-1] = (a[0]*...*a[i])^(-1) * a[i] = (a[0]*...*a[i-1])^(-1) */
-      mpz_mod (inv[i-1], inv[i-1], modulus->orig_modulus);
-      mpz_mod (inv[i], t, modulus->orig_modulus);
-    }
-  
   return 0;
 }

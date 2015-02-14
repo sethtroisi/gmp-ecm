@@ -405,9 +405,6 @@ void         clear_list (listz_t, unsigned int);
 int          list_inp_raw (listz_t, FILE *, unsigned int);
 #define list_out_raw __ECM(list_out_raw)
 int          list_out_raw (FILE *, listz_t, unsigned int);
-#define output_list __ECM(output_list)
-void         output_list (int, const listz_t, unsigned int, const char *, 
-                          const char *);
 #define print_list __ECM(print_list)
 void         print_list (listz_t, unsigned int);
 #define list_set __ECM(list_set)
@@ -426,8 +423,6 @@ void         list_add   (listz_t, listz_t, listz_t, unsigned int);
 void         list_sub   (listz_t, listz_t, listz_t, unsigned int);
 #define list_mul_z __ECM(list_mul_z)
 void         list_mul_z (listz_t, listz_t, mpz_t, unsigned int, mpz_t);
-#define list_gcd __ECM(list_gcd)
-int          list_gcd   (mpz_t, listz_t, unsigned int, mpz_t);
 #define list_mulup __ECM(list_mulup)
 void          list_mulup (listz_t, unsigned int, mpz_t, mpz_t);
 #define list_zero __ECM(list_zero)
@@ -440,8 +435,6 @@ void      list_mul_high (listz_t, listz_t, listz_t, unsigned int);
 #define list_mulmod __ECM(list_mulmod)
 void        list_mulmod (listz_t, listz_t, listz_t, listz_t, unsigned int,
                          listz_t, mpz_t);
-#define list_invert __ECM(list_invert)
-int         list_invert (listz_t, listz_t, unsigned long, mpz_t, mpmod_t);
 #define PolyFromRoots __ECM(PolyFromRoots)
 void      PolyFromRoots (listz_t, listz_t, unsigned int, listz_t, mpz_t);
 #define PolyFromRoots_Tree __ECM(PolyFromRoots_Tree)
