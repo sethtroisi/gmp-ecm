@@ -218,21 +218,6 @@ list_sub (listz_t p, listz_t q, listz_t r, unsigned int l)
     mpz_sub (p[i], q[i], r[i]);
 }
 
-#ifndef POLYEVALTELLEGEN
-/* p[i] <- q[i] * r mod m */
-void
-list_mul_z (listz_t p, listz_t q, mpz_t r, unsigned int n, mpz_t m)
-{
-  unsigned int i;
-
-  for (i = 0; i < n; i++)
-    {
-      mpz_mul (p[i], q[i], r);
-      mpz_mod (p[i], p[i], m);
-    }
-}
-#endif
-
 /* Multiply up the integers in l, modulo n. Each entry becomes the
    product (mod n) of itself and all previous entries */
    
@@ -529,84 +514,6 @@ PolyInvert (listz_t q, listz_t b, unsigned int K, listz_t t, mpz_t n)
       list_mod (q, t + 2 * k - 1, k, n);
     }
 }
-
-#ifndef POLYEVALTELLEGEN
-/*
-  divides a[0]+a[1]*x+...+a[2K-1]*x^(2K-1)
-  By b[0]+b[1]*x+...+b[K-1]*x^(K-1)+x^K
-  i.e. a polynomial of 2K coefficients divided by a monic polynomial
-  with K+1 coefficients (b[K]=1 is implicit).
-  Puts the quotient in q[0]+q[1]*x+...+q[K-1]*x^(K-1)
-  and the remainder in a[0]+a[1]*x+...+a[K-1]*x^(K-1)
-  Needs space for list_mul_mem(K) coefficients in t.
-  If top is non-zero, a[0]..a[K-1] are reduced mod n.
-*/
-void
-RecursiveDivision (listz_t q, listz_t a, listz_t b, unsigned int K,
-                   listz_t t, mpz_t n, int top)
-{
-  if (K == 1) /* a0+a1*x = a1*(b0+x) + a0-a1*b0 */
-    {
-      mpz_mod (a[1], a[1], n);
-      mpz_mul (q[0], a[1], b[0]);
-      mpz_mod (q[0], q[0], n);
-      mpz_sub (a[0], a[0], q[0]);
-      if (top)
-        mpz_mod (a[0], a[0], n);
-      mpz_set (q[0], a[1]);
-    }
-  else
-    {
-      unsigned int k, l, i, po2;
-
-      k = K / 2;
-      l = K - k;
-      for (po2 = K; (po2 && 1) == 0; po2 >>= 1);
-      po2 = (po2 == 1);
-
-      /* first perform a (2l) / l division */
-      RecursiveDivision (q + k, a + 2 * k, b + k, l, t, n, 0);
-      /* subtract q[k..k+l-1] * b[0..k-1] */
-      ASSERTD(list_check(q+l,k,n) && list_check(b,k,n));
-      if (po2 && Fermat)
-        F_mul (t, q + l, b, k, DEFAULT, Fermat, t + K); /* sets t[0..2*k-2]*/
-      else
-        list_mult_n (t, q + l, b, k); /* sets t[0..2*k-2] */
-      list_sub (a + l, a + l, t, 2 * k - 1);
-      if (k < l) /* don't forget to subtract q[k] * b[0..k-1] */
-        {
-	  for (i=0; i<k; i++)
-	    {
-	      mpz_mul (t[0], q[k], b[i]); /* TODO: need to reduce t[0]? */
-	      mpz_sub (a[k+i], a[k+i], t[0]);
-	    }
-        }
-      /* remainder is in a[0..K+k-1] */
-
-      /* then perform a (2k) / k division */
-      RecursiveDivision (q, a + l, b + l, k, t, n, 0);
-      /* subtract q[0..k-1] * b[0..l-1] */
-      ASSERTD(list_check(q,k,n) && list_check(b,k,n));
-      if (po2 && Fermat)
-        F_mul (t, q, b, k, DEFAULT, Fermat, t + K);
-      else
-        list_mult_n (t, q, b, k);
-      list_sub (a, a, t, 2 * k - 1);
-      if (k < l) /* don't forget to subtract q[0..k-1] * b[k] */
-        {
-          for (i=0; i<k; i++)
-            {
-              mpz_mul (t[0], q[i], b[k]); /* TODO: need to reduce t[0]? */
-              mpz_sub (a[k+i], a[k+i], t[0]);
-            }
-        }
-
-      /* normalizes the remainder wrt n */
-      if (top)
-        list_mod (a, a, K, n);
-    }
-}
-#endif
 
 /*
   Returns in a[0]+a[1]*x+...+a[K-1]*x^(K-1)

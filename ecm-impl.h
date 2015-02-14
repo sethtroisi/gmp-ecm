@@ -107,10 +107,6 @@ extern FILE *ECM_STDOUT, *ECM_STDERR;
 #define PM1FS2_COST 1.0 / 4.0
 #define PP1FS2_COST 1.0 / 4.0
 
-/* if POLYEVALTELLEGEN is defined, use polyeval_tellegen(),
-   otherwise use polyeval() */
-#define POLYEVALTELLEGEN
-
 /* define top-level multiplication */
 #define KARA 2
 #define TOOM3 3
@@ -122,10 +118,6 @@ extern FILE *ECM_STDOUT, *ECM_STDERR;
 #define MULREDC_ASSEMBLY_MAX 20
 
 #include "sp.h"
-
-#ifdef POLYEVALTELLEGEN
-#define USE_SHORT_PRODUCT
-#endif
 
 #include <assert.h>
 #define ASSERT_ALWAYS(expr)   assert (expr)

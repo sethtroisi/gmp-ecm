@@ -761,7 +761,6 @@ stage2 (mpz_t f, void *X, mpmod_t modulus, unsigned long dF, unsigned long k,
   clear_list (G, dF);
   G = NULL;
   st = cputime ();
-#ifdef POLYEVALTELLEGEN
   if (use_ntt)
     youpi = ntt_polyevalT (T, dF, Tree, T + dF + 1, sp_invF,
 	mpzspm, TreeFilename);
@@ -774,11 +773,6 @@ stage2 (mpz_t f, void *X, mpmod_t modulus, unsigned long dF, unsigned long k,
       outputf (OUTPUT_ERROR, "Error, not enough memory\n");
       goto clear_fd;
     }
-#else
-  clear_list (invF, dF + 1);
-  invF = NULL;
-  polyeval (T, dF, Tree, T + dF + 1, n, 0);
-#endif
   treefiles_used = 0; /* Polyeval deletes treefiles by itself */
 
   if (test_verbose (OUTPUT_TRACE))
