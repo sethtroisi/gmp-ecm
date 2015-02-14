@@ -674,7 +674,7 @@ write_s_in_file (char *fn, mpz_t s)
     }
 #endif
   
-  file = fopen (fn, "w");
+  file = fopen (fn, "wb");
   if (file == NULL)
     {
       fprintf (stderr, "Could not open file %s for writing\n", fn);
@@ -705,7 +705,7 @@ read_s_from_file (mpz_t s, char *fn, double B1)
     }
 #endif
   
-  file = fopen (fn, "r");
+  file = fopen (fn, "rb");
   if (file == NULL)
     {
       fprintf (stderr, "Could not open file %s for reading\n", fn);
