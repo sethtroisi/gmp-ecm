@@ -126,6 +126,15 @@ echo "101#-1" | $ECM -sigma 0:17 4e5; checkcode $? 14
 
 echo '101!-1' | $ECM -sigma 0:17 1e5; checkcode $? 2
 
+echo '101!3-1' | $ECM -sigma 0:17 1e5; checkcode $? 2
+
+echo '101#3-2' | $ECM -sigma 0:18 1e5; checkcode $? 14
+
+# parsing error
+echo '2^(101/7)-1' | $ECM -sigma 0:18 1e5; checkcode $? 1
+
+echo "2^1000-(101%7)" | $ECM -sigma 0:17 1e3; checkcode $? 2
+
 # idem with -nobase2
 echo "2^919-1" | $ECM -nobase2 -param 0 -sigma 262763035 937 1; checkcode $? 6
 
@@ -265,9 +274,18 @@ checkcode $? 14
 
 fi
 
-# test to exercise the Phi code in eval.c
+# tests to exercise the Phi code in eval.c
 echo "Phi(101,30)" | $ECM -sigma 0:12023436370081639188 1e5
 checkcode $? 14
+
+echo "1+Phi(102,1)" | $ECM -sigma 0:12023436370081639188 1e5
+checkcode $? 8
+
+echo "Phi(101,1)" | $ECM -sigma 0:12023436370081639188 1e5
+checkcode $? 8
+
+echo "17+Phi(1,2)" | $ECM -sigma 0:17 1e3
+checkcode $? 6
 
 # this example would fail with the old Fgw.c when using gwnum (fixed by David Cleaver, r1734)
 echo "((173^173+1)/174)/471462511391940575680645418941" | $ECM -param 0 -sigma 12345 20000

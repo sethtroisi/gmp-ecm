@@ -49,7 +49,6 @@ http://www.gnu.org/licenses/ or write to the Free Software Foundation, Inc.,
  *   Phi(x,n)							 *
  *                                                               *
  * NOTE Lines ending in a \ character are "joined"               *
- * NOTE Lines starting with #are comments                        *
  * NOTE C++ // single line comments (rest of line is a comment)  *
  *                                                               *
  ****************************************************************/
@@ -83,11 +82,11 @@ int eval (mpcandi_t *n, FILE *fd, int primetest)
   char *expr = (char *) malloc (nMaxSize + 1);
 
   ASSERT_ALWAYS (expr != NULL);
-JoinLinesLoop:;
+JoinLinesLoop:
   c = fgetc (fd);
-  if (c == '#')
+  if (0)
     {
-ChompLine:;
+ChompLine:
       do
         c = fgetc (fd);
       while (c != EOF && !IS_NEWLINE(c));
@@ -159,7 +158,7 @@ int eval_str (mpcandi_t *n, char *cp, int primetest, char **EndChar)
 
   ASSERT_ALWAYS (expr != NULL);
   c = cp;
-JoinLinesLoop:;
+JoinLinesLoop:
   if (*c == '#')
     {
       do
@@ -229,14 +228,15 @@ void eval_power (mpz_t prior_n, mpz_t n,char op)
     mpz_pow_ui(n,prior_n,mpz_get_ui(n));
   else if ('!'==op)	/* simple factorial  (syntax n!    example: 7! == 1*2*3*4*5*6*7) */
     mpz_fac_ui(n,mpz_get_ui(n));
-  else if ('@'==op)	/* Multi factorial   (syntax n@prior_n.  example: 15@3 == 15*12*9*6*3) */
+  else if ('@'==op)	/* Multi factorial   (syntax n!prior_n
+                           Example: 15!3 == 15*12*9*6*3
+                           Note: 15!3 is substituted into 15@3 by the parser */
     {
       long nCur;
       unsigned long nDecr;
       nCur = mpz_get_si(prior_n);
       nDecr = mpz_get_ui(n);
       mpz_set_ui(n,1);
-      /*printf ("Multi-factorial  %ld!%ld\n", nCur, nDecr);*/
       while (nCur > 1)
 	{
 	  /* This could be done much more efficiently (bunching mults using smaller "built-ins"), but I am not going to bother for now */
@@ -331,55 +331,44 @@ int eval_Phi (mpz_t b, mpz_t n, int ParamCnt)
 {
   int factors[200];
   unsigned dwFactors=0, dw;
-  int B;
+  unsigned long B;
   double p;
   mpz_t D, T, org_n;
-
+  
   if (ParamCnt == 0)
-    {
-      fprintf (stderr, "\nParsing Error - the Phi function (in ECM) requires 2 parameters\n");
-      return 0;
-    }
+    return 0;
 
-  if (mpz_cmp_ui(n, 1) == 0)
+  if (mpz_cmp_ui (n, 1) == 0)
     {
       /* return value is 1 if b is composite, or b if b is prime */
       int isPrime = mpz_probab_prime_p (b, PROBAB_PRIME_TESTS);
       if (isPrime)
-	mpz_set(n, b);
+	mpz_set (n, b);
       else
-	mpz_set(n, mpOne);
+	mpz_set (n, mpOne);
       return 1;
     }
-  if (mpz_cmp_si(n, -1) == 0)
-    {
-      /* this is actually INVALID, but it is easier to simply */
-      fprintf (stderr, "\nParsing Error - Invalid parameter passed to the Phi function\n");
-      return 0;
-    }
+  if (mpz_cmp_si (n, -1) == 0)
+    /* this is actually INVALID, but it is easier to simply */
+    return 0;
+
   /* OK parse the Phi out now */
-  if (mpz_cmp_ui(b, 0) == 0)
+  if (mpz_cmp_ui (b, 0) <= 0)
+    return 0;
+
+  if (mpz_cmp_ui (b, 1) == 0)
     {
-      /* this is valid, but return that it is NOT */
-      mpz_set(n, mpOne);
-      return 0;
-    }
-  if (mpz_cmp_ui(b, 1) == 0)
-    {
-      if (mpz_cmp_ui(n, 1) != 0)
-	mpz_sub_ui(n, n, 1);
+      if (mpz_cmp_ui (n, 1) != 0)
+	mpz_sub_ui (n, n, 1);
       return 1;
     }
 
   /* Ok, do the real h_primative work, since we are not one of the trivial case */
 
-  B = mpz_get_si(b);
+  if (mpz_fits_ulong_p (b) == 0)
+    return 0;
 
-  if (mpz_cmp_ui(b, B))
-    {
-      fprintf (stderr, "\nParsing Error - Invalid parameter passed to the Phi function (first param B too high)\n");
-      return 0;
-    }
+  B = mpz_get_ui (b);
 
   /* Obtain the factors of B */
   getprime_clear ();  /* free the prime tables, and reinitialize */
@@ -393,7 +382,7 @@ int eval_Phi (mpz_t b, mpz_t n, int ParamCnt)
 	  do { B /= (int) p; } while (B % (int) p == 0);
         }
      }
-  B = mpz_get_si(b);
+  B = mpz_get_si (b);
 
   mpz_init_set(org_n, n);
   mpz_set_ui(n, 1);
@@ -524,9 +513,11 @@ int eval_2 (int bInFuncParams)
 		      mpz_set(n, t);
 		      if (eval_Phi (n_stack[3], n, 1) == 0)
 			{
-			  mpz_clear(n);
-			  for (i=0;i<4;i++) 
-			    mpz_clear(n_stack[i]);
+                          fprintf (stderr, "\nParsing Error -  Invalid "
+                                   "parameter passed to the Phi function\n");
+			  mpz_clear (n);
+			  for (i = 0; i < 4; i++) 
+			    mpz_clear (n_stack[i]);
 			  return 0;
 			}
 		    }
@@ -565,7 +556,7 @@ int eval_2 (int bInFuncParams)
    and then fixing the expression up when completed. */
 /* This is ALSO where functions should be sent.  A function should "act" like a stand alone number.
    We should NOT start processing, and expecting a number, but we should expect an operator first */
-MONADIC_SUFFIX_LOOP:;
+MONADIC_SUFFIX_LOOP:
         op=*expr_str++;
 	    
       if (0==op || ')'==op || ']'==op || '}'==op || (','==op&&bInFuncParams))
