@@ -391,14 +391,15 @@ build_curves_with_torsion_Z5(mpz_t f, mpmod_t n,
     return ret;
 }
 
-/* INPUT: 
-     T^2 = S^3 + A * S + B
-   => quartic Y^2 = X^4 - 6 * A2 * X^2 + 4 * A1 * X + A0, with
+/* 
+     E_aux: T^2 = S^3 + A * S + B
+   => quartic QC: Y^2 = X^4 - 6 * A2 * X^2 + 4 * A1 * X + A0, with
      X = (T-A1/2)/(S-A2), Y = -X^2 + 2 * S + A2.
    => quartic y^2 = f(x) = a4*x^4+...+a0, where
      x = x0+y0/(X-cte), where cte = f'(x0)/4/y0
      y = Y/y0*(x-x0)^2 = Y*y0/(X-cte)^2
-   SIDE EFFECT: x, y
+   INPUT: (s, t) is a point on E_aux; (x0, y0) a point on QC.
+   SIDE EFFECT: x, y contain a point on the elliptic curve.
    OUTPUT: 1 if no pb occurred,
            0 if a factor was found and put in f
  */
@@ -412,7 +413,7 @@ cubic_to_quartic(mpz_t f, mpz_t n, mpz_t x, mpz_t y,
 
     mpz_init(X);
     mpz_init(Y);
-    /* 1st move */
+    /* X <- (t-A1/2)/(s-A2) */
     mpz_sub(x, t, A1div2);
     mpz_sub(y, s, A2);
     if(mod_from_rat2(X, x, y, n) == 0){
@@ -420,12 +421,13 @@ cubic_to_quartic(mpz_t f, mpz_t n, mpz_t x, mpz_t y,
 	ret = 0;
     }
     else{
+	/* Y <- -X^2 + 2 * s + A2 */
 	mpz_mul(Y, X, X);
 	mpz_sub(Y, A2, Y);
 	mpz_add(Y, Y, s);
 	mpz_add(Y, Y, s);
 	mpz_mod(Y, Y, n);
-	/* 2nd move */
+	/* x <- x0+y0/(X-cte) */
 	mpz_sub(X, X, cte);
 	mpz_mod(X, X, n);
 	if(mpz_invert(f, X, n) == 0){
@@ -478,7 +480,9 @@ build_curves_with_torsion_Z7(mpz_t f, mpmod_t n,
     mpres_init(tmp, n);
     mod_from_rat_str(f, "1295/48", n->orig_modulus);
     mpres_set_z(tmp, f, n);
-    ell_curve_init_set(E, ECM_EC_TYPE_WEIERSTRASS, ECM_LAW_HOMOGENEOUS,tmp, n);
+    ell_curve_init_set(E, ECM_EC_TYPE_WEIERSTRASS, ECM_LAW_AFFINE,tmp, n);
+    mod_from_rat_str(f, "-1079/864", n->orig_modulus);
+    mpres_set_z(E->a6, f, n);
     ell_point_init(P, E, n);
     mod_from_rat_str(f, "2185/12", n->orig_modulus);
     mpres_set_z(P->x, f, n);
@@ -522,20 +526,22 @@ build_curves_with_torsion_Z7(mpz_t f, mpmod_t n,
 	    ret = ECM_ERROR;
 	    break;
 	}
+	/* come back to plain (not Montgomery) residues */
+	mpres_get_z(b, Q->x, n);
+	mpres_get_z(c, Q->y, n);
 #if DEBUG_TORSION >= 2
+	printf("b:=%Zd; c:=%Zd;\n", b, c);
 	printf("(s, t)[%d]:=", u);
 	pt_print(E, Q, n);
 	printf(";\n");
 #endif
-	/* come back to plain (not Montgomery) residues */
-	mpres_get_z(b, Q->x, n);
-	mpres_get_z(c, Q->y, n);
 	if(cubic_to_quartic(f, n->orig_modulus, d, ky0, b, c, 
 			    A2, A1div2, x0, y0, cte) == 0){
-	    printf("found factor in Z7 (cubic_2_quartic)\n");
+	    printf("found factor in Z7 (cubic_to_quartic)\n");
 	    ret = ECM_FACTOR_FOUND_STEP1;
 	    break;
 	}
+	/* (d, ky0) is a point on y^2 = x^4-18*x^3+13*x^2-28*x+4 */
 	/* d:=x; */
 	/* x0:=-2*d; */
 	mpz_mul_si(kx0, d, -2);
