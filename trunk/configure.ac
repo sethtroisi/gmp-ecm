@@ -355,7 +355,11 @@ dnl Checks for header files.
 AC_FUNC_ALLOCA
 AC_HEADER_STDC
 AC_CHECK_HEADERS([math.h limits.h malloc.h strings.h sys/time.h unistd.h io.h signal.h fcntl.h])
-AC_CHECK_HEADERS([windows.h])
+AC_CHECK_HEADERS([windows.h psapi.h], [], [],
+   [[#ifdef HAVE_WINDOWS_H
+     # include <windows.h>
+     #endif
+     ]])
 AC_CHECK_HEADERS([ctype.h sys/types.h sys/resource.h aio.h])
 
 dnl Checks for library functions that are not in GMP
@@ -368,6 +372,7 @@ AC_CHECK_LIB(m,sqrt,,AC_MSG_ERROR(required function missing))
 AC_CHECK_LIB(m,fmod,,AC_MSG_ERROR(required function missing))
 AC_CHECK_LIB(m,cos)
 AC_CHECK_LIB(rt,aio_read)
+AC_CHECK_LIB(psapi,[GetProcessMemoryInfo])
 
 AC_CHECK_FUNCS([isascii memset strchr strlen strncasecmp strstr], [], [AC_MSG_ERROR([required function missing])])
 AC_CHECK_FUNCS([access unlink], [], [AC_MSG_ERROR([required function missing])])
