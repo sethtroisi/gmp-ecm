@@ -452,6 +452,44 @@ cubic_to_quartic(mpz_t f, mpz_t n, mpz_t x, mpz_t y,
     return ret;
 }
 
+int
+build_curves_with_torsion_aux(ell_curve_t Eaux, ell_point_t Paux,
+			      mpz_t A2, mpz_t A1div2, mpz_t x0, mpz_t y0,
+			      mpz_t cte,
+			      char *sa4, char *sa6, char *sPx, char *sPy,
+			      char *sA2, char *sA1div2, char *sx0, char *sy0,
+			      char *scte, mpmod_t n, mpres_t tmp)
+{
+    mpz_t f;
+
+    mpz_init(f);
+    mod_from_rat_str(f, sa4, n->orig_modulus);
+    mpres_set_z(tmp, f, n);
+    ell_curve_init_set(Eaux, ECM_EC_TYPE_WEIERSTRASS, ECM_LAW_AFFINE, tmp, n);
+    mod_from_rat_str(f, sa6, n->orig_modulus);
+    mpres_set_z(Eaux->a6, f, n);
+    ell_point_init(Paux, Eaux, n);
+    mod_from_rat_str(f, sPx, n->orig_modulus);
+    mpres_set_z(Paux->x, f, n);
+    mpz_set_str(f, sPy, 10);
+    mpres_set_z(Paux->y, f, n);
+#if DEBUG_TORSION >= 2
+    printf("Paux:=");
+    pt_print(Eaux, Paux, n);
+    printf(";\n");
+#endif
+    mod_from_rat_str(A2, sA2, n->orig_modulus);
+    mpz_set_str(A1div2, sA1div2, 10);
+    mpz_mod(A1div2, A1div2, n->orig_modulus);
+    mpz_set_str(x0, sx0, 10);
+    mpz_mod(x0, x0, n->orig_modulus);
+    mpz_init_set_str(y0, sy0, 10);
+    mpz_mod(y0, y0, n->orig_modulus);
+    mod_from_rat_str(cte, scte, n->orig_modulus);
+    mpz_clear(f);
+    return 1;
+}
+
 /* 
    SIDE EFFECT: tE[0..nE[ and tP[0..nE[ receive a curve of torsion Z7
                 and a point on it using parameters [umin..umax[.
@@ -460,7 +498,7 @@ cubic_to_quartic(mpz_t f, mpz_t n, mpz_t x, mpz_t y,
    REM: we assume gcd(n, 6).
 */
 int
-build_curves_with_torsion_Z7(mpz_t f, mpmod_t n, 
+build_curves_with_torsion_Z7(mpz_t fac, mpmod_t n, 
 			     ell_curve_t *tE, ell_point_t *tP,
 			     int umin, int umax, int nE)
 {
@@ -470,40 +508,23 @@ build_curves_with_torsion_Z7(mpz_t f, mpmod_t n,
     ell_curve_t E;
     ell_point_t P, Q;
 
+    mpz_init(A2);
+    mpz_init(A1div2);
+    mpz_init(cte);
+    mpz_init(x0);
+    mpz_init(y0);
     mpz_init(A);
     mpz_init(B);
     mpz_init(X);
     mpz_init(Y);
     /* Eaux = "1295/48", "-1079/864" */
     /* Paux = "2185/12", "-2458" */
-    /* E and P consist of Montgomery residues */
     mpres_init(tmp, n);
-    mod_from_rat_str(f, "1295/48", n->orig_modulus);
-    mpres_set_z(tmp, f, n);
-    ell_curve_init_set(E, ECM_EC_TYPE_WEIERSTRASS, ECM_LAW_AFFINE,tmp, n);
-    mod_from_rat_str(f, "-1079/864", n->orig_modulus);
-    mpres_set_z(E->a6, f, n);
-    ell_point_init(P, E, n);
-    mod_from_rat_str(f, "2185/12", n->orig_modulus);
-    mpres_set_z(P->x, f, n);
-    mpz_set_str(f, "-2458", 10);
-    mpres_set_z(P->y, f, n);
-#if DEBUG_TORSION >= 2
-    printf("Paux:=");
-    pt_print(E, P, n);
-    printf(";\n");
-#endif
-    mpz_init(A2);
-    mod_from_rat_str(A2, "1/12", n->orig_modulus);
-    mpz_init_set_str(A1div2, "-1", 10);
-    mpz_mod(A1div2, A1div2, n->orig_modulus);
-    mpz_init_set_str(x0, "-1", 10);
-    mpz_mod(x0, x0, n->orig_modulus);
-    mpz_init_set_str(y0, "8", 10);
-    mpz_mod(y0, y0, n->orig_modulus);
-    mpz_init(cte);
-    mod_from_rat_str(cte, "-7/2", n->orig_modulus);
-
+    build_curves_with_torsion_aux(E, P, A2, A1div2, x0, y0, cte,
+				  "1295/48", "-1079/864", 
+				  "2185/12", "-2458", 
+				  "1/12", "-1", "-1", "8", "-7/2",
+				  n, tmp);
     mpz_init(d);
     mpz_init(c);
     mpz_init(b);
@@ -516,7 +537,7 @@ build_curves_with_torsion_Z7(mpz_t f, mpmod_t n,
 	/* TODO: replace with ell_point_add, one of these days */
 	if(ell_point_mul(Q, d, P, E, n) == 0){
 	    printf("found factor during update of Q in Z7\n");
-	    mpz_set(f, Q->x);
+	    mpz_set(fac, Q->x);
 	    ret = ECM_FACTOR_FOUND_STEP1;
 	    break;
 	}
@@ -535,7 +556,7 @@ build_curves_with_torsion_Z7(mpz_t f, mpmod_t n,
 	pt_print(E, Q, n);
 	printf(";\n");
 #endif
-	if(cubic_to_quartic(f, n->orig_modulus, d, ky0, b, c, 
+	if(cubic_to_quartic(fac, n->orig_modulus, d, ky0, b, c, 
 			    A2, A1div2, x0, y0, cte) == 0){
 	    printf("found factor in Z7 (cubic_to_quartic)\n");
 	    ret = ECM_FACTOR_FOUND_STEP1;
@@ -578,15 +599,15 @@ build_curves_with_torsion_Z7(mpz_t f, mpmod_t n,
 	if(nc >= nE)
 	    break;
     }
-    mpz_clear(A);
-    mpz_clear(B);
-    mpz_clear(X);
-    mpz_clear(Y);
     mpz_clear(A2);
     mpz_clear(A1div2);
     mpz_clear(x0);
     mpz_clear(y0);
     mpz_clear(cte);
+    mpz_clear(A);
+    mpz_clear(B);
+    mpz_clear(X);
+    mpz_clear(Y);
     ell_point_clear(P, E, n);
     ell_point_clear(Q, E, n);
     ell_curve_clear(E, n);
@@ -611,12 +632,16 @@ build_curves_with_torsion_Z9(mpz_t fac, mpmod_t n, ell_curve_t *tE,
 			     ell_point_t *tP, int umin, int umax, int nE)
 {
     int u, ret = ECM_NO_FACTOR_FOUND, nc = 0;
-    mpz_t A2, A1div2, x0, y0, cte, d, c, b, kx0, ky0, A, B, X, Y;
-    mpz_t f;
+    mpz_t A2, A1div2, x0, y0, cte, d, c, b, kx0, ky0, A, B, X, Y, f;
     mpres_t tmp;
     ell_curve_t E;
     ell_point_t P, Q;
 
+    mpz_init(A2);
+    mpz_init(A1div2);
+    mpz_init(cte);
+    mpz_init(x0);
+    mpz_init(y0);
     mpz_init(A);
     mpz_init(B);
     mpz_init(X);
@@ -624,30 +649,10 @@ build_curves_with_torsion_Z9(mpz_t fac, mpmod_t n, ell_curve_t *tE,
     /* Eaux = [-9, 9] */
     /* Paux = [1, 1, 1] */
     mpres_init(tmp, n);
-    mpz_init_set_str(f, "-9", 10);
-    mpres_set_z(tmp, f, n);
-    ell_curve_init_set(E, ECM_EC_TYPE_WEIERSTRASS, ECM_LAW_HOMOGENEOUS,tmp, n);
-    ell_point_init(P, E, n);
-    mpz_set_str(f, "1", 10); 
-    mpres_set_z(P->x, f, n);
-    mpz_set_str(f, "1", 10);
-    mpres_set_z(P->y, f, n);
-    mpres_init(P->z, n);
-    mpz_set_ui(P->z, 1);
-#if DEBUG_TORSION >= 2
-    printf("Paux:=");
-    pt_print(E, P, n);
-    printf(";\n");
-#endif
-    mpz_init_set_ui(A2, 0);
-    mpz_init_set_str(A1div2, "3", 10);
-    mpz_mod(A1div2, A1div2, n->orig_modulus);
-    mpz_init_set_str(x0, "2", 10);
-    mpz_mod(x0, x0, n->orig_modulus);
-    mpz_init_set_str(y0, "3", 10);
-    mpz_mod(y0, y0, n->orig_modulus);
-    mpz_init_set_ui(cte, 0);
-
+    build_curves_with_torsion_aux(E, P, A2, A1div2, x0, y0, cte,
+				  "-9", "9", "1", "1", "0", "3", "2", "3", "0",
+				  n, tmp);
+    mpz_init(f);
     mpz_init(d);
     mpz_init(c);
     mpz_init(b);
@@ -658,7 +663,7 @@ build_curves_with_torsion_Z9(mpz_t fac, mpmod_t n, ell_curve_t *tE,
 	/* update Qaux */
 	mpz_set_ui(d, u);
         if(ell_point_mul(Q, d, P, E, n) == 0){
-	    printf("found factor during update of Q\n");
+	    printf("found factor during update of Q in Z9\n");
 	    mpz_set(fac, Q->x);
 	    ret = ECM_FACTOR_FOUND_STEP1;
 	    break;
@@ -718,7 +723,7 @@ build_curves_with_torsion_Z9(mpz_t fac, mpmod_t n, ell_curve_t *tE,
             ret = ECM_ERROR;
             break;
         }
-	ell_curve_init(tE[nc], ECM_EC_TYPE_WEIERSTRASS, ECM_LAW_AFFINE,n);
+	ell_curve_init(tE[nc], ECM_EC_TYPE_WEIERSTRASS, ECM_LAW_AFFINE, n);
 	mpz_set(tE[nc]->a4, A);
         mpz_set(tE[nc]->a6, B);
 	ell_point_init(tP[nc], tE[nc], n);
@@ -728,7 +733,7 @@ build_curves_with_torsion_Z9(mpz_t fac, mpmod_t n, ell_curve_t *tE,
 	if(nc >= nE)
 	    break;
     }
-#if DEBUG_TORSION >= 2
+#if DEBUG_TORSION >= 0
     printf("Curves built\n");
     pt_many_print(tE, tP, nE, n);
 #endif
@@ -758,41 +763,29 @@ build_curves_with_torsion_Z10(mpz_t fac, mpmod_t n, ell_curve_t *tE,
 			      ell_point_t *tP, int umin, int umax, int nE)
 {
     int u, ret = ECM_NO_FACTOR_FOUND, nc = 0;
-    mpz_t A2, A1div2, x0, y0, cte, d, c, b, kx0, ky0;
+    mpz_t A2, A1div2, x0, y0, cte, d, c, b, kx0, ky0, A, B, X, Y;
     mpz_t f;
     mpres_t tmp;
     ell_curve_t E;
     ell_point_t P, Q;
 
-    mpz_init(f);
+    mpz_init(A2);
+    mpz_init(A1div2);
+    mpz_init(cte);
+    mpz_init(x0);
+    mpz_init(y0);
+    mpz_init(A);
+    mpz_init(B);
+    mpz_init(X);
+    mpz_init(Y);
     /* Eaux = [2/3, -53/108] */
     /* Paux = [2/3, 1/2, 1] */
     mpres_init(tmp, n);
-    mod_from_rat_str(f, "2/3", n->orig_modulus);
-    mpres_set_z(tmp, f, n);
-    ell_curve_init_set(E, ECM_EC_TYPE_WEIERSTRASS, ECM_LAW_HOMOGENEOUS, tmp,n);
-    ell_point_init(P, E, n);
-    mod_from_rat_str(f, "2/3", n->orig_modulus);
-    mpres_set_z(P->x, f, n);
-    mod_from_rat_str(f, "1/2", n->orig_modulus);
-    mpres_set_z(P->y, f, n);
-    mpz_set_ui(P->z, 1);
-#if DEBUG_TORSION >= 2
-    printf("P:=");
-    pt_print(E, P, n);
-    printf(";\n");
-#endif
-
-    mpz_init(A2);
-    mod_from_rat_str(A2, "2/3", n->orig_modulus);
-    mpz_init(A1div2);
-    mod_from_rat_str(A1div2, "-1/2", n->orig_modulus);
-    mpz_mod(A1div2, A1div2, n->orig_modulus);
-    mpz_init_set_si(x0, 0);
-    mpz_init_set_si(y0, 1);
-    mpz_init_set_si(cte, -2);
-    mpz_mod(cte, cte, n->orig_modulus);
-
+    build_curves_with_torsion_aux(E, P, A2, A1div2, x0, y0, cte,
+				  "2/3", "-53/108", "2/3", "1/2",
+				  "2/3", "-1/2", "0", "1", "-2",
+				  n, tmp);
+    mpz_init(f);
     mpz_init(d);
     mpz_init(c);
     mpz_init(b);
@@ -803,7 +796,7 @@ build_curves_with_torsion_Z10(mpz_t fac, mpmod_t n, ell_curve_t *tE,
 	/* update Qaux */
 	mpz_set_ui(d, u);
 	if(ell_point_mul(Q, d, P, E, n) == 0){
-	    printf("found factor in Z10 (update of Q)\n");
+	    printf("found factor during update of Q in Z10\n");
 	    mpz_set(fac, Q->x);
 	    ret = ECM_FACTOR_FOUND_STEP1;
 	    break;
@@ -870,25 +863,35 @@ build_curves_with_torsion_Z10(mpz_t fac, mpmod_t n, ell_curve_t *tE,
         }
 	/* kx0:=-f*d; */
 	mpz_mul(kx0, f, d);
-	mpz_mul_si(kx0, kx0, -1); /* humf */
+	mpz_neg(kx0, kx0);
 	mpz_mod(kx0, kx0, n->orig_modulus);
 	/* b:=c*d; */
 	mpz_mul(b, c, d);
 	mpz_mod(b, b, n->orig_modulus);
 	/* to short Weierstrass form */
-	ell_curve_init(tE[nc], ECM_EC_TYPE_WEIERSTRASS, ECM_LAW_HOMOGENEOUS,n);
+	kubert_to_weierstrass(A, B, X, Y, b, c, kx0, ky0, n->orig_modulus);
+	if(check_weierstrass(A, B, X, Y, tmp, x0, n->orig_modulus) == 0){
+            ret = ECM_ERROR;
+            break;
+        }
+	ell_curve_init(tE[nc], ECM_EC_TYPE_WEIERSTRASS, ECM_LAW_AFFINE, n);
+	mpz_set(tE[nc]->a4, A);
+        mpz_set(tE[nc]->a6, B);
 	ell_point_init(tP[nc], tE[nc], n);
-#if 0 // BUG
-	kubert_to_weierstrass(tE[nc], tP[nc], b, c, kx0, ky0, n->orig_modulus);
-#endif // BUG
+        mpz_set(tP[nc]->x, X);
+        mpz_set(tP[nc]->y, Y);
 	nc++;
 	if(nc >= nE)
 	    break;
     }
-#if DEBUG_TORSION >= 2
+#if DEBUG_TORSION >= 0
     printf("Curves built\n");
     pt_many_print(tE, tP, nE, n);
 #endif
+    mpz_clear(A);
+    mpz_clear(B);
+    mpz_clear(X);
+    mpz_clear(Y);
     mpz_clear(A2);
     mpz_clear(A1div2);
     mpz_clear(x0);
