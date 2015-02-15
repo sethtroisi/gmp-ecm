@@ -1630,6 +1630,10 @@ ell_point_sub(ell_point_t R, ell_point_t P, ell_point_t Q, ell_curve_t E, mpmod_
 int
 ell_point_duplicate(ell_point_t R, ell_point_t P, ell_curve_t E, mpmod_t n)
 {
+#if DEBUG_ADD_LAWS >= 2
+    printf("E:=");
+    ell_curve_print(E, n);
+#endif
     if(E->type == ECM_EC_TYPE_WEIERSTRASS)
 	return pt_w_duplicate(R->x, R->y, R->z, P->x, P->y, P->z, n, E);
     else if(E->type == ECM_EC_TYPE_HESSIAN)
