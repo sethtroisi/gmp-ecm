@@ -48,13 +48,6 @@ http://www.gnu.org/licenses/ or write to the Free Software Foundation, Inc.,
 # include <wincrypt.h>
 #endif
 
-#if 0  /* dirty hack until outputf gets fixed */
-#ifdef outputf
-# undef outputf
-# define outputf(x,y) printf(y)
-#endif
-#endif
-
 /* put in 'a' a valid random seed for P-1, i.e. gcd(a,n)=1 and a <> {-1,1} */
 void
 pm1_random_seed (mpz_t a, mpz_t n, gmp_randstate_t randstate)
@@ -111,20 +104,9 @@ get_random_ul (void)
       r = CryptGenRandom (Prov, sizeof (unsigned long), (void *) &rnd);
       CryptReleaseContext (Prov, 0);
       if (r)
-        {
-/* warning: outputf is not exported from libecm */
-#if !defined (OUTSIDE_LIBECM)
-          outputf (OUTPUT_DEVVERBOSE, "Got seed for RNG from CryptGenRandom\n");
-#endif
-          return rnd;
-        }
+        return rnd;
     }
   
-/* warning: outputf is not exported from libecm */
-#if !defined (OUTSIDE_LIBECM)
-  outputf (OUTPUT_DEVVERBOSE, "Got seed for RNG from GetSystemTime\n");
-#endif
-
   GetSystemTime (&tv);
   /* This gets us 27 bits of somewhat "random" data based on the time clock.
      It would probably do the program justice if a better random mixing was done
@@ -139,7 +121,6 @@ unsigned long
 get_random_ul (void)
 {
   FILE *rndfd;
-  struct timeval tv;
   unsigned long t;
 
   /* Try /dev/urandom */
@@ -154,16 +135,8 @@ get_random_ul (void)
         return t;
     }
 
-#ifdef HAVE_GETTIMEOFDAY
-  if (gettimeofday (&tv, NULL) == 0)
-    {
-      return (unsigned long) tv.tv_sec + 
-             (unsigned long) tv.tv_usec * 2147483629UL;
-    }
-#endif
-
-  /* Multiply one value by a large prime to get a bit of avalance effect */
-  return (unsigned long) time (NULL) + 
+  /* Multiply by large primes to get a bit of avalanche effect */
+  return (unsigned long) time (NULL) * 1431655751UL +
          (unsigned long) getpid () * 2147483629UL;
 }
 #endif
