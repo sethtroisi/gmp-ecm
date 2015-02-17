@@ -146,33 +146,20 @@ get_random_ul (void)
   rndfd = fopen ("/dev/urandom", "rb");
   if (rndfd != NULL)
     {
-      if (fread (&t, sizeof (unsigned long), 1, rndfd) == 1)
-        {
-/* warning: outputf is not exported from libecm */
-#if !defined (OUTSIDE_LIBECM)
-          outputf (OUTPUT_DEVVERBOSE, "Got seed for RNG from /dev/urandom\n");
-#endif
-          fclose (rndfd);
-          return t;
-        }
+      int res;
+
+      res = fread (&t, sizeof (unsigned long), 1, rndfd);
       fclose (rndfd);
+      if (res == 1)
+        return t;
     }
 
 #ifdef HAVE_GETTIMEOFDAY
   if (gettimeofday (&tv, NULL) == 0)
     {
-/* warning: outputf is not exported from libecm */
-#if !defined (OUTSIDE_LIBECM)
-      outputf (OUTPUT_DEVVERBOSE, "Got seed for RNG from gettimeofday()\n");
-#endif
       return (unsigned long) tv.tv_sec + 
              (unsigned long) tv.tv_usec * 2147483629UL;
     }
-#endif
-
-/* warning: outputf is not exported from libecm */
-#if !defined (OUTSIDE_LIBECM)
-  outputf (OUTPUT_DEVVERBOSE, "Got seed for RNG from time()+getpid()\n");
 #endif
 
   /* Multiply one value by a large prime to get a bit of avalance effect */
