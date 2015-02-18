@@ -542,8 +542,8 @@ ecm_stage1 (mpz_t f, mpres_t x, mpres_t A, mpmod_t n, double B1,
   mpres_set_ui (z, 1, n);
 
   mpres_add_ui (b, A, 2, n);
-  mpres_div_2exp (b, b, 2, n); /* b == (A0+2)*B/4, where B=2^(k*GMP_NUMB_BITS)
-                                  for MODMULN or REDC, B=1 otherwise */
+  mpres_div_2exp (b, b, 2, n); /* b == (A0+2)*B/4 */
+
   /* preload group order */
   if (go != NULL)
     ecm_mul (x, z, go, n, b);
