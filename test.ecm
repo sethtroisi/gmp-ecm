@@ -339,6 +339,7 @@ echo 13290059 | $ECM -torsion Z7 -sigma 4 1e2; checkcode $? 14
 ## in step 2
 echo 2432902008176640001 | $ECM -torsion Z7 -sigma 1 1e3 1e8; checkcode $? 14
 echo 2432902008176640001 | $ECM -torsion Z9 -sigma 3 13000; checkcode $? 14
+echo 2432902008176640001 | $ECM -torsion Z10 -sigma 3 320; checkcode $? 14
 echo 2432902008176640001 | $ECM -torsion Z2xZ8 -sigma 2 1300; checkcode $? 14
 
 # the following tests should work on machines which have uint64_t or where

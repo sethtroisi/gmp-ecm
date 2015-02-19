@@ -186,7 +186,7 @@ MediumWeierstrassToShortWeierstrass(mpz_t A, mpz_t B, mpz_t X, mpz_t Y,
 	mpz_sub(B, a6, B);
 	mpz_mod(B, B, n);
     }
-#if DEBUG_TORSION >= 0
+#if DEBUG_TORSION >= 2
     gmp_printf("N:=%Zd;\n", n);
     gmp_printf("a2:=%Zd; a4:=%Zd; a6:=%Zd;\n", a2, a4, a6);
     gmp_printf("A:=%Zd; B:=%Zd;\n", A, B);
@@ -307,13 +307,20 @@ kubert_to_weierstrass(mpz_t A, mpz_t B, mpz_t X, mpz_t Y,
     KW2W246(a2, a4, a6, b, c, n, 1);
     /* second conversion */
     MediumWeierstrassToShortWeierstrass(A, B, X, Y, a2, a4, a6, x0, y0, n);
-#if DEBUG_TORSION >= 0
+#if DEBUG_TORSION >= 2
     gmp_printf("a2:=%Zd; a4:=%Zd; a6:=%Zd; A:=%Zd; B:=%Zd\n", a2, a4, a6,A,B);
     gmp_printf("X:=%Zd; Y:=%Zd;\n", X, Y);
 #endif
     mpz_clear(a2);
     mpz_clear(a4);
     mpz_clear(a6);
+}
+
+static int
+forbidden(char *torsion, int u){
+    if(strcmp(torsion, "Z10") == 0)
+	return u == 1 || u == 2;
+    return 0;
 }
 
 /* Kubert: put b = c. 
@@ -472,7 +479,7 @@ build_curves_with_torsion_aux(ell_curve_t Eaux, ell_point_t Paux,
     ell_point_init(Paux, Eaux, n);
     mod_from_rat_str(f, sPx, n->orig_modulus);
     mpres_set_z(Paux->x, f, n);
-    mpz_set_str(f, sPy, 10);
+    mod_from_rat_str(f, sPy, n->orig_modulus);
     mpres_set_z(Paux->y, f, n);
 #if DEBUG_TORSION >= 2
     printf("Paux:=");
@@ -671,7 +678,7 @@ build_curves_with_torsion_Z9(mpz_t fac, mpmod_t n, ell_curve_t *tE,
 	    ret = ECM_FACTOR_FOUND_STEP1;
 	    break;
 	}
-#if DEBUG_TORSION >= 0
+#if DEBUG_TORSION >= 2
 	printf("(s, t)[%d]:=", u);
 	pt_print(E, Q, n);
 	printf(";\n");
@@ -794,6 +801,8 @@ build_curves_with_torsion_Z10(mpz_t fac, mpmod_t n, ell_curve_t *tE,
     mpz_init(ky0);
     ell_point_init(Q, E, n);
     for(u = umin; u < umax; u++){
+	if(forbidden("Z10", u))
+	    continue;
 	/* update Qaux */
 	mpz_set_ui(d, u);
 	if(ell_point_mul(Q, d, P, E, n) == 0){
@@ -802,7 +811,7 @@ build_curves_with_torsion_Z10(mpz_t fac, mpmod_t n, ell_curve_t *tE,
 	    ret = ECM_FACTOR_FOUND_STEP1;
 	    break;
 	}
-#if DEBUG_TORSION >= 0
+#if DEBUG_TORSION >= 2
 	printf("(s, t)[%d]:=", u);
 	pt_print(E, Q, n);
 	printf(";\n");
@@ -882,8 +891,8 @@ build_curves_with_torsion_Z10(mpz_t fac, mpmod_t n, ell_curve_t *tE,
 	if(nc >= nE)
 	    break;
     }
-#if DEBUG_TORSION >= 0
-    if(ret != ECM_ERROR){
+#if DEBUG_TORSION >= 2
+    if(ret != ECM_ERROR && nc > 0){
 	printf("Curves built\n");
 	pt_many_print(tE, tP, nE, n);
     }
@@ -2200,7 +2209,7 @@ build_curves_with_torsion2(mpz_t f, mpz_t n, ell_curve_t E,
     int ret, smin, smax;
 
     smin = (int)mpz_get_si(sigma);
-    smax = smin + 1;
+    smax = 10*smin;
     mpmod_init(modulus, n, ECM_MOD_DEFAULT);
     ret = build_curves_with_torsion(f, modulus, tE, tP, torsion, smin, smax, 1,
 				    0, NULL);
