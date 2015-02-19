@@ -186,7 +186,7 @@ MediumWeierstrassToShortWeierstrass(mpz_t A, mpz_t B, mpz_t X, mpz_t Y,
 	mpz_sub(B, a6, B);
 	mpz_mod(B, B, n);
     }
-#if DEBUG_TORSION >= 2
+#if DEBUG_TORSION >= 0
     gmp_printf("N:=%Zd;\n", n);
     gmp_printf("a2:=%Zd; a4:=%Zd; a6:=%Zd;\n", a2, a4, a6);
     gmp_printf("A:=%Zd; B:=%Zd;\n", A, B);
@@ -290,10 +290,10 @@ check_weierstrass(mpz_t A, mpz_t B, mpz_t X, mpz_t Y, mpz_t tmp1, mpz_t tmp2,
 
 /* 
    The original Kubert curve E(b, c) is y^2+(1-c)*x*y-b*y = x^3-b*x^2
-   The medium Weierstrass form is ... with point (x0, y0);
+   The medium Weierstrass form is y^2=x^3+a2*x^2+a4*x+a6 with point (x0, y0);
    we convert this to short Weierstrass form:
    E: Y^2 = X^3 + A * X + B
-   and point P on E.
+   and point P=(X, Y) on E.
 */
 void
 kubert_to_weierstrass(mpz_t A, mpz_t B, mpz_t X, mpz_t Y, 
@@ -305,11 +305,12 @@ kubert_to_weierstrass(mpz_t A, mpz_t B, mpz_t X, mpz_t Y,
     mpz_init(a4);
     mpz_init(a6);
     KW2W246(a2, a4, a6, b, c, n, 1);
-#if DEBUG_TORSION >= 2
-    gmp_printf("a2:=%Zd; a4:=%Zd; a6:=%Zd;\n", a2, a4, a6);
-#endif
     /* second conversion */
     MediumWeierstrassToShortWeierstrass(A, B, X, Y, a2, a4, a6, x0, y0, n);
+#if DEBUG_TORSION >= 0
+    gmp_printf("a2:=%Zd; a4:=%Zd; a6:=%Zd; A:=%Zd; B:=%Zd\n", a2, a4, a6,A,B);
+    gmp_printf("X:=%Zd; Y:=%Zd;\n", X, Y);
+#endif
     mpz_clear(a2);
     mpz_clear(a4);
     mpz_clear(a6);
@@ -670,7 +671,7 @@ build_curves_with_torsion_Z9(mpz_t fac, mpmod_t n, ell_curve_t *tE,
 	    ret = ECM_FACTOR_FOUND_STEP1;
 	    break;
 	}
-#if DEBUG_TORSION >= 2
+#if DEBUG_TORSION >= 0
 	printf("(s, t)[%d]:=", u);
 	pt_print(E, Q, n);
 	printf(";\n");
@@ -735,10 +736,6 @@ build_curves_with_torsion_Z9(mpz_t fac, mpmod_t n, ell_curve_t *tE,
 	if(nc >= nE)
 	    break;
     }
-#if DEBUG_TORSION >= 0
-    printf("Curves built\n");
-    pt_many_print(tE, tP, nE, n);
-#endif
     mpz_clear(A);
     mpz_clear(B);
     mpz_clear(X);
@@ -865,7 +862,7 @@ build_curves_with_torsion_Z10(mpz_t fac, mpmod_t n, ell_curve_t *tE,
 	/* b:=c*d; */
 	mpz_mul(b, c, d);
 	mpz_mod(b, b, n->orig_modulus);
-#if DEBUG_TORSION >= 0
+#if DEBUG_TORSION >= 2
 	gmp_printf("f=%Zd d=%Zd c=%Zd b=%Zd\n", f, d, c, b);
 	gmp_printf("kx0=%Zd ky0=%Zd\n", kx0, ky0);
 #endif
@@ -1073,12 +1070,15 @@ build_curves_with_torsion_Z2xZ8(mpz_t f, mpmod_t n,
 	/* to Montgomery form */
 	ell_curve_init(tE[nc], ECM_EC_TYPE_MONTGOMERY, ECM_LAW_HOMOGENEOUS,n);
 	ell_point_init(tP[nc], tE[nc], n);
-	if(mod_from_rat2(tE[nc]->a4, f, tmp, n->orig_modulus) == 0){
+	if(mod_from_rat2(tE[nc]->a2, f, tmp, n->orig_modulus) == 0){
             printf("found factor in Z2xZ8 (ma)\n");
-	    mpz_set(f, tE[nc]->a4);
+	    mpz_set(f, tE[nc]->a2);
             ret = ECM_FACTOR_FOUND_STEP1;
             break;
         }
+	/* not really needed, but useful for debug */
+	mpz_set_ui(tE[nc]->a4, 1);
+	mpz_set_ui(tE[nc]->a6, 0);
 	/* mb:=-1/(d-1)^2; */
 	mpz_sub_si(tmp, d, 1);
 	mpz_mul(tmp, tmp, tmp);
@@ -1095,13 +1095,13 @@ build_curves_with_torsion_Z2xZ8(mpz_t f, mpmod_t n,
 	/* mx:=mb*wx0-ma/3; */
 	mpz_mul(f, mb, wx0);
         mpz_set_si(tmp, 3);
-        mod_from_rat2(tP[nc]->x, tE[nc]->a4, tmp, n->orig_modulus);
+        mod_from_rat2(tP[nc]->x, tE[nc]->a2, tmp, n->orig_modulus);
 	mpz_sub(tP[nc]->x, f, tP[nc]->x);
 	mpz_mod(tP[nc]->x, tP[nc]->x, n->orig_modulus);
 	/* my:=mb*ky0; */
 #if DEBUG_TORSION >= 2
 	gmp_printf("N:=%Zd;\n", n->orig_modulus);
-	gmp_printf("ma:=%Zd;\n", tE[nc]->a4);
+	gmp_printf("ma:=%Zd;\n", tE[nc]->a2);
 	gmp_printf("mb:=%Zd;\n", mb);
 	gmp_printf("kx0:=%Zd;\n", kx0);
 	gmp_printf("ky0:=%Zd;\n", ky0);
@@ -1184,7 +1184,7 @@ build_curves_with_torsion_Z3xZ3_DuNa(mpmod_t n, ell_curve_t *tE,
 					    tP[nc]->x, tP[nc]->y,
 					    a2, a4, a6, x0, y0,
 					    n->orig_modulus);
-#if DEBUG_TORSION >= 0
+#if DEBUG_TORSION >= 2
 	gmp_printf("E:=[%Zd, %Zd];\n", tE[nc]->a4, tE[nc]->a6);
 	gmp_printf("P:=[%Zd, %Zd, 1];\n", tP[nc]->x, tP[nc]->y);
 #endif
@@ -2187,7 +2187,7 @@ build_curves_with_torsion(mpz_t f, mpmod_t n, ell_curve_t *tE, ell_point_t *tP,
 /* E is a curve with given torsion and (x, y) a point on E mod n.
    OUTPUT: ECM_NO_FACTOR_FOUND if everything went ok
            ECM_FACTOR_FOUND_STEP1 in case a factor was found when building E.
-   
+   REM: E is defined over Z, not in mpres_t.
  */
 int
 build_curves_with_torsion2(mpz_t f, mpz_t n, ell_curve_t E, 
@@ -2207,9 +2207,9 @@ build_curves_with_torsion2(mpz_t f, mpz_t n, ell_curve_t E,
     if(ret == ECM_NO_FACTOR_FOUND){
 	E->type = tE[0]->type;
 	E->law = tE[0]->law;
-	mpres_get_z(E->a2, tE[0]->a2, modulus);
-	mpres_get_z(E->a4, tE[0]->a4, modulus);
-	mpres_get_z(E->a6, tE[0]->a6, modulus);
+	mpz_set(E->a2, tE[0]->a2);
+	mpz_set(E->a4, tE[0]->a4);
+	mpz_set(E->a6, tE[0]->a6);
 	mpz_set(x, tP[0]->x);
 	mpz_set(y, tP[0]->y);
 	ell_point_clear(tP[0], tE[0], modulus);
