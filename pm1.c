@@ -50,18 +50,9 @@ mulcascade_init (void)
   mul_casc *t;
 
   t = (mul_casc *) malloc (sizeof (mul_casc));
-  if (t == NULL)
-    {
-      outputf (OUTPUT_ERROR, "mulcascade_init: could not allocate memory\n");
-      return NULL;
-    }
+  ASSERT_ALWAYS(t != NULL);
   t->val = (mpz_t*) malloc (sizeof (mpz_t));
-  if (t->val == NULL)
-    {
-      outputf (OUTPUT_ERROR, "mulcascade_init: could not allocate memory\n");
-      free (t);
-      return NULL;
-    }
+  ASSERT_ALWAYS(t->val != NULL);
   mpz_init (t->val[0]);
   t->size = 1;
   return t;
@@ -78,7 +69,7 @@ mulcascade_free (mul_casc *c)
   free (c);
 }
 
-static mul_casc * 
+static void
 mulcascade_mul_d (mul_casc *c, const double n, ATTRIBUTE_UNUSED mpz_t t)
 {
   unsigned int i;
@@ -86,12 +77,12 @@ mulcascade_mul_d (mul_casc *c, const double n, ATTRIBUTE_UNUSED mpz_t t)
   if (mpz_sgn (c->val[0]) == 0)
     {
       mpz_set_d (c->val[0], n);
-      return c;
+      return;
     }
 
   mpz_mul_d (c->val[0], c->val[0], n, t);
   if (mpz_size (c->val[0]) <= CASCADE_THRES)
-    return c;
+    return;
   
   for (i = 1; i < c->size; i++) 
     {
@@ -99,7 +90,7 @@ mulcascade_mul_d (mul_casc *c, const double n, ATTRIBUTE_UNUSED mpz_t t)
         {
           mpz_set (c->val[i], c->val[i-1]);
           mpz_set_ui (c->val[i-1], 0);
-          return c;
+          return;
         }
       else
 	{
@@ -112,70 +103,26 @@ mulcascade_mul_d (mul_casc *c, const double n, ATTRIBUTE_UNUSED mpz_t t)
   
   i = c->size++;
   c->val = (mpz_t*) realloc (c->val, c->size * sizeof (mpz_t));
-  if (c->val == NULL)
-    {
-      fprintf (stderr, "Cannot allocate memory in mulcascade_mul_d\n");
-      exit (1);
-    }
+  ASSERT_ALWAYS(c->val != NULL);
   mpz_init (c->val[i]);
   mpz_swap (c->val[i], c->val[i-1]);
-
-  return c;
 }
 
-static mul_casc * 
-mulcascade_mul (mul_casc *c, mpz_t n)
+/* initialize c to n (assumes c is empty) */
+static void
+mulcascade_set (mul_casc *c, mpz_t n)
 {
-  unsigned int i;
+  ASSERT(mpz_sgn (c->val[0]) == 0);
 
-  if (mpz_sgn (c->val[0]) == 0)
-    {
-      mpz_set (c->val[0], n);
-      return c;
-    }
-
-  mpz_mul (c->val[0], c->val[0], n);
-  if (mpz_size (c->val[0]) <= CASCADE_THRES)
-    return c;
-  
-  for (i = 1; i < c->size; i++) 
-    {
-      if (mpz_sgn (c->val[i]) == 0) 
-        {
-          mpz_set (c->val[i], c->val[i-1]);
-          mpz_set_ui (c->val[i-1], 0);
-          return c;
-        } else {
-          mpz_mul (c->val[i], c->val[i], c->val[i-1]);
-          mpz_set_ui (c->val[i-1], 0);
-        }
-    }
-  
-  /* Allocate more space for cascade */
-  
-  i = c->size++;
-  c->val = (mpz_t*) realloc (c->val, c->size * sizeof (mpz_t));
-  if (c->val == NULL)
-    {
-      fprintf (stderr, "Cannot allocate memory in mulcascade_mul\n");
-      exit (1);
-    }
-  mpz_init (c->val[i]);
-  mpz_swap (c->val[i], c->val[i-1]);
-
-  return c;
+  mpz_set (c->val[0], n);
 }
 
 static void 
 mulcascade_get_z (mpz_t r, mul_casc *c) 
 {
   unsigned int i;
-  
-  if (c->size == 0)
-    {
-      mpz_set_ui (r, 1); /* Empty product */
-      return;
-    }
+
+  ASSERT(c->size != 0);
 
   mpz_set_ui (r, 1);
   
@@ -270,7 +217,7 @@ pm1_stage1 (mpz_t f, mpres_t a, mpmod_t n, double B1, double *B1done,
 
   /* if the user knows that P-1 has a given divisor, he can supply it */
   if (mpz_cmp_ui (go, 1) > 0)
-    cascade = mulcascade_mul (cascade, go);
+    mulcascade_set (cascade, go);
   
   last_chkpnt_time = cputime ();
   last_chkpnt_p = 2.;
@@ -283,14 +230,14 @@ pm1_stage1 (mpz_t f, mpres_t a, mpmod_t n, double B1, double *B1done,
     {
       for (q = 1., r = p; r <= B1; r *= p)
         if (r > *B1done) q *= p;
-      cascade = mulcascade_mul_d (cascade, q, d);
+      mulcascade_mul_d (cascade, q, d);
     }
 
   /* If B0 < cascade_limit, we can add some primes > sqrt(B1) with 
      exponent 1 to the cascade */
   for ( ; p <= cascade_limit; p = getprime ())
     if (p > *B1done)
-      cascade = mulcascade_mul_d (cascade, p, d);
+      mulcascade_mul_d (cascade, p, d);
 
   /* Now p > cascade_limit, flush cascade and exponentiate */
   mulcascade_get_z (g, cascade);
