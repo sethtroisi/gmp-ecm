@@ -498,7 +498,6 @@ prac (mpres_t xA, mpres_t zA, ecm_uint k, mpmod_t n, mpres_t b,
   ASSERT(d == 1);
 }
 
-
 /* Input: x is initial point
           A is curve parameter in Montgomery's form:
           g*y^2*z = x^3 + a*x^2*z + x*z^2
@@ -1251,18 +1250,26 @@ ecm (mpz_t f, mpz_t x, mpz_t y, int *param, mpz_t sigma, mpz_t n, mpz_t go,
               youpi = get_curve_from_param2 (f, P.A, P.x, sigma, modulus);
           else if (*param == ECM_PARAM_BATCH_32BITS_D)
               youpi = get_curve_from_param3 (P.A, P.x, sigma, modulus);
-          else if (*param != ECM_PARAM_TORSION)
+          else if (*param == ECM_PARAM_TORSION)
+	    {
+	      if(E->type == ECM_EC_TYPE_WEIERSTRASS)
+		  mpres_set_z(P.A, zE->a4, modulus);
+	      else if(E->type == ECM_EC_TYPE_MONTGOMERY)
+		  mpres_set_z(P.A, zE->a2, modulus);
+	    }
+	  else
             {
               outputf (OUTPUT_ERROR, "Error, invalid parametrization.\n");
               youpi = ECM_ERROR;
 	            goto end_of_ecm;
             }
       
-          /* If x != 0 we use this value for the starting point */ 
+          /* FIXME: find another way to test this */
+	  /* if x != 0 we use this value for the starting point */ 
           if (mpz_sgn(x) != 0){ /* humf */
               mpres_set_z (P.x, x, modulus);
               mpres_set_z (P.y, y, modulus);
-	  }      
+	  }
           if (youpi != ECM_NO_FACTOR_FOUND)
             {
               if (youpi == ECM_ERROR)
