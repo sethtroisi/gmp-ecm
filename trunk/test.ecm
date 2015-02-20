@@ -260,6 +260,9 @@ checkcode $? 14
 echo 911962091 | $ECM -sigma 2:14 50000
 checkcode $? 8
 
+echo 911962091 | $ECM -sigma 2:3 1297 1831
+checkcode $? 8
+
 # To test param=3
 echo 458903930815802071188998938170281707063809443792768383215233 | $ECM -sigma 3:42 10000
 checkcode $? 14
