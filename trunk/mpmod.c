@@ -207,7 +207,7 @@ ecm_redc_n (mp_ptr rp, mp_srcptr x0p, mp_size_t xn,
   mp_limb_t cy, cin;
   TMP_DECL;
 
-  ASSERT((xn == 2 * n) || (xn == 2 * n - 1));
+  ASSERT((xn == nn) || (xn == nn - 1));
 
   TMP_MARK;
   up = TMP_ALLOC_LIMBS(nn + nn);
@@ -271,11 +271,14 @@ REDC (mpres_t r, const mpres_t x, mpz_t t, mpmod_t modulus)
       mpz_tdiv_r_2exp (t, x, modulus->bits);
       mpz_mul (t, t, modulus->aux_modulus);
       mpz_tdiv_r_2exp (t, t, modulus->bits);  /* t = (x % R) * 1/N (mod R) */
-      mpz_mul (t, t, modulus->orig_modulus);
-      mpz_add (t, t, x);
-      mpz_tdiv_q_2exp (r, t, modulus->bits);  /* r = (x + m*N) / R */
-      if (ABSIZ (r) > n)
-	mpz_sub (r, r, modulus->multiple);
+      mpz_mul (t, t, modulus->orig_modulus);  /* t <= (R-1)*N */
+      mpz_add (t, t, x);                      /* t < (R-1)*N + R^2/B */
+      mpz_tdiv_q_2exp (r, t, modulus->bits);  /* r = (x + m*N) / R
+                                                 < N + R/B */
+      if (ABSIZ (r) > n) /* this can happen in practice but is extremely
+                            unlikely: in particular it requires that the
+                            upper limb of N has only ones */
+        mpz_sub (r, r, modulus->multiple);
     }
   ASSERT (ABSIZ(r) <= n);
 }
@@ -755,45 +758,6 @@ ecm_sqrredc_basecase (mpres_t R, const mpres_t S1, mpmod_t modulus)
   MPN_NORMALIZE (rp, nn);
   SIZ(R) = (int) nn;
 }
-
-/* Multiplies S1 by the one-limb integer S2, and does modulo reduction.
-   The modulo reduction may imply multiplication of the residue class 
-   by some constant, since we may not do the correct number of REDC 
-   reduction passes and so fail to divide by the correct power of 2 for 
-   Montgomery representation. The constant is the same for each call
-   of this function with a given modulus, however. */
-
-static void 
-ecm_mulredc_1_basecase (mpres_t R, const mpres_t S1, const mp_limb_t S2, 
-                        mpmod_t modulus)
-{
-  mp_ptr s1p;
-  mp_size_t j, nn = modulus->bits / GMP_NUMB_BITS;
-
-  ASSERT(ALLOC(R) >= nn);
-  ASSERT(ALLOC(S1) >= nn);
-  s1p = PTR(S1);
-  for (j = ABSIZ(S1); j < nn; j++) 
-    s1p[j] = 0;
-
-#ifdef HAVE_NATIVE_MULREDC1_N
-  if (nn < 20)
-    {
-      mp_ptr rp = PTR(R);
-      mulredc_1(rp, S2, s1p, PTR(modulus->orig_modulus), nn,
-                modulus->Nprim[0]);
-      MPN_NORMALIZE (rp, nn);
-      SIZ(R) = (SIZ(S1)) < 0 ? (int) -nn : (int) nn;
-    }
-  else
-#endif
-    {
-      /* FIXME, we can do much better than this */
-      mpz_mul_ui (modulus->temp1, S1, S2);
-      mpz_mod(R, modulus->temp1, modulus->orig_modulus);
-    }
-}
-
 
 /* If the user asked for a particular representation, always use it.
    If repr = ECM_MOD_DEFAULT, use the thresholds.
@@ -1627,40 +1591,6 @@ mpres_mul_2exp (mpres_t R, const mpres_t S, const unsigned long k,
   ASSERT_NORMALIZED (R);
 }
 
-/* Multiplies S by n and possibly divides by some constant. 
-   Whether or not it divides depends on the modulus representation and
-   the modulus size. */
-void 
-mpres_muldivbysomething_si (mpres_t R, const mpres_t S, const long n, 
-			    mpmod_t modulus)
-{
-  ASSERT_NORMALIZED (S);
-  if (modulus->repr == ECM_MOD_MODMULN && 
-      modulus->bits / GMP_NUMB_BITS <= 20)
-    /* FIXME: is the 20 here the same constant as in mulredc1_20?
-       If so, it should be changed into a macro. */
-    {
-      MPZ_REALLOC (R, modulus->bits / GMP_NUMB_BITS);
-      if (n < 0)
-	{
-	  ecm_mulredc_1_basecase (R, S, (mp_limb_t) -n, modulus);
-	  mpres_neg (R, R, modulus);
-	}
-      else
-	{
-	  ecm_mulredc_1_basecase (R, S, (mp_limb_t) n, modulus);
-	}
-    }
-  else
-    {
-      mpz_mul_si (modulus->temp1, S, n);
-      /* This is the same for all methods: just reduce with original modulus */
-      mpz_mod (R, modulus->temp1, modulus->orig_modulus);
-    }
-  ASSERT_NORMALIZED (R);
-}
-
-
 /* This function multiplies an integer in mpres_t form with an integer in
    mpz_t form, and stores the output in mpz_t form. The advantage is that
    one REDC suffices to reduce the product and convert it to non-Montgomery
@@ -2136,6 +2066,78 @@ mpres_out_str (FILE *fd, const unsigned int base, const mpres_t S,
 }
 
 
+#if 0 /* those routines are not called in normal operation */
+
+/* Multiplies S1 by the one-limb integer S2, and does modulo reduction.
+   The modulo reduction may imply multiplication of the residue class 
+   by some constant, since we may not do the correct number of REDC 
+   reduction passes and so fail to divide by the correct power of 2 for 
+   Montgomery representation. The constant is the same for each call
+   of this function with a given modulus, however. */
+static void 
+ecm_mulredc_1_basecase (mpres_t R, const mpres_t S1, const mp_limb_t S2, 
+                        mpmod_t modulus)
+{
+  mp_ptr s1p;
+  mp_size_t j, nn = modulus->bits / GMP_NUMB_BITS;
+
+  ASSERT(ALLOC(R) >= nn);
+  ASSERT(ALLOC(S1) >= nn);
+  s1p = PTR(S1);
+  for (j = ABSIZ(S1); j < nn; j++) 
+    s1p[j] = 0;
+
+#ifdef HAVE_NATIVE_MULREDC1_N
+  if (nn < 20)
+    {
+      mp_ptr rp = PTR(R);
+      mulredc_1(rp, S2, s1p, PTR(modulus->orig_modulus), nn,
+                modulus->Nprim[0]);
+      MPN_NORMALIZE (rp, nn);
+      SIZ(R) = (SIZ(S1)) < 0 ? (int) -nn : (int) nn;
+    }
+  else
+#endif
+    {
+      /* FIXME, we can do much better than this */
+      mpz_mul_ui (modulus->temp1, S1, S2);
+      mpz_mod(R, modulus->temp1, modulus->orig_modulus);
+    }
+}
+
+/* Multiplies S by n and possibly divides by some constant. 
+   Whether or not it divides depends on the modulus representation and
+   the modulus size. */
+void 
+mpres_muldivbysomething_si (mpres_t R, const mpres_t S, const long n, 
+			    mpmod_t modulus)
+{
+  ASSERT_NORMALIZED (S);
+  if (modulus->repr == ECM_MOD_MODMULN && 
+      modulus->bits / GMP_NUMB_BITS <= 20)
+    /* FIXME: is the 20 here the same constant as in mulredc1_20?
+       If so, it should be changed into a macro. */
+    {
+      MPZ_REALLOC (R, modulus->bits / GMP_NUMB_BITS);
+      if (n < 0)
+	{
+	  ecm_mulredc_1_basecase (R, S, (mp_limb_t) -n, modulus);
+	  mpres_neg (R, R, modulus);
+	}
+      else
+	{
+	  ecm_mulredc_1_basecase (R, S, (mp_limb_t) n, modulus);
+	}
+    }
+  else
+    {
+      mpz_mul_si (modulus->temp1, S, n);
+      /* This is the same for all methods: just reduce with original modulus */
+      mpz_mod (R, modulus->temp1, modulus->orig_modulus);
+    }
+  ASSERT_NORMALIZED (R);
+}
+
 /* Returns 1 if successful, 0 if not */
 static int
 test_mpres_set_z_for_gcd_fix(const int maxk, mpmod_t modulus)
@@ -2179,7 +2181,6 @@ test_mpres_set_z_for_gcd_fix(const int maxk, mpmod_t modulus)
   return 1;
 }
 
-
 int
 mpmod_selftest (const mpz_t n)
 {
@@ -2210,6 +2211,8 @@ mpmod_selftest (const mpz_t n)
   
   return 0;
 }
+
+#endif
 
 /****************************************************/
 /* mpresn: modular arithmetic based directly on mpn */
