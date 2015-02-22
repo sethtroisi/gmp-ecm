@@ -222,8 +222,15 @@ echo 493671084022010320922697718944221569774262937898523672663031469122444419595
 
 echo "10090030271*10^400+696212088699" | $ECM -param 0 -sigma 3923937547 1e3 1e6; checkcode $? 14
 
+echo 31622776601683791911 | $ECM -param 0 11000
+
 # those tests with params=1, 2 or 3 don't work with -redc
 if [ "$MUL" != "redc" -a "$MUL" != "mpzmod" ]; then
+
+echo 31622776601683791911 | $ECM 11000
+echo 31622776601683791911 | $ECM -param 1 11000
+echo 31622776601683791911 | $ECM -param 2 11000
+echo 31622776601683791911 | $ECM -param 3 11000
 
 echo 31622776601683791911 | $ECM -param 1 -A 27063318473587686303 11000
 checkcode $? 0
@@ -261,6 +268,9 @@ echo 911962091 | $ECM -sigma 2:14 50000
 checkcode $? 8
 
 echo 911962091 | $ECM -sigma 2:3 1297 1831
+checkcode $? 8
+
+echo 291310394389387 | $ECM -sigma 2:291310392832797 2 1e3
 checkcode $? 8
 
 # To test param=3
