@@ -1392,6 +1392,7 @@ main (int argc, char *argv[])
 	  else if (torsion != NULL)
 	    {
 	      params->param = ECM_PARAM_TORSION;
+	      params->sigma_is_A = -1;
 	      result = build_curves_with_torsion2 (f, n.n, params->E, 
 						   params->x, params->y,
                                                    torsion, sigma);
