@@ -442,7 +442,7 @@ write_resumefile_line (FILE *file, int method, double B1, mpz_t sigma,
           fprintf (file, "; SIGMA=");
         }
       else
-          fprintf (file, "; ETYPE=%d; A=", Etype);
+        fprintf (file, "; ETYPE=%d; A=", Etype);
           
         mpz_out_str (file, 10, sigma);
         mpz_mul_ui (checksum, checksum, mpz_fdiv_ui (sigma, CHKSUMMOD));
