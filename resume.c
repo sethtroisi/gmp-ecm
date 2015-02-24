@@ -604,7 +604,7 @@ write_resumefile (char *fn, int method, mpz_t N, ecm_params params,
          found */
       mpz_mod (tmp_x, params->x, n->n); 
 
-      /* We write the B1done value to the safe file. This requires that
+      /* We write the B1done value to the save file. This requires that
          a correct B1done is returned by the factoring functions */
       if (params->y == NULL)
 	{
