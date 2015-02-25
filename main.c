@@ -736,6 +736,7 @@ main (int argc, char *argv[])
       else if ((argc > 2) && (strcmp (argv[1], "-maxmem") == 0))
 	{
 	  maxmem = atof (argv[2]) * 1048576.;
+          ASSERT_ALWAYS(maxmem >= 0.0);
 	  argv += 2;
 	  argc -= 2;
 	}

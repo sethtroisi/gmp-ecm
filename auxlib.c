@@ -90,19 +90,14 @@ mpz_divby3_1op (mpz_t RS)
     RS->_mp_size -= mpz_sgn (RS);
 }
 
-/* Convert a double d to a size_t. If d < 0., returns 0. If d > MAX_SIZE, 
-   returns MAX_SIZE. */
-
+/* Convert a double d to a size_t.
+   Assumes d >= 0. If d > SIZE_MAX, returns SIZE_MAX. */
 size_t
 double_to_size (double d)
 {
-  if (d < 0.)
-    return (size_t) 0;
-  if (d > (double) SIZE_MAX)
-    return SIZE_MAX;
-  return (size_t) d;
+  ASSERT(d >= 0.0);
+  return (d > (double) SIZE_MAX) ? SIZE_MAX : (size_t) d;
 }
-
 
 /* cputime () gives the elapsed time in milliseconds */
 
@@ -168,17 +163,7 @@ cputime ()
 long
 elltime (long st0, long st1)
 {
-  if (st1 >= st0)
-    return st1 - st0;
-  else
-    {
-      /* A wrap around can only really happen on a system where long int is 
-         32 bit and where we use clock(). So we assume that there was exactly 
-         one wrap-around which "swallowed" 
-         LONG_MAX * (1000. / (double) CLOCKS_PER_SEC) milliseconds. */
-      
-      return st1 - st0 + (long)(LONG_MAX * (1000. / (double) CLOCKS_PER_SEC));
-    }
+  return st1 - st0; /* assumes no wrap around */
 }
 
 /* Get real (wall-clock) time in milliseconds */
@@ -187,8 +172,8 @@ realtime ()
 {
 #ifdef HAVE_GETTIMEOFDAY
   struct timeval tv;
-  if (gettimeofday(&tv, NULL) != 0)
-    return 0L;
+  int ret = gettimeofday (&tv, NULL);
+  ASSERT_ALWAYS(ret == 0); /* if HAVE_GETTIMEOFDAY, it should be functional */
   return (long) tv.tv_sec * 1000L + (long) tv.tv_usec / 1000L;
 #else
   return 0L;
@@ -230,6 +215,7 @@ outputf (int loglevel, const char *format, ...)
   return n;
 }
 
+/* for P-1 and P+1 we have A = y = z = NULL */
 void
 writechkfile (char *chkfilename, int method, double p, mpmod_t modulus, 
               mpres_t A, mpres_t x, mpres_t y, mpres_t z)
@@ -238,7 +224,7 @@ writechkfile (char *chkfilename, int method, double p, mpmod_t modulus,
   char *methodname;
   mpz_t t;
 
-  outputf (OUTPUT_DEVVERBOSE, "Writing checkpoint to %s at p = %.0f\n",
+  outputf (OUTPUT_VERBOSE, "Writing checkpoint to %s at p = %.0f\n",
            chkfilename, p);
 
   switch (method)
@@ -252,12 +238,7 @@ writechkfile (char *chkfilename, int method, double p, mpmod_t modulus,
     }
 
   chkfile = fopen (chkfilename, "w");
-  if (chkfile == NULL)
-    {
-      outputf (OUTPUT_ERROR, "Error opening checkpoint file %s\n", 
-	       chkfilename);
-      return;
-    }
+  ASSERT_ALWAYS(chkfile != NULL);
 
   mpz_init (t);
 
@@ -288,6 +269,7 @@ writechkfile (char *chkfilename, int method, double p, mpmod_t modulus,
   fclose (chkfile);
 }
 
+#if 0 /* currently unused (only used in listz_handle.c, currently inactive) */
 int 
 aux_fseek64(FILE *f, const int64_t offset, const int whence)
 {
@@ -300,12 +282,4 @@ aux_fseek64(FILE *f, const int64_t offset, const int whence)
   ASSERT_ALWAYS (offset <= LONG_MAX);
   return fseek (f, (long) offset, whence);
 }
-
-int64_t 
-aux_ftell64(FILE *f)
-{
-#ifdef HAVE__FSEEKI64
-  return _ftelli64(f);
 #endif
-  return (int64_t) ftell (f);
-}
