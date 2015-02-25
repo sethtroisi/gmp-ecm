@@ -649,8 +649,6 @@ int          outputf (int, const char *, ...);
 void writechkfile (char *, int, double, mpmod_t, mpres_t, mpres_t, mpres_t, mpres_t);
 #define aux_fseek64 __ECM(aux_fseek64)
 int aux_fseek64(FILE *, const int64_t, const int);
-#define aux_ftell64 __ECM(aux_ftell64)
-int64_t aux_ftell64(FILE *);
 
 /* auxarith.c */
 #define gcd __ECM(gcd)

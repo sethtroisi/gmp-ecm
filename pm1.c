@@ -306,7 +306,7 @@ pm1_stage1 (mpz_t f, mpres_t a, mpmod_t n, double B1, double *B1done,
         if (chkfilename != NULL && p > last_chkpnt_p + 10000. &&
             elltime (last_chkpnt_time, cputime ()) > CHKPNT_PERIOD)
           {
-	    writechkfile (chkfilename, ECM_PM1, p, n, NULL, NULL, a, NULL);
+	    writechkfile (chkfilename, ECM_PM1, p, n, NULL, a, NULL, NULL);
             last_chkpnt_p = p;
             last_chkpnt_time = cputime ();
           }
@@ -331,7 +331,7 @@ pm1_stage1 (mpz_t f, mpres_t a, mpmod_t n, double B1, double *B1done,
 
  clear_pm1_stage1:
   if (chkfilename != NULL)
-    writechkfile (chkfilename, ECM_PM1, *B1done, n, NULL, NULL, a, NULL);
+    writechkfile (chkfilename, ECM_PM1, *B1done, n, NULL, a, NULL, NULL);
   getprime_clear (); /* free the prime tables, and reinitialize */
   mpz_clear (d);
   mpz_clear (g);
