@@ -92,9 +92,11 @@ checkcode $C 8
 
 # check the -chkpnt option
 echo 25591172394760497166702530699464321 | $PM1 -chkpnt test.pm1.chk 100000
+checkcode $? 0
+$PM1 -resume test.pm1.chk 120557 2007301
 C=$?
 /bin/rm -f test.pm1.chk
-checkcode $C 14
+checkcode $C 8
 
 ### same with -savea
 echo 25591172394760497166702530699464321 | $PM1 -savea test.pm1.save 100000
