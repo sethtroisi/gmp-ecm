@@ -45,7 +45,7 @@ libecm_la_LDFLAGS = $(LIBECM_LDFLAGS) -version-info 0:0:0 -g
 libecm_la_LIBADD = $(MULREDCLIBRARY) $(GMPLIB)
 if WANT_CUDA 
   libecm_la_SOURCES += cudakernel.cu
-  libecm_la_LIBADD += $(CUDA_LIB_FLAGS)
+  libecm_la_LIBADD += $(CUDA_LIB_FLAGS) -lstdc++
   libecm_la_CFLAGS += $(CUDA_INC_FLAGS) $(CC_ADD_FLAGS_FOR_GPU)
 endif
 
@@ -116,7 +116,7 @@ DISTCLEANFILES = config.m4
 
 if WANT_CUDA 
 .cu.lo: cudakernel.h
-		$(LIBTOOL) --tag=CC --mode=compile $(NVCC) --compile $(CUDA_INC_FLAGS) $(NVCC_FLAGS) -o $@ $^ -static
+		$(LIBTOOL) --tag=CC --mode=compile $(NVCC) --compile $(CUDA_INC_FLAGS) $(NVCC_FLAGS) $(CPPFLAGS) -o $@ $^ -static
 endif
 
 ecm-params:	tune$(EXEEXT)
