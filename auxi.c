@@ -141,14 +141,14 @@ process_newfactor (mpz_t g, int result, mpcandi_t *n, int method,
     /* When GPU is not used, the factor should divide n->n */
     if (gpu == 0)
       ASSERT_ALWAYS(mpz_cmp (g, f) == 0);
-    else if (mpz_cmp (g, f) != 0 && gpu != 0 && mpz_cmp_ui (f, 1) == 0)
-    /* On GPU all factors of g were already found */
+    else if (mpz_cmp (g, f) != 0 && mpz_cmp_ui (f, 1) == 0)
+    /* GPU case: all factors of g were already found */
       {
         /* FIXME Maybe print something in very verbose mode */
         mpz_clear (f);
         return returncode;
       }
-    else /* g = f (gpu or not gpu) or g != 1 with gpu */
+    else /* g = f (gpu) or f != 1 */
       {
         if (verbose > 0)
             printf ("********** Factor found in step %u: ", ABS (result));
@@ -182,10 +182,7 @@ process_newfactor (mpz_t g, int result, mpcandi_t *n, int method,
       
       /* 1 for display warning if factor does not divide the current 
       candidate */
-      if (gpu)
-          mpcandi_t_addfoundfactor (n, f, 0);
-      else
-          mpcandi_t_addfoundfactor (n, f, 1);
+      mpcandi_t_addfoundfactor (n, f, gpu == 0);
 
       if (resumefile != NULL)
         {
