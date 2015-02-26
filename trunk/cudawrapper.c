@@ -1,7 +1,6 @@
 #include "ecm-gpu.h"
 
 #ifdef WITH_GPU
-#include "cuda.h"
 
 #define TWO32 4294967296 /* 2^32 */ 
 
