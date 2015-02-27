@@ -163,6 +163,7 @@ print_config ()
              __GNU_MP_VERSION, __GNU_MP_VERSION_MINOR);
    #endif
 #endif /* __MPIR_VERSION */
+  printf ("GMP_NUMB_BITS = %u\n", GMP_NUMB_BITS);
 
 #ifdef ECM_TUNE_CASE
   printf ("Tuning parameters from %s\n", ECM_TUNE_CASE);
