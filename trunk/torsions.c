@@ -19,7 +19,7 @@
 
 #define DEBUG_TORSION 0
 
-/* We use three variants of Weiestrass parametrization:
+/* We use three variants of Weierstrass parametrization:
    CW (complete): y^2+a1*x*y+a3*y=x^3+a2*x^2+a4*x+a6
    MW (medium)  : y^2=x^3+a2*x^2+a4*x+a6
    SW (short)   : y^2=x^3+a4*x+a6
@@ -87,7 +87,7 @@ mod_from_rat_str(mpz_t r, char *str, mpz_t N)
 /********** conversion between Weierstass forms **********/
 
 /* From a curve in long form y^2+a1*x*y+a3*y = x^3+a2*x^2+a4*x+a6
-   to a medium Weiestrass form Y^2 = X^3 + A2 * X^2 + A4 * X + A6
+   to a medium Weierstrass form Y^2 = X^3 + A2 * X^2 + A4 * X + A6
    where X = x, Y = y+(a1*X+a3)/2
    A2 = 1/4*a1^2+a2
    A4 = 1/2*a1*a3+a4
@@ -234,7 +234,7 @@ CompleteWeierstrassToShortWeierstrass(mpz_t A, mpz_t B, mpz_t XX, mpz_t YY,
 }
 
 /* From a curve in Kubert form Y^2+(1-c)*X*Y-b*Y = X^3-b*X^2
-   to a Weiestrass form y^2 = X^3 + a2 * X^2 + a4 * X + a6
+   to a Weierstrass form y^2 = X^3 + a2 * X^2 + a4 * X + a6
    where y = Y+((1-c)*X-b)/2
    WE:=[0,(1/4*c^2+1/4-1/2*c-b),0,(1/2*c*b-1/2*b),1/4*b^2]);
    We compute:
