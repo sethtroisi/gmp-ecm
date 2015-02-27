@@ -2010,7 +2010,7 @@ ell_point_mul_add_sub(ell_point_t Q, mpz_t e, ell_point_t P,
     S = (short *)malloc(Slen * sizeof(short));
     iS = build_add_sub_chain(S, Slen, e, w);
     if(iS == 0){
-	printf("build_NAF: Slen=%lu too small\n", Slen);
+	printf("build_NAF: Slen=%zu too small\n", Slen);
 	return -1;
     }
 #if DEBUG_ADD_LAWS >= 2
@@ -2159,10 +2159,10 @@ compute_s_4_add_sub(mpz_t s, unsigned long B1, int disc)
     Slen = (2 * GMP_NUMB_BITS * mpz_size(t)) / w;
     S = (short *)malloc(Slen * sizeof(short));
     iS = build_add_sub_chain(S, Slen, t, w);
-    printf("# NAF has %lu terms (w=%d, Slen=%lu): %ldms\n", iS, w, Slen,
+    printf("# NAF has %zu terms (w=%d, Slen=%zu): %ldms\n", iS, w, Slen,
 	   elltime(tp,cputime()));
     if(iS == 0){
-	printf("build_NAF: Slen=%lu too small\n", Slen);
+	printf("build_NAF: Slen=%zu too small\n", Slen);
 	return 0;
     }
     add_sub_pack(s, w, S, iS);
