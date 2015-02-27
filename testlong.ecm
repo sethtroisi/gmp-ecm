@@ -67,4 +67,12 @@ echo "(2^(2^12)+1)/114689/26017793/63766529/190274191361/1256132134125569" | $EC
 # exercise base2mod_2
 echo "2^(2^15)+1" | $ECM -sigma 0:42 1e3; checkcode $? 6
 
+# check resume file from Prime95
+$ECM -resume M997.save 0 78756287
+checkcode $? 14
+
+# check resume file from Prime95
+$ECM -resume M877.save 0 819632383
+checkcode $? 6
+
 echo "All ECM tests are ok."
