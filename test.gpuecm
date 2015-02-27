@@ -51,9 +51,27 @@ checkcode $? 14
 echo "2^349-1" | $ECM -sigma 3:279 587 0
 checkcode $? 6
 
+#test default param
+echo "2^349-1" | $ECM 587 0
+
+#test param=1
+echo "2^349-1" | $ECM -param 1 587 0
+checkcode $? 1
+
+#test -redc (should give a warning)
+echo "2^349-1" | $ECM -redc 587 0
+checkcode $? 0
+
+#test a Fermat number
+echo "2^512-1" | $ECM 587 0
+
 #2^1018-1 is the maximun number that can be used
 echo "2^1018-1" | $ECM -sigma 3:92 4 0
 checkcode $? 2
+
+#try 2^1019-1: should give an error
+echo "2^1019-1" | $ECM -sigma 3:92 4 0
+checkcode $? 1
 
 #test for when stage 2 on CPU is needed
 echo "2^349-1" | $ECM -sigma 3:13 587 1261
