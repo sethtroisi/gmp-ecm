@@ -234,7 +234,11 @@ echo 31622776601683791911 | $ECM -param 0 11000
 if [ "$MUL" != "redc" -a "$MUL" != "mpzmod" ]; then
 
 echo 31622776601683791911 | $ECM 11000
+# Note: on 32-bit machines, param 1 (ECM_PARAM_BATCH_SQUARE) does not work
+$ECM -printconfig | grep "GMP_NUMB_BITS = 64"
+if [ "$?" == "0" ]; then
 echo 31622776601683791911 | $ECM -param 1 11000
+fi
 echo 31622776601683791911 | $ECM -param 2 11000
 echo 31622776601683791911 | $ECM -param 3 11000
 
@@ -372,13 +376,16 @@ echo 2432902008176640001 | $ECM -torsion Z2xZ8 -sigma 2 1300; checkcode $? 14
 
 # the following tests should work on machines which have uint64_t or where
 # unsigned long long has 64 bits (exercises patch from David Cleaver, r1575)
-echo "NOTE: NEXT TESTS WILL FAIL ON SOME 32BIT MACHINES, THIS IS EXPECTED."
+$ECM -printconfig | grep "GMP_NUMB_BITS = 64"
+if [ "$?" == "0" ]; then
 
 echo 10000000000000000000000000000000000000121 | $ECM -param 0 -sigma 61 -go 1195504287780095287 2950307;  checkcode $? 8
 
 echo 10000000000000000000000000000000000000121 | $ECM -param 0 -sigma 266 -go 218187387944803649 9405629;  checkcode $? 8
 
 echo 10000000000000000000000000000000000000121 | $ECM -param 0 -sigma 291 -go 5994496018878137 4372759;  checkcode $? 8
+
+fi
 
 if [ "$MUL" = "modmuln" ]; then
 # exercise batch mode
