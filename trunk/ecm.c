@@ -780,12 +780,16 @@ ecm_stage1_W (mpz_t f, ell_curve_t E, ell_point_t P, mpmod_t n,
     else{
 	if (!mpres_invert (xB, P->z, n)){ /* Factor found? */
 	    mpres_gcd (f, P->z, n);
+	    gmp_printf("# factor found during normalization: %Zd\n", f);
 	    ret = ECM_FACTOR_FOUND_STEP1;
 	}
 	else{
 	    /* normalize to get (x:y:1) valid in W or H form... */
+	    mpres_get_z(f, xB, n); gmp_printf("1/z=%Zd\n", f);
 	    mpres_mul (P->x, P->x, xB, n);
 	    mpres_mul (P->y, P->y, xB, n);
+	    mpres_get_z(f, P->x, n); gmp_printf("x/z=%Zd\n", f);
+	    mpres_get_z(f, P->y, n); gmp_printf("y/z=%Zd\n", f);
 	    mpres_set_ui (P->z, 1, n);
 	}
     }
