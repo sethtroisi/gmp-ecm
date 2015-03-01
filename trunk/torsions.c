@@ -308,7 +308,7 @@ kubert_to_weierstrass(mpz_t A, mpz_t B, mpz_t X, mpz_t Y,
     /* second conversion */
     MediumWeierstrassToShortWeierstrass(A, B, X, Y, a2, a4, a6, x0, y0, n);
 #if DEBUG_TORSION >= 2
-    gmp_printf("a2:=%Zd; a4:=%Zd; a6:=%Zd; A:=%Zd; B:=%Zd\n", a2, a4, a6,A,B);
+    gmp_printf("a2:=%Zd; a4:=%Zd; a6:=%Zd; A:=%Zd; B:=%Zd;\n", a2, a4, a6,A,B);
     gmp_printf("X:=%Zd; Y:=%Zd;\n", X, Y);
 #endif
     mpz_clear(a2);
@@ -371,7 +371,6 @@ build_curves_with_torsion_Z5(mpz_t f, mpmod_t n,
 	printf("cr:=1/2*x0*(4*x0+1)/(3*x0+1);\n");
 #endif
 	/* P:=WE![x0, y0, 1]; */
-	/* convert from long to short Weierstrass form */
 	kubert_to_weierstrass(A, B, X, Y, c, c, x0, y0, n->orig_modulus);
 	if(check_weierstrass(A, B, X, Y, tmp, x0, n->orig_modulus) == 0){
 	    printf("#!# check_weierstrass false\n");
@@ -558,7 +557,7 @@ build_curves_with_torsion_Z7(mpz_t fac, mpmod_t n,
 	mpres_get_z(b, Q->x, n);
 	mpres_get_z(c, Q->y, n);
 #if DEBUG_TORSION >= 2
-	printf("b:=%Zd; c:=%Zd;\n", b, c);
+	gmp_printf("b:=%Zd; c:=%Zd;\n", b, c);
 	printf("(s, t)[%d]:=", u);
 	pt_print(E, Q, n);
 	printf(";\n");
