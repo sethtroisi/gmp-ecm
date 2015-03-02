@@ -835,7 +835,7 @@ print_expcurves (double B1, const mpz_t B2, unsigned long dF, unsigned long k,
   int i, j;
   char sep, outs[128];
   double smoothness_correction;
-  
+
   if (param == ECM_PARAM_SUYAMA || param == ECM_PARAM_BATCH_2)
       smoothness_correction = 1.0; 
   else if (param == ECM_PARAM_BATCH_SQUARE)
@@ -874,7 +874,7 @@ print_exptime (double B1, const mpz_t B2, unsigned long dF, unsigned long k,
   int i, j;
   char sep, outs[128];
   double smoothness_correction;
-  
+
   if (param == ECM_PARAM_SUYAMA || param == ECM_PARAM_BATCH_2)
       smoothness_correction = 1.0; 
   else if (param == ECM_PARAM_BATCH_SQUARE)

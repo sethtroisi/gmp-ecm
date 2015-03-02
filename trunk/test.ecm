@@ -72,26 +72,26 @@ echo 2050449353925555290706354283 | $ECM -primetest -param 0 -sigma 7 -k 1 30 0-
 echo 2050449353925555290706354283 | $ECM -q -param 0 -sigma 7 -k 1 30 0-1e6; checkcode $? 14
 
 # exercise the -v option
-echo 2050449353925555290706354283 | $ECM -v -param 0 -sigma 7 -k 1 30 0-1e6; checkcode $? 14
+echo 2050449353925555290706354283 | $ECM -v -param 0 -sigma 7 -k 1 30 1e6; checkcode $? 14
 
 # exercise the -v -v option
-echo 2050449353925555290706354283 | $ECM -v -v -param 0 -sigma 7 -k 1 30 0-1e6; checkcode $? 14
+echo 2050449353925555290706354283 | $ECM -v -v -param 0 -sigma 7 -k 1 30 1e6; checkcode $? 14
 
 # exercise the -v -v -v option
-echo 2050449353925555290706354283 | $ECM -v -v -v -param 0 -sigma 7 -k 1 30 0-1e6; checkcode $? 14
+echo 2050449353925555290706354283 | $ECM -v -v -v -param 0 -sigma 7 -k 1 30 1e6; checkcode $? 14
 
 # exercise the -v -v -v -v option
-echo 2050449353925555290706354283 | $ECM -v -v -v -v -param 0 -sigma 7 -k 1 30 0-1e6; checkcode $? 14
+echo 2050449353925555290706354283 | $ECM -v -v -v -v -param 0 -sigma 7 -k 1 30 1e6; checkcode $? 14
 
 # check the -treefile option
-echo 2050449353925555290706354283 | $ECM -param 0 -treefile tree -sigma 7 -k 1 30 0-1e6; checkcode $? 14
+echo 2050449353925555290706354283 | $ECM -param 0 -treefile tree -sigma 7 -k 1 30 1e6; checkcode $? 14
 
 # check the -I f option
 echo 2050449353925555290706354283 | $ECM -param 0 -sigma 7 -I 1 -c 3 100; checkcode $? 14
 
 # check the -chkpnt option
-echo 2050449353925555290706354283 | $ECM -chkpnt test.ecm.chk -param 0 -sigma 7 30 0-1e6
-$ECM -resume test.ecm.chk 30 0-1e6
+echo 2050449353925555290706354283 | $ECM -chkpnt test.ecm.chk -param 0 -sigma 7 30 1e6
+$ECM -resume test.ecm.chk 30 1e6
 C=$?
 /bin/rm -f test.ecm.chk
 checkcode $C 14
