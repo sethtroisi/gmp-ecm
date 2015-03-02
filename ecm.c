@@ -788,11 +788,15 @@ ecm_stage1_W (mpz_t f, ell_curve_t E, ell_point_t P, mpmod_t n,
 		}
 		else{
 		    /* normalize to get (x:y:1) valid in W or H form... */
+#if DEBUG_EC_W >= 2
 		    mpres_get_z(f, xB, n); gmp_printf("1/z=%Zd\n", f);
+#endif
 		    mpres_mul (P->x, P->x, xB, n);
 		    mpres_mul (P->y, P->y, xB, n);
+#if DEBUG_EC_W >= 2
 		    mpres_get_z(f, P->x, n); gmp_printf("x/z=%Zd\n", f);
 		    mpres_get_z(f, P->y, n); gmp_printf("y/z=%Zd\n", f);
+#endif
 		    mpres_set_ui (P->z, 1, n);
 		}
 	    }
