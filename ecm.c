@@ -78,7 +78,7 @@ int
 montgomery_to_weierstrass (mpz_t f, mpres_t x, mpres_t y, mpres_t A, mpmod_t n)
 {
   mpres_t g;
-  
+
   mpres_init (g, n);
   mpres_add (g, x, A, n);
   mpres_mul (g, g, x, n);
