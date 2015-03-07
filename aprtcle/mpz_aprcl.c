@@ -576,17 +576,7 @@ MainStart:
     for (i = 0; i < NP; i++)
     {
       P = aiP[i];
-      while (T%P != 0)
-      {
-        i++;
-        if (i >= NP) break;
-        P = aiP[i];
-      }
-      if (i >= NP)
-      { /* too big */
-        free_vars();
-        return mpz_probab_prime_p(N, 1);
-      }
+      if (T%P != 0) continue;
 
       SW = TestedQs = 0;
       /* Q = W = (int) BigNbrModLong(TestNbr, P * P); */
