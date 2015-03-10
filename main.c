@@ -353,7 +353,7 @@ main (int argc, char *argv[])
   mpgocandi_t go;
   mpq_t rat_x0, rat_y0, rat_A;
   double B1, B1done;
-  int result = ECM_NO_FACTOR_FOUND, returncode = 0;
+  int result, returncode = 0;
   int verbose = OUTPUT_NORMAL; /* verbose level */
   int timestamp = 0;
   int method = ECM_ECM;
@@ -1132,6 +1132,7 @@ main (int argc, char *argv[])
   /* Main loop */
   while ((cnt > 0 || feof (infile) == 0) && !exit_asap_value)
     {
+      result = ECM_NO_FACTOR_FOUND;
       params->B1done = B1done; /* may change with resume */
       
       if (resumefile != NULL) /* resume case */
@@ -1454,7 +1455,7 @@ main (int argc, char *argv[])
 #endif
       
       /* now call the ecm library */
-      if(result == ECM_NO_FACTOR_FOUND)
+      if (result == ECM_NO_FACTOR_FOUND)
 	  /* if torsion was used, some factor may have been found... */
 	  result = ecm_factor (f, n.n, B1, params);
 
