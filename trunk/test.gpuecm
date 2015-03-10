@@ -63,7 +63,7 @@ echo "2^349-1" | $ECM -redc 587 0
 checkcode $? 0
 
 #test a Fermat number
-echo "2^512-1" | $ECM 587 0
+echo "2^512+1" | $ECM 587 0
 
 #2^1018-1 is the maximun number that can be used
 echo "2^1018-1" | $ECM -sigma 3:92 4 0
