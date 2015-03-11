@@ -24,6 +24,7 @@ http://www.gnu.org/licenses/ or write to the Free Software Foundation, Inc.,
 #include <stdio.h>
 #include <sys/types.h>
 #include <unistd.h>
+#include "ecm-impl.h"
 
 /* Returns peak memory usage, in KB
  * This is the VmPeak field in the status file of /proc/pid/ dir
@@ -41,18 +42,13 @@ PeakMemusage (void)
 
   FILE *file;
   file = fopen (str, "r");
-  if (file == NULL)
-    return -1;
+  ASSERT_ALWAYS (file != NULL);
 
   long mem;
   for(;;)
     {
       truc = fgets (str, 1023, file);
-      if (truc == NULL)
-        {
-          fclose (file);
-          return -1;
-        }
+      ASSERT_ALWAYS (truc != NULL);
       int ret = sscanf (str, "VmPeak: %ld", &mem);
       if (ret == 1)
         {
