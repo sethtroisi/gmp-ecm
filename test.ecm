@@ -52,6 +52,7 @@ esac
 # 10     Composite factor found, cofactor is a (probable) prime
 # 14     (Probable) prime factor found, cofactor is a (probable) prime
 
+
 # try primes < d in stage 2. Curve with sigma=7, mod 30210181 has order
 # 2^4 * 3^3 * 29 * 2411
 echo 2050449353925555290706354283 | $ECM -param 0 -sigma 7 -k 1 30 0-1e6; checkcode $? 14
@@ -315,6 +316,102 @@ checkcode $? 8
 
 echo "17+Phi(1,2)" | $ECM -sigma 0:17 1e3
 checkcode $? 6
+
+# on systems with 64-bit limbs, exercise mulredc9
+echo "2^567-181" | $ECM -sigma 0:2521899833399249862 11000; checkcode $? 14
+# on systems with 64-bit limbs, exercise mulredc10
+echo "2^600-93" | $ECM -sigma 0:8302474899089961032 11000; checkcode $? 6
+# on systems with 64-bit limbs, exercise mulredc11
+echo "2^654-53" | $ECM -sigma 0:15038331775204443632 11000; checkcode $? 6
+# on systems with 64-bit limbs, exercise mulredc12
+echo "2^753-511" | $ECM -sigma 0:282111327134773146 11000; checkcode $? 6
+# on systems with 64-bit limbs, exercise mulredc13
+echo "2^789-91" | $ECM -sigma 0:5564144145207154979 11000; checkcode $? 6
+# on systems with 64-bit limbs, exercise mulredc14
+echo "2^850-251" | $ECM -sigma 0:1755119194409032967 11000; checkcode $? 6
+# on systems with 64-bit limbs, exercise mulredc15
+echo "2^931-19" | $ECM -sigma 0:17749056889950488599 11000; checkcode $? 6
+# on systems with 64-bit limbs, exercise mulredc16
+echo "2^987-105" | $ECM -sigma 0:9642611678409500628 11000; checkcode $? 6
+# on systems with 64-bit limbs, exercise mulredc17
+echo "2^1025-13" | $ECM -sigma 0:15565298209539150294 11000; checkcode $? 6
+# on systems with 64-bit limbs, exercise mulredc18
+echo "2^1123-1" | $ECM -sigma 0:13488386679529262989 11000; checkcode $? 6
+# on systems with 64-bit limbs, exercise mulredc19
+echo "2^1200-765" | $ECM -sigma 0:15594604713796776382 11000; checkcode $? 6
+# on systems with 64-bit limbs, exercise mulredc20
+echo "2^1234-77" | $ECM -sigma 0:15792336214697966869 11000; checkcode $? 6
+# exercise -one option
+echo "2^1123-1" | $ECM -c 2 -one -sigma 0:13488386679529262989 11000; checkcode $? 6
+
+# bug reported on March 10, 2015; fixed with svn 2658
+echo "2^753-511" | ecm -c 2 -sigma 0:38270210 11000; checkcode $? 6
+
+##### Set of tests to exercise various error and warning messages
+# exercise "too large step 2 bound" error message
+echo "2^1123-1" | $ECM -v -maxmem 10 -k 5 11000 11000000000000000000; checkcode $? 1
+# exercise "stage 2 interval too large" error message
+echo "2^1123-1" | $ECM -v -maxmem 10 11000 11000000000000000000; checkcode $? 1
+# exercise "Function Phi() requires 2 parameters" error message
+echo "phi(31)" | $ECM 11e3; checkcode $? 0
+# exercise "Invalid parameter passed to the Phi function" error message
+echo "phi(31,-1)" | $ECM 11e3; checkcode $? 0
+# exercise "Error - invalid number" error message
+echo ")" | $ECM 11e3; checkcode $? 0
+# exercise "Error - unknown operator" error message
+echo "1234$" | $ECM 11e3; checkcode $? 0
+# exercise "Error, n should be positive" error message
+echo "-1234" | $ECM 11e3; checkcode $? 1
+# exercise "Error, conflict between -sigma and -param arguments" error message
+echo "2^1123-1" | $ECM -sigma 0:13488386679529262989 -param 2 11000; checkcode $? 1
+# exercise other "Error, conflict between -sigma and -param arguments" error message
+echo "2^1123-1" | $ECM -param 2 -sigma 0:13488386679529262989 11000; checkcode $? 1
+# exercise "Error, x0 should be equal to 2 with this parametrization" error message
+echo "2^1123-1" | $ECM -x0 1 -param 2 11000; checkcode $? 1
+# exercise "Error, invalid starting point" error message
+echo "2^1123-1" | $ECM -x0 1.2 -param 0 11000; checkcode $? 1
+# exercise "Error, invalid starting point" error message
+echo "2^1123-1" | $ECM -y0 1.2 -param 0 11000; checkcode $? 1
+# exercise "Error, invalid -param value" error message
+echo "2^1123-1" | $ECM -x0 1 -param -1 11000; checkcode $? 1
+# exercise "Error, invalid sigma value" error message
+echo "2^1123-1" | $ECM -sigma 1.2 11000; checkcode $? 1
+# exercise "Error, invalid A value" error message
+echo "2^1123-1" | $ECM -A 1.2 11000; checkcode $? 1
+# exercise "Error, the -I f option requires f > 0" error message
+echo "2^1123-1" | $ECM -I -1 11000; checkcode $? 1
+# exercise "Can't find input file" error message
+ecm -inp 1; checkcode $? 1
+# exercise "Warning, for multiple -go options" warning message
+echo "2^1123-1" | $ECM -sigma 0:13488386679529262989 -go 5 -go 7 11000; checkcode $? 6
+# exercise "Unknown option" error message
+ecm -inp; checkcode $? 1
+# exercise "Invalid arguments. See ... --help" error message
+echo "2^1123-1" | $ECM; checkcode $? 1
+# exercise "Invalid B2 value" error message
+echo "2^1123-1" | $ECM 11000 -1000000; checkcode $? 1
+# exercise "Error, -sigma parameter is incompatible with -A and -x0 parameters" error message
+echo "2^1123-1" | $ECM -sigma 0:5 -x0 1 11000; checkcode $? 1
+# exercise "Error, -y0 must be used with -A and -x0 parameters" error message
+echo "2^1123-1" | $ECM -param 0 -y0 1 11000; checkcode $? 1
+# exercise "Warning: -sigma, -param, -A and -x0 parameters are ignored when resuming from save files." warning message
+ecm -x0 1 -resume M877.save 11000; checkcode $? 0
+# exercise "Error, option -c and -resume are incompatible" error message
+ecm -c 2 -resume M877.save 11000; checkcode $? 1
+# exercise "Error, option -c is incompatible with -x0" error message
+echo "2^1123-1" | $ECM -c 2 -param 0 -x0 1 11000; checkcode $? 1
+# exercise "Error, the -param option is only valid for ECM" error message
+echo "2^1123-1" | $ECM -param 0 -pm1 11000; checkcode $? 1
+
+# exercise print cofactor when using -q option
+echo "2^1123-1" | $ECM -sigma 0:13488386679529262989 -q 11000; checkcode $? 6
+
+# exercise the "show first and last 10 digits of a number" option
+# also exercises "input number longer than 2000 characters, extend input array" code
+$ECM -inp Z2102.n -sigma 0:4702936202311981741 2000; checkcode $? 6
+
+# exercise -nobase2 option
+echo "2^1123-1" | $ECM -nobase2 -sigma 0:13488386679529262989 11000; checkcode $? 6
 
 # this example would fail with the old Fgw.c when using gwnum (fixed by David Cleaver, r1734)
 echo "((173^173+1)/174)/471462511391940575680645418941" | $ECM -param 0 -sigma 12345 20000

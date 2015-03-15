@@ -71,8 +71,10 @@ echo "2^(2^15)+1" | $ECM -sigma 0:42 1e3; checkcode $? 6
 $ECM -resume M997.save 0 78756287
 checkcode $? 14
 
-# bug reported on March 10, 2015
-echo "(1916^38-1)/15028053723718260240136154152890906482805" | $ECM -c 640 250000
+# exercise some Fermat code, factor found in stage 1
+echo "2^32768+1" | $ECM -sigma 0:31415926 1000; checkcode $? 6
+# exercise some Fermat code, factor found in stage 2
+echo "2^32768+1" | $ECM -sigma 0:314159000 1000; checkcode $? 6
 
 # check resume file from Prime95
 $ECM -resume M877.save 0 819632383
