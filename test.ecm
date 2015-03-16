@@ -499,6 +499,12 @@ fi
 
 fi
 
+# on systems with 64-bit limbs, exercise mulredc9
+echo "2^567-181" | $ECM -sigma 0:2521899833399249862 11000; checkcode $? 14
+
+# on systems with 64-bit limbs, exercise mulredc11
+echo "2^654-53" | $ECM -sigma 0:15038331775204443632 11000; checkcode $? 6
+
 # exercise -h
 $ECM -h
 
