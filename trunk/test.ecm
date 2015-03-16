@@ -345,13 +345,13 @@ echo "2^1234-77" | $ECM -sigma 0:15792336214697966869 11000; checkcode $? 6
 echo "2^1123-1" | $ECM -c 2 -one -sigma 0:13488386679529262989 11000; checkcode $? 6
 
 # bug reported on March 10, 2015; fixed with svn 2658
-echo "2^753-511" | ecm -c 2 -sigma 0:38270210 11000; checkcode $? 6
+echo "2^753-511" | $ECM -c 2 -sigma 0:38270210 11000; checkcode $? 6
 
 ##### Set of tests to exercise various error and warning messages
 # exercise "too large step 2 bound" error message
 echo "2^1123-1" | $ECM -v -maxmem 10 -k 5 11000 11000000000000000000; checkcode $? 1
 # exercise "stage 2 interval too large" error message
-echo "2^1123-1" | $ECM -v -maxmem 10 11000 11000000000000000000; checkcode $? 1
+echo "2^1123-1" | $ECM -v -maxmem 10 11000 1e27; checkcode $? 1
 # exercise "Function Phi() requires 2 parameters" error message
 echo "phi(31)" | $ECM 11e3; checkcode $? 0
 # exercise "Invalid parameter passed to the Phi function" error message
