@@ -318,29 +318,29 @@ echo "17+Phi(1,2)" | $ECM -sigma 0:17 1e3
 checkcode $? 6
 
 # on systems with 64-bit limbs, exercise mulredc9
-echo "2^567-181" | $ECM -sigma 0:2521899833399249862 11000; checkcode $? 14
+echo "2^567-181" | $ECM -modmuln -sigma 0:2521899833399249862 11000; checkcode $? 14
 # on systems with 64-bit limbs, exercise mulredc10
-echo "2^600-93" | $ECM -sigma 0:8302474899089961032 11000; checkcode $? 6
+echo "2^600-93" | $ECM -modmuln -sigma 0:8302474899089961032 11000; checkcode $? 6
 # on systems with 64-bit limbs, exercise mulredc11
-echo "2^654-53" | $ECM -sigma 0:15038331775204443632 11000; checkcode $? 6
+echo "2^654-53" | $ECM -modmuln -sigma 0:15038331775204443632 11000; checkcode $? 6
 # on systems with 64-bit limbs, exercise mulredc12
-echo "2^753-511" | $ECM -sigma 0:282111327134773146 11000; checkcode $? 6
+echo "2^753-511" | $ECM -modmuln -sigma 0:282111327134773146 11000; checkcode $? 6
 # on systems with 64-bit limbs, exercise mulredc13
-echo "2^789-91" | $ECM -sigma 0:5564144145207154979 11000; checkcode $? 6
+echo "2^789-91" | $ECM -modmuln -sigma 0:5564144145207154979 11000; checkcode $? 6
 # on systems with 64-bit limbs, exercise mulredc14
-echo "2^850-251" | $ECM -sigma 0:1755119194409032967 11000; checkcode $? 6
+echo "2^850-251" | $ECM -modmuln -sigma 0:1755119194409032967 11000; checkcode $? 6
 # on systems with 64-bit limbs, exercise mulredc15
-echo "2^931-19" | $ECM -sigma 0:17749056889950488599 11000; checkcode $? 6
+echo "2^931-19" | $ECM -modmuln -sigma 0:17749056889950488599 11000; checkcode $? 6
 # on systems with 64-bit limbs, exercise mulredc16
-echo "2^987-105" | $ECM -sigma 0:9642611678409500628 11000; checkcode $? 6
+echo "2^987-105" | $ECM -modmuln -sigma 0:9642611678409500628 11000; checkcode $? 6
 # on systems with 64-bit limbs, exercise mulredc17
-echo "2^1025-13" | $ECM -sigma 0:15565298209539150294 11000; checkcode $? 6
+echo "2^1025-13" | $ECM -modmuln -sigma 0:15565298209539150294 11000; checkcode $? 6
 # on systems with 64-bit limbs, exercise mulredc18
-echo "2^1123-1" | $ECM -sigma 0:13488386679529262989 11000; checkcode $? 6
+echo "2^1123-1" | $ECM -modmuln -sigma 0:13488386679529262989 11000; checkcode $? 6
 # on systems with 64-bit limbs, exercise mulredc19
-echo "2^1200-765" | $ECM -sigma 0:15594604713796776382 11000; checkcode $? 6
+echo "2^1200-765" | $ECM -modmuln -sigma 0:15594604713796776382 11000; checkcode $? 6
 # on systems with 64-bit limbs, exercise mulredc20
-echo "2^1234-77" | $ECM -sigma 0:15792336214697966869 11000; checkcode $? 6
+echo "2^1234-77" | $ECM -modmuln -sigma 0:15792336214697966869 11000; checkcode $? 6
 # exercise -one option
 echo "2^1123-1" | $ECM -c 2 -one -sigma 0:13488386679529262989 11000; checkcode $? 6
 
@@ -499,11 +499,6 @@ fi
 
 fi
 
-# on systems with 64-bit limbs, exercise mulredc9
-echo "2^567-181" | $ECM -sigma 0:2521899833399249862 11000; checkcode $? 14
-
-# on systems with 64-bit limbs, exercise mulredc11
-echo "2^654-53" | $ECM -sigma 0:15038331775204443632 11000; checkcode $? 6
 
 # exercise -h
 $ECM -h
