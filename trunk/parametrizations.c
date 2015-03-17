@@ -491,14 +491,8 @@ get_default_param (int sigma_is_A, mpz_t sigma, double B1, double B1done)
     }
 
 
-  /* TODO: For now the choice is arbitrary, do better than that */
-  if (B1 >= 100000000.0)
-      return ECM_PARAM_BATCH_2;
+  if (GMP_NUMB_BITS == 64)
+    return ECM_PARAM_BATCH_SQUARE;
   else
-      {
-        if (GMP_NUMB_BITS == 64)
-          return ECM_PARAM_BATCH_SQUARE;
-        else
-          return ECM_PARAM_BATCH_32BITS_D;
-      }
+    return ECM_PARAM_BATCH_32BITS_D;
 }
