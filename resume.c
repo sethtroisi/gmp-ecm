@@ -134,9 +134,7 @@ read_resumefile_line (int *method, mpz_t x, mpz_t y, mpcandi_t *n,
     {
       /* Ignore empty lines */
       if (facceptnl (fd))
-        {
-          continue;
-        }
+        continue;
       
       /* Ignore lines beginning with '#'*/
       if (facceptstr (fd, "#"))
