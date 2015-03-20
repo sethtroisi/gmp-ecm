@@ -85,29 +85,20 @@ F_mod_1 (mpz_t RS, unsigned int n)
 {
   mp_size_t size;
   mp_limb_t v;
+  int sgn;
   
   size = mpz_size (RS);
 
-  if ((unsigned int) size == n / GMP_NUMB_BITS + 1)
-    {
-      int sgn;
-      sgn = mpz_sgn (RS);          /* Remember original sign */
-      v = mpz_getlimbn (RS, n / GMP_NUMB_BITS);
-      mpz_tdiv_r_2exp (RS, RS, n); /* Just a truncate. RS < 2^n. Can make
-                                      RS zero and so change sgn(RS)! */
-      if (sgn == -1)
-          mpz_add_ui (RS, RS, v);
-      else
-          mpz_sub_ui (RS, RS, v);
-    }
-  else if ((unsigned int) size > n / GMP_NUMB_BITS + 1)
-    {                              /* Assuming |RS| < 2^(2*n) */
-      mpz_tdiv_q_2exp (gt, RS, n); /* |gt| < 2^n */
-      mpz_tdiv_r_2exp (RS, RS, n); /* |RS| < 2^n */
-      mpz_sub (RS, RS, gt);        /* |RS| < 2^(n+1) */
-    }
+  ASSERT_ALWAYS(size <= n / GMP_NUMB_BITS + 1);
+  sgn = mpz_sgn (RS);          /* Remember original sign */
+  v = mpz_getlimbn (RS, n / GMP_NUMB_BITS);
+  mpz_tdiv_r_2exp (RS, RS, n); /* Just a truncate. RS < 2^n. Can make
+                                  RS zero and so change sgn(RS)! */
+  if (sgn == -1)
+    mpz_add_ui (RS, RS, v);
+  else
+    mpz_sub_ui (RS, RS, v);
 }
-
 
 /* R = gt (mod 2^n+1) */
 
@@ -143,30 +134,18 @@ F_mod_gt (mpz_t R, unsigned int n)
 }
 
 
-/* R = S1 * S2 (mod 2^n+1) where n is a power of 2 */
-/* S1 == S2, S1 == R, S2 == R ok, but none may == gt */
-
+/* R = S1 * S2 (mod 2^n+1) where n is a power of 2
+   S1 == S2, S1 == R, S2 == R ok, but none may == gt.
+   Assume n >= GMP_NUMB_BITS, and GMP_NUMB_BITS is a power of two. */
 static void 
 F_mulmod (mpz_t R, mpz_t S1, mpz_t S2, unsigned int n)
 {
-  int n2 = (n - 1) / GMP_NUMB_BITS + 1; /* type of _mp_size is int */
+  int n2 = n / GMP_NUMB_BITS; /* type of _mp_size is int */
 
   F_mod_1 (S1, n);
   F_mod_1 (S2, n);
-  if (mpz_size (S1) > (unsigned) n2)
-    {
-      outputf (OUTPUT_ERROR, 
-               "Warning: S1 >= 2^%d after reduction, has %lu bits. "
-               "Trying again\n", n, (unsigned long) mpz_sizeinbase (S1, 2));
-      F_mod_1 (S1, n);
-    }
-  if (mpz_size (S2) > (unsigned) n2)
-    {
-      outputf (OUTPUT_ERROR, 
-               "Warning: S2 >= 2^%d after reduction, has %lu bits. "
-               "Trying again\n", n, (unsigned long) mpz_sizeinbase (S2, 2));
-      F_mod_1 (S2, n);
-    }
+  ASSERT(mpz_size (S1) <= (unsigned) n2);
+  ASSERT(mpz_size (S2) <= (unsigned) n2);
 
   if (n >= 32768)
     {
