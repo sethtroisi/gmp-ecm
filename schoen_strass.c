@@ -40,7 +40,6 @@ http://www.gnu.org/licenses/ or write to the Free Software Foundation, Inc.,
 
 static mpz_t gt;
 static int gt_inited = 0;
-static int radix2 = 0;
 unsigned int Fermat;
 
 #define CACHESIZE 512U
@@ -403,8 +402,8 @@ F_mul_sqrt2exp_2 (mpz_t R, mpz_t S, int e, unsigned int n)
   ASSERT (R != gt);
   ASSERT ((unsigned) abs (e) < 4 * n);
 
-  if (e < 0)
-    e += 4 * n;
+  /* this function is always called with e >= 0 */
+  ASSERT(e >= 0);
   if ((unsigned) e >= 2 * n)    /* sqrt(2)^(2*n) == -1 (mod F_m), so */
     {
       e -= 2 * n;               /* sqrt(2)^e == -sqrt(2)^(e-2*n) (mod F_m) */
@@ -481,66 +480,46 @@ F_fft_dif (mpz_t *A, int l, int stride2, int n)
       return;
     }
 
-  if (!radix2)
-    {
-      l /= 4;
+  l /= 4;
 
-      mpz_sub (gt, A1s, A3s);            /* gt = a1 - a3 */
-      mpz_add (A1s, A1s, A3s);           /* A1 = a1 + a3 */
-      F_mul_sqrt2exp_2 (A3s, gt, n, n);  /* A3 = i * (a1 - a3) */
+  mpz_sub (gt, A1s, A3s);            /* gt = a1 - a3 */
+  mpz_add (A1s, A1s, A3s);           /* A1 = a1 + a3 */
+  F_mul_sqrt2exp_2 (A3s, gt, n, n);  /* A3 = i * (a1 - a3) */
       
-      mpz_sub (gt, A[0], A2s);           /* gt = a0 - a2 */
-      mpz_add (A[0], A[0], A2s);         /* A0 = a0 + a2 */
+  mpz_sub (gt, A[0], A2s);           /* gt = a0 - a2 */
+  mpz_add (A[0], A[0], A2s);         /* A0 = a0 + a2 */
 
-      mpz_sub (A2s, A[0], A1s);          /* A2 = a0 - a1 + a2 - a3 */
-      mpz_add (A[0], A[0], A1s);         /* A0 = a0 + a1 + a2 + a3 */
-      mpz_add (A1s, gt, A3s);            /* A1 = a0 - a2 + i * (a1 - a3) */
-      mpz_sub (A3s, gt, A3s);            /* A3 = a0 - a2 - i * (a1 - a3) */
+  mpz_sub (A2s, A[0], A1s);          /* A2 = a0 - a1 + a2 - a3 */
+  mpz_add (A[0], A[0], A1s);         /* A0 = a0 + a1 + a2 + a3 */
+  mpz_add (A1s, gt, A3s);            /* A1 = a0 - a2 + i * (a1 - a3) */
+  mpz_sub (A3s, gt, A3s);            /* A3 = a0 - a2 - i * (a1 - a3) */
 
-      for (i = 1, iomega = omega; i < l; i++, iomega += omega)
-        {
-          mpz_sub (gt, A1is, A3is);
-          mpz_add (A1is, A1is, A3is);
-          F_mul_sqrt2exp_2 (A3is, gt, n, n);
-          
-          mpz_sub (gt, A0is, A2is);
-          mpz_add (A0is, A0is, A2is);
-          
-          mpz_sub (A2is, A0is, A1is);
-          mpz_add (A0is, A0is, A1is);
-          mpz_add (A1is, gt, A3is);
-          mpz_sub (A3is, gt, A3is);
-          F_mul_sqrt2exp (A1is, A1is, iomega, n);
-          F_mul_sqrt2exp (A2is, A2is, 2 * iomega, n);
-          F_mul_sqrt2exp (A3is, A3is, 3 * iomega, n);
-        }
-
-      if (l > 1)
-        {
-          F_fft_dif (A, l, stride2, n);
-          F_fft_dif (A + (l << stride2), l, stride2, n);
-          F_fft_dif (A + (2 * l << stride2), l, stride2, n);
-          F_fft_dif (A + (3 * l << stride2), l, stride2, n);
-        }
-      return;
-    }
-
-  l /= 2;
-
-  ADDSUB_MOD(A[0], A1s);
-
-  for (i = 1, iomega = omega; i < l; i++, iomega += omega) 
+  for (i = 1, iomega = omega; i < l; i++, iomega += omega)
     {
-      mpz_sub (gt, A0is, A1is);
+      mpz_sub (gt, A1is, A3is);
+      mpz_add (A1is, A1is, A3is);
+      F_mul_sqrt2exp_2 (A3is, gt, n, n);
+          
+      mpz_sub (gt, A0is, A2is);
+      mpz_add (A0is, A0is, A2is);
+          
+      mpz_sub (A2is, A0is, A1is);
       mpz_add (A0is, A0is, A1is);
-      F_mul_sqrt2exp_2 (A1is, gt, iomega, n);
-      F_mod_1 (A0is, n);
+      mpz_add (A1is, gt, A3is);
+      mpz_sub (A3is, gt, A3is);
+      F_mul_sqrt2exp (A1is, A1is, iomega, n);
+      F_mul_sqrt2exp (A2is, A2is, 2 * iomega, n);
+      F_mul_sqrt2exp (A3is, A3is, 3 * iomega, n);
     }
-  
-  F_fft_dif (A, l, stride2, n);
-  F_fft_dif (A + (l << stride2), l, stride2, n);
-}
 
+  if (l > 1)
+    {
+      F_fft_dif (A, l, stride2, n);
+      F_fft_dif (A + (l << stride2), l, stride2, n);
+      F_fft_dif (A + (2 * l << stride2), l, stride2, n);
+      F_fft_dif (A + (3 * l << stride2), l, stride2, n);
+    }
+}
 
 /* Decimation-in-time inverse FFT. Scrambled input, unscrambled output */
 /* Does not perform divide-by-length. l, and n as in F_fft_dif() */
@@ -561,78 +540,54 @@ F_fft_dit (mpz_t *A, int l, int stride2, int n)
       return;
     }
 
-  if (!radix2)
+  l /= 4;
+      
+  if (l > 1)
     {
-      l /= 4;
+      F_fft_dit (A, l, stride2, n);
+      F_fft_dit (A + (l << stride2), l, stride2, n);
+      F_fft_dit (A + (2 * l << stride2), l, stride2, n);
+      F_fft_dit (A + (3 * l << stride2), l, stride2, n);
+    }
+
+  mpz_sub (gt, A3s, A1s);            /* gt = -(a1 - a3) */
+  mpz_add (A1s, A1s, A3s);           /* A1 = a1 + a3 */
+  F_mul_sqrt2exp_2 (A3s, gt, n, n);  /* A3 = i * -(a1 - a3) */
       
-      if (l > 1)
-        {
-          F_fft_dit (A, l, stride2, n);
-          F_fft_dit (A + (l << stride2), l, stride2, n);
-          F_fft_dit (A + (2 * l << stride2), l, stride2, n);
-          F_fft_dit (A + (3 * l << stride2), l, stride2, n);
-        }
-
-      mpz_sub (gt, A3s, A1s);            /* gt = -(a1 - a3) */
-      mpz_add (A1s, A1s, A3s);           /* A1 = a1 + a3 */
-      F_mul_sqrt2exp_2 (A3s, gt, n, n);  /* A3 = i * -(a1 - a3) */
+  mpz_sub (gt, A[0], A2s);           /* gt = a0 - a2 */
+  mpz_add (A[0], A[0], A2s);         /* A0 = a0 + a2 */
       
-      mpz_sub (gt, A[0], A2s);           /* gt = a0 - a2 */
-      mpz_add (A[0], A[0], A2s);         /* A0 = a0 + a2 */
-      
-      mpz_sub (A2s, A[0], A1s);          /* A2 = a0 - a1 + a2 - a3 */
-      mpz_add (A[0], A[0], A1s);         /* A0 = a0 + a1 + a2 + a3 */
-      mpz_add (A1s, gt, A3s);            /* A1 = a0 - a2 + i * -(a1 - a3) */
-      mpz_sub (A3s, gt, A3s);            /* A3 = a0 - a2 - i * -(a1 - a3) */
+  mpz_sub (A2s, A[0], A1s);          /* A2 = a0 - a1 + a2 - a3 */
+  mpz_add (A[0], A[0], A1s);         /* A0 = a0 + a1 + a2 + a3 */
+  mpz_add (A1s, gt, A3s);            /* A1 = a0 - a2 + i * -(a1 - a3) */
+  mpz_sub (A3s, gt, A3s);            /* A3 = a0 - a2 - i * -(a1 - a3) */
 
-      for (i = 1, iomega = omega; i < l; i++, iomega += omega)
-        {
-          /* Divide by omega^i. Since sqrt(2)^(4*n) == 1 (mod 2^n+1), 
-             this is like multiplying by omega^(4*n-i) */
-          F_mul_sqrt2exp (A1is, A1is, 4 * n - iomega, n);
-          F_mul_sqrt2exp (A2is, A2is, 4 * n - 2 * iomega, n);
-          F_mul_sqrt2exp (A3is, A3is, 4 * n - 3 * iomega, n);
+  for (i = 1, iomega = omega; i < l; i++, iomega += omega)
+    {
+      /* Divide by omega^i. Since sqrt(2)^(4*n) == 1 (mod 2^n+1), 
+         this is like multiplying by omega^(4*n-i) */
+      F_mul_sqrt2exp (A1is, A1is, 4 * n - iomega, n);
+      F_mul_sqrt2exp (A2is, A2is, 4 * n - 2 * iomega, n);
+      F_mul_sqrt2exp (A3is, A3is, 4 * n - 3 * iomega, n);
 
-          mpz_sub (gt, A3is, A1is);
-          mpz_add (A1is, A1is, A3is);
-          F_mul_sqrt2exp_2 (A3is, gt, n, n);
+      mpz_sub (gt, A3is, A1is);
+      mpz_add (A1is, A1is, A3is);
+      F_mul_sqrt2exp_2 (A3is, gt, n, n);
 
-          mpz_sub (gt, A0is, A2is);
-          mpz_add (A0is, A0is, A2is);
+      mpz_sub (gt, A0is, A2is);
+      mpz_add (A0is, A0is, A2is);
           
-          mpz_sub (A2is, A0is, A1is);
-          mpz_add (A0is, A0is, A1is);
-          mpz_add (A1is, gt, A3is);
-          mpz_sub (A3is, gt, A3is);
-          if (1)
-            {
-              F_mod_1 (A0is, n);
-              F_mod_1 (A1is, n);
-              F_mod_1 (A2is, n);
-              F_mod_1 (A3is, n);
-            }
-        }
-      return;
-    }
-
-  l /= 2;
-
-  F_fft_dit (A, l, stride2, n);
-  F_fft_dit (A + (l << stride2), l, stride2, n);
-  
-  ADDSUB_MOD(A[0], A1s);
-  
-  for (i = 1, iomega = 4*n - omega; i < l; i++, iomega -= omega) 
-    {
-      F_mul_sqrt2exp (A1is, A1is, iomega, n);
-      mpz_sub (gt, A0is, A1is);
+      mpz_sub (A2is, A0is, A1is);
       mpz_add (A0is, A0is, A1is);
-      F_mod_gt (A1is, n);
-      F_mod_1 (A0is, n);
-    }
-  
-}
+      mpz_add (A1is, gt, A3is);
+      mpz_sub (A3is, gt, A3is);
 
+      F_mod_1 (A0is, n);
+      F_mod_1 (A1is, n);
+      F_mod_1 (A2is, n);
+      F_mod_1 (A3is, n);
+    }
+}
 
 #define A0 A[i]
 #define A1 A[l+i]
