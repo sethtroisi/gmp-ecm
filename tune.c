@@ -147,6 +147,7 @@ tune_mpres_mul (mp_size_t limbs, int repr)
   return (double) __k / (double) __st;
 }
 
+#if 0
 double
 tune_mpres_sqr (mp_size_t limbs, int repr)
 {
@@ -193,6 +194,7 @@ tune_mpres_sqr (mp_size_t limbs, int repr)
 
   return (double) __k / (double) __st;
 }
+#endif
 
 double
 tune_mpres_mul_mpz (size_t n)
@@ -265,11 +267,7 @@ TUNE_FUNC_END (tune_PolyInvert)
 TUNE_FUNC_START (tune_ntt_polyevalT)
   unsigned int i;
   mpzv_t *Tree = (mpzv_t *) malloc ((n + 1) * sizeof (mpzv_t));
-  if (Tree == NULL)
-    {
-      fprintf (stderr, "Cannot allocate memory in tune_ntt_polyevalT\n");
-      exit (1);
-    }
+  ASSERT_ALWAYS (Tree != NULL);
   
   for (i = 0; i <= n; i++)
     Tree[i] = x;
@@ -285,11 +283,7 @@ TUNE_FUNC_END (tune_ntt_polyevalT)
 TUNE_FUNC_START (tune_polyevalT)
   unsigned int i;
   mpzv_t *Tree = (mpzv_t *) malloc ((n + 1) * sizeof (mpzv_t));
-  if (Tree == NULL)
-    {
-      fprintf (stderr, "Cannot allocate memory in tune_polyevalT\n");
-      exit (1);
-    }
+  ASSERT_ALWAYS (Tree != NULL);
 
   for (i = 0; i <= n; i++)
     Tree[i] = x;
@@ -400,6 +394,7 @@ maximise (double (*f)(size_t), size_t min_n, size_t max_n)
   return best_n;
 }
 
+#if 0
 /* Debugging. Print the value of f0(n) and f1(n) and which is fastest. */
 void
 print_timings (double (*f0)(size_t), double (*f1)(size_t),
@@ -416,6 +411,7 @@ print_timings (double (*f0)(size_t), double (*f1)(size_t),
           (long) n, f0_n, f1_n, (f0_n <= f1_n) ? 1 : 0);
     }
 }
+#endif
 
 static void
 tune_list_mul_n ()
@@ -512,17 +508,9 @@ main (int argc, char **argv)
   t = init_list (list_mul_mem (MAX_LEN / 2) + 3 * MAX_LEN / 2);
   
   mpzspm = mpzspm_init (MAX_LEN, M);
-  if (mpzspm == NULL)
-    {
-      fprintf (stderr, "Error, cannot allocate memory in mpzspm_init\n");
-      exit (1);
-    }
+  ASSERT_ALWAYS (mpzspm != NULL);
   mpzspv = mpzspv_init (MAX_LEN, mpzspm);
-  if (mpzspv == NULL)
-    {
-      fprintf (stderr, "Error, cannot allocate memory in mpzspv_init\n");
-      exit (1);
-    }
+  ASSERT_ALWAYS (mpzspv != NULL);
   mpzspv_random (mpzspv, 0, MAX_LEN, mpzspm);
   
   for (i = 0; i < MAX_LEN; i++)
