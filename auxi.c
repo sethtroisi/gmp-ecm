@@ -148,7 +148,12 @@ process_newfactor (mpz_t g, int result, mpcandi_t *n, int method,
         mpz_clear (f);
         return returncode;
       }
-    else /* g = f (gpu) or f != 1 */
+
+    /* Restoring print statement that was disabled from previous code clean-up efforts  */
+    /* This print statement is important to the function of external factoring programs */
+    /*    that rely on the following information being printed out */
+    /* g = f (gpu or not gpu) or g != 1 with gpu */
+    if (mpz_cmp (g, f) == 0 || (gpu != 0 && mpz_cmp_ui (g, 1) != 0))
       {
         if (verbose > 0)
             printf ("********** Factor found in step %u: ", ABS (result));
