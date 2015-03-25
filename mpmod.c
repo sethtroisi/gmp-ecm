@@ -435,8 +435,9 @@ mulredc (mp_ptr z, mp_srcptr x, mp_srcptr y, mp_srcptr m,
     }
 }
 
+#if 0
 /* {rp, n} <- {ap, n}^2/B^n mod {np, n} where B = 2^GMP_NUMB_BITS */
-ATTRIBUTE_UNUSED static void
+static void
 sqrredc (mp_ptr rp, mp_srcptr ap, mp_srcptr np, const mp_size_t n,
          const mp_limb_t invm)
 {
@@ -493,6 +494,7 @@ sqrredc (mp_ptr rp, mp_srcptr ap, mp_srcptr np, const mp_size_t n,
     cy -= mpn_sub_n (rp, rp, np, n);
   TMP_FREE;
 }
+#endif
 
 #ifdef HAVE_NATIVE_MULREDC1_N
 /* Multiplies y by the 1-limb value of x and does modulo reduction.
