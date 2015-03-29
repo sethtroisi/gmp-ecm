@@ -16,9 +16,9 @@ make clean
 make CFLAGS="-O0 -g -fprofile-arcs -ftest-coverage" PARAMS22=1
 make check VALGRIND=
 make clean
-# make CFLAGS="-O0 -g -fprofile-arcs -ftest-coverage" PARAMS33=1
-# make check VALGRIND=
-# make clean
+make CFLAGS="-O0 -g -fprofile-arcs -ftest-coverage" PARAMS33=1
+make check VALGRIND=
+make clean
 make CFLAGS="-O0 -g -fprofile-arcs -ftest-coverage"
 make longcheck VALGRIND=
 make bench_mulredc
