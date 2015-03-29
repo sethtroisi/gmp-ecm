@@ -651,6 +651,28 @@ AC_SUBST([XSLDIR])
 AC_SUBST([ASMPATH])
 AC_SUBST([GSL_LD_FLAGS])
 
+COV_FRAG='
+# These options are used for coverage tests
+PARAMS00 ?= 0
+PARAMS11 ?= 0
+PARAMS22 ?= 0
+PARAMS33 ?= 0
+ifeq (${PARAMS00}, 1)
+  DEFS += -DPARAMS00
+endif
+ifeq (${PARAMS11}, 1)
+  DEFS += -DPARAMS11
+endif
+ifeq (${PARAMS22}, 1)
+  DEFS += -DPARAMS22
+endif
+ifeq (${PARAMS33}, 1)
+  DEFS += -DPARAMS33
+endif
+'
+AC_SUBST([COV_FRAG])
+AM_SUBST_NOTMAKE([COV_FRAG])
+
 AC_OUTPUT
 
 AC_MSG_NOTICE([Configuration:])

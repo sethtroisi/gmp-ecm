@@ -4,7 +4,23 @@
    or gcc -mtune=native -dM -E -xc /dev/null, it includes one file or the
    other one. */
 
-#if defined (__tune_pentium4__) /* tuning for Pentium 4 */
+#if defined (PARAMS00)
+#define ECM_TUNE_CASE "generic/params00.h"
+#include "generic/params00.h"
+
+#elif defined (PARAMS11)
+#define ECM_TUNE_CASE "generic/params11.h"
+#include "generic/params11.h"
+
+#elif defined (PARAMS22)
+#define ECM_TUNE_CASE "generic/params22.h"
+#include "generic/params22.h"
+
+#elif defined (PARAMS33)
+#define ECM_TUNE_CASE "generic/params33.h"
+#include "generic/params33.h"
+
+#elif defined (__tune_pentium4__) /* tuning for Pentium 4 */
 #define ECM_TUNE_CASE "pentium4/params.h"
 #include "pentium4/params.h"
 
