@@ -50,30 +50,6 @@ static void ecm_mulredc_basecase (mpres_t, const mpres_t, const mpres_t,
 static void base2mod (mpres_t, const mpres_t, mpres_t, mpmod_t) ATTRIBUTE_HOT;
 static void REDC (mpres_t, const mpres_t, mpz_t, mpmod_t);
 
-/* Up from GMP 5.1.0, mpn_redc{1,2} do not subtract the modulus if needed,
-   but return the carry of the final addition */
-#ifdef HAVE___GMPN_REDC_1
-#ifdef MPN_REDC12_RETURNS_CARRY
-#define REDC1(rp,cp,np,nn,invm)                  \
-  do {if (__gmpn_redc_1 (rp,cp,np,nn,invm))      \
-    mpn_sub_n (rp, rp, np, nn);                  \
-  } while(0)
-#else
-#define REDC1(rp,cp,np,nn,invm) __gmpn_redc_1(rp,cp,np,nn,invm)
-#endif
-#endif
-
-#ifdef HAVE___GMPN_REDC_2
-#ifdef MPN_REDC12_RETURNS_CARRY
-#define REDC2(rp,cp,np,nn,invm)                  \
-  do {if (__gmpn_redc_2 (rp,cp,np,nn,invm))      \
-    mpn_sub_n (rp, rp, np, nn);                  \
-  } while (0)
-#else
-#define REDC2(rp,cp,np,nn,invm) __gmpn_redc_2(rp,cp,np,nn,invm)
-#endif
-#endif
-
 /* returns +/-l if n is a factor of N = 2^l +/- 1 with N <= n^threshold, 
    0 otherwise.
 */
@@ -620,7 +596,9 @@ ecm_mulredc_basecase_n (mp_ptr rp, mp_srcptr s1p, mp_srcptr s2p,
           break;
 #endif /* otherwise go through to the next available mode */
         case MPMOD_MUL_REDCN: /* mpn_mul_n + __gmpn_redc_n */
-#ifdef HAVE___GMPN_REDC_N
+        /* disable redc_n for now, since it uses the opposite
+           precomputed inverse wrt redc_1 and redc_2 */
+#ifdef HAVE___GMPN_REDC_Nxxx
           mpn_mul_n (tmp, s1p, s2p, nn);
           __gmpn_redc_n (rp, tmp, np, nn, invm);
           break;
