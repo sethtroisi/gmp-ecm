@@ -20,25 +20,14 @@
 #define LOOPCOUNT 10000000UL
 #define MAXSIZE 20
 
-int tune_mul[MAXSIZE+1], tune_sqr[MAXSIZE+1];
+int tune_mul[MAXSIZE+1], tune_sqr[MAXSIZE+1], redc_n_ok[MAXSIZE+1];
 
 #include <gmp.h>
 #ifdef USE_ASM_REDC
 #include "mulredc.h"
 #endif
 #include "mpmod.h"
-
-#ifdef HAVE___GMPN_REDC_1
-#ifndef __gmpn_redc_1
-void __gmpn_redc_1 (mp_ptr, mp_ptr, mp_srcptr, mp_size_t, mp_limb_t);
-#endif
-#endif
-
-#ifdef HAVE___GMPN_REDC_2
-#ifndef __gmpn_redc_2
-void __gmpn_redc_2 (mp_ptr, mp_ptr, mp_srcptr, mp_size_t, mp_srcptr);
-#endif
-#endif
+#include "ecm-gmp.h"
 
 #ifdef HAVE___GMPN_REDC_N
 #ifndef __gmpn_redc_N
@@ -116,35 +105,12 @@ void mp_print(mp_limb_t *x, int N) {
   printf("\n");
 }
 
-static void
-ecm_redc_1_svoboda (mp_ptr rp, mp_ptr tmp, mp_srcptr np, mp_size_t nn,
-                    mp_limb_t invm, mp_srcptr sp)
-{
-  mp_size_t j;
-  mp_limb_t t0, cy;
-
-  /* instead of adding {np, nn} * (invm * tmp[0] mod B), we add
-     {sp, nn} * tmp[0], where {np, nn} * invm = B * {sp, nn} - 1 */
-  for (j = 0; j < nn - 1; j++, tmp++)
-    rp[j + 1] = mpn_addmul_1 (tmp + 1, sp, nn, tmp[0]);
-  /* for the last step, we reduce with {np, nn} */
-  t0 = mpn_addmul_1 (tmp, np, nn, tmp[0] * invm);
-  tmp ++;
-
-  rp[0] = tmp[0];
-  cy = mpn_add_n (rp + 1, rp + 1, tmp + 1, nn - 1);
-  rp[nn-1] += t0;
-  cy += rp[nn-1] < t0;
-  if (cy != 0)
-    mpn_sub_n (rp, rp, np, nn); /* a borrow should always occur here */
-}
-
 void bench(mp_size_t N)
 {
-  mp_limb_t *x, *y, *z, *m, *invm, *tmp, *svoboda1;
+  mp_limb_t *x, *y, *z, *zref, *m, *invm, *tmp;
   unsigned long i;
   unsigned long iter;
-  long tmul, tsqr, tredc_1, t_mulredc_1, tsvoboda1 = 0, t_sqrredc_1;
+  long tmul, tsqr, tredc_1, t_mulredc_1, t_sqrredc_1;
   long tmul_best = LONG_MAX, tsqr_best = LONG_MAX, tredc_best = LONG_MAX;
   mpz_t M, B;
 #ifdef USE_ASM_REDC
@@ -157,16 +123,16 @@ void bench(mp_size_t N)
   long tredc_2, t_mulredc_2, t_sqrredc_2;
 #endif
 #ifdef HAVE___GMPN_REDC_N
-  long tredc_n, t_mulredc_n, t_sqrredc_n;
+  long tredc_n = LONG_MAX, t_mulredc_n, t_sqrredc_n;
 #endif
   
   x = (mp_limb_t *) malloc(N*sizeof(mp_limb_t));
   y = (mp_limb_t *) malloc(N*sizeof(mp_limb_t));
   z = (mp_limb_t *) malloc((2*N)*sizeof(mp_limb_t));
+  zref = (mp_limb_t *) malloc((2*N)*sizeof(mp_limb_t));
   m = (mp_limb_t *) malloc(N*sizeof(mp_limb_t));
   tmp = (mp_limb_t *) malloc((2*N+2)*sizeof(mp_limb_t));
   invm = (mp_limb_t *) malloc(N*sizeof(mp_limb_t));
-  svoboda1 = (mp_limb_t *) malloc(N*sizeof(mp_limb_t));
  
   mpn_random(m, N);
   m[0] |= 1UL;
@@ -188,7 +154,6 @@ void bench(mp_size_t N)
 
   tmp[N] = mpn_mul_1 (tmp, m, N, invm[0]); /* {tmp,N+1} should be = -1 mod B */
   mpn_add_1 (tmp, tmp, N + 1, 1); /* now = 0 mod B */
-  mpn_copyi (svoboda1, tmp + 1, N);
 
   mpz_clear (M);
   mpz_clear (B);
@@ -219,45 +184,58 @@ void bench(mp_size_t N)
     mpn_sqr (tmp, x, N);
   tsqr = cputime()-tsqr;
 
+  /* compute reference redc result */
+  mpn_mul_n (zref, x, y, N);
+  for (i = 0; i < (unsigned long) N * GMP_NUMB_BITS; i++)
+    {
+      mp_limb_t cy = 0;
+      if (zref[0] & 1)
+        cy = mpn_add (zref, zref, 2*N, m, N);
+      mpn_rshift (zref, zref, 2*N, 1);
+      zref[2*N-1] |= cy << (GMP_NUMB_BITS - 1);
+    }
+
 #ifdef HAVE___GMPN_REDC_1
   mpn_mul_n(tmp, x, y, N);
+  REDC1(z, tmp, m, N, invm[0]);
+  assert (mpn_cmp (z, zref, N) == 0);
   tredc_1 = cputime();
   for (i = 0; i < iter; ++i)
-    __gmpn_redc_1 (z, tmp, m, N, invm[0]);
+    REDC1(z, tmp, m, N, invm[0]);
   tredc_1 = cputime()-tredc_1;
   if (tredc_1 < tredc_best)
     tredc_best = tredc_1;
 #endif
 
-  if (N > 1) /* Svoboda only works for N > 1 */
-    {
-      mpn_mul_n(tmp, x, y, N);
-      tsvoboda1 = cputime();
-      for (i = 0; i < iter; ++i)
-        ecm_redc_1_svoboda (z, tmp, m, N, invm[0], svoboda1);
-      tsvoboda1 = cputime()-tsvoboda1;
-      if (tsvoboda1 < tredc_best)
-        tredc_best = tsvoboda1;
-    }
-
 #ifdef HAVE___GMPN_REDC_2
   mpn_mul_n(tmp, x, y, N);
+  REDC2 (z, tmp, m, N, invm);
+  assert (mpn_cmp (z, zref, N) == 0);
   tredc_2 = cputime();
   for (i = 0; i < iter; ++i)
-    __gmpn_redc_2 (z, tmp, m, N, invm);
-  tredc_2 = cputime()-tredc_2;
+    REDC2 (z, tmp, m, N, invm);
+  tredc_2 = cputime() - tredc_2;
   if (tredc_2 < tredc_best)
     tredc_best = tredc_2;
 #endif
 
+/* GMP uses the opposite convention for the precomputed inverse in redc_n
+   wrt redc_1 or redc_2, which gives wrong results so far. */
 #ifdef HAVE___GMPN_REDC_N
   mpn_mul_n(tmp, x, y, N);
-  tredc_n = cputime();
-  for (i = 0; i < iter; ++i)
-    __gmpn_redc_n (z, tmp, m, N, invm);
-  tredc_n = cputime()-tredc_n;
-  if (tredc_n < tredc_best)
-    tredc_best = tredc_n;
+  __gmpn_redc_n (z, tmp, m, N, invm);
+  if (mpn_cmp (z, zref, N) != 0)
+    redc_n_ok[N] = 0;
+  else
+    {
+      redc_n_ok[N] = 1;
+      tredc_n = cputime();
+      for (i = 0; i < iter; ++i)
+        __gmpn_redc_n (z, tmp, m, N, invm);
+      tredc_n = cputime()-tredc_n;
+      if (tredc_n < tredc_best)
+        tredc_best = tredc_n;
+    }
 #endif
 
 #ifdef USE_ASM_REDC
@@ -444,7 +422,7 @@ void bench(mp_size_t N)
       __gmpn_redc_n (z, tmp, m, N, invm);
     }
   t_mulredc_n = cputime()-t_mulredc_n;
-  if (t_mulredc_n < tmul_best)
+  if (redc_n_ok[N] && t_mulredc_n < tmul_best)
     {
       tune_mul[N] = MPMOD_MUL_REDCN;
       tmul_best = t_mulredc_n;
@@ -492,7 +470,7 @@ void bench(mp_size_t N)
       __gmpn_redc_n (z, tmp, m, N, invm);
     }
   t_sqrredc_n = cputime()-t_sqrredc_n;
-  if (t_sqrredc_n < tsqr_best)
+  if (redc_n_ok[N] && t_sqrredc_n < tsqr_best)
     {
       tune_sqr[N] = MPMOD_MUL_REDCN;
       tsqr_best = t_sqrredc_n;
@@ -644,14 +622,6 @@ void bench(mp_size_t N)
     fprintf (stderr, " *");
   fprintf (stderr, "\n");
 #endif
-  if (N > 1)
-    {
-      fprintf (stderr, "svoboda1   = %.3f",
-               (double) tsvoboda1 * 1e3 / (double) iter);
-      if (tsvoboda1 == tredc_best)
-        fprintf (stderr, " *");
-      fprintf (stderr, "\n");
-    }
 #ifdef HAVE___GMPN_REDC_2
   fprintf (stderr, "mpn_redc_2 = %.3f",
            (double) tredc_2 * 1e3 / (double) iter);
@@ -660,11 +630,16 @@ void bench(mp_size_t N)
   fprintf (stderr, "\n");
 #endif
 #ifdef HAVE___GMPN_REDC_N
-  fprintf (stderr, "mpn_redc_n = %.3f",
-           (double) tredc_n * 1e3 / (double) iter);
-  if (tredc_n == tredc_best)
-    fprintf (stderr, " *");
-  fprintf (stderr, "\n");
+  if (redc_n_ok[N])
+    {
+      fprintf (stderr, "mpn_redc_n = %.3f",
+               (double) tredc_n * 1e3 / (double) iter);
+      if (tredc_n == tredc_best)
+        fprintf (stderr, " *");
+      fprintf (stderr, "\n");
+    }
+  else
+    fprintf (stderr, "mpn_redc_n = disabled\n");
 #endif
 
   fprintf (stderr, "\n");
@@ -692,11 +667,16 @@ void bench(mp_size_t N)
   fprintf (stderr, "\n");
 #endif
 #ifdef HAVE___GMPN_REDC_N
-  fprintf (stderr, "mul+redc_n = %.3f",
-           (double) t_mulredc_n * 1e3 / (double) iter);
-  if (tmul_best == t_mulredc_n)
-    fprintf (stderr, " *");
-  fprintf (stderr, "\n");
+  if (redc_n_ok[N])
+    {
+      fprintf (stderr, "mul+redc_n = %.3f",
+               (double) t_mulredc_n * 1e3 / (double) iter);
+      if (tmul_best == t_mulredc_n)
+        fprintf (stderr, " *");
+      fprintf (stderr, "\n");
+    }
+  else
+    fprintf (stderr, "mul+redc_n = disabled\n");
 #endif
 
   fprintf (stderr, "\n");
@@ -724,11 +704,16 @@ void bench(mp_size_t N)
   fprintf (stderr, "\n");
 #endif
 #ifdef HAVE___GMPN_REDC_N
-  fprintf (stderr, "sqr+redc_n = %.3f",
-           (double) t_sqrredc_n * 1e3 / (double) iter);
-  if (tsqr_best == t_sqrredc_n)
-    fprintf (stderr, " *");
-  fprintf (stderr, "\n");
+  if (redc_n_ok[N])
+    {
+      fprintf (stderr, "sqr+redc_n = %.3f",
+               (double) t_sqrredc_n * 1e3 / (double) iter);
+      if (tsqr_best == t_sqrredc_n)
+        fprintf (stderr, " *");
+      fprintf (stderr, "\n");
+    }
+  else
+    fprintf (stderr, "sqr+redc_n = disabled\n");
 #endif
 
 #ifdef HAVE_NATIVE_MULREDC1_N
@@ -742,11 +727,10 @@ void bench(mp_size_t N)
   free (x);
   free (y);
   free (z);
+  free (zref);
   free (m);
   free (invm);
-  free (svoboda1);
 }
-  
 
 int main(int argc, char** argv)
 {

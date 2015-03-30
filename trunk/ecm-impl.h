@@ -694,7 +694,7 @@ int get_curve_from_param2 (mpz_t, mpres_t, mpres_t, mpz_t, mpmod_t);
 #define get_curve_from_param3 __ECM(get_curve_from_param3)
 int get_curve_from_param3 (mpres_t, mpres_t, mpz_t, mpmod_t);
 #define get_default_param __ECM(get_default_param)
-int get_default_param (int, mpz_t, double, double);
+int get_default_param (int, mpz_t, double);
 
 /* sets_long.c */
 /* A set of long ints */
