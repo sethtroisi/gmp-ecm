@@ -7,15 +7,19 @@ svn checkout svn://scm.gforge.inria.fr/svnroot/ecm/trunk ecm
 cd ecm
 autoreconf -i
 ./configure --disable-assert
+echo "Testing PARAMS00"
 make CFLAGS="-O0 -g -fprofile-arcs -ftest-coverage" PARAMS00=1
 make check VALGRIND=
 make clean
+echo "Testing PARAMS11"
 make CFLAGS="-O0 -g -fprofile-arcs -ftest-coverage" PARAMS11=1
 make check VALGRIND=
 make clean
+echo "Testing PARAMS22"
 make CFLAGS="-O0 -g -fprofile-arcs -ftest-coverage" PARAMS22=1
 make check VALGRIND=
 make clean
+echo "Testing PARAMS33"
 make CFLAGS="-O0 -g -fprofile-arcs -ftest-coverage" PARAMS33=1
 make check VALGRIND=
 make clean
