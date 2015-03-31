@@ -655,7 +655,9 @@ ecm_sqrredc_basecase_n (mp_ptr rp, mp_srcptr s1p,
           break;
 #endif /* otherwise go through to the next available mode */
         case MPMOD_MUL_REDCN: /* mpn_sqr + __gmpn_redc_n */
-#ifdef HAVE___GMPN_REDC_N
+        /* disable redc_n for now, since it uses the opposite
+           precomputed inverse wrt redc_1 and redc_2 */
+#ifdef HAVE___GMPN_REDC_Nxxx
           mpn_sqr (tmp, s1p, nn);
           __gmpn_redc_n (rp, tmp, np, nn, invm);
           break;
