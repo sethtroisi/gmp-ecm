@@ -174,7 +174,8 @@ read_resumefile_line (int *method, mpz_t x, mpz_t y, mpcandi_t *n,
           
           if (!facceptstr (fd, "="))
             {
-              printf ("Save file line has no equal sign after: %s\n", tag);
+              fprintf (stderr, "Error, save file line has no '=' in: %s\n",
+                       tag);
               goto error;
             }
           
@@ -400,14 +401,13 @@ read_resumefile_line (int *method, mpz_t x, mpz_t y, mpcandi_t *n,
 
       return 1;
       
-error:
-      /* In case of error, read rest of line and try next line */
-      while (!facceptnl (fd) && !feof (fd))
-        fgetc (fd);
     }
     
     /* We hit EOF without reading a proper save line */
     return 0;
+
+error:
+    exit (EXIT_FAILURE);
 }
 
 
