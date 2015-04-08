@@ -167,25 +167,7 @@ pm1_stage1 (mpz_t f, mpres_t a, mpmod_t n, double B1, double *B1done,
   if (mpz_fits_uint_p (g))
     smallbase = mpz_get_ui (g);
 
-  /* suggestion from Peter Montgomery: start with exponent n-1,
-     since any prime divisor of b^m-1 which does not divide any
-     algebraic factor of b^m-1 must be of the form km+1 [Williams82].
-     Do this only when n is composite, otherwise all tests with prime
-     n factor of a Cunningham number will succeed in stage 1.
-
-     Since mpz_probab_prime_p and a^(n-1) mod n require about lg(n) modular
-     multiplications, and P-1 perform about B1 modular multiplications,
-     to ensure small overhead, use that trick only when lg(n) <= sqrt(B1).
-  */
-  /* For now, this p^N-1 is left in.  We might want it out at a later time */
-  if ((double) size_n <= B0 &&
-      mpz_probab_prime_p (n->orig_modulus, PROBAB_PRIME_TESTS) == 0)
-    {
-      mpz_sub_ui (g, n->orig_modulus, 1);
-      mpres_pow (a, a, g, n);
-    }
-  else
-    mpz_set_ui (g, 1);
+  mpz_set_ui (g, 1);
 
   /* Set a limit of roughly 10000 * log_10(N) for the primes that are 
      multiplied up in the exponent, i.e. 1M for a 100 digit number, 
