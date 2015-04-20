@@ -1031,9 +1031,7 @@ set_stage_2_params (mpz_t B2, mpz_t B2_parm, mpz_t B2min, mpz_t B2min_parm,
   root_params->d2 = 0; /* Enable automatic choice of d2 */
   if (bestD (root_params, k, dF, B2min, B2, *po2, use_ntt, maxmem, 
              (TreeFilename != NULL), modulus) == ECM_ERROR)
-    {
-      return ECM_ERROR;
-    }
+    return ECM_ERROR;
 
   /* Set default degree for Brent-Suyama extension */
   /* We try to keep the time used by the Brent-Suyama extension
