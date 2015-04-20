@@ -43,12 +43,8 @@ dickson (mpz_t r, mpz_t x, unsigned int n, int a)
   unsigned int i, b = 0;
   mpz_t t, u;
 
-  if (n == 0)
-    {
-      mpz_set_ui (r, 1);
-      return;
-    }
-  
+  ASSERT_ALWAYS(n > 0);
+
   while (n > 2 && (n & 1) == 0)
     {
       b++;
@@ -169,8 +165,7 @@ init_progression_coeffs (mpz_t i0, const unsigned long d,
 
   size_fd = k * (eulerphi(d) / eulerphi(m)) * (E + 1);
   fd = (listz_t) malloc (size_fd * sizeof (mpz_t));
-  if (fd == NULL)
-    return NULL;
+  ASSERT_ALWAYS(fd != NULL);
   for (i = 0; i < size_fd; i++)
     mpz_init (fd[i]);
 
@@ -267,6 +262,7 @@ init_roots_params (progression_params_t *params, const int S,
       params->nr *= 6;
     }
 
+#if 0 /* commented out since not covered by unit tests */
   if (d1 % 11 == 0 &&
       d1 / params->dsieve / 11. * cost > 
       9. * params->S * log (11. * params->dsieve * d2) / 2.)
@@ -274,6 +270,7 @@ init_roots_params (progression_params_t *params, const int S,
       params->dsieve *= 11;
       params->nr *= 10;
     }
+#endif
 
   params->size_fd = params->nr * (params->S + 1);
   params->next = 0;
@@ -361,13 +358,7 @@ stage2 (mpz_t f, void *X, mpmod_t modulus, unsigned long dF, unsigned long k,
   if (use_ntt)
     {
       mpzspm = mpzspm_init (2 * dF, modulus->orig_modulus);
-  
-      if (mpzspm == NULL)
-        {
-          outputf (OUTPUT_ERROR, "Could not initialise mpzspm, "
-                   "presumably out of memory\n");
-          return ECM_ERROR;
-        }
+      ASSERT_ALWAYS(mpzspm != NULL);
 
       outputf (OUTPUT_VERBOSE,
 	  "Using %u small primes for NTT\n", mpzspm->sp_num);
@@ -391,22 +382,14 @@ stage2 (mpz_t f, void *X, mpmod_t modulus, unsigned long dF, unsigned long k,
 
   F = init_list2 (dF + 1, mpz_sizeinbase (modulus->orig_modulus, 2) + 
                           3 * GMP_NUMB_BITS);
-  if (F == NULL)
-    {
-      youpi = ECM_ERROR;
-      goto clear_i0;
-    }
+  ASSERT_ALWAYS(F != NULL);
 
   sizeT = 3 * dF + list_mul_mem (dF);
   if (dF > 3)
     sizeT += dF;
   T = init_list2 (sizeT, 2 * mpz_sizeinbase (modulus->orig_modulus, 2) + 
                          3 * GMP_NUMB_BITS);
-  if (T == NULL)
-    {
-      youpi = ECM_ERROR;
-      goto clear_F;
-    }
+  ASSERT_ALWAYS(T != NULL);
   H = T;
 
   /* needs dF+1 cells in T */
@@ -437,25 +420,12 @@ stage2 (mpz_t f, void *X, mpmod_t modulus, unsigned long dF, unsigned long k,
   if (TreeFilename == NULL)
     {
       Tree = (listz_t*) malloc (lgk * sizeof (listz_t));
-      if (Tree == NULL)
-        {
-          outputf (OUTPUT_ERROR, "Error: not enough memory\n");
-          youpi = ECM_ERROR;
-          goto clear_T;
-        }
+      ASSERT_ALWAYS(Tree != NULL);
       for (i = 0; i < lgk; i++)
         {
           Tree[i] = init_list2 (dF, mpz_sizeinbase (modulus->orig_modulus, 2) 
                                     + GMP_NUMB_BITS);
-          if (Tree[i] == NULL)
-            {
-              /* clear already allocated Tree[i] */
-              while (i)
-              clear_list (Tree[--i], dF);
-              free (Tree);
-              youpi = ECM_ERROR;
-              goto clear_T;
-            }
+          ASSERT_ALWAYS(Tree[i] != NULL);
         }
     }
   else
@@ -471,11 +441,7 @@ stage2 (mpz_t f, void *X, mpmod_t modulus, unsigned long dF, unsigned long k,
     {
       FILE *TreeFile;
       char *fullname = (char *) malloc (strlen (TreeFilename) + 1 + 2 + 1);
-      if (fullname == NULL)
-        {
-          fprintf (stderr, "Cannot allocate memory in stage2\n");
-          exit (1);
-        }
+      ASSERT_ALWAYS(fullname != NULL);
       
       for (i = lgk; i > 0; i--)
         {
@@ -564,11 +530,7 @@ stage2 (mpz_t f, void *X, mpmod_t modulus, unsigned long dF, unsigned long k,
          but we need one more for TUpTree */
       invF = init_list2 (dF + 1, mpz_sizeinbase (modulus->orig_modulus, 2) + 
                                  2 * GMP_NUMB_BITS);
-      if (invF == NULL)
-	{
-	  youpi = ECM_ERROR;
-	  goto free_Tree_i;
-	}
+      ASSERT_ALWAYS(invF != NULL);
       st = cputime ();
       
       if (use_ntt)
@@ -607,11 +569,7 @@ stage2 (mpz_t f, void *X, mpmod_t modulus, unsigned long dF, unsigned long k,
   */
   G = init_list2 (dF, mpz_sizeinbase (modulus->orig_modulus, 2) + 
                       3 * GMP_NUMB_BITS);
-  if (G == NULL)
-    {
-      youpi = ECM_ERROR;
-      goto clear_invF;
-    }
+  ASSERT_ALWAYS(G != NULL);
 
   st = cputime ();
   rootsG_state = ecm_rootsG_init (f, (curve *) X, root_params, dF, k, 
@@ -824,11 +782,7 @@ free_Tree_i:
     {
       /* Unlink any treefiles still in use */
       char *fullname = (char *) malloc (strlen (TreeFilename) + 1 + 2 + 1);
-      if (fullname == NULL)
-        {
-          fprintf (stderr, "Cannot allocate memory in stage2\n");
-          exit (1);
-        }
+      ASSERT_ALWAYS(fullname != NULL);
       for (i = 0; i < treefiles_used; i++)
         {
           sprintf (fullname, "%s.%lu", TreeFilename, i);
