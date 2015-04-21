@@ -190,10 +190,7 @@ C=$?
 checkcode $C 14
 
 # test savea
-echo -n "\n" > test.ecm.save
-echo -n "\r\n" >> test.ecm.save
-echo -n "\r" >> test.ecm.save
-echo "# this is a comment line and should be ignored" >> test.ecm.save
+cp dummy2.save test.ecm.save
 echo 17061648125571273329563156588435816942778260706938821014533 | $ECM -savea test.ecm.save -param 0 -sigma 585928442 174000 0
 $ECM -resume test.ecm.save 174000 85880350
 C=$?
