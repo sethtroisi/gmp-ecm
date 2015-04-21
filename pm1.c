@@ -521,11 +521,10 @@ pm1 (mpz_t f, mpz_t p, mpz_t N, mpz_t go, double *B1done, double B1,
       mpz_clear (effB2min_nontt);
       mpz_clear (effB2_nontt);
       
-      if (maxmem != 0.)
-	  outputf (OUTPUT_VERBOSE, "Using lmax = %lu with%s NTT which takes "
-		   "about %luMB of memory\n", params.l, 
-		   (use_ntt) ? "" : "out", 
-		   pm1fs2_memory_use (params.l, N, use_ntt)/1048576);
+      outputf (OUTPUT_VERBOSE, "Using lmax = %lu with%s NTT which takes "
+               "about %luMB of memory\n", params.l, 
+               (use_ntt) ? "" : "out", 
+               pm1fs2_memory_use (params.l, N, use_ntt) / 1048576);
     }
   
   /* Print B1, B2, polynomial and x0 */
