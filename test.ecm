@@ -212,7 +212,7 @@ checkcode $C 1
 echo "METHOD=P-1;X=0;N=17;B1=2;COMMENT=this is a comment;" > test.ecm.save
 $ECM -resume test.ecm.save 174000 85880350
 C=$?
-checkcode $C 1
+checkcode $C 8
 
 # test invalid param
 echo "PARAM=xxx" > test.ecm.save
