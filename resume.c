@@ -183,14 +183,14 @@ read_resumefile_line (int *method, mpz_t x, mpz_t y, mpcandi_t *n,
             {
               if (facceptstr (fd, "ECM") == 3)
                 *method = ECM_ECM;
-              else if (facceptstr (fd, "P-1") == 3)
+              else if (facceptstr (fd, "P"))
                 {
                   a = facceptstr (fd, "-1");
                   if (a == 2)
                     *method = ECM_PM1;
                   else if (a == 0 && facceptstr (fd, "+1") == 2)
                     *method = ECM_PP1;
-                  else 
+                  else
                     goto error;
                 }
               else
