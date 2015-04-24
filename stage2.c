@@ -1,8 +1,7 @@
 /* Common stage 2 for ECM, P-1 and P+1 (improved standard continuation
    with subquadratic polynomial arithmetic).
 
-Copyright 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009, 2010, 2012
-Paul Zimmermann, Alexander Kruppa, Dave Newman.
+Copyright 2001-2015 Paul Zimmermann, Alexander Kruppa, Dave Newman.
 
 This file is part of the ECM Library.
 
@@ -796,10 +795,7 @@ free_Tree_i:
 
 clear_T:
   clear_list (T, sizeT);
-clear_F:
   clear_list (F, dF + 1);
-
-clear_i0:
 
   if (use_ntt)
     mpzspm_clear (mpzspm);
