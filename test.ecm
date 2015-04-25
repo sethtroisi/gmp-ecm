@@ -453,11 +453,11 @@ echo "2^1123-1" | $ECM -A 1.2 11000; checkcode $? 1
 # exercise "Error, the -I f option requires f > 0" error message
 echo "2^1123-1" | $ECM -I -1 11000; checkcode $? 1
 # exercise "Can't find input file" error message
-ecm -inp 1; checkcode $? 1
+$ECM -inp 1; checkcode $? 1
 # exercise "Warning, for multiple -go options" warning message
 echo "2^1123-1" | $ECM -sigma 0:13488386679529262989 -go 5 -go 7 11000; checkcode $? 6
 # exercise "Unknown option" error message
-ecm -inp; checkcode $? 1
+$ECM -inp; checkcode $? 1
 # exercise "Invalid arguments. See ... --help" error message
 echo "2^1123-1" | $ECM; checkcode $? 1
 # exercise "Invalid B2 value" error message
@@ -467,9 +467,9 @@ echo "2^1123-1" | $ECM -sigma 0:5 -x0 1 11000; checkcode $? 1
 # exercise "Error, -y0 must be used with -A and -x0 parameters" error message
 echo "2^1123-1" | $ECM -param 0 -y0 1 11000; checkcode $? 1
 # exercise "Warning: -sigma, -param, -A and -x0 parameters are ignored when resuming from save files." warning message
-ecm -x0 1 -resume M877.save 11000; checkcode $? 0
+$ECM -x0 1 -resume M877.save 11000; checkcode $? 0
 # exercise "Error, option -c and -resume are incompatible" error message
-ecm -c 2 -resume M877.save 11000; checkcode $? 1
+$ECM -c 2 -resume M877.save 11000; checkcode $? 1
 # exercise "Error, option -c is incompatible with -x0" error message
 echo "2^1123-1" | $ECM -c 2 -param 0 -x0 1 11000; checkcode $? 1
 # exercise "Error, the -param option is only valid for ECM" error message
