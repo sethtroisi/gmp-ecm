@@ -343,13 +343,11 @@ gpu_ecm (mpz_t f, mpz_t x, int *param, mpz_t firstsigma, mpz_t n, mpz_t go,
   mpres_init (P.A, modulus);
   mpz_init (tmp_A);
 
-
   youpi = set_stage_2_params (B2, B2_parm, B2min, B2min_parm, &root_params,
                               B1, &k, S, use_ntt, &po2, &dF,
                               TreeFilename, maxmem, Fermat, modulus);
   if (youpi == ECM_ERROR)
       goto end_gpu_ecm;
-  
   
 
   /* Initialiaze the GPU if necessary */
@@ -364,7 +362,7 @@ gpu_ecm (mpz_t f, mpz_t x, int *param, mpz_t firstsigma, mpz_t n, mpz_t go,
       if (youpi != 0)
         {
           youpi = ECM_ERROR;
-          goto end_gpu_ecm;
+          goto end_gpu_ecm2;
         }
 
       outputf (OUTPUT_VERBOSE, "GPU: Selection and initialization of the device "
@@ -594,20 +592,22 @@ end_gpu_ecm_rhotable:
   }
 
 end_gpu_ecm:
-  mpres_clear (P.A, modulus);
-  mpres_clear (P.y, modulus);
-  mpres_clear (P.x, modulus);
-  mpmod_clear (modulus);
   mpz_clear (root_params.i0);
   mpz_clear (B2);
   mpz_clear (B2min);
-  mpz_clear (tmp_A);
 
   for (i = 0; i < *nb_curves; i++)
       mpz_clear (factors[i]);
 
   free (array_stage_found);
   free (factors);
+
+end_gpu_ecm2:
+  mpz_clear (tmp_A);
+  mpres_clear (P.A, modulus);
+  mpres_clear (P.y, modulus);
+  mpres_clear (P.x, modulus);
+  mpmod_clear (modulus);
 
   return youpi;
 }
