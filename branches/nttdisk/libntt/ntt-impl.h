@@ -723,6 +723,22 @@ typedef struct
   pass_type_t pass_type;
 } nttplan_t;
 
+void
+nttdata_init_generic(const nttconfig_t *c,
+            spv_t out, sp_t p, sp_t d, 
+            sp_t primroot, sp_t order);
+
+extern const nttconfig_t ntt3_config;
+extern const nttconfig_t ntt4_config;
+extern const nttconfig_t ntt5_config;
+extern const nttconfig_t ntt7_config;
+extern const nttconfig_t ntt8_config;
+extern const nttconfig_t ntt9_config;
+extern const nttconfig_t ntt15_config;
+extern const nttconfig_t ntt16_config;
+extern const nttconfig_t ntt35_config;
+extern const nttconfig_t ntt40_config;
+
 /* external interface */
 
 void * ntt_init(sp_t size, sp_t primroot, sp_t p, sp_t d);

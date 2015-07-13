@@ -10,28 +10,11 @@ ntt35_get_fixed_ntt_const(void)
   return fixed_const;
 }
 
-extern void ntt5_init(spv_t out, sp_t p, sp_t d, 
-			sp_t primroot, sp_t order);
-
-extern void ntt7_init(spv_t out, sp_t p, sp_t d, 
-			sp_t primroot, sp_t order);
-
 void
 ntt35_init(spv_t out, sp_t p, sp_t d, 
 	  sp_t primroot, sp_t order)
 {
-  uint32_t i, j;
-  uint32_t num5 = 6;
-  uint32_t num7 = 9;
-  spv_t root5 = (spv_t)alloca(num5 * sizeof(sp_t));
-  spv_t root7 = (spv_t)alloca(num7 * sizeof(sp_t));
-
-  ntt5_init(root5, p, d, primroot, order);
-  ntt7_init(root7, p, d, primroot, order);
-
-  for (i = 0; i < num5; i++)
-    for (j = 0; j < num7; j++)
-      out[num7 * i + j] = sp_mul(root5[i], root7[j], p, d);
+  nttdata_init_generic(&ntt35_config, out, p, d, primroot, order);
 }
 
 static void

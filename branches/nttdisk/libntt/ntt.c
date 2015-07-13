@@ -1,17 +1,6 @@
 #include <stdlib.h>
 #include "ntt-impl.h"
 
-extern const nttconfig_t ntt3_config;
-extern const nttconfig_t ntt4_config;
-extern const nttconfig_t ntt5_config;
-extern const nttconfig_t ntt7_config;
-extern const nttconfig_t ntt8_config;
-extern const nttconfig_t ntt9_config;
-extern const nttconfig_t ntt15_config;
-extern const nttconfig_t ntt16_config;
-extern const nttconfig_t ntt35_config;
-extern const nttconfig_t ntt40_config;
-
 static const nttconfig_t * ntt_config[] = 
 {
   &ntt3_config,
@@ -81,23 +70,16 @@ solve_ffmatrix(spv_t matrix, spv_size_t max_cols,
 
 	for (i = 0; i < n; i++) {
 
-		spv_size_t pivot_idx = i;
 		spv_t pivot_row;
 
-		pivot = matrix[permute[i] * max_cols + i];
-
-		for (j = i + 1; j < m; j++) {
-			spv_size_t new_idx = j;
-			sp_t new_pivot = matrix[permute[j] * max_cols + i];
-
-			if (new_pivot > pivot) {
-				pivot_idx = new_idx;
-				pivot = new_pivot;
-			}
+		for (j = i; j < m; j++) {
+		    pivot = matrix[permute[j] * max_cols + i];
+			if (pivot > 0)
+                break;
 		}
-		SWAP(spv_size_t, permute[i], permute[pivot_idx]);
+		SWAP(spv_size_t, permute[i], permute[j]);
 		pivot_row = matrix + permute[i] * max_cols;
-		pivot = sp_inv(pivot_row[i], p, d);
+		pivot = sp_inv(pivot, p, d);
 
 		for (j = i + 1; j < m; j++) {
 			spv_t curr_row = matrix + permute[j] * max_cols;
@@ -128,11 +110,13 @@ solve_ffmatrix(spv_t matrix, spv_size_t max_cols,
 }
 
 /*-------------------------------------------------------------------------*/
-static void
-nttdata_init(const nttconfig_t *c,
+void
+nttdata_init_generic(const nttconfig_t *c,
             spv_t out, sp_t p, sp_t d, 
             sp_t primroot, sp_t order)
 {
+  /* compute the NTT constants; works for any squarefree NTT size */
+
   spv_size_t n = c->size;
   spv_size_t m = c->num_ntt_const;
   sp_t root = sp_pow(primroot, order / n, p, d);
@@ -212,30 +196,15 @@ nttdata_init(const nttconfig_t *c,
         }
     }
 
-#if 0
-  for (i = 0; i < n * n; i++)
-    {
-      for (j = 0; j < col; j++)
-        printf("%08x ", mat[i * m + j]);
-      printf("  rhs %08x\n", rhs[i]);
-    }
-#endif
-
   solve_ffmatrix(mat, m, soln, rhs, p, d, n * n, col);
 
   for (i = j = 0; i < m; i++)
     {
       if (must_be_unity[i])
-        v[i] = 1;
+        out[i] = 1;
       else
-        v[i] = soln[j++];
+        out[i] = soln[j++];
     }
-
-  c->nttdata_init(out, p, d, primroot, order);
-
-  for (i = 0; i < m; i++)
-    printf("%lu %08x %08x\n", i, out[i], v[i]);
-  printf("\n\n");
 }
 
 /*-------------------------------------------------------------------------*/
@@ -288,7 +257,7 @@ void * ntt_init(sp_t size, sp_t primroot, sp_t p, sp_t recip)
       /* compute the constants, then append their reciprocals */
 
       num_const = c->num_ntt_const;
-      nttdata_init(c, curr_const, p, recip, primroot, size);
+      c->nttdata_init(curr_const, p, recip, primroot, size);
 
       for (k = 0; k < num_const; k++)
 	{

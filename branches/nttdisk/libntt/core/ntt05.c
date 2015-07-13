@@ -14,49 +14,7 @@ void
 ntt5_init(spv_t out, sp_t p, sp_t d,
 	  sp_t primroot, sp_t order)
 {
-  sp_t w1, w2, w3, w4;
-  sp_t h1, h2, h3, h4, h5;
-  sp_t t1, t2, t3, t4;
-  sp_t inv4 = sp_inv(4, p, d);
-    
-  h1 = sp_pow(primroot, order / 5, p, d);
-  h2 = sp_mul(h1, h1, p, d);
-  h3 = sp_mul(h2, h1, p, d);
-  h4 = sp_mul(h3, h1, p, d);
-
-  w1 = h3;
-  w2 = h4;
-  w3 = h2;
-  w4 = h1;
-
-  t1 = sp_add(w1, w2, p);
-  t1 = sp_add(t1, w3, p);
-  t1 = sp_add(t1, w4, p);
-
-  t2 = sp_sub(w1, w2, p);
-  t2 = sp_add(t2, w3, p);
-  t2 = sp_sub(t2, w4, p);
-
-  t3 = sp_add(w1, w1, p);
-  t3 = sp_sub(t3, w3, p);
-  t3 = sp_sub(t3, w3, p);
-
-  t4 = sp_add(w2, w2, p);
-  t4 = sp_sub(t4, w4, p);
-  t4 = sp_sub(t4, w4, p);
-
-  h1 = t1;
-  h2 = t2;
-  h3 = sp_sub(t3, t4, p);
-  h4 = sp_neg(sp_add(t3, t4, p), p);
-  h5 = t4;
-
-  out[0] = 1;
-  out[1] = sp_sub(sp_mul(h1, inv4, p, d), 1, p);
-  out[2] = sp_mul(h2, inv4, p, d);
-  out[3] = sp_mul(h3, inv4, p, d);
-  out[4] = sp_mul(h4, inv4, p, d);
-  out[5] = sp_mul(h5, inv4, p, d);
+  nttdata_init_generic(&ntt5_config, out, p, d, primroot, order);
 }
 
 static void

@@ -14,19 +14,7 @@ void
 ntt3_init(spv_t out, sp_t p, sp_t d, 
 	  sp_t primroot, sp_t order)
 {
-  sp_t w1, w2;
-  sp_t h1, h2;
-  sp_t inv2 = sp_inv(2, p, d);
-
-  w1 = sp_pow(primroot, order / 3, p, d);
-  w2 = sp_sqr(w1, p, d);
-
-  h1 = sp_add(w1, w2, p);
-  h2 = sp_sub(w1, w2, p);
-
-  out[0] = 1;
-  out[1] = sp_sub(sp_mul(h1, inv2, p, d), 1, p);
-  out[2] = sp_mul(h2, inv2, p, d);
+  nttdata_init_generic(&ntt3_config, out, p, d, primroot, order);
 }
 
 static void

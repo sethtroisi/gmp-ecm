@@ -10,28 +10,11 @@ ntt15_get_fixed_ntt_const(void)
   return fixed_const;
 }
 
-extern void ntt3_init(spv_t out, sp_t p, sp_t d, 
-			sp_t primroot, sp_t order);
-
-extern void ntt5_init(spv_t out, sp_t p, sp_t d, 
-			sp_t primroot, sp_t order);
-
 void
 ntt15_init(spv_t out, sp_t p, sp_t d, 
 	  sp_t primroot, sp_t order)
 {
-  uint32_t i, j;
-  uint32_t num3 = 3;
-  uint32_t num5 = 6;
-  spv_t root3 = (spv_t)alloca(num3 * sizeof(sp_t));
-  spv_t root5 = (spv_t)alloca(num5 * sizeof(sp_t));
-
-  ntt3_init(root3, p, d, primroot, order);
-  ntt5_init(root5, p, d, primroot, order);
-
-  for (i = 0; i < num3; i++)
-    for (j = 0; j < num5; j++)
-      out[num5 * i + j] = sp_mul(root3[i], root5[j], p, d);
+  nttdata_init_generic(&ntt15_config, out, p, d, primroot, order);
 }
 
 static void
