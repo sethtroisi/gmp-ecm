@@ -2,11 +2,17 @@
 
 #define NC 48
 
-static uint32_t 
-ntt40_get_num_const(void)
+static const uint8_t fixed_const[NC] = {1, 0, 0, 0, 0, 0,
+					1, 0, 0, 0, 0, 0,
+					1, 0, 0, 0, 0, 0,
+					0, 0, 0, 0, 0, 0,
+					1};
+static const uint8_t *
+ntt40_get_fixed_ntt_const(void)
 {
-  return NC;
+  return fixed_const;
 }
+
 
 extern void ntt8_init(spv_t out, sp_t p, sp_t d, 
 			sp_t primroot, sp_t order);
@@ -3064,7 +3070,8 @@ ntt40_pfa_run(spv_t x, spv_size_t cofactor,
 const nttconfig_t ntt40_config = 
 {
   40,
-  ntt40_get_num_const,
+  NC,
+  ntt40_get_fixed_ntt_const,
   ntt40_init,
   ntt40_run,
   ntt40_pfa_run,

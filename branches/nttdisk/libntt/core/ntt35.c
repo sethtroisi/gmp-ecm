@@ -2,10 +2,12 @@
 
 #define NC 54
 
-static uint32_t 
-ntt35_get_num_const(void)
+static const uint8_t fixed_const[NC] = {1};
+
+static const uint8_t *
+ntt35_get_fixed_ntt_const(void)
 {
-  return NC;
+  return fixed_const;
 }
 
 extern void ntt5_init(spv_t out, sp_t p, sp_t d, 
@@ -3529,7 +3531,8 @@ ntt35_pfa_run(spv_t x, spv_size_t cofactor,
 const nttconfig_t ntt35_config = 
 {
   35,
-  ntt35_get_num_const,
+  NC,
+  ntt35_get_fixed_ntt_const,
   ntt35_init,
   ntt35_run,
   ntt35_pfa_run,

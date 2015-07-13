@@ -2,10 +2,12 @@
 
 #define NC 4
 
-static uint32_t 
-ntt4_get_num_const(void)
+static const uint8_t fixed_const[NC] = {1, 1, 1, 0};
+
+static const uint8_t *
+ntt4_get_fixed_ntt_const(void)
 {
-  return NC;
+  return fixed_const;
 }
 
 void
@@ -225,7 +227,8 @@ ntt4_pfa_run(spv_t x, spv_size_t cofactor,
 const nttconfig_t ntt4_config = 
 {
   4,
-  ntt4_get_num_const,
+  NC,
+  ntt4_get_fixed_ntt_const,
   ntt4_init,
   ntt4_run,
   ntt4_pfa_run,

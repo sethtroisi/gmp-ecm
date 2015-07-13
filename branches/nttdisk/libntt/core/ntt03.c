@@ -2,10 +2,12 @@
 
 #define NC 3
 
-static uint32_t 
-ntt3_get_num_const(void)
+static const uint8_t fixed_const[NC] = {1};
+
+static const uint8_t *
+ntt3_get_fixed_ntt_const(void)
 {
-  return NC;
+  return fixed_const;
 }
 
 void
@@ -226,7 +228,8 @@ ntt3_pfa_run(spv_t x, spv_size_t cofactor,
 const nttconfig_t ntt3_config = 
 {
   3,
-  ntt3_get_num_const,
+  NC,
+  ntt3_get_fixed_ntt_const,
   ntt3_init,
   ntt3_run,
   ntt3_pfa_run,

@@ -3,7 +3,7 @@
 
 #include "sp.h"
 
-typedef uint32_t (*get_num_ntt_const_t)(void);
+typedef const uint8_t * (*get_fixed_ntt_const_t)(void);
 
 typedef void (*nttdata_init_t)(spv_t out, 
 				sp_t p, sp_t d,
@@ -643,14 +643,15 @@ static inline sp_simd_t sp_simd_ntt_mul(sp_simd_t a, sp_t w,
 typedef struct
 {
   uint32_t size;
-  get_num_ntt_const_t get_num_ntt_const;
+  uint32_t num_ntt_const;
+  get_fixed_ntt_const_t get_fixed_ntt_const;
   nttdata_init_t nttdata_init;
   ntt_run_t ntt_run;
   ntt_pfa_run_t ntt_pfa_run;
   ntt_twiddle_run_t ntt_twiddle_run;
 } nttconfig_t;
 
-/* functions pointers and precomputed data needed by
+/* function pointers and precomputed data needed by
    all versions of a codelet */
 
 typedef struct
@@ -667,7 +668,8 @@ typedef enum
 {
   PASS_TYPE_DIRECT,
   PASS_TYPE_PFA,
-  PASS_TYPE_TWIDDLE
+  PASS_TYPE_TWIDDLE,
+  PASS_TYPE_TWIDDLE_PRE
 } pass_type_t;
 
 #define MAX_PFA_CODELETS 6
@@ -675,8 +677,7 @@ typedef enum
 
 typedef struct
 {
-  pass_type_t type;
-  spv_size_t stride;
+  pass_type_t pass_type;
 
   union
   {
@@ -690,6 +691,15 @@ typedef struct
       uint32_t num_codelets;
       codelet_data_t *codelets[MAX_PFA_CODELETS];
     } pfa;
+
+    struct
+    {
+      spv_size_t stride;
+      spv_size_t row_size;
+      codelet_data_t *codelet;
+      spv_t twiddle;
+      spv_t twiddle_inv;
+    } twiddle_pre;
 
   } d;
 
@@ -705,6 +715,13 @@ typedef struct
 
   nttpass_t *passes;
 } nttdata_t;
+
+/* guides for constructing transforms */
+typedef struct
+{
+  uint32_t codelet_size;
+  pass_type_t pass_type;
+} nttplan_t;
 
 /* external interface */
 

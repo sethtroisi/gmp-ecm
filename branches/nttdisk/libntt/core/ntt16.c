@@ -2,10 +2,12 @@
 
 #define NC 18
 
-static uint32_t 
-ntt16_get_num_const(void)
+static const uint8_t fixed_const[NC] = {1, 1, 1, 0, 1, 0, 0, 0, 1};
+
+static const uint8_t *
+ntt16_get_fixed_ntt_const(void)
 {
-  return NC;
+  return fixed_const;
 }
 
 void
@@ -796,7 +798,8 @@ ntt16_pfa_run(spv_t x, spv_size_t cofactor,
 const nttconfig_t ntt16_config = 
 {
   16,
-  ntt16_get_num_const,
+  NC,
+  ntt16_get_fixed_ntt_const,
   ntt16_init,
   ntt16_run,
   ntt16_pfa_run,

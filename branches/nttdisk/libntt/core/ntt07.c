@@ -2,10 +2,12 @@
 
 #define NC 9
 
-static uint32_t 
-ntt7_get_num_const(void)
+static const uint8_t fixed_const[NC] = {1};
+
+static const uint8_t *
+ntt7_get_fixed_ntt_const(void)
 {
-  return NC;
+  return fixed_const;
 }
 
 void
@@ -515,7 +517,8 @@ ntt7_pfa_run(spv_t x, spv_size_t cofactor,
 const nttconfig_t ntt7_config = 
 {
   7,
-  ntt7_get_num_const,
+  NC,
+  ntt7_get_fixed_ntt_const,
   ntt7_init,
   ntt7_run,
   ntt7_pfa_run,

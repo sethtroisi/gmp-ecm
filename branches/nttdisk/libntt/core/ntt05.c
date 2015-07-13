@@ -2,10 +2,12 @@
 
 #define NC 6
 
-static uint32_t 
-ntt5_get_num_const(void)
+static const uint8_t fixed_const[NC] = {1};
+
+static const uint8_t *
+ntt5_get_fixed_ntt_const(void)
 {
-  return NC;
+  return fixed_const;
 }
 
 void
@@ -347,7 +349,8 @@ ntt5_pfa_run(spv_t x, spv_size_t cofactor,
 const nttconfig_t ntt5_config = 
 {
   5,
-  ntt5_get_num_const,
+  NC,
+  ntt5_get_fixed_ntt_const,
   ntt5_init,
   ntt5_run,
   ntt5_pfa_run,

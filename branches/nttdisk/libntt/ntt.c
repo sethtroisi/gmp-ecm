@@ -65,6 +65,180 @@ sp_t sp_ntt_reciprocal (sp_t w, sp_t p)
 }
 
 /*-------------------------------------------------------------------------*/
+#define SWAP(type, a, b) {type tmp = (a); (a) = (b); (b) = tmp; }
+
+static void 
+solve_ffmatrix(spv_t matrix, spv_size_t max_cols,
+    spv_t x, spv_t b,
+		sp_t p, sp_t d, spv_size_t m, spv_size_t n) 
+{
+	spv_size_t i, j, k;
+	spv_size_t *permute = (spv_size_t *)alloca(m * sizeof(spv_size_t));
+	sp_t pivot;
+
+	for (i = 0; i < m; i++)
+		permute[i] = i;
+
+	for (i = 0; i < n; i++) {
+
+		spv_size_t pivot_idx = i;
+		spv_t pivot_row;
+
+		pivot = matrix[permute[i] * max_cols + i];
+
+		for (j = i + 1; j < m; j++) {
+			spv_size_t new_idx = j;
+			sp_t new_pivot = matrix[permute[j] * max_cols + i];
+
+			if (new_pivot > pivot) {
+				pivot_idx = new_idx;
+				pivot = new_pivot;
+			}
+		}
+		SWAP(spv_size_t, permute[i], permute[pivot_idx]);
+		pivot_row = matrix + permute[i] * max_cols;
+		pivot = sp_inv(pivot_row[i], p, d);
+
+		for (j = i + 1; j < m; j++) {
+			spv_t curr_row = matrix + permute[j] * max_cols;
+			sp_t mult = sp_mul(curr_row[i], pivot, p, d);
+
+			for (k = i; k < n; k++) {
+				curr_row[k] = sp_sub(curr_row[k], 
+                            sp_mul(mult, pivot_row[k], p, d), p);
+			}
+			b[permute[j]] = sp_sub(b[permute[j]], 
+                            sp_mul(mult, b[permute[i]], p, d), p);
+		}
+	}
+
+	for (i = n - 1; (int32_t)i >= 0; i--) {
+
+		spv_t curr_row = matrix + permute[i] * max_cols;
+		sp_t sum = b[permute[i]];
+
+		for (j = i + 1; j < n; j++) {
+			sum = sp_sub(sum, 
+                sp_mul(x[j], curr_row[j], p, d), p);
+		}
+
+		x[i] = sp_mul(sum, 
+                sp_inv(curr_row[i], p, d), p, d);
+	}
+}
+
+/*-------------------------------------------------------------------------*/
+static void
+nttdata_init(const nttconfig_t *c,
+            spv_t out, sp_t p, sp_t d, 
+            sp_t primroot, sp_t order)
+{
+  spv_size_t n = c->size;
+  spv_size_t m = c->num_ntt_const;
+  sp_t root = sp_pow(primroot, order / n, p, d);
+
+  const uint8_t *must_be_unity = c->get_fixed_ntt_const();
+
+  spv_t mat = (spv_t)alloca(n * n * m * sizeof(sp_t));
+  spv_t rhs = (spv_t)alloca(n * n * sizeof(sp_t));
+  spv_t soln = (spv_t)alloca(n * n * sizeof(sp_t));
+  spv_t x = (spv_t)alloca(n * sizeof(sp_t));
+  spv_t xfixed = (spv_t)alloca(n * sizeof(sp_t));
+  spv_t v = (spv_t)alloca(2 * m * sizeof(sp_t));
+  spv_t vfixed = (spv_t)alloca(2 * m * sizeof(sp_t));
+  spv_t wmult = (spv_t)alloca(n * sizeof(sp_t));
+
+  spv_size_t i, j, k;
+  spv_size_t col;
+
+  wmult[0] = 1;
+  rhs[0] = 1;
+  for (i = 1; i < n; i++)
+    {
+      wmult[i] = sp_mul(wmult[i-1], root, p, d);
+      rhs[i] = 1;
+    }
+
+  for (i = 1; i < n; i++)
+    {
+      for (j = 0; j < n; j++)
+        rhs[n * i + j] = sp_mul(rhs[n * (i - 1) + j], wmult[j], p, d);
+    }
+
+  for (i = 0; i < 2 * m; i++)
+    v[i] = vfixed[i] = 0;
+
+  for (i = 0; i < m; i++)
+    if (must_be_unity[i])
+      vfixed[i] = 1;
+
+  for (i = 0; i < n; i++)
+    {
+      for (j = 0; j < n; j++)
+        xfixed[j] = 0;
+      xfixed[i] = 1;
+
+      c->ntt_run(xfixed, 1, p, vfixed);
+
+      #ifdef HAVE_PARTIAL_MOD
+      for (j = 0; j < n; j++)
+        xfixed[j] = sp_sub(xfixed[j], p, p);
+      #endif
+
+      for (j = 0; j < n; j++)
+        rhs[n * i + j] = sp_sub(rhs[n * i + j], xfixed[j], p);
+
+      for (j = col = 0; j < m; j++)
+        {
+          if (must_be_unity[j])
+            continue;
+
+          for (k = 0; k < n; k++)
+            x[k] = 0;
+          x[i] = 1;
+
+          v[j] = 1;
+          c->ntt_run(x, 1, p, v);
+          v[j] = 0;
+
+          #ifdef HAVE_PARTIAL_MOD
+          for (k = 0; k < n; k++)
+            x[k] = sp_sub(x[k], p, p);
+          #endif
+
+          for (k = 0; k < n; k++)
+            mat[(n * i + k) * m + col] = sp_sub(x[k], xfixed[k], p);
+          col++;
+        }
+    }
+
+#if 0
+  for (i = 0; i < n * n; i++)
+    {
+      for (j = 0; j < col; j++)
+        printf("%08x ", mat[i * m + j]);
+      printf("  rhs %08x\n", rhs[i]);
+    }
+#endif
+
+  solve_ffmatrix(mat, m, soln, rhs, p, d, n * n, col);
+
+  for (i = j = 0; i < m; i++)
+    {
+      if (must_be_unity[i])
+        v[i] = 1;
+      else
+        v[i] = soln[j++];
+    }
+
+  c->nttdata_init(out, p, d, primroot, order);
+
+  for (i = 0; i < m; i++)
+    printf("%lu %08x %08x\n", i, out[i], v[i]);
+  printf("\n\n");
+}
+
+/*-------------------------------------------------------------------------*/
 void * ntt_init(sp_t size, sp_t primroot, sp_t p, sp_t recip)
 {
   uint32_t i, j, k;
@@ -84,7 +258,7 @@ void * ntt_init(sp_t size, sp_t primroot, sp_t p, sp_t recip)
 	continue;
 
       /* allocate room for each constant and its reciprocal */
-      num_const += 2 * c->get_num_ntt_const();
+      num_const += 2 * c->num_ntt_const;
       d->num_codelets++;
     }
 
@@ -113,8 +287,8 @@ void * ntt_init(sp_t size, sp_t primroot, sp_t p, sp_t recip)
 
       /* compute the constants, then append their reciprocals */
 
-      num_const = c->get_num_ntt_const();
-      c->nttdata_init(curr_const, p, recip, primroot, size);
+      num_const = c->num_ntt_const;
+      nttdata_init(c, curr_const, p, recip, primroot, size);
 
       for (k = 0; k < num_const; k++)
 	{
@@ -143,4 +317,53 @@ void ntt_free(void *data)
   free(d);
 }
 
+/*-------------------------------------------------------------------------*/
+uint32_t ntt_build_passes(nttpass_t *passes,
+    		codelet_data_t *codelets, uint32_t num_codelets,
+    		nttplan_t *plans, uint32_t num_plans,
+		sp_t size, sp_t p, sp_t primroot, sp_t d)
+{
+  uint32_t i, j, k;
+
+  for (i = j = 0; i < num_plans; i++)
+    {
+      nttplan_t * p = plans + i;
+      codelet_data_t * c = NULL;
+
+      for (k = 0; k < num_codelets; k++)
+	{
+	  c = codelets + k;
+	  if (c->config->size == p->codelet_size)
+	    break;
+	}
+
+      if (k == num_codelets)
+	return 0;
+
+      passes[j].pass_type = p->pass_type;
+
+      switch (p->pass_type)
+	{
+	  case PASS_TYPE_DIRECT:
+	    passes[j++].d.direct.codelet = c;
+	    break;
+
+	  case PASS_TYPE_PFA:
+	    {
+	      nttpass_t * pass = passes + j;
+	      pass->d.pfa.codelets[pass->d.pfa.num_codelets++] = c;
+
+	      if (i == num_plans - 1) /* PFA transform configured */
+		j++;
+	      break;
+	    }
+
+	  case PASS_TYPE_TWIDDLE_PRE:
+	  case PASS_TYPE_TWIDDLE:
+	    return 0;
+	}
+    }
+
+  return j;
+}
 
