@@ -85,14 +85,30 @@ solve_ffmatrix(spv_t matrix, spv_size_t max_cols,
 			spv_t curr_row = matrix + permute[j] * max_cols;
 			sp_t mult = sp_mul(curr_row[i], pivot, p, d);
 
-			for (k = i; k < n; k++) {
+			for (k = i; k < n; k++)
 				curr_row[k] = sp_sub(curr_row[k], 
                             sp_mul(mult, pivot_row[k], p, d), p);
-			}
+
 			b[permute[j]] = sp_sub(b[permute[j]], 
                             sp_mul(mult, b[permute[i]], p, d), p);
 		}
 	}
+
+#if 0
+    if (m==81)
+    {
+        for (j = 0; j < m; j++) {
+			spv_t curr_row = matrix + permute[j] * max_cols;
+
+            printf("%03lu: ", j);
+            for (k = 0; k < n; k++)
+                printf("%016llx ", curr_row[k]);
+                //printf("%c ", curr_row[k] ? '*' ' ');
+
+            printf("\t\t%016llx\n", b[permute[j]]);
+        }
+    }
+#endif
 
 	for (i = n - 1; (int32_t)i >= 0; i--) {
 
@@ -128,7 +144,6 @@ nttdata_init_generic(const nttconfig_t *c,
   spv_t soln = (spv_t)alloca(n * n * sizeof(sp_t));
   spv_t x = (spv_t)alloca(n * sizeof(sp_t));
   spv_t xfixed = (spv_t)alloca(n * sizeof(sp_t));
-  spv_t v = (spv_t)alloca(2 * m * sizeof(sp_t));
   spv_t vfixed = (spv_t)alloca(2 * m * sizeof(sp_t));
   spv_t wmult = (spv_t)alloca(n * sizeof(sp_t));
 
@@ -150,7 +165,7 @@ nttdata_init_generic(const nttconfig_t *c,
     }
 
   for (i = 0; i < 2 * m; i++)
-    v[i] = vfixed[i] = 0;
+    vfixed[i] = 0;
 
   for (i = 0; i < m; i++)
     if (must_be_unity[i])
@@ -166,7 +181,8 @@ nttdata_init_generic(const nttconfig_t *c,
 
       #ifdef HAVE_PARTIAL_MOD
       for (j = 0; j < n; j++)
-        xfixed[j] = sp_sub(xfixed[j], p, p);
+        while (xfixed[j] >= p)
+          xfixed[j] -= p;
       #endif
 
       for (j = 0; j < n; j++)
@@ -181,13 +197,14 @@ nttdata_init_generic(const nttconfig_t *c,
             x[k] = 0;
           x[i] = 1;
 
-          v[j] = 1;
-          c->ntt_run(x, 1, p, v);
-          v[j] = 0;
+          vfixed[j] = 1;
+          c->ntt_run(x, 1, p, vfixed);
+          vfixed[j] = 0;
 
           #ifdef HAVE_PARTIAL_MOD
           for (k = 0; k < n; k++)
-            x[k] = sp_sub(x[k], p, p);
+              while(x[k] >= p)
+                x[k] -= p;
           #endif
 
           for (k = 0; k < n; k++)
