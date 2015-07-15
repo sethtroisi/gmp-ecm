@@ -9,15 +9,17 @@ from subprocess import Popen, PIPE, STDOUT
 from tempfile import *
 from time import clock
 
+test_gpu_version = True
+run_non_gpu_tests = True
+run_gpu_tests = True
+
 class Timer() :
   def __enter__(self): self.start = clock()
   def __exit__(self, *args): print(' time {:.3f} milliseconds'.format(1000 * (clock() - self.start)))
 
-test_normal = True
-test_gpu = True
-
 cpath = os.path.dirname(__file__)
 test_dir = '..\\bin\\x64\\Release\\'
+ecm_exe  = test_dir + ("ecm_gpu.exe" if test_gpu_version else "ecm.exe")
 
 def get_tests(filename):
   print('running tests in {:s}'.format(filename))
@@ -94,12 +96,11 @@ def output_complex_tests(x):
   for t in x:
     print(t)      
 
-def do_tests(tests, ctests, gpu=False, out=False):
-  exe  = test_dir + ("ecm_gpu.exe" if gpu else "ecm.exe")
+def do_tests(tests, ctests, out=False):
   err_cnt = 0
   for ix, tt in enumerate(tests):
     print(tt[1], tt[0], end='')
-    rv = run_exe(exe, tt[1], tt[0])
+    rv = run_exe(ecm_exe, tt[1], tt[0])
     if type(tt[2]) == int and rv[0] != tt[2]:
       print(" - *** ERROR in test {:d}: {:d} {:d} ***".format(ix, rv[0], tt[2]))
       err_cnt += 1
@@ -124,7 +125,7 @@ def do_tests(tests, ctests, gpu=False, out=False):
 with Timer():
   if os.path.exists('test.pm1.save'):
     os.remove('test.pm1.save')
-  if test_normal:
+  if run_non_gpu_tests:
     t, ct = get_tests("..\\test.ecm")
     do_tests(t, ct)
     t, ct = get_tests("..\\test.pm1")
@@ -133,6 +134,6 @@ with Timer():
     do_tests(t, ct)
     t, ct = get_tests("..\\testlong.pp1")
     do_tests(t, ct)
-  if test_gpu:
+  if run_gpu_tests:
     t, ct = get_tests("..\\test.gpuecm")
-    do_tests(t, ct, gpu=True)
+    do_tests(t, ct)

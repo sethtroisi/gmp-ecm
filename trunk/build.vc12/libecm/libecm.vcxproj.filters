@@ -186,5 +186,8 @@
     <ClInclude Include="..\..\aprtcle\mpz_aprcl.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="..\..\..\mpir\lib\x64\release\gmp.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>
