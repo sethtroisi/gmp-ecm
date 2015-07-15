@@ -571,7 +571,7 @@ AS_IF([test "x$is_gpu_asked" = "xyes" ],
               AC_MSG_ERROR(libcudart.so not found)
             ])
         ],
-      ["darwin"],
+      ["darwin"*],
         [
           AS_IF([test -f $cu_dir/lib$lib_suffix/libcudart.dylib], 
             [
