@@ -161,6 +161,9 @@
   <ItemGroup>
     <ClCompile Include="..\..\bench_mulredc.c" />
   </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="..\..\..\mpir\lib\x64\release\gmp.h" />
+  </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
   </ImportGroup>

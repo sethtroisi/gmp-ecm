@@ -295,10 +295,11 @@ gpu_ecm (mpz_t f, mpz_t x, int *param, mpz_t firstsigma, mpz_t n, mpz_t go,
   /* check that repr == ECM_MOD_DEFAULT or ECM_MOD_BASE2 (only for stage 2) */
   if (repr != ECM_MOD_DEFAULT && repr != ECM_MOD_BASE2)
       outputf (OUTPUT_ERROR, "GPU: Warning, the value of repr will be ignored "
-                             "for step 1 on GPU.\n");
+      "for step 1 on GPU.\n");
 
   /* It is only for stage 2, it is not taken into account for GPU code */
-  ASSERT_ALWAYS (mpmod_init (modulus, n, repr) == 0);
+  if(mpmod_init(modulus, n, repr) != 0)
+      ASSERT_ALWAYS(0);
 
   /* See what kind of number we have as that may influence optimal parameter 
      selection. Test for base 2 number. Note: this was already done by
