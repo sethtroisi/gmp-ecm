@@ -298,7 +298,7 @@ gpu_ecm (mpz_t f, mpz_t x, int *param, mpz_t firstsigma, mpz_t n, mpz_t go,
       "for step 1 on GPU.\n");
 
   /* It is only for stage 2, it is not taken into account for GPU code */
-  if(mpmod_init(modulus, n, repr) != 0)
+  if (mpmod_init (modulus, n, repr) != 0)
       ASSERT_ALWAYS(0);
 
   /* See what kind of number we have as that may influence optimal parameter 
