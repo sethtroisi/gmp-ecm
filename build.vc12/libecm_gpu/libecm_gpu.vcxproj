@@ -84,7 +84,6 @@
       <Command>..\prebuild GPU</Command>
     </PreBuildEvent>
     <ClCompile>
-      <Optimization>Full</Optimization>
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <AdditionalIncludeDirectories>..\;..\..\;..\assembler;..\..\..\$(mp_dir)lib\$(IntDir);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>WIN32;WITH_GPU;GPU_CC30;NDEBUG;_LIB;SSE2;USE_ASM_REDC;%(PreprocessorDefinitions)</PreprocessorDefinitions>
@@ -93,6 +92,7 @@
       </PrecompiledHeader>
       <WarningLevel>Level3</WarningLevel>
       <CompileAs>Default</CompileAs>
+      <Optimization>Full</Optimization>
     </ClCompile>
     <Lib />
     <CudaCompile>
@@ -276,6 +276,7 @@
     <ClCompile Include="..\..\torsions.c" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="..\..\..\mpir\lib\x64\release\gmp.h" />
     <ClInclude Include="..\..\addlaws.h" />
     <ClInclude Include="..\..\aprtcle\jacobi_sum.h" />
     <ClInclude Include="..\..\aprtcle\mpz_aprcl.h" />

@@ -139,6 +139,7 @@
     <ClCompile Include="..\..\tune.c" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="..\..\..\mpir\lib\x64\release\gmp.h" />
     <ClInclude Include="..\..\ecm-params.h" />
     <ClInclude Include="..\config.h" />
     <ClInclude Include="..\..\ecm-ecm.h" />

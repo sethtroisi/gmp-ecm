@@ -97,7 +97,7 @@
       <OpenMPSupport>true</OpenMPSupport>
     </ClCompile>
     <Link>
-      <AdditionalDependencies>..\..\..\$(mp_dir)lib\$(IntDir)$(mp_lib);advapi32.lib;ws2_32.lib;cudart.lib</AdditionalDependencies>
+      <AdditionalDependencies>..\..\..\$(mp_dir)lib\$(IntDir)$(mp_lib);..\..\lib\$(IntDir)libecm_gpu.lib;advapi32.lib;ws2_32.lib;cudart.lib</AdditionalDependencies>
       <GenerateDebugInformation>false</GenerateDebugInformation>
       <SubSystem>Console</SubSystem>
       <OptimizeReferences>true</OptimizeReferences>
@@ -165,7 +165,7 @@
       <OpenMPSupport>true</OpenMPSupport>
     </ClCompile>
     <Link>
-      <AdditionalDependencies>..\..\..\$(mp_dir)lib\$(IntDir)$(mp_lib);advapi32.lib;ws2_32.lib;cudart.lib</AdditionalDependencies>
+      <AdditionalDependencies>..\..\..\$(mp_dir)lib\$(IntDir)$(mp_lib);..\..\lib\$(IntDir)libecm_gpu.lib;advapi32.lib;ws2_32.lib;cudart.lib</AdditionalDependencies>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <SubSystem>Console</SubSystem>
       <RandomizedBaseAddress>false</RandomizedBaseAddress>
@@ -203,7 +203,7 @@
       <OpenMPSupport>true</OpenMPSupport>
     </ClCompile>
     <Link>
-      <AdditionalDependencies>..\..\..\$(mp_dir)lib\$(IntDir)$(mp_lib);advapi32.lib;ws2_32.lib;cudart.lib</AdditionalDependencies>
+      <AdditionalDependencies>..\..\..\$(mp_dir)lib\$(IntDir)$(mp_lib);..\..\lib\$(IntDir)libecm_gpu.lib;advapi32.lib;ws2_32.lib;cudart.lib</AdditionalDependencies>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <SubSystem>Console</SubSystem>
       <RandomizedBaseAddress>false</RandomizedBaseAddress>
@@ -261,13 +261,13 @@
   <ItemGroup>
     <ClInclude Include="..\..\..\mpir\lib\x64\release\gmp.h" />
     <ClInclude Include="..\..\champions.h" />
+    <ClInclude Include="..\..\config.h" />
     <ClInclude Include="..\..\ecm-ecm.h" />
     <ClInclude Include="..\..\ecm-gmp.h" />
     <ClInclude Include="..\..\ecm-impl.h" />
     <ClInclude Include="..\..\ecm-params.h" />
     <ClInclude Include="..\..\ecm.h" />
     <ClInclude Include="..\..\longlong.h" />
-    <ClInclude Include="..\config.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
