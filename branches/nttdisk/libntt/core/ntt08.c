@@ -37,10 +37,6 @@ ntt8_run(spv_t x, spv_size_t stride,
   sp_t t0, t1, t2, t3, t4, t5, t6, t7; 
   sp_t p0, p1, p2, p3, p4, p5, p6, p7;
 
-  #ifdef HAVE_PARTIAL_MOD
-  p *= 2;
-  #endif
-
   x0 = x[0 * stride];
   x1 = x[1 * stride];
   x2 = x[2 * stride];
@@ -50,42 +46,42 @@ ntt8_run(spv_t x, spv_size_t stride,
   x6 = x[6 * stride];
   x7 = x[7 * stride];
 
-  t0 = sp_add(x0, x4, p);
-  t4 = sp_sub(x0, x4, p);
-  t1 = sp_add(x1, x5, p);
-  t5 = sp_sub(x1, x5, p);
-  t2 = sp_add(x2, x6, p);
-  t6 = sp_sub_partial(x2, x6, p);
-  t3 = sp_add(x3, x7, p);
-  t7 = sp_sub(x3, x7, p);
+  t0 = sp_ntt_add(x0, x4, p);
+  t4 = sp_ntt_sub(x0, x4, p);
+  t1 = sp_ntt_add(x1, x5, p);
+  t5 = sp_ntt_sub(x1, x5, p);
+  t2 = sp_ntt_add(x2, x6, p);
+  t6 = sp_ntt_sub_partial(x2, x6, p);
+  t3 = sp_ntt_add(x3, x7, p);
+  t7 = sp_ntt_sub(x3, x7, p);
 
-  p0 = sp_add(t0, t2, p);
-  p1 = sp_sub(t0, t2, p);
-  p2 = sp_add(t1, t3, p);
-  p3 = sp_sub_partial(t1, t3, p);
+  p0 = sp_ntt_add(t0, t2, p);
+  p1 = sp_ntt_sub(t0, t2, p);
+  p2 = sp_ntt_add(t1, t3, p);
+  p3 = sp_ntt_sub_partial(t1, t3, p);
   p4 = t4;
   p5 = t6;
-  p6 = sp_sub_partial(t5, t7, p);
-  p7 = sp_add_partial(t5, t7, p); 
+  p6 = sp_ntt_sub_partial(t5, t7, p);
+  p7 = sp_ntt_add_partial(t5, t7, p); 
 
   p3 = sp_ntt_mul(p3, ntt_const[3], ntt_const[NC+3], p);
   p5 = sp_ntt_mul(p5, ntt_const[5], ntt_const[NC+5], p);
   p6 = sp_ntt_mul(p6, ntt_const[6], ntt_const[NC+6], p);
   p7 = sp_ntt_mul(p7, ntt_const[7], ntt_const[NC+7], p);
 
-  t0 = sp_add(p4, p5, p);
-  t1 = sp_sub(p4, p5, p);
-  t2 = sp_add(p6, p7, p);
-  t3 = sp_sub(p6, p7, p);
-  t4 = sp_add(t0, t2, p);
-  t5 = sp_sub(t0, t2, p);
-  t6 = sp_add(t1, t3, p);
-  t7 = sp_sub(t1, t3, p);
+  t0 = sp_ntt_add(p4, p5, p);
+  t1 = sp_ntt_sub(p4, p5, p);
+  t2 = sp_ntt_add(p6, p7, p);
+  t3 = sp_ntt_sub(p6, p7, p);
+  t4 = sp_ntt_add(t0, t2, p);
+  t5 = sp_ntt_sub(t0, t2, p);
+  t6 = sp_ntt_add(t1, t3, p);
+  t7 = sp_ntt_sub(t1, t3, p);
 
-  t0 = sp_add(p0, p2, p);
-  t1 = sp_sub(p0, p2, p);
-  t2 = sp_add(p1, p3, p);
-  t3 = sp_sub(p1, p3, p);
+  t0 = sp_ntt_add(p0, p2, p);
+  t1 = sp_ntt_sub(p0, p2, p);
+  t2 = sp_ntt_add(p1, p3, p);
+  t3 = sp_ntt_sub(p1, p3, p);
 
   x[0 * stride] = t0;
   x[1 * stride] = t4;
@@ -106,10 +102,6 @@ ntt8_run_simd(spv_t x, spv_size_t stride,
   sp_simd_t t0, t1, t2, t3, t4, t5, t6, t7; 
   sp_simd_t p0, p1, p2, p3, p4, p5, p6, p7;
 
-  #ifdef HAVE_PARTIAL_MOD
-  p *= 2;
-  #endif
-
   x0 = sp_simd_gather(x + 0 * stride);
   x1 = sp_simd_gather(x + 1 * stride);
   x2 = sp_simd_gather(x + 2 * stride);
@@ -119,42 +111,42 @@ ntt8_run_simd(spv_t x, spv_size_t stride,
   x6 = sp_simd_gather(x + 6 * stride);
   x7 = sp_simd_gather(x + 7 * stride);
 
-  t0 = sp_simd_add(x0, x4, p);
-  t4 = sp_simd_sub(x0, x4, p);
-  t1 = sp_simd_add(x1, x5, p);
-  t5 = sp_simd_sub(x1, x5, p);
-  t2 = sp_simd_add(x2, x6, p);
-  t6 = sp_simd_sub_partial(x2, x6, p);
-  t3 = sp_simd_add(x3, x7, p);
-  t7 = sp_simd_sub(x3, x7, p);
+  t0 = sp_ntt_add_simd(x0, x4, p);
+  t4 = sp_ntt_sub_simd(x0, x4, p);
+  t1 = sp_ntt_add_simd(x1, x5, p);
+  t5 = sp_ntt_sub_simd(x1, x5, p);
+  t2 = sp_ntt_add_simd(x2, x6, p);
+  t6 = sp_ntt_sub_partial_simd(x2, x6, p);
+  t3 = sp_ntt_add_simd(x3, x7, p);
+  t7 = sp_ntt_sub_simd(x3, x7, p);
 
-  p0 = sp_simd_add(t0, t2, p);
-  p1 = sp_simd_sub(t0, t2, p);
-  p2 = sp_simd_add(t1, t3, p);
-  p3 = sp_simd_sub_partial(t1, t3, p);
+  p0 = sp_ntt_add_simd(t0, t2, p);
+  p1 = sp_ntt_sub_simd(t0, t2, p);
+  p2 = sp_ntt_add_simd(t1, t3, p);
+  p3 = sp_ntt_sub_partial_simd(t1, t3, p);
   p4 = t4;
   p5 = t6;
-  p6 = sp_simd_sub_partial(t5, t7, p);
-  p7 = sp_simd_add_partial(t5, t7, p); 
+  p6 = sp_ntt_sub_partial_simd(t5, t7, p);
+  p7 = sp_ntt_add_partial_simd(t5, t7, p); 
 
-  p3 = sp_simd_ntt_mul(p3, ntt_const[3], ntt_const[NC+3], p);
-  p5 = sp_simd_ntt_mul(p5, ntt_const[5], ntt_const[NC+5], p);
-  p6 = sp_simd_ntt_mul(p6, ntt_const[6], ntt_const[NC+6], p);
-  p7 = sp_simd_ntt_mul(p7, ntt_const[7], ntt_const[NC+7], p);
+  p3 = sp_ntt_mul_simd(p3, ntt_const[3], ntt_const[NC+3], p);
+  p5 = sp_ntt_mul_simd(p5, ntt_const[5], ntt_const[NC+5], p);
+  p6 = sp_ntt_mul_simd(p6, ntt_const[6], ntt_const[NC+6], p);
+  p7 = sp_ntt_mul_simd(p7, ntt_const[7], ntt_const[NC+7], p);
 
-  t0 = sp_simd_add(p4, p5, p);
-  t1 = sp_simd_sub(p4, p5, p);
-  t2 = sp_simd_add(p6, p7, p);
-  t3 = sp_simd_sub(p6, p7, p);
-  t4 = sp_simd_add(t0, t2, p);
-  t5 = sp_simd_sub(t0, t2, p);
-  t6 = sp_simd_add(t1, t3, p);
-  t7 = sp_simd_sub(t1, t3, p);
+  t0 = sp_ntt_add_simd(p4, p5, p);
+  t1 = sp_ntt_sub_simd(p4, p5, p);
+  t2 = sp_ntt_add_simd(p6, p7, p);
+  t3 = sp_ntt_sub_simd(p6, p7, p);
+  t4 = sp_ntt_add_simd(t0, t2, p);
+  t5 = sp_ntt_sub_simd(t0, t2, p);
+  t6 = sp_ntt_add_simd(t1, t3, p);
+  t7 = sp_ntt_sub_simd(t1, t3, p);
 
-  t0 = sp_simd_add(p0, p2, p);
-  t1 = sp_simd_sub(p0, p2, p);
-  t2 = sp_simd_add(p1, p3, p);
-  t3 = sp_simd_sub(p1, p3, p);
+  t0 = sp_ntt_add_simd(p0, p2, p);
+  t1 = sp_ntt_sub_simd(p0, p2, p);
+  t2 = sp_ntt_add_simd(p1, p3, p);
+  t3 = sp_ntt_sub_simd(p1, p3, p);
 
   sp_simd_scatter(t0, x + 0 * stride);
   sp_simd_scatter(t4, x + 1 * stride);
@@ -195,10 +187,6 @@ ntt8_pfa_run_core(spv_t x, spv_size_t start,
   sp_t t0, t1, t2, t3, t4, t5, t6, t7; 
   sp_t p0, p1, p2, p3, p4, p5, p6, p7;
 
-  #ifdef HAVE_PARTIAL_MOD
-  p *= 2;
-  #endif
-
   j0 = start;
   j1 = sp_array_inc(j0, inc, n);
   j2 = sp_array_inc(j0, 2 * inc, n);
@@ -217,42 +205,42 @@ ntt8_pfa_run_core(spv_t x, spv_size_t start,
   x6 = x[j6];
   x7 = x[j7];
 
-  t0 = sp_add(x0, x4, p);
-  t4 = sp_sub(x0, x4, p);
-  t1 = sp_add(x1, x5, p);
-  t5 = sp_sub(x1, x5, p);
-  t2 = sp_add(x2, x6, p);
-  t6 = sp_sub_partial(x2, x6, p);
-  t3 = sp_add(x3, x7, p);
-  t7 = sp_sub(x3, x7, p);
+  t0 = sp_ntt_add(x0, x4, p);
+  t4 = sp_ntt_sub(x0, x4, p);
+  t1 = sp_ntt_add(x1, x5, p);
+  t5 = sp_ntt_sub(x1, x5, p);
+  t2 = sp_ntt_add(x2, x6, p);
+  t6 = sp_ntt_sub_partial(x2, x6, p);
+  t3 = sp_ntt_add(x3, x7, p);
+  t7 = sp_ntt_sub(x3, x7, p);
 
-  p0 = sp_add(t0, t2, p);
-  p1 = sp_sub(t0, t2, p);
-  p2 = sp_add(t1, t3, p);
-  p3 = sp_sub_partial(t1, t3, p);
+  p0 = sp_ntt_add(t0, t2, p);
+  p1 = sp_ntt_sub(t0, t2, p);
+  p2 = sp_ntt_add(t1, t3, p);
+  p3 = sp_ntt_sub_partial(t1, t3, p);
   p4 = t4;
   p5 = t6;
-  p6 = sp_sub_partial(t5, t7, p);
-  p7 = sp_add_partial(t5, t7, p); 
+  p6 = sp_ntt_sub_partial(t5, t7, p);
+  p7 = sp_ntt_add_partial(t5, t7, p); 
 
   p3 = sp_ntt_mul(p3, ntt_const[3], ntt_const[NC+3], p);
   p5 = sp_ntt_mul(p5, ntt_const[5], ntt_const[NC+5], p);
   p6 = sp_ntt_mul(p6, ntt_const[6], ntt_const[NC+6], p);
   p7 = sp_ntt_mul(p7, ntt_const[7], ntt_const[NC+7], p);
 
-  t0 = sp_add(p4, p5, p);
-  t1 = sp_sub(p4, p5, p);
-  t2 = sp_add(p6, p7, p);
-  t3 = sp_sub(p6, p7, p);
-  t4 = sp_add(t0, t2, p);
-  t5 = sp_sub(t0, t2, p);
-  t6 = sp_add(t1, t3, p);
-  t7 = sp_sub(t1, t3, p);
+  t0 = sp_ntt_add(p4, p5, p);
+  t1 = sp_ntt_sub(p4, p5, p);
+  t2 = sp_ntt_add(p6, p7, p);
+  t3 = sp_ntt_sub(p6, p7, p);
+  t4 = sp_ntt_add(t0, t2, p);
+  t5 = sp_ntt_sub(t0, t2, p);
+  t6 = sp_ntt_add(t1, t3, p);
+  t7 = sp_ntt_sub(t1, t3, p);
 
-  t0 = sp_add(p0, p2, p);
-  t1 = sp_sub(p0, p2, p);
-  t2 = sp_add(p1, p3, p);
-  t3 = sp_sub(p1, p3, p);
+  t0 = sp_ntt_add(p0, p2, p);
+  t1 = sp_ntt_sub(p0, p2, p);
+  t2 = sp_ntt_add(p1, p3, p);
+  t3 = sp_ntt_sub(p1, p3, p);
 
   x[j0] = t0;
   x[j1] = t4;
@@ -275,10 +263,6 @@ ntt8_pfa_run_core_simd(spv_t x, spv_size_t start,
   sp_simd_t t0, t1, t2, t3, t4, t5, t6, t7; 
   sp_simd_t p0, p1, p2, p3, p4, p5, p6, p7;
 
-  #ifdef HAVE_PARTIAL_MOD
-  p *= 2;
-  #endif
-
   j0 = start;
   j1 = sp_array_inc(j0, inc, n);
   j2 = sp_array_inc(j0, 2 * inc, n);
@@ -297,42 +281,42 @@ ntt8_pfa_run_core_simd(spv_t x, spv_size_t start,
   x6 = sp_simd_pfa_gather(x, j6, inc2, n);
   x7 = sp_simd_pfa_gather(x, j7, inc2, n);
 
-  t0 = sp_simd_add(x0, x4, p);
-  t4 = sp_simd_sub(x0, x4, p);
-  t1 = sp_simd_add(x1, x5, p);
-  t5 = sp_simd_sub(x1, x5, p);
-  t2 = sp_simd_add(x2, x6, p);
-  t6 = sp_simd_sub_partial(x2, x6, p);
-  t3 = sp_simd_add(x3, x7, p);
-  t7 = sp_simd_sub(x3, x7, p);
+  t0 = sp_ntt_add_simd(x0, x4, p);
+  t4 = sp_ntt_sub_simd(x0, x4, p);
+  t1 = sp_ntt_add_simd(x1, x5, p);
+  t5 = sp_ntt_sub_simd(x1, x5, p);
+  t2 = sp_ntt_add_simd(x2, x6, p);
+  t6 = sp_ntt_sub_partial_simd(x2, x6, p);
+  t3 = sp_ntt_add_simd(x3, x7, p);
+  t7 = sp_ntt_sub_simd(x3, x7, p);
 
-  p0 = sp_simd_add(t0, t2, p);
-  p1 = sp_simd_sub(t0, t2, p);
-  p2 = sp_simd_add(t1, t3, p);
-  p3 = sp_simd_sub_partial(t1, t3, p);
+  p0 = sp_ntt_add_simd(t0, t2, p);
+  p1 = sp_ntt_sub_simd(t0, t2, p);
+  p2 = sp_ntt_add_simd(t1, t3, p);
+  p3 = sp_ntt_sub_partial_simd(t1, t3, p);
   p4 = t4;
   p5 = t6;
-  p6 = sp_simd_sub_partial(t5, t7, p);
-  p7 = sp_simd_add_partial(t5, t7, p); 
+  p6 = sp_ntt_sub_partial_simd(t5, t7, p);
+  p7 = sp_ntt_add_partial_simd(t5, t7, p); 
 
-  p3 = sp_simd_ntt_mul(p3, ntt_const[3], ntt_const[NC+3], p);
-  p5 = sp_simd_ntt_mul(p5, ntt_const[5], ntt_const[NC+5], p);
-  p6 = sp_simd_ntt_mul(p6, ntt_const[6], ntt_const[NC+6], p);
-  p7 = sp_simd_ntt_mul(p7, ntt_const[7], ntt_const[NC+7], p);
+  p3 = sp_ntt_mul_simd(p3, ntt_const[3], ntt_const[NC+3], p);
+  p5 = sp_ntt_mul_simd(p5, ntt_const[5], ntt_const[NC+5], p);
+  p6 = sp_ntt_mul_simd(p6, ntt_const[6], ntt_const[NC+6], p);
+  p7 = sp_ntt_mul_simd(p7, ntt_const[7], ntt_const[NC+7], p);
 
-  t0 = sp_simd_add(p4, p5, p);
-  t1 = sp_simd_sub(p4, p5, p);
-  t2 = sp_simd_add(p6, p7, p);
-  t3 = sp_simd_sub(p6, p7, p);
-  t4 = sp_simd_add(t0, t2, p);
-  t5 = sp_simd_sub(t0, t2, p);
-  t6 = sp_simd_add(t1, t3, p);
-  t7 = sp_simd_sub(t1, t3, p);
+  t0 = sp_ntt_add_simd(p4, p5, p);
+  t1 = sp_ntt_sub_simd(p4, p5, p);
+  t2 = sp_ntt_add_simd(p6, p7, p);
+  t3 = sp_ntt_sub_simd(p6, p7, p);
+  t4 = sp_ntt_add_simd(t0, t2, p);
+  t5 = sp_ntt_sub_simd(t0, t2, p);
+  t6 = sp_ntt_add_simd(t1, t3, p);
+  t7 = sp_ntt_sub_simd(t1, t3, p);
 
-  t0 = sp_simd_add(p0, p2, p);
-  t1 = sp_simd_sub(p0, p2, p);
-  t2 = sp_simd_add(p1, p3, p);
-  t3 = sp_simd_sub(p1, p3, p);
+  t0 = sp_ntt_add_simd(p0, p2, p);
+  t1 = sp_ntt_sub_simd(p0, p2, p);
+  t2 = sp_ntt_add_simd(p1, p3, p);
+  t3 = sp_ntt_sub_simd(p1, p3, p);
 
   sp_simd_pfa_scatter(t0, x, j0, inc2, n);
   sp_simd_pfa_scatter(t4, x, j1, inc2, n);
