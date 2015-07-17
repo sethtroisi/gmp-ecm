@@ -9,6 +9,8 @@ from subprocess import Popen, PIPE, STDOUT
 from tempfile import *
 from time import clock
 
+x64 = True
+debug = False
 test_gpu_version = True
 run_non_gpu_tests = True
 run_gpu_tests = True
@@ -18,7 +20,9 @@ class Timer() :
   def __exit__(self, *args): print(' time {:.3f} milliseconds'.format(1000 * (clock() - self.start)))
 
 cpath = os.path.dirname(__file__)
-test_dir = '..\\bin\\x64\\Release\\'
+config = 'x64' if x64 else 'Win32'
+mode = 'Debug' if debug else 'Release'
+test_dir = '..\\bin\\{:s}\\{:s}\\'.format(config, mode)
 ecm_exe  = test_dir + ("ecm_gpu.exe" if test_gpu_version else "ecm.exe")
 
 def get_tests(filename):
@@ -35,7 +39,7 @@ def get_tests(filename):
         if line.startswith('echo') and len(tkns) > 2 and tkns[2] == '|':
           while cnt < lnth and 'checkcode' not in line:
             while cnt < lnth and not lines[cnt]:
-              cnt += 1 
+              cnt += 1
             if cnt < lnth:
               line += '|' + lines[cnt]
               cnt += 1
@@ -79,7 +83,7 @@ def get_tests(filename):
         else:
           c_tests += [sub_tests]
       except ValueError:
-        print('parsing error on line {} in text "{}"'.format(cnt, line))        
+        print('parsing error on line {} in text "{}"'.format(cnt, line))
   return tests, c_tests
 
 def run_exe(exe, args, inp) :
@@ -94,7 +98,7 @@ def run_exe(exe, args, inp) :
 def output_complex_tests(x):
   print('these tests are too complex:')
   for t in x:
-    print(t)      
+    print(t)
 
 def do_tests(tests, ctests, out=False):
   err_cnt = 0
@@ -115,13 +119,13 @@ def do_tests(tests, ctests, out=False):
         print(i)
 
   if ctests:
-    output_complex_tests(ctests)    
+    output_complex_tests(ctests)
   if not err_cnt:
     if ctests:
       print('  all other tests passed')
     else:
       print('  all tests passed')
-      
+
 with Timer():
   if os.path.exists('test.pm1.save'):
     os.remove('test.pm1.save')
