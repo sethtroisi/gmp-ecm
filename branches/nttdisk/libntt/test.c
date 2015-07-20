@@ -83,7 +83,7 @@ static void do_test(mpzspm_t mpzspm)
 
       bfntt(r, x, len, p, d, primroot, order);
 
-      config->ntt_run(x, 1, p, pfa->ntt_const);
+      config->ntt_pfa_run(x, 1, p, pfa->ntt_const);
 
       for (m = 0; m < len; m++)
         while (x[m] >= p)
@@ -104,7 +104,7 @@ static void do_test(mpzspm_t mpzspm)
 	  start = read_clock();
 	  for (n = 0; n < 10; n++)
     	    {
-    	      config->ntt_run(x, 1, p, pfa->ntt_const);
+    	      config->ntt_pfa_run(x, 1, p, pfa->ntt_const);
 	    }
 	  stop = read_clock();
 	  if (stop - start < elapsed)

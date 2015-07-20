@@ -18,8 +18,8 @@ ntt5_init(spv_t out, sp_t p, sp_t d,
 }
 
 static void
-ntt5_run(spv_t x, spv_size_t stride,
-	  sp_t p, spv_t ntt_const)
+ntt5_twiddle_run_core(spv_t x, spv_t w, spv_size_t stride,
+			sp_t p, spv_t ntt_const)
 {
   sp_t p0, p1, p2, p3, p4, p5;
   sp_t x0, x1, x2, x3, x4;
@@ -57,10 +57,15 @@ ntt5_run(spv_t x, spv_size_t stride,
   t3 = sp_ntt_add(p3, p5, p);
   t4 = sp_ntt_add(p4, p5, p);
 
-  p1 = sp_ntt_add(t1, t3, p);
-  p2 = sp_ntt_add(t2, t4, p);
-  p3 = sp_ntt_sub(t1, t3, p);
-  p4 = sp_ntt_sub(t2, t4, p);
+  p1 = sp_ntt_add_partial(t1, t3, p);
+  p2 = sp_ntt_add_partial(t2, t4, p);
+  p3 = sp_ntt_sub_partial(t1, t3, p);
+  p4 = sp_ntt_sub_partial(t2, t4, p);
+
+  p4 = sp_ntt_mul(p4, w[0], w[1], p);
+  p3 = sp_ntt_mul(p3, w[2], w[3], p);
+  p1 = sp_ntt_mul(p1, w[4], w[5], p);
+  p2 = sp_ntt_mul(p2, w[6], w[7], p);
 
   x[0 * stride] = p0;
   x[1 * stride] = p4;
@@ -71,8 +76,9 @@ ntt5_run(spv_t x, spv_size_t stride,
 
 #ifdef HAVE_SSE2
 static void
-ntt5_run_simd(spv_t x, spv_size_t stride,
-	  sp_t p, spv_t ntt_const)
+ntt5_twiddle_run_core_simd(spv_t x, sp_simd_t *w,
+			spv_size_t stride,
+			sp_t p, spv_t ntt_const)
 {
   sp_simd_t p0, p1, p2, p3, p4, p5;
   sp_simd_t x0, x1, x2, x3, x4;
@@ -110,10 +116,15 @@ ntt5_run_simd(spv_t x, spv_size_t stride,
   t3 = sp_ntt_add_simd(p3, p5, p);
   t4 = sp_ntt_add_simd(p4, p5, p);
 
-  p1 = sp_ntt_add_simd(t1, t3, p);
-  p2 = sp_ntt_add_simd(t2, t4, p);
-  p3 = sp_ntt_sub_simd(t1, t3, p);
-  p4 = sp_ntt_sub_simd(t2, t4, p);
+  p1 = sp_ntt_add_partial_simd(t1, t3, p);
+  p2 = sp_ntt_add_partial_simd(t2, t4, p);
+  p3 = sp_ntt_sub_partial_simd(t1, t3, p);
+  p4 = sp_ntt_sub_partial_simd(t2, t4, p);
+
+  p4 = sp_ntt_twiddle_mul_simd(p4, w + 0, p);
+  p3 = sp_ntt_twiddle_mul_simd(p3, w + 2, p);
+  p1 = sp_ntt_twiddle_mul_simd(p1, w + 4, p);
+  p2 = sp_ntt_twiddle_mul_simd(p2, w + 6, p);
 
   sp_simd_scatter(p0, x + 0 * stride);
   sp_simd_scatter(p4, x + 1 * stride);
@@ -123,23 +134,25 @@ ntt5_run_simd(spv_t x, spv_size_t stride,
 }
 #endif
 
-
 static void
-ntt5_twiddle_run(spv_t x, spv_size_t stride,
+ntt5_twiddle_run(spv_t x, spv_t w,
+	  spv_size_t stride,
 	  spv_size_t num_transforms,
 	  sp_t p, spv_t ntt_const)
 {
-  spv_size_t i = 0;
+  spv_size_t i = 0, j = 0;
 
 #ifdef HAVE_SSE2
   spv_size_t num_simd = SP_SIMD_VSIZE * (num_transforms / SP_SIMD_VSIZE);
 
-  for (i = 0; i < num_simd; i += SP_SIMD_VSIZE)
-      ntt5_run_simd(x + i, stride, p, ntt_const);
+  for (i = 0; i < num_simd; i += SP_SIMD_VSIZE,
+		  	j += 2*(5-1)*SP_SIMD_VSIZE)
+    ntt5_twiddle_run_core_simd(x + i, (sp_simd_t *)(w + j),
+				stride, p, ntt_const);
 #endif
 
-  for (; i < num_transforms; i++)
-    ntt5_run(x + i, stride, p, ntt_const);
+  for (; i < num_transforms; i++, j += 2*(5-1))
+    ntt5_twiddle_run_core(x + i, w + j, stride, p, ntt_const);
 }
 
 static void
@@ -294,7 +307,6 @@ const nttconfig_t ntt5_config =
   NC,
   ntt5_get_fixed_ntt_const,
   ntt5_init,
-  ntt5_run,
   ntt5_pfa_run,
   ntt5_twiddle_run
 };

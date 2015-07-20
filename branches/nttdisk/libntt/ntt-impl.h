@@ -9,13 +9,11 @@ typedef void (*nttdata_init_t)(spv_t out,
 				sp_t p, sp_t d,
 				sp_t primroot, sp_t order);
 
-typedef void (*ntt_run_t)(spv_t x, spv_size_t stride,
-			  sp_t p, spv_t ntt_const);
-
 typedef void (*ntt_pfa_run_t)(spv_t x, spv_size_t cofactor, 
 			  sp_t p, spv_t ntt_const);
 
-typedef void (*ntt_twiddle_run_t)(spv_t x, spv_size_t stride,
+typedef void (*ntt_twiddle_run_t)(spv_t x, spv_t w,
+			  spv_size_t stride,
 			  spv_size_t num_transforms, 
 			  sp_t p, spv_t ntt_const);
 
@@ -536,16 +534,15 @@ static inline sp_simd_t sp_mul_simd(sp_simd_t a, sp_t w,
 }
  
 
-static inline sp_simd_t sp_ntt_mul_simd(sp_simd_t a, sp_t w, 
-					sp_t w_inv, sp_t p)
+static inline sp_simd_t sp_ntt_mul_simd_core(
+				sp_simd_t a, sp_simd_t vw, 
+				sp_simd_t vwi, sp_t p)
 {
 #if SP_TYPE_BITS == 32
 
-  sp_simd_t t0, t1, t2, t3, vp, vw, vwi;
+  sp_simd_t t0, t1, t2, t3;
 
-  vp = pshufd(pcvt_i32(p), 0x00);
-  vw = pshufd(pcvt_i32(w), 0x00);
-  vwi= pshufd(pcvt_i32(w_inv), 0x00);
+  sp_simd_t vp = pshufd(pcvt_i32(p), 0x00);
 
   t0 = pmuludq(a, vwi);
   t1 = pshufd(a, 0x31);
@@ -574,13 +571,10 @@ static inline sp_simd_t sp_ntt_mul_simd(sp_simd_t a, sp_t w,
 
 #elif GMP_LIMB_BITS == 32   /* 64-bit sp_t on a 32-bit machine */
 
-  sp_simd_t vp, vw, vwi, vmask;
+  sp_simd_t vmask;
   sp_simd_t t0, t1, t2, t3, t4, t5, t6;
 
-  vp = pshufd(pcvt_i64(p), 0x44);
-  vw = pshufd(pcvt_i64(w), 0x44);
-  vwi= pshufd(pcvt_i64(w_inv), 0x44);
-  vmask = pshufd(pcvt_i32(0xffffffff), 0x44);
+  sp_simd_t vp = pshufd(pcvt_i64(p), 0x44);
 
   t0 = pmuludq(a, vwi);
   t4 = pshufd(a, 0xf5);
@@ -631,10 +625,27 @@ static inline sp_simd_t sp_ntt_mul_simd(sp_simd_t a, sp_t w,
   return sp_ntt_sub_simd(t6, vp, p);
   #endif
 
+#endif
+}
+
+static inline sp_simd_t sp_ntt_mul_simd(sp_simd_t a, sp_t w, 
+					sp_t w_inv, sp_t p)
+{
+#if SP_TYPE_BITS == 32
+   return sp_ntt_mul_simd_core(a,
+  			pshufd(pcvt_i32(w), 0x00),
+			pshufd(pcvt_i32(w_inv), 0x00),
+			p);
+
+#elif GMP_LIMB_BITS == 32   /* 64-bit sp_t on a 32-bit machine */
+   return sp_ntt_mul_simd_core(a,
+			pshufd(pcvt_i64(w), 0x44),
+			pshufd(pcvt_i64(w_inv), 0x44);
+			p);
+
 #else
 
-  /* there's no way the SSE2 unit can keep up with a
-     64-bit multiplier in the ALU */
+  /* use CPU 64-bit multiplier */
 
   sp_simd_t t0, t1;
   sp_t a0, a1;
@@ -652,6 +663,37 @@ static inline sp_simd_t sp_ntt_mul_simd(sp_simd_t a, sp_t w,
 #endif
 }
 
+/* twiddle multiplies get a separate SIMD version; their data
+   is assumed to reside in (aligned) memory, with twiddle factors
+   separated from their inverses, then packed into sp_simd_t vectors
+   and concatenated */
+
+static inline sp_simd_t sp_ntt_twiddle_mul_simd(sp_simd_t a, 
+					sp_simd_t *w, sp_t p)
+{
+#if SP_TYPE_BITS == 32 || GMP_LIMB_BITS == 32
+   return sp_ntt_mul_simd_core(a, pload(w), pload(w + 1), p);
+
+#else
+
+  /* use CPU 64-bit multiplier */
+
+  sp_simd_t t0, t1;
+  sp_t a0, a1;
+  sp_t *wscalar = (sp_t *)w;
+
+  pstore_i64(a0, a);
+  pstore_i64(a1, pshufd(a, 0x0e));
+
+  a0 = sp_ntt_mul(a0, wscalar[0], wscalar[2], p);
+  a1 = sp_ntt_mul(a1, wscalar[1], wscalar[3], p);
+
+  t0 = pcvt_i64(a0);
+  t1 = pcvt_i64(a1);
+  return punpcklo64(t0, t1);
+
+#endif
+}
 
 #endif  /*-----------------------------------------------------------*/
 
@@ -661,7 +703,6 @@ typedef struct
   uint32_t num_ntt_const;
   get_fixed_ntt_const_t get_fixed_ntt_const;
   nttdata_init_t nttdata_init;
-  ntt_run_t ntt_run;
   ntt_pfa_run_t ntt_pfa_run;
   ntt_twiddle_run_t ntt_twiddle_run;
 } nttconfig_t;

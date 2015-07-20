@@ -177,7 +177,7 @@ nttdata_init_generic(const nttconfig_t *c,
         xfixed[j] = 0;
       xfixed[i] = 1;
 
-      c->ntt_run(xfixed, 1, p, vfixed);
+      c->ntt_pfa_run(xfixed, 1, p, vfixed);
 
       #ifdef HAVE_PARTIAL_MOD
       for (j = 0; j < n; j++)
@@ -198,7 +198,7 @@ nttdata_init_generic(const nttconfig_t *c,
           x[i] = 1;
 
           vfixed[j] = 1;
-          c->ntt_run(x, 1, p, vfixed);
+          c->ntt_pfa_run(x, 1, p, vfixed);
           vfixed[j] = 0;
 
           #ifdef HAVE_PARTIAL_MOD

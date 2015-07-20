@@ -21,8 +21,8 @@ ntt4_init(spv_t out, sp_t p, sp_t d,
 }
 
 static void
-ntt4_run(spv_t x, spv_size_t stride,
-	  sp_t p, spv_t ntt_const)
+ntt4_twiddle_run_core(spv_t x, spv_t w, spv_size_t stride,
+			sp_t p, spv_t ntt_const)
 {
   sp_t x0, x1, x2, x3;
   sp_t t0, t1, t2, t3;
@@ -41,9 +41,13 @@ ntt4_run(spv_t x, spv_size_t stride,
   t3 = sp_ntt_mul(t3, ntt_const[3], ntt_const[NC+3], p);
 
   p0 = sp_ntt_add(t0, t1, p);
-  p1 = sp_ntt_sub(t0, t1, p);
-  p2 = sp_ntt_add(t2, t3, p);
-  p3 = sp_ntt_sub(t2, t3, p);
+  p1 = sp_ntt_sub_partial(t0, t1, p);
+  p2 = sp_ntt_add_partial(t2, t3, p);
+  p3 = sp_ntt_sub_partial(t2, t3, p);
+
+  p2 = sp_ntt_mul(p2, w[0], w[1], p);
+  p1 = sp_ntt_mul(p1, w[2], w[3], p);
+  p3 = sp_ntt_mul(p3, w[4], w[5], p);
 
   x[0 * stride] = p0;
   x[1 * stride] = p2;
@@ -54,8 +58,9 @@ ntt4_run(spv_t x, spv_size_t stride,
 
 #ifdef HAVE_SSE2
 static void
-ntt4_run_simd(spv_t x, spv_size_t stride,
-	  sp_t p, spv_t ntt_const)
+ntt4_twiddle_run_core_simd(spv_t x, sp_simd_t *w,
+			spv_size_t stride,
+			sp_t p, spv_t ntt_const)
 {
   sp_simd_t x0, x1, x2, x3;
   sp_simd_t t0, t1, t2, t3;
@@ -74,9 +79,13 @@ ntt4_run_simd(spv_t x, spv_size_t stride,
   t3 = sp_ntt_mul_simd(t3, ntt_const[3], ntt_const[NC+3], p);
 
   p0 = sp_ntt_add_simd(t0, t1, p);
-  p1 = sp_ntt_sub_simd(t0, t1, p);
-  p2 = sp_ntt_add_simd(t2, t3, p);
-  p3 = sp_ntt_sub_simd(t2, t3, p);
+  p1 = sp_ntt_sub_partial_simd(t0, t1, p);
+  p2 = sp_ntt_add_partial_simd(t2, t3, p);
+  p3 = sp_ntt_sub_partial_simd(t2, t3, p);
+
+  p2 = sp_ntt_twiddle_mul_simd(p2, w + 0, p);
+  p1 = sp_ntt_twiddle_mul_simd(p1, w + 2, p);
+  p3 = sp_ntt_twiddle_mul_simd(p3, w + 4, p);
 
   sp_simd_scatter(p0, x + 0 * stride);
   sp_simd_scatter(p2, x + 1 * stride);
@@ -85,23 +94,25 @@ ntt4_run_simd(spv_t x, spv_size_t stride,
 }
 #endif
 
-
 static void
-ntt4_twiddle_run(spv_t x, spv_size_t stride,
+ntt4_twiddle_run(spv_t x, spv_t w,
+	  spv_size_t stride,
 	  spv_size_t num_transforms,
 	  sp_t p, spv_t ntt_const)
 {
-  spv_size_t i = 0;
+  spv_size_t i = 0, j = 0;
 
 #ifdef HAVE_SSE2
   spv_size_t num_simd = SP_SIMD_VSIZE * (num_transforms / SP_SIMD_VSIZE);
 
-  for (i = 0; i < num_simd; i += SP_SIMD_VSIZE)
-      ntt4_run_simd(x + i, stride, p, ntt_const);
+  for (i = 0; i < num_simd; i += SP_SIMD_VSIZE,
+		  	j += 2*(4-1)*SP_SIMD_VSIZE)
+    ntt4_twiddle_run_core_simd(x + i, (sp_simd_t *)(w + j),
+				stride, p, ntt_const);
 #endif
 
-  for (; i < num_transforms; i++)
-    ntt4_run(x + i, stride, p, ntt_const);
+  for (; i < num_transforms; i++, j += 2*(4-1))
+    ntt4_twiddle_run_core(x + i, w + j, stride, p, ntt_const);
 }
 
 static void
@@ -214,7 +225,6 @@ const nttconfig_t ntt4_config =
   NC,
   ntt4_get_fixed_ntt_const,
   ntt4_init,
-  ntt4_run,
   ntt4_pfa_run,
   ntt4_twiddle_run
 };

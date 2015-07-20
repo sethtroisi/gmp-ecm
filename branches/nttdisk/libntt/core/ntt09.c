@@ -94,8 +94,8 @@ ntt9_init(spv_t out, sp_t p, sp_t d,
 }
 
 static void
-ntt9_run(spv_t x, spv_size_t stride,
-	  sp_t p, spv_t ntt_const)
+ntt9_twiddle_run_core(spv_t x, spv_t w, spv_size_t stride,
+			sp_t p, spv_t ntt_const)
 {
   sp_t x0, x1, x2, x3, x4, x5, x6;
   sp_t     t1, t2, t3, t4, t5, t6, t7, t8;
@@ -172,16 +172,25 @@ ntt9_run(spv_t x, spv_size_t stride,
   p6 = sp_ntt_sub(t5, t3, p);
 
   p0 = sp_ntt_add(p0, p0e, p);
-  t1 = sp_ntt_add(t1, p0e, p);
-  t2 = sp_ntt_add(t2, p0e, p);
-  t3 = sp_ntt_add(p3, p1e, p);
-  t4 = sp_ntt_add(p4, p2e, p);
-  t5 = sp_ntt_add(p5, p1e, p);
-  t6 = sp_ntt_add(p6, p2e, p);
+  t1 = sp_ntt_add_partial(t1, p0e, p);
+  t2 = sp_ntt_add_partial(t2, p0e, p);
+  t3 = sp_ntt_add_partial(p3, p1e, p);
+  t4 = sp_ntt_add_partial(p4, p2e, p);
+  t5 = sp_ntt_add_partial(p5, p1e, p);
+  t6 = sp_ntt_add_partial(p6, p2e, p);
   t7 = sp_ntt_add(p3, p5, p);
-  t7 = sp_ntt_sub(p1e, t7, p);
+  t7 = sp_ntt_sub_partial(p1e, t7, p);
   t8 = sp_ntt_add(p4, p6, p);
-  t8 = sp_ntt_sub(p2e, t8, p);
+  t8 = sp_ntt_sub_partial(p2e, t8, p);
+
+  t8 = sp_ntt_mul(t8, w[0], w[1], p);
+  t3 = sp_ntt_mul(t3, w[2], w[3], p);
+  t2 = sp_ntt_mul(t2, w[4], w[5], p);
+  t4 = sp_ntt_mul(t4, w[6], w[7], p);
+  t7 = sp_ntt_mul(t7, w[8], w[9], p);
+  t1 = sp_ntt_mul(t1, w[10], w[11], p);
+  t6 = sp_ntt_mul(t6, w[12], w[13], p);
+  t5 = sp_ntt_mul(t5, w[14], w[15], p);
 
   x[0 * stride] = p0;
   x[1 * stride] = t8;
@@ -196,8 +205,9 @@ ntt9_run(spv_t x, spv_size_t stride,
 
 #ifdef HAVE_SSE2
 static void
-ntt9_run_simd(spv_t x, spv_size_t stride,
-	  sp_t p, spv_t ntt_const)
+ntt9_twiddle_run_core_simd(spv_t x, sp_simd_t *w,
+			spv_size_t stride,
+			sp_t p, spv_t ntt_const)
 {
   sp_simd_t x0, x1, x2, x3, x4, x5, x6;
   sp_simd_t     t1, t2, t3, t4, t5, t6, t7, t8;
@@ -274,16 +284,25 @@ ntt9_run_simd(spv_t x, spv_size_t stride,
   p6 = sp_ntt_sub_simd(t5, t3, p);
 
   p0 = sp_ntt_add_simd(p0, p0e, p);
-  t1 = sp_ntt_add_simd(t1, p0e, p);
-  t2 = sp_ntt_add_simd(t2, p0e, p);
-  t3 = sp_ntt_add_simd(p3, p1e, p);
-  t4 = sp_ntt_add_simd(p4, p2e, p);
-  t5 = sp_ntt_add_simd(p5, p1e, p);
-  t6 = sp_ntt_add_simd(p6, p2e, p);
+  t1 = sp_ntt_add_partial_simd(t1, p0e, p);
+  t2 = sp_ntt_add_partial_simd(t2, p0e, p);
+  t3 = sp_ntt_add_partial_simd(p3, p1e, p);
+  t4 = sp_ntt_add_partial_simd(p4, p2e, p);
+  t5 = sp_ntt_add_partial_simd(p5, p1e, p);
+  t6 = sp_ntt_add_partial_simd(p6, p2e, p);
   t7 = sp_ntt_add_simd(p3, p5, p);
-  t7 = sp_ntt_sub_simd(p1e, t7, p);
+  t7 = sp_ntt_sub_partial_simd(p1e, t7, p);
   t8 = sp_ntt_add_simd(p4, p6, p);
-  t8 = sp_ntt_sub_simd(p2e, t8, p);
+  t8 = sp_ntt_sub_partial_simd(p2e, t8, p);
+
+  t8 = sp_ntt_twiddle_mul_simd(t8, w + 0, p);
+  t3 = sp_ntt_twiddle_mul_simd(t3, w + 2, p);
+  t2 = sp_ntt_twiddle_mul_simd(t2, w + 4, p);
+  t4 = sp_ntt_twiddle_mul_simd(t4, w + 6, p);
+  t7 = sp_ntt_twiddle_mul_simd(t7, w + 8, p);
+  t1 = sp_ntt_twiddle_mul_simd(t1, w + 10, p);
+  t6 = sp_ntt_twiddle_mul_simd(t6, w + 12, p);
+  t5 = sp_ntt_twiddle_mul_simd(t5, w + 14, p);
 
   sp_simd_scatter(p0, x + 0 * stride);
   sp_simd_scatter(t8, x + 1 * stride);
@@ -298,21 +317,24 @@ ntt9_run_simd(spv_t x, spv_size_t stride,
 #endif
 
 static void
-ntt9_twiddle_run(spv_t x, spv_size_t stride,
+ntt9_twiddle_run(spv_t x, spv_t w,
+	  spv_size_t stride,
 	  spv_size_t num_transforms,
 	  sp_t p, spv_t ntt_const)
 {
-  spv_size_t i = 0;
+  spv_size_t i = 0, j = 0;
 
 #ifdef HAVE_SSE2
   spv_size_t num_simd = SP_SIMD_VSIZE * (num_transforms / SP_SIMD_VSIZE);
 
-  for (i = 0; i < num_simd; i += SP_SIMD_VSIZE)
-      ntt9_run_simd(x + i, stride, p, ntt_const);
+  for (i = 0; i < num_simd; i += SP_SIMD_VSIZE,
+		  	j += 2*(9-1)*SP_SIMD_VSIZE)
+    ntt9_twiddle_run_core_simd(x + i, (sp_simd_t *)(w + j),
+				stride, p, ntt_const);
 #endif
 
-  for (; i < num_transforms; i++)
-    ntt9_run(x + i, stride, p, ntt_const);
+  for (; i < num_transforms; i++, j += 2*(9-1))
+    ntt9_twiddle_run_core(x + i, w + j, stride, p, ntt_const);
 }
 
 static void
@@ -574,7 +596,6 @@ const nttconfig_t ntt9_config =
   NC,
   ntt9_get_fixed_ntt_const,
   ntt9_init,
-  ntt9_run,
   ntt9_pfa_run,
   ntt9_twiddle_run
 };
