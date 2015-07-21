@@ -210,7 +210,7 @@ typedef __m128i sp_simd_t;
 
 #define SP_SIMD_VSIZE (128 / SP_TYPE_BITS)
 
-static inline sp_simd_t sp_simd_gather(spv_t x)
+static inline sp_simd_t sp_simd_load(spv_t x)
 {
 #if SP_TYPE_BITS == 32
 
@@ -220,6 +220,26 @@ static inline sp_simd_t sp_simd_gather(spv_t x)
 
   sp_simd_t t = pload_lo64(x);
   return pload_hi64(t, x + 1);
+
+#endif
+}
+
+static inline sp_simd_t sp_simd_gather(spv_t x, spv_size_t stride)
+{
+#if SP_TYPE_BITS == 32
+
+  sp_simd_t t0 = pload_lo32(x + 0);
+  sp_simd_t t1 = pload_lo32(x + stride);
+  sp_simd_t t2 = pload_lo32(x + 2 * stride);
+  sp_simd_t t3 = pload_lo32(x + 3 * stride);
+  sp_simd_t r0 = punpcklo32(t0, t1);
+  sp_simd_t r1 = punpcklo32(t2, t3);
+  return punpcklo64(r0, r1);
+
+#else
+
+  sp_simd_t t = pload_lo64(x + 0);
+  return pload_hi64(t, x + stride);
 
 #endif
 }
@@ -251,7 +271,7 @@ static inline sp_simd_t sp_simd_pfa_gather(spv_t x, spv_size_t start_off,
 #endif
 }
 
-static inline void sp_simd_scatter(sp_simd_t t, spv_t x)
+static inline void sp_simd_store(sp_simd_t t, spv_t x)
 {
 #if SP_TYPE_BITS == 32
 
@@ -261,6 +281,26 @@ static inline void sp_simd_scatter(sp_simd_t t, spv_t x)
 
   pstore_lo64(t, x);
   pstore_hi64(t, x + 1);
+
+#endif
+}
+
+static inline void sp_simd_scatter(sp_simd_t t, spv_t x, spv_size_t stride)
+{
+#if SP_TYPE_BITS == 32
+
+  pstore_lo32(t, x + 0);
+  t = _mm_srli_si128(t, 4);
+  pstore_lo32(t, x + stride);
+  t = _mm_srli_si128(t, 4);
+  pstore_lo32(t, x + 2 * stride);
+  t = _mm_srli_si128(t, 4);
+  pstore_lo32(t, x + 3 * stride);
+
+#else
+
+  pstore_lo64(t, x + 0);
+  pstore_hi64(t, x + stride);
 
 #endif
 }

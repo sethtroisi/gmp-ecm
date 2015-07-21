@@ -66,10 +66,10 @@ ntt4_twiddle_run_core_simd(spv_t x, sp_simd_t *w,
   sp_simd_t t0, t1, t2, t3;
   sp_simd_t p0, p1, p2, p3;
 
-  x0 = sp_simd_gather(x + 0 * stride);
-  x1 = sp_simd_gather(x + 1 * stride);
-  x2 = sp_simd_gather(x + 2 * stride);
-  x3 = sp_simd_gather(x + 3 * stride);
+  x0 = sp_simd_load(x + 0 * stride);
+  x1 = sp_simd_load(x + 1 * stride);
+  x2 = sp_simd_load(x + 2 * stride);
+  x3 = sp_simd_load(x + 3 * stride);
 
   t0 = sp_ntt_add_simd(x0, x2, p);
   t2 = sp_ntt_sub_simd(x0, x2, p);
@@ -87,10 +87,10 @@ ntt4_twiddle_run_core_simd(spv_t x, sp_simd_t *w,
   p1 = sp_ntt_twiddle_mul_simd(p1, w + 2, p);
   p3 = sp_ntt_twiddle_mul_simd(p3, w + 4, p);
 
-  sp_simd_scatter(p0, x + 0 * stride);
-  sp_simd_scatter(p2, x + 1 * stride);
-  sp_simd_scatter(p1, x + 2 * stride);
-  sp_simd_scatter(p3, x + 3 * stride);
+  sp_simd_store(p0, x + 0 * stride);
+  sp_simd_store(p2, x + 1 * stride);
+  sp_simd_store(p1, x + 2 * stride);
+  sp_simd_store(p3, x + 3 * stride);
 }
 #endif
 

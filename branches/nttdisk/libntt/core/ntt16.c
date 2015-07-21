@@ -249,22 +249,22 @@ ntt16_twiddle_run_core_simd(spv_t x, sp_simd_t *w,
   sp_simd_t p0, p1, p2, p3, p4, p5, p6, p7,
             p8, p9, p10, p11, p12, p13, p14, p15, p16, p17;
 
-  x0 = sp_simd_gather(x + 0 * stride);
-  x1 = sp_simd_gather(x + 1 * stride);
-  x2 = sp_simd_gather(x + 2 * stride);
-  x3 = sp_simd_gather(x + 3 * stride);
-  x4 = sp_simd_gather(x + 4 * stride);
-  x5 = sp_simd_gather(x + 5 * stride);
-  x6 = sp_simd_gather(x + 6 * stride);
-  x7 = sp_simd_gather(x + 7 * stride);
-  x8 = sp_simd_gather(x + 8 * stride);
-  x9 = sp_simd_gather(x + 9 * stride);
-  x10 = sp_simd_gather(x + 10 * stride);
-  x11 = sp_simd_gather(x + 11 * stride);
-  x12 = sp_simd_gather(x + 12 * stride);
-  x13 = sp_simd_gather(x + 13 * stride);
-  x14 = sp_simd_gather(x + 14 * stride);
-  x15 = sp_simd_gather(x + 15 * stride);
+  x0 = sp_simd_load(x + 0 * stride);
+  x1 = sp_simd_load(x + 1 * stride);
+  x2 = sp_simd_load(x + 2 * stride);
+  x3 = sp_simd_load(x + 3 * stride);
+  x4 = sp_simd_load(x + 4 * stride);
+  x5 = sp_simd_load(x + 5 * stride);
+  x6 = sp_simd_load(x + 6 * stride);
+  x7 = sp_simd_load(x + 7 * stride);
+  x8 = sp_simd_load(x + 8 * stride);
+  x9 = sp_simd_load(x + 9 * stride);
+  x10 = sp_simd_load(x + 10 * stride);
+  x11 = sp_simd_load(x + 11 * stride);
+  x12 = sp_simd_load(x + 12 * stride);
+  x13 = sp_simd_load(x + 13 * stride);
+  x14 = sp_simd_load(x + 14 * stride);
+  x15 = sp_simd_load(x + 15 * stride);
 
   t0 = sp_ntt_add_simd(x0, x8, p);
   t8 = sp_ntt_sub_simd(x0, x8, p);
@@ -393,22 +393,22 @@ ntt16_twiddle_run_core_simd(spv_t x, sp_simd_t *w,
   p6  = sp_ntt_twiddle_mul_simd(p6, w + 26, p);
   p10 = sp_ntt_twiddle_mul_simd(p10, w + 28, p);
 
-  sp_simd_scatter(p0,  x +  0 * stride);
-  sp_simd_scatter(p8,  x +  1 * stride);
-  sp_simd_scatter(p4,  x +  2 * stride);
-  sp_simd_scatter(p15, x +  3 * stride);
-  sp_simd_scatter(p2,  x +  4 * stride);
-  sp_simd_scatter(p12, x +  5 * stride);
-  sp_simd_scatter(p7,  x +  6 * stride);
-  sp_simd_scatter(p11, x +  7 * stride);
-  sp_simd_scatter(p1,  x +  8 * stride);
-  sp_simd_scatter(p9,  x +  9 * stride);
-  sp_simd_scatter(p5,  x + 10 * stride);
-  sp_simd_scatter(p14, x + 11 * stride);
-  sp_simd_scatter(p3,  x + 12 * stride);
-  sp_simd_scatter(p13, x + 13 * stride);
-  sp_simd_scatter(p6,  x + 14 * stride);
-  sp_simd_scatter(p10, x + 15 * stride);
+  sp_simd_store(p0,  x +  0 * stride);
+  sp_simd_store(p8,  x +  1 * stride);
+  sp_simd_store(p4,  x +  2 * stride);
+  sp_simd_store(p15, x +  3 * stride);
+  sp_simd_store(p2,  x +  4 * stride);
+  sp_simd_store(p12, x +  5 * stride);
+  sp_simd_store(p7,  x +  6 * stride);
+  sp_simd_store(p11, x +  7 * stride);
+  sp_simd_store(p1,  x +  8 * stride);
+  sp_simd_store(p9,  x +  9 * stride);
+  sp_simd_store(p5,  x + 10 * stride);
+  sp_simd_store(p14, x + 11 * stride);
+  sp_simd_store(p3,  x + 12 * stride);
+  sp_simd_store(p13, x + 13 * stride);
+  sp_simd_store(p6,  x + 14 * stride);
+  sp_simd_store(p10, x + 15 * stride);
 }
 #endif
 
