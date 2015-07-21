@@ -17,6 +17,89 @@ ntt3_init(spv_t out, sp_t p, sp_t d,
   nttdata_init_generic(&ntt3_config, out, p, d, primroot, order);
 }
 
+static void 
+ntt3_run_core(spv_t in, spv_size_t istride,
+		spv_t out, spv_size_t ostride,
+		sp_t p, spv_t ntt_const)
+{
+  sp_t p0, p1, p2;
+  sp_t x0, x1, x2;
+  sp_t     t1, t2;
+
+  x0 = in[0 * istride];
+  x1 = in[1 * istride];
+  x2 = in[2 * istride];
+
+  t1 = sp_ntt_add(x1, x2, p);
+  t2 = sp_ntt_sub_partial(x1, x2, p);
+
+  p0 = sp_ntt_add(x0, t1, p);
+
+  p1 = sp_ntt_mul(t1, ntt_const[1], ntt_const[NC+1], p);
+  p2 = sp_ntt_mul(t2, ntt_const[2], ntt_const[NC+2], p);
+
+  p1 = sp_ntt_add(p0, p1, p);
+
+  t1 = sp_ntt_add(p1, p2, p);
+  t2 = sp_ntt_sub(p1, p2, p);
+
+  out[0 * ostride] = p0;
+  out[1 * ostride] = t1;
+  out[2 * ostride] = t2;
+}
+
+#ifdef HAVE_SSE2
+static void
+ntt3_run_core_simd(spv_t in, spv_size_t istride, spv_size_t idist,
+		spv_t out, spv_size_t ostride, spv_size_t odist,
+		sp_t p, spv_t ntt_const)
+{
+  sp_simd_t p0, p1, p2;
+  sp_simd_t x0, x1, x2;
+  sp_simd_t     t1, t2;
+
+  x0 = sp_simd_gather(in + 0 * istride, idist);
+  x1 = sp_simd_gather(in + 1 * istride, idist);
+  x2 = sp_simd_gather(in + 2 * istride, idist);
+
+  t1 = sp_ntt_add_simd(x1, x2, p);
+  t2 = sp_ntt_sub_partial_simd(x1, x2, p);
+
+  p0 = sp_ntt_add_simd(x0, t1, p);
+
+  p1 = sp_ntt_mul_simd(t1, ntt_const[1], ntt_const[NC+1], p);
+  p2 = sp_ntt_mul_simd(t2, ntt_const[2], ntt_const[NC+2], p);
+
+  p1 = sp_ntt_add_simd(p0, p1, p);
+
+  t1 = sp_ntt_add_simd(p1, p2, p);
+  t2 = sp_ntt_sub_simd(p1, p2, p);
+
+  sp_simd_scatter(p0, out + 0 * ostride, odist);
+  sp_simd_scatter(t1, out + 1 * ostride, odist);
+  sp_simd_scatter(t2, out + 2 * ostride, odist);
+}
+#endif
+
+
+static void
+ntt3_run(spv_t x, spv_size_t num_transforms,
+	  sp_t p, spv_t ntt_const)
+{
+  spv_size_t i = 0;
+
+#ifdef HAVE_SSE2
+  spv_size_t num_simd = SP_SIMD_VSIZE * (num_transforms / SP_SIMD_VSIZE);
+
+  for (i = 0; i < num_simd; i += 3 * SP_SIMD_VSIZE)
+    ntt3_run_core_simd(x + i, 1, 3, x + i, 1, 3, p, ntt_const);
+#endif
+
+  for (; i < num_transforms; i += 3)
+    ntt3_run_core(x + i, 1, x + i, 1, p, ntt_const);
+}
+
+
 static void
 ntt3_twiddle_run_core(spv_t x, spv_t w, spv_size_t stride,
 			sp_t p, spv_t ntt_const)
@@ -213,6 +296,7 @@ const nttconfig_t ntt3_config =
   NC,
   ntt3_get_fixed_ntt_const,
   ntt3_init,
+  ntt3_run,
   ntt3_pfa_run,
   ntt3_twiddle_run
 };

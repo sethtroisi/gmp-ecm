@@ -9,6 +9,9 @@ typedef void (*nttdata_init_t)(spv_t out,
 				sp_t p, sp_t d,
 				sp_t primroot, sp_t order);
 
+typedef void (*ntt_run_t)(spv_t x, spv_size_t num_transforms, 
+			  sp_t p, spv_t ntt_const);
+
 typedef void (*ntt_pfa_run_t)(spv_t x, spv_size_t cofactor, 
 			  sp_t p, spv_t ntt_const);
 
@@ -743,6 +746,7 @@ typedef struct
   uint32_t num_ntt_const;
   get_fixed_ntt_const_t get_fixed_ntt_const;
   nttdata_init_t nttdata_init;
+  ntt_run_t ntt_run;
   ntt_pfa_run_t ntt_pfa_run;
   ntt_twiddle_run_t ntt_twiddle_run;
 } nttconfig_t;
