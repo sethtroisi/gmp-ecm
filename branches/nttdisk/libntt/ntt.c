@@ -293,6 +293,7 @@ error_free:
 /*-------------------------------------------------------------------------*/
 void ntt_free(void *data)
 {
+  spv_size_t i;
   nttdata_t *d = (nttdata_t *)data;
 
   if (d == NULL)
@@ -300,56 +301,123 @@ void ntt_free(void *data)
 
   free(d->codelets);
   free(d->codelet_const);
+
+  for (i = 0; i < d->num_passes; i++)
+    if (d->passes[i].pass_type == PASS_TYPE_TWIDDLE)
+      sp_aligned_free(d->passes[i].d.twiddle.w);
+
   free(d);
 }
 
 /*-------------------------------------------------------------------------*/
-uint32_t ntt_build_passes(nttpass_t *passes,
-    		codelet_data_t *codelets, uint32_t num_codelets,
+static spv_t
+make_twiddle(sp_t primroot, sp_t order, sp_t p, sp_t d,
+    		spv_size_t rows, spv_size_t cols)
+{
+  spv_size_t size = rows * cols;
+  spv_t res = (spv_t)sp_aligned_malloc(2 * (rows - 1) * cols * sizeof(sp_t));
+
+  sp_t w = sp_pow(primroot, order / size, p, d);
+  sp_t w_inc = 1;
+  spv_size_t i = 0;
+  spv_size_t j, k;
+
+#ifdef HAVE_SSE2
+  spv_size_t num_simd = SP_SIMD_VSIZE * (cols / SP_SIMD_VSIZE);
+
+  for (; i < num_simd; i += SP_SIMD_VSIZE)
+    {
+      for (j = 0; j < SP_SIMD_VSIZE; j++)
+	{
+	  sp_t w0 = w_inc;
+
+	  for (k = 0; k < rows - 1; k++)
+	    {
+	      res[2*i*(rows-1) + (2*k)*SP_SIMD_VSIZE + j] = w0;
+	      res[2*i*(rows-1) + (2*k+1)*SP_SIMD_VSIZE + j] = sp_ntt_reciprocal(w0, p);
+	      w0 = sp_mul(w0, w_inc, p, d);
+	    }
+
+	  w_inc = sp_mul(w_inc, w, p, d);
+	}
+    }
+#endif
+
+  for (; i < cols; i++)
+    {
+      sp_t w0 = w_inc;
+
+      for (j = 0; j < rows - 1; j++)
+	{
+	  res[2*i*(rows-1) + 2*j] = w0;
+	  res[2*i*(rows-1) + 2*j+1] = sp_ntt_reciprocal(w0, p);
+	  w0 = sp_mul(w0, w_inc, p, d);
+	}
+
+      w_inc = sp_mul(w_inc, w, p, d);
+    }
+
+  return res;
+}
+
+/*-------------------------------------------------------------------------*/
+uint32_t ntt_build_passes(nttdata_t *data,
     		nttplan_t *plans, uint32_t num_plans,
-		sp_t size, sp_t p, sp_t primroot, sp_t d)
+		sp_t size, sp_t p, sp_t primroot, sp_t order, sp_t d)
 {
   uint32_t i, j, k;
+  nttpass_t *passes = data->passes;
+  uint32_t num_codelets = data->num_codelets;
+  codelet_data_t *codelets = data->codelets;
 
   for (i = j = 0; i < num_plans; i++)
     {
-      nttplan_t * p = plans + i;
+      nttplan_t * plan = plans + i;
       codelet_data_t * c = NULL;
 
       for (k = 0; k < num_codelets; k++)
 	{
 	  c = codelets + k;
-	  if (c->config->size == p->codelet_size)
+	  if (c->config->size == plan->codelet_size)
 	    break;
 	}
 
       if (k == num_codelets)
 	return 0;
 
-      passes[j].pass_type = p->pass_type;
+      passes[j].pass_type = plan->pass_type;
 
-      switch (p->pass_type)
+      switch (plan->pass_type)
 	{
 	  case PASS_TYPE_DIRECT:
-	    passes[j++].d.direct.codelet = c;
+	    passes[j].d.direct.codelet = c;
+	    passes[j].d.direct.num_transforms = size / plan->codelet_size;
+	    j++;
 	    break;
 
 	  case PASS_TYPE_PFA:
-	    {
-	      nttpass_t * pass = passes + j;
-	      pass->d.pfa.codelets[pass->d.pfa.num_codelets++] = c;
+	    passes[j].d.pfa.codelet = c;
+	    passes[j].d.pfa.cofactor = size / plan->codelet_size;
+	    j++;
+	    break;
 
-	      if (i == num_plans - 1) /* PFA transform configured */
-		j++;
+	  case PASS_TYPE_TWIDDLE:
+	    {
+	      spv_size_t cols = size / plan->codelet_size;
+	      spv_size_t rows = plan->codelet_size;
+
+	      passes[j].d.twiddle.codelet = c;
+	      passes[j].d.twiddle.num_transforms = cols;
+	      passes[j].d.twiddle.stride = size / cols;
+	      passes[j].d.twiddle.w = make_twiddle(primroot, order, p, d, rows, cols);
+	      size = cols;
+	      j++;
 	      break;
 	    }
-
-	  case PASS_TYPE_TWIDDLE_PRE:
-	  case PASS_TYPE_TWIDDLE:
-	    return 0;
 	}
     }
 
+  data->num_passes = j;
   return j;
 }
 

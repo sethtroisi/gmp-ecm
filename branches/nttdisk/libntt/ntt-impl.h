@@ -768,11 +768,9 @@ typedef enum
 {
   PASS_TYPE_DIRECT,
   PASS_TYPE_PFA,
-  PASS_TYPE_TWIDDLE,
-  PASS_TYPE_TWIDDLE_PRE
+  PASS_TYPE_TWIDDLE
 } pass_type_t;
 
-#define MAX_PFA_CODELETS 6
 #define MAX_PASSES 10
 
 typedef struct
@@ -783,23 +781,23 @@ typedef struct
   {
     struct
     {
+      spv_size_t num_transforms;
       codelet_data_t *codelet;
     } direct;
 
     struct
     {
-      uint32_t num_codelets;
-      codelet_data_t *codelets[MAX_PFA_CODELETS];
+      spv_size_t cofactor;
+      codelet_data_t *codelet;
     } pfa;
 
     struct
     {
+      spv_size_t num_transforms;
       spv_size_t stride;
-      spv_size_t row_size;
       codelet_data_t *codelet;
-      spv_t twiddle;
-      spv_t twiddle_inv;
-    } twiddle_pre;
+      spv_t w;
+    } twiddle;
 
   } d;
 
@@ -813,7 +811,8 @@ typedef struct
   codelet_data_t *codelets;
   spv_t codelet_const;
 
-  nttpass_t *passes;
+  uint32_t num_passes;
+  nttpass_t passes[MAX_PASSES];
 } nttdata_t;
 
 /* guides for constructing transforms */
@@ -838,6 +837,11 @@ extern const nttconfig_t ntt15_config;
 extern const nttconfig_t ntt16_config;
 extern const nttconfig_t ntt35_config;
 extern const nttconfig_t ntt40_config;
+
+uint32_t 
+ntt_build_passes(nttdata_t *data,
+    		nttplan_t *plans, uint32_t num_plans,
+		sp_t size, sp_t p, sp_t primroot, sp_t order, sp_t d);
 
 /* external interface */
 
