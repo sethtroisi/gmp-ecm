@@ -1486,12 +1486,12 @@ ntt40_run(spv_t x, spv_size_t num_transforms,
 #ifdef HAVE_SSE2
   spv_size_t num_simd = SP_SIMD_VSIZE * (num_transforms / SP_SIMD_VSIZE);
 
-  for (i = 0; i < num_simd; i += 40 * SP_SIMD_VSIZE)
-    ntt40_run_core_simd(x + i, 1, 40, x + i, 1, 40, p, ntt_const);
+  for (i = 0; i < num_simd; i += SP_SIMD_VSIZE)
+    ntt40_run_core_simd(x + 40 * i, 1, 40, x + 40 * i, 1, 40, p, ntt_const);
 #endif
 
-  for (; i < num_transforms; i += 40)
-    ntt40_run_core(x + i, 1, x + i, 1, p, ntt_const);
+  for (; i < num_transforms; i++)
+    ntt40_run_core(x + 40 * i, 1, x + 40 * i, 1, p, ntt_const);
 }
 
 
@@ -2958,9 +2958,9 @@ ntt40_twiddle_run_core_simd(spv_t x, sp_simd_t *w,
     t7 = sp_ntt_twiddle_mul_simd(t7, w + 4, p);
     t0 = sp_ntt_twiddle_mul_simd(t0, w + 14, p);
     t5 = sp_ntt_twiddle_mul_simd(t5, w + 24, p);
-    t2 = sp_ntt_twiddle_mul_simd(t1, w + 34, p);
+    t2 = sp_ntt_twiddle_mul_simd(t2, w + 34, p);
     t6 = sp_ntt_twiddle_mul_simd(t6, w + 44, p);
-    t1 = sp_ntt_twiddle_mul_simd(t2, w + 54, p);
+    t1 = sp_ntt_twiddle_mul_simd(t1, w + 54, p);
     t4 = sp_ntt_twiddle_mul_simd(t4, w + 64, p);
     t3 = sp_ntt_twiddle_mul_simd(t3, w + 74, p);
 

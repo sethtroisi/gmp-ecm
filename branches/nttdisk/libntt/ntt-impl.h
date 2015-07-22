@@ -776,26 +776,24 @@ typedef enum
 typedef struct
 {
   pass_type_t pass_type;
+  codelet_data_t *codelet;
 
   union
   {
     struct
     {
       spv_size_t num_transforms;
-      codelet_data_t *codelet;
     } direct;
 
     struct
     {
       spv_size_t cofactor;
-      codelet_data_t *codelet;
     } pfa;
 
     struct
     {
       spv_size_t num_transforms;
       spv_size_t stride;
-      codelet_data_t *codelet;
       spv_t w;
     } twiddle;
 
@@ -847,6 +845,8 @@ ntt_build_passes(nttdata_t *data,
 
 void * ntt_init(sp_t size, sp_t primroot, sp_t p, sp_t d);
 void ntt_free(void *data);
+void ntt_reset(void *data);
+void ntt_run(spv_t x, sp_t p, void *data);
 
 uint32_t planner_init(spm_t spm, sp_t size, spm_t existing);
 void planner_free(nttpass_t *passes, uint32_t num_passes);

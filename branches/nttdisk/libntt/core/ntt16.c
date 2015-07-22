@@ -390,12 +390,12 @@ ntt16_run(spv_t x, spv_size_t num_transforms,
 #ifdef HAVE_SSE2
   spv_size_t num_simd = SP_SIMD_VSIZE * (num_transforms / SP_SIMD_VSIZE);
 
-  for (i = 0; i < num_simd; i += 16 * SP_SIMD_VSIZE)
-    ntt16_run_core_simd(x + i, 1, 16, x + i, 1, 16, p, ntt_const);
+  for (i = 0; i < num_simd; i += SP_SIMD_VSIZE)
+    ntt16_run_core_simd(x + 16 * i, 1, 16, x + 16 * i, 1, 16, p, ntt_const);
 #endif
 
-  for (; i < num_transforms; i += 16)
-    ntt16_run_core(x + i, 1, x + i, 1, p, ntt_const);
+  for (; i < num_transforms; i++)
+    ntt16_run_core(x + 16 * i, 1, x + 16 * i, 1, p, ntt_const);
 }
 
 

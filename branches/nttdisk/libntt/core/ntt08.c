@@ -171,12 +171,12 @@ ntt8_run(spv_t x, spv_size_t num_transforms,
 #ifdef HAVE_SSE2
   spv_size_t num_simd = SP_SIMD_VSIZE * (num_transforms / SP_SIMD_VSIZE);
 
-  for (i = 0; i < num_simd; i += 8 * SP_SIMD_VSIZE)
-    ntt8_run_core_simd(x + i, 1, 8, x + i, 1, 8, p, ntt_const);
+  for (i = 0; i < num_simd; i += SP_SIMD_VSIZE)
+    ntt8_run_core_simd(x + 8 * i, 1, 8, x + 8 * i, 1, 8, p, ntt_const);
 #endif
 
-  for (; i < num_transforms; i += 8)
-    ntt8_run_core(x + i, 1, x + i, 1, p, ntt_const);
+  for (; i < num_transforms; i++)
+    ntt8_run_core(x + 8 * i, 1, x + 8 * i, 1, p, ntt_const);
 }
 
 
@@ -238,7 +238,7 @@ ntt8_twiddle_run_core(spv_t x, spv_t w, spv_size_t stride,
   t2 = sp_ntt_mul(t2, w[2], w[3], p);
   t7 = sp_ntt_mul(t7, w[4], w[5], p);
   t1 = sp_ntt_mul(t1, w[6], w[7], p);
-  t5 = sp_ntt_mul(t5, w[8], w[8], p);
+  t5 = sp_ntt_mul(t5, w[8], w[9], p);
   t3 = sp_ntt_mul(t3, w[10], w[11], p);
   t6 = sp_ntt_mul(t6, w[12], w[13], p);
 

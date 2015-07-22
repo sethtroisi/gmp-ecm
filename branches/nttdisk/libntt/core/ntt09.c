@@ -308,12 +308,12 @@ ntt9_run(spv_t x, spv_size_t num_transforms,
 #ifdef HAVE_SSE2
   spv_size_t num_simd = SP_SIMD_VSIZE * (num_transforms / SP_SIMD_VSIZE);
 
-  for (i = 0; i < num_simd; i += 9 * SP_SIMD_VSIZE)
-    ntt9_run_core_simd(x + i, 1, 9, x + i, 1, 9, p, ntt_const);
+  for (i = 0; i < num_simd; i += SP_SIMD_VSIZE)
+    ntt9_run_core_simd(x + 9 * i, 1, 9, x + 9 * i, 1, 9, p, ntt_const);
 #endif
 
-  for (; i < num_transforms; i += 9)
-    ntt9_run_core(x + i, 1, x + i, 1, p, ntt_const);
+  for (; i < num_transforms; i++)
+    ntt9_run_core(x + 9 * i, 1, x + 9 * i, 1, p, ntt_const);
 }
 
 static void
