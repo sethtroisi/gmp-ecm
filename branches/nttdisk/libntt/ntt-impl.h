@@ -430,162 +430,17 @@ static inline sp_simd_t sp_ntt_sub_partial_simd(sp_simd_t a, sp_simd_t b, sp_t p
 #endif
 }
 
-static inline sp_simd_t sp_mul_simd(sp_simd_t a, sp_t w,
-				sp_t p, sp_t d)
-{
-#if SP_NUMB_BITS < 32
 
-  sp_simd_t t0, t1, t2, t3, vp, vp2, vd, vw;
-
-  vp = pshufd(pcvt_i32(p), 0x00);
-  vp2 = pshufd(pcvt_i32(p), 0x44);
-  vw = pshufd(pcvt_i32(w), 0x00);
-  vd = pshufd(pcvt_i32(d), 0x00);
-
-  t0 = a;
-  t1 = vw;
-  t2 = pshufd(t0, 0x31);
-  t3 = pshufd(t1, 0x31);
-  t0 = pmuludq(t0, t1);
-  t2 = pmuludq(t2, t3);
-  t1 = psrlq(t0, 2 * SP_NUMB_BITS - SP_TYPE_BITS);
-  t3 = psrlq(t2, 2 * SP_NUMB_BITS - SP_TYPE_BITS);
-  t1 = pmuludq(t1, vd);
-  t3 = pmuludq(t3, vd);
-
-#if SP_NUMB_BITS < 31
-  t1 = psrlq(t1, 33);
-  t3 = psrlq(t3, 33);
-  t1 = pmuludq(t1, vp);
-  t3 = pmuludq(t3, vp);
-  t0 = psubq(t0, t1);
-  t2 = psubq(t2, t3);
-#else
-  t1 = pshufd(t1, 0xf5);
-  t3 = pshufd(t3, 0xf5);
-  t1 = pmuludq(t1, vp);
-  t3 = pmuludq(t3, vp);
-  t0 = psubq(t0, t1);
-  t2 = psubq(t2, t3);
-
-  t0 = psubq(t0, vp2);
-  t2 = psubq(t2, vp2);
-  t1 = pshufd(t0, 0xf5);
-  t3 = pshufd(t2, 0xf5);
-  t1 = pand(t1, vp2);
-  t3 = pand(t3, vp2);
-  t0 = paddq(t0, t1);
-  t2 = paddq(t2, t3);
-#endif
-
-  t0 = pshufd(t0, 0x08);
-  t1 = pshufd(t2, 0x08);
-  t0 = punpcklo32(t0, t1);
-
-  t0 = psubd(t0, vp);
-  t1 = pcmpgtd(psetzero(), t0);
-  t1 = pand(t1, vp);
-  return paddd(t0, t1);
-
-#elif GMP_LIMB_BITS == 32 /* 64-bit sp_t on a 32-bit machine */
-
-  sp_simd_t t0, t1, t2, t3, t4, t5, vp, vd, vw;
-
-  vp = pshufd(pcvt_i64(p), 0x44);
-  vw = pshufd(pcvt_i64(w), 0x44);
-  vd = pshufd(pcvt_i64(d), 0x44);
-
-  t4 = a;
-  t5 = vw;
-
-  t3 = pshufd(t4, 0x31);
-  t3 = pmuludq(t3, t5);
-  t2 = pshufd(t5, 0x31);
-  t2 = pmuludq(t2, t4);
-  t1 = pshufd(t4, 0x31);
-  t4 = pmuludq(t4, t5);
-  t5 = pshufd(t5, 0x31);
-  t5 = pmuludq(t5, t1);
-  t3 = paddq(t2, t3);
-
-  t0 = t4;
-  t4 = psrlq(t4, 32);
-  t1 = t3;
-  t3 = psllq(t3, 32);
-  t3 = paddq(t3, t0);
-  t4 = paddq(t4, t1);
-  t4 = psrlq(t4, 32);
-  t4 = paddq(t4, t5);
-
-  t0 = t3;
-  t4 = psllq(t4, 2*(SP_TYPE_BITS - SP_NUMB_BITS));
-  t0 = psrlq(t0, 2*SP_NUMB_BITS - SP_TYPE_BITS);
-  t4 = paddq(t4, t0);
-
-  t5 = pshufd(t4, 0x31);
-  t5 = pmuludq(t5, vd);
-  t2 = pshufd(vd, 0x31);
-  t2 = pmuludq(t2, t4);
-  t1 = pshufd(t4, 0x31);
-  t4 = pmuludq(t4, vd);
-  t0 = pshufd(vd, 0x31);
-  t1 = pmuludq(t1, t0);
-  t5 = paddq(t5, t2);
-
-  t4 = psrlq(t4, 32);
-  t5 = paddq(t5, t4);
-  t5 = psrlq(t5, 32);
-  t1 = paddq(t1, t5);
-  t1 = psrlq(t1, 1);
-
-  t5 = pshufd(t1, 0x31);
-  t5 = pmuludq(t5, vp);
-  t2 = pshufd(vp, 0x31);
-  t2 = pmuludq(t2, t1);
-  t1 = pmuludq(t1, vp);
-  t5 = paddq(t5, t2);
-  t5 = psllq(t5, 32);
-  t1 = paddq(t1, t5);
-
-  t3 = psubq(t3, t1);
-
-  t0 = psubq(t3, vp);
-  t1 = pcmpgtd(psetzero(), t0);
-  t1 = pshufd(t1, 0xf5);
-  t1 = pand(t1, vp);
-  return paddq(t0, t1);
-
-#else
-
-  /* there's no way the SSE2 unit can keep up with a
-  64-bit multiplier in the ALU */
-
-  sp_simd_t t0, t1;
-  sp_t a0, a1;
-
-  pstore_i64(a0, a);
-  pstore_i64(a1, pshufd(a, 0x0e));
-
-  a0 = sp_mul(a0, w, p, d);
-  a1 = sp_mul(a1, w, p, d);
-
-  t0 = pcvt_i64(a0);
-  t1 = pcvt_i64(a1);
-  return punpcklo64(t0, t1);
-
-#endif
-}
- 
-
-static inline sp_simd_t sp_ntt_mul_simd_core(
-				sp_simd_t a, sp_simd_t vw, 
-				sp_simd_t vwi, sp_t p)
+static inline sp_simd_t sp_ntt_mul_simd(
+				sp_simd_t a, sp_t w, sp_t w_inv, sp_t p)
 {
 #if SP_TYPE_BITS == 32
 
   sp_simd_t t0, t1, t2, t3;
 
   sp_simd_t vp = pshufd(pcvt_i32(p), 0x00);
+  sp_simd_t vw = pshufd(pcvt_i32(w), 0x00);
+  sp_simd_t vwi = pshufd(pcvt_i32(w_inv), 0x00);
 
   t0 = pmuludq(a, vwi);
   t1 = pshufd(a, 0x31);
@@ -618,6 +473,8 @@ static inline sp_simd_t sp_ntt_mul_simd_core(
   sp_simd_t t0, t1, t2, t3, t4, t5, t6;
 
   sp_simd_t vp = pshufd(pcvt_i64(p), 0x44);
+  sp_simd_t vw = pshufd(pcvt_i64(w), 0x44),
+  sp_simd_t vwi = pshufd(pcvt_i64(w_inv), 0x44);
 
   t0 = pmuludq(a, vwi);
   t4 = pshufd(a, 0xf5);
@@ -668,24 +525,6 @@ static inline sp_simd_t sp_ntt_mul_simd_core(
   return sp_ntt_sub_simd(t6, vp, p);
   #endif
 
-#endif
-}
-
-static inline sp_simd_t sp_ntt_mul_simd(sp_simd_t a, sp_t w, 
-					sp_t w_inv, sp_t p)
-{
-#if SP_TYPE_BITS == 32
-   return sp_ntt_mul_simd_core(a,
-  			pshufd(pcvt_i32(w), 0x00),
-			pshufd(pcvt_i32(w_inv), 0x00),
-			p);
-
-#elif GMP_LIMB_BITS == 32   /* 64-bit sp_t on a 32-bit machine */
-   return sp_ntt_mul_simd_core(a,
-			pshufd(pcvt_i64(w), 0x44),
-			pshufd(pcvt_i64(w_inv), 0x44);
-			p);
-
 #else
 
   /* use CPU 64-bit multiplier */
@@ -714,8 +553,98 @@ static inline sp_simd_t sp_ntt_mul_simd(sp_simd_t a, sp_t w,
 static inline sp_simd_t sp_ntt_twiddle_mul_simd(sp_simd_t a, 
 					sp_simd_t *w, sp_t p)
 {
-#if SP_TYPE_BITS == 32 || GMP_LIMB_BITS == 32
-   return sp_ntt_mul_simd_core(a, pload(w), pload(w + 1), p);
+#if SP_TYPE_BITS == 32
+
+  sp_simd_t t0, t1, t2, t3;
+
+  sp_simd_t vp = pshufd(pcvt_i32(p), 0x00);
+  sp_simd_t vw = pload(w);
+  sp_simd_t vw2 = pshufd(vw, 0x31);
+  sp_simd_t vwi = pload(w + 1);
+  sp_simd_t vwi2 = pshufd(vwi, 0x31);
+
+  t0 = pmuludq(a, vwi);
+  t1 = pshufd(a, 0x31);
+  t2 = pmuludq(t1, vwi2);
+
+  t3 = pmuludq(a, vw);
+  t1 = pmuludq(t1, vw2);
+
+  t0 = psrlq(t0, 32);
+  t2 = psrlq(t2, 32);
+  t0 = pmuludq(t0, vp);
+  t2 = pmuludq(t2, vp);
+
+  t3 = psubq(t3, t0);
+  t1 = psubq(t1, t2);
+
+  t3 = pshufd(t3, 0x08);
+  t1 = pshufd(t1, 0x08);
+  t3 = punpcklo32(t3, t1);
+
+  #ifdef HAVE_PARTIAL_MOD
+  return t3;
+  #else
+  return sp_ntt_sub_simd(t3, vp, p);
+  #endif
+
+#elif GMP_LIMB_BITS == 32   /* 64-bit sp_t on a 32-bit machine */
+
+  sp_simd_t vmask;
+  sp_simd_t t0, t1, t2, t3, t4, t5, t6;
+
+  sp_simd_t vp = pshufd(pcvt_i64(p), 0x44);
+  sp_simd_t vw = pshufd(pcvt_i64(w), 0x44),
+  sp_simd_t vwi = pshufd(pcvt_i64(w_inv), 0x44);
+
+  t0 = pmuludq(a, vwi);
+  t4 = pshufd(a, 0xf5);
+  t1 = pmuludq(t4, vwi);
+  t5 = pshufd(vwi, 0xf5);
+  t2 = pmuludq(t5, a);
+  t3 = pmuludq(t4, t5);
+
+  t4 = psrlq(t1, 32);
+  t5 = psrlq(t2, 32);
+  t3 = paddq(t3, t4);
+  t3 = paddq(t3, t5);
+
+  t4 = psrlq(t0, 32);
+  t1 = pand(t1, vmask);
+  t2 = pand(t2, vmask);
+  t4 = paddq(t4, t1);
+  t4 = paddq(t4, t2);
+  t4 = psrlq(t4, 32);
+  t3 = paddq(t3, t4);  /* t3 = hi64(a * winv) */
+
+  t0 = pmuludq(a, vw);
+  t4 = pshufd(a, 0xf5);
+  t1 = pmuludq(t4, vw);
+  t5 = pshufd(vw, 0xf5);
+  t2 = pmuludq(t5, a);
+
+  t1 = psllq(t1, 32);
+  t2 = psllq(t2, 32);
+  t6 = paddq(t0, t1);
+  t6 = paddq(t6, t2); /* t6 = lo64(a * w) */
+
+  t0 = pmuludq(t3, vp);
+  t4 = pshufd(t3, 0xf5);
+  t1 = pmuludq(t4, vp);
+  t5 = pshufd(vp, 0xf5);
+  t2 = pmuludq(t5, t3);
+
+  t1 = psllq(t1, 32);
+  t2 = psllq(t2, 32);
+  t0 = paddq(t0, t1);
+  t0 = paddq(t0, t2); /* t0 = lo64(t3 * p) */
+
+  t6 = psubq(t6, t0);
+  #ifdef HAVE_PARTIAL_MOD
+  return t6;
+  #else
+  return sp_ntt_sub_simd(t6, vp, p);
+  #endif
 
 #else
 
