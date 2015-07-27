@@ -19,15 +19,7 @@ along with the SP Library; see the file COPYING.LIB.  If not, write to
 the Free Software Foundation, Inc., 51 Franklin St, Fifth Floor, Boston,
 MA 02110-1301, USA. */
 
-#include "config.h"
-#include <string.h> /* for memset */
-#include <stdio.h>
-#include <stdlib.h>
-#include <errno.h>
-#ifdef USE_VALGRIND
-#include <valgrind/memcheck.h>
-#endif
-#include "ecm-impl.h"
+#include "sp.h"
 
 void
 spv_random (spv_t x, spv_size_t len, sp_t m)

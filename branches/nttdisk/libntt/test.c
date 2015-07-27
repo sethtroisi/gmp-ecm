@@ -125,7 +125,10 @@ static void test_core(sp_t p, sp_t d, sp_t primroot,
       if (stop - start < elapsed)
 		elapsed = stop - start;
     }
-  printf(" %lf clocks/point\n", (double)elapsed / 10 / len);
+  printf(" %lf clocks/point %.2lf usec\n", 
+		(double)elapsed / 10 / len,
+		(double)elapsed / 10 / 2500
+		);
 
   ntt_reset(data);
 }

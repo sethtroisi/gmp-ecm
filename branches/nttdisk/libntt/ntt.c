@@ -334,7 +334,7 @@ make_twiddle(sp_t primroot, sp_t order, sp_t p, sp_t d,
   spv_size_t i = 0;
   spv_size_t j, k;
 
-#ifdef HAVE_SSE2
+#ifdef HAVE_SIMD
   spv_size_t num_simd = SP_SIMD_VSIZE * (cols / SP_SIMD_VSIZE);
 
   for (; i < num_simd; i += SP_SIMD_VSIZE)

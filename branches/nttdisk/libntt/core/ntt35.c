@@ -855,7 +855,7 @@ ntt35_run_core(spv_t in, spv_size_t istride,
 }
 
 
-#ifdef HAVE_SSE2
+#ifdef HAVE_SIMD
 static void
 ntt35_run_core_simd(spv_t in, spv_size_t istride, spv_size_t idist,
 		spv_t out, spv_size_t ostride, spv_size_t odist,
@@ -1701,7 +1701,7 @@ ntt35_run(spv_t x, spv_size_t num_transforms,
 {
   spv_size_t i = 0;
 
-#ifdef HAVE_SSE2
+#ifdef HAVE_SIMD
   spv_size_t num_simd = SP_SIMD_VSIZE * (num_transforms / SP_SIMD_VSIZE);
 
   for (i = 0; i < num_simd; i += SP_SIMD_VSIZE)
@@ -2589,7 +2589,7 @@ ntt35_twiddle_run_core(spv_t x, spv_t w, spv_size_t stride,
   }
 }
 
-#ifdef HAVE_SSE2
+#ifdef HAVE_SIMD
 static void
 ntt35_twiddle_run_core_simd(spv_t x, sp_simd_t *w,
 			spv_size_t stride,
@@ -3477,7 +3477,7 @@ ntt35_twiddle_run(spv_t x, spv_t w,
 {
   spv_size_t i = 0, j = 0;
 
-#ifdef HAVE_SSE2
+#ifdef HAVE_SIMD
   spv_size_t num_simd = SP_SIMD_VSIZE * (num_transforms / SP_SIMD_VSIZE);
 
   for (i = 0; i < num_simd; i += SP_SIMD_VSIZE,
@@ -4369,7 +4369,7 @@ ntt35_pfa_run_core(spv_t x, spv_size_t start,
   }
 }
 
-#ifdef HAVE_SSE2
+#ifdef HAVE_SIMD
 static void
 ntt35_pfa_run_core_simd(spv_t x, spv_size_t start,
 	  spv_size_t inc, spv_size_t inc2, spv_size_t n,
@@ -5260,7 +5260,7 @@ ntt35_pfa_run(spv_t x, spv_size_t cofactor,
   spv_size_t inc = cofactor;
   spv_size_t inc2 = 35;
 
-#ifdef HAVE_SSE2
+#ifdef HAVE_SIMD
   spv_size_t num_simd = SP_SIMD_VSIZE * (cofactor / SP_SIMD_VSIZE);
 
   for (i = 0; i < num_simd; i += SP_SIMD_VSIZE)

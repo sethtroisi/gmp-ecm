@@ -27,7 +27,7 @@
 #define _SP_H
 
 #include "basicdefs.h"
-#include "ecm-gmp.h"
+#include "gmp-xface.h"
 
 
 /* Basic defs for the data types used in Number Theoretic Transforms
