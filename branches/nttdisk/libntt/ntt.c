@@ -177,7 +177,7 @@ nttdata_init_generic(const nttconfig_t *c,
         xfixed[j] = 0;
       xfixed[i] = 1;
 
-      c->ntt_run(xfixed, 1, p, vfixed);
+      c->ntt_run(xfixed, 1, 0, xfixed, 1, 0, 1, p, vfixed);
 
       #ifdef HAVE_PARTIAL_MOD
       for (j = 0; j < n; j++)
@@ -198,7 +198,7 @@ nttdata_init_generic(const nttconfig_t *c,
           x[i] = 1;
 
           vfixed[j] = 1;
-          c->ntt_run(x, 1, p, vfixed);
+          c->ntt_run(x, 1, 0, x, 1, 0, 1, p, vfixed);
           vfixed[j] = 0;
 
           #ifdef HAVE_PARTIAL_MOD
@@ -440,7 +440,9 @@ ntt_run_recurse(spv_t x, sp_t p, nttdata_t *d, spv_size_t pass)
     {
       case PASS_TYPE_DIRECT:
 	curr_pass->codelet->config->ntt_run(
-	    		x, curr_pass->d.direct.num_transforms,
+	    		x, 1, curr_pass->codelet->config->size,
+	    		x, 1, curr_pass->codelet->config->size,
+			curr_pass->d.direct.num_transforms,
 			p, curr_pass->codelet->ntt_const);
 	return;
 
@@ -453,8 +455,9 @@ ntt_run_recurse(spv_t x, sp_t p, nttdata_t *d, spv_size_t pass)
     }
 
   curr_pass->codelet->config->ntt_twiddle_run(
-		x, curr_pass->d.twiddle.w,
-		curr_pass->d.twiddle.stride,
+		x, curr_pass->d.twiddle.stride, 1,
+		x, curr_pass->d.twiddle.stride, 1,
+		curr_pass->d.twiddle.w,
 		curr_pass->d.twiddle.num_transforms,
 		p, curr_pass->codelet->ntt_const);
 
@@ -464,7 +467,9 @@ ntt_run_recurse(spv_t x, sp_t p, nttdata_t *d, spv_size_t pass)
   if (curr_pass[1].pass_type == PASS_TYPE_DIRECT)
     {
       curr_pass[1].codelet->config->ntt_run(
-	    		x, curr_pass[1].d.direct.num_transforms,
+	    		x, 1, curr_pass[1].codelet->config->size,
+	    		x, 1, curr_pass[1].codelet->config->size,
+			curr_pass[1].d.direct.num_transforms,
 			p, curr_pass[1].codelet->ntt_const);
     }
   else

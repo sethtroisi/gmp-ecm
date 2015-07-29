@@ -46,28 +46,18 @@
 
 typedef __m128i sp_simd_t;
 
-static inline sp_simd_t sp_simd_load(spv_t x)
+
+static inline sp_simd_t sp_simd_gather(spv_t x, spv_size_t dist)
 {
 #if SP_TYPE_BITS == 32
 
-  return ploadu(x);
-
-#else
-
-  sp_simd_t t = pload_lo64(x);
-  return pload_hi64(t, x + 1);
-
-#endif
-}
-
-static inline sp_simd_t sp_simd_gather(spv_t x, spv_size_t stride)
-{
-#if SP_TYPE_BITS == 32
+  if (dist == 1)
+    return ploadu(x);
 
   sp_simd_t t0 = pload_lo32(x + 0);
-  sp_simd_t t1 = pload_lo32(x + stride);
-  sp_simd_t t2 = pload_lo32(x + 2 * stride);
-  sp_simd_t t3 = pload_lo32(x + 3 * stride);
+  sp_simd_t t1 = pload_lo32(x + dist);
+  sp_simd_t t2 = pload_lo32(x + 2 * dist);
+  sp_simd_t t3 = pload_lo32(x + 3 * dist);
   sp_simd_t r0 = punpcklo32(t0, t1);
   sp_simd_t r1 = punpcklo32(t2, t3);
   return punpcklo64(r0, r1);
@@ -75,7 +65,7 @@ static inline sp_simd_t sp_simd_gather(spv_t x, spv_size_t stride)
 #else
 
   sp_simd_t t = pload_lo64(x + 0);
-  return pload_hi64(t, x + stride);
+  return pload_hi64(t, x + dist);
 
 #endif
 }
@@ -107,36 +97,27 @@ static inline sp_simd_t sp_simd_pfa_gather(spv_t x, spv_size_t start_off,
 #endif
 }
 
-static inline void sp_simd_store(sp_simd_t t, spv_t x)
+static inline void sp_simd_scatter(sp_simd_t t, spv_t x, spv_size_t dist)
 {
 #if SP_TYPE_BITS == 32
 
-  pstoreu(t, x);
-
-#else
-
-  pstore_lo64(t, x);
-  pstore_hi64(t, x + 1);
-
-#endif
-}
-
-static inline void sp_simd_scatter(sp_simd_t t, spv_t x, spv_size_t stride)
-{
-#if SP_TYPE_BITS == 32
-
-  pstore_lo32(t, x + 0);
-  t = _mm_srli_si128(t, 4);
-  pstore_lo32(t, x + stride);
-  t = _mm_srli_si128(t, 4);
-  pstore_lo32(t, x + 2 * stride);
-  t = _mm_srli_si128(t, 4);
-  pstore_lo32(t, x + 3 * stride);
+  if (dist == 1)
+    pstoreu(t, x);
+  else
+    {
+      pstore_lo32(t, x + 0);
+      t = _mm_srli_si128(t, 4);
+      pstore_lo32(t, x + dist);
+      t = _mm_srli_si128(t, 4);
+      pstore_lo32(t, x + 2 * dist);
+      t = _mm_srli_si128(t, 4);
+      pstore_lo32(t, x + 3 * dist);
+    }
 
 #else
 
   pstore_lo64(t, x + 0);
-  pstore_hi64(t, x + stride);
+  pstore_hi64(t, x + dist);
 
 #endif
 }

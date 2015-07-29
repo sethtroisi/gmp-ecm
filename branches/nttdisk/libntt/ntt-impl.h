@@ -9,16 +9,17 @@ typedef void (*nttdata_init_t)(spv_t out,
 				sp_t p, sp_t d,
 				sp_t primroot, sp_t order);
 
-typedef void (*ntt_run_t)(spv_t x, spv_size_t num_transforms, 
-			  sp_t p, spv_t ntt_const);
+typedef void (*ntt_run_t)(spv_t in, spv_size_t istride, spv_size_t idist,
+    			spv_t out, spv_size_t ostride, spv_size_t odist,
+    			spv_size_t num_transforms, sp_t p, spv_t ntt_const);
 
 typedef void (*ntt_pfa_run_t)(spv_t x, spv_size_t cofactor, 
 			  sp_t p, spv_t ntt_const);
 
-typedef void (*ntt_twiddle_run_t)(spv_t x, spv_t w,
-			  spv_size_t stride,
-			  spv_size_t num_transforms, 
-			  sp_t p, spv_t ntt_const);
+typedef void (*ntt_twiddle_run_t)(
+    			spv_t in, spv_size_t istride, spv_size_t idist,
+    			spv_t out, spv_size_t ostride, spv_size_t odist,
+    			spv_t w, spv_size_t num_transforms, sp_t p, spv_t ntt_const);
 
 
 /* a copy of sp_add, but operating on array offsets. These

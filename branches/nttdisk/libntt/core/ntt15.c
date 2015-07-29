@@ -560,35 +560,39 @@ ntt15_run_core_simd(spv_t in, spv_size_t istride, spv_size_t idist,
 #endif
 
 static void
-ntt15_run(spv_t x, spv_size_t num_transforms,
-	  sp_t p, spv_t ntt_const)
+ntt15_run(spv_t in, spv_size_t istride, spv_size_t idist,
+    		spv_t out, spv_size_t ostride, spv_size_t odist,
+    		spv_size_t num_transforms, sp_t p, spv_t ntt_const)
 {
   spv_size_t i = 0;
 
 #ifdef HAVE_SIMD
   spv_size_t num_simd = SP_SIMD_VSIZE * (num_transforms / SP_SIMD_VSIZE);
 
-  for (i = 0; i < num_simd; i += SP_SIMD_VSIZE)
-    ntt15_run_core_simd(x + 15 * i, 1, 15, x + 15 * i, 1, 15, p, ntt_const);
+  for (; i < num_simd; i += SP_SIMD_VSIZE)
+    ntt15_run_core_simd(in + i * idist, istride, idist, 
+                        out + i * odist, ostride, odist, p, ntt_const);
 #endif
 
   for (; i < num_transforms; i++)
-    ntt15_run_core(x + 15 * i, 1, x + 15 * i, 1, p, ntt_const);
+    ntt15_run_core(in + i * idist, istride, 
+                out + i * odist, ostride, p, ntt_const);
 }
 
 
 static void
-ntt15_twiddle_run_core(spv_t x, spv_t w, spv_size_t stride,
-			sp_t p, spv_t ntt_const)
+ntt15_twiddle_run_core(spv_t in, spv_size_t istride,
+		spv_t out, spv_size_t ostride,
+		spv_t w, sp_t p, spv_t ntt_const)
 {
   sp_t a00, a01, a02, a03, a04, 
        a05, a06, a07, a08, a09, 
        a10, a11, a12, a13, a14;
 
   {
-    sp_t x00 = x[ 0 * stride];
-    sp_t x01 = x[ 5 * stride];
-    sp_t x02 = x[10 * stride];
+    sp_t x00 = in[ 0 * istride];
+    sp_t x01 = in[ 5 * istride];
+    sp_t x02 = in[10 * istride];
 
     a01 = sp_ntt_add(x01, x02, p);
     a02 = sp_ntt_sub(x01, x02, p);
@@ -596,9 +600,9 @@ ntt15_twiddle_run_core(spv_t x, spv_t w, spv_size_t stride,
     a00 = sp_ntt_add(x00, a01, p);
   }
   {
-    sp_t x03 = x[ 3 * stride];
-    sp_t x04 = x[ 8 * stride];
-    sp_t x05 = x[13 * stride];
+    sp_t x03 = in[ 3 * istride];
+    sp_t x04 = in[ 8 * istride];
+    sp_t x05 = in[13 * istride];
 
     a04 = sp_ntt_add(x04, x05, p);
     a05 = sp_ntt_sub(x04, x05, p);
@@ -606,9 +610,9 @@ ntt15_twiddle_run_core(spv_t x, spv_t w, spv_size_t stride,
     a03 = sp_ntt_add(x03, a04, p);
   }
   {
-    sp_t x08 = x[ 1 * stride];
-    sp_t x06 = x[ 6 * stride];
-    sp_t x07 = x[11 * stride];
+    sp_t x08 = in[ 1 * istride];
+    sp_t x06 = in[ 6 * istride];
+    sp_t x07 = in[11 * istride];
 
     a07 = sp_ntt_add(x07, x08, p);
     a08 = sp_ntt_sub(x07, x08, p);
@@ -616,9 +620,9 @@ ntt15_twiddle_run_core(spv_t x, spv_t w, spv_size_t stride,
     a06 = sp_ntt_add(x06, a07, p);
   }
   {
-    sp_t x11 = x[ 4 * stride];
-    sp_t x09 = x[ 9 * stride];
-    sp_t x10 = x[14 * stride];
+    sp_t x11 = in[ 4 * istride];
+    sp_t x09 = in[ 9 * istride];
+    sp_t x10 = in[14 * istride];
 
     a10 = sp_ntt_add(x10, x11, p);
     a11 = sp_ntt_sub(x10, x11, p);
@@ -626,9 +630,9 @@ ntt15_twiddle_run_core(spv_t x, spv_t w, spv_size_t stride,
     a09 = sp_ntt_add(x09, a10, p);
   }
   {
-    sp_t x13 = x[ 2 * stride];
-    sp_t x14 = x[ 7 * stride];
-    sp_t x12 = x[12 * stride];
+    sp_t x13 = in[ 2 * istride];
+    sp_t x14 = in[ 7 * istride];
+    sp_t x12 = in[12 * istride];
 
     a13 = sp_ntt_add(x13, x14, p);
     a14 = sp_ntt_sub(x13, x14, p);
@@ -791,9 +795,9 @@ ntt15_twiddle_run_core(spv_t x, spv_t w, spv_size_t stride,
     x02 = sp_ntt_mul(x02, w[8], w[9], p);
     x01 = sp_ntt_mul(x01, w[18], w[19], p);
 
-    x[ 0 * stride] = x00;
-    x[ 5 * stride] = x02;
-    x[10 * stride] = x01;
+    out[ 0 * ostride] = x00;
+    out[ 5 * ostride] = x02;
+    out[10 * ostride] = x01;
   }
   {
     sp_t x03, x04, x05;
@@ -808,9 +812,9 @@ ntt15_twiddle_run_core(spv_t x, spv_t w, spv_size_t stride,
     x03 = sp_ntt_mul(x03, w[10], w[11], p);
     x05 = sp_ntt_mul(x05, w[20], w[21], p);
 
-    x[ 1 * stride] = x04;
-    x[ 6 * stride] = x03;
-    x[11 * stride] = x05;
+    out[ 1 * ostride] = x04;
+    out[ 6 * ostride] = x03;
+    out[11 * ostride] = x05;
   }
   {
     sp_t x06, x07, x08;
@@ -825,9 +829,9 @@ ntt15_twiddle_run_core(spv_t x, spv_t w, spv_size_t stride,
     x07 = sp_ntt_mul(x07, w[12], w[13], p);
     x06 = sp_ntt_mul(x06, w[22], w[23], p);
 
-    x[ 2 * stride] = x08;
-    x[ 7 * stride] = x07;
-    x[12 * stride] = x06;
+    out[ 2 * ostride] = x08;
+    out[ 7 * ostride] = x07;
+    out[12 * ostride] = x06;
   }
   {
     sp_t x09, x10, x11;
@@ -842,9 +846,9 @@ ntt15_twiddle_run_core(spv_t x, spv_t w, spv_size_t stride,
     x11 = sp_ntt_mul(x11, w[14], w[15], p);
     x10 = sp_ntt_mul(x10, w[24], w[25], p);
 
-    x[ 3 * stride] = x09;
-    x[ 8 * stride] = x11;
-    x[13 * stride] = x10;
+    out[ 3 * ostride] = x09;
+    out[ 8 * ostride] = x11;
+    out[13 * ostride] = x10;
   }
   {
     sp_t x12, x13, x14;
@@ -859,26 +863,27 @@ ntt15_twiddle_run_core(spv_t x, spv_t w, spv_size_t stride,
     x12 = sp_ntt_mul(x12, w[16], w[17], p);
     x14 = sp_ntt_mul(x14, w[26], w[27], p);
 
-    x[ 4 * stride] = x13;
-    x[ 9 * stride] = x12;
-    x[14 * stride] = x14;
+    out[ 4 * ostride] = x13;
+    out[ 9 * ostride] = x12;
+    out[14 * ostride] = x14;
   }
 }
 
 #ifdef HAVE_SIMD
 static void
-ntt15_twiddle_run_core_simd(spv_t x, sp_simd_t *w,
-			spv_size_t stride,
-			sp_t p, spv_t ntt_const)
+ntt15_twiddle_run_core_simd(
+        spv_t in, spv_size_t istride, spv_size_t idist,
+		spv_t out, spv_size_t ostride, spv_size_t odist,
+		sp_simd_t *w, sp_t p, spv_t ntt_const)
 {
   sp_simd_t a00, a01, a02, a03, a04, 
             a05, a06, a07, a08, a09, 
             a10, a11, a12, a13, a14;
 
   {
-    sp_simd_t x00 = sp_simd_load(x +  0 * stride);
-    sp_simd_t x01 = sp_simd_load(x +  5 * stride);
-    sp_simd_t x02 = sp_simd_load(x + 10 * stride);
+    sp_simd_t x00 = sp_simd_gather(in +  0 * istride, idist);
+    sp_simd_t x01 = sp_simd_gather(in +  5 * istride, idist);
+    sp_simd_t x02 = sp_simd_gather(in + 10 * istride, idist);
 
     a01 = sp_ntt_add_simd(x01, x02, p);
     a02 = sp_ntt_sub_simd(x01, x02, p);
@@ -886,9 +891,9 @@ ntt15_twiddle_run_core_simd(spv_t x, sp_simd_t *w,
     a00 = sp_ntt_add_simd(x00, a01, p);
   }
   {
-    sp_simd_t x03 = sp_simd_load(x +  3 * stride);
-    sp_simd_t x04 = sp_simd_load(x +  8 * stride);
-    sp_simd_t x05 = sp_simd_load(x + 13 * stride);
+    sp_simd_t x03 = sp_simd_gather(in +  3 * istride, idist);
+    sp_simd_t x04 = sp_simd_gather(in +  8 * istride, idist);
+    sp_simd_t x05 = sp_simd_gather(in + 13 * istride, idist);
 
     a04 = sp_ntt_add_simd(x04, x05, p);
     a05 = sp_ntt_sub_simd(x04, x05, p);
@@ -896,9 +901,9 @@ ntt15_twiddle_run_core_simd(spv_t x, sp_simd_t *w,
     a03 = sp_ntt_add_simd(x03, a04, p);
   }
   {
-    sp_simd_t x08 = sp_simd_load(x +  1 * stride);
-    sp_simd_t x06 = sp_simd_load(x +  6 * stride);
-    sp_simd_t x07 = sp_simd_load(x + 11 * stride);
+    sp_simd_t x08 = sp_simd_gather(in +  1 * istride, idist);
+    sp_simd_t x06 = sp_simd_gather(in +  6 * istride, idist);
+    sp_simd_t x07 = sp_simd_gather(in + 11 * istride, idist);
 
     a07 = sp_ntt_add_simd(x07, x08, p);
     a08 = sp_ntt_sub_simd(x07, x08, p);
@@ -906,9 +911,9 @@ ntt15_twiddle_run_core_simd(spv_t x, sp_simd_t *w,
     a06 = sp_ntt_add_simd(x06, a07, p);
   }
   {
-    sp_simd_t x11 = sp_simd_load(x +  4 * stride);
-    sp_simd_t x09 = sp_simd_load(x +  9 * stride);
-    sp_simd_t x10 = sp_simd_load(x + 14 * stride);
+    sp_simd_t x11 = sp_simd_gather(in +  4 * istride, idist);
+    sp_simd_t x09 = sp_simd_gather(in +  9 * istride, idist);
+    sp_simd_t x10 = sp_simd_gather(in + 14 * istride, idist);
 
     a10 = sp_ntt_add_simd(x10, x11, p);
     a11 = sp_ntt_sub_simd(x10, x11, p);
@@ -916,9 +921,9 @@ ntt15_twiddle_run_core_simd(spv_t x, sp_simd_t *w,
     a09 = sp_ntt_add_simd(x09, a10, p);
   }
   {
-    sp_simd_t x13 = sp_simd_load(x +  2 * stride);
-    sp_simd_t x14 = sp_simd_load(x +  7 * stride);
-    sp_simd_t x12 = sp_simd_load(x + 12 * stride);
+    sp_simd_t x13 = sp_simd_gather(in +  2 * istride, idist);
+    sp_simd_t x14 = sp_simd_gather(in +  7 * istride, idist);
+    sp_simd_t x12 = sp_simd_gather(in + 12 * istride, idist);
 
     a13 = sp_ntt_add_simd(x13, x14, p);
     a14 = sp_ntt_sub_simd(x13, x14, p);
@@ -1081,9 +1086,9 @@ ntt15_twiddle_run_core_simd(spv_t x, sp_simd_t *w,
     x02 = sp_ntt_twiddle_mul_simd(x02, w + 8, p);
     x01 = sp_ntt_twiddle_mul_simd(x01, w + 18, p);
 
-    sp_simd_store(x00, x +  0 * stride);
-    sp_simd_store(x02, x +  5 * stride);
-    sp_simd_store(x01, x + 10 * stride);
+    sp_simd_scatter(x00, out +  0 * ostride, odist);
+    sp_simd_scatter(x02, out +  5 * ostride, odist);
+    sp_simd_scatter(x01, out + 10 * ostride, odist);
   }
   {
     sp_simd_t x03, x04, x05;
@@ -1098,9 +1103,9 @@ ntt15_twiddle_run_core_simd(spv_t x, sp_simd_t *w,
     x03 = sp_ntt_twiddle_mul_simd(x03, w + 10, p);
     x05 = sp_ntt_twiddle_mul_simd(x05, w + 20, p);
 
-    sp_simd_store(x04, x +  1 * stride);
-    sp_simd_store(x03, x +  6 * stride);
-    sp_simd_store(x05, x + 11 * stride);
+    sp_simd_scatter(x04, out +  1 * ostride, odist);
+    sp_simd_scatter(x03, out +  6 * ostride, odist);
+    sp_simd_scatter(x05, out + 11 * ostride, odist);
   }
   {
     sp_simd_t x06, x07, x08;
@@ -1115,9 +1120,9 @@ ntt15_twiddle_run_core_simd(spv_t x, sp_simd_t *w,
     x07 = sp_ntt_twiddle_mul_simd(x07, w + 12, p);
     x06 = sp_ntt_twiddle_mul_simd(x06, w + 22, p);
 
-    sp_simd_store(x08, x +  2 * stride);
-    sp_simd_store(x07, x +  7 * stride);
-    sp_simd_store(x06, x + 12 * stride);
+    sp_simd_scatter(x08, out +  2 * ostride, odist);
+    sp_simd_scatter(x07, out +  7 * ostride, odist);
+    sp_simd_scatter(x06, out + 12 * ostride, odist);
   }
   {
     sp_simd_t x09, x10, x11;
@@ -1132,9 +1137,9 @@ ntt15_twiddle_run_core_simd(spv_t x, sp_simd_t *w,
     x11 = sp_ntt_twiddle_mul_simd(x11, w + 14, p);
     x10 = sp_ntt_twiddle_mul_simd(x10, w + 24, p);
 
-    sp_simd_store(x09, x +  3 * stride);
-    sp_simd_store(x11, x +  8 * stride);
-    sp_simd_store(x10, x + 13 * stride);
+    sp_simd_scatter(x09, out +  3 * ostride, odist);
+    sp_simd_scatter(x11, out +  8 * ostride, odist);
+    sp_simd_scatter(x10, out + 13 * ostride, odist);
   }
   {
     sp_simd_t x12, x13, x14;
@@ -1149,33 +1154,37 @@ ntt15_twiddle_run_core_simd(spv_t x, sp_simd_t *w,
     x12 = sp_ntt_twiddle_mul_simd(x12, w + 16, p);
     x14 = sp_ntt_twiddle_mul_simd(x14, w + 26, p);
 
-    sp_simd_store(x13, x +  4 * stride);
-    sp_simd_store(x12, x +  9 * stride);
-    sp_simd_store(x14, x + 14 * stride);
+    sp_simd_scatter(x13, out +  4 * ostride, odist);
+    sp_simd_scatter(x12, out +  9 * ostride, odist);
+    sp_simd_scatter(x14, out + 14 * ostride, odist);
   }
 }
 #endif
 
 static void
-ntt15_twiddle_run(spv_t x, spv_t w,
-	  spv_size_t stride,
-	  spv_size_t num_transforms,
-	  sp_t p, spv_t ntt_const)
+ntt15_twiddle_run(spv_t in, spv_size_t istride, spv_size_t idist,
+    			spv_t out, spv_size_t ostride, spv_size_t odist,
+    			spv_t w, spv_size_t num_transforms, sp_t p, spv_t ntt_const)
 {
   spv_size_t i = 0, j = 0;
 
 #ifdef HAVE_SIMD
   spv_size_t num_simd = SP_SIMD_VSIZE * (num_transforms / SP_SIMD_VSIZE);
 
-  for (i = 0; i < num_simd; i += SP_SIMD_VSIZE,
+  for (; i < num_simd; i += SP_SIMD_VSIZE,
 		  	j += 2*(15-1)*SP_SIMD_VSIZE)
-    ntt15_twiddle_run_core_simd(x + i, (sp_simd_t *)(w + j),
-				stride, p, ntt_const);
+    ntt15_twiddle_run_core_simd(
+		in + i * idist, istride, idist,
+		out + i * odist, ostride, odist,
+		(sp_simd_t *)(w + j), p, ntt_const);
 #endif
 
   for (; i < num_transforms; i++, j += 2*(15-1))
-    ntt15_twiddle_run_core(x + i, w + j, stride, p, ntt_const);
+    ntt15_twiddle_run_core(in + i * idist, istride, 
+			out + i * odist, ostride,
+			w + j, p, ntt_const);
 }
+
 
 static void
 ntt15_pfa_run_core(spv_t x, spv_size_t start,

@@ -87,35 +87,39 @@ ntt4_run_core_simd(spv_t in, spv_size_t istride, spv_size_t idist,
 #endif
 
 static void
-ntt4_run(spv_t x, spv_size_t num_transforms,
-	  sp_t p, spv_t ntt_const)
+ntt4_run(spv_t in, spv_size_t istride, spv_size_t idist,
+    		spv_t out, spv_size_t ostride, spv_size_t odist,
+    		spv_size_t num_transforms, sp_t p, spv_t ntt_const)
 {
   spv_size_t i = 0;
 
 #ifdef HAVE_SIMD
   spv_size_t num_simd = SP_SIMD_VSIZE * (num_transforms / SP_SIMD_VSIZE);
 
-  for (i = 0; i < num_simd; i += SP_SIMD_VSIZE)
-    ntt4_run_core_simd(x + 4 * i, 1, 4, x + 4 * i, 1, 4, p, ntt_const);
+  for (; i < num_simd; i += SP_SIMD_VSIZE)
+    ntt4_run_core_simd(in + i * idist, istride, idist, 
+                        out + i * odist, ostride, odist, p, ntt_const);
 #endif
 
   for (; i < num_transforms; i++)
-    ntt4_run_core(x + 4 * i, 1, x + 4 * i, 1, p, ntt_const);
+    ntt4_run_core(in + i * idist, istride, 
+                out + i * odist, ostride, p, ntt_const);
 }
 
 
 static void
-ntt4_twiddle_run_core(spv_t x, spv_t w, spv_size_t stride,
-			sp_t p, spv_t ntt_const)
+ntt4_twiddle_run_core(spv_t in, spv_size_t istride,
+		spv_t out, spv_size_t ostride,
+		spv_t w, sp_t p, spv_t ntt_const)
 {
   sp_t x0, x1, x2, x3;
   sp_t t0, t1, t2, t3;
   sp_t p0, p1, p2, p3;
 
-  x0 = x[0 * stride];
-  x1 = x[1 * stride];
-  x2 = x[2 * stride];
-  x3 = x[3 * stride];
+  x0 = in[0 * istride];
+  x1 = in[1 * istride];
+  x2 = in[2 * istride];
+  x3 = in[3 * istride];
 
   t0 = sp_ntt_add(x0, x2, p);
   t2 = sp_ntt_sub(x0, x2, p);
@@ -133,27 +137,28 @@ ntt4_twiddle_run_core(spv_t x, spv_t w, spv_size_t stride,
   p1 = sp_ntt_mul(p1, w[2], w[3], p);
   p3 = sp_ntt_mul(p3, w[4], w[5], p);
 
-  x[0 * stride] = p0;
-  x[1 * stride] = p2;
-  x[2 * stride] = p1;
-  x[3 * stride] = p3;
+  out[0 * ostride] = p0;
+  out[1 * ostride] = p2;
+  out[2 * ostride] = p1;
+  out[3 * ostride] = p3;
 }
 
 
 #ifdef HAVE_SIMD
 static void
-ntt4_twiddle_run_core_simd(spv_t x, sp_simd_t *w,
-			spv_size_t stride,
-			sp_t p, spv_t ntt_const)
+ntt4_twiddle_run_core_simd(
+        spv_t in, spv_size_t istride, spv_size_t idist,
+		spv_t out, spv_size_t ostride, spv_size_t odist,
+		sp_simd_t *w, sp_t p, spv_t ntt_const)
 {
   sp_simd_t x0, x1, x2, x3;
   sp_simd_t t0, t1, t2, t3;
   sp_simd_t p0, p1, p2, p3;
 
-  x0 = sp_simd_load(x + 0 * stride);
-  x1 = sp_simd_load(x + 1 * stride);
-  x2 = sp_simd_load(x + 2 * stride);
-  x3 = sp_simd_load(x + 3 * stride);
+  x0 = sp_simd_gather(in + 0 * istride, idist);
+  x1 = sp_simd_gather(in + 1 * istride, idist);
+  x2 = sp_simd_gather(in + 2 * istride, idist);
+  x3 = sp_simd_gather(in + 3 * istride, idist);
 
   t0 = sp_ntt_add_simd(x0, x2, p);
   t2 = sp_ntt_sub_simd(x0, x2, p);
@@ -171,32 +176,35 @@ ntt4_twiddle_run_core_simd(spv_t x, sp_simd_t *w,
   p1 = sp_ntt_twiddle_mul_simd(p1, w + 2, p);
   p3 = sp_ntt_twiddle_mul_simd(p3, w + 4, p);
 
-  sp_simd_store(p0, x + 0 * stride);
-  sp_simd_store(p2, x + 1 * stride);
-  sp_simd_store(p1, x + 2 * stride);
-  sp_simd_store(p3, x + 3 * stride);
+  sp_simd_scatter(p0, out + 0 * ostride, odist);
+  sp_simd_scatter(p2, out + 1 * ostride, odist);
+  sp_simd_scatter(p1, out + 2 * ostride, odist);
+  sp_simd_scatter(p3, out + 3 * ostride, odist);
 }
 #endif
 
 static void
-ntt4_twiddle_run(spv_t x, spv_t w,
-	  spv_size_t stride,
-	  spv_size_t num_transforms,
-	  sp_t p, spv_t ntt_const)
+ntt4_twiddle_run(spv_t in, spv_size_t istride, spv_size_t idist,
+    			spv_t out, spv_size_t ostride, spv_size_t odist,
+    			spv_t w, spv_size_t num_transforms, sp_t p, spv_t ntt_const)
 {
   spv_size_t i = 0, j = 0;
 
 #ifdef HAVE_SIMD
   spv_size_t num_simd = SP_SIMD_VSIZE * (num_transforms / SP_SIMD_VSIZE);
 
-  for (i = 0; i < num_simd; i += SP_SIMD_VSIZE,
+  for (; i < num_simd; i += SP_SIMD_VSIZE,
 		  	j += 2*(4-1)*SP_SIMD_VSIZE)
-    ntt4_twiddle_run_core_simd(x + i, (sp_simd_t *)(w + j),
-				stride, p, ntt_const);
+    ntt4_twiddle_run_core_simd(
+		in + i * idist, istride, idist,
+		out + i * odist, ostride, odist,
+		(sp_simd_t *)(w + j), p, ntt_const);
 #endif
 
   for (; i < num_transforms; i++, j += 2*(4-1))
-    ntt4_twiddle_run_core(x + i, w + j, stride, p, ntt_const);
+    ntt4_twiddle_run_core(in + i * idist, istride, 
+			out + i * odist, ostride,
+			w + j, p, ntt_const);
 }
 
 static void
