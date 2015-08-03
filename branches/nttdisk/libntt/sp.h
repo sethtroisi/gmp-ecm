@@ -291,12 +291,12 @@ static inline sp_t sp_sub(sp_t a, sp_t b, sp_t m)
     "sbb %5, %3     \n\t"
     "cmovc %6, %0   \n\t"
     "cmovc %7, %1   \n\t"
+    "add %0, %2     \n\t"
+    "adc %1, %3     \n\t"
     : "+r" (tlo), "+r" (thi), "+r" (alo), "+r" (ahi)
     : "g" (blo), "g" (bhi), "g" (mlo), "g" (mhi) 
     : "cc"
   );
-
-  add_ssaaaa(ahi, alo, ahi, alo, thi, tlo);
 
   return (sp_t)ahi << 32 | alo;
 
@@ -340,7 +340,30 @@ static inline sp_t sp_add(sp_t a, sp_t b, sp_t m)
 
   #else  /* 64-bit sp_t on 32-bit machine */
 
-  return sp_sub(a, m - b, m);
+  mp_limb_t tlo = 0;
+  mp_limb_t thi = 0;
+  mp_limb_t alo = (uint32_t)a;
+  mp_limb_t ahi = (uint32_t)(a >> 32);
+  mp_limb_t blo = (uint32_t)b;
+  mp_limb_t bhi = (uint32_t)(b >> 32);
+  mp_limb_t mlo = (uint32_t)m;
+  mp_limb_t mhi = (uint32_t)(m >> 32);
+
+  __asm__ (
+    "add %4, %2     \n\t"
+    "adc %5, %3     \n\t"
+    "sub %6, %2     \n\t"
+    "sbb %7, %3     \n\t"
+    "cmovc %6, %0   \n\t"
+    "cmovc %7, %1   \n\t"
+    "add %0, %2     \n\t"
+    "adc %1, %3     \n\t"
+    : "+r" (tlo), "+r" (thi), "+r" (alo), "+r" (ahi)
+    : "g" (blo), "g" (bhi), "g" (mlo), "g" (mhi) 
+    : "cc"
+  );
+
+  return (sp_t)ahi << 32 | alo;
 
   #endif
 

@@ -225,14 +225,16 @@ static inline sp_simd_t sp_ntt_sub_partial_simd(sp_simd_t a, sp_simd_t b, sp_t p
 {
 #ifdef HAVE_PARTIAL_MOD
 
+  p = 2 * p;
+
   #if SP_TYPE_BITS == 32
 
-  sp_simd_t vp = pshufd(pcvt_i32(2 * p), 0x00);
+  sp_simd_t vp = pshufd(pcvt_i32(p), 0x00);
   return paddd(psubd(a, b), vp);
 
   #else
 
-  sp_simd_t vp = pshufd(pcvt_i64(2 * p), 0x44);
+  sp_simd_t vp = pshufd(pcvt_i64(p), 0x44);
   return paddq(psubq(a, b), vp);
 
   #endif
