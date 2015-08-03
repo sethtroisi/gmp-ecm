@@ -283,60 +283,58 @@ static inline sp_simd_t sp_ntt_mul_simd(
 
 #elif GMP_LIMB_BITS == 32   /* 64-bit sp_t on a 32-bit machine */
 
-  sp_simd_t vmask;
-  sp_simd_t t0, t1, t2, t3, t4, t5, t6;
+  sp_simd_t t0, t1, t2, t3, t4, t5;
 
+  sp_simd_t vmask = pshufd(pcvt_i32(0xffffffff), 0x44);
   sp_simd_t vp = pshufd(pcvt_i64(p), 0x44);
-  sp_simd_t vw = pshufd(pcvt_i64(w), 0x44),
+  sp_simd_t vw = pshufd(pcvt_i64(w), 0x44);
   sp_simd_t vwi = pshufd(pcvt_i64(w_inv), 0x44);
 
+  sp_simd_t vp2 = pshufd(vp, 0x55);
+  sp_simd_t vw2 = pshufd(vw, 0xf5);
+  sp_simd_t vwi2 = pshufd(vwi, 0xf5);
+  sp_simd_t a2 = pshufd(a, 0xf5);
+
   t0 = pmuludq(a, vwi);
-  t4 = pshufd(a, 0xf5);
-  t1 = pmuludq(t4, vwi);
-  t5 = pshufd(vwi, 0xf5);
-  t2 = pmuludq(t5, a);
-  t3 = pmuludq(t4, t5);
+  t1 = pmuludq(a, vwi2);
+  t2 = pmuludq(a2, vwi);
+  t3 = pmuludq(a2, vwi2);
 
-  t4 = psrlq(t1, 32);
-  t5 = psrlq(t2, 32);
-  t3 = paddq(t3, t4);
-  t3 = paddq(t3, t5);
+  t0 = psrlq(t0, 32);
+  t4 = pand(t1, vmask);
+  t1 = psrlq(t1, 32);
+  t5 = pand(t2, vmask);
+  t2 = psrlq(t2, 32);
 
-  t4 = psrlq(t0, 32);
-  t1 = pand(t1, vmask);
-  t2 = pand(t2, vmask);
-  t4 = paddq(t4, t1);
-  t4 = paddq(t4, t2);
-  t4 = psrlq(t4, 32);
-  t3 = paddq(t3, t4);  /* t3 = hi64(a * winv) */
+  t5 = paddq(t5, t0);
+  t5 = paddq(t5, t4);
+  t5 = psrlq(t5, 32);
+  t3 = paddq(t3, t1);
+  t3 = paddq(t3, t2);
+  t3 = paddq(t3, t5);  /* t3 = hi64(a * winv) */
 
   t0 = pmuludq(a, vw);
-  t4 = pshufd(a, 0xf5);
-  t1 = pmuludq(t4, vw);
-  t5 = pshufd(vw, 0xf5);
-  t2 = pmuludq(t5, a);
+  t1 = pmuludq(a, vw2);
+  t2 = pmuludq(a2, vw);
 
-  t1 = psllq(t1, 32);
+  t2 = paddq(t2, t1);
   t2 = psllq(t2, 32);
-  t6 = paddq(t0, t1);
-  t6 = paddq(t6, t2); /* t6 = lo64(a * w) */
+  t2 = paddq(t2, t0); /* t2 = lo64(a * w) */
 
-  t0 = pmuludq(t3, vp);
-  t4 = pshufd(t3, 0xf5);
-  t1 = pmuludq(t4, vp);
-  t5 = pshufd(vp, 0xf5);
-  t2 = pmuludq(t5, t3);
+  t0 = pshufd(t3, 0xf5);
+  t1 = pmuludq(t3, vp);
+  t4 = pmuludq(t3, vp2);
+  t5 = pmuludq(t0, vp);
 
-  t1 = psllq(t1, 32);
-  t2 = psllq(t2, 32);
-  t0 = paddq(t0, t1);
-  t0 = paddq(t0, t2); /* t0 = lo64(t3 * p) */
+  t5 = paddq(t5, t4);
+  t5 = psllq(t5, 32);
+  t1 = paddq(t1, t5); /* t1 = lo64(t3 * p) */
 
-  t6 = psubq(t6, t0);
+  t2 = psubq(t2, t1);
   #ifdef HAVE_PARTIAL_MOD
-  return t6;
+  return t2;
   #else
-  return sp_ntt_sub_simd(t6, vp, p);
+  return sp_ntt_sub_simd(t2, vp, p);
   #endif
 
 #else
@@ -404,60 +402,57 @@ static inline sp_simd_t sp_ntt_twiddle_mul_simd(sp_simd_t a,
 
 #elif GMP_LIMB_BITS == 32   /* 64-bit sp_t on a 32-bit machine */
 
-  sp_simd_t vmask;
-  sp_simd_t t0, t1, t2, t3, t4, t5, t6;
+  sp_simd_t t0, t1, t2, t3, t4, t5;
 
+  sp_simd_t vmask = pshufd(pcvt_i32(0xffffffff), 0x44);
   sp_simd_t vp = pshufd(pcvt_i64(p), 0x44);
-  sp_simd_t vw = pshufd(pcvt_i64(w), 0x44),
-  sp_simd_t vwi = pshufd(pcvt_i64(w_inv), 0x44);
+  sp_simd_t vw = pload(w);
+  sp_simd_t vwi = pload(w + 1);
+  sp_simd_t vp2 = pshufd(vp, 0x55);
+  sp_simd_t vw2 = pshufd(vw, 0xf5);
+  sp_simd_t vwi2 = pshufd(vwi, 0xf5);
+  sp_simd_t a2 = pshufd(a, 0xf5);
 
   t0 = pmuludq(a, vwi);
-  t4 = pshufd(a, 0xf5);
-  t1 = pmuludq(t4, vwi);
-  t5 = pshufd(vwi, 0xf5);
-  t2 = pmuludq(t5, a);
-  t3 = pmuludq(t4, t5);
+  t1 = pmuludq(a, vwi2);
+  t2 = pmuludq(a2, vwi);
+  t3 = pmuludq(a2, vwi2);
 
-  t4 = psrlq(t1, 32);
-  t5 = psrlq(t2, 32);
-  t3 = paddq(t3, t4);
-  t3 = paddq(t3, t5);
+  t0 = psrlq(t0, 32);
+  t4 = pand(t1, vmask);
+  t1 = psrlq(t1, 32);
+  t5 = pand(t2, vmask);
+  t2 = psrlq(t2, 32);
 
-  t4 = psrlq(t0, 32);
-  t1 = pand(t1, vmask);
-  t2 = pand(t2, vmask);
-  t4 = paddq(t4, t1);
-  t4 = paddq(t4, t2);
-  t4 = psrlq(t4, 32);
-  t3 = paddq(t3, t4);  /* t3 = hi64(a * winv) */
+  t5 = paddq(t5, t0);
+  t5 = paddq(t5, t4);
+  t5 = psrlq(t5, 32);
+  t3 = paddq(t3, t1);
+  t3 = paddq(t3, t2);
+  t3 = paddq(t3, t5);  /* t3 = hi64(a * winv) */
 
   t0 = pmuludq(a, vw);
-  t4 = pshufd(a, 0xf5);
-  t1 = pmuludq(t4, vw);
-  t5 = pshufd(vw, 0xf5);
-  t2 = pmuludq(t5, a);
+  t1 = pmuludq(a, vw2);
+  t2 = pmuludq(a2, vw);
 
-  t1 = psllq(t1, 32);
+  t2 = paddq(t2, t1);
   t2 = psllq(t2, 32);
-  t6 = paddq(t0, t1);
-  t6 = paddq(t6, t2); /* t6 = lo64(a * w) */
+  t2 = paddq(t2, t0); /* t2 = lo64(a * w) */
 
-  t0 = pmuludq(t3, vp);
-  t4 = pshufd(t3, 0xf5);
-  t1 = pmuludq(t4, vp);
-  t5 = pshufd(vp, 0xf5);
-  t2 = pmuludq(t5, t3);
+  t0 = pshufd(t3, 0xf5);
+  t1 = pmuludq(t3, vp);
+  t4 = pmuludq(t3, vp2);
+  t5 = pmuludq(t0, vp);
 
-  t1 = psllq(t1, 32);
-  t2 = psllq(t2, 32);
-  t0 = paddq(t0, t1);
-  t0 = paddq(t0, t2); /* t0 = lo64(t3 * p) */
+  t5 = paddq(t5, t4);
+  t5 = psllq(t5, 32);
+  t1 = paddq(t1, t5); /* t1 = lo64(t3 * p) */
 
-  t6 = psubq(t6, t0);
+  t2 = psubq(t2, t1);
   #ifdef HAVE_PARTIAL_MOD
-  return t6;
+  return t2;
   #else
-  return sp_ntt_sub_simd(t6, vp, p);
+  return sp_ntt_sub_simd(t2, vp, p);
   #endif
 
 #else
