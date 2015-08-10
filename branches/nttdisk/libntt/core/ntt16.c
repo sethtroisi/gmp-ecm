@@ -12,7 +12,7 @@ ntt16_get_fixed_ntt_const(void)
 
 void
 ntt16_init(spv_t out, sp_t p, sp_t d, 
-	  sp_t primroot, sp_t order)
+	  sp_t primroot, sp_t order, sp_t perm)
 {
   uint32_t i;
   sp_t w[16];

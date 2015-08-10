@@ -137,6 +137,8 @@ static void test_core(sp_t p, sp_t d, sp_t primroot,
 static void do_direct_test(mpzspm_t mpzspm)
 {
   uint32_t i;
+  uint32_t num_codelets = ntt_master_list_size();
+  const nttconfig_t **codelets = ntt_master_list();
   sp_t p = mpzspm->spm[0]->sp;
   sp_t d = mpzspm->spm[0]->mul_c;
   sp_t primroot = mpzspm->spm[0]->primroot;
@@ -146,13 +148,12 @@ static void do_direct_test(mpzspm_t mpzspm)
 
   plans[0].pass_type = PASS_TYPE_DIRECT;
 
-  for (i = 0; i < nttdata->num_codelets; i++)
+  for (i = 0; i < num_codelets; i++)
     {
-      codelet_data_t * c = nttdata->codelets + i;
-      spv_size_t len = c->config->size;
+      const nttconfig_t * c = codelets[i];
 
-      plans[0].codelet_size = len;
-      test_core(p, d, primroot, order, len, plans, 1, nttdata);
+      plans[0].codelet_size = c->size;
+      test_core(p, d, primroot, order, c->size, plans, 1, nttdata);
     }
 }
 
@@ -160,6 +161,8 @@ static void do_direct_test(mpzspm_t mpzspm)
 static void do_twiddle_test(mpzspm_t mpzspm)
 {
   uint32_t i, j, k;
+  uint32_t num_codelets = ntt_master_list_size();
+  const nttconfig_t **codelets = ntt_master_list();
   sp_t p = mpzspm->spm[0]->sp;
   sp_t d = mpzspm->spm[0]->mul_c;
   sp_t primroot = mpzspm->spm[0]->primroot;
@@ -172,19 +175,19 @@ static void do_twiddle_test(mpzspm_t mpzspm)
   plans[0].pass_type = PASS_TYPE_TWIDDLE;
   plans[1].pass_type = PASS_TYPE_DIRECT;
 
-  for (i = 0; i < nttdata->num_codelets; i++)
+  for (i = 0; i < num_codelets; i++)
     {
-      for (j = 0; j < nttdata->num_codelets; j++)
+      for (j = 0; j < num_codelets; j++)
 	{
-	  codelet_data_t * c1 = nttdata->codelets + i;
-	  codelet_data_t * c2 = nttdata->codelets + j;
-	  spv_size_t len = c1->config->size * c2->config->size;
+	  const nttconfig_t * c1 = codelets[i];
+	  const nttconfig_t * c2 = codelets[j];
+	  spv_size_t len = c1->size * c2->size;
 
 	  if (order % len != 0)
 	    continue;
 
-	  plans[0].codelet_size = c1->config->size;
-	  plans[1].codelet_size = c2->config->size;
+	  plans[0].codelet_size = c1->size;
+	  plans[1].codelet_size = c2->size;
 	  test_core(p, d, primroot, order, len, plans, 2, nttdata);
 	}
     }
@@ -195,23 +198,23 @@ static void do_twiddle_test(mpzspm_t mpzspm)
   plans[1].pass_type = PASS_TYPE_TWIDDLE;
   plans[2].pass_type = PASS_TYPE_DIRECT;
 
-  for (i = 0; i < nttdata->num_codelets; i++)
+  for (i = 0; i < num_codelets; i++)
     {
-      for (j = 0; j < nttdata->num_codelets; j++)
+      for (j = 0; j < num_codelets; j++)
 	{
-      	  for (k = 0; k < nttdata->num_codelets; k++)
+      	  for (k = 0; k < num_codelets; k++)
     	    {
-    	      codelet_data_t * c1 = nttdata->codelets + i;
-    	      codelet_data_t * c2 = nttdata->codelets + j;
-    	      codelet_data_t * c3 = nttdata->codelets + k;
-    	      spv_size_t len = c1->config->size * c2->config->size * c3->config->size;
+    	      const nttconfig_t * c1 = codelets[i];
+    	      const nttconfig_t * c2 = codelets[j];
+    	      const nttconfig_t * c3 = codelets[k];
+    	      spv_size_t len = c1->size * c2->size * c3->size;
 
     	      if (order % len != 0)
     		continue;
 
-    	      plans[0].codelet_size = c1->config->size;
-    	      plans[1].codelet_size = c2->config->size;
-    	      plans[2].codelet_size = c3->config->size;
+    	      plans[0].codelet_size = c1->size;
+    	      plans[1].codelet_size = c2->size;
+    	      plans[2].codelet_size = c3->size;
     	      test_core(p, d, primroot, order, len, plans, 3, nttdata);
 	    }
 	}
@@ -222,6 +225,8 @@ static void do_twiddle_test(mpzspm_t mpzspm)
 static void do_pfa_test(mpzspm_t mpzspm)
 {
   uint32_t i, j, k;
+  uint32_t num_codelets = ntt_master_list_size();
+  const nttconfig_t **codelets = ntt_master_list();
   sp_t p = mpzspm->spm[0]->sp;
   sp_t d = mpzspm->spm[0]->mul_c;
   sp_t primroot = mpzspm->spm[0]->primroot;
@@ -235,44 +240,44 @@ static void do_pfa_test(mpzspm_t mpzspm)
 
   /* transform pairs */
 
-  for (i = 0; i < nttdata->num_codelets - 1; i++)
+  for (i = 0; i < num_codelets - 1; i++)
     {
-      for (j = i + 1; j < nttdata->num_codelets; j++)
+      for (j = i + 1; j < num_codelets; j++)
 	{
-	  codelet_data_t * c1 = nttdata->codelets + i;
-	  codelet_data_t * c2 = nttdata->codelets + j;
-	  spv_size_t len = c1->config->size * c2->config->size;
+	  const nttconfig_t * c1 = codelets[i];
+	  const nttconfig_t * c2 = codelets[j];
+	  spv_size_t len = c1->size * c2->size;
 
-	  if (gcd(c1->config->size, c2->config->size) != 1)
+	  if (gcd(c1->size, c2->size) != 1)
 	    continue;
 
-	  plans[0].codelet_size = c1->config->size;
-	  plans[1].codelet_size = c2->config->size;
+	  plans[0].codelet_size = c1->size;
+	  plans[1].codelet_size = c2->size;
 	  test_core(p, d, primroot, order, len, plans, 2, nttdata);
 	}
     }
 
   /* transform triplets */
 
-  for (i = 0; i < nttdata->num_codelets - 2; i++)
+  for (i = 0; i < num_codelets - 2; i++)
     {
-      for (j = i + 1; j < nttdata->num_codelets - 1; j++)
+      for (j = i + 1; j < num_codelets - 1; j++)
 	{
-      	  for (k = j + 1; k < nttdata->num_codelets; k++)
+      	  for (k = j + 1; k < num_codelets; k++)
     	    {
-    	      codelet_data_t * c1 = nttdata->codelets + i;
-    	      codelet_data_t * c2 = nttdata->codelets + j;
-    	      codelet_data_t * c3 = nttdata->codelets + k;
-    	      spv_size_t len = c1->config->size * c2->config->size * c3->config->size;
+    	      const nttconfig_t * c1 = codelets[i];
+    	      const nttconfig_t * c2 = codelets[j];
+    	      const nttconfig_t * c3 = codelets[k];
+    	      spv_size_t len = c1->size * c2->size * c3->size;
 
-    	      if (gcd(c1->config->size, c2->config->size) != 1 ||
-    		  gcd(c1->config->size, c3->config->size) != 1 ||
-    		  gcd(c2->config->size, c3->config->size) != 1)
+    	      if (gcd(c1->size, c2->size) != 1 ||
+    		  gcd(c1->size, c3->size) != 1 ||
+    		  gcd(c2->size, c3->size) != 1)
     		continue;
 
-    	      plans[0].codelet_size = c1->config->size;
-    	      plans[1].codelet_size = c2->config->size;
-    	      plans[2].codelet_size = c3->config->size;
+    	      plans[0].codelet_size = c1->size;
+    	      plans[1].codelet_size = c2->size;
+    	      plans[2].codelet_size = c3->size;
     	      test_core(p, d, primroot, order, len, plans, 3, nttdata);
 	    }
 	}

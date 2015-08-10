@@ -18,6 +18,18 @@ static const nttconfig_t * ntt_config[] =
 #define NUM_CODELETS (sizeof(ntt_config) / sizeof(ntt_config[0]))
 
 /*-------------------------------------------------------------------------*/
+const nttconfig_t ** 
+ntt_master_list(void)
+{
+  return ntt_config;
+}
+
+uint32_t ntt_master_list_size(void)
+{
+  return sizeof(ntt_config) / sizeof(ntt_config[0]);
+}
+
+/*-------------------------------------------------------------------------*/
 sp_t sp_ntt_reciprocal (sp_t w, sp_t p)
 {
     /* compute (w << SP_TYPE_BITS) / p */
@@ -129,7 +141,7 @@ solve_ffmatrix(spv_t matrix, spv_size_t max_cols,
 void
 nttdata_init_generic(const nttconfig_t *c,
             spv_t out, sp_t p, sp_t d, 
-            sp_t primroot, sp_t order)
+            sp_t primroot, sp_t order, sp_t perm)
 {
   /* compute the NTT constants; works for any squarefree NTT size */
 
@@ -162,6 +174,12 @@ nttdata_init_generic(const nttconfig_t *c,
     {
       for (j = 0; j < n; j++)
         rhs[n * i + j] = sp_mul(rhs[n * (i - 1) + j], wmult[j], p, d);
+    }
+
+  if (perm != 1)
+    {
+      for (j = n; j < n * n; j++)
+        rhs[j] = sp_pow(rhs[j], perm, p, d);
     }
 
   for (i = 0; i < 2 * m; i++)
@@ -227,67 +245,7 @@ nttdata_init_generic(const nttconfig_t *c,
 /*-------------------------------------------------------------------------*/
 void * ntt_init(sp_t size, sp_t primroot, sp_t p, sp_t recip)
 {
-  uint32_t i, j, k;
-  uint32_t num_const;
-  spv_t curr_const;
-  nttdata_t *d;
-
-  d = (nttdata_t *)calloc(1, sizeof(nttdata_t));
-  if (d == NULL)
-    return d;
-
-  for (i = num_const = 0; i < NUM_CODELETS; i++)
-    {
-      const nttconfig_t *c = ntt_config[i];
-
-      if (size % c->size != 0)
-	continue;
-
-      /* allocate room for each constant and its reciprocal */
-      num_const += 2 * c->num_ntt_const;
-      d->num_codelets++;
-    }
-
-  if (num_const == 0)
-    goto error_free;
-
-  d->codelets = (codelet_data_t *)malloc(d->num_codelets * 
-		  			sizeof(codelet_data_t));
-  if (d->codelets == NULL)
-    goto error_free;
-
-  d->codelet_const = curr_const = (spv_t)malloc(num_const * sizeof(sp_t));
-  if (d->codelet_const == NULL)
-    goto error_free;
-
-  for (i = j = 0; i < NUM_CODELETS; i++)
-    {
-      const nttconfig_t *c = ntt_config[i];
-
-      if (size % c->size != 0)
-	continue;
-
-      d->codelets[j].config = c;
-      d->codelets[j].ntt_const = curr_const;
-      j++;
-
-      /* compute the constants, then append their reciprocals */
-
-      num_const = c->num_ntt_const;
-      c->nttdata_init(curr_const, p, recip, primroot, size);
-
-      for (k = 0; k < num_const; k++)
-	{
-	  curr_const[num_const + k] = sp_ntt_reciprocal(curr_const[k], p);
-	}
-      curr_const += 2 * num_const;
-    }
-
-  return d;
-
-error_free:
-  ntt_free(d);
-  return NULL;
+  return (nttdata_t *)calloc(1, sizeof(nttdata_t));
 }
 
 /*-------------------------------------------------------------------------*/
@@ -300,8 +258,12 @@ void ntt_reset(void *data)
     return;
 
   for (i = 0; i < d->num_passes; i++)
-    if (d->passes[i].pass_type == PASS_TYPE_TWIDDLE)
-      sp_aligned_free(d->passes[i].d.twiddle.w);
+    {
+      free(d->passes[i].codelet_const);
+
+      if (d->passes[i].pass_type == PASS_TYPE_TWIDDLE)
+	sp_aligned_free(d->passes[i].d.twiddle.w);
+    }
 
   d->num_passes = 0;
 }
@@ -316,8 +278,6 @@ void ntt_free(void *data)
     return;
 
   ntt_reset(data);
-  free(d->codelets);
-  free(d->codelet_const);
   free(d);
 }
 
@@ -379,18 +339,18 @@ uint32_t ntt_build_passes(nttdata_t *data,
 {
   uint32_t i, j;
   nttpass_t *passes = data->passes;
-  uint32_t num_codelets = data->num_codelets;
-  codelet_data_t *codelets = data->codelets;
+  uint32_t num_codelets = ntt_master_list_size();
+  const nttconfig_t **codelets = ntt_master_list();
 
   for (i = 0; i < num_plans; i++)
     {
       nttplan_t * plan = plans + i;
-      codelet_data_t * c = NULL;
+      const nttconfig_t * c = NULL;
 
       for (j = 0; j < num_codelets; j++)
 	{
-	  c = codelets + j;
-	  if (c->config->size == plan->codelet_size)
+	  c = codelets[j];
+	  if (c->size == plan->codelet_size)
 	    break;
 	}
 
@@ -425,6 +385,21 @@ uint32_t ntt_build_passes(nttdata_t *data,
 	}
     }
 
+  for (i = 0; i < num_plans; i++)
+    {
+      const nttconfig_t * c = passes[i].codelet;
+      uint32_t num_const = c->num_ntt_const;
+
+      passes[i].codelet_const = (sp_t *)malloc(2 * num_const * sizeof(sp_t));
+
+      c->nttdata_init(passes[i].codelet_const, p, d, primroot, order, 
+			passes[i].d.pfa.cofactor % passes[i].codelet->size);
+
+      for (j = 0; j < num_const; j++)
+	passes[i].codelet_const[num_const + j] = sp_ntt_reciprocal(
+	    				passes[i].codelet_const[j], p);
+    }
+
   data->num_passes = i;
   return i;
 }
@@ -439,42 +414,42 @@ ntt_run_recurse(spv_t x, sp_t p, nttdata_t *d, spv_size_t pass)
   switch (curr_pass->pass_type)
     {
       case PASS_TYPE_DIRECT:
-	curr_pass->codelet->config->ntt_run(
-	    		x, 1, curr_pass->codelet->config->size,
-	    		x, 1, curr_pass->codelet->config->size,
+	curr_pass->codelet->ntt_run(
+	    		x, 1, curr_pass->codelet->size,
+	    		x, 1, curr_pass->codelet->size,
 			curr_pass->d.direct.num_transforms,
-			p, curr_pass->codelet->ntt_const);
+			p, curr_pass->codelet_const);
 	return;
 
       case PASS_TYPE_PFA:
 	for (i = pass; i < d->num_passes; i++)
-	  curr_pass[i].codelet->config->ntt_pfa_run(
+	  curr_pass[i].codelet->ntt_pfa_run(
 	    		x, curr_pass[i].d.pfa.cofactor,
-			p, curr_pass[i].codelet->ntt_const);
+			p, curr_pass[i].codelet_const);
 	return;
     }
 
-  curr_pass->codelet->config->ntt_twiddle_run(
+  curr_pass->codelet->ntt_twiddle_run(
 		x, curr_pass->d.twiddle.stride, 1,
 		x, curr_pass->d.twiddle.stride, 1,
 		curr_pass->d.twiddle.w,
 		curr_pass->d.twiddle.num_transforms,
-		p, curr_pass->codelet->ntt_const);
+		p, curr_pass->codelet_const);
 
   /* if next pass is direct type, handle all the twiddle
      rows at once, otherwise recurse */
 
   if (curr_pass[1].pass_type == PASS_TYPE_DIRECT)
     {
-      curr_pass[1].codelet->config->ntt_run(
-	    		x, 1, curr_pass[1].codelet->config->size,
-	    		x, 1, curr_pass[1].codelet->config->size,
+      curr_pass[1].codelet->ntt_run(
+	    		x, 1, curr_pass[1].codelet->size,
+	    		x, 1, curr_pass[1].codelet->size,
 			curr_pass[1].d.direct.num_transforms,
-			p, curr_pass[1].codelet->ntt_const);
+			p, curr_pass[1].codelet_const);
     }
   else
     {
-      for (i = 0; i < curr_pass->codelet->config->size; i++)
+      for (i = 0; i < curr_pass->codelet->size; i++)
 	ntt_run_recurse(x + i * curr_pass->d.twiddle.stride,
 	    		p, d, pass + 1);
     }

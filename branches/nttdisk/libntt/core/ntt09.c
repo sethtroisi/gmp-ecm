@@ -12,7 +12,7 @@ ntt9_get_fixed_ntt_const(void)
 
 void
 ntt9_init(spv_t out, sp_t p, sp_t d, 
-	  sp_t primroot, sp_t order)
+	  sp_t primroot, sp_t order, sp_t perm)
 {
   uint32_t i;
   sp_t t1, t2, t3, t4, t5, t6, t7, t8;

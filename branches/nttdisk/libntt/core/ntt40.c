@@ -15,14 +15,14 @@ ntt40_get_fixed_ntt_const(void)
 
 
 extern void ntt8_init(spv_t out, sp_t p, sp_t d, 
-			sp_t primroot, sp_t order);
+			sp_t primroot, sp_t order, sp_t perm);
 
 extern void ntt5_init(spv_t out, sp_t p, sp_t d, 
-			sp_t primroot, sp_t order);
+			sp_t primroot, sp_t order, sp_t perm);
 
 void
 ntt40_init(spv_t out, sp_t p, sp_t d, 
-	  sp_t primroot, sp_t order)
+	  sp_t primroot, sp_t order, sp_t perm)
 {
   uint32_t i, j;
   uint32_t num8 = 8;
@@ -30,8 +30,8 @@ ntt40_init(spv_t out, sp_t p, sp_t d,
   spv_t root8 = (spv_t)alloca(num8 * sizeof(sp_t));
   spv_t root5 = (spv_t)alloca(num5 * sizeof(sp_t));
 
-  ntt8_init(root8, p, d, primroot, order);
-  ntt5_init(root5, p, d, primroot, order);
+  ntt8_init(root8, p, d, primroot, order, 1);
+  ntt5_init(root5, p, d, primroot, order, 1);
 
   for (i = 0; i < num8; i++)
     for (j = 0; j < num5; j++)

@@ -7,7 +7,8 @@ typedef const uint8_t * (*get_fixed_ntt_const_t)(void);
 
 typedef void (*nttdata_init_t)(spv_t out, 
 				sp_t p, sp_t d,
-				sp_t primroot, sp_t order);
+				sp_t primroot, sp_t order,
+				sp_t perm);
 
 typedef void (*ntt_run_t)(spv_t in, spv_size_t istride, spv_size_t idist,
     			spv_t out, spv_size_t ostride, spv_size_t odist,
@@ -217,16 +218,6 @@ typedef struct
   ntt_twiddle_run_t ntt_twiddle_run;
 } nttconfig_t;
 
-/* function pointers and precomputed data needed by
-   all versions of a codelet */
-
-typedef struct
-{
-  const nttconfig_t *config;
-  spv_t ntt_const;
-} codelet_data_t;
-
-
 /* an NTT is built up of one or more passes through
    the input data */
 
@@ -242,7 +233,8 @@ typedef enum
 typedef struct
 {
   pass_type_t pass_type;
-  codelet_data_t *codelet;
+  const nttconfig_t *codelet;
+  spv_t codelet_const;
 
   union
   {
@@ -271,10 +263,6 @@ typedef struct
    modulus and primitive root */
 typedef struct
 {
-  uint32_t num_codelets;
-  codelet_data_t *codelets;
-  spv_t codelet_const;
-
   uint32_t num_passes;
   nttpass_t passes[MAX_PASSES];
 } nttdata_t;
@@ -289,7 +277,8 @@ typedef struct
 void
 nttdata_init_generic(const nttconfig_t *c,
             spv_t out, sp_t p, sp_t d, 
-            sp_t primroot, sp_t order);
+            sp_t primroot, sp_t order,
+	    sp_t perm);
 
 extern const nttconfig_t ntt3_config;
 extern const nttconfig_t ntt4_config;
@@ -308,6 +297,9 @@ ntt_build_passes(nttdata_t *data,
 		sp_t size, sp_t p, sp_t primroot, sp_t order, sp_t d);
 
 /* external interface */
+
+const nttconfig_t ** ntt_master_list();
+uint32_t ntt_master_list_size();
 
 void * ntt_init(sp_t size, sp_t primroot, sp_t p, sp_t d);
 void ntt_free(void *data);

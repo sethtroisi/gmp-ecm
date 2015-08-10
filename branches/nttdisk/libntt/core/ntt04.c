@@ -12,7 +12,7 @@ ntt4_get_fixed_ntt_const(void)
 
 void
 ntt4_init(spv_t out, sp_t p, sp_t d, 
-	  sp_t primroot, sp_t order)
+	  sp_t primroot, sp_t order, sp_t perm)
 {
   out[0] = 1;
   out[1] = 1;

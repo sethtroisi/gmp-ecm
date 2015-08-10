@@ -12,7 +12,7 @@ ntt8_get_fixed_ntt_const(void)
 
 void
 ntt8_init(spv_t out, sp_t p, sp_t d, 
-	  sp_t primroot, sp_t order)
+	  sp_t primroot, sp_t order, sp_t perm)
 {
   sp_t w1 = sp_pow(primroot, order / 8, p, d);
   sp_t w2 = sp_sqr(w1, p, d);

@@ -12,9 +12,9 @@ ntt7_get_fixed_ntt_const(void)
 
 static void
 ntt7_init(spv_t out, sp_t p, sp_t d, 
-	  sp_t primroot, sp_t order)
+	  sp_t primroot, sp_t order, sp_t perm)
 {
-  nttdata_init_generic(&ntt7_config, out, p, d, primroot, order);
+  nttdata_init_generic(&ntt7_config, out, p, d, primroot, order, perm);
 }
 
 static void 
