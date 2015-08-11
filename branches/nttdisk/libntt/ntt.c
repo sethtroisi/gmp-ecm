@@ -15,8 +15,6 @@ static const nttconfig_t * ntt_config[] =
   &ntt40_config,
 };
 
-#define NUM_CODELETS (sizeof(ntt_config) / sizeof(ntt_config[0]))
-
 /*-------------------------------------------------------------------------*/
 const nttconfig_t ** 
 ntt_master_list(void)
@@ -393,7 +391,10 @@ uint32_t ntt_build_passes(nttdata_t *data,
       passes[i].codelet_const = (sp_t *)malloc(2 * num_const * sizeof(sp_t));
 
       c->nttdata_init(passes[i].codelet_const, p, d, primroot, order, 
-			passes[i].d.pfa.cofactor % passes[i].codelet->size);
+			passes[i].pass_type == PASS_TYPE_PFA ?
+				passes[i].d.pfa.cofactor % 
+					passes[i].codelet->size :
+				1);
 
       for (j = 0; j < num_const; j++)
 	passes[i].codelet_const[num_const + j] = sp_ntt_reciprocal(
