@@ -3,6 +3,7 @@
 
 static const nttconfig_t * ntt_config[] = 
 {
+  &ntt2_config,
   &ntt3_config,
   &ntt4_config,
   &ntt5_config,

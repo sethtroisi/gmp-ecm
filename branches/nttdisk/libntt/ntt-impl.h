@@ -280,6 +280,7 @@ nttdata_init_generic(const nttconfig_t *c,
             sp_t primroot, sp_t order,
 	    sp_t perm);
 
+extern const nttconfig_t ntt2_config;
 extern const nttconfig_t ntt3_config;
 extern const nttconfig_t ntt4_config;
 extern const nttconfig_t ntt5_config;
