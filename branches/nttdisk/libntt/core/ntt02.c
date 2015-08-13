@@ -11,7 +11,7 @@ ntt2_get_fixed_ntt_const(void)
 }
 
 void
-ntt2_init(spv_t out, sp_t p, sp_t d, 
+X(ntt2_init)(spv_t out, sp_t p, sp_t d, 
 	  sp_t primroot, sp_t order, sp_t perm)
 {
   out[0] = out[1] = 1;
@@ -216,12 +216,12 @@ ntt2_pfa_run(spv_t x, spv_size_t cofactor,
 
 }
 
-const nttconfig_t ntt2_config = 
+const nttconfig_t X(ntt2_config) = 
 {
   2,
   NC,
   ntt2_get_fixed_ntt_const,
-  ntt2_init,
+  X(ntt2_init),
   ntt2_run,
   ntt2_pfa_run,
   ntt2_twiddle_run

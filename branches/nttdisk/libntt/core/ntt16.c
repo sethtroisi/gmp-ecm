@@ -11,7 +11,7 @@ ntt16_get_fixed_ntt_const(void)
 }
 
 void
-ntt16_init(spv_t out, sp_t p, sp_t d, 
+X(ntt16_init)(spv_t out, sp_t p, sp_t d, 
 	  sp_t primroot, sp_t order, sp_t perm)
 {
   uint32_t i;
@@ -1161,12 +1161,12 @@ ntt16_pfa_run(spv_t x, spv_size_t cofactor,
 
 }
 
-const nttconfig_t ntt16_config = 
+const nttconfig_t X(ntt16_config) = 
 {
   16,
   NC,
   ntt16_get_fixed_ntt_const,
-  ntt16_init,
+  X(ntt16_init),
   ntt16_run,
   ntt16_pfa_run,
   ntt16_twiddle_run

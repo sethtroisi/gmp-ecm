@@ -63,6 +63,8 @@ typedef mp_limb_t UDItype;
 #define LONGLONG_STANDALONE
 #include "longlong.h"
 
+/* name mangling */
+
 /*********
  * TYPES *
  *********/
@@ -103,6 +105,56 @@ typedef mp_limb_t UDItype;
   #define PRIdsp PRId64
   #define PRIusp PRIu64
   #define PRIxsp "016" PRIx64
+
+#endif
+
+  /* name mangling for a fat binary */
+
+#if GMP_LIMB_BITS == 32
+  #if SP_NUMB_BITS == 30
+    #ifdef HAVE_SSE2
+    #define SP_NAME_SUFFIX_STR "sp30w32sse2"
+    #define X(name) name##_sp30w32sse2
+    #else
+    #define SP_NAME_SUFFIX_STR "sp30w32"
+    #define X(name) name##_sp30w32
+    #endif
+  #elif SP_NUMB_BITS == 31
+    #ifdef HAVE_SSE2
+    #define SP_NAME_SUFFIX_STR "sp31w32sse2"
+    #define X(name) name##_sp31w32sse2
+    #else
+    #define SP_NAME_SUFFIX_STR "sp31w32"
+    #define X(name) name##_sp31w32
+    #endif
+  #else
+    #ifdef HAVE_SSE2
+    #define SP_NAME_SUFFIX_STR "sp62w32sse2"
+    #define X(name) name##_sp62w32sse2
+    #else
+    #define SP_NAME_SUFFIX_STR "sp62w32"
+    #define X(name) name##_sp62w32
+    #endif
+  #endif
+
+#else
+  #if SP_NUMB_BITS == 30
+    #ifdef HAVE_SSE2
+    #define SP_NAME_SUFFIX_STR "sp30w64sse2"
+    #define X(name) name##_sp30w64sse2
+    #else
+    #define SP_NAME_SUFFIX_STR "sp30w64"
+    #define X(name) name##_sp30w64
+    #endif
+  #else
+    #ifdef HAVE_SSE2
+    #define SP_NAME_SUFFIX_STR "sp62w64sse2"
+    #define X(name) name##_sp62w64sse2
+    #else
+    #define SP_NAME_SUFFIX_STR "sp62w64"
+    #define X(name) name##_sp62w64
+    #endif
+  #endif
 
 #endif
 
@@ -200,7 +252,7 @@ mpz_get_sp (const mpz_t n)
 #endif
 }
 
-sp_t sp_reciprocal(sp_t p);
+sp_t X(sp_reciprocal)(sp_t p);
 
 /* sp */
 
@@ -518,21 +570,15 @@ sp_pow (sp_t x, sp_t a, sp_t m, sp_t d)
 /* 1/x mod p */
 #define sp_inv(x,p,d) sp_pow (x, (p) - 2, p, d)
 
-int sp_spp (sp_t, sp_t, sp_t);
-int sp_prime (sp_t);
+int X(sp_prime)(sp_t);
 
 /* spm */
 
-spm_t spm_init (sp_t, sp_t);
-void spm_clear (spm_t);
+spm_t X(spm_init)(sp_t, sp_t);
+void X(spm_clear)(spm_t);
 
 /* spv */
 
-void spv_random (spv_t, spv_size_t, sp_t);
-
-/* mpzspm */
-
-mpzspm_t mpzspm_init (sp_t, mpz_t);
-void mpzspm_clear (mpzspm_t);
+void X(spv_random)(spv_t, spv_size_t, sp_t);
 
 #endif /* _SP_H */

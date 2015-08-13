@@ -7,10 +7,11 @@
    to "max_len" with modulus "modulus". 
    Returns NULL in case of an error. */
 
-mpzspm_t
-mpzspm_init (sp_t max_len, mpz_t modulus)
+void *
+X(mpzspm_init)(uint32_t max_len_in, mpz_t modulus)
 {
   uint32_t ub, i, j;
+  sp_t max_len = max_len_in;
   sp_t a, p;
   mpz_t P, S, T, mp, mt;
   mpzspm_t mpzspm;
@@ -52,7 +53,7 @@ mpzspm_init (sp_t max_len, mpz_t modulus)
   mpz_init (mt);
   mpz_init (T); 
   mpz_mul (T, modulus, modulus);
-  mpz_set_uint64 (mp, max_len);
+  mpz_set_sp (mp, max_len);
   mpz_mul (T, T, mt);
   
   /* find primes congruent to 1 mod max_len so we can do
@@ -66,7 +67,7 @@ mpzspm_init (sp_t max_len, mpz_t modulus)
   
   do
     {
-      while (p >= SP_MIN && p > max_len && !sp_prime(p))
+      while (p >= SP_MIN && p > max_len && !X(sp_prime)(p))
         p -= max_len;
 
       /* all primes must be in range */
@@ -75,7 +76,7 @@ mpzspm_init (sp_t max_len, mpz_t modulus)
 	  goto clear_mpzspm;
 	}
       
-      mpzspm->spm[mpzspm->sp_num] = spm_init (max_len, p);
+      mpzspm->spm[mpzspm->sp_num] = X(spm_init)(max_len, p);
       if (mpzspm->spm[mpzspm->sp_num] == NULL)
         {
           goto clear_mpzspm;
@@ -108,12 +109,13 @@ mpzspm_init (sp_t max_len, mpz_t modulus)
   return mpzspm;
 
 clear_mpzspm:
-  mpzspm_clear (mpzspm);
+  X(mpzspm_clear)(mpzspm);
   return NULL;
 }
 
-void mpzspm_clear (mpzspm_t mpzspm)
+void X(mpzspm_clear)(void * m)
 {
+  mpzspm_t mpzspm = (mpzspm_t)m;
   unsigned int i;
 
   if (mpzspm == NULL)
@@ -121,7 +123,7 @@ void mpzspm_clear (mpzspm_t mpzspm)
 
   for (i = 0; i < mpzspm->sp_num; i++)
     {
-	spm_clear (mpzspm->spm[i]);
+	X(spm_clear)(mpzspm->spm[i]);
     }
 
   mpz_clear (mpzspm->modulus);

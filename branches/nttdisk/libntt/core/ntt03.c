@@ -11,10 +11,10 @@ ntt3_get_fixed_ntt_const(void)
 }
 
 void
-ntt3_init(spv_t out, sp_t p, sp_t d, 
+X(ntt3_init)(spv_t out, sp_t p, sp_t d, 
 	  sp_t primroot, sp_t order, sp_t perm)
 {
-  nttdata_init_generic(&ntt3_config, out, p, d, primroot, order, perm);
+  X(nttdata_init_generic)(&X(ntt3_config), out, p, d, primroot, order, perm);
 }
 
 static void 
@@ -298,12 +298,12 @@ ntt3_pfa_run(spv_t x, spv_size_t cofactor,
 
 }
 
-const nttconfig_t ntt3_config = 
+const nttconfig_t X(ntt3_config) = 
 {
   3,
   NC,
   ntt3_get_fixed_ntt_const,
-  ntt3_init,
+  X(ntt3_init),
   ntt3_run,
   ntt3_pfa_run,
   ntt3_twiddle_run

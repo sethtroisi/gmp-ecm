@@ -24,7 +24,7 @@ ordpow (const sp_t q, sp_t a, const sp_t sp, const sp_t mul_c)
 /* Compute some constants, including a primitive n'th root of unity. 
    Returns NULL in case of error. */
 spm_t
-spm_init (sp_t n, sp_t sp)
+X(spm_init) (sp_t n, sp_t sp)
 {
   sp_t a, b, inv_b, bd, sc, q, nc;
   spm_t spm = (spm_t) malloc (sizeof (__spm_struct));
@@ -34,7 +34,7 @@ spm_init (sp_t n, sp_t sp)
   ASSERT (sp % n == 1);
 
   spm->sp = sp;
-  spm->mul_c = sp_reciprocal (sp);
+  spm->mul_c = X(sp_reciprocal)(sp);
 
 #if SP_TYPE_BITS > GMP_LIMB_BITS
   mpz_init(spm->mp_sp);
@@ -106,20 +106,20 @@ spm_init (sp_t n, sp_t sp)
   spm->inv_primroot = sp_inv (spm->primroot, sp, spm->mul_c);
 
   /* initialize forward and inverse NTTs whose sizes divide n */
-  spm->ntt_data = ntt_init (n, spm->primroot, sp, spm->mul_c);
-  spm->intt_data = ntt_init (n, spm->inv_primroot, sp, spm->mul_c);
+  spm->ntt_data = X(ntt_init) (n, spm->primroot, sp, spm->mul_c);
+  spm->intt_data = X(ntt_init) (n, spm->inv_primroot, sp, spm->mul_c);
 
   return spm;
 }
 
 void
-spm_clear (spm_t spm)
+X(spm_clear) (spm_t spm)
 {
 #if SP_TYPE_BITS > GMP_LIMB_BITS
   mpz_clear (spm->mp_sp);
 #endif
-  ntt_free (spm->ntt_data);
-  ntt_free (spm->intt_data);
+  X(ntt_free) (spm->ntt_data);
+  X(ntt_free) (spm->intt_data);
   free (spm);
 }
 

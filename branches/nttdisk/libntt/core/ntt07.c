@@ -10,11 +10,11 @@ ntt7_get_fixed_ntt_const(void)
   return fixed_const;
 }
 
-static void
-ntt7_init(spv_t out, sp_t p, sp_t d, 
+void
+X(ntt7_init)(spv_t out, sp_t p, sp_t d, 
 	  sp_t primroot, sp_t order, sp_t perm)
 {
-  nttdata_init_generic(&ntt7_config, out, p, d, primroot, order, perm);
+  X(nttdata_init_generic)(&X(ntt7_config), out, p, d, primroot, order, perm);
 }
 
 static void 
@@ -630,12 +630,12 @@ ntt7_pfa_run(spv_t x, spv_size_t cofactor,
 
 }
 
-const nttconfig_t ntt7_config = 
+const nttconfig_t X(ntt7_config) = 
 {
   7,
   NC,
   ntt7_get_fixed_ntt_const,
-  ntt7_init,
+  X(ntt7_init),
   ntt7_run,
   ntt7_pfa_run,
   ntt7_twiddle_run

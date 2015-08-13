@@ -1,7 +1,7 @@
 #include "sp.h"
 
 void
-spv_random (spv_t x, spv_size_t len, sp_t m)
+X(spv_random) (spv_t x, spv_size_t len, sp_t m)
 {
   spv_size_t i;
 #if SP_TYPE_BITS == GMP_LIMB_BITS

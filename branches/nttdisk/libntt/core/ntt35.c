@@ -11,10 +11,10 @@ ntt35_get_fixed_ntt_const(void)
 }
 
 void
-ntt35_init(spv_t out, sp_t p, sp_t d, 
+X(ntt35_init)(spv_t out, sp_t p, sp_t d, 
 	  sp_t primroot, sp_t order, sp_t perm)
 {
-  nttdata_init_generic(&ntt35_config, out, p, d, primroot, order, perm);
+  X(nttdata_init_generic)(&X(ntt35_config), out, p, d, primroot, order, perm);
 }
 
 static void 
@@ -5284,12 +5284,12 @@ ntt35_pfa_run(spv_t x, spv_size_t cofactor,
 
 }
 
-const nttconfig_t ntt35_config = 
+const nttconfig_t X(ntt35_config) = 
 {
   35,
   NC,
   ntt35_get_fixed_ntt_const,
-  ntt35_init,
+  X(ntt35_init),
   ntt35_run,
   ntt35_pfa_run,
   ntt35_twiddle_run

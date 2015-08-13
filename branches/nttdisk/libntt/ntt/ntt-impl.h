@@ -115,8 +115,6 @@ static inline sp_t sp_ntt_sub_partial(sp_t a, sp_t b, sp_t p)
 /* perform modular multiplication when the multiplier
    and its generalized inverse are both known and precomputed */
 
-sp_t sp_ntt_reciprocal (sp_t w, sp_t p);
-
 /* low half multiply */
 
 static inline sp_t sp_mul_lo(sp_t a, sp_t b)
@@ -275,40 +273,37 @@ typedef struct
 } nttplan_t;
 
 void
-nttdata_init_generic(const nttconfig_t *c,
-            spv_t out, sp_t p, sp_t d, 
-            sp_t primroot, sp_t order,
-	    sp_t perm);
+X(nttdata_init_generic)(const nttconfig_t *c,
+		      spv_t out, sp_t p, sp_t d, 
+		      sp_t primroot, sp_t order,
+		      sp_t perm);
 
-extern const nttconfig_t ntt2_config;
-extern const nttconfig_t ntt3_config;
-extern const nttconfig_t ntt4_config;
-extern const nttconfig_t ntt5_config;
-extern const nttconfig_t ntt7_config;
-extern const nttconfig_t ntt8_config;
-extern const nttconfig_t ntt9_config;
-extern const nttconfig_t ntt15_config;
-extern const nttconfig_t ntt16_config;
-extern const nttconfig_t ntt35_config;
-extern const nttconfig_t ntt40_config;
+extern const nttconfig_t X(ntt2_config);
+extern const nttconfig_t X(ntt3_config);
+extern const nttconfig_t X(ntt4_config);
+extern const nttconfig_t X(ntt5_config);
+extern const nttconfig_t X(ntt7_config);
+extern const nttconfig_t X(ntt8_config);
+extern const nttconfig_t X(ntt9_config);
+extern const nttconfig_t X(ntt15_config);
+extern const nttconfig_t X(ntt16_config);
+extern const nttconfig_t X(ntt35_config);
+extern const nttconfig_t X(ntt40_config);
 
 uint32_t 
-ntt_build_passes(nttdata_t *data,
+X(ntt_build_passes)(nttdata_t *data,
     		nttplan_t *plans, uint32_t num_plans,
 		sp_t size, sp_t p, sp_t primroot, sp_t order, sp_t d);
 
 /* external interface */
 
-const nttconfig_t ** ntt_master_list();
-uint32_t ntt_master_list_size();
+const nttconfig_t ** X(ntt_master_list)();
+uint32_t X(ntt_master_list_size)();
 
-void * ntt_init(sp_t size, sp_t primroot, sp_t p, sp_t d);
-void ntt_free(void *data);
-void ntt_reset(void *data);
-void ntt_run(spv_t x, sp_t p, void *data);
-
-uint32_t planner_init(spm_t spm, sp_t size, spm_t existing);
-void planner_free(nttpass_t *passes, uint32_t num_passes);
+void * X(ntt_init)(sp_t size, sp_t primroot, sp_t p, sp_t d);
+void X(ntt_free)(void *data);
+void X(ntt_reset)(void *data);
+void X(ntt_run)(spv_t x, sp_t p, void *data);
 
 /* SIMD includes */
 #ifdef HAVE_SSE2

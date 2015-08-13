@@ -16,7 +16,7 @@ gcd (unsigned long a, unsigned long b)
   return a;
 }
 
-uint64_t
+static uint64_t
 read_clock(void) 
 {
 #if defined(_MSC_VER)
@@ -72,13 +72,13 @@ static void test_core(sp_t p, sp_t d, sp_t primroot,
   spv_t r = (spv_t)alloca(len * sizeof(sp_t));
   uint64_t start, stop, elapsed;
 
-  spv_random(x, len, p);
+  X(spv_random)(x, len, p);
   
   bfntt(r, x, len, p, d, primroot, order);
 
-  ntt_build_passes(data, plans, num_plans, len, p, primroot, order, d);
+  X(ntt_build_passes)(data, plans, num_plans, len, p, primroot, order, d);
 
-  ntt_run(x, p, data);
+  X(ntt_run)(x, p, data);
 
   for (m = 0; m < len; m++)
      while (x[m] >= p)
@@ -119,26 +119,26 @@ static void test_core(sp_t p, sp_t d, sp_t primroot,
       start = read_clock();
       for (n = 0; n < 10; n++)
 	{
-	  ntt_run(x, p, data);
+	  X(ntt_run)(x, p, data);
 	}
       stop = read_clock();
       if (stop - start < elapsed)
 		elapsed = stop - start;
     }
-  printf(" %lf clocks/point %.2lf usec\n", 
+  printf(" %lf clocks/point %.2lf usec " SP_NAME_SUFFIX_STR "\n",
 		(double)elapsed / 10 / len,
 		(double)elapsed / 10 / 2500
 		);
 
-  ntt_reset(data);
+  X(ntt_reset)(data);
 }
 
 /*------------------------------------------------------------------*/
 static void do_direct_test(mpzspm_t mpzspm)
 {
   uint32_t i;
-  uint32_t num_codelets = ntt_master_list_size();
-  const nttconfig_t **codelets = ntt_master_list();
+  uint32_t num_codelets = X(ntt_master_list_size)();
+  const nttconfig_t **codelets = X(ntt_master_list)();
   sp_t p = mpzspm->spm[0]->sp;
   sp_t d = mpzspm->spm[0]->mul_c;
   sp_t primroot = mpzspm->spm[0]->primroot;
@@ -161,8 +161,8 @@ static void do_direct_test(mpzspm_t mpzspm)
 static void do_twiddle_test(mpzspm_t mpzspm)
 {
   uint32_t i, j, k;
-  uint32_t num_codelets = ntt_master_list_size();
-  const nttconfig_t **codelets = ntt_master_list();
+  uint32_t num_codelets = X(ntt_master_list_size)();
+  const nttconfig_t **codelets = X(ntt_master_list)();
   sp_t p = mpzspm->spm[0]->sp;
   sp_t d = mpzspm->spm[0]->mul_c;
   sp_t primroot = mpzspm->spm[0]->primroot;
@@ -225,8 +225,8 @@ static void do_twiddle_test(mpzspm_t mpzspm)
 static void do_pfa_test(mpzspm_t mpzspm)
 {
   uint32_t i, j, k;
-  uint32_t num_codelets = ntt_master_list_size();
-  const nttconfig_t **codelets = ntt_master_list();
+  uint32_t num_codelets = X(ntt_master_list_size)();
+  const nttconfig_t **codelets = X(ntt_master_list)();
   sp_t p = mpzspm->spm[0]->sp;
   sp_t d = mpzspm->spm[0]->mul_c;
   sp_t primroot = mpzspm->spm[0]->primroot;
@@ -285,7 +285,7 @@ static void do_pfa_test(mpzspm_t mpzspm)
 }
 
 /*------------------------------------------------------------------*/
-int main(int argc, char **argv)
+int X(test_main)(int argc, char **argv)
 {
   mpz_t x;
   spv_size_t len = 1024*3*3*5*5*7*7;
@@ -300,11 +300,10 @@ int main(int argc, char **argv)
 #endif
 
   mpz_mul_2exp(x, x, bits);
-  mpzspm = mpzspm_init((sp_t)len, x);
+  mpzspm = X(mpzspm_init)((sp_t)len, x);
 
   if (mpzspm == NULL)
     {
-      printf("crap\n");
       return 0;
     }
 
@@ -312,6 +311,6 @@ int main(int argc, char **argv)
   do_pfa_test(mpzspm);
   do_twiddle_test(mpzspm);
 
-  mpzspm_clear(mpzspm);
+  X(mpzspm_clear)(mpzspm);
   return 0;
 }

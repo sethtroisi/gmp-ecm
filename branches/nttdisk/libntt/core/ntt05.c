@@ -11,10 +11,10 @@ ntt5_get_fixed_ntt_const(void)
 }
 
 void
-ntt5_init(spv_t out, sp_t p, sp_t d,
+X(ntt5_init)(spv_t out, sp_t p, sp_t d,
 	  sp_t primroot, sp_t order, sp_t perm)
 {
-  nttdata_init_generic(&ntt5_config, out, p, d, primroot, order, perm);
+  X(nttdata_init_generic)(&X(ntt5_config), out, p, d, primroot, order, perm);
 }
 
 static void 
@@ -436,12 +436,12 @@ ntt5_pfa_run(spv_t x, spv_size_t cofactor,
     ntt5_pfa_run_core(x, incstart, inc, n, p, ntt_const);
 }
 
-const nttconfig_t ntt5_config = 
+const nttconfig_t X(ntt5_config) = 
 {
   5,
   NC,
   ntt5_get_fixed_ntt_const,
-  ntt5_init,
+  X(ntt5_init),
   ntt5_run,
   ntt5_pfa_run,
   ntt5_twiddle_run

@@ -11,7 +11,7 @@ ntt9_get_fixed_ntt_const(void)
 }
 
 void
-ntt9_init(spv_t out, sp_t p, sp_t d, 
+X(ntt9_init)(spv_t out, sp_t p, sp_t d, 
 	  sp_t primroot, sp_t order, sp_t perm)
 {
   uint32_t i;
@@ -822,12 +822,12 @@ ntt9_pfa_run(spv_t x, spv_size_t cofactor,
 
 }
 
-const nttconfig_t ntt9_config = 
+const nttconfig_t X(ntt9_config) = 
 {
   9,
   NC,
   ntt9_get_fixed_ntt_const,
-  ntt9_init,
+  X(ntt9_init),
   ntt9_run,
   ntt9_pfa_run,
   ntt9_twiddle_run

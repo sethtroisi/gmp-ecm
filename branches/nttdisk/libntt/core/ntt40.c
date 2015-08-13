@@ -14,14 +14,14 @@ ntt40_get_fixed_ntt_const(void)
 }
 
 
-extern void ntt8_init(spv_t out, sp_t p, sp_t d, 
+extern void X(ntt8_init)(spv_t out, sp_t p, sp_t d, 
 			sp_t primroot, sp_t order, sp_t perm);
 
-extern void ntt5_init(spv_t out, sp_t p, sp_t d, 
+extern void X(ntt5_init)(spv_t out, sp_t p, sp_t d, 
 			sp_t primroot, sp_t order, sp_t perm);
 
 void
-ntt40_init(spv_t out, sp_t p, sp_t d, 
+X(ntt40_init)(spv_t out, sp_t p, sp_t d, 
 	  sp_t primroot, sp_t order, sp_t perm)
 {
   uint32_t i, j;
@@ -30,8 +30,8 @@ ntt40_init(spv_t out, sp_t p, sp_t d,
   spv_t root8 = (spv_t)alloca(num8 * sizeof(sp_t));
   spv_t root5 = (spv_t)alloca(num5 * sizeof(sp_t));
 
-  ntt8_init(root8, p, d, primroot, order, 1);
-  ntt5_init(root5, p, d, primroot, order, 1);
+  X(ntt8_init)(root8, p, d, primroot, order, 1);
+  X(ntt5_init)(root5, p, d, primroot, order, 1);
 
   for (i = 0; i < num8; i++)
     for (j = 0; j < num5; j++)
@@ -4607,12 +4607,12 @@ ntt40_pfa_run(spv_t x, spv_size_t cofactor,
 
 }
 
-const nttconfig_t ntt40_config = 
+const nttconfig_t X(ntt40_config) = 
 {
   40,
   NC,
   ntt40_get_fixed_ntt_const,
-  ntt40_init,
+  X(ntt40_init),
   ntt40_run,
   ntt40_pfa_run,
   ntt40_twiddle_run

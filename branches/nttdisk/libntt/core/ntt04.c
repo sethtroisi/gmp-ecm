@@ -11,7 +11,7 @@ ntt4_get_fixed_ntt_const(void)
 }
 
 void
-ntt4_init(spv_t out, sp_t p, sp_t d, 
+X(ntt4_init)(spv_t out, sp_t p, sp_t d, 
 	  sp_t primroot, sp_t order, sp_t perm)
 {
   out[0] = 1;
@@ -311,12 +311,12 @@ ntt4_pfa_run(spv_t x, spv_size_t cofactor,
 
 }
 
-const nttconfig_t ntt4_config = 
+const nttconfig_t X(ntt4_config) = 
 {
   4,
   NC,
   ntt4_get_fixed_ntt_const,
-  ntt4_init,
+  X(ntt4_init),
   ntt4_run,
   ntt4_pfa_run,
   ntt4_twiddle_run

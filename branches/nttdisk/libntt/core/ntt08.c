@@ -11,7 +11,7 @@ ntt8_get_fixed_ntt_const(void)
 }
 
 void
-ntt8_init(spv_t out, sp_t p, sp_t d, 
+X(ntt8_init)(spv_t out, sp_t p, sp_t d, 
 	  sp_t primroot, sp_t order, sp_t perm)
 {
   sp_t w1 = sp_pow(primroot, order / 8, p, d);
@@ -257,6 +257,7 @@ ntt8_twiddle_run_core(spv_t in, spv_size_t istride,
 }
 
 #ifdef HAVE_SIMD
+static void
 ntt8_twiddle_run_core_simd(
         spv_t in, spv_size_t istride, spv_size_t idist,
 		spv_t out, spv_size_t ostride, spv_size_t odist,
@@ -533,12 +534,12 @@ ntt8_pfa_run(spv_t x, spv_size_t cofactor,
 
 }
 
-const nttconfig_t ntt8_config = 
+const nttconfig_t X(ntt8_config) = 
 {
   8,
   NC,
   ntt8_get_fixed_ntt_const,
-  ntt8_init,
+  X(ntt8_init),
   ntt8_run,
   ntt8_pfa_run,
   ntt8_twiddle_run

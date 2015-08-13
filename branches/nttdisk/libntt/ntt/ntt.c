@@ -2,33 +2,33 @@
 
 static const nttconfig_t * ntt_config[] = 
 {
-  &ntt2_config,
-  &ntt3_config,
-  &ntt4_config,
-  &ntt5_config,
-  &ntt7_config,
-  &ntt8_config,
-  &ntt9_config,
-  &ntt15_config,
-  &ntt16_config,
-  &ntt35_config,
-  &ntt40_config,
+  &X(ntt2_config),
+  &X(ntt3_config),
+  &X(ntt4_config),
+  &X(ntt5_config),
+  &X(ntt7_config),
+  &X(ntt8_config),
+  &X(ntt9_config),
+  &X(ntt15_config),
+  &X(ntt16_config),
+  &X(ntt35_config),
+  &X(ntt40_config),
 };
 
 /*-------------------------------------------------------------------------*/
 const nttconfig_t ** 
-ntt_master_list(void)
+X(ntt_master_list)(void)
 {
   return ntt_config;
 }
 
-uint32_t ntt_master_list_size(void)
+uint32_t X(ntt_master_list_size)(void)
 {
   return sizeof(ntt_config) / sizeof(ntt_config[0]);
 }
 
 /*-------------------------------------------------------------------------*/
-sp_t sp_ntt_reciprocal (sp_t w, sp_t p)
+static sp_t sp_ntt_reciprocal(sp_t w, sp_t p)
 {
     /* compute (w << SP_TYPE_BITS) / p */
 
@@ -68,76 +68,61 @@ sp_t sp_ntt_reciprocal (sp_t w, sp_t p)
 
 static void 
 solve_ffmatrix(spv_t matrix, spv_size_t max_cols,
-    spv_t x, spv_t b,
+		spv_t x, spv_t b,
 		sp_t p, sp_t d, spv_size_t m, spv_size_t n) 
 {
-	spv_size_t i, j, k;
-	spv_size_t *permute = (spv_size_t *)alloca(m * sizeof(spv_size_t));
-	sp_t pivot;
+  spv_size_t i, j, k;
+  spv_size_t *permute = (spv_size_t *)alloca(m * sizeof(spv_size_t));
+  sp_t pivot;
 
-	for (i = 0; i < m; i++)
-		permute[i] = i;
+  for (i = 0; i < m; i++)
+    permute[i] = i;
 
-	for (i = 0; i < n; i++) {
-
-		spv_t pivot_row;
-
-		for (j = i; j < m; j++) {
-		    pivot = matrix[permute[j] * max_cols + i];
-			if (pivot > 0)
-                break;
-		}
-		SWAP(spv_size_t, permute[i], permute[j]);
-		pivot_row = matrix + permute[i] * max_cols;
-		pivot = sp_inv(pivot, p, d);
-
-		for (j = i + 1; j < m; j++) {
-			spv_t curr_row = matrix + permute[j] * max_cols;
-			sp_t mult = sp_mul(curr_row[i], pivot, p, d);
-
-			for (k = i; k < n; k++)
-				curr_row[k] = sp_sub(curr_row[k], 
-                            sp_mul(mult, pivot_row[k], p, d), p);
-
-			b[permute[j]] = sp_sub(b[permute[j]], 
-                            sp_mul(mult, b[permute[i]], p, d), p);
-		}
-	}
-
-#if 0
-    if (m==81)
+  for (i = 0; i < n; i++) 
     {
-        for (j = 0; j < m; j++) {
-			spv_t curr_row = matrix + permute[j] * max_cols;
 
-            printf("%03lu: ", j);
-            for (k = 0; k < n; k++)
-                printf("%016llx ", curr_row[k]);
-                //printf("%c ", curr_row[k] ? '*' ' ');
+      spv_t pivot_row;
 
-            printf("\t\t%016llx\n", b[permute[j]]);
-        }
-    }
-#endif
-
-	for (i = n - 1; (int32_t)i >= 0; i--) {
-
-		spv_t curr_row = matrix + permute[i] * max_cols;
-		sp_t sum = b[permute[i]];
-
-		for (j = i + 1; j < n; j++) {
-			sum = sp_sub(sum, 
-                sp_mul(x[j], curr_row[j], p, d), p);
-		}
-
-		x[i] = sp_mul(sum, 
-                sp_inv(curr_row[i], p, d), p, d);
+      for (j = i; j < m; j++) 
+	{
+	  pivot = matrix[permute[j] * max_cols + i];
+	  if (pivot > 0)
+	    break;
 	}
+
+      SWAP(spv_size_t, permute[i], permute[j]);
+      pivot_row = matrix + permute[i] * max_cols;
+      pivot = sp_inv(pivot, p, d);
+
+      for (j = i + 1; j < m; j++) 
+	{
+	  spv_t curr_row = matrix + permute[j] * max_cols;
+	  sp_t mult = sp_mul(curr_row[i], pivot, p, d);
+
+	  for (k = i; k < n; k++)
+	    curr_row[k] = sp_sub(curr_row[k], 
+			    	sp_mul(mult, pivot_row[k], p, d), p);
+
+	  b[permute[j]] = sp_sub(b[permute[j]], 
+				sp_mul(mult, b[permute[i]], p, d), p);
+	}
+    }
+
+  for (i = n - 1; (int32_t)i >= 0; i--) 
+    {
+      spv_t curr_row = matrix + permute[i] * max_cols;
+      sp_t sum = b[permute[i]];
+
+      for (j = i + 1; j < n; j++)
+	sum = sp_sub(sum, sp_mul(x[j], curr_row[j], p, d), p);
+
+      x[i] = sp_mul(sum, sp_inv(curr_row[i], p, d), p, d);
+    }
 }
 
 /*-------------------------------------------------------------------------*/
 void
-nttdata_init_generic(const nttconfig_t *c,
+X(nttdata_init_generic)(const nttconfig_t *c,
             spv_t out, sp_t p, sp_t d, 
             sp_t primroot, sp_t order, sp_t perm)
 {
@@ -241,13 +226,13 @@ nttdata_init_generic(const nttconfig_t *c,
 }
 
 /*-------------------------------------------------------------------------*/
-void * ntt_init(sp_t size, sp_t primroot, sp_t p, sp_t recip)
+void * X(ntt_init)(sp_t size, sp_t primroot, sp_t p, sp_t recip)
 {
   return (nttdata_t *)calloc(1, sizeof(nttdata_t));
 }
 
 /*-------------------------------------------------------------------------*/
-void ntt_reset(void *data)
+void X(ntt_reset)(void *data)
 {
   spv_size_t i;
   nttdata_t *d = (nttdata_t *)data;
@@ -267,7 +252,7 @@ void ntt_reset(void *data)
 }
 
 /*-------------------------------------------------------------------------*/
-void ntt_free(void *data)
+void X(ntt_free)(void *data)
 {
   spv_size_t i;
   nttdata_t *d = (nttdata_t *)data;
@@ -275,7 +260,7 @@ void ntt_free(void *data)
   if (d == NULL)
     return;
 
-  ntt_reset(data);
+  X(ntt_reset)(data);
   free(d);
 }
 
@@ -331,14 +316,14 @@ make_twiddle(sp_t primroot, sp_t order, sp_t p, sp_t d,
 }
 
 /*-------------------------------------------------------------------------*/
-uint32_t ntt_build_passes(nttdata_t *data,
+uint32_t X(ntt_build_passes)(nttdata_t *data,
     		nttplan_t *plans, uint32_t num_plans,
 		sp_t size, sp_t p, sp_t primroot, sp_t order, sp_t d)
 {
   uint32_t i, j;
   nttpass_t *passes = data->passes;
-  uint32_t num_codelets = ntt_master_list_size();
-  const nttconfig_t **codelets = ntt_master_list();
+  uint32_t num_codelets = X(ntt_master_list_size)();
+  const nttconfig_t **codelets = X(ntt_master_list)();
 
   for (i = 0; i < num_plans; i++)
     {
@@ -458,7 +443,7 @@ ntt_run_recurse(spv_t x, sp_t p, nttdata_t *d, spv_size_t pass)
 
 /*-------------------------------------------------------------------------*/
 void 
-ntt_run(spv_t x, sp_t p, void *data)
+X(ntt_run)(spv_t x, sp_t p, void *data)
 {
   nttdata_t *d = (nttdata_t *)data;
 

@@ -12,7 +12,7 @@ HDR = \
 	ntt/ntt-impl.h \
 	ntt/sp.h
 
-CORE_SRC = \
+NTT_SRC = \
 	core/ntt02.c \
 	core/ntt03.c \
 	core/ntt04.c \
@@ -23,9 +23,7 @@ CORE_SRC = \
 	core/ntt15.c \
 	core/ntt16.c \
 	core/ntt35.c \
-	core/ntt40.c
-
-DRIVER_SRC = \
+	core/ntt40.c \
 	ntt/mpzspm.c \
 	ntt/ntt.c \
 	ntt/sp.c \
@@ -33,54 +31,34 @@ DRIVER_SRC = \
 	ntt/spv.c \
 	ntt/test.c
 
-NTT_SRC = $(CORE_SRC) $(DRIVER_SRC)
-
-LIBNTT_SRC = \
+LIB_SRC = \
 	util.c
 
-OBJ_W32 = $(LIBNTT_SRC:.c=.o_w32)
-OBJ_W64 = $(LIBNTT_SRC:.c=.o_w64)
+OBJ_W32 = $(LIB_SRC:.c=.o_w32) \
+	$(NTT_SRC:.c=.o_sp30w32) \
+	$(NTT_SRC:.c=.o_sp30w32sse2) \
+	$(NTT_SRC:.c=.o_sp31w32) \
+	$(NTT_SRC:.c=.o_sp31w32sse2) \
+	$(NTT_SRC:.c=.o_sp62w32) \
+	$(NTT_SRC:.c=.o_sp62w32sse2)
 
-OBJ_SP30_W32 = $(NTT_SRC:.c=.o_sp30w32)
-OBJ_SP30_W32_SSE2 = $(NTT_SRC:.c=.o_sp30w32sse2)
-OBJ_SP31_W32 = $(NTT_SRC:.c=.o_sp31w32)
-OBJ_SP31_W32_SSE2 = $(NTT_SRC:.c=.o_sp31w32sse2)
-OBJ_SP62_W32 = $(NTT_SRC:.c=.o_sp62w32)
-OBJ_SP62_W32_SSE2 = $(NTT_SRC:.c=.o_sp62w32sse2)
+OBJ_W64 = $(LIB_SRC:.c=.o_w64) \
+	$(NTT_SRC:.c=.o_sp30w64) \
+	$(NTT_SRC:.c=.o_sp30w64sse2) \
+	$(NTT_SRC:.c=.o_sp62w64) \
+	$(NTT_SRC:.c=.o_sp62w64sse2)
 
-OBJ_SP30_W64 = $(NTT_SRC:.c=.o_sp30w64)
-OBJ_SP30_W64_SSE2 = $(NTT_SRC:.c=.o_sp30w64sse2)
-OBJ_SP62_W64 = $(NTT_SRC:.c=.o_sp62w64)
-OBJ_SP62_W64_SSE2 = $(NTT_SRC:.c=.o_sp62w64sse2)
-
-OBJ_ALL = \
-	$(OBJ_W32) \
-	$(OBJ_W64) \
-	$(OBJ_SP30_W32) \
-	$(OBJ_SP30_W32_SSE2) \
-	$(OBJ_SP31_W32) \
-	$(OBJ_SP31_W32_SSE2) \
-	$(OBJ_SP62_W32) \
-	$(OBJ_SP62_W32_SSE2) \
-	$(OBJ_SP30_W64) \
-	$(OBJ_SP30_W64_SSE2) \
-	$(OBJ_SP62_W64) \
-	$(OBJ_SP62_W64_SSE2)
-
-w32: $(OBJ_W32) $(OBJ_SP30_W32) $(OBJ_SP30_W32_SSE2) \
-		$(OBJ_SP31_W32) $(OBJ_SP31_W32_SSE2) \
-		$(OBJ_SP62_W32) $(OBJ_SP62_W32_SSE2)
-	$(CC32) $(CFLAGS) $(OBJ_W32) $(OBJ_SP30_W32_SSE2) -o a32.exe -lgmp
-
-w64: $(OBJ_W64) $(OBJ_SP30_W64) $(OBJ_SP30_W32_SSE2) \
-		$(OBJ_SP62_W64) $(OBJ_SP62_W64_SSE2)
-	$(CC64) $(CFLAGS) $(OBJ_W64) $(OBJ_SP62_W64_SSE2) -o a64.exe \
+w64: $(OBJ_W64)
+	$(CC64) $(CFLAGS) $(OBJ_W64) test.c -o a64.exe \
 		../../../mpir-2.7.0/lib/x64/Release/mpir.lib \
 		../../../mpir-2.7.0/lib/x64/Release/chkstk.obj  \
 		../../../mpir-2.7.0/lib/x64/Release/runtmchk.lib
 
+w32: $(OBJ_W32)
+	$(CC32) $(CFLAGS) $(OBJ_W32) test.c -o a32.exe -lgmp
+
 clean:
-	rm -rf $(OBJ_ALL)
+	rm -rf $(OBJ_W32) $(OBJ_W64) a32.exe a64.exe
 
 %.o_w32: %.c $(HDR)
 	$(CC32) $(CFLAGS) -c -o $@ $<

@@ -11,10 +11,10 @@ ntt15_get_fixed_ntt_const(void)
 }
 
 void
-ntt15_init(spv_t out, sp_t p, sp_t d, 
+X(ntt15_init)(spv_t out, sp_t p, sp_t d, 
 	  sp_t primroot, sp_t order, sp_t perm)
 {
-  nttdata_init_generic(&ntt15_config, out, p, d, primroot, order, perm);
+  X(nttdata_init_generic)(&X(ntt15_config), out, p, d, primroot, order, perm);
 }
 
 static void 
@@ -1793,12 +1793,12 @@ ntt15_pfa_run(spv_t x, spv_size_t cofactor,
 
 }
 
-const nttconfig_t ntt15_config = 
+const nttconfig_t X(ntt15_config) = 
 {
   15,
   NC, 
   ntt15_get_fixed_ntt_const,
-  ntt15_init,
+  X(ntt15_init),
   ntt15_run,
   ntt15_pfa_run,
   ntt15_twiddle_run
