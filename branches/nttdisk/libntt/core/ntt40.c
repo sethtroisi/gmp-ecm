@@ -1,4 +1,4 @@
-#include "ntt-impl.h"
+#include "ntt/ntt-impl.h"
 
 #define NC 48
 

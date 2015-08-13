@@ -1,4 +1,3 @@
-#include <stdlib.h>
 #include "ntt-impl.h"
 
 static const nttconfig_t * ntt_config[] = 

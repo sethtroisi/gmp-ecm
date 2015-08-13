@@ -1,34 +1,7 @@
-/* sp.h - header file for the sp library
-
-  Copyright 2005, 2008, 2010 Dave Newman, Jason Papadopoulos and
-                             Paul Zimmermann.
-  Copyright 1991, 1993, 1994, 1995, 1996, 1997, 1999, 2000, 2001, 2002, 2003,
-  2004, 2005, 2010 Free Software Foundation, Inc. (for parts from gmp-impl.h).
-
-  This file is part of the SP library.
-  
-  The SP Library is free software; you can redistribute it and/or modify
-  it under the terms of the GNU Lesser General Public License as published by
-  the Free Software Foundation; either version 2.1 of the License, or (at your
-  option) any later version.
-
-  The SP Library is distributed in the hope that it will be useful, but
-  WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
-  or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU Lesser General Public
-  License for more details.
-
-  You should have received a copy of the GNU Lesser General Public License
-  along with the SP Library; see the file COPYING.LIB.  If not, write to
-  the Free Software Foundation, Inc., 51 Franklin St, Fifth Floor, Boston,
-  MA 02110-1301, USA.
-*/
-
 #ifndef _SP_H
 #define _SP_H
 
-#include "basicdefs.h"
-#include "gmp-xface.h"
-
+#include "libntt.h"
 
 /* Basic defs for the data types used in Number Theoretic Transforms
 
@@ -107,7 +80,7 @@ typedef mp_limb_t UDItype;
    #if GMP_LIMB_BITS == 64
       #define SP_NUMB_BITS 62
    #elif GMP_LIMB_BITS == 32
-      #define SP_NUMB_BITS 31
+      #define SP_NUMB_BITS 30
    #endif
 #endif
 
@@ -176,31 +149,16 @@ typedef struct
        that exceeds 2^32 */
     uint32_t sp_num;
 
+    spm_t * spm;
+
     sp_t ntt_size;
-    uint32_t num_ntt_passes;
     
     mpz_t modulus;
-    
-    /* spm data */
-    spm_t *spm;
-    
-    /* precomputed crt constants, see mpzspm.c */
-    mpzv_t crt1, crt2;
-    sp_t *crt3, **crt4, *crt5;
-
-    /* product tree to speed up conversion from mpz to sp */
-    mpzv_t *T;            /* product tree */
-    uint32_t d;       /* ceil(log(sp_num)/log(2)) */
   } __mpzspm_struct;
 
 typedef __mpzspm_struct * mpzspm_t;
 
 /* MPZSPV */
-
-/* sp representation of a mpz polynomial */
-
-typedef spv_t * mpzspv_t;
-
 
 /*************
  * FUNCTIONS *
@@ -242,9 +200,6 @@ mpz_get_sp (const mpz_t n)
 #endif
 }
 
-
-void * sp_aligned_malloc (size_t len);
-void sp_aligned_free (void *newptr);
 sp_t sp_reciprocal(sp_t p);
 
 /* sp */
@@ -579,11 +534,5 @@ void spv_random (spv_t, spv_size_t, sp_t);
 
 mpzspm_t mpzspm_init (sp_t, mpz_t);
 void mpzspm_clear (mpzspm_t);
-
-/* mpzspv */
-
-/* we use the remainder tree for products of 2^I0_THRESHOLD moduli or more,
-   and the naive method for fewer moduli. We must have I0_THRESHOLD >= 1. */
-#define I0_THRESHOLD 7
 
 #endif /* _SP_H */
