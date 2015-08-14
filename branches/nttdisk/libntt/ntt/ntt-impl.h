@@ -205,12 +205,23 @@ static inline sp_t sp_ntt_mul(sp_t x, sp_t w, sp_t w_inv, sp_t p)
 #endif
 }
 
+/* SIMD includes */
+#ifdef HAVE_SSE2
+#include "ntt-impl-sse2.h"
+#endif
+
 typedef struct
 {
   uint32_t size;
   uint32_t num_ntt_const;
   get_fixed_ntt_const_t get_fixed_ntt_const;
   nttdata_init_t nttdata_init;
+
+#ifdef HAVE_SIMD
+  ntt_run_t ntt_run_simd;
+  ntt_pfa_run_t ntt_pfa_run_simd;
+  ntt_twiddle_run_t ntt_twiddle_run_simd;
+#endif
   ntt_run_t ntt_run;
   ntt_pfa_run_t ntt_pfa_run;
   ntt_twiddle_run_t ntt_twiddle_run;
@@ -223,7 +234,13 @@ typedef enum
 {
   PASS_TYPE_DIRECT,
   PASS_TYPE_PFA,
-  PASS_TYPE_TWIDDLE
+  PASS_TYPE_TWIDDLE,
+#ifdef HAVE_SIMD
+  PASS_TYPE_DIRECT_SIMD,
+  PASS_TYPE_PFA_SIMD,
+  PASS_TYPE_TWIDDLE_SIMD,
+#endif
+  PASS_TYPE_INVALID
 } pass_type_t;
 
 #define MAX_PASSES 10
@@ -304,10 +321,5 @@ void * X(ntt_init)(sp_t size, sp_t primroot, sp_t p, sp_t d);
 void X(ntt_free)(void *data);
 void X(ntt_reset)(void *data);
 void X(ntt_run)(spv_t x, sp_t p, void *data);
-
-/* SIMD includes */
-#ifdef HAVE_SSE2
-#include "ntt-impl-sse2.h"
-#endif
 
 #endif /* _NTT_IMPL_H */

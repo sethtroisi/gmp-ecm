@@ -1702,18 +1702,30 @@ ntt35_run(spv_t in, spv_size_t istride, spv_size_t idist,
 {
   spv_size_t i = 0;
 
+  for (; i < num_transforms; i++)
+    ntt35_run_core(in + i * idist, istride, 
+                out + i * odist, ostride, p, ntt_const);
+}
+
+
 #ifdef HAVE_SIMD
+static void
+ntt35_run_simd(spv_t in, spv_size_t istride, spv_size_t idist,
+    		spv_t out, spv_size_t ostride, spv_size_t odist,
+    		spv_size_t num_transforms, sp_t p, spv_t ntt_const)
+{
+  spv_size_t i = 0;
   spv_size_t num_simd = SP_SIMD_VSIZE * (num_transforms / SP_SIMD_VSIZE);
 
   for (; i < num_simd; i += SP_SIMD_VSIZE)
     ntt35_run_core_simd(in + i * idist, istride, idist, 
                         out + i * odist, ostride, odist, p, ntt_const);
-#endif
 
   for (; i < num_transforms; i++)
     ntt35_run_core(in + i * idist, istride, 
                 out + i * odist, ostride, p, ntt_const);
 }
+#endif
 
 
 static void
@@ -3482,7 +3494,20 @@ ntt35_twiddle_run(spv_t in, spv_size_t istride, spv_size_t idist,
 {
   spv_size_t i = 0, j = 0;
 
+  for (; i < num_transforms; i++, j += 2*(35-1))
+    ntt35_twiddle_run_core(in + i * idist, istride, 
+			out + i * odist, ostride,
+			w + j, p, ntt_const);
+}
+
+
 #ifdef HAVE_SIMD
+static void
+ntt35_twiddle_run_simd(spv_t in, spv_size_t istride, spv_size_t idist,
+    			spv_t out, spv_size_t ostride, spv_size_t odist,
+    			spv_t w, spv_size_t num_transforms, sp_t p, spv_t ntt_const)
+{
+  spv_size_t i = 0, j = 0;
   spv_size_t num_simd = SP_SIMD_VSIZE * (num_transforms / SP_SIMD_VSIZE);
 
   for (; i < num_simd; i += SP_SIMD_VSIZE,
@@ -3491,13 +3516,13 @@ ntt35_twiddle_run(spv_t in, spv_size_t istride, spv_size_t idist,
 		in + i * idist, istride, idist,
 		out + i * odist, ostride, odist,
 		(sp_simd_t *)(w + j), p, ntt_const);
-#endif
 
   for (; i < num_transforms; i++, j += 2*(35-1))
     ntt35_twiddle_run_core(in + i * idist, istride, 
 			out + i * odist, ostride,
 			w + j, p, ntt_const);
 }
+#endif
 
 static void
 ntt35_pfa_run_core(spv_t x, spv_size_t start,
@@ -5269,7 +5294,21 @@ ntt35_pfa_run(spv_t x, spv_size_t cofactor,
   spv_size_t inc = cofactor;
   spv_size_t inc2 = 35;
 
+  for (; i < cofactor; i++, incstart += inc2)
+    ntt35_pfa_run_core(x, incstart, inc, n, p, ntt_const);
+
+}
+
 #ifdef HAVE_SIMD
+static void
+ntt35_pfa_run_simd(spv_t x, spv_size_t cofactor,
+	  sp_t p, spv_t ntt_const)
+{
+  spv_size_t i = 0;
+  spv_size_t incstart = 0;
+  spv_size_t n = 35 * cofactor;
+  spv_size_t inc = cofactor;
+  spv_size_t inc2 = 35;
   spv_size_t num_simd = SP_SIMD_VSIZE * (cofactor / SP_SIMD_VSIZE);
 
   for (i = 0; i < num_simd; i += SP_SIMD_VSIZE)
@@ -5277,12 +5316,13 @@ ntt35_pfa_run(spv_t x, spv_size_t cofactor,
       ntt35_pfa_run_core_simd(x, incstart, inc, inc2, n, p, ntt_const);
       incstart += SP_SIMD_VSIZE * inc2;
     }
-#endif
 
   for (; i < cofactor; i++, incstart += inc2)
     ntt35_pfa_run_core(x, incstart, inc, n, p, ntt_const);
 
 }
+#endif
+
 
 const nttconfig_t X(ntt35_config) = 
 {
@@ -5290,6 +5330,11 @@ const nttconfig_t X(ntt35_config) =
   NC,
   ntt35_get_fixed_ntt_const,
   X(ntt35_init),
+#ifdef HAVE_SIMD
+  ntt35_run_simd,
+  ntt35_pfa_run_simd,
+  ntt35_twiddle_run_simd,
+#endif
   ntt35_run,
   ntt35_pfa_run,
   ntt35_twiddle_run

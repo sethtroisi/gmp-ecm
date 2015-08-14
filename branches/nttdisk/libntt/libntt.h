@@ -11,11 +11,8 @@ void sp_aligned_free (void *newptr);
 
 #define DECLARE(spbits, wbits) \
 void * mpzspm_init_sp##spbits##w##wbits(uint32_t max_len_in, mpz_t modulus); \
-void * mpzspm_init_sp##spbits##w##wbits##sse2(uint32_t max_len_in, mpz_t modulus); \
 void mpzspm_clear_sp##spbits##w##wbits(void *mpzspm); \
-void mpzspm_clear_sp##spbits##w##wbits##sse2(void *mpzspm); \
 int test_main_sp##spbits##w##wbits(int argc, char **argv); \
-int test_main_sp##spbits##w##wbits##sse2(int argc, char **argv);
 
 #if GMP_LIMB_BITS == 32
 DECLARE(30,32)

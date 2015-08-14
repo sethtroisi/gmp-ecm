@@ -112,48 +112,23 @@ typedef mp_limb_t UDItype;
 
 #if GMP_LIMB_BITS == 32
   #if SP_NUMB_BITS == 30
-    #ifdef HAVE_SSE2
-    #define SP_NAME_SUFFIX_STR "sp30w32sse2"
-    #define X(name) name##_sp30w32sse2
-    #else
     #define SP_NAME_SUFFIX_STR "sp30w32"
     #define X(name) name##_sp30w32
-    #endif
   #elif SP_NUMB_BITS == 31
-    #ifdef HAVE_SSE2
-    #define SP_NAME_SUFFIX_STR "sp31w32sse2"
-    #define X(name) name##_sp31w32sse2
-    #else
     #define SP_NAME_SUFFIX_STR "sp31w32"
     #define X(name) name##_sp31w32
-    #endif
   #else
-    #ifdef HAVE_SSE2
-    #define SP_NAME_SUFFIX_STR "sp62w32sse2"
-    #define X(name) name##_sp62w32sse2
-    #else
     #define SP_NAME_SUFFIX_STR "sp62w32"
     #define X(name) name##_sp62w32
-    #endif
   #endif
 
 #else
   #if SP_NUMB_BITS == 30
-    #ifdef HAVE_SSE2
-    #define SP_NAME_SUFFIX_STR "sp30w64sse2"
-    #define X(name) name##_sp30w64sse2
-    #else
     #define SP_NAME_SUFFIX_STR "sp30w64"
     #define X(name) name##_sp30w64
-    #endif
   #else
-    #ifdef HAVE_SSE2
-    #define SP_NAME_SUFFIX_STR "sp62w64sse2"
-    #define X(name) name##_sp62w64sse2
-    #else
     #define SP_NAME_SUFFIX_STR "sp62w64"
     #define X(name) name##_sp62w64
-    #endif
   #endif
 
 #endif

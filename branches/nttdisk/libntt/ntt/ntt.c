@@ -274,13 +274,39 @@ make_twiddle(sp_t primroot, sp_t order, sp_t p, sp_t d,
 
   sp_t w = sp_pow(primroot, order / size, p, d);
   sp_t w_inc = 1;
-  spv_size_t i = 0;
-  spv_size_t j, k;
+  spv_size_t i, j, k;
+
+  for (i = 0; i < cols; i++)
+    {
+      sp_t w0 = w_inc;
+
+      for (j = 0; j < rows - 1; j++)
+	{
+	  res[2*i*(rows-1) + 2*j] = w0;
+	  res[2*i*(rows-1) + 2*j+1] = sp_ntt_reciprocal(w0, p);
+	  w0 = sp_mul(w0, w_inc, p, d);
+	}
+
+      w_inc = sp_mul(w_inc, w, p, d);
+    }
+
+  return res;
+}
 
 #ifdef HAVE_SIMD
+static spv_t
+make_twiddle_simd(sp_t primroot, sp_t order, sp_t p, sp_t d,
+    		spv_size_t rows, spv_size_t cols)
+{
+  spv_size_t size = rows * cols;
+  spv_t res = (spv_t)sp_aligned_malloc(2 * (rows - 1) * cols * sizeof(sp_t));
+
+  sp_t w = sp_pow(primroot, order / size, p, d);
+  sp_t w_inc = 1;
+  spv_size_t i, j, k;
   spv_size_t num_simd = SP_SIMD_VSIZE * (cols / SP_SIMD_VSIZE);
 
-  for (; i < num_simd; i += SP_SIMD_VSIZE)
+  for (i = 0; i < num_simd; i += SP_SIMD_VSIZE)
     {
       for (j = 0; j < SP_SIMD_VSIZE; j++)
 	{
@@ -296,7 +322,6 @@ make_twiddle(sp_t primroot, sp_t order, sp_t p, sp_t d,
 	  w_inc = sp_mul(w_inc, w, p, d);
 	}
     }
-#endif
 
   for (; i < cols; i++)
     {
@@ -314,6 +339,7 @@ make_twiddle(sp_t primroot, sp_t order, sp_t p, sp_t d,
 
   return res;
 }
+#endif
 
 /*-------------------------------------------------------------------------*/
 uint32_t X(ntt_build_passes)(nttdata_t *data,
@@ -346,23 +372,39 @@ uint32_t X(ntt_build_passes)(nttdata_t *data,
       switch (plan->pass_type)
 	{
 	  case PASS_TYPE_DIRECT:
+#ifdef HAVE_SIMD
+	  case PASS_TYPE_DIRECT_SIMD:
+#endif
 	    passes[i].d.direct.num_transforms = size / plan->codelet_size;
 	    break;
 
 	  case PASS_TYPE_PFA:
+#ifdef HAVE_SIMD
+	  case PASS_TYPE_PFA_SIMD:
+#endif
 	    passes[i].d.pfa.cofactor = size / plan->codelet_size;
 	    break;
 
 	  case PASS_TYPE_TWIDDLE:
+#ifdef HAVE_SIMD
+	  case PASS_TYPE_TWIDDLE_SIMD:
+#endif
 	    {
 	      spv_size_t cols = size / plan->codelet_size;
 	      spv_size_t rows = plan->codelet_size;
 
 	      passes[i].d.twiddle.num_transforms = cols;
 	      passes[i].d.twiddle.stride = cols;
+#ifdef HAVE_SIMD
+	      passes[i].d.twiddle.w = make_twiddle_simd(primroot, order, p, d, rows, cols);
+	      if (plans[i+1].pass_type != PASS_TYPE_DIRECT &&
+	          plans[i+1].pass_type != PASS_TYPE_DIRECT_SIMD)
+		size = cols;
+#else
 	      passes[i].d.twiddle.w = make_twiddle(primroot, order, p, d, rows, cols);
 	      if (plans[i+1].pass_type != PASS_TYPE_DIRECT)
 		size = cols;
+#endif
 	      break;
 	    }
 	}
@@ -413,9 +455,36 @@ ntt_run_recurse(spv_t x, sp_t p, nttdata_t *d, spv_size_t pass)
 	    		x, curr_pass[i].d.pfa.cofactor,
 			p, curr_pass[i].codelet_const);
 	return;
+
+#ifdef HAVE_SIMD
+      case PASS_TYPE_DIRECT_SIMD:
+	curr_pass->codelet->ntt_run_simd(
+	    		x, 1, curr_pass->codelet->size,
+	    		x, 1, curr_pass->codelet->size,
+			curr_pass->d.direct.num_transforms,
+			p, curr_pass->codelet_const);
+	return;
+
+      case PASS_TYPE_PFA_SIMD:
+	for (i = pass; i < d->num_passes; i++)
+	  curr_pass[i].codelet->ntt_pfa_run_simd(
+	    		x, curr_pass[i].d.pfa.cofactor,
+			p, curr_pass[i].codelet_const);
+	return;
+#endif
     }
 
-  curr_pass->codelet->ntt_twiddle_run(
+#ifdef HAVE_SIMD
+  if (curr_pass->pass_type == PASS_TYPE_TWIDDLE_SIMD)
+    curr_pass->codelet->ntt_twiddle_run_simd(
+		x, curr_pass->d.twiddle.stride, 1,
+		x, curr_pass->d.twiddle.stride, 1,
+		curr_pass->d.twiddle.w,
+		curr_pass->d.twiddle.num_transforms,
+		p, curr_pass->codelet_const);
+  else
+#endif
+    curr_pass->codelet->ntt_twiddle_run(
 		x, curr_pass->d.twiddle.stride, 1,
 		x, curr_pass->d.twiddle.stride, 1,
 		curr_pass->d.twiddle.w,
@@ -433,6 +502,16 @@ ntt_run_recurse(spv_t x, sp_t p, nttdata_t *d, spv_size_t pass)
 			curr_pass[1].d.direct.num_transforms,
 			p, curr_pass[1].codelet_const);
     }
+#ifdef HAVE_SIMD
+  else if (curr_pass[1].pass_type == PASS_TYPE_DIRECT_SIMD)
+    {
+      curr_pass[1].codelet->ntt_run_simd(
+	    		x, 1, curr_pass[1].codelet->size,
+	    		x, 1, curr_pass[1].codelet->size,
+			curr_pass[1].d.direct.num_transforms,
+			p, curr_pass[1].codelet_const);
+    }
+#endif
   else
     {
       for (i = 0; i < curr_pass->codelet->size; i++)
