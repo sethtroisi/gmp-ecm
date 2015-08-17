@@ -47,105 +47,272 @@
 typedef __m128i sp_simd_t;
 
 
-static inline sp_simd_t sp_simd_gather(spv_t x, spv_size_t dist)
+static inline sp_simd_t sp_simd_gather(spv_t x, spv_size_t dist,
+    					spv_size_t vsize)
 {
 #if SP_TYPE_BITS == 32
 
-  if (dist == 1)
-    return ploadu(x);
+  switch (vsize)
+    {
+      case 4:
+	if (dist == 1)
+	  return ploadu(x);
+	else
+	  {
+	    sp_simd_t t0 = pload_lo32(x + 0);
+	    sp_simd_t t1 = pload_lo32(x + dist);
+	    sp_simd_t t2 = pload_lo32(x + 2 * dist);
+	    sp_simd_t t3 = pload_lo32(x + 3 * dist);
+	    sp_simd_t r0 = punpcklo32(t0, t1);
+	    sp_simd_t r1 = punpcklo32(t2, t3);
+	    return punpcklo64(r0, r1);
+	  }
 
-  sp_simd_t t0 = pload_lo32(x + 0);
-  sp_simd_t t1 = pload_lo32(x + dist);
-  sp_simd_t t2 = pload_lo32(x + 2 * dist);
-  sp_simd_t t3 = pload_lo32(x + 3 * dist);
-  sp_simd_t r0 = punpcklo32(t0, t1);
-  sp_simd_t r1 = punpcklo32(t2, t3);
-  return punpcklo64(r0, r1);
+      case 3:
+	{
+	  sp_simd_t t0 = pload_lo32(x + 0);
+	  sp_simd_t t1 = pload_lo32(x + dist);
+	  sp_simd_t t2 = pload_lo32(x + 2 * dist);
+	  sp_simd_t r0 = punpcklo32(t0, t1);
+	  return punpcklo64(r0, t2);
+	}
+
+      case 2:
+	{
+	  sp_simd_t t0 = pload_lo32(x + 0);
+	  sp_simd_t t1 = pload_lo32(x + dist);
+	  return punpcklo32(t0, t1);
+	}
+
+      default:
+	return pload_lo32(x + 0);
+    }
 
 #else
 
-  sp_simd_t t = pload_lo64(x + 0);
-  return pload_hi64(t, x + dist);
+  switch (vsize)
+    {
+      case 2:
+	{
+	  sp_simd_t t = pload_lo64(x + 0);
+	  return pload_hi64(t, x + dist);
+	}
+
+      default:
+	return pload_lo64(x + 0);
+    }
 
 #endif
 }
 
 static inline sp_simd_t sp_simd_pfa_gather(spv_t x, spv_size_t start_off, 
-					spv_size_t inc, spv_size_t n)
+					spv_size_t inc, spv_size_t n,
+					spv_size_t vsize)
 {
 #if SP_TYPE_BITS == 32
-
-  spv_size_t j0 = start_off;
-  spv_size_t j1 = sp_array_inc(j0, inc, n);
-  spv_size_t j2 = sp_array_inc(j0, 2 * inc, n);
-  spv_size_t j3 = sp_array_inc(j0, 3 * inc, n);
-  sp_simd_t t0 = pload_lo32(x + j0);
-  sp_simd_t t1 = pload_lo32(x + j1);
-  sp_simd_t t2 = pload_lo32(x + j2);
-  sp_simd_t t3 = pload_lo32(x + j3);
-  sp_simd_t r0 = punpcklo32(t0, t1);
-  sp_simd_t r1 = punpcklo32(t2, t3);
-  return punpcklo64(r0, r1);
-
-#else
-
-  spv_size_t j0 = start_off;
-  spv_size_t j1 = sp_array_inc(j0, inc, n);
-  sp_simd_t t = pload_lo64(x + j0);
-  return pload_hi64(t, x + j1);
-
-#endif
-}
-
-static inline void sp_simd_scatter(sp_simd_t t, spv_t x, spv_size_t dist)
-{
-#if SP_TYPE_BITS == 32
-
-  if (dist == 1)
-    pstoreu(t, x);
-  else
+  switch (vsize)
     {
-      pstore_lo32(t, x + 0);
-      t = _mm_srli_si128(t, 4);
-      pstore_lo32(t, x + dist);
-      t = _mm_srli_si128(t, 4);
-      pstore_lo32(t, x + 2 * dist);
-      t = _mm_srli_si128(t, 4);
-      pstore_lo32(t, x + 3 * dist);
+      case 4:
+	{
+	  spv_size_t j0 = start_off;
+	  spv_size_t j1 = sp_array_inc(j0, inc, n);
+	  spv_size_t j2 = sp_array_inc(j0, 2 * inc, n);
+	  spv_size_t j3 = sp_array_inc(j0, 3 * inc, n);
+	  sp_simd_t t0 = pload_lo32(x + j0);
+	  sp_simd_t t1 = pload_lo32(x + j1);
+	  sp_simd_t t2 = pload_lo32(x + j2);
+	  sp_simd_t t3 = pload_lo32(x + j3);
+	  sp_simd_t r0 = punpcklo32(t0, t1);
+	  sp_simd_t r1 = punpcklo32(t2, t3);
+	  return punpcklo64(r0, r1);
+	}
+
+      case 3:
+	{
+	  spv_size_t j0 = start_off;
+	  spv_size_t j1 = sp_array_inc(j0, inc, n);
+	  spv_size_t j2 = sp_array_inc(j0, 2 * inc, n);
+	  sp_simd_t t0 = pload_lo32(x + j0);
+	  sp_simd_t t1 = pload_lo32(x + j1);
+	  sp_simd_t t2 = pload_lo32(x + j2);
+	  sp_simd_t r0 = punpcklo32(t0, t1);
+	  return punpcklo64(r0, t2);
+	}
+
+      case 2:
+	{
+	  spv_size_t j0 = start_off;
+	  spv_size_t j1 = sp_array_inc(j0, inc, n);
+	  sp_simd_t t0 = pload_lo32(x + j0);
+	  sp_simd_t t1 = pload_lo32(x + j1);
+	  return punpcklo32(t0, t1);
+	}
+
+      default:
+	{
+	  spv_size_t j0 = start_off;
+	  return pload_lo32(x + j0);
+	}
     }
 
 #else
 
-  pstore_lo64(t, x + 0);
-  pstore_hi64(t, x + dist);
+  switch (vsize)
+    {
+      case 2:
+	{
+	  spv_size_t j0 = start_off;
+	  spv_size_t j1 = sp_array_inc(j0, inc, n);
+	  sp_simd_t t = pload_lo64(x + j0);
+	  return pload_hi64(t, x + j1);
+	}
+
+      default:
+	{
+	  spv_size_t j0 = start_off;
+	  return pload_lo64(x + j0);
+	}
+    }
+
+#endif
+}
+
+static inline void sp_simd_scatter(sp_simd_t t, spv_t x, spv_size_t dist,
+    					spv_size_t vsize)
+{
+#if SP_TYPE_BITS == 32
+
+  switch (vsize)
+    {
+      case 4:
+	if (dist == 1)
+	  pstoreu(t, x);
+	else
+	  {
+	    sp_simd_t t1 = _mm_srli_si128(t, 4);
+	    sp_simd_t t2 = _mm_srli_si128(t, 8);
+	    sp_simd_t t3 = _mm_srli_si128(t, 12);
+	    pstore_lo32(t, x + 0);
+	    pstore_lo32(t1, x + dist);
+	    pstore_lo32(t2, x + 2 * dist);
+	    pstore_lo32(t3, x + 3 * dist);
+	  }
+	break;
+
+      case 3:
+	{
+	  sp_simd_t t1 = _mm_srli_si128(t, 4);
+	  sp_simd_t t2 = _mm_srli_si128(t, 8);
+	  pstore_lo32(t, x + 0);
+	  pstore_lo32(t1, x + dist);
+	  pstore_lo32(t2, x + 2 * dist);
+      	}
+	break;
+
+      case 2:
+	{
+	  sp_simd_t t1 = _mm_srli_si128(t, 4);
+	  pstore_lo32(t, x + 0);
+	  pstore_lo32(t1, x + dist);
+      	}
+	break;
+
+      default:
+	pstore_lo32(t, x + 0);
+	break;
+    }
+
+#else
+
+  switch (vsize)
+    {
+      case 2:
+	pstore_lo64(t, x + 0);
+	pstore_hi64(t, x + dist);
+	break;
+
+      default:
+	pstore_lo64(t, x + 0);
+	break;
+    }
 
 #endif
 }
 
 static inline void sp_simd_pfa_scatter(sp_simd_t t, spv_t x, 
     				spv_size_t start_off, 
-				spv_size_t inc, spv_size_t n)
+				spv_size_t inc, spv_size_t n,
+				spv_size_t vsize)
 {
 #if SP_TYPE_BITS == 32
 
-  spv_size_t j0 = start_off;
-  spv_size_t j1 = sp_array_inc(j0, inc, n);
-  spv_size_t j2 = sp_array_inc(j0, 2 * inc, n);
-  spv_size_t j3 = sp_array_inc(j0, 3 * inc, n);
-  pstore_lo32(t, x + j0);
-  t = _mm_srli_si128(t, 4);
-  pstore_lo32(t, x + j1);
-  t = _mm_srli_si128(t, 4);
-  pstore_lo32(t, x + j2);
-  t = _mm_srli_si128(t, 4);
-  pstore_lo32(t, x + j3);
+  switch (vsize)
+    {
+      case 4:
+	{
+	  spv_size_t j0 = start_off;
+	  spv_size_t j1 = sp_array_inc(j0, inc, n);
+	  spv_size_t j2 = sp_array_inc(j0, 2 * inc, n);
+	  spv_size_t j3 = sp_array_inc(j0, 3 * inc, n);
+	  sp_simd_t t1 = _mm_srli_si128(t, 4);
+	  sp_simd_t t2 = _mm_srli_si128(t, 8);
+      	  sp_simd_t t3 = _mm_srli_si128(t, 12);
+	  pstore_lo32(t, x + j0);
+	  pstore_lo32(t1, x + j1);
+	  pstore_lo32(t2, x + j2);
+	  pstore_lo32(t3, x + j3);
+	}
+	break;
+
+      case 3:
+	{
+	  spv_size_t j0 = start_off;
+	  spv_size_t j1 = sp_array_inc(j0, inc, n);
+	  spv_size_t j2 = sp_array_inc(j0, 2 * inc, n);
+	  sp_simd_t t1 = _mm_srli_si128(t, 4);
+	  sp_simd_t t2 = _mm_srli_si128(t, 8);
+	  pstore_lo32(t, x + j0);
+	  pstore_lo32(t1, x + j1);
+	  pstore_lo32(t2, x + j2);
+	}
+	break;
+
+      case 2:
+	{
+	  spv_size_t j0 = start_off;
+	  spv_size_t j1 = sp_array_inc(j0, inc, n);
+	  sp_simd_t t1 = _mm_srli_si128(t, 4);
+	  pstore_lo32(t, x + j0);
+	  pstore_lo32(t1, x + j1);
+	}
+	break;
+
+      default:
+	{
+	  spv_size_t j0 = start_off;
+	  pstore_lo32(t, x + j0);
+	}
+	break;
+    }
 
 #else
 
-  spv_size_t j0 = start_off;
-  spv_size_t j1 = sp_array_inc(j0, inc, n);
-  pstore_lo64(t, x + j0);
-  pstore_hi64(t, x + j1);
+  switch (vsize)
+    {
+      case 2:
+	{
+	  spv_size_t j0 = start_off;
+	  spv_size_t j1 = sp_array_inc(j0, inc, n);
+	  pstore_lo64(t, x + j0);
+	  pstore_hi64(t, x + j1);
+	}
+
+      default:
+	{
+	  spv_size_t j0 = start_off;
+	  pstore_lo64(t, x + j0);
+	}
+    }
 
 #endif
 }

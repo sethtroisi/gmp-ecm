@@ -859,7 +859,7 @@ ntt35_run_core(spv_t in, spv_size_t istride,
 static void
 ntt35_run_core_simd(spv_t in, spv_size_t istride, spv_size_t idist,
 		spv_t out, spv_size_t ostride, spv_size_t odist,
-		sp_t p, spv_t ntt_const)
+		sp_t p, spv_t ntt_const, spv_size_t vsize)
 {
   sp_simd_t a00, a01, a02, a03, a04, a05, a06, 
        a07, a08, a09, a10, a11, a12, a13, 
@@ -871,11 +871,11 @@ ntt35_run_core_simd(spv_t in, spv_size_t istride, spv_size_t idist,
   {
     sp_simd_t t1, t2, t3, t4;
 
-    sp_simd_t x0 = sp_simd_gather(in +  0 * istride, idist);
-    sp_simd_t x1 = sp_simd_gather(in +  7 * istride, idist);
-    sp_simd_t x4 = sp_simd_gather(in + 14 * istride, idist);
-    sp_simd_t x2 = sp_simd_gather(in + 21 * istride, idist);
-    sp_simd_t x3 = sp_simd_gather(in + 28 * istride, idist);
+    sp_simd_t x0 = sp_simd_gather(in +  0 * istride, idist, vsize);
+    sp_simd_t x1 = sp_simd_gather(in +  7 * istride, idist, vsize);
+    sp_simd_t x4 = sp_simd_gather(in + 14 * istride, idist, vsize);
+    sp_simd_t x2 = sp_simd_gather(in + 21 * istride, idist, vsize);
+    sp_simd_t x3 = sp_simd_gather(in + 28 * istride, idist, vsize);
 
     t1 = sp_ntt_add_simd(x1, x3, p);
     t3 = sp_ntt_sub_simd(x1, x3, p);
@@ -893,11 +893,11 @@ ntt35_run_core_simd(spv_t in, spv_size_t istride, spv_size_t idist,
   {
     sp_simd_t t1, t2, t3, t4;
 
-    sp_simd_t x0 = sp_simd_gather(in +  5 * istride, idist);
-    sp_simd_t x1 = sp_simd_gather(in + 12 * istride, idist);
-    sp_simd_t x4 = sp_simd_gather(in + 19 * istride, idist);
-    sp_simd_t x2 = sp_simd_gather(in + 26 * istride, idist);
-    sp_simd_t x3 = sp_simd_gather(in + 33 * istride, idist);
+    sp_simd_t x0 = sp_simd_gather(in +  5 * istride, idist, vsize);
+    sp_simd_t x1 = sp_simd_gather(in + 12 * istride, idist, vsize);
+    sp_simd_t x4 = sp_simd_gather(in + 19 * istride, idist, vsize);
+    sp_simd_t x2 = sp_simd_gather(in + 26 * istride, idist, vsize);
+    sp_simd_t x3 = sp_simd_gather(in + 33 * istride, idist, vsize);
 
     t1 = sp_ntt_add_simd(x1, x3, p);
     t3 = sp_ntt_sub_simd(x1, x3, p);
@@ -915,11 +915,11 @@ ntt35_run_core_simd(spv_t in, spv_size_t istride, spv_size_t idist,
   {
     sp_simd_t t0, t1, t2, t3, t4, t5, t6, t7;
 
-    sp_simd_t x3 = sp_simd_gather(in +  3 * istride, idist);
-    sp_simd_t x0 = sp_simd_gather(in + 10 * istride, idist);
-    sp_simd_t x1 = sp_simd_gather(in + 17 * istride, idist);
-    sp_simd_t x4 = sp_simd_gather(in + 24 * istride, idist);
-    sp_simd_t x2 = sp_simd_gather(in + 31 * istride, idist);
+    sp_simd_t x3 = sp_simd_gather(in +  3 * istride, idist, vsize);
+    sp_simd_t x0 = sp_simd_gather(in + 10 * istride, idist, vsize);
+    sp_simd_t x1 = sp_simd_gather(in + 17 * istride, idist, vsize);
+    sp_simd_t x4 = sp_simd_gather(in + 24 * istride, idist, vsize);
+    sp_simd_t x2 = sp_simd_gather(in + 31 * istride, idist, vsize);
 
     t1 = sp_ntt_add_simd(x1, x3, p);
     t3 = sp_ntt_sub_simd(x1, x3, p);
@@ -937,11 +937,11 @@ ntt35_run_core_simd(spv_t in, spv_size_t istride, spv_size_t idist,
   {
     sp_simd_t t1, t2, t3, t4;
 
-    sp_simd_t x2 = sp_simd_gather(in +  1 * istride, idist);
-    sp_simd_t x3 = sp_simd_gather(in +  8 * istride, idist);
-    sp_simd_t x0 = sp_simd_gather(in + 15 * istride, idist);
-    sp_simd_t x1 = sp_simd_gather(in + 22 * istride, idist);
-    sp_simd_t x4 = sp_simd_gather(in + 29 * istride, idist);
+    sp_simd_t x2 = sp_simd_gather(in +  1 * istride, idist, vsize);
+    sp_simd_t x3 = sp_simd_gather(in +  8 * istride, idist, vsize);
+    sp_simd_t x0 = sp_simd_gather(in + 15 * istride, idist, vsize);
+    sp_simd_t x1 = sp_simd_gather(in + 22 * istride, idist, vsize);
+    sp_simd_t x4 = sp_simd_gather(in + 29 * istride, idist, vsize);
 
     t1 = sp_ntt_add_simd(x1, x3, p);
     t3 = sp_ntt_sub_simd(x1, x3, p);
@@ -959,11 +959,11 @@ ntt35_run_core_simd(spv_t in, spv_size_t istride, spv_size_t idist,
   {
     sp_simd_t t1, t2, t3, t4;
 
-    sp_simd_t x2 = sp_simd_gather(in +  6 * istride, idist);
-    sp_simd_t x3 = sp_simd_gather(in + 13 * istride, idist);
-    sp_simd_t x0 = sp_simd_gather(in + 20 * istride, idist);
-    sp_simd_t x1 = sp_simd_gather(in + 27 * istride, idist);
-    sp_simd_t x4 = sp_simd_gather(in + 34 * istride, idist);
+    sp_simd_t x2 = sp_simd_gather(in +  6 * istride, idist, vsize);
+    sp_simd_t x3 = sp_simd_gather(in + 13 * istride, idist, vsize);
+    sp_simd_t x0 = sp_simd_gather(in + 20 * istride, idist, vsize);
+    sp_simd_t x1 = sp_simd_gather(in + 27 * istride, idist, vsize);
+    sp_simd_t x4 = sp_simd_gather(in + 34 * istride, idist, vsize);
 
     t1 = sp_ntt_add_simd(x1, x3, p);
     t3 = sp_ntt_sub_simd(x1, x3, p);
@@ -981,11 +981,11 @@ ntt35_run_core_simd(spv_t in, spv_size_t istride, spv_size_t idist,
   {
     sp_simd_t t1, t2, t3, t4;
 
-    sp_simd_t x4 = sp_simd_gather(in +  4 * istride, idist);
-    sp_simd_t x2 = sp_simd_gather(in + 11 * istride, idist);
-    sp_simd_t x3 = sp_simd_gather(in + 18 * istride, idist);
-    sp_simd_t x0 = sp_simd_gather(in + 25 * istride, idist);
-    sp_simd_t x1 = sp_simd_gather(in + 32 * istride, idist);
+    sp_simd_t x4 = sp_simd_gather(in +  4 * istride, idist, vsize);
+    sp_simd_t x2 = sp_simd_gather(in + 11 * istride, idist, vsize);
+    sp_simd_t x3 = sp_simd_gather(in + 18 * istride, idist, vsize);
+    sp_simd_t x0 = sp_simd_gather(in + 25 * istride, idist, vsize);
+    sp_simd_t x1 = sp_simd_gather(in + 32 * istride, idist, vsize);
 
     t1 = sp_ntt_add_simd(x1, x3, p);
     t3 = sp_ntt_sub_simd(x1, x3, p);
@@ -1003,11 +1003,11 @@ ntt35_run_core_simd(spv_t in, spv_size_t istride, spv_size_t idist,
   {
     sp_simd_t t1, t2, t3, t4;
 
-    sp_simd_t x1 = sp_simd_gather(in +  2 * istride, idist);
-    sp_simd_t x4 = sp_simd_gather(in +  9 * istride, idist);
-    sp_simd_t x2 = sp_simd_gather(in + 16 * istride, idist);
-    sp_simd_t x3 = sp_simd_gather(in + 23 * istride, idist);
-    sp_simd_t x0 = sp_simd_gather(in + 30 * istride, idist);
+    sp_simd_t x1 = sp_simd_gather(in +  2 * istride, idist, vsize);
+    sp_simd_t x4 = sp_simd_gather(in +  9 * istride, idist, vsize);
+    sp_simd_t x2 = sp_simd_gather(in + 16 * istride, idist, vsize);
+    sp_simd_t x3 = sp_simd_gather(in + 23 * istride, idist, vsize);
+    sp_simd_t x0 = sp_simd_gather(in + 30 * istride, idist, vsize);
 
     t1 = sp_ntt_add_simd(x1, x3, p);
     t3 = sp_ntt_sub_simd(x1, x3, p);
@@ -1517,11 +1517,11 @@ ntt35_run_core_simd(spv_t in, spv_size_t istride, spv_size_t idist,
     p3 = sp_ntt_sub_simd(t1, t3, p);
     p4 = sp_ntt_sub_simd(t2, t4, p);
 
-    sp_simd_scatter(p0, out +  0 * ostride, odist);
-    sp_simd_scatter(p3, out +  7 * ostride, odist);
-    sp_simd_scatter(p2, out + 14 * ostride, odist);
-    sp_simd_scatter(p4, out + 21 * ostride, odist);
-    sp_simd_scatter(p1, out + 28 * ostride, odist);
+    sp_simd_scatter(p0, out +  0 * ostride, odist, vsize);
+    sp_simd_scatter(p3, out +  7 * ostride, odist, vsize);
+    sp_simd_scatter(p2, out + 14 * ostride, odist, vsize);
+    sp_simd_scatter(p4, out + 21 * ostride, odist, vsize);
+    sp_simd_scatter(p1, out + 28 * ostride, odist, vsize);
   }
   {
     sp_simd_t t1, t2, t3, t4;
@@ -1545,11 +1545,11 @@ ntt35_run_core_simd(spv_t in, spv_size_t istride, spv_size_t idist,
     p3 = sp_ntt_sub_simd(t1, t3, p);
     p4 = sp_ntt_sub_simd(t2, t4, p);
 
-    sp_simd_scatter(p4, out +  1 * ostride, odist);
-    sp_simd_scatter(p1, out +  8 * ostride, odist);
-    sp_simd_scatter(p0, out + 15 * ostride, odist);
-    sp_simd_scatter(p3, out + 22 * ostride, odist);
-    sp_simd_scatter(p2, out + 29 * ostride, odist);
+    sp_simd_scatter(p4, out +  1 * ostride, odist, vsize);
+    sp_simd_scatter(p1, out +  8 * ostride, odist, vsize);
+    sp_simd_scatter(p0, out + 15 * ostride, odist, vsize);
+    sp_simd_scatter(p3, out + 22 * ostride, odist, vsize);
+    sp_simd_scatter(p2, out + 29 * ostride, odist, vsize);
   }
   {
     sp_simd_t t1, t2, t3, t4;
@@ -1573,11 +1573,11 @@ ntt35_run_core_simd(spv_t in, spv_size_t istride, spv_size_t idist,
     p3 = sp_ntt_sub_simd(t1, t3, p);
     p4 = sp_ntt_sub_simd(t2, t4, p);
 
-    sp_simd_scatter(p3, out +  2 * ostride, odist);
-    sp_simd_scatter(p2, out +  9 * ostride, odist);
-    sp_simd_scatter(p4, out + 16 * ostride, odist);
-    sp_simd_scatter(p1, out + 23 * ostride, odist);
-    sp_simd_scatter(p0, out + 30 * ostride, odist);
+    sp_simd_scatter(p3, out +  2 * ostride, odist, vsize);
+    sp_simd_scatter(p2, out +  9 * ostride, odist, vsize);
+    sp_simd_scatter(p4, out + 16 * ostride, odist, vsize);
+    sp_simd_scatter(p1, out + 23 * ostride, odist, vsize);
+    sp_simd_scatter(p0, out + 30 * ostride, odist, vsize);
   }
   {
     sp_simd_t t1, t2, t3, t4;
@@ -1601,11 +1601,11 @@ ntt35_run_core_simd(spv_t in, spv_size_t istride, spv_size_t idist,
     p3 = sp_ntt_sub_simd(t1, t3, p);
     p4 = sp_ntt_sub_simd(t2, t4, p);
 
-    sp_simd_scatter(p1, out +  3 * ostride, odist);
-    sp_simd_scatter(p0, out + 10 * ostride, odist);
-    sp_simd_scatter(p3, out + 17 * ostride, odist);
-    sp_simd_scatter(p2, out + 24 * ostride, odist);
-    sp_simd_scatter(p4, out + 31 * ostride, odist);
+    sp_simd_scatter(p1, out +  3 * ostride, odist, vsize);
+    sp_simd_scatter(p0, out + 10 * ostride, odist, vsize);
+    sp_simd_scatter(p3, out + 17 * ostride, odist, vsize);
+    sp_simd_scatter(p2, out + 24 * ostride, odist, vsize);
+    sp_simd_scatter(p4, out + 31 * ostride, odist, vsize);
   }
   {
     sp_simd_t t1, t2, t3, t4;
@@ -1629,11 +1629,11 @@ ntt35_run_core_simd(spv_t in, spv_size_t istride, spv_size_t idist,
     p3 = sp_ntt_sub_simd(t1, t3, p);
     p4 = sp_ntt_sub_simd(t2, t4, p);
 
-    sp_simd_scatter(p2, out +  4 * ostride, odist);
-    sp_simd_scatter(p4, out + 11 * ostride, odist);
-    sp_simd_scatter(p1, out + 18 * ostride, odist);
-    sp_simd_scatter(p0, out + 25 * ostride, odist);
-    sp_simd_scatter(p3, out + 32 * ostride, odist);
+    sp_simd_scatter(p2, out +  4 * ostride, odist, vsize);
+    sp_simd_scatter(p4, out + 11 * ostride, odist, vsize);
+    sp_simd_scatter(p1, out + 18 * ostride, odist, vsize);
+    sp_simd_scatter(p0, out + 25 * ostride, odist, vsize);
+    sp_simd_scatter(p3, out + 32 * ostride, odist, vsize);
   }
   {
     sp_simd_t t1, t2, t3, t4;
@@ -1657,11 +1657,11 @@ ntt35_run_core_simd(spv_t in, spv_size_t istride, spv_size_t idist,
     p3 = sp_ntt_sub_simd(t1, t3, p);
     p4 = sp_ntt_sub_simd(t2, t4, p);
 
-    sp_simd_scatter(p0, out +  5 * ostride, odist);
-    sp_simd_scatter(p3, out + 12 * ostride, odist);
-    sp_simd_scatter(p2, out + 19 * ostride, odist);
-    sp_simd_scatter(p4, out + 26 * ostride, odist);
-    sp_simd_scatter(p1, out + 33 * ostride, odist);
+    sp_simd_scatter(p0, out +  5 * ostride, odist, vsize);
+    sp_simd_scatter(p3, out + 12 * ostride, odist, vsize);
+    sp_simd_scatter(p2, out + 19 * ostride, odist, vsize);
+    sp_simd_scatter(p4, out + 26 * ostride, odist, vsize);
+    sp_simd_scatter(p1, out + 33 * ostride, odist, vsize);
   }
   {
     sp_simd_t t1, t2, t3, t4;
@@ -1685,11 +1685,11 @@ ntt35_run_core_simd(spv_t in, spv_size_t istride, spv_size_t idist,
     p3 = sp_ntt_sub_simd(t1, t3, p);
     p4 = sp_ntt_sub_simd(t2, t4, p);
 
-    sp_simd_scatter(p4, out +  6 * ostride, odist);
-    sp_simd_scatter(p1, out + 13 * ostride, odist);
-    sp_simd_scatter(p0, out + 20 * ostride, odist);
-    sp_simd_scatter(p3, out + 27 * ostride, odist);
-    sp_simd_scatter(p2, out + 34 * ostride, odist);
+    sp_simd_scatter(p4, out +  6 * ostride, odist, vsize);
+    sp_simd_scatter(p1, out + 13 * ostride, odist, vsize);
+    sp_simd_scatter(p0, out + 20 * ostride, odist, vsize);
+    sp_simd_scatter(p3, out + 27 * ostride, odist, vsize);
+    sp_simd_scatter(p2, out + 34 * ostride, odist, vsize);
   }
 }
 #endif
@@ -1719,11 +1719,13 @@ ntt35_run_simd(spv_t in, spv_size_t istride, spv_size_t idist,
 
   for (; i < num_simd; i += SP_SIMD_VSIZE)
     ntt35_run_core_simd(in + i * idist, istride, idist, 
-                        out + i * odist, ostride, odist, p, ntt_const);
+                        out + i * odist, ostride, odist, p, 
+			ntt_const, SP_SIMD_VSIZE);
 
-  for (; i < num_transforms; i++)
-    ntt35_run_core(in + i * idist, istride, 
-                out + i * odist, ostride, p, ntt_const);
+  if (i < num_transforms)
+    ntt35_run_core_simd(in + i * idist, istride, idist, 
+                        out + i * odist, ostride, odist, p, 
+			ntt_const, num_transforms - i);
 }
 #endif
 
@@ -2611,7 +2613,7 @@ static void
 ntt35_twiddle_run_core_simd(
         spv_t in, spv_size_t istride, spv_size_t idist,
 		spv_t out, spv_size_t ostride, spv_size_t odist,
-		sp_simd_t *w, sp_t p, spv_t ntt_const)
+		sp_simd_t *w, sp_t p, spv_t ntt_const, spv_size_t vsize)
 {
   sp_simd_t a00, a01, a02, a03, a04, a05, a06, 
        a07, a08, a09, a10, a11, a12, a13, 
@@ -2623,11 +2625,11 @@ ntt35_twiddle_run_core_simd(
   {
     sp_simd_t t1, t2, t3, t4;
 
-    sp_simd_t x0 = sp_simd_gather(in +  0 * istride, idist);
-    sp_simd_t x1 = sp_simd_gather(in +  7 * istride, idist);
-    sp_simd_t x4 = sp_simd_gather(in + 14 * istride, idist);
-    sp_simd_t x2 = sp_simd_gather(in + 21 * istride, idist);
-    sp_simd_t x3 = sp_simd_gather(in + 28 * istride, idist);
+    sp_simd_t x0 = sp_simd_gather(in +  0 * istride, idist, vsize);
+    sp_simd_t x1 = sp_simd_gather(in +  7 * istride, idist, vsize);
+    sp_simd_t x4 = sp_simd_gather(in + 14 * istride, idist, vsize);
+    sp_simd_t x2 = sp_simd_gather(in + 21 * istride, idist, vsize);
+    sp_simd_t x3 = sp_simd_gather(in + 28 * istride, idist, vsize);
 
     t1 = sp_ntt_add_simd(x1, x3, p);
     t3 = sp_ntt_sub_simd(x1, x3, p);
@@ -2645,11 +2647,11 @@ ntt35_twiddle_run_core_simd(
   {
     sp_simd_t t1, t2, t3, t4;
 
-    sp_simd_t x0 = sp_simd_gather(in +  5 * istride, idist);
-    sp_simd_t x1 = sp_simd_gather(in + 12 * istride, idist);
-    sp_simd_t x4 = sp_simd_gather(in + 19 * istride, idist);
-    sp_simd_t x2 = sp_simd_gather(in + 26 * istride, idist);
-    sp_simd_t x3 = sp_simd_gather(in + 33 * istride, idist);
+    sp_simd_t x0 = sp_simd_gather(in +  5 * istride, idist, vsize);
+    sp_simd_t x1 = sp_simd_gather(in + 12 * istride, idist, vsize);
+    sp_simd_t x4 = sp_simd_gather(in + 19 * istride, idist, vsize);
+    sp_simd_t x2 = sp_simd_gather(in + 26 * istride, idist, vsize);
+    sp_simd_t x3 = sp_simd_gather(in + 33 * istride, idist, vsize);
 
     t1 = sp_ntt_add_simd(x1, x3, p);
     t3 = sp_ntt_sub_simd(x1, x3, p);
@@ -2667,11 +2669,11 @@ ntt35_twiddle_run_core_simd(
   {
     sp_simd_t t0, t1, t2, t3, t4, t5, t6, t7;
 
-    sp_simd_t x3 = sp_simd_gather(in +  3 * istride, idist);
-    sp_simd_t x0 = sp_simd_gather(in + 10 * istride, idist);
-    sp_simd_t x1 = sp_simd_gather(in + 17 * istride, idist);
-    sp_simd_t x4 = sp_simd_gather(in + 24 * istride, idist);
-    sp_simd_t x2 = sp_simd_gather(in + 31 * istride, idist);
+    sp_simd_t x3 = sp_simd_gather(in +  3 * istride, idist, vsize);
+    sp_simd_t x0 = sp_simd_gather(in + 10 * istride, idist, vsize);
+    sp_simd_t x1 = sp_simd_gather(in + 17 * istride, idist, vsize);
+    sp_simd_t x4 = sp_simd_gather(in + 24 * istride, idist, vsize);
+    sp_simd_t x2 = sp_simd_gather(in + 31 * istride, idist, vsize);
 
     t1 = sp_ntt_add_simd(x1, x3, p);
     t3 = sp_ntt_sub_simd(x1, x3, p);
@@ -2689,11 +2691,11 @@ ntt35_twiddle_run_core_simd(
   {
     sp_simd_t t1, t2, t3, t4;
 
-    sp_simd_t x2 = sp_simd_gather(in +  1 * istride, idist);
-    sp_simd_t x3 = sp_simd_gather(in +  8 * istride, idist);
-    sp_simd_t x0 = sp_simd_gather(in + 15 * istride, idist);
-    sp_simd_t x1 = sp_simd_gather(in + 22 * istride, idist);
-    sp_simd_t x4 = sp_simd_gather(in + 29 * istride, idist);
+    sp_simd_t x2 = sp_simd_gather(in +  1 * istride, idist, vsize);
+    sp_simd_t x3 = sp_simd_gather(in +  8 * istride, idist, vsize);
+    sp_simd_t x0 = sp_simd_gather(in + 15 * istride, idist, vsize);
+    sp_simd_t x1 = sp_simd_gather(in + 22 * istride, idist, vsize);
+    sp_simd_t x4 = sp_simd_gather(in + 29 * istride, idist, vsize);
 
     t1 = sp_ntt_add_simd(x1, x3, p);
     t3 = sp_ntt_sub_simd(x1, x3, p);
@@ -2711,11 +2713,11 @@ ntt35_twiddle_run_core_simd(
   {
     sp_simd_t t1, t2, t3, t4;
 
-    sp_simd_t x2 = sp_simd_gather(in +  6 * istride, idist);
-    sp_simd_t x3 = sp_simd_gather(in + 13 * istride, idist);
-    sp_simd_t x0 = sp_simd_gather(in + 20 * istride, idist);
-    sp_simd_t x1 = sp_simd_gather(in + 27 * istride, idist);
-    sp_simd_t x4 = sp_simd_gather(in + 34 * istride, idist);
+    sp_simd_t x2 = sp_simd_gather(in +  6 * istride, idist, vsize);
+    sp_simd_t x3 = sp_simd_gather(in + 13 * istride, idist, vsize);
+    sp_simd_t x0 = sp_simd_gather(in + 20 * istride, idist, vsize);
+    sp_simd_t x1 = sp_simd_gather(in + 27 * istride, idist, vsize);
+    sp_simd_t x4 = sp_simd_gather(in + 34 * istride, idist, vsize);
 
     t1 = sp_ntt_add_simd(x1, x3, p);
     t3 = sp_ntt_sub_simd(x1, x3, p);
@@ -2733,11 +2735,11 @@ ntt35_twiddle_run_core_simd(
   {
     sp_simd_t t1, t2, t3, t4;
 
-    sp_simd_t x4 = sp_simd_gather(in +  4 * istride, idist);
-    sp_simd_t x2 = sp_simd_gather(in + 11 * istride, idist);
-    sp_simd_t x3 = sp_simd_gather(in + 18 * istride, idist);
-    sp_simd_t x0 = sp_simd_gather(in + 25 * istride, idist);
-    sp_simd_t x1 = sp_simd_gather(in + 32 * istride, idist);
+    sp_simd_t x4 = sp_simd_gather(in +  4 * istride, idist, vsize);
+    sp_simd_t x2 = sp_simd_gather(in + 11 * istride, idist, vsize);
+    sp_simd_t x3 = sp_simd_gather(in + 18 * istride, idist, vsize);
+    sp_simd_t x0 = sp_simd_gather(in + 25 * istride, idist, vsize);
+    sp_simd_t x1 = sp_simd_gather(in + 32 * istride, idist, vsize);
 
     t1 = sp_ntt_add_simd(x1, x3, p);
     t3 = sp_ntt_sub_simd(x1, x3, p);
@@ -2755,11 +2757,11 @@ ntt35_twiddle_run_core_simd(
   {
     sp_simd_t t1, t2, t3, t4;
 
-    sp_simd_t x1 = sp_simd_gather(in +  2 * istride, idist);
-    sp_simd_t x4 = sp_simd_gather(in +  9 * istride, idist);
-    sp_simd_t x2 = sp_simd_gather(in + 16 * istride, idist);
-    sp_simd_t x3 = sp_simd_gather(in + 23 * istride, idist);
-    sp_simd_t x0 = sp_simd_gather(in + 30 * istride, idist);
+    sp_simd_t x1 = sp_simd_gather(in +  2 * istride, idist, vsize);
+    sp_simd_t x4 = sp_simd_gather(in +  9 * istride, idist, vsize);
+    sp_simd_t x2 = sp_simd_gather(in + 16 * istride, idist, vsize);
+    sp_simd_t x3 = sp_simd_gather(in + 23 * istride, idist, vsize);
+    sp_simd_t x0 = sp_simd_gather(in + 30 * istride, idist, vsize);
 
     t1 = sp_ntt_add_simd(x1, x3, p);
     t3 = sp_ntt_sub_simd(x1, x3, p);
@@ -3274,11 +3276,11 @@ ntt35_twiddle_run_core_simd(
     p4 = sp_ntt_twiddle_mul_simd(p4, w + 40, p);
     p1 = sp_ntt_twiddle_mul_simd(p1, w + 54, p);
 
-    sp_simd_scatter(p0, out +  0 * ostride, odist);
-    sp_simd_scatter(p3, out +  7 * ostride, odist);
-    sp_simd_scatter(p2, out + 14 * ostride, odist);
-    sp_simd_scatter(p4, out + 21 * ostride, odist);
-    sp_simd_scatter(p1, out + 28 * ostride, odist);
+    sp_simd_scatter(p0, out +  0 * ostride, odist, vsize);
+    sp_simd_scatter(p3, out +  7 * ostride, odist, vsize);
+    sp_simd_scatter(p2, out + 14 * ostride, odist, vsize);
+    sp_simd_scatter(p4, out + 21 * ostride, odist, vsize);
+    sp_simd_scatter(p1, out + 28 * ostride, odist, vsize);
   }
   {
     sp_simd_t t1, t2, t3, t4;
@@ -3308,11 +3310,11 @@ ntt35_twiddle_run_core_simd(
     p3 = sp_ntt_twiddle_mul_simd(p3, w + 42, p);
     p2 = sp_ntt_twiddle_mul_simd(p2, w + 56, p);
 
-    sp_simd_scatter(p4, out +  1 * ostride, odist);
-    sp_simd_scatter(p1, out +  8 * ostride, odist);
-    sp_simd_scatter(p0, out + 15 * ostride, odist);
-    sp_simd_scatter(p3, out + 22 * ostride, odist);
-    sp_simd_scatter(p2, out + 29 * ostride, odist);
+    sp_simd_scatter(p4, out +  1 * ostride, odist, vsize);
+    sp_simd_scatter(p1, out +  8 * ostride, odist, vsize);
+    sp_simd_scatter(p0, out + 15 * ostride, odist, vsize);
+    sp_simd_scatter(p3, out + 22 * ostride, odist, vsize);
+    sp_simd_scatter(p2, out + 29 * ostride, odist, vsize);
   }
   {
     sp_simd_t t1, t2, t3, t4;
@@ -3342,11 +3344,11 @@ ntt35_twiddle_run_core_simd(
     p1 = sp_ntt_twiddle_mul_simd(p1, w + 44, p);
     p0 = sp_ntt_twiddle_mul_simd(p0, w + 58, p);
 
-    sp_simd_scatter(p3, out +  2 * ostride, odist);
-    sp_simd_scatter(p2, out +  9 * ostride, odist);
-    sp_simd_scatter(p4, out + 16 * ostride, odist);
-    sp_simd_scatter(p1, out + 23 * ostride, odist);
-    sp_simd_scatter(p0, out + 30 * ostride, odist);
+    sp_simd_scatter(p3, out +  2 * ostride, odist, vsize);
+    sp_simd_scatter(p2, out +  9 * ostride, odist, vsize);
+    sp_simd_scatter(p4, out + 16 * ostride, odist, vsize);
+    sp_simd_scatter(p1, out + 23 * ostride, odist, vsize);
+    sp_simd_scatter(p0, out + 30 * ostride, odist, vsize);
   }
   {
     sp_simd_t t1, t2, t3, t4;
@@ -3376,11 +3378,11 @@ ntt35_twiddle_run_core_simd(
     p2 = sp_ntt_twiddle_mul_simd(p2, w + 46, p);
     p4 = sp_ntt_twiddle_mul_simd(p4, w + 60, p);
 
-    sp_simd_scatter(p1, out +  3 * ostride, odist);
-    sp_simd_scatter(p0, out + 10 * ostride, odist);
-    sp_simd_scatter(p3, out + 17 * ostride, odist);
-    sp_simd_scatter(p2, out + 24 * ostride, odist);
-    sp_simd_scatter(p4, out + 31 * ostride, odist);
+    sp_simd_scatter(p1, out +  3 * ostride, odist, vsize);
+    sp_simd_scatter(p0, out + 10 * ostride, odist, vsize);
+    sp_simd_scatter(p3, out + 17 * ostride, odist, vsize);
+    sp_simd_scatter(p2, out + 24 * ostride, odist, vsize);
+    sp_simd_scatter(p4, out + 31 * ostride, odist, vsize);
   }
   {
     sp_simd_t t1, t2, t3, t4;
@@ -3410,11 +3412,11 @@ ntt35_twiddle_run_core_simd(
     p0 = sp_ntt_twiddle_mul_simd(p0, w + 48, p);
     p3 = sp_ntt_twiddle_mul_simd(p3, w + 62, p);
 
-    sp_simd_scatter(p2, out +  4 * ostride, odist);
-    sp_simd_scatter(p4, out + 11 * ostride, odist);
-    sp_simd_scatter(p1, out + 18 * ostride, odist);
-    sp_simd_scatter(p0, out + 25 * ostride, odist);
-    sp_simd_scatter(p3, out + 32 * ostride, odist);
+    sp_simd_scatter(p2, out +  4 * ostride, odist, vsize);
+    sp_simd_scatter(p4, out + 11 * ostride, odist, vsize);
+    sp_simd_scatter(p1, out + 18 * ostride, odist, vsize);
+    sp_simd_scatter(p0, out + 25 * ostride, odist, vsize);
+    sp_simd_scatter(p3, out + 32 * ostride, odist, vsize);
   }
   {
     sp_simd_t t1, t2, t3, t4;
@@ -3444,11 +3446,11 @@ ntt35_twiddle_run_core_simd(
     p4 = sp_ntt_twiddle_mul_simd(p4, w + 50, p);
     p1 = sp_ntt_twiddle_mul_simd(p1, w + 64, p);
 
-    sp_simd_scatter(p0, out +  5 * ostride, odist);
-    sp_simd_scatter(p3, out + 12 * ostride, odist);
-    sp_simd_scatter(p2, out + 19 * ostride, odist);
-    sp_simd_scatter(p4, out + 26 * ostride, odist);
-    sp_simd_scatter(p1, out + 33 * ostride, odist);
+    sp_simd_scatter(p0, out +  5 * ostride, odist, vsize);
+    sp_simd_scatter(p3, out + 12 * ostride, odist, vsize);
+    sp_simd_scatter(p2, out + 19 * ostride, odist, vsize);
+    sp_simd_scatter(p4, out + 26 * ostride, odist, vsize);
+    sp_simd_scatter(p1, out + 33 * ostride, odist, vsize);
   }
   {
     sp_simd_t t1, t2, t3, t4;
@@ -3478,11 +3480,11 @@ ntt35_twiddle_run_core_simd(
     p3 = sp_ntt_twiddle_mul_simd(p3, w + 52, p);
     p2 = sp_ntt_twiddle_mul_simd(p2, w + 66, p);
 
-    sp_simd_scatter(p4, out +  6 * ostride, odist);
-    sp_simd_scatter(p1, out + 13 * ostride, odist);
-    sp_simd_scatter(p0, out + 20 * ostride, odist);
-    sp_simd_scatter(p3, out + 27 * ostride, odist);
-    sp_simd_scatter(p2, out + 34 * ostride, odist);
+    sp_simd_scatter(p4, out +  6 * ostride, odist, vsize);
+    sp_simd_scatter(p1, out + 13 * ostride, odist, vsize);
+    sp_simd_scatter(p0, out + 20 * ostride, odist, vsize);
+    sp_simd_scatter(p3, out + 27 * ostride, odist, vsize);
+    sp_simd_scatter(p2, out + 34 * ostride, odist, vsize);
   }
 }
 #endif
@@ -3515,12 +3517,15 @@ ntt35_twiddle_run_simd(spv_t in, spv_size_t istride, spv_size_t idist,
     ntt35_twiddle_run_core_simd(
 		in + i * idist, istride, idist,
 		out + i * odist, ostride, odist,
-		(sp_simd_t *)(w + j), p, ntt_const);
+		(sp_simd_t *)(w + j), p, 
+		ntt_const, SP_SIMD_VSIZE);
 
-  for (; i < num_transforms; i++, j += 2*(35-1))
-    ntt35_twiddle_run_core(in + i * idist, istride, 
-			out + i * odist, ostride,
-			w + j, p, ntt_const);
+  if (i < num_transforms)
+    ntt35_twiddle_run_core_simd(
+		in + i * idist, istride, idist,
+		out + i * odist, ostride, odist,
+		(sp_simd_t *)(w + j), p, 
+		ntt_const, num_transforms - i);
 }
 #endif
 
@@ -4407,7 +4412,7 @@ ntt35_pfa_run_core(spv_t x, spv_size_t start,
 static void
 ntt35_pfa_run_core_simd(spv_t x, spv_size_t start,
 	  spv_size_t inc, spv_size_t inc2, spv_size_t n,
-	  sp_t p, spv_t ntt_const)
+	  sp_t p, spv_t ntt_const, spv_size_t vsize)
 {
   spv_size_t j00, j01, j02, j03, j04, j05, j06, j07,
 	     j08, j09, j10, j11, j12, j13, j14, j15,
@@ -4461,11 +4466,11 @@ ntt35_pfa_run_core_simd(spv_t x, spv_size_t start,
   {
     sp_simd_t t1, t2, t3, t4;
 
-    sp_simd_t x0 = sp_simd_pfa_gather(x, j00, inc2, n);
-    sp_simd_t x1 = sp_simd_pfa_gather(x, j07, inc2, n);
-    sp_simd_t x4 = sp_simd_pfa_gather(x, j14, inc2, n);
-    sp_simd_t x2 = sp_simd_pfa_gather(x, j21, inc2, n);
-    sp_simd_t x3 = sp_simd_pfa_gather(x, j28, inc2, n);
+    sp_simd_t x0 = sp_simd_pfa_gather(x, j00, inc2, n, vsize);
+    sp_simd_t x1 = sp_simd_pfa_gather(x, j07, inc2, n, vsize);
+    sp_simd_t x4 = sp_simd_pfa_gather(x, j14, inc2, n, vsize);
+    sp_simd_t x2 = sp_simd_pfa_gather(x, j21, inc2, n, vsize);
+    sp_simd_t x3 = sp_simd_pfa_gather(x, j28, inc2, n, vsize);
 
     t1 = sp_ntt_add_simd(x1, x3, p);
     t3 = sp_ntt_sub_simd(x1, x3, p);
@@ -4483,11 +4488,11 @@ ntt35_pfa_run_core_simd(spv_t x, spv_size_t start,
   {
     sp_simd_t t1, t2, t3, t4;
 
-    sp_simd_t x0 = sp_simd_pfa_gather(x, j05, inc2, n);
-    sp_simd_t x1 = sp_simd_pfa_gather(x, j12, inc2, n);
-    sp_simd_t x4 = sp_simd_pfa_gather(x, j19, inc2, n);
-    sp_simd_t x2 = sp_simd_pfa_gather(x, j26, inc2, n);
-    sp_simd_t x3 = sp_simd_pfa_gather(x, j33, inc2, n);
+    sp_simd_t x0 = sp_simd_pfa_gather(x, j05, inc2, n, vsize);
+    sp_simd_t x1 = sp_simd_pfa_gather(x, j12, inc2, n, vsize);
+    sp_simd_t x4 = sp_simd_pfa_gather(x, j19, inc2, n, vsize);
+    sp_simd_t x2 = sp_simd_pfa_gather(x, j26, inc2, n, vsize);
+    sp_simd_t x3 = sp_simd_pfa_gather(x, j33, inc2, n, vsize);
 
     t1 = sp_ntt_add_simd(x1, x3, p);
     t3 = sp_ntt_sub_simd(x1, x3, p);
@@ -4505,11 +4510,11 @@ ntt35_pfa_run_core_simd(spv_t x, spv_size_t start,
   {
     sp_simd_t t0, t1, t2, t3, t4, t5, t6, t7;
 
-    sp_simd_t x3 = sp_simd_pfa_gather(x, j03, inc2, n);
-    sp_simd_t x0 = sp_simd_pfa_gather(x, j10, inc2, n);
-    sp_simd_t x1 = sp_simd_pfa_gather(x, j17, inc2, n);
-    sp_simd_t x4 = sp_simd_pfa_gather(x, j24, inc2, n);
-    sp_simd_t x2 = sp_simd_pfa_gather(x, j31, inc2, n);
+    sp_simd_t x3 = sp_simd_pfa_gather(x, j03, inc2, n, vsize);
+    sp_simd_t x0 = sp_simd_pfa_gather(x, j10, inc2, n, vsize);
+    sp_simd_t x1 = sp_simd_pfa_gather(x, j17, inc2, n, vsize);
+    sp_simd_t x4 = sp_simd_pfa_gather(x, j24, inc2, n, vsize);
+    sp_simd_t x2 = sp_simd_pfa_gather(x, j31, inc2, n, vsize);
 
     t1 = sp_ntt_add_simd(x1, x3, p);
     t3 = sp_ntt_sub_simd(x1, x3, p);
@@ -4527,11 +4532,11 @@ ntt35_pfa_run_core_simd(spv_t x, spv_size_t start,
   {
     sp_simd_t t1, t2, t3, t4;
 
-    sp_simd_t x2 = sp_simd_pfa_gather(x, j01, inc2, n);
-    sp_simd_t x3 = sp_simd_pfa_gather(x, j08, inc2, n);
-    sp_simd_t x0 = sp_simd_pfa_gather(x, j15, inc2, n);
-    sp_simd_t x1 = sp_simd_pfa_gather(x, j22, inc2, n);
-    sp_simd_t x4 = sp_simd_pfa_gather(x, j29, inc2, n);
+    sp_simd_t x2 = sp_simd_pfa_gather(x, j01, inc2, n, vsize);
+    sp_simd_t x3 = sp_simd_pfa_gather(x, j08, inc2, n, vsize);
+    sp_simd_t x0 = sp_simd_pfa_gather(x, j15, inc2, n, vsize);
+    sp_simd_t x1 = sp_simd_pfa_gather(x, j22, inc2, n, vsize);
+    sp_simd_t x4 = sp_simd_pfa_gather(x, j29, inc2, n, vsize);
 
     t1 = sp_ntt_add_simd(x1, x3, p);
     t3 = sp_ntt_sub_simd(x1, x3, p);
@@ -4549,11 +4554,11 @@ ntt35_pfa_run_core_simd(spv_t x, spv_size_t start,
   {
     sp_simd_t t1, t2, t3, t4;
 
-    sp_simd_t x2 = sp_simd_pfa_gather(x, j06, inc2, n);
-    sp_simd_t x3 = sp_simd_pfa_gather(x, j13, inc2, n);
-    sp_simd_t x0 = sp_simd_pfa_gather(x, j20, inc2, n);
-    sp_simd_t x1 = sp_simd_pfa_gather(x, j27, inc2, n);
-    sp_simd_t x4 = sp_simd_pfa_gather(x, j34, inc2, n);
+    sp_simd_t x2 = sp_simd_pfa_gather(x, j06, inc2, n, vsize);
+    sp_simd_t x3 = sp_simd_pfa_gather(x, j13, inc2, n, vsize);
+    sp_simd_t x0 = sp_simd_pfa_gather(x, j20, inc2, n, vsize);
+    sp_simd_t x1 = sp_simd_pfa_gather(x, j27, inc2, n, vsize);
+    sp_simd_t x4 = sp_simd_pfa_gather(x, j34, inc2, n, vsize);
 
     t1 = sp_ntt_add_simd(x1, x3, p);
     t3 = sp_ntt_sub_simd(x1, x3, p);
@@ -4571,11 +4576,11 @@ ntt35_pfa_run_core_simd(spv_t x, spv_size_t start,
   {
     sp_simd_t t1, t2, t3, t4;
 
-    sp_simd_t x4 = sp_simd_pfa_gather(x, j04, inc2, n);
-    sp_simd_t x2 = sp_simd_pfa_gather(x, j11, inc2, n);
-    sp_simd_t x3 = sp_simd_pfa_gather(x, j18, inc2, n);
-    sp_simd_t x0 = sp_simd_pfa_gather(x, j25, inc2, n);
-    sp_simd_t x1 = sp_simd_pfa_gather(x, j32, inc2, n);
+    sp_simd_t x4 = sp_simd_pfa_gather(x, j04, inc2, n, vsize);
+    sp_simd_t x2 = sp_simd_pfa_gather(x, j11, inc2, n, vsize);
+    sp_simd_t x3 = sp_simd_pfa_gather(x, j18, inc2, n, vsize);
+    sp_simd_t x0 = sp_simd_pfa_gather(x, j25, inc2, n, vsize);
+    sp_simd_t x1 = sp_simd_pfa_gather(x, j32, inc2, n, vsize);
 
     t1 = sp_ntt_add_simd(x1, x3, p);
     t3 = sp_ntt_sub_simd(x1, x3, p);
@@ -4593,11 +4598,11 @@ ntt35_pfa_run_core_simd(spv_t x, spv_size_t start,
   {
     sp_simd_t t1, t2, t3, t4;
 
-    sp_simd_t x1 = sp_simd_pfa_gather(x, j02, inc2, n);
-    sp_simd_t x4 = sp_simd_pfa_gather(x, j09, inc2, n);
-    sp_simd_t x2 = sp_simd_pfa_gather(x, j16, inc2, n);
-    sp_simd_t x3 = sp_simd_pfa_gather(x, j23, inc2, n);
-    sp_simd_t x0 = sp_simd_pfa_gather(x, j30, inc2, n);
+    sp_simd_t x1 = sp_simd_pfa_gather(x, j02, inc2, n, vsize);
+    sp_simd_t x4 = sp_simd_pfa_gather(x, j09, inc2, n, vsize);
+    sp_simd_t x2 = sp_simd_pfa_gather(x, j16, inc2, n, vsize);
+    sp_simd_t x3 = sp_simd_pfa_gather(x, j23, inc2, n, vsize);
+    sp_simd_t x0 = sp_simd_pfa_gather(x, j30, inc2, n, vsize);
 
     t1 = sp_ntt_add_simd(x1, x3, p);
     t3 = sp_ntt_sub_simd(x1, x3, p);
@@ -5107,11 +5112,11 @@ ntt35_pfa_run_core_simd(spv_t x, spv_size_t start,
     p3 = sp_ntt_sub_simd(t1, t3, p);
     p4 = sp_ntt_sub_simd(t2, t4, p);
 
-    sp_simd_pfa_scatter(p0, x, j00, inc2, n);
-    sp_simd_pfa_scatter(p3, x, j07, inc2, n);
-    sp_simd_pfa_scatter(p2, x, j14, inc2, n);
-    sp_simd_pfa_scatter(p4, x, j21, inc2, n);
-    sp_simd_pfa_scatter(p1, x, j28, inc2, n);
+    sp_simd_pfa_scatter(p0, x, j00, inc2, n, vsize);
+    sp_simd_pfa_scatter(p3, x, j07, inc2, n, vsize);
+    sp_simd_pfa_scatter(p2, x, j14, inc2, n, vsize);
+    sp_simd_pfa_scatter(p4, x, j21, inc2, n, vsize);
+    sp_simd_pfa_scatter(p1, x, j28, inc2, n, vsize);
   }
   {
     sp_simd_t t1, t2, t3, t4;
@@ -5135,11 +5140,11 @@ ntt35_pfa_run_core_simd(spv_t x, spv_size_t start,
     p3 = sp_ntt_sub_simd(t1, t3, p);
     p4 = sp_ntt_sub_simd(t2, t4, p);
 
-    sp_simd_pfa_scatter(p4, x, j01, inc2, n);
-    sp_simd_pfa_scatter(p1, x, j08, inc2, n);
-    sp_simd_pfa_scatter(p0, x, j15, inc2, n);
-    sp_simd_pfa_scatter(p3, x, j22, inc2, n);
-    sp_simd_pfa_scatter(p2, x, j29, inc2, n);
+    sp_simd_pfa_scatter(p4, x, j01, inc2, n, vsize);
+    sp_simd_pfa_scatter(p1, x, j08, inc2, n, vsize);
+    sp_simd_pfa_scatter(p0, x, j15, inc2, n, vsize);
+    sp_simd_pfa_scatter(p3, x, j22, inc2, n, vsize);
+    sp_simd_pfa_scatter(p2, x, j29, inc2, n, vsize);
   }
   {
     sp_simd_t t1, t2, t3, t4;
@@ -5163,11 +5168,11 @@ ntt35_pfa_run_core_simd(spv_t x, spv_size_t start,
     p3 = sp_ntt_sub_simd(t1, t3, p);
     p4 = sp_ntt_sub_simd(t2, t4, p);
 
-    sp_simd_pfa_scatter(p3, x, j02, inc2, n);
-    sp_simd_pfa_scatter(p2, x, j09, inc2, n);
-    sp_simd_pfa_scatter(p4, x, j16, inc2, n);
-    sp_simd_pfa_scatter(p1, x, j23, inc2, n);
-    sp_simd_pfa_scatter(p0, x, j30, inc2, n);
+    sp_simd_pfa_scatter(p3, x, j02, inc2, n, vsize);
+    sp_simd_pfa_scatter(p2, x, j09, inc2, n, vsize);
+    sp_simd_pfa_scatter(p4, x, j16, inc2, n, vsize);
+    sp_simd_pfa_scatter(p1, x, j23, inc2, n, vsize);
+    sp_simd_pfa_scatter(p0, x, j30, inc2, n, vsize);
   }
   {
     sp_simd_t t1, t2, t3, t4;
@@ -5191,11 +5196,11 @@ ntt35_pfa_run_core_simd(spv_t x, spv_size_t start,
     p3 = sp_ntt_sub_simd(t1, t3, p);
     p4 = sp_ntt_sub_simd(t2, t4, p);
 
-    sp_simd_pfa_scatter(p1, x, j03, inc2, n);
-    sp_simd_pfa_scatter(p0, x, j10, inc2, n);
-    sp_simd_pfa_scatter(p3, x, j17, inc2, n);
-    sp_simd_pfa_scatter(p2, x, j24, inc2, n);
-    sp_simd_pfa_scatter(p4, x, j31, inc2, n);
+    sp_simd_pfa_scatter(p1, x, j03, inc2, n, vsize);
+    sp_simd_pfa_scatter(p0, x, j10, inc2, n, vsize);
+    sp_simd_pfa_scatter(p3, x, j17, inc2, n, vsize);
+    sp_simd_pfa_scatter(p2, x, j24, inc2, n, vsize);
+    sp_simd_pfa_scatter(p4, x, j31, inc2, n, vsize);
   }
   {
     sp_simd_t t1, t2, t3, t4;
@@ -5219,11 +5224,11 @@ ntt35_pfa_run_core_simd(spv_t x, spv_size_t start,
     p3 = sp_ntt_sub_simd(t1, t3, p);
     p4 = sp_ntt_sub_simd(t2, t4, p);
 
-    sp_simd_pfa_scatter(p2, x, j04, inc2, n);
-    sp_simd_pfa_scatter(p4, x, j11, inc2, n);
-    sp_simd_pfa_scatter(p1, x, j18, inc2, n);
-    sp_simd_pfa_scatter(p0, x, j25, inc2, n);
-    sp_simd_pfa_scatter(p3, x, j32, inc2, n);
+    sp_simd_pfa_scatter(p2, x, j04, inc2, n, vsize);
+    sp_simd_pfa_scatter(p4, x, j11, inc2, n, vsize);
+    sp_simd_pfa_scatter(p1, x, j18, inc2, n, vsize);
+    sp_simd_pfa_scatter(p0, x, j25, inc2, n, vsize);
+    sp_simd_pfa_scatter(p3, x, j32, inc2, n, vsize);
   }
   {
     sp_simd_t t1, t2, t3, t4;
@@ -5247,11 +5252,11 @@ ntt35_pfa_run_core_simd(spv_t x, spv_size_t start,
     p3 = sp_ntt_sub_simd(t1, t3, p);
     p4 = sp_ntt_sub_simd(t2, t4, p);
 
-    sp_simd_pfa_scatter(p0, x, j05, inc2, n);
-    sp_simd_pfa_scatter(p3, x, j12, inc2, n);
-    sp_simd_pfa_scatter(p2, x, j19, inc2, n);
-    sp_simd_pfa_scatter(p4, x, j26, inc2, n);
-    sp_simd_pfa_scatter(p1, x, j33, inc2, n);
+    sp_simd_pfa_scatter(p0, x, j05, inc2, n, vsize);
+    sp_simd_pfa_scatter(p3, x, j12, inc2, n, vsize);
+    sp_simd_pfa_scatter(p2, x, j19, inc2, n, vsize);
+    sp_simd_pfa_scatter(p4, x, j26, inc2, n, vsize);
+    sp_simd_pfa_scatter(p1, x, j33, inc2, n, vsize);
   }
   {
     sp_simd_t t1, t2, t3, t4;
@@ -5275,11 +5280,11 @@ ntt35_pfa_run_core_simd(spv_t x, spv_size_t start,
     p3 = sp_ntt_sub_simd(t1, t3, p);
     p4 = sp_ntt_sub_simd(t2, t4, p);
 
-    sp_simd_pfa_scatter(p4, x, j06, inc2, n);
-    sp_simd_pfa_scatter(p1, x, j13, inc2, n);
-    sp_simd_pfa_scatter(p0, x, j20, inc2, n);
-    sp_simd_pfa_scatter(p3, x, j27, inc2, n);
-    sp_simd_pfa_scatter(p2, x, j34, inc2, n);
+    sp_simd_pfa_scatter(p4, x, j06, inc2, n, vsize);
+    sp_simd_pfa_scatter(p1, x, j13, inc2, n, vsize);
+    sp_simd_pfa_scatter(p0, x, j20, inc2, n, vsize);
+    sp_simd_pfa_scatter(p3, x, j27, inc2, n, vsize);
+    sp_simd_pfa_scatter(p2, x, j34, inc2, n, vsize);
   }
 }
 #endif
@@ -5313,13 +5318,14 @@ ntt35_pfa_run_simd(spv_t x, spv_size_t cofactor,
 
   for (i = 0; i < num_simd; i += SP_SIMD_VSIZE)
     {
-      ntt35_pfa_run_core_simd(x, incstart, inc, inc2, n, p, ntt_const);
+      ntt35_pfa_run_core_simd(x, incstart, inc, inc2, n, p, 
+	  			ntt_const, SP_SIMD_VSIZE);
       incstart += SP_SIMD_VSIZE * inc2;
     }
 
-  for (; i < cofactor; i++, incstart += inc2)
-    ntt35_pfa_run_core(x, incstart, inc, n, p, ntt_const);
-
+  if (i < cofactor)
+    ntt35_pfa_run_core_simd(x, incstart, inc, inc2, n, p, 
+	  			ntt_const, cofactor - i);
 }
 #endif
 

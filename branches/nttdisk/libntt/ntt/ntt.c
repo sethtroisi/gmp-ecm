@@ -298,13 +298,15 @@ static spv_t
 make_twiddle_simd(sp_t primroot, sp_t order, sp_t p, sp_t d,
     		spv_size_t rows, spv_size_t cols)
 {
-  spv_size_t size = rows * cols;
-  spv_t res = (spv_t)sp_aligned_malloc(2 * (rows - 1) * cols * sizeof(sp_t));
+  spv_size_t alloc = 2 * (rows - 1) * SP_SIMD_VSIZE *
+      			((cols + SP_SIMD_VSIZE - 1) / SP_SIMD_VSIZE);
+  spv_t res = (spv_t)sp_aligned_malloc(alloc * sizeof(sp_t));
 
-  sp_t w = sp_pow(primroot, order / size, p, d);
+  sp_t w = sp_pow(primroot, order / (rows * cols), p, d);
   sp_t w_inc = 1;
   spv_size_t i, j, k;
-  spv_size_t num_simd = SP_SIMD_VSIZE * (cols / SP_SIMD_VSIZE);
+  spv_size_t num_simd = SP_SIMD_VSIZE * ((cols + SP_SIMD_VSIZE - 1) / 
+      					SP_SIMD_VSIZE);
 
   for (i = 0; i < num_simd; i += SP_SIMD_VSIZE)
     {
@@ -312,29 +314,26 @@ make_twiddle_simd(sp_t primroot, sp_t order, sp_t p, sp_t d,
 	{
 	  sp_t w0 = w_inc;
 
-	  for (k = 0; k < rows - 1; k++)
+	  if (i + j < cols)
 	    {
-	      res[2*i*(rows-1) + (2*k)*SP_SIMD_VSIZE + j] = w0;
-	      res[2*i*(rows-1) + (2*k+1)*SP_SIMD_VSIZE + j] = sp_ntt_reciprocal(w0, p);
-	      w0 = sp_mul(w0, w_inc, p, d);
+	      for (k = 0; k < rows - 1; k++)
+		{
+		  res[2*i*(rows-1) + (2*k)*SP_SIMD_VSIZE + j] = w0;
+		  res[2*i*(rows-1) + (2*k+1)*SP_SIMD_VSIZE + j] = sp_ntt_reciprocal(w0, p);
+		  w0 = sp_mul(w0, w_inc, p, d);
+		}
+
+	      w_inc = sp_mul(w_inc, w, p, d);
 	    }
-
-	  w_inc = sp_mul(w_inc, w, p, d);
+	  else
+	    {
+	      for (k = 0; k < rows - 1; k++)
+		{
+		  res[2*i*(rows-1) + (2*k)*SP_SIMD_VSIZE + j] = 0;
+		  res[2*i*(rows-1) + (2*k+1)*SP_SIMD_VSIZE + j] = 0;
+		}
+	    }
 	}
-    }
-
-  for (; i < cols; i++)
-    {
-      sp_t w0 = w_inc;
-
-      for (j = 0; j < rows - 1; j++)
-	{
-	  res[2*i*(rows-1) + 2*j] = w0;
-	  res[2*i*(rows-1) + 2*j+1] = sp_ntt_reciprocal(w0, p);
-	  w0 = sp_mul(w0, w_inc, p, d);
-	}
-
-      w_inc = sp_mul(w_inc, w, p, d);
     }
 
   return res;
