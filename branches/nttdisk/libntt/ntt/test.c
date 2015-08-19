@@ -75,7 +75,7 @@ static void test_core(sp_t p, sp_t d, sp_t primroot,
   X(spv_random)(x, len, p);
   
   X(ntt_build_passes)(data, plans, num_plans, len, p, primroot, order, d);
-f
+
   bfntt(r, x, len, p, d, primroot, order);
 
   X(ntt_run)(x, p, data);
