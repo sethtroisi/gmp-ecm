@@ -1,34 +1,20 @@
 #include "ntt-impl.h"
 
-static const nttconfig_t * ntt_config[] = 
+const nttgroup_t * 
+X(ntt_master_group_list)[] = 
 {
-  &X(ntt2_config),
-  &X(ntt3_config),
-  &X(ntt4_config),
-  &X(ntt5_config),
-  &X(ntt7_config),
-  &X(ntt8_config),
-  &X(ntt9_config),
-  &X(ntt15_config),
-  &X(ntt16_config),
-  &X(ntt35_config),
-  &X(ntt40_config),
+  & X(ntt_group),
+#ifdef HAVE_SSE2
+  & MANGLE_SSE2(X(ntt_group_simd)),
+#endif
 };
 
-/*-------------------------------------------------------------------------*/
-const nttconfig_t ** 
-X(ntt_master_list)(void)
-{
-  return ntt_config;
-}
-
-uint32_t X(ntt_master_list_size)(void)
-{
-  return sizeof(ntt_config) / sizeof(ntt_config[0]);
-}
+const uint32_t X(ntt_master_group_list_size) =
+		    sizeof(X(ntt_master_group_list)) /
+		    sizeof(X(ntt_master_group_list)[0]);
 
 /*-------------------------------------------------------------------------*/
-static sp_t sp_ntt_reciprocal(sp_t w, sp_t p)
+sp_t X(sp_ntt_reciprocal)(sp_t w, sp_t p)
 {
     /* compute (w << SP_TYPE_BITS) / p */
 
@@ -132,7 +118,7 @@ X(nttdata_init_generic)(const nttconfig_t *c,
   spv_size_t m = c->num_ntt_const;
   sp_t root = sp_pow(primroot, order / n, p, d);
 
-  const uint8_t *must_be_unity = c->get_fixed_ntt_const();
+  const uint8_t *must_be_unity = c->fixed_ntt_const;
 
   spv_t mat = (spv_t)alloca(n * n * m * sizeof(sp_t));
   spv_t rhs = (spv_t)alloca(n * n * sizeof(sp_t));
@@ -245,7 +231,7 @@ void X(ntt_reset)(void *data)
       free(d->passes[i].codelet_const);
 
       if (d->passes[i].pass_type == PASS_TYPE_TWIDDLE)
-	sp_aligned_free(d->passes[i].d.twiddle.w);
+	d->passes[i].group->free_twiddle(d->passes[i].d.twiddle.w);
     }
 
   d->num_passes = 0;
@@ -265,94 +251,19 @@ void X(ntt_free)(void *data)
 }
 
 /*-------------------------------------------------------------------------*/
-static spv_t
-make_twiddle(sp_t primroot, sp_t order, sp_t p, sp_t d,
-    		spv_size_t rows, spv_size_t cols)
-{
-  spv_size_t size = rows * cols;
-  spv_t res = (spv_t)sp_aligned_malloc(2 * (rows - 1) * cols * sizeof(sp_t));
-
-  sp_t w = sp_pow(primroot, order / size, p, d);
-  sp_t w_inc = 1;
-  spv_size_t i, j, k;
-
-  for (i = 0; i < cols; i++)
-    {
-      sp_t w0 = w_inc;
-
-      for (j = 0; j < rows - 1; j++)
-	{
-	  res[2*i*(rows-1) + 2*j] = w0;
-	  res[2*i*(rows-1) + 2*j+1] = sp_ntt_reciprocal(w0, p);
-	  w0 = sp_mul(w0, w_inc, p, d);
-	}
-
-      w_inc = sp_mul(w_inc, w, p, d);
-    }
-
-  return res;
-}
-
-#ifdef HAVE_SIMD
-static spv_t
-make_twiddle_simd(sp_t primroot, sp_t order, sp_t p, sp_t d,
-    		spv_size_t rows, spv_size_t cols)
-{
-  spv_size_t alloc = 2 * (rows - 1) * SP_SIMD_VSIZE *
-      			((cols + SP_SIMD_VSIZE - 1) / SP_SIMD_VSIZE);
-  spv_t res = (spv_t)sp_aligned_malloc(alloc * sizeof(sp_t));
-
-  sp_t w = sp_pow(primroot, order / (rows * cols), p, d);
-  sp_t w_inc = 1;
-  spv_size_t i, j, k;
-  spv_size_t num_simd = SP_SIMD_VSIZE * ((cols + SP_SIMD_VSIZE - 1) / 
-      					SP_SIMD_VSIZE);
-
-  for (i = 0; i < num_simd; i += SP_SIMD_VSIZE)
-    {
-      for (j = 0; j < SP_SIMD_VSIZE; j++)
-	{
-	  sp_t w0 = w_inc;
-
-	  if (i + j < cols)
-	    {
-	      for (k = 0; k < rows - 1; k++)
-		{
-		  res[2*i*(rows-1) + (2*k)*SP_SIMD_VSIZE + j] = w0;
-		  res[2*i*(rows-1) + (2*k+1)*SP_SIMD_VSIZE + j] = sp_ntt_reciprocal(w0, p);
-		  w0 = sp_mul(w0, w_inc, p, d);
-		}
-
-	      w_inc = sp_mul(w_inc, w, p, d);
-	    }
-	  else
-	    {
-	      for (k = 0; k < rows - 1; k++)
-		{
-		  res[2*i*(rows-1) + (2*k)*SP_SIMD_VSIZE + j] = 0;
-		  res[2*i*(rows-1) + (2*k+1)*SP_SIMD_VSIZE + j] = 0;
-		}
-	    }
-	}
-    }
-
-  return res;
-}
-#endif
-
-/*-------------------------------------------------------------------------*/
 uint32_t X(ntt_build_passes)(nttdata_t *data,
     		nttplan_t *plans, uint32_t num_plans,
 		sp_t size, sp_t p, sp_t primroot, sp_t order, sp_t d)
 {
   uint32_t i, j;
   nttpass_t *passes = data->passes;
-  uint32_t num_codelets = X(ntt_master_list_size)();
-  const nttconfig_t **codelets = X(ntt_master_list)();
 
   for (i = 0; i < num_plans; i++)
     {
       nttplan_t * plan = plans + i;
+      const nttgroup_t * g = X(ntt_master_group_list)[plan->group_type];
+      const nttconfig_t **codelets = g->get_transform_list();
+      uint32_t num_codelets = g->num_transforms;
       const nttconfig_t * c = NULL;
 
       for (j = 0; j < num_codelets; j++)
@@ -366,44 +277,29 @@ uint32_t X(ntt_build_passes)(nttdata_t *data,
 	return 0;
 
       passes[i].pass_type = plan->pass_type;
+      passes[i].group = g;
       passes[i].codelet = c;
 
       switch (plan->pass_type)
 	{
 	  case PASS_TYPE_DIRECT:
-#ifdef HAVE_SIMD
-	  case PASS_TYPE_DIRECT_SIMD:
-#endif
 	    passes[i].d.direct.num_transforms = size / plan->codelet_size;
 	    break;
 
 	  case PASS_TYPE_PFA:
-#ifdef HAVE_SIMD
-	  case PASS_TYPE_PFA_SIMD:
-#endif
 	    passes[i].d.pfa.cofactor = size / plan->codelet_size;
 	    break;
 
 	  case PASS_TYPE_TWIDDLE:
-#ifdef HAVE_SIMD
-	  case PASS_TYPE_TWIDDLE_SIMD:
-#endif
 	    {
 	      spv_size_t cols = size / plan->codelet_size;
 	      spv_size_t rows = plan->codelet_size;
 
 	      passes[i].d.twiddle.num_transforms = cols;
 	      passes[i].d.twiddle.stride = cols;
-#ifdef HAVE_SIMD
-	      passes[i].d.twiddle.w = make_twiddle_simd(primroot, order, p, d, rows, cols);
-	      if (plans[i+1].pass_type != PASS_TYPE_DIRECT &&
-	          plans[i+1].pass_type != PASS_TYPE_DIRECT_SIMD)
-		size = cols;
-#else
-	      passes[i].d.twiddle.w = make_twiddle(primroot, order, p, d, rows, cols);
+	      passes[i].d.twiddle.w = g->alloc_twiddle(primroot, order, p, d, rows, cols);
 	      if (plans[i+1].pass_type != PASS_TYPE_DIRECT)
 		size = cols;
-#endif
 	      break;
 	    }
 	}
@@ -423,7 +319,7 @@ uint32_t X(ntt_build_passes)(nttdata_t *data,
 				1);
 
       for (j = 0; j < num_const; j++)
-	passes[i].codelet_const[num_const + j] = sp_ntt_reciprocal(
+	passes[i].codelet_const[num_const + j] = X(sp_ntt_reciprocal)(
 	    				passes[i].codelet_const[j], p);
     }
 
@@ -454,36 +350,9 @@ ntt_run_recurse(spv_t x, sp_t p, nttdata_t *d, spv_size_t pass)
 	    		x, curr_pass[i].d.pfa.cofactor,
 			p, curr_pass[i].codelet_const);
 	return;
-
-#ifdef HAVE_SIMD
-      case PASS_TYPE_DIRECT_SIMD:
-	curr_pass->codelet->ntt_run_simd(
-	    		x, 1, curr_pass->codelet->size,
-	    		x, 1, curr_pass->codelet->size,
-			curr_pass->d.direct.num_transforms,
-			p, curr_pass->codelet_const);
-	return;
-
-      case PASS_TYPE_PFA_SIMD:
-	for (i = pass; i < d->num_passes; i++)
-	  curr_pass[i].codelet->ntt_pfa_run_simd(
-	    		x, curr_pass[i].d.pfa.cofactor,
-			p, curr_pass[i].codelet_const);
-	return;
-#endif
     }
 
-#ifdef HAVE_SIMD
-  if (curr_pass->pass_type == PASS_TYPE_TWIDDLE_SIMD)
-    curr_pass->codelet->ntt_twiddle_run_simd(
-		x, curr_pass->d.twiddle.stride, 1,
-		x, curr_pass->d.twiddle.stride, 1,
-		curr_pass->d.twiddle.w,
-		curr_pass->d.twiddle.num_transforms,
-		p, curr_pass->codelet_const);
-  else
-#endif
-    curr_pass->codelet->ntt_twiddle_run(
+  curr_pass->codelet->ntt_twiddle_run(
 		x, curr_pass->d.twiddle.stride, 1,
 		x, curr_pass->d.twiddle.stride, 1,
 		curr_pass->d.twiddle.w,
@@ -501,16 +370,6 @@ ntt_run_recurse(spv_t x, sp_t p, nttdata_t *d, spv_size_t pass)
 			curr_pass[1].d.direct.num_transforms,
 			p, curr_pass[1].codelet_const);
     }
-#ifdef HAVE_SIMD
-  else if (curr_pass[1].pass_type == PASS_TYPE_DIRECT_SIMD)
-    {
-      curr_pass[1].codelet->ntt_run_simd(
-	    		x, 1, curr_pass[1].codelet->size,
-	    		x, 1, curr_pass[1].codelet->size,
-			curr_pass[1].d.direct.num_transforms,
-			p, curr_pass[1].codelet_const);
-    }
-#endif
   else
     {
       for (i = 0; i < curr_pass->codelet->size; i++)

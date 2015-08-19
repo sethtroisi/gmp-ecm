@@ -75,7 +75,7 @@ static void test_core(sp_t p, sp_t d, sp_t primroot,
   X(spv_random)(x, len, p);
   
   X(ntt_build_passes)(data, plans, num_plans, len, p, primroot, order, d);
-
+f
   bfntt(r, x, len, p, d, primroot, order);
 
   X(ntt_run)(x, p, data);
@@ -104,14 +104,9 @@ static void test_core(sp_t p, sp_t d, sp_t primroot,
 		plans[m].codelet_size);
       switch (plans[m].pass_type)
 	{
-	  case PASS_TYPE_DIRECT: printf("d"); break;
-	  case PASS_TYPE_TWIDDLE: printf("t"); break;
-	  case PASS_TYPE_PFA: printf("p"); break;
-#ifdef HAVE_SIMD
-	  case PASS_TYPE_DIRECT_SIMD: printf("ds"); break;
-	  case PASS_TYPE_TWIDDLE_SIMD: printf("ts"); break;
-	  case PASS_TYPE_PFA_SIMD: printf("ps"); break;
-#endif
+	  case PASS_TYPE_DIRECT: printf("d(%u)", plans[m].group_type); break;
+	  case PASS_TYPE_TWIDDLE: printf("t(%u)", plans[m].group_type); break;
+	  case PASS_TYPE_PFA: printf("p(%u)", plans[m].group_type); break;
 	}
     }
 
@@ -139,38 +134,41 @@ static void test_core(sp_t p, sp_t d, sp_t primroot,
 }
 
 /*------------------------------------------------------------------*/
-static void do_direct_test(mpzspm_t mpzspm)
+static void test1(mpzspm_t mpzspm)
 {
-  uint32_t i;
-  uint32_t num_codelets = X(ntt_master_list_size)();
-  const nttconfig_t **codelets = X(ntt_master_list)();
+  uint32_t i, j;
+  uint32_t num_groups = X(ntt_master_group_list_size);
+  const nttgroup_t **groups = X(ntt_master_group_list);
   sp_t p = mpzspm->spm[0]->sp;
   sp_t d = mpzspm->spm[0]->mul_c;
   sp_t primroot = mpzspm->spm[0]->primroot;
   sp_t order = mpzspm->ntt_size;
   nttdata_t *nttdata = (nttdata_t *)mpzspm->spm[0]->ntt_data;
-  nttplan_t plans[3];
+  nttplan_t plans[1];
 
-  for (i = 0; i < num_codelets; i++)
+  for (i = 0; i < num_groups; i++)
     {
-      const nttconfig_t * c = codelets[i];
+      uint32_t num_codelets = groups[i]->num_transforms;
+      const nttconfig_t **codelets = groups[i]->get_transform_list();
 
-      plans[0].codelet_size = c->size;
-      plans[0].pass_type = PASS_TYPE_DIRECT;
-      test_core(p, d, primroot, order, c->size, plans, 1, nttdata);
-#ifdef HAVE_SIMD
-      plans[0].pass_type = PASS_TYPE_DIRECT_SIMD;
-      test_core(p, d, primroot, order, c->size, plans, 1, nttdata);
-#endif
+      for (j = 0; j < num_codelets; j++)
+	{
+	  const nttconfig_t * c = codelets[j];
+
+	  plans[0].codelet_size = c->size;
+	  plans[0].group_type = i;
+	  plans[0].pass_type = PASS_TYPE_DIRECT;
+	  test_core(p, d, primroot, order, c->size, plans, 1, nttdata);
+	}
     }
 }
 
 /*------------------------------------------------------------------*/
-static void do_twiddle_test(mpzspm_t mpzspm)
+static void test2(mpzspm_t mpzspm)
 {
-  uint32_t i, j, k, m, n, q;
-  uint32_t num_codelets = X(ntt_master_list_size)();
-  const nttconfig_t **codelets = X(ntt_master_list)();
+  uint32_t i, j, k, m;
+  uint32_t num_groups = X(ntt_master_group_list_size);
+  const nttgroup_t **groups = X(ntt_master_group_list);
   sp_t p = mpzspm->spm[0]->sp;
   sp_t d = mpzspm->spm[0]->mul_c;
   sp_t primroot = mpzspm->spm[0]->primroot;
@@ -180,83 +178,53 @@ static void do_twiddle_test(mpzspm_t mpzspm)
 
   /* transform pairs */
 
-  for (i = 0; i < num_codelets; i++)
+  for (i = 0; i < num_groups; i++)
     {
-      for (j = 0; j < num_codelets; j++)
+      uint32_t num_codelets0 = groups[i]->num_transforms;
+      const nttconfig_t **codelets0 = groups[i]->get_transform_list();
+
+      for (j = 0; j < num_groups; j++)
 	{
-	  const nttconfig_t * c1 = codelets[i];
-	  const nttconfig_t * c2 = codelets[j];
-	  spv_size_t len = c1->size * c2->size;
+	  uint32_t num_codelets1 = groups[j]->num_transforms;
+	  const nttconfig_t **codelets1 = groups[j]->get_transform_list();
 
-	  if (order % len != 0)
-	    continue;
+	  for (k = 0; k < num_codelets0; k++)
+	    {
+	      for (m = 0; m < num_codelets1; m++)
+		{
+		  const nttconfig_t * c1 = codelets0[k];
+		  const nttconfig_t * c2 = codelets1[m];
+		  spv_size_t len = c1->size * c2->size;
 
-	  plans[0].codelet_size = c1->size;
-	  plans[0].pass_type = PASS_TYPE_TWIDDLE;
-	  plans[1].codelet_size = c2->size;
-	  plans[1].pass_type = PASS_TYPE_DIRECT;
+		  if (order % len != 0)
+		    continue;
 
-#ifdef HAVE_SIMD
-	  for (k = 0; k < 2; k++)
-	    for (m = 0; m < 2; m++)
-	      {
-		plans[0].pass_type = (k == 1) ? PASS_TYPE_TWIDDLE_SIMD : PASS_TYPE_TWIDDLE;
-		plans[1].pass_type = (m == 1) ? PASS_TYPE_DIRECT_SIMD : PASS_TYPE_DIRECT;
-		test_core(p, d, primroot, order, len, plans, 2, nttdata);
-	      }
-#else
-	  test_core(p, d, primroot, order, len, plans, 2, nttdata);
-#endif
-	}
-    }
+		  plans[0].codelet_size = c1->size;
+		  plans[0].group_type = i;
+		  plans[0].pass_type = PASS_TYPE_TWIDDLE;
+		  plans[1].codelet_size = c2->size;
+		  plans[1].group_type = j;
+		  plans[1].pass_type = PASS_TYPE_DIRECT;
+		  test_core(p, d, primroot, order, len, plans, 2, nttdata);
 
-  /* transform triplets */
+		  if (gcd(c1->size, c2->size) != 1)
+		    continue;
 
-  for (i = 0; i < num_codelets; i++)
-    {
-      for (j = 0; j < num_codelets; j++)
-	{
-      	  for (k = 0; k < num_codelets; k++)
-    	    {
-    	      const nttconfig_t * c1 = codelets[i];
-    	      const nttconfig_t * c2 = codelets[j];
-    	      const nttconfig_t * c3 = codelets[k];
-    	      spv_size_t len = c1->size * c2->size * c3->size;
-
-    	      if (order % len != 0)
-    		continue;
-
-    	      plans[0].codelet_size = c1->size;
-	      plans[0].pass_type = PASS_TYPE_TWIDDLE;
-    	      plans[1].codelet_size = c2->size;
-	      plans[1].pass_type = PASS_TYPE_TWIDDLE;
-    	      plans[2].codelet_size = c3->size;
-	      plans[2].pass_type = PASS_TYPE_DIRECT;
-
-#ifdef HAVE_SIMD
-    	      for (m = 0; m < 2; m++)
-    		for (n = 0; n < 2; n++)
-    		  for (q = 0; q < 2; q++)
-    		    {
-    		      plans[0].pass_type = (m == 1) ? PASS_TYPE_TWIDDLE_SIMD : PASS_TYPE_TWIDDLE;
-    		      plans[1].pass_type = (n == 1) ? PASS_TYPE_TWIDDLE_SIMD : PASS_TYPE_TWIDDLE;
-    		      plans[2].pass_type = (q == 1) ? PASS_TYPE_DIRECT_SIMD : PASS_TYPE_DIRECT;
-    		      test_core(p, d, primroot, order, len, plans, 3, nttdata);
-    		    }
-#else
-    	      test_core(p, d, primroot, order, len, plans, 3, nttdata);
-#endif
+		  plans[0].pass_type = PASS_TYPE_PFA;
+		  plans[1].pass_type = PASS_TYPE_PFA;
+		  test_core(p, d, primroot, order, len, plans, 2, nttdata);
+		}
 	    }
 	}
     }
 }
 
 /*------------------------------------------------------------------*/
-static void do_pfa_test(mpzspm_t mpzspm)
+static void test3(mpzspm_t mpzspm)
 {
   uint32_t i, j, k, m, n, q;
-  uint32_t num_codelets = X(ntt_master_list_size)();
-  const nttconfig_t **codelets = X(ntt_master_list)();
+  uint32_t num_groups = X(ntt_master_group_list_size);
+  const nttgroup_t **groups = X(ntt_master_group_list);
   sp_t p = mpzspm->spm[0]->sp;
   sp_t d = mpzspm->spm[0]->mul_c;
   sp_t primroot = mpzspm->spm[0]->primroot;
@@ -264,76 +232,60 @@ static void do_pfa_test(mpzspm_t mpzspm)
   nttdata_t *nttdata = (nttdata_t *)mpzspm->spm[0]->ntt_data;
   nttplan_t plans[3];
 
-  /* transform pairs */
-
-  for (i = 0; i < num_codelets - 1; i++)
-    {
-      for (j = i + 1; j < num_codelets; j++)
-	{
-	  const nttconfig_t * c1 = codelets[i];
-	  const nttconfig_t * c2 = codelets[j];
-	  spv_size_t len = c1->size * c2->size;
-
-	  if (gcd(c1->size, c2->size) != 1)
-	    continue;
-
-	  plans[0].codelet_size = c1->size;
-	  plans[0].pass_type = PASS_TYPE_PFA;
-	  plans[1].codelet_size = c2->size;
-	  plans[1].pass_type = PASS_TYPE_PFA;
-
-#ifdef HAVE_SIMD
-	  for (k = 0; k < 2; k++)
-	    for (m = 0; m < 2; m++)
-	      {
-		plans[0].pass_type = (k == 1) ? PASS_TYPE_PFA_SIMD : PASS_TYPE_PFA;
-	      	plans[1].pass_type = (m == 1) ? PASS_TYPE_PFA_SIMD : PASS_TYPE_PFA;
-		test_core(p, d, primroot, order, len, plans, 2, nttdata);
-	      }
-#else
-	  test_core(p, d, primroot, order, len, plans, 2, nttdata);
-#endif
-	}
-    }
-
   /* transform triplets */
 
-  for (i = 0; i < num_codelets - 2; i++)
+  for (i = 0; i < num_groups; i++)
     {
-      for (j = i + 1; j < num_codelets - 1; j++)
+      uint32_t num_codelets0 = groups[i]->num_transforms;
+      const nttconfig_t **codelets0 = groups[i]->get_transform_list();
+
+      for (j = 0; j < num_groups; j++)
 	{
-      	  for (k = j + 1; k < num_codelets; k++)
-    	    {
-    	      const nttconfig_t * c1 = codelets[i];
-    	      const nttconfig_t * c2 = codelets[j];
-    	      const nttconfig_t * c3 = codelets[k];
-    	      spv_size_t len = c1->size * c2->size * c3->size;
+	  uint32_t num_codelets1 = groups[j]->num_transforms;
+	  const nttconfig_t **codelets1 = groups[j]->get_transform_list();
 
-    	      if (gcd(c1->size, c2->size) != 1 ||
-    		  gcd(c1->size, c3->size) != 1 ||
-    		  gcd(c2->size, c3->size) != 1)
-    		continue;
+	  for (k = 0; k < num_groups; k++)
+	    {
+	      uint32_t num_codelets2 = groups[k]->num_transforms;
+	      const nttconfig_t **codelets2 = groups[k]->get_transform_list();
 
-    	      plans[0].codelet_size = c1->size;
-	      plans[0].pass_type = PASS_TYPE_PFA;
-    	      plans[1].codelet_size = c2->size;
-	      plans[1].pass_type = PASS_TYPE_PFA;
-    	      plans[2].codelet_size = c3->size;
-	      plans[2].pass_type = PASS_TYPE_PFA;
-
-#ifdef HAVE_SIMD
-	      for (m = 0; m < 2; m++)
-		for (n = 0; n < 2; n++)
-		  for (q = 0; q < 2; q++)
+	      for (m = 0; m < num_codelets0; m++)
+		{
+		  for (n = 0; n < num_codelets1; n++)
 		    {
-		      plans[0].pass_type = (m == 1) ? PASS_TYPE_PFA_SIMD : PASS_TYPE_PFA;
-		      plans[1].pass_type = (n == 1) ? PASS_TYPE_PFA_SIMD : PASS_TYPE_PFA;
-		      plans[2].pass_type = (q == 1) ? PASS_TYPE_PFA_SIMD : PASS_TYPE_PFA;
-		      test_core(p, d, primroot, order, len, plans, 3, nttdata);
+		      for (q = 0; q < num_codelets2; q++)
+			{
+			  const nttconfig_t * c1 = codelets0[m];
+			  const nttconfig_t * c2 = codelets1[n];
+			  const nttconfig_t * c3 = codelets2[q];
+			  spv_size_t len = c1->size * c2->size * c3->size;
+
+			  if (order % len != 0)
+			    continue;
+
+			  plans[0].codelet_size = c1->size;
+			  plans[0].group_type = i;
+			  plans[0].pass_type = PASS_TYPE_TWIDDLE;
+			  plans[1].codelet_size = c2->size;
+			  plans[1].group_type = j;
+			  plans[1].pass_type = PASS_TYPE_TWIDDLE;
+			  plans[2].codelet_size = c3->size;
+			  plans[2].group_type = k;
+			  plans[2].pass_type = PASS_TYPE_DIRECT;
+			  test_core(p, d, primroot, order, len, plans, 3, nttdata);
+
+	    		  if (gcd(c1->size, c2->size) != 1 ||
+		    	      gcd(c1->size, c3->size) != 1 ||
+			      gcd(c2->size, c3->size) != 1)
+			    continue;
+
+			  plans[0].pass_type = PASS_TYPE_PFA;
+			  plans[1].pass_type = PASS_TYPE_PFA;
+			  plans[2].pass_type = PASS_TYPE_PFA;
+			  test_core(p, d, primroot, order, len, plans, 3, nttdata);
+			}
 		    }
-#else
-    	      test_core(p, d, primroot, order, len, plans, 3, nttdata);
-#endif
+		}
 	    }
 	}
     }
@@ -362,9 +314,9 @@ int X(test_main)(int argc, char **argv)
       return 0;
     }
 
-  do_direct_test(mpzspm);
-  do_pfa_test(mpzspm);
-  do_twiddle_test(mpzspm);
+  test1(mpzspm);
+  test2(mpzspm);
+  test3(mpzspm);
 
   X(mpzspm_clear)(mpzspm);
   return 0;

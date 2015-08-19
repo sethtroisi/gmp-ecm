@@ -109,29 +109,17 @@ typedef mp_limb_t UDItype;
 #endif
 
   /* name mangling for a fat binary */
+#define MANGLE_NAME(name, psize, wsize) MANGLE_NAME_(name, psize, wsize)
+#define MANGLE_NAME_(name, psize, wsize) name##_##sp##psize##w##wsize
 
-#if GMP_LIMB_BITS == 32
-  #if SP_NUMB_BITS == 30
-    #define SP_NAME_SUFFIX_STR "sp30w32"
-    #define X(name) name##_sp30w32
-  #elif SP_NUMB_BITS == 31
-    #define SP_NAME_SUFFIX_STR "sp31w32"
-    #define X(name) name##_sp31w32
-  #else
-    #define SP_NAME_SUFFIX_STR "sp62w32"
-    #define X(name) name##_sp62w32
-  #endif
+#define MANGLE_NAME_STR(psize, wsize) MANGLE_NAME_STR_(psize, wsize)
+#define MANGLE_NAME_STR_(psize, wsize) "sp" #psize "w" #wsize
 
-#else
-  #if SP_NUMB_BITS == 30
-    #define SP_NAME_SUFFIX_STR "sp30w64"
-    #define X(name) name##_sp30w64
-  #else
-    #define SP_NAME_SUFFIX_STR "sp62w64"
-    #define X(name) name##_sp62w64
-  #endif
+#define MANGLE_SSE2(name) MANGLE_SSE2_(name)
+#define MANGLE_SSE2_(name) name##sse2
 
-#endif
+#define X(name) MANGLE_NAME(name, SP_NUMB_BITS, GMP_LIMB_BITS)
+#define SP_NAME_SUFFIX_STR MANGLE_NAME_STR(SP_NUMB_BITS, GMP_LIMB_BITS)
 
 #define SP_MIN ((sp_t)1 << (SP_NUMB_BITS - 1))
 #define SP_MAX ((sp_t)(-1) >> (SP_TYPE_BITS - SP_NUMB_BITS))
@@ -363,6 +351,48 @@ static inline sp_t sp_add(sp_t a, sp_t b, sp_t m)
   if (t >= m)
     t -= m;
   return t;
+#endif
+}
+
+/* a copy of sp_add, but operating on array offsets. These
+   are always size_t types, and may have a size different 
+   from an sp_t */
+
+static inline spv_size_t sp_array_inc(spv_size_t a, spv_size_t b, spv_size_t m) 
+{
+#if (defined(__GNUC__) || defined(__ICL)) && \
+    (defined(__x86_64__) || defined(__i386__))
+
+  spv_size_t t = a - m, tr = a + b;
+
+  __asm__ (
+    "add %2, %1    # sp_array_inc: t += b\n\t"
+    "cmovc %1, %0  # sp_array_inc: if (cy) tr = t \n\t"
+    : "+r" (tr), "+&r" (t)
+    : "g" (b)
+    : "cc"
+  );
+
+  return tr;
+
+#elif defined(_MSC_VER) && !defined(_WIN64)
+
+  __asm
+    {
+        mov     eax, a
+        add     eax, b
+        mov     edx, eax
+        sub     edx, m
+        cmovnc  eax, edx
+    }
+
+#else
+
+  spv_size_t t = a + b;
+  if (t >= m)
+    t -= m;
+  return t;
+
 #endif
 }
 

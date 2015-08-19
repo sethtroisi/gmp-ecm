@@ -1,11 +1,15 @@
 #ifndef _NTT_IMPL_SSE2_H
 #define _NTT_IMPL_SSE2_H
 
-#include "sp.h"
-#include <emmintrin.h>
+#include "ntt-impl-scalar.h"
+#include <immintrin.h>
 
 #define HAVE_SIMD
 #define SP_SIMD_VSIZE (128 / SP_TYPE_BITS)
+
+/* mangled routine names */
+#define V(name) MANGLE_SSE2(X(name))
+#define SP_SIMD_NAME_SUFFIX_STR SP_NAME_SUFFIX_STR "sse2"
 
 #define pload(addr)  _mm_load_si128((__m128i const *)(addr))
 #define ploadu(addr)  _mm_loadu_si128((__m128i const *)(addr))
