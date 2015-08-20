@@ -6,8 +6,8 @@
 /* SIMD includes */
 #if defined(HAVE_SSE2)
 #include "ntt-impl-sse2.h"
-#elif defined(HAVE_SSE41)
-#include "ntt-impl-sse41.h"
+#elif defined(HAVE_SSE42)
+#include "ntt-impl-sse42.h"
 #endif
 
 extern const nttconfig_t V(ntt2simd_config);

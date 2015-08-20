@@ -118,8 +118,8 @@ typedef mp_limb_t UDItype;
 #define MANGLE_SSE2(name) MANGLE_SSE2_(name)
 #define MANGLE_SSE2_(name) name##sse2
 
-#define MANGLE_SSE41(name) MANGLE_SSE41_(name)
-#define MANGLE_SSE41_(name) name##sse41
+#define MANGLE_SSE42(name) MANGLE_SSE42_(name)
+#define MANGLE_SSE42_(name) name##sse42
 
 #define X(name) MANGLE_NAME(name, SP_NUMB_BITS, GMP_LIMB_BITS)
 #define SP_NAME_SUFFIX_STR MANGLE_NAME_STR(SP_NUMB_BITS, GMP_LIMB_BITS)

@@ -60,7 +60,7 @@ extern const uint32_t X(ntt_master_group_list_size);
 
 extern const nttgroup_t X(ntt_group);
 extern const nttgroup_t MANGLE_SSE2(X(ntt_group_simd));
-extern const nttgroup_t MANGLE_SSE41(X(ntt_group_simd));
+extern const nttgroup_t MANGLE_SSE42(X(ntt_group_simd));
 
 
 /* if the modulus is 2 bits or more smaller than the machine

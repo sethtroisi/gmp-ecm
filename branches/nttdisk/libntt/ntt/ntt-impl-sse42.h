@@ -1,5 +1,5 @@
-#ifndef _NTT_IMPL_SSE41_H
-#define _NTT_IMPL_SSE41_H
+#ifndef _NTT_IMPL_SSE42_H
+#define _NTT_IMPL_SSE42_H
 
 #include "ntt-impl-scalar.h"
 #include <immintrin.h>
@@ -8,8 +8,8 @@
 #define SP_SIMD_VSIZE (128 / SP_TYPE_BITS)
 
 /* mangled routine names */
-#define V(name) MANGLE_SSE41(X(name))
-#define SP_SIMD_NAME_SUFFIX_STR SP_NAME_SUFFIX_STR "sse41"
+#define V(name) MANGLE_SSE42(X(name))
+#define SP_SIMD_NAME_SUFFIX_STR SP_NAME_SUFFIX_STR "sse42"
 
 #define pload(addr)  _mm_load_si128((__m128i const *)(addr))
 #define ploadu(addr)  _mm_loadu_si128((__m128i const *)(addr))
@@ -626,4 +626,4 @@ static inline sp_simd_t sp_ntt_twiddle_mul_simd(sp_simd_t a,
 #endif
 }
 
-#endif /* _NTT_IMPL_SSE41_H */
+#endif /* _NTT_IMPL_SSE42_H */
