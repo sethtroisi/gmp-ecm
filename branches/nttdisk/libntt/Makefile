@@ -61,9 +61,11 @@ OBJ_W32 = $(LIB_SRC:.c=.o_w32) \
 	$(NTT_SIMD_SRC:.c=.o_sp31w32sse42) \
 	$(NTT_SCALAR_SRC:.c=.o_sp62w32) \
 	$(NTT_SIMD_SRC:.c=.o_sp62w32sse2) \
-	$(NTT_SIMD_SRC:.c=.o_sp62w32sse42)
+	$(NTT_SIMD_SRC:.c=.o_sp62w32sse42) \
+	$(NTT_SCALAR_SRC:.c=.o_sp50w32)
 
 OBJ_W64 = $(LIB_SRC:.c=.o_w64) \
+	$(NTT_SCALAR_SRC:.c=.o_sp50w64) \
 	$(NTT_SCALAR_SRC:.c=.o_sp30w64) \
 	$(NTT_SIMD_SRC:.c=.o_sp30w64sse2) \
 	$(NTT_SIMD_SRC:.c=.o_sp30w64sse42) \
@@ -75,10 +77,10 @@ w64: $(OBJ_W64)
 	$(CC64) $(CFLAGS) $(OBJ_W64) test.c -o a64.exe \
 		../../../mpir-2.7.0/lib/x64/Release/mpir.lib \
 		../../../mpir-2.7.0/lib/x64/Release/chkstk.obj  \
-		../../../mpir-2.7.0/lib/x64/Release/runtmchk.lib
+		../../../mpir-2.7.0/lib/x64/Release/runtmchk.lib -lm
 
 w32: $(OBJ_W32)
-	$(CC32) $(CFLAGS) $(OBJ_W32) test.c -o a32.exe -lgmp
+	$(CC32) $(CFLAGS) $(OBJ_W32) test.c -o a32.exe -lgmp -lm
 
 clean:
 	rm -rf $(OBJ_W32) $(OBJ_W64) a32.exe a64.exe
@@ -113,6 +115,9 @@ clean:
 %.o_sp62w32sse42: %.c $(HDR)
 	$(CC32) $(CFLAGS) -DHAVE_SSE42 -DSP_NUMB_BITS=62 -c -o $@ $<
 
+%.o_sp50w32: %.c $(HDR)
+	$(CC32) $(CFLAGS) -DSP_NUMB_BITS=50 -c -o $@ $<
+
 
 %.o_w64: %.c $(HDR)
 	$(CC64) $(CFLAGS) -c -o $@ $<
@@ -134,4 +139,7 @@ clean:
 
 %.o_sp62w64sse42: %.c $(HDR)
 	$(CC64) $(CFLAGS) -DHAVE_SSE42 -DSP_NUMB_BITS=62 -c -o $@ $<
+
+%.o_sp50w64: %.c $(HDR)
+	$(CC64) $(CFLAGS) -DSP_NUMB_BITS=50 -c -o $@ $<
 

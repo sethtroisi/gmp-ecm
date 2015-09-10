@@ -142,7 +142,7 @@ static void test1(mpzspm_t mpzspm)
   sp_t p = mpzspm->spm[0]->sp;
   sp_t d = mpzspm->spm[0]->mul_c;
   sp_t primroot = mpzspm->spm[0]->primroot;
-  sp_t order = mpzspm->ntt_size;
+  uint32_t order = mpzspm->ntt_size;
   nttdata_t *nttdata = (nttdata_t *)mpzspm->spm[0]->ntt_data;
   nttplan_t plans[1];
 
@@ -172,7 +172,7 @@ static void test2(mpzspm_t mpzspm)
   sp_t p = mpzspm->spm[0]->sp;
   sp_t d = mpzspm->spm[0]->mul_c;
   sp_t primroot = mpzspm->spm[0]->primroot;
-  sp_t order = mpzspm->ntt_size;
+  uint32_t order = mpzspm->ntt_size;
   nttdata_t *nttdata = (nttdata_t *)mpzspm->spm[0]->ntt_data;
   nttplan_t plans[3];
 
@@ -228,7 +228,7 @@ static void test3(mpzspm_t mpzspm)
   sp_t p = mpzspm->spm[0]->sp;
   sp_t d = mpzspm->spm[0]->mul_c;
   sp_t primroot = mpzspm->spm[0]->primroot;
-  sp_t order = mpzspm->ntt_size;
+  uint32_t order = mpzspm->ntt_size;
   nttdata_t *nttdata = (nttdata_t *)mpzspm->spm[0]->ntt_data;
   nttplan_t plans[3];
 
@@ -311,6 +311,7 @@ int X(test_main)(int argc, char **argv)
 
   if (mpzspm == NULL)
     {
+      printf("crap\n");
       return 0;
     }
 

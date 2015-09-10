@@ -1,6 +1,7 @@
 #ifndef _SP_H
 #define _SP_H
 
+#include <math.h>
 #include "libntt.h"
 
 /* Basic defs for the data types used in Number Theoretic Transforms
@@ -27,43 +28,19 @@
    very much. So to deal with the largest problems we will need to 
    support 62-bit moduli on a 32-bit machine.
 
-   A completely different possibility for PowerPC machines is to
-   use 50-bit moduli and use the FPU for modular reductions. This 
-   works on that architecture because the PowerPC standard includes
-   fused multiply-add (FMA) instructions that perform a double-precision
-   multiply and add with a single rounding operation, and the multiply
-   result is required to have 106 bits of precision before its bottom
-   half is discarded. The upshot is that we can compute a 101-bit
-   signed product of two 51-bit signed inputs in just two FPU 
-   instructions, which modern-day PowerPC processors can execute with
-   very high throughput (likely much higher than using integer 
-   multiplies).
+   A completely different possibility for some machines is to
+   use 50-bit moduli and use the FPU for modular reductions. If 
+   the instruction includes fused multiply-add (FMA) instructions 
+   that perform a double-precision multiply and add with a single
+   rounding operation, then the result is required to have 106 bits
+   of precision before its bottom half is discarded. The upshot is 
+   that we can compute a 101-bit signed product of two 51-bit signed 
+   inputs in just two FPU instructions. Even without an FMA, the 
+   SIMD transforms may be faster than using the ALU if the SIMD vector 
+   length is long enough to amortize the cost of the extra arithmetic.
 
-   The defines below choose 30, 31, or 32-63 bit prime moduli, a choice 
-   that is decoupled from a 32-bit or 64-bit machine word size. We 
-   still include a bunch of GMP plumbing to take advantage of custom
-   macros for arithmetic at the native machine word size */
-
-/* types that longlong.h needs */
-typedef mp_limb_t UWtype;
-typedef unsigned int UHWtype;
-#if (defined(_PA_RISC1_1) && defined(__GNUC__))
-/* this seems to be needed, otherwise umul_ppmm() does not work properly */
-typedef mp_limb_t USItype __attribute__ ((mode (SI)));
-typedef mp_limb_t UDItype __attribute__ ((mode (DI)));
-#else
-typedef mp_limb_t USItype;
-typedef mp_limb_t UDItype;
-#endif
-
-#ifndef W_TYPE_SIZE
-#define W_TYPE_SIZE GMP_LIMB_BITS
-#endif
-
-#define LONGLONG_STANDALONE
-#include "longlong.h"
-
-/* name mangling */
+   The defines below choose 30, 31,50 or 62-63 bit prime moduli, a choice 
+   that is decoupled from a 32-bit or 64-bit machine word size. */
 
 /*********
  * TYPES *
@@ -79,11 +56,11 @@ typedef mp_limb_t UDItype;
  * For a residue x modulo a sp p, we require 0 <= x < p */
 
 #ifndef SP_NUMB_BITS
-   #if GMP_LIMB_BITS == 64
-      #define SP_NUMB_BITS 62
-   #elif GMP_LIMB_BITS == 32
-      #define SP_NUMB_BITS 30
-   #endif
+  #if GMP_LIMB_BITS == 64
+    #define SP_NUMB_BITS 62
+  #elif GMP_LIMB_BITS == 32
+    #define SP_NUMB_BITS 30
+  #endif
 #endif
 
 #if SP_NUMB_BITS < 30 || SP_NUMB_BITS > 63
@@ -98,6 +75,20 @@ typedef mp_limb_t UDItype;
   #define PRIusp PRIu32
   #define PRIxsp "08" PRIx32
 
+  #define SP_MIN ((sp_t)1 << (SP_NUMB_BITS - 1))
+  #define SP_MAX ((sp_t)(-1) >> (SP_TYPE_BITS - SP_NUMB_BITS))
+
+#elif SP_NUMB_BITS == 50
+
+  typedef double sp_t;
+  #define SP_TYPE_BITS 64
+  #define PRIdsp ".0lf"
+  #define PRIusp ".0lf"
+  #define PRIxsp ".0lf"
+
+  #define SP_MIN pow(2.0, SP_NUMB_BITS - 1)
+  #define SP_MAX (pow(2.0, SP_NUMB_BITS) - 1)
+
 #else
 
   typedef uint64_t sp_t;
@@ -106,6 +97,32 @@ typedef mp_limb_t UDItype;
   #define PRIusp PRIu64
   #define PRIxsp "016" PRIx64
 
+  #define SP_MIN ((sp_t)1 << (SP_NUMB_BITS - 1))
+  #define SP_MAX ((sp_t)(-1) >> (SP_TYPE_BITS - SP_NUMB_BITS))
+
+#endif
+
+/* for integer types, add GMP plumbing */
+#if SP_NUMB_BITS != 50
+
+/* types that longlong.h needs */
+  typedef mp_limb_t UWtype;
+  typedef unsigned int UHWtype;
+  #if (defined(_PA_RISC1_1) && defined(__GNUC__))
+    /* this seems to be needed, otherwise umul_ppmm() does not work properly */
+    typedef mp_limb_t USItype __attribute__ ((mode (SI)));
+    typedef mp_limb_t UDItype __attribute__ ((mode (DI)));
+  #else
+    typedef mp_limb_t USItype;
+    typedef mp_limb_t UDItype;
+  #endif
+
+    #ifndef W_TYPE_SIZE
+    #define W_TYPE_SIZE GMP_LIMB_BITS
+    #endif
+
+    #define LONGLONG_STANDALONE
+    #include "longlong.h"
 #endif
 
   /* name mangling for a fat binary */
@@ -121,11 +138,11 @@ typedef mp_limb_t UDItype;
 #define MANGLE_SSE42(name) MANGLE_SSE42_(name)
 #define MANGLE_SSE42_(name) name##sse42
 
+#define MANGLE_AVX(name) MANGLE_AVX_(name)
+#define MANGLE_AVX_(name) name##avx
+
 #define X(name) MANGLE_NAME(name, SP_NUMB_BITS, GMP_LIMB_BITS)
 #define SP_NAME_SUFFIX_STR MANGLE_NAME_STR(SP_NUMB_BITS, GMP_LIMB_BITS)
-
-#define SP_MIN ((sp_t)1 << (SP_NUMB_BITS - 1))
-#define SP_MAX ((sp_t)(-1) >> (SP_TYPE_BITS - SP_NUMB_BITS))
 
 /* vector of residues modulo a common small prime */
 typedef sp_t * spv_t;
@@ -193,6 +210,8 @@ mpz_set_sp (mpz_t m, const sp_t n)
 {
 #if SP_TYPE_BITS == 32
   mpz_set_ui(m, (unsigned long)(uint32_t)n);
+#elif SP_NUMB_BITS == 50
+  mpz_set_d(m, n);
 #else /* 64-bit sp_t */
   mpz_set_uint64(m, n);
 #endif
@@ -204,6 +223,10 @@ mpz_get_sp (const mpz_t n)
 #if SP_TYPE_BITS == 32
 
   return mpz_get_ui(n);
+
+#elif SP_NUMB_BITS == 50
+
+  mpz_get_d(n);
 
 #else /* 64-bit sp_t */
 
@@ -233,7 +256,8 @@ sp_t X(sp_reciprocal)(sp_t p);
 static inline sp_t sp_sub(sp_t a, sp_t b, sp_t m) 
 {
 #if (defined(__GNUC__) || defined(__ICL)) && \
-    (defined(__x86_64__) || defined(__i386__))
+    (defined(__x86_64__) || defined(__i386__)) && \
+    SP_NUMB_BITS != 50
 
   #if SP_TYPE_BITS <= GMP_LIMB_BITS
   sp_t t = 0, tr = a;
@@ -296,7 +320,8 @@ static inline sp_t sp_sub(sp_t a, sp_t b, sp_t m)
 static inline sp_t sp_add(sp_t a, sp_t b, sp_t m) 
 {
 #if (defined(__GNUC__) || defined(__ICL)) && \
-    (defined(__x86_64__) || defined(__i386__))
+    (defined(__x86_64__) || defined(__i386__)) && \
+    SP_NUMB_BITS != 50
 
   #if SP_TYPE_BITS <= GMP_LIMB_BITS
   sp_t t = a - m, tr = a + b;
@@ -401,7 +426,43 @@ static inline spv_size_t sp_array_inc(spv_size_t a, spv_size_t b, spv_size_t m)
 
 /* widening multiply */
 
-#if SP_TYPE_BITS == GMP_LIMB_BITS  /* use GMP functions */
+#if SP_NUMB_BITS == 50 /* floating point sp_t */
+
+  /* cribbed from DH Bailey's QD package, which references
+
+     J. Shewchuk, "Adaptive Precision Floating-Point Arithmetic
+     and Fast Robust Geometric Predicates" */
+
+  /* find hi and lo such that a exactly equals hi + lo
+     and the bottom half of each mantissa is 0 */
+
+  #define sp_split(hi, lo, a)            \
+	{				 \
+	  sp_t t = 134217729.0 * a;	 \
+	  hi = t - (t - a);		 \
+	  lo = a - hi;			 \
+	}
+
+  /* find hi and lo such that a * b exactly equals hi+lo */
+
+  #define sp_wide_mul(hi, lo, a, b)	 \
+	{				 \
+	  sp_t ahi, alo, bhi, blo;	 \
+	  sp_split(ahi, alo, a);	 \
+	  sp_split(bhi, blo, b);	 \
+	  hi = a * b;			 \
+	  lo = ((ahi * bhi - hi) + ahi * blo + alo * bhi) + alo * blo; \
+	}
+
+  #define sp_wide_sqr(hi, lo, a)	\
+	{				\
+	  sp_t ahi, alo;		\
+	  sp_split(ahi, alo, a);	\
+	  hi = a * a;			\
+	  lo = ((ahi * ahi - hi) + 2.0 * alo * ahi) + alo * alo; \
+	}
+
+#elif SP_TYPE_BITS == GMP_LIMB_BITS  /* use GMP functions */
 
   #define sp_wide_mul(hi, lo, a, b) umul_ppmm(hi, lo, a, b)
   #define sp_wide_sqr(hi, lo, a) sp_wide_mul(hi, lo, a, a)
@@ -485,7 +546,33 @@ static inline spv_size_t sp_array_inc(spv_size_t a, spv_size_t b, spv_size_t m)
 
 /* modular reduction */
 
-#if SP_NUMB_BITS <= SP_TYPE_BITS - 2
+#if SP_NUMB_BITS == 50
+
+static inline sp_t sp_udiv_rem(sp_t nhi, sp_t nlo, sp_t d, sp_t di)
+{
+  sp_t r, r2, q, qhi, qlo;
+  ATTRIBUTE_UNUSED sp_t tmp;
+
+  q = floor(nhi * di);
+  sp_wide_mul (qhi, qlo, q, d);
+
+  /* form (nhi:nlo) - (qhi:qlo) exactly; was assume the result
+     fits into an sp_t */
+
+  r = nhi - qhi;
+  r2 = r - nhi;
+  r2 = (nhi - (r - r2)) + (qhi + r2);
+  r2 = (r2 + nlo) - qlo;
+  r = r + r2;
+
+  r = sp_sub(r, d, d);
+  if (r < 0)
+    r += d;
+
+  return r;
+}
+
+#elif SP_NUMB_BITS <= SP_TYPE_BITS - 2
 
     /* having a small modulus allows the reciprocal
      * to be one bit larger, which guarantees that the
@@ -504,7 +591,7 @@ static inline sp_t sp_udiv_rem(sp_t nh, sp_t nl, sp_t d, sp_t di)
   return sp_sub(r, d, d);
 }
 
-#else    /* big modulus; no shortcuts allowed */
+#else                       /* big integer modulus; no shortcuts allowed */
 
 static inline sp_t sp_udiv_rem(sp_t nh, sp_t nl, sp_t d, sp_t di)
 {
@@ -557,9 +644,10 @@ sp_sqr (sp_t x, sp_t m, sp_t d)
 /* Returns x^a % m, uses a right-to-left powering ladder */
 
 static inline sp_t
-sp_pow (sp_t x, sp_t a, sp_t m, sp_t d)
+sp_pow (sp_t x, sp_t e, sp_t m, sp_t d)
 {
   sp_t partial = 1;
+  uint64_t a = (uint64_t)e;
 
   while (1)
     {

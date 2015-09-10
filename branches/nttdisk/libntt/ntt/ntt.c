@@ -21,7 +21,13 @@ sp_t X(sp_ntt_reciprocal)(sp_t w, sp_t p)
 {
     /* compute (w << SP_TYPE_BITS) / p */
 
-#if SP_TYPE_BITS == GMP_LIMB_BITS  /* use GMP functions */
+#if SP_NUMB_BITS == 50  /* don't need a reciprocal */
+
+    sp_t hi, lo;
+    sp_split(hi, lo, w);
+    return hi;
+
+#elif SP_TYPE_BITS == GMP_LIMB_BITS  /* use GMP functions */
     mp_limb_t recip, dummy;
 
     udiv_qrnnd (recip, dummy, w, 0, p);
@@ -159,7 +165,10 @@ X(nttdata_init_generic)(const nttconfig_t *c,
 
   for (i = 0; i < m; i++)
     if (must_be_unity[i])
-      vfixed[i] = 1;
+      {
+	vfixed[i] = 1;
+	vfixed[i+m] = X(sp_ntt_reciprocal)(1, p);
+      }
 
   for (i = 0; i < n; i++)
     {
@@ -188,8 +197,10 @@ X(nttdata_init_generic)(const nttconfig_t *c,
           x[i] = 1;
 
           vfixed[j] = 1;
+          vfixed[j+m] = X(sp_ntt_reciprocal)(1, p);
           c->ntt_run(x, 1, 0, x, 1, 0, 1, p, vfixed);
           vfixed[j] = 0;
+          vfixed[j+m] = 0;
 
           #ifdef HAVE_PARTIAL_MOD
           for (k = 0; k < n; k++)

@@ -43,6 +43,26 @@ static inline sp_t sp_ntt_sub_partial(sp_t a, sp_t b, sp_t p)
 /* perform modular multiplication when the multiplier
    and its generalized inverse are both known and precomputed */
 
+#if SP_NUMB_BITS == 50 /* floating point operands */
+
+static inline sp_t sp_ntt_mul(sp_t x, sp_t w, sp_t whi, sp_t p)
+{
+  sp_t recip = 1.0 / p;  /* common subexpression */
+
+  sp_t hi, lo;
+  {
+    sp_t ahi, alo, bhi, blo;
+    sp_split(ahi, alo, x);
+    bhi = whi;
+    blo = w - whi;   /* save the overhead of splitting w */
+    hi = x * w;
+    lo = ((ahi * bhi - hi) + ahi * blo + alo * bhi) + alo * blo; \
+  }
+  return sp_udiv_rem(hi, lo, p, recip);
+}
+
+#else /* integer operands */
+
 /* low half multiply */
 
 static inline sp_t sp_mul_lo(sp_t a, sp_t b)
@@ -132,6 +152,8 @@ static inline sp_t sp_ntt_mul(sp_t x, sp_t w, sp_t w_inv, sp_t p)
   return sp_sub(r, p, p);
 #endif
 }
+
+#endif
 
 extern const nttconfig_t X(ntt2_config);
 extern const nttconfig_t X(ntt3_config);

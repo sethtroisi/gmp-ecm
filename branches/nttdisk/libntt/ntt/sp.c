@@ -10,7 +10,11 @@ sp_t X(sp_reciprocal)(sp_t p)
     mp_limb_t shift = 2 * SP_NUMB_BITS;
     #endif
 
-#if SP_TYPE_BITS == GMP_LIMB_BITS  /* use GMP functions */
+#if SP_NUMB_BITS == 50 /* floating point reciprocal */
+
+    return 1.0 / p;
+
+#elif SP_TYPE_BITS == GMP_LIMB_BITS  /* use GMP functions */
     mp_limb_t recip, dummy;
 
     udiv_qrnnd (recip, dummy,
@@ -47,7 +51,7 @@ sp_t X(sp_reciprocal)(sp_t p)
 static int
 sp_spp (sp_t a, sp_t m, sp_t d)
 {
-  sp_t r, s, t, e;
+  uint64_t r, s, t, e;
 
   if (m == a)
     return 1;
@@ -78,9 +82,6 @@ X(sp_prime)(sp_t x)
 {
   sp_t d;
 
-  if (!(x & 1))
-    return 0;
-  
   if (x < SP_MIN)
     return 1;
   

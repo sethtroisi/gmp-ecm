@@ -2,7 +2,7 @@
 
 /* Returns the exponent of $q$ in the factorisation of $n$ */
 static uint32_t
-exponent (const sp_t q, sp_t n)
+exponent (const uint64_t q, uint64_t n)
 {
   uint32_t i;
   for (i = 0; n % q == (sp_t) 0; i++, n /= q)
@@ -26,7 +26,7 @@ ordpow (const sp_t q, sp_t a, const sp_t sp, const sp_t mul_c)
 spm_t
 X(spm_init) (sp_t n, sp_t sp)
 {
-  sp_t a, b, inv_b, bd, sc, q, nc;
+  uint64_t a, b, inv_b, bd, sc, q, nc;
   spm_t spm = (spm_t) malloc (sizeof (__spm_struct));
   if (spm == NULL)
     return NULL;
@@ -62,7 +62,7 @@ X(spm_init) (sp_t n, sp_t sp)
         {
 	  const uint32_t k = exponent (q, n); /* q^k || n */
 	  uint32_t l;
-	  sp_t d;
+	  uint64_t d;
 
           /* Remove all factors of $q$ from $sp-1$ */
           for (d = sp - 1; d % q == 0; d /= q)

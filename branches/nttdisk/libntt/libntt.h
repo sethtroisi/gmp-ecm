@@ -22,5 +22,6 @@ DECLARE(62,32)
 DECLARE(30,64)
 DECLARE(62,64)
 #endif
+DECLARE(50,64)
 
 #endif /* _LIBNTT_H */

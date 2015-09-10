@@ -11,7 +11,7 @@ void *
 X(mpzspm_init)(uint32_t max_len_in, mpz_t modulus)
 {
   uint32_t ub, i, j;
-  sp_t max_len = max_len_in;
+  uint32_t max_len = max_len_in;
   sp_t a, p;
   mpz_t P, S, T, mp, mt;
   mpzspm_t mpzspm;
@@ -53,13 +53,13 @@ X(mpzspm_init)(uint32_t max_len_in, mpz_t modulus)
   mpz_init (mt);
   mpz_init (T); 
   mpz_mul (T, modulus, modulus);
-  mpz_set_sp (mp, max_len);
+  mpz_set_ui (mp, max_len);
   mpz_mul (T, T, mt);
   
   /* find primes congruent to 1 mod max_len so we can do
    * a ntt of size max_len */
   /* Find the largest p <= SP_MAX that is p == 1 (mod max_len) */
-  p = (SP_MAX / max_len) * max_len;
+  p = ((uint64_t)SP_MAX / max_len) * max_len;
   if (p == SP_MAX) /* If max_len | SP_MAX, the +1 might cause overflow */
     p = p - max_len + 1;
   else
