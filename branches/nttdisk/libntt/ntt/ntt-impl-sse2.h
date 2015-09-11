@@ -418,6 +418,7 @@ static inline sp_simd_t sp_ntt_sub_partial_simd(sp_simd_t a, sp_simd_t b, sp_t p
 }
 
 
+ATTRIBUTE_ALWAYS_INLINE
 static inline sp_simd_t sp_ntt_mul_simd(
 				sp_simd_t a, sp_t w, sp_t w_inv, sp_t p)
 {
@@ -535,6 +536,7 @@ static inline sp_simd_t sp_ntt_mul_simd(
    separated from their inverses, then packed into sp_simd_t vectors
    and concatenated */
 
+ATTRIBUTE_ALWAYS_INLINE
 static inline sp_simd_t sp_ntt_twiddle_mul_simd(sp_simd_t a, 
 					sp_simd_t *w, sp_t p)
 {

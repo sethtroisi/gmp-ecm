@@ -12,6 +12,7 @@ HDR = \
 	ntt/ntt-impl-simd.h \
 	ntt/ntt-impl-sse2.h \
 	ntt/ntt-impl-sse42.h \
+	ntt/ntt-impl-avx.h \
 	ntt/ntt-impl.h \
 	ntt/sp.h
 
@@ -53,6 +54,8 @@ LIB_SRC = \
 	util.c
 
 OBJ_W32 = $(LIB_SRC:.c=.o_w32) \
+	$(NTT_SCALAR_SRC:.c=.o_sp50w32) \
+	$(NTT_SIMD_SRC:.c=.o_sp50w32avx) \
 	$(NTT_SCALAR_SRC:.c=.o_sp30w32) \
 	$(NTT_SIMD_SRC:.c=.o_sp30w32sse2) \
 	$(NTT_SIMD_SRC:.c=.o_sp30w32sse42) \
@@ -61,11 +64,11 @@ OBJ_W32 = $(LIB_SRC:.c=.o_w32) \
 	$(NTT_SIMD_SRC:.c=.o_sp31w32sse42) \
 	$(NTT_SCALAR_SRC:.c=.o_sp62w32) \
 	$(NTT_SIMD_SRC:.c=.o_sp62w32sse2) \
-	$(NTT_SIMD_SRC:.c=.o_sp62w32sse42) \
-	$(NTT_SCALAR_SRC:.c=.o_sp50w32)
+	$(NTT_SIMD_SRC:.c=.o_sp62w32sse42)
 
 OBJ_W64 = $(LIB_SRC:.c=.o_w64) \
 	$(NTT_SCALAR_SRC:.c=.o_sp50w64) \
+	$(NTT_SIMD_SRC:.c=.o_sp50w64avx) \
 	$(NTT_SCALAR_SRC:.c=.o_sp30w64) \
 	$(NTT_SIMD_SRC:.c=.o_sp30w64sse2) \
 	$(NTT_SIMD_SRC:.c=.o_sp30w64sse42) \
@@ -116,7 +119,13 @@ clean:
 	$(CC32) $(CFLAGS) -DHAVE_SSE42 -DSP_NUMB_BITS=62 -c -o $@ $<
 
 %.o_sp50w32: %.c $(HDR)
-	$(CC32) $(CFLAGS) -DSP_NUMB_BITS=50 -c -o $@ $<
+	$(CC32) $(CFLAGS) -DHAVE_AVX -DSP_NUMB_BITS=50 -c -o $@ $<
+
+%.o_sp50w32avx: %.c $(HDR)
+	$(CC32) $(CFLAGS) -DHAVE_AVX -DSP_NUMB_BITS=50 -S -o x.S $<
+	sed 's/vmovaps/vmovups/' x.S > y.S
+	sed 's/vmovapd/vmovupd/' y.S > z.S
+	$(CC32) $(CFLAGS) -DHAVE_AVX -DSP_NUMB_BITS=50 -c -o $@ z.S
 
 
 %.o_w64: %.c $(HDR)
@@ -141,5 +150,11 @@ clean:
 	$(CC64) $(CFLAGS) -DHAVE_SSE42 -DSP_NUMB_BITS=62 -c -o $@ $<
 
 %.o_sp50w64: %.c $(HDR)
-	$(CC64) $(CFLAGS) -DSP_NUMB_BITS=50 -c -o $@ $<
+	$(CC64) $(CFLAGS) -DHAVE_AVX -DSP_NUMB_BITS=50 -c -o $@ $<
+
+%.o_sp50w64avx: %.c $(HDR)
+	$(CC64) $(CFLAGS) -DHAVE_AVX -DSP_NUMB_BITS=50 -S -o x.S $<
+	sed 's/vmovaps/vmovups/' x.S > y.S
+	sed 's/vmovapd/vmovupd/' y.S > z.S
+	$(CC64) $(CFLAGS) -DHAVE_AVX -DSP_NUMB_BITS=50 -c -o $@ z.S
 

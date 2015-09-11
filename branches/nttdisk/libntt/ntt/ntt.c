@@ -9,6 +9,9 @@ X(ntt_master_group_list)[] =
 #ifdef HAVE_SSE2
   & MANGLE_SSE2(X(ntt_group_simd)),
 #endif
+#ifdef HAVE_AVX
+  & MANGLE_AVX(X(ntt_group_simd)),
+#endif
   & X(ntt_group),
 };
 

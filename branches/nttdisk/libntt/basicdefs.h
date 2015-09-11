@@ -53,9 +53,11 @@ typedef unsigned __int64 uint64_t;
 #define ATTRIBUTE_UNUSED
 #endif
 #define ATTRIBUTE_CONST __attribute__ ((const))
+#define ATTRIBUTE_ALWAYS_INLINE __attribute__ ((always_inline))
 #else
 #define ATTRIBUTE_UNUSED
 #define ATTRIBUTE_CONST
+#define ATTRIBUTE_ALWAYS_INLINE
 #endif
 
 #ifndef LIKELY

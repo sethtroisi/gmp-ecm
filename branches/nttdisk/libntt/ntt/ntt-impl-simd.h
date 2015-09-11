@@ -8,6 +8,8 @@
 #include "ntt-impl-sse2.h"
 #elif defined(HAVE_SSE42)
 #include "ntt-impl-sse42.h"
+#elif defined(HAVE_AVX)
+#include "ntt-impl-avx.h"
 #endif
 
 extern const nttconfig_t V(ntt2simd_config);

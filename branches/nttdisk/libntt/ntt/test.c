@@ -295,7 +295,7 @@ static void test3(mpzspm_t mpzspm)
 int X(test_main)(int argc, char **argv)
 {
   mpz_t x;
-  spv_size_t len = 1024*3*3*5*5*7*7;
+  uint32_t len = 1024*3*3*5*5*7*7;
   uint32_t bits = 300;
   mpzspm_t mpzspm;
 
@@ -307,7 +307,7 @@ int X(test_main)(int argc, char **argv)
 #endif
 
   mpz_mul_2exp(x, x, bits);
-  mpzspm = X(mpzspm_init)((sp_t)len, x);
+  mpzspm = X(mpzspm_init)(len, x);
 
   if (mpzspm == NULL)
     {
