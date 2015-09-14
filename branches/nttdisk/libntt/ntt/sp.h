@@ -102,10 +102,84 @@
 
 #endif
 
-/* for integer types, add GMP plumbing */
-#if SP_NUMB_BITS != 50
+#if SP_NUMB_BITS == 50
 
-/* types that longlong.h needs */
+  /* The floating point routines *require* IEEE 53-bit 
+     double precision, even on x86 processors that 
+     support higher precision */
+
+  #if defined(_MSC_VER)
+    #include <float.h>
+    typedef uint32_t fpu_precision_t;
+
+    static inline fpu_precision_t fpu_set_precision_ieee(void) 
+      {
+	fpu_precision_t old_prec = _control87(0, 0);
+	_control87(_PC_53, _MCW_PC);
+	return old_prec;
+      }
+
+    static inline void fpu_clear_precision(fpu_precision_t old_prec) 
+      {
+	_control87(old_prec, 0xffffffff);
+      }
+
+    static inline uint32_t fpu_precision_is_ieee(void) 
+      {
+	fpu_precision_t prec = _control87(0, 0);
+	return ((prec & _MCW_PC) == _PC_53) ? 1 : 0;
+      } 
+
+  #elif (defined(__GNUC__) || defined(__ICL)) && \
+	(defined(__i386__) || defined(__x86_64__))
+
+    #include <float.h>
+    typedef uint16_t fpu_precision_t;
+    
+    static inline fpu_precision_t fpu_set_precision_ieee(void) 
+      {
+	fpu_precision_t old_prec, new_prec;
+	asm volatile ("fnstcw %0":"=m"(old_prec));
+	new_prec = (old_prec & ~0x0300) | 0x0200;
+	asm volatile ("fldcw %0": :"m"(new_prec));
+	return old_prec;
+      }
+
+    static inline void fpu_clear_precision(fpu_precision_t old_prec) 
+      {
+	asm volatile ("fldcw %0": :"m"(old_prec));
+      }
+
+    static inline uint32_t fpu_precision_is_ieee(void) 
+      {
+	fpu_precision_t prec;
+	asm volatile ("fnstcw %0":"=m"(prec));
+	return ((prec & ~0x0300) == 0x0200) ? 1 : 0;
+      } 
+
+  #else
+    typedef uint32_t fpu_precision_t;
+    
+    static inline fpu_precision_t fpu_set_precision_ieee(void) 
+      {
+	return 0;
+      }
+
+    static inline void fpu_clear_precision(fpu_precision_t old_prec) 
+      {
+      }
+
+    static inline uint32_t fpu_precision_is_ieee(void) 
+      {
+	return 1;
+      } 
+  #endif
+
+#else
+
+  /* for integer types, add GMP plumbing */
+
+  /* types that longlong.h needs */
   typedef mp_limb_t UWtype;
   typedef unsigned int UHWtype;
   #if (defined(_PA_RISC1_1) && defined(__GNUC__))

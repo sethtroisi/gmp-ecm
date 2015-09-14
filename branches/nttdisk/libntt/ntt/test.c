@@ -75,7 +75,7 @@ static void test_core(sp_t p, sp_t d, sp_t primroot,
   X(spv_random)(x, len, p);
   
   X(ntt_build_passes)(data, plans, num_plans, len, p, primroot, order, d);
-
+#if 0
   bfntt(r, x, len, p, d, primroot, order);
 
   X(ntt_run)(x, p, data);
@@ -96,7 +96,7 @@ static void test_core(sp_t p, sp_t d, sp_t primroot,
     }
 
   fail = (m < len);
-
+#endif
   printf("%u ", len);
   for (m = 0; m < num_plans; m++)
     {
@@ -299,6 +299,12 @@ int X(test_main)(int argc, char **argv)
   uint32_t bits = 300;
   mpzspm_t mpzspm;
 
+#if SP_NUMB_BITS == 50
+  fpu_precision_t old_prec = 0;
+  if (!fpu_precision_is_ieee())
+    old_prec = fpu_set_precision_ieee();
+#endif
+
   mpz_init_set_ui(x, 1);
 
 #if 0
@@ -320,5 +326,11 @@ int X(test_main)(int argc, char **argv)
   test3(mpzspm);
 
   X(mpzspm_clear)(mpzspm);
+
+#if SP_NUMB_BITS == 50
+  if (old_prec != 0)
+    fpu_clear_precision(old_prec);
+#endif
+
   return 0;
 }
