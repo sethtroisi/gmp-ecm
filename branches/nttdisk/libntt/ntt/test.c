@@ -75,7 +75,7 @@ static void test_core(sp_t p, sp_t d, sp_t primroot,
   X(spv_random)(x, len, p);
   
   X(ntt_build_passes)(data, plans, num_plans, len, p, primroot, order, d);
-#if 0
+
   bfntt(r, x, len, p, d, primroot, order);
 
   X(ntt_run)(x, p, data);
@@ -96,7 +96,7 @@ static void test_core(sp_t p, sp_t d, sp_t primroot,
     }
 
   fail = (m < len);
-#endif
+
   printf("%u ", len);
   for (m = 0; m < num_plans; m++)
     {
