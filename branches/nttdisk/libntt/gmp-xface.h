@@ -26,7 +26,11 @@ MA 02110-1301, USA. */
 #include "basicdefs.h"
 #include <gmp.h>
 
-static inline void 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+static INLINE void 
 mpz_set_uint64 (mpz_t m, const uint64_t n)
 {
   if (sizeof(uint64_t) <= sizeof(unsigned long))
@@ -40,7 +44,7 @@ mpz_set_uint64 (mpz_t m, const uint64_t n)
     }
 }
 
-static inline uint64_t
+static INLINE uint64_t
 mpz_get_uint64 (mpz_t m)
 {
   uint64_t n;
@@ -62,7 +66,7 @@ mpz_get_uint64 (mpz_t m)
   return n;
 }
 
-static inline void 
+static INLINE void 
 mpz_set_int64 (mpz_t m, const int64_t n)
 {
   if (n < 0)
@@ -73,5 +77,9 @@ mpz_set_int64 (mpz_t m, const int64_t n)
   else
     mpz_set_uint64(m, n);
 }
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif /* _GMP_XFACE_H */

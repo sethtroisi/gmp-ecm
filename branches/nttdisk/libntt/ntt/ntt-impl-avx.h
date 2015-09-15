@@ -4,6 +4,10 @@
 #include "ntt-impl-scalar.h"
 #include <immintrin.h>
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #define HAVE_SIMD
 #define SP_SIMD_VSIZE (256 / SP_TYPE_BITS)
 
@@ -27,7 +31,7 @@
 
 typedef __m256d sp_simd_t;
 
-static inline sp_simd_t sp_simd_gather(spv_t x, spv_size_t dist,
+static INLINE sp_simd_t sp_simd_gather(spv_t x, spv_size_t dist,
     					spv_size_t vsize)
 {
   switch (vsize)
@@ -76,7 +80,7 @@ static inline sp_simd_t sp_simd_gather(spv_t x, spv_size_t dist,
     }
 }
 
-static inline sp_simd_t sp_simd_pfa_gather(spv_t x, spv_size_t start_off, 
+static INLINE sp_simd_t sp_simd_pfa_gather(spv_t x, spv_size_t start_off, 
 					spv_size_t inc, spv_size_t n,
 					spv_size_t vsize)
 {
@@ -133,7 +137,7 @@ static inline sp_simd_t sp_simd_pfa_gather(spv_t x, spv_size_t start_off,
     }
 }
 
-static inline void sp_simd_scatter(sp_simd_t t, spv_t x, spv_size_t dist,
+static INLINE void sp_simd_scatter(sp_simd_t t, spv_t x, spv_size_t dist,
     					spv_size_t vsize)
 {
   switch (vsize)
@@ -179,7 +183,7 @@ static inline void sp_simd_scatter(sp_simd_t t, spv_t x, spv_size_t dist,
     }
 }
 
-static inline void sp_simd_pfa_scatter(sp_simd_t t, spv_t x, 
+static INLINE void sp_simd_pfa_scatter(sp_simd_t t, spv_t x, 
     				spv_size_t start_off, 
 				spv_size_t inc, spv_size_t n,
 				spv_size_t vsize)
@@ -238,7 +242,7 @@ static inline void sp_simd_pfa_scatter(sp_simd_t t, spv_t x,
     }
 }
 
-static inline sp_simd_t sp_ntt_add_simd(sp_simd_t a, sp_simd_t b, sp_t p)
+static INLINE sp_simd_t sp_ntt_add_simd(sp_simd_t a, sp_simd_t b, sp_t p)
 {
   sp_simd_t vp = pbroadcast(p);
   sp_simd_t t0 = padd(a, b);
@@ -246,12 +250,12 @@ static inline sp_simd_t sp_ntt_add_simd(sp_simd_t a, sp_simd_t b, sp_t p)
   return pcmov(t1, t0, t1);
 }
 
-static inline sp_simd_t sp_ntt_add_partial_simd(sp_simd_t a, sp_simd_t b, sp_t p)
+static INLINE sp_simd_t sp_ntt_add_partial_simd(sp_simd_t a, sp_simd_t b, sp_t p)
 {
   return sp_ntt_add_simd(a, b, p);
 }
 
-static inline sp_simd_t sp_ntt_sub_simd(sp_simd_t a, sp_simd_t b, sp_t p)
+static INLINE sp_simd_t sp_ntt_sub_simd(sp_simd_t a, sp_simd_t b, sp_t p)
 {
   sp_simd_t vp = pbroadcast(p);
   sp_simd_t t0 = psub(a, b);
@@ -259,14 +263,14 @@ static inline sp_simd_t sp_ntt_sub_simd(sp_simd_t a, sp_simd_t b, sp_t p)
   return pcmov(t1, t0, t0);
 }
 
-static inline sp_simd_t sp_ntt_sub_partial_simd(sp_simd_t a, sp_simd_t b, sp_t p)
+static INLINE sp_simd_t sp_ntt_sub_partial_simd(sp_simd_t a, sp_simd_t b, sp_t p)
 {
   return sp_ntt_sub_simd(a, b, p);
 }
 
 
 ATTRIBUTE_ALWAYS_INLINE
-static inline sp_simd_t sp_ntt_mul_simd_core(
+static INLINE sp_simd_t sp_ntt_mul_simd_core(
 				sp_simd_t a, sp_simd_t w, sp_simd_t whi, 
 				sp_simd_t p, sp_simd_t vrecip)
 {
@@ -318,7 +322,7 @@ static inline sp_simd_t sp_ntt_mul_simd_core(
 }
 
 ATTRIBUTE_ALWAYS_INLINE
-static inline sp_simd_t sp_ntt_mul_simd(
+static INLINE sp_simd_t sp_ntt_mul_simd(
 				sp_simd_t a, sp_t w, sp_t whi, sp_t p)
 {
   return sp_ntt_mul_simd_core(a, pbroadcast(w),
@@ -332,11 +336,15 @@ static inline sp_simd_t sp_ntt_mul_simd(
    and concatenated */
 
 ATTRIBUTE_ALWAYS_INLINE
-static inline sp_simd_t sp_ntt_twiddle_mul_simd(sp_simd_t a, 
+static INLINE sp_simd_t sp_ntt_twiddle_mul_simd(sp_simd_t a, 
 					sp_simd_t *w, sp_t p)
 {
   return sp_ntt_mul_simd_core(a, pload(w), pload(w + 1),
       			pbroadcast(p), pbroadcast(1.0 / p));
 }
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif /* _NTT_IMPL_AVX_H */

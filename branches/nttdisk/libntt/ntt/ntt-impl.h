@@ -3,6 +3,10 @@
 
 #include "sp.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 /* low-level stuff for executing one set of transforms, where
    the transform size, prime size, and arithmetic are all specified */
 
@@ -152,5 +156,9 @@ void * X(ntt_init)(sp_t size, sp_t primroot, sp_t p, sp_t d);
 void X(ntt_free)(void *data);
 void X(ntt_reset)(void *data);
 void X(ntt_run)(spv_t x, sp_t p, void *data);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif /* _NTT_IMPL_H */

@@ -4,6 +4,10 @@
 #include "basicdefs.h"
 #include "gmp-xface.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 void * sp_aligned_malloc (size_t len);
 void sp_aligned_free (void *newptr);
 
@@ -23,5 +27,9 @@ DECLARE(30,64)
 DECLARE(62,64)
 #endif
 DECLARE(50,64)
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif /* _LIBNTT_H */

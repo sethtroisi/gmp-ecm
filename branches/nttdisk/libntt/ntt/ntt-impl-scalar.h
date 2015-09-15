@@ -3,7 +3,11 @@
 
 #include "ntt-impl.h"
 
-static inline sp_t sp_ntt_add(sp_t a, sp_t b, sp_t p)
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+static INLINE sp_t sp_ntt_add(sp_t a, sp_t b, sp_t p)
 {
 #ifdef HAVE_PARTIAL_MOD
   return sp_add(a, b, 2 * p);
@@ -12,7 +16,7 @@ static inline sp_t sp_ntt_add(sp_t a, sp_t b, sp_t p)
 #endif
 }
 
-static inline sp_t sp_ntt_add_partial(sp_t a, sp_t b, sp_t p)
+static INLINE sp_t sp_ntt_add_partial(sp_t a, sp_t b, sp_t p)
 {
 #ifdef HAVE_PARTIAL_MOD
   return a + b;
@@ -21,7 +25,7 @@ static inline sp_t sp_ntt_add_partial(sp_t a, sp_t b, sp_t p)
 #endif
 }
 
-static inline sp_t sp_ntt_sub(sp_t a, sp_t b, sp_t p)
+static INLINE sp_t sp_ntt_sub(sp_t a, sp_t b, sp_t p)
 {
 #ifdef HAVE_PARTIAL_MOD
   return sp_sub(a, b, 2 * p);
@@ -30,7 +34,7 @@ static inline sp_t sp_ntt_sub(sp_t a, sp_t b, sp_t p)
 #endif
 }
 
-static inline sp_t sp_ntt_sub_partial(sp_t a, sp_t b, sp_t p)
+static INLINE sp_t sp_ntt_sub_partial(sp_t a, sp_t b, sp_t p)
 {
 #ifdef HAVE_PARTIAL_MOD
   return a - b + 2 * p;
@@ -45,7 +49,7 @@ static inline sp_t sp_ntt_sub_partial(sp_t a, sp_t b, sp_t p)
 
 #if SP_NUMB_BITS == 50 /* floating point operands */
 
-static inline sp_t sp_ntt_mul(sp_t x, sp_t w, sp_t whi, sp_t p)
+static INLINE sp_t sp_ntt_mul(sp_t x, sp_t w, sp_t whi, sp_t p)
 {
   sp_t recip = 1.0 / p;  /* common subexpression */
 
@@ -65,7 +69,7 @@ static inline sp_t sp_ntt_mul(sp_t x, sp_t w, sp_t whi, sp_t p)
 
 /* low half multiply */
 
-static inline sp_t sp_mul_lo(sp_t a, sp_t b)
+static INLINE sp_t sp_mul_lo(sp_t a, sp_t b)
 {
 #if SP_TYPE_BITS <= GMP_LIMB_BITS
 
@@ -88,7 +92,7 @@ static inline sp_t sp_mul_lo(sp_t a, sp_t b)
 
 /* high half multiply */
 
-static inline sp_t sp_mul_hi(sp_t a, sp_t b)
+static INLINE sp_t sp_mul_hi(sp_t a, sp_t b)
 {
 #if SP_TYPE_BITS == GMP_LIMB_BITS  /* use GMP functions */
 
@@ -141,7 +145,7 @@ static inline sp_t sp_mul_hi(sp_t a, sp_t b)
 #endif
 }
 
-static inline sp_t sp_ntt_mul(sp_t x, sp_t w, sp_t w_inv, sp_t p)
+static INLINE sp_t sp_ntt_mul(sp_t x, sp_t w, sp_t w_inv, sp_t p)
 {
   sp_t q = sp_mul_hi(x, w_inv);
   sp_t r = x * w - q * p;
@@ -166,5 +170,9 @@ extern const nttconfig_t X(ntt15_config);
 extern const nttconfig_t X(ntt16_config);
 extern const nttconfig_t X(ntt35_config);
 extern const nttconfig_t X(ntt40_config);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif /* _NTT_IMPL_SCALAR_H */

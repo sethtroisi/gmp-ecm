@@ -4,6 +4,10 @@
 #include <math.h>
 #include "libntt.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 /* Basic defs for the data types used in Number Theoretic Transforms
 
    The choice of basic data type has to balance computational
@@ -112,19 +116,19 @@
     #include <float.h>
     typedef uint32_t fpu_precision_t;
 
-    static inline fpu_precision_t fpu_set_precision_ieee(void) 
+    static INLINE fpu_precision_t fpu_set_precision_ieee(void) 
       {
 	fpu_precision_t old_prec = _control87(0, 0);
 	_control87(_PC_53, _MCW_PC);
 	return old_prec;
       }
 
-    static inline void fpu_clear_precision(fpu_precision_t old_prec) 
+    static INLINE void fpu_clear_precision(fpu_precision_t old_prec) 
       {
 	_control87(old_prec, 0xffffffff);
       }
 
-    static inline uint32_t fpu_precision_is_ieee(void) 
+    static INLINE uint32_t fpu_precision_is_ieee(void) 
       {
 	fpu_precision_t prec = _control87(0, 0);
 	return ((prec & _MCW_PC) == _PC_53) ? 1 : 0;
@@ -136,7 +140,7 @@
     #include <float.h>
     typedef uint16_t fpu_precision_t;
     
-    static inline fpu_precision_t fpu_set_precision_ieee(void) 
+    static INLINE fpu_precision_t fpu_set_precision_ieee(void) 
       {
 	fpu_precision_t old_prec, new_prec;
 	asm volatile ("fnstcw %0":"=m"(old_prec));
@@ -145,12 +149,12 @@
 	return old_prec;
       }
 
-    static inline void fpu_clear_precision(fpu_precision_t old_prec) 
+    static INLINE void fpu_clear_precision(fpu_precision_t old_prec) 
       {
 	asm volatile ("fldcw %0": :"m"(old_prec));
       }
 
-    static inline uint32_t fpu_precision_is_ieee(void) 
+    static INLINE uint32_t fpu_precision_is_ieee(void) 
       {
 	fpu_precision_t prec;
 	asm volatile ("fnstcw %0":"=m"(prec));
@@ -160,16 +164,16 @@
   #else
     typedef uint32_t fpu_precision_t;
     
-    static inline fpu_precision_t fpu_set_precision_ieee(void) 
+    static INLINE fpu_precision_t fpu_set_precision_ieee(void) 
       {
 	return 0;
       }
 
-    static inline void fpu_clear_precision(fpu_precision_t old_prec) 
+    static INLINE void fpu_clear_precision(fpu_precision_t old_prec) 
       {
       }
 
-    static inline uint32_t fpu_precision_is_ieee(void) 
+    static INLINE uint32_t fpu_precision_is_ieee(void) 
       {
 	return 1;
       } 
@@ -279,7 +283,7 @@ typedef __mpzspm_struct * mpzspm_t;
    portable as those take unsigned long's, but on some systems 
    (e.g. 64 bit Windows with Visual C), unsigned long has 32 bits */
 
-static inline void 
+static INLINE void 
 mpz_set_sp (mpz_t m, const sp_t n)
 {
 #if SP_TYPE_BITS == 32
@@ -291,7 +295,7 @@ mpz_set_sp (mpz_t m, const sp_t n)
 #endif
 }
 
-static inline sp_t 
+static INLINE sp_t 
 mpz_get_sp (const mpz_t n)
 {
 #if SP_TYPE_BITS == 32
@@ -327,7 +331,7 @@ sp_t X(sp_reciprocal)(sp_t p);
  *                                     'm' if we also allow composites. */
 
 
-static inline sp_t sp_sub(sp_t a, sp_t b, sp_t m) 
+static INLINE sp_t sp_sub(sp_t a, sp_t b, sp_t m) 
 {
 #if (defined(__GNUC__) || defined(__ICL)) && \
     (defined(__x86_64__) || defined(__i386__)) && \
@@ -391,7 +395,7 @@ static inline sp_t sp_sub(sp_t a, sp_t b, sp_t m)
 #endif
 }
 
-static inline sp_t sp_add(sp_t a, sp_t b, sp_t m) 
+static INLINE sp_t sp_add(sp_t a, sp_t b, sp_t m) 
 {
 #if (defined(__GNUC__) || defined(__ICL)) && \
     (defined(__x86_64__) || defined(__i386__)) && \
@@ -460,7 +464,7 @@ static inline sp_t sp_add(sp_t a, sp_t b, sp_t m)
    are always size_t types, and may have a size different 
    from an sp_t */
 
-static inline spv_size_t sp_array_inc(spv_size_t a, spv_size_t b, spv_size_t m) 
+static INLINE spv_size_t sp_array_inc(spv_size_t a, spv_size_t b, spv_size_t m) 
 {
 #if (defined(__GNUC__) || defined(__ICL)) && \
     (defined(__x86_64__) || defined(__i386__))
@@ -622,7 +626,7 @@ static inline spv_size_t sp_array_inc(spv_size_t a, spv_size_t b, spv_size_t m)
 
 #if SP_NUMB_BITS == 50
 
-static inline sp_t sp_udiv_rem(sp_t nhi, sp_t nlo, sp_t d, sp_t di)
+static INLINE sp_t sp_udiv_rem(sp_t nhi, sp_t nlo, sp_t d, sp_t di)
 {
   sp_t r, r2, q, qhi, qlo;
   ATTRIBUTE_UNUSED sp_t tmp;
@@ -653,7 +657,7 @@ static inline sp_t sp_udiv_rem(sp_t nhi, sp_t nlo, sp_t d, sp_t di)
      * initial remainder fits in a word and also that at
      * most one correction is necessary */
 
-static inline sp_t sp_udiv_rem(sp_t nh, sp_t nl, sp_t d, sp_t di)
+static INLINE sp_t sp_udiv_rem(sp_t nh, sp_t nl, sp_t d, sp_t di)
 {
   sp_t r, q1, q2;
   ATTRIBUTE_UNUSED sp_t tmp;
@@ -667,7 +671,7 @@ static inline sp_t sp_udiv_rem(sp_t nh, sp_t nl, sp_t d, sp_t di)
 
 #else                       /* big integer modulus; no shortcuts allowed */
 
-static inline sp_t sp_udiv_rem(sp_t nh, sp_t nl, sp_t d, sp_t di)
+static INLINE sp_t sp_udiv_rem(sp_t nh, sp_t nl, sp_t d, sp_t di)
 {
   sp_t q1, q2, dqh, dql;
   ATTRIBUTE_UNUSED sp_t tmp;
@@ -696,7 +700,7 @@ static inline sp_t sp_udiv_rem(sp_t nh, sp_t nl, sp_t d, sp_t di)
 #endif
 
 /* x*y mod m */
-static inline sp_t
+static INLINE sp_t
 sp_mul (sp_t x, sp_t y, sp_t m, sp_t d)
 {
   sp_t u, v;
@@ -705,7 +709,7 @@ sp_mul (sp_t x, sp_t y, sp_t m, sp_t d)
 }
 
 /* x*y mod m */
-static inline sp_t
+static INLINE sp_t
 sp_sqr (sp_t x, sp_t m, sp_t d)
 {
   sp_t u, v;
@@ -717,7 +721,7 @@ sp_sqr (sp_t x, sp_t m, sp_t d)
 
 /* Returns x^a % m, uses a right-to-left powering ladder */
 
-static inline sp_t
+static INLINE sp_t
 sp_pow (sp_t x, sp_t e, sp_t m, sp_t d)
 {
   sp_t partial = 1;
@@ -750,5 +754,9 @@ void X(spm_clear)(spm_t);
 /* spv */
 
 void X(spv_random)(spv_t, spv_size_t, sp_t);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif /* _SP_H */

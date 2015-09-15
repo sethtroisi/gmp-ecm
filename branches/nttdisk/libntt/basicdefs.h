@@ -26,6 +26,10 @@
 #include <limits.h>
 #include <sys/types.h> /* needed for size_t */
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 /* name some types whose bit widths are unambiguous */
 
 #if defined(_MSC_VER)
@@ -102,6 +106,20 @@ typedef unsigned __int64 uint64_t;
 #else
   char *alloca ();
 #endif
+#endif
+
+#ifndef INLINE
+#if defined(__GNUC__)
+#define INLINE inline
+#elif defined(_MSC_VER)
+#define INLINE _inline
+#else
+#define INLINE /* nothing */
+#endif
+#endif
+
+#ifdef __cplusplus
+}
 #endif
 
 

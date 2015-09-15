@@ -4,6 +4,10 @@
 #include "ntt-impl-scalar.h"
 #include <immintrin.h>
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #define HAVE_SIMD
 #define SP_SIMD_VSIZE (128 / SP_TYPE_BITS)
 
@@ -54,7 +58,7 @@
 typedef __m128i sp_simd_t;
 
 
-static inline sp_simd_t sp_simd_gather(spv_t x, spv_size_t dist,
+static INLINE sp_simd_t sp_simd_gather(spv_t x, spv_size_t dist,
     					spv_size_t vsize)
 {
 #if SP_TYPE_BITS == 32
@@ -112,7 +116,7 @@ static inline sp_simd_t sp_simd_gather(spv_t x, spv_size_t dist,
 #endif
 }
 
-static inline sp_simd_t sp_simd_pfa_gather(spv_t x, spv_size_t start_off, 
+static INLINE sp_simd_t sp_simd_pfa_gather(spv_t x, spv_size_t start_off, 
 					spv_size_t inc, spv_size_t n,
 					spv_size_t vsize)
 {
@@ -184,7 +188,7 @@ static inline sp_simd_t sp_simd_pfa_gather(spv_t x, spv_size_t start_off,
 #endif
 }
 
-static inline void sp_simd_scatter(sp_simd_t t, spv_t x, spv_size_t dist,
+static INLINE void sp_simd_scatter(sp_simd_t t, spv_t x, spv_size_t dist,
     					spv_size_t vsize)
 {
 #if SP_TYPE_BITS == 32
@@ -246,7 +250,7 @@ static inline void sp_simd_scatter(sp_simd_t t, spv_t x, spv_size_t dist,
 #endif
 }
 
-static inline void sp_simd_pfa_scatter(sp_simd_t t, spv_t x, 
+static INLINE void sp_simd_pfa_scatter(sp_simd_t t, spv_t x, 
     				spv_size_t start_off, 
 				spv_size_t inc, spv_size_t n,
 				spv_size_t vsize)
@@ -324,7 +328,7 @@ static inline void sp_simd_pfa_scatter(sp_simd_t t, spv_t x,
 #endif
 }
 
-static inline sp_simd_t sp_ntt_add_simd(sp_simd_t a, sp_simd_t b, sp_t p)
+static INLINE sp_simd_t sp_ntt_add_simd(sp_simd_t a, sp_simd_t b, sp_t p)
 {
   sp_simd_t vp, t0, t1;
 
@@ -349,7 +353,7 @@ static inline sp_simd_t sp_ntt_add_simd(sp_simd_t a, sp_simd_t b, sp_t p)
 #endif
 }
 
-static inline sp_simd_t sp_ntt_add_partial_simd(sp_simd_t a, sp_simd_t b, sp_t p)
+static INLINE sp_simd_t sp_ntt_add_partial_simd(sp_simd_t a, sp_simd_t b, sp_t p)
 {
 #ifdef HAVE_PARTIAL_MOD
 
@@ -366,7 +370,7 @@ static inline sp_simd_t sp_ntt_add_partial_simd(sp_simd_t a, sp_simd_t b, sp_t p
 #endif
 }
 
-static inline sp_simd_t sp_ntt_sub_simd(sp_simd_t a, sp_simd_t b, sp_t p)
+static INLINE sp_simd_t sp_ntt_sub_simd(sp_simd_t a, sp_simd_t b, sp_t p)
 {
   sp_simd_t vp, t0, t1;
 
@@ -390,7 +394,7 @@ static inline sp_simd_t sp_ntt_sub_simd(sp_simd_t a, sp_simd_t b, sp_t p)
 #endif
 }
 
-static inline sp_simd_t sp_ntt_sub_partial_simd(sp_simd_t a, sp_simd_t b, sp_t p)
+static INLINE sp_simd_t sp_ntt_sub_partial_simd(sp_simd_t a, sp_simd_t b, sp_t p)
 {
 #ifdef HAVE_PARTIAL_MOD
 
@@ -417,7 +421,7 @@ static inline sp_simd_t sp_ntt_sub_partial_simd(sp_simd_t a, sp_simd_t b, sp_t p
 
 
 ATTRIBUTE_ALWAYS_INLINE
-static inline sp_simd_t sp_ntt_mul_simd(
+static INLINE sp_simd_t sp_ntt_mul_simd(
 				sp_simd_t a, sp_t w, sp_t w_inv, sp_t p)
 {
 #if SP_TYPE_BITS == 32
@@ -525,7 +529,7 @@ static inline sp_simd_t sp_ntt_mul_simd(
    and concatenated */
 
 ATTRIBUTE_ALWAYS_INLINE
-static inline sp_simd_t sp_ntt_twiddle_mul_simd(sp_simd_t a, 
+static INLINE sp_simd_t sp_ntt_twiddle_mul_simd(sp_simd_t a, 
 					sp_simd_t *w, sp_t p)
 {
 #if SP_TYPE_BITS == 32
@@ -627,5 +631,9 @@ static inline sp_simd_t sp_ntt_twiddle_mul_simd(sp_simd_t a,
 
 #endif
 }
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif /* _NTT_IMPL_SSE42_H */
