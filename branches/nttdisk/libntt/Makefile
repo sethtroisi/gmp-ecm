@@ -122,10 +122,7 @@ clean:
 	$(CC32) $(CFLAGS) -DHAVE_AVX -DSP_NUMB_BITS=50 -c -o $@ $<
 
 %.o_sp50w32avx: %.c $(HDR)
-	$(CC32) $(CFLAGS) -DHAVE_AVX -DSP_NUMB_BITS=50 -S -o x.S $<
-	sed 's/vmovaps/vmovups/' x.S > y.S
-	sed 's/vmovapd/vmovupd/' y.S > z.S
-	$(CC32) $(CFLAGS) -DHAVE_AVX -DSP_NUMB_BITS=50 -c -o $@ z.S
+	$(CC32) $(CFLAGS) -DHAVE_AVX -DSP_NUMB_BITS=50 -c -o $@ $<
 
 
 %.o_w64: %.c $(HDR)
