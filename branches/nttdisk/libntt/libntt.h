@@ -8,6 +8,13 @@
 extern "C" {
 #endif
 
+/* helper data for primality tests */
+
+extern const uint8_t sprp32_lookup[]; 
+extern const uint16_t sprp64_lookup[]; 
+
+/* wrapper for aligned memory */
+
 void * sp_aligned_malloc (size_t len);
 void sp_aligned_free (void *newptr);
 

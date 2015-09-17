@@ -47,13 +47,13 @@ X(mpzspm_init)(uint32_t max_len_in, mpz_t modulus)
   mpz_init (mp);
   mpz_init_set_ui (P, 1UL);
   /* sum of primes selected so far */
-  mpz_init (S);
+  mpz_init_set_ui (S, 0UL);
   /* T is len*modulus^2, the upper bound on output coefficients of a 
      convolution */
   mpz_init (mt);
   mpz_init (T); 
   mpz_mul (T, modulus, modulus);
-  mpz_set_ui (mp, max_len);
+  mpz_set_ui (mt, max_len);
   mpz_mul (T, T, mt);
   
   /* find primes congruent to 1 mod max_len so we can do

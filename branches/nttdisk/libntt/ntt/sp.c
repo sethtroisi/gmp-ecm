@@ -87,24 +87,20 @@ X(sp_prime)(sp_t x)
   
   d = X(sp_reciprocal)(x);
   
+  /* see http://mersenneforum.org/showthread.php?t=12209 */
+
 #if SP_NUMB_BITS <= 32
-  /* 32-bit primality test
-   * See http://primes.utm.edu/prove/prove2_3.html */
-  
-  if (!sp_spp (2, x, d) || !sp_spp (7, x, d) || !sp_spp (61, x, d))
+
+  if (!sp_spp (sprp32_lookup[((uint32_t)x * 0x3AC69A35) >> 22], x, d))
     return 0;
 
 #else
 
-  ASSERT (SP_NUMB_BITS <= 64);
-  /* 64-bit primality test
-   * follows from results by Jaeschke, "On strong pseudoprimes to several
-   * bases" Math. Comp. 61 (1993) p916 */
-  
-  if (!sp_spp (2, x, d) || !sp_spp (3, x, d) || !sp_spp (5, x, d)
-    || !sp_spp (7, x, d) || !sp_spp (11, x, d) || !sp_spp (13, x, d)
-    || !sp_spp (17, x, d) || ! sp_spp (19, x, d) || !sp_spp (23, x, d)
-    || !sp_spp (29, x, d))
+  if (!sp_spp (2, x, d) || 
+      !sp_spp (325, x, d) || 
+      !sp_spp (9375, x, d) ||
+      !sp_spp (sprp64_lookup[(((uint64_t)x * 
+                     3141592653589793239ULL) >> 42) & 0x7ff], x, d))
       return 0;
 #endif 
 
