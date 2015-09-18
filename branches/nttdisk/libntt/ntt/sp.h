@@ -229,50 +229,6 @@ typedef const sp_t * spv_tc;
 /* the type used for array offsets */
 typedef size_t spv_size_t;
 
-/* SPM */
-
-/* small prime modulus - this contains some precomputed constants to
- * calculate modulo a sp */
-typedef struct
-{
-  sp_t sp;		/* value of the sp */
-  sp_t mul_c;		/* constant used for reduction mod sp */
-  sp_t primroot;
-  sp_t inv_primroot;
-
-#if SP_TYPE_BITS > GMP_LIMB_BITS
-  mpz_t mp_sp;
-#endif
-
-  void *ntt_data;       /* opaque state for forward NTTs */
-  void *intt_data;      /* opaque state for inverse NTTs */
-} __spm_struct;
-
-typedef __spm_struct * spm_t;
-
-/* MPZSPM */
-
-typedef mpz_t * mpzv_t;
-
-typedef struct
-  {
-    /* number of small primes needed to represent each coeff. Since
-       the maximum NTT size is always a factor of every NTT prime,
-       we make the max size an sp_t to allow 64-bit sp_t a runlength
-       that exceeds 2^32 */
-    uint32_t sp_num;
-
-    spm_t * spm;
-
-    sp_t ntt_size;
-    
-    mpz_t modulus;
-  } __mpzspm_struct;
-
-typedef __mpzspm_struct * mpzspm_t;
-
-/* MPZSPV */
-
 /*************
  * FUNCTIONS *
  *************/
@@ -745,11 +701,6 @@ sp_pow (sp_t x, sp_t e, sp_t m, sp_t d)
 #define sp_inv(x,p,d) sp_pow (x, (p) - 2, p, d)
 
 int X(sp_prime)(sp_t);
-
-/* spm */
-
-spm_t X(spm_init)(sp_t, sp_t);
-void X(spm_clear)(spm_t);
 
 /* spv */
 

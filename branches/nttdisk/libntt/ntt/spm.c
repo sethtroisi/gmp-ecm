@@ -1,4 +1,4 @@
-#include "sp.h"
+#include "ntt-impl.h"
 
 /* Returns the exponent of $q$ in the factorisation of $n$ */
 static uint32_t
@@ -24,7 +24,7 @@ ordpow (const sp_t q, sp_t a, const sp_t sp, const sp_t mul_c)
 /* Compute some constants, including a primitive n'th root of unity. 
    Returns NULL in case of error. */
 spm_t
-X(spm_init) (sp_t n, sp_t sp)
+X(spm_init) (uint32_t n, sp_t sp)
 {
   uint64_t a, b, inv_b, bd, sc, q, nc;
   spm_t spm = (spm_t) malloc (sizeof (__spm_struct));
@@ -35,11 +35,6 @@ X(spm_init) (sp_t n, sp_t sp)
 
   spm->sp = sp;
   spm->mul_c = X(sp_reciprocal)(sp);
-
-#if SP_TYPE_BITS > GMP_LIMB_BITS
-  mpz_init(spm->mp_sp);
-  mpz_set_sp(spm->mp_sp, sp);
-#endif
 
   /* find an $n$-th primitive root $a$ of unity $(mod sp)$. */
 
@@ -104,22 +99,12 @@ X(spm_init) (sp_t n, sp_t sp)
   
   spm->primroot = sp_pow (b, sc, sp, spm->mul_c);
   spm->inv_primroot = sp_inv (spm->primroot, sp, spm->mul_c);
-
-  /* initialize forward and inverse NTTs whose sizes divide n */
-  spm->ntt_data = X(ntt_init) (n, spm->primroot, sp, spm->mul_c);
-  spm->intt_data = X(ntt_init) (n, spm->inv_primroot, sp, spm->mul_c);
-
   return spm;
 }
 
 void
 X(spm_clear) (spm_t spm)
 {
-#if SP_TYPE_BITS > GMP_LIMB_BITS
-  mpz_clear (spm->mp_sp);
-#endif
-  X(ntt_free) (spm->ntt_data);
-  X(ntt_free) (spm->intt_data);
   free (spm);
 }
 

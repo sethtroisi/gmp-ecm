@@ -51,6 +51,7 @@ NTT_SIMD_SRC = \
 	ntt/ntt-simd.c
 
 LIB_SRC = \
+	libntt.c \
 	util.c
 
 OBJ_W32 = $(LIB_SRC:.c=.o_w32) \

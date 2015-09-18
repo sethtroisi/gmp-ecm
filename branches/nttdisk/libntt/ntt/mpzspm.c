@@ -1,19 +1,31 @@
-#include <math.h>
-#include "sp.h"
+#include "ntt-impl.h"
 
-/* This function initializes a mpzspm_t structure which contains the number
-   of small primes, the small primes with associated primitive roots and 
-   precomputed data for the CRT to allow convolution products of length up 
-   to "max_len" with modulus "modulus". 
-   Returns NULL in case of an error. */
-
-void *
-X(mpzspm_init)(uint32_t max_len_in, mpz_t modulus)
+static void 
+mpzspm_clear(void * m)
 {
-  uint32_t ub, i, j;
-  uint32_t max_len = max_len_in;
+  mpzspm_t mpzspm = (mpzspm_t)m;
+  uint32_t i;
+
+  if (mpzspm == NULL)
+    return;
+
+  for (i = 0; i < mpzspm->sp_num; i++)
+    {
+      X(spm_clear)(mpzspm->spm[i]);
+    }
+
+  free (mpzspm->spm);
+  free (mpzspm);
+}
+
+static void *
+mpzspm_init(uint32_t max_len, mpz_t modulus,
+        	mpz_t P, mpz_t S, uint32_t *done)
+{
+  uint32_t i;
+  uint32_t max_spm;
   sp_t a, p;
-  mpz_t P, S, T, mp, mt;
+  mpz_t T, mp, mt;
   mpzspm_t mpzspm;
 
   mpzspm = (mpzspm_t) calloc (1, sizeof (__mpzspm_struct));
@@ -35,27 +47,16 @@ X(mpzspm_init)(uint32_t max_len_in, mpz_t modulus)
    * 
    * So we need at most ub primes to satisfy this condition. */
   
-  ub = (2 + 2 * mpz_sizeinbase (modulus, 2) + 
-	ceil(log((double)(max_len)) / M_LN2) +
-      4 * SP_NUMB_BITS) / (SP_NUMB_BITS - 1);
-  
-  mpzspm->spm = (spm_t *) malloc (ub * sizeof (spm_t));
-  if (mpzspm->spm == NULL)
-    goto clear_mpzspm;
-
-  /* product of primes selected so far */
   mpz_init (mp);
-  mpz_init_set_ui (P, 1UL);
-  /* sum of primes selected so far */
-  mpz_init_set_ui (S, 0UL);
-  /* T is len*modulus^2, the upper bound on output coefficients of a 
-     convolution */
   mpz_init (mt);
   mpz_init (T); 
-  mpz_mul (T, modulus, modulus);
-  mpz_set_ui (mt, max_len);
-  mpz_mul (T, T, mt);
-  
+
+  max_spm = 10;
+  mpzspm->sp_num = 0;
+  mpzspm->spm = (spm_t *) malloc (max_spm * sizeof (spm_t));
+  if (mpzspm->spm == NULL)
+    goto cleanup;
+
   /* find primes congruent to 1 mod max_len so we can do
    * a ntt of size max_len */
   /* Find the largest p <= SP_MAX that is p == 1 (mod max_len) */
@@ -72,15 +73,25 @@ X(mpzspm_init)(uint32_t max_len_in, mpz_t modulus)
 
       /* all primes must be in range */
       if (p < SP_MIN || p <= max_len)
-        {
-	  goto clear_mpzspm;
-	}
+	break;
       
+      /* add this p */
+
+      if (mpzspm->sp_num == max_spm)
+	{
+	  spm_t *tmp;
+
+	  max_spm *= 2;
+	  tmp = (spm_t *)realloc(mpzspm->spm, max_spm * sizeof(spm_t));
+	  if (tmp == NULL)
+	    break;
+
+	  mpzspm->spm = tmp;
+	}
+
       mpzspm->spm[mpzspm->sp_num] = X(spm_init)(max_len, p);
       if (mpzspm->spm[mpzspm->sp_num] == NULL)
-        {
-          goto clear_mpzspm;
-        }
+    	break;
       mpzspm->sp_num++;
       
       mpz_set_sp (mp, p);
@@ -98,35 +109,24 @@ X(mpzspm_init)(uint32_t max_len_in, mpz_t modulus)
     }
   while (mpz_cmp (P, T) <= 0);
 
-  mpz_init_set (mpzspm->modulus, modulus);
-  
+cleanup:
   mpz_clear (mp);
   mpz_clear (mt);
-  mpz_clear (P);
-  mpz_clear (S);
   mpz_clear (T);
+  if (mpzspm->sp_num > 0)
+    {
+      if (mpz_cmp(P, T) > 0)
+	*done = 1;
+      return mpzspm;
+    }
 
-  return mpzspm;
-
-clear_mpzspm:
-  X(mpzspm_clear)(mpzspm);
+  mpzspm_clear(mpzspm);
   return NULL;
 }
 
-void X(mpzspm_clear)(void * m)
-{
-  mpzspm_t mpzspm = (mpzspm_t)m;
-  unsigned int i;
-
-  if (mpzspm == NULL)
-    return;
-
-  for (i = 0; i < mpzspm->sp_num; i++)
-    {
-	X(spm_clear)(mpzspm->spm[i]);
-    }
-
-  mpz_clear (mpzspm->modulus);
-  free (mpzspm->spm);
-  free (mpzspm);
-}
+const __nttinit_struct
+X(nttinit) = {
+  SP_NUMB_BITS,
+  mpzspm_init,
+  mpzspm_clear
+};

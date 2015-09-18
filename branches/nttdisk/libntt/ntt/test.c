@@ -134,7 +134,7 @@ static void test_core(sp_t p, sp_t d, sp_t primroot,
 }
 
 /*------------------------------------------------------------------*/
-static void test1(mpzspm_t mpzspm)
+static void test1(mpzspm_t mpzspm, uint32_t order)
 {
   uint32_t i, j;
   uint32_t num_groups = X(ntt_master_group_list_size);
@@ -142,8 +142,7 @@ static void test1(mpzspm_t mpzspm)
   sp_t p = mpzspm->spm[0]->sp;
   sp_t d = mpzspm->spm[0]->mul_c;
   sp_t primroot = mpzspm->spm[0]->primroot;
-  uint32_t order = mpzspm->ntt_size;
-  nttdata_t *nttdata = (nttdata_t *)mpzspm->spm[0]->ntt_data;
+  nttdata_t *nttdata = &mpzspm->spm[0]->ntt_data;
   nttplan_t plans[1];
 
   for (i = 0; i < num_groups; i++)
@@ -164,7 +163,7 @@ static void test1(mpzspm_t mpzspm)
 }
 
 /*------------------------------------------------------------------*/
-static void test2(mpzspm_t mpzspm)
+static void test2(mpzspm_t mpzspm, uint32_t order)
 {
   uint32_t i, j, k, m;
   uint32_t num_groups = X(ntt_master_group_list_size);
@@ -172,8 +171,7 @@ static void test2(mpzspm_t mpzspm)
   sp_t p = mpzspm->spm[0]->sp;
   sp_t d = mpzspm->spm[0]->mul_c;
   sp_t primroot = mpzspm->spm[0]->primroot;
-  uint32_t order = mpzspm->ntt_size;
-  nttdata_t *nttdata = (nttdata_t *)mpzspm->spm[0]->ntt_data;
+  nttdata_t *nttdata = &mpzspm->spm[0]->ntt_data;
   nttplan_t plans[3];
 
   /* transform pairs */
@@ -220,7 +218,7 @@ static void test2(mpzspm_t mpzspm)
 }
 
 /*------------------------------------------------------------------*/
-static void test3(mpzspm_t mpzspm)
+static void test3(mpzspm_t mpzspm, uint32_t order)
 {
   uint32_t i, j, k, m, n, q;
   uint32_t num_groups = X(ntt_master_group_list_size);
@@ -228,8 +226,7 @@ static void test3(mpzspm_t mpzspm)
   sp_t p = mpzspm->spm[0]->sp;
   sp_t d = mpzspm->spm[0]->mul_c;
   sp_t primroot = mpzspm->spm[0]->primroot;
-  uint32_t order = mpzspm->ntt_size;
-  nttdata_t *nttdata = (nttdata_t *)mpzspm->spm[0]->ntt_data;
+  nttdata_t *nttdata = &mpzspm->spm[0]->ntt_data;
   nttplan_t plans[3];
 
   /* transform triplets */
@@ -294,9 +291,10 @@ static void test3(mpzspm_t mpzspm)
 /*------------------------------------------------------------------*/
 int X(test_main)(int argc, char **argv)
 {
-  mpz_t x;
+  mpz_t x, P, S;
   uint32_t len = 1024*3*3*5*5*7*7;
   uint32_t bits = 300;
+  uint32_t done = 0;
   mpzspm_t mpzspm;
 
 #if SP_NUMB_BITS == 50
@@ -306,31 +304,31 @@ int X(test_main)(int argc, char **argv)
 #endif
 
   mpz_init_set_ui(x, 1);
-
-#if 0
-  bits = atol(argv[1]);
-  len = atol(argv[2]);
-#endif
+  mpz_init_set_ui(P, 1);
+  mpz_init_set_ui(S, 0);
 
   mpz_mul_2exp(x, x, bits);
-  mpzspm = X(mpzspm_init)(len, x);
+  mpzspm = X(nttinit).mpzspm_init(len, x, P, S, &done);
 
-  if (mpzspm == NULL)
+  if (mpzspm == NULL || !done)
     {
       printf("crap\n");
       return 0;
     }
 
-  test1(mpzspm);
-  test2(mpzspm);
-  test3(mpzspm);
+  test1(mpzspm, len);
+  test2(mpzspm, len);
+  test3(mpzspm, len);
 
-  X(mpzspm_clear)(mpzspm);
+  X(nttinit).mpzspm_clear(mpzspm);
 
 #if SP_NUMB_BITS == 50
   if (old_prec != 0)
     fpu_clear_precision(old_prec);
 #endif
 
+  mpz_clear(x);
+  mpz_clear(P);
+  mpz_clear(S);
   return 0;
 }

@@ -128,6 +128,35 @@ typedef struct
   nttpass_t passes[MAX_PASSES];
 } nttdata_t;
 
+/* SPM */
+
+/* small prime modulus - this contains some precomputed constants to
+ * calculate modulo a sp */
+typedef struct
+{
+  sp_t sp;		/* value of the sp */
+  sp_t mul_c;		/* constant used for reduction mod sp */
+  sp_t primroot;
+  sp_t inv_primroot;
+
+  nttdata_t ntt_data;
+} __spm_struct;
+
+typedef __spm_struct * spm_t;
+
+spm_t X(spm_init)(uint32_t, sp_t);
+void X(spm_clear)(spm_t);
+
+/* MPZSPM */
+
+typedef struct
+{
+  uint32_t sp_num;
+  spm_t * spm;
+} __mpzspm_struct;
+
+typedef __mpzspm_struct * mpzspm_t;
+
 /* guides for constructing transforms */
 typedef struct
 {
