@@ -24,7 +24,7 @@ define(`INVM_PARAM',`72(%rsp)')dnl'
 define(`INVM_PARAM',`%r8')dnl'
 )dnl'
 	TEXT
-.align 64 # Opteron L1 code cache line is 64 bytes long
+.p2align 6 # Opteron L1 code cache line is 64 bytes long
 	GLOBL GSYM_PREFIX``''mulredc1_`'LENGTH
 	TYPE(GSYM_PREFIX``''mulredc1_``''LENGTH,``function'')
 
