@@ -30,7 +30,7 @@ divert
 `include(`config.m4')'
 
 	TEXT
-.align 64 # Opteron L1 code cache line is 64 bytes long
+.p2align 6 # Opteron L1 code cache line is 64 bytes long
 	GLOBL GSYM_PREFIX``''mulredc`'LENGTH
 	TYPE(GSYM_PREFIX``''mulredc``''LENGTH,``function'')
 
@@ -248,7 +248,7 @@ define(`JM8', `eval(J - 8)')dnl
 # i > 0 passes
 #########################################################################
 
-.align 32,,16
+.p2align 5,,4
 LABEL_SUFFIX(1)
 
 # register values at loop entry: %TP = tmp, %I = i, %YP = y, %MP = m
