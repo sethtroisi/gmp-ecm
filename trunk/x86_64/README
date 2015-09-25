@@ -14,7 +14,4 @@ etc., up to LENGTH=20.
 If you have problems, you should reconfigure with the --disable-asm-redc 
 option.
 
-redc.asm is a version of redc separated from the multiplication, since
-there are cases where it is needed.
-
 test_mulredc.c, bench.c and the Makefile.dev are for development.
