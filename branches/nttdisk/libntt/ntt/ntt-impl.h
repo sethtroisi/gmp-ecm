@@ -41,24 +41,18 @@ typedef struct
 /* a group of transforms that share the same compiler optimizations,
    prime size and instruction set */
 
-typedef spv_t (*alloc_twiddle_t)(sp_t primroot, sp_t order, sp_t p, sp_t d,
-				spv_size_t rows, spv_size_t cols);
-
-typedef void (*free_twiddle_t)(spv_t twiddle);
-
 typedef const nttconfig_t ** (*get_transform_list_t)(void);
 
 typedef struct
 {
   const char * name;
   uint32_t num_transforms;
+  uint32_t vsize;
   get_transform_list_t get_transform_list;
-  alloc_twiddle_t alloc_twiddle;
-  free_twiddle_t free_twiddle;
 } nttgroup_t;
 
 extern const nttgroup_t * X(ntt_master_group_list)[];
-extern const uint32_t X(ntt_master_group_list_size);
+uint32_t X(get_master_group_list_size)();
 
 /* all the groups available */
 
@@ -81,21 +75,12 @@ extern const nttgroup_t MANGLE_AVX(X(ntt_group_simd));
 /* an NTT is built up of one or more passes through
    the input data */
 
-typedef enum
-{
-  PASS_TYPE_DIRECT,
-  PASS_TYPE_PFA,
-  PASS_TYPE_TWIDDLE
-} pass_type_t;
-
-#define MAX_PASSES 10
-
 typedef struct
 {
   pass_type_t pass_type;
-  const nttgroup_t *group;
   const nttconfig_t *codelet;
   spv_t codelet_const;
+  spv_size_t const_size;
 
   union
   {
@@ -113,6 +98,7 @@ typedef struct
     {
       spv_size_t num_transforms;
       spv_size_t stride;
+      spv_size_t twiddle_size;
       spv_t w;
     } twiddle;
 
@@ -120,12 +106,12 @@ typedef struct
 
 } nttpass_t;
 
-/* central repository for all NTT data that shares a
-   modulus and primitive root */
+/* central repository for all precomputed constants
+   for computing a group of parallel NTTs */
 typedef struct
 {
   uint32_t num_passes;
-  nttpass_t passes[MAX_PASSES];
+  nttpass_t passes[MAX_PLANS];
 } nttdata_t;
 
 /* SPM */
@@ -138,8 +124,6 @@ typedef struct
   sp_t mul_c;		/* constant used for reduction mod sp */
   sp_t primroot;
   sp_t inv_primroot;
-
-  nttdata_t ntt_data;
 } __spm_struct;
 
 typedef __spm_struct * spm_t;
@@ -151,19 +135,19 @@ void X(spm_clear)(spm_t);
 
 typedef struct
 {
+  uint32_t max_vsize;
   uint32_t sp_num;
+  uint32_t interleaved;
   spm_t * spm;
+
+  spv_t work;
+  spv_t sp;
+  nttdata_t nttdata;
+  nttdata_t inttdata;
 } __mpzspm_struct;
 
 typedef __mpzspm_struct * mpzspm_t;
 
-/* guides for constructing transforms */
-typedef struct
-{
-  uint32_t codelet_size;
-  uint32_t group_type;
-  pass_type_t pass_type;
-} nttplan_t;
 
 /* internal routines everybody needs */
 
@@ -175,16 +159,13 @@ X(nttdata_init_generic)(const nttconfig_t *c,
 
 sp_t X(sp_ntt_reciprocal)(sp_t w, sp_t p);
 
-/* external interface */
+/* routines for nttdata_t */
 
-uint32_t X(ntt_build_passes)(nttdata_t *data,
-    		nttplan_t *plans, uint32_t num_plans,
-		sp_t size, sp_t p, sp_t primroot, sp_t order, sp_t d);
+uint32_t X(ntt_build_passes)(nttplangroup_t *p, mpzspm_t mpzspm, 
+    				uint32_t ntt_size, uint32_t max_ntt_size);
 
-void * X(ntt_init)(sp_t size, sp_t primroot, sp_t p, sp_t d);
-void X(ntt_free)(void *data);
-void X(ntt_reset)(void *data);
-void X(ntt_run)(spv_t x, sp_t p, void *data);
+void X(ntt_reset)(nttdata_t *data);
+void X(ntt_run)(void * m, mpz_t * x, uint32_t ntt_size);
 
 #ifdef __cplusplus
 }

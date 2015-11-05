@@ -33,8 +33,7 @@ NTT_SCALAR_SRC = \
 	ntt/ntt-scalar.c \
 	ntt/sp.c \
 	ntt/spm.c \
-	ntt/spv.c \
-	ntt/test.c
+	ntt/spv.c
 
 NTT_SIMD_SRC = \
 	core/ntt02simd.c \

@@ -15,9 +15,12 @@ X(ntt_master_group_list)[] =
   & X(ntt_group),
 };
 
-const uint32_t X(ntt_master_group_list_size) =
-		    sizeof(X(ntt_master_group_list)) /
-		    sizeof(X(ntt_master_group_list)[0]);
+uint32_t
+X(get_master_group_list_size)()
+{
+  return sizeof(X(ntt_master_group_list)) /
+		sizeof(X(ntt_master_group_list)[0]);
+}
 
 /*-------------------------------------------------------------------------*/
 sp_t X(sp_ntt_reciprocal)(sp_t w, sp_t p)
@@ -229,55 +232,220 @@ X(nttdata_init_generic)(const nttconfig_t *c,
 }
 
 /*-------------------------------------------------------------------------*/
-void * X(ntt_init)(sp_t size, sp_t primroot, sp_t p, sp_t recip)
-{
-  return (nttdata_t *)calloc(1, sizeof(nttdata_t));
-}
-
-/*-------------------------------------------------------------------------*/
-void X(ntt_reset)(void *data)
+void X(ntt_reset)(nttdata_t *d)
 {
   spv_size_t i;
-  nttdata_t *d = (nttdata_t *)data;
 
   if (d == NULL)
     return;
 
   for (i = 0; i < d->num_passes; i++)
     {
-      free(d->passes[i].codelet_const);
+      sp_aligned_free(d->passes[i].codelet_const);
 
       if (d->passes[i].pass_type == PASS_TYPE_TWIDDLE)
-	d->passes[i].group->free_twiddle(d->passes[i].d.twiddle.w);
+	sp_aligned_free(d->passes[i].d.twiddle.w);
     }
 
   d->num_passes = 0;
 }
 
 /*-------------------------------------------------------------------------*/
-void X(ntt_free)(void *data)
+static void
+alloc_twiddle_interleaved(mpzspm_t mpzspm, nttpass_t *pass,
+    		spv_size_t rows, spv_size_t cols,
+		spv_size_t vsize, uint32_t order)
 {
-  spv_size_t i;
-  nttdata_t *d = (nttdata_t *)data;
+  spv_size_t i, j, k, m;
+  spv_size_t rounded = vsize * ((mpzspm->sp_num + vsize - 1) / vsize);
+  spv_size_t alloc = 2 * cols * (rows - 1) * rounded;
+  spv_t res = (spv_t)sp_aligned_malloc(alloc * sizeof(sp_t));
 
-  if (d == NULL)
-    return;
+  if (rounded > mpzspm->sp_num)
+    memset(res, 0, alloc * sizeof(sp_t));
 
-  X(ntt_reset)(data);
-  free(d);
+  for (i = 0; i < rounded; i += vsize)
+    {
+      spv_t res0 = res + 2 * cols * (rows - 1) * vsize * i;
+
+      for (j = 0; j < vsize; j++)
+	{
+	  if (i + j < mpzspm->sp_num)
+	    {
+	      spm_t spm = mpzspm->spm[i + j];
+	      sp_t p = spm->sp;
+	      sp_t d = spm->mul_c;
+	      sp_t primroot = spm->primroot;
+	      sp_t w = sp_pow(primroot, order / (rows * cols), p, d);
+	      sp_t w_inc = 1;
+
+	      for (k = 0; k < cols; k++)
+		{
+		  sp_t w0 = w_inc;
+
+		  for (m = 0; m < rows - 1; m++)
+		    {
+		      res0[(2*k*(rows-1) + 2*m)*vsize + j] = w0;
+		      res0[(2*k*(rows-1) + 2*m+1)*vsize + j] = X(sp_ntt_reciprocal)(w0, p);
+		      w0 = sp_mul(w0, w_inc, p, d);
+		    }
+
+    		  w_inc = sp_mul(w_inc, w, p, d);
+    		}
+	    }
+	}
+    }
+
+  pass->d.twiddle.w = res;
+  pass->d.twiddle.twiddle_size = alloc;
 }
 
 /*-------------------------------------------------------------------------*/
-uint32_t X(ntt_build_passes)(nttdata_t *data,
-    		nttplan_t *plans, uint32_t num_plans,
-		sp_t size, sp_t p, sp_t primroot, sp_t order, sp_t d)
+static void
+alloc_twiddle_packed(mpzspm_t mpzspm, nttpass_t *pass,
+    		spv_size_t rows, spv_size_t cols,
+		spv_size_t vsize, uint32_t order)
+{
+  spv_size_t i, j, k, m;
+  spv_size_t num_simd = vsize * ((cols + vsize - 1) / vsize);
+  spv_size_t alloc = 2 * (rows - 1) * num_simd;
+  spv_t res = (spv_t)sp_aligned_malloc(alloc * sizeof(sp_t));
+
+  for (m = 0; m < mpzspm->sp_num; m++)
+    {
+      spm_t spm = mpzspm->spm[m];
+      sp_t p = spm->sp;
+      sp_t d = spm->mul_c;
+      sp_t primroot = spm->primroot;
+      sp_t w = sp_pow(primroot, order / (rows * cols), p, d);
+      sp_t w_inc = 1;
+      spv_t res0 = res + alloc * m;
+
+      for (i = 0; i < num_simd; i += vsize)
+	{
+	  for (j = 0; j < vsize; j++)
+	    {
+	      sp_t w0 = w_inc;
+
+	      if (i + j < cols)
+		{
+		  for (k = 0; k < rows - 1; k++)
+		    {
+		      res0[2*i*(rows-1) + (2*k)*vsize + j] = w0;
+		      res0[2*i*(rows-1) + (2*k+1)*vsize + j] = X(sp_ntt_reciprocal)(w0, p);
+		      w0 = sp_mul(w0, w_inc, p, d);
+		    }
+
+		  w_inc = sp_mul(w_inc, w, p, d);
+		}
+	      else
+		{
+		  for (k = 0; k < rows - 1; k++)
+		    {
+		      res0[2*i*(rows-1) + (2*k)*vsize + j] = 0;
+		      res0[2*i*(rows-1) + (2*k+1)*vsize + j] = 0;
+		    }
+		}
+	    }
+	}
+    }
+
+  pass->d.twiddle.w = res;
+  pass->d.twiddle.twiddle_size = alloc;
+}
+
+/*-------------------------------------------------------------------------*/
+static void
+alloc_const_interleaved(mpzspm_t mpzspm, nttpass_t * pass, 
+    			uint32_t vsize, uint32_t order)
+{
+  spv_size_t i, j, k;
+  const nttconfig_t * c = pass->codelet;
+  uint32_t num_const = c->num_ntt_const;
+  spv_size_t rounded = vsize * ((mpzspm->sp_num + vsize - 1) / vsize);
+  spv_size_t alloc = 2 * num_const * rounded;
+  spv_t tmp = (spv_t)alloca(num_const * sizeof(sp_t));
+
+  pass->codelet_const = (spv_t)sp_aligned_malloc(alloc * sizeof(sp_t));
+
+  if (rounded > mpzspm->sp_num)
+    memset(pass->codelet_const, 0, alloc * sizeof(sp_t));
+
+  for (i = 0; i < rounded; i += vsize)
+    {
+      spv_t res0 = pass->codelet_const + 2 * num_const * vsize * i;
+
+      for (j = 0; j < vsize; j++)
+	{
+	  if (i + j < mpzspm->sp_num)
+	    {
+	      spm_t spm = mpzspm->spm[i + j];
+	      sp_t p = spm->sp;
+	      sp_t d = spm->mul_c;
+	      sp_t primroot = spm->primroot;
+
+	      c->nttdata_init(tmp, p, d, primroot, order, 
+			    pass->pass_type == PASS_TYPE_PFA ?
+      				pass->d.pfa.cofactor % pass->codelet->size :
+				1);
+
+    	      for (k = 0; k < num_const; k++)
+		{
+		  res0[(2*k)*vsize + j] = tmp[k];
+		  res0[(2*k+1)*vsize + j] = X(sp_ntt_reciprocal)(tmp[k], p);
+		}
+	    }
+	}
+    }
+
+  pass->const_size = 2 * alloc;
+}
+
+/*-------------------------------------------------------------------------*/
+static void
+alloc_const_packed(mpzspm_t mpzspm, nttpass_t * pass, uint32_t order)
 {
   uint32_t i, j;
+  const nttconfig_t * c = pass->codelet;
+  uint32_t num_const = c->num_ntt_const;
+
+  pass->codelet_const = (spv_t)sp_aligned_malloc(2 * mpzspm->sp_num * 
+					num_const * sizeof(sp_t));
+
+  for (i = 0; i < mpzspm->sp_num; i++)
+    {
+      spm_t spm = mpzspm->spm[i];
+      sp_t p = spm->sp;
+      sp_t d = spm->mul_c;
+      sp_t primroot = spm->primroot;
+      spv_t curr_const = pass->codelet_const + 2 * i * num_const;
+
+      c->nttdata_init(curr_const, p, d, primroot, order, 
+			pass->pass_type == PASS_TYPE_PFA ?
+				pass->d.pfa.cofactor % pass->codelet->size :
+				1);
+
+      for (j = 0; j < num_const; j++)
+  	  curr_const[num_const + j] = 
+	    		X(sp_ntt_reciprocal)(curr_const[j], p);
+    }
+
+  pass->const_size = 2 * num_const;
+}
+
+/*-------------------------------------------------------------------------*/
+uint32_t X(ntt_build_passes)(
+    		nttplangroup_t *plans, mpzspm_t mpzspm, 
+		uint32_t ntt_size, uint32_t max_ntt_size)
+{
+  uint32_t i, j;
+  nttdata_t *data = &mpzspm->nttdata;
   nttpass_t *passes = data->passes;
 
-  for (i = 0; i < num_plans; i++)
+  for (i = 0; i < plans->num_plans; i++)
     {
-      nttplan_t * plan = plans + i;
+      nttplan_t * plan = plans->plans + i;
+      nttpass_t * pass = passes + i;
       const nttgroup_t * g = X(ntt_master_group_list)[plan->group_type];
       const nttconfig_t **codelets = g->get_transform_list();
       uint32_t num_codelets = g->num_transforms;
@@ -293,51 +461,44 @@ uint32_t X(ntt_build_passes)(nttdata_t *data,
       if (j == num_codelets)
 	return 0;
 
-      passes[i].pass_type = plan->pass_type;
-      passes[i].group = g;
-      passes[i].codelet = c;
+      pass->pass_type = plan->pass_type;
+      pass->codelet = c;
 
       switch (plan->pass_type)
 	{
 	  case PASS_TYPE_DIRECT:
-	    passes[i].d.direct.num_transforms = size / plan->codelet_size;
+	    pass->d.direct.num_transforms = ntt_size / plan->codelet_size;
 	    break;
 
 	  case PASS_TYPE_PFA:
-	    passes[i].d.pfa.cofactor = size / plan->codelet_size;
+	    pass->d.pfa.cofactor = ntt_size / plan->codelet_size;
 	    break;
 
 	  case PASS_TYPE_TWIDDLE:
 	    {
-	      spv_size_t cols = size / plan->codelet_size;
+	      spv_size_t cols = ntt_size / plan->codelet_size;
 	      spv_size_t rows = plan->codelet_size;
 
-	      passes[i].d.twiddle.num_transforms = cols;
-	      passes[i].d.twiddle.stride = cols;
-	      passes[i].d.twiddle.w = g->alloc_twiddle(primroot, order, p, d, rows, cols);
-	      if (plans[i+1].pass_type != PASS_TYPE_DIRECT)
-		size = cols;
+	      pass->d.twiddle.num_transforms = cols;
+	      pass->d.twiddle.stride = cols;
+
+	      if (mpzspm->interleaved)
+		alloc_twiddle_interleaved(mpzspm, pass, rows, cols, 
+		    			g->vsize, max_ntt_size);
+	      else
+		alloc_twiddle_packed(mpzspm, pass, rows, cols, 
+		    			g->vsize, max_ntt_size);
+
+	      if (plans->plans[i+1].pass_type != PASS_TYPE_DIRECT)
+		ntt_size = cols;
 	      break;
 	    }
 	}
-    }
 
-  for (i = 0; i < num_plans; i++)
-    {
-      const nttconfig_t * c = passes[i].codelet;
-      uint32_t num_const = c->num_ntt_const;
-
-      passes[i].codelet_const = (sp_t *)malloc(2 * num_const * sizeof(sp_t));
-
-      c->nttdata_init(passes[i].codelet_const, p, d, primroot, order, 
-			passes[i].pass_type == PASS_TYPE_PFA ?
-				passes[i].d.pfa.cofactor % 
-					passes[i].codelet->size :
-				1);
-
-      for (j = 0; j < num_const; j++)
-	passes[i].codelet_const[num_const + j] = X(sp_ntt_reciprocal)(
-	    				passes[i].codelet_const[j], p);
+      if (mpzspm->interleaved)
+	alloc_const_interleaved(mpzspm, pass, g->vsize, max_ntt_size);
+      else
+	alloc_const_packed(mpzspm, pass, max_ntt_size);
     }
 
   data->num_passes = i;
@@ -346,7 +507,8 @@ uint32_t X(ntt_build_passes)(nttdata_t *data,
 
 /*-------------------------------------------------------------------------*/
 static void 
-ntt_run_recurse(spv_t x, sp_t p, nttdata_t *d, spv_size_t pass)
+ntt_run_packed(nttdata_t *d, spv_t x, sp_t p,
+    		spv_size_t id, spv_size_t pass)
 {
   spv_size_t i;
   nttpass_t *curr_pass = d->passes + pass;
@@ -358,23 +520,27 @@ ntt_run_recurse(spv_t x, sp_t p, nttdata_t *d, spv_size_t pass)
 	    		x, 1, curr_pass->codelet->size,
 	    		x, 1, curr_pass->codelet->size,
 			curr_pass->d.direct.num_transforms,
-			p, curr_pass->codelet_const);
+			p, curr_pass->codelet_const + 
+				id * curr_pass->const_size);
 	return;
 
       case PASS_TYPE_PFA:
 	for (i = pass; i < d->num_passes; i++)
 	  curr_pass[i].codelet->ntt_pfa_run(
 	    		x, curr_pass[i].d.pfa.cofactor,
-			p, curr_pass[i].codelet_const);
+			p, curr_pass[i].codelet_const + 
+				id * curr_pass[i].const_size);
 	return;
     }
 
   curr_pass->codelet->ntt_twiddle_run(
 		x, curr_pass->d.twiddle.stride, 1,
 		x, curr_pass->d.twiddle.stride, 1,
-		curr_pass->d.twiddle.w,
+		curr_pass->d.twiddle.w +
+			id * curr_pass->d.twiddle.twiddle_size,
 		curr_pass->d.twiddle.num_transforms,
-		p, curr_pass->codelet_const);
+		p, curr_pass->codelet_const +
+			id * curr_pass->const_size);
 
   /* if next pass is direct type, handle all the twiddle
      rows at once, otherwise recurse */
@@ -385,22 +551,44 @@ ntt_run_recurse(spv_t x, sp_t p, nttdata_t *d, spv_size_t pass)
 	    		x, 1, curr_pass[1].codelet->size,
 	    		x, 1, curr_pass[1].codelet->size,
 			curr_pass[1].d.direct.num_transforms,
-			p, curr_pass[1].codelet_const);
+			p, curr_pass[1].codelet_const +
+				id * curr_pass[1].const_size);
     }
   else
     {
       for (i = 0; i < curr_pass->codelet->size; i++)
-	ntt_run_recurse(x + i * curr_pass->d.twiddle.stride,
-	    		p, d, pass + 1);
+	ntt_run_packed(d, x + i * curr_pass->d.twiddle.stride,
+	    		p, id, pass + 1);
     }
 }
 
 /*-------------------------------------------------------------------------*/
 void 
-X(ntt_run)(spv_t x, sp_t p, void *data)
+X(ntt_run)(void * m, mpz_t * x, uint32_t ntt_size)
 {
-  nttdata_t *d = (nttdata_t *)data;
+  uint32_t i;
+  mpzspm_t mpzspm = (mpzspm_t)m;
 
-  ntt_run_recurse(x, p, d, 0);
+#if SP_NUMB_BITS == 50
+  fpu_precision_t old_prec = 0;
+  if (!fpu_precision_is_ieee())
+    old_prec = fpu_set_precision_ieee();
+#endif
+
+  if (mpzspm->interleaved)
+    {
+    }
+  else
+    {
+      for (i = 0; i < mpzspm->sp_num; i++)
+	ntt_run_packed(&mpzspm->nttdata, 
+	    		mpzspm->work + i * ntt_size,
+			mpzspm->spm[i]->sp, i, 0);
+    }
+
+#if SP_NUMB_BITS == 50
+  if (old_prec != 0)
+    fpu_clear_precision(old_prec);
+#endif
 }
 
