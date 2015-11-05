@@ -2,6 +2,7 @@ CC32 = mingw32-gcc
 CC64 = gcc -I../../../mpir-2.7.0/lib/x64/Release
 
 CFLAGS = -O3 -march=native -fomit-frame-pointer -I. -Intt
+# CFLAGS = -g -march=native -I. -Intt
 
 HDR = \
 	basicdefs.h \

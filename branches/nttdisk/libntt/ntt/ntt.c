@@ -236,9 +236,6 @@ void X(ntt_reset)(nttdata_t *d)
 {
   spv_size_t i;
 
-  if (d == NULL)
-    return;
-
   for (i = 0; i < d->num_passes; i++)
     {
       sp_aligned_free(d->passes[i].codelet_const);

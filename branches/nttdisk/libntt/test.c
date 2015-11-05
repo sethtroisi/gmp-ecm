@@ -56,13 +56,13 @@ static void test_core(nttwork_t nttwork, uint32_t size, uint32_t verify)
   nttwork_random(nttwork);
   elapsed = nttwork_ntt_test(nttwork, verify);
   nttwork_ntt_reset(nttwork);
-  printf("%.3lf clocks/point\n", elapsed);
+  printf("  %.3lf clocks/point\n", elapsed);
 }
 
 /*------------------------------------------------------------------*/
 static void test1(nttwork_t nttwork, uint32_t verify)
 {
-  uint32_t imax[MAX_PLAN_GROUPS] = {0};
+  uint32_t imax[MAX_PLAN_GROUPS] = {1, 1, 1, 1};
   uint32_t i0, i1, i2, i3;
   uint32_t j;
 
@@ -79,28 +79,28 @@ static void test1(nttwork_t nttwork, uint32_t verify)
       if (nttwork->max_ntt_size % size != 0)
 	continue;
 
-  for (i0 = imax[0]; (int32_t)i0 >= 0; i0--)
+  for (i0 = 0; i0 < imax[0]; i0++)
     {
       plan_list[0].plans[0].codelet_size = codelet_sizes[j];
-      plan_list[0].plans[0].group_type = i0 - 1;
+      plan_list[0].plans[0].group_type = i0;
       plan_list[0].plans[0].pass_type = PASS_TYPE_DIRECT;
 
-  for (i1 = imax[1]; (int32_t)i1 >= 0; i1--)
+  for (i1 = 0; i1 < imax[1]; i1++)
     {
       plan_list[1].plans[0].codelet_size = codelet_sizes[j];
-      plan_list[1].plans[0].group_type = i1 - 1;
+      plan_list[1].plans[0].group_type = i1;
       plan_list[1].plans[0].pass_type = PASS_TYPE_DIRECT;
 
-  for (i2 = imax[2]; (int32_t)i2 >= 0; i2--)
+  for (i2 = 0; i2 < imax[2]; i2++)
     {
       plan_list[2].plans[0].codelet_size = codelet_sizes[j];
-      plan_list[2].plans[0].group_type = i2 - 1;
+      plan_list[2].plans[0].group_type = i2;
       plan_list[2].plans[0].pass_type = PASS_TYPE_DIRECT;
 
-  for (i3 = imax[3]; (int32_t)i3 >= 0; i3--)
+  for (i3 = 0; i3 < imax[3]; i3++)
     {
       plan_list[3].plans[0].codelet_size = codelet_sizes[j];
-      plan_list[3].plans[0].group_type = i3 - 1;
+      plan_list[3].plans[0].group_type = i3;
       plan_list[3].plans[0].pass_type = PASS_TYPE_DIRECT;
 
       test_core(nttwork, size, verify);
@@ -109,62 +109,87 @@ static void test1(nttwork_t nttwork, uint32_t verify)
     }
 }
 
-#if 0
 /*------------------------------------------------------------------*/
-static void test2(mpzspm_t mpzspm, uint32_t order)
+static void test2(nttwork_t nttwork, uint32_t verify)
 {
-  uint32_t i, j, k, m;
-  uint32_t num_groups = X(ntt_master_group_list_size);
-  const nttgroup_t **groups = X(ntt_master_group_list);
-  sp_t p = mpzspm->spm[0]->sp;
-  sp_t d = mpzspm->spm[0]->mul_c;
-  sp_t primroot = mpzspm->spm[0]->primroot;
-  nttdata_t *nttdata = &mpzspm->spm[0]->ntt_data;
-  nttplan_t plans[3];
+  uint32_t imax[MAX_PLAN_GROUPS] = {1, 1, 1, 1};
+  uint32_t i0, i1, i2, i3;
+  uint32_t j, k, m;
 
-  /* transform pairs */
-
-  for (i = 0; i < num_groups; i++)
+  for (j = 0; j < nttwork->mpzspm_num; j++)
     {
-      uint32_t num_codelets0 = groups[i]->num_transforms;
-      const nttconfig_t **codelets0 = groups[i]->get_transform_list();
+      imax[j] = nttwork->nttinit[j]->mpzspm_get_num_groups();
+      plan_list[j].num_plans = 2;
+    }
 
-      for (j = 0; j < num_groups; j++)
+  for (j = 0; j < NUM_CODELETS; j++)
+    {
+  for (k = 0; k < NUM_CODELETS; k++)
+    {
+      uint32_t size = codelet_sizes[j] * codelet_sizes[k];
+
+      if (nttwork->max_ntt_size % size != 0)
+	continue;
+
+  for (i0 = 0; i0 < imax[0]; i0++)
+    {
+      plan_list[0].plans[0].codelet_size = codelet_sizes[j];
+      plan_list[0].plans[0].group_type = i0;
+      plan_list[0].plans[0].pass_type = PASS_TYPE_TWIDDLE;
+
+      plan_list[0].plans[1].codelet_size = codelet_sizes[k];
+      plan_list[0].plans[1].group_type = i0;
+      plan_list[0].plans[1].pass_type = PASS_TYPE_DIRECT;
+
+  for (i1 = 0; i1 < imax[1]; i1++)
+    {
+      plan_list[1].plans[0].codelet_size = codelet_sizes[j];
+      plan_list[1].plans[0].group_type = i1;
+      plan_list[1].plans[0].pass_type = PASS_TYPE_TWIDDLE;
+
+      plan_list[1].plans[1].codelet_size = codelet_sizes[k];
+      plan_list[1].plans[1].group_type = i1;
+      plan_list[1].plans[1].pass_type = PASS_TYPE_DIRECT;
+
+  for (i2 = 0; i2 < imax[2]; i2++)
+    {
+      plan_list[2].plans[0].codelet_size = codelet_sizes[j];
+      plan_list[2].plans[0].group_type = i2;
+      plan_list[2].plans[0].pass_type = PASS_TYPE_TWIDDLE;
+
+      plan_list[2].plans[1].codelet_size = codelet_sizes[k];
+      plan_list[2].plans[1].group_type = i2;
+      plan_list[2].plans[1].pass_type = PASS_TYPE_DIRECT;
+
+  for (i3 = 0; i3 < imax[3]; i3++)
+    {
+      plan_list[3].plans[0].codelet_size = codelet_sizes[j];
+      plan_list[3].plans[0].group_type = i3;
+      plan_list[3].plans[0].pass_type = PASS_TYPE_TWIDDLE;
+
+      plan_list[3].plans[1].codelet_size = codelet_sizes[k];
+      plan_list[3].plans[1].group_type = i3;
+      plan_list[3].plans[1].pass_type = PASS_TYPE_DIRECT;
+
+      test_core(nttwork, size, verify);
+
+      if (j < k && gcd(codelet_sizes[j], codelet_sizes[k]) == 1)
 	{
-	  uint32_t num_codelets1 = groups[j]->num_transforms;
-	  const nttconfig_t **codelets1 = groups[j]->get_transform_list();
-
-	  for (k = 0; k < num_codelets0; k++)
+	  for (m = 0; m < nttwork->mpzspm_num; m++)
 	    {
-	      for (m = 0; m < num_codelets1; m++)
-		{
-		  const nttconfig_t * c1 = codelets0[k];
-		  const nttconfig_t * c2 = codelets1[m];
-		  spv_size_t len = c1->size * c2->size;
-
-		  if (order % len != 0)
-		    continue;
-
-		  plans[0].codelet_size = c1->size;
-		  plans[0].group_type = i;
-		  plans[0].pass_type = PASS_TYPE_TWIDDLE;
-		  plans[1].codelet_size = c2->size;
-		  plans[1].group_type = j;
-		  plans[1].pass_type = PASS_TYPE_DIRECT;
-		  test_core(p, d, primroot, order, len, plans, 2, nttdata);
-
-		  if (gcd(c1->size, c2->size) != 1)
-		    continue;
-
-		  plans[0].pass_type = PASS_TYPE_PFA;
-		  plans[1].pass_type = PASS_TYPE_PFA;
-		  test_core(p, d, primroot, order, len, plans, 2, nttdata);
-		}
+	      plan_list[m].plans[0].pass_type = PASS_TYPE_PFA;
+	      plan_list[m].plans[1].pass_type = PASS_TYPE_PFA;
 	    }
+	  test_core(nttwork, size, verify);
 	}
+
+    }}}}
+
+    }
     }
 }
 
+#if 0
 /*------------------------------------------------------------------*/
 static void test3(mpzspm_t mpzspm, uint32_t order)
 {
@@ -266,6 +291,7 @@ int main(int argc, char **argv)
       			sp_bits, sp_bits_choices);
 
   test1(nttwork, verify);
+  test2(nttwork, verify);
 
   nttwork_clear(nttwork);
   mpz_clear(modulus);

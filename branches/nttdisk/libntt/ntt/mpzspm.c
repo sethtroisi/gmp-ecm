@@ -13,6 +13,8 @@ mpzspm_ntt_reset(void * m)
   X(ntt_reset)(&mpzspm->inttdata);
   sp_aligned_free (mpzspm->work);
   sp_aligned_free (mpzspm->sp);
+  mpzspm->work = NULL;
+  mpzspm->sp = NULL;
 }
 
 static void 
@@ -73,8 +75,8 @@ mpzspm_init(uint32_t max_ntt_size, mpz_t modulus,
    * 
    * So we need at most ub primes to satisfy this condition. */
   
+  mpz_init_set_ui (mt, max_ntt_size);
   mpz_init (mp);
-  mpz_init (mt);
   mpz_init (T); 
 
   max_spm = 10;
@@ -136,6 +138,13 @@ mpzspm_init(uint32_t max_ntt_size, mpz_t modulus,
   while (mpz_cmp (P, T) <= 0);
 
 cleanup:
+  if (mpzspm->sp_num > 0)
+    {
+      mpzspm->interleaved = interleaved;
+      if (mpz_cmp(P, T) > 0)
+	*done = 1;
+    }
+
   mpz_clear (mp);
   mpz_clear (mt);
   mpz_clear (T);
@@ -145,13 +154,7 @@ cleanup:
 #endif
 
   if (mpzspm->sp_num > 0)
-    {
-      mpzspm->interleaved = interleaved;
-      if (mpz_cmp(P, T) > 0)
-	*done = 1;
-      return mpzspm;
-    }
-
+    return mpzspm;
   mpzspm_clear(mpzspm);
   return NULL;
 }
@@ -282,7 +285,7 @@ mpzspm_test(void * m, uint32_t ntt_size, uint32_t max_ntt_size)
 
   for (i = 0; i < mpzspm->sp_num; i++)
     {
-      spm_t spm = mpzspm->spm[i + j];
+      spm_t spm = mpzspm->spm[i];
       sp_t p = spm->sp;
       sp_t d = spm->mul_c;
       sp_t primroot = spm->primroot;
@@ -301,8 +304,9 @@ mpzspm_test(void * m, uint32_t ntt_size, uint32_t max_ntt_size)
 
   for (i = 0; i < mpzspm->sp_num; i++)
     {
-      spm_t spm = mpzspm->spm[i + j];
+      spm_t spm = mpzspm->spm[i];
       sp_t p = spm->sp;
+      spv_t r0 = r + i * ntt_size;
 
       if (mpzspm->interleaved)
 	{
@@ -321,7 +325,7 @@ mpzspm_test(void * m, uint32_t ntt_size, uint32_t max_ntt_size)
 	{
 	  for (k = 0; k < ntt_size; k++)
 	    {
-	      if (r[j] == x[k])
+	      if (r0[j] == x[k])
 		break;
 	    }
 	  if (k == ntt_size)
@@ -329,6 +333,7 @@ mpzspm_test(void * m, uint32_t ntt_size, uint32_t max_ntt_size)
 	}
       printf("%c", j == ntt_size ? '.' : '*');
     }
+  printf(" ");
 
   free(x);
   free(r);
