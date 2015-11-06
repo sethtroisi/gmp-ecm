@@ -73,6 +73,9 @@ OBJ_W64 = $(LIB_SRC:.c=.o_w64) \
 	$(NTT_SCALAR_SRC:.c=.o_sp30w64) \
 	$(NTT_SIMD_SRC:.c=.o_sp30w64sse2) \
 	$(NTT_SIMD_SRC:.c=.o_sp30w64sse42) \
+	$(NTT_SCALAR_SRC:.c=.o_sp31w64) \
+	$(NTT_SIMD_SRC:.c=.o_sp31w64sse2) \
+	$(NTT_SIMD_SRC:.c=.o_sp31w64sse42) \
 	$(NTT_SCALAR_SRC:.c=.o_sp62w64) \
 	$(NTT_SIMD_SRC:.c=.o_sp62w64sse2) \
 	$(NTT_SIMD_SRC:.c=.o_sp62w64sse42)
@@ -137,6 +140,15 @@ clean:
 
 %.o_sp30w64sse42: %.c $(HDR)
 	$(CC64) $(CFLAGS) -DHAVE_SSE42 -DSP_NUMB_BITS=30 -c -o $@ $<
+
+%.o_sp31w64: %.c $(HDR)
+	$(CC64) $(CFLAGS) -DHAVE_SSE2 -DHAVE_SSE42 -DSP_NUMB_BITS=31 -c -o $@ $<
+
+%.o_sp31w64sse2: %.c $(HDR)
+	$(CC64) $(CFLAGS) -DHAVE_SSE2 -DSP_NUMB_BITS=31 -c -o $@ $<
+
+%.o_sp31w64sse42: %.c $(HDR)
+	$(CC64) $(CFLAGS) -DHAVE_SSE42 -DSP_NUMB_BITS=31 -c -o $@ $<
 
 %.o_sp62w64: %.c $(HDR)
 	$(CC64) $(CFLAGS) -DHAVE_SSE2 -DHAVE_SSE42 -DSP_NUMB_BITS=62 -c -o $@ $<

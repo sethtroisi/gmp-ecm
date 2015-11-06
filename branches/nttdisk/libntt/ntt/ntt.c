@@ -306,7 +306,8 @@ alloc_twiddle_packed(mpzspm_t mpzspm, nttpass_t *pass,
   spv_size_t i, j, k, m;
   spv_size_t num_simd = vsize * ((cols + vsize - 1) / vsize);
   spv_size_t alloc = 2 * (rows - 1) * num_simd;
-  spv_t res = (spv_t)sp_aligned_malloc(alloc * sizeof(sp_t));
+  spv_t res = (spv_t)sp_aligned_malloc(alloc * 
+      			mpzspm->sp_num * sizeof(sp_t));
 
   for (m = 0; m < mpzspm->sp_num; m++)
     {

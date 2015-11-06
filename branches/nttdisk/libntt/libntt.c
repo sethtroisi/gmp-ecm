@@ -8,6 +8,7 @@ const nttinit_t master_init[] = {
   (const nttinit_t)&nttinit_sp62w32,
 #else
   (const nttinit_t)&nttinit_sp30w64,
+  (const nttinit_t)&nttinit_sp31w64,
   (const nttinit_t)&nttinit_sp50w64,
   (const nttinit_t)&nttinit_sp62w64,
 #endif
