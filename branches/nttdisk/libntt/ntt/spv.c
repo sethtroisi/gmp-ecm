@@ -6,11 +6,11 @@ X(spv_random) (spv_t x, spv_size_t len, sp_t m)
   spv_size_t i;
 #if SP_NUMB_BITS == 50
 
-  mp_limb_t t;
+  uint64_t t;
   for (i = 0; i < len; i++)
     {
-      mpn_random (&t, 1);
-      x[i] = t % (mp_limb_t)m;
+      mpn_random ((mp_limb_t *)&t, sizeof(t) / sizeof(mp_limb_t));
+      x[i] = t % (uint64_t)m;
     }
 #else
 

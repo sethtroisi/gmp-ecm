@@ -260,7 +260,7 @@ static INLINE sp_simd_t sp_ntt_sub_simd(sp_simd_t a, sp_simd_t b, sp_t p)
   sp_simd_t vp = pbroadcast(p);
   sp_simd_t t0 = psub(a, b);
   sp_simd_t t1 = padd(t0, vp);
-  return pcmov(t1, t0, t0);
+  return pcmov(t0, t1, t0);
 }
 
 static INLINE sp_simd_t sp_ntt_sub_partial_simd(sp_simd_t a, sp_simd_t b, sp_t p)
@@ -302,7 +302,7 @@ static INLINE sp_simd_t sp_ntt_mul_simd_core(
   phi = psub(t0, psub(t0, p));
   plo = psub(p, phi);
 
-  pqhi = pmul(p, qhi);
+  pqhi = pmul(p, q);
   t0 = psub(pmul(phi, qhi), pqhi);
   t0 = padd(t0, pmul(phi, qlo));
   t0 = padd(t0, pmul(plo, qhi));
@@ -315,9 +315,9 @@ static INLINE sp_simd_t sp_ntt_mul_simd_core(
   t0 = padd(t0, t1);
 
   t1 = psub(t0, p);
-  t0 = pcmov(t0, t1, t1);
+  t0 = pcmov(t1, t0, t1);
   t1 = padd(t0, p);
-  t0 = pcmov(t1, t0, t0);
+  t0 = pcmov(t0, t1, t0);
   return t0;
 }
 
