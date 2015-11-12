@@ -435,8 +435,8 @@ static INLINE sp_simd_t sp_ntt_mul_simd(
   t0 = pmuludq(a, vwi);
   t1 = pshufd(a, 0x31);
   t2 = pmuludq(t1, vwi);
-  t0 = psrlq(t0, 32);
-  t2 = psrlq(t2, 32);
+  t0 = pshufd(t0, 0x0d);
+  t2 = pshufd(t2, 0x0d);
   t0 = punpcklo32(t0, t2);
 
   t0 = psubd(pmullod(a, vw), pmullod(t0, vp));
@@ -544,8 +544,8 @@ static INLINE sp_simd_t sp_ntt_twiddle_mul_simd(sp_simd_t a,
   t0 = pmuludq(a, vwi);
   t1 = pshufd(a, 0x31);
   t2 = pmuludq(t1, vwi2);
-  t0 = psrlq(t0, 32);
-  t2 = psrlq(t2, 32);
+  t0 = pshufd(t0, 0x0d);
+  t2 = pshufd(t2, 0x0d);
   t0 = punpcklo32(t0, t2);
 
   t0 = psubd(pmullod(a, vw), pmullod(t0, vp));
