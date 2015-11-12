@@ -188,6 +188,20 @@ ntt##N##_run(							\
 }								\
 								\
 static void							\
+ntt##N##_run_interleaved(					\
+    	spv_t in, spv_size_t stride, spv_size_t dist,		\
+    	spv_size_t num_transforms, spv_t p, 			\
+	spv_size_t vsize, spv_t ntt_const)			\
+{								\
+  spv_size_t i, j;						\
+								\
+  for (i = 0; i < num_transforms; i++)				\
+    for (j = 0; j < vsize; j++)					\
+      ntt##N##_run_core(in + i * dist + j, stride, 		\
+                in + i * dist + j, stride, p[j], ntt_const);	\
+}								\
+								\
+static void							\
 ntt##N##_twiddle_run(						\
     	spv_t in, spv_size_t stride, spv_size_t dist,		\
     	spv_size_t num_transforms, sp_t p, 			\
@@ -199,6 +213,21 @@ ntt##N##_twiddle_run(						\
     ntt##N##_twiddle_run_core(in + i * dist, stride, 		\
 			in + i * dist, stride,			\
 			w + j, p, ntt_const);			\
+}								\
+								\
+static void							\
+ntt##N##_twiddle_run_interleaved(				\
+    	spv_t in, spv_size_t stride, spv_size_t dist,		\
+    	spv_size_t num_transforms, spv_t p, 			\
+	spv_size_t vsize, spv_t ntt_const, spv_t w)		\
+{								\
+  spv_size_t i, j, k;						\
+								\
+  for (i = j = 0; i < num_transforms; i++, j += 2*((N)-1))	\
+    for (k = 0; k < vsize; k++)					\
+      ntt##N##_twiddle_run_core(in + i * dist + k, stride,	\
+			in + i * dist + k, stride,		\
+			w + j, p[k], ntt_const);		\
 }								\
 								\
 static void							\
@@ -222,6 +251,29 @@ ntt##N##_pfa_run(						\
     }								\
 }								\
 								\
+static void							\
+ntt##N##_pfa_run_interleaved(					\
+	spv_t in, spv_size_t stride, spv_size_t dist,		\
+    	spv_size_t num_transforms, spv_t p, 			\
+	spv_size_t cofactor, spv_size_t vsize,			\
+	spv_t ntt_const)					\
+{								\
+  spv_size_t i, j, k;						\
+  spv_size_t inc = cofactor * stride;				\
+  spv_size_t inc2 = (N) * stride;				\
+  spv_size_t ntt_size = (N) * cofactor * stride;		\
+								\
+  for (i = 0; i < num_transforms; i++)				\
+    {								\
+      spv_size_t incstart = 0;					\
+								\
+      for (j = 0; j < cofactor; j++, incstart += inc2)		\
+	for (k = 0; k < vsize; k++)				\
+	  ntt##N##_pfa_run_core(in + i * dist + k, incstart, 	\
+	      		inc, ntt_size, p[k], ntt_const);	\
+    }								\
+}								\
+								\
 const nttconfig_t X(ntt##N##_config) = 				\
 {								\
   N,								\
@@ -233,9 +285,9 @@ const nttconfig_t X(ntt##N##_config) = 				\
   ntt##N##_pfa_run,						\
   ntt##N##_twiddle_run,						\
 								\
-  NULL,								\
-  NULL,								\
-  NULL								\
+  ntt##N##_run_interleaved,					\
+  ntt##N##_pfa_run_interleaved,					\
+  ntt##N##_twiddle_run_interleaved				\
 };
 
 

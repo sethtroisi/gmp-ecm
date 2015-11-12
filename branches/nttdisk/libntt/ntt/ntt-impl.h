@@ -42,8 +42,8 @@ typedef void (*ntt_run_interleaved_t)(
 typedef void (*ntt_pfa_run_interleaved_t)(
     			spv_t in, spv_size_t stride, spv_size_t dist,
     			spv_size_t num_transforms, spv_t p, 
-			spv_size_t vsize, spv_t ntt_const,
-			spv_size_t cofactor);
+			spv_size_t cofactor, spv_size_t vsize, 
+			spv_t ntt_const);
 
 typedef void (*ntt_twiddle_run_interleaved_t)(
     			spv_t in, spv_size_t stride, spv_size_t dist,

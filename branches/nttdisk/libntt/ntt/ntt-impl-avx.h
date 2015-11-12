@@ -242,30 +242,40 @@ static INLINE void sp_simd_pfa_scatter(sp_simd_t t, spv_t x,
     }
 }
 
-static INLINE sp_simd_t sp_ntt_add_simd(sp_simd_t a, sp_simd_t b, sp_t p)
+static INLINE sp_simd_t sp_ntt_add_simd_core(
+    			sp_simd_t a, sp_simd_t b, sp_simd_t vp)
 {
-  sp_simd_t vp = pbroadcast(p);
   sp_simd_t t0 = padd(a, b);
   sp_simd_t t1 = psub(t0, vp);
   return pcmov(t1, t0, t1);
 }
 
-static INLINE sp_simd_t sp_ntt_add_partial_simd(sp_simd_t a, sp_simd_t b, sp_t p)
+static INLINE sp_simd_t sp_ntt_add_simd(sp_simd_t a, sp_simd_t b, sp_t p)
 {
-  return sp_ntt_add_simd(a, b, p);
+  return sp_ntt_add_simd_core(a, b, pbroadcast(p));
 }
 
-static INLINE sp_simd_t sp_ntt_sub_simd(sp_simd_t a, sp_simd_t b, sp_t p)
+static INLINE sp_simd_t sp_ntt_add_partial_simd(sp_simd_t a, sp_simd_t b, sp_t p)
 {
-  sp_simd_t vp = pbroadcast(p);
+  return sp_ntt_add_simd_core(a, b, pbroadcast(p));
+}
+
+static INLINE sp_simd_t sp_ntt_sub_simd_core(
+    			sp_simd_t a, sp_simd_t b, sp_simd_t vp)
+{
   sp_simd_t t0 = psub(a, b);
   sp_simd_t t1 = padd(t0, vp);
   return pcmov(t0, t1, t0);
 }
 
+static INLINE sp_simd_t sp_ntt_sub_simd(sp_simd_t a, sp_simd_t b, sp_t p)
+{
+  return sp_ntt_sub_simd_core(a, b, pbroadcast(p));
+}
+
 static INLINE sp_simd_t sp_ntt_sub_partial_simd(sp_simd_t a, sp_simd_t b, sp_t p)
 {
-  return sp_ntt_sub_simd(a, b, p);
+  return sp_ntt_sub_simd_core(a, b, pbroadcast(p));
 }
 
 
