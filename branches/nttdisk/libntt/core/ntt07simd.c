@@ -92,28 +92,6 @@ ntt7_run_core_simd(spv_t in, spv_size_t istride, spv_size_t idist,
   sp_simd_scatter(t3, out + 6 * ostride, odist, vsize);
 }
 
-
-static void
-ntt7_run_simd(spv_t in, spv_size_t istride, spv_size_t idist,
-    		spv_t out, spv_size_t ostride, spv_size_t odist,
-    		spv_size_t num_transforms, sp_t p, spv_t ntt_const)
-{
-  spv_size_t i = 0;
-
-  spv_size_t num_simd = SP_SIMD_VSIZE * (num_transforms / SP_SIMD_VSIZE);
-
-  for (; i < num_simd; i += SP_SIMD_VSIZE)
-    ntt7_run_core_simd(in + i * idist, istride, idist, 
-                        out + i * odist, ostride, odist, p, 
-			ntt_const, SP_SIMD_VSIZE);
-
-  if (i < num_transforms)
-    ntt7_run_core_simd(in + i * idist, istride, idist, 
-                        out + i * odist, ostride, odist, p, 
-			ntt_const, num_transforms - i);
-}
-
-
 static void
 ntt7_twiddle_run_core_simd(
         spv_t in, spv_size_t istride, spv_size_t idist,
@@ -205,33 +183,6 @@ ntt7_twiddle_run_core_simd(
   sp_simd_scatter(t1, out + 5 * ostride, odist, vsize);
   sp_simd_scatter(t3, out + 6 * ostride, odist, vsize);
 }
-
-
-static void
-ntt7_twiddle_run_simd(spv_t in, spv_size_t istride, spv_size_t idist,
-    			spv_t out, spv_size_t ostride, spv_size_t odist,
-    			spv_t w, spv_size_t num_transforms, sp_t p, spv_t ntt_const)
-{
-  spv_size_t i = 0, j = 0;
-
-  spv_size_t num_simd = SP_SIMD_VSIZE * (num_transforms / SP_SIMD_VSIZE);
-
-  for (; i < num_simd; i += SP_SIMD_VSIZE,
-		  	j += 2*(7-1)*SP_SIMD_VSIZE)
-    ntt7_twiddle_run_core_simd(
-		in + i * idist, istride, idist,
-		out + i * odist, ostride, odist,
-		(sp_simd_t *)(w + j), p, 
-		ntt_const, SP_SIMD_VSIZE);
-
-  if (i < num_transforms)
-    ntt7_twiddle_run_core_simd(
-		in + i * idist, istride, idist,
-		out + i * odist, ostride, odist,
-		(sp_simd_t *)(w + j), p, 
-		ntt_const, num_transforms - i);
-}
-
 
 static void
 ntt7_pfa_run_core_simd(spv_t x, spv_size_t start,
@@ -326,39 +277,4 @@ ntt7_pfa_run_core_simd(spv_t x, spv_size_t start,
   sp_simd_pfa_scatter(t3, x, j6, inc2, n, vsize);
 }
 
-
-static void
-ntt7_pfa_run_simd(spv_t x, spv_size_t cofactor,
-	  sp_t p, spv_t ntt_const)
-{
-  spv_size_t i = 0;
-  spv_size_t incstart = 0;
-  spv_size_t n = 7 * cofactor;
-  spv_size_t inc = cofactor;
-  spv_size_t inc2 = 7;
-
-  spv_size_t num_simd = SP_SIMD_VSIZE * (cofactor / SP_SIMD_VSIZE);
-
-  for (i = 0; i < num_simd; i += SP_SIMD_VSIZE)
-    {
-      ntt7_pfa_run_core_simd(x, incstart, inc, inc2, n, p, 
-	  			ntt_const, SP_SIMD_VSIZE);
-      incstart += SP_SIMD_VSIZE * inc2;
-    }
-
-  if (i < cofactor)
-    ntt7_pfa_run_core_simd(x, incstart, inc, inc2, n, p, 
-	  			ntt_const, cofactor - i);
-}
-
-const nttconfig_t V(ntt7simd_config) = 
-{
-  7,
-  NC,
-  ntt7_fixed_const,
-  X(ntt7_init),
-  ntt7_run_simd,
-  ntt7_pfa_run_simd,
-  ntt7_twiddle_run_simd,
-};
-
+DECLARE_CORE_ROUTINES_SIMD(7)

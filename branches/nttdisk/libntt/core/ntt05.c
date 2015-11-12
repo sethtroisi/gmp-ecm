@@ -65,19 +65,6 @@ ntt5_run_core(spv_t in, spv_size_t istride,
 }
 
 static void
-ntt5_run(spv_t in, spv_size_t istride, spv_size_t idist,
-    		spv_t out, spv_size_t ostride, spv_size_t odist,
-    		spv_size_t num_transforms, sp_t p, spv_t ntt_const)
-{
-  spv_size_t i = 0;
-
-  for (; i < num_transforms; i++)
-    ntt5_run_core(in + i * idist, istride, 
-                out + i * odist, ostride, p, ntt_const);
-}
-
-
-static void
 ntt5_twiddle_run_core(spv_t in, spv_size_t istride,
 		spv_t out, spv_size_t ostride,
 		spv_t w, sp_t p, spv_t ntt_const)
@@ -134,21 +121,6 @@ ntt5_twiddle_run_core(spv_t in, spv_size_t istride,
   out[3 * ostride] = p1;
   out[4 * ostride] = p2;
 }
-
-
-static void
-ntt5_twiddle_run(spv_t in, spv_size_t istride, spv_size_t idist,
-    			spv_t out, spv_size_t ostride, spv_size_t odist,
-    			spv_t w, spv_size_t num_transforms, sp_t p, spv_t ntt_const)
-{
-  spv_size_t i = 0, j = 0;
-
-  for (; i < num_transforms; i++, j += 2*(5-1))
-    ntt5_twiddle_run_core(in + i * idist, istride, 
-			out + i * odist, ostride,
-			w + j, p, ntt_const);
-}
-
 
 static void
 ntt5_pfa_run_core(spv_t x, spv_size_t start,
@@ -210,29 +182,4 @@ ntt5_pfa_run_core(spv_t x, spv_size_t start,
   x[j4] = p2;
 }
 
-static void
-ntt5_pfa_run(spv_t x, spv_size_t cofactor,
-	  sp_t p, spv_t ntt_const)
-{
-  spv_size_t i = 0;
-  spv_size_t incstart = 0;
-  spv_size_t n = 5 * cofactor;
-  spv_size_t inc = cofactor;
-  spv_size_t inc2 = 5;
-
-  for (; i < cofactor; i++, incstart += inc2)
-    ntt5_pfa_run_core(x, incstart, inc, n, p, ntt_const);
-}
-
-
-const nttconfig_t X(ntt5_config) = 
-{
-  5,
-  NC,
-  ntt5_fixed_const,
-  X(ntt5_init),
-  ntt5_run,
-  ntt5_pfa_run,
-  ntt5_twiddle_run
-};
-
+DECLARE_CORE_ROUTINES(5)

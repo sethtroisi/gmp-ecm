@@ -182,7 +182,7 @@ X(nttdata_init_generic)(const nttconfig_t *c,
         xfixed[j] = 0;
       xfixed[i] = 1;
 
-      c->ntt_run(xfixed, 1, 0, xfixed, 1, 0, 1, p, vfixed);
+      c->ntt_run(xfixed, 1, 0, 1, p, vfixed);
 
       #ifdef HAVE_PARTIAL_MOD
       for (j = 0; j < n; j++)
@@ -204,7 +204,7 @@ X(nttdata_init_generic)(const nttconfig_t *c,
 
           vfixed[j] = 1;
           vfixed[j+m] = X(sp_ntt_reciprocal)(1, p);
-          c->ntt_run(x, 1, 0, x, 1, 0, 1, p, vfixed);
+          c->ntt_run(x, 1, 0, 1, p, vfixed);
           vfixed[j] = 0;
           vfixed[j+m] = 0;
 
@@ -254,22 +254,22 @@ alloc_twiddle_interleaved(mpzspm_t mpzspm, nttpass_t *pass,
 		spv_size_t vsize, uint32_t order)
 {
   spv_size_t i, j, k, m;
-  spv_size_t rounded = vsize * ((mpzspm->sp_num + vsize - 1) / vsize);
-  spv_size_t alloc = 2 * cols * (rows - 1) * rounded;
-  spv_t res = (spv_t)sp_aligned_malloc(alloc * sizeof(sp_t));
+  spv_size_t num_batches = ((mpzspm->sp_num + vsize - 1) / vsize);
+  spv_size_t alloc = 2 * cols * (rows - 1) * vsize;
+  spv_t res = (spv_t)sp_aligned_malloc(alloc * num_batches * sizeof(sp_t));
 
-  if (rounded > mpzspm->sp_num)
-    memset(res, 0, alloc * sizeof(sp_t));
+  if (vsize * num_batches > mpzspm->sp_num)
+    memset(res, 0, alloc * num_batches * sizeof(sp_t));
 
-  for (i = 0; i < rounded; i += vsize)
+  for (i = 0; i < num_batches; i++)
     {
-      spv_t res0 = res + 2 * cols * (rows - 1) * vsize * i;
+      spv_t res0 = res + alloc * i;
 
       for (j = 0; j < vsize; j++)
 	{
-	  if (i + j < mpzspm->sp_num)
+	  if (i * vsize + j < mpzspm->sp_num)
 	    {
-	      spm_t spm = mpzspm->spm[i + j];
+	      spm_t spm = mpzspm->spm[i * vsize + j];
 	      sp_t p = spm->sp;
 	      sp_t d = spm->mul_c;
 	      sp_t primroot = spm->primroot;
@@ -294,6 +294,7 @@ alloc_twiddle_interleaved(mpzspm_t mpzspm, nttpass_t *pass,
     }
 
   pass->d.twiddle.w = res;
+  pass->d.twiddle.vsize = vsize;
   pass->d.twiddle.twiddle_size = alloc;
 }
 
@@ -349,6 +350,7 @@ alloc_twiddle_packed(mpzspm_t mpzspm, nttpass_t *pass,
     }
 
   pass->d.twiddle.w = res;
+  pass->d.twiddle.vsize = vsize;
   pass->d.twiddle.twiddle_size = alloc;
 }
 
@@ -360,24 +362,25 @@ alloc_const_interleaved(mpzspm_t mpzspm, nttpass_t * pass,
   spv_size_t i, j, k;
   const nttconfig_t * c = pass->codelet;
   uint32_t num_const = c->num_ntt_const;
-  spv_size_t rounded = vsize * ((mpzspm->sp_num + vsize - 1) / vsize);
-  spv_size_t alloc = 2 * num_const * rounded;
+  spv_size_t num_batches = (mpzspm->sp_num + vsize - 1) / vsize;
+  spv_size_t alloc = 2 * num_const * vsize;
   spv_t tmp = (spv_t)alloca(num_const * sizeof(sp_t));
 
-  pass->codelet_const = (spv_t)sp_aligned_malloc(alloc * sizeof(sp_t));
+  pass->codelet_const = (spv_t)sp_aligned_malloc(
+      				alloc * num_batches * sizeof(sp_t));
 
-  if (rounded > mpzspm->sp_num)
-    memset(pass->codelet_const, 0, alloc * sizeof(sp_t));
+  if (vsize * num_batches > mpzspm->sp_num)
+    memset(pass->codelet_const, 0, alloc * num_batches * sizeof(sp_t));
 
-  for (i = 0; i < rounded; i += vsize)
+  for (i = 0; i < num_batches; i++)
     {
-      spv_t res0 = pass->codelet_const + 2 * num_const * vsize * i;
+      spv_t res0 = pass->codelet_const + alloc * i;
 
       for (j = 0; j < vsize; j++)
 	{
-	  if (i + j < mpzspm->sp_num)
+	  if (i * vsize + j < mpzspm->sp_num)
 	    {
-	      spm_t spm = mpzspm->spm[i + j];
+	      spm_t spm = mpzspm->spm[i * vsize + j];
 	      sp_t p = spm->sp;
 	      sp_t d = spm->mul_c;
 	      sp_t primroot = spm->primroot;
@@ -396,7 +399,7 @@ alloc_const_interleaved(mpzspm_t mpzspm, nttpass_t * pass,
 	}
     }
 
-  pass->const_size = 2 * alloc;
+  pass->const_size = alloc;
 }
 
 /*-------------------------------------------------------------------------*/
@@ -439,6 +442,7 @@ uint32_t X(ntt_build_passes)(
   uint32_t i, j;
   nttdata_t *data = &mpzspm->nttdata;
   nttpass_t *passes = data->passes;
+  spv_size_t num_transforms = 1;
 
   for (i = 0; i < plans->num_plans; i++)
     {
@@ -461,14 +465,15 @@ uint32_t X(ntt_build_passes)(
 
       pass->pass_type = plan->pass_type;
       pass->codelet = c;
+      pass->num_transforms = num_transforms;
 
       switch (plan->pass_type)
 	{
 	  case PASS_TYPE_DIRECT:
-	    pass->d.direct.num_transforms = ntt_size / plan->codelet_size;
 	    break;
 
 	  case PASS_TYPE_PFA:
+	    pass->d.pfa.ntt_size = ntt_size;
 	    pass->d.pfa.cofactor = ntt_size / plan->codelet_size;
 	    break;
 
@@ -477,7 +482,7 @@ uint32_t X(ntt_build_passes)(
 	      spv_size_t cols = ntt_size / plan->codelet_size;
 	      spv_size_t rows = plan->codelet_size;
 
-	      pass->d.twiddle.num_transforms = cols;
+	      pass->num_transforms = cols;
 	      pass->d.twiddle.stride = cols;
 
 	      if (mpzspm->interleaved)
@@ -487,8 +492,8 @@ uint32_t X(ntt_build_passes)(
 		alloc_twiddle_packed(mpzspm, pass, rows, cols, 
 		    			g->vsize, max_ntt_size);
 
-	      if (plans->plans[i+1].pass_type != PASS_TYPE_DIRECT)
-		ntt_size = cols;
+	      num_transforms = rows;
+	      ntt_size = cols;
 	      break;
 	    }
 	}
@@ -516,41 +521,39 @@ ntt_run_packed(nttdata_t *d, spv_t x, sp_t p,
       case PASS_TYPE_DIRECT:
 	curr_pass->codelet->ntt_run(
 	    		x, 1, curr_pass->codelet->size,
-	    		x, 1, curr_pass->codelet->size,
-			curr_pass->d.direct.num_transforms,
+			curr_pass->num_transforms,
 			p, curr_pass->codelet_const + 
 				id * curr_pass->const_size);
 	return;
 
       case PASS_TYPE_PFA:
 	for (i = pass; i < d->num_passes; i++)
-	  curr_pass[i].codelet->ntt_pfa_run(
-	    		x, curr_pass[i].d.pfa.cofactor,
-			p, curr_pass[i].codelet_const + 
-				id * curr_pass[i].const_size);
+	  {
+	    curr_pass = d->passes + i;
+	    curr_pass->codelet->ntt_pfa_run(
+	    		x, 1, curr_pass->d.pfa.ntt_size,
+			curr_pass->num_transforms,
+			p, curr_pass->d.pfa.cofactor,
+			curr_pass->codelet_const + 
+				id * curr_pass->const_size);
+	  }
 	return;
     }
 
   curr_pass->codelet->ntt_twiddle_run(
 		x, curr_pass->d.twiddle.stride, 1,
-		x, curr_pass->d.twiddle.stride, 1,
-		curr_pass->d.twiddle.w +
-			id * curr_pass->d.twiddle.twiddle_size,
-		curr_pass->d.twiddle.num_transforms,
+		curr_pass->num_transforms,
 		p, curr_pass->codelet_const +
-			id * curr_pass->const_size);
+			id * curr_pass->const_size,
+		curr_pass->d.twiddle.w +
+			id * curr_pass->d.twiddle.twiddle_size);
 
-  /* if next pass is direct type, handle all the twiddle
-     rows at once, otherwise recurse */
+  /* recurse on the rows; if the next pass doesn't use twiddle
+     factors, handle all the rows at once */
 
-  if (curr_pass[1].pass_type == PASS_TYPE_DIRECT)
+  if (curr_pass[1].pass_type != PASS_TYPE_TWIDDLE)
     {
-      curr_pass[1].codelet->ntt_run(
-	    		x, 1, curr_pass[1].codelet->size,
-	    		x, 1, curr_pass[1].codelet->size,
-			curr_pass[1].d.direct.num_transforms,
-			p, curr_pass[1].codelet_const +
-				id * curr_pass[1].const_size);
+      ntt_run_packed(d, x, p, id, pass + 1);
     }
   else
     {

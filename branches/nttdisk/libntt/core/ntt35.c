@@ -848,20 +848,6 @@ ntt35_run_core(spv_t in, spv_size_t istride,
   }
 }
 
-
-static void
-ntt35_run(spv_t in, spv_size_t istride, spv_size_t idist,
-    		spv_t out, spv_size_t ostride, spv_size_t odist,
-    		spv_size_t num_transforms, sp_t p, spv_t ntt_const)
-{
-  spv_size_t i = 0;
-
-  for (; i < num_transforms; i++)
-    ntt35_run_core(in + i * idist, istride, 
-                out + i * odist, ostride, p, ntt_const);
-}
-
-
 static void
 ntt35_twiddle_run_core(spv_t in, spv_size_t istride,
 		spv_t out, spv_size_t ostride,
@@ -1739,21 +1725,6 @@ ntt35_twiddle_run_core(spv_t in, spv_size_t istride,
     out[34 * ostride] = p2;
   }
 }
-
-
-static void
-ntt35_twiddle_run(spv_t in, spv_size_t istride, spv_size_t idist,
-    			spv_t out, spv_size_t ostride, spv_size_t odist,
-    			spv_t w, spv_size_t num_transforms, sp_t p, spv_t ntt_const)
-{
-  spv_size_t i = 0, j = 0;
-
-  for (; i < num_transforms; i++, j += 2*(35-1))
-    ntt35_twiddle_run_core(in + i * idist, istride, 
-			out + i * odist, ostride,
-			w + j, p, ntt_const);
-}
-
 
 static void
 ntt35_pfa_run_core(spv_t x, spv_size_t start,
@@ -2634,31 +2605,4 @@ ntt35_pfa_run_core(spv_t x, spv_size_t start,
   }
 }
 
-
-static void
-ntt35_pfa_run(spv_t x, spv_size_t cofactor,
-	  sp_t p, spv_t ntt_const)
-{
-  spv_size_t i = 0;
-  spv_size_t incstart = 0;
-  spv_size_t n = 35 * cofactor;
-  spv_size_t inc = cofactor;
-  spv_size_t inc2 = 35;
-
-  for (; i < cofactor; i++, incstart += inc2)
-    ntt35_pfa_run_core(x, incstart, inc, n, p, ntt_const);
-
-}
-
-
-const nttconfig_t X(ntt35_config) = 
-{
-  35,
-  NC,
-  ntt35_fixed_const,
-  X(ntt35_init),
-  ntt35_run,
-  ntt35_pfa_run,
-  ntt35_twiddle_run
-};
-
+DECLARE_CORE_ROUTINES(35)

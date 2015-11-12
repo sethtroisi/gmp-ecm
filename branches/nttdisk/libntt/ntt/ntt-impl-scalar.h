@@ -171,6 +171,74 @@ extern const nttconfig_t X(ntt16_config);
 extern const nttconfig_t X(ntt35_config);
 extern const nttconfig_t X(ntt40_config);
 
+/* code generator */
+
+#define DECLARE_CORE_ROUTINES(N)				\
+static void							\
+ntt##N##_run(							\
+    	spv_t in, spv_size_t stride, spv_size_t dist,		\
+    	spv_size_t num_transforms, sp_t p, 			\
+	spv_t ntt_const)					\
+{								\
+  spv_size_t i;							\
+								\
+  for (i = 0; i < num_transforms; i++)				\
+    ntt##N##_run_core(in + i * dist, stride, 			\
+                in + i * dist, stride, p, ntt_const);		\
+}								\
+								\
+static void							\
+ntt##N##_twiddle_run(						\
+    	spv_t in, spv_size_t stride, spv_size_t dist,		\
+    	spv_size_t num_transforms, sp_t p, 			\
+	spv_t ntt_const, spv_t w)				\
+{								\
+  spv_size_t i, j;						\
+								\
+  for (i = j = 0; i < num_transforms; i++, j += 2*((N)-1))	\
+    ntt##N##_twiddle_run_core(in + i * dist, stride, 		\
+			in + i * dist, stride,			\
+			w + j, p, ntt_const);			\
+}								\
+								\
+static void							\
+ntt##N##_pfa_run(						\
+	spv_t in, spv_size_t stride, spv_size_t dist,		\
+    	spv_size_t num_transforms, sp_t p, 			\
+	spv_size_t cofactor, spv_t ntt_const)			\
+{								\
+  spv_size_t i, j;						\
+  spv_size_t inc = cofactor * stride;				\
+  spv_size_t inc2 = (N) * stride;				\
+  spv_size_t ntt_size = (N) * cofactor * stride;		\
+								\
+  for (i = 0; i < num_transforms; i++)				\
+    {								\
+      spv_size_t incstart = 0;					\
+								\
+      for (j = 0; j < cofactor; j++, incstart += inc2)		\
+	ntt##N##_pfa_run_core(in + i * dist, incstart, inc, 	\
+	    			ntt_size, p, ntt_const);	\
+    }								\
+}								\
+								\
+const nttconfig_t X(ntt##N##_config) = 				\
+{								\
+  N,								\
+  NC,								\
+  ntt##N##_fixed_const,						\
+  X(ntt##N##_init),						\
+								\
+  ntt##N##_run,							\
+  ntt##N##_pfa_run,						\
+  ntt##N##_twiddle_run,						\
+								\
+  NULL,								\
+  NULL,								\
+  NULL								\
+};
+
+
 #ifdef __cplusplus
 }
 #endif

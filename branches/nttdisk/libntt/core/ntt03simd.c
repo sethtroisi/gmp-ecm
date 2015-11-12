@@ -39,27 +39,6 @@ ntt3_run_core_simd(spv_t in, spv_size_t istride, spv_size_t idist,
   sp_simd_scatter(t2, out + 2 * ostride, odist, vsize);
 }
 
-
-static void
-ntt3_run_simd(spv_t in, spv_size_t istride, spv_size_t idist,
-    		spv_t out, spv_size_t ostride, spv_size_t odist,
-    		spv_size_t num_transforms, sp_t p, spv_t ntt_const)
-{
-  spv_size_t i = 0;
-  spv_size_t num_simd = SP_SIMD_VSIZE * (num_transforms / SP_SIMD_VSIZE);
-
-  for (; i < num_simd; i += SP_SIMD_VSIZE)
-    ntt3_run_core_simd(in + i * idist, istride, idist, 
-                        out + i * odist, ostride, odist, p, 
-			ntt_const, SP_SIMD_VSIZE);
-
-  if (i < num_transforms)
-    ntt3_run_core_simd(in + i * idist, istride, idist, 
-                        out + i * odist, ostride, odist, p, 
-			ntt_const, num_transforms - i);
-}
-
-
 static void
 ntt3_twiddle_run_core_simd(
         spv_t in, spv_size_t istride, spv_size_t idist,
@@ -94,32 +73,6 @@ ntt3_twiddle_run_core_simd(
   sp_simd_scatter(t1, out + 1 * ostride, odist, vsize);
   sp_simd_scatter(t2, out + 2 * ostride, odist, vsize);
 }
-
-
-static void
-ntt3_twiddle_run_simd(spv_t in, spv_size_t istride, spv_size_t idist,
-    			spv_t out, spv_size_t ostride, spv_size_t odist,
-    			spv_t w, spv_size_t num_transforms, sp_t p, spv_t ntt_const)
-{
-  spv_size_t i = 0, j = 0;
-  spv_size_t num_simd = SP_SIMD_VSIZE * (num_transforms / SP_SIMD_VSIZE);
-
-  for (; i < num_simd; i += SP_SIMD_VSIZE,
-		  	j += 2*(3-1)*SP_SIMD_VSIZE)
-    ntt3_twiddle_run_core_simd(
-		in + i * idist, istride, idist,
-		out + i * odist, ostride, odist,
-		(sp_simd_t *)(w + j), p, 
-		ntt_const, SP_SIMD_VSIZE);
-
-  if (i < num_transforms)
-    ntt3_twiddle_run_core_simd(
-		in + i * idist, istride, idist,
-		out + i * odist, ostride, odist,
-		(sp_simd_t *)(w + j), p, 
-		ntt_const, num_transforms - i);
-}
-
 
 static void
 ntt3_pfa_run_core_simd(spv_t x, spv_size_t start,
@@ -157,39 +110,4 @@ ntt3_pfa_run_core_simd(spv_t x, spv_size_t start,
   sp_simd_pfa_scatter(t2, x, j2, inc2, n, vsize);
 }
 
-
-static void
-ntt3_pfa_run_simd(spv_t x, spv_size_t cofactor,
-	  sp_t p, spv_t ntt_const)
-{
-  spv_size_t i = 0;
-  spv_size_t incstart = 0;
-  spv_size_t n = 3 * cofactor;
-  spv_size_t inc = cofactor;
-  spv_size_t inc2 = 3;
-  spv_size_t num_simd = SP_SIMD_VSIZE * (cofactor / SP_SIMD_VSIZE);
-
-  for (i = 0; i < num_simd; i += SP_SIMD_VSIZE)
-    {
-      ntt3_pfa_run_core_simd(x, incstart, inc, inc2, n, p, 
-	  			ntt_const, SP_SIMD_VSIZE);
-      incstart += SP_SIMD_VSIZE * inc2;
-    }
-
-  if (i < cofactor)
-    ntt3_pfa_run_core_simd(x, incstart, inc, inc2, n, p, 
-	 		  ntt_const, cofactor - i);
-}
-
-
-const nttconfig_t V(ntt3simd_config) = 
-{
-  3,
-  NC,
-  ntt3_fixed_const,
-  X(ntt3_init),
-  ntt3_run_simd,
-  ntt3_pfa_run_simd,
-  ntt3_twiddle_run_simd
-};
-
+DECLARE_CORE_ROUTINES_SIMD(3)

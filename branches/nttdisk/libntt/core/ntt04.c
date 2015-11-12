@@ -46,20 +46,6 @@ ntt4_run_core(spv_t in, spv_size_t istride,
   out[3 * ostride] = p3;
 }
 
-
-static void
-ntt4_run(spv_t in, spv_size_t istride, spv_size_t idist,
-    		spv_t out, spv_size_t ostride, spv_size_t odist,
-    		spv_size_t num_transforms, sp_t p, spv_t ntt_const)
-{
-  spv_size_t i = 0;
-
-  for (; i < num_transforms; i++)
-    ntt4_run_core(in + i * idist, istride, 
-                out + i * odist, ostride, p, ntt_const);
-}
-
-
 static void
 ntt4_twiddle_run_core(spv_t in, spv_size_t istride,
 		spv_t out, spv_size_t ostride,
@@ -94,19 +80,6 @@ ntt4_twiddle_run_core(spv_t in, spv_size_t istride,
   out[1 * ostride] = p2;
   out[2 * ostride] = p1;
   out[3 * ostride] = p3;
-}
-
-static void
-ntt4_twiddle_run(spv_t in, spv_size_t istride, spv_size_t idist,
-    			spv_t out, spv_size_t ostride, spv_size_t odist,
-    			spv_t w, spv_size_t num_transforms, sp_t p, spv_t ntt_const)
-{
-  spv_size_t i = 0, j = 0;
-
-  for (; i < num_transforms; i++, j += 2*(4-1))
-    ntt4_twiddle_run_core(in + i * idist, istride, 
-			out + i * odist, ostride,
-			w + j, p, ntt_const);
 }
 
 static void
@@ -148,29 +121,4 @@ ntt4_pfa_run_core(spv_t x, spv_size_t start,
   x[j3] = p3;
 }
 
-static void
-ntt4_pfa_run(spv_t x, spv_size_t cofactor,
-	  sp_t p, spv_t ntt_const)
-{
-  spv_size_t i = 0;
-  spv_size_t incstart = 0;
-  spv_size_t n = 4 * cofactor;
-  spv_size_t inc = cofactor;
-  spv_size_t inc2 = 4;
-
-  for (; i < cofactor; i++, incstart += inc2)
-    ntt4_pfa_run_core(x, incstart, inc, n, p, ntt_const);
-}
-
-
-const nttconfig_t X(ntt4_config) = 
-{
-  4,
-  NC,
-  ntt4_fixed_const,
-  X(ntt4_init),
-  ntt4_run,
-  ntt4_pfa_run,
-  ntt4_twiddle_run
-};
-
+DECLARE_CORE_ROUTINES(4)

@@ -15,17 +15,41 @@ typedef void (*nttdata_init_t)(spv_t out,
 				sp_t primroot, sp_t order,
 				sp_t perm);
 
-typedef void (*ntt_run_t)(spv_t in, spv_size_t istride, spv_size_t idist,
-    			spv_t out, spv_size_t ostride, spv_size_t odist,
-    			spv_size_t num_transforms, sp_t p, spv_t ntt_const);
+/* packed transforms */
 
-typedef void (*ntt_pfa_run_t)(spv_t x, spv_size_t cofactor, 
-			  sp_t p, spv_t ntt_const);
+typedef void (*ntt_run_t)(
+    			spv_t in, spv_size_t stride, spv_size_t dist,
+    			spv_size_t num_transforms, sp_t p, 
+			spv_t ntt_const);
+
+typedef void (*ntt_pfa_run_t)(
+    			spv_t in, spv_size_t stride, spv_size_t dist,
+    			spv_size_t num_transforms, sp_t p, 
+			spv_size_t cofactor, spv_t ntt_const);
 
 typedef void (*ntt_twiddle_run_t)(
-    			spv_t in, spv_size_t istride, spv_size_t idist,
-    			spv_t out, spv_size_t ostride, spv_size_t odist,
-    			spv_t w, spv_size_t num_transforms, sp_t p, spv_t ntt_const);
+    			spv_t in, spv_size_t stride, spv_size_t dist,
+    			spv_size_t num_transforms, sp_t p, 
+			spv_t ntt_const, spv_t w);
+
+/* interleaved transforms */
+
+typedef void (*ntt_run_interleaved_t)(
+    			spv_t in, spv_size_t stride, spv_size_t dist,
+    			spv_size_t num_transforms, spv_t p, 
+			spv_size_t vsize, spv_t ntt_const);
+
+typedef void (*ntt_pfa_run_interleaved_t)(
+    			spv_t in, spv_size_t stride, spv_size_t dist,
+    			spv_size_t num_transforms, spv_t p, 
+			spv_size_t vsize, spv_t ntt_const,
+			spv_size_t cofactor);
+
+typedef void (*ntt_twiddle_run_interleaved_t)(
+    			spv_t in, spv_size_t stride, spv_size_t dist,
+    			spv_size_t num_transforms, spv_t p, 
+			spv_size_t vsize, spv_t ntt_const,
+			spv_t w);
 
 typedef struct
 {
@@ -33,9 +57,14 @@ typedef struct
   uint32_t num_ntt_const;
   const uint8_t *fixed_ntt_const;
   nttdata_init_t nttdata_init;
+
   ntt_run_t ntt_run;
   ntt_pfa_run_t ntt_pfa_run;
   ntt_twiddle_run_t ntt_twiddle_run;
+
+  ntt_run_interleaved_t ntt_run_interleaved;
+  ntt_pfa_run_interleaved_t ntt_pfa_run_interleaved;
+  ntt_twiddle_run_interleaved_t ntt_twiddle_run_interleaved;
 } nttconfig_t;
 
 /* a group of transforms that share the same compiler optimizations,
@@ -81,24 +110,25 @@ typedef struct
   const nttconfig_t *codelet;
   spv_t codelet_const;
   spv_size_t const_size;
+  spv_size_t num_transforms;
 
   union
   {
     struct
     {
-      spv_size_t num_transforms;
     } direct;
 
     struct
     {
+      spv_size_t ntt_size;
       spv_size_t cofactor;
     } pfa;
 
     struct
     {
-      spv_size_t num_transforms;
       spv_size_t stride;
       spv_size_t twiddle_size;
+      spv_size_t vsize;
       spv_t w;
     } twiddle;
 
