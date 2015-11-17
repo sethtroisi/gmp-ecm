@@ -81,7 +81,7 @@ ntt2_twiddle_run_core_simd_interleaved(
   p0 = sp_ntt_add_simd0(x0, x1, p);
   p1 = sp_ntt_sub_partial_simd0(x0, x1, p);
 
-  p1 = sp_ntt_twiddle_mul_simd_core(p1, sp_simd_load(w+0), sp_simd_load(w+1), p);
+  p1 = sp_ntt_twiddle_mul_simd0(p1, w+0, p);
 
   sp_simd_store(p0, out + 0 * ostride);
   sp_simd_store(p1, out + 1 * ostride);

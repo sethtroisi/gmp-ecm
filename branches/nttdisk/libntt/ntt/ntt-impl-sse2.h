@@ -519,8 +519,10 @@ static INLINE sp_simd_t sp_ntt_sub_partial_simd0(sp_simd_t a, sp_simd_t b, sp_si
 
 ATTRIBUTE_ALWAYS_INLINE
 static INLINE sp_simd_t sp_ntt_mul_simd_core(
-				sp_simd_t a, sp_simd_t vw, 
-                sp_simd_t vwi, sp_simd_t vp)
+		sp_simd_t a, 
+		sp_simd_t vw, sp_simd_t vw2,
+		sp_simd_t vwi, sp_simd_t vwi2, 
+		sp_simd_t vp, sp_simd_t vp2)
 {
 #if SP_TYPE_BITS == 32
 
@@ -528,15 +530,15 @@ static INLINE sp_simd_t sp_ntt_mul_simd_core(
 
   t0 = pmuludq(a, vwi);
   t1 = pshufd(a, 0x31);
-  t2 = pmuludq(t1, vwi);
+  t2 = pmuludq(t1, vwi2);
 
   t3 = pmuludq(a, vw);
-  t1 = pmuludq(t1, vw);
+  t1 = pmuludq(t1, vw2);
 
   t0 = psrlq(t0, 32);
   t2 = psrlq(t2, 32);
   t0 = pmuludq(t0, vp);
-  t2 = pmuludq(t2, vp);
+  t2 = pmuludq(t2, vp2);
 
   t3 = psubq(t3, t0);
   t1 = psubq(t1, t2);
@@ -556,10 +558,6 @@ static INLINE sp_simd_t sp_ntt_mul_simd_core(
   sp_simd_t t0, t1, t2, t3, t4, t5;
 
   sp_simd_t vmask = pshufd(pcvt_i32(0xffffffff), 0x44);
-
-  sp_simd_t vp2 = pshufd(vp, 0x55);
-  sp_simd_t vw2 = pshufd(vw, 0xf5);
-  sp_simd_t vwi2 = pshufd(vwi, 0xf5);
   sp_simd_t a2 = pshufd(a, 0xf5);
 
   t0 = pmuludq(a, vwi);
@@ -617,15 +615,21 @@ static INLINE sp_simd_t sp_ntt_mul_simd(
 
   return sp_ntt_mul_simd_core(a, 
                         pshufd(pcvt_i32(w), 0x00),
+                        pshufd(pcvt_i32(w), 0x00),
                         pshufd(pcvt_i32(w_inv), 0x00),
+                        pshufd(pcvt_i32(w_inv), 0x00),
+                        pshufd(pcvt_i32(p), 0x00),
                         pshufd(pcvt_i32(p), 0x00));
 
 #elif GMP_LIMB_BITS == 32
 
   return sp_ntt_mul_simd_core(a,
                         pshufd(pcvt_i64(w), 0x44),
+                        pshufd(pcvt_i64(w), 0x55),
                         pshufd(pcvt_i64(w_inv), 0x44),
-                        pshufd(pcvt_i64(p), 0x44));
+                        pshufd(pcvt_i64(w_inv), 0x55),
+                        pshufd(pcvt_i64(p), 0x44),
+                        pshufd(pcvt_i64(p), 0x55));
 
 #else
 
@@ -648,97 +652,51 @@ static INLINE sp_simd_t sp_ntt_mul_simd(
 }
 
 ATTRIBUTE_ALWAYS_INLINE
-static INLINE sp_simd_t sp_ntt_twiddle_mul_simd_core(
-                    sp_simd_t a, sp_simd_t vw, 
-                    sp_simd_t vwi, sp_simd_t vp)
+static INLINE sp_simd_t sp_ntt_mul_simd0(
+				sp_simd_t a, sp_simd_t *c, sp_simd_t p)
 {
 #if SP_TYPE_BITS == 32
 
-  sp_simd_t t0, t1, t2, t3;
-  sp_simd_t vw2 = pshufd(vw, 0x31);
-  sp_simd_t vwi2 = pshufd(vwi, 0x31);
+  return sp_ntt_mul_simd_core(a, 
+                        pload(c),
+                        pshufd(pload(c), 0x31),
+                        pload(c+1),
+                        pshufd(pload(c+1), 0x31),
+                        p,
+                        pshufd(p, 0x31));
 
-  t0 = pmuludq(a, vwi);
-  t1 = pshufd(a, 0x31);
-  t2 = pmuludq(t1, vwi2);
+#elif GMP_LIMB_BITS == 32
 
-  t3 = pmuludq(a, vw);
-  t1 = pmuludq(t1, vw2);
-
-  t0 = psrlq(t0, 32);
-  t2 = psrlq(t2, 32);
-  t0 = pmuludq(t0, vp);
-  t2 = pmuludq(t2, vp);
-
-  t3 = psubq(t3, t0);
-  t1 = psubq(t1, t2);
-
-  t3 = pshufd(t3, 0x08);
-  t1 = pshufd(t1, 0x08);
-  t3 = punpcklo32(t3, t1);
-
-  #ifdef HAVE_PARTIAL_MOD
-  return t3;
-  #else
-  return sp_ntt_sub_simd_core(t3, vp, vp);
-  #endif
-
-#elif GMP_LIMB_BITS == 32   /* 64-bit sp_t on a 32-bit machine */
-
-  sp_simd_t t0, t1, t2, t3, t4, t5;
-
-  sp_simd_t vmask = pshufd(pcvt_i32(0xffffffff), 0x44);
-  sp_simd_t vp2 = pshufd(vp, 0x55);
-  sp_simd_t vw2 = pshufd(vw, 0xf5);
-  sp_simd_t vwi2 = pshufd(vwi, 0xf5);
-  sp_simd_t a2 = pshufd(a, 0xf5);
-
-  t0 = pmuludq(a, vwi);
-  t1 = pmuludq(a, vwi2);
-  t2 = pmuludq(a2, vwi);
-  t3 = pmuludq(a2, vwi2);
-
-  t0 = psrlq(t0, 32);
-  t4 = pand(t1, vmask);
-  t1 = psrlq(t1, 32);
-  t5 = pand(t2, vmask);
-  t2 = psrlq(t2, 32);
-
-  t5 = paddq(t5, t0);
-  t5 = paddq(t5, t4);
-  t5 = psrlq(t5, 32);
-  t3 = paddq(t3, t1);
-  t3 = paddq(t3, t2);
-  t3 = paddq(t3, t5);  /* t3 = hi64(a * winv) */
-
-  t0 = pmuludq(a, vw);
-  t1 = pmuludq(a, vw2);
-  t2 = pmuludq(a2, vw);
-
-  t2 = paddq(t2, t1);
-  t2 = psllq(t2, 32);
-  t2 = paddq(t2, t0); /* t2 = lo64(a * w) */
-
-  t0 = pshufd(t3, 0xf5);
-  t1 = pmuludq(t3, vp);
-  t4 = pmuludq(t3, vp2);
-  t5 = pmuludq(t0, vp);
-
-  t5 = paddq(t5, t4);
-  t5 = psllq(t5, 32);
-  t1 = paddq(t1, t5); /* t1 = lo64(t3 * p) */
-
-  t2 = psubq(t2, t1);
-  #ifdef HAVE_PARTIAL_MOD
-  return t2;
-  #else
-  return sp_ntt_sub_simd_core(t2, vp, vp);
-  #endif
+  return sp_ntt_mul_simd_core(a,
+                        pload(c),
+                        pshufd(pload(c), 0xf5),
+                        pload(c+1),
+                        pshufd(pload(c+1), 0xf5),
+                        p,
+                        pshufd(p, 0xf5));
 
 #else
-	/* not supported, don't call */
+
+  /* use CPU 64-bit multiplier */
+
+  sp_simd_t t0, t1;
+  sp_t a0, a1;
+  sp_t *pscalar = (sp_t *)&p;
+  sp_t *cscalar = (sp_t *)c;
+
+  pstore_i64(a0, a);
+  pstore_i64(a1, pshufd(a, 0x0e));
+
+  a0 = sp_ntt_mul(a0, cscalar[0], cscalar[2], p[0]);
+  a1 = sp_ntt_mul(a1, cscalar[1], cscalar[3], p[1]);
+
+  t0 = pcvt_i64(a0);
+  t1 = pcvt_i64(a1);
+  return punpcklo64(t0, t1);
+
 #endif
 }
+
 
 ATTRIBUTE_ALWAYS_INLINE
 static INLINE sp_simd_t sp_ntt_twiddle_mul_simd(sp_simd_t a, 
@@ -746,13 +704,24 @@ static INLINE sp_simd_t sp_ntt_twiddle_mul_simd(sp_simd_t a,
 {
 #if SP_TYPE_BITS == 32
 
-  return sp_ntt_twiddle_mul_simd_core(a, pload(w), pload(w + 1),
-                            pshufd(pcvt_i32(p), 0x00));
+  return sp_ntt_mul_simd_core(a, 
+                        pload(w),
+                        pshufd(pload(w), 0x31),
+                        pload(w+1),
+                        pshufd(pload(w+1), 0x31),
+                        pshufd(pcvt_i32(p), 0x00),
+                        pshufd(pcvt_i32(p), 0x00));
 
 #elif GMP_LIMB_BITS == 32
 
-  return sp_ntt_twiddle_mul_simd_core(a, pload(w), pload(w + 1),
-                            pshufd(pcvt_i64(p), 0x44));
+  return sp_ntt_mul_simd_core(a, 
+                        pload(w),
+                        pshufd(pload(w), 0xf5),
+                        pload(w+1),
+                        pshufd(pload(w+1), 0xf5),
+                        pshufd(pcvt_i64(p), 0x44),
+                        pshufd(pcvt_i64(p), 0x55));
+
 #else
 
   /* use CPU 64-bit multiplier */
@@ -772,6 +741,13 @@ static INLINE sp_simd_t sp_ntt_twiddle_mul_simd(sp_simd_t a,
   return punpcklo64(t0, t1);
 
 #endif
+}
+
+ATTRIBUTE_ALWAYS_INLINE
+static INLINE sp_simd_t sp_ntt_twiddle_mul_simd0(
+				sp_simd_t a, sp_simd_t *c, sp_simd_t p)
+{
+  return sp_ntt_mul_simd0(a, c, p);
 }
 
 #ifdef __cplusplus

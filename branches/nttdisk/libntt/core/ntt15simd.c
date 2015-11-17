@@ -361,11 +361,11 @@ ntt15_run_core_simd_interleaved(
 
     b0 = sp_ntt_add_simd0(b0, b1, p);
 
-    b1 = sp_ntt_mul_simd_core(b1, sp_simd_load(c+2*1), sp_simd_load(c+2*1+1), p);
-    b2 = sp_ntt_mul_simd_core(b2, sp_simd_load(c+2*2), sp_simd_load(c+2*2+1), p);
-    b3 = sp_ntt_mul_simd_core(b3, sp_simd_load(c+2*3), sp_simd_load(c+2*3+1), p);
-    b4 = sp_ntt_mul_simd_core(b4, sp_simd_load(c+2*4), sp_simd_load(c+2*4+1), p);
-    b5 = sp_ntt_mul_simd_core(b5, sp_simd_load(c+2*5), sp_simd_load(c+2*5+1), p);
+    b1 = sp_ntt_mul_simd0(b1, c+2*1, p);
+    b2 = sp_ntt_mul_simd0(b2, c+2*2, p);
+    b3 = sp_ntt_mul_simd0(b3, c+2*3, p);
+    b4 = sp_ntt_mul_simd0(b4, c+2*4, p);
+    b5 = sp_ntt_mul_simd0(b5, c+2*5, p);
 
     b1 = sp_ntt_add_simd0(b0, b1, p);
 
@@ -408,12 +408,12 @@ ntt15_run_core_simd_interleaved(
 
     b0 = sp_ntt_add_partial_simd0(b0, b1, p);
 
-    b0 = sp_ntt_mul_simd_core(b0, sp_simd_load(c+2*6), sp_simd_load(c+2*6+1), p);
-    b1 = sp_ntt_mul_simd_core(b1, sp_simd_load(c+2*7), sp_simd_load(c+2*7+1), p);
-    b2 = sp_ntt_mul_simd_core(b2, sp_simd_load(c+2*8), sp_simd_load(c+2*8+1), p);
-    b3 = sp_ntt_mul_simd_core(b3, sp_simd_load(c+2*9), sp_simd_load(c+2*9+1), p);
-    b4 = sp_ntt_mul_simd_core(b4, sp_simd_load(c+2*10), sp_simd_load(c+2*10+1), p);
-    b5 = sp_ntt_mul_simd_core(b5, sp_simd_load(c+2*11), sp_simd_load(c+2*11+1), p);
+    b0 = sp_ntt_mul_simd0(b0, c+2*6, p);
+    b1 = sp_ntt_mul_simd0(b1, c+2*7, p);
+    b2 = sp_ntt_mul_simd0(b2, c+2*8, p);
+    b3 = sp_ntt_mul_simd0(b3, c+2*9, p);
+    b4 = sp_ntt_mul_simd0(b4, c+2*10, p);
+    b5 = sp_ntt_mul_simd0(b5, c+2*11, p);
 
     b1 = sp_ntt_add_simd0(b0, b1, p);
 
@@ -457,12 +457,12 @@ ntt15_run_core_simd_interleaved(
 
     b0 = sp_ntt_add_partial_simd0(b0, b1, p);
 
-    b0 = sp_ntt_mul_simd_core(b0, sp_simd_load(c+2*12), sp_simd_load(c+2*12+1), p);
-    b1 = sp_ntt_mul_simd_core(b1, sp_simd_load(c+2*13), sp_simd_load(c+2*13+1), p);
-    b2 = sp_ntt_mul_simd_core(b2, sp_simd_load(c+2*14), sp_simd_load(c+2*14+1), p);
-    b3 = sp_ntt_mul_simd_core(b3, sp_simd_load(c+2*15), sp_simd_load(c+2*15+1), p);
-    b4 = sp_ntt_mul_simd_core(b4, sp_simd_load(c+2*16), sp_simd_load(c+2*16+1), p);
-    b5 = sp_ntt_mul_simd_core(b5, sp_simd_load(c+2*17), sp_simd_load(c+2*17+1), p);
+    b0 = sp_ntt_mul_simd0(b0, c+2*12, p);
+    b1 = sp_ntt_mul_simd0(b1, c+2*13, p);
+    b2 = sp_ntt_mul_simd0(b2, c+2*14, p);
+    b3 = sp_ntt_mul_simd0(b3, c+2*15, p);
+    b4 = sp_ntt_mul_simd0(b4, c+2*16, p);
+    b5 = sp_ntt_mul_simd0(b5, c+2*17, p);
 
     b1 = sp_ntt_add_simd0(b0, b1, p);
 
@@ -923,11 +923,11 @@ ntt15_twiddle_run_core_simd_interleaved(
 
     b0 = sp_ntt_add_simd0(b0, b1, p);
 
-    b1 = sp_ntt_mul_simd_core(b1, sp_simd_load(c+2*1), sp_simd_load(c+2*1+1), p);
-    b2 = sp_ntt_mul_simd_core(b2, sp_simd_load(c+2*2), sp_simd_load(c+2*2+1), p);
-    b3 = sp_ntt_mul_simd_core(b3, sp_simd_load(c+2*3), sp_simd_load(c+2*3+1), p);
-    b4 = sp_ntt_mul_simd_core(b4, sp_simd_load(c+2*4), sp_simd_load(c+2*4+1), p);
-    b5 = sp_ntt_mul_simd_core(b5, sp_simd_load(c+2*5), sp_simd_load(c+2*5+1), p);
+    b1 = sp_ntt_mul_simd0(b1, c+2*1, p);
+    b2 = sp_ntt_mul_simd0(b2, c+2*2, p);
+    b3 = sp_ntt_mul_simd0(b3, c+2*3, p);
+    b4 = sp_ntt_mul_simd0(b4, c+2*4, p);
+    b5 = sp_ntt_mul_simd0(b5, c+2*5, p);
 
     b1 = sp_ntt_add_simd0(b0, b1, p);
 
@@ -970,12 +970,12 @@ ntt15_twiddle_run_core_simd_interleaved(
 
     b0 = sp_ntt_add_partial_simd0(b0, b1, p);
 
-    b0 = sp_ntt_mul_simd_core(b0, sp_simd_load(c+2*6), sp_simd_load(c+2*6+1), p);
-    b1 = sp_ntt_mul_simd_core(b1, sp_simd_load(c+2*7), sp_simd_load(c+2*7+1), p);
-    b2 = sp_ntt_mul_simd_core(b2, sp_simd_load(c+2*8), sp_simd_load(c+2*8+1), p);
-    b3 = sp_ntt_mul_simd_core(b3, sp_simd_load(c+2*9), sp_simd_load(c+2*9+1), p);
-    b4 = sp_ntt_mul_simd_core(b4, sp_simd_load(c+2*10), sp_simd_load(c+2*10+1), p);
-    b5 = sp_ntt_mul_simd_core(b5, sp_simd_load(c+2*11), sp_simd_load(c+2*11+1), p);
+    b0 = sp_ntt_mul_simd0(b0, c+2*6, p);
+    b1 = sp_ntt_mul_simd0(b1, c+2*7, p);
+    b2 = sp_ntt_mul_simd0(b2, c+2*8, p);
+    b3 = sp_ntt_mul_simd0(b3, c+2*9, p);
+    b4 = sp_ntt_mul_simd0(b4, c+2*10, p);
+    b5 = sp_ntt_mul_simd0(b5, c+2*11, p);
 
     b1 = sp_ntt_add_simd0(b0, b1, p);
 
@@ -1019,12 +1019,12 @@ ntt15_twiddle_run_core_simd_interleaved(
 
     b0 = sp_ntt_add_partial_simd0(b0, b1, p);
 
-    b0 = sp_ntt_mul_simd_core(b0, sp_simd_load(c+2*12), sp_simd_load(c+2*12+1), p);
-    b1 = sp_ntt_mul_simd_core(b1, sp_simd_load(c+2*13), sp_simd_load(c+2*13+1), p);
-    b2 = sp_ntt_mul_simd_core(b2, sp_simd_load(c+2*14), sp_simd_load(c+2*14+1), p);
-    b3 = sp_ntt_mul_simd_core(b3, sp_simd_load(c+2*15), sp_simd_load(c+2*15+1), p);
-    b4 = sp_ntt_mul_simd_core(b4, sp_simd_load(c+2*16), sp_simd_load(c+2*16+1), p);
-    b5 = sp_ntt_mul_simd_core(b5, sp_simd_load(c+2*17), sp_simd_load(c+2*17+1), p);
+    b0 = sp_ntt_mul_simd0(b0, c+2*12, p);
+    b1 = sp_ntt_mul_simd0(b1, c+2*13, p);
+    b2 = sp_ntt_mul_simd0(b2, c+2*14, p);
+    b3 = sp_ntt_mul_simd0(b3, c+2*15, p);
+    b4 = sp_ntt_mul_simd0(b4, c+2*16, p);
+    b5 = sp_ntt_mul_simd0(b5, c+2*17, p);
 
     b1 = sp_ntt_add_simd0(b0, b1, p);
 
@@ -1053,8 +1053,8 @@ ntt15_twiddle_run_core_simd_interleaved(
     x01 = sp_ntt_add_partial_simd0(a01, a02, p);
     x02 = sp_ntt_sub_partial_simd0(a01, a02, p);
 
-    x02 = sp_ntt_twiddle_mul_simd_core(x02, sp_simd_load(w+8), sp_simd_load(w+8+1), p);
-    x01 = sp_ntt_twiddle_mul_simd_core(x01, sp_simd_load(w+18), sp_simd_load(w+18+1), p);
+    x02 = sp_ntt_twiddle_mul_simd0(x02, w+8, p);
+    x01 = sp_ntt_twiddle_mul_simd0(x01, w+18, p);
 
     sp_simd_store(x00, out +  0 * ostride);
     sp_simd_store(x02, out +  5 * ostride);
@@ -1069,9 +1069,9 @@ ntt15_twiddle_run_core_simd_interleaved(
     x04 = sp_ntt_add_partial_simd0(a04, a05, p);
     x05 = sp_ntt_sub_partial_simd0(a04, a05, p);
 
-    x04 = sp_ntt_twiddle_mul_simd_core(x04, sp_simd_load(w+0), sp_simd_load(w+0+1), p);
-    x03 = sp_ntt_twiddle_mul_simd_core(x03, sp_simd_load(w+10), sp_simd_load(w+10+1), p);
-    x05 = sp_ntt_twiddle_mul_simd_core(x05, sp_simd_load(w+20), sp_simd_load(w+20+1), p);
+    x04 = sp_ntt_twiddle_mul_simd0(x04, w+0, p);
+    x03 = sp_ntt_twiddle_mul_simd0(x03, w+10, p);
+    x05 = sp_ntt_twiddle_mul_simd0(x05, w+20, p);
 
     sp_simd_store(x04, out +  1 * ostride);
     sp_simd_store(x03, out +  6 * ostride);
@@ -1086,9 +1086,9 @@ ntt15_twiddle_run_core_simd_interleaved(
     x07 = sp_ntt_add_partial_simd0(a07, a08, p);
     x08 = sp_ntt_sub_partial_simd0(a07, a08, p);
 
-    x08 = sp_ntt_twiddle_mul_simd_core(x08, sp_simd_load(w+2), sp_simd_load(w+2+1), p);
-    x07 = sp_ntt_twiddle_mul_simd_core(x07, sp_simd_load(w+12), sp_simd_load(w+12+1), p);
-    x06 = sp_ntt_twiddle_mul_simd_core(x06, sp_simd_load(w+22), sp_simd_load(w+22+1), p);
+    x08 = sp_ntt_twiddle_mul_simd0(x08, w+2, p);
+    x07 = sp_ntt_twiddle_mul_simd0(x07, w+12, p);
+    x06 = sp_ntt_twiddle_mul_simd0(x06, w+22, p);
 
     sp_simd_store(x08, out +  2 * ostride);
     sp_simd_store(x07, out +  7 * ostride);
@@ -1103,9 +1103,9 @@ ntt15_twiddle_run_core_simd_interleaved(
     x10 = sp_ntt_add_partial_simd0(a10, a11, p);
     x11 = sp_ntt_sub_partial_simd0(a10, a11, p);
 
-    x09 = sp_ntt_twiddle_mul_simd_core(x09, sp_simd_load(w+4), sp_simd_load(w+4+1), p);
-    x11 = sp_ntt_twiddle_mul_simd_core(x11, sp_simd_load(w+14), sp_simd_load(w+14+1), p);
-    x10 = sp_ntt_twiddle_mul_simd_core(x10, sp_simd_load(w+24), sp_simd_load(w+24+1), p);
+    x09 = sp_ntt_twiddle_mul_simd0(x09, w+4, p);
+    x11 = sp_ntt_twiddle_mul_simd0(x11, w+14, p);
+    x10 = sp_ntt_twiddle_mul_simd0(x10, w+24, p);
 
     sp_simd_store(x09, out +  3 * ostride);
     sp_simd_store(x11, out +  8 * ostride);
@@ -1120,9 +1120,9 @@ ntt15_twiddle_run_core_simd_interleaved(
     x13 = sp_ntt_add_partial_simd0(a13, a14, p);
     x14 = sp_ntt_sub_partial_simd0(a13, a14, p);
 
-    x13 = sp_ntt_twiddle_mul_simd_core(x13, sp_simd_load(w+6), sp_simd_load(w+6+1), p);
-    x12 = sp_ntt_twiddle_mul_simd_core(x12, sp_simd_load(w+16), sp_simd_load(w+16+1), p);
-    x14 = sp_ntt_twiddle_mul_simd_core(x14, sp_simd_load(w+26), sp_simd_load(w+26+1), p);
+    x13 = sp_ntt_twiddle_mul_simd0(x13, w+6, p);
+    x12 = sp_ntt_twiddle_mul_simd0(x12, w+16, p);
+    x14 = sp_ntt_twiddle_mul_simd0(x14, w+26, p);
 
     sp_simd_store(x13, out +  4 * ostride);
     sp_simd_store(x12, out +  9 * ostride);
@@ -1524,11 +1524,11 @@ ntt15_pfa_run_core_simd_interleaved(
 
     b0 = sp_ntt_add_simd0(b0, b1, p);
 
-    b1 = sp_ntt_mul_simd_core(b1, sp_simd_load(c+2*1), sp_simd_load(c+2*1+1), p);
-    b2 = sp_ntt_mul_simd_core(b2, sp_simd_load(c+2*2), sp_simd_load(c+2*2+1), p);
-    b3 = sp_ntt_mul_simd_core(b3, sp_simd_load(c+2*3), sp_simd_load(c+2*3+1), p);
-    b4 = sp_ntt_mul_simd_core(b4, sp_simd_load(c+2*4), sp_simd_load(c+2*4+1), p);
-    b5 = sp_ntt_mul_simd_core(b5, sp_simd_load(c+2*5), sp_simd_load(c+2*5+1), p);
+    b1 = sp_ntt_mul_simd0(b1, c+2*1, p);
+    b2 = sp_ntt_mul_simd0(b2, c+2*2, p);
+    b3 = sp_ntt_mul_simd0(b3, c+2*3, p);
+    b4 = sp_ntt_mul_simd0(b4, c+2*4, p);
+    b5 = sp_ntt_mul_simd0(b5, c+2*5, p);
 
     b1 = sp_ntt_add_simd0(b0, b1, p);
 
@@ -1571,12 +1571,12 @@ ntt15_pfa_run_core_simd_interleaved(
 
     b0 = sp_ntt_add_partial_simd0(b0, b1, p);
 
-    b0 = sp_ntt_mul_simd_core(b0, sp_simd_load(c+2*6), sp_simd_load(c+2*6+1), p);
-    b1 = sp_ntt_mul_simd_core(b1, sp_simd_load(c+2*7), sp_simd_load(c+2*7+1), p);
-    b2 = sp_ntt_mul_simd_core(b2, sp_simd_load(c+2*8), sp_simd_load(c+2*8+1), p);
-    b3 = sp_ntt_mul_simd_core(b3, sp_simd_load(c+2*9), sp_simd_load(c+2*9+1), p);
-    b4 = sp_ntt_mul_simd_core(b4, sp_simd_load(c+2*10), sp_simd_load(c+2*10+1), p);
-    b5 = sp_ntt_mul_simd_core(b5, sp_simd_load(c+2*11), sp_simd_load(c+2*11+1), p);
+    b0 = sp_ntt_mul_simd0(b0, c+2*6, p);
+    b1 = sp_ntt_mul_simd0(b1, c+2*7, p);
+    b2 = sp_ntt_mul_simd0(b2, c+2*8, p);
+    b3 = sp_ntt_mul_simd0(b3, c+2*9, p);
+    b4 = sp_ntt_mul_simd0(b4, c+2*10, p);
+    b5 = sp_ntt_mul_simd0(b5, c+2*11, p);
 
     b1 = sp_ntt_add_simd0(b0, b1, p);
 
@@ -1620,12 +1620,12 @@ ntt15_pfa_run_core_simd_interleaved(
 
     b0 = sp_ntt_add_partial_simd0(b0, b1, p);
 
-    b0 = sp_ntt_mul_simd_core(b0, sp_simd_load(c+2*12), sp_simd_load(c+2*12+1), p);
-    b1 = sp_ntt_mul_simd_core(b1, sp_simd_load(c+2*13), sp_simd_load(c+2*13+1), p);
-    b2 = sp_ntt_mul_simd_core(b2, sp_simd_load(c+2*14), sp_simd_load(c+2*14+1), p);
-    b3 = sp_ntt_mul_simd_core(b3, sp_simd_load(c+2*15), sp_simd_load(c+2*15+1), p);
-    b4 = sp_ntt_mul_simd_core(b4, sp_simd_load(c+2*16), sp_simd_load(c+2*16+1), p);
-    b5 = sp_ntt_mul_simd_core(b5, sp_simd_load(c+2*17), sp_simd_load(c+2*17+1), p);
+    b0 = sp_ntt_mul_simd0(b0, c+2*12, p);
+    b1 = sp_ntt_mul_simd0(b1, c+2*13, p);
+    b2 = sp_ntt_mul_simd0(b2, c+2*14, p);
+    b3 = sp_ntt_mul_simd0(b3, c+2*15, p);
+    b4 = sp_ntt_mul_simd0(b4, c+2*16, p);
+    b5 = sp_ntt_mul_simd0(b5, c+2*17, p);
 
     b1 = sp_ntt_add_simd0(b0, b1, p);
 

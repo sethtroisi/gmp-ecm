@@ -497,7 +497,7 @@ uint32_t X(ntt_build_passes)(
 	    }
 	}
 
-      if (mpzspm->interleaved)
+      if (mpzspm->interleaved && g->vsize > 1)
 	alloc_const_interleaved(mpzspm, pass, g->vsize, max_ntt_size);
       else
 	alloc_const_packed(mpzspm, pass, max_ntt_size);
