@@ -111,6 +111,7 @@ typedef struct
   spv_t codelet_const;
   spv_size_t const_size;
   spv_size_t num_transforms;
+  spv_size_t vsize;
 
   union
   {
@@ -128,7 +129,6 @@ typedef struct
     {
       spv_size_t stride;
       spv_size_t twiddle_size;
-      spv_size_t vsize;
       spv_t w;
     } twiddle;
 

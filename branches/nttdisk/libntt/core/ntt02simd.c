@@ -27,6 +27,25 @@ ntt2_run_core_simd(spv_t in, spv_size_t istride, spv_size_t idist,
 }
 
 static void
+ntt2_run_core_simd_interleaved(
+        spv_t in, spv_size_t istride,
+		spv_t out, spv_size_t ostride,
+		sp_simd_t p, sp_simd_t * c)
+{
+  sp_simd_t p0, p1;
+  sp_simd_t x0, x1;
+
+  x0 = sp_simd_load(in + 0 * istride);
+  x1 = sp_simd_load(in + 1 * istride);
+
+  p0 = sp_ntt_add_simd0(x0, x1, p);
+  p1 = sp_ntt_sub_simd0(x0, x1, p);
+
+  sp_simd_store(p0, out + 0 * ostride);
+  sp_simd_store(p1, out + 1 * ostride);
+}
+
+static void
 ntt2_twiddle_run_core_simd(
         spv_t in, spv_size_t istride, spv_size_t idist,
 		spv_t out, spv_size_t ostride, spv_size_t odist,
@@ -45,6 +64,27 @@ ntt2_twiddle_run_core_simd(
 
   sp_simd_scatter(p0, out + 0 * ostride, odist, vsize);
   sp_simd_scatter(p1, out + 1 * ostride, odist, vsize);
+}
+
+static void
+ntt2_twiddle_run_core_simd_interleaved(
+        spv_t in, spv_size_t istride,
+		spv_t out, spv_size_t ostride,
+		sp_simd_t *w, sp_simd_t p, sp_simd_t * c)
+{
+  sp_simd_t p0, p1;
+  sp_simd_t x0, x1;
+
+  x0 = sp_simd_load(in + 0 * istride);
+  x1 = sp_simd_load(in + 1 * istride);
+
+  p0 = sp_ntt_add_simd0(x0, x1, p);
+  p1 = sp_ntt_sub_partial_simd0(x0, x1, p);
+
+  p1 = sp_ntt_twiddle_mul_simd_core(p1, sp_simd_load(w+0), sp_simd_load(w+1), p);
+
+  sp_simd_store(p0, out + 0 * ostride);
+  sp_simd_store(p1, out + 1 * ostride);
 }
 
 
@@ -68,6 +108,30 @@ ntt2_pfa_run_core_simd(spv_t x, spv_size_t start,
 
   sp_simd_pfa_scatter(p0, x, j0, inc2, n, vsize);
   sp_simd_pfa_scatter(p1, x, j1, inc2, n, vsize);
+}
+
+
+static void
+ntt2_pfa_run_core_simd_interleaved(
+          spv_t x, spv_size_t start,
+	  spv_size_t inc, spv_size_t n,
+	  sp_simd_t p, sp_simd_t * c)
+{
+  spv_size_t j0, j1;
+  sp_simd_t p0, p1;
+  sp_simd_t x0, x1;
+
+  j0 = start;
+  j1 = sp_array_inc(j0, inc, n);
+
+  x0 = sp_simd_load(x + j0);
+  x1 = sp_simd_load(x + j1);
+
+  p0 = sp_ntt_add_simd0(x0, x1, p);
+  p1 = sp_ntt_sub_simd0(x0, x1, p);
+
+  sp_simd_store(p0, x + j0);
+  sp_simd_store(p1, x + j1);
 }
 
 DECLARE_CORE_ROUTINES_SIMD(2)

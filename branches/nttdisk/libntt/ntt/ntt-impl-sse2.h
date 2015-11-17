@@ -55,6 +55,8 @@ extern "C" {
 typedef __m128i sp_simd_t;
 
 
+#define sp_simd_load(x) pload(x)
+
 static INLINE sp_simd_t sp_simd_gather(spv_t x, spv_size_t dist,
     					spv_size_t vsize)
 {
@@ -184,6 +186,8 @@ static INLINE sp_simd_t sp_simd_pfa_gather(spv_t x, spv_size_t start_off,
 
 #endif
 }
+
+#define sp_simd_store(t, x) pstore(t, x)
 
 static INLINE void sp_simd_scatter(sp_simd_t t, spv_t x, spv_size_t dist,
     					spv_size_t vsize)
@@ -380,6 +384,19 @@ static INLINE sp_simd_t sp_ntt_add_simd(sp_simd_t a, sp_simd_t b, sp_t p)
 #endif
 }
 
+static INLINE sp_simd_t sp_ntt_add_simd0(sp_simd_t a, sp_simd_t b, sp_simd_t p)
+{
+  #ifdef HAVE_PARTIAL_MOD
+    #if SP_TYPE_BITS == 32
+    p = paddd(p, p);
+    #else
+    p = paddq(p, p);
+    #endif
+  #endif
+
+  return sp_ntt_add_simd_core(a, b, p);
+}
+
 static INLINE sp_simd_t sp_ntt_add_partial_simd(sp_simd_t a, sp_simd_t b, sp_t p)
 {
   #ifdef HAVE_PARTIAL_MOD
@@ -392,6 +409,19 @@ static INLINE sp_simd_t sp_ntt_add_partial_simd(sp_simd_t a, sp_simd_t b, sp_t p
 #else
 			pshufd(pcvt_i64(p), 0x44));
 #endif
+}
+
+static INLINE sp_simd_t sp_ntt_add_partial_simd0(sp_simd_t a, sp_simd_t b, sp_simd_t p)
+{
+  #ifdef HAVE_PARTIAL_MOD
+    #if SP_TYPE_BITS == 32
+    p = paddd(p, p);
+    #else
+    p = paddq(p, p);
+    #endif
+  #endif
+
+  return sp_ntt_add_partial_simd_core(a, b, p);
 }
 
 static INLINE sp_simd_t sp_ntt_sub_simd_core(
@@ -446,6 +476,19 @@ static INLINE sp_simd_t sp_ntt_sub_simd(sp_simd_t a, sp_simd_t b, sp_t p)
 #endif
 }
 
+static INLINE sp_simd_t sp_ntt_sub_simd0(sp_simd_t a, sp_simd_t b, sp_simd_t p)
+{
+  #ifdef HAVE_PARTIAL_MOD
+    #if SP_TYPE_BITS == 32
+    p = paddd(p, p);
+    #else
+    p = paddq(p, p);
+    #endif
+  #endif
+
+  return sp_ntt_sub_simd_core(a, b, p);
+}
+
 static INLINE sp_simd_t sp_ntt_sub_partial_simd(sp_simd_t a, sp_simd_t b, sp_t p)
 {
   #ifdef HAVE_PARTIAL_MOD
@@ -458,6 +501,19 @@ static INLINE sp_simd_t sp_ntt_sub_partial_simd(sp_simd_t a, sp_simd_t b, sp_t p
 #else
 			pshufd(pcvt_i64(p), 0x44));
 #endif
+}
+
+static INLINE sp_simd_t sp_ntt_sub_partial_simd0(sp_simd_t a, sp_simd_t b, sp_simd_t p)
+{
+  #ifdef HAVE_PARTIAL_MOD
+    #if SP_TYPE_BITS == 32
+    p = paddd(p, p);
+    #else
+    p = paddq(p, p);
+    #endif
+  #endif
+
+  return sp_ntt_sub_partial_simd_core(a, b, p);
 }
 
 
@@ -566,7 +622,7 @@ static INLINE sp_simd_t sp_ntt_mul_simd(
 
 #elif GMP_LIMB_BITS == 32
 
-  return sp_ntt_mul_simd_core(
+  return sp_ntt_mul_simd_core(a,
                         pshufd(pcvt_i64(w), 0x44),
                         pshufd(pcvt_i64(w_inv), 0x44),
                         pshufd(pcvt_i64(p), 0x44));

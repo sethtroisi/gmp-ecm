@@ -278,6 +278,277 @@ ntt15_run_core_simd(spv_t in, spv_size_t istride, spv_size_t idist,
   }
 }
 
+static void
+ntt15_run_core_simd_interleaved(
+		spv_t in, spv_size_t istride,
+		spv_t out, spv_size_t ostride,
+		sp_simd_t p, sp_simd_t * c)
+{
+  sp_simd_t a00, a01, a02, a03, a04, 
+            a05, a06, a07, a08, a09, 
+            a10, a11, a12, a13, a14;
+
+  {
+    sp_simd_t x00 = sp_simd_load(in + 0 * istride);
+    sp_simd_t x01 = sp_simd_load(in + 5 * istride);
+    sp_simd_t x02 = sp_simd_load(in +10 * istride);
+
+    a01 = sp_ntt_add_simd0(x01, x02, p);
+    a02 = sp_ntt_sub_simd0(x01, x02, p);
+
+    a00 = sp_ntt_add_simd0(x00, a01, p);
+  }
+  {
+    sp_simd_t x03 = sp_simd_load(in + 3 * istride);
+    sp_simd_t x04 = sp_simd_load(in + 8 * istride);
+    sp_simd_t x05 = sp_simd_load(in +13 * istride);
+
+    a04 = sp_ntt_add_simd0(x04, x05, p);
+    a05 = sp_ntt_sub_simd0(x04, x05, p);
+
+    a03 = sp_ntt_add_simd0(x03, a04, p);
+  }
+  {
+    sp_simd_t x08 = sp_simd_load(in + 1 * istride);
+    sp_simd_t x06 = sp_simd_load(in + 6 * istride);
+    sp_simd_t x07 = sp_simd_load(in +11 * istride);
+
+    a07 = sp_ntt_add_simd0(x07, x08, p);
+    a08 = sp_ntt_sub_simd0(x07, x08, p);
+
+    a06 = sp_ntt_add_simd0(x06, a07, p);
+  }
+  {
+    sp_simd_t x11 = sp_simd_load(in + 4 * istride);
+    sp_simd_t x09 = sp_simd_load(in + 9 * istride);
+    sp_simd_t x10 = sp_simd_load(in +14 * istride);
+
+    a10 = sp_ntt_add_simd0(x10, x11, p);
+    a11 = sp_ntt_sub_simd0(x10, x11, p);
+
+    a09 = sp_ntt_add_simd0(x09, a10, p);
+  }
+  {
+    sp_simd_t x13 = sp_simd_load(in + 2 * istride);
+    sp_simd_t x14 = sp_simd_load(in + 7 * istride);
+    sp_simd_t x12 = sp_simd_load(in +12 * istride);
+
+    a13 = sp_ntt_add_simd0(x13, x14, p);
+    a14 = sp_ntt_sub_simd0(x13, x14, p);
+
+    a12 = sp_ntt_add_simd0(x12, a13, p);
+  }
+  {
+    sp_simd_t b0, b1, b2, b3, b4, b5;
+    sp_simd_t c1, c2, c3, c4;
+
+    b0 = a00;
+    b1 = a03;
+    b4 = a06;
+    b2 = a09;
+    b3 = a12;
+
+    c1 = sp_ntt_add_simd0(b1, b3, p);
+    c3 = sp_ntt_sub_simd0(b1, b3, p);
+    c2 = sp_ntt_add_simd0(b2, b4, p);
+    c4 = sp_ntt_sub_simd0(b2, b4, p);
+
+    b1 = sp_ntt_add_simd0(c1, c2, p);
+    b2 = sp_ntt_sub_partial_simd0(c1, c2, p);
+    b3 = c3;
+    b4 = c4;
+    b5 = sp_ntt_add_partial_simd0(c3, c4, p);
+
+    b0 = sp_ntt_add_simd0(b0, b1, p);
+
+    b1 = sp_ntt_mul_simd_core(b1, sp_simd_load(c+2*1), sp_simd_load(c+2*1+1), p);
+    b2 = sp_ntt_mul_simd_core(b2, sp_simd_load(c+2*2), sp_simd_load(c+2*2+1), p);
+    b3 = sp_ntt_mul_simd_core(b3, sp_simd_load(c+2*3), sp_simd_load(c+2*3+1), p);
+    b4 = sp_ntt_mul_simd_core(b4, sp_simd_load(c+2*4), sp_simd_load(c+2*4+1), p);
+    b5 = sp_ntt_mul_simd_core(b5, sp_simd_load(c+2*5), sp_simd_load(c+2*5+1), p);
+
+    b1 = sp_ntt_add_simd0(b0, b1, p);
+
+    c1 = sp_ntt_add_simd0(b1, b2, p);
+    c2 = sp_ntt_sub_simd0(b1, b2, p);
+    c3 = sp_ntt_add_simd0(b3, b5, p);
+    c4 = sp_ntt_add_simd0(b4, b5, p);
+
+    b1 = sp_ntt_add_simd0(c1, c3, p);
+    b2 = sp_ntt_add_simd0(c2, c4, p);
+    b3 = sp_ntt_sub_simd0(c1, c3, p);
+    b4 = sp_ntt_sub_simd0(c2, c4, p);
+
+    a00 = b0;
+    a03 = b4;
+    a06 = b3;
+    a09 = b1;
+    a12 = b2;
+  }
+  {
+    sp_simd_t b0, b1, b2, b3, b4, b5;
+    sp_simd_t c1, c2, c3, c4;
+
+    b0 = a01;
+    b1 = a04;
+    b4 = a07;
+    b2 = a10;
+    b3 = a13;
+
+    c1 = sp_ntt_add_simd0(b1, b3, p);
+    c3 = sp_ntt_sub_simd0(b1, b3, p);
+    c2 = sp_ntt_add_simd0(b2, b4, p);
+    c4 = sp_ntt_sub_simd0(b2, b4, p);
+
+    b1 = sp_ntt_add_simd0(c1, c2, p);
+    b2 = sp_ntt_sub_partial_simd0(c1, c2, p);
+    b3 = c3;
+    b4 = c4;
+    b5 = sp_ntt_add_partial_simd0(c3, c4, p);
+
+    b0 = sp_ntt_add_partial_simd0(b0, b1, p);
+
+    b0 = sp_ntt_mul_simd_core(b0, sp_simd_load(c+2*6), sp_simd_load(c+2*6+1), p);
+    b1 = sp_ntt_mul_simd_core(b1, sp_simd_load(c+2*7), sp_simd_load(c+2*7+1), p);
+    b2 = sp_ntt_mul_simd_core(b2, sp_simd_load(c+2*8), sp_simd_load(c+2*8+1), p);
+    b3 = sp_ntt_mul_simd_core(b3, sp_simd_load(c+2*9), sp_simd_load(c+2*9+1), p);
+    b4 = sp_ntt_mul_simd_core(b4, sp_simd_load(c+2*10), sp_simd_load(c+2*10+1), p);
+    b5 = sp_ntt_mul_simd_core(b5, sp_simd_load(c+2*11), sp_simd_load(c+2*11+1), p);
+
+    b1 = sp_ntt_add_simd0(b0, b1, p);
+
+    c1 = sp_ntt_add_simd0(b1, b2, p);
+    c2 = sp_ntt_sub_simd0(b1, b2, p);
+    c3 = sp_ntt_add_simd0(b3, b5, p);
+    c4 = sp_ntt_add_simd0(b4, b5, p);
+
+    b1 = sp_ntt_add_simd0(c1, c3, p);
+    b2 = sp_ntt_add_simd0(c2, c4, p);
+    b3 = sp_ntt_sub_simd0(c1, c3, p);
+    b4 = sp_ntt_sub_simd0(c2, c4, p);
+
+    a01 = b0;
+    a04 = b4;
+    a07 = b3;
+    a10 = b1;
+    a13 = b2;
+  }
+
+  {
+    sp_simd_t b0, b1, b2, b3, b4, b5;
+    sp_simd_t c1, c2, c3, c4;
+
+    b0 = a02;
+    b1 = a05;
+    b4 = a08;
+    b2 = a11;
+    b3 = a14;
+
+    c1 = sp_ntt_add_simd0(b1, b3, p);
+    c3 = sp_ntt_sub_simd0(b1, b3, p);
+    c2 = sp_ntt_add_simd0(b2, b4, p);
+    c4 = sp_ntt_sub_simd0(b2, b4, p);
+
+    b1 = sp_ntt_add_simd0(c1, c2, p);
+    b2 = sp_ntt_sub_partial_simd0(c1, c2, p);
+    b3 = c3;
+    b4 = c4;
+    b5 = sp_ntt_add_partial_simd0(c3, c4, p);
+
+    b0 = sp_ntt_add_partial_simd0(b0, b1, p);
+
+    b0 = sp_ntt_mul_simd_core(b0, sp_simd_load(c+2*12), sp_simd_load(c+2*12+1), p);
+    b1 = sp_ntt_mul_simd_core(b1, sp_simd_load(c+2*13), sp_simd_load(c+2*13+1), p);
+    b2 = sp_ntt_mul_simd_core(b2, sp_simd_load(c+2*14), sp_simd_load(c+2*14+1), p);
+    b3 = sp_ntt_mul_simd_core(b3, sp_simd_load(c+2*15), sp_simd_load(c+2*15+1), p);
+    b4 = sp_ntt_mul_simd_core(b4, sp_simd_load(c+2*16), sp_simd_load(c+2*16+1), p);
+    b5 = sp_ntt_mul_simd_core(b5, sp_simd_load(c+2*17), sp_simd_load(c+2*17+1), p);
+
+    b1 = sp_ntt_add_simd0(b0, b1, p);
+
+    c1 = sp_ntt_add_simd0(b1, b2, p);
+    c2 = sp_ntt_sub_simd0(b1, b2, p);
+    c3 = sp_ntt_add_simd0(b3, b5, p);
+    c4 = sp_ntt_add_simd0(b4, b5, p);
+
+    b1 = sp_ntt_add_simd0(c1, c3, p);
+    b2 = sp_ntt_add_simd0(c2, c4, p);
+    b3 = sp_ntt_sub_simd0(c1, c3, p);
+    b4 = sp_ntt_sub_simd0(c2, c4, p);
+
+    a02 = b0;
+    a05 = b4;
+    a08 = b3;
+    a11 = b1;
+    a14 = b2;
+  }
+  {
+    sp_simd_t x00, x01, x02;
+
+    a01 = sp_ntt_add_simd0(a00, a01, p);
+
+    x00 = a00;
+    x01 = sp_ntt_add_simd0(a01, a02, p);
+    x02 = sp_ntt_sub_simd0(a01, a02, p);
+
+    sp_simd_store(x00, out +  0 * ostride);
+    sp_simd_store(x02, out +  5 * ostride);
+    sp_simd_store(x01, out + 10 * ostride);
+  }
+  {
+    sp_simd_t x03, x04, x05;
+
+    a04 = sp_ntt_add_simd0(a03, a04, p);
+
+    x03 = a03;
+    x04 = sp_ntt_add_simd0(a04, a05, p);
+    x05 = sp_ntt_sub_simd0(a04, a05, p);
+
+    sp_simd_store(x04, out +  1 * ostride);
+    sp_simd_store(x03, out +  6 * ostride);
+    sp_simd_store(x05, out + 11 * ostride);
+  }
+  {
+    sp_simd_t x06, x07, x08;
+
+    a07 = sp_ntt_add_simd0(a06, a07, p);
+
+    x06 = a06;
+    x07 = sp_ntt_add_simd0(a07, a08, p);
+    x08 = sp_ntt_sub_simd0(a07, a08, p);
+
+    sp_simd_store(x08, out +  2 * ostride);
+    sp_simd_store(x07, out +  7 * ostride);
+    sp_simd_store(x06, out + 12 * ostride);
+  }
+  {
+    sp_simd_t x09, x10, x11;
+
+    a10 = sp_ntt_add_simd0(a09, a10, p);
+
+    x09 = a09;
+    x10 = sp_ntt_add_simd0(a10, a11, p);
+    x11 = sp_ntt_sub_simd0(a10, a11, p);
+
+    sp_simd_store(x09, out +  3 * ostride);
+    sp_simd_store(x11, out +  8 * ostride);
+    sp_simd_store(x10, out + 13 * ostride);
+  }
+  {
+    sp_simd_t x12, x13, x14;
+
+    a13 = sp_ntt_add_simd0(a12, a13, p);
+
+    x12 = a12;
+    x13 = sp_ntt_add_simd0(a13, a14, p);
+    x14 = sp_ntt_sub_simd0(a13, a14, p);
+
+    sp_simd_store(x13, out +  4 * ostride);
+    sp_simd_store(x12, out +  9 * ostride);
+    sp_simd_store(x14, out + 14 * ostride);
+  }
+}
+
 
 static void
 ntt15_twiddle_run_core_simd(
@@ -569,6 +840,296 @@ ntt15_twiddle_run_core_simd(
   }
 }
 
+static void
+ntt15_twiddle_run_core_simd_interleaved(
+		spv_t in, spv_size_t istride,
+		spv_t out, spv_size_t ostride,
+		sp_simd_t *w, sp_simd_t p, sp_simd_t * c)
+{
+  sp_simd_t a00, a01, a02, a03, a04, 
+            a05, a06, a07, a08, a09, 
+            a10, a11, a12, a13, a14;
+
+  {
+    sp_simd_t x00 = sp_simd_load(in +  0 * istride);
+    sp_simd_t x01 = sp_simd_load(in +  5 * istride);
+    sp_simd_t x02 = sp_simd_load(in + 10 * istride);
+
+    a01 = sp_ntt_add_simd0(x01, x02, p);
+    a02 = sp_ntt_sub_simd0(x01, x02, p);
+
+    a00 = sp_ntt_add_simd0(x00, a01, p);
+  }
+  {
+    sp_simd_t x03 = sp_simd_load(in +  3 * istride);
+    sp_simd_t x04 = sp_simd_load(in +  8 * istride);
+    sp_simd_t x05 = sp_simd_load(in + 13 * istride);
+
+    a04 = sp_ntt_add_simd0(x04, x05, p);
+    a05 = sp_ntt_sub_simd0(x04, x05, p);
+
+    a03 = sp_ntt_add_simd0(x03, a04, p);
+  }
+  {
+    sp_simd_t x08 = sp_simd_load(in +  1 * istride);
+    sp_simd_t x06 = sp_simd_load(in +  6 * istride);
+    sp_simd_t x07 = sp_simd_load(in + 11 * istride);
+
+    a07 = sp_ntt_add_simd0(x07, x08, p);
+    a08 = sp_ntt_sub_simd0(x07, x08, p);
+
+    a06 = sp_ntt_add_simd0(x06, a07, p);
+  }
+  {
+    sp_simd_t x11 = sp_simd_load(in +  4 * istride);
+    sp_simd_t x09 = sp_simd_load(in +  9 * istride);
+    sp_simd_t x10 = sp_simd_load(in + 14 * istride);
+
+    a10 = sp_ntt_add_simd0(x10, x11, p);
+    a11 = sp_ntt_sub_simd0(x10, x11, p);
+
+    a09 = sp_ntt_add_simd0(x09, a10, p);
+  }
+  {
+    sp_simd_t x13 = sp_simd_load(in +  2 * istride);
+    sp_simd_t x14 = sp_simd_load(in +  7 * istride);
+    sp_simd_t x12 = sp_simd_load(in + 12 * istride);
+
+    a13 = sp_ntt_add_simd0(x13, x14, p);
+    a14 = sp_ntt_sub_simd0(x13, x14, p);
+
+    a12 = sp_ntt_add_simd0(x12, a13, p);
+  }
+  {
+    sp_simd_t b0, b1, b2, b3, b4, b5;
+    sp_simd_t c1, c2, c3, c4;
+
+    b0 = a00;
+    b1 = a03;
+    b4 = a06;
+    b2 = a09;
+    b3 = a12;
+
+    c1 = sp_ntt_add_simd0(b1, b3, p);
+    c3 = sp_ntt_sub_simd0(b1, b3, p);
+    c2 = sp_ntt_add_simd0(b2, b4, p);
+    c4 = sp_ntt_sub_simd0(b2, b4, p);
+
+    b1 = sp_ntt_add_simd0(c1, c2, p);
+    b2 = sp_ntt_sub_partial_simd0(c1, c2, p);
+    b3 = c3;
+    b4 = c4;
+    b5 = sp_ntt_add_partial_simd0(c3, c4, p);
+
+    b0 = sp_ntt_add_simd0(b0, b1, p);
+
+    b1 = sp_ntt_mul_simd_core(b1, sp_simd_load(c+2*1), sp_simd_load(c+2*1+1), p);
+    b2 = sp_ntt_mul_simd_core(b2, sp_simd_load(c+2*2), sp_simd_load(c+2*2+1), p);
+    b3 = sp_ntt_mul_simd_core(b3, sp_simd_load(c+2*3), sp_simd_load(c+2*3+1), p);
+    b4 = sp_ntt_mul_simd_core(b4, sp_simd_load(c+2*4), sp_simd_load(c+2*4+1), p);
+    b5 = sp_ntt_mul_simd_core(b5, sp_simd_load(c+2*5), sp_simd_load(c+2*5+1), p);
+
+    b1 = sp_ntt_add_simd0(b0, b1, p);
+
+    c1 = sp_ntt_add_simd0(b1, b2, p);
+    c2 = sp_ntt_sub_simd0(b1, b2, p);
+    c3 = sp_ntt_add_simd0(b3, b5, p);
+    c4 = sp_ntt_add_simd0(b4, b5, p);
+
+    b1 = sp_ntt_add_simd0(c1, c3, p);
+    b2 = sp_ntt_add_simd0(c2, c4, p);
+    b3 = sp_ntt_sub_simd0(c1, c3, p);
+    b4 = sp_ntt_sub_simd0(c2, c4, p);
+
+    a00 = b0;
+    a03 = b4;
+    a06 = b3;
+    a09 = b1;
+    a12 = b2;
+  }
+  {
+    sp_simd_t b0, b1, b2, b3, b4, b5;
+    sp_simd_t c1, c2, c3, c4;
+
+    b0 = a01;
+    b1 = a04;
+    b4 = a07;
+    b2 = a10;
+    b3 = a13;
+
+    c1 = sp_ntt_add_simd0(b1, b3, p);
+    c3 = sp_ntt_sub_simd0(b1, b3, p);
+    c2 = sp_ntt_add_simd0(b2, b4, p);
+    c4 = sp_ntt_sub_simd0(b2, b4, p);
+
+    b1 = sp_ntt_add_simd0(c1, c2, p);
+    b2 = sp_ntt_sub_partial_simd0(c1, c2, p);
+    b3 = c3;
+    b4 = c4;
+    b5 = sp_ntt_add_partial_simd0(c3, c4, p);
+
+    b0 = sp_ntt_add_partial_simd0(b0, b1, p);
+
+    b0 = sp_ntt_mul_simd_core(b0, sp_simd_load(c+2*6), sp_simd_load(c+2*6+1), p);
+    b1 = sp_ntt_mul_simd_core(b1, sp_simd_load(c+2*7), sp_simd_load(c+2*7+1), p);
+    b2 = sp_ntt_mul_simd_core(b2, sp_simd_load(c+2*8), sp_simd_load(c+2*8+1), p);
+    b3 = sp_ntt_mul_simd_core(b3, sp_simd_load(c+2*9), sp_simd_load(c+2*9+1), p);
+    b4 = sp_ntt_mul_simd_core(b4, sp_simd_load(c+2*10), sp_simd_load(c+2*10+1), p);
+    b5 = sp_ntt_mul_simd_core(b5, sp_simd_load(c+2*11), sp_simd_load(c+2*11+1), p);
+
+    b1 = sp_ntt_add_simd0(b0, b1, p);
+
+    c1 = sp_ntt_add_simd0(b1, b2, p);
+    c2 = sp_ntt_sub_simd0(b1, b2, p);
+    c3 = sp_ntt_add_simd0(b3, b5, p);
+    c4 = sp_ntt_add_simd0(b4, b5, p);
+
+    b1 = sp_ntt_add_simd0(c1, c3, p);
+    b2 = sp_ntt_add_simd0(c2, c4, p);
+    b3 = sp_ntt_sub_simd0(c1, c3, p);
+    b4 = sp_ntt_sub_simd0(c2, c4, p);
+
+    a01 = b0;
+    a04 = b4;
+    a07 = b3;
+    a10 = b1;
+    a13 = b2;
+  }
+
+  {
+    sp_simd_t b0, b1, b2, b3, b4, b5;
+    sp_simd_t c1, c2, c3, c4;
+
+    b0 = a02;
+    b1 = a05;
+    b4 = a08;
+    b2 = a11;
+    b3 = a14;
+
+    c1 = sp_ntt_add_simd0(b1, b3, p);
+    c3 = sp_ntt_sub_simd0(b1, b3, p);
+    c2 = sp_ntt_add_simd0(b2, b4, p);
+    c4 = sp_ntt_sub_simd0(b2, b4, p);
+
+    b1 = sp_ntt_add_simd0(c1, c2, p);
+    b2 = sp_ntt_sub_partial_simd0(c1, c2, p);
+    b3 = c3;
+    b4 = c4;
+    b5 = sp_ntt_add_partial_simd0(c3, c4, p);
+
+    b0 = sp_ntt_add_partial_simd0(b0, b1, p);
+
+    b0 = sp_ntt_mul_simd_core(b0, sp_simd_load(c+2*12), sp_simd_load(c+2*12+1), p);
+    b1 = sp_ntt_mul_simd_core(b1, sp_simd_load(c+2*13), sp_simd_load(c+2*13+1), p);
+    b2 = sp_ntt_mul_simd_core(b2, sp_simd_load(c+2*14), sp_simd_load(c+2*14+1), p);
+    b3 = sp_ntt_mul_simd_core(b3, sp_simd_load(c+2*15), sp_simd_load(c+2*15+1), p);
+    b4 = sp_ntt_mul_simd_core(b4, sp_simd_load(c+2*16), sp_simd_load(c+2*16+1), p);
+    b5 = sp_ntt_mul_simd_core(b5, sp_simd_load(c+2*17), sp_simd_load(c+2*17+1), p);
+
+    b1 = sp_ntt_add_simd0(b0, b1, p);
+
+    c1 = sp_ntt_add_simd0(b1, b2, p);
+    c2 = sp_ntt_sub_simd0(b1, b2, p);
+    c3 = sp_ntt_add_simd0(b3, b5, p);
+    c4 = sp_ntt_add_simd0(b4, b5, p);
+
+    b1 = sp_ntt_add_simd0(c1, c3, p);
+    b2 = sp_ntt_add_simd0(c2, c4, p);
+    b3 = sp_ntt_sub_simd0(c1, c3, p);
+    b4 = sp_ntt_sub_simd0(c2, c4, p);
+
+    a02 = b0;
+    a05 = b4;
+    a08 = b3;
+    a11 = b1;
+    a14 = b2;
+  }
+  {
+    sp_simd_t x00, x01, x02;
+
+    a01 = sp_ntt_add_simd0(a00, a01, p);
+
+    x00 = a00;
+    x01 = sp_ntt_add_partial_simd0(a01, a02, p);
+    x02 = sp_ntt_sub_partial_simd0(a01, a02, p);
+
+    x02 = sp_ntt_twiddle_mul_simd_core(x02, sp_simd_load(w+8), sp_simd_load(w+8+1), p);
+    x01 = sp_ntt_twiddle_mul_simd_core(x01, sp_simd_load(w+18), sp_simd_load(w+18+1), p);
+
+    sp_simd_store(x00, out +  0 * ostride);
+    sp_simd_store(x02, out +  5 * ostride);
+    sp_simd_store(x01, out + 10 * ostride);
+  }
+  {
+    sp_simd_t x03, x04, x05;
+
+    a04 = sp_ntt_add_simd0(a03, a04, p);
+
+    x03 = a03;
+    x04 = sp_ntt_add_partial_simd0(a04, a05, p);
+    x05 = sp_ntt_sub_partial_simd0(a04, a05, p);
+
+    x04 = sp_ntt_twiddle_mul_simd_core(x04, sp_simd_load(w+0), sp_simd_load(w+0+1), p);
+    x03 = sp_ntt_twiddle_mul_simd_core(x03, sp_simd_load(w+10), sp_simd_load(w+10+1), p);
+    x05 = sp_ntt_twiddle_mul_simd_core(x05, sp_simd_load(w+20), sp_simd_load(w+20+1), p);
+
+    sp_simd_store(x04, out +  1 * ostride);
+    sp_simd_store(x03, out +  6 * ostride);
+    sp_simd_store(x05, out + 11 * ostride);
+  }
+  {
+    sp_simd_t x06, x07, x08;
+
+    a07 = sp_ntt_add_simd0(a06, a07, p);
+
+    x06 = a06;
+    x07 = sp_ntt_add_partial_simd0(a07, a08, p);
+    x08 = sp_ntt_sub_partial_simd0(a07, a08, p);
+
+    x08 = sp_ntt_twiddle_mul_simd_core(x08, sp_simd_load(w+2), sp_simd_load(w+2+1), p);
+    x07 = sp_ntt_twiddle_mul_simd_core(x07, sp_simd_load(w+12), sp_simd_load(w+12+1), p);
+    x06 = sp_ntt_twiddle_mul_simd_core(x06, sp_simd_load(w+22), sp_simd_load(w+22+1), p);
+
+    sp_simd_store(x08, out +  2 * ostride);
+    sp_simd_store(x07, out +  7 * ostride);
+    sp_simd_store(x06, out + 12 * ostride);
+  }
+  {
+    sp_simd_t x09, x10, x11;
+
+    a10 = sp_ntt_add_simd0(a09, a10, p);
+
+    x09 = a09;
+    x10 = sp_ntt_add_partial_simd0(a10, a11, p);
+    x11 = sp_ntt_sub_partial_simd0(a10, a11, p);
+
+    x09 = sp_ntt_twiddle_mul_simd_core(x09, sp_simd_load(w+4), sp_simd_load(w+4+1), p);
+    x11 = sp_ntt_twiddle_mul_simd_core(x11, sp_simd_load(w+14), sp_simd_load(w+14+1), p);
+    x10 = sp_ntt_twiddle_mul_simd_core(x10, sp_simd_load(w+24), sp_simd_load(w+24+1), p);
+
+    sp_simd_store(x09, out +  3 * ostride);
+    sp_simd_store(x11, out +  8 * ostride);
+    sp_simd_store(x10, out + 13 * ostride);
+  }
+  {
+    sp_simd_t x12, x13, x14;
+
+    a13 = sp_ntt_add_simd0(a12, a13, p);
+
+    x12 = a12;
+    x13 = sp_ntt_add_partial_simd0(a13, a14, p);
+    x14 = sp_ntt_sub_partial_simd0(a13, a14, p);
+
+    x13 = sp_ntt_twiddle_mul_simd_core(x13, sp_simd_load(w+6), sp_simd_load(w+6+1), p);
+    x12 = sp_ntt_twiddle_mul_simd_core(x12, sp_simd_load(w+16), sp_simd_load(w+16+1), p);
+    x14 = sp_ntt_twiddle_mul_simd_core(x14, sp_simd_load(w+26), sp_simd_load(w+26+1), p);
+
+    sp_simd_store(x13, out +  4 * ostride);
+    sp_simd_store(x12, out +  9 * ostride);
+    sp_simd_store(x14, out + 14 * ostride);
+  }
+}
+
 
 static void
 ntt15_pfa_run_core_simd(spv_t x, spv_size_t start,
@@ -857,6 +1418,297 @@ ntt15_pfa_run_core_simd(spv_t x, spv_size_t start,
     sp_simd_pfa_scatter(x13, x, j04, inc2, n, vsize);
     sp_simd_pfa_scatter(x12, x, j09, inc2, n, vsize);
     sp_simd_pfa_scatter(x14, x, j14, inc2, n, vsize);
+  }
+}
+
+static void
+ntt15_pfa_run_core_simd_interleaved(
+	  spv_t x, spv_size_t start,
+	  spv_size_t inc, spv_size_t n,
+	  sp_simd_t p, sp_simd_t * c)
+{
+  spv_size_t j00, j01, j02, j03, j04,
+             j05, j06, j07, j08, j09,
+	     j10, j11, j12, j13, j14;
+
+  sp_simd_t a00, a01, a02, a03, a04, 
+            a05, a06, a07, a08, a09, 
+            a10, a11, a12, a13, a14;
+
+  j00 = start;
+  j01 = sp_array_inc(j00, inc, n);
+  j02 = sp_array_inc(j00, 2 * inc, n);
+  j03 = sp_array_inc(j00, 3 * inc, n);
+  j04 = sp_array_inc(j00, 4 * inc, n);
+  j05 = sp_array_inc(j00, 5 * inc, n);
+  j06 = sp_array_inc(j00, 6 * inc, n);
+  j07 = sp_array_inc(j00, 7 * inc, n);
+  j08 = sp_array_inc(j00, 8 * inc, n);
+  j09 = sp_array_inc(j00, 9 * inc, n);
+  j10 = sp_array_inc(j00, 10 * inc, n);
+  j11 = sp_array_inc(j00, 11 * inc, n);
+  j12 = sp_array_inc(j00, 12 * inc, n);
+  j13 = sp_array_inc(j00, 13 * inc, n);
+  j14 = sp_array_inc(j00, 14 * inc, n);
+
+  {
+    sp_simd_t x00 = sp_simd_load(x + j00);
+    sp_simd_t x01 = sp_simd_load(x + j05);
+    sp_simd_t x02 = sp_simd_load(x + j10);
+
+    a01 = sp_ntt_add_simd0(x01, x02, p);
+    a02 = sp_ntt_sub_simd0(x01, x02, p);
+
+    a00 = sp_ntt_add_simd0(x00, a01, p);
+  }
+  {
+    sp_simd_t x03 = sp_simd_load(x + j03);
+    sp_simd_t x04 = sp_simd_load(x + j08);
+    sp_simd_t x05 = sp_simd_load(x + j13);
+
+    a04 = sp_ntt_add_simd0(x04, x05, p);
+    a05 = sp_ntt_sub_simd0(x04, x05, p);
+
+    a03 = sp_ntt_add_simd0(x03, a04, p);
+  }
+  {
+    sp_simd_t x08 = sp_simd_load(x + j01);
+    sp_simd_t x06 = sp_simd_load(x + j06);
+    sp_simd_t x07 = sp_simd_load(x + j11);
+
+    a07 = sp_ntt_add_simd0(x07, x08, p);
+    a08 = sp_ntt_sub_simd0(x07, x08, p);
+
+    a06 = sp_ntt_add_simd0(x06, a07, p);
+  }
+  {
+    sp_simd_t x11 = sp_simd_load(x + j04);
+    sp_simd_t x09 = sp_simd_load(x + j09);
+    sp_simd_t x10 = sp_simd_load(x + j14);
+
+    a10 = sp_ntt_add_simd0(x10, x11, p);
+    a11 = sp_ntt_sub_simd0(x10, x11, p);
+
+    a09 = sp_ntt_add_simd0(x09, a10, p);
+  }
+  {
+    sp_simd_t x13 = sp_simd_load(x + j02);
+    sp_simd_t x14 = sp_simd_load(x + j07);
+    sp_simd_t x12 = sp_simd_load(x + j12);
+
+    a13 = sp_ntt_add_simd0(x13, x14, p);
+    a14 = sp_ntt_sub_simd0(x13, x14, p);
+
+    a12 = sp_ntt_add_simd0(x12, a13, p);
+  }
+  {
+    sp_simd_t b0, b1, b2, b3, b4, b5;
+    sp_simd_t c1, c2, c3, c4;
+
+    b0 = a00;
+    b1 = a03;
+    b4 = a06;
+    b2 = a09;
+    b3 = a12;
+
+    c1 = sp_ntt_add_simd0(b1, b3, p);
+    c3 = sp_ntt_sub_simd0(b1, b3, p);
+    c2 = sp_ntt_add_simd0(b2, b4, p);
+    c4 = sp_ntt_sub_simd0(b2, b4, p);
+
+    b1 = sp_ntt_add_simd0(c1, c2, p);
+    b2 = sp_ntt_sub_partial_simd0(c1, c2, p);
+    b3 = c3;
+    b4 = c4;
+    b5 = sp_ntt_add_partial_simd0(c3, c4, p);
+
+    b0 = sp_ntt_add_simd0(b0, b1, p);
+
+    b1 = sp_ntt_mul_simd_core(b1, sp_simd_load(c+2*1), sp_simd_load(c+2*1+1), p);
+    b2 = sp_ntt_mul_simd_core(b2, sp_simd_load(c+2*2), sp_simd_load(c+2*2+1), p);
+    b3 = sp_ntt_mul_simd_core(b3, sp_simd_load(c+2*3), sp_simd_load(c+2*3+1), p);
+    b4 = sp_ntt_mul_simd_core(b4, sp_simd_load(c+2*4), sp_simd_load(c+2*4+1), p);
+    b5 = sp_ntt_mul_simd_core(b5, sp_simd_load(c+2*5), sp_simd_load(c+2*5+1), p);
+
+    b1 = sp_ntt_add_simd0(b0, b1, p);
+
+    c1 = sp_ntt_add_simd0(b1, b2, p);
+    c2 = sp_ntt_sub_simd0(b1, b2, p);
+    c3 = sp_ntt_add_simd0(b3, b5, p);
+    c4 = sp_ntt_add_simd0(b4, b5, p);
+
+    b1 = sp_ntt_add_simd0(c1, c3, p);
+    b2 = sp_ntt_add_simd0(c2, c4, p);
+    b3 = sp_ntt_sub_simd0(c1, c3, p);
+    b4 = sp_ntt_sub_simd0(c2, c4, p);
+
+    a00 = b0;
+    a03 = b4;
+    a06 = b3;
+    a09 = b1;
+    a12 = b2;
+  }
+  {
+    sp_simd_t b0, b1, b2, b3, b4, b5;
+    sp_simd_t c1, c2, c3, c4;
+
+    b0 = a01;
+    b1 = a04;
+    b4 = a07;
+    b2 = a10;
+    b3 = a13;
+
+    c1 = sp_ntt_add_simd0(b1, b3, p);
+    c3 = sp_ntt_sub_simd0(b1, b3, p);
+    c2 = sp_ntt_add_simd0(b2, b4, p);
+    c4 = sp_ntt_sub_simd0(b2, b4, p);
+
+    b1 = sp_ntt_add_simd0(c1, c2, p);
+    b2 = sp_ntt_sub_partial_simd0(c1, c2, p);
+    b3 = c3;
+    b4 = c4;
+    b5 = sp_ntt_add_partial_simd0(c3, c4, p);
+
+    b0 = sp_ntt_add_partial_simd0(b0, b1, p);
+
+    b0 = sp_ntt_mul_simd_core(b0, sp_simd_load(c+2*6), sp_simd_load(c+2*6+1), p);
+    b1 = sp_ntt_mul_simd_core(b1, sp_simd_load(c+2*7), sp_simd_load(c+2*7+1), p);
+    b2 = sp_ntt_mul_simd_core(b2, sp_simd_load(c+2*8), sp_simd_load(c+2*8+1), p);
+    b3 = sp_ntt_mul_simd_core(b3, sp_simd_load(c+2*9), sp_simd_load(c+2*9+1), p);
+    b4 = sp_ntt_mul_simd_core(b4, sp_simd_load(c+2*10), sp_simd_load(c+2*10+1), p);
+    b5 = sp_ntt_mul_simd_core(b5, sp_simd_load(c+2*11), sp_simd_load(c+2*11+1), p);
+
+    b1 = sp_ntt_add_simd0(b0, b1, p);
+
+    c1 = sp_ntt_add_simd0(b1, b2, p);
+    c2 = sp_ntt_sub_simd0(b1, b2, p);
+    c3 = sp_ntt_add_simd0(b3, b5, p);
+    c4 = sp_ntt_add_simd0(b4, b5, p);
+
+    b1 = sp_ntt_add_simd0(c1, c3, p);
+    b2 = sp_ntt_add_simd0(c2, c4, p);
+    b3 = sp_ntt_sub_simd0(c1, c3, p);
+    b4 = sp_ntt_sub_simd0(c2, c4, p);
+
+    a01 = b0;
+    a04 = b4;
+    a07 = b3;
+    a10 = b1;
+    a13 = b2;
+  }
+
+  {
+    sp_simd_t b0, b1, b2, b3, b4, b5;
+    sp_simd_t c1, c2, c3, c4;
+
+    b0 = a02;
+    b1 = a05;
+    b4 = a08;
+    b2 = a11;
+    b3 = a14;
+
+    c1 = sp_ntt_add_simd0(b1, b3, p);
+    c3 = sp_ntt_sub_simd0(b1, b3, p);
+    c2 = sp_ntt_add_simd0(b2, b4, p);
+    c4 = sp_ntt_sub_simd0(b2, b4, p);
+
+    b1 = sp_ntt_add_simd0(c1, c2, p);
+    b2 = sp_ntt_sub_partial_simd0(c1, c2, p);
+    b3 = c3;
+    b4 = c4;
+    b5 = sp_ntt_add_partial_simd0(c3, c4, p);
+
+    b0 = sp_ntt_add_partial_simd0(b0, b1, p);
+
+    b0 = sp_ntt_mul_simd_core(b0, sp_simd_load(c+2*12), sp_simd_load(c+2*12+1), p);
+    b1 = sp_ntt_mul_simd_core(b1, sp_simd_load(c+2*13), sp_simd_load(c+2*13+1), p);
+    b2 = sp_ntt_mul_simd_core(b2, sp_simd_load(c+2*14), sp_simd_load(c+2*14+1), p);
+    b3 = sp_ntt_mul_simd_core(b3, sp_simd_load(c+2*15), sp_simd_load(c+2*15+1), p);
+    b4 = sp_ntt_mul_simd_core(b4, sp_simd_load(c+2*16), sp_simd_load(c+2*16+1), p);
+    b5 = sp_ntt_mul_simd_core(b5, sp_simd_load(c+2*17), sp_simd_load(c+2*17+1), p);
+
+    b1 = sp_ntt_add_simd0(b0, b1, p);
+
+    c1 = sp_ntt_add_simd0(b1, b2, p);
+    c2 = sp_ntt_sub_simd0(b1, b2, p);
+    c3 = sp_ntt_add_simd0(b3, b5, p);
+    c4 = sp_ntt_add_simd0(b4, b5, p);
+
+    b1 = sp_ntt_add_simd0(c1, c3, p);
+    b2 = sp_ntt_add_simd0(c2, c4, p);
+    b3 = sp_ntt_sub_simd0(c1, c3, p);
+    b4 = sp_ntt_sub_simd0(c2, c4, p);
+
+    a02 = b0;
+    a05 = b4;
+    a08 = b3;
+    a11 = b1;
+    a14 = b2;
+  }
+  {
+    sp_simd_t x00, x01, x02;
+
+    a01 = sp_ntt_add_simd0(a00, a01, p);
+
+    x00 = a00;
+    x01 = sp_ntt_add_simd0(a01, a02, p);
+    x02 = sp_ntt_sub_simd0(a01, a02, p);
+
+    sp_simd_store(x00, x + j00);
+    sp_simd_store(x02, x + j05);
+    sp_simd_store(x01, x + j10);
+  }
+  {
+    sp_simd_t x03, x04, x05;
+
+    a04 = sp_ntt_add_simd0(a03, a04, p);
+
+    x03 = a03;
+    x04 = sp_ntt_add_simd0(a04, a05, p);
+    x05 = sp_ntt_sub_simd0(a04, a05, p);
+
+    sp_simd_store(x04, x + j01);
+    sp_simd_store(x03, x + j06);
+    sp_simd_store(x05, x + j11);
+  }
+  {
+    sp_simd_t x06, x07, x08;
+
+    a07 = sp_ntt_add_simd0(a06, a07, p);
+
+    x06 = a06;
+    x07 = sp_ntt_add_simd0(a07, a08, p);
+    x08 = sp_ntt_sub_simd0(a07, a08, p);
+
+    sp_simd_store(x08, x + j02);
+    sp_simd_store(x07, x + j07);
+    sp_simd_store(x06, x + j12);
+  }
+  {
+    sp_simd_t x09, x10, x11;
+
+    a10 = sp_ntt_add_simd0(a09, a10, p);
+
+    x09 = a09;
+    x10 = sp_ntt_add_simd0(a10, a11, p);
+    x11 = sp_ntt_sub_simd0(a10, a11, p);
+
+    sp_simd_store(x09, x + j03);
+    sp_simd_store(x11, x + j08);
+    sp_simd_store(x10, x + j13);
+  }
+  {
+    sp_simd_t x12, x13, x14;
+
+    a13 = sp_ntt_add_simd0(a12, a13, p);
+
+    x12 = a12;
+    x13 = sp_ntt_add_simd0(a13, a14, p);
+    x14 = sp_ntt_sub_simd0(a13, a14, p);
+
+    sp_simd_store(x13, x + j04);
+    sp_simd_store(x12, x + j09);
+    sp_simd_store(x14, x + j14);
   }
 }
 

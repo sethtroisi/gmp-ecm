@@ -31,6 +31,8 @@ extern "C" {
 
 typedef __m256d sp_simd_t;
 
+#define sp_simd_load(x) pload(x)
+
 static INLINE sp_simd_t sp_simd_gather(spv_t x, spv_size_t dist,
     					spv_size_t vsize)
 {
@@ -136,6 +138,8 @@ static INLINE sp_simd_t sp_simd_pfa_gather(spv_t x, spv_size_t start_off,
 	}
     }
 }
+
+#define sp_simd_store(t, x) pstore(t, x);
 
 static INLINE void sp_simd_scatter(sp_simd_t t, spv_t x, spv_size_t dist,
     					spv_size_t vsize)
@@ -255,9 +259,19 @@ static INLINE sp_simd_t sp_ntt_add_simd(sp_simd_t a, sp_simd_t b, sp_t p)
   return sp_ntt_add_simd_core(a, b, pbroadcast(p));
 }
 
+static INLINE sp_simd_t sp_ntt_add_simd0(sp_simd_t a, sp_simd_t b, sp_simd_t p)
+{
+  return sp_ntt_add_simd_core(a, b, p);
+}
+
 static INLINE sp_simd_t sp_ntt_add_partial_simd(sp_simd_t a, sp_simd_t b, sp_t p)
 {
   return sp_ntt_add_simd_core(a, b, pbroadcast(p));
+}
+
+static INLINE sp_simd_t sp_ntt_add_partial_simd0(sp_simd_t a, sp_simd_t b, sp_simd_t p)
+{
+  return sp_ntt_add_simd_core(a, b, p);
 }
 
 static INLINE sp_simd_t sp_ntt_sub_simd_core(
@@ -273,14 +287,24 @@ static INLINE sp_simd_t sp_ntt_sub_simd(sp_simd_t a, sp_simd_t b, sp_t p)
   return sp_ntt_sub_simd_core(a, b, pbroadcast(p));
 }
 
+static INLINE sp_simd_t sp_ntt_sub_simd0(sp_simd_t a, sp_simd_t b, sp_simd_t p)
+{
+  return sp_ntt_sub_simd_core(a, b, p);
+}
+
 static INLINE sp_simd_t sp_ntt_sub_partial_simd(sp_simd_t a, sp_simd_t b, sp_t p)
 {
   return sp_ntt_sub_simd_core(a, b, pbroadcast(p));
 }
 
+static INLINE sp_simd_t sp_ntt_sub_partial_simd0(sp_simd_t a, sp_simd_t b, sp_simd_t p)
+{
+  return sp_ntt_sub_simd_core(a, b, p);
+}
+
 
 ATTRIBUTE_ALWAYS_INLINE
-static INLINE sp_simd_t sp_ntt_mul_simd_core(
+static INLINE sp_simd_t sp_ntt_mul_simd_core_recip(
 				sp_simd_t a, sp_simd_t w, sp_simd_t whi, 
 				sp_simd_t p, sp_simd_t vrecip)
 {
@@ -332,24 +356,39 @@ static INLINE sp_simd_t sp_ntt_mul_simd_core(
 }
 
 ATTRIBUTE_ALWAYS_INLINE
+static INLINE sp_simd_t sp_ntt_mul_simd_core(
+			sp_simd_t a, sp_simd_t w, 
+			sp_simd_t whi, sp_simd_t p)
+{
+  sp_simd_t vrecip = _mm256_div_pd(pbroadcast(1.0), p);
+
+  return sp_ntt_mul_simd_core_recip(a, w, whi, p, vrecip);
+}
+
+ATTRIBUTE_ALWAYS_INLINE
+static INLINE sp_simd_t sp_ntt_twiddle_mul_simd_core(
+			sp_simd_t a, sp_simd_t w, 
+			sp_simd_t whi, sp_simd_t p)
+{
+  sp_simd_t vrecip = _mm256_div_pd(pbroadcast(1.0), p);
+
+  return sp_ntt_mul_simd_core_recip(a, w, whi, p, vrecip); 
+}
+
+ATTRIBUTE_ALWAYS_INLINE
 static INLINE sp_simd_t sp_ntt_mul_simd(
 				sp_simd_t a, sp_t w, sp_t whi, sp_t p)
 {
-  return sp_ntt_mul_simd_core(a, pbroadcast(w),
+  return sp_ntt_mul_simd_core_recip(a, pbroadcast(w),
       			pbroadcast(whi), pbroadcast(p),
 			pbroadcast(1.0 / p));
 }
-
-/* twiddle multiplies get a separate SIMD version; their data
-   is assumed to reside in (aligned) memory, with twiddle factors
-   separated from their inverses, then packed into sp_simd_t vectors
-   and concatenated */
 
 ATTRIBUTE_ALWAYS_INLINE
 static INLINE sp_simd_t sp_ntt_twiddle_mul_simd(sp_simd_t a, 
 					sp_simd_t *w, sp_t p)
 {
-  return sp_ntt_mul_simd_core(a, pload(w), pload(w + 1),
+  return sp_ntt_mul_simd_core_recip(a, pload(w), pload(w+1),
       			pbroadcast(p), pbroadcast(1.0 / p));
 }
 

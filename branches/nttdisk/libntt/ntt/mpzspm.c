@@ -216,18 +216,43 @@ static void
 mpzspm_random(void * m, uint32_t ntt_size)
 {
   mpzspm_t mpzspm = (mpzspm_t)m;
-  uint32_t i;
+  uint32_t i, j, k;
 #if SP_NUMB_BITS == 50
   fpu_precision_t old_prec = 0;
   if (!fpu_precision_is_ieee())
     old_prec = fpu_set_precision_ieee();
 #endif
 
-  for (i = 0; i < mpzspm->sp_num; i++)
+  if (mpzspm->interleaved)
     {
-      sp_t p = mpzspm->spm[i]->sp;
+      spv_size_t vsize = mpzspm->max_vsize;
+      spv_size_t batches = (mpzspm->sp_num + vsize - 1) / vsize;
+      spv_t tmp = (spv_t)sp_aligned_malloc(ntt_size * sizeof(sp_t));
 
-      X(spv_random)(mpzspm->work + i * ntt_size, ntt_size, p);
+      for (i = 0; i < batches; i++)
+	{
+	  for (j = 0; j < vsize; j++)
+	    {
+	      if (i * vsize + j < mpzspm->sp_num)
+		{
+		  spm_t spm = mpzspm->spm[i * vsize + j];
+		  spv_t work = mpzspm->work + i * vsize * ntt_size;
+
+		  X(spv_random)(tmp, ntt_size, spm->sp);
+
+		  for (k = 0; k < ntt_size; k++)
+		    work[k * vsize + j] = tmp[k];
+		}
+	    }
+	}
+
+      sp_aligned_free(tmp);
+    }
+  else
+    {
+      for (i = 0; i < mpzspm->sp_num; i++)
+	X(spv_random)(mpzspm->work + i * ntt_size, 
+	      		    ntt_size, mpzspm->spm[i]->sp);
     }
 
 #if SP_NUMB_BITS == 50
@@ -274,69 +299,115 @@ bfntt(spv_t r, spv_t x, spv_size_t len,
 #endif
 }
 
+static void compare(spv_t r0, spv_t r1, sp_t p, uint32_t size)
+{
+  uint32_t j, k;
+
+#ifdef HAVE_PARTIAL_MOD
+  for (j = 0; j < size; j++)
+    while (r1[j] >= p)
+      r1[j] -= p;
+#endif
+
+  for (j = 0; j < size; j++)
+    {
+      for (k = 0; k < size; k++)
+	{
+	  if (r0[j] == r1[k])
+	    break;
+	}
+      if (k == size)
+	break;
+    }
+  printf("%c", j == size ? '.' : '*');
+}
+
 static void 
 mpzspm_test(void * m, uint32_t ntt_size, uint32_t max_ntt_size)
 {
   mpzspm_t mpzspm = (mpzspm_t)m;
-  uint32_t fail = 0;
   uint32_t i, j, k;
-  spv_t x = (spv_t)malloc(ntt_size * sizeof(sp_t));
   spv_t r = (spv_t)malloc(mpzspm->sp_num * ntt_size * sizeof(sp_t));
+  spv_t r0 = (spv_t)malloc(ntt_size * sizeof(sp_t));
 
-  for (i = 0; i < mpzspm->sp_num; i++)
+  if (mpzspm->interleaved)
     {
-      spm_t spm = mpzspm->spm[i];
-      sp_t p = spm->sp;
-      sp_t d = spm->mul_c;
-      sp_t primroot = spm->primroot;
+      spv_size_t vsize = mpzspm->max_vsize;
+      spv_size_t batches = (mpzspm->sp_num + vsize - 1) / vsize;
 
-      if (mpzspm->interleaved)
+      for (i = 0; i < batches; i++)
 	{
-	}
-      else
-	memcpy(x, mpzspm->work + i * ntt_size, 
-	    	ntt_size * sizeof(sp_t));
+	  for (j = 0; j < vsize; j++)
+	    {
+	      if (i * vsize + j < mpzspm->sp_num)
+		{
+		  spm_t spm = mpzspm->spm[i * vsize + j];
+		  sp_t p = spm->sp;
+		  sp_t d = spm->mul_c;
+		  sp_t primroot = spm->primroot;
+		  spv_t work = mpzspm->work + i * vsize * ntt_size;
 
-      bfntt(r + i * ntt_size, x, ntt_size, p, d, primroot, max_ntt_size);
+		  for (k = 0; k < ntt_size; k++)
+		    r0[k] = work[k * vsize + j];
+
+		  bfntt(r + (i * vsize + j) * ntt_size, r0,
+			ntt_size, p, d, primroot, max_ntt_size);
+		}
+	    }
+	}
+    }
+  else
+    {
+      for (i = 0; i < mpzspm->sp_num; i++)
+	{
+	  spm_t spm = mpzspm->spm[i];
+	  sp_t p = spm->sp;
+	  sp_t d = spm->mul_c;
+	  sp_t primroot = spm->primroot;
+
+    	  bfntt(r + i * ntt_size, mpzspm->work + i * ntt_size, 
+	      	ntt_size, p, d, primroot, max_ntt_size);
+	}
     }
 
   X(ntt_run)(m, NULL, ntt_size);
 
-  for (i = 0; i < mpzspm->sp_num; i++)
+  if (mpzspm->interleaved)
     {
-      spm_t spm = mpzspm->spm[i];
-      sp_t p = spm->sp;
-      spv_t r0 = r + i * ntt_size;
+      spv_size_t vsize = mpzspm->max_vsize;
+      spv_size_t batches = (mpzspm->sp_num + vsize - 1) / vsize;
 
-      if (mpzspm->interleaved)
+      for (i = 0; i < batches; i++)
 	{
-	}
-      else
-	memcpy(x, mpzspm->work + i * ntt_size, 
-	    	ntt_size * sizeof(sp_t));
-
-#ifdef HAVE_PARTIAL_MOD
-      for (j = 0; j < ntt_size; j++)
-	while (x[j] >= p)
-	  x[j] -= p;
-#endif
-
-      for (j = 0; j < ntt_size; j++)
-	{
-	  for (k = 0; k < ntt_size; k++)
+	  for (j = 0; j < vsize; j++)
 	    {
-	      if (r0[j] == x[k])
-		break;
+	      if (i * vsize + j < mpzspm->sp_num)
+		{
+		  spm_t spm = mpzspm->spm[i * vsize + j];
+		  spv_t work = mpzspm->work + i * vsize * ntt_size;
+
+		  for (k = 0; k < ntt_size; k++)
+		    r0[k] = work[k * vsize + j];
+
+		  compare(r + (i * vsize + j) * ntt_size, r0,
+			spm->sp, ntt_size);
+		}
 	    }
-	  if (k == ntt_size)
-	    break;
 	}
-      printf("%c", j == ntt_size ? '.' : '*');
+    }
+  else
+    {
+      for (i = 0; i < mpzspm->sp_num; i++)
+	{
+	  compare(r + i * ntt_size, 
+      		  mpzspm->work + i * ntt_size,
+		  mpzspm->spm[i]->sp, ntt_size);
+	}
     }
   printf(" ");
 
-  free(x);
   free(r);
+  free(r0);
 }
 
 const __nttinit_struct
