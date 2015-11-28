@@ -194,11 +194,13 @@ ntt##N##_run_interleaved(					\
 	spv_size_t vsize, spv_t ntt_const)			\
 {								\
   spv_size_t i, j;						\
+  spv_size_t alloc = 2 * NC;					\
 								\
   for (i = 0; i < num_transforms; i++)				\
     for (j = 0; j < vsize; j++)					\
       ntt##N##_run_core(in + i * dist + j, stride, 		\
-                in + i * dist + j, stride, p[j], ntt_const);	\
+                in + i * dist + j, stride, p[j], 		\
+	  	ntt_const + j * alloc);				\
 }								\
 								\
 static void							\
@@ -221,13 +223,21 @@ ntt##N##_twiddle_run_interleaved(				\
     	spv_size_t num_transforms, spv_t p, 			\
 	spv_size_t vsize, spv_t ntt_const, spv_t w)		\
 {								\
-  spv_size_t i, j, k;						\
+  spv_size_t i, j;						\
+  spv_size_t alloc = 2 * NC;					\
+  spv_size_t twiddle_alloc = 2 * ((N)-1);			\
+  spv_size_t max_twiddle_alloc = num_transforms * twiddle_alloc; \
 								\
-  for (i = j = 0; i < num_transforms; i++, j += 2*((N)-1))	\
-    for (k = 0; k < vsize; k++)					\
-      ntt##N##_twiddle_run_core(in + i * dist + k, stride,	\
-			in + i * dist + k, stride,		\
-			w + j, p[k], ntt_const);		\
+  for (j = 0; j < vsize; j++)					\
+      for (i = 0; i < num_transforms; i++)			\
+	{							\
+	  spv_t w0 = w + j * max_twiddle_alloc + i * twiddle_alloc;	\
+	  ntt##N##_twiddle_run_core(				\
+	    		in + i * dist + j, stride,		\
+			in + i * dist + j, stride,		\
+			w0, p[j], 				\
+	  		ntt_const + j * alloc);			\
+	}							\
 }								\
 								\
 static void							\
@@ -262,6 +272,7 @@ ntt##N##_pfa_run_interleaved(					\
   spv_size_t inc = cofactor * stride;				\
   spv_size_t inc2 = (N) * stride;				\
   spv_size_t ntt_size = (N) * cofactor * stride;		\
+  spv_size_t alloc = 2 * NC;					\
 								\
   for (i = 0; i < num_transforms; i++)				\
     {								\
@@ -270,7 +281,8 @@ ntt##N##_pfa_run_interleaved(					\
       for (j = 0; j < cofactor; j++, incstart += inc2)		\
 	for (k = 0; k < vsize; k++)				\
 	  ntt##N##_pfa_run_core(in + i * dist + k, incstart, 	\
-	      		inc, ntt_size, p[k], ntt_const);	\
+	      		inc, ntt_size, p[k], 			\
+	      		ntt_const + k * alloc);			\
     }								\
 }								\
 								\
