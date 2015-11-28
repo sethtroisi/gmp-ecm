@@ -668,8 +668,8 @@ static INLINE sp_simd_t sp_ntt_mul_simd0(
   pstore_i64(a0, a);
   pstore_i64(a1, pshufd(a, 0x0e));
 
-  a0 = sp_ntt_mul(a0, cscalar[0], cscalar[2], p[0]);
-  a1 = sp_ntt_mul(a1, cscalar[1], cscalar[3], p[1]);
+  a0 = sp_ntt_mul(a0, cscalar[0], cscalar[2], pscalar[0]);
+  a1 = sp_ntt_mul(a1, cscalar[1], cscalar[3], pscalar[1]);
 
   t0 = pcvt_i64(a0);
   t1 = pcvt_i64(a1);

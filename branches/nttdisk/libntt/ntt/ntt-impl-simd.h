@@ -105,15 +105,22 @@ ntt##N##_twiddle_run_simd_interleaved(				\
   spv_size_t i, j;						\
   spv_size_t alloc = 2 * NC;					\
   spv_size_t twiddle_alloc = 2 * ((N)-1);			\
+  spv_size_t max_twiddle_alloc = num_transforms * twiddle_alloc; \
 								\
-  for (i = 0; i < num_transforms; i++)				\
-    for (j = 0; j < vsize; j += SP_SIMD_VSIZE)			\
-      ntt##N##_twiddle_run_core_simd_interleaved(		\
+  for (j = 0; j < vsize; j += SP_SIMD_VSIZE)			\
+    for (i = 0; i < num_transforms; i++)			\
+      {								\
+	sp_simd_t * w0 = (sp_simd_t *)(w + 			\
+	    		j * max_twiddle_alloc +			\
+	    		SP_SIMD_VSIZE * i * twiddle_alloc);	\
+								\
+	ntt##N##_twiddle_run_core_simd_interleaved(		\
 	  		in + i * dist + j, stride,		\
 			in + i * dist + j, stride,		\
-			(sp_simd_t *)(w + j * twiddle_alloc),	\
+			w0,					\
 	  		sp_simd_load(p + j), 			\
 			(sp_simd_t *)(ntt_const + j * alloc));	\
+      }								\
 }								\
 								\
 								\
@@ -166,7 +173,7 @@ ntt##N##_pfa_run_simd_interleaved(				\
 								\
       for (j = 0; j < cofactor; j++, incstart += inc2)		\
 	for (k = 0; k < vsize; k += SP_SIMD_VSIZE)		\
-	  ntt##N##_pfa_run_core_simd_interleaved(			\
+	  ntt##N##_pfa_run_core_simd_interleaved(		\
 	      		in + i * dist + k, incstart, 		\
 	      		inc, ntt_size, sp_simd_load(p + k), 	\
 			(sp_simd_t *)(ntt_const + k * alloc));	\
