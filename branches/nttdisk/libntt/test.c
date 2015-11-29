@@ -286,6 +286,18 @@ static void test3(nttwork_t nttwork, uint32_t verify)
 	  test_core(nttwork, size, verify);
 	}
 
+      if (k < m && 
+	  gcd(codelet_sizes[k], codelet_sizes[m]) == 1)
+	{
+	  for (n = 0; n < nttwork->mpzspm_num; n++)
+	    {
+	      plan_list[n].plans[0].pass_type = PASS_TYPE_TWIDDLE;
+	      plan_list[n].plans[1].pass_type = PASS_TYPE_PFA;
+	      plan_list[n].plans[2].pass_type = PASS_TYPE_PFA;
+	    }
+	  test_core(nttwork, size, verify);
+	}
+
     }}}}
 
     }
@@ -302,7 +314,7 @@ int main(int argc, char **argv)
   uint32_t bits = 300;
   uint32_t sp_bits[4];
   uint32_t sp_bits_choices = 0;
-  uint32_t interleaved = 0;
+  uint32_t interleaved = 1;
   uint32_t verify = 0;
 
 #if GMP_LIMB_BITS == 32

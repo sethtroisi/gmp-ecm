@@ -167,12 +167,12 @@ ntt##N##_pfa_run_simd_interleaved(				\
   spv_size_t inc2 = (N) * stride;				\
   spv_size_t ntt_size = (N) * cofactor * stride;		\
 								\
-  for (i = 0; i < num_transforms; i++)				\
+  for (k = 0; k < vsize; k += SP_SIMD_VSIZE)			\
     {								\
       spv_size_t incstart = 0;					\
 								\
       for (j = 0; j < cofactor; j++, incstart += inc2)		\
-	for (k = 0; k < vsize; k += SP_SIMD_VSIZE)		\
+	for (i = 0; i < num_transforms; i++)			\
 	  ntt##N##_pfa_run_core_simd_interleaved(		\
 	      		in + i * dist + k, incstart, 		\
 	      		inc, ntt_size, sp_simd_load(p + k), 	\
