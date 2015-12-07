@@ -219,6 +219,9 @@ extern "C" {
 #define MANGLE_AVX(name) MANGLE_AVX_(name)
 #define MANGLE_AVX_(name) name##avx
 
+#define MANGLE_AVX2(name) MANGLE_AVX2_(name)
+#define MANGLE_AVX2_(name) name##avx2
+
 #define MANGLE_FMA(name) MANGLE_FMA_(name)
 #define MANGLE_FMA_(name) name##fma
 

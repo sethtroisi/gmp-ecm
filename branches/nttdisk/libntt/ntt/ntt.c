@@ -12,6 +12,9 @@ X(ntt_master_group_list)[] =
 #ifdef HAVE_AVX
   & MANGLE_AVX(X(ntt_group_simd)),
 #endif
+#ifdef HAVE_AVX2
+  & MANGLE_AVX2(X(ntt_group_simd)),
+#endif
 #ifdef HAVE_FMA
   & MANGLE_FMA(X(ntt_group_simd)),
 #endif

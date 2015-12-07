@@ -89,6 +89,7 @@ extern const nttgroup_t X(ntt_group);
 extern const nttgroup_t MANGLE_SSE2(X(ntt_group_simd));
 extern const nttgroup_t MANGLE_SSE42(X(ntt_group_simd));
 extern const nttgroup_t MANGLE_AVX(X(ntt_group_simd));
+extern const nttgroup_t MANGLE_AVX2(X(ntt_group_simd));
 extern const nttgroup_t MANGLE_FMA(X(ntt_group_simd));
 
 
