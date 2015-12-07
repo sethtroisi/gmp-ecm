@@ -10,6 +10,8 @@
 #include "ntt-impl-sse42.h"
 #elif defined(HAVE_AVX)
 #include "ntt-impl-avx.h"
+#elif defined(HAVE_FMA)
+#include "ntt-impl-fma.h"
 #endif
 
 #ifdef __cplusplus

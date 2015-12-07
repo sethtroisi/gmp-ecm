@@ -143,7 +143,7 @@ extern "C" {
     static INLINE fpu_precision_t fpu_set_precision_ieee(void) 
       {
 	fpu_precision_t old_prec, new_prec;
-	asm volatile ("fnstcw %0":"=m"(old_prec));
+	asm volatile ("fnstcw %0":"=m"(old_prec)::"memory");
 	new_prec = (old_prec & ~0x0300) | 0x0200;
 	asm volatile ("fldcw %0": :"m"(new_prec));
 	return old_prec;
@@ -157,7 +157,7 @@ extern "C" {
     static INLINE uint32_t fpu_precision_is_ieee(void) 
       {
 	fpu_precision_t prec;
-	asm volatile ("fnstcw %0":"=m"(prec));
+	asm volatile ("fnstcw %0":"=m"(prec)::"memory");
 	return ((prec & ~0x0300) == 0x0200) ? 1 : 0;
       } 
 
@@ -218,6 +218,9 @@ extern "C" {
 
 #define MANGLE_AVX(name) MANGLE_AVX_(name)
 #define MANGLE_AVX_(name) name##avx
+
+#define MANGLE_FMA(name) MANGLE_FMA_(name)
+#define MANGLE_FMA_(name) name##fma
 
 #define X(name) MANGLE_NAME(name, SP_NUMB_BITS, GMP_LIMB_BITS)
 #define SP_NAME_SUFFIX_STR MANGLE_NAME_STR(SP_NUMB_BITS, GMP_LIMB_BITS)

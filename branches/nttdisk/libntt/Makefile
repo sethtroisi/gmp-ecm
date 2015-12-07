@@ -14,6 +14,7 @@ HDR = \
 	ntt/ntt-impl-sse2.h \
 	ntt/ntt-impl-sse42.h \
 	ntt/ntt-impl-avx.h \
+	ntt/ntt-impl-fma.h \
 	ntt/ntt-impl.h \
 	ntt/sp.h
 
@@ -57,6 +58,7 @@ LIB_SRC = \
 OBJ_W32 = $(LIB_SRC:.c=.o_w32) \
 	$(NTT_SCALAR_SRC:.c=.o_sp50w32) \
 	$(NTT_SIMD_SRC:.c=.o_sp50w32avx) \
+	$(NTT_SIMD_SRC:.c=.o_sp50w32fma) \
 	$(NTT_SCALAR_SRC:.c=.o_sp30w32) \
 	$(NTT_SIMD_SRC:.c=.o_sp30w32sse2) \
 	$(NTT_SIMD_SRC:.c=.o_sp30w32sse42) \
@@ -70,6 +72,7 @@ OBJ_W32 = $(LIB_SRC:.c=.o_w32) \
 OBJ_W64 = $(LIB_SRC:.c=.o_w64) \
 	$(NTT_SCALAR_SRC:.c=.o_sp50w64) \
 	$(NTT_SIMD_SRC:.c=.o_sp50w64avx) \
+	$(NTT_SIMD_SRC:.c=.o_sp50w64fma) \
 	$(NTT_SCALAR_SRC:.c=.o_sp30w64) \
 	$(NTT_SIMD_SRC:.c=.o_sp30w64sse2) \
 	$(NTT_SIMD_SRC:.c=.o_sp30w64sse42) \
@@ -81,16 +84,22 @@ OBJ_W64 = $(LIB_SRC:.c=.o_w64) \
 	$(NTT_SIMD_SRC:.c=.o_sp62w64sse42)
 
 w64: $(OBJ_W64)
+	$(CC64) $(CFLAGS) $(OBJ_W64) test.c -o test64 -lgmp -lm
+
+w64a: $(OBJ_W64)
 	$(CC64) $(CFLAGS) $(OBJ_W64) test.c -o a64.exe \
 		../../../mpir-2.7.0/lib/x64/Release/mpir.lib \
 		../../../mpir-2.7.0/lib/x64/Release/chkstk.obj  \
 		../../../mpir-2.7.0/lib/x64/Release/runtmchk.lib -lm
 
 w32: $(OBJ_W32)
+	$(CC32) $(CFLAGS) $(OBJ_W32) test.c -o test32 -lgmp -lm
+
+w32a: $(OBJ_W32)
 	$(CC32) $(CFLAGS) $(OBJ_W32) test.c -o a32.exe -lgmp -lm
 
 clean:
-	rm -rf $(OBJ_W32) $(OBJ_W64) a32.exe a64.exe
+	rm -rf $(OBJ_W32) $(OBJ_W64) a32.exe a64.exe ./test
 
 %.o_w32: %.c $(HDR)
 	$(CC32) $(CFLAGS) -c -o $@ $<
@@ -123,10 +132,13 @@ clean:
 	$(CC32) $(CFLAGS) -DHAVE_SSE42 -DSP_NUMB_BITS=62 -c -o $@ $<
 
 %.o_sp50w32: %.c $(HDR)
-	$(CC32) $(CFLAGS) -DHAVE_AVX -DSP_NUMB_BITS=50 -c -o $@ $<
+	$(CC32) $(CFLAGS) -mno-fma -DHAVE_AVX -DHAVE_FMA -DSP_NUMB_BITS=50 -c -o $@ $<
 
 %.o_sp50w32avx: %.c $(HDR)
-	$(CC32) $(CFLAGS) -DHAVE_AVX -DSP_NUMB_BITS=50 -c -o $@ $<
+	$(CC32) $(CFLAGS) -mno-fma -DHAVE_AVX -DSP_NUMB_BITS=50 -c -o $@ $<
+
+%.o_sp50w32fma: %.c $(HDR)
+	$(CC32) $(CFLAGS) -DHAVE_FMA -DSP_NUMB_BITS=50 -c -o $@ $<
 
 
 %.o_w64: %.c $(HDR)
@@ -160,11 +172,11 @@ clean:
 	$(CC64) $(CFLAGS) -DHAVE_SSE42 -DSP_NUMB_BITS=62 -c -o $@ $<
 
 %.o_sp50w64: %.c $(HDR)
-	$(CC64) $(CFLAGS) -DHAVE_AVX -DSP_NUMB_BITS=50 -c -o $@ $<
+	$(CC64) $(CFLAGS) -mno-fma -DHAVE_AVX -DHAVE_FMA -DSP_NUMB_BITS=50 -c -o $@ $<
 
 %.o_sp50w64avx: %.c $(HDR)
-	$(CC64) $(CFLAGS) -DHAVE_AVX -DSP_NUMB_BITS=50 -S -o x.S $<
-	sed 's/vmovaps/vmovups/' x.S > y.S
-	sed 's/vmovapd/vmovupd/' y.S > z.S
-	$(CC64) $(CFLAGS) -DHAVE_AVX -DSP_NUMB_BITS=50 -c -o $@ z.S
+	$(CC64) $(CFLAGS) -mno-fma -DHAVE_AVX -DSP_NUMB_BITS=50 -c -o $@ $<
+
+%.o_sp50w64fma: %.c $(HDR)
+	$(CC64) $(CFLAGS) -DHAVE_FMA -DSP_NUMB_BITS=50 -c -o $@ $<
 
