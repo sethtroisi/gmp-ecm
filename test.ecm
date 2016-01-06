@@ -200,13 +200,13 @@ checkcode $C 14
 echo "METHOD=FOO" > test.ecm.save
 $ECM -resume test.ecm.save 174000 85880350
 C=$?
-checkcode $C 1
+checkcode $C 0
 
 # test invalid checksum
 echo "CHECKSUM=xxx" > test.ecm.save
 $ECM -resume test.ecm.save 174000 85880350
 C=$?
-checkcode $C 1
+checkcode $C 0
 
 # test comment
 echo "METHOD=P-1;X=0;N=17;B1=2;COMMENT=this is a comment;" > test.ecm.save
@@ -218,43 +218,43 @@ checkcode $C 8
 echo "PARAM=xxx" > test.ecm.save
 $ECM -resume test.ecm.save 174000 85880350
 C=$?
-checkcode $C 1
+checkcode $C 0
 
 # test invalid etype
 echo "ETYPE=xxx" > test.ecm.save
 $ECM -resume test.ecm.save 174000 85880350
 C=$?
-checkcode $C 1
+checkcode $C 0
 
 # test invalid B1
 echo "B1=xxx" > test.ecm.save
 $ECM -resume test.ecm.save 174000 85880350
 C=$?
-checkcode $C 1
+checkcode $C 0
 
 # test unknown tag
 echo "FOO=xxx" > test.ecm.save
 $ECM -resume test.ecm.save 174000 85880350
 C=$?
-checkcode $C 1
+checkcode $C 0
 
 # test semicolon after tags
 echo "METHOD=P-1;X=0;N=17;B1=2" > test.ecm.save
 $ECM -resume test.ecm.save 174000 85880350
 C=$?
-checkcode $C 1
+checkcode $C 0
 
 # test QX tag without sigma
 echo "METHOD=ECM;QX=0;N=17;B1=2;" > test.ecm.save
 $ECM -resume test.ecm.save 174000 85880350
 C=$?
-checkcode $C 1
+checkcode $C 0
 
 # test missing fields
 echo "METHOD=ECM;QX=0;N=17;" > test.ecm.save
 $ECM -resume test.ecm.save 174000 85880350
 C=$?
-checkcode $C 1
+checkcode $C 0
 
 /bin/rm -f test.ecm.save
 echo 17061648125571273329563156588435816942778260706938821014533 | $ECM -save test.ecm.save -A 22/7 -x0 1/3 -y0 2/7 1e3
@@ -265,7 +265,12 @@ checkcode $C 0
 
 $ECM -resume dummy.save 1e3
 C=$?
-checkcode $C 1
+checkcode $C 0
+
+# test a Prime95 save file, includes lines to be skipped by GMP-ECM
+$ECM -resume prime95.save 1 2e6
+C=$?
+checkcode $C 6
 
 echo 89101594496537524661600025466303491594098940711325290746374420963129505171895306244425914080753573576861992127359576789001 | $ECM -param 0 -sigma 877655087 -go 325001 157721 1032299; checkcode $? 14
 
