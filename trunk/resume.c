@@ -174,8 +174,7 @@ read_resumefile_line (int *method, mpz_t x, mpz_t y, mpcandi_t *n,
           
           if (!facceptstr (fd, "="))
             {
-              fprintf (stderr, "Error, save file line has no '=' in: %s\n",
-                       tag);
+              printf ("Resume warning, skipping line with no '=' after: %s\n", tag);
               goto error;
             }
           
@@ -380,7 +379,7 @@ read_resumefile_line (int *method, mpz_t x, mpz_t y, mpcandi_t *n,
 
       mpz_mod (x, x, n->n);
       if (have_y)
-	mpz_mod(y, y, n->n);
+        mpz_mod(y, y, n->n);
       if (have_z)	/* Must normalize */
         {
           if (!mpz_invert (z, z, n->n)) /* Factor found? */
@@ -395,13 +394,17 @@ read_resumefile_line (int *method, mpz_t x, mpz_t y, mpcandi_t *n,
 
       return 1;
       
+error:
+      /* This can occur when reading Prime95 resume files,
+         or files that have comment lines in them,
+         or files that have a problem with the save line */
+      /* In case of error, read rest of line and try next line */
+      while (!facceptnl (fd) && !feof (fd))
+        fgetc (fd);
     }
     
     /* We hit EOF without reading a proper save line */
     return 0;
-
-error:
-    exit (EXIT_FAILURE);
 }
 
 
