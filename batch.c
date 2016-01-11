@@ -288,7 +288,8 @@ ecm_stage1_batch (mpz_t f, mpres_t x, mpres_t A, mpmod_t n, double B1,
         {
           mpres_get_z (u, A, n);
           outputf (OUTPUT_ERROR,
-               "Error, d'=B*(A+2)/4 should fit in a mp_limb_t, A=%Zd\n", u);
+               "Error, 2^%d*(A+2) should fit in a mp_limb_t, A=%Zd\n",
+                   GMP_NUMB_BITS - 2, u);
           return ECM_ERROR;
         }
       d_1 = mpz_getlimbn (u, 0);
