@@ -2,8 +2,8 @@
 
 # test file for P-1 method
 #
-# Copyright 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009, 2012
-# Paul Zimmermann, Alexander Kruppa, Dave Newman, Jim Fougeron.
+# Copyright 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009, 2012, 2016
+# Paul Zimmermann, Alexander Kruppa, Dave Newman, Jim Fougeron, David Cleaver
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -126,6 +126,21 @@ echo "234^997+997^234" | $PM1 -ntt 100 324; checkcode $? 0
 
 # check go with 'N' placeholder
 echo "2^(2^12)+1" | $PM1 -go "N-1" 1e6; checkcode $? 2
+
+# excercise even number: factor 2 found in step 1
+echo 12345678 | $PM1 1e3
+
+# exercise "Error: cannot choose suitable P value for your stage 2 parameters." error message
+$PM1 -ntt 5e3 1e6-1e20 < c155; checkcode $? 1
+
+# exercise maxmem with p-1 code...
+$PM1 -v -v -v -ntt -maxmem 1 5e3 1e4-1e6 < c155; checkcode $? 0
+
+# exercise maxmem with p-1 code...
+$PM1 -v -v -v -no-ntt -maxmem 1 5e3 1e4-1e6 < c155; checkcode $? 0
+
+# exercise pm1prob with -go option
+$PM1 -v -go 1234 1e5 < c155; checkcode $? 0
 
 # check -v option
 echo 33852066257429811148979390609187539760850944806763555795340084882048986912482949506591909041130651770779842162499482875755533111808276172876211496409325473343590723224081353129229935527059488811457730702694849036693756201766866018562295004353153066430367 | $PM1 -v 19999; checkcode $? 0
