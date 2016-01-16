@@ -110,8 +110,8 @@ EXTRA_DIST = test.pm1 test.pp1 test.ecm README.lib INSTALL-ecm ecm.xml  \
              athlon/params.h x86/params.h ia64/params.h arm/params.h    \
              powerpc64/params.h powerpc32/params.h sparc64/params.h     \
              hppa/params.h mips/params.h x86_64/corei7/params.h         \
-             generic/params.h testlong.pp1 testlong.ecm M997.save M877.save \
-             dummy.save dummy2.save Z2102.n
+             generic/params.h testlong.pp1 testlong.pm1 testlong.ecm \
+             M997.save M877.save dummy.save dummy2.save Z2102.n
 
 DIST_SUBDIRS = athlon pentium4 x86_64 powerpc64 aprtcle
 
@@ -156,6 +156,7 @@ longcheck: ecm$(EXEEXT)
 	$(srcdir)/test.ecm "$(VALGRIND) ./ecm$(EXEEXT) -mpzmod"
 	$(srcdir)/test.ecm "$(VALGRIND) ./ecm$(EXEEXT) -treefile tree"
 	$(srcdir)/testlong.pp1 "$(VALGRIND) ./ecm$(EXEEXT)"
+	$(srcdir)/testlong.pm1 "$(VALGRIND) ./ecm$(EXEEXT)"
 	$(srcdir)/testlong.ecm "$(VALGRIND) ./ecm$(EXEEXT)"
 
 ## to be sure ecm.1 is considered as source

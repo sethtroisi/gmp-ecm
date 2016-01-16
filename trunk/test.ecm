@@ -2,7 +2,7 @@
 
 # test file for ECM
 #
-# Copyright 2002, 2003, 2004, 2005, 2006, 2008, 2009, 2011, 2012
+# Copyright 2002, 2003, 2004, 2005, 2006, 2008, 2009, 2011, 2012, 2016
 # Jim Fougeron, Alexander Kruppa, Dave Newman, Paul Zimmermann, Cyril Bouvier,
 # David Cleaver.
 #
@@ -263,14 +263,10 @@ C=$?
 /bin/rm -f test.ecm.save
 checkcode $C 0
 
-$ECM -resume dummy.save 1e3
-C=$?
-checkcode $C 0
+$ECM -resume dummy.save 1e3; checkcode $C 0
 
 # test a Prime95 save file, includes lines to be skipped by GMP-ECM
-$ECM -resume prime95.save 1 2e6
-C=$?
-checkcode $C 6
+$ECM -resume prime95.save 1 2e6; checkcode $C 0
 
 echo 89101594496537524661600025466303491594098940711325290746374420963129505171895306244425914080753573576861992127359576789001 | $ECM -param 0 -sigma 877655087 -go 325001 157721 1032299; checkcode $? 14
 
@@ -306,7 +302,7 @@ echo 493671084022010320922697718944221569774262937898523672663031469122444419595
 
 echo "10090030271*10^400+696212088699" | $ECM -param 0 -sigma 3923937547 1e3 1e6; checkcode $? 14
 
-echo 31622776601683791911 | $ECM -param 0 11000
+echo 31622776601683791911 | $ECM -param 0 11000; checkcode $? 0
 
 # those tests with params=1, 2 or 3 don't work with -redc
 if [ "$MUL" != "redc" -a "$MUL" != "mpzmod" ]; then
@@ -316,7 +312,7 @@ echo 31622776601683791911 | $ECM 11000
 $ECM -printconfig | grep "GMP_NUMB_BITS = 64"
 if [ $? -eq 0 ]; then
 
-echo 31622776601683791911 | $ECM -param 1 11000
+echo 31622776601683791911 | $ECM -param 1 11000; checkcode $? 0
 
 echo 31622776601683791911 | $ECM -param 1 -A 27063318473587686303 11000
 checkcode $? 0
@@ -455,6 +451,8 @@ echo "2^1123-1" | $ECM -x0 1 -param -1 11000; checkcode $? 1
 echo "2^1123-1" | $ECM -sigma 1.2 11000; checkcode $? 1
 # exercise "Error, invalid A value" error message
 echo "2^1123-1" | $ECM -A 1.2 11000; checkcode $? 1
+# exercise "Error, -A requires a starting point (-x0 x)." error message
+echo "2^1123-1" | $ECM -A 1234567890 11e3; checkcode $? 1
 # exercise "Error, the -I f option requires f > 0" error message
 echo "2^1123-1" | $ECM -I -1 11000; checkcode $? 1
 # exercise "Can't find input file" error message
@@ -490,6 +488,9 @@ $ECM -inp Z2102.n -sigma 0:4702936202311981741 2000; checkcode $? 6
 # exercise -nobase2 option
 echo "2^1123-1" | $ECM -nobase2 -sigma 0:13488386679529262989 11000; checkcode $? 6
 
+# exercise -nobase2s2 option
+echo "2^1123-1" | $ECM -nobase2s2 -sigma 0:13488386679529262989 11000; checkcode $? 6
+
 # this example would fail with the old Fgw.c when using gwnum (fixed by David Cleaver, r1734)
 echo "((173^173+1)/174)/471462511391940575680645418941" | $ECM -param 0 -sigma 12345 20000
 checkcode $? 0
@@ -497,6 +498,32 @@ checkcode $? 0
 # this test was failing on gcc45.fsffrance.org with 6.4.1
 echo "((173^173+1)/174)/471462511391940575680645418941+122" | $ECM -param 0 -sigma 77 20000
 checkcode $? 6
+
+# exercise "Could not open file <file> for reading" error message
+$ECM -bloads sfile.txt 1e6 < c155; checkcode $? 1
+
+# exercise "read_s_from_file: 0 bytes read from <file>" error message
+$ECM -bloads dummy2.save 1e6 < c155; checkcode $? 1
+
+# exercise batch error messages...
+$ECM -bsaves test.ecm.s 11e3 < c155
+$ECM -bloads test.ecm.s 1000 < c155; checkcode $? 1
+$ECM -bloads test.ecm.s 10900 < c155; checkcode $? 1
+/bin/rm -f test.ecm.s
+
+# exercise "Error, -bsaves/-bloads makes sense in batch mode only" error message
+$ECM -bsaves test.s -param 0 11e3 < c155; checkcode $? 1
+
+# exercise "Error, invalid parametrization." error message
+$ECM -param 5-3 11e3 < c155; checkcode $? 1
+
+# exercise "mpmod_init_BASE2: n does not divide ..." error message
+$ECM -base2 32768 -param 0 11e3 < c155; checkcode $? 1
+
+echo 2050449353925555290706354283 | $ECM -param 0 -sigma 7 -go 2411 3; checkcode $? 0
+
+# excercise "Warning, invalid expression %s for the -go option" error message
+$ECM -go N- 11e3 < c155; checkcode $? 0
 
 ##### tests for the Weierstrass form
 # factored with Step 1
