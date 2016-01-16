@@ -131,7 +131,7 @@ echo "2^(2^12)+1" | $PM1 -go "N-1" 1e6; checkcode $? 2
 echo 12345678 | $PM1 1e3; checkcode $? 6
 
 # exercise "Error: cannot choose suitable P value for your stage 2 parameters." error message
-$PM1 -ntt 5e3 1e6-1e20 < c155; checkcode $? 1
+$PM1 -ntt 5e3 1e6-1e40 < c155; checkcode $? 1
 
 # exercise maxmem with p-1 code...
 $PM1 -v -v -v -ntt -maxmem 1 5e3 1e4-1e6 < c155; checkcode $? 0

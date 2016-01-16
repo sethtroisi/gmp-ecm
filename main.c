@@ -1,8 +1,8 @@
 /* GMP-ECM -- Integer factorization with ECM, P-1 and P+1 methods.
 
 Copyright 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009, 2010, 2011,
-2012 Jim Fougeron, Laurent Fousse, Alexander Kruppa, Paul Zimmermann, Cyril
-Bouvier.
+2012, 2016 Jim Fougeron, Laurent Fousse, Alexander Kruppa, Paul Zimmermann,
+Cyril Bouvier, David Cleaver
 
 This program is free software; you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -978,6 +978,10 @@ main (int argc, char *argv[])
       else if (endptr != NULL) /* Did we have a '-' in there? */
         {
           mpz_set (B2min, B2);
+          /* make sure B2min is not less than B1 */
+          if (mpz_cmp_d(B2min, B1) < 0)
+            mpz_set_d(B2min, B1);
+
           c = -1;
           gmp_sscanf (endptr, "%Zd%n", B2, &c);
 #ifdef __MINGW32__
@@ -1007,6 +1011,7 @@ main (int argc, char *argv[])
   /* set static parameters (i.e. those that don't change during the program) */
   params->verbose = verbose;
   params->method = method;
+  mpz_set (params->B2min, B2min);
   mpz_set (params->B2, B2);
   params->k = k;
   params->S = S;

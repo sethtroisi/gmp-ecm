@@ -3,7 +3,8 @@
    Peter L. Montgomery and Alexander Kruppa, ANTS 2008 (8th Algorithmic 
    Number Theory Symposium).
    
-Copyright 2007, 2008, 2009, 2010, 2011, 2012 Alexander Kruppa, Paul Zimmermann.
+Copyright 2007, 2008, 2009, 2010, 2011, 2012, 2016
+Alexander Kruppa, Paul Zimmermann, David Cleaver
 NTT functions are based on code Copyright 2005 Dave Newman.
 
 This file is part of the ECM Library.
@@ -687,6 +688,11 @@ choose_P (const mpz_t B2min, const mpz_t B2, const unsigned long lmax,
 		       "choose_P: P = %lu, l = %lu, s_1 = %lu, k = s_2 = %lu "
 		       "works, m_1 = %Zd, effB2min = %Zd, effB2 = %zZd\n",
 		       tryP, tryl, trys_1, trys_2, m_1, effB2min, tryeffB2);
+
+          /* do not allow B2min to be less than 0 */
+          if (mpz_cmp_ui(effB2min, 0) < 0)
+            continue;
+
 	      /* We use these parameters if we 
 		 1. didn't have any suitable ones yet, or 
 		 2. these cover [B2min, B2] and are cheaper than the best 
