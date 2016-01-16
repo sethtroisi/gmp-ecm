@@ -1,8 +1,9 @@
 #!/bin/sh
+
 # test file for P+1 method
 #
-# Copyright 2002, 2003, 2005, 2006, 2007, 2008, 2009, 2012 Jim Fougeron,
-# Alexander Kruppa, Dave Newman and Paul Zimmermann.
+# Copyright 2002, 2003, 2005, 2006, 2007, 2008, 2009, 2012, 2016
+# Paul Zimmermann, Alexander Kruppa, Dave Newman, Jim Fougeron, David Cleaver
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -143,6 +144,24 @@ echo "6054018161*10^400+417727253109" | $PP1 -x0 4 2e3 2e6; checkcode $? 14
 echo 154618728587 | $PP1 -x0 3 -go 36 4294957296-4294967295 1; checkcode $? 8
 
 echo 18446744073709551337 | $PP1 -pp1 -x0 2 70823 714487; checkcode $? 8
+
+# exercise pp1fs2_memory_use with -no-ntt
+$PP1 -maxmem 1 -no-ntt 5e3 < c155; checkcode $? 0
+
+# exercise onepass pp1fs2_memory_use with -ntt
+$PP1 -maxmem 1 -ntt 5e3 < c155; checkcode $? 0
+
+# exercise even number factor found in step one
+echo 1234 | $PP1 5e3; checkcode $? 14
+
+# exercise "Using lmax = 512 with one pass NTT which takes about 0MB of memory" message
+$PP1 -maxmem 1 -ntt -v 5e3 < c155; checkcode $? 0
+
+# exercise "Using lmax = 436 without NTT which takes about 0MB of memory" message
+$PP1 -maxmem 1 -no-ntt -v 5e3 < c155; checkcode $? 0
+
+# exercise "Error: cannot choose suitable P value for your stage 2 parameters." error message
+$PP1 5e3 1e6-1e20 < c155; checkcode $? 1
 
 # check -v option
 echo 33852066257429811148979390609187539760850944806763555795340084882048986912482949506591909041130651770779842162499482875755533111808276172876211496409325473343590723224081353129229935527059488811457730702694849036693756201766866018562295004353153066430367 | $PP1 -v 1e5; checkcode $? 0
