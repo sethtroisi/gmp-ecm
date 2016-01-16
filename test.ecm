@@ -263,10 +263,10 @@ C=$?
 /bin/rm -f test.ecm.save
 checkcode $C 0
 
-$ECM -resume dummy.save 1e3; checkcode $C 0
+$ECM -resume dummy.save 1e3; checkcode $? 0
 
 # test a Prime95 save file, includes lines to be skipped by GMP-ECM
-$ECM -resume prime95.save 1 2e6; checkcode $C 0
+$ECM -resume prime95.save 1 2e6; checkcode $? 0
 
 echo 89101594496537524661600025466303491594098940711325290746374420963129505171895306244425914080753573576861992127359576789001 | $ECM -param 0 -sigma 877655087 -go 325001 157721 1032299; checkcode $? 14
 
