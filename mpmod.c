@@ -795,7 +795,6 @@ mpmod_init (mpmod_t modulus, const mpz_t N, int repr)
       if (repr != ECM_MOD_BASE2)
 	base2 = repr;
       r = mpmod_init_BASE2 (modulus, base2, N);
-      ASSERT (r == 0); /* error should not happen if isbase2 is correct */
       break;
     }
 
