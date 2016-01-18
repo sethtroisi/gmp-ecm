@@ -523,7 +523,7 @@ $ECM -base2 32768 -param 0 11e3 < c155; checkcode $? 1
 echo 2050449353925555290706354283 | $ECM -param 0 -sigma 7 -go 2411 3; checkcode $? 0
 
 # excercise "Warning, invalid expression %s for the -go option" error message
-$ECM -go N- 11e3 < c155; checkcode $? 0
+$ECM -go N- -modmuln 11e3 < c155; checkcode $? 0
 
 ##### tests for the Weierstrass form
 # factored with Step 1
