@@ -302,17 +302,16 @@ echo 493671084022010320922697718944221569774262937898523672663031469122444419595
 
 echo "10090030271*10^400+696212088699" | $ECM -param 0 -sigma 3923937547 1e3 1e6; checkcode $? 14
 
-echo 31622776601683791911 | $ECM -param 0 11000; checkcode $? 0
+echo 31622776601683791911 | $ECM -sigma 0:249908706013996416 11000; checkcode $? 0
 
 # those tests with params=1, 2 or 3 don't work with -redc
 if [ "$MUL" != "redc" -a "$MUL" != "mpzmod" ]; then
 
-echo 31622776601683791911 | $ECM 11000
 # Note: on 32-bit machines, param 1 (ECM_PARAM_BATCH_SQUARE) does not work
 $ECM -printconfig | grep "GMP_NUMB_BITS = 64"
 if [ $? -eq 0 ]; then
 
-echo 31622776601683791911 | $ECM -param 1 11000; checkcode $? 0
+echo 31622776601683791911 | $ECM -sigma 1:3277346684 11000; checkcode $? 0
 
 echo 31622776601683791911 | $ECM -param 1 -A 27063318473587686303 11000
 checkcode $? 0
@@ -335,8 +334,8 @@ checkcode $? 8
 
 fi
 
-echo 31622776601683791911 | $ECM -param 2 11000
-echo 31622776601683791911 | $ECM -param 3 11000
+echo 31622776601683791911 | $ECM -sigma 2:5539417145734457396 11000; checkcode $? 0
+echo 31622776601683791911 | $ECM -sigma 3:3462003578 11000; checkcode $? 0
 
 # same with param=2, works only with ECM_MOD_MODMULN
 echo 458903930815802071188998938170281707063809443792768383215233 | $ECM -sigma 2:142 10000
