@@ -43,6 +43,11 @@ extern "C" {
 #define pbroadcast64 _mm256_set1_epi64x
 #define pcvt_i32(x) _mm256_set_epi32(0,0,0,0,0,0,0,(int)(x))
 
+/* using FPU blend operation on 64-bit integer bitfields 
+   works correctly and seems to run faster */
+#define pcmovq(a,b,c) (__m256i)_mm256_blendv_pd((__m256d)a, (__m256d)b, (__m256d)c)
+
+
 typedef __m256i sp_simd_t;
 
 #define sp_simd_load(x) pload(x)
@@ -88,10 +93,8 @@ static INLINE sp_simd_t sp_ntt_add_simd_core(
 
 #else
   t0 = paddq(a, b);
-  t0 = psubq(t0, vp);
-  t1 = pcmpgtq(psetzero(), t0);
-  t1 = pand(t1, vp);
-  return paddq(t0, t1);
+  t1 = psubq(t0, vp);
+  return pcmovq(t1, t0, t1);
 
 #endif
 }
@@ -181,9 +184,8 @@ static INLINE sp_simd_t sp_ntt_sub_simd_core(
 
 #else
   t0 = psubq(a, b);
-  t1 = pcmpgtq(psetzero(), t0);
-  t1 = pand(t1, vp);
-  return paddq(t0, t1);
+  t1 = paddq(t0, vp);
+  return pcmovq(t0, t1, t0);
 
 #endif
 }

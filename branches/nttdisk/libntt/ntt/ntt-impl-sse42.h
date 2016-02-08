@@ -46,6 +46,10 @@ extern "C" {
 #define punpcklo64 _mm_unpacklo_epi64
 #define pcvt_i32 _mm_cvtsi32_si128
 
+/* using FPU blend operation on 64-bit integer bitfields 
+   works correctly and seems to run faster */
+#define pcmovq(a,b,c) (__m128i)_mm_blendv_pd((__m128d)a, (__m128d)b, (__m128d)c)
+
 #if defined(_WIN64) || defined(__x86_64__)
 #define pcvt_i64 _mm_cvtsi64_si128
 #define pstore_i64(out, in) out = _mm_cvtsi128_si64(in)
@@ -343,10 +347,8 @@ static INLINE sp_simd_t sp_ntt_add_simd_core(
 
 #else
   t0 = paddq(a, b);
-  t0 = psubq(t0, vp);
-  t1 = pcmpgtq(psetzero(), t0);
-  t1 = pand(t1, vp);
-  return paddq(t0, t1);
+  t1 = psubq(t0, vp);
+  return pcmovq(t1, t0, t1);
 
 #endif
 }
@@ -436,9 +438,8 @@ static INLINE sp_simd_t sp_ntt_sub_simd_core(
 
 #else
   t0 = psubq(a, b);
-  t1 = pcmpgtq(psetzero(), t0);
-  t1 = pand(t1, vp);
-  return paddq(t0, t1);
+  t1 = paddq(t0, vp);
+  return pcmovq(t0, t1, t0);
 
 #endif
 }
