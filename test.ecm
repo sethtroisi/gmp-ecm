@@ -525,6 +525,9 @@ echo 2050449353925555290706354283 | $ECM -param 0 -sigma 7 -go 2411 3; checkcode
 $ECM -go N- -modmuln 11e3 < c155; checkcode $? 0
 
 ##### tests for the Weierstrass form
+##### (disabled in revision 2765 since not tested enough)
+if [ 0 -eq 1 ]; then
+
 # factored with Step 1
 echo 2432902008176640001 | $ECM -param 5 -A 1 -x0 20 -y0 10 100000; checkcode $? 14
 # unfactored
@@ -557,7 +560,10 @@ echo 2432902008176640001 | $ECM -param 6 -A 2 -x0 2 -y0 3 100 9000; checkcode $?
 # no factor found
 echo 2432902008176640001 | $ECM -param 6 -A 2 -x0 2 -y0 3 1000 2000; checkcode $? 0
 
+fi
+
 ##### tests for curves with specific torsion
+##### (disabled in revision 2764 since not tested enough)
 if [ 0 -eq 1 ]; then
 
 echo 4722366482800925736961 | $ECM -torsion Z5 -sigma 2 1e5; checkcode $? 14
