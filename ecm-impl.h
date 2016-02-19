@@ -38,6 +38,9 @@ http://www.gnu.org/licenses/ or write to the Free Software Foundation, Inc.,
 /* or configure will define these for us if possible */
 #endif
 
+/* We do not use torsion.[ch] so far since they are not tested enough. */
+/* #define HAVE_TORSION */
+
 #if defined UINT64_MAX || defined uint64_t
 typedef int64_t ecm_int;
 typedef uint64_t ecm_uint;
