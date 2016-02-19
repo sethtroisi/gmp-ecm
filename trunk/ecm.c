@@ -26,7 +26,9 @@ http://www.gnu.org/licenses/ or write to the Free Software Foundation, Inc.,
 #include "ecm-impl.h"
 #include <math.h>
 
+#ifdef HAVE_ADDLAWS
 #include "addlaws.h"
+#endif
 
 #ifdef HAVE_LIMITS_H
 # include <limits.h>
@@ -629,6 +631,7 @@ ecm_stage1 (mpz_t f, mpres_t x, mpres_t A, mpmod_t n, double B1,
 
 #define DEBUG_EC_W 0
 
+#ifdef HAVE_ADDLAWS
 /* Input: when Etype == ECM_EC_TYPE_WEIERSTRASS*:
             (x, y) is initial point
             A is curve parameter in Weierstrass's form:
@@ -808,6 +811,7 @@ ecm_stage1_W (mpz_t f, ell_curve_t E, ell_point_t P, mpmod_t n,
     
     return ret;
 }
+#endif
 
 /* choose "optimal" S according to step 2 range B2 */
 int
@@ -1101,7 +1105,9 @@ ecm (mpz_t f, mpz_t x, mpz_t y, int *param, mpz_t sigma, mpz_t n, mpz_t go,
   mpmod_t modulus;
   curve P;
   ell_curve_t E;
+#ifdef HAVE_ADDLAWS
   ell_point_t PE;
+#endif
   mpz_t B2min, B2; /* Local B2, B2min to avoid changing caller's values */
   unsigned long dF;
   root_params_t root_params;
@@ -1227,7 +1233,11 @@ ecm (mpz_t f, mpz_t x, mpz_t y, int *param, mpz_t sigma, mpz_t n, mpz_t go,
   mpres_init (P.y, modulus);
   mpres_init (P.A, modulus);
 
+#ifdef HAVE_ADDLAWS
   ell_curve_set_z (E, zE, modulus);
+#else
+  E->type = ECM_EC_TYPE_MONTGOMERY;
+#endif
 
   youpi = set_stage_2_params (B2, B2_parm, B2min, B2min_parm,
 			      &root_params, B1, &k, S, use_ntt,
@@ -1330,10 +1340,14 @@ ecm (mpz_t f, mpz_t x, mpz_t y, int *param, mpz_t sigma, mpz_t n, mpz_t go,
 	  }
 	else
 	  {
+#ifdef HAVE_ADDLAWS
 	      if(E->type == ECM_EC_TYPE_WEIERSTRASS)
-		  mpres_set_z(P.A, zE->a4, modulus);
+#endif
+              mpres_set_z(P.A, zE->a4, modulus);
+#ifdef HAVE_ADDLAWS
 	      else if(E->type == ECM_EC_TYPE_MONTGOMERY)
 		  mpres_set_z(P.A, zE->a2, modulus);
+#endif
               mpres_set_z (P.x, x, modulus);
               mpres_set_z (P.y, y, modulus);
 	  }
@@ -1348,11 +1362,13 @@ ecm (mpz_t f, mpz_t x, mpz_t y, int *param, mpz_t sigma, mpz_t n, mpz_t go,
       outputf (OUTPUT_RESVERBOSE, "A=%Zd\n", t);
       mpres_get_z (t, P.x, modulus);
       outputf (OUTPUT_RESVERBOSE, "starting point: x0=%Zd\n", t);
+#ifdef HAVE_ADDLAWS
       if (E->type == ECM_EC_TYPE_WEIERSTRASS)
 	{
           mpres_get_z (t, P.y, modulus);
 	  outputf (OUTPUT_RESVERBOSE, " y0=%Zd\n", t);
 	}
+#endif
       mpz_clear (t);
     }
 
@@ -1398,9 +1414,12 @@ ecm (mpz_t f, mpz_t x, mpz_t y, int *param, mpz_t sigma, mpz_t n, mpz_t go,
 	    youpi = ecm_stage1_batch (f, P.x, P.A, modulus, B1, B1done, 
 				      *param, batch_s);
         else{
+#ifdef HAVE_ADDLAWS
 	    if(E->type == ECM_EC_TYPE_MONTGOMERY)
-		youpi = ecm_stage1 (f, P.x, P.A, modulus, B1, B1done, go, 
-				    stop_asap, chkfilename);
+#endif
+            youpi = ecm_stage1 (f, P.x, P.A, modulus, B1, B1done, go, 
+                                stop_asap, chkfilename);
+#ifdef HAVE_ADDLAWS
 	    else{
 		ell_point_init(PE, E, modulus);
 		mpres_set(PE->x, P.x, modulus);
@@ -1410,6 +1429,7 @@ ecm (mpz_t f, mpz_t x, mpz_t y, int *param, mpz_t sigma, mpz_t n, mpz_t go,
 		mpres_set(P.x, PE->x, modulus);
 		mpres_set(P.y, PE->y, modulus);
 	    }
+#endif
 	}
     }
   else
@@ -1434,8 +1454,10 @@ ecm (mpz_t f, mpz_t x, mpz_t y, int *param, mpz_t sigma, mpz_t n, mpz_t go,
      before P.x is (perhaps) converted to Weierstrass form */
   
   mpres_get_z (x, P.x, modulus);
+#ifdef HAVE_ADDLAWS
   if (E->type == ECM_EC_TYPE_WEIERSTRASS || E->type == ECM_EC_TYPE_HESSIAN)
     mpres_get_z (y, P.y, modulus);  
+#endif
 
   if (youpi != ECM_NO_FACTOR_FOUND)
     goto end_of_ecm_rhotable;
@@ -1447,11 +1469,13 @@ ecm (mpz_t f, mpz_t x, mpz_t y, int *param, mpz_t sigma, mpz_t n, mpz_t go,
       mpz_init (t);
       mpres_get_z (t, P.x, modulus);
       outputf (OUTPUT_RESVERBOSE, "x=%Zd\n", t);
+#ifdef HAVE_ADDLAWS
       if (E->type == ECM_EC_TYPE_WEIERSTRASS)
 	{
 	  mpres_get_z (t, P.y, modulus);
 	  outputf (OUTPUT_RESVERBOSE, "y=%Zd\n", t);
 	}
+#endif
       mpz_clear (t);
     }
 
@@ -1490,8 +1514,11 @@ ecm (mpz_t f, mpz_t x, mpz_t y, int *param, mpz_t sigma, mpz_t n, mpz_t go,
       mpz_clear (A_t);
     }
 
+#ifdef HAVE_ADDLAWS
   if (E->type == ECM_EC_TYPE_MONTGOMERY)
-      youpi = montgomery_to_weierstrass (f, P.x, P.y, P.A, modulus);
+#endif
+  youpi = montgomery_to_weierstrass (f, P.x, P.y, P.A, modulus);
+#ifdef HAVE_ADDLAWS
   else if (E->type == ECM_EC_TYPE_HESSIAN)
     {
       youpi = hessian_to_weierstrass (f, P.x, P.y, P.A, modulus);
@@ -1499,6 +1526,7 @@ ecm (mpz_t f, mpz_t x, mpz_t y, int *param, mpz_t sigma, mpz_t n, mpz_t go,
         /* due to that non-trivial kernel(?) */
         youpi = mult_by_3(f, P.x, P.y, P.A, modulus);
     }
+#endif
   
   if (test_verbose (OUTPUT_RESVERBOSE) && youpi == ECM_NO_FACTOR_FOUND && 
       mpz_cmp (B2, B2min) >= 0)
@@ -1542,7 +1570,9 @@ end_of_ecm_rhotable:
     }
 
 end_of_ecm:
+#ifdef HAVE_ADDLAWS
   ell_curve_clear(E, modulus);
+#endif
   mpres_clear (P.A, modulus);
   mpres_clear (P.y, modulus);
   mpres_clear (P.x, modulus);
