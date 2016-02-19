@@ -51,7 +51,9 @@ http://www.gnu.org/licenses/ or write to the Free Software Foundation, Inc.,
 /* Used in print_config() */
 #include "ecm-params.h"
 
+#ifdef HAVE_TORSION
 #include "torsions.h" /* to benefit from more torsion groups */
+#endif
 
 /* #define DEBUG */
 
@@ -374,7 +376,10 @@ main (int argc, char *argv[])
                 default (0): automatic choice. */
   gmp_randstate_t randstate;
   char *savefilename = NULL, *resumefilename = NULL, *infilename = NULL;
-  char *TreeFilename = NULL, *chkfilename = NULL, *torsion = NULL;
+  char *TreeFilename = NULL, *chkfilename = NULL;
+#ifdef HAVE_TORSION
+  char *torsion = NULL;
+#endif
   char rtime[256] = "", who[256] = "", comment[256] = "", program[256] = "";
   FILE *resumefile = NULL, *infile = NULL;
   mpz_t resume_lastN, resume_lastfac; /* When resuming residues from a file,
@@ -637,12 +642,14 @@ main (int argc, char *argv[])
 	  argv += 2;
 	  argc -= 2;
         }
+#ifdef HAVE_TORSION
       else if ((argc > 2) && (strcmp (argv[1], "-torsion")) == 0)
         {
 	  torsion = argv[2];
 	  argv += 2;
 	  argc -= 2;
         }
+#endif
       else if ((argc > 2) && (strcmp (argv[1], "-power")) == 0)
         {
           S = abs (atoi (argv[2]));
@@ -1397,6 +1404,7 @@ main (int argc, char *argv[])
 		    params->E->law = ECM_LAW_HOMOGENEOUS;
 		}
 	    }
+#ifdef HAVE_TORSION
 	  else if (torsion != NULL)
 	    {
 	      params->param = ECM_PARAM_TORSION;
@@ -1405,6 +1413,7 @@ main (int argc, char *argv[])
 						   params->x, params->y,
                                                    torsion, sigma);
 	    }
+#endif
 	}
       mpz_set (params->sigma, (params->sigma_is_A) ? A : sigma);
       mpz_set (params->go, go.Candi.n); /* may change if contains N */

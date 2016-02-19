@@ -15,7 +15,9 @@
 #include "mpmod.h"
 
 #include "addlaws.h"
+#ifdef HAVE_TORSION
 #include "torsions.h"
+#endif
 
 #define DEBUG_MULTI_EC 0
 #define MULTI_USE_ADD_SUB 1
@@ -394,13 +396,16 @@ all_curves_at_once(mpz_t f, char *ok, ell_curve_t *tE, ell_point_t *tP, int nE,
 }
 
 int
-read_and_prepare(mpz_t f, mpz_t x, mpq_t q, char *buf, mpz_t n)
+read_and_prepare(mpz_t f ATTRIBUTE_UNUSED, mpz_t x ATTRIBUTE_UNUSED, mpq_t q,
+                 char *buf, mpz_t n ATTRIBUTE_UNUSED)
 {
     mpq_set_str(q, buf, 10);
+#ifdef HAVE_TORSION
     if(mod_from_rat(x, q, n) == 0){
 	mpz_set(f, x);
 	return 0;
     }
+#endif
     return 1;
 }
 
@@ -582,9 +587,11 @@ process_many_curves_loop(mpz_t tf[], int *nf, mpz_t n, double B1, mpz_t B2,
 	if(fic_EP != NULL)
 	    ret = read_curves_from_file(&nE, tE, tP, tf, nf, modulus, 
 					fic_EP, nE);
+#ifdef HAVE_TORSION
 	else if(torsion != NULL)
 	    ret = build_curves_with_torsion(tf[*nf],modulus,tE,tP,
 					    torsion,smin,smax,nE,disc,sqroots);
+#endif
 	else if(disc != 0){
 #if 0
 	    ret = build_curves_with_CM(tf[*nf],&nE,tE,tP,disc,modulus,sqroots);
@@ -1037,8 +1044,6 @@ process_special_blend(mpz_t tf[], int *nf, int *tried,
 static char *
 best_M_d(int *disc, int b, int n, int c)
 {
-    int i, M = -1, Mi, di;
-
     *disc = 0;
     if(c == -1)
 	/* b^(2*k+1) = 1 mod N => (b^(k+1))^2 = b mod N */
@@ -1052,8 +1057,10 @@ best_M_d(int *disc, int b, int n, int c)
 	else
 	    *disc = -b*c;
     }
+#ifdef HAVE_TORSION
     /* TODO: case of b with a square prime factor */
     if(*disc != 0){
+        int i, M = -1, Mi, di;
 	for(i = 0; strcmp(XM_data[i][0] , "0") != 0; i++){
 	    Mi = atoi(XM_data[i][0]);
 	    di = atoi(XM_data[i][1]);
@@ -1066,6 +1073,7 @@ best_M_d(int *disc, int b, int n, int c)
 	    return tmp;
 	}
     }
+#endif
     return NULL;
 }
 
