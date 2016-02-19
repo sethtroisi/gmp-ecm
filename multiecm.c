@@ -14,7 +14,10 @@
 #include "ecm-ecm.h"
 #include "mpmod.h"
 
+#ifdef HAVE_ADDLAWS
 #include "addlaws.h"
+#endif
+
 #ifdef HAVE_TORSION
 #include "torsions.h"
 #endif
