@@ -51,17 +51,8 @@ multiplyW2n (mpz_t p, point *R, curve *S, mpz_t *q, const unsigned int n,
 #endif
 
   ASSERT(n > 0);
-  
-  /* Is S the neutral element? */
-  if (mpres_is_zero (S->x, modulus) && mpres_is_zero (S->y, modulus))
-    {
-      for (i = 0; i < n; i++)
-        {
-          mpres_set (R[i].x, S->x, modulus);
-          mpres_set (R[i].y, S->y, modulus);
-        }
-      return ECM_NO_FACTOR_FOUND;
-    }
+
+  /* We assume the code below works also when S is the neutral element. */
   
   mpz_init2 (flag, n);
   mpz_init2 (signs, n);

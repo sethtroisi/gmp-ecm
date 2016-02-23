@@ -609,7 +609,7 @@ echo 10000000000000000000000000000000000000121 | $ECM -param 0 -sigma 291 -go 59
 # from http://www.mersenneforum.org/showthread.php?t=19206
 echo 240374937214123387734825980441485328571760198890188986168556177043725516179623977715973254104349268626550386607672381746223853794447671062771318068793196116019917029782728411 | $ECM -param 0 -sigma 2945335458 5e4; checkcode $? 14
 
-echo 65537 | $ECM -sigma 17 1 0; checkcode $? 8
+echo 65537 | $ECM -sigma 17 1 0; checkcode $? 0
 
 if [ "$MUL" = "modmuln" ]; then
 # exercise batch mode: since param=1, does not work on 32-bit machines

@@ -1247,7 +1247,7 @@ ecm (mpz_t f, mpz_t x, mpz_t y, int *param, mpz_t sigma, mpz_t n, mpz_t go,
 
   if (youpi == ECM_ERROR)
       goto end_of_ecm;
-  
+
   if (sigma_is_A == 0)
     {
       if (mpz_sgn (sigma) == 0)
@@ -1405,7 +1405,7 @@ ecm (mpz_t f, mpz_t x, mpz_t y, int *param, mpz_t sigma, mpz_t n, mpz_t go,
 
   if (youpi != ECM_NO_FACTOR_FOUND)
     goto end_of_ecm_rhotable;
-#endif
+#endif /* HAVE_GWNUM */
 
   if (B1 > *B1done || mpz_cmp_ui (go, 1) > 0)
     {
@@ -1432,9 +1432,9 @@ ecm (mpz_t f, mpz_t x, mpz_t y, int *param, mpz_t sigma, mpz_t n, mpz_t go,
 #endif
 	}
     }
-  else
+  else if (mpz_sgn (x) != 0)
     {
-	/* we need to initialize P */
+	/* when x <> 0, we initialize P to (x:y) */
 	mpres_set_z (P.x, x, modulus);
 	mpres_set_z (P.y, y, modulus);
     }
