@@ -73,10 +73,6 @@ signal_handler (int sig)
       signal (SIGINT, SIG_DFL);
       signal (SIGTERM, SIG_DFL);
     }
-  else
-    {
-      /* How did this happen? Let's ignore it for now, abort instead? */
-    }
 }
 
 int
@@ -289,6 +285,8 @@ print_config ()
   printf ("WITH_GPU undefined\n");
 #endif
 
+  /* coverage test */
+  signal_handler (SIGINT);
 }
 
 /* r <- q mod N. 
@@ -296,7 +294,7 @@ print_config ()
    gcd(den(q), N) is put in r.
  */
 static int
-mod_from_mpq(mpz_t r, mpq_t q, mpz_t N, int verbose)
+mod_from_mpq (mpz_t r, mpq_t q, mpz_t N, int verbose)
 {
     mpz_t inv, C;
     int factor_is_prime, cofactor_is_prime, ret = ECM_NO_FACTOR_FOUND;
@@ -304,7 +302,7 @@ mod_from_mpq(mpz_t r, mpq_t q, mpz_t N, int verbose)
     mpz_init (inv);
     if (mpz_invert (inv, mpq_denref (q), N) == 0)
       {
-	mpz_gcd(r, mpq_denref (q), N);
+	mpz_gcd (r, mpq_denref (q), N);
 	if (verbose > 0)
           {
             if (verbose > 1)
@@ -314,7 +312,7 @@ mod_from_mpq(mpz_t r, mpq_t q, mpz_t N, int verbose)
 	mpz_out_str (stdout, 10, r);
 	if (verbose > 0)
 	    printf ("\n");
-	if (mpz_cmp(r, N) == 0)
+	if (mpz_cmp (r, N) == 0)
 	  ret = ECM_INPUT_NUMBER_FOUND;
 	else
 	  {
@@ -1248,9 +1246,9 @@ main (int argc, char *argv[])
           /* Set effective seed for factoring attempt on this number */
 	  if (specific_A)
 	    {
-		returncode = mod_from_mpq(A, rat_A, n.n, verbose);
-		if(returncode != ECM_NO_FACTOR_FOUND)
-		    return returncode;
+		returncode = mod_from_mpq (A, rat_A, n.n, verbose);
+		if (returncode != ECM_NO_FACTOR_FOUND)
+                  return returncode;
 	    }
 	  
           if (specific_x0) /* convert rational value to integer */
@@ -1261,13 +1259,13 @@ main (int argc, char *argv[])
 		  exit (EXIT_FAILURE);
                 }
 
-	      returncode = mod_from_mpq(x, rat_x0, n.n, verbose);
-	      if(returncode != ECM_NO_FACTOR_FOUND)
+	      returncode = mod_from_mpq (x, rat_x0, n.n, verbose);
+	      if (returncode != ECM_NO_FACTOR_FOUND)
 		  return returncode;
 
 	      if (specific_y0)
 		{
-		  returncode = mod_from_mpq(y, rat_y0, n.n, verbose);
+		  returncode = mod_from_mpq (y, rat_y0, n.n, verbose);
 		  if (returncode != ECM_NO_FACTOR_FOUND)
 		    return returncode;
 		}
