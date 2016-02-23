@@ -41,7 +41,7 @@ ntt_mul (mpzv_t r, mpzv_t x, mpzv_t y, spv_size_t len, mpzv_t t,
 	
   if (len < MUL_NTT_THRESHOLD)
     {
-      list_mul (r, x, len, monic, y, len, monic, t);
+      list_mul (r, x, len, y, len, monic, t);
       return;
     }
 
@@ -148,7 +148,7 @@ ntt_PolyFromRoots_Tree (mpzv_t r, mpzv_t a, spv_size_t len, mpzv_t t,
         }
 
       for (i = 0; i < len; i += 2 * m)
-	list_mul (t + i, src + i, m, 1, src + i + m, m, 1, t + len);
+	list_mul (t + i, src + i, m, src + i + m, m, 1, t + len);
 
       list_mod (*dst, t, len, mpzspm->modulus);
       

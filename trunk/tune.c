@@ -234,7 +234,7 @@ TUNE_FUNC_END (tune_ntt_mul)
 
 
 TUNE_FUNC_START (tune_list_mul)
-  TUNE_FUNC_LOOP (list_mul (z, x, 1 << n, 1, y, 1 << n, 1, t));
+  TUNE_FUNC_LOOP (list_mul (z, x, 1 << n, y, 1 << n, 1, t));
 TUNE_FUNC_END (tune_list_mul)
 
 

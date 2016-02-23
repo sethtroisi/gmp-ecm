@@ -98,6 +98,7 @@ conclude_on_factor(mpz_t N, mpz_t f, int verbose)
     return ret;
 }
 
+#if DEBUG_MULTI_EC >= 2
 /* f is a (probable) prime factor of n. tP is in plain mod n form. */
 void
 dump_curves(ell_curve_t *tE, ell_point_t *tP, int nE, mpz_t f)
@@ -164,6 +165,7 @@ dump_curves(ell_curve_t *tE, ell_point_t *tP, int nE, mpz_t f)
 	printf("CheckE(E[%d], D[%d], P[%d], infos[%d]);\n",i+1,i+1,i+1,i+1);
     }
 }
+#endif /* DEBUG_MULTI_EC >= 2 */
 
 /* TODO: better control of B2 + dichotomy (cf. #B2) */
 int
@@ -246,7 +248,7 @@ one_curve_at_a_time(mpz_t f, char *ok, ell_curve_t *tE, ell_point_t *tP, int nE,
 		saveit = 0;
 	    }
 	    else{
-#if DEBUG_MULTI_EC >= 0
+#if DEBUG_MULTI_EC >= 2
 		if(ret == ECM_PRIME_FAC_PRIME_COFAC 
 		   || ret == ECM_PRIME_FAC_COMP_COFAC){
 		    /* output Magma lines to check #E's mod f */
