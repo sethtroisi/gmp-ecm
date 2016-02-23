@@ -64,6 +64,7 @@ mpzspv_clear (mpzspv_t x, mpzspm_t mpzspm)
   free (x);
 }
 
+#ifdef WANT_ASSERT
 /* check that:
  *  - each of the spv's is at least offset + len long
  *  - the data specified by (offset, len) is correctly normalised in the
@@ -86,6 +87,7 @@ mpzspv_verify (mpzspv_t x, spv_size_t offset, spv_size_t len, mpzspm_t mpzspm)
 
   return 1;
 }
+#endif
 
 void
 mpzspv_set (mpzspv_t r, spv_size_t r_offset, mpzspv_t x, spv_size_t x_offset,
@@ -100,6 +102,7 @@ mpzspv_set (mpzspv_t r, spv_size_t r_offset, mpzspv_t x, spv_size_t x_offset,
     spv_set (r[i] + r_offset, x[i] + x_offset, len);
 }
 
+#if 0
 void
 mpzspv_revcopy (mpzspv_t r, spv_size_t r_offset, mpzspv_t x, 
     spv_size_t x_offset, spv_size_t len, mpzspm_t mpzspm)
@@ -112,6 +115,7 @@ mpzspv_revcopy (mpzspv_t r, spv_size_t r_offset, mpzspv_t x,
   for (i = 0; i < mpzspm->sp_num; i++)
     spv_rev (r[i] + r_offset, x[i] + x_offset, len);
 }
+#endif
 
 void
 mpzspv_set_sp (mpzspv_t r, spv_size_t offset, sp_t c, spv_size_t len,
@@ -295,8 +299,7 @@ mpzspv_from_mpzv_fast (mpzspv_t x, const spv_size_t offset, mpz_t mpzvi,
      as wide as sp_t */
 }
 
-
-ATTRIBUTE_UNUSED
+#if defined(TRACE_mpzspv_from_mpzv) || defined(TRACE_ntt_sqr_reciprocal)
 static void
 ntt_print_vec (const char *msg, const spv_t spv, const spv_size_t l, 
                const sp_t p)
@@ -310,7 +313,7 @@ ntt_print_vec (const char *msg, const spv_t spv, const spv_size_t l,
     gmp_printf (", %Nd", (mp_ptr) spv + i, 1);
   printf ("] (mod %llu)\n", (long long unsigned int) p);
 }
-
+#endif
 
 /* convert an array of len mpz_t numbers to CRT representation modulo
    sp_num moduli */
@@ -465,9 +468,10 @@ mpzspv_to_mpzv (mpzspv_t x, spv_size_t offset, mpzv_t mpzv,
 #endif
 }  
 
+#if 0
 void
 mpzspv_pwmul (mpzspv_t r, spv_size_t r_offset, mpzspv_t x, spv_size_t x_offset,
-    mpzspv_t y, spv_size_t y_offset, spv_size_t len, mpzspm_t mpzspm)
+              mpzspv_t y, spv_size_t y_offset, spv_size_t len, mpzspm_t mpzspm)
 {
   unsigned int i;
   
@@ -479,6 +483,7 @@ mpzspv_pwmul (mpzspv_t r, spv_size_t r_offset, mpzspv_t x, spv_size_t x_offset,
     spv_pwmul (r[i] + r_offset, x[i] + x_offset, y[i] + y_offset,
 	len, mpzspm->spm[i]->sp, mpzspm->spm[i]->mul_c);
 }
+#endif
 
 /* Normalise the vector x[][offset..offset+len-1] of RNS residues modulo the
  * input modulus N.
@@ -629,8 +634,10 @@ mpzspv_to_ntt (mpzspv_t x, spv_size_t offset, spv_size_t len,
     }
 }
 
-void mpzspv_from_ntt (mpzspv_t x, spv_size_t offset, spv_size_t ntt_size,
-    spv_size_t monic_pos, mpzspm_t mpzspm)
+#if 0
+void
+mpzspv_from_ntt (mpzspv_t x, spv_size_t offset, spv_size_t ntt_size,
+                 spv_size_t monic_pos, mpzspm_t mpzspm)
 {
   unsigned int i;
   spv_size_t log2_ntt_size;
@@ -657,6 +664,7 @@ void mpzspv_from_ntt (mpzspv_t x, spv_size_t offset, spv_size_t ntt_size,
 	    1, spm->sp);
     }
 }
+#endif
 
 void
 mpzspv_random (mpzspv_t x, spv_size_t offset, spv_size_t len, mpzspm_t mpzspm)
