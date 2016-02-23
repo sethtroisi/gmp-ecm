@@ -95,16 +95,6 @@ cputime ()
 
 #endif /* defining cputime () */
 
-void mp_print(mp_limb_t *x, int N) {
-  int i;
-  for (i = 0; i < N-1; ++i)
-    gmp_printf("%Nd + W*(", x + i, 1);
-  gmp_printf("%Nd", x + (N-1), 1);
-  for (i = 0; i < N-1; ++i)
-    printf(")");
-  printf("\n");
-}
-
 void bench(mp_size_t N)
 {
   mp_limb_t *x, *y, *z, *zref, *m, *invm, *tmp;
