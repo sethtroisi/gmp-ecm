@@ -521,11 +521,11 @@ $ECM -base2 32768 -param 0 11e3 < c155; checkcode $? 1
 
 echo 2050449353925555290706354283 | $ECM -param 0 -sigma 7 -go 2411 3; checkcode $? 0
 
-# exercise "Warning, invalid expression %s for the -go option" error message
-$ECM -go N- -modmuln 11e3 < c155; checkcode $? 0
-
 # exercise d > I0_THRESHOLD in mpzspm_product_tree_init with n odd
-echo "2^3900-77" | $ECM -ntt -param 0 -sigma 1167435750 1e4; checkcode $? 6
+echo "2^3900-77" | $ECM -ntt -param 0 -sigma 1167435750 600; checkcode $? 6
+
+# exercise "Warning, invalid expression %s for the -go option" error message
+echo 95209938255048826235189575712705128366296557149606415206280987204268594538412191641776798249266895999715600261737863698825644292938050707507901970225804581 | $ECM -go N- -modmuln 11e3; checkcode $? 0
 
 ##### tests for the Weierstrass form
 ##### (disabled in revision 2765 since not tested enough)
@@ -618,6 +618,9 @@ echo 500000000000000000195 | $ECM -param 0 -sigma 7 1 100000; checkcode $? 14
 echo 65537 | $ECM -param 0 -A 1/65537 -v 1; checkcode $? 8
 echo 4295229443 | $ECM -param 0 -A 1/65537 1; checkcode $? 14
 echo 4429846549 | $ECM -param 0 -A 1/67591 1; checkcode $? 10
+
+# exercise input dividing 2^n+/-1 where base-2 arithmetic exceeds threshold
+echo 67280421310721 | $ECM -param 0 1e3
 
 if [ "$MUL" = "modmuln" ]; then
 # exercise batch mode: since param=1, does not work on 32-bit machines

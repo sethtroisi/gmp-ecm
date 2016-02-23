@@ -1062,17 +1062,6 @@ mpres_realloc (mpres_t R, const mpmod_t modulus)
 }
 
 
-/* Returns non-zero if the two residues are equal, 
-   and zero if they are not */
-
-int 
-mpres_equal (const mpres_t S1, const mpres_t S2, mpmod_t modulus)
-{
-  mpz_mod (modulus->temp1, S1, modulus->orig_modulus);
-  mpz_mod (modulus->temp2, S2, modulus->orig_modulus);
-  return (mpz_cmp (modulus->temp1, modulus->temp2) == 0);
-}
-
 /* a <- b^2 mod (modulus).
    a and b might be equal, but cannot be modulus->temp1.
    Assumes repr = ECM_MOD_BASE2 or ECM_MOD_MODMULN or ECM_MOD_REDC */
@@ -2162,6 +2151,16 @@ test_mpres_set_z_for_gcd_fix(const int maxk, mpmod_t modulus)
   return 1;
 }
 
+/* Returns non-zero if the two residues are equal, 
+   and zero if they are not */
+int 
+mpres_equal (const mpres_t S1, const mpres_t S2, mpmod_t modulus)
+{
+  mpz_mod (modulus->temp1, S1, modulus->orig_modulus);
+  mpz_mod (modulus->temp2, S2, modulus->orig_modulus);
+  return (mpz_cmp (modulus->temp1, modulus->temp2) == 0);
+}
+
 int
 mpmod_selftest (const mpz_t n)
 {
@@ -2192,8 +2191,7 @@ mpmod_selftest (const mpz_t n)
   
   return 0;
 }
-
-#endif
+#endif /* #if 0 */
 
 /****************************************************/
 /* mpresn: modular arithmetic based directly on mpn */
