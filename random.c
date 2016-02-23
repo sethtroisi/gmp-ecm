@@ -54,9 +54,6 @@ pm1_random_seed (mpz_t a, mpz_t n, gmp_randstate_t randstate)
 {
   mpz_t q;
 
-#ifdef OUTSIDE_LIBECM
-  abort ();
-#endif
   mpz_init (q);
   do
     {
