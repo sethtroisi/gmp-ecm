@@ -47,7 +47,7 @@ http://www.gnu.org/licenses/ or write to the Free Software Foundation, Inc.,
    Typical example: "4 3 -1" for curves Y^2 = X^3 + a * X.
 */
 void
-compute_s (mpz_t s, unsigned long B1, int *forbiddenres)
+compute_s (mpz_t s, unsigned long B1, int *forbiddenres ATTRIBUTE_UNUSED)
 {
   mpz_t acc[MAX_HEIGHT]; /* To accumulate products of prime powers */
   unsigned int i, j;
@@ -63,6 +63,7 @@ compute_s (mpz_t s, unsigned long B1, int *forbiddenres)
     {
       pp = qi = pi;
       maxpp = B1 / qi;
+#ifdef HAVE_ADDLAWS
       if(forbiddenres != NULL && pi > 2){
 	  /* non splitting primes can occur in even powers only */
 	  int rp = (int)(pi % forbiddenres[0]);
@@ -82,6 +83,7 @@ compute_s (mpz_t s, unsigned long B1, int *forbiddenres)
 	      }
 	  }
       }
+#endif
       while (pp <= maxpp)
           pp *= qi;
 
