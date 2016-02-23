@@ -614,6 +614,11 @@ echo 65537 | $ECM -sigma 17 1 0; checkcode $? 0
 # exercise factor found during inverse in multiplyW2n()
 echo 500000000000000000195 | $ECM -param 0 -sigma 7 1 100000; checkcode $? 14
 
+# exercise factor found reducing A=p/q
+echo 65537 | $ECM -param 0 -A 1/65537 -v 1; checkcode $? 8
+echo 4295229443 | $ECM -param 0 -A 1/65537 1; checkcode $? 14
+echo 4429846549 | $ECM -param 0 -A 1/67591 1; checkcode $? 10
+
 if [ "$MUL" = "modmuln" ]; then
 # exercise batch mode: since param=1, does not work on 32-bit machines
 echo 33852066257429811148979390609187539760850944806763555795340084882048986912482949506591909041130651770779842162499482875755533111808276172876211496409325473343590723224081353129229935527059488811457730702694849036693756201766866018562295004353153066430367 | $ECM -v -sigma 1:17 1e6; checkcode $? 0
