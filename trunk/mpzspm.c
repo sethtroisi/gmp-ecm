@@ -38,13 +38,13 @@ MA 02110-1301, USA. */
    Table entries generated with
    
    l=2^k;p=1;P=1;S=0;while(p<=SP_MAX, if(p>=SP_MIN && isprime(p), S+=p; P*=p); \
-   p+=l);print(floor (log2 (sqrt (P / (4*l * S^2)))))
+   p+=l);print(floor (log (sqrt (P / (4*l * S^2)))/log(2)))
 
    in Pari/GP for k=9 ... 24. k<9 simply were doubled and rounded down in 
    each step.
 
-   We curently assume that SP_MIN == 2^(SP_NUMB_BITS-1) and 
-   SP_MAX == 2^(SP_NUMB_BITS).
+   We curently assume that SP_MIN = 2^(SP_NUMB_BITS-1) and 
+   SP_MAX = 2^(SP_NUMB_BITS).
    
 */
 
@@ -72,7 +72,7 @@ static unsigned long sp_max_modulus_bits[32] =
    ULONG_MAX, ULONG_MAX, ULONG_MAX, ULONG_MAX, ULONG_MAX, ULONG_MAX, ULONG_MAX, 
    ULONG_MAX, ULONG_MAX, ULONG_MAX, ULONG_MAX, ULONG_MAX, ULONG_MAX, ULONG_MAX, 
    ULONG_MAX, ULONG_MAX, ULONG_MAX, ULONG_MAX, ULONG_MAX, ULONG_MAX, ULONG_MAX, 
-   ULONG_MAX, ULONG_MAX, ULONG_MAX, ULONG_MAX};
+   ULONG_MAX, ULONG_MAX, 0, 0};
 #else
 #error Table of maximal modulus for transform lengths not defined for this SP_MIN
 ;
