@@ -525,7 +525,7 @@ echo 2050449353925555290706354283 | $ECM -param 0 -sigma 7 -go 2411 3; checkcode
 $ECM -go N- -modmuln 11e3 < c155; checkcode $? 0
 
 # exercise d > I0_THRESHOLD in mpzspm_product_tree_init with n odd
-echo "2^3900-77" | $ECM -ntt -sigma 1:1167435750 1e4; checkcode $? 6
+echo "2^3900-77" | $ECM -ntt -param 0 -sigma 1167435750 1e4; checkcode $? 6
 
 ##### tests for the Weierstrass form
 ##### (disabled in revision 2765 since not tested enough)
