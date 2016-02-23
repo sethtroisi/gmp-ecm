@@ -110,7 +110,6 @@ void set_verbose (int);
 /* getprime.c */
 double getprime ();
 void getprime_clear ();
-void getprime_seek (double);
 #define WANT_FREE_PRIME_TABLE(p) (p < 0.0)
 #define FREE_PRIME_TABLE -1.0
 
@@ -153,10 +152,11 @@ void mpgocandi_t_free(mpgocandi_t *go);
 int  mpgocandi_fixup_with_N(mpgocandi_t *go, mpcandi_t *n);
 
 /* random.c */
+#undef get_random_ul
 unsigned long get_random_ul (void);
-
-/* random2.c */
+#undef pp1_random_seed
 void pp1_random_seed  (mpz_t, mpz_t, gmp_randstate_t);
+#undef pm1_random_seed
 void pm1_random_seed  (mpz_t, mpz_t, gmp_randstate_t);
 
 /* memusage.c */
