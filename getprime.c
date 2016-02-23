@@ -213,7 +213,8 @@ getprime ()
   return offset + 2.0 * (double) current;
 }
 
-
+/* this function is only used from the ecm library */
+#ifndef OUTSIDE_LIBECM
 /* Skips forward or backward in the sieve so that the next call to getprime
    returns the smallest prime >= pp */
 
@@ -293,7 +294,7 @@ getprime_seek (double pp)
 
   current = -1;
 }
-
+#endif
 
 #ifdef MAIN
 int
