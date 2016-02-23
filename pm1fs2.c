@@ -783,7 +783,7 @@ list_output_poly (listz_t l, unsigned long len, int monic, int symmetric,
     outputf (verbosity, suffix);
 }
 
-
+#if 0
 /* Multiply P[i] by r^{k(deg-i)}, for 0 <= i <= deg. Needs 3 entries in tmp. */
 /* I.e., let P(x) = x^deg + \sum_{i=0}^{deg - 1} P[i] * x^i. The output is 
    R(x) = x^deg + \sum_{i=0}^{deg - 1} R[i] * x^i = r^(k deg) P(r^{-k} x). */
@@ -792,7 +792,7 @@ list_output_poly (listz_t l, unsigned long len, int monic, int symmetric,
 /* Returns 0 if a modular inversion failed (in which case R is left 
    unchanged), 1 otherwise */
 
-static int ATTRIBUTE_UNUSED
+static int
 list_scale_rev (listz_t R, listz_t S, mpz_t r, long k, unsigned long deg, 
 		mpz_t modulus, listz_t tmp, 
 		ATTRIBUTE_UNUSED const unsigned long tmplen)
@@ -825,7 +825,7 @@ list_scale_rev (listz_t R, listz_t S, mpz_t r, long k, unsigned long deg,
 
   return 1;
 }
-
+#endif
 
 /* Same, but does squaring which makes things easier */
 
@@ -908,7 +908,7 @@ list_sqr_reciprocal (listz_t R, listz_t S, const unsigned long l,
 #endif
 }
 
-ATTRIBUTE_UNUSED
+#ifdef WANT_ASSERT
 static void
 list_recip_eval1 (mpz_t R, const listz_t S, const unsigned long l)
 {
@@ -921,6 +921,7 @@ list_recip_eval1 (mpz_t R, const listz_t S, const unsigned long l)
   if (l > 0UL)
     mpz_add (R, R, S[0]);
 }
+#endif
 
 /* Multiply two reciprocal polynomials of degree 2*l1-2 and 2*l2-2, resp., 
    with coefficients in standard basis
@@ -1080,11 +1081,11 @@ list_mul_reciprocal (listz_t R, listz_t S1, unsigned long l1,
 #endif
 }
 
-
+#if 0
 /* Multiply a (possibly monic) polynomial A of length k * len with a 
    (possibly monic) polynomial B of length len. R may be identical to A. */
 
-static void ATTRIBUTE_UNUSED
+static void
 list_mul_blocks (listz_t R, const listz_t A, int monicA, const listz_t B, 
 		 int monicB, const unsigned long len, const unsigned int k,
 		 listz_t tmp, ATTRIBUTE_UNUSED const unsigned long tmplen)
@@ -1115,7 +1116,7 @@ list_mul_blocks (listz_t R, const listz_t A, int monicA, const listz_t B,
 
   list_set (A + j * len, tmp, len); /* Move the high part of last product */
 }
-
+#endif
 
 /* 
   Computes V_k(S), where the Chebyshev polynomial V_k(X) is defined by 
@@ -1755,11 +1756,12 @@ list_is_symmetric (listz_t l, unsigned long len, int monic, int anti,
 }
 #endif
 
+#if 0 && defined(WANT_ASSERT)
 /* Evaluate a polynomial of degree n-1 with all coefficients given in F[],
    or of degree n with an implicit leading 1 monomial not stored in F[],
    at x modulo modulus. Result goes in r. tmp needs 2 entries. */
 
-ATTRIBUTE_UNUSED static void 
+static void 
 list_eval_poly (mpz_t r, const listz_t F, const mpz_t x, 
 		const unsigned long n, const int monic, const mpz_t modulus, 
 		listz_t tmp)
@@ -1785,7 +1787,7 @@ list_eval_poly (mpz_t r, const listz_t F, const mpz_t x,
 
   mpz_mod (r, r, modulus);
 }
-
+#endif
 
 /* Build a polynomial with roots r^2i, i in the sumset of the sets in "sets".
    The parameter Q = r + 1/r. This code uses the fact that the polynomials 
@@ -2358,8 +2360,7 @@ make_S_1_S_2 (sets_long_t **S_1, set_long_t **S_2,
   return 0;
 }
 
-
-ATTRIBUTE_UNUSED
+#if 0
 static mpzspv_t *
 mpzspv_init_mt (spv_size_t len, mpzspm_t mpzspm)
 {
@@ -2409,7 +2410,7 @@ mpzspv_init_mt (spv_size_t len, mpzspm_t mpzspm)
 
   return x;
 }
-
+#endif
 
 /* Square the reciprocal Laurent polynomial S(x) of degree 2*n-2.
    S(x) = s_0 + \sum_{i=1}^{n-1} s_i (x^i + x^{-1}).
@@ -3294,11 +3295,11 @@ gfp_ext_pow_norm1 (mpres_t r0, mpres_t r1, const mpres_t a0,
     }
 }
 
-
+#if 0
 /* Compute r[i] = a^((k+i)^2) for i = 0, 1, ..., l-1, where "a" is an 
    element of norm 1 in the quadratic extension ring */
 
-ATTRIBUTE_UNUSED static void
+static void
 gfp_ext_rn2 (mpres_t *r_x, mpres_t *r_y, const mpres_t a_x, const mpres_t a_y,
 	     const long k, const unsigned long l, const mpres_t Delta, 
 	     mpmod_t modulus, const unsigned long origtmplen, mpres_t *origtmp)
@@ -3402,7 +3403,7 @@ gfp_ext_rn2 (mpres_t *r_x, mpres_t *r_y, const mpres_t a_x, const mpres_t a_y,
 		    "/* PARI C */\n", 2 * (k + i) + 1, v[i % 2]);
     }
 }
-
+#endif
 
 /* Compute g_i = x_0^{M-i} * r^{(M-i)^2} for 0 <= i < l. 
    x_0 = b_1^{2*k_2 + (2*m_1 + 1) * P}. r = b_1^P. */
