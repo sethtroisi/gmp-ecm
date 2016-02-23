@@ -257,14 +257,14 @@ list_mul_high (listz_t a, listz_t b, listz_t c, unsigned int K)
 /* multiplies b[0]+...+b[k-1]*x^(k-1)+x^k by c[0]+...+c[l-1]*x^(l-1)+x^l
    and puts the results in a[0]+...+a[k+l-1]*x^(k+l-1)
    [the leading monomial x^(k+l) is implicit].
-   If monic_b (resp. monic_c) is 0, don't consider x^k in b (resp. x^l in c).
+   If monic is 0, don't consider x^k in b (and x^l in c).
    Assumes k = l or k = l+1.
    The auxiliary array t contains at least list_mul_mem(l) entries.
    a and t should not overlap.
 */
 void
-list_mul (listz_t a, listz_t b, unsigned int k, int monic_b,
-          listz_t c, unsigned int l, int monic_c, listz_t t)
+list_mul (listz_t a, listz_t b, unsigned int k,
+          listz_t c, unsigned int l, int monic, listz_t t)
 {
   unsigned int i, po2;
 
@@ -280,10 +280,10 @@ list_mul (listz_t a, listz_t b, unsigned int k, int monic_b,
 
   if (po2 && Fermat)
     {
-      if (monic_b && monic_c && l == k)
+      if (monic && l == k)
         {
           F_mul (a, b, c, l, MONIC, Fermat, t);
-          monic_b = monic_c = 0;
+          monic = 0;
         }
       else
         F_mul (a, b, c, l, DEFAULT, Fermat, t);
@@ -299,27 +299,21 @@ list_mul (listz_t a, listz_t b, unsigned int k, int monic_b,
     }
 
   /* deal with x^k and x^l */
-  if (monic_b || monic_c)
+  if (monic)
     {
       mpz_set_ui (a[k + l - 1], 0);
       
-      if (monic_b && monic_c) /* Single pass over a[] */
-        {
-          /* a += b * x^l + c * x^k, so a[i] += b[i-l]; a[i] += c[i-k] 
-             if 0 <= i-l < k  or  0 <= i-k < l, respectively */
-          if (k > l)
-            mpz_add (a[l], a[l], b[0]);
-          for (i = k; i < k + l; i++)
-            {
-              mpz_add (a[i], a[i], b[i-l]); /* i-l < k */
-              mpz_add (a[i], a[i], c[i-k]); /* i-k < l */
-            }
-        }
-      else if (monic_c) /* add b * x^l */
-        list_add (a + l, a + l, b, k);
+      /* Single pass over a[] */
 
-      else /* only monic_b, add x^k * c */
-        list_add (a + k, a + k, c, l);
+      /* a += b * x^l + c * x^k, so a[i] += b[i-l]; a[i] += c[i-k] 
+         if 0 <= i-l < k  or  0 <= i-k < l, respectively */
+      if (k > l) /* case k = l+1 */
+        mpz_add (a[l], a[l], b[0]);
+      for (i = k; i < k + l; i++)
+        {
+          mpz_add (a[i], a[i], b[i-l]); /* i-l < k */
+          mpz_add (a[i], a[i], c[i-k]); /* i-k < l */
+        }
     }
 }
 
@@ -372,7 +366,7 @@ PolyFromRoots (listz_t G, listz_t a, unsigned int k, listz_t T, mpz_t n)
   
   PolyFromRoots (G, a, l, T, n);
   PolyFromRoots (G + l, a + l, m, T, n);
-  list_mul (T, G, l, 1, G + l, m, 1, T + k);
+  list_mul (T, G, l, G + l, m, 1, T + k);
   list_mod (G, T, k, n);
 }
 
@@ -442,7 +436,7 @@ PolyFromRoots_Tree (listz_t G, listz_t a, unsigned int k, listz_t T,
               return ECM_ERROR;
             }
         }
-      list_mul (T, H1, l, 1, H1 + l, m, 1, T + k);
+      list_mul (T, H1, l, H1 + l, m, 1, T + k);
       list_mod (G, T, k, n);
     }
   
@@ -499,7 +493,7 @@ PolyInvert (listz_t q, listz_t b, unsigned int K, listz_t t, mpz_t n)
       
           if (k > 1)
             {
-              list_mul (t + k, q + k, l - 1, 1, b + l, k - 1, 1,
+              list_mul (t + k, q + k, l - 1, b + l, k - 1, 1,
 			t + k + K - 2); /* Q1 * B1 */
               list_sub (t + 1, t + 1, t + k, k - 1);
             }

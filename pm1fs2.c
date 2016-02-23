@@ -859,7 +859,7 @@ list_sqr_reciprocal (listz_t R, listz_t S, const unsigned long l,
     }
   mpz_tdiv_q_2exp (S[0], S[0], 1UL);
   
-  list_mul (r1, S, l, 0, S, l, 0, t);
+  list_mul (r1, S, l, S, l, 0, t);
   /* r1 = f0*g0/4 + (f0*g1 + f1*g0)/2 * x + f1*g1 * x^2 */
 #if 0
   for (i = 0; i < 2UL * l - 1UL; i++)
@@ -870,7 +870,7 @@ list_sqr_reciprocal (listz_t R, listz_t S, const unsigned long l,
   ASSERT_ALWAYS (Srev != NULL);
   for (i = 0UL; i < l; i++)
       (*Srev)[i] = (*S)[l - 1UL - i];
-  list_mul (r2, S, l, 0, Srev, l, 0, t);
+  list_mul (r2, S, l, Srev, l, 0, t);
   /* r2 is symmetric, r2[i] = r2[2*l - 2 - i]. Check this */
 #if 0
   for (i = 0; 0 && i < 2UL * l - 1UL; i++)
@@ -1023,7 +1023,7 @@ list_mul_reciprocal (listz_t R, listz_t S1, unsigned long l1,
   
   for (i = 0UL; i < l2; i++)
     mpz_set (rev[i], S2[l2 - 1UL - i]);
-  list_mul (r1, S1, lmax, 0, rev, lmax, 0, t);
+  list_mul (r1, S1, lmax, rev, lmax, 0, t);
   /* r1 = \tilde{f}(x) \rev(\tilde{g}(x)) and has degree l1 + l2 - 2,
      i.e. l1 + l2 - 1 entries. */
 #if 0
@@ -1033,7 +1033,7 @@ list_mul_reciprocal (listz_t R, listz_t S1, unsigned long l1,
   
   for (i = 0UL; i < l2; i++)
     mpz_set(rev[i], S2[i]);
-  list_mul (r2, S1, lmax, 0, rev, lmax, 0, t);
+  list_mul (r2, S1, lmax, rev, lmax, 0, t);
   /* \tilde{f}(x) \tilde{g}(x) */
   
 #if 0
@@ -1080,43 +1080,6 @@ list_mul_reciprocal (listz_t R, listz_t S1, unsigned long l1,
   mpz_clear (prod);
 #endif
 }
-
-#if 0
-/* Multiply a (possibly monic) polynomial A of length k * len with a 
-   (possibly monic) polynomial B of length len. R may be identical to A. */
-
-static void
-list_mul_blocks (listz_t R, const listz_t A, int monicA, const listz_t B, 
-		 int monicB, const unsigned long len, const unsigned int k,
-		 listz_t tmp, ATTRIBUTE_UNUSED const unsigned long tmplen)
-{
-  unsigned int j;
-  
-  if (k == 0 || len == 0)
-    return;
-
-  ASSERT (R != B);
-  ASSERT (tmplen >= 3 * len + list_mul_mem (len));
-
-  /* Do first piece of A */
-  list_mul (tmp, A, len, (monicA && k == 1), B, len, monicB, tmp + 2 * len);
-  list_set (R, tmp, len); /* May overwrite A[0 ... len-1] */
-  list_swap (tmp, tmp + len, len); /* Move high part to tmp[0 ... len-1] */
-  
-  for (j = 1; j < k; j++) /* Process the remaining k-1 pieces of A */
-    {
-      list_mul (tmp + len, 
-		A + j * len, len, (monicA && j + 1 == k),
-		B, len, monicB, tmp + 3 * len);
-      /* Add low part of this product and previous product's high part */
-      list_add (A + j * len, tmp, tmp + len, len);
-      list_swap (tmp, tmp + 2 * len, len); /* Move this product's high 
-					      part to beginning of tmp */
-    }
-
-  list_set (A + j * len, tmp, len); /* Move the high part of last product */
-}
-#endif
 
 /* 
   Computes V_k(S), where the Chebyshev polynomial V_k(X) is defined by 
