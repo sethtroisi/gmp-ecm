@@ -521,8 +521,11 @@ $ECM -base2 32768 -param 0 11e3 < c155; checkcode $? 1
 
 echo 2050449353925555290706354283 | $ECM -param 0 -sigma 7 -go 2411 3; checkcode $? 0
 
-# excercise "Warning, invalid expression %s for the -go option" error message
+# exercise "Warning, invalid expression %s for the -go option" error message
 $ECM -go N- -modmuln 11e3 < c155; checkcode $? 0
+
+# exercise d > I0_THRESHOLD in mpzspm_product_tree_init with n odd
+echo "2^3900-77" | $ECM -ntt -sigma 1:1167435750 1e4; checkcode $? 6
 
 ##### tests for the Weierstrass form
 ##### (disabled in revision 2765 since not tested enough)
@@ -560,7 +563,7 @@ echo 2432902008176640001 | $ECM -param 6 -A 2 -x0 2 -y0 3 100 9000; checkcode $?
 # no factor found
 echo 2432902008176640001 | $ECM -param 6 -A 2 -x0 2 -y0 3 1000 2000; checkcode $? 0
 
-fi
+fi # tests for Weierstrass form
 
 ##### tests for curves with specific torsion
 ##### (disabled in revision 2764 since not tested enough)
@@ -590,7 +593,7 @@ echo 2432902008176640001 | $ECM -torsion Z9 -sigma 3 13000; checkcode $? 14
 echo 2432902008176640001 | $ECM -torsion Z10 -sigma 3 320; checkcode $? 14
 echo 2432902008176640001 | $ECM -torsion Z2xZ8 -sigma 2 1300; checkcode $? 14
 
-fi
+fi # tests with -torsion
 
 # the following tests should work on machines which have uint64_t or where
 # unsigned long long has 64 bits (exercises patch from David Cleaver, r1575)
@@ -613,7 +616,7 @@ if [ "$MUL" = "modmuln" ]; then
 echo 33852066257429811148979390609187539760850944806763555795340084882048986912482949506591909041130651770779842162499482875755533111808276172876211496409325473343590723224081353129229935527059488811457730702694849036693756201766866018562295004353153066430367 | $ECM -v -sigma 1:17 1e6; checkcode $? 0
 fi
 
-fi
+fi # GMP_NUMB_BITS = 64
 
 # exercise -h
 $ECM -h
