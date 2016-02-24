@@ -327,7 +327,7 @@ F_divby5_1 (mpz_t RS, unsigned int n)
 /* Multiply by sqrt(2)^e (mod F_m).  n = 2^m */
 /* R = (S * sqrt(2)^e) % (2^n+1) */
 /* R == S is ok, but neither must be == gt */
-/* Assumes abs(e) < 4*n */
+/* Assumes 0 < e < 4*n, and e <> 2*n */
 
 static void 
 F_mul_sqrt2exp (mpz_t R, mpz_t S, int e, unsigned int n) 
@@ -336,22 +336,14 @@ F_mul_sqrt2exp (mpz_t R, mpz_t S, int e, unsigned int n)
 
   ASSERT(S != gt);
   ASSERT(R != gt);
-  ASSERT((unsigned) abs (e) < 4 * n);
+  ASSERT(0 < e && (unsigned int) e < 4 * n && (unsigned int) e != 2 * n);
 
-  if (e < 0)
-    e += 4 * n;
-  /* 0 <= e < 4*n */
-  if ((unsigned) e >= 2 * n)    /* sqrt(2)^(2*n) == -1 (mod F_m), so */
+  /* 0 < e < 4*n */
+  if ((unsigned) e > 2 * n)     /* sqrt(2)^(2*n) == -1 (mod F_m), so */
     {
       e -= 2 * n;               /* sqrt(2)^e == -sqrt(2)^(e-2*n) (mod F_m) */
       chgsgn = 1;
     }				/* Now e < 2*n */
-
-#ifdef DEBUG_PERF
-  if (e == 0)
-    outputf (OUTPUT_ALWAYS, "F_mul_sqrt2exp: called for trivial case %s1\n", 
-             chgsgn ? "-" : "");
-#endif
 
   odd = e & 1;
   e >>= 1;
@@ -375,8 +367,9 @@ F_mul_sqrt2exp (mpz_t R, mpz_t S, int e, unsigned int n)
           mpz_sub (R, R, gt);
         }
     }
-  else if (e != 0) 
+  else /* necessarily e <> 0 */
     {
+      ASSERT (e != 0);
       /*  S     = a*2^(n-e) + b,   b < 2^(n-e)  */
       /*  S*2^e = a*2^n + b*2^e = b*2^e - a */
       /*  b*2^e < 2^(n-e)*2^e = 2^n */
@@ -385,70 +378,29 @@ F_mul_sqrt2exp (mpz_t R, mpz_t S, int e, unsigned int n)
                                       /* This is simply a truncate if S == R */
       mpz_mul_2exp (R, R, e);         /* R < 2^n */
       mpz_sub (R, R, gt);
-    } else 
-      mpz_set (R, S);
+    }
 
   if (chgsgn) 
     mpz_neg (R, R);
 }
 
-/* Same, but input may be gt. Input and output must not be identical */
+/* Same, but input may be gt. Input and output must not be identical.
+   Currently this routine is always called with e=n, with n a power of 2,
+   thus we assume e is even. Moreover we assume 0 < e < 2n. */
 static void 
 F_mul_sqrt2exp_2 (mpz_t R, mpz_t S, int e, unsigned int n)
 {
-  int chgsgn = 0, odd;
-
   ASSERT (S != R);
   ASSERT (R != gt);
-  ASSERT ((unsigned) abs (e) < 4 * n);
+  ASSERT (0 < e && (unsigned) e < 2 * n);
+  ASSERT ((e & 1) == 0);
 
-  /* this function is always called with e >= 0 */
-  ASSERT(e >= 0);
-  if ((unsigned) e >= 2 * n)    /* sqrt(2)^(2*n) == -1 (mod F_m), so */
-    {
-      e -= 2 * n;               /* sqrt(2)^e == -sqrt(2)^(e-2*n) (mod F_m) */
-      chgsgn = 1;
-    }				/* Now e < 2*n */
-
-#ifdef DEBUG_PERF
-  if (e == 0)
-    outputf (OUTPUT_ALWAYS, "F_mul_sqrt2exp_2: called for trivial case %s1\n",
-	     chgsgn ? "-" : "");
-#endif
-
-  odd = e & 1;
   e >>= 1;
 
-  if (odd != 0)
-    {
-      mpz_set (R, S); /* Neccessary?  n/32 mov*/
-      mpz_mul_2exp (gt, S, n / 2); /* May overwrite S  n/32 mov */
-      mpz_sub (gt, gt, R); /* n/32 sub*/
-
-      mpz_tdiv_q_2exp (R, gt, n / 4 * 3); /* 3*(n/32)/4 mov */
-      mpz_tdiv_r_2exp (gt, gt, n / 4 * 3); /* Just a truncate */
-      mpz_mul_2exp (gt, gt, n / 4); /* 3*(n/32)/4 mov */
-      mpz_sub (R, gt, R); /* (n/32)/4 sub, 3*(n/32)/4 mov */
-      
-      if (e != 0)
-        {
-          mpz_tdiv_q_2exp (gt, R, n - e);
-          mpz_tdiv_r_2exp (R, R, n - e);
-          mpz_mul_2exp (R, R, e);
-          mpz_sub (R, R, gt);
-        }
-    } 
-  else if (e != 0) 
-    {
-      mpz_tdiv_q_2exp (R, S, n - e); /* upper e bits into R */
-      mpz_tdiv_r_2exp (gt, S, n - e); /* lower n-e bits into gt */
-      mpz_mul_2exp (gt, gt, e);
-      mpz_sub (R, gt, R);
-    } else 
-      mpz_set (R, S);
-
-  if (chgsgn == -1) 
-    mpz_neg (R, R);
+  mpz_tdiv_q_2exp (R, S, n - e); /* upper e bits into R */
+  mpz_tdiv_r_2exp (gt, S, n - e); /* lower n-e bits into gt */
+  mpz_mul_2exp (gt, gt, e);
+  mpz_sub (R, gt, R);
 }
 
 #define A0s A[0]
@@ -507,8 +459,14 @@ F_fft_dif (mpz_t *A, int l, int stride2, int n)
       mpz_add (A0is, A0is, A1is);
       mpz_add (A1is, gt, A3is);
       mpz_sub (A3is, gt, A3is);
+      /* iomega goes from 4n/l to n-4n/l (with original l) thus cannot
+         equal 0 nor 2n */
       F_mul_sqrt2exp (A1is, A1is, iomega, n);
+      /* 2*iomega goes from 8n/l to 2n-8n/l (with original l) thus cannot
+         equal 0 nor 2n */
       F_mul_sqrt2exp (A2is, A2is, 2 * iomega, n);
+      /* 3*iomega goes from 12n/l to 3n-12n/l (with original l) thus cannot
+         equal 0 nor 2n (because n is a power of 2) */
       F_mul_sqrt2exp (A3is, A3is, 3 * iomega, n);
     }
 
@@ -566,8 +524,13 @@ F_fft_dit (mpz_t *A, int l, int stride2, int n)
     {
       /* Divide by omega^i. Since sqrt(2)^(4*n) == 1 (mod 2^n+1), 
          this is like multiplying by omega^(4*n-i) */
+      /* iomega goes from 4n/l to n-4n/l (with original l) thus
+         3n < 4*n-iomega < 4n */
       F_mul_sqrt2exp (A1is, A1is, 4 * n - iomega, n);
+      /* 2n < 4*n-2*iomega < 4n */
       F_mul_sqrt2exp (A2is, A2is, 4 * n - 2 * iomega, n);
+      /* n < 4*n-3*iomega < 4n, and 4*n-3*iomega cannot equal 2n since
+         n is a power of 2 and 3*iomega is divisible by 3 */
       F_mul_sqrt2exp (A3is, A3is, 4 * n - 3 * iomega, n);
 
       mpz_sub (gt, A3is, A1is);
@@ -1048,7 +1011,7 @@ F_mul (mpz_t *R, mpz_t *A, mpz_t *B, unsigned int len, int parameter,
   r += 4;
 #endif /* CHECKSUM */
 
-  /* Don't do FFT if len =< 4 (Karatsuba or Toom-Cook are faster) unless we 
+  /* Don't do FFT if len <= 4 (Karatsuba or Toom-Cook are faster) unless we 
      do a transform without zero padding, or if transformlen > 4*n 
      (no suitable primitive roots of 1) */
   if ((len > 4 || parameter == NOPAD) && transformlen <= 4 * n) 
@@ -1099,7 +1062,9 @@ F_mul (mpz_t *R, mpz_t *A, mpz_t *B, unsigned int len, int parameter,
              len2 = log_2 (transformlen), so divide by 
              2^(len2) = sqrt(2)^(2*len2) */
 
-          F_mul_sqrt2exp (R[i], R[i], - 2 * len2, n);
+          /* since transformlen = 2^len2 <= 4*n then for n >= 8 we have
+             2*len2 <= 2*log2(4*n) < 2n */
+          F_mul_sqrt2exp (R[i], R[i], 4 * n - 2 * len2, n);
         }
 
       r += transformlen;
@@ -1278,7 +1243,9 @@ F_mul_trans (mpz_t *R, mpz_t *A, mpz_t *B, unsigned int lenA,
           F_mulmod (t[i], t[i], t[i + lenB], n);
           /* Do the div-by-length. Transform length was len, so divide by
              2^len2 = sqrt(2)^(2*len2) */
-          F_mul_sqrt2exp (t[i], t[i], - 2 * len2, n);
+          /* since len2 = log2(lenB) and lenB <= 4*n, for n >= 8 we have
+             2*len2 < 2*n */
+          F_mul_sqrt2exp (t[i], t[i], 4 * n - 2 * len2, n);
         }
 
       r += lenB;
