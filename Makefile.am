@@ -33,8 +33,7 @@ else
   bench_mulredc_LDADD = $(GMPLIB)
 endif
 
-libecm_la_SOURCES = ecm.c ecm2.c pm1.c pp1.c getprime.c listz.c lucas.c \
-		   getprime_r.c \
+libecm_la_SOURCES = ecm.c ecm2.c pm1.c pp1.c getprime_r.c listz.c lucas.c \
 		   stage2.c mpmod.c mul_lo.c polyeval.c median.c \
 		   schoen_strass.c ks-multiply.c rho.c bestd.c auxlib.c \
 		   random.c factor.c sp.c spv.c spm.c mpzspm.c mpzspv.c \
@@ -64,8 +63,8 @@ if WANT_CUDA
   ecm_CFLAGS += $(CC_ADD_FLAGS_FOR_GPU)
 endif
 ecm_SOURCES = auxi.c b1_ainc.c candi.c eval.c random.c main.c \
-              resume.c getprime.c champions.h aprtcle/mpz_aprcl.c \
-              memusage.c getprime_r.c
+              resume.c getprime_r.c champions.h aprtcle/mpz_aprcl.c \
+              memusage.c
 
 tune_SOURCES = mpmod.c tune.c mul_lo.c listz.c auxlib.c ks-multiply.c \
                schoen_strass.c polyeval.c median.c ecm_ntt.c \
@@ -78,7 +77,7 @@ ecmfactor_CFLAGS = $(OPENMP_CFLAGS) -lpthread
 
 # multiecm_CPPFLAGS = -DOUTSIDE_LIBECM
 # multiecm_SOURCES = auxi.c b1_ainc.c candi.c eval.c random.c multiecm.c \
-#               resume.c getprime.c addlaws.c torsions.c aprtcle/mpz_aprcl.c
+#               resume.c getprime_r.c addlaws.c torsions.c aprtcle/mpz_aprcl.c
 # multiecm_CFLAGS = $(OPENMP_CFLAGS)
 
 aprcl_CFLAGS = -Wall
