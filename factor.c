@@ -50,7 +50,7 @@ ecm_init (ecm_params q)
   mpz_init_set_ui (ptrE->a6, 0);
   ptrE->type = ECM_EC_TYPE_MONTGOMERY;
   ptrE->disc = 0;
-  mpz_init_set_ui(ptrE->sq[0], 1);
+  mpz_init_set_ui (ptrE->sq[0], 1);
   q->E = ptrE;
   q->param = ECM_PARAM_DEFAULT;
   mpz_init_set_ui (q->go, 1);
@@ -100,6 +100,7 @@ ecm_clear (ecm_params q)
   mpz_clear (q->E->a2);
   mpz_clear (q->E->a4);
   mpz_clear (q->E->a6);
+  mpz_clear (q->E->sq[0]);
   free (q->E);
 }
 
