@@ -196,7 +196,7 @@ pp1_stage1 (mpz_t f, mpres_t P0, mpmod_t n, double B1, double *B1done,
      are already included with exponent at least 1, so it's safe to skip 
      ahead to B1done+1. */
   
-  while (p <= B1)
+  while (p <= *B1done)
     p = (double) getprime_mt (prime_info);
 
   /* then all primes > sqrt(B1) and taken with exponent 1 */
