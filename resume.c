@@ -390,6 +390,7 @@ read_resumefile_line (int *method, mpz_t x, mpz_t y, mpcandi_t *n,
             }
           mpz_mul (z, z, x);
           mpz_mod (x, z, n->n);
+          mpz_clear (z);
         }
 
       return 1;
