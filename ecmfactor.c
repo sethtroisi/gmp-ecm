@@ -97,23 +97,14 @@ main (int argc, char *argv[])
 
   for (i = 0; i < nthreads; i++)
     {
+      gmp_printf ("thread %lu with sigma %d:%Zd ",
+                  i, T[i]->q->param, T[i]->q->sigma);
       if (T[i]->ret > 0)
-        {
-          gmp_printf ("thread %lu with sigma %d:%Zd found factor in step %u: ",
-                      i, T[i]->q->param, T[i]->q->sigma, T[i]->ret);
-          mpz_out_str (stdout, 10, T[i]->f);
-          printf ("\n");
-#if 0
-          printf ("lucky curve was b*y^2 = x^3 + a*x^2 + x\n");
-          printf ("with a = (v-u)^3*(3*u+v)/(4*u^3*v)-2,");
-          printf (" u = sigma^2-5, v = 4*sigma\n");
-#endif
-        }
+        gmp_printf ("found factor in step %u: %Zd\n", T[i]->ret, T[i]->f);
       else if (T[i]->ret == ECM_NO_FACTOR_FOUND)
-        printf ("thread %lu with sigma %d:%Zd found no factor\n", i,
-                T[i]->q->param, T[i]->q->sigma);
+        printf ("found no factor\n");
       else
-        printf ("thread %lu gave an error\n", i);
+        printf ("gave an error\n");
       mpz_clear (T[i]->n);
       mpz_clear (T[i]->f);
       ecm_clear (T[i]->q);
