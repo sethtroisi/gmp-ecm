@@ -295,6 +295,7 @@ get_curve_from_param2 (mpz_t f, mpres_t A, mpres_t x0, mpz_t sigma, mpmod_t n)
 {
   mpres_t t, u, v, w, x, y, z;
   mpz_t k;
+  int ret = ECM_NO_FACTOR_FOUND;
 
   mpres_init (t, n);
   mpres_init (u, n);
@@ -308,23 +309,20 @@ get_curve_from_param2 (mpz_t f, mpres_t A, mpres_t x0, mpz_t sigma, mpmod_t n)
   mpz_set (k, sigma);
 
   if (mpz_cmp_ui (k, 2) < 0)
-      return ECM_ERROR;
+    {
+      ret = ECM_ERROR;
+      goto clear_and_exit;
+    }
 
   addchain_param (x, y, z, k, t, u, v, w, n); 
 
   /* Now (x:y:z) = k*P */
 
-  if (!mpres_invert(u, z, n)) 
+  if (!mpres_invert (u, z, n)) 
     {
       mpres_gcd (f, z, n);
-      mpres_clear (t, n);
-      mpres_clear (u, n);
-      mpres_clear (v, n);
-      mpres_clear (w, n);
-      mpres_clear (x, n);
-      mpres_clear (y, n);
-      mpres_clear (z, n);
-      return ECM_FACTOR_FOUND_STEP1;
+      ret = ECM_FACTOR_FOUND_STEP1;
+      goto clear_and_exit;
     }
 
   mpres_sqr (v, u, n);
@@ -335,17 +333,11 @@ get_curve_from_param2 (mpz_t f, mpres_t A, mpres_t x0, mpz_t sigma, mpmod_t n)
   mpres_sub_ui (t, y, 3, n);
   mpres_mul_ui (t, t, 2, n);
 
-  if (!mpres_invert(u, t, n)) 
+  if (!mpres_invert (u, t, n)) 
     {
       mpres_gcd (f, t, n);
-      mpres_clear (t, n);
-      mpres_clear (u, n);
-      mpres_clear (v, n);
-      mpres_clear (w, n);
-      mpres_clear (x, n);
-      mpres_clear (y, n);
-      mpres_clear (z, n);
-      return ECM_FACTOR_FOUND_STEP1;
+      ret = ECM_FACTOR_FOUND_STEP1;
+      goto clear_and_exit;
     }
   
   mpres_mul_ui (w, x, 3, n);
@@ -364,17 +356,11 @@ get_curve_from_param2 (mpz_t f, mpres_t A, mpres_t x0, mpz_t sigma, mpmod_t n)
   mpres_mul_ui (w, w, 3, n);
   mpres_neg (w, w, n);
 
-  if (!mpres_invert(t, v, n)) 
+  if (!mpres_invert (t, v, n)) 
     {
       mpres_gcd (f, v, n);
-      mpres_clear (t, n);
-      mpres_clear (u, n);
-      mpres_clear (v, n);
-      mpres_clear (w, n);
-      mpres_clear (x, n);
-      mpres_clear (y, n);
-      mpres_clear (z, n);
-      return ECM_FACTOR_FOUND_STEP1;
+      ret = ECM_FACTOR_FOUND_STEP1;
+      goto clear_and_exit;
     }
 
   mpres_add (w, w, u, n);
@@ -384,6 +370,7 @@ get_curve_from_param2 (mpz_t f, mpres_t A, mpres_t x0, mpz_t sigma, mpmod_t n)
 
   mpres_set_ui (x0, 2, n);
 
+ clear_and_exit:
   mpres_clear (t, n);
   mpres_clear (u, n);
   mpres_clear (v, n);
@@ -393,7 +380,7 @@ get_curve_from_param2 (mpz_t f, mpres_t A, mpres_t x0, mpz_t sigma, mpmod_t n)
   mpres_clear (z, n);
   mpz_clear (k);
 
-  return ECM_NO_FACTOR_FOUND;
+  return ret;
 }
 
 /* Parametrization ECM_PARAM_BATCH_32BITS_D */
