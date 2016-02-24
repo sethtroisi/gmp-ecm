@@ -454,7 +454,6 @@ sp_pow (sp_t x, sp_t a, sp_t m, sp_t d)
 /* x / 2 mod m */
 #define sp_div_2(x,m) (((x) & 1) ? (m) - (((m) - (x)) >> 1) : ((x) >> 1))
   
-int sp_spp (sp_t, sp_t, sp_t);
 int sp_prime (sp_t);
 
 /* spm */
