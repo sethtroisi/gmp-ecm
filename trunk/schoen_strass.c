@@ -412,17 +412,16 @@ F_mul_sqrt2exp_2 (mpz_t R, mpz_t S, int e, unsigned int n)
 #define A2is A[(i + 2 * l) << stride2]
 #define A3is A[(i + 3 * l) << stride2]
 
-/* Decimation-in-frequency FFT. Unscrambled input, scrambled output. */
-/* Elements are (mod 2^n+1), l and n must be powers of 2, l must be <= 4*n. */
-/* Performs forward transform */
-
+/* Decimation-in-frequency FFT. Unscrambled input, scrambled output.
+   Elements are (mod 2^n+1), l and n must be powers of 2, l must be <= 4*n.
+   Performs forward transform.
+   Assumes l > 1. */
 static void 
 F_fft_dif (mpz_t *A, int l, int stride2, int n) 
 {
   int i, omega = (4 * n) / l, iomega;
 
-  if (l <= 1)
-    return;
+  ASSERT (l > 1);
 
   ASSERT((4 * n) % l == 0);
 
@@ -479,17 +478,16 @@ F_fft_dif (mpz_t *A, int l, int stride2, int n)
     }
 }
 
-/* Decimation-in-time inverse FFT. Scrambled input, unscrambled output */
-/* Does not perform divide-by-length. l, and n as in F_fft_dif() */
-
+/* Decimation-in-time inverse FFT. Scrambled input, unscrambled output.
+   Does not perform divide-by-length. l, and n as in F_fft_dif().
+   Assume l > 1. */
 static void 
 F_fft_dit (mpz_t *A, int l, int stride2, int n) 
 {
   int i, omega = (4 * n) / l, iomega;
-  
-  if (l <= 1)
-    return;
 
+  ASSERT (l > 1);
+  
   ASSERT((4 * n) % l == 0);
 
   if (l == 2)
@@ -576,155 +574,104 @@ F_fft_dit (mpz_t *A, int l, int stride2, int n)
 #define t5 t[5*l+i]
 
 
+/* Assume A <> B. There was some code for squaring (A=B) in revision <= 2788.
+ */
 static unsigned int
 F_toomcook4 (mpz_t *C, mpz_t *A, mpz_t *B, unsigned int len, unsigned int n, 
              mpz_t *t)
 {
   unsigned int l, i, r;
 
+  ASSERT(A != B);
   ASSERT(len % 4 == 0);
 
   l = len / 4;
   
-  if (A == B) /* Squaring. The interpolation could probably be optimized, too */
+  for (i = 0; i < l; i++)
     {
-      for (i = 0; i < l; i++)
-        {
-          /*** Evaluate A(2), A(-2), 8*A(1/2) ***/
-          mpz_mul_2exp (t0, A0, 1);
-          mpz_add (t0, t0, A1);
-          mpz_mul_2exp (t0, t0, 1);
-          mpz_add (t0, t0, A2);
-          mpz_mul_2exp (t0, t0, 1);
-          mpz_add (t0, t0, A3);         /* t[0 .. l-1] = 8*A(1/2) < 15*N */
-          F_mod_1 (t0, n);
+      /*** Evaluate A(2), A(-2), 8*A(1/2) ***/
+      mpz_mul_2exp (t0, A0, 1);
+      mpz_add (t0, t0, A1);
+      mpz_mul_2exp (t0, t0, 1);
+      mpz_add (t0, t0, A2);
+      mpz_mul_2exp (t0, t0, 1);
+      mpz_add (t0, t0, A3);         /* t[0 .. l-1] = 8*A(1/2) < 15*N */
+      F_mod_1 (t0, n);
 
-          mpz_mul_2exp (t2, A3, 2);
-          mpz_add (t2, t2, A1);
-          mpz_mul_2exp (t2, t2, 1);     /* t[2l .. 3l-1] = 8*A_3 + 2*A_1 */
-          mpz_mul_2exp (gt, A2, 2);
-          mpz_add (gt, gt, A0);         /* gt = 4*A_2 + A0 */
-          mpz_sub (t4, gt, t2);         /* t[4l .. 5l-1] = A(-2) */
-          mpz_add (t2, t2, gt);         /* t[2l .. 3l-1] = A(2) */
-          F_mod_1 (t4, n);
-          F_mod_1 (t2, n);
+      mpz_mul_2exp (t2, A3, 2);
+      mpz_add (t2, t2, A1);
+      mpz_mul_2exp (t2, t2, 1);     /* t[2l .. 3l-1] = 8*A_3 + 2*A_1 */
+
+      mpz_mul_2exp (gt, A2, 2);
+      mpz_add (gt, gt, A0);         /* gt = 4*A_2 + A0 */
+      mpz_sub (t4, gt, t2);         /* t[4l .. 5l-1] = A(-2) */
+      mpz_add (t2, t2, gt);         /* t[2l .. 3l-1] = A(2) */
+      F_mod_1 (t4, n);
+      F_mod_1 (t2, n);
           
-          /* Evaluate A(1), A(-1) */
-          mpz_add (C2, A0, A2);         /* May overwrite A2 */
-          mpz_add (gt, A1, A3);
-          mpz_sub (C4, C2, gt);         /* C4 = A(-1) */
-          mpz_add (C2, C2, gt);         /* C2 = A(1) < 4*N */
-          F_mod_1 (C2, n);
-          F_mod_1 (C4, n);
-        }
+      /*** Evaluate B(2), B(-2), 8*B(1/2) ***/
+      mpz_mul_2exp (t1, B0, 1);
+      mpz_add (t1, t1, B1);
+      mpz_mul_2exp (t1, t1, 1);
+      mpz_add (t1, t1, B2);
+      mpz_mul_2exp (t1, t1, 1);
+      mpz_add (t1, t1, B3);         /* t[l .. 2l-1] = 8*B(1/2) */
+      F_mod_1 (t1, n);
 
-    /* A0  A1   A2   A3                     */
-    /* A0      A(1)  A3  A(-1)              */
-    /* C0  C1   C2   C3   C4    C5   C6  C7 */
+      mpz_mul_2exp (t3, B3, 2);
+      mpz_add (t3, t3, B1);
+      mpz_mul_2exp (t3, t3, 1);     /* t[3l .. 4l-1] = 8*B_3 + 2*B_1 */
 
-      r = F_mul (t, t, t, l, DEFAULT, n, t + 6 * l);
-        /* t0 = (8*A(1/2)) ^ 2 = 64*C(1/2) */
-      r += F_mul (t + 2 * l, t + 2 * l, t + 2 * l, l, DEFAULT, n, t + 6 * l);
-        /* t2 = A(2) ^ 2 = C(2) */
-      r += F_mul (t + 4 * l, t + 4 * l, t + 4 * l, l, DEFAULT, n, t + 6 * l);
-        /* t4 = A(-2) ^ 2 = C(-2) */
-      r += F_mul (C, A, A, l, DEFAULT, n, t + 6 * l);
-        /* C0 = A(0) ^ 2 = C(0) */
-      r += F_mul (C + 6 * l, A + 3 * l, A + 3 * l, l, DEFAULT, n, t + 6 * l);
-        /* C6 = A(inf) ^ 2 = C(inf) */
-      r += F_mul (C + 2 * l, C + 2 * l, C + 2 * l, l, DEFAULT, n, t + 6 * l);
-        /* C2 = A(1) ^ 2 = C(1). May overwrite A3 */
-      r += F_mul (C + 4 * l, C + 4 * l, C + 4 * l, l, DEFAULT, n, t + 6 * l);
-        /* C4 = A(-1) ^ 2 = C(-1) */
-    }
-  else /* Multiply */
-    {
-      for (i = 0; i < l; i++)
-        {
-          /*** Evaluate A(2), A(-2), 8*A(1/2) ***/
-          mpz_mul_2exp (t0, A0, 1);
-          mpz_add (t0, t0, A1);
-          mpz_mul_2exp (t0, t0, 1);
-          mpz_add (t0, t0, A2);
-          mpz_mul_2exp (t0, t0, 1);
-          mpz_add (t0, t0, A3);         /* t[0 .. l-1] = 8*A(1/2) < 15*N */
-          F_mod_1 (t0, n);
+      mpz_mul_2exp (gt, B2, 2);
+      mpz_add (gt, gt, B0);         /* gt = 4*B_2 + B0 */
+      mpz_sub (t5, gt, t3);         /* t[5l .. 6l-1] = B(-2) */
+      mpz_add (t3, t3, gt);         /* t[3l .. 4l-1] = B(2) */
+      F_mod_1 (t5, n);
+      F_mod_1 (t3, n);
 
-          mpz_mul_2exp (t2, A3, 2);
-          mpz_add (t2, t2, A1);
-          mpz_mul_2exp (t2, t2, 1);     /* t[2l .. 3l-1] = 8*A_3 + 2*A_1 */
-
-          mpz_mul_2exp (gt, A2, 2);
-          mpz_add (gt, gt, A0);         /* gt = 4*A_2 + A0 */
-          mpz_sub (t4, gt, t2);         /* t[4l .. 5l-1] = A(-2) */
-          mpz_add (t2, t2, gt);         /* t[2l .. 3l-1] = A(2) */
-          F_mod_1 (t4, n);
-          F_mod_1 (t2, n);
-          
-          /*** Evaluate B(2), B(-2), 8*B(1/2) ***/
-          mpz_mul_2exp (t1, B0, 1);
-          mpz_add (t1, t1, B1);
-          mpz_mul_2exp (t1, t1, 1);
-          mpz_add (t1, t1, B2);
-          mpz_mul_2exp (t1, t1, 1);
-          mpz_add (t1, t1, B3);         /* t[l .. 2l-1] = 8*B(1/2) */
-          F_mod_1 (t1, n);
-
-          mpz_mul_2exp (t3, B3, 2);
-          mpz_add (t3, t3, B1);
-          mpz_mul_2exp (t3, t3, 1);     /* t[3l .. 4l-1] = 8*B_3 + 2*B_1 */
-
-          mpz_mul_2exp (gt, B2, 2);
-          mpz_add (gt, gt, B0);         /* gt = 4*B_2 + B0 */
-          mpz_sub (t5, gt, t3);         /* t[5l .. 6l-1] = B(-2) */
-          mpz_add (t3, t3, gt);         /* t[3l .. 4l-1] = B(2) */
-          F_mod_1 (t5, n);
-          F_mod_1 (t3, n);
-
-          /* Evaluate A(1), A(-1) */
-          mpz_add (C2, A0, A2);         /* May overwrite A2 */
+      /* Evaluate A(1), A(-1) */
+      mpz_add (C2, A0, A2);         /* May overwrite A2 */
 #undef A2
-          mpz_add (gt, A1, A3);
-          mpz_set (C1, B0);             /* C1 = B(0) May overwrite A1 */
+      mpz_add (gt, A1, A3);
+      mpz_set (C1, B0);             /* C1 = B(0) May overwrite A1 */
 #undef A1
-          mpz_sub (C4, C2, gt);         /* C4 = A(-1). May overwrite B0 */
+      mpz_sub (C4, C2, gt);         /* C4 = A(-1). May overwrite B0 */
 #undef B0
-          mpz_add (C2, C2, gt);         /* C2 = A(1) < 4*N */
-          F_mod_1 (C2, n);
-          F_mod_1 (C4, n);
+      mpz_add (C2, C2, gt);         /* C2 = A(1) < 4*N */
+      F_mod_1 (C2, n);
+      F_mod_1 (C4, n);
 
-          /* Evaluate B(1), B(-1) */
-          mpz_add (gt, C1, B2);         /* B0 is in C1 */
-          mpz_set (C6, A3);             /* C6 = A(inf) May overwrite B2 */
+      /* Evaluate B(1), B(-1) */
+      mpz_add (gt, C1, B2);         /* B0 is in C1 */
+      mpz_set (C6, A3);             /* C6 = A(inf) May overwrite B2 */
 #undef B2
-          mpz_add (C3, B1, B3);         /* May overwrite A3 */
+      mpz_add (C3, B1, B3);         /* May overwrite A3 */
 #undef A3
-          mpz_sub (C5, gt, C3);         /* C5 = B(-1). May overwrite B1 */
+      mpz_sub (C5, gt, C3);         /* C5 = B(-1). May overwrite B1 */
 #undef B1
-          mpz_add (C3, gt, C3);         /* C3 = B(1) */
-          F_mod_1 (C3, n);
-          F_mod_1 (C5, n);
-        }
-
-    /* A0 A1   A2   A3   B0    B1   B2 B3 */
-    /* A0 B0  A(1) B(1) A(-1) B(-1) A3 B3 */
-    /* C0 C1   C2   C3   C4    C5   C6 C7 */
-
-      r = F_mul (t, t, t + l, l, DEFAULT, n, t + 6 * l);
-        /* t0 = 8*A(1/2) * 8*B(1/2) = 64*C(1/2) */
-      r += F_mul (t + 2 * l, t + 2 * l, t + 3 * l, l, DEFAULT, n, t + 6 * l);
-        /* t2 = A(2) * B(2) = C(2) */
-      r += F_mul (t + 4 * l, t + 4 * l, t + 5 * l, l, DEFAULT, n, t + 6 * l);
-        /* t4 = A(-2) * B(-2) = C(-2) */
-      r += F_mul (C, A, C + l, l, DEFAULT, n, t + 6 * l);
-        /* C0 = A(0)*B(0) = C(0) */
-      r += F_mul (C + 2 * l, C + 2 * l, C + 3 * l, l, DEFAULT, n, t + 6 * l);
-        /* C2 = A(1)*B(1) = C(1) */
-      r += F_mul (C + 4 * l, C + 4 * l, C + 5 * l, l, DEFAULT, n, t + 6 * l);
-        /* C4 = A(-1)*B(-1) = C(-1) */
-      r += F_mul (C + 6 * l, C + 6 * l, B + 3 * l, l, DEFAULT, n, t + 6 * l);
-        /* C6 = A(inf)*B(inf) = C(inf) */
+      mpz_add (C3, gt, C3);         /* C3 = B(1) */
+      F_mod_1 (C3, n);
+      F_mod_1 (C5, n);
     }
+
+  /* A0 A1   A2   A3   B0    B1   B2 B3 */
+  /* A0 B0  A(1) B(1) A(-1) B(-1) A3 B3 */
+  /* C0 C1   C2   C3   C4    C5   C6 C7 */
+
+  r = F_mul (t, t, t + l, l, DEFAULT, n, t + 6 * l);
+  /* t0 = 8*A(1/2) * 8*B(1/2) = 64*C(1/2) */
+  r += F_mul (t + 2 * l, t + 2 * l, t + 3 * l, l, DEFAULT, n, t + 6 * l);
+  /* t2 = A(2) * B(2) = C(2) */
+  r += F_mul (t + 4 * l, t + 4 * l, t + 5 * l, l, DEFAULT, n, t + 6 * l);
+  /* t4 = A(-2) * B(-2) = C(-2) */
+  r += F_mul (C, A, C + l, l, DEFAULT, n, t + 6 * l);
+  /* C0 = A(0)*B(0) = C(0) */
+  r += F_mul (C + 2 * l, C + 2 * l, C + 3 * l, l, DEFAULT, n, t + 6 * l);
+  /* C2 = A(1)*B(1) = C(1) */
+  r += F_mul (C + 4 * l, C + 4 * l, C + 5 * l, l, DEFAULT, n, t + 6 * l);
+  /* C4 = A(-1)*B(-1) = C(-1) */
+  r += F_mul (C + 6 * l, C + 6 * l, B + 3 * l, l, DEFAULT, n, t + 6 * l);
+  /* C6 = A(inf)*B(inf) = C(inf) */
   
 /* C(0)   C(1)   C(-1)  C(inf)  64*C(1/2)  C(2)   C(-2) */
 /* C0,C1  C2,C3  C4,C5  C6,C7   t0,t1      t2,t3  t4,t5 */
@@ -821,8 +768,8 @@ F_toomcook4 (mpz_t *C, mpz_t *A, mpz_t *B, unsigned int len, unsigned int n,
 }
 
 
-/* Karatsuba split. Calls F_mul() to multiply the three pieces. */
-
+/* Karatsuba split. Calls F_mul() to multiply the three pieces.
+   Assume A <> B (there was code for squaring in revision <= 2788. */
 static unsigned int
 F_karatsuba (mpz_t *R, mpz_t *A, mpz_t *B, unsigned int len, unsigned int n, 
              mpz_t *t)
@@ -833,19 +780,6 @@ F_karatsuba (mpz_t *R, mpz_t *A, mpz_t *B, unsigned int len, unsigned int n,
 
   len /= 2;
 
-  if (A == B) /* Squaring */
-    {
-      r = F_mul (t, A, A + len, len, DEFAULT, n, t + 2 * len); /* A0 * A1 */
-      r += F_mul (R + 2 * len, A + len, A + len, len, DEFAULT, n, t + 2 * len); /* A1^2 */
-      r += F_mul (R, A, A, len, DEFAULT, n, t + 2 * len); /* A0^2 */
-      for (i = 0; i < 2 * len - 1; i++)
-        {
-          mpz_mul_2exp (t[i], t[i], 1);
-          mpz_add (R[i + len], R[i + len], t[i]); /* i==len could be a mpz_set */
-        }
-      return r;
-    }
-  
   for (i = 0; i < len; i++) 
     {
       mpz_add (t[i],       A[i], A[i + len]); /* t0 = A0 + A1 */
@@ -910,11 +844,11 @@ F_karatsuba (mpz_t *R, mpz_t *A, mpz_t *B, unsigned int len, unsigned int n,
   return r;
 }
 
-/* Multiply two polynomials with coefficients modulo 2^(2^m)+1. */
-/* len is length (=degree+1) of polynomials and must be a power of 2. */
-/* n=2^m */
-/* Return value: number of multiplies performed, or UINT_MAX in case of error */
-
+/* Multiply two polynomials with coefficients modulo 2^(2^m)+1.
+   len is length (=degree+1) of polynomials and must be a power of 2.
+   n=2^m
+   Return value: number of multiplies performed, or UINT_MAX in case of error.
+*/
 unsigned int 
 F_mul (mpz_t *R, mpz_t *A, mpz_t *B, unsigned int len, int parameter, 
        unsigned int n, mpz_t *t)
