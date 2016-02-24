@@ -992,7 +992,7 @@ print_B1_B2_poly (int verbosity, int method, double B1, double B1done,
   }
 }
 
-/* Compute parameters for stage 2*/
+/* Compute parameters for stage 2 */
 int
 set_stage_2_params (mpz_t B2, mpz_t B2_parm, mpz_t B2min, mpz_t B2min_parm, 
                     root_params_t *root_params, double B1,
@@ -1000,8 +1000,8 @@ set_stage_2_params (mpz_t B2, mpz_t B2_parm, mpz_t B2min, mpz_t B2min_parm,
                     unsigned long *dF, char *TreeFilename, double maxmem, 
                     int Fermat, mpmod_t modulus)
 {
-  mpz_init_set (B2min, B2min_parm);
-  mpz_init_set (B2, B2_parm);
+  mpz_set (B2min, B2min_parm);
+  mpz_set (B2, B2_parm);
   
   mpz_init (root_params->i0);
 
@@ -1239,11 +1239,15 @@ ecm (mpz_t f, mpz_t x, mpz_t y, int *param, mpz_t sigma, mpz_t n, mpz_t go,
   E->type = ECM_EC_TYPE_MONTGOMERY;
 #endif
 
+  mpz_init (B2);
+  mpz_init (B2min);
   youpi = set_stage_2_params (B2, B2_parm, B2min, B2min_parm,
 			      &root_params, B1, &k, S, use_ntt,
 			      &po2, &dF, TreeFilename, maxmem, Fermat,modulus);
+
+  /* if the user gave B2, print that B2 on the Using B1=..., B2=... line */
   if(!ECM_IS_DEFAULT_B2(B2_parm))
-      mpz_init_set (B2, B2_parm);
+    mpz_set (B2, B2_parm);
 
   if (youpi == ECM_ERROR)
       goto end_of_ecm;

@@ -301,7 +301,7 @@ od:
   mpz_sub_ui (i1, i1, d2 - 1);
   mpz_mul_ui (B2, i1, d1);
   mpz_add_ui (B2, B2, d2 - 1);
-  
+
 clear_and_exit:
   mpz_clear (t);
   mpz_clear (j);

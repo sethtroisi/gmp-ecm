@@ -984,8 +984,8 @@ main (int argc, char *argv[])
         {
           mpz_set (B2min, B2);
           /* make sure B2min is not less than B1 */
-          if (mpz_cmp_d(B2min, B1) < 0)
-            mpz_set_d(B2min, B1);
+          if (mpz_cmp_d (B2min, B1) < 0)
+            mpz_set_d (B2min, B1);
 
           c = -1;
           gmp_sscanf (endptr, "%Zd%n", B2, &c);
