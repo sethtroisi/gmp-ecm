@@ -252,8 +252,11 @@ mpzspm_init (spv_size_t max_len, mpz_t modulus)
     }
   while (mpz_cmp (P, T) <= 0);
 
-  outputf (OUTPUT_DEVVERBOSE, "mpzspm_init: finding %u primes took %lums\n", 
-           mpzspm->sp_num, cputime() - st);
+  /* we add the test_verbose() call to avoid calls to cputime() even if
+     nothing is printed */
+  if (test_verbose (OUTPUT_DEVVERBOSE))
+    outputf (OUTPUT_DEVVERBOSE, "mpzspm_init: finding %u primes took %lums\n", 
+             mpzspm->sp_num, cputime() - st);
 
   mpz_init_set (mpzspm->modulus, modulus);
   
@@ -326,7 +329,8 @@ mpzspm_init (spv_size_t max_len, mpz_t modulus)
 
   mpzspm_product_tree_init (mpzspm);
 
-  outputf (OUTPUT_DEVVERBOSE, "mpzspm_init took %lums\n", cputime() - st);
+  if (test_verbose (OUTPUT_DEVVERBOSE))
+    outputf (OUTPUT_DEVVERBOSE, "mpzspm_init took %lums\n", cputime() - st);
 
   return mpzspm;
   
