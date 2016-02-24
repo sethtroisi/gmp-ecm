@@ -80,4 +80,7 @@ echo "2^32768+1" | $ECM -sigma 0:314159000 1000; checkcode $? 6
 $ECM -resume M877.save 0 819632383
 checkcode $? 6
 
+# exercise estimated memory usage in Gb
+$ECM -v -k 1 1 8e11 < c155
+
 echo "All ECM tests are ok."
