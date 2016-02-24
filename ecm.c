@@ -524,9 +524,9 @@ ecm_stage1 (mpz_t f, mpres_t x, mpres_t A, mpmod_t n, double B1,
   uint64_t p, r, last_chkpnt_p;
   int ret = ECM_NO_FACTOR_FOUND;
   long last_chkpnt_time;
-  prime_info prime_i;
+  prime_info_t prime_info;
 
-  prime_info_init (prime_i);
+  prime_info_init (prime_info);
 
   mpres_init (b, n);
   mpres_init (z, n);
@@ -567,8 +567,8 @@ ecm_stage1 (mpz_t f, mpres_t x, mpres_t A, mpmod_t n, double B1,
       }
   
   last_chkpnt_p = 3;
-  p = getprime_mt (prime_i); /* Puts 3 into p. Next call gives 5 */
-  for (p = getprime_mt (prime_i); p <= B1; p = getprime_mt (prime_i))
+  p = getprime_mt (prime_info); /* Puts 3 into p. Next call gives 5 */
+  for (p = getprime_mt (prime_info); p <= B1; p = getprime_mt (prime_info))
     {
       for (r = p; r <= B1; r *= p)
 	if (r > *B1done)
@@ -608,7 +608,7 @@ ecm_stage1 (mpz_t f, mpres_t x, mpres_t A, mpmod_t n, double B1,
   if (chkfilename != NULL)
     writechkfile (chkfilename, ECM_ECM, *B1done, n, A, x, NULL, z);
 
-  prime_info_clear (prime_i);
+  prime_info_clear (prime_info);
 
   if (!mpres_invert (u, z, n)) /* Factor found? */
     {
@@ -665,9 +665,9 @@ ecm_stage1_W (mpz_t f, ell_curve_t E, ell_point_t P, mpmod_t n,
     uint64_t p = 0, r, last_chkpnt_p;
     int ret = ECM_NO_FACTOR_FOUND;
     long last_chkpnt_time;
-    prime_info prime_i;
+    prime_info_t prime_info;
 
-    prime_info_init (prime_i);
+    prime_info_init (prime_info);
     
     mpres_init (xB, n);
 
@@ -712,7 +712,7 @@ ecm_stage1_W (mpz_t f, ell_curve_t E, ell_point_t P, mpmod_t n,
 	    }
 	
 	last_chkpnt_p = 3;
-	for (p = getprime_mt (prime_i); p <= B1; p = getprime_mt (prime_i)){
+	for (p = getprime_mt (prime_info); p <= B1; p = getprime_mt (prime_info)){
 	    mpz_set_ui(f, (ecm_uint)p);
 	    for (r = p; r <= B1; r *= p){
 		if (r > *B1done){
@@ -780,7 +780,7 @@ ecm_stage1_W (mpz_t f, ell_curve_t E, ell_point_t P, mpmod_t n,
     
     if (chkfilename != NULL)
 	writechkfile (chkfilename, ECM_ECM, *B1done, n, E->a4, P->x, P->y,P->z);
-    prime_info_clear (prime_i);
+    prime_info_clear (prime_info);
 
     if(ret != ECM_FACTOR_FOUND_STEP1){
 	if(ell_point_is_zero(P, E, n) == 1){

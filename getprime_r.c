@@ -1,6 +1,6 @@
 /* Dynamic Eratosthenes sieve.
  
-  Copyright 2001, 2002, 2003, 2005 Paul Zimmermann and Alexander Kruppa.
+  Copyright 2001-2016 Paul Zimmermann and Alexander Kruppa.
   Imported from CADO-NFS, which imported it from GMP-ECM.
   (use 'unsigned long' instead of 'double'; thread-safe)
 
@@ -38,7 +38,7 @@
    To perform a loop over all primes <= B1, do the following
    (compile this file with -DMAIN to count primes):
 
-      prime_info pi;
+      prime_info_t pi;
       prime_info_init (pi);
       for (p = 2; p <= B1; p = getprime_mt (pi))
          {
@@ -49,7 +49,7 @@
 */
 
 void
-prime_info_init (prime_info i)
+prime_info_init (prime_info_t i)
 {
   i->offset = 0;
   i->current = -1;
@@ -61,7 +61,7 @@ prime_info_init (prime_info i)
 }
 
 void
-prime_info_clear (prime_info i)
+prime_info_clear (prime_info_t i)
 {
   free (i->primes);
   free (i->sieve);
@@ -72,7 +72,7 @@ prime_info_clear (prime_info i)
 unsigned long
 getprime_unsafe (unsigned long p)
 {
-  static prime_info pi;
+  static prime_info_t pi;
   static int initialized = 0;
 
   if (p == 0)
@@ -93,7 +93,7 @@ getprime_unsafe (unsigned long p)
 
 /* this function is thread-safe */
 unsigned long
-getprime_mt (prime_info i)
+getprime_mt (prime_info_t i)
 {
   if (i->len)
     {
@@ -213,7 +213,7 @@ main (int argc, char *argv[])
 {
   unsigned long p, B;
   unsigned long pi = 0;
-  prime_info i;
+  prime_info_t i;
 
   if (argc != 2)
     {

@@ -53,9 +53,9 @@ compute_s (mpz_t s, unsigned long B1, int *forbiddenres ATTRIBUTE_UNUSED)
   mpz_t acc[MAX_HEIGHT]; /* To accumulate products of prime powers */
   unsigned int i, j;
   unsigned long pi = 2, pp, maxpp, qi;
-  prime_info prime_i;
+  prime_info_t prime_info;
 
-  prime_info_init (prime_i);
+  prime_info_init (prime_info);
 
   ASSERT_ALWAYS (B1 < MAX_B1_BATCH);
 
@@ -82,7 +82,7 @@ compute_s (mpz_t s, unsigned long B1, int *forbiddenres ATTRIBUTE_UNUSED)
 	      }
 	      else{
 		  /* qi is too large, do not increment i */
-		  pi = getprime_mt (prime_i);
+		  pi = getprime_mt (prime_info);
 		  continue;
 	      }
 	  }
@@ -114,13 +114,13 @@ compute_s (mpz_t s, unsigned long B1, int *forbiddenres ATTRIBUTE_UNUSED)
         }
 
       i++;
-      pi = getprime_mt (prime_i);
+      pi = getprime_mt (prime_info);
     }
 
   for (mpz_set (s, acc[0]), j = 1; mpz_cmp_ui (acc[j], 0) != 0; j++)
     mpz_mul (s, s, acc[j]);
 
-  prime_info_clear (prime_i); /* free the prime tables */
+  prime_info_clear (prime_info); /* free the prime tables */
   
   for (i = 0; i < MAX_HEIGHT; i++)
       mpz_clear (acc[i]);
