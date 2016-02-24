@@ -36,7 +36,7 @@ ecm_version ()
 void
 ecm_init (ecm_params q)
 {
-  __ell_curve_struct *ptrE = (__ell_curve_struct *)malloc(sizeof(__ell_curve_struct));
+  __ell_curve_struct *ptrE = (__ell_curve_struct *) malloc(sizeof(__ell_curve_struct));
 
   q->method = ECM_ECM; /* default method */
   mpz_init_set_ui (q->x, 0);
@@ -95,6 +95,7 @@ ecm_clear (ecm_params q)
   mpz_clear (q->B2);
   gmp_randclear (q->rng);
   mpz_clear (q->batch_s);
+  free (q->E);
 }
 
 /* returns ECM_FACTOR_FOUND, ECM_NO_FACTOR_FOUND, or ECM_ERROR */
