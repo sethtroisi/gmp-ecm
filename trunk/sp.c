@@ -24,13 +24,14 @@ MA 02110-1301, USA. */
 
 /* Test if m is a base "a" strong probable prime */
 
-int
+static int
 sp_spp (sp_t a, sp_t m, sp_t d)
 {
   sp_t r, s, t, e;
 
-  if (m == a)
-    return 1;
+  /* since this routine is called only with m >= SP_MIN >= 2^30,
+     and a <= 61, we cannot have m = a */
+  ASSERT(a < m);
 	
   /* Set e * 2^s = m-1, e odd */
   for (s = 0, e = m - 1; !(e & 1); s++, e >>= 1);
@@ -52,18 +53,17 @@ sp_spp (sp_t a, sp_t m, sp_t d)
 }
 
 /* Test if x is a prime, return 1 if it is. Note this only works on sp's, 
-   i.e. we need the top bit of x set */
+   i.e. we need the top bit of x set.
+   Assume x is odd and x >= SP_MIN.
+ */
 int
 sp_prime (sp_t x)
 {
   sp_t d;
 
-  if (!(x & 1))
-    return 0;
-  
-  if (x < SP_MIN)
-    return 1;
-  
+  ASSERT (x & 1);
+  ASSERT (x >= SP_MIN);
+
   sp_reciprocal (d, x);
   
   if (SP_NUMB_BITS <= 32)

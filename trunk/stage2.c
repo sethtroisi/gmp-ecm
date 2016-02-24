@@ -335,7 +335,6 @@ stage2 (mpz_t f, void *X, mpmod_t modulus, unsigned long dF, unsigned long k,
   long st, st0;
   void *rootsG_state = NULL;
   listz_t *Tree = NULL; /* stores the product tree for F */
-  unsigned int treefiles_used = 0; /* Number of tree files currently in use */
   unsigned int lgk; /* ceil(log(k)/log(2)) */
   listz_t invF = NULL;
   double mem;
@@ -368,15 +367,14 @@ stage2 (mpz_t f, void *X, mpmod_t modulus, unsigned long dF, unsigned long k,
   mem = memory_use (dF, use_ntt ? mpzspm->sp_num : 0,
       (TreeFilename == NULL) ? lgk : 0, modulus);
 
-  if (mem < 1e4)
-    outputf (OUTPUT_VERBOSE, "Estimated memory usage: %1.0f\n", mem);
-  else if (mem < 1e7)
-    outputf (OUTPUT_VERBOSE, "Estimated memory usage: %1.0fK\n", mem / 1024.);
-  else if (mem < 1e10)
-    outputf (OUTPUT_VERBOSE, "Estimated memory usage: %1.0fM\n", 
+  /* we want at least two significant digits */
+  if (mem < 1048576.0)
+    outputf (OUTPUT_VERBOSE, "Estimated memory usage: %1.0fKb\n", mem / 1024.);
+  else if (mem < 1073741824.0)
+    outputf (OUTPUT_VERBOSE, "Estimated memory usage: %1.2fMb\n", 
              mem / 1048576.);
   else
-    outputf (OUTPUT_VERBOSE, "Estimated memory usage: %1.0fG\n", 
+    outputf (OUTPUT_VERBOSE, "Estimated memory usage: %1.2fGb\n", 
              mem / 1073741824.);
 
   F = init_list2 (dF + 1, mpz_sizeinbase (modulus->orig_modulus, 2) + 
@@ -440,6 +438,7 @@ stage2 (mpz_t f, void *X, mpmod_t modulus, unsigned long dF, unsigned long k,
     {
       FILE *TreeFile;
       char *fullname = (char *) malloc (strlen (TreeFilename) + 1 + 2 + 1);
+      int ret;
       ASSERT_ALWAYS(fullname != NULL);
       
       for (i = lgk; i > 0; i--)
@@ -456,34 +455,17 @@ stage2 (mpz_t f, void *X, mpmod_t modulus, unsigned long dF, unsigned long k,
               youpi = ECM_ERROR;
               goto free_Tree_i;
             }
-	  treefiles_used++;
 	  
-	  if (use_ntt)
+          ret = (use_ntt) ? ntt_PolyFromRoots_Tree (F, F, dF, T, i - 1,
+                                                    mpzspm, NULL, TreeFile)
+            : PolyFromRoots_Tree (F, F, dF, T, i - 1, n, NULL, TreeFile, 0);
+	  if (ret == ECM_ERROR)
 	    {
-	      if (ntt_PolyFromRoots_Tree (F, F, dF, T, i - 1, mpzspm, NULL,
-		    TreeFile) == ECM_ERROR)
-                {
-                  fclose (TreeFile);
-                  youpi = ECM_ERROR;
-                  goto free_Tree_i;
-		}
-            }
-	  else
-	    {
-	      if (PolyFromRoots_Tree (F, F, dF, T, i - 1, n, NULL,
-		    TreeFile, 0) == ECM_ERROR)
-   	        {
-                  fclose (TreeFile);
-                  youpi = ECM_ERROR;
-                  goto free_Tree_i;
-		}
-	    }
-
-          if (fclose (TreeFile) != 0)
-            {
+              fclose (TreeFile);
               youpi = ECM_ERROR;
               goto free_Tree_i;
             }
+          fclose (TreeFile);
         }
       free (fullname);
     }
@@ -559,7 +541,6 @@ stage2 (mpz_t f, void *X, mpmod_t modulus, unsigned long dF, unsigned long k,
 
   if (stop_asap != NULL && (*stop_asap)())
     goto clear_invF;
-
 
   /* start computing G with dF roots.
 
@@ -724,13 +705,12 @@ stage2 (mpz_t f, void *X, mpmod_t modulus, unsigned long dF, unsigned long k,
   else
     youpi = polyeval_tellegen (T, dF, Tree, T + dF + 1, sizeT - dF - 1, invF,
 	n, TreeFilename);
-  
+
   if (youpi)
     {
       outputf (OUTPUT_ERROR, "Error, not enough memory\n");
       goto clear_fd;
     }
-  treefiles_used = 0; /* Polyeval deletes treefiles by itself */
 
   if (test_verbose (OUTPUT_TRACE))
     {
@@ -749,12 +729,10 @@ stage2 (mpz_t f, void *X, mpmod_t modulus, unsigned long dF, unsigned long k,
 
   mpz_gcd (f, T[dF - 1], n);
   if (mpz_cmp_ui (f, 1) > 0)
-    {
-      youpi = ECM_FACTOR_FOUND_STEP2;
-    } else {
-      /* Here, mpz_cmp_ui (f, 1) == 0, i.e. no factor was found */
-      outputf (OUTPUT_RESVERBOSE, "Product of G(f_i) = %Zd\n", T[0]);
-    }
+    youpi = ECM_FACTOR_FOUND_STEP2;
+  else
+    /* Here, mpz_cmp_ui (f, 1) == 0, i.e. no factor was found */
+    outputf (OUTPUT_RESVERBOSE, "Product of G(f_i) = %Zd\n", T[0]);
 
 clear_fd:
   ecm_rootsG_clear ((ecm_roots_state_t *) rootsG_state, modulus);
@@ -769,7 +747,6 @@ clear_invF:
       mpzspv_clear (sp_F, mpzspm);
       mpzspv_clear (sp_invF, mpzspm);
     }
-
 free_Tree_i:
   if (Tree != NULL)
     {
@@ -777,20 +754,7 @@ free_Tree_i:
         clear_list (Tree[i], dF);
       free (Tree);
     }
-  if (TreeFilename != NULL && treefiles_used > 0)
-    {
-      /* Unlink any treefiles still in use */
-      char *fullname = (char *) malloc (strlen (TreeFilename) + 1 + 2 + 1);
-      ASSERT_ALWAYS(fullname != NULL);
-      for (i = 0; i < treefiles_used; i++)
-        {
-          sprintf (fullname, "%s.%lu", TreeFilename, i);
-          outputf (OUTPUT_DEVVERBOSE, "Unlinking %s\n", fullname);
-          if (unlink (fullname) != 0)
-            outputf (OUTPUT_ERROR, "Could not delete %s\n", fullname);
-        }
-      free (fullname);
-    }
+  /* the trees are already cleared by ntt_polyevalT or polyeval_tellegen */
   mpz_clear (n);
 
 clear_T:

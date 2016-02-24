@@ -215,34 +215,27 @@ spm_init (spv_size_t n, sp_t sp, mp_size_t k)
       ntt_power++;
     }
 
-  if (!nttdata_init (sp, spm->mul_c, 
-		sp_pow (spm->prim_root, 
-			n >> ntt_power, sp, spm->mul_c),
-		ntt_power, spm->nttdata, 
-		NTT_GFP_TWIDDLE_DIF_BREAKOVER))
-    goto free_spm;
-  if (!nttdata_init (sp, spm->mul_c, 
-		sp_pow (spm->inv_prim_root, 
-			n >> ntt_power, sp, spm->mul_c),
-		ntt_power, spm->inttdata, 
-		NTT_GFP_TWIDDLE_DIT_BREAKOVER))
-    goto free_nttdata;
-  spm->scratch = (spv_t) sp_aligned_malloc (
-		  	MAX_NTT_BLOCK_SIZE * sizeof(sp_t));
-  if (spm->scratch == NULL)
-    goto free_inttdata;
-    
-  return spm;
-
-  free_inttdata:
-  nttdata_clear (spm->inttdata);
-  
-  free_nttdata:
-  nttdata_clear (spm->nttdata);
-
-  free_spm:
+  if (nttdata_init (sp, spm->mul_c, 
+                    sp_pow (spm->prim_root, 
+                            n >> ntt_power, sp, spm->mul_c),
+                    ntt_power, spm->nttdata, 
+                    NTT_GFP_TWIDDLE_DIF_BREAKOVER))
+    {
+      if (nttdata_init (sp, spm->mul_c, 
+                        sp_pow (spm->inv_prim_root, 
+                                n >> ntt_power, sp, spm->mul_c),
+                        ntt_power, spm->inttdata, 
+                        NTT_GFP_TWIDDLE_DIT_BREAKOVER))
+        {
+          spm->scratch = (spv_t) sp_aligned_malloc (MAX_NTT_BLOCK_SIZE *
+                                                    sizeof(sp_t));
+          if (spm->scratch != NULL)
+            return spm;
+          nttdata_clear (spm->inttdata);
+        }
+      nttdata_clear (spm->nttdata);
+    }
   free (spm);
-
   return NULL;
 }
 
@@ -254,6 +247,3 @@ spm_clear (spm_t spm)
   sp_aligned_free (spm->scratch);
   free (spm);
 }
-
-
-
