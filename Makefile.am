@@ -34,6 +34,7 @@ else
 endif
 
 libecm_la_SOURCES = ecm.c ecm2.c pm1.c pp1.c getprime.c listz.c lucas.c \
+		   getprime_r.c \
 		   stage2.c mpmod.c mul_lo.c polyeval.c median.c \
 		   schoen_strass.c ks-multiply.c rho.c bestd.c auxlib.c \
 		   random.c factor.c sp.c spv.c spm.c mpzspm.c mpzspv.c \
@@ -64,7 +65,7 @@ if WANT_CUDA
 endif
 ecm_SOURCES = auxi.c b1_ainc.c candi.c eval.c random.c main.c \
               resume.c getprime.c champions.h aprtcle/mpz_aprcl.c \
-              memusage.c
+              memusage.c getprime_r.c
 
 tune_SOURCES = mpmod.c tune.c mul_lo.c listz.c auxlib.c ks-multiply.c \
                schoen_strass.c polyeval.c median.c ecm_ntt.c \
@@ -103,6 +104,7 @@ endif
 include_HEADERS = ecm.h
 noinst_HEADERS = basicdefs.h ecm-impl.h ecm-gmp.h ecm-ecm.h sp.h longlong.h \
 	         ecm-params.h mpmod.h ecm-gpu.h cudakernel.h addlaws.h \
+		 getprime_r.h \
                  torsions.h aprtcle/mpz_aprcl.h aprtcle/jacobi_sum.h
 
 EXTRA_DIST = test.pm1 test.pp1 test.ecm README.lib INSTALL-ecm ecm.xml  \
@@ -111,7 +113,8 @@ EXTRA_DIST = test.pm1 test.pp1 test.ecm README.lib INSTALL-ecm ecm.xml  \
              powerpc64/params.h powerpc32/params.h sparc64/params.h     \
              hppa/params.h mips/params.h x86_64/corei7/params.h         \
              generic/params.h testlong.pp1 testlong.pm1 testlong.ecm \
-             M997.save M877.save dummy.save dummy2.save Z2102.n
+             M997.save M877.save dummy.save dummy2.save Z2102.n \
+	     getprime_r.h
 
 DIST_SUBDIRS = athlon pentium4 x86_64 powerpc64 aprtcle
 
