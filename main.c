@@ -1245,7 +1245,7 @@ main (int argc, char *argv[])
 	    {
 		returncode = mod_from_mpq (A, rat_A, n.n, verbose);
 		if (returncode != ECM_NO_FACTOR_FOUND)
-                  return returncode;
+                  goto free_all1;
 	    }
 	  
           if (specific_x0) /* convert rational value to integer */
@@ -1258,13 +1258,13 @@ main (int argc, char *argv[])
 
 	      returncode = mod_from_mpq (x, rat_x0, n.n, verbose);
 	      if (returncode != ECM_NO_FACTOR_FOUND)
-		  return returncode;
+                goto free_all1;
 
 	      if (specific_y0)
 		{
 		  returncode = mod_from_mpq (y, rat_y0, n.n, verbose);
 		  if (returncode != ECM_NO_FACTOR_FOUND)
-		    return returncode;
+                    goto free_all1;
 		}
             }
           else /* Make a random starting point for P-1 and P+1. ECM will */
@@ -1552,6 +1552,7 @@ main (int argc, char *argv[])
         }
     } /* end of main loop */
 
+ free_all1:
   if (infilename) /* infile might be stdin, don't fclose that! */
     fclose (infile);
 
