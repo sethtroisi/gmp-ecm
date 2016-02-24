@@ -178,6 +178,7 @@ pp1_stage1 (mpz_t f, mpres_t P0, mpmod_t n, double B1, double *B1done,
 	  mpz_set_ui (g, 1);
           if (stop_asap != NULL && (*stop_asap) ())
             {
+            interrupt:
               outputf (OUTPUT_NORMAL, "Interrupted at prime %.0f\n", p);
 	      if (p > *B1done)
 		  *B1done = p;
@@ -206,12 +207,7 @@ pp1_stage1 (mpz_t f, mpres_t P0, mpmod_t n, double B1, double *B1done,
       pp1_mul_prac (P0, (ecm_uint) p, n, P, Q, R, S, T);
   
       if (stop_asap != NULL && (*stop_asap) ())
-        {
-          outputf (OUTPUT_NORMAL, "Interrupted at prime %.0f\n", p);
-	  if (p > *B1done)
-	      *B1done = p;
-          goto clear_and_exit;
-        }
+        goto interrupt;
       if (chkfilename != NULL && p > last_chkpnt_p + 10000. &&
           elltime (last_chkpnt_time, cputime ()) > CHKPNT_PERIOD)
         {
@@ -269,13 +265,13 @@ pp1_check_factor (mpz_t a, mpz_t p)
 *                                                                             *
 ******************************************************************************/
 
-/* Input: p is the initial generator (sigma), if 0 generate it at random.
-          n is the number to factor
+/* Input: p is the initial generator (x0), if 0 generate it at random.
+          n is the number to factor (assumed to be odd)
 	  B1 is the stage 1 bound
 	  B2 is the stage 2 bound
           k is the number of blocks for stage 2
           verbose is the verbosity level
-   Output: p is the factor found
+   Output: f is the factor found, p is the residue at end of stage 1
    Return value: non-zero iff a factor is found (1 for stage 1, 2 for stage 2)
 */
 int
@@ -292,17 +288,13 @@ pp1 (mpz_t f, mpz_t p, mpz_t n, mpz_t go, double *B1done, double B1,
   mpz_t B2min, B2; /* Local B2, B2min to avoid changing caller's values */
   faststage2_param_t faststage2_params;
   int twopass = 0;
+  mpz_t p0;
+
+  ASSERT (mpz_divisible_ui_p (n, 2) == 0);
 
   set_verbose (verbose);
   ECM_STDOUT = (os == NULL) ? stdout : os;
   ECM_STDERR = (es == NULL) ? stdout : es;
-
-  /* if n is even, return 2 */
-  if (mpz_divisible_2exp_p (n, 1))
-    {
-      mpz_set_ui (f, 2);
-      return ECM_FACTOR_FOUND_STEP1;
-    }
 
   st = cputime ();
 
@@ -447,6 +439,9 @@ pp1 (mpz_t f, mpz_t p, mpz_t n, mpz_t go, double *B1done, double B1,
       mpz_clear (t);
     }
 
+  mpz_init_set (p0, p);
+
+  /* store in p the residue at end of stage 1 */
   mpres_get_z (p, a, modulus);
 
   if (stop_asap != NULL && (*stop_asap) ())
@@ -461,7 +456,9 @@ pp1 (mpz_t f, mpz_t p, mpz_t n, mpz_t go, double *B1done, double B1,
     }
 
   if (youpi > 0 && test_verbose (OUTPUT_NORMAL))
-    pp1_check_factor (p, f); /* tell user if factor was found by P-1 */
+    pp1_check_factor (p0, f); /* tell user if factor was found by P-1 */
+
+  mpz_clear (p0);
 
  clear_and_exit:
   mpres_clear (a, modulus);
