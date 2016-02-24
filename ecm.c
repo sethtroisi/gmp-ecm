@@ -24,6 +24,7 @@ http://www.gnu.org/licenses/ or write to the Free Software Foundation, Inc.,
 #include <stdlib.h>
 #include <string.h>
 #include "ecm-impl.h"
+#include "getprime_r.h"
 #include <math.h>
 
 #ifdef HAVE_ADDLAWS
@@ -520,9 +521,12 @@ ecm_stage1 (mpz_t f, mpres_t x, mpres_t A, mpmod_t n, double B1,
             char *chkfilename)
 {
   mpres_t b, z, u, v, w, xB, zB, xC, zC, xT, zT, xT2, zT2;
-  double p, r, last_chkpnt_p;
+  uint64_t p, r, last_chkpnt_p;
   int ret = ECM_NO_FACTOR_FOUND;
   long last_chkpnt_time;
+  prime_info info;
+
+  prime_info_init(info);
 
   mpres_init (b, n);
   mpres_init (z, n);
@@ -550,21 +554,21 @@ ecm_stage1 (mpz_t f, mpres_t x, mpres_t A, mpmod_t n, double B1,
     ecm_mul (x, z, go, n, b);
 
   /* prac() wants multiplicands > 2 */
-  for (r = 2.0; r <= B1; r *= 2.0)
+  for (r = 2; r <= B1; r *= 2)
     if (r > *B1done)
       duplicate (x, z, x, z, n, b, u, v, w);
   
   /* We'll do 3 manually, too (that's what ecm4 did..) */
-  for (r = 3.0; r <= B1; r *= 3.0)
+  for (r = 3; r <= B1; r *= 3)
     if (r > *B1done)
       {
         duplicate (xB, zB, x, z, n, b, u, v, w);
         add3 (x, z, x, z, xB, zB, x, z, n, u, v, w);
       }
   
-  last_chkpnt_p = 3.;
-  p = getprime (); /* Puts 3.0 into p. Next call gives 5.0 */
-  for (p = getprime (); p <= B1; p = getprime ())
+  last_chkpnt_p = 3;
+  p = getprime_mt (info); /* Puts 3 into p. Next call gives 5 */
+  for (p = getprime_mt (info); p <= B1; p = getprime_mt (info))
     {
       for (r = p; r <= B1; r *= p)
 	if (r > *B1done)
@@ -584,7 +588,7 @@ ecm_stage1 (mpz_t f, mpres_t x, mpres_t A, mpmod_t n, double B1,
           break;
         }
 
-      if (chkfilename != NULL && p > last_chkpnt_p + 10000. && 
+      if (chkfilename != NULL && p > last_chkpnt_p + 10000 && 
           elltime (last_chkpnt_time, cputime ()) > CHKPNT_PERIOD)
         {
 	  writechkfile (chkfilename, ECM_ECM, MAX(p, *B1done), n, A, x, NULL, z);
@@ -603,7 +607,8 @@ ecm_stage1 (mpz_t f, mpres_t x, mpres_t A, mpmod_t n, double B1,
 
   if (chkfilename != NULL)
     writechkfile (chkfilename, ECM_ECM, *B1done, n, A, x, NULL, z);
-  getprime_clear (); /* free the prime tables, and reinitialize */
+
+  prime_info_clear(info);
 
   if (!mpres_invert (u, z, n)) /* Factor found? */
     {
@@ -657,9 +662,12 @@ ecm_stage1_W (mpz_t f, ell_curve_t E, ell_point_t P, mpmod_t n,
 {
     mpres_t xB;
     ell_point_t Q;
-    double p = 0.0, r, last_chkpnt_p;
+    uint64_t p = 0, r, last_chkpnt_p;
     int ret = ECM_NO_FACTOR_FOUND;
     long last_chkpnt_time;
+    prime_info info;
+
+    prime_info_init(info);
     
     mpres_init (xB, n);
 
@@ -688,7 +696,7 @@ ecm_stage1_W (mpz_t f, ell_curve_t E, ell_point_t P, mpmod_t n,
 #endif
     if(mpz_cmp_ui(batch_s, 1) == 0){
         outputf (OUTPUT_VERBOSE, "Using traditional approach to Step 1\n");
-	for (r = 2.0; r <= B1; r *= 2.0)
+	for (r = 2; r <= B1; r *= 2)
 	    if (r > *B1done){
 		if(ell_point_duplicate (Q, P, E, n) == 0){
 		    mpz_set(f, Q->x);
@@ -703,8 +711,8 @@ ecm_stage1_W (mpz_t f, ell_curve_t E, ell_point_t P, mpmod_t n,
 #endif
 	    }
 	
-	last_chkpnt_p = 3.;
-	for (p = getprime (); p <= B1; p = getprime ()){
+	last_chkpnt_p = 3;
+	for (p = getprime_mt (info); p <= B1; p = getprime_mt (info)){
 	    mpz_set_ui(f, (ecm_uint)p);
 	    for (r = p; r <= B1; r *= p){
 		if (r > *B1done){
@@ -732,7 +740,7 @@ ecm_stage1_W (mpz_t f, ell_curve_t E, ell_point_t P, mpmod_t n,
 		break;
 	    }
 	    
-	    if (chkfilename != NULL && p > last_chkpnt_p + 10000. && 
+	    if (chkfilename != NULL && p > last_chkpnt_p + 10000 && 
 		elltime (last_chkpnt_time, cputime ()) > CHKPNT_PERIOD){
 		writechkfile (chkfilename, ECM_ECM, MAX(p, *B1done), 
 			      n, E->a4, P->x, P->y, P->z);
@@ -772,7 +780,7 @@ ecm_stage1_W (mpz_t f, ell_curve_t E, ell_point_t P, mpmod_t n,
     
     if (chkfilename != NULL)
 	writechkfile (chkfilename, ECM_ECM, *B1done, n, E->a4, P->x, P->y,P->z);
-    getprime_clear (); /* free the prime tables, and reinitialize */
+    prime_info_clear(info);
 
     if(ret != ECM_FACTOR_FOUND_STEP1){
 	if(ell_point_is_zero(P, E, n) == 1){
