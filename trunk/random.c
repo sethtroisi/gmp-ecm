@@ -123,7 +123,7 @@ get_random_ul (void)
   FILE *rndfd;
   unsigned long t;
 
-  /* Try /dev/urandom */
+  /* Try /dev/urandom. Warning: this is slow for small numbers or B1. */
   rndfd = fopen ("/dev/urandom", "rb");
   if (rndfd != NULL)
     {
