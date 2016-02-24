@@ -1,4 +1,6 @@
 Changes between GMP-ECM 6.4.4 and GMP-ECM 7.0:
+* GMP-ECM is now thread-safe. In particular the "ecmfactor" binary can be
+  called with say -t 17 to use 17 threads.
 * The configure --enable-shellcmd option was removed, and also the
   --enable-memory-debug configure option (now obsolete with valgrind).
 * The -b options was removed (breadth-first mode)
