@@ -74,7 +74,7 @@ tune_SOURCES = mpmod.c tune.c mul_lo.c listz.c auxlib.c ks-multiply.c \
 tune_CPPFLAGS = -DTUNE $(MULREDCINCPATH)
 tune_LDADD = $(MULREDCLIBRARY) $(GMPLIB)
 
-ecmfactor_CFLAGS = $(OPENMP_CFLAGS)
+ecmfactor_CFLAGS = $(OPENMP_CFLAGS) -lpthread
 
 # multiecm_CPPFLAGS = -DOUTSIDE_LIBECM
 # multiecm_SOURCES = auxi.c b1_ainc.c candi.c eval.c random.c multiecm.c \
