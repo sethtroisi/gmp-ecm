@@ -31,6 +31,7 @@ typedef struct
   double B1;      /* stage-1 bound */
   mpz_t f;        /* potential factor */
   int ret;        /* return value */
+  ecm_params q;
 } __tab_struct;
 typedef __tab_struct tab_t[1];
 
@@ -39,7 +40,7 @@ one_thread (void *args)
 {
   tab_t *tab = (tab_t*) args;
 
-  tab[0]->ret = ecm_factor (tab[0]->f, tab[0]->n, tab[0]->B1, NULL);
+  tab[0]->ret = ecm_factor (tab[0]->f, tab[0]->n, tab[0]->B1, tab[0]->q);
   return NULL;
 }
 
@@ -85,6 +86,7 @@ main (int argc, char *argv[])
       mpz_init_set (T[i]->n, n);
       T[i]->B1 = B1;
       mpz_init (T[i]->f);
+      ecm_init (T[i]->q);
     }
 
   printf ("Performing %lu curve(s) with B1=%1.0f\n", nthreads, B1);
@@ -97,7 +99,8 @@ main (int argc, char *argv[])
     {
       if (T[i]->ret > 0)
         {
-          printf ("thread %lu found factor in step %u: ", i, T[i]->ret);
+          gmp_printf ("thread %lu with sigma %d:%Zd found factor in step %u: ",
+                      i, T[i]->q->param, T[i]->q->sigma, T[i]->ret);
           mpz_out_str (stdout, 10, T[i]->f);
           printf ("\n");
 #if 0
@@ -107,11 +110,13 @@ main (int argc, char *argv[])
 #endif
         }
       else if (T[i]->ret == ECM_NO_FACTOR_FOUND)
-        printf ("thread %lu found no factor\n", i);
+        printf ("thread %lu with sigma %d:%Zd found no factor\n", i,
+                T[i]->q->param, T[i]->q->sigma);
       else
         printf ("thread %lu gave an error\n", i);
       mpz_clear (T[i]->n);
       mpz_clear (T[i]->f);
+      ecm_clear (T[i]->q);
     }
 
   mpz_clear (n);
