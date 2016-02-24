@@ -43,11 +43,11 @@ ecm_init (ecm_params q)
   mpz_init_set_ui (q->y, 0);
   mpz_init_set_ui (q->sigma, 0);
   q->sigma_is_A = 0;
-  mpz_init_set_ui(ptrE->a1, 0);
-  mpz_init_set_ui(ptrE->a3, 0);
-  mpz_init_set_ui(ptrE->a2, 0);
-  mpz_init_set_ui(ptrE->a4, 0);
-  mpz_init_set_ui(ptrE->a6, 0);
+  mpz_init_set_ui (ptrE->a1, 0);
+  mpz_init_set_ui (ptrE->a3, 0);
+  mpz_init_set_ui (ptrE->a2, 0);
+  mpz_init_set_ui (ptrE->a4, 0);
+  mpz_init_set_ui (ptrE->a6, 0);
   ptrE->type = ECM_EC_TYPE_MONTGOMERY;
   ptrE->disc = 0;
   mpz_init_set_ui(ptrE->sq[0], 1);
@@ -95,6 +95,11 @@ ecm_clear (ecm_params q)
   mpz_clear (q->B2);
   gmp_randclear (q->rng);
   mpz_clear (q->batch_s);
+  mpz_clear (q->E->a1);
+  mpz_clear (q->E->a3);
+  mpz_clear (q->E->a2);
+  mpz_clear (q->E->a4);
+  mpz_clear (q->E->a6);
   free (q->E);
 }
 
