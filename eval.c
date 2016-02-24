@@ -248,12 +248,12 @@ void eval_power (mpz_t prior_n, mpz_t n,char op)
     {
       long nMax;
       double p;
-      nMax = mpz_get_si(n);
-      mpz_set_ui(n,1);
-      getprime_clear ();  /* free the prime tables, and reinitialize */
+      nMax = mpz_get_si (n);
+      mpz_set_ui (n,1);
       for (p = 2.0; p <= nMax; p = getprime ())
 	/* This could be done much more efficiently (bunching mults using smaller "built-ins"), but I am not going to bother for now */
-	mpz_mul_ui(n,n,(unsigned)p);
+	mpz_mul_ui (n, n, (unsigned)p);
+      getprime_clear (); /* free the prime table */
     }
   else if ('$'==op)  /* reduced primorial (syntax  n#prior_n   example:  13#5 == (5*7*11*13) */
     {
@@ -263,7 +263,6 @@ void eval_power (mpz_t prior_n, mpz_t n,char op)
       nMax = mpz_get_si(prior_n);
       nStart = mpz_get_ui(n);
       mpz_set_ui(n,1);
-      getprime_clear ();  /* free the prime tables, and reinitialize */
       p = getprime (nStart);
       /*printf ("Reduced-primorial  %ld#%ld\n", nMax, nStart);*/
       for (; p <= nMax; p = getprime (p))
@@ -274,6 +273,7 @@ void eval_power (mpz_t prior_n, mpz_t n,char op)
 	    /* This could be done much more efficiently (bunching mults using smaller "built-ins"), but I am not going to bother for now */
 	    mpz_mul_ui(n,n,(unsigned)p);
 	}
+      getprime_clear (); /* free the prime tables */
     }
 }
 
@@ -371,7 +371,6 @@ int eval_Phi (mpz_t b, mpz_t n, int ParamCnt)
   B = mpz_get_ui (b);
 
   /* Obtain the factors of B */
-  getprime_clear ();  /* free the prime tables, and reinitialize */
   for (p = 2.0; p <= B; p = getprime ())
     {
       if (B % (int) p == 0)
@@ -382,6 +381,7 @@ int eval_Phi (mpz_t b, mpz_t n, int ParamCnt)
 	  do { B /= (int) p; } while (B % (int) p == 0);
         }
      }
+  getprime_clear (); /* free the prime tables */
   B = mpz_get_si (b);
 
   mpz_init_set(org_n, n);
