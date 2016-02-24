@@ -1,6 +1,6 @@
 /* ecmfactor.c - example of use of libecm.a.
 
-Copyright 2005, 2006 Paul Zimmermann, Dave Newman.
+Copyright 2005-2016 Paul Zimmermann, Dave Newman, Pierrick Gaudry.
 
 This program is free software; you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -19,21 +19,55 @@ http://www.gnu.org/licenses/ or write to the Free Software Foundation, Inc.,
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
+#include <pthread.h>
 #include <gmp.h> /* GMP header file */
 #include "ecm.h" /* ecm header file */
+
+/* thread structure */
+typedef struct
+{
+  mpz_t n;        /* number to factor */
+  double B1;      /* stage-1 bound */
+  mpz_t f;        /* potential factor */
+  int ret;        /* return value */
+} __tab_struct;
+typedef __tab_struct tab_t[1];
+
+void*
+one_thread (void *args)
+{
+  tab_t *tab = (tab_t*) args;
+
+  tab[0]->ret = ecm_factor (tab[0]->f, tab[0]->n, tab[0]->B1, NULL);
+  return NULL;
+}
 
 int
 main (int argc, char *argv[])
 {
-  mpz_t n, f;
-  int res;
+  mpz_t n;
   double B1;
+  unsigned long nthreads = 1, i;
+  tab_t *T;
+  pthread_t *tid;
+
+  if (argc >= 3 && strcmp (argv[1], "-t") == 0)
+    {
+      nthreads = strtoul (argv[2], NULL, 10);
+      argc -= 2;
+      argv += 2;
+    }
 
   if (argc < 3)
     {
-      fprintf (stderr, "Usage: ecmfactor <number> <B1>\n");
+      fprintf (stderr, "Usage: ecmfactor [-t nnn] <number> <B1>\n");
       exit (1);
     }
+
+  /* initialize tab_t for threads */
+  T = malloc (nthreads * sizeof (tab_t));
+  tid = malloc (nthreads * sizeof (pthread_t));
 
   mpz_init (n);
 
@@ -46,29 +80,44 @@ main (int argc, char *argv[])
 
   B1 = atof (argv[2]);
 
-  mpz_init (f); /* for potential factor */
-
-  printf ("Performing one curve with B1=%1.0f\n", B1);
-  res = ecm_factor (f, n, B1, NULL);
-
-  if (res > 0)
+  for (i = 0; i < nthreads ; i++)
     {
-      printf ("found factor in step %u: ", res);
-      mpz_out_str (stdout, 10, f);
-      printf ("\n");
-#if 0
-      printf ("lucky curve was b*y^2 = x^3 + a*x^2 + x\n");
-      printf ("with a = (v-u)^3*(3*u+v)/(4*u^3*v)-2,");
-      printf (" u = sigma^2-5, v = 4*sigma\n");
-#endif
+      mpz_init_set (T[i]->n, n);
+      T[i]->B1 = B1;
+      mpz_init (T[i]->f);
     }
-  else if (res == ECM_NO_FACTOR_FOUND)
-    printf ("found no factor\n");
-  else
-    printf ("error\n");
 
-  mpz_clear (f);
+  printf ("Performing %lu curve(s) with B1=%1.0f\n", nthreads, B1);
+  for (i = 0; i < nthreads; i++)
+    pthread_create (&tid[i], NULL, one_thread, (void *) (T+i));
+  for (i = 0; i < nthreads; i++)
+    pthread_join (tid[i], NULL);
+
+  for (i = 0; i < nthreads; i++)
+    {
+      if (T[i]->ret > 0)
+        {
+          printf ("thread %lu found factor in step %u: ", i, T[i]->ret);
+          mpz_out_str (stdout, 10, T[i]->f);
+          printf ("\n");
+#if 0
+          printf ("lucky curve was b*y^2 = x^3 + a*x^2 + x\n");
+          printf ("with a = (v-u)^3*(3*u+v)/(4*u^3*v)-2,");
+          printf (" u = sigma^2-5, v = 4*sigma\n");
+#endif
+        }
+      else if (T[i]->ret == ECM_NO_FACTOR_FOUND)
+        printf ("thread %lu found no factor\n", i);
+      else
+        printf ("thread %lu gave an error\n", i);
+      mpz_clear (T[i]->n);
+      mpz_clear (T[i]->f);
+    }
+
   mpz_clear (n);
 
-  return res;
+  free (T);
+  free (tid);
+
+  return 0;
 }
