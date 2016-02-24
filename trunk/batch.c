@@ -31,6 +31,7 @@ http://www.gnu.org/licenses/ or write to the Free Software Foundation, Inc.,
 
 #include <stdlib.h>
 #include "ecm-impl.h"
+#include "getprime_r.h"
 
 #define MAX_HEIGHT 32
 
@@ -52,6 +53,9 @@ compute_s (mpz_t s, unsigned long B1, int *forbiddenres ATTRIBUTE_UNUSED)
   mpz_t acc[MAX_HEIGHT]; /* To accumulate products of prime powers */
   unsigned int i, j;
   unsigned long pi = 2, pp, maxpp, qi;
+  prime_info prime_i;
+
+  prime_info_init (prime_i);
 
   ASSERT_ALWAYS (B1 < MAX_B1_BATCH);
 
@@ -78,7 +82,7 @@ compute_s (mpz_t s, unsigned long B1, int *forbiddenres ATTRIBUTE_UNUSED)
 	      }
 	      else{
 		  /* qi is too large, do not increment i */
-		  pi = getprime (pi);
+		  pi = getprime_mt (prime_i);
 		  continue;
 	      }
 	  }
@@ -110,12 +114,13 @@ compute_s (mpz_t s, unsigned long B1, int *forbiddenres ATTRIBUTE_UNUSED)
         }
 
       i++;
-      pi = getprime (pi);
+      pi = getprime_mt (prime_i);
     }
 
   for (mpz_set (s, acc[0]), j = 1; mpz_cmp_ui (acc[j], 0) != 0; j++)
     mpz_mul (s, s, acc[j]);
-  getprime_clear (); /* free the prime tables, and reinitialize */
+
+  prime_info_clear (prime_i); /* free the prime tables */
   
   for (i = 0; i < MAX_HEIGHT; i++)
       mpz_clear (acc[i]);
