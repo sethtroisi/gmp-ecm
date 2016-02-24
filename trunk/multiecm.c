@@ -13,6 +13,7 @@
 #include "ecm-impl.h"
 #include "ecm-ecm.h"
 #include "mpmod.h"
+#include "getprime_r.h"
 
 #ifdef HAVE_ADDLAWS
 #include "addlaws.h"
