@@ -55,26 +55,20 @@ Lucas chains, Peter L. Montgomery, December 1983, revised January 1992. */
          V_{2k-1}(P0) = V_k(P0)*V_{k-1}(P0) - P0.
    (More generally V_{m+n} = V_m * V_n - V_{m-n}.)
    Warning: P1 and P0 may be equal.
+   Assume e >= 1.
 */
 static void
 pp1_mul (mpres_t P1, mpres_t P0, mpz_t e, mpmod_t n, mpres_t P, mpres_t Q)
 {
   mp_size_t size_e;
   unsigned long i;
-  int sign;
 
-  sign = mpz_sgn (e);
-  mpz_abs (e, e);
-  if (sign == 0)
-    {
-      mpres_set_ui (P1, 2, n);
-      goto unnegate;
-    }
+  ASSERT (mpz_cmp_ui (e, 1) >= 0);
 
   if (mpz_cmp_ui (e, 1) == 0)
     {
       mpres_set (P1, P0, n);
-      goto unnegate;
+      return;
     }
   
   /* now e >= 2 */
@@ -111,11 +105,6 @@ pp1_mul (mpres_t P1, mpres_t P0, mpz_t e, mpmod_t n, mpres_t P, mpres_t Q)
 
   mpres_set (P1, P, n);
   mpz_add_ui (e, e, 1); /* recover original value of e */
-unnegate:
-  if (sign == -1)
-    mpz_neg (e, e);
-  
-  return;
 }
 
 /* Input:  P0 is the initial point (sigma)
