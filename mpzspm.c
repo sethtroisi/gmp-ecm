@@ -78,6 +78,12 @@ static unsigned long sp_max_modulus_bits[32] =
 ;
 #endif
 
+#define CHECK(cond,msg,label)       \
+  if (cond)                         \
+    {                               \
+      outputf (OUTPUT_ERROR, msg);  \
+      goto label;                   \
+    }                               \
 
 /* Returns the largest possible transform length we can do for modulus
    without running out of primes */
@@ -191,8 +197,8 @@ mpzspm_init (spv_size_t max_len, mpz_t modulus)
       4 * SP_NUMB_BITS) / (SP_NUMB_BITS - 1);
   
   mpzspm->spm = (spm_t *) malloc (ub * sizeof (spm_t));
-  if (mpzspm->spm == NULL)
-    goto error_clear_mpzspm;
+  CHECK(mpzspm->spm == NULL, "Out of memory in mpzspm_init()\n",
+        error_clear_mpzspm);
   mpzspm->sp_num = 0;
 
   /* product of primes selected so far */
@@ -210,11 +216,7 @@ mpzspm_init (spv_size_t max_len, mpz_t modulus)
   /* find primes congruent to 1 mod max_len so we can do
    * a ntt of size max_len */
   /* Find the largest p <= SP_MAX that is p == 1 (mod max_len) */
-  p = (SP_MAX / (sp_t) max_len) * (sp_t) max_len;
-  if (p == SP_MAX) /* If max_len | SP_MAX, the +1 might cause overflow */
-    p = p - (sp_t) max_len + (sp_t) 1;
-  else
-    p++;
+  p = ((SP_MAX - 1) / (sp_t) max_len) * (sp_t) max_len + 1;
   
   do
     {
@@ -231,11 +233,8 @@ mpzspm_init (spv_size_t max_len, mpz_t modulus)
 	}
       
       mpzspm->spm[mpzspm->sp_num] = spm_init (max_len, p, mpz_size (modulus));
-      if (mpzspm->spm[mpzspm->sp_num] == NULL)
-        {
-          outputf (OUTPUT_ERROR, "Out of memory in mpzspm_init()\n");
-          goto error_clear_mpzspm_spm;
-        }
+      CHECK(mpzspm->spm[mpzspm->sp_num] == NULL,
+            "Out of memory in mpzspm_init()\n", error_clear_mpzspm_spm);
       mpzspm->sp_num++;
       
       mpz_set_sp (mp, p);
@@ -265,20 +264,17 @@ mpzspm_init (spv_size_t max_len, mpz_t modulus)
   mpzspm->crt3 = (spv_t) malloc (mpzspm->sp_num * sizeof (sp_t));
   mpzspm->crt4 = (spv_t *) malloc (mpzspm->sp_num * sizeof (spv_t));
   mpzspm->crt5 = (spv_t) malloc (mpzspm->sp_num * sizeof (sp_t));
-  if (mpzspm->crt1 == NULL || mpzspm->crt2 == NULL || mpzspm->crt3 == NULL ||
-      mpzspm->crt4 == NULL || mpzspm->crt5 == NULL)
-    {
-      outputf (OUTPUT_ERROR, "Out of memory in mpzspm_init()\n");
-      goto error_clear_crt;
-    }
+  CHECK(mpzspm->crt1 == NULL || mpzspm->crt2 == NULL || mpzspm->crt3 == NULL ||
+        mpzspm->crt4 == NULL || mpzspm->crt5 == NULL,
+        "Out of memory in mpzspm_init()\n", error_clear_crt);
 
   for (i = 0; i < mpzspm->sp_num; i++)
     mpzspm->crt4[i] = NULL;
   for (i = 0; i < mpzspm->sp_num; i++)
     {
       mpzspm->crt4[i] = (spv_t) malloc (mpzspm->sp_num * sizeof (sp_t));
-      if (mpzspm->crt4[i] == NULL)
-        goto error_clear_crt4;
+      CHECK(mpzspm->crt4[i] == NULL, "Out of memory in mpzspm_init()\n",
+            error_clear_crt);
     }
   
   for (i = 0; i < mpzspm->sp_num; i++)
@@ -336,10 +332,6 @@ mpzspm_init (spv_size_t max_len, mpz_t modulus)
   
   /* Error cases: free memory we allocated so far */
 
-  error_clear_crt4:
-  for (i = 0; i < mpzspm->sp_num; i++)
-    free (mpzspm->crt4[i]);
-  
   error_clear_crt:
   free (mpzspm->crt1);
   free (mpzspm->crt2);
@@ -349,7 +341,7 @@ mpzspm_init (spv_size_t max_len, mpz_t modulus)
   
   error_clear_mpzspm_spm:
   for (i = 0; i < mpzspm->sp_num; i++)
-    free(mpzspm->spm[i]);
+    free (mpzspm->spm[i]);
   free (mpzspm->spm);
 
   error_clear_mpzspm:
