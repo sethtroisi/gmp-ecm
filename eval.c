@@ -22,6 +22,7 @@ http://www.gnu.org/licenses/ or write to the Free Software Foundation, Inc.,
 #include <string.h>
 #include <time.h>
 #include "ecm-ecm.h"
+#include "getprime_r.h"
 
 #ifdef HAVE_STRINGS_H
 # include <strings.h> /* for strncasecmp */
@@ -246,34 +247,37 @@ void eval_power (mpz_t prior_n, mpz_t n,char op)
     }
   else if ('#'==op)  /* simple primorial (syntax  n#   example:  11# == 2*3*5*7*11 */
     {
-      long nMax;
-      double p;
-      nMax = mpz_get_si (n);
-      mpz_set_ui (n,1);
-      for (p = 2.0; p <= nMax; p = getprime ())
+      unsigned long nMax;
+      unsigned long p;
+      prime_info_t prime_info;
+
+      prime_info_init (prime_info);
+      nMax = mpz_get_ui (n);
+      mpz_set_ui (n, 1);
+      for (p = 2; p <= nMax; p = getprime_mt (prime_info))
 	/* This could be done much more efficiently (bunching mults using smaller "built-ins"), but I am not going to bother for now */
-	mpz_mul_ui (n, n, (unsigned)p);
-      getprime_clear (); /* free the prime table */
+	mpz_mul_ui (n, n, p);
+      prime_info_clear (prime_info); /* free the prime table */
     }
   else if ('$'==op)  /* reduced primorial (syntax  n#prior_n   example:  13#5 == (5*7*11*13) */
     {
-      double p;
-      long nMax;
+      unsigned long p;
+      unsigned long nMax;
       unsigned long nStart;
-      nMax = mpz_get_si(prior_n);
-      nStart = mpz_get_ui(n);
-      mpz_set_ui(n,1);
-      p = getprime (nStart);
+      prime_info_t prime_info;
+
+      prime_info_init (prime_info);
+      nMax = mpz_get_ui (prior_n);
+      nStart = mpz_get_ui (n);
+      mpz_set_ui (n, 1);
       /*printf ("Reduced-primorial  %ld#%ld\n", nMax, nStart);*/
-      for (; p <= nMax; p = getprime (p))
+      for (p = 2; p <= nMax; p = getprime_mt (prime_info))
 	{
-	  /* Unfortunately, the SoE within GMP-ECM does not always start
-	     correctly, so we have to skip the low end stuff by hand */
 	  if (p >= nStart)
 	    /* This could be done much more efficiently (bunching mults using smaller "built-ins"), but I am not going to bother for now */
-	    mpz_mul_ui(n,n,(unsigned)p);
+	    mpz_mul_ui (n, n, p);
 	}
-      getprime_clear (); /* free the prime tables */
+      prime_info_clear (prime_info); /* free the prime table */
     }
 }
 
@@ -332,8 +336,9 @@ int eval_Phi (mpz_t b, mpz_t n, int ParamCnt)
   int factors[200];
   unsigned dwFactors=0, dw;
   unsigned long B;
-  double p;
+  unsigned long p;
   mpz_t D, T, org_n;
+  prime_info_t prime_info;
   
   if (ParamCnt == 0)
     return 0;
@@ -371,24 +376,24 @@ int eval_Phi (mpz_t b, mpz_t n, int ParamCnt)
   B = mpz_get_ui (b);
 
   /* Obtain the factors of B */
-  for (p = 2.0; p <= B; p = getprime ())
+  prime_info_init (prime_info);
+  for (p = 2; p <= B; p = getprime_mt (prime_info))
     {
-      if (B % (int) p == 0)
+      if (B % p == 0)
 	{
 	  /* Add the factor one time */
-	  factors[dwFactors++] = (int) p;
+	  factors[dwFactors++] = p;
 	  /* but be sure to totally remove it */
-	  do { B /= (int) p; } while (B % (int) p == 0);
+	  do { B /= p; } while (B % p == 0);
         }
      }
-  getprime_clear (); /* free the prime tables */
+  prime_info_clear (prime_info); /* free the prime tables */
   B = mpz_get_si (b);
 
-  mpz_init_set(org_n, n);
-  mpz_set_ui(n, 1);
-  mpz_init_set_ui(D, 1);
-  mpz_init(T);
-
+  mpz_init_set (org_n, n);
+  mpz_set_ui (n, 1);
+  mpz_init_set_ui (D, 1);
+  mpz_init (T);
 	      
   for(dw=0;(dw<(1U<<dwFactors)); dw++)
     {
