@@ -1577,7 +1577,7 @@ mpres_mul_z_to_z (mpz_t R, const mpres_t S1, const mpz_t S2, mpmod_t modulus)
       unsigned long k;
       mp_srcptr s1p = PTR(S1), s2p = PTR(S2);
       mp_size_t s1s = SIZ(S1), s2s = SIZ(S2);
-      
+
       MPZ_REALLOC (R, n + 1);
       k = mpn_fft_best_k (n, S1 == S2);
       ASSERT(mpn_fft_next_size (n, k) == n);
@@ -1820,6 +1820,7 @@ mpres_sub_ui (mpres_t R, const mpres_t S, const unsigned long n,
   ASSERT_NORMALIZED (R);
 }
 
+#if 0
 /* R <- n - S mod modulus
    If repr == ECM_MOD_MODMULN or ECM_MOD_REDC, we need to convert n to
    Montgomery representation before substracting
@@ -1844,6 +1845,7 @@ mpres_ui_sub (mpres_t R, const unsigned long n ,const mpres_t S,
     }
   ASSERT_NORMALIZED (R);
 }
+#endif
 
 /* R <- S1 - S2 mod modulus */
 void 
@@ -2027,6 +2029,8 @@ mpres_gcd (mpz_t R, const mpres_t S, const mpmod_t modulus)
   mpz_gcd (R, S, modulus->orig_modulus);
 }
 
+#if 0 /* those routines are not called in normal operation */
+
 void 
 mpres_out_str (FILE *fd, const unsigned int base, const mpres_t S, 
                mpmod_t modulus)
@@ -2034,9 +2038,6 @@ mpres_out_str (FILE *fd, const unsigned int base, const mpres_t S,
   mpres_get_z (modulus->temp2, S, modulus);
   mpz_out_str (fd, base, modulus->temp2);
 }
-
-
-#if 0 /* those routines are not called in normal operation */
 
 /* Multiplies S1 by the one-limb integer S2, and does modulo reduction.
    The modulo reduction may imply multiplication of the residue class 
