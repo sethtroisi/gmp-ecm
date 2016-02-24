@@ -284,9 +284,6 @@ print_config ()
 #else
   printf ("WITH_GPU undefined\n");
 #endif
-
-  /* coverage test */
-  signal_handler (SIGINT);
 }
 
 /* r <- q mod N. 
@@ -532,12 +529,12 @@ main (int argc, char *argv[])
       else if (strcmp (argv[1], "-h") == 0 || strcmp (argv[1], "--help") == 0)
         {
           usage ();
-          exit (EXIT_SUCCESS);
+          goto free_all;
         }
       else if (strcmp (argv[1], "-printconfig") == 0)
         {
           print_config ();
-          exit (EXIT_SUCCESS);
+          goto free_all;
         }
       else if ((argc > 2) && (strcmp (argv[1], "-x0")) == 0)
         {
@@ -1557,6 +1554,7 @@ main (int argc, char *argv[])
 
   if (infilename) /* infile might be stdin, don't fclose that! */
     fclose (infile);
+
   if (resumefile)
     {
       fclose (resumefile);
@@ -1564,27 +1562,29 @@ main (int argc, char *argv[])
       mpz_clear (resume_lastfac);
     }
 
-  free_expr ();
-
   gmp_randclear (randstate);
 
-  mpz_clear (orig_x0);
   mpz_clear (orig_y0);
+  mpz_clear (orig_x0);
+  mpz_clear (y);
+  mpz_clear (x);
+  mpz_clear (f);
+  mpcandi_t_free (&n);
+
+ free_all:
+  free_expr ();
+
+  mpq_clear (rat_y0);
+  mpq_clear (rat_x0);
+  mpq_clear (rat_A);
   mpz_clear (startingB2min);
   mpz_clear (B2min);
   mpz_clear (B2);
-  mpz_clear (x);
-  mpz_clear (y);
-  mpz_clear (f);
-  mpcandi_t_free (&n);
-  mpz_clear (sigma);
   mpz_clear (A);
-  mpq_clear (rat_A);
-  mpq_clear (rat_x0);
-  mpq_clear (rat_y0);
+  mpz_clear (sigma);
   mpz_clear (seed);
-  mpgocandi_t_free (&go);
 
+  mpgocandi_t_free (&go);
   ecm_clear (params);
 
   /* exit 0 if a factor was found for the last input, except if we exit due
