@@ -345,7 +345,7 @@ int
 main (int argc, char *argv[])
 {
   char **argv0 = argv;
-  mpz_t seed, x, y, sigma, A, f, orig_x0, orig_y0, B2, B2min, startingB2min, tmp_n;
+  mpz_t x, y, sigma, A, f, orig_x0, orig_y0, B2, B2min, startingB2min, tmp_n;
   mpcandi_t n;
   mpgocandi_t go;
   mpq_t rat_x0, rat_y0, rat_A;
@@ -369,7 +369,6 @@ main (int argc, char *argv[])
                 Positive value: use S-th power,
                 negative: use degree |S| Dickson poly,
                 default (0): automatic choice. */
-  gmp_randstate_t randstate;
   char *savefilename = NULL, *resumefilename = NULL, *infilename = NULL;
   char *TreeFilename = NULL, *chkfilename = NULL;
 #ifdef HAVE_TORSION
@@ -417,7 +416,6 @@ main (int argc, char *argv[])
   mpgocandi_t_init (&go);
 
   /* Init variables we might need to store options */
-  mpz_init (seed);
   mpz_init (sigma);
   mpz_init (A);
   mpz_init (B2);
@@ -1101,19 +1099,6 @@ main (int argc, char *argv[])
   mpz_init (orig_x0); /* starting point, for save file */
   mpz_init (orig_y0); /* starting point, for save file */
 
-  /* We may need random numbers for sigma and/or starting point */
-  gmp_randinit_default (randstate);
-  mpz_set_ui (seed, get_random_ul ());
-  if (mpz_sizeinbase (seed, 2) <= 32)
-    {
-      mpz_mul_2exp (seed, seed, 32);
-      mpz_add_ui (seed, seed, get_random_ul ());
-    }
-  if (verbose >= 3)
-    gmp_printf ("Random seed: %Zd\n", seed);
-  gmp_randseed (randstate, seed);
-
-
   /* Install signal handlers */
 #ifdef HAVE_SIGNAL
   /* We catch signals only if there is a savefile. Otherwise there's nothing
@@ -1267,16 +1252,10 @@ main (int argc, char *argv[])
                     goto free_all1;
 		}
             }
-          else /* Make a random starting point for P-1 and P+1. ECM will */
-               /* compute a suitable value from sigma or A if x is zero */
-            {
-              if (method == ECM_ECM)
-                mpz_set_ui (x, 0);
-              if (method == ECM_PP1)
-                pp1_random_seed (x, n.n, randstate);
-              if (method == ECM_PM1)
-                pm1_random_seed (x, n.n, randstate);
-            }
+          else /* Set x to 0. This will tell the ecm library to choose a
+                  random starting point for P-1 and P+1. ECM will
+                  compute a suitable value from sigma or A if x is zero. */
+            mpz_set_ui (x, 0);
          
           if (ECM_IS_DEFAULT_B1_DONE(B1done)) /* first time */
 	    {
@@ -1563,8 +1542,6 @@ main (int argc, char *argv[])
       mpz_clear (resume_lastfac);
     }
 
-  gmp_randclear (randstate);
-
   mpz_clear (orig_y0);
   mpz_clear (orig_x0);
   mpz_clear (y);
@@ -1583,7 +1560,6 @@ main (int argc, char *argv[])
   mpz_clear (B2);
   mpz_clear (A);
   mpz_clear (sigma);
-  mpz_clear (seed);
 
   mpgocandi_t_free (&go);
   ecm_clear (params);
