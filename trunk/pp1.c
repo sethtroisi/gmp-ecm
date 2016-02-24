@@ -318,7 +318,7 @@ pp1 (mpz_t f, mpz_t p, mpz_t n, mpz_t go, double *B1done, double B1,
   st = cputime ();
 
   if (mpz_cmp_ui (p, 0) == 0)
-    pm1_random_seed (p, n, rng);
+    pp1_random_seed (p, n, rng);
 
   mpz_init_set (B2min, B2min_parm);
   mpz_init_set (B2, B2_parm);
