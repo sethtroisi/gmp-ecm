@@ -291,6 +291,7 @@ all_curves_at_once(mpz_t f, char *ok, ell_curve_t *tE, ell_point_t *tP, int nE,
     int ret = ECM_NO_FACTOR_FOUND;
     long last_chkpnt_time;
     int i;
+    prime_info_t prime_info;
     
     mpz_init(e);
     for(i = 0; i < nE; i++){
@@ -328,7 +329,8 @@ all_curves_at_once(mpz_t f, char *ok, ell_curve_t *tE, ell_point_t *tP, int nE,
 	}
 
     last_chkpnt_p = 3.;
-    for (p = getprime (); p <= B1; p = getprime ()){
+    prime_info_init (prime_info);
+    for (p = getprime_mt (prime_info); p <= B1; p = getprime_mt (prime_info)){
 	for (r = p; r <= B1; r *= p){
 #if DEBUG_MULTI_EC >= 2
 	    printf("## p = %ld at %ldms\n", (long)p, cputime());
@@ -377,7 +379,7 @@ all_curves_at_once(mpz_t f, char *ok, ell_curve_t *tE, ell_point_t *tP, int nE,
     if (chkfilename != NULL)
 	writechkfile (chkfilename, ECM_ECM, *B1done, n, A, x, y, z);
 #endif
-    getprime_clear (); /* free the prime tables, and reinitialize */
+    prime_info_clear (); /* free the prime table */
     
     /* put results back */
     pt_many_assign(tP, tQ, nE, n);
