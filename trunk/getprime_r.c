@@ -68,29 +68,6 @@ prime_info_clear (prime_info_t i)
   free (i->moduli);
 }
 
-/* this function is not thread-safe */
-unsigned long
-getprime_unsafe (unsigned long p)
-{
-  static prime_info_t pi;
-  static int initialized = 0;
-
-  if (p == 0)
-    {
-      prime_info_clear (pi);
-      initialized = 0;
-      return p;
-    }
-
-  if (initialized == 0)
-    {
-      prime_info_init (pi);
-      initialized = 1;
-    }
-
-  return getprime_mt (pi);
-}
-
 /* this function is thread-safe */
 unsigned long
 getprime_mt (prime_info_t i)
