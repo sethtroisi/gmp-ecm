@@ -369,12 +369,12 @@ stage2 (mpz_t f, void *X, mpmod_t modulus, unsigned long dF, unsigned long k,
 
   /* we want at least two significant digits */
   if (mem < 1048576.0)
-    outputf (OUTPUT_VERBOSE, "Estimated memory usage: %1.0fKb\n", mem / 1024.);
+    outputf (OUTPUT_VERBOSE, "Estimated memory usage: %1.0fKB\n", mem / 1024.);
   else if (mem < 1073741824.0)
-    outputf (OUTPUT_VERBOSE, "Estimated memory usage: %1.2fMb\n", 
+    outputf (OUTPUT_VERBOSE, "Estimated memory usage: %1.2fMB\n", 
              mem / 1048576.);
   else
-    outputf (OUTPUT_VERBOSE, "Estimated memory usage: %1.2fGb\n", 
+    outputf (OUTPUT_VERBOSE, "Estimated memory usage: %1.2fGB\n", 
              mem / 1073741824.);
 
   F = init_list2 (dF + 1, mpz_sizeinbase (modulus->orig_modulus, 2) + 
