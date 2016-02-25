@@ -69,8 +69,8 @@ ecm_init (ecm_params q)
   q->maxmem = 0.0;
   q->stage1time = 0.0;
   gmp_randinit_default (q->rng);
-  gmp_randseed_ui (q->rng, 0); /* trick to tell that the random number
-                                  generator has not been initialized */
+  mpz_set_ui (q->rng->_mp_seed, 0); /* trick to tell that the random number
+                                       generator has not been initialized */
   q->use_ntt = 1;
   q->stop_asap = NULL;
   q->batch_last_B1_used = 1.0;
@@ -107,11 +107,12 @@ ecm_clear (ecm_params q)
 
 /* returns ECM_FACTOR_FOUND, ECM_NO_FACTOR_FOUND, or ECM_ERROR */
 int
-ecm_factor (mpz_t f, mpz_t n, double B1, ecm_params p)
+ecm_factor (mpz_t f, mpz_t n, double B1, ecm_params p0)
 {
   int res; /* return value */
   int p_is_null;
   ecm_params q;
+  ecm_params_ptr p;
 
   if (mpz_cmp_ui (n, 0) <= 0)
     {
@@ -129,11 +130,13 @@ ecm_factor (mpz_t f, mpz_t n, double B1, ecm_params p)
       return ECM_FACTOR_FOUND_STEP1;
     }
   
-  if ((p_is_null = (p == NULL)))
+  if ((p_is_null = (p0 == NULL)))
     {
       p = q;
       ecm_init (q);
     }
+  else
+    p = p0;
 
   if (p->method == ECM_ECM)
     {
