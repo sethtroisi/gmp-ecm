@@ -1,4 +1,4 @@
-m4_define([ECM_VERSION_AC], [7.0-dev])
+m4_define([ECM_VERSION_AC], [7.0-rc1])
 
 AC_PREREQ([2.57])
 AC_INIT([ecm], ECM_VERSION_AC, [ecm-discuss@lists.gforge.inria.fr])
@@ -51,7 +51,7 @@ fi
 dnl Assertions are enabled by default for beta/rc releases. The last parameter
 dnl of AC_ARG_ENABLE() sets the default value (change also default=...).
 AC_ARG_ENABLE([assert],
-[AS_HELP_STRING([--enable-assert], [enable ASSERT checking [[default=yes]]])],[],[enable_assert=yes])
+[AS_HELP_STRING([--enable-assert], [enable ASSERT checking [[default=no]]])],[],[enable_assert=no])
 if test "x$enable_assert" = xyes; then
   AC_DEFINE([WANT_ASSERT],1,[Define to 1 if you want assertions enabled])
   GMP_DEFINE([WANT_ASSERT], 1)
