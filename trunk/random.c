@@ -53,10 +53,7 @@ void
 init_randstate (gmp_randstate_t rng)
 {
   if (mpz_cmp_ui (rng->_mp_seed, 0) == 0)
-    {
-      gmp_randinit_default (rng);
-      gmp_randseed_ui (rng, get_random_ul ());
-    }
+    gmp_randseed_ui (rng, get_random_ul ());
 }
 
 /* put in 'a' a valid random seed for P-1, i.e. gcd(a,n)=1 and a <> {-1,1} */
