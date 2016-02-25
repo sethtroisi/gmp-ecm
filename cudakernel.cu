@@ -96,6 +96,8 @@ select_and_init_GPU (int device, unsigned int *number_of_curves, int verbose)
 
   if (verbose)
     {
+      dim3 dimBlock (ECM_GPU_NB_DIGITS, ECM_GPU_CURVES_BY_BLOCK);
+      dim3 dimGrid (number_of_curves/ ECM_GPU_CURVES_BY_BLOCK);
       fprintf (stdout, "GPU: will use device %d: %s, compute capability "
            "%d.%d, %d MPs.\n", device, deviceProp.name, major, minor, MPcount);
       fprintf(stdout, "GPU: Block: %ux%ux%u Grid: %ux%ux%u (%d parallel curves)\n", dimBlock.x, 
