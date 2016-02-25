@@ -642,6 +642,15 @@ AC_SUBST(NVCC_FLAGS)
 AC_SUBST(CC_ADD_FLAGS_FOR_GPU)
 
 
+# Define NVCC_VERSION if it is available
+AS_IF([test "x$NVCC_VERSION" != "x"],
+  [AC_DEFINE_UNQUOTED([NVCC_VERSION], ["$NVCC_VERSION"], [Version of nvcc compiler])])
+
+# Define CC_VERSION if it is available
+AS_IF([test "x$CC_VERSION" != "x"],
+  [AC_DEFINE_UNQUOTED([CC_VERSION], ["$CC_VERSION"], [Compiled for this Compute Capability])])
+
+
 LIBS="$LIBS $GWLIB"
 
 GMP_FINISH

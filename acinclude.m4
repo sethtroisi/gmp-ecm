@@ -368,8 +368,9 @@ AC_DEFUN([ECM_C_INLINESSE2_PROG], dnl
 dnl  CU_CHECK_CUDA
 dnl  Check if a GPU version is asked, for which GPU and where CUDA is install.
 dnl  Includes are put in CUDA_INC_FLAGS
-dnl  Libraries are put in CUDA_INC_FLAGS
+dnl  Libraries are put in CUDA_LIB_FLAGS
 dnl  Path to nvcc is put in NVCC
+dnl  Version of nvcc is put in NVCC_VERSION
 dnl  the GPU architecture for which it is compiled is in GPU_ARCH
 
 AC_DEFUN([CU_CHECK_CUDA],[
@@ -377,11 +378,11 @@ AC_DEFUN([CU_CHECK_CUDA],[
 # Is the GPU version is requested?
 is_gpu_asked="no"
 cu_dir=""
-AC_ARG_ENABLE(gpu, 
-  AS_HELP_STRING([--enable-gpu=GPU_ARCH], 
+AC_ARG_ENABLE(gpu,
+  AS_HELP_STRING([--enable-gpu=GPU_ARCH],
                  [Enable the cuda version [default=no]]),
   [
-    AS_IF([test "x$enableval" = "xno"], 
+    AS_IF([test "x$enableval" = "xno"],
       [
         is_gpu_asked="no"
       ], [
@@ -391,36 +392,65 @@ AC_ARG_ENABLE(gpu,
         # If $enableval is not empty, set CUDA_ARCH to
         # supplied value, else set to default value sm_20
         AS_IF([test "x$enableval" = "xyes"],
-          [ 
-            GPU_ARCH="20" 
+          [
+            GPU_ARCH="20"
+            CC_VERSION="2.0"
             AC_MSG_NOTICE(
              [GPU version will be optimized for GPU of compute capability 2.0])
-          ], 
-          [ 
-            AS_CASE(["$enableval"], 
-              ["sm_20"], 
+          ],
+          [
+            AS_CASE(["$enableval"],
+              ["sm_20"],
                 [
-                  GPU_ARCH="20" 
+                  GPU_ARCH="20"
+                  CC_VERSION="2.0"
                   AC_MSG_NOTICE(
               [GPU version will be optimized for GPU of compute capability 2.0])
                 ],
-              ["sm_21"], 
+              ["sm_21"],
                 [
-                  GPU_ARCH="21" 
+                  GPU_ARCH="21"
+                  CC_VERSION="2.1"
                   AC_MSG_NOTICE(
               [GPU version will be optimized for GPU of compute capability 2.1])
                 ],
-              ["sm_30"], 
+              ["sm_30"],
                 [
-                  GPU_ARCH="30" 
+                  GPU_ARCH="30"
+                  CC_VERSION="3.0"
                   AC_MSG_NOTICE(
               [GPU version will be optimized for GPU of compute capability 3.0])
                 ],
-              ["sm_35"], 
+              ["sm_35"],
                 [
-                  GPU_ARCH="35" 
+                  GPU_ARCH="35"
+                  CC_VERSION="3.5"
                   AC_MSG_NOTICE(
               [GPU version will be optimized for GPU of compute capability 3.5])
+                  AC_MSG_NOTICE([Warning: Untested GPU architecture!])
+                ],
+              ["sm_37"],
+                [
+                  GPU_ARCH="37"
+                  CC_VERSION="3.7"
+                  AC_MSG_NOTICE(
+              [GPU version will be optimized for GPU of compute capability 3.7])
+                  AC_MSG_NOTICE([Warning: Untested GPU architecture!])
+                ],
+              ["sm_50"],
+                [
+                  GPU_ARCH="50"
+                  CC_VERSION="5.0"
+                  AC_MSG_NOTICE(
+              [GPU version will be optimized for GPU of compute capability 5.0])
+                  AC_MSG_NOTICE([Warning: Untested GPU architecture!])
+                ],
+              ["sm_52"],
+                [
+                  GPU_ARCH="52"
+                  CC_VERSION="5.2"
+                  AC_MSG_NOTICE(
+              [GPU version will be optimized for GPU of compute capability 5.2])
                   AC_MSG_NOTICE([Warning: Untested GPU architecture!])
                 ],
                 #default
@@ -545,6 +575,13 @@ AS_IF([test "x$is_gpu_asked" = "xyes" ],
         AC_MSG_ERROR([nvcc does not recognize ptx instruction madc, you should upgrade it])
       ])
 
+    dnl gather nvcc version
+    AC_MSG_CHECKING([version of nvcc])
+    # NVCC_VERSION = $NVCC --version | grep release
+    AS_IF([test -n "$NVCC"], 
+          [NVCC_VERSION="$($NVCC --version | grep release)"])
+    AC_MSG_RESULT($NVCC_VERSION)
+
     # From now on cu_dir != "". Either it was always the case, either it was
     # guess from NVCC. 
   
@@ -565,6 +602,9 @@ AS_IF([test "x$is_gpu_asked" = "xyes" ],
         [
           AS_IF([test -f $cu_dir/lib$lib_suffix/libcudart.so], 
             [
+              # Use CUDA_LDADD to embed the location of the CUDA shared libraries into the ecm executable
+              # This is especially useful when using --with-cuda=/usr/local/cuda-x.y
+              CUDA_LDADD="-rpath $cu_dir/lib$lib_suffix"
               CUDA_LIB_FLAGS="-L$cu_dir/lib$lib_suffix -lcudart"
               AC_MSG_RESULT([yes])
             ], [
@@ -575,6 +615,7 @@ AS_IF([test "x$is_gpu_asked" = "xyes" ],
         [
           AS_IF([test -f $cu_dir/lib$lib_suffix/libcudart.dylib], 
             [
+              CUDA_LDADD=""
               CUDA_LIB_FLAGS="-L$cu_dir/lib$lib_suffix -lcudart"
               AC_MSG_RESULT([yes])
             ], [
@@ -591,8 +632,11 @@ AM_CONDITIONAL([WANT_CUDA], [test "x$is_gpu_asked" = "xyes" ])
 
 AC_SUBST(CUDA_INC_FLAGS)
 AC_SUBST(CUDA_LIB_FLAGS)
+AC_SUBST(CUDA_LDADD)
 AC_SUBST(GPU_ARCH)
 AC_SUBST(NVCC)
+AC_SUBST(NVCC_VERSION)
+AC_SUBST(CC_VERSION)
 AC_SUBST(cc_for_cuda)
 
 ])

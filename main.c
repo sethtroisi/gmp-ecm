@@ -281,9 +281,12 @@ print_config ()
 
 #ifdef WITH_GPU
   printf ("WITH_GPU = %d\n", WITH_GPU);
+  printf ("Compiled with nvcc: %s\n", NVCC_VERSION);
+  printf ("For Compute Capability: %s\n", CC_VERSION);
 #else
   printf ("WITH_GPU undefined\n");
 #endif
+
 }
 
 /* r <- q mod N. 
@@ -291,7 +294,7 @@ print_config ()
    gcd(den(q), N) is put in r.
  */
 static int
-mod_from_mpq (mpz_t r, mpq_t q, mpz_t N, int verbose)
+mod_from_mpq(mpz_t r, mpq_t q, mpz_t N, int verbose)
 {
     mpz_t inv, C;
     int factor_is_prime, cofactor_is_prime, ret = ECM_NO_FACTOR_FOUND;
@@ -299,7 +302,7 @@ mod_from_mpq (mpz_t r, mpq_t q, mpz_t N, int verbose)
     mpz_init (inv);
     if (mpz_invert (inv, mpq_denref (q), N) == 0)
       {
-	mpz_gcd (r, mpq_denref (q), N);
+	mpz_gcd(r, mpq_denref (q), N);
 	if (verbose > 0)
           {
             if (verbose > 1)
@@ -309,7 +312,7 @@ mod_from_mpq (mpz_t r, mpq_t q, mpz_t N, int verbose)
 	mpz_out_str (stdout, 10, r);
 	if (verbose > 0)
 	    printf ("\n");
-	if (mpz_cmp (r, N) == 0)
+	if (mpz_cmp(r, N) == 0)
 	  ret = ECM_INPUT_NUMBER_FOUND;
 	else
 	  {
@@ -979,8 +982,8 @@ main (int argc, char *argv[])
         {
           mpz_set (B2min, B2);
           /* make sure B2min is not less than B1 */
-          if (mpz_cmp_d (B2min, B1) < 0)
-            mpz_set_d (B2min, B1);
+          if (mpz_cmp_d(B2min, B1) < 0)
+            mpz_set_d(B2min, B1);
 
           c = -1;
           gmp_sscanf (endptr, "%Zd%n", B2, &c);
@@ -1228,8 +1231,8 @@ main (int argc, char *argv[])
           /* Set effective seed for factoring attempt on this number */
 	  if (specific_A)
 	    {
-		returncode = mod_from_mpq (A, rat_A, n.n, verbose);
-		if (returncode != ECM_NO_FACTOR_FOUND)
+		returncode = mod_from_mpq(A, rat_A, n.n, verbose);
+		if(returncode != ECM_NO_FACTOR_FOUND)
                   goto free_all1;
 	    }
 	  
@@ -1241,15 +1244,15 @@ main (int argc, char *argv[])
 		  exit (EXIT_FAILURE);
                 }
 
-	      returncode = mod_from_mpq (x, rat_x0, n.n, verbose);
-	      if (returncode != ECM_NO_FACTOR_FOUND)
-                goto free_all1;
+	      returncode = mod_from_mpq(x, rat_x0, n.n, verbose);
+	      if(returncode != ECM_NO_FACTOR_FOUND)
+                  goto free_all1;
 
 	      if (specific_y0)
 		{
-		  returncode = mod_from_mpq (y, rat_y0, n.n, verbose);
+		  returncode = mod_from_mpq(y, rat_y0, n.n, verbose);
 		  if (returncode != ECM_NO_FACTOR_FOUND)
-                    goto free_all1;
+                  goto free_all1;
 		}
             }
           else /* Set x to 0. This will tell the ecm library to choose a
@@ -1445,7 +1448,7 @@ main (int argc, char *argv[])
       /* now call the ecm library */
       if (result == ECM_NO_FACTOR_FOUND)
 	  /* if torsion was used, some factor may have been found... */
-        result = ecm_factor (f, n.n, B1, params);
+	  result = ecm_factor (f, n.n, B1, params);
 
       if (result == ECM_ERROR)
         {
@@ -1531,7 +1534,7 @@ main (int argc, char *argv[])
         }
     } /* end of main loop */
 
- free_all1:
+  free_all1:
   if (infilename) /* infile might be stdin, don't fclose that! */
     fclose (infile);
 
