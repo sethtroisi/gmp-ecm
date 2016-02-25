@@ -329,7 +329,9 @@ list_mulmod (listz_t a2, listz_t a, listz_t b, listz_t c, unsigned int k,
 {
   int i;
 
-  for (i = k; (i & 1) == 0; i >>= 1);
+  /* keep the semicolon on a separate line to silence a warning with clang */
+  for (i = k; (i & 1) == 0; i >>= 1)
+    ;
   
   ASSERTD(list_check(b,k,n));
   ASSERTD(list_check(c,k,n));
