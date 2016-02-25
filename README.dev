@@ -14,7 +14,7 @@ $ ./configure --with-gmp=<directory_where_gmp_is_installed>
 $ make
 $ make check
 
-Warning: only configure.in and Makefile.am should be in cvs
+Warning: only configure.ac and Makefile.am should be in cvs
 	(the other files are automatically generated)
 
 ##############################################################################
@@ -73,8 +73,8 @@ To make a new release:
      Compare the efficiency wrt the previous release with "./ecm 1e6 < c200"
      and "./ecmbench ./ecm".
      Check GMP-ECM compiles and runs with MPIR too (mpir.org).
-  1) Check the version (configure.in and build.vc*/config.h).
-     Switch assertions to off by default in configure.in.
+  1) Check the version (configure.ac and build.vc*/config.h).
+     Switch assertions to off by default in configure.ac.
   2) Update the NEWS file, and check the INSTALL-ecm file is up-to-date
      (in particular the versions of GMP and GMP-ECM).
   3) Update the ChangeLog file, e.g. svn -v log > /tmp/ChangeLog and edit

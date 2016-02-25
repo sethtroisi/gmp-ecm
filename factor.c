@@ -110,14 +110,14 @@ int
 ecm_factor (mpz_t f, mpz_t n, double B1, ecm_params p0)
 {
   int res; /* return value */
-  int p_is_null;
   ecm_params q;
   ecm_params_ptr p;
 
   if (mpz_cmp_ui (n, 0) <= 0)
     {
-      fprintf (p->es, "Error, n should be positive.\n");
-	    return ECM_ERROR;
+      fprintf ((p0 == NULL) ? stderr : p0->es,
+               "Error, n should be positive.\n");
+      return ECM_ERROR;
     }
   else if (mpz_cmp_ui (n, 1) == 0)
     {
@@ -130,7 +130,7 @@ ecm_factor (mpz_t f, mpz_t n, double B1, ecm_params p0)
       return ECM_FACTOR_FOUND_STEP1;
     }
   
-  if ((p_is_null = (p0 == NULL)))
+  if (p0 == NULL)
     {
       p = q;
       ecm_init (q);
@@ -184,7 +184,7 @@ ecm_factor (mpz_t f, mpz_t n, double B1, ecm_params p0)
       res = ECM_ERROR;
     }
 
-  if (p_is_null)
+  if (p0 == NULL)
     ecm_clear (q);
 
   return res;
