@@ -146,6 +146,42 @@ if [ "$VALGRIND" != "1" ]; then
 # parsing error
 echo '2^(101/7)-1' | $ECM -sigma 0:18 1e5; checkcode $? 1
 
+# exercise "Error, n should be positive" error message
+echo "-1234" | $ECM 11e3; checkcode $? 1
+
+# exercise "Error, conflict between -sigma and -param arguments" error message
+echo "2^1123-1" | $ECM -sigma 0:13488386679529262989 -param 2 11000; checkcode $? 1
+
+# exercise other "Error, conflict between -sigma and -param arguments" error message
+echo "2^1123-1" | $ECM -param 2 -sigma 0:13488386679529262989 11000; checkcode $? 1
+
+# exercise "Error, x0 should be equal to 2 with this parametrization" error message
+echo "2^1123-1" | $ECM -x0 1 -param 2 11000; checkcode $? 1
+
+# exercise "Error, invalid starting point" error message
+echo "2^1123-1" | $ECM -x0 1.2 -param 0 11000; checkcode $? 1
+
+# exercise "Error, invalid starting point" error message
+echo "2^1123-1" | $ECM -y0 1.2 -param 0 11000; checkcode $? 1
+
+# exercise "Error, invalid -param value" error message
+echo "2^1123-1" | $ECM -x0 1 -param -1 11000; checkcode $? 1
+
+# exercise "Error, invalid sigma value" error message
+echo "2^1123-1" | $ECM -sigma 1.2 11000; checkcode $? 1
+
+# exercise "Error, invalid A value" error message
+echo "2^1123-1" | $ECM -A 1.2 11000; checkcode $? 1
+
+# exercise "Error, -A requires a starting point (-x0 x)." error message
+echo "2^1123-1" | $ECM -A 1234567890 11e3; checkcode $? 1
+
+# exercise "Error, the -I f option requires f > 0" error message
+echo "2^1123-1" | $ECM -I -1 11000; checkcode $? 1
+
+# exercise "Can't find input file" error message
+$ECM -inp 1; checkcode $? 1
+
 fi # end of tests producing errors
 
 echo "2^1000-(101%7)" | $ECM -sigma 0:17 1e3; checkcode $? 2
@@ -446,30 +482,6 @@ echo "phi(31,-1)" | $ECM 11e3; checkcode $? 0
 echo ")" | $ECM 11e3; checkcode $? 0
 # exercise "Error - unknown operator" error message
 echo "1234$" | $ECM 11e3; checkcode $? 0
-# exercise "Error, n should be positive" error message
-echo "-1234" | $ECM 11e3; checkcode $? 1
-# exercise "Error, conflict between -sigma and -param arguments" error message
-echo "2^1123-1" | $ECM -sigma 0:13488386679529262989 -param 2 11000; checkcode $? 1
-# exercise other "Error, conflict between -sigma and -param arguments" error message
-echo "2^1123-1" | $ECM -param 2 -sigma 0:13488386679529262989 11000; checkcode $? 1
-# exercise "Error, x0 should be equal to 2 with this parametrization" error message
-echo "2^1123-1" | $ECM -x0 1 -param 2 11000; checkcode $? 1
-# exercise "Error, invalid starting point" error message
-echo "2^1123-1" | $ECM -x0 1.2 -param 0 11000; checkcode $? 1
-# exercise "Error, invalid starting point" error message
-echo "2^1123-1" | $ECM -y0 1.2 -param 0 11000; checkcode $? 1
-# exercise "Error, invalid -param value" error message
-echo "2^1123-1" | $ECM -x0 1 -param -1 11000; checkcode $? 1
-# exercise "Error, invalid sigma value" error message
-echo "2^1123-1" | $ECM -sigma 1.2 11000; checkcode $? 1
-# exercise "Error, invalid A value" error message
-echo "2^1123-1" | $ECM -A 1.2 11000; checkcode $? 1
-# exercise "Error, -A requires a starting point (-x0 x)." error message
-echo "2^1123-1" | $ECM -A 1234567890 11e3; checkcode $? 1
-# exercise "Error, the -I f option requires f > 0" error message
-echo "2^1123-1" | $ECM -I -1 11000; checkcode $? 1
-# exercise "Can't find input file" error message
-$ECM -inp 1; checkcode $? 1
 # exercise "Warning, for multiple -go options" warning message
 echo "2^1123-1" | $ECM -sigma 0:13488386679529262989 -go 5 -go 7 11000; checkcode $? 6
 # exercise "Unknown option" error message
