@@ -69,7 +69,7 @@ prime_info_clear (prime_info_t i)
 }
 
 /* this function is thread-safe */
-unsigned long
+ecm_uint
 getprime_mt (prime_info_t i)
 {
   if (i->len)
@@ -88,7 +88,7 @@ getprime_mt (prime_info_t i)
   i->offset += 2 * i->len;
 
   /* first enlarge sieving table if too small */
-  if ((unsigned long) i->len * i->len < i->offset)
+  if ((ecm_uint) i->len * i->len < i->offset)
     {
       free (i->sieve);
       i->len *= 2;
@@ -101,18 +101,18 @@ getprime_mt (prime_info_t i)
 
   /* now enlarge small prime table if too small */
   if ((i->nprimes == 0) ||
-      ((unsigned long) i->primes[i->nprimes - 1] * (unsigned long)
+      ((ecm_uint) i->primes[i->nprimes - 1] * (ecm_uint)
        i->primes[i->nprimes - 1] < i->offset + i->len))
       {
 	if (i->nprimes == 0) /* initialization */
 	  {
 	    i->nprimes = 1;
-	    i->primes = (unsigned int*) malloc (i->nprimes
-                                                * sizeof(unsigned int));
+	    i->primes = (ecm_uint*) malloc (i->nprimes
+                                                * sizeof(ecm_uint));
 	    /* assume this "small" malloc will not fail in normal usage */
 	    ASSERT(i->primes != NULL);
-	    i->moduli = (unsigned int*) malloc (i->nprimes
-                                                * sizeof(unsigned int));
+	    i->moduli = (ecm_uint*) malloc (i->nprimes
+                                                * sizeof(ecm_uint));
 	    /* assume this "small" malloc will not fail in normal usage */
 	    ASSERT(i->moduli != NULL);
 	    i->len = 1;
@@ -130,14 +130,14 @@ getprime_mt (prime_info_t i)
 	  }
 	else
 	  {
-	    unsigned int k, p, j, ok;
+	    ecm_uint k, p, j, ok;
 
 	    k = i->nprimes;
 	    i->nprimes *= 2;
-	    i->primes = (unsigned int*) realloc (i->primes, i->nprimes *
-                                                 sizeof(unsigned int));
-	    i->moduli = (unsigned int*) realloc (i->moduli, i->nprimes *
-                                                 sizeof(unsigned int));
+	    i->primes = (ecm_uint*) realloc (i->primes, i->nprimes *
+                                                 sizeof(ecm_uint));
+	    i->moduli = (ecm_uint*) realloc (i->moduli, i->nprimes *
+                                                 sizeof(ecm_uint));
 	    /* assume those "small" realloc's will not fail in normal usage */
 	    ASSERT(i->primes != NULL && i->moduli != NULL);
 	    for (p = i->primes[k-1]; k < i->nprimes; k++)
@@ -162,8 +162,8 @@ getprime_mt (prime_info_t i)
 
   /* now sieve for new primes */
   {
-    long k;
-    unsigned long j, p;
+    ecm_int k;
+    ecm_uint j, p;
     
     memset (i->sieve, 1, sizeof(unsigned char) * (i->len + 1));
     for (j = 0; j < i->nprimes; j++)
