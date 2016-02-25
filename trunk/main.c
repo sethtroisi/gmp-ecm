@@ -294,7 +294,7 @@ print_config ()
    gcd(den(q), N) is put in r.
  */
 static int
-mod_from_mpq(mpz_t r, mpq_t q, mpz_t N, int verbose)
+mod_from_mpq (mpz_t r, mpq_t q, mpz_t N, int verbose)
 {
     mpz_t inv, C;
     int factor_is_prime, cofactor_is_prime, ret = ECM_NO_FACTOR_FOUND;
@@ -302,7 +302,7 @@ mod_from_mpq(mpz_t r, mpq_t q, mpz_t N, int verbose)
     mpz_init (inv);
     if (mpz_invert (inv, mpq_denref (q), N) == 0)
       {
-	mpz_gcd(r, mpq_denref (q), N);
+	mpz_gcd (r, mpq_denref (q), N);
 	if (verbose > 0)
           {
             if (verbose > 1)
@@ -312,7 +312,7 @@ mod_from_mpq(mpz_t r, mpq_t q, mpz_t N, int verbose)
 	mpz_out_str (stdout, 10, r);
 	if (verbose > 0)
 	    printf ("\n");
-	if (mpz_cmp(r, N) == 0)
+	if (mpz_cmp (r, N) == 0)
 	  ret = ECM_INPUT_NUMBER_FOUND;
 	else
 	  {
@@ -740,7 +740,7 @@ main (int argc, char *argv[])
       else if ((argc > 2) && (strcmp (argv[1], "-maxmem") == 0))
 	{
 	  maxmem = atof (argv[2]) * 1048576.;
-          ASSERT_ALWAYS(maxmem >= 0.0);
+          ASSERT_ALWAYS (maxmem >= 0.0);
 	  argv += 2;
 	  argc -= 2;
 	}
@@ -821,11 +821,11 @@ main (int argc, char *argv[])
       exit (EXIT_FAILURE);
     }
 
-  if (strcmp(ecm_version(), ECM_VERSION) != 0)
+  if (strcmp (ecm_version (), ECM_VERSION) != 0)
     {
       fprintf (stderr, "Error, library version %s differs from header "
                "version %s with which this file was compiled\n",
-               ecm_version(), ECM_VERSION);
+               ecm_version (), ECM_VERSION);
       exit (EXIT_FAILURE);
     }
 
@@ -843,7 +843,7 @@ main (int argc, char *argv[])
 #endif /* __MPIR_VERSION */
 
       out += sprintf (out, "GMP-ECM %s [configured with %s",
-                      ecm_version(), Gmp_version);
+                      ecm_version (), Gmp_version);
 
 #ifdef HAVE_GWNUM
       out += sprintf (out, ", GWNUM %s", GWNUM_VERSION);
@@ -893,7 +893,7 @@ main (int argc, char *argv[])
 
 #ifdef HAVE_GWNUM
 #ifdef gwnum_is_gpl
-      if (! gwnum_is_gpl())
+      if (! gwnum_is_gpl ())
 #endif
         printf ("Due to incompatible licenses, this binary file must not "
                 "be distributed.\n");
@@ -982,8 +982,8 @@ main (int argc, char *argv[])
         {
           mpz_set (B2min, B2);
           /* make sure B2min is not less than B1 */
-          if (mpz_cmp_d(B2min, B1) < 0)
-            mpz_set_d(B2min, B1);
+          if (mpz_cmp_d (B2min, B1) < 0)
+            mpz_set_d (B2min, B1);
 
           c = -1;
           gmp_sscanf (endptr, "%Zd%n", B2, &c);
@@ -1148,9 +1148,7 @@ main (int argc, char *argv[])
 	      || params->E->type == ECM_EC_TYPE_HESSIAN)
 	      params->sigma_is_A = -1;
 	  else
-	    {
-	      params->sigma_is_A = (mpz_sgn(sigma) == 0); /* sure? */
-	    }
+            params->sigma_is_A = mpz_sgn (sigma) == 0; /* sure? */
 
           if (mpz_cmp (n.n, resume_lastN) == 0)
             {
@@ -1244,13 +1242,13 @@ main (int argc, char *argv[])
 		  exit (EXIT_FAILURE);
                 }
 
-	      returncode = mod_from_mpq(x, rat_x0, n.n, verbose);
-	      if(returncode != ECM_NO_FACTOR_FOUND)
+	      returncode = mod_from_mpq (x, rat_x0, n.n, verbose);
+	      if (returncode != ECM_NO_FACTOR_FOUND)
                   goto free_all1;
 
 	      if (specific_y0)
 		{
-		  returncode = mod_from_mpq(y, rat_y0, n.n, verbose);
+		  returncode = mod_from_mpq (y, rat_y0, n.n, verbose);
 		  if (returncode != ECM_NO_FACTOR_FOUND)
                   goto free_all1;
 		}
@@ -1260,7 +1258,7 @@ main (int argc, char *argv[])
                   compute a suitable value from sigma or A if x is zero. */
             mpz_set_ui (x, 0);
          
-          if (ECM_IS_DEFAULT_B1_DONE(B1done)) /* first time */
+          if (ECM_IS_DEFAULT_B1_DONE (B1done)) /* first time */
 	    {
 	      mpz_set (orig_x0, x);
 	      if (specific_y0)
@@ -1316,7 +1314,7 @@ main (int argc, char *argv[])
           fprintf (stderr, "Error, the -param option is only valid for ECM\n");
           exit (EXIT_FAILURE);
         }
-      else if (param != ECM_PARAM_DEFAULT && !IS_BATCH_MODE(param) 
+      else if (param != ECM_PARAM_DEFAULT && !IS_BATCH_MODE (param) 
                && param != ECM_PARAM_SUYAMA && param != ECM_PARAM_WEIERSTRASS
                && param != ECM_PARAM_HESSIAN)
         {
@@ -1362,20 +1360,20 @@ main (int argc, char *argv[])
 	      if (params->param == ECM_PARAM_WEIERSTRASS)
 		{
 		    /* compute B = y^2-x^3-A*x = y^2 - (x^2+A)*x */
-		    mpz_mul(params->E->a6, y, y);
-		    mpz_mul(params->E->a4, x, x);
-		    mpz_add(params->E->a4, params->E->a4, A);
-		    mpz_mul(params->E->a4, params->E->a4, x);
-		    mpz_sub(params->E->a6, params->E->a6, params->E->a4);
-		    mpz_mod(params->E->a6, params->E->a6, n.n);
-		    mpz_set(params->E->a4, A);
+		    mpz_mul (params->E->a6, y, y);
+		    mpz_mul (params->E->a4, x, x);
+		    mpz_add (params->E->a4, params->E->a4, A);
+		    mpz_mul (params->E->a4, params->E->a4, x);
+		    mpz_sub (params->E->a6, params->E->a6, params->E->a4);
+		    mpz_mod (params->E->a6, params->E->a6, n.n);
+		    mpz_set (params->E->a4, A);
 		    params->sigma_is_A = -1;
 		    params->E->type = ECM_EC_TYPE_WEIERSTRASS;
 		    params->E->law = ECM_LAW_HOMOGENEOUS;
 		}
 	      else if (params->param == ECM_PARAM_HESSIAN)
 		{
-		    mpz_set(params->E->a4, A);
+		    mpz_set (params->E->a4, A);
 		    params->sigma_is_A = -1;
 		    params->E->type = ECM_EC_TYPE_HESSIAN;
 		    params->E->law = ECM_LAW_HOMOGENEOUS;
