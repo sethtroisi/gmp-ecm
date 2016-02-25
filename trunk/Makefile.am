@@ -48,7 +48,9 @@ libecm_la_LIBADD = $(MULREDCLIBRARY) $(GMPLIB)
 if WANT_CUDA 
   libecm_la_SOURCES += cudakernel.cu
   libecm_la_LIBADD += $(CUDA_LIB_FLAGS) -lstdc++
+  libecm_la_LDFLAGS += $(CUDA_LDADD)
   libecm_la_CFLAGS += $(CUDA_INC_FLAGS) $(CC_ADD_FLAGS_FOR_GPU)
+  ecm_LDFLAGS = $(CUDA_LDADD)
 endif
 
 bin_PROGRAMS = ecm

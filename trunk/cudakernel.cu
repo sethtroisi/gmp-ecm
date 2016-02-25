@@ -46,8 +46,11 @@ select_and_init_GPU (int device, unsigned int *number_of_curves, int verbose)
   cudaError_t err;
         
   if (verbose)
-      fprintf (stdout, "GPU: compiled for a NVIDIA GPU with compute capability "
+    {
+      fprintf (stdout, "GPU: Compiled with nvcc: %s\n", NVCC_VERSION);
+      fprintf (stdout, "GPU: compiled for an NVIDIA GPU with compute capability "
                        "%d.%d.\n", ECM_GPU_MAJOR, ECM_GPU_MINOR);
+    }
 
   if (device!=-1)
     {
@@ -92,8 +95,12 @@ select_and_init_GPU (int device, unsigned int *number_of_curves, int verbose)
     }
 
   if (verbose)
+    {
       fprintf (stdout, "GPU: will use device %d: %s, compute capability "
            "%d.%d, %d MPs.\n", device, deviceProp.name, major, minor, MPcount);
+      fprintf(stdout, "GPU: Block: %ux%ux%u Grid: %ux%ux%u (%d parallel curves)\n", dimBlock.x, 
+                      dimBlock.y, dimBlock.z, dimGrid.x, dimGrid.y, dimGrid.z, 32*MPcount);
+    }
 
 
   /* number_of_curves should be a multiple of ECM_GPU_CURVES_BY_BLOCK */
@@ -120,9 +127,8 @@ extern "C"
 float cuda_Main (biguint_t h_N, biguint_t h_3N, biguint_t h_M, digit_t h_invN, 
                     biguint_t *h_xarray, biguint_t *h_zarray, 
                     biguint_t *h_x2array, biguint_t *h_z2array, mpz_t s,
-                    unsigned int firstinvd, unsigned int number_of_curves, 
-                    int is_verbose_enough) 
-{ 
+                    unsigned int firstinvd, unsigned int number_of_curves) 
+{
   cudaEvent_t start, stop;
   cudaEventCreate (&start);
   cudaEventCreate (&stop);
@@ -133,7 +139,7 @@ float cuda_Main (biguint_t h_N, biguint_t h_3N, biguint_t h_M, digit_t h_invN,
   float elltime = 0.0;
   biguint_t *d_xA, *d_zA, *d_xB, *d_zB;
 
-#define MAXEVENTS 2 
+#define MAXEVENTS 2
 #define DEPTH_EVENT 32
   cudaEvent_t event[MAXEVENTS];   // Space for some cuda Event Handles
   long nEventsRecorded = 0;   // Remember how many events are recorded
@@ -144,10 +150,6 @@ float cuda_Main (biguint_t h_N, biguint_t h_3N, biguint_t h_M, digit_t h_invN,
 
   dim3 dimBlock (ECM_GPU_NB_DIGITS, ECM_GPU_CURVES_BY_BLOCK);
   dim3 dimGrid (number_of_curves/ ECM_GPU_CURVES_BY_BLOCK);
-
-  if (is_verbose_enough)
-    fprintf(stdout, "Block: %ux%ux%u Grid: %ux%ux%u\n", dimBlock.x, 
-                      dimBlock.y, dimBlock.z, dimGrid.x, dimGrid.y, dimGrid.z);
 
   /* Create a pair of events to pace ourselves */
   for (i=0; i<MAXEVENTS; i++)
