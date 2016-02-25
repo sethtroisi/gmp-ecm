@@ -48,12 +48,24 @@ http://www.gnu.org/licenses/ or write to the Free Software Foundation, Inc.,
 # include <wincrypt.h>
 #endif
 
+/* initialize the random number generator if needed */
+void
+init_randstate (gmp_randstate_t rng)
+{
+  if (mpz_cmp_ui (rng->_mp_seed, 0) == 0)
+    {
+      gmp_randinit_default (rng);
+      gmp_randseed_ui (rng, get_random_ul ());
+    }
+}
+
 /* put in 'a' a valid random seed for P-1, i.e. gcd(a,n)=1 and a <> {-1,1} */
 void
 pm1_random_seed (mpz_t a, mpz_t n, gmp_randstate_t randstate)
 {
   mpz_t q;
 
+  init_randstate (randstate);
   mpz_init (q);
   do
     {
@@ -71,6 +83,7 @@ pp1_random_seed (mpz_t seed, mpz_t n, gmp_randstate_t randstate)
 {
   mpz_t q;
 
+  init_randstate (randstate);
   /* need gcd(p^2-4, n) = 1. */
   mpz_init (q);
   do

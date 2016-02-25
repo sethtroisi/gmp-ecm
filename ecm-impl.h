@@ -666,6 +666,8 @@ unsigned int  ceil_log2  (unsigned long);
 unsigned long find_factor (const unsigned long);
 
 /* random.c */
+#define init_randstate __ECM(init_randstate)
+void init_randstate (gmp_randstate_t);
 #define pp1_random_seed __ECM(pp1_random_seed)
 void pp1_random_seed  (mpz_t, mpz_t, gmp_randstate_t);
 #define pm1_random_seed __ECM(pm1_random_seed)

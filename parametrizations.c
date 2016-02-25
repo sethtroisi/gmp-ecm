@@ -432,6 +432,9 @@ get_curve_from_random_parameter (mpz_t f, mpres_t A, mpres_t x, mpz_t sigma,
                                  int param, mpmod_t modulus, gmp_randstate_t rng)
 {
   int ret;
+
+  /* initialize the random number generator if not already done */
+  init_randstate (rng);
   do
     {
       if (param == ECM_PARAM_SUYAMA)
