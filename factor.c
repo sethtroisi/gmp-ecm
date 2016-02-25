@@ -94,8 +94,7 @@ ecm_clear (ecm_params q)
   mpz_clear (q->go);
   mpz_clear (q->B2min);
   mpz_clear (q->B2);
-  if (mpz_cmp_ui (q->rng->_mp_seed, 0) != 0)
-    gmp_randclear (q->rng);
+  gmp_randclear (q->rng);
   mpz_clear (q->batch_s);
   mpz_clear (q->E->a1);
   mpz_clear (q->E->a3);
