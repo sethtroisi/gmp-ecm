@@ -503,11 +503,8 @@ int eval_2 (int bInFuncParams)
 		     and this causes the ',' character to act as the end of expression */
 		  if (eval_2 (1) != 2)
 		    {
-		      fprintf (stderr, "Error, Function Phi() requires 2 parameters in GMP-ECM syntax\n");
-		      mpz_clear(n);
-		      for (i=0;i<4;i++) 
-			mpz_clear(n_stack[i]);
-		      return 0;
+		      fprintf (stderr, "Error, Function Phi() requires 2 parameters\n");
+                      exit (EXIT_FAILURE);
 		    }
 		  /* Save off the parameter */
 		  mpz_set(n_stack[3], t);
@@ -520,10 +517,7 @@ int eval_2 (int bInFuncParams)
 			{
                           fprintf (stderr, "\nParsing Error -  Invalid "
                                    "parameter passed to the Phi function\n");
-			  mpz_clear (n);
-			  for (i = 0; i < 4; i++) 
-			    mpz_clear (n_stack[i]);
-			  return 0;
+                          exit (EXIT_FAILURE);
 			}
 		    }
 		  goto MONADIC_SUFFIX_LOOP;
@@ -531,10 +525,7 @@ int eval_2 (int bInFuncParams)
 	      else
 		{
 		  fprintf (stderr, "\nError - invalid number [%c]\n", expr_str[i]);
-		  mpz_clear(n);
-		  for (i=0;i<4;i++) 
-		    mpz_clear(n_stack[i]);
-		  return 0;
+                  exit (EXIT_FAILURE);
 		}
 	    }
 	  /* Now check for a hex number.  If so, handle it as such */
@@ -635,10 +626,7 @@ MONADIC_SUFFIX_LOOP:
 		  else    /* Error - invalid operator */
 		    {
 		      fprintf (stderr, "\nError - unknown operator: '%c'\n", op);
-		      mpz_clear(n);
-		      for (i=0;i<4;i++) 
-			mpz_clear(n_stack[i]);
-		      return 0;
+                      exit (EXIT_FAILURE);
 		     }
 		}
 	    }
