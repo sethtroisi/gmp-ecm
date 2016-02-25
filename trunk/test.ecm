@@ -43,6 +43,13 @@ in
 *) MUL="modmuln"
 esac
 
+case "$ECM"
+in
+*valgrind*) VALGRIND=1
+  ;;
+*) VALGRIND=0
+esac
+
 # Exit statues returned by GMP-ECM:
 # 0      Normal program termination, no factor found
 # 1      Error
@@ -131,8 +138,15 @@ echo '101!3-1' | $ECM -sigma 0:17 1e5; checkcode $? 2
 
 echo '101#3-2' | $ECM -sigma 0:18 1e5; checkcode $? 14
 
+## The following tests produce errors (in normal usage), and should not be
+## tested with valgrind (we do not free all memory in case of error)
+
+if [ "$VALGRIND" != "1" ]; then
+
 # parsing error
 echo '2^(101/7)-1' | $ECM -sigma 0:18 1e5; checkcode $? 1
+
+fi # end of tests producing errors
 
 echo "2^1000-(101%7)" | $ECM -sigma 0:17 1e3; checkcode $? 2
 
@@ -209,7 +223,7 @@ C=$?
 checkcode $C 0
 
 # test comment
-echo "METHOD=P-1;X=0;N=17;B1=2;COMMENT=this is a comment;" > test.ecm.save
+echo "METHOD=P-1;X=1;N=17;B1=2;COMMENT=this is a comment;" > test.ecm.save
 $ECM -resume test.ecm.save 174000 85880350
 C=$?
 checkcode $C 8
@@ -239,19 +253,19 @@ C=$?
 checkcode $C 0
 
 # test semicolon after tags
-echo "METHOD=P-1;X=0;N=17;B1=2" > test.ecm.save
+echo "METHOD=P-1;X=1;N=17;B1=2" > test.ecm.save
 $ECM -resume test.ecm.save 174000 85880350
 C=$?
 checkcode $C 0
 
 # test QX tag without sigma
-echo "METHOD=ECM;QX=0;N=17;B1=2;" > test.ecm.save
+echo "METHOD=ECM;QX=1;N=17;B1=2;" > test.ecm.save
 $ECM -resume test.ecm.save 174000 85880350
 C=$?
 checkcode $C 0
 
 # test missing fields
-echo "METHOD=ECM;QX=0;N=17;" > test.ecm.save
+echo "METHOD=ECM;QX=1;N=17;" > test.ecm.save
 $ECM -resume test.ecm.save 174000 85880350
 C=$?
 checkcode $C 0
