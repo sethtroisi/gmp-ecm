@@ -601,7 +601,8 @@ write_resumefile (char *fn, int method, mpz_t N, ecm_params params,
       mpz_mod (tmp_x, params->x, n->n); 
 
       /* We write the B1done value to the save file. This requires that
-         a correct B1done is returned by the factoring functions */
+         a correct B1done is returned by the factoring functions. */
+      /* FIXME: clang says that params->y == NULL is always false. */
       if (params->y == NULL)
 	{
 	  write_resumefile_line (file, method, params->B1done, params->sigma,
