@@ -232,18 +232,8 @@ mpgocandi_fixup_with_N (mpgocandi_t *go, mpcandi_t *n)
 
   *cpo = 0; /* Null terminate the string correctly. */
 
-  if (eval_str (&(go->Candi), numbuf, 0, NULL))
-    go->Valid = 1;
-  else
-    {
-      static int warned = 0;
-      if (!warned)
-	{
-	  warned = 1;
-	  fprintf(stderr, "Warning, invalid expression %s for the -go option\n", go->cpOrigExpr);
-	}
-      go->Valid = 0;  /* it is not valid, so do not use it */
-    }
+  go->Valid = eval_str (&(go->Candi), numbuf, 0, NULL);
+  /* for invalid inputs, eval_str() directly exit(1) */
 
   free (numbuf);
   return go->Valid;
