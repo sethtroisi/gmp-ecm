@@ -1,23 +1,22 @@
 Changes between GMP-ECM 6.4.4 and GMP-ECM 7.0:
 * GMP-ECM is now thread-safe. In particular the "ecmfactor" binary can be
   called with say -t 17 to use 17 threads.
-* The configure --enable-shellcmd option was removed, and also the
-  --enable-memory-debug configure option (now obsolete with valgrind).
-* The -b options was removed (breadth-first mode)
 * Added GPU code for Step 1 (command-line option -gpu).
 * Command-line option -param allows to choose the parametrization (valid values
   are 0, 1, 2, 3). Command-line option -sigma allows to choose the parameter.
   "-sigma i:s" is a shortcut to "-param i -sigma s". Use -param 0 to get
   historical Suyama parametrization.
 * The batch mode is now chosen with -param command-line option.
-  The default parametrization depends on others command-line options.
-* Now possible to give curves in Weierstrass forms for Stage 1 (see README).
+  The default parametrization depends on other command-line options.
 * For P-1 stage 2, by default the NTT code is always used.
 * Speedup in stage 2 with -no-ntt
 * New primality proving code with APRCL (contributed by David Cleaver)
   with --enable-aprcl (default=yes)
 * Removed some options that were unused or not tested (-n, -nn, -ve, -cofdec,
   -B2scale).
+* The configure --enable-shellcmd option was removed, and also the
+  --enable-memory-debug configure option (now obsolete with valgrind).
+* The -b options was removed (breadth-first mode)
 
 Changes between GMP-ECM 6.4.3 and GMP-ECM 6.4.4:
 * Fixed PowerPC64 assembly code with --enable-shared (thanks Leif Leonhardy)
