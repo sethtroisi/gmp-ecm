@@ -245,6 +245,9 @@ $ECM -param 5-3 11e3 < c155; checkcode $? 1
 # exercise "mpmod_init_BASE2: n does not divide ..." error message
 $ECM -base2 32768 -param 0 11e3 < c155; checkcode $? 1
 
+# exercise error "Invalid number"
+echo 95209938255048826235189575712705128366296557149606415206280987204268594538412191641776798249266895999715600261737863698825644292938050707507901970225804581 | $ECM -go N- -modmuln 11e3; checkcode $? 1
+
 fi # end of tests producing errors
 
 echo "2^1000-(101%7)" | $ECM -sigma 0:17 1e3; checkcode $? 2
@@ -565,9 +568,6 @@ echo 2050449353925555290706354283 | $ECM -param 0 -sigma 7 -go 2411 3; checkcode
 
 # exercise d > I0_THRESHOLD in mpzspm_product_tree_init with n odd
 echo "2^3900-77" | $ECM -ntt -param 0 -sigma 1167435750 600; checkcode $? 6
-
-# exercise "Warning, invalid expression %s for the -go option" error message
-echo 95209938255048826235189575712705128366296557149606415206280987204268594538412191641776798249266895999715600261737863698825644292938050707507901970225804581 | $ECM -go N- -modmuln 11e3; checkcode $? 0
 
 # exercise memory leak
 echo 2050449353925555290706354283 | $ECM -param 0 -sigma 7 30 308
