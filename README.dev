@@ -70,7 +70,7 @@ To make a new release:
           (see "Tuned for ..." with ecm -v)
        c) rune "make tune; ./tune"
        d) put the corresponding thresholds in the */params.h file
-     Compare the efficiency wrt the previous release with "./ecm 1e6 < c200"
+     Compare the efficiency wrt the previous release with "./ecm 1e6 < c270"
      and "./ecmbench ./ecm".
   1) Check the version (configure.ac and build.vc*/config.h).
      Switch assertions to off by default in configure.ac.
