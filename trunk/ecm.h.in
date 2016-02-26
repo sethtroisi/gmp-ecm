@@ -121,6 +121,7 @@ typedef struct
   signed long gw_c;    /* use for gwnum stage 1 if input has form k*b^n+c */
 } __ecm_param_struct;
 typedef __ecm_param_struct ecm_params[1];
+typedef __ecm_param_struct *ecm_params_ptr;
 
 #define ECM_MOD_NOBASE2 -1
 #define ECM_MOD_DEFAULT 0
