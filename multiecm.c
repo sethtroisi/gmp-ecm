@@ -380,7 +380,7 @@ all_curves_at_once(mpz_t f, char *ok, ell_curve_t *tE, ell_point_t *tP, int nE,
     if (chkfilename != NULL)
 	writechkfile (chkfilename, ECM_ECM, *B1done, n, A, x, y, z);
 #endif
-    prime_info_clear (); /* free the prime table */
+    prime_info_clear (prime_info); /* free the prime table */
     
     /* put results back */
     pt_many_assign(tP, tQ, nE, n);
