@@ -64,14 +64,12 @@ ecm_CFLAGS = $(OPENMP_CFLAGS) -g
 if WANT_CUDA 
   ecm_CFLAGS += $(CC_ADD_FLAGS_FOR_GPU)
 endif
-ecm_SOURCES = auxi.c b1_ainc.c candi.c eval.c random.c main.c \
-              resume.c getprime_r.c champions.h aprtcle/mpz_aprcl.c \
-              memusage.c
+ecm_SOURCES = auxi.c b1_ainc.c candi.c eval.c main.c resume.c \
+              getprime_r.c champions.h aprtcle/mpz_aprcl.c memusage.c
 
 tune_SOURCES = mpmod.c tune.c mul_lo.c listz.c auxlib.c ks-multiply.c \
                schoen_strass.c polyeval.c median.c ecm_ntt.c \
-	       ntt_gfp.c mpzspv.c mpzspm.c sp.c spv.c spm.c random.c \
-	       auxarith.c
+	       ntt_gfp.c mpzspv.c mpzspm.c sp.c spv.c spm.c auxarith.c
 tune_CPPFLAGS = -DTUNE $(MULREDCINCPATH)
 tune_LDADD = $(MULREDCLIBRARY) $(GMPLIB)
 
