@@ -17,6 +17,7 @@ Changes between GMP-ECM 6.4.4 and GMP-ECM 7.0:
 * The configure --enable-shellcmd option was removed, and also the
   --enable-memory-debug configure option (now obsolete with valgrind).
 * The -b options was removed (breadth-first mode)
+* Improved source coverage (92.7% of source code lines)
 
 Changes between GMP-ECM 6.4.3 and GMP-ECM 6.4.4:
 * Fixed PowerPC64 assembly code with --enable-shared (thanks Leif Leonhardy)
