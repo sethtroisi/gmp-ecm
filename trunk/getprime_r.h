@@ -1,7 +1,7 @@
 #ifndef GETPRIME_R_H_
 #define GETPRIME_R_H_
 
-#include "ecm-impl.h"
+#include "ecm_int.h"
 
 struct prime_info_s {
   ecm_uint offset;  /* offset for current primes */

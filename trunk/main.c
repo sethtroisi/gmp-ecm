@@ -281,7 +281,6 @@ print_config ()
 
 #ifdef WITH_GPU
   printf ("WITH_GPU = %d\n", WITH_GPU);
-  printf ("Compiled with nvcc: %s\n", NVCC_VERSION);
   printf ("For Compute Capability: %s\n", CC_VERSION);
 #else
   printf ("WITH_GPU undefined\n");
@@ -1231,8 +1230,8 @@ main (int argc, char *argv[])
           /* Set effective seed for factoring attempt on this number */
 	  if (specific_A)
 	    {
-		returncode = mod_from_mpq(A, rat_A, n.n, verbose);
-		if(returncode != ECM_NO_FACTOR_FOUND)
+		returncode = mod_from_mpq (A, rat_A, n.n, verbose);
+		if (returncode != ECM_NO_FACTOR_FOUND)
                   goto free_all1;
 	    }
 	  
