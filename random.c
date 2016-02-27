@@ -22,11 +22,7 @@ http://www.gnu.org/licenses/ or write to the Free Software Foundation, Inc.,
 #include <stdio.h>
 #include <stdlib.h>
 
-#ifdef OUTSIDE_LIBECM
-# include "ecm-ecm.h"
-#else
 # include "ecm-impl.h"
-#endif
 
 #ifdef HAVE_UNISTD_H
 # include <unistd.h> /* getpid */
