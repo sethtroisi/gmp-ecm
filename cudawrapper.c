@@ -32,20 +32,20 @@ int findfactor (mpz_t factor, mpz_t N, mpz_t xfin, mpz_t zfin)
       youpi = ECM_FACTOR_FOUND_STEP1;
     }
 
-  mpz_clear(gcd);
+  mpz_clear (gcd);
   return youpi;
 }
 
 void to_mont_repr (mpz_t x, mpz_t n)
 {
   mpz_mul_2exp (x, x, ECM_GPU_MAX_BITS);
-  mpz_mod(x, x, n);
+  mpz_mod (x, x, n);
 }
 
 void from_mont_repr (mpz_t x, mpz_t n, mpz_t invB)
 {
-  mpz_mul(x, x, invB);
-  mpz_mod(x, x, n);
+  mpz_mul (x, x, invB);
+  mpz_mod (x, x, n);
 }
 
 void mpz_to_biguint (biguint_t a, mpz_t b)
@@ -55,12 +55,12 @@ void mpz_to_biguint (biguint_t a, mpz_t b)
   for (i=0;i<ECM_GPU_NB_DIGITS;i++)
   {
 #if GMP_NUMB_BITS == 32
-    a[i]=mpz_getlimbn(b, i);  
+    a[i]=mpz_getlimbn (b, i);  
 #else // GMP_NUMB_BITS == 64
     if (i%2 == 0)
-      a[i]=(mpz_getlimbn(b, i/2) & 0x00000000ffffffff);
+      a[i]=(mpz_getlimbn (b, i/2) & 0x00000000ffffffff);
     else
-      a[i]=(mpz_getlimbn(b, i/2) >> 32);  
+      a[i]=(mpz_getlimbn (b, i/2) >> 32);  
 #endif
   }
 }
@@ -69,12 +69,12 @@ void biguint_to_mpz (mpz_t a, biguint_t b)
 {
   int i;
   
-  mpz_set_ui(a, 0);
+  mpz_set_ui (a, 0);
 
   for (i=ECM_GPU_NB_DIGITS-1;i>=0;i--)
   {
-    mpz_mul_2exp(a, a, 32);
-	  mpz_add_ui(a , a, b[i]);
+    mpz_mul_2exp (a, a, 32);
+	  mpz_add_ui (a , a, b[i]);
   }
 }
 
@@ -163,10 +163,10 @@ int gpu_ecm_stage1 (mpz_t *factors, int *array_stage_found, mpz_t N, mpz_t s,
 
     to_mont_repr (z2p, N);
 
-    mpz_to_biguint(h_xarray[i], xp); 
-    mpz_to_biguint(h_zarray[i], zp); 
-    mpz_to_biguint(h_x2array[i], x2p); 
-    mpz_to_biguint(h_z2array[i], z2p); 
+    mpz_to_biguint (h_xarray[i], xp); 
+    mpz_to_biguint (h_zarray[i], zp); 
+    mpz_to_biguint (h_x2array[i], x2p); 
+    mpz_to_biguint (h_z2array[i], z2p); 
   } 
  
   /* Call the wrapper function that call the GPU */
@@ -178,8 +178,8 @@ int gpu_ecm_stage1 (mpz_t *factors, int *array_stage_found, mpz_t N, mpz_t s,
   {
     i = sigma - firstsigma;
 
-    biguint_to_mpz(xp, h_xarray[i]); 
-    biguint_to_mpz(zp, h_zarray[i]); 
+    biguint_to_mpz (xp, h_xarray[i]); 
+    biguint_to_mpz (zp, h_zarray[i]); 
     
     from_mont_repr (xp, N, invB);
     from_mont_repr (zp, N, invB);
@@ -189,7 +189,7 @@ int gpu_ecm_stage1 (mpz_t *factors, int *array_stage_found, mpz_t N, mpz_t s,
     if (array_stage_found[i] != ECM_NO_FACTOR_FOUND)
       {
         youpi = array_stage_found[i];
-        outputf(OUTPUT_RESVERBOSE, "GPU: factor %Zd found with curve %u "
+        outputf (OUTPUT_RESVERBOSE, "GPU: factor %Zd found with curve %u "
                 "(-sigma 3:%u)\n", factors[i], i, sigma);
       }
     }
@@ -231,7 +231,7 @@ A_from_sigma (mpz_t A, unsigned int sigma, mpz_t n)
       
   mpz_set (A, tmp);
 
-  mpz_clear(tmp);
+  mpz_clear (tmp);
 }
 
 int
@@ -342,6 +342,8 @@ gpu_ecm (mpz_t f, mpz_t x, int *param, mpz_t firstsigma, mpz_t n, mpz_t go,
   mpres_init (P.y, modulus);
   mpres_init (P.A, modulus);
   mpz_init (tmp_A);
+  mpz_init (B2);
+  mpz_init (B2min);
 
   youpi = set_stage_2_params (B2, B2_parm, B2min, B2min_parm, &root_params,
                               B1, &k, S, use_ntt, &po2, &dF,
@@ -414,10 +416,10 @@ gpu_ecm (mpz_t f, mpz_t x, int *param, mpz_t firstsigma, mpz_t n, mpz_t go,
       goto end_gpu_ecm;
     }
 
-  if (sigma_is_A == 0 && mpz_sgn(firstsigma) == 0)
+  if (sigma_is_A == 0 && mpz_sgn (firstsigma) == 0)
     {
       /*generate random one*/
-      mpz_set_ui (firstsigma, (get_random_ul() % (TWO32-2-*nb_curves)) + 2 );    
+      mpz_set_ui (firstsigma, (get_random_ul () % (TWO32-2-*nb_curves)) + 2 );    
     }
   else /* sigma should be in [2, 2^32-nb_curves] */
     {
@@ -430,7 +432,7 @@ gpu_ecm (mpz_t f, mpz_t x, int *param, mpz_t firstsigma, mpz_t n, mpz_t go,
           goto end_gpu_ecm;
         }
     }
-  firstsigma_ui = mpz_get_ui(firstsigma);
+  firstsigma_ui = mpz_get_ui (firstsigma);
 
   print_B1_B2_poly (OUTPUT_NORMAL, ECM_ECM, B1, *B1done,  B2min_parm, B2min,
                     B2, S, firstsigma, sigma_is_A, ECM_EC_TYPE_MONTGOMERY,
@@ -546,7 +548,7 @@ gpu_ecm (mpz_t f, mpz_t x, int *param, mpz_t firstsigma, mpz_t n, mpz_t go,
   
         /* It is a hack to avoid very verbose Step 2 
           (without it, stage2() prints a least a line by curves) */
-        if (!test_verbose(OUTPUT_VERBOSE)) 
+        if (!test_verbose (OUTPUT_VERBOSE)) 
           set_verbose (0);
         youpi = stage2 (factors[i], &P, modulus, dF, k, &root_params, use_ntt, 
                         TreeFilename, stop_asap);
