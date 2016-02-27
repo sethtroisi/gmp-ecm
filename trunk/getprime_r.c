@@ -175,9 +175,11 @@ getprime_mt (prime_info_t i)
       }
   }
 
-  unsigned char *ptr = i->sieve - 1;
-  while (!*++ptr);
-  i->current = ptr - i->sieve;
+  {
+    unsigned char *ptr = i->sieve - 1;
+    while (!*++ptr);
+    i->current = ptr - i->sieve;
+  }
 
   ASSERT(i->current < i->len); /* otherwise we found a prime gap >= sqrt(x)
                                   around x */
