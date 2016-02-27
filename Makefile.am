@@ -104,8 +104,8 @@ endif
 
 include_HEADERS = ecm.h
 noinst_HEADERS = basicdefs.h ecm-impl.h ecm-gmp.h ecm-ecm.h sp.h longlong.h \
-	         ecm-params.h mpmod.h ecm-gpu.h cudakernel.h addlaws.h \
-		 getprime_r.h \
+                 ecm-params.h mpmod.h ecm-gpu.h cudakernel.h addlaws.h \
+                 getprime_r.h ecm_int.h\
                  torsions.h aprtcle/mpz_aprcl.h aprtcle/jacobi_sum.h
 
 EXTRA_DIST = test.pm1 test.pp1 test.ecm README.lib INSTALL-ecm ecm.xml  \
@@ -115,7 +115,7 @@ EXTRA_DIST = test.pm1 test.pp1 test.ecm README.lib INSTALL-ecm ecm.xml  \
              hppa/params.h mips/params.h x86_64/corei7/params.h         \
              generic/params.h testlong.pp1 testlong.pm1 testlong.ecm \
              M997.save M877.save dummy.save dummy2.save Z2102.n \
-	     getprime_r.h c155
+             getprime_r.h c155
 
 DIST_SUBDIRS = athlon pentium4 x86_64 powerpc64 aprtcle
 

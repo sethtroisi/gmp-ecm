@@ -46,11 +46,8 @@ select_and_init_GPU (int device, unsigned int *number_of_curves, int verbose)
   cudaError_t err;
         
   if (verbose)
-    {
-      fprintf (stdout, "GPU: Compiled with nvcc: %s\n", NVCC_VERSION);
       fprintf (stdout, "GPU: compiled for an NVIDIA GPU with compute capability "
                        "%d.%d.\n", ECM_GPU_MAJOR, ECM_GPU_MINOR);
-    }
 
   if (device!=-1)
     {
@@ -97,7 +94,7 @@ select_and_init_GPU (int device, unsigned int *number_of_curves, int verbose)
   if (verbose)
     {
       dim3 dimBlock (ECM_GPU_NB_DIGITS, ECM_GPU_CURVES_BY_BLOCK);
-      dim3 dimGrid (number_of_curves/ ECM_GPU_CURVES_BY_BLOCK);
+      dim3 dimGrid (MPcount);
       fprintf (stdout, "GPU: will use device %d: %s, compute capability "
            "%d.%d, %d MPs.\n", device, deviceProp.name, major, minor, MPcount);
       fprintf(stdout, "GPU: Block: %ux%ux%u Grid: %ux%ux%u (%d parallel curves)\n", dimBlock.x, 

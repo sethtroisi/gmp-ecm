@@ -370,7 +370,6 @@ dnl  Check if a GPU version is asked, for which GPU and where CUDA is install.
 dnl  Includes are put in CUDA_INC_FLAGS
 dnl  Libraries are put in CUDA_LIB_FLAGS
 dnl  Path to nvcc is put in NVCC
-dnl  Version of nvcc is put in NVCC_VERSION
 dnl  the GPU architecture for which it is compiled is in GPU_ARCH
 
 AC_DEFUN([CU_CHECK_CUDA],[
@@ -575,13 +574,6 @@ AS_IF([test "x$is_gpu_asked" = "xyes" ],
         AC_MSG_ERROR([nvcc does not recognize ptx instruction madc, you should upgrade it])
       ])
 
-    dnl gather nvcc version
-    AC_MSG_CHECKING([version of nvcc])
-    # NVCC_VERSION = $NVCC --version | grep release
-    AS_IF([test -n "$NVCC"], 
-          [NVCC_VERSION="$($NVCC --version | grep release)"])
-    AC_MSG_RESULT($NVCC_VERSION)
-
     # From now on cu_dir != "". Either it was always the case, either it was
     # guess from NVCC. 
   
@@ -635,7 +627,6 @@ AC_SUBST(CUDA_LIB_FLAGS)
 AC_SUBST(CUDA_LDADD)
 AC_SUBST(GPU_ARCH)
 AC_SUBST(NVCC)
-AC_SUBST(NVCC_VERSION)
 AC_SUBST(CC_VERSION)
 AC_SUBST(cc_for_cuda)
 
