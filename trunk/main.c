@@ -877,8 +877,10 @@ main (int argc, char *argv[])
 	  printf ("ECM");
 	}
       printf ("]\n");
+#ifdef ECM_TUNE_CASE
       if (verbose >= 2)
         printf ("Tuned for %s\n", ECM_TUNE_CASE);
+#endif
 #ifdef HAVE_GETHOSTNAME
   if (verbose >= 2)
     {
