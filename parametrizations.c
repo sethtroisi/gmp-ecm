@@ -241,7 +241,7 @@ get_curve_from_param1 (mpres_t A, mpres_t x0, mpz_t sigma, mpmod_t n)
   mpz_t tmp;
   mpz_init (tmp);
 
-  assert (GMP_NUMB_BITS == 64);
+  ASSERT (GMP_NUMB_BITS == 64);
       
   mpz_mul (tmp, sigma, sigma); /* tmp = sigma^2*/
   
