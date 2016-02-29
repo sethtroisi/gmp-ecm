@@ -188,7 +188,7 @@ void bench(mp_size_t N)
 #ifdef HAVE___GMPN_REDC_1
   mpn_mul_n(tmp, x, y, N);
   REDC1(z, tmp, m, N, invm[0]);
-  assert (mpn_cmp (z, zref, N) == 0);
+  ASSERT (mpn_cmp (z, zref, N) == 0);
   tredc_1 = cputime();
   for (i = 0; i < iter; ++i)
     REDC1(z, tmp, m, N, invm[0]);
@@ -200,7 +200,7 @@ void bench(mp_size_t N)
 #ifdef HAVE___GMPN_REDC_2
   mpn_mul_n(tmp, x, y, N);
   REDC2 (z, tmp, m, N, invm);
-  assert (mpn_cmp (z, zref, N) == 0);
+  ASSERT (mpn_cmp (z, zref, N) == 0);
   tredc_2 = cputime();
   for (i = 0; i < iter; ++i)
     REDC2 (z, tmp, m, N, invm);
