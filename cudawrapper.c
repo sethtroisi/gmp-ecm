@@ -405,7 +405,7 @@ gpu_ecm (mpz_t f, mpz_t x, int *param, mpz_t firstsigma, mpz_t n, mpz_t go,
       if (mpz_cmp_ui (firstsigma, 2) < 0 || 
           mpz_cmp_ui (firstsigma, TWO32-*nb_curves) >= 0)
         {
-          outputf (OUTPUT_ERROR, "GPU: Error, sigma should be in [2,%lu]/n",
+          outputf (OUTPUT_ERROR, "GPU: Error, sigma should be in [2,%lu]\n",
                                  TWO32 - *nb_curves - 1);
           youpi= ECM_ERROR;
           goto end_gpu_ecm;
