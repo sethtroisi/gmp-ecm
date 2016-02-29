@@ -80,7 +80,7 @@ void biguint_to_mpz (mpz_t a, biguint_t b)
 
 int gpu_ecm_stage1 (mpz_t *factors, int *array_stage_found, mpz_t N, mpz_t s, 
                     unsigned int number_of_curves, unsigned int firstsigma, 
-                    float *gputime, int verbose)
+                    float *gputime, int verbose ATTRIBUTE_UNUSED)
 {
   int youpi = ECM_NO_FACTOR_FOUND;
 
@@ -239,7 +239,7 @@ gpu_ecm (mpz_t f, mpz_t x, int *param, mpz_t firstsigma, mpz_t n, mpz_t go,
          double *B1done, double B1, mpz_t B2min_parm, mpz_t B2_parm, 
          unsigned long k, const int S, int verbose, int repr,
          int nobase2step2, int use_ntt, int sigma_is_A, FILE *os, FILE* es, 
-         char *chkfilename, char *TreeFilename, double maxmem, 
+         char *chkfilename ATTRIBUTE_UNUSED, char *TreeFilename, double maxmem,
          int (*stop_asap)(void), mpz_t batch_s, double *batch_last_B1_used, 
          int device, int *device_init, unsigned int *nb_curves)
 {
