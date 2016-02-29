@@ -298,7 +298,7 @@ gpu_ecm (mpz_t f, mpz_t x, int *param, mpz_t firstsigma, mpz_t n, mpz_t go,
 
   /* It is only for stage 2, it is not taken into account for GPU code */
   if (mpmod_init (modulus, n, repr) != 0)
-      ASSERT_ALWAYS(0);
+    return ECM_ERROR;
 
   /* See what kind of number we have as that may influence optimal parameter 
      selection. Test for base 2 number. Note: this was already done by
@@ -356,10 +356,8 @@ gpu_ecm (mpz_t f, mpz_t x, int *param, mpz_t firstsigma, mpz_t n, mpz_t go,
   if (!*device_init)
     {
       st = cputime ();
-      if (test_verbose (OUTPUT_VERBOSE))
-          youpi = select_and_init_GPU (device, nb_curves, 1);
-      else
-          youpi = select_and_init_GPU (device, nb_curves, 0);
+      youpi = select_and_init_GPU (device, nb_curves,
+                                   test_verbose (OUTPUT_VERBOSE));
 
       if (youpi != 0)
         {
@@ -375,22 +373,11 @@ gpu_ecm (mpz_t f, mpz_t x, int *param, mpz_t firstsigma, mpz_t n, mpz_t go,
     }
   
   /* Init arrays */
-  factors = (mpz_t *) malloc ( *nb_curves * sizeof (mpz_t));
-  if (factors == NULL)
-    {
-      outputf (OUTPUT_ERROR, "GPU: memory allocation of 'factors' fails.\n");
-      youpi = ECM_ERROR;
-      goto end_gpu_ecm;
-    }
+  factors = (mpz_t *) malloc (*nb_curves * sizeof (mpz_t));
+  ASSERT_ALWAYS (factors != NULL);
 
-  array_stage_found = (int *) malloc ( *nb_curves * sizeof (int));
-  if (array_stage_found == NULL)
-    {
-      outputf (OUTPUT_ERROR, "GPU: memory allocation of 'array_stage_found' "
-                             "fails.\n");
-      youpi = ECM_ERROR;
-      goto end_gpu_ecm;
-    }
+  array_stage_found = (int *) malloc (*nb_curves * sizeof (int));
+  ASSERT_ALWAYS (array_stage_found != NULL);
 
   for (i = 0; i < *nb_curves; i++)
     {
@@ -399,24 +386,16 @@ gpu_ecm (mpz_t f, mpz_t x, int *param, mpz_t firstsigma, mpz_t n, mpz_t go,
     }
 
 
-  /* If a value of sigma is requested, use it (if it is valid) */
-  /* else generate a random one */
-  if (sigma_is_A == -1)
+  /* Current code works only for sigma_is_A = 0 */
+  if (sigma_is_A != 0)
     {
-      /* Cant do only stage 2 on gpu*/
-      outputf (OUTPUT_ERROR, "GPU: Error, cannot do stage 2 on GPU.\n");
-      youpi= ECM_ERROR;
-      goto end_gpu_ecm;
-    }
-  else if (sigma_is_A == 1)
-    {
-      /*compute sigma from A*/
       outputf (OUTPUT_ERROR, "GPU: Not yet implemented.\n");
       youpi= ECM_ERROR;
       goto end_gpu_ecm;
     }
 
-  if (sigma_is_A == 0 && mpz_sgn (firstsigma) == 0)
+  ASSERT (sigma_is_A == 0);
+  if (mpz_sgn (firstsigma) == 0)
     {
       /*generate random one*/
       mpz_set_ui (firstsigma, (get_random_ul () % (TWO32-2-*nb_curves)) + 2 );    
@@ -424,10 +403,10 @@ gpu_ecm (mpz_t f, mpz_t x, int *param, mpz_t firstsigma, mpz_t n, mpz_t go,
   else /* sigma should be in [2, 2^32-nb_curves] */
     {
       if (mpz_cmp_ui (firstsigma, 2) < 0 || 
-          mpz_cmp_ui (firstsigma, TWO32-*nb_curves) > 0)
+          mpz_cmp_ui (firstsigma, TWO32-*nb_curves) >= 0)
         {
-          outputf (OUTPUT_ERROR, "GPU: Error, sigma should be bigger than 2 "
-                                 "and smaller than %lu.\n", TWO32-*nb_curves);
+          outputf (OUTPUT_ERROR, "GPU: Error, sigma should be in [2,%lu]/n",
+                                 TWO32 - *nb_curves - 1);
           youpi= ECM_ERROR;
           goto end_gpu_ecm;
         }
@@ -442,8 +421,7 @@ gpu_ecm (mpz_t f, mpz_t x, int *param, mpz_t firstsigma, mpz_t n, mpz_t go,
 
   if (go != NULL && mpz_cmp_ui (go, 1) > 0)
     {
-      outputf (OUTPUT_ERROR, "GPU: Error, initial group order is %Zd "
-                             "and should be 1 (or NULL)\n", go);
+      outputf (OUTPUT_ERROR, "GPU: Error, option -go is not allowed\n");
       youpi= ECM_ERROR;
       goto end_gpu_ecm;
     }
@@ -514,9 +492,7 @@ gpu_ecm (mpz_t f, mpz_t x, int *param, mpz_t firstsigma, mpz_t n, mpz_t go,
   for (i = 0; i < *nb_curves; i++)
     {
       if (test_verbose (OUTPUT_RESVERBOSE)) 
-        {
-          outputf (OUTPUT_RESVERBOSE, "x=%Zd\n", factors[i]);
-        }
+        outputf (OUTPUT_RESVERBOSE, "x=%Zd\n", factors[i]);
 
       if (stop_asap != NULL && (*stop_asap) ())
           goto end_gpu_ecm_rhotable;
