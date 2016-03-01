@@ -397,13 +397,14 @@ gpu_ecm (mpz_t f, mpz_t x, int *param, mpz_t firstsigma, mpz_t n, mpz_t go,
   ASSERT (sigma_is_A == 0);
   if (mpz_sgn (firstsigma) == 0)
     {
-      /*generate random one*/
-      mpz_set_ui (firstsigma, (get_random_ul () % (TWO32-2-*nb_curves)) + 2 );    
+      /* generate random value in [2, 2^32 - nb_curves - 1] */
+      mpz_set_ui (firstsigma, (get_random_ul () %
+                               (TWO32 - 2 - *nb_curves)) + 2);
     }
   else /* sigma should be in [2, 2^32-nb_curves] */
     {
       if (mpz_cmp_ui (firstsigma, 2) < 0 || 
-          mpz_cmp_ui (firstsigma, TWO32-*nb_curves) >= 0)
+          mpz_cmp_ui (firstsigma, TWO32 - *nb_curves) >= 0)
         {
           outputf (OUTPUT_ERROR, "GPU: Error, sigma should be in [2,%lu]\n",
                                  TWO32 - *nb_curves - 1);
