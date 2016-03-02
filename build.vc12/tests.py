@@ -23,7 +23,6 @@ cpath = os.path.dirname(__file__)
 config = 'x64' if x64 else 'Win32'
 mode = 'Debug' if debug else 'Release'
 test_dir = '..\\bin\\{:s}\\{:s}\\'.format(config, mode)
-ecm_exe  = test_dir + ("ecm_gpu.exe" if test_gpu_version else "ecm.exe")
 
 def get_tests(filename):
   print('running tests in {:s}'.format(filename))
@@ -100,7 +99,8 @@ def output_complex_tests(x):
   for t in x:
     print(t)
 
-def do_tests(tests, ctests, out=False):
+def do_tests(tests, ctests, out=False, gpu=False):
+  ecm_exe  = test_dir + ("ecm_gpu.exe" if gpu else "ecm.exe")
   err_cnt = 0
   for ix, tt in enumerate(tests):
     print(tt[1], tt[0], end='')
@@ -138,6 +138,8 @@ with Timer():
     do_tests(t, ct)
     t, ct = get_tests("..\\testlong.pp1")
     do_tests(t, ct)
+    t, ct = get_tests("..\\testlong.pm1")
+    do_tests(t, ct)
   if run_gpu_tests:
     t, ct = get_tests("..\\test.gpuecm")
-    do_tests(t, ct)
+    do_tests(t, ct, gpu=True)
