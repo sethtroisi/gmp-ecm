@@ -182,7 +182,7 @@
     <ClCompile Include="..\..\ecm2.c" />
     <ClCompile Include="..\..\ecm_ntt.c" />
     <ClCompile Include="..\..\factor.c" />
-    <ClCompile Include="..\..\getprime.c" />
+    <ClCompile Include="..\..\getprime_r.c" />
     <ClCompile Include="..\..\ks-multiply.c" />
     <ClCompile Include="..\..\listz.c" />
     <ClCompile Include="..\..\listz_handle.c" />
@@ -192,7 +192,6 @@
     <ClCompile Include="..\..\mpmod.c" />
     <ClCompile Include="..\..\mpzspm.c" />
     <ClCompile Include="..\..\mpzspv.c" />
-    <ClCompile Include="..\..\multiecm.c" />
     <ClCompile Include="..\..\mul_lo.c" />
     <ClCompile Include="..\..\ntt_gfp.c" />
     <ClCompile Include="..\..\parametrizations.c" />
@@ -229,6 +228,7 @@
     <ClInclude Include="..\..\ecm-impl.h" />
     <ClInclude Include="..\..\ecm-params.h" />
     <ClInclude Include="..\..\ecm.h" />
+    <ClInclude Include="..\..\getprime_r.h" />
     <ClInclude Include="..\..\listz_handle.h" />
     <ClInclude Include="..\..\longlong.h" />
     <ClInclude Include="..\..\sp.h" />
