@@ -38,13 +38,8 @@ inline void cuda_errCheck (cudaError err, const char *file, const int line)
 }
 
 /* First call to a global function initialize the device */
-__global__ void Cuda_Init_Device (int verbose)
+__global__ void Cuda_Init_Device ()
 {
-#ifdef __CUDA_ARCH__
-  if (verbose)
-    printf("GPU: Using device code compile for compute capability %d.%d\n",
-           __CUDA_ARCH__ / 100, (__CUDA_ARCH__/10)%10);
-#endif
 }
 
 /* Given the compute compatibility (as major.minor), return the number of block
@@ -53,12 +48,21 @@ extern "C"
 unsigned int
 getNumberOfBlockPerMultiProcessor (int major, int minor)
 {
+  /* For 2.0 and 2.1, limited by the maximum number of threads per MP and the
+   * number of available registrer (need 23 registers per threads).
+   */
   if (major == 2)
     return 1;
+  /* For 3.0, 3.2, 3.5 and 3.7 limited by the maximum number of threads per MP.
+   */
   else if (major == 3)
     return 2;
+  /* For 5.0, 5.2, and 5.3 limited by the maximum number of threads per MP. */
   else if (major == 5)
     return 2;
+  /* We assume that for newer compute capability the properties of the GPU won't
+   * decrease.
+   */
   else
     return 2;
 }
@@ -129,10 +133,23 @@ select_and_init_GPU (int device, unsigned int *number_of_curves, int verbose)
 
   /* First call to a global function initialize the device */
   errCheck (cudaSetDeviceFlags (cudaDeviceScheduleYield)); 
-  Cuda_Init_Device<<<1, 1>>> (verbose);
+  Cuda_Init_Device<<<1, 1>>> ();
   errCheck (cudaGetLastError()); 
-  /* Here only to flush the printf inside Cuda_Init_Device if verbose != 0*/
-  cudaDeviceSynchronize();
+
+  if (verbose)
+  {
+    struct cudaFuncAttributes kernelAttr;
+    err = cudaFuncGetAttributes (&kernelAttr, Cuda_Ell_DblAdd);
+    if (err == cudaSuccess)
+    {
+      printf ("GPU: Using device code targeted for architecture compile_%d\n"
+              "GPU: Ptx version is %d\nGPU: maxThreadsPerBlock = %d\n"
+              "GPU: numRegsPerThread = %d sharedMemPerBlock = %zu bytes\n",
+              kernelAttr.binaryVersion, kernelAttr.ptxVersion,
+              kernelAttr.maxThreadsPerBlock, kernelAttr.numRegs,
+              kernelAttr.sharedSizeBytes);
+    }
+  }
 
   return 0;
 }
