@@ -19,24 +19,28 @@ instructions of INSTALL-ecm until the 'configure' step. Then add the
 	
   $ ./configure --enable-gpu [other options]
 
-This will configure the code for NVIDIA GPU of compute capability 2.0. You can
-specify for which compute capability you want to compile the code:
+This will configure the code for NVIDIA GPU for all compute capabilities between
+2.0 and 5.3 known to the nvcc compiler.
 
-  $ ./configure --enable-gpu=sm_20   # for NVIDIA GPU of compute capability 2.0
-  or
-  $ ./configure --enable-gpu=sm_21   # for NVIDIA GPU of compute capability 2.1
-  or
-  $ ./configure --enable-gpu=sm_30   # for NVIDIA GPU of compute capability 3.0
-  
-By default, GMP-ECM will look for cuda in /usr/local/cuda, but you can specify
-an other directory:
+By default, GMP-ECM will look for the nvcc compiler in $PATH, but you can
+specify an other directory:
 
-  $ ./configure --enable-gpu --with-cuda=/PATH/DIR
+  $ ./configure --enable-gpu --with-cuda-bin=/PATH/DIR
+
+By default, GMP-ECM will look for cuda.h in the default header directories, but you
+can specify an other directory:
+
+  $ ./configure --enable-gpu --with-cuda-include=/PATH/DIR
+
+By default, GMP-ECM will look for CUDA the default library directories, but you
+can specify an other directory:
+
+  $ ./configure --enable-gpu --with-cuda-lib=/PATH/DIR
 
 Some versions of CUDA are not compatible with recent versions of gcc.
 To specify which C compiler is called by the CUDA compiler nvcc, type:
 
-  $ ./configure --enable-gpu --with-cc-for-cuda=/PATH/DIR 
+  $ ./configure --enable-gpu --with-cuda-compiler=/PATH/DIR 
   
 The value of this parameter is directly passed to nvcc via the option
 "--compiler-bindir". By default, GMP-ECM lets nvcc choose what C compiler it
@@ -58,8 +62,8 @@ To use your GPU for step 1, just add the -gpu option:
 
   $ echo "(2^835+1)/33" | ./ecm -gpu 1e4
 
-It will compute step 1 on the GPU (the number of curves by default cannot be
-changed for now), and then perform step 2 on the CPU (not in parallel).
+It will compute step 1 on the GPU, and then perform step 2 on the CPU (not in
+parallel).
 
 The only parametrization compatible with GPU code is "-param 3". 
 
@@ -75,11 +79,8 @@ effect on step 1, if the "-gpu" option is activated, but will apply for step 2.
 
 The option "-gpudevice n" forces the GPU code to be executed on device n. Nvidia
 tool "nvidia-smi" can be used to know to which number is associated a GPU.
-Moreover, you can use GMP-ECM option "-v" (verbose) to see on which GPU the code
-is executed and what its compute capability is. GMP-ECM is compiled for a given
-compute capability (by default 2.0) by using --enable-gpu=sm_xy in ./configure,
-then the GPU code can only be executed on GPU with equal or higher compute
-capability.
+Moreover, you can use GMP-ECM option "-v" (verbose) to see the properties of the
+GPU on which the code is run.
 
 The option "-gpucurves n" forces GMP-ECM to compute n curves in parallel on the
 GPU. By default, the number of curves is choose to fill completly the GPU. The
