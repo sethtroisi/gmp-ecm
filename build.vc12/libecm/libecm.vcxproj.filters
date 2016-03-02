@@ -43,9 +43,6 @@
     <ClCompile Include="..\..\factor.c">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\getprime.c">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="..\..\ks-multiply.c">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -127,9 +124,6 @@
     <ClCompile Include="..\..\torsions.c">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\multiecm.c">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="..\..\aprtcle\aprcl.c">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -137,6 +131,9 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="..\..\memusage.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\getprime_r.c">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
@@ -187,6 +184,9 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="..\..\..\mpir\lib\x64\release\gmp.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\getprime_r.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
