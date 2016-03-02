@@ -85,7 +85,16 @@ To make a new release:
      the man page is correctly installed). You might need to redefine
      LD_LIBRARY_PATH so that the system libgmp is used.
   7) Check the man page (ecm.1) is up to date.
-  8) If there is no problem, add a tag to the svn version corresponding to the
+  8) Check factors are really found using the checkprob and check.sage
+     programs, for example to estimate the average number of curves to find
+     a 20-digit prime with B1=11000 and -param 1:
+     $ ./checkprob "./ecm -param 1" 31622776601683800097 11000
+     and with check.sage, the following command checks the ./ecm binary
+     for all parametrizations (-param 0-3), with B1=11000 and B2=1873422,
+     and all sigma values < 1000, and checks the prime 31622776601683800097
+     is found when it should be (i.e., when the group order is (B1,B2)-smooth):
+     check_found_all ("./ecm", 31622776601683800097, 11000, 1873422, 1000)
+  9) If there is no problem, add a tag to the svn version corresponding to the
      release, for example:
      $ svn cp . svn+ssh://<login>@scm.gforge.inria.fr/svn/ecm/tags/6.2
      or more detailed:
