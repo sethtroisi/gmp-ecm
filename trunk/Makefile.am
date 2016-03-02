@@ -45,12 +45,11 @@ libecm_la_CPPFLAGS = $(MULREDCINCPATH)
 libecm_la_CFLAGS = $(OPENMP_CFLAGS) -g
 libecm_la_LDFLAGS = $(LIBECM_LDFLAGS) -version-info 0:0:0 -g
 libecm_la_LIBADD = $(MULREDCLIBRARY) $(GMPLIB)
-if WANT_CUDA 
+if WANT_GPU 
   libecm_la_SOURCES += cudakernel.cu
-  libecm_la_LIBADD += $(CUDA_LIB_FLAGS) -lstdc++
-  libecm_la_LDFLAGS += $(CUDA_LDADD)
-  libecm_la_CFLAGS += $(CUDA_INC_FLAGS) $(CC_ADD_FLAGS_FOR_GPU)
-  ecm_LDFLAGS = $(CUDA_LDADD)
+  libecm_la_LIBADD += $(CUDALIB)
+  libecm_la_LDFLAGS += $(CUDALDFLAGS)
+  ecm_LDFLAGS = $(CUDARPATH)
 endif
 
 bin_PROGRAMS = ecm
@@ -61,9 +60,6 @@ LDADD = libecm.la $(GMPLIB)
 
 ecm_CPPFLAGS = -DOUTSIDE_LIBECM
 ecm_CFLAGS = $(OPENMP_CFLAGS) -g
-if WANT_CUDA 
-  ecm_CFLAGS += $(CC_ADD_FLAGS_FOR_GPU)
-endif
 ecm_SOURCES = auxi.c b1_ainc.c candi.c eval.c main.c resume.c \
               getprime_r.c champions.h aprtcle/mpz_aprcl.c memusage.c
 
@@ -119,9 +115,9 @@ DIST_SUBDIRS = athlon pentium4 x86_64 powerpc64 aprtcle
 
 DISTCLEANFILES = config.m4
 
-if WANT_CUDA 
+if WANT_GPU
 .cu.lo: cudakernel.h
-		$(LIBTOOL) --tag=CC --mode=compile $(NVCC) --compile $(CUDA_INC_FLAGS) $(NVCC_FLAGS) $(CPPFLAGS) -o $@ $^ -static
+		$(LIBTOOL) --tag=CC --mode=compile $(NVCC) --compile $(NVCCFLAGS) $(CPPFLAGS) -o $@ $^ -static
 endif
 
 ecm-params:	tune$(EXEEXT)
@@ -135,7 +131,7 @@ check: ecm$(EXEEXT)
 	$(srcdir)/test.pm1 ./ecm$(EXEEXT)
 	echo ""
 	$(srcdir)/test.ecm ./ecm$(EXEEXT)
-if WANT_CUDA 
+if WANT_GPU 
 	echo ""
 	$(srcdir)/test.gpuecm ./ecm$(EXEEXT)
 endif
