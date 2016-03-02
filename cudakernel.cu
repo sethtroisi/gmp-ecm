@@ -4,6 +4,10 @@
 #include <gmp.h>
 #include "cudakernel.h"
 
+#ifndef __CUDACC__
+#error "This file should only be compiled with nvcc"
+#endif
+
 __constant__ __device__ digit_t d_invNcst;
 __device__ biguint_t d_Ncst;
 __device__ biguint_t d_3Ncst;
@@ -34,8 +38,29 @@ inline void cuda_errCheck (cudaError err, const char *file, const int line)
 }
 
 /* First call to a global function initialize the device */
-__global__ void Cuda_Init_Device ()
+__global__ void Cuda_Init_Device (int verbose)
 {
+#ifdef __CUDA_ARCH__
+  if (verbose)
+    printf("GPU: Using device code compile for compute capability %d.%d\n",
+           __CUDA_ARCH__ / 100, (__CUDA_ARCH__/10)%10);
+#endif
+}
+
+/* Given the compute compatibility (as major.minor), return the number of block
+ * to be run on one multiprocessor. */
+extern "C"
+unsigned int
+getNumberOfBlockPerMultiProcessor (int major, int minor)
+{
+  if (major == 2)
+    return 1;
+  else if (major == 3)
+    return 2;
+  else if (major == 5)
+    return 2;
+  else
+    return 2;
 }
 
 extern "C" 
@@ -45,10 +70,6 @@ select_and_init_GPU (int device, unsigned int *number_of_curves, int verbose)
   cudaDeviceProp deviceProp;
   cudaError_t err;
         
-  if (verbose)
-      fprintf (stdout, "GPU: compiled for an NVIDIA GPU with compute capability "
-                       "%d.%d.\n", ECM_GPU_MAJOR, ECM_GPU_MINOR);
-
   if (device!=-1)
     {
       if (verbose)
@@ -79,54 +100,49 @@ select_and_init_GPU (int device, unsigned int *number_of_curves, int verbose)
       return -1;
     }
 
-  int minor = deviceProp.minor;
-  int major = deviceProp.major;
-  int MPcount = deviceProp.multiProcessorCount;
-
-  if (10 * major + minor < 10 * ECM_GPU_MAJOR + ECM_GPU_MINOR)
-    {
-      fprintf(stderr, "GPU: Error: device %d have a compute capability of " 
-              "%d.%d (required %d.%d).\n", device, major, minor, ECM_GPU_MAJOR,
-              ECM_GPU_MINOR);
-      return -1;
-    }
-
   if (verbose)
     {
-      dim3 dimBlock (ECM_GPU_NB_DIGITS, ECM_GPU_CURVES_BY_BLOCK);
-      dim3 dimGrid (MPcount);
-      fprintf (stdout, "GPU: will use device %d: %s, compute capability "
-           "%d.%d, %d MPs.\n", device, deviceProp.name, major, minor, MPcount);
-      fprintf(stdout, "GPU: Block: %ux%ux%u Grid: %ux%ux%u (%d parallel curves)\n", dimBlock.x, 
-                      dimBlock.y, dimBlock.z, dimGrid.x, dimGrid.y, dimGrid.z, 32*MPcount);
+      printf ("GPU: will use device %d: %s, compute capability %d.%d, %d MPs.\n"
+              "GPU: maxSharedPerBlock = %zu maxThreadsPerBlock = %d "
+              "maxRegsPerBlock = %d\n", device, deviceProp.name,
+              deviceProp.major, deviceProp.minor,
+              deviceProp.multiProcessorCount, deviceProp.sharedMemPerBlock,
+              deviceProp.maxThreadsPerBlock, deviceProp.regsPerBlock);
     }
 
 
-  /* number_of_curves should be a multiple of ECM_GPU_CURVES_BY_BLOCK */
-  if (*number_of_curves % ECM_GPU_CURVES_BY_BLOCK != 0)
+  if (*number_of_curves == 0) /* if choose the number of curves */
     {
+      unsigned int n, m = ECM_GPU_CURVES_BY_BLOCK;
+      n = getNumberOfBlockPerMultiProcessor (deviceProp.major, deviceProp.minor);
+      *number_of_curves = n * deviceProp.multiProcessorCount * m;
+    }
+  else if (*number_of_curves % ECM_GPU_CURVES_BY_BLOCK != 0)
+    {
+      /* number_of_curves should be a multiple of ECM_GPU_CURVES_BY_BLOCK */
       *number_of_curves = (*number_of_curves / ECM_GPU_CURVES_BY_BLOCK + 1) * 
                                                         ECM_GPU_CURVES_BY_BLOCK;
       if (verbose)
           fprintf(stderr, "GPU: the requested number of curves have been "
                           "modified to %u\n", *number_of_curves);
     }
-  if (*number_of_curves == 0)
-    *number_of_curves = MPcount * ECM_GPU_CURVES_BY_MP;
 
   /* First call to a global function initialize the device */
   errCheck (cudaSetDeviceFlags (cudaDeviceScheduleYield)); 
-  Cuda_Init_Device<<<1, 1>>> ();
+  Cuda_Init_Device<<<1, 1>>> (verbose);
   errCheck (cudaGetLastError()); 
- 
+  /* Here only to flush the printf inside Cuda_Init_Device if verbose != 0*/
+  cudaDeviceSynchronize();
+
   return 0;
 }
 
 extern "C"
-float cuda_Main (biguint_t h_N, biguint_t h_3N, biguint_t h_M, digit_t h_invN, 
-                    biguint_t *h_xarray, biguint_t *h_zarray, 
-                    biguint_t *h_x2array, biguint_t *h_z2array, mpz_t s,
-                    unsigned int firstinvd, unsigned int number_of_curves) 
+float cuda_Main (biguint_t h_N, biguint_t h_3N, biguint_t h_M, digit_t h_invN,
+                 biguint_t *h_xarray, biguint_t *h_zarray,
+                 biguint_t *h_x2array, biguint_t *h_z2array, mpz_t s,
+                 unsigned int firstinvd, unsigned int number_of_curves,
+                 int verbose)
 {
   cudaEvent_t start, stop;
   cudaEventCreate (&start);
@@ -149,6 +165,12 @@ float cuda_Main (biguint_t h_N, biguint_t h_3N, biguint_t h_M, digit_t h_invN,
 
   dim3 dimBlock (ECM_GPU_NB_DIGITS, ECM_GPU_CURVES_BY_BLOCK);
   dim3 dimGrid (number_of_curves/ ECM_GPU_CURVES_BY_BLOCK);
+  if (verbose)
+    {
+      fprintf(stdout, "GPU: Block: %ux%ux%u Grid: %ux%ux%u "
+              "(%d parallel curves)\n", dimBlock.x, dimBlock.y, dimBlock.z,
+              dimGrid.x, dimGrid.y, dimGrid.z, number_of_curves);
+    }
 
   /* Create a pair of events to pace ourselves */
   for (i=0; i<MAXEVENTS; i++)
@@ -277,8 +299,11 @@ float cuda_Main (biguint_t h_N, biguint_t h_3N, biguint_t h_M, digit_t h_invN,
                                                       "+r"(r): "r"(a),"r"(b)) 
 #define __madc_hi_cc(r,a,b) ASM("madc.hi.cc.u32 %0, %1, %2, %0;":\
                                                   "+r"(r):"r"(a),"r"(b)) 
-//#if defined(GPU_CC30)
-//#include "cudakernel_cc_3.0.cu"
-//#else
-#include "cudakernel_default.cu"
-//#endif
+
+#ifdef __CUDA_ARCH__
+  #if __CUDA_ARCH__ >= 200
+    #include "cudakernel_default.cu"
+  #else
+    #error "Unsupported architecture"
+  #endif
+#endif

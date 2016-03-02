@@ -7,7 +7,7 @@
 extern int select_and_init_GPU (int, unsigned int*, int);
 extern float cuda_Main (biguint_t, biguint_t, biguint_t, digit_t, biguint_t*, 
                         biguint_t*, biguint_t*, biguint_t*, mpz_t, unsigned int, 
-                        unsigned int);
+                        unsigned int, int);
 
 int findfactor (mpz_t factor, mpz_t N, mpz_t xfin, mpz_t zfin)
 {
@@ -80,7 +80,7 @@ void biguint_to_mpz (mpz_t a, biguint_t b)
 
 int gpu_ecm_stage1 (mpz_t *factors, int *array_stage_found, mpz_t N, mpz_t s, 
                     unsigned int number_of_curves, unsigned int firstsigma, 
-                    float *gputime, int verbose ATTRIBUTE_UNUSED)
+                    float *gputime, int verbose)
 {
   int youpi = ECM_NO_FACTOR_FOUND;
 
@@ -171,7 +171,7 @@ int gpu_ecm_stage1 (mpz_t *factors, int *array_stage_found, mpz_t N, mpz_t s,
  
   /* Call the wrapper function that call the GPU */
   *gputime=cuda_Main (h_N, h_3N, h_M, h_invN, h_xarray, h_zarray, h_x2array, 
-                     h_z2array, s, firstsigma, number_of_curves);
+                     h_z2array, s, firstsigma, number_of_curves, verbose);
 
   /* Analyse results */
   for (sigma = firstsigma; sigma < firstsigma+number_of_curves; sigma++)
@@ -352,7 +352,7 @@ gpu_ecm (mpz_t f, mpz_t x, int *param, mpz_t firstsigma, mpz_t n, mpz_t go,
       goto end_gpu_ecm;
   
 
-  /* Initialiaze the GPU if necessary */
+  /* Initialize the GPU if necessary */
   if (!*device_init)
     {
       st = cputime ();

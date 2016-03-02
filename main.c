@@ -281,7 +281,6 @@ print_config ()
 
 #ifdef WITH_GPU
   printf ("WITH_GPU = %d\n", WITH_GPU);
-  printf ("For Compute Capability: %s\n", CC_VERSION);
 #else
   printf ("WITH_GPU undefined\n");
 #endif
