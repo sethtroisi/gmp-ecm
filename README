@@ -398,15 +398,15 @@ are taken. It can take 4 values (s is the 'sigma' parameter):
 	                         u = s^2-5, v = 4*s,
                       A = (v-u)^3*(3*u+v)/(4*u^3*v)-2,
 	                               x0=u^3/v^3.
-    1: (only for 64-bit machine) 
-                                A = 4*s^2-2,
+    1: (only for 64-bit processors)
+                                A = 4*s^2/2^64-2,
                                   x0 = 2.
     2: use an elliptic parametrization to compute d(s) such that the curve has 
        a 6-torsion point.
                                 A = 4*d(s)-2,
                                   x0 = 2.
     3: it is mostly used for the gpu computation.
-                                 A = 4*s-2,
+                                 A = 4*s/2^32-2,
                                   x0 = 2.
 
 Generally, the parameter s is chosen randomly but the -sigma option can be
