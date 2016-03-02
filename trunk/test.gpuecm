@@ -62,14 +62,6 @@ checkcode $? 1
 echo "2^349-1" | $ECM -redc 587 0
 checkcode $? 0
 
-# test stage 2 with -redc (with different size)
-echo "2^127-1" | $ECM -redc 1024
-checkcode $? 0
-echo "2^521-1" | $ECM -redc 1024
-checkcode $? 0
-echo "2^607-1" | $ECM -redc 1024
-checkcode $? 0
-
 # test a Fermat number
 echo "2^512+1" | $ECM 587 0
 
