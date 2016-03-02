@@ -621,35 +621,6 @@ dnl Check if a GPU version is asked, for which GPU and where CUDA is install.
 dnl See acinclude.m4 for details.
 CU_CHECK_CUDA
 
-# Construct NVCC_FLAGS
-NVCC_FLAGS="-DGPU_CC$GPU_ARCH -DWITH_GPU -arch=sm_$GPU_ARCH"
-
-AS_IF([test -n "$cc_for_cuda"], [NVCC_FLAGS+=" --compiler-bindir $cc_for_cuda"])
-
-NVCC_FLAGS+=" --ptxas-options=-v"
-
-# If debug flag is set apply debugging compilation flags, 
-# otherwise build compilation flags
-AS_IF([test "x$DEBUG" = "xtrue"],
-  [#NVCC_FLAGS+=" -keep -keep-dir gputmp"
-  NVCC_FLAGS+=" -g --compiler-options -fno-strict-aliasing"
-  NVCC_FLAGS+=" --ptxas-options=-v"],
-  [NVCC_FLAGS+=" -O2 --compiler-options -fno-strict-aliasing"])
-
-CC_ADD_FLAGS_FOR_GPU=" -DGPU_CC$GPU_ARCH -DWITH_GPU"
-
-AC_SUBST(NVCC_FLAGS)
-AC_SUBST(CC_ADD_FLAGS_FOR_GPU)
-
-
-# Define CC_VERSION if it is available
-AS_IF([test "x$CC_VERSION" != "x"],
-  [AC_DEFINE_UNQUOTED([CC_VERSION], ["$CC_VERSION"], [Compiled for this Compute Capability])])
-# If the above does not work, then define CC_VERSION to "unknown"
-AS_IF([test "x$CC_VERSION" = "x"],
-  [AC_DEFINE([CC_VERSION], ["unknown"], [Compiled for this Compute Capability])])
-
-
 LIBS="$LIBS $GWLIB"
 
 GMP_FINISH
