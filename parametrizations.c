@@ -232,7 +232,7 @@ get_curve_from_param0 (mpz_t f, mpres_t A, mpres_t x, mpz_t sigma, mpmod_t n)
 }
 
 /* Parametrization ECM_PARAM_BATCH_SQUARE */
-/* Only work for 64-bit machine */
+/* Only work for 64-bit machines */
 /* d = (sigma^2/2^64 mod N) should be different from 0, 1, -1/8 */
 int  
 get_curve_from_param1 (mpres_t A, mpres_t x0, mpz_t sigma, mpmod_t n)
