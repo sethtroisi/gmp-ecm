@@ -463,8 +463,6 @@ AS_IF([test "x$enable_gpu" = "xyes" ],
         CUDALDFLAGS="-L$cuda_lib"
         LDFLAGS="-L$cuda_lib $LDFLAGS"
         AS_CASE(["$host_os"], [*"linux"*], [ CUDARPATH=" -rpath $cuda_lib" ])
-      ],
-      [
       ])
     AC_CHECK_LIB([cuda], [cuInit], [], [AC_MSG_ERROR([Couldn't find CUDA lib])])
     LIBS="$CUDALIB $LIBS"
