@@ -88,11 +88,12 @@ number of curves must be a multiple of the number of curves by multiprocessors
 (which depend on the GPU compute capability) or else it would be rounded to the
 next multiple.
 
-The modular arithmetic on GPU can only handle integers smaller that 2^1018. The 
-execution time does not depend on the size of the interger that is factored as
-the same code is used for all integers.
+The default implementation of the arithmetic for the GPU restricts
+integers to be smaller than 2^1018.  This restriction can be altered by
+changing the source code but do so at your own risk because support
+from the GMP-ECM team will be very limited.
 
 ##############################################################################
 
-Please report to Cyril.Bouvier@loria.fr any problems, bugs, ...
+Please report to Cyril.Bouvier@inria.fr any problems, bugs, ...
 
