@@ -448,9 +448,9 @@ gpu_ecm (mpz_t f, mpz_t x, int *param, mpz_t firstsigma, mpz_t n, mpz_t go,
   outputf (OUTPUT_NORMAL, "Computing %u Step 1 took %ldms of CPU time / "
                           "%.0fms of GPU time\n", *nb_curves, 
                                            elltime (st, cputime ()), gputime);
-  outputf (OUTPUT_VERBOSE, "Throughput: %.3f curves by second ", 
+  outputf (OUTPUT_VERBOSE, "Throughput: %.3f curves per second ", 
                                                  1000 * (*nb_curves)/gputime);
-  outputf (OUTPUT_VERBOSE, "(on average %.2fms by Step 1)\n", 
+  outputf (OUTPUT_VERBOSE, "(on average %.2fms per Step 1)\n", 
                                                         gputime/(*nb_curves));
   tottime = (long) gputime;
 
@@ -538,9 +538,9 @@ gpu_ecm (mpz_t f, mpz_t x, int *param, mpz_t firstsigma, mpz_t n, mpz_t go,
   st2 = elltime (st2, cputime ());
   outputf (OUTPUT_NORMAL, "Computing %u Step 2 on CPU took %ldms\n", 
                                                               *nb_curves, st2);
-  outputf (OUTPUT_VERBOSE, "Throughput: %.3f Step 2 by second ", 
+  outputf (OUTPUT_VERBOSE, "Throughput: %.3f Step 2 per second ", 
                                   1000 * ((double)(*nb_curves))/((double)st2));
-  outputf (OUTPUT_VERBOSE, "(on average %0.2fms by Step 2)\n", 
+  outputf (OUTPUT_VERBOSE, "(on average %0.2fms per Step 2)\n", 
                                          ((double) st2)/((double) *nb_curves));
   tottime += st2;
 
