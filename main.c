@@ -1576,7 +1576,7 @@ main (int argc, char *argv[])
 
   /* print memory usage */
   if (verbose > 1)
-    printf ("Peak memory usage: %ldMb\n", PeakMemusage () >> 10);
+    printf ("Peak memory usage: %ldMB\n", PeakMemusage () >> 10);
 
   return returncode;
 }
