@@ -107,4 +107,9 @@ checkcode $? 1
 echo 95209938255048826235189575712705128366296557149606415206280987204268594538412191641776798249266895999715600261737863698825644292938050707507901970225804581 | $ECM -v 100 200-300
 checkcode $? 0
 
+# bug reported by David Cleaver (was also reported by Paul Leyland)
+# should report p28 factor and c73 cofactor instead of "Input number found"
+echo "(10^101-1)/9" | $ECM -sigma 3:11381471 250e3
+checkcode $? 6
+
 echo "All ECM tests with GPU are ok."
