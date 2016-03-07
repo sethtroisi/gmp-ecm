@@ -151,9 +151,9 @@ int gpu_ecm_stage1 (mpz_t *factors, int *array_stage_found, mpz_t N, mpz_t s,
   to_mont_repr (x2p, N);
   
   /* for each curve, compute z2p and put xp, zp, x2p, z2p in the h_*array  */
-  for (sigma = firstsigma; sigma < firstsigma+number_of_curves; sigma++)
+  for (i = 0; i < number_of_curves; i++)
   {
-    i = sigma - firstsigma;
+    sigma = firstsigma + i;
 
     mpz_mul_ui (z2p, invw, sigma);
     mpz_mod (z2p, z2p, N);
