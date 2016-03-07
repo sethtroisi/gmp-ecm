@@ -456,15 +456,6 @@ gpu_ecm (mpz_t f, mpz_t x, int *param, mpz_t firstsigma, mpz_t n, mpz_t go,
 
   *B1done=B1;
 
-  /* If x0, ,xk are the values of x at the end of step 1 
-     x = x0 + x1*n + .. + xk*n^k */
-  mpz_set_ui (x, 0);
-  for (i = 0; i < *nb_curves; i++)
-  {
-    mpz_mul (x, x, n);
-    mpz_add (x, x, factors[i]);
-  }
-
   /* was a factor found in stage 1 ? */
   if (youpi != ECM_NO_FACTOR_FOUND)
       goto end_gpu_ecm_rhotable;
@@ -562,7 +553,10 @@ end_gpu_ecm_rhotable:
     }
 
   /* If f0, ,fk are the factors found (in stage 1 or 2) 
-     f = f0 + f1*n + .. + fk*n^k */
+   * f = f0 + f1*n + .. + fk*n^k
+   * The purpose of this construction is to be able to return more than one
+   * factor if needed without breaking the lib interface (as gcd(f,n)=gcd(f0,n).
+   */
   mpz_set_ui (f, 0);
   for (i = 0; i < *nb_curves; i++)
   {
