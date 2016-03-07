@@ -127,7 +127,7 @@ select_and_init_GPU (int device, unsigned int *number_of_curves, int verbose)
       *number_of_curves = (*number_of_curves / ECM_GPU_CURVES_BY_BLOCK + 1) * 
                                                         ECM_GPU_CURVES_BY_BLOCK;
       if (verbose)
-          fprintf(stderr, "GPU: the requested number of curves have been "
+          fprintf(stderr, "GPU: the requested number of curves has been "
                           "modified to %u\n", *number_of_curves);
     }
 
