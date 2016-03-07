@@ -379,13 +379,7 @@ AC_ARG_ENABLE(gpu,
   AS_HELP_STRING([--enable-gpu=GPU_ARCH],
                  [Enable the cuda version [default=no]]),
   [ AS_IF([test "x$enableval" = "xno"], [ enable_gpu="no" ],
-                                        [ enable_gpu="yes"
-                                          cuda_include=/usr/local/cuda/include
-                                          # If $build_cpu contains "_64", append "lib64", else append "lib"
-                                          AS_IF([echo $build_cpu | grep -q "_64"], 
-                                            [cuda_lib=/usr/local/cuda/lib64],
-                                            [cuda_lib=/usr/local/cuda/lib])
-                                          cuda_bin=/usr/local/cuda/bin ] ) ] )
+                                        [ enable_gpu="yes" ]) ] )
 
 AC_ARG_WITH(cuda,
   AS_HELP_STRING([--with-cuda=DIR],
@@ -468,11 +462,11 @@ AS_IF([test "x$enable_gpu" = "xyes" ],
           ])
         CUDALDFLAGS="-L$cuda_lib"
         LDFLAGS="-L$cuda_lib $LDFLAGS"
-        AS_CASE(["$host_os"], [*"linux"*], [ CUDARPATH=" -rpath $cuda_lib" ])
+        AS_CASE(["$host_os"], [*"linux"*], [ LDFLAGS="-Wl,-rpath,$cuda_lib $LDFLAGS" ])
+        CUDARPATH="-R $cuda_lib"
       ])
     AC_CHECK_LIB([cuda], [cuInit], [], [AC_MSG_ERROR([Couldn't find CUDA lib])])
     LIBS="$CUDALIB $LIBS"
-    LDFLAGS="$LDFLAGS -Wl,-rpath,$cuda_lib"
     AC_MSG_CHECKING([that CUDA Toolkit version and runtime version are the same])
     AC_RUN_IFELSE([AC_LANG_PROGRAM([
       [
