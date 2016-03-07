@@ -532,7 +532,10 @@ gpu_ecm (mpz_t f, mpz_t x, int *param, mpz_t firstsigma, mpz_t n, mpz_t go,
         set_verbose (verbose);
 
         if (youpi != ECM_NO_FACTOR_FOUND)
+          {
+            array_stage_found[i] = youpi;
             goto end_gpu_ecm_rhotable;
+          }
     }
 
   st2 = elltime (st2, cputime ());
