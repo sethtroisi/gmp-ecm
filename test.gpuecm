@@ -59,7 +59,7 @@ echo "2^349-1" | $ECM -param 1 587 0
 checkcode $? 1
 
 # test -redc (should give a warning)
-echo "2^349-1" | $ECM -redc 587 0
+echo "2^349-1" | $ECM -redc -sigma 3:2 587 0
 checkcode $? 0
 
 # test a Fermat number
