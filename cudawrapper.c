@@ -235,7 +235,7 @@ A_from_sigma (mpz_t A, unsigned int sigma, mpz_t n)
 }
 
 int
-gpu_ecm (mpz_t f, mpz_t x, int *param, mpz_t firstsigma, mpz_t n, mpz_t go, 
+gpu_ecm (mpz_t f, int *param, mpz_t firstsigma, mpz_t n, mpz_t go, 
          double *B1done, double B1, mpz_t B2min_parm, mpz_t B2_parm, 
          unsigned long k, const int S, int verbose, int repr,
          int nobase2step2, int use_ntt, int sigma_is_A, FILE *os, FILE* es, 
@@ -532,7 +532,7 @@ gpu_ecm (mpz_t f, mpz_t x, int *param, mpz_t firstsigma, mpz_t n, mpz_t go,
           outputf (OUTPUT_NORMAL, "GPU: factor %Zd found in Step 2 with"
                 " curve %u (-sigma 3:%u)\n", factors[i], i, i+firstsigma_ui);
           /* factor_found corresponds to the first factor found */
-          if (factor_found != ECM_NO_FACTOR_FOUND)
+          if (factor_found == ECM_NO_FACTOR_FOUND)
             factor_found = youpi;
         }
     }
