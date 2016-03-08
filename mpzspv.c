@@ -580,12 +580,12 @@ mpzspv_normalise (mpzspv_t x, spv_size_t offset, spv_size_t len,
                  and accounts for about a third of the function's runtime.
                  Since d has size O(stride), the cumulated complexity of this
                  call is O(len*sp_num^2) */
-	      mpn_add_n (d, d, s, 3 * stride);
+	      mpn_add_n ((mp_ptr) d, (mp_srcptr) d, (mp_srcptr) s, 3 * stride);
             }      
 
           /* we finally reduce the contribution modulo each p_i */
           for (k = 0; k < stride; k++)
-            t[i][k] = mpn_mod_1 (d + 3 * k, 3, spm[i]->sp);
+            t[i][k] = mpn_mod_1 ((mp_ptr) (d + 3 * k), 3, spm[i]->sp);
         }	  
       mpzspv_set (x, l + offset, t, 0, stride, mpzspm);
     }
