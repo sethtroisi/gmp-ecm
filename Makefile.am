@@ -44,7 +44,7 @@ libecm_la_SOURCES = ecm.c ecm2.c pm1.c pp1.c getprime_r.c listz.c lucas.c \
 libecm_la_CPPFLAGS = $(MULREDCINCPATH)
 libecm_la_CFLAGS = $(OPENMP_CFLAGS) -g
 libecm_la_LDFLAGS = $(LIBECM_LDFLAGS) -version-info 0:0:0 -g
-libecm_la_LIBADD = $(MULREDCLIBRARY) $(GMPLIB)
+libecm_la_LIBADD = $(MULREDCLIBRARY)
 if WANT_GPU 
   libecm_la_SOURCES += cudakernel.cu
   libecm_la_LIBADD += $(CUDALIB)
