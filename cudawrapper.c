@@ -245,7 +245,7 @@ gpu_ecm (mpz_t f, mpz_t x, int *param, mpz_t firstsigma, mpz_t n, mpz_t go,
 {
   unsigned int i;
   int youpi = ECM_NO_FACTOR_FOUND;
-  int factor_found = 0;
+  int factor_found = ECM_NO_FACTOR_FOUND;
   long st, st2;
   long tottime; /* at the end, total time in ms */
   unsigned int firstsigma_ui;
@@ -497,6 +497,8 @@ gpu_ecm (mpz_t f, mpz_t x, int *param, mpz_t firstsigma, mpz_t n, mpz_t go,
   
       /* compute stage 2 */
       youpi = montgomery_to_weierstrass (factors[i], P.x, P.y, P.A, modulus);
+      if (youpi != ECM_NO_FACTOR_FOUND)
+        goto next_curve;
 
       if (test_verbose (OUTPUT_RESVERBOSE) && youpi == ECM_NO_FACTOR_FOUND
           && mpz_cmp (B2, B2min) >= 0)
@@ -523,20 +525,22 @@ gpu_ecm (mpz_t f, mpz_t x, int *param, mpz_t firstsigma, mpz_t n, mpz_t go,
                       TreeFilename, stop_asap);
       set_verbose (verbose);
 
+    next_curve:
       if (youpi != ECM_NO_FACTOR_FOUND)
         {
           array_stage_found[i] = youpi;
           outputf (OUTPUT_NORMAL, "GPU: factor %Zd found in Step 2 with"
                 " curve %u (-sigma 3:%u)\n", factors[i], i, i+firstsigma_ui);
-          factor_found = youpi;
+          /* factor_found corresponds to the first factor found */
+          if (factor_found != ECM_NO_FACTOR_FOUND)
+            factor_found = youpi;
         }
     }
 
   /* If a factor was found in Step 2, make sure we set
    * our return value "youpi" appropriately
    */
-  if (factor_found)
-    youpi = factor_found;
+  youpi = factor_found;
 
   st2 = elltime (st2, cputime ());
   outputf (OUTPUT_NORMAL, "Computing %u Step 2 on CPU took %ldms\n", 
