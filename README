@@ -1,3 +1,4 @@
+
 This is the README file for GMP-ECM. (See INSTALL-ecm for installing GMP-ECM
 and the ecm library, and README.lib for using the ecm library.)
 
@@ -608,8 +609,6 @@ factors, however.
 
 8. How to get the best of GMP-ECM?
 
-[this part has to be rewritten, beginning of new part]
-
 After configuring GMP-ECM, and "make", do:
 
 $ ./bench_mulredc # or bench_mulredc.exe under Windows
@@ -621,35 +620,19 @@ This will output at the end two lines as follows:
 /* 0:mulredc 1:sqr+redc_1 2:sqr+redc_2 3:sqr+redc_n */
 #define TUNE_SQRREDC_TABLE {0,0,0,0,0,0,0,0,1,1,3,1,1,3,1,1,1,1,2,1,2}
 
-Then put those lines in the ecm-params.h file (which is a symbolic link),
-or replace the corresponding values in that file if already present, and
-recompile GMP-ECM with "make".
+Then put those lines in the params.h file indicated by ecm -printconfig,
+for example in x86_64/k8/params.h:
 
-Once you have optimized the base-case modular arithmetic, do:
+$ ./ecm -printconfig
+...
+Tuning parameters from x86_64/k8/params.h
+
+Then do:
 
 $ ./tune
 
-and replace the corresponding thresholds (#define ...) in ecm-params.h.
-
-[end of new part]
-
-Choice of modular multiplication. The ecm program may choose between 4 kinds
-of modular arithmetic:
-
-(1) Montgomery's REDC algorithm at the word level (option -modmuln).
-    It is quite fast for small numbers, but has quadratic asymptotic
-    complexity.
-(2) classical GMP arithmetic (option -mpzmod).
-    Has some overhead with respect to (1) for small sizes, but wins
-    over (1) for larger sizes since it has quasi-linear asymptotic
-    complexity.
-(3) Montgomery's REDC algorithm at high level (option -redc).
-    This essentially replaces each division by two multiplications.
-    Slower than (1) and (2) for small inputs, but better for large
-    or very large inputs.
-(4) base-2 arithmetic for numbers dividing 2^n+1 or 2^n-1.
-    Each division has only linear time, but the multiplication are
-    more expensive since they are done on larger numbers.
+and append the corresponding thresholds (#define ...) in the same params.h
+file.
 
 The ecm program automatically selects what it thinks is the best
 arithmetic for the given input number. If that choice is not optimal, you may 
