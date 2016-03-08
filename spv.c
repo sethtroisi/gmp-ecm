@@ -443,7 +443,7 @@ void
 spv_random (spv_t x, spv_size_t len, sp_t m)
 {
   spv_size_t i;
-  mpn_random (x, len);
+  mpn_random ((mp_ptr) x, len);
   
   for (i = 0; i < len; i++)
     while (x[i] >= m)
