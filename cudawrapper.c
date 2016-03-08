@@ -174,9 +174,9 @@ int gpu_ecm_stage1 (mpz_t *factors, int *array_stage_found, mpz_t N, mpz_t s,
                      h_z2array, s, firstsigma, number_of_curves, verbose);
 
   /* Analyse results */
-  for (sigma = firstsigma; sigma < firstsigma+number_of_curves; sigma++)
+  for (i = 0; i < number_of_curves; i++)
   {
-    i = sigma - firstsigma;
+    sigma = firstsigma + i;
 
     biguint_to_mpz (xp, h_xarray[i]); 
     biguint_to_mpz (zp, h_zarray[i]); 
@@ -189,8 +189,8 @@ int gpu_ecm_stage1 (mpz_t *factors, int *array_stage_found, mpz_t N, mpz_t s,
     if (array_stage_found[i] != ECM_NO_FACTOR_FOUND)
       {
         youpi = array_stage_found[i];
-        outputf (OUTPUT_RESVERBOSE, "GPU: factor %Zd found with curve %u "
-                "(-sigma 3:%u)\n", factors[i], i, sigma);
+        outputf (OUTPUT_NORMAL, "GPU: factor %Zd found in Step 1 with"
+                " curve %u (-sigma 3:%u)\n", factors[i], i, sigma);
       }
     }
   
@@ -245,6 +245,7 @@ gpu_ecm (mpz_t f, mpz_t x, int *param, mpz_t firstsigma, mpz_t n, mpz_t go,
 {
   unsigned int i;
   int youpi = ECM_NO_FACTOR_FOUND;
+  int factor_found = 0;
   long st, st2;
   long tottime; /* at the end, total time in ms */
   unsigned int firstsigma_ui;
@@ -514,20 +515,28 @@ gpu_ecm (mpz_t f, mpz_t x, int *param, mpz_t firstsigma, mpz_t n, mpz_t go,
           mpz_clear (t);
         }
   
-        /* It is a hack to avoid very verbose Step 2 
-          (without it, stage2() prints a least a line by curves) */
-        if (!test_verbose (OUTPUT_VERBOSE)) 
-          set_verbose (0);
-        youpi = stage2 (factors[i], &P, modulus, dF, k, &root_params, use_ntt, 
-                        TreeFilename, stop_asap);
-        set_verbose (verbose);
+      /* It is a hack to avoid very verbose Step 2 
+        (without it, stage2() prints a least a line by curves) */
+      if (!test_verbose (OUTPUT_VERBOSE)) 
+        set_verbose (0);
+      youpi = stage2 (factors[i], &P, modulus, dF, k, &root_params, use_ntt, 
+                      TreeFilename, stop_asap);
+      set_verbose (verbose);
 
-        if (youpi != ECM_NO_FACTOR_FOUND)
-          {
-            array_stage_found[i] = youpi;
-            goto end_gpu_ecm_rhotable;
-          }
+      if (youpi != ECM_NO_FACTOR_FOUND)
+        {
+          array_stage_found[i] = youpi;
+          outputf (OUTPUT_NORMAL, "GPU: factor %Zd found in Step 2 with"
+                " curve %u (-sigma 3:%u)\n", factors[i], i, i+firstsigma_ui);
+          factor_found = youpi;
+        }
     }
+
+  /* If a factor was found in Step 2, make sure we set
+   * our return value "youpi" appropriately
+   */
+  if (factor_found)
+    youpi = factor_found;
 
   st2 = elltime (st2, cputime ());
   outputf (OUTPUT_NORMAL, "Computing %u Step 2 on CPU took %ldms\n", 
