@@ -108,8 +108,17 @@ echo 952099382550488262351895757127051283662965571496064152062809872042685945384
 checkcode $? 0
 
 # bug reported by David Cleaver (was also reported by Paul Leyland)
-# should report p28 factor and c73 cofactor instead of "Input number found"
-echo "(10^101-1)/9" | $ECM -sigma 3:11381471 250e3
+# should report p6 factor and c210 cofactor instead of "Input number found"
+# fixed with svn 2867
+echo "(2^718+1)/5" | $ECM -sigma 3:2000 40 48
 checkcode $? 6
+
+# find multiple factors in Step 1
+echo "(2^718+1)/5" | $ECM -sigma 3:2000 50 60
+checkcode $? 2
+
+# find multiple factors in Step 2
+echo "(2^718+1)/5" | $ECM -sigma 3:2000 40 60
+checkcode $? 2
 
 echo "All ECM tests with GPU are ok."
