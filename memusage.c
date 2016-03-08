@@ -42,7 +42,8 @@ PeakMemusage (void)
 
   FILE *file;
   file = fopen (str, "r");
-  ASSERT_ALWAYS (file != NULL);
+  if (file == NULL)
+    return -1; /* for example on Mac OS X */
 
   long mem;
   for(;;)
@@ -64,7 +65,7 @@ PeakMemusage (void)
 #include <psapi.h>
 
 long
-PeakMemusage(void)
+PeakMemusage (void)
 {
     PROCESS_MEMORY_COUNTERS info;
     GetProcessMemoryInfo(GetCurrentProcess(), &info, sizeof(info));
