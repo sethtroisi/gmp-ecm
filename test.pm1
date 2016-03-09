@@ -131,16 +131,17 @@ echo "2^(2^12)+1" | $PM1 -go "N-1" 1e6; checkcode $? 2
 echo 12345678 | $PM1 1e3; checkcode $? 6
 
 # exercise "Error: cannot choose suitable P value for your stage 2 parameters." error message
-$PM1 -ntt 5e3 1e6-1e40 < c155; checkcode $? 1
+echo 95209938255048826235189575712705128366296557149606415206280987204268594538412191641776798249266895999715600261737863698825644292938050707507901970225804581 > test_c155
+$PM1 -ntt 5e3 1e6-1e40 < test_c155; checkcode $? 1
 
 # exercise maxmem with P-1 code...
-$PM1 -v -v -v -ntt -maxmem 1 5e3 1e4-1e6 < c155; checkcode $? 0
+$PM1 -v -v -v -ntt -maxmem 1 5e3 1e4-1e6 < test_c155; checkcode $? 0
 
 # exercise maxmem with P-1 code...
-$PM1 -v -v -v -no-ntt -maxmem 1 5e3 1e4-1e6 < c155; checkcode $? 0
+$PM1 -v -v -v -no-ntt -maxmem 1 5e3 1e4-1e6 < test_c155; checkcode $? 0
 
 # exercise pm1prob with -go option
-$PM1 -v -go 1234 1e5 < c155; checkcode $? 0
+$PM1 -v -go 1234 1e5 < test_c155; checkcode $? 0
 
 # check -v option
 echo 33852066257429811148979390609187539760850944806763555795340084882048986912482949506591909041130651770779842162499482875755533111808276172876211496409325473343590723224081353129229935527059488811457730702694849036693756201766866018562295004353153066430367 | $PM1 -v 19999; checkcode $? 0
@@ -162,5 +163,7 @@ echo 338520662574298111489793906091875397608509448067635557953400848820489869124
 # exercise base-2 code in mpres_mul_z_to_z()
 echo "2^1009-1" | $PM1 1000; checkcode $? 6
 echo "(2^1009-1)/3454817" | $PM1 -no-ntt 5e3 1e4-1e6; checkcode $? 6
+
+rm -fr test_c155
 
 echo "All P-1 tests are ok."
