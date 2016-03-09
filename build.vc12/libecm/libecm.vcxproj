@@ -170,7 +170,12 @@
     <YASM Include="..\assembler\redc.asm" />
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="..\..\addlaws.c" />
+    <ClCompile Include="..\..\addlaws.c">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
+    </ClCompile>
     <ClCompile Include="..\..\aprtcle\aprcl.c" />
     <ClCompile Include="..\..\aprtcle\mpz_aprcl.c" />
     <ClCompile Include="..\..\auxarith.c" />
@@ -185,7 +190,12 @@
     <ClCompile Include="..\..\getprime_r.c" />
     <ClCompile Include="..\..\ks-multiply.c" />
     <ClCompile Include="..\..\listz.c" />
-    <ClCompile Include="..\..\listz_handle.c" />
+    <ClCompile Include="..\..\listz_handle.c">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
+    </ClCompile>
     <ClCompile Include="..\..\lucas.c" />
     <ClCompile Include="..\..\median.c" />
     <ClCompile Include="..\..\memusage.c" />
@@ -213,11 +223,21 @@
       <Optimization Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Full</Optimization>
     </ClCompile>
     <ClCompile Include="..\..\stage2.c" />
-    <ClCompile Include="..\..\torsions.c" />
+    <ClCompile Include="..\..\torsions.c">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\..\mpir\lib\x64\release\gmp.h" />
-    <ClInclude Include="..\..\addlaws.h" />
+    <ClInclude Include="..\..\addlaws.h">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
+    </ClInclude>
     <ClInclude Include="..\..\aprtcle\jacobi_sum.h" />
     <ClInclude Include="..\..\aprtcle\mpz_aprcl.h" />
     <ClInclude Include="..\..\champions.h" />
@@ -232,7 +252,12 @@
     <ClInclude Include="..\..\listz_handle.h" />
     <ClInclude Include="..\..\longlong.h" />
     <ClInclude Include="..\..\sp.h" />
-    <ClInclude Include="..\..\torsions.h" />
+    <ClInclude Include="..\..\torsions.h">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
+    </ClInclude>
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
