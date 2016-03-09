@@ -46,10 +46,6 @@ checkcode2 () {
   fi
 }
 
-if [ ! -e c155 ]; then
-  echo 95209938255048826235189575712705128366296557149606415206280987204268594538412191641776798249266895999715600261737863698825644292938050707507901970225804581 > c155
-fi
-
 # P+1 requires that sigma^2-4 is a quadratic non-residue mod p
 
 echo 328006342451 | $PP1 -x0 5 120 7043; checkcode $? 8
@@ -150,22 +146,23 @@ echo 154618728587 | $PP1 -x0 3 -go 36 4294957296-4294967295 1; checkcode $? 8
 echo 18446744073709551337 | $PP1 -pp1 -x0 2 70823 714487; checkcode $? 8
 
 # exercise pp1fs2_memory_use with -no-ntt
-$PP1 -maxmem 1 -no-ntt 5e3 < c155; checkcode $? 0
+echo 95209938255048826235189575712705128366296557149606415206280987204268594538412191641776798249266895999715600261737863698825644292938050707507901970225804581 > test_c155
+$PP1 -maxmem 1 -no-ntt 5e3 < test_c155; checkcode $? 0
 
 # exercise onepass pp1fs2_memory_use with -ntt
-$PP1 -maxmem 1 -ntt 5e3 < c155; checkcode $? 0
+$PP1 -maxmem 1 -ntt 5e3 < test_c155; checkcode $? 0
 
 # exercise even number factor found in step one
 echo 1234 | $PP1 5e3; checkcode $? 14
 
 # exercise "Using lmax = 512 with one pass NTT which takes about 0MB of memory" message
-$PP1 -maxmem 1 -ntt -v 5e3 < c155; checkcode $? 0
+$PP1 -maxmem 1 -ntt -v 5e3 < test_c155; checkcode $? 0
 
 # exercise "Using lmax = 436 without NTT which takes about 0MB of memory" message
-$PP1 -maxmem 1 -no-ntt -v 5e3 < c155; checkcode $? 0
+$PP1 -maxmem 1 -no-ntt -v 5e3 < test_c155; checkcode $? 0
 
 # exercise "Error: cannot choose suitable P value for your stage 2 parameters." error message
-$PP1 5e3 1e6-1e20 < c155; checkcode $? 1
+$PP1 5e3 1e6-1e20 < test_c155; checkcode $? 1
 
 # check -v option
 echo 33852066257429811148979390609187539760850944806763555795340084882048986912482949506591909041130651770779842162499482875755533111808276172876211496409325473343590723224081353129229935527059488811457730702694849036693756201766866018562295004353153066430367 | $PP1 -v 1e5; checkcode $? 0
@@ -182,4 +179,7 @@ echo 338520662574298111489793906091875397608509448067635557953400848820489869124
 # exercise -x0 0 option
 echo 18446744073709551653 | $PP1 -x0 0 257687 141775993; checkcode $? 8
 
+rm test_c155
+
 echo "All P+1 tests are ok."
+
