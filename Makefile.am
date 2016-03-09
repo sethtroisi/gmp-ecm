@@ -109,7 +109,7 @@ EXTRA_DIST = test.pm1 test.pp1 test.ecm README.lib INSTALL-ecm ecm.xml  \
              hppa/params.h mips/params.h x86_64/corei7/params.h         \
              generic/params.h testlong.pp1 testlong.pm1 testlong.ecm \
              M997.save M877.save dummy.save dummy2.save prime95.save \
-             Z2102.n getprime_r.h c155
+             Z2102.n getprime_r.h c155 cudakernel_default.cu test.gpuecm
 
 DIST_SUBDIRS = athlon pentium4 x86_64 powerpc64 aprtcle build.vc12
 
