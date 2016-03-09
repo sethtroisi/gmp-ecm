@@ -85,6 +85,7 @@ To make a new release:
      the man page is correctly installed). You might need to redefine
      LD_LIBRARY_PATH so that the system libgmp is used.
   7) Check the man page (ecm.1) is up to date.
+     Update version-info in Makefile.am if needed.
   8) Check factors are really found using the checkprob and check.sage
      programs, for example to estimate the average number of curves to find
      a 20-digit prime with B1=11000 and -param 1:
