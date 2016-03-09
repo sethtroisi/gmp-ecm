@@ -43,7 +43,10 @@ libecm_la_SOURCES = ecm.c ecm2.c pm1.c pp1.c getprime_r.c listz.c lucas.c \
 # Link the asm redc code (if we use it) into libecm.la
 libecm_la_CPPFLAGS = $(MULREDCINCPATH)
 libecm_la_CFLAGS = $(OPENMP_CFLAGS) -g
-libecm_la_LDFLAGS = $(LIBECM_LDFLAGS) -version-info 0:0:0 -g
+# www.gnu.org/software/libtool/manual/html_node/Updating-version-info.html
+# If any interfaces have been added, removed, or changed since the last
+# update, increment current, and set revision to 0.
+libecm_la_LDFLAGS = $(LIBECM_LDFLAGS) -version-info 1:0:0 -g
 libecm_la_LIBADD = $(MULREDCLIBRARY)
 if WANT_GPU 
   libecm_la_SOURCES += cudakernel.cu
