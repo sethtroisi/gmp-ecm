@@ -72,7 +72,4 @@
       <UniqueIdentifier>{163547c7-89d7-4ddc-b0ad-02b4cfd722b4}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
-  <ItemGroup>
-    <Object Include="..\fto13.obj" />
-  </ItemGroup>
 </Project>
