@@ -21,6 +21,7 @@
 #define MAXSIZE 20
 
 int tune_mul[MAXSIZE+1], tune_sqr[MAXSIZE+1], redc_n_ok[MAXSIZE+1];
+int verbose = 0;
 
 #include <gmp.h>
 #ifdef USE_ASM_REDC
@@ -596,122 +597,125 @@ void bench(mp_size_t N)
   t3 = cputime() - t3;
 #endif /* ifdef HAVE_NATIVE_MULREDC1_N */
 
-  fprintf (stderr, "******************\n");
-  fprintf (stderr, "Time in microseconds per call, size=%lu (iter=%lu):\n",
-           N, iter);
-
-  /* basic operations */
-  fprintf (stderr, "mpn_mul_n  = %.3f\n",
-           (double) tmul * 1e3 / (double) iter);
-  fprintf (stderr, "mpn_sqr    = %.3f\n",
-           (double) tsqr * 1e3 / (double) iter);
-#ifdef HAVE___GMPN_REDC_1
-  fprintf (stderr, "mpn_redc_1 = %.3f",
-           (double) tredc_1 * 1e3 / (double) iter);
-  if (tredc_1 == tredc_best)
-    fprintf (stderr, " *");
-  fprintf (stderr, "\n");
-#endif
-#ifdef HAVE___GMPN_REDC_2
-  fprintf (stderr, "mpn_redc_2 = %.3f",
-           (double) tredc_2 * 1e3 / (double) iter);
-  if (tredc_2 == tredc_best)
-    fprintf (stderr, " *");
-  fprintf (stderr, "\n");
-#endif
-#ifdef HAVE___GMPN_REDC_N
-  if (redc_n_ok[N])
+  if (verbose)
     {
-      fprintf (stderr, "mpn_redc_n = %.3f",
-               (double) tredc_n * 1e3 / (double) iter);
-      if (tredc_n == tredc_best)
+      fprintf (stderr, "******************\n");
+      fprintf (stderr, "Time in microseconds per call, size=%lu (iter=%lu):\n",
+               N, iter);
+
+      /* basic operations */
+      fprintf (stderr, "mpn_mul_n  = %.3f\n",
+               (double) tmul * 1e3 / (double) iter);
+      fprintf (stderr, "mpn_sqr    = %.3f\n",
+               (double) tsqr * 1e3 / (double) iter);
+#ifdef HAVE___GMPN_REDC_1
+      fprintf (stderr, "mpn_redc_1 = %.3f",
+               (double) tredc_1 * 1e3 / (double) iter);
+      if (tredc_1 == tredc_best)
         fprintf (stderr, " *");
       fprintf (stderr, "\n");
-    }
+#endif
+#ifdef HAVE___GMPN_REDC_2
+      fprintf (stderr, "mpn_redc_2 = %.3f",
+               (double) tredc_2 * 1e3 / (double) iter);
+      if (tredc_2 == tredc_best)
+        fprintf (stderr, " *");
+      fprintf (stderr, "\n");
+#endif
+#ifdef HAVE___GMPN_REDC_N
+      if (redc_n_ok[N])
+        {
+          fprintf (stderr, "mpn_redc_n = %.3f",
+                   (double) tredc_n * 1e3 / (double) iter);
+          if (tredc_n == tredc_best)
+            fprintf (stderr, " *");
+          fprintf (stderr, "\n");
+        }
   else
     fprintf (stderr, "mpn_redc_n = disabled\n");
 #endif
 
-  fprintf (stderr, "\n");
+      fprintf (stderr, "\n");
 
   /* modular multiplication */
 #ifdef USE_ASM_REDC
-  fprintf (stderr, "mulredc    = %.3f",
-           (double) t2 * 1e3 / (double) iter);
-  if (tmul_best == t2)
-    fprintf (stderr, " *");
-  fprintf (stderr, "\n");
-#endif
-#ifdef HAVE___GMPN_REDC_1
-  fprintf (stderr, "mul+redc_1 = %.3f",
-           (double) t_mulredc_1 * 1e3 / (double) iter);
-  if (tmul_best == t_mulredc_1)
-    fprintf (stderr, " *");
-  fprintf (stderr, "\n");
-#endif
-#ifdef HAVE___GMPN_REDC_2
-  fprintf (stderr, "mul+redc_2 = %.3f",
-           (double) t_mulredc_2 * 1e3 / (double) iter);
-  if (tmul_best == t_mulredc_2)
-    fprintf (stderr, " *");
-  fprintf (stderr, "\n");
-#endif
-#ifdef HAVE___GMPN_REDC_N
-  if (redc_n_ok[N])
-    {
-      fprintf (stderr, "mul+redc_n = %.3f",
-               (double) t_mulredc_n * 1e3 / (double) iter);
-      if (tmul_best == t_mulredc_n)
+      fprintf (stderr, "mulredc    = %.3f",
+               (double) t2 * 1e3 / (double) iter);
+      if (tmul_best == t2)
         fprintf (stderr, " *");
       fprintf (stderr, "\n");
+#endif
+#ifdef HAVE___GMPN_REDC_1
+      fprintf (stderr, "mul+redc_1 = %.3f",
+               (double) t_mulredc_1 * 1e3 / (double) iter);
+      if (tmul_best == t_mulredc_1)
+        fprintf (stderr, " *");
+      fprintf (stderr, "\n");
+#endif
+#ifdef HAVE___GMPN_REDC_2
+      fprintf (stderr, "mul+redc_2 = %.3f",
+               (double) t_mulredc_2 * 1e3 / (double) iter);
+      if (tmul_best == t_mulredc_2)
+        fprintf (stderr, " *");
+      fprintf (stderr, "\n");
+#endif
+#ifdef HAVE___GMPN_REDC_N
+      if (redc_n_ok[N])
+        {
+          fprintf (stderr, "mul+redc_n = %.3f",
+                   (double) t_mulredc_n * 1e3 / (double) iter);
+          if (tmul_best == t_mulredc_n)
+            fprintf (stderr, " *");
+          fprintf (stderr, "\n");
     }
   else
     fprintf (stderr, "mul+redc_n = disabled\n");
 #endif
 
-  fprintf (stderr, "\n");
+      fprintf (stderr, "\n");
 
   /* modular squaring */
 #ifdef USE_ASM_REDC
-  fprintf (stderr, "mulredc    = %.3f",
-           (double) t2 * 1e3 / (double) iter);
-  if (tsqr_best == t2)
-    fprintf (stderr, " *");
-  fprintf (stderr, "\n");
-#endif
-#ifdef HAVE___GMPN_REDC_1
-  fprintf (stderr, "sqr+redc_1 = %.3f",
-           (double) t_sqrredc_1 * 1e3 / (double) iter);
-  if (tsqr_best == t_sqrredc_1)
-    fprintf (stderr, " *");
-  fprintf (stderr, "\n");
-#endif
-#ifdef HAVE___GMPN_REDC_2
-  fprintf (stderr, "sqr+redc_2 = %.3f",
-           (double) t_sqrredc_2 * 1e3 / (double) iter);
-  if (tsqr_best == t_sqrredc_2)
-    fprintf (stderr, " *");
-  fprintf (stderr, "\n");
-#endif
-#ifdef HAVE___GMPN_REDC_N
-  if (redc_n_ok[N])
-    {
-      fprintf (stderr, "sqr+redc_n = %.3f",
-               (double) t_sqrredc_n * 1e3 / (double) iter);
-      if (tsqr_best == t_sqrredc_n)
+      fprintf (stderr, "mulredc    = %.3f",
+               (double) t2 * 1e3 / (double) iter);
+      if (tsqr_best == t2)
         fprintf (stderr, " *");
       fprintf (stderr, "\n");
-    }
+#endif
+#ifdef HAVE___GMPN_REDC_1
+      fprintf (stderr, "sqr+redc_1 = %.3f",
+               (double) t_sqrredc_1 * 1e3 / (double) iter);
+      if (tsqr_best == t_sqrredc_1)
+        fprintf (stderr, " *");
+      fprintf (stderr, "\n");
+#endif
+#ifdef HAVE___GMPN_REDC_2
+      fprintf (stderr, "sqr+redc_2 = %.3f",
+               (double) t_sqrredc_2 * 1e3 / (double) iter);
+      if (tsqr_best == t_sqrredc_2)
+        fprintf (stderr, " *");
+      fprintf (stderr, "\n");
+#endif
+#ifdef HAVE___GMPN_REDC_N
+      if (redc_n_ok[N])
+        {
+          fprintf (stderr, "sqr+redc_n = %.3f",
+                   (double) t_sqrredc_n * 1e3 / (double) iter);
+          if (tsqr_best == t_sqrredc_n)
+            fprintf (stderr, " *");
+          fprintf (stderr, "\n");
+        }
   else
     fprintf (stderr, "sqr+redc_n = disabled\n");
 #endif
 
 #ifdef HAVE_NATIVE_MULREDC1_N
-  /* multiplication of n limbs by one limb */
-  fprintf (stderr, "mulredc1   = %.3f\n",
-           (double) t3 * 1e3 / (double) LOOPCOUNT);
+      /* multiplication of n limbs by one limb */
+      fprintf (stderr, "mulredc1   = %.3f\n",
+               (double) t3 * 1e3 / (double) LOOPCOUNT);
 #endif
-  fflush (stderr);
+      fflush (stderr);
+    }
   
   free (tmp);
   free (x);
@@ -722,10 +726,18 @@ void bench(mp_size_t N)
   free (invm);
 }
 
-int main(int argc, char** argv)
+int
+main (int argc, char** argv)
 {
   int i;
   int minsize = 1, maxsize = MAXSIZE;
+
+  if (argc >= 2 && strcmp (argv[1], "-v") == 0)
+    {
+      verbose = 1;
+      argc --;
+      argv ++;
+    }
 
   if (argc > 1)
     minsize = atoi (argv[1]);
