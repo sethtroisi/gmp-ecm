@@ -122,10 +122,11 @@ if WANT_GPU
 		$(LIBTOOL) --tag=CC --mode=compile $(NVCC) --compile $(NVCCFLAGS) $(CPPFLAGS) -o $@ $^ -static
 endif
 
-ecm-params:	tune$(EXEEXT)
+ecm-params:	bench_mulredc$(EXEEXT) tune$(EXEEXT)
 		@echo Optimising parameters for your system, please be patient.
 		test -z "ecm-params.h" || rm -f ecm-params.h
-		./tune > ecm-params.h
+		./bench_mulredc > ecm-params.h
+		./tune >> ecm-params.h
 
 check: ecm$(EXEEXT)
 	$(srcdir)/test.pp1 ./ecm$(EXEEXT)

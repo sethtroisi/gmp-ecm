@@ -611,28 +611,9 @@ factors, however.
 
 After configuring GMP-ECM, and "make", do:
 
-$ ./bench_mulredc # or bench_mulredc.exe under Windows
+$ make ecm-params
 
-This will output at the end two lines as follows:
-
-/* 0:mulredc 1:mul+redc_1 2:mul+redc_2 3:mul+redc_n */
-#define TUNE_MULREDC_TABLE {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0}
-/* 0:mulredc 1:sqr+redc_1 2:sqr+redc_2 3:sqr+redc_n */
-#define TUNE_SQRREDC_TABLE {0,0,0,0,0,0,0,0,1,1,3,1,1,3,1,1,1,1,2,1,2}
-
-Then put those lines in the params.h file indicated by ecm -printconfig,
-for example in x86_64/k8/params.h:
-
-$ ./ecm -printconfig
-...
-Tuning parameters from x86_64/k8/params.h
-
-Then do:
-
-$ ./tune
-
-and append the corresponding thresholds (#define ...) in the same params.h
-file.
+This will optimize parameters for your machine and put them in ecm-params.h.
 
 The ecm program automatically selects what it thinks is the best
 arithmetic for the given input number. If that choice is not optimal, you may 
@@ -654,11 +635,12 @@ will change the time spent in Step 2 and modify the memory used by Step 2
 (see the section "Memory usage").
 
 Optimal thresholds. The thresholds for the algorithms used in ecm are defined
-in ecm-params.h. Several ecm-params.h.* files are included in the distribution
-and the configure script will select one matching your machine if it exists. If
-there is no ecm-params.h.* for your machine then you can either compile with
-default values (not recommended) or you can generate ecm-params.h first with
-"make ecm-params; make".
+in ecm-params.h, which tries to select a good "params.h" file.
+Several params.h files are included in the distribution
+and the configure script will select one matching your machine if it exists
+(see the output of ecm -printconfig).
+If there is no params.h for your machine then see the section "How to get the
+best of GMP-ECM?" to generate one optimized for your machine.
 
 Stage 2 now uses Number-Theoretic Transforms (NTT) for polynomial arithmetic 
 by default for numbers of at most 30 machine words (NTT_SIZE_THRESHOLD in

@@ -64,12 +64,7 @@ To make a new release:
      Check "make longcheck" works (this uses valgrind).
      Check that configure works outside the source directory.
      Check the default tuning files */params.h (and */*/params.h, see the main
-     file ecm-params.h) on different platforms:
-       a) run "make bench_mulredc; ./bench_mulredc"
-       b) put the last 4 lines in the corresponding */params.h file
-          (see "Tuned for ..." with ecm -printconfig)
-       c) rune "make tune; ./tune"
-       d) put the corresponding thresholds in the */params.h file
+     file ecm-params.h) on different platforms with "make ecm-params"
      Compare the efficiency wrt the previous release with "./ecm 1e6 < c270"
      and "./ecmbench ./ecm".
   1) Check the version (configure.ac and build.vc*/config.h).
