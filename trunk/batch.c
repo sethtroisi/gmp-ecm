@@ -1,6 +1,6 @@
 /* batch.c - Implement batch mode for step 1 of ECM
  
-Copyright 2011, 2012 Cyril Bouvier, Paul Zimmermann and David Cleaver.
+Copyright 2011, 2012, 2016 Cyril Bouvier, Paul Zimmermann and David Cleaver.
  
 This file is part of the ECM Library.
 
@@ -35,11 +35,11 @@ http://www.gnu.org/licenses/ or write to the Free Software Foundation, Inc.,
 
 #define MAX_HEIGHT 32
 
-#if ULONG_MAX == 4294967295
+#if ECM_UINT_MAX == 4294967295
 #define MAX_B1_BATCH 2977044736UL
 #else
 /* nth_prime(2^(MAX_HEIGHT-1)) */
-#define MAX_B1_BATCH 50685770167UL
+#define MAX_B1_BATCH 50685770167ULL
 #endif
 
 /* If forbiddenres != NULL, forbiddenres = "m r_1 ... r_k -1" indicating that
@@ -48,11 +48,12 @@ http://www.gnu.org/licenses/ or write to the Free Software Foundation, Inc.,
    Typical example: "4 3 -1" for curves Y^2 = X^3 + a * X.
 */
 void
-compute_s (mpz_t s, unsigned long B1, int *forbiddenres ATTRIBUTE_UNUSED)
+compute_s (mpz_t s, ecm_uint B1, int *forbiddenres ATTRIBUTE_UNUSED)
 {
   mpz_t acc[MAX_HEIGHT]; /* To accumulate products of prime powers */
+  mpz_t ppz;
   unsigned int i, j;
-  unsigned long pi = 2, pp, maxpp, qi;
+  ecm_uint pi = 2, pp, maxpp, qi;
   prime_info_t prime_info;
 
   prime_info_init (prime_info);
@@ -61,6 +62,7 @@ compute_s (mpz_t s, unsigned long B1, int *forbiddenres ATTRIBUTE_UNUSED)
 
   for (j = 0; j < MAX_HEIGHT; j++)
     mpz_init (acc[j]); /* sets acc[j] to 0 */
+  mpz_init (ppz);
 
   i = 0;
   while (pi <= B1)
@@ -91,10 +93,16 @@ compute_s (mpz_t s, unsigned long B1, int *forbiddenres ATTRIBUTE_UNUSED)
       while (pp <= maxpp)
           pp *= qi;
 
+#if ECM_UINT_MAX == 4294967295
+          mpz_set_ui (ppz, pp);
+#else
+          mpz_set_uint64 (ppz, pp);
+#endif
+
       if ((i & 1) == 0)
-          mpz_set_ui (acc[0], pp);
+          mpz_set (acc[0], ppz);
       else
-          mpz_mul_ui (acc[0], acc[0], pp);
+          mpz_mul (acc[0], acc[0], ppz);
 			
       j = 0;
       /* We have accumulated i+1 products so far. If bits 0..j of i are all
@@ -124,6 +132,7 @@ compute_s (mpz_t s, unsigned long B1, int *forbiddenres ATTRIBUTE_UNUSED)
   
   for (i = 0; i < MAX_HEIGHT; i++)
       mpz_clear (acc[i]);
+  mpz_clear (ppz);
 }
 
 #if 0
