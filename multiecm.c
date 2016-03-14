@@ -1271,9 +1271,9 @@ main(int argc, char *argv[])
 #endif
 #if MULTI_USE_ADD_SUB
     if(torsion != NULL || useX1)
-	compute_s_4_add_sub(params->batch_s, (unsigned long)B1, 0);
+	compute_s_4_add_sub(params->batch_s, (ecm_uint)B1, 0);
     else
-	compute_s_4_add_sub(params->batch_s, (unsigned long)B1, disc);
+	compute_s_4_add_sub(params->batch_s, (ecm_uint)B1, disc);
 #endif
     while(fscanf(infile, "%s", buf) != EOF){
 	/* read number */

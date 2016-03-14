@@ -2137,7 +2137,7 @@ compute_forbidden_res(int disc)
    w, iS, S.
 */
 int
-compute_s_4_add_sub(mpz_t s, unsigned long B1, int disc)
+compute_s_4_add_sub(mpz_t s, ecm_uint B1, int disc)
 {
     mpz_t t;
     long tp;
