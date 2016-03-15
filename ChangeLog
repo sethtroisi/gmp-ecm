@@ -1,4 +1,558 @@
 ------------------------------------------------------------------------
+r2899 | dcleaver | 2016-03-14 21:06:59 +0100 (Mon, 14 Mar 2016) | 1 line
+Changed paths:
+   M /trunk/addlaws.c
+   M /trunk/addlaws.h
+   M /trunk/batch.c
+   M /trunk/ecm-impl.h
+   M /trunk/multiecm.c
+
+Update compute_s to use ecm_uint to allow Win64 to use B1 as large as Linux64 in batch mode.
+------------------------------------------------------------------------
+r2898 | zimmerma | 2016-03-11 11:04:41 +0100 (Fri, 11 Mar 2016) | 2 lines
+Changed paths:
+   M /trunk/Makefile.am
+   M /trunk/README
+   M /trunk/README.dev
+   M /trunk/bench_mulredc.c
+
+simplified tuning process
+
+------------------------------------------------------------------------
+r2897 | brian_gladman | 2016-03-09 15:25:48 +0100 (Wed, 09 Mar 2016) | 1 line
+Changed paths:
+   M /trunk/build.vc12/ecm_gpu/ecm_gpu.vcxproj
+   M /trunk/build.vc12/ecm_gpu/ecm_gpu.vcxproj.filters
+
+remove no longer needed object file in Visual Studio GPU build
+------------------------------------------------------------------------
+r2896 | zimmerma | 2016-03-09 13:54:23 +0100 (Wed, 09 Mar 2016) | 3 lines
+Changed paths:
+   M /trunk/Makefile.am
+   M /trunk/test.ecm
+   M /trunk/test.pm1
+   M /trunk/test.pp1
+   M /trunk/testlong.ecm
+
+embed all files used for tests in the scripts, so that the scripts can be
+called from anywhere
+
+------------------------------------------------------------------------
+r2895 | brian_gladman | 2016-03-09 13:12:21 +0100 (Wed, 09 Mar 2016) | 1 line
+Changed paths:
+   M /trunk/build.vc12/libecm/libecm.vcxproj
+   M /trunk/build.vc12/libecm_gpu/libecm_gpu.vcxproj
+
+Remove addlaws.c, torsion.c and listz_handle.c from Visual Studio builds 
+------------------------------------------------------------------------
+r2894 | zimmerma | 2016-03-09 12:57:38 +0100 (Wed, 09 Mar 2016) | 2 lines
+Changed paths:
+   M /trunk/test.pp1
+
+create c155 if not present (since test.pp1 can be called from another place)
+
+------------------------------------------------------------------------
+r2893 | zimmerma | 2016-03-09 12:43:24 +0100 (Wed, 09 Mar 2016) | 2 lines
+Changed paths:
+   M /trunk/Makefile.am
+
+removed torsions.h from header list (unused for now)
+
+------------------------------------------------------------------------
+r2892 | zimmerma | 2016-03-09 11:29:42 +0100 (Wed, 09 Mar 2016) | 2 lines
+Changed paths:
+   M /trunk/build.vc12/ecm_gpu/Makefile.am
+   M /trunk/configure.ac
+
+added missing AC_CONFIG_FILES for build.vc12
+
+------------------------------------------------------------------------
+r2891 | zimmerma | 2016-03-09 11:20:38 +0100 (Wed, 09 Mar 2016) | 2 lines
+Changed paths:
+   M /trunk/README.dev
+
+added item about version-info
+
+------------------------------------------------------------------------
+r2890 | zimmerma | 2016-03-09 11:18:37 +0100 (Wed, 09 Mar 2016) | 3 lines
+Changed paths:
+   M /trunk/Makefile.am
+
+increased version-info to 1.0.0
+(http://trac.sagemath.org/ticket/14151#comment:47)
+
+------------------------------------------------------------------------
+r2889 | brian_gladman | 2016-03-09 11:15:17 +0100 (Wed, 09 Mar 2016) | 1 line
+Changed paths:
+   A /trunk/build.vc12/libecm_gpu/libecm_gpu.vcxproj.filters
+
+add another missing filter file
+------------------------------------------------------------------------
+r2888 | zimmerma | 2016-03-09 11:02:52 +0100 (Wed, 09 Mar 2016) | 2 lines
+Changed paths:
+   M /trunk/Makefile.am
+
+added cudakernel_default.cu and test.gpuecm in EXTRA_DIST
+
+------------------------------------------------------------------------
+r2887 | brian_gladman | 2016-03-09 10:52:22 +0100 (Wed, 09 Mar 2016) | 1 line
+Changed paths:
+   D /trunk/build.vc12/ecm_gpu/ecm.vcxproj.filters
+   A /trunk/build.vc12/ecm_gpu/ecm_gpu.vcxproj.filters
+
+delete old filter file; add correct one
+------------------------------------------------------------------------
+r2886 | brian_gladman | 2016-03-09 10:14:33 +0100 (Wed, 09 Mar 2016) | 1 line
+Changed paths:
+   A /trunk/build.vc12/assembler/a_win32a_mulredc.asm
+
+add missing win32 assembler file to the Visual Studio build
+------------------------------------------------------------------------
+r2885 | zimmerma | 2016-03-09 09:45:33 +0100 (Wed, 09 Mar 2016) | 2 lines
+Changed paths:
+   M /trunk/configure.ac
+
+added missing build.vc12/Makefile
+
+------------------------------------------------------------------------
+r2884 | zimmerma | 2016-03-09 09:29:42 +0100 (Wed, 09 Mar 2016) | 3 lines
+Changed paths:
+   M /trunk/Makefile.am
+   M /trunk/configure.ac
+
+added build.vc12 in DIST_SUBDIRS
+bumped version to 7.0-rc3
+
+------------------------------------------------------------------------
+r2883 | zimmerma | 2016-03-08 17:48:03 +0100 (Tue, 08 Mar 2016) | 2 lines
+Changed paths:
+   M /trunk/README
+
+modified "How to get the best..."
+
+------------------------------------------------------------------------
+r2882 | zimmerma | 2016-03-08 14:02:57 +0100 (Tue, 08 Mar 2016) | 3 lines
+Changed paths:
+   D /trunk/build.vc11
+
+removed build.vc11 (initially removed in revision 2864, accidentally added
+back in revision 2875)
+
+------------------------------------------------------------------------
+r2881 | zimmerma | 2016-03-08 13:53:06 +0100 (Tue, 08 Mar 2016) | 3 lines
+Changed paths:
+   M /trunk/x86_64/core2/params.h
+   M /trunk/x86_64/corei7/params.h
+
+
+tuned parameters for core2 and corei7
+
+------------------------------------------------------------------------
+r2880 | zimmerma | 2016-03-08 13:30:52 +0100 (Tue, 08 Mar 2016) | 2 lines
+Changed paths:
+   M /trunk/main.c
+   M /trunk/memusage.c
+
+fixed for PeakMemusage() which does not work on Mac OS X
+
+------------------------------------------------------------------------
+r2879 | zimmerma | 2016-03-08 13:25:49 +0100 (Tue, 08 Mar 2016) | 2 lines
+Changed paths:
+   M /trunk/Makefile.am
+
+fixed bug on MacOS X (https://gforge.inria.fr/tracker/?func=detail&aid=19425&group_id=135&atid=623)
+
+------------------------------------------------------------------------
+r2878 | zimmerma | 2016-03-08 13:09:00 +0100 (Tue, 08 Mar 2016) | 2 lines
+Changed paths:
+   M /trunk/configure.ac
+   M /trunk/mpzspv.c
+
+fixed compiler warning (reported by clang)
+
+------------------------------------------------------------------------
+r2877 | zimmerma | 2016-03-08 13:04:16 +0100 (Tue, 08 Mar 2016) | 2 lines
+Changed paths:
+   M /trunk/spv.c
+
+fixed compiler warning (detected by clang)
+
+------------------------------------------------------------------------
+r2876 | zimmerma | 2016-03-08 11:45:06 +0100 (Tue, 08 Mar 2016) | 2 lines
+Changed paths:
+   M /trunk/test.gpuecm
+
+fixed sigma value in test
+
+------------------------------------------------------------------------
+r2875 | zimmerma | 2016-03-08 10:30:55 +0100 (Tue, 08 Mar 2016) | 3 lines
+Changed paths:
+   A /trunk/build.vc11 (from /trunk/build.vc11:2855)
+   M /trunk/cudawrapper.c
+   M /trunk/ecm-gpu.h
+   M /trunk/factor.c
+
+fixed stupid error in previous commit
+removed unused parameter 'x' in gpu_ecm
+
+------------------------------------------------------------------------
+r2874 | zimmerma | 2016-03-08 09:12:08 +0100 (Tue, 08 Mar 2016) | 2 lines
+Changed paths:
+   M /trunk/cudawrapper.c
+
+more changes to cudawrapper.c
+
+------------------------------------------------------------------------
+r2873 | dcleaver | 2016-03-08 03:29:33 +0100 (Tue, 08 Mar 2016) | 1 line
+Changed paths:
+   M /trunk/test.gpuecm
+
+Add gpu tests to demonstrate finding multiple factors in Step 1 and in Step 2.  Switch to shorter test for error patched in r2867.
+------------------------------------------------------------------------
+r2872 | dcleaver | 2016-03-08 01:16:33 +0100 (Tue, 08 Mar 2016) | 1 line
+Changed paths:
+   M /trunk/cudawrapper.c
+
+Updated cudawrapper so that when running Step 2, all curves will be checked for factors, and not quit once one factor is found.  Also print more info, ie curve number and sigma value, for factors found with cuda.
+------------------------------------------------------------------------
+r2871 | bouvierc | 2016-03-07 18:19:34 +0100 (Mon, 07 Mar 2016) | 2 lines
+Changed paths:
+   M /trunk/cudawrapper.c
+
+add comments and remove useless code in cudawrapper.c
+
+------------------------------------------------------------------------
+r2870 | zimmerma | 2016-03-07 17:27:23 +0100 (Mon, 07 Mar 2016) | 2 lines
+Changed paths:
+   M /trunk/test.gpuecm
+
+fixed wrong return code in test
+
+------------------------------------------------------------------------
+r2869 | bouvierc | 2016-03-07 15:23:24 +0100 (Mon, 07 Mar 2016) | 2 lines
+Changed paths:
+   M /trunk/acinclude.m4
+
+In acinclude.m4, rpath the cuda_lib if specified with --with-cuda-lib for tests
+
+------------------------------------------------------------------------
+r2868 | zimmerma | 2016-03-07 12:06:26 +0100 (Mon, 07 Mar 2016) | 2 lines
+Changed paths:
+   M /trunk/test.gpuecm
+
+added new test-case
+
+------------------------------------------------------------------------
+r2867 | zimmerma | 2016-03-07 11:52:16 +0100 (Mon, 07 Mar 2016) | 2 lines
+Changed paths:
+   M /trunk/cudawrapper.c
+
+fix for error reported by Paul Leyland and confirmed by David Cleaver
+
+------------------------------------------------------------------------
+r2866 | zimmerma | 2016-03-07 11:16:30 +0100 (Mon, 07 Mar 2016) | 2 lines
+Changed paths:
+   M /trunk/cudawrapper.c
+
+simplified code
+
+------------------------------------------------------------------------
+r2865 | zimmerma | 2016-03-07 10:51:07 +0100 (Mon, 07 Mar 2016) | 2 lines
+Changed paths:
+   M /trunk/cudakernel.cu
+
+fixed typo
+
+------------------------------------------------------------------------
+r2864 | brian_gladman | 2016-03-06 13:22:50 +0100 (Sun, 06 Mar 2016) | 2 lines
+Changed paths:
+   M /trunk
+
+remove Visual Studio 2012 build
+update Visual Studio 2013 build
+------------------------------------------------------------------------
+r2863 | dcleaver | 2016-03-05 18:14:45 +0100 (Sat, 05 Mar 2016) | 1 line
+Changed paths:
+   M /trunk/acinclude.m4
+   M /trunk/cudawrapper.c
+   M /trunk/main.c
+
+Added default cuda location when only specifying --enable-gpu in configure, add rpath to configure test case, correct Mb to MB in main.c
+------------------------------------------------------------------------
+r2862 | bouvierc | 2016-03-03 14:05:30 +0100 (Thu, 03 Mar 2016) | 2 lines
+Changed paths:
+   M /trunk/acinclude.m4
+
+Remove empty 'else' in acinclude.m4
+
+------------------------------------------------------------------------
+r2861 | zimmerma | 2016-03-03 09:41:19 +0100 (Thu, 03 Mar 2016) | 2 lines
+Changed paths:
+   M /trunk/README.gpu
+
+modified according to feedback from Paul Leyland
+
+------------------------------------------------------------------------
+r2860 | brian_gladman | 2016-03-02 20:05:07 +0100 (Wed, 02 Mar 2016) | 2 lines
+Changed paths:
+   D /trunk/build.vc11
+   M /trunk/build.vc12/ecm/ecm.vcxproj
+   M /trunk/build.vc12/ecm/ecm.vcxproj.filters
+   M /trunk/build.vc12/ecm_gpu/ecm_gpu.vcxproj
+   M /trunk/build.vc12/libecm/libecm.vcxproj
+   M /trunk/build.vc12/libecm/libecm.vcxproj.filters
+   M /trunk/build.vc12/libecm_gpu/libecm_gpu.vcxproj
+   M /trunk/build.vc12/tests.py
+
+remove Visual Studio 2012 build
+update Visual Studio 2013 build
+------------------------------------------------------------------------
+r2859 | bouvierc | 2016-03-02 17:30:11 +0100 (Wed, 02 Mar 2016) | 2 lines
+Changed paths:
+   M /trunk/test.gpuecm
+
+remove tests for GPU (coverage was not improved)
+
+------------------------------------------------------------------------
+r2858 | zimmerma | 2016-03-02 17:19:50 +0100 (Wed, 02 Mar 2016) | 2 lines
+Changed paths:
+   A /trunk/coverage_gpu.sh
+
+coverage test for GPU-ECM
+
+------------------------------------------------------------------------
+r2857 | bouvierc | 2016-03-02 15:06:29 +0100 (Wed, 02 Mar 2016) | 2 lines
+Changed paths:
+   M /trunk/test.gpuecm
+
+Try to improve coverage for GPU code
+
+------------------------------------------------------------------------
+r2856 | zimmerma | 2016-03-02 14:58:40 +0100 (Wed, 02 Mar 2016) | 2 lines
+Changed paths:
+   M /trunk/README.dev
+
+fixed typo
+
+------------------------------------------------------------------------
+r2855 | zimmerma | 2016-03-02 14:08:00 +0100 (Wed, 02 Mar 2016) | 2 lines
+Changed paths:
+   M /trunk/parametrizations.c
+
+typo
+
+------------------------------------------------------------------------
+r2854 | bouvierc | 2016-03-02 13:56:37 +0100 (Wed, 02 Mar 2016) | 2 lines
+Changed paths:
+   M /trunk/cudakernel.cu
+
+GPU code: more info on limits on number of blocks + more info on kernel
+
+------------------------------------------------------------------------
+r2853 | zimmerma | 2016-03-02 13:48:29 +0100 (Wed, 02 Mar 2016) | 2 lines
+Changed paths:
+   A /trunk/check.sage
+
+Sage program to check primes which are (B1,B2)-smooth are found
+
+------------------------------------------------------------------------
+r2852 | zimmerma | 2016-03-02 13:47:48 +0100 (Wed, 02 Mar 2016) | 2 lines
+Changed paths:
+   A /trunk/checkprob
+
+program to check expected number of curves to find a given prime
+
+------------------------------------------------------------------------
+r2851 | zimmerma | 2016-03-02 13:47:18 +0100 (Wed, 02 Mar 2016) | 2 lines
+Changed paths:
+   M /trunk/README.dev
+
+added item to check factors are really found (with expected probability)
+
+------------------------------------------------------------------------
+r2850 | zimmerma | 2016-03-02 13:20:03 +0100 (Wed, 02 Mar 2016) | 2 lines
+Changed paths:
+   M /trunk/README
+
+fixed parametrizations for param=1 and 3
+
+------------------------------------------------------------------------
+r2849 | bouvierc | 2016-03-02 12:31:17 +0100 (Wed, 02 Mar 2016) | 2 lines
+Changed paths:
+   M /trunk/README.gpu
+
+Update README.gpu
+
+------------------------------------------------------------------------
+r2848 | bouvierc | 2016-03-02 11:36:37 +0100 (Wed, 02 Mar 2016) | 10 lines
+Changed paths:
+   M /trunk/Makefile.am
+   M /trunk/acinclude.m4
+   M /trunk/configure.ac
+   M /trunk/cudakernel.cu
+   M /trunk/cudakernel.h
+   M /trunk/cudawrapper.c
+   M /trunk/ecm-gpu.h
+   M /trunk/main.c
+   M /trunk/test.gpuecm
+
+More robust configure script for GPU code.
+
+Can pass to configure --with-cuda-lib (for a directory with the CUDA library),
+--with-cuda-include (for a directory with cuda.h), --with-cuda-bin (for a
+directory with nvcc) and --with-cuda-compiler for a directory with a compiler
+compatible with nvcc (for old version of nvcc that did not supported the newest
+versions of gcc/g++)
+Generate code for all compute capability known to nvcc and the choice is done at
+runtime.
+
+------------------------------------------------------------------------
+r2847 | zimmerma | 2016-03-01 16:00:22 +0100 (Tue, 01 Mar 2016) | 2 lines
+Changed paths:
+   M /trunk/cudawrapper.c
+
+improved comments and style
+
+------------------------------------------------------------------------
+r2846 | zimmerma | 2016-02-29 15:11:12 +0100 (Mon, 29 Feb 2016) | 2 lines
+Changed paths:
+   M /trunk/cudawrapper.c
+   M /trunk/test.gpuecm
+
+improve GPU coverage
+
+------------------------------------------------------------------------
+r2845 | zimmerma | 2016-02-29 14:07:51 +0100 (Mon, 29 Feb 2016) | 2 lines
+Changed paths:
+   M /trunk/cudawrapper.c
+   M /trunk/test.gpuecm
+
+improved coverage of GPU code
+
+------------------------------------------------------------------------
+r2844 | zimmerma | 2016-02-29 11:25:09 +0100 (Mon, 29 Feb 2016) | 2 lines
+Changed paths:
+   M /trunk/cudawrapper.c
+
+avoid compiler warning for unused parameters
+
+------------------------------------------------------------------------
+r2843 | zimmerma | 2016-02-29 09:45:55 +0100 (Mon, 29 Feb 2016) | 2 lines
+Changed paths:
+   M /trunk/README.dev
+
+no need to check config.guess any more
+
+------------------------------------------------------------------------
+r2842 | zimmerma | 2016-02-29 09:17:33 +0100 (Mon, 29 Feb 2016) | 2 lines
+Changed paths:
+   M /trunk/Makefile.am
+
+forgot prime95.save in EXTRA_DIST
+
+------------------------------------------------------------------------
+r2841 | dcleaver | 2016-02-29 01:28:24 +0100 (Mon, 29 Feb 2016) | 1 line
+Changed paths:
+   M /trunk/bench_mulredc.c
+   M /trunk/main.c
+   M /trunk/parametrizations.c
+
+Use correct ASSERT (not assert), and protect ECM_TUNE_CASE
+------------------------------------------------------------------------
+r2840 | zimmerma | 2016-02-27 20:11:56 +0100 (Sat, 27 Feb 2016) | 2 lines
+Changed paths:
+   M /trunk/Makefile.am
+   M /trunk/random.c
+
+random.c is now only in the ECM library
+
+------------------------------------------------------------------------
+r2839 | dcleaver | 2016-02-27 17:21:30 +0100 (Sat, 27 Feb 2016) | 1 line
+Changed paths:
+   M /trunk/Makefile.am
+   M /trunk/acinclude.m4
+   M /trunk/configure.ac
+   M /trunk/cudakernel.cu
+   M /trunk/cudakernel.h
+   M /trunk/cudawrapper.c
+   M /trunk/ecm-impl.h
+   A /trunk/ecm_int.h
+   M /trunk/getprime_r.h
+   M /trunk/main.c
+
+Fixed missing mpz_init in cudawrapper. Removed NVCC_VERSION. Moved ecm_int types to their own file. Corrected some coding style.
+------------------------------------------------------------------------
+r2838 | zimmerma | 2016-02-27 13:58:00 +0100 (Sat, 27 Feb 2016) | 2 lines
+Changed paths:
+   M /trunk/getprime_r.c
+
+made C89-compliant
+
+------------------------------------------------------------------------
+r2837 | zimmerma | 2016-02-27 08:15:37 +0100 (Sat, 27 Feb 2016) | 2 lines
+Changed paths:
+   M /trunk/NEWS
+
+NEWS: added "improved coverage"
+
+------------------------------------------------------------------------
+r2836 | zimmerma | 2016-02-27 08:14:25 +0100 (Sat, 27 Feb 2016) | 2 lines
+Changed paths:
+   M /trunk/multiecm.c
+
+fixed prime_info_clear() call [reported by Brian Gladman]
+
+------------------------------------------------------------------------
+r2835 | zimmerma | 2016-02-26 11:44:08 +0100 (Fri, 26 Feb 2016) | 2 lines
+Changed paths:
+   M /trunk/Makefile.am
+
+c155 should be distributed since used in tests
+
+------------------------------------------------------------------------
+r2834 | zimmerma | 2016-02-26 11:37:51 +0100 (Fri, 26 Feb 2016) | 2 lines
+Changed paths:
+   M /trunk/champions.h
+
+updated minimum size (72 digits) to enter ECM top ten
+
+------------------------------------------------------------------------
+r2833 | zimmerma | 2016-02-26 11:36:37 +0100 (Fri, 26 Feb 2016) | 2 lines
+Changed paths:
+   M /trunk/ChangeLog
+
+updated ChangeLog
+
+------------------------------------------------------------------------
+r2832 | zimmerma | 2016-02-26 11:35:01 +0100 (Fri, 26 Feb 2016) | 2 lines
+Changed paths:
+   M /trunk/INSTALL-ecm
+
+updated
+
+------------------------------------------------------------------------
+r2831 | zimmerma | 2016-02-26 11:28:10 +0100 (Fri, 26 Feb 2016) | 2 lines
+Changed paths:
+   M /trunk/README.dev
+
+the test number is now c270
+
+------------------------------------------------------------------------
+r2830 | zimmerma | 2016-02-26 11:25:03 +0100 (Fri, 26 Feb 2016) | 2 lines
+Changed paths:
+   M /trunk/NEWS
+   M /trunk/README.dev
+
+updated NEWS
+
+------------------------------------------------------------------------
+r2829 | zimmerma | 2016-02-26 10:35:57 +0100 (Fri, 26 Feb 2016) | 2 lines
+Changed paths:
+   M /trunk/candi.c
+
+invalid inputs are now trapped by eval_str()
+
+------------------------------------------------------------------------
 r2828 | zimmerma | 2016-02-26 09:37:48 +0100 (Fri, 26 Feb 2016) | 2 lines
 Changed paths:
    M /trunk/test.ecm
