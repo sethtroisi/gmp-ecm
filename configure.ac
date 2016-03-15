@@ -1,4 +1,4 @@
-m4_define([ECM_VERSION_AC], [7.0])
+m4_define([ECM_VERSION_AC], [7.0.1-dev])
 
 AC_PREREQ([2.57])
 AC_INIT([ecm], ECM_VERSION_AC, [ecm-discuss@lists.gforge.inria.fr])

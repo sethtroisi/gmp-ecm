@@ -67,7 +67,7 @@ To make a new release:
      file ecm-params.h) on different platforms with "make ecm-params"
      Compare the efficiency wrt the previous release with "./ecm 1e6 < c270"
      and "./ecmbench ./ecm".
-  1) Check the version (configure.ac and build.vc*/config.h).
+  1) Check the version (configure.ac and build.vc*/gen_ecm_h.bat).
      Switch assertions to off by default in configure.ac.
   2) Update the NEWS file, and check the INSTALL-ecm file is up-to-date
      (in particular the versions of GMP and GMP-ECM).
