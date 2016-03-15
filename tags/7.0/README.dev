@@ -1,0 +1,108 @@
+To use the autotools:
+
+$ aclocal
+$ automake -c -a
+$ autoconf
+$ ./configure --with-gmp=<directory_where_gmp_is_installed>
+$ make
+$ make check
+
+Alternatively, you can simply type:
+
+$ autoreconf -i
+$ ./configure --with-gmp=<directory_where_gmp_is_installed>
+$ make
+$ make check
+
+Warning: only configure.ac and Makefile.am should be in cvs
+	(the other files are automatically generated)
+
+##############################################################################
+
+Documentation:
+
+- ecm.xml was generated from ecm.1 using doclifter-2.1
+  ./doclifter < ecm.1 > ecm.xml
+  (http://en.tldp.org/HOWTO/DocBook-Demystification-HOWTO/x181.html
+   http://www.catb.org/~esr//doclifter/)
+  See the documentation of ROX-Filer (http://rox.sf.net/) for example
+	(see rox/ROX-Filer/src/Docs/Manual.xml).
+
+- to generate ecm.html:
+  $ xsltproc -o ecm.html $XSLDIR/html/docbook.xsl ecm.xml
+  where XSLDIR is the directory where docbook stylesheets are installed
+  (e.g. /usr/share/sgml/docbook/xsl-stylesheets-1.65.1-1)
+
+- to generate man format:
+  $ xsltproc -o ecm.1 $XSLDIR/manpages/docbook.xsl ecm.xml
+  (or "xmlto man ecm.xml")
+
+- to generate pdf:
+  $ xmlto pdf ecm.xml
+
+Note: we currently keep ecm.1 in the repository, even though it is a 
+generated file and not a source. This is to avoid having a dependency
+on xsltproc and docbook in every build; these tools are not usually
+installed by default in distributions. It does not seem to be possible
+to set up the Makefile so ecm.1 is required only for "make install" and
+"make dist". We need to list ecm.1 in one of the automake _MANS primaries 
+to get it installed in the proper man page directory, and when it is 
+listed in any _MANS primary, it is automatically added to the "am-all" 
+target which is processed by "make" or "make all".
+
+##############################################################################
+
+To make a new release:
+
+  0) Check all tests pass (test.ecm, test.pm1, test.pp1,
+                           testlong.ecm, testlong.pm1, testlong.pp1),
+     with or without NTT (./test.ecm "./ecm -no-ntt"),
+     with or without --enable-openmp,
+     check the issues in TODO, and for bugs/patches on ecm.gforge.inria.fr.
+     Check no compiler warnings remain (with and without assertions),
+        if possible with different compilers (gcc, clang, llvm-gcc, ...)
+     Check "make longcheck" works (this uses valgrind).
+     Check that configure works outside the source directory.
+     Check the default tuning files */params.h (and */*/params.h, see the main
+     file ecm-params.h) on different platforms with "make ecm-params"
+     Compare the efficiency wrt the previous release with "./ecm 1e6 < c270"
+     and "./ecmbench ./ecm".
+  1) Check the version (configure.ac and build.vc*/config.h).
+     Switch assertions to off by default in configure.ac.
+  2) Update the NEWS file, and check the INSTALL-ecm file is up-to-date
+     (in particular the versions of GMP and GMP-ECM).
+  3) Update the ChangeLog file, e.g. svn -v log > /tmp/ChangeLog and edit
+     ChangeLog to insert /tmp/ChangeLog at the beginning and remove
+     the duplicated lines.
+  4) Check the required sizes of P-1, P+1, ECM champions in champions.h.
+  5) Generate the release version with "make dist".
+  6) Test the release version with "make distcheck" (in particular, check
+     the man page is correctly installed). You might need to redefine
+     LD_LIBRARY_PATH so that the system libgmp is used.
+  7) Check the man page (ecm.1) is up to date.
+     Update version-info in Makefile.am if needed.
+  8) Check factors are really found using the checkprob and check.sage
+     programs, for example to estimate the average number of curves to find
+     a 20-digit prime with B1=11000 and -param 1:
+     $ ./checkprob "./ecm -param 1" 31622776601683800097 11000
+     $ ./checkprob "./ecm -param 0" 3162277660168380112437259 50000 # 25d
+     and with check.sage, the following command checks the ./ecm binary
+     for all parametrizations (-param 0-3), with B1=11000 and B2=1873422,
+     and all sigma values < 1000, and checks the prime 31622776601683800097
+     is found when it should be (i.e., when the group order is (B1,B2)-smooth):
+     check_found_all ("./ecm", 31622776601683800097, 11000, 1873422, 1000)
+  9) If there is no problem, add a tag to the svn version corresponding to the
+     release, for example:
+     $ svn cp . svn+ssh://<login>@scm.gforge.inria.fr/svn/ecm/tags/6.2
+     or more detailed:
+     $ svn cp -r1307 svn+ssh://<login>@scm.gforge.inria.fr/svn/ecm/trunk \
+             svn+ssh://<login>@scm.gforge.inria.fr/svn/ecm/tags/6.2.1 \
+             -m "Tagging r1307 as version 6.2.1"
+
+     Version 6.2 is r1290, 6.2.1 is r1307, 6.3 is r1501, 6.4 is r1672,
+     6.4.1 is r1844, 6.4.2 is r1882, 6.4.3 is r2100, 6.4.4 is r2439.
+
+To see the differences between a given tag and the current version:
+
+$ svn diff --old=svn+ssh://<login>@scm.gforge.inria.fr/svn/ecm/tags/6.2.1 \
+           --new=svn+ssh://<login>@scm.gforge.inria.fr/svn/ecm/trunk

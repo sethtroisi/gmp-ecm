@@ -1,0 +1,19 @@
+#!/bin/csh
+set ECM=$1
+echo Benchmark of $ECM
+@ n = 1
+/bin/rm -f ecmbench.data
+while ("$n" != "26")
+   set t0=`echo "3*2^(64*$n-2)-1" | $ECM -sigma 6 1e6 1 |& grep "Step 1" | sed 's/Step 1 took//g' | sed 's/ms//g'`
+   set t1=`echo "3*2^(64*$n-2)-1" | $ECM -modmuln -sigma 6 1e6 1 |& grep "Step 1" | sed 's/Step 1 took//g' | sed 's/ms//g'`
+   set t2=`echo "3*2^(64*$n-2)-1" | $ECM -mpzmod -sigma 6 1e6 1 |& grep "Step 1" | sed 's/Step 1 took//g' | sed 's/ms//g'`
+   set t3=`echo "3*2^(64*$n-2)-1" | $ECM -redc -sigma 6 1e6 1 |& grep "Step 1" | sed 's/Step 1 took//g' | sed 's/ms//g'`
+   echo $n " " $t0 " " $t1 " " $t2 " " $t3 >> ecmbench.data
+   @ n = $n + 1
+end
+gnuplot -persist <<EOF
+plot "ecmbench.data" using 1:2 title "default" with linespoints, \
+     "ecmbench.data" using 1:3 title "modmuln" with linespoints, \
+     "ecmbench.data" using 1:4 title "mpzmod" with linespoints, \
+     "ecmbench.data" using 1:5 title "redc" with linespoints
+EOF
