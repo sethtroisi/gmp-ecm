@@ -1147,7 +1147,7 @@ ecm (mpz_t f, mpz_t x, mpz_t y, int *param, mpz_t sigma, mpz_t n, mpz_t go,
 
   /* In batch mode, 
         we force repr=MODMULN, 
-        B1done should either the default value or greater than B1 
+        B1done should be either the default value or greater than B1 
         x should be either 0 (undetermined) or 2 */
   if (IS_BATCH_MODE(*param))
     {
