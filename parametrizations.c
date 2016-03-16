@@ -465,14 +465,13 @@ get_curve_from_random_parameter (mpz_t f, mpres_t A, mpres_t x, mpz_t sigma,
 }
 
 int 
-get_default_param (int sigma_is_A, mpz_t sigma, double B1done)
+get_default_param (int sigma_is_A, mpz_t sigma, double B1done, int repr)
 {
+  /* if B1done is not the default value, use ECM_PARAM_SUYAMA, since
+     ECM_PARAM_BATCH* requires B1done is the default */
   if (!ECM_IS_DEFAULT_B1_DONE(B1done))
       return ECM_PARAM_SUYAMA;
   
-  if (sigma_is_A == 0 && mpz_sgn(sigma) != 0)
-      return ECM_PARAM_SUYAMA;
-
   if (sigma_is_A == 1 || sigma_is_A == -1)
     {
       /* For now we keep the default values in order not to compute the 
@@ -480,6 +479,9 @@ get_default_param (int sigma_is_A, mpz_t sigma, double B1done)
       return ECM_PARAM_DEFAULT; 
     }
 
+  /* ECM_PARAM_BATCH* requires ECM_MOD_MODMULN */
+  if (repr != ECM_MOD_MODMULN)
+    return ECM_PARAM_SUYAMA;
 
   if (GMP_NUMB_BITS == 64)
     return ECM_PARAM_BATCH_SQUARE;
