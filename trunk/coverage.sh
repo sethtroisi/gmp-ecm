@@ -31,7 +31,7 @@ make CFLAGS="-O0 -g -fprofile-arcs -ftest-coverage"
 echo "Testing longcheck"
 make longcheck VALGRIND=
 echo "Testing bench_mulredc"
-./bench_mulredc
+./bench_mulredc -v
 echo "Testing tune"
 ./tune -v
 geninfo --no-checksum --ignore-errors gcov,source -q --output-filename ecm.info ./ --no-external
