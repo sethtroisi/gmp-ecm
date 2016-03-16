@@ -1140,10 +1140,21 @@ ecm (mpz_t f, mpz_t x, mpz_t y, int *param, mpz_t sigma, mpz_t n, mpz_t go,
       return ECM_ERROR;
     }
 #endif
- 
+
+  /* if a batch mode is requested by the user, this implies ECM_MOD_MODMULN */
+  if (repr == ECM_MOD_DEFAULT && IS_BATCH_MODE(*param))
+    repr = ECM_MOD_MODMULN;
+
+  /* choose the arithmetic used before the parametrization, since for divisors
+     of 2^n+/-1 the default choice param=1 might not be optimal */
+  if (mpmod_init (modulus, n, repr) != 0)
+    return ECM_ERROR;
+
+  repr = modulus->repr;
+
   /* If the parametrization is not given, choose it. */
   if (*param == ECM_PARAM_DEFAULT)
-      *param = get_default_param (sigma_is_A, sigma, *B1done);
+    *param = get_default_param (sigma_is_A, sigma, *B1done, repr);
 
   /* In batch mode, 
         we force repr=MODMULN, 
@@ -1151,9 +1162,7 @@ ecm (mpz_t f, mpz_t x, mpz_t y, int *param, mpz_t sigma, mpz_t n, mpz_t go,
         x should be either 0 (undetermined) or 2 */
   if (IS_BATCH_MODE(*param))
     {
-      if (repr == ECM_MOD_DEFAULT || repr == ECM_MOD_NOBASE2)
-        repr = ECM_MOD_MODMULN;
-      else if (repr != ECM_MOD_MODMULN)
+      if (repr != ECM_MOD_MODMULN)
         {
           outputf (OUTPUT_ERROR, "Error, with param %d, repr should be " 
                                  "ECM_MOD_MODMULN.\n", *param);
@@ -1178,7 +1187,7 @@ ecm (mpz_t f, mpz_t x, mpz_t y, int *param, mpz_t sigma, mpz_t n, mpz_t go,
         }
     }
 
-  /* check that if ECM_PARAM_BATCH_SQUARE is used, GMP_NUMB_BITS == 64*/
+  /* check that if ECM_PARAM_BATCH_SQUARE is used, GMP_NUMB_BITS == 64 */
   if (*param == ECM_PARAM_BATCH_SQUARE && GMP_NUMB_BITS == 32)
     {
       outputf (OUTPUT_ERROR, "Error, parametrization ECM_PARAM_BATCH_SQUARE "
@@ -1216,9 +1225,6 @@ ecm (mpz_t f, mpz_t x, mpz_t y, int *param, mpz_t sigma, mpz_t n, mpz_t go,
     }
 
   st = cputime ();
-
-  if (mpmod_init (modulus, n, repr) != 0)
-    return ECM_ERROR;
 
   /* See what kind of number we have as that may influence optimal parameter 
      selection. Test for base 2 number. Note: this was already done by

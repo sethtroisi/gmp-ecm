@@ -388,7 +388,7 @@ main (int argc, char *argv[])
   double maxmem = 0.;
   double stage1time = 0.;
   ecm_params params;
-  int param = ECM_PARAM_DEFAULT; /* -1 means default parametrization */
+  int param = ECM_PARAM_DEFAULT; /* automatic choice */
   char *savefile_s = NULL;
   char *loadfile_s = NULL;
 #ifdef HAVE_GWNUM
@@ -1323,6 +1323,7 @@ main (int argc, char *argv[])
           fprintf (stderr, "Error, invalid -param value: %d\n", param);
           exit (EXIT_FAILURE);
         }
+      /* params->param might be set if we resume from a file */
       if (params->param == ECM_PARAM_DEFAULT)
           params->param = param;
 
@@ -1444,7 +1445,7 @@ main (int argc, char *argv[])
          operation */
       mpmod_selftest (n.n);
 #endif
-      
+
       /* now call the ecm library */
       if (result == ECM_NO_FACTOR_FOUND)
 	  /* if torsion was used, some factor may have been found... */
