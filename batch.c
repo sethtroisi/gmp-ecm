@@ -35,7 +35,7 @@ http://www.gnu.org/licenses/ or write to the Free Software Foundation, Inc.,
 
 #define MAX_HEIGHT 32
 
-#if ECM_UINT_MAX == 4294967295
+#if ULONG_MAX == 4294967295
 #define MAX_B1_BATCH 2977044736UL
 #else
 /* nth_prime(2^(MAX_HEIGHT-1)) */
