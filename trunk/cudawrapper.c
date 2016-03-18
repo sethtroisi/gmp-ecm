@@ -334,7 +334,7 @@ gpu_ecm (mpz_t f, int *param, mpz_t firstsigma, mpz_t n, mpz_t go,
       /* construct the batch exponent */
       compute_s (batch_s, B1, NULL);
       outputf (OUTPUT_VERBOSE, "Computing batch product (of %zu bits) of "
-                               "primes below B1=%1.0f took %ldms\n", 
+                               "primes up to B1=%1.0f took %ldms\n", 
                                mpz_sizeinbase (batch_s, 2), B1, cputime () - st);
     }
 

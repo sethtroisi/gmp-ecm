@@ -1344,7 +1344,7 @@ main (int argc, char *argv[])
             }
           else if (verbose >= OUTPUT_VERBOSE)
               fprintf (stdout, "Reading batch product (of %zu bits) of "
-                               "primes below B1=%1.0f from %s took %ldms\n", 
+                               "primes up to B1=%1.0f from %s took %ldms\n", 
                                mpz_sizeinbase (params->batch_s, 2), B1,
                                loadfile_s, cputime () - st);
         }
