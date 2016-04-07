@@ -35,8 +35,17 @@ http://www.gnu.org/licenses/ or write to the Free Software Foundation, Inc.,
 
 #define MAX_HEIGHT 32
 
-#if ULONG_MAX == 4294967295
+#if ECM_UINT_MAX == 4294967295
+/* On a 32-bit machine, with no access to a 64-bit type,
+    the maximum value that can be returned by mpz_sizeinbase(s,2)
+    is = (2^32-1).  Multiplying all primes up to the following
+    will result in a product that has (2^32-1) bits. */
 #define MAX_B1_BATCH 2977044736UL
+#elif defined(_WIN32)
+/* Due to a limitation in GMP on 64-bit Windows, should also
+    affect 32-bit Windows, sufficient memory cannot be allocated
+    for the batch product s when using primes larger than the following */
+#define MAX_B1_BATCH 3124253146UL
 #else
 /* nth_prime(2^(MAX_HEIGHT-1)) */
 #define MAX_B1_BATCH 50685770167ULL
@@ -276,7 +285,7 @@ ecm_stage1_batch (mpz_t f, mpres_t x, mpres_t A, mpmod_t n, double B1,
   mpz_t d_2;
 
   mpres_t x1, z1, x2, z2;
-  unsigned long i;
+  ecm_uint i;
   mpres_t t, u;
   int ret = ECM_NO_FACTOR_FOUND;
 
