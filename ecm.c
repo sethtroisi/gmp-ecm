@@ -1154,7 +1154,7 @@ ecm (mpz_t f, mpz_t x, mpz_t y, int *param, mpz_t sigma, mpz_t n, mpz_t go,
 
   /* If the parametrization is not given, choose it. */
   if (*param == ECM_PARAM_DEFAULT)
-    *param = get_default_param (sigma_is_A, sigma, *B1done, repr);
+    *param = get_default_param (sigma_is_A, *B1done, repr);
 
   /* In batch mode, 
         we force repr=MODMULN, 

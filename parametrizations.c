@@ -465,7 +465,7 @@ get_curve_from_random_parameter (mpz_t f, mpres_t A, mpres_t x, mpz_t sigma,
 }
 
 int 
-get_default_param (int sigma_is_A, mpz_t sigma, double B1done, int repr)
+get_default_param (int sigma_is_A, double B1done, int repr)
 {
   /* if B1done is not the default value, use ECM_PARAM_SUYAMA, since
      ECM_PARAM_BATCH* requires B1done is the default */
