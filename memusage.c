@@ -49,7 +49,8 @@ PeakMemusage (void)
   for(;;)
     {
       truc = fgets (str, 1023, file);
-      ASSERT_ALWAYS (truc != NULL);
+      if (truc == NULL)
+	return -1; /* for example on FreeBSD */
       int ret = sscanf (str, "VmPeak: %ld", &mem);
       if (ret == 1)
         {
