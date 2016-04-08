@@ -9,7 +9,7 @@ cd ecm
 autoreconf -i
 # ./configure --enable-gpu=sm_30 --with-gmp=/users/caramel/logiciels/gmp-6.0.0/core2/ --with-cuda=/usr/local/cuda-5.0.old/ --with-cc-for-cuda=/users/caramel/logiciels/gcc-4.3.6/x86_64/bin/
 # ./configure --enable-gpu=sm_30 --with-cuda=/tmp/cuda
-./configure --enable-gpu --with-gmp=/users/caramel/logiciels/gmp-6.1.0/core2/
+./configure --enable-gpu
 make CFLAGS="-O0 -g -fprofile-arcs -ftest-coverage"
 export LD_LIBRARY_PATH=/usr/local/cuda-5.0.old/lib64:.
 ./test.gpuecm ./ecm
