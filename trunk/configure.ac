@@ -70,7 +70,7 @@ AC_ARG_ENABLE([aprcl],
 [AS_HELP_STRING([--enable-aprcl], [use APRCL to prove factors prime [[default=yes]]])])
 
 AC_ARG_ENABLE([asm-redc],
-[AS_HELP_STRING([--enable-asm-redc], [use an asm redc (default=yes on x86_64 and powerpc64, no on others)])])
+[AS_HELP_STRING([--enable-asm-redc], [use an asm redc (default=yes on x86_64 and powerpc64/elf, no on others)])])
 
 AC_ARG_ENABLE([mulredc-svoboda],
 [AS_HELP_STRING([--enable-mulredc-svoboda], [enable Svoboda mulredc [[default=no]]])])
@@ -195,6 +195,17 @@ if test "x$enable_openmp" = xyes; then
   AC_OPENMP
 fi
 
+# Determine if assembly code is ELF
+AC_MSG_CHECKING([if assembly code is ELF])
+AC_EGREP_CPP(yes,
+[#if __ELF__
+  yes
+#endif
+],
+[elf=yes],
+[elf=no])
+AC_MSG_RESULT([$elf])
+
 ########################
 # Enable asm redc code #
 ########################
@@ -205,7 +216,9 @@ fi
 # asm_redc enabled by default for x86_64 and 64 bit PowerPC
 if test "x$enable_asm_redc" = x; then
   case $host in
-    x86_64*-*-* | powerpc-apple-darwin* | powerpc64-*-linux*) enable_asm_redc=yes;;
+    x86_64*-*-* | powerpc-apple-darwin*) enable_asm_redc=yes;;
+    # powerpc64 assembly is ELF-specific
+    powerpc64-*-linux*) enable_asm_redc=$elf;;
     *) enable_asm_redc=no;;
   esac
 fi
