@@ -235,7 +235,7 @@ A_from_sigma (mpz_t A, unsigned int sigma, mpz_t n)
 }
 
 int
-gpu_ecm (mpz_t f, int *param, mpz_t firstsigma, mpz_t n, mpz_t go, 
+gpu_ecm (mpz_t f, mpz_t x, int *param, mpz_t firstsigma, mpz_t n, mpz_t go,
          double *B1done, double B1, mpz_t B2min_parm, mpz_t B2_parm, 
          unsigned long k, const int S, int verbose, int repr,
          int nobase2step2, int use_ntt, int sigma_is_A, FILE *os, FILE* es, 
@@ -456,6 +456,14 @@ gpu_ecm (mpz_t f, int *param, mpz_t firstsigma, mpz_t n, mpz_t go,
   tottime = (long) gputime;
 
   *B1done=B1;
+
+  /* Save stage 1 residues */
+  mpz_set_ui (x, 0);
+  for (i = 0; i < *nb_curves; i++)
+    {
+      mpz_mul (x, x, n);
+      mpz_add (x, x, factors[i]);
+    }
 
   /* was a factor found in stage 1 ? */
   if (youpi != ECM_NO_FACTOR_FOUND)
