@@ -19,16 +19,20 @@ instructions of INSTALL-ecm until the 'configure' step. Then add the
 	
   $ ./configure --enable-gpu [other options]
 
-This will configure the code for NVIDIA GPU for all compute capabilities between
-2.0 and 5.3 known to the nvcc compiler.
+This will configure the code for NVIDIA GPU for all compute capabilities
+between 2.0 and 5.3 known to the nvcc compiler.
+
+By default, GMP-ECM will look for cuda.h in the default header directories,
+but you can specify an other directory, such as /opt/cuda, with:
+
+  $ ./configure --enable-gpu --with-cuda=/opt/cuda
 
 By default, GMP-ECM will look for the nvcc compiler in $PATH, but you can
 specify an other directory:
 
   $ ./configure --enable-gpu --with-cuda-bin=/PATH/DIR
 
-By default, GMP-ECM will look for cuda.h in the default header directories, but you
-can specify an other directory:
+For finer control you can specify the location of cuda.h as follows:
 
   $ ./configure --enable-gpu --with-cuda-include=/PATH/DIR
 
