@@ -121,6 +121,9 @@ checkcode $? 6
 /bin/rm -f test.ecm.save
 # Save file with no factor found in step 1 or step 2
 echo "(5^139+1)/6" | $ECM -save test.ecm.save -sigma 3:9829216 1e3
+# Check -resume and -gpu (should produce an error)
+$ECM -resume test.ecm.save 1e3
+checkcode $? 1
 # Resume, but find no factor
 $ECMnoGPU -resume test.ecm.save 1e3
 checkcode $? 0
