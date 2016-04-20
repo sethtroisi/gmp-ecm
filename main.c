@@ -1035,6 +1035,12 @@ main (int argc, char *argv[])
   /* Open resume file for reading, if resuming is requested */
   if (resumefilename != NULL)
     {
+      /* -resume should not be used with -gpu */
+      if (use_gpu)
+        {
+          fprintf (stderr, "Error, -resume not allowed with -gpu\n");
+          exit (EXIT_FAILURE);
+        }
       if (strcmp (resumefilename, "-") == 0)
         resumefile = stdin;
       else
