@@ -1,5 +1,7 @@
 To use the autotools:
 
+$ libtoolize
+$ autoheader
 $ aclocal
 $ automake -c -a
 $ autoconf
