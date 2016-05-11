@@ -105,7 +105,10 @@ if test "x$GMP_CC$GMP_CFLAGS" = x; then
    GMP_CFLAGS=__GMP_CFLAGS
    for cpp in /lib/cpp gcc cc c99
    do
-     test $cpp = /lib/cpp || cpp="$cpp -E"
+     case $cpp in
+       *cpp*) cpp="$cpp -P" ;;
+       *) cpp="$cpp -E" ;;
+     esac
      echo "Trying to run $cpp" >&AS_MESSAGE_LOG_FD
      AC_LANG_CONFTEST([AC_LANG_SOURCE([foo])])
      if $cpp $CPPFLAGS conftest.$ac_ext > /dev/null 2> /dev/null ; then
