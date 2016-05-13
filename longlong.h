@@ -42,6 +42,23 @@ see https://www.gnu.org/licenses/.  */
 #ifndef HAVE_HOST_CPU_FAMILY_x86
 #define HAVE_HOST_CPU_FAMILY_x86 0
 #endif
+
+#ifndef HAVE_NATIVE_mpn_umul_ppmm
+#define HAVE_NATIVE_mpn_umul_ppmm 0
+#endif
+
+#ifndef HAVE_NATIVE_mpn_umul_ppmm_r
+#define HAVE_NATIVE_mpn_umul_ppmm_r 0
+#endif
+
+#ifndef HAVE_NATIVE_mpn_udiv_qrnnd
+#define HAVE_NATIVE_mpn_udiv_qrnnd 0
+#endif
+
+#ifndef HAVE_NATIVE_mpn_udiv_qrnnd_r
+#define HAVE_NATIVE_mpn_udiv_qrnnd_r 0
+#endif
+
 /* end of stuff added for GMP-ECM */
 
 /* You have to define the following before including this file:
