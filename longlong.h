@@ -1323,6 +1323,20 @@ extern UWtype __MPN(udiv_qrnnd) (UWtype *, UWtype, UWtype, UWtype);
    the system vendor compilers.  (Is that vendor compilers with inline asm,
    or what?)  */
 
+/* the following was added for use within GMP-ECM */
+#if (defined (_ARCH_PPC)	/* AIX */				\
+     || defined (_ARCH_PWR)	/* AIX */				\
+     || defined (__powerpc__)	/* gcc */				\
+     || defined (__POWERPC__)	/* BEOS */				\
+     || defined (__ppc__)	/* Darwin */                            \
+     || defined (PPC))
+#define HAVE_HOST_CPU_FAMILY_power 1
+#define HAVE_HOST_CPU_FAMILY_powerpc 1
+#else
+#define HAVE_HOST_CPU_FAMILY_power 0
+#define HAVE_HOST_CPU_FAMILY_powerpc 0
+#endif
+
 #if (HAVE_HOST_CPU_FAMILY_power || HAVE_HOST_CPU_FAMILY_powerpc)	\
   && W_TYPE_SIZE == 32
 #define add_ssaaaa(sh, sl, ah, al, bh, bl) \
@@ -2149,6 +2163,9 @@ __GMP_DECLSPEC UWtype __MPN(udiv_w_sdiv) (UWtype *, UWtype, UWtype, UWtype);
 #define COUNT_LEADING_ZEROS_NEED_CLZ_TAB
 #define COUNT_LEADING_ZEROS_SLOW
 #endif
+
+/* within GMP-ECM, we assume we never want a fat binary */
+#define HAVE_HOST_CPU_FAMILY_x86 0
 
 /* clz_tab needed by mpn/x86/pentium/mod_1.asm in a fat binary */
 #if HAVE_HOST_CPU_FAMILY_x86 && WANT_FAT_BINARY
