@@ -88,7 +88,7 @@ F_mod_1 (mpz_t RS, unsigned int n)
   
   size = mpz_size (RS);
 
-  ASSERT_ALWAYS(size <= n / GMP_NUMB_BITS + 1);
+  ASSERT_ALWAYS(size <= (mp_size_t) n / GMP_NUMB_BITS + 1);
   sgn = mpz_sgn (RS);          /* Remember original sign */
   v = mpz_getlimbn (RS, n / GMP_NUMB_BITS);
   mpz_tdiv_r_2exp (RS, RS, n); /* Just a truncate. RS < 2^n. Can make
