@@ -107,7 +107,7 @@ if test "x$GMP_CC$GMP_CFLAGS" = x; then
    do
      case $cpp in
        *cpp*) cpp="$cpp -P" ;;
-       *) cpp="$cpp -E" ;;
+       *) cpp="$cpp -E -P" ;;
      esac
      echo "Trying to run $cpp" >&AS_MESSAGE_LOG_FD
      AC_LANG_CONFTEST([AC_LANG_SOURCE([foo])])
