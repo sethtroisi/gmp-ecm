@@ -59,6 +59,18 @@ see https://www.gnu.org/licenses/.  */
 #define HAVE_NATIVE_mpn_udiv_qrnnd_r 0
 #endif
 
+#ifndef HAVE_HOST_CPU_i586
+#define HAVE_HOST_CPU_i586 0
+#endif
+
+#ifndef HAVE_HOST_CPU_pentium
+#define HAVE_HOST_CPU_pentium 0
+#endif
+
+#ifndef HAVE_HOST_CPU_pentiummmx
+#define HAVE_HOST_CPU_pentiummmx 0
+#endif
+
 /* end of stuff added for GMP-ECM */
 
 /* You have to define the following before including this file:
