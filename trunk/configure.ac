@@ -296,7 +296,7 @@ AM_CONDITIONAL([ENABLE_ASM_REDC], [test "x$enable_asm_redc" = xyes])
 # Test if we should use SSE2 instructions and if the cpu supports them
 if test "x$enable_sse2" = "x"; then
 dnl Default: if we build for Pentium 4, enable SSE2 code for the NTT
-dnl Some SSE2 enabled cpus are identified as i686, we enables SSE2 
+dnl Some SSE2 enabled cpus are identified as i686, we enable SSE2 
 dnl for them by default and let the tests below check if it works
   case $host in
     pentium4-*-* | viac7-*-* | i686-*-* | i786-*-*) 
