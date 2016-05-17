@@ -359,6 +359,8 @@ AC_DEFUN([ECM_C_INLINESSE2_PROG], dnl
     "pmuludq %%xmm0, %%xmm0\n\t"
     "movdqu %%xmm0, %0\n\t"
     : "+m" (v4)
+    : "r"(0)
+    : "%xmm0"
   );
   if (v4[0] != 25 || v4[1] != 0 || v4[2] != 49 || v4[3] != 0) {
     return 1;
