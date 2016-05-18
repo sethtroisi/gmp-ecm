@@ -14581,7 +14581,7 @@ Wed Feb 22 2006 15:05:45 zimmerma -- r906
 
 Thu Feb 16 2006 13:40:16 gaudry -- r905
 	* trunk/ecm2.c: modified
-	Fixed some memory bugs in multiplyW2n(), that occured in -v -v and/or
+	Fixed some memory bugs in multiplyW2n(), that occurred in -v -v and/or
 	WANT_ASSERT mode, because it is called with NULL as first arguments.
 	Fixed a double free of variables "coeffs" and a missing free for fd.
 

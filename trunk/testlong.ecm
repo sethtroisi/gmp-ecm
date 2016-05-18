@@ -89,6 +89,6 @@ checkcode $? 6
 # exercise estimated memory usage in Gb
 $ECM -v -k 1 1 8e11 < c155
 
-rm test_M877.save
+rm test_M877.save M997.save
 
 echo "All ECM tests are ok."
