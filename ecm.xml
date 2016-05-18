@@ -604,7 +604,7 @@ specifically:
   <varlistentry>
   <term>Bit 0</term>
   <listitem>
-    <simpara>0 if normal program termination, 1 if error occured</simpara>
+    <simpara>0 if normal program termination, 1 if error occurred</simpara>
   </listitem>
   </varlistentry>
 
