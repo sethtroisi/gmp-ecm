@@ -382,7 +382,7 @@ static inline sp_t sp_udiv_rem(sp_t nh, sp_t nl, sp_t d, sp_t di)
 
 #define sp_reciprocal(invxl,xl)              \
   do {                                       \
-    mp_limb_t dummy;                         \
+    ATTRIBUTE_UNUSED mp_limb_t dummy;        \
     udiv_qrnnd (invxl, dummy,                \
 		(sp_t) 1 << (2 * SP_NUMB_BITS -	\
 		W_TYPE_SIZE), 0, xl);        \
