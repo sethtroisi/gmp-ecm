@@ -1,0 +1,216 @@
+\documentclass[a4paper]{article}
+\usepackage[latin1]{inputenc}
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{amsthm}
+\usepackage[noline]{algorithm2e}
+\usepackage{graphicx}
+\usepackage{verbatim}
+
+\newcommand{\F}{\mathbb{F}}
+\newcommand{\N}{\mathbb{N}}
+\newcommand{\Z}{\mathbb{Z}}
+\newcommand{\Q}{\mathbb{Q}}
+\newcommand{\R}{\mathbb{R}}
+\newcommand{\C}{\mathbb{C}}
+
+\begin{document}
+\title{Simpler scaling an RLP by a constant and its reciprocal}
+\author{A. Kruppa}
+\maketitle
+\abstract{We present a simpler algorithm for scaling a reciprocal Laurent
+polynomial by a power and its inverse, a replacement for the algorithm
+presented in \cite{PMP1}[7.1].}
+
+
+\section{Scaling}
+
+Let $V_n(x)$ be a Chebyshev polynomial of degree $n$, defined by the
+functional equation $V_n(x+x^{-1}) = x^n + x^{-n}$, e.g., $V_0(x)=2$ and
+$V_1(x)=x$. We define $V_{-n}(x) = V_n(x)$. 
+These polynomials satisfy many identities such as 
+$V_{m+n}(x) = V_m(x)V_n(x) - V_{m-n}(x)$, which implies 
+% $V_{n+1}(x) = xV_n(x) - V_{n-1}(x)$ and 
+$V_{2n}(x) + 2 = V_n(x)^2$.
+
+For a given reciprocal Laurent polynomial (RLP) in standard basis
+\begin{eqnarray*}
+  F(x) & = & f_0 + \sum_{i=1}^{d} f_i V_i(x+x^{-1}) \\
+  & = & \sum_{i=-d}^d f_{|i|} x^i,
+\end{eqnarray*}
+of degree $2d$, 
+we want to compute 
+$F(\gamma x)F(\gamma^{-1} x)$, 
+an RLP of degree $4d$, with $Q = \gamma + \gamma^{-1}$.
+We know $Q$ but not necessarily $\gamma$.
+
+We have 
+\begin{displaymath}
+  F^2(x) = G(x) = g_0 + \sum_{i=1}^{2d} g_i V_i(x+x^{-1})
+\end{displaymath}
+with, for $0 \leq k \leq 2d$,
+\begin{eqnarray*}
+  g_k 
+%      & = & \sum_{-d \leq i,j \leq d} [i+j = k] f_i f_j \\
+%      & = & \sum_{-d \leq i,j \leq d, i+j = k} f_i f_j \\
+%      & = & \sum_{-d \leq i,j \leq d, i+j = k} f_i f_{k-i} \\
+%      & = & \sum_{-d \leq i \leq d, -d \leq k-i \leq d} f_i f_{k-i} \\
+%      & = & \sum_{-d \leq i \leq d, -d-k \leq -i \leq d-k} f_i f_{k-i} \\
+%      & = & \sum_{-d \leq i \leq d, k-d \leq i \leq d+k} f_i f_{k-i} \\
+%      & = & \sum_{\max(-d,k-d) \leq i \leq \min(d,d+k)} f_i f_{k-i} \\
+      & = & \sum_{k-d \leq i \leq d} f_i f_{k-i}. \\
+\end{eqnarray*}
+For example, for $d=5$, 
+\begin{eqnarray*}
+g_0 & = & 2 f_{5}^2  + 2 f_{4}^2  + 2 f_{3}^2 + 2 f_{2}^2 + 2 f_{1}^2 + f_{0}^2 \\
+g_1 & = & 2 f_{4} f_{5} + 2 f_{3} f_{4} + 2 f_{2} f_{3} + 2 f_{1} f_{2} + 2 f_{0} f_{1} \\
+g_2 & = & 2 f_{3} f_{5} + 2 f_{2} f_{4} + 2 f_{1} f_{3} + 2 f_{0} f_{2} + f_{1}^2 \\
+g_3 & = & 2 f_{2} f_{5} + 2 f_{1} f_{4} + 2 f_{0} f_{3} + 2 f_{1} f_{2} \\
+g_4 & = & 2 f_{1} f_{5} + 2 f_{0} f_{4} + 2 f_{1} f_{3} + f_{2}^2 \\
+g_5 & = & 2 f_{0} f_{5} + 2 f_{1} f_{4} + 2 f_{2} f_{3} \\
+\pagebreak
+g_6 & = & 2 f_{1} f_{5} + 2 f_{2} f_{4} + f_{3}^2 \\
+g_7 & = & 2 f_{2} f_{5} + 2 f_{3} f_{4}\\
+g_8 & = & 2 f_{3} f_{5} + f_{4}^2 \\
+g_9 & = & 2 f_{4} f_{5} \\
+g_{10} & = & f_{5}^2 \\
+\end{eqnarray*}
+For $0 \leq k \leq 2d$ and $k$ even
+\begin{displaymath}
+ g_k = \left( \sum_{k-d \leq i < k/2} 2 f_i f_{k-i} \right) + f_{k/2}^2
+\end{displaymath}
+and for $k$ odd
+\begin{displaymath}
+ g_k = \sum_{k-d \leq i \leq (k-1)/2} 2 f_i f_{k-i}
+\end{displaymath}
+
+
+%Let $U_n(x)$ be a Chebyshev polynomial defined by the functional equation
+%$U_n(x + x^{-1}) = \frac{x^n - x^{-n}}{x - x^{-1}}$.
+%Therefore, 
+%$U_0(x + x^{-1}) = 0$ and so $U_0(x) = 0$, 
+%$U_1(x + x^{-1}) = 1$ and so $U_1(x) = 1$,
+%$U_2(x + x^{-1}) = x + x^{-1}$ and so $U_2(x) = x$,
+%and $U_{m+n}(x) = U_m(x)V_n(x) - U_{m-n}(x)$, 
+%in particular 
+%$U_{m+1}(x) = U_m(x)x - U_{m-1}(x)$.
+%For $n > 0$, the degree of $U_n(x)$ is $n-1$.
+%$V_{m-n}(x) = V_m(x)V_n(x) - V_{m+n}(x)$.
+
+We want 
+\begin{displaymath}
+  F(\gamma x)F(\gamma^{-1} x) = H(x) = h_0 + \sum_{i=1}^{2d} h_i V_i(x+x^{-1}).
+\end{displaymath}
+For example, for $d = 5$, 
+\begin{eqnarray*}
+h_0 & = & V_{10}(Q) f_{5}^2 + V_{8}(Q) f_{4}^2+ V_{6}(Q) f_{3}^2 + V_{4}(Q) f_{2}^2+ V_{2}(Q) f_{1}^2+ f_{0}^2  \\
+h_1 & = & V_{9}(Q) f_{4} f_{5}+ V_{7}(Q) f_{3} f_{4}+ V_{5}(Q) f_{2} f_{3} + V_{3}(Q) f_{1} f_{2}+ V_{1}(Q) f_{0} f_{1}  \\
+h_2 & = & V_{8}(Q) f_{3} f_{5}+ V_{6}(Q) f_{2} f_{4}+ V_{4}(Q) f_{1} f_{3} + V_{2}(Q) f_{0} f_{2}+ f_{1}^2  \\
+h_3 & = & V_{7}(Q) f_{2} f_{5}+ V_{5}(Q) f_{1} f_{4}+ V_{3}(Q) f_{0} f_{3} + V_{1}(Q) f_{1} f_{2} \\
+h_4 & = & V_{6}(Q) f_{1} f_{5}+ V_{4}(Q) f_{0} f_{4}+ V_{2}(Q) f_{1} f_{3} + f_{2}^2 \\
+h_5 & = & V_{5}(Q) f_{0} f_{5}+ V_{3}(Q) f_{1} f_{4}+ V_{1}(Q) f_{2} f_{3} \\
+h_6 & = & V_{4}(Q) f_{1} f_{5}+ V_{2}(Q) f_{2} f_{4}+ f_{3}^2 \\
+h_7 & = & V_{3}(Q) f_{2} f_{5}+ V_{1}(Q) f_{3} f_{4}\\
+h_8 & = & V_{2}(Q) f_{3} f_{5}+ f_{4}^2\\
+h_9 & = & V_{1}(Q) f_{4} f_{5}\\
+h_{10} & = & f_{5}^2
+\end{eqnarray*}
+For $0 \leq k \leq 2d$ and $k$ even
+\begin{eqnarray*}
+  h_k & = & \sum_{k-d \leq i \leq d} \gamma^{2i-k} f_i f_{k-i} \\ 
+%      & = & \sum_{k-d \leq i < k/2} \gamma^{2i-k} f_i f_{k-i} + 
+%            f_{k/2}^2 +
+%            \sum_{k/2 < i \leq d} \gamma^{2i-k} f_i f_{k-i} \\
+%      & = & \sum_{k-d \leq i < k/2} \gamma^{2i-k} f_i f_{k-i} +
+%            f_{k/2}^2 +
+%            \sum_{k-d \leq i < k/2} \gamma^{k-2i} f_{k-i} f_{i} \\
+%      & = & \sum_{k-d \leq i < k/2} (\gamma^{2i-k} + \gamma^{k-2i}) f_i f_{k-i} +
+%            f_{k/2}^2 \\
+      & = & \left( \sum_{k-d \leq i < k/2} V_{2i-k}(Q) f_i f_{k-i} \right) +
+            f_{k/2}^2 \\
+%      & = & \left( \sum_{k-d \leq i < k/2} V_{2i-k}(Q) f_i f_{k-i} \right) +
+%            \frac{V_0(Q)}{2} f_{k/2}^2 \\
+\end{eqnarray*}
+and for $k$ odd
+\begin{eqnarray*}
+  h_k & = & \sum_{k-d \leq i \leq d} \gamma^{2i-k} f_i f_{k-i} \\ 
+%      & = & \sum_{k-d \leq i \leq (k-1)/2} \gamma^{2i-k} f_i f_{k-i} +
+%            \sum_{(k+1)/2 \leq i \leq d} \gamma^{2i-k} f_i f_{k-i} \\ 
+      & = & \sum_{k-d \leq i \leq (k-1)/2} V_{2i-k}(Q) f_i f_{k-i}.
+\end{eqnarray*}
+
+Using $V_{2i-k}(x) = V_i(x)V_{k-i}(x) - V_k(x)$ we can write, for $k$ even,
+\begin{eqnarray*}
+  h_k & = & \sum_{k-d \leq i < k/2} \left( V_i(x)V_{k-i}(Q) - V_k(Q) \right) f_i f_{k-i} +
+            f_{k/2}^2 \\
+      & = & \sum_{k-d \leq i < k/2} (V_i(Q) f_i) (V_{k-i}(Q) f_{k-i})
+            - V_k(Q) \sum_{k-d \leq i < k/2} f_i f_{k-i}
+            + f_{k/2}^2 \\
+      & = & \sum_{k-d \leq i < k/2} (V_i(Q) f_i) (V_{k-i}(Q) f_{k-i})
+            - \frac{V_k(Q)}{2} (g_k - f_{k/2}^2)
+            + f_{k/2}^2 \\
+      & = & \sum_{k-d \leq i < k/2} (V_i(Q) f_i) (V_{k-i}(Q) f_{k-i})
+            - \frac{V_k(Q)}{2} g_k 
+            + \frac{V_k(Q) + 2}{2} f_{k/2}^2 \\
+      & = & \sum_{k-d \leq i < k/2} (V_i(Q) f_i) (V_{k-i}(Q) f_{k-i})
+            - \frac{V_k(Q)}{2} g_k 
+            + \frac{V_{k/2}(Q)^2}{2} f_{k/2}^2 \\
+      & = & \sum_{k-d \leq i < k/2} (V_i(Q) f_i) (V_{k-i}(Q) f_{k-i})
+            - \frac{V_k(Q)}{2} g_k 
+            + \frac{1}{2} ( V_{k/2}(Q) f_{k/2} )^2  \\
+      & = & \frac{1}{2} \left(
+            \sum_{k-d \leq i < k/2} 2 (V_i(Q) f_i) (V_{k-i}(Q) f_{k-i})
+            + ( V_{k/2}(Q) f_{k/2} )^2 \right)
+            - \frac{V_k(Q)}{2} g_k \\
+\end{eqnarray*}
+and for $k$ odd
+\begin{eqnarray*}
+  h_k & = & \sum_{k-d \leq i \leq (k-1)/2} (V_i(x)V_{k-i}(Q) - V_k(Q)) f_i f_{k-i} \\
+      & = & \sum_{k-d \leq i < k/2} (V_i(Q) f_i) (V_{k-i}(Q) f_{k-i})
+            - \frac{V_k(Q)}{2} g_k
+\end{eqnarray*}
+In both cases, even and odd, we can write 
+\begin{equation}
+ h_k = \frac{1}{2} (\tilde{g}_k - V_k(Q)g_k)
+\end{equation}
+where 
+$\tilde{G}(x) = \tilde{F}(x)^2 = \tilde{g}_0 + \sum_{i=1}^{2d} \tilde{g}_k
+V_i(x+x^{-1})$ with
+\begin{displaymath}
+\tilde{F}(x) = V_0(Q) f_0 + \sum_{i=1}^{2d} V_i(Q) f_k V_i(x+x^{-1}).
+\end{displaymath}
+
+Thus the algorithm could informally described as ''square F then add weights,
+add weights to F then square, take half the difference,'' where the weight
+signal is $V_i(Q)$ for $i = 0, 1, 2, \ldots$
+
+The algorithm can work in-place, using only storage for input and output
+polynomial, which may overlap, and for the NTT vectors. 
+We first square F in the NTT buffer N, then 
+for each i do 
+  $t := V_i(Q) \cdot \mbox{from\_NTT}(N_i);$ 
+  $N_i = \mbox{to\_NTT}(V_i(Q) \cdot F_i);$
+  $R_i = t;$
+then do the squaring in the NTT buffer, subtract the result from R and 
+divide by 2.
+
+\subsection{Ramblings}
+Doing the weighting on-the-fly will need new/modified from\_ntt/to\_ntt
+functions. Maybe use Jason's idea of callback functions to fill in data?
+
+When using transform-based convolution products, the subtraction could be done
+in transform space, eliminating one inverse transform and so reducing the
+cost from that of two squarings to the equivalent of one general
+multiplication, but at the cost of storing one additional NTT buffer. 
+
+It is possible to compute the $V_i(Q)$ in NTT form and multiply the polynomial
+coefficients by these weights in NTT form as well, which may perhaps be faster 
+than doing it with normal REDC etc. Not sure if that would save
+much.
+
+\begin{thebibliography}{9}
+  \bibitem{PMP1} P. L. Montgomery and A. Kruppa, Improved Stage 2 to P$\pm$1 Factoring Algorithms, in Proceedings of ANTS-VIII 2008, LNCS 5011, Springer, pp. 180--195.
+\end{thebibliography}
+
+\end{document}
+
