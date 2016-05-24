@@ -71,8 +71,7 @@ To make a new release:
      and "./ecmbench ./ecm".
   1) Check the version (configure.ac and build.vc*/gen_ecm_h.bat).
      Switch assertions to off by default in configure.ac.
-  2) Update the NEWS file, and check the INSTALL-ecm file is up-to-date
-     (in particular the versions of GMP and GMP-ECM).
+  2) Update the NEWS file, and check the INSTALL-ecm file is up-to-date.
   3) Update the ChangeLog file, e.g. svn -v log > /tmp/ChangeLog and edit
      ChangeLog to insert /tmp/ChangeLog at the beginning and remove
      the duplicated lines.
@@ -103,7 +102,10 @@ To make a new release:
 
      Version 6.2 is r1290, 6.2.1 is r1307, 6.3 is r1501, 6.4 is r1672,
      6.4.1 is r1844, 6.4.2 is r1882, 6.4.3 is r2100, 6.4.4 is r2439,
-     7.0 is r2900.
+     7.0 is r2900, 7.0.1 is r2932.
+
+ 10) increase the version number in configure.ac and build.vc*/gen_ecm_h.bat,
+     and switch assertions to on by default in configure.ac.
 
 To see the differences between a given tag and the current version:
 
