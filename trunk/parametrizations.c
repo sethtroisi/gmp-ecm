@@ -23,6 +23,8 @@ http://www.gnu.org/licenses/ or write to the Free Software Foundation, Inc.,
 #include "ecm-gmp.h"
 #include "ecm-impl.h"
 
+/* #define DEBUG */
+
 #if 0
 /* this function is useful in debug mode to print residues */
 static void
@@ -78,38 +80,38 @@ add_param (mpres_t x, mpres_t y, mpres_t z, int sgn, mpres_t t, mpres_t u,
                                           mpres_t v, mpres_t w, mpmod_t n)
 {
   mpres_sqr (t, z, n); /* Z1Z1 = Z1^2   */
-	mpres_mul_ui (u, t, 3, n); 
-	mpres_neg (u, u, n); /* U2 = X2*Z1Z1 with X2=-3 */
-	mpres_mul (v, z, t, n); /* Z1*Z1Z1  */
-	mpres_mul_ui (v, v, 3, n); /* S2 = Y2*Z1*Z1Z1 with Y2=sgn*3  */
-	if (sgn == -1) 
+  mpres_mul_ui (u, t, 3, n); 
+  mpres_neg (u, u, n); /* U2 = X2*Z1Z1 with X2=-3 */
+  mpres_mul (v, z, t, n); /* Z1*Z1Z1  */
+  mpres_mul_ui (v, v, 3, n); /* S2 = Y2*Z1*Z1Z1 with Y2=sgn*3  */
+  if (sgn == -1) 
     mpres_neg (v, v, n); /* S2 = Y2*Z1*Z1Z1 with Y2=sgn*3 */
-	mpres_sub (u, u, x, n); /* H = U2-X1  */
-	mpres_sqr (w, u, n); /* HH = H^2  */
+  mpres_sub (u, u, x, n); /* H = U2-X1  */
+  mpres_sqr (w, u, n); /* HH = H^2  */
 
-	mpres_add (z, z, u, n); /* Z1+H  */
-	mpres_sqr (z, z, n); /* (Z1+H)^2  */
-	mpres_sub (z, z, t, n); /* (Z1+H)^2-Z1Z1   */
-	mpres_sub (z, z, w, n); /* Z3 = (Z1+H)^2-Z1Z1-HH  */
+  mpres_add (z, z, u, n); /* Z1+H  */
+  mpres_sqr (z, z, n); /* (Z1+H)^2  */
+  mpres_sub (z, z, t, n); /* (Z1+H)^2-Z1Z1   */
+  mpres_sub (z, z, w, n); /* Z3 = (Z1+H)^2-Z1Z1-HH  */
 
+  mpres_mul_ui (t, w, 4, n); /* I = 4*HH  */
+  mpres_mul (u, u, t, n); /* J = H*I  */
+  mpres_sub (v, v, y, n); /* S2-Y1  */
+  mpres_mul_ui (v, v, 2, n); /* r = 2*(S2-Y1) */
+  mpres_mul (t, x, t, n); /* V = X1*I */
+  mpres_sqr (x, v, n); /* r^2 */
+  mpres_mul_ui (w, t, 2, n); /* 2*V  */
+  mpres_sub (x, x, u, n); /* r^2-J  */
+  mpres_sub (x, x, w, n); /* X3 = r^2-J-2*V  */
 
-	mpres_mul_ui (t, w, 4, n); /* I = 4*HH  */
-	mpres_mul (u, u, t, n); /* J = H*I  */
-	mpres_sub (v, v, y, n); /* S2-Y1  */
-	mpres_mul_ui (v, v, 2, n); /* r = 2*(S2-Y1) */
-	mpres_mul (t, x, t, n); /* V = X1*I */
-	mpres_sqr (x, v, n); /* r^2 */
-	mpres_mul_ui (w, t, 2, n); /* 2*V  */
-	mpres_sub (x, x, u, n); /* r^2-J  */
-	mpres_sub (x, x, w, n); /* X3 = r^2-J-2*V  */
-
-	mpres_sub (w, t, x, n); /* V-X3 */
-	mpres_mul (y, y, u, n); /* Y1*J */
-	mpres_mul_ui (y, y, 2, n); /* 2*Y1*J   */
-	mpres_mul (w, v, w, n); /* r*(V-X3)  */
-	mpres_sub (y, w, y, n); /* Y3=r*(V-X3)-2*Y1*J  */
+  mpres_sub (w, t, x, n); /* V-X3 */
+  mpres_mul (y, y, u, n); /* Y1*J */
+  mpres_mul_ui (y, y, 2, n); /* 2*Y1*J   */
+  mpres_mul (w, v, w, n); /* r*(V-X3)  */
+  mpres_sub (y, w, y, n); /* Y3=r*(V-X3)-2*Y1*J  */
 }
 
+/* computes s*(x:y:z) mod n, t, u, v, w are temporary variables */
 static void
 addchain_param (mpres_t x, mpres_t y, mpres_t z, mpz_t s, mpres_t t,
                 mpres_t u, mpres_t v, mpres_t w, mpmod_t n)
@@ -123,25 +125,25 @@ addchain_param (mpres_t x, mpres_t y, mpres_t z, mpz_t s, mpres_t t,
   else if (mpz_cmp_ui (s, 3) == 0)
     {
       mpz_sub_ui (s, s, 1);
-      addchain_param(x, y, z, s, t, u, v, w, n);
+      addchain_param (x, y, z, s, t, u, v, w, n);
       add_param (x, y, z, +1, t, u, v, w, n);
     }
   else if (mpz_divisible_2exp_p (s, 1))
     {
       mpz_tdiv_q_2exp (s, s, 1);
-      addchain_param(x, y, z, s, t, u, v, w, n);
+      addchain_param (x, y, z, s, t, u, v, w, n);
       dbl_param (x, y, z, t, u, v, n);
     }
   else if (mpz_congruent_ui_p (s, 1, 4))
     {
       mpz_sub_ui (s, s, 1);
-      addchain_param(x, y, z, s, t, u, v, w, n);
+      addchain_param (x, y, z, s, t, u, v, w, n);
       add_param (x, y, z, +1, t, u, v, w, n);
     }
   else /* (s % 4 == 3) and s != 3 */
     {
       mpz_add_ui (s, s, 1);
-      addchain_param(x, y, z, s, t, u, v, w, n);
+      addchain_param (x, y, z, s, t, u, v, w, n);
       add_param (x, y, z, -1, t, u, v, w, n);
     }
 }
@@ -297,6 +299,11 @@ get_curve_from_param2 (mpz_t f, mpres_t A, mpres_t x0, mpz_t sigma, mpmod_t n)
   mpz_t k;
   int ret = ECM_NO_FACTOR_FOUND;
 
+#ifdef DEBUG
+  printf ("size(n)=%zu\n", mpz_size (n->orig_modulus));
+  gmp_printf ("sigma=%Zd\n", sigma);
+#endif
+
   mpres_init (t, n);
   mpres_init (u, n);
   mpres_init (v, n);
@@ -314,7 +321,12 @@ get_curve_from_param2 (mpz_t f, mpres_t A, mpres_t x0, mpz_t sigma, mpmod_t n)
       goto clear_and_exit;
     }
 
-  addchain_param (x, y, z, k, t, u, v, w, n); 
+  addchain_param (x, y, z, k, t, u, v, w, n);
+#ifdef DEBUG
+  gmp_printf ("x=%Zd\n", x);
+  gmp_printf ("y=%Zd\n", y);
+  gmp_printf ("z=%Zd\n", z);
+#endif
 
   /* Now (x:y:z) = k*P */
 
