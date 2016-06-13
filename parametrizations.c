@@ -111,11 +111,16 @@ add_param (mpres_t x, mpres_t y, mpres_t z, int sgn, mpres_t t, mpres_t u,
   mpres_sub (y, w, y, n); /* Y3=r*(V-X3)-2*Y1*J  */
 }
 
-/* computes s*(x:y:z) mod n, t, u, v, w are temporary variables */
+/* computes s*(x:y:z) mod n, where t, u, v, w are temporary variables */
 static void
 addchain_param (mpres_t x, mpres_t y, mpres_t z, mpz_t s, mpres_t t,
                 mpres_t u, mpres_t v, mpres_t w, mpmod_t n)
 {
+#ifdef DEBUG
+  mpz_t s0;
+  mpz_init_set (s0, s);
+  gmp_printf ("enter addchain_param, s=%Zd\n", s);
+#endif
   if (mpz_cmp_ui (s, 1) == 0)
     {
       mpres_set_si (x, -3, n);
@@ -146,6 +151,13 @@ addchain_param (mpres_t x, mpres_t y, mpres_t z, mpz_t s, mpres_t t,
       addchain_param (x, y, z, s, t, u, v, w, n);
       add_param (x, y, z, -1, t, u, v, w, n);
     }
+#ifdef DEBUG
+  gmp_printf ("exit addchain_param, s=%Zd\n", s0);
+  gmp_printf ("x=%Zd\n", x);
+  gmp_printf ("y=%Zd\n", y);
+  gmp_printf ("z=%Zd\n", z);
+  mpz_clear (s0);
+#endif
 }
 
 /*
