@@ -54,6 +54,7 @@ if WANT_GPU
   libecm_la_LDFLAGS += $(CUDALDFLAGS)
   ecm_LDFLAGS = $(CUDARPATH)
 endif
+libecm_la_LIBADD += $(GMPLIB)
 
 bin_PROGRAMS = ecm
 noinst_PROGRAMS = tune ecmfactor bench_mulredc aprcl
