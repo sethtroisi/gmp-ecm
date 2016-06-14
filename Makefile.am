@@ -12,6 +12,8 @@ lib_LTLIBRARIES = libecm.la
 
 EXTRA_PROGRAMS = rho
 
+export GMPECM_DATADIR=$(srcdir)
+
 # If we want assembly mulredc code, recurse into the right subdirectory
 # and set up variables to include the mulredc library from that subdir
 if ENABLE_ASM_REDC
@@ -112,7 +114,7 @@ EXTRA_DIST = test.pm1 test.pp1 test.ecm README.lib INSTALL-ecm ecm.xml  \
              powerpc64/params.h powerpc32/params.h sparc64/params.h     \
              hppa/params.h mips/params.h x86_64/corei7/params.h         \
              generic/params.h testlong.pp1 testlong.pm1 testlong.ecm \
-             getprime_r.h cudakernel_default.cu test.gpuecm README.gpu
+             getprime_r.h cudakernel_default.cu test.gpuecm README.gpu c155
 
 DIST_SUBDIRS = athlon pentium4 x86_64 powerpc64 aprtcle build.vc12
 
