@@ -132,8 +132,6 @@ ecm-params:	bench_mulredc$(EXEEXT) tune$(EXEEXT)
 		./tune >> ecm-params.h
 
 # see https://www.gnu.org/software/automake/manual/html_node/Scripts_002dbased-Testsuites.html
-# the test numbers are in ${GMPECM_DATADIR}
-export GMPECM_DATADIR=$(srcdir)
 check: ecm$(EXEEXT)
 	$(srcdir)/test.pp1 ./ecm$(EXEEXT)
 	echo ""
