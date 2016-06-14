@@ -87,7 +87,7 @@ $ECM -resume test_M877.save 0 819632383
 checkcode $? 6
 
 # exercise estimated memory usage in Gb
-$ECM -v -k 1 1 8e11 < c155
+$ECM -v -k 1 1 8e11 < ${GMPECM_DATADIR}/c155
 
 rm test_M877.save M997.save
 

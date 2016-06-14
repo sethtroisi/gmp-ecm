@@ -12,8 +12,6 @@ lib_LTLIBRARIES = libecm.la
 
 EXTRA_PROGRAMS = rho
 
-export GMPECM_DATADIR=$(srcdir)
-
 # If we want assembly mulredc code, recurse into the right subdirectory
 # and set up variables to include the mulredc library from that subdir
 if ENABLE_ASM_REDC
@@ -114,7 +112,9 @@ EXTRA_DIST = test.pm1 test.pp1 test.ecm README.lib INSTALL-ecm ecm.xml  \
              powerpc64/params.h powerpc32/params.h sparc64/params.h     \
              hppa/params.h mips/params.h x86_64/corei7/params.h         \
              generic/params.h testlong.pp1 testlong.pm1 testlong.ecm \
-             getprime_r.h cudakernel_default.cu test.gpuecm README.gpu c155
+             getprime_r.h cudakernel_default.cu test.gpuecm README.gpu c155 \
+             test_dummy2.save test_dummy.save test_prime95.save test_M877.save \
+	     test_Z2102.n
 
 DIST_SUBDIRS = athlon pentium4 x86_64 powerpc64 aprtcle build.vc12
 
@@ -131,6 +131,9 @@ ecm-params:	bench_mulredc$(EXEEXT) tune$(EXEEXT)
 		./bench_mulredc > ecm-params.h
 		./tune >> ecm-params.h
 
+# see https://www.gnu.org/software/automake/manual/html_node/Scripts_002dbased-Testsuites.html
+# the test numbers are in ${GMPECM_DATADIR}
+export GMPECM_DATADIR=$(srcdir)
 check: ecm$(EXEEXT)
 	$(srcdir)/test.pp1 ./ecm$(EXEEXT)
 	echo ""
