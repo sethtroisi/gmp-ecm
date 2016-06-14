@@ -54,24 +54,71 @@ dbl_param (mpres_t x, mpres_t y, mpres_t z, mpres_t t, mpres_t u, mpres_t v,
   mpres_mul_ui (z, z, 2, n); /* Z3 = 2*Y1*Z1  */
 
   mpres_sqr (u, x, n); /* A = X1*X1  */
+#ifdef DEBUG
+  gmp_printf ("58: u=%Zd\n", u);
+#endif
   mpres_sqr (t, y, n); /* B = Y1*Y1  */
+#ifdef DEBUG
+  gmp_printf ("62: t=%Zd\n", t);
+#endif
   mpres_sqr (y, t, n); /* C = B^2  */
+#ifdef DEBUG
+  gmp_printf ("66: y=%Zd\n", y);
+#endif
   mpres_add (v, x, t, n); /* X1+B  */
+#ifdef DEBUG
+  gmp_printf ("70: v=%Zd\n", v);
+#endif
   mpres_sqr (v, v, n); /* (X1+B)^2  */
+#ifdef DEBUG
+  gmp_printf ("74: v=%Zd\n", v);
+#endif
   mpres_sub (v, v, u, n); /* (X1+B)^2-A  */
+#ifdef DEBUG
+  gmp_printf ("78: v=%Zd\n", v);
+#endif
   mpres_sub (v, v, y, n); /* (X1+B)^2-A-C  */
+#ifdef DEBUG
+  gmp_printf ("82: v=%Zd\n", v);
+#endif
   mpres_mul_ui (v, v, 2, n); /* D = 2*((X1+B)^2-A-C)  */
+#ifdef DEBUG
+  gmp_printf ("86: v=%Zd\n", v);
+#endif
   mpres_mul_ui (u, u, 3, n); /* E = 3*A  */
+#ifdef DEBUG
+  gmp_printf ("90: u=%Zd\n", u);
+#endif
   mpres_sqr (t, u, n); /* F = E^2  */
-
+#ifdef DEBUG
+  gmp_printf ("94: t=%Zd\n", t);
+#endif
 
   mpres_mul_ui (x, v, 2, n); /* 2*D  */
+#ifdef DEBUG
+  gmp_printf ("99: x=%Zd\n", x);
+#endif
   mpres_sub (x, t, x, n); /* X3 = F-2*D  */
+#ifdef DEBUG
+  gmp_printf ("103: x=%Zd\n", x);
+#endif
 
   mpres_sub (v, v, x, n); /* D-X3  */
+#ifdef DEBUG
+  gmp_printf ("108: v=%Zd\n", v);
+#endif
   mpres_mul_ui (y, y, 8, n); /* 8*C  */
+#ifdef DEBUG
+  gmp_printf ("112: y=%Zd\n", y);
+#endif
   mpres_mul (t, u, v, n); /* E*(D-X3)  */
+#ifdef DEBUG
+  gmp_printf ("116: t=%Zd\n", t);
+#endif
   mpres_sub (y, t, y, n); /* Y3 = E*(D-X3)-8*C */
+#ifdef DEBUG
+  gmp_printf ("120: y=%Zd\n", y);
+#endif
 }
 
 /*Add sgn*P=(-3:sgn*3:1) to Q=(x:y:z) */
