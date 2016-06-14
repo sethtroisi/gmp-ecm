@@ -21,8 +21,10 @@
 # http://www.gnu.org/licenses/ or write to the Free Software Foundation, Inc.,
 # 51 Franklin St, Fifth Floor, Boston, MA 02110-1301, USA.
 
-ECM="$1 -gpu -gpucurves 1"
-ECMnoGPU="$1"
+ECM="${1:-./ecm} -gpu -gpucurves 1"
+ECMnoGPU="${1-./ecm}"
+
+GMPECM_DATADIR=${srcdir:-.}
 
 # Call with "checkcode $? n" to check that return code is n
 # (see test.pm1 for the explanation of the different return codes)              
