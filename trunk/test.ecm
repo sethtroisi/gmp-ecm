@@ -23,7 +23,7 @@
 
 ECM="${1:-./ecm}"
 
-GMPECM_DATADIR=${srcdir:-.}
+GMPECM_DATADIR=${GMPECM_DATADIR:-.}
 
 # Call with "checkcode $? n" to check that return code is n
 # (see test.pm1 for the explanation of the different return codes)              
