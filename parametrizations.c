@@ -23,8 +23,6 @@ http://www.gnu.org/licenses/ or write to the Free Software Foundation, Inc.,
 #include "ecm-gmp.h"
 #include "ecm-impl.h"
 
-/* #define DEBUG */
-
 #if 0
 /* this function is useful in debug mode to print residues */
 static void
@@ -54,71 +52,23 @@ dbl_param (mpres_t x, mpres_t y, mpres_t z, mpres_t t, mpres_t u, mpres_t v,
   mpres_mul_ui (z, z, 2, n); /* Z3 = 2*Y1*Z1  */
 
   mpres_sqr (u, x, n); /* A = X1*X1  */
-#ifdef DEBUG
-  gmp_printf ("58: u=%Zd\n", u);
-#endif
   mpres_sqr (t, y, n); /* B = Y1*Y1  */
-#ifdef DEBUG
-  gmp_printf ("62: t=%Zd\n", t);
-#endif
   mpres_sqr (y, t, n); /* C = B^2  */
-#ifdef DEBUG
-  gmp_printf ("66: y=%Zd\n", y);
-#endif
   mpres_add (v, x, t, n); /* X1+B  */
-#ifdef DEBUG
-  gmp_printf ("70: v=%Zd\n", v);
-#endif
   mpres_sqr (v, v, n); /* (X1+B)^2  */
-#ifdef DEBUG
-  gmp_printf ("74: v=%Zd\n", v);
-#endif
   mpres_sub (v, v, u, n); /* (X1+B)^2-A  */
-#ifdef DEBUG
-  gmp_printf ("78: v=%Zd\n", v);
-#endif
   mpres_sub (v, v, y, n); /* (X1+B)^2-A-C  */
-#ifdef DEBUG
-  gmp_printf ("82: v=%Zd\n", v);
-#endif
   mpres_mul_ui (v, v, 2, n); /* D = 2*((X1+B)^2-A-C)  */
-#ifdef DEBUG
-  gmp_printf ("86: v=%Zd\n", v);
-#endif
   mpres_mul_ui (u, u, 3, n); /* E = 3*A  */
-#ifdef DEBUG
-  gmp_printf ("90: u=%Zd\n", u);
-#endif
   mpres_sqr (t, u, n); /* F = E^2  */
-#ifdef DEBUG
-  gmp_printf ("94: t=%Zd\n", t);
-#endif
 
   mpres_mul_ui (x, v, 2, n); /* 2*D  */
-#ifdef DEBUG
-  gmp_printf ("99: x=%Zd\n", x);
-#endif
   mpres_sub (x, t, x, n); /* X3 = F-2*D  */
-#ifdef DEBUG
-  gmp_printf ("103: x=%Zd\n", x);
-#endif
 
   mpres_sub (v, v, x, n); /* D-X3  */
-#ifdef DEBUG
-  gmp_printf ("108: v=%Zd\n", v);
-#endif
   mpres_mul_ui (y, y, 8, n); /* 8*C  */
-#ifdef DEBUG
-  gmp_printf ("112: y=%Zd\n", y);
-#endif
   mpres_mul (t, u, v, n); /* E*(D-X3)  */
-#ifdef DEBUG
-  gmp_printf ("116: t=%Zd\n", t);
-#endif
   mpres_sub (y, t, y, n); /* Y3 = E*(D-X3)-8*C */
-#ifdef DEBUG
-  gmp_printf ("120: y=%Zd\n", y);
-#endif
 }
 
 /*Add sgn*P=(-3:sgn*3:1) to Q=(x:y:z) */
@@ -163,11 +113,6 @@ static void
 addchain_param (mpres_t x, mpres_t y, mpres_t z, mpz_t s, mpres_t t,
                 mpres_t u, mpres_t v, mpres_t w, mpmod_t n)
 {
-#ifdef DEBUG
-  mpz_t s0;
-  mpz_init_set (s0, s);
-  gmp_printf ("enter addchain_param, s=%Zd\n", s);
-#endif
   if (mpz_cmp_ui (s, 1) == 0)
     {
       mpres_set_si (x, -3, n);
@@ -198,13 +143,6 @@ addchain_param (mpres_t x, mpres_t y, mpres_t z, mpz_t s, mpres_t t,
       addchain_param (x, y, z, s, t, u, v, w, n);
       add_param (x, y, z, -1, t, u, v, w, n);
     }
-#ifdef DEBUG
-  gmp_printf ("exit addchain_param, s=%Zd\n", s0);
-  gmp_printf ("x=%Zd\n", x);
-  gmp_printf ("y=%Zd\n", y);
-  gmp_printf ("z=%Zd\n", z);
-  mpz_clear (s0);
-#endif
 }
 
 /*
@@ -358,11 +296,6 @@ get_curve_from_param2 (mpz_t f, mpres_t A, mpres_t x0, mpz_t sigma, mpmod_t n)
   mpz_t k;
   int ret = ECM_NO_FACTOR_FOUND;
 
-#ifdef DEBUG
-  printf ("size(n)=%zu\n", mpz_size (n->orig_modulus));
-  gmp_printf ("sigma=%Zd\n", sigma);
-#endif
-
   mpres_init (t, n);
   mpres_init (u, n);
   mpres_init (v, n);
@@ -381,11 +314,6 @@ get_curve_from_param2 (mpz_t f, mpres_t A, mpres_t x0, mpz_t sigma, mpmod_t n)
     }
 
   addchain_param (x, y, z, k, t, u, v, w, n);
-#ifdef DEBUG
-  gmp_printf ("x=%Zd\n", x);
-  gmp_printf ("y=%Zd\n", y);
-  gmp_printf ("z=%Zd\n", z);
-#endif
 
   /* Now (x:y:z) = k*P */
 
