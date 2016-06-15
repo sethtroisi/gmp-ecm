@@ -131,6 +131,9 @@ ecm-params:	bench_mulredc$(EXEEXT) tune$(EXEEXT)
 		./bench_mulredc > ecm-params.h
 		./tune >> ecm-params.h
 
+# see m4/valgrind-tests.m4
+TESTS_ENVIRONMENT = $(VALGRIND)
+
 # see https://www.gnu.org/software/automake/manual/html_node/Scripts_002dbased-Testsuites.html
 export GMPECM_DATADIR = $(srcdir)
 check: ecm$(EXEEXT)
