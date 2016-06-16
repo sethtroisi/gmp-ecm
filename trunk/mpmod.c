@@ -1037,6 +1037,10 @@ mpmod_init_set (mpmod_t r, const mpmod_t modulus)
     {
       mpz_init2 (r->aux_modulus, Nbits);
       mpz_set (r->aux_modulus, modulus->aux_modulus);
+      /* for ECM_MOD_REDC, ensure r->aux_modulus has n limbs */
+      _mpz_realloc (r->aux_modulus, n);
+      MPN_ZERO (PTR(r->aux_modulus) + ABSIZ(r->aux_modulus),
+                n - ABSIZ(r->aux_modulus));
     }
   if (modulus->repr == ECM_MOD_MODMULN)
     {
