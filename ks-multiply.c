@@ -537,23 +537,12 @@ TMulKS (listz_t b, unsigned int n, listz_t a, unsigned int m,
   free (ap);
 
 #ifdef DEBUG
-  fprintf (ECM_STDOUT, "%ums\n", elltime (st, cputime ()));
+  fprintf (ECM_STDOUT, "%ldms\n", elltime (st, cputime ()));
 #endif
   
  TMulKS_end:
   return ret;
 }
-
-#ifdef DEBUG
-void
-mpn_print (mp_ptr np, mp_size_t nn)
-{
-  mp_size_t i;
-  for (i = 0; i < nn; i++)
-    fprintf (ECM_STDOUT, "+%lu*B^%u", np[i], i);
-  fprintf (ECM_STDOUT, "\n");
-}
-#endif
 
 unsigned int
 ks_wrapmul_m (unsigned int m0, unsigned int k, mpz_t n)

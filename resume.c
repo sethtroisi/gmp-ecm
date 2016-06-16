@@ -338,7 +338,7 @@ read_resumefile_line (int *method, mpz_t x, mpz_t y, mpcandi_t *n,
           if (have_z)
             {
               printf (" Z");
-              mpz_clear (Z);
+              mpz_clear (z);
               have_z = 0;
             }
           printf (" value for method other than ECM.\n");
