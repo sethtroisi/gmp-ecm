@@ -165,4 +165,7 @@ echo 338520662574298111489793906091875397608509448067635557953400848820489869124
 echo "2^1009-1" | $PM1 1000; checkcode $? 6
 echo "(2^1009-1)/3454817" | $PM1 -no-ntt 5e3 1e4-1e6; checkcode $? 6
 
+# exercise bug fixed in revision 2949 on 64-bit processor (occurred with -redc)
+echo "(2^1049-1)/33569/459463" | $PM1 1049 21686243; checkcode $? 14
+
 echo "All P-1 tests are ok."
