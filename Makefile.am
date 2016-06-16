@@ -131,21 +131,19 @@ ecm-params:	bench_mulredc$(EXEEXT) tune$(EXEEXT)
 		./bench_mulredc > ecm-params.h
 		./tune >> ecm-params.h
 
-# see m4/valgrind-tests.m4
-TESTS_ENVIRONMENT = $(VALGRIND)
+check_PROGRAMS = ecm$(EXEEXT)
+
+dist_check_SCRIPTS = test.pp1 test.pm1 test.ecm
+if WANT_GPU
+dist_check_SCRIPTS += test.gpuecm
+endif
+
+TESTS = $(dist_check_SCRIPTS)
+TESTS_ENVIRONMENT = GMPECM_DATADIR=$(srcdir) $(VALGRIND)
 
 # see https://www.gnu.org/software/automake/manual/html_node/Scripts_002dbased-Testsuites.html
-export GMPECM_DATADIR = $(srcdir)
-check: ecm$(EXEEXT)
-	$(srcdir)/test.pp1 ./ecm$(EXEEXT)
-	echo ""
-	$(srcdir)/test.pm1 ./ecm$(EXEEXT)
-	echo ""
-	$(srcdir)/test.ecm ./ecm$(EXEEXT)
-if WANT_GPU 
-	echo ""
-	$(srcdir)/test.gpuecm ./ecm$(EXEEXT)
-endif
+# this is only needed for "make longcheck" below
+# export GMPECM_DATADIR = $(srcdir)
 
 longcheck: ecm$(EXEEXT)
 	$(srcdir)/test.pp1 "$(VALGRIND) ./ecm$(EXEEXT)"
