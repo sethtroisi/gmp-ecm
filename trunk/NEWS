@@ -1,3 +1,6 @@
+Changes between GMP-ECM 7.0.1 and GMP-ECM 7.0.x:
+* fixed bug with -redc when -1/N mod R has less than n limbs
+
 Changes between GMP-ECM 7.0 and GMP-ECM 7.0.1:
 * fixed efficiency issue with divisors of 2^n+/-1
 * allow for larger B1 values on Windows computers in batch mode
