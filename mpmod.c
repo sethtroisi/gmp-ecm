@@ -1483,7 +1483,7 @@ mpres_sqr (mpres_t R, const mpres_t S1, mpmod_t modulus)
   ASSERT_NORMALIZED (S1);
 
 #ifdef WANT_ASSERT_EXPENSIVE
-  mpz_t test1, test2, test_result1, test_result2;
+  mpz_t test1, test_result1, test_result2;
   ASSERT_ALWAYS (S1 != modulus->temp1 && R != modulus->temp1);
   mpz_init (test1);
   mpz_init (test_result1);
