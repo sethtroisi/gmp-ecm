@@ -1082,6 +1082,7 @@ mpres_pow_sqr (mpres_t a, const mpres_t b, mpmod_t modulus)
     ecm_sqrredc_basecase (a, b, modulus);
   else
     {
+      ASSERT(modulus->repr == ECM_MOD_REDC);
       mpz_mul (modulus->temp1, b, b);
       REDC (a, modulus->temp1, modulus->temp2, modulus);
     }
@@ -1103,6 +1104,7 @@ mpres_pow_mul (mpres_t a, const mpres_t b, const mpres_t c, mpmod_t modulus)
     ecm_mulredc_basecase (a, b, c, modulus);
   else
     {
+      ASSERT(modulus->repr == ECM_MOD_REDC);
       mpz_mul (modulus->temp1, b, c);
       REDC (a, modulus->temp1, modulus->temp2, modulus);
     }
