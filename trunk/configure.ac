@@ -631,7 +631,8 @@ AM_CONDITIONAL([MAKE_MANPAGE], [test "x$make_manpage" = xyes])
 
 dnl Check for valgrind. GMP-ECM uses exit code 1 to signal error,
 dnl so we make valgrind use that code to signal error, too
-AC_CHECK_PROG([VALGRIND], [valgrind], [valgrind -q --error-exitcode=1])
+dnl AC_CHECK_PROG([VALGRIND], [valgrind], [valgrind -q --error-exitcode=1])
+gl_VALGRIND_TESTS
 
 dnl Check if a GPU version is asked, for which GPU and where CUDA is install.
 dnl See acinclude.m4 for details.
