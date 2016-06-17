@@ -649,12 +649,11 @@ ks_wrapmul (listz_t R, unsigned int m0,
         free (t1_ptr);
         return 0;
       }
-#ifdef FFT_WRAP
     mpn_mulmod_bnm1 (t2_ptr, i, t0_ptr, size_t0, t1_ptr, size_t1, tp);
-#endif
+    MPN_ZERO(t2_ptr + size_t0 + size_t1, m * s - (size_t0 + size_t1));
     free (tp);
   }
-  
+
   for (i = 0, tp = t2_ptr; i < m; i++, tp += s)
     {
       size_tmp = s;
