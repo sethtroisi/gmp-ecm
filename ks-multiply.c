@@ -630,6 +630,7 @@ ks_wrapmul (listz_t R, unsigned int m0,
 #else
   ASSERT_ALWAYS(0); /* ks_wrapmul should not be called in that case */
 #endif
+  ASSERT(i % s == 0);
   m = i / s;
   ASSERT(m <= 2 * m0 - 3 + list_mul_mem (m0 - 1));
 
@@ -650,18 +651,19 @@ ks_wrapmul (listz_t R, unsigned int m0,
         return 0;
       }
     mpn_mulmod_bnm1 (t2_ptr, i, t0_ptr, size_t0, t1_ptr, size_t1, tp);
-    MPN_ZERO(t2_ptr + size_t0 + size_t1, m * s - (size_t0 + size_t1));
+    if ((mp_size_t) i > size_t0 + size_t1)
+      MPN_ZERO(t2_ptr + size_t0 + size_t1, i - (size_t0 + size_t1));
     free (tp);
   }
 
-  for (i = 0, tp = t2_ptr; i < m; i++, tp += s)
+  for (t = 0, tp = t2_ptr; t < m; t++, tp += s)
     {
       size_tmp = s;
       MPN_NORMALIZE(tp, size_tmp);
-      r_ptr = MPZ_REALLOC (R[i], size_tmp);
+      r_ptr = MPZ_REALLOC (R[t], size_tmp);
       if (size_tmp)
         MPN_COPY (r_ptr, tp, size_tmp);
-      SIZ(R[i]) = size_tmp;
+      SIZ(R[t]) = size_tmp;
     }
 
   free (t0_ptr);
