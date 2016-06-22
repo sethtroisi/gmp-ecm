@@ -132,6 +132,7 @@ process_newfactor (mpz_t g, int result, mpcandi_t *n, int method,
         /* prime. If no factor was found, both are zero. */
   int cofactor_is_prime = 0;
   int method1;
+  int found_n;
   mpz_t f;
   
   mpz_init (f);
@@ -157,7 +158,7 @@ process_newfactor (mpz_t g, int result, mpcandi_t *n, int method,
       {
         if (verbose > 0)
             printf ("********** Factor found in step %u: ", ABS (result));
-        
+
         mpz_out_str (stdout, 10, f);
         
         if (verbose > 0)
@@ -166,8 +167,14 @@ process_newfactor (mpz_t g, int result, mpcandi_t *n, int method,
 
   /* Complain about non-proper factors (0, negative) */
   ASSERT_ALWAYS(mpz_cmp_ui (f, 1) >= 1);
+
+  found_n = mpz_cmp (f, n->n) == 0;
   
-  if (mpz_cmp (f, n->n) != 0)
+  /* 1 for display warning if factor does not divide the current 
+     candidate */
+  mpcandi_t_addfoundfactor (n, f, gpu == 0);
+
+  if (found_n == 0)
     {
       /* prints factor found and cofactor on standard output. */
       /* the second argument here tells aprtcle to not print primality proving progress info */
@@ -185,10 +192,6 @@ process_newfactor (mpz_t g, int result, mpcandi_t *n, int method,
           printf ("\n");
         }
       
-      /* 1 for display warning if factor does not divide the current 
-      candidate */
-      mpcandi_t_addfoundfactor (n, f, gpu == 0);
-
       if (resumefile != NULL)
         {
           /* If we are resuming from a save file, add factor to the

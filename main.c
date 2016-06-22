@@ -305,7 +305,7 @@ mod_from_mpq (mpz_t r, mpq_t q, mpz_t N, int verbose)
           {
             if (verbose > 1)
               printf ("Warning: factor found during initialization\n");
-            printf ("********** Factor found during step 1: ");
+            printf ("********** Factor found in step 1: ");
           }
 	mpz_out_str (stdout, 10, r);
 	if (verbose > 0)
@@ -1499,7 +1499,7 @@ main (int argc, char *argv[])
         }
 
       /* if quiet mode, prints remaining cofactor after last curve */
-      if ((cnt == 0) && (verbose == 0))
+      if ((cnt == 0) && (verbose == 0) && (mpz_cmp_ui (n.n, 1) > 0))
         {
           if (n.cpExpr)
             printf ("%s", n.cpExpr);
