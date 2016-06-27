@@ -218,7 +218,7 @@ echo "2^1123-1" | $ECM -sigma 0:5 -x0 1 11000; checkcode $? 1
 echo "2^1123-1" | $ECM -param 0 -y0 1 11000; checkcode $? 1
 
 # exercise "Error, option -c and -resume are incompatible" error message
-$ECM -c 2 -resume test_M877.save 11000; checkcode $? 1
+$ECM -c 2 -resume ${GMPECM_DATADIR}/M877.save 11000; checkcode $? 1
 
 # exercise "Error, option -c is incompatible with -x0" error message
 echo "2^1123-1" | $ECM -c 2 -param 0 -x0 1 11000; checkcode $? 1
@@ -543,7 +543,7 @@ echo "2^753-511" | $ECM -c 2 -sigma 0:38270210 11000; checkcode $? 6
 echo "2^1123-1" | $ECM -sigma 0:13488386679529262989 -go 5 -go 7 11000; checkcode $? 6
 
 # exercise "Warning: -sigma, -param, -A and -x0 parameters are ignored when resuming from save files." warning message
-$ECM -x0 1 -resume ${GMPECM_DATADIR}/test_M877.save 11000; checkcode $? 0
+$ECM -x0 1 -resume ${GMPECM_DATADIR}/M877.save 11000; checkcode $? 0
 
 # exercise print cofactor when using -q option
 echo "2^1123-1" | $ECM -sigma 0:13488386679529262989 -q 11000; checkcode $? 6

@@ -1,4 +1,201 @@
 ------------------------------------------------------------------------
+r2956 | zimmerma | 2016-06-17 13:21:26 +0200 (Fri, 17 Jun 2016) | 2 lines
+Changed paths:
+   M /trunk/ks-multiply.c
+
+previous fix was wrong
+
+------------------------------------------------------------------------
+r2955 | zimmerma | 2016-06-17 09:55:20 +0200 (Fri, 17 Jun 2016) | 2 lines
+Changed paths:
+   M /trunk/ks-multiply.c
+
+fixed issue detected by valgrind with -no-ntt
+
+------------------------------------------------------------------------
+r2954 | zimmerma | 2016-06-16 11:37:55 +0200 (Thu, 16 Jun 2016) | 2 lines
+Changed paths:
+   M /trunk/test.pm1
+
+added new test to check bug fixed in revision 2949 on 64-bit processor
+
+------------------------------------------------------------------------
+r2953 | zimmerma | 2016-06-16 11:21:50 +0200 (Thu, 16 Jun 2016) | 2 lines
+Changed paths:
+   M /trunk/Makefile.am
+
+made "make check" more automake-like (thanks Jerome Benoit)
+
+------------------------------------------------------------------------
+r2952 | zimmerma | 2016-06-16 10:48:15 +0200 (Thu, 16 Jun 2016) | 2 lines
+Changed paths:
+   M /trunk/NEWS
+
+last fixed bug is only possible for P+1 or P-1
+
+------------------------------------------------------------------------
+r2951 | zimmerma | 2016-06-16 10:24:55 +0200 (Thu, 16 Jun 2016) | 2 lines
+Changed paths:
+   M /trunk/mpmod.c
+
+added ASSERTs
+
+------------------------------------------------------------------------
+r2950 | zimmerma | 2016-06-16 10:22:58 +0200 (Thu, 16 Jun 2016) | 2 lines
+Changed paths:
+   M /trunk/NEWS
+
+updated NEWS
+
+------------------------------------------------------------------------
+r2949 | zimmerma | 2016-06-16 10:17:19 +0200 (Thu, 16 Jun 2016) | 2 lines
+Changed paths:
+   M /trunk/mpmod.c
+
+fixed issue with -redc when invm has less than n limbs
+
+------------------------------------------------------------------------
+r2948 | zimmerma | 2016-06-16 09:42:33 +0200 (Thu, 16 Jun 2016) | 2 lines
+Changed paths:
+   M /trunk/ks-multiply.c
+   M /trunk/resume.c
+
+fixed issues with -DDEBUG -DWANT_ASSERT -DWANT_ASSERT_EXPENSIVE
+
+------------------------------------------------------------------------
+r2947 | zimmerma | 2016-06-16 09:36:59 +0200 (Thu, 16 Jun 2016) | 2 lines
+Changed paths:
+   M /trunk/mpmod.c
+
+removed unused variable
+
+------------------------------------------------------------------------
+r2946 | zimmerma | 2016-06-15 17:49:51 +0200 (Wed, 15 Jun 2016) | 3 lines
+Changed paths:
+   M /trunk/parametrizations.c
+
+removed debug stuff (it was a compiler issue, cf
+https://lists.gforge.inria.fr/pipermail/ecm-discuss/2016-June/004360.html)
+
+------------------------------------------------------------------------
+r2945 | zimmerma | 2016-06-15 14:22:37 +0200 (Wed, 15 Jun 2016) | 2 lines
+Changed paths:
+   M /trunk/Makefile.am
+
+added TESTS_ENVIRONMENT
+
+------------------------------------------------------------------------
+r2944 | zimmerma | 2016-06-15 08:27:11 +0200 (Wed, 15 Jun 2016) | 2 lines
+Changed paths:
+   M /trunk/Makefile.am
+   M /trunk/test.ecm
+   M /trunk/test.gpuecm
+   M /trunk/test.pm1
+   M /trunk/test.pp1
+   M /trunk/testlong.ecm
+   M /trunk/testlong.pm1
+   M /trunk/testlong.pp1
+
+we still need to export GMPECM_DATADIR in Makefile
+
+------------------------------------------------------------------------
+r2943 | zimmerma | 2016-06-14 18:29:29 +0200 (Tue, 14 Jun 2016) | 3 lines
+Changed paths:
+   M /trunk/Makefile.am
+   M /trunk/test.ecm
+   M /trunk/test.gpuecm
+   M /trunk/test.pm1
+   M /trunk/test.pp1
+   M /trunk/testlong.ecm
+
+* now we can run ./test.ecm without any argument
+* no need any more to export GMPECM_DATADIR
+
+------------------------------------------------------------------------
+r2942 | zimmerma | 2016-06-14 17:20:45 +0200 (Tue, 14 Jun 2016) | 2 lines
+Changed paths:
+   M /trunk/Makefile.am
+   M /trunk/test.ecm
+   M /trunk/test.gpuecm
+   M /trunk/test.pp1
+   A /trunk/test_M877.save
+   A /trunk/test_Z2102.n
+   A /trunk/test_dummy.save
+   A /trunk/test_dummy2.save
+   A /trunk/test_prime95.save
+   M /trunk/testlong.ecm
+
+avoid hard-coding test numbers in scripts (thanks Jerome Benoit)
+
+------------------------------------------------------------------------
+r2941 | zimmerma | 2016-06-14 15:21:52 +0200 (Tue, 14 Jun 2016) | 2 lines
+Changed paths:
+   M /trunk/Makefile.am
+   M /trunk/test.pm1
+
+try having an environment variable for test numbers
+
+------------------------------------------------------------------------
+r2940 | zimmerma | 2016-06-14 15:00:12 +0200 (Tue, 14 Jun 2016) | 2 lines
+Changed paths:
+   M /trunk/parametrizations.c
+
+more debug stuff
+
+------------------------------------------------------------------------
+r2939 | zimmerma | 2016-06-13 14:00:14 +0200 (Mon, 13 Jun 2016) | 2 lines
+Changed paths:
+   M /trunk/README
+
+fix in README, since c155 is not longer distributed
+
+------------------------------------------------------------------------
+r2938 | zimmerma | 2016-06-13 13:55:47 +0200 (Mon, 13 Jun 2016) | 2 lines
+Changed paths:
+   M /trunk/Makefile.am
+
+patch from Jerome Benoit
+
+------------------------------------------------------------------------
+r2937 | zimmerma | 2016-06-13 13:54:47 +0200 (Mon, 13 Jun 2016) | 2 lines
+Changed paths:
+   M /trunk/parametrizations.c
+
+more debug stuff
+
+------------------------------------------------------------------------
+r2936 | zimmerma | 2016-06-11 08:59:56 +0200 (Sat, 11 Jun 2016) | 2 lines
+Changed paths:
+   M /trunk/parametrizations.c
+
+added debug stuff
+
+------------------------------------------------------------------------
+r2935 | zimmerma | 2016-05-24 17:32:21 +0200 (Tue, 24 May 2016) | 2 lines
+Changed paths:
+   M /trunk/README.dev
+
+updated after the 7.0.1 release
+
+------------------------------------------------------------------------
+r2934 | zimmerma | 2016-05-24 17:31:10 +0200 (Tue, 24 May 2016) | 2 lines
+Changed paths:
+   M /trunk/build.vc12/gen_ecm_h.bat
+   M /trunk/configure.ac
+
+increased version number to 7.0.2-dev
+
+------------------------------------------------------------------------
+r2932 | zimmerma | 2016-05-24 17:24:27 +0200 (Tue, 24 May 2016) | 2 lines
+Changed paths:
+   M /trunk/ChangeLog
+   M /trunk/NEWS
+   M /trunk/build.vc12/gen_ecm_h.bat
+   M /trunk/configure.ac
+
+ready for 7.0.1 release
+
+------------------------------------------------------------------------
 r2931 | zimmerma | 2016-05-18 19:16:43 +0200 (Wed, 18 May 2016) | 2 lines
 Changed paths:
    M /trunk/ChangeLog
