@@ -1,4 +1,4 @@
-Changes between GMP-ECM 7.0.1 and GMP-ECM 7.0.x:
+Changes between GMP-ECM 7.0.1 and GMP-ECM 7.0.2:
 * fixed bug in P-1/P+1 stage 2 and -redc when -1/N mod R has less than n limbs
 
 Changes between GMP-ECM 7.0 and GMP-ECM 7.0.1:
