@@ -1,5 +1,3 @@
-# copied from gnulib
-
 # gl_VALGRIND_TESTS()
 # -------------------
 # Check if valgrind is available, and set VALGRIND to it if available.
