@@ -79,8 +79,8 @@ if test "x$enable_mulredc_svoboda" = xyes; then
   GMP_DEFINE([MULREDC_SVOBODA], 1)
 fi
 
-AC_ARG_ENABLE([valgrind],
-[AS_HELP_STRING([--enable-valgrind], [enable Valgrind client check requests [[default=no]]])],[],[])
+AC_ARG_ENABLE([valgrind-client],
+[AS_HELP_STRING([--enable-valgrind-client], [enable Valgrind client check requests [[default=no]]])],[],[])
 if test "x$enable_valgrind" = xyes; then
   AC_DEFINE([USE_VALGRIND],1,[Define to 1 if you want Valgrind client check requests enabled])
 fi
