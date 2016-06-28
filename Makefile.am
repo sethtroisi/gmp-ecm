@@ -3,6 +3,10 @@
 ACLOCAL_AMFLAGS = -I m4
 AUTOMAKE_OPTIONS = subdir-objects
 
+# to disable valgrind during make distcheck
+AM_DISTCHECK_CONFIGURE_FLAGS ?= \
+  --disable-valgrind-tests
+
 @COV_FRAG@
 
 # to not install libecm.la, we could write noinst_LTLIBRARIES instead of
