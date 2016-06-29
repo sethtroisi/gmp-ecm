@@ -52,7 +52,6 @@ GSYM_PREFIX`'ecm_redc3:
 
 	TEXT
 	.align	5		C 32 byte alignment
-	TYPE(.GSYM_PREFIX`'ecm_redc3,`@function')
 .GSYM_PREFIX`'ecm_redc3:
 
 	cmpdi	r5, 1				C length = 1?

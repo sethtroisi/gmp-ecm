@@ -67,7 +67,6 @@ GSYM_PREFIX``''mulredc`'LENGTH:
 
 	TEXT
 	.align	5	C powerPC 32 byte alignment
-	TYPE(.GSYM_PREFIX``''mulredc``''LENGTH,``@function'')
 .GSYM_PREFIX``''mulredc`'LENGTH:
 ifelse(eval(LENGTH),1,
 `		mulld   r8, r4, r5			C x*y low half T0

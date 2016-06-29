@@ -126,7 +126,6 @@ C r15, so only LENGTH entries are used in the stack.
 
 	TEXT
 	.align	5	C powerPC 32 byte alignment
-	TYPE(.GSYM_PREFIX``''mulredc``''LENGTH,``@function'')
 .GSYM_PREFIX``''mulredc`'LENGTH:
 define(`S', `eval(8 * LENGTH)')dnl
 
