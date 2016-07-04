@@ -1,4 +1,69 @@
 ------------------------------------------------------------------------
+r2963 | zimmerma | 2016-06-29 15:55:37 +0200 (Wed, 29 Jun 2016) | 2 lines
+Changed paths:
+   M /trunk/NEWS
+   M /trunk/build.vc12/gen_ecm_h.bat
+   M /trunk/configure.ac
+   M /trunk/powerpc64/mulredc.m4
+   M /trunk/powerpc64/mulredc_1_2.m4
+   M /trunk/powerpc64/redc.asm
+
+fixed compilation issue on powerpc64
+
+------------------------------------------------------------------------
+r2962 | zimmerma | 2016-06-28 08:33:26 +0200 (Tue, 28 Jun 2016) | 2 lines
+Changed paths:
+   M /trunk/README.dev
+
+revision number for 7.0.2 is 2961
+
+------------------------------------------------------------------------
+r2961 | zimmerma | 2016-06-28 08:32:01 +0200 (Tue, 28 Jun 2016) | 2 lines
+Changed paths:
+   M /trunk/Makefile.am
+   M /trunk/configure.ac
+   M /trunk/m4/valgrind-tests.m4
+
+last changes for 7.0.2
+
+------------------------------------------------------------------------
+r2960 | zimmerma | 2016-06-28 08:11:07 +0200 (Tue, 28 Jun 2016) | 2 lines
+Changed paths:
+   M /trunk/m4/valgrind-tests.m4
+
+back to original version from gnulib
+
+------------------------------------------------------------------------
+r2959 | zimmerma | 2016-06-27 14:02:13 +0200 (Mon, 27 Jun 2016) | 2 lines
+Changed paths:
+   M /trunk/ChangeLog
+   M /trunk/Makefile.am
+   M /trunk/NEWS
+   M /trunk/build.vc12/gen_ecm_h.bat
+   M /trunk/configure.ac
+   M /trunk/test.ecm
+   M /trunk/testlong.ecm
+
+ready for release 7.0.2?
+
+------------------------------------------------------------------------
+r2958 | zimmerma | 2016-06-22 09:47:42 +0200 (Wed, 22 Jun 2016) | 3 lines
+Changed paths:
+   M /trunk/auxi.c
+   M /trunk/main.c
+
+fixed duplicate output with -q reported by Par Kurlberg
+(https://lists.gforge.inria.fr/pipermail/ecm-discuss/2016-June/004361.html)
+
+------------------------------------------------------------------------
+r2957 | zimmerma | 2016-06-17 17:37:53 +0200 (Fri, 17 Jun 2016) | 2 lines
+Changed paths:
+   M /trunk/configure.ac
+   A /trunk/m4/valgrind-tests.m4
+
+added m4/valgrind-tests.m4 (from gnulib)
+
+------------------------------------------------------------------------
 r2956 | zimmerma | 2016-06-17 13:21:26 +0200 (Fri, 17 Jun 2016) | 2 lines
 Changed paths:
    M /trunk/ks-multiply.c
