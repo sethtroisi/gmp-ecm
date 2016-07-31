@@ -495,7 +495,7 @@ listz_iterator_write (listz_iterator_t *iter, const mpz_t r)
   if (iter->handle->storage == 0)
     {
 #if defined(TRACE_ITER)
-      gmp_printf ("%s(): writeptr = %" PRIu64 ", r = %Zd\n", 
+      gmp_printf ("%s(): writeptr = %"PRIu64", r = %Zd\n", 
                   __func__, (uint64_t) iter->writeptr, r);
 #endif
       mpz_set (iter->handle->data.mem[iter->writeptr], r);
@@ -509,14 +509,14 @@ listz_iterator_write (listz_iterator_t *iter, const mpz_t r)
       ASSERT (iter->readptr == 0 || iter->writeptr + 1 == iter->readptr);
       ASSERT (iter->writeptr <= iter->bufsize);
 #if defined(TRACE_ITER)
-      gmp_printf ("%s(): offset = %" PRIu64 ", writeptr = %" PRIu64 
+      gmp_printf ("%s(): offset = %"PRIu64", writeptr = %"PRIu64
                   ", r = %Zd (on disk)\n", 
                   __func__, iter->offset, (uint64_t) iter->writeptr, r);
 #endif
       if (iter->writeptr == iter->bufsize)
         {
 #if defined(TRACE_ITER)
-          printf ("%s(): flushing %zu entries from buffer %d\n", 
+          printf ("%s(): flushing %"PRIu64" entries from buffer %d\n", 
                   iter->writeptr, iter->active_buffer);
 #endif
           listz_iterator_flush (iter);
