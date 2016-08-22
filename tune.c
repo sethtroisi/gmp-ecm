@@ -429,7 +429,7 @@ tune_list_mul_n ()
   for (n = 1; n < TUNE_LIST_MUL_N_MAX_SIZE; n++)
     {
       if (tune_verbose)
-        printf ("%"PRIu64":", n);
+        printf ("%zu:", n);
       __k = 1;
       TUNE_FUNC_LOOP(list_mul_n_basecase(z, x, y, n));
       st[0] = (double) __st / (double) __k;

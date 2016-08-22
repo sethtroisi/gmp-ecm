@@ -441,10 +441,10 @@ checkcode $? 8
 
 # test -bsaves/-bloads
 echo 18446744073709551557 | $ECM -param 1 -A 1 -bsaves test.ecm.s 11000
-echo 18446744073709551557 | $ECM -param 1 -A 312656731337392125 -bloads test.ecm.s 11000; checkcode $? 8
-# The following test (with -v and -bloads) would crash on Windows prior to svn 2968.
-echo 18446744073709551557 | $ECM -param 1 -A 312656731337392125 -bloads test.ecm.s -v 11000; checkcode $? 8
+echo 18446744073709551557 | $ECM -param 1 -A 312656731337392125 -bloads test.ecm.s 11000
+C=$?
 /bin/rm -f test.ecm.s
+checkcode $C 8
 
 # non-regression test for bug fixed by changeset r1819 on 32-bit
 echo 4294967291 | $ECM -param 1 -A 17 1000

@@ -578,10 +578,6 @@ ks_wrapmul (listz_t R, unsigned int m0,
             listz_t B, unsigned int l,
 	    mpz_t n)
 {
-#ifndef FFT_WRAP
-  ASSERT_ALWAYS(0); /* ks_wrapmul should not be called in that case */
-  return 0;
-#else
   unsigned long i, m, t;
   mp_size_t s, size_t0, size_t1, size_tmp;
   mp_ptr t0_ptr, t1_ptr, t2_ptr, r_ptr, tp;
@@ -625,11 +621,15 @@ ks_wrapmul (listz_t R, unsigned int m0,
     if (SIZ(B[i]))
       MPN_COPY (t1_ptr + i * s, PTR(B[i]), SIZ(B[i]));
 
+#ifdef FFT_WRAP
   i = mpn_mulmod_bnm1_next_size (m0 * s);
   /* the following loop ensures we don't cut in the middle of a
      coefficient */
   while (i % s)
     i = mpn_mulmod_bnm1_next_size (i + 1);
+#else
+  ASSERT_ALWAYS(0); /* ks_wrapmul should not be called in that case */
+#endif
   ASSERT(i % s == 0);
   m = i / s;
   ASSERT(m <= 2 * m0 - 3 + list_mul_mem (m0 - 1));
@@ -671,5 +671,4 @@ ks_wrapmul (listz_t R, unsigned int m0,
   free (t2_ptr);
   
   return m;
-#endif /* FFT_WRAP */
 }
