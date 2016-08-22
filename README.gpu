@@ -7,7 +7,7 @@ Table of contents of this file
 1. How to enable GPU code in GMP-ECM
 2. Basic Usage
 3. Advanced Usage
-4. Known issues
+
 
 ##############################################################################
 
@@ -99,13 +99,5 @@ from the GMP-ECM team will be very limited.
 
 ##############################################################################
 
-4. Known issues
-
-On some configurations (GTX 570 with compute capability 2.0 for example)
-one gets the Cuda error "too many resources requested for launch". This
-can be solved by decreasing ECM_GPU_CURVES_BY_BLOCK from 32 to 16 in ecm-gpu.h.
-
-##############################################################################
-
-Please report to Cyril.Bouvier@lirmm.fr any problems, bugs, ...
+Please report to Cyril.Bouvier@inria.fr any problems, bugs, ...
 

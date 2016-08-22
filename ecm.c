@@ -1,7 +1,7 @@
 /* Elliptic Curve Method: toplevel and stage 1 routines.
 
 Copyright 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009, 2010, 2011,
-2012, 2016 Paul Zimmermann, Alexander Kruppa, Cyril Bouvier, David Cleaver.
+2012 Paul Zimmermann, Alexander Kruppa, Cyril Bouvier, David Cleaver.
 
 This file is part of the ECM Library.
 
@@ -849,7 +849,7 @@ print_expcurves (double B1, const mpz_t B2, unsigned long dF, unsigned long k,
 {
   double prob;
   int i, j;
-  char sep, outs[128], flt[16];
+  char sep, outs[128];
   double smoothness_correction;
 
   if (param == ECM_PARAM_SUYAMA || param == ECM_PARAM_BATCH_2)
@@ -861,8 +861,8 @@ print_expcurves (double B1, const mpz_t B2, unsigned long dF, unsigned long k,
   else /* This case should never happen */
       smoothness_correction = 0.0; 
 
-  for (i = DIGITS_START, j = 0; i <= DIGITS_END; i += DIGITS_INCR)
-    j += sprintf (outs + j, "%u%c", i, (i < DIGITS_END) ? '\t' : '\n');
+  for (i = DIGITS_START, j = 0; i <= DIGITS_END; i += DIGITS_INCR, j += 3)
+    sprintf (outs + j, "%2u%c", i, (i < DIGITS_END) ? '\t' : '\n');
   outs[j] = '\0';
   outputf (OUTPUT_VERBOSE, "Expected number of curves to find a factor "
            "of n digits:\n%s", outs);
@@ -876,14 +876,7 @@ print_expcurves (double B1, const mpz_t B2, unsigned long dF, unsigned long k,
       if (prob > 1. / 10000000)
         outputf (OUTPUT_VERBOSE, "%.0f%c", floor (1. / prob + .5), sep);
       else if (prob > 0.)
-        {
-          /* on Windows: 2.6e+009   or   2.6e+025  (8 characters in string) */
-          /* on Linux  : 2.6e+09    or   2.6e+25   (7 characters in string) */
-          /* This will normalize the output so that the Windows ouptut will match the Linux output */
-          if (sprintf (flt, "%.2g", floor (1. / prob + .5)) == 8)
-            memmove (&flt[5], &flt[6], strlen(flt) - 5);
-          outputf (OUTPUT_VERBOSE, "%s%c", flt, sep);
-        }
+        outputf (OUTPUT_VERBOSE, "%.2g%c", floor (1. / prob + .5), sep);
       else
         outputf (OUTPUT_VERBOSE, "Inf%c", sep);
     }
@@ -907,8 +900,8 @@ print_exptime (double B1, const mpz_t B2, unsigned long dF, unsigned long k,
   else /* This case should never happen */
       smoothness_correction = 0.0; 
   
-  for (i = DIGITS_START, j = 0; i <= DIGITS_END; i += DIGITS_INCR)
-    j += sprintf (outs + j, "%u%c", i, (i < DIGITS_END) ? '\t' : '\n');
+  for (i = DIGITS_START, j = 0; i <= DIGITS_END; i += DIGITS_INCR, j += 3)
+    sprintf (outs + j, "%2u%c", i, (i < DIGITS_END) ? '\t' : '\n');
   outs[j] = '\0';
   outputf (OUTPUT_VERBOSE, "Expected time to find a factor of n digits:\n%s",
            outs);
@@ -1226,9 +1219,9 @@ ecm (mpz_t f, mpz_t x, mpz_t y, int *param, mpz_t sigma, mpz_t n, mpz_t go,
       st = cputime ();
       /* construct the batch exponent */
       compute_s (batch_s, B1, NULL);
-      outputf (OUTPUT_VERBOSE, "Computing batch product (of %" PRIu64
-                               " bits) of primes up to B1=%1.0f took %ldms\n",
-                               mpz_sizeinbase (batch_s, 2), B1, cputime () - st);
+      outputf (OUTPUT_VERBOSE, "Computing batch product (of %zu bits) of "
+                               "primes up to B1=%1.0f took %ldms\n", 
+               mpz_sizeinbase (batch_s, 2), B1, cputime () - st);
     }
 
   st = cputime ();

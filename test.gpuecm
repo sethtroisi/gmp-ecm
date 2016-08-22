@@ -113,7 +113,7 @@ checkcode $? 0
 # bug reported by David Cleaver (was also reported by Paul Leyland)
 # should report p6 factor and c210 cofactor instead of "Input number found"
 # fixed with svn 2867
-echo "(2^718+1)/5" | $ECM -sigma 3:2016 40 48
+echo "(2^718+1)/5" | $ECM -sigma 3:2000 40 48
 checkcode $? 6
 
 
