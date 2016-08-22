@@ -1,0 +1,88 @@
+#!/bin/sh
+
+# test file for ECM
+#
+# Copyright 2002, 2003, 2004, 2005, 2006, 2008, 2009, 2011, 2012
+# Jim Fougeron, Alexander Kruppa, Dave Newman, Paul Zimmermann, Cyril Bouvier,
+# David Cleaver.
+#
+# This program is free software; you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation; either version 3 of the License, or (at your
+# option) any later version.
+#
+# This program is distributed in the hope that it will be useful, but
+# WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
+# or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License for
+# more details.
+# 
+# You should have received a copy of the GNU General Public License
+# along with this program; see the file COPYING.  If not, see
+# http://www.gnu.org/licenses/ or write to the Free Software Foundation, Inc.,
+# 51 Franklin St, Fifth Floor, Boston, MA 02110-1301, USA.
+
+ECM="${1:-./ecm}"
+
+GMPECM_DATADIR=${GMPECM_DATADIR:-.}
+
+# Call with "checkcode $? n" to check that return code is n
+# (see test.pm1 for the explanation of the different return codes)              
+checkcode () {
+  if [ $1 != $2 ]
+  then
+    echo "############### ERROR ###############"
+    echo "Expected return code $2 but got $1"
+    exit 1
+  fi
+}
+
+# Exit statues returned by GMP-ECM:
+# 0      Normal program termination, no factor found
+# 1      Error
+# 2      Composite factor found, cofactor is composite
+# 6      (Probable) prime factor found, cofactor is composite
+# 8      Input number found
+# 10     Composite factor found, cofactor is a (probable) prime
+# 14     (Probable) prime factor found, cofactor is a (probable) prime
+
+# from https://groups.google.com/forum/#!topic/Mersenneplustwo/PQK_mBLTvpI
+echo "(2^9941+1)/3" | $ECM -param 0 -go "463579*709817" -sigma 1953495724 106693 176849; checkcode $? 6
+
+# from https://groups.google.com/forum/#!topic/Mersenneplustwo/hQaaIwm3Tj8
+echo "(2^9941+1)/3" | $ECM -param 0 -go 400643 -sigma 883077734 66643 88572719; checkcode $? 6
+
+# from https://groups.google.com/forum/#!topic/Mersenneplustwo/jZH-3OjShdo
+echo "(2^23209+1)/389100550245753" | $ECM -param 0 -sigma 1403722985 -go "1043173*1363273*1577143" 29411 1046754883; checkcode $? 6
+
+# from https://groups.google.com/forum/#!topic/Mersenneplustwo/XKAkqQ3_ni4
+# this example is too expensive, we skip it
+
+# check that primality test of cofactor is not too expensive
+echo "2^2582657+1" | $ECM -param 0 -sigma 1483035008190041 46 481199; checkcode $? 2
+
+# p54 factor from F_12 found on March 27, 2010 by Michael Vang
+echo "(2^(2^12)+1)/114689/26017793/63766529/190274191361/1256132134125569" | $ECM -go "2413097*9027881*23759413" -sigma 1428526317 65123 45947380867; checkcode $? 6
+
+# idem with -maxmem
+echo "(2^(2^12)+1)/114689/26017793/63766529/190274191361/1256132134125569" | $ECM -maxmem 500 -go "2413097*9027881*23759413" -sigma 1428526317 65123 45947380867; checkcode $? 6
+
+# exercise base2mod_2
+echo "2^(2^15)+1" | $ECM -sigma 0:42 1e3; checkcode $? 6
+
+# check resume file from Prime95
+$ECM -resume ${GMPECM_DATADIR}/M997.save 0 78756287
+checkcode $? 14
+
+# exercise some Fermat code, factor found in stage 1
+echo "2^32768+1" | $ECM -sigma 0:31415926 1000; checkcode $? 6
+# exercise some Fermat code, factor found in stage 2
+echo "2^32768+1" | $ECM -sigma 0:314159000 1000; checkcode $? 6
+
+# check resume file from Prime95
+$ECM -resume ${GMPECM_DATADIR}/M877.save 0 819632383
+checkcode $? 6
+
+# exercise estimated memory usage in Gb
+$ECM -v -k 1 1 8e11 < ${GMPECM_DATADIR}/c155
+
+echo "All ECM tests are ok."

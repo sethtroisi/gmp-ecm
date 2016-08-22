@@ -1,0 +1,21 @@
+#!/bin/csh
+# Example: checkprob "./ecm -param 1" 31622776601683800097 11000
+set ecm="$1"
+set p=$2
+set B1=$3
+set out=/tmp/log$$
+@ try = 0
+@ tot = 0
+while (1)
+   @ try = $try + 1
+   echo $p | $ecm -one -c 0 $B1 > $out
+   grep Run $out > /dev/null
+   if ("$status" != "0") then # found in first curve
+      @ n = 1
+   else
+      @ n =`grep Run $out | tail -1 | cut -d" " -f 2`
+   endif
+   @ tot = $tot + $n
+   @ avg = $tot / $try
+   echo $avg
+end
