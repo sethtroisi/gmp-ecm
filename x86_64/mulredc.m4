@@ -30,7 +30,7 @@ divert
 `include(`config.m4')'
 
 	TEXT
-.p2align 6 # Opteron L1 code cache line is 64 bytes long
+.p2align 6 # x86_64 L1 code cache line is 64 bytes long
 	GLOBL GSYM_PREFIX``''mulredc`'LENGTH
 	TYPE(GSYM_PREFIX``''mulredc``''LENGTH,``function'')
 
