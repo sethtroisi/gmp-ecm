@@ -7,7 +7,7 @@ Table of contents of this file
 1. How to enable GPU code in GMP-ECM
 2. Basic Usage
 3. Advanced Usage
-
+4. Known issues
 
 ##############################################################################
 
@@ -96,6 +96,14 @@ The default implementation of the arithmetic for the GPU restricts
 integers to be smaller than 2^1018.  This restriction can be altered by
 changing the source code but do so at your own risk because support
 from the GMP-ECM team will be very limited.
+
+##############################################################################
+
+4. Known issues
+
+On some configurations (GTX 570 with compute capability 2.0 for example)
+one gets the Cuda error "too many resources requested for launch". This
+can be solved by decreasing ECM_GPU_CURVES_BY_BLOCK from 32 to 16 in ecm-gpu.h.
 
 ##############################################################################
 
