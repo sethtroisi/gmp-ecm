@@ -143,11 +143,11 @@ dist_check_SCRIPTS += test.gpuecm
 endif
 
 TESTS = $(dist_check_SCRIPTS)
-TESTS_ENVIRONMENT = GMPECM_DATADIR=$(srcdir) $(VALGRIND)
+TESTS_ENVIRONMENT = $(VALGRIND)
 
 # see https://www.gnu.org/software/automake/manual/html_node/Scripts_002dbased-Testsuites.html
 # this is only needed for "make longcheck" below
-# export GMPECM_DATADIR = $(srcdir)
+export GMPECM_DATADIR = $(srcdir)
 
 longcheck: ecm$(EXEEXT)
 	$(srcdir)/test.pp1 "$(VALGRIND) ./ecm$(EXEEXT)"
