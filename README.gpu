@@ -107,5 +107,5 @@ can be solved by decreasing ECM_GPU_CURVES_BY_BLOCK from 32 to 16 in ecm-gpu.h.
 
 ##############################################################################
 
-Please report to Cyril.Bouvier@inria.fr any problems, bugs, ...
+Please report to Cyril.Bouvier@lirmm.fr any problems, bugs, ...
 
