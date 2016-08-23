@@ -272,7 +272,7 @@ if test "x$enable_asm_redc" = xyes; then
   GMP_ASM_TYPE 
 
   case $host in
-    *-*-mingw32) GMP_DEFINE([WINDOWS64_ABI], 1)
+    *-*-mingw32|*cygwin*) GMP_DEFINE([WINDOWS64_ABI], 1)
                  AC_DEFINE([WINDOWS64_ABI], 1,[Define to 1 if x86_64 mulredc*() functions should be called with Windows ABI]);;
     *) ;;
   esac
