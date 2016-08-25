@@ -1129,17 +1129,23 @@ mpres_pow (mpres_t R, const mpres_t BASE, const mpz_t EXP, mpmod_t modulus)
     {
       size_t expidx;
       mp_limb_t bitmask, expbits;
+      int sgn = mpz_sgn (EXP);
+      mpz_t exp;
 
       /* case EXP=0 */
-      if (mpz_sgn (EXP) == 0)
+      if (sgn == 0)
         {
           mpres_set_ui (R, 1UL, modulus); /* set result to 1 */
           ASSERT_NORMALIZED (R);
           return;
         }
 
-      expidx = mpz_size (EXP) - 1;         /* point at most significant limb */
-      expbits = mpz_getlimbn (EXP, expidx); /* get most significant limb */
+      /* exp <- |EXP| */
+      PTR(exp) = PTR(EXP);
+      SIZ(exp) = ABSIZ(EXP);
+
+      expidx = mpz_size (exp) - 1;         /* point at most significant limb */
+      expbits = mpz_getlimbn (exp, expidx); /* get most significant limb */
       ASSERT (expbits != 0);
 
       /* Scan for the MSB in expbits */
@@ -1150,7 +1156,7 @@ mpres_pow (mpres_t R, const mpres_t BASE, const mpz_t EXP, mpmod_t modulus)
       /* bitmask is set to mask in the msb of expbits */
 
       k = 1; /* sliding window size */
-      expnbits = mpz_sizeinbase (EXP, 2);
+      expnbits = mpz_sizeinbase (exp, 2);
       /* the average number of multiplications is 2^(k-1) + expnbits / (k+1) */
       while ((1 << (k-1)) + expnbits / (k + 1) > (1 << k) + expnbits / (k + 2))
         k ++;
@@ -1197,9 +1203,9 @@ mpres_pow (mpres_t R, const mpres_t BASE, const mpz_t EXP, mpmod_t modulus)
                     }
                   /* if the current bit is the smallest one of the window,
                      we multiply by BASE^w */
-                  if ((mpz_sgn (EXP) > 0 && mpz_scan1 (EXP, n0) == expnbits - 1)
-                    || (mpz_sgn (EXP) < 0 && mpz_scan0 (EXP, n0) == expnbits - 1))
+                  if (mpz_scan1 (exp, n0) == expnbits - 1)
                     {
+                      ASSERT(w/2 < K);
                       mpres_pow_mul (modulus->temp2, (w == 1) ? BASE : B[w/2],
                                      modulus->temp2, modulus);
                       w = lw = 0;
@@ -1209,9 +1215,10 @@ mpres_pow (mpres_t R, const mpres_t BASE, const mpz_t EXP, mpmod_t modulus)
           if (expidx == 0)		/* if we just processed the least */
             break;			/* significant limb, we are done */
           expidx --;
-          expbits = mpz_getlimbn (EXP, expidx);
+          expbits = mpz_getlimbn (exp, expidx);
           bitmask = (mp_limb_t) 1 << (GMP_NUMB_BITS - 1);
         }
+      ASSERT(w/2 < K);
       if (w != 0)
         mpres_pow_mul (modulus->temp2, (w == 1) ? BASE : B[w/2],
                        modulus->temp2, modulus);
@@ -1222,10 +1229,8 @@ mpres_pow (mpres_t R, const mpres_t BASE, const mpz_t EXP, mpmod_t modulus)
 
       /* mpz_getlimbn() ignores sign of argument, so we computed BASE^|EXP|.
          If EXP was negative, do a modular inverse */
-      if (mpz_sgn (EXP) < 0)
-        {
-          mpres_invert (R, R, modulus);
-        }
+      if (sgn < 0)
+        mpres_invert (R, R, modulus);
     } /* if (modulus->repr == ECM_MOD_BASE2 || ... ) */
   ASSERT_NORMALIZED (R);
 }
