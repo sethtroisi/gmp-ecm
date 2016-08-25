@@ -154,15 +154,6 @@ GSYM_PREFIX``''mulredc`'LENGTH:
 	# CY:T1:T0 <= 2*(2^64-1)^2 <= 2^2*128 - 4*2^64 + 2, hence
 	# CY:T1 <= 2*2^64 - 4
 
-`ifdef(`WANT_ASSERT', 
-`	pushf
-	testq	%T0, %T0
-	jz	2f
-	lea     _GLOBAL_OFFSET_TABLE_(%rip), %rbx # if we do PIC code, we 
-		# need to set rbx; if not, it doesnt hurt
-	call	GSYM_PREFIX`'abort@plt
-LABEL_SUFFIX(2)
-	popf')'
 dnl Cycle ring buffer. Only mappings of T0 and T1 to regs change, no MOVs!
 `define(`TT', defn(`T0'))dnl
 define(`TTl', defn(`T0l'))dnl
@@ -195,12 +186,6 @@ define(`JM8', `eval(J - 8)')dnl
 	movq	J`'(%MP), %rax	# Fetch m[j] into %rax
 	adcq	%rdx, %T1	# Add high word with carry to T1
 	# T1:T0 <= 2^128 - 2*2^64 + 1 + 2*2^64 - 2 <= 2^128 - 1, no carry!
-`ifdef(`WANT_ASSERT', 
-`	jnc	3f
-	lea     _GLOBAL_OFFSET_TABLE_(%rip), %rbx # if we do PIC code, we 
-		# need to set rbx; if not, it doesnt hurt
-	call	GSYM_PREFIX`'abort@plt
-LABEL_SUFFIX(3)')'
 	
 	mulq	%U		# m[j]*u
 	# rdx:rax <= 2^128 - 2*2^64 + 1, T1:T0 <= 2^128 - 1
@@ -280,15 +265,6 @@ LABEL_SUFFIX(1)
 
 	movq	8(%YP), %rax		# Fetch y[1]
 
-`ifdef(`WANT_ASSERT', 
-`	pushf
-	testq	%T0, %T0
-	jz	4f
-	lea     _GLOBAL_OFFSET_TABLE_(%rip), %rbx # if we do PIC code, we 
-		# need to set rbx; if not, it doesnt hurt
-	call	GSYM_PREFIX`'abort@plt
-LABEL_SUFFIX(4)
-	popf')'
 dnl Cycle ring buffer. Only mappings of T0 and T1 to regs change, no MOVs!
 `define(`TT', defn(`T0'))dnl
 define(`TTl', defn(`T0l'))dnl
