@@ -481,13 +481,18 @@ if test -d "$with_gmp_lib"; then
   GMPLDFLAGS="-L$with_gmp_lib"
 fi
 GMPLIB="-lgmp"
-if test "x$enable_shared" != xyes; then
-  if test -r "$with_gmp_lib/libgmp.a"; then
-    GMPLIB="$with_gmp_lib/libgmp.a"
-    dnl Don't need -L flag since we give full path to libgmp.a
-    GMPLDFLAGS=""
-  fi
-fi
+dnl On OS X we should not give libgmp.a
+dnl (see https://trac.sagemath.org/ticket/20385#comment:103)
+case $host_os in
+  darwin*) ;;
+  *) if test "x$enable_shared" != xyes; then
+       if test -r "$with_gmp_lib/libgmp.a"; then
+         GMPLIB="$with_gmp_lib/libgmp.a"
+         dnl Don't need -L flag since we give full path to libgmp.a
+         GMPLDFLAGS=""
+       fi
+     fi
+esac
 AC_SUBST([GMPLIB])
 LDFLAGS="$LDFLAGS $GMPLDFLAGS"
 
