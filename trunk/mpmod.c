@@ -1111,7 +1111,7 @@ mpres_pow_mul (mpres_t a, const mpres_t b, const mpres_t c, mpmod_t modulus)
 }
 
 /* R <- BASE^EXP mod modulus.
-   EXP can be negative.
+   Warning: EXP can be negative (only occurs for P-1 in revision 2982).
  */
 void 
 mpres_pow (mpres_t R, const mpres_t BASE, const mpz_t EXP, mpmod_t modulus)
@@ -1698,11 +1698,11 @@ mpres_set_z_for_gcd (mpres_t R, const mpz_t S, mpmod_t modulus)
   ASSERT_NORMALIZED (R);  
 }
 
-/* Compagnon function to mpres_set_z_for_gcd(). It divides by c^n. 
+/* Companion function to mpres_set_z_for_gcd(). It divides by c^n. 
    In case of MULREDC with k b-bit words, c = 1/2^(b*k), so we multiply 
    by 2^(n*b*k). The purpose is to fix products of n terms collected by 
    using mpres_set_z_for_gcd(), so that we can still get the exact residue. */
-   
+
 void 
 mpres_set_z_for_gcd_fix (mpres_t R, const mpres_t S, const mpz_t n, mpmod_t modulus)
 {
@@ -1717,6 +1717,7 @@ mpres_set_z_for_gcd_fix (mpres_t R, const mpres_t S, const mpz_t n, mpmod_t modu
           mpz_init (nb);
           mpres_init (po2, modulus);
 
+          /* Note: modulus->bits is always non-negative for MODMULN and REDC */
           mpz_mul_ui (nb, n, modulus->bits);
           mpres_set_ui (po2, 2, modulus);
           mpres_pow (po2, po2, nb, modulus);
@@ -2122,7 +2123,7 @@ mpres_muldivbysomething_si (mpres_t R, const mpres_t S, const long n,
 
 /* Returns 1 if successful, 0 if not */
 static int
-test_mpres_set_z_for_gcd_fix(const int maxk, mpmod_t modulus)
+test_mpres_set_z_for_gcd_fix (const int maxk, mpmod_t modulus)
 {
   mpres_t m, prod;
   mpz_t n;
