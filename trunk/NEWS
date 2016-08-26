@@ -1,6 +1,9 @@
-Changes between GMP-ECM 7.0.3 and xxx:
+Changes between GMP-ECM 7.0.3 and 7.0.4:
 * fixed a bug in mpres_pow:
   https://gforge.inria.fr/tracker/?func=detail&atid=623&aid=20712&group_id=135
+* fixed a bug with P-1 or P+1 and small B2
+* improved portability (OS X, Windows, Cygwin, non GNU ld)
+* fixed make longcheck with out-of-source build
 
 Changes between GMP-ECM 7.0.2 and GMP-ECM 7.0.3:
 * fixed compilation issue on powerpc64
