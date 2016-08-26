@@ -168,4 +168,16 @@ echo "(2^1009-1)/3454817" | $PM1 -no-ntt 5e3 1e4-1e6; checkcode $? 6
 # exercise bug fixed in revision 2949 on 64-bit processor (occurred with -redc)
 echo "(2^1049-1)/33569/459463" | $PM1 1049 21686243; checkcode $? 14
 
+# exercise bug (Segmentation fault) in ecm 7.0.x for x <= 3
+echo 1000033 | $PM1 32 947; checkcode $? 8
+echo 10001801 | $PM1 43 1163; checkcode $? 8
+echo 100002943 | $PM1 23 1093; checkcode $? 8
+echo 1000020313 | $PM1 37 859; checkcode $? 8
+echo 10000026037 | $PM1 49 1367; checkcode $? 8
+
+# Segmentation fault in 6.4.4
+echo 100000003897 | $PM1 787 1223; checkcode $? 8
+echo 1000000671451 | $PM1 757 1249; checkcode $? 8
+echo 10000000097557 | $PM1 761 1279; checkcode $? 8
+
 echo "All P-1 tests are ok."
