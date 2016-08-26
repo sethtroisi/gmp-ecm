@@ -180,5 +180,13 @@ echo 338520662574298111489793906091875397608509448067635557953400848820489869124
 # exercise -x0 0 option
 echo 18446744073709551653 | $PP1 -x0 0 257687 141775993; checkcode $? 8
 
+# exercise bug (Segmentation fault) in ecm 7.0.x for x <= 3
+echo 1000039 | $PP1 -x0 4 23 1087; checkcode $? 8
+echo 10001779 | $PP1 -x0 4 23 1279; checkcode $? 8
+echo 100002941 | $PP1 -x0 4 23 1093; checkcode $? 8
+echo 1000024339 | $PP1 -x0 4 49 1249; checkcode $? 8
+echo 10000098767 | $PP1 -x0 3 41 937; checkcode $? 8
+echo 100000049993 | $PP1 -x0 3 43 1061; checkcode $? 8
+
 echo "All P+1 tests are ok."
 

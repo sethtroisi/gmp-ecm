@@ -1752,6 +1752,38 @@ list_eval_poly (mpz_t r, const listz_t F, const mpz_t x,
 }
 #endif
 
+/* return the memory needed in the F[] array for poly_from_sets_V */
+static unsigned long
+mem_poly_from_sets_V (sets_long_t *sets)
+{
+  unsigned long c, deg, i, nr;
+  set_long_t *set = sets->sets;
+  unsigned long mem, maxmem = 0;
+  
+  deg = 1UL;
+  for (nr = sets->nr - 1UL; nr > 0UL; nr--)
+    {
+      set = sets_nextset (sets->sets); /* Skip first set */
+      for (i = 1UL; i < nr; i++) /* Skip over remaining sets but one */
+        set = sets_nextset (set);
+      c = set->card;
+      if (c == 2UL)
+        deg *= 2UL;
+      else
+        {
+          i = (c - 1UL) / 2UL - 1; /* maximal value of i */
+          /* list_scale_V needs 2*deg+1 entries starting at
+             F + (2UL * i + 1UL) * (deg + 1UL) */
+          mem = (2UL * i + 1UL) * (deg + 1UL) + (2 * deg + 1UL);
+          if (mem > maxmem)
+            maxmem = mem;
+	  deg *= c;
+	}
+    }
+
+  return maxmem;
+}
+
 /* Build a polynomial with roots r^2i, i in the sumset of the sets in "sets".
    The parameter Q = r + 1/r. This code uses the fact that the polynomials 
    are symmetric. Requires that the first set in "sets" has cardinality 2,
@@ -1885,7 +1917,7 @@ poly_from_sets_V (listz_t F, const mpres_t Q, sets_long_t *sets,
 }
 
 static int
-build_F_ntt (listz_t F, const mpres_t P_1, sets_long_t *S_1, 
+build_F_ntt (listz_t F, const mpres_t P_1, sets_long_t *S_1,
 	     const faststage2_param_t *params, mpmod_t modulus)
 {
   mpzspm_t F_ntt_context;
@@ -1919,8 +1951,8 @@ build_F_ntt (listz_t F, const mpres_t P_1, sets_long_t *S_1,
   tmplen = params->s_1 + 100;
   tmp = init_list2 (tmplen, (unsigned int) abs (modulus->bits));
   F_ntt = mpzspv_init (1UL << ceil_log2 (params->s_1 / 2 + 1), F_ntt_context);
-  
-  i = poly_from_sets_V (F, P_1, S_1, tmp, tmplen, modulus, F_ntt, 
+
+  i = poly_from_sets_V (F, P_1, S_1, tmp, tmplen, modulus, F_ntt,
                         F_ntt_context);
   ASSERT_ALWAYS(2 * i == params->s_1);
   ASSERT_ALWAYS(mpz_cmp_ui (F[i], 1UL) == 0);
@@ -2039,6 +2071,7 @@ pm1_sequence_g (listz_t g_mpz, mpzspv_t g_ntt, const mpres_t b_1,
   mpz_neg (t, t);
   mpz_mul_2exp (t, t, 1UL);
   mpz_add_ui (t, t, 1UL);
+  /* Warning: t might be negative here. */
   mpres_pow (r[1], r[0], t, modulus);    /* r[1] = r^{2(-M+i)+1}, i = 0 */
   mpz_set_si (t, M);
   mpz_mul (t, t, t);                     /* t = M^2 */
@@ -2054,6 +2087,7 @@ pm1_sequence_g (listz_t g_mpz, mpzspv_t g_ntt, const mpres_t b_1,
     outputf (OUTPUT_TRACE, "/* pm1_sequence_g */ 2*%ld + (2*%Zd + 1)*P == "
 	     "%Zd /* PARI C */\n", k_2, m_1, t);
 
+  /* Warning: t might be negative here. */
   mpres_pow (x_0, b_1, t, modulus);  /* x_0 = b_1^{2*k_2 + (2*m_1 + 1)*P} */
   if (want_output && test_verbose (OUTPUT_TRACE))
     {
@@ -2670,7 +2704,7 @@ pm1fs2 (mpz_t f, const mpres_t X, mpmod_t modulus,
   /* First compute X + 1/X */
   mpres_invert (mr, X, modulus);
   mpres_add (mr, mr, X, modulus);
-  
+
   i = poly_from_sets_V (F, mr, S_1, tmp, tmplen, modulus, NULL, NULL);
   ASSERT_ALWAYS(2 * i == params->s_1);
   ASSERT(mpz_cmp_ui (F[i], 1UL) == 0);
@@ -2849,7 +2883,7 @@ pm1fs2_ntt (mpz_t f, const mpres_t X, mpmod_t modulus,
   unsigned long nr;
   unsigned long l, lenF;
   sets_long_t *S_1; /* This is stored as a set of sets (arithmetic 
-                       progressions of prime length */
+                       progressions of prime length) */
   set_long_t *S_2; /* This is stored as a regular set */
   listz_t F;   /* Polynomial F has roots X^{k_1} for k_1 \in S_1, so has 
 		  degree s_1. It is symmetric, so has only s_1 / 2 + 1 
@@ -2897,6 +2931,14 @@ pm1fs2_ntt (mpz_t f, const mpres_t X, mpmod_t modulus,
   mpres_init (tmpres, modulus);
   lenF = params->s_1 / 2 + 1 + 1; /* Another +1 because poly_from_sets_V stores
 				     the leading 1 monomial for each factor */
+  {
+    /* in some cases the above value of lenF is not enough, for example with
+       s_1 = 10, which gives lenF = 7, but 9 entries are needed */
+    unsigned long mem = mem_poly_from_sets_V (S_1);
+    if (mem > lenF)
+      lenF = mem;
+  }
+
   F = init_list2 (lenF, (unsigned int) abs (modulus->bits));
 
   mpres_get_z (mt, X, modulus); /* mpz_t copy of X for printing */
@@ -4269,6 +4311,14 @@ pp1fs2_ntt (mpz_t f, const mpres_t X, mpmod_t modulus,
   /* Allocate memory for F with correct amount of space for each mpz_t */
   lenF = params->s_1 / 2 + 1 + 1; /* Another +1 because poly_from_sets_V stores
 				     the leading 1 monomial for each factor */
+  {
+    /* in some cases the above value of lenF is not enough, for example with
+       s_1 = 10, which gives lenF = 7, but 9 entries are needed */
+    unsigned long mem = mem_poly_from_sets_V (S_1);
+    if (mem > lenF)
+      lenF = mem;
+  }
+
   F = init_list2 (lenF, (unsigned int) abs (modulus->bits) + GMP_NUMB_BITS);
   
   /* Build F */

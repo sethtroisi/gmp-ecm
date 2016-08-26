@@ -179,5 +179,7 @@ echo 10000026037 | $PM1 49 1367; checkcode $? 8
 echo 100000003897 | $PM1 787 1223; checkcode $? 8
 echo 1000000671451 | $PM1 757 1249; checkcode $? 8
 echo 10000000097557 | $PM1 761 1279; checkcode $? 8
+echo 100000002915569 | $PM1 1361 1823; checkcode $? 8
+echo 1000000001405311 | $PM1 -pm1 1373 1759; checkcode $? 8
 
 echo "All P-1 tests are ok."
