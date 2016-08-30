@@ -143,7 +143,7 @@ __GMP_DECLSPEC mp_limb_t __gmpn_add_nc (mp_ptr, mp_srcptr, mp_srcptr,
 #if __MPIR_RELEASE == 20600
 #error MPIR 2.6 does not support GMP-ECM, please use an alternative version
 #endif
-/* WARNING - the following two defintions map the internal interface
+/* WARNING - the following two definitions map the internal interface
    of the new FFT in MPIR 2.6 (and later) to the GMP FFT interface -
    they work in this context but the parameters for mpn_fft_next_size
    and fft_adjust_limbs have different semantics, which means that
@@ -152,7 +152,7 @@ __GMP_DECLSPEC mp_limb_t __gmpn_add_nc (mp_ptr, mp_srcptr, mp_srcptr,
 #  define mpn_fft_best_k(n, k)             (0) 
 #  define mpn_fft_next_size(n, k)          fft_adjust_limbs(n)
 
-#else
+#else /* we are using the real GMP */
 
 #define mpn_mul_fft __gmpn_mul_fft
 mp_limb_t __gmpn_mul_fft (mp_ptr, mp_size_t, mp_srcptr, mp_size_t, mp_srcptr, 
