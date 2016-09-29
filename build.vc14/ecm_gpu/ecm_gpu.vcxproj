@@ -44,6 +44,7 @@
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
   <ImportGroup Label="ExtensionSettings">
     <Import Project="..\vsyasm.props" />
+    <Import Project="$(VCTargetsPath)\BuildCustomizations\CUDA 8.0.props" />
   </ImportGroup>
   <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="PropertySheets">
     <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
@@ -108,7 +109,7 @@
       <TargetMachine>MachineX86</TargetMachine>
     </Link>
     <CudaCompile>
-      <CodeGeneration>compute_20,sm_20</CodeGeneration>
+      <CodeGeneration>compute_50,sm_50</CodeGeneration>
       <AdditionalCompilerOptions>
       </AdditionalCompilerOptions>
       <TargetMachinePlatform>32</TargetMachinePlatform>
@@ -174,7 +175,7 @@
       <TargetMachine>MachineX86</TargetMachine>
     </Link>
     <CudaCompile>
-      <CodeGeneration>compute_20,sm_20</CodeGeneration>
+      <CodeGeneration>compute_50,sm_50</CodeGeneration>
       <AdditionalCompilerOptions>
       </AdditionalCompilerOptions>
       <TargetMachinePlatform>32</TargetMachinePlatform>
@@ -214,7 +215,7 @@
       <StackCommitSize>65536</StackCommitSize>
     </Link>
     <CudaCompile>
-      <CodeGeneration>compute_20,sm_20</CodeGeneration>
+      <CodeGeneration>compute_50,sm_50</CodeGeneration>
       <AdditionalCompilerOptions>
       </AdditionalCompilerOptions>
       <TargetMachinePlatform>64</TargetMachinePlatform>
@@ -233,7 +234,7 @@
       <GenerateDebugInformation>true</GenerateDebugInformation>
     </Link>
     <CudaCompile>
-      <CodeGeneration>compute_20,sm_20</CodeGeneration>
+      <CodeGeneration>compute_50,sm_50</CodeGeneration>
       <AdditionalCompilerOptions>
       </AdditionalCompilerOptions>
       <TargetMachinePlatform>64</TargetMachinePlatform>
@@ -280,5 +281,6 @@
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
     <Import Project="..\vsyasm.targets" />
+    <Import Project="$(VCTargetsPath)\BuildCustomizations\CUDA 8.0.targets" />
   </ImportGroup>
 </Project>
