@@ -1,6 +1,6 @@
 
-Building GMP-ECM with Microsoft Visual C++ 2012 (version 11)
-===========================================================
+Building GMP-ECM with Microsoft Visual C++ 2015 
+===============================================
 
 If you wish to build the assembler code support you will need to 
 install the YASM assembler that is available at:
@@ -10,7 +10,7 @@ install the YASM assembler that is available at:
 THe version you need is vsyasm, which should be put it in the same
 directory as your Visual C++ compiler, which is typically:
 
-C:\Program Files (x86)\Microsoft Visual Studio 11.0\VC\bin
+C:\Program Files (x86)\Microsoft Visual Studio 14.0\VC\bin
 
 The Multi-Precision Library - GMP and MPIR
 ==========================================
@@ -53,10 +53,10 @@ are in a common parent directory as follows:
 
   Parent Directory
     MPIR (or GMP)
-      build.vc11    -- MPIR (or GMP) build files
+      build.vc14    -- MPIR (or GMP) build files
       ...
     GMP-ECM
-      buid.vc11     -- ECM build files 
+      buid.vc14     -- ECM build files 
       
 The root directories for GMP and GMP-ECM are assumed to have these names
 irrespective of which version is being used (they used to be followed by 
@@ -64,22 +64,24 @@ version numbers but this meant that the build projects had to be updated
 too frequently). 
 
 The normal (non GPU) build is opened by loading the file ecm.sln (from 
-the build.vc11 directory) into Visual Studio. This provides three build
-projects in build.vc11 for the non GPU build:
+the build.vc14 directory) into Visual Studio. This provides these build
+projects in build.vc14 for the non GPU build:
 
-    ecm     - the ECM application 
-    ecmlib  - the ECM library
-    tune    - a program for tuning 
+    ecm           - the ECM application 
+    ecmlib        - the ECM library
+    tune          - a program for tuning 
+	bench_mulredc - for benchmarking mulredc 
+	multiecm      - work in progress (not working)
 
-The GPU build is opened by loading the file ecm.sln (from  the build.vc11
+The GPU build is opened by loading the file ecm.sln (from  the build.vc14
 directory) into Visual Studio. This provides two build projects in 
-build.vc11:
+build.vc14:
 
     ecm_gpu     - the ECM application 
     ecmlib_gpu  - the ECM library
 
 In all cases you have to choose either a win32 or x64 build and either a
-Release or Debug configuration. 
+Release or Debug configuration.  
 
 The non GPU Build
 -----------------
@@ -95,47 +97,45 @@ that need to be set:
    /* define Windows tuning here */
    #  define __tune_corei7__
  
-   towards the end of the file config.h file in the 'build.vc11'
-   directory (build.vc11\config.h) with the chosen define.
+   towards the end of the file config.h file in the 'build.vc14'
+   directory (build.vc14\config.h) with the chosen define.
 
-2. The file at 'build.vc11\mul_fft-params.h' allows the FFT code to
-   be tuned to 32 or 64-bnit systems by selecting an option by 
+2. The file at 'build.vc14\mul_fft-params.h' allows the FFT code to
+   be tuned to 32 or 64-bit systems by selecting an option by 
    changing the appropriate '#elif 0' to #elif 1'.   If you wish to 
    use the win32 AMD assembler files, you also have to use the 
    Visual Studio property page to define AMD_ASM (alternatively
    you can edit the two files mulredc.asm and redc.asm in the 
-   build.vc11\assembler\ directory to include the AMD assembler).
+   build.vc14\assembler\ directory to include the AMD assembler).
 
 The GPU Build
 -------------
 
 1. If you wish to build with a GPU capability you will need to 
    install Nvidia Nsight for Visual Studio and the CUDA Toolkit
-   v5.5.  You then build the libecm_gpu and ecm_gpu projects
+   v8.0.  You then build the libecm_gpu and ecm_gpu projects
    
 2. The choices above for the non GPU build aslo apply when
    building for a GPU based system. 
    
-   By default, the GPU  configuration is "compute_30,sm_30". If
+   By default, the GPU  configuration is "compute_50,sm_50". If
    you need to change this, select libecm_gpu and ecm_gpu and 
    set the propertiesfor "CUDA C/C++|Device|Code Generation" for
    your GPU capability. 
    
    Also under "C/C++|Preprocessor|Preprocessor Definitions" for 
-   both these projects, change the current definition GPU_CC30 to 
-   that for your GPU capability (GPU_CC20, GPU_CC21, GPU_CC30 or 
-   GPU_CC35).
+   both these projects, change the current definition GPU_CC50 to 
+   that for your GPU capability
 
 Build Configurations
 --------------------
 
-When a version of ecm and ecmlib are built the library and the application
+When a version of ecm and ecmlib are built, the library and the application
 are put in the directory matching the configuration that has been built:
 
     GMP-ECM
-      build.vc11    -- ECM build files 
+      build.vc14    -- ECM build files 
       lib           -- ECM static library files
-      dll           -- ECM dynamic library files
       bin           -- ECM executable files
       
 within these lib, dll and bin directories, the outputs are located in
@@ -150,7 +150,7 @@ If you don't want assembler support you need to change the define:
 
 #define NATIVE_REDC   1         
 
-in config.h (in the build.vc11 subdirectory) to: 
+in config.h (in the build.vc14 subdirectory) to: 
 
 #undef NATIVE_REDC
 
@@ -167,6 +167,7 @@ Tests
 
 The file test.py is a python script that runs the ECM tests. It runs the
 x64/release-amd (non GPU) version by default but can be edited to test other
-builds.
+builds.  It cannot run some tests as a result of the diifficulty in the
+conversion of the Unix shell scripts for the tests for use on Windows. 
 
-    Brian Gladman, August 2013
+    Brian Gladman, September 2015

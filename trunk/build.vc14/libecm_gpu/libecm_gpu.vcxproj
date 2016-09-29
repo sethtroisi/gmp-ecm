@@ -97,7 +97,7 @@
     </ClCompile>
     <Lib />
     <CudaCompile>
-      <CodeGeneration>compute_30,sm_30</CodeGeneration>
+      <CodeGeneration>compute_50,sm_50</CodeGeneration>
     </CudaCompile>
     <CudaCompile>
       <PtxAsOptionV>true</PtxAsOptionV>
@@ -105,7 +105,6 @@
       </AdditionalCompilerOptions>
       <Include>..\;..\..\..\mpir\lib\$(IntDir)</Include>
       <TargetMachinePlatform>32</TargetMachinePlatform>
-      <MaxRegCount>32</MaxRegCount>
     </CudaCompile>
     <ProjectReference>
       <LinkLibraryDependencies>true</LinkLibraryDependencies>
@@ -136,13 +135,12 @@
       <Defines>_WIN64</Defines>
     </YASM>
     <CudaCompile>
-      <CodeGeneration>compute_30,sm_30</CodeGeneration>
+      <CodeGeneration>compute_50,sm_50</CodeGeneration>
       <PtxAsOptionV>true</PtxAsOptionV>
       <AdditionalCompilerOptions>
       </AdditionalCompilerOptions>
       <Include>..\;..\..\..\mpir\lib\$(IntDir)</Include>
       <TargetMachinePlatform>64</TargetMachinePlatform>
-      <MaxRegCount>32</MaxRegCount>
     </CudaCompile>
     <ProjectReference>
       <LinkLibraryDependencies>true</LinkLibraryDependencies>
@@ -171,7 +169,7 @@
     </ClCompile>
     <Lib />
     <CudaCompile>
-      <CodeGeneration>compute_30,sm_30</CodeGeneration>
+      <CodeGeneration>compute_50,sm_50</CodeGeneration>
     </CudaCompile>
     <CudaCompile>
       <PtxAsOptionV>true</PtxAsOptionV>
@@ -179,7 +177,6 @@
       </AdditionalCompilerOptions>
       <Include>..\;..\..\..\mpir\lib\$(IntDir)</Include>
       <TargetMachinePlatform>32</TargetMachinePlatform>
-      <MaxRegCount>32</MaxRegCount>
     </CudaCompile>
     <ProjectReference>
       <LinkLibraryDependencies>true</LinkLibraryDependencies>
@@ -211,7 +208,7 @@
       <Defines>_WIN64</Defines>
     </YASM>
     <CudaCompile>
-      <CodeGeneration>compute_30,sm_30</CodeGeneration>
+      <CodeGeneration>compute_50,sm_50</CodeGeneration>
     </CudaCompile>
     <CudaCompile>
       <PtxAsOptionV>true</PtxAsOptionV>
@@ -219,7 +216,6 @@
       </AdditionalCompilerOptions>
       <Include>..\;..\..\..\mpir\lib\$(IntDir)</Include>
       <TargetMachinePlatform>64</TargetMachinePlatform>
-      <MaxRegCount>32</MaxRegCount>
     </CudaCompile>
     <ProjectReference>
       <LinkLibraryDependencies>true</LinkLibraryDependencies>
