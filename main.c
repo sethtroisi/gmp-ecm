@@ -350,6 +350,7 @@ main (int argc, char *argv[])
   mpcandi_t n;
   mpgocandi_t go;
   mpq_t rat_x0, rat_y0, rat_A;
+  mpz_t numer_A, denom_A; /* used in Hessian stuff */
   double B1, B1done;
   int result, returncode = 0;
   int verbose = OUTPUT_NORMAL; /* verbose level */
@@ -1153,7 +1154,8 @@ main (int argc, char *argv[])
             break;
 
 	  if (params->E->type == ECM_EC_TYPE_WEIERSTRASS
-	      || params->E->type == ECM_EC_TYPE_HESSIAN)
+	      || params->E->type == ECM_EC_TYPE_HESSIAN
+	      || params->E->type == ECM_EC_TYPE_TWISTED_HESSIAN)
 	      params->sigma_is_A = -1;
 	  else
             params->sigma_is_A = mpz_sgn (sigma) == 0; /* sure? */
@@ -1237,7 +1239,18 @@ main (int argc, char *argv[])
           /* Set effective seed for factoring attempt on this number */
 	  if (specific_A)
 	    {
-		returncode = mod_from_mpq (A, rat_A, n.n, verbose);
+		if (param != ECM_PARAM_TWISTED_HESSIAN)
+		    {
+			returncode = mod_from_mpq (A, rat_A, n.n, verbose);
+		    }
+		else
+		    {
+			mpz_init(numer_A);
+			mpz_init(denom_A);
+			mpz_mod(numer_A, mpq_numref(rat_A), n.n);
+			mpz_mod(denom_A, mpq_denref(rat_A), n.n);
+			returncode = ECM_NO_FACTOR_FOUND;
+		    }
 		if (returncode != ECM_NO_FACTOR_FOUND)
                   goto free_all1;
 	    }
@@ -1324,7 +1337,8 @@ main (int argc, char *argv[])
         }
       else if (param != ECM_PARAM_DEFAULT && !IS_BATCH_MODE (param) 
                && param != ECM_PARAM_SUYAMA && param != ECM_PARAM_WEIERSTRASS
-               && param != ECM_PARAM_HESSIAN)
+               && param != ECM_PARAM_HESSIAN
+	       && param != ECM_PARAM_TWISTED_HESSIAN)
         {
           fprintf (stderr, "Error, invalid -param value: %d\n", param);
           exit (EXIT_FAILURE);
@@ -1382,9 +1396,21 @@ main (int argc, char *argv[])
 		}
 	      else if (params->param == ECM_PARAM_HESSIAN)
 		{
+		    /* use x^3+y^3+1=3*A*x*y */
 		    mpz_set (params->E->a4, A);
 		    params->sigma_is_A = -1;
 		    params->E->type = ECM_EC_TYPE_HESSIAN;
+		    params->E->law = ECM_LAW_HOMOGENEOUS;
+		}
+	      else if (params->param == ECM_PARAM_TWISTED_HESSIAN)
+		{
+		    /* use a*x^3+y^3+1=d*x*y with A=a/d -- trick! */
+		    mpz_set (params->E->a4, numer_A);
+		    mpz_set (params->E->a6, denom_A);
+		    mpz_clear(numer_A);
+		    mpz_clear(denom_A);
+		    params->sigma_is_A = -1;
+		    params->E->type = ECM_EC_TYPE_TWISTED_HESSIAN;
 		    params->E->law = ECM_LAW_HOMOGENEOUS;
 		}
 	    }

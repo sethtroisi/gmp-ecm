@@ -1068,7 +1068,7 @@ pt_w_cmp(mpres_t x1, mpres_t y1, mpres_t z1,
     }
 }
 
-/******************** Hessian form ********************/
+/******************** projective Hessian form ********************/
 
 /* U^3+V^3+W^3 = 3*D*U*V*W, D^3 <> 1.
    O_H = [1:-1:0]
@@ -1246,9 +1246,10 @@ hessian_sub(ell_point_t R, ell_point_t P, ell_point_t Q, ell_curve_t E, mpmod_t 
    xi:=12*(D^3-1)/(D*u+v+1);
    x:=-9*D^2+xi*u;
    y:=3*xi*(v-1);
-   If a factor is found during the inversion, it is put in f and
+   OUTPUT: If a factor is found during the inversion, it is put in f and
    ECM_FACTOR_FOUND_STEP1 is returned. Otherwise, ECM_NO_FACTOR_FOUND is
    returned.
+   SIDE-EFFECT: (x, y, D) <- (x_on_W, y_on_W, A_of_W)
  */
 int
 hessian_to_weierstrass(mpz_t f, mpres_t x, mpres_t y, mpres_t D, mpmod_t n)
@@ -1348,6 +1349,296 @@ mult_by_3(mpz_t f, mpres_t x, mpres_t y, mpres_t A, mpmod_t n)
     return ret;
 }
 
+/******************** projective twisted Hessian form ********************/
+
+/* a*U^3+V^3+W^3 = d*U*V*W
+   O_E = [0:-1:1]
+   -[U:V:W]=[U:W:V]
+*/
+int
+twisted_hessian_is_zero(ell_point_t P, ATTRIBUTE_UNUSED ell_curve_t E, mpmod_t n)
+{
+    mpres_t tmp;
+    int ret;
+
+    if(mpz_sgn(P->x) != 0)
+	return 0;
+    mpres_init(tmp, n);
+    mpres_add(tmp, P->y, P->z, n);
+    ret = mpz_sgn(tmp) == 0;
+#if 0
+    if(ret)
+	gmp_printf("found a third root of unity? %Zd/%Zd\n", P->x, P->y);
+#endif
+    mpres_clear(tmp, n);
+    return ret;
+}
+
+void
+twisted_hessian_set_to_zero(ell_point_t P, ATTRIBUTE_UNUSED ell_curve_t E, mpmod_t n)
+{
+    mpres_set_si(P->x,  0, n);
+    mpres_set_si(P->y, -1, n);
+    mpres_set_si(P->z,  1, n);
+}
+
+void
+twisted_hessian_print(ell_point_t P, ell_curve_t E, mpmod_t n)
+{
+    pt_w_print(P->x, P->y, P->z, E, n);
+}
+
+/* -[u:v:w] = [u:w:v] */
+void
+twisted_hessian_negate(ell_point_t P, ATTRIBUTE_UNUSED ell_curve_t E, ATTRIBUTE_UNUSED mpmod_t n)
+{
+    mpz_swap(P->y, P->z); /* humf */
+}
+
+/* TODO: decrease the number of buffers? */
+/* 6M+2S+1M_d: better when d is small */
+int
+twisted_hessian_duplicate(ell_point_t R, ell_point_t P, 
+		  ATTRIBUTE_UNUSED ell_curve_t E, mpmod_t n)
+{
+    /* R = buf[0], ..., W = buf[5], C = buf[6], D = buf[7], E = buf[8] */
+    /*  R:=Y1+Z1;*/
+    mpres_add(E->buf[0], P->y, P->z, n);
+    /*	S:=Y1-Z1;*/
+    mpres_sub(E->buf[1], P->y, P->z, n);
+    /*	T:=R^2 mod N;*/
+    mpres_sqr(E->buf[2], E->buf[0], n);
+    /*	U:=S^2 mod N;*/
+    mpres_sqr(E->buf[3], E->buf[1], n);
+    /*	V:=T+3*U;*/
+    mpres_add(E->buf[4], E->buf[2], E->buf[3], n);
+    mpres_add(E->buf[4], E->buf[4], E->buf[3], n);
+    mpres_add(E->buf[4], E->buf[4], E->buf[3], n);
+    /*	W:=3*T+U;*/
+    mpres_add(E->buf[5], E->buf[3], E->buf[2], n);
+    mpres_add(E->buf[5], E->buf[5], E->buf[2], n);
+    mpres_add(E->buf[5], E->buf[5], E->buf[2], n);
+    /*	C:=(R*V) mod N;*/
+    mpres_mul(E->buf[6], E->buf[0], E->buf[4], n);
+    /*	D:=(S*W) mod N;*/
+    mpres_mul(E->buf[7], E->buf[1], E->buf[5], n);
+    /*	E:=(3*C-E0[2]*X1*(W-V)) mod N;*/
+    mpres_sub(E->buf[8], E->buf[5], E->buf[4], n);
+    mpres_mul(E->buf[8], E->buf[8], P->x, n);
+    mpres_mul(E->buf[8], E->buf[8], E->a6, n);
+    mpres_sub(E->buf[8], E->buf[6], E->buf[8], n);
+    mpres_add(E->buf[8], E->buf[8], E->buf[6], n);
+    mpres_add(E->buf[8], E->buf[8], E->buf[6], n);
+    /*	X3:=(-2*X1*D) mod N;*/
+    mpres_mul(R->x, P->x, E->buf[7], n);
+    mpres_add(R->x, R->x, R->x, n);
+    mpres_neg(R->x, R->x, n);
+    /*	Y3:=((D+E)*Z1) mod N;*/
+    mpres_add(E->buf[0], E->buf[7], E->buf[8], n);
+    mpres_mul(E->buf[1], E->buf[0], P->z, n);
+    /*	Z3:=((D-E)*Y1) mod N;*/
+    mpres_sub(E->buf[0], E->buf[7], E->buf[8], n);
+    mpres_mul(R->z, E->buf[0], P->y, n);
+    mpres_set(R->y, E->buf[1], n);
+    return 1;
+}
+
+/* TODO: reduce the number of buffers? */
+int
+twisted_hessian_plus(ell_point_t R, ell_point_t P, ell_point_t Q, 
+	     ATTRIBUTE_UNUSED ell_curve_t E, mpmod_t n)
+{
+    /* A = buf[0], ... F = buf[5], G = [6], H = [7], J = [8] */
+    // A:=X1*Z2 mod N;
+    mpres_mul(E->buf[0], P->x, Q->z, n);
+    // B:=Z1*Z2 mod N;
+    mpres_mul(E->buf[1], P->z, Q->z, n);
+    // C:=Y1*X2 mod N;
+    mpres_mul(E->buf[2], P->y, Q->x, n);
+    // D:=Y1*Y2 mod N;
+    mpres_mul(E->buf[3], P->y, Q->y, n);
+    // E:=Z1*Y2 mod N;
+    mpres_mul(E->buf[4], P->z, Q->y, n);
+    // F:=E0[1]*X1*X2 mod N;
+    mpres_mul(E->buf[5], P->x, Q->x, n);
+    mpres_mul(E->buf[5], E->buf[5], E->a4, n);
+    // Hisil
+    // G := (D+B)*(A-C) mod N;
+    mpres_add(E->buf[9], E->buf[3], E->buf[1], n);
+    mpres_sub(E->buf[6], E->buf[0], E->buf[2], n);
+    mpres_mul(E->buf[6], E->buf[6], E->buf[9], n);
+    // H := (D-B)*(A+C) mod N;
+    mpres_sub(E->buf[9], E->buf[3], E->buf[1], n);
+    mpres_add(E->buf[7], E->buf[0], E->buf[2], n);
+    mpres_mul(E->buf[7], E->buf[7], E->buf[9], n);
+    // J := (D+F)*(A-E) mod N;
+    mpres_add(E->buf[9], E->buf[3], E->buf[5], n);
+    mpres_sub(E->buf[8], E->buf[0], E->buf[4], n);
+    mpres_mul(E->buf[8], E->buf[8], E->buf[9], n);
+    // K := (D-F)*(A+E) mod N;
+    // this is the last use of A, so that K -> buf[0]
+    mpres_sub(E->buf[9], E->buf[3], E->buf[5], n);
+    mpres_add(E->buf[0], E->buf[0], E->buf[4], n);
+    mpres_mul(E->buf[0], E->buf[0], E->buf[9], n);
+    // X3 := G-H
+    mpres_sub(R->x, E->buf[6], E->buf[7], n);
+    // Y3 := K-J
+    mpres_sub(R->y, E->buf[0], E->buf[8], n);
+    // Z3 := (J+K-G-H-2*(B-F)*(C+E)) mod N;
+    mpres_sub(E->buf[9], E->buf[1], E->buf[5], n);
+    mpres_add(R->z, E->buf[2], E->buf[4], n);
+    mpres_mul(R->z, R->z, E->buf[9], n);
+    mpres_add(R->z, R->z, R->z, n);
+    mpres_add(R->z, R->z, E->buf[7], n);
+    mpres_add(R->z, R->z, E->buf[6], n);
+    mpres_sub(R->z, E->buf[0], R->z, n);
+    mpres_add(R->z, R->z, E->buf[8], n);
+    if(mpz_sgn(R->x) == 0 && mpz_sgn(R->y) == 0 && mpz_sgn(R->z) == 0){
+	// iff (X2:Y2:Z2)=(Z1:gamma^2*X1:gamma*Y1), gamma^3 = a
+	fprintf(stderr, "GASP: X3, Y3 and Z3 are 0\n");
+	exit(-1);
+#if 0
+	    // TODO: rewrite with above quantities!
+	    X3:=(X1^2*Y2*Z2-X2^2*Y1*Z1) mod N;
+	    // A*X1*Y2-C*X2*Z1 = A*U-C*V
+	    Y3:=(Z1^2*X2*Y2-Z2^2*X1*Y1) mod N;
+	    // E*Z1*X2-A*Z2*Y1 = E*V-A*W
+	    Z3:=(Y1^2*X2*Z2-Y2^2*X1*Z1) mod N;
+	    // C*Y1*Z2-E*Y2*X1 = C*W-E*U
+
+	    // X3 =     Y1*(a*X1^3-Z1^3)
+	    // Y3 = g^2*X1*(Z1^3-Y1^3)
+	    // Z3 =   g*Z1*(Y1^3-Z1^3)
+
+	    // can be made faster with a = aa^3, since then g = aa and we
+	    // can share many things
+
+#endif
+    }
+    return 1;
+}
+
+int
+twisted_hessian_add(ell_point_t R, ell_point_t P, ell_point_t Q, ell_curve_t E, mpmod_t n)
+{
+    if(twisted_hessian_is_zero(P, E, n)){
+	ell_point_set(R, Q, E, n);
+	return 1;
+    }
+    else if(twisted_hessian_is_zero(Q, E, n)){
+	ell_point_set(R, P, E, n);
+	return 1;
+    }
+    else
+	return twisted_hessian_plus(R, P, Q, E, n);
+}
+
+int
+twisted_hessian_sub(ell_point_t R, ell_point_t P, ell_point_t Q, ell_curve_t E, mpmod_t n)
+{
+    int ret;
+
+    twisted_hessian_negate(Q, E, n);
+    ret = twisted_hessian_add(R, P, Q, E, n);
+    twisted_hessian_negate(Q, E, n);
+    return ret;
+}
+
+/* 8M+6S+M_a            +M_{1/d}  or 2*M_d */
+int
+twisted_hessian_triplicate(ell_point_t R, ell_point_t P, 
+			   ATTRIBUTE_UNUSED ell_curve_t E, mpmod_t n)
+{
+    // R = buf[0], V = [1], S = [2], A = [3], B = [4], C = [5], D = [6]
+    // E = [7], tmp = [8]
+    /*	R:=(a*X1^3) mod N;*/
+    mpres_sqr(E->buf[0], P->x, n);
+    mpres_mul(E->buf[0], E->buf[0], P->x, n);
+    mpres_mul(E->buf[0], E->buf[0], E->a4, n);
+    /*	V:=Y1^3 mod N;*/
+    mpres_sqr(E->buf[1], P->y, n);
+    mpres_mul(E->buf[1], E->buf[1], P->y, n);
+    /*	S:=Z1^3 mod N;*/
+    mpres_sqr(E->buf[2], P->z, n);
+    mpres_mul(E->buf[2], E->buf[2], P->z, n);
+    /*	A:=(R-V)^2 mod N;*/
+    mpres_sub(E->buf[3], E->buf[0], E->buf[1], n);
+    mpres_sqr(E->buf[3], E->buf[3], n);
+    /*	B:=(R-S)^2 mod N;*/
+    mpres_sub(E->buf[4], E->buf[0], E->buf[2], n);
+    mpres_sqr(E->buf[4], E->buf[4], n);
+    /*	C:=(V-S)^2 mod N;*/
+    mpres_sub(E->buf[5], E->buf[1], E->buf[2], n);
+    mpres_sqr(E->buf[5], E->buf[5], n);
+    /*	D:=(A+C) mod N;*/
+    mpres_add(E->buf[6], E->buf[3], E->buf[5], n);
+    /*	E:=(A+B) mod N;*/
+    mpres_add(E->buf[7], E->buf[3], E->buf[4], n);
+// ok if 1/d small
+// 	X3:=(1/d)*(R+V+S)*(B+D) mod N;
+    // d small => scaling Y3 and Z3*/
+    /* 	X3:=(R+V+S)*(B+D) mod N; */
+    mpres_add(R->x, E->buf[0], E->buf[1], n);
+    mpres_add(R->x, R->x, E->buf[2], n);
+    mpres_add(E->buf[8], E->buf[4], E->buf[6], n);
+    mpres_mul(R->x, R->x, E->buf[8], n);
+    /*	Y3:=(2*R*C-V*(C-E)) mod N;*/
+    mpres_mul(R->y, E->buf[0], E->buf[5], n);
+    mpres_add(R->y, R->y, R->y, n);
+    mpres_sub(E->buf[8], E->buf[5], E->buf[7], n);
+    mpres_mul(E->buf[8], E->buf[8], E->buf[1], n);
+    mpres_sub(R->y, R->y, E->buf[8], n);
+    /*	Z3:=(2*V*B-R*(B-D)) mod N;*/
+    mpres_mul(R->z, E->buf[1], E->buf[4], n);
+    mpres_add(R->z, R->z, R->z, n);
+    mpres_sub(E->buf[8], E->buf[4], E->buf[6], n);
+    mpres_mul(E->buf[8], E->buf[8], E->buf[0], n);
+    mpres_sub(R->z, R->z, E->buf[8], n);
+    /*	Y3:=(d*Y3) mod N; scaling when d small*/
+    mpres_mul(R->y, R->y, E->a6, n);
+    /*	Z3:=(d*Z3) mod N; scaling when d small*/
+    mpres_mul(R->z, R->z, E->a6, n);
+    return 1;
+}
+
+/* INPUT: a*x^3+y^3+1 = d*x*y
+   OUTPUT: Y^2 = X^3+A*X+B
+   If a=c^3, then curve isom to Hessian (c*x)^3+y^3+1=3*(d/(3*c))*(c*x)*y
+   SIDE EFFECT: (x, y, c) <- (x_on_W, y_on_W, A_of_W)
+ */
+int
+twisted_hessian_to_weierstrass(mpz_t f, mpres_t x, mpres_t y, mpres_t c, mpres_t d, mpmod_t n)
+{
+    int ret = ECM_NO_FACTOR_FOUND;
+    mpres_t tmp;
+
+#if DEBUG_ADD_LAWS >= 2
+    printf("x_tH="); print_mpz_from_mpres(x, n); printf("\n");
+    printf("y_tH="); print_mpz_from_mpres(y, n); printf("\n");
+    printf("c_tH="); print_mpz_from_mpres(c, n); printf("\n");
+    printf("d_tH="); print_mpz_from_mpres(d, n); printf("\n");
+#endif
+    mpres_init(tmp, n);
+    mpres_mul_ui(tmp, c, 3, n);
+    if(mpres_invert(tmp, tmp, n) == 0){
+        mpres_gcd(f, tmp, n);
+        ret = ECM_FACTOR_FOUND_STEP1;
+    }
+    else{
+	mpres_mul(x, x, c, n);
+	mpres_mul(c, tmp, d, n);
+	/* from x^3+y^3+1=3*c*x*y to Weierstrass stuff */
+	ret = hessian_to_weierstrass(f, x, y, c, n);
+#if DEBUG_ADD_LAWS >= 2
+	printf("A_W="); print_mpz_from_mpres(c, n); printf("\n");
+	printf("x_W="); print_mpz_from_mpres(x, n); printf("\n");
+	printf("y_W="); print_mpz_from_mpres(y, n); printf("\n");
+#endif
+    }
+    mpres_clear(tmp, n);
+    return ret;
+}
+
 /******************** generic ec's ********************/
 
 void
@@ -1362,7 +1653,8 @@ ell_point_init(ell_point_t P, ell_curve_t E, mpmod_t n)
       else if(E->law == ECM_LAW_HOMOGENEOUS)
 	mpres_set_ui(P->z, 1, n);
     }
-    else if(E->type == ECM_EC_TYPE_HESSIAN)
+    else if(E->type == ECM_EC_TYPE_HESSIAN 
+	    || E->type == ECM_EC_TYPE_TWISTED_HESSIAN)
 	mpres_set_ui(P->z, 1, n);
 }
 
@@ -1382,6 +1674,8 @@ ell_point_print(ell_point_t P, ell_curve_t E, mpmod_t n)
 	pt_w_print(P->x, P->y, P->z, E, n);
     else if(E->type == ECM_EC_TYPE_HESSIAN)
 	hessian_print(P, E, n);
+    else if(E->type == ECM_EC_TYPE_TWISTED_HESSIAN)
+	twisted_hessian_print(P, E, n);
 }
 
 /* TODO: should depend on E->type... */
@@ -1463,6 +1757,11 @@ ell_curve_print(ell_curve_t E, mpmod_t n)
 	printf("D:="); print_mpz_from_mpres(E->a4, n); printf(";\n");
 	printf("E:=[D];\n");
     }
+    else if(E->type == ECM_EC_TYPE_TWISTED_HESSIAN){
+	printf("a:="); print_mpz_from_mpres(E->a4, n); printf(";\n");
+	printf("d:="); print_mpz_from_mpres(E->a6, n); printf(";\n");
+	printf("E:=[a, d];\n");
+    }
 }
 
 int
@@ -1472,6 +1771,8 @@ ell_point_is_zero(ell_point_t P, ell_curve_t E, mpmod_t n)
 	return pt_w_is_zero(P->z, n);
     else if(E->type == ECM_EC_TYPE_HESSIAN)
 	return hessian_is_zero(P, E, n);
+    else if(E->type == ECM_EC_TYPE_TWISTED_HESSIAN)
+	return twisted_hessian_is_zero(P, E, n);
     return 0;
 }
 
@@ -1482,6 +1783,8 @@ ell_point_set_to_zero(ell_point_t P, ell_curve_t E, mpmod_t n)
 	pt_w_set_to_zero(P, n);
     else if(E->type == ECM_EC_TYPE_HESSIAN)
 	hessian_set_to_zero(P, E, n);
+    else if(E->type == ECM_EC_TYPE_TWISTED_HESSIAN)
+	twisted_hessian_set_to_zero(P, E, n);
 }
 
 int
@@ -1543,6 +1846,9 @@ ell_point_is_on_curve(ell_point_t P, ell_curve_t E, mpmod_t n)
 	mpres_clear(tmp2, n);
     }
     else if(E->type == ECM_EC_TYPE_HESSIAN){
+	/* TODO */
+    }
+    else if(E->type == ECM_EC_TYPE_TWISTED_HESSIAN){
 	/* TODO */
     }
     return ok;
@@ -1610,6 +1916,8 @@ ell_point_add(ell_point_t R, ell_point_t P, ell_point_t Q, ell_curve_t E, mpmod_
 			n, E);
     else if(E->type == ECM_EC_TYPE_HESSIAN)
 	return hessian_add(R, P, Q, E, n);
+    else if(E->type == ECM_EC_TYPE_TWISTED_HESSIAN)
+	return twisted_hessian_add(R, P, Q, E, n);
     else
 	return -1;
 }
@@ -1623,6 +1931,8 @@ ell_point_sub(ell_point_t R, ell_point_t P, ell_point_t Q, ell_curve_t E, mpmod_
 			n, E);
     else if(E->type == ECM_EC_TYPE_HESSIAN)
 	return hessian_sub(R, P, Q, E, n);
+    else if(E->type == ECM_EC_TYPE_TWISTED_HESSIAN)
+	return twisted_hessian_sub(R, P, Q, E, n);
     else
 	return -1;
 }
@@ -1638,6 +1948,8 @@ ell_point_duplicate(ell_point_t R, ell_point_t P, ell_curve_t E, mpmod_t n)
 	return pt_w_duplicate(R->x, R->y, R->z, P->x, P->y, P->z, n, E);
     else if(E->type == ECM_EC_TYPE_HESSIAN)
 	return hessian_duplicate(R, P, E, n);
+    else if(E->type == ECM_EC_TYPE_TWISTED_HESSIAN)
+	return twisted_hessian_duplicate(R, P, E, n);
     else
 	return -1;
 }
@@ -1664,6 +1976,8 @@ ell_point_negate(ell_point_t P, ell_curve_t E, mpmod_t n)
 	}
 	else if(E->type == ECM_EC_TYPE_HESSIAN)
 	    hessian_negate(P, E, n);
+	else if(E->type == ECM_EC_TYPE_TWISTED_HESSIAN)
+	    twisted_hessian_negate(P, E, n);
     }
 }
 

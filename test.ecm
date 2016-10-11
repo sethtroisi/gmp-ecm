@@ -637,6 +637,7 @@ checkcode $C 14
 echo 874700000026241 | $ECM -torsion Z9 -sigma 7 1e2; checkcode $? 14
 ## found factor in Step 1
 echo 2432902008176640001 | $ECM -torsion Z9 -sigma 3 13000; checkcode $? 14
+## found factor in Step 1
 echo 2432902008176640001 | $ECM -torsion Z10 -sigma 3 320; checkcode $? 14
 echo 2432902008176640001 | $ECM -torsion Z2xZ8 -sigma 2 1300; checkcode $? 14
 
