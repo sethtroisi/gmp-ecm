@@ -20,6 +20,8 @@ int pt_many_mul(ell_point_t *tQ, ell_point_t *tP, ell_curve_t *tE, int nE,
 	    mpres_t *num, mpres_t *den, mpres_t *inv, char *ok);
 
 int hessian_to_weierstrass(mpz_t f, mpres_t x, mpres_t y, mpres_t D, mpmod_t n);
+int
+twisted_hessian_to_weierstrass(mpz_t f, mpres_t x, mpres_t y, mpres_t c, mpres_t d, mpmod_t n);
 
 int build_MO_chain(short *S, size_t Slen, mpz_t e, int w);
 int build_add_sub_chain(short *S, size_t Slen, mpz_t e, int w);

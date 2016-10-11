@@ -1018,7 +1018,7 @@ build_curves_with_torsion_Z2xZ8(mpz_t f, mpmod_t n,
 	mpz_mul(f, f, kx0);
 	mpz_mod(f, f, n->orig_modulus);
         if(mod_from_rat2(c, f, d, n->orig_modulus) == 0){
-            printf("found factor in Z2xZ8 (d)\n");
+            printf("found factor in Z2xZ8 (d2)\n");
             ret = ECM_FACTOR_FOUND_STEP1;
             break;
         }
@@ -1364,6 +1364,14 @@ build_curves_with_torsion_Z3xZ6(mpz_t f, mpmod_t n,
     mpres_clear(tmp, n);
     return ret;
 }
+
+/* JKL: K = Q(sqrt(-3), sqrt(8*t^3+1), t in Q, t != 0, 1, -1/2;
+   mu = (2*t^3+1)/(3*t^2) => parameter for Hessian form.
+   Tors(E) = Z/6xZ/6.
+   A "specified" point is (0:-1:1), but does it have infinite order?
+   Also: twisted Hessian is a*X^3+Y^3+Z^3=d*X*Y*Z, d/a=3*mu.
+   See JKL-ECM in ANTS-XII.
+ */
 
 /* Original source is Brier + Clavier.
    We can build curves in Montgomery form directly... 

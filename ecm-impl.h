@@ -39,9 +39,9 @@ http://www.gnu.org/licenses/ or write to the Free Software Foundation, Inc.,
 #endif
 
 /* We do not use torsion.[ch] so far since they are not tested enough. */
-/* #define HAVE_TORSION */
+#define HAVE_TORSION
 /* We do not use addlaws.[ch] so far since they are not tested enough. */
-/* #define HAVE_ADDLAWS */
+#define HAVE_ADDLAWS
 
 #include "ecm_int.h"
 
