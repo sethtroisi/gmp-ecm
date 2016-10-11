@@ -1,0 +1,111 @@
+This is the README file for GPU version of GMP-ECM.
+The GPU code will only work with NVIDIA GPU of compute capability greater
+than 2.0.
+
+Table of contents of this file
+
+1. How to enable GPU code in GMP-ECM
+2. Basic Usage
+3. Advanced Usage
+4. Known issues
+
+##############################################################################
+
+1. How to enable GPU code in GMP-ECM
+
+By default the GPU code is not enabled, to enable it you have to follow the 
+instructions of INSTALL-ecm until the 'configure' step. Then add the
+"--enable-gpu" argument to configure:
+	
+  $ ./configure --enable-gpu [other options]
+
+This will configure the code for NVIDIA GPU for all compute capabilities
+between 2.0 and 5.3 known to the nvcc compiler.
+
+By default, GMP-ECM will look for cuda.h in the default header directories,
+but you can specify an other directory, such as /opt/cuda, with:
+
+  $ ./configure --enable-gpu --with-cuda=/opt/cuda
+
+By default, GMP-ECM will look for the nvcc compiler in $PATH, but you can
+specify an other directory:
+
+  $ ./configure --enable-gpu --with-cuda-bin=/PATH/DIR
+
+For finer control you can specify the location of cuda.h as follows:
+
+  $ ./configure --enable-gpu --with-cuda-include=/PATH/DIR
+
+By default, GMP-ECM will look for CUDA the default library directories, but you
+can specify an other directory:
+
+  $ ./configure --enable-gpu --with-cuda-lib=/PATH/DIR
+
+Some versions of CUDA are not compatible with recent versions of gcc.
+To specify which C compiler is called by the CUDA compiler nvcc, type:
+
+  $ ./configure --enable-gpu --with-cuda-compiler=/PATH/DIR 
+  
+The value of this parameter is directly passed to nvcc via the option
+"--compiler-bindir". By default, GMP-ECM lets nvcc choose what C compiler it
+uses.
+
+Then, to compile the code, type:
+
+  $ make
+
+And to check that the program works correctly, type:
+
+  $ make check
+
+##############################################################################
+
+2. Basic Usage
+
+To use your GPU for step 1, just add the -gpu option:
+
+  $ echo "(2^835+1)/33" | ./ecm -gpu 1e4
+
+It will compute step 1 on the GPU, and then perform step 2 on the CPU (not in
+parallel).
+
+The only parametrization compatible with GPU code is "-param 3". 
+
+You can save the end of step 1 with "-save" and then load the file to execute
+step 2. But you cannot resume to continue step 1 with a bigger B1.
+
+The options "-mpzmod", "-modmuln", "-redc", "-nobase2" and "-base2" have no
+effect on step 1, if the "-gpu" option is activated, but will apply for step 2.
+
+##############################################################################
+
+3. Advanced Usage
+
+The option "-gpudevice n" forces the GPU code to be executed on device n. Nvidia
+tool "nvidia-smi" can be used to know to which number is associated a GPU.
+Moreover, you can use GMP-ECM option "-v" (verbose) to see the properties of the
+GPU on which the code is run.
+
+The option "-gpucurves n" forces GMP-ECM to compute n curves in parallel on the
+GPU. By default, the number of curves is choose to fill completly the GPU. The
+number of curves must be a multiple of the number of curves by multiprocessors
+(which depend on the GPU compute capability) or else it would be rounded to the
+next multiple.
+
+The default implementation of the arithmetic for the GPU restricts
+integers to be smaller than 2^1018.  This restriction can be altered by
+changing the source code but do so at your own risk because support
+from the GMP-ECM team will be very limited.
+
+##############################################################################
+
+4. Known issues
+
+On some configurations (GTX 570 with compute capability 2.0 for example)
+one gets the Cuda error "too many resources requested for launch". This
+can be solved by decreasing ECM_GPU_CURVES_BY_BLOCK from 32 to 16 in ecm-gpu.h.
+
+##############################################################################
+
+Please report to mail@cyrilbouvier.fr any problems, bugs, ...
+

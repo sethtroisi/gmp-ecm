@@ -1,0 +1,186 @@
+#!/bin/sh
+
+# test file for P-1 method
+#
+# Copyright 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009, 2012, 2016
+# Paul Zimmermann, Alexander Kruppa, Dave Newman, Jim Fougeron, David Cleaver
+#
+# This program is free software; you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation; either version 3 of the License, or (at your
+# option) any later version.
+# 
+# This program is distributed in the hope that it will be useful, but
+# WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
+# or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License for
+# more details.
+# 
+# You should have received a copy of the GNU General Public License
+# along with this program; see the file COPYING.  If not, see
+# http://www.gnu.org/licenses/ or write to the Free Software Foundation, Inc.,
+# 51 Franklin St, Fifth Floor, Boston, MA 02110-1301, USA.
+
+PM1="${1:-./ecm} -pm1"
+
+GMPECM_DATADIR=${GMPECM_DATADIR:-.}
+
+# Call with "checkcode $? n" to check that return code is n
+# the return code is (see ecm-ecm.h):
+# 0: no factor found
+# 1: error (for example out of memory)
+# 2: composite factor found with composite cofactor
+# 6: prime factor found with composite cofactor
+# 8: input number found
+# 10: composite factor found with prime cofactor
+# 14: prime factor found with prime cofactor
+
+checkcode () {
+  if [ $1 != $2 ]
+  then
+    echo "############### ERROR ###############"
+    echo "Expected return code $2 but got $1"
+    exit 1
+  fi
+}
+
+### bug in ecm-5.0 found by Jay Berg (overflow in i0*d)
+echo 441995541378330835457 | $PM1 -x0 3 157080 7e9-72e8; checkcode $? 8
+
+### stage 2 less than 10^9. Input is prime factor of 2^731-1  ###
+echo 335203548019575991076297 | $PM1 -x0 2 23 31; checkcode $? 8
+
+### stage 2 of length 1 ###
+echo 335203548019575991076297 | $PM1 -x0 3 31 58766400424189339249-58766400424189339249; checkcode $? 8
+
+# try primes < d in stage 2
+echo 2050449353925555290706354283 | $PM1 -k 1 20 0-1e6; checkcode $? 14
+
+# This factor was missed by an early development version of stage 2
+echo 67872792749091946529 | $PM1 -x0 3 8467 11004397; checkcode $? 8
+
+echo 5735039483399104015346944564789 | $PM1 1277209 9247741; checkcode $? 8
+
+echo 620224739362954187513 | $PM1 -x0 3 668093 65087177; checkcode $? 8
+
+echo 1405929742229533753 | $PM1 1123483 75240667; checkcode $? 8
+
+echo 16811052664235873 | $PM1 -x0 3 19110 178253039; checkcode $? 8
+
+echo 9110965748024759967611 | $PM1 1193119 316014211; checkcode $? 8
+
+echo 563796628294674772855559264041716715663 | $PM1 4031563 14334623; checkcode $? 8
+
+# test with -go
+echo 563796628294674772855559264041716715663 | $PM1 -go 4031563 67801 14334623; checkcode $? 8
+
+# http://lists.gforge.inria.fr/pipermail/ecm-discuss/2013-March/004214.html
+echo 563796628294674772855559264041716715663 | $PM1 -go 39331109600487907694228112175794 1 14334623; checkcode $? 8
+
+echo 188879386195169498836498369376071664143 | $PM1 3026227 99836987; checkcode $? 8
+
+# factor of 909*9^909+1 found by Paul Leyland on 15 Nov 2002
+echo 474476178924594486566271953891 | $PM1 9594209 519569569; checkcode $? 8
+
+### stage 2 less than 10^10 ###
+echo 2124306045220073929294177 | $PM1 290021 1193749003; checkcode $? 8
+
+### Try saving and resuming
+echo 25591172394760497166702530699464321 | $PM1 -save test.pm1.save 100000
+checkcode $? 0
+$PM1 -resume test.pm1.save 120557 2007301
+C=$?
+/bin/rm -f test.pm1.save
+checkcode $C 8
+
+# check the -chkpnt option
+echo 25591172394760497166702530699464321 | $PM1 -chkpnt test.pm1.chk 100000
+checkcode $? 0
+$PM1 -resume test.pm1.chk 120557 2007301
+C=$?
+/bin/rm -f test.pm1.chk
+checkcode $C 8
+
+### same with -savea
+echo 25591172394760497166702530699464321 | $PM1 -savea test.pm1.save 100000
+checkcode $? 0
+$PM1 -resume test.pm1.save 120557 2007301
+C=$?
+/bin/rm -f test.pm1.save
+checkcode $C 8
+
+# bug in ecm-5.0 (overflow in fin_diff_coeff)
+echo 504403158265489337 | $PM1 -k 4 8 9007199254740700-9007199254740900; checkcode $? 8
+
+# check that primes near B2min are covered
+echo 6857 | $PM1 840 857; checkcode $? 8
+
+# A test with a larger input number to test modular arithmetic routines not
+# in mulredc*.asm. This input has 1363 bits so it has 22 64-bit words 
+# (43 32-bit words) and cannot use mulredc which handles only up to 20 limbs
+
+echo "10090030271*10^400+696212088699" | $PM1 2e3 2e6; checkcode $? 14
+
+# check bug fixed in revision 1378
+echo "2^(64*2)-1" | $PM1 -redc -x0 -1 2 1; checkcode $? 8
+
+# check bug fixed in revision 2068
+echo "234^997+997^234" | $PM1 -ntt 100 324; checkcode $? 0
+
+# check go with 'N' placeholder
+echo "2^(2^12)+1" | $PM1 -go "N-1" 1e6; checkcode $? 2
+
+# excercise even number: factor 2 found in step 1
+echo 12345678 | $PM1 1e3; checkcode $? 6
+
+# exercise "Error: cannot choose suitable P value for your stage 2 parameters." error message
+$PM1 -ntt 5e3 1e6-1e40 < ${GMPECM_DATADIR}/c155; checkcode $? 1
+
+# exercise maxmem with P-1 code...
+$PM1 -v -v -v -ntt -maxmem 1 5e3 1e4-1e6 < ${GMPECM_DATADIR}/c155; checkcode $? 0
+
+# exercise maxmem with P-1 code...
+$PM1 -v -v -v -no-ntt -maxmem 1 5e3 1e4-1e6 < ${GMPECM_DATADIR}/c155; checkcode $? 0
+
+# exercise pm1prob with -go option
+$PM1 -v -go 1234 1e5 < ${GMPECM_DATADIR}/c155; checkcode $? 0
+
+# check -v option
+echo 33852066257429811148979390609187539760850944806763555795340084882048986912482949506591909041130651770779842162499482875755533111808276172876211496409325473343590723224081353129229935527059488811457730702694849036693756201766866018562295004353153066430367 | $PM1 -v 19999; checkcode $? 0
+
+echo 33852066257429811148979390609187539760850944806763555795340084882048986912482949506591909041130651770779842162499482875755533111808276172876211496409325473343590723224081353129229935527059488811457730702694849036693756201766866018562295004353153066430367 | $PM1 -v 1e5; checkcode $? 0
+
+# check -v -v option
+echo 33852066257429811148979390609187539760850944806763555795340084882048986912482949506591909041130651770779842162499482875755533111808276172876211496409325473343590723224081353129229935527059488811457730702694849036693756201766866018562295004353153066430367 | $PM1 -v -v 1e5; checkcode $? 0
+
+# check -v -v -v option
+echo 33852066257429811148979390609187539760850944806763555795340084882048986912482949506591909041130651770779842162499482875755533111808276172876211496409325473343590723224081353129229935527059488811457730702694849036693756201766866018562295004353153066430367 | $PM1 -v -v -v 1e5; checkcode $? 0
+
+# check -v -v -v option with -no-ntt
+echo 33852066257429811148979390609187539760850944806763555795340084882048986912482949506591909041130651770779842162499482875755533111808276172876211496409325473343590723224081353129229935527059488811457730702694849036693756201766866018562295004353153066430367 | $PM1 -no-ntt -v -v -v 1e5; checkcode $? 0
+
+# check -v -v -v -v option
+echo 33852066257429811148979390609187539760850944806763555795340084882048986912482949506591909041130651770779842162499482875755533111808276172876211496409325473343590723224081353129229935527059488811457730702694849036693756201766866018562295004353153066430367 | $PM1 -v -v -v -v 1e5 > /dev/null
+
+# exercise base-2 code in mpres_mul_z_to_z()
+echo "2^1009-1" | $PM1 1000; checkcode $? 6
+echo "(2^1009-1)/3454817" | $PM1 -no-ntt 5e3 1e4-1e6; checkcode $? 6
+
+# exercise bug fixed in revision 2949 on 64-bit processor (occurred with -redc)
+echo "(2^1049-1)/33569/459463" | $PM1 1049 21686243; checkcode $? 14
+
+# exercise bug (Segmentation fault) in ecm 7.0.x for x <= 3
+echo 1000033 | $PM1 32 947; checkcode $? 8
+echo 10001801 | $PM1 43 1163; checkcode $? 8
+echo 100002943 | $PM1 23 1093; checkcode $? 8
+echo 1000020313 | $PM1 37 859; checkcode $? 8
+echo 10000026037 | $PM1 49 1367; checkcode $? 8
+
+# Segmentation fault in 6.4.4
+echo 100000003897 | $PM1 787 1223; checkcode $? 8
+echo 1000000671451 | $PM1 757 1249; checkcode $? 8
+echo 10000000097557 | $PM1 761 1279; checkcode $? 8
+echo 100000002915569 | $PM1 1361 1823; checkcode $? 8
+echo 1000000001405311 | $PM1 1373 1759; checkcode $? 8
+echo 10000000003317199 | $PM1 2269 2803; checkcode $? 8
+
+echo "All P-1 tests are ok."

@@ -1,0 +1,195 @@
+#!/bin/sh
+
+# test file for ECM on GPU
+#
+# Copyright 2012
+# Jim Fougeron, Alexander Kruppa, Dave Newman, Paul Zimmermann, Cyril Bouvier,
+# David Cleaver.
+#
+# This program is free software; you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation; either version 3 of the License, or (at your
+# option) any later version.
+# 
+# This program is distributed in the hope that it will be useful, but
+# WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
+# or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License for
+# more details.
+# 
+# You should have received a copy of the GNU General Public License
+# along with this program; see the file COPYING.  If not, see
+# http://www.gnu.org/licenses/ or write to the Free Software Foundation, Inc.,
+# 51 Franklin St, Fifth Floor, Boston, MA 02110-1301, USA.
+
+ECM="${1:-./ecm} -gpu -gpucurves 1"
+ECMnoGPU="${1-./ecm}"
+
+GMPECM_DATADIR=${GMPECM_DATADIR:-.}
+
+# Call with "checkcode $? n" to check that return code is n
+# (see test.pm1 for the explanation of the different return codes)              
+checkcode () {
+  if [ $1 != $2 ]
+  then
+    echo "############### ERROR ###############"
+    echo "Expected return code $2 but got $1"
+    exit 1
+  fi
+}
+
+# Exit statues returned by GMP-ECM:
+# 0      Normal program termination, no factor found
+# 1      Error
+# 2      Composite factor found, cofactor is composite
+# 6      Probable prime factor found, cofactor is composite
+# 8      Input number found
+# 10     Composite factor found, cofactor is a probable prime
+# 14     Probable prime factor found, cofactor is a probable prime
+
+# test for stage 1 on GPU
+echo 458903930815802071188998938170281707063809443792768383215233 | $ECM -sigma 3:227 125 0
+checkcode $? 14
+
+# test for stage 1 on GPU
+echo "2^349-1" | $ECM -sigma 3:279 587 0
+checkcode $? 6
+
+# test default param
+echo "2^349-1" | $ECM 587 0
+
+# test param=1
+echo "2^349-1" | $ECM -param 1 587 0
+checkcode $? 1
+
+# test -redc (should give a warning)
+echo "2^349-1" | $ECM -redc -sigma 3:2 587 0
+checkcode $? 0
+
+# test a Fermat number
+echo "2^512+1" | $ECM 587 0
+
+# 2^1018-1 is the maximun number that can be used
+echo "2^1018-1" | $ECM -sigma 3:92 4 0
+checkcode $? 2
+
+# try 2^1019-1: should give an error
+echo "2^1019-1" | $ECM -sigma 3:92 4 0
+checkcode $? 1
+
+# test for when stage 2 on CPU is needed
+echo "2^349-1" | $ECM -sigma 3:13 587 1261
+checkcode $? 6
+
+# test -v option
+$ECM -v 1e3 < ${GMPECM_DATADIR}/c155
+checkcode $? 0
+
+# test B1done > 0 (not implemented)
+$ECM 100-200 < ${GMPECM_DATADIR}/c155
+checkcode $? 1
+
+# test -A (not implemented)
+$ECM -A 17 100 < ${GMPECM_DATADIR}/c155
+checkcode $? 1
+
+# test invalid sigma
+$ECM -sigma 11 100 < ${GMPECM_DATADIR}/c155
+checkcode $? 1
+
+$ECM -sigma 3:1 100 < ${GMPECM_DATADIR}/c155
+checkcode $? 1
+
+$ECM -sigma 3:4294967295 100 < ${GMPECM_DATADIR}/c155
+checkcode $? 1
+
+# test -go (not implemented)
+$ECM -go 17 100 < ${GMPECM_DATADIR}/c155
+checkcode $? 1
+
+# exercise warning "Can't compute success probabilities for B1 <> B2min"
+$ECM -v 100 200-300 < ${GMPECM_DATADIR}/c155
+checkcode $? 0
+
+# bug reported by David Cleaver (was also reported by Paul Leyland)
+# should report p6 factor and c210 cofactor instead of "Input number found"
+# fixed with svn 2867
+echo "(2^718+1)/5" | $ECM -sigma 3:2016 40 48
+checkcode $? 6
+
+
+# bug found and patched by Greg Childers: resuming from gpu generated save file didn't work
+# Details: https://lists.gforge.inria.fr/pipermail/ecm-discuss/2016-April/004348.html
+# fixed with svn 2915.  several test cases given to exercise patch:
+/bin/rm -f test.ecm.save
+# Save file with no factor found in step 1 or step 2
+echo "(5^139+1)/6" | $ECM -save test.ecm.save -sigma 3:9829216 1e3
+# Check -resume and -gpu (should produce an error)
+$ECM -resume test.ecm.save 1e3
+checkcode $? 1
+# Resume, but find no factor
+$ECMnoGPU -resume test.ecm.save 1e3
+checkcode $? 0
+# Resume, find a factor in step 2
+$ECMnoGPU -resume test.ecm.save 1e3 1e6
+checkcode $? 6
+/bin/rm -f test.ecm.save
+
+# Save file after finding factor in step 1
+echo "(5^139+1)/6" | $ECM -save test.ecm.save -sigma 3:2829874052 1e3
+# Resume, but find no factor
+$ECMnoGPU -resume test.ecm.save 1e3 10e3
+checkcode $? 0
+# Resume, find a factor in step 2
+$ECMnoGPU -resume test.ecm.save 1e3
+checkcode $? 6
+/bin/rm -f test.ecm.save
+
+# Save file after finding factor in step 2
+echo "(5^139+1)/6" | $ECM -save test.ecm.save -sigma 3:1403008725 1e3
+# Resume, but find no factor
+$ECMnoGPU -resume test.ecm.save 1e3
+checkcode $? 0
+# Resume, find a factor in step 2
+$ECMnoGPU -resume test.ecm.save 1e3 100e3
+checkcode $? 6
+/bin/rm -f test.ecm.save
+
+# Save file after finding no factor in step 1 only
+echo "(5^139+1)/6" | $ECM -save test.ecm.save -sigma 3:1403008725 1e3 1
+# Resume, but find no factor
+$ECMnoGPU -resume test.ecm.save 1e3 5e3
+checkcode $? 0
+# Resume, find a factor in step 2
+$ECMnoGPU -resume test.ecm.save 1e3
+checkcode $? 6
+/bin/rm -f test.ecm.save
+
+echo "" > test_dummy2.save
+echo '\r' >> test_dummy2.save
+echo '\r# this is a comment line and should be ignored' >> test_dummy2.save
+
+# test -save/-resume
+/bin/rm -f test.ecm.save
+echo 17061648125571273329563156588435816942778260706938821014533 | $ECM -save test.ecm.save -param 3 -sigma 3781882524 9000 0
+$ECMnoGPU -resume test.ecm.save 9000 1000000
+C=$?
+checkcode $C 14
+
+# test savea
+cp test_dummy2.save test.ecm.save
+echo 17061648125571273329563156588435816942778260706938821014533 | $ECM -savea test.ecm.save -param 3 -sigma 3781882524 9000 0
+$ECMnoGPU -resume test.ecm.save 9000 1000000
+C=$?
+checkcode $C 14
+
+/bin/rm test_dummy2.save test.ecm.save
+
+# find multiple factors in Step 1
+echo "(2^718+1)/5" | $ECM -sigma 3:2000 50 60
+checkcode $? 2
+
+# find multiple factors in Step 2
+echo "(2^718+1)/5" | $ECM -sigma 3:2000 40 60
+checkcode $? 2
+
+echo "All ECM tests with GPU are ok."

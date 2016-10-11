@@ -1,0 +1,684 @@
+#!/bin/sh
+
+# test file for ECM
+#
+# Copyright 2002, 2003, 2004, 2005, 2006, 2008, 2009, 2011, 2012, 2016
+# Jim Fougeron, Alexander Kruppa, Dave Newman, Paul Zimmermann, Cyril Bouvier,
+# David Cleaver.
+#
+# This program is free software; you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation; either version 3 of the License, or (at your
+# option) any later version.
+# 
+# This program is distributed in the hope that it will be useful, but
+# WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
+# or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License for
+# more details.
+# 
+# You should have received a copy of the GNU General Public License
+# along with this program; see the file COPYING.  If not, see
+# http://www.gnu.org/licenses/ or write to the Free Software Foundation, Inc.,
+# 51 Franklin St, Fifth Floor, Boston, MA 02110-1301, USA.
+
+ECM="${1:-./ecm}"
+
+GMPECM_DATADIR=${GMPECM_DATADIR:-.}
+
+# Call with "checkcode $? n" to check that return code is n
+# (see test.pm1 for the explanation of the different return codes)              
+checkcode () {
+  if [ $1 != $2 ]
+  then
+    echo "############### ERROR ###############"
+    echo "Expected return code $2 but got $1"
+    exit 1
+  fi
+}
+
+case "$ECM"
+in
+*redc*) MUL="redc"
+  ;;
+*mpzmod*) MUL="mpzmod"
+  ;;
+*) MUL="modmuln"
+esac
+
+case "$ECM"
+in
+*valgrind*) VALGRIND=1
+  ;;
+*) VALGRIND=0
+esac
+
+# Exit statues returned by GMP-ECM:
+# 0      Normal program termination, no factor found
+# 1      Error
+# 2      Composite factor found, cofactor is composite
+# 6      (Probable) prime factor found, cofactor is composite
+# 8      Input number found
+# 10     Composite factor found, cofactor is a (probable) prime
+# 14     (Probable) prime factor found, cofactor is a (probable) prime
+
+
+# try primes < d in stage 2. Curve with sigma=7, mod 30210181 has order
+# 2^4 * 3^3 * 29 * 2411
+echo 2050449353925555290706354283 | $ECM -param 0 -sigma 7 -k 1 30 0-1e6; checkcode $? 14
+
+# check -I option
+echo 2050449353925555290706354283 | $ECM -param 0 -sigma 7 -k 1 -I 1 -c 2 3 0-1e6; checkcode $? 14
+
+# exercise the -timestamp option
+echo 2050449353925555290706354283 | $ECM -timestamp -param 0 -sigma 7 -k 1 30 0-1e6; checkcode $? 14
+
+# exercise the -stage1time option
+echo 2050449353925555290706354283 | $ECM -stage1time 17 -param 0 -sigma 7 -k 1 30 0-1e6; checkcode $? 14
+
+# exercise the -primetest option
+echo 2050449353925555290706354283 | $ECM -primetest -param 0 -sigma 7 -k 1 30 0-1e6; checkcode $? 14
+
+# exercise the -q option
+echo 2050449353925555290706354283 | $ECM -q -param 0 -sigma 7 -k 1 30 0-1e6; checkcode $? 14
+
+# exercise the -v option
+echo 2050449353925555290706354283 | $ECM -v -param 0 -sigma 7 -k 1 30 1e6; checkcode $? 14
+
+# exercise the -v -v option
+echo 2050449353925555290706354283 | $ECM -v -v -param 0 -sigma 7 -k 1 30 1e6; checkcode $? 14
+
+# exercise the -v -v -v option
+echo 2050449353925555290706354283 | $ECM -v -v -v -param 0 -sigma 7 -k 1 30 1e6; checkcode $? 14
+
+# exercise the -v -v -v -v option
+echo 2050449353925555290706354283 | $ECM -v -v -v -v -param 0 -sigma 7 -k 1 30 1e6; checkcode $? 14
+
+# check the -treefile option
+echo 2050449353925555290706354283 | $ECM -param 0 -treefile tree -sigma 7 -k 1 30 1e6; checkcode $? 14
+
+# check the -I f option
+echo 2050449353925555290706354283 | $ECM -param 0 -sigma 7 -I 1 -c 3 100; checkcode $? 14
+
+# check the -chkpnt option
+echo 2050449353925555290706354283 | $ECM -chkpnt test.ecm.chk -param 0 -sigma 7 30 1e6
+$ECM -resume test.ecm.chk 30 1e6
+C=$?
+/bin/rm -f test.ecm.chk
+checkcode $C 14
+
+# check the -inp option
+echo 2050449353925555290706354283 > test.ecm.inp
+$ECM -inp test.ecm.inp -param 0 -sigma 7 -I 1 -c 3 100
+C=$?
+/bin/rm -f test.ecm.inp
+checkcode $C 14
+
+# Check a stage 2 of length 1. g1=1822795201 g2=968809 g3=567947
+echo 212252637915375215854013140804296246361 | $ECM -param 0 -sigma 781683988 -go 550232165123 63421 1822795201-1822795201; checkcode $? 8
+
+# tests from Torbjo"rn Granlund
+echo 137703491 | $ECM -param 0 -sigma 6 84 1000; checkcode $? 8
+
+echo 3533000986701102061387017352606588294716061 | $ECM -param 0 -sigma 1621 191 225; checkcode $? 14
+
+echo 145152979917007299777325725119 | $ECM -param 0 -sigma 711387948 924 117751; checkcode $? 14
+
+# Test a few base 2 numbers. These tests are fairly quick.
+
+# Test a 2^n-1 number, factor found in stage 1. Order mod 33554520197234177
+# with sigma=262763035 is 2^3*3*5*47*59*241*601*743*937
+
+echo "2^919-1" | $ECM -param 0 -sigma 262763035 937 1; checkcode $? 6
+
+echo "2^919-1 // comment" | $ECM -param 0 -sigma 262763035 937 1; checkcode $? 6
+
+echo "101#-1" | $ECM -sigma 0:17 4e5; checkcode $? 14
+
+echo '101!-1' | $ECM -sigma 0:17 1e5; checkcode $? 2
+
+echo '101!3-1' | $ECM -sigma 0:17 1e5; checkcode $? 2
+
+echo '101#3-2' | $ECM -sigma 0:18 1e5; checkcode $? 14
+
+## The following tests produce errors (in normal usage), and should not be
+## tested with valgrind (we do not free all memory in case of error)
+
+if [ "$VALGRIND" != "1" ]; then
+
+# parsing error
+echo '2^(101/7)-1' | $ECM -sigma 0:18 1e5; checkcode $? 1
+
+# exercise "Error, n should be positive" error message
+echo "-1234" | $ECM 11e3; checkcode $? 1
+
+# exercise "Error, conflict between -sigma and -param arguments" error message
+echo "2^1123-1" | $ECM -sigma 0:13488386679529262989 -param 2 11000; checkcode $? 1
+
+# exercise other "Error, conflict between -sigma and -param arguments" error message
+echo "2^1123-1" | $ECM -param 2 -sigma 0:13488386679529262989 11000; checkcode $? 1
+
+# exercise "Error, x0 should be equal to 2 with this parametrization" error message
+echo "2^1123-1" | $ECM -x0 1 -param 2 11000; checkcode $? 1
+
+# exercise "Error, invalid starting point" error message
+echo "2^1123-1" | $ECM -x0 1.2 -param 0 11000; checkcode $? 1
+
+# exercise "Error, invalid starting point" error message
+echo "2^1123-1" | $ECM -y0 1.2 -param 0 11000; checkcode $? 1
+
+# exercise "Error, invalid -param value" error message
+echo "2^1123-1" | $ECM -x0 1 -param -1 11000; checkcode $? 1
+
+# exercise "Error, invalid sigma value" error message
+echo "2^1123-1" | $ECM -sigma 1.2 11000; checkcode $? 1
+
+# exercise "Error, invalid A value" error message
+echo "2^1123-1" | $ECM -A 1.2 11000; checkcode $? 1
+
+# exercise "Error, -A requires a starting point (-x0 x)." error message
+echo "2^1123-1" | $ECM -A 1234567890 11e3; checkcode $? 1
+
+# exercise "Error, the -I f option requires f > 0" error message
+echo "2^1123-1" | $ECM -I -1 11000; checkcode $? 1
+
+# exercise "Can't find input file" error message
+$ECM -inp 1; checkcode $? 1
+
+# exercise "too large step 2 bound" error message
+echo "2^1123-1" | $ECM -v -maxmem 10 -k 5 11000 11000000000000000000; checkcode $? 1
+
+# exercise "stage 2 interval too large" error message
+echo "2^1123-1" | $ECM -v -maxmem 10 11000 1e27; checkcode $? 1
+
+# exercise "Function Phi() requires 2 parameters" error message
+echo "phi(31)" | $ECM 11e3; checkcode $? 1
+
+# exercise "Invalid parameter passed to the Phi function" error message
+echo "phi(31,-1)" | $ECM 11e3; checkcode $? 1
+
+# exercise "Error - invalid number" error message
+echo ")" | $ECM 11e3; checkcode $? 1
+
+# exercise "Error - unknown operator" error message
+echo "1234$" | $ECM 11e3; checkcode $? 1
+
+# exercise "Unknown option" error message
+$ECM -inp; checkcode $? 1
+
+# exercise "Invalid arguments. See ... --help" error message
+echo "2^1123-1" | $ECM; checkcode $? 1
+
+# exercise "Invalid B2 value" error message
+echo "2^1123-1" | $ECM 11000 -1000000; checkcode $? 1
+
+# exercise "Error, -sigma parameter is incompatible with -A and -x0 parameters" error message
+echo "2^1123-1" | $ECM -sigma 0:5 -x0 1 11000; checkcode $? 1
+
+# exercise "Error, -y0 must be used with -A and -x0 parameters" error message
+echo "2^1123-1" | $ECM -param 0 -y0 1 11000; checkcode $? 1
+
+# exercise "Error, option -c and -resume are incompatible" error message
+$ECM -c 2 -resume ${GMPECM_DATADIR}/M877.save 11000; checkcode $? 1
+
+# exercise "Error, option -c is incompatible with -x0" error message
+echo "2^1123-1" | $ECM -c 2 -param 0 -x0 1 11000; checkcode $? 1
+
+# exercise "Error, the -param option is only valid for ECM" error message
+echo "2^1123-1" | $ECM -param 0 -pm1 11000; checkcode $? 1
+
+# exercise "Could not open file <file> for reading" error message
+$ECM -bloads sfile.txt 1e6 < ${GMPECM_DATADIR}/c155; checkcode $? 1
+
+# exercise "read_s_from_file: 0 bytes read from <file>" error message
+$ECM -bloads ${GMPECM_DATADIR}/test_dummy2.save 1e6 < ${GMPECM_DATADIR}/c155; checkcode $? 1
+
+# exercise batch error messages...
+$ECM -bsaves test.ecm.s 11e3 < ${GMPECM_DATADIR}/c155
+$ECM -bloads test.ecm.s 1000 < ${GMPECM_DATADIR}/c155; checkcode $? 1
+$ECM -bloads test.ecm.s 10900 < ${GMPECM_DATADIR}/c155; checkcode $? 1
+/bin/rm -f test.ecm.s
+
+# exercise "Error, -bsaves/-bloads makes sense in batch mode only" error message
+$ECM -bsaves test.s -param 0 11e3 < ${GMPECM_DATADIR}/c155; checkcode $? 1
+
+# exercise "Error, invalid parametrization." error message
+$ECM -param 5-3 11e3 < ${GMPECM_DATADIR}/c155; checkcode $? 1
+
+# exercise "mpmod_init_BASE2: n does not divide ..." error message
+$ECM -base2 32768 -param 0 11e3 < ${GMPECM_DATADIR}/c155; checkcode $? 1
+
+# exercise error "Invalid number"
+$ECM -go N- -modmuln 11e3 < ${GMPECM_DATADIR}/c155; checkcode $? 1
+
+fi # end of tests producing errors
+
+echo "2^1000-(101%7)" | $ECM -sigma 0:17 1e3; checkcode $? 2
+
+# idem with -nobase2
+echo "2^919-1" | $ECM -nobase2 -param 0 -sigma 262763035 937 1; checkcode $? 6
+
+# idem with -nobase2s2
+echo "2^919-1" | $ECM -nobase2s2 -param 0 -sigma 262763035 937 1; checkcode $? 6
+
+# idem with -base2 -919
+echo "2^919-1" | $ECM -base2 -919 -param 0 -sigma 262763035 937 1; checkcode $? 6
+
+# Test a 2^n-1 number, factor found in stage 2. Order mod 33554520197234177
+# with sigma=1691973485 is 2^6*3*11*29*59*73*263*283*1709
+
+echo "2^919-1" | $ECM -param 0 -sigma 1691973485 283 1709; checkcode $? 6
+
+# Test a 2^n+1 number, factor found in stage 1. Order mod 24651922299337
+# with sigma=2301432245 is 2^3*3^3*5^2*7^2*17*67*157*521
+echo "(2^1033+1)/3" | $ECM -param 0 -sigma 2301432245 521 1; checkcode $? 6
+
+# Test a 2^n+1 number, factor found in stage 2. Order mod 24651922299337
+# with sigma=2394040080 is 2^2*3^2*13*19*53*127*223*1847
+echo "(2^1033+1)/3" | $ECM -param 0 -sigma 2301432245 223 1847; checkcode $? 6
+
+# Test another 2^n+1 number, with a larger known factor divided out.
+# Factor found in stage 1, order mod 114584129081 with sigma=2399424618
+# is 2^9*3^2*5^2*7^2*53*383
+echo "(2^1063+1)/3/26210488518118323164267329859" | $ECM -param 0 -sigma 2399424618 383 1 ; checkcode $? 6
+
+# Like last one, but factor found in stage 2
+echo "(2^1063+1)/3/26210488518118323164267329859" | $ECM -param 0 -sigma 2399424618 71 500; checkcode $? 6
+
+echo 242668358425701966181147598421249782519178289604307455138484425562807899 | $ECM -param 0 -sigma 1417477358 28560 8e7-85507063; checkcode $? 14
+
+# bug found by Jim Fougeron
+echo 3533000986701102061387017352606588294716061 | $ECM -param 0 -sigma 291310394389387 191 225; checkcode $? 14
+
+echo 121279606270805899614487548491773862357 | $ECM -param 0 -sigma 1931630101 120; checkcode $? 14
+
+echo 291310394389387 | $ECM -param 0 -power 3 -sigma 40 2000; checkcode $? 8
+
+echo 3533000986701102061387017352606588294716061 | $ECM -param 0 -sigma 3547 167 211; checkcode $? 14
+
+# test -go option
+echo 449590253344339769860648131841615148645295989319968106906219761704350259884936939123964073775456979170209297434164627098624602597663490109944575251386017 | $ECM -param 0 -sigma 63844855 -go 172969 61843 20658299; checkcode $? 14
+
+echo 17061648125571273329563156588435816942778260706938821014533 | $ECM -param 0 -sigma 585928442 174000; checkcode $? 14
+
+# test -save/-resume
+/bin/rm -f test.ecm.save
+echo 17061648125571273329563156588435816942778260706938821014533 | $ECM -save test.ecm.save -param 0 -sigma 585928442 174000 0
+$ECM -resume test.ecm.save 174000 85880350
+C=$?
+checkcode $C 14
+
+# test savea
+cp ${GMPECM_DATADIR}/test_dummy2.save test.ecm.save
+echo 17061648125571273329563156588435816942778260706938821014533 | $ECM -savea test.ecm.save -param 0 -sigma 585928442 174000 0
+$ECM -resume test.ecm.save 174000 85880350
+C=$?
+checkcode $C 14
+
+# test unknown method
+echo "METHOD=FOO" > test.ecm.save
+$ECM -resume test.ecm.save 174000 85880350
+C=$?
+checkcode $C 0
+
+# test invalid checksum
+echo "CHECKSUM=xxx" > test.ecm.save
+$ECM -resume test.ecm.save 174000 85880350
+C=$?
+checkcode $C 0
+
+# test comment
+echo "METHOD=P-1;X=1;N=17;B1=2;COMMENT=this is a comment;" > test.ecm.save
+$ECM -resume test.ecm.save 174000 85880350
+C=$?
+checkcode $C 8
+
+# test invalid param
+echo "PARAM=xxx" > test.ecm.save
+$ECM -resume test.ecm.save 174000 85880350
+C=$?
+checkcode $C 0
+
+# test invalid etype
+echo "ETYPE=xxx" > test.ecm.save
+$ECM -resume test.ecm.save 174000 85880350
+C=$?
+checkcode $C 0
+
+# test invalid B1
+echo "B1=xxx" > test.ecm.save
+$ECM -resume test.ecm.save 174000 85880350
+C=$?
+checkcode $C 0
+
+# test unknown tag
+echo "FOO=xxx" > test.ecm.save
+$ECM -resume test.ecm.save 174000 85880350
+C=$?
+checkcode $C 0
+
+# test semicolon after tags
+echo "METHOD=P-1;X=1;N=17;B1=2" > test.ecm.save
+$ECM -resume test.ecm.save 174000 85880350
+C=$?
+checkcode $C 0
+
+# test QX tag without sigma
+echo "METHOD=ECM;QX=1;N=17;B1=2;" > test.ecm.save
+$ECM -resume test.ecm.save 174000 85880350
+C=$?
+checkcode $C 0
+
+# test missing fields
+echo "METHOD=ECM;QX=1;N=17;" > test.ecm.save
+$ECM -resume test.ecm.save 174000 85880350
+C=$?
+checkcode $C 0
+
+/bin/rm -f test.ecm.save
+echo 17061648125571273329563156588435816942778260706938821014533 | $ECM -save test.ecm.save -A 22/7 -x0 1/3 -y0 2/7 1e3
+$ECM -resume test.ecm.save 1e3
+C=$?
+/bin/rm -f test.ecm.save
+checkcode $C 0
+
+$ECM -resume ${GMPECM_DATADIR}/test_dummy.save 1e3; checkcode $? 0
+
+# test a Prime95 save file, includes lines to be skipped by GMP-ECM
+$ECM -resume ${GMPECM_DATADIR}/test_prime95.save 1 2e6; checkcode $? 6
+
+echo 89101594496537524661600025466303491594098940711325290746374420963129505171895306244425914080753573576861992127359576789001 | $ECM -param 0 -sigma 877655087 -go 325001 157721 1032299; checkcode $? 14
+
+echo 5394204444759808120647321820789847518754252780933425517607611172590240019087317088600360602042567541009369753816111824690753627535877960715703346991252857 | $ECM -param 0 -sigma 805816989 -go 345551 149827; checkcode $? 6
+
+echo 3923385745693995079670229419275984584311007321932374190635656246740175165573932140787529348954892963218868359081838772941945556717 | $ECM -param 0 -sigma 876329474 141667 150814537; checkcode $? 14
+
+echo 124539923134619429718018353168641490719788526741873602224103589351798060075728544650990190016536810151633233676972068237330360238752628542584228856301923448951 | $ECM -param 0 -sigma 1604840403 -go "1260317*1179109*661883" 96097 24289207; checkcode $? 14
+
+# p49 found by Sean Irvine
+echo 4983070578699621345648758795946786489699447158923341167929707152021191319057138908604417894224244096909460401007237133698775496719078793168004317119431646035122982915288481052088094940158965731422616671 | $ECM -param 0 -sigma 909010734 122861 176711; checkcode $? 6
+
+# bug in ecm-5.0 (overflow in fin_diff_coeff)
+echo 1408323592065265621229603282020508687 | $ECM -param 0 -sigma 1549542516 -go 2169539 531571 29973883000-29973884000; checkcode $? 8
+
+# bug in ecm 5.0 and 5.0.1 (factor found for c110 input, not with p58)
+echo 3213162276640339413566047915418064969550383692549981333701 | $ECM -param 0 -sigma 2735675386 -go 1615843 408997 33631583; checkcode $? 8
+
+echo 39614081257132168796771975177 | $ECM -param 0 -sigma 480 1e6; checkcode $? 8
+
+echo 10000286586958753753 | $ECM -param 0 -sigma 3956738175 1e6; checkcode $? 8
+
+echo 49672383630046506169472128421 | $ECM -param 0 -sigma 2687434659 166669 86778487; checkcode $? 8
+
+echo 216259730493575791390589173296092767511 | $ECM -param 0 -sigma 214659179 1124423 20477641; checkcode $? 8
+
+# bug reported by Allan Steel on 14 March 2006
+echo 49367108402201032092269771894422156977426293789852367266303146912244441959559870316184237 | $ECM -param 0 -sigma 6 5000; checkcode $? 0
+
+# A test with a larger input number to test modular arithmetic routines not
+# in mulredc*.asm. This input has 1363 bits so it has 22 64 bit words 
+# (43 32 bit words) and cannot use mulredc which handles only up to 20 limbs
+
+echo "10090030271*10^400+696212088699" | $ECM -param 0 -sigma 3923937547 1e3 1e6; checkcode $? 14
+
+echo 31622776601683791911 | $ECM -sigma 0:249908706013996416 11000; checkcode $? 0
+
+# those tests with params=1, 2 or 3 don't work with -redc
+if [ "$MUL" != "redc" -a "$MUL" != "mpzmod" ]; then
+
+# Note: on 32-bit machines, param 1 (ECM_PARAM_BATCH_SQUARE) does not work
+$ECM -printconfig | grep "GMP_NUMB_BITS = 64"
+if [ $? -eq 0 ]; then
+
+echo 31622776601683791911 | $ECM -sigma 1:3277346684 11000; checkcode $? 0
+
+echo 31622776601683791911 | $ECM -param 1 -A 27063318473587686303 11000
+checkcode $? 0
+
+# non-regression test for bug fixed by changeset r1819 on 64-bit
+# (this also produces a small d' on 32-bit, thus can be used with param=1)
+echo 18446744073709551557 | $ECM -param 1 -A 312656731337392125 11000
+checkcode $? 8
+
+# test -bsaves/-bloads
+echo 18446744073709551557 | $ECM -param 1 -A 1 -bsaves test.ecm.s 11000
+echo 18446744073709551557 | $ECM -param 1 -A 312656731337392125 -bloads test.ecm.s 11000; checkcode $? 8
+# The following test (with -v and -bloads) would crash on Windows prior to svn 2968.
+echo 18446744073709551557 | $ECM -param 1 -A 312656731337392125 -bloads test.ecm.s -v 11000; checkcode $? 8
+/bin/rm -f test.ecm.s
+
+# non-regression test for bug fixed by changeset r1819 on 32-bit
+echo 4294967291 | $ECM -param 1 -A 17 1000
+checkcode $? 8
+
+fi
+
+echo 31622776601683791911 | $ECM -sigma 2:5539417145734457396 11000; checkcode $? 0
+echo 31622776601683791911 | $ECM -sigma 3:3462003578 11000; checkcode $? 0
+
+# same with param=2, works only with ECM_MOD_MODMULN
+echo 458903930815802071188998938170281707063809443792768383215233 | $ECM -sigma 2:142 10000
+checkcode $? 14
+
+# test for param=2
+echo "2^349-1" | $ECM -sigma 2:9 587 29383
+checkcode $? 6
+
+# another param=2 test
+echo "2^347-1" | $ECM -param 2 -A 292897222300654795048417351458499833714895857628156011078988080472621879897670335421898676171177982 3301 229939
+checkcode $? 14
+
+# To test param mode 2
+echo 911962091 | $ECM -sigma 2:14 50000
+checkcode $? 8
+
+echo 911962091 | $ECM -sigma 2:3 1297 1831
+checkcode $? 8
+
+echo 291310394389387 | $ECM -sigma 2:291310392832797 2 1e3
+checkcode $? 8
+
+echo 4294967279 | $ECM -sigma 2:268435456 2
+checkcode $? 8
+
+# To test param=3
+echo 458903930815802071188998938170281707063809443792768383215233 | $ECM -sigma 3:42 10000
+checkcode $? 14
+
+# test for param=3
+echo "2^349-1" | $ECM -sigma 3:13 587 29383
+checkcode $? 6
+
+# another param=3 test
+echo "2^347-1" | $ECM -sigma 3:1097 3301 229939
+checkcode $? 14
+
+fi
+
+# tests to exercise the Phi code in eval.c
+echo "Phi(101,30)" | $ECM -sigma 0:12023436370081639188 1e5
+checkcode $? 14
+
+echo "1+Phi(102,1)" | $ECM -sigma 0:12023436370081639188 1e5
+checkcode $? 8
+
+echo "Phi(101,1)" | $ECM -sigma 0:12023436370081639188 1e5
+checkcode $? 8
+
+echo "17+Phi(1,2)" | $ECM -sigma 0:17 1e3
+checkcode $? 6
+
+# on systems with 64-bit limbs, exercise mulredc9
+echo "2^567-181" | $ECM -sigma 0:2521899833399249862 11000; checkcode $? 14
+# on systems with 64-bit limbs, exercise mulredc10
+echo "2^600-93" | $ECM -sigma 0:8302474899089961032 11000; checkcode $? 6
+# on systems with 64-bit limbs, exercise mulredc11
+echo "2^654-53" | $ECM -sigma 0:15038331775204443632 11000; checkcode $? 6
+# on systems with 64-bit limbs, exercise mulredc12
+echo "2^753-511" | $ECM -sigma 0:282111327134773146 11000; checkcode $? 6
+# on systems with 64-bit limbs, exercise mulredc13
+echo "2^789-91" | $ECM -sigma 0:5564144145207154979 11000; checkcode $? 6
+# on systems with 64-bit limbs, exercise mulredc14
+echo "2^850-251" | $ECM -sigma 0:1755119194409032967 11000; checkcode $? 6
+# on systems with 64-bit limbs, exercise mulredc15
+echo "2^931-19" | $ECM -sigma 0:17749056889950488599 11000; checkcode $? 6
+# on systems with 64-bit limbs, exercise mulredc16
+echo "2^987-105" | $ECM -sigma 0:9642611678409500628 11000; checkcode $? 6
+# on systems with 64-bit limbs, exercise mulredc17
+echo "2^1025-13" | $ECM -sigma 0:15565298209539150294 11000; checkcode $? 6
+# on systems with 64-bit limbs, exercise mulredc18
+echo "2^1123-1" | $ECM -sigma 0:13488386679529262989 11000; checkcode $? 6
+# on systems with 64-bit limbs, exercise mulredc19
+echo "2^1200-765" | $ECM -sigma 0:15594604713796776382 11000; checkcode $? 6
+# on systems with 64-bit limbs, exercise mulredc20
+echo "2^1234-77" | $ECM -sigma 0:15792336214697966869 11000; checkcode $? 6
+# exercise -one option
+echo "2^1123-1" | $ECM -c 2 -one -sigma 0:13488386679529262989 11000; checkcode $? 6
+
+# bug reported on March 10, 2015; fixed with svn 2658
+echo "2^753-511" | $ECM -c 2 -sigma 0:38270210 11000; checkcode $? 6
+
+##### Set of tests to exercise various error and warning messages
+
+# exercise "Warning, for multiple -go options" warning message
+echo "2^1123-1" | $ECM -sigma 0:13488386679529262989 -go 5 -go 7 11000; checkcode $? 6
+
+# exercise "Warning: -sigma, -param, -A and -x0 parameters are ignored when resuming from save files." warning message
+$ECM -x0 1 -resume ${GMPECM_DATADIR}/M877.save 11000; checkcode $? 0
+
+# exercise print cofactor when using -q option
+echo "2^1123-1" | $ECM -sigma 0:13488386679529262989 -q 11000; checkcode $? 6
+
+# exercise the "show first and last 10 digits of a number" option
+# also exercises "input number longer than 2000 characters, extend input array" code
+$ECM -inp ${GMPECM_DATADIR}/test_Z2102.n -sigma 0:4702936202311981741 2000; checkcode $? 6
+
+# exercise -nobase2 option
+echo "2^1123-1" | $ECM -nobase2 -sigma 0:13488386679529262989 11000; checkcode $? 6
+
+# exercise -nobase2s2 option
+echo "2^1123-1" | $ECM -nobase2s2 -sigma 0:13488386679529262989 11000; checkcode $? 6
+
+# this example would fail with the old Fgw.c when using gwnum (fixed by David Cleaver, r1734)
+echo "((173^173+1)/174)/471462511391940575680645418941" | $ECM -param 0 -sigma 12345 20000
+checkcode $? 0
+
+# this test was failing on gcc45.fsffrance.org with 6.4.1
+echo "((173^173+1)/174)/471462511391940575680645418941+122" | $ECM -param 0 -sigma 77 20000
+checkcode $? 6
+
+echo 2050449353925555290706354283 | $ECM -param 0 -sigma 7 -go 2411 3; checkcode $? 0
+
+# exercise d > I0_THRESHOLD in mpzspm_product_tree_init with n odd
+echo "2^3900-77" | $ECM -ntt -param 0 -sigma 1167435750 600; checkcode $? 6
+
+# exercise memory leak
+echo 2050449353925555290706354283 | $ECM -param 0 -sigma 7 30 308
+
+##### tests for the Weierstrass form
+##### (disabled in revision 2765 since not tested enough)
+if [ 0 -eq 1 ]; then
+
+# factored with Step 1
+echo 2432902008176640001 | $ECM -param 5 -A 1 -x0 20 -y0 10 100000; checkcode $? 14
+# unfactored
+echo 2432902008176640001 | $ECM -param 5 -A 1 -x0 20/3 -y0 10 10000 20000; checkcode $? 0
+# factored with default Step 2
+echo 2432902008176640001 | $ECM -param 5 -A 1 -x0 20/3 -y0 10 100000; checkcode $? 14
+# fails
+echo 2432902008176640001 | $ECM -param 5 -A 1 -x0 20 -y0 10 100; checkcode $? 0
+# succeeds
+echo 2432902008176640001 | $ECM -param 5 -A 1 -x0 20 -y0 10 -go 6449 100; checkcode $? 14
+# we can use A = 0
+echo 2432902008176640001 | $ECM -param 5 -A 0 -x0 20 -y0 10 10000; checkcode $? 14
+# or x0 = 0
+echo 2432902008176640001 | $ECM -param 5 -A 1 -x0 0 -y0 10 100000; checkcode $? 14
+# or y0 = 0, though it is a bit non-sensic (since [2](x0, y0) = OE)
+echo 2432902008176640001 | $ECM -param 5 -A 1 -x0 20 -y0 0 100000; checkcode $? 8
+# or x0 = y0 = 0, though it is a bit non-sensic (since [2](x0, y0) = OE)
+echo 2432902008176640001 | $ECM -param 5 -A 1 -x0 0 -y0 0 100000; checkcode $? 8
+# for A rational
+echo 2432902008176640001 | $ECM -param 5 -A 1/2 -x0 20 -y0 10 10000; checkcode $? 14
+# what if we find a factor during initialization
+echo 2432902008176640001 | $ECM -param 5 -A 1/20639383 -x0 20 -y0 10 10000; checkcode $? 14
+echo 2432902008176640001 | $ECM -param 5 -A 1 -x0 20/20639383 -y0 10 10000; checkcode $? 14
+echo 2432902008176640001 | $ECM -param 5 -A 1/2 -x0 20 -y0 10/20639383 10000; checkcode $? 14
+# Hessian form: X^3+Y^3+Z^3=3*D*X*Y*Z (torsion group Z3xZ3 over Q(sqrt(-3)))
+# found in Step 1
+echo 2432902008176640001 | $ECM -param 6 -A 2 -x0 2 -y0 3 9000; checkcode $? 14
+# found in Step 2
+echo 2432902008176640001 | $ECM -param 6 -A 2 -x0 2 -y0 3 100 9000; checkcode $? 14
+# no factor found
+echo 2432902008176640001 | $ECM -param 6 -A 2 -x0 2 -y0 3 1000 2000; checkcode $? 0
+
+fi # tests for Weierstrass form
+
+##### tests for curves with specific torsion
+##### (disabled in revision 2764 since not tested enough)
+if [ 0 -eq 1 ]; then
+
+echo 4722366482800925736961 | $ECM -torsion Z5 -sigma 2 1e5; checkcode $? 14
+## a factor is to be found during initialization
+echo 12787261 | $ECM -torsion Z5 -sigma 1000 1e2; checkcode $? 14
+## a factor is to be found during initialization in cubic_to_quartic
+echo 123041 | $ECM -torsion Z7 -sigma 2 1e2; checkcode $? 14
+## found factor during update of Q in Z7
+echo 376171002633197 | $ECM -torsion Z7 -sigma 5 1e2; checkcode $? 14
+## a factor is found
+echo 13290059 | $ECM -torsion Z7 -sigma 4 1e2; checkcode $? 14
+## in step 2
+echo 2432902008176640001 | $ECM -torsion Z7 -sigma 1 1e3 1e8; checkcode $? 14
+## -save/-resume
+echo 2432902008176640001 | $ECM -torsion Z7 -save test.ecm.save -sigma 1 1e3
+$ECM -resume test.ecm.save 1e3 1e8
+C=$?
+/bin/rm -f test.ecm.save
+checkcode $C 14
+## found factor during update of Q in Z9
+echo 874700000026241 | $ECM -torsion Z9 -sigma 7 1e2; checkcode $? 14
+## found factor in Step 1
+echo 2432902008176640001 | $ECM -torsion Z9 -sigma 3 13000; checkcode $? 14
+echo 2432902008176640001 | $ECM -torsion Z10 -sigma 3 320; checkcode $? 14
+echo 2432902008176640001 | $ECM -torsion Z2xZ8 -sigma 2 1300; checkcode $? 14
+
+fi # tests with -torsion
+
+# the following tests should work on machines which have uint64_t or where
+# unsigned long long has 64 bits (exercises patch from David Cleaver, r1575)
+$ECM -printconfig | grep "GMP_NUMB_BITS = 64"
+if [ $? -eq 0 ]; then
+
+echo 10000000000000000000000000000000000000121 | $ECM -param 0 -sigma 61 -go 1195504287780095287 2950307;  checkcode $? 8
+
+echo 10000000000000000000000000000000000000121 | $ECM -param 0 -sigma 266 -go 218187387944803649 9405629;  checkcode $? 8
+
+echo 10000000000000000000000000000000000000121 | $ECM -param 0 -sigma 291 -go 5994496018878137 4372759;  checkcode $? 8
+
+# from http://www.mersenneforum.org/showthread.php?t=19206
+echo 240374937214123387734825980441485328571760198890188986168556177043725516179623977715973254104349268626550386607672381746223853794447671062771318068793196116019917029782728411 | $ECM -param 0 -sigma 2945335458 5e4; checkcode $? 14
+
+echo 65537 | $ECM -sigma 17 1 0; checkcode $? 0
+
+# exercise factor found during inverse in multiplyW2n()
+echo 500000000000000000195 | $ECM -param 0 -sigma 7 1 100000; checkcode $? 14
+
+# exercise factor found reducing A=p/q
+echo 65537 | $ECM -param 0 -A 1/65537 -v 1; checkcode $? 8
+echo 4295229443 | $ECM -param 0 -A 1/65537 1; checkcode $? 14
+echo 4429846549 | $ECM -param 0 -A 1/67591 1; checkcode $? 10
+
+# exercise input dividing 2^n+/-1 where base-2 arithmetic exceeds threshold
+echo 67280421310721 | $ECM -param 0 1e3
+
+if [ "$MUL" = "modmuln" ]; then
+# exercise batch mode: since param=1, does not work on 32-bit machines
+echo 33852066257429811148979390609187539760850944806763555795340084882048986912482949506591909041130651770779842162499482875755533111808276172876211496409325473343590723224081353129229935527059488811457730702694849036693756201766866018562295004353153066430367 | $ECM -v -sigma 1:17 1e6; checkcode $? 0
+fi
+
+fi # GMP_NUMB_BITS = 64
+
+# exercise -h
+$ECM -h
+
+$ECM -printconfig | grep Tuning
+
+echo "All ECM tests are ok."
