@@ -641,9 +641,9 @@ ecm_stage1 (mpz_t f, mpres_t x, mpres_t A, mpmod_t n, double B1,
             (x, y) is initial point
             A is curve parameter in Weierstrass's form:
             Y^2 = X^3 + A*X + B, where B = y^2-(x^3+A*x) is implicit
-	  when Etype == ECM_EC_TYPE_HESSIAN:
+	  when Etype == ECM_EC_TYPE_TWISTED_HESSIAN:
 	    (x, y) is initial point
-	    A is curve parameter in Hessian form: X^3+Y^3+Z^3=3*A*X*Y*Z
+	    A=a/d is curve parameter in Hessian form: a*X^3+Y^3+Z^3=d*X*Y*Z
           n is the number to factor
 	  B1 is the stage 1 bound
 	  batch_s = prod(p^e <= B1) if != 1
@@ -663,7 +663,7 @@ ecm_stage1_W (mpz_t f, ell_curve_t E, ell_point_t P, mpmod_t n,
     mpres_t xB;
     ell_point_t Q;
     uint64_t p = 0, r, last_chkpnt_p;
-    int ret = ECM_NO_FACTOR_FOUND;
+    int ret = ECM_NO_FACTOR_FOUND, status;
     long last_chkpnt_time;
     prime_info_t prime_info;
 
@@ -713,11 +713,23 @@ ecm_stage1_W (mpz_t f, ell_curve_t E, ell_point_t P, mpmod_t n,
 	
 	last_chkpnt_p = 3;
 	for (p = getprime_mt (prime_info); p <= B1; p = getprime_mt (prime_info)){
-	    mpz_set_ui(f, (ecm_uint)p);
 	    for (r = p; r <= B1; r *= p){
 		if (r > *B1done){
-		    if(ell_point_mul (Q, f, P, E, n) == 0){
-			mpz_set(f, Q->x);
+		    mpz_set_ui(f, (ecm_uint)p);
+		    status = ell_point_mul (Q, f, P, E, n);
+		    if(status == 0)
+			mpres_get_z(f, Q->x, n);
+		    else if(E->law == ECM_LAW_HOMOGENEOUS){
+			if(E->type == ECM_EC_TYPE_TWISTED_HESSIAN)
+			    mpres_gcd(f, Q->x, n);
+			else
+			    mpres_gcd(f, Q->z, n);
+			//			gmp_printf("gcd=%Zd\n", f);
+			if(mpz_cmp(f, n->orig_modulus) < 0 
+			   && mpz_cmp_ui(f, 1) > 0)
+			    status = 0;
+		    }
+		    if(status == 0){
 			ret = ECM_FACTOR_FOUND_STEP1;
 			goto end_of_stage1_w;
 		    }
@@ -781,7 +793,9 @@ ecm_stage1_W (mpz_t f, ell_curve_t E, ell_point_t P, mpmod_t n,
     if (chkfilename != NULL)
 	writechkfile (chkfilename, ECM_ECM, *B1done, n, E->a4, P->x, P->y,P->z);
     prime_info_clear (prime_info);
-
+#if DEBUG_EC_W >= 2
+    printf("lastP="); ell_point_print(P, E, n); printf("\n");
+#endif
     if(ret != ECM_FACTOR_FOUND_STEP1){
 	if(ell_point_is_zero(P, E, n) == 1){
 	    /* too bad */
@@ -997,6 +1011,8 @@ print_B1_B2_poly (int verbosity, int method, double B1, double B1done,
 		  outputf (verbosity, ", Weierstrass(A=%Zd,y=%Zd)", sigma, y);
 		else if (Etype == ECM_EC_TYPE_HESSIAN)
 		  outputf (verbosity, ", Hessian(D=%Zd,y=%Zd)", sigma, y);
+		else if (Etype == ECM_EC_TYPE_TWISTED_HESSIAN)
+		    outputf (verbosity, ", twisted Hessian(y=%Zd)", y);
 	    }
         }
       else if (ECM_IS_DEFAULT_B1_DONE(B1done))
@@ -1480,7 +1496,9 @@ ecm (mpz_t f, mpz_t x, mpz_t y, int *param, mpz_t sigma, mpz_t n, mpz_t go,
   
   mpres_get_z (x, P.x, modulus);
 #ifdef HAVE_ADDLAWS
-  if (E->type == ECM_EC_TYPE_WEIERSTRASS || E->type == ECM_EC_TYPE_HESSIAN)
+  if (E->type == ECM_EC_TYPE_WEIERSTRASS 
+      || E->type == ECM_EC_TYPE_HESSIAN 
+      || E->type == ECM_EC_TYPE_TWISTED_HESSIAN)
     mpres_get_z (y, P.y, modulus);  
 #endif
 
@@ -1550,6 +1568,26 @@ ecm (mpz_t f, mpz_t x, mpz_t y, int *param, mpz_t sigma, mpz_t n, mpz_t go,
       if(youpi == ECM_NO_FACTOR_FOUND)
         /* due to that non-trivial kernel(?) */
         youpi = mult_by_3(f, P.x, P.y, P.A, modulus);
+    }
+  else if (E->type == ECM_EC_TYPE_TWISTED_HESSIAN)
+    {
+	mpz_t c, rm;
+	mpz_init(c);
+	mpz_init(rm);
+	mpres_get_z(rm, E->a4, modulus);
+	mpz_rootrem(c, rm, rm, 3);
+	if(mpz_sgn(rm) != 0){
+	    printf("ECM_EC_TYPE_TWISTED_HESSIAN: not a cube!\n");
+	    exit(-1);
+	}
+	mpres_set_z(P.A, c, modulus);
+	mpz_clear(c);
+	mpz_clear(rm);
+	youpi = twisted_hessian_to_weierstrass (f, P.x, P.y, P.A, E->a6, modulus);
+	if(youpi == ECM_NO_FACTOR_FOUND){
+	    /* due to that non-trivial kernel(?) */
+	    youpi = mult_by_3(f, P.x, P.y, P.A, modulus);
+	}
     }
 #endif
   
