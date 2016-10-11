@@ -1,4 +1,266 @@
 ------------------------------------------------------------------------
+r2990 | brian_gladman | 2016-09-29 13:13:04 +0200 (Thu, 29 Sep 2016) | 1 line
+Changed paths:
+   M /trunk/build.vc14/ecm_gpu/ecm_gpu.vcxproj
+   M /trunk/build.vc14/libecm_gpu/libecm_gpu.vcxproj
+   M /trunk/build.vc14/readme.txt
+
+Update default CUDA compute capabilities and the readme.txt file 
+------------------------------------------------------------------------
+r2989 | brian_gladman | 2016-09-29 12:52:25 +0200 (Thu, 29 Sep 2016) | 1 line
+Changed paths:
+   M /trunk/build.vc12/tests.py
+   A /trunk/build.vc14
+   A /trunk/build.vc14/Makefile.am
+   A /trunk/build.vc14/assembler
+   A /trunk/build.vc14/assembler/Makefile.am
+   A /trunk/build.vc14/assembler/a_win32a_redc.asm
+   A /trunk/build.vc14/assembler/a_win32p_mulredc.asm
+   A /trunk/build.vc14/assembler/a_win32p_redc.asm
+   A /trunk/build.vc14/assembler/a_x64_mulredc.asm
+   A /trunk/build.vc14/assembler/a_x64_redc.asm
+   A /trunk/build.vc14/assembler/mulredc.asm
+   A /trunk/build.vc14/assembler/mulredc.h
+   A /trunk/build.vc14/assembler/redc.asm
+   A /trunk/build.vc14/assembler/test_mulredc.c
+   A /trunk/build.vc14/bench_mulredc
+   A /trunk/build.vc14/bench_mulredc/Makefile.am
+   A /trunk/build.vc14/bench_mulredc/bench_mulredc.vcxproj
+   A /trunk/build.vc14/bench_mulredc/bench_mulredc.vcxproj.filters
+   A /trunk/build.vc14/config.h
+   A /trunk/build.vc14/ecm
+   A /trunk/build.vc14/ecm/Makefile.am
+   A /trunk/build.vc14/ecm/ecm.vcxproj
+   A /trunk/build.vc14/ecm/ecm.vcxproj.filters
+   A /trunk/build.vc14/ecm.sln
+   A /trunk/build.vc14/ecm_gpu
+   A /trunk/build.vc14/ecm_gpu/Makefile.am
+   A /trunk/build.vc14/ecm_gpu/ecm.vcxproj.filters
+   A /trunk/build.vc14/ecm_gpu/ecm_gpu.vcxproj
+   A /trunk/build.vc14/ecm_gpu/ecm_gpu.vcxproj.filters
+   A /trunk/build.vc14/ecm_gpu.sln
+   A /trunk/build.vc14/file_copy.bat
+   A /trunk/build.vc14/gen_ecm_h.bat
+   A /trunk/build.vc14/getopt.c
+   A /trunk/build.vc14/getopt.h
+   A /trunk/build.vc14/getrusage.c
+   A /trunk/build.vc14/getrusage.h
+   A /trunk/build.vc14/gettimeofday.c
+   A /trunk/build.vc14/gettimeofday.h
+   A /trunk/build.vc14/libecm
+   A /trunk/build.vc14/libecm/Makefile.am
+   A /trunk/build.vc14/libecm/libecm.vcxproj
+   A /trunk/build.vc14/libecm/libecm.vcxproj.filters
+   A /trunk/build.vc14/libecm_gpu
+   A /trunk/build.vc14/libecm_gpu/Makefile.am
+   A /trunk/build.vc14/libecm_gpu/libecm_gpu.vcxproj
+   A /trunk/build.vc14/libecm_gpu/libecm_gpu.vcxproj.filters
+   A /trunk/build.vc14/mp_lib.props
+   A /trunk/build.vc14/multiecm
+   A /trunk/build.vc14/multiecm/Makefile.am
+   A /trunk/build.vc14/multiecm/multiecm.vcxproj
+   A /trunk/build.vc14/multiecm/multiecm.vcxproj.filters
+   A /trunk/build.vc14/out_copy_rename.bat
+   A /trunk/build.vc14/prebuild.bat
+   A /trunk/build.vc14/python.bat
+   A /trunk/build.vc14/readme.txt
+   A /trunk/build.vc14/tests.py
+   A /trunk/build.vc14/tune
+   A /trunk/build.vc14/tune/Makefile.am
+   A /trunk/build.vc14/tune/tune.vcxproj
+   A /trunk/build.vc14/tune/tune.vcxproj.filters
+   A /trunk/build.vc14/vacopy.c
+   A /trunk/build.vc14/vsyasm.props
+   A /trunk/build.vc14/vsyasm.targets
+   A /trunk/build.vc14/vsyasm.xml
+
+Add build files for Visual Studio 2015
+------------------------------------------------------------------------
+r2988 | zimmerma | 2016-09-06 09:41:17 +0200 (Tue, 06 Sep 2016) | 2 lines
+Changed paths:
+   M /trunk/mpmod.c
+
+[mpmod.c] define mpres_equal when HAVE_ADDLAWS=1
+
+------------------------------------------------------------------------
+r2987 | zimmerma | 2016-08-30 15:46:13 +0200 (Tue, 30 Aug 2016) | 2 lines
+Changed paths:
+   M /trunk/ecm-gmp.h
+
+[ecm-gmp.h] fixed typo
+
+------------------------------------------------------------------------
+r2986 | zimmerma | 2016-08-29 08:28:41 +0200 (Mon, 29 Aug 2016) | 2 lines
+Changed paths:
+   M /trunk/test.pm1
+   M /trunk/test.pp1
+
+added more test cases
+
+------------------------------------------------------------------------
+r2985 | zimmerma | 2016-08-26 15:17:56 +0200 (Fri, 26 Aug 2016) | 2 lines
+Changed paths:
+   M /trunk/NEWS
+
+[NEWS] updated
+
+------------------------------------------------------------------------
+r2984 | zimmerma | 2016-08-26 15:03:39 +0200 (Fri, 26 Aug 2016) | 3 lines
+Changed paths:
+   M /trunk/mpmod.c
+   M /trunk/pm1fs2.c
+   M /trunk/test.pm1
+   M /trunk/test.pp1
+
+fixed Segmentation fault with -pm1 and -pp1 (presumably only happens
+with small parameters)
+
+------------------------------------------------------------------------
+r2983 | zimmerma | 2016-08-26 13:15:40 +0200 (Fri, 26 Aug 2016) | 2 lines
+Changed paths:
+   M /trunk/test.pm1
+
+[test.pm1] added more test cases
+
+------------------------------------------------------------------------
+r2982 | zimmerma | 2016-08-26 09:18:26 +0200 (Fri, 26 Aug 2016) | 2 lines
+Changed paths:
+   M /trunk/configure.ac
+
+patch from François Bissey to address issue on Mac OS X
+
+------------------------------------------------------------------------
+r2981 | zimmerma | 2016-08-25 15:44:58 +0200 (Thu, 25 Aug 2016) | 2 lines
+Changed paths:
+   M /trunk/x86_64/mulredc.m4
+   M /trunk/x86_64/mulredc1.asm
+   M /trunk/x86_64/mulredc1.m4
+
+removed (non-portable) WANT_ASSERT stuff in assembly files
+
+------------------------------------------------------------------------
+r2980 | zimmerma | 2016-08-25 13:58:10 +0200 (Thu, 25 Aug 2016) | 2 lines
+Changed paths:
+   M /trunk/NEWS
+
+updated NEWS
+
+------------------------------------------------------------------------
+r2979 | zimmerma | 2016-08-25 13:56:54 +0200 (Thu, 25 Aug 2016) | 3 lines
+Changed paths:
+   M /trunk/mpmod.c
+
+[mpmod.c] fixed mpres_pow() for negative EXP
+(https://gforge.inria.fr/tracker/?func=detail&atid=623&aid=20712&group_id=135)
+
+------------------------------------------------------------------------
+r2978 | zimmerma | 2016-08-23 14:30:23 +0200 (Tue, 23 Aug 2016) | 2 lines
+Changed paths:
+   M /trunk/Makefile.am
+   M /trunk/acinclude.m4
+   M /trunk/configure.ac
+
+added configure test to check whether ld accepts -znoexecstack
+
+------------------------------------------------------------------------
+r2977 | zimmerma | 2016-08-23 11:22:28 +0200 (Tue, 23 Aug 2016) | 2 lines
+Changed paths:
+   M /trunk/README.gpu
+
+[README.gpu] changed Cyril's email (preferred one)
+
+------------------------------------------------------------------------
+r2976 | zimmerma | 2016-08-23 08:51:49 +0200 (Tue, 23 Aug 2016) | 7 lines
+Changed paths:
+   M /trunk/configure.ac
+
+[configure.ac] applied patch from Erik Bray to set the WINDOWS64 flag under
+Cygwin.
+
+cf https://gforge.inria.fr/tracker/?func=detail&atid=623&aid=20697&group_id=135
+and https://trac.sagemath.org/ticket/21223
+	       
+
+------------------------------------------------------------------------
+r2975 | zimmerma | 2016-08-22 13:45:25 +0200 (Mon, 22 Aug 2016) | 2 lines
+Changed paths:
+   M /trunk/Makefile.am
+
+fixed make longcheck with out-of-source build
+
+------------------------------------------------------------------------
+r2974 | zimmerma | 2016-08-22 13:32:04 +0200 (Mon, 22 Aug 2016) | 2 lines
+Changed paths:
+   M /trunk/x86_64/mulredc.m4
+
+[x86_64/mulredc.m4] Opteron -> x86_64
+
+------------------------------------------------------------------------
+r2971 | zimmerma | 2016-08-22 13:11:21 +0200 (Mon, 22 Aug 2016) | 2 lines
+Changed paths:
+   M /trunk/ks-multiply.c
+
+[ks-multiply.c] fix when FFT_WRAP is not defined
+
+------------------------------------------------------------------------
+r2970 | zimmerma | 2016-08-22 09:49:08 +0200 (Mon, 22 Aug 2016) | 2 lines
+Changed paths:
+   M /trunk/README.gpu
+
+[README.gpu] updated Cyril's email
+
+------------------------------------------------------------------------
+r2969 | zimmerma | 2016-08-22 09:23:55 +0200 (Mon, 22 Aug 2016) | 3 lines
+Changed paths:
+   M /trunk/README.gpu
+
+[README.gpu] added hint about Cuda error "too many resources requested for launch"
+(see https://lists.gforge.inria.fr/pipermail/ecm-discuss/2016-July/004368.html)
+
+------------------------------------------------------------------------
+r2968 | dcleaver | 2016-07-31 20:12:55 +0200 (Sun, 31 Jul 2016) | 1 line
+Changed paths:
+   M /trunk/addlaws.c
+   M /trunk/listz_handle.c
+   M /trunk/main.c
+   M /trunk/test.ecm
+   M /trunk/tune.c
+
+Fix zu printf problems on Windows by replacing zu with PRIu64.  This also fixed a crash that could occur on Windows when using both -v and -bloads.  Include test to check for that.
+------------------------------------------------------------------------
+r2967 | zimmerma | 2016-07-25 16:12:17 +0200 (Mon, 25 Jul 2016) | 3 lines
+Changed paths:
+   M /trunk/test.gpuecm
+
+increased initial sigma so that test works with ECM_GPU_CURVES_BY_BLOCK=16
+(see https://lists.gforge.inria.fr/pipermail/ecm-discuss/2016-July/004368.html)
+
+------------------------------------------------------------------------
+r2966 | dcleaver | 2016-07-24 16:06:00 +0200 (Sun, 24 Jul 2016) | 1 line
+Changed paths:
+   M /trunk/cudawrapper.c
+   M /trunk/ecm.c
+
+Correct two verbose print problems on Windows.  1 remove extra 0 in expected curves output 2 fix zu format modifier in computing batch product output.
+------------------------------------------------------------------------
+r2965 | zimmerma | 2016-07-04 10:15:30 +0200 (Mon, 04 Jul 2016) | 2 lines
+Changed paths:
+   M /trunk/build.vc12/gen_ecm_h.bat
+   M /trunk/configure.ac
+
+increased version number
+
+------------------------------------------------------------------------
+r2964 | zimmerma | 2016-07-04 10:13:28 +0200 (Mon, 04 Jul 2016) | 2 lines
+Changed paths:
+   M /trunk/ChangeLog
+   M /trunk/README.dev
+   M /trunk/build.vc12/gen_ecm_h.bat
+   M /trunk/configure.ac
+
+this is release 7.0.3
+
+------------------------------------------------------------------------
 r2963 | zimmerma | 2016-06-29 15:55:37 +0200 (Wed, 29 Jun 2016) | 2 lines
 Changed paths:
    M /trunk/NEWS
