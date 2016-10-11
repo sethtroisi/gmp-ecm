@@ -32,7 +32,7 @@ http://www.gnu.org/licenses/ or write to the Free Software Foundation, Inc.,
 extern "C" {
 #endif
 
-#define EC_W_NBUFS 9 /* for Hessian form */
+#define EC_W_NBUFS 10 /* for twisted Hessian form */
 
 /* More ec forms */
 #define ECM_EC_TYPE_MONTGOMERY           1
