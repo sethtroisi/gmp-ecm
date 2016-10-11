@@ -102,7 +102,8 @@ To make a new release:
 
      Version 6.2 is r1290, 6.2.1 is r1307, 6.3 is r1501, 6.4 is r1672,
      6.4.1 is r1844, 6.4.2 is r1882, 6.4.3 is r2100, 6.4.4 is r2439,
-     7.0 is r2900, 7.0.1 is r2932, 7.0.2 is r2961, 7.0.3 is r2963.
+     7.0 is r2900, 7.0.1 is r2932, 7.0.2 is r2961, 7.0.3 is r2963,
+     7.0.4 is r2991.
 
  10) increase the version number in configure.ac and build.vc*/gen_ecm_h.bat,
      and switch assertions to on by default in configure.ac.
