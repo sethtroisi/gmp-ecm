@@ -683,8 +683,7 @@ ecm_stage1_W (mpz_t f, ell_curve_t E, ell_point_t P, mpmod_t n,
 #endif
     /* preload group order */
     if (go != NULL){
-	if (ell_point_mul (Q, go, P, E, n) == 0){
-	    mpz_set (f, Q->x);
+	if (ell_point_mul (f, Q, go, P, E, n) == 0){
 	    ret = ECM_FACTOR_FOUND_STEP1;
 	    goto end_of_stage1_w;
         }
@@ -698,8 +697,7 @@ ecm_stage1_W (mpz_t f, ell_curve_t E, ell_point_t P, mpmod_t n,
         outputf (OUTPUT_VERBOSE, "Using traditional approach to Step 1\n");
 	for (r = 2; r <= B1; r *= 2)
 	    if (r > *B1done){
-		if(ell_point_duplicate (Q, P, E, n) == 0){
-		    mpz_set(f, Q->x);
+		if(ell_point_duplicate (f, Q, P, E, n) == 0){
 		    ret = ECM_FACTOR_FOUND_STEP1;
 		    goto end_of_stage1_w;
 		}
@@ -716,9 +714,10 @@ ecm_stage1_W (mpz_t f, ell_curve_t E, ell_point_t P, mpmod_t n,
 	    for (r = p; r <= B1; r *= p){
 		if (r > *B1done){
 		    mpz_set_ui(f, (ecm_uint)p);
-		    status = ell_point_mul (Q, f, P, E, n);
-		    if(status == 0)
-			mpres_get_z(f, Q->x, n);
+		    status = ell_point_mul (f, Q, f, P, E, n);
+		    if(status == 0){
+			printf("GATO\n");
+		    }
 		    else if(E->law == ECM_LAW_HOMOGENEOUS){
 			if(E->type == ECM_EC_TYPE_TWISTED_HESSIAN)
 			    mpres_gcd(f, Q->x, n);
@@ -773,8 +772,7 @@ ecm_stage1_W (mpz_t f, ell_curve_t E, ell_point_t P, mpmod_t n,
 	short *S = NULL;
 	int w, iS;
 	add_sub_unpack(&w, &S, &iS, batch_s);
-	if (ell_point_mul_add_sub_with_S(Q, P, E, n, w, S, iS) == 0){
-	    mpz_set (f, Q->x);
+	if (ell_point_mul_add_sub_with_S(f, Q, P, E, n, w, S, iS) == 0){
 	    ret = ECM_FACTOR_FOUND_STEP1;
         }
 #endif

@@ -124,7 +124,7 @@ pt_many_print(ell_curve_t *tE, ell_point_t *tP, int nE, mpmod_t n)
    and the corresponding values of takeit put to 2.
 */
 int
-compute_all_inverses(mpres_t *inv, mpres_t *x, int nx, mpmod_t n, char *takeit)
+compute_all_inverses(mpz_t f, mpres_t *inv, mpres_t *x, int nx, mpmod_t n, char *takeit)
 {
     int i;
 
@@ -134,7 +134,7 @@ compute_all_inverses(mpres_t *inv, mpres_t *x, int nx, mpmod_t n, char *takeit)
 	if(takeit[i] != 1)
 	    continue;
 	if(!mpres_invert(inv[i], x[i], n)){
-	    mpres_gcd(inv[0], x[i], n);
+	    mpres_gcd(inv[0], x[i], n); // FIXME!!
 #if DEBUG_ADD_LAWS >= 1
 	    printf("Factor[%d]: ", i);
             mpz_out_str (stdout, 10, inv[0]);
@@ -161,19 +161,19 @@ compute_all_inverses(mpres_t *inv, mpres_t *x, int nx, mpmod_t n, char *takeit)
     }
     /* invert */
     if(!mpres_invert(x[nx], inv[nx-1], n)){
-	mpres_gcd(inv[0], inv[nx-1], n);
+	mpres_gcd(f, inv[nx-1], n);
 #if DEBUG_ADD_LAWS >= 1
 	printf("Factor[%d]: ", i);
-	mpz_out_str (stdout, 10, inv[0]);
+	mpz_out_str (stdout, 10, f);
 	printf ("\n");
 #endif
 	/* identifying the x[i]'s */
 	for(i = 0; i < nx; i++){
-	    mpres_gcd(x[nx], x[i], n);
-	    if(mpz_cmp_ui(x[nx], 1) != 0){
+	    mpres_gcd(f, x[i], n);
+	    if(mpz_cmp_ui(f, 1) != 0){
 #if DEBUG_ADD_LAWS >= 0
 		printf("# x[%d] not invertible: ", i);
-		mpz_out_str (stdout, 10, x[nx]);
+		mpz_out_str (stdout, 10, f);
 		printf ("\n");
 #endif
 		/* ONE DAY: if x[nx] != inv[0], we have another factor! */
@@ -210,13 +210,13 @@ compute_all_inverses(mpres_t *inv, mpres_t *x, int nx, mpmod_t n, char *takeit)
    In case a factor is found, it is put in num[nE].
  */
 int
-pt_many_common(ell_point_t *tR, ell_point_t *tP, ell_point_t *tQ, int nE, 
-	       mpmod_t n, 
-	       mpres_t *num, mpres_t *den, mpres_t *inv, char *takeit)
+pt_many_common(mpz_t f, ell_point_t *tR, ell_point_t *tP, ell_point_t *tQ, 
+	       int nE, mpmod_t n, mpres_t *num, mpres_t *den, mpres_t *inv,
+	       char *takeit)
 {
     int i;
 
-    if(compute_all_inverses(inv, den, nE, n, takeit) == 0){
+    if(compute_all_inverses(f, inv, den, nE, n, takeit) == 0){
 	mpz_set(num[nE], inv[0]);
 	return 0;
     }
@@ -240,8 +240,8 @@ pt_many_common(ell_point_t *tR, ell_point_t *tP, ell_point_t *tQ, int nE,
 
 /*   In case a factor is found, it is put in num[nE]. */
 int
-pt_many_duplicate(ell_point_t *tQ, ell_point_t *tP, ell_curve_t *tE, int nE, 
-		  mpmod_t n, 
+pt_many_duplicate(mpz_t f, ell_point_t *tQ, ell_point_t *tP, ell_curve_t *tE,
+		  int nE, mpmod_t n, 
 		  mpres_t *num, mpres_t *den, mpres_t *inv, char *ok)
 {
     char *takeit = (char *)malloc(nE * sizeof(char));
@@ -268,7 +268,7 @@ pt_many_duplicate(ell_point_t *tQ, ell_point_t *tP, ell_curve_t *tE, int nE,
 	    mpres_mul_ui(den[i], tP[i]->y, 2, n);
 	}
     }
-    res = pt_many_common(tQ, tP, tP, nE, n, num, den, inv, takeit);
+    res = pt_many_common(f, tQ, tP, tP, nE, n, num, den, inv, takeit);
     /* TODO: case takeit[i] == 2 */
     free(takeit);
     return res;
@@ -276,7 +276,7 @@ pt_many_duplicate(ell_point_t *tQ, ell_point_t *tP, ell_curve_t *tE, int nE,
 
 /* R[i] <- P[i] + Q[i], or a factor is found which is put in num[nE]. */
 int
-pt_many_add(ell_point_t *tR, ell_point_t *tP, ell_point_t *tQ, ell_curve_t *tE, 
+pt_many_add(mpz_t f, ell_point_t *tR, ell_point_t *tP, ell_point_t *tQ, ell_curve_t *tE, 
 	    int nE, mpmod_t n, 
 	    mpres_t *num, mpres_t *den, mpres_t *inv, char *ok)
 {
@@ -336,7 +336,7 @@ pt_many_add(ell_point_t *tR, ell_point_t *tP, ell_point_t *tQ, ell_curve_t *tE,
 	    mpres_sub(den[i], tQ[i]->x, tP[i]->x, n);
 	}
     }
-    res = pt_many_common(tR, tP, tQ, nE, n, num, den, inv, takeit);
+    res = pt_many_common(f, tR, tP, tQ, nE, n, num, den, inv, takeit);
     /* TODO: case takeit[i] == 2 */
     free(takeit);
     return res;
@@ -344,7 +344,7 @@ pt_many_add(ell_point_t *tR, ell_point_t *tP, ell_point_t *tQ, ell_curve_t *tE,
 
 /* tER != tEP */
 static int
-pt_many_sub(ell_point_t *tR, ell_point_t *tQ, ell_point_t *tP, ell_curve_t *tE,
+pt_many_sub(mpz_t f, ell_point_t *tR, ell_point_t *tQ, ell_point_t *tP, ell_curve_t *tE,
 	    int nE, mpmod_t n, 
 	    mpres_t *num, mpres_t *den, mpres_t *inv, char *ok)
 {
@@ -353,7 +353,7 @@ pt_many_sub(ell_point_t *tR, ell_point_t *tQ, ell_point_t *tP, ell_curve_t *tE,
     for(i = 0; i < nE; i++)
 	if(ok[i] == 1)
 	    pt_neg(tP[i], n);
-    res = pt_many_add(tR, tQ, tP, tE, nE, n, num, den, inv, ok);
+    res = pt_many_add(f, tR, tQ, tP, tE, nE, n, num, den, inv, ok);
     for(i = 0; i < nE; i++)
 	if(ok[i] == 1)
 	    pt_neg(tP[i], n);
@@ -362,7 +362,7 @@ pt_many_sub(ell_point_t *tR, ell_point_t *tQ, ell_point_t *tP, ell_curve_t *tE,
 
 /* Ordinary binary left-right addition */
 static int
-pt_many_mul_plain(ell_point_t *tQ, ell_point_t *tP, ell_curve_t *tE,
+pt_many_mul_plain(mpz_t f, ell_point_t *tQ, ell_point_t *tP, ell_curve_t *tE,
 		  int nE, mpz_t e, mpmod_t n, 
 		  mpres_t *num, mpres_t *den, mpres_t *inv, char *ok)
 {
@@ -372,7 +372,7 @@ pt_many_mul_plain(ell_point_t *tQ, ell_point_t *tP, ell_curve_t *tE,
   pt_many_assign(tQ, tP, nE, n);
   while (l-- > 0)
     {
-	if(pt_many_duplicate (tQ, tQ, tE, nE, n, num, den, inv, ok) == 0)
+	if(pt_many_duplicate (f, tQ, tQ, tE, nE, n, num, den, inv, ok) == 0)
 	  {
 	    status = 0;
 	    break;
@@ -382,7 +382,7 @@ pt_many_mul_plain(ell_point_t *tQ, ell_point_t *tP, ell_curve_t *tE,
 #endif
 	if (mpz_tstbit (e, l))
 	  {
-	      if(pt_many_add (tQ, tP, tQ, tE, nE, n, num, den, inv, ok) == 0)
+	      if(pt_many_add (f, tQ, tP, tQ, tE, nE, n, num, den, inv, ok) == 0)
 	      {
 		status = 0;
 		break;
@@ -398,7 +398,7 @@ pt_many_mul_plain(ell_point_t *tQ, ell_point_t *tP, ell_curve_t *tE,
 /* Ordinary binary left-right addition; see Solinas00. Morally, we use
  w = 2. */
 static int
-pt_many_mul_add_sub_si(ell_point_t *tQ, ell_point_t *tP, ell_curve_t *tE, int nE,
+pt_many_mul_add_sub_si(mpz_t f, ell_point_t *tQ, ell_point_t *tP, ell_curve_t *tE, int nE,
 		       long c, mpmod_t n, 
 		       mpres_t *num, mpres_t *den, mpres_t *inv, char *ok)
 {
@@ -422,7 +422,7 @@ pt_many_mul_add_sub_si(ell_point_t *tQ, ell_point_t *tP, ell_curve_t *tE, int nE
     /* use it */
     pt_many_set_to_zero(tQ, nE, n);
     for(j = iS-1; j >= 0; j--){
-	if(pt_many_duplicate(tQ, tQ, tE, nE, n, num, den, inv, ok) == 0){
+	if(pt_many_duplicate(f, tQ, tQ, tE, nE, n, num, den, inv, ok) == 0){
 	    status = 0;
 	    break;
 	}
@@ -430,7 +430,7 @@ pt_many_mul_add_sub_si(ell_point_t *tQ, ell_point_t *tP, ell_curve_t *tE, int nE
 	printf("Rdup:="); pt_many_print(tE, tQ, nE, n); printf(";\n");
 #endif
 	if(S[j] == 1){
-	    if(pt_many_add(tQ, tQ, tP, tE, nE, n, num, den, inv, ok) == 0){
+	    if(pt_many_add(f, tQ, tQ, tP, tE, nE, n, num, den, inv, ok) == 0){
 		status = 0;
 		break;
 	    }
@@ -439,7 +439,7 @@ pt_many_mul_add_sub_si(ell_point_t *tQ, ell_point_t *tP, ell_curve_t *tE, int nE
 #endif
 	}
 	else if(S[j] == -1){
-	    if(pt_many_sub(tQ, tQ, tP, tE, nE, n, num, den, inv, ok) == 0){
+	    if(pt_many_sub(f, tQ, tQ, tP, tE, nE, n, num, den, inv, ok) == 0){
 		status = 0;
 		break;
 	    }
@@ -454,7 +454,7 @@ pt_many_mul_add_sub_si(ell_point_t *tQ, ell_point_t *tP, ell_curve_t *tE, int nE
 /* tEQ[i] <- e * tEP[i]; we must have tEQ != tEP */
 /* If a factor is found, it is put back in num[nE]. */
 int
-pt_many_mul(ell_point_t *tQ, ell_point_t *tP, ell_curve_t *tE, int nE,
+pt_many_mul(mpz_t f, ell_point_t *tQ, ell_point_t *tP, ell_curve_t *tE, int nE,
 	    mpz_t e, mpmod_t n, 
 	    mpres_t *num, mpres_t *den, mpres_t *inv, char *ok)
 {
@@ -480,10 +480,10 @@ pt_many_mul(ell_point_t *tQ, ell_point_t *tP, ell_curve_t *tE, int nE,
 
   l = mpz_sizeinbase (e, 2) - 1; /* l >= 1 */
   if(l < 32)
-      status = pt_many_mul_add_sub_si(tQ, tP, tE, nE, mpz_get_si(e), n,
+      status = pt_many_mul_add_sub_si(f, tQ, tP, tE, nE, mpz_get_si(e), n,
 				      num, den, inv, ok);
   else
-      status = pt_many_mul_plain(tQ, tP, tE, nE, e, n, num, den, inv, ok);
+      status = pt_many_mul_plain(f, tQ, tP, tE, nE, e, n, num, den, inv, ok);
 
 
 pt_many_mul_end:
@@ -546,13 +546,13 @@ pt_w_print(mpres_t x, mpres_t y, mpres_t z, ell_curve_t E, mpmod_t n)
    y3 = lambda*(x1-x3)-y1-a1*x3-a3
  */
 static int
-pt_w_common_aff(mpres_t x0, mpres_t y0, mpres_t z0,
+pt_w_common_aff(mpz_t f, mpres_t x0, mpres_t y0, mpres_t z0,
 		mpres_t x1, mpres_t y1,
 		mpres_t x2, mpres_t a1, mpres_t a3, mpres_t a2,
 		mpmod_t n, mpres_t num, mpres_t den, mpres_t lambda)
 {
     if(mpres_invert(lambda, den, n) == 0){
-	mpres_gcd(x0, den, n);
+	mpres_gcd(f, den, n);
 	return 0;
     }
     /** lambda = num/den **/
@@ -579,7 +579,7 @@ pt_w_common_aff(mpres_t x0, mpres_t y0, mpres_t z0,
 
 /* [x3, y3, z3] <- [2] * [x1, y1, z1] */
 int
-pt_w_duplicate(mpres_t x3, mpres_t y3, mpres_t z3,
+pt_w_duplicate(mpz_t f, mpres_t x3, mpres_t y3, mpres_t z3,
 	       mpres_t x1, mpres_t y1, mpres_t z1,
 	       mpmod_t n, ell_curve_t E)
 {
@@ -608,7 +608,8 @@ pt_w_duplicate(mpres_t x3, mpres_t y3, mpres_t z3,
 	mpres_add(E->buf[0], E->buf[0], E->a4, n);
 	mpres_mul(E->buf[2], E->a1, y1, n);
 	mpres_sub(E->buf[0], E->buf[0], E->buf[2], n);
-	return pt_w_common_aff(x3, y3, z3, x1, y1, x1, E->a1, E->a3, E->a2, n, 
+	return pt_w_common_aff(f, x3, y3, z3, x1, y1, x1, 
+			       E->a1, E->a3, E->a2, n, 
 			       E->buf[0], E->buf[1], E->buf[2]);
     }
     else if(E->type == ECM_EC_TYPE_WEIERSTRASS 
@@ -668,7 +669,7 @@ pt_w_duplicate(mpres_t x3, mpres_t y3, mpres_t z3,
 
 /* [x3, y3, z3] <- [x1, y1, z1] + [x2, y2, z2]; P3 can be either P1 or P2. */
 int
-pt_w_add(mpres_t x3, mpres_t y3, mpres_t z3,
+pt_w_add(mpz_t f, mpres_t x3, mpres_t y3, mpres_t z3,
 	 mpres_t x1, mpres_t y1, mpres_t z1,
 	 mpres_t x2, mpres_t y2, mpres_t z2,
 	 mpmod_t n, ell_curve_t E)
@@ -683,11 +684,12 @@ pt_w_add(mpres_t x3, mpres_t y3, mpres_t z3,
     }
     if(E->type == ECM_EC_TYPE_WEIERSTRASS && E->law == ECM_LAW_AFFINE)
 	if(mpres_equal(x1, x2, n) && mpres_equal(y1, y2, n))
-	    return pt_w_duplicate(x3, y3, z3, x1, y1, z1, n, E);
+	    return pt_w_duplicate(f, x3, y3, z3, x1, y1, z1, n, E);
 	else{
 	    mpres_sub(E->buf[0], y1, y2, n);
 	    mpres_sub(E->buf[1], x1, x2, n);
-	    return pt_w_common_aff(x3, y3, z3, x1, y1, x2, E->a1, E->a3, E->a2,
+	    return pt_w_common_aff(f, x3, y3, z3, x1, y1, x2, 
+				   E->a1, E->a3, E->a2,
 				   n, E->buf[0], E->buf[1], E->buf[2]);
 	}
     else if(E->type == ECM_EC_TYPE_WEIERSTRASS 
@@ -716,7 +718,7 @@ pt_w_add(mpres_t x3, mpres_t y3, mpres_t z3,
 	if(mpz_sgn(E->buf[2]) == 0 && mpz_sgn(E->buf[3]) == 0){
 	    /* u = 0 <=> Y2*Z1 = Y1*Z2 <=> Y2/Z2 = Y1/Z1*/
 	    /* v = 0 <=> X2*Z1 = X1*Z2 <=> X2/Z2 = X1/Z1*/
-	    return pt_w_duplicate(x3, y3, z3, x1, y1, z1, n, E);
+	    return pt_w_duplicate(f, x3, y3, z3, x1, y1, z1, n, E);
 	}
 	/*	Z3:=Z1*Z2 mod p;	# M*/
 	mpres_mul(z3, z1, z2, n);
@@ -758,7 +760,7 @@ pt_w_add(mpres_t x3, mpres_t y3, mpres_t z3,
                             ~ (x2, -y2-a1*x2-a3*z2, z2).
 */
 int
-pt_w_sub(mpres_t x3, mpres_t y3, mpres_t z3,
+pt_w_sub(mpz_t f, mpres_t x3, mpres_t y3, mpres_t z3,
 	 mpres_t x1, mpres_t y1, mpres_t z1,
 	 mpres_t x2, mpres_t y2, mpres_t z2,
 	 mpmod_t n, ell_curve_t E)
@@ -768,7 +770,7 @@ pt_w_sub(mpres_t x3, mpres_t y3, mpres_t z3,
     if(E->law == ECM_LAW_HOMOGENEOUS){
 	/* FIXME: does not work for complete equation! */
 	mpres_neg(y2, y2, n);
-	res = pt_w_add(x3, y3, z3, x1, y1, z1, x2, y2, z2, n, E);
+	res = pt_w_add(f, x3, y3, z3, x1, y1, z1, x2, y2, z2, n, E);
 	mpres_neg(y2, y2, n);
     }
     else if(E->law == ECM_LAW_AFFINE){
@@ -777,7 +779,7 @@ pt_w_sub(mpres_t x3, mpres_t y3, mpres_t z3,
 	mpres_add(E->buf[3], E->buf[3], E->a3, n);
 	mpres_add(E->buf[3], E->buf[3], y2, n);
 	mpres_neg(E->buf[3], E->buf[3], n);
-	res = pt_w_add(x3, y3, z3, x1, y1, z1, x2, E->buf[3], z2, n, E);
+	res = pt_w_add(f, x3, y3, z3, x1, y1, z1, x2, E->buf[3], z2, n, E);
     }
     return res;
 }
@@ -1336,9 +1338,7 @@ mult_by_3(mpz_t f, mpres_t x, mpres_t y, mpres_t A, mpmod_t n)
     mpres_set_ui(P->z, 1, n);
     ell_point_init(Q, E, n);
     mpz_init_set_ui(e, 3);
-    if(ell_point_mul(Q, e, P, E, n) == 0)
-	mpz_set(f, Q->x);
-    else{
+    if(ell_point_mul(f, Q, e, P, E, n) != 0){
 	mpres_set(x, Q->x, n);
 	mpres_set(y, Q->y, n);
     }
@@ -1909,11 +1909,11 @@ ell_point_equal(ell_point_t P, ell_point_t Q, ell_curve_t E, mpmod_t n)
 }
 
 int
-ell_point_add(ell_point_t R, ell_point_t P, ell_point_t Q, ell_curve_t E, mpmod_t n)
+ell_point_add(mpz_t f, ell_point_t R, ell_point_t P, ell_point_t Q, ell_curve_t E, mpmod_t n)
 {
     if(E->type == ECM_EC_TYPE_WEIERSTRASS)
-	return pt_w_add(R->x, R->y, R->z, P->x, P->y, P->z, Q->x, Q->y, Q->z,
-			n, E);
+	return pt_w_add(f, R->x, R->y, R->z, P->x, P->y, P->z, 
+			Q->x, Q->y, Q->z, n, E);
     else if(E->type == ECM_EC_TYPE_HESSIAN)
 	return hessian_add(R, P, Q, E, n);
     else if(E->type == ECM_EC_TYPE_TWISTED_HESSIAN)
@@ -1924,11 +1924,11 @@ ell_point_add(ell_point_t R, ell_point_t P, ell_point_t Q, ell_curve_t E, mpmod_
 
 /* R <- P-Q */
 int
-ell_point_sub(ell_point_t R, ell_point_t P, ell_point_t Q, ell_curve_t E, mpmod_t n)
+ell_point_sub(mpz_t f, ell_point_t R, ell_point_t P, ell_point_t Q, ell_curve_t E, mpmod_t n)
 {
     if(E->type == ECM_EC_TYPE_WEIERSTRASS)
-	return pt_w_sub(R->x, R->y, R->z, P->x, P->y, P->z, Q->x, Q->y, Q->z,
-			n, E);
+	return pt_w_sub(f, R->x, R->y, R->z, P->x, P->y, P->z,
+			Q->x, Q->y, Q->z, n, E);
     else if(E->type == ECM_EC_TYPE_HESSIAN)
 	return hessian_sub(R, P, Q, E, n);
     else if(E->type == ECM_EC_TYPE_TWISTED_HESSIAN)
@@ -1938,14 +1938,14 @@ ell_point_sub(ell_point_t R, ell_point_t P, ell_point_t Q, ell_curve_t E, mpmod_
 }
 
 int
-ell_point_duplicate(ell_point_t R, ell_point_t P, ell_curve_t E, mpmod_t n)
+ell_point_duplicate(mpz_t f, ell_point_t R, ell_point_t P, ell_curve_t E, mpmod_t n)
 {
 #if DEBUG_ADD_LAWS >= 2
     printf("E:=");
     ell_curve_print(E, n);
 #endif
     if(E->type == ECM_EC_TYPE_WEIERSTRASS)
-	return pt_w_duplicate(R->x, R->y, R->z, P->x, P->y, P->z, n, E);
+	return pt_w_duplicate(f, R->x, R->y, R->z, P->x, P->y, P->z, n, E);
     else if(E->type == ECM_EC_TYPE_HESSIAN)
 	return hessian_duplicate(R, P, E, n);
     else if(E->type == ECM_EC_TYPE_TWISTED_HESSIAN)
@@ -1986,7 +1986,7 @@ ell_point_negate(ell_point_t P, ell_curve_t E, mpmod_t n)
                  1 otherwise.
 */
 int
-ell_point_mul_plain (ell_point_t Q, mpz_t e, ell_point_t P, ell_curve_t E, mpmod_t n)
+ell_point_mul_plain (mpz_t f, ell_point_t Q, mpz_t e, ell_point_t P, ell_curve_t E, mpmod_t n)
 {
   size_t l;
   int negated = 0, status = 1;
@@ -2029,7 +2029,7 @@ ell_point_mul_plain (ell_point_t Q, mpz_t e, ell_point_t P, ell_curve_t E, mpmod
 #if DEBUG_ADD_LAWS >= 2
 	printf("P0:="); ell_point_print(P0, E, n); printf(";\n");
 #endif
-	if(ell_point_duplicate (P0, P0, E, n) == 0)
+	if(ell_point_duplicate (f, P0, P0, E, n) == 0)
 	  {
 	    status = 0;
 	    break;
@@ -2040,7 +2040,7 @@ ell_point_mul_plain (ell_point_t Q, mpz_t e, ell_point_t P, ell_curve_t E, mpmod
 #endif
 	if (mpz_tstbit (e, l))
 	  {
-	      if(ell_point_add (P0, P0, P, E, n) == 0)
+	      if(ell_point_add (f, P0, P0, P, E, n) == 0)
 	      {
 		status = 0;
 		break;
@@ -2130,8 +2130,8 @@ void add_sub_unpack(int *w, short **S, int *iS, mpz_t s)
    with -2^(w-1)+1 <= 2*di+1 < 2^{w-1}.
 */
 int
-ell_point_mul_add_sub_with_S(ell_point_t Q, ell_point_t P, ell_curve_t E,
-			    mpmod_t n, int w, short *S, int iS)
+ell_point_mul_add_sub_with_S(mpz_t f, ell_point_t Q, ell_point_t P, 
+			     ell_curve_t E, mpmod_t n, int w, short *S, int iS)
 {
     ell_point_t P0;
     ell_point_t iP[EC_ADD_SUB_2_WMAX];
@@ -2161,7 +2161,7 @@ ell_point_mul_add_sub_with_S(ell_point_t Q, ell_point_t P, ell_curve_t E,
 #endif
     if(k > 0){
 	/* P[k] <- [2]*P */
-	if(ell_point_duplicate(iP[k], P, E, n) == 0){
+	if(ell_point_duplicate(f, iP[k], P, E, n) == 0){
 	    mpres_set(P0->x, iP[k]->x, n);
             status = 0;
 	    goto ell_point_mul_add_sub_end;
@@ -2170,8 +2170,7 @@ ell_point_mul_add_sub_with_S(ell_point_t Q, ell_point_t P, ell_curve_t E,
 	ell_point_check(iP[k], E, n);
 #endif
 	for(i = 1; i <= k; i++){
-	    if(ell_point_add(iP[i], iP[i-1], iP[k], E, n) == 0){
-		mpres_set(P0->x, iP[i]->x, n);
+	    if(ell_point_add(f, iP[i], iP[i-1], iP[k], E, n) == 0){
                 status = 0;
 		goto ell_point_mul_add_sub_end;
 	    }
@@ -2196,7 +2195,7 @@ ell_point_mul_add_sub_with_S(ell_point_t Q, ell_point_t P, ell_curve_t E,
 	i = abs(S[j+1]) >> 1; /* (abs(S[j+1])-1)/2, S[j+1] is always odd */
 	assert(i <= k);
 	if(S[j+1] > 0){
-	    if(ell_point_add(P0, P0, iP[i], E, n) == 0){
+	    if(ell_point_add(f, P0, P0, iP[i], E, n) == 0){
 		status = 0;
 		break;
 	    }
@@ -2210,7 +2209,7 @@ ell_point_mul_add_sub_with_S(ell_point_t Q, ell_point_t P, ell_curve_t E,
 	}
 	else{
 	    /* add(-P) = sub(P) */
-	    if(ell_point_sub(P0, P0, iP[i], E, n) == 0){
+	    if(ell_point_sub(f, P0, P0, iP[i], E, n) == 0){
 		status = 0;
 		break;
 	    }
@@ -2228,7 +2227,7 @@ ell_point_mul_add_sub_with_S(ell_point_t Q, ell_point_t P, ell_curve_t E,
 #endif
 	/* now multiply */
 	for(i = 0; i < S[j]; i++){
-	    if(ell_point_duplicate(P0, P0, E, n) == 0){
+	    if(ell_point_duplicate(f, P0, P0, E, n) == 0){
 		status = 0;
 		break;
 	    }
@@ -2284,7 +2283,7 @@ ell_point_mul_add_sub_with_S(ell_point_t Q, ell_point_t P, ell_curve_t E,
    See Solinas 2000 for the most plug-and-play presentation.		 
 */
 int
-ell_point_mul_add_sub(ell_point_t Q, mpz_t e, ell_point_t P,
+ell_point_mul_add_sub(mpz_t f, ell_point_t Q, mpz_t e, ell_point_t P,
 		      ell_curve_t E, mpmod_t n)
 {
     size_t iS = 0, Slen, w;
@@ -2334,7 +2333,7 @@ ell_point_mul_add_sub(ell_point_t Q, mpz_t e, ell_point_t P,
     printf("\n");
     printf("P:="); ell_point_print(P, E, n); printf(";\n");
 #endif
-    status = ell_point_mul_add_sub_with_S(Q, P, E, n, w, S, iS);
+    status = ell_point_mul_add_sub_with_S(f, Q, P, E, n, w, S, iS);
     free(S);
 #if DEBUG_ADD_LAWS >= 2
     if(status == 0){
@@ -2355,7 +2354,7 @@ ell_point_mul_add_sub(ell_point_t Q, mpz_t e, ell_point_t P,
 	    mpz_gcd(f, PP->z, n->orig_modulus);
 	    if(mpz_cmp_ui(f, 1) != 0){
 		gmp_printf("non trivial gcd from plain: %Zd\n", f);
-		mpz_gcd(f, Q->z, n->orig_modulus);
+		mpz_gcd(f, Q->z, n->orig_modulus); // FIXME: why?
 		gmp_printf("gcd from addsub: %Zd\n", f);
 	    }
 	    else{
@@ -2383,12 +2382,12 @@ ell_point_mul_add_sub(ell_point_t Q, mpz_t e, ell_point_t P,
 }
 
 int
-ell_point_mul(ell_point_t Q, mpz_t e, ell_point_t P, ell_curve_t E, mpmod_t n)
+ell_point_mul(mpz_t f, ell_point_t Q, mpz_t e, ell_point_t P, ell_curve_t E, mpmod_t n)
 {
 #if 1 /* keeping it simple */
-    return ell_point_mul_plain(Q, e, P, E, n);
+    return ell_point_mul_plain(f, Q, e, P, E, n);
 #else
-    return ell_point_mul_add_sub(Q, e, P, E, n);
+    return ell_point_mul_add_sub(f, Q, e, P, E, n);
 #endif
 }
 

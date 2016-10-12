@@ -14,10 +14,8 @@ void pt_many_neg(ell_point_t *tP, int nE, mpmod_t n);
 void pt_many_assign(ell_point_t *tQ, ell_point_t *tP, int nE, mpmod_t n);
 void pt_many_print(ell_curve_t *tE, ell_point_t *tP, int nE, mpmod_t n);
 void print_mpz_from_mpres(mpres_t x, mpmod_t n);
-int pt_many_duplicate(ell_point_t *tQ, ell_point_t *tP, ell_curve_t *tE, int nE, mpmod_t n, mpres_t *num, mpres_t *den, mpres_t *inv, char *ok);
-int pt_many_mul(ell_point_t *tQ, ell_point_t *tP, ell_curve_t *tE, int nE,
-	    mpz_t e, mpmod_t n, 
-	    mpres_t *num, mpres_t *den, mpres_t *inv, char *ok);
+int pt_many_duplicate(mpz_t f, ell_point_t *tQ, ell_point_t *tP, ell_curve_t *tE, int nE, mpmod_t n, mpres_t *num, mpres_t *den, mpres_t *inv, char *ok);
+int pt_many_mul(mpz_t f, ell_point_t *tQ, ell_point_t *tP, ell_curve_t *tE, int nE, mpz_t e, mpmod_t n, mpres_t *num, mpres_t *den, mpres_t *inv, char *ok);
 
 int hessian_to_weierstrass(mpz_t f, mpres_t x, mpres_t y, mpres_t D, mpmod_t n);
 int
@@ -41,16 +39,15 @@ void ell_curve_print(ell_curve_t E, mpmod_t n);
 int ell_point_is_on_curve(ell_point_t P, ell_curve_t E, mpmod_t n);
 int ell_point_is_zero(ell_point_t P, ell_curve_t E, mpmod_t n);
 void ell_point_set_to_zero(ell_point_t P, ell_curve_t E, mpmod_t n);
-int ell_point_add(ell_point_t R, ell_point_t P, ell_point_t Q, ell_curve_t E, mpmod_t n);
-int ell_point_sub(ell_point_t R, ell_point_t P, ell_point_t Q, ell_curve_t E, mpmod_t n);
-int ell_point_duplicate(ell_point_t R, ell_point_t P, ell_curve_t E, mpmod_t n);
+int ell_point_add(mpz_t f, ell_point_t R, ell_point_t P, ell_point_t Q, ell_curve_t E, mpmod_t n);
+int ell_point_sub(mpz_t f, ell_point_t R, ell_point_t P, ell_point_t Q, ell_curve_t E, mpmod_t n);
+int ell_point_duplicate(mpz_t f, ell_point_t R, ell_point_t P, ell_curve_t E, mpmod_t n);
 void ell_point_negate(ell_point_t P, ell_curve_t E, mpmod_t n);
-int ell_point_mul_plain (ell_point_t Q, mpz_t e, ell_point_t P, ell_curve_t E, mpmod_t n);
+int ell_point_mul_plain (mpz_t f, ell_point_t Q, mpz_t e, ell_point_t P, ell_curve_t E, mpmod_t n);
 int get_add_sub_w(mpz_t e);
 void add_sub_pack(mpz_t s, int w, short *S, int iS);
 void add_sub_unpack(int *w, short **S, int *iS, mpz_t s);
-int ell_point_mul_add_sub_with_S(ell_point_t Q, ell_point_t P, ell_curve_t E,
-				mpmod_t n, int w, short *S, int iS);
-int ell_point_mul_add_sub (ell_point_t Q, mpz_t e, ell_point_t P,
+int ell_point_mul_add_sub_with_S(mpz_t f, ell_point_t Q, ell_point_t P, ell_curve_t E,mpmod_t n, int w, short *S, int iS);
+int ell_point_mul_add_sub (mpz_t f, ell_point_t Q, mpz_t e, ell_point_t P,
 			  ell_curve_t E, mpmod_t n);
-int ell_point_mul(ell_point_t Q, mpz_t e, ell_point_t P, ell_curve_t E, mpmod_t n);
+int ell_point_mul(mpz_t f, ell_point_t Q, mpz_t e, ell_point_t P, ell_curve_t E, mpmod_t n);
