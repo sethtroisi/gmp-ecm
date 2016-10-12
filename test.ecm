@@ -574,9 +574,9 @@ echo "2^3900-77" | $ECM -ntt -param 0 -sigma 1167435750 600; checkcode $? 6
 # exercise memory leak
 echo 2050449353925555290706354283 | $ECM -param 0 -sigma 7 30 308
 
-##### tests for the Weierstrass form
+##### tests for Weiestrass forms
 ##### (disabled in revision 2765 since not tested enough)
-if [ 0 -eq 1 ]; then
+if [ 1 -eq 1 ]; then
 
 # factored with Step 1
 echo 2432902008176640001 | $ECM -param 5 -A 1 -x0 20 -y0 10 100000; checkcode $? 14
@@ -602,6 +602,10 @@ echo 2432902008176640001 | $ECM -param 5 -A 1/2 -x0 20 -y0 10 10000; checkcode $
 echo 2432902008176640001 | $ECM -param 5 -A 1/20639383 -x0 20 -y0 10 10000; checkcode $? 14
 echo 2432902008176640001 | $ECM -param 5 -A 1 -x0 20/20639383 -y0 10 10000; checkcode $? 14
 echo 2432902008176640001 | $ECM -param 5 -A 1/2 -x0 20 -y0 10/20639383 10000; checkcode $? 14
+fi # tests for Weierstrass form
+
+if [ 0 -eq 1 ]; then
+
 # Hessian form: X^3+Y^3+Z^3=3*D*X*Y*Z (torsion group Z3xZ3 over Q(sqrt(-3)))
 # found in Step 1
 echo 2432902008176640001 | $ECM -param 6 -A 2 -x0 2 -y0 3 9000; checkcode $? 14
@@ -610,7 +614,7 @@ echo 2432902008176640001 | $ECM -param 6 -A 2 -x0 2 -y0 3 100 9000; checkcode $?
 # no factor found
 echo 2432902008176640001 | $ECM -param 6 -A 2 -x0 2 -y0 3 1000 2000; checkcode $? 0
 
-fi # tests for Weierstrass form
+fi # tests for Hessian form
 
 ##### tests for curves with specific torsion
 ##### (disabled in revision 2764 since not tested enough)
