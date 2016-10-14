@@ -716,7 +716,6 @@ ecm_stage1_W (mpz_t f, ell_curve_t E, ell_point_t P, mpmod_t n,
 		    mpz_set_ui(f, (ecm_uint)p);
 		    status = ell_point_mul (f, Q, f, P, E, n);
 		    if(status == 0){
-			printf("GATO\n");
 		    }
 		    else if(E->law == ECM_LAW_HOMOGENEOUS){
 			if(E->type == ECM_EC_TYPE_TWISTED_HESSIAN)

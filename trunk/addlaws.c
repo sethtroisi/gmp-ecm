@@ -1265,7 +1265,7 @@ hessian_to_weierstrass(mpz_t f, mpres_t x, mpres_t y, mpres_t D, mpmod_t n)
     printf(", ");
     print_mpz_from_mpres(y, n);
     printf(", 1];\n");
-    printf("A:=");
+    printf("D:=");
     print_mpz_from_mpres(D, n);
     printf(";\n");
 #endif
