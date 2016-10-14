@@ -621,11 +621,12 @@ fi # tests for Hessian form
 ##### (disabled in revision 2764 since not tested enough)
 if [ 1 -eq 1 ]; then
 
-## plain case
+##### Z5
 echo 4722366482800925736961 | $ECM -torsion Z5 -sigma 2 1e5; checkcode $? 14
 ## a factor is to be found during initialization
 echo 12787261 | $ECM -torsion Z5 -sigma 1000 1e2; checkcode $? 14
 ## a factor is to be found during initialization in cubic_to_quartic
+##### Z7
 echo 123041 | $ECM -torsion Z7 -sigma 2 1e2; checkcode $? 14
 ## found factor during update of Q in Z7
 echo 376171002633197 | $ECM -torsion Z7 -sigma 5 1e2; checkcode $? 14
@@ -639,15 +640,41 @@ $ECM -resume test.ecm.save 1e3 1e8
 C=$?
 /bin/rm -f test.ecm.save
 checkcode $C 14
+##### Z9
 ## found factor during update of Q in Z9
 echo 874700000026241 | $ECM -torsion Z9 -sigma 7 1e2; checkcode $? 14
 ## found factor in Step 1
 echo 2432902008176640001 | $ECM -torsion Z9 -sigma 3 13000; checkcode $? 14
+## found factor in Z9 (cubic_2_quartic)
+echo 1007 | $ECM -torsion Z9 -sigma 7 1e2; checkcode $? 14
+##### Z10
 ## found factor in Step 1
 echo 2432902008176640001 | $ECM -torsion Z10 -sigma 3 320; checkcode $? 14
 ## skipping u=2
 echo 2432902008176640001 | $ECM -torsion Z10 -sigma 2 320; checkcode $? 14
+## found factor in Z10 (cubic_2_quartic)
+echo 1703 | $ECM -torsion Z10 -sigma 7 1e2; checkcode $? 14
+## inverse found in Z10 (d)
+echo 122473 | $ECM -torsion Z10 -sigma 7 1e2; checkcode $? 14
+##### Z2xZ8
 echo 2432902008176640001 | $ECM -torsion Z2xZ8 -sigma 2 1300; checkcode $? 14
+# found factor in Z2xZ8 (update of Q)
+echo 923 | $ECM -torsion Z2xZ8 -sigma 7 1e2; checkcode $? 14
+# found factor in Z2xZ8 (beta)
+echo 1963 | $ECM -torsion Z2xZ8 -sigma 7 1e2; checkcode $? 14
+# found factor in Z2xZ8 (d)
+echo 533 | $ECM -torsion Z2xZ8 -sigma 7 1e2; checkcode $? 14
+# found factor in Z2xZ8 (d2)
+echo 169 | $ECM -torsion Z2xZ8 -sigma 7 1e2; checkcode $? 14
+# found factor in Z2xZ8 (ma)
+echo 5776889 | $ECM -torsion Z2xZ8 -sigma 7 1e2; checkcode $? 14
+# found factor in Z2xZ8 (ma)
+echo 5776889 | $ECM -torsion Z2xZ8 -sigma 7 1e2; checkcode $? 14
+# found factor in Z2xZ8 (alpha)
+echo 3299173 | $ECM -torsion Z2xZ8 -sigma 8 1e2; checkcode $? 14
+##### Z4xZ4
+# Factor found during init of Z4xZ4 (b)
+echo 169 | $ECM -torsion Z4xZ4 -sigma 8 1e2; checkcode $? 14
 ## error on torsion group
 echo 2432902008176640001 | $ECM -torsion ZZ -sigma 2 1300; checkcode $? 1
 
