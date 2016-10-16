@@ -969,47 +969,45 @@ build_curves_with_torsion_Z2xZ8(mpz_t fac, mpmod_t n,
 	mod_from_rat2(wx0, fac, tmp, n->orig_modulus);
 	mpz_add(wx0, wx0, kx0);
 	mpz_mod(wx0, wx0, n->orig_modulus);
-	/* ma:=-1/4*(8*d^4-16*d^3+16*d^2-8*d+1)/(d-1)^2/d^2; */
-	mpz_sub_si(tmp, d, 1);    /* den */
-	mpz_mul(tmp, tmp, d);
-	mpz_mul(tmp, tmp, tmp);
-	mpz_mul_si(tmp, tmp, -4);
-	mpz_mod(tmp, tmp, n->orig_modulus);
-	mpz_set_si(fac, 8);         /* num */
-	mpz_mul(fac, fac, d); mpz_add_si(fac, fac, -16);
-	mpz_mul(fac, fac, d); mpz_add_si(fac, fac, 16);
-	mpz_mul(fac, fac, d); mpz_add_si(fac, fac, -8);
-	mpz_mul(fac, fac, d); mpz_add_si(fac, fac, 1);
-
-	/* to Montgomery form */
-	ell_curve_init(tE[nc], ECM_EC_TYPE_MONTGOMERY, ECM_LAW_HOMOGENEOUS,n);
-	ell_point_init(tP[nc], tE[nc], n);
-	if(mod_from_rat2(tE[nc]->a2, fac, tmp, n->orig_modulus) == 0){
-	    // iff d = 0 or 1 mod p
-            printf("found factor in Z2xZ8 (ma)\n");
-	    mpz_set(fac, tE[nc]->a2);
-            ret = ECM_FACTOR_FOUND_STEP1;
-            break;
-        }
-	/* not really needed, but useful for debug */
-	mpz_set_ui(tE[nc]->a4, 1);
-	mpz_set_ui(tE[nc]->a6, 0);
 	/* mb:=-1/(d-1)^2; */
 	mpz_sub_si(tmp, d, 1);
 	mpz_mul(tmp, tmp, tmp);
 	mpz_mod(tmp, tmp, n->orig_modulus);
+	mpz_neg(tmp, tmp);
 	if(mpz_invert(mb, tmp, n->orig_modulus) == 0){
-	    // only if d = 1 mod p, which will have forced ma to yield a
-	    // factor before that...!
-	    // TODO: rewrite to take this into account
 	    printf("found factor in Z2xZ8 (mb)\n");
 	    mpz_gcd(fac, tmp, n->orig_modulus);
             ret = ECM_FACTOR_FOUND_STEP1;
             break;
 	}
-	mpz_set_si(tmp, 0);
-	mpz_sub(tmp, tmp, mb);
-	mpz_mod(mb, tmp, n->orig_modulus);
+	/* ma:=-1/4*(8*d^4-16*d^3+16*d^2-8*d+1)/(d-1)^2/d^2; 
+	     :=mb*(8*d^4-16*d^3+16*d^2-8*d+1)/(4*d^2)
+	 */
+	mpz_set_si(fac, 8);         /* num */
+	mpz_mul(fac, fac, d); mpz_add_si(fac, fac, -16);
+	mpz_mul(fac, fac, d); mpz_add_si(fac, fac, 16);
+	mpz_mul(fac, fac, d); mpz_add_si(fac, fac, -8);
+	mpz_mul(fac, fac, d); mpz_add_si(fac, fac, 1);
+#if 0
+	mpz_sub_si(tmp, d, 1);    /* den */
+	mpz_mul(tmp, tmp, d);
+	mpz_mul(tmp, tmp, tmp);
+	mpz_mul_si(tmp, tmp, -4);
+	mpz_mod(tmp, tmp, n->orig_modulus);
+#else
+	mpz_mul(fac, fac, mb);
+	/* one day, we could save 1/d computation again */
+	mpz_mul(tmp, d, d);
+	mpz_mul_si(tmp, tmp, 4);
+#endif
+	/* to Montgomery form */
+	ell_curve_init(tE[nc], ECM_EC_TYPE_MONTGOMERY, ECM_LAW_HOMOGENEOUS,n);
+	ell_point_init(tP[nc], tE[nc], n);
+	/* this cannot yield a factor, since d is invertible at that point */
+	mod_from_rat2(tE[nc]->a2, fac, tmp, n->orig_modulus);
+	/* not really needed, but useful for debug */
+	mpz_set_ui(tE[nc]->a4, 1);
+	mpz_set_ui(tE[nc]->a6, 0);
 	/* mx:=mb*wx0-ma/3; */
 	mpz_mul(fac, mb, wx0);
         mpz_set_si(tmp, 3);
@@ -1097,19 +1095,14 @@ build_curves_with_torsion_Z3xZ3(mpz_t f, mpmod_t n,
             ret = ECM_FACTOR_FOUND_STEP1;
             break;
 	}
-#if DEBUG_TORSION >= 0
-	{
-	    int foo;
-
-	    gmp_printf("D:=%Zd; u:=%Zd; v:=%Zd;\n", D, u0, v0);
-	    foo = hessian_to_weierstrass(f, u0, v0, D, n);
-	    printf("foo:=%d;\n", foo);
-	    gmp_printf("N:=%Zd;\n", n->orig_modulus);
-	    gmp_printf("A:=%Zd; x:=%Zd; y:=%Zd;\n", D, u0, v0);
-	    printf("B:=(y^2-x^3-A*x) mod N;\n");
-	    exit(-1);
+	mpz_mul(num, D, D);
+	mpz_mul(num, num, D);
+	mpz_mod(num, num, n->orig_modulus);
+	if(mpz_cmp_ui(num, 1) == 0){
+	    printf("D^3=1 => singluar curve\n");
+	    ret = ECM_ERROR;
+	    break;
 	}
-#endif	
 	ell_curve_init_set(tE[nc],ECM_EC_TYPE_HESSIAN,ECM_LAW_HOMOGENEOUS,D,n);
 	ell_point_init(tP[nc], tE[nc], n);
 	mpz_set(tP[nc]->x, u0);
@@ -1277,7 +1270,10 @@ build_curves_with_torsion_Z4xZ4(mpz_t f, mpmod_t n, ell_curve_t *tE,
 	/* P = (x0, y0) is a point on Y^2 = X^3+A*X+B */
 
 	/* Montgomery form: there are several possible mb */
-	/* mb:=1/9/lambda^2/(tau^4-1); */
+	/* mb:=1/(9*lambda^2*(tau^4-1));
+	   lambda is invertible iff nu is;
+	   tau^4-1 = (tau-1)(tau+1)(tau^2+1)
+	*/
 	mpz_powm_ui(x0, tau, 4, n->orig_modulus);
 	mpz_sub_si(x0, x0, 1);
 	mpz_mod(x0, x0, n->orig_modulus);
@@ -1285,24 +1281,19 @@ build_curves_with_torsion_Z4xZ4(mpz_t f, mpmod_t n, ell_curve_t *tE,
 	mpz_mul(tmp, tmp, lambda);
 	mpz_mul_si(tmp, tmp, 9);
 	if(mpz_invert(b, tmp, n->orig_modulus) == 0){
-	    printf("Factor found during init of Z4xZ4 (b)\n");
+	    printf("Factor found during init of Z4xZ4 (mb)\n");
 	    mpz_gcd(f, tmp, n->orig_modulus);
 	    ret = ECM_FACTOR_FOUND_STEP1;
 	    break;
 	}
-	/* ma:=-2*(tau^4+1)/(tau^4-1); */
+	/* ma:=-2*(tau^4+1)/(tau^4-1); at this point: invertible! */
 	mpz_add_si(tmp, x0, 2);
 	mpz_mul_si(tmp, tmp, -2);
 	mpz_mod(tmp, tmp, n->orig_modulus);
         /* to Montgomery form */
         ell_curve_init(tE[nc], ECM_EC_TYPE_MONTGOMERY, ECM_LAW_HOMOGENEOUS, n);
         ell_point_init(tP[nc], tE[nc], n);
-	if(mod_from_rat2(tE[nc]->a4, tmp, x0, n->orig_modulus) == 0){
-	    printf("Factor found during init of Z4xZ4 (a)\n");
-	    mpz_set(f, tE[nc]->a4);
-	    ret = ECM_FACTOR_FOUND_STEP1;
-	    break;
-	}
+	mod_from_rat2(tE[nc]->a4, tmp, x0, n->orig_modulus);
 	/* now compute real x0 */
 	/* x0:=3*(3*nu^12+34*nu^10+117*nu^8+316*nu^6+1053*nu^4+2754*nu^2+2187); */
 	mpz_set_si(x0, 3);
