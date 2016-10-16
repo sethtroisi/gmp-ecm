@@ -652,6 +652,8 @@ echo 1007 | $ECM -torsion Z9 -sigma 7 1e2; checkcode $? 14
 echo 2432902008176640001 | $ECM -torsion Z10 -sigma 3 320; checkcode $? 14
 ## skipping u=2
 echo 2432902008176640001 | $ECM -torsion Z10 -sigma 2 320; checkcode $? 14
+## found factor during update of Q in Z10
+echo 871 | $ECM -torsion Z10 -sigma 9 1e2; checkcode $? 14
 ## found factor in Z10 (cubic_2_quartic)
 echo 1703 | $ECM -torsion Z10 -sigma 7 1e2; checkcode $? 14
 ## inverse found in Z10 (d)
@@ -666,15 +668,26 @@ echo 1963 | $ECM -torsion Z2xZ8 -sigma 7 1e2; checkcode $? 14
 echo 533 | $ECM -torsion Z2xZ8 -sigma 7 1e2; checkcode $? 14
 # found factor in Z2xZ8 (d2)
 echo 169 | $ECM -torsion Z2xZ8 -sigma 7 1e2; checkcode $? 14
-# found factor in Z2xZ8 (ma)
-echo 5776889 | $ECM -torsion Z2xZ8 -sigma 7 1e2; checkcode $? 14
-# found factor in Z2xZ8 (ma)
+# found factor in Z2xZ8 (mb)
 echo 5776889 | $ECM -torsion Z2xZ8 -sigma 7 1e2; checkcode $? 14
 # found factor in Z2xZ8 (alpha)
 echo 3299173 | $ECM -torsion Z2xZ8 -sigma 8 1e2; checkcode $? 14
+##### Z3xZ3
+## abnormal case
+echo 2432902008176640001 | $ECM -torsion Z3xZ3 -sigma 2 5; checkcode $? 8
+## found factor in Step 1 
+echo 2432902008176640001 | $ECM -torsion Z3xZ3 -sigma 3 1e5; checkcode $? 14
+## found factor in Z3xZ3 (D)
+echo 171523 | $ECM -torsion Z3xZ3 -sigma 11 1e5; checkcode $? 6
+## D^3=1 => singluar curve
+echo 217 | $ECM -torsion Z3xZ3 -sigma 11 1e5; checkcode $? 1
 ##### Z4xZ4
-# Factor found during init of Z4xZ4 (b)
+## found factor in Step 1
+echo 1022117 | $ECM -torsion Z4xZ4 -sigma 8 5; checkcode $? 14
+# Factor found during init of Z4xZ4 (mb)
 echo 169 | $ECM -torsion Z4xZ4 -sigma 8 1e2; checkcode $? 14
+# Factor found during init of Z4xZ4 (tau)
+echo 115 | $ECM -torsion Z4xZ4 -sigma 10 1e2; checkcode $? 14
 ## error on torsion group
 echo 2432902008176640001 | $ECM -torsion ZZ -sigma 2 1300; checkcode $? 1
 
