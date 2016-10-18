@@ -446,20 +446,29 @@ The options of Section 7 apply.
 Applications include using curves with some exotic prescribed torsion
 subgroup (see d below), or CM (Complex Multiplication) curves.
 
-c) with param = 6: curves in Hessian form
------------------------------------------
+c) with param = 6, 7: curves in (twisted) Hessian form
+------------------------------------------------------
+
+These curves have torsion group Z3xZ3 over Q(sqrt(-3)) and are useful when
+the prime factor p we are looking for is known to satisfy p = 1 mod 3. 
+Since p = 1 mod 3 is quite frequent, a try at this version is not unthinkable
+in general.
+
+Curves in projective Hessian form have equation 
+    X^3+Y^3+Z^3=D*X*Y*Z.
+They should be used with
+
+                 -param 6 -A <D> -x0 <x0> -y0 <y0>
+
+with D^3 mod N != 1, and (x0=X0/Z0, y0=Y0/Z0) is a base point on the curve.
 
 Curves in projective twisted Hessian form have equation 
     a*X^3+Y^3+Z^3=d*X*Y*Z.
-These curves have torsion group Z3xZ3 over
-Q(sqrt(-3)) and are useful when the prime factor p we are looking for
-is known to satisfy p = 1 mod 3. It should be used with
+They should be used with
 
-                 -A <D> -x0 <x0> -y0 <y0>
+                 -param 7 -A <D> -x0 <x0> -y0 <y0>
 
-where D=a/d and (x0=X0/Z0, y0=Y0/Z0) is a base point on the curve. Since
-p = 1 mod 3 is quite frequent, a try at this version is not unthinkable in
-general.
+where D=a/d and (x0=X0/Z0, y0=Y0/Z0) is a base point on the curve.
 
 Ref: JKL-ECM in proceedings ANTS-XII.
 

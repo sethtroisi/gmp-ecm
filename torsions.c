@@ -874,6 +874,7 @@ build_curves_with_torsion_Z2xZ8(mpz_t fac, mpmod_t n,
 	pt_print(E, Q, n);
 	printf(";\n");
 #endif
+	/* beta <- (y+25)/(x-9) */
 	mpres_get_z(a, Q->x, n);
 	mpres_get_z(b, Q->y, n);
 	mpz_mod(wx0, a, n->orig_modulus);
@@ -889,13 +890,16 @@ build_curves_with_torsion_Z2xZ8(mpz_t fac, mpmod_t n,
 	}
 	mpz_add_si(tmp, beta, 1);
 	mpz_mod(tmp, tmp, n->orig_modulus);
+	/* alpha <- 1/(beta+1) */
 	if(mpz_invert(alpha, tmp, n->orig_modulus) == 0){
             printf("found factor in Z2xZ8 (alpha)\n");
 	    mpz_gcd(fac, tmp, n->orig_modulus);
 	    ret = ECM_FACTOR_FOUND_STEP1;
             break;
 	}
-	/** d <- 8*alpha^2-1; **/
+	/** d <- 8*alpha^2-1; 
+	    d = -(beta^2+2*beta-7)/(beta+1)^2
+	 **/
 	mpz_mul(d, alpha, alpha);
 	mpz_mul_si(d, d, 8);
 	mpz_sub_si(d, d, 1);
@@ -952,12 +956,8 @@ build_curves_with_torsion_Z2xZ8(mpz_t fac, mpmod_t n,
 	mpz_mul(tmp, tmp, beta);
 	mpz_sub_si(tmp, tmp, 7);
 	mpz_mod(tmp, tmp, n->orig_modulus);
-	if(mod_from_rat2(ky0, fac, tmp, n->orig_modulus) == 0){
-            printf("found factor in Z2xZ8 (ky0)\n");
-	    mpz_set(fac, ky0);
-            ret = ECM_FACTOR_FOUND_STEP1;
-            break;
-        }
+	/* as proven above, we cannot have tmp non invertible at that point */
+	mod_from_rat2(ky0, fac, tmp, n->orig_modulus);
 	KW2W246(fac, a, NULL, b, c, n->orig_modulus, 0);
 #if DEBUG_TORSION >= 2
 	gmp_printf("kwx0:=%Zd;\n", kx0);
@@ -1120,7 +1120,7 @@ build_curves_with_torsion_Z3xZ3(mpz_t f, mpmod_t n,
     return ret;
 }
 
-/* For a small price, add a 2-torsion point. */
+/* For a small price, add a 2-torsion point, also over Q(sqrt(-3)). */
 int
 build_curves_with_torsion_Z3xZ6(mpz_t f, mpmod_t n, 
 				ell_curve_t *tE, ell_point_t *tP,
@@ -1192,6 +1192,7 @@ build_curves_with_torsion_Z3xZ6(mpz_t f, mpmod_t n,
 	ell_curve_init(tE[nc], ECM_EC_TYPE_HESSIAN, ECM_LAW_HOMOGENEOUS, n);
 	ell_point_init(tP[nc], tE[nc], n);
 	if(mod_from_rat2(tE[nc]->a4, num, den, n->orig_modulus) == 0){
+	    /* only if t = 0, which seems hard */
             printf("found factor in Z3xZ6 (D)\n");
             mpz_set(f, tE[nc]->a4);
             ret = ECM_FACTOR_FOUND_STEP1;
@@ -1200,13 +1201,10 @@ build_curves_with_torsion_Z3xZ6(mpz_t f, mpmod_t n,
 #if DEBUG_TORSION >= 1
 	gmp_printf("D%d:=%Zd;\n", nc, tE[nc]->a4);
 #endif
-	/* u0:=RatMod(sk/tk, N); */
-	if(mod_from_rat2(tP[nc]->x, sk, tk, n->orig_modulus) == 0){
-            printf("found factor in Z3xZ6 (u0)\n");
-            mpz_set(f, tP[nc]->x);
-            ret = ECM_FACTOR_FOUND_STEP1;
-            break;
-        }
+	/* u0:=RatMod(sk/tk, N); 
+	   if tk was not invertible, it would have been caught before
+	 */
+	mod_from_rat2(tP[nc]->x, sk, tk, n->orig_modulus);
 	/* v0:=-1; */
 	mpz_sub_si(tP[nc]->y, n->orig_modulus, 1);
         mpz_set_ui(tP[nc]->z, 1);
