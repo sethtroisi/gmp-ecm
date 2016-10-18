@@ -681,6 +681,13 @@ echo 2432902008176640001 | $ECM -torsion Z3xZ3 -sigma 3 1e5; checkcode $? 14
 echo 171523 | $ECM -torsion Z3xZ3 -sigma 11 1e5; checkcode $? 6
 ## D^3=1 => singluar curve
 echo 217 | $ECM -torsion Z3xZ3 -sigma 11 1e5; checkcode $? 1
+##### Z3xZ6
+## found factor in Step 1
+echo 2432902008176640001 | $ECM -torsion Z3xZ6 -sigma 11 1e3; checkcode $? 14
+## found factor in Z3xZ6 (update of Q)
+echo 101303039 | $ECM -torsion Z3xZ6 -sigma 1014 1e5; checkcode $? 14
+## found factor in Z3xZ6 (D)
+echo 115 | $ECM -torsion Z3xZ6 -sigma 10 1e5; checkcode $? 14
 ##### Z4xZ4
 ## found factor in Step 1
 echo 1022117 | $ECM -torsion Z4xZ4 -sigma 8 5; checkcode $? 14
