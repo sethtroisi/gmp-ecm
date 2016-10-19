@@ -1404,7 +1404,7 @@ main (int argc, char *argv[])
 		}
 	      else if (params->param == ECM_PARAM_TWISTED_HESSIAN)
 		{
-		    /* use a*x^3+y^3+1=d*x*y with A=a/d -- trick! */
+		    /* use a*x^3+y^3+1=d*x*y with A=a^3/d -- trick! */
 		    mpz_set (params->E->a4, numer_A);
 		    mpz_set (params->E->a6, denom_A);
 		    mpz_clear(numer_A);
