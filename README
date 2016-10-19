@@ -468,7 +468,7 @@ They should be used with
 
                  -param 7 -A <D> -x0 <x0> -y0 <y0>
 
-where D=a/d and (x0=X0/Z0, y0=Y0/Z0) is a base point on the curve.
+where D=a^3/d and (x0=X0/Z0, y0=Y0/Z0) is a base point on the curve.
 
 Ref: JKL-ECM in proceedings ANTS-XII.
 
