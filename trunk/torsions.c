@@ -450,11 +450,14 @@ build_curves_with_torsion_Z7(mpz_t fac, mpmod_t n,
     mpz_init(kx0);
     mpz_init(ky0);
     ell_point_init(Q, E, n);
-    for(u = umin; u < umax; u++){
-	/* update Qaux */
-	mpz_set_ui(d, u);
-	/* TODO: replace with ell_point_add, one of these days */
-	if(ell_point_mul(fac, Q, d, P, E, n) == 0){
+    mpz_set_si(d, umin-1);
+    if(ell_point_mul(fac, Q, d, P, E, n) == 0){
+	printf("found factor during init of Q in Z7\n");
+	ret = ECM_FACTOR_FOUND_STEP1;
+    }
+    for(u = umin; (ret != ECM_FACTOR_FOUND_STEP1) && u < umax; u++){
+	/* update Q */
+	if(ell_point_add(fac, Q, P, Q, E, n) == 0){
 	    printf("found factor during update of Q in Z7\n");
 	    ret = ECM_FACTOR_FOUND_STEP1;
 	    break;
@@ -580,10 +583,14 @@ build_curves_with_torsion_Z9(mpz_t fac, mpmod_t n, ell_curve_t *tE,
     mpz_init(kx0);
     mpz_init(ky0);
     ell_point_init(Q, E, n);
-    for(u = umin; u < umax; u++){
-	/* update Qaux */
-	mpz_set_ui(d, u);
-        if(ell_point_mul(fac, Q, d, P, E, n) == 0){
+    mpz_set_si(d, umin-1);
+    if(ell_point_mul(fac, Q, d, P, E, n) == 0){
+	printf("found factor during init of Q in Z9\n");
+	ret = ECM_FACTOR_FOUND_STEP1;
+    }
+    for(u = umin; (ret != ECM_FACTOR_FOUND_STEP1) && u < umax; u++){
+	/* update Q */
+	if(ell_point_add(fac, Q, P, Q, E, n) == 0){
 	    printf("found factor during update of Q in Z9\n");
 	    ret = ECM_FACTOR_FOUND_STEP1;
 	    break;
@@ -714,7 +721,7 @@ build_curves_with_torsion_Z10(mpz_t fac, mpmod_t n, ell_curve_t *tE,
 	if(forbidden("Z10", u))
 	    continue;
 	/* update Qaux */
-	mpz_set_ui(d, u);
+	mpz_set_si(d, u);
 	if(ell_point_mul(fac, Q, d, P, E, n) == 0){
 	    printf("found factor during update of Q in Z10\n");
 	    ret = ECM_FACTOR_FOUND_STEP1;
@@ -861,11 +868,15 @@ build_curves_with_torsion_Z2xZ8(mpz_t fac, mpmod_t n,
     mpz_set_ui(P->z, 1);
 
     ell_point_init(Q, E, n);
-    for(u = umin; u < umax; u++){
-	/* update Qaux */
-	mpz_set_ui(d, u);
-	if(ell_point_mul(fac, Q, d, P, E, n) == 0){
-	    printf("found factor in Z2xZ8 (update of Q)\n");
+    mpz_set_si(d, umin-1);
+    if(ell_point_mul(fac, Q, d, P, E, n) == 0){
+	printf("found factor during init of Q in Z2xZ8\n");
+	ret = ECM_FACTOR_FOUND_STEP1;
+    }
+    for(u = umin; (ret != ECM_FACTOR_FOUND_STEP1) && u < umax; u++){
+	/* update Q */
+	if(ell_point_add(fac, Q, P, Q, E, n) == 0){
+	    printf("found factor during update of Q in Z2xZ8\n");
 	    ret = ECM_FACTOR_FOUND_STEP1;
 	    break;
 	}
@@ -1152,7 +1163,7 @@ build_curves_with_torsion_Z3xZ6(mpz_t f, mpmod_t n,
     ell_point_init(Q, E, n);
     for(u = umin; u < umax; u++){
 	/* update Qaux */
-	mpz_set_ui(f, u);
+	mpz_set_si(f, u);
 	if(ell_point_mul(f, Q, f, P, E, n) == 0){
 	    printf("found factor in Z3xZ6 (update of Q)\n");
 	    ret = ECM_FACTOR_FOUND_STEP1;
@@ -1248,7 +1259,7 @@ build_curves_with_torsion_Z4xZ4(mpz_t f, mpmod_t n, ell_curve_t *tE,
     mpz_init(b);
     mpz_init(x0);
     for(nu = smin; nu < smax; nu++){
-	mpz_set_ui(nu2, nu*nu);
+	mpz_set_si(nu2, nu*nu);
 	/* tau:=(nu^2+3)/2/nu; */
 	mpz_add_si(lambda, nu2, 3);
 	mpz_set_si(tmp, 2*nu);
@@ -1387,7 +1398,7 @@ build_curves_with_torsion2(mpz_t f, mpz_t n, ell_curve_t E,
     int ret, smin, smax;
 
     smin = (int)mpz_get_si(sigma);
-    smax = 10*smin;
+    smax = smin+10;
     mpmod_init(modulus, n, ECM_MOD_DEFAULT);
     ret = build_curves_with_torsion(f, modulus, tE, tP, torsion, smin, smax,1);
     if(ret == ECM_NO_FACTOR_FOUND){
