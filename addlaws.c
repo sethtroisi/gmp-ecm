@@ -116,7 +116,7 @@ pt_w_duplicate(mpz_t f, mpres_t x3, mpres_t y3, mpres_t z3,
 	       mpres_t x1, mpres_t y1, mpres_t z1,
 	       mpmod_t n, ell_curve_t E)
 {
-    if(pt_w_is_zero(z1, n)){
+    if(pt_w_is_zero(z1, n) == 1){
       pt_w_set(x3, y3, z3, x1, y1, z1, n);
       return 1;
     }
@@ -315,45 +315,6 @@ pt_w_sub(mpz_t f, mpres_t x3, mpres_t y3, mpres_t z3,
 	res = pt_w_add(f, x3, y3, z3, x1, y1, z1, x2, E->buf[3], z2, n, E);
     }
     return res;
-}
-
-/* Checks that x1/z1 = x2/z2 and y1/z1 = y2/z2.
-   OUTPUT: 1 if equals, 0 otherwise.
- */
-int
-pt_w_cmp(mpres_t x1, mpres_t y1, mpres_t z1,
-	 mpres_t x2, mpres_t y2, mpres_t z2,
-	 mpmod_t n)
-{
-    if(pt_w_is_zero(z1, n))
-	return pt_w_is_zero(z2, n);
-    else if(pt_w_is_zero(z2, n))
-	return pt_w_is_zero(z1, n);
-    else{
-	mpres_t tmp1, tmp2;
-	int cmp = 1;
-
-	mpres_init(tmp1, n);
-	mpres_init(tmp2, n);
-	mpres_mul(tmp1, x1, z2, n);
-	mpres_mul(tmp2, x2, z1, n);
-	mpres_sub(tmp1, tmp1, tmp2, n);
-	if(mpres_is_zero(tmp1, n) == 0){
-	    printf("x1/z1 != x2/z2\n");
-	    cmp = 0;
-	}
-	else{
-	    mpres_mul(tmp1, y1, z2, n);
-	    mpres_mul(tmp2, y2, z1, n);
-	    mpres_sub(tmp1,tmp1, tmp2, n);
-	    cmp = mpres_is_zero(tmp1, n);
-	    if(cmp == 0)
-		printf("y1/z1 != y2/z2\n");
-	}
-	mpres_clear(tmp1, n);
-	mpres_clear(tmp2, n);
-	return cmp;
-    }
 }
 
 /******************** projective Hessian form ********************/
@@ -1050,6 +1011,7 @@ ell_curve_print(ell_curve_t E, mpmod_t n)
     }
 }
 
+/* OUTPUT: 1 if P = O_E, 0 otherwise. */
 int
 ell_point_is_zero(ell_point_t P, ell_curve_t E, mpmod_t n)
 {
@@ -1059,7 +1021,7 @@ ell_point_is_zero(ell_point_t P, ell_curve_t E, mpmod_t n)
 	return hessian_is_zero(P, E, n);
     else if(E->type == ECM_EC_TYPE_TWISTED_HESSIAN)
 	return twisted_hessian_is_zero(P, E, n);
-    return 0;
+    return -1;
 }
 
 void
@@ -1194,6 +1156,7 @@ ell_point_equal(ell_point_t P, ell_point_t Q, ell_curve_t E, mpmod_t n)
     return ret;
 }
 
+/* OUTPUT: 1 if everything ok, 0 otherwise */
 int
 ell_point_add(mpz_t f, ell_point_t R, ell_point_t P, ell_point_t Q, ell_curve_t E, mpmod_t n)
 {
@@ -1243,7 +1206,10 @@ ell_point_duplicate(mpz_t f, ell_point_t R, ell_point_t P, ell_curve_t E, mpmod_
 void
 ell_point_negate(ell_point_t P, ell_curve_t E, mpmod_t n)
 {
-    if(ell_point_is_zero(P, E, n) != 0){
+#if DEBUG_ADD_LAWS >= 2
+    printf("P:="); ell_point_print(P, E, n); printf(";\n");
+#endif
+    if(ell_point_is_zero(P, E, n) == 0){
 	if(E->type == ECM_EC_TYPE_WEIERSTRASS){
 	    if(E->law == ECM_LAW_HOMOGENEOUS){
 		/* FIXME: does not work for complete equation! */
@@ -1265,6 +1231,9 @@ ell_point_negate(ell_point_t P, ell_curve_t E, mpmod_t n)
 	else if(E->type == ECM_EC_TYPE_TWISTED_HESSIAN)
 	    twisted_hessian_negate(P, E, n);
     }
+#if DEBUG_ADD_LAWS >= 2
+    printf("neg(P):="); ell_point_print(P, E, n); printf(";\n");
+#endif
 }
 
 /* Q <- [e]*P
@@ -1278,7 +1247,7 @@ ell_point_mul_plain (mpz_t f, ell_point_t Q, mpz_t e, ell_point_t P, ell_curve_t
   int negated = 0, status = 1;
   ell_point_t P0;
 
-  if(ell_point_is_zero(P, E, n)){
+  if(ell_point_is_zero(P, E, n) != 0){
       ell_point_set(Q, P, E, n);
       return 1;
   }
@@ -1289,7 +1258,6 @@ ell_point_mul_plain (mpz_t f, ell_point_t Q, mpz_t e, ell_point_t P, ell_curve_t
       return 1;
     }
 
-  /* The negative of a point (x:y:z) is (x:-y:z) */
   if (mpz_sgn (e) < 0)
     {
       negated = 1;
